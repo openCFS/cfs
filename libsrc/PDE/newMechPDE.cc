@@ -751,11 +751,19 @@ Double MechPDE::LineSearch(std::vector<Double>& solIncrement, std::vector<Double
 
       // recalculate RHS with new values to get new residual (f^(k+1))========
       algsys_->InitRHS();
-      assemble_->AssembleSrcRHS(level);
-      assemble_->AssembleNLRHS(level);
+
       if(trans)
-	TS_alg_->UpdateRHS(actSol);
-      
+	{
+	  assemble_->AssembleSrcRHS(level, lasttimecalc_);
+	  assemble_->AssembleNLRHS(level, lasttimecalc_);
+	  TS_alg_->UpdateRHS(actSol);
+	}
+      else
+	{
+	  assemble_->AssembleSrcRHS(level);
+	  assemble_->AssembleNLRHS(level);
+	}
+
 
       // =====================================================================
       // calculation of error norms

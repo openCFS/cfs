@@ -78,7 +78,8 @@ public:
 
 
   /// perform on every pde a pre step (before solving transient step
-  virtual void PreStepTrans(const Integer level, const Boolean reset);
+  virtual void PreStepTrans(const Integer kstep, const Double asteptime, 
+			    const Integer level, const Boolean reset);
 
   /// perform on every pde a post step (after solving transient step
   virtual void PostStepTrans(const Integer level);
