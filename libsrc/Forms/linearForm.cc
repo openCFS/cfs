@@ -578,7 +578,7 @@ void PressureLinForm::CalcElemVector(Matrix<Double>& ptCoord,
     }
   else 
     {
-      //compute the two vectors in th plane
+      //compute the two vectors in the plane
       Vector<Double> vec1(3), vec2(3);
       for (Integer i=0; i<dim; i++) {
 	vec1[i] = ptCoord[i][1] - ptCoord[i][0];
@@ -621,8 +621,6 @@ void PressureLinForm::CalcElemVector(Matrix<Double>& ptCoord,
 	    elemVec[j*nrNodes+i] -= helpVec[j];
 	}
     }
-  std::cout << "elemVec: " << elemVec << std::endl;
-  
 
 } // end of method
 

@@ -1534,13 +1534,15 @@ void MechPDE::PostProcess(const Integer level) {
       Stress_.SetNumSolutions(1);
       Stress_.SetSolutionType(MECH_STRESS);
       Stress_.SetNumElems(numElems_);
-      Stress_.SetNumDofs(stressDim);
+      Stress_.SetNumDofs(6);
       Stress_.SetPtrEQNData(eqnData_, ptgrid_, actlevel_);
       Stress_.Init(0);
       
-      Vector<Double> elemStress;
+      Vector<Double> elemStress, sortedStress;
       elemStress.Resize(stressDim);
       elemStress.Init(0);
+      sortedStress.Resize(6);
+
       
       // loop over all subdomains
       for (Integer isd=0; isd<subdoms_.GetSize(); isd++) {
@@ -1587,8 +1589,8 @@ void MechPDE::PostProcess(const Integer level) {
 
 	  //calculates the stress
 	  stress->CalcStressVec(elemStress,1,ptCoord);
-	  
-	  Stress_.SetElemResult(pdeElem-1, elemStress);
+	  sortStresses(elemStress,sortedStress);
+  	  Stress_.SetElemResult(pdeElem-1, sortedStress);
 	}
       }
     }

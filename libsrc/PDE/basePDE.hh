@@ -332,6 +332,8 @@ class SpaceErrorEstimator;
     /// calc the normal vector of an interface element (outwards of the pde subdobmain
     void CalcLineNormalVec(Vector<Double>& n, const Elem& interfaceElem, const Elem& neighbour);
 
+    //!
+    void sortStresses(Vector<Double>& unsorted, Vector<Double>& sorted);
 
     // ======================================================
     // DATA SECTION
