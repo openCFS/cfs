@@ -77,9 +77,14 @@ BEGIN {
    # parse .nodes file
    while((getline < NodesInFile) == 1) {
 #     print $1, $2, $3, $4 >> NodesOutFile;
+      x = substr($0,9,28)+0;
+      y = substr($0,29,48)+0;
+      z = substr($0,49,68)+0;
+      if (Dimension < 3 && z != 0) Dimension = 3;
+      else if (Dimension < 2 && y != 0) Dimension = 2;
+      else if (Dimension < 1 && x != 0) Dimension = 2;
       printf("%8d % .13e % .13e % .13e\n",\
-             substr($0, 1, 8)+0, substr($0,9,28)+0, substr($0,29,48)+0,\
-             substr($0,49,68)+0) >> NodesOutFile;
+             substr($0, 1, 8)+0, x, y, z) >> NodesOutFile;
       NumNodes++;
    }
    if (NumNodes == 0) {
@@ -229,10 +234,6 @@ BEGIN {
    # ================ write mesh file ===================
 
    if (DEBUG) print "writing .mesh ..." > "/dev/stderr";
-
-   if (Num3DElements > 0) Dimension = 3;
-   else if (Num2DElements > 0) Dimension = 2;
-   else if (Num1DElements > 0) Dimension = 1;
 
    # write [info] section
    print "[Info]" > MeshFile;
