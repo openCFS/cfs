@@ -218,9 +218,14 @@ void Assemble::AssembleMatrices(const Integer level)
 									  connect_PDE.GetSize(), destMat);
 		  }
 		  else {
-			//std::cerr << "Setting Element matrix " << std::endl << elemmat << std::endl;
-			//std::cerr << "Connect" << connect_PDE << std::endl;
-			//std::cerr << destMat << std::cerr;
+// 			// output matrices
+// 			if (destMat == STIFFNESS)
+// 			  std::cerr << "Stiffness matrix:" << std::endl;
+// 			if (destMat == MASS)
+// 			  std::cerr << "Mass matrix:" << std::endl;
+// 			if (destMat == DAMPING)
+// 			  std::cerr << "Damping matrix:" << std::endl;
+// 			std::cerr << elemmat << "Connect" << connect_PDE << std::endl;
 	      
 			algsys_->SetElementMatrix(elemmat.GetDataPointer(), connect_PDE.GetPointer(), 
 									  connect_PDE.GetSize(), destMat);

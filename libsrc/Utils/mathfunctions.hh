@@ -6,11 +6,12 @@
 
 namespace CoupledField
 {
-  Double gammaln(Double xx);
   //! Returns the value ln[gamma(xx)] for xx > 0
   /*!
     \param real value greater zero
   */
+  Double gammaln(Double xx);
+
 
   //! Determines approximative the eigenvalues of a symmetric positive matrix MAT
   /*!

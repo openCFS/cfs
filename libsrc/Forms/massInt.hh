@@ -6,30 +6,34 @@
 namespace CoupledField
 {
 
-  /// Class for calculation  element stiffness matrix
+  //! Class for calculation  element mass matrix
 class MassInt : public BaseForm
 {
 public:
-  /// Constructor
+  // Constructor
   MassInt(BaseFE * aptelemt, Double aDensity, Boolean axi=FALSE);
 
-  /// Constructor
+  // Constructor
   MassInt(const Double aDensity, const Integer nrDofsPerNode=1, Boolean axi=FALSE);
 
-  /// Constructor
+  // Constructor
   MassInt(const Double aDensity, const Integer nrDofsPerNode, Integer dofzero, Boolean axi);
 
-  /// Destructor
+  // Destructor
   virtual ~MassInt();
 
-  /// Calculation of stiffmess matrix
+  //! Calculation of stiffmess matrix
   void CalcElementMatrix(Matrix<Double> & ptCoord, Matrix<Double> & elemMa);
 
-  ///
+  //! for fractional damping model, is called in AcousticPDE::DefineIntegrators
   virtual void SetFracDamping() 
   {isFracDamping_ = TRUE;};
+
+  //! for fractional damping model, is called in AcousticPDE::DefineIntegrators
+  virtual void UnsetFracDamping() 
+  {isFracDamping_ = FALSE;};
   
-  //
+  //! set pre factor of mass matrix
   virtual void SetFactor(Double factor) 
   {density_ = factor;};
    
@@ -45,9 +49,9 @@ protected:
   
 
 private:
-  // multiplicative value for mass integrator
-  Double density_;
-  Integer nrDofsPerNode_;
+
+  Double density_;          //!< multiplicative value for mass integrator
+  Integer nrDofsPerNode_;   //!< degrees of freedom pre node
   Integer dofzero_;
   
 };

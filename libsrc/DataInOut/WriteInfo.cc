@@ -703,7 +703,7 @@ namespace CoupledField
     } while(foundPos != std::string::npos);
 
     if (cfsInfo)
-      // *cfsInfo << formatted << std::endl << std::flush;
+      //*cfsInfo << formatted << std::endl << std::flush;
       *cfsInfo << formatted << std::flush;
     
     va_end(argList);
