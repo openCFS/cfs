@@ -361,12 +361,6 @@ class SpaceErrorEstimator;
     /// returns the vector of time derivative of the solution belonging to all nodes of the actual element
     void GetDerivSolVecOfElement(Vector<Double>& sol, StdVector<Integer>& connect_PDE);
 
-    /// calc the normal vector of a line element (for acoustic coupling)
-    void CalcLineNormalVec(Vector<Double>& n, Matrix<Double>& ptCoord);
-  
-    /// calc the normal vector of an interface element (outwards of the pde subdobmain
-    void CalcLineNormalVec(Vector<Double>& n, const Elem& interfaceElem, const Elem& neighbour);
-
     //!
     void sortStresses(Vector<Double>& unsorted, Vector<Double>& sorted);
     void sortStresses(Vector<Complex>& unsorted, Vector<Complex>& sorted);
