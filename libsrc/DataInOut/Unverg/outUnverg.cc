@@ -159,7 +159,7 @@ void  WriteResultsUnverg::Dataset780(const Integer level)
 
 void  WriteResultsUnverg::Dataset55(const std::string & title, const Vector<Double> & x, const Integer step, const Double time, const Integer nrDofs)
 {
-  const Integer nrBlankLinesIn55 = 8;
+  const Integer nrBlankLinesIn55 = 4;
   
   //
   if (!ptgrid)
@@ -213,7 +213,7 @@ void  WriteResultsUnverg::Dataset55(const std::string & title, const Vector<Doub
 
 void  WriteResultsUnverg::Write56Header(const std::string & title, const Integer step, const Double time)
 {
-  const Integer nrBlankLinesIn56 = 8;
+  const Integer nrBlankLinesIn56 = 4;
   //
   if (!ptgrid)
      Error("ptgrid is not initialized", __FILE__,__LINE__);
@@ -243,10 +243,11 @@ void  WriteResultsUnverg::Write56Header(const std::string & title, const Integer
 void  WriteResultsUnverg::Dataset56(const std::string & title, const Vector<Double> & x, const Integer step, const Double time)
 {
   Write56Header(title, step+1, time);
-  
 
   Integer i,n;
   n=x.size();  
+  output->width(13);
+  
   for (i=0; i<n; i++)
     (*output) << std::setw(10) << i+1 << std::setw(10) << 3 << std::endl << "   " << 0.0 << "    " << 0.0 << "   " << x[i] << std::endl;
   
@@ -261,10 +262,11 @@ void  WriteResultsUnverg::Dataset56(const std::string & title, const Matrix<Doub
 {
   Write56Header(title, step+1, time);
 
-  const Integer  nrRows = x.size_row();  
-  for (Integer i=0; i<nrRows; i++)
+  const Integer  nrLines = x.size_col();  
+  for (Integer i=0; i<nrLines; i++)
     (*output) << std::setw(10) << i+1 << std::setw(10) << 3 << std::endl 
-	      << "   " << x[i][0] << "    " << x[i][1] << "   " << x[i][2] << std::endl;
+	      << std::setw(13) << x[0][i] << std::setw(13) << x[1][i] 
+	      << std::setw(13) << x[2][i] << std::endl;
   
   (*output) << std::setw(6) << -1 << std::endl;
 }  
@@ -324,10 +326,13 @@ void  WriteResultsUnverg::WriteDataOnCell(const Vector<Double> & sol, const Inte
 
 void  WriteResultsUnverg::WriteDataOnCell(const Matrix<Double> & sol, const Integer step, const Double time, const std::string title)
 {
-  if (title == "magnetic field density") 
-    Dataset56(title, sol, step+1, time);
-  else 
-    Warning("This cell-data is not printed, since this type is not supported!",__FILE__,__LINE__);
+  if (title == "mag. flux density") 
+    Dataset56(title, sol, step, time);
+  else
+    if (title == "eddy current") 
+      Dataset56(title, sol, step, time);
+    else 
+      Warning("This cell-data is not printed, since this type is not supported!",__FILE__,__LINE__);
 }
 
 } // end of namespace

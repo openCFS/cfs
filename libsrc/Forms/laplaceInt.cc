@@ -61,16 +61,6 @@ namespace CoupledField
 	
 	partElemMat *= intWeights[actIntPt-1] * jacDet * laplVal_;
 
-#ifdef DEBUG 
-	(*debug) << "Partelemmat on intPt " << actIntPt << std::endl
-		 << partElemMat << std::endl
-		 << "xiDx \n" << xiDx
-		 << "\n xiDxTransp \n " << xiDxTransp 
-		 << "\n intWeights " << intWeights[actIntPt-1]
-		 << "\n jacDet " << jacDet << std::endl
-		 << "\n jacDetOrig " << ptelem->CalcJacobianDetAtIp(actIntPt,ptCoord) << std::endl;
-#endif
-
 	elemMat += partElemMat;
       }
   

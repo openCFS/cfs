@@ -302,4 +302,15 @@ void BaseFE::CalcEdgeShapeFncAtIp(Matrix<Double> & shape,
 }
 
 
+void BaseFE::GetGlobalEdgeIndices(std::vector<Integer> & globEdgeIndex,
+					  Integer * pDENodes, BaseSystem * algsys)
+{
+  // define the global edge number
+  for(Integer actEdge=0; actEdge < globEdgeIndex.size(); actEdge++)
+    globEdgeIndex[actEdge] = 
+      algsys->GetNode2Edge(pDENodes[ edgeVertices_[actEdge][0]],
+			   pDENodes[ edgeVertices_[actEdge][1]]);
+}
+
+
 } // end namespace CoupledField

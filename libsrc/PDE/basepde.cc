@@ -152,8 +152,8 @@ void BasePDE::SetupMatrixGraph(Integer numeq, Integer graphtype)
 	  fe_type=elemssd[iel]->ptElem->feType();
 	  algsys_->SetElementPos(connecth.get(),connecth.size(),fe_type);
 #ifdef DEBUG
-	  (*cla) << "Nodes to AlgSys, Element: " << iel+1 << std::endl;
-	  (*cla) << connecth << std::endl;
+	  (*debug) << "Nodes to AlgSys, Element: " << iel+1 << std::endl;
+	  (*debug) << connecth << std::endl;
 #endif
 	}
     }
@@ -325,10 +325,10 @@ void BasePDE::Mesh2PDENode(Vector<Integer> & PDENodes, Vector<Integer> & MeshNod
     PDENodes[i] = Mesh2PDENode_[MeshNodes[i]-1];
 
 #ifdef DEBUG
-  (*cla) << "--------------------" << std::endl;
-  (*cla) << " Mesh2PDENode()" << std::endl;
+  (*debug) << "--------------------" << std::endl;
+  (*debug) << " Mesh2PDENode()" << std::endl;
   for (Integer i=0; i<MeshNodes.size(); i++)
-    (*cla) << "in: " << MeshNodes[i] << " out: " << PDENodes[i] << std::endl;
+    (*debug) << "in: " << MeshNodes[i] << " out: " << PDENodes[i] << std::endl;
 #endif
 }
 
@@ -344,10 +344,10 @@ void BasePDE::PDE2MeshNode(Vector<Integer> & MeshNodes, Vector<Integer> & PDENod
     MeshNodes[i] = PDE2MeshNode_[PDENodes[i]-1];
 
 #ifdef DEBUG
-  (*cla) << "--------------------" << std::endl;
-  (*cla) << " PDE2MeshNode()" << std::endl;
+  (*debug) << "--------------------" << std::endl;
+  (*debug) << " PDE2MeshNode()" << std::endl;
   for (Integer i=0; i<PDENodes.size(); i++)
-    (*cla) << "in: " << PDENodes[i] << " out: " << MeshNodes[i] << std::endl;
+    (*debug) << "in: " << PDENodes[i] << " out: " << MeshNodes[i] << std::endl;
 #endif
 }
 

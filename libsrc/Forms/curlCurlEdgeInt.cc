@@ -71,22 +71,13 @@ namespace CoupledField
  	partElemMat *= intWeights[actIntPt-1] * jacDet * reluctivity_;
 
 	elemMat += partElemMat;
-
-#ifdef DEBUG 
-	(*debug) << "CurlCurlEdgeInt: Partelemmat on intPt " << actIntPt << std::endl
-		 << partElemMat << std::endl
-		 << "\n intWeights " << intWeights[actIntPt-1]
-		 << "\n jacDet " << jacDet << std::endl
-		 << "\n reluctivity " << reluctivity_
-		 << "\n xiDx[o] \n" << *xiDx[0]
-		 << "\n curl \n " << curl << std::endl;
-#endif
       }
     
 
 #ifdef DEBUG 
-	(*debug) << "CurlCurlEdgeInt: ElemMat " << std::endl
-		 << elemMat << std::endl
+// 	(*debug) << "CurlCurlEdgeInt: ElemMat " << std::endl
+// 		 << elemMat << std::endl
+// 		 << "\n reluctivity " << reluctivity_ << std::endl;
 #endif
 
 

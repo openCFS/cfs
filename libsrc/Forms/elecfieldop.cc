@@ -181,6 +181,7 @@ void CurlEdgeOp::CalcElemCurlEdge(Vector<Double> & curlField,
   std::vector<Double> sol(nrEdges);
   // global edge index
   std::vector<Integer> epos(nrEdges);
+  std::vector<Integer> esign(nrEdges);
 
 
   Vector<Integer> pos(nrNodes);
@@ -188,12 +189,8 @@ void CurlEdgeOp::CalcElemCurlEdge(Vector<Double> & curlField,
   for (Integer i=0; i < nrNodes; i++)
      pos[i] = (*ptMesh2PDENode_)[ptElement->connect[i]-1];
   
-  epos[0] = algsys_->GetNode2Edge(pos[3], pos[0]);
-  epos[1] = algsys_->GetNode2Edge(pos[3], pos[1]);
-  epos[2] = algsys_->GetNode2Edge(pos[3], pos[2]);
-  epos[3] = algsys_->GetNode2Edge(pos[0], pos[1]);
-  epos[4] = algsys_->GetNode2Edge(pos[0], pos[2]);
-  epos[5] = algsys_->GetNode2Edge(pos[1], pos[2]);
+  ptElement->ptElem->GetGlobalEdgeIndices(epos, &pos[0], algsys_);
+
 
 #ifdef DEBUG
   (*debug) << "CurlOP pos \n" << pos << std::endl
@@ -203,8 +200,9 @@ void CurlEdgeOp::CalcElemCurlEdge(Vector<Double> & curlField,
 
   for (Integer j=0; j<nrEdges; j++)
     {
+      esign[j] = epos[j]/abs(epos[j]);
       epos[j]  = abs(epos[j]);
-      sol[j] = (*sol_)[epos[j]-1] ; //* (Double)(epos[j]/abs(epos[j]));
+      sol[j] = (*sol_)[epos[j]-1] * esign[j];
     }
   
   
@@ -217,6 +215,69 @@ void CurlEdgeOp::CalcElemCurlEdge(Vector<Double> & curlField,
 	curlField[i] += curlOnEdges[i][j] * sol[j];
     }
   
+}
+
+
+
+
+void CurlEdgeOp::CalcElemMagVec(Vector<Double> & magVecPot, 
+				const Elem * ptElement,
+				const std::vector<Double> & lCoord)
+{
+#ifdef TRACE
+  (*trace) << "entering CurlEdgeOp::CalcElemMagVec" << std::endl;
+#endif
+  
+  Integer nrEdges = ptElement->ptElem->GetNumEdges();
+  Integer nrNodes = ptElement->ptElem->GetNumNodes();
+  BaseFE * ptElem = ptElement->ptElem;
+  ShortInt dim = ptElem->GetDim();
+
+  Matrix<Double> cornerCoords; 
+  Matrix<Double> shape;
+
+  std::vector<Double> sol(nrEdges);
+  // global edge index
+  std::vector<Integer> epos(nrEdges);
+  std::vector<Integer> esign(nrEdges);
+  Vector<Integer> pos(nrNodes);
+
+
+
+  magVecPot.Resize(dim);
+
+  for (Integer i=0; i<dim; i++)
+    magVecPot[i] = 0;
+
+  ptGrid_->GetCoordNodesElemMat(ptElement->connect, cornerCoords, level_);
+  
+  ptElem->CalcEdgeShapeFnc(shape, lCoord, cornerCoords);
+
+  
+  for (Integer i=0; i < nrNodes; i++)
+     pos[i] = (*ptMesh2PDENode_)[ptElement->connect[i]-1];
+  
+  ptElem->GetGlobalEdgeIndices(epos, &pos[0], algsys_);
+
+
+  for (Integer j=0; j<nrEdges; j++)
+    {
+      esign[j] = epos[j]/abs(epos[j]);
+      epos[j]  = abs(epos[j]);
+      sol[j] = (*sol_)[epos[j]-1] * esign[j];
+    }
+  
+
+  
+  
+  // loop over edge curls
+  // magVecPot = sol * shape;
+  for( Integer j=0; j<dim; j++ )  
+    {
+      magVecPot[j]=0;
+      for( Integer i=0; i < nrEdges; i++ )
+	magVecPot[j] += shape[i][j] * sol[i];
+    }
 }
 
 

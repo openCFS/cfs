@@ -3,7 +3,7 @@
 
 #include <vector>
 #include <Matrix/matrix.hh>
-
+#include <multigrid.hh>
 
 namespace CoupledField
 {
@@ -268,6 +268,26 @@ public:
 				    const Integer ip,
 				    const Matrix<Double> & cornerCoords);
   
+
+  //! Get nodes belonging to one edge
+  /*! 
+    \param edges (output) Matrix of assignment of edge index to according nodes 
+    (dimension: nrEdges x 2 (every edge has two nodes))
+  */
+ virtual void GetEdgeVertices(Matrix<Integer> & edges){edges = edgeVertices_;};
+
+
+  //! Get global edge numbers
+  /*! 
+    \param edges (output) Vector of global edge numbers
+    \param pDENodes (input) Global index of nodes belonging to one element
+    \param algsys (input) Pointer to the algebraic system
+  */
+  virtual void GetGlobalEdgeIndices(std::vector<Integer>& edges, Integer * pDENodes, BaseSystem * algsys);
+  
+  
+
+
 
 protected:
 
