@@ -233,7 +233,8 @@ void ElecPDE::WriteResultsInFile()
   if (OutFile_->IsGMV())
     {
       // write electric potential
-      OutFile_->WriteNodeSolution(Sol_Mesh,step,time,"E-Potential");
+      if (savesol_)
+	OutFile_->WriteNodeSolution(Sol_Mesh,step,time,"E-Potential");
       
       if (calcEfield_.size() !=0 )
 	{
@@ -245,7 +246,8 @@ void ElecPDE::WriteResultsInFile()
   else
     {
       // write electric potential
-      OutFile_->WriteNodeSolution(Sol_Mesh,step,time,"electric potential");
+      if (savesol_)
+	OutFile_->WriteNodeSolution(Sol_Mesh,step,time,"electric potential");
 
       if (calcEfield_.size() !=0 )
 	{
@@ -257,14 +259,11 @@ void ElecPDE::WriteResultsInFile()
     }
 
     if (flags->CalcErrorMap_)
-      {   
-	OutFile_->WriteElemSolution(errorMap_,step,time,"relERR-E-Potential"); 
-      }
+      OutFile_->WriteElemSolution(errorMap_,step,time,"relERR-E-Potential"); 
+      
 
     if (calcEnergy_.size() !=0 )
       CalcEnergy();
-
-
 }
 
 void ElecPDE::PostProcess(const Integer level)

@@ -106,10 +106,11 @@ void BasePDE::ReadSavings()
 
   //check for node saving
   std::vector<std::string> savings;
-  conf->ifgetliststr("nodalsave", savings, pdename_);
+  
 
   //reset saving of solution, if user has used the nodalsave-command
-  if (savings.size() > 0) savesol_ = FALSE;
+  if (conf->ifgetliststr("nodalsave", savings, pdename_))
+    savesol_ = FALSE;
 
   for (Integer i=0; i<savings.size(); i++)
     {

@@ -110,7 +110,6 @@ void SmoothPDE::InitCoupling(PDECoupling * coupling)
       if (ptCoupling_->GetInputQuantity(i) == "mechdisplacement")
 	{
 	  numDirichletBCs_ += (dofspernode_ * ptCoupling_->GetInputSize(i));
-	  // std::cerr << "Added to SmoothPDE::numDirichletBCs " << dofspernode_ * ptCoupling_->GetInputSize(i) << std::endl;
 	}
     }
 
@@ -121,8 +120,6 @@ void SmoothPDE::InitCoupling(PDECoupling * coupling)
       if (ptCoupling_->GetOutputQuantity(i) == "smoothdisplacement")
 	  ptCoupling_->SetOutputDim(i, dofspernode_);
     }
-
-  //std::cerr << "SmoothPDE: Set NumIDBCs_ to " << numDirichletBCs_ << std::endl;
 }
   
 
