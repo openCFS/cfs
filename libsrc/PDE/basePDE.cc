@@ -664,7 +664,7 @@ void BasePDE::PostStepTrans(const Integer kstep, const Double asteptime, const I
   if (pdeIsCoupled_)
     {
       //save solution
-      Vector<Double> solvector= solhelp->GetAlgSysVector();
+      Vector<Double> & solvector= solhelp->GetAlgSysVector();
 
       //perform corrector step
       TS_alg_->Corrector(solvector); 
@@ -703,7 +703,7 @@ void BasePDE::StepTransLin(const Integer kstep, const Double asteptime,
 
   if ( pdeIsCoupled_ == FALSE || iterCoupledCounter_ == 0)
     {        
-      Vector<Double> solvector= solhelp->GetAlgSysVector();
+      Vector<Double> & solvector= solhelp->GetAlgSysVector();
       TS_alg_->Predictor(solvector);
     }
   
@@ -883,7 +883,7 @@ void BasePDE::StepHarmonicLin(const Integer freqStep, const Double frequency,
   ptsol = algsys_->GetSolutionVal();
 
   // save solution
-  //Vector<Complex> tmp(numPDENodes_*dofspernode_);
+  //Vecoor<Complex> tmp(numPDENodes_*dofspernode_);
 
   //  if (dofspernode_ > 1)
   //    Error("Currenrly just dofpernode=1 supported in StepHarmonicLin");
