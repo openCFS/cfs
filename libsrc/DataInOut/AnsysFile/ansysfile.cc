@@ -739,7 +739,7 @@ void AnsysFile::ReadBCs_GridRG(std::vector<Integer> & idBCs,std::vector<Integer>
 	getPosLine("2D Elements", pos);
 	infile.seekg(pos,std::ios::beg);
 
-	if (!ptQ || !ptTr1)
+	if (!ptQ || !ptQ2 || !ptTr1)
 	  Error(" Pointers to BaseElem is not initialized",__FILE__,__LINE__);
 
 	Integer i, ii, j, inum, itype, innodes;
@@ -788,7 +788,7 @@ void AnsysFile::ReadEl3d(std::vector<Elem*> * allelems, const std::vector<std::s
     infile.seekg(pos,std::ios::beg);
 
     //    if (!ptTr || !ptQ || !ptTet)
-    if (!ptTet || !ptHexa)
+    if (!ptTet || !ptHexa || !ptPyra)
       Error(" Pointers to BaseElem is not initialized",__FILE__,__LINE__);
 
     Integer i, ii, j, inum, itype, innodes;
@@ -980,10 +980,14 @@ void AnsysFile::ReadEl3d(std::vector<Elem*> * allelems, const std::vector<std::s
 	return ptTr1;
       case 6:
 	return ptQ;
+      case 7:
+	return ptQ2;
       case 8:
 	return ptTet;
       case 10:
 	return ptHexa;
+      case 12:
+	return ptPyra;
       default:
 	{
 	  std::cout << "Used Element Type: " << itype << std::endl;  

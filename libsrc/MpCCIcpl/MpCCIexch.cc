@@ -13,14 +13,16 @@
 namespace CoupledField
 {
 
-MpCCIexch::MpCCIexch(Grid *aptgrid)
+MpCCIexch::MpCCIexch(Grid *aptgrid, Integer nNodesSD)
 {
 #ifdef TRACE
   (*trace) << "entering MpCCIexch::MpCCIexch " << std::endl;
 #endif
-
+    std::cout<<"Nodes SD: "<<nNodesSD<<std::endl;
   ptgrid_ = aptgrid;
-  MpCCInodes_ = ptgrid_->GetMaxnumnodes(0);
+  // MpCCInodes_ = ptgrid_->GetMaxnumnodes(0);
+  MpCCInodes_ = nNodesSD;
+
   Dim_ = ptgrid_->GetDim();
   //Get general specific coupling description for CFS++ side
 
@@ -62,13 +64,15 @@ void MpCCIexch::PutExchangeGrid2MpCCI(std::vector<std::string> subdoms)
 #define REALTYPE CCI_DOUBLE
   typedef double Realtype;
 
+  std::cout<<"Nodes: "<<MpCCInodes_<<std::endl;
   Realtype * NODEDATA=new Realtype[3*MpCCInodes_];
   int ** TOPOLOGYDATA;
   TOPOLOGYDATA=new int*[subdoms_.size()];
   std::vector<Elem*> elemssd;     
+   std::cout<<"subdomains: "<<subdoms_[1]<<std::endl;
 
-  for (i=0; i<subdoms_.size(); i++)
-    {
+   for (i=(subdoms_.size())-1; i<(subdoms_.size()); i++)
+     {
       ptgrid_->GetElemSD(elemssd,subdoms_[i],actlevel_);
 
       elsize=(elemssd[0]->connect).size();
@@ -107,7 +111,7 @@ void MpCCIexch::PutExchangeGrid2MpCCI(std::vector<std::string> subdoms)
   //define the nodes
   CCI_Def_nodes(meshId_, partId_, GlobalDim_, MpCCInodes_, nNodeIds_, nodeIds_, REALTYPE, NODEDATA);
 
-  for (i=0; i<subdoms_.size(); i++)
+  for (i=(subdoms_.size())-1; i<subdoms_.size(); i++)
     {
       ptgrid_->GetElemSD(elemssd,subdoms_[i],actlevel_);
       int k=0;

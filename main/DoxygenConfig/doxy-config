@@ -52,7 +52,7 @@ INPUT                  =	  ../libsrc/AlgebraicSystem ../libsrc/AlgebraicSystem/L
                           ../libsrc/Domain/ ../libsrc/Domain/GridCFS ../libsrc/Domain/AdaptGrid \
 			../libsrc/Driver ../libsrc/Elements ../libsrc/Elements/1D ../libsrc/Elements/2D ../libsrc/Elements/3D \
 			../libsrc/Forms ../libsrc/PDE ../libsrc/Matrix \
-			  ../libsrc/Estimator ../libsrc/Utils ../libsrc/General	../libsrc/CoupledPDE
+			  ../libsrc/Estimator ../libsrc/Utils ../libsrc/General	../libsrc/CoupledPDE ../libsrc/MpCCIcpl
 FILE_PATTERNS          = *.hh
 RECURSIVE              = NO
 EXCLUDE                = 

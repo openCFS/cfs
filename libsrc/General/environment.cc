@@ -18,12 +18,14 @@ namespace CoupledField
   ConfFile * conf=NULL;
 
   BaseFE * ptQ   = NULL;
+  BaseFE * ptQ2   = NULL;
   BaseFE * ptTet = NULL;
   BaseFE * ptL1 = NULL;
   BaseFE * ptTr1 = NULL;
   BaseFE * ptHexa=NULL;
+  BaseFE * ptPyra=NULL;
   
-  WriteInfo * Info = NULL;
+   WriteInfo * Info = NULL;
   
   std::ostream & operator << (std::ostream & out, const enum precond & type)
   {

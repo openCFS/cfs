@@ -18,10 +18,12 @@ Grid::Grid(FileType * aptFileType)
   ptFileType = aptFileType;
 
   ptQ   = new Quad1FE();
+  ptQ2   = new Quad2FE();
   ptTet = new Tetra1FE();
   ptL1  = new Line1FE();
   ptTr1 = new Triangle1FE();
   ptHexa = new Hexa1FE();
+  ptPyra = new Pyra1FE();
 
   lastlevel_=0;
 
@@ -38,16 +40,20 @@ void Grid::SetIntTypeAllElems(IntegrationType aIntType)
 #endif
 
   ptQ   -> SetIntegrationType(aIntType);
+  ptQ2   -> SetIntegrationType(aIntType);
   ptTet -> SetIntegrationType(aIntType);
   ptL1  -> SetIntegrationType(aIntType);
   ptTr1 -> SetIntegrationType(aIntType);
   ptHexa-> SetIntegrationType(aIntType);
+  ptPyra-> SetIntegrationType(aIntType);
 
   ptQ   ->Init();
+  ptQ2   ->Init();
   ptTet ->Init();
   ptL1  ->Init();
   ptTr1 -> Init();
   ptHexa-> Init();
+  ptPyra-> Init();
 
 }
 
@@ -58,6 +64,7 @@ Grid::~Grid()
 {
 
  if (ptQ)   delete ptQ;
+ if (ptQ2)   delete ptQ2;
  if (ptTet) delete ptTet;
  if (ptL1)  delete ptL1;
  if (ptTr1)  delete ptTr1;
@@ -65,6 +72,8 @@ Grid::~Grid()
 //  if (ptTr) delete ptTr;
 //  if (ptL1) delete ptL1;
  if (ptHexa) delete ptHexa;
+ if (ptPyra) delete ptPyra;
+
 }
 
 }
