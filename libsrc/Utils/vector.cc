@@ -294,6 +294,29 @@ Vector<TYPE> Vector<TYPE>::operator*(const Matrix<TYPE> &x) const
 	return z;
 }
 
+
+
+template<class TYPE>
+Vector<TYPE> Vector<TYPE>::operator=(const Matrix<TYPE> &x) const
+{	
+  if (!n)
+    Error( "undefined Vector in operator ", __FILE__,__LINE__);
+  
+  if (!x.row || !x.col)
+    Error( "undefined Vector", __FILE__,__LINE__);
+
+  if (x.col != 1)
+    Error( "dimension of matrix by assignement to a ", __FILE__,__LINE__);
+
+  Vector z(x.row);
+  
+  for (Integer i = 0; i < x.col; i++)
+    z[i] = x[i][0];
+
+  return z;
+}
+
+
 template<class TYPE>
 Vector<TYPE> &Vector<TYPE>::operator*= (const TYPE &x)
 {	if (!n)

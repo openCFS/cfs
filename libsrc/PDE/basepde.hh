@@ -54,6 +54,9 @@ public:
    */
   virtual void SetAlgSys(const Integer AS_sysid);
 
+  /// Initialize all necessary matrices 
+  void InitMatrices();
+
   //! read material data
   virtual void ReadMaterialData();
 
@@ -117,6 +120,14 @@ public:
     \param level level of grid
   */
   virtual void SolveStepStatic(const Integer level)=0;
+
+  //! solve one step for nonlinear static problem 
+  /*!
+    \param level level of grid
+  */
+  virtual void SolveStepStaticNonLin(const Integer level)
+  {Error("SolveStepStaticNonLin not implemented!",__FILE__,__LINE__);};
+  
 
 
   /// solve one harmonic step
@@ -379,6 +390,13 @@ protected:
   virtual void AssignPDENodeNumbers(std::vector<Integer> & Mesh2PDENode,
 			    std::vector<Integer> & PDE2MeshNode,
 			    const std::vector<Elem*> &Elements );
+  
+
+  /// Stores result vector in the multidimensional solution array sol_
+  void StoreToSolArray(Double * ptSol);
+  
+  /// Stores result vector in the multidimensional solution array sol_q
+  void StoreVecToSolArray(std::vector<Double>& sol);
   
 
   //! analysis type

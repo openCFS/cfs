@@ -22,12 +22,18 @@ public:
   /// Function for calculation bdb matrix 
   virtual void CalcElementMatrix(Matrix<Double>& ptCoord, Matrix<Double> &);
 
+
 protected:
   /// returns B - matrix for BDB
   virtual void calcBMat(Matrix<Double> & bMat, Integer ip, Matrix<Double> & ptCoord)=0;
 
   /// returns D - matrix for BDB
-  virtual void calcDMat(Matrix<Double> & dMat)=0;
+  virtual void calcDMat(Matrix<Double> & dMat)
+  {Error("BDBInt::calcDMat(Matrix<Double>&) not not correct overwritten !",__FILE__,__LINE__);};
+
+  /// returns D - matrix for BDB, changes in every integration point
+  virtual void calcDMat(Matrix<Double> & dMat, Integer ip, Matrix<Double> & ptCoord)
+  {Error("BDBInt::calcDMat(Matrix<Double>&, int, Matrix<Double>&) not not correct overwritten !",__FILE__,__LINE__);};
 
   /// returns dimension of D matrix
   virtual Integer getDimD()=0;
@@ -35,6 +41,8 @@ protected:
   /// returns nr. of degrees of freedom
   virtual Integer getNrDofs()=0;
 
+  /// for nonlinear calculations, the d-matrix has to be updated in every integration point
+  Integer updateDMatInEveryIP_;
 };
 
 }

@@ -17,7 +17,7 @@ namespace CoupledField
     const Integer nrNodes  = ptelem->GetNumNodes();   
     const Integer nrDofs   = getNrDofs();  
     const std::vector<Double> & intWeights = ptelem->GetIntWeights();  
-    double jacDet;  
+    double jacDet;
 
 
     Matrix<Double> bMat; 
@@ -29,54 +29,34 @@ namespace CoupledField
     elemMat.Resize(nrNodes * nrDofs);
     elemMat.Init();
  
-    calcDMat(dMat);
-
-#ifdef DEBUG
-    (*debug) << std::endl << "d-Matrix of BDB integrator: " << std::endl 
-	   << dMat << std::endl;
-#endif
+    if (!updateDMatInEveryIP_)
+      calcDMat(dMat);
+    
 
     for (Integer actIntPt=1; actIntPt<=nrIntPts; actIntPt++)
       {
-	calcBMat(bMat, actIntPt, ptCoord);  
-
-#ifdef DEBUG
-	(*debug) << std::endl << "b-Matrix of BDB integrator: " << std::endl 
-	   << bMat << std::endl;
-#endif
+	if (updateDMatInEveryIP_)
+	  calcDMat(dMat, actIntPt, ptCoord);
+    
+	calcBMat(bMat, actIntPt, ptCoord);
 
 	dB = dMat * bMat;
-
-#ifdef DEBUG
-	(*debug) << "b * d =  " << std::endl 
-	   << dB << std::endl;
-#endif
 
 	bMat.Transpose(bTrans);
 
 	partElemMat = bTrans * dB;
 
-#ifdef DEBUG
-	*debug << "bTranspMalDB = [ " << std::endl 
-	   << partElemMat << std::endl;
-#endif	
-	
 	jacDet = ptelem->CalcJacobianDetAtIp(actIntPt,ptCoord);
 
 	elemMat += partElemMat * jacDet * intWeights[actIntPt-1] ;
-
-#ifdef DEBUG
-	*debug << "jacDet =  " << jacDet << std::endl
-	       << "intWeights " << intWeights[actIntPt-1] << std::endl
-	       << "elemMat " << std::endl << elemMat << std::endl;
-#endif
       }
   }
 
 
 
 
-  BDBInt::BDBInt(BaseFE * aptelem, MaterialData & matData) : BaseForm(aptelem, matData)
+  BDBInt::BDBInt(BaseFE * aptelem, MaterialData & matData) 
+    : BaseForm(aptelem, matData), updateDMatInEveryIP_(0)
   {
 #ifdef TRACE
     (*trace) << "entering BDBInt::BDBInt" << std::endl;

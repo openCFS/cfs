@@ -6,22 +6,20 @@
 namespace CoupledField
 {
 
-  BaseForm::BaseForm(BaseFE * aptelem, MaterialData & matData):ptMaterial(&matData)
+  BaseForm::BaseForm(BaseFE * aptelem, MaterialData & matData)
+    :ptMaterial(&matData), ptelem(aptelem)
   {
 #ifdef TRACE
     (*trace) << "entering BaseForm::BaseForm" << std::endl;
 #endif
-
-    ptelem=aptelem;
   }
 
   BaseForm::BaseForm(BaseFE * aptelem)
+    :ptelem(aptelem)
   {
 #ifdef TRACE
     (*trace) << "entering BaseForm::BaseForm" << std::endl;
 #endif
-
-    ptelem=aptelem;
   }
  
 

@@ -6,6 +6,219 @@
 namespace CoupledField
 {
 
+  /// calculates Piola-Kirchoff-stresses T (vector notation)
+// T = c . V with c the stiffness matrix and V the Green-Lagrange strain vector
+// V = B_lin * u  +  1/2 * B_nonLin * u
+// see Habil. M. Kaltenbacher Eq. (3.33)
+void nLinMech3dInt_PiolaStress::
+calcPiolaStressVec(std::vector<Double>& piolaStressVec, Integer ip, Matrix<Double> & ptCoord)
+{
+#ifdef TRACE
+    (*trace) << "entering mech3DInt_PiolaStress::calcPiolaStressTensor" << std::endl;
+#endif
+    Matrix<Double> dMat;
+    calcMaterialDMat(dMat);
+    
+  // convert displacement of all elem nodes into one vector: 
+  // (uNode1X, uNode1Y, uNode2X, uNode2Y, ...)
+  std::vector<Double> displVec;
+  elemDisp_.ConvertToVec_RowsFirst(displVec);
+
+
+  // linear differential operator B_lin
+  Matrix<Double> linBMat;    
+  calcLinBMat( linBMat, ip, ptCoord);
+
+
+  // nonlinear differential operator B_nonLin
+  Matrix<Double> nLinBMat;    
+  calcNonLinBMat( nLinBMat, ip, ptCoord);
+
+
+  // special construction: direct addition of these two terms does not work, 
+  // because of temporary vectors ... :O(    
+  std::vector<Double> part1(linBMat * displVec );
+  std::vector<Double> part2(nLinBMat * 0.5 * displVec);
+  std::vector<Double> nonLinStrain;
+  
+  nonLinStrain = part1 + part2;
+  piolaStressVec = dMat * nonLinStrain;
+
+#ifdef DEBUG
+  *debug << "Piola strainVec part1: " << std::endl << part1 << std::endl;
+  *debug << "Piola strrainVec part2: " << std::endl << part2 << std::endl;
+  *debug << "Piola linBMAt: " << std::endl << linBMat << std::endl;
+  *debug << "Piola nlinBMAt: " << std::endl << nLinBMat << std::endl;
+  *debug << "Piola nonLinStrain: " << std::endl << nonLinStrain << std::endl;
+  *debug << "Piola piolaStressVec: " << std::endl << piolaStressVec << std::endl;
+#endif
+
+}
+
+
+void nLinMech3dInt_PiolaStress::
+calcMaterialDMat(Matrix<Double> & dMat)
+{
+  // dirty trick: dimension of d-matrix is set to 6 (as it should be in 3d mechanics)
+  // this is done, because the special Piola-Kirchhoff-BDB uses a d-matrix of size 9
+  // this means, the calculation of the "standard" (linear mech.) and the nonlinear b-matrix
+  // would be of wrong dimension
+  setPiolaDimD(6);
+
+  // this is the original material matrix
+  // calcDMat without 
+  nLinMech3dInt_BNonLin::calcDMat(dMat);
+
+  // set size back
+  setPiolaDimD(9);
+}
+
+
+
+// returns linear B - matrix
+void nLinMech3dInt_PiolaStress::
+calcLinBMat(Matrix<Double> & bMat, Integer ip, Matrix<Double> & ptCoord)
+{
+  // dirty trick: dimension of d-matrix is set to 6 (as it should be in 3d mechanics)
+  // this is done, because the special Piola-Kirchhoff-BDB uses a d-matrix of size 9
+  // this means, the calculation of the "standard" (linear mech.) and the nonlinear b-matrix
+  // would be of wrong dimension
+  setPiolaDimD(6);
+  
+  // linear differential operator B_lin
+  linElastInt::calcBMat(bMat, ip, ptCoord);
+  setPiolaDimD(9);
+}
+
+
+
+
+  /// returns nonlinear B - matrix
+void nLinMech3dInt_PiolaStress::
+calcNonLinBMat(Matrix<Double> & bMat, Integer ip, Matrix<Double> & ptCoord)
+{
+  // dirty trick: dimension of d-matrix is set to 6 (as it should be in 3d mechanics)
+  // this is done, because the special Piola-Kirchhoff-BDB uses a d-matrix of size 9
+  // this means, the calculation of the "standard" (linear mech.) and the nonlinear b-matrix
+  // would be of wrong dimension
+  setPiolaDimD(6);
+  
+  // linear differential operator B_lin
+  nLinElastInt::calcBMat(bMat, ip, ptCoord);
+  setPiolaDimD(9);
+}
+
+  
+
+  /// conversion of stress vector to stress tensor
+void nLinMech3dInt_PiolaStress::
+convertStressVecToTensor(Matrix<Double>& stressTensor, std::vector<Double>& piolaStress)
+{
+#ifdef TRACE
+    (*trace) << "entering mech3DInt_PiolaStress::convertStressVecToTensor " << std::endl;
+#endif
+
+    Integer indexRow[] = {1, 2, 3, 2, 1, 1}; // first index of tensor notation
+    Integer indexCol[] = {1, 2, 3, 3, 3, 2}; // second index of tensor notation
+
+    stressTensor.Resize( getNrDofs() );
+    
+    // build symmetrical tensor
+    for (Integer i=0; i<piolaStress.size(); i++)
+      {
+	stressTensor[ indexRow[i] -1 ][ indexCol[i] -1 ] = piolaStress[i];	
+	stressTensor[ indexCol[i] -1 ][ indexRow[i] -1 ] = piolaStress[i];	
+      }
+}
+
+
+
+
+
+  // calculates the D-matrix needed for the Piola-Kirchhoff-Stress part
+  // This matrix is equal to a block diagonal matrix with Piola-Stresses in matrix 
+  // notation used as diagonal blocks (nrDim times)
+  void nLinMech3dInt_PiolaStress::calcDMat(Matrix<Double> & dMat, Integer ip, Matrix<Double> & ptCoord)
+  {
+#ifdef TRACE
+    (*trace) << "entering mech3DInt_PiolaStress::calcDMat " << std::endl;
+#endif
+
+    const Integer dimD = getDimD();
+    const Integer nrDofs = getNrDofs();
+
+    std::vector<Double> piolaStressVec;
+    Matrix<Double> stressTensor;
+    
+    calcPiolaStressVec(piolaStressVec, ip, ptCoord );
+    convertStressVecToTensor(stressTensor, piolaStressVec);
+
+
+#ifdef DEBUG
+    *debug << "Piola stressTensor: " << std::endl << stressTensor << std::endl;
+#endif
+    
+
+    // in "Resize", matrix elements are set to zero
+    dMat.Resize(dimD);
+    
+
+    for (Integer i=0; i<nrDofs; i++)
+      dMat.SetSubMatrix(stressTensor, i*nrDofs, i*nrDofs);
+
+
+#ifdef DEBUG
+    *debug << "Piola DMat: " << std::endl << dMat << std::endl;
+#endif
+  }
+
+
+
+
+
+  // returns nonlinear B - matrix (first part) for BDB
+  void nLinMech3dInt_PiolaStress::
+  calcBMat(Matrix<Double> & bMat, Integer ip, Matrix<Double> & ptCoord)
+  {
+#ifdef TRACE
+    (*trace) << "entering nLinMech3dInt_PiolaStress::calcBMat " << std::endl;
+#endif    
+
+    const Integer nrNodes  = ptelem->GetNumNodes();
+    const Integer nrDofs   = getNrDofs();    
+
+
+    // in "Resize", matrix elements are set to zero
+    bMat.Resize(getDimD(), nrNodes * nrDofs);
+
+    
+    // local shape functions derived after global coords 
+    // (format: nrNodes x nrDofs)
+    Matrix<Double> xiDx;
+    ptelem->GetGlobDerivShFncAtIp(xiDx, ip, ptCoord);
+
+
+    for(int actNode=0; actNode < nrNodes; actNode++)
+      for(int globPos=0; globPos < nrDofs; globPos++)
+	for(int actDof=0; actDof < nrDofs; actDof++)
+	  bMat[globPos*nrDofs + actDof][actNode * nrDofs + globPos] = xiDx[actNode][actDof];
+      
+
+#ifdef DEBUG
+    *debug << "ip-nr = " << ip << std::endl
+	   << "Piola BMat: " << std::endl << bMat << std::endl;
+#endif
+  }
+
+
+
+
+
+
+
+
+  
+
 
   // returns nonlinear B - matrix (first part) for BDB
   void nLinElastInt::calcBMat(Matrix<Double> & bMat, Integer ip, Matrix<Double> & ptCoord)
@@ -13,6 +226,7 @@ namespace CoupledField
 #ifdef TRACE
     (*trace) << "entering nLinElastInt::calcBMat " << std::endl;
 #endif
+
     
     if (!elemDisp_.size_row() || !elemDisp_.size_col()) 
       Error("Undefined displacements! ",__FILE__,__LINE__);
@@ -48,30 +262,35 @@ namespace CoupledField
     Matrix<Double> bMatOneNode;
     bMatOneNode.Resize(linBMat.size_row(), nrDofs);
  
+
     for(int actNode=0; actNode < nrNodes; actNode++)
       {
 	linBMat.GetSubMatrix(bMatOneNode, 0, actNode*nrDofs);
-	
+
 	bMatOneNode *= displDerivTransp;
+
+#ifdef DEBUG
+//     *debug << std::endl << "element displacement: " << std::endl 
+// 	   << elemDisp_ << std::endl
+// 	   << "derivation of displ: " << std::endl << displDerivTransp << std::endl
+// 	   << "bMatOneNode: " << std::endl << bMatOneNode << std::endl
+// 	   << "linBMat: " << std::endl << linBMat << std::endl
+// 	   << "act<Node " << actNode << std::endl;
+#endif
+	
 	
 	bMat.SetSubMatrix(bMatOneNode, 0, actNode*nrDofs);
       }
-
-#ifdef DEBUG
-    *debug << std::endl << "element displacement: " << std::endl 
-	   << elemDisp_ << std::endl
-	   << "ip-nr = " << ip << std::endl
-	   << "Nonlinear BMat: " << std::endl << bMat << std::endl;
-#endif
   }
   
 
 
   // calculates the D-matrix of a 3d-problem 
-  void nLinMech3dInt::calcDMat(Matrix<Double> & dMat)
+  // (see mech3dInt::calcDMat)
+  void nLinMech3dInt_BNonLin::calcDMat(Matrix<Double> & dMat)
   {
 #ifdef TRACE
-  (*trace) << "entering mech3DInt::calcDMat " << std::endl;
+    (*trace) << "entering mech3DInt_BNonLin::calcDMat " << std::endl;
 #endif
     const Integer nrElems3d = getDimD();
     
@@ -83,7 +302,11 @@ namespace CoupledField
       for (Integer j=0; j<nrElems3d; j++)
 	dMat[i][j] = (*matMatrix)[i][j];	
   }
+  
 
+
+
+  
 
 
 
@@ -112,19 +335,41 @@ namespace CoupledField
 
 
   // nonlinear calculation of elasticity in 3d
-  nLinMech3dInt::nLinMech3dInt(BaseFE * aptelem, MaterialData & matData) 
+  nLinMech3dInt_BNonLin::nLinMech3dInt_BNonLin(BaseFE * aptelem, MaterialData & matData) 
     : nLinElastInt(aptelem, matData)
   {
 #ifdef TRACE
-    (*trace) << "entering nLinMech3dInt::nLinMech3dInt" << std::endl;
+    (*trace) << "entering nLinMech3dInt_BNonLin::nLinMech3dInt_BNonLin" << std::endl;
 #endif
   }
  
 
-  nLinMech3dInt::~nLinMech3dInt()
+  nLinMech3dInt_BNonLin::~nLinMech3dInt_BNonLin()
   {
 #ifdef TRACE
-    (*trace) << "entering nLinMech3dInt::~nLinMech3dInt" << std::endl;
+    (*trace) << "entering nLinMech3dInt_BNonLin::~nLinMech3dInt_BNonLin" << std::endl;
+#endif
+  }
+
+
+
+
+  // nonlinear calculation of elasticity in 3d
+  nLinMech3dInt_PiolaStress::nLinMech3dInt_PiolaStress(BaseFE * aptelem, MaterialData & matData) 
+    : nLinMech3dInt_BNonLin(aptelem, matData), piolaDimD_(9)
+
+  {
+#ifdef TRACE
+    (*trace) << "entering nLinMech3dInt_PiolaStress::nLinMech3dInt_PiolaStress" << std::endl;
+#endif
+    updateDMatInEveryIP_ = 1;
+  }
+ 
+
+  nLinMech3dInt_PiolaStress::~nLinMech3dInt_PiolaStress()
+  {
+#ifdef TRACE
+    (*trace) << "entering nLinMech3dInt_PiolaStress::~nLinMech3dInt_PiolaStress" << std::endl;
 #endif
   }
 

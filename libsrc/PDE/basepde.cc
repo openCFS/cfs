@@ -78,6 +78,26 @@ void BasePDE::SetAlgSys(const Integer as_sysid)
 }
 
 
+
+void BasePDE::InitMatrices()
+{
+ //  //Initialize matrices in order to get BCs correct
+  std::vector<Integer> matrixsystype(5,0);    
+  if (SystemMatrix_     == 1) matrixsystype[0] = SYSTEM;      // memory for the system matrix
+  if (StiffnessMatrix_  == 1) matrixsystype[1] = STIFFNESS;   // memory for the stiffness matrix
+  if (DampingMatrix_    == 1) matrixsystype[2] = DAMPING;     // memory for the damping matrix
+  if (ConvectionMatrix_ == 1) matrixsystype[3] = CONVECTION;  // memory for the convection matrix
+  if (MassMatrix_       == 1) matrixsystype[4] = MASS;        // memory for the mass matrix
+  
+
+  for (Integer i=0;i<5;i++)
+    if (matrixsystype[i] !=0)
+      algsys_->InitMatrix(i+1);
+
+  
+}
+
+
 void BasePDE::ReadMaterialData()
 {
 #ifdef TRACE
@@ -166,11 +186,6 @@ void BasePDE::SetupMatrixGraph(Integer numeq, Integer graphtype)
 
 	  fe_type=elemssd[iel]->ptElem->feType();
 	  algsys_->SetElementPos(connecth.get(),connecth.size(),fe_type);
-
-#ifdef DEBUG
-	  (*debug) << "Nodes to AlgSys, Element: " << iel+1 << std::endl;
-	  (*debug) << connecth << std::endl;
-#endif
 	}
     }
 
@@ -225,13 +240,29 @@ void BasePDE::CreateMatrices_Solver()
   algsys_->InitRHS();
   algsys_->InitSol();
 
-  for (Integer i=0;i<5;i++)
-    {
-      if (matrixsystype[i] !=0)
- 	algsys_->InitMatrix(i+1);
-    }
-
+  InitMatrices();
+  
 }
+
+void BasePDE::StoreToSolArray(Double * ptSol)
+{
+  Integer k=0;
+
+  for (Integer i=0; i<NumPDENodes_; i++)   
+    for (Integer dim=0; dim<dofspernode_; dim++)
+      sol_[dim][i] = ptSol[k++];
+}
+
+
+void BasePDE::StoreVecToSolArray(std::vector<Double>& sol)
+{
+  Integer k=0;
+
+  for (Integer i=0; i<NumPDENodes_; i++)   
+    for (Integer dim=0; dim<dofspernode_; dim++)
+      sol_[dim][i] = sol[k++];
+}
+
 
 
 void BasePDE::CalcInputCoupling()
@@ -430,10 +461,10 @@ void BasePDE::Mesh2PDENode(Vector<Integer> & PDENodes,
     PDENodes[i] = Mesh2PDENode[MeshNodes[i]-1];
 
 #ifdef DEBUG
-  (*debug) << "--------------------" << std::endl;
-  (*debug) << " Mesh2PDENode()" << std::endl;
-  for (Integer i=0; i<MeshNodes.size(); i++)
-    (*debug) << "in: " << MeshNodes[i] << " out: " << PDENodes[i] << std::endl;
+//   (*debug) << "--------------------" << std::endl;
+//   (*debug) << " Mesh2PDENode()" << std::endl;
+//   for (Integer i=0; i<MeshNodes.size(); i++)
+//     (*debug) << "in: " << MeshNodes[i] << " out: " << PDENodes[i] << std::endl;
 #endif
 }
 
