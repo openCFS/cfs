@@ -39,19 +39,23 @@ namespace CoupledField
   protected:
     //! Calculates the parameter to soution map F(p^k) at Newton iteration step k
     //! \param F_hat - contains calculated charge, each entry belongs to different frequency 
-    void createF(MaterialData * ptMaterial, BCs * ptBCs, Vector<Complex> & F_hat);
+    void createF(MaterialData * ptMaterial, BCs * ptBCs, Vector<Complex> & F_hat, Boolean typeOut);
 
     //! Calculates an approximation of the Jacobi Matrix of parameter to solution operator F 
     //! \param Jacobi Matrix - approximation of F'
-    void createJacobiMatrix(MaterialData * ptMaterial, BCs * ptBCs, Vector<Complex> & F_hat, Vector<Double> & parameterIncrement, Matrix<Complex> & JacobiMatrix, Vector<Complex> & solElecPot,Vector<Complex> & solMechDispl);
+    void createJacobiMatrix(MaterialData * ptMaterial, BCs * ptBCs, Vector<Complex> & F_hat, Vector<Double> & parameterIncrement,
+			    Matrix<Complex> & JacobiMatrix, Vector<Complex> & solElecPot,Vector<Complex> & solMechDispl);
 
     void createJacobiMatrix2(Matrix<Complex> & JacobiMatrix);
+    void createJacobiMatrixC(Matrix<Complex> & JacobiMatrix);
 
     //! Calculates explicitely the Adjoint operator of F'
     void createAdjointJacobiMatrix(Matrix<Complex> & JacobiMatrix, Matrix<Complex> & adjJacobiMatrix);
 
-    //! Method which reads Data from file measuredData.dat. The file contains measurements of amplitude, frequency, further according information concerning the piezhoelectric body (radius, thickness, ...)
-    void readMeasuredData(Vector<Double> & freqs, Vector<Double> & real, Vector<Double> & imag ,Vector<Double> & parameter, Double & voltage, Integer & nrMeasuredData, Double & thickness, Double & radius, Double & delta);
+    //! Method which reads Data from file measuredData.dat. The file contains measurements of amplitude, frequency, further 
+    //according information concerning the piezhoelectric body (radius, thickness, ...)
+    void readMeasuredData(Vector<Double> & freqs, Vector<Double> & real, Vector<Double> & imag ,Vector<Double> & parameter, 
+			  Double & voltage, Integer & nrMeasuredData, Double & thickness, Double & radius, Double & delta);
 
     //! updates the piezoMatrix in MaterialData parameter = \f$(c_11, c_33, c_12, c_13, c_44, e_15, e_31, e_33, eps_11, eps_33)$\f
     //! \param parameter - new set of piezoelectric material parameters
@@ -60,10 +64,11 @@ namespace CoupledField
     void updateComplexMaterialData(Vector<Double> & parameterC, MaterialData * ptMaterial);
 
     //! overwrites values in paramter_new with paramter+step if whichParamterToUpdate ==1
-    void setNewParameterSet(Vector<Double> & parameter,Vector<Double> &  parameter_new,Vector<Double> & scaling,Double & theta,Vector<Complex> & step, Vector<Integer> & whichParameterToUpdate);
+    void setNewParameterSet(Vector<Double> & parameter,Vector<Double> &  parameter_new,Vector<Double> & scaling,Double & theta,
+			    Vector<Double> & step, Vector<Integer> & whichParameterToUpdate);
 
     //! Calculates the impedance curve of piezo-simulation, writes results to file imped.dat
-    void calcAbsImped(Complex & charge, Double & freq, Integer & fstep);
+    void calcAbsImped(Complex & charge, Double & freq, Integer & fstep, Boolean typeOut);
 
     void calcImpedanceCurve();
 
@@ -76,9 +81,11 @@ namespace CoupledField
     //! types out nodal results of elecPot and mechanical displacement
     void typeOutSolutionOnScreen(Vector<Complex> & solElecPot,Vector<Complex> & solMechDispl);
 
-    void calcInitialResidual(Vector<Complex> & res, Vector<Complex> & y_hat, Vector<Complex> & PHI_p, Integer fstep, Vector<Complex> & solElecPot, Double & meanValueMechDeformation);
+    void calcInitialResidual(Vector<Complex> & res, Vector<Complex> & y_hat, Vector<Complex> & PHI_p, Integer fstep,
+			     Vector<Complex> & solElecPot, Double & meanValueMechDeformation);
 
-    void measureMechDeformationInZ_Direction(Vector<Complex> & mechDisplacement, Double & Radius, Double & meanValueMechDeformation, int dof);
+    void measureMechDeformationInZ_Direction(Vector<Complex> & mechDisplacement, Double & Radius, 
+					     Double & meanValueMechDeformation, int dof);
    
     void calcNorm2Resid(Vector<Complex> &res, Double & anorm, Integer nrMeasuredData);
 
@@ -145,11 +152,16 @@ namespace CoupledField
 //     void jacobi(Matrix<Double>& a, Double eps, Integer l_sort, Integer l_print, Vector<Double> & d);
 
     Integer CalcImpedanceCurve;
+    Integer whichNewtonCG;
     Integer maxNumberInnerLoops;
     Integer maxNumberNewtonLoops;
     Integer whichNorm;
     Boolean considerMechDeformation;
     Vector<Integer> whichParameterToUpdate;
+    Vector<Integer> whichParameterToUpdateC;
+    Vector<Integer> whichParameterToUpdateRC;
+    Vector<Integer> whichParToUpInd;
+    Vector<Integer> whichParToUpIndC;
     Double sign;
     Matrix<Double> * piezoMatrix;
     Integer dofs;
@@ -162,6 +174,9 @@ namespace CoupledField
     StdVector<std::string> subdoms;
     BaseNodeStoreSol * sol;
     Domain * ptDomain;
+    Double startfreq;
+    Double stopfreq;
+    Integer nrfreq;
 
     Vector<Complex> solElecPot;
     Vector<Complex> solMechDispl;
@@ -171,6 +186,7 @@ namespace CoupledField
     Vector<Double> parameter;
     Vector<Double> parameterC;
     Vector<Double> parameter_new;
+    Vector<Double> parameter_newC;
     Vector<Double> parameterIncrement;
     Vector<Double> omegas;
     Vector<Double> freqs;
@@ -180,17 +196,23 @@ namespace CoupledField
     Vector<Complex> y_hat;
     Vector<Complex> s_0;    
     Vector<Double> bas;
+    Vector<Complex> basC;
     Vector<Complex> res_NE, res_NE_new, lin_res;
     Vector<Complex> res;
     Vector<Complex> bas_bar;
     Vector<Complex> s;
     Vector<Double> scaling;
+    Vector<Double> scalingC;
     Double alpha_m, beta_m;
     Matrix<Complex> JacobiMatrix;
     Matrix<Complex> adjJacobiMatrix;
+    Matrix<Complex> approxJacobiMatrix;
     Double voltage, thickness, radius, delta, meanValueMechDeformation, anorm, tau;
     Integer nrMeasuredData;
     Integer nrParameter;
+    Integer actNrParameter;
+    Integer actNrParameterC;
+    Double relaxParameter;
     Integer nrSol, sizeSol;
     Double norm_res;
     Double eta;

@@ -96,6 +96,7 @@ namespace CoupledField
       Vector<Complex> JacFs_res(2*nrMeasuredData);
       Vector<Complex> s_old(nrParameter);
       Matrix<Complex> FF;
+      Vector<Double> stepR(nrParameter);
 
       if (considerMechDeformation==FALSE){
 	adjFJacF.Resize(nrParameter, nrMeasuredData);
@@ -117,7 +118,7 @@ namespace CoupledField
       s.Resize(nrParameter);
 
       // Create the Matrices F, F', F*
-      createF(ptMaterial, ptBCs, F_hat);
+      createF(ptMaterial, ptBCs, F_hat,TRUE);
       // std::cout<<"Parameter-to-solution-map Matrix is built up!"<<std::endl;
       //      createJacobiMatrix(ptMaterial, ptBCs, F_hat, parameterIncrement,JacobiMatrix, solElecPot, solMechDispl);
       createJacobiMatrix2(JacobiMatrix);
@@ -231,8 +232,11 @@ namespace CoupledField
       scaling[7]=1.0/((*matMat)[8][2]);
       scaling[8]=1.0/((*matMat)[6][6]); 
       scaling[9]=1.0/((*matMat)[8][8]);
+
+    for (Integer i=0;i<nrParameter;i++)
+      stepR[i]=s[i].real();
       
-      setNewParameterSet(parameter, parameter_new, scaling, theta, s, whichParameterToUpdate);
+      setNewParameterSet(parameter, parameter_new, scaling, theta, stepR, whichParameterToUpdate);
 
       // if no backtracking is specified, please include the following lines!
     for (Integer i=0;i<nrParameter;i++){
@@ -245,7 +249,7 @@ namespace CoupledField
 
       
       updateMaterialData(parameter, ptMaterial);
-      createF(ptMaterial, ptBCs, F_hat);
+      createF(ptMaterial, ptBCs, F_hat,FALSE);
 
 
       for (Integer i=0;i<y_hat.GetSize();i++)

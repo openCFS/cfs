@@ -233,17 +233,11 @@ namespace CoupledField
 
     Matrix<Double> * matMatrix;
     
-    if (piezoMatType_ == realMaterialParameter){
+    if (piezoMatType_ == realMaterialParameter)
       matMatrix = ptMaterial->GetMatrix();
-      //      std::cout<<"realMatrix in linPezoInt "<<std::endl;
-    }
-    else if (piezoMatType_ == imagMaterialParameter){
+    else if (piezoMatType_ == imagMaterialParameter)
       matMatrix = ptMaterial->GetMatrixC();
-      //      std::cout<<"imagMatrix in linPezoInt "<<std::endl;
-    }
 
-
-    //    std::cout<<(*matMatrix)<<std::endl;
 
     // No damping
     if ( isDamping_ == false ) {
@@ -286,8 +280,6 @@ namespace CoupledField
 	}
       }
     }
-    //  std::cout<<"\n Axisymmetric case: Material Matrix:"<<std::endl;
-    //std::cout<< dMat << std::endl;
   }
   
 
@@ -350,9 +342,6 @@ namespace CoupledField
 	}
       }
     }
-
-    //   std::cout<<"\n 3D case: Material Matrix:"<<std::endl;
-    // std::cout<< dMat << std::endl;
   }
 
 
@@ -725,18 +714,11 @@ namespace CoupledField
       matMatrix = ptMaterial->GetMatrixC();
 
     Complex imag=Complex(0,1);
-    //      std::cout<<"\n dmat with complex daming : "<<std::endl;
     for( Integer i = 0; i < sizeofD - 3; i++ ) 
       for ( Integer j = 0; j < sizeofD - 3; j++ ) {
 	dMat[i][j] = (*matMatrix)[i][j] * (1.0+beta*imag*omega);
-	//  std::cout<<dMat[i][j]<<";\t ";
       }
-    //      std::cout<<"\n"<<std::endl;
-
-
-
 	
   }// end Calc3dMaterialMatWithComplexDamping
-
 
 } // end namespace CoupledField

@@ -966,6 +966,7 @@ for (Integer i=0; i < vc.GetSize(); i++)
 #ifdef __GNUC__
 template std::ostream & operator<<<Integer> (std::ostream & , const Vector<Integer> &);
 template std::ostream & operator<<<Double> (std::ostream & , const Vector<Double> &);
+template std::ostream & operator<<<Complex> (std::ostream & , const Vector<Complex> &);
 #endif
 
 
