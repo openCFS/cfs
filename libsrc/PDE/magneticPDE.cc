@@ -1081,8 +1081,16 @@ namespace CoupledField {
     // *****************************
     // Determine nodal results
     // ***************************** 
-    
-    // --- nothing to do here ---
+    StdVector<std::string> nodeValues;
+    Enum2String(MAG_POTENTIAL, quantity);
+    keyVec  = pdename_, "storeResults", "nodeResults", "region";
+    attrVec = "", "", "type";
+    valVec = "", "", quantity;
+    params->GetList( keyVec, attrVec, valVec, nodeValues);
+    if (nodeValues.GetSize() > 0) {
+      saveSol_ = TRUE;
+   	  hasOutput_ = TRUE;
+    }
 
     // *****************************
     // Determine element results
@@ -1103,6 +1111,7 @@ namespace CoupledField {
     
     // Log to info file
     if ( calcBfield_.GetSize() > 0 ) {
+      hasOutput_ = TRUE;
       Info->PrintF( pdename_,
 		    " Computing magFluxDensity for regions:");
       for ( Integer k = 0; k < calcBfield_.GetSize(); k++ ) {
@@ -1122,6 +1131,7 @@ namespace CoupledField {
     
     // Log to info file
     if ( calcEnergy_.GetSize() > 0 ) {
+	  hasOutput_ = TRUE;	
       Info->PrintF( pdename_,
 		    " Computing magEnergy for regions:");
       for ( Integer k = 0; k < calcEnergy_.GetSize(); k++ ) {
@@ -1141,6 +1151,7 @@ namespace CoupledField {
     
     // Log to info file
     if ( calcEddy_.GetSize() > 0 ) {
+      hasOutput_ =TRUE;
       Info->PrintF( pdename_,
 		    " Computing magEddyCurrent for regions:");
       for ( Integer k = 0; k < calcEddy_.GetSize(); k++ ) {
@@ -1162,6 +1173,7 @@ namespace CoupledField {
   
     if (saveNodeHist.GetSize() > 0) {
       saveSolHist_ = TRUE;
+      hasOutput_ = TRUE;
       Info->PrintF( pdename_, " Saving magPotential for Nodes:" );
       for ( Integer k = 0; k < saveNodeHist.GetSize(); k++ ) {
 	Info->PrintF( pdename_, " %s", saveNodeHist[k].c_str() );
@@ -1177,7 +1189,7 @@ namespace CoupledField {
     valVec = "", "", "";
     params->GetList(keyVec, attrVec, valVec, saveElemHist);
     
-    if (saveElemHist.GetSize() < 0) {
+    if (saveElemHist.GetSize() > 0) {
       std::string errMsg = pdename_;
       errMsg += ": Saving history elements is not implemented yet!\n";
       errMsg += "Meanwhile you can use 'unvtool' to extract element data.";

@@ -236,8 +236,10 @@ void SmoothPDE::WriteResultsInFile(Integer stepOffset,
 
   if (analysistype_ == STATIC ||
       analysistype_ == HARMONIC) {
-    solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);
-     outFile_->WriteNodeSolutionTransient(*solTransient, actStep, actTime);
+      	if (saveSol_) {
+		    solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);
+		     outFile_->WriteNodeSolutionTransient(*solTransient, actStep, actTime);
+      	}
   }
   else
     Error("SmoothPDE: Only static and transient results can be written out",
@@ -306,6 +308,26 @@ Boolean SmoothPDE::HasOutput(SolutionType output)
 void SmoothPDE::ReadStoreResults()
 {
   ENTER_FCN( "SmoothPDE::ReadStoreRestuls");
+
+  // Construct vectors for restricted parameter search
+  StdVector<std::string> keyVec;
+  StdVector<std::string> attrVec;
+  StdVector<std::string> valVec;
+  std::string quantity;
+  // *****************************
+  // Determine nodal results
+  // ***************************** 
+  StdVector<std::string> nodeValues;
+  Enum2String(SMOOTH_DISPLACEMENT, quantity);
+  keyVec  = pdename_, "storeResults", "nodeResults", "region";
+  attrVec = "", "", "type";
+  valVec = "", "", quantity;
+  params->GetList( keyVec, attrVec, valVec, nodeValues);
+  if (nodeValues.GetSize() > 0) {
+    saveSol_ = TRUE;
+    hasOutput_ = TRUE;
+  }
+
 }
 
 
