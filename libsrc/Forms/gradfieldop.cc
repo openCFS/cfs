@@ -77,7 +77,7 @@ void GradientFieldOp<TYPE>::CalcElemGradField(CFSVector & elemField,
 	//istd:cerr << "elecEntry = " << elecEntry << std::endl;
 	//E[i] -= GlobalGradient[j][i] * (*EPotential_)[(*ptMesh2PDENode_) [connect[j]-1]-1];
 
-	helpElemField.AddEntry(i,-GlobalGradient[i][j]*potEntry[0]*factor);
+	helpElemField.AddEntry(i,-GlobalGradient[j][i]*potEntry[0]*factor);
 
       }
   
