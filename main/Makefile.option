@@ -107,7 +107,8 @@ SCHEMA_ROOT = /home/data/proj/share/CFS++XML
 endif
 
 # -----------------------------------------------------------------------------
-
+# FUNCTION TRACING
+#
 # Function tracing depth
 # TRACE = 0: no fct. tracing at all
 # TRACE >= 100: Trace also inline fct.
@@ -116,43 +117,62 @@ endif
 # Note: If TRACE = 0 the TRACE macro will not be defined. Thus trace will
 # be a NULL pointer. This can be problematic, if e.g. LAS was compiled with
 # LINUXg
+# -----------------------------------------------------------------------------
 TRACE = 10
 
-# LIBRARY_TYPE = shared / static
-LIBRARY_TYPE = static
+# -----------------------------------------------------------------------------
+# CFS++ FUNCTIONALITY
+#
+# The following parameters can be used to steer the functionality of CFS++.
+# Turning the respective switches on or off adds or removes functionality of
+# CFS++ which is not required by the core program.
+#
+# Turning on or off means setting the parameter to yes or no.
+# -----------------------------------------------------------------------------
+
+# Use Xerces XML parser (for validated parsing using W3C Schema definitions)?
+XERCES = yes
 
 # Adaptivity = yes / no
 Adaptivity = no
 
 # MpCCI
-MpCCI=no
+MpCCI = no
 
 # Use of GSI output format
 # NOTE: On the SGI IRIX the signal handling used in the GSI writer
 # does not work, so the option must be "no" there
-GSI=yes
+GSI = yes
 
 # compile with Database yes/no (MySQL)
 # can only be compiled if MySQL-devel is installed
-DATABASE=no
+DATABASE = no
 
 
-
-##############  Some settings required in conjunction with OLAS
+# -----------------------------------------------------------------------------
+# EXTERNAL PACKAGES required by OLAS interface
+#
+# Depending on the setting of USE_<xxx> directives that were active when OLAS
+# was compiled some external packages and corresponding compile macro settings
+# are required by CFS++. The following directives should reflect the settings
+# in OLAS.
+# -----------------------------------------------------------------------------
 
 # Was OLAS compiled with support for hypre?
-HYPRE = yes
+HYPRE = no
 
 # Was OLAS compiled with support for LAPACK?
-LAPACK = yes
+LAPACK = no
 
 # Was OLAS compiled with support for TVMET?
-TVMET = yes
+TVMET = no
 
-##############  XML Parameter File Handling? With Xerces or without?
-#
-XMLPARAMS=yes
-XERCES=yes
+# -----------------------------------------------------------------------------
+# LIBRARY TYPE
+# -----------------------------------------------------------------------------
+
+# LIBRARY_TYPE = shared / static
+LIBRARY_TYPE = static
 
 
 
@@ -237,8 +257,6 @@ COMPILE_INCDIRS = $(INCDIR_OLAS) $(INCDIR_HYPRE) $(INCDIR_XERCES) \
 #  - MPCCI
 #  - ADAPTIVITY
 #  - XERCES
-#  - BACKWARD ( adds macros for backward compatibility. Can be removed once
-#               the source code was cleaned from USE_OLAS and XMLPARAMS)
 #
 # These will be combined into a COMPILE_MACROS parameter
 # -----------------------------------------------------------------------------
@@ -278,19 +296,9 @@ else
    MACRO_XERCES =
 endif
 
-# XMLSCHEMA
-ifeq ($(XMLPARAMS),yes)
-   MACRO_XMLPARAMS = -DUSE_XERCES
-else
-   MACRO_XERCES =
-endif
-
-# BACKWARD
-MACRO_BACKWARD = -DUSE_OLAS -DXMLPARAMS
-
 # Combine everything
 COMPILE_MACROS = $(MARCO_DATABASE) $(MACRO_MPCCI) $(MACRO_ADAPTIVITY) \
-                 $(MACRO_GSI) $(MACRO_XERCES) $(MACRO_BACKWARD)
+                 $(MACRO_GSI) $(MACRO_XERCES)
 
 
 # -----------------------------------------------------------------------------
