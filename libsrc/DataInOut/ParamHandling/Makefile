@@ -3,7 +3,7 @@
 #
 C_DIR = ../../..
 src = PlainXMLParamHandler.cc XMLParserErrorHandler.cc XMLParamHandler.cc \
-      ConfFile.cc
+      ConfFile.cc SkeletonConf.cc XMLSkeletonConf.cc
 #
 lib = paramhandling
 libpath = libsrc/DataInOut/ParamHandling

@@ -9,7 +9,7 @@
 /* Writes a skeleton of the config file.                                  */
 /**************************************************************************/
 
-#include <DataInOut/filetype.hh>
+#include "DataInOut/filetype.hh"
 
 namespace CoupledField
 {
