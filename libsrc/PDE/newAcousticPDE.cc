@@ -1,0 +1,188 @@
+#include <fstream>
+#include <iostream>
+#include <string>
+#include <math.h>
+
+#include "newAcousticPDE.hh" 
+#include <DataInOut/Unverg/outUnverg.hh>
+#include <DataInOut/GMV/outGMV.hh>
+#include <Forms/forms_header.hh>
+#include <Estimator/spaceerror.hh>
+#include "newmark.hh"
+#include "newmarkdamp.hh"
+#include <DataInOut/WriteInfo.hh>
+
+
+namespace CoupledField
+{
+
+AcousticPDE::AcousticPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *aptFileType, 
+			 WriteResults *aptOut)
+:BasePDE(aptgrid,aptbcs,aptFileType,aptOut,aptTimeFunc)
+{
+#ifdef TRACE
+  (*trace) << "entering AcousticPDE::AcousticPDE " << std::endl;
+#endif
+
+  dofspernode_=1;
+
+  pdename_    ="acoustic";
+  pdematerialclass_ = "fluid";
+
+  laststepcalc_=0;
+
+  conf->getsubdompde(subdoms_,pdename_);
+
+  AssignPDENodeNumbers(Mesh2PDENode_, PDE2MeshNode_, subdoms_);  
+  numPDENodes_ = PDE2MeshNode_.size();
+
+  size_ = numPDENodes_;
+
+  sol_.reshape(dofspernode_, numPDENodes_);
+  sol_.init();
+
+  with_absBCs_=FALSE;
+  std::string absBCs="no";
+  conf->ifget("absorbingBCs",absBCs,pdename_);
+  if (absBCs == "yes")
+      with_absBCs_ = TRUE;
+
+  with_fracdamping_=FALSE;
+  std::string dampstr;
+  conf->ifget("damping",dampstr,pdename_);
+
+  if (dampstr == "fractional")
+    {
+      Info->PrintF(pdename_,"\n Attenuation according to power law, number of memory is %g\n\n", frac_memory_);
+       with_fracdamping_ = TRUE;
+       conf->get("frac_memory",frac_memory_,pdename_);
+       damping_type_ = FRACTIONAL;
+    }
+
+  ReadBCs(pdename_);
+
+  if (analysistype_==HARMONIC)
+    {
+      conf->get("frequency", freq_, pdename_);
+      solIm_.reshape(dofspernode_, numPDENodes_);
+      solIm_.init();
+    }
+
+  // set analysis parameters
+  assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, subdoms_);
+  assemble_->SetGraphType(NODEGRAPH);
+  assemble_->SetMesh2PDENode(&Mesh2PDENode_);
+  assemble_->SetMatrixType(RSCALAR);
+  assemble_->SetNumDirichlet(GetNumRestraints(actlevel_));
+  assemble_->SetPtrBCs(ptBCs_);
+  assemble_->SetPtr2Sol(&sol_);
+  assemble_->SetPtr2TimeFnc(ptTimeFunc_);
+  ReadMaterialData();
+   
+  DefineIntegrators(actlevel_);  
+}
+
+
+  void AcousticPDE::DefineIntegrators(const Integer level)
+  {
+#ifdef TRACE
+  (*trace) << "entering AcousticPDE::DefineIntegerators" << std::endl;
+#endif
+
+  Boolean nonLin = FALSE;
+
+  for (Integer actSD = 0; actSD < subdoms_.size(); actSD++)
+    {
+      Double density = materialData_[actSD].GetDensity();
+      Double compressibility = materialData_[actSD].GetCompressibility();
+
+      //stiffness integrator
+      BaseForm * bilinearStiff = new LaplaceInt(density,isaxi_);	  
+      assemble_->AddIntegrator(bilinearStiff, subdoms_[actSD], STIFFNESS, nonLin);
+
+      //mass integrator
+      Double coeffmass  = density*density/compressibility;
+      BaseForm * bilinear_mass  = new MassInt(coeffmass, dofspernode_, isaxi_);
+      assemble_->AddIntegrator(bilinear_mass, subdoms_[actSD], MASS, nonLin);
+    }
+  
+  }
+
+
+// ======================================================
+// SOLVING SECTION
+// ======================================================
+
+void AcousticPDE :: InitTimeStepping(const Double dt)
+{
+#ifdef TRACE
+  (*trace) << "entering AcousticPDE::InitTimeStepping" << std::endl;
+#endif
+
+  if (with_fracdamping_)
+    {
+      //currently the parameter y is taken from the first subdomain
+      //=> currently just one subdomain makes sense
+      Double y = materialData_[0].GetDampingBeta();
+      //      TS_alg_ = new NewmarkDamp(pdename_, algsys_, dofspernode_, numPDENodes_, damping_type_,
+      //			      frac_memory_,y);
+    }
+  else
+    TS_alg_ = new Newmark(pdename_, algsys_, dofspernode_, numPDENodes_, damping_type_);
+
+  TS_alg_->Init(matrix_factor_, dt);
+
+}
+
+
+// ======================================================
+// POSTPROCESSING SECTION
+// ======================================================
+
+void AcousticPDE::WriteResultsInFile()
+{
+#ifdef TRACE
+  (*trace) << "entering AcousticPDE::WriteResultsInFile" << std::endl;
+#endif
+
+  Array<Double> sol_mesh, solder1_mesh, solder2_mesh, solIm_mesh;
+  Array<Double> sol_der1Array, sol_der2Array;
+
+  if (analysistype_==HARMONIC)
+    {
+      TransformNodeSolution(sol_mesh,sol_,PDE2MeshNode_);
+      TransformNodeSolution(solIm_mesh,solIm_,PDE2MeshNode_);      
+      OutFile_->WriteNodeSolution(sol_mesh,laststepcalc_,lasttimecalc_,"fluid potential, cw realpart,");
+      OutFile_->WriteNodeSolution(solIm_mesh,laststepcalc_,lasttimecalc_,"fluid potential, cw imagpart, ");
+    }
+  else
+    {  
+      sol_der1Array = getS1();
+      sol_der2Array = getS2();
+
+      
+      TransformNodeSolution(sol_mesh,sol_,PDE2MeshNode_);
+      TransformNodeSolution(solder1_mesh,sol_der1Array,PDE2MeshNode_);
+      TransformNodeSolution(solder2_mesh,sol_der2Array,PDE2MeshNode_);
+      
+      if (OutFile_->IsGMV())
+	{
+	  OutFile_->WriteNodeSolution(sol_mesh,laststepcalc_,lasttimecalc_,"vp");
+	  //       OutFile_->WriteNodeSolution(solder1_mesh,laststepcalc_,lasttimecalc_,"vp_1der");
+	  //       OutFile_->WriteNodeSolution(solder2_mesh,laststepcalc_,lasttimecalc_,"vp_2der");
+	}
+      else
+	{
+	  OutFile_->WriteNodeSolution(sol_mesh,laststepcalc_,lasttimecalc_,"fluid potential");
+	  OutFile_->WriteNodeSolution(solder1_mesh,laststepcalc_,lasttimecalc_,"fluid potential, 1st deriv., ");
+	  //      OutFile_->WriteNodeSolution(solder2_mesh,laststepcalc_,lasttimecalc_,"fluid potential, 2nd deriv., ");
+	}
+    }
+}
+
+
+
+
+}
+
+
