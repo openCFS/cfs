@@ -1,4 +1,4 @@
-SELECT	DATE_FORMAT(c.stamp,"%d.%m.%y   %H:%i:%S"),
+SELECT	DATE_FORMAT(c.stamp,"%d.%m.%y   %H:%i:%S") as TimeStamp,
 	i.filename,
 	r.idx 
 FROM	Calculation as c,
