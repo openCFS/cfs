@@ -30,6 +30,8 @@ protected:
   void updateMaterialData(Vector<Double> & parameter, MaterialData * ptMaterial);
   // Domain * ptDomain;
 
+  void calcMultiHarmMassMatrix(Double & omega);
+
 private:
 
   Double  startFreq_;
