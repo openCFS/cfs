@@ -26,6 +26,8 @@ RectangleFE::RectangleFE()
   if (conf->ifget("IntegRules", IntRule)==TRUE)
       conf->ifget("rectangle",integtype,"IntegRules");
 
+  //  myCout << "SEAS" <<integtype << myEndl;
+  
   IntegType=String2EnumIntegrationType(integtype.c_str());
 
 }
@@ -94,11 +96,8 @@ void RectangleFE:: SetIntPoints()
       IntPoints_[1][1] = -0.57735026919;
       IntPoints_[2][1] =  0.57735026919;
       IntPoints_[3][1] =  0.57735026919;
-
-
-  
-
       break;
+
 
     case GaussOrder5:
 

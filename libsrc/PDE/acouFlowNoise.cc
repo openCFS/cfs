@@ -449,7 +449,7 @@ void AcouFlowNoise::SolveStepTrans(const Integer kstep, const Double asteptime, 
       algsys_->ConstructEffectiveMatrix(matrix_factor_);
 
       algsys_->InitRHS();
-      assemble_->AssembleRHS(level,lasttimecalc_);
+      assemble_->AssembleSrcRHS(level,lasttimecalc_);
 
       ComputeRHS(lasttimecalc_);
       TS_alg_->UpdateRHS();
@@ -463,7 +463,7 @@ void AcouFlowNoise::SolveStepTrans(const Integer kstep, const Double asteptime, 
       algsys_->ConstructEffectiveMatrix(matrix_factor_);
 
       algsys_->InitRHS();
-      assemble_->AssembleRHS(level,lasttimecalc_);
+      assemble_->AssembleSrcRHS(level,lasttimecalc_);
       ComputeRHS(lasttimecalc_);
       TS_alg_->UpdateRHS();
     }
@@ -472,7 +472,7 @@ void AcouFlowNoise::SolveStepTrans(const Integer kstep, const Double asteptime, 
       update = 1;
       job    = 3;
       algsys_->InitRHS();
-      assemble_->AssembleRHS(level,lasttimecalc_);
+      assemble_->AssembleSrcRHS(level,lasttimecalc_);
       ComputeRHS(lasttimecalc_);
       TS_alg_->UpdateRHS();
     };

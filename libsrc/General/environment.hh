@@ -32,6 +32,7 @@ typedef Double (*pFncWith1Var)(const Double);
 #define mark std::cout<<__FILE__<<__LINE__<<std::endl;
 
   const Double PI = acos(-1.0);
+  const Double EPS = 1e-12;  // value for absolute precision (needed e.g. for lower bounds of norms in iteration loops)
   
 
   //! declaration sof functions. it is used in parsing functions from conf-file

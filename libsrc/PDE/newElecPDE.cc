@@ -136,7 +136,7 @@ void ElecPDE::StepStaticNonLin(const Integer level)
   Double * ptsol;
 
   assemble_->AssembleMatrices(level);
-  assemble_->AssembleRHS(level);
+  assemble_->AssembleSrcRHS(level);
   
   updateBCs_ = 0;
   SetBCs(level,updateBCs_,0);

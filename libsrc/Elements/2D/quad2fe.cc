@@ -43,7 +43,6 @@ void Quad2FE :: SetCornerCoords()
 
   LCornerCoords_.Resize(Dim_,NumNodes_);
   
-
   LCornerCoords_[0][0] =  -1;
   LCornerCoords_[1][0] =  -1;
   LCornerCoords_[0][1] = 1;
@@ -71,9 +70,9 @@ void Quad2FE :: CalcShapeFnc(std::vector<Double> & Shape,
 #ifdef TRACE
   (*trace) << "entering Quad2FE::CalcShapeFnc" << std::endl;
 #endif
-  // From Hughes:
+
   Shape.resize(NumNodes_);
- 
+   // From Zienkiewicz, The Finite Element Method. Vol 1, page 122.
  // corner nodes
   for( Integer i=0; i<(NumNodes_/2); i++)
     Shape[i] = 0.25 * (1 + LCornerCoords_[0][i] * LCoord[0])
@@ -100,33 +99,35 @@ void Quad2FE :: CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv,
 
   LDeriv.Resize(NumNodes_,Dim_);
 
-  LDeriv[0][0] = 0.25*LCoord[1]*(LCoord[1] - 1)*(2*LCoord[0] - 1);
-  LDeriv[0][1] = 0.25*LCoord[0]*(LCoord[0] - 1)*(2*LCoord[1] - 1);
+  // corner nodes
+  for( Integer i=0; i<(NumNodes_/2); i++)
+    {
+      LDeriv[i][0] = 0.25 * LCornerCoords_[0][i] * 
+	             (1 + LCornerCoords_[1][i] * LCoord[1]) * 
+	             (2 * LCornerCoords_[0][i] * LCoord[0] +
+		     LCornerCoords_[1][i] * LCoord[1]);
 
-  LDeriv[1][0] = 0.25*LCoord[1]*(LCoord[1] - 1)*(2*LCoord[0] + 1);
-  LDeriv[1][1] = 0.25*LCoord[0]*(LCoord[0] + 1)*(2*LCoord[1] - 1);
-
-  LDeriv[2][0] = 0.25*LCoord[1]*(LCoord[1] + 1)*(2*LCoord[0] + 1);
-  LDeriv[2][1] = 0.25*LCoord[0]*(LCoord[0] + 1)*(2*LCoord[1] + 1);
-
-  LDeriv[3][0] = 0.25*LCoord[1]*(LCoord[1] + 1)*(2*LCoord[0] - 1);
-  LDeriv[3][1] = 0.25*LCoord[0]*(LCoord[0] - 1)*(2*LCoord[1] + 1);
-
-  LDeriv[4][0] = -LCoord[0] * LCoord[1]*(LCoord[1] - 1);
-  LDeriv[4][1] = (1 - LCoord[0]*LCoord[0]) * (LCoord[1] - 0.5);
-
-  LDeriv[5][0] = (1 - LCoord[1]*LCoord[1]) * (LCoord[0] + 0.5);
-  LDeriv[5][1] = -LCoord[0] * LCoord[1]*(LCoord[0] + 1);
-
-  LDeriv[6][0] = -LCoord[0] * LCoord[1]*(LCoord[1] + 1);
-  LDeriv[6][1] = (1 - LCoord[0]*LCoord[0]) * (LCoord[1] + 0.5);
-
-  LDeriv[7][0] = (1 - LCoord[1]*LCoord[1]) * (LCoord[0] - 0.5);
-  LDeriv[7][1] = -LCoord[0] * LCoord[1]*(LCoord[0] - 1);
-
-  //  LDeriv[8][0] = -2*LCoord[0]*(1- LCoord[1]*LCoord[1]);
-  //  LDeriv[8][1] = -2*LCoord[1]*(1- LCoord[0]*LCoord[0]);
+      LDeriv[i][1] = 0.25 * LCornerCoords_[1][i] * 
+	             (1 + LCornerCoords_[0][i] * LCoord[0]) * 
+	             (2 * LCornerCoords_[1][i] * LCoord[1] +
+		     LCornerCoords_[0][i] * LCoord[0]);
+    }
   
+  // midside node
+  for( Integer i=(NumNodes_/2); i<NumNodes_; i=i+2)
+    {
+      LDeriv[i][0]   = - LCoord[0]*
+	               (1 + LCornerCoords_[1][i] * LCoord[1]);
+
+      LDeriv[i][1]   = 0.5 * LCornerCoords_[1][i] * 
+	               (1 - LCoord[0]*LCoord[0]);
+
+      LDeriv[i+1][0] = 0.5 *  LCornerCoords_[0][i] * 
+	               (1 - LCoord[1]*LCoord[1]);
+
+      LDeriv[i+1][1] = -LCoord[1]*
+	               (1 + LCornerCoords_[0][i] * LCoord[0]);
+    }
 }
 
 

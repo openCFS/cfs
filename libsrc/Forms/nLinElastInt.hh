@@ -16,7 +16,7 @@ namespace CoupledField
 // base class for nonlinear mechanics
 // =============================================================================
 
-  /// base class for calculation of nonlinear linear elasticity
+  /// base class for calculation of nonlinear elasticity
 class nLinElastInt : public linElastInt
 {
 public:
@@ -71,8 +71,7 @@ protected:
 // =============================================================================
 
 
-/// class for calculation of 3d nonlinear linear elasticity
-// derived from nLinElastInt with 3d material matrix 
+/// class for calculation of 3d nonlinear elasticity
 // first part: nonlinear B-matrix
 class nLinMech3dInt_BNonLin : public nLinElastInt
 {
@@ -98,16 +97,11 @@ protected:
   /// returns nr. of degrees of freedom
   virtual Integer getNrDofs(){return 3;};  
 };
-  
-
-  
 
 
 
 
-
-/// class for calculation of 3d nonlinear linear elasticity
-// derived from nLinMech3dInt_BNonLin (3d material matrix is needed)
+/// class for calculation of 3d nonlinear elasticity
 // second part: regarding internal stresses
 class nLinMech3dInt_PiolaStress : public nLinMech3dInt_BNonLin
 {
@@ -178,8 +172,7 @@ private:
 // nonlinear plane strain mechanics (2D)
 // =============================================================================
 
-/// class for calculation of plane strain nonlinear linear elasticity
-// derived from nLinElastInt with plane strain material matrix 
+/// class for calculation of plane strain nonlinear elasticity
 // first part: nonlinear B-matrix
 class nLinMechPlaneStrainInt_BNonLin : public nLinElastInt
 {
@@ -209,8 +202,7 @@ protected:
 
 
 
-/// class for calculation of 3d nonlinear linear elasticity
-// derived from nLinMech3dInt_BNonLin (3d material matrix is needed)
+/// class for calculation of 2d nonlinear elasticity
 // second part: regarding internal stresses
 class nLinMechPlaneStrainInt_PiolaStress : public nLinMech3dInt_PiolaStress
 {
@@ -240,6 +232,79 @@ protected:
 
   /// returns the size of the full piola d-matrix
   virtual Integer getFullPiolaDMatSize(){return 6;};  
+};
+  
+
+
+
+
+
+
+
+// =============================================================================
+// nonlinear axisymmetrical mechanics
+// =============================================================================
+
+/// class for calculation of axisymmetric nonlinear elasticity
+// first part: nonlinear B-matrix
+class nLinMechAxiInt_BNonLin : public nLinElastInt
+{
+public:
+
+  /// Constructor
+  nLinMechAxiInt_BNonLin(BaseFE * aptelem, MaterialData & matData);
+
+  /// Constructor
+  nLinMechAxiInt_BNonLin(MaterialData & matData);
+
+  
+  /// Destructor
+  virtual ~nLinMechAxiInt_BNonLin();  
+  
+protected:  
+  /// returns D - matrix for BDB
+  virtual void calcDMat(Matrix<Double> & dMat);
+
+  /// returns dimension of D matrix
+  virtual Integer getDimD(){return 4;};
+  
+  /// returns nr. of degrees of freedom
+  virtual Integer getNrDofs(){return 2;};  
+};
+
+
+
+
+/// class for calculation of 2d axisymmetric nonlinear elasticity
+// second part: regarding internal stresses
+class nLinMechAxiInt_PiolaStress : public nLinMech3dInt_PiolaStress
+{
+public:
+  /// Constructor
+  nLinMechAxiInt_PiolaStress(BaseFE * aptelem, MaterialData & matData);
+
+  /// Constructor
+  nLinMechAxiInt_PiolaStress(MaterialData & matData);
+  
+  /// Destructor
+  virtual ~nLinMechAxiInt_PiolaStress();  
+  
+protected:  
+  /// returns nr. of degrees of freedom
+  virtual Integer getNrDofs(){return 2;};  
+
+  /// conversion of stress vector to stress tensor
+  virtual void convertStressVecToTensor(Matrix<Double>& stressTensor, std::vector<Double>& piolaStress);
+
+  /// returns material D-matrix for 3d mechanics
+  virtual void calcMaterialDMat(Matrix<Double> & dMat);
+
+protected:
+  /// returns the size of the material d-matrix
+  virtual Integer getMaterialDMatSize(){return 4;};
+
+  /// returns the size of the full piola d-matrix
+  virtual Integer getFullPiolaDMatSize(){return 5;};  
 };
   
 

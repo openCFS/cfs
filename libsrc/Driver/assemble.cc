@@ -181,7 +181,7 @@ namespace CoupledField
 		  {
 		    actDescriptor->GetIntegrator()->SetElemPtr(ptEl);
 		    enum MatrixType destMat = actDescriptor->DestMat();
-
+			    
 		    // this matrix is nonlinear and, therefore, has to be reassembled next time
 		    if (actDescriptor->IsNonLin())
 		      {
@@ -207,25 +207,25 @@ namespace CoupledField
 
 
 
-	    // =========================================================================
-	    //                             assemble RHS
-	    // =========================================================================
+// 	    // =========================================================================
+// 	    //                             assemble RHS
+// 	    // =========================================================================
 
-	    for(Integer actRhsInt=0; actRhsInt < rhsIntegrators_[actDom]->size(); actRhsInt++)
-	      {
-		BaseIntDescriptor * actRhsID = (*rhsIntegrators_[actDom])[actRhsInt];
+// 	    for(Integer actRhsInt=0; actRhsInt < rhsIntegrators_[actDom]->size(); actRhsInt++)
+// 	      {
+// 		BaseIntDescriptor * actRhsID = (*rhsIntegrators_[actDom])[actRhsInt];
 
-		actRhsID->GetIntegrator()->SetElemPtr(ptEl);
+// 		actRhsID->GetIntegrator()->SetElemPtr(ptEl);
 
-		if (actRhsID->IsNonLin())
-		  actRhsID->GetIntegrator()->SetActElemSol(elSol);
+// 		if (actRhsID->IsNonLin())
+// 		  actRhsID->GetIntegrator()->SetActElemSol(elSol);
 
 		
-		std::vector<Double> elemVec;
-		actRhsID->GetIntegrator()->CalcElemVector(ptCoord, elemVec);
+// 		std::vector<Double> elemVec;
+// 		actRhsID->GetIntegrator()->CalcElemVector(ptCoord, elemVec);
 		
-		algsys_->SetElementRHS(&elemVec[0], connect_PDE.get(), connect_PDE.size());
-	      }
+// 		algsys_->SetElementRHS(&elemVec[0], connect_PDE.get(), connect_PDE.size());
+// 	      }
 	  }
       }
 
@@ -306,16 +306,17 @@ namespace CoupledField
 
 
   // do the basic assembling stuff
-  void Assemble::AssembleRHS(const Integer level, const Double time)
+  void Assemble::AssembleSrcRHS(const Integer level, const Double time)
   {
     
 #ifdef TRACE
-    (*trace) << "entering Assemble:AssembleRHS" << std::endl;
+    (*trace) << "entering Assemble:AssembleSrcRHS" << std::endl;
 #endif
     AssembleRHSNodalSources(level, time);
 
     AssembleRHSIntegralSources(level, time);
   }
+
   
 
 
@@ -372,7 +373,6 @@ namespace CoupledField
 	  }
       }
   }
-  
 
 
 
@@ -409,6 +409,68 @@ namespace CoupledField
   }
   
 
+
+
+
+
+
+  // do the basic assembling stuff
+  void Assemble::AssembleNLRHS(const Integer level, const Double time)
+  {
+#ifdef TRACE
+    (*trace) << "entering Assemble:AssembleNLRHS" << std::endl;
+#endif
+
+    Matrix<Double> elemmat;
+
+    for (int actDom=0; actDom < subdoms_.size(); actDom++)
+      {	
+	std::vector<Elem*> elemssd;
+	ptgrid_->GetElemSD(elemssd, subdoms_[actDom], level);
+
+
+	for (int actEl=0; actEl< elemssd.size(); actEl++)
+	  {
+	    BaseFE * ptEl = elemssd[actEl]->ptElem;
+	    Vector<Integer> connecth = elemssd[actEl]->connect;
+
+
+	    Matrix<Double> ptCoord;
+	    GetElemCoords(connecth, ptCoord, level);
+
+
+	    // map connect to PDE node numbers
+	    Vector<Integer> connect_PDE;
+	    Mesh2PDENode(connect_PDE, connecth, *mesh2PDENode_);
+
+
+	    Matrix<Double> elSol;
+
+	    GetSolOfElement(elSol, connect_PDE);
+	      
+	    
+	    // =========================================================================
+	    //                             assemble RHS
+	    // =========================================================================
+
+	    for(Integer actRhsInt=0; actRhsInt < rhsIntegrators_[actDom]->size(); actRhsInt++)
+	      {
+		BaseIntDescriptor * actRhsID = (*rhsIntegrators_[actDom])[actRhsInt];
+
+		actRhsID->GetIntegrator()->SetElemPtr(ptEl);
+
+		if (actRhsID->IsNonLin())
+		  actRhsID->GetIntegrator()->SetActElemSol(elSol);
+
+		
+		std::vector<Double> elemVec;
+		actRhsID->GetIntegrator()->CalcElemVector(ptCoord, elemVec);
+		
+		algsys_->SetElementRHS(&elemVec[0], connect_PDE.get(), connect_PDE.size());
+	      }
+	  }
+      }
+  }
 
 
 Integer Assemble::
@@ -469,6 +531,35 @@ GetBCDof(const std::string dofString)
       algsys_->InitMatrix(MASS); 
   }
  
+
+
+  void Assemble::InitNonLinMatrices()
+  {
+    // return, if matrices are not yet assembled
+    if (!reassembleMat_.size())
+      {
+	InitMatrices();
+	return;
+      }
+    
+    // Initialize matrices in order to get BCs correct
+    algsys_->InitMatrix(SYSTEM);
+
+    if (stiffnessMatrix_ && reassembleMat_[STIFFNESS])
+      algsys_->InitMatrix(STIFFNESS);
+    
+    if (dampingMatrix_ && reassembleMat_[DAMPING])
+      algsys_->InitMatrix(DAMPING);
+
+    if (convectionMatrix_ && reassembleMat_[CONVECTION])
+      algsys_->InitMatrix(CONVECTION);
+    
+    if (massMatrix_ && reassembleMat_[MASS])
+      algsys_->InitMatrix(MASS); 
+  }
+ 
+
+
  
 
   void Assemble::CreateMatrices()
@@ -861,3 +952,24 @@ BaseIntDescriptor::BaseIntDescriptor()
 
 
 } // end namespace CoupledField
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

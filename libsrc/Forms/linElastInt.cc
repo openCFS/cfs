@@ -87,6 +87,53 @@ namespace CoupledField
   }
   
 
+
+  void linElastInt::
+  CalcAxiMaterialMat(Matrix<Double> & dMat, enum orientation2D actOrientation)
+  {
+#ifdef TRACE
+    (*trace) << "entering linElastInt::CalcAxiMaterialMat " << std::endl;
+#endif
+    
+    const Integer nrElemsAxi = 4;
+    
+    Integer rowPtrXY[] = {1,2,6,3};  // indices of rows and lines for xy-plane
+    Integer rowPtrYZ[] = {2,3,4,1};  // indices of rows and lines for yz-plane
+    Integer rowPtrXZ[] = {1,3,5,2};  // indices of rows and lines for xz-plane
+    Integer * rowPtr;
+    Integer i,j;
+
+    switch(actOrientation)
+      {	
+      case xy: 
+	{
+	  rowPtr = rowPtrXY;
+	  break;
+	}
+      case xz: 
+	{
+	  rowPtr = rowPtrXZ;
+	  break;
+	}
+
+      case yz: 
+	{
+	  rowPtr = rowPtrYZ;    
+	  break;
+	}
+      }    
+	
+    Matrix<Double> * matMatrix =  ptMaterial->GetMatrix();
+    
+    dMat.Resize(nrElemsAxi);
+
+    for (i=0; i<nrElemsAxi; i++)
+      for (j=0; j<nrElemsAxi; j++)
+	dMat[i][j] = (*matMatrix)[rowPtr[i]-1][rowPtr[j]-1];
+
+}
+
+
   
   // calculated the D-matrix for the plain strain state
   void mechPlainStrainInt::calcDMat(Matrix<Double> & dMat)
@@ -140,43 +187,12 @@ namespace CoupledField
 #ifdef TRACE
   (*trace) << "entering mechAxiInt::calcDMat " << std::endl;
 #endif
-    const Integer nrElems2d = getDimD();
-    
-    Integer rowPtrXY[] = {1,2,6,3};  // indices of rows and lines for xy-plane
-    Integer rowPtrYZ[] = {2,3,4,1};  // indices of rows and lines for yz-plane
-    Integer rowPtrXZ[] = {1,3,5,2};  // indices of rows and lines for xz-plane
-    Integer * rowPtr;
-    Integer i,j;
+  
+  CalcAxiMaterialMat(dMat, actOrientation);
+  
+  }
+  
 
-    switch(actOrientation)
-      {	
-      case xy: 
-	{
-	  rowPtr = rowPtrXY;
-	  break;
-	}
-      case xz: 
-	{
-	  rowPtr = rowPtrXZ;
-	  break;
-	}
-
-      case yz: 
-	{
-	  rowPtr = rowPtrYZ;    
-	  break;
-	}
-      }    
-	
-    Matrix<Double> * matMatrix =  ptMaterial->GetMatrix();
-    
-    dMat.Resize(nrElems2d);
-
-    for (i=0; i<nrElems2d; i++)
-      for (j=0; j<nrElems2d; j++)
-	dMat[i][j] = (*matMatrix)[rowPtr[i]-1][rowPtr[j]-1];
-
-}
 
 
   // calculates the D-matrix of a 3d-problem 

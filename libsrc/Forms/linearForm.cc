@@ -192,12 +192,12 @@ namespace CoupledField
 
 
   VolumeSrcInt::VolumeSrcInt(Double aVal, Boolean isaxi)
-    : LinearForm(), val_(aVal), isaxi_(isaxi)
+    : LinearForm(), val_(aVal)
   {
 #ifdef TRACE
     (*trace) << "entering VolumeSrcIntInt::VolumeSrcInt" << std::endl;
 #endif
-
+    isaxi_ = isaxi;
   }
 
 
@@ -253,21 +253,23 @@ namespace CoupledField
   // ==================================================================
 
 
-  nLinMech_linFormInt::nLinMech_linFormInt(BaseFE * aptelem, MaterialData & matData) 
+  nLinMech_linFormInt::nLinMech_linFormInt(BaseFE * aptelem, MaterialData & matData, Boolean isaxi) 
     : LinearForm(aptelem), matData_(matData)
   {
 #ifdef TRACE
     (*trace) << "entering nLinMech_linFormInt::nLinMech_linFormInt" << std::endl;
 #endif
+    isaxi_ = isaxi;
   }
 
 
-  nLinMech_linFormInt::nLinMech_linFormInt(MaterialData & matData) 
+  nLinMech_linFormInt::nLinMech_linFormInt(MaterialData & matData, Boolean isaxi) 
     : LinearForm(), matData_(matData)
   {
 #ifdef TRACE
     (*trace) << "entering nLinMech_linFormInt::nLinMech_linFormInt" << std::endl;
 #endif
+    isaxi_ = isaxi;
   }
 
 
@@ -304,8 +306,10 @@ namespace CoupledField
     nLinMech3dInt_PiolaStress * stressBiformInt;
 
     // These, as friend defined bilinearforms holds the necessary differential operators
-    if (ptelem->GetDim() == 2)
+    if (ptelem->GetDim() == 2 && !isaxi_)
       stressBiformInt = new nLinMechPlaneStrainInt_PiolaStress(ptelem, matData_);
+    else if (ptelem->GetDim() == 2 && isaxi_)
+      stressBiformInt = new nLinMechAxiInt_PiolaStress(ptelem, matData_);
     else if (ptelem->GetDim() == 3)
       stressBiformInt = new nLinMech3dInt_PiolaStress (ptelem, matData_);
     else 

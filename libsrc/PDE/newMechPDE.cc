@@ -36,15 +36,23 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
   conf->getstr("subtype", subType_, pdename_ );
   
   if (subType_ == "3d")
-    dofspernode_ = 3;
+    {
+      dofspernode_ = 3;
+      Info->PrintF("", "=== 3D PROBLEM\n");
+    }
   else if (subType_ == "axi")
     {
       isaxi_ = TRUE;
       dofspernode_ = 2;
+      Info->PrintF("", "=== AXISYSMMETRIC PROBLEM\n");
     }
   else
-    // default is planeStrain 
-    dofspernode_ = 2;
+    {
+      // default is planeStrain 
+      dofspernode_ = 2;
+      Info->PrintF("", "=== PLAIN STRAIN PROBLEM\n");
+    }
+  
 
   conf->getsubdompde(subdoms_,pdename_);
   ReadBCs(pdename_);
@@ -197,13 +205,19 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 	  
 	  if (subType_ == "3d")
 	    {	  
-	      nLinPart1 =  new nLinMech3dInt_BNonLin(actSDMat);    
+	      nLinPart1 = new nLinMech3dInt_BNonLin(actSDMat);    
 	      nLinPart2 = new nLinMech3dInt_PiolaStress(actSDMat);
 	    }
 	  else if (subType_ == "plainStrain")
 	    {
 	      nLinPart1 = new nLinMechPlaneStrainInt_BNonLin(actSDMat);    
 	      nLinPart2 = new nLinMechPlaneStrainInt_PiolaStress(actSDMat);
+
+	    }
+	  else if (subType_ == "axi")
+	    {
+	      nLinPart1 = new nLinMechAxiInt_BNonLin(actSDMat);    
+	      nLinPart2 = new nLinMechAxiInt_PiolaStress(actSDMat);
 
 	    }
 	  
@@ -232,13 +246,13 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
       assemble_->AddIntegrator(actIntDescr, subdoms_[actSD]);
 
 
+
       // ==================== RHS ================================================
       if (nonLin_)
 	{
-	  BaseForm * rhsSource = new nLinMech_linFormInt(actSDMat);
+	  BaseForm * rhsSource = new nLinMech_linFormInt(actSDMat, isaxi_);
 	  assemble_->AddRhsIntegrator(rhsSource, subdoms_[actSD], nonLin_);
-	}
-      
+	}      
     }
   }
 
@@ -326,6 +340,10 @@ GetDirection(Directions& dir, const std::string keyword)
 
 void MechPDE::CalcReducedMat(MaterialData& lambdaMat, MaterialData& mueMat, MaterialData& mat)
 {
+#ifdef TRACE
+  (*trace) << "entering MechPDE::CalcReducedMat" << std::endl;
+#endif
+
   Double lambda, mue;
   mat.GetMatrixData(1,2, lambda);
   mat.GetMatrixData(4,4, mue);
@@ -491,12 +509,6 @@ void MechPDE::StepStaticNonLin(const Integer level)
 #endif
 
   const Integer job = 1;
-  Double extForcesL2Norm;  
-  Double residualL2Norm;  
-  Double solIncrL2Norm;
-  Double actSolL2Norm;
-  Double incrementalErr;
-  Double residualErr;
   Boolean performOneMoreStep;
   Integer iterationCounter=0;
   
@@ -504,58 +516,150 @@ void MechPDE::StepStaticNonLin(const Integer level)
   std::vector<Double> solIncrement(numPDENodes_ * dofspernode_,0);
 
 
-  extForcesL2Norm = SetExternalForces(level);
+  Double extForcesL2Norm = SetExternalForces(level);
 
 
   do
     {
       iterationCounter++;
+
       std::cout << std::endl << "Nonlinear Mechanics: Perform internal loop nr. " 
 		<< iterationCounter << std::endl;      
+
 #ifdef DEBUG
       *debug << std::endl << "====================================================== " << std::endl
 	     <<	"Nonlinear Mechanics: Perform internal loop nr. " << iterationCounter << std::endl;      
 #endif      
+
+      // setup right hand side ==============================================      
+      algsys_->InitRHS();
+      SetBCs(level, updateBCs_, 0);
+      assemble_->AssembleSrcRHS(level);
+      assemble_->AssembleNLRHS(level);
+
+
       // setup and solve new system (rhs is already set) =====================
+      assemble_->InitNonLinMatrices();
       assemble_->AssembleMatrices(level);
       
       algsys_->CalcPrecond(job);
       algsys_->Solve();
 
+      
 
       // new solution is only an increment of the full solution =============
       StoreAlgsysToVec(solIncrement, algsys_->GetSolutionVal() );
-      actSol += solIncrement;
+
+      Double residualL2Norm = LineSearch(solIncrement, actSol, level);
+      
       StoreVecToSolArray(actSol);
 
 
+      // =====================================================================
+      // calculation of error norms
+      // =====================================================================
+
+      // calculation of residual error =======================================
+      Double residualErr = residualL2Norm / extForcesL2Norm;
+
+
       // calculate incremental error ========================================
-      solIncrL2Norm = L2Norm(solIncrement);
-      actSolL2Norm = L2Norm(actSol);
+      Double solIncrL2Norm = L2Norm(solIncrement);
+      Double actSolL2Norm = L2Norm(actSol);
+      
+      Double incrementalErr;
+      
       if (actSolL2Norm)
 	incrementalErr = solIncrL2Norm / actSolL2Norm;
       else
 	Error("Zero solution vector!! ", __FILE__,__LINE__);      
 
 
+
+      // =====================================================================
+      // output of norms and data
+      // =====================================================================
+
+
+      WriteClaNlNorms(iterationCounter, residualL2Norm, extForcesL2Norm, residualErr,  
+		      solIncrL2Norm, actSolL2Norm, incrementalErr);
+
+      
+      Info->WriteNonLinIter(pdename_, iterationCounter, residualErr, incrementalErr);
+
+
+      // boolean variable, holds condition if another iteration step is necessary
+      performOneMoreStep = 
+	(incrementalErr > incStopCrit_) && (residualErr > residualStopCrit_);      
+      
+      *cla << "solution: " << myEndl << sol_ << myEndl;
+      
+    }while(performOneMoreStep && iterationCounter < maxnumiter_);  
+}
+
+
+
+
+Double MechPDE::LineSearch(std::vector<Double>& solIncrement, std::vector<Double>& actSol, Integer level)
+{
+#ifdef TRACE
+  (*trace) << "entering MechPDE::LineSearch" << std::endl;
+#endif
+
+  std::vector<Double> solOld(actSol);
+  const Integer nrEtas = 4;
+  const Double eta[nrEtas] = {1, 0.5, 0.25, 0.125};
+  //  const Double eta[nrEtas] = {1};
+  Double etaOpt;
+  Double residualL2NormOpt = 1e15;
+  
+  for(Integer i=0; i<nrEtas; i++)
+    {
+      actSol = eta[i] * solIncrement;
+      actSol += solOld;
+
+      StoreVecToSolArray(actSol);
+
       // recalculate RHS with new values to get new residual (f^(k+1))========
       algsys_->InitRHS();
-      SetBCs(level, updateBCs_, 0);
+      assemble_->AssembleSrcRHS(level);
+      assemble_->AssembleNLRHS(level);
 
-      //      SetupRHS(level);      
-      assemble_->AssembleRHS(level);
-      
 
+      // =====================================================================
+      // calculation of error norms
+      // =====================================================================
       std::vector<Double> actRHS;
       StoreAlgsysToVec(actRHS, algsys_->GetRHSVal() );
 
       // calculation of residual error =======================================
-      residualL2Norm = RhsL2Norm(actRHS); // L2Norm of  ( f_i^(k+1) - f_a )
-      residualErr = residualL2Norm / extForcesL2Norm;
+      Double residualL2Norm = RhsL2Norm(actRHS); // L2Norm of  ( f_i^(k+1) - f_a )
+
+      if (residualL2Norm < residualL2NormOpt)
+	 {
+	   residualL2NormOpt = residualL2Norm;
+	   etaOpt = eta[i];
+	 }
+    }
+
+  myCout << "EtaOpt = " << etaOpt << myEndl;
+  
+  actSol = etaOpt * solIncrement;
+  actSol += solOld;
+  
+  return residualL2NormOpt;
+}
 
 
 
-
+void MechPDE::WriteClaNlNorms(const Integer iterationCounter, const Double residualL2Norm, const Double extForcesL2Norm,
+			      const Double residualErr, const Double solIncrL2Norm, const Double actSolL2Norm, 
+			      const Double incrementalErr)
+{
+#ifdef TRACE
+  (*trace) << "entering MechPDE::WriteClaNlNorms" << std::endl;
+#endif
+  
       *cla << std::endl << " ======================================================= " << std::endl
 		<< " NONLINEAR ITERATION " << iterationCounter << std::endl
 		<< " ======================================================= " << std::endl;
@@ -565,24 +669,10 @@ void MechPDE::StepStaticNonLin(const Integer level)
 
       *cla << " === Incremental sol L2Norm: " << solIncrL2Norm << std::endl;
       *cla << "     Actual solution L2Norm: " << actSolL2Norm << std::endl;
-      *cla << "     Incremental error       " << incrementalErr << std::endl;
-
-      
-      Info->WriteNonLinIter(pdename_, iterationCounter, residualErr, incrementalErr);
-      
-
-      // boolean variable, holds condition if another iteration step is necessary
-      performOneMoreStep = 
-	(incrementalErr > incStopCrit_)||(residualErr > residualStopCrit_);      
-      
-      
-      if(performOneMoreStep)
-	{
-	  assemble_->InitMatrices();
-	  algsys_->InitSol();
-	}
-    }while(performOneMoreStep && iterationCounter < maxnumiter_);  
+      *cla << "     Incremental error       " << incrementalErr << std::endl;      
 }
+
+
 
 
 
@@ -612,6 +702,163 @@ void MechPDE :: InitTimeStepping(const Double dt)
 
 
 
+void MechPDE::StepTransNonLin(const Integer level, const Boolean reset)
+{
+#ifdef TRACE
+  (*trace) << "entering MechPDE::StepTransNonLin" << std::endl;
+#endif
+
+  const Integer job = 1;
+  const Integer update = 0;  
+  static Integer timeStepCounter=1;
+  Double * ptsol;
+  Boolean performOneMoreStep;
+  Integer iterationCounter=0;
+
+  std::vector<Double> actSol(numPDENodes_ * dofspernode_,0);
+  std::vector<Double> solIncrement(numPDENodes_ * dofspernode_,0);
+
+
+  //current problem with Array class
+  Array<Double> solhelp;
+  solhelp.reshape(1, numPDENodes_*dofspernode_);
+ 
+
+  Integer k=0;
+  for (Integer i=0; i< numPDENodes_; i++)
+    for (Integer j=0; j<dofspernode_; j++)
+      {
+	solhelp[0][k] = sol_[j][i];
+	actSol[k] = sol_[j][i];   // set start value for nonlinear iteration
+	k++;
+      }
+
+
+
+  algsys_->InitRHS();
+
+  //perform predictor step
+  TS_alg_->Predictor(solhelp);
+
+  Double extForcesL2Norm = SetExternalForces(level);
+
+  Info->WriteTimeStep(pdename_, timeStepCounter, lasttimecalc_);
+
+  timeStepCounter++;
+
+  
+  do
+    {
+      iterationCounter++;
+      std::cout << std::endl << "Nonlinear Mechanics: Perform internal loop nr. " 
+		<< iterationCounter << std::endl;
+
+#ifdef DEBUG
+      *debug << std::endl << "====================================================== " << std::endl
+	     <<	"Nonlinear Mechanics: Perform internal loop nr. " << iterationCounter << std::endl;      
+#endif
+ 
+
+
+      // setup and solve new system (rhs is already set) =====================
+      assemble_->InitNonLinMatrices();
+      assemble_->AssembleMatrices(level);
+      algsys_->ConstructEffectiveMatrix(matrix_factor_);
+
+
+      TS_alg_->UpdateRHS(actSol);
+      SetBCs(level, update, lasttimecalc_);
+
+      algsys_->CalcPrecond(job);
+      algsys_->Solve();
+
+      // new solution is only an increment of the full solution =============
+      StoreAlgsysToVec(solIncrement, algsys_->GetSolutionVal() );
+      actSol += solIncrement;
+      StoreVecToSolArray(actSol);
+
+
+      // recalculate RHS with new values to get new residual (f^(k+1))========
+      algsys_->InitRHS();
+      SetBCs(level, updateBCs_, 0);
+      assemble_->AssembleSrcRHS(level,lasttimecalc_); 
+      assemble_->AssembleNLRHS(level, lasttimecalc_);  // inner forces due to nonlin formulation
+      TS_alg_->UpdateRHS(actSol);
+
+
+
+
+      // =====================================================================
+      // calculation of error norms
+      // =====================================================================
+
+      std::vector<Double> actRHS;
+      StoreAlgsysToVec(actRHS, algsys_->GetRHSVal() );
+
+
+      // calculation of residual error =======================================
+      Double residualL2Norm = RhsL2Norm(actRHS); // L2Norm of  ( f_i^(k+1) - f_a )
+      Double residualErr    = residualL2Norm / extForcesL2Norm;
+
+      if (extForcesL2Norm < EPS)
+	residualErr = residualL2Norm*1e5;   // take the absolute error instead of the relative
+
+
+     // calculate incremental error ========================================
+      Double solIncrL2Norm = L2Norm(solIncrement);
+      Double actSolL2Norm = L2Norm(actSol);
+      Double incrementalErr;
+
+      if (actSolL2Norm)
+	incrementalErr = solIncrL2Norm / actSolL2Norm;
+      else
+	{
+	  Warning("Zero solution vector!! ", __FILE__,__LINE__);
+	  incrementalErr = 0; // don't block the iteration loop
+	}
+      
+      if (actSolL2Norm < EPS)
+	incrementalErr = 0;   // don't block the iteration loop
+
+
+
+      // =====================================================================
+      // output of norms and data
+      // =====================================================================
+
+
+      WriteClaNlNorms(iterationCounter, residualL2Norm, extForcesL2Norm, residualErr,  
+		      solIncrL2Norm, actSolL2Norm, incrementalErr);
+      
+      Info->WriteNonLinIter(pdename_, iterationCounter, residualErr, incrementalErr);
+      
+
+      // boolean variable, holds condition if another iteration step is necessary
+      performOneMoreStep = 
+	(incrementalErr > incStopCrit_)||(residualErr > residualStopCrit_);
+
+    } while(performOneMoreStep && iterationCounter < maxnumiter_);  
+
+  
+  //save solution
+  k=0;
+  for (Integer i=0; i< numPDENodes_; i++)
+    for (Integer dim=0; dim<dofspernode_; dim++)
+      {
+	solhelp[0][k] = sol_[dim][i];
+	k++;
+      }
+  
+  //perform corrector step  
+  TS_alg_->Corrector(solhelp);
+}
+
+
+
+
+
+
+
 // sets external forces and returns L2Norm of them
 Double MechPDE::SetExternalForces(const Integer level)
 {
@@ -622,12 +869,11 @@ Double MechPDE::SetExternalForces(const Integer level)
   Double extForcesL2Norm;  
   std::vector<Double> extForces;
 
-
   // account for bcs before first solving step =======================
   SetBCs(level, updateBCs_, 0);
-  // to incorporate pressure loads
-  //  SetupRHS(level);      
-  assemble_->AssembleRHS(level);
+
+  // to incorporate loads
+  assemble_->AssembleSrcRHS(level, lasttimecalc_);
   
 
   // stores rhs vector into extForces and returns that L2-norm
@@ -638,8 +884,9 @@ Double MechPDE::SetExternalForces(const Integer level)
  
   //  if extForcesL2Norm is 0, no residual norm can be calculated
   if (!extForcesL2Norm)
-    Error("Zero external force vector!! ", __FILE__,__LINE__);
+    Warning("Zero external force vector!! ", __FILE__,__LINE__);
 
+  
   
   return extForcesL2Norm;
 }

@@ -113,6 +113,31 @@ namespace CoupledField
 
 
 
+
+  void WriteInfo::WriteTimeStep(const std::string& pdeName, const Integer timeStep,    
+				const Double time)
+  {
+    std::string pdeNameLong(pdeName);
+
+    // write std::out info    
+    std::cout << myEndl << "Nonlinear Mechanics: Time step " 
+	      << timeStep <<" ======================= " << std::endl;      
+
+
+    *cla << myEndl << "Nonlinear Mechanics: Time step " 
+	 << timeStep <<" ********************************************" << std::endl;      
+
+
+    // write to info-file
+    pdeNameLong += "-PDE: ";    
+    *cfsInfo << std::endl << std::endl << std::endl 
+	     << "********************************************************************************" 
+	     << std::endl << pdeNameLong << "TIME STEP " << timeStep 
+	     << ", time: " << time << std::endl;
+  }
+  
+
+
   void WriteInfo:: WriteResult(std::string pdename, std::string resulttype, std::vector<std::string> subdoms,
 			       std::vector<Double> results)
   {
