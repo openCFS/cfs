@@ -5,7 +5,7 @@
 
 namespace CoupledField
 {
-//! Quadrilateral finite element with four nodes (linear interpolation function)
+//! Quadrilateral finite element with nine nodes (linear interpolation function)
 
   class Quad2 : public Rectangle
 {

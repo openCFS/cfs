@@ -15,10 +15,10 @@ IncGridlib=$(C_DIR)/Gridlib_inc
 #
 ############ Define library
 #
-mylibrary=  driver pde algsys-own forms  \
+mylibrary=  driver estimator pde algsys-own forms  \
             multigrid-piles general-piles superlu-piles \
             elements3d elements2d elements \
-            gridcfs togridlib domain unverg  \
+            gridcfs domain unverg  \
             definefiles datfile datainout \
              utils matrix general
 #mylibrary=  driver pde algsys-own forms  \
@@ -40,7 +40,7 @@ INCL =  -I$(IncGridlib) \
              -I$(LIBSRC_DIR)/AlgebraicSystem/PILES/general \
          -I$(LIBSRC_DIR)/AlgebraicSystem/PILES/superlu
 #
-CFLAGS2 = -c $(INCL) -MDupdate makedepend
+CFLAGS2 = -c $(INCL) 
 #
 FFLAGS1 = -c
 #

@@ -6,6 +6,8 @@
 
 #include "interface_gridlib.hh"
 #include "filetype.hh"
+//#include <GoMesh.hh>
+#include <GbSubdivideUniform.hh>
 #include <GoTriangleMesh.hh>
 #include <GoVolumeMesh.hh>
 #include <GoDefaultVertex.hh>
@@ -327,6 +329,20 @@ void InterfaceGridlib<Dim>::GetNodesBoundaryCondition(Vector<Integer> & nodesDir
     std::cout << nodesDirBC[j] << " ";
    std::cout << std::endl;
    
+   }
+}
+
+template<class Dim>
+void InterfaceGridlib<Dim>::SubdivideUniform(const Integer level)
+{
+#ifdef TRACE
+ (*trace) << "entering InterfaceGridlib::SubdivideUniform " << std::endl;
+#endif
+
+   if (ptGoMesh)
+   {
+     GbSubdivideUniform((*ptGoMesh),level);
+     DoesGridSubdivide=TRUE;
    }
 }
 

@@ -7,12 +7,12 @@ C_DIR= ..
 #
 LIBDIR = $(C_DIR)/libsrc
 #
-SUBLIBDIR = Driver PDE AlgebraicSystem/LinAlg \
+SUBLIBDIR = Driver Estimator PDE AlgebraicSystem/LinAlg \
             AlgebraicSystem/PILES/general \
             AlgebraicSystem/PILES/multigrid \
             AlgebraicSystem/PILES/superlu \
             Forms Elements Elements/2D Elements/3D \
-            Domain/GridCFS Domain/Gridlib Domain \
+            Domain/GridCFS Domain \
             DataInOut/DefineFiles \
             DataInOut/Unverg DataInOut/DatFile DataInOut\
             Utils Matrix General
@@ -202,6 +202,3 @@ depend-cleanfile:
 	@rm -rf $(Dependencies)
  
 # DO NOT DELETE THIS LINE -- make depend depends on it
-test:
-	Test
-#	export LD_LIBRARYN32_PATH=../libgrid:../lib/SGIg

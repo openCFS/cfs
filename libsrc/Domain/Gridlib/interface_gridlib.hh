@@ -5,13 +5,8 @@
 #include "grid.hh"
 
 // Include from Gridlib
+
 #include <GoMesh.hh>
-#include <GbSubdivideUniform.hh>
-//#include <GoTriangleMesh.hh>
-//#include <GoVolumeMesh.hh>
-//#include <GoDefaultVertex.hh>
-//#include <GoTriangleElement.hh>
-//#include <GbSubdivideUniform.hh>
 
 namespace CoupledField
 {
@@ -28,12 +23,7 @@ public:
   virtual ~InterfaceGridlib() { if (ptGoMesh ) delete ptGoMesh ;}
   
    /// Uniform subdivision of domain
-  virtual void SubdivideUniform(const Integer level){
-   if (ptGoMesh)  {
-     GbSubdivideUniform((*ptGoMesh),level);
-     DoesGridSubdivide=TRUE;
-   }
-  }
+  virtual void SubdivideUniform(const Integer level);
 
   /// Get coordinates of all nodes which belong to element
   virtual void GetCoordOfNodesElem(const Integer numElem, const Integer numlevel, const Integer numnodes, Dim * ptCoordElem); 
