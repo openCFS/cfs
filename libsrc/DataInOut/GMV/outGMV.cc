@@ -348,7 +348,7 @@ void WriteResultsGMV<Dim>::OpenFile(const Integer num)
 {
    Char * name=new Char[30];
    Char * aux=new Char[2];
-   std::sprintf(aux,"%i",num);
+   sprintf(aux,"%i",num);
 
    strcpy(name,namedir_);
    strcat(name,"/");

@@ -2,42 +2,63 @@
 #
 src = cfs.cc
 #
+C_DIR=..
+########## set OS variable
+#
+OS=$(shell uname -s)
+#
 ############ Directories
-C_DIR= ..
 #
-LIBDIR = $(C_DIR)/libsrc
-#
-SUBLIBDIR = Driver Estimator PDE AlgebraicSystem/LinAlg \
+ifeq "$(OS)" "Linux"
+SUBLIBDIR := Driver Estimator PDE AlgebraicSystem/LinAlg \
+             Forms Elements Elements/2D Elements/3D \
+             Domain/GridCFS Domain/NetGen Domain \
+             DataInOut/DefineFiles \
+             DataInOut/Unverg DataInOut/GMV \
+             DataInOut/DatFile DataInOut\
+             Utils Matrix General
+else
+SUBLIBDIR := Driver Estimator PDE AlgebraicSystem/LinAlg \
             Forms Elements Elements/2D Elements/3D \
-            Domain/GridCFS Domain/NetGen Domain \
+            Domain/GridCFS Domain/Gridlib Domain \
             DataInOut/DefineFiles \
             DataInOut/Unverg DataInOut/GMV \
             DataInOut/DatFile DataInOut\
             Utils Matrix General
-#SUBLIBDIR = Driver PDE AlgebraicSystem/LinAlg \
-#            AlgebraicSystem/PILES/general \
-#            AlgebraicSystem/PILES/multigrid \
-#            AlgebraicSystem/PILES/superlu \
-#            Forms Elements Elements/2D Elements/3D \
-#            Domain/GridCFS Domain/Gridlib Domain \
-#            DataInOut/DefineFiles \
-#            DataInOut/Unverg DataInOut/DatFile DataInOut\
-#            Utils Matrix General
+endif
 #
-PATHSUBLIBDIR = $(addprefix $(LIBDIR)/, $(SUBLIBDIR))
+############ define my libraries
 #
-LIB_GRIDLIB = $(C_DIR)/libgrid
-LIB_OWN = $(C_DIR)/lib
-LIB_NETGEN = $(C_DIR)/libnetgen/LINUX
-LIB_CLA=$(CLA)/lib/$(MACHINE)
+ifeq "$(OS)" "Linux"
+mylibrary :=  driver estimator pde algsys-own forms  \
+            elements3d elements2d elements \
+            gridcfs tonetgen\
+            domain unverg gmv \
+            definefiles datfile datainout \
+            utils matrix general \
+            multigrid-cla general-cla superlu-cla
+else
+mylibrary :=  driver estimator pde algsys-own forms  \
+            elements3d elements2d elements \
+            gridcfs \
+            domain unverg gmv \
+            definefiles datfile datainout \
+            utils matrix \
+            multigrid-cla general-cla superlu-cla \
+            general
+endif
 #
+########### define system libraries
 #
-############
-ifeq "$(ARCH)" "LINUX"
-syslib :=
+ifeq "$(OS)" "Linux"
+syslib :=  nginterface vis  \
+            stlgeom mesh csg gprim opti \
+            la gen cfsinterface tix8.1.8.3 tk8.3 tcl8.3\
+            GL GLU X11 Xi m dl pthread stdc++
 else
 syslib := -lGridBase -lIO  -lUtil -lMesh -lC
 endif
+#
 ############ General options
 #
 include $(C_DIR)/main/Makefile.option
@@ -45,6 +66,10 @@ include $(C_DIR)/main/Makefile.option
 ############ Define specific flags
 #
 include $(LIBSRC_DIR)/makefilemach/make.mach.$(MACHINE)
+#
+##########
+#
+PATHSUBLIBDIR = $(addprefix $(LIBSRC_DIR)/, $(SUBLIBDIR))
 #
 ########### Rules
 #
@@ -64,10 +89,10 @@ $(program):: $(src:.cc=.o) $(fsrc:.f=.o) makelibs
 #
 ########## Set varible MACHINE
 setvar:
-ifeq "$(ARCH)" "SGI"
-	@echo setenv MACHINE SGI
-else
+ifeq "$(OS)" "Linux"
 	export MACHINE=LINUX
+else
+	@echo setenv MACHINE SGI
 endif
 ########### Go to make library
 #
@@ -83,7 +108,7 @@ makelibs:
 ############### Print info about variables that should be set before work
 #
 info: 
-ifeq "$(ARCH)" "LINUX"
+ifeq "$(OS)" "Linux"
 	@echo Before run of cfs set this variable on LINUX:
 	@echo export LD_LIBRARY_PATH=$(LIB_OWN)/$(MACHINE):$(NetGen)/lib
 else
@@ -94,21 +119,19 @@ endif
 ############## Make link to the source of another programm
 #
 link:
-	echo $(CLA)
 	rm -rf $(IncNetGen) &&  ln -s $(NetGen)/libsrc/include $(IncNetGen) && \
         rm -rf $(LibNetGen) && ln -s $(NetGen)/lib $(LibNetGen) &&\
-        rm -rf $(LibCLA) && ln -s $(CLA)/libsrc $(LibCLA)
-#        rm -rf $(IncGridlib) && ln -s $(Gridlib) $(IncGridlib) && \
+        rm -rf $(LibCLA) && ln -s $(CLA)/libsrc $(LibCLA) && \
+	rm -rf $(IncGridlib) && ln -s $(Gridlib) $(IncGridlib)
 #        
-#
 ############## Make links in dir include
 #
-link-include:
+make-include:
 	@echo Creating links to header-files
-	@(rm -rf $(Include); mkdir Include)
+	@(rm -rf $(Include); mkdir $(Include))
 	@for n in $(PATHSUBLIBDIR); do \
         (if cd $$n; \
-                  then $(MAKE) link-include; \
+                  then $(MAKE) make-include ; \
                    else echo "WARNING:" $$n " doesn't exist"; \
           fi); \
          done

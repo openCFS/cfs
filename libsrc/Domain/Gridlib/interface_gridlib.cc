@@ -120,7 +120,7 @@ void InterfaceGridlib<Point2D>::Read()
 
   Integer * Connect=new Integer[nelems*nelemNodes];
   // ########################## number of groupes
-  ptFileType->ReadElemConnectionGH(nelems, Connect, nelemNodes, 0);
+  ptFileType->ReadElemConnectionGH(nelems, Connect, nelemNodes, 0,0);
 
   GoGeometryElement<float > * t=NULL;
   Integer i;
@@ -205,7 +205,7 @@ void InterfaceGridlib<Point3D>::Read()
 
   Integer * Connect=new Integer[nelems*nelemNodes];
   // ########################## number of groupes
-  ptFileType->ReadElemConnectionGH(nelems, Connect, nelemNodes, 0);
+  ptFileType->ReadElemConnectionGH(nelems, Connect, nelemNodes, 0,0);
 
   GoGeometryElement<float > * t=NULL;
   Integer i;

@@ -5,14 +5,18 @@
 #include <iomanip>
 #include <stdarg.h>
 #include <list>
-#include <cmath>
+#include <math.h>
 
 #include "myclock.hh"
 #include "definefiles.hh"
 #include "material.hh"
 #include "timefunc.hh"
 #include "acousticPDE.hh"
-//#include "interface_gridlib.hh"
+
+#ifdef GRIDLIB
+#include "interface_gridlib.hh"
+#endif
+
 #include "driver.hh"
 #include <abstractAlgSys.hh>
 //#include <interface_piles.hh>

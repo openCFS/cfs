@@ -79,7 +79,7 @@ void ConfFile::getmatnum(Integer & matnum, const Integer numsubdom)
  infile.seekg(pos,std::ios::beg);
  infile.ignore(100,'\n');
 
- Integer i=0, numsd;
+ Integer i=0, numsd=0;
  //
  Integer numsubdomain=numsubdom+1;
 

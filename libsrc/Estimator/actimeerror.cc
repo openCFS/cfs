@@ -1,7 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
-#include <cmath>
+#include <math.h>
 
 #include "actimeerror.hh"
 
@@ -44,11 +44,11 @@ void AcousticTimeErrorEstimator::CalcError(const Double dt)
   Double beta=ptPDE_->getBeta();
   
   Vector<Double> errdisplacement;
-  Double aux=std::pow(dt,3)/12;
+  Double aux=pow(dt,3)/12;
   errdisplacement=(thirddersolA*(1-12*beta)+thirddersol_)*aux; 
 
   Vector<Double> errvelocity;
-  aux=std::pow(dt,3)/6;
+  aux=pow(dt,3)/6;
   errvelocity=(thirddersolA*(2-6*gamma)+thirddersol_)*aux;
 
   Double help1=ptPDE_->getAlgSys()->CalcEnergyNorm(0,0,2,errdisplacement.get());
@@ -71,7 +71,7 @@ void AcousticTimeErrorEstimator::ChangeStep(Double & dt)
 #endif
 
   Double help1=theta_*tol_/relativeerror_;
-  Double help=std::exp(0.333333333*std::log(help1));
+  Double help=exp(0.333333333*log(help1));
   dt*=help;
 }
 

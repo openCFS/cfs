@@ -78,7 +78,7 @@ public:
   virtual const Vector<Double> & getS2old() const { Error("Function getS2old is not overloaded in this class");}
 
   //!
-  virtual Double getBeta() const { Error("Function getBeta is not overloaded in this class");};
+  virtual Double getBeta() const { Error("Function getBeta is not overloaded in this class");}
 
   virtual Double getGamma() const { Error("Function getGamma is not overloaded in this class");}
 
