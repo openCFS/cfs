@@ -17,7 +17,7 @@
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
 #include "DataInOut/ParamHandling/PlainXMLParamHandler.hh"
 #include "DataInOut/ParamHandling/XMLParamHandler.hh"
-#include "DataInOut/ParamHandling/XMLSkeletonConf.hh"
+#include "DataInOut/ParamHandling/SkeletonConf.hh"
 
 namespace CoupledField
 {

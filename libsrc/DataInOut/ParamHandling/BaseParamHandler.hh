@@ -70,6 +70,27 @@ namespace CoupledField
 		      const std::string section="",
 		      const std::string subsection="" ) = 0;
 
+    //! Get string-value for a element with certain attribute
+
+    //! The method will try to find the specified keyword in the parameter tree
+    //! returning the found value as a string, if the corresponding element
+    //! has an attribute of the specified name which has the specified value.
+    //! The search can be restricted to a certain section and subsection.
+    //! \param key        Keyword
+    //! \param value      String (output)
+    //! \param attribute  Name of attribute of element
+    //! \param aValue     Value to test attribute's value against
+    //! \param section    Name of a section in which to look for keyword
+    //!                   (optional)
+    //! \param subsection Name of a subsection in which to look for keyword
+    //!                   (optional)
+    virtual void CGet( const std::string key,
+		       std::string &value,
+		       const std::string attribute,
+		       const std::string aValue,
+		       const std::string section,
+		       const std::string subsection ) = 0;
+
     //! Get a list of strings matching a keyword
 
     //! The method will try to find the specified keyword in the parameter
@@ -110,6 +131,33 @@ namespace CoupledField
 			  const std::string section = "",
 			  const std::string subsection = "" ) = 0;
 
+    //! Get a list of strings for keyword and elements with certain attribute
+
+    //! The method will try to find the specified keyword in the parameter
+    //! tree. Once found, it tests, whether the corresponding elements have
+    //! a specified value for a specified attribute. For these elements it
+    //! will return the values of the respective elements or of the attributes
+    //! matching the keyword. The search can be restricted to certain subtrees
+    //! by specifying keywords for section and subsection.
+    //! The method will return an empty vector, if there is no match at all.
+    //! It will issue an error message, if there are matches for both, elements
+    //! and attributes, or if one of the found elements does not have an
+    //! attribute of the specified type.
+    //! \param key        Keyword
+    //! \param list       Vector of strings (output)
+    //! \param attribute  Name of attribute of element
+    //! \param value      Value to test attribute's value against
+    //! \param section    Name of a section in which to look for keyword
+    //!                   (optional)
+    //! \param subsection Name of a subsection in which to look for keyword
+    //!                   (optional)
+    virtual void CGetList( const std::string key,
+			   std::vector<std::string> &list,
+			   const std::string attribute,
+			   const std::string value,
+			   const std::string section,
+			   const std::string subsection ) = 0;
+
     //! Obtain list of PDEs defined in parameter file
 
     //! This method queries the parameter object for a list of all PDEs defined
@@ -118,26 +166,15 @@ namespace CoupledField
     //! matches.
     virtual void GetPDEList( std::vector<std::string> &list ) = 0;
 
-    //! Obtain list of atrribute values for matches
+    //! Obtain list of coils defined in parameter file
 
-    //! This method searches the (restricted) parameter tree for all elements
-    //! for which a certain attribute has a specified value. For all matching
-    //! elements the value of a specified second attribute is returned. If
-    //! there are no matches the list will be empty.
-    //! \param attribute2 Name of second attribute
-    //! \param vals       Values of second attribute for matching elements
-    //! \param attribute1 Name of first attribute
-    //! \param keyword    Keyword against which first attribute is compared
-    //! \param section    Name of a section in which to look for keyword
-    //!                   (optional)
-    //! \param subsection Name of a subsection in which to look for keyword
-    //!                   (optional)
-    virtual void GetValsForHits( const std::string attribute2,
-				 std::vector<std::string> &vals,
-				 const std::string attribute1,
-				 const std::string keyword,
-				 const std::string section = "",
-				 const std::string subsection = "" ) = 0;
+    //! This method queries the parameter object for a list of all coils
+    //! defined in the parameter file. The list is returned as a vector of
+    //! standard strings. The method will return an empty vector, if there are
+    //! no matches. By specifying the optional pde input parameter the search
+    //! can be restricted to a certain PDE entry in the pdeList section.
+    virtual void GetCoilList( std::vector<std::string> &list,
+			      const std::string pde ="" ) = 0;
 
     //! Query the on/off status of a flag/switch
 
