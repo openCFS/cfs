@@ -71,31 +71,20 @@ namespace CoupledField {
     nonLin_ = FALSE;
     nonLin_ = conf->get_option( "nonlin",  pdename_ );
 
-    if( nonLin_ == TRUE )
-      {
-#ifndef XMLPARAMS
-	// incremental stopping criterion
-	incStopCrit_ = 1e-3;
-	conf->ifget("incStopCrit", incStopCrit_, pdename_);
+    if( nonLin_ == TRUE ) {
 
-	// residual stopping criterion
-	residualStopCrit_ = 1e-3;
-	conf->ifget("residualStopCrit", residualStopCrit_, pdename_);
+      // incremental stopping criterion
+      incStopCrit_ = 1e-3;
+      conf->ifget("incStopCrit", incStopCrit_, pdename_);
 
-	// maximal number of NL-iterations
-	nonLinMaxIter_ = 100;
-	conf->ifget("nonlinMaxIter", nonLinMaxIter_, pdename_);
-#else
-	// incremental stopping criterion
-	params->Get( "incStopCrit", incStopCrit_, pdename_, "nonLinear" );
+      // residual stopping criterion
+      residualStopCrit_ = 1e-3;
+      conf->ifget("residualStopCrit", residualStopCrit_, pdename_);
 
-	// residual stopping criterion
-	params->Get( "resStopCrit", residualStopCrit_, pdename_, "nonLinear" );
-
-	// maximal number of NL-iterations
-	//	params->Get("nonlinMaxIter", nonLinMaxIter_, pdename_, "nonLinear");
-#endif
-      }
+      // maximal number of NL-iterations
+      nonLinMaxIter_ = 100;
+      conf->ifget("nonlinMaxIter", nonLinMaxIter_, pdename_);
+    }
 
     //check for postprocessing
     conf->ifgetliststr("calc_BField",calcBfield_,pdename_); 
@@ -233,176 +222,168 @@ namespace CoupledField {
   // ======================================================
   // SOLVING SECTION
   // ======================================================
-Double MagPDE::LineSearch(Vector<Double>& solInc, Vector<Double>& actSol, 
-			   Double& etaLineSearch, Integer level, Boolean trans)
-{
-  ENTER_FCN( "MagPDE::LineSearch" );
+  Double MagPDE::LineSearch(Vector<Double>& solInc, Vector<Double>& actSol, 
+			    Double& etaLineSearch, Integer level, Boolean trans)
+  {
+    ENTER_FCN( "MagPDE::LineSearch" );
 
-  //  Vector<Double> solOld(actSol);
-  const Integer nrEtas = 4;
-  const Double eta[nrEtas] = {1, 0.5, 0.25, 0.125};
-  Double etaOpt;
-  Double residualL2NormOpt = 1e15;
+    //  Vector<Double> solOld(actSol);
+    const Integer nrEtas = 4;
+    const Double eta[nrEtas] = {1, 0.5, 0.25, 0.125};
+    Double etaOpt;
+    Double residualL2NormOpt = 1e15;
   
-  actSol += solInc;
+    actSol += solInc;
   
-}
+  }
 
-void MagPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
-			    const Integer level, const Boolean reset)
-{
-  ENTER_FCN( "MagPDE::StepTransNonLin" );
+  void MagPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
+			       const Integer level, const Boolean reset)
+  {
+    ENTER_FCN( "MagPDE::StepTransNonLin" );
 
-  lasttimecalc_ = asteptime;
-  laststepcalc_ = kstep;
+    lasttimecalc_ = asteptime;
+    laststepcalc_ = kstep;
 
 
-  const Integer job = 1;
-  const Integer update = 0;  
+    const Integer job = 1;
+    const Integer update = 0;  
   
-  static Integer timeStepCounter=1;
-  Double * ptsol;
-  Boolean performOneMoreStep;
-  Integer iterationCounter=0;
+    static Integer timeStepCounter=1;
+    Double * ptsol;
+    Boolean performOneMoreStep;
+    Integer iterationCounter=0;
 
-  Vector<Double> actSol(numPDENodes_);
-  Vector<Double> solInc(numPDENodes_);
+    Vector<Double> actSol(numPDENodes_);
+    Vector<Double> solInc(numPDENodes_);
   
-  // Cast BaseStoreSol into StoreSol<Double>,
-  // since this function is only called
-  // in the transient case
-  NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
+    // Cast BaseStoreSol into StoreSol<Double>,
+    // since this function is only called
+    // in the transient case
+    NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
 
-  //set actual solution  
-  actSol = solhelp->GetCompleteVector();
+    //set actual solution  
+    actSol = solhelp->GetCompleteVector();
 
-  //compute predictors
-  TS_alg_->Predictor(solhelp->GetCompleteVector());
+    //compute predictors
+    TS_alg_->Predictor(solhelp->GetCompleteVector());
 
-  //now set up RHS: all linear source terms
-  Double RhsLinL2Norm = SetLinRHS(level); 
+    //now set up RHS: all linear source terms
+    Double RhsLinL2Norm = SetLinRHS(level); 
 
-  // inner forces due to nonlin formulation
-  assemble_->AssembleNLRHS(level, lasttimecalc_);  
+    // inner forces due to nonlin formulation
+    assemble_->AssembleNLRHS(level, lasttimecalc_);  
 
-   //Update RHS (mass matrix on right hand side)
-  TS_alg_->UpdateRHS(solhelp->GetCompleteVector());
+    //Update RHS (mass matrix on right hand side)
+    TS_alg_->UpdateRHS(solhelp->GetCompleteVector());
   
-  timeStepCounter++;
-  do
-    {
-      iterationCounter++;
-      std::cout << std::endl << "Nonlinear Magnetics: Perform internal loop nr. " 
-		<< iterationCounter << std::endl;
+    timeStepCounter++;
+    do
+      {
+	iterationCounter++;
+	std::cout << std::endl << "Nonlinear Magnetics: Perform internal loop nr. " 
+		  << iterationCounter << std::endl;
 
 #ifdef DEBUG
-      *debug << std::endl << "====================================================== " << std::endl
-	     <<	"Nonlinear Magnetics: Perform internal loop nr. " << iterationCounter << std::endl;      
+	*debug << std::endl << "====================================================== " << std::endl
+	       <<	"Nonlinear Magnetics: Perform internal loop nr. " << iterationCounter << std::endl;      
 #endif
 
 
 
-      // setup and solve new system (rhs is already set) =====================
-      assemble_->InitNonLinMatrices();
-      assemble_->AssembleMatrices(level);
-      algsys_->ConstructEffectiveMatrix(matrix_factor_);
+	// setup and solve new system (rhs is already set) =====================
+	assemble_->InitNonLinMatrices();
+	assemble_->AssembleMatrices(level);
+	algsys_->ConstructEffectiveMatrix(matrix_factor_);
 
-      SetBCs(level, update, lasttimecalc_);
+	SetBCs(level, update, lasttimecalc_);
 
 #ifdef USE_OLAS
-      algsys_->BuildInDirichlet();
-      algsys_->SetupPrecond(job);
+	algsys_->BuildInDirichlet();
+	algsys_->SetupPrecond(job);
 #else
-      algsys_->CalcPrecond(job);
+	algsys_->CalcPrecond(job);
 #endif
 
-      algsys_->Solve();
+	algsys_->Solve();
 
-      // new solution is only an increment of the full solution =============
-      StoreAlgsysToVec(solInc, algsys_->GetSolutionVal() );
+	// new solution is only an increment of the full solution =============
+	StoreAlgsysToVec(solInc, algsys_->GetSolutionVal() );
 
-      Double residualL2Norm;
-      Double etaLineSearch = 0;
+	Double residualL2Norm;
+	Double etaLineSearch = 0;
       
-#ifndef XMLPARAMS
-      if (!lineSearch_)
-#else
-      if ( lineSearch_ != "no" )
-#endif
-	actSol += solInc;
-      else
-	// TRUE is for transient simulation
-	residualL2Norm = LineSearch(solInc, actSol, etaLineSearch, level, TRUE);
+	if (!lineSearch_)
+	  actSol += solInc;
+	else
+	  // TRUE is for transient simulation
+	  residualL2Norm = LineSearch(solInc, actSol, etaLineSearch, level, TRUE);
 
 
-      //store A_/n+1) in the solution-object sol_
-      sol_->SetCompleteVector(actSol);
+	//store A_/n+1) in the solution-object sol_
+	sol_->SetCompleteVector(actSol);
 
 
-      // recalculate RHS with new values to get new residual (f^(k+1))========
+	// recalculate RHS with new values to get new residual (f^(k+1))========
 #ifndef USE_OLAS    
-      algsys_->InitRHS(RhsLinVal_.GetPointer());
+	algsys_->InitRHS(RhsLinVal_.GetPointer());
 #endif
 
-      //Update RHS (mass matrix on right hand side)
-      TS_alg_->UpdateRHS(actSol);
+	//Update RHS (mass matrix on right hand side)
+	TS_alg_->UpdateRHS(actSol);
 
-      assemble_->AssembleNLRHS(level, lasttimecalc_);  // inner forces due to nonlin formulation
+	assemble_->AssembleNLRHS(level, lasttimecalc_);  // inner forces due to nonlin formulation
  
 
-      // =====================================================================
-      // calculation of error norms
-      // =====================================================================
+	// =====================================================================
+	// calculation of error norms
+	// =====================================================================
 
-#ifndef XMLPARAMS
-      if (!lineSearch_)
-#else
-      if ( lineSearch_ != "no" )
-#endif
-	{
-	  Vector<Double> actRHS;
-	  StoreAlgsysToVec(actRHS, algsys_->GetRHSVal() );       
+	if (!lineSearch_)
+	  {
+	    Vector<Double> actRHS;
+	    StoreAlgsysToVec(actRHS, algsys_->GetRHSVal() );       
 	  
-	  // calculation of residual error =======================================
-	  residualL2Norm = RhsL2Norm(actRHS); // L2Norm of  ( f_i^(k+1) - f_a )
-	}
+	    // calculation of residual error =======================================
+	      residualL2Norm = RhsL2Norm(actRHS); // L2Norm of  ( f_i^(k+1) - f_a )
+	    }
       
-      Double residualErr;
-      if ( RhsLinL2Norm > 1)
-	residualErr    = residualL2Norm /  RhsLinL2Norm;
-      else
-	residualErr    = residualL2Norm;
+	Double residualErr;
+	if ( RhsLinL2Norm > 1)
+	  residualErr    = residualL2Norm /  RhsLinL2Norm;
+	else
+	  residualErr    = residualL2Norm;
 
-      // calculate incremental error ========================================
-      Double solIncrL2Norm = solInc.NormL2();
-      Double actSolL2Norm = actSol.NormL2();
-      Double incrementalErr;
+	// calculate incremental error ========================================
+	Double solIncrL2Norm = solInc.NormL2();
+	Double actSolL2Norm = actSol.NormL2();
+	Double incrementalErr;
 
-      if (actSolL2Norm > 1)
-	incrementalErr = solIncrL2Norm / actSolL2Norm;
-      else
-	incrementalErr = solIncrL2Norm;
+	if (actSolL2Norm > 1)
+	  incrementalErr = solIncrL2Norm / actSolL2Norm;
+	else
+	  incrementalErr = solIncrL2Norm;
 
-      // =====================================================================
-      // output of norms and data
-      // =====================================================================
+	// =====================================================================
+	// output of norms and data
+	// =====================================================================
 
 
-      if ( nonLinLogging_ == TRUE ) {
-	Info->WriteNonLinIter(pdename_, iterationCounter, residualErr,
-			      incrementalErr, etaLineSearch);
-      }
+	if ( nonLinLogging_ == TRUE ) {
+	  Info->WriteNonLinIter(pdename_, iterationCounter, residualErr,
+				incrementalErr, etaLineSearch);
+	}
 
-      // boolean variable, holds condition if another iteration step is necessary
-      performOneMoreStep = 
-	(incrementalErr > incStopCrit_)||(residualErr > residualStopCrit_);
+	// boolean variable, holds condition if another iteration step is necessary
+	performOneMoreStep = 
+	  (incrementalErr > incStopCrit_)||(residualErr > residualStopCrit_);
 
-    } while(performOneMoreStep && iterationCounter < maxnumiter_);  
+      } while(performOneMoreStep && iterationCounter < maxnumiter_);  
 
   
     //perform corrector step  
-  TS_alg_->Corrector(actSol);
-}
+    TS_alg_->Corrector(actSol);
+  }
 
   void MagPDE :: InitTimeStepping(const Double dt) {
     ENTER_FCN( "MagPDE::InitTimeStepping" );
@@ -551,59 +532,59 @@ void MagPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
     return RhsLinL2Norm;
   }
 
-Double MagPDE::RhsL2Norm(Vector<Double>& actRHS)
-{
-  ENTER_FCN( "MagPDE::RhsL2Norm" );
+  Double MagPDE::RhsL2Norm(Vector<Double>& actRHS)
+  {
+    ENTER_FCN( "MagPDE::RhsL2Norm" );
 
-  Integer node, eqn;
+    Integer node, eqn;
   
-  std::list<Integer> nodes;
+    std::list<Integer> nodes;
   
-  // Eliminate dirichlet node from RHS (due to penalty formulation)
-  for (Integer i=0; i< bcs_hd_.GetSize(); i++)
-    {
-      nodes=ptBCs_->GetNodesLevel(bcs_hd_[i]);
+    // Eliminate dirichlet node from RHS (due to penalty formulation)
+    for (Integer i=0; i< bcs_hd_.GetSize(); i++)
+      {
+	nodes=ptBCs_->GetNodesLevel(bcs_hd_[i]);
       
-      for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end(); p++)
-	{
+	for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end(); p++)
+	  {
 	    node=*p;
 	    eqn = eqnData_->Node2EQN(node);
 	    if (eqn != 0){
 	      actRHS[(eqn-1)] = 0;
 	    }
-	}
-    }
-  return actRHS.NormL2();
-}
+	  }
+      }
+    return actRHS.NormL2();
+  }
 
-//   // calculates L2-norm of RHS regarding dirichlet entries due to penalty formulation by setting them 0
-//   Double MagPDE::RhsL2Norm(Vector<Double>& actRHS)
-//   {
-//     ENTER_FCN( "MagPDE::RhsL2Norm" );
+  //   // calculates L2-norm of RHS regarding dirichlet entries due to penalty formulation by setting them 0
+  //   Double MagPDE::RhsL2Norm(Vector<Double>& actRHS)
+  //   {
+  //     ENTER_FCN( "MagPDE::RhsL2Norm" );
 
-//     Integer node;
+  //     Integer node;
   
-//     std::list<Integer> nodes;
+  //     std::list<Integer> nodes;
 
-//     // Eliminate dirichlet node from RHS (due to penalty formulation)
-//     for (Integer i=0; i< bcs_hd_.GetSize(); i++)
-//       {
-// 	nodes=ptBCs_->GetNodesLevel(bcs_hd_[i]);
+  //     // Eliminate dirichlet node from RHS (due to penalty formulation)
+  //     for (Integer i=0; i< bcs_hd_.GetSize(); i++)
+  //       {
+  // 	nodes=ptBCs_->GetNodesLevel(bcs_hd_[i]);
       
-// 	for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end(); p++)
-// 	  {
-// 	    node=*p;
-// 	    actRHS[mesh2PDENode_[node-1]-1] = 0;
-// 	  }
-//       }
+  // 	for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end(); p++)
+  // 	  {
+  // 	    node=*p;
+  // 	    actRHS[mesh2PDENode_[node-1]-1] = 0;
+  // 	  }
+  //       }
 
-//     return actRHS.NormL2();
-//   }
+  //     return actRHS.NormL2();
+  //   }
 
-   void MagPDE::PostStepStatic(const Integer level) {
-     ENTER_FCN( "MagPDE::PostStepStatic" );
-     if (pdeIsCoupled_) iterCoupledCounter_++;
-   }
+  void MagPDE::PostStepStatic(const Integer level) {
+    ENTER_FCN( "MagPDE::PostStepStatic" );
+    if (pdeIsCoupled_) iterCoupledCounter_++;
+  }
 
 
 
@@ -714,10 +695,10 @@ Double MagPDE::RhsL2Norm(Vector<Double>& actRHS)
 	for (Integer iel=0; iel< elemssd.GetSize(); iel++,counterElems++) 
 	  {
 	    pdeElem = eqnData_->Mesh2PDEElem(elemssd[iel]->elemNum);
-	  FieldOp->CalcElemCurlNode( TempE, elemssd[iel], LCoord); 
-	  // B_.SetNodalResult(mesh2PDEElem_[elemssd[iel]->elemNum - 1]-1, TempE);
-	  B_.SetNodalResult(pdeElem-1, TempE);
-	}
+	    FieldOp->CalcElemCurlNode( TempE, elemssd[iel], LCoord); 
+	    // B_.SetNodalResult(mesh2PDEElem_[elemssd[iel]->elemNum - 1]-1, TempE);
+	    B_.SetNodalResult(pdeElem-1, TempE);
+	  }
       }
       delete FieldOp;
     }
@@ -774,8 +755,8 @@ Double MagPDE::RhsL2Norm(Vector<Double>& actRHS)
 	  GetDerivSolVecOfElement(magVecDeriv1Elem,connect);
 	  JeddyElem[0] = magVecDeriv1Elem * ShpFnc;
 	  JeddyElem[0] *= -conductivity;
-// 	  Jeddy_.SetNodalResult(mesh2PDEElem_[elemssd[actEl]->elemNum - 1]-1,
-// 				JeddyElem);
+	  // 	  Jeddy_.SetNodalResult(mesh2PDEElem_[elemssd[actEl]->elemNum - 1]-1,
+	  // 				JeddyElem);
 	  Jeddy_.SetNodalResult(pdeElem-1, JeddyElem);
 	}
       }
@@ -1048,13 +1029,17 @@ Double MagPDE::RhsL2Norm(Vector<Double>& actRHS)
     // -----------------------------
     ReadMagnets();
 
-    // -----------------------------------------------------------
-    //   Map global numeration of element and nodes to local one
-    // -----------------------------------------------------------
-    AssignPDENodeNumbers(mesh2PDENode_, pde2MeshNode_, subdoms_);  
-    AssignPDEElemNumbers(mesh2PDEElem_, pde2MeshElem_, subdoms_);
-    numPDENodes_ = pde2MeshNode_.GetSize();
-    numElems_ = pde2MeshElem_.GetSize();
+    // ----------------------------
+    //   Initalize equation data class
+    // ----------------------------
+    eqnData_ = new ScalarNodeEQN( ptgrid_, ptBCs_, subdoms_, actlevel_,
+				  dofspernode_ );
+    eqnData_->SetHomoDirichletBCs( bcs_hd_, homDirichDof_ );
+    eqnData_->CalcMapping();
+    //eqnData_->Print(std::cerr);
+    
+    numPDENodes_ = eqnData_->GetNumLocalNodes();
+    numElems_ = eqnData_->GetNumLocalElems();
 
     // ---------------------------
     //   Set coupling parameters
@@ -1064,11 +1049,11 @@ Double MagPDE::RhsL2Norm(Vector<Double>& actRHS)
     // ---------------------------
     //   Set analysis parameters
     // ---------------------------
+    assemble_->SetPtr2EQNData(eqnData_); 
     assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, subdoms_,
 				surfdoms_);
     assemble_->SetGraphType(NODEGRAPH);
-    assemble_->SetMesh2PDENode(&mesh2PDENode_);
-
+   
 #ifdef USE_OLAS
     assemble_->SetMatrixEntryType(OLAS::DOUBLE);
     assemble_->SetMatrixStorageType(OLAS::SPARSE_NONSYM);
@@ -1080,15 +1065,6 @@ Double MagPDE::RhsL2Norm(Vector<Double>& actRHS)
     assemble_->SetPtrBCs(ptBCs_);
     assemble_->SetPtr2Sol(sol_);
     assemble_->SetPtr2TimeFnc(ptTimeFunc_);
-
-    // ----------------------------
-    //   Initalize equation data class
-    // ----------------------------
-    eqnData_  = new ScalarNodeEQN(ptgrid_, ptBCs_, subdoms_, actlevel_, dofspernode_);
-    eqnData_->SetHomoDirichletBCs(bcs_hd_, homDirichDof_);
-    eqnData_->CalcMapping();
-    //eqnData_->Print(std::cerr);
-    assemble_->SetPtr2EQNData(eqnData_); 
 
     // ----------------------------
     //   Initalize solution class
@@ -1114,7 +1090,7 @@ Double MagPDE::RhsL2Norm(Vector<Double>& actRHS)
 
   // *************
   //  Destructor
-  // ************
+  // *************
   MagPDE::~MagPDE() {
     ENTER_FCN( "MagPDE::~MagPDE" );
     for ( UInt k = 0; k < coilDef_.GetSize(); k++ ) {
@@ -1150,20 +1126,25 @@ Double MagPDE::RhsL2Norm(Vector<Double>& actRHS)
 	nlinFnc->CalcBestParameter();
 	nlinFnc->CalcApproximation();
 
-	BaseForm *curlcurl2D = new nLinCurlCurlNode2DInt(nlinFnc,reluctivity, isaxi_);
+	BaseForm *curlcurl2D = new nLinCurlCurlNode2DInt(nlinFnc,reluctivity,
+							 isaxi_);
 	curlcurl2D->SetNonLinMethod(nonLinMethod_);      
 	assemble_->AddIntegrator(curlcurl2D, subdoms_[actSD], STIFFNESS, TRUE);
 
 	// nonlinear RHS linearform!!
-	BaseForm * rhsSource = new nLinMagNode2D_linFormInt(nlinFnc, reluctivity, isaxi_);
+	BaseForm * rhsSource = new nLinMagNode2D_linFormInt(nlinFnc,
+							    reluctivity,
+							    isaxi_);
 	assemble_->AddRhsIntegrator(rhsSource, subdoms_[actSD], TRUE);
       }
       else {
 	BaseForm *curlcurl2D = new CurlCurlNode2DInt(reluctivity, isaxi_);
 	assemble_->AddIntegrator(curlcurl2D, subdoms_[actSD], STIFFNESS,FALSE);
 	if (nonLin_==TRUE) {
-	  // for nonlinear RHS linearform we need linear and nonlinear subdomains
-	  BaseForm * rhsSource = new nLinMagNode2D_linFormInt(reluctivity, isaxi_);
+	  // for nonlinear RHS linearform we need linear and nonlinear
+	  // subdomains
+	  BaseForm * rhsSource = new nLinMagNode2D_linFormInt(reluctivity,
+							      isaxi_);
 	  assemble_->AddRhsIntegrator(rhsSource, subdoms_[actSD], TRUE);
 	}
       }
@@ -1324,77 +1305,82 @@ Double MagPDE::RhsL2Norm(Vector<Double>& actRHS)
 
   }
 
-Double MagPDE::LineSearch(Vector<Double>& solInc, Vector<Double>& actSol, 
-			   Double& etaLineSearch, Integer level, Boolean trans)
-{
-  ENTER_FCN( "MagPDE::LineSearch" );
 
-  //  Vector<Double> solOld(actSol);
-  const Integer nrEtas = 4;
-  const Double eta[nrEtas] = {1, 0.5, 0.25, 0.125};
-  Double etaOpt;
-  Double residualL2NormOpt = 1e15;
+  // **************
+  //   LineSearch
+  // **************
+  Double MagPDE::LineSearch( Vector<Double>& solInc, Vector<Double>& actSol, 
+			     Double& etaLineSearch, Integer level,
+			     Boolean trans ) {
+    ENTER_FCN( "MagPDE::LineSearch" );
+
+    //  Vector<Double> solOld(actSol);
+    const Integer nrEtas = 4;
+    const Double eta[nrEtas] = {1, 0.5, 0.25, 0.125};
+    Double etaOpt;
+    Double residualL2NormOpt = 1e15;
   
-  actSol += solInc;
+    actSol += solInc;
   
-}
+  }
   
 
-void MagPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
-			    const Integer level, const Boolean reset)
-{
-  ENTER_FCN( "MagPDE::StepTransNonLin" );
+  void MagPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
+			       const Integer level, const Boolean reset) {
 
-  lasttimecalc_ = asteptime;
-  laststepcalc_ = kstep;
+    ENTER_FCN( "MagPDE::StepTransNonLin" );
+
+    lasttimecalc_ = asteptime;
+    laststepcalc_ = kstep;
 
 
-  const Integer job = 1;
-  const Integer update = 0;  
+    const Integer job = 1;
+    const Integer update = 0;  
   
-  static Integer timeStepCounter=1;
-  Double * ptsol;
-  Boolean performOneMoreStep;
-  Integer iterationCounter=0;
+    static Integer timeStepCounter=1;
+    Double * ptsol;
+    Boolean performOneMoreStep;
+    Integer iterationCounter=0;
 
-  Vector<Double> actSol(numPDENodes_);
-  Vector<Double> solInc(numPDENodes_);
+    Vector<Double> actSol(numPDENodes_);
+    Vector<Double> solInc(numPDENodes_);
   
-  // Cast BaseStoreSol into StoreSol<Double>,
-  // since this function is only called
-  // in the transient case
-  NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
+    // Cast BaseStoreSol into StoreSol<Double>,
+    // since this function is only called
+    // in the transient case
+    NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
 
-  //set actual solution  
-  actSol = solhelp->GetCompleteVector();
+    //set actual solution  
+    actSol = solhelp->GetCompleteVector();
 
-  //compute predictors
-  TS_alg_->Predictor(solhelp->GetCompleteVector());
+    //compute predictors
+    TS_alg_->Predictor(solhelp->GetCompleteVector());
 
-  //now set up RHS: all linear source terms
-  Double RhsLinL2Norm = SetLinRHS(level); 
+    //now set up RHS: all linear source terms
+    Double RhsLinL2Norm = SetLinRHS(level); 
 
-  // inner forces due to nonlin formulation
-  assemble_->AssembleNLRHS(level, lasttimecalc_);  
+    // inner forces due to nonlin formulation
+    assemble_->AssembleNLRHS(level, lasttimecalc_);  
 
-   //Update RHS (mass matrix on right hand side)
-  TS_alg_->UpdateRHS(solhelp->GetCompleteVector());
+    //Update RHS (mass matrix on right hand side)
+    TS_alg_->UpdateRHS(solhelp->GetCompleteVector());
   
-  timeStepCounter++;
-  do
-    {
+    timeStepCounter++;
+    do {
       iterationCounter++;
-      std::cout << std::endl << "Nonlinear Magnetics: Perform internal loop nr. " 
+      std::cout << std::endl
+		<< "Nonlinear Magnetics: Perform internal loop nr. " 
 		<< iterationCounter << std::endl;
 
 #ifdef DEBUG
-      *debug << std::endl << "====================================================== " << std::endl
-	     <<	"Nonlinear Magnetics: Perform internal loop nr. " << iterationCounter << std::endl;      
+      *debug << std::endl
+	     << "====================================================== "
+	     << std::endl
+	     <<	"Nonlinear Magnetics: Perform internal loop nr. "
+	     << iterationCounter << std::endl;      
 #endif
 
-
-
-      // setup and solve new system (rhs is already set) =====================
+      // setup and solve new system (rhs is already set) ====================
       assemble_->InitNonLinMatrices();
       assemble_->AssembleMatrices(level);
       algsys_->ConstructEffectiveMatrix(matrix_factor_);
@@ -1416,22 +1402,19 @@ void MagPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
       Double residualL2Norm;
       Double etaLineSearch = 0;
       
-#ifndef XMLPARAMS
-      if (!lineSearch_)
-#else
-      if ( lineSearch_ != "no" )
-#endif
+      if ( lineSearch_ != "no" ) {
 	actSol += solInc;
-      else
-	// TRUE is for transient simulation
-	residualL2Norm = LineSearch(solInc, actSol, etaLineSearch, level, TRUE);
+      }
+      else {
 
+	// TRUE is for transient simulation
+	residualL2Norm = LineSearch(solInc, actSol, etaLineSearch, level,TRUE);
+      }
 
       //store A_/n+1) in the solution-object sol_
       sol_->SetCompleteVector(actSol);
 
-
-      // recalculate RHS with new values to get new residual (f^(k+1))========
+      // recalculate RHS with new values to get new residual (f^(k+1))=======
 #ifndef USE_OLAS    
       algsys_->InitRHS(RhsLinVal_.GetPointer());
 #endif
@@ -1439,25 +1422,24 @@ void MagPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
       //Update RHS (mass matrix on right hand side)
       TS_alg_->UpdateRHS(actSol);
 
-      assemble_->AssembleNLRHS(level, lasttimecalc_);  // inner forces due to nonlin formulation
+      // inner forces due to nonlin formulation
+      assemble_->AssembleNLRHS(level, lasttimecalc_);
  
 
-      // =====================================================================
+      // ====================================================================
       // calculation of error norms
-      // =====================================================================
+      // ====================================================================
 
-#ifndef XMLPARAMS
-      if (!lineSearch_)
-#else
-      if ( lineSearch_ != "no" )
-#endif
-	{
-	  Vector<Double> actRHS;
-	  StoreAlgsysToVec(actRHS, algsys_->GetRHSVal() );       
+      if ( lineSearch_ != "no" ) {
+
+	Vector<Double> actRHS;
+	StoreAlgsysToVec(actRHS, algsys_->GetRHSVal() );       
 	  
-	  // calculation of residual error =======================================
-	  residualL2Norm = RhsL2Norm(actRHS); // L2Norm of  ( f_i^(k+1) - f_a )
-	}
+	// ------------------------------------------------------------------
+	// calculation of residual error: L2Norm of ( f_i^(k+1) - f_a )
+	// ------------------------------------------------------------------
+	residualL2Norm = RhsL2Norm(actRHS);
+      }
       
       Double residualErr;
       if ( RhsLinL2Norm > 1)
@@ -1465,36 +1447,36 @@ void MagPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
       else
 	residualErr    = residualL2Norm;
 
-      // calculate incremental error ========================================
+      // --------------------------------------------------------------------
+      // calculate incremental error
+      // --------------------------------------------------------------------
       Double solIncrL2Norm = solInc.NormL2();
       Double actSolL2Norm = actSol.NormL2();
       Double incrementalErr;
-
+      
       if (actSolL2Norm > 1)
 	incrementalErr = solIncrL2Norm / actSolL2Norm;
       else
 	incrementalErr = solIncrL2Norm;
 
-      // =====================================================================
+      // --------------------------------------------------------------------
       // output of norms and data
-      // =====================================================================
-
-
+      // --------------------------------------------------------------------
       if ( nonLinLogging_ == TRUE ) {
 	Info->WriteNonLinIter(pdename_, iterationCounter, residualErr,
 			      incrementalErr, etaLineSearch);
       }
 
-      // boolean variable, holds condition if another iteration step is necessary
+      // boolean variable, holds condition if another iteration step
+      // is necessary
       performOneMoreStep = 
 	(incrementalErr > incStopCrit_)||(residualErr > residualStopCrit_);
-
+      
     } while(performOneMoreStep && iterationCounter < maxnumiter_);  
 
-  
     //perform corrector step  
-  TS_alg_->Corrector(actSol);
-}
+    TS_alg_->Corrector(actSol);
+  }
 
 
   // sets excitation coil and returns L2Norm of them
@@ -1504,69 +1486,70 @@ void MagPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
 
     Double RhsLinL2Norm;  
 
-    //take care:  assemble_->AssembleSrcRHS already called by PreStepTrans in basePDE!!
+    // Take care: assemble_->AssembleSrcRHS already called by PreStepTrans
+    // in basePDE!!
 
-    // stores rhs vector into extForces and returns that L2-norm
+    // Stores rhs vector into extForces and returns that L2-norm
     StoreAlgsysToVec(RhsLinVal_, algsys_->GetRHSVal() );
 
     RhsLinL2Norm = RhsLinVal_.NormL2();
  
-    //  if extForcesL2Norm is 0, no residual norm can be calculated
-    if (!RhsLinL2Norm)
+    // If extForcesL2Norm is 0, no residual norm can be calculated
+    if (!RhsLinL2Norm) {
       Warning("Zero external force vector!! ", __FILE__,__LINE__);
-  
+    }
+
     return RhsLinL2Norm;
   }
 
-// calculates L2-norm of RHS regarding dirichlet entries due to penalty formulation by setting them 0
-Double MagPDE::RhsL2Norm(Vector<Double>& actRHS)
-{
-  ENTER_FCN( "MagPDE::RhsL2Norm" );
+  // calculates L2-norm of RHS regarding dirichlet entries due to penalty
+  // formulation by setting them 0
+  Double MagPDE::RhsL2Norm(Vector<Double>& actRHS) {
+    ENTER_FCN( "MagPDE::RhsL2Norm" );
 
-  Integer node, dof, eqn;
+    Integer node, dof, eqn;
   
-  std::list<Integer> nodes;
+    std::list<Integer> nodes;
   
-  // Eliminate dirichlet node from RHS (due to penalty formulation)
-  for (Integer i=0; i< bcs_hd_.GetSize(); i++)
-    {
+    // Eliminate dirichlet node from RHS (due to penalty formulation)
+    for (Integer i=0; i< bcs_hd_.GetSize(); i++) {
       nodes=ptBCs_->GetNodesLevel(bcs_hd_[i]);
       
-      for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end(); p++)
-	{
-	    node=*p;
-	    eqn = eqnData_->Node2EQN(node,1);
-	    if (eqn != 0){
-	      actRHS[(eqn-1)] = 0;
-	    }
+      for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end();
+	   p++) {
+	node=*p;
+	eqn = eqnData_->Node2EQN(node,1);
+	if (eqn != 0){
+	  actRHS[(eqn-1)] = 0;
 	}
+      }
     }
-  return actRHS.NormL2();
-}
+    return actRHS.NormL2();
+  }
 
 
-//   // calculates L2-norm of RHS regarding dirichlet entries due
-//   // to penalty formulation by setting them to zero
+  //   // calculates L2-norm of RHS regarding dirichlet entries due
+  //   // to penalty formulation by setting them to zero
 
 
-//   Double MagPDE::RhsL2Norm(Vector<Double>& actRHS) {
-//     ENTER_FCN( "MagPDE::RhsL2Norm" );
+  //   Double MagPDE::RhsL2Norm(Vector<Double>& actRHS) {
+  //     ENTER_FCN( "MagPDE::RhsL2Norm" );
 
-//     Integer node;
-//     std::list<Integer> nodes;
+  //     Integer node;
+  //     std::list<Integer> nodes;
 
-//     // Eliminate dirichlet node from RHS (due to penalty formulation)
-//     for (Integer i=0; i< bcs_hd_.GetSize(); i++) {
-//       nodes=ptBCs_->GetNodesLevel(bcs_hd_[i]);
+  //     // Eliminate dirichlet node from RHS (due to penalty formulation)
+  //     for (Integer i=0; i< bcs_hd_.GetSize(); i++) {
+  //       nodes=ptBCs_->GetNodesLevel(bcs_hd_[i]);
       
-//       for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end();
-// 	   p++) {
-// 	node=*p;
-// 	actRHS[mesh2PDENode_[node-1]-1] = 0;
-//       }
-//     }
-//     return actRHS.NormL2();
-//   }
+  //       for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end();
+  // 	   p++) {
+  // 	node=*p;
+  // 	actRHS[mesh2PDENode_[node-1]-1] = 0;
+  //       }
+  //     }
+  //     return actRHS.NormL2();
+  //   }
 
   // stores an algsys_ vector into a StdVector and returns that L2-norm
   void MagPDE::StoreAlgsysToVec(Vector<Double>& vec, Double * pt) {
@@ -1583,7 +1566,7 @@ Double MagPDE::RhsL2Norm(Vector<Double>& actRHS)
   // ======================================================
   // POSTPROCESSING SECTION
   // ======================================================
- void MagPDE::WriteResultsInFile() {
+  void MagPDE::WriteResultsInFile() {
 
     ENTER_FCN( "MagPDE::WriteResultsInFile" );
 
@@ -1627,7 +1610,10 @@ Double MagPDE::RhsL2Norm(Vector<Double>& actRHS)
   }
 
 
-void MagPDE::PostProcess(const Integer level) {
+  // ***************
+  //   PostProcess
+  // ***************
+  void MagPDE::PostProcess(const Integer level) {
 
     ENTER_FCN( "MagPDE::PostProcess" );
 
@@ -1652,6 +1638,7 @@ void MagPDE::PostProcess(const Integer level) {
       StdVector<Elem*> elemssd;
       Integer counterElems=0;
       Vector<Double> TempE;
+      Integer pdeElem;
       
       // Resize solution arrays
       B_.SetNumSolutions(1);
@@ -1669,9 +1656,11 @@ void MagPDE::PostProcess(const Integer level) {
 	  
 	// loop over elements of subdomain
 	for (Integer iel=0; iel< elemssd.GetSize(); iel++,counterElems++) {
-
+	  pdeElem = eqnData_->Mesh2PDEElem(elemssd[iel]->elemNum);
 	  FieldOp->CalcElemCurlNode( TempE, elemssd[iel], LCoord); 
-	  B_.SetNodalResult(mesh2PDEElem_[elemssd[iel]->elemNum - 1]-1, TempE);
+	  // B_.SetNodalResult(mesh2PDEElem_[elemssd[iel]->elemNum - 1]-1,
+	  // TempE);
+	  B_.SetNodalResult(pdeElem-1, TempE);
 	}
       }
       delete FieldOp;
@@ -1691,6 +1680,7 @@ void MagPDE::PostProcess(const Integer level) {
       Double conductivity = 0.0;
 
       Integer counterElems=0;
+      Integer pdeElem;
 
       // dimension hard coded for .unv file!
       Vector<Double> JeddyElem(3);
@@ -1702,7 +1692,7 @@ void MagPDE::PostProcess(const Integer level) {
       Jeddy_.SetNumNodes(numElems_);
 
       // dimension hard coded for .unv file!
-      Jeddy_.SetNumDofs(3);
+      Jeddy_.SetNumDofs(3);  
       Jeddy_.SetPtrEQNData(eqnData_);
       Jeddy_.Init(0);
 
@@ -1718,17 +1708,20 @@ void MagPDE::PostProcess(const Integer level) {
 	    conductivity = materialData_[iSD].GetConductivity(); 	  
 
 	// loop over elements of subdomain
-	for (Integer actEl=0; actEl< elemssd.GetSize(); actEl++,counterElems++) {
+	for ( Integer actEl=0; actEl< elemssd.GetSize();
+	      actEl++,counterElems++ ) {
 	  BaseFE * ptEl = elemssd[actEl]->ptElem;
 	  ptEl->GetShFnc(ShpFnc,LCoord);
+	  pdeElem = eqnData_->Mesh2PDEElem(elemssd[actEl]->elemNum);
 
 	  connect = elemssd[actEl]->connect;
 	  
 	  GetDerivSolVecOfElement(magVecDeriv1Elem,connect);
 	  JeddyElem[0] = magVecDeriv1Elem * ShpFnc;
 	  JeddyElem[0] *= -conductivity;
-	  Jeddy_.SetNodalResult(mesh2PDEElem_[elemssd[actEl]->elemNum - 1]-1,
-				JeddyElem);
+	  // Jeddy_.SetNodalResult(mesh2PDEElem_[elemssd[actEl]->elemNum-1]-1,
+	  // JeddyElem);
+	  Jeddy_.SetNodalResult(pdeElem-1, JeddyElem);
 	}
       }
     }
@@ -1741,7 +1734,10 @@ void MagPDE::PostProcess(const Integer level) {
   }
 
 
- void MagPDE::CalcEnergy() {
+  // **************
+  //   CalcEnergy
+  // **************
+  void MagPDE::CalcEnergy() {
 
     ENTER_FCN( "MagPDE::CalcEnergy" );
 
@@ -1793,6 +1789,10 @@ void MagPDE::PostProcess(const Integer level) {
     Info->WriteResult(pdename_,  resulttype, calcEnergy_ , energy);
   }
 
+
+  // *************
+  //   ComputeUI
+  // *************
   void MagPDE::ComputeUI(Vector<Double>& uiSD) {
 
     ENTER_FCN( "MagPDE::ComputeUI" );
@@ -1897,7 +1897,6 @@ void MagPDE::PostProcess(const Integer level) {
     }
   
     *UIfile_ << myEndl;
-  
   
   }
 
