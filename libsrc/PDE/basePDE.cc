@@ -110,7 +110,11 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
       assemble_ = new HarmonicAssemble(algsys_, ptgrid_);
       analysistype_ = HARMONIC;
       //overwrite defualt solver
+#ifdef USE_OLAS
+      Info->Error( "Implement this branch!", __FILE__, __LINE__ );
+#else
       solvertype_ = ComplexDirectSolver;
+#endif
     }
   else
     Error("Analysis Type not supported",__FILE__,__LINE__);
