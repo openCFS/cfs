@@ -290,6 +290,18 @@ namespace CoupledField
     }
     */
 
+    Double lambda, mu;
+    //lambda = c_12 
+    material->GetMatrixData(0,1,lambda);
+
+    //mu = (c_11-c_12)/2 
+    material->GetMatrixData(0,0,mu);   
+    mu = 0.5*(mu-lambda);
+    
+    material->SetLambda(lambda);
+    material->SetMu(mu);
+    
+
     material -> SetDensity(density);
     material -> SetDampingCoeffs(alfa,beta);
     

@@ -406,7 +406,8 @@ void BasePDE::StepTransLin(const Integer level, const Boolean reset)
 	solhelp[0][k] = ptsol[k];
 	k++;
       }
-  
+
+    
   if (!PDEisCoupled_)
     TS_alg_->Corrector(solhelp);  //perform corrector step
 
@@ -468,7 +469,7 @@ void  BasePDE::SetBCs(const Integer level, const Integer update, const Double ti
       val_tfunc = 1.0;
       if (ptTimeFunc_->GetmaxTimeFnc() > 0 )
 	  val_tfunc=ptTimeFunc_->TimeFuncAtTime(time,fncnames_id_[i]);
-
+      
       val=val_id_[i]*val_tfunc;
 
       for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end(); p++, j++)
@@ -907,7 +908,7 @@ void BasePDE::GetElemCoords(const Vector<Integer> connect, Matrix<Double> &coord
 
   ptgrid_->GetCoordNodesElemMat(connect, coordMat, level);
   
-  if (deltCoords_.size() != 0)
+  if (deltCoords_.size() != 0 && GeoUpdate_ == TRUE)
     {
       for (Integer i=0; i<coordMat.size_row(); i++)
 	for (Integer j=0; j<coordMat.size_col(); j++) 
@@ -925,7 +926,6 @@ void BasePDE::TransformNodeSolution(Array<Double> & MeshSol,
 #endif
 
   Integer node, idx;
-
   MeshSol.reshape(PDESol.dim(), ptgrid_->GetMaxnumnodes(actlevel_));
 
   // loop over dimensions

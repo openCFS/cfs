@@ -8,7 +8,7 @@
 #include <Forms/forms_header.hh>
 #include <Estimator/spaceerror.hh>
 
-#include "smoothPDE.hh" 
+#include "smoothPDE.hh"
 
 namespace CoupledField
 {

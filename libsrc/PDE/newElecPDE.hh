@@ -132,6 +132,8 @@ public:
 
 protected:
   Array<Double> E_;  //!< conatins elecric field
+
+  //  Boolean nonLinGeo_;  //! switch for geometric update 
   
   // ---- Electric Force variables ---
   Array<Double> Force_;        //!< stores Electric force of each element

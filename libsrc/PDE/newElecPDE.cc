@@ -44,12 +44,6 @@ ElecPDE::ElecPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
   if (subtype == "axi")
     isaxi_ = TRUE;
 
-  //check for nonlinearity
-  nonLin_ = FALSE;
-  if (conf->get_option("nonlin",  pdename_ ))
-    nonLin_=TRUE;
-
-
   //check for electric field:
   conf->ifgetliststr("calc_EField",calcEfield_,pdename_); 
 
@@ -121,7 +115,7 @@ void ElecPDE:: PreStepStatic(const Integer level)
   if (PDEisCoupled_ )
       algsys_->InitSol();
 
-  if (nonLin_)
+  if (GeoUpdate_)
     {
       assemble_->SetNonlinGeo();
 
@@ -488,6 +482,15 @@ void ElecPDE::InitCoupling(PDECoupling * Coupling)
   PDEisCoupled_ = TRUE;
   ptCoupling_   = Coupling;
 
+  //check, if geometric nonlinearity is switched of by the user
+  GeoUpdate_ = TRUE;
+  nonLin_    = TRUE;    //general nonlinear switch in basepde!
+  
+  if (conf->get_optionNo("nonlingeo",  pdename_ ))
+    {
+      GeoUpdate_ = FALSE;
+      nonLin_    = FALSE;  
+    }
 
   // Initialization of coupling helper arrays
   std::string quantity;
@@ -571,7 +574,7 @@ void ElecPDE::CalcOutputCoupling()
   std::vector<Integer> * couplingnodes;
   Array<Double> * values;
   Integer forcesCount = 0;
-  
+
   // loop over all output coupling quantities
   for (Integer i=0; i<ptCoupling_->GetNumOutputCouplings(); i++)
     {

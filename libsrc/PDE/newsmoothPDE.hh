@@ -37,6 +37,9 @@ public:
   //! initalize PDE coupling
   virtual void InitCoupling(PDECoupling * Coupling);
 
+  //! initialize time stepping: nothing to do in smoother!
+  virtual void InitTimeStepping(const Double dt){;};
+
   //! perform ..
   virtual void PreStepStatic(const Integer level);
 
