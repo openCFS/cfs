@@ -209,7 +209,7 @@
   <!-- Data type for basic coil -->
   <xsd:complexType name="DT_BasicCoil">
     <xsd:sequence>
-      <xsd:element name="area" type="DT_PosFloat"/>
+      <xsd:element name="windingCrossSection" type="DT_PosFloat"/>
     </xsd:sequence>
     <xsd:attribute name="name" type="xsd:token" use="required"/>
   </xsd:complexType>
@@ -221,7 +221,7 @@
         <xsd:sequence>
           <xsd:element name="saveFileL"  type="xsd:token" minOccurs="0"
             default="none"/>
-          <xsd:element name="saveFileUI" type="xsd:token" minOccurs="0"
+          <xsd:element name="saveFileU" type="xsd:token" minOccurs="0"
             default="none"/>
         </xsd:sequence>
       </xsd:extension>
@@ -325,9 +325,9 @@
       <xsd:element name="midPointX" type="xsd:float"/>
       <xsd:element name="midPointY" type="xsd:float"/>
       <xsd:element name="midPointZ" type="xsd:float"/>
-      <xsd:element name="orientX"   type="xsd:float"/>
-      <xsd:element name="orientY"   type="xsd:float"/>
-      <xsd:element name="orientZ"   type="xsd:float"/>
+      <xsd:element name="rotAxisX"  type="xsd:float"/>
+      <xsd:element name="rotAxisY"  type="xsd:float"/>
+      <xsd:element name="rotAxisZ"  type="xsd:float"/>
     </xsd:sequence>
   </xsd:complexType>
 
