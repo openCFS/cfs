@@ -94,27 +94,29 @@ void GridCFS<Dim> :: Read()
 
    Integer maxnumelemgr;
    Integer numelemothergr=0;
+   Integer startposarrayconn=0;
    Integer j;
 for (j=0; j<maxnumsubdomain; j++)
 {
-//   InFile->ReadMaxnumelemGroup(maxnumelemgr,j);
-   InFile->ReadElemConnectionGH(gh[0].maxnumelem, gh[0].Connect, NumNodeperElem, 0);
-//   std::cout << maxnumelemgr << std::endl;
-//   InFile->ReadElemConnectionGH(maxnumelemgr,gh[0].Connect,NumNodeperElem,j);
+   InFile->ReadMaxnumelemGroup(maxnumelemgr,j);
+// InFile->ReadElemConnectionGH(gh[0].maxnumelem, gh[0].Connect, NumNodeperElem, 0);
+   std::cout << maxnumelemgr << std::endl;
+   InFile->ReadElemConnectionGH(maxnumelemgr,gh[0].Connect,NumNodeperElem,j,startposarrayconn);
    for (i=0; i<gh[0].maxnumelem; i++) 
    {
       gh[0].Info[start+0]=i;  // global element number
       gh[0].Info[start+1]=0; // element level of last touch
       gh[0].Info[start+2]=ihelp;// start position of connection
       gh[0].Info[start+3]=999; // address of pointer to Element
- //     pptelemsubdom[j][i]=i+numelemothergr; 
+      pptelemsubdom[j][i]=i+numelemothergr; 
    
       ihelp+=NumNodeperElem;
       gh[0].fp[i]=start;
       start+=4;
    }
- //     pptelemsubdom[j][maxnumelemgr]=-1;
- //   numelemothergr=maxnumelemgr+1;
+    pptelemsubdom[j][maxnumelemgr]=-1;
+    numelemothergr+=maxnumelemgr+1;
+    startposarrayconn+=maxnumelemgr;
 }
 }
 

@@ -67,7 +67,7 @@ public:
 
   //! Read connection of element in grid hierarchy
   void  ReadElemConnectionGH(const Integer maxelem, Integer * connect,
-			     const Integer maxnode, const Integer numelemgr);
+			     const Integer maxnode, const Integer numelemgr, const Integer startposinarrayconnection);
 
   //! read maximum number of elements in group number num
   void ReadMaxnumelemGroup(Integer & maxelem, const Integer numgr);
