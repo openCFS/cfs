@@ -100,6 +100,11 @@ public:
   //! Assemble stiffness part
   void AssembleStiffness(BaseFE * ptEl, Vector<Integer>& connect_PDE, Matrix<Double>& ptCoord, MaterialData& actMatData);
   
+  /// calculates L2-norm of RHS regarding entries due to penalty formulation
+  Double RhsL2Norm(std::vector<Double>& stdVec);
+
+  /// sets external forces and returns L2Norm of them
+  Double SetExternalForces(const Integer level);
 
 protected:
 

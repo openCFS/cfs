@@ -335,7 +335,7 @@ void SmoothPDE::WriteResultsInFile()
 	dof = GetNrBCDof (doftype.substr(0,2));
 
 #ifdef DEBUG
-	(*debug) << " Homog. Dirichlet BC" << std::endl;
+	//	(*debug) << " Homog. Dirichlet BC" << std::endl;
 #endif
 	nodes=ptBCs_->GetNodesLevel(bcs_hd_[i]);
    
@@ -344,7 +344,7 @@ void SmoothPDE::WriteResultsInFile()
 	    node=*p;
 	    
 #ifdef DEBUG
-	    (*debug) << " node: " << Mesh2PDENode_[node-1] << " dof:" << dof << " val: " << val << std::endl;
+	    //  (*debug) << " node: " << Mesh2PDENode_[node-1] << " dof:" << dof << " val: " << val << std::endl;
 #endif
 	    if (update==1)
 	      {

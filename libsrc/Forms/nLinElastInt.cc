@@ -22,7 +22,8 @@ calcPiolaStressVec(std::vector<Double>& piolaStressVec, Integer ip, Matrix<Doubl
   // convert displacement of all elem nodes into one vector: 
   // (uNode1X, uNode1Y, uNode2X, uNode2Y, ...)
   std::vector<Double> displVec;
-  elemDisp_.ConvertToVec_RowsFirst(displVec);
+  //  elemDisp_.ConvertToVec_RowsFirst(displVec);
+  elemDisp_.ConvertToVec_AppendCols(displVec);
 
 
   // linear differential operator B_lin
@@ -43,16 +44,6 @@ calcPiolaStressVec(std::vector<Double>& piolaStressVec, Integer ip, Matrix<Doubl
   
   nonLinStrain = part1 + part2;
   piolaStressVec = dMat * nonLinStrain;
-
-#ifdef DEBUG
-  *debug << "Piola strainVec part1: " << std::endl << part1 << std::endl;
-  *debug << "Piola strrainVec part2: " << std::endl << part2 << std::endl;
-  *debug << "Piola linBMAt: " << std::endl << linBMat << std::endl;
-  *debug << "Piola nlinBMAt: " << std::endl << nLinBMat << std::endl;
-  *debug << "Piola nonLinStrain: " << std::endl << nonLinStrain << std::endl;
-  *debug << "Piola piolaStressVec: " << std::endl << piolaStressVec << std::endl;
-#endif
-
 }
 
 
@@ -135,9 +126,10 @@ convertStressVecToTensor(Matrix<Double>& stressTensor, std::vector<Double>& piol
 
 
 
-  // calculates the D-matrix needed for the Piola-Kirchhoff-Stress part
-  // This matrix is equal to a block diagonal matrix with Piola-Stresses in matrix 
-  // notation used as diagonal blocks (nrDim times)
+// calculates the D-matrix needed for the Piola-Kirchhoff-Stress part
+// This matrix is equal to a block diagonal matrix with Piola-Stresses in tensor 
+// notation used as diagonal blocks (nrDim times)
+// (see e.g. Bathe: "Finite Element Procedures" p. 556)
   void nLinMech3dInt_PiolaStress::calcDMat(Matrix<Double> & dMat, Integer ip, Matrix<Double> & ptCoord)
   {
 #ifdef TRACE
@@ -153,30 +145,20 @@ convertStressVecToTensor(Matrix<Double>& stressTensor, std::vector<Double>& piol
     calcPiolaStressVec(piolaStressVec, ip, ptCoord );
     convertStressVecToTensor(stressTensor, piolaStressVec);
 
-
-#ifdef DEBUG
-    *debug << "Piola stressTensor: " << std::endl << stressTensor << std::endl;
-#endif
-    
-
     // in "Resize", matrix elements are set to zero
     dMat.Resize(dimD);
     
 
     for (Integer i=0; i<nrDofs; i++)
       dMat.SetSubMatrix(stressTensor, i*nrDofs, i*nrDofs);
-
-
-#ifdef DEBUG
-    *debug << "Piola DMat: " << std::endl << dMat << std::endl;
-#endif
   }
 
 
 
 
 
-  // returns nonlinear B - matrix (first part) for BDB
+// returns B - matrix for piola stresses
+// (see e.g. Bathe: "Finite Element Procedures" p. 556)
   void nLinMech3dInt_PiolaStress::
   calcBMat(Matrix<Double> & bMat, Integer ip, Matrix<Double> & ptCoord)
   {
@@ -201,13 +183,7 @@ convertStressVecToTensor(Matrix<Double>& stressTensor, std::vector<Double>& piol
     for(int actNode=0; actNode < nrNodes; actNode++)
       for(int globPos=0; globPos < nrDofs; globPos++)
 	for(int actDof=0; actDof < nrDofs; actDof++)
-	  bMat[globPos*nrDofs + actDof][actNode * nrDofs + globPos] = xiDx[actNode][actDof];
-      
-
-#ifdef DEBUG
-    *debug << "ip-nr = " << ip << std::endl
-	   << "Piola BMat: " << std::endl << bMat << std::endl;
-#endif
+	  bMat[globPos*nrDofs + actDof][actNode * nrDofs + globPos] = xiDx[actNode][actDof];      
   }
 
 
@@ -249,7 +225,7 @@ convertStressVecToTensor(Matrix<Double>& stressTensor, std::vector<Double>& piol
 
     // calculate derivates of global displacements at element nodes
     // elemDisp_ holds displacement of the actual element (dimension: nrDofs x nrNodes)
-    // xiDx holds derivatives of shape functions after global coords (dimension: nrNodes x nrDofs)
+    // xiDx holds derivatives of shape functions after global coords in one IP (dimension: nrNodes x nrDofs)
     // displDeriv dimension: nrDofs x nrDofs
     Matrix<Double>  displDeriv;  
     displDeriv = elemDisp_ * xiDx;
@@ -267,17 +243,7 @@ convertStressVecToTensor(Matrix<Double>& stressTensor, std::vector<Double>& piol
       {
 	linBMat.GetSubMatrix(bMatOneNode, 0, actNode*nrDofs);
 
-	bMatOneNode *= displDerivTransp;
-
-#ifdef DEBUG
-//     *debug << std::endl << "element displacement: " << std::endl 
-// 	   << elemDisp_ << std::endl
-// 	   << "derivation of displ: " << std::endl << displDerivTransp << std::endl
-// 	   << "bMatOneNode: " << std::endl << bMatOneNode << std::endl
-// 	   << "linBMat: " << std::endl << linBMat << std::endl
-// 	   << "act<Node " << actNode << std::endl;
-#endif
-	
+	bMatOneNode *= displDerivTransp;	
 	
 	bMat.SetSubMatrix(bMatOneNode, 0, actNode*nrDofs);
       }

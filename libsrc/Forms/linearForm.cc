@@ -235,18 +235,19 @@ namespace CoupledField
 	elemVec +=  partElemVec;
 
 #ifdef DEBUG 
-// 	(*debug) << "LINFORM: piolaStressVec: "<< std::endl << partElemVec << std::endl;
+//  	(*debug) << "------------------------------------------IP " << actIntPt << std::endl;
+//  	(*debug) << "LINFORM: piolaStressVec: "<< std::endl << piolaStressVec << std::endl;
 // 	(*debug) << "LINFORM: linBMAt: "<< std::endl << linBMat << std::endl;
-// 	(*debug) << "LINFORM: nonLinBMAt: "<< std::endl << nonLinBMat << std::endl;
-// 	(*debug) << "LINFORM: transpSumB: "<< std::endl << transpSumB << std::endl;
+//  	(*debug) << "LINFORM: nonLinBMAt: "<< std::endl << nonLinBMat << std::endl;
+//  	(*debug) << "LINFORM: transpSumB: "<< std::endl << transpSumB << std::endl;
+//  	(*debug) << "LINFORM: partElemVec: "<< std::endl << partElemVec << std::endl;
 #endif
 
       }
   
 
 #ifdef DEBUG 
-	(*debug) << "CalcElemVector:  "  << std::endl
-		 << partElemVec << std::endl;
+	(*debug) << "CalcElemVector:  "  << std::endl << elemVec << std::endl;
 #endif
 
 
