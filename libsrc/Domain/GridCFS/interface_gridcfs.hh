@@ -27,10 +27,6 @@ public:
   virtual void Read() 
   { ptGridCFS->Read();}
 
-  /// Get coordinates of all nodes which belong to element
-//  virtual void GetCoordOfNodesElem(const Integer numElem, const Integer numlevel, const Integer numnodes,  Dim * ptCoordElem) 
-//  { ptGridCFS->GetCoordOfNodesElem(numElem, numlevel, numnodes,ptCoordElem);}
-
    /// Get connection of element
    virtual void GetConnection(Vector<Integer> & connect, const Integer iElem, const Integer level)
     { ptGridCFS->GetConnection(connect,iElem, level);}
@@ -45,14 +41,6 @@ public:
   /// Return maximum number of elements 
   virtual Integer GetMaxnumElem(const Integer numlevel)
   { return ptGridCFS->GetMaxnumElem(numlevel);}
-
-  /// Return num of nodes per element i
-//  virtual Integer GetNumNodesPerElem(const Integer iElem, const Integer level)
-//  { return ptGridCFS->GetNumNodesPerElem(iElem, level);}
-
-  /// return pointer to BaseElem
-//    BaseElem * GetptElem(const Integer iElem)
-// { return ptGridCFS->GetptElem(iElem);}
 
   /// return dimension of mesh
   virtual Integer GetDim(){ ptGridCFS->GetDim();}

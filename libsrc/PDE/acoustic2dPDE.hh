@@ -45,7 +45,8 @@ Double &adampiter,  Integer &amaxnumit, Integer &numeqcoarse);
 
   //! calculation derivates of solution 
   void CalculationDerivativesSol(const Boolean Recalc);
-
+  void CalcDerSol();
+  
   //! create pointer to class for time error estimation
   virtual TimeErrorEstimator * CreatePtTimeError();  
 
@@ -53,13 +54,19 @@ Double &adampiter,  Integer &amaxnumit, Integer &numeqcoarse);
   virtual SpaceErrorEstimator * CreatePtSpaceError();
 
   //! Calculation of energy norm
-  Double CalcEnergyNorm();
+  virtual Double CalcEnergyNorm();
 
   //!
   void SolveStepStatic(BCs * ptBCs ,const Integer level);
 
   //!
   void SolveStepTrans(BCs * ptBCs ,const Integer kstep, const Double steptime, const Integer level, const Boolean updatesysmat);
+
+  //!
+   void SolveStepTransNewMesh(BCs * ptBCs, const Integer kstep, const Double asteptime, const Integer level);
+
+  //!
+  void RestoreSol();
 
   //!
    void WriteResultsInFile();

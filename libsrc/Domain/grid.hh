@@ -30,14 +30,8 @@ public:
   virtual void Read()=0;
 
   /// 
-  virtual void SubdivideUniform(const Integer level)=0;
-
-  /// Get coordinates of all nodes which belong to element
-//  virtual void GetCoordOfNodesElem(const Integer numElem, const Integer numlevelGrid, const Integer numnodes, Point2D * ptCoordElem)
-//  { Error(" Not implemented",__FILE__,__LINE__);}
-
-//  virtual void GetCoordOfNodesElem(const Integer numElem, const Integer numlevelGrid, const Integer numnodes, Point3D * ptCoordElem)
-//  { Error(" Not implemented",__FILE__,__LINE__);}
+  virtual void SubdivideUniform(const Integer level)
+   { Error(" Not implemented",__FILE__,__LINE__);}
 
    /// Get connection of element
    virtual void GetConnection(Vector<Integer> & connect, const Integer iElem, const Integer level)=0;
@@ -65,7 +59,7 @@ public:
   virtual void SetRefinementFlag(const Integer ei)
   { Error(" Not implemented",__FILE__,__LINE__);}
 
-  virtual void SetRefinementFlag(Vector<Integer> & ei)
+  virtual void SetRefinementFlag(const std::vector<Integer> ei)
   { Error(" Not implemented",__FILE__,__LINE__);}
 
   //! Do refinement of elements, which we mark through function SetRefinementFlag

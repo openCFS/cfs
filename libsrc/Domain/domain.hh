@@ -41,7 +41,7 @@ public:
   BCs * GetBCs(){ return ptBCs_;}
 
   //! update algebraic system and bcs after refinement the mesh
-  void Update(const Integer sysid);
+  void Update();
 
   //!
   Grid * GetGrid(){ return ptgrid_;}
@@ -54,10 +54,10 @@ private:
    void InitPDE();
 
    //! initialization of alg.sys.
-   void InitAlgSys();
+   void InitAlgSys(const Integer level);
 
   //! update alg. sys. in case of new mesh
-  void UpdateAlgSys(const Integer sysid);
+  void UpdateAlgSys();
 
   //!
   Integer numsubdomain_;

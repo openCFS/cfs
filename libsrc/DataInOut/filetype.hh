@@ -6,6 +6,10 @@
 #include <vector>
 #include <string>
 
+#ifdef ADAPTGRID
+#include "Element.h"  
+#endif
+
 namespace CoupledField
 {
 
@@ -44,6 +48,11 @@ public:
   virtual void ReadEl(std::vector<Elem> * elems, const std::vector<std::string>
 sd)
  { Error(" not implemented",__FILE__,__LINE__);}
+
+#ifdef ADAPTGRID
+  virtual void ReadElems4AdaptGrid(std::vector<grd::Element*> & elems)
+   { Error(" not implemented",__FILE__,__LINE__);}
+#endif
  
   //!
   virtual Integer ReadDim()=0;  

@@ -38,7 +38,6 @@ void GridCFS<Point2D> :: Read()
   ptCoordinate_=new Point2D[maxnumnodes_];
   InFile->ReadCoordinate(ptCoordinate_, maxnumnodes_);
 
-//  InFile->ReadElems(allelems);
   InFile->ReadEl(elems_,sd_);
 
 #ifdef TRACE
@@ -59,27 +58,12 @@ void GridCFS<Point3D> :: Read()
   ptCoordinate_=new Point3D[maxnumnodes_];
   InFile->ReadCoordinate(ptCoordinate_, maxnumnodes_);
 
-//  InFile->ReadElems(allelems);
   InFile->ReadEl(elems_,sd_);
 
 #ifdef TRACE
   (*trace) << "leaving GridCFS::Read" << std::endl;
 #endif
 }
-
-/*
-template<class Dim>
-void GridCFS<Dim> :: GetCoordOfNodesElem(const Integer i, const Integer l, const Integer numnodes,  Dim * ptCoordElem)   
-{
-#ifdef TRACE
-  (*trace) << "entering GridCFS:: GetCoordOfNodesElem" << std::endl;
-#endif
-
-  Integer k;
-  for (k=0; k < numnodes; k++)
-       ptCoordElem[k]=ptCoordinate_[allelems[i].connect[k]-1];
-}
-*/
 
 template< class Dim>
 void GridCFS<Dim>::GetConnection(Vector<Integer> & connection, const Integer iElem, const Integer level)
