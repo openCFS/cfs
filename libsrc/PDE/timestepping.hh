@@ -2,7 +2,6 @@
 #define FILE_TIMESTEPPING_2001
 
 #include <General/environment.hh>
-#include <Utils/array.hh>
 #include <Utils/storesol.hh>
 
 #ifdef USE_OLAS

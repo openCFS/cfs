@@ -58,7 +58,6 @@ WARN_LOGFILE           =
 # configuration options related to the input files
 #---------------------------------------------------------------------------
 INPUT                  = ../libsrc/AlgebraicSystem \
-                         ../libsrc/AlgebraicSystem/LinAlg \
                          ../libsrc/DataInOut \
                          ../libsrc/DataInOut/DatFile \
                          ../libsrc/DataInOut/Unverg \

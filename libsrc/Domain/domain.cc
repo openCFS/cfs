@@ -7,7 +7,6 @@
 #include "Domain/grid.hh"
 #include "Domain/bcs.hh"
 #include "Domain/GridCFS/interface_gridcfs.hh"
-#include "AlgebraicSystem/interface_piles.hh"
 #include "DataInOut/GMV/outGMV.hh"
 #include "DataInOut/WriteInfo.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
@@ -23,14 +22,13 @@
 #endif
 
 #ifdef ADAPTGRID
-#include "omain/AdaptGrid/interface_adgrid.hh"
+#include "domain/AdaptGrid/interface_adgrid.hh"
 #endif
 
 #include "PDE/pdes_header.hh"
 #include "CoupledPDE/coupled_pdes_header.hh"
 
 #include "Utils/vector.hh"
-#include "Utils/array.hh"
 
 #ifndef NEWBASEPDE
 #include "PDE/basepde.hh"

@@ -7,12 +7,10 @@
 #include <Utils/storesol.hh>
 #include <list>
 #include <General/environment.hh>
-#include <AlgebraicSystem/abstractAlgSys.hh>
 #include <Domain/bcs.hh>
 #include <DataInOut/timefunc.hh>
 #include <DataInOut/filetype.hh>
 #include <DataInOut/writeresults.hh>
-#include <Utils/array.hh>
 #include <Matrix/matrix.hh>
 
 #ifdef USE_OLAS
@@ -26,7 +24,6 @@
 #include <DataInOut/LoadMaterialData.hh>
 #include <DataInOut/MaterialData.hh>
 #include <CoupledPDE/pdecoupling.hh>
-#include <Utils/array.hh>
 #include <Driver/assemble.hh>
 #include "timestepping.hh"
 #include "BaseEQN.hh"

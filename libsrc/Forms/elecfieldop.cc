@@ -7,7 +7,6 @@
 #include <Domain/grid.hh>
 #include <General/environment.hh>
 #include <Utils/vector.hh>
-#include <Utils/array.hh>
 #include <Utils/storesol.hh>
 #include <Matrix/matrix.hh>
 

@@ -8,7 +8,6 @@ namespace CoupledField {
 
 // Forward class declarations
 template<class TYPE> class Matrix;
-template<class TYPE> class Array;
 template<class TYPE> class Vector;
 template<class TYPE> class StoreSol;
 
@@ -34,7 +33,6 @@ public:
 
   // Friend declarations
   friend class Matrix<TYPE>;
-  friend class Array<TYPE>;
   friend class StoreSol<TYPE>;
   template<class S>
   friend void Swap(Vector<S> &, Vector<S> &);
@@ -167,10 +165,6 @@ public:
 
   //! Overloading of operation =
   Vector	&operator=	(const Vector &);
-
-  //! *** DEPRECATED ***
-  //! Overloading of operation = for Arrays
-  Vector        &operator=      (const Array<TYPE> &);
 
   //! build vector from std::vector
   Vector & operator= (const std::vector<TYPE> & vec);

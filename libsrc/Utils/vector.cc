@@ -6,7 +6,6 @@
 #include <string>
 
 #include "vector.hh"
-#include <Utils/array.hh>
 #include <Matrix/matrix.hh>
 
 
@@ -329,29 +328,6 @@ void Vector<TYPE>::ToStdVector(std::vector<TYPE> &vec) const
 
 }
 
-
-template<class TYPE>
-Vector<TYPE> &Vector<TYPE>::operator=(const Array<TYPE> &x)
-{
-
-  if (x.dim_ != 1)
-    Error("only 1 dimensional arrays can be assigned to vector", __FILE__, __LINE__);
-
-  if (x.size_ != size_)
-    {
-      delete[] data_;
-      data_ = new TYPE[x.size_];
-#ifdef CHECK_MEMORY
-      if (!data_) Error("Out of memory in vector.operator=()");
-#endif
-
-      size_ = x.size_;
-    }
-  for (Integer i=0; i< size_; i++)
-    data_[i] = x.sol_[0][i];
-  
-  return *this;
-}
 
 template<class TYPE>
 Vector<TYPE> &Vector<TYPE>::operator=(const Vector<TYPE> &x)

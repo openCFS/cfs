@@ -4,7 +4,6 @@
 #include <Domain/grid.hh>
 #include <Domain/bcs.hh>
 #include <list>
-#include <Utils/array.hh>
 #include <Utils/storesol.hh>
 
 #ifndef NEWBASEPDE
