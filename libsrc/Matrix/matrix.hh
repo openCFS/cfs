@@ -1,184 +1,299 @@
-#ifndef FILE_MATRIX_2001
-#define FILE_MATRIX_2001
+#ifndef FILE_MATRIX_2004
+#define FILE_MATRIX_2004
 
-#include "Utils/vector.hh"
-#include "Utils/array.hh"
-#include "absmatrix.hh"
- 
+#include "cfsmatrix.hh"
+
 namespace CoupledField
 {      
 
-  //! Overloading << for class Matrix
-  template<class TYPE>  std::ostream& operator << ( std::ostream & , const Matrix<TYPE> &);
-  
-  //! Calculate Spur of Matrix
-  template <class T> T Spur(const Matrix<T> &);
+//! Overloading << for class Matrix
+template<class TYPE> class Vector;
+template<class TYPE> class Array;
 
-//   //! Transporting Matrix 
-//   template <class T> Matrix<T> Trans(const Matrix<T> &);
-
-
-//! Own class for working with full matrixes
+//! Concrete implementation of a dense matrix
 template<class TYPE>
-class Matrix: public AbsMatrix<Matrix<TYPE> , TYPE>
+class Matrix: public CFSMatrix
 {
-  //! number of row :w
-  Integer	row;
-
-  //! number of col
-  Integer col;
-
-  //! pointer to array of pointers to row
-  TYPE	** p;
-
 public:
-       
-  friend class SparseMatrix<TYPE>;
-  friend class SymSparseMatrix<TYPE>;
-  friend class BandMatrix<TYPE>;
-  friend class SymBandMatrix<TYPE>;
-  friend class SymMatrix<TYPE>;
+
+  // Friend declarations
   friend class Vector<TYPE>;
   friend class Array<TYPE>;
   
+  //! Constructor 
+  //! creates an empty matrix of size 0x0
+  Matrix();
 
-  //! Constructor row=0,col=0,p=NULL
-  Matrix	();
-
-  //! Constructor(row, col)
-  Matrix	(const Integer, const Integer);
+  //! Constructor
+  //! creates a matrix of size nRows x nCols, initalized
+  //! with zeroes
+  /*! 
+    \param nRows (input) Number of rows
+    \param nCols (input) Number of columns)
+  */
+  Matrix (const Integer nRows, const Integer nCols);
 
   //! Constructor (number of vectors, array of vectors(colomn))
-  Matrix	(const Integer, const Vector<TYPE> * const);
+  Matrix (const Integer, const Vector<TYPE> * const);
 
   //! Default Copy Construcctor
-  Matrix	(const Matrix &);
+  Matrix(const Matrix &);
+
+  //! Destructor
+  ~Matrix();
+  
+  //! Initialize matrix with a given entry.
+  //! If no entry given, it gets initalized with zeroes
+  /*!
+    \param val (input,opt.) Entry the matrix gets initalized with
+  */
+  //! \note This method does not change the size of the matrix
+  void Init(const TYPE val = 0.0);
 
   //! Change size of quadratic matrix
-  void Resize(const Integer);
+  /*!
+    \param size (input) Number of rows / columns
+  */
+  //! \note the matrix contains afterwards only zeroes
+  void Resize(const Integer size);
+  
+  //! Change size of general matrix 
+  /*!
+    \param nRows (input) Number of rows
+    \param nCols (input) Number of columns)
+  */
+  //! \note the matrix contains afterwards only zeroes
+  void Resize(const Integer nRows, const Integer nCols);
 
-  //! Change size of matrix (row, col)
-  void Resize(const Integer, const Integer);
+  //! Get the number of rows
+  Integer GetSizeRow() const;
+  
+  //! Get the number of columns
+  Integer GetSizeCol() const;
+  
+  //! Set the entry 'val' at position (row,col) in the matrix
+  /*!
+    \param row (input) Row of entry
+    \param col (input) Column of entry
+    \param val (input) Value to be set
+  */
+  void SetEntry(const Integer row, const Integer col, const TYPE val)
+  {Error("!!! IMPLEMENT !!!");};
+  
+  //! Add'val' to the matrix entry at position (row,col) in the matrix
+  /*!
+    \param row (input) Row of entry
+    \param col (input) Column of entry
+    \param val (input) Value to be added
+  */
+  void AddToEntry(const Integer row, const Integer col, const TYPE val);
+   
+  //! Get the entry 'val' at position (row,col) in the matrix
+  /*!
+    \param row (input) Row of entry
+    \param col (input) Column of entry
+    \param val (output) Variable the value is written into
+  */
+  void GetEntry(const Integer row, const Integer col, TYPE & val) const
+  {Error("!!! IMPLEMENT !!!");}; 
+  
+  //! Calculates the determinant (up to size 3)
+  /*!
+    \param val (output) Return value of the method
+  */
+   void Determinant(TYPE & val) const;
 
+  //! Invert the matrix and store it in 'inv' (up to size 3)
+  /*!
+    \param inv (output) Inverse of the matrix
+  */
+  void Invert(CFSMatrix & inv) const
+  {Error("!!! IMPLEMENT !!!");};
+  
+  //! Transpose the matrix and store it in 'trans'
+  /*!
+    \param trans (output) Transposed matrix
+  */
+  //! \note The matrix itself gets not changed.
+  //! \note If the transposed of a matrix is needed for a operation
+  //! with a vector, the according function like 'MultT' should be used
+  void Transpose(CFSMatrix & trans) const
+    {Error("!!! IMPLEMENT !!!");};
+  
+  //! Assignes the matrix itself the dyadic product of a vector vec1 
+  //! with itself
+  /*!
+    \param vec1 (input) Vector which gets multiplied with itself
+    \f[ \left( \begin{array}{ccc} m_{11} & m_{12} & \cdots \\ 
+                                  m_{21} & m_{22} & \cdots \\
+				  \cdots & \cdots & \cdots 
+	\end{array} \right) 
+	=
+	\left( \begin{array}{c} v_1  \\ v_2 \\ \cdots \end{array} \right) 
+	\cdot
+	\left( \begin{array}{ccc} v_1 & v_2 & \cdots  \end{array} \right)
+      \f]
+  */			  
+  //! \deprecated Do not use std::vectors for 
+  //! numerical values anymore
+  void DyadicMult(std::vector<TYPE> vec1);
+  
+  
+  //! Assignes the matrix itself the dyadic product of a vector vec1 
+  //! with a vector vec2
+  /*!
+    \param vec1 (input) Vector which gets multiplied with itself
+    \f[ \left( \begin{array}{ccc} m_{11} & m_{12} & \cdots \\ 
+    m_{21} & m_{22} & \cdots \\
+    \cdots & \cdots & \cdots 
+    \end{array} \right) 
+    =
+    \left( \begin{array}{c} v_1  \\ v_2 \\ \cdots \end{array} \right) 
+	\cdot
+	\left( \begin{array}{ccc} v_1 & v_2 & \cdots  \end{array} \right)
+	\f]
+  */		
+  //! \deprecated Do not use std::vectors for 
+  //! numerical values anymore
+  void DyadicMult(std::vector<TYPE> vec1, std::vector<TYPE> vec2); 
+  
+  //! copies a submatrix at the position (row, col) into subMat, 
+  //! the amount of copied elements depends on the size of subMat
+  void GetSubMatrix(CFSMatrix & subMat, const Integer nRows, const Integer nCols) const 
+  {Error("!!! IMPLEMENT !!!");};
+  
+  //! overwrites the matrix elements at the position (row, col) with subMat
+  //! in a rectangular (submatrix) way
+  void SetSubMatrix(CFSMatrix & subMat, const Integer nRows, const Integer nCols)
+  {Error("!!! IMPLEMENT !!!");};
+  
+  //! scales the diagonal elements of a  matrix by a factor
+  void ScaleDiagElems(const TYPE factor);
 
-  //! Initialized by zero matrix 
-  void Init();
+  //!
+  void Add(const TYPE fac, const CFSMatrix & mat){};
+  
+  //! Perform a matrix-vector multiplication rvec = this*mvec
+   void Mult(const CFSVector & mvec, CFSVector & rvec)const {;}
 
-  //! Deconstructor
-  ~Matrix	();
+  //! Perform a matrix-vector multiplication rvec = transpose(this)*mvec
+   void MultT(const CFSVector & mvec, CFSVector & rvec) const {;};
 
-  //! Copying
-  Matrix	&operator=	(const Matrix &);
+  //! Perform a matrix-vector multiplication rvec += this*mvec
+   void MultAdd(const CFSVector & mvec, CFSVector & rvec)const {;};
+  
+  //! Perform a matrix-vector multiplication rvec += transpose(this)*mvec
+   void MultTAdd(const CFSVector & mvec, CFSVector& rvec) const {;};
+  
+  //! Perform a matrix-vector multiplication rvec -= this*mvec
+   void MultSub(const CFSVector & mvec, CFSVector & rvec) const {;};
+
+  //////////////////////////////////////
+  // Functions for working with other //
+  // Matrix<Type> and Vector<TYPE>    //
+  //////////////////////////////////////
+
+  //! Assignment operator
+  Matrix & operator= (const Matrix &);
 
   //! Return pointer to row number []
-  TYPE * operator[] (const Integer) const;
+  inline TYPE * operator[] (const Integer) const;
 
-  //! Return size of matrix , only for quadratic matrixes
-  Integer getSize() const;
+  //! fast inversion for matrices smaller than size 3
+  void Invert (Matrix <TYPE> & inv) const;
 
-  //! Return number of rows
-  Integer	size_row() const;
-
-  //! Return number of colomnes
-  Integer	size_col() const;
-
-  /// calculates the determinante of matrices up to size 3
-  Double Det () const;      
-
-
-  /// fast inversion for matrices smaller than size 3
-  void Invert (Matrix <Double> & inv) const;
-
-  //! return p
-  TYPE ** get() const;
+  //! returns pointer to continuos chunck of data
+  TYPE ** GetRowPointer() const;
 
   //! return pointer to array of elements in matrix, row by row
-  TYPE * getinarray() const { return p[0];}
+  inline TYPE * GetDataPointer() const { return data_[0];}
 
-  //! Add element on position i,j
-  void Add(const Integer, const Integer, const TYPE value);
+  //! get the pointer to the continuous chunk of data as double *.
+  //! If the matrix consists of Complex, it will be decomposed
+  //! in a continous array of double (real_1, imag_1, real_2, ...)
+  Double * GetDoublePointer();
 
   //! Overloading of operations
-  //!
-  TYPE & operator()(const Integer, const Integer);
+
+  //! Access operator
+  /*!
+    \param row (Input) Row number
+    \param col (Input) Column number
+  */
+  TYPE & operator()(const Integer row , const Integer col);
 
   //! 
-  Matrix	operator+	() const;
+  Matrix operator+() const;
 
   //!
-  Matrix	operator+	(const Matrix &) const;
+  Matrix operator+(const Matrix &) const;
 
   //!
-  Matrix	&operator+=	(const Matrix &);
+  Matrix & operator+=(const Matrix &);
 
   //!
-  Matrix	operator-	() const;
+  Matrix operator-() const;
 
   //!
-  Matrix	operator-	(const Matrix &) const;
+  Matrix operator-(const Matrix &) const;
 
   //!
-  Matrix	&operator-=	(const Matrix &);
+  Matrix & operator-=(const Matrix &);
 
   //! multiplication with scalar value
-  Matrix	operator*	(const TYPE &) const;
+  Matrix operator* (const TYPE &) const;
 
   //!
-  Vector<TYPE>	operator*	(const Vector<TYPE> &) const;
+  Vector<TYPE> operator* (const Vector<TYPE> &) const;
 
   //!
   std::vector<TYPE> operator*(const std::vector<TYPE> &x) const;
   
-
   //! 
-  Array<TYPE>   operator*       (const Array<TYPE> &) const;
+  //Array<TYPE> operator*(const Array<TYPE> &) const;
 
   //!
-  Matrix	operator*	(const Matrix &) const;
+  Matrix operator*(const Matrix &) const;
 
   //!
-  Matrix	&operator*=	(const TYPE &);
+  Matrix & operator*=(const TYPE &);
 
 
   //!
-  Matrix	&operator*=	(const Matrix &);
+  Matrix & operator*=(const Matrix &);
 
   //!
-  Matrix	&operator/=	(const TYPE &);
+  Matrix & operator/=(const TYPE &);
   //!
-  Integer	operator ==	(const Matrix &) const;
+  Integer operator ==(const Matrix &) const;
 
   //!
-  Integer	operator!=	(const Matrix &) const;
+  Integer operator!=(const Matrix &) const;
  
+  //////////////////////////////////////////
+  // Folgende Funktionen müssen grundlegend
+  // auf 'Vector' statt 'std::vector' 
+  // umgestellt werden
+  ///////////////////////////////////////////
 
-  //! Cut part of matrix (left index row, right, upper index col, low )
-//   Matrix	part	(const Integer, const Integer,
-//                          const Integer, const Integer) const;
+ //  //! Cut part of matrix (left index row, right, upper index col, low )
+//   //   Matrix	part	(const Integer, const Integer,
+//   //                          const Integer, const Integer) const;
+  
+//   //! Cut row number i, colomn number j from matrix
+//   //void cut(const Integer i, const Integer j);
 
-  //! Cut row number i, colomn number j from matrix
-  void cut(const Integer i, const Integer j);
+   //! Add a row to Matrix at position i
+   void AddRow(const Vector<TYPE> & x, const Integer pos );
 
-  //! Add a row to Matrix at position i
-  void add_row(const Vector<TYPE> & x, const Integer pos );
+   //! Add a colomn to Matrix at position i
+   void AddColumn(const std::vector<TYPE> & x, const Integer pos ); 
 
-  //! Add a colomn to Matrix at position i
-  void add_col(const std::vector<TYPE> & x, const Integer pos ); 
+//   //! get a column out of the matrix
+//   std::vector<TYPE> get_col(const Integer acol);
 
-  //! get a column out of the matrix
-  std::vector<TYPE> get_col(const Integer acol);
-
-  //! Precondition: Implemented Jacobi, SSOR(omega=1.2), LU
-  void precond(Vector<TYPE> &, const Vector<TYPE>, enum precond type);
-
-  /// Transpose actual matrix
+   /// Transpose actual matrix
   void Transpose (Matrix<TYPE> &transposedMat);  
-
-  /// Dyadic multiplication of two vectors
-  void DyadicMult(std::vector<TYPE> v1);
-
-  /// Dyadic multiplication of two vectors
-  void DyadicMult(std::vector<TYPE> v1, std::vector<TYPE> v2);
 
   /// copies a submatrix at the position (row, col) into subMat, 
   /// the amount of copied elements depends on the size of subMat
@@ -194,113 +309,118 @@ public:
   /// converts a matrix into a vector, by appending successively all columns
   void ConvertToVec_AppendCols(std::vector<TYPE>& vec) const;
 
-  //
-  void CholerskyDecomposition();
-  
-  void ConvertToVec_RowsFirst(std::vector<TYPE>& vec) const;
-
-  /// scales the diagonal elements of a  matrix by a factor
-  void ScaleDiagElems(TYPE factor);
-
-  /// gets the diagonal elements of a  matrix in a one column matrix
+   /// gets the diagonal elements of a  matrix in a one column matrix
   void GetDiagInMatrix(Matrix<TYPE>& columnMat);
   //Matrix<TYPE> GetDiagInMatrix();
 
 private:
-  /// calculates the adjunct of the matrix at position (i,j)
-  Double Adjunct (Integer i, Integer j) const;
-  
 
-  //!
-  //       TYPE At( const Integer i, const Integer j) { return p[i][j]; }
+  //! calculates the adjunct of the matrix at position (i,j)
+  TYPE Adjunct (Integer i, Integer j) const;
+
+  //! number of rows 
+  Integer size_row_;
+  
+  //! number of columns
+  Integer size_col_;
+
+  //! data of the matrix
+  TYPE** data_;
+
+
 };
 
-// inline member functions
+/////////////////////////////
+// Inline member functions //
+/////////////////////////////
 
-template<class TYPE> 
-inline Matrix<TYPE>::~Matrix ()
-{	
-  if (p) { delete [] p[0]; 
-         delete  [] p;}
-}
 
 template<class TYPE>
-inline void Matrix<TYPE>::Init ()
+inline void Matrix<TYPE>::Init(const TYPE val)
 {
-Integer i;
-for (i=0; i<row*col; i++) p[0][i]=0;
+  Integer i;
+  for (i=0; i<size_row_*size_col_; i++) 
+    data_[0][i]=val;
 }
 
 template<class TYPE>
-inline void Matrix<TYPE>::Add ( const Integer i, const Integer j, const TYPE value)
+inline void Matrix<TYPE>::AddToEntry ( const Integer i, const Integer j, const TYPE value)
 {
- p[i][j]+=value;
+  data_[i][j]+=value;
 }
 
 template<class TYPE>
-inline TYPE & Matrix<TYPE>::operator()(const Integer i, const Integer j) 
+inline TYPE & Matrix<TYPE>::operator()(const Integer row, const Integer col) 
 {
-  return p[i][j];
+  return data_[row][col];
 }
 
 template<class TYPE>
-inline TYPE ** Matrix<TYPE>::get () const
+inline TYPE * Matrix<TYPE>::operator[] (const Integer i) const
+{ 
+  ENTER_IFCN("Matrix::operator[]");
+
+#ifdef CHECK_INITIALIZED
+  if (size_row_ == 0 || size_col_ == 0) Error("undefined Matrix",__FILE__,__LINE__);
+#endif
+
+#ifdef CHECK_INDEX
+  if (i < 0 || i >= size_row_) Error("invalid index",__FILE__,__LINE__);
+#endif
+  
+  return data_[i];
+}
+
+template<class TYPE>
+inline TYPE ** Matrix<TYPE>::GetRowPointer () const
 {
-  return p;
+  return data_;
 }
 
-template<class TYPE>
-inline Integer Matrix<TYPE>::getSize() const
-{
- if (row!=col) Error("Function .size() is valid only for quadratic matrix");
- return row;
-}
 
 template<class TYPE>
-inline Integer Matrix<TYPE>::size_row () const
-{       if (!row || !col) Error("undefined Matrix",__FILE__,__LINE__);
-        return row;
+inline Integer Matrix<TYPE>::GetSizeRow() const
+{       
+  return size_row_;
 }
  
 template<class TYPE>
-inline Integer Matrix<TYPE>::size_col () const
-{       if (!row || !col) Error("undefined Matrix",__FILE__,__LINE__);
-        return col;
+inline Integer Matrix<TYPE>::GetSizeCol () const
+{       
+  return size_col_;
 }
 
 template<class TYPE>
-inline Double Matrix<TYPE>::Det() const
-{
-  if (!row || !col) Error("Undefined Matrix!",__FILE__,__LINE__);
-  if (row != col ) Error("No quadratic matrix!",__FILE__,__LINE__);
+inline void Matrix<TYPE>::Determinant (TYPE & ret) const
+{       
+#ifdef CHECK_INITIALIZED
+  if (size_row_ == 0|| size_col_ == 0) 
+    Error("Undefined Matrix!",__FILE__,__LINE__);
+#endif
 
-  Double retVal = 0;
-
-  switch (row)
+#ifdef CHECK_INDEX
+  if (size_row_ != size_col_ ) 
+    Error("No quadratic matrix!",__FILE__,__LINE__);
+#endif
+  
+  switch (size_row_)
     {
-    case 1: retVal = p[0][0];
+    case 1: ret =  data_[0][0];
       break;
-    case 2: retVal = p[0][0]*p[1][1]-p[0][1]*p[1][0];
+    case 2: ret =   data_[0][0]*data_[1][1]-data_[0][1]*data_[1][0];
       break;
-    case 3: retVal = p[0][0]*p[1][1]*p[2][2] +
-	      p[0][1]*p[1][2]*p[2][0] +
-	      p[0][2]*p[1][0]*p[2][1] -
-	      p[0][2]*p[1][1]*p[2][0] -
-	      p[0][1]*p[1][0]*p[2][2] -
-	      p[0][0]*p[1][2]*p[2][1];
+    case 3: ret = data_[0][0]*data_[1][1]*data_[2][2] +
+	      data_[0][1]*data_[1][2]*data_[2][0] +
+	      data_[0][2]*data_[1][0]*data_[2][1] -
+	      data_[0][2]*data_[1][1]*data_[2][0] -
+	      data_[0][1]*data_[1][0]*data_[2][2] -
+	      data_[0][0]*data_[1][2]*data_[2][1];
       break;
     default: Error("Dimension larger than 3!",__FILE__,__LINE__);
     }
-
-  return retVal;
 }
 
-
-//   template<TYPE>
-//   friend  std::vector<TYPE> operator* (std::vector<TYPE> & vec, const Matrix<TYPE> & mat);
-
-// std::vector<Double> operator* (std::vector<Double> & vec, const Matrix<Double> & mat);
-
+template<class TYPE>  std::ostream& operator << ( std::ostream & , const Matrix<TYPE> &);
 
 Double operator* (std::vector<Double> & vec1, Vector<Double> & vec2);
 
@@ -308,6 +428,7 @@ Double operator* (std::vector<Double> & vec1, std::vector<Double> & vec2);
 
 Double L2Norm(std::vector<Double> & vec);
 
+//// EXPERIMENTELL
 std::vector<Double> operator*= (std::vector<Double> & vec, Double val);
 
 std::vector<Double> operator/= (std::vector<Double> & vec, Double val);
@@ -322,20 +443,14 @@ std::vector<Double> operator-= (std::vector<Double> & vec, std::vector<Double> &
 
 std::vector<Double> operator* (Double val, std::vector<Double> & vec);
 
-//std::vector<Double> operator= (std::vector<Double> & vec, Double val);
 
-
-
-
-#ifdef __GNUC__
+//#ifdef __GNUC__
 template class Matrix<Double>;
 template class Matrix<Integer>;
-#endif
+template class Matrix<Complex>;
+//#endif
 
 } //end of namespace
-
-//typedef double Double;
-
 
 
 #endif	// FILE_MATRIX

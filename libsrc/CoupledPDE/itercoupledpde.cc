@@ -1,5 +1,6 @@
 #include "itercoupledpde.hh"
 #include "DataInOut/WriteInfo.hh"
+#include "Utils/vector.hh"
 
 namespace CoupledField
 {
@@ -145,7 +146,7 @@ namespace CoupledField
     (*trace) << "entering  IterCoupledPDE::SolveStepStatic" << std::endl;
 #endif
   
-    Array<Double> *val, *oldVal;
+    BaseStoreSol *val, *oldVal;
     Integer iter = 0;
     Integer counter = 0;
     Boolean normsReached = FALSE;
@@ -241,7 +242,7 @@ namespace CoupledField
 	    // Calculate Norms
 	    for (Integer k=0; k<Couplings_[i]->GetNumOutputCouplings(); k++)
 	      {
-		Array<Double> *val, *oldVal;
+		BaseStoreSol *val, *oldVal;
 		Couplings_[i]->GetOutputValues(k, val);
 		Couplings_[i]->GetOutputOldValues(k, oldVal);
 		norms_[counter] = CalcNorm(Couplings_[i]->GetOutputNormType(k), *val, *oldVal);
@@ -284,7 +285,7 @@ void IterCoupledPDE::WriteCouplingInfo()
   (*trace) << "entering  IterCoupledPDE::WriteCouplingInfo" << std::endl;
 #endif 
 
-  Array<Double> *val;
+  BaseStoreSol *val;
   std::vector<Integer> * nodes;
 
   if (!debug)
@@ -314,7 +315,7 @@ void IterCoupledPDE::WriteCouplingInfo()
 	  (*debug) << "InputQuantity: " << Couplings_[ipde]->GetInputQuantity(i) << std::endl;
 	  (*debug) << "Region: " << Couplings_[ipde]->GetInputRegion(i) << std::endl;
 	  (*debug) << "RegionType: " << Couplings_[ipde]->GetInputRegionType(i) << std::endl;
-	  (*debug) << "Size of Input Values: " << val->size() << std::endl;
+	  (*debug) << "Number of Input coupling values: " << val->GetSize() << std::endl;
 	  (*debug) << "Dof of Input Values: " << Couplings_[ipde]->GetInputDof(i) << std::endl;
 	  (*debug) << "Number of Input Nodes: " << Couplings_[ipde]->GetInputNumNodes(i) << std::endl;
 	  (*debug) << "Number of Input Elems: " << Couplings_[ipde]->GetInputNumElems(i) << std::endl;
@@ -338,7 +339,7 @@ void IterCoupledPDE::WriteCouplingInfo()
 	  (*debug) << "OutputQuantity: " << Couplings_[ipde]->GetOutputQuantity(i) << std::endl;
 	  (*debug) << "Region: " << Couplings_[ipde]->GetOutputRegion(i) << std::endl;
 	  (*debug) << "RegionType: " << Couplings_[ipde]->GetOutputRegionType(i) << std::endl;
-	  (*debug) << "Size of Output Values: " << val->size() << std::endl;
+	  (*debug) << "Number of Output coupling Values: " << val->GetSize() << std::endl;
 	  (*debug) << "Dof of Output Values: " << Couplings_[ipde]->GetOutputDof(i) << std::endl;
  	  (*debug) << "Number of Output Nodes: " << Couplings_[ipde]->GetOutputNumNodes(i) << std::endl;
 	  (*debug) << "Number of Output elems: " << Couplings_[ipde]->GetOutputNumElems(i) << std::endl;
@@ -353,33 +354,47 @@ void IterCoupledPDE::WriteCouplingInfo()
 }
 
 
-Double IterCoupledPDE::CalcNorm(NormType normtype, Array<Double> & val, Array<Double> & oldval)
+Double IterCoupledPDE::CalcNorm(NormType normtype, BaseStoreSol & val, BaseStoreSol & oldval)
 {
 #ifdef TRACE
   (*trace) << "entering  IterCoupledPDE::CalcNorm" << std::endl;
 #endif
 
-  Array<Double> delta;
+
+  // ATTENTION: Currently only working with Double-values
+  // will be changed as soon as dynamic type information
+  // is available
+
+  Vector<Double> delta;
+ 
   Double norm, valNorm2;
+  
+  TRY_CAST
+  REFCAST(val,StoreSol<Double>, val_help);
+  REFCAST(oldval,StoreSol<Double>, oldval_help);
 
-  delta = val - oldval;
-
+  const Vector<Double> & val_vec = val_help.GetCompleteVector();
+  const Vector<Double> & oldval_vec = oldval_help.GetCompleteVector();
+  
+  delta = val_vec - oldval_vec;
+  
   switch (normtype)
     {
     case L2ABS:
-      norm = delta.normL2();
+      norm = delta.NormL2();
       break;
 
     case L2REL:
-      valNorm2 =  val.normL2();
+      valNorm2 =  val_vec.NormL2();
       if (valNorm2 > 0)
-	norm = delta.normL2() / valNorm2;
+	norm = delta.NormL2() / valNorm2;
       else
-	norm = delta.normL2();
+	norm = delta.NormL2();
 
       break;
     }
 
+  CATCH_CAST
   return norm;
 }
 

@@ -3,6 +3,8 @@
 #ifndef FILE_BASEPDE
 #define FILE_BASEPDE
 
+#include <Domain/elem.hh>
+#include <Utils/storesol.hh>
 #include <list>
 #include <General/environment.hh>
 #include <AlgebraicSystem/abstractAlgSys.hh>
@@ -10,6 +12,8 @@
 #include <DataInOut/timefunc.hh>
 #include <DataInOut/filetype.hh>
 #include <DataInOut/writeresults.hh>
+#include <Utils/array.hh>
+#include <Matrix/matrix.hh>
 
 #ifdef USE_OLAS
 #include <olas.hh>
@@ -238,13 +242,13 @@ class SpaceErrorEstimator;
       return FALSE;
     }
 
-    //! return pointer to vector with solution
-    virtual const Array<Double>& getS() {return sol_;}
+    //! return solution
+    virtual const BaseStoreSol& getS() {return *sol_;}
 
     //! return pointer to vector with first derivative of solution
-    virtual const Array<Double>& getS1() const 
+    virtual const Vector<Double> & getS1() const 
     { Error("Not implemented",__FILE__,__LINE__);}
-
+    
     //! return size of solution
     virtual Integer getSize() const 
     {
@@ -313,45 +317,6 @@ class SpaceErrorEstimator;
       return 0;
     }
 
-    //! maps the local node solution to the global mesh solution
-    /*!
-      \param MeshSol (output) Solution vector referring to mesh node numbers
-      \param PDESol (input) Solution vector referring to PDE node numbers
-      \param PDE2MeshNode (input) Vector assigning PDE to mesh node numbers
-    */
-    virtual void TransformNodeSolution(Array<Double> & MeshSol, 
-				       Array<Double> & PDESol,
-				       const std::vector<Integer> & PDE2MeshNode);
-
-    //! maps the local element solution to the global mesh solution
-
-    //! maps the local element solution to the global mesh solution
-    //! \param MeshSol (output) Solution vector referring to mesh node numbers
-    //! \param PDESol  (input) Solution vector referring to PDE node numbers
-    //! \param Elems   (input) Vector of Elements to which the PDESol belongs
-    //!                 to (same ordering!)
-    virtual void TransformElemSolution(Array<Double> & MeshSol, 
-				       Array<Double> & PDESol, 
-				       const std::vector<Elem*> & Elems); 
-
-    //! maps the local element solution to the global mesh solution
-    /*!
-      \param MeshSol (output) Solution vector referring to mesh node numbers
-      \param PDESol (input) Solution vector
-      \param Elems (input) Vector of subdomains to which PDESol belongs to
-    */
-    virtual void TransformElemSolution(Array<Double> & MeshSol, 
-				       Array<Double> & PDESol, 
-				       const std::vector<std::string> & SD);
-
-    //! maps the local node solution to the coupling nodes
-    virtual void NodeSolutionToCoupling(Array<Double>& CouplingSol,
-					const std::vector<Integer>& NodeNumbers);
-
-    //! maps the local element solution to the coupling nodes
-    void ElemSolutionToCoupling(Array<Double>& CouplingSol,
-				const std::vector<Elem*>& NodeNumbers,
-				Vector<Double>& forceOnElem);
 
     //! assign local PDE node numbers to subdomains
     /*!
@@ -362,22 +327,6 @@ class SpaceErrorEstimator;
     virtual void AssignPDENodeNumbers(std::vector<Integer> & Mesh2PDENode,
 				      std::vector<Integer> & PDE2MeshNode,
 				      const std::vector<std::string> &subdoms);
-
-    // assign local PDE node numbers to a list of elements (e.g. interface) 
-    /*
-      \param Mesh2PDENode (output) Vector assigning mesh to PDE node numbers
-      \param PDE2MeshNode (output) Vector assigning PDE to mesh node numbers
-      \param subdoms (input) Vector of elements which are to be mapped
-    */
-    //   virtual void AssignPDENodeNumbers(std::vector<Integer> & Mesh2PDENode,
-    // 			    std::vector<Integer> & PDE2MeshNode,
-    // 			    const std::vector<Elem*> &Elements );
-  
-    //! Stores result vector in the multidimensional solution array sol_
-    void StoreToSolArray(Double * ptSol);
-  
-    //! Stores result vector in the multidimensional solution array sol_q
-    void StoreVecToSolArray(std::vector<Double>& sol);
     
 #ifdef ADAPTGRID  
     //! ----------------- functions for adaptivity
@@ -385,9 +334,6 @@ class SpaceErrorEstimator;
     void ConstructorError();
 #endif
 
-
-    /// returns the solution vector (sol1_x, sol1_y, sol2_x, sol2_y, ..) belonging to all nodes of the actual element
-    void GetSolVecOfElement(Vector<Double>& sol, Vector<Integer>& connect_PDE);
 
     /// returns the time derivative of the solution belonging to all nodes of the actual element
     void GetDerivSolOfElement(Matrix<Double>& sol, Vector<Integer>& connect_PDE);
@@ -455,8 +401,8 @@ class SpaceErrorEstimator;
     //@{
     //! \name Attributes connected to handling PDE coupling
     Boolean PDEisCoupled_;        //!< PDE couples with others
-    Array<Double> deltCoords_;    //!< offset to grid coordinates
-    Array<Double> matParam_;      //!< change to material parameter
+    Matrix<Double> deltCoords_;    //!< offset to grid coordinates
+    Vector<Double> matParam_;      //!< change to material parameter
     Boolean updateCouplingBCs_ ;  //!< flag if coupling BC were already set
     Integer couplingBCsCounter_;  //!< counter for number of coupling BCs
     Integer numDirichletBCs_;     //!< number of dirichlet boundary conditions
@@ -622,8 +568,10 @@ class SpaceErrorEstimator;
     std::string pdename_;       //!< type of PDE (set in the derived classes)
     ShortInt Dim_;              //!< space dimension of pde
     Boolean isaxi_;             //!< TRUE: axisymmetric problem
+    Boolean isComplex_;         //!< true, if some part of PDE is complex (Material, solution)
     BaseEQN * EqnData_;         //!< equation handling
-    Array<Double> sol_;         //!< solution
+
+      BaseStoreSol * sol_;      //!< solution
 
     Boolean InitMatrices_; //!< true, if matrix is set up each iteration step
 

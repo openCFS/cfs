@@ -573,7 +573,7 @@ void GridCFS<dim>::GetConnection(Vector<Integer> & connection, const Integer iEl
     sum1=sum;
     sum+=elems_[i].size();
     if (iElem < sum) {
-      Integer elemsize=(elems_[i][iElem-sum1]->connect).size();
+      Integer elemsize=(elems_[i][iElem-sum1]->connect).GetSize();
        connection.Resize(elemsize);
        for ( j=0; j < elemsize; j++) {
          connection[j]=(elems_[i][iElem-sum1]->connect)[j];
@@ -613,7 +613,7 @@ void  GridCFS<dim> :: GetCoordNodesElem(const Vector<Integer> connect, Point<dim
 #endif
 
   Integer k;
-  for (k=0; k < connect.size(); k++) 
+  for (k=0; k < connect.GetSize(); k++) 
        ptCoord[k]=ptCoordinate_[connect[k]-1];
 
 }
@@ -626,10 +626,10 @@ void  GridCFS<dim> :: GetCoordNodesElemMat(const Vector<Integer> connect, Matrix
   (*trace) << "entering GridCFS :: GetCoordinateNodesElemMat" << std::endl;
 #endif
 
-  coordMat.Resize(dim, connect.size());
+  coordMat.Resize(dim, connect.GetSize());
   
   Integer k;
-  for (k=0; k < connect.size(); k++)    
+  for (k=0; k < connect.GetSize(); k++)    
     for (int actDim=0; actDim < dim; actDim++)
       coordMat[actDim][k] = ptCoordinate_[connect[k]-1][actDim];
   
@@ -718,7 +718,7 @@ void GridCFS<dim>::FormNeighborsLists()
   // first main loop: form list with element-neighbors for each node
   for (i = 0; i < sd_.size(); i++) {
     for (j = 0; j < elems_[i].size(); j++) {
-      Integer noOfVertices = elems_[i][j]->connect.size();
+      Integer noOfVertices = elems_[i][j]->connect.GetSize();
       for (k = 0; k < noOfVertices; k++) {
 	Integer id = elems_[i][j]->connect[k];
 	vtNeighbors_[id-1].push_back(elems_[i][j]);
@@ -739,7 +739,7 @@ void GridCFS<dim>::FormNeighborsLists()
   // second main loop: form list with element-neighbors for each element
   for (i = 0; i < sd_.size(); i++) {   // do loop over subdomains
     for (j = 0; j < elems_[i].size(); j++) {   // do loop over elements of subdomain
-      Integer noOfVertices = elems_[i][j]->connect.size(); 
+      Integer noOfVertices = elems_[i][j]->connect.GetSize(); 
       for (k = 0; k < noOfVertices; k++) {   // do loop over vertices of elements of the subdomain
 	Integer id = elems_[i][j]->connect[k]; 
 	for (n= 0; n < vtNeighbors_[id-1].size(); n++) {  // do loop over list of neighbors for node
@@ -818,7 +818,7 @@ void GridCFS<dim>::FormNeighbors4NodesOfElements(const std::vector<Elem*>& elems
 
   // first main loop: form list with element-neighbors for each node
     for (iel = 0; iel < elems.size(); iel++) {
-      Integer noOfVertices = elems[iel]->connect.size();
+      Integer noOfVertices = elems[iel]->connect.GetSize();
       for (k = 0; k < noOfVertices; k++) {
 	Integer id = elems[iel]->connect[k];
 	Integer imp;
@@ -882,14 +882,14 @@ void GridCFS<dim>::DefineBelonging4Elems(const std::vector<Elem*>& elemsSurf,
 	  
 	  // check is there other vertices of element
 	  // loop over other nodes of surf element
-	  for (je=1;je<connectSE.size();je++) {
+	  for (je=1;je<connectSE.GetSize();je++) {
 	    Integer verSE=connectSE[je];
 	    
 	    //loop over vertices of the element
 	    FoundNd=FALSE;
 	    Vector<Integer> &vertices=ptAuxElem->connect;
 	    Integer ivt;
-	    for(ivt=0;ivt<vertices.size();ivt++) {
+	    for(ivt=0;ivt<vertices.GetSize();ivt++) {
 	      if (verSE==vertices[ivt]) {
 		FoundNd=TRUE;
 		break;
@@ -925,7 +925,7 @@ void GridCFS<dim>::CalcNumberOfNodesInPatch(const std::vector<Elem*> & patch, st
      
       vec_connect=patch[iels]->connect;
       
-      for (ivc=0; ivc<vec_connect.size(); ivc++) { 
+      for (ivc=0; ivc<vec_connect.GetSize(); ivc++) { 
 	 NewNode=TRUE;
 	// loop over vector with global nodes for previous elements
 	for (imp=0; imp<map.size(); imp++) {
@@ -972,7 +972,7 @@ void GridCFS<dim>::GetInterfaceNeighbours(std::vector<Integer> & interfaceNodes,
 	  belongs2Interface = false;
 	  
 	  // check if any node is common in Interface
-	  for (Integer inode=0; inode<aux_connect.size(); inode++) {
+	  for (Integer inode=0; inode<aux_connect.GetSize(); inode++) {
 
 	    for (Integer nnode=0; nnode<interfaceNodes.size(); nnode++) {
 

@@ -7,7 +7,7 @@
 
 // Since OLAS uses a separate namespace for 
 // writing out data, two different declarations
-// have to be done
+// have to be made
 #ifdef USE_OLAS
 namespace OutInfo{
   std::ostream * trace = NULL ;
@@ -18,7 +18,7 @@ namespace OutInfo{
 }
 #else
 namespace CoupledField{
- std::ostream * trace = NULL ;
+  std::ostream * trace = NULL ;
   std::ostream * debug  = NULL;
   std::ostream * cla=NULL;
   std::ostream * memtrace=NULL;

@@ -3,9 +3,11 @@
 #include <string>
 #include <math.h>
 
+#include <Domain/elem.hh>
 #include <DataInOut/conffile.hh>
 #include <DataInOut/ParamHandling/BaseParamHandler.hh>
 #include <DataInOut/WriteInfo.hh>
+
 
 #ifdef USE_OLAS
 #include <olas.hh>
@@ -13,7 +15,7 @@
 #include <multigrid.hh>
 #endif
 
-#include "assemble.hh" 
+#include "assemble.hh"
 
 namespace CoupledField
 {
@@ -113,8 +115,8 @@ namespace CoupledField
 	Vector<Integer> connect_PDE;
 	Mesh2PDENode(connect_PDE, connect, *mesh2PDENode_);
 	Double val;
-	for (Integer i=0; i<coordMat.size_row(); i++)
-	  for (Integer j=0; j<coordMat.size_col(); j++) 
+	for (Integer i=0; i<coordMat.GetSizeRow(); i++)
+	  for (Integer j=0; j<coordMat.GetSizeCol(); j++) 
 	    {
 	      val = (*deltaCoords_)[i][connect_PDE[j] - 1];
 	      coordMat(i,j) += val;
@@ -164,7 +166,8 @@ namespace CoupledField
 	    // this matrix is nonlinear and, therefore, has to be reassembled next time
 	    if (oneIntIsNonlin_ || firstTime_)
 	      // fetch solution at element nodes
-	      GetSolOfElement(elSol, connect_PDE);
+	      //GetSolOfElement(elSol, connect_PDE);
+	      sol_->GetElemSolutionAsMatrix(elSol, connect_PDE);
 	      
 	    
 	    // ================================================================
@@ -198,15 +201,15 @@ namespace CoupledField
 		      }
 
 		    actDescriptor->GetIntegrator()->CalcElementMatrix(ptCoord, elemmat);
-		    algsys_->SetElementMatrix(elemmat.getinarray(), connect_PDE.get(), 
-					      connect_PDE.size(), destMat);
+		    algsys_->SetElementMatrix(elemmat.GetDataPointer(), connect_PDE.GetPointer(), 
+					      connect_PDE.GetSize(), destMat);
 		    
 
 		    if (actDescriptor->GetSecondaryMat() != NOTYPE)
 		      {
 			elemmat *= actDescriptor->GetSecMatFac();
-			algsys_->SetElementMatrix(elemmat.getinarray(), connect_PDE.get(), 
-						  connect_PDE.size(), actDescriptor->GetSecondaryMat()); 
+			algsys_->SetElementMatrix(elemmat.GetDataPointer(), connect_PDE.GetPointer(), 
+						  connect_PDE.GetSize(), actDescriptor->GetSecondaryMat()); 
 		      }
 		    
 		  }		
@@ -240,7 +243,8 @@ namespace CoupledField
 	    // this matrix is nonlinear and, therefore, has to be reassembled next time
 	    if (oneIntIsNonlin_ || firstTime_)
 	      // fetch solution at element nodes
-	      GetSolOfElement(elSol, connect_PDE);
+	      //GetSolOfElement(elSol, connect_PDE);
+	      sol_->GetElemSolutionAsMatrix(elSol, connect_PDE);
 	      
 	    
 	    // ================================================================
@@ -276,14 +280,14 @@ namespace CoupledField
 
 		    actDescriptor->GetIntegrator()->CalcElementMatrix(ptCoord, elemmat);
 		    
-		    algsys_->SetElementMatrix(elemmat.getinarray(), connect_PDE.get(), 
-					      connect_PDE.size(), destMat); 
+		    algsys_->SetElementMatrix(elemmat.GetDataPointer(), connect_PDE.GetPointer(), 
+					      connect_PDE.GetSize(), destMat); 
 
 		    if (actDescriptor->GetSecondaryMat()  != NOTYPE )
 		      {
 			elemmat *= actDescriptor->GetSecMatFac();
-			algsys_->SetElementMatrix(elemmat.getinarray(), connect_PDE.get(), 
-						  connect_PDE.size(), actDescriptor->GetSecondaryMat()); 
+			algsys_->SetElementMatrix(elemmat.GetDataPointer(), connect_PDE.GetPointer(), 
+						  connect_PDE.GetSize(), actDescriptor->GetSecondaryMat()); 
 		      }
 		  }		
 	      }
@@ -350,7 +354,7 @@ namespace CoupledField
 		    if (val_tfunc != 1.0)
 		      elemVec *= val_tfunc;
 		    
-		    algsys_->SetElementRHS(&elemVec[0], connect_PDE.get(), connect_PDE.size());
+		    algsys_->SetElementRHS(&elemVec[0], connect_PDE.GetPointer(), connect_PDE.GetSize());
 		  }
 	      }
 	  }
@@ -428,7 +432,7 @@ namespace CoupledField
 
 	    Matrix<Double> elSol;
 
-	    GetSolOfElement(elSol, connect_PDE);
+	    sol_->GetElemSolutionAsMatrix(elSol, connect_PDE);
 	      
 	    
 	    // ================================================================
@@ -448,7 +452,7 @@ namespace CoupledField
 		std::vector<Double> elemVec;
 		actRhsID->GetIntegrator()->CalcElemVector(ptCoord, elemVec);
 		
-		algsys_->SetElementRHS(&elemVec[0], connect_PDE.get(), connect_PDE.size());
+		algsys_->SetElementRHS(&elemVec[0], connect_PDE.GetPointer(), connect_PDE.GetSize());
 	      }
 	  }
       }
@@ -480,8 +484,9 @@ namespace CoupledField
 			      const std::vector<Integer> & Mesh2PDENode)
   {
     ENTER_FCN( "Assemble::Mesh2PDENode" );
-    PDENodes.Resize(MeshNodes.size());
-    for (Integer i=0; i<MeshNodes.size(); i++) 
+    PDENodes.Resize(MeshNodes.GetSize());
+    
+    for (Integer i=0; i<MeshNodes.GetSize(); i++) 
       PDENodes[i] = Mesh2PDENode[MeshNodes[i]-1];
   }
 
@@ -516,7 +521,7 @@ namespace CoupledField
     ENTER_FCN( "Assemble::InitNonLinMatrices" );
 
     // return, if matrices are not yet assembled
-    if (!reassembleMat_.size())
+    if (!reassembleMat_.GetSize())
       {
 	InitMatrices();
 	return;
@@ -741,7 +746,7 @@ namespace CoupledField
 	  Mesh2PDENode(connecth,elemssd[iel]->connect, *mesh2PDENode_);
 
 	  fe_type=elemssd[iel]->ptElem->feType();
-	  algsys_->SetElementPos(connecth.get(),connecth.size(),fe_type);
+	  algsys_->SetElementPos(connecth.GetPointer(),connecth.GetSize(),fe_type);
 	}
     }
   }
@@ -771,22 +776,6 @@ namespace CoupledField
     return nrActDof;
   }
   
-
-
-  void Assemble::
-  GetSolOfElement( Matrix<Double>& elDisp, Vector<Integer>& connect_PDE)
-  {
-    ENTER_FCN( "Assemble::GetSolOfElement" );
-
-    // displacement of element nodes
-    elDisp.Resize(dofsPerNode_, connect_PDE.size());
-
-    for (Integer dim=0; dim<dofsPerNode_; dim++)
-      for(Integer actNode=0; actNode<connect_PDE.size(); actNode++)
-	elDisp[dim][actNode] = (*sol_)[dim][connect_PDE[actNode]-1];
-  }
-
-
 
 
   // define integrators

@@ -79,7 +79,7 @@ namespace CoupledField
 
 #ifdef MEMTRACE
     strcpy(auxfile, basename);
-    CoupledField::memtrace = new std::ofstream(strcat(auxfile,".mem"));
+    memtrace = new std::ofstream(strcat(auxfile,".mem"));
     if (!memtrace) Error("Can't open memtrace-file");
 #endif
 

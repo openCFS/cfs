@@ -1,17 +1,9 @@
 #ifndef FILE_NEWMARK_2001
 #define FILE_NEWMARK_2001
 
-#include <General/environment.hh>
 #include <DataInOut/conffile.hh>
 #include "timestepping.hh"
-#include <Utils/array.hh>
-#include <General/environment.hh>
 
-#ifdef USE_OLAS
-#include <olas.hh>
-#else
-#include <multigrid.hh>
-#endif
 
 namespace CoupledField
 {
@@ -39,16 +31,16 @@ public:
   virtual void Init(Double * matrix_factors, Double dt);
 
   //! perform predictor step
-  virtual void Predictor(Array<Double>& solold);
+  virtual void Predictor(Vector<Double>& solold);
 
   //! perform corrector step
-  virtual void Corrector(Array<Double>& solnew);
+  virtual void Corrector(Vector<Double>& solnew);
 
   //! perform an update to RHS
   virtual void UpdateRHS();
 
   //! perform an update to RHS with actual solution (for nonlin calculation)
-  virtual void UpdateRHS(std::vector<Double>& actSol);  
+  virtual void UpdateRHS(Vector<Double>& actSol);  
 
   //! compute parameters for multiplication
   void CalcParameters(Double dt);
@@ -65,7 +57,7 @@ private:
 
   DampingType damping_;
 
-  Array<Double> solpred_, solderiv1pred_;
+  Vector<Double> solpred_, solderiv1pred_;
 };
 
 
@@ -94,10 +86,10 @@ public:
   virtual void Init(Double * matrix_factors, Double dt);
 
   //! perform predictor step
-  virtual void Predictor(Array<Double>& solold);
+  virtual void Predictor(Vector<Double>& solold);
 
   //! perform corrector step
-  virtual void Corrector(Array<Double>& solnew);
+  virtual void Corrector(Vector<Double>& solnew);
 
   //! perform an update to RHS
   virtual void UpdateRHS();
@@ -109,8 +101,8 @@ public:
   void SetTimeStep(Double dt) 
   { dt_ = dt;};
 
- //! store solution to solution array (especially for effective mass formulation)
-  virtual const void StoreSol(Array<Double> & solArr) const;
+  //! store solution to solution array (especially for effective mass formulation)
+  virtual const void StoreSolution(Vector<Double> & solArr) const;
   
 
 private:
@@ -121,7 +113,7 @@ private:
 
   DampingType damping_;
 
-  Array<Double> sol_, solpred_, solderiv1pred_;
+  Vector<Double> sol_, solpred_, solderiv1pred_;
 };
 
 

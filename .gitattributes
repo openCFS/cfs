@@ -211,6 +211,7 @@ libsrc/Forms/nLinElastInt.hh svneol=native#text/plain
 libsrc/Forms/smoothInt.cc svneol=native#text/plain
 libsrc/Forms/smoothInt.hh svneol=native#text/plain
 libsrc/General/Makefile -text
+libsrc/General/defs.hh svneol=native#text/plain
 libsrc/General/environment.cc svneol=native#text/plain
 libsrc/General/environment.hh svneol=native#text/plain
 libsrc/Makefile -text
@@ -218,6 +219,7 @@ libsrc/Matrix/Makefile -text
 libsrc/Matrix/absmatrix.hh svneol=native#text/plain
 libsrc/Matrix/bandmatrix.cc svneol=native#text/plain
 libsrc/Matrix/bandmatrix.hh svneol=native#text/plain
+libsrc/Matrix/cfsmatrix.hh svneol=native#text/plain
 libsrc/Matrix/matrix.cc svneol=native#text/plain
 libsrc/Matrix/matrix.hh svneol=native#text/plain
 libsrc/Matrix/matrix_header.hh svneol=native#text/plain
@@ -276,10 +278,18 @@ libsrc/ParamIdent/Makefile -text
 libsrc/Utils/Makefile -text
 libsrc/Utils/array.cc svneol=native#text/plain
 libsrc/Utils/array.hh svneol=native#text/plain
+libsrc/Utils/basestoresol.hh svneol=native#text/plain
+libsrc/Utils/cfsvector.hh svneol=native#text/plain
+libsrc/Utils/debugger.cc svneol=native#text/plain
+libsrc/Utils/debugger.hh svneol=native#text/plain
 libsrc/Utils/myclock.cc svneol=native#text/plain
 libsrc/Utils/myclock.hh svneol=native#text/plain
+libsrc/Utils/storesol.cc svneol=native#text/plain
+libsrc/Utils/storesol.hh svneol=native#text/plain
 libsrc/Utils/tools.cc svneol=native#text/plain
 libsrc/Utils/tools.hh svneol=native#text/plain
+libsrc/Utils/tracing.cc svneol=native#text/plain
+libsrc/Utils/tracing.hh svneol=native#text/plain
 libsrc/Utils/vector.cc svneol=native#text/plain
 libsrc/Utils/vector.hh svneol=native#text/plain
 libsrc/makefile.inc -text

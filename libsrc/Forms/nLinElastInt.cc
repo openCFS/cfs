@@ -49,7 +49,7 @@ namespace CoupledField
 #endif
 
     
-    if (!elemDisp_.size_row() || !elemDisp_.size_col()) 
+    if (!elemDisp_.GetSizeRow() || !elemDisp_.GetSizeCol()) 
       Error("Undefined displacements! ",__FILE__,__LINE__);
 
     const Integer nrNodes = ptelem->GetNumNodes();
@@ -83,7 +83,7 @@ namespace CoupledField
 
     Matrix<Double> bMatOneNode;
     // size_row() = nr of rows!!
-    bMatOneNode.Resize(linBMat.size_row(), nrDofs);
+    bMatOneNode.Resize(linBMat.GetSizeRow(), nrDofs);
 
     
 

@@ -3,6 +3,7 @@
 
 #include <Elements/basefe.hh>
 #include <Elements/2D/rectanglefe.hh>
+#include <Utils/array.hh>
 
 namespace CoupledField
 {

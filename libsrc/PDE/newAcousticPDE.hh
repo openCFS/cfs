@@ -45,10 +45,10 @@ public:
    virtual void WriteResultsInFile();
 
   //!  return pointer to vector with first derivative of solution
-  virtual const Array<Double>& getS1() const { return TS_alg_->GetDeriv1();}
+  virtual const Vector<Double>& getS1() const { return TS_alg_->GetDeriv1();}
 
   //! return pointer to vector with second derivative of solution
-  virtual const Array<Double>& getS2() const { return TS_alg_->GetDeriv2();}
+  virtual const Vector<Double>& getS2() const { return TS_alg_->GetDeriv2();}
 
   //! return size of solution
   virtual Integer getSize() const 
@@ -77,7 +77,7 @@ public:
   void CalcMechCouplingRHS(std::vector<Elem*> * couplingElems, 
 			   std::vector<Integer> & couplingNodes,
 			   std::vector<MaterialData*> * couplingMaterials,
-			   Array<Double>& elemCouplingSols,
+			   StoreSol<Double>& elemCouplingSols,
 			   Integer couplingdof,
 			   std::vector<Elem*> * neighbours);
   
@@ -86,8 +86,8 @@ public:
 protected:
 
   Double freq_;   //!< excitation frequency for harmonic analysis
-  Array<Double> solIm_; //!< stores the imaginary part in case of harmonic analysis
-
+  StoreSol<Double> solIm_; //!< stores the imaginary part in case of harmonic analysis
+  StoreSol<Double> sol_der1Array_, sol_der2Array_;
   //  Double lasttimecalc_;  //!< Last time on which we have calculated solution
   //  Integer laststepcalc_; //!< Number of last timestep on which we have calculated our solution
 

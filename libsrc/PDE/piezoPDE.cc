@@ -55,8 +55,14 @@ namespace CoupledField
    numPDENodes_ = PDE2MeshNode_.size();
    size_        = numPDENodes_ * dofspernode_;
 
-   sol_.reshape(dofspernode_, numPDENodes_);
-
+   sol_->SetNumSolutions(2);
+   sol_->SetNumNodes(numPDENodes_);
+   sol_->SetSolutionType(MECH_DISPLACEMENT,0);
+   sol_->SetSolutionType(ELEC_POTENTIAL,1);
+   sol_->SetDof(Dim_,MECH_DISPLACEMENT); // displacements have dof of mesh-dimension
+   sol_->SetDof(1,ELEC_POTENTIAL);  // electric potential
+   sol_->Init(0.0);
+   
    //check for damping model
    std::string dampstr;
    conf->ifget("damping",dampstr,pdename_);
@@ -102,7 +108,7 @@ namespace CoupledField
   assemble_->SetNumDirichlet(GetNumRestraints(actlevel_));
 
   assemble_->SetPtrBCs(ptBCs_);
-  assemble_->SetPtr2Sol(&sol_);
+  assemble_->SetPtr2Sol(sol_);
   assemble_->SetPtr2TimeFnc(ptTimeFunc_);
   
   ReadMaterialData();
@@ -190,26 +196,15 @@ namespace CoupledField
 
     Integer laststepcalc=0;
     Double  lasttimecalc=0;
-    Array<Double> DispMesh;
-    Array<Double> PotentialMesh;
-    Array<Double> aux1, aux2;
-    Vector<Double> dispx, dispy, dispz, phi;
+    StoreSol<Double> DispMesh;
+    StoreSol<Double> PotentialMesh;
+    StoreSol<Double> DispPDE, PotentialPDE;
 
-    dispx = sol_[0];
-    dispy = sol_[1];
-    dispz = sol_[2];
-    phi   = sol_[3];
+    sol_->GetSolution(MECH_DISPLACEMENT,DispPDE);
+    sol_->GetSolution(ELEC_POTENTIAL,PotentialPDE);
 
-    aux1.reshape(dofspernode_-1,numPDENodes_);
-    aux2.reshape(1,numPDENodes_);
-
-    aux1.setValuesColumn( dispx, 0 );
-    aux1.setValuesColumn( dispy, 1 );
-    aux1.setValuesColumn( dispz, 2 );
-    aux2.setValuesColumn( phi,   0 );
-
-    TransformNodeSolution( DispMesh,      aux1, PDE2MeshNode_);
-    TransformNodeSolution( PotentialMesh, aux2, PDE2MeshNode_);
+    DispPDE.TransformNodeSolution( DispMesh,PDE2MeshNode_,ptgrid_,actlevel_);
+    PotentialPDE.TransformNodeSolution( PotentialMesh,PDE2MeshNode_,ptgrid_,actlevel_);
 
     OutFile_->WriteNodeSolution(DispMesh, laststepcalc, lasttimecalc,
 				"displacement");

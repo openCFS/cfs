@@ -82,8 +82,8 @@ namespace CoupledField
 	bMat[2*spaceDim+actDim][(actNode+1)*offset-1] = xiDx[actNode][actDim];
 
 #ifdef DEBUG
-    (*debug) << std::endl << " Matrix bMat is " << bMat.size_row() << " x " <<
-      bMat.size_col() << std::endl;
+    (*debug) << std::endl << " Matrix bMat is " << bMat.GetSizeRow() << " x " <<
+      bMat.GetSizeCol() << std::endl;
     (*debug) << bMat << std::endl;
 #endif
 

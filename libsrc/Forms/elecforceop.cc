@@ -4,7 +4,11 @@
 #include <string>
 #include <Domain/elem.hh>
 #include <Domain/grid.hh>
+#include <Utils/vector.hh>
+#include <Utils/array.hh>
+#include <Utils/storesol.hh>
 #include <Matrix/matrix.hh>
+
 #ifndef NEWBASEPDE
 #include <PDE/basepde.hh>
 #else
@@ -17,7 +21,7 @@ namespace CoupledField
 ElecForceOp::ElecForceOp(Grid * ptGrid,
 			 BasePDE * ptPDE,
 			 std::vector<Integer> * ptMesh2PDENode,
-			 Vector<Double> * EPotential,
+			 StoreSol<Double> & EPotential,
 			 Integer level,
 			 Boolean isaxi) 
   : BaseOperator(ptGrid, ptPDE, ptMesh2PDENode, level, isaxi)
@@ -40,7 +44,7 @@ ElecForceOp::~ElecForceOp()
 }
 
 
-void ElecForceOp::CalcElemElecForce(Array<Double> & F,
+void ElecForceOp::CalcElemElecForce(StoreSol<Double> & F,
 				    const Elem * ptElement,
 				    Double epsilon,
 				    const std::vector<ShortInt> & IsBoundaryNode)
@@ -65,8 +69,10 @@ void ElecForceOp::CalcElemElecForce(Array<Double> & F,
   // Get element coordinates for calculation of J
   ptPDE_->GetElemCoords(ptElement->connect, CornerCoords, level_);
   
-  F.reshape(Dim,IsBoundaryNode.size());
-  F.init();
+  F.SetNumSolutions(1);
+  F.SetNumNodes(IsBoundaryNode.size());
+  F.SetDof(Dim);
+  F.Init(0);
   
   // TEST TEST
   Matrix<Double> J_Trans, J_Inv_Trans, J_r_Trans;
@@ -129,7 +135,7 @@ void ElecForceOp::CalcElemElecForce(Array<Double> & F,
 	      dJ_dr = J_r_Trans;
 	      
 	      // Force Calculation
-	      F[i][nNode] += intWeights[nIp-1] * factor * ( (E * ( JInv * (dJ_dr * E) ) * -DetJ  
+	      F(nNode,i) += intWeights[nIp-1] * factor * ( (E * ( JInv * (dJ_dr * E) ) * -DetJ  
 							     + ( E * E ) * DetdJ_dr * 0.5) * epsilon);
 	    } // loop over dimension
 	} // loop over boundary nodes
@@ -253,7 +259,7 @@ Double ElecForceOp::CalcDetJDr(Matrix<Double> &J, Matrix<Double> &dJ_dr, Integer
   
   Double det;
 
-  if (J.getSize() == 2)
+  if (J.GetSizeRow() == 2)
     {
       det = dJ_dr[0][0]*J[1][1]+dJ_dr[1][1]*J[0][0]-dJ_dr[0][1]*J[1][0]-dJ_dr[1][0]*J[0][1]; 
     } else {

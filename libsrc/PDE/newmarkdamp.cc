@@ -30,25 +30,26 @@ NewmarkDamp :: NewmarkDamp(std::string apdename, BaseSystem * algebraicsystem, I
   conf->ifget("gamma_NM",gamma_,pdename_);
 
   //get the memory
-  solderiv1_.reshape(dofspernode, numnode);  
-  solderiv1_.init();
-  solderiv2_.reshape(dofspernode, numnode);  
-  solderiv2_.init();
+  solderiv1_.Resize(dofspernode * numnode);  
+  solderiv1_.Init();
+  solderiv2_.Resize(dofspernode * numnode);  
+  solderiv2_.Init();
   
 
-  solpred_.reshape(dofspernode, numnode); 
+  solpred_.Resize(dofspernode * numnode); 
   solpred_.init();
-  solderiv1pred_.reshape(dofspernode, numnode); 
-  solderiv1pred_.init();
+  solderiv1pred_.Resize(dofspernode *  numnode); 
+  solderiv1pred_.Init();
+  
   if (frac_memory_==0)
     Error("Attenuation model needs frac_memory larger than 0",__FILE__,__LINE__);
 
   //get the memory
-  solfrac_ = new Array<Double>[frac_memory_];
+  solfrac_ = new Vector<Double>[frac_memory_];
   for (Integer i=0; i<frac_memory_; i++)
     {
-      solfrac_[i].reshape(dofspernode, numnode);  
-      solfrac_[i].init();
+      solfrac_[i].Resize(dofspernode * numnode);  
+      solfrac_[i].Init();
     }
 }
 
@@ -80,7 +81,7 @@ void NewmarkDamp::Init(Double * matrix_factors, Double dt)
 }
 
 
-void NewmarkDamp::Predictor(Array<Double>& solold)
+void NewmarkDamp::Predictor(Vector<Double>& solold)
 {
 #ifdef TRACE
   (*trace) << "entering NewmarkDamp::Predictor" << std::endl;
@@ -116,7 +117,7 @@ void NewmarkDamp::UpdateRHS()
 }
 
 
-void NewmarkDamp::Corrector(Array<Double>& solnew)
+void NewmarkDamp::Corrector(Vector<Double>& solnew)
 {
 #ifdef TRACE
   (*trace) << "entering NewmarkDamp::Corrector" << std::endl;

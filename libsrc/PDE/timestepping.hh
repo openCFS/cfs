@@ -3,6 +3,7 @@
 
 #include <General/environment.hh>
 #include <Utils/array.hh>
+#include <Utils/storesol.hh>
 
 #ifdef USE_OLAS
 #include <olas.hh>
@@ -32,28 +33,30 @@ public:
   virtual void Init(Double * matrix_factors, Double dt)=0;
 
   //! perform predictor step
-  virtual void Predictor(Array<Double>& solold)=0;
-
+  virtual void Predictor(Vector<Double>& solold)=0;
+  
   //! perform corrector step
-  virtual void Corrector(Array<Double>& solnew)=0;
-
+  virtual void Corrector(Vector<Double>& solnew)=0;
+  
   //! perform an update to RHS
   virtual void UpdateRHS()=0;
 
   //! perform an update to RHS with actual solution (for nonlin calculation)
-  virtual void UpdateRHS(std::vector<Double>& actSol)
+  virtual void UpdateRHS(Vector<Double>& actSol)
   {Error("Error not implemented!",__FILE__,__LINE__);};
 
   
 
- //!  return pointer to vector with first derivative of solution
-  virtual const Array<Double>& GetDeriv1() const { return solderiv1_;}
-
+  //!  return pointer to vector with first derivative of solution
+  virtual const Vector<Double>& GetDeriv1() const { return solderiv1_;}
+  
   //! return pointer to vector with second derivative of solution
-  virtual const Array<Double>& GetDeriv2() const { return solderiv2_;}
+  
+  virtual const Vector<Double>& GetDeriv2() const { return solderiv2_;}
 
   //! store solution to solution array (especially for effective mass formulation)
-  virtual const void StoreSol(Array<Double> & solArr) const
+  
+  virtual const void StoreSolution(StoreSol<Double> & solArr) const 
   {Error("Not implemented in base class!", __FILE__, __LINE__);};
 
 
@@ -62,7 +65,7 @@ protected:
   std::string pdename_;  //<! name of PDE
   BaseSystem * algsys_;  //<! pointer to algebraic system
 
-  Array<Double> solderiv1_, solderiv2_;
+  Vector<Double> solderiv1_, solderiv2_;
 
 private:
    

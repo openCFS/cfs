@@ -108,7 +108,7 @@ Double dist_Mat(Matrix<Double> a)
 {
   Double preSqrt=0;
   Integer i;
-  Integer k=a.getSize();
+  Integer k=a.GetSizeRow();
   // std::cout<<"tools.cc:size of matrix: "<<k<<std::endl;
   for (i=0; i<k; i++)
     preSqrt+=sqr(a[i][0]-a[i][1]);

@@ -78,8 +78,13 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
     AssignPDENodeNumbers(Mesh2PDENode_, PDE2MeshNode_, subdoms_);
     numPDENodes_ = PDE2MeshNode_.size();
     size_        = numPDENodes_ * dofspernode_;
-    sol_.reshape(dofspernode_, numPDENodes_);
 
+    // Initialize solution class
+    sol_->SetNumSolutions(1);
+    sol_->SetSolutionType(MECH_DISPLACEMENT);
+    sol_->SetNumNodes(numPDENodes_);
+    sol_->SetDof(dofspernode_);
+    sol_->Init(0.0);
 
 #ifndef XMLPARAMS
     lineSearch_ = FALSE;
@@ -209,7 +214,7 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
   assemble_->SetNumDirichlet(GetNumRestraints(actlevel_));
 
   assemble_->SetPtrBCs(ptBCs_);
-  assemble_->SetPtr2Sol(&sol_);
+  assemble_->SetPtr2Sol(sol_);
   assemble_->SetPtr2TimeFnc(ptTimeFunc_);
 
   ReadMaterialData();
@@ -544,13 +549,19 @@ void MechPDE::CalcOutputCoupling()
   std::vector<Elem*> * couplingElems = NULL;
   std::vector<Elem*> * neighbours = NULL;
   std::vector<MaterialData*> * couplingMaterials = NULL;
-  Array<Double> * values = NULL;
+  BaseStoreSol * values = NULL;
   
+  TRY_CAST
+  
+
   // loop over all output coupling quantities
   for (Integer i=0; i<ptCoupling_->GetNumOutputCouplings(); i++)
     {
       quantity = ptCoupling_->GetOutputQuantity(i);
-      
+      ptCoupling_->GetOutputValues(i, values);
+
+      PTRCAST(values,StoreSol<Double>,temp);
+	
       switch(ptCoupling_->GetOutputType(i))
 	{
 	case NODE:
@@ -558,9 +569,8 @@ void MechPDE::CalcOutputCoupling()
 	  if (quantity == "mechdisplacement")
 	    {
 	      ptCoupling_->GetOutputNodes(i, couplingnodes);
-	      ptCoupling_->GetOutputValues(i, values);
-	      
-	      NodeSolutionToCoupling(*values, *couplingnodes);
+	    	      
+	      sol_->NodeSolutionToCoupling(*values, *couplingnodes,Mesh2PDENode_);
 	    }
 	  
 
@@ -568,7 +578,7 @@ void MechPDE::CalcOutputCoupling()
 	    {
 	      ptCoupling_->GetOutputNodes(i, couplingnodes);
 	      ptCoupling_->GetOutputElements(i, couplingElems);
-	      ptCoupling_->GetOutputValues(i, values);
+
 	      ptCoupling_->GetOwnMaterials(i, couplingMaterials);
 	      ptCoupling_->GetOutputNeighbourElems(i, neighbours);
 	      dof = ptCoupling_->GetOutputDof(i);
@@ -583,7 +593,7 @@ void MechPDE::CalcOutputCoupling()
 	  
 	      
 	      CalcAcousticCouplingRHS(couplingElems, *couplingnodes, 
-				      couplingMaterials, *values, dof, neighbours);	      
+				      couplingMaterials, *temp, dof, neighbours);	      
 	    } 
 	  break;
 
@@ -591,12 +601,15 @@ void MechPDE::CalcOutputCoupling()
 	  Error("No Element coupling output", __FILE__,__LINE__);
 	}
     }
+
+  CATCH_CAST
 }
+
 
 void MechPDE::CalcAcousticCouplingRHS(std::vector<Elem*> * couplingElems, 
 				      std::vector<Integer>& couplingNodes,
 				      std::vector<MaterialData*>* couplingMaterials,
-				      Array<Double>& elemCouplingSols,
+				      StoreSol<Double> & elemCouplingSols,
 				      Integer couplingdofM,
 				      std::vector<Elem*> * neighbours)
 {
@@ -607,7 +620,7 @@ void MechPDE::CalcAcousticCouplingRHS(std::vector<Elem*> * couplingElems,
   Double density ;  
   Integer nrNodesperEl;
 
-  elemCouplingSols.init();
+  elemCouplingSols.Init(0.0);
   
   for (Integer actElem=0; actElem<couplingElems->size(); actElem++)
     {
@@ -633,7 +646,7 @@ void MechPDE::CalcAcousticCouplingRHS(std::vector<Elem*> * couplingElems,
       Vector<Double> sol;
       GetDerivSolVecOfElement(sol, connect_PDE);	 
 
-      Vector<Double> nSol(connecth.size());   // solution in normal direction
+      Vector<Double> nSol(connecth.GetSize());   // solution in normal direction
       nSol.Init();
       
 
@@ -643,21 +656,22 @@ void MechPDE::CalcAcousticCouplingRHS(std::vector<Elem*> * couplingElems,
       CalcLineNormalVec(n, *(*couplingElems)[actElem], *(*neighbours)[actElem]);
 
 
-      for (Integer actNode=0; actNode < connecth.size(); actNode++)
+      for (Integer actNode=0; actNode < connecth.GetSize(); actNode++)
 	for (Integer actDof=0; actDof<dofspernode_; actDof++)
 	  nSol[actNode] += sol[actDof + actNode*dofspernode_] * n[actDof];
 
 
       Vector<Double> forceOnElem = elemmat * nSol;  
       
-      for (Integer actNode=0; actNode<ptCoord.size_row(); actNode++)
+      for (Integer actNode=0; actNode<ptCoord.GetSizeRow(); actNode++)
 	{
 	  Integer nodePos = 0;
 	  
 	  while(connecth[actNode] != couplingNodes[nodePos] && nodePos < couplingNodes.size()) 
 	    nodePos++;
 
-	  elemCouplingSols[0][nodePos] += forceOnElem[actNode];
+	  //elemCouplingSols[0][nodePos] += forceOnElem[actNode];
+	  elemCouplingSols(nodePos,0) += forceOnElem[actNode];
 	}      
     }
 } 
@@ -673,11 +687,12 @@ void MechPDE::GetSolOfElement( Matrix<Double>& sol, Vector<Integer>& connect_PDE
 #endif
 
   // displacement of element nodes
-  sol.Resize(dofspernode_, connect_PDE.size());
+  sol.Resize(dofspernode_, connect_PDE.GetSize());
   
-  for(Integer actNode=0; actNode<connect_PDE.size(); actNode++)
+  for(Integer actNode=0; actNode<connect_PDE.GetSize(); actNode++)
     for(Integer actDof=0; actDof < dofspernode_; actDof++)
-      sol[actDof][actNode] = sol_[actDof][connect_PDE[actNode]-1];
+      // sol[actDof][actNode] = sol_[actDof][connect_PDE[actNode]-1];
+      sol_->Get(connect_PDE[actNode]-1,actDof,sol[actDof][actNode]);
 }
 
 
@@ -734,19 +749,19 @@ void MechPDE::StepStaticNonLin(const Integer kstep, const Double aTime,
   Boolean performOneMoreStep;
   Integer iterationCounter=0;
   
-  std::vector<Double> actSol(numPDENodes_ * dofspernode_,0);
-
-
+  Vector<Double> actSol(numPDENodes_ * dofspernode_);
+  
   Integer k=0;
   for (Integer i=0; i< numPDENodes_; i++)
     for (Integer j=0; j<dofspernode_; j++)
       {
-	actSol[k] = sol_[j][i];
+	//actSol[k] = sol_[j][i];
+	sol_->Get(i,j,actSol[k]);
 	k++;
       }
 
 
-  std::vector<Double> solIncrement(numPDENodes_ * dofspernode_,0);
+  Vector<Double> solIncrement(numPDENodes_ * dofspernode_);
 
   SetBCs(level, updateBCs_, 0);
 
@@ -796,12 +811,15 @@ void MechPDE::StepStaticNonLin(const Integer kstep, const Double aTime,
 	// TRUE is for transient simulation
 	residualL2Norm = LineSearch(solIncrement, actSol, etaLineSearch, level);
       
-      StoreVecToSolArray(actSol);
+      //StoreVecToSolArray(actSol);
+      sol_->SetCompleteVector(actSol);
 
 
       // recalculate RHS with new values to get new residual (f^(k+1))========
-#ifndef USE_OLAS      
-      algsys_->InitRHS(extForces_);
+#ifndef USE_OLAS    
+      std::vector<Double>  help;
+      extForces_.ToStdVector(help);
+      algsys_->InitRHS(help);
 #endif
 
       assemble_->AssembleNLRHS(level);  // inner forces due to nonlin formulation
@@ -812,7 +830,7 @@ void MechPDE::StepStaticNonLin(const Integer kstep, const Double aTime,
       // =====================================================================
       if (!lineSearch_)
 	{
-	  std::vector<Double> actRHS;
+	  Vector<Double> actRHS;
 	  StoreAlgsysToVec(actRHS, algsys_->GetRHSVal() );       
 	  
 	  // calculation of residual error =======================================
@@ -825,8 +843,8 @@ void MechPDE::StepStaticNonLin(const Integer kstep, const Double aTime,
 
 
       // calculate incremental error ========================================
-      Double solIncrL2Norm = L2Norm(solIncrement);
-      Double actSolL2Norm  = L2Norm(actSol);
+      Double solIncrL2Norm = solIncrement.NormL2();
+      Double actSolL2Norm  = actSol.NormL2();
       
       Double incrementalErr;
       
@@ -870,14 +888,14 @@ void MechPDE::StepStaticNonLin(const Integer kstep, const Double aTime,
 
 
 
-Double MechPDE::LineSearch(std::vector<Double>& solIncrement, std::vector<Double>& actSol, 
+Double MechPDE::LineSearch(Vector<Double>& solIncrement, Vector<Double>& actSol, 
 			   Double& etaLineSearch, Integer level, Boolean trans)
 {
 #ifdef TRACE
   (*trace) << "entering MechPDE::LineSearch" << std::endl;
 #endif
 
-  std::vector<Double> solOld(actSol);
+  Vector<Double> solOld(actSol);
   const Integer nrEtas = 4;
   const Double eta[nrEtas] = {1, 0.5, 0.25, 0.125};
   Double etaOpt;
@@ -885,14 +903,17 @@ Double MechPDE::LineSearch(std::vector<Double>& solIncrement, std::vector<Double
   
   for(Integer i=0; i<nrEtas; i++)
     {
-      actSol = eta[i] * solIncrement;
+      actSol = solIncrement * eta[i];
       actSol += solOld;
 
-      StoreVecToSolArray(actSol);
+      sol_->SetCompleteVector(actSol);
+      //StoreVecToSolArray(actSol);
 
       // recalculate RHS with new values to get new residual (f^(k+1))========
 #ifndef USE_OLAS      
-      algsys_->InitRHS(extForces_);
+      std::vector<Double>  help;
+      extForces_.ToStdVector(help);
+      algsys_->InitRHS(help);
 #endif
 
       if(trans)
@@ -908,7 +929,7 @@ Double MechPDE::LineSearch(std::vector<Double>& solIncrement, std::vector<Double
       // =====================================================================
       // calculation of error norms
       // =====================================================================
-      std::vector<Double> actRHS;
+      Vector<Double> actRHS;
       StoreAlgsysToVec(actRHS, algsys_->GetRHSVal() );
 
       // calculation of residual error =======================================
@@ -925,7 +946,7 @@ Double MechPDE::LineSearch(std::vector<Double>& solIncrement, std::vector<Double
   
   myCout << "EtaOpt = " << etaOpt << myEndl;
   
-  actSol = etaOpt * solIncrement;
+  actSol =  solIncrement * etaOpt;
   actSol += solOld;
 
   return residualL2NormOpt;
@@ -1010,35 +1031,26 @@ void MechPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
   Boolean performOneMoreStep;
   Integer iterationCounter=0;
 
-  std::vector<Double> actSol(numPDENodes_ * dofspernode_,0);
-  std::vector<Double> solIncrement(numPDENodes_ * dofspernode_,0);
-
-
-  //current problem with Array class
-  Array<Double> solhelp;
-  solhelp.reshape(1, numPDENodes_*dofspernode_);
- 
-
-  Integer k=0;
-  for (Integer i=0; i< numPDENodes_; i++)
-    for (Integer j=0; j<dofspernode_; j++)
-      {
-	solhelp[0][k] = sol_[j][i];
-	actSol[k] = sol_[j][i];   // set start value for nonlinear iteration
-	k++;
-      }
-
-
-
+  Vector<Double> actSol(numPDENodes_ * dofspernode_);
+  Vector<Double> solIncrement(numPDENodes_ * dofspernode_);
+  
   algsys_->InitRHS();
 
-  //perform predictor step
-  TS_alg_->Predictor(solhelp);
+  // Cast BaseStoreSol into StoreSol<Double>,
+  // since this function is only called
+  // in the transient case
+ TRY_CAST
+  PTRCAST(sol_,StoreSol<Double>,solhelp)
+  
+
+  actSol = solhelp->GetCompleteVector();
+  TS_alg_->Predictor(solhelp->GetCompleteVector());
 
   Double extForcesL2Norm = SetExternalForces(level);
 
   timeStepCounter++;
 
+  //perform predictor step
   TS_alg_->UpdateRHS(actSol);
   SetBCs(level, update, lasttimecalc_);
 
@@ -1086,7 +1098,8 @@ void MechPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
 	residualL2Norm = LineSearch(solIncrement, actSol, etaLineSearch, level, TRUE);
 
 
-      StoreVecToSolArray(actSol);
+      sol_->SetCompleteVector(actSol);
+      //StoreVecToSolArray(actSol);
 
 
       // recalculate RHS with new values to get new residual (f^(k+1))========
@@ -1104,7 +1117,7 @@ void MechPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
 
       if (!lineSearch_)
 	{
-	  std::vector<Double> actRHS;
+	  Vector<Double> actRHS;
 	  StoreAlgsysToVec(actRHS, algsys_->GetRHSVal() );       
 	  
 	  // calculation of residual error =======================================
@@ -1118,8 +1131,8 @@ void MechPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
 
 
       // calculate incremental error ========================================
-      Double solIncrL2Norm = L2Norm(solIncrement);
-      Double actSolL2Norm = L2Norm(actSol);
+      Double solIncrL2Norm = solIncrement.NormL2();
+      Double actSolL2Norm = actSol.NormL2();
       Double incrementalErr;
 
       if (actSolL2Norm)
@@ -1154,17 +1167,9 @@ void MechPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
     } while(performOneMoreStep && iterationCounter < maxnumiter_);  
 
   
-  //save solution
-  k=0;
-  for (Integer i=0; i< numPDENodes_; i++)
-    for (Integer dim=0; dim<dofspernode_; dim++)
-      {
-	solhelp[0][k] = sol_[dim][i];
-	k++;
-      }
-  
-  //perform corrector step  
-  TS_alg_->Corrector(solhelp);
+    //perform corrector step  
+  TS_alg_->Corrector(solhelp->GetCompleteVector());
+  CATCH_CAST
 }
 
 
@@ -1193,7 +1198,7 @@ Double MechPDE::SetExternalForces(const Integer level)
   StoreAlgsysToVec(extForces_, algsys_->GetRHSVal() );
 
 
-  extForcesL2Norm = L2Norm(extForces_);
+  extForcesL2Norm = extForces_.NormL2();
  
   //  if extForcesL2Norm is 0, no residual norm can be calculated
   if (!extForcesL2Norm)
@@ -1209,7 +1214,7 @@ Double MechPDE::SetExternalForces(const Integer level)
 
 
 // calculates L2-norm of RHS regarding dirichlet entries due to penalty formulation by setting them 0
-Double MechPDE::RhsL2Norm(std::vector<Double>& actRHS)
+Double MechPDE::RhsL2Norm(Vector<Double>& actRHS)
 {
 #ifdef TRACE
   (*trace) << "entering MechPDE::RhsL2Norm" << std::endl;
@@ -1235,14 +1240,14 @@ Double MechPDE::RhsL2Norm(std::vector<Double>& actRHS)
 	}
     }
 
-  return L2Norm(actRHS);
+  return actRHS.NormL2();
 }
 
 
 
 
 // stores an algsys_ vector into a std::vector and returns that L2-norm
-void MechPDE::StoreAlgsysToVec(std::vector<Double>& stdVec, Double * pt)
+void MechPDE::StoreAlgsysToVec(Vector<Double>& vec, Double * pt)
 {
 #ifdef TRACE
   (*trace) << "entering MechPDE::StoreAlgsysToVec" << std::endl;
@@ -1250,10 +1255,10 @@ void MechPDE::StoreAlgsysToVec(std::vector<Double>& stdVec, Double * pt)
 
   const Integer numElems = numPDENodes_ * dofspernode_;
   
-  stdVec.resize(numElems);
+  vec.Resize(numElems);
 
   for (Integer i=0; i<numElems; i++)   
-    stdVec[i] = pt[i];
+    vec[i] = pt[i];
 }
 
 
@@ -1289,28 +1294,41 @@ void MechPDE::WriteResultsInFile()
   (*trace) << "entering MechPDE::WriteResultsInFile" << std::endl;
 #endif
 
-  Array<Double> sol_mesh, solder1_mesh, solder2_mesh;
-  Array<Double> sol_der1Array, sol_der2Array;
+  StoreSol<Double> sol_mesh, solder1_mesh, solder2_mesh;
+  StoreSol<Double> sol_der1Array, sol_der2Array;
   
   if (savesol_ == TRUE && (analysistype_== STATIC || analysistype_== TRANSIENT))
     {
-      TransformNodeSolution(sol_mesh, sol_, PDE2MeshNode_);
+      sol_->TransformNodeSolution(sol_mesh,PDE2MeshNode_,ptgrid_,actlevel_);
+      //TransformNodeSolution(sol_mesh, sol_, PDE2MeshNode_);
       OutFile_->WriteNodeSolution(sol_mesh, laststepcalc_, lasttimecalc_,"displacement");
     }
 
   if (analysistype_== TRANSIENT)
     {
       if (savederiv1_ == TRUE)
+
 	{
-	  sol_der1Array = getS1();
-	  TransformNodeSolution(solder1_mesh,sol_der1Array,PDE2MeshNode_);
+	  sol_der1Array.SetNumSolutions(1);
+	  sol_der1Array.SetNumNodes(numPDENodes_);
+	  sol_der1Array.SetSolutionType(MECH_VELOCITY);
+	  sol_der1Array.SetDof(Dim_);
+	  sol_der1Array.Init(0);
+	  sol_der1Array.SetSolVector(MECH_VELOCITY,getS1());
+	  
+	  sol_der1Array.TransformNodeSolution(solder1_mesh,PDE2MeshNode_,ptgrid_,actlevel_);
 	  OutFile_->WriteNodeSolution(solder1_mesh,laststepcalc_,lasttimecalc_,"velocity");
 	}
 
       if (savederiv2_ == TRUE)
 	{
-	  sol_der2Array = getS2();
-	  TransformNodeSolution(solder2_mesh,sol_der2Array,PDE2MeshNode_);
+	  sol_der2Array.SetNumSolutions(1);
+	  sol_der2Array.SetNumNodes(numPDENodes_);
+	  sol_der2Array.SetSolutionType(MECH_ACCELERATION);
+	  sol_der2Array.SetDof(Dim_);
+	  sol_der2Array.Init(0);
+	  sol_der2Array.SetSolVector(MECH_ACCELERATION,getS2());
+	  sol_der2Array.TransformNodeSolution(solder2_mesh,PDE2MeshNode_,ptgrid_,actlevel_);
 	  OutFile_->WriteNodeSolution(solder2_mesh,laststepcalc_,lasttimecalc_,"acceleration");
 	}
     }

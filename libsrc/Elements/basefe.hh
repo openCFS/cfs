@@ -1,8 +1,10 @@
 #ifndef FILE_BASEFE_2003
 #define FILE_BASEFE_2003
 
-#include <vector>
 #include <Matrix/matrix.hh>
+#include <vector>
+#include <General/environment.hh>
+#include <Utils/vector.hh>
 
 
 #ifdef USE_OLAS

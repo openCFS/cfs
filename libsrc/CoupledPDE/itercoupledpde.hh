@@ -2,6 +2,7 @@
 #define FILE_ITERCOUPLEDPDE_2003
 
 #include <CoupledPDE/basecoupledpde.hh>
+#include <Utils/storesol.hh>
 
 namespace CoupledField
 {
@@ -45,7 +46,7 @@ protected:
   void WriteCouplingInfo();
 
   //! calculates the norm of a vector
-  Double CalcNorm(NormType normtype, Array<Double> & val, Array<Double> & oldval);
+  Double CalcNorm(NormType normtype, BaseStoreSol & val, BaseStoreSol & oldval);
 
   Integer maxiter_;                        //!< maximum number of iterations per time step
   std::vector<Double> norms_;              //!< norm of coupling values

@@ -83,18 +83,16 @@ int main(int argc, char *argv[])
   
   if (argc < numargs) 
     {
-      std::cout << std::endl;
-      std::cout << " \033[36mUsage\033[0m : cfs [-options] name\n"
-		<< "\t \033[36m name    \033[0m: name of input file without "
-		<< " extension\n"
-		<< "\t \033[36m options \033[0m: -skel for writing a skeleton "
-		<< "of a config-file\n"
-		<< "\t            -grid for writing just the grid to "
-		<< "result-file\n" << std::endl;
-      Error( "Invalid call of cfs. See usage details above." );
+      STDOUT << std::endl;
+      STDOUT << " \033[36mUsage\033[0m : cfs [-options] name "<< std::endl 
+	     << "\t \033[36m name    \033[0m: name of input file without extension" 
+	     << std::endl 
+	     << "\t \033[36m options \033[0m: -skel for writing a skeleton of a config-file" << std::endl 
+	     << "\t            -grid for writing just the grid to result-file" << std::endl 
+	     << std::endl ;
+      std::cerr << std::endl << "\033[31mERROR:\033[0m " << "Invalid Running of CFS" << std::endl;
+      exit(1);
     }
-  
-  
   
   
   char *name = argv[argc-1];
@@ -217,3 +215,6 @@ MPI_Finalize();
   return 0;
 
 }
+
+
+

@@ -4,13 +4,7 @@
 #include <General/environment.hh>
 #include <DataInOut/conffile.hh>
 #include "timestepping.hh"
-#include <Utils/array.hh>
 
-#ifdef USE_OLAS
-#include <olas.hh>
-#else
-#include <multigrid.hh>
-#endif
 
 namespace CoupledField
 {
@@ -38,10 +32,10 @@ public:
   virtual void Init(Double * matrix_factors, Double dt);
 
   //! perform predictor step
-  virtual void Predictor(Array<Double>& solold);
+  virtual void Predictor(Vector<Double>& solold);
 
   //! perform corrector step
-  virtual void Corrector(Array<Double>& solnew);
+  virtual void Corrector(Vector<Double>& solnew);
 
   //! perform an update to RHS
   virtual void UpdateRHS();
@@ -59,7 +53,7 @@ private:
   Double gamma_;  //<! integration parameter
   Double a0_,a1_,a2_,a3_,a4_,a5_,a6_,a7_; //<! coefficients from Trapezoidal method
 
-  Array<Double> solpred_;
+  Vector<Double> solpred_;
 };
 
 }

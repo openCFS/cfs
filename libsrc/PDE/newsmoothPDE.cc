@@ -66,15 +66,18 @@ SmoothPDE::SmoothPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileTyp
   numElems_    = ptgrid_->GetMaxnumElem(actlevel_, subdoms_);
   size_ = numPDENodes_*dofspernode_;
 
-
-  sol_.reshape(dofspernode_, numPDENodes_);
-  sol_.init();
-  
+  // Initalize solution class
+  sol_->SetNumSolutions(1);
+  sol_->SetSolutionType(SMOOTH_DISPLACEMENT);
+  sol_->SetNumNodes(numPDENodes_);
+  sol_->SetDof(dofspernode_);
+  sol_->Init(0.0);
+    
   method_ = "mechanic";
   conf->ifget("method", method_, pdename_ );
 
   factor_.Resize(numElems_);
-  for (Integer i=0; i<factor_.size(); i++)
+  for (Integer i=0; i<factor_.GetSize(); i++)
     factor_[i] = 1.0;
     
   // set assemble parameters
@@ -91,7 +94,7 @@ SmoothPDE::SmoothPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileTyp
 
   assemble_->SetNumDirichlet(numDirichletBCs_);
   assemble_->SetPtrBCs(ptBCs_);
-  assemble_->SetPtr2Sol(&sol_);
+  assemble_->SetPtr2Sol(sol_);
   assemble_->SetPtr2TimeFnc(ptTimeFunc_);
   
   ReadMaterialData();
@@ -210,13 +213,8 @@ void SmoothPDE::StepStaticNonLin(const Integer kstep, const Double aTime,
 
   ptsol = algsys_->GetSolutionVal();
 
-  // save solution
-  Integer k=0;
-  
-  for (Integer i=0; i<numPDENodes_; i++)
-    for (Integer dim=0; dim<dofspernode_; dim++)
-      sol_[dim][i] = ptsol[k++];
-
+   // save solution
+  sol_->SetDataPointer(ptsol);
 }
 
 
@@ -241,7 +239,7 @@ void SmoothPDE::CalcOutputCoupling()
 
   std::string quantity;
   std::vector<Integer> * couplingnodes;
-  Array<Double> * values;
+  BaseStoreSol * values;
 
   // loop over all output coupling quantities
   for (Integer i=0; i<ptCoupling_->GetNumOutputCouplings(); i++)
@@ -258,7 +256,7 @@ void SmoothPDE::CalcOutputCoupling()
 
 	  if (quantity == "smoothdisplacement")
 	    {
-	      NodeSolutionToCoupling(*values, *couplingnodes);
+	      sol_->NodeSolutionToCoupling(*values,*couplingnodes,Mesh2PDENode_);
 	    }
 	  
 	  break;
@@ -276,9 +274,9 @@ void SmoothPDE::WriteResultsInFile()
   (*trace) << "entering SmoothPDE::WriteResultsInFile" << std::endl;
 #endif
 
-  Array<Double> DispMesh;
+  StoreSol<Double> DispMesh;
  
-  TransformNodeSolution(DispMesh, sol_, PDE2MeshNode_);
+  sol_->TransformNodeSolution(DispMesh,  PDE2MeshNode_,ptgrid_,actlevel_);
   OutFile_->WriteNodeSolution(DispMesh, laststepcalc_, lasttimecalc_,"displacement");
 }
 

@@ -36,7 +36,7 @@ public:
     \param title name for the data    
     \param nrDofs dimension of solution
   */
-  virtual void WriteNodeSolution(const Array<Double>& sol, const Integer step, const Double time, const std::string title);
+  virtual void WriteNodeSolution(const StoreSol<Double>& sol, const Integer step, const Double time, const std::string title);
 
  //! write element solution vector
   /*!
@@ -46,7 +46,7 @@ public:
     \param title name for the data    
     \param nrDofs dimension of solution
   */
-  virtual void WriteElemSolution(const Array<Double>& data, const Integer step, const Double time, const std::string title);
+  virtual void WriteElemSolution(const StoreSol<Double>& data, const Integer step, const Double time, const std::string title);
   
   //!  check, is it the gmv-output file
   virtual Boolean IsGMV() { return FALSE;}
@@ -80,7 +80,7 @@ private:
     \param step number of the step of the calculation
     \param time time of the calculation
   */
-  void Dataset55(const std::string & title, const Array<Double> & x, const Integer step, const Double time, const Integer nrDofs=1);
+  void Dataset55(const std::string & title, const StoreSol<Double> & x, const Integer step, const Double time, const Integer nrDofs=1);
 
   //! for printing cell results of simulation
    /*!
@@ -89,7 +89,7 @@ private:
     \param step number of the step of the calculation
     \param time time of the calculation
   */
-  void Dataset56(const std::string & title, const Array<Double> & x, const Integer step, const Double time, const Integer nrDofs=1);
+  void Dataset56(const std::string & title, const StoreSol<Double> & x, const Integer step, const Double time, const Integer nrDofs=1);
 
 };
 

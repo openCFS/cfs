@@ -3,6 +3,7 @@
 
 #include "Domain/grid.hh"
 #include <Utils/array.hh>
+#include <Utils/storesol.hh>
 
 namespace CoupledField
 {
@@ -38,7 +39,7 @@ public:
     \param title name for the solution
     \param nrDofs dimension of solution
   */
-  virtual void WriteNodeSolution(const Array<Double>& sol, const Integer step, const Double time, const std::string title)=0;
+  virtual void WriteNodeSolution(const StoreSol<Double>& sol, const Integer step, const Double time, const std::string title)=0;
 
   //! write element solution vector
   /*!
@@ -48,7 +49,7 @@ public:
     \param title name for the data    
     \param nrDofs dimension of solution
   */
-  virtual void WriteElemSolution(const Array<Double> & data, const Integer step, const Double time, const std::string title)=0;
+  virtual void WriteElemSolution(const StoreSol<Double> & data, const Integer step, const Double time, const std::string title)=0;
 
   //! to open new file for printing results only for GMV
   /*!

@@ -139,7 +139,7 @@ void  WriteResultsUnverg::Dataset780(const Integer level)
 	  (*output) << std::setw(10) << elemssd[j]->ElemNum << std::setw(10);
 
 	  if (dim==2)
-	    {     switch(connect.size())
+	    {     switch(connect.GetSize())
 	      {
 	      case 3: (*output) << 91 ; break;
 	      case 4: (*output) << 94 ; break;
@@ -148,11 +148,11 @@ void  WriteResultsUnverg::Dataset780(const Integer level)
 	      default: Error("Please, put element type according to unverg-format for this number of nodes per element", __FILE__,__LINE__);
 	      }
 
-	    (*output) << std::setw(10) << 2 << std::setw(10) << 2 << std::setw(10) << 1 << std::setw(10) << 1 << std::setw(10) << elmsgrp << std::setw(10) << connect.size() << std::endl;
+	    (*output) << std::setw(10) << 2 << std::setw(10) << 2 << std::setw(10) << 1 << std::setw(10) << 1 << std::setw(10) << elmsgrp << std::setw(10) << connect.GetSize() << std::endl;
 	    }
 	  else
 	    {
-	      switch(connect.size())
+	      switch(connect.GetSize())
 		{
 		case 4: (*output) << 111 ; break;
 		case 6: (*output) << 112; break;
@@ -164,13 +164,13 @@ void  WriteResultsUnverg::Dataset780(const Integer level)
 
 	      (*output) << std::setw(10) << 11 << std::setw(10) << 1 << std::setw(10) << 1
 			<< std::setw(10) << 1 << std::setw(10) << elmsgrp << std::setw(10) 
-			<< connect.size() << std::endl;
+			<< connect.GetSize() << std::endl;
 	    }
 
-	  if (dim == 2 && (connect.size() == 6 || connect.size() == 8))
+	  if (dim == 2 && (connect.GetSize() == 6 || connect.GetSize() == 8))
 	    {
 	      //quadratic elements
-	      Integer offset = Integer(connect.size()/2);
+	      Integer offset = Integer(connect.GetSize()/2);
 	      for (Integer ii=0; ii < offset; ii++)
 		{
 		 (*output).width(10);
@@ -182,7 +182,7 @@ void  WriteResultsUnverg::Dataset780(const Integer level)
 	    }
 	  else
 	    {
-	      for (Integer ii=0; ii < connect.size(); ii++) 
+	      for (Integer ii=0; ii < connect.GetSize(); ii++) 
 		{ 
 		  (*output).width(10);
 		  (*output) << connect[ii];
@@ -196,9 +196,8 @@ void  WriteResultsUnverg::Dataset780(const Integer level)
   (*output) << std::setw(6) << -1 << std::endl;
 }
 
-void  WriteResultsUnverg::Dataset55(const std::string & title, const Array<Double> & x, const Integer step, const Double time, const Integer nrDofs)
+void  WriteResultsUnverg::Dataset55(const std::string & title, const StoreSol<Double> & x, const Integer step, const Double time, const Integer nrDofs)
 {
-  
   //
   if (!ptgrid)
      Error("ptgrid is not initialized", __FILE__,__LINE__);
@@ -224,24 +223,24 @@ void  WriteResultsUnverg::Dataset55(const std::string & title, const Array<Doubl
  (*output) << " " << time << std::endl;       
 
  Integer i,j,n;
- n=x.size();  
+ n=x.GetNumNodes();  
  for (i=0; i<n; i++)
    {
      (*output) << std::setw(10) << i+1 << std::endl;
      
-     // in the universal file eihter one or three results datas must exist
+     // in the universal file either one or three results datas must exist
      if (nrDofs == 2)
        (*output) << 0.0;
 
      for (j=0; j<nrDofs; j++)
-       (*output) << std::setw(14) << x[j][i];
+       (*output) << std::setw(14) << x(i,j);
      
      (*output) << std::endl;
    }    
  (*output) << std::setw(6) << -1 << std::endl;
 }  
 
-void  WriteResultsUnverg::Dataset56(const std::string & title, const Array<Double> & x, const Integer step, const Double time, const Integer nrDofs)
+void  WriteResultsUnverg::Dataset56(const std::string & title, const StoreSol<Double> & x, const Integer step, const Double time, const Integer nrDofs)
 {
   
    if (!ptgrid)
@@ -267,15 +266,16 @@ void  WriteResultsUnverg::Dataset56(const std::string & title, const Array<Doubl
   (*output) << " " << time << std::endl;       
 
   Integer i,j,n;
-  n=x.size();  
+  n=x.GetNumNodes();  
 
+  // for 2-dimensional solution, the plane has to be rotated
   if (nrDofs == 2)
     {
     for (i=0; i<n; i++)
  	{
 	  (*output) << std::setw(10) << i+1 << std::setw(10) << 3 << std::endl;
 
-	  (*output) << std::setw(13) << 0.0 << std::setw(13) << x[0][i] << std::setw(13) << x[1][i] << std::endl;
+	  (*output) << std::setw(13) << 0.0 << std::setw(13) << x(i,0)  << std::setw(13) << x(i,1) << std::endl;
 	}
     } 
   else
@@ -284,7 +284,7 @@ void  WriteResultsUnverg::Dataset56(const std::string & title, const Array<Doubl
  	{
 	  (*output) << std::setw(10) << i+1 << std::setw(10) << 3 << std::endl;
 	  for (j=0; j<nrDofs; j++)
-	    (*output) << std::setw(14) << x[j][i];
+	    (*output) << std::setw(14) << x(i,j);
 	  
 	  (*output) << std::endl;
  	}
@@ -298,16 +298,17 @@ void  WriteResultsUnverg::Init(Grid * aptgrid)
  ptgrid=aptgrid;
 }
 
-void  WriteResultsUnverg::WriteNodeSolution(const Array<Double> & sol, const Integer step, const Double time, const std::string title)
+void  WriteResultsUnverg::WriteNodeSolution(const StoreSol<Double> & sol, const Integer step, const Double time, const std::string title)
 {
 
  Integer i,j;
  Integer nrDofs = 1;
+ Double help;
 
  if (NeedHistory_) 
    for (i=0; i< nodeshist_.size(); i++)
      {
-      if (sol.dim() * sol.size() <= nodeshist_[i])
+      if (sol.GetDof() * sol.GetNumNodes() <= nodeshist_[i])
         Error("Please, check history-nodes in config-file.",__FILE__,__LINE__);
       if (lastsavetime[i] != time )
 	if (nrDofs > 1)	
@@ -315,28 +316,29 @@ void  WriteResultsUnverg::WriteNodeSolution(const Array<Double> & sol, const Int
 	    std::vector<Double> solVec;
 	    solVec.resize(nrDofs);
 	    for (j=0; j<nrDofs; j++)
-	      solVec[j] = sol[j][(nodeshist_[i]-1)];
-	    
+	      sol.Get(nodeshist_[i]-1,j,solVec[j]);
+
 	    AddVecInHistory(time, solVec, i);
 	  }
 	else
-	  // sol[node-1] since internal node starts at zero!        
-	  AddInHistory(time,sol[0][nodeshist_[i]-1],i);
-
-    }
+	  {
+	    sol.Get(nodeshist_[i]-1,0,help);
+	    AddInHistory(time,help,i);
+	  }
+     }
  else
-   Dataset55(title, sol, step, time, sol.dim());
+   Dataset55(title, sol, step, time, sol.GetDof());
 }
 
 
-void  WriteResultsUnverg::WriteElemSolution(const Array<Double>& data, const Integer step, const Double time, const std::string title)
+void  WriteResultsUnverg::WriteElemSolution(const StoreSol<Double>& data, const Integer step, const Double time, const std::string title)
 {
 #ifdef TRACE
   (*trace) << " entering WriteResultsUnverg::WriteElemSolution " << std::endl;
 #endif
 
    if (!NeedHistory_)
-     Dataset56(title, data, step, time, data.dim());
+     Dataset56(title, data, step, time, data.GetDof());
 }
 
 

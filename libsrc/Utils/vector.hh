@@ -1,137 +1,217 @@
-#ifndef FILE_VECTOR_2001
-#define FILE_VECTOR_2001
- 
-#include <iostream>
+#ifndef FILE_VECTOR_2004
+#define FILE_VECTOR_2004
 
-#include "tools.hh"
+#include "cfsvector.hh"
 
-namespace CoupledField
-{          
+namespace CoupledField {
 
-  template<class TYPE> class Vector;
-  //! Function for swap  number a and b (Integer, Double)
-  template <class S> void swap(S &, S &);
 
-  //! Function for swap Vector<T>;
-  template<class T>
-  void swap(Vector<T> & a, Vector<T> & b);
+// Forward class declarations
+template<class TYPE> class Matrix;
+template<class TYPE> class Array;
+template<class TYPE> class Vector;
+template<class TYPE> class StoreSol;
 
-  //! Sort of vector with size n
-  template <class S> void sort(S* v, Integer n);
+// ******************************************************
+// * Additional functions related with handling vectors *
+// ******************************************************
+  
+//! Function for swap  number a and b (Integer, Double)
+template <class S> void Swap(S &, S &);
 
-  template<class TYPE> class SparseMatrix;
-  template<class TYPE> class SymSparseMatrix;
-  template<class TYPE> class SymBandMatrix;
-  template<class TYPE> class BandMatrix;
-  template<class TYPE> class SymMatrix;
-  template<class TYPE> class Matrix;
-  template<class TYPE> class Array;
+//! Function for swap Vector<T>;
+template<class TYPE>
+void Swap(Vector<TYPE> & a, Vector<TYPE> & b);
 
-  //! Overloading << for class vector
-  template<class TYPE>  std::ostream& operator << ( std::ostream & , const Vector<TYPE> &);
+//! Overloading << for class vector
+template<class TYPE>  std::ostream& operator << ( std::ostream & , const Vector<TYPE> &);
 
-//! class Vector for working with arrays of Integer or Double numbers 
-template<class TYPE> class Vector
-{
-  //! size
-  Integer	n;
 
-  //! pointer to array
-  TYPE	*p;
-
-  void	help	(const Integer, std::istream &);
-        
+//! Concrete Template class for a general dense vector
+template<class TYPE>
+class Vector : public CFSVector {
 public:
 
-  static Vector<TYPE> null;
-
-  friend class SymSparseMatrix<TYPE>;
-  friend class SparseMatrix<TYPE>;
-  friend class BandMatrix<TYPE>;
-  friend class SymBandMatrix<TYPE>;
-  friend class SymMatrix<TYPE>;
+  // Friend declarations
   friend class Matrix<TYPE>;
   friend class Array<TYPE>;
-
-//   template<class T>
-//   friend void swap(Vector<T> &, Vector<T> &);
+  friend class StoreSol<TYPE>;
+  template<class S>
+  friend void Swap(Vector<S> &, Vector<S> &);
 
   //! Constructor
-  Vector	();
+  Vector();
 
-  //! Constructor with parameter dimension of Vector
-  Vector	(Integer adim);
+  //! Constructor with inital size.
+  //! All entries are filled with zeroes
+  Vector(int size);
 
-  //! Constructor of Vector with initialization with Vector x
-  Vector	(Integer, const TYPE *const x);
+  //! Copy constructor
+  Vector(const Vector<TYPE> & vec);
 
-  //! Copy of Vector
-  Vector	(const Vector &);
+  //! Copy constructor with std::vector
+  Vector(const std::vector<TYPE> & vec);
 
-  //! Deconstructor
-  ~Vector()
-  {
-    if (p) delete [] p;
-  }
+  //! Destructor
+  ~Vector();  
+
+  //! Return a Double pointer to the data of the vector.
+  //! If the Vector is complex, a new array is created,
+  //! where the entries are sequentilly ordered in real
+  //! and imaginary parts (real_1, imag_1, real_2, ...)
+  Double* GetDoublePointer();
+
+  //! Initalizes the vector with a given entry
+  /*!
+    \param entry (input) Entry vector gets inialized with
+  */
+  //! \note this method does not change the size of the vector!
+  void Init(const TYPE entry = 0.0);
+
+  //! Get the length of the vector
+  inline Integer GetSize() const {return size_;}
+
+  //! Set the lenght of the vector
+  /*!
+    \param size (input) Lengh of vector
+  */
+  //! \note the entries are set to zero afterwards!
+  void Resize(const Integer size);
+ 
+  //! Set the entry i of the vector to the given value (x[i] = s)
+  /*!
+    \param i (input) Index of entry s
+    \param s (input) Entry to be set on position i
+  */
+  void SetEntry(const Integer i, const TYPE &s);
+  
+  //! Get the entry i of the vector on the given value (ret = x[i])
+  /*!
+    \param i (input) Index of entry s
+    \param ret (output) Entry on position i
+  */
+  void GetEntry(const Integer i, TYPE &ret) const;
+  
+  //! Add s to i-th vector entry (x[i] += s)
+  /*!
+    \param i (input) Index of entry s
+    \param s (input) Value to be added to x[i]
+  */
+  void AddEntry(const Integer i, const TYPE &s);
+  
+  //! Mult the i-th vector entry with s (x[i] *= s)
+  /*!
+    \param i (input) Index of entry s
+    \param s (input) Factor, which i-the entry gets multiplied with
+  */
+  void MultEntry(const Integer i, const TYPE &s);
+  
+  //! Multiply the i-th vector entry with a and add s on it (x[i] = a*x[i]+s)
+  /*!
+    \param i (input) Index of entry s
+    \param a (input) Factor the i-the entry gets multiplied with
+    \param s (input) Value to be added to a*x[i]
+  */
+  void MultAddEntry(const Integer i, const TYPE &a, const TYPE &s);
+
+  //! Adds another vector to itself (x = x+y)
+  /*! 
+    \param y (input) Addend to the vector
+  */
+  void Add(const CFSVector& y);
+
+  //! Adds the multiple of another vector to itself (x = x +a*y)
+  /*!
+    \param a (input) Factor for scaling vector y
+    \param y (input) Addend to the vector
+  */
+  void Add(const TYPE a, const CFSVector &y);
+
+  //! Replaces the vector by the sum of two scaled vectors (x = a*y+b*z)
+  /*!
+    \param a (input) Factor for vector y
+    \param y (input) Vector scaled by factor a
+    \param b (input) Factor for vector z
+    \param z (input) Vector scaled by factor b
+  */
+  void Add( const TYPE a, const CFSVector& y,
+		    const TYPE b, const CFSVector& z );
+
+  
+  //! Scales the vector itself and adds the multiple of another one y (x = a*x + y)
+  /*!
+    \param a (input) Factor for scaling the vector itself
+    \param y (input) Addend for the vector (gets not scaled)
+  */
+  void Axpy(const TYPE a, const CFSVector &y);
+ 
+  
+  //! Performes the dot/inner product of the vector itself with y (=x^T*y)
+  /*! 
+    \param y (input) Vector to perform innter product with
+    \param result (output) Result of x^T * y
+  */
+  void Inner(const CFSVector &y, TYPE &result) const;
+  
+  //! Calculates the Eucluidean L2-norm
+  Double NormL2() const;
+  
+
+  //*************************************************
+  //* old interface which is compatible to previous *
+  //* version of Vector<TYPE>                          *
+  //*************************************************
 
   //! conversion to std::vector
-  void toStdVector(std::vector<TYPE> &vec);
-
-  //! Change size of vector
-  /*!
-    \param i new size of vector
-  */
-  void Resize(const Integer i);
-
-  //! Allocate vector of size i
-   /*!
-    \param i size of vector
-  */
-  void Allocate(const Integer i);       
-
-  //! Initialize vector by zero
-    /*!
-    \param l size of vector, if reszing is needful. can be omitted.
-  */
-  void Init(const Integer l=0);
+  void ToStdVector(std::vector<TYPE> &vec) const;
 
   //! Overloading of operation =
   Vector	&operator=	(const Vector &);
 
+  //! *** DEPRECATED ***
   //! Overloading of operation = for Arrays
-  
   Vector        &operator=      (const Array<TYPE> &);
+
+  //! build vector from std::vector
+  Vector & operator= (const std::vector<TYPE> & vec);
+  
 
   //! Element can be referred to as v[i]
   inline TYPE	&operator[]	(const Integer i) const
   {	
-    if (!p)
-      Error("Vector: undefined Vector in operator[]",__FILE__,__LINE__);
-
-    if (i < 0 || i >= n)
-      Error("Vector: invalid index in operator[]",__FILE__,__LINE__);
-
-    return  p[i];
-}
-
-  //! Return dimension of Vector
-  Integer	size () const { return n;}
-
-  //! Return pointer p to array 
-  TYPE*  get() const
-  {
-    if (!p)
-      Error("Vector: undefined Vector",__FILE__,__LINE__);
-    return p;
+#ifdef CHECK_INDEX
+    std::string errorMsg;
+    std::stringstream errorMsgStream(errorMsg);
+    errorMsgStream << "Vector: invalid access to element " << i << "\n Length of vector: " << size_;
+    if (i >= size_)
+      Error(errorMsg.c_str(),__FILE__,__LINE__);
+#endif
+    return  data_[i];
   }
 
+  //! Return pointer p to array 
+  TYPE*  GetPointer() const
+  {
+#ifdef CHECK_MEMORY
+    if (!data_)
+      Error("Vector: undefined Vector",__FILE__,__LINE__);
+#endif
+    return data_;
+  }
+
+  //! initialize vector with defined data
+  /*!
+    \param nsize size of vector
+    \param ptdata pointer to array with values of vector
+  */
+  void TransformInVector(const Integer nsize, TYPE* ptdata);
+  
   //! Overloading of operations +,+=
-  Vector	operator+	() const;
   Vector	operator+	(const Vector &) const;
   Vector	&operator+=	(const Vector &);
 
   //! Overloading of operations -,-=
-  Vector	operator-	() const;
+  Vector        operator-       () const;
   Vector	operator-	(const Vector &) const;
   Vector	&operator-=	(const Vector &);
 
@@ -166,59 +246,60 @@ public:
   Vector	operator=	(const Matrix<TYPE> &) const;
 
   //! Return part of Vector from index i to ii
-  Vector	part	(const Integer i, const Integer ii) const;
+  Vector	Part	(const Integer i, const Integer ii) const;
 
-  //! 
-  static Vector	unit	(const Integer n, const Integer i);
-
-  //! Calculate norm L^2 for Vector
-  Double normL2 ();
+  //! Constructs the unit vector of length n, which only non-zero
+  //! entry is a 1 at the i-th position
+  /*! 
+    \param n (input) length of vector
+    \param i (input) component, which is 1
+    \f[ \left( \begin{array}{c} 0  \\ \cdots \\ 0 \\ 1 \\ 0 \\ \cdots \\ 0 
+    \end{array} \right) \f]
+  */
+  static Vector	Unit	(const Integer n, const Integer i);
 
   //! Add element of the same type at position pos, by default to the beginning Beware of numeration in C++
-  void add(const TYPE & y, Integer pos=0);
+  void AddElement(const TYPE & y, Integer pos=0);
 
   //! Add element of the same type at the end of the vector
-  void push_back(const TYPE & y);
+  void Push_back(const TYPE & y);
 
-
-  //! Add vector to vector at position pos
-  void  add (const Vector<TYPE> & y, Integer pos=0);
+  //! Insert a vector to this vector at position pos
+  void InsertVector (const Vector<TYPE> & y, Integer pos=0);
 
   //! Delete element from vector on position pos
-  void  cut (const Integer pos);
+  void  Cut (const Integer pos);
 
   //! Delete elements from position pos1 to pos2, on pos1, pos2 too
-  void  cut (const Integer pos1, const Integer pos2);
+  void  Cut (const Integer pos1, const Integer pos2);
 
   //! Return size of space memory of this vector
-  Integer  memory() const;
+  Integer  Memory() const;
 
   //!Friends
   //! Sort of vector: v - vec.p, n - vec.size
-  template <class S> void sort(S* v, Integer n);
-  //! Swap 2 elements in vector Ex swap(v[i],v[j])
-  template<class T> void swap(T & a, T & b);
+  template <class S> void Sort(S* v, Integer n);
+ 
+ //! Swap 2 elements in vector Ex Swap(v[i],v[j])
+  template<class T2> void Swap(T2& a, T2 & b);
 
-  //! initialize vector with defined data
-  /*!
-    \param nsize size of vector
-    \param ptdata pointer to array with values of vector
-  */
-  void  TransformInVector(const Integer nsize, TYPE * ptdata);
+ protected:
 
-  /// Duplicate the vector src nrTimes: *this = (src, src, ...)
-  template<class T> 
-  void SetMultipleVEc(Vector<T>& src, Integer nrTimes);
-  
+  //! length of the vector
+  Integer size_;
+
+  //! data of the vector
+  TYPE* data_;
+
 };
 
 
-#ifdef __GNUC__
+  // Template instantiation for used vectors
 template class Vector<Integer>;
 template class Vector<Double>;
+template class Vector<Complex>;
+
+ 
+} // end of namespace
+
 #endif
-
-}
-#endif	// FILE_VECTOR
-
-

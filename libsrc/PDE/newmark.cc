@@ -27,16 +27,15 @@ Newmark :: Newmark(std::string apdename, BaseSystem * algebraicsystem, Integer d
   conf->ifget("gamma_NM",gamma_,pdename_);
 
   //get the memory
-  solderiv1_.reshape(dofspernode, numnode);  
-  solderiv1_.init();
-  solderiv2_.reshape(dofspernode, numnode);  
-  solderiv2_.init();
-  
+  solderiv1_.Resize(dofspernode*numnode);
+  solderiv1_.Init();
+  solderiv2_.Resize(dofspernode*numnode);
+  solderiv2_.Init();
 
-  solpred_.reshape(dofspernode, numnode); 
-  solpred_.init();
-  solderiv1pred_.reshape(dofspernode, numnode); 
-  solderiv1pred_.init();
+  solpred_.Resize(dofspernode*numnode);
+  solpred_.Init();
+  solderiv1pred_.Resize(dofspernode*numnode);
+  solderiv1pred_.Init();
 
 }
 
@@ -68,7 +67,7 @@ void Newmark::Init(Double * matrix_factors, Double dt)
 }
 
 
-void Newmark::Predictor(Array<Double>& solold)
+void Newmark::Predictor(Vector<Double>& solold)
 {
 #ifdef TRACE
   (*trace) << "entering Newmark::Predictor" << std::endl;
@@ -89,7 +88,7 @@ void Newmark::UpdateRHS()
 
   // mass part
   coeffMass = solpred_*a2_;
-  algsys_->UpdateRHS(MASS,coeffMass.get());
+  algsys_->UpdateRHS(MASS,coeffMass.GetPointer());
 
   // damping part
   if (damping_) 
@@ -97,10 +96,10 @@ void Newmark::UpdateRHS()
       Vector<Double> coeffDamp;
 
       coeffDamp = -solderiv1pred_;
-      algsys_->UpdateRHS(DAMPING,coeffDamp.get());
+      algsys_->UpdateRHS(DAMPING,coeffDamp.GetPointer());
 
       coeffDamp = solpred_*a4_;
-      algsys_->UpdateRHS(DAMPING,coeffDamp.get());
+      algsys_->UpdateRHS(DAMPING,coeffDamp.GetPointer());
    }
 }
 
@@ -108,7 +107,7 @@ void Newmark::UpdateRHS()
 
 
 
-void Newmark::UpdateRHS(std::vector<Double>& actSol)
+void Newmark::UpdateRHS(Vector<Double>& actSol)
 {
 #ifdef TRACE
   (*trace) << "entering Newmark::UpdateRHS" << std::endl;
@@ -117,7 +116,7 @@ void Newmark::UpdateRHS(std::vector<Double>& actSol)
   // mass part
   Vector<Double> coeffMass;
   coeffMass = (solpred_ - actSol) * a2_;
-  algsys_->UpdateRHS(MASS, coeffMass.get());
+  algsys_->UpdateRHS(MASS, coeffMass.GetPointer());
 
 
   // damping part
@@ -126,10 +125,10 @@ void Newmark::UpdateRHS(std::vector<Double>& actSol)
       Vector<Double> coeffDamp;
 
       coeffDamp = -solderiv1pred_;
-      algsys_->UpdateRHS(DAMPING,coeffDamp.get());
+      algsys_->UpdateRHS(DAMPING,coeffDamp.GetPointer());
 
       coeffDamp = (solpred_-actSol)*a4_;
-      algsys_->UpdateRHS(DAMPING,coeffDamp.get());
+      algsys_->UpdateRHS(DAMPING,coeffDamp.GetPointer());
    }
 }
 
@@ -137,7 +136,7 @@ void Newmark::UpdateRHS(std::vector<Double>& actSol)
 
 
 
-void Newmark::Corrector(Array<Double>& solnew)
+void Newmark::Corrector(Vector<Double>& solnew)
 {
 #ifdef TRACE
   (*trace) << "entering Newmark::Corrector" << std::endl;
@@ -198,18 +197,19 @@ NewmarkEffMass :: NewmarkEffMass(std::string apdename,
 
 
   //get the memory
-  sol_.reshape(dofspernode, numnode);  
-  sol_.init();
-  solpred_.reshape(dofspernode, numnode); 
-  solpred_.init();
+  sol_.Resize(dofspernode*numnode);
+  sol_.Init();
+  solpred_.Resize(dofspernode*numnode);
+  solpred_.Init();
 
-  solderiv1_.reshape(dofspernode, numnode);  
-  solderiv1_.init();
-  solderiv1pred_.reshape(dofspernode, numnode); 
-  solderiv1pred_.init();  
+  solderiv1_.Resize(dofspernode*numnode);
+  solderiv1_.Init();
+  solderiv2_.Resize(dofspernode*numnode);
+  solderiv2_.Init();
 
-  solderiv2_.reshape(dofspernode, numnode);  
-  solderiv2_.init();
+  
+  solderiv1pred_.Resize(dofspernode*numnode);
+  solderiv1pred_.Init();
 }
 
 
@@ -242,7 +242,7 @@ void NewmarkEffMass::Init(Double * matrix_factors, Double dt)
 }
 
 
-void NewmarkEffMass::Predictor(Array<Double>& solold)
+void NewmarkEffMass::Predictor(Vector<Double>& solold)
 {
 #ifdef TRACE
   (*trace) << "entering NewmarkEffMass::Predictor" << std::endl;
@@ -254,7 +254,7 @@ void NewmarkEffMass::Predictor(Array<Double>& solold)
 
 
 
-void NewmarkEffMass::Corrector(Array<Double>& aNew)
+void NewmarkEffMass::Corrector(Vector<Double>& aNew)
 {
 #ifdef TRACE
   (*trace) << "entering NewmarkEffMass::Corrector" << std::endl;
@@ -277,7 +277,7 @@ void NewmarkEffMass::UpdateRHS()
   Vector<Double> coeffStiff;
   coeffStiff = -solpred_;
 
-  algsys_->UpdateRHS(STIFFNESS, coeffStiff.get());
+  algsys_->UpdateRHS(STIFFNESS, coeffStiff.GetPointer());
 
   // damping part
   if (damping_)
@@ -285,22 +285,20 @@ void NewmarkEffMass::UpdateRHS()
       Vector<Double> coeffDamp;
       coeffDamp = -solderiv1pred_;
 
-      algsys_->UpdateRHS(DAMPING, coeffDamp.get());
+      algsys_->UpdateRHS(DAMPING, coeffDamp.GetPointer());
     }
 }
 
 
 
-void const NewmarkEffMass :: StoreSol(Array<Double> & solArr) const
+void const NewmarkEffMass :: StoreSolution(Vector<Double> & solArr) const
 {
 #ifdef TRACE
   (*trace) << "entering NewmarkEffMass::CalcParameters" << std::endl;
 #endif
 
-  for(Integer pos=0; pos<solArr.size(); pos++) 
-    for(Integer actDim=0; actDim<solArr.dim(); actDim++) 
-      solArr[actDim][pos] = sol_[0][pos * solArr.dim() + actDim];
-}
+  solArr = sol_; 
+ }
 
 
 

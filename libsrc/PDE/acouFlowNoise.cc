@@ -176,7 +176,7 @@ void AcouFlowNoise::ComputeRHS(const Double atime)
       // This will be done inside the 2d element next to the 1d element to get gradP at the center
       Integer n=ptElBelongSE->GetNumNodes(); // This returns number of integration points      
 
-      elsize=(belongSE[j]->connect).size(); // Get element number of nodes 
+      elsize=(belongSE[j]->connect).GetSize(); // Get element number of nodes 
       connBelongSE.Resize(elsize);
       for (ii=0; ii<elsize; ii++)
 	connBelongSE[ii]=(belongSE[j]->connect)[ii];
@@ -231,7 +231,7 @@ void AcouFlowNoise::ComputeRHS(const Double atime)
 	std::cout<<"connObstSurf :"<<connObstSurf<<std::endl;
  	  std::cout<<"elemvect DIPOLE: "<<elemvecdip<<std::endl;
 	// including the dipole contribution for testing!!!!!!!!
-	algsys_->SetElementRHS(&elemvecdip[0], &connect_PDE[0], connect_PDE.size());
+	algsys_->SetElementRHS(&elemvecdip[0], connect_PDE.GetPointer(), connect_PDE.GetSize());
 
 	delete linear_loaddipole;
 
@@ -270,7 +270,7 @@ void AcouFlowNoise::ComputeRHS(const Double atime)
 	  BaseForm * linear_load = new LinearFlowNoiseInt(ptEl);
 
 	  Integer ii;
-	  elsize=(elemssd[j]->connect).size();
+	  elsize=(elemssd[j]->connect).GetSize();
 	  connecth.Resize(elsize);
 	  for (ii=0; ii<elsize; ii++)
 	    connecth[ii]=(elemssd[j]->connect)[ii];
@@ -313,7 +313,7 @@ void AcouFlowNoise::ComputeRHS(const Double atime)
 	  //}
 	  
 	
-	  algsys_->SetElementRHS(&elemvec[0], connect_PDE.get(), connect_PDE.size());
+	  algsys_->SetElementRHS(&elemvec[0], connect_PDE.GetPointer(), connect_PDE.GetSize());
 	  
 	  delete linear_load;
 	}
@@ -439,7 +439,11 @@ void AcouFlowNoise::SolveStepTrans(const Integer kstep, const Double asteptime, 
   Integer update,job;
 
   //perform predictor step
-  TS_alg_->Predictor(sol_);
+  TRY_CAST
+  PTRCAST(sol_,StoreSol<Double>,solhelp)
+  CATCH_CAST
+  
+  TS_alg_->Predictor(solhelp->GetCompleteVector());
 
   if (kstep==0)
     {
@@ -486,17 +490,13 @@ void AcouFlowNoise::SolveStepTrans(const Integer kstep, const Double asteptime, 
 #endif
 
   algsys_->Solve();
+
+  // Save solution
   ptsol = algsys_->GetSolutionVal();
-
-  // save solution
-  Integer k = 0;
+  sol_->SetDataPointer(ptsol);
   
-  for (Integer i=0; i<numPDENodes_; i++)
-    for (Integer dim=0; dim<dofspernode_; dim++)
-      sol_[dim][i] = ptsol[k++];
-
-  //perform corrector step  
-  TS_alg_->Corrector(sol_);
+  //perform corrector step 
+  TS_alg_->Corrector(solhelp->GetCompleteVector());
 }
 
 void AcouFlowNoise::WriteResultsInFile()
@@ -506,15 +506,15 @@ void AcouFlowNoise::WriteResultsInFile()
 #endif
   Integer Dim = 2;
 
-  Array<Double> arraysol,arraysol_der1,arraysol_der2;
-  Array<Double> sol_der1Array, sol_der2Array;
+  StoreSol<Double> arraysol,arraysol_der1,arraysol_der2;
+  StoreSol<Double> sol_der1Array, sol_der2Array;
   
   sol_der1Array = getS1();
   sol_der2Array = getS2();
 
-  TransformNodeSolution(arraysol,sol_,PDE2MeshNode_);
-  TransformNodeSolution(arraysol_der1,sol_der1Array,PDE2MeshNode_);
-  TransformNodeSolution(arraysol_der2,sol_der2Array,PDE2MeshNode_);
+  sol_->TransformNodeSolution(arraysol,PDE2MeshNode_,ptgrid_,actlevel_);
+  sol_der1Array.TransformNodeSolution(arraysol_der1,PDE2MeshNode_,ptgrid_,actlevel_);
+  sol_der2Array.TransformNodeSolution(arraysol_der2,PDE2MeshNode_,ptgrid_,actlevel_);
 
   if (OutFile_->IsGMV())
     {

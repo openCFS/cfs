@@ -6,16 +6,22 @@
 #include <math.h>
 
 #include <DataInOut/Unverg/outUnverg.hh>
+#include <DataInOut/GMV/outGMV.hh>
 #include <Forms/forms_header.hh>
 #include <Forms/elecfieldop.hh>
 #include <Forms/elecforceop.hh>
 #include <Estimator/spaceerror.hh>
 #include <DataInOut/WriteInfo.hh> 
-#include <AlgebraicSystem/LinAlg/linsystem.hh>
 #include <Driver/assemble.hh>
 #include "ScalarNodeEQN.hh"
+#include <General/defs.hh>
 
+#include <Utils/array.hh>
+#include <Utils/storesol.hh>
+#include <Matrix/matrix.hh>
+#include <Utils/vector.hh>
 #include "newElecPDE.hh"
+#include <General/defs.hh>
 
 namespace CoupledField
 {
@@ -77,7 +83,7 @@ ElecPDE::ElecPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 
   assemble_->SetNumDirichlet(GetNumRestraints(actlevel_));
   assemble_->SetPtrBCs(ptBCs_);
-  assemble_->SetPtr2Sol(&sol_);
+  assemble_->SetPtr2Sol(sol_);
   assemble_->SetPtr2TimeFnc(ptTimeFunc_);
 
   ReadMaterialData();
@@ -169,15 +175,8 @@ void ElecPDE::StepStaticNonLin(const Integer kstep, const Double aTime,
   ptsol = algsys_->GetSolutionVal();
 
   // save solution
-  Integer k=0;
-
-  for (Integer i=0; i<numPDENodes_; i++)
-    for (Integer dim=0; dim<dofspernode_; dim++)
-      {
-	sol_[dim][i] = ptsol[k++];
-      }
+  sol_->SetDataPointer(ptsol);
   
-
 }
 
 void ElecPDE::PostStepStatic(const Integer kstep, const Double asteptime,
@@ -195,19 +194,21 @@ void ElecPDE::PostStepStatic(const Integer kstep, const Double asteptime,
   if (flags->CalcErrorMap_)
     {
       Double         totalErr;
-      Array<Double>  Sol_Mesh;
+      StoreSol<Double>  Sol_Mesh;
       Vector<Double> solVec;
       
       ptError_=new SpaceErrorEstimator();
 
       ptError_->Init(this);
       
-      TransformNodeSolution(Sol_Mesh,sol_,PDE2MeshNode_);
+      sol_->TransformNodeSolution(Sol_Mesh,sol_,PDE2MeshNode_,ptgrid_);
 
-      solVec.Resize(sol_.size());
-      int i;
-      for (i=0; i<sol_.size(); i++)
-	solVec[i]=sol_[0][i];
+      sol_->GetCompleteVector(solVec);
+
+      //  solVec.Resize(sol_.size());
+      //       int i;
+      //       for (i=0; i<sol_.size(); i++)
+      // 	solVec[i]=sol_[0][i];
 
       ptError_->CalcErrorMap(solVec,subdoms_,ptgrid_,errorMap_,totalErr,level);
       
@@ -239,11 +240,10 @@ void ElecPDE::WriteResultsInFile()
 #endif
 
   ShortInt Dim = ptgrid_->GetDim();
-
-  Array<Double> E_Mesh, Force_Mesh, Sol_Mesh;
+  StoreSol<Double> E_Mesh, Force_Mesh, Sol_Mesh;
   
   // transform solution vector for electric potential
-  TransformNodeSolution(Sol_Mesh,sol_,PDE2MeshNode_);
+  sol_->TransformNodeSolution(Sol_Mesh,PDE2MeshNode_,ptgrid_,actlevel_);
 
    
   // write results
@@ -255,7 +255,7 @@ void ElecPDE::WriteResultsInFile()
       
       if (calcEfield_.size() !=0 )
 	{
-	  TransformElemSolution(E_Mesh,E_,subdoms_);
+	  E_.TransformElemSolution(E_Mesh,subdoms_,ptgrid_,actlevel_);
 	  OutFile_->WriteElemSolution(E_Mesh,laststepcalc_,time,"E-Field");
 	}
     }
@@ -292,10 +292,13 @@ void ElecPDE::PostProcess(const Integer level)
   (*trace) << "entering ElecPDE::PostProcess" << std::endl;
 #endif  
 
+  TRY_CAST
+    PTRCAST(sol_,StoreSol<Double>,solhelp);
+  CATCH_CAST
 
   if (calcEfield_.size() !=0 )
     {
-      ElecFieldOp * FieldOp = new ElecFieldOp(ptgrid_, this, &Mesh2PDENode_, &sol_[0], level, isaxi_);
+      ElecFieldOp * FieldOp = new ElecFieldOp(ptgrid_, this, &Mesh2PDENode_, * solhelp, level, isaxi_);
 
       // ------ Calculation of the electric field ------
 
@@ -308,11 +311,6 @@ void ElecPDE::PostProcess(const Integer level)
       Integer counterElems=0;
       Vector<Double> TempE;
       
-      // Resize solution arrays
-      E_.reshape(Dim_, numElems_);
-      E_.init();
-      
-      
       // loop over all subdomains
       for (Integer isd=0; isd<subdoms_.size(); isd++)
 	{
@@ -323,7 +321,7 @@ void ElecPDE::PostProcess(const Integer level)
 	  for (Integer iel=0; iel< elemssd.size(); iel++,counterElems++)
 	    {
 	      FieldOp->CalcElemElecField( TempE, elemssd[iel], LCoord); 
-	      E_.setValuesRow(TempE, elemssd[iel]->ElemNum-1);
+	      E_.SetNodalResult(elemssd[iel]->ElemNum-1,TempE);
 	    }
 	}
       delete FieldOp;
@@ -332,7 +330,7 @@ void ElecPDE::PostProcess(const Integer level)
 }
 
 
-void ElecPDE::CalcNodeForce(Array<Double> & force, 
+void ElecPDE::CalcNodeForce(StoreSol<Double> & force, 
 			    std::vector<Integer> & nodes, 
 			    std::vector<Elem*> & elems,
 			    std::vector<std::vector<ShortInt> > & isBoundaryNode,
@@ -341,13 +339,21 @@ void ElecPDE::CalcNodeForce(Array<Double> & force,
 #ifdef TRACE
   (*trace) << "entering ElecPDE::CalcNodeForce" << std::endl;
 #endif  
+
+  TRY_CAST
+  PTRCAST(sol_,StoreSol<Double>,solhelp);
   
   
-  ElecForceOp * ForceOp = new ElecForceOp(ptgrid_, this, &Mesh2PDENode_, &sol_[0], actlevel_, isaxi_);
+  ElecForceOp * ForceOp = new ElecForceOp(ptgrid_, this, &Mesh2PDENode_, *solhelp, actlevel_, isaxi_);
    
-  Array<Double> force_temp;
-  force.reshape(Dim_, nodes.size());
-  force.init();
+  StoreSol<Double> force_temp;
+  
+  force_temp.SetNumSolutions(1);
+  force_temp.SetSolutionType(COUPLING_TYPE);
+  force_temp.SetNumNodes(nodes.size());
+  force_temp.SetDof(Dim_);
+  force_temp.Init(0.0);
+  force.Init(0.0);
   
   for (Integer ielem=0; ielem<elems.size(); ielem++)
     {
@@ -362,16 +368,16 @@ void ElecPDE::CalcNodeForce(Array<Double> & force,
       
       // Only for testing
       //epsilon = 8.854e-12;
-
+      
       ForceOp->CalcElemElecForce( force_temp, elems[ielem], epsilon, isBoundaryNode[ielem]);
       
 
       // Add the element force to the according coupling node
-      for (Integer ielemnode=0; ielemnode<elems[ielem]->connect.size(); ielemnode++)
+      for (Integer ielemnode=0; ielemnode<elems[ielem]->connect.GetSize(); ielemnode++)
 	for( Integer idim=0; idim<Dim_; idim++)
-	  force[idim][elemNodeToCouplingNode[ielem][ielemnode]] += force_temp[idim][ielemnode];
-
+	  force(elemNodeToCouplingNode[ielem][ielemnode],idim) += force_temp(ielemnode,idim);
     }
+
 
   Vector<Double> sum;
   sum.Resize(Dim_);
@@ -381,7 +387,7 @@ void ElecPDE::CalcNodeForce(Array<Double> & force,
       //std::cerr << "Node[" << nodes[i] << "] = ";
     for (Integer dim=0; dim<Dim_; dim++)
       {
-	sum[dim] += force[dim][i];
+	sum[dim] += force(i,dim);
 	//std::cerr << force[dim][i] << " , ";
       }
     //std::cerr << std::endl;
@@ -394,7 +400,7 @@ void ElecPDE::CalcNodeForce(Array<Double> & force,
   // write information in .info-file
   //  Info->PrintF(pdename_, "Sum of electrostatic force:");
   //  Info->PrintVec(sum);
-
+  CATCH_CAST
 }
 
 
@@ -463,12 +469,13 @@ void ElecPDE::GetSolOfElement( Vector<Double>& elpot, Vector<Integer>& connect_P
 #ifdef TRACE
     (*trace) << "entering ElecPDE::GetSolOfElement" << std::endl;
 #endif
+  TRY_CAST
+    PTRCAST(sol_,StoreSol<Double>,solhelp);
+  CATCH_CAST  
 
-  // displacement of element nodes
-  elpot.Resize(connect_PDE.size());
-
-  for(Integer actNode=0; actNode<connect_PDE.size(); actNode++)
-    elpot[actNode] = sol_[0][connect_PDE[actNode]-1];
+  elpot.Resize(connect_PDE.GetSize());
+  for(Integer actNode=0; actNode<connect_PDE.GetSize(); actNode++)
+    elpot[actNode] = (*solhelp)(connect_PDE[actNode]-1,0);
 }
 
 
@@ -490,11 +497,23 @@ void ElecPDE::Reset()
   AssignPDENodeNumbers(Mesh2PDENode_,PDE2MeshNode_,subdoms_);
   numPDENodes_=PDE2MeshNode_.size();
 
-  deltCoords_.reshape(Dim_,numPDENodes_);
-  sol_.reshape(dofspernode_,numPDENodes_);
-  sol_.init();
+
+  // Initalize solution class
+  sol_->SetNumSolutions(1);
+  sol_->SetSolutionType(ELEC_POTENTIAL);
+  sol_->SetNumNodes(numPDENodes_);
+  sol_->SetDof(dofspernode_);
+  sol_->Init(0.0);
 
   numElems_ = ptgrid_->GetMaxnumElem(actlevel_,subdoms_);
+  
+  E_.SetNumSolutions(1);
+  E_.SetSolutionType(ELEC_FIELD);
+  E_.SetNumNodes(numElems_);
+  E_.SetDof(Dim_);
+  E_.Init(0.0);
+  
+  
 }
 
 // ======================================================
@@ -533,7 +552,6 @@ void ElecPDE::InitCoupling(PDECoupling * Coupling)
   std::vector<std::vector<ShortInt> > isBoundaryNode_tmp;
   //std::vector<Integer> numBoundaryNodes_tmp;
   std::vector<std::vector<Integer> > elemNodeToCouplingNode_tmp;
-  Array<Double> * values;
 
   F_Interface_.resize(numCouplings);
   isBoundaryNode_.resize(numCouplings);
@@ -582,9 +600,9 @@ void ElecPDE::InitCoupling(PDECoupling * Coupling)
 	  for (Integer ielem=0; ielem<interface_tmp.size(); ielem++)
 	    {
 	      isBoundaryNode_tmp[ielem].clear();
-	      isBoundaryNode_tmp[ielem].resize(interface_tmp[ielem]->connect.size());
+	      isBoundaryNode_tmp[ielem].resize(interface_tmp[ielem]->connect.GetSize());
 	      elemNodeToCouplingNode_tmp[ielem].clear();
-	      elemNodeToCouplingNode_tmp[ielem].resize(interface_tmp[ielem]->connect.size());
+	      elemNodeToCouplingNode_tmp[ielem].resize(interface_tmp[ielem]->connect.GetSize());
 
 	      // Determine Boundary Nodes
 	      for (Integer ielemnode=0; ielemnode<isBoundaryNode_tmp[ielem].size(); ielemnode++)
@@ -618,29 +636,29 @@ void ElecPDE::CalcOutputCoupling()
 
   std::string quantity;
   std::vector<Integer> * couplingNodes     = NULL;
-  Array<Double> * values = NULL;
+  BaseStoreSol * values = 0;
   Integer forcesCount = 0;
 
   // loop over all output coupling quantities
   for (Integer actCoupling=0; actCoupling<ptCoupling_->GetNumOutputCouplings(); actCoupling++)
     {
       quantity = ptCoupling_->GetOutputQuantity(actCoupling);
-      
+      ptCoupling_->GetOutputValues(actCoupling, values);
+      TRY_CAST
+	PTRCAST(values,StoreSol<Double>,temp);
+
       switch(ptCoupling_->GetOutputType(actCoupling))
 	{
 	  
-	case NODE:
-	  
+	case NODE:	  
 	  ptCoupling_->GetOutputNodes(actCoupling, couplingNodes);
-	  ptCoupling_->GetOutputValues(actCoupling, values);
 	  
 	  if (quantity == "elecpotential")
-	    NodeSolutionToCoupling(*values, *couplingNodes);
-
+	    sol_->NodeSolutionToCoupling(*values, *couplingNodes,Mesh2PDENode_);
 	    
 	  if (quantity == "elecforce")
 	    {
-	      CalcNodeForce(*values, 
+	      CalcNodeForce(*temp, 
 			    *couplingNodes, 
 			    F_Interface_[forcesCount], 
 			    isBoundaryNode_[forcesCount], 
@@ -658,6 +676,8 @@ void ElecPDE::CalcOutputCoupling()
 	case ELEM:
 	  Error("No Element coupling output", __FILE__,__LINE__);
 	}
+
+      CATCH_CAST
 
     }
 
@@ -695,7 +715,7 @@ void ElecPDE::CalcInterfaceForces(Integer actCoupling)
 #endif
 
   std::vector<Integer> *      couplingNodes          = NULL;
-  Array<Double> *             elemCouplingSols       = NULL;
+  BaseStoreSol *              elemCouplingSolsTemp   = NULL;
   std::vector<Elem*> *        couplingElems          = NULL;
   std::vector<Elem*> *        outerInterfaceVolElems = NULL;
   std::vector<Elem*> *        innerInterfaceVolElems = NULL;
@@ -703,7 +723,7 @@ void ElecPDE::CalcInterfaceForces(Integer actCoupling)
   std::vector<MaterialData*>* outerCouplingMaterials = NULL;
 
   ptCoupling_->GetOutputNodes    (actCoupling, couplingNodes);
-  ptCoupling_->GetOutputValues   (actCoupling, elemCouplingSols);
+  ptCoupling_->GetOutputValues   (actCoupling, elemCouplingSolsTemp);
   ptCoupling_->GetOutputElements (actCoupling, couplingElems);
   ptCoupling_->GetOwnMaterials   (actCoupling, innerCouplingMaterials);
   ptCoupling_->GetOppositeMaterials (actCoupling, outerCouplingMaterials);
@@ -711,10 +731,13 @@ void ElecPDE::CalcInterfaceForces(Integer actCoupling)
   ptCoupling_->GetInputNeighbourElems (actCoupling, outerInterfaceVolElems);
  
   Integer couplingDof = ptCoupling_->GetOutputDof(actCoupling);
-  
+
+  TRY_CAST
+    PTRCAST(elemCouplingSolsTemp,StoreSol<Double>,elemCouplingSols);
 
    
-  elemCouplingSols->init();
+  elemCouplingSols->Init(0.0);
+  
 
   for (Integer actElem=0; actElem < couplingElems->size(); actElem++)
     {
@@ -768,7 +791,7 @@ void ElecPDE::CalcInterfaceForces(Integer actCoupling)
       // "interfaceForceVec" holds the absolute value of the forces on every node of an interface vector.
       // To establish the final force vectors, every force in every node has to be multiplied by
       // the normal vector of the interface element
-      Vector<Double> interfaceForceOnNodes(connect_PDE.size());   // is automatically initialized by 0
+      Vector<Double> interfaceForceOnNodes(connect_PDE.GetSize());   // is automatically initialized by 0
       
 
       for (Integer actIP=1; actIP <= ptCoupleElem->GetNumIntPoints(); actIP++)
@@ -791,7 +814,7 @@ void ElecPDE::CalcInterfaceForces(Integer actCoupling)
 	  
 	  Vector<Double> E_tangential(tempE);
 	  E_tangential -= n * abs_E_normal;
-	  Double abs_E_tangential = E_tangential.normL2();
+	  Double abs_E_tangential = E_tangential.NormL2();
 	  
 	  // D is calculated in region 1 (D = E_1 * eps1), see Kaltenbacher: "Num. Sim ... " p. 136
 	  Double interfaceForce = sqr(abs_E_normal * eps1 ) / 2 * (1/eps2 - 1/eps1) 
@@ -810,7 +833,7 @@ void ElecPDE::CalcInterfaceForces(Integer actCoupling)
 
 
       // copy result into final solution vector
-      for (Integer actNode=0; actNode < ptCoord.size_row(); actNode++)
+      for (Integer actNode=0; actNode < ptCoord.GetSizeRow(); actNode++)
 	{
 	  Integer nodePos = 0;
 	  
@@ -819,7 +842,7 @@ void ElecPDE::CalcInterfaceForces(Integer actCoupling)
 	    nodePos++;
 	  
 	  for (Integer actDof=0; actDof < couplingDof ; actDof++)  
-	    (*elemCouplingSols)[actDof][nodePos]  += interfaceForceOnNodes[actNode] * n[actDof];
+	    (*elemCouplingSols)(nodePos,actDof)  += interfaceForceOnNodes[actNode] * n[actDof];
 	}
       
 
@@ -829,7 +852,8 @@ void ElecPDE::CalcInterfaceForces(Integer actCoupling)
 // 	for (Integer actDof=0; actDof < couplingDof ; actDof++)  
 // 	  (*elemCouplingSols)[actDof][actNode] += interfaceForceOnNodes[actNode] * n[actDof];
     }
-  *debug << "elem Force: " << myendl << *elemCouplingSols << myendl;
+  //*debug << "elem Force: " << myendl << *elemCouplingSols << myendl;
+  CATCH_CAST
 }
 
 
@@ -877,10 +901,12 @@ void ElecPDE::CalcEfieldAtCoupleElemIP(Elem * actVolElem,
   //y-coord
   lCoord[1] = volCoord1Y + relPosIP * (volCoord2Y - volCoord1Y);
   
-  
-  ElecFieldOp elecFieldOp(ptgrid_, this, &Mesh2PDENode_, &sol_[0], actlevel_, isaxi_);
+  TRY_CAST
+    PTRCAST(sol_,StoreSol<Double>,solTemp);
+  ElecFieldOp elecFieldOp(ptgrid_, this, &Mesh2PDENode_, *solTemp, actlevel_, isaxi_);
 
   elecFieldOp.CalcElemElecField(tempE, actVolElem, lCoord);
+  CATCH_CAST
 }
 
 

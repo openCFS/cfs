@@ -222,7 +222,8 @@ class IntegratorDescriptor : public BaseIntDescriptor
 
     
     //!
-    void SetPtrDeltaCoordinates(Array<Double>* deltCoords)
+//     void SetPtrDeltaCoordinates(Array<Double>* deltCoords)
+    void SetPtrDeltaCoordinates(Matrix<Double> * deltCoords)
     {deltaCoords_ = deltCoords;};
 
     void SetNonlinGeo()
@@ -373,11 +374,8 @@ class IntegratorDescriptor : public BaseIntDescriptor
     
 
     /// set solution 
-    void SetPtr2Sol(Array<Double> * aSol){sol_ = aSol;};
+    void SetPtr2Sol(BaseStoreSol * aSol){sol_ = aSol;};
     
-
-    /// extracts solution belonging to nodes in connect_PDE
-    void GetSolOfElement(Matrix<Double>& elDisp, Vector<Integer>& connect_PDE);
 
     /// return index to dof
     Integer GetBCDof(const std::string dofString);
@@ -447,8 +445,9 @@ class IntegratorDescriptor : public BaseIntDescriptor
     std::vector< std::vector<BaseIntDescriptor *>* > rhsSrcIntegrators_;
 
     /// ptr to solution
-    Array<Double> * sol_;
-    Array<Double> * deltaCoords_;
+
+    BaseStoreSol * sol_;
+    Matrix<Double> * deltaCoords_;
 
     //! nonlinear parameters;
     Boolean firstTime_;

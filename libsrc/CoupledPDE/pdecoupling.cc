@@ -1,9 +1,11 @@
 #include "pdecoupling.hh"
 
+#include <Domain/elem.hh>
 #include <Domain/grid.hh>
 #include <Domain/bcs.hh>
-#include <Domain/elem.hh>
 #include <list>
+#include <Utils/array.hh>
+#include <Utils/storesol.hh>
 
 #ifndef NEWBASEPDE
 #include <PDE/basepde.hh>
@@ -23,7 +25,32 @@ PDECoupling::CouplingInterface::CouplingInterface()
   numNodes = 0;    
   numElems = 0;
   epsilon = 0;
+
+
+  // NOTE:
+  // This is only a temporary solution, since
+  // up to now we only deal with real-valued
+  // quantities.
+  // In the future the allocation of this
+  // pointer has to be done in the 
+  // according PDE
+  values = new StoreSol<Double>;
+  oldValues = new StoreSol<Double>;
+  
+  values->SetNumSolutions(1);
+  values->SetSolutionType(COUPLING_TYPE);
+  oldValues->SetNumSolutions(1);
+  oldValues->SetSolutionType(COUPLING_TYPE);
+  
   }
+
+PDECoupling::CouplingInterface::~CouplingInterface()
+{
+  if(values)
+    delete values;
+  if(oldValues)
+    delete oldValues;
+}
 
 
   PDECoupling::PDECoupling(Grid * aptgrid, BCs * aptBCs)
@@ -70,7 +97,7 @@ PDECoupling::CouplingInterface::CouplingInterface()
 
 
 
-  void PDECoupling::AddInput(std::string quantity, 
+void PDECoupling::AddInput(std::string quantity, 
 			     std::string region, 
 			     CouplingRegionType regionType,
 			     Integer level,
@@ -121,8 +148,12 @@ PDECoupling::CouplingInterface::CouplingInterface()
 
     // Set dof according to myPDE's dof
     myInterface->dof = myPDE_->dofspernode_;
-    myInterface->values.redim(myPDE_->dofspernode_);
-    myInterface->oldValues.redim(myPDE_->dofspernode_);
+    
+    // Initialize the values and oldValues arrays
+    myInterface->values->SetDof(myPDE_->dofspernode_);
+    myInterface->values->Init(0.0);
+    myInterface->oldValues->SetDof(myPDE_->dofspernode_);
+    myInterface->oldValues->Init(0.0);
  
     // set normtype and epsilon
     myInterface->epsilon = defaultEpsilon;
@@ -287,9 +318,11 @@ PDECoupling::CouplingInterface::CouplingInterface()
 	    ptGrid_->GetElemSD(SD, region, level);
 	    ptGrid_->CalcNumberOfNodesInPatch(SD, myInterface->nodes);
 	    myInterface->numNodes = myInterface->nodes.size();
-	    myInterface->values.resize(myInterface->nodes.size());
-	    myInterface->oldValues.resize(myInterface->nodes.size());
- 
+	    //myInterface->values.resize(myInterface->nodes.size());
+	    //myInterface->oldValues.resize(myInterface->nodes.size());
+	    myInterface->values->SetNumNodes(myInterface->nodes.size());
+	    myInterface->oldValues->SetNumNodes(myInterface->nodes.size());
+	    
       
 	    break;
 
@@ -304,9 +337,10 @@ PDECoupling::CouplingInterface::CouplingInterface()
 	      myInterface->nodes[inode] = *it;
 
 	    myInterface->numNodes = myInterface->nodes.size();
-	    myInterface->values.resize(myInterface->nodes.size());
-	    myInterface->oldValues.resize(myInterface->nodes.size());
-
+	    //myInterface->values.resize(myInterface->nodes.size());
+	    //myInterface->oldValues.resize(myInterface->nodes.size());
+	    myInterface->values->SetNumNodes(myInterface->nodes.size());
+	    myInterface->oldValues->SetNumNodes(myInterface->nodes.size());
 	    break;
 
 	  case ELEMS1D:
@@ -320,8 +354,10 @@ PDECoupling::CouplingInterface::CouplingInterface()
             
 	    myInterface->numNodes = myInterface->nodes.size();
 	    myInterface->numElems = myInterface->elements.size();
-	    myInterface->oldValues.resize(myInterface->nodes.size());   
-	    myInterface->values.resize(myInterface->nodes.size());      
+	    //myInterface->oldValues.resize(myInterface->nodes.size());   
+	    //myInterface->values.resize(myInterface->nodes.size());      
+	    myInterface->values->SetNumNodes(myInterface->nodes.size());
+	    myInterface->oldValues->SetNumNodes(myInterface->nodes.size());
 	    myInterface->materials.resize(myInterface->elements.size());
 	    myInterface->oppositePdeMaterials.resize(myInterface->elements.size());
 	    
@@ -334,8 +370,10 @@ PDECoupling::CouplingInterface::CouplingInterface()
       
 	    myInterface->numNodes = myInterface->nodes.size();
 	    myInterface->numElems = myInterface->elements.size();
-	    myInterface->values.resize(myInterface->nodes.size());
-	    myInterface->oldValues.resize(myInterface->nodes.size());
+	    //myInterface->values.resize(myInterface->nodes.size());
+	    //myInterface->oldValues.resize(myInterface->nodes.size());
+	    myInterface->values->SetNumNodes(myInterface->nodes.size());
+	    myInterface->oldValues->SetNumNodes(myInterface->nodes.size());
 	    myInterface->materials.resize(myInterface->elements.size());
 	    break;
 	  }
@@ -359,7 +397,7 @@ PDECoupling::CouplingInterface::CouplingInterface()
 
       }
 
-    void PDECoupling::SetOutputNumNodes(Integer i, Integer nnodes)
+void PDECoupling::SetOutputNumNodes(Integer i, Integer nnodes)
       {
 #ifdef TRACE
 	(*trace) << "entering PDECoupling::SetOutputNumNodes" << std::endl;
@@ -369,8 +407,8 @@ PDECoupling::CouplingInterface::CouplingInterface()
 	// std::cerr << "PdeName: " << myPDE_->GetName() << std::endl;
 
 	outputInterfaces_[i]->numNodes = nnodes;
-	outputInterfaces_[i]->values.resize(nnodes);
-	outputInterfaces_[i]->oldValues.resize(nnodes);
+	outputInterfaces_[i]->values->SetNumNodes(nnodes);
+	outputInterfaces_[i]->oldValues->SetNumNodes(nnodes);
 
       }  
 
@@ -397,8 +435,8 @@ PDECoupling::CouplingInterface::CouplingInterface()
 	// std::cerr << "PdeName: " << myPDE_->GetName() << std::endl;
 
 	outputInterfaces_[i]->dof = dof;
-	outputInterfaces_[i]->values.redim(dof);
-	outputInterfaces_[i]->oldValues.redim(dof);
+	outputInterfaces_[i]->values->SetDof(dof);
+	outputInterfaces_[i]->oldValues->SetDof(dof);
       }
 
     std::string PDECoupling::GetPDEName()
@@ -478,6 +516,3 @@ PDECoupling::CouplingInterface::CouplingInterface()
 //   } 
 
   } // end of namespace
-
-
-  
