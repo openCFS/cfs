@@ -110,9 +110,6 @@ virtual void WriteElemSolutionHarmonic(const ElemStoreSol<Complex>& data,
 				const ComplexFormat format)
 {Error("WriteNodeHistoryHarmonic not yet implemented.",__FILE__,__LINE__);};
 
-//! check, is it the gmv-output file
-Boolean IsGMV();
-
 //! Store config-file in database
 void WriteConfFile();
 

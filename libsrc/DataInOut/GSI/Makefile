@@ -1,18 +1,17 @@
 #
 C_DIR = ../../..
 #
-ifeq ($(GSI),yes)
-src = outGSI.cc
-else
-src =
-endif
+include $(C_DIR)/main/Makefile.option
+#
+src = outGSI.cc GSIBaseIO.cc GSIXDRIO.cc GSISocket.cc
 #
 lib = gsi
 libpath = libsrc/DataInOut/GSI
 CFLAGS3 =
 #
 include ../../makefile.inc
--include $(Dependencies)
+-include Makefile.depend
+#
 # DO NOT DELETE
 
 

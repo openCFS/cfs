@@ -21,8 +21,7 @@ public:
   
   //! initialization with grid
   //! \param ptgrid pointer to grid object
-  //! \param aptbcs pointer to BCs object
-  virtual void Init(Grid * aptgrid, BCs *aptbcs);
+  virtual void Init(Grid * aptgrid);
   
   //! write information about grid with level in file
   /*!

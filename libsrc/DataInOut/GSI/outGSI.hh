@@ -1,26 +1,28 @@
-#ifndef FILE_OUTGSI_2002
-#define FILE_OUTGSI_2002
+#ifndef FILE_OUTGSI_2004
+#define FILE_OUTGSI_2004
 
 #include "Domain/grid.hh"
 #include "DataInOut/writeresults.hh"
 
-class CFS_ServerSocket;
-class CFS_BaseIO;
+// forward declarations
+class GSIServerSocket;
+class GSIBaseIO;
 
 namespace CoupledField
 {
-//! This class provides an interface for writing files in gmv-format
+
+//! This class provides an interface for writing files in GSI-format
+
 class WriteResultsGSI: virtual public WriteResults
 {
 public:
 
   //! Constructor
-  WriteResultsGSI(const Char * const filename,Boolean withHistory=FALSE);
+  WriteResultsGSI(const Char * const filename, FileType * const aInFile=NULL); 
 
   //! Deconstructor
   virtual ~WriteResultsGSI();
   
-  int waitForConnection();
   //! initialization with grid
   /*!
     \param aptgrid pointer to class Grid
@@ -33,46 +35,51 @@ public:
   */
   virtual void WriteGrid(const Integer level);
 
-  //! write information about the solution
+  //! write node solution vector
   /*!
-    \param sol solution
-    \param step number of step of the calculation
-    \param time time of the calculation
-     \param title name for the solution
+    \param data vector with data (ex. value of an error for the cell)
+    \param step step of calculation
+    \param time time of calculation
   */
-  virtual void WriteSolution(const Vector<Double> & sol, const Integer step, const Double time, const std::string title);
+  virtual void WriteNodeSolutionTransient(const NodeStoreSol<Double>& data, 
+					  const Integer step, 
+					  const Double time);
 
- //! write cell data
- /*!
+ //! write node solution vector
+  /*!
     \param data vector with data (ex. value of an error for the cell)
     \param step step of calculation
     \param time time of calculation
     \param title name for the data
   */
-  virtual void WriteDataOnCell(const Vector<Double> & data, const Integer step, const Double time, const std::string title);
-
-  //! write vectors-data on cells
+  virtual void WriteElemSolutionTransient(const ElemStoreSol<Double>& data, 
+					  const Integer step, 
+					  const Double time);
+ 
+  //! write element solution vector 
   /*!
-    \param vec pointer to vector with data
-     \param step step of calculation
-    \param time time of calculation
-    \param title name for the data
+    \param data vector with data (ex. value of an error for the cell)
+    \param step step of calculation
+    \param frequency frequency of exciting function
+    \param format format for writing complex solution (real-imag/amplitude-phase)
   */
-  virtual void WriteResultsGSI::WriteVecDataOnCell(const Vector<Double>*vec,const Integer step, const Double time, const std::string title);
+  virtual void WriteNodeSolutionHarmonic(const NodeStoreSol<Complex>& data, 
+					 const Integer step,
+					 const Double frequency,
+					 const ComplexFormat format);
 
- //! write comments
+ //! write element solution vector
   /*!
-    \param comments string with comments
+    \param data vector with data (ex. value of an error for the cell)
+    \param step step of calculation
+    \param frequency frequency of exciting function
+    \param format format for writing complex solution (real-imag/amplitude-phase)
   */
- virtual void WriteComments(const std::string comments){;}
+  virtual void WriteElemSolutionHarmonic(const ElemStoreSol<Complex>& data, 
+					 const Integer step,
+					 const Double frequency,
+					 const ComplexFormat format);
 
-  //! check, is it the gmv-output file
-  virtual Boolean IsGMV(){ return FALSE; }
-
- //! function for open file with number num 
-  void OpenFile(const Integer num) {};
-
-  void WriteMsg(const std::string msg);
   Integer DoCompute();
   Integer TransferGrid();
 
@@ -81,53 +88,92 @@ private:
   Integer currstep_;
   Integer maxnumnodes_;
 
-  //! pointer to Grid
-  Grid * ptgrid;
-
-  //! write header of gmv-file: only ascii is implemented
-  //  void WriteHeader();
-
-  //! write number of nodes and coordinates of them
-  //  void WriteNodes(const Integer level);
-
-  //! write cell description 
-  //  void WriteCells(const Integer level); 
-
-  //! write variable information
+  //! dataset 666. 
   /*!
-    \param dataType data type of the var: 0.. cell data, 1.. node data, 2.. face data
-     \param var vector with data
-     \param name name of output-data
+    \param level level of the Grid
   */
-  //  void WriteVariable(const Vector<Double> var, const std::string name, const Integer dataType);
+  void Dataset666(const Integer level);
+
+  //! dataset 781
+  /*!
+    \param level level of the Grid
+  */
+  void Dataset781(const Integer level);   
+
+  //! dataset 780
+  /*!
+     \param level level of the Grid
+  */
+  void Dataset780(const Integer level);
+
+  //! for printing nodal results of simulation (static/transient)
+  /*!
+    \param title title of the results.
+    \param x array with nodal results
+    \param step number of the step of the calculation
+    \param time time of the calculation
+  */
+  void Dataset55_Transient(const std::string & title, 
+			   const Vector<Double> & x, 
+			   const Integer step, 
+			   const Double time, 
+			   const Integer nrNodes,
+			   const Integer nrDofs=1);
   
-   //! write vector-variable information
+  //! for printing nodal results of simulation (harmonic)
   /*!
-    \param dataType data type of the var: 0.. cell data, 1.. node data, 2.. face data
-    \param var pointer to vector with output data
-    \param name name of output-data
+    \param title title of the results.
+    \param x array with nodal results
+    \param freuqncy exciting frequency of current result
+    \param format output format for complex numbers
   */
-  //  void WriteVelocity(const Vector<Double>* var, const std::string name, const Integer dataType);
- 
-  //! transform string to 8 characters. we need it, because name in gmv, in binary format, should be from 8 characters
-  /*!
-    \param name (input) title
-    \param result (output) result
-  */
-  //  void to8Char(const std::string name, char * result);
-
-  void  Dataset666(const Integer);
-  void  WriteResultsGSI::Dataset781(const Integer);
-  void  WriteResultsGSI::Dataset780(const Integer);
-  void  WriteResultsGSI::Dataset55(const std::string &, const Vector<Double> &, const Integer step, const Double time);
-  void  WriteResultsGSI::Dataset56_Scalar(const std::string &, const Vector<Double> &, const Integer, const Double);
-  void  WriteResultsGSI::Dataset56_Vec(const std::string &, const Vector<Double> *, const Integer, const Double);
+  void Dataset55_Harmonic(const std::string & title, 
+			  const Vector<Complex> & x, 
+			  const Integer step,
+			  const Double frequency,
+			  const ComplexFormat format,
+			  const Integer nrNodes,
+			  const Integer nrDofs=1);
   
+  //! for printing cell results of simulation (transient / static)
+  /*!
+    \param title title of the results.
+    \param x array with cell results
+    \param step number of the step of the calculation
+    \param time time of the calculation
+  */
+  void Dataset56_Transient(const std::string & title, 
+			   const Vector<Double> & x, 
+			   const Integer step, 
+			   const Double time,
+			   const Integer numElems,
+			   const Integer nrDofs=1);
+  
+  //! for printing cell results of simulation (harmonic)
+  /*!
+    \param title title of the results.
+    \param x array with cell results
+    \param step number of the step of the calculation
+    \param time time of the calculation
+  */
+  void Dataset56_Harmonic(const std::string & title, 
+			  const Vector<Complex> & x, 
+			  const Integer step,
+			  const Double frequency, 
+			  const ComplexFormat format, 
+			  const Integer numElems,
+			  const Integer nrDofs=1);
+  
+  //! Convertes enum SolutionType to string
+  std::string SolutionTypeToString(const SolutionType type) const;
+  
+  void WriteMsg(const std::string msg);
 
 private:
-  CFS_ServerSocket *ss_;
-  CFS_ServerSocket *sock_;
-  CFS_BaseIO *io_;
+  GSIServerSocket *ss_;
+  GSIServerSocket *sock_;
+  GSIBaseIO *io_;
+  FILE* fp_;
 };
 
 } // end of namespace

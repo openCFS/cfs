@@ -9,6 +9,7 @@
 #include "DataInOut/WriteInfo.hh"
 #include "DataInOut/Unverg/outUnverg.hh"
 #include "DataInOut/GMV/outGMV.hh"
+#include "DataInOut/GSI/outGSI.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
 #include "DataInOut/ParamHandling/PlainXMLParamHandler.hh"
 #include "DataInOut/ParamHandling/XMLParamHandler.hh"
@@ -229,8 +230,9 @@ namespace CoupledField
     if (outformat=="gmv")
       ptWriteResults_=new WriteResultsGMV(filename_, aInFile);
     else if (outformat=="unverg")
-      ptWriteResults_=new WriteResultsUnverg(filename_, aInFile);
-//      ptWriteResults_=new WriteResultsUnverg(filename_, withHistory, aInFile);
+      ptWriteResults_=new WriteResultsUnverg(filename_, aInFile); 
+    else if (outformat=="gsi")
+      ptWriteResults_=new WriteResultsGSI(filename_, aInFile);
 #ifdef USE_DATABASE
     else if (outformat=="database")
       ptWriteResults_=new WriteResultsDatabase(filename_, aInFile);
@@ -242,13 +244,13 @@ namespace CoupledField
     if ( outformat == "gmv" ) {
       ptWriteResults_= new WriteResultsGMV(filename_, aInFile);
     }
-    else if ( outformat == "unv" ) {
-      ptWriteResults_= new WriteResultsUnverg(filename_, aInFile);
-    }
+    else if ( outformat == "unv" ) 
+      ptWriteResults_= new WriteResultsUnverg(filename_, aInFile); 
+    else if ( outformat == "gsi" ) 
+      ptWriteResults_= new WriteResultsGSI(filename_, aInFile);
 #ifdef USE_DATABASE
-    else if (outformat == "database") {
+    else if (outformat == "database") 
       ptWriteResults_= new WriteResultsDatabase(filename_, aInFile);
-    }
 #endif
     else
       {

@@ -22,8 +22,7 @@ public:
 
   //! initialization with grid
   //! \param ptgrid pointer to grid object
-  //! \param aptbcs pointer to BCs object
-  virtual void Init(Grid * aptgrid, BCs * aptbcs);
+  virtual void Init(Grid * aptgrid);
 
   //! write information about grid on level i in file
    /*!
@@ -74,9 +73,6 @@ public:
 					 const Integer step,
 					 const Double frequency,
 					 const ComplexFormat format);
-
-  //!  check, is it the gmv-output file
-  virtual Boolean IsGMV() { return FALSE;}
 
 private:
   //! pointer to the ofstream with output -data

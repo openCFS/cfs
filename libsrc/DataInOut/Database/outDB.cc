@@ -414,12 +414,6 @@ void WriteResultsDatabase::WriteElemSolutionTransient (const ElemStoreSol<Double
   Dataset56(title, globalSolution, step, time,numElems, sol.GetDof());
 }
 
-Boolean WriteResultsDatabase::IsGMV()
-{
-  ENTER_FCN("WriteResultsDatabase::IsGMV");
-  return false;
-}
-
 
 void WriteResultsDatabase::WriteConfFile()
 {
