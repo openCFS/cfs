@@ -11,6 +11,7 @@ template<class TYPE> class Matrix;
 template<class TYPE> class Vector;
 template<class TYPE> class NodeStoreSol;
 template<class TYPE> class ElemStoreSol;
+template <class TYPE> class VectorListInitializer;
 
 //! Concrete Template class for a general dense vector
 template<class TYPE>
@@ -45,6 +46,9 @@ public:
   //! where the entries are sequentilly ordered in real
   //! and imaginary parts (real_1, imag_1, real_2, ...)
   Double* GetDoublePointer();
+
+  //! Deletes the content of the vector
+  void Clear();
 
   //! Initalizes the vector with a given entry
   /*!
@@ -226,6 +230,11 @@ public:
   //! Overloading of assignement operatior for Vector and Matrix  
   Vector	operator=	(const Matrix<TYPE> &) const;
 
+  //! This method is needed to intialize a StdVector like this
+  //! \verb StdVector<Integer> A;
+  //! \verb A = 1,2,5,10
+  inline VectorListInitializer<TYPE> operator=(const TYPE x);
+
   //! Return part of Vector from index i to ii
   Vector	Part	(const Integer i, const Integer ii) const;
 
@@ -276,6 +285,41 @@ public:
   Integer capacity_;
 
 };
+
+// ******************************************************
+  // HELPER CLASS FOR INITALIZING Vector
+  // (ref. 'Techniques for Scientific C++' 
+  // by Todd Veldhuizen, page. 43ff
+  // ******************************************************
+  template <class TYPE>
+  class VectorListInitializer
+  {
+  public:
+
+    //! Constructor
+    VectorListInitializer(Vector<TYPE> * vec)
+      :vec_(vec) {};
+    
+    //! Overloading of comma operator
+    VectorListInitializer<TYPE> operator, (const TYPE x)
+    {
+      vec_->Push_back(x);
+      return VectorListInitializer<TYPE>(vec_);
+    }
+
+  private:
+    //! pointer to vector
+    Vector<TYPE> * vec_;
+  };
+
+ //! 
+  template<class TYPE>
+  VectorListInitializer<TYPE> Vector<TYPE>::operator= (const TYPE x)
+  {
+    Clear();
+    Push_back(x);
+    return VectorListInitializer<TYPE>(this);
+  }
 
 // ******************************************************
 // * Additional functions related with handling vectors *
