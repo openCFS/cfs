@@ -63,7 +63,7 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 #else
 
     // Get problem geometry and PDE subtype
-    params->Get( "subtype", subType_, pdename_ );
+    params->Get( "subType", subType_, pdename_ );
     std::string probGeo;
     params->Get( "type", probGeo, "geometry" );
 
@@ -78,9 +78,9 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
       dofspernode_ = 2;
       Info->PrintF("", "=== AXISYSMMETRIC PROBLEM\n");
     }
-    else if ( subType_ == "plainStrain" && probGeo == "plane" ) {
+    else if ( subType_ == "planeStrain" && probGeo == "plane" ) {
 	dofspernode_ = 2;
-	Info->PrintF("", "=== PLAIN STRAIN PROBLEM\n");
+	Info->PrintF("", "=== PLANE STRAIN PROBLEM\n");
       }
     else
       {
@@ -394,7 +394,11 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 		nLinPart1 = new nLinMech3dInt_BNonLin(actSDMat);    
 		nLinPart2 = new nLinMech3dInt_PiolaStress(actSDMat);
 	      }
+#ifndef XMLPARAMS
 	    else if (subType_ == "plainStrain")
+#else
+	    else if (subType_ == "planeStrain")
+#endif
 	      {
 		nLinPart1 = new nLinMechPlaneStrainInt_BNonLin(actSDMat);    
 		nLinPart2 = new nLinMechPlaneStrainInt_PiolaStress(actSDMat);
@@ -451,7 +455,11 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
   
     BaseForm * bilinearStiff = NULL;
 
+#ifndef XMLPARAMS
     if (subType_ == "plainStrain")
+#else
+    if (subType_ == "planeStrain")
+#endif
       bilinearStiff = new mechPlainStrainInt(actSDMat);
     else if (subType_ == "axi")
       bilinearStiff = new mechAxiInt(actSDMat);
