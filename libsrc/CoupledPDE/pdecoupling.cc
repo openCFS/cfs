@@ -164,18 +164,20 @@ void PDECoupling::AddInput(std::string quantity,
       // 1. Step: get the neighbouring elements 
       
       const StdVector<Elem*> * interfaceElems = &(myInterface->elements);
-      StdVector<Elem*>  actSubdomain, possibleNeighbours;
+      //StdVector<Elem*>  actSubdomain;
+      //StdVector<Elem*> possibleNeighbours;
       
       
       
-      for (Integer iSd=0; iSd < myPDE_->subdoms_.GetSize(); iSd++)
-	{
-	  ptGrid_->GetElemSD(actSubdomain, myPDE_->subdoms_[iSd], level);
-	  for (Integer j=0; j<actSubdomain.GetSize(); j++)
-	    possibleNeighbours.Push_back(actSubdomain[j]);
-	}
+      // for (Integer iSd=0; iSd < myPDE_->subdoms_.GetSize(); iSd++)
+// 	{GetVolNeighboursForSurf
+// 	  ptGrid_->GetElemSD(actSubdomain, myPDE_->subdoms_[iSd], level);
+// 	  for (Integer j=0; j<actSubdomain.GetSize(); j++)
+// 	    possibleNeighbours.Push_back(actSubdomain[j]);
+// 	}
       
-      ptGrid_->DefineBelonging4Elems(*interfaceElems, possibleNeighbours, myInterface->neighbours);
+      ptGrid_->GetVolNeighboursForSurf(*interfaceElems,  myPDE_->subdoms_, 
+				       myInterface->neighbours, level);
       if (!myInterface->neighbours.GetSize())
 	Error("No neighbours for element coupling found!",  __FILE__,__LINE__);
       
@@ -208,17 +210,18 @@ void PDECoupling::AddInput(std::string quantity,
       
       // Set the material of the neighbours elements of the "opposite" PDE
       // 1. Step: get the neighbouring elements
-      possibleNeighbours.Clear();
+//       possibleNeighbours.Clear();
       
       
-      for (Integer iSd=0; iSd < oppositePDE->subdoms_.GetSize(); iSd++)
-	{
-	  ptGrid_->GetElemSD(actSubdomain, oppositePDE->subdoms_[iSd], level);
-	  for (Integer j=0; j<actSubdomain.GetSize(); j++)
-	    possibleNeighbours.Push_back(actSubdomain[j]);
-	}
+//       for (Integer iSd=0; iSd < oppositePDE->subdoms_.GetSize(); iSd++)
+// 	{
+// 	  ptGrid_->GetElemSD(actSubdomain, oppositePDE->subdoms_[iSd], level);
+// 	  for (Integer j=0; j<actSubdomain.GetSize(); j++)
+// 	    possibleNeighbours.Push_back(actSubdomain[j]);
+// 	}
       
-      ptGrid_->DefineBelonging4Elems(*interfaceElems, possibleNeighbours, myInterface->oppositePdeNeighbours);
+      ptGrid_->GetVolNeighboursForSurf(*interfaceElems, oppositePDE->subdoms_, 
+				       myInterface->oppositePdeNeighbours, level);
       if (!myInterface->oppositePdeNeighbours.GetSize())
 	Error("No opposite neighbours for element coupling found!",  __FILE__,__LINE__);
       

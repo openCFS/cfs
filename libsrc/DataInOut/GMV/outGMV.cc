@@ -780,6 +780,9 @@ std::string WriteResultsGMV::SolutionTypeToString(const SolutionType type) const
       break;
     case ELEC_FORCE: 
       break;
+    case ELEC_CHARGE:
+      return "E-Charge";
+      break;
     case SMOOTH_DISPLACEMENT:
       return "displacement";
       break;

@@ -256,7 +256,6 @@ void BasePDE::SolveStepStatic(const Integer kstep, const Double asteptime,
   lasttimecalc_ = asteptime;
   laststepcalc_ = kstep;
 
-  PreStepStatic(kstep, asteptime, level, reset);
 
   if (nonLin_)
     StepStaticNonLin(kstep,asteptime,level,reset);
@@ -1172,12 +1171,12 @@ void BasePDE::CalcInputCoupling()
 	  //std::cerr << "In " << pdename_ << "::CalcInputCoupling - Switch(RHS)" << std::endl;
 	  ptCoupling_->GetInputNodes(i, nodes);
 	  
-	  
 
 	  //for (Integer dof=0; dof<ptCoupling_->GetInputDof(i); dof++)
 	  for (Integer dof=0; dof<couplingDof; dof++)
 	    for (Integer j=0; j<nodes->GetSize(); j++)
 	      {
+		std::cerr << "Getting input node " << (*nodes)[j] << std::endl;
 		eqnData_->Node2EQN((*nodes)[j],dof+1,eqnNr,eqnDof);
 		// This warning is disabled, in multi-dof pdes
 		// only one compomemt
@@ -1198,7 +1197,11 @@ void BasePDE::CalcInputCoupling()
 		  // PROBLEM !!!!
 		  // SetNodeRHS erwartet Double* oder Complex*, aber Inhalt erst zu Laufzeit bekannt ...
 		if (eqnNr != 0) 
+		  {
+		    std::cerr << "Setting node rhs to " << help[dof+couplingDof*j] << std::endl;
+		    std::cerr << "enqDof = " << eqnDof << " eqnNr = " << eqnNr << std::endl;
 		  algsys_->SetNodeRHS(help[dof+couplingDof*j], eqnNr, eqnDof);
+		  }
 	      }
 	  
 	  break;

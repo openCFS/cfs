@@ -72,7 +72,9 @@ namespace CoupledField
       //surface elements can occure
       params->GetList( "name", color_faces_, "domain", "elements" );
       if (color_faces_.GetSize()) 
+	{
 	bcsFaces_[0]=new StdVector<Elem*>[color_faces_.GetSize()]; 
+	}
 	
       //check for line elements
       Integer num1DElems = InFile_->GetNum1DElems();
@@ -175,7 +177,9 @@ void BCs :: ReadBCs()
    InFile_->ReadEl1d(bcsEdges_[0],color_edges_);
 
  if (color_faces_.GetSize())
-   InFile_->ReadEl2d(bcsFaces_[0],color_faces_);
+   {
+     InFile_->ReadEl2d(bcsFaces_[0],color_faces_);
+   }
 
  if (color_neighelems_.GetSize()) {
     if (InFile_->ReadDim()==2)

@@ -74,24 +74,32 @@ public:
   { 
     return ptGridCFS->CalcAreaElem(elem);
   }  
-
-  //!
-  void FormNeighbors4NodesOfElements(const StdVector<Elem*> &elems, StdVector<StdVector<Elem*> > &nodeNeighbors, StdVector<Integer> & map)
-  { ptGridCFS->FormNeighbors4NodesOfElements(elems, nodeNeighbors,  map);}
   
   //!
-  virtual void DefineBelonging4Elems(const StdVector<Elem*>& elemsSurf, const StdVector<Elem*>&elems, StdVector<Elem*> & belongingSE)
-  { ptGridCFS->DefineBelonging4Elems(elemsSurf,elems,belongingSE);}
-
-  //!
-  virtual void GetInterfaceNeighbours(StdVector<Integer> & interfaceNodes, StdVector<std::string> & subdoms, StdVector<Elem*> & neighbours, Integer level)
+  virtual void GetInterfaceNeighbours(StdVector<Integer> & interfaceNodes, 
+				      StdVector<std::string> & subdoms, 
+				      StdVector<Elem*> & neighbours, 
+				      Integer level)
   {  ptGridCFS->GetInterfaceNeighbours(interfaceNodes, subdoms, neighbours, level);}
+  
+  //!
+  virtual void GetVolNeighboursForSurf(const StdVector<Elem*> & surfElems,
+				       const StdVector<std::string> & neighRegions,
+				       StdVector<Elem*> & volElems,
+				       const Integer level)
+  { ptGridCFS->GetVolNeighboursForSurf(surfElems, neighRegions, volElems,level);}
+
   
   //!
   virtual void CalcNumberOfNodesInPatch(const StdVector<Elem*> & patch, StdVector<Integer>& map) 
   { ptGridCFS->CalcNumberOfNodesInPatch(patch,map);}
 
 protected:
+  //!
+  void FormNeighbors4NodesOfElements(const StdVector<Elem*> &elems, 
+				     StdVector<StdVector<Elem*> > &nodeNeighbors, 
+				     StdVector<Integer> & map)
+  { ptGridCFS->FormNeighbors4NodesOfElements(elems, nodeNeighbors,  map);}
 
 private:
   GridCFS<dim> * ptGridCFS;

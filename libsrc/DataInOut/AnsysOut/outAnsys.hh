@@ -55,7 +55,7 @@ public:
     \param time time of calculation
     \param title name for the data
   */
-  void WriteResultsAnsys::WriteVecDataOnCell(const Vector<Double>*vec,const Integer step, const Double time, const std::string title);
+  void WriteVecDataOnCell(const Vector<Double>*vec,const Integer step, const Double time, const std::string title);
 
  //! write comments
   /*!

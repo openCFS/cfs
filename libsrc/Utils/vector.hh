@@ -286,12 +286,12 @@ void Swap(Vector<TYPE> & a, Vector<TYPE> & b);
 template<class TYPE>  std::ostream& operator << ( std::ostream & , const Vector<TYPE> &);
 
 
-
+#ifdef __GNUC__
   // Template instantiation for used vectors
   template class Vector<Integer>;
   template class Vector<Double>;
   template class Vector<Complex>;
-
+#endif
  
 } // end of namespace
 

@@ -128,9 +128,9 @@ public:
   void SetNumSolutions(const Integer nSols);
   
 
-  //! Set the number of solution nodes/elems
+  //! Set the number of solution nodes
   /*!
-    \param nNodes (input) Number of solution nodes/elems
+    \param nNodes (input) Number of solution nodes
   */
   //! \note All entries of this object are deleted afterwards
   void SetNumNodes(const Integer nNodes);
@@ -193,7 +193,7 @@ public:
 		  const Integer dof) const;
 
 
-  //! Get vector with one solutiontype for all nodes/elems
+  //! Get vector with one solutiontype for all nodes
   /*!
     \param (input) Solution type (ref. enum SolutionType)
     \param (output) Vector with given solution type)
@@ -201,8 +201,8 @@ public:
   void GetGlobalSolVector(const SolutionType solType, 
 			  CFSVector & val) const;
 
-  
-  //! Set vector with one solution type for all nodes/elems
+
+  //! Set vector with one solution type for all nodes
   /*!
     \param (input) Solution type (ref. enum SolutionType)
     \param (input) Vector with given solution type)
@@ -213,25 +213,25 @@ public:
 			  const CFSVector & val) ;
 
 
-  //! Set all solution types for one node/elem
+  //! Set all solution types for one node
   /*!
-    \param nodeNr (input) Node/elem number for solution
+    \param nodeNr (input) Node number for solution
     \param val (input) Vector containing nodal results
   */
   void SetNodalResult(const Integer nodeNr, 
 		      const CFSVector &val);
 
  
-  //! Get all solution types for one node/element
+  //! Get all solution types for one node
   /*!
-    \param nodeNr (input) Node/elem number for solution
+    \param nodeNr (input) Node number for solution
     \param val (output) Vector containing nodal results
   */
   void GetNodalResult(const Integer nodeNr, 
 		      CFSVector & val) const;
 
 
- //! Get vector of one solution type for all nodes/elems of one given dof
+ //! Get vector of one solution type for all nodes of one given dof
   /*!
     \param solType (input) Solution type (ref. enum SolutionType)
     \param dof (input)  Dof of solType
@@ -242,7 +242,7 @@ public:
 				   CFSVector & val) const;
   
 
- //! Get solution vector for all nodes/elems  of one given dof
+ //! Get solution vector for all nodes  of one given dof
   /*!
     \param dof (input)  Dof of solType
     \param val (output) Vector containing rsults
@@ -253,7 +253,7 @@ public:
 				   CFSVector & val) const;
 
 
-  //! Get single result of given node/elem for given dof
+  //! Get single result of given node for given dof
   /*!
     \param nodeNr (input) Node number of result
     \param dof (input) Dof of result
@@ -266,10 +266,10 @@ public:
 	   TYPE & ret) const;
 
   
-  //! Get single result of given solution type, node/elem and dof
+  //! Get single result of given solution type, node and dof
   /*! 
     \param solType (input) Solution type (ref. enum SolutionType)
-    \param nodeNr (input) Node/elem number of result
+    \param nodeNr (input) Node number of result
     \param dof (input) Dof of result
     \param val (output)  Result of node nodeNr for given dof
   */
@@ -282,7 +282,7 @@ public:
   //! Set a single entry of a given solution type and a given dof
   /*!
     \param solType (input) Solution type (ref. enum SolutionType)
-    \param nodeNr (input) Node/elem number of result
+    \param nodeNr (input) Node number of result
     \param dof (input) Dof of result
     \param val (input)  Result of node nodeNr for given solType and dof
   */  
@@ -295,7 +295,7 @@ public:
   //! Add value to a single entry of a given solution type and a given dof
   /*!
     \param solType (input) Solution type (ref. enum SolutionType)
-    \param nodeNr (input) Node/elem number of result
+    \param nodeNr (input) Node number of result
     \param dof (input) Dof of result
     \param val (input)  Result of node nodeNr for given solType and dof
   */   
@@ -431,10 +431,12 @@ protected:
   // ======================================================
   // EXPLICIT TEMPLATE INSTANTIATION
   // ======================================================
+#ifdef __GNUC__
   template class NodeStoreSol<Double>;
   template class NodeStoreSol<Complex>;
   //template class NodeStoreSol<Integer>;
- 
+#endif 
+
 } //end of namespace
 
 #endif

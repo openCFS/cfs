@@ -551,7 +551,9 @@ void NodeStoreSol<TYPE>::GetGlobalSolVectorSingleDof(const Integer dof,
 
 
 template<class TYPE>
-void NodeStoreSol<TYPE>::Get(const Integer nodeNr, const Integer dof, TYPE & ret) const
+void NodeStoreSol<TYPE>::Get(const Integer nodeNr, 
+			     const Integer dof, 
+			     TYPE & ret) const
 {
   ENTER_FCN("NodeStoreSol::Get");
 #ifdef CHECK_INITIALIZED
@@ -575,16 +577,25 @@ void NodeStoreSol<TYPE>::Get(const Integer nodeNr, const Integer dof, TYPE & ret
 }
 
 template<class TYPE>
-void NodeStoreSol<TYPE>::Get(const SolutionType type, const Integer nodeNr, const Integer dof, TYPE & ret) const
+void NodeStoreSol<TYPE>::Get(const SolutionType type, 
+			     const Integer nodeNr, 
+			     const Integer dof, 
+			     TYPE & ret) const
 {
   ENTER_FCN("NodeStoreSol::Get");
 #ifdef CHECK_INITIALIZED
   if (length_ == 0) Error("NodeStoreSol: Use of uninitialized object!",__FILE__,__LINE__);
 #endif
-  Error ("Not yet adapted to EQN class", __FILE__, __LINE__);
   Integer offset = (*solOffset_.find(type)).second;
 
-  ret = data_[nodeNr * totalDofs_ + offset + dof];
+  Integer eqnNr, eqnDof;
+  
+  ptEQN_->Node2EQN(nodeNr+1,offset+dof+1,eqnNr,eqnDof);
+
+  if (eqnNr != 0)
+    ret = data_[abs(eqnNr-1)+eqnDof-1];
+  else
+    ret =  TYPE();
 }
 
 template<class TYPE>
