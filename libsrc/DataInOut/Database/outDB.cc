@@ -420,11 +420,7 @@ void WriteResultsDatabase::WriteConfFile()
 {
   ENTER_FCN("WriteResultsDatabase::WriteConfFile");
 
-#ifdef XMLPARAMS
   std::string filename = namefile_ + ".xml";
-#else
-  std::string filename = namefile_ + ".conf";
-#endif
 
   std::ifstream istr;
   istr.open(filename.c_str(),std::ios_base::in);

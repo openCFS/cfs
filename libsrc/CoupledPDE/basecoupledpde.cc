@@ -4,7 +4,6 @@
 
 #include "basecoupledpde.hh"
 #include "CoupledPDE/pdecoupling.hh"
-#include "DataInOut/ParamHandling/ConfFile.hh"
 
  
 namespace CoupledField
@@ -34,11 +33,7 @@ namespace CoupledField
   
   // get analysis type
   std::string analysis;
-#ifndef XMLPARAMS
-  conf->get("analysis", analysis);
-#else
   params->Get( "type", analysis, "analysis" );
-#endif
 
   //  if (analysis=="static") 
   // analysype_ = STATIC;

@@ -69,13 +69,7 @@ namespace CoupledField
     void PrintMagMat(MaterialData& material);
 
     /// prints all data of a coil (e.g. current, area, magnetization, ...)
-#ifndef XMLPARAMS
-    void PrintCoil(std::string& coilDomain, struct coilDefStruct& coilDef,
-		   AnalysisType& analysistype);
-#else
-    /// prints all data of a coil (e.g. current, area, magnetization, ...)
     void PrintCoil( Coil &coil, AnalysisType &analysistype );
-#endif
 
     /// prints the process of a nonlinear iteration
     void WriteNonLinIter(const std::string& pdeName, const Integer iterationCounter,    

@@ -270,11 +270,7 @@ namespace CoupledField {
 	// occur only one time
 	// ********************************
 	StdVector<std::string> pdeNames;
-#ifndef XMLPARAMS
-	conf->getliststr("list_pdes",pdeNames);
-#else
 	params->GetPDEList( pdeNames );
-#endif
 	pdeFound = FALSE;
 	for (Integer kPDE=0; kPDE<pdeNames.GetSize(); kPDE++)
 	  if (pdesPerStep_[iStep][iPDE] == pdeNames[kPDE])

@@ -58,9 +58,8 @@ namespace CoupledField
   
     Integer size_;        //!< total number of unknowns (equations)
 
-#ifdef XMLPARAMS
     //! Obtain information on desired output quantities from parameter file
-
+    
     //! This method is used to query the parameter handling object for the
     //! desired output quantities and translate their literal description into
     //! the internal format by setting the corresponding class attributes.
@@ -92,7 +91,6 @@ namespace CoupledField
     //!   </tr>
     //! </table>
     void ReadStoreResults();
-#endif
 
  //! Init the time stepping
     void InitTimeStepping();

@@ -28,17 +28,10 @@ MpCCIexch::MpCCIexch(Grid *aptgrid, Integer nNodesSD)
 
 
   //Get general specific coupling description for CFS++ side
-#ifndef XMLPARAMS
-  conf->get("meshId",meshId_,"MpCCIdata");
-  conf->get("partId",partId_,"MpCCIdata");
-  conf->get("nNodeIds",nNodeIds_,"MpCCIdata");
-  conf->get("GlobalDim",GlobalDim_,"MpCCIdata");
-#else
-    params->Get("meshId", meshId_, "MpCCI-flownoise");
-    params->Get("partId",partId_, "MpCCI-flownoise");
-    params->Get("nNodeIds", nNodeIds_,"MpCCI-flownoise");
-    params->Get("GlobalDim", GlobalDim_, "MpCCI-flownoise");
-#endif
+  params->Get("meshId", meshId_, "MpCCI-flownoise");
+  params->Get("partId",partId_, "MpCCI-flownoise");
+  params->Get("nNodeIds", nNodeIds_,"MpCCI-flownoise");
+  params->Get("GlobalDim", GlobalDim_, "MpCCI-flownoise");
 
   nodeIds_   = new Integer[MpCCInodes_]; 
   nodeIds_[0] = 0;
@@ -214,26 +207,14 @@ void MpCCIexch::CouplCompPhase(Matrix<Double> & flowdata, Integer timestep)
   Integer quantityDim2; //velx, vely, velz (vector)
   Integer maxnEmptyNodes;
 
-#ifndef XMLPARAMS
- // read out from conffile
-  conf->get("nQuantityIds",nQuantityIds,"MpCCIdata");
-  conf->get("nLocalMeshIds",nLocalMeshIds,"MpCCIdata");
-  conf->get("remoteCodeId",remoteCodeId,"MpCCIdata");
-  conf->get("quantityId1",quantityId1,"MpCCIdata");
-  conf->get("quantityId2",quantityId2,"MpCCIdata");
-  conf->get("quantityDim1",quantityDim1,"MpCCIdata");
-  conf->get("quantityDim2",quantityDim2,"MpCCIdata");
-  conf->get("maxnEmptyNodes",maxnEmptyNodes,"MpCCIdata");
-#else
-    params->Get("nQuantityIds",nQuantityIds, "MpCCI-flownoise");
-    params->Get("nLocalMeshIds",nLocalMeshIds, "MpCCI-flownoise");
-    params->Get("remoteCodeId",remoteCodeId, "MpCCI-flownoise");
-    params->Get("quantityId1",quantityId1, "MpCCI-flownoise");
-    params->Get("quantityId2",quantityId2, "MpCCI-flownoise");
-    params->Get("quantityDim1",quantityDim1, "MpCCI-flownoise");
-    params->Get("quantityDim2",quantityDim2, "MpCCI-flownoise");
-    params->Get("maxnEmptyNodes",maxnEmptyNodes, "MpCCI-flownoise");
-#endif
+  params->Get("nQuantityIds",nQuantityIds, "MpCCI-flownoise");
+  params->Get("nLocalMeshIds",nLocalMeshIds, "MpCCI-flownoise");
+  params->Get("remoteCodeId",remoteCodeId, "MpCCI-flownoise");
+  params->Get("quantityId1",quantityId1, "MpCCI-flownoise");
+  params->Get("quantityId2",quantityId2, "MpCCI-flownoise");
+  params->Get("quantityDim1",quantityDim1, "MpCCI-flownoise");
+  params->Get("quantityDim2",quantityDim2, "MpCCI-flownoise");
+  params->Get("maxnEmptyNodes",maxnEmptyNodes, "MpCCI-flownoise");
 
   CCI_Status status;
   Integer comm = CCI_COMM_RCODE[remoteCodeId];

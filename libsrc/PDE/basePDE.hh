@@ -21,7 +21,6 @@
 #endif 
 
 
-#include "DataInOut/ParamHandling/ConfFile.hh"
 #include "DataInOut/LoadMaterialData.hh"
 #include "DataInOut/LoadMaterialDataFile.hh"
 #include "DataInOut/MaterialData.hh"
@@ -379,18 +378,12 @@ namespace CoupledField
     // INITIALIZATION METHODS
     // ======================================================
   
-#ifndef XMLPARAMS
-    //! check for saving parameters
-    virtual void ReadSavings();
-#else
     //! Obtain information on desired output quantities from parameter file
-
     //! This method is used to query the parameter handling object for the
     //! desired output quantities and translate their literal description into
     //! the internal format by setting the corresponding class attributes.
     virtual void ReadStoreResults() = 0;
 
-#endif
 
     //! define all (bilinearform) integrators needed for this pde
     virtual void DefineIntegrators(const Integer level)=0;
@@ -675,11 +668,7 @@ namespace CoupledField
     std::string nonLinMethod_; //!< method for handling the non-linearity
     Boolean nonLinLogging_;    //!< log progress of non-linear iterations
 
-#ifndef XMLPARAMS
-    Boolean lineSearch_;
-#else
     std::string lineSearch_;   //!< switch for lineSearch
-#endif
     
 
     //@}

@@ -20,7 +20,6 @@ namespace CoupledField {
 // =====================================================================
 // set solution information
 // =====================================================================
-#ifdef XMLPARAMS
 AcousticPDE::AcousticPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc,
 						 FileType *aptFileType, WriteResults *aptOut)
   :BasePDE(aptgrid,aptbcs,aptFileType,aptOut,aptTimeFunc) {
@@ -45,13 +44,6 @@ AcousticPDE::AcousticPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc,
 
   dampingType_ = NONE;
   params->GetList( "type", dampingList_, pdename_, "damping");
-
-  std::cerr << std::endl << "Size of dampingList_:" 
-			<< dampingList_.GetSize() << std::endl;
-  std::cerr << std::endl << "Size of subdoms_:" << subdoms_.GetSize() << std::endl;
-
-  //  if ( dampingList_.GetSize() != subdoms_.GetSize() )
-  //	Error("Specify damping for all regions!", __FILE__, __LINE__);
 
   Boolean sorted_ = TRUE;
   for ( Integer k = 0; k < dampingList_.GetSize(); k++) {
@@ -165,59 +157,6 @@ AcousticPDE::AcousticPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc,
 								 dampingType_ != FRACTIONAL) )
 	needsDampingMatrix_ = TRUE;  
 }
-#else
-AcousticPDE::AcousticPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc,
-						 FileType *aptFileType, WriteResults *aptOut)
-  :BasePDE(aptgrid,aptbcs,aptFileType,aptOut,aptTimeFunc) {
-
-  ENTER_FCN( "AcousticPDE::AcousticPDE" );
-
-  dofspernode_ = 1;
-  solTypes_ = ACOU_POTENTIAL;
-  solDofs_ = 1;
-  pdename_          = "acoustic";
-  pdematerialclass_ = "fluid";
-   
-  coarsealpha_ = 0.01;
-
-  laststepcalc_ = 0;
-
-  isaxi_ = FALSE;
-  std::string subtype;
-  conf->ifget("subtype",subtype,pdename_);
-  if (subtype == "axi")
-	isaxi_ = TRUE;
-
-  // damping
-  dampingType_ = NONE;
-  std::string dampstr;
-  conf->ifget("damping",dampstr,pdename_);
-  if (dampstr == "fractional") {
-	Info->PrintF(pdename_,"Attenuation according to frequency power law!");
-	conf->get( "frac_memory", fracMemory_, pdename_);
-	Info->PrintF(pdename_, "   Number of memory is %d", fracMemory_);
-	dampingType_ = FRACTIONAL;
-  }
-  else if (dampstr == "rayleigh") {
-	dampingType_ = RAYLEIGH;
-	Info->PrintF(pdename_, " Using RAYLEIGH damping\n" );
-  }
-
-  // absorbing boundary conditions
-  absorbingBCs_ = FALSE;
-  conf->ifgetliststr("bnd_for_absBCs",absBCs_,pdename_); 
-  if (absBCs_.GetSize() > 0) {
-	absorbingBCs_ = TRUE;
-	Info->PrintF( pdename_, " Apply Absorbing Boundary Conditions\n" );
-	surfdoms_ = absBCs_;
-  }
-  needsDampingMatrix_ = FALSE;
-  if ( absorbingBCs_ == TRUE || (dampingType_ != NONE  && 
-								 dampingType_ != FRACTIONAL) )
-	needsDampingMatrix_ = TRUE;
-  
-}    
-#endif
 
 
 void AcousticPDE::DefineIntegrators(const Integer level) {
@@ -758,7 +697,6 @@ void AcousticPDE::WriteResultsInFile(Integer stepOffset,
 // ***********************************************************************
 //   Obtain information on desired output quantities from parameter file
 // ***********************************************************************
-#ifdef XMLPARAMS
 void AcousticPDE::ReadStoreResults() {  
   ENTER_FCN( "AcousticPDE::ReadStoreResults" );
     
@@ -880,6 +818,5 @@ void AcousticPDE::ReadStoreResults() {
   }
     
 }
-#endif
 
 } // end of namespace

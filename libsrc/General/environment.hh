@@ -191,7 +191,7 @@ namespace CoupledField
   class ConfFile;
   //! pointer to class with methods for reading config-file. it is accessable
   //! from any place of the program
-  extern ConfFile *conf; //name.conf
+  //  extern ConfFile *conf; //name.conf
 
   class BaseParamHandler;
   //! Global pointer to class performing handling of steering parameters

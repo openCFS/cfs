@@ -4,7 +4,6 @@
 #include <list>
 
 #include "bcs.hh"
-#include "DataInOut/ParamHandling/ConfFile.hh"
 #include "DataInOut/WriteInfo.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
 
@@ -20,33 +19,6 @@ namespace CoupledField
     ENTER_FCN( "BCs::BCs" );
 
     InFile_     = aInFile; 
-#ifndef XMLPARAMS     
-    Integer i;
-    for (i=0; i<NUMLEVELGRID; i++) 
-      { 
-	bcs_[i]=NULL; bcsEdges_[i]=NULL; 
-	bcsFaces_[0]=NULL; 
-	bcsNeighElems_[0]=NULL;
-      }
-    
-    conf->ifgetliststr("list_nodes",levels_);
-    if (levels_.GetSize()) 
-      bcs_[0]=new std::list<Integer>[levels_.GetSize()];
-    
-    
-    conf->ifgetliststr("list_edges",color_edges_);
-    if (color_edges_.GetSize()) 
-      bcsEdges_[0]=new StdVector<Elem*>[color_edges_.GetSize()]; 
-	
-    conf->ifgetliststr("list_faces",color_faces_);
-    if (color_faces_.GetSize())
-      bcsFaces_[0]=new StdVector<Elem*>[color_faces_.GetSize()]; 
-    
-    conf->ifgetliststr("list_neighelems",color_neighelems_);
-    if (color_neighelems_.GetSize())
-	bcsNeighElems_[0]=new StdVector<Elem*>[color_neighelems_.GetSize()];
-
-#else
 
   // ********************************************************
   //   New constructor version using XML parameter handling
@@ -90,18 +62,7 @@ namespace CoupledField
 #ifdef DEBUG
     //    Info->Warning( "BCs: list_edges an co. not supported by XML!?" );
 #endif
-//    conf->ifgetliststr("list_edges",color_edges_);
-//    if (color_edges_.size()) 
-//      bcsEdges_[0]=new StdVector<Elem*>[color_edges_.size()]; 
-//
-//    conf->ifgetliststr("list_faces",color_faces_);
-//    if (color_faces_.size()) 
-//      bcsFaces_[0]=new StdVector<Elem*>[color_faces_.size()]; 
-//
-//    conf->ifgetliststr("list_neighelems",color_neighelems_);
-//    if (color_neighelems_.size())
-//      bcsNeighElems_[0]=new StdVector<Elem*>[color_neighelems_.size()];
-#endif
+
   }
 
 

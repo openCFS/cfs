@@ -27,7 +27,7 @@ namespace CoupledField
     //! Destructor
     ~piezoParamIdent();
 
-    std::ifstream allMeasuredData;
+    std::ifstream * allMeasuredData;
     std::ofstream * impedCurve;
     std::ofstream * piezoLog;
     //  std::ofstream impedCurve("impedCurve.dat");

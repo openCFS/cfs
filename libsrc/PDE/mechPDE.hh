@@ -122,41 +122,39 @@ protected:
   //computes mechanical deformation energy
   void CalcEnergy();
 
-#ifdef XMLPARAMS
-    //! Obtain information on desired output quantities from parameter file
-
-    //! This method is used to query the parameter handling object for the
-    //! desired output quantities and translate their literal description into
-    //! the internal format by setting the corresponding class attributes.
-    //! The output quantities currently supported by the mechanics PDE are
-    //! given in the following table. Here 'Keyword' and 'Result Type' refer
-    //! to the XML parameter file, while 'Class Attribute' refers to the
-    //! internal attribute of the MechPDE class that is set, if the keyword
-    //! is specified.\n\n
-    //! <table border="1">
-    //!   <tr>
-    //!     <td><b>Keyword</b></td>
-    //!     <td><b>Result Type</b></td>
-    //!     <td><b>Class Attribute</b></td>
-    //!   </tr>
-    //!   <tr>
-    //!     <td>displacement</td>
-    //!     <td>nodeResults</td>
-    //!     <td>savesol_</td>
-    //!   </tr>
-    //!   <tr>
-    //!     <td>velocity</td>
-    //!     <td>nodeResults</td>
-    //!     <td>savederiv_</td>
-    //!   </tr>
-    //!   <tr>
-    //!     <td>acceleration</td>
-    //!     <td>nodeResults</td>
-    //!     <td>savederiv2_</td>
-    //!   </tr>
-    //! </table>
-    void ReadStoreResults();
-#endif
+  //! Obtain information on desired output quantities from parameter file
+  
+  //! This method is used to query the parameter handling object for the
+  //! desired output quantities and translate their literal description into
+  //! the internal format by setting the corresponding class attributes.
+  //! The output quantities currently supported by the mechanics PDE are
+  //! given in the following table. Here 'Keyword' and 'Result Type' refer
+  //! to the XML parameter file, while 'Class Attribute' refers to the
+  //! internal attribute of the MechPDE class that is set, if the keyword
+  //! is specified.\n\n
+  //! <table border="1">
+  //!   <tr>
+  //!     <td><b>Keyword</b></td>
+  //!     <td><b>Result Type</b></td>
+  //!     <td><b>Class Attribute</b></td>
+  //!   </tr>
+  //!   <tr>
+  //!     <td>displacement</td>
+  //!     <td>nodeResults</td>
+  //!     <td>savesol_</td>
+  //!   </tr>
+  //!   <tr>
+  //!     <td>velocity</td>
+  //!     <td>nodeResults</td>
+  //!     <td>savederiv_</td>
+  //!   </tr>
+  //!   <tr>
+  //!     <td>acceleration</td>
+  //!     <td>nodeResults</td>
+  //!     <td>savederiv2_</td>
+  //!   </tr>
+  //! </table>
+  void ReadStoreResults();
   
   //! Init the time stepping
   void InitTimeStepping();
