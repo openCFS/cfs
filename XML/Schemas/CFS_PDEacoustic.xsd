@@ -40,7 +40,7 @@
           <xsd:element name="damping" type="DT_AcousticDamp" minOccurs="0"/>
 
           <!-- Boundary Conditions & Loads (optional) -->
-          <xsd:element name="bcsAndLoads" minOccurs="0">
+          <xsd:element name="bcsAndLoads" minOccurs="0" maxOccurs="unbounded">
             <xsd:complexType>
               <xsd:sequence>
                 <xsd:element name="dirichletHom" type="DT_AcousticHD"
