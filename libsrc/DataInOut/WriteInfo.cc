@@ -18,6 +18,7 @@
 #include "MaterialData.hh"
 #include "PDE/pdes_header.hh"
 #include "Utils/vector.hh"
+#include "DataInOut/ParamHandling/BaseParamHandler.hh"
 
 
 namespace CoupledField
@@ -246,10 +247,21 @@ namespace CoupledField
     ENTER_FCN( "WriteInfo::WriteHarmonicStep" );
 
     std::string pdeNameLong(pdeName);
+    std::string analysis;
+
+#ifndef XMLPARAMS
+  conf->get("analysis", analysis);
+#else
+   params->Get( "type", analysis, "analysis" );
+#endif
 
     // write std::out info    
-    std::cout << myEndl << pdeName << ": Harmonic step " 
-	      << freqStep <<" ======================= " << std::endl;      
+
+
+   if(analysis != "paramIdent"){ // since the paramIdent driver calls iteratively this step, the output is rather disturbing than helpful
+
+        std::cout << myEndl << pdeName << ": Harmonic step " 
+          << freqStep <<" ======================= " << std::endl;      
 
 
     *cla << myEndl << pdeName << ": Harmonic step " 
@@ -265,6 +277,7 @@ namespace CoupledField
 	       << "**********************" 
 	       << std::endl << pdeNameLong << "HARMONIC STEP " << freqStep 
 	       << ", frequency: " << frequency << std::endl;
+    }
   }
 
 
