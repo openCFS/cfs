@@ -34,9 +34,10 @@ namespace CoupledField
   //!
   //! The class specifies several methods for accessing the values of steering
   //! parameters. These hide the underlying XML/DOM structure.
-  //! \todo Fix the small memory leaks introduced by the string conersion
-  //! routines. Probably we also must free all results from
-  //! getElementsByTagName() and the like.
+  //! \todo Check the class for memory leaks. We might introduce some leaks by
+  //! the string conersion routines. Also it is not yet clear, whether we are
+  //! expected to free the results from getElementsByTagName() and the like, or
+  //! if this is even forbidden.
   //! \note With respect to function tracing the policy of this class is the
   //! following. All public methods use ENTER_FCN, while all other methods,
   //! besides those defined in the header itself, use ENTER_IFCN. The latter
@@ -89,6 +90,15 @@ namespace CoupledField
     void GetList( const std::string key, StdVector<Integer> &list,
 		  const std::string section = "",
 		  const std::string subsection = "" );
+
+    void Get( const StdVector<std::string> &keyVec,
+	      std::string &value );
+
+    void Get( const StdVector<std::string> &keyVec,
+	      Double &value );
+
+    void Get( const StdVector<std::string> &keyVec,
+	      Integer &value );
     //@}
 
 
@@ -256,7 +266,11 @@ namespace CoupledField
 			    const StdVector<std::string> &value,
 			    FILE *myStream );
 
-    //! Aux. ....
+    //! Auxilliary routine for generating vectors with search parameters
+
+    //! This auxilliary routine can be used to generate for search parameters
+    //! specified in the simple style by giving 'key', 'section' and
+    //! 'subsection' arguments corresponding keyVec, attrVec and valVec vectors
     void GenerateSearchParams( const std::string key,
 			       const std::string section,
 			       const std::string subsection,
