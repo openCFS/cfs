@@ -338,6 +338,69 @@ namespace CoupledField {
 					      const Double frequency,
 					      const ComplexFormat format) {
     ENTER_FCN( "WriteResults::WriteNodeHistoryHarmonic" );
+
+    std::ofstream * myHist;
+    SolutionType actSolType;
+    StdVector<SolutionType> solTypes;
+    Integer iQuant, actDof;
+    std::string quantity;
+    Complex val;
+    Double val1, val2;
+
+    data.GetSolutionTypes(solTypes);
+  
+    // Iterate over all solutiontypes
+    for (Integer iSol=0; iSol<solTypes.GetSize(); iSol++) {
+   
+      actDof = data.GetDof(solTypes[iSol]);
+    
+      // Find the related quantity
+      iQuant = -1;
+      for (Integer i=0; i<histQuantities_.GetSize(); i++) {
+
+	if (histQuantities_[i] == solTypes[iSol]){
+	  iQuant = i;
+	  break;
+	}
+      }
+      
+      if ( iQuant != -1 ) {
+    
+	// Iterate over all history nodes
+	for ( Integer iNode = 0; iNode < histNodesPerQuant_[iQuant].GetSize();
+	      iNode++ ) {
+	  myHist = historyFiles_[iQuant][iNode];
+	  (*myHist) << frequency;
+	  
+	  // Iterate over all dofs
+	  for ( Integer iDof = 0; iDof < actDof; iDof++ ) {
+	    data.Get( solTypes[iSol], histNodesPerQuant_[iQuant][iNode]-1,
+		      iDof, val );
+	    
+	    if (format == REAL_IMAG)
+	      {
+		val1 = val.real();
+		val2 = val.imag();
+		
+		(*myHist) << "  " << val1 << "  " << val2;
+	      }
+	    else if (format == AMPLITUDE_PHASE) {
+	      val1 = std::abs(val); 
+	      if (abs(val.imag()) > 1e-16) {
+		val2 = std::arg(val)*180/PI;
+	      }
+	      else {
+		val2 = 0;
+	      }
+	      
+	      (*myHist) << "  " << val1 << "  " << val2;
+	    }
+	  }
+	  (*myHist) << std::endl;
+	}
+      }
+    }
+
   }
 
 } // end of namespace

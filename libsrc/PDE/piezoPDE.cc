@@ -358,6 +358,7 @@ namespace CoupledField {
 
       //histrory nodes
       if (saveSolHist_) {
+	solHarmonic = dynamic_cast<NodeStoreSol<Complex>*>(sol_);
 	outFile_->WriteNodeHistoryHarmonic(*solHarmonic,  actFreqStep_, 
 					   actFrequency_, complexFormat_);
       }
