@@ -130,6 +130,7 @@ namespace CoupledField {
     ENTER_FCN( "StdSolveStep::PreStepTrans" );
 
     PDE_.lasttimecalc_= asteptime;
+    PDE_.laststepcalc_= kstep;
 
     // due to coupling-pdes, the RHS has to be initialized BEFORE 
     // the coupling forces are assembled to the RHS
