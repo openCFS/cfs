@@ -170,6 +170,7 @@
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:element>
+          <xsd:element name="twoNorm" type="DT_CFSBool" minOccurs="0"/>
         </xsd:sequence>
       </xsd:extension>
     </xsd:complexContent>
