@@ -213,6 +213,7 @@ namespace CoupledField
     dMat.Init(0);
 
     Matrix<Double> * matMatrix = ptMaterial->GetMatrix();
+    //    std::cout<<(*matMatrix)<<std::endl;
 
     // No damping
     if ( isDamping_ == false ) {
@@ -247,6 +248,8 @@ namespace CoupledField
 	}
       }
     }
+    //  std::cout<<"\n Axisymmetric case: Material Matrix:"<<std::endl;
+    //std::cout<< dMat << std::endl;
   }
   
 
@@ -296,6 +299,9 @@ namespace CoupledField
 	}
       }
     }
+
+    //   std::cout<<"\n 3D case: Material Matrix:"<<std::endl;
+    // std::cout<< dMat << std::endl;
   }
 
 
@@ -482,14 +488,15 @@ namespace CoupledField
 
     // The damping case. The matrix is multiplied by (1+\omega_l*\beta_l*j)
     // Only mech part is damped 
-    Complex imag=Complex(0,1);
+    Complex im=Complex(0,1.0);
       // Copy entries from mechanical part of material matrix object
       // into D matrix and multiply with damping parameters
       Matrix<Double> * matMatrix = ptMaterial->GetMatrix();
 
-      for( Integer i = 0; i < sizeofD-2; i++ ) 
-	for ( Integer j = 0; j < sizeofD-2; j++ ) 
-	  dMat[i][j] = (*matMatrix)[i][j] * (1.0+beta*omega*imag);
+      for ( Integer i = 0; i < sizeofD; i++ ) 
+	for( Integer j = 0; j < sizeofD; j++ ) 
+	  dMat[i][j] = (*matMatrix)[rowPtr[i]-1][rowPtr[j]-1]*(1.0+beta*omega*im);
+	
   } // end calcDMatWithComplexDamping
 
 
@@ -649,9 +656,16 @@ namespace CoupledField
       // into D matrix and multiply with damping parameter beta_l, omega_l and the imaginarity j
       Matrix<Double> * matMatrix = ptMaterial->GetMatrix();
       Complex imag=Complex(0,1);
+      //      std::cout<<"\n dmat with complex daming : "<<std::endl;
       for( Integer i = 0; i < sizeofD - 3; i++ ) 
-	for ( Integer j = 0; j < sizeofD - 3; j++ ) 
+	for ( Integer j = 0; j < sizeofD - 3; j++ ) {
 	  dMat[i][j] = (*matMatrix)[i][j] * (1.0+beta*imag*omega);
+	  //  std::cout<<dMat[i][j]<<";\t ";
+	}
+      //      std::cout<<"\n"<<std::endl;
+
+
+
 	
   }// end Calc3dMaterialMatWithComplexDamping
 
