@@ -105,7 +105,7 @@ public:
   void SetDampingCoeffs(const Double& Damp_alfa, const Double& Damp_beta)
     {damp_alfa=Damp_alfa; damp_beta=Damp_beta;};
 
-  /// set damping coefficients
+  /// set values of permanent magnetization
   void SetPermMag(const Double& mX, const Double& mY, const Double& mZ)
     {permMx=mX, permMy=mY, permMz=mZ;};
 

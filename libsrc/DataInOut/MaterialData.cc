@@ -17,6 +17,7 @@ MaterialData::MaterialData():scaledMatDat(0)
   ENTER_FCN("MaterialData::MaterialData");
   const int stringLength = 100;
   name = new char[stringLength];  
+  piezoMatrix  = NULL;
   permeaMatrix = new Matrix<Double>(3,3);
   conducMatrix = new Matrix<Double>(3,3);
 }
@@ -35,7 +36,7 @@ MaterialData::MaterialData(const MaterialData & mat)
 //  conductivity = mat.conductivity;
   permMx       = mat.permMx;
   permMy       = mat.permMy;
-  permMz       = permMz;
+  permMz       = mat.permMz;
   scaledMatDat = mat.scaledMatDat;
   matNr        = mat.matNr;
   nonlin       = mat.nonlin;
@@ -79,6 +80,7 @@ MaterialData::~MaterialData()
    delete permeaMatrix;
   if (conducMatrix)
    delete conducMatrix;
+  delete[] name;
 }
 
 void MaterialData::SetName(const char* Name)
