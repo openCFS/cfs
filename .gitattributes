@@ -57,8 +57,6 @@ libsrc/Domain/NetGen/interface_netgen.hh svneol=native#text/plain
 libsrc/Domain/NetGen/nginterface.h svneol=native#text/plain
 libsrc/Domain/bcs.cc svneol=native#text/plain
 libsrc/Domain/bcs.hh svneol=native#text/plain
-libsrc/Domain/boundcond.cc svneol=native#text/plain
-libsrc/Domain/boundcond.hh svneol=native#text/plain
 libsrc/Domain/domain.cc svneol=native#text/plain
 libsrc/Domain/domain.hh svneol=native#text/plain
 libsrc/Domain/elem.hh svneol=native#text/plain
@@ -146,6 +144,8 @@ libsrc/Matrix/symmatrix.hh svneol=native#text/plain
 libsrc/Matrix/symsparsematrixCRS.cc svneol=native#text/plain
 libsrc/Matrix/symsparsematrixCRS.hh svneol=native#text/plain
 libsrc/PDE/Makefile -text
+libsrc/PDE/acou2dFlowNoise.cc svneol=native#text/plain
+libsrc/PDE/acou2dFlowNoise.hh svneol=native#text/plain
 libsrc/PDE/acoustic2dPDE.cc svneol=native#text/plain
 libsrc/PDE/acoustic2dPDE.hh svneol=native#text/plain
 libsrc/PDE/acoustic3dPDE.cc svneol=native#text/plain

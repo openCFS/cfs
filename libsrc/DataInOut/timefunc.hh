@@ -8,8 +8,7 @@ namespace CoupledField
 
   //! Class we store information about given time function
   /*!
-   This class stores information about given time function. Later it should provide methods for handling time functions, interpolation (1D, 2D, 3D) of initial and
-load (nodal-, surface-, volume-type) data.
+   This class stores information about given time function. 
    */
 
 class TimeFunc
@@ -21,18 +20,18 @@ public:
     //! Deconstructor
     ~TimeFunc();
 
-    //! Print 
-    void Print(std::ostream * outfileDat) const;
+    //! return value of time function with number {\tt num} at the time {\tt time}.
+    /*!
+      \param time in: time
+      \param num in: number of the time function
+    */
+    Double TimeFuncAtTime(const Double time, const Integer num);
 
-    //! 
-    Double TimeFuncAtTime(const Double, const Integer num);
-
-    //!
-    //    Double TimeFuncWaveSt(const Double time);
-
+    //! Print values of time function in stream outfile
+    void Print(std::ostream * outfile) const;
 private:
 
-    //!
+    //! pointer to input file. needed only for {\tt datfile}.
     FileType * ptFileType;
 
     //! read time func from dat-file
@@ -41,7 +40,7 @@ private:
     //! value of time func through interpolation values from data-file
     Double ValTimeFuncDatFile(const Double time, const Integer num);
 
-    //!
+    //! 
     Integer maxnumTimeFunc;
 
     //!

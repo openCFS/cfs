@@ -264,7 +264,7 @@ libclean:
 ######################  Make documentation  
 doc: doxygen
 
-	@echo To see documentation run: netscape  $(C_DIR)/doc/html/index.html 
+	@echo To see documentation run: konqueror  $(C_DIR)/doc/html/index.html 
 doxygen:
 	doxygen DoxygenConfig/doxy-config
 FlagDoc= -nd -p -u -v -b -f 

@@ -153,10 +153,11 @@ void Domain :: InitPDE()
 	  if (pdes[i] == "thermal2d") 
 	ptpde_[i]=new Therm2dPDE(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_);	 
 	  else
-	    if (pdes[i]=="electrostatic2d") { ptpde_[i]=new Elecst2dPDE(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_);
-	}
+	    if (pdes[i]=="electrostatic2d") { ptpde_[i]=new Elecst2dPDE(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_); }
 	else
-	if (pdes[i]=="acoustic3d") ptpde_[i]=new Acoustic3dPDE(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_);
+	if (pdes[i]=="acoustic3d") { ptpde_[i]=new Acoustic3dPDE(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_); }
+	else
+	 if (pdes[i]=="acou2dflownoise") { ptpde_[i]=new Acou2dFlowNoise(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_); }
 	    else { std::string msg=pdes[i]+" - this type of pdes is unknown";
 	    Error(msg.c_str(),__FILE__,__LINE__);
 	    } 	  

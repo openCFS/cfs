@@ -181,81 +181,133 @@ void LinearForm<dim> :: CalcElemVector4InterpolatedFnc(Point<dim> * ptCoord, con
     }
 }
 
-// template<>
-// void LinearForm<3> :: CalcElemVector4InterpolatedFnc(Point<3> * ptCoord, const Integer aComponent, Vector<Double> & aValFncAtNode, Vector<Double> & Result)
-// {
-// #ifdef TRACE
-//   (*trace) << "entering LinearForm::CalcElemVector4InterpolatedFnc" << std::endl;
-// #endif
-//   Integer noIntgrPnts=ptelem->GetNumIntPoints();
-//   Integer noNds=ptelem->GetNumNodes();
+// Doing it for acoustic RHS (dipole)
+//! only for 2D
+template<>
+void LinearForm<2> :: CalcElemVector4FlowSrcDip(Point<2> * ptCoord,const Vector<Integer> & connecth, Vector<Double> & Result, const std::vector<Double> gradN_x_P)
+{
+#ifdef TRACE
+  (*trace) << "entering LinearForm::CalcElemVector4FlowSrc" << std::endl;
+#endif
 
-//   Double det,fnc=0;
-//   Integer i,ii;
+  Integer l=ptelem->GetNumIntPoints();
+  Integer n=ptelem->GetNumNodes();
+  Vector<Double> * help=new Vector<Double>[n];
 
-//   Jacobian<3> J;
+       
+  Double det;
+  Integer i,ii;
+  Vector<Double> JinvX, JinvY;
+  Jacobian<2> J;
+  Double density=1.0;
+  Result.Resize(n);
+  Vector<Double> * Sf=new Vector<Double> [n];
 
-//   Result.Resize(noNds);
 
-//   Vector<Double> * Sf=new Vector<Double> [noNds];
+  // Dipole Source Term: (w,deltp)onbnd
+
+  std::vector<Double> normal;
+  normal.resize(2);
+  Double multiplier, dNdxNormalP, length;
+
+ calcNormal2Line(normal,ptCoord[0],ptCoord[1]);
+
+      for (i=0; i < n; i++)
+        {
+          Sf[i]=ptelem->GetShFncAtIP(i+1);
+        }
+
+      for (i=0; i<l; i++)
+        {
+          length=dist(ptCoord[0],ptCoord[1]);
+
+          for (ii=0; ii < n; ii++)
+            {
+                multiplier=ScalarMult(normal,gradN_x_P); // n * gradShFnc
+                Result[ii]+= -length/2.0*multiplier*Sf[ii][i];
+            }
+
+        }
+
+} // end of method
+
+// Doing it for acoustic RHS (dipole)
+template<>
+void LinearForm<3> :: CalcElemVector4FlowSrcDip(Point<3> * ptCoord,const Vector<Integer> & connecth, Vector<Double> & Result, const std::vector<Double> gradN_x_P)
+{
+#ifdef TRACE
+  (*trace) << "entering LinearForm::CalcElemVector4FlowSrc" << std::endl;
+#endif
+
+  Error("This function is not implemented for 3d",__FILE__,__LINE__);
+
+} // end of method
+
+// Doing it for acoustic RHS (quadrupole)
+template<Integer dim>
+void LinearForm<dim> :: CalcElemVector4FlowSrcQuad(Point<dim> * ptCoord,const Vector<Integer> & connecth,const Matrix<Double> & FlowData, Vector<Double> & Result)
+{
+#ifdef TRACE
+  (*trace) << "entering LinearForm::CalcElemVector4FlowSrc" << std::endl;
+#endif
+
+  Integer l=ptelem->GetNumIntPoints();
+  Integer n=ptelem->GetNumNodes();
+  Vector<Double> * help=new Vector<Double>[n];
+       
+  Double det;
+  Integer i,ii;
+  Vector<Double> JinvX, JinvY;
+  Jacobian<dim> J;
+  Double density=1.0;
+  Result.Resize(n);
+  Vector<Double> * Sf=new Vector<Double> [n];
+
+  Double dTxxdx1part,dTxxdx2part,dTxydx1part,dTxydx2part;
+  Double dTyxdy1part,dTyxdy2part,dTyydy1part,dTyydy2part;
+  for (i=0; i < n; i++)
+    Sf[i]=ptelem->GetShFncAtIP(i+1);
+
+  for (i=0; i<l; i++)
+    {
+          ptelem->CalcJacobian(J,i,ptCoord);
+          J.GetJinvX(JinvX);
+          J.GetJinvY(JinvY);
+          // Resetting derivatives of tensor
+          dTxxdx1part=0;
+          dTxxdx2part=0;
+          dTxydx1part=0;
+          dTxydx2part=0;
+          dTyxdy1part=0;
+          dTyxdy2part=0;
+          dTyydy1part=0;
+          dTyydy2part=0;
+          // This work only for quad1 elements since we have values
+          // for ux and uy only at the corners!
+          // Here we compute the derivatives of the Lighthill's tensor needed in the monopole term
+          // at the ith integration point
+          for (ii=0; ii<n; ii++)
+            {
+              ptelem->GetGradientShFnc(help[ii],ii+1,i);
+
+              dTxxdx1part+=(FlowData[1][connecth[ii]-1]*Sf[ii][i]); 
  
-//   // get values of shape fncs at integr. points
-//   for (i=0; i < noNds; i++)
-//     Sf[i]=ptelem->GetShFncAtIP(i+1);
-//   // get integration weights
-//   Vector<Double> * intWeights; 
-//   intWeights=ptelem->GetIntWeights();
+              dTxxdx2part+=(help[ii]*JinvX)*FlowData[1][connecth[ii]-1];
+              dTxydx1part+=(FlowData[2][connecth[ii]-1]*Sf[ii][i]);
+              dTxydx2part+=(help[ii]*JinvX)*FlowData[1][connecth[ii]-1];
 
-//   Vector<Double> valFncRHS;
-//   valFncRHS.Resize(noIntgrPnts); 
+              dTyxdy1part+=(FlowData[1][connecth[ii]-1]*Sf[ii][i]);
+              dTyxdy2part+=(help[ii]*JinvY)*FlowData[2][connecth[ii]-1];
+              dTyydy1part+=(FlowData[2][connecth[ii]-1]*Sf[ii][i]);
+	      dTyydy2part+=(help[ii]*JinvY)*FlowData[2][connecth[ii]-1];
+            }
 
-//   Vector<Double> vec,grad,glgrad;
-//   Integer ip,isf,idim;
-//   Vector<Double> JinvX,JinvY,JinvZ;
+ // Setting up the RHS (dw/di,dTij/di) part
+	  for (ii=0; ii < n; ii++) Result[ii]+= density*((help[ii]*JinvX)*(2.*dTxxdx1part*dTxxdx2part+dTxydx1part*dTxydx2part)+(help[ii]*JinvY)*(dTyxdy1part*dTyxdy2part+2.*dTyydy1part*dTyydy2part))*J.detJ;
+    }
 
-//   for (ip=0; ip<noIntgrPnts; ip++) 
-//     { // loop over integration points
-    
-//       ptelem->CalcJacobian(J,ip,ptCoord, TRUE);
-  
-//       J.GetJinvX(JinvX);
-//       J.GetJinvY(JinvY);
-//       J.GetJinvZ(JinvZ);
+} // end of method
 
-//       vec.Resize(3);
-//       glgrad.Resize(3);
 
-//       for (isf=0; isf<noNds; isf++) 
-// 	{ // over shape fnc
-// 	  ptelem->GetGradientShFnc(grad,isf+1,ip); // ii-fnc, i-ip
-
-// 	  glgrad[0]=JinvX*grad;
-// 	  glgrad[1]=JinvY*grad;
-// 	  glgrad[2]=JinvZ*grad;
-
-// 	  for (idim=0; idim<grad.size();idim++) 
-// 	    {// loop over dimension
-// 	      vec[idim]+=aValFncAtNode[isf]*glgrad[idim];
-// 	    }
-// 	}
-//       // valFncInRHS[ip]=vec.normL2(); // abs val
-//       if (aComponent==0)
-// 	valFncRHS[ip]=vec[0]; // Dx(ShFnc)
-//       if (aComponent==1)
-//         valFncRHS[ip]=vec[1]; // Dy(ShFnc)
-//       if (aComponent==2)
-//         valFncRHS[ip]=vec[2]; // Dz(ShFnc)
-
-//       for (ii=0; ii < noNds; ii++) {
-// 	// loop over shape fnc
-// 	if (intWeights) {
-// 	 Result[ii]+=J.detJ*Sf[ii][ip]*valFncRHS[ip]*(*intWeights)[ip];
-// 	}
-// 	else {
-// 	  Result[ii]+=J.detJ*Sf[ii][ip]*valFncRHS[ip];  
-// 	}
-//       }
-//     }
-// }
 
 } // end of namespace

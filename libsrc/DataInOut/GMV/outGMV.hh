@@ -19,31 +19,58 @@ public:
   virtual ~WriteResultsGMV();
   
   //! initialization with grid
+  /*!
+    \param aptgrid pointer to class Grid
+  */
   virtual void Init(Grid * aptgrid);
 
   //! write information about grid with level in file
+  /*!
+    \param level level of the grid
+  */
   virtual void WriteGrid(const Integer level);
 
-  /// write information about the solution
+  //! write information about the solution
+  /*!
+    \param sol solution
+    \param step number of step of the calculation
+    \param time time of the calculation
+     \param title name for the solution
+  */
   virtual void WriteSolution(const Vector<Double> & sol, const Integer step, const Double time, const std::string title);
 
  //! write cell data
+ /*!
+    \param data vector with data (ex. value of an error for the cell)
+    \param step step of calculation
+    \param time time of calculation
+    \param title name for the data
+  */
   virtual void WriteDataOnCell(const Vector<Double> & data, const Integer step, const Double time, const std::string title);
 
-  //! write vectors-data
+  //! write vectors-data on cells
+  /*!
+    \param vec pointer to vector with data
+     \param step step of calculation
+    \param time time of calculation
+    \param title name for the data
+  */
   void WriteResultsGMV::WriteVecDataOnCell(const Vector<Double>*vec,const Integer step, const Double time, const std::string title);
 
  //! write comments
+  /*!
+    \param comments string with comments
+  */
  virtual void WriteComments(const std::string comments){;}
 
-  //!
+  //! check, is it the gmv-output file
   virtual Boolean IsGMV(){ return TRUE;}
 
  //! function for open file with number num 
   void OpenFile(const Integer num);
 
 private:
-  ///
+  //! pointer to ofstream with history information
   std::ofstream * output;
 
   //! name of dir for output results
@@ -52,7 +79,7 @@ private:
   // number of step
   Integer currstep_;
 
-  //!
+  //! pointer to Grid
   Grid * ptgrid;
 
   //! indicator of type for data
@@ -70,12 +97,16 @@ private:
   //! write variable information
   /*!
     \param dataType data type of the var: 0.. cell data, 1.. node data, 2.. face data
+     \param var vector with data
+     \param name name of output-data
   */
   void WriteVariable(const Vector<Double> var, const std::string name, const Integer dataType);
   
    //! write vector-variable information
   /*!
     \param dataType data type of the var: 0.. cell data, 1.. node data, 2.. face data
+    \param var pointer to vector with output data
+    \param name name of output-data
   */
   void WriteVelocity(const Vector<Double>* var, const std::string name, const Integer dataType);
  

@@ -200,7 +200,7 @@ void ConfFile::getlist(std::vector<Integer> & hist, const std::string seekexp)
  while (node!=-1);
 }
 
-void ConfFile :: getliststr( const std::string seekexp, std::vector<std::string> & stlist, const std::string section, const std::string subsection)
+void ConfFile::getliststr( const std::string seekexp, std::vector<std::string> & stlist, const std::string section, const std::string subsection)
 {
  std::string::size_type pos=0;
 
@@ -218,6 +218,30 @@ void ConfFile :: getliststr( const std::string seekexp, std::vector<std::string>
 
   if (help != "non") stlist.push_back(help);
  } while  (help != "non");
+}
+
+Boolean ConfFile::ifgetliststr( const std::string seekexp, std::vector<std::string> & stlist, const std::string section, const std::string subsection)
+{
+ std::string::size_type pos=0;
+
+ if (section != "") pos=getpos(section);
+ if (subsection !="") pos=getpos(subsection,pos);
+
+ pos=getpos(seekexp,pos,FALSE);
+
+ if (pos==std::string::npos) return FALSE;
+
+ infile.seekg(pos,std::ios::beg);
+
+ std::string help;
+ do
+ {
+  infile >> help;
+
+  if (help != "non") stlist.push_back(help);
+ } while  (help != "non");
+
+ return TRUE;
 }
 
 void ConfFile::error(const std::string keyword) const

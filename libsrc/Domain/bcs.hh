@@ -51,6 +51,14 @@ public:
   */
   Integer GetNumNodesLevel(const std::string level, const Integer lev=-1);
 
+  //! get 2D-neighbors elems for set of 1D-elements
+  /*!
+    \param color (input) name of boundary elements 
+    \param lev (input)  index for hierarchy in multilevel method
+  */
+  std::vector<Elem*> getNeighbors2DElemsFor1D(const std::string color, const Integer lev=-1);
+
+  //! 
   //! prints boundary data to screen
   void BCs :: printBCs(const Integer alevel=-1);
 
@@ -62,6 +70,10 @@ private:
   std::vector<std::string> color_edges_;       //!< stores all names of 1D interfaces
   std::list<Integer> * bcs_[NUMLEVELGRID];     //!< stores all boundary nodes
   std::vector<Elem*> * bcsEdges_[NUMLEVELGRID]; //!< stores all 1D elements along interfaces
+  //! color of neighbors elements. it is got from conf-file
+  std::vector<std::string> color_neighelems_;
+  //! array with 2D neighbors elements for 1D;
+  std::vector<Elem*> * bcsNeighElems_[NUMLEVELGRID];
 
   FileType* InFile_; //!< pointer to input file
   Integer toplevel_; //!< stores current top level

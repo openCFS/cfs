@@ -101,9 +101,9 @@ public:
 
   //! return vector of element-neighbors for the node with number noOfNode
   /*!
-    \param elemsSurf
-    \param elems
-    \param belongingSE
+    \param noOfNode (input) global number of node
+    \param neighbours (output) list with neighbors
+    \param subdomains (input) list of subdomains, on which neighbors are searched
   */
   virtual void GetNeighboursOfNode(const Integer noOfNode, std::vector<Elem*> * neighbours)
   { Error(" Not implemented",__FILE__,__LINE__);}
@@ -157,7 +157,15 @@ public:
   */
   virtual Double CalcAreaElem(const Elem* elem)
     { Error(" Not implemented",__FILE__,__LINE__);}
-  
+
+   //! auxialary function; to define belonging of one element to another from the list, for ex. surface element and boundary elements
+  /*!
+    \param elemsSurf
+    \param elems
+    \param belongingSE
+  */
+  virtual void DefineBelonging4Elems(const std::vector<Elem*>& elemsSurf, const std::vector<Elem*>&elems, std::vector<Elem*> & belongingSE)=0;
+
 protected:
 
   FileType * ptFileType;   //!< pointer to input file

@@ -4,5 +4,6 @@
 #include "massint.hh"
 #include "laplaceint.hh"
 #include "linearform.hh"
+#include "dampint.hh"
 
 #endif

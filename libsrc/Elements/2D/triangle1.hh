@@ -34,7 +34,7 @@ public:
      \param grad (output) contains local derivatives \f$ (N_{i,\xi}(0,0)\ , \ N_{i,\eta}(0,0))\f$
      \param i (input) shape function number
    */
-  virtual  void GetGradientShFncAtCenter(Vector<Double> & ,const Integer i);
+  virtual  void GetGradientShFncAtCenter(Vector<Double> & grad,const Integer i);
 
   //! Return pointer to array of value shape function at integration points
    /*!

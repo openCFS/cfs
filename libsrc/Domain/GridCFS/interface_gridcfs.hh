@@ -69,6 +69,10 @@ public:
   virtual Double CalcAreaElem(const Elem* elem)
     { ptGridCFS->CalcAreaElem(elem);}  
 
+  //!
+  virtual void DefineBelonging4Elems(const std::vector<Elem*>& elemsSurf, const std::vector<Elem*>&elems, std::vector<Elem*> & belongingSE)
+  { ptGridCFS->DefineBelonging4Elems(elemsSurf,elems,belongingSE);}
+
 protected:
 private:
   GridCFS<dim> * ptGridCFS;

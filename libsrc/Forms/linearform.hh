@@ -23,6 +23,12 @@ public:
   /// Calculation of vector of RHS such form: int(shape fnc X interpolated fnc in element)
   void CalcElemVector4InterpolatedFnc(Point<dim> * ptCoord, const Integer acom, Vector<Double> & aValueAtNodePoints, Vector<Double> & Result);
 
+  //!
+  void CalcElemVector4FlowSrcDip(Point<dim> * ptCoord,const Vector<Integer> & connecth, Vector<Double> & Result, const std::vector<Double> gradN_x_P);
+
+  //!
+  void CalcElemVector4FlowSrcQuad(Point<dim> * ptCoord,const Vector<Integer> & connecth,const Matrix<Double> & FlowData, Vector<Double> & Result);
+
 protected:
 
 private:
