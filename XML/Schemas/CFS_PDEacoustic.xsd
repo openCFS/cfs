@@ -113,16 +113,6 @@
     </xsd:complexContent>
   </xsd:complexType>
 
-
-  <!-- ******************************************************************** -->
-  <!--   Definition of FlowData type                                        -->
-  <!-- ******************************************************************** -->
-  <xsd:simpleType name="DT_FlowDataType">
-    <xsd:restriction base="xsd:token">
-      <xsd:enumeration value="nodalSrc"/>
-    </xsd:restriction>
-  </xsd:simpleType>
-
   <!-- ******************************************************************** -->
   <!--   Definition of the boundary condition types for acoustics -->
   <!-- ******************************************************************** -->
