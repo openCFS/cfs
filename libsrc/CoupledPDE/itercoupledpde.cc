@@ -187,7 +187,11 @@ namespace CoupledField
 		if (norms_[counter] > Couplings_[i]->GetOutputEpsilon(k))
 		  normsReached = FALSE;
 		
-		*oldVal = *val;
+		//copy values of new solution to old one
+		Vector<Double> valnew;
+		val->GetCompleteVector(valnew);
+		oldVal->SetCompleteVector(valnew);
+
 		counter++;	      
 	      }
 	  }
