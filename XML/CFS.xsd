@@ -23,6 +23,12 @@
 
 
 <!-- ********************************************************************** -->
+<!--   Include definition of coupling types and elements from support files -->
+<!-- ********************************************************************** -->
+<xsd:include schemaLocation="Schemas/CFS_Coupling.xsd"/>
+
+
+<!-- ********************************************************************** -->
 <!--   Include further definitions -->
 <!-- ********************************************************************** -->
 <xsd:include schemaLocation="Schemas/CFS_SolverPrecond.xsd"/>
@@ -69,6 +75,16 @@
         <xsd:complexType>
           <xsd:sequence>
             <xsd:element ref="PDEBasic" minOccurs="1" maxOccurs="unbounded"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <!-- List of PDE Couplings (optional) -->
+      <xsd:element name="couplingList" minOccurs="0">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element ref="PDEBasicCoupling" minOccurs="1"
+             maxOccurs="unbounded"/>
           </xsd:sequence>
         </xsd:complexType>
       </xsd:element>
