@@ -49,7 +49,7 @@ namespace CoupledField {
 			  "materialDataType" ) ) {
 
       piezoMaterialType_ = imagMaterialParameter; 
-      Info->PrintF( pdename_, " Using complex piezoMaterialData\n" );
+      Info->PrintF( pdename_, "Using complex piezoMaterialData\n" );
       std::cout << "\n++ Be aware, that you are about to consider "
 		<< "complex-valued material parameter!"
 		<< std::endl;
@@ -59,6 +59,16 @@ namespace CoupledField {
     params->Get( "subtype", subType_, pdename_ );
     std::string probGeo;
     params->Get( "type", probGeo, "geometry" );
+
+    // Check for equilibration of material parameters
+    std::string equilibrate;
+    params->Get( "equilibrate", equilibrate, "piezo" );
+    if ( equilibrate == "yes" ) {
+      Info->PrintF( pdename_, "Using EQUILIBRATION of material parameters!\n");
+      std::cout << "\n++ Using equilibration of material parameters! Not "
+		<< "corrected for in results!"
+		<< std::endl;
+    }
 
     // Set number of degrees of freedom and
     // ensure that subtype fits to problem geometry
