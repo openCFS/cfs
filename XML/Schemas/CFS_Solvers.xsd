@@ -292,6 +292,7 @@
           <xsd:element name="symStruct"  type="DT_CFSBool" minOccurs="0"/>
           <xsd:element name="ndOrdering" type="DT_CFSBool" minOccurs="0"/>
           <xsd:element name="logging"    type="DT_CFSBool" minOccurs="0"/>
+          <xsd:element name="stats"      type="DT_CFSBool" minOccurs="0"/>
         </xsd:sequence>
       </xsd:extension>
     </xsd:complexContent>
