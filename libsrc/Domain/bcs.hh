@@ -1,6 +1,8 @@
 #ifndef FILE_BOUNDCOND_2001
 #define FILE_BOUNDCOND_2001
 
+#define NUMLEVELGRID 20
+
 #include "filetype.hh"
 
 namespace CoupledField
@@ -39,20 +41,21 @@ public:
 protected:
 
 private:
+
   //!
-  Integer numNeumann[20];
+  Integer numNeumann[NUMLEVELGRID];
 
   //!    
-  Integer numConstraints[20];
+  Integer numConstraints[NUMLEVELGRID];
 
   //!
   FileType* InFile_;
 
   //!
-  std::list<NodeRestraint> restr_[20];
+  std::list<NodeRestraint> restr_[NUMLEVELGRID];
 
   //! number of nodes with restraints
-  Integer numrestr_[20];
+  Integer numrestr_[NUMLEVELGRID];
 };
 
 }

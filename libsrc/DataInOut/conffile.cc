@@ -73,40 +73,49 @@ template void ConfFile::get(const std::string , Double &);
 void ConfFile::getmatnum(Integer & matnum, const Integer numsubdom)
 {
  std::string::size_type pos;
- pos=getpos("numsubdomain");
+ pos=getpos("equation");
  infile.seekg(pos,std::ios::beg);
  infile.ignore(100,'\n');
 
+ std::string buffer;
+ Integer i;
+ for (i=0; i <= numsubdom; i++)
+ {
+   infile >> buffer >> matnum;
+   infile.ignore(100,'\n');
+ }
+
+std::cout << matnum << " matnum " << std::endl;
+/*
  Integer i=0, numsd=0;
  //
  Integer numsubdomain=numsubdom+1;
  std::string buffer;
 
  while (numsd != numsubdomain && i!=1000)
- { infile >> numsd >> buffer >> matnum;
+ { infile >> buffer >> matnum;
    i++;
  }
  
  if (i==1000) error("Error in conf->getmatnum: this numsubdom is absent in config-file");
+*/
+
 }
 
-void ConfFile::getequation(std::string & eq, const Integer numsubdom)
+void ConfFile::getequation(std::string & eq, const Integer numeq)
 {
  std::string::size_type pos;
- pos=getpos("numsubdomain");
+ pos=getpos("equation");
  infile.seekg(pos,std::ios::beg);
  infile.ignore(100,'\n');
 
- Integer numsd=0, i=0;
- Integer numsubdomain=numsubdom+1; 
-
-  while (numsd != numsubdomain && i!=1000)
+ Integer i;
+ for (i=0; i <= numeq; i++)
  {
-   infile >> numsd >> eq;
-   i++;
+   infile >> eq;
+   infile.ignore(100,'\n');
  }
 
- if (i==1000) error("Error in conf->getequation: this numsubdom is absent in config-file");
 }
 
 void ConfFile::error(const std::string keyword) const
