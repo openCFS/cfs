@@ -321,9 +321,9 @@ void ElecPDE::WriteResultsInFile()
       {
 	std::ostringstream el_fieldname, f_fieldname;
 	el_fieldname << "Efield" << i;
-	OutFile_->WriteDataOnCell(Eh[i],step,time, el_fieldname.str());
+	//	OutFile_->WriteDataOnCell(Eh[i],step,time, el_fieldname.str());
 	f_fieldname << "Eforce" << i;
-	OutFile_->WriteDataOnCell(Fh[i],step,time, f_fieldname.str());
+	//	OutFile_->WriteDataOnCell(Fh[i],step,time, f_fieldname.str());
       }
     }
   else

@@ -40,6 +40,7 @@ namespace CoupledField
     magVecPotRe_ = NULL;
   
     ReadCoils();
+
     if (analysistype_==HARMONIC)
       conf->get("frequency", freq_, pdename_);
   }
@@ -282,6 +283,9 @@ namespace CoupledField
       {
 	reluctivity  = 1.0/materialData_[i].GetPermiability();
 	conductivity = materialData_[i].GetConductivity();
+
+	//if STATIC, set conductivity to zero
+	if (analysistype_==STATIC) conductivity = 0.0;
 
 	// set conductivity, if in material no conductivity is given
 	// small conductivity is needed for regularization

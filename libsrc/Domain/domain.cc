@@ -90,7 +90,6 @@ Domain:: Domain(FileType * const aptFileType, WriteResults * ptOut, TimeFunc * a
      Error("Unknown type of mesh_library in conf-file",__FILE__,__LINE__);
  }
 
-
  //read in the mesh information
  ptgrid_->Read();
 
@@ -99,7 +98,6 @@ Domain:: Domain(FileType * const aptFileType, WriteResults * ptOut, TimeFunc * a
 
  //read restraints information
  ptBCs_->ReadBCs();
-
  InitPDEs();
  
 }
