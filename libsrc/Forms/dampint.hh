@@ -36,6 +36,7 @@ private:
 
 #ifdef __GNUC__
 template class DampInt<2>;
+template class DampInt<3>;
 #endif
 
 

@@ -61,7 +61,7 @@ Double &adampiter,  Integer &amaxnumit, Integer &numeqcoarse, Double &coarsealph
   /*!
     \param level level of grid
    */
-  void SetupMatrices(const Integer level=0);
+  void SetupMatrices(const Integer level=0, BCs * ptBCs=NULL);
 
     //! set boundary condition
   /*!

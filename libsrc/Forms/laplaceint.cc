@@ -96,6 +96,9 @@ void LaplaceInt<dim> :: CalcElemMatrix(Point<dim> * ptCoord, Matrix<Double> & Re
  
   delete [] help;
 
+#ifdef TRACE
+  (*trace) << "leaving LaplaceInt::CalcElemMatrix" << std::endl;
+#endif
 }
 
 // template <>

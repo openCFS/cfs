@@ -7,5 +7,6 @@
 #include "therm2dPDE.hh"
 #include "elecst2dPDE.hh"
 #include "elecst3dPDE.hh"
+#include "mech2d.hh"
 
 #endif

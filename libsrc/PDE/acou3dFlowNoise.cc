@@ -4,7 +4,7 @@
 #include <math.h>
 #include <iomanip>
 
-#include "acou2dFlowNoise.hh"
+#include "acou3dFlowNoise.hh"
 #include "outUnverg.hh"
 #include "outGMV.hh"
 #include "forms_header.hh"
@@ -13,20 +13,20 @@ namespace CoupledField
 {
 
 
-Acou2dFlowNoise::Acou2dFlowNoise(AbstractAlgebraicSys * ptalgsys, Grid * aptgrid, Material * ptMaterial, TimeFunc * aptTimeFunc, FileType * aptFileType, WriteResults * aptOut):Acoustic2dPDE(ptalgsys, aptgrid, ptMaterial, aptTimeFunc, aptFileType, aptOut)   
+Acou3dFlowNoise::Acou3dFlowNoise(AbstractAlgebraicSys * ptalgsys, Grid * aptgrid, Material * ptMaterial, TimeFunc * aptTimeFunc, FileType * aptFileType, WriteResults * aptOut):Acoustic3dPDE(ptalgsys, aptgrid, ptMaterial, aptTimeFunc, aptFileType, aptOut)   
   {
 #ifdef TRACE
-  (*trace) << "entering Acou2dFlowNoise::Acou2dFlowNoise " << std::endl;
+  (*trace) << "entering Acou3dFlowNoise::Acou3dFlowNoise " << std::endl;
 #endif
 
  ReadBCs("Acoustic");
  preComputeRHS();
 }
 
-void Acou2dFlowNoise::SetBCs(BCs * ptBCs, const Integer level, const Integer update, const Double atime)
+void Acou3dFlowNoise::SetBCs(BCs * ptBCs, const Integer level, const Integer update, const Double atime)
 {
 #ifdef TRACE
-  (*trace) << "entering Acou2dFlowNoise::SetBCs" << std::endl;
+  (*trace) << "entering Acou3dFlowNoise::SetBCs" << std::endl;
 #endif
 
   Integer node;
@@ -105,15 +105,15 @@ void Acou2dFlowNoise::SetBCs(BCs * ptBCs, const Integer level, const Integer upd
 
 
 #ifdef TRACE
-  (*trace) << "leaving Acou2dFlowNoise::SetBCs" << std::endl;
+  (*trace) << "leaving Acou3dFlowNoise::SetBCs" << std::endl;
 #endif
 }
 
 
-void Acou2dFlowNoise::preComputeRHS()
+void Acou3dFlowNoise::preComputeRHS()
 {
 #ifdef TRACE
-  (*trace) << "entering Acou2dFlowNoise::preComputeRHS" << std::endl;
+  (*trace) << "entering Acou3dFlowNoise::preComputeRHS" << std::endl;
 #endif
 
   SetRHSFnc = FALSE;
@@ -128,10 +128,10 @@ void Acou2dFlowNoise::preComputeRHS()
   }
 }
 
-void Acou2dFlowNoise::ComputeRHS(const Double atime, BCs * ptBCs)
+void Acou3dFlowNoise::ComputeRHS(const Double atime, BCs * ptBCs)
 {
 #ifdef TRACE
-  (*trace) << "entering Acou2dFlowNoise::ComputeRHS" << std::endl;
+  (*trace) << "entering Acou3dFlowNoise::ComputeRHS" << std::endl;
 #endif
 
   Integer matrix_id;
@@ -162,9 +162,9 @@ void Acou2dFlowNoise::ComputeRHS(const Double atime, BCs * ptBCs)
   Integer maxnumelem=ptgrid_->GetMaxnumElem(level,subdoms_);
 
   Double integrShFnc,val,multiplier;
-  Point<2> * ptCoordNodes;
-  Point<2> * ptCoordNodSurf; // For ObstSurf
-  Point<2> * ptCoordNodBelongSE;
+  Point<3> * ptCoordNodes;
+  Point<3> * ptCoordNodSurf; // For ObstSurf
+  Point<3> * ptCoordNodBelongSE;
   Vector<Integer> connecth;
   Vector<Integer> connObstSurf;	// For ObstSurf
   Vector<Integer> connBelongSE;
@@ -179,7 +179,7 @@ void Acou2dFlowNoise::ComputeRHS(const Double atime, BCs * ptBCs)
   static float * NODEDATA=new float[3*size_];
   static int * TOPOLOGYDATA=new int[4*maxnumelem];
   std::vector<Elem*> elemssd;     
-  static Integer timestep=1;
+  static Integer timestep=0;
   static int auxtime=0;
   Double coeffRHS;
   Integer matnum;
@@ -191,25 +191,6 @@ void Acou2dFlowNoise::ComputeRHS(const Double atime, BCs * ptBCs)
 
   //      coeffRHS  = (density*density/compress);
   coeffRHS  = 1.0;
-
-  //THIS IS A TEMPORAL OPTION WHEN GENERATING GRAD P FOR A 2 TIMES COARSER GRID
-  //       Integer ctrelem=1;
-  //       std::string::size_type pos=0;     
-  //       Double gradAveX, gradAveY, gradsumX, gradsumY;
-  //       Char * aux=new Char[2];
-  //     Char * gradfileTS=new Char[30];
-  //   sprintf(aux,"%i",timestep);
-  //   sprintf(gradfileTS,"gradfile");
-  //   strcat(gradfileTS,aux);
-  //   strcat(gradfileTS,".dat");
-  //   std::cout<<"name of currentfile: "<<gradfileTS<<std::endl;    
-
-  //Openening file for saving average of gradient
-
-  //std::ofstream gradfile;
-  //gradfile.open(gradfileTS, std::ios::out);
-  //      gradfile.seekg(pos, std::ios::beg);     
-  // END OF OPENING GRADFILE
 
 
   // Reorganizing grid info so that exchange through MpCCi can be performed
@@ -224,14 +205,14 @@ void Acou2dFlowNoise::ComputeRHS(const Double atime, BCs * ptBCs)
 	    {
 	      elsize=(elemssd[j]->connect).size();
 	      connecth=elemssd[j]->connect;
-	      ptCoordNodes=new Point<2>[connecth.size()];
+	      ptCoordNodes=new Point<3>[connecth.size()];
 	      ptgrid_->GetCoordNodesElem(connecth,ptCoordNodes,level);
 	      for (ii=0; ii<elsize; ii++, k++)
 		{
 		  TOPOLOGYDATA[k]=connecth[ii];
 		  NODEDATA[3*(connecth[ii]-1)]=ptCoordNodes[ii][0];		      
 		  NODEDATA[3*(connecth[ii]-1)+1]=ptCoordNodes[ii][1];
-		  NODEDATA[3*(connecth[ii]-1)+2]= 0.0; // Z comp for the 2d case is zero		      
+		  NODEDATA[3*(connecth[ii]-1)+2]=ptCoordNodes[ii][2]; 		      
 		}
 	      delete [] ptCoordNodes;	
 	    }
@@ -256,7 +237,7 @@ void Acou2dFlowNoise::ComputeRHS(const Double atime, BCs * ptBCs)
   std::vector<Elem*> belongSE;
 
   
-  ObstSurf=ptBCs->getEdgesBC(rhs_surfaces_[0],level);
+  ObstSurf=ptBCs->getFacesBC(rhs_surfaces_[0],level);
   Next2Surf=ptBCs->getNeighElemsForSurfaces(rhs_surfaces_[1],level);
   ptgrid_->DefineBelonging4Elems(ObstSurf,Next2Surf,belongSE);
 
@@ -268,14 +249,7 @@ void Acou2dFlowNoise::ComputeRHS(const Double atime, BCs * ptBCs)
 
     ReadFlowData(flowdata.c_str(), timestep, nodedata); // Calls to get data in nodedata
 
-    // PATCH TO NODE 80182 IN THE CHANNEL WITH SQR. OBST. WHICH HAD A NULL VALUE FROM LSTM.
-
-//     for (i=0;i<3;i++)
-//       nodedata[i][80182-1]=(nodedata[i][80183-1] + nodedata[i][80181-1])/2;
-
-    // END OF PATCH
-
-    std::cout << "Processing RHS 1D elems... "<< std::endl;
+    std::cout << "Processing RHS 2D elems... "<< std::endl;
     // This is for the loop over the surface elements
  
 
@@ -291,18 +265,17 @@ void Acou2dFlowNoise::ComputeRHS(const Double atime, BCs * ptBCs)
 	for (ii=0; ii<elsize; ii++)
 	  connBelongSE[ii]=(belongSE[j]->connect)[ii];
 	  
-	ptCoordNodBelongSE=new Point<2>[connBelongSE.size()];
+	ptCoordNodBelongSE=new Point<3>[connBelongSE.size()];
 	ptgrid_->GetCoordNodesElem(connBelongSE,ptCoordNodBelongSE,level);	  
 	std::vector<Double> gradN_x_P; // This is done due to the different parameter type Vector and std::vector
 	gradN_x_P.resize(2);// For 2D case only
-	Vector<Double> JinvX, JinvY;
-	Jacobian<2> J;// For 2D case only
+	Vector<Double> JinvX, JinvY, JinvZ;
+	Jacobian<3> J;// For 2D case only
 	ptElBelongSE->CalcJacobianAtCenter(J,ptCoordNodBelongSE);
 	J.GetJinvX(JinvX);
 	J.GetJinvY(JinvY);
+	J.GetJinvZ(JinvZ);
 
-
-	// TO COMMENT OUT ONLY WHILE USING FILES WITH GRADIENT VALUE!!!
 	// Gradient of P at center by average of value at four nodes of neighbour 2d element
 	for (ii=0; ii<n; ii++)
 	  {
@@ -311,44 +284,14 @@ void Acou2dFlowNoise::ComputeRHS(const Double atime, BCs * ptBCs)
      
 	    gradN_x_P[0]+=(help[ii]*JinvX)*(nodedata[0][connBelongSE[ii]-1]);
 	    gradN_x_P[1]+=(help[ii]*JinvY)*(nodedata[0][connBelongSE[ii]-1]);
+	    gradN_x_P[2]+=(help[ii]*JinvZ)*(nodedata[0][connBelongSE[ii]-1]);
 	  }
 
-	// TEMPORARY ALSO WHEN USING FILES!!!
-	// 	      gradN_x_P[0]=nodedata[0][2*j];
-	//  	      gradN_x_P[1]=nodedata[0][2*j+1];
-
-
-
-	// THIS IS TO BE DONE ONLY ONCE EVERY SIMULATION!!
-	// THIS IS JUST FOR SAVING THE AVERAGE OF THE GRADIENTS OF P FOR N ELEMENT SO THAT LATER WE COARSE THE GRID!!!
-	// With this we can printout the average of grad(P) data in a file.
-	  
-	// 	  gradsumX+= gradN_x_P[0];
-	// 	  gradsumY+= gradN_x_P[1];
-	// 	  if (ctrelem==2)
-	// 	    {
-	// 	      ctrelem=0;
-	// 	      gradAveX=gradsumX/2;
-	// 	      gradsumX=0;
-	// 	      gradAveY=gradsumY/2;
-	// 	      gradsumY=0;
-	// 	      gradfile << std::setiosflags(std::ios::uppercase | std::ios::scientific) << gradAveX;
-	//               gradfile << std::endl;
-	//               gradfile << std::setiosflags(std::ios::uppercase | std::ios::scientific) << gradAveY;
-	//               gradfile << std::endl;
-	// 	    }
-	// 	  ctrelem++;
-
-
-	// END OF SAVING GRADIENT (THIS IS A TEMPORAL OPTION)
-
-
-
 	ptElSurf=ObstSurf[j]->ptElem;
-	BaseForm<2> * linear_loaddipole = new LinearForm<2>(ptElSurf);
+	BaseForm<3> * linear_loaddipole = new LinearForm<3>(ptElSurf);
 	  
 	connObstSurf=ObstSurf[j]->connect;
-	ptCoordNodSurf=new Point<2>[connObstSurf.size()];
+	ptCoordNodSurf=new Point<3>[connObstSurf.size()];
  	  
 	ptgrid_->GetCoordNodesElem(connObstSurf,ptCoordNodSurf,level);
 
@@ -360,76 +303,29 @@ void Acou2dFlowNoise::ComputeRHS(const Double atime, BCs * ptBCs)
 	delete [] ptCoordNodBelongSE;
 
       }
-
-
-    //THIS IS PART OF GENERATING GRADIENT FILE
-    //	  gradfile.close();
-
-    // Variables for ramping
-	   Double xfmin, yfmin, xfmax, yfmax, facRampXmin, facRampYmin, facRampXmax, facRampYmax ;
-	   Double bndoffsetXmin, bndoffsetYmin, bndoffsetXmax, bndoffsetYmax ;
-	   conf->get("xfmin",xfmin,"Acoustic"); // minimum x coord. of fluid domain
-	   conf->get("yfmin",yfmin,"Acoustic"); // minimum y coord. of fluid domain	   
-	   conf->get("xfmax",xfmax,"Acoustic"); // maximum x coord. of fluid domain
-	   conf->get("yfmax",yfmax,"Acoustic"); // maximum y coord. of fluid domain
-	   conf->get("facrampXmin",facRampXmin,"Acoustic"); // factor for starting ramping
-	   conf->get("facrampYmin",facRampYmin,"Acoustic"); // factor for starting ramping
-	   conf->get("facrampXmax",facRampXmax,"Acoustic"); // factor for starting ramping
-	   conf->get("facrampYmax",facRampYmax,"Acoustic"); // factor for starting ramping
-	   bndoffsetXmin=facRampXmin*xfmin;
-	   bndoffsetYmin=facRampYmin*yfmin; 
-	   bndoffsetXmax=facRampXmax*xfmax;
-	   bndoffsetYmax=facRampYmax*yfmax;
 	  
       // Quadrupole computation
-      std::cout << "Processing RHS 2D elems... "<< std::endl;
+      std::cout << "Processing RHS 3D elems... "<< std::endl;
       valmult=coeffRHS;
-      
       for (i=(subdoms_.size())-1; i<subdoms_.size(); i++)
 	{
 	  ptgrid_->GetElemSD(elemssd,subdoms_[i],level);
-
 	  for (j=0; j< elemssd.size(); j++)
 	    {
 	      ptEl=elemssd[j]->ptElem;
-	      BaseForm<2> * linear_load = new LinearForm<2>(ptEl);
-
+	      BaseForm<3> * linear_load = new LinearForm<3>(ptEl);
 	      Integer ii;
 	      elsize=(elemssd[j]->connect).size();
 	      connecth.Resize(elsize);
+	      
 	      for (ii=0; ii<elsize; ii++)
 		connecth[ii]=(elemssd[j]->connect)[ii];
-
-	      ptCoordNodes=new Point<2>[connecth.size()];
+	      
+	      ptCoordNodes=new Point<3>[connecth.size()];
 	      ptgrid_->GetCoordNodesElem(connecth,ptCoordNodes,level);
-	   std::cout<<"Aqui"<<std::endl;
-
 	      linear_load->CalcElemVector4FlowSrcQuad(ptCoordNodes, connecth, nodedata, elemvec);
-           elemvec*=valmult;
-
-	   // Ramping before adding elemrhs to global vector to avoid spurious effect at bnd. of fluid dom.
-
-	   for (ii=0; ii<elsize; ii++)
-	     {
-	       if (ptCoordNodes[ii][0]<bndoffsetXmin)
-		 {
-		   
-		 elemvec[ii]-=elemvec[ii]*(ptCoordNodes[ii][0]-bndoffsetXmin)/(xfmin-bndoffsetXmin);
-		 std::cout<<"nodenumber in ramping zone of Xmin: "<<connecth[ii]<<std::endl;
-		 }
-	       
-	       else
-		 if (ptCoordNodes[ii][0]>bndoffsetXmax)
-		   elemvec[ii]-=elemvec[ii]*(ptCoordNodes[ii][0]-bndoffsetXmax)/(xfmax-bndoffsetXmax);
-	       if (ptCoordNodes[ii][1]<bndoffsetYmin)
-		 elemvec[ii]-=elemvec[ii]*(ptCoordNodes[ii][1]-bndoffsetYmin)/(yfmin-bndoffsetYmin);
-	       else	
-		 if (ptCoordNodes[ii][1]>bndoffsetYmax)
-		   elemvec[ii]-=elemvec[ii]*(ptCoordNodes[ii][1]-bndoffsetYmax)/(yfmax-bndoffsetYmax);
-	     }
-	   
-	   //end ramping
-
+	      
+	      elemvec*=valmult;
 	      //linear_load->CalcElemVector(ptCoordNodes, elemvec); // for setting with homogeneous rhs	      
 	      ptalgsys_->PutElemRHS(elemvec.get(), connecth.get(), connecth.size(), as_sysid_);
 	      delete linear_load;
@@ -443,17 +339,13 @@ void Acou2dFlowNoise::ComputeRHS(const Double atime, BCs * ptBCs)
     //  	  auxtime=0;
     timestep=timestep+1;
     //  	}
-      
-     
 
-} 
+}
 
-
-
-void Acou2dFlowNoise::ReadFlowData(const Char * aname,const Integer timestep, Matrix<Double> &nodedata)
+void Acou3dFlowNoise::ReadFlowData(const Char * aname,const Integer timestep, Matrix<Double> &nodedata)
 {
 #ifdef TRACE
-  (*trace) << "entering Acou2dFlowNoise ::ReadFlowData" << std::endl;
+  (*trace) << "entering Acou3dFlowNoise ::ReadFlowData" << std::endl;
 #endif
 
   std::ifstream flowdatafile;
@@ -466,8 +358,8 @@ void Acou2dFlowNoise::ReadFlowData(const Char * aname,const Integer timestep, Ma
 
   sprintf(aux,"%i",timestep);
   strcpy(anameloc,aname);
-  strcat(anameloc,aux);
-  strcat(anameloc,".dat");
+//   strcat(anameloc,aux);
+//   strcat(anameloc,".dat");
   std::cout<<"name of currentfile: "<<anameloc<<std::endl;
   
 
@@ -482,7 +374,7 @@ void Acou2dFlowNoise::ReadFlowData(const Char * aname,const Integer timestep, Ma
   //std::getline(flowdatafile,buffer);
   //std::getline(flowdatafile,buffer2);
 
-  // for maxnumqtts, currently for 2D we are working with 3, p and vx, vy
+  // for maxnumqtts, for 3D we are working with 4, p and vx, vy, vz
 
   Integer ibuf;
   /* Set pointer to beginning of file: */
@@ -526,10 +418,10 @@ void Acou2dFlowNoise::ReadFlowData(const Char * aname,const Integer timestep, Ma
 
 
 // // THIS IS TEMPORARY FOR GENERATING THE GRAD OF P FOR A 2TIMES COARSER GRID!!
-// void Acou2dFlowNoise :: ReadFlowData(const Char * aname,const Integer timestep, Matrix<Double> &nodedata)
+// void Acou3dFlowNoise :: ReadFlowData(const Char * aname,const Integer timestep, Matrix<Double> &nodedata)
 // {
 // #ifdef TRACE
-//   (*trace) << "entering Acou2dFlowNoise ::ReadFlowData" << std::endl;
+//   (*trace) << "entering Acou3dFlowNoise ::ReadFlowData" << std::endl;
 // #endif
 
 
@@ -573,10 +465,10 @@ void Acou2dFlowNoise::ReadFlowData(const Char * aname,const Integer timestep, Ma
 // }
 
 
-void Acou2dFlowNoise::SolveStepStatic(BCs * ptBCs, Integer level)
+void Acou3dFlowNoise::SolveStepStatic(BCs * ptBCs, Integer level)
 {
 #ifdef TRACE
-  (*trace) << "entering Acou2dFlowNoise::SolveStepStatic" << std::endl;
+  (*trace) << "entering Acou3dFlowNoise::SolveStepStatic" << std::endl;
 #endif
 
   Integer update = 0;
@@ -588,10 +480,10 @@ void Acou2dFlowNoise::SolveStepStatic(BCs * ptBCs, Integer level)
   ptalgsys_->SolveAlgSys(as_sysid_);
 }
 
-void Acou2dFlowNoise::SolveStepTrans(BCs * ptBCs, const Integer kstep, const Double asteptime, const Integer level, const Boolean reset)
+void Acou3dFlowNoise::SolveStepTrans(BCs * ptBCs, const Integer kstep, const Double asteptime, const Integer level, const Boolean reset)
 {
 #ifdef TRACE
-  (*trace) << "entering Acou2dFlowNoise::SolveStepTrans" << std::endl;
+  (*trace) << "entering Acou3dFlowNoise::SolveStepTrans" << std::endl;
 #endif
 
   lasttimecalc_= asteptime;
@@ -645,10 +537,10 @@ void Acou2dFlowNoise::SolveStepTrans(BCs * ptBCs, const Integer kstep, const Dou
 
 }
 
-void Acou2dFlowNoise::WriteResultsInFile()
+void Acou3dFlowNoise::WriteResultsInFile()
 {
 #ifdef TRACE
-  (*trace) << "entering Acou2dFlowNoise::WriteResultsInFile" << std::endl;
+  (*trace) << "entering Acou3dFlowNoise::WriteResultsInFile" << std::endl;
 #endif
 
   if (OutFile_->IsGMV())
@@ -665,7 +557,31 @@ void Acou2dFlowNoise::WriteResultsInFile()
     }
 }
 
-Acou2dFlowNoise::~Acou2dFlowNoise()
+// void Acou3dFlowNoise::CalcCoeff(Vector<Double> & coeffmass, Vector<Double> & coeffstiff, Vector<Double> & coeffdamp)
+// {
+//   if (!MatFile_) Error("You didn't specialize material file. Check your config-file.");
+
+//   coeffmass.Resize(subdoms_.size());
+//   coeffstiff.Resize(subdoms_.size());
+//   coeffdamp.Resize(subdoms_.size());
+  
+//   Integer i,matnum;
+//   for (i=0; i<subdoms_.size(); i++)
+//     {
+// 			conf->get(subdoms_[i],matnum,"list_subdomains");
+// 			if (matnum==11111) break; //This may be commented out.
+//       // read density and compress with material number matnum
+//       Double density, compress;
+//       MatFile_->ReadDensityAndCompressity(density,compress,matnum,"fluid");
+
+//       coeffmass[i]  = density*density/compress;
+//       coeffstiff[i] = density;
+//       coeffdamp[i]  = density/((sqrt(compress/density)));
+
+//     }
+// }
+
+Acou3dFlowNoise::~Acou3dFlowNoise()
 {
  
  

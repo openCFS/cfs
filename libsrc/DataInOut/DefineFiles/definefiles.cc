@@ -81,9 +81,6 @@ FileType * DefineInOutFiles :: Create_ptFileType()
   std::string informat;
   conf->get("format_input",informat);
 
-  if (informat=="dat")  
-      infiletype=new DatFile(filename);
-  else
   if  (informat=="mesh") 
       infiletype=new AnsysFile(filename);
   else 

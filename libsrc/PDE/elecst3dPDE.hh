@@ -1,5 +1,5 @@
-#ifndef FILE_ELECTST3DPDE_2001
-#define FILE_ELECTST3DPDE_2001
+#ifndef FILE_ELECTST3DPDE_2002
+#define FILE_ELECTST3DPDE_2002
 
 #include "basepde.hh" 
 
@@ -61,7 +61,7 @@ Double &adampiter,  Integer &amaxnumit, Integer &numeqcoarse, Double &coarsealph
   /*!
     \param level level of grid
    */
-  void SetupMatrices(const Integer level=0);
+  void SetupMatrices(const Integer level=0, BCs * ptBCs=NULL);
 
     //!  set boundary condition
   /*!
@@ -102,6 +102,9 @@ Double &adampiter,  Integer &amaxnumit, Integer &numeqcoarse, Double &coarsealph
 
   //! refine mesh
   virtual void RefineMesh();
+
+  //! write additional info (marked elements, relative error) to files with mesh
+  virtual void PrintMeshesInfo(WriteResults * ptMeshes);
 
 private:
   //! initialization of pointer to SpaceErrorEstimator
@@ -156,36 +159,6 @@ private:
   SpaceErrorEstimator<3> * ptError_;
   
 };
-
-// class PutElemMatAlgSysElst3d
-// {
-// public:
-
-//   PutElemMatAlgSysElst3d(AbstractAlgebraicSys * aptalgsys, Grid * aptgrid, const Double acoeffs, const Integer as_sysid, const Integer alevel)
-//   { sysid_=as_sysid; ptalgsys_=aptalgsys; ptgrid_=aptgrid;
-//     coeffst_=acoeffs; level_=alevel; matrix_stiff_=2;}
-
-//   ~PutElemMatAlgSysElst3d() {}
-
-//   // method
-//   void operator() (Elem t);
-
-// private:
-
-//      //!
-//   Grid * ptgrid_;
-
-//      //!
-//   AbstractAlgebraicSys * ptalgsys_;
-
-//      //!
-//   Integer sysid_, level_, matrix_stiff_;
-
-//      //!
-//   Double  coeffst_;
-
-// };
-
 
 } // end of namespace
 #endif

@@ -110,6 +110,12 @@ private:
   */
   void WriteVelocity(const Vector<Double>* var, const std::string name, const Integer dataType);
  
+  //! transform string to 8 characters. we need it, because name in gmv, in binary format, should be from 8 characters
+  /*!
+    \param name (input) title
+    \param result (output) result
+  */
+  void to8Char(const std::string name, char * result);
 };
 
 } // end of namespace

@@ -15,7 +15,7 @@ RANLIB=ranlib
 # Machine dependent flags:
 #
 #CFLAGS1=-c -DDEBUG -DTRACE -DNETGEN -DADAPTGRID $(INCL)
-CFLAGS1=-c -pg -O3 -DADAPTGRID $(INCL)
+CFLAGS1=-c -O3 $(INCL)
 FLAG_MKSHLIB = -v -shared
 ARFLAGS = r 
 #

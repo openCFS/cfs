@@ -44,6 +44,13 @@ public:
   */
   std::vector<Elem*> BCs::getEdgesBC(const std::string color, const Integer lev=-1);
 
+//! returns all 2D elements belonging to the requested interface
+  /*!
+    \param color name of interface
+    \param lev index for hierarchy in multilevel method
+  */
+  std::vector<Elem*> BCs::getFacesBC(const std::string color, const Integer lev=-1);
+
   //! get number of nodes belonging to specified level and hierarchy index
   /*!
     \param level name of boundary type
@@ -56,7 +63,7 @@ public:
     \param color (input) name of boundary elements 
     \param lev (input)  index for hierarchy in multilevel method
   */
-  std::vector<Elem*> getNeighbors2DElemsFor1D(const std::string color, const Integer lev=-1);
+  std::vector<Elem*> getNeighElemsForSurfaces(const std::string color, const Integer lev=-1);
 
   //! 
   //! prints boundary data to screen
@@ -68,8 +75,10 @@ private:
 
   std::vector<std::string> levels_;            //!< stores all names of boundary nodes
   std::vector<std::string> color_edges_;       //!< stores all names of 1D interfaces
+   std::vector<std::string> color_faces_;       //!< stores all names of 2D interfaces
   std::list<Integer> * bcs_[NUMLEVELGRID];     //!< stores all boundary nodes
   std::vector<Elem*> * bcsEdges_[NUMLEVELGRID]; //!< stores all 1D elements along interfaces
+   std::vector<Elem*> * bcsFaces_[NUMLEVELGRID]; //!< stores all 2D elements along interfaces
   //! color of neighbors elements. it is got from conf-file
   std::vector<std::string> color_neighelems_;
   //! array with 2D neighbors elements for 1D;

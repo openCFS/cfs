@@ -145,23 +145,26 @@ void Domain :: InitPDE()
 
   for (int i=0;i< pdes.size();i++)
     {
-      if (pdes[i] == "acoustic2d")  { ptpde_[i]=new Acoustic2dPDE(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_);}
-      else
-	if (pdes[i] == "electrostatic3d") {  ptpde_[i]=new Elecst3dPDE(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_);
-	}     
-	else
-	  if (pdes[i] == "thermal2d") 
+      if (pdes[i] == "acoustic2d")
+	ptpde_[i]=new Acoustic2dPDE(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_);	
+      else if (pdes[i] == "electrostatic3d")
+	ptpde_[i]=new Elecst3dPDE(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_);
+      else if (pdes[i] == "thermal2d")
 	ptpde_[i]=new Therm2dPDE(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_);	 
-	  else
-	    if (pdes[i]=="electrostatic2d") { ptpde_[i]=new Elecst2dPDE(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_); }
-	else
-	if (pdes[i]=="acoustic3d") { ptpde_[i]=new Acoustic3dPDE(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_); }
-	else
-	 if (pdes[i]=="acou2dflownoise") { ptpde_[i]=new Acou2dFlowNoise(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_); }
-	    else { std::string msg=pdes[i]+" - this type of pdes is unknown";
-	    Error(msg.c_str(),__FILE__,__LINE__);
-	    } 	  
-    } // end of for
+      else if (pdes[i] == "electrostatic2d") 
+	ptpde_[i]=new Elecst2dPDE(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_); 
+      else if (pdes[i] == "acoustic3d")
+	ptpde_[i]=new Acoustic3dPDE(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_); 
+      else if (pdes[i] == "acou2dflownoise")
+	ptpde_[i]=new Acou2dFlowNoise(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_); 
+      else if (pdes[i] == "mech2d")
+	ptpde_[i]=new Mech2dPDE(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_); 
+      else
+	{
+	  std::string msg=pdes[i]+" - this type of pdes is unknown";
+	  Error(msg.c_str(),__FILE__,__LINE__);
+	}     
+    }
 
 } // end of fnc InitPDE()
 
@@ -191,12 +194,12 @@ void Domain :: InitAlgSys(const Integer level)
     {
       ptpde_[insys]->SetAlgSys_id(insys);
       ptpde_[insys]->SpecifySolver(solvertype,precondtype,eps,dampiter,maxnumit,numeqcoarse,coarsealpha);
-      ptalgsys_->SetSolverParameter(insys,eps,dampiter,maxnumit,solvertype,precondtype,  numeqcoarse, coarsealpha);
+      ptalgsys_->SetSolverParameter(insys,eps,dampiter,maxnumit,solvertype,precondtype,numeqcoarse, coarsealpha);
     }
 
   //init the algsys-graph
   Integer numnode = ptgrid_->GetMaxnumnodes(level);
-  cout << "numnode:" << numnode << endl;
+  //  cout << "numnode:" << numnode << endl;
 
   Integer matrix_graphtype = NODEGRAPH; //nodal graph
 

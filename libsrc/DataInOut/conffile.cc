@@ -15,15 +15,10 @@ ConfFile::ConfFile(const Char* const afilename)
 
  filename = new Char[100];
  strcpy(filename,afilename);
+ strcat(filename,".conf");
 
- infile.open(strcat(filename,".conf"));
+ open_file();
 
- if (!infile) infile.open("general.conf");
- if (!infile) {std::cerr << "ERROR(" << __FILE__ << " " << __LINE__ <<
-                         ") Can't open " << filename << std::endl;
-                exit(1);}
-
- infile.seekg(0, std::ios::end);
  pos_end=infile.tellg();
 }
 
@@ -100,15 +95,15 @@ Boolean ConfFile::get_option(const std::string keyword, const std::string sectio
 
  Boolean val=FALSE;
 
- if (pos==std::string::npos) return val;
+ if (pos==std::string::npos) return FALSE;
 
  infile.seekg(pos, std::ios::beg);
  std::string option;
  infile >> option;
  
- if (option == "yes") val=TRUE;
+ if (option == "yes") return TRUE;
 
- return val;  
+ return FALSE;
 }
 
 std::string::size_type ConfFile::getpos(const std::string keyword,const std::string::size_type startpos,Boolean writeErr)
@@ -116,7 +111,10 @@ std::string::size_type ConfFile::getpos(const std::string keyword,const std::str
   std::string::size_type help,pos=std::string::npos;
   std::string buf;
 
+  if (infile.eof()) infile.clear();
   infile.seekg(startpos, std::ios::beg);
+ 
+    
    while ( pos == std::string::npos && !infile.eof() )
   {
     help=infile.tellg();
@@ -242,6 +240,21 @@ Boolean ConfFile::ifgetliststr( const std::string seekexp, std::vector<std::stri
  } while  (help != "non");
 
  return TRUE;
+}
+
+void ConfFile::open_file()
+{
+
+  if (infile.is_open()) infile.close(); 
+  infile.clear();
+  infile.open(filename);
+
+ if (!infile) infile.open("general.conf");
+ if (!infile) {std::cerr << "ERROR(" << __FILE__ << " " << __LINE__ <<
+                         ") Can't open " << filename << std::endl;
+                exit(1);}
+
+ infile.seekg(0, std::ios::end);
 }
 
 void ConfFile::error(const std::string keyword) const

@@ -111,6 +111,9 @@ private:
   //! checking that the value is from predefined list
   void check(const std::string value, std::vector<std::string> data);
 
+  //!
+  void open_file();
+
 };
 
 } // end of namespace

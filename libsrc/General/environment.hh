@@ -44,7 +44,7 @@ enum MatrixType  {NOTYPE, SYSTEM, STIFFNESS, DAMPING, CONVECTION, MASS};
 enum MatrixClass {NOCLASS, RSCALAR, CSCALAR, RBLOCK, CBLOCK, RFULL, CFULL, RSCALAREDGE, CSCALAREDGE, HBFEM};
 enum PrecondType {NOPRECOND, ID, MG};
 enum SolverType  {NOSOLVER, RealRichardson, ComplexRichardson, RealCG, ComplexCG, Lanczos, RealQMR, 
-		  ComplexQMR};
+		  ComplexQMR, RealDirect};
 enum CycleType   {NOCYCLE, VCYCLE, WCYCLE};
 
 // ---------------solver specific enumerations: end

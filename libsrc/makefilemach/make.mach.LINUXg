@@ -1,7 +1,7 @@
 #
 # Machine dependent make include file for LINUX - optimized version
 # 
-OPT=-O3 -m486 
+OPT= 
 #
 F77=g77 $(OPT)
 CC=g++ 
@@ -14,11 +14,13 @@ RANLIB=ranlib
 #
 # Machine dependent flags:
 #
-CFLAGS1= -g -c -DTRACE -DADAPTGRID $(INCL)
+CFLAGS1= -pg -g -c -DTRACE -DDEBUG
 CFLAG_EXE= -g
 FLAG_MKSHLIB = -g -v -shared 
 ARFLAGS = r 
 #
 UNDER  = -DFORTRANDOUBLEUNDERSCORE
-CPLUSPLUSFLAGS2 = $(UNDER) -pg  -fnonnull-objects -I/usr/local/qt/include  -I/usr/local/GL/include
-LINKFLAGS2 = -pg -L/usr/openwin/lib -L/usr/X11R6/lib
+LINKFLAGS = -pg 
+
+syslib := -lm -lc 
+

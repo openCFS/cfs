@@ -56,9 +56,11 @@ Acoustic3dPDE::Acoustic3dPDE(AbstractAlgebraicSys * ptalgsys, Grid * aptgrid, Ma
   conf->get("gamma_NM",gamma_,"Acoustic3d");
 
   conf->getsubdompde(subdoms_,"Acoustic3d");
- ReadBCs("Acoustic3d");
+  ReadBCs("Acoustic3d");
 
- preComputeRHS();
+  without_absBCs_=conf->get_option("without_absorbingBCs");
+
+  preComputeRHS();
 }
 
 void Acoustic3dPDE::SpecifySolver(Integer &solvertype, Integer &precondtype, Double &eps, Double &dampiter, Integer &maxnumit, Integer &numeqcoarse, Double &coarsealpha)
@@ -84,7 +86,7 @@ void Acoustic3dPDE::SetMatrixFactors()
 #endif
 
   matrix_factor_[0] = 1.0;
-  matrix_factor_[1] = 0.0;
+  matrix_factor_[1] = 1.0*a1_;
   matrix_factor_[2] = 0.0;
   matrix_factor_[3] = 1.0*a0_;
 }
@@ -115,7 +117,7 @@ Integer &numconstraints)
 
   matrixsystype[0] = 1;   // memory for the system matrix
   matrixsystype[1] = 2;   // memory for the stiffness matrix
-  matrixsystype[2] = 0;   // memory for the damping matrix
+  matrixsystype[2] = 3;   // memory for the damping matrix
   matrixsystype[3] = 0;   // memory for the convection matrix
   matrixsystype[4] = 5;   // memory for the mass matrix
 
@@ -130,22 +132,25 @@ Integer &numconstraints)
   numconstraints = 0;
 }
 
-void Acoustic3dPDE::SetupMatrices(const Integer level)
+void Acoustic3dPDE::SetupMatrices(const Integer level, BCs * ptBCs)
 {
 #ifdef TRACE
   (*trace) << "entering Acoustic3dPDE::SetupMatrices" << std::endl;
 #endif
 
   Matrix<Double> elemmat;
+  Matrix<Double> elemmatbnd; // This is a smaller matrix since it is just for linear 1D elements.
   Point<3> * ptCoord;
 
   BaseElem * ptEl;
 
   Integer matrix_stiff=2;
   Integer matrix_mass=5;
+  Integer matrix_damp=3;
 
-  Vector<Double> coeffm, coeffst;
-  CalcCoeff(coeffm, coeffst);
+
+  Vector<Double> coeffm, coeffst, coeffdamp;
+  CalcCoeff(coeffm, coeffst, coeffdamp);
 
   Vector<Integer> connecth;
   std::vector<Elem*> elemssd;
@@ -157,7 +162,8 @@ void Acoustic3dPDE::SetupMatrices(const Integer level)
 
       for (j=0; j< elemssd.size(); j++)
 	{
-	  ptEl=elemssd[j]->ptElem;	  
+	  ptEl=elemssd[j]->ptElem;
+
 	  BaseForm<3> * bilinear_stiff = new LaplaceInt<3>(ptEl,1);
 	  BaseForm<3> * bilinear_mass  = new MassInt<3>(ptEl,1);
 
@@ -200,12 +206,52 @@ void Acoustic3dPDE::SetupMatrices(const Integer level)
 
 	  ptalgsys_->PutElemMatAlgSys(elemmat.getinarray(), connecth.get(), connecth.size(), as_sysid_, as_sysid_,matrix_mass);
 
-
 	  delete bilinear_stiff;
 	  delete bilinear_mass;
-	  delete [] ptCoord;
+	  //	  delete [] ptCoord;
 	}
     }
+
+  // BEGIN DAMPING MATRIX PART
+  if (!without_absBCs_) {
+  std::vector<Elem*>  DomainBnd;
+  conf->getliststr("bnd_for_absBCs",bnd_absBCs_,"Acoustic");
+  DomainBnd=ptBCs->getFacesBC(bnd_absBCs_[0],level);
+
+  for (j=0; j< DomainBnd.size(); j++)
+
+    {
+      ptEl=DomainBnd[j]->ptElem;
+
+      BaseForm<3> * linear_damp = new DampInt<3>(ptEl,1);
+
+      Integer ii;
+      Integer elsize=(DomainBnd[j]->connect).size();
+      connecth.Resize(elsize);
+      for (ii=0; ii<elsize; ii++)
+	connecth[ii]=(DomainBnd[j]->connect)[ii];
+
+      ptCoord=new Point<3>[connecth.size()];
+      ptgrid_->GetCoordNodesElem(connecth,ptCoord,level);
+
+      linear_damp->CalcElemMatrix(ptCoord, elemmatbnd);
+ 
+      elemmatbnd*=coeffdamp[0];
+#ifdef DEBUG
+      (*debug) << "Connection array  " << std::endl;
+      (*debug)  << connecth  << std::endl;
+
+      (*debug) << "Dampingmatrix, ElementNumber  " <<   j << std::endl;
+      (*debug) << elemmatbnd << std::endl;
+#endif
+
+      ptalgsys_->PutElemMatAlgSys(elemmatbnd.getinarray(), connecth.get(), connecth.size(), as_sysid_, as_sysid_, matrix_damp);
+      delete linear_damp;
+      delete [] ptCoord;
+    }
+}      // END DAMPING MATRIX PART
+
+
 #ifdef TRACE
   (*trace) << "Leaving Acoustic3dPDE::SetupMatrices" << std::endl;
 #endif
@@ -316,7 +362,7 @@ void Acoustic3dPDE::ComputeRHS(const Double atime, BCs * ptBCs)
   Integer n;
   Integer node;
   Integer matrix_id;
-  Vector<Double> coeffMass;
+  Vector<Double> coeffMass, coeffDamp;
 	Vector<Double> elemvec;
   std::list<Integer> nodes_hd;
   Integer i;
@@ -325,6 +371,19 @@ void Acoustic3dPDE::ComputeRHS(const Double atime, BCs * ptBCs)
 
   ptalgsys_->UpdateRHS(as_sysid_,as_sysid_,matrix_id,coeffMass.get());
 
+  // damping matrix part
+  if (!without_absBCs_) {
+  matrix_id = 3; // Setting id for Damping matrix	
+  coeffDamp = -sol_der1_old_-sol_der2_old_*a6_;
+  
+  ptalgsys_->UpdateRHS(as_sysid_,as_sysid_,matrix_id,coeffDamp.get());
+
+  matrix_id = 3; // Setting id for Damping matrix	
+  coeffDamp = sol_old_*a1_+sol_der1_old_*a2_*a7_+sol_der2_old_*a7_*a3_;  
+
+  ptalgsys_->UpdateRHS(as_sysid_,as_sysid_,matrix_id,coeffDamp.get());
+  }
+   
 }
 
 void Acoustic3dPDE::ComputeRHS4RecoverySol()
@@ -387,7 +446,7 @@ void Acoustic3dPDE::SolveStepStatic(BCs * ptBCs, Integer level)
   Integer update = 0;
   Integer job = 1;
 
-  SetupMatrices(level);
+  SetupMatrices(level,ptBCs);
   SetBCs(ptBCs,level,update,0);
   ptalgsys_->ComputePrecond(job,as_sysid_);
   ptalgsys_->SolveAlgSys(as_sysid_);
@@ -412,7 +471,7 @@ void Acoustic3dPDE::SolveStepTrans(BCs * ptBCs, const Integer kstep, const Doubl
     {
       update = 0;
       job = 1;
-      SetupMatrices(level);
+      SetupMatrices(level,ptBCs);
       ptalgsys_->ComputeSysMatrix(as_sysid_,as_sysid_,matrix_factor_);    
       ptalgsys_->ResetRHS(as_sysid_);
       ComputeRHS(lasttimecalc_,ptBCs);
@@ -563,24 +622,31 @@ Double Acoustic3dPDE::CalcEnergyNorm()
  return sqrt(help1+help2);
 }
 
-void Acoustic3dPDE::CalcCoeff(Vector<Double> & coeffmass, Vector<Double> & coeffstiff)
+void Acoustic3dPDE::CalcCoeff(Vector<Double> & coeffmass, Vector<Double> & coeffstiff, Vector<Double> & coeffdamp)
 {
+#ifdef TRACE
+  (*trace) << " entering Acoustic3dPDE::CalcCoeff() " << std::endl;
+#endif
   if (!MatFile_) Error("You didn't specialize material file. Check your config-file.");
 
   coeffmass.Resize(subdoms_.size());
   coeffstiff.Resize(subdoms_.size());
- 
+  if (!without_absBCs_)
+  coeffdamp.Resize(subdoms_.size());
+  
   Integer i,matnum;
   for (i=0; i<subdoms_.size(); i++)
     {
 			conf->get(subdoms_[i],matnum,"list_subdomains");
-			if (matnum==11111) break;
+			if (matnum==11111) break; //This may be commented out.
       // read density and compress with material number matnum
       Double density, compress;
       MatFile_->ReadDensityAndCompressity(density,compress,matnum,"fluid");
 
       coeffmass[i]  = density*density/compress;
       coeffstiff[i] = density;
+ if (!without_absBCs_)
+      coeffdamp[i]  = density/((sqrt(compress/density)));
     }
 }
 
@@ -728,63 +794,3 @@ void Acoustic3dPDE::CalcThirdDerivateFromEquation(Vector<Double> & result)
 
 } // end of namespace
 
-// void Acoustic3dPDE::SetupMatrices(const Integer level)
-// {
-// #ifdef TRACE
-//   (*trace) << "entering Acoustic3dPDE::SetupMatrices" << std::endl;
-// #endif
- 
-//   Vector<Double> coeffm, coeffst;
-//   CalcCoeff(coeffm, coeffst);
-
-//  Integer i;
-//  for (i=0; i<subdoms_.size(); i++)
-// {
-//   PutElemMatInAlgSys putelmatalgsys(ptalgsys_,ptgrid_,coeffm[i],coeffst[i],as_sysid_,level);
-
-//   ptgrid_->forEachElemSd(putelmatalgsys,subdoms_[i]);
-// }
-// }
-
-/*
-void PutElemMatInAlgSys::operator()(Elem t)
-{
-  Matrix<Double> elemmat;
-
-  BaseForm<Point<3>> * bilinear_stiff = new LaplaceInt<Point<3>>(t.ptElem,1);
-  BaseForm<Point<3>> * bilinear_mass  = new MassInt<Point<3>>(t.ptElem,1);
-
-  Point<3> * ptCoord=new Point<3>[t.connect.size()];
-  ptgrid_->GetCoordNodesElem(t.connect,ptCoord,level_);
-
-  // stiffness part
-  bilinear_stiff->CalcElemMatrix(ptCoord, elemmat);
-
-  elemmat*=coeffs_;
-
-#ifdef DEBUG
-      (*debug) << "Stiffnessmatrix, ElementNumber  "  << std::endl;
-
-      (*debug) << elemmat << std::endl;
-#endif
-
-  ptalgsys_->PutElemMatAlgSys(elemmat.getinarray(), t.connect.get(), t.connect.size(), sysid_, sysid_, matrix_stiff_);
-
-      // mass part
-  bilinear_mass->CalcElemMatrix(ptCoord, elemmat);
-
-  elemmat*=coeffm_;
-
-#ifdef DEBUG
-      (*debug) << "Massmatrix, ElementNumber  "  << std::endl;
-
-      (*debug) << elemmat << std::endl;
-#endif
-
-  ptalgsys_->PutElemMatAlgSys(elemmat.getinarray(), t.connect.get(), t.connect.size(), sysid_, sysid_,matrix_mass_);
-
-  delete bilinear_stiff;
-  delete bilinear_mass;
-  delete [] ptCoord;
-}
-*/

@@ -58,6 +58,15 @@ Point<dim> & Point<dim>::operator=(const Point<dim>&t)
   return *this;
 }
 
+template<Integer dim>
+Point<dim> & Point<dim>::operator-(const Point<dim>&t)
+{
+  Integer i;
+  for (i=0; i<dim; i++)
+    p[i]-=t.p[i];	
+  return *this;
+}
+
 Double Sin(const Double x)
 {
   return sin(x);
@@ -114,4 +123,19 @@ Double ScalarMult(std::vector<Double> a, std::vector<Double> b)
   return res;
 }
 
+/// a-->b-->c. no fix orientation.
+void calcNormal2Surface(std::vector<Double> & normal,Point<3> a,Point<3> b, Point<3> c)
+{
+  Point<3> t,s;
+  Double L2_normal; 
+  s=(a-b);
+  t=(c-b);
+  normal[0]=t[1]*s[2]-t[2]*s[1];
+  normal[1]=t[2]*s[0]-t[0]*s[2];  
+  normal[2]=t[0]*s[1]-t[1]*s[0];
+  L2_normal=sqrt(sqr(normal[0])+sqr(normal[1])+sqr(normal[2]));
+  normal[0]=normal[0]/L2_normal;
+  normal[1]=normal[1]/L2_normal;
+  normal[2]=normal[2]/L2_normal;  
+}
 } // close namespace CoupledField

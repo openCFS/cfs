@@ -223,7 +223,7 @@ void GridCFS<2>::putElemsFromGrid_RG(grd::MultilevelGrid * grid, const Integer l
 } // end of function 
 
 template<>
-void GridCFS<3>:: putElemsFromGrid_RG(grd::MultilevelGrid * grid, const Integer level)
+void GridCFS<3>::putElemsFromGrid_RG(grd::MultilevelGrid * grid, const Integer level)
 {
 #ifdef TRACE
   (*trace) << "entering GridCFS::putElemsNodesFromGrid_R" << std::endl;
@@ -277,7 +277,7 @@ void GridCFS<3>:: putElemsFromGrid_RG(grd::MultilevelGrid * grid, const Integer 
         el->ptElem=ptHexa;
         break;
        default:
-	 Error("Unknown type of element in GridRG", __FILE__,__LINE__);
+	 //  Error("Unknown type of element in GridRG", __FILE__,__LINE__);
 	 break;
        }
 
@@ -295,6 +295,7 @@ void GridCFS<3>:: putElemsFromGrid_RG(grd::MultilevelGrid * grid, const Integer 
        (*el).namesd=sd_[sd];
 
        elems_[sd].push_back(el);
+
 
        // put info in elemMap
        Integer position = elems_[sd].size()-1;
@@ -396,8 +397,8 @@ void GridCFS<dim>::Refine(grd::MultilevelGrid& grid)
  grid.refine(vtId);
 }
 
-template<Integer dim>
-void GridCFS<dim>::RefineUniform(grd::MultilevelGrid& grid)
+template<>
+void GridCFS<2>::RefineUniform(grd::MultilevelGrid& grid)
 {
  Integer i,j;
  Integer counter = 0;
@@ -410,6 +411,34 @@ void GridCFS<dim>::RefineUniform(grd::MultilevelGrid& grid)
    grd::GridLevel* gridlv = grid.getGridLevel(j);
    list<grd::Element*>** lt = gridlv->getElementList();
    Integer type = 0;
+   while (lt[type]) {
+     for (ElmI p = lt[type]->begin(); p != lt[type]->end(); ++p) {
+	   (*p)->markForRefinement();
+     } // for loop elems
+     // next element type
+     type++;
+   } // type loop
+ } // level loop
+
+ std::list<int> vtId;
+ grid.refine(vtId);
+}
+
+template<>
+void GridCFS<3>::RefineUniform(grd::MultilevelGrid& grid)
+{
+ Integer i,j;
+ Integer counter = 0;
+
+ // Mesh refinement
+ Integer noOfLevels = grid.getNoOfLevels();
+ typedef std::list<grd::Element*>::iterator ElmI;
+ typedef grd::ConformingClosure::tetrahedronIterator  TetI;
+ for (Integer j = 0; j < noOfLevels; j++) {
+   grd::GridLevel* gridlv = grid.getGridLevel(j);
+   list<grd::Element*>** lt = gridlv->getElementList();
+   Integer type = 0;
+ 
    while (lt[type]) {
      for (ElmI p = lt[type]->begin(); p != lt[type]->end(); ++p) {
 	   (*p)->markForRefinement();
@@ -857,60 +886,4 @@ Double GridCFS<3>::CalcAreaElem(const Elem* elem)
 
 } // end namespace
 
-/*
-template<class Dim>
-void GridCFS<Dim>::forEachElemSd(PutElemMatInAlgSys & f,const std::string subdomain)
-{
-#ifdef TRACE
-  (*trace) << "entering iterator GridCFS::forEachElemSD" << std::endl;
-#endif
 
- Integer numsd, nesd; 
- std::vector<Elem> * els;
-
- Integer i;
- for (i=0; i<sd_.size(); i++)
- {
-   if (sd_[i]==subdomain) numsd=i;
- }
-
- nesd=elems_[numsd].size();
-
- for (i=0; i< nesd; i++) 
-  {
-   f(elems_[numsd][i]);
-  }
-
-#ifdef TRACE
-  (*trace) << "leaving iterator GridCFS::forEachElemSD" << std::endl;
-#endif
-}
-
-template<class Dim>
-void GridCFS<Dim>::forEachElemSd(PutElemMatAlgSysElst3d & f,const std::string subdomain)
-{
-#ifdef TRACE
-  (*trace) << "entering iterator GridCFS::forEachElemSD" << std::endl;
-#endif
-
- Integer numsd, nesd; 
- std::vector<Elem> * els;
-
- Integer i;
- for (i=0; i<sd_.size(); i++)
- {
-   if (sd_[i]==subdomain) numsd=i;
- }
-
- nesd=elems_[numsd].size();
-
- for (i=0; i< nesd; i++) 
-  {
-   f(elems_[numsd][i]);
-  }
-
-#ifdef TRACE
-  (*trace) << "leaving iterator GridCFS::forEachElemSD" << std::endl;
-#endif
-}
-*/
