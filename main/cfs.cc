@@ -298,6 +298,8 @@ int main(int argc, char *argv[]) {
   // Delete objects
   if (ptdriver) 
     delete ptdriver;
+  if (domain)
+    delete domain;
   if (ptTimeFunc) 
     delete ptTimeFunc;
   if (Info)
