@@ -31,7 +31,9 @@ namespace CoupledField {
     //! constraint nodes were set
     void CalcMapping();
 
-    // Calculate only the Mapping from global to local node numbers
+    //! Calculate only the mapping from global to
+    //! local node numbers and back.
+    //! This is a reduced form of "CalcMapping()"
     void CalcMpcciMapping();
   
     //! Print the mapping nodes <-> EQNs
