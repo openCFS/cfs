@@ -78,6 +78,7 @@ SinglePDE::SinglePDE( Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
   SinglePDE::~SinglePDE() {
 
     ENTER_FCN( "SinglePDE::~SinglePDE" );
+
     // ATTENTION: Dummy value for as_id!!!!!!!!!!!!!!!!!!!!!!!!!!
     DeleteAlgSys(0);
 
@@ -419,7 +420,8 @@ SinglePDE::SinglePDE( Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
     }
   }
 
-   void SinglePDE::SetBCs( const Integer level,  const Double time ) {
+  void SinglePDE::SetBCs( const Integer level,  const Double time ) {
+
     ENTER_FCN( "SinglePDE::SetBCs" );
 
     Integer node, dof;
@@ -502,6 +504,25 @@ SinglePDE::SinglePDE( Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
       for ( p = nodes.begin(); p != nodes.end(); p++, j++ ) {
         node = *p;
         eqnData_->Node2EQN(node, dof, eqnNr, eqnDof);
+
+        // Sanity check. This should not happen, but might appear
+        // in the case that the same node/dof belongs to a region
+        // with hom. and a region with inhom. Dirichlet BCs. This
+        // problem was already encountered!
+        if (eqnNr == 0) {
+
+          std::cout << "Node | dof | eqnNr | eqnDof\n"
+                    << node  << " | "
+                    << dof   << " | "
+                    << eqnNr << " | "
+                    << eqnDof << std::endl;
+
+          (*error) << "Got eqn number 0 for inhom Dirichlet BC! "
+                   << "Probably you have a node/dof that belongs to both "
+                   << "a region with hom. and one with inhom. Dirichlet BCs."
+                   << " Go check your .mesh file!";
+          Error( __FILE__, __LINE__ );
+        }
 
 	//transform Dirichlet boundary conditions for effmass-formulation
 	if (effectiveMass_) {
