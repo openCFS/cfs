@@ -2,7 +2,7 @@
 #define MATERIAL_DATA
 
 /**************************************************************************/
-/* File:   LoadMaterialData.hh                                            */
+/* File:   MaterialData.hh                                            */
 /* Author: Fred Hofer & Michael Schinnerl                                 */
 /* Date:   26.06.1998                                                     */ 
 /*         Rev. 16.12.1999                                                */
@@ -34,8 +34,8 @@ private:
   Double nu;
   Double LameLambda;
   Double LameMu;
-  Double permeability;
-  Double conductivity;
+//  Double permeability;
+//  Double conductivity;
   Double permMx, permMy, permMz;   // permanent magnetization
   Integer scaledMatDat;
   char * name; 
@@ -48,6 +48,9 @@ private:
   /// contains the stiffnes matrix, the piezelectric coefficients and the permitivity matrix
   Matrix<Double> * piezoMatrix;
 
+  Matrix<Double> * permeaMatrix;
+  Matrix<Double> * conducMatrix;
+
   Integer matNr;
   Integer nonlin;
   
@@ -57,6 +60,8 @@ public:
   MaterialData();
 
   MaterialData(const MaterialData& mat);
+
+  ~MaterialData();
   
   /// set the material number 
   void SetMatNr(const Integer& MatNr){matNr = MatNr; };
@@ -86,7 +91,7 @@ public:
   void SetMu(const Double& mu){LameMu = mu;};
 
   /// set permeability of the material
-  void SetPermeability(const Double& aPerm){permeability = aPerm;}
+//  void SetPermeability(const Double& aPerm){permeability = aPerm;}
 
   /// set nonlinearity datafile for BH-curve for magnetic material
   void SetBHCurveFileName( const Char *filename) {
@@ -112,19 +117,41 @@ public:
   std::string& GetBHCurveFileName() { return bhCurveFile_; }
 
   /// set one value of the data-matrix on position (i,j)
-  void SetMatrixData(const Integer& i, const Integer& j, const Double& value)
+  void SetPiezoMatrixData(const Integer& i, const Integer& j, const Double& value)
     {(*piezoMatrix)(i,j) = value;};
 
   /// get the value of the data-matrix on position (i,j)
-  void GetMatrixData(const Integer& i, const Integer& j, Double& value)
+  void GetPiezoMatrixData(const Integer& i, const Integer& j, Double& value)
     {value = (*piezoMatrix)(i,j);};
 
   /// return a pointer to the data-matrix
   Matrix<Double> * GetMatrix(){return piezoMatrix;};
 
+
+  //! set one value of the permeability-matrix on position (i,j)
+  void SetPermeability(const Integer& i, const Integer& j, const Double& value);
+
+  //! get the value of the permeability-matrix on position (i,j)
+  void GetPermeability(const Integer& i, const Integer& j, Double &value);
+
+  //! return a pointer to the permeability matrix
+  Matrix<Double> * GetPermeaMatrix(){return permeaMatrix;};
+
+
+  //! set one value of the permeability-matrix on position (i,j)
+  void SetConductivity(const Integer& i, const Integer& j, const Double& value);
+
+  //! get the value of the permeability-matrix on position (i,j)
+  void GetConductivity(const Integer& i, const Integer& j, Double &value);
+
+  //! return a pointer to the permeability matrix
+  Matrix<Double> * GetConducMatrix(){return conducMatrix;};
+
   /// set size of data-matrix in x and y direction to nrElems3d x nrElems3d
   /// this matrix includes the stiffness, piezoelectric coupling and permitivity matrix
-  void DefFull3dMatrix(){piezoMatrix = new Matrix<Double>; piezoMatrix->Resize(GetNrElems3d(), GetNrElems3d() );};
+  void DefFull3dMatrix(){
+    piezoMatrix = new Matrix<Double>; 
+    piezoMatrix->Resize(GetNrElems3d(), GetNrElems3d() );};
 
   /// set conductivity of the material
   void SetConductivity(const Double& Conductivity);
@@ -168,7 +195,7 @@ public:
   Double GetCompressibility() const {return compressibility;};
 
   /// get permeability of the material
-  Double GetPermeability() const {return permeability;};
+//  Double GetPermeability() const {return permeability;};
 
   /// get alfa damping coefficient
   Double GetDampingAlfa() const {return damp_alfa;};
@@ -180,7 +207,7 @@ public:
   Double GetNu() const { return nu; };
 
   /// get conductivity
-  Double GetConductivity() const {return conductivity; };
+//  Double GetConductivity() const {return conductivity; };
 
   /// get name of the material
   char * GetMaterialName(); 

@@ -14,25 +14,25 @@ namespace CoupledField
 
 MaterialData::MaterialData():scaledMatDat(0)
 {
-  ENTER_FCN( "MaterialData::MaterialData" );
-
+  ENTER_FCN("MaterialData::MaterialData");
   const int stringLength = 100;
   name = new char[stringLength];  
+  permeaMatrix = new Matrix<Double>(3,3);
+  conducMatrix = new Matrix<Double>(3,3);
 }
 
 
 MaterialData::MaterialData(const MaterialData & mat)
 {
-  ENTER_FCN( "MaterialData::MaterialData(MaterialData)" );
-
+  ENTER_FCN("MaterialData::MaterialData(MaterialData)")
   density         = mat.density;
   compressibility = mat.compressibility ;
   damp_alfa       = mat.damp_alfa;
   damp_beta       = mat.damp_beta;
   eModule         = mat.eModule;
   nu           = mat.nu;
-  permeability = mat.permeability;
-  conductivity = mat.conductivity;
+//  permeability = mat.permeability;
+//  conductivity = mat.conductivity;
   permMx       = mat.permMx;
   permMy       = mat.permMy;
   permMz       = permMz;
@@ -45,30 +45,66 @@ MaterialData::MaterialData(const MaterialData & mat)
   SetName(mat.name);
 
   piezoMatrix  = new Matrix<Double>( *mat.piezoMatrix);
+  permeaMatrix = new Matrix<Double>( *mat.permeaMatrix);
+  conducMatrix = new Matrix<Double>( *mat.conducMatrix);
 }
-
 
 void MaterialData::SetConductivity(const double& Conductivity) 
 {
   ENTER_FCN( "MaterialData::SetConductivity" );
+  SetConductivity(0,0,Conductivity);
+  SetConductivity(1,1,Conductivity);
+  SetConductivity(2,2,Conductivity);
+//  conductivity = Conductivity;
+}
 
-  conductivity = Conductivity;
+
+void MaterialData::SetConductivity(const Integer& i, const Integer& j, const Double& value)
+{
+  ENTER_FCN("SetConductivity(int,int,double)");
+  (*conducMatrix)(i,j) = value;
+}
+
+void MaterialData::GetConductivity(const Integer& i, const Integer& j, Double &value)
+{
+  ENTER_FCN("GetConductivity(int,int,double)");
+  value = (*conducMatrix)(i,j);
+}
+
+MaterialData::~MaterialData()
+{
+  if (piezoMatrix)
+   delete piezoMatrix;
+  if (permeaMatrix)
+   delete permeaMatrix;
+  if (conducMatrix)
+   delete conducMatrix;
 }
 
 void MaterialData::SetName(const char* Name)
 {
-  ENTER_FCN( "MaterialData::SetName" );
-
+  ENTER_FCN("MaterialData::SetName");
   strcpy(name,Name);
 }
 
 char * MaterialData::GetMaterialName()
 {
-  ENTER_FCN( "MaterialData::GetMaterialName" );
-
+  ENTER_FCN("MaterialData::GetMaterialName");
   return name;
 }
 
+void MaterialData::SetPermeability(const Integer& i, const Integer& j, const Double& value)
+{
+  ENTER_IFCN("MaterialData::SetPermeability(int,int,double");
+    (*permeaMatrix)(i,j) = value;
+}
+
+
+void MaterialData::GetPermeability(const Integer& i, const Integer& j, Double &value)
+{
+  ENTER_IFCN("GetPermeability(int,int,double)");
+  value = (*permeaMatrix)(i,j);
+}
 
 /*
  
