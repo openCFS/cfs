@@ -16,7 +16,7 @@ class PDEMemento
 {
 public:
   // Friend declarations
-  friend class BasePDE;
+  friend class StdPDE;
 
   //! Constructor
   PDEMemento();

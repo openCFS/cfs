@@ -1,8 +1,7 @@
 #ifndef FILE_MAGNETICPDE
 #define FILE_MAGNETICPDE
 
-#include "General/environment.hh"
-#include "basePDE.hh" 
+#include "SinglePDE.hh" 
 
 namespace CoupledField
 {
@@ -15,7 +14,7 @@ namespace CoupledField
     This class is derived from class BasePDE. 
   */
 
-class MagPDE : public BasePDE
+class MagPDE : public SinglePDE
 {
 public:
 

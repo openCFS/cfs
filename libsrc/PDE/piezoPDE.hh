@@ -2,7 +2,9 @@
 #define FILE_PIEZOPDE
 
 
-#include "basePDE.hh"
+#include "SinglePDE.hh"
+
+#include "Driver/stdSolveStep.hh"
 
  
 namespace CoupledField
@@ -11,7 +13,7 @@ namespace CoupledField
   //! Class for piezoelectric simulations
 
   //! Detailed description to follow ...
-  class PiezoPDE: public BasePDE
+  class PiezoPDE: public SinglePDE
   {
 
   public:
@@ -54,6 +56,24 @@ namespace CoupledField
     //! \param timeOffset offset for starting time  
     virtual void WriteResultsInFile(Integer stepOffset = 0,
 				    Double timeOffset = 0.0);
+
+    
+    // ======================================================
+    // COUPLING SECTION
+    // ======================================================
+
+    //! initalize PDE coupling
+    void InitCoupling(PDECoupling * Coupling)
+    { Error ("Coupling not implemented" );}
+
+    //! calculate coupling terms
+    void CalcOutputCoupling()
+    { Error ("Coupling not implemented" );}
+
+    //! returns if PDE can compute the quantity
+    Boolean HasOutput(SolutionType output)
+    { Error ("Coupling not implemented" );}
+  
 
    ElemStoreSol<Complex>  GetComplexValuedCharge(){return chargesComplex_;};
     

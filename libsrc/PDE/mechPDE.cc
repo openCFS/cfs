@@ -26,7 +26,7 @@ namespace CoupledField
 
   MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *aptFileType, 
 		   WriteResults *aptOut)
-    :BasePDE(aptgrid, aptbcs, aptFileType, aptOut, aptTimeFunc), 
+    :SinglePDE(aptgrid, aptbcs, aptFileType, aptOut, aptTimeFunc), 
      lambdaMat(NULL),
      mueMat(NULL),
      preStressVal_(0.0)

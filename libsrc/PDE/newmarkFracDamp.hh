@@ -3,6 +3,7 @@
 
 #include <General/environment.hh>
 #include <Domain/grid.hh>
+#include "StdPDE.hh"
 
 #include "timestepping.hh"
 
@@ -19,7 +20,7 @@ public:
     \param algebraicsystem pointer to algebraic system used by PDE
 	\param ptEQN
 	\param aptgrid
-	\param aptBasePDE pointer of class from which NewmarkFracDamp is initiated
+	\param aptStdPDE pointer of class from which NewmarkFracDamp is initiated
 	\param asubdomainList list of subdomains
 	\param adampingList list damping description for subdomains
 	\param afracMemory number of stored function values
@@ -27,11 +28,11 @@ public:
 	\param isaxi axisymmetric setup
   */
   NewmarkFracDamp (std::string apdename, BaseSystem * algebraicsystem, NodeEQN * ptEQN, 
-				   Grid * aptgrid, BasePDE * aptBasePDE, 
-				   StdVector<std::string> asubdomainList,
-				   StdVector<DampingType> adampingList,
-				   Integer afracMemory, InterpolType ainType, Boolean isaxi);
-
+		   Grid * aptgrid, StdPDE * aptStdPDE, 
+		   StdVector<std::string> asubdomainList,
+		   StdVector<DampingType> adampingList,
+		   Integer afracMemory, InterpolType ainType, Boolean isaxi);
+  
   //! deconstructor
   virtual ~NewmarkFracDamp();
   
@@ -77,7 +78,7 @@ private:
 
   Vector<Double> solpred_, solderiv1pred_; //!< predictors
   Grid * ptgrid_;
-  BasePDE * ptBasePDE_;
+  StdPDE * ptStdPDE_;
 
   Integer laststepcalc_;  //!< last calculated time step
   Integer calclimit_;     //!< number of timesteps with which frac deriv is calculated

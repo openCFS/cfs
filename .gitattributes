@@ -344,6 +344,10 @@ libsrc/ODESolve/ODESolver_ExplEuler.hh svneol=native#text/plain
 libsrc/ODESolve/ODESolver_RKF45.cc svneol=native#text/plain
 libsrc/ODESolve/ODESolver_RKF45.hh svneol=native#text/plain
 libsrc/PDE/Makefile -text
+libsrc/PDE/SinglePDE.cc svneol=native#text/plain
+libsrc/PDE/SinglePDE.hh svneol=native#text/plain
+libsrc/PDE/StdPDE.cc svneol=native#text/plain
+libsrc/PDE/StdPDE.hh svneol=native#text/plain
 libsrc/PDE/acouFlowNoise.cc svneol=native#text/plain
 libsrc/PDE/acouFlowNoise.hh svneol=native#text/plain
 libsrc/PDE/acousticPDE.cc svneol=native#text/plain

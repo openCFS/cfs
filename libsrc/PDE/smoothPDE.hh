@@ -1,7 +1,7 @@
 #ifndef FILE_SMOOTHPDE
 #define FILE_SMOOTHPDE
 
-#include "basePDE.hh"
+#include "SinglePDE.hh"
 
  
 namespace CoupledField
@@ -13,7 +13,7 @@ namespace CoupledField
     It is used for solving mechanic equation on one time step.  
   */
 
-class SmoothPDE: public BasePDE
+class SmoothPDE: public SinglePDE
 {
 
 public:
@@ -59,6 +59,10 @@ public:
   //! \param timeOffset offset for starting time  
   virtual void WriteResultsInFile(Integer stepOffset = 0,
 				  Double timeOffset = 0.0);
+
+  //! perform postprocessing on data
+  void PostProcess(Integer level) {;};
+  
   //! returns if PDE can compute the quantity
   virtual Boolean HasOutput(SolutionType output);
   

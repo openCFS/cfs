@@ -2,7 +2,7 @@
 #define FILE_ELECPDE_NEW
 
 #include "scalarnodeEQN.hh"
-#include "basePDE.hh" 
+#include "SinglePDE.hh" 
 
 
 namespace CoupledField
@@ -14,7 +14,7 @@ namespace CoupledField
     electrostatic equation in 3D. 
   */
 
-  class ElecPDE : public BasePDE {
+  class ElecPDE : public SinglePDE {
 
   public:
 

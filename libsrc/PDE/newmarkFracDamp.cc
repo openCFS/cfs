@@ -14,20 +14,20 @@
 namespace CoupledField {
 
 NewmarkFracDamp::NewmarkFracDamp(std::string apdename,
-								 BaseSystem * algebraicsystem,
-								 NodeEQN * ptEQN, Grid * aptgrid,
-								 BasePDE * aptBasePDE,
-								 StdVector<std::string> asubdomainList,
-								 StdVector<DampingType> adampingList, 
-								 Integer afracMemory, 
-								 InterpolType ainType, Boolean isaxi)
+				 BaseSystem * algebraicsystem,
+				 NodeEQN * ptEQN, Grid * aptgrid,
+				 StdPDE * aptStdPDE,
+				 StdVector<std::string> asubdomainList,
+				 StdVector<DampingType> adampingList, 
+				 Integer afracMemory, 
+				 InterpolType ainType, Boolean isaxi)
   :TimeStepping(apdename, algebraicsystem, ptEQN)
 {
   ENTER_FCN( "NewmarkFracDamp::NewmarkFracDamp" );
-
+  
   pdename_     = apdename;
   ptgrid_      = aptgrid;
-  ptBasePDE_   = aptBasePDE;
+  ptStdPDE_   =  aptStdPDE;
 
   subdoms_     = asubdomainList;
   dampingList_ = adampingList;
@@ -100,7 +100,7 @@ void NewmarkFracDamp::Predictor(Vector<Double>& solold)
 {
   ENTER_FCN( "NewmarkFracDamp::Predictor" );
 
-  laststepcalc_ = ptBasePDE_->GetTimeStepCounter();
+  laststepcalc_ = ptStdPDE_->GetTimeStepCounter();
 
   // determine number of terms over which BDF is calculated
   //   assumes first nstep = 1 (see transientdriver.cc)!
@@ -133,7 +133,7 @@ void NewmarkFracDamp::UpdateRHS()
   Double density, compressibility, c0, alpha0, y, factor;
 
   MaterialData *mymaterialData;
-  mymaterialData = ptBasePDE_->getPDEMaterialData();
+  mymaterialData = ptStdPDE_->getPDEMaterialData();
 
   if ( dampingList_.GetSize() != subdoms_.GetSize() )
   	Error("Mismatch between dampingList_ and subdoms_!", __FILE__, __LINE__);  
