@@ -1,0 +1,96 @@
+#ifndef FILE_PIEZO_PARAM_IDENT
+#define FILE_PIEZO_PARAM_IDENT
+
+
+#include "basedriver.hh"
+
+#ifdef USE_OLAS
+#include <olas.hh>
+#else
+#include <multigrid.hh>
+#endif
+
+
+namespace CoupledField {
+
+  class piezoParamIdent : public BaseDriver{
+
+  public:
+    //! Constructor
+    piezoParamIdent(Domain * adomain);
+    //! Destructor
+
+    ~piezoParamIdent();
+
+    std::fstream allMeasuredData;
+
+    void SolveProblem();
+
+  protected:
+    void createF(BasePDE * actPDE, MaterialData * ptMaterial, BCs * ptBCs, Vector<Complex> & F_hat);
+
+    void createJacobiMatrix(BasePDE * actPDE, MaterialData * ptMaterial, BCs * ptBCs, Vector<Complex> & F_ha, Vector<Double> & parameterIncrement, Matrix<Complex> & JacobiMatrix, Vector<Complex> & solElecPot,Vector<Complex> & solMechDispl);
+
+		    void createAdjointJacobiMatrix(Vector<Double> & parameterIncrement,Vector<Double> &  parameter, Matrix<Complex> & JacobiMatrix, Vector<Complex> & solElecPot,Vector<Complex> & solMechDispl, Vector<Double> & freqs, Matrix<Complex> & adjJacobiMatrix);
+
+      void readMeasuredData(Vector<Double> & freqs, Vector<Double> & real, Vector<Double> & imag ,Vector<Double> & parameter, Double & voltage, Integer & nrMeasuredData, Double & thickness, Double & radius, Double & delta);
+
+    void updateMaterialData(Vector<Double> & parameter, MaterialData * ptMaterial);
+
+    void updateRHS(Vector<Complex> & solElecPot, Vector<Complex> & mechDisplacement, Double omega);
+
+    void updateRHS(Vector<Complex> & RHSsol);
+
+    void typeOutSolutionOnScreen(Vector<Complex> & solElecPot,Vector<Complex> & solMechDispl);
+
+    void calcInitialResidual(Vector<Complex> & res, Vector<Complex> & y_hat, Vector<Complex> & PHI_p, Integer fstep, Vector<Complex> & solElecPot, Double & meanValueMechDeformation);
+
+    void measureMechDeformationInZ_Direction(Vector<Complex> & mechDisplacement, Double & Radius, Double meanValueMechDeformation, int dof);
+
+    void calcNorm2Resid(Vector<Complex> &res, Double & anorm, Integer nrMeasuredData);
+
+		void createMaterialTensorMatrices(Vector<Double> & parameter, Matrix<Double> & couplingMatrix, Matrix<Double> & dielectricMatrix, Integer spaceDim);
+
+    Matrix<Double> * piezoMatrix;
+    Integer dofs;
+    Integer numNodes;
+    BaseSystem * ptAlgsys;
+    BCs * ptBCs;
+    Vector<Complex> solElecPot;
+    Vector<Complex> solMechDispl;
+    Vector<Complex> algSysSolVector;
+    BasePDE * actPDE;
+    MaterialData * ptMaterial;
+
+    Vector<Double> parameter;
+    Vector<Double> parameterIncrement;
+    Vector<Double> omegas;
+    Vector<Double> freqs;
+    Vector<Double> real, imag;
+    Vector<Complex> amplitude_phase;
+    Vector<Complex> F_hat;
+    Matrix<Complex> JacobiMatrix;
+    Matrix<Complex> adjJacobiMatrix;
+    Double voltage, thickness, radius, delta, meanValueMechDeformation, anorm, tau;
+    Integer nrMeasuredData;
+    Integer nrParameter;
+    Integer nrSol, sizeSol;
+
+
+    //void getParamsFromPiezoParamIdent(Vector<Double> &parameter);
+    //	void updateParams(Vector<params>, MaterialData * material)
+
+    // void newtonCG(Vector<Double> &params, Double &omegas);
+
+  private:
+
+    //BasePDE * actPDE;
+    //MaterialData * ptMaterial;
+
+  }; // ned of class piezoParamIdent
+
+}
+
+
+
+#endif
