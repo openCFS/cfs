@@ -521,7 +521,7 @@ namespace CoupledField
 	infile.seekg(pos,std::ios::beg);
 
 	//	if (!ptTr || !ptQ || !ptTet)
-	if (!ptQ)
+	if (!ptQ || !ptTr1)
 	  Error(" Pointers to BaseElem is not initialized",__FILE__,__LINE__);
 
 	Integer i, ii, j, ibuf, itype, innodes;
@@ -606,8 +606,8 @@ namespace CoupledField
       {
       case 100:
 	return ptL1;
-	//      case 4:
-	// return ptTr;
+      case 4:
+	return ptTr1;
       case 6:
 	return ptQ;
       case 8:

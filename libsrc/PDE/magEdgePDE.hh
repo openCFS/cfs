@@ -46,12 +46,34 @@ public:
    */
   virtual void SetAlgSys(const Integer AS_sysid);
 
+  //! Create the matrices and Solver as well as Preconditioner
+  virtual void CreateMatrices_Solver();
+
+  //! compute the number of edge) dirichlets
+  void EvalNumDirichlet();
+
+  //! get the edge numbers and theis signs (from AlgSys)
+  /*!
+    \param nodes node numbers of the element
+    \param epos integer array conatining the edge numbers
+    \param esign integer array containing the edge signs
+  */
+  void GetEdgeNumber(Integer *nodes, Integer *epos, Integer *esign);
+
   //! setup element matrices for AlgebraicSystem for assembling procedure
   /*!
     \param level level of grid
    */
   void SetupMatrices(const Integer level=0);
   
+  //! set boundary condition
+  /*!
+    \param level level of grid
+    \param update indicator: do we update boundary condition in algebraic system ot set new
+    \param atimestep time step of claculation
+  */
+  virtual void SetBCs(const Integer level, const Integer update, const Double atimestep);
+
   //! solve one step for static problem 
   /*!
     \param ptBCs pointer to class with data about boundary condition
@@ -65,6 +87,7 @@ public:
     Error("Makes no sense for Electrostatics to perform transient step",__FILE__,__LINE__);
   }
 
+
   //! write results in file
   virtual void WriteResultsInFile();
 
@@ -77,10 +100,10 @@ public:
 protected:
 
   Vector<Double> sol_;  //!< store solution,
-  Vector<Double> * E_;   //!< store Electric Field of each element
-  Vector<Double> * Force_;  //!< stores Electric pressure force of each element
-  Integer size_;        //!< size of solution (number of equations)
-  Integer nElements_;
+  Integer size_;        //!< size of solution (number of edges)
+  Integer NumElems_;    //!< number of elements belonging to PDE
+  Integer * EdgeDir_;   //!< stores the Dirichlet-edges
+  Integer numEdgedir_;  //!< number of Dirichlet edges
 
 };
 

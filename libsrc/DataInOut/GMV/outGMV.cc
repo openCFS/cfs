@@ -210,12 +210,13 @@ void WriteResultsGMV::WriteCells(const Integer alevel)
 	  break;
         case 8:
 	  if (ascii_)
-	  (*output) << "hex 8" << std::endl;
-	  else {
-	    (*output) << "hex     ";
-	     Integer nn=8;
-	     output->write((char*)&nn,sizeof(Integer));
-	  }
+	    (*output) << "hex 8" << std::endl;
+	  else 
+	    {
+	      (*output) << "hex     ";
+	      Integer nn=8;
+	      output->write((char*)&nn,sizeof(Integer));
+	    }
 	  break;
       default:
 	std::cout << connect.size() << std::endl;
@@ -223,14 +224,16 @@ void WriteResultsGMV::WriteCells(const Integer alevel)
       }
 }
 
-if (ascii_) {
-     Integer j;
-     for (j=0; j< connect.size(); j++)
-       (*output) << " " << connect[j] ;
-
-     (*output) << std::endl;
+if (ascii_) 
+{
+  Integer j;
+  for (j=0; j< connect.size(); j++)
+    (*output) << " " << connect[j] ;
+  
+  (*output) << std::endl;
 }
-else {
+else 
+{
   Integer * ptcon=connect.get();
   Integer len=connect.size();
   output->write((char*)ptcon,len * sizeof(Integer));
@@ -246,28 +249,31 @@ void WriteResultsGMV::WriteVariable(const Vector<Double> var, const std::string 
 
 
   if (ascii_)
-  (*output) << name << " " << dataType << std::endl;
-  else {
-    Char * str=new Char[8];  
-    to8Char(name,str);
-    (*output) << str;
-    output->write((Char*)&dataType,sizeof(Integer));
-    delete [] str;
-  }
+    (*output) << name << " " << dataType << std::endl;
+  else 
+    {
+      Char * str=new Char[8];  
+      to8Char(name,str);
+      (*output) << str;
+      output->write((Char*)&dataType,sizeof(Integer));
+      delete [] str;
+    }
   
 
-  if (ascii_) {
-  Integer i;
-  for (i=0; i<var.size(); i++)
-    (*output) << var[i] << " ";
-  (*output) << "\n endvars \n" ;
-  }
-  else {
-     Double * ptvar=var.get();
-     Integer len=var.size();
-     output->write((char*)ptvar,len * sizeof(Double));
-     (*output) << "endvars ";
-  }
+  if (ascii_) 
+    {
+      Integer i;
+      for (i=0; i<var.size(); i++)
+	(*output) << var[i] << " ";
+      (*output) << "\n endvars \n" ;
+    }
+  else 
+    {
+      Double * ptvar=var.get();
+      Integer len=var.size();
+      output->write((char*)ptvar,len * sizeof(Double));
+      (*output) << "endvars ";
+    }
 
 }
 
