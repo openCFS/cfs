@@ -26,6 +26,7 @@
 <!--   Include further definitions -->
 <!-- ********************************************************************** -->
 <xsd:include schemaLocation="Schemas/CFS_SolverPrecond.xsd"/>
+<xsd:include schemaLocation="Schemas/CFS_Preconds.xsd"/>
 <xsd:include schemaLocation="Schemas/CFS_Analysis.xsd"/>
 <xsd:include schemaLocation="Schemas/CFS_Domain.xsd"/>
 <xsd:include schemaLocation="Schemas/CFS_Misc.xsd"/>
