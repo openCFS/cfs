@@ -943,6 +943,7 @@ void AnsysFile::ReadEl3dConf(StdVector<std::string> &sd)
 {
   ENTER_FCN( "AnsysFile::ReadEl3dConf" );
 
+  sd.Clear();
     Integer maxnelems;
     ReadMaxnumelem(maxnelems,"Num3DElements");
 
@@ -997,6 +998,7 @@ void AnsysFile::ReadEl2dConf(StdVector<std::string> &sd)
 {
   ENTER_FCN( "AnsysFile::ReadEl2dConf" );
 
+  sd.Clear();
     Integer maxnelems;
     ReadMaxnumelem(maxnelems,"Num2DElements");
 
@@ -1051,6 +1053,7 @@ void AnsysFile::ReadEl1dConf(StdVector<std::string> &sd)
 {
   ENTER_FCN( "AnsysFile::ReadEl1dConf" );
 
+    sd.Clear();
     Integer maxnelems;
     ReadMaxnumelem(maxnelems,"Num1DElements");
 
