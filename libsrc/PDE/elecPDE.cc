@@ -261,6 +261,44 @@ void ElecPDE::WriteResultsInFile(Integer stepOffset,
   else
    Error("ElecPDE: Only static results can be written", __FILE__, __LINE__);
 
+//   // TMPORARILY
+//   SolutionType quantity;
+//   StdVector<Integer> * couplingNodes     = NULL;
+//   CFSVector * values = 0;
+//   Vector<Double> sumForces(dim_);
+//   sumForces.Init();
+  
+  
+
+//   // loop over all output coupling quantities
+//   for (Integer actCoupling=0; actCoupling<ptCoupling_->GetNumOutputCouplings(); actCoupling++)
+//     {
+//       quantity = ptCoupling_->GetOutputQuantity(actCoupling);
+//       ptCoupling_->GetOutputValues(actCoupling, values);
+
+//       Vector<Double> const & temp = dynamic_cast<Vector<Double> &>(*values);
+//       switch(ptCoupling_->GetOutputType(actCoupling))
+// 	{
+	  
+// 	case NODE:	  
+// 	  ptCoupling_->GetOutputNodes(actCoupling, couplingNodes);
+// 	  if (quantity == ELEC_FORCE_VWP)
+// 	    {
+// 	      for (Integer iDof=0; iDof<dim_; iDof++)
+// 		for (Integer iNode=0; iNode<couplingNodes->GetSize(); iNode++)
+// 		  sumForces[iDof] += temp[iNode*dim_ + iDof];
+	      
+// 	      *data << lasttimecalc_ << "\t";
+// 	      for (Integer i=0; i<dim_; i++)
+// 		*data << sumForces[i]<< "\t";
+	      
+// 	      *data << std::endl;
+	      
+// 	    }
+// 	} // switch
+//     } // for
+
+
 #ifdef PARALLEL
     }//!commrank
 #endif
@@ -500,6 +538,13 @@ void ElecPDE::CalcNodeForce(Vector<Double> & force,
   // write information in .info-file
   Info->PrintF(pdename_, "Sum of electrostatic force (VWM):");
   Info->PrintVec(sum);
+  *data << lasttimecalc_ << "\t";
+  for (Integer i=0; i<dim_; i++)
+    *data << sum[i]<< "\t";
+
+  *data << std::endl;
+      
+      
 }
 
 
@@ -513,6 +558,7 @@ void ElecPDE::CalcEnergy()
   Matrix<Double> elemmat;  
   Matrix<Double> ptCoord;
   BaseFE         * ptElem;
+  Double totalE=0;
 
   StdVector<Integer> connecth;
   Vector<double> help;
@@ -554,10 +600,20 @@ void ElecPDE::CalcEnergy()
 
 	  delete bilinear_stiff;	  
 	}  
+
+      totalE += energy[i];
     }
 
   std::string resulttype = "Electric Energy";
   Info->WriteResult(pdename_,  resulttype, subdoms_ , energy);
+
+  StdVector<std::string> suball(1);
+  Vector<Double> tmp(1);
+  suball[0] = "Summe";
+  tmp[0] = totalE;
+  Info->WriteResult(pdename_,  resulttype, suball , tmp);
+
+
 }
 
 
