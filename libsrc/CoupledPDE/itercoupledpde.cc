@@ -303,8 +303,8 @@ namespace CoupledField
       {
 	if (nonLinLogging_)
 	  {
-	Info->PrintF(coupledpdename_,""); 
-	Info->PrintF(coupledpdename_, " COUPLED ITERATION %i =================================", 
+	Info->PrintF(coupledpdename_,"\n"); 
+	Info->PrintF(coupledpdename_, " COUPLED ITERATION %i =================================\n", 
 		     iter+1);
 	  }
 	
@@ -314,7 +314,7 @@ namespace CoupledField
 	for (Integer i=0; i<PDEs_.GetSize(); i++)
 	  {
 	    if (nonLinLogging_)
-	    Info->PrintF(coupledpdename_, " Processing PDE %s", 
+	    Info->PrintF(coupledpdename_, " Processing PDE %s\n", 
 			 (PDEs_[i]->GetName()).c_str());
 
 	    // Only solve current PDE, if the corresponding
@@ -336,7 +336,7 @@ namespace CoupledField
 		  if (nonLinLogging_)
 		    {
 		      Enum2String(Couplings_[i]->GetOutputQuantity(k), quantityConv);
-		      Info->PrintF(coupledpdename_, " %s : Norm of %s = %g", 
+		      Info->PrintF(coupledpdename_, " %s : Norm of %s = %g\n", 
 				   (Couplings_[i]->GetPDEName()).c_str(),
 				   quantityConv.c_str(), norms_[counter]);
 		    }
@@ -385,8 +385,8 @@ namespace CoupledField
       {
 	if (nonLinLogging_)
 	  {
-	    Info->PrintF(coupledpdename_,""); 
-	    Info->PrintF(coupledpdename_, " COUPLED ITERATION %i =================================", 
+	    Info->PrintF(coupledpdename_,"\n"); 
+	    Info->PrintF(coupledpdename_, " COUPLED ITERATION %i =================================\n", 
 			 iter+1);
 	  }
 
@@ -396,7 +396,7 @@ namespace CoupledField
 	for (Integer i=0; i<PDEs_.GetSize(); i++)
 	  {
 	    if (nonLinLogging_)
-	      Info->PrintF(coupledpdename_, " Processing PDE %s", 
+	      Info->PrintF(coupledpdename_, " Processing PDE %s\n", 
 			   (PDEs_[i]->GetName()).c_str());
 
 	    // Only solve current PDE, if the corresponding
@@ -420,7 +420,7 @@ namespace CoupledField
 		  if (nonLinLogging_)
 		    {
 		      Enum2String(Couplings_[i]->GetOutputQuantity(k), quantityConv);
-		      Info->PrintF(coupledpdename_, " %s : Norm of %s = %g", 
+		      Info->PrintF(coupledpdename_, " %s : Norm of %s = %g\n", 
 				   (Couplings_[i]->GetPDEName()).c_str(),
 				   quantityConv.c_str(), norms_[counter]);
 		    }
