@@ -29,6 +29,13 @@ public:
 
     //! Print values of time function in stream outfile
     void Print(std::ostream * outfile) const;
+
+    //! return the number of time functions
+    Integer GetmaxTimeFnc() 
+    {
+      return maxnumTimeFunc_;
+    }
+
 private:
 
     //! pointer to input file. needed only for {\tt datfile}.
@@ -41,7 +48,7 @@ private:
     Double ValTimeFuncDatFile(const Double time, const Integer num);
 
     //! 
-    Integer maxnumTimeFunc;
+    Integer maxnumTimeFunc_;
 
     //!
     Integer * maxvalTimeFunc;

@@ -71,7 +71,7 @@ void TransientDriver :: SolveProblem()
   Integer nstep;
   for (nstep = 0; nstep<numstep_; nstep++)
     {
-      ptdomain_->GetPDE(pdenumber)->SolveStepTrans(ptdomain_->GetBCs(), nstep, steptime, level, updatesysmat);
+      ptdomain_->GetPDE(pdenumber)->SolveStepTrans(nstep, steptime, level, updatesysmat);
       ptdomain_->GetPDE(pdenumber)->SaveSolAsPrevStep();
 
       // writing results in output-file
@@ -121,7 +121,7 @@ void TransientDriver :: SolveProblemAdapt()
 
  for (i=0; i<startrepeat; i++)
  {
- ptdomain_->GetPDE(pdenumber)->SolveStepTrans(ptdomain_->GetBCs(), nstep, steptime, level, resetsysmat);
+ ptdomain_->GetPDE(pdenumber)->SolveStepTrans(nstep, steptime, level, resetsysmat);
 
  ptdomain_->GetPDE(pdenumber)->WriteResultsInFile();
  if (InfoPrint)
@@ -135,7 +135,7 @@ void TransientDriver :: SolveProblemAdapt()
  steptime+=dt;
  }
 
-  ptdomain_->GetPDE(pdenumber)->SolveStepTrans(ptdomain_->GetBCs(), nstep, steptime, level, resetsysmat);
+  ptdomain_->GetPDE(pdenumber)->SolveStepTrans(nstep, steptime, level, resetsysmat);
 
 do
   {
@@ -181,7 +181,7 @@ do
 
   }
 
-  ptdomain_->GetPDE(pdenumber)->SolveStepTrans(ptdomain_->GetBCs(), nstep, steptime, level, resetsysmat);
+  ptdomain_->GetPDE(pdenumber)->SolveStepTrans(nstep, steptime, level, resetsysmat);
 
   std::cout << steptime << " steptime " << dt << " dt " << std::endl;
   }
@@ -230,7 +230,7 @@ void TransientDriver :: SolveProblemAdaptSpace()
   Integer nstep;
   for (nstep = 0; nstep<numstep_; nstep++ )
     {
-      ptPDE->SolveStepTrans(ptdomain_->GetBCs(), nstep, steptime, level, updatesysmat);
+      ptPDE->SolveStepTrans(nstep, steptime, level, updatesysmat);
 
       numrepeat=0;
       while (ptPDE->TestError() && numrepeat != maxnumrepeat)
@@ -242,7 +242,7 @@ void TransientDriver :: SolveProblemAdaptSpace()
 
 	ptPDE->RestoreSol();
 
-	ptPDE->SolveStepTransNewMesh(ptdomain_->GetBCs(), nstep, steptime, level);
+	ptPDE->SolveStepTransNewMesh(nstep, steptime, level);
   
   std::cerr << " we solved on new mesh " << std::endl;
 

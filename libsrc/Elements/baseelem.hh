@@ -74,17 +74,29 @@ public:
 
   //! return intergral of shape function over line. only for 1d-line
   virtual Double getIntVal(const Point<2> * const ptCoord)
-  { Error(" This function is implemented only for 1D elements",__FILE__,__LINE__);}	
+  { 
+    Error(" This function is implemented only for 1D elements",__FILE__,__LINE__);
+    return Ddummy;
+  }	
 
 ///////////////////////////////////////////////////////////////////////
   virtual Vector<Double> *  GetDxShFncAtIP(const Integer iShFnc)
-  { Error("Not implemented") ;}
+  { 
+    Error("Not implemented") ;
+    return Dvec;
+  }
 
   virtual Vector<Double> *  GetDyShFncAtIP(const Integer iShFnc) 
-  { Error("Not implemented") ;}
+  { 
+    Error("Not implemented") ;
+    return Dvec;
+  }
 
   virtual Vector<Double> *  GetDzShFncAtIP(const Integer iShFnc) 
- { Error("Not implemented") ;}
+  { 
+    Error("Not implemented") ;
+    return Dvec;
+  }
 
   //! return FE-Type for LAS++
   virtual Integer feType()=0;
@@ -103,6 +115,11 @@ protected:
 
   //! Converts the string used for the integration type to an integer
   enum IntegrationType String2EnumIntegrationType(const Char * inttype);
+
+  //just dummies for SUN compiler
+  Double Ddummy;
+  Vector<Double> *Dvec;
+
 private:
  
 };

@@ -26,8 +26,11 @@ template<class TYPE> class BandMatrix
   Integer numentry;
 
 public:
-  template<class S>
-  friend S Spur(const BandMatrix<S> &);
+#ifdef __GNUC__
+    template<class S>
+    friend S Spur(const BandMatrix<S> &);
+#endif
+
   /// Constructor  
   BandMatrix();
   ///  Default Copy Constructor

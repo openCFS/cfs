@@ -17,6 +17,8 @@ TimeFunc :: TimeFunc(FileType * aptFileType)
 
   ptFileType=aptFileType;
 
+  maxnumTimeFunc_ = 0;
+
   timeFncDatFile_=FALSE;
   std::string nametf;
 
@@ -29,8 +31,8 @@ TimeFunc :: TimeFunc(FileType * aptFileType)
       conf->get ("time_interval_fnc_a",intervalTF_a);
       conf->get ("time_interval_fnc_b",intervalTF_b);
     }             
-  else 
-    Error("There is no information about time function in conf-file");
+  //  else 
+  //    Error("There is no information about time function in conf-file");
 	       
     
   if (timeFncDatFile_) ReadTimeFunc(nametf); 
@@ -50,22 +52,22 @@ void TimeFunc :: ReadTimeFunc(const std::string nametf)
     std::string buffer;
     std::getline(timefile,buffer,'\n');
 
-    maxnumTimeFunc=1; // at present we are working only with 1 function
+    maxnumTimeFunc_=1; // at present we are working only with 1 function
 
-    maxvalTimeFunc = new Integer [maxnumTimeFunc];
+    maxvalTimeFunc = new Integer [maxnumTimeFunc_];
 
     Integer ibuf;
     timefile >> ibuf >> maxvalTimeFunc[0];
  
-    timeTimeFunc = new Double * [maxnumTimeFunc];  // timeTF and valTF
+    timeTimeFunc = new Double * [maxnumTimeFunc_];  // timeTF and valTF
 
     Integer i,j;
-    for (i=0; i < maxnumTimeFunc; i++)
+    for (i=0; i < maxnumTimeFunc_; i++)
       timeTimeFunc[i] = new Double[maxvalTimeFunc[i]];
-    valTimeFunc = new Double * [maxnumTimeFunc];
-    for (i=0; i < maxnumTimeFunc; i++)
+    valTimeFunc = new Double * [maxnumTimeFunc_];
+    for (i=0; i < maxnumTimeFunc_; i++)
       valTimeFunc[i] = new Double[maxvalTimeFunc[i]];
-    for (i=0; i < maxnumTimeFunc; i++)
+    for (i=0; i < maxnumTimeFunc_; i++)
       for (j=0; j < maxvalTimeFunc[i]; j++)
 	timefile >> timeTimeFunc[i][j] >> valTimeFunc[i][j];
 
@@ -130,11 +132,11 @@ TimeFunc :: ~TimeFunc()
 #endif
  
   if (timeFncDatFile_) {
-    if (timeTimeFunc) { for (Integer i=0; i < maxnumTimeFunc; i++ )
+    if (timeTimeFunc) { for (Integer i=0; i < maxnumTimeFunc_; i++ )
       delete [] timeTimeFunc[i];
     delete [] timeTimeFunc;
     }
-    if (valTimeFunc) { for (Integer i=0; i < maxnumTimeFunc; i++ )
+    if (valTimeFunc) { for (Integer i=0; i < maxnumTimeFunc_; i++ )
       delete [] valTimeFunc[i];
     delete [] valTimeFunc;
     }
@@ -146,7 +148,8 @@ TimeFunc :: ~TimeFunc()
  
  void TimeFunc::Print(std::ostream * outfileDat) const
 {
-  (*outfileDat) << "------------- Print Time function ----------------" << std::endl;  for (Integer i=0; i < maxnumTimeFunc; i++)
+  (*outfileDat) << "------------- Print Time function ----------------" 
+		<< std::endl;  for (Integer i=0; i < maxnumTimeFunc_; i++)
   {
   (*outfileDat) << " Number of time function is " << i+1 << std::endl;
    (*outfileDat) << "\t" << "time" <<

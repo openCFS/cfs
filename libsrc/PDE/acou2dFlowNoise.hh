@@ -1,6 +1,7 @@
 #ifndef FILE_ACOU2DFLOWNOISE_2003
 #define FILE_ACOU2DFLOWNOISE_2003
 
+#include "basepde.hh"
 #include "acoustic2dPDE.hh"
 
 namespace CoupledField
@@ -16,16 +17,14 @@ class Acou2dFlowNoise: public Acoustic2dPDE
 public:
 
   //!
-  Acou2dFlowNoise(AbstractAlgebraicSys * ptalgsys, Grid * aptgrid, Material * ptMaterial, TimeFunc * aptTimeFunc, FileType * aptFileType, WriteResults * aptOut);
+  Acou2dFlowNoise(Grid * aptgrid, BCs *aptbcs, Material *ptMaterial, TimeFunc *aptTimeFunc, 
+		  FileType *aptFileType, WriteResults *aptOut);
 
   //!
   virtual ~Acou2dFlowNoise();
 
-    //!
-  void SetBCs(BCs * ptBCs, const Integer level, const Integer update, const Double atime);
-
   //!
-  void ComputeRHS(const Double atime, BCs * ptBCs=NULL);
+  void ComputeRHS(const Double atime);
 
   //!
   void preComputeRHS();
@@ -34,30 +33,21 @@ public:
   void ReadFlowData(const char * aname, const Integer timestep, Matrix<Double> &nodedata );
 
   //!
-  void SolveStepStatic(BCs * ptBCs ,const Integer level);
-
-  //!
-  void SolveStepTrans(BCs * ptBCs ,const Integer kstep, const Double steptime, const Integer level, const Boolean updatesysmat);
+  void SolveStepTrans(const Integer kstep, const Double steptime, const Integer level, const Boolean updatesysmat);
 
   //!
    void WriteResultsInFile();
 
+  //! Reorganizing grid info for MpCCi and hand over to MpCCI
+  void PutExchangeGrid2MpCCI();
+
 private:
 
-  //! list of surfaces, on which we have force
-  std::vector<std::string> rhs_surfaces_;
+  std::vector<std::string> rhs_surfaces_; //!< list of surfaces, on which we have excitation
+  Integer arg_rhs_; //!< function for RHS
 
-  //! function for RHS
-  Integer arg_rhs_;
-
-  //!
-  std::vector<Double> directionFnc_;
-  
-  //! Indicator: is there RHS function
-  Boolean SetRHSFnc;
-
-  //! Indicator: is there RHS flow source
-  Boolean SetRHSFlowSrc;
+  Boolean SetRHSFnc; //!< Indicator: is there RHS function
+  Boolean SetRHSFlowSrc; //!< Indicator: is there RHS flow source
 
 };
 

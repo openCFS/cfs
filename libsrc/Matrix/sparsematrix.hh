@@ -69,19 +69,29 @@ public:
   ///
   Integer operator!=      (const SparseMatrix<TYPE> &) const;
 
+
+#ifdef __GNUC__
   template<class S>
   friend std::ostream & operator<< (std::ostream& , const SparseMatrix<S>&);
+#endif
 
   void precond(Vector<TYPE> & e, const Vector<TYPE> r, enum precond type);
 
   //! Add element on position i,j
-  void Add(const Integer, const Integer, const TYPE value);
+  void Add(const Integer i, const Integer j, const TYPE value)
+  {
+    (*this)(i,j)+=value;
+  }
 
   //! Initialized by zero matrix
-  void Init();
+  void Init() {};
 
   //! Return size of matrix, only for quadratic matrices
-  Integer getSize() const;
+  Integer getSize() const
+  {
+    if (numrows!=numcol) Error("Function .getSize() is valid only for quadratic matrix");
+    return numrows;
+  }
 
   //! Cut row number i, column number j from matrix
   void cut(const Integer i, const Integer j); 
@@ -117,25 +127,6 @@ template<class TYPE>
 inline SparseMatrix<TYPE>::~SparseMatrix()
 {
   if (ptRow) delete [] ptRow;
-}
-
-template<class TYPE>
-inline void SparseMatrix<TYPE>::Add ( const Integer i, const Integer j, const TYPE value)
-{
- (*this)(i,j)+=value;
-}
-
-template<class TYPE>
-inline void SparseMatrix<TYPE>::Init() 
-{
- ;
-}
-
-template<class TYPE>
-inline Integer SparseMatrix<TYPE>::getSize() const
-{
- if (numrows!=numcol) Error("Function .getSize() is valid only for quadratic matrix");
- return numrows;
 }
 
 #ifdef __GNUC__

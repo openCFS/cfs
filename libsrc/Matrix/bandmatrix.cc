@@ -9,7 +9,7 @@ namespace CoupledField
 {
 
 template<class TYPE>
-BandMatrix<TYPE> :: BandMatrix()
+BandMatrix<TYPE>::BandMatrix()
 {
  row=0;
  li=0;

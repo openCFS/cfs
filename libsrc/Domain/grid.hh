@@ -67,7 +67,10 @@ public:
     \param subdoms (input) contains the names of the subdomains
   */
   virtual Integer GetMaxnumElem(const Integer numlevel, const std::vector<std::string> & subdoms)
-   { Error(" Not implemented",__FILE__,__LINE__);}  
+  { 
+    Error(" Not implemented",__FILE__,__LINE__);
+    return Dint;
+  }  
 
   //! Get last level of grid
   virtual Integer GetLastLevel() const { return lastlevel_;} 
@@ -97,7 +100,10 @@ public:
     \param color (input) subdomain
   */ 
   virtual  std::vector<Elem*> *GetNeighboursOfElem(const Integer noOfElem, std::string color)
-  { Error(" Not implemented",__FILE__,__LINE__);}
+  { 
+    Error(" Not implemented",__FILE__,__LINE__);
+    return Evec;
+  }
 
   //! return vector of element-neighbors for the node with number noOfNode
   /*!
@@ -131,7 +137,10 @@ public:
 
   //!
   virtual std::vector<std::string>* GetAllSDs()
-  { Error("Not implemented",__FILE__,__LINE__);}
+  { 
+    Error("Not implemented",__FILE__,__LINE__);
+    return Dstr;
+  }
 
   //! gets the coordinates of the element nodes
   /*!
@@ -156,7 +165,10 @@ public:
     \param elem (input) element object
   */
   virtual Double CalcAreaElem(const Elem* elem)
-    { Error(" Not implemented",__FILE__,__LINE__);}
+  { 
+    Error(" Not implemented",__FILE__,__LINE__);
+    return Ddummy;
+  }
 
    //! auxialary function; to define belonging of one element to another from the list, for ex. surface element and boundary elements
   /*!
@@ -171,6 +183,12 @@ protected:
   FileType * ptFileType;   //!< pointer to input file
   Integer lastlevel_;      //!< last level in multilevel hierarchy
   std::vector<std::string> listSD_; //!< list of names of subdomains
+
+  // dummies just for sun compiler
+  Integer Dint;
+  Double Ddummy;
+  std::vector<Elem*> *Evec;
+  std::vector<std::string>* Dstr;
 
 private:
   ///

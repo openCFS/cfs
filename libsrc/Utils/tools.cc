@@ -19,7 +19,7 @@ template void PrintPoint(Point<2>, std::ostream *);
 template void PrintPoint(Point<3>, std::ostream *);
 #endif
  
-void Error(const Char * const Text, const Char * const filename,
+void Error(const Char * Text, const Char * const filename,
                       const Integer numline)
 {
  std::cerr << "\033[31mERROR:\033[0m " << Text;
@@ -30,7 +30,7 @@ void Error(const Char * const Text, const Char * const filename,
  exit(-1);
 }
 
-void Warning(const Char * const Text, const Char * const filename,
+void Warning(const Char *Text, const Char * const filename,
                       const Integer numline)
 {
  std::cerr << "\033[31mWARNING:\033[0m " << Text;

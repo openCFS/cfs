@@ -34,6 +34,9 @@ protected:
 
   //! Calculate derivative of shape functions at these integration points
   virtual void SetDerTransformFncAtIntPoints();
+
+  //! Calculate derivative of shape functions at these integration points
+  virtual void SetDerTransformFncAtIntPoints3D();
  
   //! Calculate shape functions at the center of element
   virtual void SetTransformFncAtCenter();
@@ -75,6 +78,16 @@ protected:
   Vector<Double> DyTransFncAtIP2; //!< contains \f$ N_{2,\eta} \f$ at all integration points
   Vector<Double> DyTransFncAtIP3; //!< contains \f$ N_{3,\eta} \f$ at all integration points
 
+  // These derivatives are used for the computation of Jacobian 3d. 
+  Vector<Double> DxiTransFnc1AtIP; //!< contains 3D \f$ N_{1,\xi} \f$ at all integration points
+  Vector<Double> DxiTransFnc2AtIP; //!< contains 3D \f$ N_{2,\xi} \f$ at all integration points
+  Vector<Double> DxiTransFnc3AtIP; //!< contains 3D \f$ N_{3,\xi} \f$ at all integration points
+ 
+  Vector<Double> DetaTransFnc1AtIP; //!< contains 3D \f$ N_{1,\eta} \f$ at all integration points
+  Vector<Double> DetaTransFnc2AtIP; //!< contains 3D \f$ N_{2,\eta} \f$ at all integration points
+  Vector<Double> DetaTransFnc3AtIP; //!< contains 3D \f$ N_{3,\eta} \f$ at all integration points
+
+
   Double TransFncAtCenter[3];    //!< contains \f$ N_1\f$ - \f$N_4\f$ at center 
   Double DxTransFncAtCenter[3];  //!< contains \f$ N_{1,\xi}\f$ - \f$N_{4,\xi}\f$ at center
   Double DyTransFncAtCenter[3];  //!< contains \f$ N_{1,\eta}\f$ - \f$N_{4,\xi}\f$ at center
@@ -95,6 +108,17 @@ private:
   Double TransFnc2dy (Double x,Double y) { return 0.0; }   //!< \f$ N_{2,\eta} \f$
   Double TransFnc3dx (Double x,Double y) { return 0.0; }   //!< \f$ N_{3,\xi} \f$
   Double TransFnc3dy (Double x,Double y) { return 1.0; }   //!< \f$ N_{3,\eta} \f$
+
+
+  // For clarity, these are used for the computation of Jacobian 3d.
+  Double TransFnc1dxi (Double x,Double y, Double z) { return -1.0; }  //!<3d \f$ N_{1,\xi} \f$
+  Double TransFnc1deta (Double x,Double y, Double z) { return -1.0; }  //!<3d \f$ N_{1,\eta} \f$
+
+  Double TransFnc2dxi (Double x,Double y, Double z) { return 1.0; }   //!<3d \f$ N_{2,\xi} \f$
+  Double TransFnc2deta (Double x,Double y, Double z) { return 0.0; }   //!<3d \f$ N_{2,\eta} \f$
+
+  Double TransFnc3dxi (Double x,Double y, Double z)  { return 0.0; }  //!<3d \f$ N_{3,\xi} \f$
+  Double TransFnc3deta (Double x,Double y, Double z)  { return 1.0; }  //!<3d \f$ N_{3,\eta} \f$
 
 };
  

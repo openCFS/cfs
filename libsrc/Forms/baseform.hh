@@ -40,12 +40,12 @@ public:
   //! Calculation of vector of RHS Dipole having a FlowSrc term (Lighthill's Tensor)
   /*! 
     Calculation of term in the following form:
-    \f $\int_{\Gamma}\frac{\partial P}{\partial \bar n} N_i d\Gamma,$
-    where \f $P$ is fluid pressure fluctuation.
+    \f$\int_{\Gamma}\frac{\partial P}{\partial \bar n} N_i d\Gamma,\f$
+    where \f$P\f$ is fluid pressure fluctuation.
     \param ptCoord pointer to array with coordinates
     \param connecth connection array for the element
     \param Result (output) returned element vector
-    \param gradN_x_P \f $\frac{\partial P}{\partial x}$ at the center of element
+    \param gradN_x_P \f$\frac{\partial P}{\partial x}\f$ at the center of element
   */
   virtual void CalcElemVector4FlowSrcDip(Point<dim> * ptCoord,const Vector<Integer> & connecth, Vector<Double> & Result, const std::vector<Double> gradN_x_P)
   { Error(" This method is not implemented for this class",__FILE__,__LINE__);}

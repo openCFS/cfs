@@ -147,7 +147,7 @@ void ConfFile::getsubdom(std::vector<std::string> & subdoms)
  std::string::size_type pos;
 
  Integer nsubds;
- get("subdomains",nsubds);
+ get("subdomains",nsubds,"","","");
 
  pos=getpos("list_subdomains");
  infile.seekg(pos,std::ios::beg);

@@ -32,11 +32,12 @@ Error("Vector: invalid dimension in constructor",__FILE__,__LINE__);
 		p [j] = 0;
 }
 
-template<class TYPE> void Vector<TYPE>::Allocate(const Integer i)
+template<class TYPE> 
+void Vector<TYPE>::Allocate(const Integer i)
 {
    std::cout << " We are here " << std::endl;
    if (p)
-   Error("use .Resize to defined Vector for changing size",__FILE__,__LINE__);
+     Error("use .Resize to defined Vector for changing size",__FILE__,__LINE__);
 
    n=i;
    p=new TYPE[n];

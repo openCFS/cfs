@@ -882,6 +882,10 @@ template<>
 Double GridCFS<3>::CalcAreaElem(const Elem* elem)
 {
   Error("Not implemented yet",__FILE__,__LINE__);
+
+  //just for SUN compiler
+  Double dummy;
+  return dummy;
 }
 
 } // end namespace

@@ -52,8 +52,8 @@ public:
   friend class SymMatrix<TYPE>;
   friend class Matrix<TYPE>;
 
-  template<class T>
-  friend void swap(Vector<T> &, Vector<T> &);
+//   template<class T>
+//   friend void swap(Vector<T> &, Vector<T> &);
 
   //! Constructor
   Vector	();
@@ -68,7 +68,11 @@ public:
   Vector	(const Vector &);
 
   //! Deconstructor
-  ~Vector	();
+  ~Vector()
+  {
+    if (p) delete [] p;
+  }
+
 
   //! Change size of vector
   /*!
@@ -95,10 +99,15 @@ public:
   TYPE	&operator[]	(const Integer) const;
 
   //! Return dimension of Vector
-  Integer	size () const;
+  Integer	size () const { return n;}
 
   //! Return pointer p to array 
-  TYPE*  get() const;
+  TYPE*  get() const
+  {
+    if (!p)
+      Error("Vector: undefined Vector",__FILE__,__LINE__);
+    return p;
+  }
 
   //! Overloading of operations +,+=
   Vector	operator+	() const;
@@ -176,33 +185,11 @@ public:
 
 };
 
-// inline member functios
-
-template<class TYPE>
-inline Vector<TYPE>::~Vector ()
-{
-	if (p) 	delete [] p;
-}
-
-template<class TYPE>
-inline Integer Vector<TYPE>::size () const
-{
-	return n;
-}
-
-template <class TYPE>
-inline TYPE* Vector<TYPE>::get ()  const
-{	if (!p)
-	Error("Vector: undefined Vector",__FILE__,__LINE__);
-  return p;
-}
 
 #ifdef __GNUC__
 template class Vector<Integer>;
 template class Vector<Double>;
 #endif
-//template class Vector<Integer>;
-//template class Vector<Point2D>;
 
 }
 #endif	// FILE_VECTOR
