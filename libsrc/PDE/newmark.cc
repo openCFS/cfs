@@ -4,6 +4,7 @@
 
 #include "DataInOut/WriteInfo.hh"
 #include "newmark.hh"
+#include "DataInOut/ParamHandling/BaseParamHandler.hh"
 
 namespace CoupledField
 {
@@ -26,7 +27,10 @@ Newmark :: Newmark(std::string apdename, BaseSystem * algebraicsystem, NodeEQN *
   conf->ifget("beta_NM",beta_,pdename_); 
   conf->ifget("gamma_NM",gamma_,pdename_);
 #else
-  Info->Warning( "Newmark: Using defaults for alpha, beta and gamma!" );
+  std::string analysis;
+  params->Get( "type", analysis, "analysis" );
+  if(analysis != "paramIdent")
+    Info->Warning( "Newmark: Using defaults for alpha, beta and gamma!" );
 #endif
 
   Integer numEQNs = ptEQN_->GetNumEQNs();
