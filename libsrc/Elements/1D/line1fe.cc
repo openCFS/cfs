@@ -7,7 +7,7 @@ namespace CoupledField
 {
 
 
-Line1FE :: Line1FE() : GeLineFE()
+Line1FE :: Line1FE() : LineFE()
 {
 #ifdef TRACE
   (*trace) << "entering Line1FE::Line1FE" << std::endl;
