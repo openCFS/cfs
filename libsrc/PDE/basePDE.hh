@@ -366,6 +366,10 @@ class SpaceErrorEstimator;
     void sortStresses(Vector<Double>& unsorted, Vector<Double>& sorted);
     void sortStresses(Vector<Complex>& unsorted, Vector<Complex>& sorted);
 
+    // stores an algsys_ vector into a StdVector and returns that L2-norm
+    void StoreAlgsysToVec(Vector<Double>& vec, Double * pt);
+    
+
     // ======================================================
     // DATA SECTION
     // ======================================================
@@ -628,6 +632,11 @@ class SpaceErrorEstimator;
     NodeEQN * eqnData_;         //!< equation handling
 
     BaseNodeStoreSol * sol_;        //!< solution
+
+    Vector<Double> solIncr_;      //! needed in iterative coupled computation 
+    Vector<Double> actSol_;       //! needed in iterative coupled computation 
+    Boolean isIncrFormulation_;   //! checks, if we have for the coupling a incremental solution
+    
 
     Boolean initMatrices_; //!< true, if matrix is set up each iteration step
 

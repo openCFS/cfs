@@ -552,6 +552,13 @@ void MechPDE::InitCoupling(PDECoupling * Coupling)
 	{
 	  // Intialize the memory of the coupling values
 	  ptCoupling_->CreateCouplingVector(i,isComplex_); 
+
+	  //now since we need a incremental formulation, initialize some necessary vectors
+	  isIncrFormulation_ = TRUE;
+	  solIncr_.Resize(eqnData_->GetNumEQNs() * eqnData_->GetNumDofsPerEQN());
+	  actSol_.Resize(eqnData_->GetNumEQNs() * eqnData_->GetNumDofsPerEQN());
+	  solIncr_.Init(0);
+	  actSol_.Init(0);
 	}
     }
 
@@ -641,6 +648,7 @@ void MechPDE::CalcAcousticCouplingRHS(StdVector<Elem*> * couplingElems,
 				      StdVector<Elem*> * neighbours)
 {
   ENTER_FCN( "MechPDE::CalcAcousticCouplingRHS" );
+
 
   Double density = 0;
 
@@ -1227,8 +1235,6 @@ Double MechPDE::RhsL2Norm(Vector<Double>& actRHS)
 }
 
 
-
-
 // stores an algsys_ vector into a StdVector and returns that L2-norm
 void MechPDE::StoreAlgsysToVec(Vector<Double>& vec, Double * pt)
 {
@@ -1241,9 +1247,6 @@ void MechPDE::StoreAlgsysToVec(Vector<Double>& vec, Double * pt)
   for (Integer i=0; i<numElems; i++)   
     vec[i] = pt[i];
 }
-
-
-  
 
 // returns that L2-norm of an algsys vector
 Double MechPDE::AlgsysL2Norm(Double * pt)
