@@ -530,6 +530,8 @@ std::string WriteResultsUnverg::SolutionTypeToString(const SolutionType type) co
 {
   ENTER_FCN( "WriteResultsUnverg::SolutionTypeToString" );
 
+  std::string warnMsg;
+
   switch (type)
     {
     case MECH_DISPLACEMENT:
@@ -573,6 +575,12 @@ std::string WriteResultsUnverg::SolutionTypeToString(const SolutionType type) co
       return "displacement";
       break;
     case ACOU_POTENTIAL:
+      return "fluid potential";
+      break;
+    case ACOU_PRESSURE:
+      warnMsg = "Due to the restrictions in the .unv file format, the ";
+      warnMsg += "acoustic pressure is written as acoustic (fluid) potential!";
+      Warning(warnMsg.c_str(), __FILE__, __LINE__);
       return "fluid potential";
       break;
     case ACOU_FORCE:
