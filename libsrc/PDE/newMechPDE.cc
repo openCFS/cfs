@@ -87,7 +87,18 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 
   conf->ifgetliststr("homoBCdof", homDirichDof_, pdename_);
   conf->ifgetliststr("inhomoBCdof", inhomDirichDof_, pdename_);
+
+  //check for b.c. input data
+  if (bcs_hd_.size() != homDirichDof_.size()) 
+     Error("Inconsistent definition of homogeneous Dirichlet Boundary Conditions");
+  if (bcs_id_.size() != inhomDirichDof_.size()) 
+     Error("Inconsistent definition of inhomogeneous Dirichlet Boundary Conditions");
+ 
   conf->ifgetliststr("loadDof", loadDof_, pdename_);
+
+  //check for load data
+  if (bcs_loads_.size() != loadDof_.size()) 
+     Error("Inconsistent definition of loads");
 
 
   // set analysis parameters
@@ -133,7 +144,7 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 
 	  
       //assemble_->AddIntegrator(bilinearStiff, subdoms_[actSD], STIFFNESS, nonLin);
-      assemble_->AddIntegrator(bilinearStiff, subdoms_[actSD], SYSTEM, nonLin);
+      assemble_->AddIntegrator(bilinearStiff, subdoms_[actSD], STIFFNESS, nonLin);
 
 
       // add mass integrator
@@ -980,12 +991,10 @@ void MechPDE::WriteResultsInFile()
   (*trace) << "entering MechPDE::WriteResultsInFile" << std::endl;
 #endif
 
-  Integer laststepcalc=0;
-  Double  lasttimecalc=0;
   Array<Double> DispMesh;
  
   TransformNodeSolution(DispMesh, sol_, PDE2MeshNode_);
-  OutFile_->WriteNodeSolution(DispMesh, laststepcalc, lasttimecalc,"displacement");
+  OutFile_->WriteNodeSolution(DispMesh, laststepcalc_, lasttimecalc_,"displacement");
 }
 
 
