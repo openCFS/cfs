@@ -716,7 +716,7 @@ void Matrix<TYPE>::Invert (Matrix <TYPE> & inv) const
     }
 }
 
-void Matrix<Complex>::Invert (Matrix <Complex> & inv) const
+template<> void Matrix<Complex>::Invert (Matrix <Complex> & inv) const
 {
   ENTER_FCN("Matrix::Adjunct"); 
   Error("Matrix<Complex>::Invert: Not implemented!",__FILE__,__LINE__);
@@ -895,7 +895,7 @@ ENTER_FCN("Matrix::GetDiagInMatrix");
 // 2.) Complex-Matrices: A new array is created, which holds the 
 //                       complex values as a serial sequence of
 //                       Double values.
-Double* Matrix<Integer>::GetDoublePointer()
+template<> Double* Matrix<Integer>::GetDoublePointer()
 {
   ENTER_IFCN("Matrix::GetDoublePointer");
   Error("Matrix<Integer>::GetDoublePointer: Function not implemented!",__FILE__,__LINE__);
