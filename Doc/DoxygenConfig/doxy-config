@@ -83,6 +83,9 @@ INPUT                  = ../libsrc/AlgebraicSystem \
                          ../libsrc/General \
                          ../libsrc/CoupledPDE \
                          ../libsrc/MpCCIcpl \
+                         ../libsrc/ODEDescr \
+                         ../libsrc/ODESolve
+
 FILE_PATTERNS          = *.hh
 RECURSIVE              = NO
 EXCLUDE                = 
