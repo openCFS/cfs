@@ -136,18 +136,22 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
     olasReport_ = algsys_->GetOLASReport();
     
     std::string parallel = "no";
-#ifndef XMLPARAMS
-    conf->ifget("parallel",parallel);
-#else
-    Info->Warning( "Parameter 'parallel' unknown to XML" );
-#endif
+
+#ifdef PARALLEL
+
+//find out if more than 1 thread is running
+int commsize;
+MPI_Comm_size(MPI_COMM_WORLD, &commsize);
+if (commsize>1) parallel = "yes";
+
+#endif//PARALLEL
     
     if (parallel == "yes")
       olasParams_->SetValue( "Parallel", true);
     else
       olasParams_->SetValue( "Parallel", false);
     
-#endif
+#endif//OLAS
     
     // =====================================================================
     // Get type of analysis
