@@ -14,7 +14,7 @@ class WriteResultsUnverg: virtual public WriteResults
 
 public:
   //! constructor with name of a file for results
-  WriteResultsUnverg(const Char * const filename,Boolean withHistory=FALSE); 
+  WriteResultsUnverg(const Char * const filename,Boolean withHistory=FALSE, FileType * const aInFile=NULL); 
 
   //! deconstructor
   virtual ~WriteResultsUnverg();

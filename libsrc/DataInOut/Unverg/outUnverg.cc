@@ -8,13 +8,14 @@
 namespace CoupledField
 {
 
-WriteResultsUnverg :: WriteResultsUnverg(const Char * const filename, Boolean withHistory)
-:WriteResults(filename,withHistory)
+WriteResultsUnverg :: WriteResultsUnverg(const Char * const filename, Boolean withHistory, FileType * const aInFile)
+:WriteResults(filename, withHistory, aInFile)
 {
 #ifdef TRACE
   (*trace) << "entering WriteResultsUnverg :: WriteResultsUnverg" << std::endl;
 #endif
 
+  if (!withHistory)
   output=new std::ofstream(strcat(namefile_,".unv"));
 }
 
@@ -23,7 +24,8 @@ WriteResultsUnverg ::~WriteResultsUnverg()
 #ifdef TRACE
  (*trace) << "entering WriteResultsUnverg ::~ WriteResultsUnverg" << std::endl;
 #endif
-  
+
+ 
  delete output;
 }
 
@@ -32,10 +34,17 @@ void WriteResultsUnverg :: WriteGrid(const Integer level)
 #ifdef TRACE
   (*trace) << " entering WriteResultsUnverg :: WriteGrid " << std::endl;
 #endif
- if (!output) Error(" File for output results is not initialized");
- Dataset666(level);
- Dataset781(level);
- Dataset780(level);
+
+ if (!NeedHistory_)
+   {    
+     if (!output) 
+       Error(" File for output results is not initialized");
+
+     Dataset666(level);
+     Dataset781(level);
+     Dataset780(level);
+   }
+ 
 }
 
 
@@ -297,7 +306,8 @@ void  WriteResultsUnverg::WriteNodeSolution(const Array<Double> & sol, const Int
 	  AddInHistory(time,sol[0][nodeshist_[i]-1],i);
 
     }
- Dataset55(title, sol, step+1, time, sol.dim());
+ else
+   Dataset55(title, sol, step+1, time, sol.dim());
 }
 
 
@@ -306,9 +316,9 @@ void  WriteResultsUnverg::WriteElemSolution(const Array<Double>& data, const Int
 #ifdef TRACE
   (*trace) << " entering WriteResultsUnverg::WriteElemSolution " << std::endl;
 #endif
-   Integer nrDofs = 1;
 
-   Dataset56(title, data, step+1, time, data.dim());
+   if (!NeedHistory_)
+     Dataset56(title, data, step+1, time, data.dim());
 }
 
 

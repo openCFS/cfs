@@ -29,6 +29,12 @@ public:
   */
   virtual void ReadMaxnumnodes(Integer & maxnumnodes);
 
+   //! read number of save nodes in the mesh
+  /*!
+	\param nrNodes number of save nodes
+  */
+  virtual void ReadNumSaveNodes(Integer & nrNodes);
+  
   //! read coordinates of nodes of 3d-mesh 
   /*!
 	\param coordinates_node returned pointer to array with data
@@ -112,12 +118,28 @@ public:
   //! retuns the number of specified boundary conditions
   Integer GetNumBCs();
 
+  //! retuns the number of specified boundary conditions
+  Integer GetNumSaveNodes();
+
    //! read the mesh from mesh-file for Grid_RG
   /*!
         \param bcs out: vector with global number of nodes which are applied to boundary condition
         \param levels in: vector with color of nodes
   */
   void ReadBCs(std::list<Integer> * bcs, const std::vector<std::string> levels);
+
+
+ //! read the save nodes
+  /*!
+        \param saveNodes out: list with global number of nodes
+        \param levels in: vector with name of nodes
+  */
+  virtual void ReadSaveNodes(std::list<Integer> * saveNodes , const std::vector<std::string> levels);
+  
+  //! read only levels (names) of save nodes
+  /*! \param levels out: list with names of save node levels  */
+  void ReadLevelOfSaveNodes(std::vector<std::string>& levels);
+  
 
   //!
 #ifdef ADAPTGRID

@@ -7,6 +7,7 @@
 #include "ansysfile.hh"
 #include "Domain/bcs.hh"
 #include "Domain/GridCFS/grid_cfs.hh"
+#include "DataInOut/WriteInfo.hh"
 
 #ifdef ADAPTGRID
 #include "DataInOut/conffile.hh"
@@ -123,6 +124,21 @@ Integer AnsysFile::GetNumBCs()
     return num;
 }
 
+
+
+Integer AnsysFile::GetNumSaveNodes()
+{
+#ifdef TRACE
+  (*trace) << "entering AnsysFile::GetNumSaveNodes" << std::endl;
+#endif
+
+    Integer nrSaveNodes;
+    ReadNumSaveNodes(nrSaveNodes);
+    return nrSaveNodes;
+}
+
+
+
 void AnsysFile::ReadCoordinate(Point<2> * const NodesCoord, const Integer maxnumnodes)
 {
 #ifdef TRACE
@@ -194,6 +210,17 @@ void AnsysFile::ReadMaxnumnodesbc(Integer & nbc)
     infile >> nbc;
 }
 
+
+void AnsysFile::ReadNumSaveNodes(Integer & nrSaveNodes)
+{
+    std::string::size_type pos=0;
+    getPosition("NumSaveNodes", pos);
+    infile.seekg(pos,std::ios::beg);
+
+    infile >> nrSaveNodes;
+}
+
+
 void AnsysFile::ReadBCs(std::list<Integer> * bcs, const std::vector<std::string> levels)
 {
 #ifdef TRACE
@@ -218,15 +245,109 @@ void AnsysFile::ReadBCs(std::list<Integer> * bcs, const std::vector<std::string>
 	
 	Boolean Find=FALSE;
 	for (j=0; j<levels.size(); j++)
-	  { if (str==levels[j]) { Find=TRUE; break;}
-	  }         
+	  if (str==levels[j]) 
+	    {
+	      Find=TRUE;
+	      break;
+	    }
+    
 
-	std::string msg=str+": This level of BCs from .mesh file is not mentioned in .config file. Please, check .config-file";
-	if (!Find) Error(msg.c_str(),__FILE__,__LINE__);
-
+	if (!Find) 
+	  {
+	    std::string msg=str+": This level of BCs from .mesh file is not mentioned in .config file. Please, check .config-file";
+	    Error(msg.c_str(),__FILE__,__LINE__);
+	  }
+	
 	bcs[j].push_back(nodalnum);
       } 
 }
+
+
+
+
+
+void AnsysFile::ReadSaveNodes(std::list<Integer> * saveNodes , const std::vector<std::string> levels)
+{
+#ifdef TRACE
+    (*trace) << "entering Ansys::ReadSaveNodes" << std::endl;
+#endif
+    
+    Integer nrSaveNodes;
+    ReadNumSaveNodes(nrSaveNodes);
+
+    std::string::size_type pos=0;
+    getPosLine("Save Nodes", pos);
+    infile.seekg(pos,std::ios::beg);
+    
+    std::string str;
+
+    Integer nodalnum;
+    Integer i,j;
+    for (i=0; i < nrSaveNodes; i++)
+      {
+	infile >> nodalnum >> str;
+	infile.ignore(100,'\n');
+	
+	Boolean Find=FALSE;
+
+	for (j=0; j<levels.size(); j++) 
+	  if (str==levels[j]) 
+	    {
+	      Find=TRUE;
+	      break;
+	    }
+
+	if (!Find) 
+	  {
+	    std::string msg="The level \"" + str + "\" of \"Save Nodes\" from the .mesh ";
+	    msg += "file is not mentioned in the .config file. Did ";
+	    msg += "you perhaps miss to define it there?";
+	    Info->Warning(msg.c_str());
+	  }
+	else
+	  saveNodes[j].push_back(nodalnum);
+      } 
+}
+
+
+
+
+
+void AnsysFile::ReadLevelOfSaveNodes(std::vector<std::string>& levels)
+{
+#ifdef TRACE
+    (*trace) << "entering Ansys::ReadLevelOfSaveNodes" << std::endl;
+#endif
+    
+    Integer nrSaveNodes;
+    ReadNumSaveNodes(nrSaveNodes);
+
+    std::string::size_type pos=0;
+    getPosLine("Save Nodes", pos);
+    infile.seekg(pos,std::ios::beg);
+    
+    std::string str;
+
+    Integer nodalnum;
+    Integer i,j;
+    for (i=0; i < nrSaveNodes; i++)
+      {
+	infile >> nodalnum >> str;
+	infile.ignore(100,'\n');
+	
+	Boolean found=FALSE;
+
+	for (j=0; j<levels.size(); j++) 
+	  if (str==levels[j])
+	    found=TRUE;
+
+	if (!found) 
+	  levels.push_back(str);
+      } 
+}
+
+
+
 
 void AnsysFile::ReadBCsConf(std::vector<std::string> &levels)
 {

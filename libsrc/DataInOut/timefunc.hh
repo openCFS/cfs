@@ -44,6 +44,9 @@ private:
     //! read time func from dat-file
     void ReadTimeFunc(const std::string nametf);
 
+    //! read time func old style (needs header line with func nr & nr of entries)
+    void ReadTimeFuncOldType(const std::string nametf);
+    
     //! value of time func through interpolation values from data-file
     Double ValTimeFuncDatFile(const Double time, const Integer num);
 

@@ -16,7 +16,7 @@ class WriteResults
 {
 public:
    //! constructor
-   WriteResults(const Char * const filename,Boolean withHistory);
+   WriteResults(const Char * const filename,Boolean withHistory, FileType * const aInFile=NULL);
 
    //! initialization with grid
   virtual void Init(Grid * aptgrid)=0;
@@ -69,25 +69,44 @@ public:
   void WriteSolMatrix(Grid * ptgrid, const Integer level, const Vector<Double> sol, 
 		      const std::string matFileName, const Integer nrDofs=1);
 
+
+  /// read list of history nodes by name
+  void ReadSaveNodes();
+
+ 
+  
+
 protected:
   //! name of file for output results
   Char * namefile_;
+
   //! pointer to Grid
   Grid * ptgrid;
+
   //! indicator: print history file or not
   Boolean NeedHistory_;
+
   //! vector with nodes history
   std::vector<Integer> nodeshist_;
+
   //! pointer to ofstream with history information
   std::ofstream * historyfile;
+
   //! add new data in history file
   void AddInHistory(const Double time, const Double val, const Integer ifile);
+
   //! add new vector valued data in history file
   void AddVecInHistory(const Double time, const std::vector<Double> val,const Integer ifile);
+
   //! last time step, for which results were printed
   Vector<Double> lastsavetime;
+
   //! indicator: format of output: ascii or binary
   Boolean ascii_;
+
+  //! Ptr to input file, needed for reading the save nodes
+  FileType * pt2Inputfile_;
+  
 
 private:
   //! open history-files

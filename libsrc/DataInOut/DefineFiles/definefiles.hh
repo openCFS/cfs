@@ -27,10 +27,11 @@ public:
    ~DefineInOutFiles();
 
    //! create a pointer to a class for reading input-reults, a derived class of the FileType according to the specification of the conf-file.
-   FileType * Create_ptFileType();
+  FileType * Create_ptFileType();
+  
 
    //! create a pointer to a class for writing output-results, a derived class of the WriteResults according to the specification of the conf-file.
-   WriteResults * Create_ptWriteResults();
+   WriteResults * Create_ptWriteResults(FileType * const aInFile);
 
 private:
 

@@ -68,6 +68,10 @@ AcousticPDE::AcousticPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, Fil
       solIm_.init();
     }
 
+
+  saveDeriv_ = conf->get_option("savederiv", pdename_);
+  
+
   // set analysis parameters
   assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, subdoms_);
   assemble_->SetGraphType(NODEGRAPH);
@@ -77,6 +81,10 @@ AcousticPDE::AcousticPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, Fil
   assemble_->SetPtrBCs(ptBCs_);
   assemble_->SetPtr2Sol(&sol_);
   assemble_->SetPtr2TimeFnc(ptTimeFunc_);
+
+  if (with_absBCs_ || with_fracdamping_)
+    assemble_->NeedDampingMatrix();
+
   ReadMaterialData();
    
   DefineIntegrators(actlevel_);  
@@ -162,7 +170,10 @@ void AcousticPDE::WriteResultsInFile()
 
       
       TransformNodeSolution(sol_mesh,sol_,PDE2MeshNode_);
-      TransformNodeSolution(solder1_mesh,sol_der1Array,PDE2MeshNode_);
+
+      if (saveDeriv_)    
+	TransformNodeSolution(solder1_mesh,sol_der1Array,PDE2MeshNode_);
+
       TransformNodeSolution(solder2_mesh,sol_der2Array,PDE2MeshNode_);
       
       if (OutFile_->IsGMV())
@@ -174,8 +185,11 @@ void AcousticPDE::WriteResultsInFile()
       else
 	{
 	  OutFile_->WriteNodeSolution(sol_mesh,laststepcalc_,lasttimecalc_,"fluid potential");
-	  OutFile_->WriteNodeSolution(solder1_mesh,laststepcalc_,lasttimecalc_,"fluid potential, 1st deriv., ");
-	  //      OutFile_->WriteNodeSolution(solder2_mesh,laststepcalc_,lasttimecalc_,"fluid potential, 2nd deriv., ");
+
+	  if (saveDeriv_)
+	    OutFile_->WriteNodeSolution(solder1_mesh,laststepcalc_,lasttimecalc_,"fluid potential, 1st deriv.");
+
+	  //      OutFile_->WriteNodeSolution(solder2_mesh,laststepcalc_,lasttimecalc_,"fluid potential, 2nd deriv.");
 	}
     }
 }

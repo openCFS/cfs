@@ -13,7 +13,7 @@ class WriteResultsGMV: virtual public WriteResults
 public:
 
   //! Constructor
-  WriteResultsGMV(const Char * const filename,Boolean withHistory=FALSE);
+  WriteResultsGMV(const Char * const filename,Boolean withHistory=FALSE, FileType * const aInFile=NULL);
   
   //! Deconstructor
   virtual ~WriteResultsGMV();

@@ -175,6 +175,11 @@ namespace CoupledField
       Error("Dimnesion of Problem not supported",__FILE__,__LINE__);
   }
 
+
+
+
+
+
   void SkeletonConf::WriteLists ()
   {
 #ifdef TRACE
@@ -228,6 +233,18 @@ namespace CoupledField
     //history nodes
     (*skelfile_) << "# -- SPECIFY HISTORY NODES (finish list with \"-1\") " << std::endl;
     (*skelfile_) << "history_node = -1" << std::endl << std::endl;
+
+    if (meshfile_->GetNumSaveNodes() )
+      {
+	sd.clear();
+	meshfile_->ReadLevelOfSaveNodes(sd);
+	(*skelfile_) << "# -- LIST OF SAVE NODE LEVELS (has to be finished by \"non\") "
+		     << std::endl << "save_nodes = " ;
+	for (Integer i=0; i<sd.size(); i++)
+	  (*skelfile_) << sd[i] << " ";
+	(*skelfile_) << "non" << std::endl << std::endl;	  
+      }
+    
   }
 
   

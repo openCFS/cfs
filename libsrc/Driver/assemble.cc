@@ -248,13 +248,16 @@ namespace CoupledField
 
 	Double val_tfunc = 1.0;
 	if (ptTimeFunc_->GetmaxTimeFnc()!=0) //see, if there is any time function
-	  val_tfunc = ptTimeFunc_->TimeFuncAtTime(time,level);
+	  val_tfunc = ptTimeFunc_->TimeFuncAtTime(time, level);
 	
 	for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end(); p++)
 	  {
 	    Integer node = *p;
 	    
 	    val = loadVals_[actDom] * val_tfunc;
+	    myCout << "val_tfunc = " << val_tfunc << myEndl;
+	    myCout << "VAL = " << val << myEndl;
+	    
 	    algsys_->SetNodeRHS(val, (*mesh2PDENode_)[node-1], dof);	
 	  }
       }
@@ -559,7 +562,6 @@ void Assemble::AddRhsIntegrator(BaseForm * integrator, const std::string & subDo
 
     IntegratorDescriptor * actID = new IntegratorDescriptor(integrator, destinationMatrix, nonLin);
     integrators_[SubDomIndex(subDomName)]->push_back(actID);
-    //    IntegratorDescriptor * actDescriptor =  (*integrators_[0])[0];
   }
 
 

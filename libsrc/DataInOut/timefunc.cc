@@ -35,6 +35,8 @@ TimeFunc :: TimeFunc(FileType * aptFileType)
   if (timeFncDatFile_) ReadTimeFunc(nametf); 
 }
 
+
+
 void TimeFunc :: ReadTimeFunc(const std::string nametf)
 {
 #ifdef TRACE
@@ -43,12 +45,70 @@ void TimeFunc :: ReadTimeFunc(const std::string nametf)
 
     std::ifstream timefile;
     timefile.open(nametf.c_str());
-    if (!timefile)  Error("Can't open file with data of time function");
+    if (!timefile)  
+      Error("Can't open file with data of time function");
 
     std::string buffer;
     std::getline(timefile,buffer,'\n');
 
-    maxnumTimeFunc_=1; // at present we are working only with 1 function
+    // at present we are working only with 1 time function
+    maxnumTimeFunc_ = 1; 
+
+    maxvalTimeFunc = new Integer [maxnumTimeFunc_]; 
+    
+    maxvalTimeFunc[0] = 0;
+    Double dummyTime, dummyVal;
+    
+    do
+      {
+	timefile >> dummyTime >> dummyVal;
+	maxvalTimeFunc[0]++;
+      }while(!timefile.eof());
+
+    // start again reading from the top of the file
+    timefile.clear();
+    timefile.seekg (0, std::ios::beg);
+
+    timefile >> dummyTime >> dummyVal;
+    timefile >> dummyTime >> dummyVal;    
+    timefile.seekg (0, std::ios::beg);
+
+
+    timeTimeFunc = new Double * [maxnumTimeFunc_];  // timeTF and valTF
+
+    for (Integer i=0; i < maxnumTimeFunc_; i++)
+      timeTimeFunc[i] = new Double[maxvalTimeFunc[i]];
+
+    valTimeFunc = new Double * [maxnumTimeFunc_];
+    for (Integer i=0; i < maxnumTimeFunc_; i++)
+      valTimeFunc[i] = new Double[maxvalTimeFunc[i]];
+
+    for (Integer i=0; i < maxnumTimeFunc_; i++)
+      for (Integer j=0; j < maxvalTimeFunc[i]; j++)
+	timefile >> timeTimeFunc[i][j] >> valTimeFunc[i][j];
+
+    timefile.close();
+}
+
+
+
+// this type needs a header with a function number and number of entries
+void TimeFunc :: ReadTimeFuncOldType(const std::string nametf)
+{
+#ifdef TRACE
+  (*trace) << " entering TimeFunc :: ReadTimeFunc " << std::endl;
+#endif
+
+    std::ifstream timefile;
+    timefile.open(nametf.c_str());
+    if (!timefile)  
+      Error("Can't open file with data of time function");
+
+    std::string buffer;
+    std::getline(timefile,buffer,'\n');
+
+    // at present we are working only with 1 time function
+    maxnumTimeFunc_ = 1; 
 
     maxvalTimeFunc = new Integer [maxnumTimeFunc_];
 
@@ -57,14 +117,15 @@ void TimeFunc :: ReadTimeFunc(const std::string nametf)
  
     timeTimeFunc = new Double * [maxnumTimeFunc_];  // timeTF and valTF
 
-    Integer i,j;
-    for (i=0; i < maxnumTimeFunc_; i++)
+    for (Integer i=0; i < maxnumTimeFunc_; i++)
       timeTimeFunc[i] = new Double[maxvalTimeFunc[i]];
+
     valTimeFunc = new Double * [maxnumTimeFunc_];
-    for (i=0; i < maxnumTimeFunc_; i++)
+    for (Integer i=0; i < maxnumTimeFunc_; i++)
       valTimeFunc[i] = new Double[maxvalTimeFunc[i]];
-    for (i=0; i < maxnumTimeFunc_; i++)
-      for (j=0; j < maxvalTimeFunc[i]; j++)
+
+    for (Integer i=0; i < maxnumTimeFunc_; i++)
+      for (Integer j=0; j < maxvalTimeFunc[i]; j++)
 	timefile >> timeTimeFunc[i][j] >> valTimeFunc[i][j];
 
     timefile.close();
@@ -127,17 +188,23 @@ TimeFunc :: ~TimeFunc()
   (*trace) << "entering TimeFunc::~TimeFunc" << std::endl;
 #endif
  
-  if (timeFncDatFile_) {
-    if (timeTimeFunc) { for (Integer i=0; i < maxnumTimeFunc_; i++ )
-      delete [] timeTimeFunc[i];
-    delete [] timeTimeFunc;
+  if (timeFncDatFile_) 
+    {
+      if (timeTimeFunc) 
+	{ 
+	  for (Integer i=0; i < maxnumTimeFunc_; i++ )
+	    delete [] timeTimeFunc[i];
+	  delete [] timeTimeFunc;
+	}
+      if (valTimeFunc) 
+	{ 
+	  for (Integer i=0; i < maxnumTimeFunc_; i++ )
+	    delete [] valTimeFunc[i];
+	  delete [] valTimeFunc;
+	}
+      if (maxvalTimeFunc) 
+	delete [] maxvalTimeFunc;
     }
-    if (valTimeFunc) { for (Integer i=0; i < maxnumTimeFunc_; i++ )
-      delete [] valTimeFunc[i];
-    delete [] valTimeFunc;
-    }
-    if (maxvalTimeFunc) delete [] maxvalTimeFunc;
-  }
 }
 
 // -------------- Print TimeFunc -------------------------------------------

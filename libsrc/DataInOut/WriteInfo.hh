@@ -76,6 +76,15 @@ namespace CoupledField
     /// just prints a vector
     void PrintVec(Vector<Double>& vec);
 
+    /// prints a standard vector
+    void PrintVec(std::vector<Integer>& vec);
+
+    /// prints a standard vector with a leading comment
+    void PrintVec(const char * comment, std::vector<Integer>& vec);
+
+    /// prints a standard vector of strings, each string in a new line
+    void PrintVec(const char * comment, std::vector<std::string>& vec);
+
     /// does a formatted print leaded by the PDE name, equal to std::printf(...)
     void PrintF(const std::string& pdeName, char * formatStr ...);
 
