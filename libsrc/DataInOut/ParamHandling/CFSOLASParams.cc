@@ -1,4 +1,4 @@
-#ifdef OLAS
+#ifdef USE_OLAS
 
 #include <string.h>
 
@@ -9,14 +9,14 @@
 
 namespace CoupledField {
 
-  // *******************
-  //   SetSolverParams
-  // *******************
-  void CFSOLASParams::SetSolverParams( std::string pdename,
-				       BaseParamHandler *cfs,
-				       OLAS_Params *olas ) {
+  // *************
+  //   SetParams
+  // *************
+  void CFSOLASParams::SetParams( std::string pdename,
+				 BaseParamHandler *cfs,
+				 OLAS_Params *olas, bool overrideExpert ) {
 
-    ENTER_FCN( "CFSOLASParams::SetSolverParams" );
+    ENTER_FCN( "CFSOLASParams::SetParams" );
 
     // First determine the type of solver for this PDE
     std::string sTypeString;
@@ -25,14 +25,17 @@ namespace CoupledField {
     if ( sTypeString == "PCG" ) {
       sType = CG;
     }
-    if ( sTypeString == "hyprePCG" ) {
+    else if ( sTypeString == "hyprePCG" ) {
       sType = HYPRE_PCG;
     }
-    if ( sTypeString == "hypreGMRES" ) {
+    else if ( sTypeString == "hypreGMRES" ) {
       sType = HYPRE_GMRES;
     }
-    if ( sTypeString == "hypreBICGSTAB" ) {
+    else if ( sTypeString == "hypreBICGSTAB" ) {
       sType = HYPRE_BICGSTAB;
+    }
+    else if ( sTypeString == "lapackLU" ) {
+      sType = LAPACK_LU;
     }
     else {
       std::string errmsg = "Solver " + sTypeString;
@@ -40,7 +43,122 @@ namespace CoupledField {
       Info->Error( errmsg, __FILE__, __LINE__ );
     }
 
-    // Now determine which parameters have been set by the user
+    // Now determine the type of preconditioner for this PDE
+    std::string pTypeString;
+    PrecondType pType;
+    cfs->Get( "precond", pTypeString, pdename, "solver" );
+    if ( pTypeString == "noPrecond" ) {
+      pType = NOPRECOND;
+    }
+    else if ( pTypeString == "Id" ) {
+      pType = ID;
+    }
+    else if ( pTypeString == "Jacobi" ) {
+      pType = ID;
+    }
+    else if ( pTypeString == "SSOR" ) {
+      pType = SSOR;
+    }
+    else if ( pTypeString == "MG" ) {
+      pType = MG;
+    }
+    else if ( pTypeString == "hypreJACOBI" ) {
+      pType = HYPRE_JACOBI;
+    }
+    else if ( pTypeString == "hypreSPAI" ) {
+      pType = HYPRE_SPAI;
+    }
+    else if ( pTypeString == "hypreILU" ) {
+      pType = HYPRE_ILU;
+    }
+    else if ( pTypeString == "hypreAMG" ) {
+      pType = HYPRE_AMG;
+    }
+    else {
+      std::string errmsg = "Preconditioner " + pTypeString;
+      errmsg += " not supported yet.";
+      Info->Error( errmsg, __FILE__, __LINE__ );
+    }
+
+    // Next determine the matrix type for this PDE
+    std::string mMatString;
+    MatrixStorageType mType;
+    cfs->Get( "storage", mMatString, pdename, "matrix" );
+    if ( mMatString == "sparseSym" ) {
+      mType = SPARSE_SYM;
+    }
+    else if ( mMatString == "sparseNonSym" ) {
+      mType = SPARSE_NONSYM;
+    }
+    else if ( mMatString == "skylineSym" ) {
+      mType = SKYLINE_SYM;
+    }
+    else if ( mMatString == "skylineNonSym" ) {
+      mType = SKYLINE_NONSYM;
+    }
+    else if ( mMatString == "hypreMatrix" ) {
+      mType = HYPRE_MATRIX;
+    }
+    else if ( mMatString == "lapackGBMatrix" ) {
+      mType = LAPACK_GBMATRIX;
+    }
+    else if ( mMatString == "lapackPBMatrix" ) {
+      mType = LAPACK_PBMATRIX;
+    }
+    else {
+      std::string errmsg = "Matrix storage type '" + mMatString;
+      errmsg += "' not supported yet.";
+      Info->Error( errmsg, __FILE__, __LINE__ );
+    }
+
+
+    std::string eMatString;
+    MatrixEntryType eType;
+    cfs->Get( "entry", eMatString, pdename, "matrix" );
+    if ( eMatString == "double" ) {
+      eType = DOUBLE;
+    }
+    else if ( eMatString == "complex" ) {
+      eType = COMPLEX;
+    }
+
+    // Let expert module modify the settings
+    if ( !overrideExpert ) {
+      CFSOLASParams::Expert( sType, pType, mType, eType );
+    }
+
+    // Insert information into OLAS_Params object
+    olas->SetValue( "Solver", sType );
+    olas->SetValue( "Precond", pType );
+    olas->SetValue( "MatrixStructureType", STDMATRIX );
+    olas->SetValue( "MatrixStorageType", mType );
+    olas->SetValue( "MatrixEntryType"  , eType );
+
+    // Set special parameters for solver and preconditioner
+    CFSOLASParams::SetSolverParams( pdename, cfs, olas, sType );
+    CFSOLASParams::SetPrecondParams( pdename, cfs, olas, pType );
+
+    // Temporarily for debugging
+    olas->ShowPool( OLAS_Params::INT_POOL     , std::cerr );
+    olas->ShowPool( OLAS_Params::DOUBLE_POOL  , std::cerr );
+    olas->ShowPool( OLAS_Params::BOOLEAN_POOL , std::cerr );
+    olas->ShowPool( OLAS_Params::STRING_POOL  , std::cerr );
+    olas->ShowPool( OLAS_Params::ENUM_POOL    , std::cerr );
+
+  }
+
+
+  // *******************
+  //   SetSolverParams
+  // *******************
+  void CFSOLASParams::SetSolverParams( std::string pdename,
+				       BaseParamHandler *cfs,
+				       OLAS_Params *olas,
+				       SolverType sType ) {
+
+    ENTER_FCN( "CFSOLASParams::SetSolverParams" );
+
+    // Determine which parameters have been set by the user
     // and insert them into the olasParams object.
     std::vector<std::string> list;
 
@@ -128,30 +246,12 @@ namespace CoupledField {
   // ********************
   void CFSOLASParams::SetPrecondParams( std::string pdename,
 					BaseParamHandler *cfs,
-					OLAS_Params *olas ) {
+					OLAS_Params *olas,
+					PrecondType pType ) {
 
     ENTER_FCN( "CFSOLASParams::SetPrecondParams" );
 
-    // First determine the type of preconditioner for this PDE
-    std::string pTypeString;
-    PrecondType pType;
-    cfs->Get( "precond", pTypeString, pdename, "solver" );
-    if ( pTypeString == "hypreSPAI" ) {
-      pType = HYPRE_SPAI;
-    }
-    else if ( pTypeString == "hypreILU" ) {
-      pType = HYPRE_ILU;
-    }
-    else if ( pTypeString == "hypreAMG" ) {
-      pType = HYPRE_AMG;
-    }
-    else {
-      std::string errmsg = "Preconditioner " + pTypeString;
-      errmsg += " not supported yet.";
-      Info->Error( errmsg, __FILE__, __LINE__ );
-    }
-
-    // Now determine which parameters have been set by the user
+    // Determine which parameters have been set by the user
     // and insert them into the olasParams object.
     std::vector<std::string> list;
 
@@ -223,14 +323,91 @@ namespace CoupledField {
       }
       break;
     }
-
-    olas->ShowPool( OLAS_Params::INT_POOL     , std::cerr );
-    olas->ShowPool( OLAS_Params::DOUBLE_POOL  , std::cerr );
-    olas->ShowPool( OLAS_Params::BOOLEAN_POOL , std::cerr );
-    olas->ShowPool( OLAS_Params::STRING_POOL  , std::cerr );
-    olas->ShowPool( OLAS_Params::ENUM_POOL    , std::cerr );
-
   }
 
+
+  // ********************
+  //   SetPrecondParams
+  // ********************
+  void CFSOLASParams::Expert( SolverType &sType, PrecondType &pType,
+			      MatrixStorageType &mType,
+			      MatrixEntryType &eType ) {
+
+    ENTER_FCN( "CFSOLASParams::Expert" );
+
+    std::string warn;
+
+    // ======================
+    //  Precondtioner stuff
+    // ======================
+
+    // For direct solver we need no preconditioner
+    if ( sType == DIRECT || sType == LAPACK_LU && pType != NOPRECOND ) {
+      warn = "Expert: Re-setting preconditioner type to 'NOPRECOND'";
+      Info->Warning( warn );
+      pType = NOPRECOND;
+    }
+
+    // Hypre solvers only work together with hypre preconditioners
+    if ( sType == HYPRE_PCG || sType == HYPRE_GMRES || sType == HYPRE_BICGSTAB
+	 && !( pType == NOPRECOND  || pType == HYPRE_AMG ||
+	       pType == HYPRE_SPAI || pType == HYPRE_ILU ) ) {
+      warn = "Expert: Re-setting preconditioner type to 'NOPRECOND'";
+      Info->Warning( warn );
+      pType = NOPRECOND;
+    }
+
+    // ===============
+    //  Matrix stuff
+    // ===============
+
+    // Lapack solvers want their own matrix format
+    if ( sType == LAPACK_LU ) {
+      if ( mType != LAPACK_GBMATRIX ) {
+	warn = "Expert: Re-setting matrix storage type to 'LAPACK_GBMATRIX'";
+	Info->Warning( warn );
+	mType = LAPACK_GBMATRIX;
+      }
+      if ( eType == DOUBLE ) {
+	if ( sizeof(Double) == sizeof(float) ) {
+	  eType = F77FLOAT;
+	  warn = "Expert: Re-setting matrix entry type to F77FLOAT";
+	  Info->Warning( warn );
+	}
+	else {
+	  eType = F77DOUBLE;
+	  warn = "Expert: Re-setting matrix entry type to F77DOUBLE";
+	  Info->Warning( warn );
+	}
+      }
+      else if ( eType == COMPLEX ) {
+	if ( sizeof(Complex) == sizeof(std::complex<float>) ) {
+	  eType = F77COMPLEX8;
+	  warn = "Expert: Re-setting matrix entry type to F77COMPLEX8";
+	  Info->Warning( warn );
+	}
+	else {
+	  eType = F77COMPLEX16;
+	  warn = "Expert: Re-setting matrix entry type to F77COMPLEX16";
+	  Info->Warning( warn );
+	}
+      }
+    }
+
+    // Hypre solvers want their own matrix format
+    if ( sType == HYPRE_PCG || sType == HYPRE_GMRES ||
+	 sType == HYPRE_BICGSTAB ) {
+      if ( mType != HYPRE_MATRIX ) {
+	warn = "Expert: Re-setting matrix storage type to 'HYPRE_MATRIX'";
+	Info->Warning( warn );
+	mType = HYPRE_MATRIX;
+      }
+      if ( eType != DOUBLE ) {
+	warn = "Expert: Re-setting matrix entry type to DOUBLE";
+	Info->Warning( warn );
+	eType = DOUBLE;
+      }
+    }
+  }
 }
 #endif
