@@ -174,6 +174,14 @@ public:
   //! Perform a matrix-vector multiplication rvec = this*mvec
   void Mult(CFSVector & mvec, CFSVector & rvec);
 
+  //! Perform a matrix(Double)-vector(Complex) multiplication rvec = this*mvec
+  //! where the matrix is supposed to be of type Double, rvec and mvec are complex valued
+    void MatVecMult_DC(Vector<Complex> & mvec, Vector<Complex> & rvec);
+
+  //! Perform a matrix(Complex)-vector(Double) multiplication rvec = this*mvec
+  //! where the matrix is supposed to be of type Complex as well as rvec; mvec is of type Double
+    void MatVecMult_CD(Vector<Double> & mvec, Vector<Complex> & rvec);
+
   //! Perform a matrix-vector multiplication rvec = transpose(this)*mvec
   void MultT(const CFSVector & mvec, CFSVector & rvec) const {;};
   
