@@ -9,16 +9,24 @@ LIBSRC_DIR=$(C_DIR)/libsrc
 #
 LIB_DIR=$(C_DIR)/lib/$(MACHINE)
 #
+ifeq ($(ARCH), LINUX)
+EXTERN_INC=./
+else
 EXTERN_INC=$(C_DIR)/Gridlib_inc
+endif
 #
 ############ Define library
 #
 mylibrary=  driver pde algsys-own forms  \
-            elements  togridlib gridcfs domain unverg   \
+            elements  gridcfs domain unverg   \
             definefiles datfile datainout \
              utils matrix general
 #
+ifeq ($(ARCH),LINUX)
+syslib = 
+else
 syslib = -lGridBase -lIO  -lUtil -lMesh 
+endif
 #
 ########### Options
 #
@@ -32,11 +40,17 @@ INCL =  -I$(EXTERN_INC) \
           -I$(LIBSRC_DIR)/Domain -I$(LIBSRC_DIR)/Domain/GridCFS -I$(LIBSRC_DIR)/Domain/Gridlib\
     -I$(LIBSRC_DIR)/Driver -I$(LIBSRC_DIR)/Elements -I$(LIBSRC_DIR)/Forms \
           -I$(LIBSRC_DIR)/PDE -I$(LIBSRC_DIR)/Utils -I$(LIBSRC_DIR)/Matrix
-CFLAGS1 = -LANG::std -n32 -c $(INCL)
+ifeq ($(ARCH), LINUX)
+CFLAGS1 = -c $(INCL)
+FLAG_MKSHLIB = -v -shared 
+else
+CFLAGS1 =  -v -LANG::std -n32 -c $(INCL)
+FLAG_MKSHLIB = -v -LANG::std -n32 -ptused -prelink -shared
+endif
 #
 FFLAGS1 = -c
 #
-FLAG_MKSHLIB = -v -LANG::std -n32 -ptused -prelink -shared  
+#FLAG_MKSHLIB = -v -shared  
 #
 LINKFLAGS3 =
 #

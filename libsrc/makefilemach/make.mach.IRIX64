@@ -19,6 +19,9 @@ OPT    =
 LNO    = 
 UNDER  = 
 #
+#CFLAGS1 = -v -LANG::std -n32 -c $(INCL) 
+#FLAG_MKSHLIB = -v -LANG::std -n32 -ptused -prelink -shared
+#
 #CFLAGS2 = -n32 -D TRACE -D DEBUG -w -I. -I/usr/include/X11 -I/usr/include/CC -I/usr/include
 #
 CFLAGS2 = -n32 -prelink -ptused -D TRACE -D DEBUG -w

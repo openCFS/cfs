@@ -179,7 +179,8 @@ inline TYPE* Vector<TYPE>::get ()  const
 }
 
 #ifdef __GNUC__
-template class Vector<double>;
+template class Vector<Integer>;
+template class Vector<Double>;
 #endif
 //template class Vector<Integer>;
 //template class Vector<Point2D>;
