@@ -124,6 +124,7 @@ namespace CoupledField {
       
       // Solve Problem
       actDriver->SolveProblem();
+
       // Get solution for next step and delete
       // all PDEs
       if (iStep < numSteps_-1) {
@@ -141,7 +142,7 @@ namespace CoupledField {
 	    // for the next step
 	    if (pdesPerStep_[iStep+1][iPDE] == pdesPerStep_[iStep][kPDE])
 	      //dynamic_cast<const NodeStoreSol<Double>& >
-	      ptPDEs[iPDE]->GetSolution().GetAlgSysVector(sols[iPDE]);
+	      ptPDEs[kPDE]->GetSolution().GetAlgSysVector(sols[iPDE]);
 	
 	// delete PDEs
 	ptdomain_->ResetPDEs();
