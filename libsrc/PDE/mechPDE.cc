@@ -84,9 +84,9 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
       }
     else
       {
-	std::string errmsg = "Subtype " + subType_;
-	errmsg += "of PDE " + pdename_ + " does not fit to problem geometry ";
-	errmsg += probGeo + '\n';
+	std::string errmsg = "Subtype '" + subType_;
+	errmsg += "' of PDE '" + pdename_ + "' does not fit to problem ";
+	errmsg += "geometry '" + probGeo + "'\n";
 	Info->Error( errmsg, __FILE__, __LINE__ );
       }
 #endif
@@ -130,11 +130,13 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
       effectiveMass_ = TRUE;
 #else
     effectiveMass_ = params->IsSet( "effMass" );
-    if ( params->HasValue( "type", "none", "lineSearch", pdename_ ) ) {
+    if ( params->HasValue( "type", "none", pdename_, "lineSearch" ) ) {
       lineSearch_ = FALSE;
+      Info->PrintF( pdename_, " Performing no line search" );
     }
     else {
       lineSearch_ = TRUE;
+      Info->PrintF( pdename_, " Will perform line search" );
     }
 #endif
 
@@ -176,7 +178,7 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
       }
       nonLin_ = nonLinRegion[0] == "geo" ? TRUE : FALSE;
     }
-    Info->PrintF( pdename_,  "Nonlinearity in %d regions\n",
+    Info->PrintF( pdename_,  " Non-linearity in %d regions\n",
 		  nonLinRegion.size() );
 #endif
 
