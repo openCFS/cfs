@@ -41,10 +41,7 @@ public:
   /*!
     \param level (input) level of Grid
   */
-  virtual void SetupMatrices(const Integer level)
-  { 
-    Error("Not implemented in base class of Acoustics",__FILE__,__LINE__);
-  }
+  virtual void SetupMatrices(const Integer level);
 
   //! compute rhs
   /*!

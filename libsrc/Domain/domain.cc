@@ -136,8 +136,8 @@ void Domain :: InitPDEs()
 
   for (int i=0;i< pdes.size();i++)
     {
-      if (pdes[i] == "acoustic2d")
-  	ptpde_[i]=new Acoustic2dPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
+      if (pdes[i] == "acoustic")
+  	ptpde_[i]=new AcousticPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
 //       else if (pdes[i] == "electrostatic3d")
 // 	ptpde_[i]=new Elecst3dPDE(ptalgsys_,ptgrid_,ptTimeFunc_,InFile_,OutFile_);
 //       else if (pdes[i] == "thermal2d")
@@ -150,9 +150,9 @@ void Domain :: InitPDEs()
 // 	 ptpde_[i]=new Acou2dFlowNoise(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
 // 	ptpde_[i]=new Elec2dPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_); 
 //       else if (pdes[i] == "electric3d") 
-      else if (pdes[i] == "mech")
+      else if (pdes[i] == "mechanic")
 	ptpde_[i]=new MechPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
-      else if (pdes[i] == "elec") 
+      else if (pdes[i] == "electrostatic") 
 	ptpde_[i]=new ElecPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_); 
       else
 	{

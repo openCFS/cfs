@@ -47,6 +47,7 @@ void StaticDriver :: SolveProblem()
 
   ptdomain_->PrintGrid(level);
   ptdomain_->GetPDE(pdenumber)->WriteResultsInFile();
+
 }
 
 void StaticDriver :: SolveProblemAdaptSpace()

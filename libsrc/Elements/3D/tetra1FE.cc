@@ -96,9 +96,10 @@ void Tetra1FE :: CalcShapeFnc(std::vector<Double> & Shape,
   for( Integer i=1; i<NumNodes_; i++)
     Shape[i] = LCoord[i-1];
 
+#ifdef DEBUG
   *debug << "LCoord \n " << LCoord << std::endl;
   *debug << "Shape \n " << Shape << std::endl;
-  
+#endif
 }
 
 
@@ -119,7 +120,9 @@ void Tetra1FE :: CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv,
   for( Integer i=1; i < NumNodes_; i++)
     LDeriv[i][i-1] = 1.0;
 
-  *debug << "LDeriv \n " << LDeriv << std::endl;
+#ifdef DEBUG
+  (*debug) << "LDeriv \n " << LDeriv << std::endl;
+#endif
 
 }
   

@@ -23,6 +23,9 @@ AcousticPDE::AcousticPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, Fil
 
   dofspernode_=1;
 
+  pdename_    ="acoustic";
+  pdematerialclass_ = "fluid";
+
   laststepcalc_=0;
   size_=ptgrid_->GetMaxnumnodes(0);
 
@@ -60,9 +63,17 @@ AcousticPDE::AcousticPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, Fil
   std::string absBCs="no";
   conf->ifget("absorbingBCs",absBCs,pdename_);
   if (absBCs == "yes")
-    with_absBCs_ = TRUE;
+    {
+      with_absBCs_ = TRUE;
+      Error("Currently no absorbing BCs supported",__FILE__,__LINE__);
+    }
 
   SetMatrixFactors();
+  conf->getsubdompde(subdoms_,pdename_);
+  ReadBCs(pdename_);
+
+  //currently not available
+  // preComputeRHS();
 }
 
 
@@ -248,6 +259,81 @@ void AcousticPDE::SaveSolAsPrevStep()
   sol_der1_old_=sol_der1_;
   sol_der2_old_=sol_der2_;  
 }
+
+
+void AcousticPDE::SetupMatrices(const Integer level)
+{
+#ifdef TRACE
+    (*trace) << "entering AcousticPDE::SetupMatrices" << std::endl;
+#endif
+
+  Matrix<Double> elemmat;
+  Matrix<Double> ptCoord;
+
+  // This is a smaller matrix since it is just for linear 1D/2D elements.
+  // Matrix<Double> elemmatbnd;
+
+  BaseFE * ptEl;
+  Double coeffstiff, coeffmass;
+  Vector<Integer> connecth;
+  std::vector<Elem*> elemssd;
+
+  Integer i, j;
+ 
+  for (i=0; i<subdoms_.size(); i++)
+    {
+      //compute material coefficient
+      const Double density = materialData_[i].GetDensity();
+      const Double compressibility = materialData_[i].GetCompressibility();
+
+      coeffmass  = density*density/compressibility;
+      coeffstiff = density;
+
+      ptgrid_->GetElemSD(elemssd,subdoms_[i],level);
+
+      for (j=0; j< elemssd.size(); j++)
+	{
+	  ptEl = elemssd[j]->ptElem;
+    
+	  BaseForm * bilinear_mass  = new MassInt(ptEl, coeffmass);
+	  BaseForm * bilinear_stiff = new LaplaceInt(ptEl, coeffstiff);
+
+	  connecth=elemssd[j]->connect;
+	  ptgrid_->GetCoordNodesElemMat(connecth, ptCoord, level); 
+
+	  // stiffness part
+	  bilinear_stiff->CalcElementMatrix(ptCoord, elemmat);
+
+#ifdef DEBUG
+	  (*debug) << "Connection array  " << std::endl;
+	  (*debug)  << connecth  << std::endl;
+	  (*debug) << "Stiffnessmatrix, ElementNumber  " <<   i << std::endl;
+	  (*debug) << elemmat << std::endl;
+#endif     
+
+	  algsys_->SetElementMatrix(elemmat.getinarray(), connecth.get(), connecth.size(), STIFFNESS);
+
+	  // mass part
+	  bilinear_mass->CalcElementMatrix(ptCoord, elemmat);
+
+#ifdef DEBUG
+	  (*debug) << "Massmatrix, ElementNumber  " << i << std::endl;
+	  (*debug) << elemmat << std::endl;
+#endif
+      
+	  algsys_->SetElementMatrix(elemmat.getinarray(), connecth.get(), connecth.size(), MASS);
+  
+	  delete bilinear_stiff;
+	  delete bilinear_mass;
+
+	}
+    }
+
+#ifdef TRACE
+    (*trace) << "Leaving AcousticPDE::SetupMatrices" << std::endl;
+#endif
+  }
+
 
 }
 
