@@ -555,7 +555,15 @@ namespace CoupledField {
     ENTER_FCN( "StdPDE::ComputeVolDefSurf" );
 
     // function uses index starting at zero
-    Vector<Double> subDomVol(surfRegions.GetSize());
+    Vector<Double>  subDomVolReal;
+    Vector<Complex> subDomVolComplex;
+    if (analysistype_ == HARMONIC ) {
+      subDomVolComplex.Resize(surfRegions.GetSize());
+    }
+    else {
+      subDomVolReal.Resize(surfRegions.GetSize());
+    }
+
     Integer dof, dir;
 
     for (Integer actSF = 0; actSF < surfRegions.GetSize(); actSF++) {
@@ -580,15 +588,16 @@ namespace CoupledField {
       NodeStoreSol<Double> * solTransient;
       if (analysistype_ == HARMONIC ) {
 	solHarmonic =  dynamic_cast<NodeStoreSol<Complex>*>(sol_);
+	subDomVolComplex[actSF] = 0;   
       }
       else {
 	solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);;
+	subDomVolReal[actSF] = 0;   
       }
       
       StdVector<Elem*> elemssd;
       elemssd=ptBCs_->getFacesBC(surfRegions[actSF],actlevel_);
    
-      subDomVol[actSF] = 0;   
       for (Integer actEl=0; actEl< elemssd.GetSize(); actEl++) {
 	BaseFE * ptSurfEl = elemssd[actEl]->ptElem;
 	StdVector<Integer> connecth = elemssd[actEl]->connect;
@@ -597,42 +606,47 @@ namespace CoupledField {
 	GetElemCoords(connecth, ptSurfCoord, actlevel_);
 	
 	//get the deformed solution
-	Vector<Double> disp(ptSurfEl->GetNumNodes());
 	if (analysistype_ == HARMONIC ) {
-	  Complex val;
+	  Vector<Complex> disp(ptSurfEl->GetNumNodes());
 	  for (Integer lnode=0; lnode < ptSurfEl->GetNumNodes(); lnode++) {
-	    solHarmonic->Get(connecth[lnode]-1, dof, val);
-	    disp[lnode] = val.real();
+	    solHarmonic->Get(connecth[lnode]-1, dof, disp[lnode]);
 	  }
+	  // extract to volume element
+	  subDomVolComplex[actSF] += ComputeVolElem(ptSurfEl,ptSurfCoord,disp); 
 	}
 	else {
+	  Vector<Double> disp(ptSurfEl->GetNumNodes());
 	  for (Integer lnode=0; lnode < ptSurfEl->GetNumNodes(); lnode++) {
 	    solTransient->Get(connecth[lnode]-1,dof,disp[lnode]);
 	  }
+	  // extract to volume element
+	  subDomVolReal[actSF] += ComputeVolElem(ptSurfEl,ptSurfCoord,disp); 
 	}
-	
-	// extract to volume element
-	subDomVol[actSF] += ComputeVolElem(ptSurfEl,ptSurfCoord,disp); 
       }
-
     }
 
     std::string resulttype = "DeformedSurfVolume";
     std::string unit = "(m^3)";
     std::string analysis;
     Double analysisVal;
+
     if ( analysistype_ == HARMONIC ) {
+      subDomVolReal.Resize(surfRegions.GetSize());
+      for (Integer actSF = 0; actSF < surfRegions.GetSize(); actSF++) {
+	subDomVolReal[actSF] = abs( subDomVolComplex[actSF] );
+      }
+ 
       analysis    = "Frequency:";
       analysisVal = actFrequency_;
+      Info->WriteResult(pdename_,  resulttype, surfRegions, subDomVolReal, unit,
+			analysis, analysisVal);
     }
     else {
       analysis    = "Time:";
       analysisVal = lasttimecalc_;
+      Info->WriteResult(pdename_,  resulttype, surfRegions, subDomVolReal, unit,
+			analysis, analysisVal);
     }
-
-    Info->WriteResult(pdename_,  resulttype, surfRegions, subDomVol, unit,
-		      analysis, analysisVal);
-
   }
 
   
@@ -643,6 +657,30 @@ namespace CoupledField {
 
     Double elemVol;
     Double averageDis;
+    Integer nrSurfNodes = surfEl->GetNumNodes();
+
+
+    //compute average displacedment
+    averageDis = 0;
+    for (Integer i=0; i<nrSurfNodes; i++) {
+      averageDis += disp[i]; 
+    }
+    averageDis /= (Double)nrSurfNodes;
+
+    //compute the deformed volume    
+    elemVol = averageDis * surfEl->CalcVolume(surfCoord,isaxi_);
+      
+    return elemVol;
+  }
+
+
+  Complex StdPDE::ComputeVolElem(BaseFE * surfEl, Matrix<Double>& surfCoord, 
+				 Vector<Complex> disp) {
+
+    ENTER_FCN( "StdPDE::ComputeVolElem" );
+
+    Complex elemVol;
+    Complex averageDis;
     Integer nrSurfNodes = surfEl->GetNumNodes();
 
 

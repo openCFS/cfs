@@ -145,6 +145,10 @@ namespace CoupledField {
   //!
   virtual Double ComputeVolElem(BaseFE * ptSurfEl, Matrix<Double>& SurfCoord, 
 				Vector<Double> disp);
+
+  //!
+  virtual Complex ComputeVolElem(BaseFE * ptSurfEl, Matrix<Double>& SurfCoord, 
+				Vector<Complex> disp);
   
     // ======================================================
     // GETTER METHODS
