@@ -969,7 +969,6 @@ void BasePDE::NodeSolutionToCoupling(Array<Double>& CouplingSol,
 	//std::cerr << "processing dim: " << i <<", j:" << j << std::endl; 
 	CouplingSol[i][j] = sol_[i][Mesh2PDENode_[NodeNumbers[j]-1 ] - 1];
       }
-  
 }
 
 

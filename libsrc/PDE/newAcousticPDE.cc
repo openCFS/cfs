@@ -240,7 +240,7 @@ void AcousticPDE::CalcMechCouplingRHS(std::vector<Elem*> * couplingElems,
   const Integer nrDofsMech = 2;
   
   elemCouplingSols.Resize(couplingElems->size() * nrNodesPerEl * nrDofsMech);
-
+  
 
   for (Integer actElem=0; actElem<couplingElems->size(); actElem++)
     {
@@ -269,16 +269,9 @@ void AcousticPDE::CalcMechCouplingRHS(std::vector<Elem*> * couplingElems,
       CalcLineNormalVec(n, ptCoord);
 
      for (Integer actNode=0; actNode<ptCoord.size_row(); actNode++)
-       for (Integer actDof=0; actDof<dofspernode_; actDof++)
-	{  
-	  elemCouplingSols[actDof + actElem * nrNodesPerEl * dofspernode_ + actNode*dofspernode_] 
-	    = forceOnElem[actNode]*n[actDof];  
-	}
-
-//       for (Integer actNode=0; actNode<ptCoord.size_row(); actNode++)
-// 	for (Integer actDof=0; actDof<dofspernode_; actDof++)
-// 	  elemCouplingSol[actDof + actNode*dofspernode_] *=  n[actDof];
-      
+       for (Integer actDof=0; actDof<dofspernode_; actDof++)  
+	 elemCouplingSols[actDof + actElem * nrNodesPerEl * dofspernode_ + actNode*dofspernode_] 
+	   += forceOnElem[actNode]*n[actDof];
     }  
 }
 
