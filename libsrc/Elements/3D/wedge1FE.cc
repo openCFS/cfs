@@ -71,16 +71,6 @@ void Wedge1FE::SetCornerCoords()
 }
 
 
-
-
-// std::ostream& operator<< (std::ostream & outStr, std::vector<Double> xOut)
-// {
-//   for (Integer i=0; i<xOut.size(); i++)
-//     outStr <<  " " << xOut[i];
-//   return outStr;
-// }
-
-
 void Wedge1FE :: CalcShapeFnc(Vector<Double> & Shape, 
 			     const Vector<Double> & LCoord)
 {

@@ -25,6 +25,22 @@ public:
   //! Destructor
   virtual ~NodeEQN();
   
+  //! Get number of local nodes
+  inline Integer GetNumLocalNodes()
+  {return pde2MeshNode_.GetSize();}
+
+  //! Get number of global nodes
+  inline Integer GetNumGlobalNodes()
+  {return mesh2PDENode_.GetSize();}
+  
+  //! Get number of local elements
+  inline Integer GetNumLocalElems()
+  {return pde2MeshElem_.GetSize();}
+
+  //! Get number of global elements
+  inline Integer GetNumGlobalElems() 
+  {return mesh2PDEElem_.GetSize();}
+
   //! Map equation number to position in 
   //! global solution vector
   inline void EQN2SolVectorPos(const Integer eqnNr, Integer &pos) const;
@@ -51,20 +67,35 @@ public:
   void Mesh2PDENode(StdVector<Integer> & PDENodes,
 		    const StdVector<Integer> & MeshNodes) const;
 
-  //! /! Map global to local node number
+  //! Map global to local node number
   //! (needed for nodal displacement of grid)
   inline Integer Mesh2PDENode(const Integer meshNode) const;
 
+
+  //! Map global to local elem number
+  inline Integer Mesh2PDEElem(const Integer elemNumGlob) const;
+
+  //! Map local to global elem number
+  inline Integer PDE2MeshElem(const Integer elemNumLoc) const;
+
 protected:
-  //! Map all element nodes to local numbering
-  void CalcMesh2PDENode(StdVector<Integer> & mesh2PDENode,
-			StdVector<Integer> & pde2MeshNode);
+  //! Calculate mapping local<->global for nodes and elems
+  void CalcLocalGlobalMapping(StdVector<Integer> & mesh2PDENode,
+			      StdVector<Integer> & pde2MeshNode,
+			      StdVector<Integer> & mesh2PDEElem,
+			      StdVector<Integer> & pde2MeshElem);
 
   //! Mapping Local -> Global node numbering
   StdVector<Integer> pde2MeshNode_;
 
   //! Mappuing Global -> Local node numbering
   StdVector<Integer> mesh2PDENode_;
+ 
+  //! Element mapping from local->global
+  StdVector<Integer> pde2MeshElem_;
+  
+  //! Element mapping from global->local
+  StdVector<Integer> mesh2PDEElem_;
   
   //! Mapping for EQN->position in solution vector
 
@@ -103,11 +134,31 @@ protected:
     ENTER_FCN( "NodeEQN::Mesh2PDENode" );
 #ifdef CHECK_INDEX
     if (meshNode > mesh2PDENode_.GetSize())
-      Error( "Index out of bound", __FILE__, __LINE__ );
+      Error( "Index out of bounds", __FILE__, __LINE__ );
 #endif
     return mesh2PDENode_[meshNode-1];
   }
   
+  
+  Integer NodeEQN::Mesh2PDEElem(const Integer elemNumGlob) const
+  {
+    ENTER_IFCN( "NodeEQN::Mesh2PDEElem" );
+#ifdef CHECK_INDEX
+    if (elemNumGlob > mesh2PDEElem_.GetSize())
+      Error( "Index out of bounds", __FILE__, __LINE__ );
+#endif
+    return mesh2PDEElem_[elemNumGlob-1];
+  }
+
+  Integer NodeEQN::PDE2MeshElem(const Integer elemNumLoc) const
+  {
+    ENTER_IFCN( "NodeEQN::PDE2MeshElem" );
+#ifdef CHECK_INDEX
+    if (elemNumLoc > pde2MeshElem_.GetSize())
+      Error( "Index out of bounds", __FILE__, __LINE__ );
+#endif
+    return pde2MeshElem_[elemNumLoc-1];
+  }
 }  // end of namespace
 
 #endif // FILE_SCALARNODEEQN

@@ -148,33 +148,9 @@ void PrintCFSHeader(std::ostream & out);
 Double Sin(const Double x);
 Double Cos(const Double x);
 
-// // std::vector output
-//   template<class TYPE> std::ostream& operator<< ( std::ostream & outStr, std::vector<TYPE> xOut);
-
-// // std::vector output
-// std::ostream & operator<< (std::ostream & outStr, std::vector<Double> & xOut);  
-
-
-
-
-
-/// writes subVec into mainVec starting at position 
-void SetSubVector(std::vector<Double>& mainVec,
-		  std::vector<Double>& subVec, Integer position);
-
 
 /// prints formatted header including name, version, date
 void PrintCFSHeader(std::ostream & out);
-
-// // std::vector output
-//   template<class TYPE> std::ostream& operator<< ( std::ostream & outStr, std::vector<TYPE> xOut);
-
-// // std::vector output
-// std::ostream & operator<< (std::ostream & outStr, std::vector<Double> & xOut);  
-
-
-
-
 
 } // end of CoupledField
 

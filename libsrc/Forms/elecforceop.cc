@@ -133,16 +133,14 @@ void ElecForceOp::CalcElemElecForce(ElemStoreSol<Double> & F,
 // void ElecForceOp::CalcElemElecForce(Vector<Double> & F,
 // 				    const Elem * ptElement,
 // 				    Double epsilon,
-// 				    const std::vector<ShortInt> & IsBoundaryNode)
+// 				    const StdVector<ShortInt> & IsBoundaryNode)
 // {
-// #ifdef TRACE
-//   (*trace) << "entering ElecForceOp::CalcElemElecForce" << std::endl;
-// #endif
+// ENTER_FCN( "ElecForceOp::CalcElemElecForce");
 
 
 //   Vector<Double> E;
-//   std::vector<Double> * Ip;
-//   std::vector<Double> intWeights = ptElement->ptElem->GetIntWeights();
+//   StdVector<Double> * Ip;
+//   StdVector<Double> intWeights = ptElement->ptElem->GetIntWeights();
 //   Matrix<Double> JInv, dJ_dr, CornerCoords,J;
 //   ShortInt Dim, NumNodes, NumIntPoints;
 //   Double DetJ, DetdJ_dr;
@@ -157,8 +155,8 @@ void ElecForceOp::CalcElemElecForce(ElemStoreSol<Double> & F,
 //   F.Resize(Dim);
 //   F.Init();
    
-//   std::vector<Double> temp;
-//   temp.resize(Dim);
+//   StdVector<Double> temp;
+//   temp.Resize(Dim);
 
 //   // TEST TEST
 //   Matrix<Double> J_Trans, J_Inv_Trans, J_r_Trans;

@@ -33,7 +33,10 @@ void ScalarNodeEQN::CalcMapping()
  
   // First apply Mapping from global to
   // local node numbers and back
-  CalcMesh2PDENode(mesh2PDENode_, pde2MeshNode_);
+  CalcLocalGlobalMapping(mesh2PDENode_,
+			 pde2MeshNode_,
+			 mesh2PDEElem_,
+			 pde2MeshElem_);
  
   // Idea of the algorithm:
   // Step 1: Initialize pdeNode2eqn_ with 1

@@ -42,38 +42,36 @@ WriteResultsGMV :: WriteResultsGMV(const Char * const filename, Boolean withHist
 
 #ifndef XMLPARAMS
  std::string typedata;
- if (conf->ifget("format_data_output",typedata)) {
-   if (typedata == "binary")
-     ascii_=FALSE;
-   else ascii_=TRUE;
- }
+ conf->ifget("format_data_output",typedata);
+ if (typedata == "binary")
+   ascii_=FALSE;
+ else ascii_=TRUE;
+ 
  std::string flag;
- if (conf->ifget("fixed_grid",flag)) 
+ conf->ifget("fixed_grid",flag);
+ if (flag == "no")
    {
-   if (flag == "no")
-     {
-       fixedgrid_=FALSE;
-       OpenFile(0);   
-     }
-   else
-     { 
-       fixedgrid_=TRUE;
-       OpenFile(-1);
-     }
+     fixedgrid_=FALSE;
+     OpenFile(1);
    }
+ else
+   { 
+     fixedgrid_=TRUE;
+     OpenFile(-1);
+   }
+
 #else
  // Output format can be either ascii (default) or binary
  ascii_ = !params->HasValue( "type", "binary", "output" );
-
+ 
  // Does the grid change over time, or can we use a fixed grid
  fixedgrid_ = params->IsSet( "fixedGrid", "output" );
- if ( fixedgrid_ == FALSE ) OpenFile(0);
+ if ( fixedgrid_ == FALSE ) OpenFile(1);
  else OpenFile(-1);
 
 #endif
 
- if (!output)
-    Error(" File for output results in .gmv-format ", __FILE__, __LINE__);
+ 
 
 }
 
@@ -165,9 +163,7 @@ else {
 
 void WriteResultsGMV::WriteCells(const Integer alevel) 
 {
-#ifdef TRACE
-  (*trace) << " entering WriteResultsGMV::WriteCells \n";
-#endif
+  ENTER_FCN( "WriteResultsGMV::WriteCells" );
 
   Integer level=alevel;
 
@@ -384,24 +380,29 @@ void WriteResultsGMV::WriteGrid(const Integer level)
   WriteNodes(level);
   WriteCells(level);
   if (fixedgrid_)
-    OpenFile(0);
+    OpenFile(1);
 }
 
 
 
 
 
-void WriteResultsGMV::WriteNodeSolution(const NodeStoreSol<Double>& sol, const Integer step, const Double time, const std::string title)
+void WriteResultsGMV::WriteNodeSolution(const NodeStoreSol<Double>& sol, 
+					const Integer step, 
+					const Double time, 
+					const std::string title)
 {
-#ifdef TRACE
- (*trace) << " entering WriteResultsGMV::WriteNodeSolution " << std::endl;
-#endif
+  ENTER_FCN( "WriteResultsGMV::WriteNodeSolution" );
 
   Integer i,j;
   Double help;
   
   Vector<Double> solhelp;
-
+  //Vector<Double> globalSolution;
+  // Transform local nodal solution to global one
+  // WARNING: Level for refinemet is hardcoded to 1
+  //sol.TransformNodeSolution(globalSolution,ptgrid,1);
+  
   if (NeedHistory_)
     for (i=0; i<nodeshist_.GetSize(); i++) {
       {
@@ -413,8 +414,8 @@ void WriteResultsGMV::WriteNodeSolution(const NodeStoreSol<Double>& sol, const I
 	//     if (lastsavetime[i] != time )
 	if (sol.GetDof() > 1)	
 	  {
-	    std::vector<Double> solVec;
-	    solVec.resize(sol.GetDof());
+	    Vector<Double> solVec;
+	    solVec.Resize(sol.GetDof());
 	    for (j=0; j<sol.GetDof(); j++)
 	      sol.Get(nodeshist_[i]-1,j,solVec[j]);
 	    //solVec[j] = sol[j][(nodeshist_[i]-1)];
@@ -440,51 +441,87 @@ void WriteResultsGMV::WriteNodeSolution(const NodeStoreSol<Double>& sol, const I
     flagGrid++;
   }
   
+  // If a new file is opened (step != currstep_)
+  // the grid or the reference to the gridfile (fixedgrid_ == TRUE)
+  // has to be written
   if (step!=currstep_)
     {
-    OpenFile(step);
-    if (!fixedgrid_)
-      {
-	WriteGrid(ptgrid->GetLastLevel());   
-      }
+      OpenFile(step);
+
+      if (fixedgrid_)
+	{
+	  WriteHeader();
+	  
+	  Char * name=new Char[80];
+	  strcpy(name,"");
+	  strcat(name,namefile_);
+	  strcat(name,"_GRID.gmv");
+	  
+	  if (ascii_)
+	    (*output) << "nodev fromfile \"" << name <<"\""<< std::endl;
+	  else 
+	    (*output) << "nodev   fromfile\"" << name <<"\"";
+	  
+	  
+	  if (ascii_)
+	    (*output) << "cells fromfile \"" << name <<"\""<< std::endl;
+	  else 
+	    (*output) << "cells   fromfile\"" << name <<"\"";
+	  
+	  delete [] name; 
+	} 
+      else 
+	{
+	  WriteGrid(ptgrid->GetLastLevel());   
+	}
     }
   
-    if (fixedgrid_)
-      {
-	WriteHeader();
-
-	Char * name=new Char[80];
-	strcpy(name,"");
-	strcat(name,namefile_);
-	strcat(name,"_GRID.gmv");
-	
-	if (ascii_)
-	  (*output) << "nodev fromfile \"" << name <<"\""<< std::endl;
-	else 
-	  (*output) << "nodev   fromfile\"" << name <<"\"";
-
-	
-	if (ascii_)
-	  (*output) << "cells fromfile \"" << name <<"\""<< std::endl;
-	else 
-	  (*output) << "cells   fromfile\"" << name <<"\"";
-
-	delete [] name;
-      }
-
-
-      for (i=0; i< sol.GetDof(); i++)
+  // Write reference to grid-file only
+  // if a new file was opened (step != currstep_)
+  // and a fixed grid is used
+  // if (fixedgrid_ && step != currstep_)
+//     {
+//       WriteHeader();
+      
+//       Char * name=new Char[80];
+//       strcpy(name,"");
+//       strcat(name,namefile_);
+//       strcat(name,"_GRID.gmv");
+      
+//       if (ascii_)
+// 	(*output) << "nodev fromfile \"" << name <<"\""<< std::endl;
+//       else 
+// 	(*output) << "nodev   fromfile\"" << name <<"\"";
+      
+      
+//       if (ascii_)
+// 	(*output) << "cells fromfile \"" << name <<"\""<< std::endl;
+//       else 
+// 	(*output) << "cells   fromfile\"" << name <<"\"";
+      
+//       delete [] name;
+//     }
+  
+  std::string outString;
+  for (i=0; i< sol.GetDof(); i++)
+    {
+      
+      if (sol.GetDof() > 1)
 	{
 	  char nrStr[10];
 	  sprintf(nrStr,"%i",i+1);
-	  std::string sumString = title + nrStr;
-	  sol.GetSolVectorSingleDof(i,solhelp);
-
-	  WriteNodeVariable(solhelp, sumString , type);
+	  outString = title + nrStr;
 	}
+      else 
+	outString = title;
       
+      sol.GetSolVectorSingleDof(i,solhelp);
       
-      if (ascii_)
+      WriteNodeVariable(solhelp, outString , type);
+    }
+  
+  
+  if (ascii_)
 	(*output) << "probtime " << time << std::endl;
       else {
 	(*output) << "probtime";
@@ -499,9 +536,7 @@ void WriteResultsGMV::WriteNodeSolution(const NodeStoreSol<Double>& sol, const I
 
 void WriteResultsGMV::WriteElemSolution(const ElemStoreSol<Double>& data, const Integer step, const Double time, const std::string title)
 {
-#ifdef TRACE
-  (*trace) << " entering WriteResultsGMV::WriteElemSolution " << std::endl;
-#endif  
+  ENTER_FCN ( "WriteResultsGMV::WriteElemSolution" );
 
  Integer type=0; // 0 - for cell 
                  // 1 - for node
@@ -677,12 +712,14 @@ void WriteResultsGMV::OpenFile(const Integer num)
 
    // check what kind of data for input
    std::string typedata;
-
+   
    if (ascii_)
      output=new std::ofstream(filename.c_str());
    else
      output=new std::ofstream(filename.c_str(),std::ofstream::binary);
 
+   if (!output)
+     Error(" File for output results in .gmv-format could not be opened", __FILE__, __LINE__);
    // delete [] name;
    // delete [] aux;
 }

@@ -75,8 +75,8 @@ public:
   {Error("SetActElemSol not implemented!",__FILE__,__LINE__);};
 
   //! reads the values y(x) out of the file with name fncName  
-  void ReadNlinFunc(std::string fncName, std::vector<double> &xval, std::vector<Double> &yval);
-
+  void ReadNlinFunc(std::string fncName, Vector<double> &xval, Vector<Double> &yval)
+  {Error("ReadNlinFunc not implemented!");}
 
 protected:
 

@@ -52,8 +52,15 @@ ElemStoreSol<TYPE>::~ElemStoreSol()
 {
   ENTER_FCN( "ElemStoreSol::~ElemStoreSol" );
  
-  
 }
+
+template<class TYPE>
+void ElemStoreSol<TYPE>::SetPtrEQNData(NodeEQN * ptNodeEQN)
+{
+  ENTER_FCN( "ElemStoreSol::SetPtrEQNData ");
+  ptEQN_ = ptNodeEQN;
+}
+
 
 template<class TYPE>
 void ElemStoreSol<TYPE>::Clear()
@@ -326,7 +333,15 @@ void ElemStoreSol<TYPE>::GetSolVectorSingleDof(const Integer dof, CFSVector & va
 #ifdef CHECK_INITIALIZED
   if (length_ == 0) Error("ElemStoreSol: Use of uninitialized object!",__FILE__,__LINE__);
 #endif
-  Error("Not implemented here", __FILE__,__LINE__);
+
+  Vector<TYPE> & temp = dynamic_cast<Vector<TYPE>&>(val);
+  temp.Resize(ptEQN_->GetNumGlobalElems());
+
+  // Loop over all PDE elements
+  for (Integer iElem=1; iElem<numNodes_+1; iElem++)
+    // Loop over all dimensions
+    temp.data_[ptEQN_->PDE2MeshElem(iElem)-1] = data_[(iElem-1)*totalDofs_ + dof];
+  
 }
 
 
@@ -512,11 +527,13 @@ void ElemStoreSol<TYPE>::TransformElemSolution(CFSVector & transformedSolution,
   temp.Resize(ptGrid->GetMaxnumElem(level)*totalDofs_);
 
   // Loop over all PDE elements
-  for (Integer iElem=0; iElem<mapping_.GetSize(); iElem++)
+  for (Integer iElem=1; iElem<numNodes_+1; iElem++)
     // Loop over all dimensions
     for (Integer iDof=0; iDof<totalDofs_; iDof++)
       {
-      temp.data_[(mapping_[iElem]-1)*totalDofs_ + iDof] = data_[iElem*totalDofs_ + iDof];
+	//temp.data_[(mapping_[iElem]-1)*totalDofs_ + iDof] = data_[iElem*totalDofs_ + iDof];
+	temp.data_[(ptEQN_->PDE2MeshElem(iElem)-1)*totalDofs_ + iDof] = 
+	  data_[(iElem-1)*totalDofs_ + iDof];
       }
 }
 

@@ -513,8 +513,8 @@ void ElecPDE::Reset()
   E_.SetSolutionType(ELEC_FIELD);
   E_.SetNumNodes(numElems_);
   E_.SetNumDofs(dim_);
+  E_.SetPtrEQNData(eqnData_);
   E_.Init(0.0); 
-  E_.SetElemMapping(pde2MeshElem_);
   
 }
 

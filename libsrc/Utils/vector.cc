@@ -44,14 +44,6 @@ Vector<TYPE>::Vector(const Vector<TYPE> &vec)
   for (Integer i = 0; i < size_; i++)
     data_ [i] =  vec.data_[i];
 }
-template<class TYPE> 
-Vector<TYPE>::Vector(const std::vector<TYPE>  &vec)
-{
-  ENTER_IFCN("Vector::Vector");    
-  Error("Not implemented yet",__FILE__, __LINE__);
-
-  // ** TO IMPLEMENT **
-}
 
 template<class TYPE>
 Vector<TYPE>::~Vector()
@@ -318,21 +310,6 @@ void Vector<TYPE>::Inner(const CFSVector &y, TYPE &result) const
 
 
 template<class TYPE>
-void Vector<TYPE>::ToStdVector(std::vector<TYPE> &vec) const
-{
-#ifdef CHECK_INITIALIZED
-  if (size_ == 0) 
-    Warning("Don't use toStdVector() to undefined vector", __FILE__, __LINE__);
-#endif
-
-  vec.resize(size_);
-  for (Integer i=0; i<size_; i++)
-    vec[i] = data_[i];
-
-}
-
-
-template<class TYPE>
 Vector<TYPE> &Vector<TYPE>::operator=(const Vector<TYPE> &x)
 {
   ENTER_IFCN( "Vector::operator=(const Vector)");
@@ -380,30 +357,6 @@ CFSVector & Vector<TYPE>::operator= (const CFSVector & vec)
   return dynamic_cast<CFSVector &>(*this);
 
 }
-
-
-template<class TYPE>
-Vector<TYPE> &Vector<TYPE>::operator=(const std::vector<TYPE> &x)
-{
-  ENTER_IFCN( "Vector::operator=(const std::vector)" );
-
-  if (size_ != x.size())
-    {	
-      if (data_)
-	delete [] data_;
-      
-      size_ = x.size();
-      data_ = new TYPE [size_];
-    }
-  
-  for (Integer i = 0; i < size_; i++)
-    data_ [i] = x[i];
-  
-  return *this;
-}
-
-
-
 
 template<class TYPE>
 Vector<TYPE> Vector<TYPE>::operator+(const Vector<TYPE> &x) const

@@ -352,7 +352,7 @@ void NodeStoreSol<TYPE>::GetSolVectorSingleDof(const SolutionType type, const In
 #ifdef CHECK_INITIALIZED
   if (length_ == 0) Error("NodeStoreSol: Use of uninitialized object!",__FILE__,__LINE__);
 #endif
-  Error("Not implemented here", __FILE__,__LINE__);
+  Error( "Not implemented here" );
 }
 
 template<class TYPE>
@@ -362,7 +362,25 @@ void NodeStoreSol<TYPE>::GetSolVectorSingleDof(const Integer dof, CFSVector & va
 #ifdef CHECK_INITIALIZED
   if (length_ == 0) Error("NodeStoreSol: Use of uninitialized object!",__FILE__,__LINE__);
 #endif
-  Error("Not implemented here", __FILE__,__LINE__);
+  
+  Vector<TYPE> & temp = dynamic_cast<Vector<TYPE>&>(val);
+ 
+  Integer globalPos, eqnDofs, factor;
+  
+  temp.Resize(ptEQN_->GetNumGlobalNodes());
+  eqnDofs = ptEQN_->GetNumDofs();
+ 
+  // Loop over all Equations
+  for (Integer iEQN=0; iEQN<ptEQN_->GetNumEQNs(); iEQN++)
+    {
+      ptEQN_->EQN2SolVectorPos(iEQN+1,globalPos);
+
+      // ONLY TEMPORARY, until superblocknumbering
+      // for piezoPDE works ;-)
+      globalPos =(Integer) globalPos/eqnDofs;
+      
+      temp[globalPos] = data_[iEQN*totalDofs_ + dof];
+    }
 }
 
 
@@ -589,8 +607,8 @@ void NodeStoreSol<TYPE>::GetElemSolutionAsMatrix(CFSMatrix & elemSol,
 
 template<class TYPE>
 void NodeStoreSol<TYPE>::TransformNodeSolution(CFSVector & transformedSolution,
-					   Grid * ptGrid,
-					   const Integer level) const
+					       Grid * ptGrid,
+					       const Integer level) const
 {
   ENTER_FCN("NodeStoreSol::TransformNodeSolution");
 #ifdef CHECK_INITIALIZED

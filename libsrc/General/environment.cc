@@ -49,17 +49,4 @@ namespace CoupledField
   ConfFile * conf           = NULL;
   BaseParamHandler * params = NULL;
 
-  std::ostream& operator<< (std::ostream & outStr, std::vector<Double> xOut)
-  {
-    for (Integer i=0; i<xOut.size(); i++)
-      outStr <<  " " << xOut[i];
-    return outStr;
-  }
-
-  std::ostream& operator<< (std::ostream & outStr, std::vector<Integer> xOut)
-  {
-    for (Integer i=0; i<xOut.size(); i++)
-      outStr <<  " " << xOut[i];
-    return outStr;
-  }
 }

@@ -8,7 +8,6 @@ namespace CoupledField
 
 //! Overloading << for class Matrix
 template<class TYPE> class Vector;
-template<class TYPE> class Array;
 
 //! Concrete implementation of a dense matrix
 template<class TYPE>
@@ -18,7 +17,6 @@ public:
 
   // Friend declarations
   friend class Vector<TYPE>;
-  friend class Array<TYPE>;
   
   //! Constructor 
   //! creates an empty matrix of size 0x0
@@ -134,9 +132,7 @@ public:
 	\left( \begin{array}{ccc} v_1 & v_2 & \cdots  \end{array} \right)
       \f]
   */			  
-  //! \deprecated Do not use std::vectors for 
-  //! numerical values anymore
-  void DyadicMult(Vector<TYPE> vec1);
+  void DyadicMult(CFSVector & vec1);
   
   
   //! Assignes the matrix itself the dyadic product of a vector vec1 
@@ -153,9 +149,7 @@ public:
 	\left( \begin{array}{ccc} v_1 & v_2 & \cdots  \end{array} \right)
 	\f]
   */		
-  //! \deprecated Do not use std::vectors for 
-  //! numerical values anymore
-  void DyadicMult(Vector<TYPE> vec1, Vector<TYPE> vec2); 
+  void DyadicMult(CFSVector & vec1, CFSVector & vec2); 
   
   //! copies a submatrix at the position (row, col) into subMat, 
   //! the amount of copied elements depends on the size of subMat
@@ -250,12 +244,6 @@ public:
   Vector<TYPE> operator* (const Vector<TYPE> &) const;
 
   //!
-  std::vector<TYPE> operator*(const std::vector<TYPE> &x) const;
-  
-  //! 
-  //Array<TYPE> operator*(const Array<TYPE> &) const;
-
-  //!
   Matrix operator*(const Matrix &) const;
 
   //!
@@ -273,11 +261,6 @@ public:
   //!
   Integer operator!=(const Matrix &) const;
  
-  //////////////////////////////////////////
-  // Folgende Funktionen müssen grundlegend
-  // auf 'Vector' statt 'std::vector' 
-  // umgestellt werden
-  ///////////////////////////////////////////
 
  //  //! Cut part of matrix (left index row, right, upper index col, low )
 //   //   Matrix	part	(const Integer, const Integer,
@@ -292,9 +275,6 @@ public:
    //! Add a colomn to Matrix at position i
    void AddColumn(const Vector<TYPE> & x, const Integer pos ); 
 
-//   //! get a column out of the matrix
-//   std::vector<TYPE> get_col(const Integer acol);
-
    /// Transpose actual matrix
   void Transpose (Matrix<TYPE> &transposedMat);  
 
@@ -307,10 +287,10 @@ public:
   void SetSubMatrix(Matrix<TYPE>& subMat, Integer row, Integer col);
 
   /// converts a matrix into a vector, by appending successively all rows
-  void ConvertToVec_AppendRows(Vector<TYPE>& vec) const;
+  void ConvertToVec_AppendRows(CFSVector& vec) const;
 
   /// converts a matrix into a vector, by appending successively all columns
-  void ConvertToVec_AppendCols(Vector<TYPE>& vec) const;
+  void ConvertToVec_AppendCols(CFSVector& vec) const;
 
    /// gets the diagonal elements of a  matrix in a one column matrix
   void GetDiagInMatrix(Matrix<TYPE>& columnMat);
@@ -424,28 +404,6 @@ inline void Matrix<TYPE>::Determinant (TYPE & ret) const
 }
 
 template<class TYPE>  std::ostream& operator << ( std::ostream & , const Matrix<TYPE> &);
-
-Double operator* (std::vector<Double> & vec1, Vector<Double> & vec2);
-
-Double operator* (std::vector<Double> & vec1, std::vector<Double> & vec2);
-
-Double L2Norm(std::vector<Double> & vec);
-
-//// EXPERIMENTELL
-std::vector<Double> operator*= (std::vector<Double> & vec, Double val);
-
-std::vector<Double> operator/= (std::vector<Double> & vec, Double val);
-
-std::vector<Double> operator+ (std::vector<Double> & vec, std::vector<Double> & vec2);
-
-std::vector<Double> operator- (std::vector<Double> & vec, std::vector<Double> & vec2);
-
-std::vector<Double> operator+= (std::vector<Double> & vec, std::vector<Double> & vec2);
-
-std::vector<Double> operator-= (std::vector<Double> & vec, std::vector<Double> & vec2);
-
-std::vector<Double> operator* (Double val, std::vector<Double> & vec);
-
 
 //#ifdef __GNUC__
 template class Matrix<Double>;

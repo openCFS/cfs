@@ -26,14 +26,6 @@ public:
   virtual Integer feType() { return 2;}
 #endif
 
-  //! Calculates the size of an element
-  /*!
-    \param Size (output) Vector containing the size of the element in all dimensions
-    \param Coordinates (input) Array with element corner coordinates
-  */
-  virtual void CalcSize(Vector<Double> &size, Array<Double> &coordinates);
- 
-  
   //! Calculates a measure for the geometric distortion of an element
   /*!
     \param CornerCoords (input) Corner coordinates of the element

@@ -27,7 +27,7 @@ AcouFlowNoise::AcouFlowNoise(Grid *aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc,
   ENTER_FCN( "AcouFlowNoise::AcouFlowNoise" );
 
 #ifdef MpCCI
-   std::vector<Elem*> elemssd;
+   StdVector<Elem*> elemssd;
       ptgrid_->GetElemSD(elemssd,subdoms_[1],actlevel_);
        ptgrid_->CalcNumberOfNodesInPatch(elemssd,mapSD_);
  ptMpCCIexch_ = new MpCCIexch(ptgrid_,mapSD_.size() );
@@ -180,7 +180,7 @@ void AcouFlowNoise::ComputeRHS(const Double atime)
 //       ptgrid_->GetCoordNodesElemMat(connBelongSE,  ptCoordNodBelongSE, level);
   
     
-//       StdVector<Double> gradN_x_P; // This is done due to the different parameter type Vector and std::vector
+//       StdVector<Double> gradN_x_P; // This is done due to the different parameter type Vector and StdVector
 //       gradN_x_P.resize(dim_);
 //       gradN_x_P*=0;
 //       std::vector<Double> LCoord(dim_,0);

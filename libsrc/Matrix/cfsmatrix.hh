@@ -126,16 +126,12 @@ public:
   virtual void Transpose(CFSMatrix & trans) const = 0;
 
   //!
-  //! \deprecated Do not use std::vectors for 
-  //! numerical values anymore
-  virtual  void DyadicMult(std::vector<Double> vec1) const
+  virtual  void DyadicMult(CFSVector & vec1) const
   {Error("CFSMatrix:: DyadicMult(): Not implemented here",__FILE__,__LINE__);} 
   
 
   //!
-  //! \deprecated Do not use std::vectors for 
-  //! numerical values anymore
-  virtual void DyadicMult(std::vector<Double> vec1, std::vector<Double> vec2) const
+  virtual void DyadicMult(CFSVector & vec1, CFSVector & vec2) const
   {Error("CFSMatrix:: DyadicMult: Not implemented here",__FILE__,__LINE__);} 
   
   
@@ -148,12 +144,12 @@ public:
   virtual void SetSubMatrix(CFSMatrix & subMat, const Integer nRows, const Integer nCols) = 0;
 
   //! converts a matrix into a vector, by appending successively all rows
-  virtual void ConvertToVec_AppendRows(std::vector<Double> & vec) const
+  virtual void ConvertToVec_AppendRows(CFSVector & vec) const
   {Error("CFSMatrix::ConvertToVec_AppendRows(): Not implemented here",__FILE__,__LINE__);} 
    
 
   //! converts a matrix into a vector, by appending successively all columns
-  virtual void ConvertToVec_AppendCols(std::vector<Double> & vec) const
+  virtual void ConvertToVec_AppendCols(CFSVector & vec) const
   {Error("CFSMatrix::ConvertToVec_AppendCols(): Not implemented here",__FILE__,__LINE__);} 
   
   //! get the pointer to the data as double *.
@@ -198,14 +194,6 @@ public:
   {Error("CFSMatrix::AddToEntry(): Not implemented here",__FILE__,__LINE__);}			\
   virtual void GetEntry(const Integer row, const Integer col, TYPE & val) const			\
   {Error("CFSMatrix::GetEntry(): Not implemented here",__FILE__,__LINE__);}			\
-  virtual void DyadicMult(std::vector<TYPE> vec1) const						\
-  {Error("CFSMatrix:: DyadicMult: Not implemented here",__FILE__,__LINE__);}			\
-  virtual void DyadicMult(std::vector<TYPE> vec1, std::vector<TYPE> vec2) const			\
-  {Error("CFSMatrix:: DyadicMult: Not implemented here",__FILE__,__LINE__);}			\
-  virtual void ConvertToVec_AppendRows(std::vector<TYPE> & vec) const				\
-  {Error("CFSMatrix::ConvertToVec_AppendRows(): Not implemented here",__FILE__,__LINE__);}	\
-  virtual void ConvertToVec_AppendCols(std::vector<TYPE> & vec) const				\
-  {Error("CFSMatrix::ConvertToVec_AppendCols(): Not implemented here",__FILE__,__LINE__);} 
   
 DECL_BASEMATRIX_FCN(Integer)
 DECL_BASEMATRIX_FCN(Complex)
