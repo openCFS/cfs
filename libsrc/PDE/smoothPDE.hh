@@ -43,6 +43,13 @@ public:
   //! initialize time stepping: nothing to do in smoother!
   virtual void InitTimeStepping(const Double dt){;};
 
+  // ****************************+
+  // Solving Section
+  // ****************************+
+
+
+  // --- Static case ---
+
   //! perform ..
   virtual void PreStepStatic(const Integer kstep, const Double asteptime,
 			     const Integer level, const Boolean reset);
@@ -51,13 +58,32 @@ public:
   virtual void StepStaticNonLin(const Integer kstep, const Double asteptime,
 				const Integer level, const Boolean reset);
 
-  virtual void SolveStepTrans(const Integer kstep, const Double steptime, const Integer level, 
-			      const Boolean updatesysmat)
-  {Error("Currently not available",__FILE__,__LINE__);}
-
   //! 
   virtual void PostStepStatic(const Integer kstep, const Double asteptime,
 			      const Integer level);
+
+  // --- Transient case ---
+
+  virtual void SolveStepTrans(const Integer kstep, const Double steptime, const Integer level, 
+			      const Boolean updatesysmat)
+  {SolveStepStatic(kstep,steptime,level,updatesysmat);};
+
+  //!
+  virtual void PreStepTrans(const Integer kstep, const Double asteptime,
+			    const Integer level, const Boolean reset)
+  {PreStepStatic(kstep,asteptime,level,reset);};
+  
+  //!
+  virtual void PostStepTrans(const Integer kstep, const Double asteptime,
+			     const Integer level)
+  {PostStepStatic(kstep,asteptime,level);};
+  
+  //!
+  virtual void StepTransNonLin(const Integer kstep, const Double asteptime,
+			       const Integer level, const Boolean reset)
+  {StepStaticNonLin(kstep,asteptime,level,reset);};
+
+
 
   //! calculate coupling terms
   virtual void CalcOutputCoupling();
