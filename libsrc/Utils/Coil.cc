@@ -26,9 +26,9 @@ namespace CoupledField {
       fileL_->close();
       delete fileL_;
     }
-    if ( fileUI_ != NULL ) {
-      fileUI_->close();
-      delete fileUI_;
+    if ( fileU_ != NULL ) {
+      fileU_->close();
+      delete fileU_;
     }
   };
 
@@ -43,18 +43,18 @@ namespace CoupledField {
     coilName_ = coilName;
 
     // Set all attributes to default values
-    area_         = 0;
-    value_        = 0;
-    phase_        = 0;
-    resistance_   = 0;
-    id_           = 0;
-    dynamicsFile_ = "undefined";
-    isRotational_ = false;
-    flowDir_      = NODIR;
-    saveFileL_    = "none";
-    saveFileUI_   = "none";
-    fileL_        = NULL;
-    fileUI_       = NULL;
+    windingCrossSection_ = 0;
+    value_               = 0;
+    phase_               = 0;
+    resistance_          = 0;
+    id_                  = 0;
+    dynamicsFile_        = "undefined";
+    isRotational_        = false;
+    flowDir_             = NODIR;
+    saveFileL_           = "none";
+    saveFileU_           = "none";
+    fileL_               = NULL;
+    fileU_               = NULL;
 
     // **************************
     //   Determine type of coil
@@ -88,10 +88,11 @@ namespace CoupledField {
     //   Read Parameters for 2D Measurement Coil
     // *******************************************
     if ( coilType_ == MEASUREMENT2D ) {
-      params->CGet( "area", area_, "name", coilName_, 1, pdeName, "coils");
+      params->CGet( "windingCrossSection_", windingCrossSection_, "name",
+		    coilName_, 1, pdeName, "coils");
       params->CGet( "saveFileL", saveFileL_, "name", coilName_, 1, pdeName,
 		    "coils" );
-      params->CGet( "saveFileUI", saveFileUI_, "name", coilName_, 1,
+      params->CGet( "saveFileU", saveFileU_, "name", coilName_, 1,
 		    pdeName, "coils" );
       params->CGet( "id", id_, "name", coilName_, 1, pdeName, "coils" );
     }
@@ -100,10 +101,11 @@ namespace CoupledField {
     //   Read Parameters for 3D Measurement Coil
     // *******************************************
     if ( coilType_ == MEASUREMENT3D ) {
-      params->CGet( "area", area_, "name", coilName_, 1, pdeName, "coils");
+      params->CGet( "windingCrossSection", windingCrossSection_, "name",
+		    coilName_, 1, pdeName, "coils");
       params->CGet( "saveFileL", saveFileL_, "name", coilName_, 1, pdeName,
 		    "coils" );
-      params->CGet( "saveFileUI", saveFileUI_, "name", coilName_, 1,
+      params->CGet( "saveFileU", saveFileU_, "name", coilName_, 1,
 		    pdeName, "coils" );
     }
 
@@ -111,7 +113,7 @@ namespace CoupledField {
     //   Read Parameters for 2D Voltage Coil
     // ***************************************
     else if ( coilType_ == VOLTAGE2D ) {
-      params->CGet( "area"      , area_ ,
+      params->CGet( "windingCrossSection", windingCrossSection_ ,
 		    "name", coilName_, 1, pdeName, "coils" );
       params->CGet( "value"     , value_,
 		    "name", coilName_, 1, pdeName, "coils" );
@@ -129,7 +131,7 @@ namespace CoupledField {
     //   Read Parameters for 3D Voltage Coil
     // ***************************************
     else if ( coilType_ == VOLTAGE3D ) {
-      params->CGet( "area"      , area_ ,
+      params->CGet( "windingCrossSection", windingCrossSection_ ,
 		    "name", coilName_, 1, pdeName, "coils" );
       params->CGet( "value"     , value_,
 		    "name", coilName_, 1, pdeName, "coils" );
@@ -145,7 +147,7 @@ namespace CoupledField {
     //   Read Parameters for 2D Current Coil
     // ***************************************
     else if ( coilType_ == CURRENT2D ) {
-      params->CGet( "area"    , area_ ,
+      params->CGet( "windingCrossSection", windingCrossSection_ ,
 		    "name", coilName_, 1, pdeName, "coils" );
       params->CGet( "value"   , value_,
 		    "name", coilName_, 1, pdeName, "coils" );
@@ -161,7 +163,7 @@ namespace CoupledField {
     //   Read Parameters for 3D Current Coil
     // ***************************************
     else if ( coilType_ == CURRENT3D ) {
-      params->CGet( "area"    , area_ ,
+      params->CGet( "windingCrossSection", windingCrossSection_ ,
 		    "name", coilName_, 1, pdeName, "coils" );
       params->CGet( "value"   , value_,
 		    "name", coilName_, 1, pdeName, "coils" );
@@ -193,13 +195,13 @@ namespace CoupledField {
       if ( saveFileL_ != "none" ) {
 
 	std::string msg = " Currents/voltages are stored in: "
-	  + saveFileUI_ + '\n';
+	  + saveFileU_ + '\n';
 	Info->PrintF( pdeName, "%s", msg.c_str() );
 
-	fileL_ = new std::ofstream( saveFileUI_.c_str() );
+	fileL_ = new std::ofstream( saveFileU_.c_str() );
 
 	if ( fileL_ == NULL ) {
-	  Info->Error( "Could not open " + saveFileUI_, __FILE__, __LINE__ );
+	  Info->Error( "Could not open " + saveFileU_, __FILE__, __LINE__ );
 	}
       }
     }
@@ -241,11 +243,11 @@ namespace CoupledField {
 		      "coils" );
 	params->CGet( "midPointZ", midZ_, "name", coilName_, 2, pdeName,
 		      "coils" );
-	params->CGet( "orientX", oriX_, "name", coilName_, 2, pdeName,
+	params->CGet( "rotAxisX", rotAxisX_, "name", coilName_, 2, pdeName,
 		      "coils" );
-	params->CGet( "orientY", oriY_, "name", coilName_, 2, pdeName,
+	params->CGet( "rotAxisY", rotAxisY_, "name", coilName_, 2, pdeName,
 		      "coils" );
-	params->CGet( "orientZ", oriZ_, "name", coilName_, 2, pdeName,
+	params->CGet( "rotAxisZ", rotAxisZ_, "name", coilName_, 2, pdeName,
 		      "coils" );
       }
 

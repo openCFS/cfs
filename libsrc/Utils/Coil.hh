@@ -50,7 +50,7 @@ namespace CoupledField {
     std::string coilName_;
 
     //! Area of cross section of a single coil winding
-    Double area_;
+    Double windingCrossSection_;
 
     //! Size of the voltage (voltage coils) resp. current (current coils)
     Double value_;
@@ -74,15 +74,15 @@ namespace CoupledField {
     //! Name of results file for current/voltage
 
     //! This string stores the name of the file for writing out the computed
-    //! current resp. voltage for the coil. If its value is 'none' this
-    //! indicates that the inductivity needs not be computed.
-    std::string saveFileUI_;
+    //! voltage for the coil. If its value is 'none' this indicates that the
+    //! voltage needs not be computed.
+    std::string saveFileU_;
 
-    //! File stream for inductivity
+    //! File stream for storing inductivity
     std::ofstream *fileL_;
 
-    //! File stream for current/voltage
-    std::ofstream *fileUI_;
+    //! File stream for storing voltage
+    std::ofstream *fileU_;
 
     //! Identifier for windings in 2D coils
     Integer id_;
@@ -102,10 +102,10 @@ namespace CoupledField {
     //@}
 
     //@{
-    //! Component of vector giving orientation of symmetry axis
-    Double oriX_;
-    Double oriY_;
-    Double oriZ_;
+    //! Component of vector giving orientation of rotational axis
+    Double rotAxisX_;
+    Double rotAxisY_;
+    Double rotAxisZ_;
     //@}
 
   private:
