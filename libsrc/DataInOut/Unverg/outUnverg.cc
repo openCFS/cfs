@@ -10,17 +10,13 @@ namespace CoupledField
 
 template<class Dim>
 WriteResultsUnverg<Dim> :: WriteResultsUnverg(const Char * const filename)
-:WriteResults()
+:WriteResults(filename)
 {
 #ifdef TRACE
   (*trace) << "entering WriteResultsUnverg :: WriteResultsUnverg" << std::endl;
 #endif
 
-  Char * help = new Char[20];
-  strcpy(help,filename);
-  output=new std::ofstream(strcat(help,".unverg"));
-
-  delete [] help;
+  output=new std::ofstream(strcat(namefile_,".unverg"));
 }
 
 template<class Dim>
@@ -275,7 +271,10 @@ void  WriteResultsUnverg<Dim>::WriteSolution(const Vector<Double> & sol, const I
 {
  if (sol.size()<=history_node_) Error("Please, check history-nodes in config-file.",__FILE__,__LINE__);
 
- if (NeedHistory_ && title == "fluid potential")  AddInHistory(time,sol[history_node_]); 
+ Integer i;
+ if (NeedHistory_ && title == "fluid potential") 
+   for (i=0; i< nodeshist_.size(); i++)
+      AddInHistory(time,sol[nodeshist_[i]],i); 
 
  Dataset55(title, sol, step+1, time);
 }

@@ -10,7 +10,7 @@ class WriteResults
 {
 public:
    /// constructor
-   WriteResults();
+   WriteResults(const Char * const filename);
 
    //!
    enum nameSol{fluid, temperature};
@@ -30,6 +30,10 @@ public:
 protected:
   ///
   std::ofstream * output;
+
+  //! name of file for output results
+  Char * namefile_;
+
   ///
   Grid * ptgrid;
   ///
@@ -37,9 +41,11 @@ protected:
   ///
   Integer history_node_;
   ///
-  std::ofstream historyfile;
+  std::vector<Integer> nodeshist_;
   ///
-  void AddInHistory(const Double time, const Double val);
+  std::ofstream * historyfile;
+  ///
+  void AddInHistory(const Double time, const Double val, const Integer ifile);
 
 }; 
 

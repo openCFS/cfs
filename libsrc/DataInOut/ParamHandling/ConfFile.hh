@@ -2,6 +2,7 @@
 #define FILE_CONFIGFILE_2002
 
 #include "tools.hh"
+#include <vector>
 
 namespace CoupledField
 {
@@ -24,6 +25,9 @@ public:
 
    //! get type of equation for subdomain with number numsd
    void getequation(std::string & eq, const Integer numsubdom);
+
+   //! get history nodes
+   void gethistorynodes(std::vector<Integer> & hist);
 
 protected:
 

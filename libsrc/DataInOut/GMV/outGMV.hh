@@ -14,7 +14,7 @@ class WriteResultsGMV: virtual public WriteResults
 public:
 
   //! Constructor
-  WriteResultsGMV(const Char * filename);
+  WriteResultsGMV(const Char * const filename);
   
   //! Deconstructor
   virtual ~WriteResultsGMV();
@@ -29,9 +29,6 @@ public:
   virtual void WriteSolution(const Vector<Double> & sol, const Integer step, const Double time, const std::string title);
 
 private:
-
-  //! name of file for output results
-  Char * namefile_;
 
   //! name of dir for output results
   Char * namedir_;
