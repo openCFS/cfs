@@ -464,9 +464,12 @@ GetBCDof(const std::string dofString)
     for (int i=0; i<subdoms_.size();i++)
       {
 	integrators_[i] = new std::vector<IntegratorDescriptor *>;
-	surfintegrators_[i] = new std::vector<IntegratorDescriptor *>;
 	rhsIntegrators_[i] = new std::vector<BaseIntDescriptor *>;
       }
+
+   for (int i=0; i<surfdoms_.size();i++)
+	surfintegrators_[i] = new std::vector<IntegratorDescriptor *>;
+
   }
   
 
