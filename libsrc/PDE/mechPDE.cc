@@ -51,7 +51,7 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 	dofspernode_ = 2;
 	Info->PrintF("", "=== AXISYSMMETRIC PROBLEM\n");
       }
-    else if (subType_ == "plainStrain" )
+    else if (subType_ == "planeStrain" )
       {
 	dofspernode_ = 2;
 	Info->PrintF("", "=== PLAIN STRAIN PROBLEM\n");

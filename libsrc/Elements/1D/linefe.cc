@@ -142,10 +142,23 @@ Double LineFE::CalcJacobianDetAtIp(const Integer ip,
 //   CalcJacobianAtIp( J, ip, CornerCoords);
 //   return J[0][0];
 
-// Length/2 is simply the jacDet for a line
   Double length;
-  length=dist_Mat(CornerCoords);
-  return length/2;
+  if (CornerCoords.GetSizeRow()==2) 
+    {
+      //see kaltenbacher, p.23, eq.(2.122)
+      Matrix<Double> J;
+      CalcJacobianAtIp( J, ip, CornerCoords);
+      length = sqrt(J[0][0]*J[0][0] + J[1][0]*J[1][0]);
+    }
+  else 
+    {
+      // Length/2 is simply the jacDet for a line
+      length=dist_Mat(CornerCoords)/2;
+    }
+
+  return length;
+
+  
 }
 
 void LineFE:: CalcJacobian(Matrix<Double> & J, 
@@ -169,7 +182,12 @@ void LineFE::CalcJacobianAtIp(Matrix<Double> & J,
 {
   ENTER_FCN( "LineFE::CalcJacobianAtIp" );
 
-  J.Resize(1,1);
+  if (CornerCoords.GetSizeRow()==2) {
+    // Surface element in 2D 
+    J.Resize(CornerCoords.GetSizeRow(),Dim_);
+  } 
+  else
+    J.Resize(1,1);
 
   J = CornerCoords * ShFncDerivAtIp_[ip-1];
 }
