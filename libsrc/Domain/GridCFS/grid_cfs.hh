@@ -2,20 +2,13 @@
 #define FILE_SCFE_GRID_CFS_2001
 
 #include "filetype.hh"
-#include "baseelem.hh"
-
+//#include "baseelem.hh"
 
 namespace CoupledField
 {
 
-//! struct for Element
-struct Elem
-{
-  BaseElem * ptElem;
-  Vector<Integer> connect;
-  std::string namesd;
-};
- 
+struct Elem;
+
 /// Class for working with grid
 template<class Dim> 
 class GridCFS
@@ -25,13 +18,13 @@ public:
   GridCFS(FileType * const aptFileType);
 
   /// Deconstructor
-  ~GridCFS(){ if (ptCoordinate_) delete [] ptCoordinate_;}
+  ~GridCFS();
 
   //! Read Grid Information
   void Read();
   
   /// Get coordinates of all nodes which belong to element
-  void GetCoordOfNodesElem(const Integer numElem, const Integer numlevel, const Integer numnodes,  Dim * ptCoordElem); 
+//  void GetCoordOfNodesElem(const Integer numElem, const Integer numlevel, const Integer numnodes,  Dim * ptCoordElem); 
 
    /// Get connection of element
    void GetConnection(Vector<Integer> & connect, const Integer iElem, const Integer level);
@@ -44,31 +37,44 @@ public:
         { return maxnumnodes_;}
 
   /// Return maximum number of elements 
-  Integer GetMaxnumElem(const Integer numlevel)
-        { return allelems.size();}
+  Integer GetMaxnumElem(const Integer numlevel);
 
   /// Return num of nodes per element i
   Integer GetNumNodesPerElem(const Integer iElem, const Integer level)
 { return allelems[iElem].connect.size();}
 
   /// return pointer to pointer to BaseElem
-  BaseElem * GetptElem(const Integer iElem)
- { return allelems[iElem].ptElem;}  
+//  BaseElem * GetptElem(const Integer iElem)
+// { return allelems[iElem].ptElem;}  
 
   //!
   Integer GetDim() { return dim_;}
+
+  //!
+  void GetElemSD(std::vector<Elem> & els, const std::string sd, const Integer level);
+
+  //!
+  void GetCoordNodesElem(const Vector<Integer> connect, Dim * ptCoord);  
+
 protected:
 private:
   //!
   FileType *InFile;
   //
   std::vector<Elem> allelems;
+
+  // 
+  std::vector<Elem> * elems_;  
+
+  std::vector<std::string> sd_;
+
   //
   Integer maxnumnodes_;
   //
   Dim * ptCoordinate_;
   //
   Integer dim_;
+
 };
 
 template class GridCFS<Point3D>;

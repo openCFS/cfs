@@ -5,6 +5,7 @@
 #include <iomanip>
 #include <vector>
 
+
 #include "datfile.hh"
 #include "bcs.hh"
 #include "grid_cfs.hh"
@@ -767,39 +768,8 @@ void DatFile:: ReadBoundRestr(Integer ** dataBRestr, Integer numberRestr,
    }
 }
 
-void DatFile:: ReadBoundRestr(std::list<NodeRestraint> & restr, Integer & numberRestr)
-{
-#ifdef TRACE
-  (*trace) << "entering DatFile::ReadBoundRestr" << std::endl;
-#endif
 
-  ReadNumNodesforDirichletBC(numberRestr);
 
-  std::string::size_type pos=0;
-  TakePos("restraints",pos);
-  infile.seekg(pos, std::ios::beg);
-  std::string str;
-  NodeRestraint A;
-  for (Integer i=0; i < numberRestr; i++)
-   {
-    infile >> A.nodalnum >> str ;
-    A.dof=TransformInTypeBCs(str.c_str());
-    infile.ignore(100,'\n');
-    restr.push_back(A);
-   }
-}
-
-enum TypeBCs DatFile::TransformInTypeBCs(const std::string str)
-{
-  enum TypeBCs result;
-
-  if (str=="vp") result=vp_restraint;
-  else
-  if (str=="ep") result=ep_restraint;
-  else Error(" This type of dof for boundary condition isn't used in our programm");
-
-  return result;
-}
 
 // --------------- Read parameters about boundary condition by choice -------- 
 void DatFile:: ReadGeneralBoundChoice(Integer * dataGBoundCh,

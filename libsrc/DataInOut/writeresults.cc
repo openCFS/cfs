@@ -18,7 +18,7 @@ WriteResults::WriteResults(const Char * const filename)
   strcpy(namefile_,filename);
 
   NeedHistory_=TRUE;
-  conf->gethistorynodes(nodeshist_);
+  conf->getlist(nodeshist_,"history_node");
 
   if (nodeshist_.empty()) NeedHistory_=FALSE;
 

@@ -28,8 +28,8 @@ public:
   { ptGridCFS->Read();}
 
   /// Get coordinates of all nodes which belong to element
-  virtual void GetCoordOfNodesElem(const Integer numElem, const Integer numlevel, const Integer numnodes,  Dim * ptCoordElem) 
-  { ptGridCFS->GetCoordOfNodesElem(numElem, numlevel, numnodes,ptCoordElem);}
+//  virtual void GetCoordOfNodesElem(const Integer numElem, const Integer numlevel, const Integer numnodes,  Dim * ptCoordElem) 
+//  { ptGridCFS->GetCoordOfNodesElem(numElem, numlevel, numnodes,ptCoordElem);}
 
    /// Get connection of element
    virtual void GetConnection(Vector<Integer> & connect, const Integer iElem, const Integer level)
@@ -47,15 +47,26 @@ public:
   { return ptGridCFS->GetMaxnumElem(numlevel);}
 
   /// Return num of nodes per element i
-  virtual Integer GetNumNodesPerElem(const Integer iElem, const Integer level)
-  { return ptGridCFS->GetNumNodesPerElem(iElem, level);}
+//  virtual Integer GetNumNodesPerElem(const Integer iElem, const Integer level)
+//  { return ptGridCFS->GetNumNodesPerElem(iElem, level);}
 
   /// return pointer to BaseElem
-    BaseElem * GetptElem(const Integer iElem)
- { return ptGridCFS->GetptElem(iElem);}
+//    BaseElem * GetptElem(const Integer iElem)
+// { return ptGridCFS->GetptElem(iElem);}
 
   /// return dimension of mesh
   virtual Integer GetDim(){ ptGridCFS->GetDim();}
+
+  //!
+  void GetElemSD(std::vector<Elem> & els, const std::string sd, const Integer level)
+  { ptGridCFS->GetElemSD(els,sd,level);}
+
+  //!
+   void GetCoordNodesElem(const Vector<Integer> connect,Dim * ptCoord)
+  { ptGridCFS->GetCoordNodesElem(connect, ptCoord);}
+ 
+  //!
+  void GetCoordNodesElem(const Vector<Integer> connect, Point3D ptCoord);
 
 protected:
 private:

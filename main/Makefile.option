@@ -22,7 +22,8 @@ LIB_GRIDLIB = $(C_DIR)/libgrid
 #
 #NetGen =/home_lse10/lse/manfred/Programming/NETGEN/netgen
 #NetGen=~/Software/NetGen/new/netgen
-NetGen=/home_lse10/lse/elena/NetGen/netgen
+#NetGen=/home_lse10/lse/elena/NetGen/aug/netgen
+NetGen=~/Software/NetGen/aug1/netgen
 #
 IncNetGen =$(C_DIR)/NetGen
 #

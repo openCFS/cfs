@@ -66,59 +66,24 @@ void main(int argc, char *argv[])
 //  domain->TestGrid();
 
   //choose your driver
-  BaseDriver *ptdriver = new TransientDriver(domain);
+  BaseDriver * ptdriver;  
+  std::string analysis;
+  conf->get("analysis", analysis);
+  if (analysis=="static")  ptdriver = new StaticDriver(domain);
+  else  ptdriver = new TransientDriver(domain);
 
   //solve your problem
-  std::string adaptTimeOn;
+  std::string adaptTimeOn, adaptSpaceOn;
   conf->get("adapttime",adaptTimeOn,"Acoustic");
+  conf->get("adaptspace",adaptSpaceOn,"Acoustic");
+
   if (adaptTimeOn == "yes")  ptdriver->SolveProblemAdapt();
-                          else ptdriver->SolveProblem();
+  else
+    if (adaptSpaceOn == "yes") { ptdriver->SolveProblemAdaptSpace();}
+       else ptdriver->SolveProblem();
+    
 
   oClockTotal.ClockCount(MyClock::end,"Total time");
-
-/*
-// for testing refinement of mesh
-   WriteResults<Point2D> * ptOut=oDefFiles.Create_ptWriteResults2d();
-
-   Grid * ptgrid=new InterfaceNetGen<Point2D>(ptInputfile);
-
-   ptgrid->Read();
- 
-//   ptOut->Init(ptgrid);
-//   ptOut->WriteGrid(0);
-
-   ptgrid->SubdivideUniform(0);
-   ptOut->Init(ptgrid);
-   ptOut->WriteGrid(0);
-
-   if (ptgrid) delete ptgrid;
-*/
-/*
-   WriteResults<Point3D> * ptOut=oDefFiles.Create_ptWriteResults3d();
-
-   Grid * ptgrid=new InterfaceNetGen<Point3D>(ptInputfile);
-
-   ptgrid->Read();
-
-   ptOut->Init(ptgrid);
-   ptOut->WriteGrid(0);
-
-//   ptgrid->SubdivideUniform(0);
-//   ptOut->Init(ptgrid);
-//   ptOut->WriteGrid(0);
-
-   if (ptgrid) delete ptgrid;
-   if (ptOut) delete ptOut;
-*/
-/*
-   Grid * ptgrid=new GridInterfaceCFS<Point3D>(ptInputfile);
-   ptgrid->Read();
-
-   WriteResults<Point3D> * ptOut=new WriteResultsUnverg<Point3D>("3d");
-
-   ptOut->Init(ptgrid);
-   ptOut->WriteGrid(0);
-*/
 
 /// Putzen
   if (ptdriver) delete ptdriver;

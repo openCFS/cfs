@@ -32,7 +32,7 @@ Double &adampiter,  Integer &amaxnumit, Integer &numeqcoarse);
   void SetMatrixFactors();
 
   //!
-  void SetupMatrices(const Integer type);
+  void SetupMatrices(const Integer level=0);
 
     //!
   void SetBCs(BCs * ptBCs, const Integer level, const Integer update, const Double atime);
@@ -63,7 +63,7 @@ private:
   Integer dofspernode_;
 
   //!
-  void CalcCoeff(Double & coeff, const Integer numsubdom);
+  void CalcCoeff(Vector<Double> & coeff);
 
   //!
   Grid * ptgrid_;
@@ -73,9 +73,6 @@ private:
 
   //! size of solution and etc.
   Integer size_;
-
-  //! type of dof
-  enum TypeBCs doftype_;
 
 };
 

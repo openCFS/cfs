@@ -107,34 +107,15 @@ void AnsysFile::ReadMaxnumnodes(Integer & nnodes)
  infile.seekg(pos,std::ios::beg);
 
  infile >> nnodes;
- std::cout << " number nodes" << nnodes << std::endl;
 }
 
-void AnsysFile::ReadMaxnumelem(Integer & nelem)
+void AnsysFile::ReadMaxnumelem(Integer & nelem,const std::string keyword)
 {
-#ifdef TRACE
-  (*trace) << "entering Ansys::ReadMaxnumelem" << std::endl;
-#endif
-
- std::string keyword;
- switch (dim_)
- {
-  case 2:
-   keyword="Num2DElements";
-   break;
-  case 3:
-   keyword="Num3DElements";
-   break;
-  default:
-   Error("Wrong dimension in function ReadMaxnumelem");
- } 
-
  std::string::size_type pos=0;
  getPosition(keyword,pos);
  infile.seekg(pos,std::ios::beg);
 
  infile >> nelem;
- std::cout << " EELEM " << nelem << std::endl;
 }
 
 void AnsysFile::ReadMaxnumnodesbc(Integer & nbc)
@@ -146,35 +127,38 @@ void AnsysFile::ReadMaxnumnodesbc(Integer & nbc)
  infile >> nbc;
 }
 
-void AnsysFile::ReadBoundRestr(std::list<NodeRestraint> & restr, Integer & numberRestr)
+void AnsysFile::ReadBCs(std::list<Integer> * bcs, const std::vector<std::string> levels)
 {
 #ifdef TRACE
-  (*trace) << "entering Ansys::ReadBoundRestr" << std::endl;
+  (*trace) << "entering Ansys::ReadBCs" << std::endl;
 #endif
-
+ 
  Integer numbc;
  ReadMaxnumnodesbc(numbc);
 
  std::string::size_type pos=0;
  getPosLine("Node BC", pos);
  infile.seekg(pos,std::ios::beg);
-
- Integer nrestr=0;
+ 
  std::string str;
 
- NodeRestraint A;
- Integer i;
+ Integer nodalnum;
+ Integer i,j;
  for (i=0; i < numbc; i++)
    {
-    infile >> A.nodalnum >> str;
+    infile >> nodalnum >> str;
     infile.ignore(100,'\n');
 
-    A.dof=TransformInDof(str);
+    Boolean Find=FALSE;
+    for (j=0; j<levels.size(); j++)
+       { if (str==levels[j]) { Find=TRUE; break;}
+       }         
 
-    restr.push_back(A);
-    nrestr++;
-   }
-  numberRestr=nrestr;
+    std::string msg=str+"-this level of BCs from .mesh file is not mentioned in .config file. Please, check .config-file";
+    if (!Find) Error(msg.c_str(),__FILE__,__LINE__);
+
+    bcs[j].push_back(nodalnum);
+   } 
 }
 
 void AnsysFile::getPosLine(const std::string seekexp, std::string::size_type & pos)
@@ -231,58 +215,111 @@ void AnsysFile::getPosition(const std::string seekexp, std::string::size_type & 
                       exit(1);}
 }
 
-enum TypeBCs AnsysFile::TransformInDof(const std::string type_bc)
-{
-  enum TypeBCs result;
 
-  if (type_bc=="vp-restr") result=vp_restraint;
-  else
-  if (type_bc=="ep-restr") result=ep_restraint;
-  else Error(" This type of level for boundary condition in mesh-file (section [Node BC]) is unknown");
-
-  return result;
-}
-
-//!
-void AnsysFile::ReadElems(std::vector<Elem> & allelems)
+void AnsysFile::ReadEl(std::vector<Elem> * allelems, const std::vector<std::string> sd)
 {
 #ifdef TRACE
- (*trace) << " entering AnsysFile::ReadElems " << std::endl;
+ (*trace) << " entering AnsysFile::ReadEl " << std::endl;
 #endif
-
- Integer maxnelems;
- ReadMaxnumelem(maxnelems); 
-
- allelems.resize(maxnelems);
-
- std::string::size_type pos=0;
 
  switch(dim_)
 {
  case 2:
- getPosLine("2D Elements", pos);
+ ReadEl2d(allelems,sd);
  break;
  case 3:
- getPosLine("3D Elements", pos);
+ ReadEl2d(allelems,sd);
+ ReadEl3d(allelems,sd);
  break;
 }
+
+}
+
+void AnsysFile::ReadEl2d(std::vector<Elem> * allelems, const std::vector<std::string> sd)
+{
+#ifdef TRACE
+ (*trace) << " entering AnsysFile::ReadEl2D " << std::endl;
+#endif
+
+ Integer maxnelems;
+ ReadMaxnumelem(maxnelems,"Num2DElements");
+
+if (maxnelems)
+{
+ std::string::size_type pos=0;
+
+ getPosLine("2D Elements", pos);
  infile.seekg(pos,std::ios::beg);
 
- if (!ptTr || !ptQ || !ptTet)
+  if (!ptTr || !ptQ || !ptTet)
   Error(" Pointers to BaseElem is not initialized",__FILE__,__LINE__);
 
- Integer i, ii, ibuf, itype, innodes;
+ Integer i, ii, j, ibuf, itype, innodes;
+ std::string namesd;
+ Elem el;
  for (i=0; i<maxnelems; i++)
 {
- infile >> ibuf >> itype >> innodes >> allelems[i].namesd;
+ infile >> ibuf >> itype >> innodes >> namesd;
  infile.ignore(100,'\n');
 
- allelems[i].ptElem=Type2ptElem(itype);   
- allelems[i].connect.Resize(innodes);
+ el.ptElem=Type2ptElem(itype);
+ el.connect.Resize(innodes);
  for (ii=0; ii<innodes; ii++)
-  infile >> allelems[i].connect[ii];
+  infile >> el.connect[ii];
 
- infile.ignore(100,'\n'); 
+ infile.ignore(100,'\n');
+
+ Boolean Find;
+ for (j=0; j<sd.size(); j++)
+  if (namesd == sd[j]) { allelems[j].push_back(el);
+                         Find=TRUE;
+                       }
+ if (!Find) { std::string msg=namesd + "- this level of element is not mentioned in .conf-file. Please, check .config-file";
+              Error(msg.c_str(),__FILE__,__LINE__);
+            }
+}
+}
+}
+
+void AnsysFile::ReadEl3d(std::vector<Elem> * allelems, const std::vector<std::string> sd)
+{
+#ifdef TRACE
+ (*trace) << " entering AnsysFile::ReadEl3d " << std::endl;
+#endif
+
+ Integer maxnelems;
+ ReadMaxnumelem(maxnelems,"Num3DElements");
+
+ std::string::size_type pos=0;
+ getPosLine("3D Elements", pos);
+ infile.seekg(pos,std::ios::beg);
+
+  if (!ptTr || !ptQ || !ptTet)
+  Error(" Pointers to BaseElem is not initialized",__FILE__,__LINE__);
+
+ Integer i, ii, j, ibuf, itype, innodes;
+ std::string namesd;
+ Elem el;
+ for (i=0; i<maxnelems; i++)
+{
+ infile >> ibuf >> itype >> innodes >> namesd;
+ infile.ignore(100,'\n');
+
+ el.ptElem=Type2ptElem(itype);
+ el.connect.Resize(innodes);
+ for (ii=0; ii<innodes; ii++)
+  infile >> el.connect[ii];
+
+ infile.ignore(100,'\n');
+
+ Boolean Find;
+ for (j=0; j<sd.size(); j++)
+  if (namesd == sd[j]) { allelems[j].push_back(el);
+                         Find=TRUE;
+                       }
+ if (!Find) { std::string msg=namesd + "- this level of element is not mentioned in .conf-file. Please, check .config-file";
+              Error(msg.c_str(),__FILE__,__LINE__);
+            }
 }
 
 }

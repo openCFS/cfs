@@ -24,6 +24,9 @@ public:
   virtual void SolveProblemAdapt();
 
   //!
+  virtual void SolveProblemAdaptSpace();
+
+  //!
   void SetupMatricesPDE(const Integer pdenumber, const Integer matrixtype);
 
 protected:

@@ -1,10 +1,11 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <vector>
 
 #include "domain.hh"
-#include "interface_piles.hh"
 #include "interface_gridcfs.hh"
+#include "interface_piles.hh"
 #include "outGMV.hh"
 
 #ifdef NETGEN
@@ -15,7 +16,6 @@
 #include "interface_gridlib.hh"
 #endif
 
-#include "elec2dPDE.hh"
 #include "therm2dPDE.hh"
 #include "acoustic2dPDE.hh"
 #include "elecst3dPDE.hh"
@@ -39,8 +39,6 @@ Domain:: Domain(FileType * const aptFileType, WriteResults * ptOut,  Material * 
  conf->get("mesh_library",libmesh);
 
  Integer dim=InFile_->ReadDim();
-
-  std::cout << " DIMENSIONdimension " << dim << std::endl;
 
  // initialize pointer to grid 
 #ifdef GRIDLIB
@@ -107,22 +105,26 @@ void Domain :: InitPDE()
 #endif
 
   // get numbers of PDEs in domain
- conf->get("maxpde",numpde_);
+  std::vector<std::string> pdes;
+  conf->getliststr("list_pdes",pdes);
 
   //allocate all specific PDEs
   if (!ptalgsys_) Error("You try to allocate object BasePDE with null pointer to AlgSys");
 
-  std::string eq;
-  for (int i=0;i<numpde_;i++)
+  for (int i=0;i< pdes.size();i++)
     {
-       conf->getequation(eq,i);
-       if (eq == "acoustic2d")  ptpde_[i]=new Acoustic2dPDE(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_);
-//       else
-//       if (eq == "electrostatic3d")  ptpde_[i]=new Elecst3dPDE(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_);
+       if (pdes[i] == "acoustic2d")  { ptpde_[i]=new Acoustic2dPDE(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_);}
+       else
+       if (pdes[i] == "electrostatic3d") {  ptpde_[i]=new Elecst3dPDE(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_);
+                                         }
+       else
+    { std::string msg=pdes[i]+" - this type of pdes is unknown";
+      Error(msg.c_str(),__FILE__,__LINE__);
+    }
+      
 //       else
 //       if (eq == "thermal2d") ptpde_[i]=new Therm2dPDE(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_);
    }
-
 }
 
 void Domain :: InitAlgSys()
@@ -144,12 +146,16 @@ void Domain :: InitAlgSys()
   Integer insys;
   Integer numeqcoarse;
 
+  std::cout << " a " << std::endl;
+
   for (insys=0;insys<numsys_;insys++)
     {
       ptpde_[insys]->SetAlgSys_id(insys);
       ptpde_[insys]->SpecifySolver(solvertype,precondtype,eps,dampiter,maxnumit,numeqcoarse);
       ptalgsys_->SetSolverParameter(insys,eps,dampiter,maxnumit,solvertype,precondtype,  numeqcoarse);
     }
+
+  std::cout << " b " << std::endl;
 
   //init the algsys-graph
   Integer level=0;
@@ -166,6 +172,8 @@ void Domain :: InitAlgSys()
   Vector<Integer> connect;
 
   numelem = ptgrid_->GetMaxnumElem(level);
+
+  std::cout << numelem << std::endl;
 
   for (insys=0;insys<numsys_;insys++)
     {
@@ -187,7 +195,7 @@ void Domain :: InitAlgSys()
   for (insys=0;insys<numsys_;insys++)
     {
       ptpde_[insys]->SpecifyMatrices(matrixtype, matrixsystype, graphtype, numdofpernode,  numdirichlets, numconstraints);
-      numdirichlets = ptBCs_->GetNumRestraints(level);
+      numdirichlets = ptpde_[insys]->GetNumRestraints(ptBCs_, level);
 
       ptalgsys_->CreateAlgSysMatrices(insys,insys,matrixsystype,matrixtype,graphtype, numdofpernode,  numdirichlets, numconstraints);
     }
@@ -199,6 +207,9 @@ void Domain :: InitAlgSys()
     {
       ptalgsys_->ResetAlgSys(insys,insys,matrix_id);
     }
+#ifdef TRACE
+  (*trace) << "leaving Domain::IniAlgSys" << std::endl;
+#endif
 }
 
 void Domain :: PrintGrid(Integer level)
@@ -219,12 +230,63 @@ void Domain :: SetSubdomains()
  ;
 }
 
+void Domain:: Update(const Integer sysid)
+{
+#ifdef TRACE
+  (*trace) << "entering Domain::Update" << std::endl;
+#endif
+ 
+  ptBCs_->Update(ptgrid_);
+  
+  // Init AlgSystem
+  UpdateAlgSys(sysid);
+    
+}
+
+void Domain::UpdateAlgSys(const Integer sysid)
+{
+#ifdef TRACE
+  (*trace) << "entering Domain::UpdateAlgSys" << std::endl;
+#endif
+
+  Integer level=ptgrid_->GetLastLevel();
+  std::cout << level << std::endl;
+  Integer numnodes=ptgrid_->GetMaxnumnodes(level);
+  Integer numelems=ptgrid_->GetMaxnumElem(level);
+  std::cout << numnodes << " " << numelems << std::endl;
+
+  ptalgsys_->InitAlgSysGraph(numnodes,sysid,sysid);
+  
+  Integer iel;
+  Vector<Integer> connect;
+  for (iel=0; iel<numelems; iel++)
+    {
+      ptgrid_->GetConnection(connect,iel,level);
+      ptalgsys_->SetAlgSysGraph(connect.get(),connect.size(),sysid,sysid);
+    }
+
+  Integer matrixtype, graphtype, numdofpernode, numdirichlets, numconstraint;
+  Integer matrixsystype[5];
+
+  ptpde_[sysid]->SpecifyMatrices(matrixtype, matrixsystype, graphtype, numdofpernode, numdirichlets, numconstraint);
+
+  ptalgsys_->CreateAlgSysMatrices(sysid, sysid, matrixsystype, matrixtype, graphtype, numdofpernode, numdirichlets, numconstraint);
+
+  Integer matrix_id=1;
+  ptalgsys_->ResetAlgSys(sysid,sysid,matrix_id);
+
+#ifdef TRACE
+  (*trace) << " leaving Domain::UpdateAlgSys " << std::endl;
+#endif
+
+}
+
 void Domain :: TestGrid()
 {
   InterfaceNetGen<Point2D> * ptGrid=new InterfaceNetGen<Point2D>(InFile_); 
   ptGrid->Read();
   Char * name="refine";
-  WriteResults * ptInFile=new WriteResultsGMV(name);
+  WriteResults * ptInFile=new WriteResultsUnverg(name);
 
   Vector<Integer> ei;
   ei.Resize(3);
@@ -232,8 +294,12 @@ void Domain :: TestGrid()
   ei[1]=1;
   ei[2]=2;
   std::cout << " ok " << std::endl;
-  ptGrid->SetRefinementFlag(ei);
+ 
+ Integer e=5; 
+  ptGrid->SetRefinementFlag(e);
+  std::cout << " we set refinement flags " << std::endl;
   ptGrid->Refine();
+  std::cout << " we do refinement " << std::endl;
 
   ptInFile->Init(ptGrid);
   ptInFile->WriteGrid(0);  

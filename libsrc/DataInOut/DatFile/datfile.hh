@@ -47,6 +47,9 @@ public:
   //! Read maximum number of elements
   virtual void ReadMaxnumelem(Integer & maxnumelem);
 
+  virtual void ReadBCs(std::list<Integer> * bcs, const std::vector<std::string> levels)
+   { Error("Not implemented",__FILE__,__LINE__);}  
+
   //! Read dimension
   virtual Integer ReadDim(){ return 2;}
 
@@ -182,7 +185,7 @@ public:
 		      Double * factorRestr); 
 
   //! Read specific info about boundary condition in list
-  void ReadBoundRestr(std::list<NodeRestraint> & restr, Integer & numberRestr);
+//  void ReadBoundRestr(std::list<NodeRestraint> & restr, Integer & numberRestr);
  
   //! Auxialary function for reading boundary condition
   void ReadMaxRecord(Integer & maxrecord);
@@ -281,8 +284,7 @@ public:
   void ReadMaxnode(Integer & maxnode, const Integer igr);
 
 private:
-  //!
-  enum TypeBCs TransformInTypeBCs(const std::string str); 
+   
 };
 }
 
