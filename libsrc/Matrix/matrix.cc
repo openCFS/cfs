@@ -688,6 +688,43 @@ template<class TYPE>
 
 
 
+// copies a submatrix at the position (row, col) into subMat, 
+// the amount of copied elements depends on the size of subMat
+template<class TYPE>
+void Matrix<TYPE>::GetSubMatrix(Matrix<TYPE> subMat, Integer startRow, Integer startCol) const
+{
+  if (!subMat.size_row() || !subMat.size_col() || !col || !row ) 
+    Error("undefined matrix",__FILE__,__LINE__);
+
+  if ((subMat.size_row() + startRow > row) || (subMat.size_col() + startCol > col) )
+    Error("Submatrix to be written is to large! ",__FILE__,__LINE__);
+
+  for(int actRow=0; actRow < subMat.size_row(); actRow++)
+    for(int actCol=0; actCol < subMat.size_col(); actCol++)
+      subMat[actRow][actCol] = *this[actRow + startRow][actCol + startCol];
+}
+
+
+
+
+// overwrites the matrix elements at the position (row, col) with subMat
+// in a rectangular (submatrix) way
+template<class TYPE>
+void Matrix<TYPE>::SetSubMatrix(Matrix<TYPE> subMat, Integer startRow, Integer startCol)
+{
+  if (!subMat.size_row() || !subMat.size_col() || !col || !row ) 
+    Error("undefined matrix",__FILE__,__LINE__);
+
+  if ((subMat.size_row() + startRow > row) || (subMat.size_col() + startCol > col) )
+    Error("Submatrix to be read is to large! ",__FILE__,__LINE__);
+
+  for(int actRow=0; actRow < subMat.size_row(); actRow++)
+    for(int actCol=0; actCol < subMat.size_col(); actCol++)
+      *this[actRow + startRow][actCol + startCol] = subMat[actRow][actCol];
+}
+
+
+
 
 
 std::vector<Double> operator* ( std::vector<Double> & vec, const Matrix<Double> & mat)

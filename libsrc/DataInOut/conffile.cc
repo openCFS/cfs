@@ -197,7 +197,7 @@ std::string::size_type ConfFile::getsectionpos(const std::string keyword, const 
     help=infile.tellg();
     std::getline(infile, buf, '\n');
  
-    if (buf[0] !='#' && buf[0] != ' ' && buf[0] != '\t') 
+    if (buf[0] !='#' && buf[0] != ' ' && buf[0] != '\t')
       {
 	pos_helper=buf.find(keyword);
 	if (buf.find(":") < 100)
@@ -399,7 +399,7 @@ void ConfFile::getstr( const std::string seekexp, std::string &str, const std::s
 
  if (section != "")
    {
-     pos=getsectionpos(section);
+     pos=getsectionpos(section,0,TRUE);
      inSection = TRUE;
    }
  if (subsection !="") 

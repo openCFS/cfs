@@ -97,9 +97,15 @@ void BasePDE::ReadMaterialData()
   for (Integer i=0; i<subdoms_.size(); i++)
     {
       // load material data into array "materialData_"
-      conf->getstr(subdoms_[i], matName, "list_subdomains");
+      conf->getstr(subdoms_[i], matName);
+      std::cout << "Überprüfung auf list_subdomains (in BasePDE::ReadMaterialData) funktioniert nicht !!!!! " << std::endl;
+      //      conf->getstr(subdoms_[i], matName, "list_subdomains");
       loadMaterial_->GetMaterial(materialData_[i], matName, pdematerialclass_);
     }
+#ifdef TRACE
+  (*trace) << "leaving BasePDE::ReadMaterialData" << std::endl;
+#endif
+
 }
 
 

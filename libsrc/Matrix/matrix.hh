@@ -174,6 +174,14 @@ public:
   /// Dyadic multiplication of two vectors
   void DyadicMult(std::vector<TYPE> v1, std::vector<TYPE> v2);
 
+  /// copies a submatrix at the position (row, col) into subMat, 
+  /// the amount of copied elements depends on the size of subMat
+  void GetSubMatrix(Matrix<TYPE> subMat, Integer row, Integer col) const;
+
+  /// overwrites the matrix elements at the position (row, col) with subMat
+  /// in a rectangular (submatrix) way
+  void SetSubMatrix(Matrix<TYPE> subMat, Integer row, Integer col);
+  
 private:
   /// calculates the adjunct of the matrix at position (i,j)
   Double Adjunct (Integer i, Integer j) const;
