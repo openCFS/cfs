@@ -270,9 +270,9 @@ namespace CoupledField {
     Info->StartProgress("Creating coupling");
 
 #ifndef XMLPARAMS
-    std::string errMsg;
+//    std::string errMsg;
     errMsg  = "Sorry, you are out-dated!\n";
-    errMSg += "Coupling is only supported for .xml-files!";
+    errMsg += "Coupling is only supported for .xml-files!";
     Error(errMsg.c_str(), __FILE__, __LINE__);
 #else
     // ================================
