@@ -38,10 +38,13 @@ namespace CoupledField {
 			CURRENT2D, CURRENT3D };
 
     //! Enumeration type for specifying flow direction for 3D current coils
-    typedef enum FlowDir { XDIR, YDIR, ZDIR };
+    typedef enum FlowDir { NODIR, XDIR, YDIR, ZDIR };
 
     //! The type of coil this object describes
-    Coil::Type myType_;
+    Coil::Type coilType_;
+
+    //! The type of coil this object describes as string
+    std::string coilTypeS_;
 
     //! Symbolic name for the coil this object describes
     std::string coilName_;
