@@ -18,30 +18,34 @@ Dependencies = Makefile.depend
 # Note: If TRACE = 0 the TRACE macro will not be defined. Thus trace will
 # be a NULL pointer. This can be problematic, if e.g. LAS was compiled with
 # LINUXg
-TRACE = 10
+TRACE = 0
 
-#LIBRARY_TYPE = shared / static
+# LIBRARY_TYPE = shared / static
 LIBRARY_TYPE = static
 
-#Adaptivity = yes / no
+# Adaptivity = yes / no
 Adaptivity = no
 
-#PETSc solvers
+# PETSc solvers
 PETSc=no
 
-#MpCCI
+# MpCCI
 MpCCI=no
 
-#compile with Database yes/no (MySQL)
-#can only be compiled if MySQL-devel is installed
+# compile with Database yes/no (MySQL)
+# can only be compiled if MySQL-devel is installed
 DATABASE=no
 
-#Hypre solvers
-# NOTE: Only used in OLAS
-HYPRE = no 
+# General Socket Interface
+GSI = no
 
-#Using LAS or OLAS
-LASTYPE = LAS
+##############  Some settings required in conjunction with OLAS
+
+# Was OLAS compiled with support for hypre?
+HYPRE = yes
+
+# Was OLAS compiled with support for LAPACK?
+LINK_LAPACK = yes
 
 ##############  XML Parameter File Handling? With Xerces or without?
 #
@@ -192,3 +196,14 @@ endif
 
 # Assemble second set of compiler flags
 CFLAGS2 = $(BASEPDEFLAG) $(PARAMHANDLING) -I$(CVSEXTERNAL)/$(MACHINE)/include
+
+# Do we have to link against system BLAS?
+ifeq "$(LINK_LAPACK)" "yes"
+LINK_BLAS = yes
+else
+ifeq "$(HYPRE)" "yes"
+LINK_BLAS = yes
+else
+LINK_BLAS = no
+endif
+endif
