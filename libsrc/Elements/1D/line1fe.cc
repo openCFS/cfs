@@ -21,7 +21,7 @@ Line1FE :: ~Line1FE()
 
 void Line1FE :: Init()
 {
-  ENTER_FCN( "Line1FE::Init" );
+  ENTER_IFCN( "Line1FE::Init" );
 
   NumNodes_ = 2;
   SetIntPoints();
@@ -32,7 +32,7 @@ void Line1FE :: Init()
 
 void Line1FE :: SetCornerCoords()
 {
-  ENTER_FCN( "Line1FE::SetCornerCoords" );
+  ENTER_IFCN( "Line1FE::SetCornerCoords" );
 
   LCornerCoords_.Resize(Dim_,NumNodes_);
   
@@ -44,7 +44,7 @@ void Line1FE :: SetCornerCoords()
 void Line1FE :: CalcShapeFnc(Vector<Double> & Shape, 
 			     const Vector<Double> & LCoord)
 {
-  ENTER_FCN( "Line1FE::CalcShapeFnc" );
+  ENTER_IFCN( "Line1FE::CalcShapeFnc" );
 
   Shape.Resize(NumNodes_);
   
@@ -57,7 +57,7 @@ void Line1FE :: CalcShapeFnc(Vector<Double> & Shape,
 void Line1FE :: CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
 				       const Vector<Double> & LCoord)
 {
-  ENTER_FCN( "Line1FE::CalcLocalDerivShapeFnc" );
+  ENTER_IFCN( "Line1FE::CalcLocalDerivShapeFnc" );
 
   LDeriv.Resize(NumNodes_,Dim_);
 

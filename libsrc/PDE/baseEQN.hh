@@ -25,6 +25,10 @@ public:
   //! Destructor
   virtual ~BaseEQN();
   
+  
+  //! Return true if eqns are assigned
+  inline Boolean IsInitialized() {return isInitialized_;}
+
   //! Return the number of equations
   //! (= number of nodes * total number Dofs <br>
   //! - hom. Dirichlet nodes <br>

@@ -102,9 +102,7 @@ template<Integer dim>
 inline GridInterfaceCFS<dim>::GridInterfaceCFS(FileType * aptFileType)
 : Grid(aptFileType)
 {
-#ifdef TRACE
- (*trace) << "Entering GridInterfaceCFS<Dim>::GridInterfaceCFS<Dim>" << std::endl;
-#endif
+  ENTER_FCN( "GridInterfaceCFS<Dim>::GridInterfaceCFS<Dim>" );
  lastlevel_=0;
    ptGridCFS=new GridCFS<dim>(ptFileType); 
 }

@@ -44,7 +44,7 @@ RectangleFE :: ~RectangleFE()
 
 void RectangleFE:: SetIntPoints()
 {
-  ENTER_FCN( "RectangleFE::SetIntPoints" );
+  ENTER_IFCN( "RectangleFE::SetIntPoints" );
 
   switch(IntegType) 
     {

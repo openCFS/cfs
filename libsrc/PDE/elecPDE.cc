@@ -65,22 +65,22 @@ namespace CoupledField {
 #endif
 
     
-
     
-
-  
     SolverCFS_ = FALSE;
-
+    
     // only static analysis are possible =======================
     delete assemble_;
     assemble_ = new StaticAssemble(algsys_, ptgrid_);
     analysistype_ = STATIC;
 
-  // set analysis parameters
-  assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, subdoms_, surfdoms_);
-  assemble_->SetGraphType(NODEGRAPH);
-  assemble_->SetMesh2PDENode(&mesh2PDENode_);
-
+    // Initialize EQN and NodeStoreSolution classes
+    Reset();
+    
+    // set analysis parameters
+    assemble_->SetPtr2EQNData(eqnData_); 
+    assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, subdoms_, surfdoms_);
+    assemble_->SetGraphType(NODEGRAPH);
+    
 #ifdef USE_OLAS
     assemble_->SetMatrixEntryType(OLAS::DOUBLE);
     assemble_->SetMatrixStorageType(OLAS::SPARSE_NONSYM);
@@ -105,7 +105,7 @@ namespace CoupledField {
     ReadStoreResults();
 #endif
 
-    Reset();
+    
   }
   
 
@@ -329,7 +329,8 @@ void ElecPDE::PostProcess(const Integer level)
       StdVector<Elem*> elemssd;
       Integer counterElems=0;
       Vector<Double> TempE;
-      
+      Integer pdeElem;
+
       // loop over all subdomains
       for (Integer isd=0; isd<calcEfield_.GetSize(); isd++)
 	{
@@ -340,7 +341,9 @@ void ElecPDE::PostProcess(const Integer level)
 	  for (Integer iel=0; iel< elemssd.GetSize(); iel++,counterElems++)
 	    {
 	      FieldOp->CalcElemElecField( TempE, elemssd[iel], LCoord); 
-	      E_.SetNodalResult(mesh2PDEElem_[elemssd[iel]->elemNum - 1]-1,TempE);
+	      pdeElem = eqnData_->Mesh2PDEElem(elemssd[iel]->elemNum);
+// 	      E_.SetNodalResult(mesh2PDEElem_[elemssd[iel]->elemNum - 1]-1,TempE);
+ 	      E_.SetNodalResult(pdeElem-1,TempE);
 	    }
 	}
       delete FieldOp;
@@ -419,7 +422,7 @@ void ElecPDE::CalcEnergy()
   Matrix<Double> ptCoord;
   BaseFE         * ptElem;
 
-  StdVector<Integer> connecth, connect_PDE, Eqns;  
+  StdVector<Integer> connecth;
   Vector<double> help;
 
   Integer i, j;
@@ -444,7 +447,7 @@ void ElecPDE::CalcEnergy()
 	  bilinear_stiff->CalcElementMatrix(ptCoord, elemmat);
 
 	  // Mape Mesh to PDE node numbers
-	  Mesh2PDENode(connect_PDE,connecth,mesh2PDENode_);
+	  //Mesh2PDENode(connect_PDE,connecth,mesh2PDENode_);
 
 // 	  EqnData_->Mesh2Eqn(Eqns,connecth);
 // 	  (*debug) << "Nodes:" << connecth << std::endl;
@@ -452,7 +455,8 @@ void ElecPDE::CalcEnergy()
 
 
 	  Vector<Double> elpot;
-	  GetSolOfElement(elpot, connect_PDE);	 
+	  //GetSolOfElement(elpot, connect_PDE);	 
+	  sol_->GetElemSolution(elpot, connecth);
 	  help = elemmat * elpot;
 	  energy[i] += help * elpot;
 
@@ -466,18 +470,18 @@ void ElecPDE::CalcEnergy()
 
 
 
-void ElecPDE::GetSolOfElement( Vector<Double>& elpot, 
-			       StdVector<Integer>& connect_PDE)
-{
-  ENTER_FCN( "ElecPDE::GetSolOfElement" );
+// void ElecPDE::GetSolOfElement( Vector<Double>& elpot, 
+// 			       StdVector<Integer>& connecth)
+// {
+//   ENTER_FCN( "ElecPDE::GetSolOfElement" );
 
-  ElemStoreSol<Double> * solhelp = dynamic_cast<ElemStoreSol<Double> *>(sol_);
+//   ElemStoreSol<Double> * solhelp = dynamic_cast<ElemStoreSol<Double> *>(sol_);
 
-  elpot.Resize(connect_PDE.GetSize());
-  for(Integer actNode=0; actNode<connect_PDE.GetSize(); actNode++)
-    sol_->Get(connect_PDE[actNode]-1,0,elpot[actNode]);
-    //elpot[actNode] = (*solhelp)(connect_PDE[actNode]-1,0);
-}
+//   elpot.Resize(connect_PDE.GetSize());
+//   for(Integer actNode=0; actNode<connect_PDE.GetSize(); actNode++)
+//     sol_->Get(connecth[actNode]-1,0,elpot[actNode]);
+//     //elpot[actNode] = (*solhelp)(connect_PDE[actNode]-1,0);
+//}
 
 
 // ======================================================
@@ -488,19 +492,19 @@ void ElecPDE::GetSolOfElement( Vector<Double>& elpot,
 void ElecPDE::Reset()
 {
   ENTER_FCN( "ElecPDE::Reset" );
-    
+  
   // Map global numeration of element and nodes to local one
-  AssignPDENodeNumbers(mesh2PDENode_, pde2MeshNode_, subdoms_);  
-  AssignPDEElemNumbers(mesh2PDEElem_, pde2MeshElem_, subdoms_);
-  numPDENodes_ = pde2MeshNode_.GetSize();
-  numElems_ = pde2MeshElem_.GetSize();
-
- eqnData_  = new ScalarNodeEQN(ptgrid_, ptBCs_, subdoms_, actlevel_, dofspernode_);
- eqnData_->SetHomoDirichletBCs(bcs_hd_, homDirichDof_);
- eqnData_->CalcMapping();
- //eqnData_->Print(std::cerr);
- assemble_->SetPtr2EQNData(eqnData_); 
- 
+  //AssignPDENodeNumbers(mesh2PDENode_, pde2MeshNode_, subdoms_);  
+  //AssignPDEElemNumbers(mesh2PDEElem_, pde2MeshElem_, subdoms_);
+  
+  
+  eqnData_  = new ScalarNodeEQN(ptgrid_, ptBCs_, subdoms_, actlevel_, dofspernode_);
+  eqnData_->SetHomoDirichletBCs(bcs_hd_, homDirichDof_);
+  eqnData_->CalcMapping();
+  //eqnData_->Print(std::cerr);
+  numPDENodes_ = eqnData_->GetNumLocalNodes();
+  numElems_ = eqnData_->GetNumLocalElems();
+  
   // Initalize solution class
   sol_->SetNumSolutions(1);
   sol_->SetSolutionType(ELEC_POTENTIAL);
@@ -769,10 +773,10 @@ void ElecPDE::CalcInterfaceForces(Integer actCoupling)
 
 
       Matrix<Double> ptCoord; 
-      StdVector<Integer> connect_PDE;
+      //StdVector<Integer> connect_PDE;
 
       GetElemCoords(connecth, ptCoord, actlevel_);
-      Mesh2PDENode(connect_PDE, connecth, mesh2PDENode_);
+      //Mesh2PDENode(connect_PDE, connecth, mesh2PDENode_);
 
 
 
@@ -803,7 +807,7 @@ void ElecPDE::CalcInterfaceForces(Integer actCoupling)
       // "interfaceForceVec" holds the absolute value of the forces on every node of an interface vector.
       // To establish the final force vectors, every force in every node has to be multiplied by
       // the normal vector of the interface element
-      Vector<Double> interfaceForceOnNodes(connect_PDE.GetSize());   // is automatically initialized by 0
+      Vector<Double> interfaceForceOnNodes(connecth.GetSize());   // is automatically initialized by 0
       
 
       for (Integer actIP=1; actIP <= ptCoupleElem->GetNumIntPoints(); actIP++)

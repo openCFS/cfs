@@ -396,9 +396,8 @@ namespace CoupledField
   /*
     void LoadMaterialData :: EulerAnglesRotate(MaterialData * material, const Vector<Double> & eulerAngles)
     {
-    #ifdef TRACE
-    if (trace) (*trace) << "Entering  LoadMaterialData::EulerAnglesRotate" << std::endl;
-    #endif    const Double epsIndex = 6;
+    ENTER_FCN( "LoadMaterialData::EulerAnglesRotate" );
+    const Double epsIndex = 6;
     const Double pi = acos(-1);
     const Double gradToRad = pi / 180;
     const Double epsilon = 1e-10;

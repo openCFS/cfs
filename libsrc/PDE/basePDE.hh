@@ -259,12 +259,7 @@ class SpaceErrorEstimator;
     //! return number of restraints
     Integer GetNumRestraints(const Integer level=-1);
 
-    //! return assignment array Mesh2PDENode
-    inline StdVector<Integer> & GetMesh2PDENode() {return mesh2PDENode_;}
 
-    //! return assignment array PDE2MeshNode
-    inline StdVector<Integer> & GetPDE2MeshNode() {return pde2MeshNode_;}
-    
     //! computes the coordinates of an element including the delta
     //! \param connect (input) global node numbers of element
     //! \param ptCoord (output) coordinates of the element nodes
@@ -274,25 +269,6 @@ class SpaceErrorEstimator;
 			       Matrix< Double > &coordMat,
 			       const Integer level);
 
-    //! returns the local PDE number of an array of nodes
-    /*!
-      \param PDENodes (output) Vector of PDE node numbers
-      \param MeshNodes (input) Vector of mesh node numbers
-      \param Mesh2PDENode (input) Vector assigning PDE to mesh node numbers
-    */
-    virtual void Mesh2PDENode(StdVector<Integer> & PDENodes, 
-			      const StdVector<Integer> & MeshNodes,
-			      const StdVector<Integer> & Mesh2PDENode);
-  
-    //! returns the local global Mesh node numbers of an array of nodes
-    /*!
-      \param MeshNodes (output) Vector of mesh node numbers    
-      \param PDENodes (input) Vector of PDE node numbers
-      \param PDE2MeshNode (input) Vector assigning mesh to PDE  node numbers
-    */
-    virtual void PDE2MeshNode(StdVector<Integer> & MeshNodes, 
-			      const StdVector<Integer> & PDENodes,
-			      const StdVector<Integer> & PDE2MeshNode);
     //@}
 
     // Does this method belong to postproc section?
@@ -333,30 +309,6 @@ class SpaceErrorEstimator;
       Error("GetBCDof not implemented",__FILE__,__LINE__);
       return 0;
     }
-
-
-    //! assign local PDE node numbers to own subdomains
-    /*!
-      \param mesh2PDENode (output) Vector assigning mesh to PDE node numbers
-      \param pde2MeshNode (output) Vector assigning PDE to mesh node numbers
-      \param subdoms (input) Vector of subdomains which are to be mapped
-    */
-    virtual void AssignPDENodeNumbers(StdVector<Integer> & mesh2PDENode,
-				      StdVector<Integer> & pde2MeshNode,
-				      const StdVector<std::string> & subdoms);
-
-
-    //! assign local PDE element numbers to own subdomains
-    /*!
-      \param mesh2PDENode (output) Vector assigning mesh to PDE element numbers
-      \param pde2MeshNode (output) Vector assigning PDE to mesh element numbers
-      \param subdoms (input) Vector of subdomains which are to be mapped
-    */
-    //! \todo Elena: Is there a Mapping of Elements in adapted grids?
-    virtual void AssignPDEElemNumbers(StdVector<Integer> & mesh2PDEElem,
-				      StdVector<Integer> & pde2MeshElem,
-				      const StdVector<std::string> & subdoms);
-    
 
 #ifdef ADAPTGRID  
     //! ----------------- functions for adaptivity
@@ -400,22 +352,6 @@ class SpaceErrorEstimator;
     //! surface-domain-levels belongig to PDE
     StdVector<std::string> surfdoms_;
 
-    // Assignment MeshNodeNumers <-> PDENodeNumbers
-    // Note: PDE/Mesh-Node numbers start with 1, but the arrayindex always
-    // starts with 0 so correct transformation reads as follows:
-    // PDENode = Mesh2PDENode[PDENode - 1]
-
-    //! vector containing PDE (=local) node numbers
-    StdVector<Integer> mesh2PDENode_;
-
-    //! vector containing Mesh (=global) node numbers
-    StdVector<Integer> pde2MeshNode_;
-   
-    //! vector containing PDE (=local) element numbers
-    StdVector<Integer> mesh2PDEElem_;
-
-    //! vector containing Mesh (=global) element numbers
-    StdVector<Integer> pde2MeshElem_;
     //@}
 
     // -----------------------------------------------------------------------

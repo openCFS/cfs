@@ -21,7 +21,7 @@ Wedge1FE::~Wedge1FE()
 
 void Wedge1FE::Init()
 {
-  ENTER_FCN( "Wedge1FE::Init" );
+  ENTER_IFCN( "Wedge1FE::Init" );
 
   NumNodes_ = 6;
   NumEdges_ = 9;
@@ -39,7 +39,7 @@ void Wedge1FE::Init()
 
 void Wedge1FE::SetCornerCoords()
 {
-  ENTER_FCN( "Wedge1FE::SetCornerCoords" );
+  ENTER_IFCN( "Wedge1FE::SetCornerCoords" );
 
   LCornerCoords_.Resize(Dim_,NumNodes_);
   
@@ -74,7 +74,7 @@ void Wedge1FE::SetCornerCoords()
 void Wedge1FE :: CalcShapeFnc(Vector<Double> & Shape, 
 			     const Vector<Double> & LCoord)
 {
-  ENTER_FCN( "Wedge1FE::CalcShapeFnc" );
+  ENTER_IFCN( "Wedge1FE::CalcShapeFnc" );
 
   Shape.Resize(NumNodes_);
 
@@ -95,7 +95,7 @@ void Wedge1FE :: CalcShapeFnc(Vector<Double> & Shape,
 void Wedge1FE :: CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
 				       const Vector<Double> & LCoord)
 {
-  ENTER_FCN( "Wedge1FE::CalcLocalDerivShapeFnc" );
+  ENTER_IFCN( "Wedge1FE::CalcLocalDerivShapeFnc" );
 
   LDeriv.Resize(NumNodes_,Dim_);
 

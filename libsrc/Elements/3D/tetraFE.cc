@@ -42,7 +42,7 @@ TetraFE::~TetraFE()
 
 void TetraFE::SetIntPoints()
 {
-  ENTER_FCN( "TetraFE::SetIntPoints" );
+  ENTER_IFCN( "TetraFE::SetIntPoints" );
 
     switch(IntegType)
       {
@@ -221,7 +221,7 @@ void TetraFE::SetIntPoints()
   // and no volume is regarded! (see Hughes, p. 174)
   void TetraFE::CorrectIntWeights()
   { 
-    ENTER_FCN( "TetraFE::CorrectIntWeights" );
+    ENTER_IFCN( "TetraFE::CorrectIntWeights" );
 
     for(Integer i=0; i<IntWeights_.GetSize(); i++)
       IntWeights_[i] /= 6.;

@@ -42,7 +42,7 @@ PyraFE::~PyraFE()
 
 void PyraFE::SetIntPoints()
 {
-  ENTER_FCN( "PyraFE::SetIntPoints" );
+  ENTER_IFCN( "PyraFE::SetIntPoints" );
 
     switch(IntegType)
       {

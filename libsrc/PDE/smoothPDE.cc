@@ -43,7 +43,7 @@ SmoothPDE::SmoothPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileTyp
 
   //BCs
   ReadBCs(pdename_);
-  numDirichletBCs_ = GetNumRestraints(actlevel_);
+ 
   
   conf->ifgetliststr("homogenBCDof", homDirichDof_, pdename_);  
   conf->ifgetliststr("inhomogenBCDof", inhomDirichDof_, pdename_);
@@ -60,29 +60,25 @@ SmoothPDE::SmoothPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileTyp
   if (bcs_id_.GetSize() != inhomDirichDof_.GetSize()) 
      Error("Inconsistent definition of inhomogeneous Dirichlet Boundary Conditions");
 
-  // Map global numeration of element and nodes to local one
-  AssignPDENodeNumbers(mesh2PDENode_, pde2MeshNode_, subdoms_);  
-  AssignPDEElemNumbers(mesh2PDEElem_, pde2MeshElem_, subdoms_);
-  numPDENodes_ = pde2MeshNode_.GetSize();
-  numElems_ = pde2MeshElem_.GetSize();
-
-  size_ = numPDENodes_*dofspernode_;
-
+  numDirichletBCs_ = GetNumRestraints(actlevel_);
   
-    
   method_ = "mechanic";
   conf->ifget("method", method_, pdename_ );
 
-  factor_.Resize(numElems_);
-  for (Integer i=0; i<factor_.GetSize(); i++)
-    factor_[i] = 1.0;
- 
- // initialize eqation data object
+  // initialize eqation data object
   eqnData_  = new BlockNodeEQN(ptgrid_, ptBCs_, subdoms_, actlevel_, dofspernode_);
   eqnData_->SetHomoDirichletBCs(bcs_hd_, homDirichDof_);
   eqnData_->CalcMapping();
   //eqnData_->Print(std::cerr);
-  assemble_->SetPtr2EQNData(eqnData_);   
+  numPDENodes_ = eqnData_->GetNumLocalNodes();
+  numElems_ = eqnData_->GetNumLocalElems();
+  size_ = numPDENodes_*dofspernode_;
+
+  factor_.Resize(numElems_);
+  for (Integer i=0; i<factor_.GetSize(); i++)
+    factor_[i] = 1.0;
+  
+   
   
   // Initalize solution class
   sol_->SetNumSolutions(1);
@@ -92,10 +88,10 @@ SmoothPDE::SmoothPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileTyp
   sol_->SetPtrEQNData(eqnData_);
   sol_->Init(0.0);
   
-  // set assemble parameters
+  // set assemble parameters 
+  assemble_->SetPtr2EQNData(eqnData_); 
   assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, subdoms_, surfdoms_);
   assemble_->SetGraphType(NODEGRAPH);
-  assemble_->SetMesh2PDENode(&mesh2PDENode_);
 
 #ifdef USE_OLAS
   assemble_->SetMatrixEntryType(DOUBLE);
@@ -104,7 +100,7 @@ SmoothPDE::SmoothPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileTyp
   assemble_->SetMatrixType(RBLOCK);
 #endif
 
-  assemble_->SetNumDirichlet(numDirichletBCs_);
+  assemble_->SetNumDirichlet(GetNumRestraints(actlevel_));
   assemble_->SetPtrBCs(ptBCs_);
   assemble_->SetPtr2Sol(sol_);
   assemble_->SetPtr2TimeFnc(ptTimeFunc_);

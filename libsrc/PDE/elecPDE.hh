@@ -115,7 +115,7 @@ namespace CoupledField
     void CalcInterfaceForces(Integer actCoupling);
 
     //! GET SOLUTION AT ALL NODES OF AN ELEMENT
-    void GetSolOfElement( Vector<Double>& elpot, StdVector<Integer>& connect_PDE);
+    //void GetSolOfElement( Vector<Double>& elpot, StdVector<Integer>& connect_PDE);
 
 
     // ======================================================

@@ -12,9 +12,7 @@ namespace CoupledField
 WriteResultsAnsys :: WriteResultsAnsys(const Char * const filename, Boolean withHistory)
 : WriteResults(filename,withHistory)
 {
-#ifdef TRACE
-  (*trace) << "entering WriteResultsAnsys :: WriteResultsAnsys" << std::endl;
-#endif
+  ENTER_FCN( "WriteResultsAnsys::WriteResultsAnsys" );
 
  namedir_=new Char[30];
 
@@ -38,9 +36,7 @@ WriteResultsAnsys :: WriteResultsAnsys(const Char * const filename, Boolean with
 
 WriteResultsAnsys ::~WriteResultsAnsys()
 {
-#ifdef TRACE
-  (*trace) << "entering WriteResultsAnsys::~ WriteResultsAnsys" << std::endl;
-#endif
+  ENTER_FCN( "WriteResultsAnsys::~WriteResultsAnsys")
 
  delete [] namedir_;
 
@@ -110,9 +106,7 @@ void WriteResultsAnsys :: WriteNodes(const Integer alevel)
 
 void WriteResultsAnsys::WriteCells(const Integer alevel) 
 {
-#ifdef TRACE
-  (*trace) << " entering WriteResultsAnsys::WriteCells \n";
-#endif
+  ENTER_FCN( "WriteResultsAnsys::WriteCells" );
 
   Integer level=alevel;
 
@@ -231,9 +225,7 @@ void WriteResultsAnsys::WriteGrid(const Integer level)
 
 void WriteResultsAnsys::WriteNodeSolution(const Vector<Double> & sol, const Integer step, const Double time, const std::string title)
 {
-#ifdef TRACE
- (*trace) << " entering WriteResultsAnsys::WriteSolution " << std::endl;
-#endif
+  ENTER_FCN( "WriteResultsAnsys::WriteSolution" );
 
  // diese funktion ist nicht verarbeitet
 

@@ -995,9 +995,7 @@ namespace CoupledField
   template<>
   Double GridCFS<2>::CalcAreaElem(const Elem* elem)
   {
-#ifdef TRACE
-    (*trace) << "entering GridCFS<Dim>::CalcAreaElem" << std::endl;
-#endif
+    ENTER_FCN( "GridCFS<Dim>::CalcAreaElem" );
 
     Double res;
     Double a,b,c,s;

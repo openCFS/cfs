@@ -46,16 +46,6 @@ namespace CoupledField {
 
     laststepcalc_=0;
 
-    AssignPDENodeNumbers(mesh2PDENode_, pde2MeshNode_, subdoms_);  
-    AssignPDEElemNumbers(mesh2PDEElem_, pde2MeshElem_, subdoms_);
-    numPDENodes_ = pde2MeshNode_.GetSize();
-    numElems_ = pde2MeshElem_.GetSize();
-
-    size_ = numPDENodes_;
-
-    
-
-
 #ifndef XMLPARAMS
     std::string dampstr;
     conf->ifget("damping",dampstr,pdename_);
@@ -132,14 +122,23 @@ namespace CoupledField {
       Info->PrintF( pdename_, "Re-setting damping type to ABCDAMP" );
     }
 #endif
-    
     ReadBCs(pdename_);
 
+    // initialize eqation data object
+    eqnData_  = new ScalarNodeEQN(ptgrid_, ptBCs_, subdoms_, actlevel_, dofspernode_);
+    eqnData_->SetHomoDirichletBCs(bcs_hd_, homDirichDof_);
+    eqnData_->CalcMapping();
+    //eqnData_->Print(std::cerr);
+    numPDENodes_ = eqnData_->GetNumLocalNodes();
+    numElems_ = eqnData_->GetNumLocalElems();
+
+    size_ = numPDENodes_;
+
     // set analysis parameters
+    assemble_->SetPtr2EQNData(eqnData_); 
     assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, subdoms_,
 				absBCs_);
     assemble_->SetGraphType(NODEGRAPH);
-    assemble_->SetMesh2PDENode(&mesh2PDENode_);
 
 #ifdef USE_OLAS
     if (analysistype_==HARMONIC) {
@@ -181,12 +180,7 @@ namespace CoupledField {
     ReadStoreResults();
 #endif
     
-    // initialize eqation data object
-    eqnData_  = new ScalarNodeEQN(ptgrid_, ptBCs_, subdoms_, actlevel_, dofspernode_);
-    eqnData_->SetHomoDirichletBCs(bcs_hd_, homDirichDof_);
-    eqnData_->CalcMapping();
-    //eqnData_->Print(std::cerr);
-    assemble_->SetPtr2EQNData(eqnData_); 
+    
 
     // Initalize solution class
     sol_->SetNumSolutions(1);

@@ -21,7 +21,7 @@ namespace CoupledField {
 #define TRACESTREAM (*trace)
 
 //! Macro for specifying depth of indentation in function trace log
-#define TRACE_INDENT "  "
+#define TRACE_INDENT "    "
 
 namespace OutInfo {
 

@@ -15,9 +15,7 @@ namespace CoupledField
 StaticAdaptSpaceDriver :: StaticAdaptSpaceDriver(Domain * adomain)
   : StaticDriver(adomain)
 {
-#ifdef TRACE
-  (*trace) << "entering StaticAdaptSpaceDriver::StaticDriver" << std::endl;
-#endif
+  ENTER_FCN( "StaticAdaptSpaceDriver::StaticDriver" );
   
   flags->adaptSpace_ = TRUE;
 
@@ -25,17 +23,13 @@ StaticAdaptSpaceDriver :: StaticAdaptSpaceDriver(Domain * adomain)
 
 StaticAdaptSpaceDriver :: ~StaticAdaptSpaceDriver()
 {
-#ifdef TRACE
-  (*trace) << "entering StaticAdaptSpaceDriver::~StaticAdaptSpaceDriver" << std::endl;
-#endif
+  ENTER_FCN( "StaticAdaptSpaceDriver::~StaticAdaptSpaceDriver" );
 
 }
 
 void StaticAdaptSpaceDriver :: SolveProblem()
 {
-#ifdef TRACE
-  (*trace) << "entering StaticAdaptSpaceDriver::SolveProblem" << std::endl;
-#endif
+  ENTER_FCN( "StaticAdaptSpaceDriver::SolveProblem" );
 
   Integer level=0;
   Integer pdenumber  = 0;

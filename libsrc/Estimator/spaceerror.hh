@@ -135,9 +135,7 @@ private:
 
 inline SpaceErrorEstimator::~SpaceErrorEstimator()
 {
-#ifdef TRACE
-  (*trace) << "entering SpaceErrorEstimator::~SpaceErrorEstimator()" << std::endl;
-#endif 
+  ENTER_FCN( "SpaceErrorEstimator::~SpaceErrorEstimator" );
 ;
 }
 

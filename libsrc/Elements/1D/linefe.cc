@@ -43,7 +43,7 @@ LineFE :: ~LineFE()
 
 void LineFE::SetIntPoints()
 {
-  ENTER_FCN( "LineFE::SetIntPoints" );
+  ENTER_IFCN( "LineFE::SetIntPoints" );
 
   switch(IntegType)
     {

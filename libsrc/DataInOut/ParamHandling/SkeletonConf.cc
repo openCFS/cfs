@@ -22,9 +22,7 @@ namespace CoupledField
 
   SkeletonConf::SkeletonConf (const Char * aname)
   {
-#ifdef TRACE
-    (*trace) << "Entering SkeletonConf::SkeletonConf" << std::endl;
-#endif
+    ENTER_FCN( "SkeletonConf::SkeletonConf" );
 
     name_=new Char[100];
     strcpy(name_, aname);
@@ -67,9 +65,7 @@ namespace CoupledField
 
   SkeletonConf::~SkeletonConf ()
   {
-#ifdef TRACE
-    (*trace) << "Entering SkeletonConf::~SkeletonConf" << std::endl;
-#endif
+    ENTER_FCN( "SkeletonConf::~SkeletonConf" );
 
     skelfile_->close();
 
@@ -81,9 +77,7 @@ namespace CoupledField
 
   void SkeletonConf::WriteConf ()
   {
-#ifdef TRACE
-    (*trace) << "Entering SkeletonConf::WriteConf" << std::endl;
-#endif
+    ENTER_FCN( "SkeletonConf::WriteConf" );
 
     WriteGeneral();
     WriteSubdomains();
@@ -93,9 +87,7 @@ namespace CoupledField
 
   void SkeletonConf::WriteGeneral ()
   {
-#ifdef TRACE
-    (*trace) << "Entering SkeletonConf::WriteGeneral" << std::endl;
-#endif
+    ENTER_FCN( "SkeletonConf::WriteGeneral" );
 
     (*skelfile_)  << "#" << std::endl 
 		  << "# -- SKELETON-CONF-FILE: PLEASE REPLACE ALL \"XXX\" AND FILL OUT!" << std::endl
@@ -112,9 +104,7 @@ namespace CoupledField
 
   void SkeletonConf:: WriteSubdomains()
   {
-#ifdef TRACE
-    (*trace) << "Entering SkeletonConf::WriteSubdomains" << std::endl;
-#endif
+    ENTER_FCN( "SkeletonConf::WriteSubdomains" );
 
     //close the skeleton-config-file
     skelfile_->close();
@@ -188,9 +178,7 @@ namespace CoupledField
 
   void SkeletonConf::WriteLists ()
   {
-#ifdef TRACE
-    (*trace) << "Entering SkeletonConf::WriteLists" << std::endl;
-#endif
+    ENTER_FCN( "SkeletonConf::WriteLists" );
 
     StdVector<std::string> sd;
     Integer dim = meshfile_-> ReadDim();
@@ -256,9 +244,7 @@ namespace CoupledField
   
   void SkeletonConf::WritePDE ()
   {
-#ifdef TRACE
-    (*trace) << "Entering SkeletonConf::WritePDE" << std::endl;
-#endif
+    ENTER_FCN( "SkeletonConf::WritePDE" );
 
     (*skelfile_) << "# -- PDE LIST (PLEASE FILL OUT)" << std::endl;
     (*skelfile_) << "list_pdes = XXX non" << std::endl << std::endl;

@@ -22,7 +22,7 @@ Hexa1FE::~Hexa1FE()
 
 void Hexa1FE::Init()
 {
-  ENTER_FCN( "Hexa1FE::Init" );
+  ENTER_IFCN( "Hexa1FE::Init" );
   
   Dim_ = 3;
   NumNodes_ = 8;
@@ -43,7 +43,7 @@ void Hexa1FE::Init()
 
 void Hexa1FE::SetCornerCoords()
 {
-  ENTER_FCN( "Hexa1FE::SetCornerCoords" );
+  ENTER_IFCN( "Hexa1FE::SetCornerCoords" );
 
   LCornerCoords_.Resize(Dim_,NumNodes_);
   
@@ -86,7 +86,7 @@ void Hexa1FE::SetCornerCoords()
 void Hexa1FE :: CalcShapeFnc(Vector<Double> & Shape, 
 			     const Vector<Double> & LCoord)
 {
-  ENTER_FCN( "Hexa1FE::CalcShapeFnc" );
+  ENTER_IFCN( "Hexa1FE::CalcShapeFnc" );
 
   Shape.Resize(NumNodes_);
 
@@ -100,7 +100,7 @@ void Hexa1FE :: CalcShapeFnc(Vector<Double> & Shape,
 void Hexa1FE::CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
 				     const Vector<Double> & LCoord)
 {
-  ENTER_FCN( "Hexa1FE::CalcLocalDerivShapeFnc" );
+  ENTER_IFCN( "Hexa1FE::CalcLocalDerivShapeFnc" );
 
   LDeriv.Resize(NumNodes_,Dim_);
 

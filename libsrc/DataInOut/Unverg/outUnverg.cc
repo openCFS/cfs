@@ -11,9 +11,7 @@ namespace CoupledField
 WriteResultsUnverg :: WriteResultsUnverg(const Char * const filename, Boolean withHistory, FileType * const aInFile)
 :WriteResults(filename, withHistory, aInFile)
 {
-#ifdef TRACE
-  (*trace) << "entering WriteResultsUnverg :: WriteResultsUnverg" << std::endl;
-#endif
+  ENTER_FCN( "WriteResultsUnverg::WriteResultsUnverg" );
 
   output = NULL;
   if (!withHistory)
@@ -22,9 +20,7 @@ WriteResultsUnverg :: WriteResultsUnverg(const Char * const filename, Boolean wi
 
 WriteResultsUnverg ::~WriteResultsUnverg()
 {
-#ifdef TRACE
- (*trace) << "entering WriteResultsUnverg :: ~WriteResultsUnverg" << std::endl;
-#endif
+  ENTER_FCN( "WriteResultsUnverg::~WriteResultsUnverg" );
  if (output)
    {
      output->close();
@@ -34,9 +30,7 @@ WriteResultsUnverg ::~WriteResultsUnverg()
 
 void WriteResultsUnverg :: WriteGrid(const Integer level)
 {
-#ifdef TRACE
-  (*trace) << " entering WriteResultsUnverg :: WriteGrid " << std::endl;
-#endif
+  ENTER_FCN( "WriteResultsUnverg::WriteGrid" );
 
  if (!NeedHistory_)
    {    
@@ -318,6 +312,7 @@ void  WriteResultsUnverg::WriteNodeSolution(const NodeStoreSol<Double> & sol,
 					    const std::string title)
 {
 
+  ENTER_FCN( "WriteResultsUnverg::WriteNodeSolution" );
  Integer i,j;
  Integer nrDofs = 1;
  Double help;
@@ -358,9 +353,7 @@ void  WriteResultsUnverg::WriteNodeSolution(const NodeStoreSol<Double> & sol,
 
 void  WriteResultsUnverg::WriteElemSolution(const ElemStoreSol<Double>& sol, const Integer step, const Double time, const std::string title)
 {
-#ifdef TRACE
-  (*trace) << " entering WriteResultsUnverg::WriteElemSolution " << std::endl;
-#endif
+  ENTER_FCN( "WriteResultsUnverg::WriteElemSolution" );
 
   Vector<Double> globalSolution;
   Integer numElems =  ptgrid->GetMaxnumElem(1);
