@@ -283,7 +283,7 @@ namespace CoupledField
 		      }
 
 		    actDescriptor->GetIntegrator()->CalcElementMatrix(ptCoord, elemmat);
-		    
+		   std::cout << "dmat:" << elemmat << std::endl; 
 		    algsys_->SetElementMatrix(elemmat.GetDataPointer(), connect_PDE.GetPointer(), 
 					      connect_PDE.GetSize(), destMat); 
 

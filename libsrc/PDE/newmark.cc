@@ -9,12 +9,12 @@ namespace CoupledField
 {
 
 Newmark :: Newmark(std::string apdename, BaseSystem * algebraicsystem, Integer dofspernode, 
-		   Integer numnode, DampingType adamping)
+		   Integer numnode, Boolean needDampingMatrix)
 :TimeStepping(apdename, algebraicsystem)
 {
   ENTER_FCN( "Newmark::Newmark" );
 
-  damping_ = adamping;
+  damping_ = needDampingMatrix;
 
   alpha_ = 0.0;
   beta_  = 0.25;
@@ -178,7 +178,7 @@ NewmarkEffMass :: NewmarkEffMass(std::string apdename,
 				 BaseSystem * algebraicsystem, 
 				 Integer dofspernode, 
 				 Integer numnode, 
-				 DampingType adamping)
+				 Boolean adamping)
   :TimeStepping(apdename, algebraicsystem)
 { 
   ENTER_FCN( "NewmarkEffMass::NewmarkEffMass" );

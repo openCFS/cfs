@@ -1039,11 +1039,13 @@ void MechPDE :: PostStepStatic(const Integer kstep, const Double asteptime,
 void MechPDE :: InitTimeStepping(const Double dt)
 {
   ENTER_FCN( "MechPDE::InitTimeStepping" );
+  Boolean needsDampingMatrix = FALSE;
+  if (damping_type_) needsDampingMatrix = TRUE;
 
   if (effectiveMass_)  
-    TS_alg_ = new NewmarkEffMass(pdename_, algsys_, 1, numPDENodes_*dofspernode_, damping_type_);
+    TS_alg_ = new NewmarkEffMass(pdename_, algsys_, 1, numPDENodes_*dofspernode_, needsDampingMatrix);
   else
-    TS_alg_ = new Newmark(pdename_, algsys_, 1, numPDENodes_*dofspernode_, damping_type_);
+    TS_alg_ = new Newmark(pdename_, algsys_, 1, numPDENodes_*dofspernode_, needsDampingMatrix);
 
   TS_alg_->Init(matrix_factor_, dt);
 
