@@ -9,6 +9,7 @@ XML/Schemas/CFS_Domain.xsd -text
 XML/Schemas/CFS_IntegRules.xsd -text
 XML/Schemas/CFS_LinearSystem.xsd -text
 XML/Schemas/CFS_Misc.xsd -text
+XML/Schemas/CFS_PDEacoustic.xsd -text
 XML/Schemas/CFS_PDEbasic.xsd -text
 XML/Schemas/CFS_PDEelectrostatic.xsd -text
 XML/Schemas/CFS_PDEmechanic.xsd -text
