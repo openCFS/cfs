@@ -49,6 +49,7 @@ namespace CoupledField
     StdVector<std::string> interfaceTypes;
     StdVector<std::string> interfaceNames;
     StdVector<std::string> stopCritQuantities;
+    StdVector<std::string> neighbourRegions;
     std::string normtype;
     std::string errMsg;
     Double epsilon;
@@ -168,7 +169,10 @@ namespace CoupledField
 	normtype.clear();
 
 	// Quantity for which we are interested in value and l2norm
-	valVec = "", "", quantitiesSorted[iQuant];
+	 attrVec = "", "", "quantity";
+	 valVec = "", "", quantitiesSorted[iQuant];
+
+	String2Enum(quantitiesSorted[iQuant], quantityAux);
 
 	if ( stopCritQuantities.Find(quantitiesSorted[iQuant]) != -1 ) {
 
@@ -180,21 +184,35 @@ namespace CoupledField
 	  keyVec  = "couplingList", "nonLinear", "stopCrit", "l2Norm";
 	  params->Get( keyVec, attrVec, valVec, normtype );
 
+	  // if quantity is elecForceVWP or magForceVWP, get neighbouring region
+	  neighbourRegions.Clear();
+	  if (quantityAux == MAG_FORCE_VWP ||
+	      quantityAux == ELEC_FORCE_VWP) {
+	    keyVec = "couplingList", "coupling", "neighbourRegion";
+	    attrVec = "", "quantity";
+	    valVec = "",  quantitiesSorted[iQuant];
+	    params->GetList(keyVec, attrVec, valVec, neighbourRegions);
+
+	   //  std::cerr << "IterCoupledPDE::InitCoupling: neighbourRegions = " << std::endl;
+// 	    std::cerr << neighbourRegions << std::endl;
+	  }
+
 	}
 	else {
 	  epsilon = -1.0;
 	  normtype = "no";
 	}
-
-	String2Enum(normtype, normTypeAux);
-	String2Enum(interfaceTypesSorted[iQuant], regionTypeAux);
-	String2Enum(quantitiesSorted[iQuant], quantityAux);
+	
+	  String2Enum(normtype, normTypeAux);
+	  String2Enum(interfaceTypesSorted[iQuant], regionTypeAux);
+	  
+	
 
 	// register the interface at the according coupling-object
 	Couplings_[iPDE]->AddInput(quantityAux, 
 				   interfaceNamesSorted[iQuant],
-				   regionTypeAux, level, epsilon,
-				   normTypeAux, Couplings_);
+				   regionTypeAux, neighbourRegions, level, 
+				   epsilon, normTypeAux, Couplings_);
 	norms_.Push_back(1.0);
       }
     }
