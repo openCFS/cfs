@@ -75,6 +75,9 @@ WriteResultsGMV :: WriteResultsGMV(const Char * const filename,
 
 #endif
 
+ // Initialize history files
+ InitHistoryFiles();
+
 }
 
 
@@ -737,7 +740,7 @@ void WriteResultsGMV::WriteNodeSolutionTransient(const NodeStoreSol<Double> & so
 
     // GMV can not visualize tensor data
     if (sol.GetDof(solTypes[iSol]) > 3){
-      errMsg  = "OutGMV::WirteNodeSolutionTransient: GMV can only ";
+      errMsg  = "OutGMV::WriteNodeSolutionTransient: GMV can only ";
       errMsg += "visualize 3 dimensional data.\n Your solution has ";
       errMsg += Info->GenStr(sol.GetDof(solTypes[iSol]));
       errMsg += " degrees of freedom!";
