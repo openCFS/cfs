@@ -272,7 +272,7 @@
           <xsd:element name="value"      type="DT_PosFloat"/>
           <xsd:element name="dynamics"   type="xsd:token" minOccurs="0"
             default="none"/>
-          <xsd:element name="phase"      type="DT_PosFloat" minOccurs="0"
+          <xsd:element name="phase"      type="DT_DegAngle" minOccurs="0"
             default="0"/>
           <xsd:element name="id"         type="xsd:positiveInteger"/>
         </xsd:sequence>
