@@ -90,7 +90,7 @@ clean-dat:
 clean-unverg:
 	@cd $(LIBSRC_DIR)/DataInOut/Unverg && \
 	$(MAKE) clean
-clean-algebraicsys:
+clean-algsys:
 	@cd $(LIBSRC_DIR)/AlgebraicSystem/LinAlg && \
 	$(MAKE) clean
 clean-domain:

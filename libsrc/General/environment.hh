@@ -32,13 +32,9 @@ typedef int Boolean;
 //#define TETRAHEDRA2 11
 //#define HEXAHEDRA1 12
 //#define HEXAHEDRA2 13
+enum ElementType {Triang1, Triang2, Quadrilateral1, Quadrilateral2};
 
 enum IntegrationType {GaussOrder2, GaussOrder3, GaussOrder4, GaussOrder5, GaussOrder7};
-//#define GaussOrder2 1
-//#define GaussOrder3 2
-//#define GaussOrder4 3
-//#define GaussOrder5 4
-//#define GaussOrder7 5
 
 /// for each level of remeshing we create own GridHierarchy with full information about grid
 template <class Dim>

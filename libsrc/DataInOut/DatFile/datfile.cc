@@ -138,27 +138,19 @@ void DatFile:: ReadGeneralAnalChoice(Integer * dataGAnalCh,
   Der1=FALSE; Der2=FALSE;
   Char c=' ';
 
-  mark
-
   Integer j;
   for (j=0; j <2; j++) 
 { 
   TakePos(seek,pos); 
-  mark
-  std::cout << pos << std::endl;
   while (c!='\n')
 {
-  mark
   while (c==' ') { infile.get(c);}
 
-  mark
-   
   if (c=='\n') break;
 
   infile.seekg(-1, ios::cur);
   infile >> buf;
 
-  mark
   if (vp==TransformInNameDf(buf.c_str())) { if (j==0) Der1=TRUE;
                                               else Der2=TRUE; }
   c=' ';
@@ -257,7 +249,10 @@ void DatFile :: ReadCoordinate(Point2D * const InitNodalCo,
  Integer ii;
  Double dummy;
  std::string::size_type pos=0;
+ mark
  TakePos("coordinate",pos);
+ std::cout << pos << std::endl;
+ mark
  infile.seekg(pos,ios::beg);
  for (Integer i=0; i < maxnumNod; i++)
   {
@@ -604,6 +599,8 @@ void DatFile::ReadDirichletBC(Integer * nodes)
   Integer n;
   ReadNumNodesforDirichletBC(n);     
 
+  std::cout << " number nodes for BC " << n << std::endl;
+
   std::string::size_type pos=0;
   TakePos("restraints",pos);
   infile.seekg(pos, ios::beg);
@@ -612,6 +609,7 @@ void DatFile::ReadDirichletBC(Integer * nodes)
   for (i=0; i <n; i++)
     {
          infile >> nodes[i];
+   std::cout << nodes[i] << " ";
          infile.ignore(100,'\n');
     }
 }
@@ -630,15 +628,21 @@ void DatFile::ReadDirichletBC(Vector<Integer> & nodes)
   Integer dummy;
   infile >> dummy >> dummy >> n;
 
+  std::cout << " number of nodse " << n << std::endl;
   nodes.Allocate(n);
  
   TakePos("restraints",pos);
   infile.seekg(pos, ios::beg);
+
+//  std::string buf;
+//  std::getline(infile, buf, '\n');
  
   Integer i;
   for (i=0; i <n; i++)
     {
+         mark
          infile >> nodes[i];
+         std::cout << " node " << nodes[i] << " ";
          infile.ignore(100,'\n');
     }
 }
@@ -1005,28 +1009,45 @@ void DatFile :: ReadNumStepsAndTimeSteps(Integer & numsteps, Double & dt)
 void DatFile::TakePos(const std::string seekexp, std::string::size_type & pos, const std::string reservexp)
 { 
   infile.seekg(pos, ios::beg);
-  std::string buf;
+  std::string buf, buf1;
   std::string::size_type pos1=pos;
   pos=std::string::npos;
 
+  std::cout << "expression for reading" << seekexp ;
+
   while ( pos == std::string::npos & !infile.eof() )
-  { std::getline(infile, buf, '\n');
+  { 
+    std::getline(infile, buf, '\n');
     pos=buf.find(seekexp);
   }
+
   pos=infile.tellg();
+
   std::cout << pos << std::endl;
 
-  std::cout << seekexp << pos << std::endl;
   if (pos==pos_end & reservexp!="") 
   {
-      infile.seekg(pos1, ios::beg);
+      std::cout << " pos " << pos << std::endl;
+      infile.seekg(0, ios::beg);
+      if (infile.eof()) std::cout << " end " << std::endl;
       pos=std::string::npos;
 
-      while ( pos == std::string::npos & !infile.eof() )
+      mark
+      if (pos == std::string::npos) std::cout << " Yes " << std::endl;
+
+      if (!infile.eof()) std::cout << " Yes2 " << std::endl;
+
+      while ( pos == std::string::npos & pos<=pos_end )
       { 
-        std::getline(infile, buf, '\n');
+         std::cout << " Yes1 " << std::endl;
+        mark
+        std::getline(infile, buf1, '\n');
+        std::cout << buf1 << std::endl;
         pos=buf.find(reservexp);
       }
+
+      mark
+
       pos=infile.tellg();
   }
 
@@ -1037,7 +1058,7 @@ void DatFile::TakePos(const std::string seekexp, std::string::size_type & pos, c
                       exit(1);}
 }
 
-// ------------ Take position in file with saving in buf previous std::string -----
+// ------ Take position in file with saving in buf previous std::string -----
  
 void DatFile::TakePos(const std::string seekexp, std::string::size_type & pos, std::string & buf_prev, const std::string reservexp="")
 {

@@ -113,7 +113,18 @@ void  OutResultUnverg::Dataset780(Grid<Point2D> * ptgrid, const Integer level)
    {
      numnodesPerElem=ptgrid->GetNumNodesPerElem(i,level); 
 
-     (*output) << std::setw(10) << i+1 << std::setw(10) << 94 << std::setw(10) << 2 << std::setw(10) << 2 << std::setw(10) << 1 << std::setw(10) << 1 << std::setw(10) << 1 << std::setw(10) << numnodesPerElem << std::endl;
+     (*output) << std::setw(10) << i+1 << std::setw(10);
+
+     switch(numnodesPerElem)
+     {
+       case 3: (*output) << 91 ; break;
+       case 4: (*output) << 94 ; break;
+       case 6: (*output) << 92; break;
+       case 8: (*output) << 95; break;
+       default: Error("Please, put element type according to unverg-format for this number of nodes per element", __FILE__,__LINE__);
+     }
+
+     (*output) << std::setw(10) << 2 << std::setw(10) << 2 << std::setw(10) << 1 << std::setw(10) << 1 << std::setw(10) << 1 << std::setw(10) << numnodesPerElem << std::endl;
 
      numnodesPerElem=ptgrid->GetNumNodesPerElem(i,level);
 

@@ -1,6 +1,5 @@
 #include <fstream>
 #include <iostream>
-//#include <string>
 
 #include <general_head.hh>
 #include <utils_head.hh>
@@ -24,7 +23,8 @@ Driver::Driver(FileType * const aptFileType, Integer anummesh, Material * aptMat
   ptFileType=aptFileType;
 
   ptFileType->ReadNumStepsAndTimeSteps(numsteps, dt0);
-  ptFileType->ReadOutputOptions(SaveDer1, SaveDer2);
+//  ptFileType->ReadOutputOptions(SaveDer1, SaveDer2);
+  SaveDer1=FALSE; SaveDer2=FALSE;
 
   ptgrid=new GridInterfaceCFS<Point2D>(ptFileType);
   ptMaterial=aptMaterial;
@@ -47,8 +47,12 @@ void Driver::SolveNewmarkMethod(OutResultUnverg * ptUnverg)
   for (i=0; i<numsteps; i++) 
     {
       t+=dt0;
+
+      std::cout << "begin of step number " << i << std::endl;
+
       ptAcPDE->SolveNewmarkMethodStatic(t);
   
+      std::cout << i << " " << ptAcPDE->getS().size() << std::endl;
       ptUnverg->Dataset55(" fluid potential", ptAcPDE->getS(), i+1, t);
       if (SaveDer1) 
 	ptUnverg->Dataset55(" fluid potential, 1st deriv., ", ptAcPDE->getS1(), i+1, t); 

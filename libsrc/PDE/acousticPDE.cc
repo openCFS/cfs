@@ -44,9 +44,12 @@ AcousticPDE::AcousticPDE(const Double epsilon, const Double dt0, Grid<Point2D> *
   
   ptWork->SetNodesBoundaryCondition(aptFileType);
   ptWork->SetDirichletBoundaryCondSysMat_PenaltyMethod();
-  
+
+ mark  
+
   size=ptWork->getSize();
- 
+mark
+   
   sol.Resize(size);
   sol_der1.Resize(size);
   sol_der2.Resize(size);
@@ -61,9 +64,9 @@ void AcousticPDE::SolveNewmarkMethodStatic(const Double atime)
    Boolean NeedRestore=FALSE;
    Double valueTF=ptTimeFunc->TimeFuncAtTime(atime,0);
 
-   if (valueTF==0)
-     { NeedRestore=TRUE; ptWork->SetDirichletBoundaryCondZero_Cut();}
-   else
+//   if (valueTF==0)
+//     { NeedRestore=TRUE; ptWork->SetDirichletBoundaryCondZero_Cut();}
+//   else
      ptWork->SetDirichletBoundaryCondRHS_PenaltyMethod(valueTF);
  
    ptWork->CG(100, Jacobi);
@@ -73,7 +76,7 @@ void AcousticPDE::SolveNewmarkMethodStatic(const Double atime)
    ptWork->printAb(debug, title);
 #endif
  
-  if (NeedRestore) ptWork->Restore();
+//  if (NeedRestore) ptWork->Restore();
  
   /// Calculation of derivatives of solution
   Vector<Double> sol_der2_old=sol_der2;
