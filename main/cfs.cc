@@ -17,6 +17,7 @@
 #include "DataInOut/timefunc.hh"
 #include "DataInOut/WriteInfo.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
+#include "ParamIdent/piezoParamIdent.hh"
 
 #ifdef MpCCI
 #include <cci.h>
