@@ -123,6 +123,48 @@ namespace CoupledField
 				const std::string section,
 				const std::string subsection );
 
+    //! Get Double-value for a element with certain attribute
+
+    //! The method will try to find the specified keyword in the parameter tree
+    //! returning the found value as a Double, if the corresponding element
+    //! has an attribute of the specified name which has the specified value.
+    //! The search can be restricted to a certain section and subsection.
+    //! \param key        Keyword
+    //! \param value      Double (output)
+    //! \param attribute  Name of attribute of element
+    //! \param aValue     Value to test attribute's value against
+    //! \param section    Name of a section in which to look for keyword
+    //!                   (optional)
+    //! \param subsection Name of a subsection in which to look for keyword
+    //!                   (optional)
+    void CGet( const std::string key,
+	       Double &value,
+	       const std::string attribute,
+	       const std::string aValue,
+	       const std::string section,
+	       const std::string subsection );
+
+    //! Get Integer-value for a element with certain attribute
+
+    //! The method will try to find the specified keyword in the parameter tree
+    //! returning the found value as a Integer, if the corresponding element
+    //! has an attribute of the specified name which has the specified value.
+    //! The search can be restricted to a certain section and subsection.
+    //! \param key        Keyword
+    //! \param value      Integer (output)
+    //! \param attribute  Name of attribute of element
+    //! \param aValue     Value to test attribute's value against
+    //! \param section    Name of a section in which to look for keyword
+    //!                   (optional)
+    //! \param subsection Name of a subsection in which to look for keyword
+    //!                   (optional)
+    void CGet( const std::string key,
+	       Integer &value,
+	       const std::string attribute,
+	       const std::string aValue,
+	       const std::string section,
+	       const std::string subsection );
+
     //! Get a list of strings matching a keyword
 
     //! The method will try to find the specified keyword in the parameter
