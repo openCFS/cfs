@@ -1840,21 +1840,24 @@ void BasePDE::GetDerivSolVecOfElement(Vector<Double>& sol, StdVector<Integer>& c
 
   // displacement of element nodes
   sol.Resize(dofspernode_ * connecth.GetSize());
+  sol.Init(0);
   Integer eqnNr, eqnDof;
   Integer dofsPerEQN = eqnData_->GetNumDofsPerEQN();
   
-  const Vector<Double> & sol_der1 = getS1();
-
-  for(Integer actNode=0; actNode<connecth.GetSize(); actNode++)
-    for(Integer actDof=0; actDof < dofspernode_; actDof++)
-      {
-	eqnData_->Node2EQN(connecth[actNode],actDof+1,eqnNr,eqnDof);
-	if (eqnNr!= 0)
-	  //sol[actDof + actNode*dofspernode_] = sol_der1[actDof + dofspernode_*(connect_PDE[actNode]-1)];
-	  sol[actDof + actNode*dofspernode_] = sol_der1[eqnDof-1 + dofsPerEQN*(abs(eqnNr-1))];
-	else
-	  sol[actDof + actNode*dofspernode_] = 0.0;
-      }
+  if (analysistype_ == TRANSIENT) {
+    const Vector<Double> & sol_der1 = getS1();
+    
+    for(Integer actNode=0; actNode<connecth.GetSize(); actNode++)
+      for(Integer actDof=0; actDof < dofspernode_; actDof++)
+	{
+	  eqnData_->Node2EQN(connecth[actNode],actDof+1,eqnNr,eqnDof);
+	  if (eqnNr!= 0)
+	    //sol[actDof + actNode*dofspernode_] = sol_der1[actDof + dofspernode_*(connect_PDE[actNode]-1)];
+	    sol[actDof + actNode*dofspernode_] = sol_der1[eqnDof-1 + dofsPerEQN*(abs(eqnNr-1))];
+	  else
+	    sol[actDof + actNode*dofspernode_] = 0.0;
+	}
+  }
 }
 
 void BasePDE::GetDerivSolOfElement(Matrix<Double>& sol, StdVector<Integer>& connect_PDE)

@@ -521,29 +521,6 @@ namespace CoupledField {
     return actRHS.NormL2();
   }
 
-  //   // calculates L2-norm of RHS regarding dirichlet entries due to penalty formulation by setting them 0
-  //   Double MagPDE::RhsL2Norm(Vector<Double>& actRHS)
-  //   {
-  //     ENTER_FCN( "MagPDE::RhsL2Norm" );
-
-  //     Integer node;
-  
-  //     std::list<Integer> nodes;
-
-  //     // Eliminate dirichlet node from RHS (due to penalty formulation)
-  //     for (Integer i=0; i< bcs_hd_.GetSize(); i++)
-  //       {
-  // 	nodes=ptBCs_->GetNodesLevel(bcs_hd_[i]);
-      
-  // 	for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end(); p++)
-  // 	  {
-  // 	    node=*p;
-  // 	    actRHS[mesh2PDENode_[node-1]-1] = 0;
-  // 	  }
-  //       }
-
-  //     return actRHS.NormL2();
-  //   }
 
   void MagPDE::PostStepStatic(const Integer level) {
     ENTER_FCN( "MagPDE::PostStepStatic" );
@@ -1088,6 +1065,37 @@ namespace CoupledField {
 					  nonLin_ );
 	}
       }
+
+      // check, if this subdomain is a permanent magnet
+      for ( Integer perm = 0; perm < magnetsDomain_.GetSize(); perm++ ) {
+	if ( subdoms_[actSD] == magnetsDomain_[perm] ) {
+
+	  if (dim_ ==3)
+	    Error("Permanent magnets for 3D computation not implementes");
+
+	  //change direction of magnetization, so that we can use the
+	  //standard GlobalDerivatives and obtain: (curl w) . M
+	  Vector<Double> magnetization(dim_);
+	  if (isaxi_) {
+	    magnetization[0] = magnetsOriY_[perm];
+	    magnetization[1] = -magnetsOriX_[perm];
+	  }
+	  else {
+	    magnetization[0] = -magnetsOriY_[perm];
+	    magnetization[1] = magnetsOriX_[perm];
+	  }
+	  
+	  std::string fncname = "none";
+	  Boolean nlin = FALSE;
+	  BaseForm *permSource = new MagPerm2DInt(magnetization, 
+						  reluctivity, isaxi_ );	  
+	  assemble_->AddRhsSrcIntegrator( permSource,
+					  subdoms_[actSD],
+					  fncname,
+					  nlin );
+	}
+      }
+
     }
   }
 
@@ -1865,15 +1873,24 @@ namespace CoupledField {
     ENTER_FCN( "MagEdgePDE::ReadMagnets" );
 
     // get domain names of magnets
-    params->GetList( "name", magnetsDomain_, pdename_, "magnets" );
+    //    params->GetList( "name", magnetsDomain_, pdename_, "magnets" );
+  // vectors for parameter handling
+    StdVector<std::string> keyVec;
+    StdVector<std::string> attrVec;
+    StdVector<std::string> valVec;
+
+    keyVec = pdename_, "magnets", "magnet", "name";
+    attrVec = "", "", "";
+    valVec  = "", "", "";
+
+    params->GetList(keyVec, attrVec, valVec, magnetsDomain_);
 
     if ( magnetsDomain_.GetSize() > 0 ) {
 
       Info->PrintF( pdename_,
 		    " Found permanent magnets in the following regions:" );
 
-      Double tmpDir[3];
-
+      Double tmpDir;
 
       // Construct vectors for restricted search parameter
       StdVector<std::string> keyVec;
@@ -1884,23 +1901,23 @@ namespace CoupledField {
       // for each magnet ...
       for ( UInt k = 0; k < magnetsDomain_.GetSize(); k++ ) {
 
-	// ... report name to logfile
-	Info->PrintF( pdename_, " %s", magnetsDomain_[k].c_str() );
-
 	// ... read direction of magnetisation
 	valVec = "", "", magnetsDomain_[k];
 
-	keyVec  = "magnetic", "magnets", "magnet", "orientX";
-	params->Get( keyVec, attrVec, valVec, tmpDir[0] );
-	magnetsOriX_.Push_back( tmpDir[0] );
+	keyVec  = pdename_, "magnets", "magnet", "orientX";
+	params->Get( keyVec, attrVec, valVec, tmpDir);
+	magnetsOriX_.Push_back( tmpDir);
 
-	keyVec  = "magnetic", "magnets", "magnet", "orientY";
-	params->Get( keyVec, attrVec, valVec, tmpDir[0] );
-	magnetsOriY_.Push_back( tmpDir[1] );
+	keyVec  = pdename_, "magnets", "magnet", "orientY";
+	params->Get( keyVec, attrVec, valVec, tmpDir );
+	magnetsOriY_.Push_back( tmpDir );
 
-	keyVec  = "magnetic", "magnets", "magnet", "orientZ";
-	params->Get( keyVec, attrVec, valVec, tmpDir[0] );
-	magnetsOriZ_.Push_back( tmpDir[2] );
+	keyVec  = pdename_, "magnets", "magnet", "orientZ";
+	params->Get( keyVec, attrVec, valVec, tmpDir );
+	magnetsOriZ_.Push_back( tmpDir );
+
+	// ... report name to logfile
+	Info->PrintF( pdename_, "%s", magnetsDomain_[k].c_str());
       }
     }
   }
@@ -2032,6 +2049,193 @@ namespace CoupledField {
   // ======================================================
   // COUPLING SECTION
   // ======================================================
+
+
+void MagPDE::InitCoupling(PDECoupling * Coupling)
+{
+  ENTER_FCN( "MagPDE::InitCoupling" );
+  
+  pdeIsCoupled_ = TRUE;
+  ptCoupling_   = Coupling;
+
+  const Integer numCouplings = ptCoupling_->GetNumOutputCouplings();  
+
+  StdVector<StdVector<Integer> > elemNodeToCouplingNode_tmp;
+  elemNodeToCouplingNode_.Resize(numCouplings);
+
+
+ for (Integer actCoupling=0; actCoupling<numCouplings; actCoupling++)
+    {
+      if (ptCoupling_->GetOutputQuantity(actCoupling) == MAG_FORCE_LORENTZ)
+	{
+	  // Intialize the memory of the coupling values
+	  ptCoupling_->CreateCouplingVector(actCoupling,isComplex_);
+
+	  //get the element-node to coupling node matching
+	  StdVector<std::string> couplRegions;
+	  ptCoupling_->GetOutputRegions(actCoupling, couplRegions);
+
+	  //Get total number of coupling elements
+	  Integer totalCouplingElems = ptgrid_->GetMaxnumElem(actlevel_, couplRegions);;
+
+	  elemNodeToCouplingNode_tmp.Clear();
+	  elemNodeToCouplingNode_tmp.Resize(totalCouplingElems);
+
+	  Integer offset = 0;
+	  for (Integer reg=0; reg<couplRegions.GetSize(); reg++) 
+	    {
+	      //find subdomain index
+	      Integer SDidx=-1; for (Integer sd=0; sd<subdoms_.GetSize(); sd++) 
+		{
+		  if (couplRegions[reg] == subdoms_[sd]) 
+		    {
+		      SDidx = sd;
+		      break;
+		    }
+		}
+	      
+	      if (SDidx==-1)
+		Error("magnetics: Coupling Region is not within the subdomains of the PDE");
+	    
+	      StdVector<Elem*> elemssd;
+	      ptgrid_->GetElemSD(elemssd, subdoms_[SDidx], actlevel_);
+
+	      StdVector<Integer> * couplingnodes;
+	      ptCoupling_->GetOutputNodes(actCoupling, couplingnodes);
+	      if (couplingnodes == 0)
+		Error("magnetics: Couplingnodes = 0!!!!");
+
+	      for (Integer actEl=0; actEl< elemssd.GetSize(); actEl++) 
+		{
+		  StdVector<Integer> connecth = elemssd[actEl]->connect;
+		  elemNodeToCouplingNode_tmp[offset+actEl].Resize(connecth.GetSize());
+
+		  for (Integer ielemnode=0; ielemnode<connecth.GetSize(); ielemnode++)
+		    for (Integer cnode=0; cnode<(*couplingnodes).GetSize(); cnode++)
+		      if (connecth[ielemnode] == (*couplingnodes)[cnode] ) 
+			{
+			  elemNodeToCouplingNode_tmp[offset+actEl][ielemnode] = cnode;
+			  break;
+			} // end if
+		}
+
+	      //in the case, that we have more than one coupling region!
+	      offset = elemssd.GetSize();
+	    }
+
+	  elemNodeToCouplingNode_[actCoupling]  = elemNodeToCouplingNode_tmp;
+	}
+    }
+
+  iterCoupledCounter_ = 0;
+}
+
+void MagPDE::CalcOutputCoupling()
+{
+  ENTER_FCN( "MagPDE::CalcOutputCoupling" );
+
+  SolutionType quantity;
+  StdVector<Integer> * couplingNodes     = NULL;
+  CFSVector * values = 0;
+  Integer forcesCount = 0;
+
+  // loop over all output coupling quantities
+  for (Integer actCoupling=0; actCoupling<ptCoupling_->GetNumOutputCouplings(); actCoupling++)
+    {
+      quantity = ptCoupling_->GetOutputQuantity(actCoupling);
+      ptCoupling_->GetOutputValues(actCoupling, values);
+
+      Vector<Double> * temp = dynamic_cast<Vector<Double> *>(values);
+      
+      switch(ptCoupling_->GetOutputType(actCoupling))
+	{
+	  
+	case NODE:	  
+	  ptCoupling_->GetOutputNodes(actCoupling, couplingNodes);
+	  
+	  if (quantity == MAG_FORCE_LORENTZ) 
+	    {
+	      CalcNodeForceLorentz(*temp, elemNodeToCouplingNode_[forcesCount],
+				   actCoupling, couplingNodes->GetSize());
+	      forcesCount++;;
+	    }
+
+	  break;
+	  
+	case ELEM:
+	  Error("No Element coupling output", __FILE__,__LINE__);
+	}
+    }
+}
+
+void MagPDE::CalcNodeForceLorentz(Vector<Double> & force, 
+				  StdVector<StdVector<Integer> > & elemNodeToCouplingNode,
+				  Integer actCoupling, Integer numCouplingNodes)
+{
+  ENTER_FCN( "MagPDE::CalcNodeForceLorentz" );
+
+  NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double> *>(sol_);
+
+  //get the coupling regions
+  StdVector<std::string> couplRegions;
+  ptCoupling_->GetOutputRegions(actCoupling, couplRegions);
+
+  
+  MagLorentzForceOp * ForceOp = new MagLorentzForceOp(ptgrid_, this, eqnData_, *solhelp, actlevel_, isaxi_);
+   
+  force.Init(0.0);
+
+  Vector<Double> Jeddy;
+
+  Integer offset = 0;
+  for (Integer reg=0; reg<couplRegions.GetSize(); reg++) 
+    {
+      //find subdomain index
+      Integer SDidx=-1; for (Integer sd=0; sd<subdoms_.GetSize(); sd++) 
+	{
+	  if (couplRegions[reg] == subdoms_[sd]) 
+	    {
+	      SDidx = sd;
+	      break;
+	    }
+	}
+
+      Double conductivity = materialData_[SDidx].GetConductivity();      
+      
+      StdVector<Elem*> elemssd;
+      ptgrid_->GetElemSD(elemssd, subdoms_[SDidx], actlevel_);
+  
+      for (Integer actEl=0; actEl< elemssd.GetSize(); actEl++) 
+	{
+	  StdVector<Integer> connecth = elemssd[actEl]->connect;
+	  Matrix<Double> elemForce;
+	  GetDerivSolVecOfElement(Jeddy,connecth);
+	  Jeddy *= -conductivity;
+
+	  ForceOp->CalcElemMagLorentzForce(elemForce, Jeddy, elemssd[actEl]);
+
+	  // Add the element force to the according coupling node
+	  for (Integer ielemnode=0; ielemnode<connecth.GetSize(); ielemnode++)
+	    for( Integer idim=0; idim<dim_; idim++)
+	      force[elemNodeToCouplingNode[actEl+offset][ielemnode]*dim_+idim] += 
+		elemForce[ielemnode][idim];
+	}
+
+      //in the case, that we have more than one coupling region!
+      offset = elemssd.GetSize();
+	  
+    }
+}
+
+Boolean MagPDE::HasOutput(SolutionType output)
+{
+  ENTER_FCN( "MagPDE::HasOutput" );
+
+  if (output == MAG_FORCE_LORENTZ)
+    return TRUE;
+
+  return FALSE;
+}
 
 
 #endif // for #ifndef XMLPARAMS

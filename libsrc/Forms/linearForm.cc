@@ -183,7 +183,7 @@ VolumeSrcInt::VolumeSrcInt(Double aVal, Boolean isaxi)
 
 VolumeSrcInt ::~VolumeSrcInt()
 {
-  ENTER_FCN( "VolumeSrcIntInt::~VolumeSrcInLinearEdgeInt" );
+  ENTER_FCN( "VolumeSrcIntInt::~VolumeSrcInt" );
 }
 
 
@@ -215,6 +215,65 @@ void VolumeSrcInt::CalcElemVector(Matrix<Double>& ptCoord, Vector<Double> & elem
       shapeFnc *= factor;
       elemVec += shapeFnc;
     }
+}
+
+
+
+// =============================================================================
+// permanent magnet in 2D
+// =============================================================================
+
+
+
+MagPerm2DInt::MagPerm2DInt(Vector<Double> vecVal, Double rel, Boolean isaxi)
+  : LinearForm(), perm_(vecVal), reluctivity_(rel)
+{
+  ENTER_FCN( "MagPerm2DInt::VolumeSrcInt" );
+  isaxi_ = isaxi;
+}
+
+
+MagPerm2DInt ::~MagPerm2DInt()
+{
+  ENTER_FCN( "MagPerm2DInt::~MagPerm2DInt" );
+}
+
+
+void MagPerm2DInt::CalcElemVector(Matrix<Double>& ptCoord, Vector<Double> & elemVec)
+{
+  ENTER_FCN( "MagPerm2DInt::CalcElemVector" );
+
+  const Integer nrIntPts = ptelem->GetNumIntPoints();
+  const Integer nrNodes  = ptelem->GetNumNodes();
+  const Vector<Double> & intWeights = ptelem->GetIntWeights();  
+  Vector<Double> ShpFncAtIp, helpVec, CoordAtIP;
+  Matrix<Double> xiDx;
+
+  elemVec.Resize(nrNodes);
+  elemVec.Init(0);  
+  helpVec.Resize(nrNodes);
+  helpVec.Init(0);
+  
+  Double factor;
+  for (Integer actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {     
+
+    Double jacDet = 0;
+    ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord, jacDet);
+
+    if (isaxi_)
+      {
+	ptelem->GetShFncAtIp(ShpFncAtIp,actIntPt);
+	CoordAtIP = ptCoord * ShpFncAtIp;
+	for (Integer i=0; i<nrNodes; i++)
+	    xiDx[i][0] += ShpFncAtIp[i] / CoordAtIP[0];
+	
+	jacDet *= 2 * PI * CoordAtIP[0];
+      }
+
+    helpVec = xiDx * perm_;
+    helpVec *=  intWeights[actIntPt-1] * jacDet * reluctivity_;
+    elemVec += helpVec;
+  }
 }
 
 
