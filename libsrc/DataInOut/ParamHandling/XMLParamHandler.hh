@@ -218,7 +218,8 @@ namespace CoupledField
     //! \name Specialised query methods
     void GetPDEList( StdVector<std::string> &list );
 
-    void GetIterCoupledPDEList( StdVector<std::string> &list);
+    void GetIterCoupledPDEList( StdVector<std::string> &list,
+				const std::string sequenceTag = "");
     
     void GetCoilList( StdVector<std::string> &list,
 		      const std::string pde = "" ,

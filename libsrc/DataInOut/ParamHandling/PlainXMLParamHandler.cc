@@ -454,7 +454,8 @@ namespace CoupledField {
   // =========================================
   //   Return a list of iterative coupled PDEs
   // =========================================
-  void PlainXMLParamHandler::GetIterCoupledPDEList( StdVector<std::string> &list)
+  void PlainXMLParamHandler::GetIterCoupledPDEList( StdVector<std::string> &list,
+						    const std::string sequenceTag)
 					
   {
     ENTER_FCN( "PlainXMLParamHandler::GetIterCoupledPDEList" );

@@ -526,7 +526,8 @@ namespace CoupledField {
   // ===========================================
   //   Return a list of iterative coupled PDEs
   // ===========================================
-  void XMLParamHandler::GetIterCoupledPDEList( StdVector<std::string> &list) {
+  void XMLParamHandler::GetIterCoupledPDEList( StdVector<std::string> &list,
+					       const std::string sequenceTag) {
 
     ENTER_FCN( "XMLParamHandler::GetIterCoupledPDEList" );
     
@@ -545,9 +546,45 @@ namespace CoupledField {
       list.Clear();
     }
 
-    // Find PDE section
+    // Get all coupling sections in the param file
+    DOMNodeList * coupledSections = 
+      rootElem_->getElementsByTagName( C2X("couplingList") );
+    
+    // Pick that coupling section, which matches
+    // the specfifed sequenceTag
+    DOMElement *auxElem = NULL;
+    DOMElement *currentCouplingSec = NULL;
+    Boolean sectionFound = FALSE;
+    
+    for (Integer i=0; i<coupledSections->getLength(); i++) {      
+      auxElem = Node2Elem( coupledSections->item(i) );
+      if (AttribHasValue( auxElem, "tag", sequenceTag, false) ) {
+	// Ensure that only one section matches
+	if (sectionFound == FALSE) {
+	  sectionFound = TRUE;
+	  currentCouplingSec = auxElem;
+	} else {
+	  errmsg  = "Got more than one matching coupling section for tag '";
+	  errmsg += sequenceTag;
+	  errmsg += "'.\n Please correct parameter file!";
+	  Info->Error( errmsg, __FILE__, __LINE__ );
+	}
+      }
+    }
+     
+    // Print error if specified coupling section was not found
+    if (sectionFound == FALSE)
+      {
+	errmsg = "The coupling section with tag '";
+	errmsg += sequenceTag;
+	errmsg += "' was not found in the parameter file!";
+	Info->Error( errmsg, __FILE__, __LINE__ );
+      }
+
+    // Get the iterative coupling section in the current
+    // section of couplings
     DOMNodeList *coupledPDEsec =
-      rootElem_->getElementsByTagName( C2X("iterative") );
+      currentCouplingSec->getElementsByTagName( C2X("iterative") );
 
     // Check that there is only one such section
     if ( coupledPDEsec->getLength() != 1 ) {
@@ -610,7 +647,6 @@ namespace CoupledField {
       }
     }
   }
-
   
   // ======================================
   //   Return a list of the defined coils
