@@ -1,0 +1,63 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org"
+  xmlns:cfs="http://www.cfs++.org"
+  elementFormDefault="qualified">
+
+<xsd:annotation>
+  <xsd:documentation xml:lang="en">
+    Parameter file schema for the OLAS project's driver
+  </xsd:documentation>
+</xsd:annotation>
+
+
+<!-- ********************************************************************** -->
+<!--   Include definition of PDE types and elements from support files -->
+<!-- ********************************************************************** -->
+<xsd:include schemaLocation="CFS_SolverPrecond.xsd"/>
+<xsd:include schemaLocation="CFS_Solvers.xsd"/>
+<xsd:include schemaLocation="CFS_Preconds.xsd"/>
+<xsd:include schemaLocation="CFS_Misc.xsd"/>
+
+
+<!-- ********************************************************************** -->
+<!--   Definition of enclosing main element -->
+<!-- ********************************************************************** -->
+<xsd:element name="olasRun">
+  <xsd:complexType>
+    <xsd:sequence>
+
+      <!-- Description of linear system -->
+      <xsd:element name="linearSystem">
+        <xsd:complexType>
+          <xsd:attribute name="baseName" type="xsd:token" use="required"/>
+          <xsd:attribute name="matType" use="required">
+            <xsd:simpleType>
+              <xsd:restriction base="xsd:token">
+                <xsd:enumeration value="CRSRealDof1"/>
+                <xsd:enumeration value="SCRSRealDof1"/>
+                <xsd:enumeration value="HypreMatrix"/>
+                <xsd:enumeration value="LapackGBMatrix"/>
+              </xsd:restriction>
+            </xsd:simpleType>
+          </xsd:attribute>
+        </xsd:complexType>
+      </xsd:element>
+
+      <!-- Specification of the solver -->
+      <xsd:element ref="solver"/>
+
+      <!-- Optional developer's element -->
+      <xsd:element name="devel" type="xsd:anyType" minOccurs="0"
+         maxOccurs="unbounded"/>
+
+    </xsd:sequence>
+  </xsd:complexType>
+</xsd:element>
+
+<!-- ********************************************************************** -->
+<!--   Definition of element for specifying features of linear system -->
+<!-- ********************************************************************** -->
+
+
+</xsd:schema>
