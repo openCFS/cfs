@@ -342,12 +342,28 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 
 
 	    //for prestressing
-// 	    Double preStressVal = 0;
-// 	    Directions stressDir = X;
-// 	    BaseForm * bilinearPreStress = new PreStressIntAxi(actSDMat, preStressVal, stressDir);
-// 	    IntegratorDescriptor * actIntDescrPre =
-// 	      new IntegratorDescriptor(bilinearPreStress, STIFFNESS);
-// 	    assemble_->AddIntegrator(actIntDescrPre, subdoms_[actSD]);
+	    for ( Integer preStr=0; preStr<preStressDomain_.GetSize(); preStr++ ) {
+	      if ( subdoms_[actSD] == preStressDomain_[preStr]) {
+		Vector<Double> preStrVal(3);
+		preStrVal[0] = preStressValX_[preStr];
+		preStrVal[1] = preStressValY_[preStr];
+		preStrVal[2] = preStressValZ_[preStr];
+
+		BaseForm * bilinearPreStress;
+		if (subType_ == "planeStrain")
+		  bilinearPreStress = new PreStressIntPlaneStrain(actSDMat, preStrVal);
+		else if (subType_ == "axi")
+		  bilinearPreStress = new PreStressIntAxi(actSDMat, preStrVal);
+		else if (subType_ == "3d")
+		  bilinearPreStress = new PreStressInt3D(actSDMat, preStrVal);
+		else 
+		  Info->Error("Unknown subtype in mech PDE! ",__FILE__,__LINE__);		
+
+		IntegratorDescriptor * actIntDescrPre =
+		  new IntegratorDescriptor(bilinearPreStress, STIFFNESS);
+		assemble_->AddIntegrator(actIntDescrPre, subdoms_[actSD]);
+	      }
+	    }
 
 	  }
 
@@ -1672,15 +1688,15 @@ void MechPDE::PostProcess(const Integer level) {
 
 	keyVec  = pdename_, "preStressing", "preStress", "orientX";
 	params->Get( keyVec, attrVec, valVec, tmpDir);
-	preStressOriX_.Push_back( tmpDir);
+	preStressValX_.Push_back( tmpDir);
 
 	keyVec  = pdename_, "preStressing", "preStress", "orientY";
 	params->Get( keyVec, attrVec, valVec, tmpDir );
-	preStressOriY_.Push_back( tmpDir );
+	preStressValY_.Push_back( tmpDir );
 
 	keyVec  = pdename_, "preStressing", "preStress", "orientZ";
 	params->Get( keyVec, attrVec, valVec, tmpDir );
-	preStressOriZ_.Push_back( tmpDir );
+	preStressValZ_.Push_back( tmpDir );
 
 	// ... report name to logfile
 	Info->PrintF( pdename_, "%s", preStressDomain_[k].c_str());

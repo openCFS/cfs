@@ -220,9 +220,9 @@ private:
 
   //!
   StdVector<std::string> preStressDomain_;
-  StdVector<Double> preStressOriX_; //! orientation in x
-  StdVector<Double> preStressOriY_; //! orientation in y
-  StdVector<Double> preStressOriZ_; //! orientation in z
+  StdVector<Double> preStressValX_; //! orientation in x
+  StdVector<Double> preStressValY_; //! orientation in y
+  StdVector<Double> preStressValZ_; //! orientation in z
 
 
   /// value of prestress
