@@ -81,8 +81,7 @@ private:
   std::list<Integer> * bcs_[NUMLEVELGRID];     //!< stores all boundary nodes
   StdVector<Elem*> * bcsEdges_[NUMLEVELGRID]; //!< stores all 1D elements along interfaces
   StdVector<Elem*> * bcsFaces_[NUMLEVELGRID]; //!< stores all 2D elements along interfaces
-  //! color of neighbors elements. it is got from conf-file
-  StdVector<std::string> color_neighelems_;
+  StdVector<std::string> color_neighelems_; //!< color of neighbors elements. it is got from conf-file
   //! array with 2D neighbors elements for 1D;
   StdVector<Elem*> * bcsNeighElems_[NUMLEVELGRID];
   
