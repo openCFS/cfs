@@ -37,6 +37,9 @@ public:
   //! Initialize NonLinearities
   virtual void InitNonLin();
 
+  //! read special boundary conditions (coils, magnets)
+  virtual void ReadSpecialBCs();
+
   //! define all (bilinearform) integrators needed for this pde
   virtual void DefineIntegrators(const Integer level);
 
