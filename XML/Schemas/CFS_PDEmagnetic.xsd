@@ -311,12 +311,14 @@
 
   <!-- Element for specifying flow direction (rotational) -->
   <xsd:complexType name="DT_Rotational">
-    <xsd:attribute name="midPointX" type="xsd:float"/>
-    <xsd:attribute name="midPointY" type="xsd:float"/>
-    <xsd:attribute name="midPointZ" type="xsd:float"/>
-    <xsd:attribute name="orientX"   type="xsd:float"/>
-    <xsd:attribute name="orientY"   type="xsd:float"/>
-    <xsd:attribute name="orientZ"   type="xsd:float"/>
+    <xsd:sequence>
+      <xsd:element name="midPointX" type="xsd:float"/>
+      <xsd:element name="midPointY" type="xsd:float"/>
+      <xsd:element name="midPointZ" type="xsd:float"/>
+      <xsd:element name="orientX"   type="xsd:float"/>
+      <xsd:element name="orientY"   type="xsd:float"/>
+      <xsd:element name="orientZ"   type="xsd:float"/>
+    </xsd:sequence>
   </xsd:complexType>
 
   <!-- This element is abstract in order to force substitution -->
