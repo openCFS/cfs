@@ -32,11 +32,11 @@
        performing a transient analysis -->
   <xsd:complexType name="DT_Transient">
     <xsd:sequence>
-      <xsd:element name="numsteps" type="xsd:int"/>
-      <xsd:element name="firstdt" type="xsd:double"/>
-      <xsd:element name="stepsavebeg" type="xsd:int"/>
-      <xsd:element name="stepsaveend" type="xsd:int"/>
-      <xsd:element name="stepsaveinc" type="xsd:int"/>
+      <xsd:element name="numsteps" type="xsd:nonNegativeInteger"/>
+      <xsd:element name="firstdt" type="DT_PosFloat"/>
+      <xsd:element name="stepsavebeg" type="xsd:nonNegativeInteger"/>
+      <xsd:element name="stepsaveend" type="xsd:nonNegativeInteger"/>
+      <xsd:element name="stepsaveinc" type="xsd:nonNegativeInteger"/>
       <xsd:element name="timeDataFile" minOccurs="1" maxOccurs="unbounded">
         <xsd:complexType>
           <xsd:complexContent>
