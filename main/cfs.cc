@@ -187,10 +187,11 @@ int main(int argc, char *argv[])
       ptdriver = new TransientDriver(domain);
       break;
     case HARMONIC:
-      if (analysis == "paramIdent")
-        ptdriver = new piezoParamIdent(domain);  // calls Driver for parameter identification, using harmonic analysis
-      else
-        ptdriver = new HarmonicDriver(domain);
+      // if (analysis == "paramIdent")
+      // calls Driver for parameter identification, using harmonic analysis
+      // ptdriver = new piezoParamIdent(domain);
+      // else
+      ptdriver = new HarmonicDriver(domain);
       break;
     case MULTI_SEQUENCE:
       ptdriver = new MultiSequenceDriver(domain);
