@@ -34,7 +34,7 @@ void Quad2FE :: Init()
   SetShapeFncAtIp();
   SetShapeFncDerivAtIp();  
 }
-
+// Should be called SetNodalCoords!!
 void Quad2FE :: SetCornerCoords()
 {
 #ifdef TRACE
@@ -60,7 +60,6 @@ void Quad2FE :: SetCornerCoords()
   LCornerCoords_[1][6] =  1;
   LCornerCoords_[0][7] = -1;
   LCornerCoords_[1][7] =  0;
-
 
 }
 
@@ -128,6 +127,7 @@ void Quad2FE :: CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv,
       LDeriv[i+1][1] = -LCoord[1]*
 	               (1 + LCornerCoords_[0][i+1] * LCoord[0]);
     }
+
 }
 
 

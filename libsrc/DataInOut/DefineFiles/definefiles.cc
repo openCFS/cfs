@@ -82,6 +82,9 @@ delete [] filename;
 #ifdef TRACE
  delete trace;
 #endif
+
+ delete flags;
+
 }
 
 FileType * DefineInOutFiles :: Create_ptFileType()

@@ -21,10 +21,13 @@ namespace CoupledField
   BaseFE * ptQ2   = NULL;
   BaseFE * ptTet = NULL;
   BaseFE * ptL1 = NULL;
+  BaseFE * ptL2 = NULL;
   BaseFE * ptTr1 = NULL;
+  BaseFE * ptTr2 = NULL;
   BaseFE * ptHexa=NULL;
   BaseFE * ptPyra=NULL;
-  
+  BaseFE * ptWedge=NULL;
+
    WriteInfo * Info = NULL;
   
   std::ostream & operator << (std::ostream & out, const enum precond & type)

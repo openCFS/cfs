@@ -63,7 +63,7 @@ void Triangle1FE :: CalcShapeFnc(std::vector<Double> & Shape,
   Shape[0] = 1.0 - LCoord[0] - LCoord[1];
 
   if (Shape[0] < 0)
-    Error("Local coordinates are not inside tetrahedral element!",__FILE__,__LINE__);
+    Error("Local coordinates are not inside triangular element!",__FILE__,__LINE__);
 
   for( Integer i=1; i<NumNodes_; i++)
     Shape[i] = LCoord[i-1];

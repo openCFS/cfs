@@ -27,14 +27,11 @@ WriteResultsGMV :: WriteResultsGMV(const Char * const filename, Boolean withHist
 
  system(S);
 
+ currstep_=0;
  output=NULL;
- OpenFile(0);
-
- if (!output)
-   Error(" File for output results in .gmv-format ", __FILE__, __LINE__);
 
  ptgrid=NULL;
- currstep_=0;
+
 
  ascii_=FALSE;
 
@@ -44,6 +41,25 @@ WriteResultsGMV :: WriteResultsGMV(const Char * const filename, Boolean withHist
      ascii_=FALSE;
    else ascii_=TRUE;
  }
+ 
+ std::string flag;
+ if (conf->ifget("fixed_grid",flag)) 
+   {
+   if (flag == "no")
+     {
+       fixedgrid_=FALSE;
+       OpenFile(0);   
+     }
+   else
+     { 
+       fixedgrid_=TRUE;
+       OpenFile(-1);
+
+     }
+   }
+ if (!output)
+    Error(" File for output results in .gmv-format ", __FILE__, __LINE__);
+
 }
 
 WriteResultsGMV ::~WriteResultsGMV()
@@ -63,7 +79,7 @@ WriteResultsGMV ::~WriteResultsGMV()
 
 void WriteResultsGMV :: WriteHeader()
 {
- (*output) << "gmvinput";
+  (*output) << "gmvinput";
  if (ascii_) (*output) << " ascii" << std::endl;
  else (*output) << "ieeei4r8";
 
@@ -155,7 +171,7 @@ void WriteResultsGMV::WriteCells(const Integer alevel)
   Vector<Integer> connect;
 
   Integer dim=ptgrid->GetDim();
-
+  
   Integer i;
   for (i=0; i<numelem; i++)
     {
@@ -166,14 +182,14 @@ void WriteResultsGMV::WriteCells(const Integer alevel)
 	{
 	  switch (connect.size())
 	    {
-	    case 2:
-	      if (ascii_)
-		(*output) << "line 2" << std::endl;
-	      else {
-		(*output) << "line    ";
-		Integer nn=2;
-		output->write((char*)&nn,sizeof(Integer));
-	      }
+// 	    case 2:
+// 	      if (ascii_)
+// 		(*output) << "line 2" << std::endl;
+// 	      else {
+// 		(*output) << "line    ";
+// 		Integer nn=2;
+// 		output->write((char*)&nn,sizeof(Integer));
+// 	      }
 	    case 3: 
 	      if (ascii_)
 		(*output) << "tri 3" << std::endl;
@@ -192,12 +208,21 @@ void WriteResultsGMV::WriteCells(const Integer alevel)
 		output->write((char*)&nn,sizeof(Integer));
 	      }
 	      break;
-	    case 9:
+	    case 6: 
 	      if (ascii_)
-		(*output) << "quad 9" << std::endl;
+		(*output) << "6tri 6" << std::endl;
 	      else {
-		(*output) << "quad    ";
-		Integer nn=9;
+		(*output) << "6tri    ";
+		Integer nn=6;
+		output->write((char*)&nn,sizeof(Integer));
+	      }
+	      break;
+	    case 8:
+	      if (ascii_)
+		(*output) << "8quad 8" << std::endl;
+	      else {
+		(*output) << "8quad   ";
+		Integer nn=8;
 		output->write((char*)&nn,sizeof(Integer));
 	      }
 	      break;
@@ -220,10 +245,19 @@ void WriteResultsGMV::WriteCells(const Integer alevel)
 	      break;
 	    case 5:
 	      if (ascii_)
-		(*output) << "pyramid 5" << std::endl;
+		(*output) << "ppyrmd5 5" << std::endl;
 	      else {
-		(*output) << "pyramid     ";
+		(*output) << "ppyrmd5 ";
 		Integer nn=5;
+		output->write((char*)&nn,sizeof(Integer));
+	      }
+	      break;
+	    case 6:
+	      if (ascii_)
+		(*output) << "pprism6 6" << std::endl;
+	      else {
+		(*output) << "pprism6 ";
+		Integer nn=6;
 		output->write((char*)&nn,sizeof(Integer));
 	      }
 	      break;
@@ -246,24 +280,12 @@ void WriteResultsGMV::WriteCells(const Integer alevel)
       if (ascii_) 
 	{
 	  Integer j;
-	  // For pyramids since order is different for gmv as for CFS++
-	  if (connect.size()==5) 
-	    {
-	    (*output) << " " << connect[connect.size()-1] ;
-	  for (j=0; j< (connect.size()-1); j++)
-	    (*output) << " " << connect[j] ;	  
-	    }
-	  else
-	    {
-	      for (j=0; j< connect.size(); j++)
-		(*output) << " " << connect[j] ;
-	    }
-	  
+	  for (j=0; j< connect.size(); j++)
+	    (*output) << " " << connect[j] ;
 	  (*output) << std::endl;
 	}
       else 
 	{
-	  // Still need to do correction for order with pyramids
 	  Integer * ptcon=connect.get();
 	  Integer len=connect.size();
 	  output->write((char*)ptcon,len * sizeof(Integer));
@@ -335,12 +357,19 @@ void WriteResultsGMV::WriteVelocity(const Vector<Double> *  var, const std::stri
   }
 }
 
+
+
 void WriteResultsGMV::WriteGrid(const Integer level)
 {
- WriteHeader();
- WriteNodes(level);
- WriteCells(level);
+  WriteHeader();
+  WriteNodes(level);
+  WriteCells(level);
+  if (fixedgrid_)
+    OpenFile(0);
 }
+
+
+
 
 
 void WriteResultsGMV::WriteNodeSolution(const Array<Double>& sol, const Integer step, const Double time, const std::string title)
@@ -378,28 +407,63 @@ void WriteResultsGMV::WriteNodeSolution(const Array<Double>& sol, const Integer 
                   // 1 - for node
                   // 2 - for face data
 
-  if (step!=currstep_) {
-    OpenFile(step);
-
-    WriteGrid(ptgrid->GetLastLevel());
+  static Integer flagGrid=0;
+  if (flagGrid==0 && fixedgrid_) {
+    WriteGrid(ptgrid->GetLastLevel());   
+    flagGrid++;
   }
-
-  for (i=0; i< sol.dim(); i++)
+  
+  if (step!=currstep_)
     {
-      char nrStr[10];
-      sprintf(nrStr,"%i",i+1);
-      std::string sumString = title + nrStr;
-      
-      WriteNodeVariable(sol[i], sumString , type);
+    OpenFile(step);
+    if (!fixedgrid_)
+      {
+	WriteGrid(ptgrid->GetLastLevel());   
+      }
     }
   
+    if (fixedgrid_)
+      {
+	WriteHeader();
 
-  if (ascii_)
-    (*output) << "probtime " << time << std::endl;
-  else {
-    (*output) << "probtime";
-    output->write((char*)&time,sizeof(Double));
-  }
+	Char * name=new Char[80];
+	strcpy(name,"");
+	strcat(name,namefile_);
+	strcat(name,"_GRID.gmv");
+	
+	if (ascii_)
+	  (*output) << "nodev fromfile \"" << name <<"\""<< std::endl;
+	else 
+	  (*output) << "nodev   fromfile\"" << name <<"\"";
+
+	
+	if (ascii_)
+	  (*output) << "cells fromfile \"" << name <<"\""<< std::endl;
+	else 
+	  (*output) << "cells   fromfile\"" << name <<"\"";
+
+	delete [] name;
+      }
+
+
+      for (i=0; i< sol.dim(); i++)
+	{
+	  char nrStr[10];
+	  sprintf(nrStr,"%i",i+1);
+	  std::string sumString = title + nrStr;
+	  
+	  WriteNodeVariable(sol[i], sumString , type);
+	}
+      
+      
+      if (ascii_)
+	(*output) << "probtime " << time << std::endl;
+      else {
+	(*output) << "probtime";
+	output->write((char*)&time,sizeof(Double));
+      }
+      //}
+  
 
   currstep_=step;
 }
@@ -416,9 +480,9 @@ void WriteResultsGMV::WriteElemSolution(const Array<Double>& data, const Integer
                  // 2 - for face data
  Integer i = 0;
 
- if (step!=currstep_) {
-   Error("You should write solution of this step before printing some cell data",__FILE__,__LINE__);
- }
+   if (step!=(currstep_)) {
+     Error("You should write solution of this step before printing some cell data",__FILE__,__LINE__);
+   }
 
   for (i=0; i<data.dim(); i++)
     {
@@ -482,6 +546,41 @@ void WriteResultsGMV::WriteElemSolution(const Array<Double>& data, const Integer
   
 // }
 
+// void WriteResultsGMV::OpenFile(const Integer num)
+// {
+//    Char * name=new Char[80];
+//    Char * aux=new Char[2];
+//    sprintf(aux,"%i",num);
+
+//    strcpy(name,namedir_);
+//    strcat(name,"/");
+//    strcat(name,namefile_);
+//    if (num/10 < 1) strcat(name,".gmv00");
+//      else if (num/100 < 1) strcat(name,".gmv0");
+//        else strcat(name,".gmv");
+
+//    strcat(name,aux);
+//    if (output) {
+//      if (ascii_)
+//        (*output) << "endgmv " << std::endl; 
+//      else
+//        (*output) << "endgmv  ";
+
+//      delete output;
+//    }
+
+//    // check what kind of data for input
+//    std::string typedata;
+
+//    if (ascii_)
+//      output=new std::ofstream(name);
+//    else
+//      output=new std::ofstream(name,std::ofstream::binary);
+
+//    delete [] name;
+//    delete [] aux;
+// }
+
 void WriteResultsGMV::OpenFile(const Integer num)
 {
    Char * name=new Char[80];
@@ -491,19 +590,31 @@ void WriteResultsGMV::OpenFile(const Integer num)
    strcpy(name,namedir_);
    strcat(name,"/");
    strcat(name,namefile_);
-   if (num/10 < 1) strcat(name,".gmv00");
-     else if (num/100 < 1) strcat(name,".gmv0");
+   if (num==-1)
+     {
+       strcat(name,"_GRID.gmv");
+     }
+   else
+     {
+       if (num/10 < 1) strcat(name,".gmv00");
+       else if (num/100 < 1) strcat(name,".gmv0");
        else strcat(name,".gmv");
-
-   strcat(name,aux);
+       strcat(name,aux);
+     }
+   
    if (output) {
-     if (ascii_)
+   if (num!=-1)
+     {
+       if (ascii_)
        (*output) << "endgmv " << std::endl; 
-     else
-       (*output) << "endgmv  ";
-
+       else
+	 (*output) << "endgmv  ";
+     }
+   
      delete output;
    }
+
+
 
    // check what kind of data for input
    std::string typedata;

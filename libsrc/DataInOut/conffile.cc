@@ -438,10 +438,8 @@ std::string::size_type ConfFile::getpos(const std::string keyword,
   std::string buf;
   bool nextSectionReached = FALSE;
 
-  if (startpos == std::string::npos)
-    return std::string::npos;
-
   infile.clear();
+
   infile.seekg(startpos, std::ios::beg);
  
   while ( pos == std::string::npos && !infile.eof() )
@@ -574,7 +572,6 @@ void ConfFile::getsubdom(std::vector<std::string> & subdoms)
  pos=getpos("list_subdomains");
  infile.seekg(pos,std::ios::beg);
  infile.ignore(100,'\n');
-
  subdoms.resize(nsubds);
 
  Integer i;
@@ -583,6 +580,7 @@ void ConfFile::getsubdom(std::vector<std::string> & subdoms)
    infile >> subdoms[i];
    allSubDomains_.push_back(subdoms[i]);
    infile.ignore(100,'\n');
+
  }
 }
 

@@ -2,7 +2,6 @@
 #define FILE_TIMEFUNC_2001
 
 #include "filetype.hh"
-#include <list>
 
 namespace CoupledField
 {
@@ -34,7 +33,7 @@ public:
     //! return the number of time functions
     Integer GetmaxTimeFnc() 
     {
-      return maxnumTF_;
+      return maxnumTimeFunc_;
     }
 
 private:
@@ -42,23 +41,49 @@ private:
     //! pointer to input file. needed only for {\tt datfile}.
     FileType * ptFileType;
 
+    //! read time func from dat-file
+    void ReadTimeFunc(const std::string nametf);
+
     //! read time functions from different dat-file
     void ReadTimeFuncs();
- 
+
+    //! read time func old style (needs header line with func nr & nr of entries)
+    void ReadTimeFuncOldType(const std::string nametf);
+    
+    //! value of time func through interpolation values from data-file
+    Double ValTimeFuncDatFile(const Double time, const std::string fncname);
+
     //! 
-    Integer maxnumTF_; //<! number of time functions
+    Integer maxnumTimeFunc_;
 
     //!
-    std::list<Double> * timeTF_; //<! time 
+    Integer * maxvalTimeFunc;
 
     //!
-    std::list<Double> * valTF_; //!< val
+    Double ** timeTimeFunc;
+
+    //!
+    Double ** valTimeFunc;
+
+    //!
+    Boolean timeFncDatFile_;
+
+    //!
+    Boolean timeFncDatFiles_;
 
     //!
     std::vector<std::string> fnc_names_;
 
     //!
-    Boolean timeFncDatFiles_;
+    Integer argTimeFnc;
+
+    //!
+    pfn1var ptTimeFnc;
+
+    //! interval of time func 
+    Double intervalTF_a;
+    Double intervalTF_b;
+
 };
 } // end of namespace
 #endif

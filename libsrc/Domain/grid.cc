@@ -21,9 +21,12 @@ Grid::Grid(FileType * aptFileType)
   ptQ2   = new Quad2FE();
   ptTet = new Tetra1FE();
   ptL1  = new Line1FE();
+  ptL2  = new Line2FE();
   ptTr1 = new Triangle1FE();
+  ptTr2 = new Triangle2FE();
   ptHexa = new Hexa1FE();
   ptPyra = new Pyra1FE();
+  ptWedge = new Wedge1FE();
 
   lastlevel_=0;
 
@@ -43,17 +46,23 @@ void Grid::SetIntTypeAllElems(IntegrationType aIntType)
   ptQ2   -> SetIntegrationType(aIntType);
   ptTet -> SetIntegrationType(aIntType);
   ptL1  -> SetIntegrationType(aIntType);
+  ptL2  -> SetIntegrationType(aIntType);
   ptTr1 -> SetIntegrationType(aIntType);
+  ptTr2 -> SetIntegrationType(aIntType);
   ptHexa-> SetIntegrationType(aIntType);
   ptPyra-> SetIntegrationType(aIntType);
+  ptWedge-> SetIntegrationType(aIntType);
 
   ptQ   ->Init();
   ptQ2   ->Init();
   ptTet ->Init();
   ptL1  ->Init();
+  ptL2  ->Init();
   ptTr1 -> Init();
+  ptTr2 -> Init();
   ptHexa-> Init();
   ptPyra-> Init();
+  ptWedge-> Init();
 
 }
 
@@ -67,12 +76,12 @@ Grid::~Grid()
  if (ptQ2)   delete ptQ2;
  if (ptTet) delete ptTet;
  if (ptL1)  delete ptL1;
+ if (ptL2)  delete ptL2;
  if (ptTr1)  delete ptTr1;
-
-//  if (ptTr) delete ptTr;
-//  if (ptL1) delete ptL1;
+ if (ptTr2)  delete ptTr2;
  if (ptHexa) delete ptHexa;
  if (ptPyra) delete ptPyra;
+ if (ptWedge) delete ptWedge;
 
 }
 

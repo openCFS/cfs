@@ -124,8 +124,12 @@ namespace CoupledField
     ptQ   = new Quad1FE();
     ptTet = new Tetra1FE();
     ptL1  = new Line1FE();
+    ptL2  = new Line2FE();
     ptTr1 = new Triangle1FE();
+    ptTr2 = new Triangle2FE();
     ptHexa = new Hexa1FE();
+    ptPyra = new Pyra1FE();
+    ptWedge = new Wedge1FE();
     // now we can delete conf-object already
     delete conf;
 
