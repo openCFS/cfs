@@ -246,6 +246,7 @@ void AcouFlowNoise::ComputeRHS(const Double atime)
 
       // Ramping before adding to RHS vector
       Matrix<Double> ptCoordNodes;
+      connecth.Resize(1);
       connecth[0] = node;
       ptgrid_->GetCoordNodesElemMat(connecth,  ptCoordNodes, level);	  
 
