@@ -245,9 +245,12 @@ namespace CoupledField
     //! defined in the parameter file. The list is returned as a vector of
     //! standard strings. The method will return an empty vector, if there are
     //! no matches. By specifying the optional pde input parameter the search
-    //! can be restricted to a certain PDE entry in the pdeList section.
+    //! can be restricted to a certain PDE entry in the pdeList section and
+    //! with the additional sequenceTag it can be restricted to a certain step
+    //! in a multiSequence.
     void GetCoilList( StdVector<std::string> &list,
-		      const std::string pde ="" );
+		      const std::string pde ="",
+		      const std::string sequenceTag = "");
 
     //! Obtain the type of a certain coils
 
