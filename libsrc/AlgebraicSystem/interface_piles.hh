@@ -139,7 +139,7 @@ public:
   virtual void AddRHS(Double addval, Integer pos, Integer sys_id)
   {
     sys_id++;
-    algsys->AddRHS(addval,pos,sys_id);
+//    algsys->AddRHS(addval,pos,sys_id);
   }
 
 
