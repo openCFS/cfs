@@ -21,191 +21,197 @@ namespace CoupledField
 {
 
 
-  /// additional information for every integrator
-class BaseIntDescriptor
-{
-public:
-  /// constructor
-  BaseIntDescriptor();
+  //! additional information for every integrator
+  class BaseIntDescriptor {
+
+  public:
+
+    /// constructor
+    BaseIntDescriptor();
       
-  /// constructor
-  BaseIntDescriptor(BaseForm * aIntegrator, const Boolean aNonLin=FALSE);
+    /// constructor
+    BaseIntDescriptor(BaseForm * aIntegrator, const Boolean aNonLin=FALSE);
   
-  /// destructor
-  virtual ~BaseIntDescriptor();
+    /// destructor
+    virtual ~BaseIntDescriptor();
   
-  /// is the integrator nonlinear?
-  Boolean IsNonLin() {return nonLin;};
+    /// is the integrator nonlinear?
+    Boolean IsNonLin() {return nonLin;};
   
-  /// returns the integrator
-  BaseForm * GetIntegrator(){return integrator;};
-  
-  
-protected:
-  /// pointer to integrator
-  BaseForm * integrator;
-  
-  /// is the integrator a nonlinear one?
-  Boolean nonLin;
-};
-  
-  
+    /// returns the integrator
+    BaseForm * GetIntegrator(){return integrator;};
 
+  protected:
+
+    /// pointer to integrator
+    BaseForm * integrator;
+  
+    /// is the integrator a nonlinear one?
+    Boolean nonLin;
+  };
+  
 
   /// additional information for every integrator
-class IntegratorDescriptor : public BaseIntDescriptor
-    {
-    public:
-      /// constructor
-      IntegratorDescriptor();
+  class IntegratorDescriptor : public BaseIntDescriptor {
+
+  public:
+
+    /// constructor
+    IntegratorDescriptor();
 
 #ifdef USE_OLAS      
-      /// constructor
-      IntegratorDescriptor(BaseForm * aIntegrator, FEMatrixType aDestMat, const Boolean aNonLin=FALSE);
+    /// constructor
+    IntegratorDescriptor(BaseForm * aIntegrator, FEMatrixType aDestMat,
+			 const Boolean aNonLin=FALSE);
 #else
-      /// constructor
-      IntegratorDescriptor(BaseForm * aIntegrator,  enum MatrixType aDestMat, const Boolean aNonLin=FALSE);
+    /// constructor
+    IntegratorDescriptor(BaseForm * aIntegrator,  enum MatrixType aDestMat,
+			 const Boolean aNonLin=FALSE);
 #endif
       
-      /// destructor
-      virtual ~IntegratorDescriptor();
+    /// destructor
+    virtual ~IntegratorDescriptor();
       
 #ifdef USE_OLAS
-      /// returns the destination matrix
-      FEMatrixType DestMat() {return destinationMatrix;}; 
+    /// returns the destination matrix
+    FEMatrixType DestMat() {return destinationMatrix;}; 
 #else
-      /// returns the destination matrix
-      MatrixType DestMat() {return destinationMatrix;};
+    /// returns the destination matrix
+    MatrixType DestMat() {return destinationMatrix;};
 #endif
 
 
 #ifdef USE_OLAS
-      /// sets the destination matrix
-      void SetDestMat(FEMatrixType destMat)
-      {destinationMatrix = destMat;};
+    /// sets the destination matrix
+    void SetDestMat(FEMatrixType destMat)
+    {destinationMatrix = destMat;};
 #else
-      /// sets the destination matrix
-      void SetDestMat(enum MatrixType destMat)
-      {destinationMatrix = destMat;};
+    /// sets the destination matrix
+    void SetDestMat(enum MatrixType destMat)
+    {destinationMatrix = destMat;};
 #endif
  
 #ifdef USE_OLAS
-      /// defines a secondary destination for the calculated element marices of an integrator      
-      void SetSecondaryMat(FEMatrixType aSecMat, Double aSecMatFac, AnalysisType analysisType);
+    /// defines a secondary destination for the calculated element marices of an integrator      
+    void SetSecondaryMat(FEMatrixType aSecMat, Double aSecMatFac,
+			 AnalysisType analysisType);
 
 #else
-      /// defines a secondary destination for the calculated element marices of an integrator      
-      void SetSecondaryMat(enum MatrixType aSecMat, Double aSecMatFac, AnalysisType analysisType);
+    /// defines a secondary destination for the calculated element marices of an integrator      
+    void SetSecondaryMat(enum MatrixType aSecMat, Double aSecMatFac,
+			 AnalysisType analysisType);
 #endif
 
 #ifdef USE_OLAS
-      // returns matrix type of the secondary matrix (if there is any, otherwise NOTYPE=0)
-      FEMatrixType GetSecondaryMat() const {return secondaryMatrix;} 
+    // returns matrix type of the secondary matrix (if there is any, otherwise NOTYPE=0)
+    FEMatrixType GetSecondaryMat() const {return secondaryMatrix;} 
 #else
-      /// returns matrix type of the secondary matrix (if there is any, otherwise NOTYPE=0)
-      MatrixType GetSecondaryMat() const {return secondaryMatrix;} 
+    /// returns matrix type of the secondary matrix (if there is any, otherwise NOTYPE=0)
+    MatrixType GetSecondaryMat() const {return secondaryMatrix;} 
 #endif
 
-      /// returns matrix type of the secondary matrix (if there is any, otherwise NOTYPE=0)
-      Double GetSecMatFac() const {return secMatFac;} 
+    /// returns matrix type of the secondary matrix (if there is any, otherwise NOTYPE=0)
+    Double GetSecMatFac() const {return secMatFac;} 
       
 #ifdef USE_OLAS  
-      void SetOrigMatrixType(FEMatrixType matType)
-      {origMatrixType_ = matType;};
+    void SetOrigMatrixType(FEMatrixType matType)
+    {origMatrixType_ = matType;};
 
-      FEMatrixType GetOrigMatrixType()
-      {return origMatrixType_;};
+    FEMatrixType GetOrigMatrixType()
+    {return origMatrixType_;};
 
-      void SetOrigSecMatrixType(FEMatrixType matType)
-      {origSecondMatrixType_ = matType;};
+    void SetOrigSecMatrixType(FEMatrixType matType)
+    {origSecondMatrixType_ = matType;};
 
-      FEMatrixType GetOrigSecMatrixType()
-      {return origSecondMatrixType_;};
+    FEMatrixType GetOrigSecMatrixType()
+    {return origSecondMatrixType_;};
 
 #else
-      void SetOrigMatrixType(MatrixType matType)
-      {origMatrixType_ = matType;};
+    void SetOrigMatrixType(MatrixType matType)
+    {origMatrixType_ = matType;};
 
-      MatrixType GetOrigMatrixType()
-      {return origMatrixType_;};
+    MatrixType GetOrigMatrixType()
+    {return origMatrixType_;};
 
-      void SetOrigSecMatrixType(MatrixType matType)
-      {origSecondMatrixType_ = matType;};
+    void SetOrigSecMatrixType(MatrixType matType)
+    {origSecondMatrixType_ = matType;};
 
-      MatrixType GetOrigSecMatrixType()
-      {return origSecondMatrixType_;};
+    MatrixType GetOrigSecMatrixType()
+    {return origSecondMatrixType_;};
 #endif
       
-    private:
+  private:
 
 #ifdef USE_OLAS      
-      /// holds the destination matrix
-      FEMatrixType destinationMatrix;
+    /// holds the destination matrix
+    FEMatrixType destinationMatrix;
 
-      /// holds the secondary destination matrix
-      FEMatrixType secondaryMatrix;
+    /// holds the secondary destination matrix
+    FEMatrixType secondaryMatrix;
 
-      //! hold the original matrix types (just used in harmonic analysis!!)
-      FEMatrixType origMatrixType_;
+    //! hold the original matrix types (just used in harmonic analysis!!)
+    FEMatrixType origMatrixType_;
 
-      //! hold the original secondary matrix types (just used in harmonic analysis!!)
-      FEMatrixType origSecondMatrixType_;
+    //! hold the original secondary matrix types (just used in harmonic analysis!!)
+    FEMatrixType origSecondMatrixType_;
 #else
-      /// holds the destination matrix
-      enum MatrixType destinationMatrix;
+    /// holds the destination matrix
+    enum MatrixType destinationMatrix;
 
-      /// holds the secondary destination matrix
-      enum MatrixType secondaryMatrix;
+    /// holds the secondary destination matrix
+    enum MatrixType secondaryMatrix;
 
-      //! hold the original matrix types (just used in harmonic analysis!!)
-      MatrixType origMatrixType_;
+    //! hold the original matrix types (just used in harmonic analysis!!)
+    MatrixType origMatrixType_;
 
-      //! hold the original secondary matrix types (just used in harmonic analysis!!)
-      MatrixType origSecondMatrixType_;
+    //! hold the original secondary matrix types (just used in harmonic analysis!!)
+    MatrixType origSecondMatrixType_;
 #endif
 
-      /// holds the matrix factor for secondaryMatrix
-      Double secMatFac;
-    };
+    /// holds the matrix factor for secondaryMatrix
+    Double secMatFac;
+  };
   
 
-
-
-
   //! Class for anaylsis handling
-  class Assemble
-  {
+  class Assemble {
     
   public:
     
     //!  Constructor
     Assemble(BaseSystem * algsys, Grid * aptgrid);
     
-    
     //!  Deconstructor
     virtual ~Assemble();
     
 #ifdef USE_OLAS
     /// adds integrators to the pde
-    virtual void AddIntegrator(BaseForm * integrator, const std::string & subdomain,
-			       const FEMatrixType destinationMatrix, const Integer nonLin)=0;
-#else    
+    virtual void AddIntegrator(BaseForm * integrator,
+			       const std::string & subdomain,
+			       const FEMatrixType destinationMatrix,
+			       const Integer nonLin)=0;
+#else
     /// adds integrators to the pde
-    virtual void AddIntegrator(BaseForm * integrator, const std::string & subdomain,
-			       const enum MatrixType destinationMatrix, const Integer nonLin)=0;
+    virtual void AddIntegrator(BaseForm * integrator,
+			       const std::string & subdomain,
+			       const enum MatrixType destinationMatrix,
+			       const Integer nonLin)=0;
 #endif
 
     /// adds integrators to the pde
-    virtual void AddIntegrator(IntegratorDescriptor * intDescr, const std::string & subdomain)=0;
+    virtual void AddIntegrator(IntegratorDescriptor * intDescr,
+			       const std::string & subdomain)=0;
 
 #ifdef USE_OLAS
     /// adds surface integrators to the pde
-    virtual void AddSurfIntegrator(BaseForm * integrator, const std::string & subdomain,
-			       const FEMatrixType destinationMatrix, const Integer nonLin)=0;
+    virtual void AddSurfIntegrator(BaseForm * integrator,
+				   const std::string & subdomain,
+				   const FEMatrixType destinationMatrix,
+				   const Integer nonLin)=0;
 #else
     /// adds surface integrators to the pde
     virtual void AddSurfIntegrator(BaseForm * integrator, const std::string & subdomain,
-			       const enum MatrixType destinationMatrix, const Integer nonLin)=0;
+				   const enum MatrixType destinationMatrix, const Integer nonLin)=0;
 #endif
 
     //! specify type of system matrix for AlgebraicSystem
@@ -213,8 +219,6 @@ class IntegratorDescriptor : public BaseIntDescriptor
     virtual void AssembleMatrices(const Integer level);
     
 
-    
-    
     /// setup source term
     void AssembleSrcRHS(const Integer level, const Double time=0);
     
@@ -229,7 +233,6 @@ class IntegratorDescriptor : public BaseIntDescriptor
 
     ///  assemble a nonlinear RHS part
     void AssembleNLRHS(const Integer level, const Double time=0);
-    
 
 
     //! computes the coordinates of an element including the delta
@@ -256,7 +259,7 @@ class IntegratorDescriptor : public BaseIntDescriptor
 
     
     //!
-//     void SetPtrDeltaCoordinates(Array<Double>* deltCoords)
+    //     void SetPtrDeltaCoordinates(Array<Double>* deltCoords)
     void SetPtrDeltaCoordinates(Matrix<Double> * deltCoords)
     {deltaCoords_ = deltCoords;};
 
@@ -290,12 +293,12 @@ class IntegratorDescriptor : public BaseIntDescriptor
     void AddRhsIntegrator(BaseForm * integrator, const std::string & subDomName, 
 			  const Integer nonLin=FALSE);
 
-     /// define RHS integrators (static and transient case)
+    /// define RHS integrators (static and transient case)
     void AddRhsSrcIntegrator(BaseForm * integrator, const std::string & subDomName, 			  
 			     const std::string fncname="---not-defined--",
 			     const Integer nonLin=FALSE);
 
-     /// define RHS integrators (harmonic case)
+    /// define RHS integrators (harmonic case)
     void AddRhsSrcIntegrator(BaseForm * integrator, const std::string & subDomName,
 			     const Double phaseval, const Integer nonLin=FALSE);
    
@@ -378,8 +381,8 @@ class IntegratorDescriptor : public BaseIntDescriptor
     void SetupMatrixGraph(Integer numeq);
 
 
-     //! set information for algebraic system about PDE. set matrix factors
-     virtual void SetMatrixFactors()=0;
+    //! set information for algebraic system about PDE. set matrix factors
+    virtual void SetMatrixFactors()=0;
 
 
 
@@ -562,8 +565,8 @@ class IntegratorDescriptor : public BaseIntDescriptor
     //! define discrete PDE
     virtual void MatrixSettings(){};
 
-     //! set information for algebraic system about PDE. set matrix factors
-     virtual void SetMatrixFactors(){};
+    //! set information for algebraic system about PDE. set matrix factors
+    virtual void SetMatrixFactors(){};
 
 #ifdef USE_OLAS
     virtual void AddIntegrator(BaseForm * integrator, const std::string & subdomain,
