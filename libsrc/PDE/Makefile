@@ -17,6 +17,7 @@ src =   basePDE.cc\
 	smoothPDE.cc\
 	magneticPDE.cc\
 	trapezoidal.cc\
+	pdememento.cc\
 	acouFlowNoise.cc\
 	piezoPDE.cc
 #
