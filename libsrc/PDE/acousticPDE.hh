@@ -87,11 +87,9 @@ protected:
   void AddNonlinearRHS();
 
   // Double freq_;   //!< excitation frequency for harmonic analysis
-  NodeStoreSol<Double> sol_der1Array_, sol_der2Array_;
 
-  Vector<Double> RhsLinVal_;
-
-  Integer size_; //!< total number of unknowns (equations)
+  Integer size_;                         //!< total number of unknowns (equations)
+  SolutionType formulation_;             //!< variable in which PDE is formulated
 
   StdVector<std::string> dampingList_;   //!< list of damping types for all regions
   StdVector<std::string> nonLinPDEType_; //!< list of regions with nonlinear PDE
@@ -103,13 +101,13 @@ protected:
   Integer fracMemory_;                   //!< number of old time steps to be saved
   InterpolType inType_;                  //!< type of interpolation
 
-  // Postprocessing results
+  // solving of nonlinear acoustics
+  NodeStoreSol<Double> sol_der1Array_, sol_der2Array_;
+  Vector<Double> RhsLinVal_;
 
-  //! contains 1. derivative of acoustic potential
-  NodeStoreSol<Double> solDeriv1_;
-  
-  //! contains 2. derivative of acoustic potential
-  NodeStoreSol<Double> solDeriv2_;
+  // Postprocessing results
+  NodeStoreSol<Double> solDeriv1_;       //!< contains 1st derivative of solution
+  NodeStoreSol<Double> solDeriv2_;       //!< contains 2nd derivative of solution
 
 private:
 

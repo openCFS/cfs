@@ -196,10 +196,8 @@ void NodeStoreSol<TYPE>::SetSolutionType(const SolutionType solType, const Integ
   // Check, if the object contains only one entry and if this only entry is overwritten
   if (solTypes_.size() == 1 &&
       numSolutions_ == 1 &&
-      numSolution == 0)
+      numSolution == 0) 
     solTypes_.clear();
-    
-  
 
   solTypes_[solType] = numSolution;
   length_ = 0;
@@ -212,8 +210,10 @@ void NodeStoreSol<TYPE>::SetNumDofs(const Integer dof, const SolutionType sol)
 
   // check if only one dof was assigned
   // -> only one entry exists
-  if (numSolutions_ == 1 && sol == NO_SOLUTION_TYPE)
+  if (numSolutions_ == 1 && sol == NO_SOLUTION_TYPE) {
+	solDofs_.clear();
     solDofs_[(*solTypes_.begin()).first] = dof;
+  }
   else
     solDofs_[sol] = dof;
 
