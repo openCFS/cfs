@@ -72,7 +72,7 @@
 
         <!-- Subtype of PDE -->
         <xsd:attribute name="subtype" type="xsd:token" use="optional"
-          default="plainStrain"/>
+          default="planeStrain"/>
 
       </xsd:extension>
     </xsd:complexContent>
