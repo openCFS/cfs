@@ -484,9 +484,10 @@ void ElecPDE::InitCoupling(PDECoupling * Coupling)
 
   // Initialization of coupling helper arrays
   std::string quantity;
-  StdVector<Integer> * couplingnodes;
+  StdVector<Integer> * couplingnodes = NULL;
   StdVector<Elem*> interface_tmp;
   StdVector<StdVector<ShortInt> > isBoundaryNode_tmp;
+  StdVector<std::string> * neighRegions = NULL;
   //StdVector<Integer> numBoundaryNodes_tmp;
   StdVector<StdVector<Integer> > elemNodeToCouplingNode_tmp;
 
@@ -504,8 +505,17 @@ void ElecPDE::InitCoupling(PDECoupling * Coupling)
 	  if (couplingnodes == 0)
 	    std::cerr << "Couplingnodes = 0!!!!" << std::endl;
 	  
-	  if (ptCoupling_->GetOutputQuantity(actCoupling) == ELEC_FORCE_VWP)
-	    ptgrid_->GetInterfaceNeighbours(*couplingnodes, subdoms_, interface_tmp, actlevel_);
+	  // if quantity is elecFocrceVWP, get volume neighbours lying next to
+	  // coupling nodes, because these volume elements have to be 
+	  // moved 'virtually'
+	  if (ptCoupling_->GetOutputQuantity(actCoupling) == ELEC_FORCE_VWP) {
+	    ptCoupling_->GetOutputNeighbourRegion(actCoupling, neighRegions);
+	    ptgrid_->GetInterfaceNeighbours(*couplingnodes, *neighRegions, 
+					    interface_tmp, actlevel_);
+	 //    std::cerr << "ElecPDE: Interface Volume elements are " << std::endl;
+// 	    std::cerr << *neighRegions << std::endl;
+
+	  }
 	  else if (ptCoupling_->GetOutputQuantity(actCoupling) == ELEC_INTERFACE_FORCE)
 	    {
 	      // help construction for correct assignement of predefined values ... :O(
