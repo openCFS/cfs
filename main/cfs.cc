@@ -56,7 +56,7 @@ void main(int argc, char *argv[])
 
   FileType * ptInputfile=ptDefineFiles->Create_ptFileType(argv[1]);
 
-  WriteResults<Point2D> * ptOut=ptDefineFiles->Create_ptWriteResults2d();
+  WriteResults * ptOut=ptDefineFiles->Create_ptWriteResults2d();
 
 //  WriteResults<Point3D> * ptOut=oDefFiles.Create_ptWriteResults3d();  
 
@@ -84,7 +84,7 @@ void main(int argc, char *argv[])
 // for testing refinement of mesh
    WriteResults<Point2D> * ptOut=oDefFiles.Create_ptWriteResults2d();
 
-   Grid<Point2D> * ptgrid=new InterfaceNetGen<Point2D>(ptInputfile);
+   Grid * ptgrid=new InterfaceNetGen<Point2D>(ptInputfile);
 
    ptgrid->Read();
  
@@ -100,7 +100,7 @@ void main(int argc, char *argv[])
 /*
    WriteResults<Point3D> * ptOut=oDefFiles.Create_ptWriteResults3d();
 
-   Grid<Point3D> * ptgrid=new InterfaceNetGen<Point3D>(ptInputfile);
+   Grid * ptgrid=new InterfaceNetGen<Point3D>(ptInputfile);
 
    ptgrid->Read();
 
@@ -115,7 +115,7 @@ void main(int argc, char *argv[])
    if (ptOut) delete ptOut;
 */
 /*
-   Grid<Point3D> * ptgrid=new GridInterfaceCFS<Point3D>(ptInputfile);
+   Grid * ptgrid=new GridInterfaceCFS<Point3D>(ptInputfile);
    ptgrid->Read();
 
    WriteResults<Point3D> * ptOut=new WriteResultsUnverg<Point3D>("3d");

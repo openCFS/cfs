@@ -16,7 +16,7 @@ class Therm2dPDE: virtual public BasePDE
 public:
 
   //!
-  Therm2dPDE(AbstractAlgebraicSys * ptalgsys, Grid<Point2D> * agrid, Material * aMatFile, TimeFunc * aptTimeFunc, FileType * aInFile, WriteResults<Point2D> * ); 
+  Therm2dPDE(AbstractAlgebraicSys * ptalgsys, Grid * agrid, Material * aMatFile, TimeFunc * aptTimeFunc, FileType * aInFile, WriteResults * ); 
 
   //!
   virtual ~Therm2dPDE();
@@ -72,7 +72,7 @@ private:
   Integer doftype_;
 
   //!
-  Grid<Point2D> * ptgrid_;
+  Grid * ptgrid_;
 
   //!
   Vector<Double> sol_, sol_pred_,sol_old_,sol_der1_,sol_der1_old_;

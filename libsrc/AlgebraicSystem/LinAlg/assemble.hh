@@ -38,7 +38,7 @@ public:
   Boolean IsCalcS;
 
   //! constructor 
-  Assemble(Grid<Dim> * aptgrid, const Integer level);
+  Assemble(Grid * aptgrid, const Integer level);
 
   //! deconstructor
   ~Assemble();
@@ -77,7 +77,7 @@ public:
 private:
 
   //! 
-  Grid<Dim> * ptgrid;
+  Grid * ptgrid;
 
   //!
   Integer level;

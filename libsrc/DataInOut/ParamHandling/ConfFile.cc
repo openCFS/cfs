@@ -62,8 +62,6 @@ std::string::size_type ConfFile::getpos(const std::string keyword,const std::str
   if (pos>=pos_end) error(keyword);
 
   pos=buf.find("=");
-
-  std::cout << buf << std::endl;
   return pos+help+1;
 }
 
@@ -106,7 +104,6 @@ void ConfFile::getequation(std::string & eq, const Integer numsubdom)
   while (numsd != numsubdomain && i!=1000)
  {
    infile >> numsd >> eq;
-   std::cout << numsd << eq;
    i++;
  }
 

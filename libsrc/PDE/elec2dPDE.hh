@@ -20,7 +20,7 @@ class Elec2dPDE: virtual public BasePDE
 public:
 
   //!
-  Elec2dPDE(Grid<Point2D> * , Material * , FileType * ptFileType);
+  Elec2dPDE(Grid * , Material * , FileType * ptFileType);
 
   //!
   ~Elec2dPDE();
@@ -47,7 +47,7 @@ public:
 private:
 
   //!
-  Grid<Point2D> * ptgrid;
+  Grid * ptgrid;
 
   //!
   BaseForm<Point2D> * bilinear;

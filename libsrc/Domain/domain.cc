@@ -23,7 +23,7 @@ namespace CoupledField
 {
 
 template <class Dim>
-Domain<Dim> :: Domain(FileType * const aptFileType, WriteResults<Dim> * ptOut,  Material * materialdata, TimeFunc * aptTimeFunc) 
+Domain<Dim> :: Domain(FileType * const aptFileType, WriteResults * ptOut,  Material * materialdata, TimeFunc * aptTimeFunc) 
 {
 #ifdef TRACE
   (*trace) << "entering Domain::Domain" << std::endl;

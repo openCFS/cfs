@@ -20,7 +20,7 @@ public:
   WriteResultsUnverg<Point2D> * ptOutput;
 
   //!
-  Acoustic2dPDE(AbstractAlgebraicSys * aptalgsys, Grid<Point2D> * , Material * , TimeFunc * ,FileType * , WriteResults<Point2D> * );
+  Acoustic2dPDE(AbstractAlgebraicSys * aptalgsys, Grid * , Material * , TimeFunc * ,FileType * , WriteResults * );
 
   //!
   virtual ~Acoustic2dPDE();
@@ -92,7 +92,7 @@ private:
   Integer dofspernode_;
 
   //!
-  Grid<Point2D> * ptgrid_;
+  Grid * ptgrid_;
 
   //! Calculation parameters for Newmark method
   virtual void CalcParameters(const Double dt);

@@ -10,7 +10,7 @@
 namespace CoupledField
 {
 
-Elecst3dPDE::Elecst3dPDE(AbstractAlgebraicSys * ptalgsys, Grid<Point3D> * aptgrid, Material * ptMaterial, TimeFunc * aptTimeFunc, FileType * aptFileType, WriteResults<Point3D> * aptOut)
+Elecst3dPDE::Elecst3dPDE(AbstractAlgebraicSys * ptalgsys, Grid * aptgrid, Material * ptMaterial, TimeFunc * aptTimeFunc, FileType * aptFileType, WriteResults * aptOut)
 :BasePDE(ptalgsys,ptMaterial,aptFileType,aptOut,aptTimeFunc)
 {
 #ifdef TRACE
@@ -239,10 +239,10 @@ void Elecst3dPDE:: WriteResultsInFile()
 
   Integer step=0;
 
-if (dynamic_cast<WriteResultsUnverg<Point3D> *> (OutFile3d_))
-  OutFile3d_->WriteSolution(sol_,step,lasttimecalc_,"electric potential");
+if (dynamic_cast<WriteResultsUnverg<Point3D> *> (OutFile_))
+  OutFile_->WriteSolution(sol_,step,lasttimecalc_,"electric potential");
   else
-  OutFile3d_->WriteSolution(sol_,step,lasttimecalc_,"elect_potential"); 
+  OutFile_->WriteSolution(sol_,step,lasttimecalc_,"elect_potential"); 
 
 }
 

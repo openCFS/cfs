@@ -15,7 +15,7 @@ namespace CoupledField
  
 /// Interface to library NetGen
 template<class Dim>
-class InterfaceNetGen: public Grid<Dim>
+class InterfaceNetGen: public Grid
 {
 public:
   /// Constructor with parameter - pointer to FileType for reading initial grid
@@ -100,7 +100,7 @@ private:
 
 template<class Dim>
 inline InterfaceNetGen<Dim>::InterfaceNetGen(FileType * aptFileType)
-: Grid<Dim>(aptFileType)
+: Grid(aptFileType)
 {
 #ifdef TRACE
  (*trace) << "Entering InterfaceNetGen<Dim>::InterfaceNetGen<Dim>" << std::endl;

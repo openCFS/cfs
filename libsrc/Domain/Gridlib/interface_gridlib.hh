@@ -13,7 +13,7 @@ namespace CoupledField
  
 /// Class for working with grid
 template<class Dim> 
-class InterfaceGridlib: public Grid<Dim>
+class InterfaceGridlib: public Grid
 {
 public:
   /// Constructor with parameter - pointer to FileType for reading initial grid
@@ -90,7 +90,7 @@ private:
 
 template<class Dim>
 inline InterfaceGridlib<Dim>::InterfaceGridlib(FileType * aptFileType)
-: Grid<Dim>(aptFileType)
+: Grid(aptFileType)
 {
 #ifdef TRACE
  (*trace) <<

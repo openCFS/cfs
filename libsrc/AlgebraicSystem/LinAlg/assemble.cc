@@ -9,7 +9,7 @@ namespace CoupledField
 {
 
 template<class Dim, class T_Matrix>
-Assemble<Dim, T_Matrix>::Assemble(Grid<Dim> * aptgrid, const Integer alevel)
+Assemble<Dim, T_Matrix>::Assemble(Grid * aptgrid, const Integer alevel)
 {
 #ifdef TRACE
    (*trace) << "entering Assemble::Assemble" << std::endl; 

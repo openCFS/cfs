@@ -11,7 +11,7 @@ class FileType;
 
 /// Class for working with grid
 template<class Dim> 
-class GridInterfaceCFS: public Grid<Dim>
+class GridInterfaceCFS: public Grid
 {
 public:
   /// Constructor with parameter - pointer to FileType for reading initial grid
@@ -78,7 +78,7 @@ private:
 
 template<class Dim>
 inline GridInterfaceCFS<Dim>::GridInterfaceCFS(FileType * aptFileType)
-: Grid<Dim>(aptFileType)
+: Grid(aptFileType)
 {
 #ifdef TRACE
  (*trace) << "Entering GridInterfaceCFS<Dim>::GridInterfaceCFS<Dim>" << std::endl;

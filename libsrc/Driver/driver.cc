@@ -46,7 +46,7 @@ Driver<Dim>::Driver(FileType * const aptFileType, Integer anummesh, Material * a
 }
 
 template<class Dim>
-void Driver<Dim>::SolveNewmarkMethod(WriteResults<Dim> * ptOutput)
+void Driver<Dim>::SolveNewmarkMethod(WriteResults * ptOutput)
 {
 #ifdef TRACE
   (*trace) << "entering Driver :: SolveNewmarkMethod" << std::endl;

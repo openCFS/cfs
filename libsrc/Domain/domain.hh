@@ -16,7 +16,7 @@ class Domain
 {
 public:
   //!
-  Domain(FileType * const aptFileType, WriteResults<Dim> * ptOut, Material * materialdata,  TimeFunc * aptTimeFunc);
+  Domain(FileType * const aptFileType, WriteResults * ptOut, Material * materialdata,  TimeFunc * aptTimeFunc);
 
   //!
   virtual ~Domain();
@@ -43,7 +43,7 @@ public:
   FileType * GetInFile(){ return InFile_;}
 
   //! get pointer to output-file
-  WriteResults<Dim> * GetOutFile(){ return OutFile_;}
+  WriteResults * GetOutFile(){ return OutFile_;}
 
   //! get pointer to boundary condition
   BCs * GetBCs(){ return ptBCs_;}
@@ -76,8 +76,7 @@ private:
   BasePDE * ptpde_[20];
 
   //!
-//  Grid<Point2D> * ptgrid_;
-  Grid<Dim> * ptgrid_;
+  Grid * ptgrid_;
   
 
   //!
@@ -96,7 +95,7 @@ private:
   FileType *InFile_;
 
   //!
-  WriteResults<Dim> * OutFile_;
+  WriteResults * OutFile_;
 
 };
 

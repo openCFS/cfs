@@ -27,10 +27,10 @@ public:
    FileType * Create_ptFileType(Char * atype);
 
    //!
-   WriteResults<Point2D> * Create_ptWriteResults2d();
+   WriteResults * Create_ptWriteResults2d();
 
   //!
-   WriteResults<Point3D> * Create_ptWriteResults3d();
+   WriteResults * Create_ptWriteResults3d();
  
 private:
 
@@ -41,11 +41,10 @@ private:
    FileType * infiletype;
 
    //!
-   WriteResults<Point2D> * ptWriteResults2d;   
+   WriteResults * ptWriteResults2d;   
 
    //!
-   WriteResults<Point3D> * ptWriteResults3d;
-
+   WriteResults * ptWriteResults3d;
 };
 
 } // end of namespace
