@@ -134,6 +134,10 @@ void LoadMaterialDataDatabase::ReadPiezo (MaterialData &matData, const std::stri
   matParam["density"]->get(density,0);
   matParam["alpha"]->get(alpha,0);
   matParam["beta"]->get(beta,0);
+  matData.SetDensity(density);
+  matData.SetDampingCoeffs(alpha,beta);
+
+  matData.SetName(matName.c_str());
 }
 
 void LoadMaterialDataDatabase::ReadStiffnessLinear(MaterialData &matData, const std::string &matName, int matidx)
@@ -266,6 +270,7 @@ void LoadMaterialDataDatabase::ReadFluid (MaterialData &matData, const std::stri
   col->get(beta,0);
   matData.SetDampingCoeffs(alpha,beta);
   
+  matData.SetName(matName.c_str());
 }
 
 
@@ -337,6 +342,7 @@ void LoadMaterialDataDatabase::ReadMagnetic (MaterialData &matData, const std::s
     ReadMagnetisationHysteresis_B(matData,matName,matidx);
   else
     Error ("Unknown result at field 'magnetisation' in table 'Material_parameter'");
+  matData.SetName(matName.c_str());
 }
 
 void LoadMaterialDataDatabase::ReadConductivityLinear(MaterialData &matData, const std::string &matName, int matidx)
