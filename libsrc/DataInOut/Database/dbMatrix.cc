@@ -12,14 +12,8 @@ dbColumn * dbMatrix::operator[] (const int i)
 
 dbColumn * dbMatrix::operator[] (std::string colname)
 {
-#ifdef DEBUG
-//  (*debug)<<"dbMatrix::operator[] (string) : Search for "<<colname<<std::endl;
-#endif 
   for (int i=0; i<getNoOfColumn(); i++)
   {
-#ifdef DEBUG
-//  (*debug)<<"dbMatrix::operator[] (string) : Comparing with "<<getFieldName(i)<<std::endl;
-#endif
     if (colname==getFieldName(i))
     {
       return table[i];
@@ -41,9 +35,6 @@ dbMatrix::~dbMatrix()
 void dbMatrix::appendIntColumn(std::string colname)
 {
   ENTER_FCN("dbMatrix::appendIntColumn");
-#ifdef DEBUG
-//  (*debug)<<"Column \""<<colname<<"\" appended"<<std::endl;
-#endif 
   dbColumn* col;
   col = new dbIntColumn;
   table.push_back(col);
@@ -53,9 +44,6 @@ void dbMatrix::appendIntColumn(std::string colname)
 
 void dbMatrix::appendDoubleColumn(std::string colname)
 {
-#ifdef DEBUG
-//  (*debug)<<"Column \""<<colname<<"\" appended"<<std::endl;
-#endif 
   ENTER_FCN("dbMatrix::appendDoubleColumn");
   dbColumn* col;
   col = new dbDoubleColumn();
@@ -67,9 +55,6 @@ void dbMatrix::appendDoubleColumn(std::string colname)
 void dbMatrix::appendStringColumn(std::string colname)
 {
   ENTER_FCN("dbMatrix::appendStringColumn");
-#ifdef DEBUG
-//  (*debug)<<"Column \""<<colname<<"\" appended"<<std::endl;
-#endif 
   dbColumn* col;
   col = new dbStringColumn();
   table.push_back(col);

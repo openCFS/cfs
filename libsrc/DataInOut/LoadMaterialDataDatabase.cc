@@ -42,7 +42,9 @@ LoadMaterialDataDatabase::~LoadMaterialDataDatabase()
   Db_.Close();
 }
 
-void LoadMaterialDataDatabase::GetMaterial(MaterialData &material, const std::string matName, const std::string matType)
+void LoadMaterialDataDatabase::GetMaterial(MaterialData &material, 
+                                           const std::string matName, 
+                                           const std::string matType)
 {
   ENTER_FCN("LoadMaterialDataDatabase::GetMaterial");
 #ifdef DEBUG
@@ -143,7 +145,9 @@ void LoadMaterialDataDatabase::ReadPiezo (MaterialData &matData, const std::stri
   Info->PrintPiezoMat(matData);
 }
 
-void LoadMaterialDataDatabase::ReadStiffnessLinear(MaterialData &matData, const std::string &matName, int matidx)
+void LoadMaterialDataDatabase::ReadStiffnessLinear(MaterialData &matData, 
+                                                   const std::string &matName, 
+                                                   int matidx)
 {
   ENTER_FCN("LoadMaterialDataDatabase::ReadStiffnessLinear");
   std::stringstream wheremech;
@@ -175,7 +179,9 @@ void LoadMaterialDataDatabase::ReadStiffnessLinear(MaterialData &matData, const 
   }
 }
 
-void LoadMaterialDataDatabase::ReadCouplingLinear (MaterialData &matData, const std::string &matName, int matidx)
+void LoadMaterialDataDatabase::ReadCouplingLinear (MaterialData &matData, 
+                                                   const std::string &matName, 
+                                                   int matidx)
 {
   ENTER_FCN("LoadMaterialDataDatabase::ReadCouplingLinear");
   // Get piezoelectric coupling terms
@@ -208,7 +214,9 @@ void LoadMaterialDataDatabase::ReadCouplingLinear (MaterialData &matData, const 
   }
 }
 
-void LoadMaterialDataDatabase::ReadDielectricLinear (MaterialData &matData, const std::string &matName, int matidx)
+void LoadMaterialDataDatabase::ReadDielectricLinear (MaterialData &matData, 
+                                                     const std::string &matName, 
+                                                     int matidx)
 {
   ENTER_FCN("LoadMaterialDataDatabase::ReadDielectricLinear");
   // Get dielectric terms
@@ -350,7 +358,9 @@ void LoadMaterialDataDatabase::ReadMagnetic (MaterialData &matData, const std::s
   Info->PrintMagMat(matData);
 }
 
-void LoadMaterialDataDatabase::ReadConductivityLinear(MaterialData &matData, const std::string &matName, int matidx)
+void LoadMaterialDataDatabase::ReadConductivityLinear(MaterialData &matData, 
+                                                      const std::string &matName, 
+                                                      int matidx)
 {
   ENTER_FCN("LoadMaterialDataDatabase::ReadConductivityLinear");
   std::stringstream whereconduc;
@@ -381,7 +391,9 @@ void LoadMaterialDataDatabase::ReadConductivityLinear(MaterialData &matData, con
   }
 }
 
-void LoadMaterialDataDatabase::ReadPermeabilityLinear(MaterialData &matData, const std::string &matName, int matidx)
+void LoadMaterialDataDatabase::ReadPermeabilityLinear(MaterialData &matData, 
+                                                      const std::string &matName, 
+                                                      int matidx)
 {
   ENTER_FCN("LoadMaterialDataDatabase::ReadPermeabilityLinear");
   std::stringstream whereperm;
@@ -412,7 +424,9 @@ void LoadMaterialDataDatabase::ReadPermeabilityLinear(MaterialData &matData, con
   }
 }
 
-void LoadMaterialDataDatabase::ReadMagnetisationLinear (MaterialData &matData, const std::string &matName, int matidx)
+void LoadMaterialDataDatabase::ReadMagnetisationLinear (MaterialData &matData, 
+                                                        const std::string &matName, 
+                                                        int matidx)
 {
   ENTER_FCN("LoadMaterialDataDatabase::ReadMagnetisationLinear");
   std::stringstream where;

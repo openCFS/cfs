@@ -16,9 +16,6 @@ void dbIntColumn::get (int &result, int idx)
   }
   else
   {
-#ifdef DEBUG
-    (*debug)<<"dbIntColumn::get(int,int): returns -1 as idx="<<idx<<" and size()="<<size()<<std::endl;
-#endif
     result = -1;
   }
 }

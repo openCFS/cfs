@@ -90,7 +90,7 @@ virtual void WriteElemSolutionHarmonic(const ElemStoreSol<Complex>& data,
     \param step step of calculation
     \param time time of calculation
   */
-  void WriteNodeHistoryTransient(const NodeStoreSol<Double>& data, 
+void WriteNodeHistoryTransient(const NodeStoreSol<Double>& data, 
 				 const Integer step, 
 				 const Double time)
 {Error("WriteNodeHistoryTransient not yet implemented.",__FILE__,__LINE__);};
@@ -104,7 +104,7 @@ virtual void WriteElemSolutionHarmonic(const ElemStoreSol<Complex>& data,
     \param frequencyStep step of calculation
     \param format format for writing complex solution (real-imag/amplitude-phase)
   */
-  void WriteNodeHistoryHarmonic(const NodeStoreSol<Complex>& data, 
+void WriteNodeHistoryHarmonic(const NodeStoreSol<Complex>& data, 
 				const Integer step,
 				const Double frequency,
 				const ComplexFormat format)
