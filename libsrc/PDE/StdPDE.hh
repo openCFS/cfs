@@ -36,69 +36,6 @@ namespace CoupledField {
       ENTER_FCN( "StdPDE::~StdPDE" );
     }
 
-    // ------------------- ASK TOM TO CLEAN UP THIS SECTION -------------------
-
-    //@{
-    //! \todo The following Methods are used only durig parameter
-    //!       identificationprocess! Ask Tom to clean this section up!
-    MaterialData * getPDEMaterialData()
-    {return materialData_;};
-  
-    BaseNodeStoreSol * getPDESolution()
-    {return sol_;};
-  
-    BCs * getPDE_BCs()
-    {return ptBCs_;};
-  
-    BaseSystem * getPDE_algsys()
-    {return algsys_;};
-  
-    Integer getPDE_numElems()
-    {return numElems_;};
-
-    Integer getPDE_dofspernode()
-    {return dofspernode_;};
-  
-    Integer getPDE_numPDENodes(){return numPDENodes_;};
-  
-    Integer getPDE_spaceDim(){return dim_;};
-  
-    NodeEQN * getPDE_eqnData(){return eqnData_;}; 
-  
-    Grid * getPDE_grid(){return ptgrid_;};  
-  
-    Assemble * getPDE_assemble(){return assemble_;}
-  
-    StdVector<std::string> getPDE_subdoms(){return subdoms_;}
-  
-    Vector<Complex> complexValuedCharge_;
-  
-    Vector<Complex> getPDE_complexValuedCharge(){return complexValuedCharge_;};
-
-    void setBCs_id_phase_(Integer i, Double & phase){
-      ENTER_FCN("SinlgePDE::setBCs_id_phase");
-      if (bcs_id_phase_.GetSize() <= i)
-        Error("no such index in Vector bcs_id_phase_",__FILE__,__LINE__);
-      bcs_id_phase_[i]=phase;
-    };
-  
-    void setPDE_actFrequency(Double & freq){
-      ENTER_FCN("SinglePDE::setPDE_actFrequency");
-      actFrequency_ = freq;
-    };
-    void setPDE_actFreqStep(Integer & fstep){
-      ENTER_FCN("SinglePDE::setPDE_actFreqStep");
-      actFreqStep_ = fstep;
-    };
-
-    piezoMaterialType piezoMaterialType_; 
-  
-    void setPDE_piezoMaterialType(piezoMaterialType & pMatType){
-      piezoMaterialType_ = pMatType;};
-  
-    piezoMaterialType getPDE_piezoMaterialType(){return piezoMaterialType_;}
-    //@}
-
     // ======================================================
     // ALGSYS SECTION (SOLVER, ...)
     // ======================================================
@@ -238,6 +175,58 @@ namespace CoupledField {
     //! \params dt Current time step
     virtual void SetTimeStep(const Double dt)
     {TS_alg_->Init(matrix_factor_, dt);}
+
+
+    // ======================================================
+    // COMMUNICATION ROUTINES FOR PARAMETER IDENTIFICATION
+    // ======================================================
+
+    //@{
+    //!  The following methods are used only durig parameter
+    //!  identification process! Maybe one day a more to CFS++ consistent 
+    //!  nomenclature would be nice ...
+
+    MaterialData * getPDEMaterialData()
+    {return materialData_;};
+    
+    BaseNodeStoreSol * getPDESolution() {return sol_;};
+    
+    BCs * getPDE_BCs() {return ptBCs_;};
+  
+    BaseSystem * getPDE_algsys(){return algsys_;};
+  
+    Integer getPDE_numElems(){return numElems_;};
+
+    Integer getPDE_dofspernode(){return dofspernode_;};
+  
+    Integer getPDE_numPDENodes(){return numPDENodes_;};
+  
+    Integer getPDE_spaceDim(){return dim_;};
+  
+    NodeEQN * getPDE_eqnData(){return eqnData_;}; 
+  
+    Grid * getPDE_grid(){return ptgrid_;};  
+  
+    Assemble * getPDE_assemble(){return assemble_;}
+  
+    StdVector<std::string> getPDE_subdoms(){return subdoms_;}
+   
+    Vector<Complex> getPDE_complexValuedCharge()
+    {return complexValuedCharge_;};
+
+    virtual void setBCs_id_phase_(Integer i, Double & phase);
+
+    //! Sets frequency during harmonic analysis  
+    virtual void setPDE_actFrequency(Double & freq);
+    
+    virtual void setPDE_actFreqStep(Integer & fstep);
+    
+    void setPDE_piezoMaterialType(piezoMaterialType & pMatType){
+      piezoMaterialType_ = pMatType;};
+  
+    piezoMaterialType getPDE_piezoMaterialType()
+    {return piezoMaterialType_;}
+    //@}
   
   protected:
   
@@ -406,6 +395,11 @@ namespace CoupledField {
     // LoadMaterialData *loadMaterial_; //!< material reader
     MaterialData *materialData_;     //!< material data structure
     std::string pdematerialclass_;    //!< material class
+
+    //! Data Type which decides wheather material is real or complex
+    piezoMaterialType piezoMaterialType_;
+    //! contains element results of complex valued charge 
+    Vector<Complex> complexValuedCharge_;
   
     //@}
 
