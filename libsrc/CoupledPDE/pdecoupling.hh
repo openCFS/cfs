@@ -12,7 +12,7 @@ namespace CoupledField
 {
 
 // Forward declarations of classes
-class BasePDE;
+class StdPDE;
 class Grid;
 class Elem;
 class BCs;
@@ -135,7 +135,7 @@ public:
 			StdVector<PDECoupling*> & couplings);
   
   //! set PDE
-  virtual void SetPDE(BasePDE * aPDE);
+  virtual void SetPDE(StdPDE * aPDE);
 
   //! set coupling output dof
   virtual void SetOutputDof(Integer i, ShortInt dof);
@@ -351,7 +351,7 @@ protected:
   //! maps input coupling types to output coupling types
   virtual CouplingOutputType Input2OutputType(CouplingInputType inputType);
 
-  BasePDE * myPDE_;                                  //!< pointer to PDE
+  StdPDE * myPDE_;                                  //!< pointer to PDE
   Grid * ptGrid_;                                    //!< pointer to grid
   BCs * ptBCs_;                                      //!< pointer to BCs
 
