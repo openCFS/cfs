@@ -373,13 +373,16 @@ namespace CoupledField {
     }
 
     // Hypre solvers only work together with hypre preconditioners
-    if ( sType == HYPRE_PCG || sType == HYPRE_GMRES || sType == HYPRE_BICGSTAB
-	 && !( pType == NOPRECOND  || pType == HYPRE_AMG ||
-	       pType == HYPRE_SPAI || pType == HYPRE_ILU ) ) {
-      warn = "Expert: Re-setting preconditioner type to 'ID'";
-      Info->Warning( warn );
-      pType = ID;
-    }
+    if ( sType == HYPRE_PCG || sType == HYPRE_GMRES || 
+         sType == HYPRE_BICGSTAB ) {
+	    
+        if (!( pType == NOPRECOND  || pType == HYPRE_AMG ||
+	        pType == HYPRE_SPAI || pType == HYPRE_ILU ) ) {
+              warn = "Expert: Re-setting preconditioner type to 'ID'";
+              Info->Warning( warn );
+              pType = ID;
+            }
+        }
 
     // ===============
     //  Matrix stuff
