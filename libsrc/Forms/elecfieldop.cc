@@ -1,19 +1,22 @@
 #include "Forms/elecfieldop.hh"
 
+#include <PDE/basepde.hh>
 #include <Elements/basefe.hh>
 #include <string>
 #include <Domain/elem.hh>
 #include <Domain/grid.hh>
 #include <Matrix/matrix.hh>
 #include <General/environment.hh>
+#include <PDE/basepde.hh>
 
 namespace CoupledField
 {
 
 ElecFieldOp::ElecFieldOp(Grid * ptGrid, 
+			 BasePDE * ptPDE,
 			 std::vector<Integer> * ptMesh2PDENode,
 			 Vector<Double> * EPotential,
-			 const Integer level) : BaseOperator( ptGrid, ptMesh2PDENode, level)
+			 const Integer level) : BaseOperator( ptGrid, ptPDE, ptMesh2PDENode, level)
 {
 #ifdef TRACE
   (*trace) << "entering ElecFieldOp::ElecFieldOp" << std::endl;
@@ -39,27 +42,23 @@ void ElecFieldOp::CalcElemElecField(Vector<Double> & E,
   (*trace) << "entering ElecFieldOp::CalcElemElecFieldOp" << std::endl;
 #endif
   
-  ShortInt Dim;
-  Dim = ptElement->ptElem->GetDim();
-  
-  E.Resize(Dim);
-  
+  ShortInt dim;
+  dim = ptElement->ptElem->GetDim();
+  E.Resize(dim);
+  E.Init();
+
   Integer nShFnc = 0;
   nShFnc = ptElement->ptElem->GetNumNodes();
 
   Matrix<Double> CornerCoords; 
-  ptGrid_->GetCoordNodesElemMat(ptElement->connect, CornerCoords, level_);
+  ptPDE_->GetElemCoords(ptElement->connect, CornerCoords, level_);
 
-
-  for( Integer i=0; i<Dim; i++)
-    E[i] = 0.0;
-  
   Matrix<Double> GlobalGradient;
 
   ptElement->ptElem->GetGlobDerivShFnc(GlobalGradient, LCoord, CornerCoords);
 
   // loop over shape functions
-  for( Integer i=0; i<Dim; i++ )
+  for( Integer i=0; i<dim; i++ )
     for( Integer j=0; j<nShFnc; j++ )
       E[i] -= GlobalGradient[j][i] * (*EPotential_)[(*ptMesh2PDENode_) [ptElement->connect[j]-1]-1];
   
@@ -67,7 +66,7 @@ void ElecFieldOp::CalcElemElecField(Vector<Double> & E,
 
 
 
-void ElecFieldOp::CalcSDElecField(Vector<Double> *  E,
+void ElecFieldOp::CalcSDElecField(Array<Double> & E,
 				  const std::vector<std::string> & SD, 
 				  const std::vector<Double> & LCoord)
 {
@@ -77,7 +76,7 @@ void ElecFieldOp::CalcSDElecField(Vector<Double> *  E,
 
   
   Integer nShFnc = 0;
-  ShortInt Dim;
+  ShortInt dim;
   Matrix<Double> CornerCoords;
   Matrix<Double> GlobalGradient;
   
@@ -85,10 +84,10 @@ void ElecFieldOp::CalcSDElecField(Vector<Double> *  E,
   
   Integer maxelem;
   maxelem = ptGrid_->GetMaxnumElem(level_, SD);
-  Dim = ptGrid_->GetDim();
+  dim = ptGrid_->GetDim();
 
-  for( Integer i=0; i<Dim; i++)
-    E[i].Resize(maxelem);
+  E.reshape(dim, maxelem);
+  E.init();
             
   // Iterate over all subdomains
   for( Integer iSD=0; iSD<SD.size(); iSD++)
@@ -100,12 +99,12 @@ void ElecFieldOp::CalcSDElecField(Vector<Double> *  E,
 	{
 	  nShFnc = SubDomain[k]->ptElem->GetNumNodes();
 	  
-	  ptGrid_->GetCoordNodesElemMat( SubDomain[k]->connect, CornerCoords, level_ );
+	  ptPDE_->GetElemCoords( SubDomain[k]->connect, CornerCoords, level_ );
 	  
 	  SubDomain[k]->ptElem->GetGlobDerivShFnc(GlobalGradient, LCoord, CornerCoords);
 	  
 	  // loop over shape functions
-	  for( Integer i=0; i<Dim; i++ )
+	  for( Integer i=0; i<dim; i++ )
 	    for( Integer j=0; j<nShFnc; j++ )
 	      E[i][k] -= GlobalGradient[j][i] * (*EPotential_)[(*ptMesh2PDENode_) [SubDomain[k]->connect[j]-1]-1];	    
 	  
@@ -115,13 +114,13 @@ void ElecFieldOp::CalcSDElecField(Vector<Double> *  E,
 
 
 
-
 CurlEdgeOp::CurlEdgeOp(Grid * ptGrid, 
+		       BasePDE * ptPDE,
 		       std::vector<Integer> * ptMesh2PDENode,
 		       Vector<Double> * aSol,
 		       const Integer level,
 		       BaseSystem * algsys) 
-  : BaseOperator(ptGrid, ptMesh2PDENode, level), sol_(aSol), algsys_(algsys)
+  : BaseOperator(ptGrid, ptPDE, ptMesh2PDENode, level), sol_(aSol), algsys_(algsys)
 {
 #ifdef TRACE
   (*trace) << "entering CurlEdgeOp::CurlEdgeOp" << std::endl;

@@ -204,7 +204,10 @@ public:
     \param Next2Surf (input) Subdomain adjacent to interface
     \param neighbours (output) Elements neighbouring (= have min. 1 node in common) to interface
   */
-  virtual void GetInterfaceNeighbours(std::vector<Elem*> & Interface, std::vector<Elem*> & Next2Surf, std::vector<Elem*> & Neighbours) = 0;
+  virtual void GetInterfaceNeighbours(std::vector<Integer> & interfaceNodes, 
+				      std::vector<std::string> & subdoms, 
+				      std::vector<Elem*> & Neighbours,
+				      Integer level) = 0;
 
    //! calculate number of nodes in patch of elements
   /*!

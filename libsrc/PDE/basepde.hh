@@ -1,6 +1,8 @@
 #ifndef FILE_BASEPDE_2001
 #define FILE_BASEPDE_2001
 
+#include <list>
+#include <General/environment.hh>
 #include <AlgebraicSystem/abstractAlgSys.hh>
 #include <multigrid.hh>
 #include <Domain/bcs.hh>
@@ -11,12 +13,16 @@
 #include <DataInOut/conffile.hh>
 #include <DataInOut/LoadMaterialData.hh>
 #include <DataInOut/MaterialData.hh>
+#include <CoupledPDE/pdecoupling.hh>
+#include <Utils/array.hh>
 
 namespace CoupledField
 {
 
+
  
 class TimeErrorEstimator;
+
 
 template<Integer dim>
 class SpaceErrorEstimator;
@@ -69,10 +75,57 @@ public:
   //! constructes the matrix graph by providing to the algebraic system the element connectivities
   virtual void SetupMatrixGraph(Integer numeq, Integer graphtype);
 
+  //! initalize PDE coupling
+  virtual void InitCoupling(PDECoupling * Coupling)
+  {
+    Array<Double> * val;
+    std::vector<Integer> * nodes;
+    std::cerr << "Entering " << pdename_ << ".InitCoupling" << std::endl;
+    std::cerr << "=====================================" << std::endl;
+
+    // Show InputCouplings
+    std::cerr << "Input Coupling:" << std::endl;
+    std::cerr << "---------------------" << std::endl;
+    for (Integer i=0; i<Coupling->GetNumInputCouplings(); i++)
+      {
+	Coupling->GetInputNodes(i, nodes);
+	std::cerr << "Coupling Type: " << Coupling->GetInputType(i) << std::endl;
+	std::cerr << "InputQuantity: " << Coupling->GetInputQuantity(i) << std::endl;
+	std::cerr << "Region: " << Coupling->GetInputRegion(i) << std::endl;
+	std::cerr << "RegionType: " << Coupling->GetInputRegionType(i) << std::endl;
+	std::cerr << "Size of Input Nodes" << Coupling->GetInputSize(i) << std::endl;
+	for (Integer inode=0; inode<25; inode++)
+	  std::cerr << "node[" << inode << "] = " << (*nodes)[inode]<< std::endl;
+	
+      }
+    std::cerr << std::endl;
+
+    // Show OutputCouplings
+    nodes = 0;
+    std::cerr << "Output Coupling:" << std::endl;
+    std::cerr << "---------------------" << std::endl;
+    for (Integer i=0; i<Coupling->GetNumOutputCouplings(); i++)
+      {
+	Coupling->GetOutputNodes(i, nodes);
+	std::cerr << "Coupling Type: " << Coupling->GetOutputType(i) << std::endl;
+	std::cerr << "InputQuantity: " << Coupling->GetOutputQuantity(i) << std::endl;
+	std::cerr << "Region: " << Coupling->GetOutputRegion(i) << std::endl;
+	std::cerr << "RegionType: " << Coupling->GetOutputRegionType(i) << std::endl;
+	std::cerr << "Size of Input Nodes" << Coupling->GetOutputSize(i) << std::endl;
+	for (Integer inode=0; inode<25; inode++)
+	  std::cerr << "node[" << inode << "] = " << (*nodes)[inode]<< std::endl;
+	
+      }
+    std::cerr << std::endl;
+  }
+
   //! Create the matrices and Solver as well as Preconditioner
   virtual void CreateMatrices_Solver();
 
-  //! setup element matrices for AlgebraicSystem for assembling procedure
+  //! Fill in input coupling terms
+  virtual void CalcInputCoupling();
+
+   //! setup element matrices for AlgebraicSystem for assembling procedure
   /*!
     \param level level of grid
    */
@@ -128,6 +181,10 @@ public:
 
   //! Do Postprocessing as descriped in conf file
   virtual void PostProcess(const Integer level) {;};
+
+  //! calculate coupling terms
+  virtual void CalcOutputCoupling()
+  {Error("Not implemented");}
   
   //! write results in file
   virtual void WriteResultsInFile()=0;  
@@ -146,38 +203,45 @@ public:
 
   //------------------------ get functions--------------------------------------------------------
 
+  //! return name of pde
+  virtual std::string GetName() {return pdename_;}
+
   //! return pointer to vector with subdomains, on which we calculate the PDE
   virtual std::vector<std::string> * getSDsPDE()
   { 
     return &subdoms_;
   }
 
+   //! returns if PDE can compute the quantity
+  virtual bool HasOutput(std::string output)
+  {Error("not implemented"); }
+
   //! return pointer to vector with solution
-  virtual const Vector<Double> & getS() const =0;
+  virtual const Array<Double>& getS() {return sol_;}
 
   //! return pointer to vector with first derivative of solution
-  virtual const Vector<Double> & getS1() const 
+  virtual const Array<Double>& getS1() const 
   { 
     Error("Not implemented");
     return DVec;
   }
 
   //! return pointer to vector with first derivative of solution, calculated on previous step
-  virtual const Vector<Double> & getS1old() const
+  virtual const Array<Double>& getS1old() const
   { 
     Error("Not implemented");
     return DVec;
   }
 
   //! return pointer to vector with second derivative of solution
-  virtual const Vector<Double> & getS2() const 
+  virtual const Array<Double>& getS2() const 
   { 
     Error("Function getS2 is not overloaded in this class");
     return DVec;
   }
 
  //! return pointer to vector with second derivative of solution, calculated on previous step
-  virtual const Vector<Double> & getS2old() const 
+  virtual const Array<Double>& getS2old() const 
   { 
     Error("Function getS2old is not overloaded in this class");
     return DVec;
@@ -209,6 +273,13 @@ public:
 
   //! return number of restraints
   Integer GetNumRestraints(const Integer level=-1);
+
+  //! return assignment array Mesh2PDENode
+  std::vector<Integer> & GetMesh2PDENode() {return Mesh2PDENode_;}
+
+  //! return assignment array PDE2MeshNode
+  std::vector<Integer> & GetPDE2MeshNode() {return PDE2MeshNode_;}
+  
 
 
   //---------------------- part for adaptivity---------------------------------------
@@ -257,46 +328,98 @@ public:
     Error("Not implemented",__FILE__,__LINE__);
   }
 
+
+  //! computes the coordinates of an element including the delta
+  /*!
+    \param connect (input) global node numbers of element
+    \param ptCoord (output) coordinates of the element nodes (nrNodes \f$\times\f$ spaceDim);
+    \param level (input) index for multilevel hierarchy
+  */
+  virtual void GetElemCoords(const Vector< Integer > connect, Matrix< Double > &coordMat, const Integer level);
+  
   //! returns the local PDE number of an array of nodes
   /*!
-    \param PDENodes (output) Vector of PDE-Numbers
-    \param MeshNodes (input) Vector of mesh (=global) node numbers
+    \param PDENodes (output) Vector of PDE node numbers
+    \param MeshNodes (input) Vector of mesh node numbers
+    \param Mesh2PDENode (input) Vector assigning PDE to mesh node numbers
   */
-  virtual void Mesh2PDENode(Vector<Integer> & PDENodes, Vector<Integer> & MeshNodes);
+  virtual void Mesh2PDENode(Vector<Integer> & PDENodes, 
+			    const Vector<Integer> & MeshNodes,
+			    const std::vector<Integer> & Mesh2PDENode);
   
   //! returns the local global Mesh node numbers of an array of nodes
   /*!
-    \param MeshNodes (output) Vector of mesh (=global) node numbers    
-    \param PDENodes (input) Vector of PDE-Numbers
+    \param MeshNodes (output) Vector of mesh node numbers    
+    \param PDENodes (input) Vector of PDE node numbers
+    \param PDE2MeshNode (input) Vector assigning mesh to PDE  node numbers
   */
-  virtual void PDE2MeshNode(Vector<Integer> & MeshNodes, Vector<Integer> & PDENodes);
-
+  virtual void PDE2MeshNode(Vector<Integer> & MeshNodes, 
+			    const Vector<Integer> & PDENodes,
+			    const std::vector<Integer> & PDE2MeshNode);
+  
 
 protected:
-  /// generates a multi-dof-matrix with similar entries for all dofs
+  //! generates a multi-dof-matrix with similar entries for all dofs
   virtual void MassMultiDof(Matrix<Double>& massMultDof, const Matrix<Double>& massMatSingleDof,  
 			    const Integer nrDofs);
 
    //! read from .config-file info about BCs
    void ReadBCs(const std::string eq);
 
-  //! maps the local node solution to the global solution
+  //! maps the local node solution to the global mesh solution
   /*!
-    \param MeshSol (output) Solution vector referring to Mesh node numbers    
+    \param MeshSol (output) Solution vector referring to mesh node numbers    
     \param PDESol (input) Solution vector referring to PDE node numbers
+    \param PDE2MeshNode (input) Vector assigning PDE to mesh node numbers
   */
-  virtual void TransformNodeSolution(Vector<Double> & MeshSol,  Vector<Double> & PDESol);
+  virtual void TransformNodeSolution(Array<Double> & MeshSol, 
+				     Array<Double> & PDESol,
+				     const std::vector<Integer> & PDE2MeshNode);
 
-  //! maps the local element solution to the global solution
+  //! maps the local element solution to the global mesh solution
   /*!
-    \param MeshSol (output) Solution vector referring to Mesh node numbers    
+    \param MeshSol (output) Solution vector referring to mesh node numbers    
     \param PDESol (input) Solution vector referring to PDE node numbers
+    \param Elems (input) Vector of Elements to which the PDESol belongs to (same ordering!)
+     */
+  virtual void TransformElemSolution(Array<Double> & MeshSol, 
+				     Array<Double> & PDESol, 
+				     const std::vector<Elem*> & Elems); 
+
+  //! maps the local element solution to the global mesh solution
+  /*!
+    \param MeshSol (output) Solution vector referring to mesh node numbers    
+    \param PDESol (input) Solution vector
+    \param Elems (input) Vector of subdomains to which PDESol belongs to
+     */
+  virtual void TransformElemSolution(Array<Double> & MeshSol, 
+				     Array<Double> & PDESol, 
+				     const std::vector<std::string> & SD);
+
+  //! maps the local node solution to the coupling nodes
+  virtual void NodeSolutionToCoupling(Array<Double>& CouplingSol,
+				  const std::vector<Integer>& NodeNumbers);
+
+  //! assign local PDE node numbers to subdomains
+  /*!
+    \param Mesh2PDENode (output) Vector assigning mesh to PDE node numbers
+    \param PDE2MeshNode (output) Vector assigning PDE to mesh node numbers
+    \param subdoms (input) Vector of subdomains which are to be mapped
   */
-  virtual void TransformElemSolution(Vector<Double> & MeshSol,  Vector<Double> & PDESol);
+  virtual void AssignPDENodeNumbers(std::vector<Integer> & Mesh2PDENode,
+			    std::vector<Integer> & PDE2MeshNode,
+			    const std::vector<std::string> & subdoms);
 
-
-  //! assign  arrays for Mesh and PDE node numbers
-  void AssignPDENodeNumbers();
+  //! assign local PDE node numbers to a list of elements (e.g. interface) 
+  /*!
+    \param Mesh2PDENode (output) Vector assigning mesh to PDE node numbers
+    \param PDE2MeshNode (output) Vector assigning PDE to mesh node numbers
+    \param subdoms (input) Vector of elements which are to be mapped
+  */
+  virtual void AssignPDENodeNumbers(std::vector<Integer> & Mesh2PDENode,
+			    std::vector<Integer> & PDE2MeshNode,
+			    const std::vector<Elem*> &Elements );
+  
 
   //! analysis type
   AnalysisType analysistype_;
@@ -312,6 +435,7 @@ protected:
 
 
   std::string pdename_; //!< type of PDE (set in the derived classes)
+  ShortInt Dim_;         //!< space dimension of pde
   Integer dofspernode_; //!< number of unknowns per node
   Integer dofsperedge_; //!< number of unknowns per edge
   std::vector<std::string> subdoms_;  //!< subdomain-levels belongig to PDE
@@ -332,11 +456,25 @@ protected:
   FileType * InFile_;       //!< pointer tio input file
   WriteResults * OutFile_;  //!< pointer to output file
   TimeFunc * ptTimeFunc_;   //!< pointer to time functions
+  PDECoupling * ptCoupling_;//!< pointer to Coupling Object
+
+  // Solution
+  Array<Double> sol_;
 
   // Assignment MeshNodeNumers <-> PDENodeNumbers
+  // Note: PDE/Mesh-Node numbers start with 1, but the arrayindex always starts with 0
+  // so correct transformation reads as follows: PDENode = Mesh2PDENode[PDENode - 1]
   std::vector<Integer> Mesh2PDENode_;  //!< array containing PDE (=local) node numbers
-  std::vector<Integer> PDE2MeshNode_;  //!< array containing Mesh (=global) node numbers 
- 
+  std::vector<Integer> PDE2MeshNode_;  //!< array containing Mesh (=global) node numbers
+  
+  // coupling parameters
+  Array<Double> deltCoords_;    //!< offset to grid coordinates
+  Array<Double> matParam_;     //!< change to material parameter
+  Boolean updateCouplingBCs_ ;         //!< flag if coupling BC were already set
+  std::vector<Elem*> CouplingElements; //!< elements where coupling terms are calculated
+  std::list<Integer> CouplingNodes;   //!< nodes where coupling terms are calculated
+  Integer couplingBCsCounter_;        //!< counter for number of coupling BCs
+
   //!solver parameters
   Integer maxnumiter_;    //!< maximum of iterations (for iterative solver)
   Integer solvertype_;    //!< type of solver (see las_environment.hh)
@@ -366,9 +504,9 @@ protected:
 
   std::vector<Double> val_id_;   //<! values of the inhomogeneous Dirichlet BC
   std::vector<Double> val_loads_; //<! values of the load BC
-
+  
   //Dummies, just for SUN compiler
-  Vector<Double> DVec;
+  Array<Double> DVec;
   Double Dval;
   Integer Ival;
   Boolean Dbool;

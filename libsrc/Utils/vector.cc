@@ -6,6 +6,7 @@
 #include <string>
 
 #include "vector.hh"
+#include <Utils/array.hh>
 #include <Matrix/matrix.hh>
 
 
@@ -99,8 +100,21 @@ void Vector<TYPE>::Init(const Integer l)
 }
 
 template<class TYPE>
+Vector<TYPE> &Vector<TYPE>::operator=(const Array<TYPE> &x)
+{
+
+  if (x.dim_ != 1)
+    Error("only 1 dimensional arrays can be assigned to vector", __FILE__, __LINE__);
+ 
+  *this = x.sol_[0];
+
+  return *this;
+}
+
+template<class TYPE>
 Vector<TYPE> &Vector<TYPE>::operator=(const Vector<TYPE> &x)
 {
+
 	if (this == &x)
 		return *this;
 
@@ -117,17 +131,6 @@ Vector<TYPE> &Vector<TYPE>::operator=(const Vector<TYPE> &x)
 		p [i] = x.p [i];
 
 	return *this;
-}
-
-template<class TYPE>
-TYPE &Vector<TYPE>::operator[] (const Integer i) const
-{	if (!n)
-Error("Vector: undefined Vector in operator[]",__FILE__,__LINE__);
-
-	if (i < 0 || i >= n)
-Error("Vector: invalid index in operator[]",__FILE__,__LINE__);
-
-	return  p[i];
 }
 
 template<class TYPE>

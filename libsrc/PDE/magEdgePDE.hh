@@ -92,11 +92,8 @@ public:
   //! write results in file
   virtual void WriteResultsInFile();
 
-  //! return pointer to (real) vector with solution
-  virtual const Vector<Double> & getS() const { return solRe_;}
-
-  //! return pointer to imaginary vector with  solution
-  virtual const Vector<Double> & getSIm() const { return solIm_;}
+  //! return pointer to vector with solution
+    virtual const Array<Double>& getS() const { ;}
 
   //! return size of solution
   virtual Integer getSize() const { return size_;}
@@ -124,6 +121,10 @@ protected:
   void CorrectEdgeDir(Matrix<Double> & elemmat, std::vector<Integer>& esign);
   
 
+//   Array<Double> E_;   //!< store Electric Field of each element
+//   Array<Double> Force_;  //!< stores Electric pressure force of each element
+//   Integer size_;        //!< size of solution (number of equations)
+//   Integer nElements_;
 
   Vector<Double> solRe_;      //!< store real part of solution,
   Vector<Double> solIm_;      //!< store imaginary part of solution

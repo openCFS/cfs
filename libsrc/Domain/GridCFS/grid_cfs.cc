@@ -846,39 +846,53 @@ void GridCFS<dim>::CalcNumberOfNodesInPatch(const std::vector<Elem*> & patch, st
 }
 
 template<Integer dim>
-void GridCFS<dim>::GetInterfaceNeighbours(std::vector<Elem*> & Interface, std::vector<Elem*> & Next2Surf, std::vector<Elem*> & Neighbours)
+void GridCFS<dim>::GetInterfaceNeighbours(std::vector<Integer> & interfaceNodes, std::vector<std::string> & subdoms, std::vector<Elem*> & neighbours, Integer level)
 {
 #ifdef TRACE
   (*trace) << "entering GridCFS<Dim>::GetInterfaceNeighbours" << std::endl;
 #endif
   
-  Integer NumSurfaceElements = Interface.size();
-  Boolean Belongs2Interface;
+  Boolean belongs2Interface;
+  std::vector<Elem*> elems;
   std::vector<Integer> map;
   
-  CalcNumberOfNodesInPatch(Interface, map);
-  
-  // loop over all elements in Next2Surf
-  for (Integer iNS=0; iNS < Next2Surf.size(); iNS++)
+  //std::cerr << "In GetInterfaceNeighbourS" << std::endl;
+  //std::cerr << "InterfaceNodes.size = " << interfaceNodes.size() << std::endl;
+
+  // loop over all subdomains
+  for (Integer isd=0; isd<subdoms.size(); isd++)
     {
-      Elem *aux = Next2Surf[iNS];
-      Vector<Integer>  aux_connect = aux->connect;
-      
-      Belongs2Interface = false;
-      
-      // check if any node is common in Interface
-      for (Integer iNode=0; iNode<aux_connect.size(); iNode++) {
-	for (Integer imap=0; imap<map.size(); imap++) {
-	  if (map[imap] == aux_connect[iNode]) {
-	    Belongs2Interface = true;
-	    break;
+      //std::cerr << "-----------------------------------" << std::endl;
+      //std::cerr << "examing Subdomain " << subdoms[isd] << std::endl;
+      GetElemSD(elems, subdoms[isd], level);
+
+      // loop over all elements in subdomain
+      for (Integer iNS=0; iNS < elems.size(); iNS++)
+	{
+
+	  Elem *aux = elems[iNS];
+	  Vector<Integer>  aux_connect = aux->connect;
+	  //std::cerr << " ====" << std::endl;
+	  // std::cerr << "examing element Nr " << iNS << std::endl;
+	  //std::cerr << "connect = " << aux_connect << std::endl;
+	  
+	  belongs2Interface = false;
+	  
+	  // check if any node is common in Interface
+	  for (Integer inode=0; inode<aux_connect.size(); inode++) {
+
+	    for (Integer nnode=0; nnode<interfaceNodes.size(); nnode++) {
+
+	      if (interfaceNodes[nnode] == aux_connect[inode]) {
+		belongs2Interface = true;
+		break;
+	      }
+	    }
 	  }
+	  
+	  if (belongs2Interface)
+	    neighbours.push_back(elems[iNS]);
 	}
-      }
-      
-      if (Belongs2Interface)
-	Neighbours.push_back(Next2Surf[iNS]);
-      
     }
 }
   

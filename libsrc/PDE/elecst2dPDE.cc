@@ -448,16 +448,16 @@ void Elecst2dPDE::WriteResultsInFile()
   Integer step=0;
   Double time=0;
   if (OutFile_->IsGMV()) 
-    OutFile_->WriteSolution(sol_,step,time,"electric_potential");
+    OutFile_->WriteNodeSolution(sol_,step,time,"electric_potential");
   else 
-    OutFile_->WriteSolution(sol_,step,time,"electric potential");
+    OutFile_->WriteNodeSolution(sol_,step,time,"electric potential");
 
   if (WriteErrorMap_) {   
-     OutFile_->WriteDataOnCell(errorMap_,step,time,"error_ep"); 
+     OutFile_->WriteElemSolution(errorMap_,step,time,"error_ep"); 
   }
 
   if (AbsValueElectricField_) {
-      OutFile_->WriteDataOnCell(absValueElectricField_,step,time,"elecfield");
+      OutFile_->WriteElemSolution(absValueElectricField_,step,time,"elecfield");
   }
 }
 
@@ -726,8 +726,8 @@ void Elecst2dPDE::CalcElectricField()
 void Elecst2dPDE::PrintMeshesInfo(WriteResults * ptMeshes)
 {
    
-  ptMeshes->WriteDataOnCell(relativeErrorMap_,0,0,"relative_error");
-  ptMeshes->WriteDataOnCell(markingElems_,0,0,"marked_elems");
+  ptMeshes->WriteElemSolution(relativeErrorMap_,0,0,"relative_error");
+  ptMeshes->WriteElemSolution(markingElems_,0,0,"marked_elems");
  
 }
 

@@ -2,6 +2,7 @@
 #define FILE_CONFIGFILE_2002
 
 #include "Utils/tools.hh"
+#include <fstream>
 #include <vector>
 
 namespace CoupledField
@@ -117,12 +118,22 @@ protected:
   //! input file
   std::ifstream infile;  
 
-   //! write an error and stop an execution of the program
-   void error(const std::string keyword) const;
+  //! write an error and stop an execution of the program
+  void error(const std::string keyword) const;
+  
+  //! get position in conf-file
+  std::string::size_type getpos(const std::string keyword, 
+				const std::string::size_type startpos=0, 
+				Boolean inSection=FALSE,
+				Boolean inSubSection=FALSE,
+				Boolean writeErr=TRUE);
+  
+  //! get position of section in conf-file
+  std::string::size_type getsectionpos(const std::string keyword, const std::string::size_type startpos=0, Boolean writeErr=TRUE);
 
-   //! get position in conf-file
-   std::string::size_type getpos(const std::string keyword, const std::string::size_type startpos=0, Boolean writeErr=TRUE);
-
+  //! get poistion of subsection in conf-file
+  std::string::size_type getsubsectionpos(const std::string keyword, const std::string::size_type startpos=0, Boolean writeErr=TRUE);
+  
 private:
 
   //! final position on file

@@ -2,13 +2,25 @@
 #define FILE_DOMAIN_2001
 
 #define MAXNUMPDE 20
+#define MAXNUMCOUPLEDPDE 20
 
-#include "grid.hh"
-#include "bcs.hh"
+#include <General/environment.hh>
+#include <Domain/grid.hh>
+#include <Domain/bcs.hh>
+//#include <CoupledPDE/pdecoupling.hh>
+//#include <CoupledPDE/coupledpdedef.hh>
 #include <PDE/basepde.hh>
+//#include <CoupledPDE/basecoupledpde.hh>
 
 namespace CoupledField
 {
+
+class TimeFunc;
+class WriteResults;
+class BasePDE;
+class BaseCoupledPDE;
+class PDECoupling;
+class  AbstractAlgebraicSys;
 
 //! contain information about calculation domain and according to different meshes create different grids
 
@@ -38,6 +50,9 @@ public:
   //! get pde
   BasePDE * GetPDE(const Integer ipde){ return ptpde_[ipde];}
 
+  //! get coupled pde
+  BaseCoupledPDE * GetCoupledPDE() {return ptcoupledpde_;}
+
   //! get algebraic system
   AbstractAlgebraicSys * GetAlgSys(){ return ptalgsys_;}
 
@@ -59,14 +74,22 @@ public:
   //!
   Grid * GetGrid(){ return ptgrid_;}
 
+  //! get number of pdes
+  Integer GetNumPDE() {return numpde_;}
+
+
+
 protected:
 
 private:
   
   Integer newlevel;
 
-   //! initialize pde
-   void InitPDEs();
+  //! initialize pde
+  void InitPDEs();
+  
+  //! initialize coupled pde
+  void InitCoupledPDE();
 
    //! initialization of alg.sys.
   /*!
@@ -83,9 +106,13 @@ private:
   Integer numsubdomain_;  //!< number of subdomains
   Integer numsys_;        //!< number of systems (matrix dimension for algebraic system)
   Integer numpde_;        //!< number of PDEs
+  Integer numcoupledpde_; //!< number of coupled PDEs
   Integer numgraph_;      //!< number of graphs needed (node-graphs, edge-graphs, etc.)
   Integer ** syscoupling_; //!< matrix, containing coupling information between the systems
-  BasePDE * ptpde_[MAXNUMPDE]; //!< pointers to PDEs
+  std::vector<BasePDE*> ptpde_;   //!< pointers to PDEs
+  BaseCoupledPDE * ptcoupledpde_; //!< pointer to coupled PDEs
+  std::vector<BasePDE*> orderedpdes_; //!<pointer to PDEs in right order for coupling
+  std::vector<PDECoupling*> couplings_; //!<pointer to coupling objects
   Grid * ptgrid_; //!< pointer to grid object
   BCs * ptBCs_;   //!< pointer to object storing boundary conditions
   AbstractAlgebraicSys * ptalgsys_; //!< pointer to algebraic system

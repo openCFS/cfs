@@ -1,7 +1,7 @@
 #
 C_DIR=../..
 #
-src = myclock.cc tools.cc vector.cc 
+src = myclock.cc tools.cc vector.cc array.cc 
 #
 lib = utils
 libpath = libsrc/Utils

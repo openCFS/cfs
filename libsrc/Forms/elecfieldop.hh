@@ -3,6 +3,7 @@
 
 #include <Forms/baseoperator.hh>
 #include <Utils/vector.hh>
+#include <Utils/array.hh>
 #include <Matrix/matrix.hh>
 #include <multigrid.hh>
 
@@ -31,6 +32,7 @@ public:
     \param level (input) Multigrid level
   */
   ElecFieldOp(Grid * ptGrid,
+	      BasePDE * ptPDE,
 	      std::vector<Integer> * ptMesh2PDENode,
 	      Vector<Double> * EPotential,
 	      const Integer level);
@@ -58,7 +60,7 @@ public:
     \param SD (input) Name of the subdomain
     \param LCoord (input) Local coordinates of evalutation point
   */
-  virtual void CalcSDElecField(Vector<Double> * E,
+  virtual void CalcSDElecField(Array<Double> & E,
 			       const std::vector<std::string> & SD,
 			       const std::vector<Double> & LCoord);
 			    			       
@@ -85,6 +87,7 @@ public:
     \param algsys (input) pointer to algebraic system
   */
   CurlEdgeOp(Grid * ptGrid,
+	     BasePDE * ptPDE,
 	     std::vector<Integer> * ptMesh2PDENode,
 	     Vector<Double> * sol,
 	     const Integer level,

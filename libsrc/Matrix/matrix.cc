@@ -327,6 +327,25 @@ std::vector<TYPE> Matrix<TYPE>::operator*(const std::vector<TYPE> &x) const
 }
 
 template<class TYPE>
+Array<TYPE> Matrix<TYPE>::operator*(const Array<TYPE> &x) const
+{
+        if (!row || !col) Error("undefined Matrix",__FILE__,__LINE__);
+ 
+        if (x.dim_ != 1) Error("operator* only defined vor arrays of dimension 1",__FILE__,__LINE__);
+ 
+        if (col != x.size_) Error("incompatible dimension",__FILE__,__LINE__);
+ 
+        Array<TYPE> z(1,row);
+ 
+        Integer k,kk;
+        for ( k = 0; k < row; k++)
+           for ( kk = 0; kk < col; kk++)
+                z.sol_[0][k] += p[k][kk]*x.sol_[0][kk];
+ 
+        return z;
+}
+
+template<class TYPE>
 Matrix<TYPE> Matrix<TYPE>::operator*(const Matrix<TYPE> &x) const
 {
          if (!col || !row || !x.col || !x.row)

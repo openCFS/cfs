@@ -5,6 +5,8 @@
 #include "staticdriver.hh"
 
 #include "DataInOut/GMV/outGMV.hh"
+#include <PDE/basepde.hh>
+#include <CoupledPDE/basecoupledpde.hh>
 
 namespace CoupledField
 {
@@ -32,7 +34,13 @@ void StaticDriver :: SetupMatricesPDE(const Integer pdenumber, const Integer typ
   (*trace) << "entering StaticDriver::SetUpMatricesPDE" << std::endl;
 #endif
 
-  ptdomain_->GetPDE(pdenumber)->SetupMatrices(type);
+  // IS THIS FUNCTION EVER USED?
+
+  if (ptdomain_->GetNumPDE() > 1) 
+    {
+      ptdomain_->GetPDE(pdenumber)->SetupMatrices(type);
+    }
+    
 }
 
 void StaticDriver :: SolveProblem()
@@ -42,15 +50,27 @@ void StaticDriver :: SolveProblem()
 #endif
   Integer level=0;
   Integer pdenumber  = 0;
-
-  ptdomain_->GetPDE(pdenumber)->SolveStepStatic(level);
-  //  std::cout << "Solve Step ok" << std::endl;
-  ptdomain_->GetPDE(pdenumber)->PostProcess(level);
-  //  std::cout << "Post ok" << std::endl;
-  ptdomain_->PrintGrid(level);
-  //  std::cout << "Print Grid ok" << std::endl;
-  ptdomain_->GetPDE(pdenumber)->WriteResultsInFile();
-
+ if (ptdomain_->GetNumPDE() <= 1) 
+    {
+      ptdomain_->GetPDE(pdenumber)->SolveStepStatic(level);
+      //  std::cout << "Solve Step ok" << std::endl;
+      ptdomain_->GetPDE(pdenumber)->PostProcess(level);
+      //  std::cout << "Post ok" << std::endl;
+      ptdomain_->PrintGrid(level);
+      //  std::cout << "Print Grid ok" << std::endl;
+      ptdomain_->GetPDE(pdenumber)->WriteResultsInFile();
+    }
+ else
+   {
+     ptdomain_->GetCoupledPDE()->InitCoupling(level);
+     //  std::cout << "Solve Step ok" << std::endl;
+     ptdomain_->GetCoupledPDE()->SolveStepStatic(level);
+      //  std::cout << "Post ok" << std::endl;
+     ptdomain_->PrintGrid(level);
+      //  std::cout << "Print Grid ok" << std::endl;
+      ptdomain_->GetCoupledPDE()->WriteResultsInFile();
+   }
+ 
 }
 
 void StaticDriver :: SolveProblemAdaptSpace()

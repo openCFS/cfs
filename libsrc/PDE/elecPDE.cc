@@ -22,9 +22,7 @@ ElecPDE::ElecPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 #endif
 
   dofspernode_=1;
-  E_ = new Vector<Double>[ptgrid_->GetDim()];
-  Force_ = new Vector<Double>[ptgrid_->GetDim()];
-
+  
   SetMatrixFactors();
 
   pdename_    = "electrostatic";
@@ -33,13 +31,18 @@ ElecPDE::ElecPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
   conf->getsubdompde(subdoms_,pdename_);
   ReadBCs(pdename_);
 
-  AssignPDENodeNumbers();
-  size_ = NumPDENodes_;
+  AssignPDENodeNumbers(Mesh2PDENode_, PDE2MeshNode_, subdoms_);
+  NumPDENodes_ = PDE2MeshNode_.size();
+  
+  // initialize array with coordinates displacement
+  deltCoords_.reshape(Dim_, NumPDENodes_);
 
+  sol_.reshape(dofspernode_,NumPDENodes_);
+  sol_.init();
+  
   NumElems_ = ptgrid_->GetMaxnumElem(actlevel_, subdoms_); 
-  sol_.Resize(size_);
-  sol_.Init(0);
 
+  
 }
 
 
@@ -68,6 +71,74 @@ void ElecPDE::DiscreteParamsPDE()
 
 }
 
+
+void ElecPDE::InitCoupling(PDECoupling * Coupling)
+{
+#ifdef TRACE
+  (*trace) << "entering ElecPDE::InitCoupling" << std::endl;
+#endif
+
+  ptCoupling_ = Coupling;
+
+
+  // Initialization of coupling helper arrays
+  std::string quantity;
+  std::vector<Elem*> interface_tmp;
+  std::vector<Integer> * couplingnodes;
+  std::vector<std::vector<ShortInt> > isBoundaryNode_tmp;
+  Array<Double> * values;
+
+  for (Integer i=0; i<ptCoupling_->GetNumOutputCouplings(); i++)
+    {
+      // Initialize arrays for coupling surface elements
+      if (ptCoupling_->GetOutputQuantity(i) == "elecforce")
+	{
+	  ptCoupling_->GetOutputNodes(i, couplingnodes);
+	  if (couplingnodes == 0)
+	    std::cerr << "Couplingnodes = 0!!!!" << std::endl;
+	  
+	  ptgrid_->GetInterfaceNeighbours(*couplingnodes, subdoms_, interface_tmp, actlevel_);
+	  
+	  F_Interface_.push_back(interface_tmp);
+
+	  // Intialize the memory
+	  std::cerr << "before initalizing the memory " << std::endl;
+	  ptCoupling_->SetOutputDim(i, Dim_);
+	  std::cerr << "after setting the dim" << std::endl;
+	  ptCoupling_->SetOutputSize(i, (*couplingnodes).size());
+	  std::cerr << "after setting the size to " << (*couplingnodes).size() << std::endl;
+
+
+	  // Assign arrays for element boundary nodes
+	  
+	  isBoundaryNode_tmp.clear();
+	  isBoundaryNode_tmp.resize(interface_tmp.size());
+
+	  for (Integer ielem=0; ielem<interface_tmp.size(); ielem++)
+	    {
+	      isBoundaryNode_tmp[ielem].clear();
+	      isBoundaryNode_tmp[ielem].resize(interface_tmp[ielem]->connect.size());
+	      
+	      // Determine Boundary Nodes
+	      for (Integer ielemnode=0; ielemnode<isBoundaryNode_tmp[ielem].size(); ielemnode++)
+		{
+		  for (Integer inodes=0; inodes<(*couplingnodes).size(); inodes++)
+		    {
+		      if (interface_tmp[ielem]->connect[ielemnode] == (*couplingnodes)[inodes] )
+			{
+			  isBoundaryNode_tmp[ielem][ielemnode] = 1;
+			  break;
+			} // end if
+		    } // end for (inodes)
+		} // end for (ielemnodes)
+	    } // end for (ielems)
+	  isBoundaryNode_.push_back(isBoundaryNode_tmp);
+	} // end if
+            
+    } // end for (i)
+}
+  
+
 void ElecPDE::SolveStepStatic(const Integer level)
 {
 #ifdef TRACE
@@ -84,20 +155,69 @@ void ElecPDE::SolveStepStatic(const Integer level)
 
   //account for bcs
   SetBCs(level,update,0);
-
   algsys_->CalcPrecond(job);
   algsys_->Solve();
 
   ptsol = algsys_->GetSolutionVal();
 
   // save solution
-  Vector<Double> transsol(NumPDENodes_, ptsol);
-  sol_=transsol;
+  Integer k=0;
+  
+    for (Integer i=0; i<NumPDENodes_; i++)
+      for (Integer dim=0; dim<dofspernode_; dim++)
+	sol_[dim][i] = ptsol[k++];
 
 #ifdef DEBUG
   //  std::string matFileName = "solMat";
   //  OutFile_->WriteSolMatrix(ptgrid_, level, sol_, matFileName);
 #endif
+}
+
+
+void ElecPDE::CalcOutputCoupling()
+{
+#ifdef TRACE
+  (*trace) << "entering ElecPDE::CalcOutputCoupling" << std::endl;
+#endif
+
+  std::string quantity;
+  std::vector<Integer> * couplingnodes;
+  Array<Double> * values;
+  Integer forcesCount = 0;
+  
+  // loop over all output coupling quantities
+  for (Integer i=0; i<ptCoupling_->GetNumOutputCouplings(); i++)
+    {
+      quantity = ptCoupling_->GetOutputQuantity(i);
+      
+      switch(ptCoupling_->GetOutputType(i))
+	{
+	  
+	case NODE:
+	  
+	  ptCoupling_->GetOutputNodes(i, couplingnodes);
+	  ptCoupling_->GetOutputValues(i, values);
+	  
+	  std::cerr << "ElectricField::CaclOutputCoupling";
+	  std::cerr << " size of couplingnodes" << values->size(); std::cerr << " and dim: " << values->dim() << std::endl;
+	  
+	  if (quantity == "elecpotetnial")
+	    NodeSolutionToCoupling(*values, *couplingnodes);
+	    
+	  if (quantity == "elecforce")
+	    {
+	      CalcNodeForce(*values, *couplingnodes, F_Interface_[forcesCount], isBoundaryNode_[forcesCount]);
+	      forcesCount++;
+	    }
+	  
+	  break;
+
+	case ELEM:
+	  Error("No Element coupling output", __FILE__,__LINE__);
+	}
+
+    }
+
 }
 
 
@@ -107,14 +227,12 @@ void ElecPDE::PostProcess(const Integer level)
   (*trace) << "entering ElecPDE::PostProcess" << std::endl;
 #endif  
 
-  ShortInt Dim = ptgrid_->GetDim();
-  ElecFieldOp * FieldOp = new ElecFieldOp(ptgrid_, &Mesh2PDENode_, &sol_, level);
-  ElecForceOp * ForceOp = new ElecForceOp(ptgrid_, &Mesh2PDENode_, &sol_, level);
- 
-  // ######### Calculation of the electric field #########
+  ElecFieldOp * FieldOp = new ElecFieldOp(ptgrid_, this, &Mesh2PDENode_, &sol_[0], level);
+
+  // ------ Calculation of the electric field ------
 
   std::vector<Double> LCoord;
-  LCoord.resize(2);
+  LCoord.resize(Dim_);
   LCoord[0] = 0;
   LCoord[1] = 0;
 
@@ -123,11 +241,8 @@ void ElecPDE::PostProcess(const Integer level)
   Vector<Double> TempE, TempFP;
   
   // Resize solution arrays
-  for( Integer i=0; i<Dim; i++) 
-    {
-      E_[i].Resize(NumElems_);
-      Force_[i].Resize(NumElems_);
-    }
+  E_.reshape(Dim_,NumElems_);
+  
   
   // loop over all subdomains
   for (Integer isd=0; isd<subdoms_.size(); isd++)
@@ -139,93 +254,52 @@ void ElecPDE::PostProcess(const Integer level)
       for (Integer iel=0; iel< elemssd.size(); iel++,counterElems++)
 	{
  	  FieldOp->CalcElemElecField( TempE, elemssd[iel], LCoord);
-	  for (Integer k=0; k<Dim; k++)
-	    
-	    E_[k][counterElems] = TempE[k];
+	  
+	  E_.setValuesRow(TempE,counterElems);
 	}
     }
-
-//   // ########### Calculation of Electric Force ########
-
-//   std::vector<std::string> force_surfaces;
-//   conf->getliststr("force_surfaces",force_surfaces,pdename_);
-
-//  //For the subdomain next to boundary of obstacle (Next2Surf)
-//   //std::vector<Elem*> Next2Surf;  // vector of 2D-elements from mesh-file      
-//   //BaseFE * ptElNext2Surf;
-//   std::vector<Elem*> belongSE, InterfaceSurf, Next2Surf;
-//   std::vector<ShortInt> IsBoundaryNode;
-//   std::vector<Integer> map;
-  
-//   InterfaceSurf=ptBCs_->getEdgesBC(force_surfaces[0],level);
-  
-//   // TESTING Routine for Interface Surface
-//   // for( Integer i=0; i<InterfaceSurf.size(); i++)
-//   //  std::cerr << "InterfaceSurf[" << i<< "].connect = " << InterfaceSurf[i]->connect << std::endl;
-  
-//   //std::cerr << "force_surfaces[1] = " << force_surfaces[1] << std::endl;
-
-
-//   Next2Surf=ptBCs_->getNeighElemsForSurfaces(force_surfaces[1],level);
-
-//   //for( Integer i=0; i<Next2Surf.size(); i++)
-//   //  std::cerr << "Next2Surf[" << i<< "].connect = " << Next2Surf[i]->connect << std::endl;
-
-
-//   //ptgrid_->DefineBelonging4Elems(InterfaceSurf,Next2Surf,belongSE);
-//   ptgrid_->GetInterfaceNeighbours(InterfaceSurf, Next2Surf, belongSE);
-
-//   //std::cerr << "belongSE.size() = " << belongSE.size() << std::endl;
-//   //for( Integer i=0; i<belongSE.size(); i++)
-//   //  std::cerr << "belongSE[" << i<< "].connect = " << belongSE[i]->connect << std::endl;
-
-  
-//   // Get Material Parameter
-//   Double epsilon;
-
-//   for (Integer i=0; i<subdoms_.size(); i++)
-//     if (force_surfaces[1] == subdoms_[i]) 
-//       epsilon = materialData_[i].GetPermittivity(2,2); 
-
-//   // Get Node numbers for boundary interface
-//   ptgrid_->CalcNumberOfNodesInPatch(InterfaceSurf, map);
-  
-
-//   // loop over all elements of moving surface boundary
-//   //std::cerr << "belongeSE.size() = " << belongSE.size() << std::endl;
-//   for (Integer isd=0; isd<belongSE.size(); isd++)
-//     {
-
-//       IsBoundaryNode.resize(belongSE[isd]->connect.size(), 0);
-      
-      
-//       // Determine Boundary Nodes
-//       for (Integer inode=0; inode<IsBoundaryNode.size(); inode++)
-// 	{
-// 	  for (Integer imap=0; imap <map.size(); imap++)
-// 	    {
-// 	      if (belongSE[isd]->connect[inode] == map[imap] )
-// 		{
-// 		  IsBoundaryNode[inode] = 1;
-// 		  break;
-// 		}
-// 	    }
-// 	}
-      
-//       // std::cerr << "belongeSE[" << isd << "].connect = " << belongSE[isd]->connect << std::endl;
-
-//       //for (Integer d=0; d<IsBoundaryNode.size(); d++)
-//       //std::cerr << IsBoundaryNode[d] << " ";
-//       //std::cerr <<  std::endl;
-
-//       ForceOp->CalcElemElecForce( TempFP, belongSE[isd], epsilon, IsBoundaryNode);
-      
-//       for (Integer k=0; k<Dim; k++)
-// 	Force_[k][isd] = TempFP[k];
-      
-//     }
-
 }
+
+
+void ElecPDE::CalcNodeForce(Array<Double> & force, 
+			    std::vector<Integer> & nodes, 
+			    std::vector<Elem*> elems,
+			    std::vector<std::vector<ShortInt> > & isBoundaryNode)
+{
+#ifdef TRACE
+  (*trace) << "entering ElecPDE::CalcNodeForce" << std::endl;
+#endif  
+  
+  
+  ElecForceOp * ForceOp = new ElecForceOp(ptgrid_, this, &Mesh2PDENode_, &sol_[0], actlevel_);
+   
+  std::cerr << "In CalcNodeForce, nodes.size = " << nodes.size() <<std::endl;
+  Vector<Double> force_temp;
+  std::cerr << "Dimension = " << Dim_ << std::endl;
+  force.reshape(Dim_, nodes.size());
+  
+  std::cerr << "after resizing force" << std::endl;
+
+  for (Integer ielem=0; ielem<elems.size(); ielem++)
+    {
+      // Get Material Parameter
+      Double epsilon;
+      
+      for (Integer i=0; i<subdoms_.size(); i++)
+	if (elems[i]->namesd == subdoms_[i]) 
+	  epsilon = materialData_[i].GetPermittivity(2,2); 
+      
+      ForceOp->CalcElemElecForce( force_temp, elems[ielem], epsilon, isBoundaryNode[ielem]);
+      
+      // Add elemet force to according node
+      // TEMPORARELLY 
+      for (Integer ielemnode=0; ielemnode<elems[ielem]->connect.size(); ielemnode++)
+	for (Integer inode=0; inode<nodes.size(); inode++)
+	  if (elems[ielem]->connect[ielemnode] == nodes[inode])
+	    force.setValuesRow(force_temp,inode);
+    }
+}
+
 
 
 void ElecPDE::SetupMatrices(const Integer level)
@@ -261,10 +335,10 @@ void ElecPDE::SetupMatrices(const Integer level)
 
 	  connecth=elemssd[j]->connect;
 	  
-	  ptgrid_->GetCoordNodesElemMat(connecth, ptCoord, level);
+	  GetElemCoords(connecth, ptCoord, level);
 
-	  // CHANGE connecth
-	  Mesh2PDENode(connect_PDE,connecth);
+	  // Mape Mesh to PDE node numbers
+	  Mesh2PDENode(connect_PDE,connecth,Mesh2PDENode_);
 
 	  // stiffness part
 	  bilinear_stiff->CalcElementMatrix(ptCoord, elemmat);
@@ -293,48 +367,63 @@ void ElecPDE::WriteResultsInFile()
 
   Integer step=0;
   Double time=0;
+  ShortInt Dim = ptgrid_->GetDim();
 
-  ////////////////////////
-  //// CHANGE   //////////
-  ////////////////////////
-
-  Vector<Double> Potentialh, *Eh, *Fh;
+  Array<Double> E_Mesh, Force_Mesh, Sol_Mesh;
   
-  TransformNodeSolution(Potentialh,sol_);
-  Eh = new Vector<Double>[ptgrid_->GetDim()];
-  Fh = new Vector<Double>[ptgrid_->GetDim()];
-  for (Integer i=0; i<ptgrid_->GetDim(); i++) 
-    {
-      TransformElemSolution(Eh[i],E_[i]);
-      TransformElemSolution(Fh[i],Force_[i]);
-    }
+  // transform solution vector for electric potential
+  TransformNodeSolution(Sol_Mesh,sol_,PDE2MeshNode_);
 
-  // Transform solution from PDE to Mesh nodes
+  TransformElemSolution(E_Mesh,E_,subdoms_);
 
+  // CHANGE F_Interface_
+  TransformElemSolution(Force_Mesh,Force_,F_Interface_[0]);
+   
   // write results
   if (OutFile_->IsGMV())
     {
-    OutFile_->WriteSolution(Potentialh,step,time,"electric_potential");
-
-    // Write Out Vector Data
-    for (ShortInt i=0; i<ptgrid_->GetDim(); i++) 
-      {
-	std::ostringstream el_fieldname, f_fieldname;
-	el_fieldname << "Efield" << i;
-	//	OutFile_->WriteDataOnCell(Eh[i],step,time, el_fieldname.str());
-	f_fieldname << "Eforce" << i;
-	//	OutFile_->WriteDataOnCell(Fh[i],step,time, f_fieldname.str());
-      }
+      // write electric potential
+      OutFile_->WriteNodeSolution(Sol_Mesh,step,time,"E-Potential");
+      
+      // Write Out Vector Data
+      //OutFile_->WriteElemSolution(E_Mesh,step,time,"E-Field");
+      //OutFile_->WriteElemSolution(Force_Mesh,step,time,"E-Force");
     }
   else
-    OutFile_->WriteSolution(Potentialh,step,time,"electric_potential");
+    {
+      // write electric potential
+      OutFile_->WriteNodeSolution(Sol_Mesh,step,time,"electric potential");
+      
+      // Write Out Vector Data
+      // OutFile_->WriteElemSolution(E_Mesh,step,time,"electric field");
+      //OutFile_->WriteElemSolution(Force_Mesh,step,time,"mag. volume force");
+    }
+  
 
 }
 
+bool ElecPDE::HasOutput(std::string output)
+{
+#ifdef TRACE
+  (*trace) << "entering ElecPDE::HasOutput" << std::endl;
+#endif
+  
+  if (output == "elecforce")
+    return true;
+
+  if (output == "elecpotential")
+    return true;
+
+  if (output == "elecfield")
+    return true;
+
+}
+
+
+
 ElecPDE::~ElecPDE()
 {
-  if (E_) delete[] E_;
-  if (Force_) delete[] Force_;
+  ;
 }
 
 } // end of namespace

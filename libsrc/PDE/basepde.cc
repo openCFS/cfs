@@ -22,6 +22,9 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile, WriteResults * a
   ptBCs_      = aptBCs;
 
   actlevel_ = 0;
+  couplingBCsCounter_ = 0;
+  updateCouplingBCs_ = FALSE;
+  Dim_ = ptgrid_->GetDim();
 
   //standard parameter for solver
   eps_         = 1.0e-8;
@@ -44,6 +47,7 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile, WriteResults * a
     analysistype_ = HARMONIC;
   else
     Error("Analysis Type not supported",__FILE__,__LINE__);
+
 }
 
 
@@ -150,7 +154,7 @@ void BasePDE::SetupMatrixGraph(Integer numeq, Integer graphtype)
 	  ptElem=elemssd[iel]->ptElem;
 	  
 	  //Map Mesh Node numbers to PDE node numbers
-	  Mesh2PDENode(connecth,elemssd[iel]->connect);
+	  Mesh2PDENode(connecth,elemssd[iel]->connect,Mesh2PDENode_);
 	  fe_type=elemssd[iel]->ptElem->feType();
 	  algsys_->SetElementPos(connecth.get(),connecth.size(),fe_type);
 #ifdef DEBUG
@@ -161,6 +165,7 @@ void BasePDE::SetupMatrixGraph(Integer numeq, Integer graphtype)
     }
 
 }
+
 
 void BasePDE::CreateMatrices_Solver()
 {
@@ -216,6 +221,81 @@ void BasePDE::CreateMatrices_Solver()
 }
 
 
+void BasePDE::CalcInputCoupling()
+{
+#ifdef TRACE
+  (*trace) << "entering  BasePDE::CalcInputCoupling" << std::endl;
+#endif
+
+  std::vector<Integer> * nodes;
+  std::vector<Elem*> * elements;
+  Array<Double> * val;
+  
+  // Reset counter for boundary conditions
+  couplingBCsCounter_ = 0;
+  
+  for (Integer i=0; i<ptCoupling_->GetNumInputCouplings(); i++)
+    {
+
+            ptCoupling_ = &ptCoupling_[i];
+      ptCoupling_->GetInputValues(i, val);
+
+      switch(ptCoupling_->GetInputType(i))
+	{
+
+	case COORD:
+	  ptCoupling_->GetInputNodes(i, nodes);
+	  deltCoords_.reshape(Dim_, NumPDENodes_);
+	
+	  for (Integer dim=0; dim<ptCoupling_->GetInputDim(i); dim++)
+	    for (Integer j=0; j<nodes->size(); j++)
+	      {
+		// std::cerr << "processing dim = " << dim << ", j = " << j << std::endl;
+		deltCoords_[dim][Mesh2PDENode_[(*nodes)[j]-1]-1] = (*val)[dim][j];
+	      }
+	      
+	  break;
+
+	case RHS:
+	  ptCoupling_->GetInputNodes(i, nodes);
+
+	  	  for (Integer dim=0; dim<ptCoupling_->GetInputDim(i); dim++)
+	    for (Integer j=0; j<nodes->size(); j++)
+	      {
+		algsys_->SetNodeRHS((*val)[dim][j], Mesh2PDENode_[(*nodes)[j]-1], dim+1);
+	      }
+	  		
+	  break;
+
+	case ID_BC:
+	  std::cerr << "in Switch(ID_BC)" << std::endl;
+ 	  ptCoupling_->GetInputNodes(i, nodes);
+	  
+
+	  for (Integer dim=0; dim<ptCoupling_->GetInputDim(i); dim++)
+	    for (Integer j=0; j<nodes->size(); j++, couplingBCsCounter_++)
+	      {
+		if (updateCouplingBCs_)
+		  algsys_->UpdateDirichlet(couplingBCsCounter_+1, (*val)[dim][j], SYSTEM);
+		else
+		  {	
+		    std::cerr << "BC[" << dim << "][" << (*nodes)[j] << "] = " << (*val)[dim][j] << std::endl;
+		    algsys_->SetDirichlet(couplingBCsCounter_+1, Mesh2PDENode_[(*nodes)[j] - 1], (*val)[dim][j], dim+1, SYSTEM);
+		  }
+	      }
+	  break;
+	  
+	case MAT:
+	  Error("Not implemented yet",__FILE__,__LINE__);
+	  break;
+
+	}  // end switch
+    } // end for
+
+  updateCouplingBCs_ = TRUE;
+}
+
+
 void  BasePDE::SetBCs(const Integer level, const Integer update, const Double time)
 {
 #ifdef TRACE
@@ -229,13 +309,13 @@ void  BasePDE::SetBCs(const Integer level, const Integer update, const Double ti
   if (ptTimeFunc_->GetmaxTimeFnc()!=0)
       val_tfunc=ptTimeFunc_->TimeFuncAtTime(time,level);
 
-  Integer j=0;
   std::list<Integer> nodes;
 
   if (InfoPrint)
     (*infofile) << " ---------------- Dirichle boundary condition -------------" << std::endl;
 
   Integer i;
+  Integer j = couplingBCsCounter_;
   for (i=0; i<bcs_hd_.size(); i++)
     {  
       nodes=ptBCs_->GetNodesLevel(bcs_hd_[i]);
@@ -296,6 +376,7 @@ void BasePDE::ReadBCs(const std::string eq)
   (*trace) << " entering BasePDE::ReadBCs " << std::endl;
 #endif
 
+
   conf->ifgetliststr("homogeneous_dirichlet",bcs_hd_,eq); 
   conf->ifgetliststr("inhomogeneous_dirichlet",bcs_id_,eq);
   conf->ifgetliststr("loads",bcs_loads_,eq);
@@ -314,8 +395,9 @@ void BasePDE::ReadBCs(const std::string eq)
 }
 
 
-
-void BasePDE::Mesh2PDENode(Vector<Integer> & PDENodes, Vector<Integer> & MeshNodes)
+void BasePDE::Mesh2PDENode(Vector<Integer> & PDENodes, 
+			   const Vector<Integer> & MeshNodes,
+			   const std::vector<Integer> & Mesh2PDENode)
 {
 #ifdef TRACE
   (*trace) << "entering BasePDE::Mesh2PDENode " << std::endl;
@@ -324,7 +406,7 @@ void BasePDE::Mesh2PDENode(Vector<Integer> & PDENodes, Vector<Integer> & MeshNod
   PDENodes.Resize(MeshNodes.size());
   
   for (Integer i=0; i<MeshNodes.size(); i++)
-    PDENodes[i] = Mesh2PDENode_[MeshNodes[i]-1];
+    PDENodes[i] = Mesh2PDENode[MeshNodes[i]-1];
 
 #ifdef DEBUG
   (*debug) << "--------------------" << std::endl;
@@ -334,7 +416,10 @@ void BasePDE::Mesh2PDENode(Vector<Integer> & PDENodes, Vector<Integer> & MeshNod
 #endif
 }
 
-void BasePDE::PDE2MeshNode(Vector<Integer> & MeshNodes, Vector<Integer> & PDENodes)
+
+void BasePDE::PDE2MeshNode(Vector<Integer> & MeshNodes, 
+			   const Vector<Integer> & PDENodes,
+			   const std::vector<Integer> & PDE2MeshNode)
 {
 #ifdef TRACE
   (*trace) << "entering BasePDE::PDE2MeshNode " << std::endl;
@@ -343,7 +428,7 @@ void BasePDE::PDE2MeshNode(Vector<Integer> & MeshNodes, Vector<Integer> & PDENod
   MeshNodes.Resize(PDENodes.size());
 
   for (Integer i=0; i<PDENodes.size(); i++)
-    MeshNodes[i] = PDE2MeshNode_[PDENodes[i]-1];
+    MeshNodes[i] = PDE2MeshNode[PDENodes[i]-1];
 
 #ifdef DEBUG
   (*debug) << "--------------------" << std::endl;
@@ -354,14 +439,16 @@ void BasePDE::PDE2MeshNode(Vector<Integer> & MeshNodes, Vector<Integer> & PDENod
 }
 
 
-void BasePDE::AssignPDENodeNumbers()
+void BasePDE::AssignPDENodeNumbers(std::vector<Integer> & Mesh2PDENode,
+			  std::vector<Integer> & PDE2MeshNode,
+			  const std::vector<std::string> & subdoms)
 {
 #ifdef TRACE
   (*trace) << "entering BasePDE:AssignPDENodeNumbers:" << std::endl;
 #endif
 
-  // Initialize Mesh2PDENode_ and PDE2MeshNode
-  Mesh2PDENode_.resize(ptgrid_->GetMaxnumnodes(actlevel_),-1);
+  // Initialize Mesh2PDENode and PDE2MeshNode
+  Mesh2PDENode.resize(ptgrid_->GetMaxnumnodes(actlevel_),-1);
   std::vector<Elem*> SD;
   Integer NodeCounter = 1;
 
@@ -373,9 +460,9 @@ void BasePDE::AssignPDENodeNumbers()
 //       }
   
   // Iterate over Subdomains
-  for (Integer i=0; i<subdoms_.size(); i++)
+  for (Integer i=0; i<subdoms.size(); i++)
     {
-      ptgrid_->GetElemSD(SD,subdoms_[i],actlevel_);
+      ptgrid_->GetElemSD(SD,subdoms[i],actlevel_);
       // Iterate over all elements in subdomain
       for (Integer j=0; j<SD.size(); j++)
 	{
@@ -383,10 +470,10 @@ void BasePDE::AssignPDENodeNumbers()
 	  for (Integer NumNodes=0; NumNodes<SD[j]->connect.size(); NumNodes++)
 	    {
 	      // Check if node was already assigned
-	      if (Mesh2PDENode_[SD[j]->connect[NumNodes] - 1] == -1)
+	      if (Mesh2PDENode[SD[j]->connect[NumNodes] - 1] == -1)
 		{
-		  Mesh2PDENode_[SD[j]->connect[NumNodes] - 1] = NodeCounter;
-		  PDE2MeshNode_.push_back(SD[j]->connect[NumNodes]);
+		  Mesh2PDENode[SD[j]->connect[NumNodes] - 1] = NodeCounter;
+		  PDE2MeshNode.push_back(SD[j]->connect[NumNodes]);
 		  NodeCounter++;
 		}
 	    }
@@ -394,55 +481,153 @@ void BasePDE::AssignPDENodeNumbers()
     }
 
   NumPDENodes_ = PDE2MeshNode_.size();
-
-  //std::cout << "NumPDENodes = " << NumPDENodes_ << std::endl;
-  //std::cout << "Mesh2PDENode_" << std::endl;
-  //for (Integer i=0; i<Mesh2PDENode_.size(); i++)
-  //  std::cout << i << ":" <<Mesh2PDENode_[i] << std::endl;
-
-  //std::cout << "PDE2MeshNode" << std::endl;
-  //for (Integer i=0; i<PDE2MeshNode_.size(); i++)
-  //  std::cout << i << ": " << PDE2MeshNode_[i] << std::endl;
-  
-  
-
-#ifdef TRACE
-  (*trace) << " leaving BasePDE::AssignPDENodeNumbers" << std::endl;
-#endif 
 }
 
-void BasePDE::TransformNodeSolution(Vector<Double> & MeshSol,  Vector<Double> & PDESol)
+  
+void BasePDE::AssignPDENodeNumbers(std::vector<Integer> & Mesh2PDENode,
+			  std::vector<Integer> & PDE2MeshNode,
+			  const std::vector<Elem*> & Elements)
+{
+#ifdef TRACE
+  (*trace) << "entering BasePDE:AssignPDENodeNumbers:" << std::endl;
+#endif
+
+  // Initialize Mesh2PDENode_ and PDE2MeshNode
+  Mesh2PDENode.resize(ptgrid_->GetMaxnumnodes(actlevel_),-1);
+  Integer NodeCounter = 1;
+  
+  // Iterate over all elements 
+  for (Integer j=0; j<Elements.size(); j++)
+    {
+      // Iterate over all element nodes
+      for (Integer NumNodes=0; NumNodes<Elements[j]->connect.size(); NumNodes++)
+	{
+	  // Check if node was already assigned
+	  if (Mesh2PDENode[Elements[j]->connect[NumNodes] - 1] == -1)
+	    {
+	      Mesh2PDENode[Elements[j]->connect[NumNodes] - 1] = NodeCounter;
+	      PDE2MeshNode.push_back(Elements[j]->connect[NumNodes]);
+	      NodeCounter++;
+	    }
+	}
+    }
+}
+
+
+void BasePDE::GetElemCoords(const Vector<Integer> connect, Matrix<Double> &coordMat, const Integer level)
+{
+#ifdef TRACE
+  (*trace) << "entering BasePDE:GetElemCoords:" << std::endl;
+#endif
+
+  ptgrid_->GetCoordNodesElemMat(connect, coordMat, level);
+  
+   if (deltCoords_.size() != 0)
+    {
+      for (Integer i=0; i<coordMat.size_row(); i++)
+	for (Integer j=0; j<coordMat.size_col(); j++)
+	  coordMat(i,j) += deltCoords_[i][Mesh2PDENode_ [connect[j] - 1] - 1];
+    }
+
+}
+
+void BasePDE::TransformNodeSolution(Array<Double> & MeshSol, 
+				    Array<Double> & PDESol, 
+				    const std::vector<Integer> & PDE2MeshNode)
 {
 #ifdef TRACE
   (*trace) << "entering BasePDE::TransformNodeSolution" << std::endl;
 #endif
 
-  Integer k, node, idx;
-  MeshSol.Resize(ptgrid_->GetMaxnumnodes(actlevel_)*dofspernode_);
+  Integer node, idx;
 
-  k=0;
-  for (Integer i=0; i<PDE2MeshNode_.size(); i++)
-    {
-      node = PDE2MeshNode_[i];
-      idx  = dofspernode_*(node-1);
-      for (Integer j=0;j<dofspernode_; j++)
-	{
-	  MeshSol[idx+j] = PDESol[k];
-	  k++;
-	}
-    }
+  MeshSol.reshape(PDESol.dim(), ptgrid_->GetMaxnumnodes(actlevel_));
+
+  // loop over dimensions
+  for (Integer dim=0; dim<PDESol.dim(); dim++)
+
+      // Loop over all PDE nodes
+      for (Integer i=0; i<PDE2MeshNode.size(); i++)
+
+	  MeshSol[dim][PDE2MeshNode[i]-1] = PDESol[dim][i];
+
 }
 
-void BasePDE::TransformElemSolution(Vector<Double> & MeshSol,  Vector<Double> & PDESol)
+
+void BasePDE::TransformElemSolution(Array<Double> & MeshSol, 
+				    Array<Double> & PDESol, 
+				    const std::vector<Elem*> & Elems)
 {
 #ifdef TRACE
   (*trace) << "entering BasePDE::TransformElemSolution" << std::endl;
 #endif
-  MeshSol.Resize(ptgrid_->GetMaxnumElem(actlevel_));
-  //std::cerr << "MeshSol.size() = " << MeshSol.size() << std::endl;
-  //std::cerr << "PDESol.size() = " << PDESol.size() << std::endl;
-  for (Integer i=0; i<PDESol.size(); i++)
-    MeshSol[i] = PDESol[i];
+
+  MeshSol.reshape(PDESol.dim(), ptgrid_->GetMaxnumElem(actlevel_));
+  
+  // loop over all dimensions
+  for (Integer dim=0; dim<PDESol.dim(); dim++)
+
+    // loop over all elements
+    for (Integer i=0; i<Elems.size(); i++)
+
+      MeshSol[dim][Elems[i]->ElemNum - 1] = PDESol[dim][i];
+
+    
+}
+
+void BasePDE::TransformElemSolution(Array<Double> & MeshSol, 
+				    Array<Double> & PDESol, 
+				    const std::vector<std::string> & SD)
+{
+#ifdef TRACE
+  (*trace) << "entering BasePDE::TransformElemSolution" << std::endl;
+#endif
+
+  std::vector<Elem*> Elems;
+
+  MeshSol.reshape(PDESol.dim(), ptgrid_->GetMaxnumElem(actlevel_));
+
+
+  // loop over all SubDomains
+  for (Integer isd=0; isd<SD.size(); isd++)
+  {
+    ptgrid_->GetElemSD(Elems, SD[isd], actlevel_);
+    
+    // loop over all dims
+    for (Integer dim=0; dim<PDESol.dim(); dim++)
+
+	// loop over all elements
+	for (Integer i=0; i<Elems.size(); i++)
+
+	  MeshSol[dim][Elems[i]->ElemNum -1] = PDESol[dim][i];
+	
+  }
+
+}
+
+
+void BasePDE::NodeSolutionToCoupling(Array<Double>& CouplingSol,
+				     const std::vector<Integer>& NodeNumbers)
+{
+#ifdef TRACE
+  (*trace) << "entering BasePDE::TransformElemSolution" << std::endl;
+#endif
+  
+  CouplingSol.reshape(dofspernode_, NodeNumbers.size());
+  
+  std::cerr << "In " << pdename_ << "-NodeSolutiontoCoupling" << std::endl;
+  std::cerr << "CouplingSol size:" << CouplingSol.size() << ", dim: " << CouplingSol.dim() << std::endl;
+  std::cerr << "sol size:" << sol_.size() << ", dim: " << sol_.dim() << std::endl;
+  std::cerr << "Mesh2PDENode_.size = " << Mesh2PDENode_.size() << std::endl;
+  std::cerr << "NumPDENodes = " << NumPDENodes_ << std::endl;
+  
+  for (Integer i=0; i<CouplingSol.dim(); i++)
+    for (Integer j=0; j<CouplingSol.size(); j++)
+      {
+	//std::cerr << "processing dim: " << i <<", j:" << j << std::endl; 
+	CouplingSol[i][j] = sol_[i][Mesh2PDENode_[NodeNumbers[j]-1 ] - 1];
+      }
+  
 }
 
 Integer BasePDE::GetNumRestraints(const Integer level)
@@ -474,8 +659,8 @@ void BasePDE::SetAlgSys_id(const Integer as_sysid)
 }
 
 
-  void BasePDE::MassMultiDof(Matrix<Double>& massMultDof, const Matrix<Double>& massMatSingleDof,  const Integer nrDofs)
-  {
+void BasePDE::MassMultiDof(Matrix<Double>& massMultDof, const Matrix<Double>& massMatSingleDof,  const Integer nrDofs)
+{
     
 #ifdef TRACE
     (*trace) << "entering BasePDE::MassMatMultiDof" << std::endl;

@@ -4,9 +4,14 @@
 #include <vector>
 
 #include "domain.hh"
+#include <Domain/grid.hh>
+#include <Domain/bcs.hh>
 #include <Domain/GridCFS/interface_gridcfs.hh>
 #include <AlgebraicSystem/interface_piles.hh>
 #include <DataInOut/GMV/outGMV.hh>
+#include <PDE/basepde.hh>
+#include <CoupledPDE/coupledpdedef.hh>
+#include <CoupledPDE/pdecoupling.hh>
 
 #ifdef NETGEN
 #include "interface_netgen.hh"
@@ -21,6 +26,7 @@
 #endif
 
 #include <PDE/pdes_header.hh>
+#include <CoupledPDE/coupled_pdes_header.hh>
 
 namespace CoupledField
 {
@@ -38,9 +44,7 @@ Domain:: Domain(FileType * const aptFileType, WriteResults * ptOut, TimeFunc * a
  ptTimeFunc_ = aptTimeFunc;
 
  Integer i;
- for (i=0; i< MAXNUMPDE; i++)
-   ptpde_[i]=NULL;
-
+ 
   // read type of output results from conf-file
  std::string libmesh="cfsgrid";
  conf->ifget("mesh_library",libmesh);
@@ -98,7 +102,12 @@ Domain:: Domain(FileType * const aptFileType, WriteResults * ptOut, TimeFunc * a
 
  //read restraints information
  ptBCs_->ReadBCs();
+
+ // Initialize PDEs
  InitPDEs();
+
+ // Initialize Coupled PDEs
+ InitCoupledPDE();
  
 }
 
@@ -113,8 +122,7 @@ Domain :: ~Domain()
   if (ptalgsys_) delete ptalgsys_;
 
   Integer i; 
-  for (i=0; i<MAXNUMPDE; i++)
-    if (ptpde_[i]) delete ptpde_[i];
+ 
 }
 
 void Domain :: InitPDEs()
@@ -128,6 +136,8 @@ void Domain :: InitPDEs()
   conf->getliststr("list_pdes",pdes);
 
   numpde_=pdes.size();
+  ptpde_.resize(numpde_);
+
 
   //allocate all specific PDEs
   //  if (!ptalgsys_) Error("You try to allocate object BasePDE with null pointer to AlgSys");
@@ -151,6 +161,9 @@ void Domain :: InitPDEs()
       else if (pdes[i] == "mechanic")
 	ptpde_[i]=new MechPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
 
+      else if (pdes[i] == "smooth")
+	ptpde_[i]=new SmoothPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
+
       else if (pdes[i] == "electrostatic") 
 	ptpde_[i]=new ElecPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_); 
 
@@ -172,6 +185,70 @@ void Domain :: InitPDEs()
      }
 
 } // end of InitPDE()
+
+
+void Domain::InitCoupledPDE()
+{
+#ifdef TRACE
+  (*trace) << "entering Domain::InitCoupledPDE" << std::endl;
+#endif
+  
+  // check if more than one PDEs are defined
+  if (numpde_ <= 1)
+    {
+      ptcoupledpde_ = 0;
+      return;
+    }
+
+  CoupledPDEDef * CouplingDef = new CoupledPDEDef(ptgrid_, ptBCs_);
+
+  CouplingDef->CreateCoupling(orderedpdes_,couplings_, ptpde_);
+
+  ptcoupledpde_ = new IterCoupledPDE(orderedpdes_,couplings_,ptgrid_, ptBCs_,InFile_,OutFile_);
+
+
+  delete CouplingDef;
+
+  //allocate all specific PDEs
+  //  if (!ptalgsys_) Error("You try to allocate object BasePDE with null pointer to AlgSys");
+
+  //for (int i=0;i< coupled_pdes.size();i++)
+//    {
+     //  //if (coupled_pdes[i] == "elecmech")
+// 	{
+// 	  std::vector<BasePDE*> PDEs;
+// 	  for (Integer j=0; j<numpde_; j++)
+// 	    {
+// 	      if (ptpde_[j]->GetName() == "electrostatic")
+// 		{ 
+// 		  std::cerr << "found electrostatic" << std::endl;
+// 		  PDEs.push_back(ptpde_[j]);
+// 		}
+// 	      if (ptpde_[j]->GetName() == "mechanic")
+// 		{
+// 		  std::cerr << "found mechanic" << std::endl;
+// 		  PDEs.push_back(ptpde_[j]);
+// 		}
+// 	      if (ptpde_[j]->GetName() == "smooth")
+// 		{
+// 		  std::cerr << "found smooth" << std::endl;
+// 		  PDEs.push_back(ptpde_[j]);
+// 		}
+// 	    }
+	  
+// 	  std::cerr << "PDEs.size() = " << PDEs.size() << std::endl;
+// 	  ptcoupledpde_[i]=new ElecMechPDE(PDEs,ptgrid_,ptBCs_,InFile_,OutFile_);
+//	}
+//      else
+//	{
+//	  std::string msg=coupled_pdes[i]+" - this type of coupled-pde is unknown";
+//	  Error(msg.c_str(),__FILE__,__LINE__);
+//	}     
+//    }
+
+
+}
+
 
 
 void Domain :: PrintGrid(const Integer level)

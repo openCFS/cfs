@@ -84,8 +84,8 @@ public:
   { ptGridCFS->DefineBelonging4Elems(elemsSurf,elems,belongingSE);}
 
   //!
-  virtual void GetInterfaceNeighbours(std::vector<Elem*> & Interface, std::vector<Elem*> & Next2Surf, std::vector<Elem*> & Neighbours)
-  {  ptGridCFS->GetInterfaceNeighbours(Interface, Next2Surf, Neighbours);}
+  virtual void GetInterfaceNeighbours(std::vector<Integer> & interfaceNodes, std::vector<std::string> & subdoms, std::vector<Elem*> & neighbours, Integer level)
+  {  ptGridCFS->GetInterfaceNeighbours(interfaceNodes, subdoms, neighbours, level);}
   
   //!
   virtual void CalcNumberOfNodesInPatch(const std::vector<Elem*> & patch, std::vector<Integer>& map) 

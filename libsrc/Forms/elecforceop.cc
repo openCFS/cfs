@@ -1,5 +1,6 @@
 #include "elecforceop.hh"
 
+#include <PDE/basepde.hh>
 #include <Elements/basefe.hh>
 #include <string>
 #include <Domain/elem.hh>
@@ -9,16 +10,17 @@
 namespace CoupledField
 {
  
-ElecForceOp::ElecForceOp(Grid * ptGrid, 
+ElecForceOp::ElecForceOp(Grid * ptGrid,
+			 BasePDE * ptPDE,
 			 std::vector<Integer> * ptMesh2PDENode,
 			 Vector<Double> * EPotential,
-			 Integer level) : BaseOperator(ptGrid, ptMesh2PDENode, level)
+			 Integer level) : BaseOperator(ptGrid, ptPDE, ptMesh2PDENode, level)
 {
 #ifdef TRACE
   (*trace) << "entering ElecForceOp::ElecForceOp" << std::endl;
 #endif
 
-  ElecFieldOp_ = new ElecFieldOp(ptGrid, ptMesh2PDENode, EPotential, level);
+  ElecFieldOp_ = new ElecFieldOp(ptGrid, ptPDE, ptMesh2PDENode, EPotential, level);
 
 }
 
@@ -32,9 +34,9 @@ ElecForceOp::~ElecForceOp()
 }
 
 void ElecForceOp::CalcElemElecForce(Vector<Double> & F,
-					    const Elem * ptElement,
-					    Double epsilon,
-					    const std::vector<ShortInt> & IsBoundaryNode)
+				    const Elem * ptElement,
+				    Double epsilon,
+				    const std::vector<ShortInt> & IsBoundaryNode)
 {
 #ifdef TRACE
   (*trace) << "entering ElecForceOp::CalcElemElecForce" << std::endl;
@@ -51,10 +53,14 @@ void ElecForceOp::CalcElemElecForce(Vector<Double> & F,
   NumNodes = ptElement->ptElem->GetNumNodes();
   NumIntPoints = ptElement->ptElem->GetNumIntPoints();
   Ip = ptElement->ptElem->GetIntPoints();
-  ptGrid_->GetCoordNodesElemMat(ptElement->connect, CornerCoords, level_);
+  ptPDE_->GetElemCoords(ptElement->connect, CornerCoords, level_);
+
   F.Resize(Dim);
   F.Init();
   
+  std::vector<Double> temp;
+  temp.resize(Dim);
+
   // Loop over integration points
   for (Integer nIp=1; nIp<NumIntPoints+1; nIp++)
     {
@@ -75,6 +81,7 @@ void ElecForceOp::CalcElemElecForce(Vector<Double> & F,
       Matrix<Double> SpecCornerCoords;
       SpecCornerCoords.Resize(Dim,NumNodes);
       
+
       // 
       for (Integer i=0; i<Dim; i++) 
 	{
@@ -89,15 +96,18 @@ void ElecForceOp::CalcElemElecForce(Vector<Double> & F,
 	  // calculate dJ_dr and Det(dJ_dr)
 	  ptElement->ptElem->CalcJacobianAtIp(dJ_dr, nIp, SpecCornerCoords);
 	  //std::cerr << "dJ_dr = " << dJ_dr << std::endl;
-	  DetdJ_dr = ptElement->ptElem->CalcJacobianDetAtIp(nIp, SpecCornerCoords);
+	  DetdJ_dr = dJ_dr.Det();
 	  
 	  
 	  // finally calculate electric force per element
-	  F[i] -=  (( E * ( JInv * dJ_dr * E ) * DetJ 
-		     -  ( E * E ) * DetdJ_dr * 0.5) * (epsilon * eps0));
+
+	  F[i] -=  (( E * ( JInv * (dJ_dr * E) ) * DetJ 
+	  	     -  ( E * E ) * DetdJ_dr * 0.5) * (epsilon * eps0));
+
 	  //std::cerr << "F[" << i << "] = " << F[i] << std::endl;
 	}
     }
+
   
 }
 
