@@ -246,7 +246,7 @@ void DatFile:: ReadGeneralAnalChoice(Integer * dataGAnalCh,
 
 // ------------------------ Read Nodal Coordinates 3D -------------------------
 
-void DatFile :: ReadCoordinate(Point3D * const InitNodalCo,                                                     const Integer maxnumNod)
+void DatFile :: ReadCoordinate(Point<3> * const InitNodalCo,                                                     const Integer maxnumNod)
 {
 #ifdef TRACE
   (*trace) << "entering DatFile::ReadCoordinate 3D" << std::endl;
@@ -257,7 +257,7 @@ void DatFile :: ReadCoordinate(Point3D * const InitNodalCo,                     
  infile.seekg(pos,std::ios::beg);
  for (Integer i=0; i < maxnumNod; i++)
   {
-   infile >> ii >>InitNodalCo[i].x >>  InitNodalCo[i].y >>  InitNodalCo[i].z; 
+   infile >> ii >>InitNodalCo[i][0] >>  InitNodalCo[i][1] >>  InitNodalCo[i][2]; 
   }
 #ifdef TRACE
   (*trace) << "leaving DatFile::ReadCoordinate 3D" << std::endl;
@@ -267,7 +267,7 @@ void DatFile :: ReadCoordinate(Point3D * const InitNodalCo,                     
 
 // ------------------------ Read Nodal Coordinates 2D------------------------
  
-void DatFile :: ReadCoordinate(Point2D * const InitNodalCo,
+void DatFile :: ReadCoordinate(Point<2> * const InitNodalCo,
                                 const Integer maxnumNod)
 {
 #ifdef TRACE
@@ -280,7 +280,7 @@ void DatFile :: ReadCoordinate(Point2D * const InitNodalCo,
  infile.seekg(pos,std::ios::beg);
  for (Integer i=0; i < maxnumNod; i++)
   {
-   infile >> ii >> dummy >> InitNodalCo[i].x >>  InitNodalCo[i].y ;
+   infile >> ii >> dummy >> InitNodalCo[i][0] >>  InitNodalCo[i][1] ;
   }
 }
 

@@ -20,6 +20,7 @@ Rectangle::Rectangle()
   IntegType=String2EnumIntegrationType(integtype.c_str());
 
   IsSet=FALSE;
+  isSetAtCenter_=FALSE;
 }
 
 Rectangle :: ~Rectangle()
@@ -54,6 +55,7 @@ void Rectangle:: SetIntPoints()
       IntPoints[1][1] = -0.57735026919;
       IntPoints[2][1] =  0.57735026919;
       IntPoints[3][1] =  0.57735026919;
+
       break;
 
     case GaussOrder5:
@@ -166,7 +168,7 @@ void Rectangle:: SetIntPoints()
 void Rectangle :: SetTransformFncAtIntPoints()
 {
 #ifdef TRACE
-  (*trace) << "entering Rectangle::SetShapeFncAtIntPoints" << std::endl;
+  (*trace) << "entering Rectangle::SetTransformFncAtIntPoints" << std::endl;
 #endif
   Integer i;
   TransFncAtIP1.Resize(NumIntPoints);
@@ -217,8 +219,39 @@ void Rectangle :: SetDerTransformFncAtIntPoints()
     }
 }
 
-void Rectangle::CalcJacobian(Jacobian<Point2D> & J, const Integer ip,
-                     const Point2D * const ptCoord, const Boolean NeedJinv)
+void Rectangle :: SetTransformFncAtCenter()
+{
+#ifdef TRACE
+  (*trace) << "entering Rectangle::SetTransformFncAtCenter" << std::endl;
+#endif
+  
+  TransFncAtCenter[0]=TransFnc1(0,0);
+  TransFncAtCenter[1]=TransFnc2(0,0);
+  TransFncAtCenter[2]=TransFnc3(0,0);
+  TransFncAtCenter[3]=TransFnc4(0,0);
+  
+}
+
+void Rectangle :: SetDerTransformFncAtCenter()
+{
+#ifdef TRACE
+  (*trace) << "entering Rectangle::SetDerTransFncAtCenter" << std::endl;
+#endif
+ 
+  DxTransFncAtCenter[0]=TransFnc1dx(0,0);
+  DxTransFncAtCenter[1]=TransFnc2dx(0,0);
+  DxTransFncAtCenter[2]=TransFnc3dx(0,0);
+  DxTransFncAtCenter[3]=TransFnc4dx(0,0);
+      
+  DyTransFncAtCenter[0]=TransFnc1dy(0,0);
+  DyTransFncAtCenter[1]=TransFnc2dy(0,0);
+  DyTransFncAtCenter[2]=TransFnc3dy(0,0);
+  DyTransFncAtCenter[3]=TransFnc4dy(0,0);
+    
+}
+
+void Rectangle::CalcJacobian(Jacobian<2> & J, const Integer ip,
+                     Point<2> * ptCoord, const Boolean NeedJinv)
 {
 
  if (!IsSet)
@@ -230,19 +263,20 @@ void Rectangle::CalcJacobian(Jacobian<Point2D> & J, const Integer ip,
 
  Double aux=0;
 
- J.J[0][0] = DxTransFncAtIP1[ip]*ptCoord[0].x + DxTransFncAtIP2[ip]*ptCoord[1].x
-             + DxTransFncAtIP3[ip]*ptCoord[2].x +  DxTransFncAtIP4[ip]*ptCoord[3].x;
+ J.J[0][0] = DxTransFncAtIP1[ip]*ptCoord[0][0] + DxTransFncAtIP2[ip]*ptCoord[1][0]
+             + DxTransFncAtIP3[ip]*ptCoord[2][0] +  DxTransFncAtIP4[ip]*ptCoord[3][0];
  
- J.J[0][1] = DyTransFncAtIP1[ip]*ptCoord[0].x + DyTransFncAtIP2[ip]*ptCoord[1].x
-          + DyTransFncAtIP3[ip]*ptCoord[2].x + DyTransFncAtIP4[ip]*ptCoord[3].x;
+ J.J[0][1] = DyTransFncAtIP1[ip]*ptCoord[0][0] + DyTransFncAtIP2[ip]*ptCoord[1][0]
+          + DyTransFncAtIP3[ip]*ptCoord[2][0] + DyTransFncAtIP4[ip]*ptCoord[3][0];
 
- J.J[1][0] = DxTransFncAtIP1[ip]*ptCoord[0].y + DxTransFncAtIP2[ip]*ptCoord[1].y
-          + DxTransFncAtIP3[ip]*ptCoord[2].y + DxTransFncAtIP4[ip]*ptCoord[3].y;
+ J.J[1][0] = DxTransFncAtIP1[ip]*ptCoord[0][1] + DxTransFncAtIP2[ip]*ptCoord[1][1]
+          + DxTransFncAtIP3[ip]*ptCoord[2][1] + DxTransFncAtIP4[ip]*ptCoord[3][1];
 
- J.J[1][1] = DyTransFncAtIP1[ip]*ptCoord[0].y + DyTransFncAtIP2[ip]*ptCoord[1].y
-          + DyTransFncAtIP3[ip]*ptCoord[2].y + DyTransFncAtIP4[ip]*ptCoord[3].y;
+ J.J[1][1] = DyTransFncAtIP1[ip]*ptCoord[0][1] + DyTransFncAtIP2[ip]*ptCoord[1][1]
+          + DyTransFncAtIP3[ip]*ptCoord[2][1] + DyTransFncAtIP4[ip]*ptCoord[3][1];
 
  J.detJ = J.J[0][0]*J.J[1][1]-J.J[0][1]*J.J[1][0];
+
 
 if (NeedJinv)
 {
@@ -250,9 +284,9 @@ if (NeedJinv)
 
  J.Jinv[0][0] = J.J[1][1];
 
- J.Jinv[0][1] = - J.Jinv[0][1];
+ J.Jinv[0][1] = - J.J[0][1];
 
- J.Jinv[1][0] = - J.Jinv[1][0];
+ J.Jinv[1][0] = - J.J[1][0];
 
  J.Jinv[1][1] = J.J[0][0];
 
@@ -260,8 +294,54 @@ if (NeedJinv)
 }
 }
 
-void Rectangle::CalcJacobian(Jacobian<Point3D> & J, const Integer ip,
-                     const Point3D * const ptCoord, const Boolean NeedJinv)
+void Rectangle::CalcJacobianAtCenter(Jacobian<2> & J,
+              Point<2> * ptCoord, const Boolean NeedJinv)
+{
+
+  if (!isSetAtCenter_)
+    { 
+      SetTransformFncAtCenter();
+      SetDerTransformFncAtCenter(); 
+      isSetAtCenter_=TRUE;
+    }
+
+  Double aux=0;
+
+  // Init
+  J.J[0][0]  = 0;
+  J.J[0][1]  = 0;
+  J.J[1][0]  = 0;
+  J.J[1][1]  = 0;
+
+  Integer ish;
+  for (ish=0; ish < 4; ish++) {
+    J.J[0][0]  += DxTransFncAtCenter[ish]*ptCoord[ish][0];
+    J.J[0][1]  += DyTransFncAtCenter[ish]*ptCoord[ish][0];
+    J.J[1][0]  += DxTransFncAtCenter[ish]*ptCoord[ish][1];
+    J.J[1][1]  += DyTransFncAtCenter[ish]*ptCoord[ish][1];
+  }
+
+  
+  J.detJ = J.J[0][0]*J.J[1][1]-J.J[0][1]*J.J[1][0];
+
+  if (NeedJinv)
+    {
+      aux=1.0/J.detJ;
+
+      J.Jinv[0][0] = J.J[1][1];
+
+      J.Jinv[0][1] = - J.J[0][1];
+
+      J.Jinv[1][0] = - J.J[1][0];
+
+      J.Jinv[1][1] = J.J[0][0];
+
+      J.Jinv*=aux;
+    }
+}
+
+void Rectangle::CalcJacobian(Jacobian<3> & J, const Integer ip,
+                     Point<3> * ptCoord, const Boolean NeedJinv)
 {
  Error("Not implemented yet", __FILE__, __LINE__);
 }

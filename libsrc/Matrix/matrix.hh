@@ -202,7 +202,7 @@ inline Integer Matrix<TYPE>::size_col () const
 
 #ifdef __GNUC__
 template class Matrix<Double>;
-template class Matrix<Integer>;
+//template class Matrix<Integer>;
 #endif
 
 } //end of namespace

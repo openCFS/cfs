@@ -13,7 +13,7 @@ class WriteResultsGMV: virtual public WriteResults
 public:
 
   //! Constructor
-  WriteResultsGMV(const Char * const filename);
+  WriteResultsGMV(const Char * const filename,Boolean withHistory=FALSE);
   
   //! Deconstructor
   virtual ~WriteResultsGMV();
@@ -27,8 +27,20 @@ public:
   /// write information about the solution
   virtual void WriteSolution(const Vector<Double> & sol, const Integer step, const Double time, const std::string title);
 
+ //! write cell data
+  virtual void WriteDataOnCell(const Vector<Double> & data, const Integer step, const Double time, const std::string title);
+
+  //! write vectors-data
+  void WriteResultsGMV::WriteVecDataOnCell(const Vector<Double>*vec,const Integer step, const Double time, const std::string title);
+
+ //! write comments
+ virtual void WriteComments(const std::string comments){;}
+
   //!
   virtual Boolean IsGMV(){ return TRUE;}
+
+ //! function for open file with number num 
+  void OpenFile(const Integer num);
 
 private:
   ///
@@ -43,6 +55,9 @@ private:
   //!
   Grid * ptgrid;
 
+  //! indicator of type for data
+  Boolean ascii_;
+
   //! write header of gmv-file: only ascii is implemented
   void WriteHeader();
 
@@ -53,10 +68,17 @@ private:
   void WriteCells(const Integer level); 
 
   //! write variable information
-  void WriteVariable(const Vector<Double> var, const std::string name, const Integer type);
-
-  //! function for open file with number num 
-  void OpenFile(const Integer num);
+  /*!
+    \param dataType data type of the var: 0.. cell data, 1.. node data, 2.. face data
+  */
+  void WriteVariable(const Vector<Double> var, const std::string name, const Integer dataType);
+  
+   //! write vector-variable information
+  /*!
+    \param dataType data type of the var: 0.. cell data, 1.. node data, 2.. face data
+  */
+  void WriteVelocity(const Vector<Double>* var, const std::string name, const Integer dataType);
+ 
 };
 
 } // end of namespace

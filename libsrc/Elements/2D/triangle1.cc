@@ -58,7 +58,7 @@ Vector<Double> & Triangle1::GetShFncAtIP(const Integer iShFnc)
 void  Triangle1::GetGradientShFnc(Vector<Double> & grad, const Integer i, const Integer ip)
 {
   grad.Resize(2);
- 
+
   switch(i)
 {
  case 1:
@@ -73,6 +73,14 @@ void  Triangle1::GetGradientShFnc(Vector<Double> & grad, const Integer i, const 
   default:
    Error("Wrong number of shape function",__FILE__,__LINE__);
 }
+}
+
+void  Triangle1::GetGradientShFncAtCenter(Vector<Double> & grad, const Integer ish)
+{
+  grad.Resize(2);
+
+  grad[0]=DxTransFncAtCenter[ish-1];
+  grad[1]=DyTransFncAtCenter[ish-1];
 }
 
 } // end of namespace

@@ -26,6 +26,9 @@ public:
    //! Return pointer to array of value shape function at integration points
    virtual Vector<Double> & GetShFncAtIP(const Integer iShFnc);
 
+   //! return values of gradient at center point
+   void GetGradientShFncAtCenter(Vector<Double>&grad,const Integer iShFnc);
+
 private:
    
 };

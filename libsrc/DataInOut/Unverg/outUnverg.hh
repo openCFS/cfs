@@ -14,7 +14,7 @@ class WriteResultsUnverg: virtual public WriteResults
 
 public:
   /// constructor with name of a file for results
-  WriteResultsUnverg(const Char * const filename); 
+  WriteResultsUnverg(const Char * const filename,Boolean withHistory=FALSE); 
 
   /// deconstructor
   virtual ~WriteResultsUnverg();
@@ -28,6 +28,9 @@ public:
   /// write information about the solution
   virtual void WriteSolution(const Vector<Double> & sol, const Integer step, const Double time, const std::string title);
 
+   //! write cell data
+  virtual void WriteDataOnCell(const Vector<Double> & data, const Integer step, const Double time, const std::string title);
+  
   //
  virtual Boolean IsGMV() { return FALSE;}
 
@@ -44,11 +47,12 @@ private:
   ///
   void Dataset780(const Integer level);
 
-  ///
+  //! for printing nodal results of simulation
   void Dataset55(const std::string & title, const Vector<Double> & x, const Integer step, const Double time);
 
-  ///
-  void Dataset56(); 
+  //! for printing cell results of simulation
+  void Dataset56(const std::string & title, const Vector<Double> & x, const Integer step, const Double time);
+
 };
 
 } // end of namespace

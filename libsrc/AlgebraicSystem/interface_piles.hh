@@ -137,6 +137,7 @@ public:
     algsys->UpdateRHS(matrix_row,matrix_col,matrix_id,vec);
   }
 
+
   //! Add element vector to rhs-vector at position pos
   virtual void PutElemRHS(Double * elemrhs, Integer *pos, Integer size, Integer sys_id)
   {
@@ -144,6 +145,12 @@ public:
     algsys->SetElementRHS(elemrhs,pos,size,sys_id);
   }
 
+  //! Add element vector to RHS
+  virtual void AddElementRHS(Double *elemrhs, Integer *connect, Integer elemsize, Integer sys_id)
+  {
+    sys_id++;
+    algsys->SetElementRHS(elemrhs,connect,elemsize,sys_id);
+  }
 
   //!
   virtual void ComputePrecond(Integer job, Integer nsys)
@@ -179,7 +186,12 @@ public:
 #ifdef TRACE
     (*trace) << "entering AlgSysPILES::~AlgSysPILES " << std::endl;
 #endif
+
     if (algsys) delete algsys;
+
+#ifdef TRACE
+    (*trace) << "leaving AlgSysPILES::~AlgSysPILES " << std::endl;
+#endif
   }
 
 private:

@@ -18,6 +18,8 @@ GeTriangle::GeTriangle()
   conf->get("triangle",integtype,"IntegRules");
 
   IntegType=String2EnumIntegrationType(integtype.c_str());
+
+	isSetAtCenter_=FALSE;
 }
 
 GeTriangle :: ~GeTriangle()
@@ -132,13 +134,14 @@ void GeTriangle :: SetIntPoints()
       IntPoints[5][0] = 7.974269853530872e-01;
       IntPoints[6][0] = 1.012865073234563e-01;      
  
+
       IntPoints[0][1] = 3.333333333333333e-01;
       IntPoints[1][1] = 4.701420641051151e-01;
       IntPoints[2][1] = 4.701420641051151e-01;
       IntPoints[3][1] = 5.971587178976981e-02;
       IntPoints[4][1] = 1.012865073234563e-01;
       IntPoints[5][1] = 1.012865073234563e-01;
-      IntPoints[5][1] = 7.974269853530872e-01;
+      IntPoints[6][1] = 7.974269853530872e-01;
  
       (*IntWeights)[0]= 0.2250300003;
       (*IntWeights)[1]= 0.132394152788506;
@@ -147,7 +150,7 @@ void GeTriangle :: SetIntPoints()
       (*IntWeights)[4]= 0.125939180544827;
       (*IntWeights)[5]=  0.125939180544827;
       (*IntWeights)[6]=  0.125939180544827; 
- 
+
       break;
  
     default:
@@ -204,8 +207,8 @@ void GeTriangle :: SetDerTransformFncAtIntPoints()
     } 
 }
 
-void GeTriangle::CalcJacobian(Jacobian<Point2D> & J, const Integer ip,
-                     const Point2D * const ptCoord, const Boolean NeedJinv)
+void GeTriangle::CalcJacobian(Jacobian<2> & J, const Integer ip,
+                     Point<2> * ptCoord, const Boolean NeedJinv)
 {
 
   if (!IsSet)
@@ -217,40 +220,120 @@ void GeTriangle::CalcJacobian(Jacobian<Point2D> & J, const Integer ip,
 
  Double aux=0;
 
-J.J[0][0] = DxTransFncAtIP1[ip]*ptCoord[0].x + DxTransFncAtIP2[ip]*ptCoord[1].x
-             + DxTransFncAtIP3[ip]*ptCoord[2].x ;
+J.J[0][0] = DxTransFncAtIP1[ip]*ptCoord[0][0] + DxTransFncAtIP2[ip]*ptCoord[1][0]
+             + DxTransFncAtIP3[ip]*ptCoord[2][0] ;
 
-J.J[0][1] = DyTransFncAtIP1[ip]*ptCoord[0].x + DyTransFncAtIP2[ip]*ptCoord[1].x
-          + DyTransFncAtIP3[ip]*ptCoord[2].x ;
+J.J[0][1] = DyTransFncAtIP1[ip]*ptCoord[0][0] + DyTransFncAtIP2[ip]*ptCoord[1][0]
+          + DyTransFncAtIP3[ip]*ptCoord[2][0] ;
  
-J.J[1][0] = DxTransFncAtIP1[ip]*ptCoord[0].y + DxTransFncAtIP2[ip]*ptCoord[1].y
-          + DxTransFncAtIP3[ip]*ptCoord[2].y ;
+J.J[1][0] = DxTransFncAtIP1[ip]*ptCoord[0][1] + DxTransFncAtIP2[ip]*ptCoord[1][1]
+          + DxTransFncAtIP3[ip]*ptCoord[2][1] ;
  
-J.J[1][1] = DyTransFncAtIP1[ip]*ptCoord[0].y + DyTransFncAtIP2[ip]*ptCoord[1].y
-          + DyTransFncAtIP3[ip]*ptCoord[2].y ;
+J.J[1][1] = DyTransFncAtIP1[ip]*ptCoord[0][1] + DyTransFncAtIP2[ip]*ptCoord[1][1]
+          + DyTransFncAtIP3[ip]*ptCoord[2][1] ;
  
 J.detJ = J.J[0][0]*J.J[1][1]-J.J[0][1]*J.J[1][0];
 
+
+ // calculation of inverse matrix
 if (NeedJinv)
 {
  aux=1.0/J.detJ;
  
  J.Jinv[0][0] = J.J[1][1];
  
- J.Jinv[0][1] = - J.Jinv[0][1];
+ J.Jinv[0][1] = - J.J[0][1];
  
- J.Jinv[1][0] = - J.Jinv[1][0];
+ J.Jinv[1][0] = - J.J[1][0];
  
  J.Jinv[1][1] = J.J[0][0];
  
  J.Jinv*=aux;
 }
+
 }
 
-void GeTriangle::CalcJacobian(Jacobian<Point3D> & J, const Integer ip,
-                     const Point3D * const ptCoord, const Boolean NeedJinv)
+
+void GeTriangle::CalcJacobian(Jacobian<3> & J, const Integer ip,
+                     Point<3> * ptCoord, const Boolean NeedJinv)
 {
  Error("This element is from 2D", __FILE__, __LINE__);
+}
+
+void GeTriangle::CalcJacobianAtCenter(Jacobian<2> & J,
+              Point<2> * ptCoord, const Boolean NeedJinv)
+{
+
+  if (!isSetAtCenter_)
+    { 
+      SetTransformFncAtCenter();
+      SetDerTransformFncAtCenter(); 
+      isSetAtCenter_=TRUE;
+    }
+
+  Double aux=0;
+
+  // Init
+  J.J[0][0]  = 0;
+  J.J[0][1]  = 0;
+  J.J[1][0]  = 0;
+  J.J[1][1]  = 0;
+
+  Integer ish;
+  for (ish=0; ish < 3; ish++) {
+    J.J[0][0]  += DxTransFncAtCenter[ish]*ptCoord[ish][0];
+    J.J[0][1]  += DyTransFncAtCenter[ish]*ptCoord[ish][0];
+    J.J[1][0]  += DxTransFncAtCenter[ish]*ptCoord[ish][1];
+    J.J[1][1]  += DyTransFncAtCenter[ish]*ptCoord[ish][1];
+  }
+
+  
+  J.detJ = J.J[0][0]*J.J[1][1]-J.J[0][1]*J.J[1][0];
+
+  if (NeedJinv)
+    {
+      aux=1.0/J.detJ;
+
+      J.Jinv[0][0] = J.J[1][1];
+
+      J.Jinv[0][1] = - J.J[0][1];
+
+      J.Jinv[1][0] = - J.J[1][0];
+
+      J.Jinv[1][1] = J.J[0][0];
+
+      J.Jinv*=aux;
+    }
+}
+
+void GeTriangle :: SetTransformFncAtCenter()
+{
+#ifdef TRACE
+  (*trace) << "entering GeTriangle::SetTransformFncAtCenter" << std::endl;
+#endif
+  
+  TransFncAtCenter[0]=TransFnc1(0,0);
+  TransFncAtCenter[1]=TransFnc2(0,0);
+  TransFncAtCenter[2]=TransFnc3(0,0);
+  
+}
+
+void GeTriangle :: SetDerTransformFncAtCenter()
+{
+#ifdef TRACE
+  (*trace) << "entering GeTriangle::SetDerTransFncAtCenter" << std::endl;
+#endif
+ 
+  DxTransFncAtCenter[0]=TransFnc1dx(0,0);
+  DxTransFncAtCenter[1]=TransFnc2dx(0,0);
+  DxTransFncAtCenter[2]=TransFnc3dx(0,0);
+
+      
+  DyTransFncAtCenter[0]=TransFnc1dy(0,0);
+  DyTransFncAtCenter[1]=TransFnc2dy(0,0);
+  DyTransFncAtCenter[2]=TransFnc3dy(0,0);
+
+    
 }
 
 } // end of namespace

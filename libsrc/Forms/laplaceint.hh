@@ -7,8 +7,8 @@ namespace CoupledField
 {
 
 /// Class for calculation  element stiffness matrix
-template<class Dim>
-class LaplaceInt : public BaseForm<Dim>
+template<Integer dim>
+class LaplaceInt : public BaseForm<dim>
 {
 public:
   /// Constructor
@@ -18,7 +18,7 @@ public:
   virtual ~LaplaceInt();
 
   /// Calculation of stiffmess matrix
-  void CalcElemMatrix(Dim * ptCoord, Matrix<Double> & StiffMat);
+  void CalcElemMatrix(Point<dim> * ptCoord, Matrix<Double> & StiffMat);
 
   virtual void Print(std::ostream * out, const Matrix<Double> Result) const;
 
@@ -30,8 +30,8 @@ private:
 };
 
 #ifdef __GNUC__
-template class LaplaceInt<Point2D>;
-template class LaplaceInt<Point3D>;
+template class LaplaceInt<2>;
+template class LaplaceInt<3>;
 #endif
 }
 

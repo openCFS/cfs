@@ -140,7 +140,7 @@ inline Integer SparseMatrix<TYPE>::getSize() const
 
 #ifdef __GNUC__
 template class SparseMatrix<Double>;
-template class SparseMatrix<Integer>;
+//template class SparseMatrix<Integer>;
 #endif
 
 } // end of namespace

@@ -105,6 +105,9 @@ public:
   //! Overloading of operations / for number and Vector
   Vector  operator/       (const TYPE &) const;
 
+  //! Overloading of operation not equal for Vector
+  Vector &operator/= (const TYPE &x);
+
   //! Overloading of operations * for number and Vector   
   Vector	operator*	(const TYPE &) const;
 
@@ -133,7 +136,7 @@ public:
   static Vector	unit	(const Integer n, const Integer i);
 
   //! Calculate norm L^2 for Vector
-  Double norm_2 ();
+  Double normL2 ();
 
   //! Add element of the same type at position pos, by default to the beginning Beware of numeration in C++
   void add(const TYPE & y, Integer pos=0);

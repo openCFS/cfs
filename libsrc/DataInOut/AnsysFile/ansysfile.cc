@@ -61,7 +61,7 @@ Integer AnsysFile::ReadDim()
  return dim;
 }
 
-void AnsysFile::ReadCoordinate(Point2D * const NodesCoord, const Integer maxnumnodes)
+void AnsysFile::ReadCoordinate(Point<2> * const NodesCoord, const Integer maxnumnodes)
 {
 #ifdef TRACE
   (*trace) << "entering Ansys::ReadCoordinate 2D" << std::endl;
@@ -76,12 +76,12 @@ void AnsysFile::ReadCoordinate(Point2D * const NodesCoord, const Integer maxnumn
 
  for (i=0; i < maxnumnodes; i++)
   {
-    infile >> ibuf >> NodesCoord[i].x >> NodesCoord[i].y ;
+    infile >> ibuf >> NodesCoord[i][0] >> NodesCoord[i][1] ;
     infile.ignore(100,'\n');
   }
 }
 
-void AnsysFile::ReadCoordinate(Point3D * const NodesCoord, const Integer maxnumnodes)
+void AnsysFile::ReadCoordinate(Point<3> * const NodesCoord, const Integer maxnumnodes)
 {
 #ifdef TRACE
   (*trace) << "entering Ansys::ReadCoordinate 3D" << std::endl;
@@ -95,9 +95,10 @@ void AnsysFile::ReadCoordinate(Point3D * const NodesCoord, const Integer maxnumn
  Integer ibuf;
  for (i=0; i < maxnumnodes; i++)
  {
-   infile >> ibuf >> NodesCoord[i].x >> NodesCoord[i].y >>  NodesCoord[i].z;
+   infile >> ibuf >> NodesCoord[i][0] >> NodesCoord[i][1] >>  NodesCoord[i][2];
    infile.ignore(100,'\n');
  }
+
 }
 
 void AnsysFile::ReadMaxnumnodes(Integer & nnodes)
@@ -402,12 +403,13 @@ void AnsysFile::ReadEl4AdaptGrid3d(std::vector<grd::Element*> & elems, std::vect
 	     tmpTetra->setVertex(0,(*vertex)[connect[0]-1]);
 	     tmpTetra->setVertex(1,(*vertex)[connect[1]-1]);
 	     tmpTetra->setVertex(2,(*vertex)[connect[2]-1]); 
-	     tmpTetra->setVertex(2,(*vertex)[connect[3]-1]);
+	     tmpTetra->setVertex(3,(*vertex)[connect[3]-1]);
    
 	     SetNumSD(tmpTetra,namesd,sd);
     
 	     elems[i]=tmpTetra; 
 	     break;
+
 	   case 10:
 	     Error(" This type of element is not implemented yet", __FILE__, __LINE__);
 	     break;
@@ -435,6 +437,53 @@ void AnsysFile::SetNumSD(grd::Element * ptEl, const std::string namesd, const st
 }
 
 #endif
+
+void AnsysFile::ReadEl1d(std::vector<Elem*> * allelems, const std::vector<std::string> sd)
+{
+#ifdef TRACE
+ (*trace) << " entering AnsysFile::ReadEl1D " << std::endl;
+#endif
+
+ Integer maxnelems;
+ ReadMaxnumelem(maxnelems,"Num1DElements");
+
+ if (maxnelems)
+   {
+     std::string::size_type pos=0;
+
+     getPosLine("1D Elements", pos);
+     infile.seekg(pos,std::ios::beg);
+
+     if (!ptL1)
+       Error(" Pointers to BaseElem is not initialized",__FILE__,__LINE__);
+
+     Integer i, ii, j, ibuf, itype, innodes;
+     std::string namesd;
+
+     for (i=0; i<maxnelems; i++)
+       {
+	 Elem * el=new Elem();
+	 infile >> ibuf >> itype >> innodes >> namesd;
+	 infile.ignore(100,'\n');
+
+	 (*el).ptElem=Type2ptElem(itype);
+	 (*el).connect.Resize(innodes);
+	 for (ii=0; ii<innodes; ii++)
+	   infile >> (*el).connect[ii];
+
+	 infile.ignore(100,'\n');
+
+	 Boolean Find;
+	 for (j=0; j<sd.size(); j++)
+	   if (namesd == sd[j]) { allelems[j].push_back(el);
+	   Find=TRUE;
+	   }
+	 if (!Find) { std::string msg=namesd + "- this level of element is not mentioned in .conf-file. Please, check .config-file";
+	 Error(msg.c_str(),__FILE__,__LINE__);
+	 }
+       }
+   }
+}
 
 void AnsysFile::ReadEl2d(std::vector<Elem*> * allelems, const std::vector<std::string> sd)
 {
@@ -532,9 +581,11 @@ BaseElem * AnsysFile::Type2ptElem(const Integer itype)
 {
   switch(itype)
 {
-case 4:
+ case 100:
+   return ptL1;
+ case 4:
   return ptTr;
-case 6:
+ case 6:
   return ptQ;
 case 8:
   return ptTet;

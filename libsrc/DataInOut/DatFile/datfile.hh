@@ -77,8 +77,8 @@ public:
 			 std::string & seekStr);
 
   //! Read Nodal Coordinates (overloading for 3D and 2D) 
-  void ReadCoordinate(Point3D * const InitNodalCo, const Integer maxnumNodes);
-  void ReadCoordinate(Point2D * const InitNodalCo, const Integer maxnumNodes);
+  void ReadCoordinate(Point<3> * const InitNodalCo, const Integer maxnumNodes);
+  void ReadCoordinate(Point<2> * const InitNodalCo, const Integer maxnumNodes);
 
 
   //! Read General Info about element 

@@ -34,6 +34,13 @@ protected:
   //!
   Domain * ptdomain_;
 
+  //! for printing a sequence of files in dir meshes in gmv-format
+  WriteResults * ptMeshes_;
+  Integer nummeshes_;  // counter of meshes
+
+  //!
+  void PrintSeqMeshes();
+
 private:
   //! options from input-file; if true, then we output first-der,second in output-file
 //  Boolean SaveDer1_, SaveDer2_;

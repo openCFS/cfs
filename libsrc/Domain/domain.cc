@@ -20,10 +20,7 @@
 #include "interface_adgrid.hh"
 #endif
 
-#include "therm2dPDE.hh"
-#include "acoustic2dPDE.hh"
-#include "elecst3dPDE.hh"
-#include "elecst2dPDE.hh"
+#include "pdes_header.hh"
 
 namespace CoupledField
 {
@@ -52,33 +49,48 @@ Domain:: Domain(FileType * const aptFileType, WriteResults * ptOut,  Material * 
  Integer dim=InFile_->ReadDim();
 
  // initialize pointer to grid 
+ if (dim==2) {
 #ifdef GRIDLIB
-   if (libmesh =="gridlib") ptgrid_=new InterfaceGridlib<Point2D>(InFile_);
+   if (libmesh =="gridlib") ptgrid_=new InterfaceGridlib<2>(InFile_);
   else
 #endif
   if (libmesh =="cfsgrid") 
-{
-     if (dim==2) ptgrid_=new GridInterfaceCFS<Point2D>(InFile_);
-         else ptgrid_=new GridInterfaceCFS<Point3D>(InFile_);
-}
+      ptgrid_=new GridInterfaceCFS<2>(InFile_);
 #ifdef NETGEN
     else 
   if (libmesh == "netgen")
-{
-    if (dim==2) ptgrid_=new InterfaceNetGen<Point2D>(InFile_);
-        else ptgrid_=new InterfaceNetGen<Point3D>(InFile_);
-}
+    ptgrid_=new InterfaceNetGen<2>(InFile_);
 #endif
 #ifdef ADAPTGRID
      else
    if (libmesh== "adaptgrid")
-{
-   if (dim==2) ptgrid_=new InterfaceAdaptGrid<Point2D>(InFile_);
-       else ptgrid_=new InterfaceAdaptGrid<Point3D>(InFile_);
-}
+    ptgrid_=new InterfaceAdaptGrid<2>(InFile_);
 #endif
    else
      Error("Unknown type of mesh_library in conf-file",__FILE__,__LINE__);
+ }
+ 
+ if (dim==3) {
+#ifdef GRIDLIB
+   if (libmesh =="gridlib") ptgrid_=new InterfaceGridlib<3>(InFile_);
+  else
+#endif
+  if (libmesh =="cfsgrid") 
+      ptgrid_=new GridInterfaceCFS<3>(InFile_);
+#ifdef NETGEN
+    else 
+  if (libmesh == "netgen")
+    ptgrid_=new InterfaceNetGen<3>(InFile_);
+#endif
+#ifdef ADAPTGRID
+     else
+   if (libmesh== "adaptgrid")
+    ptgrid_=new InterfaceAdaptGrid<3>(InFile_);
+#endif
+   else
+     Error("Unknown type of mesh_library in conf-file",__FILE__,__LINE__);
+ }
+
 
  //read in the mesh information
  ptgrid_->Read();
@@ -95,7 +107,7 @@ Domain:: Domain(FileType * const aptFileType, WriteResults * ptOut,  Material * 
 
  // it is important this order of these functions
  InitPDE();
-
+ 
  Integer level=0;
  InitAlgSys(level);
 
@@ -138,10 +150,13 @@ void Domain :: InitPDE()
 	if (pdes[i] == "electrostatic3d") {  ptpde_[i]=new Elecst3dPDE(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_);
 	}     
 	else
-	  if (pdes[i] == "thermal2d") ptpde_[i]=new Therm2dPDE(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_);	 
+	  if (pdes[i] == "thermal2d") 
+	ptpde_[i]=new Therm2dPDE(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_);	 
 	  else
 	    if (pdes[i]=="electrostatic2d") { ptpde_[i]=new Elecst2dPDE(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_);
-	    }
+	}
+	else
+	if (pdes[i]=="acoustic3d") ptpde_[i]=new Acoustic3dPDE(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_);
 	    else { std::string msg=pdes[i]+" - this type of pdes is unknown";
 	    Error(msg.c_str(),__FILE__,__LINE__);
 	    } 	  
@@ -158,6 +173,8 @@ void Domain :: InitAlgSys(const Integer level)
   //check, how much systems are needed and how much matrix graphs
   numsys_   = 1;
   numgraph_ = 1;
+
+  //!
   ptalgsys_->InitAlgSys(numsys_, numgraph_);
 
     //set solver parameters
@@ -173,12 +190,13 @@ void Domain :: InitAlgSys(const Integer level)
     {
       ptpde_[insys]->SetAlgSys_id(insys);
       ptpde_[insys]->SpecifySolver(solvertype,precondtype,eps,dampiter,maxnumit,numeqcoarse,coarsealpha);
-      ptalgsys_->SetSolverParameter(insys,eps,dampiter,maxnumit,solvertype,precondtype,  numeqcoarse,
-				    coarsealpha);
+      ptalgsys_->SetSolverParameter(insys,eps,dampiter,maxnumit,solvertype,precondtype,  numeqcoarse, coarsealpha);
     }
 
   //init the algsys-graph
   Integer numnode = ptgrid_->GetMaxnumnodes(level);
+  cout << "numnode:" << numnode << endl;
+
   Integer matrix_graphtype = NODEGRAPH; //nodal graph
 
   //for each system: first diagonal blocks and then off-diagonalblocks
@@ -188,25 +206,24 @@ void Domain :: InitAlgSys(const Integer level)
    }
 
  // get the graph - connectivity matrix
-  Integer nel, numelem;
   Integer fe_type;
   Vector<Integer> connect;
 
-  numelem = ptgrid_->GetMaxnumElem(level);
+  std::vector<Elem*> els;
+  std::vector<std::string> * sd=ptgrid_->GetAllSDs();
+  Integer isd,iel;
 
-  for (insys=0;insys<numsys_;insys++)
-    {
-      for (nel=0; nel<numelem; nel++)
-	{
-          ptgrid_->GetConnection(connect, nel, level);
-	  if (connect.size()==3) 
-	    fe_type = TRIA;
-	  else
-	    fe_type = QUAD;
-	  ptalgsys_->SetAlgSysGraph(connect.get(),connect.size(),fe_type,insys,insys);
-	}
+  for (insys=0; insys<numsys_; insys++) {   // loop over systems block
+    for (isd=0; isd<sd->size(); isd++) { // loop over subdomains
+      ptgrid_->GetElemSD(els,(*sd)[isd],level); 
+      for (iel=0; iel < els.size(); iel++) { // loop over elems of subdomains
+	connect=els[iel]->connect;
+	fe_type=els[iel]->ptElem->feType();
+	ptalgsys_->SetAlgSysGraph(connect.get(),connect.size(),fe_type,insys,insys);
+      }
     }
-
+  }
+          
   //now we can create all the necessary matrices
   Integer matrixtype;
   Integer matrixsystype[5];    
@@ -222,25 +239,11 @@ void Domain :: InitAlgSys(const Integer level)
       ptalgsys_->CreateAlgSysMatrices(insys,insys,matrixsystype,matrixtype,graphtype, numdofpernode,  numdirichlets, numconstraints);
     }
 
-  //  ptgrid_->GetConnection(connect,14,0);
-
-  for (insys=0;insys<numsys_;insys++) {
-    for (nel=0; nel<numelem; nel++) {
-      ptgrid_->GetConnection(connect, nel, level);
-    }
-  }
-
   //now reset AlgebraicSystem 
   //matrix_id = 1: system matrix
   Integer matrix_id = 1;
   for (insys=0;insys<numsys_;insys++) {
     ptalgsys_->ResetAlgSys(insys,insys,matrix_id);
-  }
-
-  for (insys=0;insys<numsys_;insys++) {
-    for (nel=0; nel<numelem; nel++) {
-      ptgrid_->GetConnection(connect, nel, level);
-    }
   }
 
 #ifdef TRACE
@@ -288,12 +291,8 @@ void Domain::UpdateAlgSys(const Integer level)
   newlevel ++;
   delete ptalgsys_;
 
-//   AbstractAlgebraicSys * ptAS[1000];
-//   ptAS[newlevel] = new AlgSysPILES();
-//   cerr << "ALGSYS_AD:" << ptalgsys_ << endl;
-//   ptalgsys_=ptAS[newlevel]; 
-   ptalgsys_=new AlgSysPILES();
- if (!ptalgsys_) Error("Can't allocate memory for algebraic system Piles");
+  ptalgsys_=new AlgSysPILES();
+  if (!ptalgsys_) Error("Can't allocate memory for algebraic system Piles");
 
   for (int i=0;i< numpde_;i++) {
     ptpde_[i]->InitPtAlgSys(ptalgsys_);
@@ -303,31 +302,6 @@ void Domain::UpdateAlgSys(const Integer level)
   
 #ifdef TRACE
   (*trace) << " leaving Domain::UpdateAlgSys " << std::endl;
-#endif
-}
-
-void Domain::TestGrid()
-{
-#ifdef NETGEN
-  InterfaceNetGen<Point2D> * ptGrid=new InterfaceNetGen<Point2D>(InFile_); 
-  ptGrid->Read();
-  Char * name="refine";
-  WriteResults * ptInFile=new WriteResultsUnverg(name);
-
-  Vector<Integer> ei;
-  ei.Resize(3);
-  ei[0]=0;
-  ei[1]=1;
-  ei[2]=2;
- 
- Integer e=5; 
-  ptGrid->SetRefinementFlag(e);
-  ptGrid->Refine();
-
-  ptInFile->Init(ptGrid);
-  ptInFile->WriteGrid(0);  
-
-  if (ptInFile) delete ptInFile;
 #endif
 }
 

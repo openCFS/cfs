@@ -10,7 +10,7 @@ namespace CoupledField
 class FileType;
 
 /// Class for working with grid
-template<class Dim> 
+template<Integer dim> 
 class GridInterfaceCFS: public Grid
 {
 public:
@@ -20,9 +20,6 @@ public:
   /// Deconstructor
   virtual ~GridInterfaceCFS() { if (ptGridCFS) delete ptGridCFS;}
   
-  /// Uniform subdivision of domain
-  virtual void SubdivideUniform(const Integer level) {Error("Not implemented Subdiv() in GridCFS",__FILE__,__LINE__);} 
-
   //! Read of mesh 
   virtual void Read() 
   { ptGridCFS->Read();}
@@ -32,15 +29,19 @@ public:
     { ptGridCFS->GetConnection(connect,iElem, level);}
 
    /// Get coordinates of node with global number inode
-  virtual void GetCoordinateNode(const Integer inode, const Integer numlevel, Dim & rfPoint) {ptGridCFS->GetCoordinateNode(inode,numlevel,rfPoint);}
+   virtual void GetCoordinateNode(const Integer inode, const Integer numlevel, Point<dim> & rfPoint) {ptGridCFS->GetCoordinateNode(inode,numlevel,rfPoint);}
 
   /// Return maximum number of nodes
   virtual Integer GetMaxnumnodes(const Integer numlevel)
   { return ptGridCFS->GetMaxnumnodes(numlevel); }
 
-  /// Return maximum number of elements 
+  //! Return maximum number of elements 
   virtual Integer GetMaxnumElem(const Integer numlevel)
   { return ptGridCFS->GetMaxnumElem(numlevel);}
+
+  //! Return maximum number of elements in subdomains
+  virtual Integer GetMaxnumElem(const Integer numlevel, const std::vector<std::string> & subdoms)
+  { return ptGridCFS->GetMaxnumElem(numlevel,subdoms);}
 
   /// return dimension of mesh
   virtual Integer GetDim(){ return ptGridCFS->GetDim();}
@@ -50,35 +51,44 @@ public:
   { ptGridCFS->GetElemSD(els,sd,level);}
 
   //!
-   void GetCoordNodesElem(const Vector<Integer> connect,Dim * ptCoord, const Integer level)
-  { ptGridCFS->GetCoordNodesElem(connect, ptCoord, level);}
-    
-//   virtual void forEachElemSd(PutElemMatInAlgSys & f,const std::string subdomain) { ptGridCFS->forEachElemSd(f,subdomain);}
+  std::vector<std::string>* GetAllSDs(){ return ptGridCFS->GetAllSDs();}
 
-  
-//  virtual void forEachElemSd(PutElemMatAlgSysElst3d & f,const std::string subdomain)
-// { ptGridCFS->forEachElemSd(f,subdomain);}
+  //!
+  virtual void GetCoordNodesElem(const Vector<Integer> connect, Point<dim> * ptCoord, const Integer level)
+  { ptGridCFS->GetCoordNodesElem(connect, ptCoord, level);}
+
+     //! return vector of element-neighbors for the element with number noOfElem
+  virtual  std::vector<Elem*> *  GetNeighboursOfElem(const Integer noOfElem, std::string color)
+  { return ptGridCFS->GetptNeighboursOfElem(noOfElem,color);}
+
+  //! return vector of element-neighbors for the node with number noOfNode
+  virtual void GetNeighboursOfNode(const Integer noOfNode, std::vector<Elem*> * neighbours)
+  { ptGridCFS->GetNeighboursOfNode(noOfNode,neighbours);}
+ 
+  //! in this function we calculate area of element
+  virtual Double CalcAreaElem(const Elem* elem)
+    { ptGridCFS->CalcAreaElem(elem);}  
 
 protected:
 private:
-  GridCFS<Dim> * ptGridCFS;
+  GridCFS<dim> * ptGridCFS;
   ///
 };
 
-template<class Dim>
-inline GridInterfaceCFS<Dim>::GridInterfaceCFS(FileType * aptFileType)
+template<Integer dim>
+inline GridInterfaceCFS<dim>::GridInterfaceCFS(FileType * aptFileType)
 : Grid(aptFileType)
 {
 #ifdef TRACE
  (*trace) << "Entering GridInterfaceCFS<Dim>::GridInterfaceCFS<Dim>" << std::endl;
 #endif
  lastlevel_=0;
-   ptGridCFS=new GridCFS<Dim>(ptFileType); 
+   ptGridCFS=new GridCFS<dim>(ptFileType); 
 }
 
 #ifdef __GNUC__
-template class GridInterfaceCFS<Point3D>;
-template class GridInterfaceCFS<Point2D>;
+template class GridInterfaceCFS<3>;
+template class GridInterfaceCFS<2>;
 #endif
 
 } // end of namespace

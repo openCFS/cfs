@@ -6,9 +6,9 @@
 namespace CoupledField
 {
 
-template <class Dim>
-LaplaceInt<Dim> :: LaplaceInt(BaseElem * aptelem, const ShortInt ndofs)
-              : BaseForm<Dim>(aptelem)
+template <Integer dim>
+LaplaceInt<dim> :: LaplaceInt(BaseElem * aptelem, const ShortInt ndofs)
+              : BaseForm<dim>(aptelem)
 {
 #ifdef TRACE
   (*trace) << "entering LaplaceInt::LaplaceInt" << std::endl;
@@ -17,8 +17,8 @@ LaplaceInt<Dim> :: LaplaceInt(BaseElem * aptelem, const ShortInt ndofs)
   DofsPerNode = ndofs;
 }
  
-template <class Dim> 
-LaplaceInt<Dim> :: ~LaplaceInt()
+template <Integer dim> 
+LaplaceInt<dim> :: ~LaplaceInt()
 {
 #ifdef TRACE
   (*trace) << "entering LaplaceInt::~LaplaceInt" << std::endl;
@@ -27,8 +27,8 @@ LaplaceInt<Dim> :: ~LaplaceInt()
   ;
 }
 
-template <>
-void LaplaceInt<Point2D> :: CalcElemMatrix(Point2D * ptCoord, Matrix<Double> & Result)  
+template <Integer dim>
+void LaplaceInt<dim> :: CalcElemMatrix(Point<dim> * ptCoord, Matrix<Double> & Result)  
 {
 #ifdef TRACE
   (*trace) << "entering LaplaceInt::CalcElemMatrix" << std::endl;
@@ -38,8 +38,8 @@ void LaplaceInt<Point2D> :: CalcElemMatrix(Point2D * ptCoord, Matrix<Double> & R
 
   Integer n=ptelem->GetNumNodes();
 
-  Jacobian<Point2D>  J;
-  Vector<Double> JinvX, JinvY;
+  Jacobian<dim>  J;
+  Vector<Double> JinvX, JinvY, JinvZ;
  
   Vector<Double> * help=new Vector<Double>[n];
   Integer i,ii,iii;
@@ -55,12 +55,14 @@ void LaplaceInt<Point2D> :: CalcElemMatrix(Point2D * ptCoord, Matrix<Double> & R
 
       J.GetJinvX(JinvX);
       J.GetJinvY(JinvY);
+      if (dim==3) J.GetJinvZ(JinvZ);
    
       for (ii=0; ii<n; ii++)
         {
           ptelem->GetGradientShFnc(help[ii],ii+1,i);
         }
  
+      if (dim==2) {
       for (ii=0; ii < n; ii++)
         for (iii=0; iii<ii+1; iii++)
         {
@@ -71,89 +73,9 @@ void LaplaceInt<Point2D> :: CalcElemMatrix(Point2D * ptCoord, Matrix<Double> & R
          Result[ii][iii]+=((help[ii]*JinvX)*(help[iii]*JinvX)
                  +(help[ii]*JinvY)*(help[iii]*JinvY))*J.detJ;
         }
-    }
+      }
 
-  for (ii=0; ii<n; ii++)
-    for (iii=0; iii<ii; iii++)
-      Result[iii][ii]=Result[ii][iii];
- 
-  delete [] help;
-}
-
-template <>
-void LaplaceInt<Point3D> :: CalcElemMatrix(Point3D * ptCoord, Matrix<Double> & Result)
-{
-#ifdef TRACE
-  (*trace) << "entering LaplaceInt::CalcElemMatrix" << std::endl;
-#endif
-
-  Integer l=ptelem->GetNumIntPoints();
-
-  Integer n=ptelem->GetNumNodes();
-
-  Jacobian<Point3D>  J;
-  Vector<Double> JinvX, JinvY, JinvZ;
-
-  Vector<Double> * help=new Vector<Double>[n];
-  Integer i,ii,iii;
-
-  Result.Resize(n,n);
-
-  Vector<Double> * intWeights=ptelem->GetIntWeights();
-
-  for (i=0; i<l; i++)
-    {
-      ptelem->CalcJacobian(J,i,ptCoord);
-
-      J.GetJinvX(JinvX);
-      J.GetJinvY(JinvY);
-      J.GetJinvZ(JinvZ);
-
-      std::cout << JinvX << std::endl;
-      std::cout << JinvY << std::endl;
-      std::cout << JinvZ << std::endl;
-
-      for (ii=0; ii<n; ii++)
-        {
-          ptelem->GetGradientShFnc(help[ii],ii+1,i);
-        }
-
-       Matrix<Double> Test;
-       Test.Resize(n,n);
-
-       for (ii=0; ii < n; ii++)
-       for (iii=0; iii<ii+1; iii++)
-       {
-          if (intWeights)
-          Test[ii][iii]+=((help[ii]*JinvX)*(help[iii]*JinvX))*J.detJ*(*intWeights)[i];
-          else
-          Test[ii][iii]+=((help[ii]*JinvX)*(help[iii]*JinvX))*J.detJ;
-       }
-
-       std::cout << " Test " << Test << std::endl;
-
-       for (ii=0; ii < n; ii++)
-       for (iii=0; iii<ii+1; iii++)
-       {
-          if (intWeights)
-          Test[ii][iii]+=((help[ii]*JinvY)*(help[iii]*JinvY))*J.detJ*(*intWeights)[i];
-          else
-          Test[ii][iii]+=((help[ii]*JinvY)*(help[iii]*JinvY))*J.detJ;
-       }
-
-       std::cout << " Test " << Test << std::endl;
-
-       for (ii=0; ii < n; ii++)
-       for (iii=0; iii<ii+1; iii++)
-       {
-          if (intWeights)
-          Test[ii][iii]+=((help[ii]*JinvZ)*(help[iii]*JinvZ))*J.detJ*(*intWeights)[i];
-          else
-          Test[ii][iii]+=((help[ii]*JinvZ)*(help[iii]*JinvZ))*J.detJ;
-       }
-
-       std::cout << " Test " << Test << std::endl;
-
+      if (dim==3) {      
       for (ii=0; ii < n; ii++)
         for (iii=0; iii<ii+1; iii++)
         {
@@ -164,18 +86,74 @@ void LaplaceInt<Point3D> :: CalcElemMatrix(Point3D * ptCoord, Matrix<Double> & R
          Result[ii][iii]+=((help[ii]*JinvX)*(help[iii]*JinvX)
                  +(help[ii]*JinvY)*(help[iii]*JinvY)+(help[ii]*JinvZ)*(help[iii]*JinvZ))*J.detJ;
         }
+      }
+
     }
 
   for (ii=0; ii<n; ii++)
     for (iii=0; iii<ii; iii++)
       Result[iii][ii]=Result[ii][iii];
-
+ 
   delete [] help;
+
 }
+
+// template <>
+// void LaplaceInt<3> :: CalcElemMatrix(Point<3> * ptCoord, Matrix<Double> & Result)
+// {
+// #ifdef TRACE
+//   (*trace) << "entering LaplaceInt::CalcElemMatrix" << std::endl;
+// #endif
+
+//   Integer l=ptelem->GetNumIntPoints();
+
+//   Integer n=ptelem->GetNumNodes();
+
+//   Jacobian<3>  J;
+//   Vector<Double> JinvX, JinvY, JinvZ;
+
+//   Vector<Double> * help=new Vector<Double>[n];
+//   Integer i,ii,iii;
+
+//   Result.Resize(n,n);
+
+//   Vector<Double> * intWeights=ptelem->GetIntWeights();
+
+//   for (i=0; i<l; i++)
+//     {
+//       ptelem->CalcJacobian(J,i,ptCoord);
+
+//       J.GetJinvX(JinvX);
+//       J.GetJinvY(JinvY);
+//       J.GetJinvZ(JinvZ);
+
+//       for (ii=0; ii<n; ii++)
+//         {
+//           ptelem->GetGradientShFnc(help[ii],ii+1,i);
+//         }
+
+//       for (ii=0; ii < n; ii++)
+//         for (iii=0; iii<ii+1; iii++)
+//         {
+//           if (intWeights)
+//           Result[ii][iii]+=((help[ii]*JinvX)*(help[iii]*JinvX)
+//             +(help[ii]*JinvY)*(help[iii]*JinvY)+(help[ii]*JinvZ)*(help[iii]*JinvZ))*J.detJ*(*intWeights)[i];
+//           else
+//          Result[ii][iii]+=((help[ii]*JinvX)*(help[iii]*JinvX)
+//                  +(help[ii]*JinvY)*(help[iii]*JinvY)+(help[ii]*JinvZ)*(help[iii]*JinvZ))*J.detJ;
+//         }
+//     }
+
+//   for (ii=0; ii<n; ii++)
+//     for (iii=0; iii<ii; iii++)
+//       Result[iii][ii]=Result[ii][iii];
+
+//   delete [] help;
+// }
 
 /*
 template <>
-void LaplaceInt<Point3D> :: CalcElemMatrix(Point3D * ptCoord, Matrix<Double> & Result)
+void LaplaceInt<Point<3>> :: CalcElemMatrix(Point3D * ptCoord, Matrix<Double> & Result)
 {
 #ifdef TRACE
   (*trace) << "entering LaplaceInt::CalcElemMatrix" << endl;
@@ -238,8 +216,8 @@ help3[ii] =
 }
 */
 
-template <class Dim>
-void LaplaceInt<Dim>::Print(std::ostream * out, const Matrix<Double> Result) const
+template <Integer dim>
+void LaplaceInt<dim>::Print(std::ostream * out, const Matrix<Double> Result) const
 {
 #ifdef TRACE
   (*trace) << "entering LaplaceInt::Print" << std::endl;

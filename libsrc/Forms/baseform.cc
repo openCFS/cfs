@@ -6,8 +6,8 @@
 namespace CoupledField
 {
 
-template <class Dim>
-BaseForm<Dim> :: BaseForm(BaseElem * aptelem) 
+template <Integer dim>
+BaseForm<dim> :: BaseForm(BaseElem * aptelem) 
 {
 #ifdef TRACE
   (*trace) << "entering BaseForm::BaseForm" << std::endl;
@@ -17,8 +17,8 @@ BaseForm<Dim> :: BaseForm(BaseElem * aptelem)
 
 }
  
-template <class Dim> 
-BaseForm<Dim> :: ~BaseForm()
+template <Integer dim> 
+BaseForm<dim> :: ~BaseForm()
 {
 #ifdef TRACE
   (*trace) << "entering BaseForm::~BaseForm" << std::endl;
@@ -26,8 +26,8 @@ BaseForm<Dim> :: ~BaseForm()
 ;
 }
 
-template <class Dim>
-void BaseForm<Dim> :: CalcShapeFncDxShapeFncDx(Dim * ptCoord, 
+template <Integer dim>
+void BaseForm<dim> :: CalcShapeFncDxShapeFncDx(Point<dim> * ptCoord, 
                                       Matrix<Double> & Result)
 {
 #ifdef TRACE
@@ -37,7 +37,7 @@ void BaseForm<Dim> :: CalcShapeFncDxShapeFncDx(Dim * ptCoord,
   Integer l=ptelem->GetNumIntPoints(); // l - number of integration points
   Integer n=ptelem->GetNumNodes(); // n - number of nodes in element
 
-  Jacobian<Dim>  J;
+  Jacobian<dim>  J;
   Vector<Double> JinvX;
  
   Vector<Double> * help=new Vector<Double>[n];
@@ -79,8 +79,8 @@ void BaseForm<Dim> :: CalcShapeFncDxShapeFncDx(Dim * ptCoord,
   delete [] help;
 }
 
-template <class Dim>
-void BaseForm<Dim> :: CalcShapeFncDyShapeFncDy(Dim * ptCoord,
+template <Integer dim>
+void BaseForm<dim> :: CalcShapeFncDyShapeFncDy(Point<dim> * ptCoord,
                            Matrix<Double> & Result)
 {
 #ifdef TRACE
@@ -89,7 +89,7 @@ void BaseForm<Dim> :: CalcShapeFncDyShapeFncDy(Dim * ptCoord,
   Integer l=ptelem->GetNumIntPoints();
   Integer n=ptelem->GetNumNodes();
 
-  Jacobian<Dim>  J;
+  Jacobian<dim>  J;
   Vector<Double> JinvY;
  
   Vector<Double> * help=new Vector<Double>[n];
@@ -129,8 +129,8 @@ void BaseForm<Dim> :: CalcShapeFncDyShapeFncDy(Dim * ptCoord,
   delete [] help;
 }
 
-template <class Dim>
-void BaseForm<Dim> :: CalcShapeFncShapeFnc(Dim * ptCoord,
+template <Integer dim>
+void BaseForm<dim> :: CalcShapeFncShapeFnc(Point<dim> * ptCoord,
                                  Matrix<Double> & Result)
 {
 #ifdef TRACE
@@ -140,7 +140,7 @@ void BaseForm<Dim> :: CalcShapeFncShapeFnc(Dim * ptCoord,
   Integer l=ptelem->GetNumIntPoints();
   Integer n=ptelem->GetNumNodes();
 
-  Jacobian<Dim> J; 
+  Jacobian<dim> J; 
   Integer i,ii,iii;
  
   Result.Resize(n,n);
@@ -174,16 +174,14 @@ void BaseForm<Dim> :: CalcShapeFncShapeFnc(Dim * ptCoord,
 }
 
 
-template <class Dim>
-Double BaseForm<Dim> :: FuncAtIP(const ShortInt iIP, RHS f)
+template <Integer dim>
+Double BaseForm<dim> :: FuncAtIP(const ShortInt iIP, RHS f)
 {
 #ifdef TRACE
   (*trace) <<  "entering BaseForm::FuncAtIP" << std::endl;
 #endif
 
   Double result;
-
-  Integer dim=ptelem->GetDim();
 
   switch(dim)
     { 
@@ -192,6 +190,9 @@ Double BaseForm<Dim> :: FuncAtIP(const ShortInt iIP, RHS f)
 
       x=ptelem->GetIntPointsX(iIP);
       y=ptelem->GetIntPointsY(iIP);
+      result=f(x,y,0);
+
+      std::cout << iIP << " x: " << x << " y: " << y << " result: " << result << " should be " << -2*(x+y-x*x-y*y) << std::endl;
 
       result=f(x,y,0);
 
@@ -204,8 +205,8 @@ Double BaseForm<Dim> :: FuncAtIP(const ShortInt iIP, RHS f)
   return result;
 }
 
-template <class Dim>
-void BaseForm<Dim>::CalcElemMatrix(Dim * ptCoord, Matrix<Double> & StiffMat) 
+template <Integer dim>
+void BaseForm<dim>::CalcElemMatrix(Point<dim> * ptCoord, Matrix<Double> & StiffMat) 
 {
 #ifdef TRACE
   (*trace) <<  "entering BaseForm::CalcElemMatrix" << std::endl;
@@ -213,8 +214,26 @@ void BaseForm<Dim>::CalcElemMatrix(Dim * ptCoord, Matrix<Double> & StiffMat)
   Error(" Function CalcElemMatrix of BilinieaForm is virtual. You can use it for derived classes LaplaceInt or MassInt.",__FILE__,__LINE__);
 }
 
-template <class Dim>
-void BaseForm<Dim>::Print(std::ostream * out, const Matrix<Double> Result) const
+template <Integer dim>
+void BaseForm<dim>::CalcElemVector(Point<dim> * ptCoord, Vector<Double> & StiffMat) 
+{
+#ifdef TRACE
+  (*trace) <<  "entering BaseForm::CalcElemVector" << std::endl;
+#endif
+  Error(" Function CalcElemVector of BaseForm is virtual. You can use it for derived class LinearForm.",__FILE__,__LINE__);
+}
+
+template <Integer dim>
+void BaseForm<dim>::CalcElemVector4InterpolatedFnc(Point<dim> * ptCoord, const Integer aComponent, Vector<Double> & aValueAtNodePoints, Vector<Double> & Result)
+{
+#ifdef TRACE
+  (*trace) <<  "entering BaseForm::CalcElemVector" << std::endl;
+#endif
+  Error(" Function CalcElemVector4InterpolatedFnc of BaseForm is virtual. You can use it for derived class LinearForm.",__FILE__,__LINE__);
+}
+
+template <Integer dim>
+void BaseForm<dim>::Print(std::ostream * out, const Matrix<Double> Result) const
 {
 #ifdef TRACE
   (*trace) <<  "entering BaseForm::Print" << std::endl;
@@ -223,8 +242,9 @@ void BaseForm<Dim>::Print(std::ostream * out, const Matrix<Double> Result) const
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-template<class Dim>
-Double BaseForm<Dim>::CalcDet(const Integer n, Point3D * ptCoord)
+//// old stuff; one of method to calculate determinant. tested.
+template<Integer dim>
+Double BaseForm<dim>::CalcDet(const Integer n, Point<3> * ptCoord)
 {
  Double det;
  
@@ -238,8 +258,8 @@ Double BaseForm<Dim>::CalcDet(const Integer n, Point3D * ptCoord)
  return det;
 }
 
-template <class Dim>
-Double BaseForm<Dim> :: TransXDxi(Integer iIntPoints,Point3D * ptCoord)
+template <Integer dim>
+Double BaseForm<dim> :: TransXDxi(Integer iIntPoints,Point<3> * ptCoord)
 {
   Integer i;
   Double result=0;
@@ -249,13 +269,13 @@ Double BaseForm<Dim> :: TransXDxi(Integer iIntPoints,Point3D * ptCoord)
   for (i=0; i <n; i++)
  {
   a=ptelem->GetDxShFncAtIP(i+1);
-  result+=(*a)[iIntPoints]*ptCoord[i].x;
+  result+=(*a)[iIntPoints]*ptCoord[i][0];
  }
   return result;
 }
 
-template <class Dim>
-Double BaseForm<Dim> :: TransXDnu(Integer iIntPoints, Point3D * ptCoord)
+template <Integer dim>
+Double BaseForm<dim> :: TransXDnu(Integer iIntPoints, Point<3> * ptCoord)
 {
   Integer i;
   Double result=0;
@@ -265,13 +285,13 @@ Double BaseForm<Dim> :: TransXDnu(Integer iIntPoints, Point3D * ptCoord)
   for (i=0; i <n; i++)
  {
   a=ptelem->GetDyShFncAtIP(i+1);
-  result+=(*a)[iIntPoints]*ptCoord[i].x;
+  result+=(*a)[iIntPoints]*ptCoord[i][0];
  }
   return result;
 }
 
-template <class Dim>
-Double BaseForm<Dim> :: TransXDgam(Integer iIntPoints, Point3D * ptCoord)
+template <Integer dim>
+Double BaseForm<dim> :: TransXDgam(Integer iIntPoints, Point<3> * ptCoord)
 {
   Integer i;
   Double result=0;
@@ -281,13 +301,13 @@ Double BaseForm<Dim> :: TransXDgam(Integer iIntPoints, Point3D * ptCoord)
   for (i=0; i <n; i++)
  {
   a=ptelem->GetDzShFncAtIP(i+1);
-  result+=(*a)[iIntPoints]*ptCoord[i].x;
+  result+=(*a)[iIntPoints]*ptCoord[i][0];
  }
   return result;
 }
 
-template <class Dim>
-Double BaseForm<Dim> :: TransYDxi(Integer iIntPoints, Point3D * ptCoord)
+template <Integer Dim>
+Double BaseForm<Dim> :: TransYDxi(Integer iIntPoints, Point<3> * ptCoord)
 {
   Integer i;
   Double result=0;
@@ -297,13 +317,13 @@ Double BaseForm<Dim> :: TransYDxi(Integer iIntPoints, Point3D * ptCoord)
   for (i=0; i <n; i++)
  {
   a=ptelem->GetDxShFncAtIP(i+1);
-  result+=(*a)[iIntPoints]*ptCoord[i].y;
+  result+=(*a)[iIntPoints]*ptCoord[i][1];
  }
   return result;
 }
 
-template <class Dim>
-Double BaseForm<Dim> :: TransYDnu (Integer iIntPoints, Point3D * ptCoord)
+template <Integer Dim>
+Double BaseForm<Dim> :: TransYDnu (Integer iIntPoints, Point<3> * ptCoord)
 {
   Integer i;
   Double result=0;
@@ -313,14 +333,14 @@ Double BaseForm<Dim> :: TransYDnu (Integer iIntPoints, Point3D * ptCoord)
   for (i=0; i <n; i++)
  {
   a=ptelem->GetDyShFncAtIP(i+1);
-  result+=(*a)[iIntPoints]*ptCoord[i].y;
+  result+=(*a)[iIntPoints]*ptCoord[i][1];
  }
 
   return result;
 }
 
-template <class Dim>
-Double BaseForm<Dim> :: TransYDgam (Integer iIntPoints, Point3D * ptCoord)
+template <Integer Dim>
+Double BaseForm<Dim> :: TransYDgam (Integer iIntPoints, Point<3> * ptCoord)
 {
   Integer i;
   Double result=0;
@@ -330,14 +350,14 @@ Double BaseForm<Dim> :: TransYDgam (Integer iIntPoints, Point3D * ptCoord)
   for (i=0; i <n; i++)
  {
   a=ptelem->GetDzShFncAtIP(i+1);
-  result+=(*a)[iIntPoints]*ptCoord[i].y;
+  result+=(*a)[iIntPoints]*ptCoord[i][1];
  }
 
   return result;
 }
 
-template <class Dim>
-Double BaseForm<Dim> :: TransZDxi(Integer iIntPoints, Point3D * ptCoord)
+template <Integer Dim>
+Double BaseForm<Dim> :: TransZDxi(Integer iIntPoints, Point<3> * ptCoord)
 {
   Integer i;
   Double result=0;
@@ -347,13 +367,13 @@ Double BaseForm<Dim> :: TransZDxi(Integer iIntPoints, Point3D * ptCoord)
   for (i=0; i <n; i++)
  {
   a=ptelem->GetDxShFncAtIP(i+1);
-  result+=(*a)[iIntPoints]*ptCoord[i].z;
+  result+=(*a)[iIntPoints]*ptCoord[i][2];
  }
   return result;
 }
 
-template <class Dim>
-Double BaseForm<Dim> :: TransZDnu (Integer iIntPoints, Point3D * ptCoord)
+template <Integer Dim>
+Double BaseForm<Dim> :: TransZDnu (Integer iIntPoints, Point<3> * ptCoord)
 {
   Integer i;
   Double result=0;
@@ -363,14 +383,14 @@ Double BaseForm<Dim> :: TransZDnu (Integer iIntPoints, Point3D * ptCoord)
   for (i=0; i <n; i++)
  {
   a=ptelem->GetDyShFncAtIP(i+1);
-  result+=(*a)[iIntPoints]*ptCoord[i].z;
+  result+=(*a)[iIntPoints]*ptCoord[i][2];
  }
 
   return result;
 }
 
-template <class Dim>
-Double BaseForm<Dim> :: TransZDgam (Integer iIntPoints, Point3D * ptCoord)
+template <Integer Dim>
+Double BaseForm<Dim> :: TransZDgam (Integer iIntPoints, Point<3> * ptCoord)
 {
   Integer i;
   Double result=0;
@@ -380,7 +400,7 @@ Double BaseForm<Dim> :: TransZDgam (Integer iIntPoints, Point3D * ptCoord)
   for (i=0; i <n; i++)
  {
   a=ptelem->GetDzShFncAtIP(i+1);
-  result+=(*a)[iIntPoints]*ptCoord[i].z;
+  result+=(*a)[iIntPoints]*ptCoord[i][2];
  }
 
   return result;

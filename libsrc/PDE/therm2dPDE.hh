@@ -80,7 +80,7 @@ private:
   Double lasttimecalc_;
 
   //! number of last timestep on which we have calculated our solution
-  Double laststepcalc_;
+  Integer laststepcalc_;
 
   //! size of solution and etc.
   Integer size_;  

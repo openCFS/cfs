@@ -1,7 +1,6 @@
 #ifndef FILE_TIMEFUNC_2001
 #define FILE_TIMEFUNC_2001
-#include <fstream>
-#include <iostream>
+
 #include "filetype.hh"
 
 namespace CoupledField
@@ -17,7 +16,7 @@ class TimeFunc
   {
 public:
     //! Constructor
-    TimeFunc(const Char * const name);
+    TimeFunc(FileType *);
 
     //! Deconstructor
     ~TimeFunc();
@@ -29,12 +28,18 @@ public:
     Double TimeFuncAtTime(const Double, const Integer num);
 
     //!
-    Double TimeFuncWaveSt(const Double time);
+    //    Double TimeFuncWaveSt(const Double time);
 
 private:
 
     //!
-    std::ifstream timefncfile;
+    FileType * ptFileType;
+
+    //! read time func from dat-file
+    void ReadTimeFunc(const std::string nametf);
+
+    //! value of time func through interpolation values from data-file
+    Double ValTimeFuncDatFile(const Double time, const Integer num);
 
     //!
     Integer maxnumTimeFunc;
@@ -49,7 +54,18 @@ private:
     Double ** valTimeFunc;
 
     //!
-    std::ofstream testtf;
+    Boolean timeFncDatFile_;
+
+    //!
+    Integer argTimeFnc;
+
+    //!
+    pfn1var ptTimeFnc;
+
+    //! interval of time func 
+    Double intervalTF_a;
+    Double intervalTF_b;
+
 };
 } // end of namespace
 #endif

@@ -6,8 +6,8 @@
 namespace CoupledField
 {
 /// class for calculation of Mass matrix
-template<class Dim>
-class MassInt : public BaseForm<Dim>
+template<Integer dim>
+class MassInt : public BaseForm<dim>
 {
 public:
   /// Constructor with pointer to BaseElem
@@ -17,7 +17,7 @@ public:
   virtual ~MassInt();
 
   /// Function for calculation mass matrix 
-  virtual void CalcElemMatrix(Dim * ptCoord, Matrix<Double> &);
+  virtual void CalcElemMatrix(Point<dim> * ptCoord, Matrix<Double> &);
 
   ///
   //  virtual void SetMaterial(Material material);
@@ -29,8 +29,8 @@ private:
 };
 
 #ifdef __GNUC__
-template class MassInt<Point2D>;
-template class MassInt<Point3D>;
+template class MassInt<2>;
+template class MassInt<3>;
 #endif
 
 

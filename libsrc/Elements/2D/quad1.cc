@@ -62,7 +62,14 @@ void  Quad1::GetGradientShFnc(Vector<Double> & grad, const Integer i, const Inte
  default:
     Error("Number of shape function is wrong", __FILE__, __LINE__);
 } 
+}
 
+void  Quad1::GetGradientShFncAtCenter(Vector<Double> & grad, const Integer ish)
+{
+  grad.Resize(2);
+
+  grad[0]=DxTransFncAtCenter[ish-1];
+  grad[1]=DyTransFncAtCenter[ish-1];
 }
 
 Vector<Double> & Quad1::GetShFncAtIP(const Integer iShFnc) 

@@ -4,10 +4,11 @@
 #include <math.h>
 
 #include "elecst2dPDE.hh"
-#include "elecst2dErr.hh"
 #include "outUnverg.hh"
 #include "forms_header.hh"
- 
+#include "linsystem.hh"
+#include "spaceerror.hh" 
+
 namespace CoupledField
 {
 
@@ -27,6 +28,22 @@ Elecst2dPDE::Elecst2dPDE(AbstractAlgebraicSys * ptalgsys, Grid * aptgrid, Materi
 
   conf->getsubdompde(subdoms_,"Elecst2d");
   ReadBCs("Elecst2d");
+
+  errorTol_ = 0;
+  NeedMassMatrix_=TRUE;
+//   if (conf->is_there("write_error_map")) WriteErrorMap_=TRUE;
+//   else WriteErrorMap_=FALSE;
+  WriteErrorMap_=TRUE;
+
+//   if (conf->is_there("calc_absvalue_electricfield"))
+//     AbsValueElectricField_=TRUE;
+
+  // if conf->is_there
+  SolverCFS_=TRUE;
+  AbsValueElectricField_=TRUE;
+  
+  ptError_=NULL;
+  solGrad_=NULL;
 }
 
 void Elecst2dPDE::SpecifySolver(Integer &solvertype, Integer &precondtype, Double &eps, Double &dampiter, Integer &maxnumit, Integer &numeqcoarse, Double &coarsealpha )
@@ -42,15 +59,16 @@ void Elecst2dPDE::SpecifySolver(Integer &solvertype, Integer &precondtype, Doubl
   conf->get("precondtype", precondtype, "Elecst2d"); //ID or MG
   conf->get("numeqcoarse",numeqcoarse,"Elecst2d"); // number of equation for coarsing
   conf->get("coarsealpha",coarsealpha,"Elecst2d"); // coarsing parameter for AMG
-}
+
+} 
 
 void Elecst2dPDE::SetMatrixFactors()
 {
 #ifdef TRACE
   (*trace) << "entering Elecst2dPDE::SetMatrixFactors" << std::endl;
 #endif
- 
-  matrix_factor_[0] = 1.0;
+  
+  matrix_factor_[0] = 1.0; 
   matrix_factor_[1] = 0.0;
   matrix_factor_[2] = 0.0;
   matrix_factor_[3] = 0.0;
@@ -84,7 +102,9 @@ Integer &numconstraints)
   matrixsystype[1] = 2;   // memory for the stiffness matrix
   matrixsystype[2] = 0;   // memory for the damping matrix
   matrixsystype[3] = 0;   // memory for the convection matrix
-  matrixsystype[4] = 0;   // memory for the mass matrix
+  if (NeedMassMatrix_) 
+    matrixsystype[4] = 5;
+  else matrixsystype[4] = 0;   // memory for the mass matrix
 
   graphtype = 1; // NOGRAPH = 0
                  // NODE   = 1
@@ -104,49 +124,86 @@ void Elecst2dPDE::SetupMatrices(const Integer level)
 #endif
   
   Matrix<Double> elemmat;
-  Point2D * ptCoord;
+  Point<2> * ptCoord;
 
   BaseElem * ptElem;
 
-  Integer matrix_stiff=2;
+  Integer matrix_stiff = 2;
+  Integer matrix_mass = 5;
+
+  if (InfoPrint)
+    (*infofile) << " ------------------------- Element matrices --------------- " << std::endl;
 
   Vector<Double> coeffst;
+  
   CalcCoeff(coeffst);  
-
-  Vector<Integer> connecth;
-  std::vector<Elem*> elemssd;
 
   Integer i, j;
   for (i=0; i<subdoms_.size(); i++)
     {
+      std::vector<Elem*> elemssd;
+   
       ptgrid_->GetElemSD(elemssd,subdoms_[i],level);
 
       for (j=0; j < elemssd.size(); j++)
 	{  
+	  Vector<Integer> connecth;
+ 
 	  ptElem=elemssd[j]->ptElem;
 
-	  BaseForm<Point2D> * bilinear_stiff = new LaplaceInt<Point2D>(ptElem,1);
+	  BaseForm<2> * bilinear_stiff = new LaplaceInt<2>(ptElem,1);
+	  BaseForm<2> * bilinear_mass = NULL;
+
+	  if (NeedMassMatrix_)
+	    bilinear_mass = new MassInt<2>(ptElem,1);
 
 	  connecth=elemssd[j]->connect;
 
-	  ptCoord=new Point2D[connecth.size()];
+	  ptCoord=new Point<2>[connecth.size()];
 	  ptgrid_->GetCoordNodesElem(connecth,ptCoord,level);
 
 	  // stiffness part
 	  bilinear_stiff->CalcElemMatrix(ptCoord, elemmat);
 	  elemmat*=coeffst[i];
-
+	  
 #ifdef DEBUG
-	  (*debug) << "Stiffnessmatrix, ElementNumber  " <<   j << std::endl;
+	  (*debug) << "Stiffnessmatrix, ElementNumber  " <<   i << std::endl;
 
 	  (*debug) << elemmat << std::endl;
 #endif
+	  if (InfoPrint)
+	    (*infofile) << elemmat << std::endl;
+
+	 
+	  if (SolverCFS_) {
+	  Integer elsize=connecth.size();
+	  Integer irow,icln;
+	  Integer ii, iii;
+	    for (ii=0; ii<elsize; ii++)
+	      for (iii=0; iii<elsize; iii++)
+		{
+		  irow=connecth[ii]-1;
+		  icln=connecth[iii]-1;
+		  sysmat_.Add(irow,icln,elemmat[ii][iii]);
+		} 
+	  }
+
 
 	  ptalgsys_->PutElemMatAlgSys(elemmat.getinarray(), connecth.get(), connecth.size(), as_sysid_, as_sysid_, matrix_stiff);
 
+	  //mass
+	  if (NeedMassMatrix_){
+	
+	    bilinear_mass->CalcElemMatrix(ptCoord, elemmat);
+	    
+	    ptalgsys_->PutElemMatAlgSys(elemmat.getinarray(), connecth.get(), connecth.size(), as_sysid_, as_sysid_, matrix_mass);	    
+	  }
+
 	  delete bilinear_stiff;
+	  if (bilinear_mass)   delete bilinear_mass;
 	  delete [] ptCoord;
-	}     
+	}  
+      
     }
 
 #ifdef TRACE
@@ -160,20 +217,34 @@ void Elecst2dPDE::SetBCs(BCs * ptBCs, const Integer level, const Integer update,
   (*trace) << "entering Elecst2dPDE::SetBCs" << std::endl;
 #endif
 
+
+  Double BigConst;
+    if (SolverCFS_) {
+  Integer matsize=sysmat_.getSize(),i;
+  Double max=sysmat_(0,0);
+  for (i=0;i<matsize;i++)
+    if (sysmat_(i,i)>max) max=sysmat_(i,i);
+ 
+
+   BigConst=(10e+10)*max;
+    }
+ 
   Integer node;
   Double val, valueTF;
 
   //system matrix: id = 1
   Integer matrix_id = 1;
 
-  val=ptTimeFunc_->TimeFuncAtTime(atime,level);    
-
-  Integer i,j=0;
+  Integer j=0;
   std::list<Integer> nodes;
 
+  if (InfoPrint)
+    (*infofile) << " ---------------- Dirichle boundary condition -------------" << std::endl;
+
+  Integer i;
   for (i=0; i<bcs_hd_.size(); i++)
     {  
-      nodes=ptBCs->GetNodesLevel(bcs_hd_[i], level);
+      nodes=ptBCs->GetNodesLevel(bcs_hd_[i]);
   
       for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end(); p++, j++)
 	{
@@ -181,19 +252,32 @@ void Elecst2dPDE::SetBCs(BCs * ptBCs, const Integer level, const Integer update,
 	  val=0; 
           if (update==1)
             {
+
+	      if (InfoPrint)
+		(*infofile) << " node: " << node << " val: " << val << std::endl;
+
               ptalgsys_->SetBCDirichletUpdate(j+1, node, val, dofspernode_, as_sysid_, as_sysid_, matrix_id);
             }
           else
             {
+
+	       if (InfoPrint)
+		(*infofile) << " node: " << node << " val: " << val << std::endl;
+
               ptalgsys_->SetBCDirichlet(j+1, node, val, dofspernode_, as_sysid_,
 					as_sysid_, matrix_id);
+	      if (SolverCFS_) {
+	      vecrhs_[node-1]+=BigConst*val;
+ 	      sysmat_(node-1,node-1)+=BigConst;
+	      }
+	     
             }
 	}
     }
 
   for (i=0; i<bcs_id_.size(); i++)
     {
-      nodes=ptBCs->GetNodesLevel(bcs_id_[i], level);
+      nodes=ptBCs->GetNodesLevel(bcs_id_[i]);
 
       val=val_id_[i];
 
@@ -201,20 +285,83 @@ void Elecst2dPDE::SetBCs(BCs * ptBCs, const Integer level, const Integer update,
 	{
 	  node=*p;
           if (update==1)
-            {
+            {	     
+
+	       if (InfoPrint)
+		(*infofile) << " node: " << node << " val: " << val << std::endl;
+
               ptalgsys_->SetBCDirichletUpdate(j+1, node, val, dofspernode_, as_sysid_, as_sysid_, matrix_id);
             }
           else
             {
-              ptalgsys_->SetBCDirichlet(j+1, node, val, dofspernode_, as_sysid_,as_sysid_, matrix_id);
+	      
+	      if (InfoPrint)
+		(*infofile) << " node: " << node << " val: " << val << std::endl;
+	      
+	      ptalgsys_->SetBCDirichlet(j+1, node, val, dofspernode_, as_sysid_,as_sysid_, matrix_id);
+	   
+		if (SolverCFS_) {
+		vecrhs_[node-1]+=BigConst*val;
+		sysmat_(node-1,node-1)+=BigConst;
+		}
+	
             }
 	}
     }
   
 #ifdef TRACE
-  (*trace) << " leaving Elecst2d::ReadBCs " << std::endl;
+  (*trace) << " leaving Elecst2d::SetBCs " << std::endl;
+#endif 
+}
+
+void Elecst2dPDE::ComputeRHS()
+{
+#ifdef TRACE
+  (*trace) << "entering Elecst2dPDE::ComputeRHS" << std::endl;
 #endif
+  Vector<Double> elemvec;
+
+  Integer level=0;
+  // read fnc from conf-file for RHS
+
+  std::vector<Elem*> elemssd;
+  // loop over elements 
+  Integer isd;
+  for (isd=0; isd<subdoms_.size(); isd++) // loop over all subdomains
+    {      
+      // get vector of Elem of subdomain with color: subdoms[isd]
+      ptgrid_->GetElemSD(elemssd,subdoms_[isd],level);
+
+      Integer j;
+      for (j=0; j< elemssd.size(); j++) // loop over elements of subdomain
+	{
+	  BaseElem * ptElem=elemssd[j]->ptElem;
+
+	  BaseForm<2> * linearRHS=new LinearForm<2>(ptElem);
+	  Vector<Integer> connectVec=elemssd[j]->connect;
+	  Integer nnodes=connectVec.size();
+	  Point<2> * ptCoord=new Point<2>[nnodes];
+	  ptgrid_->GetCoordNodesElem(connectVec,ptCoord,level);
+
+	  linearRHS->CalcElemVector(ptCoord,elemvec);
  
+	  elemvec*=-1; // multiply by -1, since the sysmat we assembly without -1
+
+	  delete linearRHS;
+	  delete [] ptCoord;
+	  
+	  ptalgsys_->AddElementRHS(elemvec.get(),connectVec.get(),connectVec.size(),as_sysid_);
+
+	  if (SolverCFS_) {
+	    Integer nd,sz;
+	    sz=connectVec.size();
+	    Integer ind;
+	    for (ind=0; ind<sz; ind++)
+	      vecrhs_[connectVec[ind]-1]+=elemvec[ind];
+	  }
+	  
+	} // end of loop over elements
+    } // end of loop over subdomains 
 }
 
 void Elecst2dPDE::SolveStepStatic(BCs * ptBCs, Integer level)
@@ -228,31 +375,101 @@ void Elecst2dPDE::SolveStepStatic(BCs * ptBCs, Integer level)
 
   Double * ptsol;
 
+  if (SolverCFS_) {
+  Integer size=ptgrid_->GetMaxnumnodes(level);
+  sysmat_.Resize(size,size);
+  vecrhs_.Resize(size);
+  }
+ 
   SetupMatrices(level);
   ptalgsys_->ComputeSysMatrix(as_sysid_,as_sysid_,matrix_factor_);
+
+  ComputeRHS();
   SetBCs(ptBCs,level,update,0);
+
+  std::cout << " We didn't get solution " << std::endl;
+
   ptalgsys_->ComputePrecond(job,as_sysid_);
+  std::cout << " precondition is done " << std::endl;
   ptalgsys_->SolveAlgSys(as_sysid_);
 
   ptsol = ptalgsys_->GetSolution(as_sysid_);
 
+ std::cout << " We got solution " << std::endl;
+
   // save solution
   Vector<Double> transsol(ptgrid_->GetMaxnumnodes(level), ptsol);
   sol_=transsol;
+
+  if (SolverCFS_) {
+  Double tol=1e-20;
+  LinSystem<Double,Matrix<Double> > LinSys(tol);
+ 
+  LinSys.SetSysMatrix(sysmat_);
+  LinSys.SetRHS(vecrhs_);
+
+  Vector<Double> result;
+  LinSys.CG(1000,Jacobi);
+  LinSys.GetSolution(result); 
+  
+   Integer is;
+   for (is=0; is<sol_.size(); is++) {
+     Point<2> XY;
+     ptgrid_->GetCoordinateNode(is,0,XY);
+	std::cout << sol_[is] << " " << result[is] << " " << XY[0]*200 << std::endl;
+   }
+   //  exit(1);
+
+ //  for (is=0; is<sol_.size(); is++)
+//     cout << " is: " << is+1 << " " << (sysmat_*sol_ -vecrhs_)[is] << std::endl;
+
+//  cout << " andere ergebnissen " << std::endl;
+
+ //  Integer i;
+//   for (i=0; i<result.size(); i++)
+//     cout << result[i] << " " << sol_[i] << std::endl;
+
+  } // end of fnc for solver CFS++ - LinAlg
+
+  // check
+  //  Integer is;
+//   for (is=0; is<sol_.size(); is++) {
+//     Point2D XY;
+//     ptgrid_->GetCoordinateNode(is,0,XY);
+
+//     //  cout << sol_[is] << " exact: " << XY.x*XY.y*(1-XY.x)*(1-XY.y)*(1/tan(0.8*((XY.x+XY.y)/sqrt(2)-20))) << " x:" << XY.x << " y:" << XY.y << std::endl;
+
+//     //  cout << sol_[is] << " exact: " << (1-XY.x*XY.x-XY.y*XY.y)*0.25 << " x:" << XY.x << " y:" << XY.y << std::endl;
+
+
+//   // sol_[is]= XY.x*XY.y*(1-XY.x)*(1-XY.y)*(1/tan(0.8*((XY.x+XY.y)/sqrt(2)-20)));
+//   }
+
+ if  (AbsValueElectricField_) CalcElectricField();
+
+//  CalcErrorMap();
 }
 
-void Elecst2dPDE:: WriteResultsInFile()
+void Elecst2dPDE::WriteResultsInFile()
 {
 #ifdef TRACE
   (*trace) << "entering Elecst2dPDE::WriteResultsInFile" << std::endl;
 #endif
-
+ 
   Integer step=0;
   Double time=0;
-  if (OutFile_->IsGMV())
+  if (OutFile_->IsGMV()) 
     OutFile_->WriteSolution(sol_,step,time,"electric_potential");
-  else
+  else 
     OutFile_->WriteSolution(sol_,step,time,"electric potential");
+
+  if (WriteErrorMap_) {   
+     OutFile_->WriteDataOnCell(errorMap_,step,time,"error_ep"); 
+  }
+
+  if (AbsValueElectricField_) {
+      OutFile_->WriteDataOnCell(absValueElectricField_,step,time,"elecfield");
+  }
 }
 
 Double Elecst2dPDE::CalcEnergyNorm()
@@ -265,7 +482,11 @@ Double Elecst2dPDE::CalcEnergyNorm()
 
 void Elecst2dPDE::CalcCoeff(Vector<Double> & coeff)
 {
-  if (!MatFile_) Error("You didn't specialize material file. Use option -m");
+#ifdef TRACE
+  (*trace) << " entering Elecst2dPDE::CalcCoeff " <<std::endl;
+#endif
+
+  if (!MatFile_) Error("You didn't specialize material file.");
 
   coeff.Resize(subdoms_.size());
 
@@ -277,18 +498,333 @@ void Elecst2dPDE::CalcCoeff(Vector<Double> & coeff)
       Double dielectr;
       MatFile_->ReadDielectricTerms(dielectr,matnum); 
 
-      coeff[i]=dielectr;
+      coeff[i]=dielectr;    
     }
+
 }
 
-SpaceErrorEstimator * Elecst2dPDE::CreatePtSpaceError()
+Boolean Elecst2dPDE::TestError()
 {
-  return ptSpaceError_=new Elecst2dErrEstimator(this,ptgrid_);
+#ifdef TRACE
+  (*trace) << "entering Elecst2dPDE::TestError" << std::endl;
+#endif
+
+  if (!ptError_) ConstructorError();
+
+  // calculation of error map
+  ptError_->CalcErrorMap(&sol_,subdoms_,ptgrid_,errorMap_,gradSPRElemL2norm_);
+ 
+  // calculation of ||grad_SPR||_L2
+  normError_=0;
+  Integer itm;
+  for (itm=0; itm<gradSPRElemL2norm_.size(); itm++) {
+    normError_+=gradSPRElemL2norm_[itm];
+  }
+
+  // calculation of ||grad_SPR-grad_FEM||_L2
+  Double sumErrorMap=0;
+  Integer i;
+  for (i=0; i<errorMap_.size();i++) {
+    sumErrorMap+=errorMap_[i];
+  }
+
+    std::cout << errorMap_ << std::endl;
+ std::cout << sumErrorMap << " " << normError_ << std::endl;
+
+  Double totalError=sumErrorMap/normError_;
+  
+  relativeErrorMap_=errorMap_/normError_;
+
+  if (!errorTol_)
+    conf->get("error_tolerance",errorTol_,"SpaceAdaptivity");
+
+
+  if (InfoPrint) {
+  (*infofile) << " total Error: " << totalError << " tolerance:" << errorTol_ << std::endl;
+  }
+
+  std::cerr << " Total error: " << totalError << " tolerance " << errorTol_ << " diffError " << sumErrorMap << " norm " << normError_ << std::endl;
+
+  if (totalError>errorTol_) return TRUE;
+  else return FALSE;
+}
+
+//In this fnc we delete old pointer to Error-object & create new
+void Elecst2dPDE::ConstructorError()
+{
+#ifdef TRACE
+  (*trace) << "entering Elecst2dPDE::ConstructorError" << std::endl;
+#endif
+
+  if (ptError_) delete ptError_;
+  
+  ptError_=new SpaceErrorEstimator<2>(ptgrid_);
+  ptError_->Init(this);
+}
+
+void Elecst2dPDE::RefineMesh()
+{
+#ifdef TRACE
+  (*trace) << "entering Elecst2dPDE::RefineMesh" << std::endl;
+#endif
+
+   Integer level=0;
+
+   // get max num elements for the domain,on which we have the equation
+   Integer numElems=ptgrid_->GetMaxnumElem(level,subdoms_);
+
+   // get pointer to array with elements
+   std::vector<Elem*> elemssd;
+   ptgrid_->GetElemSD(elemssd,subdoms_[0],level);
+
+   // choose error tolerance for each of element
+   // according to area of element
+   Double sumArea=0;
+   Vector<Double> areaElems(numElems);
+   Integer iem;
+   for (iem=0; iem<numElems; iem++) {
+        areaElems[iem]=ptgrid_->CalcAreaElem(elemssd[iem]);
+	sumArea+= areaElems[iem];
+   }
+
+   // calculation of error tolerance for each element
+   Vector<Double> errorLocalTol(numElems);
+   for (iem=0; iem<numElems; iem++) 
+     errorLocalTol[iem]=errorTol_*areaElems[iem]/sumArea;
+
+   // form array from 1 and 0 for marking elements
+   markingElems_.Resize(numElems);
+
+  // mark element for refiniment
+  for (iem=0; iem<numElems; iem++)
+    if (relativeErrorMap_[iem]>errorLocalTol[iem]) { 
+      elemssd[iem]->refinementFlag=TRUE;
+      markingElems_[iem]=1.;
+    }
+    else { elemssd[iem]->refinementFlag=FALSE;}
+
+  // do refinement
+  ptgrid_->Refine();
+}
+
+void Elecst2dPDE::CalcGradSolElemIP(const Elem * element, const Integer level, Vector<Double>*gradElIP)
+{
+#ifdef TRACE
+  (*trace) << "entering Elecst2dPDE::CalcGradSolElemIP" << std::endl;
+#endif
+
+  if (solGrad_) delete [] solGrad_;
+  
+  solGrad_=new Vector<Double>[2];
+
+  // 
+  Vector<Double> grad(2),glgrad(2);
+  // for transformation of element to standard
+  Jacobian<2> J;
+  Vector<Double> JinvX, JinvY;
+
+  BaseElem * ptElem=element->ptElem;
+  Vector<Integer> connectVec=element->connect;
+  Integer nnodes=connectVec.size();
+  Integer nIntgPnts=ptElem->GetNumIntPoints();
+  Point<2> * ptCoord=new Point<2>[nnodes];
+  ptgrid_->GetCoordNodesElem(connectVec,ptCoord,level);
+  Double valsol;
+
+ 
+  gradElIP[0].Resize(nIntgPnts);
+  gradElIP[1].Resize(nIntgPnts);
+
+  //do a loop over integration points in element
+  Integer iIP;
+  for (iIP=0; iIP<nIntgPnts; iIP++)
+    {
+	      
+      ptElem->CalcJacobian(J,iIP,ptCoord,TRUE);
+      J.GetJinvX(JinvX);
+      J.GetJinvY(JinvY);
+	      
+      // do a loop over shape functions	  
+      Integer ish;
+      for (ish=0; ish<nnodes; ish++)
+	{  
+	  valsol=sol_[connectVec[ish]-1];
+		  
+	  ptElem->GetGradientShFnc(grad,ish+1,iIP);
+
+	  glgrad[0]=JinvX*grad;
+	  glgrad[1]=JinvY*grad;
+
+	  gradElIP[0][iIP]+=valsol*glgrad[0];
+	  gradElIP[1][iIP]+=valsol*glgrad[1];		
+	}	 
+
+    } // end of loop over integration points of the element
+
+  delete [] ptCoord;
+#ifdef TRACE
+  (*trace) << "leaving Elecst2dPDE::CalcGradSolElemIP" << std::endl;
+#endif 
+}
+
+void Elecst2dPDE::CalcElectricField()
+{
+#ifdef TRACE
+  (*trace) << "entering Elecst2dPDE::CalcElectricField" << std::endl;
+#endif
+   Integer level=0;
+  Integer maxelem=ptgrid_->GetMaxnumElem(level,subdoms_);
+  absValueElectricField_.Resize(maxelem);
+
+ 
+  std::vector<Elem*> elemssd;
+  Integer counterElems=0;
+  // loop over all elements
+  Integer isd;
+   for (isd=0; isd<subdoms_.size(); isd++) // loop over all subdomains
+      {      
+      // get vector of Elem of subdomain with color: subdoms[isd]
+      ptgrid_->GetElemSD(elemssd,subdoms_[isd],level);
+       
+       // loop over elements of subdomain
+      Integer iel;
+      for (iel=0; iel< elemssd.size(); iel++,counterElems++)
+	{
+	  // 
+	  Vector<Double> grad(2),glgrad(2);
+
+	  //for transformation of element to standard
+	  Jacobian<2> J;
+	  Vector<Double> JinvX, JinvY;
+
+	  BaseElem * ptElem=elemssd[iel]->ptElem;
+	  Vector<Integer> connectVec=elemssd[iel]->connect;
+	  Integer nnodes=connectVec.size();
+	  Point<2> * ptCoord=new Point<2>[nnodes];
+	  ptgrid_->GetCoordNodesElem(connectVec,ptCoord,level);
+	  Double valsol;
+
+	  Vector<Double> gradElectricFieldAtCenterElem;
+	  gradElectricFieldAtCenterElem.Resize(2);
+	      
+	  ptElem->CalcJacobianAtCenter(J,ptCoord,TRUE);
+	  J.GetJinvX(JinvX);
+	  J.GetJinvY(JinvY);
+	      
+	  // do a loop over shape functions	  
+	  Integer ish;
+	  for (ish=0; ish<nnodes; ish++)
+	    {  
+	      valsol=sol_[connectVec[ish]-1];
+		  
+	      ptElem->GetGradientShFncAtCenter(grad,ish+1);
+
+	      glgrad[0]=JinvX*grad;
+	      glgrad[1]=JinvY*grad;
+
+	      gradElectricFieldAtCenterElem[0]+=valsol*glgrad[0];
+	      gradElectricFieldAtCenterElem[1]+=valsol*glgrad[1];		
+	    }	 
+
+	  absValueElectricField_[counterElems]=gradElectricFieldAtCenterElem.normL2();
+
+	  delete [] ptCoord;
+	} // end of loop over elements of subdomains
+      } // end of loop over subdomain
+}
+
+ //! write additional info (marked elements, relative error) to files with mesh
+void Elecst2dPDE::PrintMeshesInfo(WriteResults * ptMeshes)
+{
+   
+  ptMeshes->WriteDataOnCell(relativeErrorMap_,0,0,"relative_error");
+  ptMeshes->WriteDataOnCell(markingElems_,0,0,"marked_elems");
+ 
 }
 
 Elecst2dPDE::~Elecst2dPDE()
 {
- ;
+#ifdef TRACE
+  (*trace) << " entering Elecst2dPDE::~Elecst2dPDE " << std::endl;
+#endif
+  if (ptError_) delete ptError_ ;
+
+  if (solGrad_) delete [] solGrad_;
 }
+
+///!!!
+//     Function for calculating gradient of solution at integration points
+//
+// void Elecst2dPDE::CalcGradSol(const Integer level)
+// {
+// #ifdef TRACE
+//   (*trace) << "entering Elecst2dPDE::CalcGradSol" << std::endl;
+// #endif
+
+//   if (solGrad_) delete [] solGrad_;
+  
+//   solGrad_=new Vector<Double>[2];
+
+//   // 
+//   Vector<Double> grad(2),glgrad(2);
+//   Vector<Double> vec(2);
+//   //vector with elements
+//   std::vector<Elem*> elemssd;
+//   //for transformation of element to standard
+//   Jacobian<Point2D> J;
+//   Vector<Double> JinvX, JinvY;
+
+//   Integer icmp,isd,iel;
+//   for (isd=0; isd<subdoms_.size(); isd++) // loop over all subdomains
+//     {      
+//       // get vector of Elem of subdomain with color: subdoms[isd]
+//       ptgrid_->GetElemSD(elemssd,subdoms_[isd],level);
+       
+//        // loop over elements of subdomain
+//       for (iel=0; iel< elemssd.size(); iel++)
+// 	{
+// 	  BaseElem * ptElem=elemssd[iel]->ptElem;
+
+// 	  Vector<Integer> connectVec=elemssd[iel]->connect;
+// 	  Integer nnodes=connectVec.size();
+// 	  Point2D * ptCoord=new Point2D[nnodes];
+// 	  ptgrid_->GetCoordNodesElem(connectVec,ptCoord,level);
+// 	  Double valsol;
+	  
+// 	  //do a loop over integration points in element
+// 	  Integer ielnd;
+// 	  for (ielnd=0; ielnd<nnodes; ielnd++)
+// 	    {
+// 	      vec.Init();
+
+// 	      ptElem->CalcJacobian(J,ielnd,ptCoord,TRUE);
+// 	      J.GetJinvX(JinvX);
+// 	      J.GetJinvY(JinvY);
+	      
+// 	      // do a loop over shape functions	  
+// 	      Integer ish;
+// 	      for (ish=0; ish<nnodes; ish++)
+// 		{  
+// 		  valsol=sol_[connectVec[ish]-1];
+		  
+// 		  ptElem->GetGradientShFnc(grad,ish+1,ielnd);
+
+// 		  glgrad[0]=JinvX*grad;
+// 		  glgrad[1]=JinvY*grad;
+
+// 		  vec[0]+=valsol*glgrad[0];
+// 		  vec[1]+=valsol*glgrad[1];		
+// 		}	 
+
+// 	        cout << " VALUE FNC AT IP " << vec << std::endl;
+
+// 	    } // end of loop over vertices of the element
+
+// 	  delete [] ptCoord;
+	  
+// 	} // end of loop over elements of subdomain
+//     } // end of loop over subdomains 
+
+// }
 
 } // end of namespace

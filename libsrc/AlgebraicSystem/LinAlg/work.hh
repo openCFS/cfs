@@ -11,7 +11,7 @@ namespace CoupledField
   /*! This class is derived from class LinSystem and Assemble. It is created only with aim to have for classes LinSystem and Assemble the same base class SystemMatrix
    */ 
 
-template< class Dim, class T_Matrix>
+template<Integer Dim, class T_Matrix>
 class WorkWithSysMat: virtual public Assemble<Dim,T_Matrix>, virtual public LinSystem<Double, T_Matrix> 
 {
 public:
@@ -22,7 +22,7 @@ public:
   Vector<Double> getSolution(){ return x;}
 };
 
-template<class Dim, class T_Matrix>
+template<Integer Dim, class T_Matrix>
 inline WorkWithSysMat<Dim, T_Matrix>::WorkWithSysMat(Grid * aptgrid, const Integer level, const Double eps)
  : Assemble<Dim, T_Matrix>(aptgrid, level), LinSystem<Double, T_Matrix>(eps) 
 {

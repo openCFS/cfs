@@ -1,8 +1,8 @@
 #
 C_DIR=../../..
 #
-src =
-#src = systemmatrix.cc assemble.cc linsystem.cc 
+#src =
+src = systemmatrix.cc linsystem.cc 
 #
 lib = algsys-own
 libpath = libsrc/AlgebraicSystem/LinAlg

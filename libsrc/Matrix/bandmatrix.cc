@@ -391,7 +391,7 @@ for (i=-li; i<1; i++)  out << mat[n-1][i] << " ";
 }
 
 #ifdef __GNUC__ 
-template std::ostream & operator<<<Integer> (std::ostream & , const BandMatrix<Integer>&);
+//template std::ostream & operator<<<Integer> (std::ostream & , const BandMatrix<Integer>&);
 template std::ostream & operator<<<Double> (std::ostream & , const BandMatrix<Double>& );
 #endif
 

@@ -17,11 +17,13 @@ BCs :: BCs(FileType * const aInFile)
  InFile_     = aInFile; 
 
  Integer i;
- for (i=0; i<NUMLEVELGRID; i++) bcs_[i]=NULL;
+ for (i=0; i<NUMLEVELGRID; i++) { bcs_[i]=NULL; bcsEdges_[i]=NULL;}
   
  conf->getliststr("list_interfaces",levels_);
  bcs_[0]=new std::list<Integer>[levels_.size()];
-
+ 
+ conf->getliststr("list_edges",color_edges_);
+ bcsEdges_[0]=new std::vector<Elem*>[color_edges_.size()]; 
 }
 
 BCs :: ~BCs()
@@ -30,9 +32,31 @@ BCs :: ~BCs()
   (*trace) << "entering BCs::~BCs" << std::endl;
 #endif
 
- Integer i;
- for (i=0; i<NUMLEVELGRID; i++)   
-   if (bcs_[i]) delete [] bcs_[i];   
+ Integer i,j,k;
+
+ if (!levels_.size()) {
+   for (i=0; i<NUMLEVELGRID; i++)   
+    if (bcs_[i]) {
+      for (j=0; j<levels_.size(); j++) {
+	bcs_[i][j].clear();
+      } // loop over colors of grid( over subdomains), index j
+      delete [] bcs_[i];
+    } // loop over levels of grid, index i
+ } // end of if
+
+  if (!color_edges_.size()) {
+   for (i=0; i<NUMLEVELGRID; i++)   
+    if (bcsEdges_[i]) {
+      for (j=0; j<color_edges_.size(); j++) {
+	for (k=0; k<bcsEdges_[i][j].size(); k++) {
+	  Elem* tmpEl=bcsEdges_[i][j][k];
+	  delete tmpEl;
+	} // loop over elements of one color, index k
+      } // loop over colors of grid( over subdomains), index j
+      delete [] bcsEdges_[i];
+    } // loop over levels of grid, index i
+ } // end of if
+
 }
 
 void BCs :: ReadBCs()
@@ -44,6 +68,7 @@ void BCs :: ReadBCs()
  InFile_->ReadBCs(bcs_[0],levels_);
  toplevel_=0;
 
+ if (color_edges_.size()) InFile_->ReadEl1d(bcsEdges_[0],color_edges_);
 }
 
 std::list<Integer> BCs::GetNodesLevel(const std::string color, const Integer lev)
@@ -59,6 +84,21 @@ std::list<Integer> BCs::GetNodesLevel(const std::string color, const Integer lev
   if (color==levels_[i]) break;
 
  return bcs_[level][i]; 
+}
+
+std::vector<Elem*> BCs::getEdgesBC(const std::string color, const Integer lev)
+{
+#ifdef TRACE
+  (*trace) << "entering BCs::getEdgesBC" << std::endl;
+#endif
+
+  Integer level=lev;
+  if (lev==-1) level=toplevel_;
+  Integer i;
+  for (i=0; i<color_edges_.size(); i++)
+    if (color==color_edges_[i]) break;
+
+  return bcsEdges_[level][i];
 }
 
 Integer BCs::GetNumNodesLevel(const std::string color, const Integer lev)

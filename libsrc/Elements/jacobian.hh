@@ -9,7 +9,7 @@ namespace CoupledField
   //! Class for calculation Jacobian
   /*! In this class we store Jacobian of transformation element in standart, det of Jacobian and calculate inverse of Jacobian matrix */
 
-template<class Dim>
+template<Integer dim>
 class Jacobian
 {
   public:
@@ -31,8 +31,8 @@ class Jacobian
 };
 
 #ifdef __GNUC__
-template class Jacobian<Point2D>;
-template class Jacobian<Point3D>;
+template class Jacobian<2>;
+template class Jacobian<3>;
 #endif
 
 } // end of namespace

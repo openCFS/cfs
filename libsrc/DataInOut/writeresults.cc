@@ -9,13 +9,48 @@
 namespace CoupledField
 {
 
-WriteResults::WriteResults(const Char * const filename)
+WriteResults::WriteResults(const Char * const filename, Boolean withHistory)
 {
 #ifdef TRACE
  if (trace) (*trace)<< "entering WriteResults::WriteResults()" << std::endl;
 #endif
   namefile_=new Char[20];
   strcpy(namefile_,filename);
+
+  ascii_=TRUE;
+
+  historyfile=NULL;
+
+  if (withHistory) InitHistoryFiles();
+
+}
+
+void WriteResults::AddInHistory(const Double time, const Double val,const Integer ifile)
+{ 
+ lastsavetime[ifile]=time;
+ historyfile[ifile] << time << "  " << val << std::endl;
+}
+
+WriteResults::~WriteResults()
+{
+#ifdef TRACE
+  (*trace) << "entering WriteResults::~WriteResults" << std::endl;
+#endif
+  
+  if (historyfile) {
+  Integer i;
+  for (i=0; i<nodeshist_.size(); i++)
+     historyfile[i].close();
+  }
+  if (historyfile) delete [] historyfile;
+  delete [] namefile_; 
+}
+
+void WriteResults::InitHistoryFiles()
+{
+#ifdef TRACE
+ if (trace) (*trace)<< "entering WriteResults::InitHistoryFiles()" << std::endl;
+#endif
 
   NeedHistory_=TRUE;
   conf->getlist(nodeshist_,"history_node");
@@ -49,27 +84,6 @@ WriteResults::WriteResults(const Char * const filename)
 
     delete [] name;
    }
-}
-
-void WriteResults::AddInHistory(const Double time, const Double val,const Integer ifile)
-{ 
- lastsavetime[ifile]=time;
- historyfile[ifile] << time << "  " << val << std::endl;
-}
-
-WriteResults::~WriteResults()
-{
-#ifdef TRACE
-  (*trace) << "entering WriteResults::~WriteResults" << std::endl;
-#endif
-  
-  if (historyfile) {
-  Integer i;
-  for (i=0; i<nodeshist_.size(); i++)
-     historyfile[i].close();
-  }
-  if (historyfile) delete [] historyfile;
-  delete [] namefile_; 
 }
 
 } // end of namespace

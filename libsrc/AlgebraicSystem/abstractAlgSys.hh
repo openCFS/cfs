@@ -158,6 +158,15 @@ public:
   //! Add element vector to rhs-vector at position pos
   virtual void PutElemRHS(Double * elemrhs, Integer *pos, Integer size, Integer sys_id)=0;
 
+  //! Put elemtmvector to global RHS
+  /*!
+    \param elemrhs element vector
+    \param connect global node (edge) numbers
+    \param elemsize number of nodes (edges) of element
+    \param matrix_sys_id row (column) index in block structure
+  */
+  virtual void AddElementRHS(Double *elemrhs, Integer *connect, Integer elemsize, Integer sys_id)=0;
+
   virtual void ComputePrecond(Integer job, Integer nsys)=0;
 
   //! Solve the algebraic system with ID nsys

@@ -18,6 +18,10 @@ public:
 
    //! Deconstructor
   virtual ~GeTetrahedral(); 
+
+  //! return FE-Type for CLA++
+  virtual Integer feType() { return TET;}
+  
 ///////////////////////////////////////////////////////////////////////
 
 virtual Vector<Double> *  GetDxShFncAtIP(const Integer iShFnc) ;
@@ -37,13 +41,22 @@ protected:
   //! Calculate derivative of transformation function at these integration points
   virtual void SetDerTransformFncAtIntPoints();
   
+  //! Calculate transformation function at the center of element
+  virtual void SetTransformFncAtCenter();
+
+  //! Calculate derivative of transformation function at the center of element
+  virtual void SetDerTransformFncAtCenter();
+
    //! Calculation of Jacobian, inverse Jacobian and detJacobian
-  void CalcJacobian(Jacobian<Point2D> & J, const Integer ip,
-                 const Point2D * const ptCoord, const Boolean NeedJinv=TRUE); 
+  void CalcJacobian(Jacobian<2> & J, const Integer ip,
+                 Point<2> * ptCoord, const Boolean NeedJinv=TRUE); 
     
    //! Calculation of Jacobian, inverse Jacobian and detJacobian
-  void CalcJacobian(Jacobian<Point3D> & J, const Integer ip,
-                  const Point3D * const ptCoord, const Boolean NeedJinv=TRUE);
+  void CalcJacobian(Jacobian<3> & J, const Integer ip,
+                   Point<3> * ptCoord, const Boolean NeedJinv=TRUE);
+
+ //! Calculation of Jacobian for center point in 3D
+  virtual void CalcJacobianAtCenter(Jacobian<3> & J,  Point<3> *  ptCoord, const Boolean NeedJinv=TRUE);
 
   Vector<Double> TransFncAtIP1;
   Vector<Double> TransFncAtIP2;
@@ -65,7 +78,13 @@ protected:
   Vector<Double> DzTransFncAtIP3;
   Vector<Double> DzTransFncAtIP4;
 
+  Double TransFncAtCenter[4];
+  Double DxTransFncAtCenter[4];
+  Double DyTransFncAtCenter[4];
+  Double DzTransFncAtCenter[4];
+
   Boolean IsSet;
+  Boolean isSetAtCenter_;
 
 private:
 

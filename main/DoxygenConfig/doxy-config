@@ -46,10 +46,13 @@ WARN_LOGFILE           =
 #---------------------------------------------------------------------------
 # configuration options related to the input files
 #---------------------------------------------------------------------------
-INPUT                  =  ../libsrc/AlgebraicSystem/LinAlg ../libsrc/DataInOut \
-                          ../libsrc/DataInOut/DatFile ../libsrc/DataInOut/Unverg \
-                          ../libsrc/Domain/ ../libsrc/Driver ../libsrc/Elements ../libsrc/Forms/ \
-                          ../libsrc/Matrix/ ../libsrc/PDE/ ../libsrc/Utils
+INPUT                  =	  ../libsrc/AlgebraicSystem ../libsrc/AlgebraicSystem/LinAlg ../libsrc/DataInOut \
+                	     	  ../libsrc/DataInOut/DatFile ../libsrc/DataInOut/Unverg \
+		 		../libsrc/DataInOut/AnsysFile ../libsrc/DataInOut/DefineFiles ../libsrc/DataInOut/Unverg ../libsrc/DataInOut/GMV \ 
+                          ../libsrc/Domain/ ../libsrc/Domain/GridCFS ../libsrc/Domain/AdaptGrid \
+			../libsrc/Driver ../libsrc/Elements ../libsrc/Elements/1D ../libsrc/Elements/2D ../libsrc/Elements/3D \
+			../libsrc/Forms ../libsrc/PDE ../libsrc/Matrix \
+			  ../libsrc/Estimator ../libsrc/Utils ../libsrc/General	
 FILE_PATTERNS          = *.hh
 RECURSIVE              = NO
 EXCLUDE                = 

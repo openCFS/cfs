@@ -13,6 +13,20 @@ namespace CoupledField
 template <class T_Matrix>
 class SystemMatrix
 {
+public:
+
+  //  test functions
+  //! print on screen: only for check
+  void print(){ std::cout  << A; std::cout << b; std::cout << x;}
+  //! print solution on screen
+  void printxscreen() { std::cout << " solution " << x << std::endl;}
+  //! print in file matrix A and RHS
+  void printAb(std::ostream * out, const std::string & title) const;
+  //! print solution 
+  void printx(std::ostream * out, const Double time) const;
+  //! Return size of matrix A
+  Integer getSize(){return A.getSize();}
+
 protected:
   //! system matrix
   T_Matrix A;
@@ -28,18 +42,6 @@ protected:
    
   //! deconstructor
   virtual ~SystemMatrix(){};
-
-public:
-  //! print on screen: only for check
-  void print(){ std::cout  << A; std::cout << b; std::cout << x;}
-  //! print solution on screen
-  void printxscreen() { std::cout << " solution " << x << std::endl;}
-  //! print in file matrix A and RHS
-  void printAb(std::ostream * out, const std::string & title) const;
-  //! print solution 
-  void printx(std::ostream * out, const Double time) const;
-  //! Return size of matrix A
-  Integer getSize(){return A.getSize();}
 };
 
 #ifdef __GNUC__

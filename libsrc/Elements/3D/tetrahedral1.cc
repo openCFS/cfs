@@ -78,5 +78,15 @@ void  Tetrahedral1::GetGradientShFnc(Vector<Double> & grad, const Integer i, con
    Error("Wrong number of shape function",__FILE__,__LINE__);
 }
 }
+
+void  Tetrahedral1::GetGradientShFncAtCenter(Vector<Double> & grad, const Integer ish)
+{
+  grad.Resize(3);
+
+  grad[0]=DxTransFncAtCenter[ish-1];
+  grad[1]=DyTransFncAtCenter[ish-1];
+  grad[2]=DzTransFncAtCenter[ish-1];
+}
+
 } // end of namespace
 

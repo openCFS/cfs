@@ -48,10 +48,10 @@ public:
   //!
   Grid * GetGrid(){ return ptgrid_;}
 
- void TestGrid();
 protected:
 
 private:
+  
   Integer newlevel;
 
    //! initialize pde
@@ -84,7 +84,6 @@ private:
   //!
   Grid * ptgrid_;
   
-
   //!
   BCs * ptBCs_;
 

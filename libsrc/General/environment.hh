@@ -16,24 +16,20 @@ typedef int Boolean;
 
 #define mark std::cout<<__FILE__<<__LINE__<<std::endl;
 
-//#ifndef assert
-//#define assert(ex) \
+  typedef Double (*pfn1var)(const Double);
+  typedef Double (*pfn2var)(const Double, const Double);
+  typedef Double (*pfn3var)(const Double, const Double, const Double);
+
+// #ifndef assert
+// #define assert(ex) \
 //        (void)((ex) ? 1 : \
 //              (_error("Failed assertion " #ex " at line %d of `%s'.\n", \
 //               __LINE__, __FILE__), 0))
-//#endif
+// #endif
 
-enum ElementType{Triang1, Triang2, Quadrilateral1, Quadrilateral2};
-
-//enum MatType{ fluid};
-
-enum IntegrationType {GaussOrder2, GaussOrder3, GaussOrder4, GaussOrder5, GaussOrder7, null};
-
-//enum TypeBCs{ vp_restraint, ep_restraint};
-//-------------------------  Used enumerations: ---------------------------- 
-// enum for precondition matrix
+  enum ElementType{Line1, Triang1, Triang2, Quadrilateral1, Quadrilateral2};
+  enum IntegrationType {GaussOrder2, GaussOrder3, GaussOrder4, GaussOrder5, GaussOrder7, null};
  enum precond { non, Jacobi, SSOR, LU}; 
-
 
 // ---------------solver specific enumerations: begin
 enum GraphType   {NOGRAPH, NODEGRAPH, EDGEGRAPH, FACEGRAPH, VOLUMEGRAPH};
@@ -61,7 +57,7 @@ extern ConfFile * conf; //name.conf
 extern Boolean InfoPrint;
 
 class BaseElem;
-extern BaseElem * ptQ, *ptTr, *ptTet;
+extern BaseElem * ptQ, *ptTr, *ptTet, *ptL1, *ptHexa;
 
 }
 

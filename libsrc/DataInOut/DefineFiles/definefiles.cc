@@ -97,9 +97,14 @@ WriteResults * DefineInOutFiles :: Create_ptWriteResults()
   std::string outformat;
   conf->get("format_output",outformat);
 
-  if (outformat=="gmv") ptWriteResults=new WriteResultsGMV(filename);
+  Boolean withHistory=FALSE;
+  Integer val;
+  if (conf->ifget("history_node",val))
+	if (val!=-1) withHistory=TRUE;
+
+  if (outformat=="gmv") ptWriteResults=new WriteResultsGMV(filename,withHistory);
   else 
-    if (outformat=="unverg") ptWriteResults=new WriteResultsUnverg(filename);
+    if (outformat=="unverg") ptWriteResults=new WriteResultsUnverg(filename,withHistory);
       else
         Error("Wrong format for writing results. Please, check your data.",__FILE__,__LINE__);
 

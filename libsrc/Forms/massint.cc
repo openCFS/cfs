@@ -6,8 +6,8 @@
 namespace CoupledField
 {
 
-template <class Dim>
-MassInt<Dim> :: MassInt(BaseElem * aptelem, const ShortInt ndofs) : BaseForm<Dim>(aptelem)
+template <Integer dim>
+MassInt<dim> :: MassInt(BaseElem * aptelem, const ShortInt ndofs) : BaseForm<dim>(aptelem)
 {
 #ifdef TRACE
   (*trace) << "entering MassInt::MassInt" << std::endl;
@@ -15,8 +15,8 @@ MassInt<Dim> :: MassInt(BaseElem * aptelem, const ShortInt ndofs) : BaseForm<Dim
   DofsPerNode = ndofs;
 }
   
-template <class Dim>
-MassInt<Dim> :: ~MassInt()
+template <Integer dim>
+MassInt<dim> :: ~MassInt()
 {
 #ifdef TRACE
   (*trace) << "entering MassInt::~MassInt" << std::endl;
@@ -25,14 +25,14 @@ MassInt<Dim> :: ~MassInt()
   ;
 }
 
-template <class Dim>
-void MassInt<Dim> :: CalcElemMatrix(Dim * ptCoord, Matrix<Double> & Result)
+template <Integer dim>
+void MassInt<dim> :: CalcElemMatrix(Point<dim> * ptCoord, Matrix<Double> & Result)
 {
 
   Integer l=ptelem->GetNumIntPoints(); // l - number of integration points
   Integer n=ptelem->GetNumNodes();   // n - number of nodes
  
-  Jacobian<Dim> J;
+  Jacobian<dim> J;
   Integer i,ii,iii;
  
   Result.Resize(n,n);
