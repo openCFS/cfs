@@ -1517,7 +1517,6 @@ namespace CoupledField {
   }
 
 
-
   // ============================
   //   Parse XML parameter file
   // ============================
@@ -1609,7 +1608,6 @@ namespace CoupledField {
   }
 
 
-
   // =====================================================
   //   Check if element has attribute with certain value
   // =====================================================
@@ -1644,10 +1642,60 @@ namespace CoupledField {
 
     // Test, if attribute's value matches specification
     else {
-      retVal = X2S( Node2Attr(attrib)->getValue() ) == value ? true : false;
+
+      // Convert attribute's value to string representation
+      std::string foundValue = X2S( Node2Attr(attrib)->getValue() );
+
+      // Treat case of 'tag' attribute in special way
+      if ( attribute == "tag" ) {
+	retVal = MatchesTag( foundValue, value );
+      }
+
+      // Standard case
+      else {
+	retVal = X2S( Node2Attr(attrib)->getValue() ) == value ? true : false;
+      }
     }
 
     return retVal;
+  }
+
+
+  // ===============================
+  //   Check if refTag matches tag
+  // ===============================
+  bool XMLParamHandler::MatchesTag( const std::string tag,
+				    const std::string refTag ) {
+
+    ENTER_IFCN( "XMLParamHandler::AttribHasValue" );
+
+    bool match = false;
+
+    // Case 1: tag matches always
+    if ( tag == "anyTag" ) {
+      match = true;
+    }
+
+    // Case 2: one-to-one match
+    else if ( tag == refTag ) {
+      match = true;
+    }
+
+    // Case 3: refTag contained as sub-tag
+    else {
+      StdVector<std::string> subTags;
+      SplitStringList( tag, subTags, ',' );
+      for ( unsigned int i = 0; i < subTags.GetSize(); i++ ) {
+	if ( subTags[i] == refTag ) {
+	  match = true;
+	  break;
+	}
+      }
+    }
+
+    // done
+    return match;
+
   }
 
 
@@ -1659,6 +1707,8 @@ namespace CoupledField {
 					   const StdVector<std::string> &value,
 					   FILE *myStream ) {
 
+    ENTER_IFCN( "XMLParamHandler::PrintSearchParams" );
+
     fprintf( myStream, "  key\t\tattribute\tvalue\n" );
     for ( unsigned int i = 0; i < key.GetSize() - 1; i++ ) {
       fprintf( myStream, "  '%s'\t'%s'\t'%s'\n", key[i].c_str(),
@@ -1667,6 +1717,7 @@ namespace CoupledField {
     fprintf( myStream, "  '%s'\t''\t''\n", key[key.GetSize()-1].c_str() );
 
   }
+
 
 
   // =====================================================
