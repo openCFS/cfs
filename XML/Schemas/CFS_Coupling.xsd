@@ -1,0 +1,191 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org"
+  xmlns:cfs="http://www.cfs++.org"
+  elementFormDefault="qualified">
+
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Coupled Field Solver project CFS++
+      Schema for description of direct and iterative coupling of PDEs
+    </xsd:documentation>
+  </xsd:annotation>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of basic coupling data type -->
+  <!-- ******************************************************************** -->
+
+  <!-- This is an abstract basic type so that it cannot appear in an -->
+  <!-- instance document -->
+  <xsd:complexType name="DT_BasicCoupling" abstract="true"/>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of basic coupling element -->
+  <!-- ******************************************************************** -->
+
+  <!-- This element is abstract in order to force substitution -->
+  <!-- by the derived specialised PDECoupling elements -->
+  <xsd:element name="PDEBasicCoupling" type="DT_BasicCoupling"
+    abstract="true"/>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type describing iterative coupling method -->
+  <!-- ******************************************************************** -->
+  <xsd:simpleType name="DT_IterCouplingMethod">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="RHS"/>
+      <xsd:enumeration value="Matrix"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type describing iterative coupling approach -->
+  <!-- ******************************************************************** -->
+
+  <!-- Electrostatic PDE -->
+  <xsd:complexType name="DT_CouplingElec">
+    <xsd:complexContent>
+      <xsd:restriction base="xsd:anyType">
+        <xsd:attribute name="type" use="required">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
+              <xsd:enumeration value="node"/>
+              <xsd:enumeration value="region"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
+        <xsd:attribute name="quantity" use="required">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
+              <xsd:enumeration value="mechDisplacement"/>
+              <xsd:enumeration value="smoothDisplacement"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
+        <xsd:attribute name="name" type="xsd:token" use="required"/>
+      </xsd:restriction>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- Mechanics PDE -->
+  <xsd:complexType name="DT_CouplingMech">
+    <xsd:complexContent>
+      <xsd:restriction base="xsd:anyType">
+        <xsd:attribute name="type" use="required">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
+              <xsd:enumeration value="node"/>
+              <xsd:enumeration value="region"/>
+              <xsd:enumeration value="interface"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
+        <xsd:attribute name="quantity" use="required">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
+              <xsd:enumeration value="elecForceVWP"/>
+              <xsd:enumeration value="magForceVWP"/>
+              <xsd:enumeration value="magForceLorentz"/>
+              <xsd:enumeration value="accousticForce"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
+        <xsd:attribute name="name" type="xsd:token" use="required"/>
+      </xsd:restriction>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- Magnetics PDE -->
+  <xsd:complexType name="DT_CouplingMag">
+    <xsd:complexContent>
+      <xsd:restriction base="xsd:anyType">
+        <xsd:attribute name="type" use="required">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
+              <xsd:enumeration value="node"/>
+              <xsd:enumeration value="region"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
+        <xsd:attribute name="quantity" use="required">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
+              <xsd:enumeration value="mechDisplacement"/>
+              <xsd:enumeration value="smoothDisplacement"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
+        <xsd:attribute name="name" type="xsd:token" use="required"/>
+      </xsd:restriction>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- Smoothing "PDE" -->
+  <xsd:complexType name="DT_CouplingSmooth">
+    <xsd:complexContent>
+      <xsd:restriction base="xsd:anyType">
+        <xsd:attribute name="type" use="required">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
+              <xsd:enumeration value="node"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
+        <xsd:attribute name="quantity" use="required">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
+              <xsd:enumeration value="smoothDisplacement"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
+        <xsd:attribute name="name" type="xsd:token" use="required"/>
+      </xsd:restriction>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of element for iteratve ElecMech coupling -->
+  <!-- ******************************************************************** -->
+  <xsd:element name="iterativeElecMech" substitutionGroup="PDEBasicCoupling">
+    <xsd:complexType>
+      <xsd:complexContent>
+        <xsd:extension base="DT_BasicCoupling">
+          <xsd:sequence>
+           <xsd:element name="mechanic">
+             <xsd:complexType>
+               <xsd:sequence>
+                 <xsd:element name="coupling" type="DT_CouplingMech"
+                   maxOccurs="unbounded" />
+               </xsd:sequence>
+             </xsd:complexType>
+           </xsd:element>
+           <xsd:element name="electrostatic">
+             <xsd:complexType>
+               <xsd:sequence>
+                 <xsd:element name="coupling" type="DT_CouplingElec"
+                   maxOccurs="unbounded" />
+               </xsd:sequence>
+             </xsd:complexType>
+           </xsd:element>
+           <xsd:element name="smooth" minOccurs="0">
+             <xsd:complexType>
+               <xsd:sequence>
+                 <xsd:element name="coupling" type="DT_CouplingSmooth"
+                   maxOccurs="unbounded" />
+               </xsd:sequence>
+             </xsd:complexType>
+           </xsd:element>
+          </xsd:sequence>
+          <xsd:attribute name="method" type="DT_IterCouplingMethod"
+           use="required"/>
+        </xsd:extension>
+      </xsd:complexContent>
+    </xsd:complexType>
+  </xsd:element>
+
+</xsd:schema>
