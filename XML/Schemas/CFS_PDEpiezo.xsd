@@ -185,6 +185,7 @@
       default="all"/>
   </xsd:complexType>
 
+
   <!-- Data type for describing history of element values to be stored -->
   <xsd:complexType name="DT_ElemHistoryPiezo">
     <xsd:attribute name="type" type="DT_ElemDataPiezo" use="optional"
@@ -192,6 +193,17 @@
     <xsd:attribute name="saveElems" type="xsd:token" use="optional"
       default="none"/>
   </xsd:complexType>
+
+  <!-- Element type for computing of electric charges -->
+  <xsd:complexType name="DT_ChargePiezo">
+    <xsd:complexContent>
+      <xsd:extension base="xsd:anyType">
+        <xsd:attribute name="region" type="xsd:token" use="required"/>
+        <xsd:attribute name="element" type="xsd:token" use="required"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
 
   <!-- Global type for specifying the desired mechanical output quantities -->
   <xsd:complexType name="DT_PiezoStoreResults">
@@ -203,6 +215,8 @@
       <xsd:element name="elemResults" type="DT_ElemResultsPiezo" minOccurs="0"
         maxOccurs="unbounded"/>
       <xsd:element name="elemHistory" type="DT_ElemHistoryPiezo" minOccurs="0"
+        maxOccurs="unbounded"/>
+      <xsd:element name="charge" type="DT_ChargePiezo" minOccurs="0"
         maxOccurs="unbounded"/>
     </xsd:sequence>
   </xsd:complexType>
