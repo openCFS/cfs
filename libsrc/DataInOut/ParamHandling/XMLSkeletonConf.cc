@@ -138,7 +138,7 @@ namespace CoupledField
 
     // Generate parser and parse XML defaults file
      std::string cfsDefaults = XMLSCHEMA;
-     cfsDefaults_ += "/Defaults/CFS++Defaults.xml";
+     cfsDefaults += "/Defaults/CFS++Defaults.xml";
     
 #ifdef USE_XERCES
     params = new XMLParamHandler( cfsDefaults.c_str() );
