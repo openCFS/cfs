@@ -279,7 +279,7 @@
   <!-- ******************************************************************** -->
   <!-- Definition of element for OLAS_MINRES Solver -->
   <!-- ******************************************************************** -->
-  <xsd:element name="gmres" type="DT_SolverOLASMINRES"
+  <xsd:element name="minres" type="DT_SolverOLASMINRES"
     substitutionGroup="SolverBasic"/>
 
 
