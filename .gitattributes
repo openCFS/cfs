@@ -1,5 +1,15 @@
 * text=auto !eol
 Doc/DoxygenConfig/doxygen_manual.pdf -text svneol=unset#application/pdf
+Doc/xmlFile/BCsLoads.tex svneol=native#text/plain
+Doc/xmlFile/Savings.tex svneol=native#text/plain
+Doc/xmlFile/basicCommands.tex svneol=native#text/plain
+Doc/xmlFile/coupledfields.tex svneol=native#text/plain
+Doc/xmlFile/general.tex svneol=native#text/plain
+Doc/xmlFile/mycommands.tex svneol=native#text/plain
+Doc/xmlFile/singlefields.tex svneol=native#text/plain
+Doc/xmlFile/xmlReference.tex svneol=native#text/plain
+Doc/xmlFile/xmlcover.tex svneol=native#text/plain
+Doc/xmlFile/xmlintro.tex svneol=native#text/plain
 /Makefile -text
 XML/CFS.xsd -text
 XML/Defaults/CFS++Defaults.xml svneol=native#text/xml

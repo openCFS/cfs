@@ -1,0 +1,60 @@
+\chapter{XML Basics}
+
+\section{What is XML?}
+XML is the \emph{Extensible Markup Language}. It is designed to
+improve the functionality of the Web by providing more flexible and
+adaptable information identification.
+
+It is called extensible because it is not a fixed format like HTML (a single,
+predefined markup language). Instead, XML is actually a \emph{metalanguage}
+-- a language for describing other languages -- which lets you
+design your own customized markup languages for limitless different
+types of documents. XML can do this because it's written in \emph{SGML}, the
+international standard metalanguage for text markup systems (ISO 8879).
+
+
+
+\section{XML: Data Elements}
+In XML a single data item is enclosed by two tags:
+\begin{verbatim}
+  <node_name>ground</node_name>
+\end{verbatim}
+an \emph{opening tag} and a \emph{closing tag}. The whole assembly is called an element.
+In XML, an element can have
+
+\begin{center}  
+  \begin{tabular}{|l|l|}
+    \hline
+    a value    & \verb!<node>ground</node>!\\
+    \hline 
+    attributes & \verb!<node name="ground"></node>!\\
+    \hline 
+    children &  
+    \begin{minipage}{10cm}
+\begin{verbatim}
+<nodelist>
+  <node1>....</node1>
+  <node2>....</node2>
+</nodelist>
+\end{verbatim}
+    \end{minipage}\\
+    \hline
+  \end{tabular}
+\end{center}
+
+
+or a combination of the above.
+
+
+
+\section{XML: Empty Elements}
+
+
+If an element is empty, i.e.~it contains neither a value nor children,
+
+\verb!<problem name="demo3d"></problem>!
+
+\noindent
+the opening and the closing tag can be combined into one:
+
+\verb!<problem name="demo3d" />!

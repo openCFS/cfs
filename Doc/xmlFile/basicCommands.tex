@@ -1,0 +1,184 @@
+\chapter{Basic Commands}
+\section{Defining the Basic Geometry of Calculation}
+To define the basic geometry type of calculation, the command
+\begin{verbatim} 
+<geometry type="plane">
+\end{verbatim} 
+is used. Allowed parameters for {\bf type} are
+{\bf 
+\begin{itemize}
+\item plane
+\item axi
+\item 3d
+\end{itemize}}
+
+If needed, a more detailed description of the geometry type must be
+provided in the individual PDEs (e.g. in mechanics: {\bf "planeStrain"}).
+
+
+
+\section{Defining the Input and Output File Format}
+The format of the input and ouput files must be defined by the
+commands {\bf input} and {\bf output}:
+
+\begin{verbatim} 
+<input  format="mesh"/>
+<output format="gmv"/>
+\end{verbatim} 
+
+Allowed values of {\bf format} for input files are
+{\bf \begin{itemize}
+\item mesh
+\end{itemize}}
+and for output files
+{\bf \begin{itemize}
+\item unv
+\item gmv
+\end{itemize}}
+
+\noindent
+By default, the input format is {\bf mesh} and the ouput format is
+{\bf unv}.
+
+
+\section{Defining the Material File}
+To specify the name of the material file, the command 
+\begin{verbatim}
+<materialData file="matFileName"/>
+\end{verbatim}
+must be used. The default name for the material file is {\bf mat.dat}.
+
+
+\section{Analysis Techniques}\label{subsec:Analysis}
+In the config-file, the command defining the analysis type reads as
+
+{\bf $<$analysis type=''TYPE''/$>$}
+
+\noindent
+where {\bf TYPE} can be chosen one of
+{\bf
+\begin{itemize} 
+\item transient 
+\item static
+\item harmonic
+\item eigenfrequency
+\end{itemize}}
+
+
+\subsection{Static Analysis}
+For static analysis, no additional information beside the command
+
+{\bf \verb!<analysis type="static"/>!}
+
+\noindent
+are needed.
+
+\subsection{Transient Analysis}
+
+To be able to define the transient analysis in more detail, several
+additional parameters have to be used:
+
+\begin{verbatim}
+<transient>
+   <numSteps>    20   </numSteps>
+   <firstDt>     5e-5 </firstDt>
+   <stepSaveBeg> 1    </stepSaveBeg>
+   <stepSaveEnd> 20   </stepSaveEnd>
+   <stepSaveInc> 1    </stepSaveInc>
+   <timeDataFile name="sin1kHz.dat"/>
+</transient>
+\end{verbatim}
+
+\noindent
+Herein, the different tags have the following meaning:\\
+\begin{tabular}{lll} 
+$\circ$ & {\bf numSteps}    &  number of time steps\\
+$\circ$ & {\bf firstDt }    &  time step size\\
+$\circ$ & {\bf stepSaveBeg}  &  number of first step for saving results\\
+$\circ$ & {\bf stepSaveEnd}  &  number of last step for saving results\\
+$\circ$ & {\bf stepSaveIncr} & increment in steps for saving results\\
+$\circ$ & {\bf timeDataFile} & file which holds the varying time values
+\end{tabular}
+\bigskip
+
+\noindent
+Additionally, an input time-file must be provided:
+\begin{verbatim} 
+<timeDataFile name="sin1kHz.dat"/>
+\end{verbatim} 
+Therein, you have to define the time values in a column oriented
+manner:
+\begin{verbatim}
+timeVal1          funcVal1
+timeVal2          funcVal2
+timeVal3          funcVal3
+...
+\end{verbatim}
+
+
+\section{List of PDEs}
+Inside the config file command
+\begin{verbatim}
+<pdeList>
+   List of PDEs ...
+</pdeList>
+\end{verbatim}
+one has to specify the involved PDEs.  Some possible PDE names are
+given in the following table: 
+
+\begin{center}
+  \begin{tabular}{l|l}
+    {\it Type}      & {\it Description}  \\\hline
+    {\bf acoustic}     & Acoustic PDE  \\
+    {\bf electrostatic} & Electrostic PDE \\
+    {\bf mechanic}     & Mechanics PDE\\    
+  \end{tabular}
+\end{center}
+
+\noindent
+As an example, a coupled electrostatic, mechanical simulation must be
+defined as
+\begin{verbatim}
+<pdeList>
+   <mechanic>
+      Definitions of Mech-PDE ...
+   </mechanic>
+
+   <electrostatic>
+      Definitions of Electrostatic-PDE ...
+   </electrostatic>
+</pdeList>
+\end{verbatim}
+
+
+
+\section{Geometrical Definitions}
+In the top level section {\bf $<$domain$>$} one has to define all
+geometrical entities, such as regions and their materials, boundary
+nodes, save nodes, ...
+\begin{verbatim}
+<domain>
+  <region name="cantilev" material="silizium"/>
+  <region name="gap"      material="air"/>
+
+  <nodes  name="xDof"/>
+  <nodes  name="yDof"/>
+  <nodes  name="yLoad"/>
+
+  <elements name="mySaveElem"/>
+
+</domain>
+\end{verbatim}
+
+The keyword {\bf region} assigns a subdomain called {\bf name} to a material.
+Further on, all in the simulation needed nodes (e.g. nodes which hold
+a boundary condition) must be defined by the keyword {\bf nodes}.
+Needed elements have to be defined by the keyword {\bf elements}.
+
+
+
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: "singlefields"
+%%% End: 
