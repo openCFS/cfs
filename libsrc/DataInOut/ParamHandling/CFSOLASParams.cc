@@ -25,10 +25,10 @@ namespace CoupledField {
     if ( sTypeString == "cg" ) {
       sType = CG;
     }
-    if ( sTypeString == "gmres" ) {
+    else if ( sTypeString == "gmres" ) {
       sType = GMRES;
     }
-    if ( sTypeString == "minres" ) {
+    else if ( sTypeString == "minres" ) {
       sType = MINRES;
     }
     else if ( sTypeString == "hyprePCG" ) {
