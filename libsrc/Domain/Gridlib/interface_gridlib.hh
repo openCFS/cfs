@@ -31,6 +31,7 @@ public:
   virtual void SubdivideUniform(const Integer level){
    if (ptGoMesh)  {
      GbSubdivideUniform((*ptGoMesh),level);
+     DoesGridSubdivide=TRUE;
    }
   }
 
@@ -79,6 +80,9 @@ private:
       
   //! 
   GoMesh * ptGoMesh;
+
+  //! if we do subdivision, then this variable is TRUE
+  Boolean DoesGridSubdivide;
 };
 
 template<class Dim>
@@ -91,6 +95,7 @@ inline InterfaceGridlib<Dim>::InterfaceGridlib(FileType * aptFileType)
                 << std::endl;
 #endif
   ptFileType=aptFileType;
+  DoesGridSubdivide=FALSE;
 }
 
 #ifdef __GNUC__

@@ -150,7 +150,7 @@ void InterfaceGridlib<Point2D>::Read()
 	}
   
       if (t) {
-	t->setId(i-1);
+	t->setId(i);
 	ptGoMesh->addElement(t);
       }
     }
@@ -276,7 +276,7 @@ void InterfaceGridlib<Point3D>::Read()
         }
 
       if (t) {
-        t->setId(i-1);
+        t->setId(i);
         ptGoMesh->addElement(t);
       }
     }
@@ -285,26 +285,47 @@ void InterfaceGridlib<Point3D>::Read()
 template<class Dim>
 void InterfaceGridlib<Dim>::GetNodesBoundaryCondition(Vector<Integer> & nodesDirBC, const Integer level)
 {
- if (level==0) ptFileType->ReadDirichletBC(nodesDirBC);
- else {
-    Integer numAddNodes=nodesDirBC.size()-1;
-    
-    Vector<Integer> help(numAddNodes);   
+#ifdef TRACE
+ (*trace) << "entering InterfaceGridlib::SetNodesBoundaryCondition " << std::endl;
+#endif
+
+ if (nodesDirBC.size()==0) ptFileType->ReadDirichletBC(nodesDirBC);
+
+ if (DoesGridSubdivide)
+  {
+    Integer numnodes=nodesDirBC.size()-1;   
+
+    Vector<Integer> help(numnodes);   
     ElementVector * ptElemList;
  
     Integer i;
-    for (i=0; i<numAddNodes; i++)
+    for (i=0; i<numnodes; i++)
    {
+   std::cout << nodesDirBC[i] << " " << nodesDirBC[i+1] << std::endl;
+
    ptGoMesh->getNeighboursAtEdge(nodesDirBC[i],nodesDirBC[i+1],level,ptElemList);
+   std::cout << "level" << level << std::endl;
 
-      if ( (*ptElemList).size()!=1) 
-         Error("Nodes for boundary condition of previous grid are not on the boundary, so you get several elements in function from Gridlib : getNeighboursAtEdge(...); in this case we can't determine nodes for boundary condition in new grid by that way "); 
+   if (!ptElemList) Error("No element with edge with given nodes for boundary condition",__FILE__,__LINE__);
 
+   std::cout << " num of elements " << (*ptElemList).size() << std::endl;
+   if ( (*ptElemList).size()!=1) 
+         Error("Nodes for boundary condition of previous grid are not on the boundary, so you get several elements in function from Gridlib : getNeighboursAtEdge(...); in this case we can't determine nodes for boundary condition in new grid by that way ",__FILE__,__LINE__); 
+
+   std::cout << " before " << std::endl;
    help[i]=(*ptElemList)[0]->getChild(0)->getVertex(1)->getId();
+   std::cout << " after " << std::endl;
+
+   std::cout << help[0] << std::endl;
    }
 
    nodesDirBC.add(help,0);
    sort(nodesDirBC.get(),nodesDirBC.size());
+
+   Integer j;
+   for (j=0; j<nodesDirBC.size(); j++)
+    std::cout << nodesDirBC[j] << " ";
+   std::cout << std::endl;
    
    }
 }
