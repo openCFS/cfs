@@ -291,6 +291,7 @@ libsrc/Matrix/matrix_header.hh svneol=native#text/plain
 libsrc/MpCCIcpl/Makefile -text
 libsrc/MpCCIcpl/MpCCIexch.cc svneol=native#text/plain
 libsrc/MpCCIcpl/MpCCIexch.hh svneol=native#text/plain
+libsrc/ODESolve/BaseODESolver.hh svneol=native#text/plain
 libsrc/PDE/Makefile -text
 libsrc/PDE/acouFlowNoise.cc svneol=native#text/plain
 libsrc/PDE/acouFlowNoise.hh svneol=native#text/plain
