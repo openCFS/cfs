@@ -6,7 +6,7 @@ namespace CoupledField {
 
 
   StdPDE::StdPDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
-		 WriteResults *aOutFile, TimeFunc *aTimeFunc)
+                 WriteResults *aOutFile, TimeFunc *aTimeFunc)
     : BasePDE(),
       nonLin_(FALSE),
       incStopCrit_(1e-2), 
@@ -58,18 +58,18 @@ namespace CoupledField {
   }
 
 
-const Vector<Double>& StdPDE::getS1() const {
+  const Vector<Double>& StdPDE::getS1() const {
   
-  ENTER_FCN( "StdPDE::getS1" );
+    ENTER_FCN( "StdPDE::getS1" );
   
-  if ( TS_alg_ != NULL ) {
-    return TS_alg_->GetDeriv1();
+    if ( TS_alg_ != NULL ) {
+      return TS_alg_->GetDeriv1();
+    }
+    else {
+      (*error) << pdename_ << ":getS1: No timestepping defined for this PDE";
+      Error( __FILE__, __LINE__ );
+    }
   }
-  else {
-    (*error) << pdename_ << ":getS1: No timestepping defined for this PDE";
-    Error( __FILE__, __LINE__ );
-  }
-}
   
   
   const Vector<Double>& StdPDE::getS2() const {
@@ -86,13 +86,13 @@ const Vector<Double>& StdPDE::getS1() const {
   }
   
 
-   // ======================================================
+  // ======================================================
   // GRID SECTION (Meshing, ...) 
   // ======================================================
 
   void StdPDE::GetElemCoords( const StdVector<Integer> connect, 
-                               Matrix<Double> &coordMat, 
-                               const Integer level ) {
+                              Matrix<Double> &coordMat, 
+                              const Integer level ) {
 
     ENTER_FCN( "StdPDE::GetElemCoords" );
 
@@ -110,7 +110,7 @@ const Vector<Double>& StdPDE::getS1() const {
     }
   }
 
-    // calculates L2-norm of RHS regarding dirichlet entries due to penalty 
+  // calculates L2-norm of RHS regarding dirichlet entries due to penalty 
   // formulation by setting them 0
   Double StdPDE::RhsL2Norm(Vector<Double>& actRHS)
   {
@@ -125,21 +125,21 @@ const Vector<Double>& StdPDE::getS1() const {
     // Eliminate dirichlet node from RHS (due to penalty formulation)
     for (Integer i=0; i< bcs_hd_.GetSize(); i++)
       {
-	dof = 1;
-	if ( dofspernode_ > 1 ) {
-	  dof = GetBCDof( homDirichDof_[i] );
-	}
+        dof = 1;
+        if ( dofspernode_ > 1 ) {
+          dof = GetBCDof( homDirichDof_[i] );
+        }
 
-	nodes=ptBCs_->GetNodesLevel(bcs_hd_[i]);
+        nodes=ptBCs_->GetNodesLevel(bcs_hd_[i]);
       
-	for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end(); p++)
-	  {
+        for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end(); p++)
+          {
             node=*p;
             eqnData_->Node2EQN(node,dof,eqnNr,eqnDof);
             if (eqnNr != 0){
               actRHS[(eqnNr-1)*dofsPerEQN + eqnDof-1] = 0;
             }
-	  }
+          }
       }
     return actRHS.NormL2();
   }
@@ -169,7 +169,7 @@ const Vector<Double>& StdPDE::getS1() const {
     return nrActDof;
   }
 
-   void StdPDE::GetMemento(PDEMemento & memento) {
+  void StdPDE::GetMemento(PDEMemento & memento) {
 
     ENTER_FCN( "StdPDE::GetMemento" );
 
@@ -297,7 +297,7 @@ const Vector<Double>& StdPDE::getS1() const {
     CreateMatrices_Solver();
   }
 
-   Double StdPDE::GetFracDampMatrixCoeff(Integer actSD) {
+  Double StdPDE::GetFracDampMatrixCoeff(Integer actSD) {
     
     ENTER_FCN( "StdPDE::GetFracDampMatrixCoeff" );
 
@@ -317,8 +317,8 @@ const Vector<Double>& StdPDE::getS1() const {
     return coeff;
   }
   
-    void StdPDE::GetSolVecOfElement( Vector<Double>& elemSol,
-                                    StdVector<Integer>& connecth ) {
+  void StdPDE::GetSolVecOfElement( Vector<Double>& elemSol,
+                                   StdVector<Integer>& connecth ) {
 
     ENTER_FCN( "StdPDE::GetSolVecOfElement" );
 
@@ -346,8 +346,8 @@ const Vector<Double>& StdPDE::getS1() const {
   }
 
   
-    void StdPDE::GetDerivSolVecOfElement(Vector<Double>& sol,
-                                        StdVector<Integer>& connecth) {
+  void StdPDE::GetDerivSolVecOfElement(Vector<Double>& sol,
+                                       StdVector<Integer>& connecth) {
 
     ENTER_FCN( "StdPDE::GetDerivSolVecOfElement" );
 
@@ -376,7 +376,7 @@ const Vector<Double>& StdPDE::getS1() const {
   }
 
   void StdPDE::GetDeriv2SolVecOfElement( Vector<Double>& sol,
-					  StdVector<Integer>& connecth ) {
+                                         StdVector<Integer>& connecth ) {
 
     ENTER_FCN( "StdPDE::GetDeriv2SolVecOfElement" );
 
@@ -390,23 +390,23 @@ const Vector<Double>& StdPDE::getS1() const {
       const Vector<Double> & sol_der2 = getS2();
     
       for( Integer actNode = 0; actNode < connecth.GetSize(); actNode++ ) {
-	for( Integer actDof = 0; actDof < dofspernode_; actDof++ ) {
-	  eqnData_->Node2EQN(connecth[actNode],actDof+1,eqnNr,eqnDof);
-	  if (eqnNr!= 0) {
-	    sol[actDof + actNode*dofspernode_] =
-	      sol_der2[eqnDof-1 + dofsPerEQN*(abs(eqnNr-1))];
-	  }
-	  else {
-	    sol[actDof + actNode*dofspernode_] = 0.0;
-	  }
-	}
+        for( Integer actDof = 0; actDof < dofspernode_; actDof++ ) {
+          eqnData_->Node2EQN(connecth[actNode],actDof+1,eqnNr,eqnDof);
+          if (eqnNr!= 0) {
+            sol[actDof + actNode*dofspernode_] =
+              sol_der2[eqnDof-1 + dofsPerEQN*(abs(eqnNr-1))];
+          }
+          else {
+            sol[actDof + actNode*dofspernode_] = 0.0;
+          }
+        }
       }
     }
   }
 
 
   void StdPDE::GetDerivSolOfElement( Matrix<Double>& sol,
-                                        StdVector<Integer>& connect_PDE ) {
+                                     StdVector<Integer>& connect_PDE ) {
 
     ENTER_FCN( "StdPDE::GetDerivSolOfElement" );
 
@@ -417,13 +417,13 @@ const Vector<Double>& StdPDE::getS1() const {
 
     for( Integer actNode = 0; actNode < connect_PDE.GetSize(); actNode++ ) {
       for( Integer actDof = 0; actDof < dofspernode_; actDof++) {
-	sol[actDof][actNode] =
-	  sol_der1[actDof + dofspernode_*(connect_PDE[actNode]-1)];
+        sol[actDof][actNode] =
+          sol_der1[actDof + dofspernode_*(connect_PDE[actNode]-1)];
       }
     }
   }
 
-   void StdPDE::sortStresses(Vector<Double>& unsorted, Vector<Double>& sorted){
+  void StdPDE::sortStresses(Vector<Double>& unsorted, Vector<Double>& sorted){
 
     ENTER_FCN( "StdPDE::SortStresses" );
 
@@ -462,7 +462,7 @@ const Vector<Double>& StdPDE::getS1() const {
 
 
   void StdPDE::sortStresses( Vector<Complex> &unsorted,
-                              Vector<Complex> &sorted ) {
+                             Vector<Complex> &sorted ) {
     ENTER_FCN( "StdPDE::SortStresses" );
 
     //soring according to capa (unv) notation
