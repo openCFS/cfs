@@ -85,7 +85,6 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
     sol_->SetNumDofs(dofspernode_);
     sol_->Init(0.0);
 
-    effectiveMass_ = FALSE;
 #ifndef XMLPARAMS
     lineSearch_ = FALSE;
     if (conf->get_option("lineSearch",  pdename_ ))
@@ -94,6 +93,14 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
     effectiveMass_ = FALSE;
     if (conf->get_option("effMass",  pdename_ ))
       effectiveMass_ = TRUE;
+#else
+    effectiveMass_ = params->IsSet( "effMass" );
+    if ( params->HasValue( "type", "none", "lineSearch", pdename_ ) ) {
+      lineSearch_ = FALSE;
+    }
+    else {
+      lineSearch_ = TRUE;
+    }
 #endif
 
 
