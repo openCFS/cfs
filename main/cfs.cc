@@ -23,7 +23,10 @@
 #include "staticdriver.hh"
 
 #include "interface_gridcfs.hh"
+
+#ifdef NETGEN
 #include "interface_netgen.hh"
+#endif
 
 using namespace CoupledField;
 

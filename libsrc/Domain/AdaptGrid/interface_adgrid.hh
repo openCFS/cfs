@@ -10,6 +10,7 @@
 #include "bcs.hh"
 
 // from Adapt Grid
+#ifdef ADAPTGRID
 #include "Vertex.h"
 #include "Edge.h"
 #include "Element.h"
@@ -20,6 +21,7 @@
 #include "MeshReader.h"
 #include "TetrahedronMeasure.h"
 #include "MeshWriter.h"
+#endif
 
 namespace CoupledField
 {
@@ -94,27 +96,29 @@ private:
   BCs * ptBCs;
   //! 
   FileType * ptFileType;
-      
-  //!
-  grd::MultilevelGrid grid_;
-
+       
   //!
   GridCFS<Dim> * ptgridcfs_;
 
   //!
   Integer dim_;
 
+#ifdef ADAPTGRID
   //!
   std::vector<grd::Vertex*> vertex_;
   std::vector<grd::Element*> elems_;
 
   //!
+  grd::MultilevelGrid grid_;
+  //!
   grd::ConformingClosure closure_;  
+#endif
 
   //!
   void SetVertexNumbers();
 };
 
+#ifdef ADAPTGRID
 class SetRefFlag
 {
 public:
@@ -146,6 +150,7 @@ public:
  }
 
 };
+#endif
 
 #ifdef __GNUC__
 template class InterfaceAdaptGrid<Point3D>;
