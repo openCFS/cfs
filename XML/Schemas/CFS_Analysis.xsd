@@ -127,6 +127,8 @@
               </xsd:complexType>
             </xsd:element>
           </xsd:sequence>
+          <xsd:attribute name="index" type="xsd:positiveInteger"
+            use="required" />
         </xsd:complexType>
       </xsd:element>
     </xsd:sequence>
