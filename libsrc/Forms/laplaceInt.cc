@@ -7,20 +7,22 @@ namespace CoupledField
 {
 
   LaplaceInt::LaplaceInt(BaseFE * aptelem, Double aVal, Boolean axi)
-    : BaseForm(aptelem),laplVal_ (aVal), isaxi_(axi)
+    : BaseForm(aptelem),laplVal_ (aVal)
   {
 #ifdef TRACE
     (*trace) << "entering LaplaceInt::LaplaceInt" << std::endl;
 #endif
+    isaxi_ = axi;
   }
 
 
   LaplaceInt::LaplaceInt(Double aVal, Boolean axi)
-    : BaseForm(),laplVal_ (aVal), isaxi_(axi)
+    : BaseForm(),laplVal_ (aVal)
   {
 #ifdef TRACE
     (*trace) << "entering LaplaceInt::LaplaceInt" << std::endl;
 #endif
+    isaxi_ = axi;
   }
 
 

@@ -428,6 +428,9 @@ Boolean ConfFile::get_option(const std::string keyword, const std::string sectio
  return FALSE;
 }
 
+
+
+
 std::string::size_type ConfFile::getpos(const std::string keyword,
 					const std::string::size_type startpos,
 					Boolean inSection,
@@ -437,6 +440,10 @@ std::string::size_type ConfFile::getpos(const std::string keyword,
   std::string::size_type help,pos=std::string::npos;
   std::string buf;
   bool nextSectionReached = FALSE;
+
+  if (startpos == std::string::npos)
+    return std::string::npos;
+
 
   infile.clear();
 

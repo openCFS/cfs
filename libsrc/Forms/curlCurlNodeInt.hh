@@ -28,8 +28,6 @@ protected:
 private:
   /// multiplicative value for laplace integration 
   Double matVal_;
-  Boolean isaxi_;
-  
 };
 
 
