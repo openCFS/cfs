@@ -70,8 +70,8 @@ Boolean LinSystem<T, T_Matrix>::CG(const Integer maxIter,  enum precond typePrec
 #ifdef TRACE
    (*trace) << "entering LinSystem::CG" << std::endl;
 #endif
-   Clock oClock;
-   oClock.ClockCount(Clock::beg);
+   MyClock oClock;
+   oClock.ClockCount(MyClock::beg);
 
   Integer iter;
   T alpha, beta, pAp, zr, zrOld;
@@ -119,7 +119,7 @@ if (InfoPrint)
        << "Precondition is " << typePrecond << std::endl
   << " ----------------------------------------------------- " << std::endl;
 
-  oClock.ClockCount(Clock::end, " CG ");
+  oClock.ClockCount(MyClock::end, " CG ");
 
 #ifdef TRACE
    (*trace) << "leaving LinSystem::CG" << std::endl;

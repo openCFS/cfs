@@ -2,7 +2,7 @@
 # Makefile for physical system
 C_DIR=../..
 #
-src = driver.cc
+src = driver.cc basedriver.cc
 #
 lib = driver
 libpath = libsrc/Driver

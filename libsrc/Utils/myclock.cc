@@ -2,12 +2,13 @@
 #include <fstream>
 #include <iostream>
  
-#include "clock.hh"
+//#include "general_head.hh"
+#include "myclock.hh"
 
 namespace CoupledField
 {
 
-Clock::Clock (Char * title)
+MyClock::MyClock (Char * title)
 {
  
   if (title)
@@ -27,7 +28,7 @@ Clock::Clock (Char * title)
   else InFile=FALSE;
 };
  
-  Clock::~Clock()
+  MyClock::~MyClock()
   {
 #ifdef TRACE
     (*trace) << "entering Clock::~Clock" << std::endl;
@@ -37,7 +38,7 @@ Clock::Clock (Char * title)
  
   };
 
-void Clock::ClockCount(enum status n, const std::string title)
+void MyClock::ClockCount(enum status n, const std::string title)
 {
   switch(n)
     { 

@@ -1,7 +1,7 @@
 #
 C_DIR= ../..
 #
-src = pde.cc acousticPDE.cc 
+src = pde.cc acousticPDE.cc  basepde.cc elec2dPDE.cc
 #
 lib = pde
 libpath = libsrc/PDE

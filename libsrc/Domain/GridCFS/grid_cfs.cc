@@ -13,24 +13,34 @@ template<class Dim>
   (*trace) << "entering GridCFS::GridCFS" << std::endl;
 #endif
 
-  Integer i;
   numlevel = 0;
+  InFile = aptFileType;
+}
+
+template<class Dim>
+void GridCFS<Dim> :: Read()
+{
+#ifdef TRACE
+  (*trace) << "entering GridCFS::GridCFSRead" << std::endl;
+#endif
+
 // ----------------------------- Initialize gh
+  Integer i;
   Integer dataHelp[1];
-  aptFileType->ReadGeneralAnalChoice(dataHelp,FileType::numnode,
+  InFile->ReadGeneralAnalChoice(dataHelp,FileType::numnode,
                                   FileType::endGAnal);
 
   gh[0].maxnumnode=dataHelp[0];
 
   gh[0].ptCoordinate=new Dim[gh[0].maxnumnode];
-  aptFileType->ReadCoordinate(gh[0].ptCoordinate, gh[0].maxnumnode);
+  InFile->ReadCoordinate(gh[0].ptCoordinate, gh[0].maxnumnode);
  
 //  if (InfoPrint) { counter1=0;
 //                   if (counter1==0)  PrintCoordinate(0, infofile);
 //                   counter1++;}  
 
   Integer data[3];
-  aptFileType->ReadGeneralElemChoice(0,data, FileType::numelem,
+  InFile->ReadGeneralElemChoice(0,data, FileType::numelem,
                    FileType::ielemtyp, FileType::maxnode,
                    FileType::endGElem);
 
@@ -51,7 +61,7 @@ template<class Dim>
    Integer * help=new Integer[20];
    Integer ihelp=0;   
 
-   aptFileType->ReadElemConnectionGH(gh[0].maxnumelem, gh[0].Connect, NumNodeperElem, 0);
+   InFile->ReadElemConnectionGH(gh[0].maxnumelem, gh[0].Connect, NumNodeperElem, 0);
    for (i=0; i<gh[0].maxnumelem; i++) 
    {
       gh[0].Info[start+0]=i;  // global element number

@@ -20,6 +20,10 @@ public:
   /// Deconstructor
   virtual ~GridInterfaceCFS() { if (ptGridCFS) delete ptGridCFS;}
   
+  //! Read of mesh 
+  virtual void Read() 
+  { ptGridCFS->Read();}
+
   /// Get coordinates of all nodes which belong to element
   virtual void GetCoordOfNodesElem(const Integer numElem, const Integer numlevel, const Integer numnodes,  Dim * ptCoordElem) 
   { ptGridCFS->GetCoordOfNodesElem(numElem, numlevel, numnodes,ptCoordElem);}
