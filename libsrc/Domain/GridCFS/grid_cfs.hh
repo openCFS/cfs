@@ -2,6 +2,7 @@
 #define FILE_SCFE_GRID_CFS_2001
 
 #include "filetype.hh"
+#include "baseelem.hh"
 
 namespace CoupledField
 {
@@ -51,6 +52,9 @@ public:
   /// Return num of nodes per element i
   Integer GetNumNodesPerElem(const Integer iElem, const Integer level);
 
+  /// Return pointer to array of elements
+  BaseElem ** getptArrayElem() const { return ptArrayElem_; }
+
 protected:
 private:
   //!
@@ -64,6 +68,9 @@ private:
   ///
   Integer sizeConnectElem;
   ///
+  BaseElem ** ptArrayElem_;
+  //
+  BaseElem * ptQ_, * ptTr_;
 };
 
 

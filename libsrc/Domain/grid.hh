@@ -2,6 +2,7 @@
 #define FILE_SCFE_GRID_2001
 
 #include "filetype.hh"
+#include "baseelem.hh"
 
 namespace CoupledField
 {
@@ -45,8 +46,8 @@ public:
   //! Get array of nodes for boundary condition 
   virtual void GetNodesBoundaryCondition(Vector<Integer> & nodesDirBC, const Integer level)=0;
 
-  /// Print coordinates of grid in out
-//  virtual void PrintCoordinate(const Integer level, ostream * out) const=0;
+  //! Get array of pointers to element type
+  virtual BaseElem ** getptArrayElem() const=0;
 
 protected:
 

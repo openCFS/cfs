@@ -58,6 +58,10 @@ public:
   //! Get array of nodes for boundary condition
     virtual void GetNodesBoundaryCondition(Vector<Integer> & nodesDirBC, const Integer level);
 
+  //! Get array of pointers to element type
+    virtual BaseElem ** getptArrayElem() const 
+  { return ptGridCFS->getptArrayElem();}
+
 protected:
 private:
   GridCFS<Dim> * ptGridCFS;
@@ -79,6 +83,7 @@ void GridInterfaceCFS<Dim>::GetNodesBoundaryCondition(Vector<Integer> & nodesDir
 {
  if (level==0) ptFileType->ReadDirichletBC(nodesDirBC);
 }
+
 
 #ifdef __GNUC__
 template class GridInterfaceCFS<Point3D>;

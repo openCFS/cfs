@@ -2,6 +2,7 @@
 #include <fstream>
 
 #include "grid_cfs.hh"
+#include "elements_header.hh"
 
 namespace CoupledField
 {
@@ -44,6 +45,29 @@ void GridCFS<Dim> :: Read()
 
 //#################### V etom meste budet check na 3 tochki
    Integer NumNodeperElem=data[2];
+   ptArrayElem_=new BaseElem*[gh[0].maxnumelem+1];   
+   
+   BaseElem * ptQ, *ptTr;
+   ptQ_=new Quad1(GaussOrder2);
+   ptTr_=new Triangle1(GaussOrder3);
+
+   for (i=0; i<gh[0].maxnumelem+1; i++) 
+   { 
+       switch(NumNodeperElem)
+     {
+       case 3:
+          ptArrayElem_[i]=ptTr_;
+          break;
+
+        case 4:
+          ptArrayElem_[i]=ptQ_;
+          break;
+
+        default:
+           Error("Number of nodes per element is strange",__FILE__,__LINE__);
+     }
+   }
+   ptArrayElem_[gh[0].maxnumelem]=NULL;
 
    sizeConnectElem=NumNodeperElem*gh[0].maxnumelem;
    gh[0].Connect=new Integer[sizeConnectElem];   
@@ -70,22 +94,6 @@ void GridCFS<Dim> :: Read()
       start+=4;
    }
 
-/*
-  if (InfoPrint && gh[0].maxnumelem<100)
- {  
-  static Integer counter=0;
-    if (counter==0)
-  { 
-    PrintCoordinate(0, infofile);
-    for (i=0; i<gh[0].maxnumelem; i++ )
-    {
-       PrintInfoElem(0, i, infofile);
-    }
-  }
-    counter++;
- }
-*/
-
 }
 
 
@@ -100,6 +108,11 @@ template<class Dim>
   delete [] gh[0].Connect;
   delete [] gh[0].Info;
   delete [] gh[0].fp;
+
+  if (ptQ_) delete ptQ_;
+  if (ptTr_) delete ptTr_;
+
+   if (ptArrayElem_) delete [] ptArrayElem_;
   
 }
 

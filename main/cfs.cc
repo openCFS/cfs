@@ -61,7 +61,10 @@ void main(int argc, char *argv[])
   BaseDriver *ptdriver = new TransientDriver(domain);
 
   //solve your problem
-  ptdriver->SolveProblemAdapt();
+  std::string adaptTimeOn;
+  conf->get("adapttime",adaptTimeOn,"Acoustic");
+  if (adaptTimeOn == "yes")  ptdriver->SolveProblemAdapt();
+                          else ptdriver->SolveProblem();
 
   oClockTotal.ClockCount(MyClock::end,"Total time");
 

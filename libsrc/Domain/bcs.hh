@@ -40,22 +40,6 @@ public:
   void GetRestraints(std::list<NodeRestraint> & arestr, const Integer level)
   { arestr=restr_[level]; }
  
-/*
-  //!
-  Integer GetDirichletNode(const Integer pos, const Integer level)
-  { return restr[level].info[pos][0];}
-
-  //!
-  Double GetDirichletVal(Integer pos, Integer level)
-  { return restr[level].val[pos]; }
-
-  Integer GetDirichletDof(Integer pos, Integer level)
-  { return restr[level].info[pos][1];}
-
-  Integer GetDirichletTfunc(Integer pos, Integer level)
-  { return restr[level].info[pos][2];}
-*/
-
 protected:
 
 private:
