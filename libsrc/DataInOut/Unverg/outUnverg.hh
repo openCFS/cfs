@@ -102,61 +102,36 @@ private:
 
   //! for printing nodal results of simulation (static/transient)
   /*!
+    \param dataSetNr number of dataset (55/56)
     \param title title of the results.
     \param x array with nodal results
     \param step number of the step of the calculation
     \param time time of the calculation
   */
-  void Dataset55_Transient(const std::string & title, 
-			   const Vector<Double> & x, 
-			   const Integer step, 
-			   const Double time, 
-			   const Integer nrNodes,
-			   const Integer nrDofs=1);
+  void NodeElemDataTransient(const Integer dataSetNr,
+			     const std::string & title, 
+			     const Vector<Double> & x, 
+			     const Integer step, 
+			     const Double time, 
+			     const Integer nrNodes,
+			     const Integer nrDofs=1);
   
   //! for printing nodal results of simulation (harmonic)
   /*!
+    \param dataSetNr number of dataset (55/56)
     \param title title of the results.
     \param x array with nodal results
     \param freuqncy exciting frequency of current result
     \param format output format for complex numbers
   */
-  void Dataset55_Harmonic(const std::string & title, 
-			  const Vector<Complex> & x, 
-			  const Integer step,
-			  const Double frequency,
-			  const ComplexFormat format,
-			  const Integer nrNodes,
-			  const Integer nrDofs=1);
-  
-  //! for printing cell results of simulation (transient / static)
-  /*!
-    \param title title of the results.
-    \param x array with cell results
-    \param step number of the step of the calculation
-    \param time time of the calculation
-  */
-  void Dataset56_Transient(const std::string & title, 
-			   const Vector<Double> & x, 
-			   const Integer step, 
-			   const Double time,
-			   const Integer numElems,
-			   const Integer nrDofs=1);
-  
-  //! for printing cell results of simulation (harmonic)
-  /*!
-    \param title title of the results.
-    \param x array with cell results
-    \param step number of the step of the calculation
-    \param time time of the calculation
-  */
-  void Dataset56_Harmonic(const std::string & title, 
-			  const Vector<Complex> & x, 
-			  const Integer step,
-			  const Double frequency, 
-			  const ComplexFormat format, 
-			  const Integer numElems,
-			  const Integer nrDofs=1);
+  void NodeElemDataHarmonic(const Integer dataSetNr,
+			    const std::string & title, 
+			    const Vector<Complex> & x, 
+			    const Integer step,
+			    const Double frequency,
+			    const ComplexFormat format,
+			    const Integer nrNodes,
+			    const Integer nrDofs=1);
   
   //! Convertes enum SolutionType to string
   std::string SolutionTypeToString(const SolutionType type) const;
