@@ -127,5 +127,18 @@
     </xsd:restriction>
   </xsd:simpleType>
 
+
+  <!-- Data type for distinguishing the different PDEs in multiSequence -->
+  <xsd:simpleType name="DT_PDEType">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="mechanic"/>
+      <xsd:enumeration value="magnetic"/>
+      <xsd:enumeration value="piezo"/>
+      <xsd:enumeration value="acoustic"/>
+      <xsd:enumeration value="electrostatic"/>
+      <xsd:enumeration value="smooth"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
 </xsd:schema>
 
