@@ -117,6 +117,7 @@ void  WriteResultsUnverg::Dataset780(const Integer level)
   StdVector<Integer> connect;
   StdVector<Elem*> elemssd;
   Integer elmsgrp=1;
+  std::string errMsg;
 
   StdVector<std::string>* subdoms;
   subdoms=ptgrid->GetAllSDs();
@@ -130,7 +131,6 @@ void  WriteResultsUnverg::Dataset780(const Integer level)
 	{  
 	  k++; 
 	  connect=elemssd[j]->connect;
-
 	  (*output) << std::setw(10) << elemssd[j]->elemNum << std::setw(10);
 
 	  if (dim==2)
@@ -149,12 +149,16 @@ void  WriteResultsUnverg::Dataset780(const Integer level)
 	    {
 	      switch(connect.GetSize())
 		{
-		case 4: (*output) << 111 ; break;
-		case 6: (*output) << 112; break;
-		case 8: (*output) << 115; break;
-		case 15: (*output) << 113; break;
-		case 20: (*output) << 116; break;
-		default: Error("Please, put element type according to unverg-format for this number of nodes per element", __FILE__,__LINE__);
+		case 4: (*output) << 111 ; break;  // tetraeder 1.ord
+		case 6: (*output) << 112; break;   // prism     1.ord
+		case 8: (*output) << 115; break;   // hexaeder  1.ord
+		case 15: (*output) << 113; break;  // prism     2.ord
+		case 20: (*output) << 116; break;  // hexaeder  2.ord
+		default: 
+		  errMsg  = "Please, put element type according to unverg-format for ";
+		  errMsg += Info->GenStr(connect.GetSize());
+		  errMsg += " nodes per Element in 3D!";
+		  Error(errMsg.c_str(), __FILE__,__LINE__);
 		}
 
 	      (*output) << std::setw(10) << 11 << std::setw(10) << 1 << std::setw(10) << 1
