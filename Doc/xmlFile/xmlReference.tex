@@ -1,6 +1,7 @@
 \documentclass[12pt,dvips]{book}
 \usepackage{lsemanfred,ifthen,isolatin1}
 \usepackage{subfigure}
+\usepackage{amssymb}
 
 \newcounter{pdfordvi}\setcounter{pdfordvi}{1}
 \ifthenelse{\value{pdfordvi} = 0}{\usepackage{graphicx}}{\usepackage[pdftex]{graphicx}}
@@ -33,6 +34,7 @@
 \include{Savings}
 \include{singlefields}
 \include{coupledfields}
+\include{solverParams}
 
 \end{document}
 
