@@ -160,7 +160,8 @@ void SmoothPDE::InitCoupling(PDECoupling * coupling)
 }
   
 
-void SmoothPDE::PreStepStatic(const Integer level)
+void SmoothPDE::PreStepStatic(const Integer kstep, const Double asteptime,
+			      const Integer level, const Boolean reset)
 {
 #ifdef TRACE
   (*trace) << "entering SmoothPDE::PreStepStatic" << std::endl;
@@ -175,7 +176,8 @@ void SmoothPDE::PreStepStatic(const Integer level)
 }
 
 
-void SmoothPDE::StepStaticNonLin(const Integer level, const Double aTime)
+void SmoothPDE::StepStaticNonLin(const Integer kstep, const Double aTime,
+				const Integer level, const Boolean reset)
 {
 #ifdef TRACE
   (*trace) << "entering SmoothPDE::StepStaticLin" << std::endl;
@@ -205,7 +207,8 @@ void SmoothPDE::StepStaticNonLin(const Integer level, const Double aTime)
 }
 
 
-void SmoothPDE:: PostStepStatic(const Integer level)
+void SmoothPDE:: PostStepStatic(const Integer kstep, const Double asteptime,
+				const Integer level)
 {
 #ifdef TRACE
   (*trace) << "entering SmoothPDE::PostStepStatic" << std::endl;
@@ -213,6 +216,8 @@ void SmoothPDE:: PostStepStatic(const Integer level)
   
   iterCoupledCounter_++;
 }
+
+
 
 
 void SmoothPDE::CalcOutputCoupling()

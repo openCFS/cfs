@@ -422,6 +422,18 @@ PDECoupling::CouplingInterface::CouplingInterface()
 
 
 
+//   std::ostream& operator << ( std::ostream & out , const CouplingInterface & inter)
+//   {
+//     out << myendl 
+// 	<< "Interface: coupling region: " << inter.region << myendl
+// 	<< "           nr. coupling nodes: " <<  inter.nodes.size() << myendl
+// 	<< "           nr. coupling elements: " <<  inter.elements.size() << myendl
+// 	<< "           name of 1. coupling element: " <<  inter.elements[0].namesd << myendl;
+// 	<< "           nr. neighbours elements: " <<  inter.neighbours.size() << myendl
+// 	<< "           name of 1. neighbours element: " <<  inter.neighbours[0].namesd << myendl;
+
+//   } 
+
   } // end of namespace
 
 

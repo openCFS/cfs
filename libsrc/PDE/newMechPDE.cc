@@ -58,12 +58,14 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
     }
   
 
+
   conf->getsubdompde(subdoms_,pdename_);
   ReadBCs(pdename_);
   
   AssignPDENodeNumbers(Mesh2PDENode_, PDE2MeshNode_, subdoms_);
   numPDENodes_ = PDE2MeshNode_.size();
   size_        = numPDENodes_ * dofspernode_;
+
 
   sol_.reshape(dofspernode_, numPDENodes_);
 
@@ -91,6 +93,8 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 
       conf->ifget("incStopCrit", incStopCrit_, pdename_); // incremental stopping criterion
       conf->ifget("residualStopCrit", residualStopCrit_, pdename_); // residual stopping criterion
+      
+      extForces_.resize(size_);
     }
 
 
@@ -621,22 +625,24 @@ Boolean MechPDE::HasOutput(std::string output)
 // ======================================================
 
 void MechPDE:: PreStepStatic(const Integer kstep, const Double asteptime,
-			    const Integer level, const Boolean reset)
+			     const Integer level, const Boolean reset)
 {
 #ifdef TRACE
   (*trace) << "entering MechPDE:: PreStepStatic" << std::endl;
 #endif
 
   if (PDEisCoupled_)
-    {
-      algsys_->InitRHS();
-      algsys_->InitSol();
-    }
+    // init RHS at this place, because forces of other PDEs are added to RHS afterwards
+    algsys_->InitRHS();     
+  else
+    // if PDE is coupled, the solution of the prior outer loops must be kept
+    algsys_->InitSol();
+
 }
 
 
 void MechPDE::StepStaticNonLin(const Integer kstep, const Double aTime,
-			    const Integer level, const Boolean reset)
+			       const Integer level, const Boolean reset)
 {
 #ifdef TRACE
   (*trace) << "entering MechPDE::SolveStepStaticNonLin" << std::endl;
@@ -647,11 +653,25 @@ void MechPDE::StepStaticNonLin(const Integer kstep, const Double aTime,
   Integer iterationCounter=0;
   
   std::vector<Double> actSol(numPDENodes_ * dofspernode_,0);
+
+
+  Integer k=0;
+  for (Integer i=0; i< numPDENodes_; i++)
+    for (Integer j=0; j<dofspernode_; j++)
+      {
+	actSol[k] = sol_[j][i];
+	k++;
+      }
+
+
   std::vector<Double> solIncrement(numPDENodes_ * dofspernode_,0);
 
-
-  Double extForcesL2Norm = SetExternalForces(level);
   SetBCs(level, updateBCs_, 0);
+
+  // setup right hand side ==============================================      
+
+  Double extForcesL2Norm = SetExternalForces(level);  
+  assemble_->AssembleNLRHS(level);
 
 
   do
@@ -664,16 +684,7 @@ void MechPDE::StepStaticNonLin(const Integer kstep, const Double aTime,
 #ifdef DEBUG
       *debug << std::endl << "====================================================== " << std::endl
 	     <<	"Nonlinear Mechanics: Perform internal loop nr. " << iterationCounter << std::endl;      
-#endif      
-
-      // setup right hand side ==============================================      
-
-      // ????????????????????????????????????????????????????????????????????
-      //      if (!PDEisCoupled_)
-      algsys_->InitRHS();
-
-      assemble_->AssembleSrcRHS(level);
-      assemble_->AssembleNLRHS(level);
+#endif
 
 
       // setup and solve new system (rhs is already set) =====================
@@ -701,10 +712,8 @@ void MechPDE::StepStaticNonLin(const Integer kstep, const Double aTime,
 
 
       // recalculate RHS with new values to get new residual (f^(k+1))========
-      algsys_->InitRHS();
-      assemble_->AssembleSrcRHS(level); 
+      algsys_->InitRHS(extForces_);
       assemble_->AssembleNLRHS(level);  // inner forces due to nonlin formulation
-
 
 
       // =====================================================================
@@ -754,10 +763,17 @@ void MechPDE::StepStaticNonLin(const Integer kstep, const Double aTime,
 
       // boolean variable, holds condition if another iteration step is necessary
       performOneMoreStep = 
-	(incrementalErr > incStopCrit_) && (residualErr > residualStopCrit_);      
+	(incrementalErr > incStopCrit_) || (residualErr > residualStopCrit_);      
       
       
+      if (!(performOneMoreStep && iterationCounter < maxnumiter_))
+	mycout << "incrementalErr " << incrementalErr << myendl 
+	       << "incStopCrit_ " << incStopCrit_ << myendl
+	       << "residualErr " << residualErr  << myendl
+	       << "residualStopCrit_ " << residualStopCrit_ << myendl;
+
     }while(performOneMoreStep && iterationCounter < maxnumiter_);  
+
 }
 
 
@@ -784,19 +800,16 @@ Double MechPDE::LineSearch(std::vector<Double>& solIncrement, std::vector<Double
       StoreVecToSolArray(actSol);
 
       // recalculate RHS with new values to get new residual (f^(k+1))========
-      algsys_->InitRHS();
+      algsys_->InitRHS(extForces_);
 
       if(trans)
 	{
-	  assemble_->AssembleSrcRHS(level, lasttimecalc_);
 	  assemble_->AssembleNLRHS(level, lasttimecalc_);
 	  TS_alg_->UpdateRHS(actSol);
 	}
       else
-	{
-	  assemble_->AssembleSrcRHS(level);
-	  assemble_->AssembleNLRHS(level);
-	}
+	assemble_->AssembleNLRHS(level);
+
 
 
       // =====================================================================
@@ -1067,7 +1080,6 @@ Double MechPDE::SetExternalForces(const Integer level)
 #endif
 
   Double extForcesL2Norm;  
-  std::vector<Double> extForces;
 
   // account for bcs before first solving step =======================
   SetBCs(level, updateBCs_, 0);
@@ -1077,10 +1089,10 @@ Double MechPDE::SetExternalForces(const Integer level)
   
 
   // stores rhs vector into extForces and returns that L2-norm
-  StoreAlgsysToVec(extForces, algsys_->GetRHSVal() );
+  StoreAlgsysToVec(extForces_, algsys_->GetRHSVal() );
 
 
-  extForcesL2Norm = L2Norm(extForces);
+  extForcesL2Norm = L2Norm(extForces_);
  
   //  if extForcesL2Norm is 0, no residual norm can be calculated
   if (!extForcesL2Norm)

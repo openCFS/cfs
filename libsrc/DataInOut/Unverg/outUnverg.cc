@@ -327,7 +327,7 @@ void  WriteResultsUnverg::WriteNodeSolution(const Array<Double> & sol, const Int
 
     }
  else
-   Dataset55(title, sol, step+1, time, sol.dim());
+   Dataset55(title, sol, step, time, sol.dim());
 }
 
 
@@ -338,7 +338,7 @@ void  WriteResultsUnverg::WriteElemSolution(const Array<Double>& data, const Int
 #endif
 
    if (!NeedHistory_)
-     Dataset56(title, data, step+1, time, data.dim());
+     Dataset56(title, data, step, time, data.dim());
 }
 
 

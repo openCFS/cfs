@@ -258,15 +258,15 @@ void BasePDE::SolveStepTrans(const Integer kstep, const Double asteptime,
   lasttimecalc_= asteptime;
   Recalc_ = FALSE;
 
-  if (laststepcalc_==kstep && kstep!=0) 
+  if (laststepcalc_ == kstep && kstep != 1) 
     Recalc_=TRUE;
   else 
     laststepcalc_= kstep;
 
   if (nonLin_)
-    StepTransNonLin(kstep,asteptime, level,reset);
+    StepTransNonLin(kstep, asteptime, level, reset);
   else
-    StepTransLin(kstep,asteptime,level,reset);
+    StepTransLin(kstep, asteptime, level, reset);
 }
 
 
@@ -359,7 +359,7 @@ void BasePDE::StepTransLin(const Integer kstep, const Double asteptime,
     }
   
 
-  if (laststepcalc_==0)
+  if (laststepcalc_ == 1)
     {
       update = 0;
       job = 3;

@@ -57,13 +57,13 @@ void TransientDriver :: SolveProblem()
   (*trace) << "entering TransientDriver::SolveProblem" << std::endl;
 #endif
   
-  Integer level=0;
-  Integer pdenumber  = 0;
-  Integer nsys = 0;
-  Double steptime=firstdt_;
-  Integer stepsave=isavebegin_-1;
+  Integer level    = 0;
+  Integer pdenumber= 0;
+  Integer nsys     = 0;
+  Double  steptime = firstdt_;
+  Integer stepsave = isavebegin_;
 
-  Double dt=firstdt_;
+  Double  dt = firstdt_;
   Boolean updatesysmat=FALSE;
   BasePDE * actPDE = ptdomain_->GetPDE(pdenumber);
   
@@ -80,16 +80,16 @@ void TransientDriver :: SolveProblem()
       actPDE->WriteGeneralPDEdefines();
       
       Integer nstep;
-      for (nstep = 0; nstep<numstep_; nstep++)
+      for (nstep = 1; nstep <= numstep_; nstep++)
 	{
-	  Info->WriteTimeStep(actPDE->GetName(), nstep+1, steptime);
+	  Info->WriteTimeStep(actPDE->GetName(), nstep, steptime);
 
 	  actPDE->PreStepTrans(nstep, steptime, level, updatesysmat);
 	  actPDE->SolveStepTrans(nstep, steptime, level, updatesysmat);
 	  actPDE->PostStepTrans(nstep,steptime,level);
 	  
 	  // writing results in output-file
-	  if (nstep == stepsave && (nstep < isaveend_))
+	  if (nstep == stepsave && (nstep <= isaveend_))
 	    { 
 	      actPDE->PostProcess(level);
 	      actPDE->WriteResultsInFile();
@@ -114,9 +114,9 @@ void TransientDriver :: SolveProblem()
       
       actCoupledPDE -> WriteGeneralPDEdefines();
       
-      for (Integer nstep = 0; nstep<numstep_; nstep++)
+      for (Integer nstep = 1; nstep <= numstep_; nstep++)
 	{
-	  Info->WriteTimeStep(actCoupledPDE->GetName(), nstep+1, steptime);
+	  Info->WriteTimeStep(actCoupledPDE->GetName(), nstep, steptime);
 
 	  actCoupledPDE->InitStepTransCoupled(steptime);
 	  
@@ -125,7 +125,7 @@ void TransientDriver :: SolveProblem()
 	  // actCoupledPDE->PostStepTrans(level);
 	  
 	  // writing results in output-file
-	  if (nstep == stepsave && (nstep < isaveend_))
+	  if (nstep == stepsave && (nstep <= isaveend_))
 	    { 
 	      actCoupledPDE->PostProcess(level);
 	      actCoupledPDE->WriteResultsInFile();

@@ -41,17 +41,20 @@ public:
   virtual void InitTimeStepping(const Double dt){;};
 
   //! perform ..
-  virtual void PreStepStatic(const Integer level);
+  virtual void PreStepStatic(const Integer kstep, const Double asteptime,
+			     const Integer level, const Boolean reset);
 
   //!
-  virtual void StepStaticNonLin(const Integer level, const Double aTime=0);
+  virtual void StepStaticNonLin(const Integer kstep, const Double asteptime,
+				const Integer level, const Boolean reset);
 
   virtual void SolveStepTrans(const Integer kstep, const Double steptime, const Integer level, 
 			      const Boolean updatesysmat)
   {Error("Currently not available",__FILE__,__LINE__);}
 
   //! 
-  virtual void PostStepStatic(const Integer level);
+  virtual void PostStepStatic(const Integer kstep, const Double asteptime,
+			      const Integer level);
 
   //! calculate coupling terms
   virtual void CalcOutputCoupling();
