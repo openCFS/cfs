@@ -22,7 +22,8 @@ class IterCoupledPDE : public BaseCoupledPDE
 		 Grid *aptgrid, 
 		 BCs *aptBCs, 
 		 FileType *aInFile, 
-		 WriteResults *aOutFile); 
+		 WriteResults *aOutFile,
+		 std::string sequenceTag); 
 
   //! Destructor
   ~IterCoupledPDE();

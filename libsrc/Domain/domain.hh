@@ -102,11 +102,12 @@ private:
   
 
   //! initialize pde
-  //! \params pdeNames Vector of names of PDEs
+  //! \param pdeNames Vector of names of PDEs
   void CreatePDEs(StdVector<std::string> & pdeNames);
   
   //! initialize coupled pde
-  void CreateCoupledPDE();
+  //! \param sequenceTag Tag specifying the current coupling section
+  void CreateCoupledPDE(StdVector<std::string> & sequenceTags);
 
    //! initialization of alg.sys.
   /*!

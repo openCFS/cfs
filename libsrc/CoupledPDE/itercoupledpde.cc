@@ -11,22 +11,36 @@ namespace CoupledField
 				 Grid *aptgrid, 
 				 BCs *aptBCs, 
 				 FileType *aInFile, 
-				 WriteResults *aOutFile) 
+				 WriteResults *aOutFile,
+				 std::string sequenceTag) 
     : BaseCoupledPDE(PDEs, Couplings, 
-		     aptgrid, aptBCs, aInFile, aOutFile)
+		     aptgrid, aptBCs, aInFile, aOutFile, sequenceTag)
   {
     ENTER_FCN( "IterCoupledPDE::IterCoupledPDE" );
 
     maxiter_ = 100;
     nonLinLogging_ = TRUE;
+    std::string loggingString;
     
     // Per default all PDEs are solved
     solvePDE_.Resize(PDEs_.GetSize());
     solvePDE_.Init(TRUE);
    
     //if values are defined in conf-file, take these
-    params->Get("maxNumIters", maxiter_, "iterative", "nonLinear");
-    nonLinLogging_ = params->IsSet("logging", "iterative", "nonLinear");
+    StdVector<std::string> keyVec, attrVec, valVec;
+    keyVec = "couplingList", "iterative", "nonLinear", "maxNumIters";
+    attrVec = "tag", "", "";
+    valVec = sequenceTag_, "", "";
+
+    params->Get( keyVec, attrVec, valVec, maxiter_ );
+    keyVec = "couplingList", "iterative", "nonLinear", "logging";
+    params->Get( keyVec, attrVec, valVec, loggingString  );
+    
+    if (loggingString == "yes")
+      nonLinLogging_ = TRUE;
+    else
+      nonLinLogging_ = FALSE;
+
   } 
 
 
@@ -70,11 +84,16 @@ namespace CoupledField
     StdVector<StdVector<std::string> > interfaceNamesSorted;
     StdVector<std::string> nameVectorAux;
 
+    // vectors for restricted parameter search
+    StdVector<std::string> keyVec, valVec, attrVec;
     
     // Get list for all quantities, which are listed
     // in section "nonLinear" and have a stopping
     // criterion
-    params->GetList("quantity", stopCritQuantities, "nonLinear", "stopCrit");
+    keyVec = "couplingList", "iterative", "nonLinear", "stopCrit", "quantity";
+    attrVec = "tag", "", "", "";
+    valVec = sequenceTag_, "", "", "";
+    params->GetList( keyVec, attrVec, valVec, stopCritQuantities);
     
     // Iterate over all PDEs
     for ( Integer iPDE = 0; iPDE < PDEs_.GetSize(); iPDE++ ) {
@@ -87,14 +106,20 @@ namespace CoupledField
       interfaceNamesSorted.Clear();
 	
       // Check for coupling quantities for current PDE
-      params->GetList("quantity", quantities,
-		      PDEs_[iPDE]->GetName(), "coupling");
+      attrVec = "tag", "", "", "";
+      valVec = sequenceTag_, "", "", "";
+      
+      keyVec = "couplingList", "iterative", PDEs_[iPDE]->GetName(), 
+	       "coupling", "quantity";
+      params->GetList( keyVec, attrVec, valVec, quantities);
 
-      params->GetList("type", interfaceTypes, 
-		      PDEs_[iPDE]->GetName(),	"coupling");
+      keyVec = "couplingList", "iterative", PDEs_[iPDE]->GetName(),
+               "coupling", "type";
+      params->GetList( keyVec, attrVec, valVec, interfaceTypes);
 
-      params->GetList("name", interfaceNames,
-		      PDEs_[iPDE]->GetName(), "coupling");
+      keyVec = "couplingList", "iterative", PDEs_[iPDE]->GetName(),
+               "coupling", "name";
+      params->GetList( keyVec, attrVec, valVec, interfaceNames);
 
       // Check if definition is consistent
       if (quantities.GetSize() != interfaceTypes.GetSize() ||
@@ -178,32 +203,30 @@ namespace CoupledField
 	normtype.clear();
 
 	// Quantity for which we are interested in value and l2norm
-	 attrVec = "", "", "quantity";
-	 valVec = "", "", quantitiesSorted[iQuant];
+	 attrVec = "tag", "", "","quantity";
+	 valVec = sequenceTag_, "" ,"", quantitiesSorted[iQuant];
 
 	String2Enum(quantitiesSorted[iQuant], quantityAux);
 
 	if ( stopCritQuantities.Find(quantitiesSorted[iQuant]) != -1 ) {
 
 	  // First get the value
-	  keyVec  = "couplingList", "nonLinear", "stopCrit", "value";
+	  keyVec  = "couplingList", "iterative", "nonLinear", "stopCrit", "value";
 	  params->Get( keyVec, attrVec, valVec, epsilon );
 
 	  // Now get the l2norm
-	  keyVec  = "couplingList", "nonLinear", "stopCrit", "l2Norm";
+	  keyVec  = "couplingList", "iterative", "nonLinear", "stopCrit", "l2Norm";
 	  params->Get( keyVec, attrVec, valVec, normtype );
 
 	  // if quantity is elecForceVWP or magForceVWP, get neighbouring region
 	  neighbourRegions.Clear();
 	  if (quantityAux == MAG_FORCE_VWP ||
 	      quantityAux == ELEC_FORCE_VWP) {
-	    keyVec = "couplingList", "coupling", "neighbourRegion";
-	    attrVec = "", "quantity";
-	    valVec = "",  quantitiesSorted[iQuant];
+	    keyVec = "couplingList", "iterative", "coupling", "neighbourRegion";
+	    attrVec = "tag", "", "quantity";
+	    valVec = sequenceTag_, "",  quantitiesSorted[iQuant];
 	    params->GetList(keyVec, attrVec, valVec, neighbourRegions);
 
-	   //  std::cerr << "IterCoupledPDE::InitCoupling: neighbourRegions = " << std::endl;
-// 	    std::cerr << neighbourRegions << std::endl;
 	  }
 
 	}

@@ -3,8 +3,8 @@
 #include <string>
 
 #include "basecoupledpde.hh"
-#include <CoupledPDE/pdecoupling.hh>
-#include <DataInOut/ParamHandling/ConfFile.hh>
+#include "CoupledPDE/pdecoupling.hh"
+#include "DataInOut/ParamHandling/ConfFile.hh"
 
  
 namespace CoupledField
@@ -15,7 +15,8 @@ namespace CoupledField
 				 Grid *aptgrid, 
 				 BCs *aptBCs, 
 				 FileType *aInFile, 
-				 WriteResults * aOutFile)
+				 WriteResults * aOutFile,
+				 std::string sequenceTag)
 {
   ENTER_FCN( "BaseCoupledPDE::BaseCoupledPDE" );
 
@@ -28,6 +29,7 @@ namespace CoupledField
 
   actlevel_ = 0;
   NumPDEs_ = PDEs.GetSize();
+  sequenceTag_ = sequenceTag;
 
   
   // get analysis type
