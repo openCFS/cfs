@@ -20,7 +20,7 @@ class Domain
 {
 public:
   //!
-  Domain(FileType * const aptFileType, OutResultUnverg * ptUnverg, Material * materialdata,
+  Domain(FileType * const aptFileType, OutResultUnverg<Dim> * ptUnverg, Material * materialdata,
          Grid<Dim> * ptgrid);
 
   //!
@@ -81,7 +81,7 @@ private:
   FileType *InFile;
 
   //!
-  OutResultUnverg *OutFile;
+  OutResultUnverg<Dim> *OutFile;
 
 };
 

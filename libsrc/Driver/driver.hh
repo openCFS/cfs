@@ -9,19 +9,20 @@ namespace CoupledField
 {
 
   /// class where we implement Newmark method
+  template<class Dim>
   class Driver
   {
   public:
     ///
     Driver(FileType * const aptFileType, Integer anummesh, Material * ptMaterial);
     ///
-    void SolveNewmarkMethod(OutResultUnverg * aptUnverg);
+    void SolveNewmarkMethod(OutResultUnverg<Dim> * aptUnverg);
     ///
     virtual ~Driver();
   
   protected:
     ///
-    Grid<Point2D> * ptgrid;
+    Grid<Dim> * ptgrid;
     ///
     AcousticPDE * ptAcPDE;
     ///
