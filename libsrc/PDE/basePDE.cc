@@ -811,6 +811,7 @@ namespace CoupledField {
     // ---------------------------
 
     Double phase = 0.0;
+    Double dirVal;
     for ( i = 0; i < bcs_id_.GetSize(); i++ ) {
       dof = 1;
       if ( dofspernode_ > 1 ) {
@@ -826,12 +827,18 @@ namespace CoupledField {
         val_tfunc=ptTimeFunc_->TimeFuncAtTime(time,fncnames_id_[i]);
       }
       
-
-      val = val_id_[i] * val_tfunc;
+      val    =  val_id_[i] * val_tfunc;
+      dirVal = val;
       std::list<Integer>::const_iterator p;
       for ( p = nodes.begin(); p != nodes.end(); p++, j++ ) {
         node = *p;
         eqnData_->Node2EQN(node, dof, eqnNr, eqnDof);
+
+	//transform Dirichlet boundary conditions for effmass-formulation
+	if (effectiveMass_) {
+	  val = dirVal;
+	  val = TS_alg_->DirichletBC4EffMassMatrix(val,eqnNr);
+	}
 
         if (analysistype_ == HARMONIC) {
           phase = bcs_id_phase_[i];

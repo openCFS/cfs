@@ -77,7 +77,6 @@ namespace CoupledField
     solDofs_ = dofspernode_;
     
     effectiveMass_ = params->IsSet( "effMass" );
-
     
     // *********************************
     //  Check damping model
