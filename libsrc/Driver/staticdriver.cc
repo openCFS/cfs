@@ -51,6 +51,7 @@ void StaticDriver :: SolveProblem()
 
   if (ptdomain_->GetNumPDE() <= 1) 
     {
+      ptdomain_->GetPDE(pdenumber)->WriteGeneralPDEdefines();
       ptdomain_->GetPDE(pdenumber)->SolveStepStatic(level);   
       ptdomain_->GetPDE(pdenumber)->PostProcess(level);
       ptdomain_->PrintGrid(level);

@@ -173,6 +173,63 @@ namespace CoupledField
   }
 
 
+  VolumeSrcInt::VolumeSrcInt(Double aVal, Boolean isaxi)
+    : LinearForm(), val_(aVal), isaxi_(isaxi)
+  {
+#ifdef TRACE
+    (*trace) << "entering VolumeSrcIntInt::VolumeSrcInt" << std::endl;
+#endif
+
+  }
+
+
+  VolumeSrcInt ::~VolumeSrcInt()
+  {
+#ifdef TRACE
+    (*trace) << "entering VolumeSrcIntInt::~VolumeSrcInLinearEdgeInt" << std::endl;
+#endif
+  }
+
+
+  void VolumeSrcInt::CalcElemVector(Matrix<Double>& ptCoord, std::vector<Double> & elemVec)
+  {
+#ifdef TRACE
+    (*trace) << "entering VolumeSrcInt::CalcElemVector" << std::endl;
+#endif
+
+    const Integer nrIntPts = ptelem->GetNumIntPoints();
+    const Integer nrNodes  = ptelem->GetNumNodes();
+    const std::vector<Double> & intWeights = ptelem->GetIntWeights();  
+    std::vector<Double> shapeFnc;
+
+    elemVec.resize(nrNodes);
+    elemVec *= 0;    // set elems to 0
+   
+    Double factor;
+    for (Integer actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
+      {  
+	ptelem->GetShFncAtIp(shapeFnc,actIntPt);
+	factor = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord) * intWeights[actIntPt-1] * val_;
+
+	if (isaxi_)
+	  {
+	    std::vector<Double> CoordAtIP;
+	    CoordAtIP = ptCoord * shapeFnc;
+	    factor *=  2 * PI * CoordAtIP[0];
+	  }
+
+	// minus just becuase in assemble.cc we do: -rhs!!!!!!
+	shapeFnc *= -factor;
+	elemVec += shapeFnc;
+      }
+
+#ifdef TRACE
+    (*trace) << "leaving VolumeSrcInt::CalcElementVector" << std::endl;
+#endif
+
+  }
+
+
 
   // ==================================================================
   // nLinMech

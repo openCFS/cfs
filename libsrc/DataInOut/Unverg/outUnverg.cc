@@ -15,18 +15,21 @@ WriteResultsUnverg :: WriteResultsUnverg(const Char * const filename, Boolean wi
   (*trace) << "entering WriteResultsUnverg :: WriteResultsUnverg" << std::endl;
 #endif
 
+  output = NULL;
   if (!withHistory)
-  output=new std::ofstream(strcat(namefile_,".unv"));
+    output=new std::ofstream(strcat(namefile_,".unv"));
 }
 
 WriteResultsUnverg ::~WriteResultsUnverg()
 {
 #ifdef TRACE
- (*trace) << "entering WriteResultsUnverg ::~ WriteResultsUnverg" << std::endl;
+ (*trace) << "entering WriteResultsUnverg :: ~WriteResultsUnverg" << std::endl;
 #endif
-
- 
- delete output;
+ if (output)
+   {
+     output->close();
+     //   delete output;
+   }
 }
 
 void WriteResultsUnverg :: WriteGrid(const Integer level)

@@ -18,6 +18,7 @@ public:
   //! deconstructor
   ~ConfFile(); 
 
+
   //! get from conf-file value(integer, double or string).
   /*!
 	\param keyword keyword for the value in config-file
@@ -27,7 +28,31 @@ public:
 	\param subsubsection etc. can be omitted.
    */
   template<class TypeVal>
-  void get(const std::string keyword, TypeVal & val, const std::string section="", const std::string subsection="", const std::string subsubsection="");
+  void get(const std::string keyword, TypeVal & val, const std::string section="", 
+	   const std::string subsection="", const std::string subsubsection="");
+
+  //! get from conf-file value and a string.
+  /*!
+	\param keyword keyword for the value in config-file
+	\param val return value from config-file
+	\param fncname name of time function file
+	\param section name of a section in which keyword there is. can be omitted.
+    	\param subsection name of a subsection of the section in which keyword there is. can be omitted.
+	\param subsubsection etc. can be omitted.
+   */
+  void get2(const std::string keyword, Double & val,std::string & fncname,
+	   const std::string section="", const std::string subsection="", 
+	   const std::string subsubsection="");
+
+
+  //! get coil data from conf-file 
+  /*!
+	\param acoil coild data (see environmanr.hh)
+	\param section name of a section in which keyword there is. can be omitted.
+    	\param subsection name of a subsection of the section in which keyword there is. can be omitted.
+	\param subsubsection etc. can be omitted.
+   */
+  void getCoilData(coilDefStruct &acoil, const std::string section, const std::string subsection);
 
 
    //! get from conf-file value(integer, double or string), if this value is specified there
@@ -35,8 +60,7 @@ public:
         \param keyword keyword for the value in config-file
         \param val return value from config-file
         \param section name of a section in which keyword there is
-        \param subsection name of a subsection of the section in which keyword t
-here is
+        \param subsection name of a subsection of the section in which keyword there is
         \param subsubsection etc.
    */
   template<class TypeVal>

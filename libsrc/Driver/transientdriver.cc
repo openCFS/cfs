@@ -65,11 +65,17 @@ void TransientDriver :: SolveProblem()
 
   if (PrintGridOnly)
       exit(0);
+  
+  ptdomain_->GetPDE(pdenumber)->WriteGeneralPDEdefines();
 
   Integer nstep;
   for (nstep = 0; nstep<numstep_; nstep++)
     {
+      ptdomain_->GetPDE(pdenumber)->PreStepTrans(level, updatesysmat);
       ptdomain_->GetPDE(pdenumber)->SolveStepTrans(nstep, steptime, level, updatesysmat);
+      ptdomain_->GetPDE(pdenumber)->PostStepTrans(level);
+
+
 
       // writing results in output-file
     if (nstep == stepsave && (nstep < isaveend_))

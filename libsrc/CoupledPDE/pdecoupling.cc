@@ -185,9 +185,8 @@ PDECoupling::CouplingInterface* PDECoupling::AddOutput(CouplingOutputType output
       
       inode = 0;
       for (it=nodesConverted.begin(); it != nodesConverted.end(); it++, inode++)
-	{
 	myInterface->nodes[inode] = *it;
-	}
+
       myInterface->size = myInterface->nodes.size();
       myInterface->values.resize(myInterface->nodes.size());
       myInterface->oldValues.resize(myInterface->nodes.size());

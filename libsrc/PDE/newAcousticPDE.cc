@@ -71,10 +71,6 @@ AcousticPDE::AcousticPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, Fil
       solIm_.init();
     }
 
-
-  saveDeriv_ = conf->get_option("savederiv", pdename_);
-  
-
   // set analysis parameters
   assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, subdoms_, bnd_absBCs_);
   assemble_->SetGraphType(NODEGRAPH);
@@ -90,7 +86,9 @@ AcousticPDE::AcousticPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, Fil
 
   ReadMaterialData();
    
-  DefineIntegrators(actlevel_);  
+  DefineIntegrators(actlevel_);
+
+  ReadSavings();  
 }
 
 
@@ -188,28 +186,33 @@ void AcousticPDE::WriteResultsInFile()
       sol_der1Array = getS1();
       sol_der2Array = getS2();
 
-      
-      TransformNodeSolution(sol_mesh,sol_,PDE2MeshNode_);
+      if (savesol_)
+	TransformNodeSolution(sol_mesh,sol_,PDE2MeshNode_);
 
-      if (saveDeriv_)    
+      if (savederiv1_)    
 	TransformNodeSolution(solder1_mesh,sol_der1Array,PDE2MeshNode_);
 
-      TransformNodeSolution(solder2_mesh,sol_der2Array,PDE2MeshNode_);
+      if (savederiv2_)
+	TransformNodeSolution(solder2_mesh,sol_der2Array,PDE2MeshNode_);
       
       if (OutFile_->IsGMV())
 	{
-	  OutFile_->WriteNodeSolution(sol_mesh,laststepcalc_,lasttimecalc_,"vp");
-	  //       OutFile_->WriteNodeSolution(solder1_mesh,laststepcalc_,lasttimecalc_,"vp_1der");
-	  //       OutFile_->WriteNodeSolution(solder2_mesh,laststepcalc_,lasttimecalc_,"vp_2der");
+	  if (savesol_)
+	    OutFile_->WriteNodeSolution(sol_mesh,laststepcalc_,lasttimecalc_,"vp");
+	  if (savederiv1_)
+	    OutFile_->WriteNodeSolution(solder1_mesh,laststepcalc_,lasttimecalc_,"vp_1der");
+	  if (savederiv2_)
+	    OutFile_->WriteNodeSolution(solder2_mesh,laststepcalc_,lasttimecalc_,"vp_2der");
 	}
       else
 	{
-	  OutFile_->WriteNodeSolution(sol_mesh,laststepcalc_,lasttimecalc_,"fluid potential");
+	  if (savesol_)
+	    OutFile_->WriteNodeSolution(sol_mesh,laststepcalc_,lasttimecalc_,"fluid potential");
 
-	  if (saveDeriv_)
+	  if (savederiv1_)
 	    OutFile_->WriteNodeSolution(solder1_mesh,laststepcalc_,lasttimecalc_,"fluid potential, 1st deriv.");
-
-	  //      OutFile_->WriteNodeSolution(solder2_mesh,laststepcalc_,lasttimecalc_,"fluid potential, 2nd deriv.");
+	  if (savederiv2_)
+	    OutFile_->WriteNodeSolution(solder2_mesh,laststepcalc_,lasttimecalc_,"fluid potential, 2nd deriv.");
 	}
     }
 }

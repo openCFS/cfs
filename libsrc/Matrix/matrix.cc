@@ -393,6 +393,21 @@ Matrix<TYPE> &Matrix<TYPE>::operator*=(const Matrix<TYPE> &x)
 }
 
 template<class TYPE>
+Matrix<TYPE> &Matrix<TYPE>::operator/= (const TYPE &x)
+{
+         if (!col || !row ) Error("undefined matrix",__FILE__,__LINE__);
+
+        TYPE y=x;
+ 
+        Integer i;
+        for (i = 0; i < row*col; i++)
+                p [0][i] /= y;
+ 
+        return *this;
+}
+
+
+template<class TYPE>
 void Matrix<TYPE>::add_row (const Vector<TYPE> &x, const Integer pos)
 {
       if (!row || !col) Error("undefined Matrix",__FILE__,__LINE__); 
@@ -416,6 +431,7 @@ void Matrix<TYPE>::add_row (const Vector<TYPE> &x, const Integer pos)
       p=help;
       p[0]=help[0];
 }
+
 
 template<class TYPE>
 void Matrix<TYPE>::add_col (const std::vector<TYPE> &x, const Integer pos)
@@ -443,34 +459,19 @@ void Matrix<TYPE>::add_col (const std::vector<TYPE> &x, const Integer pos)
       p[0]=help[0]; 
 }
 
+
 template<class TYPE>
-void Matrix<TYPE>::cut(const Integer ai, const Integer aj)
+std::vector<TYPE> Matrix<TYPE>::get_col(const Integer acol)
 {
-if (ai < 0 || ai > row-1 || aj < 0 || aj > col-1)
+  if (acol < 0 || acol > col-1)
          Error("invalid index in function cut",__FILE__,__LINE__);
-if (!row) Error("Matrix is undefined in function cut",__FILE__,__LINE__);
 
-Integer n=(row-1)*(col-1);
-Matrix<TYPE> help(row-1,col-1);
+  std::vector<TYPE> colvec(row);
 
-Integer i, j, k=0;
-for (i=0; i<row ; i++)
-if (i!=ai)  for (j=0; j<col; j++)
-if (j!=aj)
-   {
-     help.p[0][k]=p[i][j];
-     k++;
-   }
+  for (Integer i=0; i<row ; i++)
+    colvec[i] = p[i][acol];
 
-delete  p[0];
-delete [] p;
-row--; col--;
- 
-p = new TYPE* [row];
-p[0]=new TYPE[n];
-for (k=1; k < row; k++) p[k]=p[k-1]+col;
-
-for (i=0; i<n; i++) p[0][i]=help.p[0][i];
+  return colvec;
 }
  
 template<>

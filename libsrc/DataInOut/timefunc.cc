@@ -22,17 +22,27 @@ TimeFunc :: TimeFunc(FileType * aptFileType)
   timeFncDatFile_=FALSE;
   std::string nametf;
 
-  if (conf->ifget("time_data_file",nametf))
-    timeFncDatFile_=TRUE;    
+  if (conf->ifgetliststr("time_data_files",fnc_names_))
+      timeFncDatFiles_ = TRUE;
+
+  else if (conf->ifget("time_data_file",nametf))
+     Error("Use instead of time_data_file-command the time_data_files-command!");
+
   else if (conf->ifget("time_fnc",nametf))
     {
+      Error("time_func-command currently not supported");
+
+      if (timeFncDatFiles_==TRUE)
+	Error("You can just use the time_data_file and the time_fnc-command simulteneously!");
+
       ptTimeFnc=FncReader(nametf);
       conf->get("time_arg",argTimeFnc);
       conf->get ("time_interval_fnc_a",intervalTF_a);
       conf->get ("time_interval_fnc_b",intervalTF_b);
     }             
     
-  if (timeFncDatFile_) ReadTimeFunc(nametf); 
+  if (timeFncDatFiles_) ReadTimeFuncs();
+
 }
 
 
@@ -91,6 +101,55 @@ void TimeFunc :: ReadTimeFunc(const std::string nametf)
 }
 
 
+void TimeFunc :: ReadTimeFuncs()
+{
+#ifdef TRACE
+  (*trace) << " entering TimeFunc :: ReadTimeFuncs " << std::endl;
+#endif
+
+  maxnumTimeFunc_ = fnc_names_.size();
+
+  maxvalTimeFunc = new Integer [maxnumTimeFunc_];
+  timeTimeFunc   = new Double * [maxnumTimeFunc_]; 
+  valTimeFunc    = new Double * [maxnumTimeFunc_];
+
+  for (Integer i=0; i<fnc_names_.size(); i++)
+    {
+      std::ifstream timefile;
+
+      timefile.open(fnc_names_[i].c_str());
+      if (!timefile)  
+	Error("Can't open file with data of time function");
+
+      std::string buffer;
+      std::getline(timefile,buffer,'\n');
+
+      Double dummyTime, dummyVal;
+      maxvalTimeFunc[i] = 0;
+      do
+	{
+	  timefile >> dummyTime >> dummyVal;
+	  maxvalTimeFunc[i]++;
+	}while(!timefile.eof());
+
+      // start again reading from the top of the file
+      timefile.clear();
+      timefile.seekg (0, std::ios::beg);
+
+      timefile >> dummyTime >> dummyVal;
+      timefile >> dummyTime >> dummyVal;    
+      timefile.seekg (0, std::ios::beg);
+
+      timeTimeFunc[i] = new Double[maxvalTimeFunc[i]];
+      valTimeFunc[i]  = new Double[maxvalTimeFunc[i]];
+
+      for (Integer j=0; j < maxvalTimeFunc[i]; j++)
+	timefile >> timeTimeFunc[i][j] >> valTimeFunc[i][j];
+
+      timefile.close();
+    }
+}
+
 
 // this type needs a header with a function number and number of entries
 void TimeFunc :: ReadTimeFuncOldType(const std::string nametf)
@@ -138,14 +197,14 @@ void TimeFunc :: ReadTimeFuncOldType(const std::string nametf)
 //   return valtf;
 // }
 
-Double TimeFunc::TimeFuncAtTime(const Double time, const Integer num)
+Double TimeFunc::TimeFuncAtTime(const Double time,  const std::string fncname)
 {
 #ifdef TRACE
   (*trace) << " entering TimeFunc::TimeFuncAtTime " << std::endl;
 #endif 
  
-  if (timeFncDatFile_) {
-    return ValTimeFuncDatFile(time,num);
+  if (timeFncDatFiles_) {
+    return ValTimeFuncDatFile(time,fncname);
   }
   else {
     if ((intervalTF_a <= time) && (intervalTF_b >= time) )
@@ -154,29 +213,47 @@ Double TimeFunc::TimeFuncAtTime(const Double time, const Integer num)
   }
 }
 
-Double TimeFunc::ValTimeFuncDatFile(const Double time, const Integer num)
+Double TimeFunc::ValTimeFuncDatFile(const Double time, const std::string fncname)
 {
  Double help,help1,help2;
- Integer i,n;
- 
- n=maxvalTimeFunc[num];
+ Integer i, sizefnc, numfnc;
 
- if ( time < timeTimeFunc[num][0] )
+ //if name of time function not defined, than a constant time function with value
+ //1.0 is assumed 
+ if (fncname == "---not-defined--")
+   return 1.0;
+
+ //get correct time function
+ numfnc = -1;
+ for (i=0; i<fnc_names_.size(); i++)
+   if (fnc_names_[i] == fncname) numfnc = i;
+
+ if (numfnc == -1)
+   {
+     std::string fncstring = "Time Function " + fncname + " not defined within time_data_files-command";
+     Error(c_string(fncstring));
+   }
+
+ sizefnc=maxvalTimeFunc[numfnc];
+
+ if ( time < timeTimeFunc[numfnc][0] )
     Error("Wrong time in TimeFuncAtTime",__FILE__,__LINE__);
  
- if (time > timeTimeFunc[num][n-1]) return 0;
+ //if time larger as defined in time function, return the last value
+ if (time > timeTimeFunc[numfnc][sizefnc-1]) 
+   return valTimeFunc[numfnc][sizefnc-1];
  
- for (i=0; i<n; i++)
+ for (i=0; i<sizefnc; i++)
  {
-    help=timeTimeFunc[num][i];
+    help=timeTimeFunc[numfnc][i];
     if (time < help) break;
-    if (help==time) return valTimeFunc[num][i];
+    if (help==time) return valTimeFunc[numfnc][i];
     if (time > help) continue;
  }
  
-  help1=help-timeTimeFunc[num][i-1];
-  help2=((help-time)/help1)*valTimeFunc[num][i-1]+
-        ((time-timeTimeFunc[num][i-1])/help1)*valTimeFunc[num][i];
+  help1=help-timeTimeFunc[numfnc][i-1];
+  help2=((help-time)/help1)*valTimeFunc[numfnc][i-1]+
+        ((time-timeTimeFunc[numfnc][i-1])/help1)*valTimeFunc[numfnc][i];
   return help2;
 }
  

@@ -11,6 +11,6 @@
 #include "linearForm.hh"
 #include "massEdgeInt.hh"
 #include "nLinElastInt.hh"
-
-
+#include "smoothInt.hh"
+#include "curlCurlNodeInt.hh"
 #endif

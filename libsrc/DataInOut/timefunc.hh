@@ -23,9 +23,9 @@ public:
     //! return value of time function with number {\tt num} at the time {\tt time}.
     /*!
       \param time in: time
-      \param num in: number of the time function
+      \param fncname in: name of time function
     */
-    Double TimeFuncAtTime(const Double time, const Integer num);
+    Double TimeFuncAtTime(const Double time,  const std::string fncname);
 
     //! Print values of time function in stream outfile
     void Print(std::ostream * outfile) const;
@@ -44,11 +44,14 @@ private:
     //! read time func from dat-file
     void ReadTimeFunc(const std::string nametf);
 
+    //! read time functions from different dat-file
+    void ReadTimeFuncs();
+
     //! read time func old style (needs header line with func nr & nr of entries)
     void ReadTimeFuncOldType(const std::string nametf);
     
     //! value of time func through interpolation values from data-file
-    Double ValTimeFuncDatFile(const Double time, const Integer num);
+    Double ValTimeFuncDatFile(const Double time, const std::string fncname);
 
     //! 
     Integer maxnumTimeFunc_;
@@ -64,6 +67,12 @@ private:
 
     //!
     Boolean timeFncDatFile_;
+
+    //!
+    Boolean timeFncDatFiles_;
+
+    //!
+    std::vector<std::string> fnc_names_;
 
     //!
     Integer argTimeFnc;

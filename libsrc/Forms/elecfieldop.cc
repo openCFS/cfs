@@ -284,6 +284,88 @@ void CurlEdgeOp::CalcElemMagVec(Vector<Double> & magVecPot,
 }
 
 
+//=========================== CurlNodeOperator-Class=======================================
+
+CurlNodeOp::CurlNodeOp(Grid * ptGrid, 
+		       BasePDE * ptPDE,
+		       std::vector<Integer> * ptMesh2PDENode,
+		       Vector<Double> * aSol,
+		       const Integer level)
+  : BaseOperator(ptGrid, ptPDE, ptMesh2PDENode, level), sol_(aSol), isaxi_(FALSE)
+{
+#ifdef TRACE
+  (*trace) << "entering CurlNodeOp::CurlNodeOp" << std::endl;
+#endif
+
+}
+
+CurlNodeOp::~CurlNodeOp()
+{
+#ifdef TRACE
+  (*trace) << "entering CurlNodeOp::~CurlNodeOp" << std::endl;
+#endif
+
+}
+
+void CurlNodeOp::CalcElemCurlNode(Vector<Double> & B, 
+				    const Elem * ptElement,
+				    const std::vector<Double> & LCoord)
+{
+#ifdef TRACE
+  (*trace) << "entering CurlNodeOp::CalcElemCurlNode" << std::endl;
+#endif
+  
+  ShortInt dim;
+  dim = ptElement->ptElem->GetDim();
+  if (dim ==2)
+    {
+      B.Resize(dim);
+      B.Init();
+
+      Integer nShFnc = 0;
+      nShFnc = ptElement->ptElem->GetNumNodes();
+      
+      Matrix<Double> CornerCoords; 
+      ptPDE_->GetElemCoords(ptElement->connect, CornerCoords, level_);
+      
+      Matrix<Double> GlobalGradient;
+      
+      ptElement->ptElem->GetGlobDerivShFnc(GlobalGradient, LCoord, CornerCoords);
+      
+      if (isaxi_)
+	{
+	  std::vector<Double> ShpFncAtIp;
+	  std::vector<Double> CoordAtIP;
+	  ptElement->ptElem->GetShFnc(ShpFncAtIp,LCoord);
+	  CoordAtIP = CornerCoords * ShpFncAtIp;
+	  for (Integer i=0; i<nShFnc; i++)
+	    GlobalGradient[i][0] += ShpFncAtIp[i] / CoordAtIP[0];
+	}
+      
+      // loop over shape functions
+      for( Integer i=0; i<dim; i++ )
+	for( Integer j=0; j<nShFnc; j++ )
+	  B[i] += GlobalGradient[j][i] * (*sol_)[(*ptMesh2PDENode_) [ptElement->connect[j]-1]-1];
+      
+      //account, that we compute the curl!
+      Double temp = B[0];
+      if (isaxi_)
+	{
+	  B[0] = -B[1];
+	  B[1] = temp;
+	}
+      else
+	{
+	  B[0] = B[1];
+	  B[1] = -temp;
+	}
+    }
+
+  else if (dim ==3)
+    Error("CalcElemCurlNode for 3D not implemented");
+ 
+}
+
 
 
 } // namespace CoupledField

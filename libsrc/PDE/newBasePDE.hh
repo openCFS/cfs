@@ -19,6 +19,7 @@
 #include <Utils/array.hh>
 #include <Driver/assemble.hh>
 #include "timestepping.hh"
+#include "BaseEQN.hh"
 
 namespace CoupledField
 {
@@ -57,13 +58,33 @@ public:
     \param update indicator: do we update boundary condition in algebraic system ot set new
     \param atimestep time step of claculation
   */
-  virtual void SetBCs(const Integer level, const Integer update, const Double atimestep);
+ virtual void SetBCs(const Integer level, const Integer update, const Double atimestep);
 
 
   //! define all (bilinearform) integrators needed for this pde
   virtual void DefineIntegrators(const Integer level)=0;
   
+  //! check for saving parameters
+  virtual void ReadSavings();
 
+  //! write general defines (BCs, loads, etc.) to info-file
+  virtual void WriteGeneralPDEdefines();
+
+  //! retruns the load names
+  std::vector<std::string>& GetLoadDom()
+  {return assemble_->loadDom_;};
+
+  //! returns the load dofs
+  std::vector<std::string>& GetLoadDof()
+  {return assemble_->loadDof_;};
+
+  //! returns the load values
+  std::vector<Double>& GetLoadVals()
+  {return assemble_->loadVals_;};
+
+  //!returns the load functions
+  std::vector<std::string>& GetLoadFncs()
+  {return assemble_->fncname_loads_;};
 
   // ======================================================
   // POSTPROC SECTION
@@ -256,6 +277,10 @@ protected:
    //! read from .config-file info about BCs
    void ReadBCs(const std::string eq);
 
+  /// return index of dof defined by keyword (e.g. 'ux')
+  virtual Integer GetBCDof(const std::string keyword)
+  { Error("GetNrBCDof not implemented");}
+
   //! maps the local node solution to the global mesh solution
   /*!
     \param MeshSol (output) Solution vector referring to mesh node numbers    
@@ -306,9 +331,9 @@ protected:
     \param PDE2MeshNode (output) Vector assigning PDE to mesh node numbers
     \param subdoms (input) Vector of elements which are to be mapped
   */
-  virtual void AssignPDENodeNumbers(std::vector<Integer> & Mesh2PDENode,
-			    std::vector<Integer> & PDE2MeshNode,
-			    const std::vector<Elem*> &Elements );
+//   virtual void AssignPDENodeNumbers(std::vector<Integer> & Mesh2PDENode,
+// 			    std::vector<Integer> & PDE2MeshNode,
+// 			    const std::vector<Elem*> &Elements );
   
 
   /// Stores result vector in the multidimensional solution array sol_
@@ -359,6 +384,9 @@ protected:
   TimeFunc * ptTimeFunc_;   //!< pointer to time functions
   PDECoupling * ptCoupling_;//!< pointer to Coupling Object
 
+  //Equation handling
+  BaseEQN * EqnData_;
+
   // Solution
   Array<Double> sol_;
 
@@ -376,8 +404,10 @@ protected:
   std::vector<Elem*> CouplingElements; //!< elements where coupling terms are calculated
   std::list<Integer> CouplingNodes;   //!< nodes where coupling terms are calculated
   Integer couplingBCsCounter_;        //!< counter for number of coupling BCs
-  Integer numDirichletBCs_;                  //!< number of dirichlet boundary conditions
+  Integer numDirichletBCs_;           //!< number of dirichlet boundary conditions
+  Integer iterCoupledCounter_;        //!< iteration counter for coupled PDE solution process
 
+  //time stepping stuff
 
   Double StepTime_; //!< time step;
   Double matrix_factor_[4]; //!< factors for constructing effective mass / stiffness matrix
@@ -397,8 +427,18 @@ protected:
   std::vector<std::string> bcs_ri_;  //!< inhomogeneous Robin BC levels
 
   std::vector<Double> val_id_;      //!< values of the inhomogeneous Dirichlet BC
+  std::vector<std::string> fncnames_id_; //!< names of the time functions for inhomogeneous Dirichlet BC 
+
+  std::vector<std::string> homDirichDof_;   //!< dof (e.g. ux) of homogenous Dirichlet BC
+  std::vector<std::string> inhomDirichDof_; //!< dof (e.g. ux) of homogenous Dirichlet BC
+
   Integer updateBCs_;               //!< set, if BCs already set
   
+
+  //saving information
+  Boolean savesol_;     //!< TRUE, if solution should be written to result file
+  Boolean savederiv1_;  //!< TRUE, if solution should be written to result file
+  Boolean savederiv2_;  //!< TRUE, if solution should be written to result file
 
   //! data for adaptivity
   SpaceErrorEstimator * ptError_;   //!<  object with methods for error estimation
@@ -422,6 +462,8 @@ protected:
 
   Assemble * assemble_;                //!< Pointer to object of analysis (Static, Trans, Harm or Eig)
   
+
+  // nonlinear stuff
   Boolean nonLin_; //!<  flag for nonlinear calculations
   Double incStopCrit_; //!< stopping criterion for incremental error
   Double residualStopCrit_;  //!< stopping criterion for residual error

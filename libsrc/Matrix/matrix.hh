@@ -143,6 +143,8 @@ public:
   Matrix	&operator*=	(const Matrix &);
 
   //!
+  Matrix	&operator/=	(const TYPE &);
+  //!
   Integer	operator ==	(const Matrix &) const;
 
   //!
@@ -161,6 +163,9 @@ public:
 
   //! Add a colomn to Matrix at position i
   void add_col(const std::vector<TYPE> & x, const Integer pos ); 
+
+  //! get a column out of the matrix
+  std::vector<TYPE> get_col(const Integer acol);
 
   //! Precondition: Implemented Jacobi, SSOR(omega=1.2), LU
   void precond(Vector<TYPE> &, const Vector<TYPE>, enum precond type);

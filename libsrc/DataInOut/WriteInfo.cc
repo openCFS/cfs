@@ -4,7 +4,6 @@
 #include <iomanip>
 #include <fstream>
 #include <stdio.h>
-#include <General/environment.hh>
 #include <Utils/tools.hh>
 #include <cstdarg>
 #include "WriteInfo.hh"
@@ -129,19 +128,60 @@ namespace CoupledField
 
 
 
-#ifndef NEWBASEPDE
-  void WriteInfo::PrintCoil(std::string& coilDomain, struct MagEdgePDE::coilDefStruct& coilDef,  AnalysisType& analysistype_)
+#ifdef NEWBASEPDE
+  void WriteInfo::PrintCoil(std::string& coilDomain, struct coilDefStruct& coilDef,  AnalysisType& analysistype_)
   {
     *cfsInfo <<  "COIL DESCRIPTION ======================================= " << myEndl
-	     <<  "Coil domain " << coilDomain << std::endl
-	     <<  "  parameters: current direction = " << coilDef.iDir << std::endl
-	     <<  "              current value     = " << coilDef.current << std::endl
-	     <<  "              coil area         = " << coilDef.coilArea << std::endl;
-    
-    if (coilDef.iDir > 3)
-      *cfsInfo<< "              coilMidPt         = " << coilDef.coilMidPt << std::endl;
-    if (analysistype_==HARMONIC)
-      *cfsInfo<< "              current phase     = " << coilDef.currentPhase << std::endl;
+	     <<  "Coil domain: " << coilDomain << std::endl;
+    if (coilDef.type == CURRENT)
+      *cfsInfo << "Coil type  : current-loaded" << std::endl;
+    else if (coilDef.type == VOLTAGE)
+      *cfsInfo << "Coil type  : voltage-loaded" << std::endl;
+    else if (coilDef.type == MEASUREMENT)
+	*cfsInfo << "Coil type  : sensing coil (induced voltage)" << std::endl;
+
+      //	     <<  "  parameters: current direction = " << coilDef.iDir << std::endl
+
+    *cfsInfo   <<  "              ID                = " << coilDef.ID << std::endl;
+
+    if (coilDef.type == CURRENT)
+      {
+	*cfsInfo << "              current value     = " << coilDef.current << std::endl;
+	if (analysistype_==HARMONIC)
+	  *cfsInfo << "              current pahse     = " << coilDef.phase << std::endl;
+      }
+
+    else if (coilDef.type == VOLTAGE)
+      {
+	*cfsInfo << "              voltage value     = " << coilDef.voltage << std::endl
+		 << "              resistance        = " << coilDef.resistance << std::endl;
+	if (analysistype_==HARMONIC)
+	  *cfsInfo << "              voltage pahse     = " << coilDef.phase << std::endl;
+      }
+      
+    *cfsInfo << "              coil area         = " << coilDef.coilArea << std::endl;
+
+    if (analysistype_==TRANSIENT)
+	  *cfsInfo << "              time function     = " << coilDef.timefnc << std::endl;
+
+    if (coilDef.UIfile != "--not--defined")
+      {
+	if (coilDef.type == CURRENT)
+	  *cfsInfo << "              save voltage in: " << coilDef.UIfile << std::endl;
+	else if (coilDef.type == VOLTAGE)
+	  *cfsInfo << "              save current in: " << coilDef.UIfile << std::endl;	  
+	else if (coilDef.type == MEASUREMENT)
+	  *cfsInfo << "              save voltage in: " << coilDef.UIfile << std::endl;
+      }
+
+    if (coilDef.Lfile != "--not--defined")
+      *cfsInfo << "              save inductance in: " << coilDef.Lfile << std::endl;
+
+
+//     if (coilDef.iDir > 3)
+//       *cfsInfo<< "              coilMidPt         = " << coilDef.coilMidPt << std::endl;
+//     if (analysistype_==HARMONIC)
+//       *cfsInfo<< "              current phase     = " << coilDef.currentPhase << std::endl;
     
     *cfsInfo << std::endl << myEndl;
   }
@@ -266,7 +306,7 @@ namespace CoupledField
 #ifdef TRACE
     (*trace) << "entering WriteInfo::WriteHomBC" << std::endl;
 #endif
-    *cfsInfo << pdeName << "-PDE: Homogenous BC on \"" << subDom  << "\"";
+    *cfsInfo << pdeName << "-PDE: Homogenous Dirichlet BC on \"" << subDom  << "\"";
     if (dof)
       *cfsInfo << " with DOF number " << dof;
     
@@ -274,8 +314,22 @@ namespace CoupledField
   }
 
 
+  void WriteInfo::WriteInHomBC(const std::string& pdeName,const std::string& subDom, 
+			       const Double& val, const std::string & fnc, const Integer& dof)
+  {
+#ifdef TRACE
+    (*trace) << "entering WriteInfo::WriteInHomBC" << std::endl;
+#endif
+    *cfsInfo << pdeName << "-PDE: Inhomogenous Dirichlet BC on \"" << subDom  << "\"";
+    if (dof)
+      *cfsInfo << " with DOF number " << dof;
+    *cfsInfo << ", value = " <<  val << ", FncName: " << fnc; 
+    *cfsInfo << myEndl;
+  }
+
+
   void WriteInfo::WriteLoad(const std::string& pdeName, const std::string& subDom, 
-			    Double value, Integer dof)
+			    Double value, const std::string & fnc, Integer dof)
   {
 #ifdef TRACE
     (*trace) << "entering WriteInfo::WriteLoad" << std::endl;
@@ -285,7 +339,7 @@ namespace CoupledField
     if (dof)
       *cfsInfo << " with DOF number " << dof;
 
-    *cfsInfo << ",\t Value=" << value << myEndl << myEndl;
+    *cfsInfo << ", Value=" << value <<  ", FncName: " << fnc <<  myEndl << myEndl;
   }
   
 
