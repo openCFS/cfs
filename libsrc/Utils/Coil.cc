@@ -50,6 +50,7 @@ namespace CoupledField {
     id_           = 0;
     dynamicsFile_ = "undefined";
     isRotational_ = false;
+    flowDir_      = NODIR;
     saveFileL_    = "none";
     saveFileUI_   = "none";
     fileL_        = NULL;
@@ -58,124 +59,122 @@ namespace CoupledField {
     // **************************
     //   Determine type of coil
     // **************************
-    std::string myCoilType;
-    params->Get( "coils", myCoilType, pdeName );
+    params->GetCoilType( coilTypeS_, coilName_, pdeName );
 
-    if ( myCoilType == "measurementCoil2d" ) {
-      myType_ = MEASUREMENT2D;
+    if ( coilTypeS_ == "measurementCoil2d" ) {
+      coilType_ = MEASUREMENT2D;
     }
-    else if ( myCoilType == "measurementCoil3d" ) {
-      myType_ = MEASUREMENT3D;
+    else if ( coilTypeS_ == "measurementCoil3d" ) {
+      coilType_ = MEASUREMENT3D;
     }
-    else if ( myCoilType == "voltageCoil2d" ) {
-      myType_ = VOLTAGE2D;
+    else if ( coilTypeS_ == "voltageCoil2d" ) {
+      coilType_ = VOLTAGE2D;
     }
-    else if ( myCoilType == "voltageCoil3d" ) {
-      myType_ = VOLTAGE3D;
+    else if ( coilTypeS_ == "voltageCoil3d" ) {
+      coilType_ = VOLTAGE3D;
     }
-    else if ( myCoilType == "currentCoil2d" ) {
-      myType_ = VOLTAGE2D;
+    else if ( coilTypeS_ == "currentCoil2d" ) {
+      coilType_ = CURRENT2D;
     }
-    else if ( myCoilType == "currentCoil3d" ) {
-      myType_ = VOLTAGE3D;
+    else if ( coilTypeS_ == "currentCoil3d" ) {
+      coilType_ = CURRENT3D;
     }
     else {
-      Info->Error( "Encountered unsupported type of coil: " + myCoilType,
+      Info->Error( "Encountered unsupported type of coil: " + coilTypeS_,
 		   __FILE__, __LINE__ );
     }
 
     // *******************************************
     //   Read Parameters for 2D Measurement Coil
     // *******************************************
-    if ( myType_ == MEASUREMENT2D ) {
-      params->CGet( "area", area_, "name", coilName_, pdeName, "coils" );
-      params->CGet( "saveFileL", saveFileL_, "name", coilName_, pdeName,
+    if ( coilType_ == MEASUREMENT2D ) {
+      params->CGet( "area", area_, "name", coilName_, 1, pdeName, "coils");
+      params->CGet( "saveFileL", saveFileL_, "name", coilName_, 1, pdeName,
 		    "coils" );
-      params->CGet( "saveFileUI", saveFileUI_, "name", coilName_, pdeName,
-		    "coils" );
-      params->CGet( "id"         , id_,
-		    "name", coilName_, pdeName, "coils" );
+      params->CGet( "saveFileUI", saveFileUI_, "name", coilName_, 1,
+		    pdeName, "coils" );
+      params->CGet( "id", id_, "name", coilName_, 1, pdeName, "coils" );
     }
 
     // *******************************************
     //   Read Parameters for 3D Measurement Coil
     // *******************************************
-    if ( myType_ == MEASUREMENT3D ) {
-      params->CGet( "area", area_, "name", coilName_, pdeName, "coils" );
-      params->CGet( "saveFileL", saveFileL_, "name", coilName_, pdeName,
+    if ( coilType_ == MEASUREMENT3D ) {
+      params->CGet( "area", area_, "name", coilName_, 1, pdeName, "coils");
+      params->CGet( "saveFileL", saveFileL_, "name", coilName_, 1, pdeName,
 		    "coils" );
-      params->CGet( "saveFileUI", saveFileUI_, "name", coilName_, pdeName,
-		    "coils" );
+      params->CGet( "saveFileUI", saveFileUI_, "name", coilName_, 1,
+		    pdeName, "coils" );
     }
 
     // ***************************************
     //   Read Parameters for 2D Voltage Coil
     // ***************************************
-    else if ( myType_ == VOLTAGE2D ) {
-      params->CGet( "area"       , area_ ,
-		    "name", coilName_, pdeName, "coils" );
-      params->CGet( "value"      , value_,
-		    "name", coilName_, pdeName, "coils" );
-      params->CGet( "dynamics"   , dynamicsFile_,
-		    "name", coilName_, pdeName, "coils" );
-      params->CGet( "phase"      , phase_,
-		    "name", coilName_, pdeName, "coils" );
-      params->CGet( " resistance", phase_,
-		    "name", coilName_, pdeName, "coils" );
-      params->CGet( "id"         , id_,
-		    "name", coilName_, pdeName, "coils" );
+    else if ( coilType_ == VOLTAGE2D ) {
+      params->CGet( "area"      , area_ ,
+		    "name", coilName_, 1, pdeName, "coils" );
+      params->CGet( "value"     , value_,
+		    "name", coilName_, 1, pdeName, "coils" );
+      params->CGet( "dynamics"  , dynamicsFile_,
+		    "name", coilName_, 1, pdeName, "coils" );
+      params->CGet( "phase"     , phase_,
+		    "name", coilName_, 1, pdeName, "coils" );
+      params->CGet( "resistance", resistance_,
+		    "name", coilName_, 1, pdeName, "coils" );
+      params->CGet( "id"        , id_,
+		    "name", coilName_, 1,  pdeName, "coils" );
     }
 
     // ***************************************
     //   Read Parameters for 3D Voltage Coil
     // ***************************************
-    else if ( myType_ == VOLTAGE3D ) {
-      params->CGet( "area"       , area_ ,
-		    "name", coilName_, pdeName, "coils" );
-      params->CGet( "value"      , value_,
-		    "name", coilName_, pdeName, "coils" );
-      params->CGet( "dynamics"   , dynamicsFile_,
-		    "name", coilName_, pdeName, "coils" );
-      params->CGet( "phase"      , phase_,
-		    "name", coilName_, pdeName, "coils" );
-      params->CGet( " resistance", phase_,
-		    "name", coilName_, pdeName, "coils" );
+    else if ( coilType_ == VOLTAGE3D ) {
+      params->CGet( "area"      , area_ ,
+		    "name", coilName_, 1, pdeName, "coils" );
+      params->CGet( "value"     , value_,
+		    "name", coilName_, 1, pdeName, "coils" );
+      params->CGet( "dynamics"  , dynamicsFile_,
+		    "name", coilName_, 1, pdeName, "coils" );
+      params->CGet( "phase"     , phase_,
+		    "name", coilName_, 1, pdeName, "coils" );
+      params->CGet( "resistance", resistance_,
+		    "name", coilName_, 1, pdeName, "coils" );
     }
 
     // ***************************************
     //   Read Parameters for 2D Current Coil
     // ***************************************
-    else if ( myType_ == CURRENT2D ) {
+    else if ( coilType_ == CURRENT2D ) {
       params->CGet( "area"    , area_ ,
-		    "name", coilName_, pdeName, "coils" );
+		    "name", coilName_, 1, pdeName, "coils" );
       params->CGet( "value"   , value_,
-		    "name", coilName_, pdeName, "coils" );
+		    "name", coilName_, 1, pdeName, "coils" );
       params->CGet( "dynamics", dynamicsFile_,
-		    "name", coilName_, pdeName, "coils" );
+		    "name", coilName_, 1, pdeName, "coils" );
       params->CGet( "phase"   , phase_,
-		    "name", coilName_, pdeName, "coils" );
+		    "name", coilName_, 1, pdeName, "coils" );
       params->CGet( "id"      , id_,
-		    "name", coilName_, pdeName, "coils" );
+		    "name", coilName_, 1, pdeName, "coils" );
     }
 
     // ***************************************
     //   Read Parameters for 3D Current Coil
     // ***************************************
-    else if ( myType_ == CURRENT3D ) {
+    else if ( coilType_ == CURRENT3D ) {
       params->CGet( "area"    , area_ ,
-		    "name", coilName_, pdeName, "coils" );
+		    "name", coilName_, 1, pdeName, "coils" );
       params->CGet( "value"   , value_,
-		    "name", coilName_, pdeName, "coils" );
+		    "name", coilName_, 1, pdeName, "coils" );
       params->CGet( "dynamics", dynamicsFile_,
-		    "name", coilName_, pdeName, "coils" );
+		    "name", coilName_, 1, pdeName, "coils" );
       params->CGet( "phase"   , phase_,
-		    "name", coilName_, pdeName, "coils" );
+		    "name", coilName_, 1, pdeName, "coils" );
     }
 
     // *******************************************
     //   Open results files for measurement coil
     // *******************************************
-    if ( myType_ == Coil::MEASUREMENT ) {
+    if ( coilType_ == MEASUREMENT2D || coilType_ == MEASUREMENT3D ) {
 
       // Open file stream for storing inductivity
       if ( saveFileL_ != "none" ) {
@@ -202,6 +201,52 @@ namespace CoupledField {
 	if ( fileL_ == NULL ) {
 	  Info->Error( "Could not open " + saveFileUI_, __FILE__, __LINE__ );
 	}
+      }
+    }
+
+    // ***********************
+    //   Read flow direction
+    // ***********************
+    std::vector<std::string> aux;
+    if ( coilType_ == CURRENT3D ) {
+      
+      // Check for currentFlow specification
+      params->CGetList( "currentFlow", aux, "name", coilName_, 1, pdeName,
+			"coils" );
+      if ( aux.size() == 1 ) {
+	if ( aux[0] == "xDir" ) {
+	  flowDir_ = XDIR;
+	}
+	else if ( aux[0] == "yDir" ) {
+	  flowDir_ = YDIR;
+	}
+	else if ( aux[0] == "zDir" ) {
+	  flowDir_ = ZDIR;
+	}
+	else {
+	  Info->Error( "Unknown currentFlow " + aux[0], __FILE__, __LINE__ );
+	}
+      }
+      else if ( aux.size() > 1 ) {
+	Info->Error( "More than 1 currentFlow specifications for coil " +
+		     coilName_, __FILE__, __LINE__ );
+      }
+
+      // Check for rotational specification
+      else {
+	isRotational_ = true;
+	params->CGet( "midPointX", midX_, "name", coilName_, 2, pdeName,
+		      "coils" );
+	params->CGet( "midPointY", midY_, "name", coilName_, 2, pdeName,
+		      "coils" );
+	params->CGet( "midPointZ", midZ_, "name", coilName_, 2, pdeName,
+		      "coils" );
+	params->CGet( "orientX", oriX_, "name", coilName_, 2, pdeName,
+		      "coils" );
+	params->CGet( "orientY", oriY_, "name", coilName_, 2, pdeName,
+		      "coils" );
+	params->CGet( "orientZ", oriZ_, "name", coilName_, 2, pdeName,
+		      "coils" );
       }
 
     }
