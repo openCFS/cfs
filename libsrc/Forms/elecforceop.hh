@@ -35,7 +35,7 @@ public:
 	      BasePDE * ptPDE,
 	      std::vector<Integer> * ptMesh2PDENode,
 	      Vector<Double> * EPotential,
-	      const Integer level);
+	      const Integer level, Boolean isaxi);
   
   //! Destructor
   virtual ~ElecForceOp();

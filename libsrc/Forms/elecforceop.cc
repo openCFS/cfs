@@ -18,13 +18,15 @@ ElecForceOp::ElecForceOp(Grid * ptGrid,
 			 BasePDE * ptPDE,
 			 std::vector<Integer> * ptMesh2PDENode,
 			 Vector<Double> * EPotential,
-			 Integer level) : BaseOperator(ptGrid, ptPDE, ptMesh2PDENode, level)
+			 Integer level,
+			 Boolean isaxi) 
+  : BaseOperator(ptGrid, ptPDE, ptMesh2PDENode, level, isaxi)
 {
 #ifdef TRACE
   (*trace) << "entering ElecForceOp::ElecForceOp" << std::endl;
 #endif
 
-  ElecFieldOp_ = new ElecFieldOp(ptGrid, ptPDE, ptMesh2PDENode, EPotential, level);
+  ElecFieldOp_ = new ElecFieldOp(ptGrid, ptPDE, ptMesh2PDENode, EPotential, level, isaxi);
 
 }
 
@@ -88,7 +90,18 @@ void ElecForceOp::CalcElemElecForce(Array<Double> & F,
           
       Matrix<Double> SpecCornerCoords, J_Transposed;
       SpecCornerCoords.Resize(Dim,NumNodes);
-      
+
+      //account for axisymmetric case
+      Double factor = 1;
+      if (isaxi_)
+	{
+	  std::vector<Double> shpFncAtIp;
+	  std::vector<Double> coordAtIP;
+	  ptElement->ptElem->GetShFncAtIp(shpFncAtIp, nIp);
+	  coordAtIP = CornerCoords * shpFncAtIp;
+	  factor = 2 * PI * coordAtIP[0];
+	}     
+
       // loop over all boundary nodes
       for (Integer nNode=0; nNode<IsBoundaryNode.size(); nNode++)
 	{
@@ -116,8 +129,8 @@ void ElecForceOp::CalcElemElecForce(Array<Double> & F,
 	      dJ_dr = J_r_Trans;
 	      
 	      // Force Calculation
-	      F[i][nNode] += intWeights[nIp-1] * ( (E * ( JInv * (dJ_dr * E) ) * -DetJ  
-					              + ( E * E ) * DetdJ_dr * 0.5) * epsilon);
+	      F[i][nNode] += intWeights[nIp-1] * factor * ( (E * ( JInv * (dJ_dr * E) ) * -DetJ  
+							     + ( E * E ) * DetdJ_dr * 0.5) * epsilon);
 	    } // loop over dimension
 	} // loop over boundary nodes
     } // loop over integration points
