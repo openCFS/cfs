@@ -2,8 +2,8 @@
 
 <cfsSimulation xmlns="http://www.cfs++.org">
 
-  <analysis/>
-  <geometry/>
+  <analysis type="static"/>
+  <geometry type="3d"/>
   <input/>
   <output/>
   <materialData/>
