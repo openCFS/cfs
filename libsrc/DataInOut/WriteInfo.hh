@@ -59,6 +59,9 @@ namespace CoupledField
     void WriteNonLinIter(const std::string& pdeName, const Integer iterationCounter,    
 			 const Double residualErr, const Double incrementalErr);
 
+    /// prints the process of a nonlinear iteration
+    void WriteTimeStep(const std::string& pdeName, const Integer timeStep,    
+		       const Double time);
 
     /// writes domain and dof of homogenous boundary conditions
     void WriteHomBC(const std::string& pdeName, 

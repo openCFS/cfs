@@ -134,7 +134,7 @@ class IntegratorDescriptor : public BaseIntDescriptor
     
     
     /// setup source term
-    void AssembleRHS(const Integer level, const Double time=0);
+    void AssembleSrcRHS(const Integer level, const Double time=0);
     
 
     /// assemble integral sources
@@ -144,7 +144,11 @@ class IntegratorDescriptor : public BaseIntDescriptor
     /// assembling nodal sources
     void AssembleRHSNodalSources(const Integer level, const Double time=0);
     
-  
+
+    ///  assemble a nonlinear RHS part
+    void AssembleNLRHS(const Integer level, const Double time=0);
+    
+
 
     //! computes the coordinates of an element including the delta
     /*!
@@ -228,6 +232,10 @@ class IntegratorDescriptor : public BaseIntDescriptor
     
     /// Initialize all necessary matrices 
     void InitMatrices();
+
+
+    /// Initialize all matrices with nonlinear behavior
+    void InitNonLinMatrices();
 
 
     /// establish matrices

@@ -22,7 +22,6 @@ public:
 
   /// Calculation of vector of right hand side 
   virtual void CalcElemVector(Matrix<Double>& ptCoord, std::vector<Double> & result);
-
 };
 
 
@@ -83,9 +82,6 @@ public:
 private:
   /// source factor
   Double val_;
-
-  Boolean isaxi_;
-  
 };
 
 
@@ -99,10 +95,10 @@ class nLinMech_linFormInt : public LinearForm
 {
 public:
   /// constructor
-  nLinMech_linFormInt(BaseFE * aptelem, MaterialData & matData);
+  nLinMech_linFormInt(BaseFE * aptelem, MaterialData & matData, Boolean axi=FALSE);
 
   /// constructor
-  nLinMech_linFormInt(MaterialData & matData);
+  nLinMech_linFormInt(MaterialData & matData, Boolean axi=FALSE);
 
   /// destructor
   virtual ~nLinMech_linFormInt();
@@ -130,7 +126,7 @@ public:
 	     \end{array}\right) \f]	    
   */
   virtual void SetActElemSol(Matrix<Double>& disp) {elemDisp_ = disp;};
-
+ 
   
 protected:
   /// returns nr. of degrees of freedom

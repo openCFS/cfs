@@ -81,6 +81,10 @@ public:
 // SOLVING SECTION
 // ======================================================
 
+/// do one transient step
+  void StepTransNonLin(const Integer level, const Boolean reset);
+  
+
   //! prepare for correct time stepping
   /*! \param dt time step  */
   virtual void InitTimeStepping(const Double dt);
@@ -111,6 +115,18 @@ protected:
 
 
 private:
+
+  /// does a line search and returns the optimal residual norm
+  Double LineSearch(std::vector<Double>& solIncrement, std::vector<Double>& actSol, Integer level);
+
+
+  /// Write nonlin iteration norms to the cla-file
+  void WriteClaNlNorms(const Integer iterationCounter, const Double residualL2Norm,
+		       const Double extForcesL2Norm, const Double residualErr, 
+		       const Double solIncrL2Norm, const Double actSolL2Norm, 
+		       const Double incrementalErr);
+  
+
   /// calculates matrices D^_ and D^__ (see Hughes p. 217) for reduced integration
   void CalcReducedMat(MaterialData& lambdaMat, MaterialData& mueMat, MaterialData& mat);
 

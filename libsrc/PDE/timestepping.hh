@@ -35,6 +35,12 @@ public:
   //! perform an update to RHS
   virtual void UpdateRHS()=0;
 
+  //! perform an update to RHS with actual solution (for nonlin calculation)
+  virtual void UpdateRHS(std::vector<Double>& actSol)
+  {Error("Error not implemented!",__FILE__,__LINE__);};
+
+  
+
  //!  return pointer to vector with first derivative of solution
   virtual const Array<Double>& GetDeriv1() const { return solderiv1_;}
 

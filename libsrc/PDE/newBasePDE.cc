@@ -80,6 +80,7 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile, WriteResults * a
 
 
   //for adaptivity
+
   if (conf->get_option("adaptspace"))
     conf->get("tolerance_space_error", tolSpaceErr_);
   else
@@ -201,7 +202,7 @@ void BasePDE::StepStaticLin(const Integer level)
 
 
   //this has to be done each time!
-  assemble_->AssembleRHS(level);
+  assemble_->AssembleSrcRHS(level);
 
   if ( PDEisCoupled_ == FALSE || iterCoupledCounter_ == 0)
     {
@@ -280,8 +281,7 @@ void BasePDE::StepTransLin(const Integer level, const Boolean reset)
       algsys_->ConstructEffectiveMatrix(matrix_factor_);
 
       algsys_->InitRHS();
-       //???????????????????????????????       assemble_->AssembleRHS(level,laststepcalc_);
-      assemble_->AssembleRHS(level,lasttimecalc_);
+      assemble_->AssembleSrcRHS(level,lasttimecalc_);
       TS_alg_->UpdateRHS();
     }
   else if (reset)
@@ -298,8 +298,7 @@ void BasePDE::StepTransLin(const Integer level, const Boolean reset)
 
       algsys_->ConstructEffectiveMatrix(matrix_factor_);
  
-       //???????????????????????????????       assemble_->AssembleRHS(level,laststepcalc_);
-      assemble_->AssembleRHS(level,lasttimecalc_);
+      assemble_->AssembleSrcRHS(level,lasttimecalc_);
       TS_alg_->UpdateRHS();
     }
   else
@@ -307,8 +306,8 @@ void BasePDE::StepTransLin(const Integer level, const Boolean reset)
       update = 1;
       job    = 3;
       algsys_->InitRHS();
-       //???????????????????????????????       assemble_->AssembleRHS(level,laststepcalc_);
-      assemble_->AssembleRHS(level,lasttimecalc_);
+ 
+      assemble_->AssembleSrcRHS(level,lasttimecalc_);
  
       TS_alg_->UpdateRHS();
     };

@@ -82,12 +82,11 @@ void WriteResults::ReadSaveNodes()
  conf->ifgetliststr("save_nodes", historyList);  
 
  if (historyList.size())
-   histNodes = new std::list<Integer>[historyList.size()];
-
- pt2Inputfile_->ReadSaveNodes(histNodes, historyList);
-
- if (historyList.size())
    {
+     histNodes = new std::list<Integer>[historyList.size()];
+     
+     pt2Inputfile_->ReadSaveNodes(histNodes, historyList);
+
      Info->PrintVec("Area names, in which save nodes are stored:", historyList);
      
      for(int i=0; i<historyList.size(); i++)

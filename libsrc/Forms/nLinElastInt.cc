@@ -6,6 +6,12 @@
 namespace CoupledField
 {
 
+
+// =============================================================================
+// 3D nonlinear mechanics
+// =============================================================================
+
+
   /// calculates Piola-Kirchoff-stresses T (vector notation)
 // T = c . V with c the stiffness matrix and V the Green-Lagrange strain vector
 // V = B_lin * u  +  1/2 * B_nonLin * u
@@ -52,21 +58,6 @@ calcMaterialDMat(Matrix<Double> & dMat)
 #ifdef TRACE
   (*trace) << "entering mech3DInt_PiolaStress::calcMaterialDMat" << std::endl;
 #endif
-
-//   // dirty trick: dimension of d-matrix is set to 6 (as it should be in 3d mechanics)
-//   // this is done, because the special Piola-Kirchhoff-BDB uses a d-matrix of size 9
-//   // this means, the calculation of the "standard" (linear mech.) and the nonlinear b-matrix
-//   // would be of wrong dimension
-//   setPiolaDimD( getMaterialDMatSize() );
-
-//   // this is the original material matrix
-//   // calcDMat without 
-//   nLinMech3dInt_BNonLin::calcDMat(dMat);
-
-//   // set size back
-//   setPiolaDimD( getFullPiolaDMatSize() );
-
-
 
   const Integer nrElems3d = getMaterialDMatSize();
   
@@ -167,8 +158,11 @@ convertStressVecToTensor(Matrix<Double>& stressTensor, std::vector<Double>& piol
     dMat.Resize(dimD);
     
 
-    for (Integer i=0; i<nrDofs; i++)
-      dMat.SetSubMatrix(stressTensor, i*nrDofs, i*nrDofs);
+    if (isaxi_)
+      dMat = stressTensor;
+    else
+      for (Integer i=0; i<nrDofs; i++)
+	dMat.SetSubMatrix(stressTensor, i*nrDofs, i*nrDofs);
   }
 
 
@@ -202,9 +196,45 @@ convertStressVecToTensor(Matrix<Double>& stressTensor, std::vector<Double>& piol
       for(int globPos=0; globPos < nrDofs; globPos++)
 	for(int actDof=0; actDof < nrDofs; actDof++)
 	  bMat[globPos*nrDofs + actDof][actNode * nrDofs + globPos] = xiDx[actNode][actDof];      
+
+
+    if (isaxi_)
+      {
+	const Integer spaceDim = ptelem->GetDim();
+	std::vector<Double> shpFncAtIp;
+	std::vector<Double> coordAtIP;
+	
+	ptelem->GetShFncAtIp(shpFncAtIp,ip);
+	coordAtIP = ptCoord * shpFncAtIp;
+	
+	for (int actNode = 0; actNode < nrNodes; actNode++)	     
+	  bMat[getDimD() -1][actNode * spaceDim] = shpFncAtIp[actNode] / coordAtIP[0];
+      }
+    //    myCout << "PIOLA Bmat: " << myEndl << bMat <<    myEndl;
+
   }
 
 
+
+
+  // calculates the D-matrix of a 3d-problem 
+  // (see mech3dInt::calcDMat)
+  void nLinMech3dInt_BNonLin::calcDMat(Matrix<Double> & dMat)
+  {
+#ifdef TRACE
+    (*trace) << "entering mech3DInt_BNonLin::calcDMat " << std::endl;
+#endif
+    const Integer nrElems3d = getDimD();
+    
+    Matrix<Double> * matMatrix =  ptMaterial->GetMatrix();
+    
+    dMat.Resize(nrElems3d);
+
+    for (Integer i=0; i<nrElems3d; i++)
+      for (Integer j=0; j<nrElems3d; j++)
+	dMat[i][j] = (*matMatrix)[i][j];	
+  }
+  
 
 
 
@@ -345,7 +375,7 @@ void PreStressInt::CalcStressVec(std::vector<Double>& preStressVec, Integer ip, 
     Matrix<Double> linBMat;    
     linElastInt::calcBMat( linBMat, ip, ptCoord);
 
-    
+
     bMat.Resize(getDimD(), nrNodes * nrDofs);
 
     
@@ -380,33 +410,76 @@ void PreStressInt::CalcStressVec(std::vector<Double>& preStressVec, Integer ip, 
 	
 	bMat.SetSubMatrix(bMatOneNode, 0, actNode*nrDofs);
       }
+
+
+    if (isaxi_)
+      {
+	const Integer spaceDim  = ptelem->GetDim();
+
+	std::vector<Double> shpFncAtIp;
+	ptelem->GetShFncAtIp(shpFncAtIp, ip);
+
+	std::vector<Double> coordAtIP;
+	coordAtIP = ptCoord * shpFncAtIp;
+
+	for (Integer actNode = 0; actNode < nrNodes; actNode++)	     
+	  {
+	    //  (N_a/r) * (u_x/r)
+	    bMat[getDimD() - 1][actNode * spaceDim]     = elemDisp_[0][actNode] * shpFncAtIp[actNode] / pow(coordAtIP[0],2);
+	    bMat[getDimD() - 1][actNode * spaceDim + 1] = 0;
+	  }
+      }
+
+    // FRED
+    //    myCout << "calcNLBMat" << myEndl << bMat << myEndl;
+    
+//  	 << "nlinBMat" << myEndl << nLinBMat << myEndl
+// 	 << "nLinStrain" << myEndl << nonLinStrain << myEndl;
+
   }
   
 
 
-// =============================================================================
-// class for nonlinear differential operator (one part in nonlinear mechanics)
-// =============================================================================
 
-
-  // calculates the D-matrix of a 3d-problem 
-  // (see mech3dInt::calcDMat)
-  void nLinMech3dInt_BNonLin::calcDMat(Matrix<Double> & dMat)
-  {
-#ifdef TRACE
-    (*trace) << "entering mech3DInt_BNonLin::calcDMat " << std::endl;
-#endif
-    const Integer nrElems3d = getDimD();
-    
-    Matrix<Double> * matMatrix =  ptMaterial->GetMatrix();
-    
-    dMat.Resize(nrElems3d);
-
-    for (Integer i=0; i<nrElems3d; i++)
-      for (Integer j=0; j<nrElems3d; j++)
-	dMat[i][j] = (*matMatrix)[i][j];	
-  }
+void nLinElastInt::
+Calc2DMaterialMatrix(Matrix<Double> & dMat, enum orientation2D actOrientation)
+{  
+  const Integer nrElems2d = 3;
   
+  Integer rowPtrXY[] = {1,2,6};  // indices of rows and lines for xy-plane
+  Integer rowPtrYZ[] = {2,3,4};  // indices of rows and lines for yz-plane
+  Integer rowPtrXZ[] = {1,3,5};  // indices of rows and lines for xz-plane
+  Integer * rowPtr;
+  Integer i,j;
+  
+  switch(actOrientation)
+    {	
+    case xy: 
+      {
+	rowPtr = rowPtrXY;
+	break;
+      }
+    case xz: 
+      {
+	rowPtr = rowPtrXZ;
+	break;
+      }
+      
+    case yz: 
+      {
+	rowPtr = rowPtrYZ;    
+	break;
+      }
+    }    
+  
+  Matrix<Double> * matMatrix =  ptMaterial->GetMatrix();
+  
+  dMat.Resize(nrElems2d);
+  
+  for (i=0; i<nrElems2d; i++)
+    for (j=0; j<nrElems2d; j++)
+      dMat[i][j] = (*matMatrix)[rowPtr[i]-1][rowPtr[j]-1];	
+}
 
 
 
@@ -438,20 +511,10 @@ void nLinMechPlaneStrainInt_PiolaStress::calcMaterialDMat(Matrix<Double> & dMat)
   (*trace) << "entering mechPlaneStraneInt_PiolaStress::calcMaterialDMat" << std::endl;
 #endif
 
-
   Calc2DMaterialMatrix(dMat, actOrientation);
-  
-
-//   const Integer nrElems2d = getDimD();
-  
-//   Matrix<Double> * matMatrix =  ptMaterial->GetMatrix();
-  
-//   dMat.Resize(nrElems2d);
-  
-//   for (Integer i=0; i<nrElems2d; i++)
-//     for (Integer j=0; j<nrElems2d; j++)
-//       dMat[i][j] = (*matMatrix)[i][j];	
 }
+
+
 
 
   /// conversion of stress vector to stress tensor
@@ -459,7 +522,7 @@ void nLinMechPlaneStrainInt_PiolaStress::
 convertStressVecToTensor(Matrix<Double>& stressTensor, std::vector<Double>& piolaStress)
 {
 #ifdef TRACE
-    (*trace) << "entering mech3DInt_PiolaStress::convertStressVecToTensor " << std::endl;
+    (*trace) << "entering mechMechPlanseStrainInt_PiolaStress::convertStressVecToTensor " << std::endl;
 #endif
 
     Integer indexRow[] = {1, 2, 1}; // first index of tensor notation
@@ -478,9 +541,80 @@ convertStressVecToTensor(Matrix<Double>& stressTensor, std::vector<Double>& piol
 
 
 
-  // ===================================================================================
-  // =================== standard con- and destructors (just for tracing) ==============
-  // ===================================================================================
+
+
+
+// =============================================================================
+// 2D nonlinear axisymmetric mechanics
+// =============================================================================
+
+  
+  // calculated the D-matrix for the plain strain state
+void  nLinMechAxiInt_BNonLin::calcDMat(Matrix<Double> & dMat)
+  {
+#ifdef TRACE
+  (*trace) << "entering mechPlainStrainNLinIntInt::calcDMat " << std::endl;
+#endif
+
+  CalcAxiMaterialMat(dMat, actOrientation);
+  }
+
+  
+
+
+
+
+void nLinMechAxiInt_PiolaStress::calcMaterialDMat(Matrix<Double> & dMat)
+{
+#ifdef TRACE
+  (*trace) << "entering mechPlaneStraneInt_PiolaStress::calcMaterialDMat" << std::endl;
+#endif
+
+  CalcAxiMaterialMat(dMat, actOrientation);
+}
+
+
+  /// conversion of stress vector to stress tensor
+void nLinMechAxiInt_PiolaStress::
+convertStressVecToTensor(Matrix<Double>& stressTensor, std::vector<Double>& piolaStress)
+{
+#ifdef TRACE
+    (*trace) << "entering nLinMechAxiInt_PiolaStress::convertStressVecToTensor " << std::endl;
+#endif
+
+    // indizes see Bathe: "Finite Element Procedures", Sec. 6.3, 
+    // page 553: "2. Piola-Kirchhoff stress matrix & vector"
+    const Integer indexSize = 9;
+    Integer indexRow[]   = {1, 2, 1, 2, 3, 4, 3, 4, 5}; // first index of tensor notation
+    Integer indexCol[]   = {1, 2, 2, 1, 3, 4, 4, 3, 5}; // second index of tensor notation
+    Integer indexPiola[] = {1, 2, 3, 3, 1, 2, 3, 3, 4}; // index in piola stress vec
+
+    const Integer axiTensSize = 5;
+    
+    stressTensor.Resize( axiTensSize );
+    stressTensor.Init();
+    
+    // build symmetrical tensor
+    for (Integer i=0; i<indexSize; i++)
+      {
+	stressTensor[ indexRow[i] -1 ][ indexCol[i] -1 ] = piolaStress[ indexPiola[i] -1 ];	
+	stressTensor[ indexCol[i] -1 ][ indexRow[i] -1 ] = piolaStress[ indexPiola[i] -1 ];	
+      }
+//     myCout << "stressTensor " << myEndl << stressTensor << myEndl
+// 	   << "piolaStress " << myEndl << piolaStress << myEndl;    
+}
+
+
+
+
+
+
+
+
+
+// ===================================================================================
+// =================== standard con- and destructors (just for tracing) ==============
+// ===================================================================================
 
   // base class for nonlinear calculation of elasticity
   nLinElastInt::nLinElastInt(BaseFE * aptelem, MaterialData & matData) 
@@ -648,6 +782,88 @@ convertStressVecToTensor(Matrix<Double>& stressTensor, std::vector<Double>& piol
 
 
 
+  // ===================================================================================
+  // axisymmetric nonlinear calculation of elasticity
+  // ===================================================================================
+
+  nLinMechAxiInt_BNonLin::nLinMechAxiInt_BNonLin(BaseFE * aptelem, MaterialData & matData) 
+    : nLinElastInt(aptelem, matData)
+  {
+#ifdef TRACE
+    (*trace) << "entering nLinMechAxiInt_BNonLin::nLinMechAxiInt_BNonLin" << std::endl;
+#endif
+    isaxi_ = TRUE;
+  }
+
+
+  nLinMechAxiInt_BNonLin::nLinMechAxiInt_BNonLin(MaterialData & matData) 
+    : nLinElastInt(matData)
+  {
+#ifdef TRACE
+    (*trace) << "entering nLinMechAxiInt_BNonLin::nLinMechAxiInt_BNonLin" << std::endl;
+#endif
+    isaxi_ = TRUE;
+  }
+ 
+
+  nLinMechAxiInt_BNonLin::~nLinMechAxiInt_BNonLin()
+  {
+#ifdef TRACE
+    (*trace) << "entering nLinMechAxiInt_BNonLin::~nLinMechAxiInt_BNonLin" << std::endl;
+#endif
+  }
+
+
+
+
+
+
+  nLinMechAxiInt_PiolaStress::nLinMechAxiInt_PiolaStress(BaseFE * aptelem, MaterialData & matData) 
+    : nLinMech3dInt_PiolaStress(aptelem, matData)
+  {
+#ifdef TRACE
+    (*trace) << "entering nLinMechAxiInt_PiolaStress::nLinMechAxiInt_PiolaStress" << std::endl;
+#endif
+    isaxi_ = TRUE;
+    setPiolaDimD( getFullPiolaDMatSize() );
+  }
+
+
+
+  // nonlinear calculation of elasticity for axi 
+  nLinMechAxiInt_PiolaStress::nLinMechAxiInt_PiolaStress(MaterialData & matData) 
+    : nLinMech3dInt_PiolaStress(matData)
+
+  {
+#ifdef TRACE
+    (*trace) << "entering nLinMechAxiInt_PiolaStress::nLinMechAxiInt_PiolaStress" << std::endl;
+#endif
+    isaxi_ = TRUE;
+    setPiolaDimD( getFullPiolaDMatSize() );
+  }
+ 
+
+  nLinMechAxiInt_PiolaStress::~nLinMechAxiInt_PiolaStress()
+  {
+#ifdef TRACE
+    (*trace) << "entering nLinMechAxiInt_PiolaStress::~nLinMechAxiInt_PiolaStress" << std::endl;
+#endif
+  }
+
+
+
+
+
+
+
+
+  // ===================================================================================
+  // prestressing
+  // ===================================================================================
+
+
+
+
   // class for regarding 3d prestress
 PreStressInt::PreStressInt(BaseFE * aptelem, MaterialData & matData, Double aPreStressVal, Directions stressDir) 
     : nLinMech3dInt_PiolaStress(aptelem, matData), preStressVal_(aPreStressVal), preStressDir_(stressDir)
@@ -667,49 +883,6 @@ PreStressInt::PreStressInt(BaseFE * aptelem, MaterialData & matData, Double aPre
 #endif
   }
 
-
-
-
-
-void nLinElastInt::
-Calc2DMaterialMatrix(Matrix<Double> & dMat, enum orientation2D actOrientation)
-{  
-  const Integer nrElems2d = 3;
-  
-  Integer rowPtrXY[] = {1,2,6};  // indices of rows and lines for xy-plane
-  Integer rowPtrYZ[] = {2,3,4};  // indices of rows and lines for yz-plane
-  Integer rowPtrXZ[] = {1,3,5};  // indices of rows and lines for xz-plane
-  Integer * rowPtr;
-  Integer i,j;
-  
-  switch(actOrientation)
-    {	
-    case xy: 
-      {
-	rowPtr = rowPtrXY;
-	break;
-      }
-    case xz: 
-      {
-	rowPtr = rowPtrXZ;
-	break;
-      }
-      
-    case yz: 
-      {
-	rowPtr = rowPtrYZ;    
-	break;
-      }
-    }    
-  
-  Matrix<Double> * matMatrix =  ptMaterial->GetMatrix();
-  
-  dMat.Resize(nrElems2d);
-  
-  for (i=0; i<nrElems2d; i++)
-    for (j=0; j<nrElems2d; j++)
-      dMat[i][j] = (*matMatrix)[rowPtr[i]-1][rowPtr[j]-1];	
-}
 
 
 
