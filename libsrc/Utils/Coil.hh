@@ -1,6 +1,10 @@
 #ifndef COIL_FILE_HH
 #define COIL_FILE_HH
 
+#include <string>
+#include "General/environment.hh"
+
+
 namespace CoupledField {
 
   //! Class for describing coils
