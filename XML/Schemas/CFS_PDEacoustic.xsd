@@ -285,6 +285,14 @@
   <xsd:complexType name="DT_AcousticNodeHistory">
     <xsd:attribute name="type" type="DT_AcousticNodeData" use="required"/>
     <xsd:attribute name="saveNodes" type="xsd:token" use="required"/>
+    <xsd:attribute name="format" use="optional" default="complete">
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:token">
+          <xsd:enumeration value="complete"/>
+          <xsd:enumeration value="maxVal"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
   </xsd:complexType>
 
   <!-- Global type for specifying the desired mechanical output quantities -->
