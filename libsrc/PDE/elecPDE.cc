@@ -338,15 +338,15 @@ void ElecPDE::CalcCharges()
 
   NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
   StdVector<Elem*> surfElems, volElems;
-  Vector<Double> lCoordSurf, lCoordVol, elemDField;
-  //GradientFieldOp<Double> * dFieldOp;
-  // ElecChargeOp<Double> * chargeOp;
+  Vector<Double> lCoordSurf, lCoordVol, elemDField, normal;
   BaseFE * ptSurfElem, * ptVolElem;
   Double permittivity = 0.0;
   Double elemNormalD = 0.0;
   Double charge = 0.0;
   Double sumOfCharges = 0.0;
   Integer pdeElemNum = 0;
+ 
+ 
 
   
   // Create vector with interpolation coordinate.
@@ -394,15 +394,26 @@ void ElecPDE::CalcCharges()
 	for (Integer i=0; i<subdoms_.GetSize(); i++)
 	  {
 	    if (subdoms_[i] == volElems[iElem]->namesd)
-	      permittivity  = materialData_[iSD].GetPermittivity(2,2);
+	      permittivity  = materialData_[i].GetPermittivity(2,2);
 	  }
 	
 	// Calc electric flux density
-	dFieldOp->CalcElemGradField(elemDField, volElems[iElem], 
-				    lCoordVol, permittivity);
 	
-	// Calc normal component
-	elemNormalD = lCoordVol * elemDField;
+	dFieldOp->CalcElemGradField(elemDField, volElems[iElem], 
+				    lCoordVol,permittivity);
+	
+	// Calc global normal
+	CalcLineNormalVec(normal, *surfElems[iElem], *volElems[iElem]);
+	
+	// Calc normal flux density component
+	Vector<Double> elemNoralD;
+
+	// Since the routine CalcLinNormal always computes a normal
+	// which points in the OPPOSITE direction of the volume elment,
+	// we have to multiply the normal with -1 to get the correct sign for
+	// the charges
+	elemNormalD =  -normal * elemDField;
+	
 	chargeOp->CalcElemCharge(charge, surfElems[iElem], 
 				 lCoordSurf, elemNormalD);
 
@@ -412,7 +423,7 @@ void ElecPDE::CalcCharges()
 	// can handle these
 	Vector<Double> chargeVec(1);
 	chargeVec[0] = charge;
-	sumOfCharges +=charge;
+	sumOfCharges +=charge ;
 	charges_.SetElemResult(pdeElemNum-1, chargeVec);
 	
       }
@@ -462,9 +473,11 @@ void ElecPDE::CalcNodeForce(Vector<Double> & force,
 
       // Add the element force to the according coupling node
       for (Integer ielemnode=0; ielemnode<elems[ielem]->connect.GetSize(); ielemnode++)
-	for( Integer idim=0; idim<dim_; idim++)
+	for( Integer idim=0; idim<dim_; idim++) {
 	  force[elemNodeToCouplingNode[ielem][ielemnode]*dim_+idim] += 
 	    force_temp(ielemnode,idim);
+
+	}
     }
 
 
