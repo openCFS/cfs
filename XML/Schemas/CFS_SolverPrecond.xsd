@@ -32,7 +32,7 @@
       </xsd:sequence>
 
       <!-- List of available solvers to chose from --> 
-      <xsd:attribute name="type" use="optional" default="lapackLU">
+      <xsd:attribute name="type" use="optional" default="Direct">
         <xsd:simpleType>
           <xsd:restriction base="xsd:token">
             <xsd:enumeration value="Direct"/>
