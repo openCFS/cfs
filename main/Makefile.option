@@ -53,7 +53,7 @@ endif
 #
 ifeq ("$(XMLPARAMS)","yes")
 ifeq ("$(XMLSCHEMA)","")
-   XMLSCHEMA $(CVSEXTERNAL)/CFS++XML
+   XMLSCHEMA = $(CVSEXTERNAL)/CFS++XML
 endif
 endif
 
