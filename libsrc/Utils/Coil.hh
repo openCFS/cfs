@@ -1,0 +1,120 @@
+#ifndef COIL_FILE_HH
+#define COIL_FILE_HH
+
+namespace CoupledField {
+
+  //! Class for describing coils
+
+  //! This class is basically a container for all parameters required for
+  //! describing the different types of coils used in our coupled field
+  //! computations.
+  //! Besides its container functionality it also provides via its constructor
+  //! a method to interface with the XML parameter handling object from which
+  //! it obtains the parameter values.
+  class Coil {
+
+  public:
+
+    //! Constructor for coils
+
+    //! This is the only allowed constructor for the Coil class. It expects
+    //! as first input argument the name of a coil. As second input argument
+    //! it expects the name of the PDE in whose definition the coil appears.
+    //! The constructor will use these two symbolic names to query the XML
+    //! parameter handling object for the coil's parameters.
+    //! If the coil is a measurement coil it will also, if desired, open the
+    //! files for storing the current/voltages and the inductivity.
+    Coil( std::string coilName, std::string pdeName );
+
+    //! Default desctructor
+
+    //! The default destructor is responsible for closing the output files
+    //! in the case that the object describes a measurement coil.
+    ~Coil();
+
+    //! Enumeration type for distinguishing the different types of coils
+    typedef enum Type { MEASUREMENT2D, MEASUREMENT3D,
+			VOLTAGE2D, VOLTAGE3D,
+			CURRENT2D, CURRENT3D };
+
+    //! Enumeration type for specifying flow direction for 3D current coils
+    typedef enum FlowDir { XDIR, YDIR, ZDIR };
+
+    //! The type of coil this object describes
+    Coil::Type myType_;
+
+    //! Symbolic name for the coil this object describes
+    std::string coilName_;
+
+    //! Area of cross section of a single coil winding
+    Double area_;
+
+    //! Size of the voltage (voltage coils) resp. current (current coils)
+    Double value_;
+
+    //! Name of file containing the time development of voltage or current
+    std::string dynamicsFile_;
+
+    //! Excitation phase in degrees
+    Double phase_;
+
+    //! Resistance of the coil
+    Double resistance_;
+
+    //! Name of results file for inductivity
+
+    //! This string stores the name of the file for writing out the computed
+    //! inductivity for the coil. If its value is 'none' this indicates that
+    //! the inductivity needs not be computed.
+    std::string saveFileL_;
+
+    //! Name of results file for current/voltage
+
+    //! This string stores the name of the file for writing out the computed
+    //! current resp. voltage for the coil. If its value is 'none' this
+    //! indicates that the inductivity needs not be computed.
+    std::string saveFileUI_;
+
+    //! File stream for inductivity
+    std::ofstream *fileL_;
+
+    //! File stream for current/voltage
+    std::ofstream *fileUI_;
+
+    //! Identifier for windings in 2D coils
+    Integer id_;
+
+    //! For current coils the direction of the current flow
+    Coil::FlowDir flowDir_;
+
+    //! For a current coil in 3D this describes, whether we have a rotational
+    //! symmetry alng one axis for the coil.
+    bool isRotational_;
+
+    //@{
+    //! Component of vector giving midpoint for symmetry axis??
+    Double midX_;
+    Double midY_;
+    Double midZ_;
+    //@}
+
+    //@{
+    //! Component of vector giving orientation of symmetry axis
+    Double oriX_;
+    Double oriY_;
+    Double oriZ_;
+    //@}
+
+  private:
+
+    //! The default constructor is not allowed
+    Coil();
+
+    //! The copy constructor is not allowed
+    Coil( const Coil &c );
+
+  };
+
+}
+
+#endif
