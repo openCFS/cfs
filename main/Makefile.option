@@ -94,8 +94,9 @@
 # -----------------------------------------------------------------------------
 
 ifeq ("$(OLAS_ROOT)","")
+
+export OLAS_ROOT=/home/local/lse/tlahmer/CFS/OLAS
 # OLAS_ROOT = /home/data/proj/SoftwareLibraries/OLAS_STABLE_1
-OLAS_ROOT = /home/lse10/lse/mmohr/local/olasOPT
 endif
 
 ifeq ("$(HYPRE_ROOT)","")
@@ -111,7 +112,8 @@ XERCES_ROOT = /home/data/proj/SoftwareLibraries/xerces-c
 endif
 
 ifeq ("$(SCHEMA_ROOT)","")
-SCHEMA_ROOT = /home/data/proj/share/CFS++XML
+SCHEMA_ROOT = /home/local/lse/tlahmer/CFS/CFS++XML
+# SCHEMA_ROOT = /home/data/proj/share/CFS++XML
 endif
 
 # -----------------------------------------------------------------------------
@@ -126,7 +128,7 @@ endif
 # be a NULL pointer. This can be problematic, if e.g. LAS was compiled with
 # LINUXg
 # -----------------------------------------------------------------------------
-TRACE = 10
+TRACE = 100
 
 # -----------------------------------------------------------------------------
 # CFS++ FUNCTIONALITY
@@ -170,13 +172,13 @@ DATABASE = no
 HYPRE = yes
 
 # Was OLAS compiled with support for LAPACK?
-LAPACK = yes
+LAPACK = no
 
 # Was OLAS compiled with support for TVMET?
-TVMET = yes
+TVMET = no
 
 # Was OLAS compiled with support for Pardiso?
-PARDISO = yes
+PARDISO = no
 
 
 # -----------------------------------------------------------------------------

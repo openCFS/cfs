@@ -38,7 +38,8 @@ SUBLIBDIR = Driver PDE CoupledPDE \
             DataInOut/Unverg DataInOut/GMV \
             DataInOut/DatFile DataInOut/AnsysFile DataInOut\
             DataInOut/Database\
-            Utils Matrix General ODESolve ODEDescr ParamIdent\
+            Utils Matrix General ODESolve ODEDescr \
+	    ParamIdent\
             $(EXTRA_MODULES)
 
 PATHSUBLIBDIR = $(addprefix $(LIBSRC_DIR)/, $(SUBLIBDIR))
@@ -54,8 +55,9 @@ mylibrary = driver domain pde coupledpde forms  \
             elements3d elements2d elements1d elements \
             gridcfs definefiles gmv unverg \
 	    ansysfile datainout paramhandling \
-            driver paramIdent\
+            driver \
             utils matrix general odesolve odedescr \
+	    paramIdent \
             $(EXTRA_CFSLIBS)
 
 # -----------------------------------------------------------------------------
