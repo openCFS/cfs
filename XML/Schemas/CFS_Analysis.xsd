@@ -44,15 +44,15 @@
   <!-- ******************************************************************** -->
 
   <!-- This element is abstract in order to force substitution -->
-  <!-- by the derived specialised PDE elements -->
+  <!-- by the derived specialised analysis elements -->
   <xsd:element name="AnalysisBasic" type="DT_AnalysisBasic" abstract="true"/> 
-  
+
 
   <!-- ******************************************************************** -->
   <!--   Definition of element AnalysisTransient -->
   <!-- ******************************************************************** -->
   <xsd:element name="transient" type="DT_AnalysisTransient"
-               substitutionGroup="AnalysisBasic"> 
+    substitutionGroup="AnalysisBasic"> 
   </xsd:element>
 
   <!-- Data type for transient section, i.e. parameters required for
@@ -78,7 +78,7 @@
           </xsd:element>
         </xsd:sequence>
         <xsd:attribute name="tag"  type="xsd:string" use="optional"
-                       default="anyTag"/> 
+          default="anyTag"/> 
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
@@ -87,7 +87,7 @@
   <!--   Definition of element AnalysisHarmonic -->
   <!-- ******************************************************************** -->
   <xsd:element name="harmonic" type="DT_AnalysisHarmonic"
-               substitutionGroup="AnalysisBasic"/>
+    substitutionGroup="AnalysisBasic"/>
 
   <!-- Data type for harmonic section, i.e. parameters required for
        performing a harmonic analysis -->
@@ -100,7 +100,7 @@
           <xsd:element name="stopFreq" type="DT_PosFloat"/>
         </xsd:sequence>
         <xsd:attribute name="tag"  type="xsd:string" use="optional"
-                       default="anyTag"/> 
+          default="anyTag"/> 
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType> 
@@ -109,7 +109,7 @@
   <!--   Definition of element AnalysisMultiSequence -->
   <!-- ******************************************************************** -->
   <xsd:element name="multiSequence" type="DT_AnalysisMultiSequence"
-               substitutionGroup="AnalysisBasic"/> 
+    substitutionGroup="AnalysisBasic"/> 
 
   <xsd:complexType name="DT_AnalysisMultiSequence">
     <xsd:complexContent>
@@ -120,8 +120,10 @@
               <xsd:sequence>
                 <xsd:element name="pde" maxOccurs="unbounded">
                   <xsd:complexType>
-                    <xsd:attribute name="refTag" type="xsd:token" use="required"/>
-                    <xsd:attribute name="type" type="DT_PDEType" use="required"/>
+                    <xsd:attribute name="refTag" type="xsd:token"
+                      use="required"/>
+                    <xsd:attribute name="type" type="DT_PDEType"
+                      use="required"/>
                     <xsd:attribute name="analysis" use="required">
                       <xsd:simpleType>
                         <xsd:restriction base="xsd:token">

@@ -96,9 +96,9 @@
         </xsd:complexType>
       </xsd:element>
      
-      <!-- Parameters for transient analysis (semi-optional) -->
+      <!-- Parameters for transient/harmonic analysis (semi-optional) -->
       <xsd:element ref="AnalysisBasic" minOccurs="0"
-                   maxOccurs="unbounded"/>
+        maxOccurs="unbounded"/>
 
       <!-- Parameters for specifying integration rules (optional) -->
       <xsd:element name="integRules" type="DT_IntegRules" minOccurs="0"/>
