@@ -44,68 +44,80 @@ using namespace CoupledField;
 #define STDOUT std::cout
 #endif
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
 
-  Integer numargs=2;  
+  Integer numargs=2;
   Boolean SkeletonPrint=FALSE;
 
-  if (argc > 1)
-    for (Integer i=1; i<argc; i++)
-      {
-	if (!strcmp("-skel", argv[i])) 
-	  {
-	    SkeletonPrint=TRUE;
-	    numargs++;
-	  }
-	else if (!strcmp("-grid", argv[i])) 
-	  {
-	    PrintGridOnly = TRUE;
-	    numargs++;
-	  }
-#ifdef TRACE
-	else if (!strcmp("-notrace", argv[i])) 
-	  {
+  // ==========================================================================
+  // HANDLING OF COMMAND LINE PARAMETERS
+  // ==========================================================================
 
-	    OutInfo::FcnTraceHandler::SetMaxTraceDepth(0);
-	    numargs++;
-	  }
-#endif
-	
+  if (argc > 1) {
+    for ( Integer i = 1; i < argc; i++ ) {
+      if ( !strcmp( "-skel", argv[i]) ) {
+	SkeletonPrint = TRUE;
+	numargs++;
       }
-  
-#ifdef PARALLEL //initialize MPI
-  int commrank,commsize;
-  	
-  MPI_Comm comm = MPI_COMM_WORLD;
+      else if ( !strcmp( "-grid", argv[i]) ) {
+	PrintGridOnly = TRUE;
+	numargs++;
+      }
 
-	MPI_Init(&argc,&argv);
-          
-    MPI_Comm_size(comm, &commsize);
-    MPI_Comm_rank(comm, &commrank);
+#ifdef TRACE
+      else if (!strcmp("-notrace", argv[i])) {
+	OutInfo::FcnTraceHandler::SetMaxTraceDepth(0);
+	numargs++;
+      }
+#endif
+
+    }
+  }
+
+  if (argc < numargs) {
+    STDOUT << std::endl;
+    STDOUT << " \033[36mUsage\033[0m : cfs [-options] name \n"
+	   << "\t\033[36m name    \033[0m:"
+	   << " name of input file without extension\n"
+	   << "\t\033[36m options \033[0m:"
+	   << " -skel for writing a skeleton of a config-file\n"
+	   << "\t           -grid for writing just the grid to result-file\n"
+#ifdef DEBUG
+	   << "\t           -notrace do not write a trace file\n"
+#endif
+	   << "\n\033[31mERROR:\033[0m "
+	   << " Invalid parameter specification. See usage details above.\n";
+    exit(1);
+  }
+
+  // Obtain basename for CFS++ IO-files
+  char *name = argv[argc-1];
+
+
+  // ==========================================================================
+  // INITIALISATION OF MPI
+  // ==========================================================================
+
+#ifdef PARALLEL
+  int commrank,commsize;
+  MPI_Comm comm = MPI_COMM_WORLD;
+  MPI_Init(&argc,&argv);
+  MPI_Comm_size(comm, &commsize);
+  MPI_Comm_rank(comm, &commrank);
 #endif //parallel
 
-//  OutInfo::trace = new std::ofstream("trace.data");
-  
-  if (argc < numargs) 
-    {
-      STDOUT << std::endl;
-      STDOUT << " \033[36mUsage\033[0m : cfs [-options] name "<< std::endl 
-	     << "\t \033[36m name    \033[0m: name of input file without extension" 
-	     << std::endl 
-	     << "\t \033[36m options \033[0m: -skel for writing a skeleton of a config-file" << std::endl 
-	     << "\t            -grid for writing just the grid to result-file" << std::endl 
-#ifdef DEBUG
-	     << "\t            -notrace prevent writing a trace file" << std::endl 
-#endif
-	     << std::endl ;
-      std::cerr << std::endl << "\033[31mERROR:\033[0m " << "Invalid Running of CFS" << std::endl;
-      exit(1);
-    }
-  
-  char *name = argv[argc-1];
-  
-  Char * filename=new char[100];
+
+  // ==========================================================================
+  // SKELETON OF CONFIG-FILE
+  // ==========================================================================
+
+  // This block is used for writing a skeleton of a .conf or .xml parameter
+  // file. Since normally all opening of files is handled in definefiles
+  // the debug and trace file are opened separately here. Definefiles cannot
+  // be used, since it would try to open other files also, that need not be
+  // present????
+
+  Char *filename = new char[100];
 
   // for writing a skeleton of a config file by using the information
   // from the mesh-file
@@ -113,7 +125,7 @@ int main(int argc, char *argv[])
     {
 #ifdef TRACE
       strcpy(filename, name);
-      trace=new std::ofstream(strcat(filename,".trace"));
+      trace = new std::ofstream(strcat(filename,".trace"));
       if (!trace) Error("Can't open trace-file");
 #endif
  
@@ -134,42 +146,56 @@ int main(int argc, char *argv[])
     }
 
 
-#ifdef MpCCI
-  CCI_Init(&argc, &argv);  
-#endif  
+  // ==========================================================================
+  // SETUP OF MPCCI
+  // ==========================================================================
 
-  
-  // class writing log-information
+#ifdef MpCCI
+  CCI_Init( &argc, &argv );  
+#endif
+
+
+  // ==========================================================================
+  // SETUP OF IO-STUFF
+  // ==========================================================================
+
+  // Create object for logging information
   Info = new WriteInfo();
+
+  // Log program startup
   Info->PrintHeader();
 
+  // Open files for input/output
   DefineInOutFiles * ptDefineFiles=new DefineInOutFiles(name);
   Info->CreateFile(name);
-  
-   if (PrintGridOnly)
+
+  if (PrintGridOnly)
     STDOUT << "Printing grid to file " << name << ".unv" << myEndl << myEndl;
 
   MyClock oClockTotal;
   oClockTotal.ClockCount(MyClock::beg);
-
   
-  FileType * ptInputfile=ptDefineFiles->Create_ptFileType();
+  FileType *ptInputfile = ptDefineFiles->Create_ptFileType();
 
-  WriteResults * ptOut=ptDefineFiles->Create_ptWriteResults(ptInputfile);
+  WriteResults *ptOut = ptDefineFiles->Create_ptWriteResults(ptInputfile);
   
   
   // TimeFunc * ptTimeFunc=NULL;
-  TimeFunc * ptTimeFunc = new TimeFunc(ptInputfile);
+  TimeFunc *ptTimeFunc = new TimeFunc(ptInputfile);
 
-  Domain * domain=new Domain(ptInputfile, ptOut, ptTimeFunc);
+  Domain *domain = new Domain(ptInputfile, ptOut, ptTimeFunc);
 
 
-  // choose your driver
-  BaseDriver       * ptdriver;  
-  std::string      analysis, errMsg;
-  Boolean          adaptspace;
+  // ==========================================================================
+  // SELECTION OF DRIVER
+  // ==========================================================================
+
+  BaseDriver   *ptdriver;  
   AnalysisType analysisType;
+  std::string  analysis;
+  Boolean      adaptspace;
 
+  // Determine type of analysis and, if adaptivity is to be used
 #ifndef XMLPARAMS
   conf->get("analysis", analysis);
   adaptspace=conf->get_option("adaptspace");
@@ -177,61 +203,86 @@ int main(int argc, char *argv[])
   params->Get( "type", analysis, "analysis" );
   adaptspace = params->IsSet( "adaptspace" );
 #endif
+  String2Enum( analysis, analysisType );
 
-  Info->StartProgress("Creating driver");
-  String2Enum(analysis, analysisType);
+  // Generate log message
+  Info->StartProgress( "Generating driver" );
 
-  switch(analysisType)
-    {
+  // Generate driver
+  switch( analysisType ) {
+
     case STATIC:
-      if (adaptspace)
-	{
+
+      // with adaptivity
+      if ( adaptspace ) {
 #ifdef ADAPTGRID
-	  ptdriver = new StaticAdaptSpaceDriver(domain);
+	ptdriver = new StaticAdaptSpaceDriver(domain);
 #else
-	  std::string errmsg;
-	  errmsg  = "Your version of cfs does not support adaptivity! ";
-	  errmsg += "Recompile with Adaptivity = yes";
-	  Info->Error( errmsg, __FILE__, __LINE__ );
+	std::string errmsg;
+	errmsg  = "Your version of cfs does not support adaptivity! ";
+	errmsg += "Recompile with Adaptivity = yes";
+	Info->Error( errmsg, __FILE__, __LINE__ );
 #endif
-	}
-      else
+      }
+
+      // without adaptivity
+      else {
 	ptdriver = new StaticDriver(domain);
+      }
       break;
+
     case TRANSIENT:
       ptdriver = new TransientDriver(domain);
       break;
+
     case HARMONIC:
-       if (analysis == "paramIdent"){ // calls Driver for parameter identification, using harmonic analysis
-          ptdriver = new piezoParamIdent(domain);
-	  std::cout<<"calls driver for parameter identification"<< std::endl;
-       }
-       else
-          ptdriver = new HarmonicDriver(domain);
+      // calls Driver for parameter identification, using harmonic analysis
+      if (analysis == "paramIdent"){ 
+	ptdriver = new piezoParamIdent(domain);
+	std::cout<<"calls driver for parameter identification"<< std::endl;
+      }
+      else
+	ptdriver = new HarmonicDriver(domain);
       break;
+
     case MULTI_SEQUENCE:
       ptdriver = new MultiSequenceDriver(domain);
       break;
+
     default:
-      errMsg = "Driver '";
-      errMsg += analysis;
-      errMsg += "' not supported!";
-      Info->Error( errMsg.c_str(),  __FILE__, __LINE__ );
+      {
+	std::string errMsg = "Driver '";
+	errMsg += analysis;
+	errMsg += "' not supported!";
+	Info->Error( errMsg.c_str(),  __FILE__, __LINE__ );
+      }
     }
+
   Info->FinishProgress();
+
+
+  // ==========================================================================
+  // SOLUTION PHASE
+  // ==========================================================================
+
   ptdriver->SolveProblem();
   std::cout << std::endl;
-  Info->StartProgress("Finished solving the problem");
+  Info->StartProgress( "Finished solving the problem" );
   Info->FinishProgress();
 
   std::cout << std::endl;
   std::cout << std::endl;
   oClockTotal.ClockCount(MyClock::end,"Total time");
- 
+
+
+  // ==========================================================================
+  // CLEANUP PHASE
+  // ==========================================================================
+
 #ifdef MpCCI
   CCI_Finalize();
 #endif
- 
+
   // Delete objects
   if (ptdriver) 
     delete ptdriver;
@@ -248,12 +299,9 @@ int main(int argc, char *argv[])
     delete ptDefineFiles;
 
 #ifdef PARALLEL
-MPI_Finalize();
+  MPI_Finalize();
 #endif
 
   return 0;
 
 }
-
-
-
