@@ -385,6 +385,7 @@ Matrix<TYPE> &Matrix<TYPE>::operator*= (const TYPE &x)
 
 
 
+
 template<class TYPE>
 Matrix<TYPE> &Matrix<TYPE>::operator*=(const Matrix<TYPE> &x)
 {       *this = *this * x;

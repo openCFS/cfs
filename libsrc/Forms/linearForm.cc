@@ -341,6 +341,16 @@ namespace CoupledField
 	partElemVec = transpSumB * piolaStressVec;
 
 	Double jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord);
+
+	if (isaxi_)
+	  {
+	    std::vector<Double> shpFncAtIp;
+	    std::vector<Double> coordAtIP;
+	    ptelem->GetShFncAtIp(shpFncAtIp, actIntPt);
+	    coordAtIP = ptCoord * shpFncAtIp;
+            jacDet *= 2 * PI * coordAtIP[0];
+	  }
+
 	partElemVec *= jacDet * intWeights[actIntPt-1];
 	
 	// the negative sign is due the fact, that this vector has to be subtracted from the RHS!! 
