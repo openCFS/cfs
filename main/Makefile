@@ -1,4 +1,4 @@
-############# Makefile for project CFS++ ###############################
+# ############ Makefile for project CFS++ ###############################
 #
 src = cfs.cc
 #
