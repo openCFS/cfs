@@ -26,7 +26,8 @@ using namespace xercesc;
 #include "XMLParamHandler.hh"
 #include "XMLParserErrorHandler.hh"
 
-
+// For internal debugging
+#define LOGTOINFO false
 
 namespace CoupledField {
 
@@ -813,8 +814,21 @@ namespace CoupledField {
     }
 
 
+    // ******************
+    //   Part 5: Report
+    // ******************
+    if ( LOGTOINFO ) {
+      std::string msg = "Section '" + section + "' -> Subsection '" +
+	subsection + "' -> Keyword '" + key + "'";
+      Info->PrintF( "", "%s", msg.c_str() );
+      for ( unsigned int k = 0; k < list.size(); k++ ) {
+	msg = "Value = '" + list[k] + "'";
+	Info->PrintF( "", "%s", msg.c_str() );
+      }
+    }
+
     // *******************
-    //   Part 5: Cleanup
+    //   Part 6: Cleanup
     // *******************
     delete elem_matches;
     delete attr_matches;
