@@ -149,22 +149,34 @@
     </xsd:restriction>
   </xsd:simpleType>
 
-  <!-- Data type for describing node values to be stored -->
+  <!-- Data type for describing final node values to be stored -->
   <xsd:complexType name="DT_NodeResults">
     <xsd:attribute name="type" type="DT_NodeData" use="optional"
       default="displacement"/>
     <xsd:attribute name="region" type="xsd:token" use="optional"
-      default="none"/>
+      default="all"/>
+  </xsd:complexType>
+
+  <!-- Data type for describing history of node values to be stored -->
+  <xsd:complexType name="DT_NodeHistory">
+    <xsd:attribute name="type" type="DT_NodeData" use="optional"
+      default="displacement"/>
     <xsd:attribute name="saveNodes" type="xsd:token" use="optional"
       default="none"/>
   </xsd:complexType>
 
-  <!-- Data type for describing elemnt values to be stored -->
+  <!-- Data type for describing final element values to be stored -->
   <xsd:complexType name="DT_ElemResults">
     <xsd:attribute name="type" type="DT_ElemData" use="optional"
       default="stress"/>
     <xsd:attribute name="region" type="xsd:token" use="optional"
-      default="none"/>
+      default="all"/>
+  </xsd:complexType>
+
+  <!-- Data type for describing history of element values to be stored -->
+  <xsd:complexType name="DT_ElemHistory">
+    <xsd:attribute name="type" type="DT_ElemData" use="optional"
+      default="stress"/>
     <xsd:attribute name="saveElems" type="xsd:token" use="optional"
       default="none"/>
   </xsd:complexType>
@@ -174,7 +186,11 @@
     <xsd:sequence>
       <xsd:element name="nodeResults" type="DT_NodeResults" minOccurs="0"
         maxOccurs="unbounded"/>
+      <xsd:element name="nodeHistory" type="DT_NodeHistory" minOccurs="0"
+        maxOccurs="unbounded"/>
       <xsd:element name="elemResults" type="DT_ElemResults" minOccurs="0"
+        maxOccurs="unbounded"/>
+      <xsd:element name="elemHistory" type="DT_ElemHistory" minOccurs="0"
         maxOccurs="unbounded"/>
     </xsd:sequence>
   </xsd:complexType>
