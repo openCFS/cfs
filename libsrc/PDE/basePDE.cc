@@ -86,7 +86,8 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
   // =====================================================================
   // set postprocessing parameters
   // =====================================================================
-  saveSol_        = TRUE;
+  hasOutput_      = FALSE;
+  saveSol_        = FALSE;
   saveDeriv1_     = FALSE;
   saveDeriv2_     = FALSE;
   saveSolHist_    = FALSE;
@@ -377,6 +378,15 @@ void BasePDE::Init(Integer bcSequenceIndex,
   // define which solution types have to be saved
   // =====================================================================
   ReadStoreResults();
+  
+  // check, if any output is calculated at all
+  if (hasOutput_ == FALSE) {
+ 	std::string warnMsg = "\nThere was no output specified at all for PDE '";
+ 	warnMsg += pdename_;
+ 	warnMsg += "'.\nPlease check your .xml-file, if this is really what you want!";
+ 	Warning(warnMsg.c_str());
+  	}
+  
 
   // =====================================================================
   // Create time stepping algorithm
