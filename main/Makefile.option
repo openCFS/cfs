@@ -42,16 +42,16 @@ GSI=yes
 DATABASE=no
 
 # Use LAS or OLAS
-LASTYPE=OLAS
+LASTYPE=LAS
 
 
 ##############  Some settings required in conjunction with OLAS
 
 # Was OLAS compiled with support for hypre?
-HYPRE = yes
+HYPRE = no
 
 # Was OLAS compiled with support for LAPACK?
-LAPACK = yes
+LAPACK = no
 
 ##############  XML Parameter File Handling? With Xerces or without?
 #
@@ -117,8 +117,7 @@ endif
 ifeq "$(LASTYPE)" "OLAS"
 	OLAS =-DUSE_OLAS
 	OLASLIB = -lolas
-#	LIB_CLA=$(OLAS_INSTALL_DIR)/lib/$(MACHINE)
-	LIB_CLA=/home/local/lse/manfred/CFS/OLAS/lib/$(MACHINE)
+	LIB_CLA=$(OLAS_INSTALL_DIR)/lib/$(MACHINE)
 else
 	OLAS =
 	LIB_CLA=$(LAS)/lib/$(MACHINE)
