@@ -5,14 +5,7 @@
 #include <iostream>
 #include <vector>
 #include <complex>
-
-
-#ifdef __sgi
-#include<math.h>
-#else
-#include<cmath>
-#endif
-
+#include <cmath>
 
 #include "General/defs.hh"
 #include "olas.hh"
