@@ -53,21 +53,37 @@ void Tetra1FE::SetCornerCoords()
 
   LCornerCoords_.Resize(Dim_,NumNodes_);
   
-  LCornerCoords_[0][0] =  0;
+//   LCornerCoords_[0][0] =  0;
+//   LCornerCoords_[1][0] =  0;
+//   LCornerCoords_[2][0] =  0;
+
+//   LCornerCoords_[0][1] =  1;
+//   LCornerCoords_[1][1] =  0;
+//   LCornerCoords_[2][1] =  0;
+
+//   LCornerCoords_[0][2] =  0;
+//   LCornerCoords_[1][2] =  1;
+//   LCornerCoords_[2][2] =  0;
+
+//   LCornerCoords_[0][3] =  0;
+//   LCornerCoords_[1][3] =  0;
+//   LCornerCoords_[2][3] =  1;
+
+  LCornerCoords_[0][0] =  1;
   LCornerCoords_[1][0] =  0;
   LCornerCoords_[2][0] =  0;
 
-  LCornerCoords_[0][1] =  1;
-  LCornerCoords_[1][1] =  0;
+  LCornerCoords_[0][1] =  0;
+  LCornerCoords_[1][1] =  1;
   LCornerCoords_[2][1] =  0;
 
   LCornerCoords_[0][2] =  0;
-  LCornerCoords_[1][2] =  1;
-  LCornerCoords_[2][2] =  0;
+  LCornerCoords_[1][2] =  0;
+  LCornerCoords_[2][2] =  1;
 
   LCornerCoords_[0][3] =  0;
   LCornerCoords_[1][3] =  0;
-  LCornerCoords_[2][3] =  1;
+  LCornerCoords_[2][3] =  0;
 }
 
 /// defines the connection between nodes with "their" edge 
@@ -77,23 +93,41 @@ void Tetra1FE :: SetEdgeVertices()
   
   edgeVertices_.Resize(NumEdges_, nrNodesPerEdge);
 
-  edgeVertices_[0][0] = 0;
-  edgeVertices_[0][1] = 1;
+//   edgeVertices_[0][0] = 0;
+//   edgeVertices_[0][1] = 1;
 
-  edgeVertices_[1][0] = 0;
-  edgeVertices_[1][1] = 2;
+//   edgeVertices_[1][0] = 0;
+//   edgeVertices_[1][1] = 2;
 
-  edgeVertices_[2][0] = 0;
-  edgeVertices_[2][1] = 3;
+//   edgeVertices_[2][0] = 0;
+//   edgeVertices_[2][1] = 3;
 
-  edgeVertices_[3][0] = 1;
-  edgeVertices_[3][1] = 2;
+//   edgeVertices_[3][0] = 1;
+//   edgeVertices_[3][1] = 2;
 
-  edgeVertices_[4][0] = 3;
-  edgeVertices_[4][1] = 1;
+//   edgeVertices_[4][0] = 1;
+//   edgeVertices_[4][1] = 3;
 
-  edgeVertices_[5][0] = 2;
-  edgeVertices_[5][1] = 3;
+//   edgeVertices_[5][0] = 2;
+//   edgeVertices_[5][1] = 3;
+
+  edgeVertices_[0][0] = 3;
+  edgeVertices_[0][1] = 0;
+
+  edgeVertices_[1][0] = 3;
+  edgeVertices_[1][1] = 1;
+
+  edgeVertices_[2][0] = 3;
+  edgeVertices_[2][1] = 2;
+
+  edgeVertices_[3][0] = 0;
+  edgeVertices_[3][1] = 1;
+
+  edgeVertices_[4][0] = 0;
+  edgeVertices_[4][1] = 2;
+
+  edgeVertices_[5][0] = 1;
+  edgeVertices_[5][1] = 2;
 }
 
 
@@ -158,14 +192,14 @@ void Tetra1FE :: CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv,
 // see Kaltenbacher: "Numerical Sim. of Mechatronic Sensors and Actuators" p. 25
 // calculates the edge shape function of a tetrahedral of first order.
 void Tetra1FE :: CalcEdgeShapeFnc(Matrix<Double> & edgeShape, 
-			     const std::vector<Double> & LCoord)
+			     const std::vector<Double> & LCoord, const Matrix<Double> & cornernodes)
 {
 #ifdef TRACE
   (*trace) << "entering Tetra1FE::CalcShapeFnc" << std::endl;
 #endif
 
   edgeShape.Resize(NumEdges_, Dim_);
-
+  edgeShape.Init();
 
   // nodal shape functions of a tet
   std::vector<Double> nodeShape;
@@ -174,9 +208,8 @@ void Tetra1FE :: CalcEdgeShapeFnc(Matrix<Double> & edgeShape,
 
   // local derivates of nodal tet, dimension: nrNodes x Dim_
   Matrix<Double> xDxi;  
-  CalcLocalDerivShapeFnc(xDxi, LCoord);
-  
-  
+  //  CalcLocalDerivShapeFnc(xDxi, localcoord);
+  GetGlobDerivShFnc(xDxi, LCoord, cornernodes);    
 
   for (Integer actEdge=0; actEdge<NumEdges_; actEdge++)
     {

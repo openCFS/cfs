@@ -74,14 +74,15 @@ namespace CoupledField
     partElemVec.resize(nrEdges);
 
 
-    // set matrix to desired size and set all elements to zero    
-    elemVec.resize(nrEdges,0); 
+    // set vector to desired size and set all elements to zero    
+    elemVec.resize(nrEdges); 
+    for (Integer i=0; i<nrEdges; i++)
+      elemVec[i] = 0;
     
     std::vector<Double> currentVec(dim, 0);
     
     // define direction of current
-    currentVec[direction_-1] = val_;
-	
+    currentVec[direction_-1] = val_;	
 
     for (Integer actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
       {

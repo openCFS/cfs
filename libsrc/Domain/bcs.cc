@@ -20,16 +20,20 @@ BCs :: BCs(FileType * const aInFile)
  for (i=0; i<NUMLEVELGRID; i++) { bcs_[i]=NULL; bcsEdges_[i]=NULL;}
   
  conf->ifgetliststr("list_nodes",levels_);
- bcs_[0]=new std::list<Integer>[levels_.size()];
+ if (levels_.size()) 
+   bcs_[0]=new std::list<Integer>[levels_.size()];
  
  conf->ifgetliststr("list_edges",color_edges_);
- bcsEdges_[0]=new std::vector<Elem*>[color_edges_.size()]; 
+ if (color_edges_.size()) 
+   bcsEdges_[0]=new std::vector<Elem*>[color_edges_.size()]; 
 
  conf->ifgetliststr("list_faces",color_faces_);
- bcsFaces_[0]=new std::vector<Elem*>[color_faces_.size()]; 
+ if (color_faces_.size()) 
+   bcsFaces_[0]=new std::vector<Elem*>[color_faces_.size()]; 
 
  conf->ifgetliststr("list_neighelems",color_neighelems_);
- bcsNeighElems_[0]=new std::vector<Elem*>[color_neighelems_.size()];
+ if (color_neighelems_.size())
+   bcsNeighElems_[0]=new std::vector<Elem*>[color_neighelems_.size()];
  
 }
 
@@ -98,7 +102,8 @@ void BCs :: ReadBCs()
   (*trace) << "entering BCs::ReadBCs" << std::endl;
 #endif
 
- InFile_->ReadBCs(bcs_[0],levels_);
+ if (levels_.size())
+   InFile_->ReadBCs(bcs_[0],levels_);
  toplevel_=0;
 
  if (color_edges_.size())

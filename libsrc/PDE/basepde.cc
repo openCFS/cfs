@@ -151,6 +151,10 @@ void BasePDE::SetupMatrixGraph(Integer numeq, Integer graphtype)
 	  Mesh2PDENode(connecth,elemssd[iel]->connect);
 	  fe_type=elemssd[iel]->ptElem->feType();
 	  algsys_->SetElementPos(connecth.get(),connecth.size(),fe_type);
+#ifdef DEBUG
+	  (*cla) << "Nodes to AlgSys, Element: " << iel+1 << std::endl;
+	  (*cla) << connecth << std::endl;
+#endif
 	}
     }
 
@@ -320,10 +324,12 @@ void BasePDE::Mesh2PDENode(Vector<Integer> & PDENodes, Vector<Integer> & MeshNod
   for (Integer i=0; i<MeshNodes.size(); i++)
     PDENodes[i] = Mesh2PDENode_[MeshNodes[i]-1];
 
-  //std::cerr << "--------------------" << std::endl;
-  //std::cerr << " Mesh2PDENode()" << std::endl;
-  //for (Integer i=0; i<MeshNodes.size(); i++)
-  //  std::cerr << "in: " << MeshNodes[i] << " out: " << PDENodes[i] << std::endl;
+#ifdef DEBUG
+  (*cla) << "--------------------" << std::endl;
+  (*cla) << " Mesh2PDENode()" << std::endl;
+  for (Integer i=0; i<MeshNodes.size(); i++)
+    (*cla) << "in: " << MeshNodes[i] << " out: " << PDENodes[i] << std::endl;
+#endif
 }
 
 void BasePDE::PDE2MeshNode(Vector<Integer> & MeshNodes, Vector<Integer> & PDENodes)
@@ -337,10 +343,12 @@ void BasePDE::PDE2MeshNode(Vector<Integer> & MeshNodes, Vector<Integer> & PDENod
   for (Integer i=0; i<PDENodes.size(); i++)
     MeshNodes[i] = PDE2MeshNode_[PDENodes[i]-1];
 
-  //std::cerr << "--------------------" << std::endl;
-  //std::cerr << " PDE2MeshNode()" << std::endl;
-  //for (Integer i=0; i<PDENodes.size(); i++)
-  //  std::cerr << "in: " << PDENodes[i] << " out: " << MeshNodes[i] << std::endl;
+#ifdef DEBUG
+  (*cla) << "--------------------" << std::endl;
+  (*cla) << " PDE2MeshNode()" << std::endl;
+  for (Integer i=0; i<PDENodes.size(); i++)
+    (*cla) << "in: " << PDENodes[i] << " out: " << MeshNodes[i] << std::endl;
+#endif
 }
 
 
@@ -354,6 +362,13 @@ void BasePDE::AssignPDENodeNumbers()
   Mesh2PDENode_.resize(ptgrid_->GetMaxnumnodes(actlevel_),-1);
   std::vector<Elem*> SD;
   Integer NodeCounter = 1;
+
+//  PDE2MeshNode_.resize(ptgrid_->GetMaxnumnodes(actlevel_),-1);
+//   for (Integer i=0;i<ptgrid_->GetMaxnumnodes(actlevel_);i++)
+//     {
+//       Mesh2PDENode_[i] = i+1;
+//       PDE2MeshNode_[i] = i+1;
+//     }
   
   // Iterate over Subdomains
   for (Integer i=0; i<subdoms_.size(); i++)
@@ -375,7 +390,9 @@ void BasePDE::AssignPDENodeNumbers()
 	    }
 	}
     }
+
   NumPDENodes_ = PDE2MeshNode_.size();
+
   //std::cout << "NumPDENodes = " << NumPDENodes_ << std::endl;
   //std::cout << "Mesh2PDENode_" << std::endl;
   //for (Integer i=0; i<Mesh2PDENode_.size(); i++)

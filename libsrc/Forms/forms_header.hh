@@ -13,6 +13,7 @@
 #include "elecforceop.hh"
 #include "curlCurlEdgeInt.hh"
 #include "linearForm.hh"
+#include "massEdgeInt.hh"
 
 
 #endif
