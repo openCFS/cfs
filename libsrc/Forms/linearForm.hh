@@ -23,6 +23,8 @@ public:
 
   /// Calculation of vector of right hand side 
   virtual void CalcElemVector(Matrix<Double>& ptCoord, Vector<Double> & result);
+
+
 };
 
 

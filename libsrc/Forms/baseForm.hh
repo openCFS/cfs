@@ -83,6 +83,10 @@ public:
     intPoint_ = point; isSetIntPoint_ = TRUE;
   }
 
+  //!
+  void SetDofZero(Integer posdof)
+  {dofzero_ = posdof; };
+ 
 protected:
 
   //! Ptr to base element
@@ -96,6 +100,9 @@ protected:
   Vector<Double> intPoint_;
   //
   Boolean isSetIntPoint_;
+
+  Integer dofzero_; //for multidof-handling, where one dof is zero (e.g. piezoelectric PDE)
+
 };
 
 } //end namespace

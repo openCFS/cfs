@@ -178,7 +178,7 @@ namespace CoupledField {
    //   eqnData_ = new BlockNodeEQN(ptgrid_, ptBCs_, subdoms_, actlevel_, dofspernode_);
    
    // 3.) Scalar blocknumbering
-      eqnData_ = new ScalarBlockEQN(ptgrid_, ptBCs_, subdoms_, actlevel_, dofspernode_);
+   eqnData_ = new ScalarBlockEQN(ptgrid_, ptBCs_, subdoms_, actlevel_, dofspernode_);
 
    eqnData_->SetHomoDirichletBCs(bcs_hd_, homDirichDof_);
    eqnData_->CalcMapping();
@@ -256,8 +256,13 @@ namespace CoupledField {
   void PiezoPDE::DefineIntegrators( const Integer level ) {
     ENTER_FCN( "PiezoPDE::DefineIntegerators" );
 
-    Boolean nonLin = FALSE;
+    Integer posOfElectricPot;
+    if ( subType_ == "3d" )
+      posOfElectricPot = 4;
+    else
+      posOfElectricPot = 3;
 
+    Boolean nonLin = FALSE;
     for ( int actSD = 0; actSD < subdoms_.GetSize(); actSD++ ) {
 
       // ==============  add stiffness ========================================
@@ -283,13 +288,7 @@ namespace CoupledField {
       }
 
       // ==============  add mass =============================================
-      Double density = actSDMat.GetDensity();
-      Integer posOfElectricPot;
-      if ( subType_ == "3d" )
-	posOfElectricPot = 4;
-      else
-	posOfElectricPot = 3;
-      
+      Double density = actSDMat.GetDensity();    
       BaseForm * bilinearMass  = new MassInt(density, dofspernode_,
 					     posOfElectricPot, isaxi_);
 
@@ -302,16 +301,19 @@ namespace CoupledField {
 					 analysistype_);
       assemble_->AddIntegrator(actIntDescrMass, subdoms_[actSD]);
 
+    }
+
     //surface integrators
     //RHS-part
     Integer nonlin = 0;
     for (Integer actSF = 0; actSF < pressSurf_.GetSize(); actSF++) {
       BaseForm * rhsSrcSurf = new PressureLinForm(pressVals_[actSF], isaxi_);
+      rhsSrcSurf->SetDofZero(posOfElectricPot);
       assemble_->AddRhsSrcSurfIntegrator(rhsSrcSurf, pressSurf_[actSF], 
 					 pressFnc_[actSF],nonlin);
     }
 
-    }
+    
   }
 
 
