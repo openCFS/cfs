@@ -36,18 +36,21 @@
                 use="optional" default="no"/>
             </xsd:complexType>
           </xsd:element>
-    
-          <!-- Boundary Conditions -->
-          <xsd:element name="BoundaryConds">
+
+          <!-- Boundary Conditions & Loads (optional) -->
+          <xsd:element name="bcsAndLoads" minOccurs="0">
             <xsd:complexType>
               <xsd:sequence>
-                <xsd:element name="dirichletHom" type="BC_scalarhd"
+                <xsd:element name="dirichletHom" type="DT_ElecHD"
                              minOccurs="0" maxOccurs="unbounded"/>
-                <xsd:element name="dirichletInhom" type="BC_scalarid"
+                <xsd:element name="dirichletInhom" type="DT_ElecID"
                              minOccurs="0" maxOccurs="unbounded"/>
-                <xsd:element name="neumannInhom" type="BC_scalarin"
+                <xsd:element name="neumannInhom" type="DT_ElecIN"
                              minOccurs="0" maxOccurs="unbounded"/>
+                <xsd:element name="load" type="DT_ElecLoad" minOccurs="0"
+                             maxOccurs="unbounded"/>
               </xsd:sequence>
+
             </xsd:complexType>
           </xsd:element>
 
@@ -55,11 +58,54 @@
           <xsd:element name="nonLinear" type="DT_NonLinParams" minOccurs="0"/>
 
           <!-- Desired solution values (optional) -->
-          <xsd:element name="storeResults" type="DT_MechStoreResults"
+          <xsd:element name="storeResults" type="DT_ElecStoreResults"
             minOccurs="0" maxOccurs="1"/>
   
         </xsd:sequence>
       </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of the boundary condition types for electrostatic -->
+  <!-- ******************************************************************** -->
+
+  <!-- Element type for homogeneous Dirichlet boundary conditions -->
+  <!-- We derive it by extending the base type -->
+  <xsd:complexType name="DT_ElecHD">
+    <xsd:complexContent>
+      <xsd:extension base="DT_BCBasic">
+        <xsd:attribute name="name" type="xsd:token" use="required"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- Element type for inhomogeneous Dirichlet boundary conditions -->
+  <!-- We derive it by extending the homogeneous case -->
+  <xsd:complexType name="DT_ElecID">
+    <xsd:complexContent>
+      <xsd:extension base="DT_ElecHD">
+        <xsd:attribute name="value" type="xsd:double" use="required"/>
+        <xsd:attribute name="dynamics" type="xsd:token" use="optional"
+          default="none"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- Element type for specifying inhomogeneous neumann conditions -->
+  <!-- Identical to that of inhomogeneous Dirichlet case -->
+  <xsd:complexType name="DT_ElecIN">
+    <xsd:complexContent>
+      <xsd:extension base="DT_ElecID"/>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- Element type for specifying loads -->
+  <!-- Identical to that of inhomogeneous Dirichlet case -->
+  <xsd:complexType name="DT_ElecLoad">
+    <xsd:complexContent>
+      <xsd:extension base="DT_ElecID"/>
     </xsd:complexContent>
   </xsd:complexType>
 
@@ -76,7 +122,7 @@
   </xsd:simpleType>
 
   <!-- What data can a single element have in a mechanic PDE -->
-  <xsd:simpleType name="DT_ElemData">
+  <xsd:simpleType name="DT_ElemDataElec">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="efield"/>
       <xsd:enumeration value="energy"/>
@@ -131,26 +177,11 @@
 
 
   <!-- ******************************************************************** -->
-  <!--   Definition of data type for damping model -->
-  <!-- ******************************************************************** -->
-  <xsd:simpleType name="DT_MechDampType">
-    <xsd:restriction base="xsd:token">
-      <xsd:enumeration value="rayleigh"/>
-    </xsd:restriction>
-  </xsd:simpleType>
-
-  <xsd:complexType name="DT_MechDamp">
-    <xsd:attribute name="type" type="DT_MechDampType" use="required"/>
-  </xsd:complexType>
-
-
-  <!-- ******************************************************************** -->
   <!--   Definition of data type for non-linearity in mechanic PDEs -->
   <!-- ******************************************************************** -->
-  <xsd:simpleType name="DT_MechNonLin">
+  <xsd:simpleType name="DT_ElecNonLin">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="no"/>
-      <xsd:enumeration value="geo"/>
     </xsd:restriction>
   </xsd:simpleType>
 

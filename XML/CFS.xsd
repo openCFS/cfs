@@ -15,7 +15,7 @@
 <!--   Include definition of PDE types and elements from support files -->
 <!-- ********************************************************************** -->
 <xsd:include schemaLocation="Schemas/CFS_PDEbasic.xsd"/>
-<!-- xsd:include schemaLocation="Schemas/CFS_PDEelectrostatic.xsd"/-->
+<xsd:include schemaLocation="Schemas/CFS_PDEelectrostatic.xsd"/>
 <xsd:include schemaLocation="Schemas/CFS_PDEmechanic.xsd"/>
 
 
