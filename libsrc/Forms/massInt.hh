@@ -26,16 +26,16 @@ public:
   void CalcElementMatrix(Matrix<Double> & ptCoord, Matrix<Double> & elemMa);
 
   //! for fractional damping model, is called in AcousticPDE::DefineIntegrators
-  virtual void SetFracDamping() 
+  void SetFracDamping() 
   {isFracDamping_ = TRUE;};
 
   //! for fractional damping model, is called in AcousticPDE::DefineIntegrators
-  virtual void UnsetFracDamping() 
+  void UnsetFracDamping() 
   {isFracDamping_ = FALSE;};
   
-  //! set pre factor of mass matrix
-  virtual void SetFactor(Double factor) 
-  {density_ = factor;};
+  //! set additional multiplicative factor of mass matrix
+  void SetFactor(Double aFactor) 
+  {factor_ = aFactor;};
    
   virtual void Print(std::ostream * out, const Matrix<Double> Result) const;
 
@@ -51,7 +51,8 @@ protected:
 private:
 
   Double density_;          //!< multiplicative value for mass integrator
-  Integer nrDofsPerNode_;   //!< degrees of freedom pre node
+  Double factor_;           //!< yet another multiplicative value for mass integrator
+  Integer nrDofsPerNode_;   //!< degrees of freedom per node
   Integer dofzero_;
   
 };

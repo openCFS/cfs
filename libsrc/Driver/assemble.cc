@@ -167,6 +167,7 @@ void Assemble::AssembleMatrices(const Integer level)
 		}
 
 		if ( actDescriptor->GetIntegrator()->IsFracDamping() ) {
+		  // get multiplicative pre factor depending on time step size
 		  Double damp;
 		  damp = ptPDE_->GetFracDampMatrixCoeff(actDom);
 		  actDescriptor->GetIntegrator()->SetFactor(damp);
@@ -225,26 +226,23 @@ void Assemble::AssembleMatrices(const Integer level)
 			algsys_->SetElementMatrix(&harmonicVec[0], connect_PDE.GetPointer(), connect_PDE.GetSize(), destMat);
 		  }
 		  else {
-// 			// output matrices
-// 			if (destMat == STIFFNESS)
-// 			  std::cerr << "Stiffness matrix:" << std::endl;
-// 			if (destMat == MASS)
-// 			  std::cerr << "Mass matrix:" << std::endl;
-// 			if (destMat == DAMPING)
-// 			  std::cerr << "Damping matrix:" << std::endl;
-// 			std::cerr << elemmat << "Connect" << connect_PDE << std::endl;
-	      
 			algsys_->SetElementMatrix(elemmat.GetDataPointer(), connect_PDE.GetPointer(), 
 									  connect_PDE.GetSize(), destMat);
 		  }
 #ifdef DEBUG
-		  (*debug) << "ElementMatrix of Element " << actEl << std::endl;
+		  // output matrices
+ 			if (destMat == STIFFNESS)
+ 			  (*debug) << "Stiffness matrix of Element " << actEl << std::endl;
+ 			if (destMat == MASS)
+ 			  (*debug) << "Mass      matrix of Element " << actEl << std::endl;
+ 			if (destMat == DAMPING)
+ 			  (*debug) << "Damping   matrix of Element " << actEl << std::endl;
 		  (*debug) << elemmat << std::endl;
 		  if ( !elemmat.IsSymmetric() ) {
-			(*debug) << " --> Matrix is not symmetric " << std::endl;
+			(*debug) << " --> Matrix is not symmetric " << std::endl << std::endl;
 		  }
 		  else {
-			(*debug) << " --> Matrix is symmetric " << std::endl;
+			(*debug) << " --> Matrix is symmetric " << std::endl << std::endl;
 		  }
 #endif
 		  if (actDescriptor->GetSecondaryMat() != NOTYPE) {
