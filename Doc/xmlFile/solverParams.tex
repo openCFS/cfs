@@ -112,8 +112,8 @@ preconditioner. Its general structure is as follows:
 %
 %
 The first child of the \xml{solver} element can be a \xml{matrix} element. The
-matrix element possesses the following three optional attributes:
-\xml{eqnNumbering}, \xml{entry} and \xml{storage}.
+matrix element possesses the following four optional attributes:
+\xml{eqnNumbering}, \xml{entry}, \xml{storage} and \xml{reordering}.
 %
 %
 \begin{center}
@@ -169,6 +169,19 @@ storage & sparseSym      & System matrix is stored in compressed row storage
                            \\
         & lapackPBMatrix & \emph{not fully supported yet}\\
         & expertsChoice  & CFS++ will choose the storage type itself.\\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+reordering & noReordering & Specifies that OLAS should not reorder the graph.\\
+           & Sloan        & Specifies that OLAS should try to reorder the
+                            graph, before the associated matrices are
+                            assembled, using the bandwidth reduction algorithm
+                            by Sloan. Note that the reordering will be
+                            discarded, if the profile of the matrix is not
+                            reduced.\\
+           & Metis        & Specifies that OLAS should try to reorder the
+                            graph, before the associated matrices are
+                            assembled, using a fill-reducing ordering from
+                            Metis. This will be a sort of nested-discetion
+                            reordering. Note that this is untested so far.\\
 \noalign{\smallskip}\hline
 \end{longtable}
 \end{center}
