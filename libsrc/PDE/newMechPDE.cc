@@ -530,7 +530,7 @@ void MechPDE::CalcAcousticCouplingRHS(std::vector<Elem*> * couplingElems,
 	  for (Integer actDof=0; actDof<dofspernode_; actDof++)
 	    actForce += forceOnElem[actDof + actNode*nrNodesPerEl] * n[actDof];
 
-	  elemCouplingSols[actElem*nrNodesPerEl + actNode] = actForce;  
+	  elemCouplingSols[actElem*nrNodesPerEl + actNode] += actForce;  
 	}
     }
 } 
