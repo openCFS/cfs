@@ -41,8 +41,7 @@ namespace CoupledField
     // treat mechanical part (same as in linElastInt)
     for(actDim=0; actDim < spaceDim; actDim++)
       for(actNode=0; actNode < nrNodes; actNode++)
-	bMat[actDim][actNode * offset + actDim] = xiDx[actNode][actDim];
-    
+	bMat[actDim][actNode * offset + actDim] = xiDx[actNode][actDim];    
     switch(spaceDim)
       {
       case 2:
@@ -96,7 +95,7 @@ namespace CoupledField
   // modulus, electrical permittivity and piezoelectric coupling
   void linPiezoInt::Calc3DMaterialMat(Matrix<Double> & dMat)
   {
-    ENTER_FCN( "linPiezoInt::calcDMat" );
+    ENTER_FCN( "linPiezoInt::Calc3DMaterialMat" );
 
     // Resize and initialise matrix object
     const Integer sizeofD = getDimD();
@@ -105,7 +104,6 @@ namespace CoupledField
 
     // Standard case: No damping
     if ( isDamping_ == false ) {
-
       // Copy entries from material matrix object into D matrix
       Matrix<Double> * matMatrix = ptMaterial->GetMatrix();
       for( Integer i = 0; i < sizeofD; i++ ) {

@@ -36,13 +36,15 @@ namespace CoupledField
       : BDBInt(aptelem, matData)
     {
       ENTER_FCN( "linPiezoInt::linPiezoInt" );
-    }
+      isDamping_ = FALSE;
+      }
   
     //! Constructor
     linPiezoInt(MaterialData & matData)
      : BDBInt(matData)
     {
       ENTER_FCN( "linPiezoInt::linPiezoInt" );
+      isDamping_ = FALSE;
     }
   
     //! Destructor

@@ -216,19 +216,19 @@ private:
 
 
 // =============================================================================
-// surface integration
+// pressure load
 // =============================================================================
 
 
 /// class for surface integration
-class SurfaceIntLinForm : public LinearForm
+class PressureLinForm : public LinearForm
 {
 public:
   ///
-  SurfaceIntLinForm(BaseFE * aptelem, Directions dir);
+  PressureLinForm(Double aVal, Boolean isaxi);
 
   ///
-  virtual ~SurfaceIntLinForm();
+  virtual ~PressureLinForm();
 
   /// Calculation of vector of right hand side 
   virtual void CalcElemVector(Matrix<Double>& ptCoord, 
@@ -237,15 +237,11 @@ public:
   virtual void SetMultiplier(Double mult){multiplier_ = mult;};
   
 protected:
-  /// returns nr. of degrees of freedom
-  virtual Integer getNrDofs(){return 3;};
 
 private:
   /// factor of load
   Double multiplier_;
 
-  /// direction of load
-  Directions pressureDir_;
 };
 
 

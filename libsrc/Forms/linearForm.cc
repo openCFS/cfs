@@ -534,64 +534,107 @@ void PreStressLinFormInt::CalcElemVector(Matrix<Double>& ptCoord,
 
 
 // ========================================================================
-// SurfaceIntLinForm 
+// pressureLinForm 
 // ========================================================================
 
 
-SurfaceIntLinForm::SurfaceIntLinForm(BaseFE * aptelem, Directions aPressureDir) 
-  : LinearForm(aptelem), pressureDir_(aPressureDir)
+PressureLinForm::PressureLinForm(Double aVal, Boolean isaxi)
+  : LinearForm(), multiplier_(aVal)
 {
-  ENTER_FCN( "SurfaceIntLinForm::SurfaceIntLinForm" );
+  ENTER_FCN( "PressureLinForm::PressureLinForm" );
+  isaxi_ = isaxi;
 }
 
 
 
-SurfaceIntLinForm ::~SurfaceIntLinForm()
+PressureLinForm ::~PressureLinForm()
 {
-  ENTER_FCN( "SurfaceIntLinForm::~SurfaceIntLinForm" );
+  ENTER_FCN( "PressureLinForm::~PressureLinForm" );
 }
 
 
-void SurfaceIntLinForm::CalcElemVector(Matrix<Double>& ptCoord, 
+void PressureLinForm::CalcElemVector(Matrix<Double>& ptCoord, 
 				       Vector<Double> & elemVec)
 {
-  ENTER_FCN( "SurfaceIntLinForm::CalcElemVector" );
+  ENTER_FCN( "PressureLinForm::CalcElemVector" );
 
   const Integer nrIntPts = ptelem->GetNumIntPoints();
   const Integer nrNodes  = ptelem->GetNumNodes();
-  const Integer nrDofs   = getNrDofs();
+  const Integer dim      = ptCoord. GetSizeRow();
   const Vector<Double> & intWeights = ptelem->GetIntWeights();
   Vector<Double> shapeFnc;
-  Integer pressureDof;
+  Vector<Double> normalVec(dim);
+
+  std::cout << "coord:\n" << ptCoord << std::endl;
   
+  //comput normal vector
+  if (dim == 2) 
+    {
+      Double dx = ptCoord[0][1] - ptCoord[0][0];
+      Double dy = ptCoord[1][1] - ptCoord[1][0];
+      std::cout <<  "dx=" << dx << " dy=" << dy << std::endl;
+      
+      Double len = sqrt(dx*dx + dy*dy);
+      if (len <= 0.0)
+	Error("length of normal vector is zero!");
+      normalVec[0] = dy/len;
+      normalVec[1] = -dx/len;
+    }
+  else 
+    {
+      //compute the two vectors in th plane
+      Vector<Double> vec1(3), vec2(3);
+      for (Integer i=0; i<dim; i++) {
+	vec1[i] = ptCoord[i][1] - ptCoord[i][0];
+	vec2[i] = ptCoord[i][nrNodes-1] - ptCoord[i][0];
+      }
+      //compute cross product
+      normalVec[0] = vec1[1] * vec2[2] - vec1[2]*vec2[1];
+      normalVec[1] = vec1[2] * vec2[0] - vec1[0]*vec2[2];
+      normalVec[2] = vec1[0] * vec2[1] - vec1[1]*vec2[0];
+      //normalize the length to 1
+      Double length = normalVec.NormL2();
+      normalVec /= length;
+    }
+
+
+  std::cout << "n: " << normalVec << std::endl;
   
   Vector<Double> partElemVec;
-  partElemVec.Resize(nrNodes * nrDofs );
+  partElemVec.Resize(nrNodes * dim );
   partElemVec *= 0; //initialize vec
   
   
-  elemVec.Resize(nrNodes*nrDofs);
+  elemVec.Resize(nrNodes*dim);
   elemVec *= 0;    // set elems to 0
-  
-  switch(pressureDir_)
-    {
-    case X: pressureDof = 0; break;
-    case Y: pressureDof = 1; break;
-    case Z: pressureDof = 2; break;
-    default: 	Error("SurfaceIntLinForm: pressure direction not implemented!" 
-		      ,__FILE__,__LINE__);
-    }
   
   for (Integer actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
     {
       ptelem->GetShFncAtIp(shapeFnc, actIntPt);
       
       Double jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord);
+
+      Double factor = multiplier_ * intWeights[actIntPt-1] * jacDet;
+      if (isaxi_)
+	{
+	  Vector<Double> CoordAtIP;
+	  CoordAtIP = ptCoord * shapeFnc;
+	  factor *=  2 * PI * CoordAtIP[0];
+	}
       
-      Vector<Double> helpVec = shapeFnc * multiplier_ * intWeights[actIntPt-1] * jacDet;
+      shapeFnc *= factor;      
+     
+      Vector<Double> helpVec;
+      for (Integer i=0; i<dim; i++) 
+	{
+	  //multiply with corresponding component of normal vector
+	  helpVec = shapeFnc * normalVec[i];
+	  std::cout << "helpVec:" << helpVec << std::endl;
+	  
+	  partElemVec.InsertVector(helpVec, nrNodes*dim);
+	  elemVec += partElemVec;
+	}
       
-      partElemVec.InsertVector(helpVec, pressureDof*nrNodes);
-      elemVec += partElemVec;
     }
 } // end of method
 
