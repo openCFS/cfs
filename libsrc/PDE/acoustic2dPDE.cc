@@ -173,7 +173,7 @@ void Acoustic2dPDE::SetupMatrices(const Integer type)
       // mass part
       bilinear_mass->CalcElemMatrix(ptCoord, elemmat);
 
-//      elemmat*=coeff_;
+      elemmat*=coeff;
 
       ptalgsys_->PutElemMatAlgSys(elemmat.getinarray(), help, numnodeelem, AS_sysid_, AS_sysid_,matrix_mass);
 
