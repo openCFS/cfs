@@ -17,7 +17,7 @@ namespace CoupledField
   //! \f[
   //! [BDB] = \left(\begin{array}{cc} B_a & 0 \\ 0 & \tilde{B}_a \end{array}
   //! \right)^T
-  //! \left(\begin{array}{cc} c^E & e^t \\ e & \varepsilon^s \end{array}
+  //! \left(\begin{array}{cc} c^E & e^T \\ e & -\varepsilon^s \end{array}
   //! \right)
   //! \left(\begin{array}{cc} B_a & 0 \\ 0 & \tilde{B}_a \end{array} \right)
   //! \enspace.
@@ -97,7 +97,8 @@ namespace CoupledField
     linPiezo3DInt(BaseFE * aptelem, MaterialData & matDat);
   
     //! Constructor
-    linPiezo3DInt(MaterialData & matData, Boolean isdamping=FALSE) : linPiezoInt(matData)
+    linPiezo3DInt( MaterialData & matData, Boolean isdamping = FALSE ) :
+      linPiezoInt(matData)
     {
       ENTER_FCN( "linPiezo3DInt::linPiezo3DInt" );
       isdamping_ = isdamping;
