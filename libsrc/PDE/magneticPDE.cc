@@ -1298,7 +1298,7 @@ namespace CoupledField {
       performOneMoreStep = 
 	(incrementalErr > incStopCrit_) || (residualErr > residualStopCrit_);
       
-      if (!(performOneMoreStep && iterationCounter < maxnumiter_))
+      if (!(performOneMoreStep && iterationCounter < nonLinMaxIter_))
 	mycout << "incrementalErr " << incrementalErr << myendl 
 	       << "incStopCrit_ " << incStopCrit_ << myendl
 	       << "residualErr " << residualErr  << myendl
@@ -1475,7 +1475,7 @@ namespace CoupledField {
       performOneMoreStep = 
 	(incrementalErr > incStopCrit_)||(residualErr > residualStopCrit_);
       
-    } while(performOneMoreStep && iterationCounter < maxnumiter_);  
+    } while(performOneMoreStep && iterationCounter < nonLinMaxIter_);  
 
     //perform corrector step  
     TS_alg_->Corrector(actSol);
