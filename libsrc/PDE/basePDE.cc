@@ -197,12 +197,12 @@ namespace CoupledField
 	isComplex_ = TRUE;
 	assemble_ = new HarmonicAssemble(algsys_, ptgrid_);
 	analysistype_ = HARMONIC;
+
+#ifndef USE_OLAS
 	//overwrite default solver
-#ifdef USE_OLAS
-	Info->Error( "Implement this branch!", __FILE__, __LINE__ );
-#else
 	solvertype_ = ComplexDirectSolver;
 #endif
+
       }
     else if (analysisHelp == MULTI_SEQUENCE) {
 
