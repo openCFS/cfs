@@ -23,10 +23,10 @@ void main(int argc, char *argv[])
 {
 
   cout << " Wellcome to sample session. " << argc << endl ;
-  cout << " Usage: cfs -ext [-i] name [-m materialfile]" << endl 
-       << "\t ext: format of input file( implemented: dat ) " << endl
-       << "\t i: to create info-file " << endl
-       << "\t name: name of input file without extension" << endl << endl;
+  cout << " \033[36mUsage\033[0m : cfs -ext [-i] name [-m materialfile]"<< endl 
+       << "\t \033[36m ext \033[0m: format of input file( implemented: dat ) " << endl
+       << "\t \033[36m i \033[0m: to create info-file " << endl
+       << "\t \033[36m name \033[0m: name of input file without extension" << endl << endl;
 
 
   if (argc < 3) Error("Invalid running of scfe. See Usage above.");

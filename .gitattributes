@@ -102,7 +102,6 @@ libsrc/General/Makefile -text
 libsrc/General/environment.cc svneol=native#text/plain
 libsrc/General/environment.hh svneol=native#text/plain
 libsrc/General/general_head.hh svneol=native#text/plain
-libsrc/Makefile -text
 libsrc/Matrix/Makefile -text
 libsrc/Matrix/absmatrix.hh svneol=native#text/plain
 libsrc/Matrix/bandmatrix.cc svneol=native#text/plain
@@ -143,7 +142,7 @@ main/DoxygenConfig/doxy-config -text
 main/DoxygenConfig/footer.html svneol=native#text/html
 main/DoxygenConfig/header.html svneol=native#text/html
 main/Makefile -text
+main/Makefile.option -text
 main/cfs.cc svneol=native#text/plain
 main/mat.dat -text
-main/option.make -text
 main/z10.dat -text

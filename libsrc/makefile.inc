@@ -1,7 +1,7 @@
 #
 # make an include file for library
 #
-include $(C_DIR)/main/option.make
+include $(C_DIR)/main/Makefile.option
 #
 include $(LIBSRC_DIR)/makefilemach/make.mach.$(MACHINE)
 #

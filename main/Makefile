@@ -4,10 +4,16 @@
 src = cfs.cc
 #
 C_DIR = ..
+LIBDIR = $(C_DIR)/libsrc
+SUBLIBDIR = General DataInOut DataInOut/DatFile \
+          DataInOut/Unverg AlgebraicSystem/LinAlg \
+          Domain  Driver Elements Forms \
+          PDE Utils Matrix
+PATHSUBLIBDIR = $(addprefix $(LIBDIR)/, $(SUBLIBDIR))
 #
 ############ General options
 #
-include $(C_DIR)/main/option.make
+include $(C_DIR)/main/Makefile.option
 #
 ############ Define specific flags
 #
@@ -39,7 +45,15 @@ $(program):: $(src:.cc=.o) $(fsrc:.f=.o) makelibs
 #
 ########### Go to make library
 #
-include $(LIBSRC_DIR)/Makefile
+#include $(LIBSRC_DIR)/Makefile
+#
+makelibs:
+	@for n in $(PATHSUBLIBDIR); do \
+         (if cd $$n; \
+                     then $(MAKE) -f Makefile; \
+                     else echo "WARNING:" $$n " doesn't exist"; \
+          fi); \
+         done
 #
 ######################  Clean work directory
 clean-driver:
@@ -75,9 +89,9 @@ clean-elements:
 clean-utils:
 	@cd $(LIBSRC_DIR)/Utils&&\
 	$(MAKE) clean
-#clean-matrix
-#	@cd $(LIBSRC_DIR)/Matrix&&\\
-#	$(MAKE) clean
+clean-matrix:
+	@cd $(LIBSRC_DIR)/Matrix&&\\
+	$(MAKE) clean
 
 ######################   Real clean
 
@@ -85,20 +99,24 @@ clean: clean-library clean-prog
 	@echo clean all
 .PHONY: clean clean-library clean-prog
 
-clean-library: clean-driver clean-datainout clean-dat clean-unverg clean-algebraicsys clean-domain clean-general clean-pde clean-forms clean-elements clean-utils 
- 
+clean-library:
+	@for n in $(PATHSUBLIBDIR); do \
+         (if cd $$n; \
+                     then $(MAKE) clean; \
+                     else echo "WARNING:" $$n " doesn't exist"; \
+          fi); \
+         done 
 clean-prog:
 	-rm *.o
-
+#
 ######################   Clean library
- 
+# 
 libclean: 
 	@echo clean library
 	@cd $(LIB_DIR) && \
 	rm *.a
 .PHONY: libclean
- 
-
+#
 ######################  Make documentation  
 doc: doxygen
 	@echo To see documentation run: netscape  $(C_DIR)/doc/html/index.html 
@@ -114,48 +132,15 @@ doc++:
 #
 ##################### Make dependencies
 #
-depend-driver:
-	@cd $(LIBSRC_DIR)/Driver&& \
-	$(MAKE) depend
-depend-datainout:
-	@cd $(LIBSRC_DIR)/DataInOut&& \
-	$(MAKE) depend
-depend-dat:
-	@cd $(LIBSRC_DIR)/DataInOut/DatFile && \
-	$(MAKE) depend
-depend-unverg:
-	@cd $(LIBSRC_DIR)/DataInOut/Unverg && \
-	$(MAKE) depend
-depend-algebraicsys:
-	@cd $(LIBSRC_DIR)/AlgebraicSystem/LinAlg && \
-	$(MAKE) depend
-depend-domain:
-	@cd $(LIBSRC_DIR)/Domain&&\
-	$(MAKE) depend
-depend-general:
-	@cd $(LIBSRC_DIR)/General&&\
-	$(MAKE) depend
-depend-pde:
-	@cd $(LIBSRC_DIR)/PDE&&\
-	$(MAKE) depend
-depend-forms:
-	@cd $(LIBSRC_DIR)/Forms&&\
-	$(MAKE) depend
-depend-elements:
-	@cd $(LIBSRC_DIR)/Elements&&\
-	$(MAKE) depend 
-depend-utils:
-	@cd $(LIBSRC_DIR)/Utils&&\
-	$(MAKE) depend
-depend-matrix:
-	@cd $(LIBSRC_DIR)/Matrix&&\\
-	$(MAKE) depend
-
-depend: depend-cleanfile depend-driver depend-datainout depend-dat depend-unverg depend-algebraicsys depend-domain depend-general depend-pde depend-forms depend-elements depend-utils
-	rm -f $(Dependencies).bak
-	@echo done
-	@echo see file: $(Dependencies) 
-
+depend: depend-cleanfile
+	@for n in $(PATHSUBLIBDIR); do \
+         (if cd $$n; \
+                     then $(MAKE) $@; \
+                     else echo "WARNING:" $$n " doesn't exist"; \
+          fi); \
+         done
+	@rm -f $(Dependencies).bak
+#
 depend-cleanfile:
 	@rm -rf $(Dependencies)
  
