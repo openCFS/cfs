@@ -17,9 +17,7 @@
 namespace CoupledField
 {
 
-  //! Class for writing formatted output to the info-file.                              */
-
-  
+  //! Class for writing formatted output to the info-file.
   class WriteInfo
   {
   private:
@@ -92,7 +90,7 @@ namespace CoupledField
     void PrintVec(const char * comment, std::vector<std::string>& vec);
 
     /// does a formatted print leaded by the PDE name, equal to std::printf(...)
-    void PrintF(const std::string& pdeName, char * formatStr ...);
+    void PrintF(const std::string& pdeName, const char * formatStr ...);
 
     /// prints warning to info-file
     void Warning(const std::string & text);

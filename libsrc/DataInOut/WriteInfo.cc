@@ -414,7 +414,8 @@ namespace CoupledField
 
 
 
-  void WriteInfo::PrintF(const std::string& pdeName, char * formatChar ...)
+  void WriteInfo::PrintF(const std::string& pdeName,
+			 const char * formatChar ...)
   {
     ENTER_FCN( "WriteInfo::PrintF" );
     const Integer maxSize = 100;
