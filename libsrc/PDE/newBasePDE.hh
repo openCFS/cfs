@@ -120,7 +120,7 @@ public:
     \param dt time step
   */
   virtual void InitTimeStepping(const Double dt)
-  {Error("InitTimeStepping not implemented");};
+  {Error("InitTimeStepping not implemented",__FILE__,__LINE__);};
 
   //! deletes the algebraic system
   void DeleteAlgSys(int as_id)
@@ -169,7 +169,7 @@ public:
 
   //! initalize PDE coupling
   virtual void InitCoupling(PDECoupling * Coupling)
-  {Error("InitCoupling Not implemented");}
+  {Error("InitCoupling Not implemented",__FILE__,__LINE__);}
 
 
   //! Fill in input coupling terms
@@ -178,7 +178,7 @@ public:
 
   //! calculate coupling terms
   virtual void CalcOutputCoupling()
-  {Error("InitCoupling Not implemented");}
+  {Error("InitCoupling Not implemented",__FILE__,__LINE__);}
 
   
 
@@ -207,21 +207,21 @@ public:
 
    //! returns if PDE can compute the quantity
   virtual Boolean HasOutput(std::string output)
-  {Error("not implemented");}
+  {Error("not implemented",__FILE__,__LINE__);}
 
   //! return pointer to vector with solution
   virtual const Array<Double>& getS() {return sol_;}
 
   //! return pointer to vector with first derivative of solution
   virtual const Array<Double>& getS1() const 
-  { Error("Not implemented");}
+  { Error("Not implemented",__FILE__,__LINE__);}
 
 
 
   //! return size of solution
   virtual Integer getSize() const 
   { 
-    Error("Function getSize is not overloaded in this class");
+    Error("Function getSize is not overloaded in this class",__FILE__,__LINE__);
   } 
 
 
@@ -279,7 +279,7 @@ protected:
 
   /// return index of dof defined by keyword (e.g. 'ux')
   virtual Integer GetBCDof(const std::string keyword)
-  { Error("GetNrBCDof not implemented");}
+  { Error("GetNrBCDof not implemented",__FILE__,__LINE__);}
 
   //! maps the local node solution to the global mesh solution
   /*!
@@ -315,6 +315,14 @@ protected:
   virtual void NodeSolutionToCoupling(Array<Double>& CouplingSol,
 				  const std::vector<Integer>& NodeNumbers);
 
+
+  //! maps the local element solution to the coupling nodes
+  void ElemSolutionToCoupling(Array<Double>& CouplingSol,
+			      const std::vector<Elem*>& NodeNumbers,
+			      Vector<Double>& forceOnElem);
+  
+				     
+
   //! assign local PDE node numbers to subdomains
   /*!
     \param Mesh2PDENode (output) Vector assigning mesh to PDE node numbers
@@ -348,6 +356,14 @@ protected:
   void ConstructorError();
 #endif
 
+
+  /// returns the solution vector (sol1_x, sol1_y, sol2_x, sol2_y, ..) belonging to all nodes of the actual element
+  void GetSolVecOfElement(Vector<Double>& sol, Vector<Integer>& connect_PDE);
+
+
+  /// calc the normal vector of a line element (for acoustic coupling)
+  void CalcLineNormalVec(Vector<Double>& n, Matrix<Double>& ptCoord);
+  
 
   // ======================================================
   // DATA SECTION

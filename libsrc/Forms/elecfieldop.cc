@@ -362,7 +362,7 @@ void CurlNodeOp::CalcElemCurlNode(Vector<Double> & B,
     }
 
   else if (dim ==3)
-    Error("CalcElemCurlNode for 3D not implemented");
+    Error("CalcElemCurlNode for 3D not implemented",__FILE__,__LINE__);
  
 }
 

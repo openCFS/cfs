@@ -147,7 +147,7 @@ public:
   void CalcElemMagVec(Vector<Double> & magVecPot, 
 		      const Elem * ptElement,
 		      const std::vector<Double> & LCoord)
-  {Error("CalcElemMagVec not implemented");};
+  {Error("CalcElemMagVec not implemented",__FILE__,__LINE__);};
   
 protected:
   

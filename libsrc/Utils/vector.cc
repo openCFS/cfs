@@ -538,6 +538,17 @@ template<class T> void swap(T & a, T & b)
    b=tmp;
 }
 
+  template<class T> 
+  void SetMultipleVEc(Vector<Double> src, Integer nrTimes)
+{
+  Resize(src.size()*nrTimes);
+  for(Integer i=0; i<nrTimes; i++)
+    for(Integer srcPos=0; srcPos<src.size(); srcPos++)
+      (*p)[srcPos + i*src.size()] = src[srcPos];
+}
+
+
+
 template void swap<Integer>(Integer & ,Integer &);
 template void swap<Double>(Double & ,Double &);
 

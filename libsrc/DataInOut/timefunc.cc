@@ -21,6 +21,7 @@ TimeFunc :: TimeFunc(FileType * aptFileType)
   maxnumTimeFunc_ = 0;
 
   timeFncDatFile_=FALSE;
+  timeFncDatFiles_=FALSE;
   std::string nametf;
 
   if (conf->ifgetliststr("time_data_files",fnc_names_))

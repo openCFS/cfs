@@ -59,6 +59,25 @@ public:
   virtual Boolean TestError(const Integer level);
 #endif
 
+
+  // ======================================================
+  // COUPLING SECTION
+  // ======================================================
+  
+  //! initalize PDE coupling
+  void InitCoupling(PDECoupling * Coupling);;
+  
+  //! calculate coupling terms
+  void CalcOutputCoupling();
+
+  //! returns if PDE can compute the quantity
+  virtual Boolean HasOutput(std::string output);
+  
+  //! calculate the vector of coupling forces to the mechanical PDE
+  void CalcMechCouplingRHS(std::vector<Elem*> * couplingElems, 
+			   Vector<Double>& elemCouplingSol);
+  
+
 protected:
 
   Double freq_;   //!< excitation frequency for harmonic analysis

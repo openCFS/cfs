@@ -419,10 +419,15 @@ void MechPDE::InitCoupling(PDECoupling * Coupling)
 	  ptCoupling_->SetOutputDim(i, Dim_);
 	  ptCoupling_->GetOutputValues(i, val);
 	}
+
+      if (ptCoupling_->GetOutputQuantity(i) == "mechforce")
+	{
+	  ptCoupling_->SetOutputDim(i, Dim_);
+	  ptCoupling_->GetOutputValues(i, val);
+	}
     }
 
   iterCoupledCounter_ = 0;
-
 }
 
 
@@ -437,33 +442,122 @@ void MechPDE::CalcOutputCoupling()
 
   std::string quantity;
   std::vector<Integer> * couplingnodes;
+  std::vector<Elem*> * couplingElems;
   Array<Double> * values;
   
   // loop over all output coupling quantities
   for (Integer i=0; i<ptCoupling_->GetNumOutputCouplings(); i++)
     {
       quantity = ptCoupling_->GetOutputQuantity(i);
-
+      
       switch(ptCoupling_->GetOutputType(i))
 	{
-
 	case NODE:
 	  
-	  ptCoupling_->GetOutputNodes(i, couplingnodes);
-	  ptCoupling_->GetOutputValues(i, values);
-
 	  if (quantity == "mechdisplacement")
-	    NodeSolutionToCoupling(*values, *couplingnodes);
+	    {
+	      ptCoupling_->GetOutputNodes(i, couplingnodes);
+	      ptCoupling_->GetOutputValues(i, values);
+	      
+	      NodeSolutionToCoupling(*values, *couplingnodes);
+	    }
 	  
+
+	  if (quantity == "mechforce")
+	    {
+	      ptCoupling_->GetOutputElements(i, couplingElems);
+
+	      Vector<Double> elemCouplingSol;
+	      CalcAcousticCouplingRHS(couplingElems, elemCouplingSol);
+	      ElemSolutionToCoupling(*values, *couplingElems, elemCouplingSol);
+	    } 
 	  break;
 
 	case ELEM:
 	  Error("No Element coupling output", __FILE__,__LINE__);
 	}
-
     }
-
 }
+
+
+
+
+void MechPDE::CalcAcousticCouplingRHS(std::vector<Elem*> * couplingElems, 
+				      Vector<Double>& elemCouplingSols)
+{
+#ifdef TRACE
+  (*trace) << "entering MechPDE::CalcAcousticCouplingRHS" << std::endl;
+#endif
+
+  Double densityFluid = 1e3;
+  myCout << "Density hardcoded 1e3!!! " << myEndl;  
+  
+  // nr of nodes of first element
+  const Integer nrNodesPerEl = (*couplingElems)[0]->ptElem->GetDim();
+  elemCouplingSols.Resize(couplingElems->size() * nrNodesPerEl);
+
+  for (Integer actElem=0; actElem<couplingElems->size(); actElem++)
+    {
+      BaseFE * ptElem = (*couplingElems)[actElem]->ptElem;
+      Vector<Integer> connecth = (*couplingElems)[actElem]->connect;
+      
+      Matrix<Double> ptCoord; 
+      GetElemCoords(connecth, ptCoord, actlevel_);
+      
+      
+      BaseForm * bilinear_mass = new MassInt(ptElem, densityFluid, isaxi_);
+      Matrix<Double> elemmat;
+      bilinear_mass->CalcElementMatrix(ptCoord, elemmat);
+      delete bilinear_mass;	  
+
+
+      Vector<Integer> connect_PDE;
+      Mesh2PDENode(connect_PDE, connecth, Mesh2PDENode_);
+      
+      Vector<Double> sol;
+      GetSolVecOfElement(sol, connect_PDE);	 
+
+      Vector<Double> forceOnElem = elemmat * sol;
+
+      Vector<Double> n;
+      CalcLineNormalVec(n, ptCoord);
+
+      for (Integer actNode=0; actNode<ptCoord.size_row(); actNode++)
+	{
+	  Double actForce = 0;
+	  
+	  // calculate vec-product of vec(f) * vec(n)
+	  for (Integer actDof=0; actDof<dofspernode_; actDof++)
+	    actForce += forceOnElem[actDof + actNode*nrNodesPerEl] * n[actDof];
+
+	  elemCouplingSols[actElem*nrNodesPerEl + actNode] = actForce;  
+	}
+    }
+} 
+ 
+  
+  
+
+
+
+
+void MechPDE::GetSolOfElement( Matrix<Double>& sol, Vector<Integer>& connect_PDE)
+{
+#ifdef TRACE
+  (*trace) << "entering MechPDE::GetSolOfElement" << std::endl;
+#endif
+
+  // displacement of element nodes
+  sol.Resize(dofspernode_, connect_PDE.size());
+  
+  for(Integer actNode=0; actNode<connect_PDE.size(); actNode++)
+    for(Integer actDof=0; actDof < dofspernode_; actDof++)
+      sol[actDof][actNode] = sol_[actDof][connect_PDE[actNode]-1];
+}
+
+
+
+
 
 
 
@@ -473,7 +567,7 @@ Boolean MechPDE::HasOutput(std::string output)
   (*trace) << "entering MechPDE::HasOutput" << std::endl;
 #endif
 
-  if (output == "mechdisplacement")
+  if (output == "mechdisplacement" || output == "mechforce")
     return TRUE;
 
   return FALSE;

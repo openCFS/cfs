@@ -867,8 +867,7 @@ void BasePDE::GetElemCoords(const Vector<Integer> connect, Matrix<Double> &coord
     {
       for (Integer i=0; i<coordMat.size_row(); i++)
 	for (Integer j=0; j<coordMat.size_col(); j++) 
-	  coordMat(i,j) += deltCoords_[i][Mesh2PDENode_ [connect[j] - 1] - 1];      
-	
+	  coordMat(i,j) += deltCoords_[i][Mesh2PDENode_ [connect[j] - 1] - 1];
     }
 
 }
@@ -953,7 +952,7 @@ void BasePDE::NodeSolutionToCoupling(Array<Double>& CouplingSol,
 				     const std::vector<Integer>& NodeNumbers)
 {
 #ifdef TRACE
-  (*trace) << "entering BasePDE::TransformElemSolution" << std::endl;
+  (*trace) << "entering BasePDE::NodeSolutionToCoupling" << std::endl;
 #endif
   
   CouplingSol.reshape(dofspernode_, NodeNumbers.size());
@@ -969,6 +968,30 @@ void BasePDE::NodeSolutionToCoupling(Array<Double>& CouplingSol,
       {
 	//std::cerr << "processing dim: " << i <<", j:" << j << std::endl; 
 	CouplingSol[i][j] = sol_[i][Mesh2PDENode_[NodeNumbers[j]-1 ] - 1];
+      }
+  
+}
+
+
+
+
+
+void BasePDE::ElemSolutionToCoupling(Array<Double>& CouplingSol,
+				     const std::vector<Elem*>& NodeNumbers,
+				     Vector<Double>& elemSol)
+				     
+{
+#ifdef TRACE
+  (*trace) << "entering BasePDE::ElemSolutionToCoupling" << std::endl;
+#endif
+  
+  CouplingSol.reshape(dofspernode_, NodeNumbers.size());
+  
+  for (Integer actDof=0; actDof<dofspernode_; actDof++)
+    for (Integer actNode=0; actNode<NodeNumbers.size(); actNode++)
+      {
+	//std::cerr << "processing dim: " << i <<", j:" << j << std::endl; 
+	CouplingSol[actDof][actNode] = elemSol[actDof + actNode*dofspernode_];
       }
   
 }
@@ -1105,6 +1128,48 @@ void BasePDE::WriteErrorInfo(WriteResults * ptmeshes)
   ptmeshes->WriteElemSolution(markingElems_,0,0,"ERR-markedElems");
 }
 #endif
+
+
+
+
+void BasePDE::GetSolVecOfElement(Vector<Double>& sol, Vector<Integer>& connect_PDE)
+{
+#ifdef TRACE
+  (*trace) << "entering MechPDE::GetSolVecOfElement" << std::endl;
+#endif
+
+  // displacement of element nodes
+  sol.Resize(dofspernode_ * connect_PDE.size());
+  
+  for(Integer actNode=0; actNode<connect_PDE.size(); actNode++)
+    for(Integer actDof=0; actDof < dofspernode_; actDof++)
+      sol[actDof + actNode*dofspernode_] = sol_[actDof][connect_PDE[actNode]-1];
+}
+
+
+
+void BasePDE::CalcLineNormalVec(Vector<Double>& n, Matrix<Double>& ptCoord)
+{
+#ifdef TRACE
+  (*trace) << "entering BasePDE::CalcLineNormalVec" << std::endl;
+#endif
+
+  const Integer nrVecElem2d = 2;
+  
+  if (ptCoord.size_row()!=nrVecElem2d)
+    Error("Calc element normal: no line element! ", __FILE__,__LINE__);
+
+  n.Resize(nrVecElem2d);
+  
+  // normal of a vector: interchange x and y and take the new x as negative
+
+  n[0] = -(ptCoord[1][1] - ptCoord[0][1]);
+  n[1] =  (ptCoord[1][0] - ptCoord[0][0]);
+  n /= n.normL2();
+}
+
+
+
 
 } // end of namespace
 

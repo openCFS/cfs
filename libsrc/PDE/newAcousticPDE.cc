@@ -129,9 +129,7 @@ AcousticPDE::AcousticPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, Fil
 	  BaseForm * bilinear_damp = new MassInt(coeffdamp,dofspernode_, isaxi_);
 	  assemble_->AddSurfIntegrator(bilinear_damp,  bnd_absBCs_[actSD], DAMPING, nonLin);
 	}
-	
     }
-  
   }
 
 
@@ -159,6 +157,146 @@ void AcousticPDE :: InitTimeStepping(const Double dt)
   TS_alg_->Init(matrix_factor_, dt);
 
 }
+
+
+
+
+// ======================================================
+// COUPLING SECTION
+// ======================================================
+
+
+void AcousticPDE::InitCoupling(PDECoupling * Coupling)
+{
+#ifdef TRACE
+  (*trace) << "entering AcousticPDE::InitCoupling" << std::endl;
+#endif
+  
+  PDEisCoupled_ = TRUE;
+  ptCoupling_   = Coupling;
+  
+  Array<Double> * val;
+  for (Integer i=0; i<ptCoupling_->GetNumOutputCouplings(); i++)
+    {
+      if (ptCoupling_->GetOutputQuantity(i) == "acousticforce")
+	{
+	  ptCoupling_->SetOutputDim(i, Dim_);
+	  ptCoupling_->GetOutputValues(i, val);
+	}
+    }
+
+  iterCoupledCounter_ = 0;
+}
+
+
+
+
+void AcousticPDE::CalcOutputCoupling()
+{
+#ifdef TRACE
+  (*trace) << "entering AcousticPDE::CalcOutputCoupling" << std::endl;
+#endif  
+
+  std::string quantity;
+  std::vector<Elem*> * couplingElems;
+  Array<Double> * values;
+  
+  // loop over all output coupling quantities
+  for (Integer i=0; i<ptCoupling_->GetNumOutputCouplings(); i++)
+    {
+      quantity = ptCoupling_->GetOutputQuantity(i);
+
+      switch(ptCoupling_->GetOutputType(i))
+	{
+	case NODE:	  
+	  if (quantity == "acousticforce")
+	    {
+	      ptCoupling_->GetOutputElements(i, couplingElems);
+
+	      Vector<Double> elemCouplingSol;
+	      CalcMechCouplingRHS(couplingElems, elemCouplingSol);
+	      ElemSolutionToCoupling(*values, *couplingElems, elemCouplingSol);
+	    }	  
+	  break;
+
+	case ELEM:
+	  Error("No Element coupling output", __FILE__,__LINE__);
+	}
+    }
+}
+
+void AcousticPDE::CalcMechCouplingRHS(std::vector<Elem*> * couplingElems, 
+				      Vector<Double>& elemCouplingSols)
+{
+#ifdef TRACE
+  (*trace) << "entering AcousticPDE::CalcMechCouplingRHS" << std::endl;
+#endif
+
+  Double densitySolid = 5e3;
+  myCout << "Density hardcoded 5e3!!! " << myEndl;
+  
+  const Integer nrNodesPerEl = (*couplingElems)[0]->ptElem->GetDim();
+  // up to now: hardcoded for 2d mechanics!!!!!!!!!!!!!!!!!!!!
+  const Integer nrDofsMech = 2;
+  
+  elemCouplingSols.Resize(couplingElems->size() * nrNodesPerEl * nrDofsMech);
+
+
+  for (Integer actElem=0; actElem<couplingElems->size(); actElem++)
+    {
+      BaseFE * ptElem = (*couplingElems)[actElem]->ptElem;
+      Vector<Integer> connecth = (*couplingElems)[actElem]->connect;
+      
+      Matrix<Double> ptCoord; 
+      GetElemCoords(connecth, ptCoord, actlevel_);
+      
+      
+      BaseForm * bilinear_mass = new MassInt(ptElem, densitySolid, isaxi_);
+      Matrix<Double> elemmat;
+      bilinear_mass->CalcElementMatrix(ptCoord, elemmat);
+      delete bilinear_mass;	  
+
+
+      Vector<Integer> connect_PDE;
+      Mesh2PDENode(connect_PDE, connecth, Mesh2PDENode_);
+      
+      Vector<Double> sol;
+      GetSolVecOfElement(sol, connect_PDE);
+
+      Vector<Double> forceOnElem = elemmat * sol;
+
+      Vector<Double> n;
+      CalcLineNormalVec(n, ptCoord);
+
+     for (Integer actNode=0; actNode<ptCoord.size_row(); actNode++)
+       for (Integer actDof=0; actDof<dofspernode_; actDof++)
+	{  
+	  elemCouplingSols[actDof + actElem * nrNodesPerEl * dofspernode_ + actNode*dofspernode_] 
+	    = forceOnElem[actNode]*n[actDof];  
+	}
+
+//       for (Integer actNode=0; actNode<ptCoord.size_row(); actNode++)
+// 	for (Integer actDof=0; actDof<dofspernode_; actDof++)
+// 	  elemCouplingSol[actDof + actNode*dofspernode_] *=  n[actDof];
+      
+    }  
+}
+
+
+
+
+Boolean AcousticPDE::HasOutput(std::string output)
+{
+#ifdef TRACE
+  (*trace) << "entering AcousticPDE::HasOutput" << std::endl;
+#endif
+
+  if (output == "acousticforce")
+    return TRUE;
+
+  return FALSE;
+}
+
 
 
 // ======================================================

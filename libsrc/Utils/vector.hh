@@ -206,6 +206,10 @@ public:
   */
   void  TransformInVector(const Integer nsize, TYPE * ptdata);
 
+  /// Duplicate the vector src nrTimes: *this = (src, src, ...)
+  template<class T> 
+  void SetMultipleVEc(Vector<T>& src, Integer nrTimes);
+  
 };
 
 

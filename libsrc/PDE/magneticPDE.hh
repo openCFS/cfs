@@ -71,7 +71,7 @@ public:
 		     std::vector<Elem*> & elems,
 		     std::vector<std::vector<ShortInt> > & isBoundaryNode,
 		     std::vector<std::vector<Integer> > & elemNodeToCouplingNode)
-  {Error("CalcNodeForce not implemented");}
+  {Error("CalcNodeForce not implemented",__FILE__,__LINE__);}
 
 
   //! GET SOLUTION AT ALL NODES OF AN ELEMENT
@@ -87,16 +87,16 @@ public:
 
   //! initalize PDE coupling
   virtual void InitCoupling(PDECoupling * Coupling)
-  {Error("InitCoupling not implemented");}
+  {Error("InitCoupling not implemented",__FILE__,__LINE__);}
   
   
   //! calculate coupling terms
   virtual void CalcOutputCoupling()
-  {Error("CalcOutputCoupling not implemented");}
+  {Error("CalcOutputCoupling not implemented",__FILE__,__LINE__);}
 
   //! returns if PDE can compute the quantity
   virtual Boolean HasOutput(std::string output)
-  {Error("HasOutput not implemented");}
+  {Error("HasOutput not implemented",__FILE__,__LINE__);}
 
 
 
