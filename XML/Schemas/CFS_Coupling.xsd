@@ -110,6 +110,7 @@
           </xsd:simpleType>
         </xsd:attribute>
         <xsd:attribute name="name" type="xsd:token" use="required"/>
+        
       </xsd:restriction>
     </xsd:complexContent>
   </xsd:complexType>
@@ -138,6 +139,8 @@
           </xsd:simpleType>
         </xsd:attribute>
         <xsd:attribute name="name" type="xsd:token" use="required"/>
+        <xsd:attribute name="neighbourRegion" type="xsd:token" use="optional"
+	default="all"/>
       </xsd:restriction>
     </xsd:complexContent>
   </xsd:complexType>
