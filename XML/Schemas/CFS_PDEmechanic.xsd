@@ -15,63 +15,49 @@
   <!-- ******************************************************************** -->
   <!--   Definition of element for mechanic PDEs -->
   <!-- ******************************************************************** -->
-  <xsd:element name="mechanic" type="PDE_Type_mechanic"
-       substitutionGroup="PDE_basic"/>
+  <xsd:element name="mechanic" type="DT_PDEMechanic"
+       substitutionGroup="PDEBasic"/>
 
 
   <!-- ******************************************************************** -->
   <!--   Definition of data type for mechanic PDEs -->
   <!-- ******************************************************************** -->
 
-  <xsd:complexType name="PDE_Type_mechanic">
+  <xsd:complexType name="DT_PDEMechanic">
     <xsd:complexContent>
-      <xsd:extension base="PDE_Type_basic">
+      <xsd:extension base="DT_PDEBasic">
+
+        <!-- Subtype of PDE -->
+        <xsd:attribute name="subtype" type="xsd:token" use="optional"
+          default="plainStrain"/>
+
         <xsd:sequence>
-      
-          <!-- Subtype of PDE -->
-          <xsd:element name="subtype">
-            <xsd:simpleType>
-              <xsd:restriction base="xsd:token">
-                <xsd:enumeration value="axi"/>
-                <xsd:enumeration value="3d"/>
-                <xsd:enumeration value="plainStrain"/>
-              </xsd:restriction>
-            </xsd:simpleType>
-          </xsd:element>
 
           <!-- Subdomains the PDE lives on -->
           <xsd:element name="subdom" type="xsd:token" minOccurs="1"
                        maxOccurs="unbounded"/>
     
           <!-- Boundary Conditions -->
-          <xsd:element name="BoundaryConds">
+          <xsd:element name="boundaryConds">
             <xsd:complexType>
               <xsd:sequence>
-                <xsd:element name="dirichlet_hom" type="BC_mechhd"
+                <xsd:element name="dirichlet_hom" type="DT_MechHD"
                              minOccurs="0" maxOccurs="unbounded"/>
-                <xsd:element name="dirichlet_inhom" type="BC_mechid"
+                <xsd:element name="dirichlet_inhom" type="DT_MechID"
                              minOccurs="0" maxOccurs="unbounded"/>
-                <xsd:element name="neumann_inhom" type="BC_mechin"
+                <xsd:element name="neumann_inhom" type="DT_MechIn"
                              minOccurs="0" maxOccurs="unbounded"/>
-                <xsd:element name="load" type="BC_mechload" minOccurs="0"
+                <xsd:element name="load" type="DT_MechLoad" minOccurs="0"
                              maxOccurs="unbounded"/>
               </xsd:sequence>
             </xsd:complexType>
           </xsd:element>
 
           <!-- Desired solution values (optional) -->
-          <xsd:element name="StoreResults" minOccurs="0" maxOccurs="1">
-            <xsd:simpleType>
-              <xsd:restriction base="xsd:token">
-                <xsd:enumeration value="dof"/>
-                <xsd:enumeration value="deriv1"/>
-                <xsd:enumeration value="deriv2"/>
-              </xsd:restriction>
-            </xsd:simpleType>
-          </xsd:element>
+          <xsd:element type="DT_MechStoreResults" minOccurs="0" maxOccurs="1"/>
 
           <!-- Section for specifying solver -->
-          <xsd:element ref="Solver"/>
+          <xsd:element ref="solver"/>
 
         </xsd:sequence>
       </xsd:extension>
@@ -83,7 +69,7 @@
   <!--   Definition of enumeration type describing the degrees of freedom   -->
   <!-- ******************************************************************** -->
 
-  <xsd:simpleType name="mechdof">
+  <xsd:simpleType name="DT_MechDOF">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="ux"/>
       <xsd:enumeration value="uy"/>
@@ -98,46 +84,97 @@
 
   <!-- Element type for homogeneous Dirichlet boundary conditions -->
   <!-- We derive it by extending the base type -->
-  <xsd:complexType name="BC_mechhd">
+  <xsd:complexType name="DT_MechHD">
     <xsd:complexContent>
-      <xsd:extension base="BC_type">
-        <xsd:attribute name="interface" type="xsd:token" use="required"/>
-        <xsd:attribute name="dof" type="mechdof" use="required"/>
+      <xsd:extension base="DT_BCBasic">
+        <xsd:attribute name="name" type="xsd:token" use="required"/>
+        <xsd:attribute name="dof" type="DT_MechDOF" use="required"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
 
   <!-- Element type for inhomogeneous Dirichlet boundary conditions -->
   <!-- We derive it by extending the homogeneous case -->
-  <xsd:complexType name="BC_mechid">
+  <xsd:complexType name="DT_MechID">
     <xsd:complexContent>
-      <xsd:extension base="BC_mechhd">
+      <xsd:extension base="DT_MechHD">
         <xsd:attribute name="value" type="xsd:double" use="required"/>
+        <xsd:attribute name="dynamics" type="xsd:token" use="optional"
+          default="none"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
 
   <!-- Element type for specifying inhomogeneous neumann conditions -->
-  <!-- We derive it by extending the base case -->
-  <xsd:complexType name="BC_mechin">
+  <!-- Identical to that of inhomogeneous Dirichlet case -->
+  <xsd:complexType name="DT_MechIN">
     <xsd:complexContent>
-      <xsd:extension base="BC_type">
-        <xsd:attribute name="surface" type="xsd:token" use="required"/>
-        <xsd:attribute name="dof" type="mechdof" use="required"/>
-        <xsd:attribute name="value" type="xsd:double" use="required"/>
-      </xsd:extension>
+      <xsd:extension base="DT_MechID"/>
     </xsd:complexContent>
   </xsd:complexType>
 
   <!-- Element type for specifying loads -->
-  <!-- We derive it by extending the homogeneous Dirichlet case -->
-  <xsd:complexType name="BC_mechload">
+  <!-- Identical to that of inhomogeneous Dirichlet case -->
+  <xsd:complexType name="DT_MechLoad">
     <xsd:complexContent>
-      <xsd:extension base="BC_mechhd">
-        <xsd:attribute name="value" type="xsd:double" use="required"/>
-        <xsd:attribute name="dynamics" type="xsd:token" use="optional"/>
-      </xsd:extension>
+      <xsd:extension base="DT_MechID"/>
     </xsd:complexContent>
   </xsd:complexType>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of syntax for specifying output quantities of CFS -->
+  <!-- ******************************************************************** -->
+
+  <!-- What data can a single node have in a mechanic PDE -->
+  <xsd:simpleType name="DT_NodeData">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="displacement"/>
+      <xsd:enumeration value="velocity"/>
+      <xsd:enumeration value="acceleration"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <!-- What data can a single element have in a mechanic PDE -->
+  <xsd:simpleType name="DT_ElemData">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="strain"/>
+      <xsd:enumeration value="stress"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <!-- Data type for describing node values to be stored -->
+  <xds:complexType name="DT_NodeResults">
+    <xsd:complexContent>
+      <xsd:attribute name="type" type="xsd:DT_NodeData" use="optional"
+        default="displacement"/>
+      <xsd:attribute name="region" type="xsd:token" use="optional"
+        default="none"/>
+      <xsd:attribute name="saveNodes" type="xsd:token" use="optional"
+        default="none"/>
+    </xsd:complexContent>
+  </xds:complexType>
+
+  <!-- Data type for describing elemnt values to be stored -->
+  <xds:complexType name="DT_ElemResults">
+    <xsd:complexContent>
+      <xsd:attribute name="type" type="xsd:DT_ElemData" use="optional"
+        default="stress"/>
+      <xsd:attribute name="region" type="xsd:token" use="optional"
+        default="none"/>
+      <xsd:attribute name="saveElems" type="xsd:token" use="optional"
+        default="none"/>
+    </xsd:complexContent>
+  </xds:complexType>
+
+  <!-- Global type for specifying the desired mechanical output quantities -->
+  <xsd:complexType name="DT_MechStoreResults">
+    <xsd:complexContent>
+      <xsd:sequence>
+        <xsd:element name="nodeResults" type="DT_NodeResults" minOccurs="0"/>
+        <xsd:element name="elemResults" type="DT_ElemResults" minOccurs="0"/>
+      </xsd:sequence>
+    </xsd:complexContent>
+  </xsd:element>
 
 </xsd:schema>
