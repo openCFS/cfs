@@ -301,9 +301,10 @@ namespace CoupledField
 	     << myEndl;
 
     // Basic coil info
-    *cfsInfo << "Coil domain: " << coil.coilName_  << std::endl;
-    *cfsInfo << "Coil type: "   << coil.coilTypeS_ << std::endl;
-    *cfsInfo << "Coil area: "   << coil.area_      << std::endl;
+    *cfsInfo << "Coil domain: "              << coil.coilName_  << std::endl;
+    *cfsInfo << "Coil type: "                << coil.coilTypeS_ << std::endl;
+    *cfsInfo << "Cross-Section of winding: " << coil.windingCrossSection_
+	     << std::endl;
 
     // ID tag for 2D coils
     if ( coil.coilType_ == Coil::MEASUREMENT2D ||
@@ -353,8 +354,8 @@ namespace CoupledField
 		 << std::endl;
       }
 
-      if ( coil.saveFileUI_ != "none" ) {
-	*cfsInfo << " Storing current/voltage in file: " << coil.saveFileUI_
+      if ( coil.saveFileU_ != "none" ) {
+	*cfsInfo << " Storing current/voltage in file: " << coil.saveFileU_
 		 << std::endl;
       }
     }
@@ -367,10 +368,10 @@ namespace CoupledField
 		 << coil.midX_ << " , "
 		 << coil.midY_ << " , "
 		 << coil.midZ_ << " )" << std::endl;
-	*cfsInfo << "Orientation = ( "
-		 << coil.oriX_ << " , "
-		 << coil.oriY_ << " , "
-		 << coil.oriZ_ << " )" << std::endl;
+	*cfsInfo << "Axis = ( "
+		 << coil.rotAxisX_ << " , "
+		 << coil.rotAxisY_ << " , "
+		 << coil.rotAxisZ_ << " )" << std::endl;
       }
       else {
 	*cfsInfo << "Direction of current flow: ";
