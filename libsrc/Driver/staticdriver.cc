@@ -44,7 +44,7 @@ void StaticDriver :: SolveProblem()
   Integer pdenumber  = 0;
 
   ptdomain_->GetPDE(pdenumber)->SolveStepStatic(level);
-
+  ptdomain_->GetPDE(pdenumber)->PostProcess(level);
   ptdomain_->PrintGrid(level);
   ptdomain_->GetPDE(pdenumber)->WriteResultsInFile();
 

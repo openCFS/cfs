@@ -3,7 +3,7 @@
 C_DIR=../..
 #
 #src = baseform.cc linearform.cc massint.cc laplaceint.cc dampint.cc bdb.cc linElastInt.cc
-src = baseForm.cc laplaceInt.cc bdbInt.cc linElastInt.cc massInt.cc
+src = baseForm.cc laplaceInt.cc bdbInt.cc linElastInt.cc massInt.cc baseoperator.cc elecfieldop.cc elecforceop.cc
 #
 lib = forms
 libpath = libsrc/Forms

@@ -7,7 +7,7 @@ LIBRARY_TYPE = static
 AdaptivLib = no
 
 #PETSc solvers
-PETSc=yes
+PETSc=no
 
 ##############  AdaptGrid 
 #

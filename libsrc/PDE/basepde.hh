@@ -112,9 +112,15 @@ public:
     \param level level of grid
     \param updatesysmat indicator: need we to update algebraic system. it is used for adaptive procedure in space
   */
+
   virtual void SolveStepTrans(const Integer kstep, const Double asteptime, const Integer level, 
 			      const Boolean updatesysmat)=0;
 
+
+  //! Do Postprocessing as descriped in conf file
+  virtual void PostProcess(const Integer level)
+  {Error("Not implemented");}
+  
   //! write results in file
   virtual void WriteResultsInFile()=0;  
 
@@ -243,13 +249,46 @@ public:
     Error("Not implemented",__FILE__,__LINE__);
   }
 
+  //! returns the local PDE number of an array of nodes
+  /*!
+    \param PDENodes (output) Vector of PDE-Numbers
+    \param MeshNodes (input) Vector of mesh (=global) node numbers
+  */
+  virtual void Mesh2PDENode(Vector<Integer> & PDENodes, Vector<Integer> & MeshNodes);
+  
+  //! returns the local global Mesh node numbers of an array of nodes
+  /*!
+    \param MeshNodes (output) Vector of mesh (=global) node numbers    
+    \param PDENodes (input) Vector of PDE-Numbers
+  */
+  virtual void PDE2MeshNode(Vector<Integer> & MeshNodes, Vector<Integer> & PDENodes);
+
 
 protected:
   /// generates a multi-dof-matrix with similar entries for all dofs
-  virtual void MassMultiDof(Matrix<Double>& massMultDof, const Matrix<Double>& massMatSingleDof,  const Integer nrDofs);
+  virtual void MassMultiDof(Matrix<Double>& massMultDof, const Matrix<Double>& massMatSingleDof,  
+			    const Integer nrDofs);
 
    //! read from .config-file info about BCs
    void ReadBCs(const std::string eq);
+
+  //! maps the local node solution to the global solution
+  /*!
+    \param MeshSol (output) Solution vector referring to Mesh node numbers    
+    \param PDESol (input) Solution vector referring to PDE node numbers
+  */
+  virtual void TransformNodeSolution(Vector<Double> & MeshSol,  Vector<Double> & PDESol);
+
+  //! maps the local element solution to the global solution
+  /*!
+    \param MeshSol (output) Solution vector referring to Mesh node numbers    
+    \param PDESol (input) Solution vector referring to PDE node numbers
+  */
+  virtual void TransformElemSolution(Vector<Double> & MeshSol,  Vector<Double> & PDESol);
+
+
+  //! assign  arrays for Mesh and PDE node numbers
+  void AssignPDENodeNumbers();
 
   //! analysis type
   AnalysisType analysistype_;
@@ -263,6 +302,7 @@ protected:
   Integer MassMatrix_;          //!< need mass matrix (TRUE/FALSE)
   Integer ConvectionMatrix_;    //!< need convective matrix (TRUE/FALSE)
 
+
   std::string pdename_; //!< type of PDE (set in the derived classes)
   Integer dofspernode_; //!< number of unknowns per node
   std::vector<std::string> subdoms_;  //!< subdomain-levels belongig to PDE
@@ -273,6 +313,9 @@ protected:
   MaterialData *materialData_;     //!< material data structure
   std::string pdematerialclass_;    //!< material class
 
+  Integer NumPDENodes_;  //!< number of nodes in subdomains
+  Integer NumElems_;      //!< number of elements in subdomains 
+
   // pointers to objects
   Grid * ptgrid_;           //!< pointer to Grid
   BCs *ptBCs_;              //!< pointer to Boundary Condition  Object
@@ -281,13 +324,17 @@ protected:
   WriteResults * OutFile_;  //!< pointer to output file
   TimeFunc * ptTimeFunc_;   //!< pointer to time functions
 
+  // Assignment MeshNodeNumers <-> PDENodeNumbers
+  std::vector<Integer> Mesh2PDENode_;  //!< array containing PDE (=local) node numbers
+  std::vector<Integer> PDE2MeshNode_;  //!< array containing Mesh (=global) node numbers 
+ 
   //!solver parameters
   Integer maxnumiter_;    //!< maximum of iterations (for iterative solver)
   Integer solvertype_;    //!< type of solver (see las_environment.hh)
   Integer precondtype_;   //!< type of preconditioner (see las_environment.hh)
   Integer numeqcoarse_;   //!< numbver of unknowns on coarse level (just for AMG)
   Double  eps_;           //!< accuracy
-  Double dampiter_;       //!< damoing parameter within iterative solution
+  Double dampiter_;       //!< damping parameter within iterative solution
   Double coarsealpha_;    //!< coarsening factor (just for AMG)
 
 
@@ -296,8 +343,6 @@ protected:
 
   Integer actlevel_; //! actual level
   TimeErrorEstimator * ptTimeError_; //!< pointer to extimator
-
-
 
   Integer as_sysid_;
 

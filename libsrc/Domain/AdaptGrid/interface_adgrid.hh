@@ -90,9 +90,20 @@ public:
   virtual void TestRefine();
   virtual void TestCoarse();
 
+  void FormNeighbors4NodesOfElements(const std::vector<Elem*> &elems, std::vector<std::vector<Elem*> > &nodeNeighbors, std::vector<Integer> & map)
+  { ptgridcfs_->FormNeighbors4NodesOfElements(elems, nodeNeighbors,  map);}
+
   //!
    virtual void DefineBelonging4Elems(const std::vector<Elem*>& elemsSurf, const std::vector<Elem*>&elems, std::vector<Elem*> & belongingSE)
   { ptgridcfs_->DefineBelonging4Elems(elemsSurf,elems,belongingSE);}
+
+    //!
+  virtual void GetInterfaceNeighbours(std::vector<Elem*> & Interface, std::vector<Elem*> & Next2Surf, std::vector<Elem*> & Neighbours)
+  {  ptgridcfs_->GetInterfaceNeighbours(Interface, Next2Surf, Neighbours);}
+
+  //!
+   virtual void CalcNumberOfNodesInPatch(const std::vector<Elem*> & patch, std::vector<Integer> & map)
+  { ptgridcfs_->CalcNumberOfNodesInPatch(patch,map);}
 
   //!
   void forEachElemSd(SetRefFlag & f,const std::string subdomain);

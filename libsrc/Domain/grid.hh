@@ -54,7 +54,7 @@ public:
     \param numlevel (input) index for multilevel hierarchy
   */
   virtual Integer GetMaxnumnodes(const Integer numlevel)=0;
-
+  
   //! Return maximum number of elements 
   /*!
     \param numlevel (input) index for multilevel hierarchy
@@ -155,7 +155,7 @@ public:
   //! gets a matrix of the coordinates of the element nodes
   /*!
     \param connect (input) global node numbers of element
-    \param ptCoord (output) coordinates of the element nodes (nrNodes \f$\times$ spaceDim);
+    \param ptCoord (output) coordinates of the element nodes (nrNodes \f$\times\f$ spaceDim);
     \param level (input) index for multilevel hierarchy
   */
   virtual void GetCoordNodesElemMat(const Vector<Integer> connect, Matrix<Double>& coordMat, const Integer level)
@@ -180,6 +180,15 @@ public:
     return Ddummy;
   }
 
+   //! procedure for forming list with element-neighbors for nodes of patch of element
+  /*!
+    \param elems (input)
+    \param nodeNeighbors (output)
+    \param map (input)
+  */
+  virtual void FormNeighbors4NodesOfElements(const std::vector<Elem*> &elems, std::vector<std::vector<Elem*> > &nodeNeighbors, std::vector<Integer> & map) = 0;
+
+
    //! auxialary function; to define belonging of one element to another from the list, for ex. surface element and boundary elements
   /*!
     \param elemsSurf
@@ -187,6 +196,22 @@ public:
     \param belongingSE
   */
   virtual void DefineBelonging4Elems(const std::vector<Elem*>& elemsSurf, const std::vector<Elem*>&elems, std::vector<Elem*> & belongingSE)=0;
+
+
+  //! form list with interface-elements neighbours
+  /*!
+    \param Interface (input) Elements defining the interface between two domains
+    \param Next2Surf (input) Subdomain adjacent to interface
+    \param neighbours (output) Elements neighbouring (= have min. 1 node in common) to interface
+  */
+  virtual void GetInterfaceNeighbours(std::vector<Elem*> & Interface, std::vector<Elem*> & Next2Surf, std::vector<Elem*> & Neighbours) = 0;
+
+   //! calculate number of nodes in patch of elements
+  /*!
+    \param patch (input)
+    \param map (output)
+  */
+  virtual void CalcNumberOfNodesInPatch(const std::vector<Elem*> & patch, std::vector<Integer> & map) = 0;
 
 protected:
 

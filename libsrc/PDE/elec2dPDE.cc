@@ -26,7 +26,13 @@ Elec2dPDE::Elec2dPDE(Grid *aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType
   pdematerialclass_ = "piezo";
 
   conf->getsubdompde(subdoms_,pdename_);
-  ReadBCs(pdename_);
+  ReadBCs(pdename_); 
+  AssignPDENodeNumbers();
+
+  size_ = NumPDENodes_;
+  NumElems_ = ptgrid_->GetMaxnumElem(actlevel_, subdoms_); 
+  sol_.Resize(size_);
+  sol_.Init(0);
 }
 
 
@@ -48,6 +54,9 @@ void Elec2dPDE::SetupMatrices(const Integer level)
 
   //reads eps33 (matrix notation starts with 0)
   Double eps33 = materialData_->GetPermittivity(2,2);
+  Vector<Integer> connecth, connect_PDE; 
+  
+  CalcCoeff(coeffst);  
 
   Integer i, j;
 
@@ -67,6 +76,9 @@ void Elec2dPDE::SetupMatrices(const Integer level)
 	  connecth=elemssd[j]->connect;
 	  
 	  ptgrid_->GetCoordNodesElemMat(connecth, ptCoord, level);
+	  
+	  // CHANGE connecth
+	  Mesh2PDENode(connect_PDE,connecth);
 
 	  // stiffness part
 	  bilinear_stiff->CalcElementMatrix(ptCoord, elemmat);
@@ -76,7 +88,7 @@ void Elec2dPDE::SetupMatrices(const Integer level)
 	  (*debug) << elemmat << std::endl;
 #endif
 
-	  algsys_->SetElementMatrix(elemmat.getinarray(), connecth.get(), connecth.size(), SYSTEM);
+	  algsys_->SetElementMatrix(elemmat.getinarray(), connect_PDE.get(), connecth.size(), SYSTEM);
 	  
 	  delete bilinear_stiff;
 	  

@@ -40,7 +40,7 @@ public:
   { 
      return ptGoMesh->getNumVertices(numlevel);
   }
-
+ 
   /// Return maximum number of elements 
   virtual Integer GetMaxnumElem(const Integer numlevel)
   {

@@ -1,0 +1,24 @@
+#include "baseoperator.hh"
+#include "Domain/grid.hh"
+namespace CoupledField
+{
+
+BaseOperator::BaseOperator(Grid * ptGrid, const Integer level)
+{
+#ifdef TRACE
+  (*trace) << "entering BaseOperator::BaseOperator" << std::endl;
+#endif
+  this->ptGrid_ = ptGrid;
+  this->level_ = level;
+}
+
+
+BaseOperator::~BaseOperator()
+{
+#ifdef TRACE
+  (*trace) << "entering BaseOperator::BaseOperator" << std::endl;
+#endif
+  ;
+}
+
+} // end of namespace

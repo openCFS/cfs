@@ -454,55 +454,55 @@ namespace CoupledField
 
 #endif
 
-//   void AnsysFile::ReadEl1d(std::vector<Elem*> * allelems, const std::vector<std::string> sd)
-//   {
-// #ifdef TRACE
-//     (*trace) << " entering AnsysFile::ReadEl1D " << std::endl;
-// #endif
+  void AnsysFile::ReadEl1d(std::vector<Elem*> * allelems, const std::vector<std::string> sd)
+  {
+#ifdef TRACE
+    (*trace) << " entering AnsysFile::ReadEl1D " << std::endl;
+#endif
+    
+    Integer maxnelems;
+    ReadMaxnumelem(maxnelems,"Num1DElements");
+    
+    if (maxnelems)
+      {
+	std::string::size_type pos=0;
 
-//     Integer maxnelems;
-//     ReadMaxnumelem(maxnelems,"Num1DElements");
+	getPosLine("1D Elements", pos);
+	infile.seekg(pos,std::ios::beg);
 
-//     if (maxnelems)
-//       {
-// 	std::string::size_type pos=0;
+	if (!ptL1)
+	  Error(" Pointers to BaseElem is not initialized",__FILE__,__LINE__);
 
-// 	getPosLine("1D Elements", pos);
-// 	infile.seekg(pos,std::ios::beg);
+	Integer i, ii, j, ibuf, itype, innodes;
+	std::string namesd;
 
-// 	if (!ptL1)
-// 	  Error(" Pointers to BaseElem is not initialized",__FILE__,__LINE__);
+	for (i=0; i<maxnelems; i++)
+	  {
+	    Elem * el=new Elem();
+	    infile >> ibuf >> itype >> innodes >> namesd;
+	    infile.ignore(100,'\n');
 
-// 	Integer i, ii, j, ibuf, itype, innodes;
-// 	std::string namesd;
-
-// 	for (i=0; i<maxnelems; i++)
-// 	  {
-// 	    Elem * el=new Elem();
-// 	    infile >> ibuf >> itype >> innodes >> namesd;
-// 	    infile.ignore(100,'\n');
-
-// 	    (*el).ptElem=Type2ptElem(itype);
+	    (*el).ptElem=Type2ptElem(itype);
 	
-// 	    (*el).connect.Resize(innodes);
-// 	    for (ii=0; ii<innodes; ii++)
-// 	      infile >> (*el).connect[ii];
+	    (*el).connect.Resize(innodes);
+	    for (ii=0; ii<innodes; ii++)
+	      infile >> (*el).connect[ii];
 
-// 	    infile.ignore(100,'\n');
+	    infile.ignore(100,'\n');
 
-// 	    Boolean Find;
-// 	    for (j=0; j<sd.size(); j++)
-// 	      if (namesd == sd[j]) { allelems[j].push_back(el);
-// 	      Find=TRUE;
-// 	      }
-// 	    if (!Find) { std::string msg=namesd + "- this level of element is not mentioned in .conf-file. Please, check .config-file";
-// 	    Error(msg.c_str(),__FILE__,__LINE__);
-// 	    }
-// 	  }
-//       }
+	    Boolean Find;
+	    for (j=0; j<sd.size(); j++)
+	      if (namesd == sd[j]) { allelems[j].push_back(el);
+	      Find=TRUE;
+	      }
+	    if (!Find) { std::string msg=namesd + "- this level of element is not mentioned in .conf-file. Please, check .config-file";
+	    Error(msg.c_str(),__FILE__,__LINE__);
+	    }
+	  }
+      }
 
  
-//   }
+  }
 
   void AnsysFile::ReadEl2d(std::vector<Elem*> * allelems, const std::vector<std::string> sd)
   {
@@ -604,8 +604,8 @@ namespace CoupledField
   {
     switch(itype)
       {
-	//  case 100:
-	//    return ptL1;
+      case 100:
+	return ptL1;
 	//      case 4:
 	// return ptTr;
       case 6:

@@ -17,7 +17,8 @@ namespace CoupledField
 
   BaseFE * ptQ   = NULL;
   BaseFE * ptTet = NULL;
-
+  BaseFE * ptL1 = NULL;
+  
   // BaseElem * ptQ = NULL;
   // BaseElem * ptTr = NULL;
   // BaseElem * ptTet = NULL;

@@ -2,7 +2,7 @@
 # Makefile for discretization
 C_DIR=../../..
 #
-src =  line.cc 
+src =  line.cc  gelinefe.cc line1fe.cc 
 #
 lib = elements1d
 libpath = libsrc/Elements/2D

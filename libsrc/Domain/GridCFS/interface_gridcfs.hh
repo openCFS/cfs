@@ -76,8 +76,22 @@ public:
   }  
 
   //!
+  void FormNeighbors4NodesOfElements(const std::vector<Elem*> &elems, std::vector<std::vector<Elem*> > &nodeNeighbors, std::vector<Integer> & map)
+  { ptGridCFS->FormNeighbors4NodesOfElements(elems, nodeNeighbors,  map);}
+  
+  //!
   virtual void DefineBelonging4Elems(const std::vector<Elem*>& elemsSurf, const std::vector<Elem*>&elems, std::vector<Elem*> & belongingSE)
   { ptGridCFS->DefineBelonging4Elems(elemsSurf,elems,belongingSE);}
+
+  //!
+  virtual void GetInterfaceNeighbours(std::vector<Elem*> & Interface, std::vector<Elem*> & Next2Surf, std::vector<Elem*> & Neighbours)
+  {  ptGridCFS->GetInterfaceNeighbours(Interface, Next2Surf, Neighbours);}
+  
+  //!
+  virtual void CalcNumberOfNodesInPatch(const std::vector<Elem*> & patch, std::vector<Integer>& map) 
+  { ptGridCFS->CalcNumberOfNodesInPatch(patch,map);}
+
+protected:
 
 private:
   GridCFS<dim> * ptGridCFS;
