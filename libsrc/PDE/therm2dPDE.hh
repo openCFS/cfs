@@ -30,7 +30,7 @@ public:
   void SetMatrixFactors();
 
   //!
-  void SetupMatrices(const Integer level);
+  void SetupMatrices(const Integer level, BCs * ptBCs=NULL);
 
   //!
   void SetBCs(BCs * ptBCs, const Integer level, const Integer update, const Double atimestep);
@@ -55,6 +55,10 @@ public:
   //!
   void WriteResultsInFile();
  
+  //!
+  virtual Boolean TestError()
+  { Error("Not implemented",__FILE__,__LINE__);}
+  
 private:
   //! calculation derivates of solution
   void CalcDerSol();

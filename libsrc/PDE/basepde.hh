@@ -52,7 +52,7 @@ public:
   /*!
     \param level level of grid
    */
-  virtual void SetupMatrices(const Integer level)=0;
+  virtual void SetupMatrices(const Integer level, BCs * ptBCs=NULL)=0;
 
   //! specify type of system matrix for AlgebraicSystem
   /*!
@@ -188,11 +188,11 @@ public:
 
     //! test space error
   virtual Boolean TestError()
-  { Error("Function BasePDE::TestError is not implemented in this class");} 
+    { Error("Function BasePDE::TestError is not implemented in this class");}  
 
  //! write additional info (marked elements, relative error) to files with mesh
   virtual void PrintMeshesInfo(WriteResults * ptMehes)
-  { Error("Function BasePDE::TestError is not implemented in this class");}
+  { Error("Function BasePDE::PrintMeshesInfo is not implemented in this class");}
 
 protected:
    //! read from .config-file info about BCs
@@ -234,7 +234,7 @@ protected:
   std::vector<std::string> bcs_ri_;
 
   //!
-  std::vector<Integer> val_id_; 
+  std::vector<Double> val_id_; 
 
   //!
   std::vector<std::string> subdoms_;  

@@ -11,6 +11,7 @@
 #ifdef ADAPTGRID
 #include "Triangle.h"
 #include "Tetrahedron.h"
+#include "Hexahedron.h"
 #endif
 
 namespace CoupledField
@@ -395,6 +396,7 @@ void AnsysFile::ReadEl4AdaptGrid3d(std::vector<grd::Element*> & elems, std::vect
 	   infile >> connect[ii];
 
 	 grd::Tetrahedron * tmpTetra;
+	 grd::Hexahedron * tmpHexa;
 	 switch(itype)
 	   {
 	   case 8:
@@ -411,7 +413,21 @@ void AnsysFile::ReadEl4AdaptGrid3d(std::vector<grd::Element*> & elems, std::vect
 	     break;
 
 	   case 10:
-	     Error(" This type of element is not implemented yet", __FILE__, __LINE__);
+	     tmpHexa=new grd::Hexahedron;
+
+	     tmpTetra->setVertex(0,(*vertex)[connect[0]-1]);
+	     tmpTetra->setVertex(1,(*vertex)[connect[1]-1]);
+	     tmpTetra->setVertex(2,(*vertex)[connect[2]-1]); 
+	     tmpTetra->setVertex(3,(*vertex)[connect[3]-1]);
+	     tmpTetra->setVertex(4,(*vertex)[connect[4]-1]);
+	     tmpTetra->setVertex(5,(*vertex)[connect[5]-1]);
+	     tmpTetra->setVertex(6,(*vertex)[connect[6]-1]); 
+	     tmpTetra->setVertex(7,(*vertex)[connect[7]-1]);
+
+	     SetNumSD(tmpHexa,namesd,sd);
+
+	     elems[i]=tmpHexa;
+
 	     break;
  
 	   default:
@@ -592,6 +608,8 @@ BaseElem * AnsysFile::Type2ptElem(const Integer itype)
   return ptQ;
 case 8:
   return ptTet;
+ case 10:
+   return ptHexa;
 default:
   Error(" This type is unknown. ", __FILE__,__LINE__);
 }

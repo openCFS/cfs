@@ -28,8 +28,9 @@ Elecst3dPDE::Elecst3dPDE(AbstractAlgebraicSys * ptalgsys, Grid * aptgrid, Materi
   conf->getsubdompde(subdoms_,"Elecst3d");
   ReadBCs("Elecst3d");
 
-  WriteErrorMap_=TRUE;
-  calcElecField_=TRUE;
+  WriteErrorMap_=conf->get_option("write_error_map");
+
+  calcElecField_=FALSE;
 
   ptError_=NULL;
 }
@@ -102,7 +103,7 @@ Integer &numconstraints)
   numconstraints = 0;
 }
 
-void Elecst3dPDE::SetupMatrices(const Integer level)
+void Elecst3dPDE::SetupMatrices(const Integer level, BCs * ptBCs)
 {
 #ifdef TRACE
   (*trace) << "entering Elecst3dPDE::SetupMatrices" << std::endl;
@@ -270,8 +271,12 @@ void Elecst3dPDE::SolveStepStatic(BCs * ptBCs, Integer level)
     Point<3> XY;
     ptgrid_->GetCoordinateNode(is,0,XY);
   }
- 
-  //  CalcErrorMap();
+
+ if (WriteErrorMap_) {
+   ptError_=new SpaceErrorEstimator<3>();
+   ptError_->Init(this);
+   ptError_->CalcErrorMap(&sol_,subdoms_,ptgrid_,errorMap_,gradSPRElemL2norm_);
+ }
   
   if (calcElecField_)
    CalcElectricField();
@@ -381,8 +386,9 @@ void Elecst3dPDE::WriteResultsInFile()
    if (WriteErrorMap_) {   
      OutFile_->WriteDataOnCell(errorMap_,step,time,"error_ep"); 
   }
+
    // write electric field
-   if (calcElecField_)
+   if (calcElecField_) 
        OutFile_->WriteVecDataOnCell(elecFieldAtCenterElem_,step,time,"elec_field");
 
 }
@@ -460,7 +466,7 @@ void Elecst3dPDE::CalcErrorMap()
 	  neighbours->push_back(elemssd[j]);
 
 	  // in: elemssd[j] - list with elements of this subdomain
-	  ptError_->RecoveryProcedure4ElemsPatch3d(*neighbours,ptgrid_,sol_,icmp,result,locationsInResult);
+	  ptError_->RecoveryProcedure4ElemsPatch(*neighbours,ptgrid_,sol_,icmp,result,locationsInResult);
 
 	  // form arrays for averaging values of SPRgrad over nodes
 	  Integer ires;
@@ -532,7 +538,7 @@ void Elecst3dPDE::ConstructorError()
 
   if (ptError_) delete ptError_;
   
-  ptError_=new SpaceErrorEstimator<3>(ptgrid_);
+  ptError_=new SpaceErrorEstimator<3>();
   ptError_->Init(this);
 
 }
@@ -732,7 +738,16 @@ void Elecst3dPDE::RefineMesh()
     }
     else { elemssd[iem]->refinementFlag=FALSE;}
 
-  ptgrid_->Refine();
+  ptgrid_->RefineUniform();
+}
+
+ //! write additional info (marked elements, relative error) to files with mesh
+void Elecst3dPDE::PrintMeshesInfo(WriteResults * ptMeshes)
+{
+   
+  ptMeshes->WriteDataOnCell(relativeErrorMap_,0,0,"relative_error");
+  ptMeshes->WriteDataOnCell(markingElems_,0,0,"marked_elems");
+ 
 }
 
 Elecst3dPDE::~Elecst3dPDE()
@@ -743,52 +758,3 @@ Elecst3dPDE::~Elecst3dPDE()
 } // end of namespace
 
 
-// old stuff
-
-/*
-void Elecst3dPDE::SetupMatrices(const Integer level)
-{
-#ifdef TRACE
-  (*trace) << "entering Elecst3dPDE::SetupMatrices" << std::endl;
-#endif
-
-  Vector<Double> coeffst;
-  CalcCoeff(coeffst);
-
- Integer i;
- for (i=0; i<subdoms_.size(); i++)
-{
-  PutElemMatAlgSysElst3d putelmatalgsys(ptalgsys_,ptgrid_,coeffst[i],as_sysid_,level);
-
-  ptgrid_->forEachElemSd(putelmatalgsys,subdoms_[i]);
-
-}
-
-}
-
-void PutElemMatAlgSysElst3d::operator()(Elem t)
-{
-  Matrix<Double> elemmat;
-  Point<3> * ptCoord;
-
-  BaseForm<3> * bilinear_stiff = new LaplaceInt<3>(t.ptElem,1);
-
-  ptCoord=new Point<3>[t.connect.size()];
-  ptgrid_->GetCoordNodesElem(t.connect,ptCoord,level_);
-
-  bilinear_stiff->CalcElemMatrix(ptCoord, elemmat);
-  elemmat*=coeffst_;
-
-#ifdef DEBUG
-      (*debug) << "Stiffnessmatrix, ElementNumber  "  << std::endl;
-
-      (*debug) << elemmat << std::endl;
-#endif
-
-  ptalgsys_->PutElemMatAlgSys(elemmat.getinarray(), t.connect.get(), t.connect.size(), sysid_, sysid_, matrix_stiff_);
-
-  delete bilinear_stiff;
-  delete [] ptCoord;
-   
-}
-*/

@@ -8,59 +8,56 @@ C_DIR=..
 #
 OS=$(shell uname -s)
 #
-############ DirectoriesDomain/NetGen
+
+############ General options
 #
-ifeq "$(OS)" "Linux"
-SUBLIBDIR := Driver Estimator PDE \
+include $(C_DIR)/main/Makefile.option
+#
+
+SUBLIBDIR := Driver PDE Estimator\
              Forms Elements Elements/1D Elements/2D Elements/3D \
-             Domain/GridCFS Domain/AdaptGrid Domain \
+             Domain/GridCFS Domain \
              DataInOut/DefineFiles \
              DataInOut/Unverg DataInOut/GMV \
              DataInOut/DatFile DataInOut/AnsysFile DataInOut\
 	     AlgebraicSystem/LinAlg\
              Utils Matrix General 
-else
-SUBLIBDIR := Driver Estimator PDE AlgebraicSystem/LinAlg \
-            Forms Elements Elements/1D Elements/2D Elements/3D \
-            Domain/GridCFS Domain/Gridlib Domain \
-            DataInOut/DefineFiles \
-            DataInOut/Unverg DataInOut/GMV \
-            DataInOut/DatFile DataInOut\AnsysFile DataInOut\
-            Utils Matrix General 
-endif
+
 #
 ############ define my libraries
 #
-ifeq "$(OS)" "Linux"
-mylibrary :=  driver domain pde \
-	    estimator forms  \
+
+ifeq "$(AdaptivLib)" "yes"
+mylibrary =  driver domain pde \
+            estimator forms  \
             elements3d elements2d elements1d elements \
             gridcfs toadaptgrid\
             gmv \
-            definefiles unverg datfile ansysfile datainout \
+            definefiles unverg ansysfile datainout \
             algsys-own\
             utils matrix general \
             multigrid-las general-las \
             adaptgrid
 else
-mylibrary :=  driver domain pde estimator \
-	    algsys-own forms  \
+mylibrary =  driver domain pde \
+            estimator forms  \
             elements3d elements2d elements1d elements \
             gridcfs \
-            domain unverg gmv \
-            definefiles datfile ansysfile datainout \
-            utils matrix \
-            multigrid-las general-las \
-            general
+            gmv \
+            definefiles unverg ansysfile datainout \
+            algsys-own\
+            utils matrix general \
+            multigrid-las general-las 
 endif
+
+############ Directories for Adaptivity
 #
-########### define system libraries
-#
-ifeq "$(OS)" "Linux"
-syslib := -lm -lc 
-else
-syslib := -lGridBase -lIO  -lUtil -lMesh -lC
+ifeq "$(AdaptivLib)" "yes"
+SUBLIBDIR := $(SUBLIBDIR) Domain/AdaptGrid
 endif
+
+
+#
 #
 ############ General options
 #
@@ -76,37 +73,21 @@ PATHSUBLIBDIR = $(addprefix $(LIBSRC_DIR)/, $(SUBLIBDIR))
 #
 ########### Rules
 #
+
 .SUFFIXES: .f .c .cc .o
-#
+
 .cc.o:
-	$(CC) -o $@ $(CFLAGS1) $(CFLAGS2) $(CFLAGS3) $<
- 
-.c.o:
-	$(CC) -o $@ $(CFLAGS1) $(CFLAGS2) $(CFLAGS3) $<
- 
-.f.o:
-	$(F77) -o $@ $(FFLAGS1) $(FFLAGS2) $<
- 
-$(program):: $(src:.cc=.o) $(fsrc:.f=.o) makelibs 
-	$(CC) $(CFLAG_EXE) -o $@ $(src:.cc=.o) $(fsrc:.f=.o) -L$(LIB_DIR) -L$(LIB_GRIDLIB)  -L$(LIB_NETGEN) -L$(LIB_CLA) $(LINKFLAGS2) $(LINKFLAGS3) $(addprefix -l, $(mylibrary)) $(syslib) $(LIB_NAG) -Wl,-rpath,$(LIB_OWN)/$(MACHINE)
+	$(CC) -o $@ $(CFLAGS1) $(CFLAGS2) $(CFLAGS3) $(INCL) $<
+
+$(program):: $(src:.cc=.o) $(mylibrary)
+	$(CC) $(CFLAG_EXE) -o $@ $(src:.cc=.o) $(fsrc:.f=.o) -L$(LIB_DIR) -L$(LIB_GRIDLIB)  -L$(LIB_NETGEN) -L$(LIB_CLA) $(LINKFLAGS2) $(LINKFLAGS3) $(INCL) $(addprefix -l, $(mylibrary)) $(syslib) -Wl,-rpath,$(LIB_OWN)/$(MACHINE)
 #
-########## Set varible MACHINE
-setvar:
-ifeq "$(OS)" "Linux"
-	export MACHINE=LINUX
-else
-	@echo setenv MACHINE SGI
-endif
+
 ########### Go to make library
 #
-makelibs:
-	@for n in $(PATHSUBLIBDIR); do \
-         (if cd $$n; \
-                     then $(MAKE) -f Makefile; \
-                     else echo "WARNING:" $$n " doesn't exist"; \
-          fi); \
-         done
-#
+include $(LIBSRC_DIR)/Makefile
+
+
 #
 ############### Print info about variables that should be set before work
 #
@@ -123,9 +104,9 @@ endif
 #
 link:
 ifeq "$(OS)" "Linux"
-	rm -rf $(LibCLA) && ln -s $(CLA)/libsrc $(LibCLA)
+	rm -rf $(LibCLA) && ln -s $(LAS)/libsrc $(LibCLA)
 else
-	rm -rf $(LibCLA) && ln -s $(CLA)/libsrc $(LibCLA)
+	rm -rf $(LibCLA) && ln -s $(LAS)/libsrc $(LibCLA)
 endif
 #
 #ifeq "$(OS)" "Linux"
@@ -151,8 +132,8 @@ make-include:
 #
 ############## Make library adaptgrid
 #
-adaptgrid:
-	@cd $(AdaptGrid) && $(MAKE) -f Makefile
+#adaptgrid:
+#	@cd $(AdaptGrid) && $(MAKE) -f Makefile
 clean-adaptgrid:
 	@cd $(AdaptGrid) && $(MAKE) clean
 #

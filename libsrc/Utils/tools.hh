@@ -57,6 +57,8 @@ public:
   Point & operator=(const Point & t);
   //!
   Point & operator+(const Point & t);
+  //!
+  Point & operator-(const Point & t); 
 
   //! return coordinate number i
   Double &operator[](Integer i){return p[i];} 
@@ -88,6 +90,12 @@ void PrintPoint(Point<dim> point, std::ostream * out);
   */
 void calcNormal2Line(std::vector<Double> & normal,Point<2> a, Point<2> b);
 
+  //! calculate normal to element
+  /*!
+    \param normal normal
+    \param a,b,c vertices of element
+  */
+  void calcNormal2Surface(std::vector<Double> & normal,Point<3> a,Point<3> b, Point<3> c);
   //! scalar multiplication of 2 vectors
 Double ScalarMult(std::vector<Double> a, std::vector<Double> b);
 

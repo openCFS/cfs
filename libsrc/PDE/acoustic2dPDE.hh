@@ -62,7 +62,7 @@ public:
   /*!
     \param level (input) level of Grid
   */
-  virtual void SetupMatrices(const Integer level);
+  virtual void SetupMatrices(const Integer level, BCs * ptBCs=NULL);
 
     //! set boundary condition
   /*!
@@ -183,7 +183,7 @@ protected:
     \param coeffmass coefficient before mass matrix
     \param coeffstiff coefficient before stiffness matrix
   */
-  void CalcCoeff(Vector<Double> & coeffmass, Vector<Double> & coeffstiff);
+  void CalcCoeff(Vector<Double> & coeffmass, Vector<Double> & coeffstiff, Vector<Double> & coeffdamp);
 
   //! initialization of pointer to SpaceErrorEstimator
   void ConstructorError();
@@ -216,6 +216,8 @@ protected:
 
   //! list of surfaces, on which we have force
   std::vector<std::string> rhs_surfaces_;
+  //! list of bnds( for absorbing BCs)
+  std::vector<std::string> bnd_absBCs_;
 
   //! function for RHS
   Integer arg_rhs_;
@@ -224,6 +226,9 @@ protected:
 
   //! Indicator: is there RHS function
   Boolean SetRHSFnc;
+
+  //! Indicator: 
+  Boolean without_absBCs_;
 
   //! --------------------- for adaptivity data ------------
    //! array, in which we store error map

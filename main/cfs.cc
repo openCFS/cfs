@@ -57,34 +57,38 @@ Integer main(int argc, char *argv[])
 
   WriteResults * ptOut=ptDefineFiles->Create_ptWriteResults();
 
-//	TimeFunc * ptTimeFunc=NULL;
- TimeFunc * ptTimeFunc = new TimeFunc(ptInputfile);
+  //	TimeFunc * ptTimeFunc=NULL;
+  TimeFunc * ptTimeFunc = new TimeFunc(ptInputfile);
 
   Domain * domain=new Domain(ptInputfile,ptOut,ptMaterial, ptTimeFunc);
 
-//	domain->PrintGrid(0);
+  //	domain->PrintGrid(0);
   //choose your driver
   BaseDriver * ptdriver;  
   std::string analysis;
   conf->get("analysis", analysis);
 
   if (analysis=="static") 
-	ptdriver = new StaticDriver(domain);
-  else  {
-	ptdriver = new TransientDriver(domain);
-	//	ptTimeFunc = new TimeFunc(ptInputfile);
-	}
+    ptdriver = new StaticDriver(domain);
+  else  
+    {
+    ptdriver = new TransientDriver(domain);
+    //	ptTimeFunc = new TimeFunc(ptInputfile);
+    }
 
   //solve your problem
   std::string adaptTimeOn, adaptSpaceOn;
-//  conf->get("adapttime",adaptTimeOn);
+  //  conf->get("adapttime",adaptTimeOn);
   conf->get("adaptspace",adaptSpaceOn);
   adaptTimeOn = "no";
 
-  if (adaptTimeOn == "yes")  ptdriver->SolveProblemAdapt();
+  if (adaptTimeOn == "yes")  
+    ptdriver->SolveProblemAdapt();
   else
-    if (adaptSpaceOn == "yes") ptdriver->SolveProblemAdaptSpace();
-    else ptdriver->SolveProblem();
+    if 
+      (adaptSpaceOn == "yes") ptdriver->SolveProblemAdaptSpace();
+    else 
+      ptdriver->SolveProblem();
 
   oClockTotal.ClockCount(MyClock::end,"Total time");
 
@@ -95,5 +99,5 @@ Integer main(int argc, char *argv[])
     if (domain) delete domain;
     if (ptDefineFiles) delete ptDefineFiles; // it should be deleted the last
 
-return 1;
+    return 1;
 }

@@ -21,15 +21,6 @@ public:
   //!
   virtual ~Acou2dFlowNoise();
 
-  //!
-  void SpecifyMatrices(Integer &matrixtype, Integer *matrixsystype, Integer &graphtype, Integer &numdofpernode, Integer &numdirichlets, Integer &numconstraints);
-
-  //!
-  void SetMatrixFactors();
-
-  //!
-  void SetupMatrices(const Integer level, BCs * ptBCs=NULL);
-
     //!
   void SetBCs(BCs * ptBCs, const Integer level, const Integer update, const Double atime);
 
@@ -39,7 +30,7 @@ public:
   //!
   void preComputeRHS();
 
-  //! Reads at every time the flowdatafile from the Fluids Department LSTM.
+  //! Reads at every time the flowdatafile from the Fluid's Computation
   void ReadFlowData(const char * aname, const Integer timestep, Matrix<Double> &nodedata );
 
   //!
@@ -52,12 +43,6 @@ public:
    void WriteResultsInFile();
 
 private:
-
-  //!
-  void CalcCoeff(Vector<Double> & coeffmass, Vector<Double> & coeffstiff, Vector<Double> & coeffdamp);
-
-  //! list of surfaces which make up the bnd. of the domain
-  std::vector<std::string> domain_surfaces_;
 
   //! list of surfaces, on which we have force
   std::vector<std::string> rhs_surfaces_;

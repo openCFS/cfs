@@ -22,7 +22,7 @@ public:
   /*!
     \param aptGrid pointer to the Grid
   */
-  SpaceErrorEstimator(Grid * aptGrid);
+  SpaceErrorEstimator();
 
   //! Deconstructor
   virtual ~SpaceErrorEstimator();
@@ -61,17 +61,6 @@ public:
      \param locations (output) global numbers of nodes in patch. needful for the vector with result
   */
   void RecoveryProcedure4ElemsPatch(const std::vector<Elem*> &Elems, Grid * ptgrid, const Vector<Double> & sol, const Integer aComponent, Vector<Double> &result,std::vector<Integer>&locations);
-
-  //! recovery procedure for the elements-patch: 3d
-   /*!
-    \param Elems vector with information about elements
-    \param ptgrid pointer to the Grid
-     \param sol solution 
-     \param aComponent number of component of gradient 
-     \param result (output) result
-     \param locations (output) global numbers of nodes in patch. needful for the vector with result
-  */
-  void RecoveryProcedure4ElemsPatch3d(const std::vector<Elem*> &Elems, Grid * ptgrid, const Vector<Double> & sol, const Integer aComponent, Vector<Double> &result,std::vector<Integer>&locations);
 
   //! only for 1 element. this function only for testing
   void RecoveryProcedure4Elem(Elem * aptElem, Grid * ptgrid, const Vector<Double> & sol, const Integer aComponent, Vector<Double> &result);

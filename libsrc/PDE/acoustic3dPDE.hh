@@ -12,7 +12,7 @@ namespace CoupledField
   We set rules for assembling global system matrix according to weak form of PDE, define right hand side and set boundary conditions. Then we cause one of methods of LinSystem for solving linear system. On the last step we calculate first and second derivatives of the solution.
   */
 
-class Acoustic3dPDE: virtual public BasePDE
+class Acoustic3dPDE: public BasePDE
 {
 public:
 
@@ -40,7 +40,7 @@ public:
      \param numeqcoarse number of equation for coarsing
     \param coarsealpha coarsing parameter for AMG
   */
-  void SpecifySolver(Integer &solvertype, Integer &precondtype, Double &eps, Double &dampiter, Integer &maxnumit, 
+  virtual void SpecifySolver(Integer &solvertype, Integer &precondtype, Double &eps, Double &dampiter, Integer &maxnumit, 
 		     Integer &numeqcoarse, Double &coarsealpha);
 
   //!  specify type of system matrix for AlgebraicSystem
@@ -61,8 +61,9 @@ public:
   //!  setup element matrices for AlgebraicSystem for assembling procedure
   /*!
     \param level level of grid
+    \param ptBCs pointer to boundary condition
    */
-  void SetupMatrices(const Integer level);
+  void SetupMatrices(const Integer level, BCs * ptBCs=NULL);
 
     //! set boundary condition
   /*!
@@ -71,14 +72,17 @@ public:
     \param update indicator: do we update boundary condition in algebraic system ot set new
     \param atime time step of claculation
   */
-  void SetBCs(BCs * ptBCs, const Integer level, const Integer update, const Double atime);
+  virtual void SetBCs(BCs * ptBCs, const Integer level, const Integer update, const Double atime);
 
   //! compute rhs
   /*!
     \param atime time of calculation
     \param ptBCs pointer to class with BCs. can be omitted.
   */
-  void ComputeRHS(const Double atime, BCs * ptBCs=NULL);
+  virtual void ComputeRHS(const Double atime, BCs * ptBCs=NULL);
+
+  //! Reads at every time the flowdatafile from the Fluid Computation.
+  void ReadFlowData(const char * aname, const Integer timestep, Matrix<Double> &nodedata );
 
   //! recovery solution for SPR
   void RecoverySol(Vector<Double> & result);
@@ -102,7 +106,7 @@ public:
     \param ptBCs pointer to class with data about boundary condition
     \param level level of grid
   */
-  void SolveStepStatic(BCs * ptBCs ,const Integer level);
+  virtual void SolveStepStatic(BCs * ptBCs ,const Integer level);
 
   //!  solve one step for transient problem 
   /*!
@@ -112,7 +116,7 @@ public:
     \param level level of grid
     \param updatesysmat indicator: need we to update algebraic system. it is used for adaptive procedure in space
   */
-  void SolveStepTrans(BCs * ptBCs ,const Integer kstep, const Double steptime, const Integer level, const Boolean updatesysmat);
+  virtual void SolveStepTrans(BCs * ptBCs ,const Integer kstep, const Double steptime, const Integer level, const Boolean updatesysmat);
 
   //! solve one step for transient problem on new mesh. it is used in adaptive procedures for space
   /*!
@@ -130,7 +134,7 @@ public:
   void SaveSolAsPrevStep();
 
   //! write results in file
-   void WriteResultsInFile();
+  virtual void WriteResultsInFile();
 
   //! return pointer to vector with solution
   virtual const Vector<Double> & getS() const { return sol_;}
@@ -156,10 +160,15 @@ public:
    //! return parameter gamma from Newmark method
   Double getGamma() const { return gamma_;}
 
+
+  //!
+  virtual Boolean TestError()
+  { Error("Not implemented",__FILE__,__LINE__);}
+
   //! We use this function for time-error estimation. old stuff.
   void CalcThirdDerivateFromEquation(Vector<Double> & result);
 
-private:
+protected:
   //!
   Integer dofspernode_;
 
@@ -173,11 +182,12 @@ private:
   /*!
     \param coeffmass coefficient before mass matrix
     \param coeffstiff coefficient before stiffness matrix
+    \param coeffstiff coefficient before damping matrix
   */
-  void CalcCoeff(Vector<Double> & coeffmass, Vector<Double> & coeffstiff);
+  void CalcCoeff(Vector<Double> & coeffmass, Vector<Double> & coeffstiff, Vector<Double> & coeffdamp);
 
   //! some preliminary actions for calculation of RHS. they are the same for all steps. 
-  void preComputeRHS();
+  virtual void preComputeRHS();
 
   //! coefficients from Newmark method
   Double a0_,a1_,a2_,a3_,a4_,a5_,a6_,a7_;
@@ -203,6 +213,12 @@ private:
   //! list of surfaces, on which we have force
   std::vector<std::string> rhs_surfaces_;
 
+  //! list of surfaces which make up the bnd. of the domain
+  std::vector<std::string> domain_surfaces_;
+
+  //! list of bnds( for absorbing BCs)
+  std::vector<std::string> bnd_absBCs_;
+
   //! function for RHS
   Integer arg_rhs_;
 //  pfn1var ptRHSFnc_;
@@ -214,6 +230,8 @@ private:
   //! pointer to class of error estimators
   SpaceErrorEstimator<3> * ptError_;
 
+  //! indicator: without absorbing boundary conditions
+  Boolean without_absBCs_;
 };
 
 

@@ -148,6 +148,8 @@ libsrc/Matrix/symsparsematrixCRS.hh svneol=native#text/plain
 libsrc/PDE/Makefile -text
 libsrc/PDE/acou2dFlowNoise.cc svneol=native#text/plain
 libsrc/PDE/acou2dFlowNoise.hh svneol=native#text/plain
+libsrc/PDE/acou3dFlowNoise.cc svneol=native#text/plain
+libsrc/PDE/acou3dFlowNoise.hh svneol=native#text/plain
 libsrc/PDE/acoustic2dPDE.cc svneol=native#text/plain
 libsrc/PDE/acoustic2dPDE.hh svneol=native#text/plain
 libsrc/PDE/acoustic3dPDE.cc svneol=native#text/plain

@@ -61,10 +61,17 @@ public:
 
   //! read 2d - elements from the mesh-file
     /*!
-   \param allelems out: pointer to vector with 1D-elements
+   \param allelems out: pointer to vector with 2D-elements
    \param sd color of subdomains, for which elements are read
   */
   void ReadEl2d(std::vector<Elem*> * allelems, const std::vector<std::string> sd);
+
+  //! read 3d -elements from the mesh-file
+   /*!
+   \param allelems out: pointer to vector with 3D-elements
+   \param sd color of subdomains, for which elements are read
+  */
+  void ReadEl3d(std::vector<Elem*> * allelems, const std::vector<std::string> sd);
 
   //! return dimension of the mesh
   Integer ReadDim();
@@ -120,8 +127,6 @@ private:
   void ReadMaxnumelem(Integer & , const std::string keyword);
 
 
-  //! read 3d -elements from the mesh-file
-  void ReadEl3d(std::vector<Elem*> * allelems, const std::vector<std::string> sd);
 
   //! transform type of elem in pointer to base class BaseElem
   BaseElem * Type2ptElem(const Integer itype);

@@ -156,7 +156,7 @@ void Therm2dPDE::SpecifyMatrices(Integer &matrixtype, Integer * matrixsystype, I
 
 }
 
-void Therm2dPDE::SetupMatrices(const Integer level)
+void Therm2dPDE::SetupMatrices(const Integer level, BCs * ptBCs)
 {
 #ifdef TRACE
   (*trace) << "entering Therm2dPDE::SetupMatrices" << std::endl;

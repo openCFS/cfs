@@ -216,6 +216,7 @@ void WriteResultsGMV::WriteCells(const Integer alevel)
 	  }
 	  break;
       default:
+	std::cout << connect.size() << std::endl;
           Error("This type of element is not implemented", __FILE__, __LINE__);
       }
 }
@@ -230,7 +231,7 @@ if (ascii_) {
 else {
   Integer * ptcon=connect.get();
   Integer len=connect.size();
-  output->write((char*)& ptcon,len * sizeof(Integer));
+  output->write((char*)ptcon,len * sizeof(Integer));
 }
 
    }
@@ -241,11 +242,15 @@ void WriteResultsGMV::WriteVariable(const Vector<Double> var, const std::string 
   (*output) << "variable";
   if (ascii_) (*output) << std::endl;
 
+
   if (ascii_)
   (*output) << name << " " << dataType << std::endl;
   else {
-    (*output) << "namename";
-    output->write((char*)&dataType,sizeof(Integer));
+    Char * str=new Char[8];  
+    to8Char(name,str);
+    (*output) << str;
+    output->write((Char*)&dataType,sizeof(Integer));
+    delete [] str;
   }
   
 
@@ -289,10 +294,8 @@ void WriteResultsGMV::WriteVelocity(const Vector<Double>* var, const std::string
      Double * ptvar=var[i].get();
      Integer len=var[i].size();
      output->write((char*)ptvar,len * sizeof(Double));
-     (*output) << "endvars ";
     }
   }
-
 }
 
 void WriteResultsGMV::WriteGrid(const Integer level)
@@ -350,6 +353,7 @@ void WriteResultsGMV::WriteDataOnCell(const Vector<Double>&sol,const Integer ste
   }
 
   WriteVariable(sol,title,type);
+
   if (ascii_)
     (*output) << "probtime " << time << std::endl;
   else {
@@ -370,13 +374,14 @@ void WriteResultsGMV::WriteVecDataOnCell(const Vector<Double>*vec,const Integer 
   }
 
   WriteVelocity(vec,title,type);
+
   if (ascii_)
     (*output) << "probtime " << time << std::endl;
   else {
     (*output) << "probtime";
     output->write((char*)&time,sizeof(Double));
   }
-
+  
 }
 
 void WriteResultsGMV::OpenFile(const Integer num)
@@ -418,6 +423,22 @@ void WriteResultsGMV::OpenFile(const Integer num)
 void WriteResultsGMV::Init(Grid * aptgrid)
 {
 ptgrid=aptgrid;
+}
+
+void WriteResultsGMV::to8Char(const std::string name, char * result)
+{
+  std::string aux;
+  Integer i;
+ 
+  if (name.size()!= 8) {
+      aux="        ";
+      for (i=0; i<8; i++)
+	aux[i]=name[i];
+  }
+  else aux=name;
+
+  strcpy(result,aux.c_str());
+
 }
 
 } // end of namespace

@@ -1,11 +1,10 @@
 #
 C_DIR= ../..
 #
-src = basepde.cc acoustic2dPDE.cc acoustic3dPDE.cc elecst3dPDE.cc elecst2dPDE.cc therm2dPDE.cc acou2dFlowNoise.cc #elecst3dPDE.cc elec2dPDE.cc acou2dFlowNoise.cc 
-# pde.cc acousticPDE.cc
+src = basepde.cc acoustic2dPDE.cc acoustic3dPDE.cc elecst3dPDE.cc elecst2dPDE.cc therm2dPDE.cc  \
+      acou2dFlowNoise.cc acou3dFlowNoise.cc mech2d.cc 
 #
 lib = pde
-libpath = libsrc/PDE
 CFLAGS3 =
 #
 include ../makefile.inc

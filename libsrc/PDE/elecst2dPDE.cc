@@ -12,7 +12,8 @@
 namespace CoupledField
 {
 
-Elecst2dPDE::Elecst2dPDE(AbstractAlgebraicSys * ptalgsys, Grid * aptgrid, Material * ptMaterial, TimeFunc * aptTimeFunc, FileType * aptFileType, WriteResults * aptOut)
+Elecst2dPDE::Elecst2dPDE(AbstractAlgebraicSys * ptalgsys, Grid * aptgrid, Material * ptMaterial, TimeFunc * aptTimeFunc, 
+			 FileType * aptFileType, WriteResults * aptOut)
 :BasePDE(ptalgsys,ptMaterial,aptFileType,aptOut,aptTimeFunc)
 {
 #ifdef TRACE
@@ -31,19 +32,17 @@ Elecst2dPDE::Elecst2dPDE(AbstractAlgebraicSys * ptalgsys, Grid * aptgrid, Materi
 
   errorTol_ = 0;
   NeedMassMatrix_=TRUE;
-//   if (conf->is_there("write_error_map")) WriteErrorMap_=TRUE;
-//   else WriteErrorMap_=FALSE;
-  WriteErrorMap_=TRUE;
 
-//   if (conf->is_there("calc_absvalue_electricfield"))
-//     AbsValueElectricField_=TRUE;
+  WriteErrorMap_=conf->get_option("write_error_map");
 
-  // if conf->is_there
-  SolverCFS_=TRUE;
-  AbsValueElectricField_=TRUE;
+  SolverCFS_=FALSE;
   
   ptError_=NULL;
   solGrad_=NULL;
+
+  WriteErrorMap_=conf->get_option("write_error_map");
+  AbsValueElectricField_=conf->get_option("calc_electr_field");
+
 }
 
 void Elecst2dPDE::SpecifySolver(Integer &solvertype, Integer &precondtype, Double &eps, Double &dampiter, Integer &maxnumit, Integer &numeqcoarse, Double &coarsealpha )
@@ -117,7 +116,7 @@ Integer &numconstraints)
   numconstraints = 0;
 }
 
-void Elecst2dPDE::SetupMatrices(const Integer level)
+void Elecst2dPDE::SetupMatrices(const Integer level, BCs * ptBCs)
 {
 #ifdef TRACE
   (*trace) << "entering Elecst2dPDE::SetupMatrices" << std::endl;
@@ -387,15 +386,10 @@ void Elecst2dPDE::SolveStepStatic(BCs * ptBCs, Integer level)
   ComputeRHS();
   SetBCs(ptBCs,level,update,0);
 
-  std::cout << " We didn't get solution " << std::endl;
-
   ptalgsys_->ComputePrecond(job,as_sysid_);
-  std::cout << " precondition is done " << std::endl;
   ptalgsys_->SolveAlgSys(as_sysid_);
 
   ptsol = ptalgsys_->GetSolution(as_sysid_);
-
- std::cout << " We got solution " << std::endl;
 
   // save solution
   Vector<Double> transsol(ptgrid_->GetMaxnumnodes(level), ptsol);
@@ -418,36 +412,31 @@ void Elecst2dPDE::SolveStepStatic(BCs * ptBCs, Integer level)
      ptgrid_->GetCoordinateNode(is,0,XY);
 	std::cout << sol_[is] << " " << result[is] << " " << XY[0]*200 << std::endl;
    }
-   //  exit(1);
-
- //  for (is=0; is<sol_.size(); is++)
-//     cout << " is: " << is+1 << " " << (sysmat_*sol_ -vecrhs_)[is] << std::endl;
-
-//  cout << " andere ergebnissen " << std::endl;
-
- //  Integer i;
-//   for (i=0; i<result.size(); i++)
-//     cout << result[i] << " " << sol_[i] << std::endl;
 
   } // end of fnc for solver CFS++ - LinAlg
 
   // check
-  //  Integer is;
-//   for (is=0; is<sol_.size(); is++) {
-//     Point2D XY;
-//     ptgrid_->GetCoordinateNode(is,0,XY);
+   Integer is;
+  for (is=0; is<sol_.size(); is++) {
+     Point<2> XY;
+     ptgrid_->GetCoordinateNode(is,0,XY);
 
-//     //  cout << sol_[is] << " exact: " << XY.x*XY.y*(1-XY.x)*(1-XY.y)*(1/tan(0.8*((XY.x+XY.y)/sqrt(2)-20))) << " x:" << XY.x << " y:" << XY.y << std::endl;
+  std::cout << sol_[is] << " exact: " << 200*XY[0] << std::endl;
 
 //     //  cout << sol_[is] << " exact: " << (1-XY.x*XY.x-XY.y*XY.y)*0.25 << " x:" << XY.x << " y:" << XY.y << std::endl;
 
 
 //   // sol_[is]= XY.x*XY.y*(1-XY.x)*(1-XY.y)*(1/tan(0.8*((XY.x+XY.y)/sqrt(2)-20)));
-//   }
+  }
 
  if  (AbsValueElectricField_) CalcElectricField();
 
-//  CalcErrorMap();
+ if (WriteErrorMap_) {
+   ptError_=new SpaceErrorEstimator<2>();
+   ptError_->Init(this);
+   ptError_->CalcErrorMap(&sol_,subdoms_,ptgrid_,errorMap_,gradSPRElemL2norm_);
+ }
+
 }
 
 void Elecst2dPDE::WriteResultsInFile()
@@ -558,7 +547,7 @@ void Elecst2dPDE::ConstructorError()
 
   if (ptError_) delete ptError_;
   
-  ptError_=new SpaceErrorEstimator<2>(ptgrid_);
+  ptError_=new SpaceErrorEstimator<2>();
   ptError_->Init(this);
 }
 
@@ -751,80 +740,5 @@ Elecst2dPDE::~Elecst2dPDE()
 
   if (solGrad_) delete [] solGrad_;
 }
-
-///!!!
-//     Function for calculating gradient of solution at integration points
-//
-// void Elecst2dPDE::CalcGradSol(const Integer level)
-// {
-// #ifdef TRACE
-//   (*trace) << "entering Elecst2dPDE::CalcGradSol" << std::endl;
-// #endif
-
-//   if (solGrad_) delete [] solGrad_;
-  
-//   solGrad_=new Vector<Double>[2];
-
-//   // 
-//   Vector<Double> grad(2),glgrad(2);
-//   Vector<Double> vec(2);
-//   //vector with elements
-//   std::vector<Elem*> elemssd;
-//   //for transformation of element to standard
-//   Jacobian<Point2D> J;
-//   Vector<Double> JinvX, JinvY;
-
-//   Integer icmp,isd,iel;
-//   for (isd=0; isd<subdoms_.size(); isd++) // loop over all subdomains
-//     {      
-//       // get vector of Elem of subdomain with color: subdoms[isd]
-//       ptgrid_->GetElemSD(elemssd,subdoms_[isd],level);
-       
-//        // loop over elements of subdomain
-//       for (iel=0; iel< elemssd.size(); iel++)
-// 	{
-// 	  BaseElem * ptElem=elemssd[iel]->ptElem;
-
-// 	  Vector<Integer> connectVec=elemssd[iel]->connect;
-// 	  Integer nnodes=connectVec.size();
-// 	  Point2D * ptCoord=new Point2D[nnodes];
-// 	  ptgrid_->GetCoordNodesElem(connectVec,ptCoord,level);
-// 	  Double valsol;
-	  
-// 	  //do a loop over integration points in element
-// 	  Integer ielnd;
-// 	  for (ielnd=0; ielnd<nnodes; ielnd++)
-// 	    {
-// 	      vec.Init();
-
-// 	      ptElem->CalcJacobian(J,ielnd,ptCoord,TRUE);
-// 	      J.GetJinvX(JinvX);
-// 	      J.GetJinvY(JinvY);
-	      
-// 	      // do a loop over shape functions	  
-// 	      Integer ish;
-// 	      for (ish=0; ish<nnodes; ish++)
-// 		{  
-// 		  valsol=sol_[connectVec[ish]-1];
-		  
-// 		  ptElem->GetGradientShFnc(grad,ish+1,ielnd);
-
-// 		  glgrad[0]=JinvX*grad;
-// 		  glgrad[1]=JinvY*grad;
-
-// 		  vec[0]+=valsol*glgrad[0];
-// 		  vec[1]+=valsol*glgrad[1];		
-// 		}	 
-
-// 	        cout << " VALUE FNC AT IP " << vec << std::endl;
-
-// 	    } // end of loop over vertices of the element
-
-// 	  delete [] ptCoord;
-	  
-// 	} // end of loop over elements of subdomain
-//     } // end of loop over subdomains 
-
-// }
 
 } // end of namespace

@@ -43,6 +43,7 @@ void DampInt<Dim> :: CalcElemMatrix(Point<Dim> * ptCoord, Matrix<Double> & Resul
 
   Vector<Double> * intWeights=ptelem->GetIntWeights();
  
+  if (Dim==2) {
   for (i=0; i<l; i++)
     {
       // ptelem->CalcJacobian(J, i, ptCoord, FALSE);
@@ -57,6 +58,24 @@ void DampInt<Dim> :: CalcElemMatrix(Point<Dim> * ptCoord, Matrix<Double> & Resul
        }
 
     }
+  } // end of if
+
+  if (Dim==3) {
+      for (i=0; i<l; i++)
+	{
+	  ptelem->CalcJacobian(J, i, ptCoord, FALSE);
+ 
+	  for (ii=0; ii < n; ii++)
+	    for (iii=0; iii<ii+1; iii++)
+	      {
+		if  (intWeights)
+		  Result[ii][iii]+=J.detJ*Sf[ii][i]*Sf[iii][i]*(*intWeights)[i];
+		else
+		  Result[ii][iii]+=J.detJ*Sf[ii][i]*Sf[iii][i];
+	      }
+
+	}
+  }  // end of if (dim==3)
 
   for (ii=0; ii<n; ii++)
     for (iii=0; iii<ii; iii++)
