@@ -18,7 +18,7 @@ Dependencies = Makefile.depend
 # Note: If TRACE = 0 the TRACE macro will not be defined. Thus trace will
 # be a NULL pointer. This can be problematic, if e.g. LAS was compiled with
 # LINUXg
-TRACE = 0
+TRACE = 10
 
 # LIBRARY_TYPE = shared / static
 LIBRARY_TYPE = static
