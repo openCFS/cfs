@@ -186,7 +186,7 @@
   <!-- ******************************************************************** -->
   <!-- Definition of element for OLAS_PCG Solver -->
   <!-- ******************************************************************** -->
-  <xsd:element name="pcg" type="DT_SolverOLASPCG"
+  <xsd:element name="cg" type="DT_SolverOLASPCG"
     substitutionGroup="SolverBasic"/>
 
 
