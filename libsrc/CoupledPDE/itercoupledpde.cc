@@ -1,4 +1,5 @@
 #include "itercoupledpde.hh"
+#include "DataInOut/WriteInfo.hh"
 
 namespace CoupledField
 {
@@ -128,30 +129,18 @@ void IterCoupledPDE::SolveStepStatic(const Integer level)
 
   //std::cerr << "IterCoupledPDE::SolveStepStatic: maxiter: = " << maxiter_ << std::endl;
 
-  if (InfoPrint)
-    {
-      (*infofile) << std::endl;
-      (*infofile) << "===================" << std::endl;
-      (*infofile) << "  ITERATION DATA   " << std::endl;
-      (*infofile) << "===================" << std::endl;
-      (*infofile) << std::endl;
-    }
 
   while (iter < maxiter_ &&  (! normsReached))
     {
-      if (InfoPrint)
-	{
-	  (*infofile) << "### Iteration " << iter+1 << " ###" << std::endl;
-	  (*infofile) << std::endl;
-	}
+      Info->PrintF("COUPLED ITERATION %i", iter+1);
+	
 
       counter = 0;
       normsReached = TRUE;
       
       for (Integer i=0; i<PDEs_.size(); i++)
 	{
-	  if (InfoPrint)
-	    (*infofile) << "Processing PDE " << PDEs_[i]->GetName() << std::endl;
+	  Info->PrintF("Processing PDE %s", (PDEs_[i]->GetName()).c_str());
 
 	  PDEs_[i]->CalcInputCoupling();
 	  PDEs_[i]->SolveStepStatic(actlevel_);
@@ -165,23 +154,16 @@ void IterCoupledPDE::SolveStepStatic(const Integer level)
 	      Couplings_[i]->GetOutputOldValues(k, oldVal);
 	      norms_[counter] = CalcNorm(Couplings_[i]->GetOutputNormType(k), *val, *oldVal);
 
-	      if (InfoPrint)
-		(*infofile) << "Norm of " << Couplings_[i]->GetOutputQuantity(k) << " = " << norms_[counter] << std::endl;
+	      Info->PrintF("Norm of %s = %g", (Couplings_[i]->GetOutputQuantity(k)).c_str(), norms_[counter]);
 	      
 	      if (norms_[counter] > Couplings_[i]->GetOutputEpsilon(k))
 		normsReached = FALSE;
 		
 	      *oldVal = *val;
-	      counter++;
-	      
-	      if (InfoPrint)
-		(*infofile) << std::endl;
-	      
+	      counter++;	      
 	    }
 	}
 
-      if (InfoPrint)
-	(*infofile) << std::endl;
       iter++;
     }
 }
@@ -220,60 +202,60 @@ void IterCoupledPDE::WriteCouplingInfo()
   Array<Double> *val, *oldval;
   std::vector<Integer> * nodes;
 
-  if (! InfoPrint)
+  if (!debug)
     return;
 
-  // write information in .info-file
-  (*infofile) << "=======================" << std::endl;
-  (*infofile) << " COUPLING INFORMATION  " << std::endl;
-  (*infofile) << "=======================" << std::endl;
-  (*infofile) << std::endl;
+  // write information in .debug-file
+  (*debug) << "=======================" << std::endl;
+  (*debug) << " COUPLING INFORMATION  " << std::endl;
+  (*debug) << "=======================" << std::endl;
+  (*debug) << std::endl;
 
   for (Integer ipde=0; ipde<PDEs_.size(); ipde++)
     {
       
-      (*infofile) << "Entering " << Couplings_[ipde]->GetPDEName() << ".InitCoupling" << std::endl;
-      (*infofile) << "=====================================" << std::endl;
+      (*debug) << "Entering " << Couplings_[ipde]->GetPDEName() << ".InitCoupling" << std::endl;
+      (*debug) << "=====================================" << std::endl;
       
       // Show InputCouplings
-      (*infofile) << "Input Coupling:" << std::endl;
-      (*infofile) << "---------------------" << std::endl;
+      (*debug) << "Input Coupling:" << std::endl;
+      (*debug) << "---------------------" << std::endl;
       for (Integer i=0; i<Couplings_[ipde]->GetNumInputCouplings(); i++)
 	{
 	  Couplings_[ipde]->GetInputNodes(i, nodes);
 	  Couplings_[ipde]->GetInputValues(i,val);
-	  (*infofile) << "Coupling Type: " << Couplings_[ipde]->GetInputType(i) << std::endl;
-	  (*infofile) << "InputQuantity: " << Couplings_[ipde]->GetInputQuantity(i) << std::endl;
-	  (*infofile) << "Region: " << Couplings_[ipde]->GetInputRegion(i) << std::endl;
-	  (*infofile) << "RegionType: " << Couplings_[ipde]->GetInputRegionType(i) << std::endl;
-	  (*infofile) << "Size of Input Values: " << val->size() << std::endl;
-	  (*infofile) << "Size of Input Nodes: " << Couplings_[ipde]->GetInputSize(i) << std::endl;
-	  (*infofile) << "NormType: " << Couplings_[ipde]->GetInputNormType(i) << std::endl;
-	  (*infofile) << "Tolerance: " << Couplings_[ipde]->GetInputEpsilon(i) << std::endl;
+	  (*debug) << "Coupling Type: " << Couplings_[ipde]->GetInputType(i) << std::endl;
+	  (*debug) << "InputQuantity: " << Couplings_[ipde]->GetInputQuantity(i) << std::endl;
+	  (*debug) << "Region: " << Couplings_[ipde]->GetInputRegion(i) << std::endl;
+	  (*debug) << "RegionType: " << Couplings_[ipde]->GetInputRegionType(i) << std::endl;
+	  (*debug) << "Size of Input Values: " << val->size() << std::endl;
+	  (*debug) << "Size of Input Nodes: " << Couplings_[ipde]->GetInputSize(i) << std::endl;
+	  (*debug) << "NormType: " << Couplings_[ipde]->GetInputNormType(i) << std::endl;
+	  (*debug) << "Tolerance: " << Couplings_[ipde]->GetInputEpsilon(i) << std::endl;
 	  
 	
 	}
-      (*infofile) << std::endl;
+      (*debug) << std::endl;
       
       // Show OutputCouplings
       nodes = 0;
-      (*infofile) << "Output Coupling:" << std::endl;
-      (*infofile) << "---------------------" << std::endl;
+      (*debug) << "Output Coupling:" << std::endl;
+      (*debug) << "---------------------" << std::endl;
       for (Integer i=0; i<Couplings_[ipde]->GetNumOutputCouplings(); i++)
 	{
 	  Couplings_[ipde]->GetOutputNodes(i, nodes);
 	  Couplings_[ipde]->GetOutputValues(i,val);
-	  (*infofile) << "Coupling Type: " << Couplings_[ipde]->GetOutputType(i) << std::endl;
-	  (*infofile) << "OutputQuantity: " << Couplings_[ipde]->GetOutputQuantity(i) << std::endl;
-	  (*infofile) << "Region: " << Couplings_[ipde]->GetOutputRegion(i) << std::endl;
-	  (*infofile) << "RegionType: " << Couplings_[ipde]->GetOutputRegionType(i) << std::endl;
-	  (*infofile) << "size of Output Values: " << val->size() << std::endl;
-	  (*infofile) << "Size of Output Nodes: " << Couplings_[ipde]->GetOutputSize(i) << std::endl;
-	  (*infofile) << "NormType: " << Couplings_[ipde]->GetOutputNormType(i) << std::endl;
-	  (*infofile) << "Tolerance: " << Couplings_[ipde]->GetOutputEpsilon(i) << std::endl;
+	  (*debug) << "Coupling Type: " << Couplings_[ipde]->GetOutputType(i) << std::endl;
+	  (*debug) << "OutputQuantity: " << Couplings_[ipde]->GetOutputQuantity(i) << std::endl;
+	  (*debug) << "Region: " << Couplings_[ipde]->GetOutputRegion(i) << std::endl;
+	  (*debug) << "RegionType: " << Couplings_[ipde]->GetOutputRegionType(i) << std::endl;
+	  (*debug) << "size of Output Values: " << val->size() << std::endl;
+	  (*debug) << "Size of Output Nodes: " << Couplings_[ipde]->GetOutputSize(i) << std::endl;
+	  (*debug) << "NormType: " << Couplings_[ipde]->GetOutputNormType(i) << std::endl;
+	  (*debug) << "Tolerance: " << Couplings_[ipde]->GetOutputEpsilon(i) << std::endl;
 	  
 	}
-      (*infofile) << std::endl;
+      (*debug) << std::endl;
       
     }
 

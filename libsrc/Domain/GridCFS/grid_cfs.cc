@@ -68,9 +68,6 @@ void GridCFS<dim>::putNodesFromGrid_RG(grd::MultilevelGrid * grid, const Integer
   Integer ilev, i=0;
   std::cout << "\t\033[32m no. of vertices: \033[0m " << (*grid).getNoOfVertices() << std::endl;
 
-  if (InfoPrint)
-    (*infofile) <<  " total no. of vertices: " << (*grid).getNoOfVertices() << std::endl;
-
   Integer topLevel = grid->getTopLevel();
   for (ilev=0; ilev<=topLevel; ilev++) {
     std::list<grd::Vertex*> *le=(*grid).getGridLevel(ilev)->getVertexList();
@@ -225,9 +222,9 @@ void GridCFS<2>::putElemsFromGrid_RG(grd::MultilevelGrid * grid, const Integer l
    } // end while(); list of elements types
  } // for level
  
- if (InfoPrint)
-   (*infofile) << " total number of elements (only for first subdomains): " << elems_[0].size() << std::endl;
-     std::cerr << "\t\033[32m no. of elements: \033[0m " << elems_[0].size() << std::endl;
+ Info-PrintF("Total number of elements (only for first subdomain): %i", elems_[0].size());
+ 
+ std::cerr << "\t\033[32m no. of elements: \033[0m " << elems_[0].size() << std::endl;
      
      FormNeighborsLists();
      
@@ -406,8 +403,9 @@ void GridCFS<3>::putElemsFromGrid_RG(grd::MultilevelGrid * grid, const Integer l
     tets.clear();
        }
 
-     if (InfoPrint)
-       (*infofile) << " total number of elements: " << elems_[0].size() << std::endl;
+
+     Info-PrintF("Total number of elements: %i", elems_[0].size());
+
      std::cerr << "\t\033[32m no. of elements: \033[0m " << elems_[0].size() << std::endl;
      FormNeighborsLists();
 }

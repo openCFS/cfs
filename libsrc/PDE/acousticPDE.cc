@@ -152,11 +152,6 @@ void AcousticPDE::SolveStepTrans(const Integer kstep, const Double asteptime,
 
   //perform corrector step  
   TS_alg_->Corrector(sol_);
-
-
-  if (InfoPrint)
-    (*infofile) << "maxnode:" <<  ptgrid_->GetMaxnumnodes(level) << std::endl;
-
 }
 
 void AcousticPDE::WriteResultsInFile()

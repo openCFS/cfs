@@ -19,6 +19,9 @@ typedef int Boolean;
 
 #define FALSE 0
 #define TRUE 1
+#define myEndl std::endl
+#define myCout std::cout
+
 
   //! useful trick for testing problem
 #define mark std::cout<<__FILE__<<__LINE__<<std::endl;
@@ -92,12 +95,12 @@ extern std::ostream * cla; //name.cla
 extern std::ostream * memtrace; //name for name.mem 
 extern std::ostream * data; //name.data
 
+  class WriteInfo;
+  extern WriteInfo * Info; //class for log informations
+
 class ConfFile;
   //! pointer to class with methods for reading config-file. it is accessable from any place of the program
 extern ConfFile * conf; //name.conf
-
-  //! indicator for info-file. TRUE, if we need it, FALSE, otherwise
-extern Boolean InfoPrint;
 
   //class BaseElem;
   class BaseFE;

@@ -112,14 +112,6 @@ Boolean LinSystem<T, T_Matrix>::CG(const Integer maxIter,  enum precond typePrec
   p=z+p*beta;   
 }
 
-// if (InfoPrint)
-//  (*infofile) << "--------------  Conjugate Gradiate Method --------------" <<
-//   std::endl << "Number of max iteration is " << maxIter << std::endl 
-//        << "Number of iterations is " << iter << std::endl
-//        << "Precondition is " << typePrecond << std::endl
-//   << " ----------------------------------------------------- " << std::endl;
-
-  // oClock.ClockCount(MyClock::end, " CG ");
 
 #ifdef TRACE
    (*trace) << "leaving LinSystem::CG" << std::endl;
@@ -359,12 +351,6 @@ Boolean LinSystem<T, T_Matrix>::BiCGSTAB(const Integer maxIter, enum precond typ
 #ifdef TRACE
   (*trace) << "entering LinSystem::BiCGSTAB" << std::endl;
 #endif
-
-//  if (InfoPrint)
-//   (*infofile) <<   "--------------  BiCGSTAB  --------------" <<
-//   std::endl << "Number of max iteration is " << maxIter << endl
-//        << "Precondition is " << typePrecond << std::endl
-//   << " ----------------------------------------------------- " << std::endl;
 
  Double tol;
  Double rho_1, rho_2=1, alpha=1, beta, omega=1;

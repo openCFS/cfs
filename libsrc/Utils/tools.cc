@@ -242,5 +242,5 @@ Double CalcArea(Elem * ptE, Grid * ptgrid, const Integer level)
 
   return area;
 }
- 
+
 }// namespace CoupledField

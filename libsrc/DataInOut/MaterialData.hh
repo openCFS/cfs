@@ -145,6 +145,9 @@ public:
   /// get compressibility
   Double GetCompressibility() const {return compressibility;};
 
+  /// get permeability of the material
+  Double GetPermeability() const {return permeability;};
+
   /// get alfa damping coefficient
   Double GetDampingAlfa() const {return damp_alfa;};
 

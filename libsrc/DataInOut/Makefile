@@ -3,7 +3,7 @@
 #
 C_DIR=../..
 #
-src = conffile.cc filetype.cc timefunc.cc writeresults.cc MaterialData.cc LoadMaterialData.cc
+src = conffile.cc filetype.cc timefunc.cc writeresults.cc MaterialData.cc LoadMaterialData.cc WriteInfo.cc
 #
 lib = datainout
 libpath = libsrc/DataInOut
