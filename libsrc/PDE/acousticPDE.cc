@@ -27,6 +27,7 @@ AcousticPDE::AcousticPDE(const Double epsilon, const Double dt0, Grid<Point2D> *
   if (ptMaterial)
   {
     ptMaterial->ReadDensityAndCompress(density,compress);
+    std::cout << "density " << density << "compri " << compress << std::endl;
     c=sqrt(compress/density);
   }
   else c=1;
@@ -61,12 +62,8 @@ void AcousticPDE::SolveNewmarkMethodStatic(const Double atime)
   (*trace) << "entering PDE::SolveNewmarkMethod" << std::endl;
 #endif
  
-   Boolean NeedRestore=FALSE;
    Double valueTF=ptTimeFunc->TimeFuncAtTime(atime,0);
 
-//   if (valueTF==0)
-//     { NeedRestore=TRUE; ptWork->SetDirichletBoundaryCondZero_Cut();}
-//   else
      ptWork->SetDirichletBoundaryCondRHS_PenaltyMethod(valueTF);
  
    ptWork->CG(100, Jacobi);
@@ -75,8 +72,6 @@ void AcousticPDE::SolveNewmarkMethodStatic(const Double atime)
    std::string title=" System matrix after applying boundary condition ";
    ptWork->printAb(debug, title);
 #endif
- 
-//  if (NeedRestore) ptWork->Restore();
  
   /// Calculation of derivatives of solution
   Vector<Double> sol_der2_old=sol_der2;

@@ -91,11 +91,7 @@ Boolean LinSystem<T, T_Matrix>::CG(const Integer maxIter,  enum precond typePrec
 
   Vector<T> p(dim), r(dim), Ap(dim), z(dim);
 
-  mark
-  std::cout << " size of x " << x.size() << endl;
-  std::cout << " size of A and b " << A.getSize() << " " << b.size() << endl;
   r=b-A*x;
-  mark
   A.precond(z,r,typePrecond);
   p=z;
   zr=z*r;

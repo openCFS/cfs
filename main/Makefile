@@ -8,7 +8,7 @@ C_DIR= ..
 LIBDIR = $(C_DIR)/libsrc
 #
 SUBLIBDIR = Driver PDE AlgebraicSystem/LinAlg \
-            Forms Elements Domain/GridCFS Domain/Gridlib Domain \
+            Forms Elements Domain/GridCFS Domain \
             DataInOut/DefineFiles \
             DataInOut/Unverg DataInOut/DatFile DataInOut\
             Utils Matrix General

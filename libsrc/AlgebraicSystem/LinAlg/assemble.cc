@@ -153,7 +153,6 @@ void Assemble<Dim, T_Matrix>::SetDirichletBoundaryCondSysMat_PenaltyMethod()
   for (i=0; i<n; i++) 
     {
       aux=nodesDirBC[i]-1;
-      std::cout << "number of nodes " << aux << std::endl;
       A(aux,aux)+=BigConst;
     }
 }
@@ -172,14 +171,8 @@ void Assemble<Dim, T_Matrix>::SetDirichletBoundaryCondZero_Cut()
   for (i=0; i<n; i++)
     {     
       aux=nodesDirBC[i]-1;
-      std::cout << "nodes for BC" << aux << std::endl;
-      mark
-      std::cout << "aux-i" << aux-i << std::endl;
-      std::cout << A << std::endl;
       A.cut(aux-i,aux-i);
-mark
       b.cut(aux-i);
-mark
     }
 }
 
@@ -236,7 +229,7 @@ void Assemble<Dim,T_Matrix>::AssembleGlobal(T_Matrix & Mat) const
   switch(numnodeelem)
   {
     case 3:
-       ptElem=new  Triangle1(GaussOrder5);
+       ptElem=new  Triangle1(GaussOrder3);
        break;
 
     case 4:
