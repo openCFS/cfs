@@ -222,10 +222,8 @@ void GridCFS<2>::putElemsFromGrid_RG(grd::MultilevelGrid * grid, const Integer l
    } // end while(); list of elements types
  } // for level
  
- Info-PrintF("Total number of elements (only for first subdomain): %i", elems_[0].size());
+ Info-PrintF("", "Total number of elements (only for first subdomain): %i", elems_[0].size());
  
- std::cerr << "\t\033[32m no. of elements: \033[0m " << elems_[0].size() << std::endl;
-     
      FormNeighborsLists();
      
 } // end of function 
@@ -404,9 +402,8 @@ void GridCFS<3>::putElemsFromGrid_RG(grd::MultilevelGrid * grid, const Integer l
        }
 
 
-     Info-PrintF("Total number of elements: %i", elems_[0].size());
+     Info-PrintF("", "Total number of elements: %i", elems_[0].size());
 
-     std::cerr << "\t\033[32m no. of elements: \033[0m " << elems_[0].size() << std::endl;
      FormNeighborsLists();
 }
 

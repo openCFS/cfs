@@ -408,7 +408,7 @@ void ElecPDE::CalcNodeForce(Array<Double> & force,
   //std::cerr << "Sum of E-Force:" << std::endl << sum << std::endl;
   
   // write information in .info-file
-  Info->PrintF("Sum of electrostatic force:");
+  Info->PrintF(pdename_, "Sum of electrostatic force:");
   Info->PrintVec(sum);
 
 }

@@ -99,13 +99,17 @@ namespace CoupledField
   }
   
 
-  void WriteInfo::WriteNonLinIter(Integer iterationCounter, 
-				  Double residualErr, Double incrementalErr)
+  void WriteInfo::WriteNonLinIter(const std::string& pdeName, const Integer iterationCounter, 
+				  const Double residualErr, const Double incrementalErr)
   {
-    *cfsInfo << std::endl << " NONLINEAR ITERATION " << iterationCounter 
+    std::string pdeNameLong(pdeName);
+    
+    pdeNameLong += "-PDE: ";
+    
+    *cfsInfo << std::endl << pdeNameLong << "NONLINEAR ITERATION " << iterationCounter 
 	     << " ==========================================" << std::endl
-	     << " === Residual error          " << residualErr << std::endl
-	     << " === Incremental error       " << incrementalErr << std::endl;
+	     << pdeNameLong << "=== Residual error          " << residualErr << std::endl
+	     << pdeNameLong << "=== Incremental error       " << incrementalErr << std::endl;
   }
 
 
@@ -140,7 +144,70 @@ namespace CoupledField
   }
   
 
-  void WriteInfo::PrintF(char * formatChar ...)
+
+  
+  
+  // prints warning to info-file
+  void WriteInfo::Warning(const std::string & Text)
+  {
+#ifdef TRACE
+    (*trace) << "Entering WriteInfo::Warning" << std::endl;
+#endif
+    std::cerr << "\033[31mWARNING:\033[0m " << Text << myEndl << myEndl;
+
+    *cfsInfo << myEndl << myEndl << myEndl
+	     << " !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! " << myEndl
+	     << "                          WARNING " << myEndl
+	     << " !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! " << myEndl
+	     << " WARNING: " << Text << myEndl << myEndl;
+  }
+
+
+  
+    
+  // prints error to both std::out and info-file
+  void WriteInfo::Error(const std::string & Text, const Char * const filename,
+			const Integer numline)
+  {
+#ifdef TRACE
+    (*trace) << "Entering WriteInfo::Error" << std::endl;
+#endif
+    
+    std::cerr << "\033[31mERROR:\033[0m " << Text;
+    if (filename) 
+      {
+	std::cerr <<"( " << filename <<" ";
+	if (numline) 
+	  std::cerr << numline;
+	std::cerr << ")";
+	}
+    std::cerr << std::endl << std::endl;
+    
+    
+
+    *cfsInfo << myEndl << myEndl << myEndl
+	     << " !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! " << myEndl
+	     << "                          ERROR " << myEndl
+	     << " !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! " << myEndl
+	     << " ERROR: " << Text;
+    
+    if (filename) 
+      {
+	*cfsInfo <<"( " << filename <<" ";
+	if (numline) 
+	  *cfsInfo << numline;
+	*cfsInfo << ")";
+      }
+    *cfsInfo << std::endl;
+    
+    
+    exit(-1);
+  }
+  
+
+
+
+  void WriteInfo::PrintF(const std::string& pdeName, char * formatChar ...)
   {
 #ifdef TRACE
     (*trace) << "entering WriteInfo::PrintF" << std::endl;
@@ -160,7 +227,9 @@ namespace CoupledField
     va_list argList;
     va_start(argList, formatChar);   // init the argument list
     
-		
+    // for classes which are not a pde, this string is ""
+    if (pdeName.length())
+      *cfsInfo << pdeName << "-PDE:";
     
     do
       {
