@@ -1,0 +1,46 @@
+#ifndef FILE_ACOUSTICSPACEERROR_2002
+#define FILE_ACOUSTICSPACEERROR_2002
+
+#include "tools.hh"
+#include "acoustic2dPDE.hh"
+#include "spaceerror.hh"
+
+namespace CoupledField
+{
+
+//! Class where we implement space error estimator
+class AcousticSpaceErrorEstimator:virtual public SpaceErrorEstimator
+{
+public:
+  //! constructor with pointer to PDE
+  AcousticSpaceErrorEstimator(BasePDE * , Grid * );
+
+  //! Deconstructor
+  virtual ~AcousticSpaceErrorEstimator();
+
+  //!  return true, if error is more than tolerance
+  Boolean TestError();
+
+  //!
+  void CalcError();
+
+  //!
+  void RefineMesh();
+
+private:
+  //!
+  Double tol_, theta_;
+
+};
+
+inline AcousticSpaceErrorEstimator::~AcousticSpaceErrorEstimator()
+{
+#ifdef TRACE
+  (*trace) << "entering AcousticSpaceErrorEstimation::~AcousticSpaceErrorEstimator" << std::endl;
+#endif 
+;
+}
+
+} // end of namespace
+
+#endif

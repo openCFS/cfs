@@ -397,8 +397,11 @@ libsrc/Elements/jacobian.hh svneol=native#text/plain
 libsrc/Estimator/Makefile -text
 libsrc/Estimator/acoustictimeerror.cc svneol=native#text/plain
 libsrc/Estimator/acoustictimeerror.hh svneol=native#text/plain
+libsrc/Estimator/acspaceadapt.cc svneol=native#text/plain
+libsrc/Estimator/acspaceadapt.hh svneol=native#text/plain
 libsrc/Estimator/actimeerror.cc svneol=native#text/plain
 libsrc/Estimator/actimeerror.hh svneol=native#text/plain
+libsrc/Estimator/spaceerror.hh svneol=native#text/plain
 libsrc/Estimator/timeerror.cc svneol=native#text/plain
 libsrc/Estimator/timeerror.hh svneol=native#text/plain
 libsrc/Forms/Makefile -text
