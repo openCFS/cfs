@@ -4,7 +4,7 @@
 C_DIR=../..
 #
 src = filetype.cc timefunc.cc writeresults.cc MaterialData.cc \
-      LoadMaterialData.cc WriteInfo.cc SkeletonConf.cc XMLSkeletonConf.cc
+      LoadMaterialData.cc WriteInfo.cc
 #
 lib = datainout
 libpath = libsrc/DataInOut
