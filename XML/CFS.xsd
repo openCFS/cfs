@@ -91,7 +91,10 @@
     
       <!-- Parameters for transient analysis (semi-optional) -->
       <xsd:element name="transient" type="DT_Transient" minOccurs="0"/>
-    
+
+      <!-- Parameters for harmonic analysis (semi-optional) -->
+      <xsd:element name="harmonic" type="DT_Harmonic" minOccurs="0"/>
+  
       <!-- Parameters for specifying integration rules (optional) -->
       <xsd:element name="integRules" type="DT_IntegRules" minOccurs="0"/>
 
