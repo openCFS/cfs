@@ -27,6 +27,8 @@
 #include <DataInOut/SkeletonConf.hh>
 #include <Domain/GridCFS/interface_gridcfs.hh>
 #include <General/environment.hh>
+#include <Utils/storeSolution.hh>
+
 
 #ifdef NETGEN
 #include <Domain/NetGen/interface_netgen.hh>
@@ -160,4 +162,5 @@ Integer main(int argc, char *argv[])
     delete ptDefineFiles; 
   if (Info)
     delete Info;
+
 }

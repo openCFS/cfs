@@ -66,25 +66,6 @@ ElecPDE::ElecPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 
 
 
-void ElecPDE::Reset()
-{
-#ifdef TRACE
-  (*trace) << "entering ElecPDE::Reset" << std::endl;
-#endif
-    
-  AssignPDENodeNumbers(Mesh2PDENode_,PDE2MeshNode_,subdoms_);
-  numPDENodes_=PDE2MeshNode_.size();
-
-  deltCoords_.reshape(Dim_,numPDENodes_);
-  sol_.reshape(dofspernode_,numPDENodes_);
-  sol_.init();
-
-  numElems_ = ptgrid_->GetMaxnumElem(actlevel_,subdoms_);
-}
-
-
-
-
 void ElecPDE::DefineIntegrators(const Integer level)
 {
 #ifdef TRACE
@@ -98,15 +79,11 @@ void ElecPDE::DefineIntegrators(const Integer level)
       //reads eps33 (matrix notation starts with 0)
       Double eps33 = materialData_[actSD].GetPermittivity(2,2);
 
-      BaseForm * lapl = new LaplaceInt(eps33);
+      BaseForm * lapl = new LaplaceInt(eps33, isaxi_);
 
       assemble_->AddIntegrator(lapl, subdoms_[actSD], SYSTEM, nonLin);
     }
 }
-
-
-
-
 
 
 // ======================================================
@@ -114,45 +91,18 @@ void ElecPDE::DefineIntegrators(const Integer level)
 // ======================================================
 
 
-
-void ElecPDE::SolveStepStatic(const Integer level)
+void ElecPDE::PostStepStatic(const Integer level)
 {
 #ifdef TRACE
-  (*trace) << "entering ElecPDE::SolveStepStatic" << std::endl;
+  (*trace) << "entering ElecPDE::PostStepStatic" << std::endl;
 #endif
 
-  Integer job = 1;
-
-  Double * ptsol;
-
-  //compute and assemble element matrices
-  //  SetupMatrices(level);
-
-  assemble_->AssembleMatrices(level);
-
-  //account for bcs
-  SetBCs(level,updateBCs_,0);
-
-  updateBCs_ = 0;
-  
-  algsys_->CalcPrecond(job);
-  algsys_->Solve();
-
-  ptsol = algsys_->GetSolutionVal();
-
-  // save solution
-  Integer k=0;
-  
-  for (Integer i=0; i<numPDENodes_; i++)
-    for (Integer dim=0; dim<dofspernode_; dim++)
-      sol_[dim][i] = ptsol[k++];
-
-  // Initalize RHS and Solution vector
-  algsys_->InitRHS();
-  algsys_->InitSol();  
+  //perform postprocessing
 
   // Initalize matrices, if PDE couples via COORD or MAT
-
+  // Initalize RHS and Solution vector
+//   algsys_->InitRHS();
+//   algsys_->InitSol();  
 //   if (InitMatrices_ == TRUE)
 //     InitMatrices();
 
@@ -174,7 +124,6 @@ void ElecPDE::SolveStepStatic(const Integer level)
       int i;
       for (i=0; i<sol_.size(); i++)
 	solVec[i]=sol_[0][i];
-      //      sol_.toVector(solVec,1);
 
       ptError_->CalcErrorMap(solVec,subdoms_,ptgrid_,errorMap_,totalErr,level);
       
@@ -424,6 +373,26 @@ void ElecPDE::GetSolOfElement( Vector<Double>& elpot, Vector<Integer>& connect_P
 }
 
 
+// ======================================================
+// GENERAL  SECTION
+// ======================================================
+
+
+void ElecPDE::Reset()
+{
+#ifdef TRACE
+  (*trace) << "entering ElecPDE::Reset" << std::endl;
+#endif
+    
+  AssignPDENodeNumbers(Mesh2PDENode_,PDE2MeshNode_,subdoms_);
+  numPDENodes_=PDE2MeshNode_.size();
+
+  deltCoords_.reshape(Dim_,numPDENodes_);
+  sol_.reshape(dofspernode_,numPDENodes_);
+  sol_.init();
+
+  numElems_ = ptgrid_->GetMaxnumElem(actlevel_,subdoms_);
+}
 
 // ======================================================
 // COUPLING SECTION
@@ -568,10 +537,6 @@ void ElecPDE::CalcOutputCoupling()
     }
 
 }
-
-
-
-
 
 
 Boolean ElecPDE::HasOutput(std::string output)

@@ -15,10 +15,17 @@ namespace CoupledField
 
 BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile, WriteResults * aOutFile, 
 		 TimeFunc *aptTimeFunc)
+  :nonLin_(FALSE),
+   incStopCrit_(1e-2), 
+   residualStopCrit_(1e-3)
 {
 #ifdef TRACE
   (*trace) << "entering BasePDE::BasePDE" << std::endl;
 #endif
+
+  nonLin_ = FALSE;
+  incStopCrit_ = 1e-2;
+  residualStopCrit_ = 1e-3;
 
   InFile_     = aInFile;
   OutFile_    = aOutFile;
@@ -56,8 +63,6 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile, WriteResults * a
     assemble_ = new StaticAssemble(algsys_, ptgrid_);
   else if (analysis=="transient")
     assemble_ = new TransientAssemble(algsys_, ptgrid_);
-
-  //    analysistype_ = TRANSIENT;
   else if (analysis=="harmonic")
     analysistype_ = HARMONIC;
   else
@@ -71,6 +76,169 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile, WriteResults * a
     tolSpaceErr_ = .0;
 }
 
+
+
+  // ======================================================
+  // Solve Step SECTION  
+  // ======================================================
+
+void BasePDE::SolveStepStatic(const Integer level)
+{
+#ifdef TRACE
+  (*trace) << "entering BasePDE::SolveStepStatic" << std::endl;
+#endif
+
+  PreStepStatic(level);
+
+  if (nonLin_)
+    StepStaticNonLin(level);
+  else
+    StepStaticLin(level);
+
+  PostStepStatic(level);
+
+}
+
+
+void BasePDE::StepStaticLin(const Integer level)
+{
+#ifdef TRACE
+  (*trace) << "entering BasePDE::StepStaticLin" << std::endl;
+#endif
+
+  Integer job = 1;
+
+  Double * ptsol;
+
+  assemble_->AssembleMatrices(level);
+  assemble_->AssembleRHS(level);
+
+  //account for bcs
+  SetBCs(level,updateBCs_,0);
+
+  updateBCs_ = 0;
+  
+  algsys_->CalcPrecond(job);
+  algsys_->Solve();
+
+  ptsol = algsys_->GetSolutionVal();
+
+  // save solution
+  Integer k=0;
+  
+  for (Integer i=0; i<numPDENodes_; i++)
+    for (Integer dim=0; dim<dofspernode_; dim++)
+      sol_[dim][i] = ptsol[k++];
+
+}
+
+
+void BasePDE::SolveStepTrans(const Integer kstep, const Double asteptime, 
+			     const Integer level, const Boolean reset)
+{
+#ifdef TRACE
+  (*trace) << "entering BasePDE::SolveStepTrans" << std::endl;
+#endif
+
+  lasttimecalc_= asteptime;
+  Recalc_ = FALSE;
+
+  if (laststepcalc_==kstep && kstep!=0) 
+    Recalc_=TRUE;
+  else 
+    laststepcalc_= kstep;
+
+
+  PreStepTrans(level,reset);
+
+  if (nonLin_)
+    StepTransNonLin(level,reset);
+  else
+    StepTransLin(level,reset);
+
+  PostStepTrans(level);
+
+
+}
+
+void BasePDE::StepTransLin(const Integer level, const Boolean reset)
+{
+#ifdef TRACE
+  (*trace) << "entering BasePDE::StepTransLin" << std::endl;
+#endif
+
+  Double * ptsol;
+  Integer update,job;
+
+  //current problem with Array class
+  Array<Double> solhelp;
+  solhelp.reshape(1, numPDENodes_*dofspernode_);
+  Integer k=0;
+  for (Integer i=0; i< numPDENodes_; i++)
+    for (Integer j=0; j<dofspernode_; j++)
+      {
+	solhelp[0][k] = sol_[j][i];
+	k++;
+      }
+
+  //perform predictor step
+  TS_alg_->Predictor(solhelp);
+
+  if (laststepcalc_==0)
+    {
+      update = 0;
+      job = 1;
+      //      SetupMatrices(level);
+      assemble_->AssembleMatrices(level);
+      algsys_->ConstructEffectiveMatrix(matrix_factor_);
+
+      algsys_->InitRHS();
+      assemble_->AssembleRHS(level,laststepcalc_);      
+      TS_alg_->UpdateRHS();
+    }
+  else if (reset)
+    {
+      update = 1;
+      job    = 1;
+
+      algsys_->InitRHS();
+      algsys_->InitMatrix(SYSTEM);
+      algsys_->InitMatrix(STIFFNESS);
+      algsys_->InitMatrix(MASS);
+      if (damping_type_)
+        algsys_->InitMatrix(DAMPING);
+
+      algsys_->ConstructEffectiveMatrix(matrix_factor_);
+      assemble_->AssembleRHS(level,laststepcalc_);     
+      TS_alg_->UpdateRHS();
+    }
+  else
+    {
+      update = 1;
+      job    = 3;
+      algsys_->InitRHS();
+      assemble_->AssembleRHS(level,laststepcalc_);     
+      TS_alg_->UpdateRHS();
+    };
+
+  SetBCs(level,update,lasttimecalc_);
+  algsys_->CalcPrecond(job);
+  algsys_->Solve();
+  ptsol = algsys_->GetSolutionVal();
+
+  //save solution
+  k=0;
+  for (Integer i=0; i< numPDENodes_; i++)
+    for (Integer dim=0; dim<dofspernode_; dim++)
+      {
+	sol_[dim][i]  = ptsol[k];
+	solhelp[0][k] = ptsol[k];
+	k++;
+      }
+
+  //perform corrector step  
+  TS_alg_->Corrector(solhelp);
+}
 
 
 void  BasePDE::SetBCs(const Integer level, const Integer update, const Double time)

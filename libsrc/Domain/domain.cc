@@ -156,11 +156,10 @@ void Domain :: InitPDEs()
       else if (pdes[i] == "mechanic")
 	ptpde_[i]=new MechPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
 
-
-#ifndef NEWBASEPDE
       else if (pdes[i] == "acoustic")
   	ptpde_[i]=new AcousticPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
 
+#ifndef NEWBASEPDE
       else if (pdes[i] == "acouflownoise")
  	 ptpde_[i]=new AcouFlowNoise(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
 
