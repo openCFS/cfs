@@ -207,16 +207,20 @@ void  WriteResultsUnverg::NodeElemDataTransient(const Integer dataSetNr,
  (*output).precision(6);
  (*output).setf(std::ios::uppercase);
 
+ Integer dataCharac = 1;
  Integer valsPerNode = 1;
- if (nrDofs > 1)
+
+ if (nrDofs > 1) {
    valsPerNode = 3;
+   dataCharac = 2;
+ }
  
 
- (*output) << " " << title << " step" << std::setw(6) << step <<
+ (*output) << " " << title << ", step" << std::setw(6) << step <<
              " time   " << time << std::endl;  
  (*output) << std::endl << std::endl << std::endl << std::endl;
- (*output) << std::setw(10) << 1 << std::setw(10) << 4 << std::setw(10) << 1 
-	   << std::setw(10) << 0
+ (*output) << std::setw(10) << 1 << std::setw(10) << 4 << std::setw(10) 
+	   << dataCharac  << std::setw(10) << 0
            << std::setw(10) << 2 << std::setw(10) << valsPerNode << std::endl;
  (*output) << std::setw(10) << 2 << std::setw(10) << 1 << std::setw(10) << 1 
 	   << std::setw(10) <<
@@ -227,7 +231,12 @@ void  WriteResultsUnverg::NodeElemDataTransient(const Integer dataSetNr,
  n=nrNodes;;  
  for (i=0; i<n; i++)
    {
-     (*output) << std::setw(10) << i+1 << std::endl;
+     
+     (*output) << std::setw(10) << i+1;
+     if (dataSetNr == 56)
+       (*output) << std::setw(10) << valsPerNode;
+
+     (*output) << std::endl;
      
      // in the universal file either one or three results datas must exist
      if (nrDofs == 2)
