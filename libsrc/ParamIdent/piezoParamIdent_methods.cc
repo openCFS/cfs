@@ -69,10 +69,13 @@ namespace CoupledField
       Z=Complex(x,y);
       phase = 180.0/PI*std::arg(Z);
     
-      y_hat[i]=sign*voltage/(2.0*PI*Z*freqs[i]*j);
+      y_hat[i]=sign*voltage/(2.0*PI*std::log(Z)*freqs[i]*j);
+      std::cout<<y_hat<<std::endl;
+      std::cout<<"This is y_hat!!"<<std::endl;
+      //      getchar();
 
       std::cout<<"\n Frequenz; " << freqs[i] << ", messZ: " << absZ[i] << ", phase: " << phi[i] << std::endl;
-      std::cout<<" Frequenz; " << freqs[i] << ", calcZ: " << std::abs(Z) << ", phase: " << phase << std::endl << std::endl;
+      //std::cout<<" Frequenz; " << freqs[i] << ", calcZ: " << std::abs(Z) << ", phase: " << phase << std::endl << std::endl;
      
       //      std::cout<<i<<") = " << phi[i] << ",\t "<< freqs[i] <<",\t q = y_hat = " << y_hat[i]<<",\t Z= " << Z << " phase " << phase << std::endl;
     }
@@ -197,9 +200,9 @@ namespace CoupledField
           imped = std::abs(voltage/(charge*2.0*PI*freqs[fstep]*im)); 
           //    phase = 180.0/PI*(std::arg(charge));
           phase = 180.0/PI*(std::arg(impedC));
-          std::cout << fstep <<");\t Frequenz: " << freqs[fstep] << ";\t Impedanz: "<< imped 
+          std::cout << fstep <<");\t Frequenz: " << freqs[fstep] << ";\t Impedanz: "<< std::log(imped) 
 		    << ";\t Phase: " << phase <<";\t Volt = "<<voltage<<";\t Charge = "<< charge<< std::endl;
-          *impedCurve <<"\n" << freqs[fstep] << " " << imped << "  " << phase << "  " 
+          *impedCurve <<"\n" << freqs[fstep] << " " << std::log(imped) << "  " << phase << "  " 
 		      << impedC.real()<<"  " << impedC.imag() << "  " << charge.real()<< "  " << charge.imag()<< std::endl;
 
     } //  end loop over freqs
@@ -308,7 +311,15 @@ namespace CoupledField
         for (int i=0;i<chargeVec.GetSize();i++){
           charge+=chargeVec[i];
         }
-        F_hat[fstep]=sign*charge; 
+
+	Double x=real[fstep]*cos(PI/180*imag[fstep]);
+	Double y=real[fstep]*sin(PI/180*imag[fstep]);
+	Complex	Z=Complex(x,y);
+
+        F_hat[fstep]=(sign*charge*Z)/std::log(Z);
+// 	std::cout<<F_hat<<std::endl;
+// 	std::cout<<"This is F_hat!!"<<std::endl;
+	//	getchar(); 
          
         calcAbsImped(charge, freqs[fstep], fstep, typeOut);   // calculates |Z| and writes results in File
      
@@ -420,8 +431,8 @@ namespace CoupledField
     Vector<Double> dparameter(nrParameter);
     Vector<Double> dparameterC(nrParameter);
 
-    piezoMaterialType realMatPar = realMaterialParameter; 
-    piezoMaterialType imagMatPar = imagMaterialParameter; 
+    piezoMaterialType realMatPar = REALMATERIALPARAMETER; 
+    piezoMaterialType imagMatPar = IMAGMATERIALPARAMETER; 
 
     Vector<Double> tempHarm;
     StdVector<Integer> connect_PDE;                 

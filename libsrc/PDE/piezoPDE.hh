@@ -136,8 +136,6 @@ namespace CoupledField
     StdVector<std::string> chargeNeighborRegion_;
     StdVector<std::string> calcCharge_;
 
-    //    piezoMaterialType piezoMaterialType_; 
-
     //! contains mechanic velocity
     NodeStoreSol<Double> solDeriv1_;
     

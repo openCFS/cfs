@@ -136,9 +136,9 @@ namespace CoupledField {
 
     Matrix<Double>*matMatrix; 
 
-    if (piezoMatType_ == realMaterialParameter)
+    if (piezoMatType_ == REALMATERIALPARAMETER)
       matMatrix = ptMaterial->GetMatrix();
-    else if (piezoMatType_ == imagMaterialParameter)
+    else if (piezoMatType_ == IMAGMATERIALPARAMETER)
       matMatrix = ptMaterial->GetMatrixC();
 
     // No damping
@@ -168,10 +168,10 @@ namespace CoupledField {
       // into D matrix and scale with damping parameter
       Matrix<Double> *matMatrix = NULL;
 
-      if ( piezoMatType_ == realMaterialParameter) {
+      if ( piezoMatType_ == REALMATERIALPARAMETER) {
 	matMatrix = ptMaterial->GetMatrix();
       }
-      else if ( piezoMatType_ == imagMaterialParameter ) {
+      else if ( piezoMatType_ == IMAGMATERIALPARAMETER ) {
 	matMatrix = ptMaterial->GetMatrixC();
       }
       else {
@@ -260,9 +260,9 @@ namespace CoupledField {
 
     Matrix<Double> * matMatrix;
     
-    if (piezoMatType_ == realMaterialParameter)
+    if (piezoMatType_ == REALMATERIALPARAMETER)
       matMatrix = ptMaterial->GetMatrix();
-    else if (piezoMatType_ == imagMaterialParameter)
+    else if (piezoMatType_ == IMAGMATERIALPARAMETER)
       matMatrix = ptMaterial->GetMatrixC();
 
 
@@ -295,9 +295,9 @@ namespace CoupledField {
 
       Matrix<Double> * matMatrix;
     
-      if (piezoMatType_ == realMaterialParameter)
+      if (piezoMatType_ == REALMATERIALPARAMETER)
 	matMatrix = ptMaterial->GetMatrix();
-      else if (piezoMatType_ == imagMaterialParameter)
+      else if (piezoMatType_ == IMAGMATERIALPARAMETER)
 	matMatrix = ptMaterial->GetMatrixC();
 
       Double beta = ptMaterial->GetDampingBeta();
@@ -354,9 +354,9 @@ namespace CoupledField {
       // Copy entries from material matrix object into D matrix
       Matrix<Double> * matMatrix;
     
-      if (piezoMatType_ == realMaterialParameter)
+      if (piezoMatType_ == REALMATERIALPARAMETER)
 	matMatrix = ptMaterial->GetMatrix();
-      else if (piezoMatType_ == imagMaterialParameter)
+      else if (piezoMatType_ == IMAGMATERIALPARAMETER)
 	matMatrix = ptMaterial->GetMatrixC();
       
       for( Integer i = 0; i < sizeofD; i++ ) {
@@ -383,9 +383,9 @@ namespace CoupledField {
 
       Matrix<Double> * matMatrix;
     
-      if (piezoMatType_ == realMaterialParameter)
+      if (piezoMatType_ == REALMATERIALPARAMETER)
 	matMatrix = ptMaterial->GetMatrix();
-      else if (piezoMatType_ == imagMaterialParameter)
+      else if (piezoMatType_ == IMAGMATERIALPARAMETER)
 	matMatrix = ptMaterial->GetMatrixC();
 
       Double beta = ptMaterial->GetDampingBeta();
@@ -618,9 +618,9 @@ namespace CoupledField {
     // into D matrix and multiply with damping parameters
     Matrix<Double> * matMatrix;
 
-    if (piezoMatType_ == realMaterialParameter)
+    if (piezoMatType_ == REALMATERIALPARAMETER)
       matMatrix = ptMaterial->GetMatrix();
-    else if (piezoMatType_ == imagMaterialParameter)
+    else if (piezoMatType_ == IMAGMATERIALPARAMETER)
       matMatrix = ptMaterial->GetMatrixC();
 
     for ( Integer i = 0; i < sizeofD; i++ ) {
@@ -685,9 +685,9 @@ namespace CoupledField {
     // into D matrix and scale with damping parameter (1+j*omega*beta)
     Matrix<Double> * matMatrix;
 
-    if (piezoMatType_ == realMaterialParameter)
+    if (piezoMatType_ == REALMATERIALPARAMETER)
       matMatrix = ptMaterial->GetMatrix();
-    else if (piezoMatType_ == imagMaterialParameter)
+    else if (piezoMatType_ == IMAGMATERIALPARAMETER)
       matMatrix = ptMaterial->GetMatrixC();
 
     Complex imag=Complex(0,1);
@@ -799,10 +799,10 @@ namespace CoupledField {
     // and the imaginary j
     Matrix<Double> * matMatrix;
 
-    if (piezoMatType_ == realMaterialParameter) {
+    if (piezoMatType_ == REALMATERIALPARAMETER) {
       matMatrix = ptMaterial->GetMatrix();
     }
-    else if (piezoMatType_ == imagMaterialParameter) {
+    else if (piezoMatType_ == IMAGMATERIALPARAMETER) {
       matMatrix = ptMaterial->GetMatrixC();
     }
 
