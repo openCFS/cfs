@@ -280,7 +280,10 @@ namespace CoupledField
 
   void WriteInfo:: WriteResult(std::string pdename, std::string resulttype,
 			       StdVector<std::string> subdoms,
-			       Vector<Double> results)
+			       Vector<Double> results,
+			       std::string unit,
+			       std::string analysis,
+			       Double analysisVal)
   {
     ENTER_FCN( "WriteInfo::WriteResult" );
 
@@ -292,8 +295,9 @@ namespace CoupledField
 	*cfsInfo << std::endl << " PostProcessing Result for PDE " << pdename
 		 << ": " << resulttype << " ==========" << std::endl;
 	for (Integer i=0; i<subdoms.GetSize(); i++)
-	  *cfsInfo << " === " << subdoms[i] << " : " << results[i] << " (Ws)"
-		   << std::endl << std::endl;
+	  *cfsInfo << "        === " << analysis << " " << analysisVal 
+		   << "; " << subdoms[i] << " :" << results[i] 
+	   << " "  << unit << std::endl << std::endl;
       }
   }
 

@@ -132,6 +132,19 @@ namespace CoupledField {
     //! calculate coupling terms
     virtual void CalcOutputCoupling() = 0;
   
+
+
+  // ======================================================
+  // POSTPROCESSING METHODS
+  // ======================================================
+  
+  //! compute volume above a deformed surface
+  virtual void ComputeVolDefSurf(StdVector<std::string> surfRegions, 
+				 StdVector<std::string> strDir);
+
+  //!
+  virtual Double ComputeVolElem(BaseFE * ptSurfEl, Matrix<Double>& SurfCoord, 
+				Vector<Double> disp);
   
     // ======================================================
     // GETTER METHODS
@@ -479,7 +492,7 @@ namespace CoupledField {
     OLAS_Report * olasReport_; //! pointer to report object of OLAS
     //@}
 
-  }; // class StdPDE
+}; // class StdPDE
 
 } // end of namespace
 

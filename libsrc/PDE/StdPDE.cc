@@ -1,6 +1,6 @@
 #include "PDE/StdPDE.hh"
 #include "DataInOut/ParamHandling/CFSOLASParams.hh"
-
+#include "Utils/vector.hh"
 
 namespace CoupledField {
 
@@ -274,6 +274,8 @@ namespace CoupledField {
     algsys_->InitSol();
   }
 
+
+
   // ======================================================
   // ALGSYS SECTION (SOLVER, ...) 
   // ======================================================
@@ -517,5 +519,117 @@ namespace CoupledField {
     }
   }
 
+  // ======================================================
+  // POSTPROCESSING  
+  // ======================================================
+  void StdPDE::ComputeVolDefSurf(StdVector<std::string> surfRegions, 
+				 StdVector<std::string> strDir) {
 
+    ENTER_FCN( "StdPDE::ComputeVolDefSurf" );
+
+    // function uses index starting at zero
+    Vector<Double> subDomVol(surfRegions.GetSize());
+    Integer dof, dir;
+
+    for (Integer actSF = 0; actSF < surfRegions.GetSize(); actSF++) {
+      //check for direction
+      if ( strDir[actSF] == "ux" ) {
+	dir = 1;
+      }
+      else if ( strDir[actSF] == "uy" ) {
+	dir = 2;
+      }
+      else if ( strDir[actSF] == "uz" ) {
+	dir = 3;
+      }
+      else {
+	Error("ComputeVolDefSurf: dof must be ux,uy or uz!");
+      }
+
+      //we start from zero!
+      dof = dir - 1;
+
+      NodeStoreSol<Complex> * solHarmonic;
+      NodeStoreSol<Double> * solTransient;
+      if (analysistype_ == HARMONIC ) {
+	solHarmonic =  dynamic_cast<NodeStoreSol<Complex>*>(sol_);
+      }
+      else {
+	solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);;
+      }
+      
+      StdVector<Elem*> elemssd;
+      elemssd=ptBCs_->getFacesBC(surfRegions[actSF],actlevel_);
+   
+      subDomVol[actSF] = 0;   
+      for (Integer actEl=0; actEl< elemssd.GetSize(); actEl++) {
+	BaseFE * ptSurfEl = elemssd[actEl]->ptElem;
+	StdVector<Integer> connecth = elemssd[actEl]->connect;
+	
+	Matrix<Double> ptSurfCoord;
+	GetElemCoords(connecth, ptSurfCoord, actlevel_);
+	
+	//get the deformed solution
+	Vector<Double> disp(ptSurfEl->GetNumNodes());
+	if (analysistype_ == HARMONIC ) {
+	  Complex val;
+	  for (Integer lnode=0; lnode < ptSurfEl->GetNumNodes(); lnode++) {
+	    solHarmonic->Get(connecth[lnode]-1, dof, val);
+	    disp[lnode] = val.real();
+	  }
+	}
+	else {
+	  for (Integer lnode=0; lnode < ptSurfEl->GetNumNodes(); lnode++) {
+	    solTransient->Get(connecth[lnode]-1,dof,disp[lnode]);
+	  }
+	}
+	
+	// extract to volume element
+	subDomVol[actSF] += ComputeVolElem(ptSurfEl,ptSurfCoord,disp); 
+      }
+
+    }
+
+    std::string resulttype = "DeformedSurfVolume";
+    std::string unit = "(m^3)";
+    std::string analysis;
+    Double analysisVal;
+    if ( analysistype_ == HARMONIC ) {
+      analysis    = "Frequency:";
+      analysisVal = actFrequency_;
+    }
+    else {
+      analysis    = "Time:";
+      analysisVal = lasttimecalc_;
+    }
+
+    Info->WriteResult(pdename_,  resulttype, surfRegions, subDomVol, unit,
+		      analysis, analysisVal);
+
+  }
+
+  
+  Double StdPDE::ComputeVolElem(BaseFE * surfEl, Matrix<Double>& surfCoord, 
+				Vector<Double> disp) {
+
+    ENTER_FCN( "StdPDE::ComputeVolElem" );
+
+    Double elemVol;
+    Double averageDis;
+    Integer nrSurfNodes = surfEl->GetNumNodes();
+
+
+    //compute average displacedment
+    averageDis = 0;
+    for (Integer i=0; i<nrSurfNodes; i++) {
+      averageDis += disp[i]; 
+    }
+    averageDis /= (Double)nrSurfNodes;
+
+    //compute the volume    
+    elemVol = averageDis * surfEl->CalcVolume(surfCoord,isaxi_);
+      
+    return elemVol;
+  }
+  
 } // end of namespace

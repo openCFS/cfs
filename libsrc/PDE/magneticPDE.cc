@@ -490,9 +490,21 @@ namespace CoupledField {
     }
 
     std::string resulttype = "Electric Energy";
-    Info->WriteResult(pdename_,  resulttype, calcEnergy_ , energy);
-  }
+    std::string unit = "(Ws)";
+    std::string analysis;
+    Double analysisVal;
+    if ( analysistype_ == HARMONIC ) {
+      analysis    = "Frequency:";
+      analysisVal = actFrequency_;
+    }
+    else {
+      analysis    = "Time:";
+      analysisVal = lasttimecalc_;
+    }
 
+    Info->WriteResult(pdename_,  resulttype, calcEnergy_, energy, unit,
+		      analysis, analysisVal);
+  }
 
   // *************
   //   ComputeUI

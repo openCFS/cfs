@@ -185,6 +185,15 @@ namespace CoupledField
     */
     virtual Double CalcJacobianDetAtIp(const Integer ip, 
 				       const Matrix<Double> & CornerCoords);
+
+    //! Calculation the volume (area, length) of an element
+    /*! 
+      \param CornerCoords (input)
+      \param isaxi (TRUE: axisymmetric formulation)
+    */
+    virtual Double CalcVolume(const Matrix<Double> & CornerCoords, const Boolean isaxi);
+
+
     //! Calculates a measure for the geometric distortion of an element
     /*!
       \param cornerCoords (input) Corner coordinates of the element
