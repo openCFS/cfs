@@ -353,6 +353,7 @@ libsrc/Domain/Makefile -text
 libsrc/Domain/NetGen/Makefile -text
 libsrc/Domain/NetGen/interface_netgen.cc svneol=native#text/plain
 libsrc/Domain/NetGen/interface_netgen.hh svneol=native#text/plain
+libsrc/Domain/NetGen/nginterface.h svneol=native#text/plain
 libsrc/Domain/bcs.cc svneol=native#text/plain
 libsrc/Domain/bcs.hh svneol=native#text/plain
 libsrc/Domain/boundcond.cc svneol=native#text/plain
@@ -389,6 +390,7 @@ libsrc/Elements/Makefile -text
 libsrc/Elements/baseelem.cc svneol=native#text/plain
 libsrc/Elements/baseelem.hh svneol=native#text/plain
 libsrc/Elements/elements_header.hh svneol=native#text/plain
+libsrc/Elements/jacobian.cc svneol=native#text/plain
 libsrc/Elements/jacobian.hh svneol=native#text/plain
 libsrc/Estimator/Makefile -text
 libsrc/Estimator/acoustictimeerror.cc svneol=native#text/plain
