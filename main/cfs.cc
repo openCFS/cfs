@@ -29,7 +29,7 @@
 
 #include "Driver/driver_header.hh"
 #include "Domain/domain.hh"
-#include "DataInOut/SkeletonConf.hh"
+#include "DataInOut/ParamHandling/SkeletonConf.hh"
 #include "Domain/GridCFS/interface_gridcfs.hh"
 #include "General/environment.hh"
 
