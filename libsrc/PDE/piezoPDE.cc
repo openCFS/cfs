@@ -300,9 +300,9 @@ namespace CoupledField {
 	if (saveSol_)
 	  outFile_->WriteNodeSolutionTransient(*solTransient, actStep, actTime);
 
-	if (saveSolHist_)
-	  outFile_->WriteNodeSolutionTransient(*solTransient, actStep, actTime);
-    
+	if (saveSolHist_) {
+	  outFile_->WriteNodeHistoryTransient(*solTransient, actStep, actTime);
+	}
 	
 	// Write derivatives
 	if (analysistype_== TRANSIENT) {
@@ -351,10 +351,18 @@ namespace CoupledField {
 	  outFile_->WriteNodeSolutionHarmonic(*solHarmonic,  actFreqStep_, 
 					      actFrequency_, complexFormat_);
 	}
+
+      //histrory nodes
+      if (saveSolHist_) {
+	outFile_->WriteNodeHistoryHarmonic(*solHarmonic,  actFreqStep_, 
+					   actFrequency_, complexFormat_);
+      }
+
       //element results
-         if (calcCharge_.GetSize() !=0 ) {
-      	outFile_->WriteElemSolutionHarmonic(chargesComplex_, actFreqStep_,  actFrequency_, complexFormat_);
-       }
+      if (calcCharge_.GetSize() !=0 ) {
+	outFile_->WriteElemSolutionHarmonic(chargesComplex_, actFreqStep_,  
+					    actFrequency_, complexFormat_);
+      }
     }
   }
 
