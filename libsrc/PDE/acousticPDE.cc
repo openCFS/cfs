@@ -168,7 +168,7 @@ void AcousticPDE::SolveStepTrans(const Integer kstep, const Double asteptime,
 void AcousticPDE::SolveStepHarmonic(const Integer level)
 {
 #ifdef TRACE
-  (*trace) << "entering MagEdgePDE::SolveStepHarmonic" << std::endl;
+  (*trace) << "entering AcousticPDE::SolveStepHarmonic" << std::endl;
 #endif
 
   Integer update = 0;
@@ -437,6 +437,46 @@ void AcousticPDE::SetupMatrices(const Integer level)
 #endif
   }
 
+Boolean AcousticPDE :: TestError(const Integer level)
+{
+#ifdef TRACE
+  (*trace) << "entering BasePDE::TestError" << std::endl;
+#endif
+
+  if (analysistype_!=HARMONIC)
+    return TestError(level);
+
+  //! this part is only for harmonic analysis
+  if (!ptError_)
+    ConstructorError();
+
+  //Berechnung der Fehlerkarte
+  Double           totalErr;
+  Vector<Double>   solVecRe; // transform from Array to Vector format
+  Vector<Double>   solVecIm; // - " -
+  Integer          i,ssize;
+
+
+  ssize = sol_.size();
+  solVecRe.Resize(ssize);
+  solVecIm.Resize(ssize);
+
+  for (i=0; i<ssize; i++)
+    {
+      solVecRe[i] = sol_[0][i];
+      solVecIm[i] = solIm_[0][i];
+    }
+
+  ptError_->CalcErrorMapHarmonic(solVecRe,solVecIm,subdoms_,
+				 ptgrid_,errorMap_,totalErr,level);
+
+  (*infofile) << " space error: " << totalErr <<
+    " tolerance: " << tolSpaceErr_ << std::endl;
+
+  if (totalErr > tolSpaceErr_) return TRUE;
+  else return FALSE;
+  
+}
 
 }
 

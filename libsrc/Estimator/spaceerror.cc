@@ -442,6 +442,289 @@ Integer SpaceErrorEstimator::CalcNumberOfNodesInPatch(const std::vector<Elem*> &
      
 }
 
+void SpaceErrorEstimator::CalcErrorMapHarmonic(const Vector<Double> & sol,
+					       const Vector<Double> & solIm,
+					       std::vector<std::string> &subdoms,
+					       Grid * ptgrid,
+					       Vector<Double> & errorMap,
+					       Double & atotalErr, const Integer level)
+{
+#ifdef TRACE
+  *trace << "entering SpaceErrorEstimation::CalcErrorMapHarmonic" << std::endl;
+#endif
+  
+  // loop over elements
+  Vector<Double>          result, resultIm;
+  std::vector<Elem*>      elemssd;
+  std::vector<Elem*>      * neighbours;
+  //vector, where we store global number of nodes for which result is obtained in fnc RecoveryProcedure4ElemsPatch
+  std::vector<Integer>    locationsInResult;
+  Integer                 dim=ptgrid->GetDim();
+  Vector<Double>          areaElms;
+  //vector's, where we store SPR gradient
+  Vector<Double>          * SPRgrad=new Vector<Double>[dim];
+  Vector<Double>          * SPRgradIm=new Vector<Double>[dim];
+  //vector, where we store number of summered value of SPR at node. this vector is needed for averaging procedure of SPRgrad
+  Vector<Integer>         * numberAvergVals=new Vector<Integer>[dim];
+  Integer                 nrNodes = ptgrid->GetMaxnumnodes(level);
+  Integer                 maxelem = ptgrid->GetMaxnumElem(level,subdoms);
+  Integer                 idm,icmp,isd, ind, jel, ires, ic, igr, iel;
+  Integer                 nrSubdoms = subdoms.size();
+  Integer                 size=sol.size();
+  std::string             type_patch;
+  Integer                 counterElems = 0;
+  Vector<Double>          gradSPRElemL2norm;
+  Double                  sumErrMap = 0;
+  Double                  glNrmErr = 0;
+  Double                  areaElm, sumArea=0;
+  Double                  errEl;
+  Double                  normGradSPR;
+
+  errorMap.Resize(maxelem);
+  gradSPRElemL2norm.Resize(maxelem);
+  areaElms.Resize(maxelem);
+
+  for (idm=0;idm<dim;idm++)
+    {
+      SPRgrad[idm].Resize(size);
+      SPRgradIm[idm].Resize(size);
+      numberAvergVals[idm].Resize(size);
+    }
+  
+  // computation of SPR gradient
+  if (conf->ifget("type_of_patch",type_patch) && type_patch=="nodebased")
+    {
+#ifdef DEBUG
+      (*debug) << " step: error map : node based patches are used \n";
+#endif
+      Warning("Node based patch is working only for 1 subdomain",__FILE__,__LINE__);
+
+      for (icmp=0; icmp<dim; icmp++)
+	{ // loop over components of gradient
+	  for (ind=0; ind< nrNodes; ind++)
+	    {
+	      // get patch
+	      ptgrid->GetNeighboursOfNode(ind, neighbours);
+	      // 
+	      RecoveryProcedure4ElemsPatch(*neighbours,ptgrid,
+					   sol,icmp,
+					   result,locationsInResult, level);
+
+	      RecoveryProcedure4ElemsPatch(*neighbours,ptgrid,
+					   solIm,icmp,
+					   resultIm,locationsInResult, level);
+
+	      // arrays for averaging values
+	      // form arrays for averaging values of SPRgrad over nodes
+	      for (ires=0;ires<result.size();ires++)
+		{
+		  SPRgrad[icmp][locationsInResult[ires]-1]+=result[ires];
+		  SPRgradIm[icmp][locationsInResult[ires]-1]+=resultIm[ires];
+		  numberAvergVals[icmp][locationsInResult[ires]-1]++;
+		} 
+
+	    }
+	} // end: loop over components of gradient
+    } // end of if: nodebased patch
+  // elementbased
+  else
+    {
+#ifdef DEBUG
+      (*debug) << " step: error map : element based patches are used \n";
+#endif	
+      for (icmp=0; icmp<dim; icmp++)
+	{ // loop over components of gradient	  
+	  for (isd=0; isd< nrSubdoms; isd++) // loop over all subdomains
+	    { 
+	      ptgrid->GetElemSD(elemssd,subdoms[isd],level);
+	      
+	      for (jel=0; jel < elemssd.size(); jel++) // loop over elements of subdomain
+		{
+		  //  std::vector<Elem*> * neighbours;
+		  // in: j - noOfElem, suddoms_[isd] - name of subdomain;
+		  // out: pt to vector with neughbors-element
+		  neighbours=ptgrid->GetNeighboursOfElem(jel,subdoms[isd]);
+		  
+		  // add element in list of neighbors to get a full patch of elements
+		  neighbours->push_back(elemssd[jel]);
+
+		  // in: elemssd[j] - list with elements of this subdomain
+		  RecoveryProcedure4ElemsPatch(*neighbours,ptgrid,
+					       sol,icmp,result,
+					       locationsInResult,level);
+
+		  RecoveryProcedure4ElemsPatch(*neighbours,ptgrid,
+					       solIm,icmp,resultIm,
+					       locationsInResult,level);
+
+		  // form arrays for averaging values of SPRgrad over nodes
+		  Integer nrVals = result.size();
+		  for (ires=0; ires< nrVals;ires++)
+		    {
+		      SPRgrad[icmp][locationsInResult[ires]-1]+=result[ires];
+		      SPRgradIm[icmp][locationsInResult[ires]-1]+=resultIm[ires];
+		      numberAvergVals[icmp][locationsInResult[ires]-1]++;
+		    }
+	 
+		} // loop over elements of subdomains
+	    } // loop over subdomains
+	} // end: loop over component of gradient
+    } // end of else: element patch
+  
+  //average values of SPRgrad over nodes
+  for (ic=0; ic<dim; ic++)
+    { // loop over components of gradient	  
+      for (igr=0; igr<nrNodes;igr++)
+	{
+	  SPRgrad[ic][igr]/=numberAvergVals[ic][igr];     
+	  SPRgradIm[ic][igr]/=numberAvergVals[ic][igr]; 
+	}
+    } // end of loop over components of gradient
+  
+  // delete 
+  delete [] numberAvergVals;				 
+  
+ //   std::cout << " SPR grad: " << std::endl;
+//    for (igr=0; igr<sol.size();igr++)
+//     std::cout << SPRgrad[0][igr] << " " <<  SPRgrad[1][igr] << std::endl;
+
+    // calculation of error for each element
+  for (isd=0; isd< nrSubdoms; isd++) // loop over all subdomains
+    {      
+      // get vector of Elem of subdomain with color: subdoms[isd]
+      ptgrid->GetElemSD(elemssd,subdoms[isd],level);
+       
+      // loop over elements of subdomain
+      Integer nrElemsSd = elemssd.size();
+      for (iel=0; iel< nrElemsSd; iel++, counterElems++)
+	{
+	  CalcErrorForElemHarmonic(elemssd[iel], SPRgrad, SPRgradIm,
+				   errEl, normGradSPR, sol, solIm, 
+				   ptgrid, level);
+	   
+	  // calculation of area of element
+	  areaElm=CalcArea(elemssd[iel], ptgrid,level);
+	  sumArea+=areaElm;
+ 
+	  gradSPRElemL2norm[counterElems]=normGradSPR;
+	  glNrmErr+=normGradSPR;
+	  sumErrMap+=errEl;
+	  errorMap[counterElems]=errEl/areaElm;
+	} // end of loop over elems in subdomain
+    } // end of loop over subdomains
+
+  delete [] SPRgrad;
+  delete [] SPRgradIm;
+
+  atotalErr=sumErrMap/glNrmErr;
+  errorMap/=glNrmErr;
+  errorMap*=sumArea;   
+  
+#ifdef TRACE
+  *trace << "leaving SpaceErrorEstimator::CalcErrorMapHarmonic" << std::endl;
+#endif    
+}
+
+void SpaceErrorEstimator::CalcErrorForElemHarmonic(const Elem* elem,
+                    const Vector<Double>* SPRgrad,  const Vector<Double>* SPRgradIm,
+                    Double & error, Double & normGradSPR,
+                    const Vector<Double> & sol, const Vector<Double> & solIm,						   
+                    Grid * ptgrid, const Integer level)
+{
+#ifdef TRACE
+  (*trace) << "entering SpaceErrorEstimator::CalcErrorForElem" << std::endl;
+#endif
+#ifdef DEBUG
+  (*debug) << " step: error map \n";
+#endif
+
+  BaseFE          * ptelem = elem->ptElem;
+  Vector<Integer> connectVec = elem->connect;
+  Integer         nrNodes = ptelem->GetNumNodes();
+  const Integer   nrIntPnts = ptelem->GetNumIntPoints();
+  const Integer   dim = ptelem->GetDim();
+  Matrix<Double>       dvShFnc;
+  const std::vector<Double> & intWeights = ptelem->GetIntWeights(); 
+  std::vector<double> shFnc;
+  Matrix<Double>      ptCoord;
+  Double              valsol;
+  Double              jacDet;
+  Double              diffGradL2norm,diffGradL2normIm;
+  Double              SPRGradL2norm,SPRGradL2normIm; 
+
+
+  error = 0;
+  normGradSPR = 0;
+
+  ptgrid->GetCoordNodesElemMat(connectVec,ptCoord,level); 
+
+  //do a loop over int. points in element
+  Integer iIntPnts;
+  for (iIntPnts=0; iIntPnts<nrIntPnts; iIntPnts++)
+    {   
+     
+      jacDet = ptelem->CalcJacobianDetAtIp(iIntPnts+1, ptCoord);
+     
+      // calculation of FEM gradient and SPR at intgr. points in local coord.
+      Double     gradFEM[dim],gradFEMIm[dim];
+      Double     gradSPR[dim],gradSPRIm[dim];
+      Integer    idm,iShFnc;
+      
+      for (idm=0; idm<dim; idm++)
+	{
+	  gradFEM[idm]=0;
+	  gradSPR[idm]=0;
+	  gradFEMIm[idm]=0;
+	  gradSPRIm[idm]=0;
+	}
+     
+      ptelem->GetGlobDerivShFncAtIp(dvShFnc, iIntPnts + 1, ptCoord, jacDet); 
+      ptelem->GetShFncAtIp(shFnc,iIntPnts+1); 
+	  
+      for (iShFnc = 0; iShFnc < nrNodes; iShFnc++)
+	for (idm = 0; idm < dim; idm++)
+	  {
+	    gradFEM[idm]+=sol[connectVec[iShFnc]-1]*dvShFnc[iShFnc][idm];
+	    gradFEMIm[idm]+=solIm[connectVec[iShFnc]-1]*dvShFnc[iShFnc][idm];
+	    gradSPR[idm]+=SPRgrad[idm][connectVec[iShFnc]-1]*shFnc[iShFnc];
+	    gradSPRIm[idm]+=SPRgradIm[idm][connectVec[iShFnc]-1]*shFnc[iShFnc];
+	  }
+	  
+#ifdef DEBUG
+#ifdef DEBUGFULL     
+      (*debug) << gradSPR[0] << " " << gradFEM[0] << " y: " << gradSPR[1] << " " << gradFEM[1] << std::endl;
+      if (dim==3) (*debug) << " z: " << gradSPR[2] << " " << gradFEM[2] << std::endl;
+#endif
+#endif
+
+      // calculation of L2 norm for difference of SPR and FEM gradient,
+      // and L2 norm of SPR gradient
+     diffGradL2norm = 0;
+     diffGradL2normIm = 0;
+     SPRGradL2norm  = 0; 
+     SPRGradL2normIm = 0;
+
+     for (idm = 0; idm<dim; idm++)
+       {
+	 diffGradL2norm+=sqr(gradSPR[idm]-gradFEM[idm]);
+	 diffGradL2normIm+=sqr(gradSPRIm[idm]-gradFEMIm[idm]);
+	 SPRGradL2norm+=sqr(gradSPR[idm]);
+	 SPRGradL2normIm+=sqr(gradSPRIm[idm]);	 
+       }
+     
+     diffGradL2norm=sqrt(diffGradL2norm+diffGradL2normIm);
+     SPRGradL2norm=sqrt(SPRGradL2norm+SPRGradL2normIm);
+
+     error+=diffGradL2norm*jacDet*intWeights[iIntPnts];
+     normGradSPR+=SPRGradL2norm*jacDet*intWeights[iIntPnts];
+
+    } // end of loop over integration points
+
+#ifdef TRACE
+  (*trace) << "leaving SpaceErrorEstimator::CalcErrorForElem" << std::endl;
+#endif
+}
+
 // template <Integer Dim>
 // void SpaceErrorEstimator<Dim>::KellyError(Grid * ptgrid, std::vector<std::string> &sbdoms, Vector<Double> & errorMap,const Integer level) 
 // {

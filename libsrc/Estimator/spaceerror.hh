@@ -40,6 +40,19 @@ public:
  void CalcErrorMap(const Vector<Double> & sol, std::vector<std::string> & subdoms,
  Grid * ptgrid, Vector<Double> & relErrorMap, Double & atotalErr, const Integer level);
 
+   //! calculation of error map for harmonic analysis of acoustic equation
+  /*!
+  \param sol solution 
+  \param subdoms vector with names of subdomains, on which we do calculation
+  \param ptgrid pointer to the Grid
+  \param errorMap out: vector with calculated relative error for each element. \f $||grad_{\SPR} - grad_{FEM}||_L2$
+   \param  atotalErr out: total error.\f $||grad_{SPR}||_L2$
+  */
+ void CalcErrorMapHarmonic(const Vector<Double> & solRe, const Vector<Double> & solIm, 
+			   std::vector<std::string> & subdoms, Grid * ptgrid,
+			   Vector<Double> & relErrorMap, Double & atotalErr,
+			   const Integer level);
+
   //! recovery procedure for the elements-patch
   /*!
     \param Elems vector with information about elements
@@ -84,6 +97,24 @@ protected:
 			Double & error, Double & normGradSPR,
 			const Vector<Double> & sol, Grid * ptgrid,
 			const Integer level);
+
+   //! calculation error for one element
+  /*!
+    \param elem pointer to the element
+    \param SPRgrad (output) returned calculated SPR gradient 
+    \param error (output) retuned value of the error
+    \param normGradSPR (output) L2-norm of SPR gradient
+    \param sol (input) solution
+    \param ptgrid pointer to Grid
+    \param level level in grid hierarchy
+  */
+  void CalcErrorForElemHarmonic(const Elem* elem, const Vector<Double>* SPRgrad,
+				const Vector<Double>* SPRgradIm,
+				Double & error, Double & normGradSPR,
+				const Vector<Double> & sol,
+				const Vector<Double> & solIm,
+				Grid * ptgrid,
+				const Integer level);
 
 private:  
 

@@ -124,8 +124,8 @@ public:
   { Error(" Not implemented",__FILE__,__LINE__);}
 
   //! restore initial coarse mesh
-  virtual void ResetToCoarseGrid()
-  { Error(" Not implemented",__FILE__,__LINE__);}
+//  virtual void ResetToCoarseGrid()
+//  { Error(" Not implemented",__FILE__,__LINE__);}
 
   //!
   /*!

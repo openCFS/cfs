@@ -5,9 +5,9 @@
 #include <math.h>
 
 #include "grid_cfs.hh"
+
 #include <Domain/grid.hh>
 #include <Elements/elements_header.hh>
-//#include <Elements/basefe.hh>
 #include <DataInOut/conffile.hh>
 
 namespace CoupledField
@@ -222,7 +222,7 @@ void GridCFS<2>::putElemsFromGrid_RG(grd::MultilevelGrid * grid, const Integer l
    } // end while(); list of elements types
  } // for level
  
- Info-PrintF("", "Total number of elements (only for first subdomain): %i", elems_[0].size());
+// Info->PrintF("Total number of elements (only for first subdomain): %i", elems_[0].size());
  
      FormNeighborsLists();
      
@@ -402,7 +402,7 @@ void GridCFS<3>::putElemsFromGrid_RG(grd::MultilevelGrid * grid, const Integer l
        }
 
 
-     Info-PrintF("", "Total number of elements: %i", elems_[0].size());
+//     Info-PrintF("", "Total number of elements: %i", elems_[0].size());
 
      FormNeighborsLists();
 }

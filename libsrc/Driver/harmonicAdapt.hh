@@ -1,23 +1,23 @@
-#ifndef FILE_HARMONICDRIVER_2001
-#define FILE_HARMONICDRIVER_2001
+#ifndef FILE_HARMONICADAPTDRIVER_2001
+#define FILE_HARMONICADAPTDRIVER_2001
 
-#include "basedriver.hh"
+#include "harmonicDriver.hh"
 
 namespace CoupledField
 {
 
 //! driver for static problems. it is derived from BaseDriver
-class HarmonicDriver : public BaseDriver
+class HarmonicAdaptSpaceDriver : virtual public HarmonicDriver
 {
 public:
   //! constructor
   /*!
     \param adomain pointer to class Domain
   */
-  HarmonicDriver(Domain * adomain);
+  HarmonicAdaptSpaceDriver(Domain * adomain);
 
    //! deconstructor 
-  virtual ~HarmonicDriver();
+  virtual ~HarmonicAdaptSpaceDriver();
   
   //!  main method, where time-stepping is implemented. it is for transient and static problem
   virtual void SolveProblem();
@@ -32,4 +32,4 @@ public:
 
 }
 
-#endif // FILE_HARMONICDRIVER
+#endif // FILE_HARMONICADAPTDRIVER

@@ -10,10 +10,11 @@
 #include "Tetrahedron.h"
 #include "Octahedron.h"
 #include "MultilevelGrid.h"
-#include "GeometrySensor.h"
 #include "MeshReader.h"
 #include "TetrahedronMeasure.h"
 #include "MeshWriter.h"
+
+#include "DataInOut/WriteInfo.hh"
 #endif
 
 namespace CoupledField
