@@ -4,6 +4,7 @@
 
 #include "definefiles.hh"
 #include "datfile.hh"
+#include "conffile.hh"
 
 namespace CoupledField
 {
@@ -34,6 +35,9 @@ DefineInOutFiles :: DefineInOutFiles(const Char * name)
        }
 
  strcpy(filename, name); 
+
+ conf=new ConfFile(name);
+ if (!conf) Error("Can't open conf-file");
 }
  
 DefineInOutFiles ::~ DefineInOutFiles()
@@ -50,6 +54,9 @@ delete debug;
 #endif
  
 if (InfoPrint) delete infofile;
+
+delete conf;
+
 }
 
 FileType * DefineInOutFiles :: Create_ptFileType(Char * atype)

@@ -621,9 +621,13 @@ libsrc/DataInOut/GMV/Makefile -text
 libsrc/DataInOut/GMV/outGMV.cc svneol=native#text/plain
 libsrc/DataInOut/GMV/outGMV.hh svneol=native#text/plain
 libsrc/DataInOut/Makefile -text
+libsrc/DataInOut/ParamHandling/ConfFile.cc svneol=native#text/plain
+libsrc/DataInOut/ParamHandling/ConfFile.hh svneol=native#text/plain
 libsrc/DataInOut/Unverg/Makefile -text
 libsrc/DataInOut/Unverg/outUnverg.cc svneol=native#text/plain
 libsrc/DataInOut/Unverg/outUnverg.hh svneol=native#text/plain
+libsrc/DataInOut/conffile.cc svneol=native#text/plain
+libsrc/DataInOut/conffile.hh svneol=native#text/plain
 libsrc/DataInOut/filetype.cc svneol=native#text/plain
 libsrc/DataInOut/filetype.hh svneol=native#text/plain
 libsrc/DataInOut/material.cc svneol=native#text/plain
@@ -741,6 +745,7 @@ main/DoxygenConfig/header.html svneol=native#text/html
 main/Makefile -text
 main/Makefile.option -text
 main/cfs.cc svneol=native#text/plain
+main/general.conf -text
 main/kondxy.dat -text
 main/mat.dat -text
 main/sl.dat -text

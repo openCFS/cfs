@@ -14,7 +14,7 @@ class WriteResultsGMV: virtual public WriteResults<Dim>
 public:
 
   //! Constructor
-  WriteResultsGMV(const Char * filename, Grid<Dim> * aptgrid);
+  WriteResultsGMV(const Char * filename);
   
   //! Deconstructor
   virtual ~WriteResultsGMV();

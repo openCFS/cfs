@@ -8,7 +8,7 @@ namespace CoupledField
 {
 
 template<class Dim>
-WriteResultsGMV<Dim> :: WriteResultsGMV(const Char * filename, Grid<Dim> * aptgrid)
+WriteResultsGMV<Dim> :: WriteResultsGMV(const Char * filename)
 : WriteResults<Dim>()
 {
 #ifdef TRACE
@@ -24,7 +24,7 @@ WriteResultsGMV<Dim> :: WriteResultsGMV(const Char * filename, Grid<Dim> * aptgr
 
  delete [] help;
 
- ptgrid=aptgrid; 
+ ptgrid=NULL; 
 
 }
 
@@ -37,8 +37,6 @@ WriteResultsGMV<Dim> ::~WriteResultsGMV()
 
  // write keyword
  (*output) << "endgmv " << std::endl;
-
- delete output;
 }
 
 template<class Dim>
@@ -63,6 +61,10 @@ void WriteResultsGMV<Point2D> :: WriteNodes(const Integer alevel)
  //get and write coodinates of nodes
  Integer i;
  Point2D point;
+
+ // 
+ if (!ptgrid)
+    Error("ptgrid is not initialized", __FILE__,__LINE__);
 
  // write x-coordinate
   for (i=0; i<numnodes; i++)
@@ -161,6 +163,10 @@ void WriteResultsGMV<Point3D> :: WriteNodes(const Integer alevel)
  Integer i;
  Point3D point;
 
+ //
+ if (!ptgrid)
+    Error("ptgrid is not initialized", __FILE__,__LINE__);
+
  // write x,y,z-coordinate
   for (i=0; i<numnodes; i++)
     {
@@ -176,6 +182,10 @@ void WriteResultsGMV<Point2D>:: WriteCells(const Integer alevel)
 
 // write keyword
  (*output) << "cells ";
+
+ //
+ if (!ptgrid)
+    Error("ptgrid is not initialized", __FILE__,__LINE__);
 
 // read information about number of elements and number of nodes per element
   Integer numelem, elemsize; 
@@ -223,6 +233,10 @@ void WriteResultsGMV<Point3D>:: WriteCells(const Integer alevel)
 
 // write keyword
  (*output) << "cells ";
+
+ //
+ if (!ptgrid)
+    Error("ptgrid is not initialized", __FILE__,__LINE__);
 
 // read information about number of elements and number of nodes per element
   Integer numelem, elemsize;

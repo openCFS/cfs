@@ -10,6 +10,8 @@ std::ostream * trace = NULL ;
 std::ostream * debug  = NULL;
 std::ostream * infofile=NULL;
 
+ConfFile * conf=NULL;
+
 Boolean InfoPrint=FALSE;
 
 std::ostream & operator << (std::ostream & out, const enum precond & type)

@@ -49,7 +49,20 @@ void main(int argc, char *argv[])
 
   TimeFunc * ptTimeFunc=new TimeFunc(ptInputfile);
 
-  WriteResults<Point2D> * ptUnverg=new WriteResultsUnverg<Point2D>(name); 
+  // pointer to an object for writing results
+  WriteResults<Point2D> * ptOut;
+
+  // read type of output results from conf-file
+  std::string outformat;
+  conf->get("format_output",outformat); 
+
+  std::cout << outformat << std::endl;
+
+  // according to the type of output allocate an object for writing results
+  if (outformat=="gmv") ptOut=new WriteResultsGMV<Point2D>(name); 
+  else if (outformat=="unverg") ptOut=new WriteResultsUnverg<Point2D>(name);
+   else 
+    Error("Wrong format for writing results. Please, check your data.",__FILE__,__LINE__);
 
 /*
   Integer data[1];
@@ -63,17 +76,17 @@ void main(int argc, char *argv[])
   Grid<Point3D> * ptGridlib=new InterfaceGridlib<Point3D>(ptInputfile);
   ptGridlib->Read();
   
-  ptUnverg->Create(ptGridlib,0);
+  ptOut->Create(ptGridlib,0);
 */
     Driver<Point2D> * ptDriver=new Driver<Point2D>(ptInputfile,1,materialdata);
-    ptDriver->SolveNewmarkMethod(ptUnverg);
+    ptDriver->SolveNewmarkMethod(ptOut);
 
 /*
  //  //! choose your grid class
   Grid<Point2D> *grid =new GridInterfaceCFS<Point2D>(ptInputfile);
   
   // construct domain
-  Domain<Point2D> *domain=new Domain<Point2D>(ptInputfile,ptUnverg,materialdata,grid);
+  Domain<Point2D> *domain=new Domain<Point2D>(ptInputfile,ptOut,materialdata,grid);
 
   // print grid to unverg-file
   domain->PrintGrid(0);
@@ -109,7 +122,7 @@ void main(int argc, char *argv[])
 /// Putzen
 
   if (ptInputfile) delete ptInputfile;
-//  if (ptUnverg) delete ptUnverg;
+  if (ptOut) delete ptOut;
 //  if (ptGridlib) delete ptGridlib;
 //  if (ptDriver) delete ptDriver;
   if (materialdata) delete materialdata;

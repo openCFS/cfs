@@ -14,10 +14,11 @@ class WriteResultsUnverg: virtual public WriteResults<Dim>
 {
 
 public:
-  ///
+  /// constructor with name of a file for results
   WriteResultsUnverg(const Char * const filename); 
-  ///
-  ~WriteResultsUnverg();
+
+  /// deconstructor
+  virtual ~WriteResultsUnverg();
   
    /// initialization with grid
   virtual void Init(Grid<Dim> * aptgrid);

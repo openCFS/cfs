@@ -6,8 +6,6 @@
 #include "acousticPDE.hh"
 #include "driver.hh"
 
-#include "outGMV.hh"
-
 namespace CoupledField
 {
 
@@ -18,6 +16,7 @@ Driver<Dim>::Driver(FileType * const aptFileType, Integer anummesh, Material * a
   (*trace) << "entering Driver::Driver" << std::endl;
 #endif
   ptFileType=aptFileType;
+  ptgrid=NULL;
 
   ptFileType->ReadNumStepsAndTimeSteps(numsteps, dt0);
 //  numsteps=30; dt0=2.000000000000E-07;
@@ -25,8 +24,20 @@ Driver<Dim>::Driver(FileType * const aptFileType, Integer anummesh, Material * a
   ptFileType->ReadOutputOptions(SaveDer1, SaveDer2);
   SaveDer1=FALSE; SaveDer2=FALSE;
 
-//  ptgrid=new InterfaceGridlib<Dim>(ptFileType);
-  ptgrid=new GridInterfaceCFS<Dim>(ptFileType);
+  // read from conf-file the type of using grid-library
+  std::string libmesh;
+  conf->get("mesh_library",libmesh);
+
+  std::cout << libmesh << std::endl;
+
+  // initialize a pointer to an object with an infromation about mesh  
+//  if (libmesh =="gridlib") ptgrid=new InterfaceGridlib<Dim>(ptFileType);
+//  else
+  if (libmesh =="cfsgrid") ptgrid=new GridInterfaceCFS<Dim>(ptFileType);
+   else
+     Error("Unknown type of mesh_library in conf-file",__FILE__,__LINE__);
+
+  // read initial grid
   ptgrid->Read();
 
   ptMaterial=aptMaterial;
@@ -48,11 +59,11 @@ void Driver<Dim>::SolveNewmarkMethod(WriteResults<Dim> * ptOutput)
 */
    ptOutput->Init(ptgrid);
    ptOutput->WriteGrid(0);
-
+/*
    WriteResultsGMV<Dim> * ptGMV=new WriteResultsGMV<Dim>("test",ptgrid);
    ptGMV->WriteGrid(0);
    delete ptGMV;
-
+*/
 //  Double endtime=1.0;   ////////////////////////////////////////////
   Double t=0;
   
