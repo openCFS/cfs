@@ -1943,6 +1943,13 @@ namespace CoupledField {
 
       Double tmpDir[3];
 
+
+      // Construct vectors for restricted search parameter
+      StdVector<std::string> keyVec;
+      StdVector<std::string> attrVec;
+      StdVector<std::string> valVec;
+      attrVec = "", "", "name";
+
       // for each magnet ...
       for ( UInt k = 0; k < magnetsDomain_.GetSize(); k++ ) {
 
@@ -1950,14 +1957,18 @@ namespace CoupledField {
 	Info->PrintF( pdename_, " %s", magnetsDomain_[k].c_str() );
 
 	// ... read direction of magnetisation
-	params->CGet( "orientX", tmpDir[0], "name", magnetsDomain_[k], true,
-		      pdename_, "magnets" );
-	params->CGet( "orientX", tmpDir[1], "name", magnetsDomain_[k], true,
-		      pdename_, "magnets" );
-	params->CGet( "orientX", tmpDir[2], "name", magnetsDomain_[k], true,
-		      pdename_, "magnets" );
+	valVec = "", "", magnetsDomain_[k];
+
+	keyVec  = "magnetic", "magnets", "magnet", "orientX";
+	params->Get( keyVec, attrVec, valVec, tmpDir[0] );
 	magnetsOriX_.Push_back( tmpDir[0] );
+
+	keyVec  = "magnetic", "magnets", "magnet", "orientY";
+	params->Get( keyVec, attrVec, valVec, tmpDir[0] );
 	magnetsOriY_.Push_back( tmpDir[1] );
+
+	keyVec  = "magnetic", "magnets", "magnet", "orientZ";
+	params->Get( keyVec, attrVec, valVec, tmpDir[0] );
 	magnetsOriZ_.Push_back( tmpDir[2] );
       }
     }
@@ -1976,13 +1987,20 @@ namespace CoupledField {
     savederiv1_ = FALSE;
     savederiv2_ = FALSE;
 
+    // Construct vectors for restricted search parameter
+    StdVector<std::string> keyVec;
+    StdVector<std::string> attrVec;
+    StdVector<std::string> valVec;
+    keyVec  = "magnetic", "storeResults", "elemResults", "region";
+    attrVec = "", "", "type";
+
     // -----------
     //   B-FIELD
     // -----------
 
     // Determine regions for which B-field must be computed
-    params->CGetList( "region", calcBfield_, "type", "bfield", 0, pdename_,
-		      "elemResults" );
+    valVec  = "", "", "bfield";
+    params->GetList( keyVec, attrVec, valVec, calcBfield_ );
 
     // If the symbolic name is "all" compute electric field for all regions
     if ( calcBfield_.GetSize() == 1 && calcBfield_[0] == "all" ) {
@@ -2003,8 +2021,8 @@ namespace CoupledField {
     // ----------
 
     // Determine regions for which energy must be computed
-    params->CGetList( "region", calcEnergy_, "type", "energy", 0, pdename_,
-		      "elemResults" );
+    valVec  = "", "", "energy";
+    params->GetList( keyVec, attrVec, valVec, calcEnergy_ );
 
     // If the the symbolic name is "all" compute energy for all regions
     if ( calcEnergy_.GetSize() == 1 && calcEnergy_[0] == "all" ) {
@@ -2024,8 +2042,8 @@ namespace CoupledField {
     // --------
 
     // Determine regions for which eddy current density must be computed
-    params->CGetList( "region", calcEddy_, "type", "eddy", 0, pdename_,
-		      "elemResults" );
+    valVec  = "", "", "eddy";
+    params->GetList( keyVec, attrVec, valVec, calcEddy_ );
 
     // If the the symbolic name is "all" compute energy for all regions
     if ( calcEddy_.GetSize() == 1 && calcEddy_[0] == "all" ) {

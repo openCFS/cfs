@@ -57,6 +57,11 @@ namespace CoupledField {
     fileL_               = NULL;
     fileU_               = NULL;
 
+    // Construct vectors for restricted parameter search
+    StdVector<std::string> keyVec;
+    StdVector<std::string> attrVec;
+    StdVector<std::string> valVec;
+
     // **************************
     //   Determine type of coil
     // **************************
@@ -89,89 +94,135 @@ namespace CoupledField {
     //   Read Parameters for 2D Measurement Coil
     // *******************************************
     if ( coilType_ == MEASUREMENT2D ) {
-      params->CGet( "windingCrossSection_", windingCrossSection_, "name",
-		    coilName_, 1, pdeName, "coils");
-      params->CGet( "saveFileL", saveFileL_, "name", coilName_, 1, pdeName,
-		    "coils" );
-      params->CGet( "saveFileU", saveFileU_, "name", coilName_, 1,
-		    pdeName, "coils" );
-      params->CGet( "id", id_, "name", coilName_, 1, pdeName, "coils" );
+
+      attrVec = "", "", "name";
+      valVec  = "", "", coilName_;
+
+      keyVec  = pdeName, "coils", "measurementCoil2d", "windingCrossSection";
+      params->Get( keyVec, attrVec, valVec, windingCrossSection_ );
+
+      keyVec  = pdeName, "coils", "measurementCoil2d", "saveFileL";
+      params->Get( keyVec, attrVec, valVec, saveFileL_ );
+
+      keyVec  = pdeName, "coils", "measurementCoil2d", "saveFileU";
+      params->Get( keyVec, attrVec, valVec, saveFileU_ );
+
+      keyVec  = pdeName, "coils", "measurementCoil2d", "id";
+      params->Get( keyVec, attrVec, valVec, id_ );
     }
 
     // *******************************************
     //   Read Parameters for 3D Measurement Coil
     // *******************************************
     if ( coilType_ == MEASUREMENT3D ) {
-      params->CGet( "windingCrossSection", windingCrossSection_, "name",
-		    coilName_, 1, pdeName, "coils");
-      params->CGet( "saveFileL", saveFileL_, "name", coilName_, 1, pdeName,
-		    "coils" );
-      params->CGet( "saveFileU", saveFileU_, "name", coilName_, 1,
-		    pdeName, "coils" );
+
+      attrVec = "", "", "name";
+      valVec  = "", "", coilName_;
+
+      keyVec  = pdeName, "coils", "measurementCoil3d", "windingCrossSection";
+      params->Get( keyVec, attrVec, valVec, windingCrossSection_ );
+
+      keyVec  = pdeName, "coils", "measurementCoil3d", "saveFileL";
+      params->Get( keyVec, attrVec, valVec, saveFileL_ );
+
+      keyVec  = pdeName, "coils", "measurementCoil3d", "saveFileU";
+      params->Get( keyVec, attrVec, valVec, saveFileU_ );
     }
 
     // ***************************************
     //   Read Parameters for 2D Voltage Coil
     // ***************************************
     else if ( coilType_ == VOLTAGE2D ) {
-      params->CGet( "windingCrossSection", windingCrossSection_ ,
-		    "name", coilName_, 1, pdeName, "coils" );
-      params->CGet( "value"     , value_,
-		    "name", coilName_, 1, pdeName, "coils" );
-      params->CGet( "dynamics"  , dynamicsFile_,
-		    "name", coilName_, 1, pdeName, "coils" );
-      params->CGet( "phase"     , phase_,
-		    "name", coilName_, 1, pdeName, "coils" );
-      params->CGet( "resistance", resistance_,
-		    "name", coilName_, 1, pdeName, "coils" );
-      params->CGet( "id"        , id_,
-		    "name", coilName_, 1,  pdeName, "coils" );
+
+      attrVec = "", "", "name";
+      valVec  = "", "", coilName_;
+
+      keyVec  = pdeName, "coils", "voltageCoil2d", "windingCrossSection";
+      params->Get( keyVec, attrVec, valVec, windingCrossSection_ );
+
+      keyVec  = pdeName, "coils", "voltageCoil2d", "value";
+      params->Get( keyVec, attrVec, valVec, value_ );
+
+      keyVec  = pdeName, "coils", "voltageCoil2d", "dynamics";
+      params->Get( keyVec, attrVec, valVec, dynamicsFile_ );
+
+      keyVec  = pdeName, "coils", "voltageCoil2d", "phase";
+      params->Get( keyVec, attrVec, valVec, phase_ );
+
+      keyVec  = pdeName, "coils", "voltageCoil2d", "resistance";
+      params->Get( keyVec, attrVec, valVec, resistance_ );
+
+      keyVec  = pdeName, "coils", "voltageCoil2d", "id";
+      params->Get( keyVec, attrVec, valVec, id_ );
     }
 
     // ***************************************
     //   Read Parameters for 3D Voltage Coil
     // ***************************************
     else if ( coilType_ == VOLTAGE3D ) {
-      params->CGet( "windingCrossSection", windingCrossSection_ ,
-		    "name", coilName_, 1, pdeName, "coils" );
-      params->CGet( "value"     , value_,
-		    "name", coilName_, 1, pdeName, "coils" );
-      params->CGet( "dynamics"  , dynamicsFile_,
-		    "name", coilName_, 1, pdeName, "coils" );
-      params->CGet( "phase"     , phase_,
-		    "name", coilName_, 1, pdeName, "coils" );
-      params->CGet( "resistance", resistance_,
-		    "name", coilName_, 1, pdeName, "coils" );
+
+      attrVec = "", "", "name";
+      valVec  = "", "", coilName_;
+
+      keyVec  = pdeName, "coils", "voltageCoil3d", "windingCrossSection";
+      params->Get( keyVec, attrVec, valVec, windingCrossSection_ );
+
+      keyVec  = pdeName, "coils", "voltageCoil3d", "value";
+      params->Get( keyVec, attrVec, valVec, value_ );
+
+      keyVec  = pdeName, "coils", "voltageCoil3d", "dynamics";
+      params->Get( keyVec, attrVec, valVec, dynamicsFile_ );
+
+      keyVec  = pdeName, "coils", "voltageCoil3d", "phase";
+      params->Get( keyVec, attrVec, valVec, phase_ );
+
+      keyVec  = pdeName, "coils", "voltageCoil3d", "resistance";
+      params->Get( keyVec, attrVec, valVec, resistance_ );
     }
 
     // ***************************************
     //   Read Parameters for 2D Current Coil
     // ***************************************
     else if ( coilType_ == CURRENT2D ) {
-      params->CGet( "windingCrossSection", windingCrossSection_ ,
-		    "name", coilName_, 1, pdeName, "coils" );
-      params->CGet( "value"   , value_,
-		    "name", coilName_, 1, pdeName, "coils" );
-      params->CGet( "dynamics", dynamicsFile_,
-		    "name", coilName_, 1, pdeName, "coils" );
-      params->CGet( "phase"   , phase_,
-		    "name", coilName_, 1, pdeName, "coils" );
-      params->CGet( "id"      , id_,
-		    "name", coilName_, 1, pdeName, "coils" );
+
+      attrVec = "", "", "name";
+      valVec  = "", "", coilName_;
+
+      keyVec  = pdeName, "coils", "currentCoil2d", "windingCrossSection";
+      params->Get( keyVec, attrVec, valVec, windingCrossSection_ );
+
+      keyVec  = pdeName, "coils", "currentCoil2d", "value";
+      params->Get( keyVec, attrVec, valVec, value_ );
+
+      keyVec  = pdeName, "coils", "currentCoil2d", "dynamics";
+      params->Get( keyVec, attrVec, valVec, dynamicsFile_ );
+
+      keyVec  = pdeName, "coils", "currentCoil2d", "phase";
+      params->Get( keyVec, attrVec, valVec, phase_ );
+
+      keyVec  = pdeName, "coils", "currentCoil2d", "id";
+      params->Get( keyVec, attrVec, valVec, id_ );
     }
 
     // ***************************************
     //   Read Parameters for 3D Current Coil
     // ***************************************
     else if ( coilType_ == CURRENT3D ) {
-      params->CGet( "windingCrossSection", windingCrossSection_ ,
-		    "name", coilName_, 1, pdeName, "coils" );
-      params->CGet( "value"   , value_,
-		    "name", coilName_, 1, pdeName, "coils" );
-      params->CGet( "dynamics", dynamicsFile_,
-		    "name", coilName_, 1, pdeName, "coils" );
-      params->CGet( "phase"   , phase_,
-		    "name", coilName_, 1, pdeName, "coils" );
+
+      attrVec = "", "", "name";
+      valVec  = "", "", coilName_;
+
+      keyVec  = pdeName, "coils", "currentCoil3d", "windingCrossSection";
+      params->Get( keyVec, attrVec, valVec, windingCrossSection_ );
+
+      keyVec  = pdeName, "coils", "currentCoil3d", "value";
+      params->Get( keyVec, attrVec, valVec, value_ );
+
+      keyVec  = pdeName, "coils", "currentCoil3d", "dynamics";
+      params->Get( keyVec, attrVec, valVec, dynamicsFile_ );
+
+      keyVec  = pdeName, "coils", "currentCoil3d", "phase";
+      params->Get( keyVec, attrVec, valVec, phase_ );
     }
 
     // *******************************************
@@ -214,8 +265,11 @@ namespace CoupledField {
     if ( coilType_ == CURRENT3D ) {
       
       // Check for currentFlow specification
-      params->CGetList( "currentFlow", aux, "name", coilName_, 1, pdeName,
-			"coils" );
+      keyVec  = pdeName, "coils", "currentCoil3d", "currentFlow";
+      attrVec = "", "", "name";
+      valVec  = "", "", coilName_;
+      params->GetList( keyVec, attrVec, valVec, aux );
+
       if ( aux.GetSize() == 1 ) {
 	if ( aux[0] == "xDir" ) {
 	  flowDir_ = XDIR;
@@ -231,25 +285,31 @@ namespace CoupledField {
 	}
       }
       else if ( aux.GetSize() > 1 ) {
-	Info->Error( "More than 1 currentFlow specifications for coil " +
+	Info->Error( "More than 1 currentFlow specification for coil " +
 		     coilName_, __FILE__, __LINE__ );
       }
 
       // Check for rotational specification
       else {
 	isRotational_ = true;
-	params->CGet( "midPointX", midX_, "name", coilName_, 2, pdeName,
-		      "coils" );
-	params->CGet( "midPointY", midY_, "name", coilName_, 2, pdeName,
-		      "coils" );
-	params->CGet( "midPointZ", midZ_, "name", coilName_, 2, pdeName,
-		      "coils" );
-	params->CGet( "rotAxisX", rotAxisX_, "name", coilName_, 2, pdeName,
-		      "coils" );
-	params->CGet( "rotAxisY", rotAxisY_, "name", coilName_, 2, pdeName,
-		      "coils" );
-	params->CGet( "rotAxisZ", rotAxisZ_, "name", coilName_, 2, pdeName,
-		      "coils" );
+
+	keyVec  = pdeName, "coils", "currentCoil3d", "midPointX";
+	params->Get( keyVec, attrVec, valVec, midX_ );
+
+	keyVec  = pdeName, "coils", "currentCoil3d", "midPointY";
+	params->Get( keyVec, attrVec, valVec, midY_ );
+
+	keyVec  = pdeName, "coils", "currentCoil3d", "midPointZ";
+	params->Get( keyVec, attrVec, valVec, midZ_ );
+
+	keyVec  = pdeName, "coils", "currentCoil3d", "rotAxisX";
+	params->Get( keyVec, attrVec, valVec, rotAxisX_ );
+
+	keyVec  = pdeName, "coils", "currentCoil3d", "rotAxisY";
+	params->Get( keyVec, attrVec, valVec, rotAxisY_ );
+
+	keyVec  = pdeName, "coils", "currentCoil3d", "rotAxisZ";
+	params->Get( keyVec, attrVec, valVec, rotAxisZ_ );
       }
 
     }

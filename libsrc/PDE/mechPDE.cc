@@ -1466,13 +1466,20 @@ void MechPDE::ReadStoreResults() {
     if ( nodeValues[i] == "acceleration" ) savederiv2_ = TRUE;
   }
 
+  // Construct vectors for restricted search parameter
+  StdVector<std::string> keyVec;
+  StdVector<std::string> attrVec;
+  StdVector<std::string> valVec;
+  keyVec  = "mechanic", "storeResults", "elemResults", "region";
+  attrVec = "", "", "type";
+
   // -----------
   //   Stress
   // -----------
 
   // Determine regions for which stress must be computed
-  params->CGetList( "region", calcStress_, "type", "stress", 0, pdename_,
-		      "elemResults" );
+  valVec  = "", "", "stress";
+  params->GetList( keyVec, attrVec, valVec, calcStress_ );
 
   // If the symbolic name is "all" compute electric field for all regions
   if ( calcStress_.GetSize() == 1 && calcStress_[0] == "all" ) {

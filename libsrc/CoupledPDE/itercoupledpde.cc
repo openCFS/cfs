@@ -37,8 +37,8 @@ namespace CoupledField
 
 
 
-  void IterCoupledPDE::InitCoupling(Integer level)
-  {
+  void IterCoupledPDE::InitCoupling(Integer level) {
+
     ENTER_FCN ("IterCoupledPDE::InitCoupling" );
   
     StdVector<std::string> quantities;
@@ -63,149 +63,152 @@ namespace CoupledField
     params->GetList("name", stopCritQuantities, "nonLinear", "stopCrit");
 
     // Iterate over all PDEs
-    for (Integer iPDE=0; iPDE<PDEs_.GetSize(); iPDE++)
-      {
-	quantities.Clear();
-	interfaceTypes.Clear();
-	interfaceNames.Clear();
-	quantitiesSorted.Clear();
-	interfaceTypesSorted.Clear();
-	interfaceNamesSorted.Clear();
+    for ( Integer iPDE = 0; iPDE < PDEs_.GetSize(); iPDE++ ) {
+
+      quantities.Clear();
+      interfaceTypes.Clear();
+      interfaceNames.Clear();
+      quantitiesSorted.Clear();
+      interfaceTypesSorted.Clear();
+      interfaceNamesSorted.Clear();
 	
-	// Check for coupling quantities for current PDE
-	params->GetList("quantity", quantities, 
-			PDEs_[iPDE]->GetName(), "coupling");
+      // Check for coupling quantities for current PDE
+      params->GetList("quantity", quantities,
+		      PDEs_[iPDE]->GetName(), "coupling");
 
-	params->GetList("type", interfaceTypes, 
-			PDEs_[iPDE]->GetName(),	"coupling");
+      params->GetList("type", interfaceTypes, 
+		      PDEs_[iPDE]->GetName(),	"coupling");
 
-	params->GetList("name", interfaceNames,
-			PDEs_[iPDE]->GetName(), "coupling");
+      params->GetList("name", interfaceNames,
+		      PDEs_[iPDE]->GetName(), "coupling");
 
-	// Check if definition is consistent
-	if (quantities.GetSize() != interfaceTypes.GetSize() ||
-	    quantities.GetSize() != interfaceNames.GetSize() ||
-	    interfaceNames.GetSize() != interfaceTypes.GetSize())
-	  {
-	    errMsg  = "IterCoupledPDE::InitCoupling: Inconsistent definition ";
-	    errMsg += "of Coupling interfaces for PDE '";
-	    errMsg += PDEs_[iPDE]->GetName();
-	    errMsg += "'. Check your parameter file!";
-	    Error(errMsg.c_str(), __FILE__, __LINE__);
-	  }
-	
-	std::string typeAux;
-	std::string quantityTemp;
-	std::string nameAux;
+      // Check if definition is consistent
+      if (quantities.GetSize() != interfaceTypes.GetSize() ||
+	  quantities.GetSize() != interfaceNames.GetSize() ||
+	  interfaceNames.GetSize() != interfaceTypes.GetSize()) {
 
-	// Check if for one quantity different kinds of 
-	// interfaces were specified
-	for (Integer i=0; i<quantities.GetSize(); i++)
-	  {
-	    typeAux = interfaceTypes[i];
-	    quantityTemp = quantities[i];
-	    for (Integer j=0; j<quantities.GetSize(); j++)
-	      if (quantityTemp == quantities[j])
-		if (typeAux != interfaceTypes[j])
-		  {
-		    errMsg  = "IterCoupledPDE::InitCoupling:";
-		    errMsg += "Per coupling quantity only one type (node, region";
-		    errMsg += ", surface) of interface is allowed. \n You specified ";
-		    errMsg += "for quantity '";
-		    errMsg += quantityTemp;
-		    errMsg += "' as interface '";
-		    errMsg += typeAux;
-		    errMsg +="' and '";
-		    errMsg += interfaceTypes[j];
-		    errMsg += "'. Please correct the parameter file!";
-		    Error(errMsg.c_str(), __FILE__, __LINE__);
-		  }
-	  }
-	
-	// Now merge for each coupling quantity all interface names
-	// of the same type (node, interface, region)
-	Boolean found = FALSE;
-	for (Integer iQuant=0; iQuant<quantities.GetSize(); iQuant++)
-	  {
-	    typeAux = interfaceTypes[iQuant];
-	    quantityTemp = quantities[iQuant];
-	    nameAux = interfaceNames[iQuant];
-	    found = FALSE;
-	    for (Integer iSorted=0; iSorted<quantitiesSorted.GetSize(); iSorted++)
-	      if(quantityTemp == quantitiesSorted[iSorted])
-		{
-		  interfaceNamesSorted[iSorted].Push_back(nameAux);
-		  found = TRUE;
-		}
-	    if (!found)
-	      {
-		quantitiesSorted.Push_back(quantityTemp);
-		interfaceTypesSorted.Push_back(typeAux);
-		nameVectorAux.Clear();
-		nameVectorAux.Push_back(nameAux);
-		interfaceNamesSorted.Push_back(nameVectorAux);
-	      }
-		
-	  }
-
-
-	NormType normTypeAux;
-        CouplingRegionType regionTypeAux;
-	SolutionType quantityAux;
-
-	// Get for each quantity the according stopping Criteria and normtype
-	for (Integer iQuant=0; iQuant<quantitiesSorted.GetSize(); iQuant++)
-	  {
-	    epsilon = 0.0;
-	    normtype.clear();
-	   
-	    if (stopCritQuantities.Find(quantitiesSorted[iQuant]) != -1)
-	      {
-		params->CGet("value", epsilon, "quantity", quantitiesSorted[iQuant], 0,
-			     "nonLinear", "stopCrit");
-		params->CGet("l2Norm", normtype, "name", quantitiesSorted[iQuant], 0,
-			     "nonLinear", "stopCrit");
-	      }
-	    else
-	      {
-		epsilon = -1.0;
-		normtype = "no";
-	      }
-	      
-	    
-	    String2Enum(normtype, normTypeAux);
-	    String2Enum(interfaceTypesSorted[iQuant], regionTypeAux);
-	    String2Enum(quantitiesSorted[iQuant], quantityAux);
-
-	    // register the interface at the according coupling-object
-	    Couplings_[iPDE]->AddInput(quantityAux, 
-				       interfaceNamesSorted[iQuant],
-				       regionTypeAux, level, epsilon,
-				       normTypeAux, Couplings_);
-	    norms_.Push_back(1.0);
-	  }
+	errMsg  = "IterCoupledPDE::InitCoupling: Inconsistent definition ";
+	errMsg += "of Coupling interfaces for PDE '";
+	errMsg += PDEs_[iPDE]->GetName();
+	errMsg += "'. Check your parameter file!";
+	Error(errMsg.c_str(), __FILE__, __LINE__);
       }
-    
-    
-    
-      
-   
+	
+      std::string typeAux;
+      std::string quantityTemp;
+      std::string nameAux;
+
+      // Check if for one quantity different kinds of 
+      // interfaces were specified
+      for (Integer i=0; i<quantities.GetSize(); i++) {
+
+	typeAux = interfaceTypes[i];
+	quantityTemp = quantities[i];
+	
+	for (Integer j=0; j<quantities.GetSize(); j++) {
+	  if (quantityTemp == quantities[j]) {
+	    if (typeAux != interfaceTypes[j]) {
+	      errMsg  = "IterCoupledPDE::InitCoupling:";
+	      errMsg += "Per coupling quantity only one type (node, region";
+	      errMsg += ", surface) of interface is allowed. \n You specified ";
+	      errMsg += "for quantity '";
+	      errMsg += quantityTemp;
+	      errMsg += "' as interface '";
+	      errMsg += typeAux;
+	      errMsg +="' and '";
+	      errMsg += interfaceTypes[j];
+	      errMsg += "'. Please correct the parameter file!";
+	      Error(errMsg.c_str(), __FILE__, __LINE__);
+	    }
+	  }
+	}
+      }
+	
+      // Now merge for each coupling quantity all interface names
+      // of the same type (node, interface, region)
+      Boolean found = FALSE;
+      for (Integer iQuant=0; iQuant<quantities.GetSize(); iQuant++) {
+	typeAux = interfaceTypes[iQuant];
+	quantityTemp = quantities[iQuant];
+	nameAux = interfaceNames[iQuant];
+	found = FALSE;
+	for (Integer iSorted=0; iSorted<quantitiesSorted.GetSize(); iSorted++){
+	  if(quantityTemp == quantitiesSorted[iSorted]) {
+	    interfaceNamesSorted[iSorted].Push_back(nameAux);
+	    found = TRUE;
+	  }
+	}
+	if (!found) {
+	  quantitiesSorted.Push_back(quantityTemp);
+	  interfaceTypesSorted.Push_back(typeAux);
+	  nameVectorAux.Clear();
+	  nameVectorAux.Push_back(nameAux);
+	  interfaceNamesSorted.Push_back(nameVectorAux);
+	}	
+      }
+
+      NormType normTypeAux;
+      CouplingRegionType regionTypeAux;
+      SolutionType quantityAux;
+
+      // Construct vectors for restricted search parameter
+      StdVector<std::string> keyVec;
+      StdVector<std::string> attrVec;
+      StdVector<std::string> valVec;
+      attrVec = "", "quantity";
+
+      // Get for each quantity the according stopping Criteria and normtype
+      for( Integer iQuant = 0; iQuant < quantitiesSorted.GetSize(); iQuant++ ){
+
+	epsilon = 0.0;
+	normtype.clear();
+
+	// Quantity for which we are interested in value and l2norm
+	valVec = "", quantitiesSorted[iQuant];
+
+	if ( stopCritQuantities.Find(quantitiesSorted[iQuant]) != -1 ) {
+
+	  // First get the value
+	  keyVec  = "couplingList", "nonLinear", "stopCrit", "value";
+	  params->Get( keyVec, attrVec, valVec, epsilon );
+
+	  // Now get the l2norm
+	  keyVec  = "couplingList", "nonLinear", "stopCrit", "l2Norm";
+	  params->Get( keyVec, attrVec, valVec, normtype );
+
+	}
+	else {
+	  epsilon = -1.0;
+	  normtype = "no";
+	}
+
+	String2Enum(normtype, normTypeAux);
+	String2Enum(interfaceTypesSorted[iQuant], regionTypeAux);
+	String2Enum(quantitiesSorted[iQuant], quantityAux);
+
+	// register the interface at the according coupling-object
+	Couplings_[iPDE]->AddInput(quantityAux, 
+				   interfaceNamesSorted[iQuant],
+				   regionTypeAux, level, epsilon,
+				   normTypeAux, Couplings_);
+	norms_.Push_back(1.0);
+      }
+    }
     
     // Initialize each PDEs coupling terms
-    for (Integer i=0; i<PDEs_.GetSize(); i++)
+    for ( Integer i = 0; i < PDEs_.GetSize(); i++ ) {
       PDEs_[i]->InitCoupling(Couplings_[i]); 
-  
+    }
+
     // write coupling data in .info-file
     WriteCouplingInfo(*debug);
-    
-    
-
   }
 
 
-  void IterCoupledPDE::SolveStepStatic(const Integer kstep, const Double aTime, 
-				       const Integer level, const Boolean updatesysmat)
-  {
+  void IterCoupledPDE::SolveStepStatic(const Integer kstep, const Double aTime,
+				       const Integer level,
+				       const Boolean updatesysmat ) {
+
     ENTER_FCN ( "entering  IterCoupledPDE::SolveStepStatic" );
   
     CFSVector *val, *oldVal;

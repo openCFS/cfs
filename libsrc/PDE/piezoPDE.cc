@@ -458,13 +458,21 @@ void PiezoPDE::ReadStoreResults() {
     if ( nodeValues[i] == "acceleration" ) savederiv2_ = TRUE;
   }
 
+  // Construct vectors for restricted search parameter
+  StdVector<std::string> keyVec;
+  StdVector<std::string> attrVec;
+  StdVector<std::string> valVec;
+  keyVec  = "electrostatic", "storeResults", "elemResults", "region";
+  attrVec = "", "", "type";
 
-  // ----------------
+
+  // ------------------
   //   Electric Field
-  // ----------------
+  // ------------------
+
   // Determine regions for which electric field must be computed
-  params->CGetList( "region", calcEfield_, "type", "efield", 0, pdename_,
-		    "elemResults" );
+  valVec  = "", "", "efield";
+  params->GetList( keyVec, attrVec, valVec, calcEfield_ );
 
   // If the the symbolic name is "all" compute electric field for all regions
   if ( calcEfield_.GetSize() == 1 && calcEfield_[0] == "all" ) {
@@ -489,8 +497,8 @@ void PiezoPDE::ReadStoreResults() {
   // -----------
 
   // Determine regions for which stress must be computed
-  params->CGetList( "region", calcStress_, "type", "stress", 0, pdename_,
-		      "elemResults" );
+  valVec  = "", "", "stress";
+  params->GetList( keyVec, attrVec, valVec, calcStress_ );
 
   // If the symbolic name is "all" compute stresses for all regions
   if ( calcStress_.GetSize() == 1 && calcStress_[0] == "all" ) {
