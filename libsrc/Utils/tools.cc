@@ -28,9 +28,13 @@ void Error(const Char * Text, const Char * const filename,
                       const Integer numline)
 {
  std::cerr << "\033[31mERROR:\033[0m " << Text;
+
+#ifdef DEBUG
  if (filename) { std::cerr <<"( " << filename <<" ";
                  if (numline) std::cerr << numline;
                  std::cerr << ")";}
+#endif
+
  std::cerr << std::endl;
  exit(-1);
 }
@@ -39,9 +43,13 @@ void Warning(const Char *Text, const Char * const filename,
                       const Integer numline)
 {
  std::cerr << "\033[31mWARNING:\033[0m " << Text;
+
+#ifdef DEBUG
  if (filename) { std::cerr <<"( " << filename <<" ";
                  if (numline) std::cerr << numline;
                  std::cerr << ")";}
+#endif
+
  std::cerr << std::endl;
 }
 
