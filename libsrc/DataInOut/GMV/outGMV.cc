@@ -25,6 +25,7 @@ WriteResultsGMV<Dim> :: WriteResultsGMV(const Char * filename)
  delete [] help;
 
  ptgrid=NULL; 
+ variablemode_=0;
 
 }
 
@@ -34,6 +35,8 @@ WriteResultsGMV<Dim> ::~WriteResultsGMV()
 #ifdef TRACE
   (*trace) << "entering WriteResultsGMV::~ WriteResultsGMV" << std::endl;
 #endif
+
+//  if (variablemode_) (*output) << "endvars" << std::endl << std::endl;
 
  // write keyword
  (*output) << "endgmv " << std::endl;
@@ -278,6 +281,28 @@ void WriteResultsGMV<Point3D>:: WriteCells(const Integer alevel)
 }
 
 template<class Dim>
+void WriteResultsGMV<Dim>::WriteVariable(const Vector<Double> var, const std::string name, const Integer type)
+{
+//  if ( !variablemode_) 
+//  {
+//   (*output)<< "variable" << std::endl;
+//   variablemode_=1;
+//  }
+
+  (*output) << "variable" << std::endl;
+
+  (*output) << name << " " << type << std::endl;
+
+  Integer i;
+  for (i=0; i<var.size(); i++)
+    (*output) << var[i] << " ";
+
+    (*output) << std::endl;
+
+  (*output) << "endvars" << std::endl;
+}
+
+template<class Dim>
 void WriteResultsGMV<Dim>::WriteGrid(const Integer level)
 {
 
@@ -289,19 +314,13 @@ void WriteResultsGMV<Dim>::WriteGrid(const Integer level)
 template<class Dim>
 void WriteResultsGMV<Dim>::WriteSolution(const Vector<Double> & sol, const Integer step, const Double time, const std::string title)
 {
-;
-}
+  Integer type=1; // 0 - for cell 
+                  // 1 - for node
+                  // 2 - for face data
 
-template<class Dim>
-void WriteResultsGMV<Dim>::WriteFirstDerSolution(const Vector<Double> & sol, const Integer step, const Double time)
-{
-;
-}
+  WriteVariable(sol,title,type);
+  (*output) << "probtime " << time << std::endl;
 
-template<class Dim>
-void WriteResultsGMV<Dim>::WriteSecondDerSolution(const Vector<Double> & sol, const Integer step, const Double time)
-{
-;
 }
 
 template<class Dim>

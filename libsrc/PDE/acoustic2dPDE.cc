@@ -6,6 +6,7 @@
 #include "interface_linalg.hh"
 #include "acoustic2dPDE.hh"
 #include "actimeerror.hh"
+#include "outUnverg.hh"
  
 namespace CoupledField
 {
@@ -62,6 +63,7 @@ void Acoustic2dPDE::SpecifySolver(Integer &solvertype, Integer &precondtype, Dou
   conf->get("solvertype",solvertype,"Acoustic"); // Richardson or CG
   conf->get("precondtype", precondtype, "Acoustic"); //ID or MG
   conf->get("numeqcoarse",numeqcoarse,"Acoustic"); // number of equation for coarsing
+
 }
 
 
@@ -298,9 +300,18 @@ void Acoustic2dPDE:: WriteResultsInFile()
   (*trace) << "entering Acoustic2dPDE::WriteResultsInFile" << std::endl;
 #endif
 
-  OutFile_->WriteSolution(sol_,laststepcalc_,lasttimecalc_,"fluid potential"); 
+if (dynamic_cast<WriteResultsUnverg<Point2D> *> (OutFile_))
+{
+  OutFile_->WriteSolution(sol_,laststepcalc_,lasttimecalc_,"fluid potential");
   OutFile_->WriteSolution(sol_der1_,laststepcalc_,lasttimecalc_,"fluid potential, 1st deriv., ");
   OutFile_->WriteSolution(sol_der2_,laststepcalc_,lasttimecalc_,"fluid potential, 2nd deriv., ");
+}
+  else
+{
+  OutFile_->WriteSolution(sol_,laststepcalc_,lasttimecalc_,"fluid_potential"); 
+  OutFile_->WriteSolution(sol_der1_,laststepcalc_,lasttimecalc_,"1der_fluid_potential, ");
+  OutFile_->WriteSolution(sol_der2_,laststepcalc_,lasttimecalc_,"2der_fluid_potential, ");
+ }
 
 }
 

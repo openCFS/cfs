@@ -18,8 +18,6 @@ Domain<Dim> :: Domain(FileType * const aptFileType, WriteResults<Dim> * ptOut,  
   (*trace) << "entering Domain::Domain" << std::endl;
 #endif
 
- std::cout << " test1 " << std::endl;
-
  InFile_     = aptFileType; 
  OutFile_    = ptOut;
  ptmaterial_ = materialdata;
@@ -143,8 +141,7 @@ void Domain<Dim> :: InitAlgSys()
     {
       ptpde_[insys]->SetAlgSys_id(insys);
       ptpde_[insys]->SpecifySolver(solvertype,precondtype,eps,dampiter,maxnumit,numeqcoarse);
-      ptalgsys_->SetSolverParameter(insys,eps,dampiter,maxnumit,solvertype,precondtype,
-				    numeqcoarse);
+      ptalgsys_->SetSolverParameter(insys,eps,dampiter,maxnumit,solvertype,precondtype,  numeqcoarse);
     }
 
   //init the algsys-graph
@@ -182,12 +179,10 @@ void Domain<Dim> :: InitAlgSys()
 
   for (insys=0;insys<numsys_;insys++)
     {
-      ptpde_[insys]->SpecifyMatrices(matrixtype, matrixsystype, graphtype, numdofpernode, 
-                                     numdirichlets, numconstraints);
+      ptpde_[insys]->SpecifyMatrices(matrixtype, matrixsystype, graphtype, numdofpernode,  numdirichlets, numconstraints);
       numdirichlets = ptBCs_->GetNumRestraints(level);
 
-      ptalgsys_->CreateAlgSysMatrices(insys,insys,matrixsystype,matrixtype,graphtype, numdofpernode, 
-                               numdirichlets, numconstraints);
+      ptalgsys_->CreateAlgSysMatrices(insys,insys,matrixsystype,matrixtype,graphtype, numdofpernode,  numdirichlets, numconstraints);
     }
 
   //now reset AlgebraicSystem 

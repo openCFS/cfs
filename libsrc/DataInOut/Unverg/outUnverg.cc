@@ -286,16 +286,4 @@ void  WriteResultsUnverg<Dim>::WriteSolution(const Vector<Double> & sol, const I
 
 }
 
-template<class Dim>
-void  WriteResultsUnverg<Dim>::WriteFirstDerSolution(const Vector<Double> & sol, const Integer step, const Double time)
-{
- Dataset55(" fluid potential, 1st deriv., ", sol, step+1,time);
-}
-
-template<class Dim>
-void  WriteResultsUnverg<Dim>::WriteSecondDerSolution(const Vector<Double> & sol, const Integer step, const Double time)
-{
- Dataset55(" fluid potential, 2nd deriv., ", sol, step+1, time);
-}
-
 } // end of namespace

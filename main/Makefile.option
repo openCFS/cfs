@@ -17,7 +17,8 @@ NetGen =/home_lse10/lse/manfred/Programming/NETGEN/netgen
 IncNetGen =$(C_DIR)/NetGen
 LibNetGen=$(C_DIR)/libnetgen
 CLA=/home_lse10/lse/manfred/Programming/CLA++
-LibCLA=$(C_DIR)/libsrc/AlgebraicSystem/CLA/
+LibCLA=$(C_DIR)/libsrc/AlgebraicSystem/CLA
+Include=$(C_DIR)/include
 #
 ############ Define library
 #
