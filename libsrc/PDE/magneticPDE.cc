@@ -22,7 +22,7 @@ namespace CoupledField {
   //  Constructor
   // **************
   MagPDE::MagPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc,
-		 FileType *aptFileType, WriteResults *aptOut)
+                 FileType *aptFileType, WriteResults *aptOut)
     :BasePDE(aptgrid, aptbcs, aptFileType, aptOut, aptTimeFunc) {
 
     ENTER_FCN( "MagPDE::MagPDE" );
@@ -54,19 +54,19 @@ namespace CoupledField {
   //  Destructor
   // *************
   MagPDE::~MagPDE() {
-  ENTER_FCN( "MagPDE::~MagPDE" );
-  for ( UInt k = 0; k < coilDef_.GetSize(); k++ ) {
-    delete coilDef_[k];
+    ENTER_FCN( "MagPDE::~MagPDE" );
+    for ( UInt k = 0; k < coilDef_.GetSize(); k++ ) {
+      delete coilDef_[k];
+    }
   }
-}
 
 
   // *********************************
   //  Read special boundary conitions
   // *********************************
 
-  void MagPDE::ReadSpecialBCs()
-  {
+  void MagPDE::ReadSpecialBCs() {
+
     ENTER_FCN( "MagPDE::ReadSpecialBCs" );
 
     // --------------------------------------------------------------------
@@ -84,8 +84,8 @@ namespace CoupledField {
   // ****************************
   //  Initialize Nonlinearities
   // ****************************
-  void MagPDE::InitNonLin()
-  {
+  void MagPDE::InitNonLin() {
+
     ENTER_FCN( "MagPDE::InitNonLin" );
 
     // ------------------------------------
@@ -96,8 +96,8 @@ namespace CoupledField {
     
     for ( Integer k = 0; k < nonLinType_.GetSize(); k++ ) {
       if ( nonLinType_[k] != "no" ) {
-	nonLin_ = TRUE;
-	break;
+        nonLin_ = TRUE;
+        break;
       }
     }
 
@@ -139,41 +139,41 @@ namespace CoupledField {
       materialData_[actSD].GetPermeability(2,2,reluctivity);
 
       if ( reluctivity == 0 ) {
-	Info->Error( "Region '" + subdoms_[actSD] + "' has zero" +
-		     " permeability!", __FILE__, __LINE__ );
+        Info->Error( "Region '" + subdoms_[actSD] + "' has zero" +
+                     " permeability!", __FILE__, __LINE__ );
       }
       
       reluctivity = 1/reluctivity;
  
       if ( nonLinType_[actSD] != "no" ) {
 
-	//read in the BH-curve data and compute the approximation
-	std::string nlfnc = materialData_[actSD].GetBHCurveFileName();
-	ApproxData *nlinFnc = new SmoothSpline(nlfnc);
-	nlinFnc->CalcBestParameter();
-	nlinFnc->CalcApproximation();
+        //read in the BH-curve data and compute the approximation
+        std::string nlfnc = materialData_[actSD].GetBHCurveFileName();
+        ApproxData *nlinFnc = new SmoothSpline(nlfnc);
+        nlinFnc->CalcBestParameter();
+        nlinFnc->CalcApproximation();
 
-	BaseForm *curlcurl2D = new nLinCurlCurlNode2DInt(nlinFnc,reluctivity,
-							 isaxi_);
-	curlcurl2D->SetNonLinMethod(nonLinMethod_);      
-	assemble_->AddIntegrator(curlcurl2D, subdoms_[actSD], STIFFNESS, TRUE);
+        BaseForm *curlcurl2D = new nLinCurlCurlNode2DInt(nlinFnc,reluctivity,
+                                                         isaxi_);
+        curlcurl2D->SetNonLinMethod(nonLinMethod_);      
+        assemble_->AddIntegrator(curlcurl2D, subdoms_[actSD], STIFFNESS, TRUE);
 
-	// nonlinear RHS linearform!!
-	BaseForm * rhsSource = new nLinMagNode2D_linFormInt(nlinFnc,
-							    reluctivity,
-							    isaxi_);
-	assemble_->AddRhsIntegrator(rhsSource, subdoms_[actSD], TRUE);
+        // nonlinear RHS linearform!!
+        BaseForm * rhsSource = new nLinMagNode2D_linFormInt(nlinFnc,
+                                                            reluctivity,
+                                                            isaxi_);
+        assemble_->AddRhsIntegrator(rhsSource, subdoms_[actSD], TRUE);
       }
       else {
-	BaseForm *curlcurl2D = new CurlCurlNode2DInt(reluctivity, isaxi_);
-	assemble_->AddIntegrator(curlcurl2D, subdoms_[actSD], STIFFNESS,FALSE);
-	if (nonLin_==TRUE) {
-	  // for nonlinear RHS linearform we need linear and nonlinear
-	  // subdomains
-	  BaseForm * rhsSource = new nLinMagNode2D_linFormInt(reluctivity,
-							      isaxi_);
-	  assemble_->AddRhsIntegrator(rhsSource, subdoms_[actSD], TRUE);
-	}
+        BaseForm *curlcurl2D = new CurlCurlNode2DInt(reluctivity, isaxi_);
+        assemble_->AddIntegrator(curlcurl2D, subdoms_[actSD], STIFFNESS,FALSE);
+        if (nonLin_==TRUE) {
+          // for nonlinear RHS linearform we need linear and nonlinear
+          // subdomains
+          BaseForm * rhsSource = new nLinMagNode2D_linFormInt(reluctivity,
+                                                              isaxi_);
+          assemble_->AddRhsIntegrator(rhsSource, subdoms_[actSD], TRUE);
+        }
       }
 
       // Mass matrix
@@ -184,47 +184,46 @@ namespace CoupledField {
 
       // If this subdomain is a coil we have to do special things
       for ( Integer coil = 0; coil < coilDef_.GetSize(); coil++ ) {
-	if ( subdoms_[actSD] == coilName_[coil] ) {
-	  Double factor = coilDef_[coil]->value_ /
-	    coilDef_[coil]->windingCrossSection_;
-	  BaseForm *coilSource = new VolumeSrcInt( factor, isaxi_ );	  
-	  assemble_->AddRhsSrcIntegrator( coilSource,
-					  subdoms_[actSD],
-					  coilDef_[coil]->dynamicsFile_,
-					  nonLin_ );
-	}
+        if ( subdoms_[actSD] == coilName_[coil] ) {
+          Double factor = coilDef_[coil]->value_ /
+            coilDef_[coil]->windingCrossSection_;
+          BaseForm *coilSource = new VolumeSrcInt( factor, isaxi_ );      
+          assemble_->AddRhsSrcIntegrator( coilSource,
+                                          subdoms_[actSD],
+                                          coilDef_[coil]->dynamicsFile_,
+                                          nonLin_ );
+        }
       }
 
       // check, if this subdomain is a permanent magnet
       for ( Integer perm = 0; perm < magnetsDomain_.GetSize(); perm++ ) {
-	if ( subdoms_[actSD] == magnetsDomain_[perm] ) {
+        if ( subdoms_[actSD] == magnetsDomain_[perm] ) {
 
-	  if (dim_ ==3)
-	    Error("Permanent magnets for 3D computation not implementes");
+          if (dim_ ==3)
+            Error("Permanent magnets for 3D computation not implementes");
 
-	  //change direction of magnetization, so that we can use the
-	  //standard GlobalDerivatives and obtain: (curl w) . M
-	  Vector<Double> magnetization(dim_);
-	  if (isaxi_) {
-	    magnetization[0] = magnetsOriY_[perm];
-	    magnetization[1] = -magnetsOriX_[perm];
-	  }
-	  else {
-	    magnetization[0] = -magnetsOriY_[perm];
-	    magnetization[1] = magnetsOriX_[perm];
-	  }
-	  
-	  std::string fncname = "none";
-	  Boolean nlin = FALSE;
-	  BaseForm *permSource = new MagPerm2DInt(magnetization, 
-						  reluctivity, isaxi_ );	  
-	  assemble_->AddRhsSrcIntegrator( permSource,
-					  subdoms_[actSD],
-					  fncname,
-					  nlin );
-	}
+          //change direction of magnetization, so that we can use the
+          //standard GlobalDerivatives and obtain: (curl w) . M
+          Vector<Double> magnetization(dim_);
+          if (isaxi_) {
+            magnetization[0] = magnetsOriY_[perm];
+            magnetization[1] = -magnetsOriX_[perm];
+          }
+          else {
+            magnetization[0] = -magnetsOriY_[perm];
+            magnetization[1] = magnetsOriX_[perm];
+          }
+          
+          std::string fncname = "none";
+          Boolean nlin = FALSE;
+          BaseForm *permSource = new MagPerm2DInt(magnetization, 
+                                                  reluctivity, isaxi_ );          
+          assemble_->AddRhsSrcIntegrator( permSource,
+                                          subdoms_[actSD],
+                                          fncname,
+                                          nlin );
+        }
       }
-
     }
   }
 
@@ -241,7 +240,7 @@ namespace CoupledField {
 
 
   void MagPDE:: PreStepStatic(const Integer kstep, const Double asteptime,
-			       const Integer level, const Boolean reset) {
+                              const Integer level, const Boolean reset) {
     ENTER_FCN( "MagPDE::PreStepStatic" );
     if (pdeIsCoupled_) 
       algsys_->InitSol();
@@ -256,7 +255,7 @@ namespace CoupledField {
 
 
   void MagPDE::StepStaticNonLin(const Integer kstep, const Double aTime,
-				const Integer level, const Boolean reset)
+                                const Integer level, const Boolean reset)
   {
     ENTER_FCN( "MagPDE::SolveStepStaticNonLin" );
 
@@ -281,25 +280,25 @@ namespace CoupledField {
       iterationCounter++;
 
       std::cout << std::endl << "Nonlinear Magnetics: Perform internal loop "
-		<< "nr. " << iterationCounter << std::endl;      
+                << "nr. " << iterationCounter << std::endl;      
 
 #ifdef DEBUG
       *debug << std::endl << "=============================================="
-	     << "========\n"
-	     <<	"Nonlinear Mechanics: Perform internal loop nr. "
-	     << iterationCounter << std::endl;      
+             << "========\n"
+             << "Nonlinear Mechanics: Perform internal loop nr. "
+             << iterationCounter << std::endl;      
 #endif
 
       // setup and solve new system (rhs is already set) =====================
       assemble_->InitNonLinMatrices();
       assemble_->AssembleMatrices(level);
       
-#ifdef USE_OLAS
       algsys_->BuildInDirichlet();
-      algsys_->SetupPrecond(job);
-#else
-      algsys_->CalcPrecond(job);
-#endif
+      
+      if (job == 1) {
+        algsys_->SetupPrecond(job);
+        algsys_->SetupSolver(job);
+      }
 
       algsys_->Solve();
 
@@ -310,9 +309,7 @@ namespace CoupledField {
       sol_->SetAlgSysVector(actSol);
 
       // recalculate RHS with new values to get new residual (f^(k+1))========
-#ifndef USE_OLAS    
       algsys_->InitRHS(RhsLinVal_.GetPointer());
-#endif
 
       assemble_->AssembleNLRHS(level);  // nonlinear part of RHS
 
@@ -320,7 +317,7 @@ namespace CoupledField {
       // calculation of residual error (takes care for Dirichlet BCs========
       Vector<Double> actRHS;
       StoreAlgsysToVec(actRHS, algsys_->GetRHSVal() );       
-	  
+          
       Double residualL2Norm;
       residualL2Norm = RhsL2Norm(actRHS); // L2Norm of  ( f_i^(k+1) - f_a )
 
@@ -328,9 +325,9 @@ namespace CoupledField {
       // calculation of residual error =======================================
       Double residualErr;
       if (RhsLinL2Norm > 1.0)
-	residualErr = residualL2Norm / RhsLinL2Norm;
+        residualErr = residualL2Norm / RhsLinL2Norm;
       else
-	residualErr = residualL2Norm;
+        residualErr = residualL2Norm;
 
       // calculate incremental error ========================================
       Double solIncrL2Norm = solInc.NormL2();
@@ -338,30 +335,30 @@ namespace CoupledField {
       
       Double incrementalErr;      
       if (actSolL2Norm > 1.0)
-	incrementalErr = solIncrL2Norm / actSolL2Norm;
+        incrementalErr = solIncrL2Norm / actSolL2Norm;
       else
-	incrementalErr = solIncrL2Norm;
+        incrementalErr = solIncrL2Norm;
 
       // =====================================================================
       // output of norms and data
       // =====================================================================
       Double etaLineSearch = 1;
       if ( nonLinLogging_ == TRUE ) {
-	Info->WriteNonLinIter(pdename_, iterationCounter, residualErr,
-			      incrementalErr, etaLineSearch);
+        Info->WriteNonLinIter(pdename_, iterationCounter, residualErr,
+                              incrementalErr, etaLineSearch);
       }
       
 
       // boolean variable, holds condition if another
       // iteration step is necessary
       performOneMoreStep = 
-	(incrementalErr > incStopCrit_) || (residualErr > residualStopCrit_);
+        (incrementalErr > incStopCrit_) || (residualErr > residualStopCrit_);
       
       if (!(performOneMoreStep && iterationCounter < nonLinMaxIter_))
-	mycout << "incrementalErr " << incrementalErr << myendl 
-	       << "incStopCrit_ " << incStopCrit_ << myendl
-	       << "residualErr " << residualErr  << myendl
-	       << "residualStopCrit_ " << residualStopCrit_ << myendl;
+        mycout << "incrementalErr " << incrementalErr << myendl 
+               << "incStopCrit_ " << incStopCrit_ << myendl
+               << "residualErr " << residualErr  << myendl
+               << "residualStopCrit_ " << residualStopCrit_ << myendl;
 
     } while(performOneMoreStep && iterationCounter < nonLinMaxIter_);  
 
@@ -372,8 +369,8 @@ namespace CoupledField {
   //   LineSearch
   // **************
   Double MagPDE::LineSearch( Vector<Double>& solInc, Vector<Double>& actSol, 
-			     Double& etaLineSearch, Integer level,
-			     Boolean trans ) {
+                             Double& etaLineSearch, Integer level,
+                             Boolean trans ) {
     ENTER_FCN( "MagPDE::LineSearch" );
 
     //  Vector<Double> solOld(actSol);
@@ -388,7 +385,7 @@ namespace CoupledField {
   
 
   void MagPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
-			       const Integer level, const Boolean reset) {
+                               const Integer level, const Boolean reset) {
 
     ENTER_FCN( "MagPDE::StepTransNonLin" );
 
@@ -429,15 +426,15 @@ namespace CoupledField {
     do {
       iterationCounter++;
       std::cout << std::endl
-		<< "Nonlinear Magnetics: Perform internal loop nr. " 
-		<< iterationCounter << std::endl;
+                << "Nonlinear Magnetics: Perform internal loop nr. " 
+                << iterationCounter << std::endl;
 
 #ifdef DEBUG
       *debug << std::endl
-	     << "====================================================== "
-	     << std::endl
-	     <<	"Nonlinear Magnetics: Perform internal loop nr. "
-	     << iterationCounter << std::endl;      
+             << "====================================================== "
+             << std::endl
+             << "Nonlinear Magnetics: Perform internal loop nr. "
+             << iterationCounter << std::endl;      
 #endif
 
       // setup and solve new system (rhs is already set) ====================
@@ -447,12 +444,12 @@ namespace CoupledField {
 
       SetBCs(level, lasttimecalc_);
 
-#ifdef USE_OLAS
       algsys_->BuildInDirichlet();
-      algsys_->SetupPrecond(job);
-#else
-      algsys_->CalcPrecond(job);
-#endif
+
+      if (job == 1) {
+        algsys_->SetupPrecond(job);
+        algsys_->SetupSolver(job);
+      }
 
       algsys_->Solve();
 
@@ -463,21 +460,19 @@ namespace CoupledField {
       Double etaLineSearch = 0;
       
       if ( lineSearch_ != "no" ) {
-	actSol += solInc;
+        actSol += solInc;
       }
       else {
 
-	// TRUE is for transient simulation
-	residualL2Norm = LineSearch(solInc, actSol, etaLineSearch, level,TRUE);
+        // TRUE is for transient simulation
+        residualL2Norm = LineSearch(solInc, actSol, etaLineSearch, level,TRUE);
       }
 
       //store A_/n+1) in the solution-object sol_
       sol_->SetAlgSysVector(actSol);
 
       // recalculate RHS with new values to get new residual (f^(k+1))=======
-#ifndef USE_OLAS    
       algsys_->InitRHS(RhsLinVal_.GetPointer());
-#endif
 
       //Update RHS (mass matrix on right hand side)
       TS_alg_->UpdateRHS(actSol);
@@ -492,20 +487,20 @@ namespace CoupledField {
 
       if ( lineSearch_ != "no" ) {
 
-	Vector<Double> actRHS;
-	StoreAlgsysToVec(actRHS, algsys_->GetRHSVal() );       
-	  
-	// ------------------------------------------------------------------
-	// calculation of residual error: L2Norm of ( f_i^(k+1) - f_a )
-	// ------------------------------------------------------------------
-	residualL2Norm = RhsL2Norm(actRHS);
+        Vector<Double> actRHS;
+        StoreAlgsysToVec(actRHS, algsys_->GetRHSVal() );       
+          
+        // ------------------------------------------------------------------
+        // calculation of residual error: L2Norm of ( f_i^(k+1) - f_a )
+        // ------------------------------------------------------------------
+        residualL2Norm = RhsL2Norm(actRHS);
       }
       
       Double residualErr;
       if ( RhsLinL2Norm > 1)
-	residualErr    = residualL2Norm /  RhsLinL2Norm;
+        residualErr    = residualL2Norm /  RhsLinL2Norm;
       else
-	residualErr    = residualL2Norm;
+        residualErr    = residualL2Norm;
 
       // --------------------------------------------------------------------
       // calculate incremental error
@@ -515,22 +510,22 @@ namespace CoupledField {
       Double incrementalErr;
       
       if (actSolL2Norm > 1)
-	incrementalErr = solIncrL2Norm / actSolL2Norm;
+        incrementalErr = solIncrL2Norm / actSolL2Norm;
       else
-	incrementalErr = solIncrL2Norm;
+        incrementalErr = solIncrL2Norm;
 
       // --------------------------------------------------------------------
       // output of norms and data
       // --------------------------------------------------------------------
       if ( nonLinLogging_ == TRUE ) {
-	Info->WriteNonLinIter(pdename_, iterationCounter, residualErr,
-			      incrementalErr, etaLineSearch);
+        Info->WriteNonLinIter(pdename_, iterationCounter, residualErr,
+                              incrementalErr, etaLineSearch);
       }
 
       // boolean variable, holds condition if another iteration step
       // is necessary
       performOneMoreStep = 
-	(incrementalErr > incStopCrit_)||(residualErr > residualStopCrit_);
+        (incrementalErr > incStopCrit_)||(residualErr > residualStopCrit_);
       
     } while(performOneMoreStep && iterationCounter < nonLinMaxIter_);  
 
@@ -547,7 +542,7 @@ namespace CoupledField {
     Double RhsLinL2Norm;  
 
 
-   // to incorporate loads
+    // to incorporate loads
     assemble_->AssembleSrcRHS(level, lasttimecalc_); 
 
     // Stores rhs vector into extForces and returns that L2-norm
@@ -577,12 +572,12 @@ namespace CoupledField {
       nodes=ptBCs_->GetNodesLevel(bcs_hd_[i]);
       
       for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end();
-	   p++) {
-	node=*p;
-	eqnData_->Node2EQN(node,eqn);
-	if (eqn[0] != 0){
-	  actRHS[(eqn[0]-1)] = 0;
-	}
+           p++) {
+        node=*p;
+        eqnData_->Node2EQN(node,eqn);
+        if (eqn[0] != 0){
+          actRHS[(eqn[0]-1)] = 0;
+        }
       }
     }
     return actRHS.NormL2();
@@ -604,9 +599,9 @@ namespace CoupledField {
   //       nodes=ptBCs_->GetNodesLevel(bcs_hd_[i]);
       
   //       for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end();
-  // 	   p++) {
-  // 	node=*p;
-  // 	actRHS[mesh2PDENode_[node-1]-1] = 0;
+  //       p++) {
+  //    node=*p;
+  //    actRHS[mesh2PDENode_[node-1]-1] = 0;
   //       }
   //     }
   //     return actRHS.NormL2();
@@ -629,7 +624,7 @@ namespace CoupledField {
   // ======================================================
 
   void MagPDE::WriteResultsInFile(Integer stepOffset,
-				  Double timeOffset) {
+                                  Double timeOffset) {
 
     ENTER_FCN( "MagPDE::WriteResultsInFile" );
 
@@ -640,39 +635,48 @@ namespace CoupledField {
     Integer actStep = laststepcalc_ + stepOffset;
     
     if (analysistype_ == STATIC ||
-	analysistype_ == TRANSIENT) {
+        analysistype_ == TRANSIENT) {
       solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);
 
-      if (saveSol_)
-	  outFile_->WriteNodeSolutionTransient(*solTransient, 
-					       actStep, actTime);
-      if (saveSolHist_)
-	outFile_->WriteNodeHistoryTransient(*solTransient, 
-					    actStep, actTime);
+      if (saveSol_) {
+        outFile_->WriteNodeSolutionTransient(*solTransient, 
+                                             actStep, actTime);
+      }
+
+      if (saveSolHist_) {
+        outFile_->WriteNodeHistoryTransient(*solTransient, 
+                                            actStep, actTime);
+      }
       
       if (calcBfield_.GetSize() !=0 ) {
-	outFile_->WriteElemSolutionTransient(B_, actStep, actTime);
+        outFile_->WriteElemSolutionTransient(B_, actStep, actTime);
       }
       
       if (calcEddy_.GetSize() !=0 ) {
-	outFile_->WriteElemSolutionTransient(Jeddy_, actStep, actTime);
+        outFile_->WriteElemSolutionTransient(Jeddy_, actStep, actTime);
       }
-    } else  
-      if (analysistype_ == HARMONIC) {
-	
-	solHarmonic = dynamic_cast<NodeStoreSol<Complex>*>(sol_);
-	
-	if (saveSol_)
-	  outFile_->WriteNodeSolutionHarmonic(*solHarmonic, actFreqStep_, 
-					      actFrequency_, complexFormat_);
+    }
 
-	if (saveSolHist_)
-	  outFile_->WriteNodeHistoryHarmonic(*solHarmonic, actFreqStep_, 
-					      actFrequency_, complexFormat_);
+    else {
+
+      if (analysistype_ == HARMONIC) {
+        
+        solHarmonic = dynamic_cast<NodeStoreSol<Complex>*>(sol_);
+        
+        if (saveSol_)
+          outFile_->WriteNodeSolutionHarmonic(*solHarmonic, actFreqStep_, 
+                                              actFrequency_, complexFormat_);
+
+        if (saveSolHist_)
+          outFile_->WriteNodeHistoryHarmonic(*solHarmonic, actFreqStep_, 
+                                             actFrequency_, complexFormat_);
       }
-      else
-	Error("MagPDE: Only static, transient and harmonic results can be written",
-	      __FILE__, __LINE__);
+      else {
+        (*error) << "MagPDE: Only static, transient and harmonic results can "
+                 << "be written";
+        Error( __FILE__, __LINE__ );
+      }
+    }
   }
 
 
@@ -691,7 +695,7 @@ namespace CoupledField {
     if (calcBfield_.GetSize() !=0 ) {
 
       CurlNodeOp * FieldOp = new CurlNodeOp(ptgrid_, this, eqnData_,
-					    *solhelp, level);
+                                            *solhelp, level);
       FieldOp->Set2DType(isaxi_);
  
       // ------ Calculation of the electric field ------
@@ -717,17 +721,17 @@ namespace CoupledField {
       // loop over all subdomains
       for (Integer isd=0; isd<calcBfield_.GetSize(); isd++) {
 
-	// get vector of Elem of subdomain with color: subdoms[isd]
-	ptgrid_->GetElemSD(elemssd,calcBfield_[isd],level);
-	  
-	// loop over elements of subdomain
-	for (Integer iel=0; iel< elemssd.GetSize(); iel++,counterElems++) {
-	  pdeElem = eqnData_->Mesh2PDEElem(elemssd[iel]->elemNum);
-	  FieldOp->CalcElemCurlNode( TempE, elemssd[iel], LCoord); 
-	  // B_.SetNodalResult(mesh2PDEElem_[elemssd[iel]->elemNum - 1]-1,
-	  // TempE);
-	  B_.SetElemResult(pdeElem-1, TempE);
-	}
+        // get vector of Elem of subdomain with color: subdoms[isd]
+        ptgrid_->GetElemSD(elemssd,calcBfield_[isd],level);
+          
+        // loop over elements of subdomain
+        for (Integer iel=0; iel< elemssd.GetSize(); iel++,counterElems++) {
+          pdeElem = eqnData_->Mesh2PDEElem(elemssd[iel]->elemNum);
+          FieldOp->CalcElemCurlNode( TempE, elemssd[iel], LCoord); 
+          // B_.SetNodalResult(mesh2PDEElem_[elemssd[iel]->elemNum - 1]-1,
+          // TempE);
+          B_.SetElemResult(pdeElem-1, TempE);
+        }
       }
       delete FieldOp;
     }
@@ -765,30 +769,30 @@ namespace CoupledField {
       // loop over all subdomains
       for (Integer actSD=0; actSD<calcEddy_.GetSize(); actSD++) {
 
-	// get vector of Elem of subdomain with color: subdoms[isd]
-	ptgrid_->GetElemSD(elemssd,calcEddy_[actSD],level);
-	  
-	// Get the right material parameter for actual subdomain
-	for (Integer iSD=0; iSD<subdoms_.GetSize(); iSD++)
-	  if (subdoms_[iSD] == calcEddy_[actSD])
+        // get vector of Elem of subdomain with color: subdoms[isd]
+        ptgrid_->GetElemSD(elemssd,calcEddy_[actSD],level);
+          
+        // Get the right material parameter for actual subdomain
+        for (Integer iSD=0; iSD<subdoms_.GetSize(); iSD++)
+          if (subdoms_[iSD] == calcEddy_[actSD])
             materialData_[iSD].GetConductivity(2,2,conductivity);
 
-	// loop over elements of subdomain
-	for ( Integer actEl=0; actEl< elemssd.GetSize();
-	      actEl++,counterElems++ ) {
-	  BaseFE * ptEl = elemssd[actEl]->ptElem;
-	  ptEl->GetShFnc(ShpFnc,LCoord);
-	  pdeElem = eqnData_->Mesh2PDEElem(elemssd[actEl]->elemNum);
+        // loop over elements of subdomain
+        for ( Integer actEl=0; actEl< elemssd.GetSize();
+              actEl++,counterElems++ ) {
+          BaseFE * ptEl = elemssd[actEl]->ptElem;
+          ptEl->GetShFnc(ShpFnc,LCoord);
+          pdeElem = eqnData_->Mesh2PDEElem(elemssd[actEl]->elemNum);
 
-	  connect = elemssd[actEl]->connect;
-	  
-	  GetDerivSolVecOfElement(magVecDeriv1Elem,connect);
-	  JeddyElem[0] = magVecDeriv1Elem * ShpFnc;
-	  JeddyElem[0] *= -conductivity;
-	  // Jeddy_.SetNodalResult(mesh2PDEElem_[elemssd[actEl]->elemNum-1]-1,
-	  // JeddyElem);
-	  Jeddy_.SetElemResult(pdeElem-1, JeddyElem);
-	}
+          connect = elemssd[actEl]->connect;
+          
+          GetDerivSolVecOfElement(magVecDeriv1Elem,connect);
+          JeddyElem[0] = magVecDeriv1Elem * ShpFnc;
+          JeddyElem[0] *= -conductivity;
+          // Jeddy_.SetNodalResult(mesh2PDEElem_[elemssd[actEl]->elemNum-1]-1,
+          // JeddyElem);
+          Jeddy_.SetElemResult(pdeElem-1, JeddyElem);
+        }
       }
     }
 
@@ -828,26 +832,26 @@ namespace CoupledField {
       energy[i] = 0;
       for (j=0; j < elemssd.GetSize(); j++) {
 
-	ptElem=elemssd[j]->ptElem;
-	BaseForm * bilinear_stiff = new LaplaceInt(ptElem, eps33, isaxi_);
+        ptElem=elemssd[j]->ptElem;
+        BaseForm * bilinear_stiff = new LaplaceInt(ptElem, eps33, isaxi_);
 
-	connecth=elemssd[j]->connect;
-	GetElemCoords(connecth, ptCoord, actlevel_);
-	bilinear_stiff->CalcElementMatrix(ptCoord, elemmat);
+        connecth=elemssd[j]->connect;
+        GetElemCoords(connecth, ptCoord, actlevel_);
+        bilinear_stiff->CalcElementMatrix(ptCoord, elemmat);
 
-	// 	  EqnData_->Mesh2Eqn(Eqns,connecth);
-	// 	  (*debug) << "Nodes:" << connecth << std::endl;
-	// 	  (*debug) << "Eqns :" << Eqns << std::endl;
+        //        EqnData_->Mesh2Eqn(Eqns,connecth);
+        //        (*debug) << "Nodes:" << connecth << std::endl;
+        //        (*debug) << "Eqns :" << Eqns << std::endl;
 
 
-	Vector<Double> magvecpot;
-	
-	sol_->GetElemSolution(magvecpot,connecth);
-	
-	help = elemmat * magvecpot;
-	energy[i] += help * magvecpot;
-	    
-	delete bilinear_stiff;	  
+        Vector<Double> magvecpot;
+        
+        sol_->GetElemSolution(magvecpot,connecth);
+        
+        help = elemmat * magvecpot;
+        energy[i] += help * magvecpot;
+            
+        delete bilinear_stiff;    
       }  
     }
 
@@ -869,51 +873,51 @@ namespace CoupledField {
     for (Integer actSD=0; actSD<subdoms_.GetSize(); actSD++) {
 
       for (Integer dom=0; dom<coilDef_.GetSize(); dom++) {
-	if (subdoms_[actSD] == coilName_[dom]) {
-	   
-	  StdVector<Elem*> elemssd;		
-	  // get vector of Elem of subdomain with color: subdoms[isd]
-	  ptgrid_->GetElemSD(elemssd,subdoms_[actSD],actlevel_);
-	    
+        if (subdoms_[actSD] == coilName_[dom]) {
+           
+          StdVector<Elem*> elemssd;             
+          // get vector of Elem of subdomain with color: subdoms[isd]
+          ptgrid_->GetElemSD(elemssd,subdoms_[actSD],actlevel_);
+            
 
-	  // loop over elements of subdomain	    
-	  for (Integer actEl=0; actEl< elemssd.GetSize(); actEl++) {
-	    BaseFE * ptEl = elemssd[actEl]->ptElem;
-		
-	    const Integer nrIntPts= ptEl->GetNumIntPoints();
-	    const Vector<Double> & intWeights = ptEl->GetIntWeights();  
-	    Double jacDet;
-		
-	    StdVector<Integer> connect;
-	    connect = elemssd[actEl]->connect;
+          // loop over elements of subdomain        
+          for (Integer actEl=0; actEl< elemssd.GetSize(); actEl++) {
+            BaseFE * ptEl = elemssd[actEl]->ptElem;
+                
+            const Integer nrIntPts= ptEl->GetNumIntPoints();
+            const Vector<Double> & intWeights = ptEl->GetIntWeights();  
+            Double jacDet;
+                
+            StdVector<Integer> connect;
+            connect = elemssd[actEl]->connect;
 
-	    Matrix<Double> ptCoord;
-	    GetElemCoords(connect, ptCoord, actlevel_);
+            Matrix<Double> ptCoord;
+            GetElemCoords(connect, ptCoord, actlevel_);
 
-	    Vector<Double> magVecDeriv1Elem;
-	    GetDerivSolVecOfElement(magVecDeriv1Elem,connect);
-	    Double uiElem=0;
-		
-	    for (Integer actIntPt=1; actIntPt<=nrIntPts;  actIntPt++) {
-	      Vector<Double> shapeFnc;
-	      jacDet = ptEl->CalcJacobianDetAtIp(actIntPt, ptCoord);	
-	      ptEl -> GetShFncAtIp(shapeFnc, actIntPt);
+            Vector<Double> magVecDeriv1Elem;
+            GetDerivSolVecOfElement(magVecDeriv1Elem,connect);
+            Double uiElem=0;
+                
+            for (Integer actIntPt=1; actIntPt<=nrIntPts;  actIntPt++) {
+              Vector<Double> shapeFnc;
+              jacDet = ptEl->CalcJacobianDetAtIp(actIntPt, ptCoord);    
+              ptEl -> GetShFncAtIp(shapeFnc, actIntPt);
 
-	      uiElem += shapeFnc * magVecDeriv1Elem;
-		    
-	      if (isaxi_) {
-		Vector<Double> coordAtIP = ptCoord * shapeFnc;
-		uiElem += shapeFnc * magVecDeriv1Elem * 2 * PI * coordAtIP[0]
-		  * intWeights[actIntPt-1];
-	      }
-	      else {
-		uiElem += shapeFnc * magVecDeriv1Elem * intWeights[actIntPt-1];
-	      }
-	    }
-	    
-	    uiSD[dom] += uiElem;
-	  }    
-	}
+              uiElem += shapeFnc * magVecDeriv1Elem;
+                    
+              if (isaxi_) {
+                Vector<Double> coordAtIP = ptCoord * shapeFnc;
+                uiElem += shapeFnc * magVecDeriv1Elem * 2 * PI * coordAtIP[0]
+                  * intWeights[actIntPt-1];
+              }
+              else {
+                uiElem += shapeFnc * magVecDeriv1Elem * intWeights[actIntPt-1];
+              }
+            }
+            
+            uiSD[dom] += uiElem;
+          }    
+        }
       }
     }
   }
@@ -935,15 +939,15 @@ namespace CoupledField {
 
       Boolean isInVec = FALSE;
       
-      for (Integer dom2=0; dom2 < coilIDs.GetSize(); dom2++)	
-	if (abs(coilDef_[dom]->id_) == coilIDs[dom2])
-	  isInVec = TRUE;
+      for (Integer dom2=0; dom2 < coilIDs.GetSize(); dom2++)    
+        if (abs(coilDef_[dom]->id_) == coilIDs[dom2])
+          isInVec = TRUE;
       
       if (!isInVec)
-	coilIDs.Push_back(abs(coilDef_[dom]->id_));
+        coilIDs.Push_back(abs(coilDef_[dom]->id_));
       
       if (abs(coilDef_[dom]->id_) > maxID)
-	maxID = coilDef_[dom]->id_;
+        maxID = coilDef_[dom]->id_;
     }
 
     Vector<Double> uiID(maxID);
@@ -957,8 +961,8 @@ namespace CoupledField {
     *UIfile_ << lasttimecalc_ << " \t";
     for (Integer actID=0; actID < coilIDs.GetSize(); actID++) {
       if ( coilDef_[coilIDs[actID]-1]->coilType_ == Coil::MEASUREMENT2D )
-	*UIfile_ << uiID[coilIDs[actID]-1] *
-	  coilDef_[coilIDs[actID]-1]->windingCrossSection_ << " \t";
+        *UIfile_ << uiID[coilIDs[actID]-1] *
+          coilDef_[coilIDs[actID]-1]->windingCrossSection_ << " \t";
     }
   
     *UIfile_ << myEndl;
@@ -981,27 +985,27 @@ namespace CoupledField {
     // Get list of coils for magnetic PDE
     params->GetCoilList( coilName_, pdename_, bcSequenceTag_);
 
-//     keyVec = pdename_, "coils", "name";
-//     attrVec= "", "tag";
-//     valVec = "", bcSequenceTag_;
-//     params->GetList(keyVec, attrVec, valVec, helper);
+    //     keyVec = pdename_, "coils", "name";
+    //     attrVec= "", "tag";
+    //     valVec = "", bcSequenceTag_;
+    //     params->GetList(keyVec, attrVec, valVec, helper);
 
-//     std::cerr << "helper = " << helper << std::endl;
-//     for (Integer i=0; i<coilNamesAux.GetSize(); i++) {
-//       for (Integer j=0; j<helper.GetSize(); j++)
-// 	if (helper[j] == coilNamesAux[i])
-// 	  coilName_.Push_back(coilNamesAux[i]);
-//     }
+    //     std::cerr << "helper = " << helper << std::endl;
+    //     for (Integer i=0; i<coilNamesAux.GetSize(); i++) {
+    //       for (Integer j=0; j<helper.GetSize(); j++)
+    //      if (helper[j] == coilNamesAux[i])
+    //        coilName_.Push_back(coilNamesAux[i]);
+    //     }
 
-//     std::cerr << "coilName_ = " << coilName_ << std::endl;
+    //     std::cerr << "coilName_ = " << coilName_ << std::endl;
     // Read parameters for individual coils and log to info file
     UInt nrCoils = coilName_.GetSize();
     if ( nrCoils > 0 ) {
       Info->PrintF( pdename_, " Using the following coils:\n" );
       coilDef_.Reserve( nrCoils );
       for ( UInt k = 0; k < nrCoils; k++ ) {
-	coilDef_.Push_back( new Coil( coilName_[k], pdename_ ) );
-	Info->PrintCoil( (*coilDef_[k]), analysistype_ );
+        coilDef_.Push_back( new Coil( coilName_[k], pdename_ ) );
+        Info->PrintCoil( (*coilDef_[k]), analysistype_ );
       }
     }
   }
@@ -1016,7 +1020,7 @@ namespace CoupledField {
 
     // get domain names of magnets
     //    params->GetList( "name", magnetsDomain_, pdename_, "magnets" );
-  // vectors for parameter handling
+    // vectors for parameter handling
     StdVector<std::string> keyVec;
     StdVector<std::string> attrVec;
     StdVector<std::string> valVec;
@@ -1030,7 +1034,7 @@ namespace CoupledField {
     if ( magnetsDomain_.GetSize() > 0 ) {
 
       Info->PrintF( pdename_,
-		    " Found permanent magnets in the following regions:" );
+                    " Found permanent magnets in the following regions:" );
 
       Double tmpDir;
 
@@ -1043,23 +1047,23 @@ namespace CoupledField {
       // for each magnet ...
       for ( UInt k = 0; k < magnetsDomain_.GetSize(); k++ ) {
 
-	// ... read direction of magnetisation
-	valVec = "", "", magnetsDomain_[k];
+        // ... read direction of magnetisation
+        valVec = "", "", magnetsDomain_[k];
 
-	keyVec  = pdename_, "magnets", "magnet", "orientX";
-	params->Get( keyVec, attrVec, valVec, tmpDir);
-	magnetsOriX_.Push_back( tmpDir);
+        keyVec  = pdename_, "magnets", "magnet", "orientX";
+        params->Get( keyVec, attrVec, valVec, tmpDir);
+        magnetsOriX_.Push_back( tmpDir);
 
-	keyVec  = pdename_, "magnets", "magnet", "orientY";
-	params->Get( keyVec, attrVec, valVec, tmpDir );
-	magnetsOriY_.Push_back( tmpDir );
+        keyVec  = pdename_, "magnets", "magnet", "orientY";
+        params->Get( keyVec, attrVec, valVec, tmpDir );
+        magnetsOriY_.Push_back( tmpDir );
 
-	keyVec  = pdename_, "magnets", "magnet", "orientZ";
-	params->Get( keyVec, attrVec, valVec, tmpDir );
-	magnetsOriZ_.Push_back( tmpDir );
+        keyVec  = pdename_, "magnets", "magnet", "orientZ";
+        params->Get( keyVec, attrVec, valVec, tmpDir );
+        magnetsOriZ_.Push_back( tmpDir );
 
-	// ... report name to logfile
-	Info->PrintF( pdename_, "%s", magnetsDomain_[k].c_str());
+        // ... report name to logfile
+        Info->PrintF( pdename_, "%s", magnetsDomain_[k].c_str());
       }
     }
   }
@@ -1089,7 +1093,7 @@ namespace CoupledField {
     params->GetList( keyVec, attrVec, valVec, nodeValues);
     if (nodeValues.GetSize() > 0) {
       saveSol_ = TRUE;
-   	  hasOutput_ = TRUE;
+      hasOutput_ = TRUE;
     }
 
     // *****************************
@@ -1113,9 +1117,9 @@ namespace CoupledField {
     if ( calcBfield_.GetSize() > 0 ) {
       hasOutput_ = TRUE;
       Info->PrintF( pdename_,
-		    " Computing magFluxDensity for regions:");
+                    " Computing magFluxDensity for regions:");
       for ( Integer k = 0; k < calcBfield_.GetSize(); k++ ) {
-	Info->PrintF( pdename_, " %s", calcBfield_[k].c_str() );
+        Info->PrintF( pdename_, " %s", calcBfield_[k].c_str() );
       }
     }
     
@@ -1131,15 +1135,15 @@ namespace CoupledField {
     
     // Log to info file
     if ( calcEnergy_.GetSize() > 0 ) {
-	  hasOutput_ = TRUE;	
+      hasOutput_ = TRUE;    
       Info->PrintF( pdename_,
-		    " Computing magEnergy for regions:");
+                    " Computing magEnergy for regions:");
       for ( Integer k = 0; k < calcEnergy_.GetSize(); k++ ) {
-	Info->PrintF( pdename_, " %s", calcEnergy_[k].c_str() );
+        Info->PrintF( pdename_, " %s", calcEnergy_[k].c_str() );
       }
     }
 
-   // --- Magnetic Eddy Current ---
+    // --- Magnetic Eddy Current ---
     Enum2String(MAG_EDDY_CURRENT, quantity);
     valVec  = "", "", quantity;
     params->GetList( keyVec, attrVec, valVec, calcEddy_ );
@@ -1153,9 +1157,9 @@ namespace CoupledField {
     if ( calcEddy_.GetSize() > 0 ) {
       hasOutput_ =TRUE;
       Info->PrintF( pdename_,
-		    " Computing magEddyCurrent for regions:");
+                    " Computing magEddyCurrent for regions:");
       for ( Integer k = 0; k < calcEddy_.GetSize(); k++ ) {
-	Info->PrintF( pdename_, " %s", calcEddy_[k].c_str() );
+        Info->PrintF( pdename_, " %s", calcEddy_[k].c_str() );
       }
     }
    
@@ -1176,7 +1180,7 @@ namespace CoupledField {
       hasOutput_ = TRUE;
       Info->PrintF( pdename_, " Saving magPotential for Nodes:" );
       for ( Integer k = 0; k < saveNodeHist.GetSize(); k++ ) {
-	Info->PrintF( pdename_, " %s", saveNodeHist[k].c_str() );
+        Info->PrintF( pdename_, " %s", saveNodeHist[k].c_str() );
       }
     }
 
@@ -1205,154 +1209,157 @@ namespace CoupledField {
   // ======================================================
 
 
-void MagPDE::InitCoupling(PDECoupling * Coupling)
-{
-  ENTER_FCN( "MagPDE::InitCoupling" );
+  void MagPDE::InitCoupling(PDECoupling * Coupling) {
+
+    ENTER_FCN( "MagPDE::InitCoupling" );
   
-  pdeIsCoupled_ = TRUE;
-  ptCoupling_   = Coupling;
+    pdeIsCoupled_ = TRUE;
+    ptCoupling_   = Coupling;
+
+    // Enable update of geometry
+    const Integer numCouplings = ptCoupling_->GetNumOutputCouplings();  
+
+    StdVector<StdVector<Integer> > elemNodeToCouplingNode_tmp;
+    elemNodeToCouplingNode_.Resize(numCouplings);
 
 
-  // Enable update of geometry
-  const Integer numCouplings = ptCoupling_->GetNumOutputCouplings();  
+    for ( Integer actCoupling = 0; actCoupling < numCouplings; actCoupling++ ){
 
-  StdVector<StdVector<Integer> > elemNodeToCouplingNode_tmp;
-  elemNodeToCouplingNode_.Resize(numCouplings);
+      if (ptCoupling_->GetOutputQuantity(actCoupling) == MAG_FORCE_LORENTZ) {
 
+        // Intialize the memory of the coupling values
+        ptCoupling_->CreateCouplingVector(actCoupling,isComplex_);
 
- for (Integer actCoupling=0; actCoupling<numCouplings; actCoupling++)
-    {
-      if (ptCoupling_->GetOutputQuantity(actCoupling) == MAG_FORCE_LORENTZ)
-	{
-	  // Intialize the memory of the coupling values
-	  ptCoupling_->CreateCouplingVector(actCoupling,isComplex_);
+        //get the element-node to coupling node matching
+        StdVector<std::string> couplRegions;
+        ptCoupling_->GetOutputRegions(actCoupling, couplRegions);
 
-	  //get the element-node to coupling node matching
-	  StdVector<std::string> couplRegions;
-	  ptCoupling_->GetOutputRegions(actCoupling, couplRegions);
+        //Get total number of coupling elements
+        Integer totalCouplingElems = ptgrid_->GetMaxnumElem( actlevel_,
+                                                             couplRegions );
 
-	  //Get total number of coupling elements
-	  Integer totalCouplingElems = ptgrid_->GetMaxnumElem(actlevel_, couplRegions);;
+        elemNodeToCouplingNode_tmp.Clear();
+        elemNodeToCouplingNode_tmp.Resize(totalCouplingElems);
 
-	  elemNodeToCouplingNode_tmp.Clear();
-	  elemNodeToCouplingNode_tmp.Resize(totalCouplingElems);
+        Integer offset = 0;
+        for ( Integer reg = 0; reg < couplRegions.GetSize(); reg++ ) {
 
-	  Integer offset = 0;
-	  for (Integer reg=0; reg<couplRegions.GetSize(); reg++) 
-	    {
-	      //find subdomain index
-	      Integer SDidx=-1; for (Integer sd=0; sd<subdoms_.GetSize(); sd++) 
-		{
-		  if (couplRegions[reg] == subdoms_[sd]) 
-		    {
-		      SDidx = sd;
-		      break;
-		    }
-		}
-	      
-	      if (SDidx==-1)
-		Error("magnetics: Coupling Region is not within the subdomains of the PDE");
-	    
-	      StdVector<Elem*> elemssd;
-	      ptgrid_->GetElemSD(elemssd, subdoms_[SDidx], actlevel_);
+          // find subdomain index
+          Integer SDidx=-1; for (Integer sd=0; sd<subdoms_.GetSize(); sd++) {
+            if (couplRegions[reg] == subdoms_[sd]) {
+              SDidx = sd;
+              break;
+            }
+          }
+              
+          if (SDidx==-1) {
+            (*error) << "magneticPDE: Coupling Region is not within the "
+                     << "subdomains of the PDE";
+            Error( __FILE__, __LINE__ );
+          }
 
-	      StdVector<Integer> * couplingnodes;
-	      ptCoupling_->GetOutputNodes(actCoupling, couplingnodes);
-	      if (couplingnodes == 0)
-		Error("magnetics: Couplingnodes = 0!!!!");
+          StdVector<Elem*> elemssd;
+          ptgrid_->GetElemSD(elemssd, subdoms_[SDidx], actlevel_);
 
-	      for (Integer actEl=0; actEl< elemssd.GetSize(); actEl++) 
-		{
-		  StdVector<Integer> connecth = elemssd[actEl]->connect;
-		  elemNodeToCouplingNode_tmp[offset+actEl].Resize(connecth.GetSize());
+          StdVector<Integer> * couplingnodes;
+          ptCoupling_->GetOutputNodes(actCoupling, couplingnodes);
+          if (couplingnodes == 0)
+            Error("magnetics: Couplingnodes = 0!!!!");
 
-		  for (Integer ielemnode=0; ielemnode<connecth.GetSize(); ielemnode++)
-		    for (Integer cnode=0; cnode<(*couplingnodes).GetSize(); cnode++)
-		      if (connecth[ielemnode] == (*couplingnodes)[cnode] ) 
-			{
-			  elemNodeToCouplingNode_tmp[offset+actEl][ielemnode] = cnode;
-			  break;
-			} // end if
-		}
+          for (Integer actEl=0; actEl< elemssd.GetSize(); actEl++) {
+            StdVector<Integer> connecth = elemssd[actEl]->connect;
+            elemNodeToCouplingNode_tmp[offset+actEl].Resize(connecth.GetSize());
 
-	      //in the case, that we have more than one coupling region!
-	      offset = elemssd.GetSize();
-	    }
+            for ( Integer ielemnode = 0; ielemnode < connecth.GetSize();
+                  ielemnode++ ) {
+              for ( Integer cnode = 0; cnode < (*couplingnodes).GetSize();
+                    cnode++ ) {
+                if (connecth[ielemnode] == (*couplingnodes)[cnode] ) {
+                  elemNodeToCouplingNode_tmp[offset+actEl][ielemnode] = cnode;
+                  break;
+                }
+              }
+            }
+          }
 
-	  elemNodeToCouplingNode_[actCoupling]  = elemNodeToCouplingNode_tmp;
-	}
+          //in the case, that we have more than one coupling region!
+          offset = elemssd.GetSize();
+        }
+
+        elemNodeToCouplingNode_[actCoupling]  = elemNodeToCouplingNode_tmp;
+      }
     }
-}
+  }
 
-void MagPDE::CalcOutputCoupling()
-{
-  ENTER_FCN( "MagPDE::CalcOutputCoupling" );
+  void MagPDE::CalcOutputCoupling() {
 
-  SolutionType quantity;
-  StdVector<Integer> * couplingNodes     = NULL;
-  CFSVector * values = NULL;
-  Integer forcesCount = 0;
+    ENTER_FCN( "MagPDE::CalcOutputCoupling" );
 
-  // loop over all output coupling quantities
-  for (Integer actCoupling=0; actCoupling<ptCoupling_->GetNumOutputCouplings(); actCoupling++)
-    {
+    SolutionType quantity;
+    StdVector<Integer> * couplingNodes = NULL;
+    CFSVector * values = NULL;
+    Integer forcesCount = 0;
+
+    // loop over all output coupling quantities
+    for ( Integer actCoupling = 0;
+          actCoupling < ptCoupling_->GetNumOutputCouplings();
+          actCoupling++ ) {
+
       quantity = ptCoupling_->GetOutputQuantity(actCoupling);
       ptCoupling_->GetOutputValues(actCoupling, values);
 
-      Vector<Double> *  temp = dynamic_cast<Vector<Double> *>(values);
+      Vector<Double> *temp = dynamic_cast<Vector<Double> *>(values);
       
-      switch(ptCoupling_->GetOutputType(actCoupling))
-	{
-	  
-	case NODE:	  
-	  ptCoupling_->GetOutputNodes(actCoupling, couplingNodes);
-	  
-	  if (quantity == MAG_FORCE_LORENTZ) 
-	    {
-	      CalcNodeForceLorentz(*temp, elemNodeToCouplingNode_[forcesCount],
-				   actCoupling, couplingNodes->GetSize());
-	      forcesCount++;;
-	    }
+      switch(ptCoupling_->GetOutputType(actCoupling)) {
+          
+      case NODE:
+        ptCoupling_->GetOutputNodes(actCoupling, couplingNodes);
+          
+        if (quantity == MAG_FORCE_LORENTZ) {
+          CalcNodeForceLorentz(*temp, elemNodeToCouplingNode_[forcesCount],
+                               actCoupling, couplingNodes->GetSize());
+          forcesCount++;
+        }
 
-	  break;
-	  
-	case ELEM:
-	  Error("No Element coupling output", __FILE__,__LINE__);
-	}
+        break;
+          
+      case ELEM:
+        Error( "No Element coupling output", __FILE__, __LINE__ );
+      }
     }
-}
+  }
 
-void MagPDE::CalcNodeForceLorentz(Vector<Double> & force, 
-				  StdVector<StdVector<Integer> > & elemNodeToCouplingNode,
-				  Integer actCoupling, Integer numCouplingNodes)
-{
-  ENTER_FCN( "MagPDE::CalcNodeForceLorentz" );
+  void MagPDE::
+  CalcNodeForceLorentz(Vector<Double> & force, 
+                       StdVector<StdVector<Integer> > & elemNodeToCouplingNode,
+                       Integer actCoupling, Integer numCouplingNodes) {
 
-  NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double> *>(sol_);
+    ENTER_FCN( "MagPDE::CalcNodeForceLorentz" );
 
-  //get the coupling regions
-  StdVector<std::string> couplRegions;
-  ptCoupling_->GetOutputRegions(actCoupling, couplRegions);
+    NodeStoreSol<Double> *solhelp = dynamic_cast<NodeStoreSol<Double> *>(sol_);
 
+    //get the coupling regions
+    StdVector<std::string> couplRegions;
+    ptCoupling_->GetOutputRegions(actCoupling, couplRegions);
   
-  MagLorentzForceOp * ForceOp = new MagLorentzForceOp(ptgrid_, this, eqnData_, *solhelp, actlevel_, isaxi_);
-   
-  force.Init(0.0);
+    MagLorentzForceOp *ForceOp = new MagLorentzForceOp( ptgrid_, this,
+                                                        eqnData_, *solhelp,
+                                                        actlevel_, isaxi_ );
 
-  Vector<Double> Jeddy;
+    force.Init(0.0);
 
-  Integer offset = 0;
-  for (Integer reg=0; reg<couplRegions.GetSize(); reg++) 
-    {
+    Vector<Double> Jeddy;
+
+    Integer offset = 0;
+    for (Integer reg=0; reg<couplRegions.GetSize(); reg++) {
+
       //find subdomain index
-      Integer SDidx=-1; for (Integer sd=0; sd<subdoms_.GetSize(); sd++) 
-	{
-	  if (couplRegions[reg] == subdoms_[sd]) 
-	    {
-	      SDidx = sd;
-	      break;
-	    }
-	}
+      Integer SDidx=-1; for (Integer sd=0; sd<subdoms_.GetSize(); sd++) {
+        if (couplRegions[reg] == subdoms_[sd]) {
+          SDidx = sd;
+          break;
+        }
+      }
 
       Double conductivity;
       materialData_[SDidx].GetConductivity(2,2,conductivity);      
@@ -1360,39 +1367,35 @@ void MagPDE::CalcNodeForceLorentz(Vector<Double> & force,
       StdVector<Elem*> elemssd;
       ptgrid_->GetElemSD(elemssd, subdoms_[SDidx], actlevel_);
   
-      for (Integer actEl=0; actEl< elemssd.GetSize(); actEl++) 
-	{
-	  StdVector<Integer> connecth = elemssd[actEl]->connect;
-	  Matrix<Double> elemForce;
-	  GetDerivSolVecOfElement(Jeddy,connecth);
-	  Jeddy *= -conductivity;
+      for (Integer actEl=0; actEl< elemssd.GetSize(); actEl++) {
+        StdVector<Integer> connecth = elemssd[actEl]->connect;
+        Matrix<Double> elemForce;
+        GetDerivSolVecOfElement(Jeddy,connecth);
+        Jeddy *= -conductivity;
 
-	  ForceOp->CalcElemMagLorentzForce(elemForce, Jeddy, elemssd[actEl]);
+        ForceOp->CalcElemMagLorentzForce(elemForce, Jeddy, elemssd[actEl]);
 
-	  // Add the element force to the according coupling node
-	  for (Integer ielemnode=0; ielemnode<connecth.GetSize(); ielemnode++)
-	    for( Integer idim=0; idim<dim_; idim++)
-	      force[elemNodeToCouplingNode[actEl+offset][ielemnode]*dim_+idim] += 
-		elemForce[ielemnode][idim];
-	}
+        // Add the element force to the according coupling node
+        for (Integer ielemnode=0; ielemnode<connecth.GetSize(); ielemnode++) {
+          for( Integer idim=0; idim<dim_; idim++) {
+            force[elemNodeToCouplingNode[actEl+offset][ielemnode]*dim_+idim]
+              += elemForce[ielemnode][idim];
+          }
+        }
+      }
 
       //in the case, that we have more than one coupling region!
       offset = elemssd.GetSize();
-	  
     }
-}
+  }
 
-Boolean MagPDE::HasOutput(SolutionType output)
-{
-  ENTER_FCN( "MagPDE::HasOutput" );
-
-  if (output == MAG_FORCE_LORENTZ)
-    return TRUE;
-
-  return FALSE;
-}
-
-
+  Boolean MagPDE::HasOutput( SolutionType output ) {
+    ENTER_FCN( "MagPDE::HasOutput" );
+    if (output == MAG_FORCE_LORENTZ) {
+      return TRUE;
+    }
+    return FALSE;
+  }
 
 } // end of namespace
 

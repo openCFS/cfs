@@ -274,7 +274,6 @@ void MpcciPDE::CalcInputCoupling()
 		    {
 			for (Integer dof=0; dof<ptCoupling_->GetInputDof(i); dof++)
 			  {
-			    //pdeNode = GetPDENodeFromGlobNode((*nodes)[j]);
 			    pdeNode = eqnData_->Mesh2PDENode((*nodes)[j]);
 			    //std::cerr << "pdeNode " << pdeNode << "=" << (*nodes)[j] << std::endl;
 				if (pdeNode==-1) {

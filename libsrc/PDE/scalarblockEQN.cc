@@ -62,7 +62,6 @@ void ScalarBlockEQN::CalcMapping()
  
 
   
-//   std::cerr << "eqn2Pos has size " << eqn2Pos_.GetSize() << std::endl;
 //   std::cerr << "size of mesh2PDENode_" << mesh2PDENode_.GetSize() << std::endl;
 //   std::cerr << "size of pdeNode2EQN_" << pdeNode2EQN_.GetSizeRow() << std::endl;
   
@@ -107,11 +106,6 @@ void ScalarBlockEQN::CalcMapping()
     Warning(errMsg.c_str(), __FILE__, __LINE__);
   }
   
-  eqn2Pos_.Resize(numPDENodes_ * dofsPerNode_
-		  - homoDirichletNodes_.GetSize()
-		  - constraintSlaveNodes_.GetSize()
-		  + notIncludedBCs + multipleBCs);
-//     std::cerr << "after step2" << std::endl;
   
   // STEP 3
   for (Integer i=0; i<constraintSlaveNodes_.GetSize(); i++)
@@ -126,12 +120,8 @@ void ScalarBlockEQN::CalcMapping()
 	{
 	  eqnCounter++;
 // 	  std::cerr << "size of pdeNode2EQN = " << pdeNode2EQN_.GetSizeRow() << std::endl;
-// 	  std::cerr << "size of eqn2Pos_ = " << eqn2Pos_.GetSize() << std::endl;
 // 	  std::cerr << "pdeNode2EQN_[" << iNode << "][" << iDof << "] = " << eqnCounter << std::endl;
-// 	  std::cerr << "eqn2Pos_[" << eqnCounter-1 << "] = " << (pde2MeshNode_[iNode]-1)*dofsPerNode_ + iDof << std::endl;
 	  pdeNode2EQN_[iNode][iDof] = eqnCounter;
-	  eqn2Pos_[eqnCounter-1] = 
-	    (pde2MeshNode_[iNode]-1)*dofsPerNode_ + iDof;
 
 	}
 //     std::cerr << "after step4" << std::endl;
@@ -188,14 +178,6 @@ void ScalarBlockEQN::Print(std::ostream & out) const
 }
 
 
-void ScalarBlockEQN::EQN2SolVectorPos(const StdVector<Integer> &eqnNr, 
-				     StdVector<Integer> &pos) const
-{
-  ENTER_FCN( "ScalarBlockEQN::EQN2SolVectorPos" );
-  Error( "Not implemented" );
-}
-
-
 void ScalarBlockEQN::Node2EQN(const Integer nodeNr, 
 			      const Integer dof,
 			      Integer & eqnNr,
@@ -247,5 +229,26 @@ void ScalarBlockEQN::Node2EQN(const StdVector<Integer> &nodeNr,
 	  pdeNode2EQN_[mesh2PDENode_[nodeNr[iNode]-1]-1][iDof];
     }
 }
+
+  // ==========================================
+  //   Equation mapping according to reordering
+  // ==========================================
+  void ScalarBlockEQN::ReorderMapping(Integer *order) {
+
+    ENTER_FCN( "ScalarBlockEQN::ReorderMapping" );
+
+    for ( Integer i = 0; i < pdeNode2EQN_.GetSizeRow(); i++ ) {
+      for ( Integer j = 0; j < pdeNode2EQN_.GetSizeCol(); j++ ) {
+	if ( pdeNode2EQN_[i][j] > 0 ) {
+	  pdeNode2EQN_[i][j] = order[pdeNode2EQN_[i][j]-1];
+	}
+	else if(pdeNode2EQN_[i][j] < 0 ) {
+	  //due to constraints
+	  pdeNode2EQN_[i][j] = -order[-pdeNode2EQN_[i][j]-1];	
+	}
+      }
+    }
+    
+  }
 
 } // end of namespace

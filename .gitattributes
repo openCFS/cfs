@@ -18,7 +18,6 @@ Doc/xmlFile/solverParams.tex svneol=native#text/plain
 Doc/xmlFile/xmlReference.tex svneol=native#text/plain
 Doc/xmlFile/xmlcover.tex svneol=native#text/plain
 Doc/xmlFile/xmlintro.tex svneol=native#text/plain
-/Makefile -text
 XML/CFS.xsd -text
 XML/Defaults/CFS++Defaults.xml svneol=native#text/xml
 XML/Docs/XMLParams.tex svneol=native#text/plain

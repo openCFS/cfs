@@ -16,11 +16,10 @@
 #include "DataInOut/ParamHandling/XMLParamHandler.hh"
 #include "DataInOut/ParamHandling/SkeletonConf.hh"
 
-namespace CoupledField
-{
+namespace CoupledField {
 
-  SkeletonConf::SkeletonConf (const Char * aname)
-  {
+  SkeletonConf::SkeletonConf (const Char * aname) {
+
     ENTER_FCN("SkeletonConf::SkeletonConf");
 
     name_=new Char[100];
@@ -33,18 +32,16 @@ namespace CoupledField
 
     std::string dummy;
     testfile >> dummy;
-    if (!dummy.empty())
-      {
-	std::cerr << std::endl << "  \033[31mError\033[0m: " //<< std::endl 
-		  << "conf-File is not empty: please change the name of your current conf-file" 
-		  << std::endl
-		  << "\t \t \t \t before calling cfs with option -skel"
-		  << std::endl<< std::endl ;
-	exit(1);
+    if (!dummy.empty()) {
+      std::cerr << std::endl << "  \033[31mError\033[0m: " //<< std::endl 
+		<< "conf-File is not empty: please change the name of your "
+		<< "current conf-file" << std::endl
+		<< "\t \t \t \t before calling cfs with option -skel"
+                  << std::endl<< std::endl ;
+      exit(1);
+    }
 
-      }
-
-    //open the conf-file
+    // open the conf-file
     strcpy(filename, aname);
     skelfile_ = new std::ofstream(strcat(filename,".xml"));
     if (!skelfile_) 
@@ -67,7 +64,8 @@ namespace CoupledField
     skelfile_->close();
 
     std::cerr << std::endl;
-    std::cerr << "\t Please complete the file before starting the simulation" << std::endl << std::endl;
+    std::cerr << "\t Please complete the file before starting the simulation"
+	      << std::endl << std::endl;
 
     delete [] name_;
   }
@@ -83,7 +81,7 @@ namespace CoupledField
     //  WriteLists(); --> has to be done in WriteSubdomains!!
 
     (*skelfile_) << myendl << "   <!--  PDE SPECIFIC PARAMETERS -->" << myendl 
-		 << "   <pdeList>" << myendl << myendl;
+                 << "   <pdeList>" << myendl << myendl;
     WritePDE();
     (*skelfile_)  << "   </pdeList>" << std::endl << myendl;
 
@@ -102,21 +100,28 @@ namespace CoupledField
     ENTER_FCN("SkeletonConf::WriteGeneral");
 
     (*skelfile_)  << "<?xml version=\"1.0\"?>" << myendl
-		  << "<cfsSimulation xmlns=\"http://www.cfs++.org\">" << myendl << myendl;    
+                  << "<cfsSimulation xmlns=\"http://www.cfs++.org\">"
+		  << myendl << myendl;    
 
-    (*skelfile_)  << "   <!-- ============================================================= -->" << std::endl 
-		  << "   <!--   SKELETON-CONF-FILE: PLEASE REPLACE ALL \"XXX\" AND FILL OUT!  -->" << std::endl
-		  << "   <!-- ============================================================= -->" << std::endl
-		  << myendl;
+    (*skelfile_)  << "   <!-- ==============================================="
+		  << "============== -->" << std::endl 
+                  << "   <!--   SKELETON-CONF-FILE: PLEASE REPLACE ALL \"XXX\""
+		  << " AND FILL OUT!  -->" << std::endl
+                  << "   <!-- ==============================================="
+		  << "============== -->" << std::endl
+                  << myendl;
 
-    (*skelfile_)  << "   <!--  ANALYSIS (static, transient, harmonic, multiSequence) -->" << std::endl
-		  << "   <analysis type=\"XXX\"/>" << std::endl << std::endl;
+    (*skelfile_)  << "   <!--  ANALYSIS (static, transient, harmonic, "
+		  << "multiSequence) -->" << std::endl
+                  << "   <analysis type=\"XXX\"/>" << std::endl << std::endl;
 
-    (*skelfile_)  << "   <!--  DEFINE GEOMETRY TYPE (plane, axi, 3d)-->" << std::endl
-		  << "   <geometry type=\"plane\"/>" << std::endl << std::endl;
+    (*skelfile_)  << "   <!--  DEFINE GEOMETRY TYPE (plane, axi, 3d)-->"
+		  << std::endl
+                  << "   <geometry type=\"plane\"/>" << std::endl << std::endl;
 
     (*skelfile_)  << "   <!--  NAME OF MATERIAL FILE -->" << std::endl
-		  << "   <materialData file=\"mat.dat\"/>" << std::endl << std::endl;
+                  << "   <materialData file=\"mat.dat\"/>" << std::endl
+		  << std::endl;
   }
 
 
@@ -134,13 +139,13 @@ namespace CoupledField
     strcpy(filename, name_);
 
     // Generate parser and parse XML defaults file
-     std::string cfsDefaults = XMLSCHEMA;
-     cfsDefaults += "/Defaults/CFS++Defaults.xml";
+    std::string cfsDefaults = XMLSCHEMA;
+    cfsDefaults += "/Defaults/CFS++Defaults.xml";
     
 #ifdef USE_XERCES
     params = new XMLParamHandler( cfsDefaults.c_str() );
 #else
-     params = new PlainXMLParamHandler( cfsDefaults.c_str() );
+    params = new PlainXMLParamHandler( cfsDefaults.c_str() );
 #endif
 
 
@@ -167,20 +172,22 @@ namespace CoupledField
     Integer dim = meshfile_-> ReadDim();
     if (dim == 3)
       {
-	//subdomains consists of 3d elements
-	if (meshfile_->GetNum3DElems() == 0)
-	  Error("3D-Problem specified, but no 3D-Elements in mesh-File",__FILE__,__LINE__);
+        //subdomains consists of 3d elements
+        if (meshfile_->GetNum3DElems() == 0)
+          Error( "3D-Problem specified, but no 3D-Elements in mesh-File",
+		 __FILE__,__LINE__);
 
-	meshfile_->ReadEl3dConf(sd);
+        meshfile_->ReadEl3dConf(sd);
       }
 
     else if (dim == 2)
       {
-	//subdomains consists of 2d elements
-	if (meshfile_->GetNum2DElems() == 0)
-	  Error("2D-Problem specified, but no 2D-Elements in mesh-File",__FILE__,__LINE__);
+        //subdomains consists of 2d elements
+        if (meshfile_->GetNum2DElems() == 0)
+          Error( "2D-Problem specified, but no 2D-Elements in mesh-File",
+		 __FILE__,__LINE__);
 
-	meshfile_->ReadEl2dConf(sd);
+        meshfile_->ReadEl2dConf(sd);
       }
     else
       Error("Dimension of Problem not supported",__FILE__,__LINE__);
@@ -190,7 +197,8 @@ namespace CoupledField
     (*skelfile_) << "      <!-- LIST OF SUBDOMAINS -->"<< std::endl;
 
     for (Integer i=0; i<sd.GetSize(); i++)
-      (*skelfile_) << "      <region name=\"" << sd[i] << "\" material=\"XXX\"/>" << std::endl;
+      (*skelfile_) << "      <region name=\"" << sd[i]
+		   << "\" material=\"XXX\"/>" << std::endl;
 
     (*skelfile_) << std::endl;
 
@@ -218,49 +226,49 @@ namespace CoupledField
     //check for node-list
     if (meshfile_->GetNumBCs() != 0)
       {
-	sd.Clear();
-	meshfile_->ReadBCsConf(sd);
+        sd.Clear();
+        meshfile_->ReadBCsConf(sd);
 
-	if (sd.GetSize())
-	  (*skelfile_) << "      <!-- LIST OF NODES FOR BCs  --> " << myendl;
-	
-	for (Integer i=0; i<sd.GetSize(); i++)
-	  (*skelfile_) << "      <nodes name=\"" << sd[i] << "\"/>" << myendl;
-	(*skelfile_) << myendl;
+        if (sd.GetSize())
+          (*skelfile_) << "      <!-- LIST OF NODES FOR BCs  --> " << myendl;
+        
+        for (Integer i=0; i<sd.GetSize(); i++)
+          (*skelfile_) << "      <nodes name=\"" << sd[i] << "\"/>" << myendl;
+        (*skelfile_) << myendl;
       }
 
 
     if (meshfile_->GetNumSaveNodes() )
       {
-	sd.Clear();
-	meshfile_->ReadLevelOfSaveNodes(sd);
-	if (sd.GetSize())
-	  (*skelfile_) << "      <!-- LIST OF SAVE NODES --> " << std::endl;
+        sd.Clear();
+        meshfile_->ReadLevelOfSaveNodes(sd);
+        if (sd.GetSize())
+          (*skelfile_) << "      <!-- LIST OF SAVE NODES --> " << std::endl;
 
-	for (Integer i=0; i<sd.GetSize(); i++)
-	  (*skelfile_) << "      <nodes name=\"" << sd[i] << "\"/>" << myendl;
+        for (Integer i=0; i<sd.GetSize(); i++)
+          (*skelfile_) << "      <nodes name=\"" << sd[i] << "\"/>" << myendl;
       }
 
     // Print surface elements
-	sd.Clear();
+    sd.Clear();
     if (dim == 3){
 
       //check for 2D-interface elements
       if (meshfile_->GetNum2DElems() != 0)
-		meshfile_->ReadEl2dConf(sd);
+	meshfile_->ReadEl2dConf(sd);
     
     } else if (dim == 2) {
     
       //check for 1D-interface elements
       if (meshfile_->GetNum1DElems() != 0) {
-		meshfile_->ReadEl1dConf(sd);
+	meshfile_->ReadEl1dConf(sd);
       }
     }
     if (sd.GetSize()) {
       (*skelfile_) << "      <!--  LIST OF FACES -->" << std::endl;
       
       for (Integer i=0; i<sd.GetSize(); i++)
-	(*skelfile_) << "      <elements name=\"" << sd[i] << "\"/>" << myendl;
+        (*skelfile_) << "      <elements name=\"" << sd[i] << "\"/>" << myendl;
       (*skelfile_) << myendl;
     }
   }
@@ -272,26 +280,28 @@ namespace CoupledField
 
     (*skelfile_) << "      <!-- name of pde -->" << std::endl
                  << "      <XXX>" << std::endl 
-		 << std::endl
+                 << std::endl
                  << "         <region name=\"XXX\"/>" << std::endl 
-		 << std::endl
+                 << std::endl
                  << "         <!-- boundary conditions -->" << std::endl
                  << "         <bcsAndLoads>" << std::endl
                  << "            <dirichletHom   name=\"XXX\"/>" << std::endl
-                 << "            <dirichletInhom name=\"XXX\" value=\"1\" />" << std::endl
-                 << "            <load           name=\"XXX\" value=\"1\" />" << std::endl 
+                 << "            <dirichletInhom name=\"XXX\" value=\"1\" />"
+		 << std::endl
+                 << "            <load           name=\"XXX\" value=\"1\" />"
+		 << std::endl 
                  << "         </bcsAndLoads>" << std::endl 
-		 << myendl
+                 << myendl
                  << "         <!-- storing of results -->" << std::endl
                  << "         <storeResults>" << std::endl
-		 << "           <!-- <nodeResults type=\"XXX\"/>                 -->"  
-		 << std::endl
-		 << "           <!-- <nodeHistory type=\"XXX\" saveNodes=\"XXX\"/> -->" 
-		 << std::endl
-		 << "           <!-- <elemResults type=\"XXX\" region=\"XXX\"/>    -->" 
-		 << std::endl
-		 << "         </storeResults>" << std::endl
-		 << "      </XXX>" << std::endl << std::endl;
+                 << "           <!-- <nodeResults type=\"XXX\"/>                 -->"  
+                 << std::endl
+                 << "           <!-- <nodeHistory type=\"XXX\" saveNodes=\"XXX\"/> -->" 
+                 << std::endl
+                 << "           <!-- <elemResults type=\"XXX\" region=\"XXX\"/>    -->" 
+                 << std::endl
+                 << "         </storeResults>" << std::endl
+                 << "      </XXX>" << std::endl << std::endl;
   }
 
   void SkeletonConf::WriteCouplingList ()
@@ -350,44 +360,44 @@ namespace CoupledField
     // Transient Analysis
     (*skelfile_)  << "   <!--In case of transient analysis, uncomment "
                   << "following lines -->" << std::endl
-		  << "   <!--<transient>    " << std::endl
-		  << "     <numSteps>    1    </numSteps>       " << std::endl
-		  << "     <firstDt>     1e-6 </firstDt>        " << std::endl
-		  << "     <stepSaveBeg> 1    </stepSaveBeg>    " << std::endl
-		  << "     <stepSaveEnd> 1    </stepSaveEnd>    " << std::endl
-		  << "     <stepSaveInc> 1    </stepSaveInc>    " << std::endl
-		  << "     <timeDataFile name=\"XXX.dat\"/>       " << std::endl
-		  << "   </transient>                         -->" << std::endl 
-		  << myEndl;
+                  << "   <!--<transient>    " << std::endl
+                  << "     <numSteps>    1    </numSteps>       " << std::endl
+                  << "     <firstDt>     1e-6 </firstDt>        " << std::endl
+                  << "     <stepSaveBeg> 1    </stepSaveBeg>    " << std::endl
+                  << "     <stepSaveEnd> 1    </stepSaveEnd>    " << std::endl
+                  << "     <stepSaveInc> 1    </stepSaveInc>    " << std::endl
+                  << "     <timeDataFile name=\"XXX.dat\"/>       " << std::endl
+                  << "   </transient>                         -->" << std::endl 
+                  << myEndl;
 
     // Harmonic Analysis
     (*skelfile_)  << "   <!--In case of harmonic analysis, uncomment "
                   << "following lines -->" << std::endl
-		  << "   <!--<harmonic>    " << std::endl
-		  << "      <numFreq>    1   </numFreq>       " << std::endl
-		  << "      <startFreq>  1e3 </startFreq>        " << std::endl
-		  << "      <stopFreq>   1   </stopFreq>    " << std::endl
-		  << "   </harmonic>                         -->" << std::endl 
-		  << myEndl;
+                  << "   <!--<harmonic>    " << std::endl
+                  << "      <numFreq>    1   </numFreq>       " << std::endl
+                  << "      <startFreq>  1e3 </startFreq>        " << std::endl
+                  << "      <stopFreq>   1   </stopFreq>    " << std::endl
+                  << "   </harmonic>                         -->" << std::endl 
+                  << myEndl;
 
     // MultiSequence Analysis
     (*skelfile_)  << "   <!--In case of multiSequence analysis, uncomment "
                   << "following lines -->" << std::endl
-		  << "   <!--<multiSequence>       " << std::endl
-		  << "     <step index=\"1\"> " << std::endl
-		  << "       <pde refTag=\"XXX\" type=\"XXX\" " 
+                  << "   <!--<multiSequence>       " << std::endl
+                  << "     <step index=\"1\"> " << std::endl
+                  << "       <pde refTag=\"XXX\" type=\"XXX\" " 
                   << "analysis=\"XXX\"/>" << std::endl
-		  << "     </step>               " << std::endl
-		  << "     <step index=\"2\"> " << std::endl
-		  << "       <pde refTag=\"XXX\" type=\"XXX\" " 
+                  << "     </step>               " << std::endl
+                  << "     <step index=\"2\"> " << std::endl
+                  << "       <pde refTag=\"XXX\" type=\"XXX\" " 
                   << "analysis=\"XXX\"/>" << std::endl
-		  << "     </step>               " << std::endl
-		  << "   </multiSequence>                            -->" << std::endl 
-		  << myEndl;
+                  << "     </step>               " << std::endl
+                  << "   </multiSequence>                            -->" << std::endl 
+                  << myEndl;
 
 
   }
 
-  }
+}
 
 

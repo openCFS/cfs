@@ -14,7 +14,7 @@ CFLAGS3 =
 #
 include ../../makefile.inc
 ifeq ($(DATABASE),yes)
-  -include $(Dependencies)
+  -include $(DEPEND_FILE)
 endif
 # DO NOT DELETE
 

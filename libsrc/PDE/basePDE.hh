@@ -185,9 +185,6 @@ namespace CoupledField
     //! Create the matrices and Solver as well as Preconditioner
     virtual void CreateMatrices_Solver();
 
-    //! define algebraic system solver Parameters
-    virtual void SetSolverParameters();
-
     //! set time step
     //! \params dt Current time step
     virtual void SetTimeStep(const Double dt)
@@ -655,20 +652,13 @@ namespace CoupledField
 
     //@{
     //! \name Attributes connected to parameters for solver
-    Integer maxnumiter_;     //!< maximum of iterations (for iterative solver)
-#ifdef USE_OLAS
+    Integer maxnumiter_;       //!< maximum of iterations (for iterative solver)
     OLAS_Params * olasParams_; //! pointer to paramter object of OLAS
     OLAS_Report * olasReport_; //! pointer to report object of OLAS
-    SolverType solvertype_;    //!< type of solver (see environment.hh)
-    PrecondType precondtype_;  //!< type of preconditioner (see environment.hh)
-#else
-    Integer solvertype_;     //!< type of solver (see las_environment.hh)
-    Integer precondtype_;    //!< type of preconditioner (see las_environment.hh)
-#endif
-    Integer numeqcoarse_;    //!< number of unknowns on coarse level(just for AMG)
-    Double  eps_;            //!< accuracy
-    Double dampiter_;        //!< damping parameter within iterative solution
-    Double coarsealpha_;     //!< coarsening factor (just for AMG)
+    Integer numeqcoarse_;      //!< number of unknowns on coarse level(just for AMG)
+    Double  eps_;              //!< accuracy
+    Double dampiter_;          //!< damping parameter within iterative solution
+    Double coarsealpha_;       //!< coarsening factor (just for AMG)
    
     ComplexFormat complexFormat_;  //!< outputFormat for complex numbers
 

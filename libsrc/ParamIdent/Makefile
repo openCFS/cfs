@@ -22,7 +22,7 @@ libpath = libsrc/Driver
 CFLAGS3 =
 #
 include ../makefile.inc
--include $(Dependencies)
+-include $(DEPEND_FILE)
 # DO NOT DELETE
 
 

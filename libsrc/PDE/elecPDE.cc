@@ -211,6 +211,10 @@ void ElecPDE::WriteResultsInFile(Integer stepOffset,
    Error("ElecPDE: Only static results can be written", __FILE__, __LINE__);
 
 
+  // The following section was used by Gerhard to compute sum of forces over
+  // different iteration and time steps. The sum was written into the .data stream.
+  // Since this is not available anymore, this is commented out
+#ifdef COMMENTET_OUT
   if (pdeIsCoupled_ == TRUE) {
     //   // TMPORARILY
     SolutionType quantity;
@@ -254,6 +258,7 @@ void ElecPDE::WriteResultsInFile(Integer stepOffset,
 	  } // switch
       } // for
   }
+#endif
 
 #ifdef PARALLEL
     }//!commrank

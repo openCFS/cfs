@@ -138,8 +138,10 @@ namespace CoupledField {
   protected:
 
     //! Convertes enum SolutionType to string
-    virtual std::string SolutionTypeToString(const SolutionType type) const
-    {Error(" Not implemented here", __FILE__, __LINE__);}
+    virtual std::string SolutionTypeToString(const SolutionType type) const {
+      Error( "Not implemented here", __FILE__, __LINE__ );
+      return "badluck";
+    }
 
     //! name of file for output results
     std::string namefile_;

@@ -34,11 +34,6 @@ public:
   // Functions for mapping node numbers <-> EQN numbers
   // -----------------------------------------------------------------------
   
-   //! Map vector of equation numbers to 
-  //! positions in global solution vector
-  void EQN2SolVectorPos(const StdVector<Integer> &eqnNr, 
-			StdVector<Integer> &pos) const;
-  
   //! Map node number and dof to according equation number
   void Node2EQN(const Integer nodeNr, 
 		const Integer dof,
@@ -52,6 +47,9 @@ public:
   //! vector of equiation numbers
   void Node2EQN(const StdVector<Integer> &nodeNr,
 		StdVector<Integer> &eqnNr) const;
+
+    //! Maps the equation numbers according to the reordering
+    void ReorderMapping(Integer *order);
 
 private:
 

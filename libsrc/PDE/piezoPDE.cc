@@ -35,10 +35,25 @@ namespace CoupledField {
     pdematerialclass_ = "piezo";
     piezoMaterialType_ = realMaterialParameter; // default
 
-    if( params->HasValue( "type", "imagMaterialParameter", pdename_, "materialDataType" ) ) {
+    // TEMPORARY
+    StdVector<std::string> keyVec;
+    keyVec = pdename_, "solver", "matrix", "eqnNumbering";
+    std::string typeOfNumbering;
+    params->Get( keyVec, typeOfNumbering );
+    if (typeOfNumbering == "block" ||
+	typeOfNumbering == "supBlock") {
+      Error("PiezoPDE only working with 'scalar'-numbering",
+	    __FILE__, __LINE__);
+    }
+
+    if( params->HasValue( "type", "imagMaterialParameter", pdename_,
+			  "materialDataType" ) ) {
+
       piezoMaterialType_ = imagMaterialParameter; 
       Info->PrintF( pdename_, " Using complex piezoMaterialData\n" );
-      std::cout<<"\n++ Be aware, that you are about to consider complex-valued material parameter!"<<std::endl;
+      std::cout << "\n++ Be aware, that you are about to consider "
+		<< "complex-valued material parameter!"
+		<< std::endl;
     }
 
     // Get problem geometry and PDE subtype
@@ -72,8 +87,8 @@ namespace CoupledField {
     // set solution information
     // =====================================================================
     solTypes_ = MECH_DISPLACEMENT, ELEC_POTENTIAL;
-    solDofs_ = dofspernode_-1, 1;
-    
+    solDofs_ = dofspernode_ - 1, 1;
+
     // Use effective mass approach?
     effectiveMass_ = params->IsSet( "effMass" );
     
@@ -89,28 +104,25 @@ namespace CoupledField {
     if( dampingType_ != NONE ) {
       needsDampingMatrix_ = TRUE;
     }
-    
-    //check for pressure loads
+
+    // check for pressure loads
     params->GetList( "name"    , pressSurf_ , pdename_, "pressure" );
     params->GetList( "value"   , pressVals_ , pdename_, "pressure" );
     params->GetList( "dynamics", pressFnc_  , pdename_, "pressure" );
 
     // Check consistency
-    if ( pressSurf_.GetSize() != pressVals_.GetSize() )
-      {
-	std::string errmsg = "PressureLoads: ";
-	errmsg += "#name = " + Info->GenStr(pressSurf_.GetSize());
-	errmsg += ", #value = " + Info->GenStr(pressVals_.GetSize());
-	errmsg += ", #dynamics = " + pressFnc_.GetSize() + '\n';
-	Info->Error( errmsg, __FILE__, __LINE__ );
-      }
+    if ( pressSurf_.GetSize() != pressVals_.GetSize() ) {
+      std::string errmsg = "PressureLoads: ";
+      errmsg += "#name = " + Info->GenStr(pressSurf_.GetSize());
+      errmsg += ", #value = " + Info->GenStr(pressVals_.GetSize());
+      errmsg += ", #dynamics = " + pressFnc_.GetSize() + '\n';
+      Info->Error( errmsg, __FILE__, __LINE__ );
+    }
 
     // We need not have as many function/filenames as pressureloads!
-    for ( Integer k = pressFnc_.GetSize(); k < pressSurf_.GetSize(); k++ )
-      {
-	pressFnc_.Push_back( "none" );
-      }
-
+    for ( Integer k = pressFnc_.GetSize(); k < pressSurf_.GetSize(); k++ ) {
+      pressFnc_.Push_back( "none" );
+    }
   }
 
 
@@ -441,9 +453,9 @@ void PiezoPDE::ReadStoreResults() {
   if ( calcStress_.GetSize() > 0 ) {
  	hasOutput_ = TRUE;
     Info->PrintF( pdename_,
-		  " Computing mechanical stress for regions:");
+		  "Computing mechanical stress for regions:\n" );
     for ( Integer k = 0; k < calcStress_.GetSize(); k++ ) {
-      Info->PrintF( pdename_, " %s", calcStress_[k].c_str() );
+      Info->PrintF( pdename_, "%s\n", calcStress_[k].c_str() );
     }
   }
 
@@ -459,26 +471,28 @@ void PiezoPDE::ReadStoreResults() {
   }
 
   if ( calcEfield_.GetSize() > 0 ) {
-  	hasOutput_ = TRUE;
+    hasOutput_ = TRUE;
     Info->PrintF( pdename_, " Computing electric field for regions:" );
+
     for ( Integer k = 0; k < calcEfield_.GetSize(); k++ ) {
-      Info->PrintF( pdename_, " %s", calcEfield_[k].c_str() );
+      Info->PrintF( pdename_, "%s\n", calcEfield_[k].c_str() );
     }
-    if (analysistype_ == HARMONIC){
-    EfieldComplex_.SetNumSolutions(1);
-    EfieldComplex_.SetSolutionType(ELEC_FIELD_INTENSITY);
-    EfieldComplex_.SetNumElems(numElems_);
-    EfieldComplex_.SetNumDofs(dim_);
-    EfieldComplex_.SetPtrEQNData(eqnData_, ptgrid_, actlevel_);
-    EfieldComplex_.Init(); 
+
+    if ( analysistype_ == HARMONIC ) {
+      EfieldComplex_.SetNumSolutions(1);
+      EfieldComplex_.SetSolutionType(ELEC_FIELD_INTENSITY);
+      EfieldComplex_.SetNumElems(numElems_);
+      EfieldComplex_.SetNumDofs(dim_);
+      EfieldComplex_.SetPtrEQNData(eqnData_, ptgrid_, actlevel_);
+      EfieldComplex_.Init(); 
     }
-    else{
-    Efield_.SetNumSolutions(1);
-    Efield_.SetSolutionType(ELEC_FIELD_INTENSITY);
-    Efield_.SetNumElems(numElems_);
-    Efield_.SetNumDofs(dim_);
-    Efield_.SetPtrEQNData(eqnData_, ptgrid_, actlevel_);
-    Efield_.Init(); 
+    else {
+      Efield_.SetNumSolutions(1);
+      Efield_.SetSolutionType(ELEC_FIELD_INTENSITY);
+      Efield_.SetNumElems(numElems_);
+      Efield_.SetNumDofs(dim_);
+      Efield_.SetPtrEQNData(eqnData_, ptgrid_, actlevel_);
+      Efield_.Init(); 
     }
   }
 
@@ -496,9 +510,9 @@ void PiezoPDE::ReadStoreResults() {
   if ( calcStress_.GetSize() > 0 ) {
   	hasOutput_ = TRUE;
     Info->PrintF( pdename_,
-		  " Computing mechanical stress for regions:");
+		  "Computing mechanical stress for regions:\n" );
     for ( Integer k = 0; k < calcStress_.GetSize(); k++ ) {
-      Info->PrintF( pdename_, " %s", calcStress_[k].c_str() );
+      Info->PrintF( pdename_, "%s\n", calcStress_[k].c_str() );
     }
     if(analysistype_ == HARMONIC){
       // Resize solution arrays
@@ -533,9 +547,9 @@ void PiezoPDE::ReadStoreResults() {
     {
       hasOutput_ = TRUE;
       Info->PrintF( pdename_,
-		    " Computing electric charges for regions:");
+		    "Computing electric charges for regions:\n" );
       for ( Integer k = 0; k < calcCharge_.GetSize(); k++ ) {
-	Info->PrintF( pdename_, " %s", calcCharge_[k].c_str() );
+	Info->PrintF( pdename_, "%s", calcCharge_[k].c_str() );
       } 
       // Resize solution arrays
       if(analysistype_==HARMONIC)
@@ -574,8 +588,9 @@ void PiezoPDE::ReadStoreResults() {
     saveSolHist_ = TRUE;
     hasOutput_ = TRUE;
     Info->PrintF( pdename_, " Saving mechDisplacement for Nodes:" );
+
     for ( Integer k = 0; k < saveNodeHist.GetSize(); k++ ) {
-      Info->PrintF( pdename_, " %s", saveNodeHist[k].c_str() );
+      Info->PrintF( pdename_, "%s\n", saveNodeHist[k].c_str() );
     }
   }
   

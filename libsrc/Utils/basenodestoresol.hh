@@ -386,12 +386,7 @@ public:
   virtual void GetElemSolutionAsMatrix(CFSMatrix & elemSol,
 				       const StdVector<Integer> & connect) const = 0;
   
-  //!
-  virtual void TransformNodeSolution(CFSVector & transformedSolution,
-				     Grid * ptGrid,
-				     const Integer level) const = 0;
-  
-  //! maps the local node solution to the coupling nodes
+   //! maps the local node solution to the coupling nodes
   virtual
   void NodeSolutionToCoupling(CFSVector & couplingSol,
 			      const StdVector<Integer>& nodeNumbers) const = 0;

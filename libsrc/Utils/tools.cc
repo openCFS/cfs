@@ -3,11 +3,11 @@
 #include <math.h>
 
 #include "tools.hh"
-#include <Matrix/matrix.hh>
-#include <Elements/elements_header.hh>
-#include <Domain/elem.hh>
-#include <Domain/grid.hh>
-#include <DataInOut/WriteInfo.hh>
+#include "Matrix/matrix.hh"
+#include "Elements/elements_header.hh"
+#include "Domain/elem.hh"
+#include "Domain/grid.hh"
+#include "DataInOut/WriteInfo.hh"
 
 
 namespace CoupledField {
@@ -20,6 +20,25 @@ namespace CoupledField {
     Info->Error( Text, filename, numline );
   }
 
+  // ====================================================
+  //   Issue Error Message (using global string stream)
+  // ====================================================
+  void Error( const Char *const filename, const Integer numline ) {
+
+    // Obtain error message and clear string stream
+    std::string errMsg = "";
+    if ( error != NULL ) {
+      errMsg = error->str();
+      error->str( "" );
+    }
+    else {
+      errMsg = "<Caller did not provide error description>";
+    }
+
+    // Delegate work to WriteInfo::Error()
+    Info->Error( errMsg.c_str(), filename, numline );
+  }
+
   // =========================
   //   Issue Warning Message
   // =========================
@@ -27,6 +46,25 @@ namespace CoupledField {
 		const Integer numline ) {
     Info->Warning( Text, filename, numline );
     //std::cerr << "\033[31mWARNING:\033[0m " << Text;
+  }
+
+  // ======================================================
+  //   Issue Warning Message (using global string stream)
+  // ======================================================
+  void Warning( const Char *const filename, const Integer numline ) {
+
+    // Obtain error message and clear string stream
+    std::string warnMsg = "";
+    if ( warning != NULL ) {
+      warnMsg = warning->str();
+      warning->str( "" );
+    }
+    else {
+      warnMsg = "<Caller did not provide error description>";
+    }
+
+    // Delegate work to WriteInfo::Warning()
+    Info->Warning( warnMsg.c_str(), filename, numline );
   }
 
   // =========================================

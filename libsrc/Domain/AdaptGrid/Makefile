@@ -17,7 +17,7 @@ CFLAGS3 =
 #
 include ../../makefile.inc
 ifeq ($(Adaptivity),yes)
-  -include $(Dependencies)
+  -include $(DEPEND_FILE)
 else
 endif
 # DO NOT DELETE
