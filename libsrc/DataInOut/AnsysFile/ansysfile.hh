@@ -154,11 +154,6 @@ namespace CoupledField {
     //! \param orderedElems out: vector with pointers to elements, ordered
     //!                          by element numbers
     //! \param sd subdomains specifiers (regions) for which elements are read
-    //! \note
-    //! - The method assumes that the elements are stored in the mesh-file
-    //!   in ascending order with respect to the element numbers
-    //! - The numbering of the elemens may start at any index and be
-    //!   non-contiguous
     void ReadEl3d( StdVector<Elem*> *allelems, 
                    StdVector<Elem*> &orderedElems,
                    const StdVector<std::string> sd );
@@ -230,25 +225,34 @@ namespace CoupledField {
 
   private:
 
-    //! ifstream of input mesh-file
-    std::ifstream infile;
+    //! This is the main method for reading element information from the file
 
-    //! end position in input mesh-file
-    std::string::size_type pos_end;
+    //! This is the main method for reading element information from the
+    //! mesh-file. It is implemented in such a fashion that it can read 1D,
+    //! 2D and 3D elements. The element type to be read is steered by the
+    //! elemType input parameter.
+    //! \note This method is called with the respective parameter by the
+    //! ReadEl1d(), ReadEl2d() and ReadEl3d() methods. The questions is,
+    //! wether these methods are really necessary after all.
+    //! \param elemType   in: either '1D', '2D' or '3D'; specifies type of
+    //!                        elements to be read
+    //! \param elemVec    out: pointer to vector with pointers to the elements
+    //! \param elemVecSeq out: vector with pointers to elements, ordered
+    //!                          by element numbers
+    //! \param sd subdomains specifiers (regions) for which elements are read
+    void ReadElementInfoFromMeshFile( std::string elemType,
+                                      StdVector<Elem*> *elemVec, 
+                                      StdVector<Elem*> &elemVecSeq,
+                                      const StdVector<std::string> sd );
 
-    //! dimension of problem
-    Integer dim_;
+    // ========================================================================
+    // AUXILLIARY METHODS & ATTRIBUTES
+    // ========================================================================
 
-    //! number of elems
-    Integer maxNumElems_;
+    //@{
+    //! \name Auxilliary methods & attributes for navigation in file
 
-    //! maximum number of elements read in so far
-    Integer actMaxElemNum_;
-
-    //! number of nodes
-    Integer maxNumNodes_;
-
-    //! get a sinlge integer in a save way
+    //! get a single integer in a save way
     Integer GetInteger(std::string seekexp);
 
     //! tests the next line for emptyness
@@ -261,6 +265,14 @@ namespace CoupledField {
     //! get position in line
     void getPosition(const std::string seekexp, std::string::size_type & pos);
 
+    //! ifstream of input mesh-file
+    std::ifstream infile;
+
+    //! end position in input mesh-file
+    std::string::size_type pos_end;
+
+    //@}
+
     //! Read number of nodes for boundary condition
 
     //! Read number of nodes for boundary condition from INFO section of
@@ -270,13 +282,24 @@ namespace CoupledField {
       nbc = GetInteger("NumNodeBC");
     }
 
-
     //!  read maximum number of elements from INFO section of the mesh-file
     void ReadMaxnumelem( Integer &nelem, const std::string keyword ) {
       ENTER_FCN( "AnsysFile::ReadMaxnumelem" );
       nelem = GetInteger(keyword);
       actMaxElemNum_ += nelem;
     }
+
+    //! dimension of problem
+    Integer dim_;
+
+    //! number of elems
+    Integer maxNumElems_;
+
+    //! maximum number of elements read in so far
+    Integer actMaxElemNum_;
+
+    //! number of nodes
+    Integer maxNumNodes_;
 
     //! transform type of elem in pointer to base class BaseFE
     BaseFE * Type2ptElem(const Integer itype);
