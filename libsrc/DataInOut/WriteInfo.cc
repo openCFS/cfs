@@ -467,7 +467,7 @@ namespace CoupledField
     std::cerr << std::endl << "\033[31mERROR:\033[0m " << Text;
 
     if (filename) {
-      std::cerr <<"       The error occurred in '" << filename << "'";
+      std::cerr <<"\n       The error occurred in '" << filename << "'";
       if (numline) {
 	std::cerr << " on line " << numline << ".";
       }
