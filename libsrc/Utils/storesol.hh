@@ -41,7 +41,6 @@ namespace CoupledField{
 //! routine was called, otherwise an error is reported!
 //! \note Although the names of some methods refer to nodes, this class 
 //! also can handle element solutions.
-
 template<class TYPE>
 class StoreSol : public BaseStoreSol{
 public:
@@ -82,6 +81,15 @@ public:
 
   //! Destructor
   virtual ~StoreSol();
+
+
+  //! Deletes all data and layout information
+
+  //! Deletes all data and layout information.
+  //! This method should be called  before the layout of the
+  //! solution object is modified via SetNumSolution(), SetNumNodes(),
+  //! SetNumDofs() or SetSolutionType().
+  void Clear();
 
 
   //! Initialization of the StoreSolution-object (REQUIRED)
@@ -421,7 +429,8 @@ public:
   //! assignment operator for Base-class
   BaseStoreSol & operator= (const BaseStoreSol & x);
   
-
+  //! Standard output operator (of baseclass)
+  void  Print(std::ostream& str);
 protected:
   
   //! contains the solution itself
@@ -430,14 +439,13 @@ protected:
 };
 
  
-// Explicit template instantiation 
-// needed for linking 
-template class StoreSol<Integer>;
-template class StoreSol<Double>;
-template class StoreSol<Complex>;
+  // ======================================================
+  // EXPLICIT TEMPLATE INSTANTIATION
+  // ======================================================
+  template class StoreSol<Double>;
+  template class StoreSol<Complex>;
+  template class StoreSol<Integer>;
  
-
-
 } //end of namespace
 
 #endif
