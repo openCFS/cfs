@@ -15,7 +15,7 @@
 <!--   Include definition of PDE types and elements from support files -->
 <!-- ********************************************************************** -->
 <xsd:include schemaLocation="Schemas/CFS_PDEbasic.xsd"/>
-<xsd:include schemaLocation="Schemas/CFS_PDEelectrostatic.xsd"/>
+<!-- xsd:include schemaLocation="Schemas/CFS_PDEelectrostatic.xsd"/-->
 <xsd:include schemaLocation="Schemas/CFS_PDEmechanic.xsd"/>
 
 
@@ -23,164 +23,47 @@
 <!--   Include further definitions -->
 <!-- ********************************************************************** -->
 <xsd:include schemaLocation="Schemas/CFS_SolverPrecond.xsd"/>
+<xsd:include schemaLocation="Schemas/CFS_Analysis.xsd"/>
+<xsd:include schemaLocation="Schemas/CFS_Domain.xsd"/>
+<xsd:include schemaLocation="Schemas/CFS_Misc.xsd"/>
 
 
 <!-- ********************************************************************** -->
 <!--   Definition of enclosing main element -->
 <!-- ********************************************************************** -->
-<xsd:element name="CFS_Simulation">
+<xsd:element name="cfsSimulation">
   <xsd:complexType>
     <xsd:sequence>
 
-      <!-- human readable specifier for problem -->
-      <xsd:element name="problem">
-        <xsd:complexType>
-          <xsd:complexContent>
-            <xsd:restriction base="xsd:anyType">
-              <xsd:attribute name="name" type="xsd:string" use="required"/>
-            </xsd:restriction>
-          </xsd:complexContent>
-        </xsd:complexType>
-      </xsd:element>
+      <!-- Type of analysis (required) -->
+      <xsd:element name="analysis" type="DT_Analysis"/>
+    
+      <!-- Type of geometry (required) -->
+      <xsd:element name="geometry" type="DT_Geometry"/>
 
-      <!-- format of mesh file -->
-      <xsd:element name="input">
-        <xsd:complexType>
-          <xsd:complexContent>
-            <xsd:restriction base="xsd:anyType">
-              <xsd:attribute name="format" use="required">
-                <xsd:simpleType>
-                  <xsd:restriction base="xsd:token">
-                    <xsd:enumeration value="mesh"/>
-                    <xsd:enumeration value="dat"/>
-                  </xsd:restriction>
-                </xsd:simpleType>
-              </xsd:attribute>
-            </xsd:restriction>
-          </xsd:complexContent>
-         </xsd:complexType>
-      </xsd:element>
+      <!-- Format of mesh file (optional) -->
+      <xsd:element name="input" type="DT_Input" minOccurs="0"/>
     
-      <!-- format of result file -->
-      <xsd:element name="output">
-        <xsd:complexType>
-          <xsd:complexContent>
-            <xsd:restriction base="xsd:anyType">
-              <xsd:attribute name="format" use="required">
-                <xsd:simpleType>
-                  <xsd:restriction base="xsd:token">
-                    <xsd:enumeration value="unv"/>
-                    <xsd:enumeration value="gmv"/>
-                  </xsd:restriction>
-                </xsd:simpleType>
-              </xsd:attribute>
-            </xsd:restriction>
-          </xsd:complexContent>
-         </xsd:complexType>
-      </xsd:element>
+      <!-- Format of results' file (optional) -->
+      <xsd:element name="output" type="DT_Output" minOccurs="0"/>
     
-      <!-- the name of the file containing material data -->
-      <xsd:element name="material_data">
-        <xsd:complexType>
-          <xsd:complexContent>
-            <xsd:restriction base="xsd:anyType">
-              <xsd:attribute name="file" type="xsd:string" use="required"/>
-            </xsd:restriction>
-          </xsd:complexContent>
-         </xsd:complexType>
-      </xsd:element>
-    
-      <!-- type of analysis (as enumeration based on element's attribute) -->
-      <xsd:element name="analysis">
-        <xsd:complexType>
-          <xsd:complexContent>
-            <xsd:restriction base="xsd:anyType">
-              <xsd:attribute name="type" use="required">
-                <xsd:simpleType>
-                  <xsd:restriction base="xsd:token">
-                    <xsd:enumeration value="static"/>
-                    <xsd:enumeration value="harmonic"/>
-                    <xsd:enumeration value="transient"/>
-                  </xsd:restriction>
-                </xsd:simpleType>
-              </xsd:attribute>
-            </xsd:restriction>
-          </xsd:complexContent>
-        </xsd:complexType>
-      </xsd:element>
-    
-      <!-- Description of problem domain -->
-      <xsd:element name="domain">
+      <!-- Name of file containing material data (optional) -->
+      <xsd:element name="materialData" type="DT_MatFile" minOccurs="0"/>
+
+      <!-- Description of problem domain (required) -->
+      <xsd:element name="domain" type="DT_Domain"/>
+   
+      <!-- List of PDEs (required) -->
+      <xsd:element name="pdeList">
         <xsd:complexType>
           <xsd:sequence>
-    
-            <!-- List of subdomains, must be non-empty -->
-            <xsd:element name="subdomains">
-              <xsd:complexType>
-                <xsd:sequence>
-                  <xsd:element name="subdom" type="Subdomain"
-                               maxOccurs="unbounded"/>
-                </xsd:sequence>
-              </xsd:complexType>
-
-              <!-- ensure uniqueness of subdomain names -->
-              <xsd:key name="uniq_subdomainnames">
-                <xsd:selector xpath="cfs:subdom"/>
-                <xsd:field xpath="@name"/>
-              </xsd:key>
-
-            </xsd:element>
-      
-            <!-- List of interfaces -->
-            <xsd:element name="interfaces" minOccurs="0">
-              <xsd:complexType>
-                <xsd:sequence>
-                  <xsd:element name="interface_name" type="xsd:token"
-                               minOccurs="0" maxOccurs="unbounded"/>
-                </xsd:sequence>
-              </xsd:complexType>
-
-              <!-- ensure uniqueness of interface names -->
-              <xsd:key name="uniq_interfacenames">
-                <xsd:selector xpath="cfs:interface_name"/>
-                <xsd:field xpath="."/>
-              </xsd:key>
-
-            </xsd:element>
-        
-            <!-- List of surfaces -->
-            <xsd:element name="surfaces" minOccurs="0">
-              <xsd:complexType>
-                <xsd:sequence>
-                  <xsd:element name="surface_name" type="xsd:token"
-                               minOccurs="0" maxOccurs="unbounded"/>
-                </xsd:sequence>
-              </xsd:complexType>
-
-              <!-- ensure uniqueness of surface names -->
-              <xsd:key name="uniq_surfacenames">
-                <xsd:selector xpath="cfs:surface_name"/>
-                <xsd:field xpath="."/>
-              </xsd:key>
-
-            </xsd:element>
-   
-          </xsd:sequence>
-        </xsd:complexType>
-      </xsd:element>
-   
-      <!-- List of PDEs -->
-      <xsd:element name="PDE_list">
-        <xsd:complexType>
-          <xsd:sequence>
-            <xsd:element ref="PDE_basic" minOccurs="1" maxOccurs="unbounded"/>
+            <xsd:element ref="PDEBasic" minOccurs="1" maxOccurs="unbounded"/>
           </xsd:sequence>
         </xsd:complexType>
       </xsd:element>
     
-      <!-- Parameters for transient analysis (optional) -->
-      <xsd:element name="Transient" type="TransientData" minOccurs="0"/>
-
+      <!-- Parameters for transient analysis (semi-optional) -->
+      <xsd:element name="transient" type="DT_Transient" minOccurs="0"/>
 
       <!-- Optional developer's element -->
       <xsd:element name="devel" type="xsd:anyType" minOccurs="0"/>
@@ -191,6 +74,7 @@
   <!-- Make sure that for every boundary condition of the PDE section   -->
   <!-- a corresponding interface/surface has been designated in the     -->
   <!-- domain part                                                      -->
+  <!--
   <xsd:keyref name="interfaceExists" refer="uniq_interfacenames">
     <xsd:selector xpath="cfs:PDE_list/cfs:PDE_descr/cfs:BoundaryConds/*"/>
     <xsd:field xpath="@interface"/>
@@ -199,56 +83,20 @@
     <xsd:selector xpath="cfs:PDE_list/cfs:PDE_descr/cfs:BoundaryConds/*"/>
     <xsd:field xpath="@surface"/>
   </xsd:keyref>
-
+  -->
   <!-- Make sure that for every subdomain referenced in the PDE section -->
   <!-- a corresponding subdomain has been designated in the domain part -->
+  <!--
   <xsd:keyref name="subdomExists" refer="uniq_subdomainnames">
     <xsd:selector xpath="cfs:PDE_list/*/cfs:subdom"/>
     <xsd:field xpath="."/>
   </xsd:keyref>
+  -->
 
 </xsd:element>
 
 <!-- ********************************************************************** -->
 <!--   Further global data type definitions -->
 <!-- ********************************************************************** -->
-
-<!-- Definition of the type of elements in the subdomain list -->
-<xsd:complexType name="Subdomain">
-  <xsd:complexContent>
-    <xsd:restriction base="xsd:anyType">
-      <xsd:attribute name="name" type="xsd:token" use="required"/>
-      <xsd:attribute name="material" type="xsd:token" use="required"/>
-    </xsd:restriction>
-  </xsd:complexContent>
-</xsd:complexType>
-
-
-<!-- Element type for parameters for transient analysis -->
-<xsd:complexType name="TransientData">
-  <xsd:sequence>
-    <xsd:element name="numsteps" type="xsd:int"/>
-    <xsd:element name="firstdt" type="xsd:double"/>
-    <xsd:element name="stepsavebeg" type="xsd:int"/>
-    <xsd:element name="stepsaveend" type="xsd:int"/>
-    <xsd:element name="stepsaveinc" type="xsd:int"/>
-    <xsd:element name="time_data_file" maxOccurs="unbounded">
-      <xsd:complexType>
-        <xsd:complexContent>
-          <xsd:restriction base="xsd:anyType">
-            <xsd:attribute name="name" type="xsd:string" use="required"/>
-          </xsd:restriction>
-        </xsd:complexContent>
-      </xsd:complexType>
-    </xsd:element>
-  </xsd:sequence>
-</xsd:complexType>
-
-<!-- We define a data type for positive floating point numbers -->
-<xsd:simpleType name="PosFloat">
-  <xsd:restriction base="xsd:float">
-    <xsd:minExclusive value="0"/>
-  </xsd:restriction>
-</xsd:simpleType>
 
 </xsd:schema>
