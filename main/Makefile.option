@@ -34,8 +34,8 @@ LIB_NETGEN = $(C_DIR)/libnetgen/LINUX
 AdaptGrid=$(C_DIR)/Grid_RG
 #
 ############### CLA++
-#CLA=/home_lse10/lse/manfred/Programming/CLA++_stefan/CLA++
-CLA=/home/lse/elena/CLA++/0411/CLA++
+CLA=/home_lse10/lse/manfred/CFS++/CLA++
+#CLA=/home/lse/elena/CLA++/0411/CLA++
 #CLA=$(C_DIR)/libsrc/AlgebraicSystem/CLA++
 #
 #CLA=/home/lse/elena/CLA++

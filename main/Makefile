@@ -8,12 +8,12 @@ C_DIR=..
 #
 OS=$(shell uname -s)
 #
-############ Directories
+############ DirectoriesDomain/NetGen
 #
 ifeq "$(OS)" "Linux"
 SUBLIBDIR := Driver Estimator PDE \
              Forms Elements Elements/2D Elements/3D \
-             Domain/GridCFS Domain/NetGen Domain/AdaptGrid Domain \
+             Domain/GridCFS   Domain \
              DataInOut/DefineFiles \
              DataInOut/Unverg DataInOut/GMV \
              DataInOut/DatFile DataInOut/AnsysFile DataInOut\
@@ -31,18 +31,12 @@ endif
 ############ define my libraries
 #
 ifeq "$(OS)" "Linux"
-mylibrary :=  driver domain pde \
-	    estimator forms  \
+mylibrary :=  driver domain pde estimator forms  \
             elements3d elements2d elements \
-            gridcfs tonetgen toadaptgrid\
-            gmv \
-            definefiles unverg datfile ansysfile datainout \
-            utils matrix general \
-            multigrid-cla general-cla  superlu-cla\
-            nginterface vis  \
-            stlgeom mesh csg gprim opti \
-            la gen cfsinterface tix8.1.8.3 tk8.3 tcl8.3\
-            GL GLU X11 Xi m dl pthread stdc++ adaptgrid
+            gridcfs \
+	    gmv definefiles unverg datfile ansysfile datainout \
+	    utils matrix general \
+            multigrid-cla general-cla
 else
 mylibrary :=  driver domain pde estimator \
 	    algsys-own forms  \
@@ -124,12 +118,9 @@ endif
 #
 link:
 ifeq "$(OS)" "Linux"
-	rm -rf $(IncNetGen) &&  ln -s $(NetGen)/libsrc/include $(IncNetGen) && \
-        rm -rf $(LibNetGen) && ln -s $(NetGen)/lib $(LibNetGen) &&\
-        rm -rf $(LibCLA) && ln -s $(CLA)/libsrc $(LibCLA) 
+	rm -rf $(LibCLA) && ln -s $(CLA)/libsrc $(LibCLA) 
 else
-	rm -rf $(LibCLA) && ln -s $(CLA)/libsrc $(LibCLA) && \
-        rm -rf $(IncGridlib) && ln -s $(Gridlib) $(IncGridlib)
+	rm -rf $(LibCLA) && ln -s $(CLA)/libsrc $(LibCLA) 
 endif
 #        
 ############## Make links in dir include
@@ -253,7 +244,7 @@ cleanall-files:
 libclean: 
 	@echo clean library
 	@cd $(LIB_DIR) && \
-	rm *.so
+	rm *
 .PHONY: libclean
 #
 ######################  Make documentation  
