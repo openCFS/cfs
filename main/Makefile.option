@@ -36,8 +36,9 @@ MpCCI=no
 # can only be compiled if MySQL-devel is installed
 DATABASE=no
 
-# General Socket Interface
-GSI = no
+# Use LAS or OLAS
+LASTYPE=LAS
+
 
 ##############  Some settings required in conjunction with OLAS
 
@@ -45,7 +46,7 @@ GSI = no
 HYPRE = yes
 
 # Was OLAS compiled with support for LAPACK?
-LINK_LAPACK = yes
+LINK_LAPACK = no
 
 ##############  XML Parameter File Handling? With Xerces or without?
 #
@@ -198,6 +199,7 @@ endif
 CFLAGS2 = $(BASEPDEFLAG) $(PARAMHANDLING) -I$(CVSEXTERNAL)/$(MACHINE)/include
 
 # Do we have to link against system BLAS?
+ifeq "$(LASTYPE)" "OLAS"
 ifeq "$(LINK_LAPACK)" "yes"
 LINK_BLAS = yes
 else
@@ -205,5 +207,6 @@ ifeq "$(HYPRE)" "yes"
 LINK_BLAS = yes
 else
 LINK_BLAS = no
+endif
 endif
 endif
