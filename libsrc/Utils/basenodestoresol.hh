@@ -350,7 +350,7 @@ public:
   /*!
     \param ptr (input) Pointer to raw solution data
   */
-  //! \NOTE: This method is very intrusive and should only be used
+  //! \note: This method is very intrusive and should only be used
   //! when one can ensure, that the internal layout of the solution
   //! matches to the one of the given array. This is the case e.g. for
   //! the solution of the algebraic system.
