@@ -106,7 +106,7 @@ PDECoupling::CouplingInterface::CouplingInterface()
       {
 	myInterface = couplings[i++]->AddOutput(myOutputType, quantity, region, regionType, level);
       }
-  
+
     // If no pde has the specified quantity as output
     if (myInterface == NULL)
       {
@@ -114,7 +114,10 @@ PDECoupling::CouplingInterface::CouplingInterface()
 	  + "\' can not be calculated with current set of PDEs";
 	Error(ErrMsg.c_str(),__FILE__,__LINE__);
       }
-  
+
+    i--;  // because i has been incremented before;
+    BasePDE * oppositePDE = couplings[i]->myPDE_;
+    
 
     // Set dof according to myPDE's dof
     myInterface->dof = myPDE_->dofspernode_;
@@ -152,14 +155,14 @@ PDECoupling::CouplingInterface::CouplingInterface()
       
 	// 1. Step: get the neighbouring elements 
       
-	std::vector<Elem*> * interfaceElems = &(myInterface->elements);
+	const std::vector<Elem*> * interfaceElems = &(myInterface->elements);
 	std::vector<Elem*>  actSubdomain, possibleNeighbours;
   
 
 	     
 	for (Integer iSd=0; iSd < myPDE_->subdoms_.size(); iSd++)
 	  {
-	    ptGrid_->GetElemSD(actSubdomain,myPDE_->subdoms_[iSd],level);
+	    ptGrid_->GetElemSD(actSubdomain, myPDE_->subdoms_[iSd], level);
 	    for (Integer j=0; j<actSubdomain.size(); j++)
 	      possibleNeighbours.push_back(actSubdomain[j]);
 	  }
@@ -167,6 +170,7 @@ PDECoupling::CouplingInterface::CouplingInterface()
 	ptGrid_->DefineBelonging4Elems(*interfaceElems, possibleNeighbours, myInterface->neighbours);
 	if (!myInterface->neighbours.size())
 	  Error("No neighbours for element coupling found!",  __FILE__,__LINE__);
+
 
 
 
@@ -189,10 +193,47 @@ PDECoupling::CouplingInterface::CouplingInterface()
 	    if (subdomFound == FALSE)
 	      Error("Subdomain name of neighbouring elements was not found",__FILE__,__LINE__);
 
-	    myInterface->materials[i] = &(myPDE_->materialData_[subDomNr]);
-	    
-	    
+	    myInterface->materials[i] = &(myPDE_->materialData_[subDomNr]);	    
 	  }
+
+
+
+	// Set the material of the neighbours elements of the "opposite" PDE
+	// 1. Step: get the neighbouring elements
+	possibleNeighbours.clear();
+
+	     
+	for (Integer iSd=0; iSd < oppositePDE->subdoms_.size(); iSd++)
+	  {
+	    ptGrid_->GetElemSD(actSubdomain, oppositePDE->subdoms_[iSd], level);
+	    for (Integer j=0; j<actSubdomain.size(); j++)
+	      possibleNeighbours.push_back(actSubdomain[j]);
+	  }
+  
+	ptGrid_->DefineBelonging4Elems(*interfaceElems, possibleNeighbours, myInterface->oppositePdeNeighbours);
+	if (!myInterface->oppositePdeNeighbours.size())
+	  Error("No opposite neighbours for element coupling found!",  __FILE__,__LINE__);
+
+	for (Integer i=0; i<myInterface->oppositePdeNeighbours.size(); i++)
+	  {
+	    Boolean subdomFound = FALSE;
+	    Integer subDomNr = 0;
+
+	    for (subDomNr=0; subDomNr<oppositePDE->subdoms_.size(); subDomNr++)
+	      if (oppositePDE->subdoms_[subDomNr] == myInterface->oppositePdeNeighbours[i]->namesd)
+		{
+		  subdomFound = TRUE;
+		  break;
+		}
+	      
+
+      
+	    if (subdomFound == FALSE)
+	      Error("Subdomain name of neighbouring elements was not found",__FILE__,__LINE__);
+	    
+	    myInterface->oppositePdeMaterials[i] = &(oppositePDE->materialData_[subDomNr]);
+	  }
+
       } // end if
 
     inputInterfaces_[myNum] = myInterface;
@@ -282,6 +323,7 @@ PDECoupling::CouplingInterface::CouplingInterface()
 	    myInterface->oldValues.resize(myInterface->nodes.size());   
 	    myInterface->values.resize(myInterface->nodes.size());      
 	    myInterface->materials.resize(myInterface->elements.size());
+	    myInterface->oppositePdeMaterials.resize(myInterface->elements.size());
 	    
 
 	    break;
@@ -313,6 +355,7 @@ PDECoupling::CouplingInterface::CouplingInterface()
 #endif 
   
 	myPDE_ = aPDE;
+
 
       }
 

@@ -33,7 +33,9 @@ class PDECoupling
     std::vector<Integer> nodes;           //!< vector of coupling nodes 
     std::vector<Elem*> elements;          //!< vector of coupling elements
     std::vector<Elem*> neighbours;        //!< vector of neighbour elements
+    std::vector<Elem*> oppositePdeNeighbours;//!< vector of neighbour elements of "opposite" PDE 
     std::vector<MaterialData*> materials; //!< vector of materials at coupling interface
+    std::vector<MaterialData*> oppositePdeMaterials; //!< vector of materials at coupling interface of "opposite" PDE
     Array<Double> values;                 //!< array containing coupling values
     Array<Double> oldValues;              //!< array containing coupling values of previous iteration step
     ShortInt dof;                         //!< dof of coupling values
@@ -130,8 +132,8 @@ public:
 
 
    //! get input coupling region material
-  virtual void GetInputMaterials(Integer i, std::vector<MaterialData *>*  &mat)
-  { mat = &(inputInterfaces_[i]->materials);}
+  virtual void GetOppositeMaterials(Integer i, std::vector<MaterialData *>*  &mat)
+  { mat = &(outputInterfaces_[i]->oppositePdeMaterials);}
 
   //! get input coupling values
   virtual void GetInputValues(Integer i, Array<Double>* &values)
@@ -196,7 +198,7 @@ public:
   { elements = &(outputInterfaces_[i]->neighbours);}
 
   //! get output coupling region materials
-  virtual void GetOutputMaterials(Integer i, std::vector<MaterialData *>* &mat)
+  virtual void GetOwnMaterials(Integer i, std::vector<MaterialData *>* &mat)
   { mat = &(outputInterfaces_[i]->materials);} 
 
   //! get output coupling values
@@ -262,7 +264,7 @@ protected:
   std::vector<CouplingInputType> inputTypes_;        //!< vector containing types of coupling input
   std::vector<std::string> inputQuantities_;         //!< vector conatining quantities of coupling input
   std::vector<CouplingInterface*> inputInterfaces_;  //!< vector containing pointer to coupling interfaces
-
+  
   // defautl values for coupling
   Double defaultEpsilon;
   NormType defaultNormType;
