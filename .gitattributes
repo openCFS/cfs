@@ -448,9 +448,6 @@ libsrc/makefilemach/make.mach.MPCCIg -text
 libsrc/makefilemach/make.mach.SGI -text
 libsrc/makefilemach/make.mach.SGIg -text
 libsrc/makefilemach/make.mach.SUN -text
-main/DoxygenConfig/doxy-config -text
-main/DoxygenConfig/footer.html svneol=native#text/html
-main/DoxygenConfig/header.html svneol=native#text/html
 main/Makefile -text
 main/Makefile.option -text
 main/cfs.cc svneol=native#text/plain
