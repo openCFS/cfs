@@ -674,6 +674,9 @@ libsrc/Elements/rectangle.cc svneol=native#text/plain
 libsrc/Elements/rectangle.hh svneol=native#text/plain
 libsrc/Elements/triangle1.cc svneol=native#text/plain
 libsrc/Elements/triangle1.hh svneol=native#text/plain
+libsrc/Estimator/Makefile -text
+libsrc/Estimator/timeerror.cc svneol=native#text/plain
+libsrc/Estimator/timeerror.hh svneol=native#text/plain
 libsrc/Forms/Makefile -text
 libsrc/Forms/baseform.cc svneol=native#text/plain
 libsrc/Forms/baseform.hh svneol=native#text/plain
