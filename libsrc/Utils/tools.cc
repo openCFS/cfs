@@ -198,6 +198,23 @@ char * c_string(const std::string & s)
    return p;
 }
 
+
+void SetSubVector(std::vector<Double>& mainVec, std::vector<Double>& subVec, Integer position)
+{
+#ifdef TRACE
+  (*trace) << "entering SetSubVector" << std::endl;
+#endif
+
+  if (position + subVec.size() > mainVec.size()) 
+    Error("Too less space for subvector!",__FILE__,__LINE__);
+
+  if (!(mainVec.size() && subVec.size()) )
+    Error("Vectors not initialized!",__FILE__,__LINE__);
+
+  for(Integer i=0; i<subVec.size(); i++)
+    mainVec[i+position] = subVec[i];
+}
+
 Integer defineRefinements(const Double tolElem, const Double tolTotal, const Integer noOfChilds)
 {
   Double tmp=log(tolElem/tolTotal)/log(noOfChilds);

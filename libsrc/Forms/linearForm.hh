@@ -118,6 +118,42 @@ private:
   Directions preStressDir_;
 };
 
+
+
+/// class for surface integration
+class SurfaceIntLinForm : public LinearForm
+{
+public:
+  ///
+  SurfaceIntLinForm(BaseFE * aptelem, Directions dir);
+
+  ///
+  virtual ~SurfaceIntLinForm();
+
+  /// Calculation of vector of right hand side 
+  virtual void CalcElemVector(Matrix<Double>& ptCoord, std::vector<Double> & elemVec);
+
+  virtual void SetMultiplier(Double mult){multiplier_ = mult;};
+  
+protected:
+  /// returns nr. of degrees of freedom
+  virtual Integer getNrDofs(){return 3;};
+
+private:
+  /// factor of load
+  Double multiplier_;
+
+  /// direction of load
+  Directions pressureDir_;
+};
+
+
+
+
+
+
+
+
 /// class for calculation of right hand side for flownoise problem
 class LinearFlowNoiseInt : public LinearForm
 {

@@ -49,6 +49,7 @@ AcousticPDE::AcousticPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, Fil
   with_fracdamping_=FALSE;
   std::string frac_damping ="no";
   conf->ifget("frac_damping",frac_damping,pdename_);
+
   if (frac_damping == "yes")
     {
        with_fracdamping_ = TRUE;

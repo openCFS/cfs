@@ -5,3 +5,12 @@ SOLVED   DATE        PROBLEM
 			2003-07-09  fast direct solver (to get rid of sensitve number of coarse equations)
 
 			2003-09-03  Hack in blockmatrix.cc RBlockMatrix::Factor: commented out "delete x" !! 
+
+			2003-09-26  SurfaceIntLinForm: nrDofs is strictly set to 3 (for 3d mechanics)!  There should be a "base class" implemented.
+			2003-09-26  MagEdgePDE::SetupRHS: elemsize_edge=6 hard coded (for tets)!!!!
+			2003-09-26  MechPDE::SetupRHS:  pressureLoad only implemented for 1 domain
+			2003-09-26  Redundances in the config-File (an additional subdomain needs 3 (!) entries!)
+			2003-09-26  TESTSUIT einchecken
+			2003-09-26  MechPDE::SetupRHS is not in MechPDE::SolveStepStaticLin
+
+			2003-09-29  check before creating output files, if input file is existent!
