@@ -38,12 +38,11 @@ preconditioner:
 \begin{center}
 \begin{tabular}{lp{0.65\textwidth}}
 \hline\noalign{\smallskip}
-\multicolumn{2}{c}{Currently available choices for type attribute of solver
-element}\\
+\multicolumn{2}{c}{Currently available choices for \xml{type} attribute of
+\xml{solver} element}\\
 \noalign{\smallskip}\hline\noalign{\smallskip}
 Attribute value & solver\\
 \noalign{\smallskip}\hline\noalign{\smallskip}
-Direct        & direct solution \\
 Richardson    & richardson iteration\\
 cg	      & (preconditioned) conjugate gradient algorithm\\
 gmres	      & generalised minimal residual method\\
@@ -52,7 +51,17 @@ hyprePCG      & hypre's version of the classical conjugate gradient algorithm\\
 hypreGMRES    & hypre's version of the generalised minimal residual method\\
 hypreBICGSTAB & hypre's version of the stabilised bi-conjuigate gradient
                 method\\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+directLU      & direct solution via $LU$ decomposition\\
+directLDL     & direct solution via $LDL^T$ decomposition (planned)\\
 lapackLU      & direct solution via LAPACK\\
+lapackLL      & direct solution via LAPACK (for symmetric/hermitean, positive
+                definite matrices only)\\
+pardiso       & direct solution with sparse direct solver from Pardiso
+                project\\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+expertsChoice & let the Expert() module decide which solver to use
+                \emph{(default value, if nothing is specified)}\\
 \noalign{\smallskip}\hline
 \end{tabular}
 \end{center}
@@ -82,7 +91,7 @@ hypreSPAI   & hypre's SPAI preconditioner ParaSails \\
 \end{center}
 %
 %
-The default values for \xml{type} and \xml{precond} are \xml{Direct} and
+The default values for \xml{type} and \xml{precond} are \xml{expertsChoice} and
 \xml{noPrecond}.
 %
 %
@@ -274,6 +283,121 @@ tables. See Sec.~\ref{sec:SP_Examples} for an example.
 All the solver parameters are optional as is the \xml{xyz} element. If one are
 all parameters are omitted the respective default value defined within OLAS
 will be used, cf.~Sec.~\ref{sec:SP_Interface}.
+%
+%
+\subsection{Pardiso}
+%
+%
+Pardiso is a (parallel) sparse direct solver developed mainly at the University
+of Basel. We cite the web-page
+(\url{http://www.computational.unibas.ch/cs/scicomp/software/pardiso}):
+%
+%
+\begin{quote}
+The package PARDISO is a thread-safe, high-performance, robust, memory efficient and easy to use software for solving large sparse symmetric and unsymmetric linear systems of equations on shared memory multiprocessors. The solver uses a combination of left- and right-looking Level-3 BLAS supernode techniques to exploit pipelining parallelism and memory hierarchies. In order to improve sequential and parallel sparse numerical factorization performance, the algorithms are based on a Level-3 BLAS update and pipelining parallelism is exploited with a combination of left- and right-looking supernode techniques.
+
+For sufficiently large problem sizes numerical experiments demonstrate that the scalability of the parallel algorithm is nearly independent of the shared-memory multiprocessing architecture and speedup of up to seven using eight processors have been observed. The approach is based on OpenMP directives and has been successfully tested on the following parallel computers: COMPAQ AlphaServer, AMD Opteron, SGI Origin 2000, SUN Enterprise Server, Intel Pentium IV / Itanium(R) with RedHat LINUX, NEC SX-5, and Cray J90 and IBM Regatta SMPs.
+\end{quote}
+%
+%
+OLAS offers an interface to use Pardiso as solver for a linear system. The
+interface accepts the following parameters:
+%
+%
+\begin{center}
+\begin{tabular}{lcp{0.5\textwidth}}
+\hline\noalign{\smallskip}
+element & range of values & meaning \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+posDef     & yes, no & Set to yes, if matrix is positive definite\\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+hermitean  & yes, no & Set to yes, if matrix is hermitean\\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+symStruct  & yes, no & Set to yes, if matrix has a symmetric pattern
+                       of non-zero entries\\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+ndOrdering & yes, no & If set to yes, pardiso will chose a nested dissection
+                       approach for computing a fill-reducing re-ordering of
+                       the matrx. Otherwise a minimum degree approach is
+                       chosen.\\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+logging    & yes, no & Currently not implemented\\
+\noalign{\smallskip}\hline
+\end{tabular}
+\end{center}
+%
+%
+Note:
+\begin{itemize}
+\item The interface is designed for version 1.2.2
+\item Current Pardiso licensing policy requires a user to obtain a personal
+      license for each (username, hostname) combination.
+\end{itemize}
+%
+%
+\subsection{lapackLU / lapackLL}
+%
+%
+LAPACK is the standard package in scientific computing for high-level problems
+in (dense) linear algebra. We cite the web-page
+(\url{http://www.netlib.org/lapack}):
+%
+%
+\begin{quote}
+LAPACK is a library of Fortran 77 subroutines for solving the most commonly
+occurring problems in numerical linear algebra. It has been designed to be
+efficient on a wide range of modern high-performance computers. The name LAPACK
+is an acronym for Linear Algebra PACKage.
+\end{quote}
+%
+%
+LAPACK does not support operations on sparse matrices, but offers solution
+routines for problems involving matrices with banded structure. Thus, it is
+an interesting alternative for small sized problems (after a band reducing
+re-ordering).
+
+OLAS provides two interfaces two the band solvers in LAPACK. lapackLU and
+lapackLL. These classes support scalar matrices with either real or complex
+entries. The lapackLU class will compute an LU decomposition and can thus, be
+used for any type of problem. The lapackLL class computes a Cholesky
+decomposition $LL^T$ and is thus limited to symmetric/hermitean positive
+definite problems. The lapackLU solver accepts the following parameters
+%
+%
+\begin{center}
+\begin{tabular}{lcp{0.5\textwidth}}
+\hline\noalign{\smallskip}
+element & range of values & meaning \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+tryScaling & yes, no & If set to yes, then the solver will try to equilibrate
+                       the matrix before solving the linear system, in order
+                       to improve the precision of the solution.\\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+refineSol  & yes, no & If set to yes, then the solver will perform some steps
+                       of iterative refinement in order to improve the
+                       precision of the solution.\\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+logging    & yes, no & If set to yes, then the solver will log some information
+                       to the standard OLAS log stream.\\
+\noalign{\smallskip}\hline
+\end{tabular}
+\end{center}
+%
+%
+The lapackLL solver currently only supports \xml{logging}. Please also note
+the following:
+%
+%
+\begin{itemize}
+\item The Lapack\_LU solver class currently makes use of its own LapackGBMatrix
+      matrix class. Since the MultAdd() method is not implemented in this class
+      the solver cannot be used for transient problems.
+\item Do not set \xml{tryScaling} to yes, if you have inhomogeneous Dirichlet
+      boundary conditions, since it will mess with the penalty approach!
+\end{itemize}
+%
+%
+\subsection{directLU / directLDL}
 %
 %
 \subsection{CG}
