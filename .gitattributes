@@ -58,6 +58,8 @@ libsrc/DataInOut/DatFile/Makefile -text
 libsrc/DataInOut/DatFile/datfile.cc svneol=native#text/plain
 libsrc/DataInOut/DatFile/datfile.hh svneol=native#text/plain
 libsrc/DataInOut/Database/Makefile -text
+libsrc/DataInOut/Database/cfs_material.sql -text
+libsrc/DataInOut/Database/cfs_material_data.sql -text
 libsrc/DataInOut/Database/cfsdump.sql -text
 libsrc/DataInOut/Database/database.cc svneol=native#text/plain
 libsrc/DataInOut/Database/database.hh svneol=native#text/plain
