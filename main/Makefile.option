@@ -31,15 +31,15 @@ GSI = no
 
 #Hypre solvers
 # NOTE: Only used in OLAS
-HYPRE = no
+HYPRE = yes
 
 #Using LAS or OLAS
-LASTYPE = LAS
+LASTYPE = OLAS
 
 ##############  XML Parameter File Handling? With Xerces or without?
 #
-XMLPARAMS=no
-XERCES=no
+XMLPARAMS=yes
+XERCES=yes
 
 ##############  Path to includes and libraries for external packages
 #
@@ -52,7 +52,7 @@ endif
 AdaptGrid=$(HOME)/Work/221003/Grid_RG_upd
 #
 ifeq "$(LASTYPE)" "OLAS"
-LAS=$(OLAS_INSTALL_DIR)
+LAS=$(OLAS_ROOT)
 else
 LAS=$(LASHOME)
 endif
@@ -87,13 +87,15 @@ endif
 #
 ifeq "$(LASTYPE)" "OLAS"
 	OLAS =-DUSE_OLAS
-	OLAS_INCL = -lolas
+	OLASLIB = -lolas
 	LIB_CLA=$(OLAS_INSTALL_DIR)/lib/$(MACHINE)
 else
+	OLAS =
 	LIB_CLA=$(LAS)/lib/$(MACHINE)
+	OLASLIB =
 endif
 
-#--------DO NOT CHANGE ------------------------------------------------------------
+#--------DO NOT CHANGE --------------------------------------------------------
 #
 ############ Directories
 #
