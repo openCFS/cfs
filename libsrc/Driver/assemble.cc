@@ -192,8 +192,8 @@ namespace CoupledField {
 	    if ( actDescriptor->GetIntegrator()->IsRaylDamping() ) {
 	      actDescriptor->GetIntegrator()->SetFactor(dampTransform);
 	    }
-	    std::cout << "startF=" << startFreq_ << "  actF=" << actFreq_ << std::endl;
-	    std::cout << "dampTransform=" << dampTransform << std::endl;
+	    //	    std::cout << "startF=" << startFreq_ << "  actF=" << actFreq_ << std::endl;
+	    //      std::cout << "dampTransform=" << dampTransform << std::endl;
           }
 	  
 
