@@ -485,6 +485,7 @@ main/tria.mesh -text
 main/wv.dat -text
 main/z10.dat -text
 main/z10.mesh -text
+main/z10tr.mesh -text
 mkmesh/Makefile -text
 mkmesh/mkmesh -text
 mkmesh/mkmesh.mlib -text
