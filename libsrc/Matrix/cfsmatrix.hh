@@ -43,6 +43,9 @@ public:
   //! Destructor
   virtual ~CFSMatrix(){ENTER_IFCN("CFSMatrix::CFSMatrix");};
 
+  //! Hard coded query if values are complex
+  virtual Boolean IsComplex() = 0;
+
   //! Initialize matrix with a given entry.
   //! If no entry given, it gets initalized with zeroes
   /*!
@@ -187,13 +190,15 @@ public:
   virtual void MultSub(const CFSVector & mvec, CFSVector & rvec) const = 0;
 
 
-#define DECL_BASEMATRIX_FCN(TYPE)								\
-  virtual void SetEntry(const Integer row, const Integer col, const TYPE val)			\
-  {Error("CFSMatrix::SetEntry(): Not implemented here",__FILE__,__LINE__);}			\
-  virtual void AddToEntry(const Integer row, const Integer col, const TYPE val)			\
-  {Error("CFSMatrix::AddToEntry(): Not implemented here",__FILE__,__LINE__);}			\
-  virtual void GetEntry(const Integer row, const Integer col, TYPE & val) const			\
-  {Error("CFSMatrix::GetEntry(): Not implemented here",__FILE__,__LINE__);}			\
+#define DECL_BASEMATRIX_FCN(TYPE)						\
+  virtual void Init(const TYPE input = TYPE())					\
+  {Error("CFSMatrix::Init(): Not implemented here",__FILE__,__LINE__);}		\
+  virtual void SetEntry(const Integer row, const Integer col, const TYPE val)	\
+  {Error("CFSMatrix::SetEntry(): Not implemented here",__FILE__,__LINE__);}	\
+  virtual void AddToEntry(const Integer row, const Integer col, const TYPE val)	\
+  {Error("CFSMatrix::AddToEntry(): Not implemented here",__FILE__,__LINE__);}	\
+  virtual void GetEntry(const Integer row, const Integer col, TYPE & val) const	\
+  {Error("CFSMatrix::GetEntry(): Not implemented here",__FILE__,__LINE__);}
   
 DECL_BASEMATRIX_FCN(Integer)
 DECL_BASEMATRIX_FCN(Complex)

@@ -106,6 +106,19 @@ Matrix<TYPE>::~Matrix ()
 }
 
 template<class TYPE>
+Boolean Matrix<TYPE>::IsComplex()
+{
+  return FALSE;
+}
+
+template<>
+Boolean Matrix<Complex>::IsComplex()
+{
+  return TRUE;
+}
+
+
+template<class TYPE>
 void Matrix<TYPE> :: Resize(const Integer nRows, const Integer nCols)
 {
   ENTER_FCN("Matrix::Resize");

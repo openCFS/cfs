@@ -39,14 +39,17 @@ public:
 
   //! Destructor
   ~Matrix();
-  
+
+  //! Hard coded query if values are complex
+  Boolean IsComplex();
+
   //! Initialize matrix with a given entry.
   //! If no entry given, it gets initalized with zeroes
   /*!
     \param val (input,opt.) Entry the matrix gets initalized with
   */
   //! \note This method does not change the size of the matrix
-  void Init(const TYPE val = 0.0);
+  void Init(const TYPE val = TYPE());
 
   //! Change size of quadratic matrix
   /*!
