@@ -52,12 +52,16 @@ namespace CoupledField
     void WriteNonLinIter(const std::string& pdeName, const Integer iterationCounter,    
 			 const Double residualErr, const Double incrementalErr);
 
+    /// write Result values
+    void WriteResult(std::string pdename, std::string resulttype, std::vector<std::string> subdoms,
+		     std::vector<Double> reults);
+
     /// just prints a vector
     void PrintVec(Vector<Double>& vec);
-    
+
     /// does a formatted print leaded by the PDE name, equal to std::printf(...)
     void PrintF(const std::string& pdeName, char * formatStr ...);
-    
+
     /// prints warning to info-file
     void Warning(const std::string & text);
     
@@ -65,7 +69,7 @@ namespace CoupledField
     void Error(const std::string & text, const Char * const filename=NULL,
                const Integer numline=0);
 
-    
+
   };
 } // end namespace CoupledField
  

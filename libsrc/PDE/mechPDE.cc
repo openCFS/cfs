@@ -33,6 +33,11 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
   
   if (subType_ == "3d")
     dofspernode_ = 3;
+  else if (subType_ == "axi")
+    {
+      isaxi_ = TRUE;
+      dofspernode_ = 2;
+    }
   else
     dofspernode_ = 2;
 
@@ -689,7 +694,7 @@ void MechPDE::AssembleMass(BaseFE * ptEl, Vector<Integer>& connect_PDE,
 #endif
 
   Matrix<Double> elemmat;
-  BaseForm * bilinear_mass  = new MassInt(ptEl, density);
+  BaseForm * bilinear_mass  = new MassInt(ptEl, density,isaxi_);
   
   
   // mass part

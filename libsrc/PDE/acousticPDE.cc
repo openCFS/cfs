@@ -40,6 +40,13 @@ AcousticPDE::AcousticPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, Fil
   sol_.reshape(dofspernode_, NumPDENodes_);
   sol_.init();
 
+  //check, if problem is axisymmetric
+  isaxi_ = FALSE;
+  std::string subtype;
+  conf->ifget("subtype",subtype,pdename_);
+  if (subtype == "axi")
+    isaxi_ = TRUE;
+
   with_absBCs_=FALSE;
   std::string absBCs="no";
   conf->ifget("absorbingBCs",absBCs,pdename_);
@@ -303,8 +310,8 @@ void AcousticPDE::SetupMatrices(const Integer level)
 	{
 	  ptEl = elemssd[j]->ptElem;
     
-	  BaseForm * bilinear_mass  = new MassInt(ptEl, coeffmass);
-	  BaseForm * bilinear_stiff = new LaplaceInt(ptEl, coeffstiff);
+	  BaseForm * bilinear_mass  = new MassInt(ptEl, coeffmass, isaxi_);
+	  BaseForm * bilinear_stiff = new LaplaceInt(ptEl, coeffstiff, isaxi_);
 
 	  connecth=elemssd[j]->connect;
 	  GetElemCoords(connecth, ptCoord, level); 
@@ -371,7 +378,7 @@ void AcousticPDE::SetupMatrices(const Integer level)
 	  //Damping part
 	  if (with_fracdamping_ && analysistype_!=HARMONIC)
 	    {
-	      BaseForm * bilinear_damp  = new MassInt(ptEl, coeffdamp);
+	      BaseForm * bilinear_damp  = new MassInt(ptEl, coeffdamp, isaxi_);
 	      bilinear_damp->CalcElementMatrix(ptCoord, elemmat);
 
 #ifdef DEBUG
@@ -406,7 +413,7 @@ void AcousticPDE::SetupMatrices(const Integer level)
       
 	ptEl=DomainBnd[j]->ptElem;
 	// Here MassInt is used to calculate the damping matrix from the surface elements
-	BaseForm * linear_damp = new MassInt(ptEl,coeffdamp);
+	BaseForm * linear_damp = new MassInt(ptEl,coeffdamp,isaxi_);
 
 	Integer ii;
 	Integer elsize=(DomainBnd[j]->connect).size();

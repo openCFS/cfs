@@ -37,6 +37,19 @@ ElecPDE::ElecPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
   conf->getsubdompde(subdoms_,pdename_);
   ReadBCs(pdename_);
 
+  //check, if problem is axisymmetric
+  isaxi_ = FALSE;
+  std::string subtype;
+  conf->ifget("subtype",subtype,pdename_);
+  if (subtype == "axi")
+      isaxi_ = TRUE;
+
+  //check for electric field:
+  conf->ifgetliststr("calc_EField",calcEfield_,pdename_); 
+
+  //check for electric field energy:
+  conf->ifgetliststr("calc_Energy",calcEnergy_,pdename_); 
+
   Reset();
   
   SolverCFS_ = FALSE;
@@ -315,39 +328,43 @@ void ElecPDE::PostProcess(const Integer level)
   (*trace) << "entering ElecPDE::PostProcess" << std::endl;
 #endif  
 
-   ElecFieldOp * FieldOp = new ElecFieldOp(ptgrid_, this, &Mesh2PDENode_, &sol_[0], level);
 
-  // ------ Calculation of the electric field ------
-
-  std::vector<Double> LCoord;
-  LCoord.resize(Dim_);
-  LCoord[0] = 0;
-  LCoord[1] = 0;
-
-  std::vector<Elem*> elemssd;
-  Integer counterElems=0;
-  Vector<Double> TempE;
-  
-  // Resize solution arrays
-  E_.reshape(Dim_,NumElems_);
-  E_.init();
-  
-  
-  // loop over all subdomains
-  for (Integer isd=0; isd<subdoms_.size(); isd++)
+  if (calcEfield_.size() !=0 )
     {
-      // get vector of Elem of subdomain with color: subdoms[isd]
-      ptgrid_->GetElemSD(elemssd,subdoms_[isd],level);
+      ElecFieldOp * FieldOp = new ElecFieldOp(ptgrid_, this, &Mesh2PDENode_, &sol_[0], level);
+
+      // ------ Calculation of the electric field ------
+
+      std::vector<Double> LCoord;
+      LCoord.resize(Dim_);
+      LCoord[0] = 0;
+      LCoord[1] = 0;
       
-      // loop over elements of subdomain
-      for (Integer iel=0; iel< elemssd.size(); iel++,counterElems++)
+      std::vector<Elem*> elemssd;
+      Integer counterElems=0;
+      Vector<Double> TempE;
+      
+      // Resize solution arrays
+      E_.reshape(Dim_,NumElems_);
+      E_.init();
+      
+      
+      // loop over all subdomains
+      for (Integer isd=0; isd<subdoms_.size(); isd++)
 	{
- 	  FieldOp->CalcElemElecField( TempE, elemssd[iel], LCoord);
+	  // get vector of Elem of subdomain with color: subdoms[isd]
+	  ptgrid_->GetElemSD(elemssd,subdoms_[isd],level);
 	  
-	  E_.setValuesRow(TempE,counterElems);
+	  // loop over elements of subdomain
+	  for (Integer iel=0; iel< elemssd.size(); iel++,counterElems++)
+	    {
+	      FieldOp->CalcElemElecField( TempE, elemssd[iel], LCoord); 
+	      E_.setValuesRow(TempE,counterElems);
+	    }
 	}
+      delete FieldOp;
     }
-   delete FieldOp;
+  
 }
 
 
@@ -443,7 +460,7 @@ void ElecPDE::SetupMatrices(const Integer level)
 	{  
 	  ptElem=elemssd[j]->ptElem;
 
-	  BaseForm * bilinear_stiff = new LaplaceInt(ptElem, eps33);
+	  BaseForm * bilinear_stiff = new LaplaceInt(ptElem, eps33, isaxi_);
 
 	  connecth=elemssd[j]->connect;
 	  
@@ -500,8 +517,6 @@ void ElecPDE::WriteResultsInFile()
   // transform solution vector for electric potential
   TransformNodeSolution(Sol_Mesh,sol_,PDE2MeshNode_);
 
-  TransformElemSolution(E_Mesh,E_,subdoms_);
-
   // CHANGE F_Interface_
   // TransformElemSolution(Force_Mesh,Force_,F_Interface_[0]);
    
@@ -511,24 +526,35 @@ void ElecPDE::WriteResultsInFile()
       // write electric potential
       OutFile_->WriteNodeSolution(Sol_Mesh,step,time,"E-Potential");
       
-      // Write Out Vector Data
-      OutFile_->WriteElemSolution(E_Mesh,step,time,"E-Field");
-      //OutFile_->WriteElemSolution(Force_Mesh,step,time,"E-Force");
+      if (calcEfield_.size() !=0 )
+	{
+	  TransformElemSolution(E_Mesh,E_,subdoms_);
+	  OutFile_->WriteElemSolution(E_Mesh,step,time,"E-Field");
+	  //OutFile_->WriteElemSolution(Force_Mesh,step,time,"E-Force");
+	}
     }
   else
     {
       // write electric potential
       OutFile_->WriteNodeSolution(Sol_Mesh,step,time,"electric potential");
-      
-      // Write Out Vector Data
-       OutFile_->WriteElemSolution(E_Mesh,step,time,"electric field");
-      //OutFile_->WriteElemSolution(Force_Mesh,step,time,"mag. volume force");
+
+      if (calcEfield_.size() !=0 )
+	{
+	  TransformElemSolution(E_Mesh,E_,subdoms_);
+	  OutFile_->WriteElemSolution(E_Mesh,step,time,"electric field");
+	  //OutFile_->WriteElemSolution(Force_Mesh,step,time,"mag. volume force");
+	}
     }
 
     if (flags->CalcErrorMap_)
-    {   
-      OutFile_->WriteElemSolution(errorMap_,step,time,"relERR-E-Potential"); 
-    }
+      {   
+	OutFile_->WriteElemSolution(errorMap_,step,time,"relERR-E-Potential"); 
+      }
+
+    if (calcEnergy_.size() !=0 )
+      CalcEnergy();
+
+
 }
 
 Boolean ElecPDE::HasOutput(std::string output)
@@ -550,6 +576,68 @@ Boolean ElecPDE::HasOutput(std::string output)
 
 }
 
+void ElecPDE::CalcEnergy()
+{
+#ifdef TRACE
+  (*trace) << "entering ElecPDE::CalcEnergy" << std::endl;
+#endif
+
+  Matrix<Double> elemmat;  
+  Matrix<Double> ptCoord;
+  BaseFE         * ptElem;
+
+  Vector<Integer> connecth, connect_PDE;  
+  Vector<double> help;
+
+  Integer i, j;
+  std::vector<Double> energy(subdoms_.size());
+
+  for (i=0; i<subdoms_.size(); i++)
+    {
+      //reads eps33 (matrix notation starts with 0)
+      Double eps33 = materialData_[i].GetPermittivity(2,2);
+
+      std::vector<Elem*> elemssd;
+      ptgrid_->GetElemSD(elemssd,subdoms_[i],actlevel_);
+
+      energy[i] = 0;
+      for (j=0; j < elemssd.size(); j++)
+	{  
+	  ptElem=elemssd[j]->ptElem;
+	  BaseForm * bilinear_stiff = new LaplaceInt(ptElem, eps33, isaxi_);
+
+	  connecth=elemssd[j]->connect;
+	  GetElemCoords(connecth, ptCoord, actlevel_);
+	  bilinear_stiff->CalcElementMatrix(ptCoord, elemmat);
+
+	  // Mape Mesh to PDE node numbers
+	  Mesh2PDENode(connect_PDE,connecth,Mesh2PDENode_);
+	  Vector<Double> elpot;
+	  GetSolOfElement(elpot, connect_PDE);	 
+	  help = elemmat * elpot;
+	  energy[i] += help * elpot;
+
+	  delete bilinear_stiff;	  
+	}  
+    }
+
+  std::string resulttype = "Electric Energy";
+  Info->WriteResult(pdename_,  resulttype, subdoms_ , energy);
+}
+
+
+void ElecPDE::GetSolOfElement( Vector<Double>& elpot, Vector<Integer>& connect_PDE)
+{
+#ifdef TRACE
+    (*trace) << "entering ElecPDE::GetSolOfElement" << std::endl;
+#endif
+
+  // displacement of element nodes
+  elpot.Resize(connect_PDE.size());
+
+  for(Integer actNode=0; actNode<connect_PDE.size(); actNode++)
+    elpot[actNode] = sol_[0][connect_PDE[actNode]-1];
+}
 
 
 ElecPDE::~ElecPDE()

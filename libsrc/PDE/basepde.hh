@@ -386,6 +386,7 @@ protected:
 
   std::string pdename_; //!< type of PDE (set in the derived classes)
   ShortInt Dim_;         //!< space dimension of pde
+  Boolean isaxi_;        //!< TRUE: axisymmetric problem
   Integer dofspernode_; //!< number of unknowns per node
   Integer dofsperedge_; //!< number of unknowns per edge
   std::vector<std::string> subdoms_;  //!< subdomain-levels belongig to PDE

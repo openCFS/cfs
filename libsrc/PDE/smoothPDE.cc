@@ -33,6 +33,11 @@ SmoothPDE::SmoothPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileTyp
   
   if (subType_ == "3d")
     dofspernode_ = 3;
+  else if (subType_ == "axi")
+    {
+      isaxi_ = TRUE;
+      dofspernode_ = 2;
+    }
   else
     dofspernode_ = 2;
 

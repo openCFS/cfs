@@ -335,7 +335,7 @@ namespace CoupledField
 
 	    BaseForm * bilinear_stiff = new CurlCurlEdgeInt(ptElem, reluctivity);
 	    BaseForm * bilinear_mass  = new MassEdgeInt(ptElem, conductivity);
-	    BaseForm * lapl           = new LaplaceInt(ptElem, reluctivity);
+	    BaseForm * lapl           = new LaplaceInt(ptElem, reluctivity, isaxi_);
 
 	    connecth=elemssd[j]->connect;
 	  

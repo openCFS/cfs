@@ -87,8 +87,11 @@ public:
   virtual Integer getSize() const 
   { return size_;}
 
+#ifdef ADAPTGRID
   //! test error of computation
   virtual Boolean TestError(const Integer level);
+#endif
+
 protected:
 
   Double freq_;   //!< excitation frequency for harmonic analysis
