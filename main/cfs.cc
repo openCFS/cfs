@@ -40,14 +40,14 @@ Integer main(int argc, char *argv[])
  
   if (argc < 2) 
     {
-      std::cout << " \033[36mUsage\033[0m : cfs [-i] name "<< std::endl 
-		<< "\t \033[36m i \033[0m: to create info-file " << std::endl
+      std::cout << " \033[36mUsage\033[0m : cfs name "<< std::endl 
 		<< "\t \033[36m name \033[0m: name of input file without extension" 
 		<< std::endl << std::endl;
       Error("Invalid running of cfs. See Usage above.");
     }
 
-  if (!strcmp("-i", argv[1])) InfoPrint=TRUE;
+  // always write info file: material parameters, data of nonlin iteration ...
+  InfoPrint=TRUE;
 
   Char * name=argv[argc-1];
 

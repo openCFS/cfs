@@ -727,13 +727,26 @@ void Matrix<TYPE>::SetSubMatrix(Matrix<TYPE>& subMat, Integer startRow, Integer 
 
 /// converts a matrix into a vector, by appending successively all rows
 template<class TYPE>
-void Matrix<TYPE>::ConvertToVec_RowsFirst(std::vector<TYPE>& vec) const
+void Matrix<TYPE>::ConvertToVec_AppendRows(std::vector<TYPE>& vec) const
 {
   vec.resize(row * col);
   
   for(int i=0; i < row; i++)
     for(int j=0; j < col; j++)
       vec[i*row + j] = (*this)[i][j];
+}
+
+
+
+/// converts a matrix into a vector, by appending successively all colums
+template<class TYPE>
+void Matrix<TYPE>::ConvertToVec_AppendCols(std::vector<TYPE>& vec) const
+{
+  vec.resize(row * col);
+  
+  for(int actCol=0; actCol < col; actCol++)
+    for(int actRow=0; actRow < row; actRow++)
+      vec[actCol*row + actRow] = (*this)[actRow][actCol];
 }
 
 

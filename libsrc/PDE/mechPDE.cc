@@ -18,7 +18,7 @@ namespace CoupledField
 MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *aptFileType, 
 		 WriteResults *aptOut)
   :BasePDE(aptgrid, aptbcs, aptFileType, aptOut, aptTimeFunc), nonLin_(FALSE),
-   incStopCrit_(1e-4), residualStopCrit_(1e-4)
+   incStopCrit_(1e-2), residualStopCrit_(1e-3)
 {
 #ifdef TRACE
   (*trace) << "entering MechPDE::MechPDE " << std::endl;
@@ -50,6 +50,9 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
     {
       std::cout << "NONLIN option set !!" << std::endl << std::endl;
       nonLin_=TRUE;
+
+      conf->ifget("incStopCrit", incStopCrit_, pdename_); // incremental stopping criterion
+      conf->ifget("residualStopCrit", residualStopCrit_, pdename_); // residual stopping criterion
     }
 }
 
@@ -163,53 +166,34 @@ void MechPDE::SolveStepStaticNonLin(const Integer level)
   Boolean performOneMoreStep;
   Integer iterationCounter=0;
   
-  std::vector<Double> extForces;
   std::vector<Double> actSol(NumPDENodes_ * dofspernode_,0);
   std::vector<Double> solIncrement(NumPDENodes_ * dofspernode_,0);
 
-  //account for bcs
-  SetBCs(level, updateBCs_, 0);
 
-  // stores rhs vector into extForces and returns that L2-norm
-  StoreAlgsysToVec(extForces, algsys_->GetRHSVal() );
-  extForcesL2Norm = L2Norm(extForces);
-  
-#ifdef DEBUG
-  *debug << " === extForces: " << std::endl << extForces << std::endl << std::endl;
-#endif
+  extForcesL2Norm = SetExternalForces(level);
 
-  //  if extForcesL2Norm is 0, no residual norm can be calculated
-  if (!extForcesL2Norm)
-    Error("Zero external force vector!! ", __FILE__,__LINE__);
-  
+
   do
     {
       iterationCounter++;
       std::cout << std::endl << "Nonlinear Mechanics: Perform internal loop nr. " 
-		<< iterationCounter << std::endl;
-      
-#ifdef DEBUG
-      *debug << " ======================================================= " << std::endl
-	     << " ITERATION  " << iterationCounter << std::endl
-	     << " ======================================================= " << std::endl;
-#endif
+		<< iterationCounter << std::endl;      
       
       
-      // setup and solve new system      
+      // setup and solve new system (rhs is already set) =====================
       SetupMatrices(level);
       algsys_->CalcPrecond(job);
-      SetupRHS(level);      
       algsys_->Solve();
 
 
-      // new solution is only an increment of the full solution
+      // new solution is only an increment of the full solution =============
       StoreAlgsysToVec(solIncrement, algsys_->GetSolutionVal() );
-      solIncrL2Norm = L2Norm(solIncrement);
-      
       actSol += solIncrement;
       StoreVecToSolArray(actSol);
 
 
+      // calculate incremental error ========================================
+      solIncrL2Norm = L2Norm(solIncrement);
       actSolL2Norm = L2Norm(actSol);
       if (actSolL2Norm)
 	incrementalErr = solIncrL2Norm / actSolL2Norm;
@@ -217,41 +201,122 @@ void MechPDE::SolveStepStaticNonLin(const Integer level)
 	Error("Zero solution vector!! ", __FILE__,__LINE__);      
 
 
+      // recalculate RHS with new values to get new residual (f^(k+1))========
+      algsys_->InitRHS();
+      SetBCs(level, updateBCs_, 0);
+      SetupRHS(level);      
 
-      // calculation of residual
-      residualL2Norm = AlgsysL2Norm(algsys_->GetRHSVal() ); // L2Norm of  ( f_i^(k+1) - f_a )
-      residualErr = residualL2Norm / extForcesL2Norm;
-
-
-      std::cout << " === Residual norm: " << residualL2Norm << std::endl;
-      std::cout << " === Residual error " << residualErr << std::endl << std::endl;
-
-      std::cout << " === Norm of external forces: " << extForcesL2Norm << std::endl;
-      std::cout << " === Incremental error " << incrementalErr << std::endl;
-      
-
-#ifdef DEBUG
       std::vector<Double> actRHS;
       StoreAlgsysToVec(actRHS, algsys_->GetRHSVal() );
 
-      *debug << " === actSol: " << std::endl << actSol << std::endl << std::endl;
-      *debug << " === incrementalSol: " << std::endl << solIncrement << std::endl << std::endl;
-      *debug << " === actRHS: " << std::endl << actRHS << std::endl << std::endl;
-#endif
+      // calculation of residual error =======================================
+      residualL2Norm = RhsL2Norm(actRHS); // L2Norm of  ( f_i^(k+1) - f_a )
+      residualErr = residualL2Norm / extForcesL2Norm;
+
+
+
+      std::cout << " === Residual error    " << residualErr << std::endl;
+      std::cout << " === Incremental error " << incrementalErr << std::endl;      
+
+      *infofile << " ======================================================= " << std::endl
+		<< " NONLINEAR ITERATION " << iterationCounter << std::endl
+		<< " ======================================================= " << std::endl;
+      *infofile << " === actSol: " << std::endl << actSol << std::endl << std::endl;
+      *infofile << " === incrementalSol: " << std::endl << solIncrement << std::endl << std::endl;
+      *infofile << " === actRHS (after eliminating penalty entries): " << std::endl 
+		<< actRHS << std::endl << std::endl;
+      *infofile << " === Residual norm:       " << residualL2Norm << std::endl;
+      *infofile << " === Norm of ext. forces: " << extForcesL2Norm << std::endl;
+      *infofile << " === Residual error    " << residualErr << std::endl;
+      *infofile << " === Incremental error " << incrementalErr << std::endl;
       
+
+
       // boolean variable, holds condition if another iteration step is necessary
-      performOneMoreStep = (incrementalErr > incStopCrit_) || (residualErr > residualStopCrit_);      
+      performOneMoreStep = 
+	(incrementalErr > incStopCrit_)||(residualErr > residualStopCrit_);      
       
       
       if(performOneMoreStep)
 	{
 	  InitMatrices();
-	  algsys_->InitRHS();
 	  algsys_->InitSol();
-	  SetBCs(level, updateBCs_, 0);
 	}
     }while(performOneMoreStep && iterationCounter < maxnumiter_);  
 }
+
+
+
+
+
+// sets external forces and returns L2Norm of them
+Double MechPDE::SetExternalForces(const Integer level)
+{
+#ifdef TRACE
+  (*trace) << "entering MechPDE::SetExternalForces" << std::endl;
+#endif
+
+  Double extForcesL2Norm;  
+  std::vector<Double> extForces;
+
+
+  // account for bcs before first solving step =======================
+  SetBCs(level, updateBCs_, 0);
+
+
+  // stores rhs vector into extForces and returns that L2-norm
+  StoreAlgsysToVec(extForces, algsys_->GetRHSVal() );
+
+
+  *infofile << " === extForces: " << std::endl << extForces 
+	    << std::endl << std::endl;
+
+
+  extForcesL2Norm = L2Norm(extForces);
+ 
+  //  if extForcesL2Norm is 0, no residual norm can be calculated
+  if (!extForcesL2Norm)
+    Error("Zero external force vector!! ", __FILE__,__LINE__);
+
+  
+  return extForcesL2Norm;
+}
+
+
+
+
+
+
+// calculates L2-norm of RHS regarding dirichlet entries due to penalty formulation by setting them 0
+Double MechPDE::RhsL2Norm(std::vector<Double>& actRHS)
+{
+#ifdef TRACE
+  (*trace) << "entering MechPDE::RhsL2Norm" << std::endl;
+#endif  
+  Integer node, dof;
+  
+  std::list<Integer> nodes;
+  
+  
+  // Eliminate dirichlet node from RHS (due to penalty formulation)
+  for (Integer i=0; i< bcs_hd_.size(); i++)
+    {
+      std::string doftype = bcs_hd_[i]; 
+      dof = GetNrBCDof (doftype.substr(0,2));      
+      nodes=ptBCs_->GetNodesLevel(bcs_hd_[i]);
+      
+      for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end(); p++)
+	{
+	  node=*p;
+
+	  actRHS[(Mesh2PDENode_[node-1]-1)*dofspernode_ + dof-1] = 0;
+	}
+    }
+
+  return L2Norm(actRHS);
+}
+
+
 
 
 
@@ -269,6 +334,8 @@ void MechPDE::StoreAlgsysToVec(std::vector<Double>& stdVec, Double * pt)
   for (Integer i=0; i<numElems; i++)   
     stdVec[i] = pt[i];
 }
+
+
   
 
 // returns that L2-norm of an algsys vector
@@ -287,6 +354,8 @@ Double MechPDE::AlgsysL2Norm(Double * pt)
   return sqrt(quadSum);
 }
   
+
+
 
 
 void MechPDE::CalcOutputCoupling()
@@ -313,10 +382,7 @@ void MechPDE::CalcOutputCoupling()
 	  ptCoupling_->GetOutputValues(i, values);
 
 	  if (quantity == "mechdisplacement")
-	    {
-	      NodeSolutionToCoupling(*values, *couplingnodes);
-	      //std::cerr << "CouplingTerms: " << *values << std::endl;
-	    }
+	    NodeSolutionToCoupling(*values, *couplingnodes);
 	  
 	  break;
 
@@ -441,20 +507,12 @@ void MechPDE::AssembleStiffness(BaseFE * ptEl, Vector<Integer>& connect_PDE,
       stiff_nonLin1->setActElemDispl(elDisp);
       stiff_nonLin1->CalcElementMatrix(ptCoord, elemmat);
       algsys_->SetElementMatrix(elemmat.getinarray(), connect_PDE.get(), connect_PDE.size(), SYSTEM);
-#ifdef DEBUG
-      *debug << "ElemMat BNonLin: " << std::endl << elemmat << std::endl;
-#endif
-
       
 
       nLinMech3dInt_PiolaStress * stiff_nonLin2 = new nLinMech3dInt_PiolaStress(ptEl, actMatData);      
       stiff_nonLin2->setActElemDispl(elDisp);
       stiff_nonLin2->CalcElementMatrix(ptCoord, elemmat);
       algsys_->SetElementMatrix(elemmat.getinarray(), connect_PDE.get(), connect_PDE.size(), SYSTEM);
-#ifdef DEBUG
-      *debug << "ElemMat Piola: " << std::endl << elemmat << std::endl;
-#endif
-      
     }
 
 }
@@ -496,13 +554,8 @@ void MechPDE::AssembleMass(BaseFE * ptEl, Vector<Integer>& connect_PDE,
   Matrix <Double> elemMatMultDof;
   MassMultiDof(elemMatMultDof, elemmat, dofspernode_);
   
-  // 	    algsys_->SetElementMatrix(elemMatMultDof.getinarray(), connect_PDE.get(), connecth.size(), MASS);
   algsys_->SetElementMatrix(elemMatMultDof.getinarray(), connect_PDE.get(), connect_PDE.size(), MASS);
 
-#ifdef DEBUG
-	    (*debug) << "Mech3d mass elemmat: " << std::endl << elemmat << std::endl;
-#endif
-  
   delete bilinear_mass;
 }
 
@@ -536,18 +589,18 @@ void MechPDE::SetBCs(const Integer level, const Integer update, const Double ati
 	std::string doftype = bcs_hd_[i]; 
 	dof = GetNrBCDof (doftype.substr(0,2));
       
-#ifdef DEBUG
-	(*debug) << " Homog. Dirichlet BC" << std::endl;
-#endif
+// #ifdef DEBUG
+// 	(*debug) << std::endl << " Homog. Dirichlet BC" << std::endl;
+// #endif
 	nodes=ptBCs_->GetNodesLevel(bcs_hd_[i]);
    
 	for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end(); p++, j++)
 	  {
 	    node=*p;
 
-#ifdef DEBUG
-	    (*debug) << " node: " << Mesh2PDENode_[node-1] << " dof:" << dof << " val: " << val << std::endl;
-#endif
+// #ifdef DEBUG
+// 	    (*debug) << " node: " << Mesh2PDENode_[node-1] << " dof:" << dof << " val: " << val << "    global node nr: " << node << std::endl;
+// #endif
 	    if (update==1)
 	      algsys_->UpdateDirichlet(j+1, val, SYSTEM);
 	    else
@@ -562,7 +615,7 @@ void MechPDE::SetBCs(const Integer level, const Integer update, const Double ati
 	dof = GetNrBCDof (doftype.substr(0,2));
       
 #ifdef DEBUG
-	(*debug) << " Inhomog. Dirichlet BC" << std::endl;
+	//	(*debug) << " Inhomog. Dirichlet BC" << std::endl;
 #endif
 
 	nodes = ptBCs_->GetNodesLevel(bcs_id_[i], level);
@@ -573,7 +626,7 @@ void MechPDE::SetBCs(const Integer level, const Integer update, const Double ati
 	  {
 	    node=*p;
 #ifdef DEBUG
-	    (*debug) << " node: " << node << " dof:" << dof << " val: " << val << std::endl;
+	    //  (*debug) << " node: " << node << " dof:" << dof << " val: " << val << std::endl;
 #endif
 	  
 	    if (update==1)
@@ -694,13 +747,17 @@ void MechPDE::SetupRHS(const Integer level)
 	    nLinMech_linFormInt rhsSource(ptElem, materialData_[i]);
 	    rhsSource.setActElemDispl(elDisp);
 	    rhsSource.CalcElemVector(ptCoord, elemVec);
-	    
+
+
 	    // subtract internal forces on rhs from external forces 
 	    elemVec *= -1;
 	    
-	    
 	    //	    if (analysistype_==STATIC)
-	    algsys_->SetElementRHS(&elemVec[0], connect_PDE.get(), connect_PDE.size());	    
+	    algsys_->SetElementRHS(&elemVec[0], connect_PDE.get(), connect_PDE.size());
+#ifdef DEBUG
+	    *debug << std::endl << " === internalForces: " << std::endl << elemVec << std::endl << std::endl;
+#endif
+
 	  }
       }
   }

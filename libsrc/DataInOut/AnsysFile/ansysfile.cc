@@ -622,7 +622,11 @@ namespace CoupledField
       case 10:
 	return ptHexa;
       default:
-	Error(" This type is unknown. ", __FILE__,__LINE__);
+	{
+	  std::cout << "Used Element Type: " << itype << std::endl;  
+	  Error(" This element type is unknown. ", __FILE__,__LINE__);
+	}
+	
       }
   }
 }

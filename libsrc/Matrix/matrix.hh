@@ -183,7 +183,11 @@ public:
   void SetSubMatrix(Matrix<TYPE>& subMat, Integer row, Integer col);
 
   /// converts a matrix into a vector, by appending successively all rows
-  void ConvertToVec_RowsFirst(std::vector<TYPE>& vec) const;
+  void ConvertToVec_AppendRows(std::vector<TYPE>& vec) const;
+
+  /// converts a matrix into a vector, by appending successively all columns
+  void ConvertToVec_AppendCols(std::vector<TYPE>& vec) const;
+
   
 private:
   /// calculates the adjunct of the matrix at position (i,j)
