@@ -10,7 +10,7 @@ namespace CoupledField{
 template<class TYPE>
 StoreSol<TYPE>::StoreSol()
 {
-  ENTER_FCN("StoreSol::StoreSol()");
+  ENTER_FCN( "StoreSol::StoreSol()" );
   
   numNodes_ = 0;
   numSolutions_ = 0;
@@ -24,8 +24,8 @@ StoreSol<TYPE>::StoreSol(Integer numNodes,
 			 std::vector<SolutionType> solTypes, 
 			 std::vector<Integer> solDofs)
 {
-  ENTER_FCN("StoreSol::StoreSol(numNodes, solTypes, solDofs");
-  Info->Error("Not implemented here", __FILE__,__LINE__);
+  ENTER_FCN( "StoreSol::StoreSol(numNodes, solTypes, solDofs" );
+  Info->Error( "Not implemented here", __FILE__, __LINE__ );
 }
 
 template<class TYPE>
@@ -33,16 +33,16 @@ StoreSol<TYPE>::StoreSol(const Integer numNodes,
 			 const SolutionType solType,
 			 const Integer numDofs)
 {
-  ENTER_FCN("StoreSol::StoreSol(numNodes, solType, soDofs");
-  Info->Error("Not implemented here", __FILE__,__LINE__);
+  ENTER_FCN( "StoreSol::StoreSol(numNodes, solType, soDofs" );
+  Info->Error( "Not implemented here", __FILE__, __LINE__ );
 }
 
 
 template<class TYPE>
 StoreSol<TYPE>::StoreSol(const StoreSol & x) 
 {
-  ENTER_FCN("StoreSol::StoreSol(const StoreSol)");
-  Info->Error("Not implemented here", __FILE__,__LINE__);
+  ENTER_FCN( "StoreSol::StoreSol(const StoreSol)" );
+  Info->Error( "Not implemented here", __FILE__, __LINE__ );
 }
 
 
@@ -50,16 +50,24 @@ StoreSol<TYPE>::StoreSol(const StoreSol & x)
 template<class TYPE>
 StoreSol<TYPE>::~StoreSol() 
 {
-  ENTER_FCN("StoreSol::~StoreSol");
+  ENTER_FCN( "StoreSol::~StoreSol" );
  
   
+}
+
+template<class TYPE>
+void StoreSol<TYPE>::Clear()
+{
+  ENTER_FCN( "StoreSol::Clear()" );
+
 }
 
 
 template<class TYPE>
 void StoreSol<TYPE>::Init(const TYPE val)  
 {
-  ENTER_FCN("StoreSol::Init");
+  ENTER_FCN( "StoreSol::Init" );
+
 #ifdef CHECK_INITIALIZED
   if (numSolutions_ == 0 || numNodes_ == 0 \
      || solTypes_.size() == 0 || solDofs_.size() == 0) 
@@ -81,8 +89,11 @@ void StoreSol<TYPE>::Init(const TYPE val)
   // only the first time the struct gets initialized
   if (length_ == 0)
     {
+ 
       if (solDofs_.size() != numSolutions_ || solTypes_.size() != numSolutions_)
-	Info->Error("Inconsistent definition of Storesolution class",__FILE__,__LINE__);
+	Info->Error("Inconsistent definition of Storesolution class.\
+                     Eventually you have to call 'Clear()' before using a modified data layout!",
+		    __FILE__, __LINE__);
       
       totalDofs_ = 0;
       
@@ -110,18 +121,15 @@ void StoreSol<TYPE>::SetNumSolutions(const Integer nSols)
   ENTER_IFCN("StoreSol::SetNumSolutions");
 
   numSolutions_ = nSols;
-
   length_ = 0;
-  solTypes_.clear();
-  solDofs_.clear();
-  solOffset_.clear();
-  }
+}
 
 template<class TYPE>
 void StoreSol<TYPE>::SetNumNodes(const Integer nNodes)
 {
   ENTER_IFCN("StoreSol::SetNumNodes");
   numNodes_ = nNodes;
+  length_ = 0;
 }
 
 template<class TYPE>
@@ -134,6 +142,7 @@ void StoreSol<TYPE>::SetSolutionType(const SolutionType solType, const Integer n
 #endif
 
   solTypes_[solType] = numSolution;
+  length_ = 0;
 }
 
 template<class TYPE>
@@ -147,6 +156,8 @@ void StoreSol<TYPE>::SetNumDofs(const Integer dof, const SolutionType sol)
     solDofs_[(*solTypes_.begin()).first] = dof;
   else
     solDofs_[sol] = dof;
+
+  length_ = 0;
 }
 
 template<class TYPE>
@@ -628,5 +639,24 @@ BaseStoreSol & StoreSol<TYPE>::operator= (const BaseStoreSol & x)
  
   return dynamic_cast<BaseStoreSol &> (*this);
 }
+
+template <class TYPE>
+void StoreSol<TYPE>::Print(std::ostream& str)			  
+{
+  ENTER_IFCN( "operator<<(StoreSol<TYPE>) ");
+  Info->Error( "not implemented" );
+
+  std::map<SolutionType,Integer>::const_iterator it;
+  //for (it = solDofs_.begin(); it!=solDofs_.end(); it++)
+    
+    
+  //str << "Bin im konreten output operator" << std::endl;
+  //return str;
+  //<< store.solDofs_;
+}
+
+
+
+
 
 } //namespace

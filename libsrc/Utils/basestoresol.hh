@@ -5,6 +5,7 @@
 #include "Utils/tools.hh"
 #include "Utils/vector.hh"
 #include <vector>
+#include <iostream>
 #include <map>
 
 namespace CoupledField{
@@ -62,7 +63,6 @@ public:
   //! Since this is a base class used for inheritance we give it a virtual
   //! destructor.
   virtual ~BaseStoreSol() {};
-
   
   //! Assignment operator
 
@@ -71,11 +71,20 @@ public:
   virtual BaseStoreSol & operator= (const BaseStoreSol & x) = 0;
 
 
+  //! Deletes all data and layout information
+
+  //! Deletes all data and layout information.
+  //! This method should be called before the layout of the
+  //! solution object is modified via SetNumSolution(), SetNumNodes(),
+  //! SetNumDofs() or SetSolutionType().
+  virtual void Clear() = 0;
+  
+  
   //! Initialization of the StoreSolution-object (REQUIRED)
   
   //! Initializes the object AFTER the other layout
-  //! functions have been called
-  //! \note Only after calling Init, the object can
+  //! functions have been called with a given value
+  //! \note Only after calling Init(), the object can
   //! store information
   /*!
     \param val (input) Value the object gets initialized with
@@ -364,6 +373,9 @@ public:
   //! the solution and then the complex part.
   virtual Double* GetDoublePointer() = 0;
 
+
+  //! Output function
+  virtual void Print(std::ostream& str) = 0;
 
   /////////////////////////////////////////
   // Transformation routines for mapping //
