@@ -93,28 +93,17 @@ namespace CoupledField
 
     (*skelfile_)  << "   <!--In case of transient analysis, uncomment following lines -->" << std::endl
 		  << "   <!--<transient>  -->" << std::endl
-		  << "   <!--   <numsteps>    1    </numsteps>    -->" << std::endl
-		  << "   <!--   <firstdt>     1e-6 </firstdt>     -->" << std::endl
-		  << "   <!--   <stepsavebeg> 1    </stepsavebeg> -->" << std::endl
-		  << "   <!--   <stepsaveend> 1    </stepsaveend> -->" << std::endl
-		  << "   <!--   <stepsaveinc> 1    </stepsaveinc> -->" << std::endl
+		  << "   <!--   <numSteps>    1    </numSteps>    -->" << std::endl
+		  << "   <!--   <firstDt>     1e-6 </firstDt>     -->" << std::endl
+		  << "   <!--   <stepSaveBeg> 1    </stepSaveBeg> -->" << std::endl
+		  << "   <!--   <stepSaveEnd> 1    </stepSaveEnd> -->" << std::endl
+		  << "   <!--   <stepSaveInc> 1    </stepSaveInc> -->" << std::endl
 		  << "   <!--   <timeDataFile name=\"XXX.dat\"/>  -->" << std::endl
 		  << "   <!--</transient>                         -->" << std::endl 
 		  << myEndl;
 
     (*skelfile_)  << "</cfsSimulation>" << myendl;
   }
-
-
-//     analysis     & plain   & required\\
-//     geometry     & plain   & required\\
-//     input        & plain   & optional\\
-//     output       & plain   & optional\\
-//     materialData & plain   & optional\\
-//     domain       & section & required \\
-//     pdeList      & section & required \\
-//     transient    & section & required for transient analysis \\
-
 
 
 
