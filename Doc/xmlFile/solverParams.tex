@@ -321,7 +321,11 @@ ndOrdering & yes, no & If set to yes, pardiso will chose a nested dissection
                        the matrx. Otherwise a minimum degree approach is
                        chosen.\\
 \noalign{\smallskip}\hline\noalign{\smallskip}
-logging    & yes, no & Currently not implemented\\
+logging    & yes, no & If set to yes, the solver object will write minimal
+                       status reports to the standard OLAS logfile\\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+stats      & yes, no & Setting this parameter to yes triggers Pardiso to print
+                       statistical information to the standard output\\
 \noalign{\smallskip}\hline
 \end{tabular}
 \end{center}
