@@ -143,7 +143,7 @@ void TimeFunc :: ReadTimeFuncs()
       while(!timefile.eof())
 	{
 	  timefile >> dummyTime >> dummyVal;
-	  maxvalTimeFunc[0]++;
+	  maxvalTimeFunc[i]++;
 	}
       
       // +1 is due to the fact, that maxvalTimeFunc includes the first (header) line
