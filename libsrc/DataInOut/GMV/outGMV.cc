@@ -80,7 +80,7 @@ WriteResultsGMV :: WriteResultsGMV(const Char * const filename,
 #endif
 
  fixedgrid_ = TRUE;
- ascii_ = FALSE;
+ ascii_ = TRUE;
 
 }
 
