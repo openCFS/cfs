@@ -63,6 +63,7 @@ std::string::size_type ConfFile::getpos(const std::string keyword,const std::str
 
   pos=buf.find("=");
 
+  std::cout << buf << std::endl;
   return pos+help+1;
 }
 
@@ -82,14 +83,34 @@ void ConfFile::getmatnum(Integer & matnum, const Integer numsubdom)
  Integer i=0, numsd=0;
  //
  Integer numsubdomain=numsubdom+1;
+ std::string buffer;
 
  while (numsd != numsubdomain && i!=1000)
- { infile >> numsd >> matnum;
+ { infile >> numsd >> buffer >> matnum;
    i++;
  }
  
  if (i==1000) error("Error in conf->getmatnum: this numsubdom is absent in config-file");
+}
 
+void ConfFile::getequation(std::string & eq, const Integer numsubdom)
+{
+ std::string::size_type pos;
+ pos=getpos("numsubdomain");
+ infile.seekg(pos,std::ios::beg);
+ infile.ignore(100,'\n');
+
+ Integer numsd=0, i=0;
+ Integer numsubdomain=numsubdom+1; 
+
+  while (numsd != numsubdomain && i!=1000)
+ {
+   infile >> numsd >> eq;
+   std::cout << numsd << eq;
+   i++;
+ }
+
+ if (i==1000) error("Error in conf->getequation: this numsubdom is absent in config-file");
 }
 
 void ConfFile::error(const std::string keyword) const

@@ -22,6 +22,9 @@ public:
      //! get matnum for subdomain with number numsd
    void getmatnum(Integer & matnum, const Integer numsubdom);
 
+   //! get type of equation for subdomain with number numsd
+   void getequation(std::string & eq, const Integer numsubdom);
+
 protected:
 
   //! name of file

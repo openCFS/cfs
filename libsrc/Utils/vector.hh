@@ -156,6 +156,8 @@ public:
   //! Swap 2 elements in vector Ex swap(v[i],v[j])
   template<class T> void swap(T & a, T & b);
 
+  void  TransformInVector(const Integer nsize, TYPE * ptdata);
+
 };
 
 // inline member functios

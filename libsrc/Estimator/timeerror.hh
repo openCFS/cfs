@@ -24,6 +24,12 @@ public:
   //! 
   virtual void ChangeStep(Double &)=0;
 
+  //!
+  virtual void CalcThirdDer()=0;
+
+  //!
+  virtual void CalcError(const Double dt)=0;  
+
 protected:
   
    //!

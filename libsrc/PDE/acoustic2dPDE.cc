@@ -22,32 +22,33 @@ Acoustic2dPDE::Acoustic2dPDE(AbstractAlgebraicSys * ptalgsys, Grid<Point2D> * ap
   dofspernode_=1;
   ptgrid_=aptgrid;
 
-/*
-  Double density, compress;
-  if (MatFile_)
-  {
-    MatFile_->ReadDensityAndCompressity(density,compress);
-    coeff_=sqrt(compress/density);
-  }
-  else 
-  {
-     // for water
-     coeff_=sqrt(2.25e9/1e3);
-     //  coeff_=1;
-  }
-*/
+  Char * name="result";
+  ptOutput=new WriteResultsUnverg<Point2D>(name);
+  ptOutput->Init(ptgrid_);
+  ptOutput->WriteGrid(0);  
 
-   size_=ptgrid_->GetMaxnumnodes(0);
-   sol_.Resize(size_);
-   sol_.Init(0);
-   sol_der1_.Resize(size_);
-   sol_der1_.Init(0);
-   sol_der2_.Resize(size_);
-   sol_der2_.Init(0);
-   sol_old_.Resize(size_);
-   sol_old_.Init(0);
-   sol_der2_old_.Resize(size_);
-   sol_der2_old_.Init(0);
+  size_=ptgrid_->GetMaxnumnodes(0);
+
+  sol_.Resize(size_);
+  sol_.Init(0);
+
+  sol_der1_.Resize(size_);
+  sol_der1_.Init(0);
+
+  sol_der1_old_.Resize(size_);
+  sol_der1_old_.Init(0);
+
+  sol_der1_.Resize(size_);
+  sol_der1_.Init(0);
+
+  sol_der2_.Resize(size_);
+  sol_der2_.Init(0);
+
+  sol_old_.Resize(size_);
+  sol_old_.Init(0);
+
+  sol_der2_old_.Resize(size_);
+  sol_der2_old_.Init(0);
 
   InFile_->ReadIntegrationParam(alpha_, beta_, gamma_);
 }
@@ -298,7 +299,7 @@ void Acoustic2dPDE::SolveStepTrans(BCs * ptBCs, const Integer kstep, const Doubl
   else if (reset)
        {
         update = 1;
-        job    = 0;
+        job    = 1;
 
         ptalgsys_->ResetRHS(AS_sysid_);
         ptalgsys_->ResetMatrix(0,0,1);
@@ -319,11 +320,64 @@ void Acoustic2dPDE::SolveStepTrans(BCs * ptBCs, const Integer kstep, const Doubl
   ptsol = ptalgsys_->GetSolution(AS_sysid_);
 
     // save solution
-  Vector<Double> transsol(ptgrid_->GetMaxnumnodes(level), ptsol);
-  sol_=transsol;
+//  sol_.TransformInVector(ptgrid_->GetMaxnumnodes(level),ptsol);
+   Integer i;
+   for (i=0; i<ptgrid_->GetMaxnumnodes(level); i++)
+    sol_[i]=ptsol[i];
+
+  std::cout << "maxnode:" <<  ptgrid_->GetMaxnumnodes(level) << " level:" << level << std::endl;
 
    // calculation of derivatives of solution
   CalculationDerivativesSol();
+
+ ptOutput->WriteSolution(sol_,laststepcalc_,lasttimecalc_,"fluid potential");
+
+}
+
+void Acoustic2dPDE::CalcThirdDerivateFromEquation(Vector<Double> & result)
+{
+#ifdef TRACE
+  (*trace) << "entering Acoustic2dPDE::CalcThirdDerivateFromEquation" << std::endl;
+#endif
+
+  Double * ptres;
+
+  Double mat_factor[4];
+  Integer update,job;
+
+  mat_factor[0] = 0.0;
+  mat_factor[1] = 0.0;
+  mat_factor[2] = 0.0;
+  mat_factor[3] = 1.0;
+
+  job    = 1;
+
+  ptalgsys_->ResetRHS(AS_sysid_);
+  ptalgsys_->ResetMatrix(0,0,1);
+  ptalgsys_->ComputeSysMatrix(AS_sysid_,AS_sysid_,mat_factor);
+
+  Integer matrix_id;
+  Vector<Double> coeffMass;
+
+  matrix_id = 2;
+  Vector<Double> help=-sol_der1_;
+  std::cout << help << std::endl;
+
+  ptalgsys_->UpdateRHS(AS_sysid_,AS_sysid_,matrix_id, help.get());
+
+  update=1; // use boundary condition at this time step
+//  SetBCs(ptBCs,level,update,lasttimecalc_);
+  ptalgsys_->ComputePrecond(job,AS_sysid_);
+  ptalgsys_->SolveAlgSys(AS_sysid_);
+  ptres = ptalgsys_->GetSolution(AS_sysid_);
+
+ // save solution
+  Integer level=0; //   !!!!!!!!!!!!!!
+
+  Vector<Double> transres(ptgrid_->GetMaxnumnodes(level), ptres);
+  result=transres;
+
+  (*infofile) << " result " << transres << std::endl;
 }
 
 void Acoustic2dPDE:: WriteResultsInFile()
@@ -332,19 +386,9 @@ void Acoustic2dPDE:: WriteResultsInFile()
   (*trace) << "entering Acoustic2dPDE::WriteResultsInFile" << std::endl;
 #endif
 
-if (dynamic_cast<WriteResultsUnverg<Point2D> *> (OutFile_))
-{
   OutFile_->WriteSolution(sol_,laststepcalc_,lasttimecalc_,"fluid potential");
   OutFile_->WriteSolution(sol_der1_,laststepcalc_,lasttimecalc_,"fluid potential, 1st deriv., ");
   OutFile_->WriteSolution(sol_der2_,laststepcalc_,lasttimecalc_,"fluid potential, 2nd deriv., ");
-}
-  else
-{
-  OutFile_->WriteSolution(sol_,laststepcalc_,lasttimecalc_,"fluid_potential"); 
-  OutFile_->WriteSolution(sol_der1_,laststepcalc_,lasttimecalc_,"1der_fluid_potential, ");
-  OutFile_->WriteSolution(sol_der2_,laststepcalc_,lasttimecalc_,"2der_fluid_potential, ");
- }
-
 }
 
 void Acoustic2dPDE :: CalcParameters(const Double dt)
@@ -372,6 +416,8 @@ void Acoustic2dPDE :: CalculationDerivativesSol()
   sol_der2_old_=sol_der2_;
 
   sol_der2_=(sol_-sol_old_)*a0_-sol_der1_*a2_-sol_der2_old_*a3_;
+
+  sol_der1_old_=sol_der1_;
   sol_der1_+=sol_der2_old_*a6_+sol_der2_*a7_;
 
   sol_old_=sol_;

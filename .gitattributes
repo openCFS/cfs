@@ -318,6 +318,9 @@ libsrc/AlgebraicSystem/LinAlg/work.hh svneol=native#text/plain
 libsrc/AlgebraicSystem/abstractAS.hh svneol=native#text/plain
 libsrc/AlgebraicSystem/abstractAlgSys.hh svneol=native#text/plain
 libsrc/AlgebraicSystem/interface_piles.hh svneol=native#text/plain
+libsrc/DataInOut/AnsysFile/Makefile -text
+libsrc/DataInOut/AnsysFile/ansysfile.cc svneol=native#text/plain
+libsrc/DataInOut/AnsysFile/ansysfile.hh svneol=native#text/plain
 libsrc/DataInOut/DatFile/Makefile -text
 libsrc/DataInOut/DatFile/datfile.cc svneol=native#text/plain
 libsrc/DataInOut/DatFile/datfile.hh svneol=native#text/plain

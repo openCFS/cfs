@@ -24,22 +24,31 @@ public:
   //! 
   void ChangeStep(Double &);
 
-private:
-  
+  //!
+  void CalcThirdDer();  
+
   //!
   void CalcError(const Double dt);
 
+private:
   //!
-  Double relativeerror_;
+  Double maxdt_,mindt_;
 
   //!
-  Vector<Double> thirddersol_;
+  Double maxrelativeerror_, maxnormsol_, maxnorml2sol_;
+
+  //!
+  Vector<Double> thirddersoldt_;
 
   //!
   Double tol_, beta_, theta_;
 
   //!
   Integer numrepeat_, counter_;
+
+  //!
+  Boolean Calc3DerFromEquation_;
+
 };
 
 inline AcousticTimeErrorEstimator::~AcousticTimeErrorEstimator()
