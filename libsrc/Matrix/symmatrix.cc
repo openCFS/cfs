@@ -446,7 +446,7 @@ for (i=0; i < mat.getSize(); i++)
  out << std::endl;
 }
 
-out.setf(0, std::ios::floatfield);
+//out.setf(0, std::ios::floatfield);
 
  return out;
 }

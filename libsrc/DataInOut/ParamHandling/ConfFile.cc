@@ -134,7 +134,7 @@ void ConfFile::getlist(std::vector<Integer> & hist, const std::string seekexp)
  while (node!=-1);
 }
 
-void ConfFile :: getliststr( const std::string seekexp, vector<std::string> & stlist, const std::string section="", const std::string subsection="")
+void ConfFile :: getliststr( const std::string seekexp, std::vector<std::string> & stlist, const std::string section, const std::string subsection)
 {
  std::string::size_type pos=0;
 

@@ -36,7 +36,7 @@ public:
   void SetBCs(BCs * ptBCs, const Integer level, const Integer update, const Double atime);
 
   //!
-  void ComputeRHS(const Double atime, BCs * ptBCs=NULL); 
+  void ComputeRHS(const Double atime, BCs * ptBCs); 
 
   //!
   void SolveStepStatic(BCs * ptBCs , const Integer level);
