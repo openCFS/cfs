@@ -36,9 +36,9 @@ PDECoupling::CouplingInterface::CouplingInterface()
 
 PDECoupling::CouplingInterface::~CouplingInterface()
 {
-  if(values)
+  if(values != NULL)
     delete values;
-  if(oldValues)
+  if(oldValues != NULL)
     delete oldValues;
 }
 
@@ -57,13 +57,20 @@ PDECoupling::PDECoupling(Grid * aptgrid, BCs * aptBCs)
 
 PDECoupling::~PDECoupling()
 {
-  ENTER_FCN("PDECoupling::~PDECoupling")
-
-  for (Integer i=0; i<outputInterfaces_.GetSize(); i++)
-    if (outputInterfaces_[i]) delete outputInterfaces_[i];
+  ENTER_FCN("PDECoupling::~PDECoupling");
+  
+  // NOTE: since each interface exists only one time
+  // but is referenced two times (once as input and once
+  // as output), it must be deleted only once. In this 
+  // case the input-interface pointer was used.
+  
+  //for (Integer i=0; i<outputInterfaces_.GetSize(); i++)
+  //if (outputInterfaces_[i]) 
+  //  delete outputInterfaces_[i];
   
   for (Integer i=0; i<inputInterfaces_.GetSize(); i++)
-    if (inputInterfaces_[i]) delete inputInterfaces_[i];
+    if (inputInterfaces_[i]) 
+      delete inputInterfaces_[i];
   
 }
 
