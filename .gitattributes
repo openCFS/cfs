@@ -1,5 +1,8 @@
 * text=auto !eol
+Doc/DoxygenConfig/doxy-config -text
 Doc/DoxygenConfig/doxygen_manual.pdf -text svneol=unset#application/pdf
+Doc/DoxygenConfig/footer.html svneol=native#text/html
+Doc/DoxygenConfig/header.html svneol=native#text/html
 Doc/auxilliaries/LaTeX/lsepaper.sty -text
 Doc/auxilliaries/Pics/lse.eps -text svneol=unset#application/postscript
 Doc/auxilliaries/Pics/lse.png -text svneol=unset#image/png
