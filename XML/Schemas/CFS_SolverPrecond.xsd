@@ -56,6 +56,7 @@
            <xsd:enumeration value="MG"/>
            <xsd:enumeration value="Jacobi"/>
            <xsd:enumeration value="SSOR"/>
+           <xsd:enumeration value="ILU"/>
            <xsd:enumeration value="hypreJacobi"/>
            <xsd:enumeration value="hypreAMG"/>
            <xsd:enumeration value="hypreILU"/>
