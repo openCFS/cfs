@@ -499,7 +499,7 @@ void ElecPDE::CalcEnergy()
 	  delete bilinear_stiff;	  
 	}  
 
-      totalE += energy[i];
+      totalE += 0.5*energy[i];
     }
 
   std::string resulttype = "Electric Energy";
