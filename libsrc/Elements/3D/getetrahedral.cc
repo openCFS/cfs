@@ -102,6 +102,62 @@ void GeTetrahedral::SetIntPoints()
       if (InfoPrint)
       (*infofile) << " For numerical integration procedures we use Gaussian Quadrature with 5 nodes, degree of precision is 4 " << std::endl;
 
+      case GaussOrder5:
+  /// A.H.Stroud "Approximate Calculation of Multiple Integrals"
+  /// Printice Hall 1971
+
+       NumIntPoints=15;
+       DegreeInteg=5;
+       IntPoints.Resize(NumIntPoints, Dim);
+       IntWeights=new Vector<Double>(NumIntPoints);
+
+   IntPoints[0][0]=0.25;  IntPoints[0][1]=0.25;  IntPoints[0][2]=0.25;
+
+   IntPoints[1][0]=0.09197107805272303;  IntPoints[1][1]=0.09197107805272303; IntPoints[1][2]=0.09197107805272303;
+
+  IntPoints[2][0]=0.72408676584183096; IntPoints[2][1]=0.09197107805272303; IntPoints[2][2]=0.09197107805272303;
+
+  IntPoints[3][0]=0.09197107805272303; IntPoints[3][1]=0.72408676584183096; IntPoints[3][2]=0.09197107805272303;   
+
+  IntPoints[4][0]=0.09197107805272303; IntPoints[4][1]=0.09197107805272303; IntPoints[4][2]=0.72408676584183096;
+
+  IntPoints[5][0]=0.44364916731037080; IntPoints[5][1]=0.05635083268962915; IntPoints[5][2]=0.05635083268962915;
+
+  IntPoints[6][0]=0.05635083268962915; IntPoints[6][1]=0.44364916731037080; IntPoints[6][2]=0.05635083268962915;
+
+  IntPoints[7][0]=0.05635083268962915; IntPoints[7][1]=0.05635083268962915; IntPoints[7][2]=0.44364916731037080;
+
+  IntPoints[8][0]=0.05635083268962915; IntPoints[8][1]=0.44364916731037080; IntPoints[8][2]=0.44364916731037080;
+
+  IntPoints[9][0]=0.44364916731037080; IntPoints[9][1]=0.05635083268962915; IntPoints[9][2]=0.44364916731037080;
+
+  IntPoints[10][0]=0.44364916731037080; IntPoints[10][1]=0.44364916731037080; IntPoints[10][2]=0.05635083268962915;
+
+  IntPoints[11][0]=0.31979362782962989; IntPoints[11][1]=0.31979362782962989; IntPoints[11][2]=0.31979362782962989;
+
+  IntPoints[12][0]=0.04061911651111023; IntPoints[12][1]=0.31979362782962989; IntPoints[12][2]=0.31979362782962989;
+
+  IntPoints[13][0]=0.31979362782962989; IntPoints[13][1]=0.04061911651111023 IntPoints[13][2]=0.31979362782962989;
+
+  IntPoints[14][0]=0.31979362782962989; IntPoints[14][1]=0.31979362782962989; IntPoints[14][2]=0.04061911651111023;
+
+ 
+      (*IntWeights)[0]=0.019753086419753086;
+      (*IntWeights)[1]=0.011989513963169772;
+      (*IntWeights)[2]=0.011989513963169772;
+      (*IntWeights)[3]=0.011989513963169772;
+      (*IntWeights)[4]=0.011989513963169772;
+      (*IntWeights)[5]=0.008818342151675485;
+      (*IntWeights)[6]=0.008818342151675485;
+      (*IntWeights)[7]=0.008818342151675485;
+      (*IntWeights)[8]=0.008818342151675485;
+      (*IntWeights)[9]=0.008818342151675485;
+      (*IntWeights)[10]=0.00881834215167548;
+      (*IntWeights)[11]=0.011511367871045397;
+      (*IntWeights)[12]=0.011511367871045397;
+      (*IntWeights)[13]=0.011511367871045397;
+      (*IntWeights)[14]=0.011511367871045397;
+ 
       break;
 
    default:
