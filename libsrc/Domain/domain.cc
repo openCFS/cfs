@@ -127,9 +127,19 @@ namespace CoupledField {
   // **********************
   Domain::~Domain() {
     ENTER_FCN( "Domain::~Domain" );
-    if (ptgrid_) delete ptgrid_;
-    if (ptBCs_) delete ptBCs_;
+    delete ptgrid_;
+    delete ptBCs_;
+    if ( ptcoupledpde_ != NULL ) {
+      delete ptcoupledpde_;
+    }
+
+    // When the StdVector ptpde_ is destroyed, only the pointers to the PDEs,
+    // but not the PDEs themselves will be destroyed
+    for ( Integer i = 0; i < ptpde_.GetSize(); i++ ) {
+      delete (ptpde_[i]);
+    }
   }
+
 
   // **********************
   //   Getter function
