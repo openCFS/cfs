@@ -34,7 +34,7 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile, WriteResults * a
 
   //standard parameter for solver
   eps_         = 1.0e-8;
-  dampiter_    = 0.7;
+  dampiter_    = 1.0;
   maxnumiter_  = 100;
   solvertype_  = RealDirect;
   precondtype_ = ID;
@@ -290,6 +290,7 @@ void BasePDE::CalcInputCoupling()
   std::vector<Integer> * nodes;
   std::vector<Elem*> * elements;
   Array<Double> * val;
+  Integer PDEnode;
   
   // Reset counter for boundary conditions
   couplingBCsCounter_ = 0;
@@ -313,7 +314,11 @@ void BasePDE::CalcInputCoupling()
 	    for (Integer j=0; j<nodes->size(); j++)
 	      {
 		//std::cerr << "processing dim = " << dim << ", j = " << j << std::endl;
-		deltCoords_[dim][Mesh2PDENode_[(*nodes)[j]-1]-1] = (*val)[dim][j];
+		PDEnode = Mesh2PDENode_[(*nodes)[j]-1]-1;
+		if (PDEnode==-1)
+		  Error("Node not assigned to coupling domain: see mesh- and config-file",__FILE__,__LINE__);
+
+		deltCoords_[dim][PDEnode] = (*val)[dim][j];
 	      }
 	      
 	  break;
@@ -325,8 +330,12 @@ void BasePDE::CalcInputCoupling()
 	  for (Integer dim=0; dim<ptCoupling_->GetInputDim(i); dim++)
 	    for (Integer j=0; j<nodes->size(); j++)
 	      {
-		//	std::cerr << "Node[" << (*nodes)[j] << "][" << dim+1 << "]= " << (*val)[dim][j] << std::endl; 
-		algsys_->SetNodeRHS((*val)[dim][j], Mesh2PDENode_[(*nodes)[j]-1], dim+1);
+		PDEnode = Mesh2PDENode_[(*nodes)[j]-1];
+		if (PDEnode==-1)
+		  Error("Node not assigned to coupling domain: see mesh- and config-file",__FILE__,__LINE__);
+
+		//	std::cerr << "PDENODE: "  << PDEnode << "Node[" << (*nodes)[j] << "][" << dim+1 << "]= " << (*val)[dim][j] << std::endl; 
+		algsys_->SetNodeRHS((*val)[dim][j], PDEnode, dim+1);
 	      }
 	  
 	  break;
@@ -338,6 +347,10 @@ void BasePDE::CalcInputCoupling()
 	  for (Integer dim=0; dim<ptCoupling_->GetInputDim(i); dim++)
 	    for (Integer j=0; j<nodes->size(); j++, couplingBCsCounter_++)
 	      {
+		PDEnode = Mesh2PDENode_[(*nodes)[j]-1];
+		if (PDEnode==-1)
+		  Error("Node not assigned to coupling domain: see mesh- and config-file",__FILE__,__LINE__);
+		
 		if (updateCouplingBCs_)
 		  {
 		    //std::cerr << "updating BC[" << dim << "][" << (*nodes)[j] << "] = " << (*val)[dim][j] << std::endl;
@@ -346,7 +359,7 @@ void BasePDE::CalcInputCoupling()
 		else
 		  {	
 		    //std::cerr << "BC[" << dim << "][" << (*nodes)[j] << "] = " << (*val)[dim][j] << std::endl;
-		    algsys_->SetDirichlet(couplingBCsCounter_+1, Mesh2PDENode_[(*nodes)[j] - 1], (*val)[dim][j], dim+1, SYSTEM);
+		    algsys_->SetDirichlet(couplingBCsCounter_+1, PDEnode, (*val)[dim][j], dim+1, SYSTEM);
 		  }
 	      }
 	  break;
@@ -551,6 +564,10 @@ void BasePDE::AssignPDENodeNumbers(std::vector<Integer> & Mesh2PDENode,
     }
 
   NumPDENodes_ = PDE2MeshNode_.size();
+  //  (*cla) << "Mesh2PDENod   " << Mesh2PDENode << std::endl;
+#ifdef DEBUG
+  (*debug) << "Mesh2PDENodes:" << std::endl << Mesh2PDENode << std::endl;
+#endif
 }
 
   

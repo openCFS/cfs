@@ -90,7 +90,35 @@ sd)
   */
   virtual void ReadEl3d(std::vector<Elem*> * allelems, const std::vector<std::string> sd)
  { Error(" not implemented",__FILE__,__LINE__);} 
- 
+
+  //! read 3d -elements from the mesh-file and extractes the data for the conf-file
+   /*!
+   \param sd color of subdomains, for which elements are read
+  */
+   virtual void ReadEl3dConf(std::vector<std::string> &sd)
+ { Error(" not implemented",__FILE__,__LINE__);} 
+
+  //! read 2d -elements from the mesh-file and extractes the data for the conf-file
+   /*!
+   \param sd color of subdomains, for which elements are read
+  */
+   virtual void ReadEl2dConf(std::vector<std::string> &sd)
+  { Error(" not implemented",__FILE__,__LINE__);} 
+
+   //! read 1d -elements from the mesh-file and extractes the data for the conf-file
+   /*!
+   \param sd color of subdomains, for which elements are read
+  */
+   virtual void ReadEl1dConf(std::vector<std::string> &sd)
+  { Error(" not implemented",__FILE__,__LINE__);} 
+
+  //! read BCs from the mesh-file and extractes the data for the conf-file
+   /*!
+   \param sd color of subdomains, for which elements are read
+  */
+  virtual void ReadBCsConf(std::vector<std::string> &sd)
+  { Error(" not implemented",__FILE__,__LINE__);} 
+
 #ifdef ADAPTGRID
   //! read the mesh from mesh-file for Grid_RG
   /*!
@@ -112,7 +140,24 @@ sd)
 #endif
  
   //! return dimension of the mesh
-  virtual Integer ReadDim()=0;  
+  virtual Integer ReadDim()
+  { Error(" not implemented",__FILE__,__LINE__);} 
+
+  //! returns the number of 3D elements
+  virtual Integer GetNum3DElems()
+  { Error(" not implemented",__FILE__,__LINE__);} 
+
+  //! returns the number of 2D elements
+  virtual Integer GetNum2DElems()
+  { Error(" not implemented",__FILE__,__LINE__);} 
+
+  //! returns the number of 1D elements
+  virtual Integer GetNum1DElems()
+  { Error(" not implemented",__FILE__,__LINE__);} 
+
+  //! retuns the number of specified boundary conditions
+  virtual Integer GetNumBCs()
+  { Error(" not implemented",__FILE__,__LINE__);} 
 
 protected:
 

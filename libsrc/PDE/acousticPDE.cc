@@ -246,7 +246,7 @@ void AcousticPDE::SetupMatrices(const Integer level)
     
 	  BaseForm * bilinear_mass  = new MassInt(ptEl, coeffmass);
 	  BaseForm * bilinear_stiff = new LaplaceInt(ptEl, coeffstiff);
-	  BaseForm * bilinear_damp  = new MassInt(ptEl, coeffdamp);
+
 	  connecth=elemssd[j]->connect;
 	  GetElemCoords(connecth, ptCoord, level); 
 
@@ -278,6 +278,7 @@ void AcousticPDE::SetupMatrices(const Integer level)
 	  //Damping part
 	  if (with_fracdamping_)
 	    {
+	      BaseForm * bilinear_damp  = new MassInt(ptEl, coeffdamp);
 	      bilinear_damp->CalcElementMatrix(ptCoord, elemmat);
 
 #ifdef DEBUG

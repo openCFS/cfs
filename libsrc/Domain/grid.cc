@@ -23,10 +23,6 @@ Grid::Grid(FileType * aptFileType)
   ptTr1 = new Triangle1FE();
   ptHexa = new Hexa1FE();
 
-//   ptTr=new Triangle1();
-//   ptL1=new Line();
-//   ptHexa=new Hexahedral1();
-  
   lastlevel_=0;
 
   conf->getsubdom(listSD_);

@@ -52,6 +52,10 @@ libsrc/DataInOut/MaterialData.cc svneol=native#text/plain
 libsrc/DataInOut/MaterialData.hh svneol=native#text/plain
 libsrc/DataInOut/ParamHandling/ConfFile.cc svneol=native#text/plain
 libsrc/DataInOut/ParamHandling/ConfFile.hh svneol=native#text/plain
+libsrc/DataInOut/ParamHandling/SkeletonConf.cc svneol=native#text/plain
+libsrc/DataInOut/ParamHandling/SkeletonConf.hh svneol=native#text/plain
+libsrc/DataInOut/SkeletonConf.cc svneol=native#text/plain
+libsrc/DataInOut/SkeletonConf.hh svneol=native#text/plain
 libsrc/DataInOut/Unverg/Makefile -text
 libsrc/DataInOut/Unverg/outUnverg.cc svneol=native#text/plain
 libsrc/DataInOut/Unverg/outUnverg.hh svneol=native#text/plain

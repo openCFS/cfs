@@ -19,8 +19,7 @@ GSI = no
 #
 AdaptGrid=/home/lse10/lse/manfred/CFS/Grid_RG
 #
-############### LAS++: Algebraic System
-LAS=$(HOME)/CFS++/LAS
+LAS=$(LASHOME)
 #
 #
 ############### Gridlib
