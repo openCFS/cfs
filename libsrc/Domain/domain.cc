@@ -39,19 +39,25 @@ Domain:: Domain(FileType * const aptFileType, WriteResults * ptOut,  Material * 
 
  Integer dim=InFile_->ReadDim();
 
+  std::cout << " DIMENSIONdimension " << dim << std::endl;
+
  // initialize pointer to grid 
 #ifdef GRIDLIB
    if (libmesh =="gridlib") ptgrid_=new InterfaceGridlib<Point2D>(InFile_);
   else
 #endif
   if (libmesh =="cfsgrid") 
+{
      if (dim==2) ptgrid_=new GridInterfaceCFS<Point2D>(InFile_);
          else ptgrid_=new GridInterfaceCFS<Point3D>(InFile_);
+}
 #ifdef NETGEN
     else 
   if (libmesh == "netgen")
+{
     if (dim==2) ptgrid_=new InterfaceNetGen<Point2D>(InFile_);
         else ptgrid_=new InterfaceNetGen<Point3D>(InFile_);
+}
 #endif
    else
      Error("Unknown type of mesh_library in conf-file",__FILE__,__LINE__);
