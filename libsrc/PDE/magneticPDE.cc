@@ -1532,7 +1532,6 @@ namespace CoupledField {
     Double actTime = lasttimecalc_ + timeOffset;
     Integer actStep = laststepcalc_ + stepOffset;
     
-    
     if (analysistype_ == STATIC ||
 	analysistype_ == TRANSIENT) {
       solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);

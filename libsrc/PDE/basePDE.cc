@@ -889,6 +889,9 @@ void  BasePDE::SetBCs(const Integer level, const Integer update, const Double ti
   else
     j=0;
 
+  // ---------------------------
+  // HOMOGENEOUS DIRICHLET BC
+  // ---------------------------
   val = 0;
   for (i=0; i<bcs_hd_.GetSize(); i++)
     {  
@@ -926,6 +929,11 @@ void  BasePDE::SetBCs(const Integer level, const Integer update, const Double ti
 	}
     }
 
+  // ---------------------------
+  // INHOMOGENEOUS DIRICHLET BC
+  // ---------------------------
+
+  Double phase = 0.0;
   for (i=0; i<bcs_id_.GetSize(); i++)
     {
       dof = 1;
@@ -943,7 +951,6 @@ void  BasePDE::SetBCs(const Integer level, const Integer update, const Double ti
 	  val_tfunc=ptTimeFunc_->TimeFuncAtTime(time,fncnames_id_[i]);
       
       val=val_id_[i]*val_tfunc;
-
       for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end(); p++, j++)
 	{
 	  node=*p;
@@ -953,9 +960,10 @@ void  BasePDE::SetBCs(const Integer level, const Integer update, const Double ti
 #else
 	  if (analysistype_ == HARMONIC) 
 	    {
-	      algsys_->SetDirichlet(j*2+1, eqnNr, val, eqnDof, SYSTEM);
+	      phase = bcs_id_phase_[i];
+	      algsys_->SetDirichlet(j*2+1, eqnNr, val * cos(phase/180*PI), eqnDof, SYSTEM);
 	      // set imag part 
-	      algsys_->SetDirichlet(j*2+2, eqnNr, 0.0, eqnDof+1, SYSTEM);
+	      algsys_->SetDirichlet(j*2+2, eqnNr, val * sin(phase/180*PI), eqnDof+1, SYSTEM);
 	    }
 	  else
 	    algsys_->SetDirichlet(j+1, eqnNr, val, eqnDof, SYSTEM);
@@ -1030,8 +1038,16 @@ void BasePDE::ReadBCs()
   keyVec = pdename_, "bcsAndLoads", "dirichletInhom", "value";
   params->GetList(keyVec, attrVec, valVec, val_id_);
 
-  keyVec = pdename_, "bcsAndLoads", "dirichletInhom", "dynamics";
-  params->GetList(keyVec, attrVec, valVec, fncnames_id_);
+  if (analysistype_ == TRANSIENT ||
+      analysistype_ == STATIC) {
+    keyVec = pdename_, "bcsAndLoads", "dirichletInhom", "dynamics";
+    params->GetList(keyVec, attrVec, valVec, fncnames_id_);
+  } 
+  else if (analysistype_ == HARMONIC) {
+    keyVec = pdename_, "bcsAndLoads", "dirichletInhom", "phase";
+    params->GetList(keyVec, attrVec, valVec, bcs_id_phase_);
+  }
+
 
 //   std::cerr << "===============================" << std::endl;
 //   std::cerr << "PDENAME : " << pdename_ << std::endl;
@@ -1615,11 +1631,11 @@ void BasePDE::CalcInputCoupling()
 
 	  // Resize + clear coordinate updates
 	  // only the first time
-	  if (clearCoords == TRUE)
-	    {
-	      deltCoords_.Resize(dim_, numPDENodes_);
-	      clearCoords = FALSE;
-	    }
+ 	  if (clearCoords == TRUE)
+ 	    {
+ 	      deltCoords_.Resize(dim_, numPDENodes_);
+ 	      clearCoords = FALSE;
+ 	    }
 	  
 	  // set ptr of deltCoords to assembly-object
 	  assemble_->SetPtrDeltaCoordinates(&deltCoords_);
@@ -1640,13 +1656,15 @@ void BasePDE::CalcInputCoupling()
  		deltCoords_(dof,pdeNode-1) = help[dof + j*dim_];
 
 		      }
-	  std::cerr << "---------------------------------" << std::endl << std::endl;
+	  //	  std::cerr << "---------------------------------" << std::endl << std::endl;
 	  break;
 
 	  // -------------------
 	  // RHS COUPLING
 	  // -------------------
 	case RHS:
+
+	  //	  std::cerr << "****** Processing coupling " <<  i << std::endl;
 	  //std::cerr << "In " << pdename_ << "::CalcInputCoupling - Switch(RHS)" << std::endl;
 	  ptCoupling_->GetInputNodes(i, nodes);
 	  
@@ -1672,15 +1690,15 @@ void BasePDE::CalcInputCoupling()
 // 		    Warning(msg.c_str()  , __FILE__,__LINE__);
 // 		  }
 // 		else {
-// 		std::cerr << "RHS: Setting EQN " << pd << " value " << help[dof+couplingDof*j] << std::endl;
-		  // PROBLEM !!!!
-		  // SetNodeRHS erwartet Double* oder Complex*, aber Inhalt erst zu Laufzeit bekannt ...
+//               if (pdename_ == "mechanic")
+// 		std::cerr << pdename_ << ": Setting Node " << (*nodes)[j] << " value " << help[dof+couplingDof*j] << std::endl;
 		if (eqnNr != 0) 
 		  {
 		  algsys_->SetNodeRHS(help[dof+couplingDof*j], eqnNr, eqnDof);
 		  }
 	      }
 	  
+	  //       std::cerr << "-------------------------------------" << std::endl << std::endl;
 	  break;
 
 	  // -----------------------
