@@ -9,17 +9,18 @@ the config-file-commands
 
 \begin{verbatim}
 <storeResults>
-   <elemResults type="efield" region="elecst2d"/>
+   <elemResults type="elecFieldIntensity" region="elecst2d"/>
 </storeResults>
 \end{verbatim}
 
 In the command {\bf $<$region$>$}, all areas in which the electric field has to
-be calculated, must be listed. To calculate the electric energy, one
-has to use the command 
+be calculated, must be listed. If no region  is specified, the elecric
+field will be calculated in all regions where the PDE is defined. To
+calculate the electric energy, one has to use the command 
 
 \begin{verbatim}      
 <storeResults>
-   <elemResults type="energy" region="reg2"/>
+   <elemResults type="elecEnergy" region="reg2"/>
 </storeResults>
 \end{verbatim}
 in the config-file. The result is written to the info-file.
@@ -62,8 +63,8 @@ in the config-file. The result is written to the info-file.
       </bcsAndLoads>
 
       <storeResults>
-        <elemResults type="efield"/>
-        <elemResults type="energy"/>
+        <elemResults type="elecFieldIntensity"/>
+        <elemResults type="elecEnergy"/>
       </storeResults>
 
     </electrostatic>
@@ -107,16 +108,16 @@ of element subtypes within one analysis is not allowed.
 Possible nodal results are
 
 \begin{verbatim}
-   <nodeResults type="displacement" region="bar"/>
-   <nodeResults type="velocity" region="bar"/>
-   <nodeResults type="acceleration" region="bar"/>
+   <nodeResults type="mechDisplacement" region="bar"/>
+   <nodeResults type="mechVelocity" region="bar"/>
+   <nodeResults type="mechAcceleration" region="bar"/>
 \end{verbatim}
 
 \subsection{Element Results}
 The command for calculating the mechanical stresses is
 \begin{verbatim}      
 <storeResults>
-   <elemResults type="stress" region="bar"/>
+   <elemResults type="mechStress" region="bar"/>
 </storeResults>
 \end{verbatim}
 
@@ -173,7 +174,7 @@ file is
 
 \begin{verbatim}      
 <storeResults>
-   <nodeResults type="pressure" region="fluid1"/>
+   <nodeResults type="acouPotential" region="fluid1"/>
 </storeResults>
 \end{verbatim}
 
@@ -265,7 +266,7 @@ deduced by a postprocessing step:
   
 \begin{verbatim}
 <storeResults>
-   <elemResults type="bfield" region="yoke"/>
+   <elemResults type="magFluxDensity" region="yoke"/>
 </storeResults>
 \end{verbatim}
   
@@ -275,7 +276,7 @@ deduced by a postprocessing step:
 
 \begin{verbatim}
 <storeResults>
-   <elemResults type="eddy" region="yoke"/>
+   <elemResults type="magEddyCurrent" region="yoke"/>
 </storeResults>
 \end{verbatim}
   
@@ -285,7 +286,7 @@ deduced by a postprocessing step:
   
 \begin{verbatim}
 <storeResults>
-   <elemResults type="energy" region="yoke"/>
+   <elemResults type="magEnergy" region="yoke"/>
 </storeResults>
 \end{verbatim}
 
@@ -563,9 +564,9 @@ values {\bf orientX}, {\bf orientY} and {\bf orientZ}
          </coils>
 
          <storeResults>
-            <elemResults type="bfield" region="myCoil"/>
-            <elemResults type="bfield" region="iron"/>
-            <elemResults type="bfield" region="air"/>
+            <elemResults type="magFluxDensity" region="myCoil"/>
+            <elemResults type="magFluxDensity" region="iron"/>
+            <elemResults type="magFluxDensity" region="air"/>
          </storeResults>
 
       </magnetic>
