@@ -53,6 +53,12 @@ namespace CoupledField
   BaseParamHandler * params = NULL;
 
 
+  // --------------------------------------------------------------
+  //  Bubbledynamic stuff: used to choose between different typs of
+  //  bubbledynamic models  
+  // --------------------------------------------------------------
+  BubbleDynType bubbleDyn;
+
   // --------------------------------------------
   //  Implementation of enum conversion routines 
   // --------------------------------------------
@@ -88,11 +94,13 @@ namespace CoupledField
       out = MULTI_SEQUENCE;
     else if (in == "paramIdent")
       out = HARMONIC;  // since the parameter identification process lives in freqeuncy domain
+    else if(in == "bubbleDynamic")
+      out = BUBBLEDYNAMIC;
     else
      {
 	errMsg  = "'";
 	errMsg += in;
-	errMsg += "' can not be converted into item of 'AnalysisType'!";
+	errMsg += "' cannot be converted into item of 'AnalysisType'!";
 	Error(errMsg.c_str(), __FILE__, __LINE__);
      } 
   }
@@ -142,7 +150,7 @@ namespace CoupledField
      {
 	errMsg  = "'";
 	errMsg += in;
-	errMsg += "' can not be converted into item of 'CouplingInputType'!";
+	errMsg += "' cannot be converted into item of 'CouplingInputType'!";
 	Error(errMsg.c_str(), __FILE__, __LINE__);
      } 
   }
@@ -171,6 +179,41 @@ namespace CoupledField
       } 
   }
 
+  // BubbleDynType
+  template<>
+  void String2Enum<BubbleDynType>( const std::string &in, 
+				   BubbleDynType &out ) {
+    std::string errMsg;
+
+    if ( in == "KellerMiksis" )
+      out = KELLERMIKSIS;
+    else if ( in == "Gilmore" )
+      out = GILMORE;
+    else
+     {
+	errMsg  = "'";
+	errMsg += in;
+	errMsg += "' cannot be converted into item of 'BubbleDynType'!";
+	Error(errMsg.c_str(), __FILE__, __LINE__);
+     }
+  }
+
+  template<> 
+  void Enum2String<BubbleDynType>( const BubbleDynType &in, 
+				   std::string &out ) {
+    switch(in) {
+      case KELLERMIKSIS:
+	out = "KellerMiksis";
+	break;
+      case GILMORE:
+	out = "Gilmore";
+	break;
+      default:	
+	Error( "No conversion found for your 'BubbleDynType'",
+	       __FILE__, __LINE__ );
+    }
+  }
+
   // CouplingOutputType
   template<>
   void String2Enum<CouplingOutputType>(const std::string &in, 
@@ -186,7 +229,7 @@ namespace CoupledField
      {
 	errMsg  = "'";
 	errMsg += in;
-	errMsg += "' can not be converted into item of 'CouplingOutputType'!";
+	errMsg += "' cannot be converted into item of 'CouplingOutputType'!";
 	Error(errMsg.c_str(), __FILE__, __LINE__);
      } 
   }
@@ -227,7 +270,7 @@ namespace CoupledField
       {
 	errMsg  = "'";
 	errMsg += in;
-	errMsg += "' can not be converted into item of 'CouplingRegionType'!";
+	errMsg += "' cannot be converted into item of 'CouplingRegionType'!";
 	Error(errMsg.c_str(), __FILE__, __LINE__);
       }
     
@@ -270,7 +313,7 @@ namespace CoupledField
       {
 	errMsg  = "'";
 	errMsg += in;
-	errMsg += "' can not be converted into item of 'NormType'!";
+	errMsg += "' cannot be converted into item of 'NormType'!";
 	Error(errMsg.c_str(), __FILE__, __LINE__);
       }
     
@@ -290,11 +333,11 @@ namespace CoupledField
       case L2ABS:
 	out = "abs";
 	break;
-      defautl:
+      default:
 	Error("No conversion found for your 'NormType'",
 	      __FILE__, __LINE__);
       }
-  } 
+  }
 
   // SolutinType
   template<>
@@ -367,7 +410,7 @@ namespace CoupledField
       {
 	errMsg  = "'";
 	errMsg += in;
-	errMsg += "' can not be converted into item of 'SolutionType'!";
+	errMsg += "' cannot be converted into item of 'SolutionType'!";
 	Error(errMsg.c_str(), __FILE__, __LINE__);
       }
   }
@@ -487,7 +530,7 @@ this type of solution", __FILE__, __LINE__);
       {
 	errMsg  = "'";
 	errMsg += in;
-	errMsg += "' can not be converted into item of 'EQNType'!";
+	errMsg += "' cannot be converted into item of 'EQNType'!";
 	Error(errMsg.c_str(), __FILE__, __LINE__);
       } 
   }

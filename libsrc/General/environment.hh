@@ -72,7 +72,7 @@ namespace CoupledField
   typedef Double (*pfn2var)(const Double, const Double);
   typedef Double (*pfn3var)(const Double, const Double, const Double);
 
-  typedef enum {STATIC, TRANSIENT, HARMONIC, EIGENFREQUENCY, MULTI_SEQUENCE}
+  typedef enum {STATIC, TRANSIENT, HARMONIC, EIGENFREQUENCY, MULTI_SEQUENCE, BUBBLEDYNAMIC}
   AnalysisType;
   
 
@@ -156,8 +156,13 @@ namespace CoupledField
   //! output format for complex numbers
   typedef enum {REAL_IMAG, AMPLITUDE_PHASE} ComplexFormat;
   
+  //------------------------ Stuff for bubble simulation --------------------
 
-//------------------------ Files for debug, trace and information ---------
+  typedef enum {KELLERMIKSIS, GILMORE} BubbleDynType;
+
+  extern BubbleDynType bubbleDyn;
+ 
+  //------------------------ Files for debug, trace and information ---------
 
   // NOTE: OLAS uses the namespace 'OutInfo' for writing out
   // data into the cla, trace, ... stream. Therefore they explicitely have to

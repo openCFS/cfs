@@ -71,7 +71,15 @@ int main(int argc, char *argv[]) {
       }
 #endif
 
+      //---------------------------------------------
+      //  Choice of bubbledynamical model
+      else if ( !strcmp("-bubbletyp", argv[i]) ) {
+	numargs += 2;
+	std::string aux( argv[i+1] );
+	String2Enum( aux, bubbleDyn );
+      }
     }
+    
   }
 
   if (argc < numargs) {
@@ -98,7 +106,7 @@ int main(int argc, char *argv[]) {
   // INITIALISATION OF MPI
   // ==========================================================================
 
-#ifdef PARALLEL
+#ifdef PARALLEL //initialize MPI
   int commrank,commsize;
   MPI_Comm comm = MPI_COMM_WORLD;
   MPI_Init(&argc,&argv);
@@ -247,6 +255,10 @@ int main(int argc, char *argv[]) {
 
     case MULTI_SEQUENCE:
       ptdriver = new MultiSequenceDriver(domain);
+      break;
+
+    case BUBBLEDYNAMIC:
+      ptdriver = new BubbleDriver(domain);
       break;
 
     default:

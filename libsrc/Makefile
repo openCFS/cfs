@@ -83,3 +83,9 @@ mpccicpl:
 
 paramhandling:
 	@cd $(LIBSRC_DIR)/DataInOut/ParamHandling; $(MAKE) -f Makefile
+
+odesolve:
+	@cd $(LIBSRC_DIR)/ODESolve; $(MAKE) -f Makefile
+
+odedescr:
+	@cd $(LIBSRC_DIR)/ODEDescr; $(MAKE) -f Makefile
