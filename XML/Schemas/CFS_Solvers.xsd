@@ -287,17 +287,25 @@
     <xsd:complexContent>
       <xsd:extension base="DT_SolverBasic">
         <xsd:sequence>
-          <xsd:element name="posDef"     type="DT_CFSBool" minOccurs="0"/>
-          <xsd:element name="hermitean"  type="DT_CFSBool" minOccurs="0"/>
-          <xsd:element name="symStruct"  type="DT_CFSBool" minOccurs="0"/>
-          <xsd:element name="ndOrdering" type="DT_CFSBool" minOccurs="0"/>
-          <xsd:element name="logging"    type="DT_CFSBool" minOccurs="0"/>
-          <xsd:element name="stats"      type="DT_CFSBool" minOccurs="0"/>
+          <xsd:element name="posDef"    type="DT_CFSBool" minOccurs="0"/>
+          <xsd:element name="hermitean" type="DT_CFSBool" minOccurs="0"/>
+          <xsd:element name="symStruct" type="DT_CFSBool" minOccurs="0"/>
+          <xsd:element name="ordering"  type="DT_PardisoOrdering"
+            minOccurs="0"/>
+          <xsd:element name="logging"   type="DT_CFSBool" minOccurs="0"/>
+          <xsd:element name="stats"     type="DT_CFSBool" minOccurs="0"/>
         </xsd:sequence>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
 
+  <xsd:simpleType name="DT_PardisoOrdering">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="noReordering"/>
+      <xsd:enumeration value="minimumDegree"/>
+      <xsd:enumeration value="nestedDissection"/>
+    </xsd:restriction>
+  </xsd:simpleType>
 
   <!-- ==================================================================== -->
   <!-- ==                                                                == -->
