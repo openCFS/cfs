@@ -30,6 +30,7 @@ namespace CoupledField
     std::ifstream * allMeasuredData;
     std::ofstream * impedCurve;
     std::ofstream * piezoLog;
+    std::ofstream * parLog;
     //  std::ofstream impedCurve("impedCurve.dat");
     //  std::ofstream impedCurve("impedCurve.dat");
 
@@ -177,6 +178,7 @@ namespace CoupledField
     Double startfreq;
     Double stopfreq;
     Integer nrfreq;
+    Double finalnorm;
 
     Vector<Complex> solElecPot;
     Vector<Complex> solMechDispl;

@@ -282,6 +282,25 @@ namespace CoupledField
 	delete strPtr;	
       }
 
+    // Rotation of the MaterialMatrices corresponding to the polarisation of the piezoelectric body
+
+    Double a1, a2, a3;
+    a1=a2=a3=0; 
+
+    if( params->HasValue( "pol", "1", "piezo", "polingDirectionX" ) )
+      a1=1;
+ 
+    if( params->HasValue( "pol", "1", "piezo", "polingDirectionY" ) )
+      a2=1;
+ 
+    if( params->HasValue( "pol", "1", "piezo", "polingDirectionZ" ) )
+      a3=1;
+ 
+    if (a1==0&&a2==0&&a3==0)
+      a3=1.0;    // if no poling direction is specified, the z-direction is chosen by default 
+
+    material->RotateMaterialMatrix(a1,a2,a3);
+    
     ReadLine(fin,buffer);
     strPtr = new std::istringstream(buffer);
     *strPtr >>  density >> alfa >> beta;

@@ -110,6 +110,86 @@ void MaterialData::GetPermeability(const Integer& i, const Integer& j, Double &v
   value = (*permeaMatrix)(i,j);
 }
 
+void MaterialData::RotateMaterialMatrix(const Double& a1, const Double& a2, const Double& a3){
+  ENTER_FCN("MaterialData::RotateMaterialMatrix");
+  Matrix<Double> R;
+  R.Resize(3,3);   // Rotation Matrix
+  Matrix<Double> Q;
+  Q.Resize(6,6);  // Composed Rotation Matrix
+  Matrix<Double> c;
+  c.Resize(6,6);
+  Matrix<Double> e; 
+  e.Resize(6,3);
+  Matrix<Double> eps;
+  eps.Resize(3,3);
+  Matrix<Double> QT;
+  QT.Resize(6,6);
+  Matrix<Double> RT;
+  RT.Resize(3,3);
+
+  // X-dIRECTION
+  if(a1==0)
+    R[0][1]=R[1][2]=R[2][0]=0.0;
+  else if(a1==1)
+    R[0][1]=R[1][2]=R[2][0]=1.0;
+  else
+    R[0][1]=R[1][2]=R[2][0]=std::cos(a1);
+
+  //Y-DIRECTION  
+  if(a2==0)
+    R[0][2]=R[1][0]=R[2][1]=0.0;  
+  else if(a2==1)
+   R[0][2]=R[1][0]=R[2][1]=1.0;
+  else
+    R[0][2]=R[1][0]=R[2][1]=std::cos(a2);
+
+  // Z-DIRECTION
+  if(a3==0)
+      for (Integer i=0;i<3;i++)
+	R[i][i]=0.0;
+  else if(a3==1)
+      for (Integer i=0;i<3;i++)
+	R[i][i]=1.0;
+  else
+      for (Integer i=0;i<3;i++)
+	R[i][i]=std::cos(a3);
+
+  for (Integer i=0;i<3;i++)
+    for (Integer j=0;j<3;j++){
+      Q[i][j]=R[i][j];
+      Q[i+3][j+3]=R[i][j];
+      Q[i][j+3]=0;
+      Q[i+3][j]=0;
+    }
+
+  for (Integer i=0;i<3;i++)
+    for (Integer j=0;j<3;j++){
+      c[i][j]=(*piezoMatrix)[i][j];
+      c[i+3][j+3]=(*piezoMatrix)[i+3][j+3];
+      e[i][j]=(*piezoMatrix)[i][6+j];
+      e[i+3][j]=(*piezoMatrix)[i+3][6+j];
+      eps[i][j]=(*piezoMatrix)[i+6][j+6];
+    }
+  Q.Transpose(QT);
+  R.Transpose(RT);
+
+  c=Q*c*QT;
+  e=Q*e*RT;
+  eps=R*eps*RT;
+
+  for (Integer i=0;i<3;i++)
+    for (Integer j=0;j<3;j++){
+      (*piezoMatrix)[i][j]=c[i][j];
+      (*piezoMatrix)[i+3][j+3]=c[i+3][j+3];
+      (*piezoMatrix)[i][6+j]=e[i][j];
+      (*piezoMatrix)[i+3][6+j]=e[i+3][j];
+      (*piezoMatrix)[i+6][j]=e[j][i];
+      (*piezoMatrix)[i+6][3+j]=e[j+3][i];
+      (*piezoMatrix)[i+6][j+6]=eps[i][j];
+    }
+
+} // end RotateMaterialMatrix
+
 /*
  
 void MaterialData::DefLin(const int& notLin)

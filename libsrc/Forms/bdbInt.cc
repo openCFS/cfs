@@ -160,7 +160,6 @@ namespace CoupledField
   BDBInt::~BDBInt()
   {
     ENTER_FCN( "BDBInt::~BDBInt" );
-    ;
   }
 
 
