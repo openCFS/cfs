@@ -16,10 +16,10 @@ Domain<Dim> :: Domain(FileType * const aptFileType, WriteResults<Dim> * ptOut,  
 #ifdef TRACE
   (*trace) << "entering Domain::Domain" << std::endl;
 #endif
- InFile     = aptFileType; 
- OutFile    = ptOut;
- ptmaterial = materialdata;
- ptTimeFunc = aptTimeFunc;
+ InFile_     = aptFileType; 
+ OutFile_    = ptOut;
+ ptmaterial_ = materialdata;
+ ptTimeFunc_ = aptTimeFunc;
 
   // read type of output results from conf-file
   std::string libmesh;
@@ -28,18 +28,18 @@ Domain<Dim> :: Domain(FileType * const aptFileType, WriteResults<Dim> * ptOut,  
  // initialize pointer to grid 
  //  if (libmesh =="gridlib") ptgrid=new InterfaceGridlib<Dim>(InFile);
 //  else
-  if (libmesh =="cfsgrid") ptgrid=new GridInterfaceCFS<Dim>(InFile);
+  if (libmesh =="cfsgrid") ptgrid_=new GridInterfaceCFS<Dim>(InFile_);
    else
      Error("Unknown type of mesh_library in conf-file",__FILE__,__LINE__);
 
   // allocate an object with an information about boundary condition
-  ptBCs=new BCs(InFile);
+  ptBCs_=new BCs(InFile_);
 
  //read in the mesh information
- ptgrid->Read();
+ ptgrid_->Read();
 
  //read restraints information
- ptBCs->ReadBCs();
+ ptBCs_->ReadBCs();
 
  InitPDE();
  InitAlgSys();
@@ -52,9 +52,17 @@ Domain<Dim> :: ~Domain()
   (*trace) << "entering Domain::~Domain" << std::endl;
 #endif
 
-  if (!ptgrid) delete ptgrid;
-  if (!ptBCs) delete ptBCs;
-  if (!ptalgsys) delete ptalgsys;
+  if (!ptgrid_) delete ptgrid_;
+  if (!ptBCs_) delete ptBCs_;
+  if (!ptalgsys_) delete ptalgsys_;
+
+  Integer i;
+  if (!ptpde_) 
+     {
+      for (i=0; i<numpde_; i++)
+        if (!ptpde_[i]) delete ptpde_[i];
+      delete [] ptpde_;
+     } 
 }
 
 template<class Dim>
@@ -65,49 +73,31 @@ void Domain<Dim> :: InitPDE()
 #endif
 
   // get numbers of PDEs in domain
-  numpde = 1;
+  numpde_ = 1;
 
     //get analysis type
   Integer soltype;
   Integer statickey;
-  InFile->preReadTransAnal(soltype, statickey);
+  InFile_->preReadTransAnal(soltype, statickey);
 
   Integer level = 0;
-  Integer numnode = ptgrid->GetMaxnumnodes(level);
+  Integer numnode = ptgrid_->GetMaxnumnodes(level);
 
   // read time step
   Integer numsteps;
   Double dt0;
-  InFile->ReadNumStepsAndTimeSteps(numsteps, dt0);
+  InFile_->ReadNumStepsAndTimeSteps(numsteps, dt0);
 
   //allocate all specific PDEs
-  ptpde[0]=new Acoustic2dPDE(ptgrid,ptmaterial,ptTimeFunc,InFile,OutFile);
-  for (int i=0;i<numpde;i++)
+  ptpde_[0]=new Acoustic2dPDE(ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_);
+  for (int i=0;i<numpde_;i++)
     {
       //      ptpde[i] = new Elec2dPDE(grid,ptmaterial,InFile,OutFile,statickey);      
  //     ptpde[i] = new Therm2dPDE(ptgrid,ptmaterial,ptTimeFunc,InFile,OutFile,statickey,numnode);
-
     }
 
    
-   ptpde[0]->SetStepData();
-
-/*
-  Integer * stepdata = new Integer[4];
-  Double  * integrationdata = new Double[5];
-
-  if (statickey==0)
-    {
-      InFile->ReadTransAnalTran(stepdata,integrationdata);
-      for (int i=0;i<numpde;i++)
-	{
-	  ptpde[i]->SetStepData(stepdata,integrationdata);
-	}
-    }
-
-  delete [] stepdata;
-  delete [] integrationdata;
-*/
+   ptpde_[0]->SetStepData();
 
 }
 
@@ -119,13 +109,13 @@ void Domain<Dim> :: InitAlgSys()
 #endif
 
   //set pointer to Algebraic system
-  ptalgsys = new AlgSysPILES();
+  ptalgsys_ = new AlgSysPILES();
 
 
   //check, how much systems are needed and how much matrix graphs
-  numsys   = 1;
-  numgraph = 1;
-  ptalgsys->InitAlgSys(numsys, numgraph);
+  numsys_   = 1;
+  numgraph_ = 1;
+  ptalgsys_->InitAlgSys(numsys_, numgraph_);
 
     //set solver parameters
   Double eps, dampiter;
@@ -134,36 +124,35 @@ void Domain<Dim> :: InitAlgSys()
   Integer precondtype;
   Integer insys;
 
-  for (insys=0;insys<numsys;insys++)
+  for (insys=0;insys<numsys_;insys++)
     {
-      ptpde[insys]->SetAlgSys_id(insys);
-      ptpde[insys]->SpecifySolver(solvertype,precondtype,eps,dampiter,maxnumit);
-      ptalgsys->SetSolverParameter(insys,eps,dampiter,maxnumit,solvertype,precondtype);
+      ptpde_[insys]->SetAlgSys_id(insys);
+      ptpde_[insys]->SpecifySolver(solvertype,precondtype,eps,dampiter,maxnumit);
+      ptalgsys_->SetSolverParameter(insys,eps,dampiter,maxnumit,solvertype,precondtype);
     }
 
   //init the algsys-graph
   Integer level=0;
-  Integer numnode = ptgrid->GetMaxnumnodes(level);
-  std::cout << "numnode" << numnode << std::endl;
+  Integer numnode = ptgrid_->GetMaxnumnodes(level);
 
   //for each system: first diagonal blocks and then off-diagonalblocks
-  for (insys=0;insys<numsys;insys++)
+  for (insys=0;insys<numsys_;insys++)
    {
-     ptalgsys->InitAlgSysGraph(numnode,insys,insys);
+     ptalgsys_->InitAlgSysGraph(numnode,insys,insys);
    }
 
  // get the graph - connectivity matrix
   Integer nel, numelem, elemsize, pos[30];
 
-  numelem = ptgrid->GetMaxnumElem(level);
+  numelem = ptgrid_->GetMaxnumElem(level);
 
-  for (insys=0;insys<numsys;insys++)
+  for (insys=0;insys<numsys_;insys++)
     {
       for (nel=0; nel<numelem; nel++)
 	{
-	  elemsize = ptgrid->GetNumNodesPerElem(nel,level);
-          ptgrid->GetConnection(pos, level, nel, elemsize); // global node numbers! pos[0],...,pos[elemsize-1]
-	  ptalgsys->SetAlgSysGraph(pos,elemsize,insys,insys);
+	  elemsize = ptgrid_->GetNumNodesPerElem(nel,level);
+          ptgrid_->GetConnection(pos, level, nel, elemsize); // global node numbers! pos[0],...,pos[elemsize-1]
+	  ptalgsys_->SetAlgSysGraph(pos,elemsize,insys,insys);
 	}
     }
 
@@ -175,22 +164,22 @@ void Domain<Dim> :: InitAlgSys()
   Integer numdirichlets;
   Integer numconstraints;
 
-  for (insys=0;insys<numsys;insys++)
+  for (insys=0;insys<numsys_;insys++)
     {
-      ptpde[insys]->SpecifyMatrices(matrixtype, matrixsystype, graphtype, numdofpernode, 
+      ptpde_[insys]->SpecifyMatrices(matrixtype, matrixsystype, graphtype, numdofpernode, 
                                      numdirichlets, numconstraints);
-      numdirichlets = ptBCs->GetNumDirichlet(level);
+      numdirichlets = ptBCs_->GetNumRestraints(level);
 
-      ptalgsys->CreateAlgSysMatrices(insys,insys,matrixsystype,matrixtype,graphtype, numdofpernode, 
+      ptalgsys_->CreateAlgSysMatrices(insys,insys,matrixsystype,matrixtype,graphtype, numdofpernode, 
                                numdirichlets, numconstraints);
     }
 
   //now reset AlgebraicSystem 
   //matrix_id = 1: system matrix
   Integer matrix_id = 1;
-  for (insys=0;insys<numsys;insys++)
+  for (insys=0;insys<numsys_;insys++)
     {
-      ptalgsys->ResetAlgSys(insys,insys,matrix_id);
+      ptalgsys_->ResetAlgSys(insys,insys,matrix_id);
     }
 }
 
@@ -201,10 +190,11 @@ void Domain<Dim> :: PrintGrid(Integer level)
   (*trace) << "entering Domain::PrintGrid" << std::endl;
 #endif
 
- OutFile->Init(ptgrid);
- OutFile->WriteGrid(level);
+ OutFile_->Init(ptgrid_);
+ OutFile_->WriteGrid(level);
 }
 
+/*
 template<class Dim>
 void Domain<Dim> :: SetDBC(Integer apde, Integer level, Integer update)
 {
@@ -212,7 +202,7 @@ void Domain<Dim> :: SetDBC(Integer apde, Integer level, Integer update)
   (*trace) << "entering Domain::SetDBC" << std::endl;
 #endif
 
-  ptpde[apde]->SetBCs(ptalgsys, ptBCs, level, update,0);
+  ptpde_[apde]->SetBCs(ptalgsys, ptBCs, level, update,0);
 }
 
 template<class Dim>
@@ -230,6 +220,7 @@ void Domain<Dim> :: PrintSolution(Double * sol, Integer apde)
   Double time  = 1.0;  
 //  ptpde[apde]->PrintSolution(vecsol,step,time);
 }
+*/
 
 template<class Dim>
 void Domain<Dim> :: SetSubdomains()
@@ -238,14 +229,6 @@ void Domain<Dim> :: SetSubdomains()
   (*trace) << "entering Domain::SetSubdomains" << std::endl;
 #endif
 
-}
-
-template<class Dim>
-void Domain<Dim> :: PrintDomain()
-{
-#ifdef TRACE
-  (*trace) << "entering Domain::PrintDomain" << std::endl;
-#endif
 }
 
 }

@@ -1,5 +1,5 @@
-#ifndef FILE_BCS_2001
-#define FILE_BCS_2001
+#ifndef FILE_BOUNDCOND_2001
+#define FILE_BOUNDCOND_2001
 
 #include "filetype.hh"
 
@@ -9,11 +9,15 @@ namespace CoupledField
 /// contains information about calculation domain and according to different meshes create different grids
 
 //! struct for Restraints:
-struct Restraints
+
+struct NodeRestraint
 {
-  Integer num;
-  Integer ** info;
-  Double * val;
+  Integer nodalnum;
+  Integer dof;
+  Integer numfunc;
+  Double factor;
+
+ int operator<(const NodeRestraint & t);
 };
 
 class BCs
@@ -29,11 +33,16 @@ public:
   void ReadBCs();
 
   //!
-  Integer GetNumDirichlet(Integer level) 
-  { return numDirichlet[level]; }
+  Integer GetNumRestraints(const Integer level) 
+  { return numrestr_[level]; }
 
   //!
-  Integer GetDirichletNode(Integer pos, Integer level)
+  void GetRestraints(std::list<NodeRestraint> & arestr, const Integer level)
+  { arestr=restr_[level]; }
+ 
+/*
+  //!
+  Integer GetDirichletNode(const Integer pos, const Integer level)
   { return restr[level].info[pos][0];}
 
   //!
@@ -45,16 +54,11 @@ public:
 
   Integer GetDirichletTfunc(Integer pos, Integer level)
   { return restr[level].info[pos][2];}
+*/
 
 protected:
 
 private:
-  //!
-  Integer level;
-
-  //!
-  Integer numDirichlet[20];
-
   //!
   Integer numNeumann[20];
 
@@ -62,10 +66,13 @@ private:
   Integer numConstraints[20];
 
   //!
-  FileType *InFile;
+  FileType* InFile_;
 
   //!
-  Restraints restr[20];
+  std::list<NodeRestraint> restr_[20];
+
+  //! number of nodes with restraints
+  Integer numrestr_[20];
 
 };
 

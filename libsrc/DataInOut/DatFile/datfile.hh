@@ -151,6 +151,9 @@ public:
   void ReadBoundRestr(Integer ** dataBRestr, Integer numberRestr,
 		      Double * factorRestr); 
 
+  //! Read specific info about boundary condition in list
+  void ReadBoundRestr(std::list<NodeRestraint> & restr, const Integer numberRestr);
+ 
   //! Auxialary function for reading boundary condition
   void ReadMaxRecord(Integer & maxrecord);
 

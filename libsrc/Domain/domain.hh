@@ -6,8 +6,6 @@
 
 namespace CoupledField
 {
-//class FileType;
-
 
 /// contain information about calculation domain and according to different meshes create different grids
 
@@ -27,29 +25,26 @@ public:
   //!
   void SetSubdomains();
 
-  //!
-  void PrintDomain();
-
   //! set dirichlet boundary condition
-  void SetDBC(Integer apde, Integer level, Integer update);
+//  void SetDBC(Integer apde, Integer level, Integer update);
 
   //! print solution
-  void PrintSolution(Double * sol, Integer apde);
+//  void PrintSolution(Double * sol, Integer apde);
 
   //! get pde
-  BasePDE * GetPDE(const Integer ipde){ return ptpde[ipde];}
+  BasePDE * GetPDE(const Integer ipde){ return ptpde_[ipde];}
 
   //! get algebraic system
-  AbstractAlgebraicSys * GetAlgSys(){ return ptalgsys;}
+  AbstractAlgebraicSys * GetAlgSys(){ return ptalgsys_;}
 
   //! get pointer to input-file
-  FileType * GetInFile(){ return InFile;}
+  FileType * GetInFile(){ return InFile_;}
 
   //! get pointer to output-file
-  WriteResults<Dim> * GetOutFile(){ return OutFile;}
+  WriteResults<Dim> * GetOutFile(){ return OutFile_;}
 
   //! get pointer to boundary condition
-  BCs * GetBCs(){ return ptBCs;}
+  BCs * GetBCs(){ return ptBCs_;}
 
 protected:
 
@@ -61,43 +56,43 @@ private:
    void InitAlgSys();
 
   //!
-  Integer numsubdomain;
+  Integer numsubdomain_;
 
   //!
-  Integer numpde;
+  Integer numpde_;
 
   //!
-  Integer numsys;
+  Integer numsys_;
 
   //!
-  Integer numgraph;
+  Integer numgraph_;
 
   //! 
-  Integer ** syscoupling;
+  Integer ** syscoupling_;
 
   //!
-  BasePDE * ptpde[20];
+  BasePDE * ptpde_[20];
 
   //!
-  Grid<Dim> * ptgrid;
+  Grid<Dim> * ptgrid_;
 
   //!
-  BCs * ptBCs;
+  BCs * ptBCs_;
 
   //!
-  AbstractAlgebraicSys * ptalgsys;
+  AbstractAlgebraicSys * ptalgsys_;
   
   //!
-  Material * ptmaterial;
+  Material * ptmaterial_;
 
   //!
-  TimeFunc * ptTimeFunc;
+  TimeFunc * ptTimeFunc_;
 
   //!
-  FileType *InFile;
+  FileType *InFile_;
 
   //!
-  WriteResults<Dim> * OutFile;
+  WriteResults<Dim> * OutFile_;
 
 };
 

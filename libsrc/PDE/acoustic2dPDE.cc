@@ -16,50 +16,30 @@ Acoustic2dPDE::Acoustic2dPDE(Grid<Point2D> * aptgrid, Material * ptMaterial, Tim
   (*trace) << "entering Acoustic2dPDE::Acoustic2dPDE " << std::endl;
 #endif
 
-  dofspernode=1;
-  ptgrid=aptgrid;
-  doftype=14;
+  dofspernode_=1;
+  ptgrid_=aptgrid;
 
-  Double density, compress,c;
-  if (ptMaterial)
+  Double density, compress;
+  if (MatFile_)
   {
-    ptMaterial->ReadDensityAndCompress(density,compress);
-    coeff=sqrt(compress/density);
+    MatFile_->ReadDensityAndCompress(density,compress);
+    coeff_=sqrt(compress/density);
   }
-  else coeff=1;
+  else coeff_=1;
 
-   sol.Resize(ptgrid->GetMaxnumnodes(0));
-   sol.Init(0);
-   sol_der1.Resize(ptgrid->GetMaxnumnodes(0));
-   sol_der1.Init(0);
-   sol_der2.Resize(ptgrid->GetMaxnumnodes(0));
-   sol_der2.Init(0);
-    sol_old.Resize(ptgrid->GetMaxnumnodes(0));
-   sol_old.Init(0);
-//  Double dt0=0.1e-7;                          /// !!!!!!!!!!!!
-//  CalcParamForNewmarkMethod(dt0);
-  InFile->ReadIntegrationParam(alpha, beta, gamma);
+   sol_.Resize(ptgrid_->GetMaxnumnodes(0));
+   sol_.Init(0);
+   sol_der1_.Resize(ptgrid_->GetMaxnumnodes(0));
+   sol_der1_.Init(0);
+   sol_der2_.Resize(ptgrid_->GetMaxnumnodes(0));
+   sol_der2_.Init(0);
+    sol_old_.Resize(ptgrid_->GetMaxnumnodes(0));
+   sol_old_.Init(0);
+  InFile_->ReadIntegrationParam(alpha_, beta_, gamma_);
 
-  // read a tolerance for the algebraic system from config-file
-//  Double epsilon;
-//  conf->get("epsilon",epsilon);
-//  ptWork=new InterfaceAlgSys<Point2D>(ptgrid,0,epsilon);
-
-//  ptWork->AssembleSysMatrix(CoefLaplace,CoefMass);
-//  ptWork->SetRHS();
-  
-//  ptWork->SetNodesBoundaryCondition(aptFileType);
-//  ptWork->SetDirichletBoundaryCondSysMat_PenaltyMethod();
-
-//  size=ptWork->getSize();
-
-//  sol.Resize(size);
-//  sol_der1.Resize(size);
-//  sol_der2.Resize(size);
 }
 
-void Acoustic2dPDE::SpecifySolver(Integer &solvertype, Integer &precondtype, Double &eps, Double &dampiter,
-                     Integer &maxnumit)
+void Acoustic2dPDE::SpecifySolver(Integer &solvertype, Integer &precondtype, Double &eps, Double &dampiter, Integer &maxnumit)
 {
 #ifdef TRACE
   (*trace) << "entering Acoustic2dPDE::SpecifySolver" << std::endl;
@@ -74,7 +54,7 @@ void Acoustic2dPDE::SpecifySolver(Integer &solvertype, Integer &precondtype, Dou
 
 void Acoustic2dPDE::SetAlgSys_id(Integer as_sysid)
 {
- AS_sysid = as_sysid;
+ AS_sysid_ = as_sysid;
 }
 
 void Acoustic2dPDE::SetMatrixFactors()
@@ -87,10 +67,10 @@ void Acoustic2dPDE::SetMatrixFactors()
 
   CalcParamForNewmarkMethod(firstdt);
 
-  matrix_factor[0] = 1.0;
-  matrix_factor[1] = 0.0;
-  matrix_factor[2] = 0.0;
-  matrix_factor[3] = 1.0*coeff*a0;
+  matrix_factor_[0] = 1.0;
+  matrix_factor_[1] = 0.0;
+  matrix_factor_[2] = 0.0;
+  matrix_factor_[3] = 1.0*coeff_*a0_;
 }
 
 void Acoustic2dPDE::SpecifyMatrices(Integer &matrixtype, Integer * matrixsystype, Integer &graphtype, Integer &numdofpernode, Integer &numdirichlets,
@@ -141,13 +121,11 @@ void Acoustic2dPDE::SetupMatrices(AbstractAlgebraicSys * algsys, Integer type)
 
   Integer k,l;
   Integer i,ii,iii;
-  Integer irow,icln,matdim;
+  Integer irow,icln;
 
-  Integer numnodeelem;
-  numnodeelem=ptgrid->GetNumNodesPerElem(0,0);
+  Integer numnodeelem=ptgrid_->GetNumNodesPerElem(0,0);
   Integer * help=new Integer[numnodeelem];
   Matrix<Double> elemmat;
-  matdim=numnodeelem;
 
   std::cout << "numnodeleme" << numnodeelem << std::endl;
   Double * pilesmat = new Double[numnodeelem*numnodeelem];
@@ -169,47 +147,47 @@ void Acoustic2dPDE::SetupMatrices(AbstractAlgebraicSys * algsys, Integer type)
        Error("Number of nodes per element is strange",__FILE__,__LINE__);
   }
 
-   Integer numelem=ptgrid->GetMaxnumElem(0);
+   Integer numelem=ptgrid_->GetMaxnumElem(0);
 
-   bilinear_stiff = new LaplaceInt<Point2D>(ptElem,1);
-   bilinear_mass  = new MassInt<Point2D>(ptElem,1);
+   BaseForm<Point2D> * bilinear_stiff = new LaplaceInt<Point2D>(ptElem,1);
+   BaseForm<Point2D> * bilinear_mass  = new MassInt<Point2D>(ptElem,1);
 
    Integer matrix_stiff=2;
    Integer matrix_mass=5;
 
    for (i=0; i<numelem; i++)
      {
-       ptgrid->GetConnection(help,0,i,numnodeelem);
-       ptgrid->GetCoordOfNodesElem(i,0,numnodeelem,ptCoord);
+       ptgrid_->GetConnection(help,0,i,numnodeelem);
+       ptgrid_->GetCoordOfNodesElem(i,0,numnodeelem,ptCoord);
 
        // stiffness part
        bilinear_stiff->CalcElemMatrix(ptCoord, elemmat);
 
        ii = 0;
-       for (k=0;k<matdim;k++)
+       for (k=0;k<numnodeelem;k++)
          {
-           for (l=0;l<matdim;l++)
+           for (l=0;l<numnodeelem;l++)
              {
                pilesmat[ii]=elemmat[k][l];
                ii = ii+1;
              }
          }
-       algsys->PutElemMatAlgSys(pilesmat, help, numnodeelem, AS_sysid, AS_sysid, matrix_stiff);
+       algsys->PutElemMatAlgSys(pilesmat, help, numnodeelem, AS_sysid_, AS_sysid_, matrix_stiff);
 
     std::cout << "stiff" << std::endl;
            // mass part
            bilinear_mass->CalcElemMatrix(ptCoord, elemmat);
 
            ii = 0;
-           for (k=0;k<matdim;k++)
+           for (k=0;k<numnodeelem;k++)
              {
-               for (l=0;l<matdim;l++)
+               for (l=0;l<numnodeelem;l++)
                  {
                    pilesmat[ii]=elemmat[k][l];
                    ii = ii+1;
                  }
              }
-           algsys->PutElemMatAlgSys(pilesmat, help, numnodeelem, AS_sysid, AS_sysid,matrix_mass);
+           algsys->PutElemMatAlgSys(pilesmat, help, numnodeelem, AS_sysid_, AS_sysid_,matrix_mass);
      }
 
     std::cout << " mass " <<std::endl;
@@ -224,32 +202,55 @@ void Acoustic2dPDE::SetBCs(AbstractAlgebraicSys *ptalgsys, BCs * ptBCs, const In
   (*trace) << "entering Acoustic2dPDE::SetBCs" << std::endl;
 #endif
 
-  Integer i, num, node, type, tfunc;
+  Integer num, node, type, tfunc;
   Double val, valueTF;
 
 
   //system matrix: id = 1
   Integer matrix_id = 1;
 
-  num = ptBCs->GetNumDirichlet(level);
+  num = ptBCs->GetNumRestraints(level);
 
+/*
   for (i=0;i<num;i++)
     {
           node = ptBCs->GetDirichletNode(i,level);
           std::cout << "before time"  << node << std::endl;
-          val=ptTimeFunc->TimeFuncAtTime(atime,level);
+          val=ptTimeFunc_->TimeFuncAtTime(atime,level);
 
 	  std::cout << val << " val" << std::endl;
 
           if (update==1)
             {
-              ptalgsys->SetBCDirichletUpdate(i+1, node, val, dofspernode, AS_sysid, AS_sysid, matrix_id);
+              ptalgsys->SetBCDirichletUpdate(i+1, node, val, dofspernode_, AS_sysid_, AS_sysid_, matrix_id);
             }
           else
             {
-              ptalgsys->SetBCDirichlet(i+1, node, val, dofspernode, AS_sysid, AS_sysid, matrix_id);
+              ptalgsys->SetBCDirichlet(i+1, node, val, dofspernode_, AS_sysid_, AS_sysid_, matrix_id);
             }
     }
+*/
+    std::list<NodeRestraint> restr;
+    ptBCs->GetRestraints(restr,level);
+
+     val=ptTimeFunc_->TimeFuncAtTime(atime,level);    
+
+    Integer i=0;
+    for (list<NodeRestraint>::const_iterator p=restr.begin(); p!=restr.end(); p++, i++)
+   {
+          Integer node=p->nodalnum;
+          if (update==1)
+            {
+              ptalgsys->SetBCDirichletUpdate(i+1, node, val, dofspernode_, AS_sysid_, AS_sysid_, matrix_id);
+            }
+          else
+            {
+              ptalgsys->SetBCDirichlet(i+1, node, val, dofspernode_, AS_sysid_,
+AS_sysid_, matrix_id);
+            }
+         std::cout << " we put " << std::endl;
+    }
+   
 }
 
 void Acoustic2dPDE::ComputeRHS(AbstractAlgebraicSys *ptalgsys)
@@ -262,9 +263,9 @@ void Acoustic2dPDE::ComputeRHS(AbstractAlgebraicSys *ptalgsys)
   Vector<Double> coeffMass;
 
       matrix_id = 5;
-      coeffMass=sol*a0+sol_der1*a2+sol_der2*a3;
+      coeffMass=sol_*a0_+sol_der1_*a2_+sol_der2_*a3_;
 
-      ptalgsys->UpdateRHS(AS_sysid,AS_sysid,matrix_id,coeffMass.get());
+      ptalgsys->UpdateRHS(AS_sysid_,AS_sysid_,matrix_id,coeffMass.get());
 }
 
 void Acoustic2dPDE::SolveStepStatic(AbstractAlgebraicSys *ptalgsys, BCs * ptBCs, Integer level)
@@ -279,8 +280,8 @@ void Acoustic2dPDE::SolveStepStatic(AbstractAlgebraicSys *ptalgsys, BCs * ptBCs,
 
   SetupMatrices(ptalgsys, type);
   SetBCs(ptalgsys, ptBCs,level,update,0);
-  ptalgsys->ComputePrecond(job,AS_sysid);
-  ptalgsys->SolveAlgSys(AS_sysid);
+  ptalgsys->ComputePrecond(job,AS_sysid_);
+  ptalgsys->SolveAlgSys(AS_sysid_);
 }
 
 void Acoustic2dPDE::SolveStepTrans(AbstractAlgebraicSys *ptalgsys, BCs * ptBCs, Integer kstep, Double asteptime, Integer level)
@@ -294,42 +295,40 @@ void Acoustic2dPDE::SolveStepTrans(AbstractAlgebraicSys *ptalgsys, BCs * ptBCs, 
   Integer job;
   Double * ptsol;
 
-  lasttimecalc= asteptime;
-  StepTime=asteptime;
-  laststepcalc= kstep;
+  lasttimecalc_= asteptime;
+  laststepcalc_= kstep;
 
   std::cout << "kstep" << kstep << std::endl;
   if (kstep==0)
     {
       update = 0;
       job = 1;
-      std::cout << StepTime << std::endl;
       SetupMatrices(ptalgsys, type);
-      ptalgsys->ComputeSysMatrix(AS_sysid,AS_sysid,matrix_factor);
-      SetBCs(ptalgsys, ptBCs,level,update,StepTime);
-      ptalgsys->ComputePrecond(job,AS_sysid);
-      ptalgsys->SolveAlgSys(AS_sysid);
-      ptsol = ptalgsys->GetSolution(AS_sysid);
+      ptalgsys->ComputeSysMatrix(AS_sysid_,AS_sysid_,matrix_factor_);
+      SetBCs(ptalgsys, ptBCs,level,update,lasttimecalc_);
+      ptalgsys->ComputePrecond(job,AS_sysid_);
+      ptalgsys->SolveAlgSys(AS_sysid_);
+      ptsol = ptalgsys->GetSolution(AS_sysid_);
     }
   else
     {
       update = 1;
       job    = 3;
 
-      ptalgsys->ResetRHS(AS_sysid);
+      ptalgsys->ResetRHS(AS_sysid_);
       ComputeRHS(ptalgsys);
-      SetBCs(ptalgsys, ptBCs,level,update,StepTime);
-      ptalgsys->ComputePrecond(job,AS_sysid);
-      ptalgsys->SolveAlgSys(AS_sysid);
-      ptsol = ptalgsys->GetSolution(AS_sysid);
+      SetBCs(ptalgsys, ptBCs,level,update,lasttimecalc_);
+      ptalgsys->ComputePrecond(job,AS_sysid_);
+      ptalgsys->SolveAlgSys(AS_sysid_);
+      ptsol = ptalgsys->GetSolution(AS_sysid_);
     }
 
    // save solution
    Integer ii;
 
-   Vector<Double> transsol(ptgrid->GetMaxnumnodes(level), ptsol);
+   Vector<Double> transsol(ptgrid_->GetMaxnumnodes(level), ptsol);
 
-   sol=transsol;
+   sol_=transsol;
 
    // calculation of derivatives of solution
    CalculationDerivativesSol();
@@ -341,11 +340,9 @@ void Acoustic2dPDE:: WriteResultsInFile()
   (*trace) << "entering Acoustic2dPDE::WriteResultsInFile" << std::endl;
 #endif
 
-  std::cout << " Attention " << sol << std::endl;
-  std::cout << "Step&Time" << laststepcalc << " " << lasttimecalc << std::endl;
-  OutFile->WriteSolution(sol, laststepcalc, lasttimecalc); /// !!!!!!!!!!!!!!
-  OutFile->WriteFirstDerSolution(sol_der1, laststepcalc,lasttimecalc);
-  OutFile->WriteSecondDerSolution(sol_der2,laststepcalc,lasttimecalc);
+  OutFile_->WriteSolution(sol_, laststepcalc_, lasttimecalc_); /// !!!!!!!!!!
+  OutFile_->WriteFirstDerSolution(sol_der1_, laststepcalc_,lasttimecalc_);
+  OutFile_->WriteSecondDerSolution(sol_der2_,laststepcalc_,lasttimecalc_);
 
 }
 
@@ -355,14 +352,14 @@ void Acoustic2dPDE :: CalcParamForNewmarkMethod(const Double dt)
   (*trace) << "entering Acoustic2dPDE::CalcParamForNewmarkMethod" << std::endl;
 #endif
 
- a2=1.0/(beta*dt);
- a0=a2*(1/dt);
- a1=gamma*a2;
- a3=0.5/(beta)-1.0;
- a4=gamma/beta-1.0;
- a5=0.5*dt*(a4-1.0);
- a6=dt*(1-gamma);
- a7=gamma*dt;
+ a2_=1.0/(beta_*dt);
+ a0_=a2_*(1/dt);
+ a1_=gamma_*a2_;
+ a3_=0.5/(beta_)-1.0;
+ a4_=gamma_/beta_-1.0;
+ a5_=0.5*dt*(a4_-1.0);
+ a6_=dt*(1-gamma_);
+ a7_=gamma_*dt;
 }
 
 void Acoustic2dPDE :: CalculationDerivativesSol()
@@ -370,11 +367,11 @@ void Acoustic2dPDE :: CalculationDerivativesSol()
 #ifdef TRACE
   (*trace) << "entering Acoustic2dPDE::CalculationDerivativesSol" << std::endl;
 #endif
-  Vector<Double> sol_der2_old=sol_der2;
+  Vector<Double> sol_der2_old=sol_der2_;
 
-  sol_der2=(sol-sol_old)*a0-sol_der1*a2-sol_der2_old*a3;
-  sol_der1+=sol_der2_old*a6+sol_der2*a7;
+  sol_der2_=(sol_-sol_old_)*a0_-sol_der1_*a2_-sol_der2_old*a3_;
+  sol_der1_+=sol_der2_old*a6_+sol_der2_*a7_;
 
-  sol_old=sol;
+  sol_old_=sol_;
 }
 } // end of namespace

@@ -13,10 +13,10 @@ BasePDE::BasePDE(Material * aMatFile, FileType * aInFile, WriteResults<Point2D> 
   (*trace) << "entering BasePDE::BasePDE" << std::endl;
 #endif
 
-  MatFile    = aMatFile;
-  InFile     = aInFile;
-  OutFile    = aOutFile;
-  ptTimeFunc = aptTimeFunc;
+  MatFile_    = aMatFile;
+  InFile_     = aInFile;
+  OutFile_    = aOutFile;
+  ptTimeFunc_ = aptTimeFunc;
 }
 
 void BasePDE::SetStepData()

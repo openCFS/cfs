@@ -28,7 +28,8 @@ public:
 
   //!
   virtual void SetMatrixFactors()=0;
-  //!
+
+  //! define algebraic system identifictaion
   virtual void SetAlgSys_id(Integer AS_sysid)=0;
 
   //!
@@ -52,17 +53,17 @@ public:
 			      Integer level)=0;
 
   //!
-//  virtual void PrintSolution(Vector<Double> & sol, Integer step, Double time)=0;
   virtual void WriteResultsInFile()=0;  
 
   //! Calculation of integration parameteres 
-  void CalcIntegrationParam(const Double dt);
+//  void CalcIntegrationParam(const Double dt);
 
   //! Calculation parameters in Newmark method
   virtual void CalcParamForNewmarkMethod(const Double adt)=0;  
 
    //!
   void SetStepData();
+
   //!
   virtual Vector<Double> & getS()=0;
 
@@ -75,43 +76,25 @@ public:
 protected:
 
   //!
-  Integer numnode;
+//  Integer numnode;
 
   //!
-  Integer statickey;
+  Double StepTime_;
 
-  //!
-  Double StepTime;
-
-  //!
-  Integer effsysmat;
-  
   //! pointer to class Material
-  Material * MatFile;
+  Material * MatFile_;
 
   //!
-  FileType * InFile;
+  FileType * InFile_;
 
   //!
-  WriteResults<Point2D> * OutFile;
+  WriteResults<Point2D> * OutFile_;
 
   //!
-  TimeFunc * ptTimeFunc;
+  TimeFunc * ptTimeFunc_;
 
  //!
-  Double matrix_factor[4];
-
-  //!
-  Double deltat;
-
-  //! Intergration parameters
-  Double alpha,gamma_hyperbolic, gamma_parabolic, beta;
-
-  //!
-  Integer numstep,isavebegin,isaveincr,isaveend;
-
-  //!
-  Double cinteg[13];
+  Double matrix_factor_[4];
 
 };
 

@@ -55,77 +55,53 @@ Double &adampiter,  Integer &amaxnumit);
                       Integer level);
 
   //!
-//  void PrintSolution(Vector<Double> & sol, Integer step, Double time);
    void WriteResultsInFile();
 
   //!
-  virtual Vector<Double> & getS() { return sol;}
+  virtual Vector<Double> & getS() { return sol_;}
 
   //!
-  virtual Vector<Double> & getS1() { return sol_der1;}
+  virtual Vector<Double> & getS1() { return sol_der1_;}
 
   //!
-  virtual Vector<Double> & getS2() { return sol_der2;}
+  virtual Vector<Double> & getS2() { return sol_der2_;}
 
 private:
 
   //!
-  Double CoefLaplace;
+  Integer dofspernode_;
 
   //!
-  Double CoefMass;   
+  Grid<Point2D> * ptgrid_;
 
   //!
-  Integer dofspernode;
-
-  //!
-  Grid<Point2D> * ptgrid;
-
-  //!
-  BaseForm<Point2D> * bilinear_stiff;
-
-  //!
-  BaseForm<Point2D> * bilinear_mass;
-
-  //!
-  Integer AS_sysid;
-
-  //!
-  Integer size;  
-
-   //!
-  Integer doftype;
-
-  //!
-  AbstractAlgSys<Point2D> * ptWork;
+  Integer AS_sysid_;
 
   //!
   void CalcParamForNewmarkMethod(const Double dt);
 
   //!
-  Double a0,a1,a2,a3,a4,a5,a6,a7;
+  Double a0_,a1_,a2_,a3_,a4_,a5_,a6_,a7_;
 
   //! Intergration parameters
-  Double alpha,gamma, beta;
+  Double alpha_,gamma_, beta_;
 
   //! coefficient in equation
-  Double coeff;
+  Double coeff_;
 
   //! store solution, 1st derivative , 2nd derivative solution
-  Vector<Double> sol, sol_der1, sol_der2, sol_old;  
+  Vector<Double> sol_, sol_der1_, sol_der2_, sol_old_;  
 
   //! Last time on which we have calculated solution
-  Double lasttimecalc;
+  Double lasttimecalc_;
 
   //! Number of last timestep on which we have calculated our solution
-  Integer laststepcalc;
-
+  Integer laststepcalc_;
 };
 
 inline Acoustic2dPDE::~Acoustic2dPDE()
 {
- if (ptWork) delete ptWork;
- if (ptTimeFunc) delete ptTimeFunc;
+ if (ptTimeFunc_) delete ptTimeFunc_;
 }
 
 } // end of namespace
