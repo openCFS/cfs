@@ -18,7 +18,7 @@ template<class Dim>
   (*trace) << "entering GridCFS::GridCFS" << std::endl;
 #endif
 
-  Integer i,ii;
+  Integer i;
   numlevel = 0;
 // ----------------------------- Initialize gh
   Integer dataHelp[1];
