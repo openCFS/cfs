@@ -30,7 +30,6 @@ namespace CoupledField
     if (!updateDMatInEveryIP_)
       calcDMat(dMat);
     
-
     for (Integer actIntPt=1; actIntPt<=nrIntPts; actIntPt++)
       {
 	if (updateDMatInEveryIP_)
@@ -52,6 +51,7 @@ namespace CoupledField
 	    Vector<Double> ShpFncAtIp;
 	    Vector<Double> CoordAtIP;
 	    ptelem->GetShFncAtIp(ShpFncAtIp,actIntPt);
+
 	    CoordAtIP = ptCoord * ShpFncAtIp;
             jacDet *= 2 * PI * CoordAtIP[0];
 	  }

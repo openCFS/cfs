@@ -35,7 +35,6 @@ public:
   
 protected:
 
-
    //! Set integration points
   virtual void SetIntPoints();
 

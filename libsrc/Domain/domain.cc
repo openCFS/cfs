@@ -180,12 +180,13 @@ namespace CoupledField {
     ENTER_FCN( "Domain::InitPDEs") ;
 
     CreatePDEs(pdeNames);    
+
     for (Integer i=0; i<numpde_; i++) {
       //Info->StartProgress( "Initializing PDE '" + pdes[i]->GetName() + "'");
       ptpde_[i]->Init(sequenceStep,tags[i]);
       //Info->FinishProgress();
-     }
 
+     }
 
     CreateCoupledPDE();
 
@@ -220,14 +221,18 @@ namespace CoupledField {
 //     params->GetPDEList( pdes );
 // #endif
 
+
     numpde_ = pdeNames.GetSize();
+
+    ptpde_.Clear();
     ptpde_.Resize(numpde_);
+
 
 
     // Read dimension from mesh file and perform a consistency check
     Integer dim = InFile_->ReadDim();
 
-    for (int i=0;i< pdeNames.GetSize();i++) {
+    for (Integer i=0;i< pdeNames.GetSize();i++) {
       Info->StartProgress("Creating PDE '" + pdeNames[i] + "'");
       if (pdeNames[i] == "electrostatic") 
 	ptpde_[i]=new ElecPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
@@ -273,11 +278,11 @@ namespace CoupledField {
       // Initialize current PDE
       // -> This step has now moved to method InitPDEs
       //ptpde_[i]->Init();
+
       Info->FinishProgress();
 
     }
 
- 
 
 } // end of InitPDE()
 
@@ -318,9 +323,10 @@ namespace CoupledField {
     // we have all the names of the PDEs which couple iteratively.
     // Now we have to get the according pointers to the PDEs
     for (Integer i=0; i<iterCoupledPDENames.GetSize(); i++)
-	for (Integer j=0; j<ptpde_.GetSize(); j++)
+      for (Integer j=0; j<ptpde_.GetSize(); j++) {
 	  if (iterCoupledPDENames[i] == ptpde_[j]->GetName())
 	      iterCoupledPDEs.Push_back(ptpde_[j]);
+      }
     
     params->GetList( "method", methods);
     for (Integer i=0; i<methods.GetSize(); i++)

@@ -224,8 +224,8 @@ namespace CoupledField {
       keyVec  = "multiSequence", "step", "pde", "refTag";      
       params->GetList( keyVec, attrVec, valVec, tagsAux );
 
-//       std::cerr << "The tags for step " << stepString << " are: " << std::endl;
-//       std::cerr << tagsAux << std::endl << std::endl;
+      //       std::cerr << "The tags for step " << stepString << " are: " << std::endl;
+      //       std::cerr << tagsAux << std::endl << std::endl;
       
 
       keyVec  = "multiSequence", "step", "pde", "type";      
@@ -234,11 +234,11 @@ namespace CoupledField {
       keyVec  = "multiSequence", "step", "pde", "analysis";      
       params->GetList( keyVec, attrVec, valVec, analysisAux );
 
-//       std::cerr << "The pdes for step " << stepString << " are: " << std::endl;
-//       std::cerr << pdesAux << std::endl << std::endl;
+      //       std::cerr << "The pdes for step " << stepString << " are: " << std::endl;
+      //       std::cerr << pdesAux << std::endl << std::endl;
 
-//       std::cerr << "The analysis for step " << stepString << " are: " << std::endl;
-//       std::cerr << analysisAux << std::endl << std::endl;
+      //       std::cerr << "The analysis for step " << stepString << " are: " << std::endl;
+      //       std::cerr << analysisAux << std::endl << std::endl;
 
       // Add pdes, tags, and analysistypes of the current step
       // in the same order as defined by Domain

@@ -152,115 +152,116 @@ namespace CoupledField
 	reassembleMat_[actMat] = FALSE;
 
     
-    for (int actDom=0; actDom < subdoms_.GetSize(); actDom++)
-      {	
-	StdVector<Elem*> elemssd;
+    for (int actDom=0; actDom < subdoms_.GetSize(); actDom++) {	
+      StdVector<Elem*> elemssd;
 
-	ptgrid_->GetElemSD(elemssd, subdoms_[actDom], level);
+      ptgrid_->GetElemSD(elemssd, subdoms_[actDom], level);
 
+      for(Integer actInteg=0; actInteg < integrators_[actDom]->GetSize(); actInteg++) {
+	IntegratorDescriptor * actDescriptor = (*integrators_[actDom])[actInteg];
+	    	    
+	// assemble only if nonlinear or first time
+	if (reassembleMat_[actDescriptor->DestMat()] || firstTime_) {
 
-	for (int actEl=0; actEl< elemssd.GetSize(); actEl++)
-	  {
+	  if ( actDescriptor->IsReducedInt()) {
+	    //set all elements to reduced integration!!
+	    SetFE2ReducedInt();
+	  }
+
+	  for (int actEl=0; actEl< elemssd.GetSize(); actEl++) {
 	    BaseFE * ptEl = elemssd[actEl]->ptElem;
 	    StdVector<Integer> connecth = elemssd[actEl]->connect;
-
-
+		             
 	    Matrix<Double> ptCoord;
 	    GetElemCoords(connecth, ptCoord, level);
-
-
+		    
 	    // map connect to PDE node numbers
 	    StdVector<Integer> connect_PDE;
-	    
+		    
 	    ptEQN_->Node2EQN(connecth, connect_PDE);
-
+		    
 	    Matrix<Double> elSol;
-
+		    
 
 	    // this matrix is nonlinear and, therefore, has to be reassembled next time
 	    if ((oneIntIsNonlin_ || firstTime_ ) && analysisType_ != HARMONIC)
 	      // fetch solution at element nodes
 	      sol_->GetElemSolutionAsMatrix(elSol, connecth);
+	    
+	    actDescriptor->GetIntegrator()->SetElemPtr(ptEl);
+#ifdef USE_OLAS
+	    FEMatrixType destMat = actDescriptor->DestMat();
+#else
+	    enum MatrixType destMat = actDescriptor->DestMat();
+#endif
+		
+	    // this matrix is nonlinear and, therefore, has to be reassembled next time
+	    if (actDescriptor->IsNonLin()) {
+	      oneIntIsNonlin_ = TRUE;
+	      reassembleMat_[actDescriptor->DestMat()] = TRUE;
 	      
+	      actDescriptor->GetIntegrator()->SetActElemSol(elSol);
+	    }	    
+
 	    // ================================================================
 	    //                             assemble matrices
 	    // ================================================================
 
-	    for(Integer actInteg=0; actInteg < integrators_[actDom]->GetSize();
-		actInteg++)
-	      {
-		IntegratorDescriptor * actDescriptor =
-		  (*integrators_[actDom])[actInteg];
-
-
-		// assemble only if nonlinear or first time
-		if (reassembleMat_[actDescriptor->DestMat()] || firstTime_)
-		  {
-		    actDescriptor->GetIntegrator()->SetElemPtr(ptEl);
-#ifdef USE_OLAS
-		    FEMatrixType destMat = actDescriptor->DestMat();
-#else
-		    enum MatrixType destMat = actDescriptor->DestMat();
-#endif
-			    
-		    // this matrix is nonlinear and, therefore, has to be reassembled next time
-		    if (actDescriptor->IsNonLin())
-		      {
-			oneIntIsNonlin_ = TRUE;
-			reassembleMat_[actDescriptor->DestMat()] = TRUE;
-		
-			actDescriptor->GetIntegrator()->SetActElemSol(elSol);
-		      }
-
-		    actDescriptor->GetIntegrator()->CalcElementMatrix(ptCoord, elemmat);
-		    if (analysisType_ == HARMONIC)
-		      {
-			TransformMatrix2Harmonic(harmonicVec,elemmat,
-						 actDescriptor->GetOrigMatrixType());
-			algsys_->SetElementMatrix(&harmonicVec[0], connect_PDE.GetPointer(),
-						  connect_PDE.GetSize(), destMat);
-			}
-		    else
-		      {
-			//std::cerr << "Setting Element matrix " << std::endl << elemmat << std::endl;
-			//std::cerr << "Connect" << connect_PDE << std::endl;
-			//std::cerr << destMat << std::cerr;
-
-		      algsys_->SetElementMatrix(elemmat.GetDataPointer(), connect_PDE.GetPointer(), 
-						connect_PDE.GetSize(), destMat);
-		      }
+	    actDescriptor->GetIntegrator()->CalcElementMatrix(ptCoord, elemmat);
+	    if (analysisType_ == HARMONIC) {
+	      TransformMatrix2Harmonic(harmonicVec,elemmat,
+				       actDescriptor->GetOrigMatrixType());
+	      algsys_->SetElementMatrix(&harmonicVec[0], connect_PDE.GetPointer(),
+					connect_PDE.GetSize(), destMat);
+	    }
+	    else {
+	      //std::cerr << "Setting Element matrix " << std::endl << elemmat << std::endl;
+	      //std::cerr << "Connect" << connect_PDE << std::endl;
+	      //std::cerr << destMat << std::cerr;
+	      
+	      algsys_->SetElementMatrix(elemmat.GetDataPointer(), connect_PDE.GetPointer(), 
+					connect_PDE.GetSize(), destMat);
+	    }
 #ifdef DEBUG
-		    (*debug) << "ElementMatrix of Element " << actEl << std::endl;
-		    (*debug) << elemmat << std::endl;
-		    if ( !elemmat.IsSymmetric() ) {
-		      (*debug) << " --> Matrix is not symmetric " << std::endl;
-		    }
-		    else {
-		      (*debug) << " --> Matrix is symmetric " << std::endl;
-		    }
+	    (*debug) << "ElementMatrix of Element " << actEl << std::endl;
+	    (*debug) << elemmat << std::endl;
+	    if ( !elemmat.IsSymmetric() ) {
+	      (*debug) << " --> Matrix is not symmetric " << std::endl;
+	    }
+	    else {
+	      (*debug) << " --> Matrix is symmetric " << std::endl;
+	    }
 #endif
-		    if (actDescriptor->GetSecondaryMat() != NOTYPE)
-		      {
-			elemmat *= actDescriptor->GetSecMatFac();
-			if (analysisType_ == HARMONIC)
-			  {
-			    TransformMatrix2Harmonic(harmonicVec,elemmat,
-						     actDescriptor->GetOrigSecMatrixType());
-			    algsys_->SetElementMatrix(&harmonicVec[0], connect_PDE.GetPointer(),
-						      connect_PDE.GetSize(), destMat);
-			  }
-			else
-			  algsys_->SetElementMatrix(elemmat.GetDataPointer(), connect_PDE.GetPointer(), 
-						    connect_PDE.GetSize(), actDescriptor->GetSecondaryMat()); 
-		      }
-		    
-		  }		
-	      }	    
-	  }
-      }
+	    if (actDescriptor->GetSecondaryMat() != NOTYPE) {
+	      elemmat *= actDescriptor->GetSecMatFac();
+	      if (analysisType_ == HARMONIC)
+		{
+		  TransformMatrix2Harmonic(harmonicVec,elemmat,
+					   actDescriptor->GetOrigSecMatrixType());
+		  algsys_->SetElementMatrix(&harmonicVec[0], connect_PDE.GetPointer(),
+					    connect_PDE.GetSize(), destMat);
+		}
+	      else
+		algsys_->SetElementMatrix(elemmat.GetDataPointer(), connect_PDE.GetPointer(), 
+					  connect_PDE.GetSize(), actDescriptor->GetSecondaryMat()); 
+	    }
+	    
+	  } //over all elements of subdomain		
 
-     //assemble matrices for surface integrators
-     for (Integer actDom=0; actDom < surfdoms_.GetSize(); actDom++)
+	} //check, if we have to assemble
+
+	if ( actDescriptor->IsReducedInt()) {
+	  //set all elements back to standard integration!!
+	  SetFE2StandardInt();
+	}
+
+
+      } //integrators
+
+    } //subdomains
+
+    //assemble matrices for surface integrators
+    for (Integer actDom=0; actDom < surfdoms_.GetSize(); actDom++)
       {	
 	//check is necessary, because the surface-integrator could also be a RHS-Src integrator
 	if (surfintegrators_[actDom]->GetSize()) {	
@@ -963,7 +964,38 @@ namespace CoupledField
     
     return nrActDof;
   }
-  
+
+  //set all FE-Elements to reduced integration  
+  void Assemble::SetFE2ReducedInt()
+  {
+    ptQ1    -> SetReducedIntegration();
+    ptQ2    -> SetReducedIntegration();
+    ptTet1  -> SetReducedIntegration();
+    ptL1    -> SetReducedIntegration();
+    ptL2    -> SetReducedIntegration();
+    ptTr1   -> SetReducedIntegration();
+    ptTr2   -> SetReducedIntegration();
+    ptHexa1 -> SetReducedIntegration();
+    ptHexa2 -> SetReducedIntegration();
+    //    ptPyra1 -> SetReducedIntegration();
+    //    ptWedge1-> SetReducedIntegration();
+  }
+
+  //set all FE-Elements to reduced integration  
+  void Assemble::SetFE2StandardInt()
+  {
+    ptQ1    -> SetStandardIntegration();
+    ptQ2    -> SetStandardIntegration();
+    ptTet1  -> SetStandardIntegration();
+    ptL1    -> SetStandardIntegration();
+    ptL2    -> SetStandardIntegration();
+    ptTr1   -> SetStandardIntegration();
+    ptTr2   -> SetStandardIntegration();
+    ptHexa1 -> SetStandardIntegration();
+    ptHexa2 -> SetStandardIntegration();
+    //    ptPyra1 -> SetStandardIntegration();
+    //    ptWedge1-> SetStandardIntegration();
+  }
 
 
   // define integrators
@@ -1256,7 +1288,8 @@ namespace CoupledField
   // RHS INTEGRATOR DESCRIPTOR
   // ==========================================================
 
-  BaseIntDescriptor::BaseIntDescriptor() : integrator(NULL), nonLin(FALSE)
+  BaseIntDescriptor::BaseIntDescriptor() : 
+    integrator(NULL), nonLin(FALSE), reducedIntegration_(FALSE)
   {
     ENTER_FCN( "BaseIntDescriptor::BaseIntDescriptor" );
   }
@@ -1272,7 +1305,7 @@ namespace CoupledField
   // define integrators
   BaseIntDescriptor::BaseIntDescriptor(BaseForm * aIntegrator,
 				       const Boolean aNonLin)
-    : integrator(aIntegrator), nonLin(aNonLin)
+    : integrator(aIntegrator), nonLin(aNonLin), reducedIntegration_(FALSE)
   {
     ENTER_FCN( "BaseIntDescriptor::BaseIntDescriptor " );
   }
@@ -1638,5 +1671,6 @@ namespace CoupledField
       }
 
     }
+
 
 } // end namespace CoupledField
