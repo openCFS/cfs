@@ -214,8 +214,7 @@ void ElecPDE::WriteResultsInFile()
   (*trace) << "entering ElecPDE::WriteResultsInFile" << std::endl;
 #endif
 
-  Integer step=0;
-  Double time= lasttimecalc_;
+  Double time = lasttimecalc_;
   ShortInt Dim = ptgrid_->GetDim();
 
   Array<Double> E_Mesh, Force_Mesh, Sol_Mesh;
@@ -223,41 +222,34 @@ void ElecPDE::WriteResultsInFile()
   // transform solution vector for electric potential
   TransformNodeSolution(Sol_Mesh,sol_,PDE2MeshNode_);
 
-
-  // CHANGE F_Interface_
-  // TransformElemSolution(Force_Mesh,Force_,F_Interface_[0]);
    
   // write results
   if (OutFile_->IsGMV())
     {
       // write electric potential
       if (savesol_)
-	OutFile_->WriteNodeSolution(Sol_Mesh,step,time,"E-Potential");
+	OutFile_->WriteNodeSolution(Sol_Mesh, laststepcalc_, time, "E-Potential");
       
       if (calcEfield_.size() !=0 )
 	{
 	  TransformElemSolution(E_Mesh,E_,subdoms_);
-	  OutFile_->WriteElemSolution(E_Mesh,step,time,"E-Field");
-	  //OutFile_->WriteElemSolution(Force_Mesh,step,time,"E-Force");
+	  OutFile_->WriteElemSolution(E_Mesh,laststepcalc_,time,"E-Field");
 	}
     }
   else
     {
       // write electric potential
       if (savesol_)
-	OutFile_->WriteNodeSolution(Sol_Mesh,step,time,"electric potential");
+	OutFile_->WriteNodeSolution(Sol_Mesh,laststepcalc_,time,"electric potential");
 
       if (calcEfield_.size() !=0 )
-	{
 	  //	  TransformElemSolution(E_Mesh,E_,subdoms_);
-	  //	  OutFile_->WriteElemSolution(E_Mesh,step,time,"electric field");
-	  OutFile_->WriteElemSolution(E_,step,time,"electric field");
-	  //OutFile_->WriteElemSolution(Force_Mesh,step,time,"mag. volume force");
-	}
+	  OutFile_->WriteElemSolution(E_, laststepcalc_, time, "electric field");
+	
     }
 
     if (flags->CalcErrorMap_)
-      OutFile_->WriteElemSolution(errorMap_,step,time,"relERR-E-Potential"); 
+      OutFile_->WriteElemSolution(errorMap_, laststepcalc_, time, "relERR-E-Potential"); 
       
 
     if (calcEnergy_.size() !=0 )

@@ -226,7 +226,9 @@ public:
  //! get output coupling epsilon
   virtual Double GetOutputEpsilon(Integer i)
   { return outputInterfaces_[i]->epsilon; }
-  
+
+
+
 protected:
   
   //! add coupling output
@@ -269,6 +271,7 @@ protected:
 private:
 
 }; // end of class declaration
+
 
 } // end of namespace
 

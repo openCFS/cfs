@@ -187,6 +187,10 @@ private:
 
   /// material data for reduced integration
   MaterialData * mueMat;
+
+  /// external forces (for nonlin simulations)
+  std::vector<Double> extForces_;
+
 };
 
 } // end of namespace

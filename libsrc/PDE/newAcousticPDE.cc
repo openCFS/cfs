@@ -204,7 +204,7 @@ void AcousticPDE::CalcOutputCoupling()
   Integer dof;
   std::string quantity;
   std::vector<Elem*> * couplingElems = NULL;
-  std::vector<Elem*> * neighbours = NULL;
+  std::vector<Elem*> * interfaceVolElems = NULL;
   std::vector<Integer> * couplingNodes = NULL;
   std::vector<MaterialData*> * couplingMaterials = NULL;
   Array<Double> * values = NULL;
@@ -221,12 +221,12 @@ void AcousticPDE::CalcOutputCoupling()
 	    {
 	      ptCoupling_->GetOutputElements(i, couplingElems);
 	      ptCoupling_->GetOutputNodes(i, couplingNodes);
-	      ptCoupling_->GetOutputMaterials(i, couplingMaterials);
+	      ptCoupling_->GetInputMaterials(i, couplingMaterials);
 	      ptCoupling_->GetOutputValues(i, values);
-	      ptCoupling_->GetOutputNeighbourElems(i, neighbours);
+	      ptCoupling_->GetInputNeighbourElems(i, interfaceVolElems);
 	      dof = ptCoupling_->GetOutputDof(i);
 	    
-	      CalcMechCouplingRHS(couplingElems, *couplingNodes, couplingMaterials, *values, dof, neighbours);
+	      CalcMechCouplingRHS(couplingElems, *couplingNodes, couplingMaterials, *values, dof, interfaceVolElems);
 
 	    }	  
 	  break;
@@ -242,7 +242,7 @@ void AcousticPDE::CalcMechCouplingRHS(std::vector<Elem*> * couplingElems,
 				      std::vector<MaterialData*> * couplingMaterials,
 				      Array<Double>& elemCouplingSols,
 				      Integer couplingdof,
-				      std::vector<Elem*> * neighbours)
+				      std::vector<Elem*> * interfaceVolElems)
 {
 #ifdef TRACE
   (*trace) << "entering AcousticPDE::CalcMechCouplingRHS" << std::endl;
@@ -267,7 +267,7 @@ void AcousticPDE::CalcMechCouplingRHS(std::vector<Elem*> * couplingElems,
       // get correct density belonging to the neighbouring element of the interface
       for (Integer actSD = 0; actSD < subdoms_.size(); actSD++)
 	{  
-	  if ((*neighbours)[actElem]->namesd ==  subdoms_[actSD])
+	  if ((*interfaceVolElems)[actElem]->namesd ==  subdoms_[actSD])
 	    {
 	      density = materialData_[actSD].GetDensity();
 	      found = TRUE;	      
@@ -300,12 +300,11 @@ void AcousticPDE::CalcMechCouplingRHS(std::vector<Elem*> * couplingElems,
       forceOnElem *= -1;
 
 
-      Vector<Double> n;
-      CalcLineNormalVec(n, *actCoupleElem, *(*neighbours)[actElem]); // points outward own domain
-
       // the normal vector points outwards of the MECHANICAL domain
       // (see. Kaltenbacher, "Num. Sim. of Mechatr. Act. & Sens." chapter 8.2)
-      n *= -1;
+      Vector<Double> n;
+      CalcLineNormalVec(n, *actCoupleElem, *(*interfaceVolElems)[actElem]); // points outward own domain
+
       
       for (Integer actNode=0; actNode<ptCoord.size_row(); actNode++)
 	{
