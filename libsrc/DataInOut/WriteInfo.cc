@@ -476,45 +476,42 @@ namespace CoupledField
   {
     ENTER_FCN( "WriteInfo::Warning" );
 
-    if (progressRunning_)
+    if (progressRunning_) {
       std::cout <<  "\033[31mWARNING\033[0m " << myEndl << myEndl;
-    
+    }
+
     std::cerr << "\033[31mWARNING:\033[0m " << Text << myEndl << myEndl;
     
     warningOccured_ = TRUE;
 
-    if (filename) 
-      {
-	std::cerr <<" (" << filename <<" ";
-	if (numline) 
-	  std::cerr << numline;
-	std::cerr << ")";
-	}
-    if (cfsInfo)
-      {
-	*cfsInfo << myEndl << myEndl << myEndl
-		 << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-		 << "!!!!!!!!!!!!!" << myEndl
-		 << "                          WARNING " << myEndl
-		 << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-		 << "!!!!!!!!!!!!!" << myEndl
-		 << "WARNING: " << Text;
-	
-	if (filename) 
-	  {
-	    *cfsInfo <<" (" << filename <<" ";
-	    if (numline) 
-	      *cfsInfo << numline;
-	    *cfsInfo << ")";
-	  }
-    
-	*cfsInfo << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-		 << "!!!!!!!!!!!!!" << myEndl
-		 << myEndl;
+    if (filename) {
+      std::cerr <<" (" << filename <<" ";
+      if (numline) {
+	std::cerr << numline;
       }
+      std::cerr << ")";
+    }
+    if (cfsInfo) {
+      *cfsInfo << myEndl << myEndl << myEndl
+	       << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+	       << "!!!!!!!!!!!!!" << myEndl
+	       << "                          WARNING " << myEndl
+	       << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+	       << "!!!!!!!!!!!!!" << myEndl
+	       << "WARNING: " << Text;
+	
+      if (filename) {
+	*cfsInfo <<" (" << filename <<" ";
+	if (numline) 
+	  *cfsInfo << numline;
+	*cfsInfo << ")";
+      }
+    
+      *cfsInfo << "\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+	       << "!!!!!!!!!!!!!!" << myEndl
+	       << myEndl;
+    }
   }
-  
-  
   
   
   // prints error to both std::out and info-file
@@ -629,10 +626,11 @@ namespace CoupledField
 
 
 
-  void WriteInfo::PrintF(const std::string& pdeName,
-			 const char * formatChar ...)
-  {
+  void WriteInfo::PrintF( const std::string& pdeName,
+			  const char * formatChar ... ) {
+
     ENTER_FCN( "WriteInfo::PrintF" );
+
     const Integer maxSize = 100;
     typedef std::string::size_type ST;
     ST actPos=0;
@@ -640,89 +638,91 @@ namespace CoupledField
     char charOut[maxSize];
     std::string myStr;
     
+    // conversion to type string: more convenient!
+    std::string formatStr(formatChar);
+
+    // final output string
+    std::string formatted;
     
-    std::string formatStr(formatChar);  // conversion to type string: more convenient!
-    std::string formatted;              // final output string
-    
-    
+    // init the argument list
     va_list argList;
-    va_start(argList, formatChar);   // init the argument list
+    va_start(argList, formatChar);
     
     // for classes which are not a pde, this string is ""
-    if (pdeName.length())
-      *cfsInfo << pdeName << "-PDE:";
+    if ( pdeName.length() ) {
+      *cfsInfo << pdeName << "-PDE: ";
+    }
     
-    do
-      {
-	// search for actual position of %-sign
-	foundPos = formatStr.find("%",actPos);
+    do {
+
+      // search for actual position of %-sign
+      foundPos = formatStr.find("%",actPos);
 	
-	// write string before %-sign into formatted string
-	formatted += formatStr.substr(actPos, foundPos-actPos);
+      // write string before %-sign into formatted string
+      formatted += formatStr.substr(actPos, foundPos-actPos);
 
-	// if not already at end of string
-	if(foundPos != std::string::npos)
-	  {
-	    int wsPos = formatStr.find_first_of(" \t",foundPos);
-	    std::string subFormatStr = formatStr.substr(foundPos, wsPos-foundPos);
+      // if not already at end of string
+      if(foundPos != std::string::npos) {
+	int wsPos = formatStr.find_first_of(" \t",foundPos);
+	std::string subFormatStr = formatStr.substr(foundPos, wsPos-foundPos);
 	    
-	    //	    char formatChar = (formatStr.substr(foundPos+1,foundPos+2)).c_str()[0];
-	    char formatChar = subFormatStr[subFormatStr.length()-1];
+	// char formatChar = (formatStr.substr(foundPos+1,foundPos+2)).c_str()[0];
+	char formatChar = subFormatStr[subFormatStr.length()-1];
 	    
-	    switch (formatChar)
-	      {
-	      case 'i': 
-	      case 'd': 
-	      case 'u': 
-		int myInt;
-		myInt = va_arg(argList, int);
- 		sprintf(charOut, subFormatStr.c_str(), myInt);
-		break;
+	switch (formatChar) {
 
-	      case 'g': 
-	      case 'G': 
-	      case 'e': 
-	      case 'E': 
-	      case 'f': 
-		double myDouble;
-		myDouble = va_arg(argList, double);
- 		sprintf(charOut, subFormatStr.c_str(), myDouble);
-		break;
+	case 'i': 
+	case 'd': 
+	case 'u': 
+	  int myInt;
+	  myInt = va_arg(argList, int);
+	  sprintf(charOut, subFormatStr.c_str(), myInt);
+	  break;
+
+	case 'g': 
+	case 'G': 
+	case 'e': 
+	case 'E': 
+	case 'f': 
+	  double myDouble;
+	  myDouble = va_arg(argList, double);
+	  sprintf(charOut, subFormatStr.c_str(), myDouble);
+	  break;
 		
-	      case 's':
-		myStr = va_arg(argList, char *);
- 		sprintf(charOut, subFormatStr.c_str(), myStr.c_str());
-		break;
+	case 's':
+	  myStr = va_arg(argList, char *);
+	  sprintf(charOut, subFormatStr.c_str(), myStr.c_str());
+	  break;
 
-	      case 'c': 
-		char myChar;
-		myChar = va_arg(argList, int); // no char allowed!
- 		sprintf(charOut, subFormatStr.c_str(), myChar);
-		break;
+	case 'c': 
+	  char myChar;
+	  myChar = va_arg(argList, int); // no char allowed!
+	  sprintf(charOut, subFormatStr.c_str(), myChar);
+	  break;
 
 
-	      default:
-		std::string errStr;
-		errStr = "Format character " + formatChar;
-		errStr += " not yet defined!";
-		Error(errStr.c_str());
-		break;
-	      }	    
+	default:
+	  std::string errStr;
+	  errStr = "Format character " + formatChar;
+	  errStr += " not yet defined!";
+	  Error(errStr.c_str());
+	  break;
+	}	    
 
-	    formatted += charOut;
+	formatted += charOut;
 	
-	    // the percent character and the format character have to be "erased"
-	    actPos = foundPos+subFormatStr.length();
-	  }
+	// the percent character and the format character have to be "erased"
+	actPos = foundPos+subFormatStr.length();
+      }
 	
-	//find() returns npos if nothing is found
-      }while(foundPos != std::string::npos);
+      //find() returns npos if nothing is found
+    } while(foundPos != std::string::npos);
 
     if (cfsInfo)
       *cfsInfo << formatted << std::endl << std::flush;
     
     va_end(argList);
-  }  
+  }
     
   void WriteInfo::StartProgress(const std::string &name,
 				Boolean needAck)
