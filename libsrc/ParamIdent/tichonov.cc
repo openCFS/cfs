@@ -3,9 +3,8 @@
 #include <string>
 //#include "staticdriver.hh"
 #include "DataInOut/GMV/outGMV.hh"
-#include "CoupledPDE/basecoupledpde.hh"
 #include "General/environment.hh"
-#include "PDE/basePDE.hh" 
+#include "PDE/SinglePDE.hh" 
 
 #include "piezoParamIdent.hh"
 #include "Forms/baseForm.hh"
@@ -62,9 +61,9 @@ namespace CoupledField
     Integer i;
     Double misfit, misfit_new, lin_misfit;
 
-    MaterialData * ptMaterial=pdes_[0]->getPDEMaterialData();   // Pointer to MaterialData
+    MaterialData * ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
 
-    ptBCs = pdes_[0]->getPDE_BCs();
+    ptBCs = ptMyPDE_->getPDE_BCs();
     
     Vector<Complex> y_hat_F_hat (nrMeasuredData);
     Vector<Complex> JacFS(nrMeasuredData);

@@ -3,6 +3,8 @@
 
 #include "Driver/singleDriver.hh"
 
+// forward class declaration
+class SinglePDE;
 
 namespace CoupledField 
 {
@@ -239,7 +241,12 @@ namespace CoupledField
     Matrix<Complex> completeSolOf_F;
     Matrix<Complex> allElemsVec;
  
+    //! pointer to SinglePDE
 
+    //! it is the same as ptPDE, only that it is of the type
+    //! SinglePDE *, since piezoParamIdebnt makes only sense
+    //! with a PiezoPDE, which is of the latter type.
+    SinglePDE * ptMyPDE_;
   private:
 
 

@@ -3,9 +3,8 @@
 #include <string>
 //include "staticdriver.hh"
 #include "DataInOut/GMV/outGMV.hh"
-#include "CoupledPDE/basecoupledpde.hh"
 #include "General/environment.hh"
-#include <PDE/basePDE.hh>
+#include <PDE/SinglePDE.hh>
 
 #include "piezoParamIdent.hh"
 #include "Forms/baseForm.hh"
@@ -70,6 +69,7 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
     ENTER_FCN( "piezoParamIdent::piezoParamIdent" );
 
     ptDomain = adomain;
+    ptMyPDE_ = NULL;
  
     Char* measuredData="measuredData.dat";
     allMeasuredData = new std::ifstream(measuredData, std::basic_ios<char>::in);
@@ -181,9 +181,11 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
 
     if (isPartOfSequence_ == FALSE){     
       GetMyPDEs();
+    //! cast pointer to BasePDE * to pointer of SinglePDE *
+      ptMyPDE_ = dynamic_cast<SinglePDE*>(ptPDE_);
       Info->StartProgress ("Starting to solve problem", FALSE);
     }
-    pdes_[0]->WriteGeneralPDEdefines();
+    ptMyPDE_->WriteGeneralPDEdefines();
 
     actNrParameter=0;
     actNrParameterC=0;
@@ -228,7 +230,7 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
     // if driver is not part of multiSequence Driver, get list
     // of pdes which have to be solved and intialize them
 
-    MaterialData * ptMaterial=pdes_[0]->getPDEMaterialData();   // Pointer to MaterialData
+    MaterialData * ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
 
     Matrix<Double> *matMat = ptMaterial->GetMatrix();
     Matrix<Double> *matMatC = ptMaterial->GetMatrixC();
@@ -279,11 +281,11 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
       }
 
 
- //    ptBCs = pdes_[0]->getPDE_BCs();                             // Pointer to BCs
-//     ptAlgsys = pdes_[0]->getPDE_algsys();                       //Pointer to AlgebraicSystem
-//     Integer numElems = pdes_[0]->getPDE_numElems();
-//     dofs=pdes_[0]->getPDE_dofspernode();
-//     numNodes= pdes_[0]->getPDE_numPDENodes();
+ //    ptBCs = ptMyPDE_->getPDE_BCs();                             // Pointer to BCs
+//     ptAlgsys = ptMyPDE_->getPDE_algsys();                       //Pointer to AlgebraicSystem
+//     Integer numElems = ptMyPDE_->getPDE_numElems();
+//     dofs=ptMyPDE_->getPDE_dofspernode();
+//     numNodes= ptMyPDE_->getPDE_numPDENodes();
 
     //xxxxxxxxxxxxxxxx Initialize and resize all matrices and vectors involved xxxxxxxxxx
 
@@ -314,7 +316,7 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
 //     updateMaterialData(parameter, ptMaterial);
 //     updateComplexMaterialData(parameterC, ptMaterial);
 
-    //	pdes_[0]->DefineIntegratorsWithMatInfo(level,ptMaterial); // deletes all Integrators and creates new ones with Material in ptMaterial
+    //	ptMyPDE_->DefineIntegratorsWithMatInfo(level,ptMaterial); // deletes all Integrators and creates new ones with Material in ptMaterial
 
 
     // ~~~~~~~~~~~~~ modificate the algorithm ~~~~~~~~~~~~~~~
@@ -376,7 +378,7 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
     // some values for typical mechanical displacements:
     if (considerMechDeformation==TRUE){
 
-      Integer spacedim = pdes_[0]->getPDE_spaceDim();
+      Integer spacedim = ptMyPDE_->getPDE_spaceDim();
 
       if (spacedim==2){
 
@@ -419,7 +421,7 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
     // field simulation, we simply can access the first PDE,
     // as it will be the single one
  
-    pdes_[0]->WriteGeneralPDEdefines(); 
+    ptMyPDE_->WriteGeneralPDEdefines(); 
    
     Complex misfit;
 
@@ -807,7 +809,7 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
     ENTER_FCN("piezoParamIdent::measureMechDeformationInZ_Direction");
     meanValueMechDeformation=0.0;
 
-    Integer spacedim = pdes_[0]->getPDE_spaceDim();
+    Integer spacedim = ptMyPDE_->getPDE_spaceDim();
 
     std::list<Integer> bcs_list;
     std::string BCName="ep-top";
@@ -1210,7 +1212,7 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
     ptMaterial->SetPiezoMatrixData(7,7, parameter[8]);
     ptMaterial->SetPiezoMatrixData(8,8, parameter[9]);
 
-    ptAssemble = pdes_[0]->getPDE_assemble();
+    ptAssemble = ptMyPDE_->getPDE_assemble();
     ptAssemble->SetAlternatingMaterial(TRUE);
     ptAssemble->SetMaterialPointer(ptMaterial);
     //   std::cout<< parameter <<std::endl;
@@ -1266,7 +1268,7 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
     ptMaterial->SetPiezoMatrixDataC(7,7, parameterC[8]);
     ptMaterial->SetPiezoMatrixDataC(8,8, parameterC[9]);
 
-    ptAssemble = pdes_[0]->getPDE_assemble();
+    ptAssemble = ptMyPDE_->getPDE_assemble();
     ptAssemble->SetAlternatingMaterial(TRUE);
     ptAssemble->SetMaterialPointer(ptMaterial);
 

@@ -3,9 +3,8 @@
 #include <string>
 //#include "staticdriver.hh"
 #include "DataInOut/GMV/outGMV.hh"
-#include "CoupledPDE/basecoupledpde.hh"
 #include "General/environment.hh"
-#include "PDE/basePDE.hh" 
+#include "PDE/SinglePDE.hh" 
 
 #include "piezoParamIdent.hh"
 #include "Forms/baseForm.hh"
@@ -59,7 +58,7 @@ namespace CoupledField
     Integer nrNewtonIterations=0;
     Integer backtrackIterator=0;
 
-    MaterialData * ptMaterial=pdes_[0]->getPDEMaterialData();   // Pointer to MaterialData
+    MaterialData * ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
 
     Double eta_max, eta_new, t, aa,b,c, theta_min, theta_max, gamma, al;
     Double alpha, beta, tau;
@@ -476,9 +475,9 @@ namespace CoupledField
     Integer nrNewtonIterations=0;
     Integer backtrackIterator=0;
 
-    MaterialData * ptMaterial=pdes_[0]->getPDEMaterialData();   // Pointer to MaterialData
+    MaterialData * ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
 
-    ptBCs = pdes_[0]->getPDE_BCs();
+    ptBCs = ptMyPDE_->getPDE_BCs();
 
     Double eta_max, eta_new, t, aa,b,c, theta_min, theta_max, gamma, al, eta_min;
     Double alpha, beta, tau;
@@ -931,9 +930,9 @@ namespace CoupledField
     Integer nrNewtonIterations=0;
     Integer backtrackIterator=0;
 
-    MaterialData * ptMaterial=pdes_[0]->getPDEMaterialData();   // Pointer to MaterialData
+    MaterialData * ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
 
-    ptBCs = pdes_[0]->getPDE_BCs();
+    ptBCs = ptMyPDE_->getPDE_BCs();
 
     Double real_misfit, real_misfit_new,eta_max, eta_new, t, aa,b,c, theta_min, theta_max, gamma, al;
     Double res_0, a, a_lin_new, a_new, alpha, beta, tau;
@@ -1230,16 +1229,16 @@ namespace CoupledField
     Double tol=0.001, tolCG=0.001, err=1.0, res_norm;
 
 
-    MaterialData * ptMaterial=pdes_[0]->getPDEMaterialData();   // Pointer to MaterialData
+    MaterialData * ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
     Matrix<Double> * matMatrix =  ptMaterial->GetMatrix();
 
     updateMaterialData(parameter, ptMaterial);         //Writes initial guesses of parameters (read from MeasuredData.dat) to system
 
-    ptBCs = pdes_[0]->getPDE_BCs();                             // Pointer to BCs
-    ptAlgsys = pdes_[0]->getPDE_algsys();                       //Pointer to AlgebraicSystem
-    Integer numElems = pdes_[0]->getPDE_numElems();
-    dofs=pdes_[0]->getPDE_dofspernode();
-    numNodes= pdes_[0]->getPDE_numPDENodes();
+    ptBCs = ptMyPDE_->getPDE_BCs();                             // Pointer to BCs
+    ptAlgsys = ptMyPDE_->getPDE_algsys();                       //Pointer to AlgebraicSystem
+    Integer numElems = ptMyPDE_->getPDE_numElems();
+    dofs=ptMyPDE_->getPDE_dofspernode();
+    numNodes= ptMyPDE_->getPDE_numPDENodes();
 
     while (nrIterations<5) {
       nrIterations++;
