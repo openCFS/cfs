@@ -1,0 +1,82 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org"
+  xmlns:cfs="http://www.cfs++.org"
+  elementFormDefault="qualified">
+
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Coupled Field Solver project CFS++
+      Schema description for Solver parameters
+    </xsd:documentation>
+  </xsd:annotation>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of basic Solver data type -->
+  <!-- ******************************************************************** -->
+
+  <!-- This is an abstract basic type so that it cannot appear in an -->
+  <!-- instance document -->
+  <xsd:complexType name="DT_SolverBasic" abstract="true"/>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of basic Solver element -->
+  <!-- ******************************************************************** -->
+
+  <!-- This element is abstract in order to force substitution -->
+  <!-- by the derived specialised Solver elements -->
+  <xsd:element name="SolverBasic" type="DT_SolverBasic" abstract="true"/>
+
+
+  <!-- ==================================================================== -->
+  <!-- ==                                                                == -->
+  <!-- ==                       HYPRE_GMRES Solver                       == -->
+  <!-- ==                                                                == -->
+  <!-- ==================================================================== -->
+
+
+  <!-- ******************************************************************** -->
+  <!-- Definition of element for HYPRE_GMRES Solver -->
+  <!-- ******************************************************************** -->
+  <xsd:element name="hypreGMRES" type="DT_SolverHypreGMRES"
+    substitutionGroup="SolverBasic"/>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for HYPRE_GMRES Solver -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_SolverHypreGMRES">
+    <xsd:complexContent>
+      <xsd:extension base="DT_SolverBasic">
+        <xsd:sequence>
+          <xsd:element name="tol" type="DT_PosFloat" minOccurs="0"/>
+          <xsd:element name="maxIter" type="xsd:positiveInteger"
+            minOccurs="0"/>
+          <xsd:element name="maxKrylovDim"  type="xsd:positiveInteger"
+            minOccurs="0"/>
+          <xsd:element name="logging" minOccurs="0">
+            <xsd:simpleType>
+              <xsd:restriction base="xsd:integer">
+                <xsd:enumeration value="0"/>
+                <xsd:enumeration value="1"/>
+                <xsd:enumeration value="2"/>
+              </xsd:restriction>
+            </xsd:simpleType>
+          </xsd:element>
+          <xsd:element name="printLevel" minOccurs="0">
+            <xsd:simpleType>
+              <xsd:restriction base="xsd:integer">
+                <xsd:enumeration value="0"/>
+                <xsd:enumeration value="1"/>
+                <xsd:enumeration value="2"/>
+              </xsd:restriction>
+            </xsd:simpleType>
+          </xsd:element>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+</xsd:schema>
