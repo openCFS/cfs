@@ -37,6 +37,20 @@
       </bcsAndLoads>
 
       <coils>
+
+        <measurementCoil2d name="dummyRegion">
+          <area>1</area>
+          <saveFileL/>
+          <saveFileUI/>
+          <id>1</id>
+        </measurementCoil2d>
+
+        <measurementCoil3d name="dummyRegion">
+          <area>1</area>
+          <saveFileL/>
+          <saveFileUI/>
+        </measurementCoil3d>
+
         <currentCoil2d name="dummyRegion">
           <area>  1 </area>
           <value> 1 </value>
@@ -44,6 +58,32 @@
           <phase/>
           <id>    1 </id>
         </currentCoil2d>
+
+        <currentCoil3d name="dummyRegion">
+          <area>  1 </area>
+          <value> 1 </value>
+          <dynamics/>
+          <phase/>
+          <currentFlow>yDir</currentFlow>
+        </currentCoil3d>
+
+        <voltageCoil2d name="dummyRegion">
+          <area>  1 </area>
+          <value> 1 </value>
+          <dynamics/>
+          <phase/>
+          <resistance>1</resistance>
+          <id>    1 </id>
+        </voltageCoil2d>
+
+        <voltageCoil3d name="dummyRegion">
+          <area>  1 </area>
+          <value> 1 </value>
+          <dynamics/>
+          <phase/>
+          <resistance>1</resistance>
+        </voltageCoil3d>
+
       </coils>
 
     </magnetic>
