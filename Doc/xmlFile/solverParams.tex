@@ -394,6 +394,10 @@ It appears that this concept is new and not quite working yet.\\
 \noalign{\smallskip}\hline\noalign{\smallskip}
 printLevel & 0, 1, 2 & This seems to be the old way of setting the verbosity.
                        See description of logging above.\\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+twoNorm & yes, no & If this is set to yes, then the Euclidean norm is used
+	            in the stopping test of CG instead of the energy norm
+	            induced by the system matrix.\\
 \noalign{\smallskip}\hline
 \end{tabular}
 \end{center}
@@ -414,6 +418,9 @@ tryScaling & yes, no & if set to yes, we let LAPACK try to improve the
 refineSol  & yes, no & if set to yes, we let LAPACK perform some steps of
                        iterative refinement after the foward/backward
                        substitution\\
+logging    & yes, no & if set to yes, LAPACK will be verbose about its solution
+	               process, i.e. it will write information to the standard
+	               logfile.\\
 \noalign{\smallskip}\hline
 \end{tabular}
 \end{center}
