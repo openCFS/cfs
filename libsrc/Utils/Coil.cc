@@ -1,7 +1,8 @@
-
+#include "Coil.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
 #include "DataInOut/WriteInfo.hh"
-#include "Coil.hh"
+#include <fstream>
+
 
 namespace CoupledField {
 

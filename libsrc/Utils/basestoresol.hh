@@ -1,12 +1,16 @@
 #ifndef FILE_BASESTORESOL_2004
 #define FILE_BASESTORESOL_2004
 
-#include "General/environment.hh"
-#include "Utils/tools.hh"
-#include "Utils/vector.hh"
 #include <vector>
 #include <iostream>
 #include <map>
+
+#include "DataInOut/WriteInfo.hh"
+#include "PDE/nodeEQN.hh"
+#include "General/environment.hh"
+#include "Utils/tools.hh"
+#include "Utils/vector.hh"
+
 
 namespace CoupledField{
 
@@ -58,6 +62,9 @@ class BaseStoreSol
 {
 public:
   
+  //! Default Constructor
+  //BaseStoreSol(NodeEQN * ptNodeEQN) {ptNodeEQN_ = ptNodeEQN;}
+
   //! Default destructor
   
   //! Since this is a base class used for inheritance we give it a virtual
@@ -90,7 +97,7 @@ public:
     \param val (input) Value the object gets initialized with
   */
   virtual void Init(const Double val)
-  {Error("BaseStoreSol::Init() not implemented here", __FILE__, __LINE__);}
+  {Info->Error("BaseStoreSol::Init() not implemented here", __FILE__, __LINE__);}
   
   //  virtual void Init(const Complex val)
   //  {Error("BaseStoreSol::Init() not implemented here", __FILE__, __LINE__);}
@@ -453,6 +460,11 @@ public:
 
 
 protected:
+  
+  //! Pointer to equation class
+  //NodeEQN * ptNodeEQN_;
+  
+
   //! Number of nodes
   Integer numNodes_;
 
