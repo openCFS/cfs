@@ -165,15 +165,23 @@ namespace CoupledField
 
       // Copy entries from mechanical part of material matrix object
       // into D matrix and scale with damping parameter
-      Matrix<Double> * matMatrix;
+      Matrix<Double> *matMatrix = NULL;
 
-      if (piezoMatType_ == realMaterialParameter)
+      if ( piezoMatType_ == realMaterialParameter) {
 	matMatrix = ptMaterial->GetMatrix();
-      else if (piezoMatType_ == imagMaterialParameter)
+      }
+      else if ( piezoMatType_ == imagMaterialParameter ) {
 	matMatrix = ptMaterial->GetMatrixC();
+      }
+      else {
+	Error( "piezoMatType neither real nor imaginary. I'm lost!",
+	       __FILE__, __LINE__ );
+      }
+
       Double beta = ptMaterial->GetDampingBeta();
-      for( Integer i = 0; i < sizeofD; i++ ) {
-	for ( Integer j = 0; j < sizeofD; j++ ) {
+
+      for( Integer i = 0; i < sizeofD - 2; i++ ) {
+	for ( Integer j = 0; j < sizeofD - 2; j++ ) {
 	  dMat[i][j] = (*matMatrix)[i][j] * beta;
 	}
       }
