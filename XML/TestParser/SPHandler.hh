@@ -8,6 +8,9 @@
 #include "xercesc/sax/ErrorHandler.hpp"
 #include "xercesc/util/XMLString.hpp"
 #include "xercesc/parsers/XercesDOMParser.hpp"
+#include "xercesc/dom/DOMImplementation.hpp"
+#include "xercesc/dom/DOMImplementationLS.hpp"
+#include "xercesc/dom/DOMWriter.hpp"
 
 namespace CoupledField {
 
@@ -40,6 +43,20 @@ namespace CoupledField {
     //! and the DOM tree it owns.
     ~SPHandler();
 
+    //! Report parameters to the specified output stream
+
+    //! This method can be used to serialise the DOM tree the parser has
+    //! generated and write it to a specified output stream. Thus, we are
+    //! able to see the whole tree including all optional parameters whose
+    //! values were set by the Schema specification and not in the input
+    //! XML file.
+    //! \note
+    //! - The current implementation of this method makes use of several
+    //!   experimental featuers of xerces that might change in future releases!
+    //! - Currently the stream parameter is ignored and output is sent to
+    //!   standard output.
+    void PrintTree();
+
   private:
 
     //! Default constructor
@@ -62,6 +79,7 @@ namespace CoupledField {
     //! not the be mistaken for the root node of the document. The former is
     //! a child of the latter.
     xercesc::DOMElement *rootelem_;
+
     // ************************************************************************
     //   Private Auxilliary Methods: Conversion Routines for Strings
     // ************************************************************************
@@ -112,6 +130,43 @@ namespace CoupledField {
       return xercesc::XMLString::transcode( toTranscode.c_str() );
     };
 
+    // ************************************************************************
+    //   Private Auxilliary Methods: Diverse
+    // ************************************************************************
+
+    //! Turn on/off a feature of the DOMWriter
+
+    //! This method can be used to turn a feature of the DOMWriter / serialiser
+    //! on or off. The specifications demand that an application should query
+    //! a serialiser first, before attempting to set a certain feature, or be
+    //! prepared to catch the resulting exception, if it cannot. Thus, this
+    //! method will first query the serisalier, whether it does support
+    //! setting the feature to the specified value. If the serialiser does,
+    //! then the method will set the feature and return true. If the serialsier
+    //! does not supported it, then the behaviour depends on the value of the
+    //! shouldHave argument. Setting shouldHave to true, indicates that the
+    //! application relies on the serialiser having the desired feature
+    //! capability. If the latter is not the case, an error will be issued. If
+    //! shouldHave is false, then only a warning will be issued, if the
+    //! serialiser does not support this feature capability and false will be
+    //! returned.
+    //! \note For a list of features that every serialiser should support see
+    //!       the Xerces documentation of the DOMWriter class or the Document
+    //!       object model specification.
+    //! \param serialiser  pointer to the DOMWriter / serialiser
+    //! \param feature     feature specification encoded as constant XMLCh
+    //!                    array; feature names are static attributes of the
+    //!                    xercesc::XMLUni class
+    //! \param featureVal  value to which the feature should be set
+    //! \param shouldHave  boolean signalling that the application relies on
+    //!                    the serialiser having the specified feature
+    //!                    capability
+    //! \return a boolean signaling whether the serialiser supports setting the
+    //!         specified feature to the specified value.
+    bool DOMWriterSetFeature( xercesc::DOMWriter *serialiser,
+			      const XMLCh *const feature,
+			      bool featureVal,
+			      bool shouldHave );
   };
 
 }
