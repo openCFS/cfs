@@ -199,8 +199,9 @@ namespace CoupledField {
       for ( Integer perm = 0; perm < magnetsDomain_.GetSize(); perm++ ) {
         if ( subdoms_[actSD] == magnetsDomain_[perm] ) {
 
-          if (dim_ ==3)
-            Error("Permanent magnets for 3D computation not implementes");
+          if ( dim_  == 3 ) {
+            Error( "Permanent magnets not implemented for 3D computation" );
+	  }
 
           //change direction of magnetization, so that we can use the
           //standard GlobalDerivatives and obtain: (curl w) . M
@@ -217,7 +218,8 @@ namespace CoupledField {
           std::string fncname = "none";
           Boolean nlin = FALSE;
           BaseForm *permSource = new MagPerm2DInt(magnetization, 
-                                                  reluctivity, isaxi_ );          
+                                                  reluctivity, isaxi_ );
+
           assemble_->AddRhsSrcIntegrator( permSource,
                                           subdoms_[actSD],
                                           fncname,
@@ -1001,7 +1003,7 @@ namespace CoupledField {
     // Read parameters for individual coils and log to info file
     UInt nrCoils = coilName_.GetSize();
     if ( nrCoils > 0 ) {
-      Info->PrintF( pdename_, " Using the following coils:\n" );
+      Info->PrintF( pdename_, "Using the following coils:\n" );
       coilDef_.Reserve( nrCoils );
       for ( UInt k = 0; k < nrCoils; k++ ) {
         coilDef_.Push_back( new Coil( coilName_[k], pdename_ ) );
@@ -1034,7 +1036,7 @@ namespace CoupledField {
     if ( magnetsDomain_.GetSize() > 0 ) {
 
       Info->PrintF( pdename_,
-                    " Found permanent magnets in the following regions:" );
+                    "Found permanent magnets in the following regions:\n" );
 
       Double tmpDir;
 
@@ -1063,8 +1065,10 @@ namespace CoupledField {
         magnetsOriZ_.Push_back( tmpDir );
 
         // ... report name to logfile
-        Info->PrintF( pdename_, "%s", magnetsDomain_[k].c_str());
+        Info->PrintF( pdename_, " %s\n", magnetsDomain_[k].c_str());
       }
+
+      Info->PrintF( "", "\n" );
     }
   }
 
@@ -1117,9 +1121,9 @@ namespace CoupledField {
     if ( calcBfield_.GetSize() > 0 ) {
       hasOutput_ = TRUE;
       Info->PrintF( pdename_,
-                    " Computing magFluxDensity for regions:");
+                    "Computing magFluxDensity for regions:\n" );
       for ( Integer k = 0; k < calcBfield_.GetSize(); k++ ) {
-        Info->PrintF( pdename_, " %s", calcBfield_[k].c_str() );
+        Info->PrintF( pdename_, " %s\n", calcBfield_[k].c_str() );
       }
     }
     
@@ -1137,9 +1141,9 @@ namespace CoupledField {
     if ( calcEnergy_.GetSize() > 0 ) {
       hasOutput_ = TRUE;    
       Info->PrintF( pdename_,
-                    " Computing magEnergy for regions:");
+                    "Computing magEnergy for regions:\n" );
       for ( Integer k = 0; k < calcEnergy_.GetSize(); k++ ) {
-        Info->PrintF( pdename_, " %s", calcEnergy_[k].c_str() );
+        Info->PrintF( pdename_, " %s\n", calcEnergy_[k].c_str() );
       }
     }
 
@@ -1157,9 +1161,9 @@ namespace CoupledField {
     if ( calcEddy_.GetSize() > 0 ) {
       hasOutput_ =TRUE;
       Info->PrintF( pdename_,
-                    " Computing magEddyCurrent for regions:");
+                    "Computing magEddyCurrent for regions:\n" );
       for ( Integer k = 0; k < calcEddy_.GetSize(); k++ ) {
-        Info->PrintF( pdename_, " %s", calcEddy_[k].c_str() );
+        Info->PrintF( pdename_, " %s\n", calcEddy_[k].c_str() );
       }
     }
    
@@ -1178,9 +1182,9 @@ namespace CoupledField {
     if (saveNodeHist.GetSize() > 0) {
       saveSolHist_ = TRUE;
       hasOutput_ = TRUE;
-      Info->PrintF( pdename_, " Saving magPotential for Nodes:" );
+      Info->PrintF( pdename_, "Saving magPotential for Nodes:\n" );
       for ( Integer k = 0; k < saveNodeHist.GetSize(); k++ ) {
-        Info->PrintF( pdename_, " %s", saveNodeHist[k].c_str() );
+        Info->PrintF( pdename_, " %s\n", saveNodeHist[k].c_str() );
       }
     }
 
