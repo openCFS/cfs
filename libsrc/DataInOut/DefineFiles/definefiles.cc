@@ -30,8 +30,8 @@ DefineInOutFiles :: DefineInOutFiles(const Char * name)
 #endif
 
  strcpy(filename, name);
- cla=new std::ofstream(strcat(filename,".cla"));
- if (!cla) Error("Can't open cla++-file");
+ cla=new std::ofstream(strcat(filename,".las"));
+ if (!cla) Error("Can't open LAS++-file");
  
  strcpy(filename, name);
  if (InfoPrint)
@@ -77,8 +77,8 @@ delete [] filename;
 
 FileType * DefineInOutFiles :: Create_ptFileType()
 {
-  std::string informat;
-  conf->get("format_input",informat);
+  std::string informat="mesh";
+  conf->ifget("format_input",informat);
 
   if  (informat=="mesh") 
       infiletype=new AnsysFile(filename);
@@ -90,8 +90,8 @@ FileType * DefineInOutFiles :: Create_ptFileType()
 
 WriteResults * DefineInOutFiles :: Create_ptWriteResults()
 {
-  std::string outformat;
-  conf->get("format_output",outformat);
+  std::string outformat="gmv";
+  conf->ifget("format_output",outformat);
 
   Boolean withHistory=FALSE;
   Integer val;

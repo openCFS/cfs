@@ -30,19 +30,6 @@ public:
   //! Deconstructor
   virtual ~Elec3dPDE();
 
-  //! specify type of solver for algebraic system. it is read from config-file
-  /*!
-    \param asolvertype  Richardson or CG
-    \param aprecondtype ID or MG
-    \param aeps relative accuracy in the precond. energy
-    \param adampiter damping parameter for Jacobi, SSOR
-    \param amaxnumit max number of iterations
-     \param numeqcoarse number of equation for coarsing
-    \param coarsealpha coarsing parameter for AMG
-  */
-  void SpecifySolver(Integer &asolvertype, Integer &aprecondtype, Double &aeps, Double &adampiter, 
-		     Integer &amaxnumit, Integer &numeqcoarse, Double &coarsealpha);
-
   //! specify type of system matrix for AlgebraicSystem
   /*!
     \param matrixtype out: 0..NOCLASS, 1..RSPARSE, 2..CSPARSE, 3..RBLOCK, 4.. CBLOCK = 0,

@@ -30,18 +30,6 @@ namespace CoupledField
     //!  Deconstructor
     virtual ~Mech2dPDE(){;}
 
-    //! specify type of solver for algebraic system. it is read from config-file
-    /*!
-      \param solvertype  Richardson or CG
-      \param precondtype ID or MG
-      \param eps relative accuracy in the precond. energy
-      \param dampiter damping parameter for Jacobi, SSOR
-      \param maxnumit max number of iterations
-       \param numeqcoarse number of equation for coarsing
-      \param coarsealpha coarsing parameter for AMG
-    */
-    virtual void SpecifySolver(Integer &solvertype, Integer &precondtype, Double &eps, Double &dampiter, Integer &maxnumit, 
-			       Integer &numeqcoarse, Double &coarsealpha);
 
     //! specify type of system matrix for AlgebraicSystem
     /*!

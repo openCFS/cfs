@@ -11,8 +11,8 @@ namespace CoupledField
 GeHexahedral::GeHexahedral()
 {
 
-  std::string integtype;
-  conf->get("hexahedra",integtype,"IntegRules");
+  std::string integtype="GaussOrder2";
+  conf->ifget("hexahedra",integtype,"IntegRules");
 
   IntegType=String2EnumIntegrationType(integtype.c_str());
 

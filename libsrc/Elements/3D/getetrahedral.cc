@@ -11,8 +11,8 @@ namespace CoupledField
 GeTetrahedral::GeTetrahedral()
 {
 
-  std::string integtype;
-  conf->get("tetrahedra",integtype,"IntegRules");
+  std::string integtype="GaussOrder2";
+  conf->ifget("tetrahedra",integtype,"IntegRules");
 
   IntegType=String2EnumIntegrationType(integtype.c_str());
 	

@@ -12,8 +12,8 @@
 namespace CoupledField
 {
 
-Elec2dPDE::Elec2dPDE(AbstractAlgebraicSys * ptalgsys, Grid * aptgrid, Material * ptMaterial, TimeFunc * aptTimeFunc, 
-			 FileType * aptFileType, WriteResults * aptOut)
+Elec2dPDE::Elec2dPDE(AbstractAlgebraicSys * ptalgsys, Grid * aptgrid, Material * ptMaterial, 
+		     TimeFunc * aptTimeFunc, FileType * aptFileType, WriteResults * aptOut)
 :BasePDE(ptalgsys,ptMaterial,aptFileType,aptOut,aptTimeFunc)
 {
 #ifdef TRACE
@@ -21,34 +21,17 @@ Elec2dPDE::Elec2dPDE(AbstractAlgebraicSys * ptalgsys, Grid * aptgrid, Material *
 #endif
 
   dofspernode_=1;
+  pdename_    = "Electric2d";
+
   ptgrid_=aptgrid;
 
   size_=ptgrid_->GetMaxnumnodes(0);
   sol_.Resize(size_);
   sol_.Init(0);
 
-  conf->getsubdompde(subdoms_,"Electric2d");
-  ReadBCs("Electric2d");
-
-
+  conf->getsubdompde(subdoms_,pdename_);
+  ReadBCs(pdename_);
 }
-
-void Elec2dPDE::SpecifySolver(Integer &solvertype, Integer &precondtype, Double &eps, Double &dampiter, Integer &maxnumit, 
-			      Integer &numeqcoarse, Double &coarsealpha )
-{
-#ifdef TRACE
-  (*trace) << "entering Elec2dPDE::SpecifySolver" << std::endl;
-#endif
-
-  conf->get("eps",eps,"Electric2d"); // relative accuracy in the precond. energy
-  conf->get("dampiter",dampiter,"Electric2d"); // damping parameter for Jacobi, SSOR
-  conf->get("maxnumit",maxnumit,"Electric2d"); // max number of iterations
-  conf->get("solvertype",solvertype,"Electric2d"); // Richardson or CG
-  conf->get("precondtype", precondtype, "Electric2d"); //ID or MG
-  conf->get("numeqcoarse",numeqcoarse,"Electric2d"); // number of equation for coarsing
-  conf->get("coarsealpha",coarsealpha,"Electric2d"); // coarsing parameter for AMG
-
-} 
 
 void Elec2dPDE::SetMatrixFactors()
 {
@@ -56,50 +39,31 @@ void Elec2dPDE::SetMatrixFactors()
   (*trace) << "entering Elec2dPDE::SetMatrixFactors" << std::endl;
 #endif
   
-  matrix_factor_[0] = 1.0; 
-  matrix_factor_[1] = 0.0;
-  matrix_factor_[2] = 0.0;
-  matrix_factor_[3] = 0.0;
+  matrix_factor_[0] = 1.0;  // factor for stiffness matrix
+  matrix_factor_[1] = 0.0;  // factor for damping matrix
+  matrix_factor_[2] = 0.0;  // factor for convection matrix
+  matrix_factor_[3] = 0.0;  // factor for mass matrix
 }
 
-void Elec2dPDE::SpecifyMatrices(Integer &matrixtype, Integer * matrixsystype, Integer &graphtype, Integer &numdofpernode, 
-				Integer &numdirichlets, Integer &numconstraints)
+void Elec2dPDE::SpecifyMatrices(Integer &matrixtype, Integer * matrixsystype, Integer &graphtype, 
+				Integer &numdofpernode, Integer &numdirichlets, Integer &numconstraints)
 {
 #ifdef TRACE
   (*trace) << "entering Elec2dPDE::SpecifyMatrices" << std::endl;
 #endif
 
-  matrixtype = 1;     // NOCLASS = 0
-                      // RSPARSE = 1
-                      // CSPARSE = 2
-                      // RBLOCK  = 3
-                      // CBLOCK  = 4
-                      // RFULL   = 5
-                      // CFULL   = 6
-                      // MIXED   = 7
+  matrixtype = RSCALAR; 
+  graphtype  = NODEGRAPH; 
 
-  /* matrixsystype: NOTYPE     = 0
-                    SYSTEM     = 1
-                    STIFFNESS  = 2
-                    DAMPING    = 3
-                    CONVECTION = 4
-                    MASS       = 5
-  */
+  matrixsystype[0] = SYSTEM;      // memory for the system matrix
+  matrixsystype[1] = STIFFNESS;   // memory for the stiffness matrix
+  matrixsystype[2] = 0;           // memory for the damping matrix
+  matrixsystype[3] = 0;           // memory for the convection matrix
+  matrixsystype[4] = 0;           // memory for the mass matrix
 
-  matrixsystype[0] = 1;   // memory for the system matrix
-  matrixsystype[1] = 2;   // memory for the stiffness matrix
-  matrixsystype[2] = 0;   // memory for the damping matrix
-  matrixsystype[3] = 0;   // memory for the convection matrix
-  matrixsystype[4] = 0;   // memory for the mass matrix
 
-  graphtype = 1; // NOGRAPH = 0
-                 // NODE   = 1
-                 // EDGE   = 2
-                 // FACE   = 3
-                 // VOLUME = 4
-
-  numdofpernode  = 1;
-  numdirichlets = 1;
+  numdofpernode  = dofspernode_;
+  numdirichlets  = 1;
   numconstraints = 0;
 }
 
@@ -113,9 +77,6 @@ void Elec2dPDE::SetupMatrices(const Integer level, BCs * ptBCs)
   Point<2> * ptCoord;
 
   BaseElem * ptElem;
-
-  Integer matrix_stiff = 2;
-  Integer matrix_mass = 5;
 
   if (InfoPrint)
     (*infofile) << " ------------------------- Element matrices --------------- " << std::endl;
@@ -155,7 +116,7 @@ void Elec2dPDE::SetupMatrices(const Integer level, BCs * ptBCs)
 #endif
 
 	  ptalgsys_->PutElemMatAlgSys(elemmat.getinarray(), connecth.get(), connecth.size(), as_sysid_, as_sysid_, 
-				      matrix_stiff);
+				      STIFFNESS);
 
 	  delete bilinear_stiff;
 	  delete [] ptCoord;
@@ -176,9 +137,6 @@ void Elec2dPDE::SetBCs(BCs * ptBCs, const Integer level, const Integer update, c
 
   Integer node;
   Double val, valueTF;
-
-  //system matrix: id = 1
-  Integer matrix_id = 1;
 
   Integer j=0;
   std::list<Integer> nodes;
@@ -201,7 +159,7 @@ void Elec2dPDE::SetBCs(BCs * ptBCs, const Integer level, const Integer update, c
 	      if (InfoPrint)
 		(*infofile) << " node: " << node << " val: " << val << std::endl;
 
-              ptalgsys_->SetBCDirichletUpdate(j+1, node, val, dofspernode_, as_sysid_, as_sysid_, matrix_id);
+              ptalgsys_->SetBCDirichletUpdate(j+1, node, val, dofspernode_, as_sysid_, as_sysid_, SYSTEM);
             }
           else
             {
@@ -210,7 +168,7 @@ void Elec2dPDE::SetBCs(BCs * ptBCs, const Integer level, const Integer update, c
 		(*infofile) << " node: " << node << " val: " << val << std::endl;
 
               ptalgsys_->SetBCDirichlet(j+1, node, val, dofspernode_, as_sysid_,
-					as_sysid_, matrix_id);
+					as_sysid_, SYSTEM);
             }
 	}
     }
@@ -230,7 +188,7 @@ void Elec2dPDE::SetBCs(BCs * ptBCs, const Integer level, const Integer update, c
 	      if (InfoPrint)
 		(*infofile) << " node: " << node << " val: " << val << std::endl;
 
-              ptalgsys_->SetBCDirichletUpdate(j+1, node, val, dofspernode_, as_sysid_, as_sysid_, matrix_id);
+              ptalgsys_->SetBCDirichletUpdate(j+1, node, val, dofspernode_, as_sysid_, as_sysid_, SYSTEM);
             }
           else
             {
@@ -238,7 +196,7 @@ void Elec2dPDE::SetBCs(BCs * ptBCs, const Integer level, const Integer update, c
 	      if (InfoPrint)
 		(*infofile) << " node: " << node << " val: " << val << std::endl;
 	      
-	      ptalgsys_->SetBCDirichlet(j+1, node, val, dofspernode_, as_sysid_,as_sysid_, matrix_id);
+	      ptalgsys_->SetBCDirichlet(j+1, node, val, dofspernode_, as_sysid_,as_sysid_, SYSTEM);
 	   
             }
 	}

@@ -160,10 +160,17 @@ public:
   }
 
   //!
-  virtual void SolveAlgSys(Integer nsys)
+//   virtual void SolveAlgSys(Integer nsys)
+//   {
+//     nsys++;
+//     algsys->Solve(nsys);
+//   }
+
+  //!
+  virtual void SolveAlgSys(Integer nsys, Integer newsolve=1)
   {
     nsys++;
-    algsys->Solve();
+    algsys->Solve(nsys,newsolve);
   }
 
   //!

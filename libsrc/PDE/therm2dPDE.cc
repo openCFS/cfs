@@ -8,7 +8,8 @@
 namespace CoupledField
 {
 
-Therm2dPDE::Therm2dPDE(AbstractAlgebraicSys * ptalgsys, Grid * agrid, Material * aMatFile, TimeFunc * aptTimeFunc, FileType * aInFile, WriteResults * aptOut)
+Therm2dPDE::Therm2dPDE(AbstractAlgebraicSys * ptalgsys, Grid * agrid, Material * aMatFile, 
+		       TimeFunc * aptTimeFunc, FileType * aInFile, WriteResults * aptOut)
 :BasePDE(ptalgsys, aMatFile, aInFile, aptOut, aptTimeFunc)
 {
 #ifdef TRACE
@@ -16,6 +17,8 @@ Therm2dPDE::Therm2dPDE(AbstractAlgebraicSys * ptalgsys, Grid * agrid, Material *
 #endif
 
   dofspernode_ = 1;
+  pdename_     ="Thermal2d";
+
   ptgrid_=agrid;
 
   std::string formulation;
@@ -98,21 +101,6 @@ void Therm2dPDE::Predictor()
 
   sol_pred_ = sol_old_+ sol_der1_old_*factor_pred_;
 
-}
-
-void Therm2dPDE::SpecifySolver(Integer &solvertype, Integer &precondtype, Double &eps, Double &dampiter,  Integer &maxnumit, Integer &numeqcoarse, Double &coarsealpha)
-{
-#ifdef TRACE
-  (*trace) << "entering Therm2dPDE::SpecifySolver" << std::endl;
-#endif
-
-  conf->get("eps",eps,"Thermal"); // relative accuracy in the precond. energy
-  conf->get("dampiter",dampiter,"Thermal"); // damping parameter for Jacobi, SSOR
-  conf->get("maxnumit",maxnumit,"Thermal"); // max number of iterations
-  conf->get("solvertype",solvertype,"Thermal"); // Richardson or CG
-  conf->get("precondtype", precondtype, "Thermal"); //ID or MG
-  conf->get("numeqcoarse",numeqcoarse,"Thermal"); // number of equation for coarsing
-  conf->get("coarsealpha",coarsealpha,"Thermal"); // coarsing parameter for AMG
 }
 
 void Therm2dPDE::SpecifyMatrices(Integer &matrixtype, Integer * matrixsystype, Integer &graphtype, Integer &numdofpernode, Integer &numdirichlets, Integer &numconstraints) 

@@ -12,7 +12,6 @@
 namespace CoupledField
 {
 
-
 Acou2dFlowNoise::Acou2dFlowNoise(AbstractAlgebraicSys * ptalgsys, Grid * aptgrid, Material * ptMaterial, 
 				 TimeFunc * aptTimeFunc, FileType * aptFileType, WriteResults * aptOut)
 :Acoustic2dPDE(ptalgsys, aptgrid, ptMaterial, aptTimeFunc, aptFileType, aptOut)   
@@ -21,8 +20,8 @@ Acou2dFlowNoise::Acou2dFlowNoise(AbstractAlgebraicSys * ptalgsys, Grid * aptgrid
   (*trace) << "entering Acou2dFlowNoise::Acou2dFlowNoise " << std::endl;
 #endif
 
- ReadBCs("Acoustic2d");
- preComputeRHS();
+  ReadBCs("Acoustic2d");
+  preComputeRHS();
 }
 
 void Acou2dFlowNoise::SetBCs(BCs * ptBCs, const Integer level, const Integer update, const Double atime)
@@ -449,7 +448,6 @@ void Acou2dFlowNoise::ComputeRHS(const Double atime, BCs * ptBCs)
      
 
 } 
-
 
 
 void Acou2dFlowNoise::ReadFlowData(const Char * aname,const Integer timestep, Matrix<Double> &nodedata)

@@ -41,19 +41,19 @@ public:
      \param numeqcoarse number of equation for coarsing
     \param coarsealpha coarsing parameter for AMG
   */
-  virtual void SpecifySolver(Integer &solvertype, Integer &precondtype, Double &eps, Double &dampiter, 
-			     Integer &maxnumit, Integer &numeqcoarse, Double &coarsealpha);
+//   virtual void SpecifySolver(Integer &solvertype, Integer &precondtype, Double &eps, Double &dampiter, 
+// 			     Integer &maxnumit, Integer &numeqcoarse, Double &coarsealpha);
 
-  //! specify type of system matrix for AlgebraicSystem
-  /*!
-    \param matrixtype out: 0..NOCLASS, 1..RSPARSE, 2..CSPARSE, 3..RBLOCK, 4.. CBLOCK = 0,
-    5..RFULL, 6..CFULL, 7..MIXED
-    \param matrixsystype out:define need we memory for different types of element-matrix or not
-    \param graphtype out: type of graph
-    \param numdofpernode out: number of dof per node
-    \param numdirichlets out:number of nodes for dirichlets conditions
-    \param numconstraints out:number of nodes for constraints conditions
-  */
+//   //! specify type of system matrix for AlgebraicSystem
+//   /*!
+//     \param matrixtype out: 0..NOCLASS, 1..RSPARSE, 2..CSPARSE, 3..RBLOCK, 4.. CBLOCK = 0,
+//     5..RFULL, 6..CFULL, 7..MIXED
+//     \param matrixsystype out:define need we memory for different types of element-matrix or not
+//     \param graphtype out: type of graph
+//     \param numdofpernode out: number of dof per node
+//     \param numdirichlets out:number of nodes for dirichlets conditions
+//     \param numconstraints out:number of nodes for constraints conditions
+//   */
   virtual void SpecifyMatrices(Integer &matrixtype, Integer *matrixsystype, Integer &graphtype, 
 			       Integer &numdofpernode, Integer &numdirichlets, Integer &numconstraints);
 

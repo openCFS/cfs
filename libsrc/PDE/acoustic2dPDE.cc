@@ -13,8 +13,8 @@
 namespace CoupledField
 {
 
-Acoustic2dPDE::Acoustic2dPDE(AbstractAlgebraicSys * ptalgsys, Grid * aptgrid, Material * ptMaterial, TimeFunc * aptTimeFunc, 
-		     FileType * aptFileType, WriteResults * aptOut)
+Acoustic2dPDE::Acoustic2dPDE(AbstractAlgebraicSys * ptalgsys, Grid * aptgrid, Material * ptMaterial, 
+			     TimeFunc * aptTimeFunc, FileType * aptFileType, WriteResults * aptOut)
 :BasePDE(ptalgsys,ptMaterial,aptFileType,aptOut,aptTimeFunc)
 {
 #ifdef TRACE
@@ -22,6 +22,8 @@ Acoustic2dPDE::Acoustic2dPDE(AbstractAlgebraicSys * ptalgsys, Grid * aptgrid, Ma
 #endif
 
   dofspernode_=1;
+  pdename_    ="Acoustic2d";
+ 
   ptgrid_=aptgrid; 
 
   laststepcalc_=0;
@@ -48,37 +50,26 @@ Acoustic2dPDE::Acoustic2dPDE(AbstractAlgebraicSys * ptalgsys, Grid * aptgrid, Ma
   sol_der2_old_.Resize(size_);
   sol_der2_old_.Init(0);
 
-  s_oldold_.Resize(size_);
-  s_oldold_.Init(0);
+  alpha_ = 0.0;
+  beta_  = 0.25;
+  gamma_ = 0.5;
 
-  conf->get("alpha_NM",alpha_,"Acoustic2d"); 
-  conf->get("beta_NM",beta_,"Acoustic2d"); 
-  conf->get("gamma_NM",gamma_,"Acoustic2d");
+  //check if integration parameters are defined in conf-file
+  conf->ifget("alpha_NM",alpha_,pdename_); 
+  conf->ifget("beta_NM",beta_,pdename_); 
+  conf->ifget("gamma_NM",gamma_,pdename_);
 
-  conf->getsubdompde(subdoms_,"Acoustic2d");
-  ReadBCs("Acoustic2d");
+  conf->getsubdompde(subdoms_,pdename_);
+  ReadBCs(pdename_);
 
-  without_absBCs_=conf->get_option("without_absorbingBCs");
+  with_absBCs_=FALSE;
+  std::string absBCs="no";
+  conf->ifget("absorbingBCs",absBCs,pdename_);
+  if (absBCs == "yes")
+    with_absBCs_ = TRUE;
 
   preComputeRHS();
 }
-
-void Acoustic2dPDE::SpecifySolver(Integer &solvertype, Integer &precondtype, Double &eps, Double &dampiter, 
-			      Integer &maxnumit, Integer &numeqcoarse, Double &coarsealpha)
-{
-#ifdef TRACE
-  (*trace) << "entering Acoustic2dPDE::SpecifySolver" << std::endl;
-#endif
-
-  conf->get("eps",eps,"Acoustic2d"); // relative accuracy in the precond. energy
-  conf->get("dampiter",dampiter,"Acoustic2d"); // damping parameter for Jacobi, SSOR
-  conf->get("maxnumit",maxnumit,"Acoustic2d"); // max number of iterations
-  conf->get("solvertype",solvertype,"Acoustic2d"); // Richardson or CG
-  conf->get("precondtype", precondtype, "Acoustic2d"); // ID or MG
-  conf->get("numeqcoarse",numeqcoarse,"Acoustic2d"); // number of equation for coarsing
-  conf->get("coarsealpha",coarsealpha,"Acoustic2d"); // coarsing parameter for AMG
-}
-
 
 void Acoustic2dPDE::SetMatrixFactors()
 {
@@ -86,56 +77,39 @@ void Acoustic2dPDE::SetMatrixFactors()
   (*trace) << "entering Acoustic2dPDE::SetMatrixFactors" << std::endl;
 #endif
  
-  matrix_factor_[0] = 1.0;
-  if (without_absBCs_)
-    matrix_factor_[1] = 0.0;
-  else
-    matrix_factor_[1] = 1.0*a1_; 
-  matrix_factor_[2] = 0.0;
-  matrix_factor_[3] = 1.0*a0_;
+  matrix_factor_[0] = 1.0;       // factor for stiffness matrix
+
+  matrix_factor_[1] = 0.0; 
+  if (with_absBCs_)
+    matrix_factor_[1] = 1.0*a1_; // factor for damping matrix
+
+  matrix_factor_[2] = 0.0;       // factor for convection matrix
+  matrix_factor_[3] = 1.0*a0_;   // factor for mass matrix
 }
 
-void Acoustic2dPDE::SpecifyMatrices(Integer &matrixtype, Integer * matrixsystype, Integer &graphtype, Integer &numdofpernode, 
-				Integer &numdirichlets, Integer &numconstraints)
+void Acoustic2dPDE::SpecifyMatrices(Integer &matrixtype, Integer * matrixsystype, Integer &graphtype, 
+				    Integer &numdofpernode, Integer &numdirichlets, Integer &numconstraints)
 {
 #ifdef TRACE
   (*trace) << "entering Acoustic2dPDE::SpecifyMatrices" << std::endl;
 #endif
 
-  matrixtype = 1;     // NOCLASS = 0
-                      // RSPARSE = 1
-                      // CSPARSE = 2
-                      // RBLOCK  = 3
-                      // CBLOCK  = 4
-                      // RFULL   = 5
-                      // CFULL   = 6
-                      // MIXED   = 7
+  matrixtype = RSCALAR; 
+  graphtype  = NODEGRAPH; 
 
-  /* matrixsystype: NOTYPE     = 0
-                    SYSTEM     = 1
-                    STIFFNESS  = 2
-                    DAMPING    = 3
-                    CONVECTION = 4
-                    MASS       = 5
-  */
+  matrixsystype[0] = SYSTEM;      // memory for the system matrix
+  matrixsystype[1] = STIFFNESS;   // memory for the stiffness matrix
 
-  matrixsystype[0] = 1;   // memory for the system matrix
-  matrixsystype[1] = 2;   // memory for the stiffness matrix
-  if (without_absBCs_)
-  matrixsystype[2] = 0;   // memory for the damping matrix
-  else
-     matrixsystype[2] = 3;
-  matrixsystype[3] = 0;   // memory for the convection matrix
-  matrixsystype[4] = 5;   // memory for the mass matrix
+  matrixsystype[2] = 0;
+  if (with_absBCs_)
+    matrixsystype[2] = DAMPING;   // memory for the damping matrix
 
-  graphtype = 1; // NOGRAPH = 0
-                 // NODE   = 1
-                 // EDGE   = 2
-                 // FACE   = 3
-                 // VOLUME = 4
+  matrixsystype[3] = 0;           // memory for the convection matrix
+  matrixsystype[4] = MASS;        // memory for the mass matrix
 
-  numdofpernode  = 1;
-  numdirichlets = 1;
+
+  numdofpernode  = dofspernode_;
+  numdirichlets  = 1;
   numconstraints = 0;
 }
 
@@ -152,10 +126,6 @@ void Acoustic2dPDE::SetupMatrices(const Integer level, BCs * ptBCs)
   Point<2> * ptCoord; 
 
   BaseElem * ptEl;
-
-  Integer matrix_stiff=2;
-  Integer matrix_mass=5;
-  Integer matrix_damp=3;
 
   Vector<Double> coeffm, coeffst, coeffdamp;
   CalcCoeff(coeffm, coeffst, coeffdamp);
@@ -186,7 +156,6 @@ void Acoustic2dPDE::SetupMatrices(const Integer level, BCs * ptBCs)
 
 	  // stiffness part
 	  bilinear_stiff->CalcElemMatrix(ptCoord, elemmat);
-
 	  elemmat*=coeffst[i];
 
 #ifdef DEBUG
@@ -198,11 +167,10 @@ void Acoustic2dPDE::SetupMatrices(const Integer level, BCs * ptBCs)
 #endif     
 
 	  ptalgsys_->PutElemMatAlgSys(elemmat.getinarray(), connecth.get(), connecth.size(), as_sysid_, as_sysid_, 
-				      matrix_stiff);
+				      STIFFNESS);
 
 	  // mass part
 	  bilinear_mass->CalcElemMatrix(ptCoord, elemmat);
-
 	  elemmat*=coeffm[i];
 
 #ifdef DEBUG
@@ -212,8 +180,7 @@ void Acoustic2dPDE::SetupMatrices(const Integer level, BCs * ptBCs)
 #endif
       
 	  ptalgsys_->PutElemMatAlgSys(elemmat.getinarray(), connecth.get(), connecth.size(), as_sysid_, as_sysid_,
-				      matrix_mass);
-
+				      MASS);
   
 	  delete bilinear_stiff;
 	  delete bilinear_mass;
@@ -222,44 +189,45 @@ void Acoustic2dPDE::SetupMatrices(const Integer level, BCs * ptBCs)
     }
 
   // BEGIN DAMPING MATRIX PART
-  if (!without_absBCs_) {
-  std::vector<Elem*>  DomainBnd;
-  conf->getliststr("bnd_for_absBCs",bnd_absBCs_,"Acoustic2d");
-  DomainBnd=ptBCs->getEdgesBC(bnd_absBCs_[0],level);
-
-  for (j=0; j< DomainBnd.size(); j++)
+  if (with_absBCs_) 
     {
-      ptEl=DomainBnd[j]->ptElem;
+      std::vector<Elem*>  DomainBnd;
+      conf->getliststr("bnd_for_absBCs",bnd_absBCs_,pdename_);
+      DomainBnd=ptBCs->getEdgesBC(bnd_absBCs_[0],level);
 
-      BaseForm<2> * linear_damp = new DampInt<2>(ptEl,1);
+      for (j=0; j< DomainBnd.size(); j++)
+	{
+	  ptEl=DomainBnd[j]->ptElem;
 
-      Integer ii;
-      Integer elsize=(DomainBnd[j]->connect).size();
-      connecth.Resize(elsize);
-      for (ii=0; ii<elsize; ii++)
-	connecth[ii]=(DomainBnd[j]->connect)[ii];
+	  BaseForm<2> * linear_damp = new DampInt<2>(ptEl,1);
 
-      ptCoord=new Point<2>[connecth.size()];
-      ptgrid_->GetCoordNodesElem(connecth,ptCoord,level);
+	  Integer ii;
+	  Integer elsize=(DomainBnd[j]->connect).size();
+	  connecth.Resize(elsize);
+	  for (ii=0; ii<elsize; ii++)
+	    connecth[ii]=(DomainBnd[j]->connect)[ii];
 
-      linear_damp->CalcElemMatrix(ptCoord, elemmatbnd);
- 
-      elemmatbnd*=coeffdamp[0];
+	  ptCoord=new Point<2>[connecth.size()];
+	  ptgrid_->GetCoordNodesElem(connecth,ptCoord,level);
+
+	  linear_damp->CalcElemMatrix(ptCoord, elemmatbnd);
+	  elemmatbnd*=coeffdamp[0];
+
 #ifdef DEBUG
-      (*debug) << "Connection array  " << std::endl;
-      (*debug)  << connecth  << std::endl;
+	  (*debug) << "Connection array  " << std::endl;
+	  (*debug)  << connecth  << std::endl;
 
-      (*debug) << "Dampingmatrix, ElementNumber  " <<   j << std::endl;
-      (*debug) << elemmatbnd << std::endl;
+	  (*debug) << "Dampingmatrix, ElementNumber  " <<   j << std::endl;
+	  (*debug) << elemmatbnd << std::endl;
 #endif
 
-      ptalgsys_->PutElemMatAlgSys(elemmatbnd.getinarray(), connecth.get(), connecth.size(), as_sysid_, as_sysid_, 
-				  matrix_damp);
-      delete linear_damp;
-      delete [] ptCoord;
+	  ptalgsys_->PutElemMatAlgSys(elemmatbnd.getinarray(), connecth.get(), connecth.size(), 
+				      as_sysid_, as_sysid_, DAMPING);
+	  delete linear_damp;
+	  delete [] ptCoord;
+	}
     }
-  }
-      // END DAMPING MATRIX PART
+  // END DAMPING MATRIX PART
 
 #ifdef TRACE
   (*trace) << "Leaving Acoustic2dPDE::SetupMatrices" << std::endl;
@@ -275,9 +243,6 @@ void Acoustic2dPDE::SetBCs(BCs * ptBCs, const Integer level, const Integer updat
   Integer node;
   Double val,val_tfunc;
   Double time=atime;
-
-  //system matrix: id = 1
-  Integer matrix_id = 1;
 
   val_tfunc=ptTimeFunc_->TimeFuncAtTime(time,level);
 
@@ -300,18 +265,18 @@ void Acoustic2dPDE::SetBCs(BCs * ptBCs, const Integer level, const Integer updat
 	  if (update==1)
 	    {
 #ifdef DEBUG
-      (*debug) << " node: " << node << " val: " << val << std::endl;
+	      (*debug) << " node: " << node << " val: " << val << std::endl;
 #endif
 
-	      ptalgsys_->SetBCDirichletUpdate(j+1, node, val, dofspernode_, as_sysid_, as_sysid_, matrix_id);
+	      ptalgsys_->SetBCDirichletUpdate(j+1, node, val, dofspernode_, as_sysid_, as_sysid_, SYSTEM);
 	    }
 	  else
 	    { 
 #ifdef DEBUG
-      (*debug) << " node: " << node << " val: " << val << std::endl;
+	      (*debug) << " node: " << node << " val: " << val << std::endl;
 #endif
 
-	      ptalgsys_->SetBCDirichlet(j+1, node, val, dofspernode_, as_sysid_, as_sysid_, matrix_id);
+	      ptalgsys_->SetBCDirichlet(j+1, node, val, dofspernode_, as_sysid_, as_sysid_, SYSTEM);
 	    }
 	}  
     }
@@ -338,7 +303,7 @@ void Acoustic2dPDE::SetBCs(BCs * ptBCs, const Integer level, const Integer updat
 	      (*debug) << " node: " << node << " val: " << val << std::endl;
 #endif
 
-              ptalgsys_->SetBCDirichletUpdate(j+1, node, val, dofspernode_, as_sysid_, as_sysid_, matrix_id);
+              ptalgsys_->SetBCDirichletUpdate(j+1, node, val, dofspernode_, as_sysid_, as_sysid_, SYSTEM);
             }
           else
             {
@@ -346,7 +311,7 @@ void Acoustic2dPDE::SetBCs(BCs * ptBCs, const Integer level, const Integer updat
 #ifdef DEBUG
 	      (*debug) << " node: " << node <<  " val: " << val << std::endl;
 #endif
-              ptalgsys_->SetBCDirichlet(j+1, node, val, dofspernode_, as_sysid_,as_sysid_, matrix_id);
+              ptalgsys_->SetBCDirichlet(j+1, node, val, dofspernode_, as_sysid_,as_sysid_, SYSTEM);
             }
 	}
     }
@@ -364,20 +329,19 @@ void Acoustic2dPDE::preComputeRHS()
 
   SetRHSFnc = FALSE;
 
-  //  if (conf->is_there("rhs_surfaces")) {
-  std::string isthererhs;
-  conf->get("load_force",isthererhs,"Acoustic2d");
+  std::string isthererhs="no";
+  conf->ifget("load_force",isthererhs,pdename_);
 
   if (isthererhs=="yes" ) {
-    conf->getliststr("rhs_surfaces",rhs_surfaces_,"Acoustic2d");
+    conf->getliststr("rhs_surfaces",rhs_surfaces_,pdename_);
     std::string rhs;
-    conf->get("rhs_fnc",rhs,"Acoustic2d");
+    conf->get("rhs_fnc",rhs,pdename_);
     ptRHSFnc_=FncReader(rhs);
-    conf->get("rhs_arg_fnc",arg_rhs_,"Acoustic2d");
+    conf->get("rhs_arg_fnc",arg_rhs_,pdename_);
     SetRHSFnc=TRUE;
     directionFnc_.resize(2);
-    conf->get("direction_rhs_x",directionFnc_[0],"Acoustic2d");
-    conf->get("direction_rhs_y",directionFnc_[1],"Acoustic2d");
+    conf->get("direction_rhs_x",directionFnc_[0],pdename_);
+    conf->get("direction_rhs_y",directionFnc_[1],pdename_);
     }    
  
 }
@@ -395,26 +359,22 @@ void Acoustic2dPDE::ComputeRHS(const Double atime, BCs * ptBCs)
   std::list<Integer> nodes_hd;
   Integer i;
 
-  matrix_id = 5;
   coeffMass = sol_old_*a0_+sol_der1_old_*a2_+sol_der2_old_*a3_;
 
-  ptalgsys_->UpdateRHS(as_sysid_,as_sysid_,matrix_id,coeffMass.get());
+  ptalgsys_->UpdateRHS(as_sysid_,as_sysid_,MASS,coeffMass.get());
 
   // damping matrix part
 
-  if (!without_absBCs_) 
+  if (with_absBCs_) 
     {
 
-      matrix_id = 3; // Setting id for Damping matrix	
       coeffDamp = -sol_der1_old_-sol_der2_old_*a6_;
-  
-      ptalgsys_->UpdateRHS(as_sysid_,as_sysid_,matrix_id,coeffDamp.get());
+      ptalgsys_->UpdateRHS(as_sysid_,as_sysid_,DAMPING,coeffDamp.get());
 
-      matrix_id = 3; // Setting id for Damping matrix	
-      coeffDamp = sol_old_*a1_+sol_der1_old_*a2_*a7_+sol_der2_old_*a7_*a3_;
-  
-      ptalgsys_->UpdateRHS(as_sysid_,as_sysid_,matrix_id,coeffDamp.get());
+      coeffDamp = sol_old_*a1_+sol_der1_old_*a2_*a7_+sol_der2_old_*a7_*a3_;  
+      ptalgsys_->UpdateRHS(as_sysid_,as_sysid_,DAMPING,coeffDamp.get());
     }
+
 
   Integer level=0;          ////
   if (SetRHSFnc) {         // for standing waves
@@ -462,8 +422,8 @@ void Acoustic2dPDE::ComputeRHS(const Double atime, BCs * ptBCs)
 
 }
 
-void Acoustic2dPDE::SolveStepTrans(BCs * ptBCs, const Integer kstep, const Double asteptime, const Integer level, 
-			       const Boolean reset)
+void Acoustic2dPDE::SolveStepTrans(BCs * ptBCs, const Integer kstep, const Double asteptime, 
+				   const Integer level, const Boolean reset)
 {
 #ifdef TRACE
   (*trace) << "entering Acoustic2dPDE::SolveStepTrans" << std::endl;
@@ -588,7 +548,7 @@ void Acoustic2dPDE ::CalcCoeff(Vector<Double> & coeffmass, Vector<Double> & coef
 
   coeffmass.Resize(subdoms_.size());
   coeffstiff.Resize(subdoms_.size());
-  if (!without_absBCs_) coeffdamp.Resize(subdoms_.size());
+  if (with_absBCs_) coeffdamp.Resize(subdoms_.size());
 
   Integer i,matnum;
   for (i=0; i<subdoms_.size(); i++)
@@ -601,7 +561,7 @@ void Acoustic2dPDE ::CalcCoeff(Vector<Double> & coeffmass, Vector<Double> & coef
 
       coeffmass[i]  = density*density/compress;
       coeffstiff[i] = density;
-      if (!without_absBCs_)
+      if (with_absBCs_)
       coeffdamp[i]  = density/((sqrt(compress/density)));
     }
 }
