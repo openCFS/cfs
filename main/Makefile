@@ -61,7 +61,7 @@ makelibs:
 info: 
 ifeq ($(ARCH), LINUX)
 	@echo Before run of cfs set this variable on SGI:
-	@echo export LD_LIBRARY_PATH=$(LIB_OWN)
+	@echo export LD_LIBRARY_PATH=$(LIB_OWN)/$(MACHINE)
 else
 	@echo Before run of cfs set this variable on SGI:
 	@echo setenv LD_LIBRARYN32_PATH $(LIB_GRIDLIB):$(LIB_OWN)/$(MACHINE)
