@@ -1,0 +1,235 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org"
+  xmlns:cfs="http://www.cfs++.org"
+  elementFormDefault="qualified">
+
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Coupled Field Solver project CFS++
+      Schema for PDE description for a piezoelectric PDE
+    </xsd:documentation>
+  </xsd:annotation>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of element for piezoelectric PDEs -->
+  <!-- ******************************************************************** -->
+  <xsd:element name="piezo" type="DT_PDEPiezo"
+       substitutionGroup="PDEBasic"/>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for piezoelectric PDEs -->
+  <!-- ******************************************************************** -->
+
+  <xsd:complexType name="DT_PDEPiezo">
+    <xsd:complexContent>
+      <xsd:extension base="DT_PDEBasic">
+
+        <xsd:sequence>
+
+          <!-- Regions the PDE lives on -->
+          <xsd:element name="region" minOccurs="1" maxOccurs="unbounded">
+            <xsd:complexType>
+              <xsd:attribute name="name" type="xsd:token" use="required"/>
+              <xsd:attribute name="nonLinear" type="DT_PiezoNonLin"
+                use="optional" default="no"/>
+            </xsd:complexType>
+          </xsd:element>
+    
+          <!-- Type of damping model (optional) -->
+          <xsd:element name="damping" type="DT_PiezoDamp" minOccurs="0"/>
+
+          <!-- Boundary Conditions & Loads (optional) -->
+          <xsd:element name="bcsAndLoads" minOccurs="0">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="dirichletHom" type="DT_PiezoHD"
+                             minOccurs="0" maxOccurs="unbounded"/>
+                <xsd:element name="dirichletInhom" type="DT_PiezoID"
+                             minOccurs="0" maxOccurs="unbounded"/>
+                <xsd:element name="neumannInhom" type="DT_PiezoIN"
+                             minOccurs="0" maxOccurs="unbounded"/>
+                <xsd:element name="load" type="DT_PiezoLoad" minOccurs="0"
+                             maxOccurs="unbounded"/>
+              </xsd:sequence>
+
+            </xsd:complexType>
+          </xsd:element>
+
+          <!-- Section for specifying non-linear parameters (optional) -->
+          <xsd:element name="nonLinear" type="DT_NonLinParams" minOccurs="0"/>
+
+          <!-- Desired solution values (optional) -->
+          <xsd:element name="storeResults" type="DT_PiezoStoreResults"
+            minOccurs="0" maxOccurs="1"/>
+
+          <!-- Section for specifying solver (optional) -->
+          <xsd:element ref="solver" minOccurs="0"/>
+
+        </xsd:sequence>
+
+        <!-- Subtype of PDE -->
+        <xsd:attribute name="subtype" type="xsd:token" use="optional"
+          default="plainStrain"/>
+
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of enumeration type describing the degrees of freedom   -->
+  <!-- ******************************************************************** -->
+
+  <xsd:simpleType name="DT_PiezoDOF">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="ux"/>
+      <xsd:enumeration value="uy"/>
+      <xsd:enumeration value="uz"/>
+      <xsd:enumeration value="ep"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of the boundary condition types for piezoelectric -->
+  <!-- ******************************************************************** -->
+
+  <!-- Element type for homogeneous Dirichlet boundary conditions -->
+  <!-- We derive it by extending the base type -->
+  <xsd:complexType name="DT_PiezoHD">
+    <xsd:complexContent>
+      <xsd:extension base="DT_BCBasic">
+        <xsd:attribute name="name" type="xsd:token" use="required"/>
+        <xsd:attribute name="dof" type="DT_PiezoDOF" use="required"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- Element type for inhomogeneous Dirichlet boundary conditions -->
+  <!-- We derive it by extending the homogeneous case -->
+  <xsd:complexType name="DT_PiezoID">
+    <xsd:complexContent>
+      <xsd:extension base="DT_PiezoHD">
+        <xsd:attribute name="value" type="xsd:double" use="required"/>
+        <xsd:attribute name="dynamics" type="xsd:token" use="optional"
+          default="none"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- Element type for specifying inhomogeneous neumann conditions -->
+  <!-- Identical to that of inhomogeneous Dirichlet case -->
+  <xsd:complexType name="DT_PiezoIN">
+    <xsd:complexContent>
+      <xsd:extension base="DT_PiezoID"/>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- Element type for specifying loads -->
+  <!-- Identical to that of inhomogeneous Dirichlet case -->
+  <xsd:complexType name="DT_PiezoLoad">
+    <xsd:complexContent>
+      <xsd:extension base="DT_PiezoID"/>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of syntax for specifying output quantities of CFS -->
+  <!-- ******************************************************************** -->
+
+  <!-- What data can a single node have in a piezoelectric PDE -->
+  <xsd:simpleType name="DT_NodeDataPiezo">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="displacement"/>
+      <xsd:enumeration value="velocity"/>
+      <xsd:enumeration value="acceleration"/>
+      <xsd:enumeration value="potential"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <!-- What data can a single element have in a piezoelectric PDE -->
+  <xsd:simpleType name="DT_ElemDataPiezo">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="strain"/>
+      <xsd:enumeration value="stress"/>
+      <xsd:enumeration value="efield"/>
+      <xsd:enumeration value="energy"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <!-- Data type for describing final node values to be stored -->
+  <xsd:complexType name="DT_NodeResultsPiezo">
+    <xsd:attribute name="type" type="DT_NodeDataPiezo" use="optional"
+      default="displacement"/>
+    <xsd:attribute name="region" type="xsd:token" use="optional"
+      default="all"/>
+  </xsd:complexType>
+
+  <!-- Data type for describing history of node values to be stored -->
+  <xsd:complexType name="DT_NodeHistoryPiezo">
+    <xsd:attribute name="type" type="DT_NodeDataPiezo" use="optional"
+      default="displacement"/>
+    <xsd:attribute name="saveNodes" type="xsd:token" use="optional"
+      default="none"/>
+  </xsd:complexType>
+
+  <!-- Data type for describing final element values to be stored -->
+  <xsd:complexType name="DT_ElemResultsPiezo">
+    <xsd:attribute name="type" type="DT_ElemDataPiezo" use="optional"
+      default="stress"/>
+    <xsd:attribute name="region" type="xsd:token" use="optional"
+      default="all"/>
+  </xsd:complexType>
+
+  <!-- Data type for describing history of element values to be stored -->
+  <xsd:complexType name="DT_ElemHistoryPiezo">
+    <xsd:attribute name="type" type="DT_ElemDataPiezo" use="optional"
+      default="stress"/>
+    <xsd:attribute name="saveElems" type="xsd:token" use="optional"
+      default="none"/>
+  </xsd:complexType>
+
+  <!-- Global type for specifying the desired mechanical output quantities -->
+  <xsd:complexType name="DT_PiezoStoreResults">
+    <xsd:sequence>
+      <xsd:element name="nodeResults" type="DT_NodeResultsPiezo" minOccurs="0"
+        maxOccurs="unbounded"/>
+      <xsd:element name="nodeHistory" type="DT_NodeHistoryPiezo" minOccurs="0"
+        maxOccurs="unbounded"/>
+      <xsd:element name="elemResults" type="DT_ElemResultsPiezo" minOccurs="0"
+        maxOccurs="unbounded"/>
+      <xsd:element name="elemHistory" type="DT_ElemHistoryPiezo" minOccurs="0"
+        maxOccurs="unbounded"/>
+    </xsd:sequence>
+  </xsd:complexType>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for damping model -->
+  <!-- ******************************************************************** -->
+  <xsd:simpleType name="DT_PiezoDampType">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="rayleigh"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <xsd:complexType name="DT_PiezoDamp">
+    <xsd:attribute name="type" type="DT_PiezoDampType" use="required"/>
+  </xsd:complexType>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for non-linearity in piezoelectric PDEs -->
+  <!-- ******************************************************************** -->
+  <xsd:simpleType name="DT_PiezoNonLin">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="no"/>
+      <xsd:enumeration value="geo"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+</xsd:schema>
