@@ -19,7 +19,9 @@ WriteResultsGMV :: WriteResultsGMV(const Char * const filename, Boolean withHist
  namedir_=new Char[30];
 
  Char S[50];
+
  strcpy(namedir_,filename);
+
  strcat(namedir_,"_gmv");
  sprintf(S,"mkdir -p %s",namedir_);
 
@@ -422,7 +424,7 @@ void WriteResultsGMV::WriteVecDataOnCell(const Vector<Double>*vec,const Integer 
 
 void WriteResultsGMV::OpenFile(const Integer num)
 {
-   Char * name=new Char[30];
+   Char * name=new Char[80];
    Char * aux=new Char[2];
    sprintf(aux,"%i",num);
 
@@ -434,7 +436,6 @@ void WriteResultsGMV::OpenFile(const Integer num)
        else strcat(name,".gmv");
 
    strcat(name,aux);
-
    if (output) {
      if (ascii_)
        (*output) << "endgmv " << std::endl; 

@@ -17,13 +17,17 @@ else
 	LIBB := $(LIB_DIR)/lib$(lib).a 
 endif
 
+ifeq "$(PETSc)" "yes"
+	CFLAGSPETSc = -D USE_PETSC
+endif
+
 #
 .SUFFIXES: .f .cc .cpp .o
 .cc.o:
-	$(CC) $(CFLAGS1) $(CFLAGS2) $(CFLAGS3) $(INCL) $(ADAPT) $< 
+	$(CC) $(CFLAGS1) $(CFLAGS2) $(CFLAGS3) $(CFLAGSPETS) $(INCL) $(ADAPT) $< 
 
 .cpp.o:
-	$(CC) $(CFLAGS1) $(CFLAGS2) $(CFLAGS3) $(INCL) $<
+	$(CC) $(CFLAGS1) $(CFLAGS2) $(CFLAGS3) $(CFLAGSPETS) $(INCL) $<
 
 
 #

@@ -56,12 +56,12 @@ ifeq "$(AdaptivLib)" "yes"
 SUBLIBDIR := $(SUBLIBDIR) Domain/AdaptGrid
 endif
 
-
 #
 #
 ############ General options
 #
 include $(C_DIR)/main/Makefile.option
+
 #
 ############ Define specific flags
 #
@@ -71,6 +71,7 @@ include $(LIBSRC_DIR)/makefilemach/make.mach.$(MACHINE)
 #
 PATHSUBLIBDIR = $(addprefix $(LIBSRC_DIR)/, $(SUBLIBDIR))
 #
+
 ########### Rules
 #
 
@@ -79,9 +80,17 @@ PATHSUBLIBDIR = $(addprefix $(LIBSRC_DIR)/, $(SUBLIBDIR))
 .cc.o:
 	$(CC) -o $@ $(CFLAGS1) $(CFLAGS2) $(CFLAGS3) $(INCL) $<
 
-ifeq "$(MACHINE)" "SUN"
-$(program):: $(src:.cc=.o) $(mylibrary)
-	$(CC) $(CFLAG_EXE) -o $@ $(src:.cc=.o) $(fsrc:.f=.o) -L$(LIB_DIR) -L$(LIB_GRIDLIB)  -L$(LIB_NETGEN) -L$(LIB_CLA) $(LINKFLAGS2) $(LINKFLAGS3) $(INCL) $(addprefix -l, $(mylibrary)) $(syslib)
+#ifeq "$(MACHINE)" "SUN"
+#$(program):: $(src:.cc=.o) $(mylibrary)
+#	$(CC) $(CFLAG_EXE) -o $@ $(src:.cc=.o) $(fsrc:.f=.o) -L$(LIB_DIR) -L$(LIB_GRIDLIB)  -L$(LIB_NETGEN) -L$(LIB_CLA) $(LINKFLAGS2) $(LINKFLAGS3) $(INCL) $(addprefix -l, $(mylibrary)) $(syslib)
+#else
+
+ifeq "$(PETSc)" "yes"
+$(program):: $(src:.cc=.o) $(fsrc:.f=.o) $(mylibrary)
+	$(CXX_CLINKER) -o $@ $(src:.cc=.o) $(fsrc:.f=.o) $(PETSC_LIB) \
+	-L$(LIB_DIR) $(LINKFLAGS2) $(LINKFLAGS3) \
+	-L$(LIB_DIR) -L$(LIB_GRIDLIB)  -L$(LIB_NETGEN) -L$(LIB_CLA) \
+	$(INCL) $(addprefix -l, $(mylibrary)) $(syslib) -Wl,-rpath,$(LIB_OWN)/$(MACHINE)
 else
 $(program):: $(src:.cc=.o) $(mylibrary)
 	$(CC) $(CFLAG_EXE) -o $@ $(src:.cc=.o) $(fsrc:.f=.o) -L$(LIB_DIR) -L$(LIB_GRIDLIB)  -L$(LIB_NETGEN) -L$(LIB_CLA) $(LINKFLAGS2) $(LINKFLAGS3) $(INCL) $(addprefix -l, $(mylibrary)) $(syslib) -Wl,-rpath,$(LIB_OWN)/$(MACHINE)

@@ -24,7 +24,7 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 
   SetMatrixFactors();
 
-  pdename_ = "mech";
+  pdename_ = "mechanic";
   pdematerialclass_ = "piezo";
   
   conf->getstr("subtype", subType_, pdename_ );
@@ -185,10 +185,6 @@ void MechPDE::WriteResultsInFile()
     (*trace) << "Leaving MechPDE::SetupMatrices" << std::endl;
 #endif
   }
-
-
-
-
 
 
   void MechPDE::SetBCs(const Integer level, const Integer update, const Double atime)

@@ -93,10 +93,10 @@ Integer main(int argc, char *argv[])
   oClockTotal.ClockCount(MyClock::end,"Total time");
 
   /// Putzen
-    if (ptdriver) delete ptdriver;
-    if (ptTimeFunc) delete ptTimeFunc;
-    if (domain) delete domain;
-    if (ptDefineFiles) delete ptDefineFiles; // it should be deleted the last
+  if (ptdriver) delete ptdriver;
+  if (ptTimeFunc) delete ptTimeFunc;
+  if (domain) delete domain;
+  if (ptDefineFiles) delete ptDefineFiles; // it should be deleted the last
 
-    return 1;
+    return 0;
 }

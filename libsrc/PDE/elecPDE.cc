@@ -27,7 +27,7 @@ ElecPDE::ElecPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 
   SetMatrixFactors();
 
-  pdename_    = "elec";
+  pdename_    = "electrostatic";
   pdematerialclass_ = "piezo";
   
   conf->getsubdompde(subdoms_,pdename_);
@@ -112,7 +112,6 @@ ElecPDE::~ElecPDE()
 }
 
 
-
 void ElecPDE::SetupMatrices(const Integer level)
 {
 #ifdef TRACE
@@ -121,16 +120,13 @@ void ElecPDE::SetupMatrices(const Integer level)
   
   Matrix<Double> elemmat;  
   Matrix<Double> ptCoord;
-
-  BaseFE * ptElem;
+  BaseFE         * ptElem;
 
   if (InfoPrint)
     (*infofile) << " ------------------------- Element matrices --------------- " << std::endl;
 
   Vector<Integer> connecth;  
-
   Integer i, j;
-
 
   for (i=0; i<subdoms_.size(); i++)
     {

@@ -93,10 +93,7 @@ void BaseFE :: GetGlobDerivShFncAtIp(Matrix<Double> & Deriv,
 
   // det(A) = 1 / det(A^(-1))
   jacDet = 1.0 / JInv.Det();
-  (*debug) << "GETGLOB... JInv.Det " << JInv.Det() << std::endl
-	   << " jacDet in GET ... " << jacDet << std::endl;
-  
-  
+
 }
 
 

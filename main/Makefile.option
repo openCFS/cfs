@@ -6,6 +6,9 @@ LIBRARY_TYPE = static
 #AdaptivLib = yes / no
 AdaptivLib = no
 
+#PETSc solvers
+PETSc=yes
+
 ##############  AdaptGrid 
 #
 AdaptGrid=$(C_DIR)/Grid_RG
@@ -30,6 +33,14 @@ LIB_NETGEN = $(C_DIR)/libnetgen/LINUX
 #
 #
 #
+
+ifeq "$(PETSc)" "yes"
+	BOPT     = g_c++
+	include $(PETSC_DIR)/bmake/common/variables
+	CFLAGS   = $(CFLAGS1) $(CFLAGS2) $(CFLAGS3)
+	CPPFLAGS = $(CFLAGS1) $(CFLAGS2) $(CFLAGS3)
+endif
+
 #
 #--------DO NOT CHANGE ------------------------------------------------------------
 #
