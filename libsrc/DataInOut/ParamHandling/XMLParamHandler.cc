@@ -106,11 +106,18 @@ namespace CoupledField {
   //   Destructor for XMLParamHandler class
   // ========================================
   XMLParamHandler::~XMLParamHandler() {
+
     ENTER_FCN( "XMLParamHandler::~XMLParamHandler" );
+
+    // Delete parser for parameter file
     if ( parser_ != NULL ) {
+      delete parser_->getErrorHandler();
       delete parser_;
     }
+
+    // Delete parser for defaults' file
     if ( parserDefaults_ != NULL ) {
+      delete parserDefaults_->getErrorHandler();
       delete parserDefaults_;
     }
   }
