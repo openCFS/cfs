@@ -316,10 +316,17 @@ hermitean  & yes, no & Set to yes, if matrix is hermitean\\
 symStruct  & yes, no & Set to yes, if matrix has a symmetric pattern
                        of non-zero entries\\
 \noalign{\smallskip}\hline\noalign{\smallskip}
-ndOrdering & yes, no & If set to yes, pardiso will chose a nested dissection
-                       approach for computing a fill-reducing re-ordering of
-                       the matrx. Otherwise a minimum degree approach is
-                       chosen.\\
+ordering & nestedDissection & in this case Pardiso will use Metis (contained
+                              in the Pardiso library) to compute a
+                              fill-reducing re-ordering for the matrix.\\
+         & minimumDegree    & for this choice Pardiso uses a minimum degree
+                              algorithm for computing a
+                              fill-reducing re-ordering for the matrix.\\
+         & noReordering     & in this case Pardiso is tricked into using the
+                              original matrix ordering determined by OLAS.
+                              This is mainly intended for testing the orderings
+                              implemented in OLAS, like e.g.~Sloan, in
+                              comparison with those offered by Pardiso.\\
 \noalign{\smallskip}\hline\noalign{\smallskip}
 logging    & yes, no & If set to yes, the solver object will write minimal
                        status reports to the standard OLAS logfile\\
@@ -336,6 +343,10 @@ Note:
 \item The interface is designed for version 1.2.2
 \item Current Pardiso licensing policy requires a user to obtain a personal
       license for each (username, hostname) combination.
+\item If you use Pardiso as solver, it usually makes no sense to set
+      the \xml{reordering} attribute of the \xml{solver} element to some other
+      value besides the default of \xml{noReordering}, unless you use
+      \xml{ordering} = \xml{noReordering} in Pardiso.
 \end{itemize}
 %
 %
