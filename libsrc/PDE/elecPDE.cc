@@ -79,6 +79,11 @@ void ElecPDE::SolveStepStatic(const Integer level)
   // save solution
   Vector<Double> transsol(ptgrid_->GetMaxnumnodes(level), ptsol);
   sol_=transsol;
+
+#ifdef DEBUG
+  std::string matFileName = "solMat";
+  OutFile_->WriteSolMatrix(ptgrid_, level, sol_, matFileName);
+#endif
 }
 
 void ElecPDE::WriteResultsInFile()
@@ -91,10 +96,7 @@ void ElecPDE::WriteResultsInFile()
   Double time=0;
 
   // write results
-  if (OutFile_->IsGMV())
-    OutFile_->WriteSolution(sol_,step,time,"electric_potential");
-  else
-    OutFile_->WriteSolution(sol_,step,time,"electric potential");
+  OutFile_->WriteSolution(sol_, step, time, "electric_potential");
 
 }
 

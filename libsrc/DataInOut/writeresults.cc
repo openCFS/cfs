@@ -99,4 +99,54 @@ void WriteResults::InitHistoryFiles()
    }
 }
 
+void WriteResults::WriteSolMatrix(Grid * ptgrid, const Integer level, const Vector<Double> sol, 
+				  const std::string matFileName, const Integer nrDofs)
+{
+  //get and write number of nodes on the level
+  Integer numnodes=ptgrid->GetMaxnumnodes(level);
+  Integer dim=ptgrid->GetDim();
+  Integer i;
+
+  std::ofstream * matrixOut = new std::ofstream(matFileName.c_str());
+  // use scientific output, formatting is much better
+  matrixOut->setf(std::ios_base::scientific, std::ios_base::floatfield);
+  
+  if (dim==2) 
+    {
+      Point<2> point;
+      
+      // write x,y,z-coordinate
+      for (i=0; i<numnodes; i++)
+	{
+	  ptgrid->GetCoordinateNode(i,level,point);
+	  (*matrixOut) << " \t" << point[0] << " \t" << point[1] << " \t" << 0 << " \t";
+	    
+	  for (Integer actDof =0; actDof < nrDofs; actDof++)
+	    (*matrixOut) << sol[i*nrDofs + actDof] << " \t";
+	  (*matrixOut) << std::endl;
+	}
+    }
+  else 
+    {
+      Point<3> point;
+      
+      // write x,y,z-coordinate
+      for (i=0; i<numnodes; i++)
+	{
+	  ptgrid->GetCoordinateNode(i,level,point);
+	  (*matrixOut) << " \t" << point[0] << " \t" << point[1] << " \t" << point[2] << " \t";
+
+	  for (Integer actDof =0; actDof < nrDofs; actDof++)
+	    (*matrixOut) << sol[i*nrDofs + actDof] << " \t";
+	  (*matrixOut) << std::endl;
+	} 
+    }
+}
+
 } // end of namespace
+
+
+
+
+
+

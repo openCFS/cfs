@@ -80,6 +80,13 @@ public:
   //! Return number of colomnes
   Integer	size_col() const;
 
+  /// calculates the determinante of matrices up to size 3
+  Double Det () const;      
+
+
+  /// fast inversion for matrices smaller than size 3
+  void Invert (Matrix <Double> & inv) const;
+
   //! return p
   TYPE ** get() const;
 
@@ -133,8 +140,8 @@ public:
   Integer	operator!=	(const Matrix &) const;
 
   //! Cut part of matrix (left index row, right, upper index col, low )
-  Matrix	part	(const Integer, const Integer,
-                         const Integer, const Integer) const;
+//   Matrix	part	(const Integer, const Integer,
+//                          const Integer, const Integer) const;
 
   //! Cut row number i, colomn number j from matrix
   void cut(const Integer i, const Integer j);
@@ -156,7 +163,12 @@ public:
 
   /// Dyadic multiplication of two vectors
   void DyadicMult(std::vector<TYPE> v1, std::vector<TYPE> v2);
+
+private:
+  /// calculates the adjunct of the matrix at position (i,j)
+  Double Adjunct (Integer i, Integer j) const;
   
+
   //!
   //       TYPE At( const Integer i, const Integer j) { return p[i][j]; }
 };
@@ -204,7 +216,7 @@ inline Integer Matrix<TYPE>::getSize() const
 
 template<class TYPE>
 inline Integer Matrix<TYPE>::size_row () const
-{       if (!row || !col) Error("undefined Matrix");
+{       if (!row || !col) Error("undefined Matrix",__FILE__,__LINE__);
         return row;
 }
  
@@ -213,6 +225,30 @@ inline Integer Matrix<TYPE>::size_col () const
 {       if (!row || !col) Error("undefined Matrix",__FILE__,__LINE__);
         return col;
 }
+
+template<class TYPE>
+inline Double Matrix<TYPE>::Det () const
+{       
+  if (!row || !col) Error("Undefined Matrix!",__FILE__,__LINE__);
+  if (row != col ) Error("No quadratic matrix!",__FILE__,__LINE__);
+  switch (row)
+    {
+    case 1: return p[0][0];
+      break;
+    case 2: return  p[0][0]*p[1][1]-p[0][1]*p[1][0];
+      break;
+    case 3: return p[0][0]*p[1][1]*p[2][2] +
+	      p[0][1]*p[1][2]*p[2][0] +
+	      p[0][2]*p[1][0]*p[2][1] -
+	      p[0][2]*p[1][1]*p[2][0] -
+	      p[0][1]*p[1][0]*p[2][2] -
+	      p[0][0]*p[1][2]*p[2][1];
+      break;
+    default: Error("Dimension larger than 3!",__FILE__,__LINE__);
+    }
+}
+
+
 
 #ifdef __GNUC__
 template class Matrix<Double>;

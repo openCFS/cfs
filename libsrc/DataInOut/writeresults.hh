@@ -68,6 +68,15 @@ public:
   //! check, is it the gmv-output file
   virtual Boolean IsGMV()=0;
 
+
+  /// writes a matrix of the form ptCoordX ptCoorY ptCoordZ SolDof1 SolDof2 ...
+  /*!
+    \param sol solution
+    \param nrDofs nr of degrees of freedom in solution
+  */
+  void WriteSolMatrix(Grid * ptgrid, const Integer level, const Vector<Double> sol, 
+		      const std::string matFileName, const Integer nrDofs=1);
+
 protected:
   //! name of file for output results
   Char * namefile_;

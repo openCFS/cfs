@@ -4,6 +4,7 @@
 #include "General/environment.hh"
 #include <string>
 #include <vector>
+#include <iostream>
 
 namespace CoupledField
 {
@@ -39,6 +40,18 @@ T abs(T x) { return (x>0 ? x: -x); }
   //! square of value
 template<class T>
 T sqr(T x) { return x*x;}
+
+  //! power of value
+template<class T>
+T pow(T x, Integer power) 
+{ T p=x;
+ if (!power)
+   return 1;
+ 
+ for (Integer i=2; i<=power; i++)
+   p*=x;
+ return p;
+}
 
   //! class for working with points. 
   /*!
@@ -99,8 +112,16 @@ void calcNormal2Line(std::vector<Double> & normal,Point<2> a, Point<2> b);
   //! scalar multiplication of 2 vectors
 Double ScalarMult(std::vector<Double> a, std::vector<Double> b);
 
-  /// Converts String int an char *
+
 char * c_string(const std::string & s);
+
+
+// // std::vector output
+//   template<class TYPE> std::ostream& operator<< ( std::ostream & outStr, std::vector<TYPE> xOut);
+
+// // std::vector output
+// std::ostream & operator<< (std::ostream & outStr, std::vector<Double> & xOut);
+
   
 } // end of CoupledField
 

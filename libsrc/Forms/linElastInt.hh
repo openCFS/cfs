@@ -23,6 +23,12 @@ protected:
   
   /// returns B - matrix for BDB
   virtual void calcBMat(Matrix<Double> & bMat, Integer ip, Matrix<Double> & ptCoord);
+
+  /// orientation of calculation plane in 2D 
+  //  (especially important for anisotropic simulations)
+  enum orientation2D {xy, xz, yz};
+
+  orientation2D actOrientation;
 };
   
   
@@ -43,9 +49,8 @@ public:
   
   
 protected:
-
   
-  /// returns D - matrix for BDB
+ /// calculate the data-matrix for 2D plain-strain
   virtual void calcDMat(Matrix<Double> & dMat);
 
   /// returns dimension of D matrix
@@ -53,17 +58,29 @@ protected:
   
   /// returns nr. of degrees of freedom
   virtual Integer getNrDofs(){return 2;};
+};
 
-private:
- /// calculate the data-matrix for 2D plain-strain
-  void CalcPlainStrainMat(Matrix<Double> & matDat);
 
-  /// orientation of calculation plane in 2D 
-  //  (especially important for anisotropic simulations)
-  enum orientation2D {xy, xz, yz};
-
-  orientation2D actOrientation;
+  /// class for calculation of mechanical plain strain state
+class mech3DInt : public linElastInt
+{  
+public:
+  /// Constructor
+  mech3DInt(BaseFE * aptelem, MaterialData & matDat);
   
+  /// Deconstructor
+  virtual ~mech3DInt();
+  
+protected:
+  
+  /// returns D - matrix for BDB
+  virtual void calcDMat(Matrix<Double> & dMat);
+
+  /// returns dimension of D matrix
+  virtual Integer getDimD(){return 6;};
+  
+  /// returns nr. of degrees of freedom
+  virtual Integer getNrDofs(){return 3;};  
 };
   
 } //end namespace

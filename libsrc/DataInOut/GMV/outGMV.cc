@@ -305,6 +305,7 @@ void WriteResultsGMV::WriteGrid(const Integer level)
  WriteCells(level);
 }
 
+
 void WriteResultsGMV::WriteSolution(const Vector<Double> & sol, const Integer step, const Double time, const std::string title, const Integer nrDofs)
 {
 #ifdef TRACE
@@ -340,7 +341,29 @@ void WriteResultsGMV::WriteSolution(const Vector<Double> & sol, const Integer st
     WriteGrid(ptgrid->GetLastLevel());
   }
 
-  WriteVariable(sol,title,type);
+  Integer nrResults = sol.size()/nrDofs;
+  
+  Vector<Double> * disp = new Vector<Double>[nrDofs];
+  
+  for (Integer actDof =0; actDof < nrDofs; actDof++)
+    {      
+      disp[actDof].Resize(nrResults);
+      
+      for (i=0; i<nrResults; i++)
+	disp[actDof][i] = sol[i*nrDofs+actDof];
+    }
+
+
+  
+  for (i=0; i< nrDofs; i++)
+    {
+      char nrStr[10];
+      sprintf(nrStr,"%i",i+1);
+      std::string sumString = title + nrStr;
+      
+      WriteVariable(disp[i], sumString , type);
+    }
+  
 
   if (ascii_)
     (*output) << "probtime " << time << std::endl;
@@ -450,5 +473,6 @@ void WriteResultsGMV::to8Char(const std::string name, char * result)
   strcpy(result,aux.c_str());
 
 }
+
 
 } // end of namespace

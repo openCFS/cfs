@@ -306,6 +306,7 @@ Integer BasePDE::GetNumRestraints(const Integer level)
     
   Integer res=0;
   Integer i;
+
   for (i=0; i<bcs_hd_.size(); i++)
     {
       res+=ptBCs_->GetNumNodesLevel(bcs_hd_[i],level);

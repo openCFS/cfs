@@ -71,7 +71,7 @@ public:
    \param allelems out: pointer to vector with 3D-elements
    \param sd color of subdomains, for which elements are read
   */
-  //  void ReadEl3d(std::vector<Elem*> * allelems, const std::vector<std::string> sd);
+  void ReadEl3d(std::vector<Elem*> * allelems, const std::vector<std::string> sd);
 
   //! return dimension of the mesh
   Integer ReadDim();

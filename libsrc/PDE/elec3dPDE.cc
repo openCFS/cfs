@@ -12,15 +12,17 @@
 namespace CoupledField
 {
 
-Elec3dPDE::Elec3dPDE(Grid *aptgrid, BCs *aptbcs, Material *ptMaterial, TimeFunc *aptTimeFunc, 
+Elec3dPDE::Elec3dPDE(Grid *aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, 
 		     FileType *aptFileType, WriteResults *aptOut)
-:ElecPDE(aptgrid, aptbcs, ptMaterial, aptTimeFunc, aptFileType, aptOut)
+:ElecPDE(aptgrid, aptbcs, aptTimeFunc, aptFileType, aptOut)
 {
 #ifdef TRACE
   (*trace) << "entering Elec3dPDE::Elec3dPDE " << std::endl;
 #endif
 
-  pdename_    = "Electric3d";
+  pdename_    = "electric3d";
+  pdematerialclass_ = "piezo";
+
   conf->getsubdompde(subdoms_,pdename_);
   ReadBCs(pdename_);
 }
@@ -33,48 +35,54 @@ void Elec3dPDE::SetupMatrices(const Integer level)
 #endif
   
   Matrix<Double> elemmat;
-  Point<3> * ptCoord;
+  Matrix<Double> ptCoord;
 
-  BaseElem * ptElem;
+  BaseFE * ptElem;
 
-  Vector<Double> coeffst;
-  CalcCoeff(coeffst);  
+//   Vector<Double> coeffst;
+//   CalcCoeff(coeffst);  
+
+
+ //reads eps33 (matrix notation starts with 0)
+  Double eps33 = materialData_->GetPermittivity(2,2);
 
   Vector<Integer> connecth;
-  std::vector<Elem*> elemssd;
 
   Integer i, j;
   for (i=0; i<subdoms_.size(); i++)
     {
+      std::vector<Elem*> elemssd;
       ptgrid_->GetElemSD(elemssd,subdoms_[i],level);
 
       for (j=0; j < elemssd.size(); j++)
 	{  
 	  ptElem=elemssd[j]->ptElem;
 
-	  BaseForm<3> * bilinear_stiff = new LaplaceInt<3>(ptElem,1);
+	  BaseForm * bilinear_stiff = new LaplaceInt(ptElem, materialData_[i]);
 
 	  connecth=elemssd[j]->connect;
 
-	  ptCoord=new Point<3>[connecth.size()];
-	  ptgrid_->GetCoordNodesElem(connecth,ptCoord,level);
+	  ptgrid_->GetCoordNodesElemMat(connecth, ptCoord, level);
 
 	  // stiffness part
-	  bilinear_stiff->CalcElemMatrix(ptCoord, elemmat);
-	  elemmat*=coeffst[i];
+	  bilinear_stiff->CalcElementMatrix(ptCoord, elemmat);
 
-	  if (InfoPrint)
-	    (*infofile) << elemmat << std::endl;
+	  std::cout << "NO MATERIAL CONSIDERED " << std::endl;
+	  
+
+	  //	  elemmat *= eps33;
 
 #ifdef DEBUG
-	  (*debug) << "Stiffnessmatrix, ElementNumber  " <<   i << std::endl;
+	  Integer jj;
+	  (*debug) << " Pt coords of element " << j << std::endl;
+	  (*debug) << ptCoord <<  std::endl;
+	  (*debug) << "Stiffnessmatrix, ElementNumber  " << j << std::endl;
 	  (*debug) << elemmat << std::endl;
 #endif
 
 	  algsys_->SetElementMatrix(elemmat.getinarray(), connecth.get(), connecth.size(), SYSTEM);
 
 	  delete bilinear_stiff;
-	  delete [] ptCoord;
 	}     
     }
 
@@ -85,7 +93,9 @@ void Elec3dPDE::SetupMatrices(const Integer level)
 
 Elec3dPDE::~Elec3dPDE()
 {
- ;
+#ifdef TRACE
+  (*trace) << "entering Elec3dPDE::~Elec3dPDE " << std::endl;
+#endif
 }
 
 } // end of namespace

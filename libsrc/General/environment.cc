@@ -15,7 +15,8 @@ namespace CoupledField
 
   Boolean InfoPrint=FALSE;
 
-  BaseFE * ptQ = NULL;
+  BaseFE * ptQ   = NULL;
+  BaseFE * ptTet = NULL;
 
   // BaseElem * ptQ = NULL;
   // BaseElem * ptTr = NULL;

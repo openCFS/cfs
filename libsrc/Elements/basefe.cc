@@ -3,6 +3,7 @@
 #include <string>
 
 #include "basefe.hh"
+#include <Utils/tools.hh> 
  
 namespace CoupledField
 {
@@ -12,6 +13,12 @@ namespace CoupledField
 #ifdef TRACE
   (*trace) << "entering BaseFE::BaseFE" << std::endl;
 #endif
+  
+  // initializing dynamic objects
+  ShFncAtIp_      = NULL;
+  ShFncDerivAtIp_ = NULL; 
+  IntPoints_      = NULL; 
+  
 }
  
 BaseFE :: ~BaseFE()
@@ -62,8 +69,9 @@ void BaseFE :: GetGlobDerivShFnc(Matrix<Double> & Deriv,
   Matrix<Double> LDeriv, JInv;
 
   CalcLocalDerivShapeFnc(LDeriv, LCoord);
-  CalcInvJacobian(JInv, LCoord, CornerCoords);
 
+  CalcInvJacobian(JInv, LCoord, CornerCoords);
+ 
   Deriv = LDeriv * JInv;
 }
 
@@ -80,7 +88,157 @@ void BaseFE :: GetGlobDerivShFncAtIp(Matrix<Double> & Deriv,
 
   CalcInvJacobianAtIp(JInv, ip, CornerCoords);
 
+//  (*debug) << "Local Deriv of shape func:" << std::endl
+// 	   << ShFncDerivAtIp_[ip-1] << std::endl
+// 	   << "inverse Jacobi mat" << std::endl
+// 	   << JInv << std::endl
+// 	   << "corner coords" << std::endl
+// 	   << CornerCoords << std::endl;  
+
   Deriv = ShFncDerivAtIp_[ip-1] * JInv;
+
+//   (*debug) << "Global Deriv of shape func:" << std::endl
+// 	   << Deriv << std::endl;
+
+}
+
+
+
+void BaseFE :: CalcJacobian(Matrix<Double> & J, 
+			    const std::vector<Double> & LCoord, 
+			    const Matrix<Double> & CornerCoords)
+{
+#ifdef TRACE
+  (*trace) << "entering BaseFE::CalcJacobian" << std::endl;
+#endif
+  J.Resize(Dim_,Dim_);
+
+  Matrix<Double> LDeriv;
+
+  CalcLocalDerivShapeFnc(LDeriv, LCoord);
+  J = CornerCoords * LDeriv;
+}
+
+
+void BaseFE :: CalcJacobianAtIp(Matrix<Double> & J, 
+				const Integer ip, 
+				const Matrix<Double> & CornerCoords)
+{
+#ifdef TRACE
+  (*trace) << "entering BaseFE::CalcJacobianAtIp" << std::endl;
+#endif
+
+  J.Resize(Dim_,Dim_);
+
+  J = CornerCoords * ShFncDerivAtIp_[ip-1];
+}
+
+
+Double BaseFE :: CalcJacobianDet(const std::vector<Double> & LCoord,
+				      const Matrix<Double> & CornerCoords)
+{
+#ifdef TRACE
+  (*trace) << "entering BaseFE::CalcJacobianDet" << std::endl;
+#endif
+
+  Matrix<Double> J;
+
+  CalcJacobian( J, LCoord, CornerCoords );
+  return J.Det();
+}
+
+
+
+
+
+Double BaseFE :: CalcJacobianDetAtIp(const Integer ip, 
+				     const Matrix<Double> & CornerCoords)
+{
+#ifdef TRACE
+  (*trace) << "entering BaseFE::CalcJacobianDetAtIp" << std::endl;
+#endif
+
+  Matrix<Double> J;
+
+  CalcJacobianAtIp( J, ip, CornerCoords);
+
+  return J.Det();
+}
+
+
+void BaseFE :: CalcInvJacobian(Matrix<Double> & JInv,
+			       const std::vector<Double> & LCoord,
+			       const Matrix<Double> & CornerCoords)
+{
+#ifdef TRACE
+  (*trace) << "entering BaseFE::CalcInvJacobian" << std::endl;
+#endif
+  
+  Matrix<Double> J, LDeriv;
+
+  J.Resize(Dim_,Dim_);
+
+  CalcLocalDerivShapeFnc(LDeriv, LCoord);
+
+  J = CornerCoords * LDeriv;
+
+  J.Invert(JInv);
+}
+
+
+
+ 
+void BaseFE :: CalcInvJacobianAtIp(Matrix<Double> & JInv,
+				   const Integer ip,
+				   const Matrix<Double> & CornerCoords)
+{
+#ifdef TRACE
+  (*trace) << "entering BaseFE::CalcInvJacobianAtIp" << std::endl;
+#endif
+  JInv.Resize(Dim_,Dim_);
+
+  Double detJ, aux;
+  Matrix<Double> J;
+
+  J.Resize(Dim_,Dim_);
+
+  J = CornerCoords * ShFncDerivAtIp_[ip-1];
+
+  J.Invert(JInv);
+
+//  (*debug) << "CalcInvJacobianAtIp: Jac" << std::endl
+// 	  << J << std::endl
+// 	  << "inverse Jacobi mat" << std::endl
+// 	  << JInv << std::endl;
+}
+
+
+void BaseFE :: SetShapeFncAtIp()
+{
+#ifdef TRACE
+  (*trace) << "entering BaseFE::SetShapeFncAtIp" << std::endl;
+#endif
+  
+  if (!ShFncAtIp_)
+    ShFncAtIp_ = new std::vector<Double>[NumIntPoints_];
+
+
+  for( Integer i=0; i<NumIntPoints_; i++ )      
+      CalcShapeFnc( ShFncAtIp_[i], IntPoints_[i]);
+}
+  
+void BaseFE :: SetShapeFncDerivAtIp()
+{
+#ifdef TRACE
+  (*trace) << "entering BaseFE::SetShapeFncDerivAtIp" << std::endl;
+#endif
+
+  if( !ShFncDerivAtIp_)
+    ShFncDerivAtIp_ = new Matrix<Double>[NumIntPoints_];
+
+  for( Integer i=0; i<NumIntPoints_; i++ )
+    CalcLocalDerivShapeFnc( ShFncDerivAtIp_[i], IntPoints_[i]);
+
 }
 
 

@@ -139,13 +139,32 @@ void calcNormal2Surface(std::vector<Double> & normal,Point<3> a,Point<3> b, Poin
   normal[2]=normal[2]/L2_normal;  
 }
 
+
+
 char * c_string(const std::string & s)
 {
-  char * p = new char[s.length()+1];
-  s.copy(p, std::string::npos);
-  p[s.length()]=0;
-  return p;
+   char * p = new char[s.length()+1];
+   s.copy(p, std::string::npos);
+   p[s.length()]=0;
+   return p;
 }
 
 
-} // close namespace CoupledField
+// //! Overloading << for std::vector
+// template<class T> 
+// std::ostream& operator<< ( std::ostream & outStr, std::vector<T> xOut)
+// {
+//   for (Integer i=0; i<xOut.size(); i++)
+//     outStr <<  xOut[i];
+// }
+
+
+// //! Overloading << for std::vector
+// std::ostream& operator<< (std::ostream & outStr, std::vector<Double> xOut)
+// {
+//   for (Integer i=0; i<xOut.size(); i++)
+//     outStr <<  xOut[i];
+//   return outStr;
+// }
+ 
+}// namespace CoupledField
