@@ -57,6 +57,9 @@ namespace CoupledField
     //! \param parameter - new set of piezoelectric material parameters
     void updateMaterialData(Vector<Double> & parameter, MaterialData * ptMaterial);
 
+    //! overwrites values in paramter_new with paramter+step if whichParamterToUpdate ==1
+    void setNewParameterSet(Vector<Double> & parameter,Vector<Double> &  parameter_new,Vector<Double> & scaling,Double & theta,Vector<Complex> & step, Vector<Integer> & whichParameterToUpdate);
+
     //! Calculates the impedance curve of piezo-simulation, writes results to file imped.dat
     void calcAbsImped(Complex & charge, Double & freq, Integer & fstep);
 
@@ -118,6 +121,10 @@ namespace CoupledField
     //! Calculates Euclidian norm of only real-parts of vec
     Double norm2Real(Vector<Complex> &vec);
 
+    void maxAndEuclNorm(Vector<Complex> & vec, Double & maxNorm, Double & euclNorm);
+  
+    void maxAndWeightedResNorm(Vector<Complex> & vec, Double & maxNorm, Double & wNorm, Vector<Complex> & q_meas);
+
     //! Performs a forward simulation with exact data, adds to results alternating +- 10 Percent
     void calcSyntheticData(Vector<Complex> & y_hat);
 
@@ -126,8 +133,19 @@ namespace CoupledField
     //! Tests, if JacobiMatrix is more or less approximated by F(p)-F(p+delta)/delta
     void testJacobiMatrix(Vector<Complex> & F_hat, Matrix<Complex> & JacobiMatrix, Vector<Double> & parameter,BCs * ptBCs,MaterialData * ptMaterial, Vector<Double> & parameterIncrement, Vector<Complex>& solElecPot,Vector<Complex> &solMechDispl);
 
+    // ! The following methods serve for the determination of eigenvalues ...
 
+ //    void sort_array(Integer ndim, Integer l_sort, Vector<Double> & d);
+//     void test_termination(Integer ndim, Matrix<Double> & a, Double a2, Double eps2, Integer *l_conv);
+//     void givens_rotation(Integer ndim, Matrix<Double> & a);
+//     void jacobi(Matrix<Double>& a, Double eps, Integer l_sort, Integer l_print, Vector<Double> & d);
+
+    Integer CalcImpedanceCurve;
+    Integer maxNumberInnerLoops;
+    Integer maxNumberNewtonLoops;
     Boolean considerMechDeformation;
+    Vector<Integer> whichParameterToUpdate;
+    Double sign;
     Matrix<Double> * piezoMatrix;
     Integer dofs;
     Integer numNodes;
