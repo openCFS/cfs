@@ -56,7 +56,7 @@ public:
   { ptGridCFS->PrintCoordinate(level, out);}
 
   //! Get array of nodes for boundary condition
-    virtual void GetNodesBoundaryCondition(Vector<Integer> & nodesDirBC, const Integer level);
+//    virtual void GetNodesBoundaryCondition(Vector<Integer> & nodesDirBC, const Integer level);
 
   //! Get array of pointers to element type
     virtual BaseElem ** getptArrayElem() const 
@@ -87,12 +87,13 @@ inline GridInterfaceCFS<Dim>::GridInterfaceCFS(FileType * aptFileType)
    ptGridCFS=new GridCFS<Dim>(ptFileType); 
 }
 
+/*
 template<class Dim>
 void GridInterfaceCFS<Dim>::GetNodesBoundaryCondition(Vector<Integer> & nodesDirBC, const Integer level)
 {
  if (level==0) ptFileType->ReadDirichletBC(nodesDirBC);
 }
-
+*/
 
 #ifdef __GNUC__
 template class GridInterfaceCFS<Point3D>;

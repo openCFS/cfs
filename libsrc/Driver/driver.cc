@@ -20,10 +20,10 @@ Driver<Dim>::Driver(FileType * const aptFileType, Integer anummesh, Material * a
   ptFileType=aptFileType;
   ptgrid=NULL;
 
-  ptFileType->ReadNumStepsAndTimeSteps(numsteps, dt0);
-//  numsteps=30; dt0=2.000000000000E-07;
+//  ptFileType->ReadNumStepsAndTimeSteps(numsteps, dt0);
+  numsteps=30; dt0=2.000000000000E-07;
 
-  ptFileType->ReadOutputOptions(SaveDer1, SaveDer2);
+//  ptFileType->ReadOutputOptions(SaveDer1, SaveDer2);
   SaveDer1=FALSE; SaveDer2=FALSE;
 
   // read from conf-file the type of using grid-library

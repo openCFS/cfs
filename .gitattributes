@@ -474,6 +474,7 @@ main/el3d.dat -text
 main/elec.dat -text
 main/elec3d.dat -text
 main/general.conf -text
+main/general.tfunc -text
 main/kondxy.dat -text
 main/mat.dat -text
 main/sl.dat -text

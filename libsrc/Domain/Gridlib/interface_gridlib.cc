@@ -291,6 +291,7 @@ void InterfaceGridlib<Point3D>::Read()
     }
 }
 
+/*
 template<class Dim>
 void InterfaceGridlib<Dim>::GetNodesBoundaryCondition(Vector<Integer> & nodesDirBC, const Integer level)
 {
@@ -337,6 +338,7 @@ void InterfaceGridlib<Dim>::GetNodesBoundaryCondition(Vector<Integer> & nodesDir
    std::cout << std::endl;
    }
 }
+*/
 
 template<class Dim>
 void InterfaceGridlib<Dim>::SubdivideUniform(const Integer level)

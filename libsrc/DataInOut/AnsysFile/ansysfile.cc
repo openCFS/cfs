@@ -25,6 +25,7 @@ AnsysFile :: AnsysFile(const Char * const afilename)
   pos_end=infile.tellg();
 
   ReadDim();
+  std::cout << " dim " << dim_ << std::endl;
 }
   
 AnsysFile :: ~AnsysFile()
@@ -159,9 +160,7 @@ void AnsysFile::ReadBoundRestr(std::list<NodeRestraint> & restr, Integer & numbe
     if (A.dof==5)
     { restr.push_back(A); nrestr++;}
    }
-
   numberRestr=nrestr;
-
 }
 
 void AnsysFile::takePosition(const std::string seekexp, std::string::size_type & pos)
@@ -198,6 +197,46 @@ Integer AnsysFile::TransformInDof(const Char * el)
   else Error(" This type of level for boundary condition is unknown");
 
   return result; 
+}
+
+void AnsysFile::ReadNumberNodesPerElem(Integer & nnodesperelem)
+{
+ std::string::size_type pos=0;
+ takePosition("2D Elements", pos);
+ infile.seekg(pos,std::ios::beg);
+
+ std::string buf;
+ std::getline(infile, buf, '\n');
+ std::getline(infile, buf, '\n');
+
+ Integer ibuf;
+ infile >> ibuf >> ibuf >> nnodesperelem;  
+}
+
+  //!
+ void AnsysFile::ReadElemConnectionGH(const Integer maxelem, Integer * connect, const Integer maxnode, const Integer numelemgr, const Integer startposinarrayconn)
+{
+ std::string::size_type pos=0;
+ takePosition("2D Elements", pos);
+ infile.seekg(pos,std::ios::beg);
+
+ std::string buf;
+ std::getline(infile, buf, '\n');
+ std::getline(infile, buf, '\n');
+ std::getline(infile, buf, '\n');
+
+ Integer counter=0;
+
+ Integer j, jj;
+ for (j=0; j < maxelem; j++)
+{
+  for (jj=0; jj < maxnode; jj++, counter++)
+   infile >> connect[counter];
+
+  infile.ignore(100,'\n');
+  std::getline(infile, buf, '\n');
+}
+
 }
 
 }

@@ -35,7 +35,8 @@ void InterfaceNetGen<Point2D>::Read()
   Integer nnodes;
   ptFileType->ReadMaxnumnodes(nnodes); 
 
-  ptFileType->ReadGeneralAnalChoice(data,FileType::numgroup,FileType::endGAnal);  maxnumsubdomain_=data[0];
+//  ptFileType->ReadGeneralAnalChoice(data,FileType::numgroup,FileType::endGAnal); 
+   maxnumsubdomain_=1;
   pptelemsubdom_=new Integer*[maxnumsubdomain_];
 
   Point2D * ptCoord=new Point2D[nnodes]; 
@@ -57,12 +58,13 @@ void InterfaceNetGen<Point2D>::Read()
   
   // ######################### number of groupes
 
-  Integer data1[2];
-  ptFileType->ReadGeneralElemChoice(0,data1, FileType::numelem, FileType::maxnode, FileType::endGElem);
+//  Integer data1[2];
+//  ptFileType->ReadGeneralElemChoice(0,data1, FileType::numelem, FileType::maxnode, FileType::endGElem);
   Integer nelems;
   ptFileType->ReadMaxnumelem(nelems);
 
-  Integer nelemNodes=data1[1];
+  Integer nelemNodes;
+  ptFileType->ReadNumberNodesPerElem(nelemNodes);
 
   Integer * Connect=new Integer[nelems*nelemNodes];
 
@@ -149,8 +151,8 @@ void InterfaceNetGen<Point3D>::Read()
   Integer nnodes;
   ptFileType->ReadMaxnumnodes(nnodes);
 
-  ptFileType->ReadGeneralAnalChoice(data,FileType::numgroup,FileType::endGAnal);
-  maxnumsubdomain_=data[0];
+//  ptFileType->ReadGeneralAnalChoice(data,FileType::numgroup,FileType::endGAnal);
+  maxnumsubdomain_= 1;
   pptelemsubdom_=new Integer*[maxnumsubdomain_];
 
   Point3D * ptCoord=new Point3D[nnodes];
@@ -172,13 +174,11 @@ void InterfaceNetGen<Point3D>::Read()
 
   // ######################### number of groupes
 
-  Integer data1[2];
-  ptFileType->ReadGeneralElemChoice(0,data1, FileType::numelem, FileType::maxnode,
-FileType::endGElem);
   Integer nelems;
   ptFileType->ReadMaxnumelem(nelems);
 
-  Integer nelemNodes=data1[1];
+  Integer nelemNodes;
+  ptFileType->ReadNumberNodesPerElem(nelemNodes);
 
   Integer * Connect=new Integer[nelems*nelemNodes];
 
@@ -380,12 +380,6 @@ Integer InterfaceNetGen<Point3D>::GetNumNodesPerElem(const Integer iElem, const 
 template<class Dim>
 void InterfaceNetGen<Dim>::PrintCoordinate(const Integer level, std::ostream * out) const
   { Error("Not implemented yet",__FILE__,__LINE__); }
-
-template<class Dim>
-void InterfaceNetGen<Dim>::GetNodesBoundaryCondition(Vector<Integer> & nodesDirBC, const Integer level)
-{
- if (level==0) ptFileType->ReadDirichletBC(nodesDirBC);
-}
 
 template<class Dim>
 InterfaceNetGen<Dim>::~InterfaceNetGen()

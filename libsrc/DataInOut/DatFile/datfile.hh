@@ -33,6 +33,8 @@ protected:
 //  enum nameGElem {numelem, ielemtyp, isubtype, ielemsave, maxnode,
 //                  nonlinear, form1, form2, endGElem}; // 8
 public:
+  //!
+  virtual void ReadNumberNodesPerElem(Integer & numnodes);
 
   //! Read maximum number of nodes
   virtual void ReadMaxnumnodes(Integer & maxnumnodes);

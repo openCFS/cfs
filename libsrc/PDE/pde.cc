@@ -3,6 +3,7 @@
 #include <string>
 
 #include "pde.hh"
+#include "conffile.hh"
  
 namespace CoupledField
 {
@@ -13,7 +14,12 @@ PDE::PDE(FileType * ptFileType, Material * aptMaterial)
 #endif
 
   ptMaterial=aptMaterial;
-  ptFileType->ReadIntegrationParam(alpha, beta, gamma);
+//  ptFileType->ReadIntegrationParam(alpha, beta, gamma);
+
+  conf->get("alpha_NM",alpha,"Acoustic");
+  conf->get("beta_NM",beta,"Acoustic");
+  conf->get("gamma_NM",gamma,"Acoustic");
+
 }
 
 void PDE :: CalcParameters(const Double dt)

@@ -48,7 +48,7 @@ public:
   virtual Integer GetNumNodesPerElem(const Integer iElem, const Integer level)=0;
 
   //! Get array of nodes for boundary condition 
-  virtual void GetNodesBoundaryCondition(Vector<Integer> & nodesDirBC, const Integer level)=0;
+//  virtual void GetNodesBoundaryCondition(Vector<Integer> & nodesDirBC, const Integer level)=0;
 
   //! Get array of pointers to element type
   virtual BaseElem ** getptArrayElem() const=0;
