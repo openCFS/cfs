@@ -155,9 +155,9 @@ namespace CoupledField {
 #ifdef XMLPARAMS
     std::string probGeo;
     params->Get( "type", probGeo, "geometry" );
-    if ( !(probGeo == "3d"          && dim == 3 ||
-	   probGeo == "axi"         && dim == 2 ||
-	   probGeo == "plainStrain" && dim == 2 ) ) {
+    if ( !(probGeo == "3d"    && dim == 3 ||
+	   probGeo == "axi"   && dim == 2 ||
+	   probGeo == "plane" && dim == 2 ) ) {
       Info->Error( "Dimensions in parameter file and geometry file do not fit",
 		   __FILE__, __LINE__ );
     }
