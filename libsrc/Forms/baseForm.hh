@@ -1,7 +1,8 @@
-#ifndef FILE_BASEFORM
-#define FILE_BASEFORM
+#ifndef FILE_BASEFORM_
+#define FILE_BASEFORM_
 
 #include <Elements/basefe.hh>
+#include <DataInOut/MaterialData.hh>
 
 namespace CoupledField
 {
@@ -11,7 +12,7 @@ class BaseForm
 {
 public:
   //! Constructor
-  BaseForm(BaseFE * aptelem);
+  BaseForm(BaseFE * aptelem, MaterialData & matData);
 
   //! Deconstructor
   virtual ~BaseForm();
@@ -26,6 +27,9 @@ protected:
 
   //! Ptr to base element
   BaseFE  * ptelem;
+
+  /// Ptr to material
+  MaterialData * ptMaterial ;
 };
 
 } //end namespace

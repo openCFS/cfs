@@ -22,12 +22,14 @@ class MaterialData
 {
 private:
   Double density;
+  Double compressibility;
   Double damp_alfa;
   Double damp_beta;
   Double eModule;
   Double nu;
-  Double constPerm;
+  Double permeability;
   Double conductivity;
+  Double permMx, permMy, permMz;   // permanent magnetization
   Integer scaledMatDat;
   char * name; 
   //char name[stringLength]; 
@@ -49,7 +51,7 @@ public:
   /// set the material number 
   void SetMatNr(const Integer& MatNr){matNr = MatNr; };
 
-  // defines material either as linear or nonlinear and sets the constPerm variable if necesarry
+  // defines material either as linear or nonlinear and sets the permeability variable if necesarry
   //  void DefLin(const Integer& isLin);
 
   // in the linear case MagneticSpline has 1 NonlinSpline with 1 factor = const mue !!
@@ -63,12 +65,28 @@ public:
   /// set nu
   void SetNu(const Double& Nu){nu = Nu;};
 
+
   /// set density of the material
   void SetDensity(const Double& Density){density = Density;};
+
+  /// set permeability of the material
+  void SetPermeability(const Double& aPerm){permeability = aPerm;}
+
+  /// set compressibility of the material
+  void SetCompressibility(const Double& compr){compressibility = compr;}
 
   /// set damping coefficients
   void SetDampingCoeffs(const Double& Damp_alfa, const Double& Damp_beta)
     {damp_alfa=Damp_alfa; damp_beta=Damp_beta;};
+
+  /// set damping coefficients
+  void SetPermMag(const Double& mX, const Double& mY, const Double& mZ)
+    {permMx=mX, permMy=mY, permMz=mZ;};
+
+  /// get values of permanent magnetization
+  void GetPermMag( Double& mX,  Double& mY, Double& mZ)
+  {mX=permMx, mY=permMy, mZ=permMz;};
+
 
   /// set one value of the data-matrix on position (i,j)
   void SetMatrixData(const Integer& i, const Integer& j, const Double& value)
@@ -115,6 +133,12 @@ public:
   /// get density
   Double GetDensity() const {return density;};
 
+  /// get permittivity
+  Double GetPermittivity(Integer i, Integer j) const {return (*piezoMatrix)[i+6][j+6];};
+
+  /// get compressibility
+  Double GetCompressibility() const {return compressibility;};
+
   /// get alfa damping coefficient
   Double GetDampingAlfa() const {return damp_alfa;};
 
@@ -131,7 +155,7 @@ public:
   //Double GetPermiability(const Double& MagB) const;
 
   /// get const permiability - if material is linear!
-  Double GetConstPermiability() const {return constPerm;};
+  Double GetPermiability() const {return permeability;};
 
   /// get name of the material
   char * GetMaterialName(); 

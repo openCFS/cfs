@@ -16,7 +16,9 @@ namespace CoupledField
     const Integer nrIntPts= ptelem->GetNumIntPoints();
     const Integer nrNodes = ptelem->GetNumNodes();
     const std::vector<Double> & intWeights = ptelem->GetIntWeights();  
-    double jacDet;
+    Double jacDet;
+    const Double density = ptMaterial->GetDensity();
+    
 
     // derivation of shape functions after global coordinates 
 
@@ -37,7 +39,7 @@ namespace CoupledField
 
 	partElemMat.DyadicMult(shapeFnc);
 
-	partElemMat *= intWeights[actIntPt-1];
+	partElemMat *= intWeights[actIntPt-1] * density * jacDet;
       
 	elemMat += partElemMat;
       }
@@ -62,7 +64,7 @@ namespace CoupledField
   }
 
 
-  MassInt::MassInt(BaseFE * aptelem): BaseForm(aptelem)
+  MassInt::MassInt(BaseFE * aptelem, MaterialData & aMat): BaseForm(aptelem, aMat)
   {
 #ifdef TRACE
     (*trace) << "entering MassInt::MassInt" << std::endl;

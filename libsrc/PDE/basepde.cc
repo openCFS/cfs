@@ -42,7 +42,6 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile, WriteResults * a
     analysistype_ = TRANSIENT;
   else
     Error("Analysis Type not supported",__FILE__,__LINE__);
-
 }
 
 
@@ -87,9 +86,8 @@ void BasePDE::ReadMaterialData()
   std::string matName;
   for (Integer i=0; i<subdoms_.size(); i++)
     {
-      // load material data into array "matData"
+      // load material data into array "materialData_"
       conf->getstr(subdoms_[i], matName, "list_subdomains");
-      std::cout << "matname:" << matName << "  sub:" << subdoms_[i] << std::endl;	
       loadMaterial_->GetMaterial(materialData_[i], matName, pdematerialclass_);
     }
 }
@@ -284,17 +282,20 @@ void BasePDE::ReadBCs(const std::string eq)
   (*trace) << " entering BasePDE::ReadBCs " << std::endl;
 #endif
 
-  conf->getliststr("homogeneous_dirichlet",bcs_hd_,eq); 
-  conf->getliststr("inhomogeneous_dirichlet",bcs_id_,eq);
+  conf->ifgetliststr("homogeneous_dirichlet",bcs_hd_,eq); 
+  conf->ifgetliststr("inhomogeneous_dirichlet",bcs_id_,eq);
+  conf->ifgetliststr("loads",bcs_loads_,eq);
 
   Integer i;
 
   val_id_.resize(bcs_id_.size());
 
   for(i=0; i<bcs_id_.size(); i++)
-    {
     conf->get(bcs_id_[i],val_id_[i],eq,"bc_conditions","inhomogeneous_dirichlet");
-    }
+
+  val_loads_.resize(bcs_loads_.size());
+  for(i=0; i<bcs_loads_.size(); i++)
+    conf->get(bcs_loads_[i],val_loads_[i],eq,"bc_conditions","loads");
 }
 
 Integer BasePDE::GetNumRestraints(const Integer level)
@@ -323,6 +324,29 @@ void BasePDE::SetAlgSys_id(const Integer as_sysid)
 {
   as_sysid_ = as_sysid;
 }
+
+
+  void BasePDE::MassMultiDof(Matrix<Double>& massMultDof, const Matrix<Double>& massMatSingleDof,  const Integer nrDofs)
+  {
+    
+#ifdef TRACE
+    (*trace) << "entering BasePDE::MassMatMultiDof" << std::endl;
+#endif
+    
+    const Integer singleDofSize = massMatSingleDof.getSize();
+    const Integer multDofSize = singleDofSize * nrDofs;
+    
+    Integer i, j, actDof;
+    
+    massMultDof.Resize(multDofSize);
+    massMultDof.Init();
+    
+    for (i=0; i < singleDofSize; i++)
+      for (j=0; j < singleDofSize; j++)
+	for (actDof=0; actDof < nrDofs; actDof++)
+	  massMultDof[i*nrDofs + actDof][j*nrDofs + actDof] = massMatSingleDof[i][j]; 
+  }
+
 
 
 BasePDE::~BasePDE()
