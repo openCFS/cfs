@@ -77,7 +77,7 @@ ifeq ($(MpCCI),yes)
   sysliball = $(syslib) -lcci -lmpich $(XERCESLIB) -lg2c
 else
   LINKFLAGS2 =
-  sysliball = $(syslib) $(XERCESLIB)
+  sysliball = $(syslib) $(XERCESLIB) $(OLASLIB)
 endif
 #
 ##########
