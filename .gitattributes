@@ -38,6 +38,7 @@ XML/TestParser/SPHandler.cc svneol=native#text/plain
 XML/TestParser/SPHandler.hh svneol=native#text/plain
 XML/TestParser/TestParser.cc svneol=native#text/plain
 /libgoal -text
+libsrc/AlgebraicSystem/README -text
 libsrc/CoupledPDE/Makefile -text
 libsrc/CoupledPDE/basecoupledpde.cc svneol=native#text/plain
 libsrc/CoupledPDE/basecoupledpde.hh svneol=native#text/plain
