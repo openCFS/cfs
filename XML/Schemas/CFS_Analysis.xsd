@@ -24,6 +24,7 @@
               <xsd:enumeration value="paramIdent"/>
               <xsd:enumeration value="multiSequence"/>
               <xsd:enumeration value="bubbleDynamic"/>
+              <xsd:enumeration value="transient4Slice"/>
             </xsd:restriction>
           </xsd:simpleType>
         </xsd:attribute>
@@ -235,6 +236,42 @@
           <xsd:element name="pressure" type="xsd:float"/>
           <xsd:element name="frequency" type="DT_NonNegFloat"/>
         </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of element AnalysisTransient for slice Technique        -->
+  <!-- ******************************************************************** -->
+  <xsd:element name="transient4Slice" type="DT_AnalysisTransientSlice"
+    substitutionGroup="AnalysisBasic"> 
+  </xsd:element>
+
+  <!-- Data type for transient section, i.e. parameters required for
+       performing a transient analysis with slicing technique -->
+  <xsd:complexType name="DT_AnalysisTransientSlice">
+    <xsd:complexContent>
+      <xsd:extension base="DT_AnalysisBasic">
+        <xsd:sequence>
+          <xsd:element name="numSteps" type="xsd:nonNegativeInteger"/>
+          <xsd:element name="firstDt" type="DT_PosFloat"/>
+          <xsd:element name="stepSaveBeg" type="xsd:nonNegativeInteger"/>
+          <xsd:element name="stepSaveEnd" type="xsd:nonNegativeInteger"/>
+          <xsd:element name="stepSaveInc" type="xsd:nonNegativeInteger"/>
+          <xsd:element name="timeDataFile" minOccurs="0" maxOccurs="unbounded">
+            <xsd:complexType>
+              <xsd:complexContent>
+                <xsd:restriction base="xsd:anyType">
+                  <xsd:attribute name="name" type="xsd:string" use="optional"
+                    default="none"/>
+                </xsd:restriction>
+              </xsd:complexContent>
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:sequence>
+        <xsd:attribute name="tag"  type="xsd:string" use="optional"
+          default="anyTag"/> 
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
