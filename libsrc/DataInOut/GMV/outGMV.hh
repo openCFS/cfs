@@ -2,23 +2,37 @@
 #define FILE_OUTGMV_2002
 
 #include "grid.hh"
+#include "writeresults.hh"
 
 namespace CoupledField
 {
 
 //! This class provides an interface for writing files in gmv-format
 template<class Dim>
-class OutGMV
+class WriteResultsGMV: virtual public WriteResults<Dim>
 {
 public:
+
   //! Constructor
-  OutGMV(const Char * filename, Grid<Dim> * aptgrid);
+  WriteResultsGMV(const Char * filename, Grid<Dim> * aptgrid);
   
   //! Deconstructor
-  virtual ~OutGMV();
+  virtual ~WriteResultsGMV();
   
+  //! initialization with grid
+  virtual void Init(Grid<Dim> * aptgrid);
+
   //! write information about grid with level in file
-  void Write(const Integer level);
+  virtual void WriteGrid(const Integer level);
+
+    /// write information about the solution
+  virtual void WriteSolution(const Vector<Double> & sol, const Integer step, const Integer time);
+
+  /// write information about first derivatives of the solution
+  virtual void WriteFirstDerSolution(const Vector<Double> & sol, const Integer step, const Integer time);
+
+  /// write information about second derivatives of the solution
+   virtual void WriteSecondDerSolution(const Vector<Double> & sol, const Integer step, const Integer time);
 
 private:
   
@@ -40,8 +54,8 @@ private:
 };
 
 #ifdef __GNUC__
-template class OutGMV<Point3D>;
-template class OutGMV<Point2D>;
+template class WriteResultsGMV<Point3D>;
+template class WriteResultsGMV<Point2D>;
 #endif
 
 } // end of namespace

@@ -9,10 +9,11 @@ namespace CoupledField
 {
 
 template<class Dim>
-OutResultUnverg<Dim> :: OutResultUnverg(const Char * const filename)
+WriteResultsUnverg<Dim> :: WriteResultsUnverg(const Char * const filename)
+:WriteResults<Dim>()
 {
 #ifdef TRACE
-  (*trace) << "entering OutResultUnverg :: OutResultUnverg" << std::endl;
+  (*trace) << "entering WriteResultsUnverg :: WriteResultsUnverg" << std::endl;
 #endif
 
   Char * help = new Char[20];
@@ -22,27 +23,26 @@ OutResultUnverg<Dim> :: OutResultUnverg(const Char * const filename)
 }
 
 template<class Dim>
-OutResultUnverg<Dim> ::~ OutResultUnverg()
+WriteResultsUnverg<Dim> ::~ WriteResultsUnverg()
 {
 #ifdef TRACE
-  (*trace) << "entering OutResultUnverg ::~ OutResultUnverg" << std::endl;
+  (*trace) << "entering WriteResultsUnverg ::~ WriteResultsUnverg" << std::endl;
 #endif
 
   delete output;
 }
 
 template<class Dim>
-void OutResultUnverg<Dim> :: Create(Grid<Dim> * ptgrid, const Integer level)
+void WriteResultsUnverg<Dim> :: WriteGrid(const Integer level)
 {
- Dataset666(ptgrid,level);
- Dataset781(ptgrid,level);
- Dataset780(ptgrid,level);
- ;
+ Dataset666(level);
+ Dataset781(level);
+ Dataset780(level);
 }
 
 
 template<>
-void  OutResultUnverg<Point2D>::Dataset666(Grid<Point2D> * ptgrid, const Integer level)
+void  WriteResultsUnverg<Point2D>::Dataset666(const Integer level)
 {
 
  (*output)<< std::setw(6) << -1 << std::endl << std::setw(6) << -666 << std::endl ;
@@ -56,7 +56,7 @@ void  OutResultUnverg<Point2D>::Dataset666(Grid<Point2D> * ptgrid, const Integer
 }
 
 template<>
-void  OutResultUnverg<Point3D>::Dataset666(Grid<Point3D> * ptgrid, const Integer level)
+void  WriteResultsUnverg<Point3D>::Dataset666(const Integer level)
 {
 
  (*output)<< std::setw(6) << -1 << std::endl << std::setw(6) << -666 << std::endl ;
@@ -70,7 +70,7 @@ void  OutResultUnverg<Point3D>::Dataset666(Grid<Point3D> * ptgrid, const Integer
 }
 
 template< >
-void  OutResultUnverg<Point2D>::Dataset781(Grid<Point2D> * ptgrid, const Integer level)
+void  WriteResultsUnverg<Point2D>::Dataset781(const Integer level)
 {
  (*output) << std::setw(6) << -1 << std::endl << std::setw(6) << 781 << std::endl;
 
@@ -100,7 +100,7 @@ void  OutResultUnverg<Point2D>::Dataset781(Grid<Point2D> * ptgrid, const Integer
 }
 
 template< >
-void  OutResultUnverg<Point3D>::Dataset781(Grid<Point3D> * ptgrid, const Integer level)
+void  WriteResultsUnverg<Point3D>::Dataset781(const Integer level)
 {
  (*output) << std::setw(6) << -1 << std::endl << std::setw(6) << 781 << std::endl;
 
@@ -128,7 +128,7 @@ void  OutResultUnverg<Point3D>::Dataset781(Grid<Point3D> * ptgrid, const Integer
 }
 
 template<>
-void  OutResultUnverg<Point2D>::Dataset780(Grid<Point2D> * ptgrid, const Integer level)
+void  WriteResultsUnverg<Point2D>::Dataset780(const Integer level)
 {
  (*output) << std::setw(6) << -1 << std::endl << std::setw(6) << 780 << std::endl;
 
@@ -172,7 +172,7 @@ void  OutResultUnverg<Point2D>::Dataset780(Grid<Point2D> * ptgrid, const Integer
 }
 
 template<>
-void  OutResultUnverg<Point3D>::Dataset780(Grid<Point3D> * ptgrid, const Integer level)
+void  WriteResultsUnverg<Point3D>::Dataset780(const Integer level)
 {
  (*output) << std::setw(6) << -1 << std::endl << std::setw(6) << 780 << std::endl;
 
@@ -217,7 +217,7 @@ void  OutResultUnverg<Point3D>::Dataset780(Grid<Point3D> * ptgrid, const Integer
 }
 
 template<class Dim>
-void  OutResultUnverg<Dim>::Dataset55(const std::string & title, const Vector<Double> & x, const Integer step, const Double time)
+void  WriteResultsUnverg<Dim>::Dataset55(const std::string & title, const Vector<Double> & x, const Integer step, const Double time)
 {
  (*output) << std::setw(6) << -1 << std::endl << std::setw(6) << 55 << std::endl;
 
@@ -243,11 +243,35 @@ void  OutResultUnverg<Dim>::Dataset55(const std::string & title, const Vector<Do
 }  
 
 template<class Dim>
-void  OutResultUnverg<Dim>::Dataset56()
+void  WriteResultsUnverg<Dim>::Dataset56()
 {
  (*output) << std::setw(6) << -1 << std::endl << std::setw(6) << 56 << std::endl;
  
  (*output) << std::setw(6) << -1;
+}
+
+template<class Dim>
+void  WriteResultsUnverg<Dim>::Init(Grid<Dim> * aptgrid)
+{
+ ptgrid=aptgrid;
+}
+
+template<class Dim>
+void  WriteResultsUnverg<Dim>::WriteSolution(const Vector<Double> & sol, const Integer step, const Integer time)
+{
+ Dataset55(" fluid potential", sol, step+1, time);
+}
+
+template<class Dim>
+void  WriteResultsUnverg<Dim>::WriteFirstDerSolution(const Vector<Double> & sol, const Integer step, const Integer time)
+{
+ Dataset55(" fluid potential, 1st deriv., ", sol, step+1,time);
+}
+
+template<class Dim>
+void  WriteResultsUnverg<Dim>::WriteSecondDerSolution(const Vector<Double> & sol, const Integer step, const Integer time)
+{
+ Dataset55(" fluid potential, 2nd deriv., ", sol, step+1, time);
 }
 
 } // end of namespace

@@ -9,7 +9,7 @@ namespace CoupledField
 {
 
 template <class Dim>
-Domain<Dim> :: Domain(FileType * const aptFileType, OutResultUnverg<Dim> * ptUnverg,  
+Domain<Dim> :: Domain(FileType * const aptFileType, WriteResults<Dim> * ptUnverg,  
                       Material * materialdata,  Grid<Dim> * ptgrid)
 {
 #ifdef TRACE
@@ -132,7 +132,8 @@ void Domain<Dim> :: PrintGrid(Integer level)
   (*trace) << "entering Domain::PrintGrid" << std::endl;
 #endif
 
- OutFile->Create(grid,level);
+ OutFile->Init(grid);
+ OutFile->WriteGrid(level);
 
 }
 

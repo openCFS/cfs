@@ -2,7 +2,7 @@
 #define FILE_DOMAIN_2001
 
 #include "interface_gridcfs.hh"
-#include "outUnverg.hh"
+#include "writeresults.hh"
 #include "basepde.hh"
 #include "material.hh"
 #include "matrix.hh"
@@ -20,7 +20,7 @@ class Domain
 {
 public:
   //!
-  Domain(FileType * const aptFileType, OutResultUnverg<Dim> * ptUnverg, Material * materialdata,
+  Domain(FileType * const aptFileType, WriteResults<Dim> * ptUnverg, Material * materialdata,
          Grid<Dim> * ptgrid);
 
   //!
@@ -81,7 +81,7 @@ private:
   FileType *InFile;
 
   //!
-  OutResultUnverg<Dim> *OutFile;
+  WriteResults<Dim> *OutFile;
 
 };
 
