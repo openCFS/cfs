@@ -6,6 +6,7 @@
 #include <iomanip>
 #include <fstream>
 #include <stdio.h>
+
 #include "Utils/tools.hh"
 #include "General/environment.hh"
 #include "DataInOut/AnsysFile/ansysfile.hh"
@@ -13,17 +14,17 @@
 #include "Domain/bcs.hh"
 #include "Domain/GridCFS/grid_cfs.hh"
 #include "Elements/elements_header.hh"
-#include "DataInOut/ParamHandling/SkeletonConf.hh"
-
+#include "DataInOut/ParamHandling/BaseParamHandler.hh"
+#include "DataInOut/ParamHandling/PlainXMLParamHandler.hh"
+#include "DataInOut/ParamHandling/XMLParamHandler.hh"
+#include "DataInOut/ParamHandling/XMLSkeletonConf.hh"
 
 namespace CoupledField
 {
 
   SkeletonConf::SkeletonConf (const Char * aname)
   {
-#ifdef TRACE
-    (*trace) << "Entering SkeletonConf::SkeletonConf" << std::endl;
-#endif
+    ENTER_FCN("Entering SkeletonConf::SkeletonConf");
 
     name_=new Char[100];
     strcpy(name_, aname);
@@ -65,9 +66,7 @@ namespace CoupledField
 
   SkeletonConf::~SkeletonConf ()
   {
-#ifdef TRACE
-    (*trace) << "Entering SkeletonConf::~SkeletonConf" << std::endl;
-#endif
+    ENTER_FCN("Entering SkeletonConf::~SkeletonConf");
 
     skelfile_->close();
 
@@ -79,54 +78,74 @@ namespace CoupledField
 
   void SkeletonConf::WriteConf ()
   {
-#ifdef TRACE
-    (*trace) << "Entering SkeletonConf::WriteConf" << std::endl;
-#endif
+    ENTER_FCN("Entering SkeletonConf::WriteConf");
 
     WriteGeneral();
     WriteSubdomains(); 
     //  WriteLists(); --> has to be done in WriteSubdomains!!
+
+
+    (*skelfile_) << myendl << "   <!--  PDE SPECIFIC PARAMETERS -->" << myendl 
+		 << "   <pdeList>" << myendl << myendl;
     WritePDE();
+    (*skelfile_)  << "   </pdeList>" << std::endl << myendl;
+
+
+    (*skelfile_)  << "   <!--In case of transient analysis, uncomment following lines -->" << std::endl
+		  << "   <!--<transient>  -->" << std::endl
+		  << "   <!--   <numsteps>    1    </numsteps>    -->" << std::endl
+		  << "   <!--   <firstdt>     1e-6 </firstdt>     -->" << std::endl
+		  << "   <!--   <stepsavebeg> 1    </stepsavebeg> -->" << std::endl
+		  << "   <!--   <stepsaveend> 1    </stepsaveend> -->" << std::endl
+		  << "   <!--   <stepsaveinc> 1    </stepsaveinc> -->" << std::endl
+		  << "   <!--   <timeDataFile name=\"XXX.dat\"/>  -->" << std::endl
+		  << "   <!--</transient>                         -->" << std::endl 
+		  << myEndl;
+
+    (*skelfile_)  << "</cfsSimulation>" << myendl;
   }
+
+
+//     analysis     & plain   & required\\
+//     geometry     & plain   & required\\
+//     input        & plain   & optional\\
+//     output       & plain   & optional\\
+//     materialData & plain   & optional\\
+//     domain       & section & required \\
+//     pdeList      & section & required \\
+//     transient    & section & required for transient analysis \\
+
+
+
 
   void SkeletonConf::WriteGeneral ()
   {
-#ifdef TRACE
-    (*trace) << "Entering SkeletonConf::WriteGeneral" << std::endl;
-#endif
+    ENTER_FCN("Entering SkeletonConf::WriteGeneral");
 
-    (*skelfile_)  << "<!-- ---------------------------------------------------------------- -->" << std::endl 
-		  << "<!--   SKELETON-CONF-FILE: PLEASE REPLACE ALL \"XXX\" AND FILL OUT!   -->" << std::endl
-		  << "<!-- ---------------------------------------------------------------- -->" << std::endl;
-    
+    (*skelfile_)  << "<?xml version=\"1.0\"?>" << myendl
+		  << "<cfsSimulation xmlns=\"http://www.cfs++.org\">" << myendl << myendl;    
 
-    (*skelfile_)  << "<!--  ANALYSIS (static, transient, harmonic)" << std::endl
-		  << "<analysis type=""XXX""/>" << std::endl << std::endl;
+    (*skelfile_)  << "   <!-- ============================================================= -->" << std::endl 
+		  << "   <!--  SKELETON-CONF-FILE: PLEASE REPLACE ALL \"XXX\" AND FILL OUT! -->" << std::endl
+		  << "   <!-- ============================================================= -->" << std::endl
+		  << myendl;
 
-    (*skelfile_)  << "<!--In cas of transient analysis, uncomment following lines -->" << std::endl
-		  << "<!--<transient>  -->" << std::endl
-		  << "<!--   <numsteps>    1    </numsteps>    -->" << std::endl
-		  << "<!--   <firstdt>     1e-6 </firstdt>     -->" << std::endl
-		  << "<!--   <stepsavebeg> 1    </stepsavebeg> -->" << std::endl
-		  << "<!--   <stepsaveend> 1    </stepsaveend> -->" << std::endl
-		  << "<!--   <stepsaveinc> 1    </stepsaveinc> -->" << std::endl
-		  << "<!--   <timeDataFile name=""XXX.dat""/>  -->" << std::endl
-		  << "<!--</transient>                         -->" << std::endl << myEndl;
+    (*skelfile_)  << "   <!--  ANALYSIS (static, transient, harmonic) -->" << std::endl
+		  << "   <analysis type=\"XXX\"/>" << std::endl << std::endl;
 
-    (*skelfile_)  << "<!--  NAME OF MATERIAL FILE -->" << std::endl
-		  << "<materialData file=""mat.dat""/>" << std::endl << std::endl;
+    (*skelfile_)  << "   <!--  DEFINE GEOMETRY TYPE -->" << std::endl
+		  << "   <geometry type=\"plane\"/>" << std::endl << std::endl;
 
-    (*skelfile_)  << "<!--  DEFINE GEOMETRY TYPE -->" << std::endl
-		  << "<geometry type=""plane""/>" << std::endl << std::endl;
-
-
+    (*skelfile_)  << "   <!--  NAME OF MATERIAL FILE -->" << std::endl
+		  << "   <materialData file=\"mat.dat\"/>" << std::endl << std::endl;
   }
+
+
+
 
   void SkeletonConf:: WriteSubdomains()
   {
-#ifdef TRACE
-    (*trace) << "Entering SkeletonConf::WriteSubdomains" << std::endl;
-#endif
+    ENTER_FCN("Entering SkeletonConf::WriteSubdomains");
 
     //close the skeleton-config-file
     skelfile_->close();
@@ -134,7 +153,18 @@ namespace CoupledField
     //we need to construct the conf-file object (needed by the FE-elements)
     Char * filename = new Char[100];
     strcpy(filename, name_);
-    conf = new ConfFile(filename);
+
+    // Generate parser and parse XML defaults file
+    std::string cfsDefaults = CVSEXTERNAL;
+    cfsDefaults += "/CFS++XML/Defaults/CFS++Defaults.xml";
+
+#ifdef USE_XERCES
+    params = new XMLParamHandler( cfsDefaults.c_str() );
+#else
+    params = new PlainXMLParamHandler( cfsDefaults.c_str() );
+#endif
+
+
     ptQ   = new Quad1FE();
     ptTet = new Tetra1FE();
     ptL1  = new Line1FE();
@@ -145,7 +175,7 @@ namespace CoupledField
     ptPyra = new Pyra1FE();
     ptWedge = new Wedge1FE();
     // now we can delete conf-object already
-    delete conf;
+    delete params;
 
     //reopen skeleton-conf file
     skelfile_->clear();
@@ -165,7 +195,6 @@ namespace CoupledField
     else if (dim == 2)
       {
 	//subdomains consists of 2d elements
- 	std::vector<std::string> sd;
 	if (meshfile_->GetNum2DElems() == 0)
 	  Error("2D-Problem specified, but no 2D-Elements in mesh-File",__FILE__,__LINE__);
 
@@ -175,15 +204,17 @@ namespace CoupledField
       Error("Dimension of Problem not supported",__FILE__,__LINE__);
 
 
-    (*skelfile_) << "<domain>" << myEndl;
-    (*skelfile_) << "<!--  -- LIST OF SUBDOMAINS (for each subdomain, specify the material name)" 
-		 << std::endl;
+    (*skelfile_) << "   <domain>" << myEndl;
+    (*skelfile_) << "      <!-- LIST OF SUBDOMAINS -->"<< std::endl;
+
     for (Integer i=0; i<sd.size(); i++)
-      (*skelfile_) << "   <region name=""" << sd[i] << """ material=""XXX""/>" << std::endl;
+      (*skelfile_) << "      <region name=\"" << sd[i] << "\" material=\"XXX\"/>" << std::endl;
+
+    (*skelfile_) << std::endl;
 
     WriteLists();
     
-    (*skelfile_) << "</domain>" << myEndl;
+    (*skelfile_) << "   </domain>" << myEndl;
   }
 
 
@@ -193,9 +224,7 @@ namespace CoupledField
 
   void SkeletonConf::WriteLists ()
   {
-#ifdef TRACE
-    (*trace) << "Entering SkeletonConf::WriteLists" << std::endl;
-#endif
+    ENTER_FCN("Entering SkeletonConf::WriteLists");
 
     std::vector<std::string> sd;
     sd.clear();
@@ -211,12 +240,12 @@ namespace CoupledField
       //check for 1D-interface elements
       if (meshfile_->GetNum1DElems() != 0)
 	meshfile_->ReadEl1dConf(sd);
-    
-  
 
-    (*skelfile_) << "<!--  LIST OF FACES -->" << std::endl;
+    if (sd.size())
+      (*skelfile_) << "      <!--  LIST OF FACES -->" << std::endl;
+
     for (Integer i=0; i<sd.size(); i++)
-      (*skelfile_) << "<elements name=""" << sd[i] << """/>";
+      (*skelfile_) << "      <elements name=\"" << sd[i] << "\"/>" << myendl;
 
 
     //check for node-list
@@ -224,49 +253,45 @@ namespace CoupledField
       {
 	sd.clear();
 	meshfile_->ReadBCsConf(sd);
-	(*skelfile_) << "<!-- LIST OF NODES FOR BCs  --> " << myendl;
+
+	if (sd.size())
+	  (*skelfile_) << "      <!-- LIST OF NODES FOR BCs  --> " << myendl;
 	
 	for (Integer i=0; i<sd.size(); i++)
-	  (*skelfile_) << "<nodes name=""" << sd[i] << """/> ";
+	  (*skelfile_) << "      <nodes name=\"" << sd[i] << "\"/>" << myendl;
       }
 
-    //history nodes
-    //     (*skelfile_) << "<!--  -- SPECIFY HISTORY NODES (finish list with \"-1\") " << std::endl;
-    //     (*skelfile_) << "history_node = -1" << std::endl << std::endl;
 
     if (meshfile_->GetNumSaveNodes() )
       {
 	sd.clear();
 	meshfile_->ReadLevelOfSaveNodes(sd);
-	(*skelfile_) << "<!-- LIST OF SAVE NODES --> " << std::endl;
+	if (sd.size())
+	  (*skelfile_) << "      <!-- LIST OF SAVE NODES --> " << std::endl;
+
 	for (Integer i=0; i<sd.size(); i++)
-	  (*skelfile_) << "<nodes name=""" << sd[i] << """/> ";
+	  (*skelfile_) << "      <nodes name=\"" << sd[i] << "\"/>" << myendl;
       }
-    
   }
 
   
   void SkeletonConf::WritePDE ()
   {
-#ifdef TRACE
-    (*trace) << "Entering SkeletonConf::WritePDE" << std::endl;
-#endif
+    ENTER_FCN("Entering SkeletonConf::WritePDE");
 
-    (*skelfile_) << "<!--  PDE SPECIFIC PARAMETERS -->" << std::endl;
-    (*skelfile_) << "<!--  name of pde:            -->" << std::endl;
-    (*skelfile_) << "<XXX>" << std::endl << std::endl;
-
-    (*skelfile_) << "   <subdom>XXX</subdom>" << std::endl << std::endl;
-
-    (*skelfile_) << "<!-- boundary conditions -->" << std::endl;
-    (*skelfile_) << "   <bcsAndLoads>" << std::endl; 
-    (*skelfile_) << "      <dirichletHom   name=""XXX""/>" << std::endl;    
-    (*skelfile_) << "      <dirichletInHom name=""XXX"" value=1 />" << std::endl; 
-    (*skelfile_) << "      <loads          name=""XXX"" value=1 />" << std::endl; 
-    (*skelfile_) << "   </bcsAndLoads>" << std::endl; 
-
-//     (*skelfile_) << "<!--  --\t ABSORBING BCs: (if yes, uncomment  bnd_for_absBCs and specify subdomain)" << std::endl; 
-//     (*skelfile_) << "<!-- \t bnd_for_absBCs = non " << std::endl << std::endl;
+    (*skelfile_) << "      <!-- name of pde -->" << std::endl;
+    (*skelfile_) << "      <XXX>" << std::endl 
+		 << std::endl;       
+    (*skelfile_) << "         <region name=\"XXX\"/>" << std::endl 
+		 << std::endl;       
+    (*skelfile_) << "         <!-- boundary conditions -->" << std::endl;
+    (*skelfile_) << "         <bcsAndLoads>" << std::endl; 
+    (*skelfile_) << "            <dirichletHom   name=\"XXX\"/>" << std::endl;    
+    (*skelfile_) << "            <dirichletInhom name=\"XXX\" value=\"1\" />" << std::endl; 
+    (*skelfile_) << "            <load           name=\"XXX\" value=\"1\" />" << std::endl; 
+    (*skelfile_) << "         </bcsAndLoads>" << std::endl 
+		 << myendl;       
+    (*skelfile_) << "      </XXX>" << std::endl << std::endl;
   }
 }
 
