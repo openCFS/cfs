@@ -271,7 +271,7 @@ namespace CoupledField
 	for ( Integer j = 0; j < sizeofD; j++ ) {
 	  dMat[i][j] = (*matMatrix)[i][j];
 	}
-      }
+       }
 
       // Multiply values of permittivity with -1 to obtain the correct
       // bilinear form
@@ -439,6 +439,61 @@ namespace CoupledField
   }
 
 
+
+// calculates the D-matrix of a axisymmetric-problem 
+  void piezoAxiInt::calcDMaterialMatWithComplexDamping(Matrix<Complex> & dMat, Double & beta, Double & omega)
+  {
+    ENTER_FCN( "linPiezoAxiInt::calcDMatWithComplexDamping" );
+
+    Integer rowPtrXY[]={1,2,6,3,7,8};
+    Integer rowPtrYZ[]={2,3,4,1,8,9};
+    Integer rowPtrXZ[]={1,3,5,2,7,9};
+    Integer * rowPtr; 	//alte Version
+
+    switch(actOrientation) {
+
+    case xy:
+      {
+	rowPtr = rowPtrXY;
+	break;
+      }
+    case yz:
+      {
+	rowPtr = rowPtrYZ;
+	break;
+      }
+    case xz:
+      {
+	rowPtr = rowPtrXZ;
+	break;
+      }
+    default:	//if no orientation was specified
+      {
+	rowPtr = rowPtrYZ;
+	break;
+      }
+    }
+
+    // Set the material matrix
+    Integer sizeofD=getDimD();
+    dMat.Resize(sizeofD);
+    dMat.Init(0);
+
+
+    // The damping case. The matrix is multiplied by (1+\omega_l*\beta_l*j)
+    // Only mech part is damped 
+    Complex imag=(0,1);
+      // Copy entries from mechanical part of material matrix object
+      // into D matrix and multiply with damping parameters
+      Matrix<Double> * matMatrix = ptMaterial->GetMatrix();
+
+      for( Integer i = 0; i < sizeofD-2; i++ ) 
+	for ( Integer j = 0; j < sizeofD-2; j++ ) 
+	  dMat[i][j] = (*matMatrix)[i][j] *(1.0+beta*omega*imag);
+  } // end calcDMatWithComplexDamping
+
+
+
   // ========================================================================
   // ======================== linPiezoPlaneStrainInt - Part =================
   // ========================================================================
@@ -449,6 +504,53 @@ namespace CoupledField
     ENTER_FCN( "piezoPlainStrainInt::calcDMat" );
     CalcPlaneStrainMaterialMat(dMat);
   }
+
+ void piezoPlainStrainInt::calcDMaterialMatWithComplexDamping(Matrix<Complex> &dMat, Double &beta, Double &omega) 
+{
+    ENTER_FCN( "piezoPlainStrainInt::calcDMaterialMatWithComplexDamping");
+    Integer rowPtrXY[]={2,3,5,8,9};
+    Integer rowPtrYZ[]={2,3,4,8,9};
+    Integer rowPtrXZ[]={1,3,5,7,9};
+    Integer * rowPtr;
+
+    switch(actOrientation)
+      {
+      case xy:
+	{
+	  rowPtr=rowPtrXY;
+	  break;
+	}
+      case yz:
+	{
+	  rowPtr=rowPtrYZ;
+	  break;
+	}
+      case xz:
+	{
+	  rowPtr=rowPtrXZ;
+	  break;
+	}
+      default:	//if no orientation was specified
+	{
+	  rowPtr=rowPtrYZ;
+	  break;
+	}
+      }
+
+    // set the material matrix
+    Integer sizeofD=getDimD();
+    dMat.Resize(sizeofD);
+    dMat.Init(0);
+       
+      // Copy entries from mechanical part of material matrix object
+      // into D matrix and scale with damping parameter (1+j*omega*beta)
+      Matrix<Double> * matMatrix = ptMaterial->GetMatrix();
+      Complex imag=Complex(0,1);
+      for( Integer i = 0; i < sizeofD; i++ ) 
+	for ( Integer j = 0; j < sizeofD; j++ ) 
+	  dMat[i][j] = (*matMatrix)[i][j] * beta*omega*imag;
+	
+ }
 
 
   // determine the matrix B of the BDB operator
@@ -529,5 +631,29 @@ namespace CoupledField
     ENTER_FCN( "linPiezo3DInt::calcDMat" );
     Calc3DMaterialMat(dMat);
   }
+
+  // reimplemented  method of Calc3DMaterialMat. 
+  // It is needed to damp the mechanical part in the following way: K=(1+j* \beta_l* \omega_l)K_dd
+  // it is needed in the piezoParamIdent Driver during the calculation of the Jacbian matrix of the parameter to solution map.
+  void linPiezo3DInt::calcDMaterialMatWithComplexDamping(Matrix<Complex> &dMat, Double &beta, Double &omega) {
+
+    ENTER_FCN( "linPiezoInt::Calc3DMaterialMatWithComplexDamping" );
+
+    // Resize and initialise matrix object
+    const Integer sizeofD = getDimD();
+    dMat.Resize( sizeofD );
+    dMat.Init( 0 );
+
+
+      // Copy entries from mechanical part of material matrix object
+      // into D matrix and multiply with damping parameter beta_l, omega_l and the imaginarity j
+      Matrix<Double> * matMatrix = ptMaterial->GetMatrix();
+      Complex imag=Complex(0,1);
+      for( Integer i = 0; i < sizeofD - 3; i++ ) 
+	for ( Integer j = 0; j < sizeofD - 3; j++ ) 
+	  dMat[i][j] = (*matMatrix)[i][j] * (1.0+beta*imag*omega);
+	
+  }// end Calc3dMaterialMatWithComplexDamping
+
 
 } // end namespace CoupledField

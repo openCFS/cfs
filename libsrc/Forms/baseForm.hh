@@ -31,6 +31,9 @@ public:
   //! Virtual function, implemented in derived classes
   virtual void CalcElementMatrix(Matrix<Double>& ptCoord, Matrix<Double> & StiffMat);
 
+  //! Virtual function, implemented in derived classes
+  virtual void CalcComplexElementMatrix(Matrix<Double>& ptCoord, Matrix<Complex> & StiffMat,Double & beta, Double & omega);
+
   /// Calculation of vector of right hand side 
   virtual void CalcElemVector(Matrix<Double>& ptCoord, Vector<Double> & result)
   {Error("CalcElemVector not implemented!",__FILE__,__LINE__);};

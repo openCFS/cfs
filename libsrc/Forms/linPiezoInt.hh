@@ -122,8 +122,10 @@ namespace CoupledField
     /// calculates the material data for the axisymmetric case
     void CalcPlaneStrainMaterialMat(Matrix<Double> & dMat);
 
-    /// calculates the material data for the axisymmetric case
+    /// calculates the material data for the 3d case
     void Calc3DMaterialMat(Matrix<Double> & dMat);
+
+   
 
     //! If set to true, stiffnessmatrix is computed for damping
     //! (just mechanical part)
@@ -159,6 +161,7 @@ namespace CoupledField
     //! Destructor
     ~linPiezo3DInt();
 
+   
   protected:
 
     //! calculate the data-matrix D.
@@ -187,6 +190,9 @@ namespace CoupledField
     //! The current return value is fixed to 4, since in 3D simulations
     //! we have three mechanical and one potential component.
     virtual Integer getNrDofs(){ return 4; };
+
+    //! Damps DMat with the factor $(1+j*\omega*\beta)$
+    void calcDMaterialMatWithComplexDamping(Matrix<Complex> &dMat, Double &beta, Double &omega);
 
   };
 
@@ -277,6 +283,9 @@ namespace CoupledField
 
     //!
     virtual Integer getNrDofs(){ return 3; };
+    
+    //! Damps DMat with the factor $(1+j*\omega*\beta)$
+    void calcDMaterialMatWithComplexDamping(Matrix<Complex> & dMat, Double & beta, Double & omega);
 
   };
 
@@ -350,6 +359,9 @@ namespace CoupledField
     //! The current return value is fixed to 3, since in 2D simulations
     //! we have two mechanical and one potential component.
     virtual Integer getNrDofs(){ return 3; };  
+
+    //! Damps DMat with the factor $(1+j*\omega*\beta)$
+    void calcDMaterialMatWithComplexDamping(Matrix<Complex> &dMat, Double &beta, Double &omega);
 
   };
 
