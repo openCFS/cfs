@@ -19,7 +19,7 @@ SUBLIBDIR := Driver PDE CoupledPDE Estimator\
              DataInOut/ParamHandling \
              DataInOut/Unverg DataInOut/GMV DataInOut/AnsysOut \
              DataInOut/DatFile DataInOut/AnsysFile DataInOut\
-             DataInOut/Database \
+             DataInOut/Database DataInOut/GSI\
              Utils Matrix General  
 #
 ifeq ($(Adaptivity),yes)
@@ -36,7 +36,7 @@ mylibrary = driver domain pde mpccicpl coupledpde\
             estimator forms  \
             elements3d elements2d elements1d elements \
             gridcfs toadaptgrid \
-            gmv definefiles unverg \
+            gmv definefiles unverg gsi\
 	    ansys-out ansysfile datainout paramhandling \
             driver \
             utils matrix general 
@@ -45,16 +45,6 @@ ifeq "$(LASTYPE)" "OLAS"
 
 else
 mylibrary += multigrid-las
-endif
-#
-ifeq ($(GSI), yes)
-SUBLIBDIR := $(SUBLIBDIR) DataInOut/GSI DataInOut/GSI/CFSSocketComm
-mylibrary := $(mylibrary) gsi
-endif
-#
-ifeq ($(GSI), yes)
-SUBLIBDIR := $(SUBLIBDIR) DataInOut/GSI DataInOut/GSI/CFSSocketComm
-mylibrary := $(mylibrary) gsi
 endif
 #
 #
@@ -194,8 +184,6 @@ clean-database:
 clean-gsi:
 	@cd $(LIBSRC_DIR)/DataInOut/GSI && \
 	$(MAKE) clean
-	@cd $(LIBSRC_DIR)/DataInOut/GSI/CFSSocketComm && \
-	make -f Makefile.CFS clean
 clean-domain:
 	@cd $(LIBSRC_DIR)/Domain&&\
 	$(MAKE) clean
