@@ -1,0 +1,86 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org"
+  xmlns:cfs="http://www.cfs++.org"
+  elementFormDefault="qualified">
+
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Coupled Field Solver project CFS++
+      Schema description for all things that did not fit elsewhere
+    </xsd:documentation>
+  </xsd:annotation>
+
+
+  <!-- Data type for general geometry specification -->
+  <xsd:complexType name="DT_Geometry">
+    <xsd:complexContent>
+      <xsd:restriction base="xsd:anyType">
+        <xsd:attribute name="type" use="optional" default="3D">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
+              <xsd:enumeration value="plain"/>
+              <xsd:enumeration value="axi"/>
+              <xsd:enumeration value="3D"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
+      </xsd:restriction>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+
+  <!-- Data type for specification of input file format -->
+  <xsd:complexType name="DT_Input">
+    <xsd:complexContent>
+      <xsd:restriction base="xsd:anyType">
+        <xsd:attribute name="format" use="optional" default="mesh">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
+              <xsd:enumeration value="mesh"/>
+              <xsd:enumeration value="dat"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
+      </xsd:restriction>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+
+  <!-- Data type for specification of output file format -->
+  <xsd:complexType name="DT_Output">
+    <xsd:complexContent>
+      <xsd:restriction base="xsd:anyType">
+        <xsd:attribute name="format" use="optional" default="unv">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
+              <xsd:enumeration value="unv"/>
+              <xsd:enumeration value="gmv"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
+      </xsd:restriction>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+
+  <!-- Data type for name of file containing material data -->
+  <xsd:complexType name="DT_MatFile">
+    <xsd:complexContent>
+      <xsd:restriction base="xsd:anyType">
+        <xsd:attribute name="file" type="xsd:string" use="optional"
+          default="mat.dat"/>
+      </xsd:restriction>
+    </xsd:complexContent>
+   </xsd:complexType>
+
+
+  <!-- Data type for positive floating point numbers -->
+  <xsd:simpleType name="DT_PosFloat">
+    <xsd:restriction base="xsd:float">
+      <xsd:minExclusive value="0"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+</xsd:schema>
+
