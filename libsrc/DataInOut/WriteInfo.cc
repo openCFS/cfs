@@ -433,6 +433,7 @@ namespace CoupledField
 
 #ifdef TRACE
     FcnTraceHandler::Dump();
+    std::cerr << "-> See .trace-file for function tracing dump" << Text;
 #endif
 
     if (filename) 
