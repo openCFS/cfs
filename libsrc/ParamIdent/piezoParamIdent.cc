@@ -1117,13 +1117,13 @@ namespace CoupledField
     Double a1, a2, a3;
     a1=a2=a3=0;
 
-    if( params->HasValue( "pol", "1", "piezo", "polingDirectionX" ) )
+    if( params->HasValue( "x", "1", "piezo", "polingDirection" ) )
       a1=1;
     
-    if( params->HasValue( "pol", "1", "piezo", "polingDirectionY" ) )
+    if( params->HasValue( "y", "1", "piezo", "polingDirection" ) )
       a2=1;
     
-    if( params->HasValue( "pol", "1", "piezo", "polingDirectionZ" ) )
+    if( params->HasValue( "z", "1", "piezo", "polingDirection" ) )
       a3=1;
     
     if (a1==0&&a2==0&&a3==0)

@@ -117,8 +117,8 @@ namespace CoupledField
 
     ptAssemble->InitMatrices();
    
-//     updateMaterialData(parameter,ptMaterial);
-//     updateComplexMaterialData(parameterC,ptMaterial);
+     updateMaterialData(parameter,ptMaterial);
+     updateComplexMaterialData(parameterC,ptMaterial);
 
     //    ptMaterial->RotateMaterialMatrix(1,0,1);
 
