@@ -11,14 +11,14 @@ namespace CoupledField
 // V = B_lin * u  +  1/2 * B_nonLin * u
 // see Habil. M. Kaltenbacher Eq. (3.33)
 void nLinMech3dInt_PiolaStress::
-calcPiolaStressVec(std::vector<Double>& piolaStressVec, Integer ip, Matrix<Double> & ptCoord)
+CalcStressVec(std::vector<Double>& piolaStressVec, Integer ip, Matrix<Double> & ptCoord)
 {
 #ifdef TRACE
-    (*trace) << "entering mech3DInt_PiolaStress::calcPiolaStressTensor" << std::endl;
+  (*trace) << "entering mech3DInt_PiolaStress::calcPiolaStressTensor" << std::endl;
 #endif
-    Matrix<Double> dMat;
-    calcMaterialDMat(dMat);
-    
+  Matrix<Double> dMat;
+  calcMaterialDMat(dMat);
+  
   // convert displacement of all elem nodes into one vector: 
   // (uNode1X, uNode1Y, uNode2X, uNode2Y, ...)
   std::vector<Double> displVec;
@@ -42,7 +42,6 @@ calcPiolaStressVec(std::vector<Double>& piolaStressVec, Integer ip, Matrix<Doubl
   std::vector<Double> nonLinStrain;
   
   nonLinStrain = part1 + part2;
-  //  nonLinStrain = part1;
   piolaStressVec = dMat * nonLinStrain;
 }
 
@@ -142,7 +141,7 @@ convertStressVecToTensor(Matrix<Double>& stressTensor, std::vector<Double>& piol
     std::vector<Double> piolaStressVec;
     Matrix<Double> stressTensor;
     
-    calcPiolaStressVec(piolaStressVec, ip, ptCoord );
+    CalcStressVec(piolaStressVec, ip, ptCoord );
     convertStressVecToTensor(stressTensor, piolaStressVec);
 
     // in "Resize", matrix elements are set to zero
@@ -192,8 +191,122 @@ convertStressVecToTensor(Matrix<Double>& stressTensor, std::vector<Double>& piol
 
 
 
+// =============================================================================
+// class regarding mechanical prestresses
+// =============================================================================
 
-  
+
+
+// calculates the D-matrix needed for regarding pre-stresses
+void PreStressInt::CalcStressVec(std::vector<Double>& preStressVec, Integer ip, Matrix<Double> & ptCoord)
+  {
+#ifdef TRACE
+    (*trace) << "entering PreStressInt::CalcStressVec" << std::endl;
+#endif
+
+    const Integer dimD = nLinMech3dInt_BNonLin::getDimD();
+    const Integer nrDofs = getNrDofs();
+    const Integer distributedStress = 1;
+    
+
+        
+    preStressVec.resize(dimD);
+    preStressVec *= 0;
+    
+    if (! distributedStress)
+      switch(preStressDir_)
+	{
+	case X:
+	  preStressVec[0] = preStressVal_;
+	  break;
+	
+	case Y:
+	  preStressVec[1] = preStressVal_;
+	  break;
+	  
+	case Z:
+	  preStressVec[2] = preStressVal_;
+	  break;
+	  
+	case radXY:
+	  {  
+	    std::vector<Double> shapeFncIP;
+	    ptelem->GetShFncAtIp(shapeFncIP, ip);
+	    
+	    std::vector<Double> coordIP(nrDofs);
+	    coordIP = ptCoord * shapeFncIP;
+	    
+	    
+	    preStressVec[0] = coordIP[0];
+	    preStressVec[1] = coordIP[1];
+	    // in xy-plane, no z-coord has to be regarded
+	    preStressVec[2] = 0;
+	    
+	    
+	    // center of radial prestress is (0,0)
+	    preStressVec *= (preStressVal_ / L2Norm(preStressVec));
+	    break;
+	  }
+	  
+	default:
+	  Error("The prestress direction mentioned in the config-file is not implemented! ",__FILE__,__LINE__);
+      }
+    else
+      {
+	std::vector<Double> preStrainVec(dimD);
+	
+	preStrainVec *= 0;   // initialize vector
+	
+	    
+	Matrix<Double> matData;
+	calcMaterialDMat(matData);
+	    
+	switch(preStressDir_)
+	  {
+	  case X:
+	    preStrainVec[0] = preStressVal_ / matData[0][0];
+	    break;
+		
+	  case Y:
+	    preStrainVec[1] = preStressVal_ / matData[1][1];
+	    break;
+		
+	  case Z:
+	    preStrainVec[2] = preStressVal_ / matData[2][2];
+	    break;
+		
+	  case radXY:
+	    {  
+	      std::vector<Double> shapeFncIP;
+	      ptelem->GetShFncAtIp(shapeFncIP, ip);
+		  
+	      std::vector<Double> coordIP(nrDofs);
+	      coordIP = ptCoord * shapeFncIP;
+		  
+	      // in xy-plane, no z-coord has to be regarded
+	      // center of radial prestress is (0,0)
+	      coordIP[2]= 0;
+		  
+	      for (Integer i=0; i<coordIP.size(); i++)
+		preStrainVec[i] = coordIP[i] / L2Norm(coordIP) * preStressVal_ / matData[i][i];
+	      break;
+	    }
+		
+	  default:
+	    Error("The prestress direction mentioned in the config-file is not implemented! ",__FILE__,__LINE__);
+	  }
+
+	// calc "distributed" stress 
+	preStressVec = matData * preStrainVec;
+	    
+      }
+  }
+
+
+
+// =============================================================================
+// base class for nonlinear mechanics  
+// =============================================================================
 
 
   // returns nonlinear B - matrix (first part) for BDB
@@ -249,6 +362,11 @@ convertStressVecToTensor(Matrix<Double>& stressTensor, std::vector<Double>& piol
       }
   }
   
+
+
+// =============================================================================
+// class for nonlinear differential operator (one part in nonlinear mechanics)
+// =============================================================================
 
 
   // calculates the D-matrix of a 3d-problem 
@@ -336,6 +454,29 @@ convertStressVecToTensor(Matrix<Double>& stressTensor, std::vector<Double>& piol
   {
 #ifdef TRACE
     (*trace) << "entering nLinMech3dInt_PiolaStress::~nLinMech3dInt_PiolaStress" << std::endl;
+#endif
+  }
+
+
+
+
+
+  // class for regarding 3d prestress
+PreStressInt::PreStressInt(BaseFE * aptelem, MaterialData & matData, Double aPreStressVal, Directions stressDir) 
+    : nLinMech3dInt_PiolaStress(aptelem, matData), preStressVal_(aPreStressVal), preStressDir_(stressDir)
+  {
+#ifdef TRACE
+    (*trace) << "entering PreStressInt::PreStressInt" << std::endl;
+#endif
+    updateDMatInEveryIP_ = 1;
+    setPiolaDimD(9);
+  }
+ 
+
+  PreStressInt::~PreStressInt()
+  {
+#ifdef TRACE
+    (*trace) << "entering PreStressInt::~PreStressInt" << std::endl;
 #endif
   }
 

@@ -76,6 +76,10 @@ typedef int Boolean;
   //   L2REL = relative L2 norm: (|val| - |oldval|) / |val|
   enum NormType {L2ABS, L2REL};
 
+  // Enumeration for directions
+  // direction of various fields 
+  // "Rad" means readial, following two letters indicate the stress-plane
+  enum Directions {X, Y, Z, radXY, radXZ, radYZ};
 
   std::ostream & operator << (std::ostream & out, const enum precond & type);
 

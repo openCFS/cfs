@@ -55,6 +55,9 @@ private:
 
 
 
+
+
+
 /// class for calculation of right-hand-side of nonlinear mechanics
 class nLinMech_linFormInt : public LinearForm
 {
@@ -79,7 +82,8 @@ public:
   void setActElemDispl(Matrix<Double>& disp) {elemDisp_ = disp;};  
 
 
-private:
+  
+protected:
   /// returns nr. of degrees of freedom
   virtual Integer getNrDofs(){return 3;};
 
@@ -89,6 +93,40 @@ private:
   /// displacement of all nodes of actual element
   Matrix<Double> elemDisp_;
 };
+
+
+
+
+
+/// class for calculation of right-hand-side of prestress
+class PreStressLinFormInt : public nLinMech_linFormInt
+{
+public:
+  /// constructor
+  PreStressLinFormInt(BaseFE * aptelem, MaterialData & matData, Double aPreStressVal, Directions stressDir);
+  
+
+  /// destructor
+  virtual ~PreStressLinFormInt();
+
+  /// Calculation of vector of right hand side 
+  virtual void CalcElemVector(Matrix<Double>& ptCoord, std::vector<Double> & result);
+
+private: 
+  ///
+  Double preStressVal_;
+
+  ///
+  Directions preStressDir_;
+};
+
+
+
+
+
+
+
+
 
 /// class for calculation of right hand side for flownoise problem
 class LinearFlowNoiseInt : public LinearForm

@@ -100,12 +100,23 @@ public:
   //! Assemble stiffness part
   void AssembleStiffness(BaseFE * ptEl, Vector<Integer>& connect_PDE, Matrix<Double>& ptCoord, MaterialData& actMatData);
   
+  //! Assemble prestress RHS (if prestress given)
+  void AssemblePreStressRHS(BaseFE * ptEl, Vector<Integer>& connect_PDE, Matrix<Double>& ptCoord, 
+			    MaterialData& actMatData, Matrix<Double>& elDisp);
+
+  //! Assemble prestress matrix (if prestress given)
+  void AssemblePreStressMat(BaseFE * ptEl, Vector<Integer>& connect_PDE, Matrix<Double>& ptCoord, 
+			    MaterialData& actMatData, Matrix<Double>& elDisp);
+
   /// calculates L2-norm of RHS regarding entries due to penalty formulation
   Double RhsL2Norm(std::vector<Double>& stdVec);
 
   /// sets external forces and returns L2Norm of them
   Double SetExternalForces(const Integer level);
 
+  /// reads the directions (e.g. for prestress) from the config-file
+  void GetDirection(Directions& dir, const std::string keyword);
+  
 protected:
 
   /// setup source term
@@ -156,6 +167,14 @@ private:
 
   /// stopping criterion for residual error
   Double residualStopCrit_;  
+
+  /// value of prestress
+  Double preStressVal_;
+
+  /// direction of prestress
+  Directions preStressDir_;
+  
+
 };
 
 } // end of namespace

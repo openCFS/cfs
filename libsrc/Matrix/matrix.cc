@@ -383,6 +383,8 @@ Matrix<TYPE> &Matrix<TYPE>::operator*= (const TYPE &x)
         return *this;
 }
 
+
+
 template<class TYPE>
 Matrix<TYPE> &Matrix<TYPE>::operator*=(const Matrix<TYPE> &x)
 {       *this = *this * x;
@@ -796,14 +798,29 @@ Double operator* (std::vector<Double> & vec1, std::vector<Double> & vec2)
 
 
 
-Double operator*= (std::vector<Double> & vec, Double val)
+std::vector<Double> operator*= (std::vector<Double> & vec, Double val)
 {
 #ifdef TRACE
   (*trace) << "entering operator*= (std::vector<Double> &, Double)" << std::endl;
 #endif
 
   for (Integer i=0; i < vec.size(); i++)
-    vec[i]*= val;  
+    vec[i] *= val;  
+
+  return vec;
+}
+
+
+std::vector<Double> operator/= (std::vector<Double> & vec, Double val)
+{
+#ifdef TRACE
+  (*trace) << "entering operator*= (std::vector<Double> &, Double)" << std::endl;
+#endif
+
+  for (Integer i=0; i < vec.size(); i++)
+    vec[i] /= val;  
+
+  return vec;
 }
 
 
@@ -865,6 +882,7 @@ std::vector<Double> operator+= ( std::vector<Double> & vec1,  std::vector<Double
   
   return vec1;
 }
+
 
 
 
