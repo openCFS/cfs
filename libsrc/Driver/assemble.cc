@@ -1607,7 +1607,8 @@ void  HarmonicAssemble::TransformMatrix2Harmonic(Vector<Double>& harmMat, Matrix
 	  }
       }
   } // end, if piezoMatType == real...
-  else if(piezoMatType == imagMaterialParameter){
+
+  else if(piezoMatType == imagMaterialParameter){  // the "imaginary parts"
      if (matrixType == STIFFNESS)
       {
 	k=numRow*numCol;
@@ -1617,18 +1618,7 @@ void  HarmonicAssemble::TransformMatrix2Harmonic(Vector<Double>& harmMat, Matrix
 	    k++;
 	  }
       }
-    
-     else if (matrixType == MASS) // should not occur ...
-      {
-	k=numRow*numCol;
-	Double factor = -actFreq_*actFreq_;
-	for (Integer row=0; row<numRow; row++)
-	  for (Integer col=0; col<numCol; col++) {
-	    harmMat[k] = factor*origMat[row][col];
-	    k++;
-	  }
-      }
-    
+       
     else if (matrixType == DAMPING)
       {
 	Double factor = actFreq_;

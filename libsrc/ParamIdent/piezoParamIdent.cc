@@ -186,6 +186,13 @@ namespace CoupledField
     // of pdes which have to be solved and intialize them
 
     MaterialData * ptMaterial=pdes_[0]->getPDEMaterialData();   // Pointer to MaterialData
+
+    Matrix<Double> *matMat = ptMaterial->GetMatrix();
+    Matrix<Double> *matMatC = ptMaterial->GetMatrixC();
+
+    std::cout<<*matMat<<std::endl;
+    std::cout<<*matMatC<<std::endl;
+
  //    ptBCs = pdes_[0]->getPDE_BCs();                             // Pointer to BCs
 //     ptAlgsys = pdes_[0]->getPDE_algsys();                       //Pointer to AlgebraicSystem
 //     Integer numElems = pdes_[0]->getPDE_numElems();
@@ -252,8 +259,8 @@ namespace CoupledField
       Vector<Double> freqsTemp = freqs;
       Integer nrfreq=100;
       freqs.Resize(nrfreq);
-      Double startfreq=2.0e+06;
-      Double stopfreq=6.0e+06;
+      Double startfreq=0.0e+06;
+      Double stopfreq=2.0e+06;
       Double freqincr=(stopfreq-startfreq)/nrfreq;
       for(Integer i=0;i<nrfreq;i++){
 	startfreq+=freqincr;
@@ -342,7 +349,12 @@ namespace CoupledField
     Complex misfit;
 
     alpha_m; 
-    Matrix<Double> *matMat = ptMaterial->GetMatrix();
+    //    Matrix<Double> *matMat = ptMaterial->GetMatrix();
+    //Matrix<Double> *matMatC = ptMaterial->GetMatrixC();
+
+    std::cout<<*matMat<<std::endl;
+    std::cout<<*matMatC<<std::endl;
+
     std::cout<<"\n before scaling"<<std::endl;
 
     scaling[0]=1.0/((*matMat)[0][0]); 

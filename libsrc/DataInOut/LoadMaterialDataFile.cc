@@ -21,6 +21,7 @@
 #include "LoadMaterialDataFile.hh"
 #include "WriteInfo.hh"
 #include "General/environment.hh"
+#include "DataInOut/ParamHandling/BaseParamHandler.hh"
 
 namespace CoupledField
 {
@@ -44,6 +45,7 @@ namespace CoupledField
     char * charMatType = c_string(matType);    
     
     std::ifstream fin(charFileName);
+    Boolean matC=FALSE;
 
     if (!fin.good())
       {
@@ -73,7 +75,20 @@ namespace CoupledField
     
 	if (strcmp(charMatType,"piezo") == 0 )
 	  {
-	    ReadPiezo(fin, &material);	 
+	    ReadPiezo(fin,&material,matC);	// reads real parts of piezo Material
+
+	    if( params->HasValue( "type", "imagMaterialParameter", "piezo", "materialDataType" ) ) {
+
+	      matC=TRUE;
+
+	      std::strcat(charMatName,"-imag");
+
+	      FindMat(fin, charMatName, buffer, charMatType);
+
+	      SSCANF(buffer,"%*d%s", charMatType);
+
+	      ReadPiezo(fin, &material,matC);   // reads imaginary parts of piezo Material
+	    } 
 	
 	    /*
 	      if (eulerAngles.size())
@@ -92,7 +107,7 @@ namespace CoupledField
 	      << "1e5, 1e5, 1e5) IS ON !!!!! " << std::endl << std::endl;	   
 	      }
 	    */
-	  }
+	  } // end if strcmp()...
     
 	else if (strcmp(charMatType,"fluid") == 0)
 	  ReadFluid(fin, &material);
@@ -173,7 +188,7 @@ namespace CoupledField
   }
 
 
-  void LoadMaterialDataFile :: ReadPiezo(std::ifstream & fin, MaterialData * material)
+  void LoadMaterialDataFile :: ReadPiezo(std::ifstream & fin, MaterialData * material, Boolean & matC)
   {
     ENTER_FCN("LoadMaterialDataFile::ReadPiezo");
     Integer i,j;
@@ -184,7 +199,8 @@ namespace CoupledField
     char materialName[bufLength];
     std::istringstream * strPtr;
 
-    material->DefFull3dMatrix(); // declare matrix with 9x9 entries
+    if (matC==FALSE)
+      material->DefFull3dMatrix(); // declare matrix with 9x9 entries
 
     ReadLine(fin,buffer);
     SSCANF(buffer,"%*d%*s%s", materialName);  
@@ -204,7 +220,11 @@ namespace CoupledField
 	      std::cout << "*** The materialfile is corrupt! ***  Material: " << materialName << std::endl;
 
 	    //	    material -> SetPiezoMatrixData(i,j, helpval);
-	    material -> SetPiezoMatrixData(i-1, j-1, helpval);
+
+	    if (matC==FALSE)
+	      material -> SetPiezoMatrixData(i-1, j-1, helpval);
+	    else if (matC==TRUE)
+	      material -> SetPiezoMatrixDataC(i-1, j-1, helpval);
 	  }
 	delete strPtr;	
       }
@@ -223,10 +243,16 @@ namespace CoupledField
 	    if (strPtr->fail())
 	      std::cout << "*** The materialfile is corrupt! ***  Material: " << materialName << std::endl;
 
-	    material -> SetPiezoMatrixData(i+6-1,j-1, helpval);
-	    material -> SetPiezoMatrixData(j-1,i+6-1, helpval);     // writes transposed coupling terms
+	    if (matC==FALSE){
+	      material -> SetPiezoMatrixData(i+6-1,j-1, helpval);
+	      material -> SetPiezoMatrixData(j-1,i+6-1, helpval);     // writes transposed coupling terms
 	    //	    material -> SetPiezoMatrixData(i+6,j, helpval);
 	    //	    material -> SetPiezoMatrixData(j,i+6, helpval);     // writes transposed coupling terms
+	    }
+	    else if (matC==TRUE){
+	      material -> SetPiezoMatrixDataC(i+6-1,j-1, helpval);
+	      material -> SetPiezoMatrixDataC(j-1,i+6-1, helpval);     // writes transposed coupling terms
+	    }
 	  }
 	delete strPtr;	
       }
@@ -244,9 +270,14 @@ namespace CoupledField
 	    if (strPtr->fail())
 	      std::cout << "*** The materialfile is corrupt! ***  Material: " << materialName << std::endl;
 
+	    if (matC==FALSE){
 	    //	    material -> SetPiezoMatrixData(i+6-1,j+6-1, helpval);
 	    // indizes of Matrix<Double> start at 0 !!!!!!!!!!!!!!!!!
-	    material -> SetPiezoMatrixData(i+6-1,j+6-1, helpval);
+	      material -> SetPiezoMatrixData(i+6-1,j+6-1, helpval);
+	    }
+	    else if (matC==TRUE){
+	      material -> SetPiezoMatrixDataC(i+6-1,j+6-1, helpval);
+	    }
 	  }
 	delete strPtr;	
       }

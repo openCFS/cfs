@@ -47,7 +47,7 @@ namespace CoupledField
     // void ReadMagNonLin(std::ifstream & fin, MaterialData * material);
 
     /// read piezolectric material data
-    void ReadPiezo(std::ifstream & fin, MaterialData * material);
+    void ReadPiezo(std::ifstream & fin, MaterialData * material, Boolean & matC);
 
     /// read fluid material data
     void ReadFluid(std::ifstream & fin, MaterialData * material);
