@@ -520,6 +520,58 @@ void SparseMatrix<TYPE>::test()
     }
 }
 
+template<class TYPE>
+void SparseMatrix<TYPE>::SetInfo(std::ostream & out)
+{
+  out << "We use SparseMatrix" << std::endl << std::endl;
+}
+
+template< class TYPE>
+void SparseMatrix<TYPE>::precond(Vector<TYPE> & e, const Vector<TYPE> r, enum precond
+type)
+{
+#ifdef TRACE
+  (*trace) << "entering SparseMatrix::precond" << std::endl;
+#endif
+
+  if (!e.size()) Error("Define vector before use of precond");
+
+ Integer i,j;
+ Integer n=r.size();
+ Double omega;
+
+ switch(type)
+{ case non: e=r; break;
+  case Jacobi:
+       for (i=0; i<n; i++) e[i]=r[i]/(*this)(i,i);  ///// May be (*this)
+       break;
+  case SSOR:
+       omega=1.2; /// omega=1.2
+       TYPE sum;
+
+       for (i=0; i<n; i++)
+       {
+         sum=0;
+         for (j=0; j<i; j++) sum+=(*this)(i,j)*e[j];
+         e[i]=(r[i]-omega*sum)/(*this)(i,i);
+       }
+
+       for (i=n-1; i>=0; i--)
+       {
+         sum=0;
+         for (j=i+1; j<n; j++) sum+=(*this)(i,j)*e[j];
+         e[i]-=omega*sum/(*this)(i,i);
+       }
+
+       e*=omega*(2-omega);
+       break;
+default:
+       Error("Wrong type of precondition",__FILE__,__LINE__);
+
+} //end of switch
+
+}
+
 template std::ostream & operator<<<Integer> (std::ostream & , const SparseMatrix<Integer> &);
 template std::ostream & operator<<<Double> (std::ostream & , const SparseMatrix<Double> &);
 

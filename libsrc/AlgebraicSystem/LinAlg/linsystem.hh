@@ -47,6 +47,7 @@ private:
 #ifdef __GNUC__
 template class LinSystem<Double, Matrix<Double> >;
 template class LinSystem<Double, SymMatrix<Double> >; 
+template class LinSystem<Double, SparseMatrix<Double> >;
 //template class LinSystem<Double, SymBandMatrix<Double> >;
 #endif
 

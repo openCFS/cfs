@@ -33,10 +33,10 @@ void LinSystem<Dim, T_Matrix>::Set()
   Integer i,j;
   for (i=0; i<n; i++)
    for (j=0; j<n; j++)
-     A[i][j]=1;
-  A[0][0]=3;
-  A[1][1]=2;
-  A[2][2]=4;
+     A(i,j)=1;
+  A(0,0)=3;
+  A(1,1)=2;
+  A(2,2)=4;
 //  for (i=0; i<n; i++) AA[i][i]=1.77778e+8;
 //  AA[0][1]=8.88889e+7;
 //  AA[1][0]=AA[0][1];

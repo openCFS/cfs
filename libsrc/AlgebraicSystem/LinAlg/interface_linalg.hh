@@ -66,7 +66,7 @@ virtual void AssembleSysMatrix(const Double CoefLaplace, const Double CoefMass)
   { return ptWork->getSolution(); }
 
 private:
-  WorkWithSysMat<Dim, Matrix<Double> > * ptWork;
+  WorkWithSysMat<Dim, SparseMatrix<Double> > * ptWork;
 } ;
 
 template<class Dim>

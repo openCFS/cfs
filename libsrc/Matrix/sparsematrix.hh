@@ -72,6 +72,8 @@ public:
   template<class S>
   friend std::ostream & operator<< (std::ostream& , const SparseMatrix<S>&);
 
+  void precond(Vector<TYPE> & e, const Vector<TYPE> r, enum precond type);
+
   //! Add element on position i,j
   void Add(const Integer, const Integer, const TYPE value);
 
@@ -83,6 +85,9 @@ public:
 
   //! Cut row number i, column number j from matrix
   void cut(const Integer i, const Integer j); 
+
+  //! Print in info-file type of matrix
+  void SetInfo(std::ostream & out);
 
 private:
   //! number of rows
