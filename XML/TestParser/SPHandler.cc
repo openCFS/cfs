@@ -57,7 +57,7 @@ namespace CoupledField {
     // We may separate the schema file from the instance file
     std::string mySchema = "http://www.cfs++.org ";
     mySchema += XMLSCHEMA;
-    mySchema += "/CFS.xsd";
+    mySchema += "CFS.xsd";
     parser_->setExternalSchemaLocation( mySchema.c_str() );
 
     // Have not yet understood what an entity reference node is, but it seems
