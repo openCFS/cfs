@@ -108,8 +108,14 @@ namespace CoupledField
     //! Iterative Method to determine material parameter
     void NewtonLandweber();
 
+    //! Iterative Method to determine complex valued material parameter
+    void NewtonLandweberC();
+
     //! The classical regularisation strategy for ill-posed systems of equations
     void tichonov();
+
+    // ! nu - methods, semiiterative methods with optimal rate of convergence
+    void nuMethods();
 
     //! saves sysmat of forward problem, multiplication with \omega*\beta*j ...
     void createAndSetRHSforJacobian(Integer & fstep);

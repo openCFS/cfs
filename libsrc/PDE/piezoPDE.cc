@@ -1037,7 +1037,7 @@ void PiezoPDE::CalcCharges(){
 	
 	// Calc electric flux density
 	//	dFieldOp->CalcElemGradField(elemDField, volElems[iElem], 
-	//				    lCoordVol, permittivity);
+	// 			    lCoordVol, permittivity);
 	
 	//elemNormalD = lCoordVol * elemDField;
 
