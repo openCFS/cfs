@@ -13,7 +13,9 @@ libpath = libsrc/DataInOut/Database
 CFLAGS3 =
 #
 include ../../makefile.inc
-
+ifeq ($(DATABASE),yes)
+  -include $(Dependencies)
+endif
 # DO NOT DELETE
 
 
