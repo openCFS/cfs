@@ -37,8 +37,6 @@ void OutResultUnverg :: Create(Grid<Point2D> * ptgrid, const Integer level)
  Dataset666(ptgrid,level);
  Dataset781(ptgrid,level);
  Dataset780(ptgrid,level);
-// Dataset55(ptgrid,level);
-// Dataset56(ptgrid,level);
  ;
 }
 
@@ -53,6 +51,8 @@ void  OutResultUnverg::Dataset666(Grid<Point2D> * ptgrid, const Integer level)
  Integer maxnumelem=ptgrid-> GetMaxnumElem(level);
 
  (*output)<< std::setw(10) << 1 << std::setw(10) << 1 ;
+
+// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Pay attention that there is switch
 
  if (ptCoordinate->is2D()) (*output) << std::setw(10) << 2 << std::endl; 
  else (*output) << std::setw(10) << 3 << std::endl; 
@@ -74,20 +74,21 @@ void  OutResultUnverg::Dataset781(Grid<Point2D> * ptgrid, const Integer level)
  (*output).setf(std::ios::scientific);
  (*output).precision(16);
 
- ptCoordinate=ptgrid->GetptCoordinate(level); 
+// ptCoordinate=ptgrid->GetptCoordinate(level); 
 
  for (Integer i=0; i<maxnumnodes; i++)
    {
      (*output) << std::setw(10) << i+1 << std::setw(10) << 0 << std::setw(10) << 0 << std::setw(10) << 11 << std::endl;
 
      (*output).setf(std::ios::uppercase);
-     if (ptCoordinate->is2D()) 
-       {
-	 (*output) << "   " << 0.0 ; 
-	 PrintPoint(ptCoordinate[i],output);
-       }
-     else  PrintPoint(ptCoordinate[i],output);
 
+     Point2D Point;
+
+     ptgrid->GetCoordinateNode(i,level,Point);
+
+     (*output) << "   " << 0.0 ;
+
+     PrintPoint(Point,output);
 
      (*output) << std::endl;           
    }

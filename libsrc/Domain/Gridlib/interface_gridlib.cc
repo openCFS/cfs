@@ -32,6 +32,15 @@ void InterfaceGridlib<Dim>::GetCoordOfNodesElem(const Integer numElem, const Int
 }
 
 template<class Dim>
+void InterfaceGridlib<Dim>::GetCoordinateNode(const Integer inode, const Integer numlevel, Dim & rfPoint)
+{
+ float x,y,z;
+ ptGoMesh->getVertex(inode,numlevel)->getPosition(x,y,z);
+ rfPoint.x= double(x);
+ rfPoint.y= double(y);
+}
+
+template<class Dim>
 void InterfaceGridlib<Dim>::Read() 
 {
 #ifdef TRACE
@@ -42,8 +51,6 @@ void InterfaceGridlib<Dim>::Read()
   ptFileType-> ReadGeneralAnalChoice(data, FileType::numnode, FileType::endGAnal);
  
   Integer nnodes=data[0]; 
-
-  std::cout << " Number of nodes " << nnodes << std::endl; 
 
   ptGoMesh=new GoTriangleMesh;
 
@@ -76,9 +83,6 @@ void InterfaceGridlib<Dim>::Read()
   ptFileType->ReadGeneralElemChoice(0,data1, FileType::numelem, FileType::maxnode, FileType::endGElem);
   Integer nelems=data1[0];
   Integer nelemNodes=data1[1];
-
-  std::cout << " Number of elements " << nelems << std::endl;
-  std::cout << " Number of nodes in element " << nelemNodes << std::endl; 
 
   Integer * Connect=new Integer[nelems*nelemNodes];
   // ########################## number of groupes

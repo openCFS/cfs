@@ -31,7 +31,8 @@ void Driver::SolveNewmarkMethod(OutResultUnverg * ptUnverg)
 #ifdef TRACE
   (*trace) << "entering Driver :: SolveNewmarkMethod" << std::endl;
 #endif
-//  ptUnverg->Create(ptgrid,0);
+
+  ptUnverg->Create(ptgrid,0);
 
 //  Double endtime=1.0;   ////////////////////////////////////////////
   Double t=0;
