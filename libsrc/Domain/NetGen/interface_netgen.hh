@@ -61,11 +61,11 @@ public:
 
   //! Get number of subdomains
   virtual Integer GetNumSubdomains() const
-  { Error("Not implemented"); return 0;}
+  { return maxnumsubdomain_;}
 
   //! Get pointer to array with nodes, that belongs to subdomain number num
   virtual Integer * GetElemSubdomain(const Integer num, const Integer level) const
-   { Error("Not implemented"); return NULL; }
+   { return pptelemsubdom_[num]; }
 
 private:
 
@@ -83,6 +83,13 @@ private:
 
   //!
   BaseElem ** ptArrayElem_;  
+
+  //!
+  Integer maxnumsubdomain_;
+
+  //!
+  Integer ** pptelemsubdom_;
+
 };
 
 template<class Dim>

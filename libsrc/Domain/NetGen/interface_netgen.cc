@@ -22,6 +22,9 @@ void InterfaceNetGen<Point2D>::Read()
  
   Integer nnodes=data[0]; 
 
+  ptFileType->ReadGeneralAnalChoice(data,FileType::numgroup,FileType::endGAnal);  maxnumsubdomain_=data[0];
+  pptelemsubdom_=new Integer*[maxnumsubdomain_];
+
   Point2D * ptCoord=new Point2D[nnodes]; 
   ptFileType->ReadCoordinate(ptCoord, nnodes);
    
@@ -50,9 +53,11 @@ void InterfaceNetGen<Point2D>::Read()
 
   ptArrayElem_=new BaseElem*[nelems+1];
   // ########################## number of groupes
-  ptFileType->ReadElemConnectionGH(nelems, Connect, nelemNodes, 0);
 
   Integer i;
+
+//  for (i=0; i<maxnumsubdomain_; i++)
+  ptFileType->ReadElemConnectionGH(nelems, Connect, nelemNodes, 0,0);
 
   Element2d el3(3);
   Element2d el4(4);
@@ -165,13 +170,13 @@ Integer InterfaceNetGen<Dim>::GetMaxnumnodes(const Integer numlevel)
 
 template<class Dim>
 Integer InterfaceNetGen<Dim>::GetMaxnumElem(const Integer numlevel)
-  { return mesh.GetNSE();}
+{
+ return mesh.GetNSE();
+}
 
 template<class Dim>
 Integer InterfaceNetGen<Dim>::GetNumNodesPerElem(const Integer iElem, const Integer level)
 { 
-// Element2d el=mesh.SurfaceElement(iElem);
-// return el.GetNP();
   return mesh.SurfaceElement(iElem+1).GetNP();
 }
 

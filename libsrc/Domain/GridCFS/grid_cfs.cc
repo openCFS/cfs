@@ -48,12 +48,9 @@ void GridCFS<Dim> :: Read()
 
    gh[0].maxnumelem=data[0];
 
-  pptelemsubdom[0]=new Integer[gh[0].maxnumelem+1];
+//  pptelemsubdom[0]=new Integer[gh[0].maxnumelem+1];
 
-  for (i=0; i < gh[0].maxnumelem; i++)
-   pptelemsubdom[0][i]=i;
-
-  pptelemsubdom[0][gh[0].maxnumelem]=-1;
+//  pptelemsubdom[0][gh[0].maxnumelem]=-1;
 
 //#################### V etom meste budet check na 3 tochki
    Integer NumNodeperElem=data[2];
@@ -98,9 +95,13 @@ void GridCFS<Dim> :: Read()
    Integer j;
 for (j=0; j<maxnumsubdomain; j++)
 {
+   
    InFile->ReadMaxnumelemGroup(maxnumelemgr,j);
 // InFile->ReadElemConnectionGH(gh[0].maxnumelem, gh[0].Connect, NumNodeperElem, 0);
    std::cout << maxnumelemgr << std::endl;
+
+   pptelemsubdom[j]=new Integer[maxnumelemgr+1];
+
    InFile->ReadElemConnectionGH(maxnumelemgr,gh[0].Connect,NumNodeperElem,j,startposarrayconn);
    for (i=0; i<gh[0].maxnumelem; i++) 
    {
