@@ -10,6 +10,7 @@
 #include <Estimator/spaceerror.hh>
 #include "newmark.hh"
 #include "newmarkdamp.hh"
+#include <DataInOut/WriteInfo.hh>
 
 
 namespace CoupledField
@@ -40,13 +41,6 @@ AcousticPDE::AcousticPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, Fil
   sol_.reshape(dofspernode_, NumPDENodes_);
   sol_.init();
 
-  //check, if problem is axisymmetric
-  isaxi_ = FALSE;
-  std::string subtype;
-  conf->ifget("subtype",subtype,pdename_);
-  if (subtype == "axi")
-    isaxi_ = TRUE;
-
   with_absBCs_=FALSE;
   std::string absBCs="no";
   conf->ifget("absorbingBCs",absBCs,pdename_);
@@ -59,6 +53,7 @@ AcousticPDE::AcousticPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, Fil
 
   if (dampstr == "fractional")
     {
+      Info->PrintF(pdename_,"\n Attenuation according to power law, number of memory is %g\n\n", frac_memory_);
        with_fracdamping_ = TRUE;
        conf->get("frac_memory",frac_memory_,pdename_);
        damping_type_ = FRACTIONAL;
@@ -103,7 +98,7 @@ void AcousticPDE::ComputeRHS(const Double atime)
 #ifdef TRACE
   (*trace) << "entering Acoustic3dPDE::ComputeRHS" << std::endl;
 #endif
-  
+
 }
 
 void AcousticPDE::SolveStepTrans(const Integer kstep, const Double asteptime, 
@@ -174,7 +169,7 @@ void AcousticPDE::SolveStepTrans(const Integer kstep, const Double asteptime,
 void AcousticPDE::SolveStepHarmonic(const Integer level)
 {
 #ifdef TRACE
-  (*trace) << "entering AcousticPDE::SolveStepHarmonic" << std::endl;
+  (*trace) << "entering MagEdgePDE::SolveStepHarmonic" << std::endl;
 #endif
 
   Integer update = 0;
@@ -200,9 +195,8 @@ void AcousticPDE::SolveStepHarmonic(const Integer level)
   for (Integer i=0; i<NumPDENodes_; i++)
     for (Integer dim=0; dim<dofspernode_; dim++)
       {
-	sol_[dim][i] = ptsol[i];
-	//sol_[dim][i] = ptsol[2*i];
-	//	solIm_[dim][i] = ptsol[2*i+1];
+	sol_[dim][i] = ptsol[2*i];
+	solIm_[dim][i] = ptsol[2*i+1];
       }
   
 }
@@ -309,8 +303,8 @@ void AcousticPDE::SetupMatrices(const Integer level)
 	{
 	  ptEl = elemssd[j]->ptElem;
     
-	  BaseForm * bilinear_mass  = new MassInt(ptEl, coeffmass, isaxi_);
-	  BaseForm * bilinear_stiff = new LaplaceInt(ptEl, coeffstiff, isaxi_);
+	  BaseForm * bilinear_mass  = new MassInt(ptEl, coeffmass);
+	  BaseForm * bilinear_stiff = new LaplaceInt(ptEl, coeffstiff);
 
 	  connecth=elemssd[j]->connect;
 	  GetElemCoords(connecth, ptCoord, level); 
@@ -331,16 +325,15 @@ void AcousticPDE::SetupMatrices(const Integer level)
 	  // for harmonic analysis
 	  Integer k=0;
 	  if(analysistype_==HARMONIC)
-	    algsys_->SetElementMatrix(elemmat.getinarray(), connect_PDE.get(), connect_PDE.size(), SYSTEM);
-// 	    {
-// 	      harmVec.resize(2*connecth.size()*connecth.size());
-// 	      for(Integer iii=0; iii<elemmat.size_row(); iii++)
-// 		for(Integer jjj=0; jjj < elemmat.size_row(); jjj++)
-// 		  {    
-// 		    harmVec[k] = elemmat[iii][jjj];
-// 		    k++;
-// 		  }
-// 	    }
+	    {
+	      harmVec.resize(2*connecth.size()*connecth.size());
+	      for(Integer iii=0; iii<elemmat.size_row(); iii++)
+		for(Integer jjj=0; jjj < elemmat.size_row(); jjj++)
+		  {    
+		    harmVec[k] = elemmat[iii][jjj];
+		    k++;
+		  }
+	    }
 	  else
 	    algsys_->SetElementMatrix(elemmat.getinarray(), connect_PDE.get(), connect_PDE.size(), STIFFNESS);
 
@@ -354,30 +347,25 @@ void AcousticPDE::SetupMatrices(const Integer level)
 
 	  if(analysistype_==HARMONIC)
 	    {
-	      elemmat *= -4*PI*PI*freq_*freq_;
-	      *data << elemmat << std::endl;
-	      algsys_->SetElementMatrix(elemmat.getinarray(), connect_PDE.get(), connect_PDE.size(), SYSTEM);
-	    }
-// 	    {
-// 	      if (k!=elemmat.size_row()*elemmat.size_col())
-// 		Error("k is wrong!!!!!!!!!!!!!!!!!!!!!",__FILE__,__LINE__);
+	      if (k!=elemmat.size_row()*elemmat.size_col())
+		Error("k is wrong!!!!!!!!!!!!!!!!!!!!!",__FILE__,__LINE__);
 
-// 	      for(Integer iii=0; iii<elemmat.size_row(); iii++)
-// 		for(Integer jjj=0; jjj < elemmat.size_row(); jjj++)
-// 		  {    
-// 		    harmVec[k] =  -4*PI*PI*freq_*freq_*elemmat[iii][jjj];
-// 		    // k initially  set in for loop above!!
-// 		    k++;
-// 		  }
-// 	      algsys_->SetElementMatrix(&harmVec[0], connect_PDE.get(), connect_PDE.size(),SYSTEM);
-// 	    }
+	      for(Integer iii=0; iii<elemmat.size_row(); iii++)
+		for(Integer jjj=0; jjj < elemmat.size_row(); jjj++)
+		  {    
+		    harmVec[k] =  -4*PI*PI*freq_*freq_*elemmat[iii][jjj];
+		    // k initially  set in for loop above!!
+		    k++;
+		  }
+	      algsys_->SetElementMatrix(&harmVec[0], connect_PDE.get(), connect_PDE.size(),SYSTEM);
+	    }
 	  else
 	    algsys_->SetElementMatrix(elemmat.getinarray(), connect_PDE.get(), connect_PDE.size(), MASS);
 
 	  //Damping part
 	  if (with_fracdamping_ && analysistype_!=HARMONIC)
 	    {
-	      BaseForm * bilinear_damp  = new MassInt(ptEl, coeffdamp, isaxi_);
+	      BaseForm * bilinear_damp  = new MassInt(ptEl, coeffdamp);
 	      bilinear_damp->CalcElementMatrix(ptCoord, elemmat);
 
 #ifdef DEBUG
@@ -412,7 +400,7 @@ void AcousticPDE::SetupMatrices(const Integer level)
       
 	ptEl=DomainBnd[j]->ptElem;
 	// Here MassInt is used to calculate the damping matrix from the surface elements
-	BaseForm * linear_damp = new MassInt(ptEl,coeffdamp,isaxi_);
+	BaseForm * linear_damp = new MassInt(ptEl,coeffdamp);
 
 	Integer ii;
 	Integer elsize=(DomainBnd[j]->connect).size();
@@ -450,48 +438,6 @@ void AcousticPDE::SetupMatrices(const Integer level)
 #endif
   }
 
-#ifdef ADAPTGRID
-Boolean AcousticPDE :: TestError(const Integer level)
-{
-#ifdef TRACE
-  (*trace) << "entering BasePDE::TestError" << std::endl;
-#endif
-
-  if (analysistype_!=HARMONIC)
-    return TestError(level);
-
-  //! this part is only for harmonic analysis
-  if (!ptError_)
-    ConstructorError();
-
-  //Berechnung der Fehlerkarte
-  Double           totalErr;
-  Vector<Double>   solVecRe; // transform from Array to Vector format
-  Vector<Double>   solVecIm; // - " -
-  Integer          i,ssize;
-
-
-  ssize = sol_.size();
-  solVecRe.Resize(ssize);
-  solVecIm.Resize(ssize);
-
-  for (i=0; i<ssize; i++)
-    {
-      solVecRe[i] = sol_[0][i];
-      solVecIm[i] = solIm_[0][i];
-    }
-
-  ptError_->CalcErrorMapHarmonic(solVecRe,solVecIm,subdoms_,
-				 ptgrid_,errorMap_,totalErr,level);
-
-  (*infofile) << " space error: " << totalErr <<
-    " tolerance: " << tolSpaceErr_ << std::endl;
-
-  if (totalErr > tolSpaceErr_) return TRUE;
-  else return FALSE;
-  
-}
-#endif //#ifdef ADAPTGRID
 
 }
 

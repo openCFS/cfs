@@ -1,6 +1,7 @@
-#ifndef NEWBASEPDE
-#ifndef FILE_BASEPDE_2001
-#define FILE_BASEPDE_2001
+#ifdef NEWBASEPDE
+
+#ifndef FILE_BASEPDE
+#define FILE_BASEPDE
 
 #include <list>
 #include <General/environment.hh>
@@ -16,6 +17,7 @@
 #include <DataInOut/MaterialData.hh>
 #include <CoupledPDE/pdecoupling.hh>
 #include <Utils/array.hh>
+#include <Driver/analysis.hh>
 #include "timestepping.hh"
 
 namespace CoupledField
@@ -45,64 +47,9 @@ public:
   //! Deconstructor
   virtual ~BasePDE();
 
-  //! define algebraic system 
-  /*!
-    \param AS_sysid id of PDE in algebraic system
-   */
-  virtual void SetAlgSys(const Integer AS_sysid);
-
-  /// Initialize all necessary matrices 
-  void InitMatrices();
 
   //! read material data
   virtual void ReadMaterialData();
-
-  //! set matrix factors for construction of effective mass / stiffness matrix
-  virtual void SetMatrixFactors()=0;
-
-  //! define algebraic system identifictaion
-  /*!
-    \param AS_sysid id of PDE in algebraic system
-   */
-  virtual void SetAlgSys_id(const Integer AS_sysid);
-
-  //! define the discrete PDE
-  virtual void DiscreteParamsPDE()=0;
-
-  //! define algebraic system solver Parameters
-  virtual void SetSolverParameters();
-
-  //! constructes the matrix graph by providing to the algebraic system the element connectivities
-  virtual void SetupMatrixGraph(Integer numeq, Integer graphtype);
-
-  //! initalize PDE coupling
-  virtual void InitCoupling(PDECoupling * Coupling)
-  {Error("Not implemented ",__FILE__,__LINE__);};
-  
-
-  //! Create the matrices and Solver as well as Preconditioner
-  virtual void CreateMatrices_Solver();
-
-  //! Fill in input coupling terms
-  virtual void CalcInputCoupling();
-
-   //! setup element matrices for AlgebraicSystem for assembling procedure
-  /*!
-    \param level level of grid
-   */
-  virtual void SetupMatrices(const Integer level)=0;
-
-  //! specify type of system matrix for AlgebraicSystem
-  /*!
-    \param matrixclass out: class of matrix (real scalar, complex scalar, etc.)
-    \param matrixtype out: defines matrix types (Stiffness, Mass, etc.)
-    \param graphtype out: type of graph
-    \param numdofpernode out: number of dof per node
-    \param numdirichlets out: number of nodes for dirichlets conditions
-    \param numconstraints out: number of nodes for constraints conditions
-  */
-  virtual void SpecifyMatrices(Integer &matrixclass, Integer *matrixtype, Integer &graphtype, 
-                               Integer &numdofpernode, Integer &numdirichlets, Integer &numconstraints){;};
 
   //! set boundary condition
   /*!
@@ -113,38 +60,38 @@ public:
   virtual void SetBCs(const Integer level, const Integer update, const Double atimestep);
 
 
-  //! solve one step for static problem 
-  /*!
-    \param level level of grid
-  */
-  virtual void SolveStepStatic(const Integer level)=0;
-
-  //! solve one step for nonlinear static problem 
-  /*!
-    \param level level of grid
-  */
-  virtual void SolveStepStaticNonLin(const Integer level)
-  {Error("SolveStepStaticNonLin not implemented! ",__FILE__,__LINE__);};
-  
-  /// solve one harmonic step
-  /*!
-    \param level level of grid
-  */
-  virtual void SolveStepHarmonic(const Integer level)
-  {Error("Harmonic step not implemented! ",__FILE__,__LINE__);};
+  //! define all (bilinearform) integrators needed for this pde
+  virtual void DefineIntegrators(const Integer level)=0;
   
 
 
-  /*!
-    \param kstep number of calculating step
-    \param asteptime time of calculation
-    \param level level of grid
-    \param updatesysmat indicator: need we to update algebraic system. it is used for adaptive procedure in space
-  */
+  // ======================================================
+  // POSTPROC SECTION
+  // ======================================================
 
-  virtual void SolveStepTrans(const Integer kstep, const Double asteptime,
-			      const Integer level, 
-			      const Boolean updatesysmat)=0;
+  //! Do Postprocessing as descriped in conf file
+  virtual void PostProcess(const Integer level) {;};
+
+
+  //! write results in file
+  virtual void WriteResultsInFile()=0;  
+
+
+
+  // ======================================================
+  // ALGSYS SECTION (SOLVER, ...)
+  // ======================================================
+  
+  //! define algebraic system 
+  /*! \param AS_sysid id of PDE in algebraic system  */
+  virtual void SetAlgSys(int sysid);
+
+  //! Create the matrices and Solver as well as Preconditioner
+  virtual void CreateMatrices_Solver();
+
+
+  //! define algebraic system solver Parameters
+  virtual void SetSolverParameters();
 
 
   //! Init the time stepping
@@ -152,30 +99,58 @@ public:
     \param dt time step
   */
   virtual void InitTimeStepping(const Double dt)
-  {Error("Not implemented ",__FILE__,__LINE__);};
+    {Error("Not implemented");}
+
+  //! deletes the algebraic system
+  void DeleteAlgSys(int as_id)
+  {assemble_->DeleteAlgSys();};
   
 
-  //! Do Postprocessing as descriped in conf file
-  virtual void PostProcess(const Integer level) {;};
+  virtual void SolveStepStatic(const Integer level)
+  {Error("SolveStepStaticNonLin not implemented!",__FILE__,__LINE__);};  
+
+
+  virtual void SolveStepHarmonic(const Integer level)
+  {Error("Harmonic step not implemented!",__FILE__,__LINE__);};
+
+
+  virtual void SolveStepTrans(const Integer kstep, const Double asteptime,
+			      const Integer level, 
+			      const Boolean updatesysmat)=0;
+  
+
+  // ======================================================
+  // COUPLING SECTION
+  // ======================================================
+
+  //! initalize PDE coupling
+  virtual void InitCoupling(PDECoupling * Coupling)
+  {Error("Not implemented");}
+
+
+  //! Fill in input coupling terms
+  virtual void CalcInputCoupling();
+
 
   //! calculate coupling terms
   virtual void CalcOutputCoupling()
-  {Error("Not implemented ",__FILE__,__LINE__);};
-  
-  //! write results in file
-  virtual void WriteResultsInFile()=0;  
+  {Error("Not implemented");}
 
+  
+
+
+  // ======================================================
+  // ADATPTIVITY SECTION
+  // ======================================================
 
 #ifdef ADAPTGRID
-  //------------------------ functions for adaptivity process ---------------------
-
   //! test error of calculation. return TRUE, if it is more then tolerance
   virtual Boolean TestError(const Integer level);
  
    //! refine mesh
   virtual void RefineMesh(const Integer level=0);
-
 #endif
+
 
   //------------------------ get functions----------------------------------------
 
@@ -184,71 +159,27 @@ public:
 
   //! return pointer to vector with subdomains, on which we calculate the PDE
   virtual std::vector<std::string> * getSDsPDE()
-  { 
-    return &subdoms_;
-  }
+  { return &subdoms_;}
 
    //! returns if PDE can compute the quantity
   virtual Boolean HasOutput(std::string output)
-  {
-    Error("not implemented ",__FILE__,__LINE__);
-    return 0;
-  }
+  {Error("not implemented");}
 
   //! return pointer to vector with solution
   virtual const Array<Double>& getS() {return sol_;}
 
   //! return pointer to vector with first derivative of solution
   virtual const Array<Double>& getS1() const 
-  { 
-    Error("Not implemented ",__FILE__,__LINE__);
-    return DVec;
-  }
+  { Error("Not implemented");}
 
-  //! return pointer to vector with first derivative of solution, calculated on previous step
-  virtual const Array<Double>& getS1old() const
-  { 
-    Error("Not implemented ",__FILE__,__LINE__);
-    return DVec;
-  }
 
-  //! return pointer to vector with second derivative of solution
-  virtual const Array<Double>& getS2() const 
-  { 
-    Error("Function getS2 is not overloaded in this class");
-    return DVec;
-  }
-
- //! return pointer to vector with second derivative of solution, calculated on previous step
-  virtual const Array<Double>& getS2old() const 
-  { 
-    Error("Function getS2old is not overloaded in this class");
-    return DVec;
-  }
-
-  //! return parameter beta from Newmark method
-  virtual Double getBeta() const 
-  { 
-    Error("Function getBeta is not overloaded in this class");
-    return Dval;
-  }
-
-  //! return parameter gamma from Newmark method
-  virtual Double getGamma() const 
-  { 
-    Error("Function getGamma is not overloaded in this class");
-    return Dval;
-  }
 
   //! return size of solution
   virtual Integer getSize() const 
   { 
     Error("Function getSize is not overloaded in this class");
-    return Ival;
   } 
 
-  //! return id of PDE in algebraic system
-  Integer GetSysId() const { return as_sysid_;} 
 
   //! return number of restraints
   Integer GetNumRestraints(const Integer level=-1);
@@ -290,19 +221,15 @@ public:
   //! write information about relative error of calculation
   void WriteErrorInfo(WriteResults * ptmeshes);
 
-  //!
-  void DeleteAlgSys(const Integer algsys_id);
+
 
   //!
   virtual void Reset()
-  { Error("Fnc is not implemented ",__FILE__,__LINE__);}
-  
+  { Error("Fnc is not implemented",__FILE__,__LINE__);}
+
+
 
 protected:
-  //! generates a multi-dof-matrix with similar entries for all dofs
-  virtual void MassMultiDof(Matrix<Double>& massMultDof, const Matrix<Double>& massMatSingleDof,  
-			    const Integer nrDofs);
-
    //! read from .config-file info about BCs
    void ReadBCs(const std::string eq);
 
@@ -373,17 +300,14 @@ protected:
   void ConstructorError();
 #endif
 
+
+  // ======================================================
+  // DATA SECTION
+  // ======================================================
+
   //! analysis type
   AnalysisType analysistype_;
 
-  //! paramters for discrete PDE
-  Integer MatrixType_;          //!< type of matrix (real, complex, etc.)
-  Integer GraphType_;           //!< type of graph (nodal, edge,..)
-  Integer SystemMatrix_;        //!< need system matrix (TRUE/FALSE)
-  Integer StiffnessMatrix_;     //!< need stiffness matrix (TRUE/FALSE)
-  Integer DampingMatrix_;       //!< need damping matrix (TRUE/FALSE)
-  Integer MassMatrix_;          //!< need mass matrix (TRUE/FALSE)
-  Integer ConvectionMatrix_;    //!< need convective matrix (TRUE/FALSE)
   Boolean InitMatrices_;        //!< true, if matrix is set up each iteration step
 
   std::string pdename_; //!< type of PDE (set in the derived classes)
@@ -399,8 +323,8 @@ protected:
   MaterialData *materialData_;     //!< material data structure
   std::string pdematerialclass_;    //!< material class
 
-  Integer NumPDENodes_;  //!< number of nodes in subdomains
-  Integer NumElems_;      //!< number of elements in subdomains 
+  Integer numPDENodes_;  //!< number of nodes in subdomains
+  Integer numElems_;      //!< number of elements in subdomains 
 
   // pointers to objects
   Grid * ptgrid_;           //!< pointer to Grid
@@ -430,15 +354,6 @@ protected:
   Integer couplingBCsCounter_;        //!< counter for number of coupling BCs
   Integer numDirichletBCs_;                  //!< number of dirichlet boundary conditions
 
-  //!solver parameters
-  Integer maxnumiter_;    //!< maximum of iterations (for iterative solver)
-  Integer solvertype_;    //!< type of solver (see las_environment.hh)
-  Integer precondtype_;   //!< type of preconditioner (see las_environment.hh)
-  Integer numeqcoarse_;   //!< numbver of unknowns on coarse level (just for AMG)
-  Double  eps_;           //!< accuracy
-  Double dampiter_;       //!< damping parameter within iterative solution
-  Double coarsealpha_;    //!< coarsening factor (just for AMG)
-
 
   Double StepTime_; //!< time step;
   Double matrix_factor_[4]; //!< factors for constructing effective mass / stiffness matrix
@@ -456,25 +371,34 @@ protected:
   std::vector<std::string> bcs_ni_;  //!< inhomogeneous Neumann BC levels
   std::vector<std::string> bcs_rh_;  //!< homogeneous Robin BC levels
   std::vector<std::string> bcs_ri_;  //!< inhomogeneous Robin BC levels
-  std::vector<std::string> bcs_loads_;  //!< load BC levels
+  std::vector<std::string> bcs_loads_;//!< load BC levels
 
-
-  std::vector<Double> val_id_;   //<! values of the inhomogeneous Dirichlet BC
-  std::vector<Double> val_loads_; //<! values of the load BC
-  Integer updateBCs_;                 //!< set, if BCs already set
+  std::vector<Double> val_id_;      //!< values of the inhomogeneous Dirichlet BC
+  std::vector<Double> val_loads_;   //!< values of the load BC
+  Integer updateBCs_;               //!< set, if BCs already set
   
 
   //! data for adaptivity
-  SpaceErrorEstimator * ptError_; //!<  object with methods for error estimation
-  Vector<Double> errorMap_; //!< array with error map
-  Vector<Double> markingElems_; //!< array where  store number of refinement for the element
-  Double tolSpaceErr_; //!< tolerance
+  SpaceErrorEstimator * ptError_;   //!<  object with methods for error estimation
+  Vector<Double> errorMap_;         //!< array with error map
+  Vector<Double> markingElems_;     //!< array where  store number of refinement for the element
+  Double tolSpaceErr_;              //!< tolerance
 
-  //Dummies, just for SUN compiler
-  Array<Double> DVec;
-  Double Dval;
-  Integer Ival;
-  Boolean Dbool;
+  //!solver parameters
+  Integer maxnumiter_;    //!< maximum of iterations (for iterative solver)
+  Integer solvertype_;    //!< type of solver (see las_environment.hh)
+  Integer precondtype_;   //!< type of preconditioner (see las_environment.hh)
+  Integer numeqcoarse_;   //!< numbver of unknowns on coarse level (just for AMG)
+  Double  eps_;           //!< accuracy
+  Double dampiter_;       //!< damping parameter within iterative solution
+  Double coarsealpha_;    //!< coarsening factor (just for AMG)
+  DampingType damping_type_; //!< specifies the type of damping model (see environment.hh)
+
+  Double lasttimecalc_;  //!< Last time on which we have calculated solution
+  Integer laststepcalc_; //!< Number of last timestep on which we have calculated our solution
+
+  Assemble * assemble_;                //!< Pointer to object of analysis (Static, Trans, Harm or Eig)
+  
 
 };
 
@@ -482,4 +406,4 @@ protected:
 
 #endif
 
-#endif // #ifndef NEWBASEPDE
+#endif // #ifdef NEWBASEPDE

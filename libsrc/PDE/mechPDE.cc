@@ -309,10 +309,6 @@ Double MechPDE::SetExternalForces(const Integer level)
   StoreAlgsysToVec(extForces, algsys_->GetRHSVal() );
 
 
-//   *infofile << " === extForces: " << std::endl << extForces 
-// 	    << std::endl << std::endl;
-
-
   extForcesL2Norm = L2Norm(extForces);
  
   //  if extForcesL2Norm is 0, no residual norm can be calculated
