@@ -93,10 +93,12 @@ void  AcousticSpaceErrorEstimator::RefineMesh()
 
   Integer i;
   //  SetRefFlag f(this);
+#ifdef ADAPTGRID
   SetRefFlagTest f;  
   for(i=0; i<(*listSDs).size(); i++)
     ptGrid_->forEachElemSd(f,(*listSDs)[i]);
   ptGrid_->Refine();
+#endif
 
 }
 
