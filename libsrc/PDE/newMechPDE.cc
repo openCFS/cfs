@@ -520,13 +520,14 @@ void MechPDE::InitCoupling(PDECoupling * Coupling)
     {
       if (ptCoupling_->GetOutputQuantity(i) == "mechdisplacement")
 	{
-	  ptCoupling_->SetOutputDof(i, dofspernode_);
-	  // Nothing to do yet
+	  // Intialize the memory of the coupling values
+	  ptCoupling_->CreateStoreSol(i,MECH_DISPLACEMENT,isComplex_);
 	}
 
       if (ptCoupling_->GetOutputQuantity(i) == "mechforce")
 	{
-	  // Nothing to do yet
+	  // Intialize the memory of the coupling values
+	  ptCoupling_->CreateStoreSol(i,MECH_FORCE,isComplex_); 
 	}
     }
 
@@ -669,8 +670,6 @@ void MechPDE::CalcAcousticCouplingRHS(std::vector<Elem*> * couplingElems,
 	  
 	  while(connecth[actNode] != couplingNodes[nodePos] && nodePos < couplingNodes.size()) 
 	    nodePos++;
-
-	  //elemCouplingSols[0][nodePos] += forceOnElem[actNode];
 	  elemCouplingSols(nodePos,0) += forceOnElem[actNode];
 	}      
     }

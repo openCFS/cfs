@@ -348,11 +348,6 @@ void ElecPDE::CalcNodeForce(StoreSol<Double> & force,
    
   StoreSol<Double> force_temp;
   
-  force_temp.SetNumSolutions(1);
-  force_temp.SetSolutionType(COUPLING_TYPE);
-  force_temp.SetNumNodes(nodes.size());
-  force_temp.SetDof(Dim_);
-  force_temp.Init(0.0);
   force.Init(0.0);
   
   for (Integer ielem=0; ielem<elems.size(); ielem++)
@@ -587,10 +582,10 @@ void ElecPDE::InitCoupling(PDECoupling * Coupling)
 
 	  F_Interface_[actCoupling] = interface_tmp;
 
-	  // Intialize the memory
-	  ptCoupling_->SetOutputDof(actCoupling, Dim_);
-	 
-	  // Assign arrays for element boundary nodes
+	  // Intialize the memory of the coupling values
+	  ptCoupling_->CreateStoreSol(actCoupling,ELEC_FORCE,isComplex_);
+	  
+
 	  isBoundaryNode_tmp.clear();
 	  isBoundaryNode_tmp.resize(interface_tmp.size());
 	  elemNodeToCouplingNode_tmp.clear();

@@ -71,8 +71,9 @@ void ElecForceOp::CalcElemElecForce(StoreSol<Double> & F,
   
   F.SetNumSolutions(1);
   F.SetNumNodes(IsBoundaryNode.size());
+  F.SetSolutionType(ELEC_FORCE);
   F.SetDof(Dim);
-  F.Init(0);
+  F.Init(0.0);
   
   // TEST TEST
   Matrix<Double> J_Trans, J_Inv_Trans, J_r_Trans;

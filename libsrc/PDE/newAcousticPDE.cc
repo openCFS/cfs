@@ -220,7 +220,8 @@ void AcousticPDE::InitCoupling(PDECoupling * Coupling)
     {
       if (ptCoupling_->GetOutputQuantity(i) == "acousticforce")
 	{
-	  // Nothing to do yet ;-)
+	  // Intialize the memory of the coupling values
+	  ptCoupling_->CreateStoreSol(i,ACOU_FORCE,isComplex_);
 	}
     }
 
