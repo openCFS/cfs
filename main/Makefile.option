@@ -9,20 +9,21 @@
 # NOTE: Depending on the compilation settings in Makefile.option CFS++ may
 #       depend on some external libraries. These are:
 #
-#       ---------------------------------------------------------
-#       | # |   name      | library  | headers  | path          |
-#       |   |             | required | required | variable      |
-#       ---------------------------------------------------------
-#       | 1 | OLAS        |   yes    |    yes   | OLAS_ROOT     |
-#       | 2 | hypre       |   yes    |     no   | HYPRE_ROOT    | (c)
-#       | 3 | xerces-c    |   yes    |    yes   | XERCES_ROOT   |
-#       | 4 | BLAS        |   yes    |     no   |      (a)      |
-#       | 5 | LAPACK      |   yes    |     no   |      (a)      |
-#       | 6 | mysql       |   yes    |    yes   |      (d)      |
-#       | 7 | tvmet       |    no    |    yes   | TVMET_ROOT    |
-#       | 8 | Pardiso     |   yes    |     no   | PARDISO_ROOT  | (e)
-#       ---------------------------------------------------------
-#       | 9 | XML Schemas |         (b)         | SCHEMA_ROOT   |
+#       ----------------------------------------------------------
+#       |  # |   name      | library  | headers  | path          |
+#       |    |             | required | required | variable      |
+#       |--------------------------------------------------------|
+#       |  1 | OLAS        |   yes    |    yes   | OLAS_ROOT     |
+#       |  2 | hypre       |   yes    |     no   | HYPRE_ROOT    | (c)
+#       |  3 | xerces-c    |   yes    |    yes   | XERCES_ROOT   |
+#       |  4 | BLAS        |   yes    |     no   |      (a)      |
+#       |  5 | LAPACK      |   yes    |     no   |      (a)      |
+#       |  6 | mysql       |   yes    |    yes   |      (d)      |
+#       |  7 | tvmet       |    no    |    yes   | TVMET_ROOT    |
+#       |  8 | Pardiso     |   yes    |     no   | PARDISO_ROOT  | (e)
+#       |  9 | Metis       |   yes    |     no   | METIS_ROOT    |
+#       |--------------------------------------------------------|
+#       | 10 | XML Schemas |         (b)         | SCHEMA_ROOT   |
 #       ---------------------------------------------------------
 #
 #  (a) The Basic Linear Algebra Subroutines (BLAS) and the Linear Algebra
@@ -94,7 +95,8 @@
 # -----------------------------------------------------------------------------
 
 ifeq ("$(OLAS_ROOT)","")
-OLAS_ROOT = /home/data/proj/SoftwareLibraries/OLAS_STABLE_1
+# OLAS_ROOT = /home/data/proj/SoftwareLibraries/OLAS_STABLE_1
+OLAS_ROOT = /home/lse24/lse/mmohr/Software/OLAS
 endif
 
 ifeq ("$(HYPRE_ROOT)","")
@@ -107,6 +109,10 @@ endif
 
 ifeq ("$(XERCES_ROOT)","")
 XERCES_ROOT = /home/data/proj/SoftwareLibraries/xerces-c
+endif
+
+ifeq ("$(METIS_ROOT)","")
+METIS_ROOT = /home/data/proj/SoftwareLibraries/metis
 endif
 
 ifeq ("$(SCHEMA_ROOT)","")
@@ -125,7 +131,7 @@ endif
 # be a NULL pointer. This can be problematic, if e.g. LAS was compiled with
 # LINUXg
 # -----------------------------------------------------------------------------
-TRACE = 10
+TRACE = 0
 
 # -----------------------------------------------------------------------------
 # CFS++ FUNCTIONALITY
@@ -175,7 +181,10 @@ LAPACK = yes
 TVMET = yes
 
 # Was OLAS compiled with support for Pardiso?
-PARDISO = no
+PARDISO = yes
+
+# Was OLAS compiled with support for Metis?
+METIS = no
 
 
 # -----------------------------------------------------------------------------
@@ -329,6 +338,7 @@ COMPILE_MACROS = $(MARCO_DATABASE) $(MACRO_MPCCI) $(MACRO_ADAPTIVITY) \
 #  - OLAS
 #  - HYPRE
 #  - XERCES
+#  - METIS
 #  - DATABASE
 #
 # These will be combined into a LINK_LIBS parameter.
@@ -356,6 +366,15 @@ else
    LIB_XERCES =
 endif
 
+# METIS
+ifeq "$(METIS)" "yes"
+   LIBDIR_METIS = -L$(METIS_ROOT)/$(MACHINE)/lib
+   LIB_METIS = -lmetis
+else
+   LIBDIR_METIS =
+   LIB_METIS =
+endif
+
 # DATABASE
 ifeq ($(DATABASE),yes)
    LIBDIR_DATABASE = -L$(MYSQL_ROOT)/mysql
@@ -366,8 +385,8 @@ else
 endif
 
 # Combine everything
-LINK_LIBS = $(LIBDIR_OLAS) $(LIBDIR_HYPRE) $(LIBDIR_XERCES) \
-$(LIB_OLAS) $(LIB_HYPRE) $(LIB_XERCES)
+LINK_LIBS = $(LIBDIR_OLAS) $(LIBDIR_HYPRE) $(LIBDIR_XERCES) $(LIBDIR_METIS) \
+$(LIB_OLAS) $(LIB_HYPRE) $(LIB_XERCES) $(LIB_METIS)
 
 # -----------------------------------------------------------------------------
 # LAPACK and BLAS
