@@ -30,11 +30,8 @@ MyClock::MyClock (Char * title)
  
   MyClock::~MyClock()
   {
-#ifdef TRACE
-    (*trace) << "entering Clock::~Clock" << std::endl;
-#endif
- 
-    if (InFile) filetime.close();
+
+if (InFile) filetime.close();
  
   };
 

@@ -202,13 +202,13 @@ std::cout << mesh.GetDimension() << " dim " << std::endl;
 mesh.SurfaceElement(5).SetRefinementFlag (flag !=0);
 
  BisectionOptions biopt;
-  biopt.usemarkedelements = 1;
+ biopt.usemarkedelements = 1;
 
-  Refinement ref;
-  ref.Bisect(mesh,biopt);
+ Refinement ref;
+ ref.Bisect(mesh,biopt);
 
-  mesh.UpdateTopology();
-  mesh.UpdateClusters();
+ mesh.UpdateTopology();
+ mesh.UpdateClusters();
 
 /*
 for(ei=1; ei<=maxnumelem; ei++)
