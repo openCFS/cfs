@@ -23,11 +23,16 @@
 
 #include "DataInOut/ParamHandling/ConfFile.hh"
 #include "DataInOut/LoadMaterialData.hh"
+#include "DataInOut/LoadMaterialDataFile.hh"
 #include "DataInOut/MaterialData.hh"
 #include "CoupledPDE/pdecoupling.hh"
 #include "Driver/assemble.hh"
 #include "timestepping.hh"
 #include "nodeEQN.hh"
+
+#ifdef USE_DATABASE
+#include "DataInOut/LoadMaterialDataDatabase.hh"
+#endif
 
 namespace CoupledField
 {

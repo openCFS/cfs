@@ -123,17 +123,20 @@ namespace CoupledField
 
     Double mX, mY, mZ;
     material.GetPermMag(mX, mY, mZ);
+    Double perm,cond;
+    material.GetPermeability(2,2,perm);
+    material.GetConductivity(2,2,cond);
 
-    if (cfsInfo)
-      *cfsInfo << "MATERIAL DATA OF " << material.GetMaterialName()
-	       << ":" << std::endl
-	       << "conductivity:            " << material.GetConductivity()
-	       << std::endl
-	       << "permeability:            " << material.GetPermeability()
-	       << std::endl
-	       << "vector of magnetiziation: (" << mX << ", " << mY << ", "
-	       << mZ <<")" 
-	       << std::endl << std::endl;
+
+    *cfsInfo << "MATERIAL DATA OF " << material.GetMaterialName()
+	     << ":" << std::endl
+	     << "conductivity:            " << cond
+	     << std::endl
+	     << "permeability:            " << perm
+	     << std::endl
+	     << "vector of magnetiziation: (" << mX << ", " << mY << ", "
+	     << mZ <<")" 
+	     << std::endl << std::endl;
   }
   
 

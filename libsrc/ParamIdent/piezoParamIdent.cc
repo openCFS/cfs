@@ -560,25 +560,25 @@ namespace CoupledField
 
   void piezoParamIdent::updateMaterialData(Vector<Double> & parameter, MaterialData * ptMaterial){
     ENTER_FCN("piezoParamIdent::updateMaterialData");    //std::cout<<"updateMaterialData"<<std::endl;
-    ptMaterial->SetMatrixData(0,0, parameter[0]);
-    ptMaterial->SetMatrixData(2,2, parameter[1]);
-    ptMaterial->SetMatrixData(0,1, parameter[2]);
-    ptMaterial->SetMatrixData(1,0, parameter[2]);
-    ptMaterial->SetMatrixData(0,2, parameter[3]);
-    ptMaterial->SetMatrixData(2,0, parameter[3]);
-    ptMaterial->SetMatrixData(1,2, parameter[3]);
-    ptMaterial->SetMatrixData(1,2, parameter[3]);
-    ptMaterial->SetMatrixData(3,3, parameter[4]);
-    ptMaterial->SetMatrixData(4,4, parameter[4]);
-    ptMaterial->SetMatrixData(5,5, 0.5*(parameter[0]-parameter[2]));
-    ptMaterial->SetMatrixData(6,4, parameter[5]);
-    ptMaterial->SetMatrixData(7,3, parameter[5]);
-    ptMaterial->SetMatrixData(8,0, parameter[6]);
-    ptMaterial->SetMatrixData(8,1, parameter[6]);
-    ptMaterial->SetMatrixData(8,2, parameter[7]);
-    ptMaterial->SetMatrixData(6,6, parameter[8]);
-    ptMaterial->SetMatrixData(7,7, parameter[8]);
-    ptMaterial->SetMatrixData(8,8, parameter[9]);
+    ptMaterial->SetPiezoMatrixData(0,0, parameter[0]);
+    ptMaterial->SetPiezoMatrixData(2,2, parameter[1]);
+    ptMaterial->SetPiezoMatrixData(0,1, parameter[2]);
+    ptMaterial->SetPiezoMatrixData(1,0, parameter[2]);
+    ptMaterial->SetPiezoMatrixData(0,2, parameter[3]);
+    ptMaterial->SetPiezoMatrixData(2,0, parameter[3]);
+    ptMaterial->SetPiezoMatrixData(1,2, parameter[3]);
+    ptMaterial->SetPiezoMatrixData(1,2, parameter[3]);
+    ptMaterial->SetPiezoMatrixData(3,3, parameter[4]);
+    ptMaterial->SetPiezoMatrixData(4,4, parameter[4]);
+    ptMaterial->SetPiezoMatrixData(5,5, 0.5*(parameter[0]-parameter[2]));
+    ptMaterial->SetPiezoMatrixData(6,4, parameter[5]);
+    ptMaterial->SetPiezoMatrixData(7,3, parameter[5]);
+    ptMaterial->SetPiezoMatrixData(8,0, parameter[6]);
+    ptMaterial->SetPiezoMatrixData(8,1, parameter[6]);
+    ptMaterial->SetPiezoMatrixData(8,2, parameter[7]);
+    ptMaterial->SetPiezoMatrixData(6,6, parameter[8]);
+    ptMaterial->SetPiezoMatrixData(7,7, parameter[8]);
+    ptMaterial->SetPiezoMatrixData(8,8, parameter[9]);
   } // end updateMaterialData
 
 

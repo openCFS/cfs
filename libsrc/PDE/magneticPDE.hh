@@ -106,6 +106,8 @@ public:
 // ======================================================
 
 
+// Coupling is only working with XML input file!!
+#ifdef XMLPARAMS
   //! initalize PDE coupling
   virtual void InitCoupling(PDECoupling * Coupling);
   
@@ -119,6 +121,8 @@ public:
   void CalcNodeForceLorentz(Vector<Double> & force, 
 			    StdVector<StdVector<Integer> > & elemNodeToCouplingNode,
 			    Integer actCoupling, Integer numCouplingNodes);
+
+#endif
 
 protected:
 

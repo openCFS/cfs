@@ -154,6 +154,9 @@ public:
   /// return  name of all subdomains
   StdVector<std::string> & GetAllSubDomains() {return allSubDomains_;};
   
+  //! Get Filename
+  std::string getfilename();
+
 
 protected:
 

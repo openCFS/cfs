@@ -65,6 +65,7 @@ INPUT                  = ../libsrc/AlgebraicSystem \
                          ../libsrc/DataInOut/DefineFiles \
                          ../libsrc/DataInOut/Unverg \
                          ../libsrc/DataInOut/GMV \
+                         ../libsrc/DataInOut/Database \
                          ../libsrc/Domain/ \
                          ../libsrc/Domain/GridCFS \
                          ../libsrc/Domain/AdaptGrid \

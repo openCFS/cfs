@@ -19,7 +19,8 @@ SUBLIBDIR := Driver PDE CoupledPDE Estimator\
              DataInOut/ParamHandling \
              DataInOut/Unverg DataInOut/GMV DataInOut/AnsysOut \
              DataInOut/DatFile DataInOut/AnsysFile DataInOut\
-             Utils Matrix General 
+             DataInOut/Database \
+             Utils Matrix General  
 #
 ifeq ($(Adaptivity),yes)
 SUBLIBDIR := $(SUBLIBDIR) Domain/AdaptGrid
@@ -56,6 +57,7 @@ SUBLIBDIR := $(SUBLIBDIR) DataInOut/GSI DataInOut/GSI/CFSSocketComm
 mylibrary := $(mylibrary) gsi
 endif
 #
+#
 ifeq ($(Adaptivity),yes)
 mylibrary := $(mylibrary) adaptgrid 
 endif
@@ -69,16 +71,27 @@ include $(LIBSRC_DIR)/makefilemach/make.mach.$(MACHINE)
 #
 include $(C_DIR)/main/Makefile.option
 #
+
+#####DataBase
+ifeq ($(DATABASE),yes)
+  syslibDB    =  -lmysqlclient
+  LINKFLAGSDB =  -L/usr/lib/mysql 
+  SUBLIBDIR  :=  $(SUBLIBDIR) DataInOut/Database
+  mylibrary  :=  $(mylibrary) database
+endif
+
 ############ MpCCI
 #
 ifeq ($(MpCCI),yes)
   CC=/opt/MpCCI/mpcci-2.0.0-linux-gcc32/bin/cciCC
-  LINKFLAGS2 = -L/opt/MpCCI/mpcci-2.0.0-linux-gcc32/lib -L/opt/MPICH/mpich-1.2.5/lib
-  sysliball = $(syslib) -lcci -lmpich $(XERCESLIB) -lg2c
+  LINKFLAGS2 = -L/opt/MpCCI/mpcci-2.0.0-linux-gcc32/lib -L/opt/MPICH/mpich-1.2.5/lib $(LINKFLAGSDB)
+  sysliball = $(syslib) -lcci -lmpich $(XERCESLIB) $(syslibDB) -lg2c
 else
-  LINKFLAGS2 =
-  sysliball = $(syslib) $(XERCESLIB) $(OLASLIB)
+  sysliball = $(syslib) $(XERCESLIB) $(OLASLIB) $(syslibDB)
+  LINKFLAGS2 = $(LINKFLAGSDB)
 endif
+
+
 #
 ##########
 #
@@ -91,7 +104,7 @@ PATHSUBLIBDIR = $(addprefix $(LIBSRC_DIR)/, $(SUBLIBDIR))
 .SUFFIXES: .f .c .cc .o
 
 .cc.o:
-	$(CC) -o $@ $(CFLAGS1) $(CFLAGS2) $(CFLAGS3) $(OLAS) $(TRACEFLAGS) $(INCL) $(INCLAdaptGrid) $(INCLMpCCI) $<
+	$(CC) -o $@ $(CFLAGS1) $(CFLAGS2) $(CFLAGS3) $(OLAS) $(TRACEFLAGS) $(INCL) $(INCLAdaptGrid) $(INCLMpCCI) $(INCLDATABASE) $<
 
 #
 #
@@ -175,6 +188,9 @@ clean-unverg:
 clean-gmv:
 	@cd $(LIBSRC_DIR)/DataInOut/GMV && \
         $(MAKE) clean
+clean-database:
+	@cd $(LIBSRC_DIR)/DataInOut/Database && \
+	$(MAKE) clean
 clean-gsi:
 	@cd $(LIBSRC_DIR)/DataInOut/GSI && \
 	$(MAKE) clean

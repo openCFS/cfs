@@ -867,6 +867,12 @@ Boolean ConfFile::ifgetliststr( const std::string seekexp,
  return TRUE;
 }
 
+std::string ConfFile::getfilename()
+{
+  std::string str(filename);
+  return str;
+}
+
 void ConfFile::open_file()
 {
 

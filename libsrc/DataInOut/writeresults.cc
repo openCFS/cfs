@@ -20,14 +20,11 @@ namespace CoupledField {
     ENTER_FCN( "WriteResults::WriteResults" );
 
     namefile_ = filename;
-   //  namefile_ = new Char[strlen(filename)+1+MAXPOSTFIX];
-//     strcpy(namefile_,filename);
-
-  ascii_=TRUE;
-
-  pt2Inputfile_ = aInFile;
-
-  InitHistoryFiles();
+    NeedHistory_ = FALSE;
+    ascii_=TRUE;
+    
+    pt2Inputfile_ = aInFile;
+    
 }
 
 
@@ -53,7 +50,7 @@ void WriteResults::InitHistoryFiles()
 
 #ifndef XMLPARAMS
  conf->getlist(nodesTmp,"history_node");
- Error("History files are not supported anymore for .conf-file format!");
+ Warning("History files are not supported anymore for .conf-file format!");
 #else
  
  StdVector<std::string> keyVec, attrVec, valVec;
