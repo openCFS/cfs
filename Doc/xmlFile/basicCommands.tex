@@ -66,12 +66,12 @@ In the config-file, the command defining the analysis type reads as
 \noindent
 where {\bf TYPE} can be chosen as one of
 \begin{itemize} 
-\item \textbf{transient}
-\item \textbf{static}
-\item \textbf{harmonic}
-\item \textbf{multiSequence}
-\item \textbf{paramIdent}
-\item \textbf{eigenfrequency}\footnote{This is currently not implemented.}
+\item \xml{transient}
+\item \xml{static}
+\item \xml{harmonic}
+\item \xml{multiSequence}
+\item \xml{paramIdent}
+\item \xml{eigenfrequency}\footnote{This is currently not implemented.}
 \end{itemize}
 
 
@@ -142,31 +142,35 @@ performed:
 \begin{itemize}
 \item The type of analysis in the \xml{analysis} element must be set to
       \xml{multiSequence}.
-\item A multiSequence block like, e.g.~the following must be inserted into
+\item A multiSequence block like e.g.~the following must be inserted into
       the XML parameter file
 \begin{verbatim}
 <multiSequence>
-  <step>
-    <pde type="electrostatic" analysis="static" tag="elecStep1"/>
-    <pde type="mechanic" analysis="static" tag="mechStep1"/>
+  <step index="1">
+    <pde type="electrostatic" analysis="static" refTag="elecStep1"/>
+    <pde type="mechanic" analysis="static" refTag="mechStep1"/>
   </step>
-  <step>
-    <pde type="electrostatic" analysis="transient" tag="elecStep2"/>
-    <pde type="mechanic" analysis="transient" tag="mechStep2"/>
+  <step index="2">
+    <pde type="electrostatic" analysis="transient" refTag="elecStep2"/>
+    <pde type="mechanic" analysis="transient" refTag="mechStep2"/>
   </step>
 </multiSequence>
 \end{verbatim}
       The multiSequence driver will read this parameter block and perform
       an analysis for each \xml{step} element in the sequence of their
-      occurence. The \xml{tag} attribute specified in each \xml{pde}
+      occurence. The \xml{refTag} attribute specified in each \xml{pde}
       subelement is a symbolic name that should be unique. It is used to
-      locate the appropriate boundary conditions or transient parameters etc.
-      for this step in the file.
+      locate the appropriate boundary conditions or transient parameters
+      etc.~for this step in the file. Since these parameters are indispensible
+      this attribute and also the \xml{anlysis} attribute must be specified.
 \item In order to specify for each step different boundary conditions or
       transient parameters the corresponding elements can be tagged with a
-      \xml{tag} attribute. In order to specify different parameters for
-      different steps the element must be given several times and the
-      \xml{tag} must be chosen accordingly.
+      \xml{tag} attribute. The parameters for a certain step of the
+      multi-sequence analysis are found by comparing the \xml{tag} attribute
+      with the respective \xml{refTag} attributes of the pdes of that step.
+
+      In order to specify different parameters for different steps the element
+      can be given several times and the \xml{tag} must be chosen accordingly.
 
       It is also possible to give the \xml{tag} attribute the special value
       \xml{anyTag}. This is also the default value, since the \xml{tag}
@@ -178,6 +182,16 @@ performed:
       e.g.~\xml{step1, step4, step5}. This can be used to 'turn on' this
       specific parameter setting for all PDEs in those steps with the
       corresponding tags.
+
+      The following list gives an overview of all elements / parameter
+      sections that currently can be \emph{tagged} in the way described above
+      \begin{itemize}
+      \item \xml{bcsAndLoads}
+      \item \xml{transient}
+      \item \xml{magnet}
+      \item and all types of coils
+      \end{itemize}
+ 
 \end{itemize}
 %
 %
