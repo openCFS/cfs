@@ -85,7 +85,7 @@ public:
 
 protected:
 
-  Double freq_;   //!< excitation frequency for harmonic analysis
+  // Double freq_;   //!< excitation frequency for harmonic analysis
   StoreSol<Double> solIm_; //!< stores the imaginary part in case of harmonic analysis
   StoreSol<Double> sol_der1Array_, sol_der2Array_;
   //  Double lasttimecalc_;  //!< Last time on which we have calculated solution

@@ -146,7 +146,7 @@ protected:
   Vector<Double>* magVecPotRe_; //!< real part of vector of magnetic magnetic vector potential
   Vector<Double>* magVecPotIm_; //!< imaginary part of vector of magnetic magnetic vector potential
   std::vector <std::string> coilDomain_;  //!< name of all subdomains containing coils
-  Double freq_;               //!< excitation frequency for harmonic analysis
+  // Double freq_;            //!< excitation frequency for harmonic analysis
 
   
 
