@@ -106,20 +106,20 @@ protected:
 
 /// class for calculation of 3d nonlinear elasticity
 // second part: regarding internal stresses
-class nLinMech3dInt_PiolaStress : public nLinMech3dInt_BNonLin
+class nLinMechInt_PiolaStress : public nLinElastInt
 {
 public:
   friend class nLinMech_linFormInt;
   
 
   /// Constructor
-  nLinMech3dInt_PiolaStress(BaseFE * aptelem, MaterialData & matData);
+  nLinMechInt_PiolaStress(BaseFE * aptelem, MaterialData & matData);
 
   /// Constructor
-  nLinMech3dInt_PiolaStress(MaterialData & matData);
+  nLinMechInt_PiolaStress(MaterialData & matData);
   
   /// Destructor
-  virtual ~nLinMech3dInt_PiolaStress();  
+  virtual ~nLinMechInt_PiolaStress();  
   
 protected:  
   /// returns D - matrix for BDB (size: 9x9, contains the 2. Piola-Kirchhoff-Stress tensor!!)
@@ -132,7 +132,7 @@ protected:
   virtual Integer getDimD(){return piolaDimD_;};
   
   /// returns nr. of degrees of freedom
-  virtual Integer getNrDofs(){return 3;};  
+  virtual Integer getNrDofs()=0;  
 
 
 protected:
@@ -152,10 +152,10 @@ protected:
   virtual void calcMaterialDMat(Matrix<Double> & dMat);
 
   /// returns the size of the material d-matrix
-  virtual Integer getMaterialDMatSize(){return 6;};
+  virtual Integer getMaterialDMatSize()=0;
 
   /// returns the size of the full piola d-matrix
-  virtual Integer getFullPiolaDMatSize(){return 9;};
+  virtual Integer getFullPiolaDMatSize()=0;
 
   /// conversion of stress vector to stress tensor
   virtual void convertStressVecToTensor(Matrix<Double>& stressTensor, std::vector<Double>& piolaStress);
@@ -166,6 +166,37 @@ private:
   Integer piolaDimD_;
 };
   
+
+
+/// class for calculation of 3d nonlinear elasticity
+// second part: regarding internal stresses
+class nLinMech3dInt_PiolaStress : public nLinMechInt_PiolaStress
+{
+public:
+
+  /// Constructor
+  nLinMech3dInt_PiolaStress(BaseFE * aptelem, MaterialData & matData);
+
+  /// Constructor
+  nLinMech3dInt_PiolaStress(MaterialData & matData);
+  
+  /// Destructor
+  virtual ~nLinMech3dInt_PiolaStress();  
+  
+protected:  
+  /// returns nr. of degrees of freedom
+  virtual Integer getNrDofs(){return 3;};
+
+
+  /// returns the size of the material d-matrix
+  virtual Integer getMaterialDMatSize(){return 6;};
+
+
+  /// returns the size of the full piola d-matrix
+  virtual Integer getFullPiolaDMatSize(){return 9;};
+};
+  
+
 
 
 
@@ -206,7 +237,7 @@ protected:
 
 /// class for calculation of 2d nonlinear elasticity
 // second part: regarding internal stresses
-class nLinMechPlaneStrainInt_PiolaStress : public nLinMech3dInt_PiolaStress
+class nLinMechPlaneStrainInt_PiolaStress : public nLinMechInt_PiolaStress
 {
 public:
   /// Constructor
@@ -278,7 +309,7 @@ protected:
 
 /// class for calculation of 2d axisymmetric nonlinear elasticity
 // second part: regarding internal stresses
-class nLinMechAxiInt_PiolaStress : public nLinMech3dInt_PiolaStress
+class nLinMechAxiInt_PiolaStress : public nLinMechInt_PiolaStress
 {
 public:
   /// Constructor
@@ -321,7 +352,7 @@ protected:
 
 
 /// class for regarding 3d prestress
-class PreStressInt : public nLinMech3dInt_PiolaStress
+class PreStressInt : public nLinMechInt_PiolaStress
 {
 public:
   // preStressLinFormInt uses calcDMat from this class
@@ -334,10 +365,22 @@ public:
   /// Destructor
   virtual ~PreStressInt();  
   
+
 protected:
   /// calculates pre-stresses (vector notation)
   void CalcStressVec(std::vector<Double>& piolaStressVec, Integer ip, Matrix<Double> & ptCoord);
 
+  /// returns the size of the full piola d-matrix
+  virtual Integer getFullPiolaDMatSize(){return 9;};
+
+  /// returns dimension of D matrix
+  virtual Integer getDimD(){return 6;};
+
+  /// returns nr. of degrees of freedom
+  virtual Integer getNrDofs(){return 3;};
+
+  /// returns the size of the material d-matrix
+  virtual Integer getMaterialDMatSize(){return 6;};
 
 private: 
   /// 

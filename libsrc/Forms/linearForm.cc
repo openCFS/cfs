@@ -303,7 +303,7 @@ namespace CoupledField
     Matrix<Double> transpSumB;    // we need transposed of the b-matrices
 
 
-    nLinMech3dInt_PiolaStress * stressBiformInt;
+    nLinMechInt_PiolaStress * stressBiformInt;
 
     // These, as friend defined bilinearforms holds the necessary differential operators
     if (ptelem->GetDim() == 2 && !isaxi_)
