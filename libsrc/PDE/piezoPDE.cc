@@ -887,10 +887,10 @@ void PiezoPDE::CalcComplexValuedStress(){
   sortedStress.Resize(6);
 
   // loop over all subdomains
+  linPiezoInt *stress;
   for (Integer isd=0; isd<subdoms_.GetSize(); isd++) {
     
     MaterialData actSDMat(materialData_[isd]);
-    linPiezoInt * stress;
 
     if (subType_ == "planeStrain")
       stress = new piezoPlainStrainInt(actSDMat);
@@ -938,6 +938,10 @@ void PiezoPDE::CalcComplexValuedStress(){
       stressComplex_.SetElemResult(pdeElem-1, sortedStress);
 
     }
+
+    // Delete integrator again (Stressabbau ;-)
+    delete stress;
+
   }
 }
   
@@ -1146,6 +1150,7 @@ void PiezoPDE::CalcComplexValuedCharges(){
   chargeOp = new ElecChargeOp(ptgrid_, this, eqnData_, actlevel_, isaxi_);
 			      
   // loop over all subdomains
+  linPiezoInt *stress;
   for (Integer iSD=0; iSD<calcCharge_.GetSize(); iSD++){
     
     // get surface and acoording volume elements
@@ -1161,7 +1166,6 @@ void PiezoPDE::CalcComplexValuedCharges(){
     
     //get correct stress-
     MaterialData actSDMat(materialData_[iSD]);
-    linPiezoInt * stress;
 
     if (subType_ == "planeStrain")
       stress = new piezoPlainStrainInt(actSDMat);
@@ -1174,7 +1178,7 @@ void PiezoPDE::CalcComplexValuedCharges(){
 
     // loop over all surface elements
 
-  complexValuedCharge_.Resize(surfElems.GetSize());
+    complexValuedCharge_.Resize(surfElems.GetSize());
 
     for (Integer iElem=0; iElem<surfElems.GetSize(); iElem++)
       {
@@ -1248,14 +1252,11 @@ void PiezoPDE::CalcComplexValuedCharges(){
        	chargesComplex_.SetElemResult(pdeElemNum-1, chargeVec);	
 
       }
+
+    // Delete integrator again (Stressabbau ;-)
+    delete stress;
+
   }
-  //  Warning ("Charges are written to unv/gmv file, although capapost \
-//can not draw them", __FILE__, __LINE__);
-
 }
-
-
-  
-  
 
 } // end of namespace
