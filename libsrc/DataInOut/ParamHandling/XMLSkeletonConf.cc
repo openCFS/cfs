@@ -105,7 +105,7 @@ namespace CoupledField
 		  << "<cfsSimulation xmlns=\"http://www.cfs++.org\">" << myendl << myendl;    
 
     (*skelfile_)  << "   <!-- ============================================================= -->" << std::endl 
-		  << "   <!--  SKELETON-CONF-FILE: PLEASE REPLACE ALL \"XXX\" AND FILL OUT! -->" << std::endl
+		  << "   <!--   SKELETON-CONF-FILE: PLEASE REPLACE ALL \"XXX\" AND FILL OUT!  -->" << std::endl
 		  << "   <!-- ============================================================= -->" << std::endl
 		  << myendl;
 
@@ -145,6 +145,7 @@ namespace CoupledField
 
 
     ptQ1   = new Quad1FE();
+    ptQ2   = new Quad2FE();
     ptTet1 = new Tetra1FE();
     ptL1   = new Line1FE();
     ptL2   = new Line2FE();
@@ -241,17 +242,18 @@ namespace CoupledField
       }
 
     // Print surface elements
+	sd.Clear();
     if (dim == 3){
 
       //check for 2D-interface elements
       if (meshfile_->GetNum2DElems() != 0)
-	meshfile_->ReadEl2dConf(sd);
+		meshfile_->ReadEl2dConf(sd);
     
     } else if (dim == 2) {
     
       //check for 1D-interface elements
       if (meshfile_->GetNum1DElems() != 0) {
-	meshfile_->ReadEl1dConf(sd);
+		meshfile_->ReadEl1dConf(sd);
       }
     }
     if (sd.GetSize()) {
