@@ -482,3 +482,6 @@ main/tet3d.dat -text
 main/wv.dat -text
 main/z10.dat -text
 main/z10.mesh -text
+mkmesh/Makefile -text
+mkmesh/mkmesh -text
+mkmesh/mkmesh.mlib -text
