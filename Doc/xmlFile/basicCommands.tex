@@ -22,23 +22,28 @@ The format of the input and ouput files must be defined by the
 commands {\bf input} and {\bf output}:
 
 \begin{verbatim} 
-<input  format="mesh"/>
+<input  format="mesh" meshLibrary="cfsGrid"/>
 <output format="gmv"/>
 \end{verbatim} 
 
 Allowed values of {\bf format} for input files are
 {\bf \begin{itemize}
 \item mesh
+\item dat
 \end{itemize}}
 and for output files
 {\bf \begin{itemize}
 \item unv
 \item gmv
 \end{itemize}}
-
+while the meshLibrary attribute can currently be one of
+\begin{itemize}
+\item \textbf{cfsGrid }
+\item \textbf{adaptGrid}
+\end{itemize}
 \noindent
-By default, the input format is {\bf mesh} and the ouput format is
-{\bf unv}.
+By default, the input format is \textbf{mesh}, the ouput format is \textbf{unv}
+and the value for meshLibrary is \textbf{cfsGrid }.
 
 
 \section{Defining the Material File}
