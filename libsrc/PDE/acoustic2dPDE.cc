@@ -381,9 +381,9 @@ void Acoustic2dPDE:: WriteResultsInFile()
 
   if (OutFile_->IsGMV())
 {
-  OutFile_->WriteSolution(sol_,laststepcalc_,lasttimecalc_,"fluid_potential");
-  OutFile_->WriteSolution(sol_der1_,laststepcalc_,lasttimecalc_,"fluid_potential, 1st deriv., ");
-  OutFile_->WriteSolution(sol_der2_,laststepcalc_,lasttimecalc_,"fluid_potential, 2nd deriv., ");
+  OutFile_->WriteSolution(sol_,laststepcalc_,lasttimecalc_,"vp");
+  OutFile_->WriteSolution(sol_der1_,laststepcalc_,lasttimecalc_,"vp_1der");
+  OutFile_->WriteSolution(sol_der2_,laststepcalc_,lasttimecalc_,"vp_2der");
 }
   else
 {
