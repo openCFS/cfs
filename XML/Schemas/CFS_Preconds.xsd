@@ -150,4 +150,54 @@
     </xsd:complexContent>
   </xsd:complexType>
 
+
+  <!-- ==================================================================== -->
+  <!-- ==                                                                == -->
+  <!-- ==                       OLAS_MG preconditioner                   == -->
+  <!-- ==                                                                == -->
+  <!-- ==================================================================== -->
+
+
+  <!-- ******************************************************************** -->
+  <!-- Definition of element for OLAS_MG Preconditioner -->
+  <!-- ******************************************************************** -->
+  <xsd:element name="MG" type="DT_PrecondMG"
+    substitutionGroup="PrecondBasic"/>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for OLAS_MG Preconditioner -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_PrecondMG">
+    <xsd:complexContent>
+      <xsd:extension base="DT_PrecondBasic">
+        <xsd:sequence>
+          <xsd:element name="maxCoarseDepend" type="xsd:positiveInteger"
+            minOccurs="0"/>
+          <xsd:element name="minSystemSize" type="xsd:positiveInteger"
+            minOccurs="0"/>
+          <xsd:element name="numPreSmooth" type="xsd:nonNegativeInteger"
+            minOccurs="0"/>
+          <xsd:element name="numPostSmooth" type="xsd:nonNegativeInteger"
+            minOccurs="0"/>
+          <xsd:element name="cycleParam" type="xsd:positiveInteger"
+            minOccurs="0"/>
+          <xsd:element name="alpha" type="DT_FloatUnitInterval" minOccurs="0"/>
+          <xsd:element name="strongDiagRatio" type="DT_FloatUnitInterval"
+            minOccurs="0"/>
+          <xsd:element name="forceFineRatio" type="DT_PosFloat"
+            minOccurs="0"/>
+          <xsd:element name="directSolver" minOccurs="0">
+            <xsd:simpleType>
+              <xsd:restriction base="xsd:token">
+                <xsd:enumeration value="noSolver"/>
+                <xsd:enumeration value="lapackLU"/>
+              </xsd:restriction>
+            </xsd:simpleType>
+          </xsd:element>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
 </xsd:schema>
