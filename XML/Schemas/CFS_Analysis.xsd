@@ -21,7 +21,8 @@
               <xsd:enumeration value="static"/>
               <xsd:enumeration value="harmonic"/>
               <xsd:enumeration value="transient"/>
-							<xsd:enumeration value="paramIdent"/>
+              <xsd:enumeration value="paramIdent"/>
+              <xsd:enumeration value="multiSequence"/>
             </xsd:restriction>
           </xsd:simpleType>
         </xsd:attribute>
@@ -49,6 +50,8 @@
         </xsd:complexType>
       </xsd:element>
     </xsd:sequence>
+    <xsd:attribute name="tag" type="xsd:string" use="optional"
+      default="anyTag"/>
   </xsd:complexType>
 
   <!-- Data type for harmonic section, i.e. parameters required for
@@ -61,8 +64,9 @@
     </xsd:sequence>
   </xsd:complexType>
 
-	  <!-- Data type for inverse Problem of parameter identification in piezoelectric systems
-		, i.e. parameters required for  performing a piezoParamIdent analysis -->
+  <!-- Data type for inverse Problem of parameter identification in
+       piezoelectric systems, i.e. parameters required for  performing a
+       piezoParamIdent analysis -->
   <!--<xsd:simpleType name="DT_PiezoParamIdent"/>-->
 
   <!-- ******************************************************************** -->
@@ -97,6 +101,35 @@
       default="newton"/>
     <xsd:attribute name="logging" type="DT_CFSBool" use="optional"
       default="no"/>
+  </xsd:complexType>
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for multi sequence analysis -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_MultiSequence">
+    <xsd:sequence>
+      <xsd:element name="step" maxOccurs="unbounded">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="pde" maxOccurs="unbounded">
+              <xsd:complexType>
+                <xsd:attribute name="tag" type="xsd:token" use="required"/>
+                <xsd:attribute name="type" type="DT_PDEType" use="required"/>
+                <xsd:attribute name="analysis" use="required">
+                  <xsd:simpleType>
+                    <xsd:restriction base="xsd:token">
+                      <xsd:enumeration value="static"/>
+                      <xsd:enumeration value="harmonic"/>
+                      <xsd:enumeration value="transient"/>
+                    </xsd:restriction>
+                  </xsd:simpleType>
+                </xsd:attribute>
+              </xsd:complexType>
+            </xsd:element>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+    </xsd:sequence>
   </xsd:complexType>
 
 </xsd:schema>
