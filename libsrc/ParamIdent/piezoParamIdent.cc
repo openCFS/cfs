@@ -1,7 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
-#include "staticdriver.hh"
+//include "staticdriver.hh"
 #include "DataInOut/GMV/outGMV.hh"
 #include "CoupledPDE/basecoupledpde.hh"
 #include "General/environment.hh"
@@ -15,7 +15,7 @@
 #include "DataInOut/MaterialData.hh"
 #include "PDE/timestepping.hh"
 #include "Utils/baseelemstoresol.hh"
-#include "singleDriver.hh"
+#include "Driver/singleDriver.hh"
 #include "PDE/nodeEQN.hh"
 
 #include "DataInOut/WriteInfo.hh"
@@ -134,8 +134,8 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
 
      whichParameterToUpdateRC.Resize(1);
 
-     parameterIncrement.Resize(nrParameter);
-     parameterIncrement = parameter;
+     //     parameterIncrement.Resize(nrParameter);
+     //parameterIncrement = parameter;
      omegas.Resize(highestAssumableNrOfMeasData);
      freqs.Resize(highestAssumableNrOfMeasData);
      real.Resize(highestAssumableNrOfMeasData);
@@ -150,6 +150,7 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
     // the following passage reads Data from file measuredData.dat
     // The rows are containing the values of the given frequencies, such as phase and amplitude!
     readMeasuredData(freqs, real, imag, parameter, voltage, nrMeasuredData, thickness, radius, delta);
+     
 
     // std::cout<<whichParameterToUpdate<<std::endl;
 
@@ -197,7 +198,7 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
  	actNrParameterC++;
    
     whichParToUpInd.Resize(actNrParameter);
-    if (whichNewtonCG==4||whichNewtonCG==6)
+    if (whichNewtonCG==4||whichNewtonCG==6||whichNewtonCG==8)
       whichParToUpIndC.Resize(actNrParameterC);
 
     Integer intTemp=0;
@@ -208,8 +209,6 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
 	  intTemp++;
       }
 
-    //     std::cout<<whichParToUpInd<<std::endl;
-//     std::cout<<"test1 " <<std::endl;
 
     intTemp=0;
     for (Integer i=0;i<whichParameterToUpdateC.GetSize();i++)
@@ -218,20 +217,9 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
 	  intTemp++;
       }
 
-    whichParameterToUpdateRC=whichParameterToUpdate;
-    whichParameterToUpdateRC.InsertVector(whichParameterToUpdateC,10);
+     whichParameterToUpdateRC=whichParameterToUpdate;
+     whichParameterToUpdateRC.InsertVector(whichParameterToUpdateC,10);
 
-    //     std::cout<<"\n WhichparToUpRC"<<std::endl;
-    //std::cout<<whichParameterToUpdateRC<< std::endl;
-
-
-//    Boolean setComplMatData = FALSE;
-    //pdes_[0]->setPDE_complexMaterialData(setComplMatData);
-    //  pdes_[0]->BooleanComplexMaterialData_=FALSE;
-
-    
-
-    //      std::cout<<"Here begins communication with base PDE" << std::endl;
 
     // ************************************************************************
     // Communication with BasePDE ... gets i.G. pointers to objects involved  *
@@ -244,6 +232,39 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
 
     Matrix<Double> *matMat = ptMaterial->GetMatrix();
     Matrix<Double> *matMatC = ptMaterial->GetMatrixC();
+    parameterIncrement=parameter;
+
+    //Alternate Materialparameter by x percent
+    if (TRUE)
+      for (Integer i=0;i<nrParameter;i++){
+	if(i!=2)
+	  if (i==1||i==7||i==9)
+	    parameter[i]=parameter[i]-0.05*parameter[i];
+ 	  else if (i==0||i==5||i==6)
+ 	    parameter[i]=parameter[i]-0.05*parameter[i];	     
+	if (i==1)
+	  parameter[i]=parameter[i]+0.1*parameter[i];
+	if (i==0)
+	  parameter[i]=parameter[i]+0.1*parameter[i];	  
+      }
+
+    if (FALSE){
+      parameter[0]=1.458491485e+11;
+      parameter[1]=1.132373842e+11;
+      parameter[2]=1.05e+11;
+      parameter[3]=9.320007465e+10;
+      parameter[4]=2.322576951e+10;
+      parameter[5]=11.14101571;
+      parameter[6]=-2.959244238;
+      parameter[7]=16.008769;
+      parameter[8]=9.479219002e-09;
+      parameter[9]=8.098761552e-09;
+  }
+    
+
+    updateMaterialData(parameter,ptMaterial);
+    updateComplexMaterialData(parameterC,ptMaterial);
+
 
     //    std::cout<<*matMat<<std::endl;
     //getchar();
@@ -314,7 +335,7 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
       scaling.Resize(nrParameter);
       F_hat.Resize(nrMeasuredData);
       overall_res0.Resize(nrMeasuredData);      //    nrMeasuredData=1.0/2.0*nrMeasuredData;
-      //      std::cout<<"\n NRMEASURED DATA = " <<nrMeasuredData<<std::endl;
+          std::cout<<"\n NRMEASURED DATA = " <<nrMeasuredData<<std::endl;
     }
 
     // <<<<<<<<<<<<<< for a hopefully nice imped curve <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
@@ -347,7 +368,7 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
       calc_measuredCharge(freqs, real, imag, y_hat); // out of measurements, values are taken from measuredData.dat
       // calcSyntheticData(y_hat); // Generates synthetic data, i.e. one forward simulation will be performed.
 
-//     std::cout<<"\n Measured Data - Set: "<<std::endl;
+     std::cout<<"\n Measured Data - Set: "<<std::endl;
 //     for(int i=0;i<y_hat.GetSize();i++)
 //       std::cout<<"y("<<i<<")= "<< y_hat[i]<<"; ";
 //     std::cout<<"\n"<<std::endl;
@@ -420,6 +441,18 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
     scaling[7]=1.0/((*matMat)[8][2]);
     scaling[8]=1.0/((*matMat)[6][6]); 
     scaling[9]=1.0/((*matMat)[8][8]);
+
+    scalingC[0]=1.0/((*matMatC)[0][0]); 
+    scalingC[1]=1.0/((*matMatC)[2][2]);
+    scalingC[2]=1.0/((*matMatC)[1][0]);
+    scalingC[3]=1.0/((*matMatC)[0][2]);
+    scalingC[4]=1.0/((*matMatC)[3][3]); 
+    scalingC[5]=1.0/((*matMatC)[6][4]);
+    scalingC[6]=std::abs(1.0/((*matMatC)[8][0]));
+    scalingC[7]=1.0/((*matMatC)[8][2]);
+    scalingC[8]=1.0/((*matMatC)[6][6]); 
+    scalingC[9]=1.0/((*matMatC)[8][8]);
+
     Vector<Double> c33history(500);
     Vector<Double> e33history(500);
     Vector<Double> eps33history(500);
@@ -439,16 +472,16 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
     //         NewtonCG2();
     if (whichNewtonCG==3){
       Integer nNewtonCG =0;
-      while (nNewtonCG<maxNumberNewtonLoops){
+      //    while (nNewtonCG<100){
 	 c33history[nNewtonCG] = parameter[1];
 	 e33history[nNewtonCG] = parameter[7];
 	 eps33history[nNewtonCG] = parameter[8];
 	 std::cout<<"\n Nr: "<< nNewtonCG << ", start next NewtonCG Iteration?"<<std::endl;
 	 //	getchar();
-	 *parLog <<nNewtonCG <<"  "<< c33history[nNewtonCG]<<"  " <<e33history[nNewtonCG]<<"   " <<eps33history[nNewtonCG]<<std::endl;
+	 //arLog <<nNewtonCG <<"  "<< c33history[nNewtonCG]<<"  " <<e33history[nNewtonCG]<<"   " <<eps33history[nNewtonCG]<<std::endl;
          NewtonCG3();
 	 nNewtonCG++;
-      }
+	 //  }
     }
     else if (whichNewtonCG==4){
       Integer nNewtonCG =0;
@@ -508,20 +541,37 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
 
     else if (whichNewtonCG==7){
       Integer nrNuMethods=0;
+      newtonCounter=0;
       while (nrNuMethods<maxNumberNewtonLoops){
+      //      while (nrNuMethods<2){
 	std::cout<<"\n Nr: "<< nrNuMethods << ", start next Newton NuMethod?"<<std::endl;
-	c33history[nrNuMethods] = parameter[1];
-	e33history[nrNuMethods] = parameter[7];
-	eps33history[nrNuMethods] = parameter[9];
-	//getchar();
-	*parLog <<nrNuMethods <<"  "<< c33history[nrNuMethods]<<"  " <<e33history[nrNuMethods]<<"   " <<eps33history[nrNuMethods]<<std::endl;
+// 	c33history[nrNuMethods] = parameter[1];
+// 	e33history[nrNuMethods] = parameter[7];
+// 	eps33history[nrNuMethods] = parameter[9];
+// 	//getchar();
+// 	*parLog <<nrNuMethods <<"  "<< c33history[nrNuMethods]<<"  " <<e33history[nrNuMethods]<<"   " <<eps33history[nrNuMethods]<<std::endl;
 	nuMethods();
 	nrNuMethods++;
+	newtonCounter++;
+    }
+  }
+
+    else if (whichNewtonCG==8){
+      Integer nrNuMethodsC=0;
+      while (nrNuMethodsC<maxNumberNewtonLoops){
+	std::cout<<"\n Nr: "<< nrNuMethodsC << ", start next Newton NuMethodC?"<<std::endl;
+	c33history[nrNuMethodsC] = parameterC[1];
+	e33history[nrNuMethodsC] = parameterC[7];
+	eps33history[nrNuMethodsC] = parameterC[9];
+	//getchar();
+	*parLog <<nrNuMethodsC <<"  "<< c33history[nrNuMethodsC]<<"  " <<e33history[nrNuMethodsC]<<"   " <<eps33history[nrNuMethodsC]<<std::endl;
+	nuMethodsC();
+	nrNuMethodsC++;
 
     }
   }
 
-    else if (whichNewtonCG==8)
+    else if (whichNewtonCG==9)
       tichonov();
     else
       std::cout<<"\n There was no valid NewtonCG method specified - see in your measuredData.dat -file "<<std::endl;
@@ -580,6 +630,7 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
 	phase = 180/PI*(std::arg(impedC));
 
 	if(typeOut==TRUE){
+	  std::cout<<std::setprecision(10);
 	  //	std::cout<<"\n Frequency - Impendace - Phase: "<<std::endl;
 	  std::cout <<"\n Frequency: "<< freq << ", |Z|: "<< std::abs(impedC) << "; Phase: "<< phase << std::endl;
 	}

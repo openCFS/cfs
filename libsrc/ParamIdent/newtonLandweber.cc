@@ -1,8 +1,7 @@
-
 #include <iostream>
 #include <fstream>
 #include <string>
-#include "staticdriver.hh"
+//#include "staticdriver.hh"
 #include "DataInOut/GMV/outGMV.hh"
 #include "CoupledPDE/basecoupledpde.hh"
 #include "General/environment.hh"
@@ -16,7 +15,7 @@
 #include "DataInOut/MaterialData.hh"
 #include "PDE/timestepping.hh"
 #include "Utils/baseelemstoresol.hh"
-#include "singleDriver.hh"
+#include "Driver/singleDriver.hh"
 #include "PDE/nodeEQN.hh"
 #include <Domain/elem.hh>
 #include "Forms/forms_header.hh"
@@ -44,7 +43,6 @@
 #include <PDE/pdes_header.hh>
 
 #include <Driver/piezoParamIdent.hh>
-
 
 
 //#include "/../OLAS/algsys/basesystem.hh"
@@ -289,6 +287,9 @@ namespace CoupledField
     new_res_outer=(a2norm(act_res));
     std::cout<<"\n new_res_outer = " << new_res_outer <<std::endl;
 
+    if(new_res_outer<=1.0000e-04)
+      getchar();
+
       if (new_res_outer>=old_res_outer){
 	std::cout<<"\n Warning: residual norm gets worse!" <<std::endl;
 	//	getchar();
@@ -324,7 +325,7 @@ void piezoParamIdent::NewtonLandweberC(){
     ptBCs = pdes_[0]->getPDE_BCs();                             // Pointer to BCs
     ptAlgsys = pdes_[0]->getPDE_algsys();                       //Pointer to AlgebraicSystem
 
-        Double normJacMat, old_res_outer, new_res_inner, old_res_inner, new_res_outer;
+    Double normJacMat, old_res_outer, new_res_inner, old_res_inner, new_res_outer;
     Matrix<Complex> Identity(actNrParameter+actNrParameterC, actNrParameter+actNrParameterC);
 
     //we need the Identity of size nrParameter x nrParameter and some other temporary matrices
@@ -346,6 +347,8 @@ void piezoParamIdent::NewtonLandweberC(){
     Vector<Double> stepC(actNrParameterC);
     bas.Resize(actNrParameter+actNrParameterC);
     basC.Resize(actNrParameter+actNrParameterC);
+    Matrix<Double> *matMat;
+    Matrix<Double> *matMatC;
 
     if (considerMechDeformation==FALSE){
       adjFJacF.Resize(actNrParameter+actNrParameterC, actNrParameter+actNrParameterC);
@@ -370,10 +373,10 @@ void piezoParamIdent::NewtonLandweberC(){
       //    while (new_res_outer<=old_res_outer && nrIterations<maxNumberNewtonLoops) {
     while (nrIterations<1) {
 
-      for (Integer i=0;i<parameter.GetSize();i++){
-	scaling[i]=1.0;
-	scalingC[i]=1.0;
-      }
+     //  for (Integer i=0;i<parameter.GetSize();i++){
+// 	scaling[i]=1.0;
+// 	scalingC[i]=1.0;
+//       }
     
       nrIterations++;
       std::cout<<"\n NewtonLandweber ... Newton-Iteration-Nr = "<<nrIterations<<std::endl;
@@ -381,10 +384,14 @@ void piezoParamIdent::NewtonLandweberC(){
       s_old.Resize(maxNumberInnerLoops,actNrParameter+actNrParameterC);
       // s_temp.Resize(actNrParameter);
 
+      updateMaterialData(parameter, ptMaterial);
+      updateComplexMaterialData(parameterC, ptMaterial);
+
       // Create the Matrices F, F', F*
       createF (ptMaterial, ptBCs, F_hat,FALSE);
       createJacobiMatrixC(JacobiMatrix);
       createAdjointJacobiMatrix(JacobiMatrix,adjJacobiMatrix);
+
 
       // TEST MAT_MULT 
 
@@ -465,7 +472,7 @@ void piezoParamIdent::NewtonLandweberC(){
 
 	if (TRUE){
 	  for(Integer i=0;i<actNrParameter+actNrParameterC;i++){
-	    s[i]=s[i]-1000.0*w*adjFF_res[i];
+	    s[i]=s[i]-100.0*w*adjFF_res[i];
 	    //std::cout<<"s("<<i<<")= "<<s[i]<<"; "<<std::endl;
 	  }
 	}
@@ -505,8 +512,8 @@ void piezoParamIdent::NewtonLandweberC(){
       // backtracking(et , theta, s, old_resid2, new_resid2); 
 
       theta = 1.0;
-      Matrix<Double> *matMat = ptMaterial->GetMatrix();
-      Matrix<Double> *matMatC = ptMaterial->GetMatrixC();
+      matMat = ptMaterial->GetMatrix();
+      matMatC = ptMaterial->GetMatrixC();
       
       scaling[0]=1.0/((*matMat)[0][0]); 
       scaling[1]=1.0/((*matMat)[2][2]);
@@ -526,11 +533,11 @@ void piezoParamIdent::NewtonLandweberC(){
       scalingC[4]=1.0/((*matMatC)[3][3]); 
       scalingC[5]=1.0/((*matMatC)[6][4]);
       scalingC[6]=std::abs(1.0/((*matMatC)[8][0]));
-      scalingC[7]=1.0/((*matMatC)[8][2]);
+      scalingC[7]=0.01/((*matMatC)[8][2]);
       scalingC[8]=1.0/((*matMatC)[6][6]); 
-      scalingC[9]=1.0/((*matMatC)[8][8]);
+      scalingC[9]=-0.01/((*matMatC)[8][8]);
 
-
+      std::cout<<s<<std::cout;
 
       for (Integer i=0;i<actNrParameter;i++)
 	stepR[i]=s[i].real();
@@ -540,7 +547,7 @@ void piezoParamIdent::NewtonLandweberC(){
 
     
     //    parameter_new=parameter;
-    theta=1.0;
+      theta=1.0;
       setNewParameterSet(parameter, parameter, scaling, theta, stepR, whichParameterToUpdate);
       setNewParameterSet(parameterC, parameterC, scalingC, theta, stepC, whichParameterToUpdateC);
 
@@ -564,6 +571,9 @@ void piezoParamIdent::NewtonLandweberC(){
     new_res_outer=(a2norm(act_res));
     std::cout<<"\n new_res_outer = " << new_res_outer <<std::endl;
 
+    if(new_res_outer<=1.0e-08)
+      getchar();
+
       if (new_res_outer>=old_res_outer){
 	std::cout<<"\n Warning: residual norm gets worse!" <<std::endl;
 	//	getchar();
@@ -574,8 +584,8 @@ void piezoParamIdent::NewtonLandweberC(){
     } // end while nrIterations
 
     //    delete adjFJacF;
-   
-  } // end NewtonLandweberC
+  
 
+  } // end NewtonLandweberC
 
 } // end namespace

@@ -1,7 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
-#include "staticdriver.hh"
+//#include "staticdriver.hh"
 #include "DataInOut/GMV/outGMV.hh"
 #include "CoupledPDE/basecoupledpde.hh"
 #include "General/environment.hh"
@@ -15,7 +15,7 @@
 #include "DataInOut/MaterialData.hh"
 #include "PDE/timestepping.hh"
 #include "Utils/baseelemstoresol.hh"
-#include "singleDriver.hh"
+#include "Driver/singleDriver.hh"
 #include "PDE/nodeEQN.hh"
 #include <Domain/elem.hh>
 #include "Forms/forms_header.hh"
@@ -215,7 +215,7 @@ namespace CoupledField
 	  step[i]+=alpha*basC[i];
 	  //std::cout<<"step("<<i<<")= "<< step[i] << "; \t ";
 	}
-	
+
 
 	//	std::cout<<"\n\nres = res - alpha*bas_bar: "<<std::endl;
 	for (Integer i=0;i<res.GetSize();i++){
@@ -252,7 +252,7 @@ namespace CoupledField
 	normresNEold2 = normresNE2;
 
 	//	std::cout<<"\nbas = resNE + beta * bas: "<<std::endl;	
-	for(Integer i=0;i<actNrParameter+actNrParameterC;i++){
+	for(Integer i=0;i<actNrParameter;i++){
 	  basC[i]= res_NE[i]+beta*basC[i];
 	}
 
@@ -262,7 +262,6 @@ namespace CoupledField
 
       }// end while CG
       *piezoLog << "\n \t Number of CG - Iterations performed " << nrCGIter <<std::endl;
-
 
       parameter_new=parameter; 
       parameter_newC=parameterC;
@@ -490,12 +489,12 @@ namespace CoupledField
     tau = 1.1;
     Integer i,j;
     Double theta=0.5;
-    delta = 0.1;
+    //    delta = 0.1;
 
     t=1.0e-4;
     eta_max=0.9;
     eta=0.9;
-    eta_min=0.01;
+    //    eta_min=0.1;
     theta_min=0.1;
     theta_max=0.5;
     gamma=0.5;
@@ -516,14 +515,17 @@ namespace CoupledField
     Vector<Complex> basbar_old(nrMeasuredData);
     Vector<Complex> res(nrMeasuredData);
     Vector<Complex> JMats(nrMeasuredData);
+    Vector<Complex> JacFs(nrMeasuredData);
     Vector<Complex> res0(nrMeasuredData);
     Vector<Complex> Res_outer(nrMeasuredData);
     Vector<Complex> Res_inner(nrMeasuredData);
+    Vector<Complex> Res_linear(nrMeasuredData);
+
 
     Complex new_res_res0;
     Double misfit, misfit0,misfitnew, normres02, normres2, normresNEold2, normresNEold02, normresNE2;
 
-    Double aval, aval_new, alin_new, maxres_outer, maxres_inner, aval_old, alin;
+    Double aval, aval_new, alin_new, maxres_outer, maxres_inner, aval_old, alin, res_linear, res_linear_max;
 
 
     // NO scaling in NewtonCG!! 
@@ -539,7 +541,7 @@ namespace CoupledField
     for (i=0; i<nrMeasuredData;i++)
       y_hat_F_hat[i]=y_hat[i]-F_hat[i];
 
-    for (i=0;i<nrParameter;i++)
+    for (i=0;i<actNrParameter;i++)
       bas[i]=1.0;
 
     Res_outer=res=y_hat-F_hat;
@@ -560,7 +562,7 @@ namespace CoupledField
     nrNewtonIterations=0;
 
     // NEWTON ITERATION -- outer Loop!!
-    while((aval>tau*delta||nrNewtonIterations<maxNumberNewtonLoops)&&nrNewtonIterations<1){ // Newton
+    while(aval>tau*delta&&nrNewtonIterations<maxNumberNewtonLoops){ // Newton
       *piezoLog << "\n Newton-Iteration: " << nrNewtonIterations <<std::endl;
       *piezoLog <<"------------------------"<<std::endl;
       std::cout<<"\n Newton-Iteration "<< nrNewtonIterations <<std::endl;
@@ -609,8 +611,9 @@ namespace CoupledField
       // ----- INNER LOOP --- CG-ITERATION ---
       Integer nrCGIter=0;
       //      eta=1.0;
-      while((alin_new<=eta*eta*aval)&&(nrCGIter<maxNumberInnerLoops)||nrCGIter<1){ // CG
-	//      while((normres2>eta*eta*normres02)&&(nrCGIter<9)){ // CG
+      ///      while((alin_new<=eta*eta*aval)&&(nrCGIter<maxNumberInnerLoops)||nrCGIter<1){ // CG
+	while(nrCGIter<maxNumberInnerLoops){ // CG
+	  //      while((normres2>eta*eta*normres02)&&(nrCGIter<9)){ // CG
 	// 	std::cout<<"\n CG Iteration " << nrCGIter << std::endl;
 	nrCGIter++;
 
@@ -633,10 +636,12 @@ namespace CoupledField
 
 	//	std::cout<<"\nstep = step + alpha *bas: "<<std::endl;
 	for (Integer i=0;i<actNrParameter;i++){
-	  step[i]+=alpha*bas[i];
+	  step[i]+=2.5*Complex(alpha,alpha)*bas[i];
 	  //std::cout<<"step("<<i<<")= "<< step[i] << "; \t ";
 	}
-	
+		  std::cout<<step<<std::endl;
+		  //	  getchar();
+
 
 	//	std::cout<<"\n\nres = res - alpha*bas_bar: "<<std::endl;
 	for (Integer i=0;i<res.GetSize();i++){
@@ -671,7 +676,16 @@ namespace CoupledField
 
 	beta = normresNE2/normresNEold2;
 	
-	//	std::cout<<"\n beta = " << beta << " = " << normresNE2 << " / " << normresNEold2<< std::endl; 
+	JacobiMatrix.Mult(s,JacFs);
+	Res_linear=res-JacFs;
+	norm(Res_linear,res_linear,res_linear_max,y_hat);
+	
+
+	if (res_linear<alin_new){
+	  std::cout<<"\n res_linear = " << res_linear << " < = alin_new = " << alin_new << std::endl;
+	  getchar();
+	  break;
+	}
 
 	normresNEold2 = normresNE2;
 
@@ -744,6 +758,11 @@ namespace CoupledField
       norm(Res_outer,aval_new,maxres_outer,y_hat);
       //      maxAndWeightedResNorm(Res_outer, maxres_outer, aval_new, y_hat);
       //      maxAndEuclNorm(Res_outer, maxres_outer, aval_new);
+
+      std::cout<< parameter<<std::endl;
+
+      if(maxres_outer<=1.0e-4)
+	getchar();
 
 
       //	backtracking(eta, theta, s, a, a_lin_new);
@@ -872,8 +891,8 @@ namespace CoupledField
 
       if (eta_new>eta_max)
 	eta=eta_max;
-      else if (eta_new<eta_min)
-	eta = eta_min;
+      //      else if (eta_new<eta_min)
+      //eta = eta_min;
       else
 	eta=eta_new;
 
@@ -888,6 +907,8 @@ namespace CoupledField
       aval_old=aval;
       aval=aval_new;
       Res_inner = Res_outer;
+
+      std::cout<<"\n before end newtoin ..."<<std::endl;
 
     }// end while Newton
     //   std::cout<<"\n leaving Newton CG 2 " <<std::endl;
