@@ -67,17 +67,18 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 
   sol_.reshape(dofspernode_, numPDENodes_);
 
+
   if (conf->get_option("reducedInt",  pdename_ ))
     {
       std::cout << "REDUCED INTEGRATION set !!" << std::endl << std::endl;
       reducedInt_=TRUE;
     }
 
-
+  lineSearch_ = FALSE;
   if (conf->get_option("lineSearch",  pdename_ ))
     lineSearch_ = TRUE;
 
-
+  effectiveMass_ = FALSE;
   if (conf->get_option("effMass",  pdename_ ))
     effectiveMass_ = TRUE;
   

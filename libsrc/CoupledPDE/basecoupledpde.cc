@@ -97,14 +97,15 @@ void BaseCoupledPDE::PreStepTrans(const Integer kstep, const Double asteptime,
 
 
 // perform on every pde a post step (after solving transient step
-void BaseCoupledPDE::PostStepTrans(const Integer level) 
+void BaseCoupledPDE::PostStepTrans(const Integer kstep, const Double asteptime, 
+				   const Integer level) 
 {
 #ifdef TRACE
   (*trace) << "entering BaseCoupledPDE::PostStepTrans" << std::endl;
 #endif
 
     for (Integer i=0; i<PDEs_.size(); i++)
-      PDEs_[i]->PostStepTrans(level);
+      PDEs_[i]->PostStepTrans(kstep,asteptime,level);
 }
 
 

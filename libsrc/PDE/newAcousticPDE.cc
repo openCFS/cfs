@@ -228,8 +228,6 @@ void AcousticPDE::CalcOutputCoupling()
 	    
 	      CalcMechCouplingRHS(couplingElems, *couplingNodes, couplingMaterials, *values, dof, neighbours);
 
-	      //	      myCout << "Acoustic couple forces : " << *values << myEndl;
-
 	    }	  
 	  break;
 
@@ -264,10 +262,26 @@ void AcousticPDE::CalcMechCouplingRHS(std::vector<Elem*> * couplingElems,
       Matrix<Double> ptCoord; 
       GetElemCoords(connecth, ptCoord, actlevel_);
 
+      Boolean found = FALSE;
+      
       // get correct density belonging to the neighbouring element of the interface
       for (Integer actSD = 0; actSD < subdoms_.size(); actSD++)
-	if ((*neighbours)[actElem]->namesd ==  subdoms_[actSD])
-	  density = materialData_[actSD].GetDensity();
+	{  
+	  if ((*neighbours)[actElem]->namesd ==  subdoms_[actSD])
+	    {
+	      density = materialData_[actSD].GetDensity();
+	      found = TRUE;	      
+	    }
+	}
+      
+      if (found ==FALSE) 
+	{
+	  mycout << "Could not found correct density to compute acoustic pressure forces!!!!!"
+		 << myendl;
+	  mycout << "Take density of acoustic subdomain 1" << myendl;
+	  density = materialData_[0].GetDensity();
+	}
+  
           
       BaseForm * bilinear_mass = new MassInt(ptElem, density, isaxi_);
       Matrix<Double> elemmat;
@@ -280,7 +294,7 @@ void AcousticPDE::CalcMechCouplingRHS(std::vector<Elem*> * couplingElems,
       
       Vector<Double> sol;
       GetDerivSolVecOfElement(sol, connect_PDE);
-
+      
       Vector<Double> forceOnElem = elemmat * sol;
       // force has to be added on RHS with negative sign
       forceOnElem *= -1;

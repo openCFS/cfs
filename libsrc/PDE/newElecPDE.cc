@@ -106,7 +106,8 @@ void ElecPDE::DefineIntegrators(const Integer level)
   
 
 
-void ElecPDE:: PreStepStatic(const Integer level)
+void ElecPDE:: PreStepStatic(const Integer kstep, const Double asteptime,
+			     const Integer level, const Boolean reset)
 {
 #ifdef TRACE
   (*trace) << "entering ElecPDE:: PreStepStatic" << std::endl;
@@ -130,7 +131,8 @@ void ElecPDE:: PreStepStatic(const Integer level)
 
 
 
-void ElecPDE::StepStaticNonLin(const Integer level, const Double aTime)
+void ElecPDE::StepStaticNonLin(const Integer kstep, const Double aTime,
+			       const Integer level, const Boolean reset)
 {
 #ifdef TRACE
   (*trace) << "entering ElecPDE::StepStaticNonLin" << std::endl;
@@ -143,7 +145,7 @@ void ElecPDE::StepStaticNonLin(const Integer level, const Double aTime)
   assemble_->AssembleSrcRHS(level);
   
   updateBCs_ = 0;
-  SetBCs(level,updateBCs_,0);
+  SetBCs(level,updateBCs_,aTime);
   algsys_->CalcPrecond(job);
 
   algsys_->Solve();
@@ -152,14 +154,18 @@ void ElecPDE::StepStaticNonLin(const Integer level, const Double aTime)
 
   // save solution
   Integer k=0;
-  
+
   for (Integer i=0; i<numPDENodes_; i++)
     for (Integer dim=0; dim<dofspernode_; dim++)
-      sol_[dim][i] = ptsol[k++];
+      {
+	sol_[dim][i] = ptsol[k++];
+      }
+  
 
 }
 
-void ElecPDE::PostStepStatic(const Integer level)
+void ElecPDE::PostStepStatic(const Integer kstep, const Double asteptime,
+			     const Integer level)
 {
 #ifdef TRACE
   (*trace) << "entering ElecPDE::PostStepStatic" << std::endl;

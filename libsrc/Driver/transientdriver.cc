@@ -86,7 +86,7 @@ void TransientDriver :: SolveProblem()
 
 	  actPDE->PreStepTrans(nstep, steptime, level, updatesysmat);
 	  actPDE->SolveStepTrans(nstep, steptime, level, updatesysmat);
-	  actPDE->PostStepTrans(level);
+	  actPDE->PostStepTrans(nstep,steptime,level);
 	  
 	  // writing results in output-file
 	  if (nstep == stepsave && (nstep < isaveend_))
@@ -120,9 +120,9 @@ void TransientDriver :: SolveProblem()
 
 	  actCoupledPDE->InitStepTransCoupled(steptime);
 	  
-	  //	  actCoupledPDE->PreStepTrans(level, updatesysmat);
+	  //  actCoupledPDE->PreStepTrans(nstep, steptime, level, updatesysmat);
 	  actCoupledPDE->SolveStepTrans(nstep, steptime, level, updatesysmat);
-	  actCoupledPDE->PostStepTrans(level);
+	  // actCoupledPDE->PostStepTrans(level);
 	  
 	  // writing results in output-file
 	  if (nstep == stepsave && (nstep < isaveend_))

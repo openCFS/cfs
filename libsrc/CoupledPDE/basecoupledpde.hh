@@ -53,7 +53,8 @@ public:
   virtual void InitCoupling(Integer level)=0;
   
   //! Solve static step
-  virtual void SolveStepStatic(const Integer level, const Double aTime=0)=0;
+  virtual void SolveStepStatic(const Integer kstep, const Double asteptime, const Integer level, 
+			      const Boolean updatesysmat)=0;
   
   //! solve transient step
   virtual void SolveStepTrans(const Integer kstep, const Double asteptime, const Integer level, 
@@ -82,7 +83,8 @@ public:
 			    const Integer level, const Boolean reset);
 
   /// perform on every pde a post step (after solving transient step
-  virtual void PostStepTrans(const Integer level);
+  virtual void PostStepTrans(const Integer kstep, const Double asteptime, 
+			     const Integer level);
 
   /// initialize PDEs before iteration (done for each time step)
   void InitStepTransCoupled(Double asteptime);

@@ -51,38 +51,44 @@ public:
 // ======================================================
 
   //!
-  virtual void StepStaticNonLin(const Integer level, const Double aTime=0);
+  virtual void StepStaticNonLin(const Integer kstep, const Double asteptime,
+				const Integer level, const Boolean reset);
 
   //!
-  virtual void PreStepStatic(const Integer level);
+  virtual void PreStepStatic(const Integer kstep, const Double asteptime,
+			     const Integer level, const Boolean reset);
 
   //!
-  virtual void PostStepStatic(const Integer level);
-
+  virtual void PostStepStatic(const Integer kstep, const Double asteptime,
+			      const Integer level);
 
   //! initialize time stepping: nothing to do in electrostatics!
   virtual void InitTimeStepping(const Double dt){;};
 
   //!
   virtual void SolveStepTrans(const Integer kstep, const Double asteptime,
-			      const Integer level, const Boolean updatesysmat)
-  {SolveStepStatic(level, asteptime);};
+			      const Integer level, const Boolean reset)
+  {SolveStepStatic(kstep,asteptime,level,reset);};
 
   //!
-  virtual void StepTransLin(const Integer level)
-  {StepStaticLin(level);};
+  virtual void StepTransLin(const Integer kstep, const Double asteptime,
+			    const Integer level, const Boolean reset)
+  {StepStaticLin(kstep,asteptime,level,reset);};
 
   //!
-  virtual void PreStepTrans(const Integer level)
-  {PreStepStatic(level);};
+  virtual void PreStepTrans(const Integer kstep, const Double asteptime,
+			    const Integer level, const Boolean reset)
+  {PreStepStatic(kstep,asteptime,level,reset);};
 
   //!
-  virtual void PostStepTrans(const Integer level)
-  {PostStepStatic(level);};
+  virtual void PostStepTrans(const Integer kstep, const Double asteptime,
+			    const Integer level)
+  {PostStepStatic(kstep,asteptime,level);};
 
   //!
-  virtual void StepTransNonLin(const Integer level)
-  {StepStaticNonLin(level);};
+  virtual void StepTransNonLin(const Integer kstep, const Double asteptime,
+			    const Integer level, const Boolean reset)
+  {StepStaticNonLin(kstep,asteptime,level,reset);};
 
 // ======================================================
 // POSTPROCESSING SECTION
