@@ -5,6 +5,13 @@
 
 BEGIN {
    if (ARGC >= 2) {
+      # rework around an error of ANSYS 6.1 which calls external programs
+      # with the "/syp" command with additional "0" arguments
+      for (i=ARGC-1; i>=1; i--) {
+	 if (ARGV[i] == "0") ARGC=i;
+	 else break;
+      }
+     
       Filename = ARGV[ARGC-1];
       for(i=1; i<ARGC-1; i++) {
          if (substr(ARGV[i],1,1) != "-") {
@@ -89,29 +96,19 @@ BEGIN {
    level = "";
    while((getline < ElementsInFile) == 1) {
       if ($0 ~ /^\[/) { # level record
+
+         # write out old ElemRecord
+         WriteElementRecord();
+
          ElemLevel = $1;
          gsub(/[\[\]]/, "", ElemLevel);
          if (DEBUG) print " current level: " ElemLevel > "/dev/stderr";
+
       } else if (NF == 14) { # first line of element record
+
          # write out old ElemRecord
-         if (ElemNodes != "") {
-            # build new ElemRecord
-            ElemRecord = ElemNumber " " BaseElemType " " NrOfNodes\
-               " " ElemLevel "\n" ElemNodes;
-            if (ElemType <= 3) {
-               print ElemRecord >> Elements1DOutFile;
-               Num1DElements++;
-            } else if (ElemType <= 7) {
-               print ElemRecord >> Elements2DOutFile;
-               Num2DElements++;
-            } else {
-               print ElemRecord >> Elements3DOutFile;
-               Num3DElements++;
-            }
-            NumElemType[ElemType]++;
-            NumBaseElemType[BaseElemType]++;
-         }
-         
+         WriteElementRecord();
+
          # parameters of new ElemRecord
          mat = $9;
          ElemType = $10;
@@ -166,23 +163,7 @@ BEGIN {
       }
    }
    # write out last ElemRecord
-   if (ElemNodes != "") {
-   # build new ElemRecord
-      ElemRecord = ElemNumber " " BaseElemType " " NrOfNodes\
-         " " ElemLevel "\n" ElemNodes;
-      if (ElemType <= 3) {
-         print ElemRecord >> Elements1DOutFile;
-         Num1DElements++;
-      } else if (ElemType <= 7) {
-         print ElemRecord >> Elements2DOutFile;
-         Num2DElements++;
-      } else {
-         print ElemRecord >> Elements3DOutFile;
-         Num3DElements++;
-      }
-      NumElemType[ElemType]++;
-      NumBaseElemType[BaseElemType]++;
-   }
+   WriteElementRecord();
 
    if (Num1DElements + Num2DElements + Num3DElements == 0){
       print "ERROR: no elements found" > "/dev/stderr";
@@ -327,4 +308,27 @@ BEGIN {
           Elements2DOutFile " " Elements1DOutFile " " SaveNodesOutFile " "\
           SaveElementsOutFile);
 
+}
+
+function WriteElementRecord() {
+   # write out old ElemRecord
+   if (ElemNodes != "") {
+   # build new ElemRecord
+	  ElemRecord = ElemNumber " " BaseElemType " " NrOfNodes\
+		 " " ElemLevel "\n" ElemNodes;
+	  if (ElemType <= 3) {
+		 print ElemRecord >> Elements1DOutFile;
+		 Num1DElements++;
+	  } else if (ElemType <= 7) {
+		 print ElemRecord >> Elements2DOutFile;
+		 Num2DElements++;
+	  } else {
+		 print ElemRecord >> Elements3DOutFile;
+		 Num3DElements++;
+	  }
+	  NumElemType[ElemType]++;
+	  NumBaseElemType[BaseElemType]++;
+   }
+   ElemNodes = "";
+   return;
 }
