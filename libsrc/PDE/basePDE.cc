@@ -83,8 +83,12 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
   olasReport_ = algsys_->GetOLASReport();
   
   std::string parallel = "no";
+#ifndef XMLPARAMS
   conf->ifget("parallel",parallel);
-  
+#else
+  Info->Warning( "Parameter 'parallel' unknown to XML" );
+#endif
+
   if (parallel == "yes")
     olasParams_->SetValue( "Parallel", true);
   else
