@@ -57,6 +57,9 @@ public:
   { 
     Error("Makes no sense for Electrostatics to perform transient step",__FILE__,__LINE__);
   }
+
+  //! GET SOLUTION AT ALL NODES OF AN ELEMENT
+  void GetSolOfElement( Vector<Double>& elpot, Vector<Integer>& connect_PDE);
   
   //! calculate coupling terms
   virtual void CalcOutputCoupling();
@@ -75,7 +78,10 @@ public:
 
   //! returns if PDE can compute the quantity
   virtual Boolean HasOutput(std::string output);
-  
+
+  //! computes the electric energy for each subdomain
+  void CalcEnergy();
+
 protected:
 
   //! callculates nodal forces
@@ -94,6 +100,10 @@ protected:
   std::vector<std::vector<std::vector<Integer> > > elemNodeToCouplingNode_; //!< assigns each coupling element node the according Coupling Node number
   std::vector<std::vector<Integer> > numBoundaryNodes_;               //!< contains number of surface nodes per element
 
+
+  //postprocessing
+  std::vector<std::string> calcEfield_;  //!< contains the subdomains, on which the electric field is computed
+  std::vector<std::string> calcEnergy_;  //!< contains the subdomains, on which the electric energy is computed
 
  // for check: own solver
   Boolean SolverCFS_; //<! parameter indicator: TRUE, if you want to use Solver CFS. reading from config-file

@@ -43,6 +43,9 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile, WriteResults * a
   numeqcoarse_ = 200;
   coarsealpha_ = 0.1;
 
+  //axisymmetric case
+  isaxi_ = FALSE;
+
   //get analysis type
   std::string analysis;
   conf->get("analysis", analysis);

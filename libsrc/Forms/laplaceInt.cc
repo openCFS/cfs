@@ -6,8 +6,8 @@
 namespace CoupledField
 {
 
-  LaplaceInt::LaplaceInt(BaseFE * aptelem, Double aVal)
-    : BaseForm(aptelem),laplVal_ (aVal)
+  LaplaceInt::LaplaceInt(BaseFE * aptelem, Double aVal, Boolean axi)
+    : BaseForm(aptelem),laplVal_ (aVal), isaxi_(axi)
   {
 #ifdef TRACE
     (*trace) << "entering LaplaceInt::LaplaceInt" << std::endl;
@@ -41,6 +41,8 @@ namespace CoupledField
     Matrix<Double> xiDx;
     Matrix<Double> xiDxTransp;
     Matrix<Double> partElemMat;
+    std::vector<Double> ShpFncAtIp;
+    std::vector<Double> CoordAtIP;
 
     // set matrix to desired size and set all elements to zero
     elemMat.Resize(nrNodes); elemMat.Init();
@@ -55,7 +57,14 @@ namespace CoupledField
 
 	partElemMat = xiDx * xiDxTransp;
 	
-	partElemMat *= intWeights[actIntPt-1] * jacDet * laplVal_;
+	if (isaxi_)
+	  {
+	    ptelem->GetShFncAtIp(ShpFncAtIp,actIntPt);
+	    CoordAtIP = ptCoord * ShpFncAtIp;
+	    partElemMat *= 2 * PI * intWeights[actIntPt-1] * jacDet * laplVal_ * CoordAtIP[0];
+	  }
+	else 
+	  partElemMat *= intWeights[actIntPt-1] * jacDet * laplVal_;
 
 	elemMat += partElemMat;
       }

@@ -6,12 +6,12 @@
 namespace CoupledField
 {
 
-  /// Class for calculation  element stiffness matrix
+  /// Class for calculation  element stiffness matrix of a laplace operator
 class LaplaceInt : public BaseForm
 {
 public:
   /// Constructor
-  LaplaceInt(BaseFE * aptelem, Double laplVal);
+  LaplaceInt(BaseFE * aptelem, Double laplVal, Boolean axi);
 
   /// 
   virtual ~LaplaceInt();
@@ -25,8 +25,10 @@ protected:
 private:
   /// multiplicative value for laplace integration 
   Double laplVal_;
+  Boolean isaxi_;
   
 };
+
 
 }
 

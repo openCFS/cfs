@@ -23,7 +23,8 @@ namespace CoupledField
 
     std::vector<Double> shapeFnc;
     Matrix<Double> partElemMat;
-
+    std::vector<Double> ShpFncAtIp;
+    std::vector<Double> CoordAtIP;
 
     // set matrix to desired size and set all elements to zero
     //    partElemMat.Resize(nrNodes);
@@ -38,7 +39,14 @@ namespace CoupledField
 
 	partElemMat.DyadicMult(shapeFnc);
 
-	partElemMat *= intWeights[actIntPt-1] * density_ * jacDet;
+	if (isaxi_)
+	  {
+	    ptelem->GetShFncAtIp(ShpFncAtIp,actIntPt);
+	    CoordAtIP = ptCoord * ShpFncAtIp;
+	    partElemMat *= 2 * PI * intWeights[actIntPt-1] * density_ * jacDet * CoordAtIP[0];
+	  }
+	else 
+	  partElemMat *= intWeights[actIntPt-1] * density_ * jacDet;
       
 	elemMat += partElemMat;
       }
@@ -63,8 +71,8 @@ namespace CoupledField
   }
 
 
-  MassInt::MassInt(BaseFE * aptelem, Double aDensity)
-    : BaseForm(aptelem), density_(aDensity)
+  MassInt::MassInt(BaseFE * aptelem, Double aDensity, Boolean axi)
+    : BaseForm(aptelem), density_(aDensity), isaxi_(axi)
   {
 #ifdef TRACE
     (*trace) << "entering MassInt::MassInt" << std::endl;

@@ -32,6 +32,13 @@ SmoothLaPlacePDE::SmoothLaPlacePDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTim
 
   conf->getsubdompde(subdoms_,pdename_);
   ReadBCs(pdename_);
+
+  //check, if problem is axisymmetric
+  isaxi_ = FALSE;
+  std::string subtype;
+  conf->ifget("subtype",subtype,pdename_);
+  if (subtype == "axi")
+    isaxi_ = TRUE;
   
   AssignPDENodeNumbers(Mesh2PDENode_, PDE2MeshNode_, subdoms_);
   NumPDENodes_ = PDE2MeshNode_.size();
@@ -254,7 +261,7 @@ void SmoothLaPlacePDE::SetupMatrices(const Integer level)
 	    
 	    BaseForm * bilinear_stiff;
 	    
-	    bilinear_stiff = new LaplaceInt(ptEl, density);
+	    bilinear_stiff = new LaplaceInt(ptEl, density, isaxi_);
 	    
 	    connecth=elemssd[j]->connect;
 

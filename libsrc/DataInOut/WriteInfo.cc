@@ -114,6 +114,20 @@ namespace CoupledField
 
 
 
+  void WriteInfo:: WriteResult(std::string pdename, std::string resulttype, std::vector<std::string> subdoms,
+			       std::vector<Double> results)
+  {
+    if (subdoms.size() != results.size())
+      Error("Problem in WriteResults",__FILE__,__LINE__);
+ 
+    *cfsInfo << std::endl << " PostProcessing Result for PDE " << pdename << ": " << resulttype  
+	     << " ==========" << std::endl;
+    for (Integer i=0; i<subdoms.size(); i++)
+	*cfsInfo   << " === " << subdoms[i] << " : " << results[i] << " (Ws)" << std::endl;
+    *cfsInfo << std::endl;
+  }
+
+
 
   void WriteInfo::PrintCoil(std::string& coilDomain, struct MagEdgePDE::coilDefStruct& coilDef,  AnalysisType& analysistype_)
   {

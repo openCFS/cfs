@@ -11,7 +11,7 @@ class MassInt : public BaseForm
 {
 public:
   /// Constructor
-  MassInt(BaseFE * aptelemt, Double aDensity);
+  MassInt(BaseFE * aptelemt, Double aDensity, Boolean axi);
 
   /// Destructor
   virtual ~MassInt();
@@ -25,6 +25,7 @@ public:
 private:
   // multiplicative value for mass integrator
   Double density_;
+  Boolean isaxi_;
   
 };
 
