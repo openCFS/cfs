@@ -74,11 +74,12 @@
   <!-- ******************************************************************** -->
 
   <xsd:complexType name="DT_MatrixDescription">
-    <xsd:attribute name="structure" use="optional" default="standard">
+    <xsd:attribute name="eqnNumbering" use="optional" default="scalar">
       <xsd:simpleType>
         <xsd:restriction base="xsd:token">
-          <xsd:enumeration value="standard"/>
-          <xsd:enumeration value="SBM"/>
+          <xsd:enumeration value="scalar"/>
+          <xsd:enumeration value="block"/>
+          <xsd:enumeration value="superBlock"/>
         </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>
@@ -90,7 +91,7 @@
         </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>
-    <xsd:attribute name="storage" use="optional" default="sparseNonSym">
+    <xsd:attribute name="storage" use="optional" default="expertsChoice">
       <xsd:simpleType>
         <xsd:restriction base="xsd:token">
           <xsd:enumeration value="sparseSym"/>
@@ -100,6 +101,7 @@
           <xsd:enumeration value="hypreMatrix"/>
           <xsd:enumeration value="lapackGBMatrix"/>
           <xsd:enumeration value="lapackPBMatrix"/>
+          <xsd:enumeration value="expertsChoice"/>
         </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>
