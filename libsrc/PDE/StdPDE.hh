@@ -30,12 +30,17 @@ namespace CoupledField {
     friend class StdSolveStep;
     friend class PDEMemento;
     friend class PDECoupling;
-  
+
+    //! Virtual destructor
+    virtual ~StdPDE() {
+      ENTER_FCN( "StdPDE::~StdPDE" );
+    }
 
     // ------------------- ASK TOM TO CLEAN UP THIS SECTION -------------------
 
-    // The following Methods are used only durig parameter Identification
-    // process!!
+    //@{
+    //! \todo The following Methods are used only durig parameter
+    //!       identificationprocess! Ask Tom to clean this section up!
     MaterialData * getPDEMaterialData()
     {return materialData_;};
   
@@ -92,7 +97,7 @@ namespace CoupledField {
       piezoMaterialType_ = pMatType;};
   
     piezoMaterialType getPDE_piezoMaterialType(){return piezoMaterialType_;}
-  
+    //@}
 
     // ======================================================
     // ALGSYS SECTION (SOLVER, ...)
