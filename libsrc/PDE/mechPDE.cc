@@ -240,8 +240,6 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
       lineSearch_ = "no";
     }
 
-    Info->PrintF( pdename_,  " Non-linearity in %d regions\n",
-		  nonLinRegion.GetSize() );
 #endif
 
     if( nonLin_ == TRUE )
@@ -258,6 +256,9 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 
 	// residual stopping criterion
 	params->Get( "resStopCrit", residualStopCrit_, pdename_, "nonLinear" );
+	
+	// maximal number of NL-iterations
+	params->Get("maxNumIters", nonLinMaxIter_, pdename_, "nonLinear");
 #endif
       }
 
@@ -276,9 +277,6 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
   void MechPDE::DefineIntegrators(const Integer level)
   {
     ENTER_FCN( "MechPDE::DefineIntegerators" );
-
-    Boolean nonLin = FALSE;
-
 
     //voulme integrators
     for (int actSD = 0; actSD < subdoms_.GetSize(); actSD++)
@@ -925,7 +923,7 @@ void MechPDE::StepStaticNonLin(const Integer kstep, const Double aTime,
 	       << "residualErr " << residualErr  << myendl
 	       << "residualStopCrit_ " << residualStopCrit_ << myendl;
 
-    }while(performOneMoreStep && iterationCounter < maxnumiter_);  
+    }while(performOneMoreStep && iterationCounter < nonLinMaxIter_);  
 
 }
 
@@ -1056,7 +1054,6 @@ void MechPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
   const Integer job = 1;
   
   static Integer timeStepCounter=1;
-  Double * ptsol;
   Boolean performOneMoreStep;
   Integer iterationCounter=0;
 
@@ -1201,7 +1198,7 @@ void MechPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
       performOneMoreStep = 
 	(incrementalErr > incStopCrit_)||(residualErr > residualStopCrit_);
 
-    } while(performOneMoreStep && iterationCounter < maxnumiter_);  
+    } while(performOneMoreStep && iterationCounter < nonLinMaxIter_);  
 
   
     //perform corrector step  
@@ -1252,7 +1249,7 @@ Double MechPDE::RhsL2Norm(Vector<Double>& actRHS)
 {
   ENTER_FCN( "MechPDE::RhsL2Norm" );
 
-  Integer node, dof, eqnNr, eqnDof, dofsperEQN;
+  Integer node, dof, eqnNr, eqnDof;
   
   std::list<Integer> nodes;
   
@@ -1565,8 +1562,6 @@ void MechPDE::ReadStoreResults() {
 void MechPDE::PostProcess(const Integer level) {
 
   ENTER_FCN( "MechPDE::PostProcess" );
-
-  NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
 
   //check for mechanical energy calculation
   if (calcEnergy_.GetSize() !=0 ) 
