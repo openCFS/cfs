@@ -65,8 +65,10 @@ int main(int argc, char *argv[]) {
       }
 
 #ifdef TRACE
-      else if (!strcmp("-notrace", argv[i])) {
-	OutInfo::FcnTraceHandler::SetMaxTraceDepth(0);
+      else if ( !strcmp("-trace", argv[i]) ) {
+	OutInfo::FcnTraceHandler::SetMaxTraceDepth(TRACE);
+	int dummy = TRACE;
+	std::cerr << "Set tracing depth to" << dummy << std::endl;
 	numargs++;
       }
 #endif
@@ -91,7 +93,7 @@ int main(int argc, char *argv[]) {
 	   << " -skel for writing a skeleton of a config-file\n"
 	   << "\t           -grid for writing just the grid to result-file\n"
 #ifdef DEBUG
-	   << "\t           -notrace do not write a trace file\n"
+	   << "\t           -trace write a trace file\n"
 #endif
 	   << "\n \033[31mERROR:\033[0m"
 	   << " Invalid parameter specification. See usage details above.\n\n";
