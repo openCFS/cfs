@@ -310,6 +310,8 @@ std::vector<Double> operator- (std::vector<Double> & vec, std::vector<Double> & 
 
 std::vector<Double> operator+= (std::vector<Double> & vec, std::vector<Double> & vec2);
 
+std::vector<Double> operator-= (std::vector<Double> & vec, std::vector<Double> & vec2);
+
 std::vector<Double> operator* (Double val, std::vector<Double> & vec);
 
 //std::vector<Double> operator= (std::vector<Double> & vec, Double val);

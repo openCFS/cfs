@@ -5,6 +5,7 @@
 
 #include "timefunc.hh"
 #include "conffile.hh"
+#include "WriteInfo.hh"
 
 namespace CoupledField
 {
@@ -68,20 +69,30 @@ void TimeFunc :: ReadTimeFunc(const std::string nametf)
     
     maxvalTimeFunc[0] = 0;
     Double dummyTime, dummyVal;
+
+    Double firstTime, firstVal;
     
-    do
+    timefile >> firstTime >> firstVal;
+    
+    while(!timefile.eof())
+    {
+      timefile >> dummyTime >> dummyVal;
+      maxvalTimeFunc[0]++;
+    }
+
+    if (firstVal == maxvalTimeFunc[0])
       {
-	timefile >> dummyTime >> dummyVal;
-	maxvalTimeFunc[0]++;
-      }while(!timefile.eof());
+	Info->Warning("Your are probably using an old time-file-style, which holds in the first line the function number and the number of values!! This line isn't needed any more.");
+      }
+    
 
     // start again reading from the top of the file
     timefile.clear();
     timefile.seekg (0, std::ios::beg);
 
-    timefile >> dummyTime >> dummyVal;
-    timefile >> dummyTime >> dummyVal;    
-    timefile.seekg (0, std::ios::beg);
+//     timefile >> dummyTime >> dummyVal;
+//     timefile >> dummyTime >> dummyVal;    
+//     timefile.seekg (0, std::ios::beg);
 
 
     timeTimeFunc = new Double * [maxnumTimeFunc_];  // timeTF and valTF
@@ -104,7 +115,7 @@ void TimeFunc :: ReadTimeFunc(const std::string nametf)
 void TimeFunc :: ReadTimeFuncs()
 {
 #ifdef TRACE
-  (*trace) << " entering TimeFunc :: ReadTimeFuncs " << std::endl;
+  (*trace) << "entering TimeFunc::ReadTimeFuncs " << std::endl;
 #endif
 
   maxnumTimeFunc_ = fnc_names_.size();
@@ -121,23 +132,31 @@ void TimeFunc :: ReadTimeFuncs()
       if (!timefile)  
 	Error("Can't open file with data of time function");
 
-      std::string buffer;
-      std::getline(timefile,buffer,'\n');
 
       Double dummyTime, dummyVal;
       maxvalTimeFunc[i] = 0;
-      do
+
+      Double firstVal;
+      timefile >> dummyTime >> firstVal;
+    
+      while(!timefile.eof())
 	{
 	  timefile >> dummyTime >> dummyVal;
-	  maxvalTimeFunc[i]++;
-	}while(!timefile.eof());
+	  maxvalTimeFunc[0]++;
+	}
+      
+      // +1 is due to the fact, that maxvalTimeFunc includes the first (header) line
+      if (firstVal+1 == maxvalTimeFunc[0])
+	{
+	  std::string warnText = "Your are probably using an old time-file-style, \n";
+	  warnText += "which holds in the first line the function number and the number of values!!\n";
+	  warnText += "This line isn't needed any more.";
+
+	  Info->Warning(warnText);
+	}
 
       // start again reading from the top of the file
       timefile.clear();
-      timefile.seekg (0, std::ios::beg);
-
-      timefile >> dummyTime >> dummyVal;
-      timefile >> dummyTime >> dummyVal;    
       timefile.seekg (0, std::ios::beg);
 
       timeTimeFunc[i] = new Double[maxvalTimeFunc[i]];

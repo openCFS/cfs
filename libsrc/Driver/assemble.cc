@@ -194,6 +194,14 @@ namespace CoupledField
 		    actDescriptor->GetIntegrator()->CalcElementMatrix(ptCoord, elemmat);
 		    algsys_->SetElementMatrix(elemmat.getinarray(), connect_PDE.get(), 
 					      connect_PDE.size(), destMat); 
+
+		    if (actDescriptor->GetSecondaryMat() != NOTYPE)
+		      {
+			elemmat *= actDescriptor->GetSecMatFac();
+			algsys_->SetElementMatrix(elemmat.getinarray(), connect_PDE.get(), 
+						  connect_PDE.size(), actDescriptor->GetSecondaryMat()); 
+		      }
+		    
 		  }		
 	      }
 
@@ -216,12 +224,8 @@ namespace CoupledField
 		std::vector<Double> elemVec;
 		actRhsID->GetIntegrator()->CalcElemVector(ptCoord, elemVec);
 		
-		elemVec *= -1;
-
 		algsys_->SetElementRHS(&elemVec[0], connect_PDE.get(), connect_PDE.size());
 	      }
-	    
-
 	  }
       }
 
@@ -283,6 +287,13 @@ namespace CoupledField
 		    
 		    algsys_->SetElementMatrix(elemmat.getinarray(), connect_PDE.get(), 
 					      connect_PDE.size(), destMat); 
+
+		    if (actDescriptor->GetSecondaryMat()  != NOTYPE )
+		      {
+			elemmat *= actDescriptor->GetSecMatFac();
+			algsys_->SetElementMatrix(elemmat.getinarray(), connect_PDE.get(), 
+						  connect_PDE.size(), actDescriptor->GetSecondaryMat()); 
+		      }
 		  }		
 	      }
 	  }
@@ -813,6 +824,9 @@ BaseIntDescriptor::BaseIntDescriptor()
      secondaryMatrix(NOTYPE),
      secMatFac(0.0)
 {
+#ifdef TRACE
+  (*trace) << "entering IntegratorDescriptor::IntegratorDescriptor " << std::endl;
+#endif
 }
   
 
@@ -820,11 +834,12 @@ BaseIntDescriptor::BaseIntDescriptor()
   IntegratorDescriptor::IntegratorDescriptor(BaseForm * aIntegrator, 
 					     const enum MatrixType aDestMat, const Boolean aNonLin)
     :BaseIntDescriptor(aIntegrator, aNonLin),
-     destinationMatrix(aDestMat)
-
-  {
+     destinationMatrix(aDestMat),
+     secondaryMatrix(NOTYPE),
+     secMatFac(0.0)
+{
 #ifdef TRACE
-    (*trace) << "entering IntegratorDescriptor::IntegratorDescriptor " << std::endl;
+  (*trace) << "entering IntegratorDescriptor::IntegratorDescriptor" << std::endl;
 #endif
   }
   

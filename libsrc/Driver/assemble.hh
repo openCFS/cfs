@@ -75,6 +75,13 @@ class IntegratorDescriptor : public BaseIntDescriptor
 	secondaryMatrix = aSecMat;
 	secMatFac = aSecMatFac;
       };
+
+      /// returns matrix type of the secondary matrix (if there is any, otherwise NOTYPE=0)
+      MatrixType GetSecondaryMat() const {return secondaryMatrix;} 
+
+      /// returns matrix type of the secondary matrix (if there is any, otherwise NOTYPE=0)
+      Double GetSecMatFac() const {return secMatFac;} 
+      
       
       
       
