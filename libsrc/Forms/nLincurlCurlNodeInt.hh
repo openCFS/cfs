@@ -24,6 +24,9 @@ public:
   void CalcElementMatrix(Matrix<Double> & ptCoord, Matrix<Double> & elemMat);
 
   //
+  virtual void SetNonLinMethod(std::string atype);
+  
+  //
   virtual void SetActElemSol(Matrix<Double>& magPot) 
   { magPot.ConvertToVec_AppendRows(magPot_);};
 
@@ -35,6 +38,7 @@ private:
   Double startmatVal_;
   ApproxData *nlinFnc_;
   std::vector<Double> magPot_;
+  NonLinMethod nonLinType_;
 
 };
 

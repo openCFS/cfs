@@ -50,6 +50,9 @@ public:
   //! Prints the bilinear form
   virtual void Print(std::ostream * out, const Matrix<Double> Result) const;
 
+  //
+  virtual void SetNonLinMethod(std::string atype) {;};
+
 
   //! sets pointer to actual element
   void SetElemPtr(BaseFE * elemPtr){ptelem = elemPtr;};
