@@ -138,6 +138,39 @@ namespace CoupledField
     virtual void GetList( const std::string key, StdVector<Integer> &list,
 			  const std::string section = "",
 			  const std::string subsection = "" ) = 0;
+
+    //! Search for a unique match and return value as string.
+
+    //! The method searches the parameter file for an element or attribute and
+    //! returns the value as string, if a unique match is found. Otherwise an
+    //! error is reported and program execution terminated.
+    //! \param keyVec     (input) vector of keywords describing path to
+    //!                           desired parameter
+    //! \param value      (output) value of desired parameter
+    virtual void Get( const StdVector<std::string> &keyVec,
+		      std::string &value ) = 0;
+
+    //! Search for a unique match and return value as Double.
+
+    //! The method searches the parameter file for an element or attribute and
+    //! returns the value as Double, if a unique match is found. Otherwise an
+    //! error is reported and program execution terminated.
+    //! \param keyVec     (input) vector of keywords describing path to
+    //!                           desired parameter
+    //! \param value      (output) value of desired parameter
+    virtual void Get( const StdVector<std::string> &keyVec,
+		      Double &value ) = 0;
+
+    //! Search for a unique match and return value as Integer.
+
+    //! The method searches the parameter file for an element or attribute and
+    //! returns the value as Integer, if a unique match is found. Otherwise an
+    //! error is reported and program execution terminated.
+    //! \param keyVec     (input) vector of keywords describing path to
+    //!                           desired parameter
+    //! \param value      (output) value of desired parameter
+    virtual void Get( const StdVector<std::string> &keyVec,
+		      Integer &value ) = 0;
     //@}
 
 

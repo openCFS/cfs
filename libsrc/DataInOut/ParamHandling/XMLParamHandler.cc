@@ -260,6 +260,62 @@ namespace CoupledField {
   }
 
 
+  // ================================================================
+  //   Return as string the value of a parameter matching a keyword
+  // ================================================================
+  void XMLParamHandler::Get( const StdVector<std::string> &keyVec,
+			     std::string &value ) {
+
+    ENTER_FCN( "XMLParamHandler::Get" );
+
+    // Generate vectors for the side-constraints
+    StdVector<std::string> attrVec;
+    StdVector<std::string> valVec;
+    for ( unsigned int k = 0; k < keyVec.GetSize() - 1; k++ ) {
+      attrVec.Push_back( "" );
+      valVec.Push_back( "" );
+    }
+
+    // Use constrained Get to find the value
+    Get( keyVec, attrVec, valVec, value );
+  }
+
+
+  // ================================================================
+  //   Return as Double the value of a parameter matching a keyword
+  // ================================================================
+  void XMLParamHandler::Get( const StdVector<std::string> &keyVec,
+			     Double &value ) {
+
+    ENTER_FCN( "XMLParamHandler::Get" );
+
+    // First get value as string
+    std::string match;
+    Get( keyVec, match );
+
+    // Error detection and default handling occured in the above Get,
+    // so we only need to convert the detected value
+    value = atof( match.c_str() );
+  }
+
+
+  // =================================================================
+  //   Return as Integer the value of a parameter matching a keyword
+  // =================================================================
+  void XMLParamHandler::Get( const StdVector<std::string> &keyVec,
+			     Integer &value ) {
+
+    ENTER_FCN( "XMLParamHandler::Get" );
+
+    // First get value as string
+    std::string match;
+    Get( keyVec, match );
+
+    // Error detection and default handling occured in the above Get,
+    // so we only need to convert the detected value
+    value = atoi( match.c_str() );
+  }
+
 
   // **************************************************************************
   //   Public Methods: Constrained Query Functions
