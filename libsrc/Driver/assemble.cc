@@ -634,13 +634,17 @@ namespace CoupledField
     olasParams_->SetValue( "FEMatrixType3", matrixsystype[2] );
     olasParams_->SetValue( "FEMatrixType4", matrixsystype[3] );
     olasParams_->SetValue( "FEMatrixType5", matrixsystype[4] );
-    olasParams_->SetValue( "MatrixEntryType", entryType_ );
-    olasParams_->SetValue( "MatrixStorageType", storageType_ );
     olasParams_->SetValue( "NumDof", dofsPerNode_ );
     olasParams_->SetValue( "NumDirichletBCs", numDirichletBCs_ );
     olasParams_->SetValue( "NumConstraints", numconstraints );
     olasParams_->SetValue( "AuxiliaryMatrix", FALSE);
-    
+
+    // For OLAS_PARAMS we set these via CFSOLASParams::SetParams()
+#ifndef OLAS_PARAMS
+    olasParams_->SetValue( "MatrixEntryType", entryType_ );
+    olasParams_->SetValue( "MatrixStorageType", storageType_ );
+#endif
+
     algsys_->CreateLinSys();
 #else
     Integer numDir = numDirichletBCs_;

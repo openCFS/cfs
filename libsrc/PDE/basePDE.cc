@@ -3,6 +3,7 @@
 #include <string>
 
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
+#include "DataInOut/ParamHandling/CFSOLASParams.hh"
 #include "DataInOut/ParamHandling/ConfFile.hh"
 #include "DataInOut/WriteInfo.hh"
 #include "Domain/elem.hh"
@@ -81,7 +82,7 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
 #ifdef USE_OLAS
   olasParams_ = algsys_->GetOLASParams();
   olasReport_ = algsys_->GetOLASReport();
-  
+
   std::string parallel = "no";
 #ifndef XMLPARAMS
   conf->ifget("parallel",parallel);
@@ -820,8 +821,13 @@ BasePDE::~BasePDE()
 
     ENTER_FCN( " Analysis::SetAlgSys" );
 
-    //set solver parameters  
+    // Se parameter for solver and preconditioner
+
+#if defined(USE_OLAS) && defined(XMLPARAMS)
+    CFSOLASParams::SetParams( pdename_, params, olasParams_ );
+#else
     SetSolverParameters();
+#endif
 
     //set the graph type used for the system matrices
     assemble_->SetupMatrixGraph(numPDENodes_);
@@ -839,191 +845,205 @@ void BasePDE::SetSolverParameters()
 
   // Get Solver and Precond parameters
 #ifdef USE_OLAS
-  
-  Integer solverIntegerVal = 0;
-  Integer precondIntegerVal = 0;
-  Integer matrixStorageTypeVal = 0;
-  
+#ifdef XMLPARAMS
+  Error( "Use CFSOLASParams::SetSolverParams/SetPrecondParams instead",
+	 __FILE__, __LINE__ );
 
-#ifndef XMLPARAMS
-  conf->ifget("solvertype",solverIntegerVal,pdename_); // solver
-  conf->ifget("precondtype", precondIntegerVal,pdename_); //preconditioner
-  conf->ifget("matrixstoragetype",matrixStorageTypeVal,pdename_); // matrixStorageTypeVal
+  // The following is compatibility code for interfacing with old
+  // .conf file. This is to be phased out!!!
+
 #else
-#ifdef DEBUG
-  Info->Warning("SetSolverParameters: Using defaults! No solvers yet in XML!");
-#endif
-#endif
-
-
-  // Assign correct solver
-  switch(solverIntegerVal) 
-    {
-    case 0:
-      // nothing specified in conf-file  
-      // use default value set in the according specialized PDE
-      break;
-    case 1:
-      solvertype_ = OLAS::RICHARDSON;
-      break;
-    case 2:
-      solvertype_ = OLAS::RICHARDSON;
-      break;
-    case 3:
-      solvertype_ = OLAS::CG;
-      break;
-    case 4:
-      solvertype_ = OLAS::CG;
-      break;
-    case 5:
-      solvertype_ = OLAS::LANCZOS;
-      break;
-    case 6:
-      solvertype_ = OLAS::QMR;
-      break;
-    case 7:
-      solvertype_ = OLAS::QMR;
-      break;
-    case 8:
-      solvertype_ = OLAS::DIRECT;
-      break;
-    case 9:
-       Error("The specified solver in the config file is not implemented in OLAS",__FILE__,__LINE__);
-       break;
-    case 10:
-      Error("The specified solver in the config file is not implemented in OLAS",__FILE__,__LINE__);
-      break;
-    case 12:
-      Error("The specified solver in the config file is not implemented in OLAS",__FILE__,__LINE__);
-      break;
-    case 13:
-      solvertype_ = OLAS::HYPRE_PCG;
-      break;
-    case 14:
-      solvertype_ = OLAS::LAPACK_LU;
-      break;
-    default:
-      Error("The specified solver in the config file is not known",__FILE__,__LINE__);
-      break;
- }
-
-
- // Assign correct preconditioner
-  switch(precondIntegerVal) 
-    {
-    case 0:
-      // nothing specified in conf-file  
-      // use default value set in the according specialized PDE
-      break;
-    case 1:
-      precondtype_ = OLAS::ID;
-      break;
-    case 2:
-      precondtype_ = OLAS::MG;
-      break;
-    case 3:
-      precondtype_ = OLAS::JACOBI;
-      break;
-    case 4:
-      precondtype_ = OLAS::ILU;
-	break;
-    case 5:
-      precondtype_ = OLAS::SSOR;
-      break;
-    case 6:
-      precondtype_ = OLAS::HYPRE_JACOBI;
-      break;
-    case 7:
-      precondtype_ = OLAS::HYPRE_AMG;
-      break;
-    case 8:
-      precondtype_ = OLAS::HYPRE_ILU;
-    case 9:
-      precondtype_ = OLAS::HYPRE_SPAI;
-      break;
-    default:
-      Error("The specified preconditioner in the config file is not known",__FILE__,__LINE__);
-      break;
-    }
-
-  // Assign matrixStorageType
-  switch(matrixStorageTypeVal)
-    {
-    case 0:
-      // nothing specified in conf-file.
-      // use default value set in the according specialized PDE
-      break;
-    case 1:
-      assemble_->SetMatrixStorageType(OLAS::SPARSE_SYM);      
-      break;
-    case 2:
-      assemble_->SetMatrixStorageType(OLAS::SPARSE_NONSYM);      
-      break;
-    case 3:
-      assemble_->SetMatrixStorageType(OLAS::SKYLINE_SYM);      
-      break;
-    case 4:
-      assemble_->SetMatrixStorageType(OLAS::SKYLINE_NONSYM);      
-      break;
-    case 5:
-      assemble_->SetMatrixStorageType(OLAS::HYPRE_MATRIX);      
-      break;
-    case 6:
-      assemble_->SetMatrixStorageType(OLAS::LAPACK_GBMATRIX);      
-      break;
-    case 7:
-      assemble_->SetMatrixStorageType(OLAS::LAPACK_PBMATRIX);      
-      break;
-    default:
-      Error("The specified matrix storage format in the config file is not known",__FILE__,__LINE__);
-      break;
-    }
-#else
-#ifndef XMLPARAMS
-    conf->ifget("solvertype",solvertype_,pdename_); // solver
-    conf->ifget("precondtype", precondtype_,pdename_); //preconditioner
-#else
-#ifdef DEBUG
-  Info->Warning("SetSolverParameters: Using defaults! No solvers yet in XML!");
-#endif
-#endif
-#endif
-
 
   //if values are defined in conf-file, take these
-#ifndef XMLPARAMS
-  conf->ifget("eps",eps_,pdename_); // relative accuracy in the precond. energy
-  conf->ifget("dampiter",dampiter_,pdename_); // damping parameter for Jacobi, SSOR
-  conf->ifget("maxnumit",maxnumiter_,pdename_); // maximal number of iterations
-  conf->ifget("numeqcoarse",numeqcoarse_,pdename_); // number of equation for coarsing
-  conf->ifget("coarsealpha",coarsealpha_,pdename_); // coarsing parameter for AMG
-#else
-#ifdef DEBUG
-  Info->Warning("SetSolverParameters: Using defaults! No solvers yet in XML!");
-#endif
-#endif
 
-#ifdef USE_OLAS
-  if (solvertype_==DIRECT && precondtype_!=ID)  precondtype_=ID;
-#else
-  if (solvertype_==RealDirect && precondtype_!=ID)  precondtype_=ID;
-#endif
+  // relative accuracy in the precond. energy
+  conf->ifget("eps",eps_,pdename_);
+  // damping parameter for Jacobi, SSOR
+  conf->ifget("dampiter",dampiter_,pdename_);
+  // maximal number of iterations
+  conf->ifget("maxnumit",maxnumiter_,pdename_);
+  // number of equation for coarsing
+  conf->ifget("numeqcoarse",numeqcoarse_,pdename_);
+  // coarsing parameter for AMG
+  conf->ifget("coarsealpha",coarsealpha_,pdename_);
 
-  //communicate with algebraic system
- 
-
-#ifdef USE_OLAS
   olasParams_->SetValue( "eps", eps_ );
   olasParams_->SetValue( "MaxIter", maxnumiter_);
   olasParams_->SetValue( "epsmach", 1e-30 );
   olasParams_->SetValue( "Solver", solvertype_ );
   olasParams_->SetValue( "Precond", precondtype_);
-   // The following parameters are not passed yet
+  // The following parameters are not passed yet
   // -> Contact Uwe regarding multrigrid parameters
   // olasParams_->SetValue( "dampiter", dampiter_);
   // olasParams_->SetValue( "numeqcoarse", numeqcoarse_);
   // olasParams_->SetValue( "coarseAlpha", coarsealpha_);
+
+  Integer solverIntegerVal = 0;
+  Integer precondIntegerVal = 0;
+  Integer matrixStorageTypeVal = 0;
+
+  conf->ifget("solvertype",solverIntegerVal,pdename_);
+  conf->ifget("precondtype", precondIntegerVal,pdename_);
+  conf->ifget("matrixstoragetype",matrixStorageTypeVal,pdename_);
+
+  // Assign correct solver
+  switch(solverIntegerVal) {
+
+  case 0:
+    // nothing specified in conf-file use default value
+    // set in the according specialized PDE
+    break;
+  case 1:
+    solvertype_ = OLAS::RICHARDSON;
+    break;
+  case 2:
+    solvertype_ = OLAS::RICHARDSON;
+    break;
+  case 3:
+    solvertype_ = OLAS::CG;
+    break;
+  case 4:
+    solvertype_ = OLAS::CG;
+    break;
+  case 5:
+    solvertype_ = OLAS::LANCZOS;
+    break;
+  case 6:
+    solvertype_ = OLAS::QMR;
+    break;
+  case 7:
+    solvertype_ = OLAS::QMR;
+    break;
+  case 8:
+    solvertype_ = OLAS::DIRECT;
+    break;
+  case 9:
+    Error("The specified solver in the config file is not implemented in OLAS",
+	  __FILE__,__LINE__);
+    break;
+  case 10:
+    Error("The specified solver in the config file is not implemented in OLAS",
+	  __FILE__,__LINE__);
+    break;
+  case 12:
+    Error("The specified solver in the config file is not implemented in OLAS",
+	  __FILE__,__LINE__);
+    break;
+  case 13:
+    solvertype_ = OLAS::HYPRE_PCG;
+    break;
+  case 14:
+    solvertype_ = OLAS::LAPACK_LU;
+    break;
+  default:
+    Error("The specified solver in the config file is not known",__FILE__,
+	  __LINE__);
+    break;
+  }
+
+  // Assign correct preconditioner
+  switch(precondIntegerVal) {
+
+  case 0:
+    // nothing specified in conf-file  
+    // use default value set in the according specialized PDE
+    break;
+  case 1:
+    precondtype_ = OLAS::ID;
+    break;
+  case 2:
+    precondtype_ = OLAS::MG;
+    break;
+  case 3:
+    precondtype_ = OLAS::JACOBI;
+    break;
+  case 4:
+    precondtype_ = OLAS::ILU;
+    break;
+  case 5:
+    precondtype_ = OLAS::SSOR;
+    break;
+  case 6:
+    precondtype_ = OLAS::HYPRE_JACOBI;
+    break;
+  case 7:
+    precondtype_ = OLAS::HYPRE_AMG;
+    break;
+  case 8:
+    precondtype_ = OLAS::HYPRE_ILU;
+  case 9:
+    precondtype_ = OLAS::HYPRE_SPAI;
+    break;
+  default:
+    Error("The specified preconditioner in the config file is not known",
+	  __FILE__,__LINE__);
+    break;
+  }
+
+  // Assign matrixStorageType
+  switch(matrixStorageTypeVal) {
+  case 0:
+    // nothing specified in conf-file.
+    // use default value set in the according specialized PDE
+    break;
+  case 1:
+    assemble_->SetMatrixStorageType(OLAS::SPARSE_SYM);      
+    break;
+  case 2:
+    assemble_->SetMatrixStorageType(OLAS::SPARSE_NONSYM);      
+    break;
+  case 3:
+    assemble_->SetMatrixStorageType(OLAS::SKYLINE_SYM);      
+    break;
+  case 4:
+    assemble_->SetMatrixStorageType(OLAS::SKYLINE_NONSYM);      
+    break;
+  case 5:
+    assemble_->SetMatrixStorageType(OLAS::HYPRE_MATRIX);      
+    break;
+  case 6:
+    assemble_->SetMatrixStorageType(OLAS::LAPACK_GBMATRIX);      
+    break;
+  case 7:
+    assemble_->SetMatrixStorageType(OLAS::LAPACK_PBMATRIX);      
+    break;
+  default:
+    Error("The matrix storage format in the config file is not known",
+	  __FILE__,__LINE__);
+    break;
+  }
+
+  // Adapt preconditioner in case of a direct solver
+  if ( solvertype_ == DIRECT && precondtype_ != ID ) {
+    precondtype_ = ID;
+  }
+#endif //XMLPARAMS
+
+  // Here starts the branch for LAS
 #else
+
+#ifndef XMLPARAMS
+
+  //if values are defined in conf-file, take these
+
+  conf->ifget( "solvertype",  solvertype_,  pdename_ );
+  conf->ifget( "precondtype", precondtype_, pdename_ );
+  if ( solvertype_ == RealDirect && precondtype_ != ID ) {
+    precondtype_ = ID;
+  }
+
+  // relative accuracy in the precond. energy
+  conf->ifget("eps",eps_,pdename_);
+  // damping parameter for Jacobi, SSOR
+  conf->ifget("dampiter",dampiter_,pdename_);
+  // maximal number of iterations
+  conf->ifget("maxnumit",maxnumiter_,pdename_);
+  // number of equation for coarsing
+  conf->ifget("numeqcoarse",numeqcoarse_,pdename_);
+  // coarsing parameter for AMG
+  conf->ifget("coarsealpha",coarsealpha_,pdename_);
+
+  //communicate with algebraic system
   algsys_->CreateParameter();
   algsys_->SetAccuracy(eps_);
   algsys_->SetMaxNumIter(maxnumiter_);
@@ -1032,8 +1052,15 @@ void BasePDE::SetSolverParameters()
   algsys_->SetDampIter(dampiter_);
   algsys_->SetCoarseSystem(numeqcoarse_);
   algsys_->SetAlpha(coarsealpha_);
+
+#else
+
+#ifdef DEBUG
+  Info->Warning( "SetSolverParameters: XML does not support LAS solvers!");
 #endif
 
+#endif
+#endif
 
 } 
 
