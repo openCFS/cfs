@@ -6,6 +6,7 @@
 #include <Driver/transientdriver.hh>
 #include <Driver/staticdriver.hh>
 #include <Driver/staticAdaptSpaceDriver.hh>
+#include <Driver/harmonicAdapt.hh>
 //#include <Driver/transientAdaptSpaceDriver.hh>
 
 #endif

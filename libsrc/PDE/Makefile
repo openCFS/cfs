@@ -1,7 +1,7 @@
 #
 C_DIR= ../..
 #
-src = basepde.cc elecPDE.cc acousticPDE.cc acouFlowNoise.cc mechPDE.cc magEdgePDE.cc smoothPDE.cc smoothlaplacePDE.cc \
+src = basepde.cc elecPDE.cc acousticPDE.cc acouFlowNoise.cc acouStandWave.cc mechPDE.cc magEdgePDE.cc smoothPDE.cc smoothlaplacePDE.cc \
       timestepping.cc newmark.cc newmarkdamp.cc
 
 #
