@@ -79,7 +79,8 @@ namespace CoupledField
   std::ostream& operator << (std::ostream & outStr, std::vector<Integer> xOut);
 
   //! Damping type
-  enum DampingType{NONE=0, RAYLEIGH=1, FRACTIONAL=2, ABCDamp=3};
+  enum DampingType{NONE=0, RAYLEIGH=1, FRACTIONAL=2, ABCDAMP=3,
+		   THERMOVISCOUS=4};
 
   //! Enumeration for Input Coupling types
   //! COORD = Coupling via coordinate displacement
