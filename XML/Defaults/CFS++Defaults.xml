@@ -47,6 +47,7 @@
 
       <solver>
         <matrix/>
+        <stoppingRule/>
       </solver>
   
     </mechanic>
