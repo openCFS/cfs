@@ -116,9 +116,8 @@ namespace CoupledField {
     InitPDEs();
 
     // Initialize Coupled PDEs
-    Info->StartProgress("Initializing coupling");
     InitCoupledPDE();
-    Info->FinishProgress();
+   
  
     // Set the algebraic systems and read material data
     for (int i=0;i< numpde_;i++)
@@ -233,7 +232,7 @@ namespace CoupledField {
       return;
     }
 
-    
+    Info->StartProgress("Initializing coupling");
 
 #ifndef XMLPARAMS
     std::string errMsg;
@@ -294,6 +293,8 @@ namespace CoupledField {
     // ================================
 
     // -- Not implemented yet --
+
+    Info->FinishProgress();
   }
 
 

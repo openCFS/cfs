@@ -37,7 +37,13 @@ TimeFunc :: TimeFunc(FileType * aptFileType)
 #endif
 
   //read in the time functions
-  if (timeFncDatFiles_)  ReadTimeFuncs();
+  if (timeFncDatFiles_)  
+    {
+      Info->StartProgress("Reading time data functions");
+      ReadTimeFuncs();
+      Info->FinishProgress();
+
+    }
 
 }
 
@@ -49,6 +55,7 @@ void TimeFunc :: ReadTimeFuncs()
 
   valTF_    =  new std::list<Double>[maxnumTF_];
   timeTF_     =  new std::list<Double>[maxnumTF_]; 
+  std::string errMsg;
 
 
 
@@ -65,15 +72,19 @@ void TimeFunc :: ReadTimeFuncs()
 
       // we don't trust .eof() =)
       timefile.seekg(0,std::ios::end);
-      std::string::size_type pos = 0, pos_end = timefile.tellg();
+      std::string::size_type pos = 0, pos_end = timefile.tellg(), line_end_pos = 0;
 
       timefile.seekg(0,std::ios::beg); // start from the beginning
       std::string     buf;
       Double          timeT, valT;
+
       while(pos <= pos_end)
 	{	  
+	  buf = "";
 	  getline(timefile,buf);
 
+	  line_end_pos = timefile.tellg();
+	  
 	  // big choice of signs for comment's
 	  if (buf[0] != '#' || buf[0] != '%' || buf[0] != '!') 
 	    {
@@ -87,7 +98,18 @@ void TimeFunc :: ReadTimeFuncs()
 	  
 	    }
 
+	  
 	  pos = timefile.tellg();  // and, where we are ?    
+	  
+	  if( pos != line_end_pos)
+	    {
+	      errMsg  = "The time data file '";
+	      errMsg += fnc_names_[i];
+	      errMsg += "' is not correctly formatted.\n";
+	      errMsg += "Please correct it!";
+	      Error(errMsg.c_str(), __FILE__, __LINE__);
+	    }
+	  
 	}
       
       timefile.close();

@@ -18,7 +18,7 @@ namespace CoupledField {
 #endif
 
 //! Stream to which trace information is sent
-#define TRACESTREAM (*trace)
+#define TRACESTREAM trace
 
 //! Macro for specifying depth of indentation in function trace log
 #define TRACE_INDENT "    "
@@ -52,29 +52,33 @@ namespace OutInfo {
       this->name_ = name;
       fcnDepth_ = depth;
     
-    if (fcnDepth_<=TRACE){
+    if (fcnDepth_<=TRACE && 
+	TRACESTREAM != NULL)
+      {
 	for (int i = 0; i < fcnDepth_; i++) {
-	  TRACESTREAM << TRACE_INDENT;
+	  (*TRACESTREAM) << TRACE_INDENT;
 	}
-	TRACESTREAM << "entering function " << name_ << std::endl;
+	(*TRACESTREAM) << "entering function " << name_ << std::endl;
       }
     }
-
+    
     //! Default destructor
 
     //! The default destructor is responsible for issuing a "leaving
     //! function" message to the trace stream object.
     ~FcnTraceListElem(){
-      if (fcnDepth_<=TRACE){
-	for (int i = 0; i < fcnDepth_; i++ ) {
-	  TRACESTREAM << TRACE_INDENT;
+      if (fcnDepth_<=TRACE &&
+	  TRACESTREAM != NULL)
+	{
+	  for (int i = 0; i < fcnDepth_; i++ ) {
+	    (*TRACESTREAM) << TRACE_INDENT;
+	  }
+	  (*TRACESTREAM) << "leaving function " << name_ << std::endl;
 	}
-	TRACESTREAM << "leaving function " << name_ << std::endl;
-      }
       fcnDepth_ = 0;
       name_ = NULL;
     }
-
+    
     FcnTraceListElem *caller_; //!< Link to FcnTrace object for predecessor
     FcnTraceListElem *called_; //!< Link to FcnTrace object for successor
 

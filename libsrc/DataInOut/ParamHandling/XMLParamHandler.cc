@@ -58,6 +58,12 @@ namespace CoupledField {
       Info->Error( errmsg, __FILE__, __LINE__ );
     }
 
+#ifdef DEBUG
+    std::cout << "XML parsers uses Schema: http://www.cfs++.org ";
+    std::cout << XMLSCHEMA <<  "/CFS.xsd" << std::endl;
+#endif
+
+    Info->StartProgress("Reading in .xml file");
     // Generate parser and parse XML parameter file
     rootElem_ = ParseFile( &parser_, fname );
 
@@ -72,6 +78,8 @@ namespace CoupledField {
 #else
     beVerbose_ = false;
 #endif
+
+    Info->FinishProgress();
 
   }
 
@@ -1679,12 +1687,10 @@ namespace CoupledField {
     cfsSchema_ = "http://www.cfs++.org ";
     cfsSchema_ += XMLSCHEMA;
     cfsSchema_ += "/CFS.xsd";
+
     (*parser)->setExternalSchemaLocation( cfsSchema_.c_str() );
 
-#ifdef DEBUG
-    std::cout << " XML parsers uses Schema: " << cfsSchema_ << std::endl;
-#endif
-
+    
     // Have not yet understood what an entity reference node is, but it seems
     // we do not need them
     (*parser)->setCreateEntityReferenceNodes(false);
@@ -1743,6 +1749,7 @@ namespace CoupledField {
 
     // We are finished
     return rootElem;
+
   }
 
 
