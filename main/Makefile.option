@@ -192,7 +192,7 @@ LIBRARY_TYPE = static
 # We define some parameters for handling internal paths correctly.
 # -----------------------------------------------------------------------------
 LIBSRC_DIR = $(C_DIR)/libsrc
-LIB_DIR    = $(C_DIR)/lib/$(MACHINE)
+LIB_DIR    = $(C_DIR)/lib/$(ARCH)
 
 
 # -----------------------------------------------------------------------------
@@ -324,7 +324,7 @@ COMPILE_MACROS = $(MARCO_DATABASE) $(MACRO_MPCCI) $(MACRO_ADAPTIVITY) \
 # -----------------------------------------------------------------------------
 
 # OLAS
-LIBDIR_OLAS = -L$(OLAS_ROOT)/lib/$(MACHINE)
+LIBDIR_OLAS = -L$(OLAS_ROOT)/lib/$(ARCH)
 LIB_OLAS = -lolas
 
 # HYPRE
