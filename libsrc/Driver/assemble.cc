@@ -151,8 +151,6 @@ namespace CoupledField {
 
       ptgrid_->GetElemSD(elemssd, subdoms_[actDom], level);
 
-      //        std::cout<<"\n we have Number ofIntegrators= " << integrators_[actDom]->GetSize() <<std::endl;
-
       for(Integer actInteg=0; actInteg < integrators_[actDom]->GetSize(); actInteg++) {
         IntegratorDescriptor * actDescriptor = (*integrators_[actDom])[actInteg];
 
@@ -197,7 +195,6 @@ namespace CoupledField {
           }
 	  
 
-          
           for (Integer actEl=0; actEl< elemssd.GetSize(); actEl++) {
             BaseFE * ptEl = elemssd[actEl]->ptElem;
             StdVector<Integer> connecth = elemssd[actEl]->connect;
@@ -236,7 +233,6 @@ namespace CoupledField {
             actDescriptor->GetIntegrator()->CalcElementMatrix(ptCoord, elemmat);
                   
             piezoMaterialType matType = actDescriptor->GetPiezoMaterialType();
-            //std::cout<<"\n assemble:: piezoMaterialType = " << matType <<std::endl;
             actDescriptor->SetPiezoMaterialType(matType);
 
 

@@ -16,6 +16,7 @@ namespace CoupledField {
  
     pdename_      = PDE_.pdename_;
     numPDENodes_  = PDE_.numPDENodes_;
+    numPDEElems_  = PDE_.numElems_;
     isaxi_        = PDE_.isaxi_;
     subdoms_      = PDE_.subdoms_;
     materialData_ = PDE_.materialData_;
@@ -27,10 +28,10 @@ namespace CoupledField {
     actlevel_     = PDE_.actlevel_;
 
     matrix_factor_ = PDE_.matrix_factor_;
-    lasttimecalc_ = PDE_.lasttimecalc_;
-    laststepcalc_ = PDE_.laststepcalc_;
-    TS_alg_       = PDE_.TS_alg_;
-    recalc_       = PDE_.recalc_;
+    lasttimecalc_  = PDE_.lasttimecalc_;
+    laststepcalc_  = PDE_.laststepcalc_;
+    TS_alg_        = PDE_.TS_alg_;
+    recalc_        = PDE_.recalc_;
 
     lineSearch_       = PDE_.lineSearch_;
     nonLin_           = PDE_.nonLin_;
@@ -50,6 +51,7 @@ namespace CoupledField {
     solIncr_            = PDE_.solIncr_;
     actSol_             = PDE_.actSol_;
     isIncrFormulation_  = PDE_.isIncrFormulation_;
+
 }
 
   

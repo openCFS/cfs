@@ -44,9 +44,16 @@ namespace CoupledField {
 		Double hMin = -1.0,
 		Double hMax = -1.0 );
 
+
+
+    //   void SetNumEl (Integer numEl){
+    //ENTER_IFCN( "ODESolver_RKF45::SetNumEl" );
+    // numEl_ = numEl;
+    //}
+
   private:
 
-
+    // Integer numEl_ ;
     //! Controlls RKF45 step by monitoring local truncation error
     //! and adjusting stepsize
     //! \param y         containing on input the initial values and on output

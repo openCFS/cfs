@@ -16,6 +16,7 @@
 #include "Utils/mathfunctions.hh"
 #include "Utils/nodestoresol.hh"
 #include "Driver/solveStepAcoustic.hh"
+#include "Driver/solveStepAcousticBubble.hh"
 
 namespace CoupledField {
 
@@ -169,7 +170,29 @@ AcousticPDE::AcousticPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc,
 			  ,__FILE__,__LINE__);
 	}
   }
-  if( nonLin_ ) {
+
+
+  // **************************************************
+  //   Check what type of bubble model should be used
+  // **************************************************
+  StdVector<std::string> auxVec;
+  params->GetList( "bubbleType", auxVec, "acoustic", "bubbles" );
+  if ( auxVec.GetSize() == 1 ) {
+    String2Enum( auxVec[0], bubbleDynType_ );
+
+    //Set bubbledensity
+    params->Get( "bubbleNumDensity", bubbleDensity_, "acoustic", "bubbles" );
+  }
+  else if ( auxVec.GetSize() > 1 ) {
+    Error( "Specification of bubble type not unique in xml-file", __FILE__,
+	   __LINE__ );
+  }
+  else {
+    bubbleDynType_ = NOBUBBLETYPE;
+  }
+  
+
+  if( nonLin_ || bubbleDynType_ != NOBUBBLETYPE ) {
 	// solution method
 	params->Get("method", nonLinMethod_, pdename_, "nonLinear" );
 	// perform logging?
@@ -313,14 +336,21 @@ void AcousticPDE::DefineIntegrators(const Integer level) {
 								   DAMPING, nonLin);
 	}
   }
- 
+
+  
 }
 
 void AcousticPDE::DefineSolveStep()
 {
   ENTER_FCN( "AcousticPDE::DefineSolveStep" );
-  
-  solveStep_ = new SolveStepAcoustic(*this);
+
+  if( bubbleDynType_ != NOBUBBLETYPE ) {
+    solveStep_ = new SolveStepAcousticBubble(*this, bubbleDynType_);
+  }
+  else {
+    solveStep_ = new SolveStepAcoustic(*this);
+  }
+
 }
 
 
@@ -578,6 +608,43 @@ void AcousticPDE::WriteResultsInFile(const Integer kstep,
 	    outFile_->WriteNodeHistoryTransient(solDeriv2_, actStep, actTime);
 	  }
 	}
+
+        // ------- for bubble results ----------------------
+	if(bubbleDynType_ != NOBUBBLETYPE &&
+	   (saveSol_ == TRUE || saveDeriv1_ == TRUE || saveDeriv2_ == TRUE)) {
+
+	  StdVector<Double> radius   = solveStep_->GetResultData("bubbleRadius");
+	  StdVector<Double> velocity = solveStep_->GetResultData("bubbleVelocity");
+
+	  ElemStoreSol<Double> bubbleResult;
+    
+	  // Resize solution arrays
+	  bubbleResult.SetNumSolutions(1);
+	  bubbleResult.SetSolutionType(ELEC_FIELD_INTENSITY);
+	  bubbleResult.SetNumElems(numElems_);
+	  
+	  // dimension hard coded for .unv file!
+	  bubbleResult.SetNumDofs(3);  
+	  bubbleResult.SetPtrEQNData(eqnData_, ptgrid_, actlevel_);
+	  bubbleResult.Init();
+	  
+	  Integer numEl = 0;
+	  for (Integer el=0; el<numElems_; el++) {
+	    Vector<Double> result(3);
+	    
+	    result[0] = radius[el];
+	    result[1] = velocity[el];
+	    result[2] = (4.0/3.0)*PI*bubbleDensity_*radius[el]*radius[el]*radius[el];
+	    //	    if (el == 90)
+	    //std::cerr << actTime << "   " << el << "   " << result[0] << "   " 
+	    // result[1] << "     " << result[2] << std::endl;
+	    
+	    bubbleResult.SetElemResult(el,result);
+	  }
+	  
+	  outFile_->WriteElemSolutionTransient(bubbleResult, actStep, actTime);
+	}
+
 #ifdef PARALLEL
   }//!commrank
 #endif
@@ -792,5 +859,6 @@ results in acoustic potential.", __FILE__,__LINE__);
 	}
   }
 }
+
 
 } // end of namespace

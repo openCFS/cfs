@@ -23,6 +23,7 @@ namespace CoupledField {
     //! \param driverTag tag for current driver section
     //! \param true, if driver is part of  multiSequence
     BubbleDriver(Domain      *adomain,
+		 Char        *fileName,
 		 Integer     stepOffset = 0,
 		 Double      timeOffset = 0.0,
 		 std::string driverTag = "anyTag",
@@ -61,16 +62,21 @@ namespace CoupledField {
     //! Pressure values needed for bubbledynamics
     //! Will be changed when coupled to acoustics
     Double pressure_;
-
+    Double pressureAmpl_;
     //! Values of pressure derivative needed for bubbledynamics
     //! Will be changed when coupled to acoustics
     Double dpresdt_;
 
+    Double frequency_;
+
     //!  Needed for print of bubblevalues, will bechanged later
     FILE *fp;
 
+    //! Attribute describing model for bubble dynamics
+    BubbleDynType bubbleDynType_;
 
-
+    TimeFunc * ptTimeFunc_;   //!< pointer to time functions
+    Char *fncFileName_; 
   };
 
 }

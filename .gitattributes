@@ -340,6 +340,8 @@ libsrc/ODEDescr/BaseODEProblem.hh svneol=native#text/plain
 libsrc/ODEDescr/BubbleODE.hh svneol=native#text/plain
 libsrc/ODEDescr/Gilmore.cc svneol=native#text/plain
 libsrc/ODEDescr/Gilmore.hh svneol=native#text/plain
+libsrc/ODEDescr/Gilmoredimlos.cc svneol=native#text/plain
+libsrc/ODEDescr/Gilmoredimlos.hh svneol=native#text/plain
 libsrc/ODEDescr/KellerMiksis.cc svneol=native#text/plain
 libsrc/ODEDescr/KellerMiksis.hh svneol=native#text/plain
 libsrc/ODEDescr/Makefile -text

@@ -21,6 +21,7 @@ namespace CoupledField {
       eps_                  = 10e-4;
       maxSteps_             = 50000;
       safetyFac_            = 0.9;
+      //safetyFac_            = 0.5;
     }
 
     //! Default Destructor
@@ -72,8 +73,15 @@ namespace CoupledField {
 
     void SetSafetyFac (Double safetyFacNew){safetyFac_ = safetyFacNew;}
 
+    void SetNumEl (Integer numEl){
+      ENTER_IFCN( "ODESolver_RKF45::SetNumEl" );
+      numEl_ = numEl;
+    }
+
 
   protected:
+
+    Integer numEl_ ;
 
     //! Was the last solve attempt successful?
     bool successLastSolve_;
