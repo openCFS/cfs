@@ -691,6 +691,12 @@ namespace CoupledField {
 		    "for parameter identification\n" );
     }
 
+    if ( analysis == "multiHarmonic" && eType != COMPLEX ) {
+      eType = COMPLEX;
+      Info->PrintF( pdename, "Expert: Using COMPLEX as matrix entry type "
+		    "for parameter identification\n" );
+    }
+
     // ============
     //  Reordering
     // ============
