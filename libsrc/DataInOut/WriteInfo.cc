@@ -290,14 +290,14 @@ namespace CoupledField
     if (subdoms.GetSize() != results.GetSize())
       Error("Problem in WriteResults",__FILE__,__LINE__);
  
-    if (cfsInfo)
-      {
-	*cfsInfo << std::endl << " PostProcessing Result for PDE " << pdename
-		 << ": " << resulttype << " ==========" << std::endl;
-	for (Integer i=0; i<subdoms.GetSize(); i++)
-	  *cfsInfo << "        === " << analysis << " " << analysisVal 
-		   << "; " << subdoms[i] << " :" << results[i] 
-	   << " "  << unit << std::endl << std::endl;
+    if (cfsInfo) {
+      *cfsInfo << std::endl << " PostProcessing Result for PDE " << pdename
+               << ": " << resulttype << " ==========" << std::endl;
+
+      for ( Integer i = 0; i < subdoms.GetSize(); i++ ) {
+        *cfsInfo << "        === " << analysis << " " << analysisVal 
+                 << "; " << subdoms[i] << ": " << results[i] 
+                 << " "  << unit << std::endl << std::endl;
       }
   }
 
