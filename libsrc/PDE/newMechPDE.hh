@@ -130,7 +130,7 @@ private:
 
   /// does a line search and returns the optimal residual norm
   Double LineSearch(std::vector<Double>& solIncrement, std::vector<Double>& actSol, 
-		    Integer level, Boolean trans=FALSE);
+		    Double& etaLineSearch, Integer level, Boolean trans=FALSE);
 
 
   /// Write nonlin iteration norms to the cla-file
@@ -183,10 +183,6 @@ private:
 
   /// material data for reduced integration
   MaterialData * mueMat;
-
-  /// switch for lineSearch
-  Boolean lineSearch_;
-  
 };
 
 } // end of namespace

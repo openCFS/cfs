@@ -47,6 +47,11 @@ public:
   //! return pointer to vector with second derivative of solution
   virtual const Array<Double>& GetDeriv2() const { return solderiv2_;}
 
+  //! store solution to solution array (especially for effective mass formulation)
+  virtual const void StoreSol(Array<Double> & solArr) const
+  {Error("Not implemented in base class!", __FILE__, __LINE__);};
+
+
 protected:
 
   std::string pdename_;  //<! name of PDE

@@ -195,6 +195,10 @@ namespace CoupledField
 		    algsys_->SetElementMatrix(elemmat.getinarray(), connect_PDE.get(), 
 					      connect_PDE.size(), destMat); 
 
+		    *cla << "In Assemble: actual element solution " << myendl << elSol << myEndl;
+		    *cla << "In Assemble: Element matrix " << myendl << elemmat << myEndl;
+		    
+
 		    if (actDescriptor->GetSecondaryMat() != NOTYPE)
 		      {
 			elemmat *= actDescriptor->GetSecMatFac();

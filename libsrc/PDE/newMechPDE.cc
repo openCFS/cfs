@@ -25,14 +25,17 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 		 WriteResults *aptOut)
   :BasePDE(aptgrid, aptbcs, aptFileType, aptOut, aptTimeFunc), 
    lambdaMat(NULL),
-   mueMat(NULL)
+   mueMat(NULL),
+   reducedInt_(FALSE),
+   preStressVal_(0.0)
+
 {
 #ifdef TRACE
   (*trace) << "entering MechPDE::MechPDE " << std::endl;
 #endif
-
   pdename_          = "mechanic";
   pdematerialclass_ = "piezo";
+
   
   conf->getstr("subtype", subType_, pdename_ );
   
@@ -64,7 +67,6 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 
   sol_.reshape(dofspernode_, numPDENodes_);
 
-  reducedInt_ = FALSE;
   if (conf->get_option("reducedInt",  pdename_ ))
     {
       std::cout << "REDUCED INTEGRATION set !!" << std::endl << std::endl;
@@ -72,10 +74,14 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
     }
 
 
-  lineSearch_ = FALSE;
   if (conf->get_option("lineSearch",  pdename_ ))
     lineSearch_ = TRUE;
+
+
+  if (conf->get_option("effMass",  pdename_ ))
+    effectiveMass_ = TRUE;
   
+
 
   nonLin_ = FALSE;
   if (conf->get_option("nonlin",  pdename_ ))
@@ -86,9 +92,8 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
       conf->ifget("residualStopCrit", residualStopCrit_, pdename_); // residual stopping criterion
     }
 
-  preStressVal_ = 0;
-  conf->ifget("preStressVal", preStressVal_, pdename_);
 
+  conf->ifget("preStressVal", preStressVal_, pdename_);
   if (preStressVal_)
     GetDirection(preStressDir_, "preStressDir");
 
@@ -642,6 +647,7 @@ void MechPDE::StepStaticNonLin(const Integer level, const Double aTime)
 
 
   Double extForcesL2Norm = SetExternalForces(level);
+  SetBCs(level, updateBCs_, 0);
 
 
   do
@@ -660,9 +666,8 @@ void MechPDE::StepStaticNonLin(const Integer level, const Double aTime)
 
       // ????????????????????????????????????????????????????????????????????
       //      if (!PDEisCoupled_)
-	algsys_->InitRHS();
+      algsys_->InitRHS();
 
-      SetBCs(level, updateBCs_, 0);
       assemble_->AssembleSrcRHS(level);
       assemble_->AssembleNLRHS(level);
 
@@ -679,15 +684,39 @@ void MechPDE::StepStaticNonLin(const Integer level, const Double aTime)
       // new solution is only an increment of the full solution =============
       StoreAlgsysToVec(solIncrement, algsys_->GetSolutionVal() );
 
-      
-      Double residualL2Norm = LineSearch(solIncrement, actSol, level);
+      Double residualL2Norm;
+      Double etaLineSearch=0;
+
+      if (!lineSearch_)
+	actSol += solIncrement;
+      else
+	// TRUE is for transient simulation
+	residualL2Norm = LineSearch(solIncrement, actSol, etaLineSearch, level);
       
       StoreVecToSolArray(actSol);
+
+
+      // recalculate RHS with new values to get new residual (f^(k+1))========
+      algsys_->InitRHS();
+      assemble_->AssembleSrcRHS(level); 
+      assemble_->AssembleNLRHS(level);  // inner forces due to nonlin formulation
+
 
 
       // =====================================================================
       // calculation of error norms
       // =====================================================================
+      if (!lineSearch_)
+	{
+	  std::vector<Double> actRHS;
+	  StoreAlgsysToVec(actRHS, algsys_->GetRHSVal() );       
+	  
+	  // calculation of residual error =======================================
+	  residualL2Norm = RhsL2Norm(actRHS); // L2Norm of  ( f_i^(k+1) - f_a )
+	  *cla << "actRHS: " << myendl << actRHS << myendl;
+	  
+	}
+
 
       // calculation of residual error =======================================
       Double residualErr = residualL2Norm / extForcesL2Norm;
@@ -695,15 +724,18 @@ void MechPDE::StepStaticNonLin(const Integer level, const Double aTime)
 
       // calculate incremental error ========================================
       Double solIncrL2Norm = L2Norm(solIncrement);
-      Double actSolL2Norm = L2Norm(actSol);
+      Double actSolL2Norm  = L2Norm(actSol);
       
       Double incrementalErr;
       
       if (actSolL2Norm)
 	incrementalErr = solIncrL2Norm / actSolL2Norm;
       else
-	Error("Zero solution vector!! ", __FILE__,__LINE__);      
-
+	{
+	  incrementalErr = solIncrL2Norm;
+	  Warning("Zero solution vector!! ", __FILE__,__LINE__);      
+	}
+      
 
 
       // =====================================================================
@@ -715,7 +747,7 @@ void MechPDE::StepStaticNonLin(const Integer level, const Double aTime)
 		      solIncrL2Norm, actSolL2Norm, incrementalErr);
 
       
-      Info->WriteNonLinIter(pdename_, iterationCounter, residualErr, incrementalErr);
+      Info->WriteNonLinIter(pdename_, iterationCounter, residualErr, incrementalErr, etaLineSearch);
 
 
       // boolean variable, holds condition if another iteration step is necessary
@@ -730,7 +762,7 @@ void MechPDE::StepStaticNonLin(const Integer level, const Double aTime)
 
 
 Double MechPDE::LineSearch(std::vector<Double>& solIncrement, std::vector<Double>& actSol, 
-			   Integer level, Boolean trans)
+			   Double& etaLineSearch, Integer level, Boolean trans)
 {
 #ifdef TRACE
   (*trace) << "entering MechPDE::LineSearch" << std::endl;
@@ -781,6 +813,8 @@ Double MechPDE::LineSearch(std::vector<Double>& solIncrement, std::vector<Double
 	 }
     }
 
+  etaLineSearch = etaOpt;
+  
   myCout << "EtaOpt = " << etaOpt << myEndl;
   
   actSol = etaOpt * solIncrement;
@@ -838,7 +872,11 @@ void MechPDE :: InitTimeStepping(const Double dt)
   (*trace) << "entering MechPDE::InitTimeStepping" << std::endl;
 #endif
 
-  TS_alg_ = new Newmark(pdename_, algsys_, 1, numPDENodes_*dofspernode_, damping_type_);
+  if (effectiveMass_)  
+    TS_alg_ = new NewmarkEffMass(pdename_, algsys_, 1, numPDENodes_*dofspernode_, damping_type_);
+  else
+    TS_alg_ = new Newmark(pdename_, algsys_, 1, numPDENodes_*dofspernode_, damping_type_);
+
   TS_alg_->Init(matrix_factor_, dt);
 
 }
@@ -921,12 +959,13 @@ void MechPDE::StepTransNonLin(const Integer level, const Boolean reset)
       StoreAlgsysToVec(solIncrement, algsys_->GetSolutionVal() );
 
       Double residualL2Norm;
+      Double etaLineSearch = 0;
       
       if (!lineSearch_)
 	actSol += solIncrement;
       else
 	// TRUE is for transient simulation
-	residualL2Norm = LineSearch(solIncrement, actSol, level, TRUE);
+	residualL2Norm = LineSearch(solIncrement, actSol, etaLineSearch, level, TRUE);
 
 
       StoreVecToSolArray(actSol);
@@ -987,7 +1026,7 @@ void MechPDE::StepTransNonLin(const Integer level, const Boolean reset)
       WriteClaNlNorms(iterationCounter, residualL2Norm, extForcesL2Norm, residualErr,  
 		      solIncrL2Norm, actSolL2Norm, incrementalErr);
       
-      Info->WriteNonLinIter(pdename_, iterationCounter, residualErr, incrementalErr);
+      Info->WriteNonLinIter(pdename_, iterationCounter, residualErr, incrementalErr, etaLineSearch);
       
 
       // boolean variable, holds condition if another iteration step is necessary

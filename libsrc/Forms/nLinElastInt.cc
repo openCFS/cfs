@@ -72,6 +72,7 @@ calcMaterialDMat(Matrix<Double> & dMat)
 
 
 
+
 // returns linear B - matrix
 void nLinMech3dInt_PiolaStress::
 calcLinBMat(Matrix<Double> & bMat, Integer ip, Matrix<Double> & ptCoord)
@@ -87,8 +88,10 @@ calcLinBMat(Matrix<Double> & bMat, Integer ip, Matrix<Double> & ptCoord)
   
   // linear differential operator B_lin
   linElastInt::calcBMat(bMat, ip, ptCoord);
+
   setPiolaDimD( getFullPiolaDMatSize() );
 }
+
 
 
 
@@ -142,7 +145,7 @@ convertStressVecToTensor(Matrix<Double>& stressTensor, std::vector<Double>& piol
   void nLinMech3dInt_PiolaStress::calcDMat(Matrix<Double> & dMat, Integer ip, Matrix<Double> & ptCoord)
   {
 #ifdef TRACE
-    (*trace) << "entering mech3DInt_PiolaStress::calcDMat " << std::endl;
+    (*trace) << "entering nLinMech3dInt_PiolaStress::calcDMat " << std::endl;
 #endif
 
     const Integer dimD = getDimD();
@@ -158,12 +161,19 @@ convertStressVecToTensor(Matrix<Double>& stressTensor, std::vector<Double>& piol
     dMat.Resize(dimD);
     
 
+    // ???????????????????????????????????????????????????????
+    // AXI:       dMat = stressTensor ???????????????
+
     if (isaxi_)
       dMat = stressTensor;
     else
       for (Integer i=0; i<nrDofs; i++)
 	dMat.SetSubMatrix(stressTensor, i*nrDofs, i*nrDofs);
+
+    *cla << "PiolaStressOverallTensor=[" << myendl << dMat << myendl <<"];" << myendl;
+    
   }
+
 
 
 
@@ -210,8 +220,8 @@ convertStressVecToTensor(Matrix<Double>& stressTensor, std::vector<Double>& piol
 	for (int actNode = 0; actNode < nrNodes; actNode++)	     
 	  bMat[getDimD() -1][actNode * spaceDim] = shpFncAtIp[actNode] / coordAtIP[0];
       }
-    //    myCout << "PIOLA Bmat: " << myEndl << bMat <<    myEndl;
 
+    *cla << "PIOLABmat=[ " << myEndl << bMat << myEndl <<"];" << myendl;
   }
 
 
@@ -222,7 +232,7 @@ convertStressVecToTensor(Matrix<Double>& stressTensor, std::vector<Double>& piol
   void nLinMech3dInt_BNonLin::calcDMat(Matrix<Double> & dMat)
   {
 #ifdef TRACE
-    (*trace) << "entering mech3DInt_BNonLin::calcDMat " << std::endl;
+    (*trace) << "entering nLinMech3dInt_BNonLin::calcDMat " << std::endl;
 #endif
     const Integer nrElems3d = getDimD();
     
@@ -496,8 +506,11 @@ void  nLinMechPlaneStrainInt_BNonLin::calcDMat(Matrix<Double> & dMat)
 #ifdef TRACE
   (*trace) << "entering mechPlainStrainNLinIntInt::calcDMat " << std::endl;
 #endif
+
   Calc2DMaterialMatrix(dMat, actOrientation);
 
+  *cla << " nLinMechPlaneStrainInt_BNonLin::calcDMat, dMat : " << myendl << dMat << myendl;
+  
   }
 
   
@@ -567,7 +580,7 @@ void  nLinMechAxiInt_BNonLin::calcDMat(Matrix<Double> & dMat)
 void nLinMechAxiInt_PiolaStress::calcMaterialDMat(Matrix<Double> & dMat)
 {
 #ifdef TRACE
-  (*trace) << "entering mechPlaneStraneInt_PiolaStress::calcMaterialDMat" << std::endl;
+  (*trace) << "entering nLinMechAxiInt_PiolaStress::calcMaterialDMat" << std::endl;
 #endif
 
   CalcAxiMaterialMat(dMat, actOrientation);
@@ -655,6 +668,8 @@ convertStressVecToTensor(Matrix<Double>& stressTensor, std::vector<Double>& piol
 #ifdef TRACE
     (*trace) << "entering nLinMech3dInt_BNonLin::nLinMech3dInt_BNonLin" << std::endl;
 #endif
+
+    className = "nLinMech3dInt_BNonLin";
   }
 
 
@@ -688,6 +703,7 @@ convertStressVecToTensor(Matrix<Double>& stressTensor, std::vector<Double>& piol
 #endif
     updateDMatInEveryIP_ = 1;
     setPiolaDimD( getFullPiolaDMatSize() );
+    className = "  nLinMech3dInt_PiolaStress";
   }
 
 
@@ -724,6 +740,7 @@ convertStressVecToTensor(Matrix<Double>& stressTensor, std::vector<Double>& piol
 #ifdef TRACE
     (*trace) << "entering nLinMechPlaneStrainInt_BNonLin::nLinMechPlaneStrainInt_BNonLin" << std::endl;
 #endif
+    className = "nLinMechPlaneStrainInt_BNonLin";
   }
 
 
@@ -755,6 +772,8 @@ convertStressVecToTensor(Matrix<Double>& stressTensor, std::vector<Double>& piol
     (*trace) << "entering nLinMechPlaneStrainInt_PiolaStress::nLinMechPlaneStrainInt_PiolaStress" << std::endl;
 #endif
     setPiolaDimD( getFullPiolaDMatSize() );
+
+    className = "nLinMechPlaneStrainInt_PiolaStress";    
   }
 
 
@@ -793,6 +812,7 @@ convertStressVecToTensor(Matrix<Double>& stressTensor, std::vector<Double>& piol
     (*trace) << "entering nLinMechAxiInt_BNonLin::nLinMechAxiInt_BNonLin" << std::endl;
 #endif
     isaxi_ = TRUE;
+    className = "nLinMechAxiInt_BNonLin";    
   }
 
 
@@ -826,6 +846,7 @@ convertStressVecToTensor(Matrix<Double>& stressTensor, std::vector<Double>& piol
 #endif
     isaxi_ = TRUE;
     setPiolaDimD( getFullPiolaDMatSize() );
+    className = "nLinMechAxiInt_PiolaStress";    
   }
 
 
@@ -873,6 +894,7 @@ PreStressInt::PreStressInt(BaseFE * aptelem, MaterialData & matData, Double aPre
 #endif
     updateDMatInEveryIP_ = 1;
     setPiolaDimD( getFullPiolaDMatSize() );
+    className = "PreStressInt";
   }
  
 
