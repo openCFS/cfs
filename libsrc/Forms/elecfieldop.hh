@@ -35,7 +35,8 @@ public:
 	      BasePDE * ptPDE,
 	      std::vector<Integer> * ptMesh2PDENode,
 	      Vector<Double> * EPotential,
-	      const Integer level);
+	      const Integer level,
+	      Boolean isaxi=FALSE);
 
   //! Destructor
   virtual ~ElecFieldOp();
@@ -118,6 +119,11 @@ protected:
 };
 
 
+
+
+
+
+
 class CurlNodeOp : public BaseOperator
 {  
 public:
@@ -152,7 +158,6 @@ public:
 protected:
   
   Vector<Double> * sol_;
-  Boolean isaxi_;
 };
 
 } // end of namespace

@@ -266,7 +266,7 @@ void ElecPDE::PostProcess(const Integer level)
 
   if (calcEfield_.size() !=0 )
     {
-      ElecFieldOp * FieldOp = new ElecFieldOp(ptgrid_, this, &Mesh2PDENode_, &sol_[0], level);
+      ElecFieldOp * FieldOp = new ElecFieldOp(ptgrid_, this, &Mesh2PDENode_, &sol_[0], level, isaxi_);
 
       // ------ Calculation of the electric field ------
 
@@ -314,7 +314,7 @@ void ElecPDE::CalcNodeForce(Array<Double> & force,
 #endif  
   
   
-  ElecForceOp * ForceOp = new ElecForceOp(ptgrid_, this, &Mesh2PDENode_, &sol_[0], actlevel_);
+  ElecForceOp * ForceOp = new ElecForceOp(ptgrid_, this, &Mesh2PDENode_, &sol_[0], actlevel_, isaxi_);
    
   Array<Double> force_temp;
   force.reshape(Dim_, nodes.size());

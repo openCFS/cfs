@@ -20,7 +20,9 @@ ElecFieldOp::ElecFieldOp(Grid * ptGrid,
 			 BasePDE * ptPDE,
 			 std::vector<Integer> * ptMesh2PDENode,
 			 Vector<Double> * EPotential,
-			 const Integer level) : BaseOperator( ptGrid, ptPDE, ptMesh2PDENode, level)
+			 const Integer level,
+			 Boolean isaxi)
+  : BaseOperator( ptGrid, ptPDE, ptMesh2PDENode, level, isaxi)
 {
 #ifdef TRACE
   (*trace) << "entering ElecFieldOp::ElecFieldOp" << std::endl;
@@ -291,7 +293,8 @@ CurlNodeOp::CurlNodeOp(Grid * ptGrid,
 		       std::vector<Integer> * ptMesh2PDENode,
 		       Vector<Double> * aSol,
 		       const Integer level)
-  : BaseOperator(ptGrid, ptPDE, ptMesh2PDENode, level), sol_(aSol), isaxi_(FALSE)
+  : BaseOperator(ptGrid, ptPDE, ptMesh2PDENode, level, FALSE), 
+    sol_(aSol)
 {
 #ifdef TRACE
   (*trace) << "entering CurlNodeOp::CurlNodeOp" << std::endl;

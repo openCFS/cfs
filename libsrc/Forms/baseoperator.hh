@@ -17,7 +17,11 @@ class BaseOperator
 public:
 
    //! Constructor
-  BaseOperator(Grid * ptGrid, BasePDE * ptPDE,  std::vector<Integer> *ptMesh2PDENode, const Integer level);
+  BaseOperator(Grid * ptGrid, 
+	       BasePDE * ptPDE,  
+	       std::vector<Integer> *ptMesh2PDENode, 
+	       const Integer level,
+	       Boolean isaxi=FALSE);
   
   //! Destructor
   virtual ~BaseOperator() = 0;
@@ -28,7 +32,7 @@ protected:
   BasePDE * ptPDE_;
   std::vector<Integer> *ptMesh2PDENode_; //!< pointer to node transformation array
   Integer level_;                       //!< current level 
-
+  Boolean isaxi_;
 };
 
 } // end of namespace
