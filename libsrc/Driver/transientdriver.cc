@@ -119,7 +119,7 @@ namespace CoupledField
       {
 	
 	// branch for single PDE
-	pdes_[0]->InitTimeStepping(dt);
+	pdes_[0]->SetTimeStep(dt);
 
 	// if multiSequence is performed, the ms-driver
       // writes out the grid one time
@@ -155,9 +155,7 @@ namespace CoupledField
       {
 	BaseCoupledPDE * actCoupledPDE = ptdomain_->GetCoupledPDE();
 	
-	actCoupledPDE->InitTimeStepping(dt);
-	actCoupledPDE->SetTimeSteppingParams( numstep_, firstdt_, isavebegin_, 
-					      isaveend_, isaveincr_ );
+	actCoupledPDE->SetTimeStep(firstdt_);
 
 	// if multiSequence is performed, the ms-driver
 	// writes out the grid one time
