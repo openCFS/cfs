@@ -33,7 +33,7 @@ namespace CoupledField {
   //   Destructor
   // **************
   BaseEQN::~BaseEQN() {
-    ENTER_FCN( "~BaseEQN::~BaseEQN" );
+    ENTER_FCN( "BaseEQN::~BaseEQN" );
   }
 
 
