@@ -93,6 +93,14 @@
   </xsd:simpleType>
 
 
+  <!-- Data type for specifying an angle in degrees (DEG) -->
+  <xsd:simpleType name="DT_DegAngle">
+    <xsd:restriction base="xsd:float">
+      <xsd:minInclusive value="0" xsd:maxInclusive="360"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+
   <!-- Data type for setting flags -->
   <xsd:simpleType name="DT_CFSBool">
     <xsd:restriction base="xsd:token">
