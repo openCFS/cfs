@@ -473,6 +473,9 @@ void MechPDE::CalcOutputCoupling()
 	      dof = ptCoupling_->GetOutputDof(i);
 
 	      CalcAcousticCouplingRHS(couplingElems, *couplingnodes, couplingMaterials, *values, dof);
+
+	      //	      myCout << "Mech couple forces : " << *values << myEndl;
+	      
 	    } 
 	  break;
 
@@ -495,6 +498,8 @@ void MechPDE::CalcAcousticCouplingRHS(std::vector<Elem*> * couplingElems,
   Double density ;  
   Integer nrNodesperEl;
 
+  elemCouplingSols.init();
+  
   for (Integer actElem=0; actElem<couplingElems->size(); actElem++)
     {
       BaseFE * ptElem = (*couplingElems)[actElem]->ptElem;
@@ -504,7 +509,7 @@ void MechPDE::CalcAcousticCouplingRHS(std::vector<Elem*> * couplingElems,
       GetElemCoords(connecth, ptCoord, actlevel_);
       
       density = (*couplingMaterials)[actElem]->GetDensity();
-    
+      
       BaseForm * bilinear_mass = new MassInt(ptElem, density, isaxi_);
       Matrix<Double> elemmat;
       bilinear_mass->CalcElementMatrix(ptCoord, elemmat);
@@ -515,7 +520,7 @@ void MechPDE::CalcAcousticCouplingRHS(std::vector<Elem*> * couplingElems,
       Mesh2PDENode(connect_PDE, connecth, Mesh2PDENode_);
       
       Vector<Double> sol;
-      GetSolVecOfElement(sol, connect_PDE);	 
+      GetDerivSolVecOfElement(sol, connect_PDE);	 
 
       Vector<Double> nSol(connecth.size());   // solution in normal direction
       nSol.Init();
@@ -530,6 +535,7 @@ void MechPDE::CalcAcousticCouplingRHS(std::vector<Elem*> * couplingElems,
 
       Vector<Double> forceOnElem = elemmat * nSol;
       Integer nodePos = 0;
+  
       
       for (Integer actNode=0; actNode<ptCoord.size_row(); actNode++)
 	{
@@ -840,8 +846,6 @@ void MechPDE::StepTransNonLin(const Integer level, const Boolean reset)
   TS_alg_->Predictor(solhelp);
 
   Double extForcesL2Norm = SetExternalForces(level);
-
-  Info->WriteTimeStep(pdename_, timeStepCounter, lasttimecalc_);
 
   timeStepCounter++;
 

@@ -34,7 +34,7 @@ class PDECoupling
     std::vector<Elem*> elements;          //!< vector of coupling elements
     std::vector<MaterialData*> materials; //!< vector of materials at coupling interface
     Array<Double> values;                 //!< array containing coupling values
-    Array<Double> oldValues;              //!< array containing couplung values of previous iteration step
+    Array<Double> oldValues;              //!< array containing coupling values of previous iteration step
     ShortInt dof;                         //!< dof of coupling values
     Integer numNodes;                     //!< number of couplingnodes
     Integer numElems;                     //!< number of couplingelements

@@ -238,8 +238,9 @@ namespace CoupledField
 	      
 		if (norms_[counter] > Couplings_[i]->GetOutputEpsilon(k))
 		  normsReached = FALSE;
-		
+
 		*oldVal = *val;
+		
 		counter++;	      
 	      }
 	  }
@@ -247,16 +248,6 @@ namespace CoupledField
 	iter++;
 	Info->PrintF(coupledpdename_, "\n"); 
       }
-
-
-
-    std::string infoOut = "CoupledPDE: ";
-    for (Integer i=0; i<PDEs_.size()-1; i++)
-      infoOut += Couplings_[i]->GetPDEName() + " + ";
-    infoOut += Couplings_[PDEs_.size()-1]->GetPDEName();
-	
-    Info->WriteTimeStep(infoOut, kstep, steptime);
-
   }
 
   

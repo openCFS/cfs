@@ -163,7 +163,11 @@ public:
   virtual void StepTransNonLin(const Integer level, const Boolean updatesysmat)
   {Error("Nonlinear Transient Step not implemented!",__FILE__,__LINE__);};
 
-  virtual void PostStepTrans(const Integer level) {;};
+
+  virtual void PostStepTrans(const Integer level);
+
+  /// initialize PDEs before iteration (done for each time step)
+  void InitStepTransCoupled(Double asteptime);
 
   // ======================================================
   // COUPLING SECTION
@@ -361,6 +365,12 @@ protected:
 
   /// returns the solution vector (sol1_x, sol1_y, sol2_x, sol2_y, ..) belonging to all nodes of the actual element
   void GetSolVecOfElement(Vector<Double>& sol, Vector<Integer>& connect_PDE);
+
+  /// returns the time derivative of the solution belonging to all nodes of the actual element
+  void GetDerivSolOfElement(Matrix<Double>& sol, Vector<Integer>& connect_PDE);
+
+  /// returns the vector of time derivative of the solution belonging to all nodes of the actual element
+  void GetDerivSolVecOfElement(Vector<Double>& sol, Vector<Integer>& connect_PDE);
 
 
   /// calc the normal vector of a line element (for acoustic coupling)

@@ -166,8 +166,9 @@ private:
   virtual void StepStaticNonLin(const Integer level);
 
   /// returns the solution matrix belonging to all nodes of the actual element
-  void GetSolOfElement( Matrix<Double>& elDisp, Vector<Integer>& connect_PDE);
+  void GetSolOfElement( Matrix<Double>& elDisp, Vector<Integer>& connect_PDE);  
   
+
   /// value of prestress
   Double preStressVal_;
 
