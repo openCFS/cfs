@@ -22,7 +22,7 @@ namespace CoupledField {
     std::string sTypeString;
     SolverType sType;
     cfs->Get( "type", sTypeString, pdename, "solver" );
-    if ( sTypeString == "PCG" ) {
+    if ( sTypeString == "CG" ) {
       sType = CG;
     }
     else if ( sTypeString == "hyprePCG" ) {
@@ -138,12 +138,15 @@ namespace CoupledField {
     CFSOLASParams::SetSolverParams( pdename, cfs, olas, sType );
     CFSOLASParams::SetPrecondParams( pdename, cfs, olas, pType );
 
-    // Temporarily for debugging
-    olas->ShowPool( OLAS_Params::INT_POOL     , std::cerr );
-    olas->ShowPool( OLAS_Params::DOUBLE_POOL  , std::cerr );
-    olas->ShowPool( OLAS_Params::BOOLEAN_POOL , std::cerr );
-    olas->ShowPool( OLAS_Params::STRING_POOL  , std::cerr );
-    olas->ShowPool( OLAS_Params::ENUM_POOL    , std::cerr );
+    // For debugging
+    // olas->ShowPool( OLAS_Params::INT_POOL     , std::cerr );
+    // olas->ShowPool( OLAS_Params::DOUBLE_POOL  , std::cerr );
+    // olas->ShowPool( OLAS_Params::BOOLEAN_POOL , std::cerr );
+    // olas->ShowPool( OLAS_Params::STRING_POOL  , std::cerr );
+    // olas->ShowPool( OLAS_Params::ENUM_POOL    , std::cerr );
+
+    // Output Matrix
+    olas->SetValue( "exportMatrix", true );
 
   }
 
