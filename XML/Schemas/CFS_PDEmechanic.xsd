@@ -179,9 +179,9 @@
       <xsd:extension base="DT_BCBasic">
         <xsd:attribute name="name" type="xsd:token" use="required"/>
         <xsd:attribute name="dof" type="DT_MechDOF" use="required"/>
-        <xsd:attribute name="val_m" type="xsd:double" use="required"/>
-        <xsd:attribute name="val_c" type="xsd:double" use="required"/>
-        <xsd:attribute name="val_k" type="xsd:double" use="required"/>
+        <xsd:attribute name="massValue" type="xsd:double" use="required"/>
+        <xsd:attribute name="dampingValue" type="xsd:double" use="required"/>
+        <xsd:attribute name="stiffnessValue" type="xsd:double" use="required"/>
         <xsd:attribute name="dynamics" type="xsd:token" use="optional"
           default="none"/>
       </xsd:extension>
