@@ -49,19 +49,6 @@ namespace CoupledField
   ConfFile * conf           = NULL;
   BaseParamHandler * params = NULL;
 
-  std::ostream & operator << (std::ostream & out, const enum precond & type)
-  {
-    switch (type)
-      {
-      case Jacobi: out << " Jacobi "; break;
-      case SSOR: out << " SSOR "; break;
-      case LU: out << " LU "; break;
-      case non: out << " non "; break;
-      }
-    return out;
-  } // end of ostream
-
-
   std::ostream& operator<< (std::ostream & outStr, std::vector<Double> xOut)
   {
     for (Integer i=0; i<xOut.size(); i++)
