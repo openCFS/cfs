@@ -60,8 +60,8 @@ namespace CoupledField
     // Get list for all quantities, which are listed
     // in section "nonLinear" and have a stopping
     // criterion
-    params->GetList("name", stopCritQuantities, "nonLinear", "stopCrit");
-
+    params->GetList("quantity", stopCritQuantities, "nonLinear", "stopCrit");
+    
     // Iterate over all PDEs
     for ( Integer iPDE = 0; iPDE < PDEs_.GetSize(); iPDE++ ) {
 
@@ -155,7 +155,7 @@ namespace CoupledField
       StdVector<std::string> keyVec;
       StdVector<std::string> attrVec;
       StdVector<std::string> valVec;
-      attrVec = "", "quantity";
+      attrVec = "", "", "quantity";
 
       // Get for each quantity the according stopping Criteria and normtype
       for( Integer iQuant = 0; iQuant < quantitiesSorted.GetSize(); iQuant++ ){
@@ -164,7 +164,7 @@ namespace CoupledField
 	normtype.clear();
 
 	// Quantity for which we are interested in value and l2norm
-	valVec = "", quantitiesSorted[iQuant];
+	valVec = "", "", quantitiesSorted[iQuant];
 
 	if ( stopCritQuantities.Find(quantitiesSorted[iQuant]) != -1 ) {
 

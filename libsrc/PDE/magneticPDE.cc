@@ -30,14 +30,15 @@ namespace CoupledField {
 
     ENTER_FCN( "MagPDE::MagPDE" );
 
+    // =====================================================================
+    // set solution information
+    // =====================================================================
     dofspernode_ = 1;
-  
+    solTypes_ = MAG_POTENTIAL;
+    solDofs_ = 1;
     pdename_          = "magnetic";
     pdematerialclass_ = "magnetic";
   
-    conf->getsubdompde(subdoms_,pdename_);
-    ReadBCs(pdename_);
-
     //check, if problem is axisymmetric
     isaxi_ = FALSE;
     std::string subtype;
@@ -65,7 +66,20 @@ namespace CoupledField {
     //check for permanent magnets
     conf->ifgetliststr("list_magnets", magnetsDomain_, pdename_);
 
+    //check for postprocessing
+    conf->ifgetliststr("calc_BField",calcBfield_,pdename_); 
+    conf->ifgetliststr("calc_Energy",calcEnergy_,pdename_); 
+    conf->ifgetliststr("calc_Eddy",calcEddy_,pdename_); 
 
+    
+
+     deltCoords_.Resize(dim_,numPDENodes_);
+  }
+
+
+  void MagPDE::InitNonLin()
+  {
+    ENTER_FCN( "MagPDE::InitNonLin" );
     //check for nonlinearity
     nonLin_ = FALSE;
     nonLin_ = conf->get_option( "nonlin",  pdename_ );
@@ -84,59 +98,7 @@ namespace CoupledField {
       nonLinMaxIter_ = 100;
       conf->ifget("nonlinMaxIter", nonLinMaxIter_, pdename_);
     }
-
-    //check for postprocessing
-    conf->ifgetliststr("calc_BField",calcBfield_,pdename_); 
-    conf->ifgetliststr("calc_Energy",calcEnergy_,pdename_); 
-    conf->ifgetliststr("calc_Eddy",calcEddy_,pdename_); 
-
-    // initialize eqation data object
-    eqnData_  = new ScalarNodeEQN(ptgrid_, ptBCs_, subdoms_, actlevel_, dofspernode_);    
-    eqnData_->SetHomoDirichletBCs(bcs_hd_, homDirichDof_);
-    eqnData_->CalcMapping();
-    //eqnData_->Print(std::cerr);
-    
-    numPDENodes_ = eqnData_->GetNumLocalNodes();
-    numElems_ = eqnData_->GetNumLocalElems();
-
-    deltCoords_.Resize(dim_,numPDENodes_);
-
-  
-    // set analysis parameters
-    assemble_->SetPtr2EQNData(eqnData_);
-    assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, subdoms_,
-				surfdoms_);
-    assemble_->SetGraphType(NODEGRAPH);
-
-#ifdef USE_OLAS
-    assemble_->SetMatrixEntryType(OLAS::DOUBLE);
-    assemble_->SetMatrixStorageType(OLAS::SPARSE_NONSYM);
-#else
-    assemble_->SetMatrixType(RSCALAR);
-#endif  
-  
-    assemble_->SetNumDirichlet(GetNumRestraints(actlevel_));
-    assemble_->SetPtrBCs(ptBCs_);
-    assemble_->SetPtr2Sol(sol_);
-    assemble_->SetPtr2TimeFnc(ptTimeFunc_);
-
-    
-
-    // Initalize solution class
-    sol_->SetNumSolutions(1);
-    sol_->SetSolutionType(MAG_POTENTIAL);
-    sol_->SetNumNodes(numPDENodes_);
-    sol_->SetNumDofs(dofspernode_);
-    sol_->SetPtrEQNData(eqnData_, ptgrid_, actlevel_);
-    sol_->Init();
-    
-    ReadMaterialData();
-   
-    DefineIntegrators(actlevel_);  
-
-    ReadSavings();
   }
-
 
 
   void MagPDE::DefineIntegrators(const Integer level)
@@ -966,23 +928,57 @@ namespace CoupledField {
 
     ENTER_FCN( "MagPDE::MagPDE" );
 
-    // ---------------------------
-    //   Set PDE characteristics
-    // ---------------------------
+    // =====================================================================
+    // set solution information
+    // =====================================================================
     dofspernode_ = 1;
+    solTypes_ = MAG_POTENTIAL;
+    solDofs_ = 1;
     pdename_          = "magnetic";
     pdematerialclass_ = "magnetic";
 
     // ---------------------------------------------------------
-    //   Get regions, boundary conditions and special geometry
+    //   Get special geometry
     // ---------------------------------------------------------
-    params->GetList( "name", subdoms_, pdename_, "region" );
-    ReadBCs(pdename_);
-    // once isaxi_ is bool:
-    //isaxi_ = params->HasValue( "type", "axi", "geometry" );
-    // so long:
     isaxi_ = params->HasValue( "type", "axi", "geometry" )
       == TRUE ? TRUE : FALSE;
+
+
+    // --------------------------------------------------------------------
+    //   Get information about coils and open files for measurement coils
+    // --------------------------------------------------------------------
+    ReadCoils();
+
+    // -----------------------------
+    // Check for permanent magnets
+    // -----------------------------
+    ReadMagnets();
+
+ 
+    // ---------------------------
+    //   Set coupling parameters
+    // ---------------------------
+    deltCoords_.Resize( dim_, numPDENodes_ );
+
+  }
+
+
+  // *************
+  //  Destructor
+  // *************
+  MagPDE::~MagPDE() {
+    ENTER_FCN( "MagPDE::~MagPDE" );
+    for ( UInt k = 0; k < coilDef_.GetSize(); k++ ) {
+      delete coilDef_[k];
+    }
+  }
+
+  // ****************************
+  //  Initialize Nonlinearities
+  // ****************************
+  void MagPDE::InitNonLin()
+  {
+    ENTER_FCN( "MagPDE::InitNonLin" );
 
     // ------------------------------------
     //   Get information on non-linearity
@@ -1016,85 +1012,6 @@ namespace CoupledField {
 
       // maximal number of NL-iterations
       params->Get("maxNumIters", nonLinMaxIter_, pdename_, "nonLinear");
-    }
-
-
-    // --------------------------------------------------------------------
-    //   Get information about coils and open files for measurement coils
-    // --------------------------------------------------------------------
-    ReadCoils();
-
-    // -----------------------------
-    // Check for permanent magnets
-    // -----------------------------
-    ReadMagnets();
-
-    // ----------------------------
-    //   Initalize equation data class
-    // ----------------------------
-    eqnData_ = new ScalarNodeEQN( ptgrid_, ptBCs_, subdoms_, actlevel_,
-				  dofspernode_ );
-    eqnData_->SetHomoDirichletBCs( bcs_hd_, homDirichDof_ );
-    eqnData_->CalcMapping();
-    //eqnData_->Print(std::cerr);
-    
-    numPDENodes_ = eqnData_->GetNumLocalNodes();
-    numElems_ = eqnData_->GetNumLocalElems();
-
-    // ---------------------------
-    //   Set coupling parameters
-    // ---------------------------
-    deltCoords_.Resize( dim_, numPDENodes_ );
-
-    // ---------------------------
-    //   Set analysis parameters
-    // ---------------------------
-    assemble_->SetPtr2EQNData(eqnData_); 
-    assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, subdoms_,
-				surfdoms_);
-    assemble_->SetGraphType(NODEGRAPH);
-   
-#ifdef USE_OLAS
-    assemble_->SetMatrixEntryType(OLAS::DOUBLE);
-    assemble_->SetMatrixStorageType(OLAS::SPARSE_NONSYM);
-#else
-    assemble_->SetMatrixType(RSCALAR);
-#endif  
-  
-    assemble_->SetNumDirichlet(GetNumRestraints(actlevel_));
-    assemble_->SetPtrBCs(ptBCs_);
-    assemble_->SetPtr2Sol(sol_);
-    assemble_->SetPtr2TimeFnc(ptTimeFunc_);
-
-    // ----------------------------
-    //   Initalize solution class
-    // ----------------------------
-    sol_->SetNumSolutions(1);
-    sol_->SetSolutionType(MAG_POTENTIAL);
-    sol_->SetNumNodes(numPDENodes_);
-    sol_->SetNumDofs(dofspernode_);
-    sol_->SetPtrEQNData(eqnData_, ptgrid_, actlevel_);
-    sol_->Init();
-    ReadMaterialData();
-   
-    DefineIntegrators(actlevel_);
-
-
-    // ----------------------------
-    //   Get post-processing info
-    // ----------------------------
-    ReadStoreResults();
-
-  }
-
-
-  // *************
-  //  Destructor
-  // *************
-  MagPDE::~MagPDE() {
-    ENTER_FCN( "MagPDE::~MagPDE" );
-    for ( UInt k = 0; k < coilDef_.GetSize(); k++ ) {
-      delete coilDef_[k];
     }
   }
 

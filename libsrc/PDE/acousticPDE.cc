@@ -22,7 +22,12 @@ namespace CoupledField {
 
     ENTER_FCN( "AcousticPDE::AcousticPDE" );
 
-    dofspernode_      = 1;
+    // =====================================================================
+    // set solution information
+    // =====================================================================
+    dofspernode_ = 1;
+    solTypes_ = ACOU_POTENTIAL;
+    solDofs_ = 1;
     pdename_          = "acoustic";
     pdematerialclass_ = "fluid";
 
@@ -34,14 +39,8 @@ namespace CoupledField {
     conf->ifget("subtype",subtype,pdename_);
     if (subtype == "axi")
       isaxi_ = TRUE;
-    conf->getsubdompde(subdoms_,pdename_);
 #else
     isaxi_ = params->HasValue( "type", "axi", "geometry" );
-    params->GetList( "name", subdoms_, pdename_, "region" );
-    Info->PrintF( pdename_, " PDE lives on regions:" );
-    for ( Integer k = 0; k < subdoms_.GetSize(); k++ ) {
-      Info->PrintF( pdename_, " %s", subdoms_[k].c_str() );
-    }
 #endif
 
     laststepcalc_ = 0;
@@ -112,92 +111,13 @@ namespace CoupledField {
     if ( absBCs_.GetSize() ) {
       absorbingBCs_ = TRUE;
       Info->PrintF( pdename_, " Apply Absorbing Boundary Conditions\n" );
+      surfdoms_ = absBCs_;
     }
 #endif
-    ReadBCs(pdename_);
-
-    // initialize eqation data object
-    eqnData_  = new ScalarNodeEQN(ptgrid_, ptBCs_, subdoms_, actlevel_, dofspernode_);
-    eqnData_->SetHomoDirichletBCs(bcs_hd_, homDirichDof_);
-    eqnData_->CalcMapping();
-    //eqnData_->Print(std::cerr);
-    numPDENodes_ = eqnData_->GetNumLocalNodes();
-    numElems_ = eqnData_->GetNumLocalElems();
-
-    size_ = numPDENodes_;
-
-    // set analysis parameters
-    assemble_->SetPtr2EQNData(eqnData_); 
-    assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, subdoms_,
-				absBCs_);
-    assemble_->SetGraphType(NODEGRAPH);
-
-#ifdef USE_OLAS
-    if (analysistype_==HARMONIC) {
-      assemble_->SetMatrixEntryType(OLAS::COMPLEX);
-      assemble_->SetMatrixStorageType(OLAS::SPARSE_NONSYM);
-    }
-    else {
-      assemble_->SetMatrixEntryType(OLAS::DOUBLE);
-      assemble_->SetMatrixStorageType(OLAS::SPARSE_NONSYM);
-    }
-
-
-#else
-    if (analysistype_==HARMONIC) 
-      assemble_->SetMatrixType(CSCALAR);
-    else
-      assemble_->SetMatrixType(RSCALAR);
-#endif
-
-
-    assemble_->SetNumDirichlet(GetNumRestraints(actlevel_));
-    assemble_->SetPtrBCs(ptBCs_);
-    assemble_->SetPtr2Sol(sol_);
-    assemble_->SetPtr2TimeFnc(ptTimeFunc_);
 
     needsDampingMatrix_ = FALSE;
     if ( absorbingBCs_ == TRUE || dampingType_ != NONE ) {
-      assemble_->NeedDampingMatrix();
       needsDampingMatrix_ = TRUE;
-    }
-
-    ReadMaterialData();
-   
-    DefineIntegrators(actlevel_);
-
-#ifndef XMLPARAMS
-    ReadSavings();
-#else
-    ReadStoreResults();
-#endif
-    
-    
-
-    // Initalize solution class
-    sol_->SetNumSolutions(1);
-    sol_->SetSolutionType(ACOU_POTENTIAL);
-    sol_->SetNumNodes(numPDENodes_);
-    sol_->SetNumDofs(dofspernode_);
-    sol_->SetPtrEQNData(eqnData_, ptgrid_, actlevel_);
-    sol_->Init();
-    
-    if (savederiv1_) {
-      sol_der1Array_.SetNumSolutions(1);
-      sol_der1Array_.SetNumNodes(numPDENodes_);
-      sol_der1Array_.SetSolutionType(ACOU_POTENTIAL_DERIV_1);
-      sol_der1Array_.SetNumDofs(1);    
-      sol_der1Array_.SetPtrEQNData(eqnData_, ptgrid_, actlevel_);
-      sol_der1Array_.Init(0);
-    }
-
-    if (savederiv2_) {
-      sol_der2Array_.SetNumSolutions(1);
-      sol_der2Array_.SetNumNodes(numPDENodes_);
-      sol_der2Array_.SetSolutionType(ACOU_POTENTIAL_DERIV_2);
-      sol_der2Array_.SetNumDofs(1);    
-      sol_der2Array_.SetPtrEQNData(eqnData_, ptgrid_, actlevel_);
-      sol_der2Array_.Init(0);
     }
   
   }
@@ -482,11 +402,29 @@ namespace CoupledField {
 
     ENTER_FCN( "AcousticPDE::ReadStoreResults" );
     
-    // NOTE: This must be changed soon!!!
+    //\todo This must be changed soon!!!
     // By default we only save the solution at nodal values
     savesol_    = TRUE;
     savederiv1_ = FALSE;
     savederiv2_ = FALSE;
+
+    if (savederiv1_) {
+      sol_der1Array_.SetNumSolutions(1);
+      sol_der1Array_.SetNumNodes(numPDENodes_);
+      sol_der1Array_.SetSolutionType(ACOU_POTENTIAL_DERIV_1);
+      sol_der1Array_.SetNumDofs(1);    
+      sol_der1Array_.SetPtrEQNData(eqnData_, ptgrid_, actlevel_);
+      sol_der1Array_.Init(0);
+    }
+
+    if (savederiv2_) {
+      sol_der2Array_.SetNumSolutions(1);
+      sol_der2Array_.SetNumNodes(numPDENodes_);
+      sol_der2Array_.SetSolutionType(ACOU_POTENTIAL_DERIV_2);
+      sol_der2Array_.SetNumDofs(1);    
+      sol_der2Array_.SetPtrEQNData(eqnData_, ptgrid_, actlevel_);
+      sol_der2Array_.Init(0);
+    }
 
   }
 #endif

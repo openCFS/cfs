@@ -13,7 +13,7 @@ namespace CoupledField {
   // ***************
   //   Constructor
   // ***************
-  StaticDriver::StaticDriver(Domain * adomain) : BaseDriver(adomain) {
+  StaticDriver::StaticDriver(Domain * adomain) : SingleDriver(adomain) {
     ENTER_FCN( "StaticDriver::StaticDriver" );
   }
 

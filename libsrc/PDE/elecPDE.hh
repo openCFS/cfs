@@ -37,9 +37,6 @@ namespace CoupledField
     //! define all (bilinearform) integrators needed for this pde
     virtual void DefineIntegrators(const Integer level);
 
-    //! reset 
-    virtual void Reset();
-
     //! return size of solution
     virtual Integer getSize() const 
     { return numPDENodes_*dofspernode_;}

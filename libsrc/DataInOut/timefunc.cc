@@ -81,12 +81,14 @@ void TimeFunc :: ReadTimeFuncs()
       while(pos <= pos_end)
 	{	  
 	  buf = "";
-	  getline(timefile,buf);
-
+	  getline(timefile,buf,'\n');
 	  line_end_pos = timefile.tellg();
 	  
 	  // big choice of signs for comment's
-	  if (buf[0] != '#' || buf[0] != '%' || buf[0] != '!') 
+	  if (buf.length() != 0 &&
+	      buf[0] != '#' &&
+	      buf[0] != '%' && 
+	      buf[0] != '!') 
 	    {
 	      timefile.seekg(- buf.size() - 1,std::ios::cur); // rewind
 
@@ -98,7 +100,6 @@ void TimeFunc :: ReadTimeFuncs()
 	  
 	    }
 
-	  
 	  pos = timefile.tellg();  // and, where we are ?    
 	  
 	  if( pos != line_end_pos)

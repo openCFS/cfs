@@ -1,12 +1,12 @@
 #ifndef FILE_STATICDRIVER_2001
 #define FILE_STATICDRIVER_2001
 
-#include "basedriver.hh"
+#include "singleDriver.hh"
 
 namespace CoupledField {
 
   //! driver for static problems. it is derived from BaseDriver
-  class StaticDriver : public BaseDriver {
+  class StaticDriver : public SingleDriver {
 
   public:
     //! Constructor

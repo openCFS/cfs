@@ -54,6 +54,57 @@ namespace CoupledField
   // --------------------------------------------
   //  Implementation of enum conversion routines 
   // --------------------------------------------
+ 
+  // AnalysisType
+  template<>
+  void String2Enum(const std::string &in, AnalysisType &out)
+  {
+    std::string errMsg;
+
+    if (in == "static")
+      out = STATIC;
+    else if (in == "transient")
+      out = TRANSIENT;
+    else if (in == "harmonic")
+      out = HARMONIC;
+    else if (in == "eigenfrequency")
+      out = EIGENFREQUENCY;
+    else if(in == "multiSequence")
+      out = MULTI_SEQUENCE;
+    else
+     {
+	errMsg  = "'";
+	errMsg += in;
+	errMsg += "' can not be converted into item of 'AnalysisType'!";
+	Error(errMsg.c_str(), __FILE__, __LINE__);
+     } 
+  }
+
+  template<> 
+  void Enum2String(const AnalysisType &in, std::string &out)
+  {
+    switch(in)
+      {
+      case STATIC:
+	out = "static";
+	break; 
+      case TRANSIENT:
+	out = "transient";
+	break;
+      case HARMONIC:
+	out = "harmonic";
+	break;
+      case EIGENFREQUENCY:
+	out = "eigenfrequency";
+	break;
+      case MULTI_SEQUENCE:
+	out = "multiSequence";
+	break;
+      default:	
+	Error("No conversion found for your 'AnalysisType'",
+	      __FILE__, __LINE__);
+      } 
+  }
 
   // CouplingInputType
   template<>
@@ -94,6 +145,7 @@ namespace CoupledField
 	break;
       case MAT:
 	out = "materialParam";
+	break;
       default:	
 	Error("No conversion found for your 'CouplingInputType'",
 	      __FILE__, __LINE__);
@@ -358,7 +410,54 @@ this type of solution", __FILE__, __LINE__);
     }
   } 
 
-  // SoluionType
+ // EQNType
+  template<>
+  void String2Enum(const std::string &in, EQNType &out)
+  {
+   std::string errMsg;
+
+    if (in == "scalar")
+      out = NODE_SCALAR;
+    else if (in == "block")
+      out = NODE_BLOCK;
+    else if (in == "sclarBlock")
+      out = NODE_SCALAR_BLOCK;
+    else if (in == "superBlock")
+      out = NODE_SUPER_BLOCK;
+    else 
+      {
+	errMsg  = "'";
+	errMsg += in;
+	errMsg += "' can not be converted into item of 'EQNType'!";
+	Error(errMsg.c_str(), __FILE__, __LINE__);
+      } 
+  }
+
+  template<>
+  void Enum2String(const EQNType &in, std::string &out)
+  {
+     switch(in)
+      {
+      case NODE_SCALAR:
+	out = "scalar";
+	break; 
+      case NODE_BLOCK:
+	out = "block";
+	break;
+      case NODE_SCALAR_BLOCK:
+	out = "scalarBlock";
+	break;
+      case NODE_SUPER_BLOCK:
+	out = "superBlock";
+	break;
+      default:	
+	Error("No conversion found for your 'EQNType'",
+	      __FILE__, __LINE__);
+      } 
+   
+  }
+  
+  // ComplexFormat
   template<>
   void String2Enum(const std::string &in, ComplexFormat &out)
   {

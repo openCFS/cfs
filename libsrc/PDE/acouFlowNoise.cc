@@ -32,7 +32,7 @@ AcouFlowNoise::AcouFlowNoise(Grid *aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc,
        ptgrid_->CalcNumberOfNodesInPatch(elemssd,mapSD_);
  ptMpCCIexch_ = new MpCCIexch(ptgrid_,mapSD_.size() );
 #endif
- ReadBCs(pdename_);
+//  ReadBCs(pdename_);
  preComputeRHS();
 }
 
