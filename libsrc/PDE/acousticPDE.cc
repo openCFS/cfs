@@ -541,36 +541,39 @@ void AcousticPDE::WriteResultsInFile(Integer stepOffset,
 	  solHarmonic = dynamic_cast<NodeStoreSol<Complex>*>(sol_);
 
 	  if (saveSol_)
-		outFile_->WriteNodeSolutionHarmonic(*solHarmonic,  actFreqStep_, 
-											actFrequency_, complexFormat_);
+	    outFile_->WriteNodeSolutionHarmonic(*solHarmonic,  actFreqStep_, 
+						actFrequency_, complexFormat_);
 	  if (saveSolHist_)
-		outFile_->WriteNodeHistoryHarmonic(*solHarmonic,  actFreqStep_, 
-										   actFrequency_, complexFormat_);
+	    outFile_->WriteNodeHistoryHarmonic(*solHarmonic,  actFreqStep_, 
+					       actFrequency_, complexFormat_);
 	}
 	else {  
 	  solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);
 
 	  if (saveSol_){
 		outFile_->WriteNodeSolutionTransient(*solTransient, actStep, actTime);
-          
-		if (saveSolHist_)
-		  outFile_->WriteNodeHistoryTransient(*solTransient, actStep, actTime);
+          }
+	  if (saveSolHist_){
+	    outFile_->WriteNodeHistoryTransient(*solTransient, actStep, actTime);
 	  }
         
 	  if (saveDeriv1_) {
 		solDeriv1_.SetAlgSysVector(getS1()); 
 		outFile_->WriteNodeSolutionTransient(solDeriv1_, actStep, actTime);
+	  }
         
-		if (saveDeriv1Hist_)
-		  outFile_->WriteNodeHistoryTransient(solDeriv1_, actStep, actTime);
+	  if (saveDeriv1Hist_) {
+	    solDeriv1_.SetAlgSysVector(getS1()); 
+	    outFile_->WriteNodeHistoryTransient(solDeriv1_, actStep, actTime);
 	  }
 
 	  if (saveDeriv2_) {
 		solDeriv2_.SetAlgSysVector(getS2());
 		outFile_->WriteNodeSolutionTransient(solDeriv2_, actStep, actTime);
-          
-		if (saveDeriv2Hist_)
-		  outFile_->WriteNodeHistoryTransient(solDeriv2_, actStep, actTime);
+          }
+	  if (saveDeriv2Hist_){
+	    solDeriv2_.SetAlgSysVector(getS2());
+	    outFile_->WriteNodeHistoryTransient(solDeriv2_, actStep, actTime);
 	  }
 	}
 #ifdef PARALLEL
@@ -715,6 +718,7 @@ history node results in pressure.", __FILE__,__LINE__);
 	  for ( Integer k = 0; k < saveNodeHist.GetSize(); k++ ) {
 		Info->PrintF( pdename_, "  %s\n", saveNodeHist[k].c_str() );
 	  }
+
 	}
     
 	// --- acoustic potential, 1. Deriv ---
@@ -729,20 +733,32 @@ history node results in pressure.", __FILE__,__LINE__);
 	  for ( Integer k = 0; k < saveNodeHist.GetSize(); k++ ) {
 		Info->PrintF( pdename_, "  %s\n", saveNodeHist[k].c_str() );
 	  }
+	  solDeriv1_.SetNumSolutions(1);
+	  solDeriv1_.SetNumNodes(numPDENodes_);
+	  solDeriv1_.SetSolutionType(ACOU_POTENTIAL_DERIV_1);
+	  solDeriv1_.SetNumDofs(1);
+	  solDeriv1_.SetPtrEQNData(eqnData_, ptgrid_, actlevel_); 
+	  solDeriv1_.Init(0);
 	}
 
-	// --- acoustic potential, 1. Deriv ---
+	// --- acoustic potential, 2. Deriv ---
 	Enum2String(ACOU_POTENTIAL_DERIV_2, quantity);
 	valVec  = "", "", quantity;
 	params->GetList( keyVec, attrVec, valVec, saveNodeHist );
     
 	if (saveNodeHist.GetSize() > 0) {
-	  saveDeriv1Hist_ = TRUE;
+	  saveDeriv2Hist_ = TRUE;
 	  hasOutput_ = TRUE;
 	  Info->PrintF( pdename_, "Saving acouPotetentialD2 for Nodes:\n" );
 	  for ( Integer k = 0; k < saveNodeHist.GetSize(); k++ ) {
 		Info->PrintF( pdename_, "  %s\n", saveNodeHist[k].c_str() );
 	  }
+	  solDeriv2_.SetNumSolutions(1);
+	  solDeriv2_.SetNumNodes(numPDENodes_);
+	  solDeriv2_.SetSolutionType(ACOU_POTENTIAL_DERIV_2);
+	  solDeriv2_.SetNumDofs(1);
+	  solDeriv2_.SetPtrEQNData(eqnData_, ptgrid_, actlevel_); 
+	  solDeriv2_.Init(0);
 	}
   }
 
