@@ -49,8 +49,6 @@
                              minOccurs="0" maxOccurs="unbounded"/>
                 <xsd:element name="neumannInhom" type="DT_MagneticIN"
                              minOccurs="0" maxOccurs="unbounded"/>
-                <xsd:element name="absorbingBCs" type="DT_AbsorbingBC"
-                             minOccurs="0" maxOccurs="unbounded"/>
               </xsd:sequence>
 
             </xsd:complexType>
@@ -114,14 +112,6 @@
   <xsd:complexType name="DT_MagneticIN">
     <xsd:complexContent>
       <xsd:extension base="DT_MagneticID"/>
-    </xsd:complexContent>
-  </xsd:complexType>
-
-  <!-- Element type for specifying absorbing boundary conditions -->
-  <!-- Identical to that of homogeneous Dirichlet case -->
-  <xsd:complexType name="DT_AbsorbingBC">
-    <xsd:complexContent>
-      <xsd:extension base="DT_MagneticHD"/>
     </xsd:complexContent>
   </xsd:complexType>
 
@@ -207,68 +197,82 @@
 
   <!-- Data type for 3D voltage coils -->
   <xsd:complexType name="DT_VoltageCoil3D">
-    <xsd:extension base="DT_MeasurementCoil">
-      <xsd:sequence>
-        <xsd:element name="value"      type="DT_PosFloat"/>
-        <xsd:element name="dynamics"   type="xsd:token"/>
-        <xsd:element name="phase"      type="DT_PosFloat"/>
-        <xsd:element name="resistance" type="DT_DegAngle"/>
-      </xsd:sequence>
-    </xsd:extension>
+    <xsd:complexContent>
+      <xsd:extension base="DT_MeasurementCoil">
+        <xsd:sequence>
+          <xsd:element name="value"      type="DT_PosFloat"/>
+          <xsd:element name="dynamics"   type="xsd:token"/>
+          <xsd:element name="phase"      type="DT_PosFloat"/>
+          <xsd:element name="resistance" type="DT_DegAngle"/>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
   </xsd:complexType>
 
   <!-- Data type for 2D voltage coils -->
   <xsd:complexType name="DT_VoltageCoil2D">
-    <xsd:extension base="DT_VoltageCoil3D">
-      <xsd:attribute name="id" type="xsd:token" use="required"/>
-    </xsd:extension>
+    <xsd:complexContent>
+      <xsd:extension base="DT_VoltageCoil3D">
+        <xsd:attribute name="id" type="xsd:token" use="required"/>
+      </xsd:extension>
+    </xsd:complexContent>
   </xsd:complexType>
 
   <!-- Data type for 2D current coils -->
   <xsd:complexType name="DT_CurrentCoil2D">
-    <xsd:extension base="DT_MeasurementCoil">
-      <xsd:sequence>
-        <xsd:element name="value"      type="DT_PosFloat"/>
-        <xsd:element name="dynamics"   type="xsd:token"/>
-        <xsd:element name="phase"      type="DT_PosFloat"/>
-      </xsd:sequence>
-      <xsd:attribute name="id" type="xsd:token" use="required"/>
-    </xsd:extension>
+    <xsd:complexContent>
+      <xsd:extension base="DT_MeasurementCoil">
+        <xsd:sequence>
+          <xsd:element name="value"      type="DT_PosFloat"/>
+          <xsd:element name="dynamics"   type="xsd:token"/>
+          <xsd:element name="phase"      type="DT_PosFloat"/>
+        </xsd:sequence>
+        <xsd:attribute name="id" type="xsd:token" use="required"/>
+      </xsd:extension>
+    </xsd:complexContent>
   </xsd:complexType>
 
   <!-- Data type for 3D current coils -->
-  <xsd:complexType name="DT_CurrentCoil2D">
-    <xsd:extension base="DT_MeasurementCoil">
-      <xsd:sequence>
-        <xsd:element name="value"      type="DT_PosFloat"/>
-        <xsd:element name="dynamics"   type="xsd:token"/>
-        <xsd:element name="phase"      type="DT_PosFloat"/>
-        <xsd:element ref="FlowDirection"/>
-      </xsd:sequence>
-    </xsd:extension>
+  <xsd:complexType name="DT_CurrentCoil3D">
+    <xsd:complexContent>
+      <xsd:extension base="DT_MeasurementCoil">
+        <xsd:sequence>
+          <xsd:element name="value"      type="DT_PosFloat"/>
+          <xsd:element name="dynamics"   type="xsd:token"/>
+          <xsd:element name="phase"      type="DT_PosFloat"/>
+          <xsd:element ref="FlowDirection"/>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
   </xsd:complexType>
 
+  <!-- This element is abstract in order to force substitution -->
+  <!-- by the derived specialised elements -->
+  <xsd:element name="FlowDirection" type="xsd:anyType" abstract="true"/>
+
   <!-- Element for specifying flow direction (directly) -->
-  <xsd:element name="currentFlow" substitutionGroup="FlowDirection">
-    <xsd:simpleType>
-      <xsd:restriction base="xsd:token">
-        <xsd:enumeration value="xDir"/>
-        <xsd:enumeration value="yDir"/>
-        <xsd:enumeration value="zDir"/>
-      </xsd:restriction>
-    </xsd:simpleType>
-  </xsd:element>
+  <xsd:element name="currentFlow" substitutionGroup="FlowDirection"
+    type="DT_CurrentFlow"/>
 
   <!-- Element for specifying flow direction (rotational) -->
-  <xsd:element name="rotational" substitutionGroup="FlowDirection">
-    <xsd:complexType>
-      <xsd:attribute name="midPointX" type="xsd:float">
-      <xsd:attribute name="midPointY" type="xsd:float">
-      <xsd:attribute name="midPointZ" type="xsd:float">
-      <xsd:attribute name="orientX"   type="xsd:float">
-      <xsd:attribute name="orientY"   type="xsd:float">
-      <xsd:attribute name="orientZ"   type="xsd:float">
-    </xsd:complexType>
-  </xsd:element>
+  <xsd:element name="rotational" substitutionGroup="FlowDirection"
+    type="DT_Rotational"/>
+
+  <!-- Data type for specifying flow direction (directly) -->
+  <xsd:simpleType name="DT_CurrentFlow">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="xDir"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <!-- Element for specifying flow direction (rotational) -->
+  <xsd:complexType name="DT_Rotational">
+      <xsd:attribute name="midPointX" type="xsd:float"/>
+      <xsd:attribute name="midPointY" type="xsd:float"/>
+      <xsd:attribute name="midPointZ" type="xsd:float"/>
+      <xsd:attribute name="orientX"   type="xsd:float"/>
+      <xsd:attribute name="orientY"   type="xsd:float"/>
+      <xsd:attribute name="orientZ"   type="xsd:float"/>
+  </xsd:complexType>
  
 </xsd:schema>
