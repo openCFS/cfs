@@ -6,6 +6,7 @@ Doc/DoxygenConfig/header.html svneol=native#text/html
 Doc/auxilliaries/LaTeX/lsepaper.sty -text
 Doc/auxilliaries/Pics/lse.eps -text svneol=unset#application/postscript
 Doc/auxilliaries/Pics/lse.png -text svneol=unset#image/png
+Doc/makedoc.sh svneol=native#text/plain
 Doc/xmlFile/BCsLoads.tex svneol=native#text/plain
 Doc/xmlFile/Savings.tex svneol=native#text/plain
 Doc/xmlFile/basicCommands.tex svneol=native#text/plain
