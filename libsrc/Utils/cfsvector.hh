@@ -164,7 +164,7 @@ public:
 
 
 #define DECL_BASEVECTOR_FCN(TYPE)								\
- virtual void Init(const TYPE entry = 0.0)						\
+ virtual void Init(const TYPE entry = TYPE())						\
   {Error("CFSVector::Init(): Not implemented here",__FILE__,__LINE__);}		\
   virtual void SetEntry(const Integer i, const TYPE &s)					\
   {Error("CFSVector::SetEntry(): Not implemented here",__FILE__,__LINE__);}		\

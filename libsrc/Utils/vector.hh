@@ -51,7 +51,7 @@ public:
     \param entry (input) Entry vector gets inialized with
   */
   //! \note this method does not change the size of the vector!
-  void Init(const TYPE entry = 0.0);
+  void Init(const TYPE entry = TYPE());
 
   //! Get the length of the vector
   inline Integer GetSize() const {return size_;}
