@@ -14,9 +14,7 @@ namespace CoupledField
 
   WriteInfo::WriteInfo (const Char * name)
   {
-#ifdef TRACE
-    (*trace) << "Entering WriteInfo::WriteInfo" << std::endl;
-#endif
+    ENTER_FCN( "WriteInfo::WriteInfo" );
 
     std::string filename(name);
     filename += ".info";
@@ -31,9 +29,7 @@ namespace CoupledField
 
   WriteInfo::~WriteInfo ()
   {
-#ifdef TRACE
-    (*trace) << "Entering WriteInfo::~WriteInfo" << std::endl;
-#endif
+    ENTER_FCN( "WriteInfo::~WriteInfo" );
 
     if (!cfsInfo)
       delete cfsInfo;
@@ -43,11 +39,15 @@ namespace CoupledField
 
   void WriteInfo::PrintHeader()
   {
+    ENTER_FCN( "WriteInfo::PrintHeader" );
+
     std::stringstream header;
     std::string compileDate = __DATE__;
   
-    header << "=======================================================================" << std::endl
-	   << "=======================================================================" << std::endl
+    header << "============================================================"
+	   << "===========" << std::endl
+	   << "============================================================"
+	   << "===========" << std::endl
 	   << "|                                                                     |" << std::endl
  	   << "|                                 CFS++                               |" << std::endl
 	   << "|                     (Coupled Field Simulation ++)                   |" << std::endl
@@ -57,60 +57,87 @@ namespace CoupledField
 	   << "|  Date:    " << compileDate
 	   << "                                               |\n"
 	   << "|                                                                     |" << std::endl
-	   << "=======================================================================" << std::endl
-	   << "=======================================================================" << std::endl << std::endl;
+	   << "============================================================"
+	   << "===========" << std::endl
+	   << "============================================================"
+	   << "===========" << std::endl << std::endl;
 
     std::cout << std::endl << header.str();
     *cfsInfo << header.str();
   }
   
 
-
   
   void WriteInfo::PrintPiezoMat(MaterialData& material)
   {
-    *cfsInfo  << "FULL PIEZO DATAMATRIX OF " << material.GetMaterialName() << ":" << std::endl
+    ENTER_FCN( "WriteInfo::PrintPiezoMat" );
+
+    *cfsInfo  << "FULL PIEZO DATAMATRIX OF " << material.GetMaterialName()
+	      << ":" << std::endl
 	      << std::endl << *(material.GetMatrix()) << std::endl
 	      << "density = " << material.GetDensity() << std::endl
-	      << "damping coefficient alfa = " << material.GetDampingAlfa() << std::endl
-	      << "damping coefficient beta = " << material.GetDampingBeta() << std::endl <<  std::endl;
+	      << "damping coefficient alfa = " << material.GetDampingAlfa()
+	      << std::endl
+	      << "damping coefficient beta = " << material.GetDampingBeta()
+	      << std::endl <<  std::endl;
   }
   
 
 
   void WriteInfo::PrintFluidMat(MaterialData& material)
   {
-    *cfsInfo << "MATERIAL DATA OF " << material.GetMaterialName() << ":" << std::endl
-	     << "compressibility: " << material.GetCompressibility() << std::endl
+    ENTER_FCN( "WriteInfo::PrintFluidMat" );
+
+    *cfsInfo << "MATERIAL DATA OF " << material.GetMaterialName() << ":"
+	     << std::endl << "compressibility: "
+	     << material.GetCompressibility() << std::endl
 	     << "density: " << material.GetDensity() << std::endl
 	     << "alpha: " << material.GetDampingAlfa() << std::endl
-	     << "beta: " << material.GetDampingBeta() << std::endl << std::endl;
+	     << "beta: " << material.GetDampingBeta() << std::endl
+	     << std::endl;
   }
   
+
+
   void WriteInfo::PrintMagMat(MaterialData& material)
   {
+    ENTER_FCN( "WriteInfo::PrintMagMat" );
+
     Double mX, mY, mZ;
     material.GetPermMag(mX, mY, mZ);
 
-    *cfsInfo << "MATERIAL DATA OF " << material.GetMaterialName() << ":" << std::endl
-	     << "conductivity:            " << material.GetConductivity() << std::endl
-	     << "permeability:            " << material.GetPermeability() << std::endl
-	     << "vector of magnetiziation: (" << mX << ", " << mY << ", " << mZ <<")" 
+    *cfsInfo << "MATERIAL DATA OF " << material.GetMaterialName()
+	     << ":" << std::endl
+	     << "conductivity:            " << material.GetConductivity()
+	     << std::endl
+	     << "permeability:            " << material.GetPermeability()
+	     << std::endl
+	     << "vector of magnetiziation: (" << mX << ", " << mY << ", "
+	     << mZ <<")" 
 	     << std::endl << std::endl;
   }
   
 
-  void WriteInfo::WriteNonLinIter(const std::string& pdeName, const Integer iterationCounter, 
-				  const Double residualErr, const Double incrementalErr, double etaLineSearch)
+
+  void WriteInfo::WriteNonLinIter(const std::string& pdeName,
+				  const Integer iterationCounter,
+				  const Double residualErr,
+				  const Double incrementalErr,
+				  double etaLineSearch)
   {
+    ENTER_FCN( "WriteInfo::WriteNonLinIter" );
+
     std::string pdeNameLong(pdeName);
     
     pdeNameLong += "-PDE: ";
     
-    *cfsInfo << std::endl << pdeNameLong << "NONLINEAR ITERATION " << iterationCounter 
+    *cfsInfo << std::endl << pdeNameLong << "NONLINEAR ITERATION "
+	     << iterationCounter 
 	     << " ==========================================" << std::endl
-	     << pdeNameLong << "=== Residual error          " << residualErr << std::endl
-	     << pdeNameLong << "=== Incremental error       " << incrementalErr << std::endl;
+	     << pdeNameLong << "=== Residual error          " << residualErr
+	     << std::endl
+	     << pdeNameLong << "=== Incremental error       "
+	     << incrementalErr << std::endl;
 
     if (etaLineSearch)
       *cfsInfo << pdeNameLong << "=== eta (line search)       " << etaLineSearch << std::endl;
@@ -119,9 +146,11 @@ namespace CoupledField
 
 
 
-  void WriteInfo::WriteTimeStep(const std::string& pdeName, const Integer timeStep,    
-				const Double time)
+  void WriteInfo::WriteTimeStep(const std::string& pdeName,
+				const Integer timeStep, const Double time)
   {
+    ENTER_FCN( "WriteInfo::WriteTimeStep" );
+
     std::string pdeNameLong(pdeName);
 
     // write std::out info    
@@ -130,60 +159,74 @@ namespace CoupledField
 
 
     *cla << myEndl << pdeName << ": Time step " 
-	 << timeStep <<" ********************************************" << std::endl;      
+	 << timeStep <<" ********************************************"
+	 << std::endl;
 
 
     // write to info-file
     pdeNameLong += "-PDE: ";    
     *cfsInfo << std::endl << std::endl << std::endl 
-	     << "********************************************************************************" 
+	     << "**********************************************************"
+	     << "**********************" 
 	     << std::endl << pdeNameLong << "TIME STEP " << timeStep 
 	     << ", time: " << time << std::endl;
   }
   
 
 
-  void WriteInfo:: WriteResult(std::string pdename, std::string resulttype, std::vector<std::string> subdoms,
+  void WriteInfo:: WriteResult(std::string pdename, std::string resulttype,
+			       std::vector<std::string> subdoms,
 			       std::vector<Double> results)
   {
+    ENTER_FCN( "WriteInfo::WriteResult" );
+
     if (subdoms.size() != results.size())
       Error("Problem in WriteResults",__FILE__,__LINE__);
  
-    *cfsInfo << std::endl << " PostProcessing Result for PDE " << pdename << ": " << resulttype  
-	     << " ==========" << std::endl;
+    *cfsInfo << std::endl << " PostProcessing Result for PDE " << pdename
+	     << ": " << resulttype << " ==========" << std::endl;
     for (Integer i=0; i<subdoms.size(); i++)
-	*cfsInfo   << " === " << subdoms[i] << " : " << results[i] << " (Ws)" << std::endl;
-    *cfsInfo << std::endl;
+      *cfsInfo << " === " << subdoms[i] << " : " << results[i] << " (Ws)"
+	       << std::endl << std::endl;
   }
 
 
 
-  void WriteInfo::PrintCoil(std::string& coilDomain, struct coilDefStruct& coilDef,  AnalysisType& analysistype_)
+  void WriteInfo::PrintCoil(std::string& coilDomain,
+			    struct coilDefStruct& coilDef,
+			    AnalysisType& analysistype_)
   {
-    *cfsInfo <<  "COIL DESCRIPTION ======================================= " << myEndl
-	     <<  "Coil domain: " << coilDomain << std::endl;
+    ENTER_FCN( "WriteInfo::PrintCoil" );
+
+    *cfsInfo <<  "COIL DESCRIPTION ======================================= "
+	     << myEndl <<  "Coil domain: " << coilDomain << std::endl;
     if (coilDef.type == CURRENT)
       *cfsInfo << "Coil type  : current-loaded" << std::endl;
     else if (coilDef.type == VOLTAGE)
       *cfsInfo << "Coil type  : voltage-loaded" << std::endl;
     else if (coilDef.type == MEASUREMENT)
-	*cfsInfo << "Coil type  : sensing coil (induced voltage)" << std::endl;
+	*cfsInfo << "Coil type  : sensing coil (induced voltage)"
+		 << std::endl;
+    // <<  "  parameters: current direction = " << coilDef.iDir << std::endl
 
-      //	     <<  "  parameters: current direction = " << coilDef.iDir << std::endl
-
-    *cfsInfo   <<  "              ID                = " << coilDef.ID << std::endl;
+    *cfsInfo   <<  "              ID                = " << coilDef.ID
+	       << std::endl;
 
     if (coilDef.type == CURRENT)
       {
-	*cfsInfo << "              current value     = " << coilDef.current << std::endl;
+	*cfsInfo << "              current value     = " << coilDef.current
+		 << std::endl;
 	if (analysistype_==HARMONIC)
-	  *cfsInfo << "              current pahse     = " << coilDef.phase << std::endl;
+	  *cfsInfo << "              current phase     = " << coilDef.phase
+		   << std::endl;
       }
 
     else if (coilDef.type == VOLTAGE)
       {
-	*cfsInfo << "              voltage value     = " << coilDef.voltage << std::endl
-		 << "              resistance        = " << coilDef.resistance << std::endl;
+	*cfsInfo << "              voltage value     = " << coilDef.voltage
+		 << std::endl
+		 << "              resistance        = "
+		 << coilDef.resistance << std::endl;
 	if (analysistype_==HARMONIC)
 	  *cfsInfo << "              voltage pahse     = " << coilDef.phase << std::endl;
       }
@@ -219,10 +262,7 @@ namespace CoupledField
 
   void WriteInfo::PrintVec(Vector<Double>& vec)
   {
-#ifdef TRACE
-    (*trace) << "Entering WriteInfo::PrintVec" << std::endl;
-#endif
-
+    ENTER_FCN( "WriteInfo::PrintVec" );
     *cfsInfo << vec << std::endl;
   }
   
@@ -230,10 +270,7 @@ namespace CoupledField
 
   void WriteInfo::PrintVec(std::vector<Integer>& vec)
   {
-#ifdef TRACE
-    (*trace) << "Entering WriteInfo::PrintVec" << std::endl;
-#endif
-
+    ENTER_FCN( "WriteInfo::PrintVec" );
     *cfsInfo << vec << std::endl;
   }
   
@@ -241,20 +278,16 @@ namespace CoupledField
 
   void WriteInfo::PrintVec(const char * comment, std::vector<Integer>& vec)
   {
-#ifdef TRACE
-    (*trace) << "Entering WriteInfo::PrintVec" << std::endl;
-#endif
-
+    ENTER_FCN( "WriteInfo::PrintVec" );
     *cfsInfo << comment << myEndl << vec << myEndl << myEndl;
   }
 
 
 
-  void WriteInfo::PrintVec(const char * comment, std::vector<std::string>& vec)
+  void WriteInfo::PrintVec(const char * comment,
+			   std::vector<std::string>& vec)
   {
-#ifdef TRACE
-    (*trace) << "Entering WriteInfo::PrintVec" << std::endl;
-#endif
+    ENTER_FCN( "WriteInfo::PrintVec" );
 
     *cfsInfo << comment << myEndl;
 
@@ -265,24 +298,22 @@ namespace CoupledField
   }
 
 
-
-
-
   
   // prints warning to info-file
   void WriteInfo::Warning(const std::string & Text)
   {
-#ifdef TRACE
-    (*trace) << "Entering WriteInfo::Warning" << std::endl;
-#endif
+    ENTER_FCN( "WriteInfo::Warning" );
     std::cerr << "\033[31mWARNING:\033[0m " << Text << myEndl << myEndl;
 
     *cfsInfo << myEndl << myEndl << myEndl
-	     << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! " << myEndl
+	     << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+	     << "!!!!!!!!!!!!!" << myEndl
 	     << "                          WARNING " << myEndl
-	     << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! " << myEndl
+	     << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+	     << "!!!!!!!!!!!!!" << myEndl
 	     << "WARNING: " << Text << myEndl 
-	     << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! " << myEndl
+	     << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+	     << "!!!!!!!!!!!!!" << myEndl
 	     << myEndl << myEndl;
   }
 
@@ -290,12 +321,10 @@ namespace CoupledField
   
     
   // prints error to both std::out and info-file
-  void WriteInfo::Error(const std::string & Text, const Char * const filename,
-			const Integer numline)
+  void WriteInfo::Error(const std::string & Text,
+			const Char * const filename, const Integer numline)
   {
-#ifdef TRACE
-    (*trace) << "Entering WriteInfo::Error" << std::endl;
-#endif
+    ENTER_FCN( "WriteInfo::Error" );
     
     std::cerr << std::endl << "\033[31mERROR:\033[0m " << Text;
     if (filename) 
@@ -310,9 +339,11 @@ namespace CoupledField
     
 
     *cfsInfo << myEndl << myEndl << myEndl
-	     << " !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! " << myEndl
+	     << " !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! "
+	     << myEndl
 	     << "                          ERROR " << myEndl
-	     << " !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! " << myEndl
+	     << " !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! "
+	     << myEndl
 	     << " ERROR: " << Text;
     
     if (filename) 
@@ -329,12 +360,13 @@ namespace CoupledField
   
 
 
-  void WriteInfo::WriteHomBC(const std::string& pdeName,const std::string& subDom, Integer dof)
+  void WriteInfo::WriteHomBC(const std::string& pdeName,
+			     const std::string& subDom, Integer dof)
   {
-#ifdef TRACE
-    (*trace) << "entering WriteInfo::WriteHomBC" << std::endl;
-#endif
-    *cfsInfo << pdeName << "-PDE: Homogenous Dirichlet BC on \"" << subDom  << "\"";
+    ENTER_FCN( "WriteInfo::WriteHomBC" );
+
+    *cfsInfo << pdeName << "-PDE: Homogenous Dirichlet BC on \"" << subDom
+	     << "\"";
     if (dof)
       *cfsInfo << " with DOF number " << dof;
     
@@ -342,13 +374,15 @@ namespace CoupledField
   }
 
 
-  void WriteInfo::WriteInHomBC(const std::string& pdeName,const std::string& subDom, 
-			       const Double& val, const std::string & fnc, const Integer& dof)
+  void WriteInfo::WriteInHomBC(const std::string& pdeName,
+			       const std::string& subDom, 
+			       const Double& val, const std::string & fnc,
+			       const Integer& dof)
   {
-#ifdef TRACE
-    (*trace) << "entering WriteInfo::WriteInHomBC" << std::endl;
-#endif
-    *cfsInfo << pdeName << "-PDE: Inhomogenous Dirichlet BC on \"" << subDom  << "\"";
+    ENTER_FCN( "WriteInfo::WriteInHomBC" );
+
+    *cfsInfo << pdeName << "-PDE: Inhomogenous Dirichlet BC on \""
+	     << subDom  << "\"";
     if (dof)
       *cfsInfo << " with DOF number " << dof;
     *cfsInfo << ", value = " <<  val << ", FncName: " << fnc; 
@@ -358,7 +392,8 @@ namespace CoupledField
 
   void WriteInfo::WriteLoad(const std::string& pdeName,
 			    const std::string& subDom, 
-			    Double value, const std::string & fnc, Integer dof)
+			    Double value, const std::string & fnc,
+			    Integer dof)
   {
     ENTER_FCN( "WriteInfo::WriteLoad" );
 
@@ -376,9 +411,7 @@ namespace CoupledField
 
   void WriteInfo::PrintF(const std::string& pdeName, char * formatChar ...)
   {
-#ifdef TRACE
-    (*trace) << "entering WriteInfo::PrintF" << std::endl;
-#endif
+    ENTER_FCN( "WriteInfo::PrintF" );
     const Integer maxSize = 100;
     typedef std::string::size_type ST;
     ST actPos=0;
