@@ -42,6 +42,33 @@ protected:
 
   /// Calculation of function in integration points
   Double FuncAtIP(const ShortInt iIP, RHS f);  
+
+
+//////////////////////////////////////////////////////////////// version 2
+  /// calculation of determinat for 2 version, only for 3d
+  Double CalcDet(const Integer iIntPoints, Point3D * ptCoord);  
+
+   /// Calculation of tramsformation coordinates in integration points
+  Double TransXDxi(Integer iIntPoints, Point3D * ptCoord) ;
+  /// Calculation of tramsformation coordinates in integration points
+  Double TransXDnu(Integer iIntPoints, Point3D * ptCoord);
+    /// Calculation of tramsformation coordinates in integration points
+  Double TransXDgam(Integer iIntPoints, Point3D * ptCoord);
+
+  /// Calculation of tramsformation coordinates in integration points
+  Double TransYDxi(Integer iIntPoints, Point3D * ptCoord);
+ /// Calculation of tramsformation coordinates in integration points
+  Double TransYDnu (Integer iIntPoints, Point3D * ptCoord);
+ /// Calculation of tramsformation coordinates in integration points
+  Double TransYDgam (Integer iIntPoints, Point3D * ptCoord);
+
+   /// Calculation of tramsformation coordinates in integration points
+  Double TransZDxi(Integer iIntPoints, Point3D * ptCoord);
+ /// Calculation of tramsformation coordinates in integration points
+  Double TransZDnu (Integer iIntPoints, Point3D * ptCoord);
+ /// Calculation of tramsformation coordinates in integration points
+  Double TransZDgam (Integer iIntPoints, Point3D * ptCoord);
+
 };
 
 #ifdef __GNUC__

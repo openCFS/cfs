@@ -19,6 +19,12 @@ public:
    //! Deconstructor
    virtual ~GeTetrahedral() { ;}
 
+///////////////////////////////////////////////////////////////////////
+
+virtual Vector<Double> *  GetDxShFncAtIP(const Integer iShFnc) ;
+virtual Vector<Double> *  GetDyShFncAtIP(const Integer iShFnc) ;
+virtual Vector<Double> *  GetDzShFncAtIP(const Integer iShFnc) ;
+
 protected:
 
    void test(){ std::cout << " tetrahedral " << std::endl;}
@@ -64,27 +70,26 @@ protected:
 
 private:
 
-  Double TransFnc4(Double x,Double y, Double z) { return 1-x-y-z; }
-  Double TransFnc3(Double x,Double y, Double z) { return x; }
-  Double TransFnc2(Double x,Double y, Double z) { return y; }
-  Double TransFnc1(Double x,Double y, Double z) { return z; }
+  Double TransFnc1(Double x,Double y, Double z) { return 1-x-y-z; }
+  Double TransFnc2(Double x,Double y, Double z) { return x; }
+  Double TransFnc3(Double x,Double y, Double z) { return y; }
+  Double TransFnc4(Double x,Double y, Double z) { return z; }
 
-  Double TransFnc3dx (Double x,Double y, Double z) { return 1.0; }
-  Double TransFnc3dy (Double x,Double y, Double z) { return 0.0; }
-  Double TransFnc3dz (Double x,Double y, Double z) { return 0.0; }
+  Double TransFnc1dx (Double x,Double y, Double z) { return -1.0; }
+  Double TransFnc1dy (Double x,Double y, Double z) { return -1.0; }
+  Double TransFnc1dz (Double x,Double y, Double z) { return -1.0; }
 
-  Double TransFnc2dx (Double x,Double y, Double z) { return 0.0; }
-  Double TransFnc2dy (Double x,Double y, Double z) { return 1.0; }
+  Double TransFnc2dx (Double x,Double y, Double z) { return 1.0; }
+  Double TransFnc2dy (Double x,Double y, Double z) { return 0.0; }
   Double TransFnc2dz (Double x,Double y, Double z) { return 0.0; }
 
-  Double TransFnc1dx (Double x,Double y, Double z)  { return 0.0; }
-  Double TransFnc1dy (Double x,Double y, Double z)  { return 0.0; }
-  Double TransFnc1dz (Double x,Double y, Double z)  { return 1.0; }
+  Double TransFnc3dx (Double x,Double y, Double z)  { return 0.0; }
+  Double TransFnc3dy (Double x,Double y, Double z)  { return 1.0; }
+  Double TransFnc3dz (Double x,Double y, Double z)  { return 0.0; }
 
-  Double TransFnc4dx (Double x,Double y, Double z)  { return -1.0; }
-  Double TransFnc4dy (Double x,Double y, Double z)  { return -1.0; }
-  Double TransFnc4dz (Double x,Double y, Double z)  { return -1.0; }
-
+  Double TransFnc4dx (Double x,Double y, Double z)  { return 0.0; }
+  Double TransFnc4dy (Double x,Double y, Double z)  { return 0.0; }
+  Double TransFnc4dz (Double x,Double y, Double z)  { return 1.0; }
 };
 
 }

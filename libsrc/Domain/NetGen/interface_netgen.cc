@@ -46,6 +46,7 @@ void InterfaceNetGen<Point2D>::Read()
       Point3d p;
       p.X()=ptCoord[inode].x;
       p.Y()=ptCoord[inode].y;
+      p.Z()=0.0;
       mesh.AddPoint(p);
     }
 
@@ -82,7 +83,7 @@ void InterfaceNetGen<Point2D>::Read()
 
   for (i=0; i<nelems; i++)
     {
-      el3.SetIndex(i+1);
+      el3.SetIndex(1);
 
       el3.PNum(1)=Connect[i*nelemNodes];
       el3.PNum(2)=Connect[i*nelemNodes+1];
@@ -99,7 +100,7 @@ void InterfaceNetGen<Point2D>::Read()
 
   for (i=0; i<nelems; i++)
     {
-      el4.SetIndex(i+1);
+      el4.SetIndex(1);
 
       el4.PNum(1)=Connect[i*nelemNodes];
       el4.PNum(2)=Connect[i*nelemNodes+1];
@@ -107,8 +108,6 @@ void InterfaceNetGen<Point2D>::Read()
       el4.PNum(4)=Connect[i*nelemNodes+3];
 
       mesh.AddSurfaceElement(el4);
-
-      std::cout << " number of elem " << mesh.GetNSE() << std::endl;
 
       ptArrayElem_[i]=ptQ_;
    }
@@ -187,15 +186,6 @@ FileType::endGElem);
 
   Element el (4);
 
-  el.PNum(1)=22;
-  el.PNum(2)=13;
-  el.PNum(3)=10;
-  el.PNum(4)=7;
-
-  mesh.AddVolumeElement(el);
-
-   std::cout << " of elem " << mesh.GetNSE() << std::endl;
-
   ptTet_=new Tetrahedral1();
 
   switch (nelemNodes)
@@ -204,7 +194,8 @@ FileType::endGElem);
 
   for (i=0; i<nelems; i++)
     {
-      el.SetIndex(i+1);
+      Element el (4);
+      el.SetIndex(1);
 
       el.PNum(1)=Connect[i*nelemNodes];
       el.PNum(2)=Connect[i*nelemNodes+1];
@@ -214,8 +205,6 @@ FileType::endGElem);
       std::cout << Connect[i*nelemNodes] << " " << Connect[i*nelemNodes+1] << " " << Connect[i*nelemNodes+2] << " " << Connect[i*nelemNodes+3] << std::endl;
  
       mesh.AddVolumeElement(el);
-
-      std::cout << " number of elem " << mesh.GetNSE() << std::endl;
 
       ptArrayElem_[i]=ptTet_;
    }
@@ -232,8 +221,8 @@ FileType::endGElem);
 
    delete [] Connect;
 
-//   mesh.ClearFaceDescriptors();
-//   mesh.AddFaceDescriptor (FaceDescriptor(0,1,0,0));
+   mesh.ClearFaceDescriptors();
+   mesh.AddFaceDescriptor (FaceDescriptor(0,1,0,0));
 
 #ifdef TRACE
  (*trace) << "Leaving InterfaceNetGen<Dim>::Read " << std::endl;
@@ -252,11 +241,10 @@ lastlevel_++;
 Integer ei;
 Integer flag=1;
 
+Integer maxnumelem=GetMaxnumElem(level);
 // mesh.SurfaceElement(1).SetRefinementFlag (1);
 
-  std::cout << " Ok " << std::endl;
-
-for(ei=1; ei<=mesh.GetNSE(); ei++)
+for(ei=1; ei<=maxnumelem; ei++)
   SetRefinementFlag(ei,flag);
 
 Refine();
@@ -359,10 +347,16 @@ template<class Dim>
 Integer InterfaceNetGen<Dim>::GetMaxnumnodes(const Integer numlevel)
   { return mesh.GetNP(); }
 
-template<class Dim>
-Integer InterfaceNetGen<Dim>::GetMaxnumElem(const Integer numlevel)
+template<>
+Integer InterfaceNetGen<Point2D>::GetMaxnumElem(const Integer numlevel)
 {
  return mesh.GetNSE();
+}
+
+template<>
+Integer InterfaceNetGen<Point3D>::GetMaxnumElem(const Integer numlevel)
+{
+ return mesh.GetNE();
 }
 
 template<class Dim>

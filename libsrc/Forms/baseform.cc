@@ -221,4 +221,169 @@ void BaseForm<Dim>::Print(std::ostream * out, const Matrix<Double> Result) const
 #endif
  Error(" Function Print of BilinieaForm is virtual. You can use it for derived  classes LaplaceInt or MassInt.",__FILE__,__LINE__);
 }
+
+////////////////////////////////////////////////////////////////////////////////
+template<class Dim>
+Double BaseForm<Dim>::CalcDet(const Integer n, Point3D * ptCoord)
+{
+ Double det;
+ 
+ det=TransXDxi(n,ptCoord)*TransYDnu(n,ptCoord)*TransZDgam(n,ptCoord)-
+     TransXDxi(n,ptCoord)*TransYDgam(n,ptCoord)*TransZDnu(n,ptCoord)-
+     TransXDnu(n,ptCoord)*TransYDxi(n,ptCoord)*TransZDgam(n,ptCoord)+
+     TransXDnu(n,ptCoord)*TransYDgam(n,ptCoord)*TransZDxi(n,ptCoord)+
+     TransXDgam(n,ptCoord)*TransYDxi(n,ptCoord)*TransZDnu(n,ptCoord)-
+     TransXDgam(n,ptCoord)*TransYDnu(n,ptCoord)*TransZDxi(n,ptCoord);
+
+ return det;
+}
+
+template <class Dim>
+Double BaseForm<Dim> :: TransXDxi(Integer iIntPoints,Point3D * ptCoord)
+{
+  Integer i;
+  Double result=0;
+  Vector<Double> * a;
+
+  Integer n=ptelem->GetNumNodes();
+  for (i=0; i <n; i++)
+ {
+  a=ptelem->GetDxShFncAtIP(i+1);
+  result+=(*a)[iIntPoints]*ptCoord[i].x;
+ }
+  return result;
+}
+
+template <class Dim>
+Double BaseForm<Dim> :: TransXDnu(Integer iIntPoints, Point3D * ptCoord)
+{
+  Integer i;
+  Double result=0;
+  Vector<Double> * a;
+
+  Integer n=ptelem->GetNumNodes();
+  for (i=0; i <n; i++)
+ {
+  a=ptelem->GetDyShFncAtIP(i+1);
+  result+=(*a)[iIntPoints]*ptCoord[i].x;
+ }
+  return result;
+}
+
+template <class Dim>
+Double BaseForm<Dim> :: TransXDgam(Integer iIntPoints, Point3D * ptCoord)
+{
+  Integer i;
+  Double result=0;
+  Vector<Double> * a;
+
+  Integer n=ptelem->GetNumNodes();
+  for (i=0; i <n; i++)
+ {
+  a=ptelem->GetDzShFncAtIP(i+1);
+  result+=(*a)[iIntPoints]*ptCoord[i].x;
+ }
+  return result;
+}
+
+template <class Dim>
+Double BaseForm<Dim> :: TransYDxi(Integer iIntPoints, Point3D * ptCoord)
+{
+  Integer i;
+  Double result=0;
+  Vector<Double> * a;
+
+  Integer n=ptelem->GetNumNodes();
+  for (i=0; i <n; i++)
+ {
+  a=ptelem->GetDxShFncAtIP(i+1);
+  result+=(*a)[iIntPoints]*ptCoord[i].y;
+ }
+  return result;
+}
+
+template <class Dim>
+Double BaseForm<Dim> :: TransYDnu (Integer iIntPoints, Point3D * ptCoord)
+{
+  Integer i;
+  Double result=0;
+  Vector<Double> * a;
+  Integer n=ptelem->GetNumNodes();
+
+  for (i=0; i <n; i++)
+ {
+  a=ptelem->GetDyShFncAtIP(i+1);
+  result+=(*a)[iIntPoints]*ptCoord[i].y;
+ }
+
+  return result;
+}
+
+template <class Dim>
+Double BaseForm<Dim> :: TransYDgam (Integer iIntPoints, Point3D * ptCoord)
+{
+  Integer i;
+  Double result=0;
+  Vector<Double> * a;
+  Integer n=ptelem->GetNumNodes();
+
+  for (i=0; i <n; i++)
+ {
+  a=ptelem->GetDzShFncAtIP(i+1);
+  result+=(*a)[iIntPoints]*ptCoord[i].y;
+ }
+
+  return result;
+}
+
+template <class Dim>
+Double BaseForm<Dim> :: TransZDxi(Integer iIntPoints, Point3D * ptCoord)
+{
+  Integer i;
+  Double result=0;
+  Vector<Double> * a;
+
+  Integer n=ptelem->GetNumNodes();
+  for (i=0; i <n; i++)
+ {
+  a=ptelem->GetDxShFncAtIP(i+1);
+  result+=(*a)[iIntPoints]*ptCoord[i].z;
+ }
+  return result;
+}
+
+template <class Dim>
+Double BaseForm<Dim> :: TransZDnu (Integer iIntPoints, Point3D * ptCoord)
+{
+  Integer i;
+  Double result=0;
+  Vector<Double> * a;
+  Integer n=ptelem->GetNumNodes();
+
+  for (i=0; i <n; i++)
+ {
+  a=ptelem->GetDyShFncAtIP(i+1);
+  result+=(*a)[iIntPoints]*ptCoord[i].z;
+ }
+
+  return result;
+}
+
+template <class Dim>
+Double BaseForm<Dim> :: TransZDgam (Integer iIntPoints, Point3D * ptCoord)
+{
+  Integer i;
+  Double result=0;
+  Vector<Double> * a;
+  Integer n=ptelem->GetNumNodes();
+
+  for (i=0; i <n; i++)
+ {
+  a=ptelem->GetDzShFncAtIP(i+1);
+  result+=(*a)[iIntPoints]*ptCoord[i].z;
+ }
+
+  return result;
+}
+
 }

@@ -1,0 +1,141 @@
+# model-heading
+ unknown header
+#  soltype  analtype   numnode  numgroup   restart
+         1         1        15         1         0
+# inactiv.   circuit
+         3         0
+# globally deactivated degrees of freedom
+   dx dy dz
+# masstype  damptype    noopti
+         2         0         0
+# formsave nsavenode   savemax
+         1        15         0
+# save nodal degrees of freedom
+   dx   ep  enp   vp  vnp  chg   ax  anx   tp  tnp  esp  mue  sig   vz
+# save first deriv. of nodal degrees of freedom
+
+# save secnd. deriv. of nodal degrees of freedom
+
+# nodal coordinate data
+         1  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+         2  5.000000000000E-03  0.000000000000E+00  0.000000000000E+00
+         3  5.000000000000E-03  5.000000000000E-03  0.000000000000E+00
+         4  0.000000000000E+00  5.000000000000E-03  0.000000000000E+00
+         5  2.500000000000E-03  2.500000000000E-03  0.000000000000E+00
+         6  0.000000000000E+00  0.000000000000E+00  5.000000000000E-03
+         7  5.000000000000E-03  0.000000000000E+00  5.000000000000E-03
+         8  5.000000000000E-03  5.000000000000E-03  5.000000000000E-03
+         9  0.000000000000E+00  5.000000000000E-03  5.000000000000E-03
+        10  2.500000000000E-03  2.500000000000E-03  5.000000000000E-03
+        11  2.500000000000E-03  0.000000000000E+00  2.500000000000E-03
+        12  5.000000000000E-03  2.500000000000E-03  2.500000000000E-03
+        13  2.500000000000E-03  5.000000000000E-03  2.500000000000E-03
+        14  0.000000000000E+00  2.500000000000E-03  2.500000000000E-03
+        15  2.500000000000E-03  2.500000000000E-03  2.500000000000E-03
+#        15  2.499919151887E-03  2.499919151887E-03  2.499919151887E-03
+# group definition for 3d piezo elements
+#  numelem ielemtype  isubtype ielemsave   maxnode nonlinear     form1     form2
+        29        11         0         1         4         0         0         0
+#   matnum calc_elem
+         1 ,calc_e
+# element definition
+         1         0
+         5        13        13        12        15        15        15        15
+         2         0
+         3         4         4        13         5         5         5         5
+         3         0
+         9        10        10        13        14        14        14        14
+         4         0
+         8         7         7        12        10        10        10        10
+         5         0
+         7        10        10        11        12        12        12        12
+         6         0
+         2         1         1         5        11        11        11        11
+         7         0
+        13         4         4         9        14        14        14        14
+         8         0
+         6         7         7        10        11        11        11        11
+         9         0
+         5         1         1         4        14        14        14        14
+        10         0
+        14        10        10        11         6         6         6         6
+        11         0
+        10         9         9         6        14        14        14        14
+        12         0
+         3        13        13        12         5         5         5         5
+        13         0
+         5         2         2        12         3         3         3         3
+        14         0
+        13         5         5         4        15        15        15        15
+        15         0
+         2         5         5        12        11        11        11        11
+        16         0
+        15        11        11         5        14        14        14        14
+        17         0
+         4        15        15        14        13        13        13        13
+        18         0
+         7         2         2        12        11        11        11        11
+        19         0
+        11         5         5        12        15        15        15        15
+        20         0
+        10        13        13        12         8         8         8         8
+        21         0
+        15        10        10        11        14        14        14        14
+        22         0
+        15        13        13        12        10        10        10        10
+        23         0
+        11         6         6         1        14        14        14        14
+        24         0
+        14        11        11         5         1         1         1         1
+        25         0
+        14        10        10        13        15        15        15        15
+        26         0
+         8         3         3        13        12        12        12        12
+        27         0
+        12        10        10        11        15        15        15        15
+        28         0
+         9         8         8        13        10        10        10        10
+        29         0
+         5        15        15        14         4         4         4         4
+# Time function data 
+         1
+# timefunctions
+#    nfunc      nval
+         1         2
+  0.000000000000E+00  1.000000000000E+00
+  1.000000000000E+00  1.000000000000E+00
+# transient analysis with direct solver
+# solvtype    impexp  ncorrect  bemcheck
+         0         0         1         0
+#             bemtol
+  0.000000000000E+00
+#   static
+         1
+# nonlinear paramters
+#  nlinalg    nlcrit    nlform   nlmaxit    updgeo
+         0         0         0         0         0  0.000000000000E+00
+#              nltol
+  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+#  numstep        deltat
+         1  1.000000000000E+00
+#  numdofs numconstr  numrestr  numloads numresist numspring numbembdr
+         5         0         5         0         0         0         0         0
+         0         0         0         0         0         0         0         0
+# dofs
+#     node   inactive dofs
+         1   ep
+         2   ep
+         3   ep
+         4   ep
+         5   ep
+# restraints
+         6   ep         1  1.000000000000E+00
+         7   ep         1  1.000000000000E+00
+         8   ep         1  1.000000000000E+00
+         9   ep         1  1.000000000000E+00
+        10   ep         1  1.000000000000E+00
+#   npress ncurrdens
+         0         0
+# controller paramters
+#          cntoffset              cnttol  cntitmax    cntuse
+  0.000000000000E+00  1.000000000000E-06         2         0
