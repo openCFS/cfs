@@ -47,9 +47,9 @@ void LinSystem<Dim, T_Matrix>::Set()
 //  AA[1][0]=AA[0][1];
 //  A[0][0]=6.0102; A[0][1]=-2.0000;
 //  A[1][0]=-2.000; A[1][1]=4.0051;
-  cout << A; 
+  std::cout << A; 
   for (i=0; i<n; i++) b[i]=100;
-  cout << b;
+  std::cout << b;
 }
 
 template<class T, class T_Matrix>
@@ -189,35 +189,35 @@ Boolean LinSystem<T, T_Matrix>::GMRes_m(const Integer maxIter, enum precond type
    Double beta=r.norm_2();
 
    /// Check: Is our initial guess suited as approximate solution
-   if (beta<=stop) { cout << " 777 You guessed solution "; return 0;}
+   if (beta<=stop) { std::cout << " 777 You guessed solution "; return 0;}
 
    iter=1;
    while (iter<=maxIter)
 {
-    cout << r << " r " << std::endl;
-    cout << beta << " beta " << std::endl;
+    std::cout << r << " r " << std::endl;
+    std::cout << beta << " beta " << std::endl;
     v[0]=r*(1.0/beta);
     g[0]=beta;
 
     for (k=0; k<m && iter <=maxIter; k++, iter++)
     {
-      cout << std::endl <<  "NEW ITERATION " << k << endl;
+      std::cout << std::endl <<  "NEW ITERATION " << k << endl;
       A.precond(w,A*v[k],typePrecond);
-      cout << w << "w" << std::endl;  /// VVVV
-      cout << v[0] << "v[0]" << std::endl;
+      std::cout << w << "w" << std::endl;  /// VVVV
+      std::cout << v[0] << "v[0]" << std::endl;
       normaW=w.norm_2();
       for (i=0; i<=k; i++) { h[k][i]=w*v[i]; 
-                             cout << h[k][i] << " h[k][i]" << std::endl;
+                             std::cout << h[k][i] << " h[k][i]" << std::endl;
                                //// VVVV
-                             cout << v[i]*h[k][i] << std::endl;
+                             std::cout << v[i]*h[k][i] << std::endl;
                              w-=v[i]*h[k][i];  //// VVVV
-                             cout << "\t" << i << " i"  << w << " w " << std::endl;
+                             std::cout << "\t" << i << " i"  << w << " w " << std::endl;
                             }
-      cout << w << " w " << std::endl;
-      cout << w.norm_2() << " norma w" << std::endl;
+      std::cout << w << " w " << std::endl;
+      std::cout << w.norm_2() << " norma w" << std::endl;
       h[k][k+1]=w.norm_2();
-      cout << v[0] << std::endl;
-      cout << h[k][k+1] << " HKK+1 " << i << " i " << k << " k " <<  std::endl;
+      std::cout << v[0] << std::endl;
+      std::cout << h[k][k+1] << " HKK+1 " << i << " i " << k << " k " <<  std::endl;
      
    /// If h[k][k+1] is small, do reorthogonalization
 
@@ -231,14 +231,14 @@ Boolean LinSystem<T, T_Matrix>::GMRes_m(const Integer maxIter, enum precond type
        h[k][k+1]=w.norm_2();
     }
      
-    cout << h[k][k+1] << " after reorthogonalization " << std::endl; 
+    std::cout << h[k][k+1] << " after reorthogonalization " << std::endl; 
     if (h[k][k+1] == 0) Error("zero-divisor in GMRes_m()");
-    cout << " w " << w << " w " << std::endl;
+    std::cout << " w " << w << " w " << std::endl;
     v[k+1]=w/h[k][k+1];   //// VVVV
-    cout << " v[k+1] " << v[k+1] << std::endl;
+    std::cout << " v[k+1] " << v[k+1] << std::endl;
     /// Apply rotations G0,G1, ... ,Gk-1 to column k of h
 
-    cout << __LINE__ << std::endl;
+    std::cout << __LINE__ << std::endl;
 
     for (i=0; i<k; i++)
 {   
@@ -247,7 +247,7 @@ Boolean LinSystem<T, T_Matrix>::GMRes_m(const Integer maxIter, enum precond type
     h[k][i]=tmp;
 } 
 
-      cout << __LINE__ << std::endl; 
+      std::cout << __LINE__ << std::endl; 
     /// Generate rotations
 
     if (h[k][k+1] == 0) { cs[k]=1; sn[k]=0;}
@@ -262,36 +262,37 @@ Boolean LinSystem<T, T_Matrix>::GMRes_m(const Integer maxIter, enum precond type
   
     /// Apply rotation Gk to column k of h and to g       
 
-      cout << __LINE__ << std::endl; 
+      std::cout << __LINE__ << std::endl; 
     tmp=h[k][k]*cs[k]+h[k][k+1]*sn[k];
     h[k][k+1]=-sn[k]*h[k][k]+cs[k]*h[k][k+1];
     h[k][k]=tmp;
 
-      cout << __LINE__ << std::endl; 
+      std::cout << __LINE__ << std::endl; 
     tmp=g[k]*cs[i]+g[k+1]*sn[i];
     g[k+1]=-sn[i]*g[k]+cs[i]*g[k+1];
     g[k]=tmp;
 
-(*trace) << g[k+1] << " g[k+1] " << std::endl << stop << " stop " << endl;
+(*trace) << g[k+1] << " g[k+1] " << std::endl << stop << " stop " << std::endl;
 
-    if (abs(g[k+1])<=stop) { k++; cout << " break " << std::endl; break;}
-      cout << __LINE__ << std::endl; 
+    if (abs(g[k+1])<=stop) { k++; std::cout << " break " << std::endl; break;}
+      std::cout << __LINE__ << std::endl; 
    } /// end of loop
 
    // back solve the upper triangular system
-     cout << __LINE__ << std::endl; 
+     std::cout << __LINE__ << std::endl; 
    for (i=k-1; i>=0; i--) {
      for (j=i+1; j<k; j++) g[i]-=h[j][i]*g[j];
                      g[i]/=h[i][i];
                            }
-      cout << "g[i]" << g << std::endl;
-      cout << __LINE__ << std::endl;  
+      std::cout << "g[i]" << g << std::endl;
+      std::cout << __LINE__ << std::endl;  
     for (i=0; i <k; i++) x+=v[i]*g[i];  /// VVVV
 
     A.precond(r, b-A*x, typePrecond);
-    cout << r << " r " << std::endl;
+    std::cout << r << " r " << std::endl;
     beta=r.norm_2();
-    cout << " beta " << beta << std::endl;
+    std::cout << " beta " << beta << std::endl;
+
     if (abs(beta)<=stop) { conv=TRUE; break;}
 
 }
@@ -304,7 +305,7 @@ Boolean LinSystem<T, T_Matrix>::GMRes_m(const Integer maxIter, enum precond type
    for (i=0; i<m; i++) delete [] h[i];
    delete [] h;
 
-   cout << " solution " << x << std::endl;
+   std::cout << " solution " << x << std::endl;
 
 #ifdef TRACE
  (*trace) << " leaving LinSystem::GMRes_m " << std::endl;
