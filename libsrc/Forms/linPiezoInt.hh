@@ -33,7 +33,7 @@ namespace CoupledField
 
     //! Constructor
     linPiezoInt(BaseFE * aptelem, MaterialData & matData) 
-      : BDBInt(aptelem, matData)
+      : BDBInt(aptelem, matData), actOrientation(yz)
     {
       ENTER_FCN( "linPiezoInt::linPiezoInt" );
       isDamping_ = FALSE;
@@ -41,7 +41,7 @@ namespace CoupledField
   
     //! Constructor
     linPiezoInt(MaterialData & matData)
-     : BDBInt(matData)
+      : BDBInt(matData), actOrientation(yz)
     {
       ENTER_FCN( "linPiezoInt::linPiezoInt" );
       isDamping_ = FALSE;
@@ -87,12 +87,21 @@ namespace CoupledField
     void calcBMat(Matrix<Double> & bMat, Integer ip,
 		  Matrix<Double> & ptCoord);
 
+
+    /// calculates the material data for the axisymmetric case
+    void CalcAxiMaterialMat(Matrix<Double> & dMat);
+  
+    /// calculates the material data for the axisymmetric case
+    void CalcPlaneStrainMaterialMat(Matrix<Double> & dMat);
+
     /// calculates the material data for the axisymmetric case
     void Calc3DMaterialMat(Matrix<Double> & dMat);
 
     //! If set to true, stiffnessmatrix is computed for damping
     //! (just mechanical part)
     Boolean isDamping_;
+
+    orientation2D actOrientation;
 
   };
 
@@ -146,6 +155,171 @@ namespace CoupledField
     virtual Integer getNrDofs(){ return 4; };
 
   };
+
+
+  //! base class for linear piezoelectric simulations
+
+  //! The main objective of this class is to implement the pure virtual
+  //! method calcBMat from BDBInt for the case of a linear piezoelectric
+  //! simulation. In this case the BDB operator looks as follows
+  //! \f[
+  //! [BDB] = \left(\begin{array}{cc} B_a & 0 \\ 0 & \tilde{B}_a \end{array}
+  //! \right)^T
+  //! \left(\begin{array}{cc} c^E & e^t \\ e & \varepsilon^s \end{array}
+  //! \right)
+  //! \left(\begin{array}{cc} B_a & 0 \\ 0 & \tilde{B}_a \end{array} \right)
+  //! \enspace.
+  //! \f]
+  //! Here \f$B_a\f$ is derived from the mechanical part, while
+  //! \f$\tilde{B}_a\f$ comes from the electrical part,
+  //! \f$c^E\f$ is the tensor of mechanical modulus,
+  //! \f$\varepsilon^s\f$ is the tensor of electric permittivity and
+  //! \f$e\f$ is the tensor of piezoelectric coupling.
+  
+  class piezoAxiInt : public linPiezoInt
+  {
+  public:
+
+    //! Constructor
+    piezoAxiInt(BaseFE * aptelem, MaterialData & matData)
+      : linPiezoInt(aptelem, matData)
+    {
+      ENTER_FCN( "piezoAxiInt::piezoAxiInt" );
+      isaxi_ = TRUE;
+    }
+
+    //! Constructor
+    piezoAxiInt(MaterialData & matData, Boolean isdamping=FALSE)
+     : linPiezoInt(matData)
+    {
+      ENTER_FCN( "piezoAxiInt::piezoAxiInt" );
+      isDamping_ = isdamping;
+      isaxi_ = TRUE;
+    }
+
+    //! Destructor
+    ~piezoAxiInt()
+    {
+      ENTER_FCN( "piezoAxiInt::~piezoAxiInt" );
+    };
+
+       
+  protected:
+
+    //if set to true, stiffnessmatrix is computed for damping (just mechanical part)
+    //! Returns B - matrix for BDB
+    //! The method computes the matrix B defined as
+    //! \f$
+    //! B = \left(\begin{array}{*{2}{c}} B_a & 0 \\ 0 & \tilde{B}_a \end{array}
+    //! \right)
+    //! \f$. 
+    //! For an axisymmetric simulation we have
+    //! \f[ B_a = \left( \begin{array}{*{2}{c}}
+    //! \frac{\partial N_a}{\partial r} & 0 \\
+    //! 0 & \frac{\partial N_a}{\partial z} \\
+    //! \frac{\partial N_a}{\partial z} & \frac{\partial N_a}{\partial r}\\
+    //! \frac{1}{r} & 0 \\
+    //! \end{array}\right)
+    //! \enspace,\quad
+    //! \tilde{Bš}_a = \left(\begin{array}{c}
+    //! \frac{\partial N_a}{\partial r} \\
+    //! \frac{\partial N_a}{\partial z} \\
+    //! \end{array}\right) \f]
+    //! where \f$N_a\f$ are the Finite Element ansatz functions.
+    //! To be more precise the above matrix B is computed for the given
+    //! integration point ip and every FE ansatz function belonging to a node
+    //! of the element. These partial matrices are appended one after another
+    //! in a row-wise fashion to form the return matrix bMat.
+    
+    //!
+    virtual void calcBMat(Matrix<Double> & bMat, Integer ip,
+			  Matrix<Double> & ptCoord);
+	
+    //!	  
+    void  calcDMat(Matrix<Double> & dMat);
+
+    //!
+    virtual Integer getDimD(){return 6;};
+
+    //!
+    virtual Integer getNrDofs(){ return 3; };
+
+  };
+
+
+  //! class for  plane strain case
+  class piezoPlainStrainInt : public linPiezoInt
+  {
+  public:
+
+    //! Constructor
+    piezoPlainStrainInt(BaseFE * aptelem, MaterialData & matData)
+      : linPiezoInt(aptelem, matData)
+    {
+      ENTER_FCN( "piezoPlainStrainInt::piezoPlainStrainInt" );
+    }
+  
+    //! Constructor
+    piezoPlainStrainInt(MaterialData & matData, Boolean isdamping=FALSE)
+     : linPiezoInt(matData)
+    {
+      ENTER_FCN( "piezoPlainStrainInt::piezoPlainStrainInt" );
+      isDamping_=isdamping;
+    }
+  
+    //! Destructor
+    ~piezoPlainStrainInt()
+    {
+      ENTER_FCN( "piezoPlainStrainInt::~piezoPlainStrainInt" );
+    };
+
+  protected:
+  
+    //! returns B - matrix for BDB
+    //! The method computes the matrix B defined as
+    //! \f$
+    //! B = \left(\begin{array}{cc} B_a & 0 \\ 0 & \tilde{B}_a \end{array}
+    //! \right)
+    //! \f$.
+    //! For a 2D simulation e.g. we have
+    //! \f[ B_a = \left( \begin{array}{*{2}{c}} \frac{\partial N_a}{\partial x} & 0 \\ 
+    //!  0 & \frac{\partial N_a}{\partial y} \\
+    //! \frac{\partial N_a}{\partial y} & \frac{\partial N_a}{\partial x} \\
+    //! \end{array}\right)  
+    //! \enspace,\quad
+    //! \tilde{B }_a = \left(\begin{array}{c}
+    //! \frac{\partial N_a}{\partial x} \\
+    //!  \frac{\partial N_a}{\partial y} 
+    //! \end{array}\right) \f]  
+    //! where \f$N_a\f$ are the Finite Element ansatz functions.
+    //! To be more precise the above matrix B is computed for the given
+    //! integration point ip and every FE ansatz function belonging to a node
+    //! of the element. These partial matrices are appended one after another
+    //! in a row-wise fashion to form the return matrix bMat.
+    
+    //!
+    void calcBMat(Matrix<Double> & bMat, Integer ip,
+		  Matrix<Double> & ptCoord);
+ 
+    //!
+    void calcDMat(Matrix<Double> & dMat);
+
+    //! Returns dimension of data-matrix D.
+    //! The method returns the dimension of the data-matrix D. In a 2D
+    //! piezoelectric simulation D is a square 5x5 matrix, so the return
+    //! value is 5.
+  
+    virtual Integer getDimD(){return 5;};
+
+    
+    //! Returns number of degrees of freedom per node.
+    //! Returns the number of degrees of freedom per individual FE node.
+    //! The current return value is fixed to 3, since in 2D simulations
+    //! we have two mechanical and one potential component.
+    virtual Integer getNrDofs(){ return 3; };  
+
+  };
+
 
 }
 

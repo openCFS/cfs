@@ -40,7 +40,7 @@ void ScalarBlockEQN::CalcMapping()
 
   Integer eqnCounter = 0;
 
-  // std::cerr << "Content of homoDirichletNodes: " << std::endl;
+//  std::cerr << "Content of homoDirichletNodes: " << std::endl;
 //   std::cerr << "-------------------------------" << std::endl;
 //   std::cerr << homoDirichletNodes_ << std::endl;
 
@@ -63,7 +63,7 @@ void ScalarBlockEQN::CalcMapping()
 		  - homoDirichletNodes_.GetSize()
 		  - constraintSlaveNodes_.GetSize());
 
-  //std::cerr << "eqn2Pos has size " << eqn2Pos_.GetSize() << std::endl;
+//   std::cerr << "eqn2Pos has size " << eqn2Pos_.GetSize() << std::endl;
 
   
   // STEP 2
@@ -73,13 +73,14 @@ void ScalarBlockEQN::CalcMapping()
       [homoDirichletDofs_[i]-1] = 0;
     }
 
+  //   std::cerr << "after step2" << std::endl;
+  
   // STEP 3
   for (Integer i=0; i<constraintSlaveNodes_.GetSize(); i++)
     pdeNode2EQN_[mesh2PDENode_[constraintSlaveNodes_[i]-1]-1]
       [constraintDofs_[i]-1] = 0;
   
-  
-  // STEP 4
+    // STEP 4
   for (Integer iNode=0; iNode<pde2MeshNode_.GetSize(); iNode++)
     for (Integer iDof=0; iDof<dofsPerNode_; iDof++)
       if (pdeNode2EQN_[iNode][iDof] != 0)

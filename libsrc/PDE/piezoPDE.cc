@@ -64,7 +64,7 @@ namespace CoupledField {
       dofspernode_ = 3;
       Info->PrintF("", "=== AXISYSMMETRIC PROBLEM\n");
     }
-    else if ( subType_ == "plainStrain" && probGeo == "plane" ) {
+    else if ( subType_ == "planeStrain" && probGeo == "plane" ) {
 	dofspernode_ = 3;
 	Info->PrintF("", "=== PLAIN STRAIN PROBLEM\n");
     }
@@ -153,10 +153,10 @@ namespace CoupledField {
    //eqnData_ = new SuperBlockEQN(ptgrid_, ptBCs_, subdoms_, actlevel_, dofspernode_);
    
    // 2.) Normal blocknumbering
-   //eqnData_ = new BlockNodeEQN(ptgrid_, ptBCs_, subdoms_, actlevel_, dofspernode_);
+   //   eqnData_ = new BlockNodeEQN(ptgrid_, ptBCs_, subdoms_, actlevel_, dofspernode_);
    
    // 3.) Scalar blocknumbering
-   eqnData_ = new ScalarBlockEQN(ptgrid_, ptBCs_, subdoms_, actlevel_, dofspernode_);
+      eqnData_ = new ScalarBlockEQN(ptgrid_, ptBCs_, subdoms_, actlevel_, dofspernode_);
 
    eqnData_->SetHomoDirichletBCs(bcs_hd_, homDirichDof_);
    eqnData_->CalcMapping();
@@ -173,21 +173,37 @@ namespace CoupledField {
    sol_->SetNumDofs(dim_,MECH_DISPLACEMENT); // displacements have dof of mesh-dimension
    sol_->SetNumDofs(1,ELEC_POTENTIAL);  // electric potential
    sol_->SetPtrEQNData(eqnData_, ptgrid_, actlevel_);
-   sol_->Init(0.0);
+   sol_->Init();
 
    // set assemble parameters
    assemble_->SetPtr2EQNData(eqnData_); 
    assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, subdoms_, surfdoms_);
    assemble_->SetGraphType(NODEGRAPH);
 
+
 #ifdef USE_OLAS
-   assemble_->SetMatrixEntryType(OLAS::DOUBLE);
-   assemble_->SetMatrixStorageType(OLAS::SPARSE_NONSYM);
+    if (analysistype_==HARMONIC) {
+      assemble_->SetMatrixEntryType(OLAS::COMPLEX);
+      assemble_->SetMatrixStorageType(OLAS::SPARSE_NONSYM);
+    }
+    else {
+      assemble_->SetMatrixEntryType(OLAS::DOUBLE);
+      assemble_->SetMatrixStorageType(OLAS::SPARSE_NONSYM);
+    }
 #else
-   if (eqnData_->GetNumDofsPerEQN() == 1)
-     assemble_->SetMatrixType(RSCALAR);
-   else
-     assemble_->SetMatrixType(RBLOCK);
+    if (analysistype_==HARMONIC) {
+      assemble_->SetMatrixType(CSCALAR);
+      if (eqnData_->GetNumDofsPerEQN() == 1)
+	assemble_->SetMatrixType(CSCALAR);
+      else
+	Error("Complex Block Matrix in LAS not supported");
+    }
+    else {
+      if (eqnData_->GetNumDofsPerEQN() == 1)
+	assemble_->SetMatrixType(RSCALAR);	
+      else
+	assemble_->SetMatrixType(RBLOCK);
+    }
 #endif 
    
    assemble_->SetNumDirichlet(GetNumRestraints(actlevel_));
@@ -243,10 +259,14 @@ namespace CoupledField {
 
       // ==============  add mass =============================================
       Double density = actSDMat.GetDensity();
-      Integer electricPot = 4;
+      Integer posOfElectricPot;
+      if ( subType_ == "3d" )
+	posOfElectricPot = 4;
+      else
+	posOfElectricPot = 3;
       
       BaseForm * bilinearMass  = new MassInt(density, dofspernode_,
-					     electricPot, isaxi_);
+					     posOfElectricPot, isaxi_);
 
       IntegratorDescriptor * actIntDescrMass =
 	new IntegratorDescriptor(bilinearMass, MASS);
@@ -270,25 +290,17 @@ namespace CoupledField {
     ENTER_FCN( "PiezoPDE::GetStiffIntegrator" );
   
     BaseForm * bilinearStiff;
+    if (subType_ == "planeStrain")
+      bilinearStiff = new piezoPlainStrainInt(actSDMat,isdamping);
+
+    else if (subType_ == "axi")      
+      bilinearStiff = new piezoAxiInt(actSDMat,isdamping);
     
-    if ( subType_ == "plainStrain" ) {
-      Error( "plainStrain for PiezoPDE currently not supported",
-	     __FILE__, __LINE__ );
-      // bilinearStiff = new mechPlainStrainInt(actSDMat);
-    }
+    else if (subType_ == "3d")
+      bilinearStiff = new linPiezo3DInt(actSDMat,isdamping);
 
-    else if ( subType_ == "axi" ) {
-      Error( "axi for PiezoPDE currently not supported", __FILE__, __LINE__ );
-      // bilinearStiff = new mechAxiInt(actSDMat);
-    }
-
-    else if ( subType_ == "3d" ) {
-      bilinearStiff = new linPiezo3DInt( actSDMat, isdamping );
-    }
-
-    else {
-      Error( "Unknown subtype in piezo PDE!", __FILE__, __LINE__ );
-    }
+    else
+      Error("Unknown subtype in mech PDE! ",__FILE__,__LINE__);
 
     return bilinearStiff;
   }
@@ -319,7 +331,7 @@ namespace CoupledField {
     NodeStoreSol<Complex> * solHarmonic;
 
     if (analysistype_ == STATIC ||
-	analysistype_ == HARMONIC) {
+	analysistype_ == TRANSIENT) {
       
       if (savesol_) {
 	solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);
@@ -348,17 +360,31 @@ namespace CoupledField {
     ENTER_FCN( "PiezoPDE::GetBCDof" );
 
     Integer nrActDof = 0;
-    
-    if ( dofStartString == "ux" )
-      nrActDof = 1;
-    if ( dofStartString == "uy" )
-      nrActDof = 2;
-    if ( dofStartString == "uz" )
-      nrActDof = 3;
-    if ( dofStartString == "ep" )
-      nrActDof = 4;
-    if ( nrActDof == 0 )
-      Error("Unknown dof-type in homog. BC; substring must start with ux, uy, uz or ep!!",__FILE__,__LINE__);
+
+    if (subType_ == "3d") {    
+      if ( dofStartString == "ux" )
+	nrActDof = 1;
+      if ( dofStartString == "uy" )
+	nrActDof = 2;
+      if ( dofStartString == "uz" )
+	nrActDof = 3;
+      if ( dofStartString == "ep" )
+	nrActDof = 4;
+      if ( nrActDof == 0 )
+	Error("Unknown dof-type in homog. BC; substring must start with ux, uy, uz or ep!!",
+	      __FILE__,__LINE__);
+    }
+    else {
+      if ( dofStartString == "ux" )
+	nrActDof = 1;
+      if ( dofStartString == "uy" )
+	nrActDof = 2;
+      if ( dofStartString == "ep" )
+	nrActDof = 3;
+      if ( nrActDof == 0 )
+	Error("Unknown dof-type in homog. BC; substring must start with ux, uy, uz or ep!!",
+	      __FILE__,__LINE__);
+    }
 
     return nrActDof;
   }
@@ -485,16 +511,14 @@ void PiezoPDE::PostProcess(const Integer level) {
 	MaterialData actSDMat(materialData_[isd]);
 	PiezoStressStrain *stress;
 	
-// 	if (subType_ == "planeStrain") 
-// 	  stress = new PiezoStressStrainPlaneStrain(actSDMat);
-
-// 	else if (subType_ == "axi") 
-// 	  stress = new PiezoStressStrainAxi(actSDMat);
-
-	if (subType_ == "3d") 
+ 	if (subType_ == "planeStrain") 
+ 	  stress = new PiezoStressStrainPlaneStrain(actSDMat);
+	
+ 	else if (subType_ == "axi") 
+ 	  stress = new PiezoStressStrainAxi(actSDMat);
+	
+	else if (subType_ == "3d") 
 	  stress = new PiezoStressStrain3D(actSDMat);
-	else
-	  Error("piezoPDE: Stress computation for 2D plane and axi not supported");
 
 	
 	// get vector of Elements of subdomains

@@ -138,7 +138,7 @@ namespace CoupledField
   {
     ENTER_FCN( "PiezoStressStrainAxi::calcMaterialDMat" );
 
-    //   linPiezoInt::CalcAxiMaterialMat(dMat);
+    linPiezoInt::CalcAxiMaterialMat(dMat);
   }
 
 
@@ -168,7 +168,7 @@ namespace CoupledField
   {
     ENTER_FCN( "PiezoStressStrainPlaneStrain::calcMaterialDMat" );
 
-    //    linPiezoInt::CalcPlaneStrainMaterialMat(dMat);
+    linPiezoInt::CalcPlaneStrainMaterialMat(dMat);
   }
 
 

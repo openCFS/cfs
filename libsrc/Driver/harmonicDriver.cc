@@ -30,7 +30,11 @@ HarmonicDriver :: HarmonicDriver(Domain * adomain)
   conf->ifget("saveType",saveType_);
   
 #else
-  Error("Frequency analysis in xml currently not supported");
+
+    // Get time stepping information from parameter object
+    params->Get( "startFreq" , startFreq_    );
+    params->Get( "stopFreq"  , stopFreq_    );
+    params->Get( "numFreq"   , numFreq_ );
 #endif
 
 }
