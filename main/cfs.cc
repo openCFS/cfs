@@ -13,7 +13,6 @@
 //#include "interface_gridlib.hh"
 #include "driver.hh"
 #include <abstractAlgSys.hh>
-#include "sparsematrix.hh"
 //#include <interface_piles.hh>
 #include <basedriver.hh>
 
@@ -50,23 +49,7 @@ void main(int argc, char *argv[])
 
   TimeFunc * ptTimeFunc=new TimeFunc(ptInputfile);
 
-  SparseMatrix<Double> A(5,5), AA(5,5);
-  A(0,0)=11; A(0,2)=13; A(1,0)=21; A(2,4)=45;
-
-  std::cout << A << std::endl;
-  A.test();
-
-  AA(0,4)=15; AA(1,0)=21; AA(3,2)=43; AA(3,3)=45; 
-
-  std::cout << AA << std::endl;
-  AA.test();
-
-  A+=AA;
-
-  std::cout << A << std::endl;
-  A.test();
-
-//  OutResultUnverg<Point2D> * ptUnverg=new OutResultUnverg<Point2D>(name); 
+  OutResultUnverg<Point2D> * ptUnverg=new OutResultUnverg<Point2D>(name); 
 
 /*
   Integer data[1];
@@ -82,8 +65,8 @@ void main(int argc, char *argv[])
   
   ptUnverg->Create(ptGridlib,0);
 */
-//    Driver<Point2D> * ptDriver=new Driver<Point2D>(ptInputfile,1,materialdata);
-//    ptDriver->SolveNewmarkMethod(ptUnverg);
+    Driver<Point2D> * ptDriver=new Driver<Point2D>(ptInputfile,1,materialdata);
+    ptDriver->SolveNewmarkMethod(ptUnverg);
 
 /*
  //  //! choose your grid class

@@ -53,7 +53,7 @@ void Assemble<Dim, T_Matrix>::SetAb()
   Integer i,j;
   for (i=0; i<n; i++)
    for (j=0; j<n; j++)
-     A[i][j]=1;
+     A(i,j)=1;
   
   for (i=0; i<n; i++) b[i]=n;
 }
@@ -132,7 +132,7 @@ void Assemble<Dim, T_Matrix>::SetDirichletBoundaryCondSysMat_PenaltyMethod()
 #endif
   Integer nn=A.getSize();
   Integer i;
-  Double max=A[0][0];
+  Double max=A(0,0);
   for (i=1; i < nn; i++)
     if (A(i,i)>max) max=A(i,i);
    
