@@ -22,7 +22,6 @@
   <!-- ******************************************************************** -->
   <!--   Definition of data type for acoustics PDEs -->
   <!-- ******************************************************************** -->
-
   <xsd:complexType name="DT_PDEAcoustic">
     <xsd:complexContent>
       <xsd:extension base="DT_PDEBasic">
@@ -63,9 +62,9 @@
           <!-- Desired solution values (optional) -->
           <!-- Currently this is not supported, since it is difficult
                to define in the acoustics case since it depends on the
-               boundary conditions
+               boundary conditions -->
           <xsd:element name="storeResults" type="DT_AcousticStoreResults"
-            minOccurs="0" maxOccurs="1"/-->
+            minOccurs="0" maxOccurs="1"/>
   
         </xsd:sequence>
 
@@ -153,6 +152,44 @@
     <xsd:attribute name="type" type="DT_AcousticDampType" use="required"/>
     <xsd:attribute name="fracMemory" type="xsd:positiveInteger"
       use="optional" default="1"/>
+  </xsd:complexType>
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of syntax for specifying output quantities of CFS -->
+  <!-- ******************************************************************** -->
+
+  <!-- What data can a single node have in an acoustic PDE -->
+  <xsd:simpleType name="DT_AcousticNodeData">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="pressure"/>
+      <xsd:enumeration value="vPot"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <!-- Data type for describing final node values to be stored -->
+  <xsd:complexType name="DT_AcousticNodeResults">
+    <xsd:attribute name="type" type="DT_AcousticNodeData" use="optional"
+      default="pressure"/>
+    <xsd:attribute name="region" type="xsd:token" use="optional"
+      default="all"/>
+  </xsd:complexType>
+
+  <!-- Data type for describing history of node values to be stored -->
+  <xsd:complexType name="DT_AcousticNodeHistory">
+    <xsd:attribute name="type" type="DT_AcousticNodeData" use="optional"
+      default="pressure"/>
+    <xsd:attribute name="saveNodes" type="xsd:token" use="optional"
+      default="none"/>
+  </xsd:complexType>
+
+  <!-- Global type for specifying the desired mechanical output quantities -->
+  <xsd:complexType name="DT_AcousticStoreResults">
+    <xsd:sequence>
+      <xsd:element name="nodeResults" type="DT_AcousticNodeResults"
+        minOccurs="0" maxOccurs="unbounded"/>
+      <xsd:element name="nodeHistory" type="DT_AcousticNodeHistory"
+        minOccurs="0" maxOccurs="unbounded"/>
+    </xsd:sequence>
   </xsd:complexType>
 
 </xsd:schema>
