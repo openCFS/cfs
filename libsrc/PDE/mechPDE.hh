@@ -131,6 +131,9 @@ protected:
   
   Integer size_;        //!< total number of unknowns (equations)
 
+  //computes mechanical deformation energy
+  void CalcEnergy();
+
 #ifdef XMLPARAMS
     //! Obtain information on desired output quantities from parameter file
 
@@ -243,6 +246,8 @@ private:
   //postprocessing
   ElemStoreSol<Double> Stress_;  //!< conatins magnetic field
   StdVector<std::string> calcStress_;  //!< contains the subdomains, on which the stress is computed
+
+  StdVector<std::string> calcEnergy_;  //!< contains the subdomains, on which the energy is computed
 
   //! contains mechanic velocity
   NodeStoreSol<Double> solDeriv1_;
