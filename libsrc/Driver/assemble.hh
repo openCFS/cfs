@@ -403,7 +403,7 @@ namespace CoupledField
     
 
     /// set solution 
-    void SetPtr2Sol(BaseStoreSol * aSol){sol_ = aSol;};
+    void SetPtr2Sol(BaseNodeStoreSol * aSol){sol_ = aSol;};
     
 
     /// return index to dof
@@ -480,7 +480,7 @@ namespace CoupledField
 
     /// ptr to solution
 
-    BaseStoreSol * sol_;
+    BaseNodeStoreSol * sol_;
     Matrix<Double> * deltaCoords_;
 
     //! nonlinear parameters;

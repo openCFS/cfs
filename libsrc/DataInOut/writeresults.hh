@@ -31,26 +31,52 @@ public:
     \param level in: level of grid
   */
   virtual void WriteGrid(const Integer level)=0;
-
-  //! write nodal soltion vector
+ 
+  //! write element solution vector (transient/static)
   /*!
-    \param sol array with solution
+    \param data vector with data (ex. value of an error for the cell)
     \param step step of calculation
     \param time time of calculation
-    \param title name for the solution
-    \param nrDofs dimension of solution
   */
-  virtual void WriteNodeSolution(const NodeStoreSol<Double>& sol, const Integer step, const Double time, const std::string title)=0;
+  virtual void WriteNodeSolutionTransient(const NodeStoreSol<Double>& data, 
+					  const Integer step, 
+					  const Double time) = 0;
 
-  //! write element solution vector
+ //! write element solution vector (transient/static)
   /*!
-    \param data array with data (ex. value of an error for the cell)
+    \param data vector with data (ex. value of an error for the cell)
     \param step step of calculation
     \param time time of calculation
-    \param title name for the data    
-    \param nrDofs dimension of solution
   */
-  virtual void WriteElemSolution(const ElemStoreSol<Double> & data, const Integer step, const Double time, const std::string title)=0;
+  virtual void WriteElemSolutionTransient(const ElemStoreSol<Double>& data, 
+
+					  const Integer step, 
+					  const Double time) = 0;
+ 
+  //! write element solution vector (harmonic)
+  /*!
+    \param data vector with data (ex. value of an error for the cell)
+    \param step step of calculation
+    \param frequency frequency of exciting function
+    \param format format for writing complex solution (real-imag/amplitude-phase)
+  */
+  virtual void WriteNodeSolutionHarmonic(const NodeStoreSol<Complex>& data, 
+					 const Integer step,
+					 const Double frequency,
+					 const ComplexFormat format) = 0;
+
+ //! write element solution vector (harmonic)
+  /*!
+    \param data vector with data (ex. value of an error for the cell)
+    \param step step of calculation
+    \param frequency frequency of exciting function
+    \param frequencyStep step of calculation
+    \param format format for writing complex solution (real-imag/amplitude-phase)
+  */
+  virtual void WriteElemSolutionHarmonic(const ElemStoreSol<Complex>& data, 
+					 const Integer step,
+					 const Double frequency,
+					 const ComplexFormat format) = 0;
 
   //! to open new file for printing results only for GMV
   /*!
@@ -75,10 +101,12 @@ public:
   /// read list of history nodes by name
   void ReadSaveNodes();
 
- 
-  
 
 protected:
+  //! Convertes enum SolutionType to string
+  virtual std::string SolutionTypeToString(const SolutionType type) const
+  {Error(" Not implemented here", __FILE__, __LINE__);}
+
   //! name of file for output results
   Char * namefile_;
 

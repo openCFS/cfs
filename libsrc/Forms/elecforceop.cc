@@ -56,7 +56,7 @@ void ElecForceOp::CalcElemElecForce(ElemStoreSol<Double> & F,
   ptPDE_->GetElemCoords(ptElement->connect, CornerCoords, level_);
   
   F.SetNumSolutions(1);
-  F.SetNumNodes(IsBoundaryNode.GetSize());
+  F.SetNumElems(IsBoundaryNode.GetSize());
   F.SetSolutionType(ELEC_FORCE);
   F.SetNumDofs(Dim);
   F.Init(0.0);

@@ -85,7 +85,7 @@ SmoothPDE::SmoothPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileTyp
   sol_->SetSolutionType(SMOOTH_DISPLACEMENT);
   sol_->SetNumNodes(numPDENodes_);
   sol_->SetNumDofs(dofspernode_);
-  sol_->SetPtrEQNData(eqnData_);
+  sol_->SetPtrEQNData(eqnData_, ptgrid_, actlevel_);
   sol_->Init(0.0);
   
   // set assemble parameters 
@@ -223,7 +223,7 @@ void SmoothPDE::StepStaticNonLin(const Integer kstep, const Double aTime,
   ptsol = algsys_->GetSolutionVal();
 
    // save solution
-  sol_->SetDataPointer(ptsol);
+  sol_->SetAlgSysDataPointer(ptsol);
 }
 
 
@@ -276,11 +276,17 @@ void SmoothPDE::CalcOutputCoupling()
 void SmoothPDE::WriteResultsInFile()
 {
   ENTER_FCN( "SmoothPDE::WriteResultsInFile" );
-
-  NodeStoreSol<Double> const & solConverted =
-    dynamic_cast<NodeStoreSol<Double>&>(*sol_);
- 
-  outFile_->WriteNodeSolution(solConverted, laststepcalc_, lasttimecalc_,"displacement");
+  
+  NodeStoreSol<Double> * solTransient;
+  
+  if (analysistype_ == STATIC ||
+      analysistype_ == HARMONIC) {
+    solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);
+    outFile_->WriteNodeSolutionTransient(*solTransient, laststepcalc_, lasttimecalc_);
+  }
+  else
+    Error("SmoothPDE: Only static and transient results can be written out",
+	  __FILE__, __LINE__);
 }
 
 

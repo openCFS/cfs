@@ -435,7 +435,7 @@ void AcouFlowNoise::SolveStepTrans(const Integer kstep, const Double asteptime, 
   //perform predictor step
   NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
   
-  TS_alg_->Predictor(solhelp->GetCompleteVector());
+  TS_alg_->Predictor(solhelp->GetAlgSysVector());
 
   if (kstep==0)
     {
@@ -485,54 +485,52 @@ void AcouFlowNoise::SolveStepTrans(const Integer kstep, const Double asteptime, 
 
   // Save solution
   ptsol = algsys_->GetSolutionVal();
-  sol_->SetDataPointer(ptsol);
+  sol_->SetAlgSysDataPointer(ptsol);
   
   //perform corrector step 
-  TS_alg_->Corrector(solhelp->GetCompleteVector());
+  TS_alg_->Corrector(solhelp->GetAlgSysVector());
 }
 
 void AcouFlowNoise::WriteResultsInFile()
 {
   ENTER_FCN( "AcouFlowNoise::WriteResultsInFile" );
 
-  Integer Dim = 2;
-
-  NodeStoreSol<Double> arraysol_der1,arraysol_der2;
   NodeStoreSol<Double> sol_der1Array, sol_der2Array;
-
-  NodeStoreSol<Double> const & solConverted =
-    dynamic_cast<NodeStoreSol<Double>&>(*sol_);
-
-  sol_der1Array.SetNumSolutions(1);
-  sol_der1Array.SetNumNodes(numPDENodes_);
-  sol_der1Array.SetSolutionType(ACOU_VELOCITY);
-  sol_der1Array.SetNumDofs(dofspernode_);
-  sol_der1Array.Init(0.0);
-  sol_der1Array.SetCompleteVector(getS1());
+  NodeStoreSol<Double> * solTransient;
+  NodeStoreSol<Complex> * solHarmonic;
   
-  sol_der2Array.SetNumSolutions(1);
-  sol_der2Array.SetNumNodes(numPDENodes_);
-  sol_der2Array.SetSolutionType(ACOU_FORCE);
-  sol_der2Array.SetNumDofs(dofspernode_);
-  sol_der2Array.Init(0.0);
-  sol_der2Array.SetCompleteVector(getS2());
-  
-  //sol_->TransformNodeSolution(arraysol, ptgrid_, actlevel_);
-  //sol_der1Array.TransformNodeSolution(arraysol_der1, ptgrid_, actlevel_);
-  //sol_der2Array.TransformNodeSolution(arraysol_der2, ptgrid_, actlevel_);
-
-  if (outFile_->IsGMV())
+  if (analysistype_ == TRANSIENT)
     {
-      outFile_->WriteNodeSolution(solConverted,laststepcalc_,lasttimecalc_,"vp");
-//       outFile_->WriteNodeSolution(arraysol_der1,laststepcalc_,lasttimecalc_,"vp_1der");
-//       outFile_->WriteNodeSolution(arraysol_der2,laststepcalc_,lasttimecalc_,"vp_2der");
+      sol_der1Array.SetNumSolutions(1);
+      sol_der1Array.SetNumNodes(numPDENodes_);
+      sol_der1Array.SetSolutionType(ACOU_POTENTIAL_DERIV_1);
+      sol_der1Array.SetNumDofs(dofspernode_);
+      sol_der1Array.Init(0.0);
+      sol_der1Array.SetAlgSysVector(getS1());
+      
+      sol_der2Array.SetNumSolutions(1);
+      sol_der2Array.SetNumNodes(numPDENodes_);
+      sol_der2Array.SetSolutionType(ACOU_POTENTIAL_DERIV_2);
+      sol_der2Array.SetNumDofs(dofspernode_);
+      sol_der2Array.Init(0.0);
+      sol_der2Array.SetAlgSysVector(getS2());
+      
+      solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);
+      outFile_->WriteNodeSolutionTransient(*solTransient,laststepcalc_,lasttimecalc_);
+      outFile_->WriteNodeSolutionTransient(sol_der1Array,
+					   laststepcalc_,lasttimecalc_);
+      outFile_->WriteNodeSolutionTransient(sol_der2Array,
+					   laststepcalc_,lasttimecalc_);
+    }
+  else if (analysistype_ == HARMONIC)
+    {
+      solHarmonic = dynamic_cast<NodeStoreSol<Complex>*>(sol_);
+      outFile_->WriteNodeSolutionHarmonic(*solHarmonic, actFreqStep_, 
+					  actFrequency_, complexFormat_);
     }
   else
-    {
-      outFile_->WriteNodeSolution(solConverted,laststepcalc_,lasttimecalc_,"fluid potential");
-      //outFile_->WriteNodeSolution(sol_der1,laststepcalc_,lasttimecalc_,"fluid potential, 1st deriv., ",1);
-      //outFile_->WriteNodeSolution(sol_der2,laststepcalc_,lasttimecalc_,"fluid potential, 2nd deriv., ",1);
-    }
+    Error("AcouFlowNoisePDE: Only transient and harmonic results possible",
+	  __FILE__, __LINE__);
 }
 
 } // end of namespace

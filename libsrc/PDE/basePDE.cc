@@ -42,6 +42,8 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
   ptBCs_      = aptBCs;
 
   actlevel_ = 0;
+  actFrequency_ = 0;
+  complexFormat_ = AMPLITUDE_PHASE;
   couplingBCsCounter_ = 0;
   numDirichletBCs_ = 0;
   pdeIsCoupled_ = FALSE;
@@ -319,8 +321,8 @@ void BasePDE::StepStaticLin(const Integer kstep, const Double aTime,
   // save solution
   Integer k=0;
   
-   //sol_->SetDataPointer(ptsol);
-  sol_->CopyFromDataPointer(ptsol);
+  //sol_->SetDataPointer(ptsol);
+  sol_->CopyFromAlgSysDataPointer(ptsol);
 
   firstTimeStepStatic_ = FALSE;
 }
@@ -374,7 +376,7 @@ void BasePDE::PostStepTrans(const Integer kstep, const Double asteptime, const I
   if (pdeIsCoupled_)
     {
       //save solution
-      Vector<Double> solvector= solhelp->GetCompleteVector();
+      Vector<Double> solvector= solhelp->GetAlgSysVector();
 
       //perform corrector step
       TS_alg_->Corrector(solvector); 
@@ -415,7 +417,7 @@ void BasePDE::StepTransLin(const Integer kstep, const Double asteptime,
   if ( pdeIsCoupled_ == FALSE || iterCoupledCounter_ == 0)
     {    
       
-      Vector<Double> solvector= solhelp->GetCompleteVector();
+      Vector<Double> solvector= solhelp->GetAlgSysVector();
       TS_alg_->Predictor(solvector);
       
     }
@@ -467,11 +469,11 @@ void BasePDE::StepTransLin(const Integer kstep, const Double asteptime,
   ptsol = algsys_->GetSolutionVal();
 
   //sol_->SetDataPointer(ptsol);
-  sol_->CopyFromDataPointer(ptsol);
+  sol_->CopyFromAlgSysDataPointer(ptsol);
   
 
   Vector<Double> & solvector =\
-    dynamic_cast<NodeStoreSol<Double>*>(sol_)->GetCompleteVector();
+    dynamic_cast<NodeStoreSol<Double>*>(sol_)->GetAlgSysVector();
 
   if (!pdeIsCoupled_)
     TS_alg_->Corrector(solvector);
@@ -533,13 +535,6 @@ void BasePDE::StepHarmonicLin(const Integer freqStep, const Double frequency,
     
       job = 1; // calc new preconditioner
 
-#ifdef USE_OLAS
-      algsys_->BuildInDirichlet();
-      algsys_->SetupPrecond(job);
-#else
-      algsys_->CalcPrecond(job);
-#endif
-
     }
   else
     job = 3;
@@ -556,22 +551,23 @@ void BasePDE::StepHarmonicLin(const Integer freqStep, const Double frequency,
   ptsol = algsys_->GetSolutionVal();
 
   // save solution
-  Vector<Complex> tmp(numPDENodes_*dofspernode_);
+  //Vector<Complex> tmp(numPDENodes_*dofspernode_);
 
   if (dofspernode_ > 1)
     Error("Currenrly just dofpernode=1 supported in StepHarmonicLin");
 
-  Integer k=0;
-  for (Integer node=0; node<numPDENodes_*dofspernode_; node++)
-    {
-      Complex val(ptsol[k],ptsol[k+1]);
-      tmp[node] = val;
-      k+=2;
-    }
+  //Integer k=0;
+  
+  //for (Integer node=0; node<numPDENodes_*dofspernode_; node++)
+  //{
+  //  Complex val(ptsol[k],ptsol[k+1]);
+  //  tmp[node] = val;
+  //  k+=2;
+    //}
 
-  sol_->SetCompleteVector(tmp);
+  //sol_->SetAlgSysVector(tmp);
 
-  //  sol_->CopyFromDataPointer(ptsol);
+  sol_->CopyFromAlgSysDataPointer(ptsol);
 
 }
 
@@ -614,7 +610,6 @@ void  BasePDE::SetBCs(const Integer level, const Integer update, const Double ti
 	{
 	  node=*p;
 	  eqnData_->Node2EQN(node, dof, eqnNr, eqnDof);
-	  //std::cerr << "EQN for Homo-Dirichlet node " << node << " = " << eqn << std::endl;
 	  if (eqnNr > 0)
 	    {
 	      
@@ -659,8 +654,6 @@ void  BasePDE::SetBCs(const Integer level, const Integer update, const Double ti
 	{
 	  node=*p;
 	  eqnData_->Node2EQN(node, dof, eqnNr, eqnDof);
-	  //std::cerr << "EQN for InHomo-Dirichlet node " << node << " = " << eqn << std::endl; 
-	  
 #ifdef USE_OLAS
 	  algsys_->SetDirichlet(j+1, eqnNr, val, eqnDof);
 #else

@@ -288,9 +288,9 @@ template<class TYPE>  std::ostream& operator << ( std::ostream & , const Vector<
 
 
   // Template instantiation for used vectors
-template class Vector<Integer>;
-template class Vector<Double>;
-template class Vector<Complex>;
+  template class Vector<Integer>;
+  template class Vector<Double>;
+  template class Vector<Complex>;
 
  
 } // end of namespace

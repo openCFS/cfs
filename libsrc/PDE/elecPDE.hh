@@ -98,7 +98,7 @@ namespace CoupledField
 
     //! write results in file
     //! \todo The definition of the errorMap_ has to
-    //! be changed to a StoreSol<Double> or BaseStoreSol object
+    //! be changed to a NodeStoreSol<Double> or BaseNodeStoreSol object
     virtual void WriteResultsInFile();
 
     //! computes the electric energy for each subdomain
@@ -141,7 +141,7 @@ namespace CoupledField
 				  StdVector<Integer>& boundNodesOfVolElem,
 				  Vector<Double>& tempE);
   
-    ElemStoreSol<Double> E_;  //!< conatins electric field
+    ElemStoreSol<Double>  E_;  //!< conatins electric field
 
     //  Boolean nonLinGeo_;  //! switch for geometric update 
   

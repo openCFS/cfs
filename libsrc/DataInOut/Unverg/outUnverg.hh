@@ -33,21 +33,45 @@ public:
     \param data vector with data (ex. value of an error for the cell)
     \param step step of calculation
     \param time time of calculation
-    \param title name for the data    
-    \param nrDofs dimension of solution
   */
-  virtual void WriteNodeSolution(const NodeStoreSol<Double>& sol, const Integer step, const Double time, const std::string title);
+  virtual void WriteNodeSolutionTransient(const NodeStoreSol<Double>& data, 
+					  const Integer step, 
+					  const Double time);
 
  //! write element solution vector
   /*!
     \param data vector with data (ex. value of an error for the cell)
     \param step step of calculation
     \param time time of calculation
-    \param title name for the data    
-    \param nrDofs dimension of solution
   */
-  virtual void WriteElemSolution(const ElemStoreSol<Double>& data, const Integer step, const Double time, const std::string title);
-  
+  virtual void WriteElemSolutionTransient(const ElemStoreSol<Double>& data, 
+					  const Integer step, 
+					  const Double time);
+ 
+  //! write element solution vector 
+  /*!
+    \param data vector with data (ex. value of an error for the cell)
+    \param step step of calculation
+    \param frequency frequency of exciting function
+    \param format format for writing complex solution (real-imag/amplitude-phase)
+  */
+  virtual void WriteNodeSolutionHarmonic(const NodeStoreSol<Complex>& data, 
+					 const Integer step,
+					 const Double frequency,
+					 const ComplexFormat format);
+
+ //! write element solution vector
+  /*!
+    \param data vector with data (ex. value of an error for the cell)
+    \param step step of calculation
+    \param frequency frequency of exciting function
+    \param format format for writing complex solution (real-imag/amplitude-phase)
+  */
+  virtual void WriteElemSolutionHarmonic(const ElemStoreSol<Complex>& data, 
+					 const Integer step,
+					 const Double frequency,
+					 const ComplexFormat format);
+
   //!  check, is it the gmv-output file
   virtual Boolean IsGMV() { return FALSE;}
 
@@ -73,34 +97,67 @@ private:
   */
   void Dataset780(const Integer level);
 
-  //! for printing nodal results of simulation
+  //! for printing nodal results of simulation (static/transient)
   /*!
     \param title title of the results.
     \param x array with nodal results
     \param step number of the step of the calculation
     \param time time of the calculation
   */
-  void Dataset55(const std::string & title, 
-		 const Vector<Double> & x, 
-		 const Integer step, 
-		 const Double time, 
-		 const Integer nrNodes,
-		 const Integer nrDofs=1);
-
-  //! for printing cell results of simulation
-   /*!
+  void Dataset55_Transient(const std::string & title, 
+			   const Vector<Double> & x, 
+			   const Integer step, 
+			   const Double time, 
+			   const Integer nrNodes,
+			   const Integer nrDofs=1);
+  
+  //! for printing nodal results of simulation (harmonic)
+  /*!
+    \param title title of the results.
+    \param x array with nodal results
+    \param freuqncy exciting frequency of current result
+    \param format output format for complex numbers
+  */
+  void Dataset55_Harmonic(const std::string & title, 
+			  const Vector<Complex> & x, 
+			  const Integer step,
+			  const Double frequency,
+			  const ComplexFormat format,
+			  const Integer nrNodes,
+			  const Integer nrDofs=1);
+  
+  //! for printing cell results of simulation (transient / static)
+  /*!
     \param title title of the results.
     \param x array with cell results
     \param step number of the step of the calculation
     \param time time of the calculation
   */
-  void Dataset56(const std::string & title, 
-		 const Vector<Double> & x, 
-		 const Integer step, 
-		 const Double time, 
-		 const Integer numElems,
-		 const Integer nrDofs=1);
-
+  void Dataset56_Transient(const std::string & title, 
+			   const Vector<Double> & x, 
+			   const Integer step, 
+			   const Double time,
+			   const Integer numElems,
+			   const Integer nrDofs=1);
+  
+  //! for printing cell results of simulation (harmonic)
+  /*!
+    \param title title of the results.
+    \param x array with cell results
+    \param step number of the step of the calculation
+    \param time time of the calculation
+  */
+  void Dataset56_Harmonic(const std::string & title, 
+			  const Vector<Complex> & x, 
+			  const Integer step,
+			  const Double frequency, 
+			  const ComplexFormat format, 
+			  const Integer numElems,
+			  const Integer nrDofs=1);
+  
+  //! Convertes enum SolutionType to string
+  std::string SolutionTypeToString(const SolutionType type) const;
+  
 };
 
 } // end of namespace

@@ -121,7 +121,7 @@ public:
   
 protected:
   
-  const NodeStoreSol<Double> * sol_;
+  NodeStoreSol<Double> * sol_;
   BaseSystem * algsys_;
 };
 

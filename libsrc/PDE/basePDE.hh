@@ -245,7 +245,7 @@ class SpaceErrorEstimator;
     }
 
     //! return solution
-    virtual const BaseStoreSol& getS() {return *sol_;}
+    virtual const BaseNodeStoreSol& getS() {return *sol_;}
 
     //! return pointer to vector with first derivative of solution
     virtual const Vector<Double> & getS1() const 
@@ -521,6 +521,7 @@ class SpaceErrorEstimator;
 
     Double  actFrequency_; //!< current frequency for harmonic analysis
     Integer actFreqStep_;  //!< current frequency step for harmonic analysis
+    ComplexFormat complexFormat_;  //!< outputFormat for complex numbers
 
     //! specifies the type of damping model (see environment.hh)
     DampingType dampingType_;
@@ -562,7 +563,7 @@ class SpaceErrorEstimator;
     Boolean isComplex_;         //!< true, if some part of PDE is complex (Material, solution)
     NodeEQN * eqnData_;         //!< equation handling
 
-    BaseStoreSol * sol_;        //!< solution
+    BaseNodeStoreSol * sol_;        //!< solution
 
     Boolean initMatrices_; //!< true, if matrix is set up each iteration step
 

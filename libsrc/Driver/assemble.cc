@@ -640,6 +640,7 @@ namespace CoupledField
     
     Integer numBuildInDirichletEQNs_ = ptEQN_->GetNumBuildInDirichletEQNs();
     Integer numDir = numDirichletBCs_ - numBuildInDirichletEQNs_;
+    //std::cerr << "number of Dirichlet to set by AlgSYS: " << numDir << std::endl;
     //put to algebraic system
     
 
@@ -823,6 +824,10 @@ namespace CoupledField
 	  ptEQN_->Node2EQN(connecth, connect_PDE);
 
 	  fe_type=elemssd[iel]->ptElem->feType();
+	  //std::cerr << "SetElelemtPos" << std::endl << "----------" << std::endl;
+	  //std::cerr << "connect: " << std::endl << connecth << std::endl;
+	  //std::cerr << "connect_PDE " << std::endl;
+	  //std::cerr << connect_PDE << std::endl << std::endl;
 	  algsys_->SetElementPos(connect_PDE.GetPointer(),connect_PDE.GetSize(),fe_type);
 	}
     }

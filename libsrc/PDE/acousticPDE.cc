@@ -179,24 +179,24 @@ namespace CoupledField {
     sol_->SetSolutionType(ACOU_POTENTIAL);
     sol_->SetNumNodes(numPDENodes_);
     sol_->SetNumDofs(dofspernode_);
-    sol_->SetPtrEQNData(eqnData_);
+    sol_->SetPtrEQNData(eqnData_, ptgrid_, actlevel_);
     sol_->Init();
     
     if (savederiv1_) {
       sol_der1Array_.SetNumSolutions(1);
       sol_der1Array_.SetNumNodes(numPDENodes_);
-      sol_der1Array_.SetSolutionType(ACOU_POTENTIAL_DERIV1);
+      sol_der1Array_.SetSolutionType(ACOU_POTENTIAL_DERIV_1);
       sol_der1Array_.SetNumDofs(1);    
-      sol_der1Array_.SetPtrEQNData(eqnData_);
+      sol_der1Array_.SetPtrEQNData(eqnData_, ptgrid_, actlevel_);
       sol_der1Array_.Init(0);
     }
 
     if (savederiv2_) {
       sol_der2Array_.SetNumSolutions(1);
       sol_der2Array_.SetNumNodes(numPDENodes_);
-      sol_der2Array_.SetSolutionType(ACOU_POTENTIAL_DERIV2);
+      sol_der2Array_.SetSolutionType(ACOU_POTENTIAL_DERIV_2);
       sol_der2Array_.SetNumDofs(1);    
-      sol_der2Array_.SetPtrEQNData(eqnData_);
+      sol_der2Array_.SetPtrEQNData(eqnData_, ptgrid_, actlevel_);
       sol_der2Array_.Init(0);
     }
   
@@ -442,64 +442,36 @@ namespace CoupledField {
     if (!commrank) {
 #endif
       NodeStoreSol<Double> solIm_mesh;
-      
-      NodeStoreSol<Double> const & solConverted = 
-	dynamic_cast<NodeStoreSol<Double>&>(*sol_);
- 
+      NodeStoreSol<Double> * solTransient;
+      NodeStoreSol<Complex> * solHarmonic;
+       
       if (analysistype_==HARMONIC) {
-	Error(" Has to be adapted due to new StoreSol class", __FILE__, __LINE__);
-	NodeStoreSol<Complex> solmesh;
-	Vector<Complex> solution;
-	solmesh.GetCompleteVector(solution);
-	for (Integer k=0; k<solution.GetSize(); k++)
-	  std::cout << "node: " << k+1 << ":  " << solution[k] << std::endl;
-
-	//	outFile_->WriteNodeSolution(sol_mesh,laststepcalc_,lasttimecalc_,"fluid potential, cw realpart,");
-	//	outFile_->WriteNodeSolution(solIm_mesh,laststepcalc_,lasttimecalc_,"fluid potential, cw imagpart, ");
+	if (savesol_){
+	  solHarmonic = dynamic_cast<NodeStoreSol<Complex>*>(sol_);
+	  outFile_->WriteNodeSolutionHarmonic(*solHarmonic,  actFreqStep_, 
+					      actFrequency_, complexFormat_);
+	}
       }
       else {  
-
-	//if (savesol_) {
-	//  sol_->TransformNodeSolution(sol_mesh, ptgrid_, actlevel_);
-	//}
+	
+	if (savesol_){
+	  solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);
+	  outFile_->WriteNodeSolutionTransient(*solTransient, laststepcalc_, lasttimecalc_);
+	}
 	if (savederiv1_) {
-	  sol_der1Array_.SetSolVector(ACOU_VELOCITY,getS1());
+	  sol_der1Array_.SetAlgSysVector(getS1()); 
+	  outFile_->WriteNodeSolutionTransient(sol_der1Array_, laststepcalc_, lasttimecalc_);
 	}
 
 	if (savederiv2_) {
-	  sol_der2Array_.SetSolVector(ACOU_VELOCITY,getS2());
-	  //sol_der2Array_.TransformNodeSolution(solder2_mesh, ptgrid_,actlevel_);
-	}
-      
-	if (outFile_->IsGMV()) {
-	  if (savesol_)
-	    outFile_->WriteNodeSolution(solConverted,laststepcalc_,lasttimecalc_,"vp");
-	  if (savederiv1_)
-	    outFile_->WriteNodeSolution(sol_der1Array_,laststepcalc_,
-					lasttimecalc_,"vp_1der");
-	  if (savederiv2_)
-	    outFile_->WriteNodeSolution(sol_der2Array_,laststepcalc_,
-					lasttimecalc_,"vp_2der");
-	}
-	else {
-	  if (savesol_)
-	    outFile_->WriteNodeSolution(solConverted,laststepcalc_,lasttimecalc_,
-					"fluid potential");
-	  
-	  if (savederiv1_)
-	    outFile_->WriteNodeSolution(sol_der1Array_,laststepcalc_,
-					lasttimecalc_,
-					"fluid potential, 1st deriv.");
-	  if (savederiv2_)
-	    outFile_->WriteNodeSolution(sol_der2Array_,laststepcalc_,
-					lasttimecalc_,
-					"fluid potential, 2nd deriv.");
+	  sol_der2Array_.SetAlgSysVector(getS2());
+	  outFile_->WriteNodeSolutionTransient(sol_der2Array_, laststepcalc_, lasttimecalc_);
 	}
       }
 #ifdef PARALLEL
-    }//!commrank
+  }//!commrank
 #endif
-  }
+}
 
 
   // ***********************************************************************

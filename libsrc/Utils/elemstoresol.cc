@@ -12,28 +12,25 @@ ElemStoreSol<TYPE>::ElemStoreSol()
 {
   ENTER_FCN( "ElemStoreSol::ElemStoreSol()" );
   
-  numNodes_ = 0;
+  numElems_ = 0;
   numSolutions_ = 0;
-  length_ = 0;
-  totalDofs_ = 0;
-
 }
   
 template<class TYPE>
-ElemStoreSol<TYPE>::ElemStoreSol(Integer numNodes, 
-			 StdVector<SolutionType> solTypes, 
-			 StdVector<Integer> solDofs)
+ElemStoreSol<TYPE>::ElemStoreSol(Integer numElems, 
+				 StdVector<SolutionType> solTypes, 
+				 StdVector<Integer> solDofs)
 {
-  ENTER_FCN( "ElemStoreSol::ElemStoreSol(numNodes, solTypes, solDofs" );
+  ENTER_FCN( "ElemStoreSol::ElemStoreSol(numElems, solTypes, solDofs" );
   Error( "Not implemented here", __FILE__, __LINE__ );
 }
 
 template<class TYPE>
-ElemStoreSol<TYPE>::ElemStoreSol(const Integer numNodes,
-			 const SolutionType solType,
-			 const Integer numDofs)
+ElemStoreSol<TYPE>::ElemStoreSol(const Integer numElems,
+				 const SolutionType solType,
+				 const Integer numDofs)
 {
-  ENTER_FCN( "ElemStoreSol::ElemStoreSol(numNodes, solType, soDofs" );
+  ENTER_FCN( "ElemStoreSol::ElemStoreSol(numElems, solType, soDofs" );
   Error( "Not implemented here", __FILE__, __LINE__ );
 }
 
@@ -55,10 +52,14 @@ ElemStoreSol<TYPE>::~ElemStoreSol()
 }
 
 template<class TYPE>
-void ElemStoreSol<TYPE>::SetPtrEQNData(NodeEQN * ptNodeEQN)
+void ElemStoreSol<TYPE>::SetPtrEQNData(NodeEQN * ptNodeEQN,
+				       Grid * ptGrid,
+				       Integer level)
 {
   ENTER_FCN( "ElemStoreSol::SetPtrEQNData ");
-  ptEQN_ = ptNodeEQN;
+  ptEQN_ = ptNodeEQN; 
+  ptGrid_ = ptGrid;
+  level_ = level;
 }
 
 
@@ -81,19 +82,19 @@ void ElemStoreSol<TYPE>::Init(const TYPE val)
   ENTER_FCN( "ElemStoreSol::Init" );
 
 #ifdef CHECK_INITIALIZED
-  if (numSolutions_ == 0 || numNodes_ == 0 \
+  if (numSolutions_ == 0 || numElems_ == 0 \
      || solTypes_.size() == 0 || solDofs_.size() == 0) 
     {
       std::cerr << "Error in StoreSl::Init():" << std::endl;
       std::cerr << "NumSolutions: " << numSolutions_ << std::endl;
-      std::cerr << "NumNodes: " << numNodes_ << std::endl;
+      std::cerr << "NumElems: " << numElems_ << std::endl;
       std::cerr << "TotalDofs: " << totalDofs_ << std::endl;
       std::cerr << "Length: " << length_ << std::endl;
       std::cerr << "Size of solDofs: " << solDofs_.size() << std::endl;
       std::cerr << "Size of solTypes: " << solTypes_.size() << std::endl;
       std::cerr << "Size of offsets: " << solOffset_.size() << std::endl;
       Error("ElemStoreSol::Init(): Before calling Init(), the number of solutions,\
-           nodes, types and dofs has to be set to NONZERO value!",__FILE__,__LINE__);
+           elems, types and dofs has to be set to NONZERO value!",__FILE__,__LINE__);
     }
   
 #endif
@@ -120,7 +121,7 @@ void ElemStoreSol<TYPE>::Init(const TYPE val)
 	  totalDofs_ += (*it).second;	  
 	}
       
-      length_ = totalDofs_ * numNodes_;
+      length_ = totalDofs_ * numElems_;
       data_.Resize(length_);
     }
 
@@ -137,10 +138,10 @@ void ElemStoreSol<TYPE>::SetNumSolutions(const Integer nSols)
 }
 
 template<class TYPE>
-void ElemStoreSol<TYPE>::SetNumNodes(const Integer nNodes)
+void ElemStoreSol<TYPE>::SetNumElems(const Integer nElems)
 {
-  ENTER_IFCN("ElemStoreSol::SetNumNodes");
-  numNodes_ = nNodes;
+  ENTER_IFCN("ElemStoreSol::SetNumElems");
+  numElems_ = nElems;
   length_ = 0;
 }
 
@@ -220,96 +221,29 @@ TYPE  ElemStoreSol<TYPE>:: operator()(Integer node, Integer dof) const
 
 
 template<class TYPE>
-void ElemStoreSol<TYPE>::GetSolVector(const SolutionType type, CFSVector & val) const
+void ElemStoreSol<TYPE>::SetElemResult(const Integer elemNr, const CFSVector &val)
 {
-  ENTER_FCN("ElemStoreSol::GetSolVector");
-#ifdef CHECK_INITIALIZED
-  if (length_ == 0) Error("ElemStoreSol: Use of uninitialized object!",__FILE__,__LINE__);
-#endif
-
-  Integer offset = (*solOffset_.find(type)).second;
-  Integer dof = (*solDofs_.find(type)).second;
-  val.Resize(dof*numNodes_);
-
-  Vector<TYPE> & ret = dynamic_cast<Vector<TYPE>&>(val);
-  for (Integer iNode=0; iNode<numNodes_; iNode++)
-    for (Integer iDof=0; iDof<dof; iDof++)
-      ret[iNode*dof+iDof] = data_[iNode*totalDofs_+iDof+offset];
-}
-
-template<class TYPE>
-void ElemStoreSol<TYPE>::SetSolVector(const SolutionType type, const CFSVector & val)
-{
-  ENTER_FCN("ElemStoreSol::SetSolVector");
-#ifdef CHECK_INITIALIZED
-  if (length_ == 0) Error("ElemStoreSol: Use of uninitialized object!",__FILE__,__LINE__);
-#endif 
-  
-#ifdef CHECK_INDEX
-  if (val.GetSize() != data_.GetSize())
-    Error("ElemStoreSol::SetSolVector(): Vector has incompatible dimensions!",__FILE__,__LINE__);
-#endif
-
-  const Vector<TYPE> & temp = dynamic_cast<const Vector<TYPE>&>(val);
-  for (Integer i=0; i<temp.GetSize(); i++)
-    data_[i] = temp[i];
-}
-
-template<class TYPE>
-void ElemStoreSol<TYPE>::GetSolution(const SolutionType type, BaseStoreSol & val) const
-{
-  ENTER_FCN("ElemStoreSol::GetSolution");
-#ifdef CHECK_INITIALIZED
-  if (length_ == 0) Error("ElemStoreSol: Use of uninitialized object!",__FILE__,__LINE__);
-#endif
-  Integer offset = (*solOffset_.find(type)).second;
-  Integer dof = (*solDofs_.find(type)).second;
-    
-  ElemStoreSol<TYPE> & temp = dynamic_cast<ElemStoreSol<TYPE>&>(val);
-
-  // delete old map
-  temp.solDofs_.clear();
-  temp.solTypes_.clear();
-  temp.solOffset_.clear();
-
-  temp.numNodes_ = numNodes_;
-  temp.numSolutions_ = 1;
-  temp.solTypes_[type] = 0;
-  temp.solOffset_[type] = 0;
-  temp.solDofs_[type] = dof;
-  temp.totalDofs_ = dof;
-  temp.length_ = temp.numNodes_ * totalDofs_;
-  temp.data_.Resize(temp.length_);
-
-  for (Integer iNode=0; iNode<numNodes_; iNode++)
-    for (Integer iDof=0; iDof<dof; iDof++)
-      temp.data_[iNode*dof+iDof] = data_[iNode*totalDofs_+iDof+offset];
-}
-
-template<class TYPE>
-void ElemStoreSol<TYPE>::SetNodalResult(const Integer nodeNr, const CFSVector &val)
-{
-  ENTER_FCN("ElemStoreSol::SetNodalResult");
+  ENTER_FCN("ElemStoreSol::SetElemResult");
 #ifdef CHECK_INITIALIZED
   if (length_ == 0) Error("ElemStoreSol: Use of uninitialized object!",__FILE__,__LINE__);
 #endif
   
 #ifdef CHECK_INDEX
-  if (nodeNr >= numNodes_) 
-    Error("ElemStoreSol::SetNodalResult(): index out of bounds",__FILE__,__LINE__);
+  if (elemNr >= numElems_) 
+    Error("ElemStoreSol::SetElemResult(): index out of bounds",__FILE__,__LINE__);
   if (val.GetSize() != totalDofs_)
-    Error("ElemStoreSol::SetNodalResult(): vector of incompatible dimension",__FILE__,__LINE__);
+    Error("ElemStoreSol::SetElemResult(): vector of incompatible dimension",__FILE__,__LINE__);
 #endif
 
   const Vector<TYPE> & temp = dynamic_cast<const Vector<TYPE>&>(val);
   for (Integer i=0; i<temp.GetSize(); i++)
-    data_[nodeNr*totalDofs_ + i] = temp[i];
+    data_[elemNr*totalDofs_ + i] = temp[i];
 }
 
 template<class TYPE>
-void ElemStoreSol<TYPE>::GetNodalResult(const Integer nodeNr, CFSVector &val) const
+void ElemStoreSol<TYPE>::GetElemResult(const Integer elemNr, CFSVector &val) const
 {
-  ENTER_FCN("ElemStoreSol::GetNodalResult");
+  ENTER_FCN("ElemStoreSol::GetElemResult");
 #ifdef CHECK_INITIALIZED
   if (length_ == 0) Error("ElemStoreSol: Use of uninitialized object!",__FILE__,__LINE__);
 #endif
@@ -317,9 +251,33 @@ void ElemStoreSol<TYPE>::GetNodalResult(const Integer nodeNr, CFSVector &val) co
 }
 
 template<class TYPE>
-void ElemStoreSol<TYPE>::GetSolVectorSingleDof(const SolutionType type, const Integer dof, CFSVector & val) const
+void ElemStoreSol<TYPE>::GetGlobalSolVector(const SolutionType solType, CFSVector & val) const
 {
-  ENTER_FCN("ElemStoreSol::GetSolVectorSingleDof");
+  ENTER_FCN("ElemStoreSol::GetGlobalSolVector");
+#ifdef CHECK_INITIALIZED
+  if (length_ == 0) Warning("ElemStoreSol: Use of uninitialized object!",__FILE__,__LINE__);
+#endif
+  
+  Vector<TYPE> & temp = dynamic_cast<Vector<TYPE>&>(val);
+  temp.Resize(ptGrid_->GetMaxnumElem(level_)*totalDofs_);
+
+  // Loop over all PDE elements
+  for (Integer iElem=1; iElem<numElems_+1; iElem++)
+    // Loop over all dimensions
+    for (Integer iDof=0; iDof<totalDofs_; iDof++)
+      {
+	//temp.data_[(mapping_[iElem]-1)*totalDofs_ + iDof] = data_[iElem*totalDofs_ + iDof];
+	temp.data_[(ptEQN_->PDE2MeshElem(iElem)-1)*totalDofs_ + iDof] = 
+	  data_[(iElem-1)*totalDofs_ + iDof];
+      }
+
+
+}
+
+template<class TYPE>
+void ElemStoreSol<TYPE>::GetGlobalSolVectorSingleDof(const SolutionType type, const Integer dof, CFSVector & val) const
+{
+  ENTER_FCN("ElemStoreSol::GetGlobalSolVectorSingleDof");
 #ifdef CHECK_INITIALIZED
   if (length_ == 0) Error("ElemStoreSol: Use of uninitialized object!",__FILE__,__LINE__);
 #endif
@@ -327,9 +285,9 @@ void ElemStoreSol<TYPE>::GetSolVectorSingleDof(const SolutionType type, const In
 }
 
 template<class TYPE>
-void ElemStoreSol<TYPE>::GetSolVectorSingleDof(const Integer dof, CFSVector & val) const
+void ElemStoreSol<TYPE>::GetGlobalSolVectorSingleDof(const Integer dof, CFSVector & val) const
 {
-  ENTER_FCN("ElemStoreSol::GetSolVectorSingleDof");
+  ENTER_FCN("ElemStoreSol::GetGlobalSolVectorSingleDof");
 #ifdef CHECK_INITIALIZED
   if (length_ == 0) Error("ElemStoreSol: Use of uninitialized object!",__FILE__,__LINE__);
 #endif
@@ -338,7 +296,7 @@ void ElemStoreSol<TYPE>::GetSolVectorSingleDof(const Integer dof, CFSVector & va
   temp.Resize(ptEQN_->GetNumGlobalElems());
 
   // Loop over all PDE elements
-  for (Integer iElem=1; iElem<numNodes_+1; iElem++)
+  for (Integer iElem=1; iElem<numElems_+1; iElem++)
     // Loop over all dimensions
     temp.data_[ptEQN_->PDE2MeshElem(iElem)-1] = data_[(iElem-1)*totalDofs_ + dof];
   
@@ -346,7 +304,7 @@ void ElemStoreSol<TYPE>::GetSolVectorSingleDof(const Integer dof, CFSVector & va
 
 
 template<class TYPE>
-void ElemStoreSol<TYPE>::Get(const Integer nodeNr, const Integer dof, TYPE & ret) const
+void ElemStoreSol<TYPE>::Get(const Integer elemNr, const Integer dof, TYPE & ret) const
 {
   ENTER_FCN("ElemStoreSol::Get");
 #ifdef CHECK_INITIALIZED
@@ -356,15 +314,15 @@ void ElemStoreSol<TYPE>::Get(const Integer nodeNr, const Integer dof, TYPE & ret
 #ifdef CHECK_INDEX
   if (numSolutions_ > 1)
     Error("ElemStoreSol::Get(): Only used for single solution objects!",__FILE__,__LINE__);
-  if (nodeNr > numNodes_)
+  if (elemNr > numElems_)
     Error("ElemStoreSol::Get(): Index out of bounds",__FILE__,__LINE__);
 #endif
 
-  ret = data_[nodeNr * totalDofs_ + dof]; 
+  ret = data_[elemNr * totalDofs_ + dof]; 
 }
 
 template<class TYPE>
-void ElemStoreSol<TYPE>::Get(const SolutionType type, const Integer nodeNr, const Integer dof, TYPE & ret) const
+void ElemStoreSol<TYPE>::Get(const SolutionType type, const Integer elemNr, const Integer dof, TYPE & ret) const
 {
   ENTER_FCN("ElemStoreSol::Get");
 #ifdef CHECK_INITIALIZED
@@ -372,11 +330,11 @@ void ElemStoreSol<TYPE>::Get(const SolutionType type, const Integer nodeNr, cons
 #endif
   Integer offset = (*solOffset_.find(type)).second;
 
-  ret = data_[nodeNr * totalDofs_ + offset + dof];
+  ret = data_[elemNr * totalDofs_ + offset + dof];
 }
 
 template<class TYPE>
-void ElemStoreSol<TYPE>::Set(const SolutionType type, const Integer nodeNr, const Integer dof, const TYPE val)
+void ElemStoreSol<TYPE>::Set(const SolutionType type, const Integer elemNr, const Integer dof, const TYPE val)
 {
   ENTER_FCN("ElemStoreSol::Set");
 #ifdef CHECK_INITIALIZED
@@ -386,7 +344,7 @@ void ElemStoreSol<TYPE>::Set(const SolutionType type, const Integer nodeNr, cons
 }
 
 template<class TYPE>
-void ElemStoreSol<TYPE>::Add(const SolutionType type, const Integer nodeNr, const Integer dof, const TYPE val) const
+void ElemStoreSol<TYPE>::Add(const SolutionType type, const Integer elemNr, const Integer dof, const TYPE val) const
 {
   ENTER_FCN("ElemStoreSol::Set");
 #ifdef CHECK_INITIALIZED
@@ -394,122 +352,6 @@ void ElemStoreSol<TYPE>::Add(const SolutionType type, const Integer nodeNr, cons
 #endif
   Error("Not implemented here", __FILE__,__LINE__);
 }
-
-template<class TYPE>
-void ElemStoreSol<TYPE>::SetCompleteVector(const CFSVector & val)
-{
-  ENTER_FCN("ElemStoreSol::SetCompleteVector");
-#ifdef CHECK_INITIALIZED
-   if (length_ == 0) Error("ElemStoreSol: Use of uninitialized object!",__FILE__,__LINE__);
-#endif
-#ifdef CHECK_INDEX
-   if (val.GetSize() !=  length_)
-     Error("ElemStoreSol::SetCompleteVector(): Vector has wrong size!",__FILE__,__LINE__);
-#endif
-
-   const  Vector<TYPE> & temp = dynamic_cast<const Vector<TYPE>&>(val);
-   data_ = temp;
-}
-  
-template<class TYPE> 
-void ElemStoreSol<TYPE>::GetCompleteVector(CFSVector & val) const
-{
- ENTER_FCN("ElemStoreSol::SetCompleteVector");
-#ifdef CHECK_INITIALIZED
-  if (length_ == 0) Error("ElemStoreSol: Use of uninitialized object!",__FILE__,__LINE__);
-#endif
-  
-  Vector<TYPE> & temp = dynamic_cast<Vector<TYPE>&>(val);
-  temp = data_;
-}
-
-template<class TYPE>
-void ElemStoreSol<TYPE>::GetVectorPointer(CFSVector* &ptrToVec)
-{
-  ENTER_FCN("ElemStoreSol::GetVectorPointer");
-#ifdef CHECK_INITIALIZED
-  if (length_ == 0) Error("ElemStoreSol: Use of uninitialized object!",__FILE__,__LINE__);
-#endif
-
-  ptrToVec = (CFSVector*) &data_;
-}
-
-template<class TYPE>
-void ElemStoreSol<TYPE>::GetVectorPointer(Vector<TYPE>* &ptrToVec)
-{
-  ENTER_FCN("ElemStoreSol::GetVectorPointer");
-#ifdef CHECK_INITIALIZED
-  if (length_ == 0) Error("ElemStoreSol: Use of uninitialized object!",__FILE__,__LINE__);
-#endif
-
-  ptrToVec =  &data_;
-}
-
-template<class TYPE>
-void ElemStoreSol<TYPE>::CopyFromDataPointer(TYPE * ptr)
-{
-  ENTER_FCN("ElemStoreSol::CopyFromDataPointer");
-#ifdef CHECK_INITIALIZED
-  if (length_ == 0) Error("ElemStoreSol: Use of uninitialized object!",__FILE__,__LINE__);
-#endif
-  for (Integer i=0; i<lengthVector_; i++)
-    {
-      data_[i] = ptr[i];
-      //std::cerr << "Local Node [" << i+1 <<"] = " << ptr[i] << std::endl;
-    }
-
-}
-
-template<class TYPE>
-void ElemStoreSol<TYPE>::SetDataPointer(TYPE * ptr)
-{
-  ENTER_FCN("ElemStoreSol::SetDataPointer");
-#ifdef CHECK_INITIALIZED
-  if (length_ == 0) Error("ElemStoreSol: Use of uninitialized object!",
-				__FILE__,__LINE__);
-#endif
-  
-  data_.data_ = ptr;
-
-}
-
-template<class TYPE>
-void ElemStoreSol<TYPE>::GetDataPointer(TYPE* &ptr)
-{
-  ENTER_FCN("ElemStoreSol::GetDataPointer");
-#ifdef CHECK_INITIALIZED
-  if (length_ == 0) Error("ElemStoreSol: Use of uninitialized object!",
-				__FILE__,__LINE__);
-#endif
- 
-  ptr =  data_.data_;
-}
-
-
-template<>
-Double* ElemStoreSol<Double>::GetDoublePointer()
-{
-  ENTER_FCN("ElemStoreSol::GetDoublePointer");
-#ifdef CHECK_INITIALIZED
-  if (length_ == 0) Error("ElemStoreSol: Use of uninitialized object!",
-				__FILE__,__LINE__);
-#endif
-  return data_.data_;
-}
-
-
-template<class TYPE>
-Double* ElemStoreSol<TYPE>::GetDoublePointer()
-{
-  ENTER_FCN("ElemStoreSol::GetDoublePointer");
-#ifdef CHECK_INITIALIZED
-  if (length_ == 0) Error("ElemStoreSol: Use of uninitialized object!",__FILE__,__LINE__);
-#endif
-
-  Error("Not implemented here",__FILE__,__LINE__);
-}
-
-
 
 ///////// Transformation Operations ///////// 
 
@@ -527,7 +369,7 @@ void ElemStoreSol<TYPE>::TransformElemSolution(CFSVector & transformedSolution,
   temp.Resize(ptGrid->GetMaxnumElem(level)*totalDofs_);
 
   // Loop over all PDE elements
-  for (Integer iElem=1; iElem<numNodes_+1; iElem++)
+  for (Integer iElem=1; iElem<numElems_+1; iElem++)
     // Loop over all dimensions
     for (Integer iDof=0; iDof<totalDofs_; iDof++)
       {
@@ -563,7 +405,7 @@ ElemStoreSol<TYPE> & ElemStoreSol<TYPE>::operator= (const ElemStoreSol & x)
 }
 
 template<class TYPE>
-BaseStoreSol & ElemStoreSol<TYPE>::operator= (const BaseStoreSol & x)
+BaseElemStoreSol & ElemStoreSol<TYPE>::operator= (const BaseElemStoreSol & x)
 {
   ENTER_FCN("ElemStoreSol::operator=(const ElemStoreSol &");
   if ( &x == dynamic_cast<ElemStoreSol*>(this))
@@ -571,7 +413,7 @@ BaseStoreSol & ElemStoreSol<TYPE>::operator= (const BaseStoreSol & x)
 
   const ElemStoreSol<TYPE> & temp = dynamic_cast<const ElemStoreSol<TYPE>&>(x);
   
-  this->numNodes_ = temp.numNodes_;
+  this->numElems_ = temp.numElems_;
   this->numSolutions_ = temp.numSolutions_;
   this->length_ = temp.length_;
   this->solTypes_ = temp.solTypes_;
@@ -581,7 +423,7 @@ BaseStoreSol & ElemStoreSol<TYPE>::operator= (const BaseStoreSol & x)
   this->data_ = temp.data_;
   this->convertedData_ = temp.convertedData_;
  
-  return dynamic_cast<ElemStoreSol &> (*this);
+  return dynamic_cast<BaseElemStoreSol &> (*this);
 }
 
 template <class TYPE>

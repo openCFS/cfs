@@ -190,12 +190,12 @@ void  WriteResultsUnverg::Dataset780(const Integer level)
   (*output) << std::setw(6) << -1 << std::endl;
 }
 
-void  WriteResultsUnverg::Dataset55(const std::string & title, 
-				    const Vector<Double> & x, 
-				    const Integer step, 
-				    const Double time, 
-				    const Integer nrNodes,
-				    const Integer nrDofs)
+void  WriteResultsUnverg::Dataset55_Transient(const std::string & title, 
+					      const Vector<Double> & x, 
+					      const Integer step, 
+					      const Double time, 
+					      const Integer nrNodes,
+					      const Integer nrDofs)
 {
   //
   if (!ptgrid)
@@ -242,12 +242,162 @@ void  WriteResultsUnverg::Dataset55(const std::string & title,
  (*output) << std::setw(6) << -1 << std::endl;
 }  
 
-void  WriteResultsUnverg::Dataset56(const std::string & title, 
-				    const Vector<Double> & x, 
-				    const Integer step, 
-				    const Double time, 
-				    const Integer numElems,
-				    const Integer nrDofs)
+void WriteResultsUnverg::Dataset55_Harmonic(const std::string & title, 
+					    const Vector<Complex> & x, 
+					    const Integer step,
+					    const Double frequency, 
+					    const ComplexFormat format,
+					    const Integer nrNodes,
+					    const Integer nrDofs)
+{
+  
+  Integer dataCharact = 1;
+  if (!ptgrid)
+    Error("ptgrid is not initialized", __FILE__,__LINE__);
+  
+  (*output) << std::setw(6) << -1 << std::endl << std::setw(6) << 55 << std::endl;
+  
+  (*output).setf(std::ios::scientific);
+  (*output).precision(6);
+  (*output).setf(std::ios::uppercase);
+  
+  Integer valsPerNode = 1;
+  if (nrDofs > 1)
+    {
+      dataCharact = 2;
+      valsPerNode = 3;
+    }
+ 
+
+  if (format == REAL_IMAG)
+    {
+      // write out realpart
+      (*output) << " " << title << " cw realpart" << std::setw(6) <<" frequency   " << frequency << std::endl;  
+      (*output) << std::endl << std::endl << std::endl << std::endl;
+      (*output) << std::setw(10) << 1 << std::setw(10) << 5 << std::setw(10) << dataCharact << std::setw(10) << 0
+		<< std::setw(10) << 2 << std::setw(10) << valsPerNode << std::endl;
+      (*output) << std::setw(10) << 2 << std::setw(10) << 1 << std::setw(10) << -2 << std::setw(10) <<
+	step << std::endl;
+      (*output) << " " << frequency << std::endl;       
+      
+      Integer i,j,n;
+      n=nrNodes;
+      for (i=0; i<n; i++)
+	{
+	  (*output) << std::setw(10) << i+1 << std::endl;
+	  
+	  // in the universal file either one or three results datas must exist
+	  if (nrDofs == 2)
+	    (*output) << 0.0;
+	  
+	  for (j=0; j<nrDofs; j++)
+	    {
+	      //std::cerr << "trying to write " << i << ", " << j << std::endl;
+	      (*output) << std::setw(14) << real(x[i*nrDofs +j]);
+	    }
+	  
+	  (*output) << std::endl;
+	}    
+      (*output) << std::setw(6) << -1 << std::endl;
+
+      // write out imag part
+      (*output) << std::setw(6) << -1 << std::endl << std::setw(6) << 55 << std::endl;
+      (*output) << " " << title << " cw imagpart" << std::setw(6) <<" frequency   " << frequency << std::endl;  
+      (*output) << std::endl << std::endl << std::endl << std::endl;
+      (*output) << std::setw(10) << 1 << std::setw(10) << 5 << std::setw(10) << dataCharact << std::setw(10) << 0
+		<< std::setw(10) << 2 << std::setw(10) << valsPerNode << std::endl;
+      (*output) << std::setw(10) << 2 << std::setw(10) << 1 << std::setw(10) << -12 << std::setw(10) <<
+	step << std::endl;
+      (*output) << " " << frequency << std::endl;       
+      
+      for (i=0; i<n; i++)
+	{
+	  (*output) << std::setw(10) << i+1 << std::endl;
+	  
+	  // in the universal file either one or three results datas must exist
+	  if (nrDofs == 2)
+	    (*output) << 0.0;
+	  
+	  for (j=0; j<nrDofs; j++)
+	    {
+	      //std::cerr << "trying to write " << i << ", " << j << std::endl;
+	      (*output) << std::setw(14) << imag(x[i*nrDofs +j]);
+	    }
+	  
+	  (*output) << std::endl;
+	}    
+      (*output) << std::setw(6) << -1 << std::endl;
+    }
+  
+  else if (format == AMPLITUDE_PHASE) {
+    // write out amplitude
+    (*output) << " " << title << " cw amplitude" << std::setw(6) <<" frequency   " << frequency << std::endl;  
+    (*output) << std::endl << std::endl << std::endl << std::endl;
+    (*output) << std::setw(10) << 1 << std::setw(10) << 5 << std::setw(10) << dataCharact << std::setw(10) << 0
+	      << std::setw(10) << 2 << std::setw(10) << valsPerNode << std::endl;
+    (*output) << std::setw(10) << 2 << std::setw(10) << 1 << std::setw(10) << -1 << std::setw(10) <<
+      step << std::endl;
+    (*output) << " " << frequency << std::endl;       
+    
+    Integer i,j,n;
+    n=nrNodes;
+    for (i=0; i<n; i++)
+      {
+	(*output) << std::setw(10) << i+1 << std::endl;
+	
+	  // in the universal file either one or three results datas must exist
+	if (nrDofs == 2)
+	  (*output) << 0.0;
+	
+	for (j=0; j<nrDofs; j++)
+	  {
+	    //std::cerr << "trying to write " << i << ", " << j << std::endl;
+	    (*output) << std::setw(14) << abs(x[i*nrDofs +j]);
+	  }
+	
+	(*output) << std::endl;
+      }    
+    (*output) << std::setw(6) << -1 << std::endl;
+    
+    // write out phase
+    (*output) << std::setw(6) << -1 << std::endl << std::setw(6) << 55 << std::endl;
+    (*output) << " " << title << " cw phase" << std::setw(6) <<" frequency   " << frequency << std::endl;  
+    (*output) << std::endl << std::endl << std::endl << std::endl;
+    (*output) << std::setw(10) << 1 << std::setw(10) << 5 << std::setw(10) << dataCharact << std::setw(10) << 0
+	      << std::setw(10) << 2 << std::setw(10) << valsPerNode << std::endl;
+    (*output) << std::setw(10) << 2 << std::setw(10) << 1 << std::setw(10) << -11 << std::setw(10) <<
+      step << std::endl;
+    (*output) << " " << frequency << std::endl;       
+    
+    for (i=0; i<n; i++)
+      {
+	(*output) << std::setw(10) << i+1 << std::endl;
+	
+	// in the universal file either one or three results datas must exist
+	if (nrDofs == 2)
+	  (*output) << 0.0;
+	
+	for (j=0; j<nrDofs; j++)
+	  {
+	    if (abs(imag(x[i*nrDofs +j])) > 1e-16)
+	      (*output) << std::setw(14) << arg(x[i*nrDofs +j])*180/PI;
+	    else 
+	      (*output) << std::setw(14) << 0.0;
+	  }
+	
+	(*output) << std::endl;
+      }    
+    (*output) << std::setw(6) << -1 << std::endl;
+  }
+  
+}
+
+void  WriteResultsUnverg::Dataset56_Transient(const std::string & title, 
+					      const Vector<Double> & x, 
+					      const Integer step, 
+					      const Double time, 
+					      const Integer numElems,
+					      const Integer nrDofs)
 {
   
    if (!ptgrid)
@@ -301,29 +451,43 @@ void  WriteResultsUnverg::Dataset56(const std::string & title,
  (*output) << std::setw(6) << -1 << std::endl;
 }  
 
+
+void WriteResultsUnverg::Dataset56_Harmonic(const std::string & title, 
+					    const Vector<Complex> & x, 
+					    const Integer step,
+					    const Double frequency, 
+					    const ComplexFormat format, 
+					    const Integer numElems,
+					    const Integer nrDofs)
+{
+
+  Error("WriteResultsUnverg::Dataset56_Harmonic: Not implemented yet",
+	__FILE__, __LINE__);
+}
+
+
 void  WriteResultsUnverg::Init(Grid * aptgrid)
 {
  ptgrid=aptgrid;
 }
 
-void  WriteResultsUnverg::WriteNodeSolution(const NodeStoreSol<Double> & sol, 
-					    const Integer step, 
-					    const Double time, 
-					    const std::string title)
+void  WriteResultsUnverg::WriteNodeSolutionTransient(const NodeStoreSol<Double> & sol, 
+						     const Integer step, 
+						     const Double time)
 {
-
-  ENTER_FCN( "WriteResultsUnverg::WriteNodeSolution" );
- Integer i,j;
- Integer nrDofs = 1;
- Double help;
- 
- Vector<Double> globalSolution;
-
- // Transform local nodal solution to global one
- // WARNING: Level for refinemet is hardcoded to 1
- sol.TransformNodeSolution(globalSolution,ptgrid,1);
-
+  
+  ENTER_FCN( "WriteResultsUnverg::WriteNodeSolutionTransient" );
+  Integer i,j;
+  Integer nrDofs = 1;
+  Double help;
+  
+  Vector<Double> globalSolution;
+  
+  StdVector<SolutionType> solTypes;
+  sol.GetSolutionTypes(solTypes);
+  
  Integer numNodes =  ptgrid->GetMaxnumnodes(1);
+ std::string title;
  
  if (NeedHistory_) 
    for (i=0; i< nodeshist_.GetSize(); i++)
@@ -347,23 +511,167 @@ void  WriteResultsUnverg::WriteNodeSolution(const NodeStoreSol<Double> & sol,
 	  }
      }
  else
-   Dataset55(title, globalSolution, step, time, numNodes ,sol.GetDof());
+   {
+     for (Integer iSol=0; iSol<solTypes.GetSize(); iSol++)
+       {
+	 sol.GetGlobalSolVector(solTypes[iSol],globalSolution);
+	 title = SolutionTypeToString(solTypes[iSol]);
+	 Dataset55_Transient(title, globalSolution, step, 
+			     time, numNodes ,sol.GetDof(solTypes[iSol]));
+       }
+   }
 }
 
-
-void  WriteResultsUnverg::WriteElemSolution(const ElemStoreSol<Double>& sol, const Integer step, const Double time, const std::string title)
+void  WriteResultsUnverg::WriteElemSolutionTransient(const ElemStoreSol<Double>& sol, 
+						     const Integer step, 
+						     const Double time)
 {
-  ENTER_FCN( "WriteResultsUnverg::WriteElemSolution" );
+  ENTER_FCN( "WriteResultsUnverg::WriteElemSolutionTransient" );
 
   Vector<Double> globalSolution;
-  Integer numElems =  ptgrid->GetMaxnumElem(1);
-  // Transform local nodal solution to global one
-  // WARNING: Level for refinemet is hardcoded to 1
-  sol.TransformElemSolution(globalSolution,ptgrid,1);
+  StdVector<SolutionType> solTypes;
+  std::string title;
+  Integer numElems =  ptgrid->GetMaxnumElem(0);  
   
-   if (!NeedHistory_)
-     Dataset56(title, globalSolution, step, time, numElems, sol.GetDof());
+  if (!NeedHistory_)
+    {
+      sol.GetSolutionTypes(solTypes);
+      sol.TransformElemSolution(globalSolution,ptgrid,0);
+      title = SolutionTypeToString(solTypes[0]);
+      Dataset56_Transient(title, globalSolution, step, 
+			  time, numElems, sol.GetDof());
+    }
 }
+
+void  WriteResultsUnverg::WriteNodeSolutionHarmonic(const NodeStoreSol<Complex> & sol, 
+						    const Integer step,
+						    const Double frequency, 
+						    const ComplexFormat format)
+{
+
+  ENTER_FCN( "WriteResultsUnverg::WriteNodeSolutionHarmonic" );
+  
+  
+  Integer i,j;
+  Integer nrDofs = 1;
+  Double help;
+ 
+  Vector<Complex> globalSolution;
+  
+  StdVector<SolutionType> solTypes;
+  sol.GetSolutionTypes(solTypes);
+  
+  Integer numNodes =  ptgrid->GetMaxnumnodes(1);
+  std::string title;
+  
+  if (NeedHistory_) 
+    Error("History results not implemented for complex results",
+	  __FILE__, __LINE__);
+    // for (i=0; i< nodeshist_.GetSize(); i++)
+//       {
+// 	if (sol.GetDof() * sol.GetNumNodes() <= nodeshist_[i])
+// 	  Error("Please, check history-nodes in config-file.",__FILE__,__LINE__);
+// 	if (lastsavetime[i] != time )
+// 	  if (nrDofs > 1)	
+// 	  {
+// 	    Vector<Double> solVec;
+// 	    solVec.Resize(nrDofs);
+// 	    for (j=0; j<nrDofs; j++)
+// 	      sol.Get(nodeshist_[i]-1,j,solVec[j]);
+	    
+// 	    AddVecInHistory(time, solVec, i);
+// 	  }
+// 	  else
+// 	    {
+// 	      sol.Get(nodeshist_[i]-1,0,help);
+// 	      AddInHistory(time,help,i);
+// 	    }
+//       }
+ else
+   {
+     for (Integer iSol=0; iSol<solTypes.GetSize(); iSol++)
+       {
+	 sol.GetGlobalSolVector(solTypes[iSol],globalSolution);
+	 title = SolutionTypeToString(solTypes[iSol]);
+	 Dataset55_Harmonic(title, globalSolution, step, frequency, 
+			    format, numNodes ,sol.GetDof(solTypes[iSol]));
+       }
+   }
+
+}
+
+
+void  WriteResultsUnverg::WriteElemSolutionHarmonic(const ElemStoreSol<Complex>& sol, 
+						    const Integer step,
+						    const Double frequency, 
+						    const ComplexFormat format)
+{
+  ENTER_FCN( "WriteResultsUnverg::WriteElemSolutionHarmonic" );
+  Error("WriteResultsUnverg::WriteElemSolutionHarmonic: Not implemented yet",
+	__FILE__, __LINE__);
+}
+
+std::string WriteResultsUnverg::SolutionTypeToString(const SolutionType type) const
+{
+  ENTER_FCN( "WriteResultsUnverg::SolutionTypeToString" );
+
+  switch (type)
+    {
+    case MECH_DISPLACEMENT:
+      return "displacement";
+      break;
+    case MECH_ACCELERATION:
+      return "acceleration";
+      break;
+    case MECH_VELOCITY:
+      return "velocity";
+      break;
+    case MECH_FORCE:
+      break;
+    case MECH_STRESS:
+      return "stress";
+      break;
+    case MECH_STRAIN:
+      break;
+    case ELEC_POTENTIAL:
+      return "electric potential";
+      break;
+    case ELEC_FIELD:
+      return "electric field";
+      break;
+    case ELEC_FORCE: 
+      break;
+    case SMOOTH_DISPLACEMENT:
+      return "displacement";
+      break;
+    case ACOU_POTENTIAL:
+      return "fluid potential";
+      break;
+    case ACOU_FORCE:
+      break;
+    case ACOU_POTENTIAL_DERIV_1:
+      return "fluid potential, 1st deriv.";
+      break;
+    case ACOU_POTENTIAL_DERIV_2:
+      return "fluid potential, 1st deriv.";
+      break;
+    case MAG_POTENTIAL:
+      return "mag. vector potential";
+      break;
+    case MAG_FIELD:
+      return "mag. flux density";
+      break;
+    case MAG_EDDY_CURRENT:
+      return "eddy current";
+      break;
+    case MAG_FORCE:
+      break;
+    default:
+      Error( "Wrong type of solution or 'SolutionType2String' not implemented for\
+this type of solution", __FILE__, __LINE__);
+    }
+}
+
 
 
 

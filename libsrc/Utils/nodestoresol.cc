@@ -2,30 +2,26 @@
 #include "Domain/elem.hh"
 #include "Domain/grid.hh"
 #include "DataInOut/WriteInfo.hh"
-
-#include <typeinfo>
+#include "PDE/superblockEQN.hh"
 
 namespace CoupledField{
-
-
 
 template<class TYPE>
 NodeStoreSol<TYPE>::NodeStoreSol()
 {
-  ENTER_FCN( "NodeStoreSol::NOdeStoreSol()" );
+  ENTER_FCN( "NodeStoreSol::NodeStoreSol()" );
   
   numNodes_ = 0;
   numSolutions_ = 0;
   length_ = 0;
   totalDofs_ = 0;
-  eqnOffset_ = 0;
-
+  
 }
   
 template<class TYPE>
 NodeStoreSol<TYPE>::NodeStoreSol(Integer numNodes, 
-			 StdVector<SolutionType> solTypes, 
-			 StdVector<Integer> solDofs)
+				 StdVector<SolutionType> solTypes, 
+				 StdVector<Integer> solDofs)
 {
   ENTER_FCN( "NodeStoreSol::NodeStoreSol(numNodes, solTypes, solDofs" );
   Error( "Not implemented here", __FILE__, __LINE__ );
@@ -33,8 +29,8 @@ NodeStoreSol<TYPE>::NodeStoreSol(Integer numNodes,
 
 template<class TYPE>
 NodeStoreSol<TYPE>::NodeStoreSol(const Integer numNodes,
-			 const SolutionType solType,
-			 const Integer numDofs)
+				 const SolutionType solType,
+				 const Integer numDofs)
 {
   ENTER_FCN( "NodeStoreSol::NodeStoreSol(numNodes, solType, soDofs" );
   Error( "Not implemented here", __FILE__, __LINE__ );
@@ -62,6 +58,7 @@ template<class TYPE>
 void NodeStoreSol<TYPE>::Clear()
 {
   ENTER_FCN( "NodeStoreSol::Clear()" );
+  Error("Not implemented" );
 }
 
 template<class TYPE>
@@ -71,10 +68,15 @@ void NodeStoreSol<TYPE>::Init()
 }
 
 template<class TYPE>
-void NodeStoreSol<TYPE>::SetPtrEQNData(NodeEQN * ptNodeEQN)
+void NodeStoreSol<TYPE>::SetPtrEQNData(NodeEQN * ptNodeEQN,
+				       Grid * ptGrid,
+				       Integer level)
 {
   ENTER_FCN( "NodeStoreSol::SetPtrEQNData" );
   ptEQN_ = ptNodeEQN;
+  ptGrid_ = ptGrid;
+  level_ = level;
+  
 }
 
 template<class TYPE>
@@ -250,76 +252,118 @@ TYPE  NodeStoreSol<TYPE>:: operator()(Integer node, Integer dof) const
 
 
 template<class TYPE>
-void NodeStoreSol<TYPE>::GetSolVector(const SolutionType type, CFSVector & val) const
+void NodeStoreSol<TYPE>::GetGlobalSolVector(const SolutionType type, 
+					    CFSVector & val) const
 {
-  ENTER_FCN("NodeStoreSol::GetSolVector");
+  ENTER_FCN("NodeStoreSol::GetGlobalSolVector");
 #ifdef CHECK_INITIALIZED
   if (length_ == 0) Error("NodeStoreSol: Use of uninitialized object!",__FILE__,__LINE__);
 #endif
 
-  Integer offset = (*solOffset_.find(type)).second;
-  Integer dof = (*solDofs_.find(type)).second;
-  val.Resize(dof*numNodes_);
-
-  Vector<TYPE> & ret = dynamic_cast<Vector<TYPE>&>(val);
-  for (Integer iNode=0; iNode<numNodes_; iNode++)
-    for (Integer iDof=0; iDof<dof; iDof++)
-      ret[iNode*dof+iDof] = data_[iNode*totalDofs_+iDof+offset];
-}
-
-template<class TYPE>
-void NodeStoreSol<TYPE>::SetSolVector(const SolutionType type, const CFSVector & val)
-{
-  ENTER_FCN("NodeStoreSol::SetSolVector");
-#ifdef CHECK_INITIALIZED
-  if (length_ == 0) Error("NodeStoreSol: Use of uninitialized object!",__FILE__,__LINE__);
-#endif 
   
-#ifdef CHECK_INDEX
-  if (val.GetSize() != data_.GetSize())
-    Error("NodeStoreSol::SetSolVector(): Vector has incompatible dimensions!",__FILE__,__LINE__);
-#endif
-
-  const Vector<TYPE> & temp = dynamic_cast<const Vector<TYPE>&>(val);
-  for (Integer i=0; i<temp.GetSize(); i++)
-    data_[i] = temp[i];
-}
-
-template<class TYPE>
-void NodeStoreSol<TYPE>::GetSolution(const SolutionType type, BaseStoreSol & val) const
-{
-  ENTER_FCN("NodeStoreSol::GetSolution");
-#ifdef CHECK_INITIALIZED
-  if (length_ == 0) Error("NodeStoreSol: Use of uninitialized object!",__FILE__,__LINE__);
-#endif
   Integer offset = (*solOffset_.find(type)).second;
   Integer dof = (*solDofs_.find(type)).second;
     
-  NodeStoreSol<TYPE> & temp = dynamic_cast<NodeStoreSol<TYPE>&>(val);
+  Vector<TYPE> & temp = dynamic_cast<Vector<TYPE>&>(val);
+ 
+  Integer globalPos, eqnDofs, dofsPerEQN, eqnDof;
+  Integer numElecEQNs, numMechEQNs, remainder;
+  
+  temp.Resize(ptGrid_->GetMaxnumnodes(level_)*dof);
+  eqnDofs = ptEQN_->GetNumDofs();
+  dofsPerEQN = ptEQN_->GetNumDofsPerEQN();
+ 
+  //std::cerr << "temp has size " << temp.GetSize() << std::endl;
+  //std::cerr << "data_ has size " << data_.GetSize() << std::endl;
+  //std::cerr << "totalDofs = " << totalDofs_ << std::endl;
+  SuperBlockEQN * tempEQN;
+  
+  
+  if (typeid(*ptEQN_) == typeid(SuperBlockEQN))
+    {
+      tempEQN = dynamic_cast<SuperBlockEQN * >(ptEQN_);
+      numMechEQNs = tempEQN->GetNumMechEQNs();
+      numElecEQNs = tempEQN->GetNumElecEQNs();
+      if (dof == 1)
+	{
+	  //std::cerr << "Im Block für ElecPotential" << std::endl;
+	  for (Integer iEQN=numMechEQNs; iEQN<numMechEQNs+numElecEQNs; iEQN++)
+	    {
+	      //std::cerr << "Trying to get pos for eqn " << iEQN+1 << std::endl;
+	      ptEQN_->EQN2SolVectorPos(iEQN+1,1,globalPos);
+	      //std::cerr << "Position is " << globalPos << std::endl;
+	      globalPos = (Integer) (globalPos - eqnDofs +1 ) / eqnDofs;
+	      //std::cerr << "Corrected Position is " << globalPos << std::endl;
+	      temp[globalPos] = data_[iEQN];
+	    }
+	}
+      else
+	{
+	  //std::cerr << "im Block für MechDisp" << std::endl;
+	  for (Integer iEQN=0; iEQN<numMechEQNs; iEQN++)
+	    {
+	      //std::cerr << "Trying to get pos for eqn " << iEQN+1 << std::endl;
+	    ptEQN_->EQN2SolVectorPos(iEQN+1,1,globalPos);
+	    //std::cerr << "Position is " << globalPos << std::endl;
 
-  // delete old map
-  temp.solDofs_.clear();
-  temp.solTypes_.clear();
-  temp.solOffset_.clear();
+	    globalPos = (Integer) globalPos / (totalDofs_)*(totalDofs_-1) + globalPos%(totalDofs_);
+	    //std::cerr << "Corrected Position is " << globalPos << std::endl;
+	    temp[globalPos] = data_[iEQN];
+	    }
+	}
+    }
+  else
+    {
+      if (ptEQN_->IsBlockMapped())
+	{
+	  // In this case each eqn has a dof number > 1 and we need
+	  // two loops to map each eqn to its positionS
+	  //std::cerr << "In BlockMapped" << std::endl;
+	  // Loop over all Equations
+	  for (Integer iEQN=0; iEQN<ptEQN_->GetNumEQNs(); iEQN++)
+	    for (Integer iDof=0; iDof<dof; iDof++)
+	      {
+		ptEQN_->EQN2SolVectorPos(iEQN+1,offset+iDof+1,globalPos);
+		//std::cerr << "SolVectorPos for EQN " << iEQN+1 << " is " << globalPos << std::endl;
 
-  temp.numNodes_ = numNodes_;
-  temp.numSolutions_ = 1;
-  temp.solTypes_[type] = 0;
-  temp.solOffset_[type] = 0;
-  temp.solDofs_[type] = dof;
-  temp.totalDofs_ = dof;
-  temp.eqnOffset_ = offset;
-  temp.ptEQN_ = ptEQN_;
-  temp.length_ = temp.numNodes_ * dof;
-  temp.data_.Resize(temp.length_);
-
-  // TEMPORARYLY
-  Integer myLength = (Integer) lengthVector_ / totalDofs_;
-
-
-  for (Integer iNode=0; iNode<myLength; iNode++)
-    for (Integer iDof=0; iDof<dof; iDof++)
-      temp.data_[iNode*dof+iDof] = data_[iNode*totalDofs_+iDof+offset];
+		// Correct global position for EQNs with more than one solutiontype
+		globalPos =(Integer) (globalPos-iDof-offset)/eqnDofs * dof + iDof;    
+		//std::cerr << "Corrected position is " << globalPos << std::endl;
+		temp[globalPos] = data_[iEQN*totalDofs_ +iDof + offset];
+	      }
+	} 
+      else 
+	{
+	  // In this case each eqn has only one dof 
+	  // and only one for loop is needed
+	  //std::cerr << "Number of equations = " << ptEQN_->GetNumEQNs() << std::endl;
+	  //std::cerr << "We are longing for dof " << dof << std::endl;
+	  for (Integer iEQN=0; iEQN< ptEQN_->GetNumEQNs(); iEQN++)
+	    {
+	      ptEQN_->EQN2SolVectorPos(iEQN+1,1,globalPos);
+	      //std::cerr << "SolVectorPos for EQN " << iEQN+1 << " is " << globalPos << std::endl;
+	      // ONLY TEMPORARY, until superblocknumbering
+	      // for piezoPDE works ;-)
+	      //std::cerr << "Corrected Position is " << (Integer) globalPos/ *totalDofs_ << std::endl;
+	      
+	      //std::cerr << "Corrected position is " << globalPos << std::endl;
+	      for (Integer iDof=0; iDof<dof; iDof++)
+		{
+		  remainder = globalPos%dof;
+		  if (remainder == iDof)
+		    {
+		      //std::cerr << "remainder = 0 for Dof " << iDof << std::endl;
+		      globalPos = (Integer) ((globalPos-iDof)/totalDofs_*dof) + iDof;
+		      //std::cerr << "Corrected position is " << globalPos << std::endl;
+		      temp[globalPos] = data_[iEQN];
+		      //std::cerr << " -> is Written out " << std::endl;
+		    }
+		}
+	    }
+	  
+	}
+    }  
+  
 }
 
 template<class TYPE>
@@ -353,7 +397,9 @@ void NodeStoreSol<TYPE>::GetNodalResult(const Integer nodeNr, CFSVector &val) co
 }
 
 template<class TYPE>
-void NodeStoreSol<TYPE>::GetSolVectorSingleDof(const SolutionType type, const Integer dof, CFSVector & val) const
+void NodeStoreSol<TYPE>::GetGlobalSolVectorSingleDof(const SolutionType type, 
+						     const Integer dof, 
+						     CFSVector & val) const
 {
   ENTER_FCN("NodeStoreSol::GetSolVectorSingleDof");
 #ifdef CHECK_INITIALIZED
@@ -363,7 +409,8 @@ void NodeStoreSol<TYPE>::GetSolVectorSingleDof(const SolutionType type, const In
 }
 
 template<class TYPE>
-void NodeStoreSol<TYPE>::GetSolVectorSingleDof(const Integer dof, CFSVector & val) const
+void NodeStoreSol<TYPE>::GetGlobalSolVectorSingleDof(const Integer dof, 
+						     CFSVector & val) const
 {
   ENTER_FCN("NodeStoreSol::GetSolVectorSingleDof");
 #ifdef CHECK_INITIALIZED
@@ -450,9 +497,9 @@ void NodeStoreSol<TYPE>::Add(const SolutionType type, const Integer nodeNr, cons
 }
 
 template<class TYPE>
-void NodeStoreSol<TYPE>::SetCompleteVector(const CFSVector & val)
+void NodeStoreSol<TYPE>::SetAlgSysVector(const CFSVector & val)
 {
-  ENTER_FCN("NodeStoreSol::SetCompleteVector");
+  ENTER_FCN("NodeStoreSol::SetAlgSysVector");
 #ifdef CHECK_INITIALIZED
    if (length_ == 0) Error("NodeStoreSol: Use of uninitialized object!",__FILE__,__LINE__);
 #endif
@@ -466,9 +513,9 @@ void NodeStoreSol<TYPE>::SetCompleteVector(const CFSVector & val)
 }
   
 template<class TYPE> 
-void NodeStoreSol<TYPE>::GetCompleteVector(CFSVector & val) const
+void NodeStoreSol<TYPE>::GetAlgSysVector(CFSVector & val) const
 {
- ENTER_FCN("NodeStoreSol::SetCompleteVector");
+ ENTER_FCN("NodeStoreSol::GetAlgSysVector");
 #ifdef CHECK_INITIALIZED
   if (length_ == 0) Error("NodeStoreSol: Use of uninitialized object!",__FILE__,__LINE__);
 #endif
@@ -478,9 +525,9 @@ void NodeStoreSol<TYPE>::GetCompleteVector(CFSVector & val) const
 }
 
 template<class TYPE>
-void NodeStoreSol<TYPE>::GetVectorPointer(CFSVector* &ptrToVec)
+void NodeStoreSol<TYPE>::GetAlgSysVectorPointer(CFSVector* &ptrToVec)
 {
-  ENTER_FCN("NodeStoreSol::GetVectorPointer");
+  ENTER_FCN("NodeStoreSol::GetAlgSysVectorPointer");
 #ifdef CHECK_INITIALIZED
   if (length_ == 0) Error("NodeStoreSol: Use of uninitialized object!",__FILE__,__LINE__);
 #endif
@@ -489,9 +536,9 @@ void NodeStoreSol<TYPE>::GetVectorPointer(CFSVector* &ptrToVec)
 }
 
 template<class TYPE>
-void NodeStoreSol<TYPE>::GetVectorPointer(Vector<TYPE>* &ptrToVec)
+void NodeStoreSol<TYPE>::GetAlgSysVectorPointer(Vector<TYPE>* &ptrToVec)
 {
-  ENTER_FCN("NodeStoreSol::GetVectorPointer");
+  ENTER_FCN("NodeStoreSol::GetAlgSysVectorPointer");
 #ifdef CHECK_INITIALIZED
   if (length_ == 0) Error("NodeStoreSol: Use of uninitialized object!",__FILE__,__LINE__);
 #endif
@@ -500,47 +547,69 @@ void NodeStoreSol<TYPE>::GetVectorPointer(Vector<TYPE>* &ptrToVec)
 }
 
 template<class TYPE>
-void NodeStoreSol<TYPE>::CopyFromDataPointer(TYPE * ptr)
+void NodeStoreSol<TYPE>::CopyFromAlgSysDataPointer(Double * ptr)
 {
-  ENTER_FCN("NodeStoreSol::CopyFromDataPointer");
+  ENTER_FCN("NodeStoreSol::CopyFromAlgSysDataPointer");
 #ifdef CHECK_INITIALIZED
   if (length_ == 0) Error("NodeStoreSol: Use of uninitialized object!",__FILE__,__LINE__);
 #endif
   for (Integer i=0; i<lengthVector_; i++)
     {
-      data_[i] = ptr[i];
+      data_[i] = (TYPE) ptr[i];
     }
 
 }
 
-template<class TYPE>
-void NodeStoreSol<TYPE>::SetDataPointer(TYPE * ptr)
+// Specialisation for complex values
+template<>
+void NodeStoreSol<Complex>::CopyFromAlgSysDataPointer(Double * ptr)
 {
-  ENTER_FCN("NodeStoreSol::SetDataPointer");
+  ENTER_FCN("NodeStoreSol::CopyFromAlgSysDataPointer");
+#ifdef CHECK_INITIALIZED
+  if (length_ == 0) Error("NodeStoreSol: Use of uninitialized object!",__FILE__,__LINE__);
+#endif
+  for (Integer i=0; i<lengthVector_; i++)
+    {
+      data_[i] = Complex(ptr[2*i],ptr[2*i+1]);
+    }
+
+}
+
+
+template<class TYPE>
+void NodeStoreSol<TYPE>::SetAlgSysDataPointer(Double * ptr)
+{
+  ENTER_FCN("NodeStoreSol::SetAlgSysDataPointer");
 #ifdef CHECK_INITIALIZED
   if (length_ == 0) Error("NodeStoreSol: Use of uninitialized object!",
 				__FILE__,__LINE__);
 #endif
   
+  
   data_.data_ = ptr;
 
 }
 
-template<class TYPE>
-void NodeStoreSol<TYPE>::GetDataPointer(TYPE* &ptr)
+template<>
+void NodeStoreSol<Complex>::SetAlgSysDataPointer(Double * ptr)
 {
-  ENTER_FCN("NodeStoreSol::GetDataPointer");
+  ENTER_FCN("NodeStoreSol::SetAlgSysDataPointer");
 #ifdef CHECK_INITIALIZED
   if (length_ == 0) Error("NodeStoreSol: Use of uninitialized object!",
 				__FILE__,__LINE__);
 #endif
- 
-  ptr =  data_.data_;
+  
+  if (data_.GetSize() == 0)
+    data_.Resize(lengthVector_);
+  
+  for (Integer i=0; i<lengthVector_; i++)
+    data_.data_[i] = Complex(ptr[2*i],ptr[2*i+1]);
+
 }
 
 
 template<>
-Double* NodeStoreSol<Double>::GetDoublePointer()
+Double* NodeStoreSol<Double>::GetAlgSysDoublePointer()
 {
   ENTER_FCN("NodeStoreSol::GetDoublePointer");
 #ifdef CHECK_INITIALIZED
@@ -552,9 +621,9 @@ Double* NodeStoreSol<Double>::GetDoublePointer()
 
 
 template<class TYPE>
-Double* NodeStoreSol<TYPE>::GetDoublePointer()
+Double* NodeStoreSol<TYPE>::GetAlgSysDoublePointer()
 {
-  ENTER_FCN("NodeStoreSol::GetDoublePointer");
+  ENTER_FCN("NodeStoreSol::GetAlgSysDoublePointer");
 #ifdef CHECK_INITIALIZED
   if (length_ == 0) Error("NodeStoreSol: Use of uninitialized object!",__FILE__,__LINE__);
 #endif
@@ -568,7 +637,7 @@ Double* NodeStoreSol<TYPE>::GetDoublePointer()
 
 template<class TYPE>
 void NodeStoreSol<TYPE>::GetElemSolution(CFSVector & elemSol,
-			       const StdVector<Integer> & connect) const
+					 const StdVector<Integer> & connect) const
 {
   ENTER_FCN( "NodeStoreSol::GetElemSolution" );
   Integer eqnNr, eqnDof;
@@ -638,60 +707,96 @@ void NodeStoreSol<TYPE>::TransformNodeSolution(CFSVector & transformedSolution,
   eqnDofs = ptEQN_->GetNumDofs();
   dofsPerEQN = ptEQN_->GetNumDofsPerEQN();
  
-  //std::cerr << "temp has size " << temp.GetSize() << std::endl;
-  //std::cerr << "data_ has size " << data_.GetSize() << std::endl;
-  //std::cerr << "totalDofs = " << totalDofs_ << std::endl;
-
-
-   if (ptEQN_->IsBlockMapped())
-     {
-       // In this case each eqn has a dof number > 1 and we need
-       // two loops to map each eqn to its positionS
-       
-       // Loop over all Equations
-       for (Integer iEQN=0; iEQN<(Integer) ptEQN_->GetNumEQNs(); iEQN++)
-	 for (Integer iDof=0; iDof<totalDofs_; iDof++)
-	   {
-	     ptEQN_->EQN2SolVectorPos(iEQN+1,eqnOffset_+iDof+1,globalPos);
-	     //std::cerr << "SolVectorPos for EQN " << iEQN+1 << " is " << globalPos << std::endl;
-	     // ONLY TEMPORARY, until superblocknumbering
-	     // for piezoPDE works ;-)
-	     globalPos =(Integer) (globalPos-iDof)/eqnDofs *totalDofs_+iDof;    bool isDamping_ = false;
-
-	  
-	     //std::cerr << "Corrected position is " << globalPos << std::endl;
-	     // 	  for (Integer iDof=0; iDof<totalDofs_; iDof++)
-	     // 	    {
-	     //std::cerr << "Equation" << iEQN+1 << "gets stored to location" << globalPos+iDof << std::endl;
-	     //std::cerr << "Data is read from data_[" << iEQN*totalDofs_+iDof << "] = " <<  data_[iEQN*totalDofs_+iDof] << std::endl;
-	     //std::cerr << "Try to store data_[" <<  +iDof;
-	     
-	     //    std::cerr <<  "] to temp[" << globalPos+iDof << "]" << std::endl;
-	     temp[globalPos] = data_[iEQN*totalDofs_ +iDof];
-	     // }
-	   }
-     } 
-   else 
-     {
-       // In this case each eqn has only one dof 
-       // and only one for loop is needed
-      for (Integer iEQN=0; iEQN<(Integer) ptEQN_->GetNumEQNs(); iEQN++)
-	  {
-	  ptEQN_->EQN2SolVectorPos(iEQN+1,1,globalPos);
-	  //std::cerr << "SolVectorPos for EQN " << iEQN+1 << " is " << globalPos << std::endl;
-	  // ONLY TEMPORARY, until superblocknumbering
-	  // for piezoPDE works ;-)
-	  //globalPos =(Integer) globalPos/eqnDofs *totalDofs_;
-	  
-	  //std::cerr << "Corrected position is " << globalPos << std::endl;
-	
-	  temp[globalPos] = data_[iEQN];
-	  // }
+  std::cerr << "temp has size " << temp.GetSize() << std::endl;
+  std::cerr << "data_ has size " << data_.GetSize() << std::endl;
+  std::cerr << "totalDofs = " << totalDofs_ << std::endl;
+  SuperBlockEQN * tempEQN;
+  Integer numElecEQNs, numMechEQNs;
+  
+  if (typeid(*ptEQN_) == typeid(SuperBlockEQN))
+    {
+      tempEQN = dynamic_cast<SuperBlockEQN * >(ptEQN_);
+      numMechEQNs = tempEQN->GetNumMechEQNs();
+      numElecEQNs = tempEQN->GetNumElecEQNs();
+      if (totalDofs_ == 1)
+	{
+	  std::cerr << "Im Block für ElecPotential" << std::endl;
+	  for (Integer iEQN=numMechEQNs; iEQN<numMechEQNs+numElecEQNs; iEQN++)
+	    {
+	      std::cerr << "Trying to get pos for eqn " << iEQN+1 << std::endl;
+	      ptEQN_->EQN2SolVectorPos(iEQN+1,1,globalPos);
+	      std::cerr << "Position is " << globalPos << std::endl;
+	      globalPos = (Integer) (globalPos - eqnDofs +1 ) / eqnDofs;
+	      std::cerr << "Corrected Position is " << globalPos << std::endl;
+	      temp[globalPos] = data_[iEQN-numMechEQNs];
+	    }
 	}
-      
+      else
+	{
+	  std::cerr << "im Block für MechDisp" << std::endl;
+	  for (Integer iEQN=0; iEQN<numMechEQNs; iEQN++)
+	    {
+	    std::cerr << "Trying to get pos for eqn " << iEQN+1 << std::endl;
+	    ptEQN_->EQN2SolVectorPos(iEQN+1,1,globalPos);
+	    std::cerr << "Position is " << globalPos << std::endl;
+	    globalPos = (Integer) globalPos / (totalDofs_+1)*totalDofs_ + globalPos%(totalDofs_+1);
+	    std::cerr << "Corrected Position is " << globalPos << std::endl;
+	    temp[globalPos] = data_[iEQN];
+	    }
+	}
     }
-}  
-
+  else
+    {
+      if (ptEQN_->IsBlockMapped())
+	{
+	  // In this case each eqn has a dof number > 1 and we need
+	  // two loops to map each eqn to its positionS
+	  
+	  // Loop over all Equations
+	  for (Integer iEQN=0; iEQN<(Integer) ptEQN_->GetNumEQNs(); iEQN++)
+	    for (Integer iDof=0; iDof<totalDofs_; iDof++)
+	      {
+		ptEQN_->EQN2SolVectorPos(iEQN+1,eqnOffset_+iDof+1,globalPos);
+		//std::cerr << "SolVectorPos for EQN " << iEQN+1 << " is " << globalPos << std::endl;
+		// ONLY TEMPORARY, until superblocknumbering
+		// for piezoPDE works ;-)
+		globalPos =(Integer) (globalPos-iDof)/eqnDofs *totalDofs_+iDof;    bool isDamping_ = false;
+		
+		
+		//std::cerr << "Corrected position is " << globalPos << std::endl;
+		// 	  for (Integer iDof=0; iDof<totalDofs_; iDof++)
+		// 	    {
+		//std::cerr << "Equation" << iEQN+1 << "gets stored to location" << globalPos+iDof << std::endl;
+		//std::cerr << "Data is read from data_[" << iEQN*totalDofs_+iDof << "] = " <<  data_[iEQN*totalDofs_+iDof] << std::endl;
+		//std::cerr << "Try to store data_[" <<  +iDof;
+		
+		//    std::cerr <<  "] to temp[" << globalPos+iDof << "]" << std::endl;
+		temp[globalPos] = data_[iEQN*totalDofs_ +iDof];
+		// }
+	      }
+	} 
+      else 
+	{
+	  // In this case each eqn has only one dof 
+	  // and only one for loop is needed
+	  for (Integer iEQN=0; iEQN<(Integer) ptEQN_->GetNumEQNs(); iEQN++)
+	    {
+	      ptEQN_->EQN2SolVectorPos(iEQN+1,1,globalPos);
+	      //std::cerr << "SolVectorPos for EQN " << iEQN+1 << " is " << globalPos << std::endl;
+	      // ONLY TEMPORARY, until superblocknumbering
+	      // for piezoPDE works ;-)
+	      //globalPos =(Integer) globalPos/eqnDofs *totalDofs_;
+	      
+	      //std::cerr << "Corrected position is " << globalPos << std::endl;
+	      
+	      temp[globalPos] = data_[iEQN];
+	      // }
+	    }
+	  
+	}
+    }  
+}
+  
 template<class TYPE>
 void NodeStoreSol<TYPE>::NodeSolutionToCoupling(CFSVector & couplingSol,
 						const StdVector<Integer>& nodeNumbers) const
@@ -728,10 +833,10 @@ NodeStoreSol<TYPE> & NodeStoreSol<TYPE>::operator= (const NodeStoreSol & x)
 }
 
 template<class TYPE>
-BaseStoreSol & NodeStoreSol<TYPE>::operator= (const BaseStoreSol & x)
+BaseNodeStoreSol & NodeStoreSol<TYPE>::operator= (const BaseNodeStoreSol & x)
 {
   ENTER_FCN("NodeStoreSol::operator=(const BaseNodeStoreSol &");
-  if ( &x == dynamic_cast<BaseStoreSol*>(this))
+  if ( &x == dynamic_cast<BaseNodeStoreSol*>(this))
     return (*this);
 
   const NodeStoreSol<TYPE> & temp = dynamic_cast<const NodeStoreSol<TYPE>&>(x);
@@ -741,12 +846,11 @@ BaseStoreSol & NodeStoreSol<TYPE>::operator= (const BaseStoreSol & x)
   this->length_ = temp.length_;
   this->solTypes_ = temp.solTypes_;
   this->solOffset_ = temp.solOffset_;
-  this->solDofs_ = temp.solDofs_;
-  this->totalDofs_ = temp.totalDofs_;
+  this->solDofs_ = temp.solDofs_; this->totalDofs_ = temp.totalDofs_;
   this->data_ = temp.data_;
   this->convertedData_ = temp.convertedData_;
  
-  return dynamic_cast<BaseStoreSol &> (*this);
+  return dynamic_cast<BaseNodeStoreSol &> (*this);
 }
 
 template <class TYPE>
