@@ -7,14 +7,14 @@ namespace CoupledField
 {
 
   BaseForm::BaseForm(BaseFE * aptelem, MaterialData & matData)
-    :ptMaterial(&matData), ptelem(aptelem), isaxi_(FALSE), dofzero_(0)
+    :ptMaterial(&matData), ptelem(aptelem), isaxi_(FALSE), dofzero_(0), isFracDamping_(FALSE)
   {
     ENTER_FCN( "BaseForm::BaseForm" );
     isSetIntPoint_ = FALSE;
   }
 
   BaseForm::BaseForm(MaterialData & matData)
-    :isaxi_(FALSE), dofzero_(0)
+    :isaxi_(FALSE), dofzero_(0), isFracDamping_(FALSE)
   {
     ENTER_FCN( "BaseForm::BaseForm" );
     isSetIntPoint_ = FALSE;
@@ -23,14 +23,14 @@ namespace CoupledField
   }
 
   BaseForm::BaseForm(BaseFE * aptelem)
-    :ptelem(aptelem), isaxi_(FALSE),  dofzero_(0)
+    :ptelem(aptelem), isaxi_(FALSE),  dofzero_(0), isFracDamping_(FALSE)
   {
     ENTER_FCN( "BaseForm::BaseForm" );
     isSetIntPoint_ = FALSE;
   }
  
   BaseForm::BaseForm()
-    : isaxi_(FALSE),  dofzero_(0)
+    : isaxi_(FALSE),  dofzero_(0), isFracDamping_(FALSE)
   {
     ENTER_FCN( "BaseForm::BaseForm" );
     isSetIntPoint_ = FALSE;

@@ -19,4 +19,6 @@
 #include "nLincurlCurlNodeInt.hh"
 #include "mechStressStrain.hh"
 #include "magforceop.hh"
+#include "nLinAcoustic1.hh"
+#include "nLinAcoustic2.hh"
 #endif

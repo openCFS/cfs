@@ -168,6 +168,12 @@ namespace CoupledField
 	    SetFE2ReducedInt();
 	  }
 
+	  if ( actDescriptor->GetIntegrator()->IsFracDamping() ) 
+	    {
+	      Double damp = 1.0;
+	      actDescriptor->GetIntegrator()->SetFactor(damp);
+	    }
+	  
 	  for (int actEl=0; actEl< elemssd.GetSize(); actEl++) {
 	    BaseFE * ptEl = elemssd[actEl]->ptElem;
 	    StdVector<Integer> connecth = elemssd[actEl]->connect;

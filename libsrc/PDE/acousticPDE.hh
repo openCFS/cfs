@@ -34,6 +34,10 @@ public:
 
   //! define all (bilinearform) integrators needed for this pde
   virtual void DefineIntegrators(const Integer level);
+
+//   //! nonlinear transient step
+//   void StepTransNonLin(const Integer kstep, const Double asteptime,
+// 	
 				
   //! write results in file
   //! \param stepOffset offset for starting (time)step
@@ -76,6 +80,9 @@ public:
 
 protected:
 
+  //! calculates L2-norm of RHS regarding entries due to penalty formulation
+  Double RhsL2Norm(Vector<Double>& stdVec);
+
   //! Init the time stepping
   void InitTimeStepping();
 
@@ -84,10 +91,11 @@ protected:
 
   Integer size_; //!< total number of unknowns (equations)
 
-  StdVector<std::string> absBCs_;   //!< list of boundaries( for absorbing BCs)
-  Boolean absorbingBCs_;               //!< switch for absorbing boundary conditions
-  //DampingType dampingType_; //!< specifies the type of damping model (see environment.hh)
-  Integer fracMemory_;      //!< number of old time steps to be saved
+  StdVector<std::string> absBCs_;        //!< list of boundaries( for absorbing BCs)
+  Boolean absorbingBCs_;                 //!< switch for absorbing boundary conditions
+  Integer fracMemory_;                   //!< number of old time steps to be saved
+  StdVector<std::string> dampingList_;   //!< list of damping types for all regions
+  StdVector<std::string> nonLinPDEType_; //!< list of regions with nonlinear PDE
 
   // Postprocessing results
 

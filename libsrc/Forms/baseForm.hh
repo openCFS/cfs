@@ -64,6 +64,14 @@ public:
   //
   virtual void SetNonLinMethod(std::string atype) {;};
 
+  //
+  virtual void SetFracDamping() {;};
+
+  //
+  virtual Boolean IsFracDamping() {return isFracDamping_;};
+
+  //
+  virtual void SetFactor(Double factor) {;};
 
   //! sets pointer to actual element
   void SetElemPtr(BaseFE * elemPtr){ptelem = elemPtr;};
@@ -108,6 +116,9 @@ protected:
   Vector<Double> intPoint_;
   //
   Boolean isSetIntPoint_;
+
+  //
+  Boolean isFracDamping_;
 
   Integer dofzero_; //for multidof-handling, where one dof is zero (e.g. piezoelectric PDE)
 

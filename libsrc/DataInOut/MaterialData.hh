@@ -30,6 +30,7 @@ private:
   Double compressibility;
   Double damp_alfa;
   Double damp_beta;
+  Double BoverA;
   Double eModule;
   Double nu;
   Double LameLambda;
@@ -104,6 +105,11 @@ public:
   /// set damping coefficients
   void SetDampingCoeffs(const Double& Damp_alfa, const Double& Damp_beta)
     {damp_alfa=Damp_alfa; damp_beta=Damp_beta;};
+
+
+  /// set BoverA (nonlinearity parameter in nonlinear acoustics)
+  void SetBoverA(const Double& BA){BoverA = BA;};
+
 
   /// set values of permanent magnetization
   void SetPermMag(const Double& mX, const Double& mY, const Double& mZ)
@@ -202,6 +208,9 @@ public:
 
   /// get beta damping coefficient
   Double GetDampingBeta() const {return damp_beta;};  
+
+  /// get BoverA for nonlinear acoustics
+  Double GetBoverA() const {return BoverA;}; 
 
   /// get nu
   Double GetNu() const { return nu; };

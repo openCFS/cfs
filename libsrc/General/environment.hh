@@ -88,8 +88,8 @@ namespace CoupledField
 			GaussOrder5, GaussOrder7, null};
 
   //! Damping type
-  enum DampingType{NONE=0, RAYLEIGH=1, FRACTIONAL=2, ABCDAMP=3,
-		   THERMOVISCOUS=4};
+   enum DampingType{NONE=0, RAYLEIGH=1, ABCDAMP=2, THERMOVISCOUS=3,
+				   FRACTIONAL=4, FRACTIONAL_GL=5, FRACTIONAL_BLANK=6};
 
   //! Describes all possible solution types in a CFS simulation
   typedef enum{NO_SOLUTION_TYPE, 
