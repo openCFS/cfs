@@ -318,8 +318,8 @@ namespace CoupledField {
 	  
 	  // Iterate over all tags in one special 'bcsAndLoads' occurence
 	  for (Integer iTagLocal=0; iTagLocal<tagsLocal.GetSize(); iTagLocal++)
-	    if (tagsPerStep_[iStep][iPDE] == tagsLocal[iTagLocal]) {
-// 		|| tagsLocal[iTagLocal] == "anyTag" ) {
+	    if (tagsPerStep_[iStep][iPDE] == tagsLocal[iTagLocal]
+ 		|| tagsLocal[iTagLocal] == "anyTag" ) {
 	    tagFound = TRUE;
 	    break;
 	    }
@@ -380,7 +380,8 @@ namespace CoupledField {
 	    for (Integer iTag=0; iTag<tagsAux.GetSize(); iTag++) 
 	      // 	    if (tagsAux[iTag] == "anyTag" ||
 	      // 		tagsAux[iTag] == tagsPerStep_[iStep][iPDE]) {
-	      if (tagsAux[iTag] == tagsPerStep_[iStep][iPDE]) {
+	      if (tagsAux[iTag] == tagsPerStep_[iStep][iPDE] ||
+		  tagsAux[iTag] == "anyTag") {
 		tagFound = TRUE;
 		break;
 	      }
