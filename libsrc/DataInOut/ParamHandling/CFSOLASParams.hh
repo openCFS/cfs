@@ -39,8 +39,9 @@ namespace CoupledField
 				  OLAS_Params *olas, PrecondType pType );
 
     //! Expert routine for correcting parameter inconsistencies
-    static void Expert( SolverType &sType, PrecondType &pType,
-			MatrixStorageType &mType, MatrixEntryType &eType );
+    static void Expert( std::string pdename, SolverType &sType,
+			PrecondType &pType, MatrixStorageType &mType,
+			MatrixEntryType &eType );
 
   };
 
