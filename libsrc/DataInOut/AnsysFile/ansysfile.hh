@@ -178,6 +178,9 @@ private:
   //! number of nodes
   Integer maxNumNodes_;
 
+  //! get a sinlge integer in a save way
+  Integer GetInteger(std::string seekexp);
+
   //! get position after line with seekexp and comments lines
   void getPosLine(const std::string seekexp, std::string::size_type & pos);
 
