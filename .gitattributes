@@ -72,7 +72,6 @@ libsrc/DataInOut/Unverg/outUnverg.hh svneol=native#text/plain
 libsrc/DataInOut/WriteInfo.cc svneol=native#text/plain
 libsrc/DataInOut/WriteInfo.hh svneol=native#text/plain
 libsrc/DataInOut/XMLSkeletonConf.cc svneol=native#text/plain
-libsrc/DataInOut/XMLSkeletonConf.hh svneol=native#text/plain
 libsrc/DataInOut/filetype.cc svneol=native#text/plain
 libsrc/DataInOut/filetype.hh svneol=native#text/plain
 libsrc/DataInOut/timefunc.cc svneol=native#text/plain
