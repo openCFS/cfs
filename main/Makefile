@@ -7,23 +7,24 @@ C_DIR= ..
 #
 LIBDIR = $(C_DIR)/libsrc
 #
-#SUBLIBDIR = Driver PDE AlgebraicSystem/LinAlg \
-#            AlgebraicSystem/PILES/general \
-#            AlgebraicSystem/PILES/multigrid \
-#            AlgebraicSystem/PILES/superlu \
-#            Forms Elements Domain/GridCFS Domain/Gridlib Domain \
-#            DataInOut/DefineFiles \
-#            DataInOut/Unverg DataInOut/DatFile DataInOut\
-#            Utils Matrix General
 SUBLIBDIR = Driver PDE AlgebraicSystem/LinAlg \
             AlgebraicSystem/PILES/general \
             AlgebraicSystem/PILES/multigrid \
             AlgebraicSystem/PILES/superlu \
             Forms Elements Elements/2D Elements/3D \
-            Domain/GridCFS Domain/Gridlib Domain \
+            Domain/GridCFS Domain \
             DataInOut/DefineFiles \
             DataInOut/Unverg DataInOut/DatFile DataInOut\
             Utils Matrix General
+#SUBLIBDIR = Driver PDE AlgebraicSystem/LinAlg \
+#            AlgebraicSystem/PILES/general \
+#            AlgebraicSystem/PILES/multigrid \
+#            AlgebraicSystem/PILES/superlu \
+#            Forms Elements Elements/2D Elements/3D \
+#            Domain/GridCFS Domain/Gridlib Domain \
+#            DataInOut/DefineFiles \
+#            DataInOut/Unverg DataInOut/DatFile DataInOut\
+#            Utils Matrix General
 #
 PATHSUBLIBDIR = $(addprefix $(LIBDIR)/, $(SUBLIBDIR))
 #
@@ -133,7 +134,7 @@ clean-utils:
 	@cd $(LIBSRC_DIR)/Utils&&\
 	$(MAKE) clean
 clean-matrix:
-	@cd $(LIBSRC_DIR)/Matrix&&\\
+	@cd $(LIBSRC_DIR)/Matrix&&\
 	$(MAKE) clean
 clean-general-piles:
 	@cd $(LIBSRC_DIR)/AlgebraicSystem/PILES/general && \
@@ -183,7 +184,7 @@ doc++:
 #
 ##################### Make dependencies
 #
-depend: depend-cleanfile
+depend: #depend-cleanfile
 	@for n in $(PATHSUBLIBDIR); do \
          (if cd $$n; \
                      then $(MAKE) $@; \

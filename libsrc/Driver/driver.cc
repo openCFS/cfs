@@ -2,7 +2,7 @@
 #include <iostream>
 #include <string>
 
-#include "interface_gridlib.hh"
+//#include "interface_gridlib.hh"
 #include "acousticPDE.hh"
 #include "driver.hh"
 
@@ -22,8 +22,8 @@ Driver<Dim>::Driver(FileType * const aptFileType, Integer anummesh, Material * a
   ptFileType->ReadOutputOptions(SaveDer1, SaveDer2);
   SaveDer1=FALSE; SaveDer2=FALSE;
 
-  ptgrid=new InterfaceGridlib<Dim>(ptFileType);
-//  ptgrid=new GridInterfaceCFS<Dim>(ptFileType);
+//  ptgrid=new InterfaceGridlib<Dim>(ptFileType);
+  ptgrid=new GridInterfaceCFS<Dim>(ptFileType);
   ptgrid->Read();
  
   numsteps=1; dt0=2.000000000000E-07;

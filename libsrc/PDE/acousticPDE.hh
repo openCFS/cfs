@@ -65,5 +65,10 @@ inline AcousticPDE<Dim>::~AcousticPDE()
  if (ptTimeFunc) delete ptTimeFunc;
 }
 
+#ifdef __GNUC__
+template class AcousticPDE<Point2D>;
+template class AcousticPDE<Point3D>;
+#endif
+
 } // end of namespace
 #endif
