@@ -33,7 +33,9 @@ public:
   virtual void RefineMesh()=0;
 
   //!
+#ifdef ADAPTGRID
   virtual Boolean TestLocError(grd::Element * t)=0;
+#endif
 
 protected:
   //!

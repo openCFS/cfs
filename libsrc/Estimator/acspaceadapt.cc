@@ -6,7 +6,9 @@
 #include "acspaceadapt.hh"
 #include "acoustic2dPDE.hh"
 
+#ifdef ADAPTGRID
 #include "interface_adgrid.hh"
+#endif
 
 namespace CoupledField
 {

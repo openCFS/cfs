@@ -30,7 +30,9 @@ public:
   void RefineMesh();
 
   //!
+#ifdef ADAPTGRID
   Boolean TestLocError(grd::Element * t);
+#endif
 
 private:
   //!
