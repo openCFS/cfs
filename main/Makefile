@@ -2,7 +2,7 @@
 #
 src = cfs.cc
 #
-C_DIR=..
+C_DIR= ..
 #
 ########## set OS variable
 #
@@ -19,7 +19,7 @@ SUBLIBDIR := Driver PDE CoupledPDE Estimator\
              DataInOut/ParamHandling \
              DataInOut/Unverg DataInOut/GMV DataInOut/AnsysOut \
              DataInOut/DatFile DataInOut/AnsysFile DataInOut\
-             Utils Matrix General  
+             Utils Matrix General 
 #
 ifeq ($(Adaptivity),yes)
 SUBLIBDIR := $(SUBLIBDIR) Domain/AdaptGrid
@@ -316,16 +316,19 @@ check:
 #
 ##################### Make dependencies
 #
-depend: #depend-cleanfile
-	@for n in $(PATHSUBLIBDIR); do \
-         (if cd $$n; \
-                     then $(MAKE) $@; \
-                     else echo "WARNING:" $$n " doesn't exist"; \
-          fi); 
-	done
-	@rm -f $(Dependencies).bak
-#
+depend: 
+	@for n in $(PATHSUBLIBDIR);do \
+        (if cd $$n; \
+                     then $(MAKE) $@;\
+                     else echo "WARNING:" $$n " doesn't exist";\
+        fi); done
+
 depend-cleanfile:
-	@rm -rf $(Dependencies)
+	@for n in $(PATHSUBLIBDIR);do \
+        (if cd $$n; \
+                     then $(MAKE) $@;\
+                     else echo "WARNING:" $$n " doesn't exist";\
+        fi); done
 
 # DO NOT DELETE THIS LINE -- make depend depends on it
+

@@ -70,7 +70,14 @@ make-include: $(src:.cc=.hh) $(src_h)
 #
 ######### Make depend 
 #
-depend: 
-	makedepend $(INCL)  -f$(C_DIR)/main/$(Dependencies) $(FlagMakeDepend) $(src) 
+depend:
+	@touch $(Dependencies)
+	    @makedepend $(INCL) -f$(Dependencies) $(FlagMakeDepend) $(src)
+
+depend-cleanfile:
+	@ rm -rf $(Dependencies)
+	    @ rm -rf $(Dependencies).bak
+
+
 
 # DO NOT DELETE THIS LINE -- make depend depends on it

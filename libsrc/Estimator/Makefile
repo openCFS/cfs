@@ -13,7 +13,7 @@ lib = estimator
 CFLAGS3 =
 #
 include ../makefile.inc
-
+-include $(Dependencies)
 # DO NOT DELETE
 
 

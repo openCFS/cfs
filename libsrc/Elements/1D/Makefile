@@ -9,7 +9,7 @@ libpath = libsrc/Elements/2D
 CFLAGS3 =
 #
 include ../../makefile.inc
-
+-include $(Dependencies)
 # DO NOT DELETE
 
 
