@@ -1579,6 +1579,7 @@ void BasePDE::CalcInputCoupling()
 
   ENTER_FCN( " BasePDE::CalcInputCoupling" );
 
+  std::string errMsg;
   StdVector<Integer> * nodes;
   StdVector<Elem*> * elements;
   CFSVector * val;
@@ -1620,13 +1621,19 @@ void BasePDE::CalcInputCoupling()
 		//std::cerr << "processing dim = " << dim << ", j = " << j << std::endl;
 		
 		pdeNode = eqnData_->Mesh2PDENode((*nodes)[j]);
-		if (pdeNode==-1)
-		  Error("Coupling node not in my subdomains. See mesh- and config-file for errors",
-			__FILE__,__LINE__);
-		
-		deltCoords_(dof,pdeNode-1) = help[dof + j*dim_];
+		if (pdeNode==-1) {
+		  errMsg =  pdename_;
+		  errMsg += "PDE: Coupling node Nr. ";
+		  errMsg += Info->GenStr((*nodes)[j]);
+		  errMsg += " is not in contained in list of my subdomains!";
+		  Error(errMsg.c_str(), __FILE__, __LINE__);
+		}
+// 		deltCoords_(dof,pdeNode-1) = help[dof + j*dim_];
+// 		std::cerr << pdename_ << "-Coord: Node " << (*nodes)[j];
+// 		std::cerr << ", value = " << help[dof + j*dim_] << std::endl;
 	      }
 	  
+	  std::cerr << "------------------------------------------" << std::endl;
 	  break;
 
 	case RHS:
@@ -1674,6 +1681,8 @@ void BasePDE::CalcInputCoupling()
 	    for (Integer j=0; j<nodes->GetSize(); j++, couplingBCsCounter_++)
 	      {
 		eqnData_->Node2EQN((*nodes)[j],dof+1,eqnNr,eqnDof);
+// 		std::cerr << pdename_ << ":ID_BC node " << (*nodes)[j];
+// 		std::cerr << ", value " <<  help[dof+j*couplingDof] << std::endl;
 		if (pdeNode==0)
 		  Error("The specified coupling node has no equation number"
 			, __FILE__,__LINE__);
