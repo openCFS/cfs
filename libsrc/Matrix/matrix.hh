@@ -75,8 +75,9 @@ public:
     \param col (input) Column of entry
     \param val (input) Value to be set
   */
-  void SetEntry(const Integer row, const Integer col, const TYPE val)
-  {Error("!!! IMPLEMENT !!!");};
+  void SetEntry( const Integer row, const Integer col, const TYPE val ) {
+    data_[row][col] = val;
+  }
   
   //! Add'val' to the matrix entry at position (row,col) in the matrix
   /*!
@@ -87,14 +88,14 @@ public:
   void AddToEntry(const Integer row, const Integer col, const TYPE val);
    
   //! Get the entry 'val' at position (row,col) in the matrix
-  /*!
-    \param row (input) Row of entry
-    \param col (input) Column of entry
-    \param val (output) Variable the value is written into
-  */
-  void GetEntry(const Integer row, const Integer col, TYPE & val) const
-  {Error("!!! IMPLEMENT !!!");}; 
-  
+
+  //! \param row (input) row index of entry
+  //! \param col (input) column index of entry
+  //! \param val (output) on return contains value of entry
+  void GetEntry(const Integer row, const Integer col, TYPE & val) const {
+    val = *( data_[0] + row * size_col_ + col ); 
+  }
+
   //! Calculates the determinant (up to size 3)
   /*!
     \param val (output) Return value of the method
@@ -327,8 +328,8 @@ inline void Matrix<TYPE>::Init(const TYPE val)
 }
 
 template<class TYPE>
-inline void Matrix<TYPE>::AddToEntry ( const Integer i, const Integer j, const TYPE value)
-{
+inline void Matrix<TYPE>::AddToEntry ( const Integer i, const Integer j,
+				       const TYPE value ) {
   data_[i][j]+=value;
 }
 
