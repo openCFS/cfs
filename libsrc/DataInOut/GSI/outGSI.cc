@@ -17,11 +17,14 @@
 
 namespace CoupledField {
 
-  WriteResultsGSI :: WriteResultsGSI( const Char * const filename,
-                                      FileType * const aInFile )
-    :WriteResults(filename, aInFile)
-  {
-    ENTER_FCN("WriteResultsGSI::WriteResultsGSI");
+  // **************
+  //  Constructor
+  // **************
+  WriteResultsGSI::WriteResultsGSI( const Char * const filename,
+				    FileType * const aInFile )
+    : WriteResults(filename, aInFile) {
+
+    ENTER_FCN( "WriteResultsGSI::WriteResultsGSI" );
 
     fp_ = NULL;
     io_ = NULL;
@@ -32,63 +35,79 @@ namespace CoupledField {
     fp_ = fopen(myfilename.c_str(), "wb");
   
     io_ = new GSIXDRIO(NULL, fp_);
+
+    // Initialize history files
+    InitHistoryFiles();
   }
 
-  WriteResultsGSI ::~WriteResultsGSI()
-  {
-    ENTER_FCN("WriteResultsGSI::~ WriteResultsGSI");
+
+  // *************
+  //  Destructor
+  // *************
+  WriteResultsGSI::~WriteResultsGSI() {
+
+    ENTER_FCN( "WriteResultsGSI::~ WriteResultsGSI" );
 
     delete io_;
     fclose(fp_);
   }
 
-  void WriteResultsGSI::WriteGrid(const Integer level)
-  {
-    ENTER_FCN("WriteResultsGSI::WriteGrid");
 
-    if (!NeedHistory_)
-      {    
-        if (!io_) 
-          Error(" File for output results is not initialized");
+  // ************
+  //  WriteGrid
+  // ************
+  void WriteResultsGSI::WriteGrid( const Integer level ) {
 
-        try {
-          
-          // This is the number of timesteps/frequency steps 
-          // at the moment this is one for test purposes
-          (*io_) << (int) 1;
-          (*io_) << "---- BEGIN GRID ----";
-          //          (*io_) << (int) 1;
-        }
-        catch (GSIIOException& e) {
-          std::cerr << "Exception in WriteResultsGSI::WriteGrid" << std::endl
-                    << e.description() << std::endl;
-        }
-      
-        Dataset666(level);
-        Dataset781(level);
-        Dataset780(level);
+    ENTER_FCN( "WriteResultsGSI::WriteGrid" );
+
+    if ( !NeedHistory_ ) {    
+      if ( !io_ ) {
+	Error( "File for output results is not initialized" );
       }
-  }
 
-  void WriteResultsGSI::WriteMsg(const std::string msg) {
-    ENTER_FCN("WriteResultsGSI::WriteMsg");
-
-    try 
-      {
-        (*io_) << msg;
-      }
-    catch (GSIIOException& e)
-      {
-        std::cerr << "Exception in WriteResultsGSI::WriteMsg" << std::endl
-                  << e.description() << std::endl;
-      }
-  }
-
-  void WriteResultsGSI::Init(Grid * aptgrid)
-  {
-    ENTER_FCN("WriteResultsGSI::Init");
+      try {
   
-    ptgrid=aptgrid;
+	// This is the number of timesteps/frequency steps 
+	// at the moment this is one for test purposes
+	(*io_) << (int) 1;
+	(*io_) << "---- BEGIN GRID ----";
+	//          (*io_) << (int) 1;
+      }
+      catch (GSIIOException& e) {
+	std::cerr << "Exception in WriteResultsGSI::WriteGrid" << std::endl
+		  << e.description() << std::endl;
+      }
+
+      Dataset666(level);
+      Dataset781(level);
+      Dataset780(level);
+    }
+  }
+
+
+  // ***********
+  //  WriteMsg
+  // ***********
+  void WriteResultsGSI::WriteMsg(const std::string msg) {
+
+    ENTER_FCN( "WriteResultsGSI::WriteMsg" );
+
+    try {
+      (*io_) << msg;
+    }
+    catch ( GSIIOException& e ) {
+      std::cerr << "Exception in WriteResultsGSI::WriteMsg" << std::endl
+		<< e.description() << std::endl;
+    }
+  }
+
+
+  // ********
+  //   Init
+  // ********
+  void WriteResultsGSI::Init( Grid * aptgrid ) {
+    ENTER_FCN( "WriteResultsGSI::Init" );
+    ptgrid = aptgrid;
   }
 
 
