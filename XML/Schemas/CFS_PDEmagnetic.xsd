@@ -142,6 +142,9 @@
   <xsd:simpleType name="DT_MagneticNonLin">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="no"/>
+      <xsd:enumeration value="geo"/>
+      <xsd:enumeration value="permeability"/>
+      <xsd:enumeration value="conductivity"/>
     </xsd:restriction>
   </xsd:simpleType>
 
