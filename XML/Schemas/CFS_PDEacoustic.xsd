@@ -82,6 +82,15 @@
           </xsd:simpleType>
         </xsd:attribute>
 
+        <!-- Type of acoustic pde -->
+        <xsd:attribute name="subType"  use="optional">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
+              <xsd:enumeration value="flownoise"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
+
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
