@@ -82,9 +82,10 @@ void InterfaceGridlib<Point2D>::Read()
 #endif
 
   Integer data[1];
-  ptFileType-> ReadGeneralAnalChoice(data, FileType::numnode, FileType::endGAnal);
+//  ptFileType-> ReadGeneralAnalChoice(data, FileType::numnode, FileType::endGAnal);
  
-  Integer nnodes=data[0]; 
+  Integer nnodes; 
+  ptFileType->ReadMaxnumnodes(nnodes);
 
   ptGoMesh=new GoTriangleMesh;
 
@@ -115,7 +116,9 @@ void InterfaceGridlib<Point2D>::Read()
 
   Integer data1[2];
   ptFileType->ReadGeneralElemChoice(0,data1, FileType::numelem, FileType::maxnode, FileType::endGElem);
-  Integer nelems=data1[0];
+  Integer nelems;
+  ptFileType->ReadMaxnumelem(nelems);
+
   Integer nelemNodes=data1[1];
 
   Integer * Connect=new Integer[nelems*nelemNodes];
@@ -166,7 +169,8 @@ void InterfaceGridlib<Point3D>::Read()
 #endif
 
   Integer data[1];
-  ptFileType-> ReadGeneralAnalChoice(data, FileType::numnode, FileType::endGAnal);
+//  ptFileType-> ReadGeneralAnalChoice(data, FileType::numnode, FileType::endGAnal);
+  ptFileType->ReadMaxnumnodes(nnodes);
 
   Integer nnodes=data[0];
 
@@ -199,7 +203,10 @@ void InterfaceGridlib<Point3D>::Read()
 
   Integer data1[2];
   ptFileType->ReadGeneralElemChoice(0,data1, FileType::numelem, FileType::maxnode, FileType::endGElem);
-  Integer nelems=data1[0];
+
+  Integer nelems;
+  ptFileType->ReadMaxnumelem(nelems);
+
   Integer nelemNodes=data1[1];
   std::cout << data1[0] << " num element nodes " << data1[1] << std::endl;
 

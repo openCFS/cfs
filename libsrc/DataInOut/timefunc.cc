@@ -8,8 +8,6 @@ namespace CoupledField
 
  TimeFunc :: TimeFunc(FileType * aptFileType)
 {
-  Integer i;
- 
 #ifdef TRACE
   (*trace) << "entering TimeFunc::TimeFunc" << std::endl;
 #endif
@@ -22,6 +20,8 @@ namespace CoupledField
    ptFileType->ReadInfoTimeFunc(maxvalTimeFunc, maxnumTimeFunc);
  
   timeTimeFunc = new Double * [maxnumTimeFunc];  // timeTF and valTF
+
+  Integer i;
   for (i=0; i < maxnumTimeFunc; i++)
         timeTimeFunc[i] = new Double[maxvalTimeFunc[i]];
   valTimeFunc = new Double * [maxnumTimeFunc];

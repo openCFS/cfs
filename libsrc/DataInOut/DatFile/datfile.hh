@@ -24,7 +24,21 @@ protected:
   //! Auxialary Variables  
   std::ifstream infile;
 
+  //! usefull enums
+  //! enum for reading data about general analisys
+//  enum nameGAn{soltype, analtype, numnode, numgroup, restart, inactdofs,
+//               circuit, deactDf, masstype, damptype, nooptimiz, endGAnal}; //11
+
+  //! enum for redaing general info about element
+//  enum nameGElem {numelem, ielemtyp, isubtype, ielemsave, maxnode,
+//                  nonlinear, form1, form2, endGElem}; // 8
 public:
+
+  //! Read maximum number of nodes
+  virtual void ReadMaxnumnodes(Integer & maxnumnodes);
+
+  //! Read maximum number of elements
+  virtual void ReadMaxnumelem(Integer & maxnumelem);
 
   //!  Read a title of simulation run 
   Boolean ReadTitle(std::string & title);

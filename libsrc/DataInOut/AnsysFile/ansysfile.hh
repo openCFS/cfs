@@ -23,6 +23,12 @@ public:
   virtual ~AnsysFile();
 
   //!
+  virtual void ReadMaxnumnodes(Integer & );
+
+  //!
+  virtual void ReadMaxnumelem(Integer & );
+
+  //!
   virtual void ReadGeneralAnalChoice(Integer * dataGAnalCh,
 				      enum nameGAn first ...)=0;
 
@@ -40,11 +46,11 @@ public:
   virtual void ReadMaxnumelemGroup(Integer & maxelem, const Integer numgr)=0;
 
   //!
-  virtual void ReadCoordinate(Point3D * const InitNodalCo,                                                     const Integer maxnumNodes)=0;
+  virtual void ReadCoordinate(Point3D * const NodesCoord,                                                     const Integer maxnumNodes);
 
   //!
-  virtual void ReadCoordinate(Point2D * const InitNodalCo,
-			      const Integer maxnumNodes)=0;
+  virtual void ReadCoordinate(Point2D * const NodesCoord,
+			      const Integer maxnumNodes);
 
   //!
   virtual void ReadIntegrationParam(Double &, Double &, Double &)=0;
@@ -101,6 +107,15 @@ protected:
 private:
 
  std::string::size_type pos_end;
+
+  // dimension of problem
+  Integer dim_;
+
+  //!
+  void ReadDim();
+
+  // take position in section
+  void takePosition(const std::string seekexp, std::string::size_type & pos);
 
 };
 

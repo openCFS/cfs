@@ -109,10 +109,11 @@ NumSaveElements 0
 
 [Node BC]
 
-[Save Nodes]
 1 vp-restrataint
 14 vp-restrataint
 27 vp-restrataint
+
+[Save Nodes]
 
 [Save Elements]
 
