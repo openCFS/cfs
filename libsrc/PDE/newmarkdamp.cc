@@ -3,21 +3,28 @@
 #include <string>
 #include <math.h>
 
+#include "Forms/forms_header.hh"
 #include "newmarkdamp.hh"
 
 namespace CoupledField
 {
 
 NewmarkDamp :: NewmarkDamp(std::string apdename, BaseSystem * algebraicsystem, NodeEQN * ptEQN, 
-		   Integer adamping, Integer afrac_memory, Double damp)
+			   Grid * aptgrid, StdVector<std::string> adampingList, 
+			   StdVector<std::string> subdomainList, Integer adamping, 
+			   Integer afrac_memory, Double damp, Boolean isaxi)
 :TimeStepping(apdename, algebraicsystem, ptEQN)
 {
   ENTER_FCN( "NewmarkDamp::NewmarkDamp" );
 
-  damping_ = adamping;
+  ptgrid_      = aptgrid;
+  dampingList_ = adampingList;
+  damping_     = adamping;
   frac_memory_ = afrac_memory;
-  y_ = damp;
-
+  y_           = damp;
+  subdoms_     = subdomainList;
+  isaxi_       = isaxi;
+  
   alpha_ = 0.0;
   beta_  = 0.25;
   gamma_ = 0.5;
@@ -37,8 +44,8 @@ NewmarkDamp :: NewmarkDamp(std::string apdename, BaseSystem * algebraicsystem, N
   solderiv2_.Init();
   
 
-  solpred_.Resize(dofspernode * numnode); 
-  solpred_.init();
+  solpred_.Resize(numEQNs * dofs); 
+  solpred_.Init();
   solderiv1pred_.Resize(numEQNs * dofs); 
   solderiv1pred_.Init();
   
@@ -70,8 +77,9 @@ void NewmarkDamp::Init(Double * matrix_factors, Double dt)
   matrix_factors[0] = 1.0;       // factor for stiffness matrix
 
   matrix_factors[1] = 0.0; 
-  if (damping_)
-    matrix_factors[1] = 1/pow(dt_,(y_+1.0)); // factor for damping matrix
+
+  //  if (damping_)
+  //    matrix_factors[1] = 1/pow(dt_,(y_+1.0)); // factor for damping matrix
 
   matrix_factors[2] = 0.0;       // factor for convection matrix
   matrix_factors[3] = 1.0*a2_;   // factor for mass matrix
@@ -96,17 +104,66 @@ void NewmarkDamp::UpdateRHS()
 
   // mass part
   coeffMass = solpred_*a2_;
-  algsys_->UpdateRHS(MASS,coeffMass.get());
+  algsys_->UpdateRHS(MASS,coeffMass.GetPointer());
+
 
   // damping part
-  Double coeff;
-  coeff = 1;
-  for (Integer i=0; i<frac_memory_; i++)
+  //  Double coeff;
+  //  coeff = 1;
+
+
+//   for (Integer i=0; i<frac_memory_; i++)
+//     {
+//       coeff *= (i - y_-1)/(i+1);
+//       coeffDamp = solfrac_[i] * coeff/pow(dt_,(y_+1));
+//       algsys_->UpdateRHS(DAMPING,coeffDamp.get());
+//     }
+
+
+  Matrix<Double> elemmat;  
+  Matrix<Double> ptCoord;
+  BaseFE         * ptElem;
+  
+  StdVector<Integer> connecth;
+  Vector<double> rhsvec;
+
+  Integer level = 0;
+  for (Integer sd=0; sd<subdoms_.GetSize(); sd++)
     {
-      coeff *= (i - y_-1)/(i+1);
-      coeffDamp = solfrac_[i] * coeff/pow(dt_,(y_+1));
-      algsys_->UpdateRHS(DAMPING,coeffDamp.get());
+      if ( dampingList_[sd] == "fractional") {
+	// compute factor for subdomain
+	Double factor = 1.0;
+	
+	StdVector<Elem*> elemssd;
+	ptgrid_->GetElemSD(elemssd,subdoms_[sd],level);
+	
+	for (Integer el=0; el < elemssd.GetSize(); el++) {  
+	  ptElem=elemssd[el]->ptElem;
+	  BaseForm * bilinear_mass = new MassInt(ptElem, factor, isaxi_);
+	  
+	  connecth=elemssd[el]->connect;
+	  ptgrid_->GetCoordNodesElemMat(connecth, ptCoord, level);
+	  
+	  bilinear_mass->CalcElementMatrix(ptCoord, elemmat);
+	  
+	  // map connect to PDE node numbers
+	  StdVector<Integer> connect_PDE;
+	  ptEQN_->Node2EQN(connecth, connect_PDE);
+
+	  Vector<Double> elemsol;
+	  Integer idx = 0;
+	  GetElemSolution(solfrac_[idx], elemsol, connect_PDE);
+	  
+	  rhsvec = elemmat * elemsol;
+	  
+	  //assemble to RHS
+	  algsys_->SetElementRHS(&rhsvec[0], connect_PDE.GetPointer(), connect_PDE.GetSize());
+	  
+	  delete bilinear_mass;	  
+	}  
+      }
     }
+
    
 }
 
@@ -141,5 +198,14 @@ void NewmarkDamp :: CalcParameters(Double dt)
   a4_ = gamma_ / (beta_*dt_);
 }
 
+
+void NewmarkDamp :: GetElemSolution (const Vector<Double>& sol, Vector<Double>& elemsol, const StdVector<Integer> & connectPDE)
+{
+  ENTER_FCN( "NewmarkDamp::GetElemSol" );
+
+  for (Integer eqn=0; eqn<connectPDE.GetSize(); eqn++) 
+    elemsol[eqn] = sol[connectPDE[eqn]-1];
+      
+}
 
 } // end of namespace

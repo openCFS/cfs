@@ -25,7 +25,14 @@ public:
   /// Calculation of stiffmess matrix
   void CalcElementMatrix(Matrix<Double> & ptCoord, Matrix<Double> & elemMa);
 
-
+  ///
+  virtual void SetFracDamping() 
+  {isFracDamping_ = TRUE;};
+  
+  //
+  virtual void SetFactor(Double factor) 
+  {density_ = factor;};
+   
   virtual void Print(std::ostream * out, const Matrix<Double> Result) const;
 
 protected:

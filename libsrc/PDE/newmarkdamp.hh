@@ -3,6 +3,8 @@
 
 #include <General/environment.hh>
 #include <DataInOut/ParamHandling/ConfFile.hh>
+#include <Domain/grid.hh>
+
 #include "timestepping.hh"
 
 namespace CoupledField
@@ -18,10 +20,12 @@ public:
     \param apdename name of PDE
     \param algebraicsystem pointer to algebraic system used by PDE
   */
-  NewmarkDamp(std::string apdename, BaseSystem * algebraicsystem, NodeEQN * ptEQN, 
-	  Integer adamping, Integer afrac_memory, Double damp);
+  NewmarkDamp (std::string apdename, BaseSystem * algebraicsystem, NodeEQN * ptEQN, 
+	       Grid * aptgrid, StdVector<std::string> adampingList, 
+	       StdVector<std::string> subdomainList, Integer adamping, 
+	       Integer afrac_memory, Double damp, Boolean isaxi);
 
-   //! deconstructor
+  //! deconstructor
   virtual ~NewmarkDamp();
   
   //! initilization
@@ -44,7 +48,10 @@ public:
   { dt_ = dt;};
 
 private:
-   
+
+  //
+  void GetElemSolution (const Vector<Double>& sol, Vector<Double>& elemsol, const StdVector<Integer> & connectPDE);
+  
   Double dt_; //<! time step
   Double alpha_, gamma_, beta_;  //<! integration parameters
   Double a0_,a1_,a2_,a3_,a4_,a5_,a6_,a7_; //<! coefficients from NewmarkDamp method
@@ -56,7 +63,20 @@ private:
 
   Vector<Double> solpred_, solderiv1pred_;
   Vector<Double> *solfrac_;
-};
+
+  //
+  Grid * ptgrid_;
+
+  //
+  StdVector<std::string> dampingList_;
+
+  //
+  StdVector<std::string> subdoms_;
+
+  //
+  Boolean isaxi_;
+  
+  };
 
 }
 

@@ -318,7 +318,8 @@ namespace CoupledField
   {
     ENTER_FCN("LoadMaterialDataFile::ReadFluid");
     Double alfa,beta;
-    Double density, compress;
+    Double density, compress;   
+    Double BoverA;
     std::istringstream * strPtr;
     char buffer[bufLength];
     char materialName[bufLength];
@@ -331,7 +332,7 @@ namespace CoupledField
     ReadLine(fin,buffer);
     strPtr = new std::istringstream(buffer);
       
-    *strPtr >> density >> compress >> alfa >> beta;
+    *strPtr >> density >> compress >> alfa >> beta >> BoverA;
     if (strPtr->fail())
       std::cout << "*** The materialfile is corrupt! ***  Material: " << materialName << std::endl;
 	
@@ -340,6 +341,7 @@ namespace CoupledField
     material->SetCompressibility(compress);
     material->SetDensity(density);
     material->SetDampingCoeffs(alfa,beta);
+    material->SetBoverA(BoverA);
 
     Info->PrintFluidMat(*material);
   }
