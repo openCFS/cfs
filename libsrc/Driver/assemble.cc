@@ -566,6 +566,53 @@ namespace CoupledField {
   }
   
 
+  // do the basic assembling stuff
+  void Assemble::AssembleSprings(const Integer level, const Double time)
+  {
+    ENTER_FCN( "Assemble::AssembleSprings" );
+    
+    Integer eqnNr, eqnDof;
+    
+    for (int actDom=0; actDom < springDom_.GetSize(); actDom++)
+      {
+        std::string doftype = springDom_[actDom];
+
+        Integer dof = 1;
+        if (dofsPerNode_ != 1)
+          dof = GetBCDof( springDof_[actDom] );   
+
+        std::list<Integer> nodes;
+        nodes = ptBCs_->GetNodesLevel(springDom_[actDom], level);
+        
+        Double val_m = springMassVals_[actDom];
+        Double val_c = springDampVals_[actDom];
+        Double val_k = springStiffVals_[actDom];
+
+        Double val_tfunc = 1.0;
+        if (ptTimeFunc_->GetmaxTimeFnc() > 0 )
+          val_tfunc=ptTimeFunc_->TimeFuncAtTime(time,fncname_springs_[actDom]);
+
+
+        for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end(); p++)
+          {
+            Integer node = *p;
+            
+            val_m = springMassVals_[actDom]  * val_tfunc;
+            val_c = springDampVals_[actDom]  * val_tfunc;
+            val_k = springStiffVals_[actDom] * val_tfunc;
+	    std::cout << "val_m=" << val_m << std::endl;
+	    std::cout << "val_c=" << val_c << std::endl;
+	    std::cout << "val_k=" << val_k << std::endl << std::endl;
+            ptEQN_->Node2EQN(node,dof,eqnNr,eqnDof);
+            //algsys_->AddToSystemMatrix(MASS, val_m, eqnNr, eqnDof);    
+            //algsys_->AddToSystemMatrix(DAMPING, val_c, eqnNr, eqnDof);    
+            //algsys_->AddToSystemMatrix(STIFFNESS,val_k, eqnNr, eqnDof);    
+          }
+      }
+  }
+
+
+
   Integer Assemble::
   GetBCDof(const std::string dofString)
   {
@@ -711,8 +758,11 @@ namespace CoupledField {
  
 
 
-    // read load values =========================================
+    // parameters for reading load values =========================================
     StdVector<std::string> keyVec, attrVec, valVec;
+
+    // parameters for reading spring values =======================================
+    StdVector<std::string> keyVecSpring;
 
     attrVec = "", "tag", "";
     valVec = "", bcSequenceTag_, "";
@@ -725,28 +775,69 @@ namespace CoupledField {
     keyVec = pdename_, "bcsAndLoads", "load", "name";
     params->GetList(keyVec, attrVec, valVec, loadDom_);
 
+    keyVecSpring = pdename_, "bcsAndLoads", "spring", "name";
+    params->GetList(keyVecSpring, attrVec, valVec, springDom_);
+
     if (dofsPerNode_ == 1) {
       loadDof_.Resize(loadDom_.GetSize());
       loadDof_.Init("ux");
+
+      springDof_.Resize(loadDom_.GetSize());
+      springDof_.Init("ux");
     }else {
       keyVec = pdename_, "bcsAndLoads", "load", "dof";
       params->GetList(keyVec, attrVec, valVec, loadDof_);
+
+      keyVecSpring = pdename_, "bcsAndLoads", "spring", "dof";
+      params->GetList(keyVecSpring, attrVec, valVec, springDof_);
     }
     
     keyVec = pdename_, "bcsAndLoads", "load", "value";
     params->GetList(keyVec, attrVec, valVec, loadVals_);
 
+    keyVecSpring = pdename_, "bcsAndLoads", "spring", "val_m";
+    params->GetList(keyVecSpring, attrVec, valVec, springMassVals_);
+
+    keyVecSpring = pdename_, "bcsAndLoads", "spring", "val_c";
+    params->GetList(keyVecSpring, attrVec, valVec, springDampVals_);
+
+    keyVecSpring = pdename_, "bcsAndLoads", "spring", "val_k";
+    params->GetList(keyVecSpring, attrVec, valVec, springStiffVals_);
+
     keyVec = pdename_, "bcsAndLoads", "load", "dynamics";
     params->GetList(keyVec, attrVec, valVec, fncname_loads_);
 
+    keyVecSpring = pdename_, "bcsAndLoads", "spring", "dynamics";
+    params->GetList(keyVecSpring, attrVec, valVec, fncname_springs_);
 
-    // check if a fncname was given, although
+
+    // check if a fncname for load was given, although
     // in section transient there is non mentioned
     if (fncname_loads_.GetSize() > 0)
       {
         if (ptTimeFunc_->GetmaxTimeFnc() == 0  &&
             fncname_loads_[0] != "none") {
           std::string errmsg = "Loads: There was no time data file ";
+          errmsg += "specified in the section 'transient', so 'dynamics' ";
+          errmsg += "for PDE '";
+          errmsg += pdename;
+          errmsg += "' makes no sense!";
+          Error(errmsg.c_str(), __FILE__, __LINE__);
+        }
+      }
+
+    // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    // this section must be changed so that it is possible to
+    // specify two or more timeDataFile in section transient
+    // and to check them here
+    // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    // check if a fncname for spring was given, although
+    // in section transient there is non mentioned
+    if (fncname_springs_.GetSize() > 0)
+      {
+        if (ptTimeFunc_->GetmaxTimeFnc() == 0  &&
+            fncname_springs_[0] != "none") {
+          std::string errmsg = "Springs: There was no time data file ";
           errmsg += "specified in the section 'transient', so 'dynamics' ";
           errmsg += "for PDE '";
           errmsg += pdename;
@@ -761,7 +852,7 @@ namespace CoupledField {
     //     std::cerr << "load values = " <<  loadVals_ << std::endl;
     //     std::cerr << "load dynamics = " <<  fncname_loads_ << std::endl;
 
-    // Check consistency
+    // Check load consistency
     if ( loadDom_.GetSize() != loadDof_.GetSize() ||
          loadDom_.GetSize() != loadVals_.GetSize() )
       {
@@ -773,13 +864,37 @@ namespace CoupledField {
         Info->Error( errmsg, __FILE__, __LINE__ );
       }
 
+    // Check spring consistency
+    if ( springDom_.GetSize() != springDof_.GetSize() ||
+         springDom_.GetSize() != springMassVals_.GetSize() ||
+         springDom_.GetSize() != springDampVals_.GetSize() ||
+         springDom_.GetSize() != springStiffVals_.GetSize() )
+      {
+        std::string errmsg = "Springs: ";
+        errmsg += "#name = " + Info->GenStr(springDom_.GetSize());
+        errmsg += ", #dof = " + Info->GenStr(springDof_.GetSize());
+        errmsg += ", #mass value = " + Info->GenStr(springMassVals_.GetSize());
+        errmsg += ", #damping value = " + Info->GenStr(springDampVals_.GetSize());
+        errmsg += ", #stiffness value = " + Info->GenStr(springStiffVals_.GetSize());
+        errmsg += ", #dynamics = " + fncname_springs_.GetSize() + '\n';
+        Info->Error( errmsg, __FILE__, __LINE__ );
+      }
+
     // We need not have as many function/filenames as loads!
     for ( Integer k = fncname_loads_.GetSize(); k < loadDom_.GetSize(); k++ )
       {
         fncname_loads_.Push_back( "none" );
       }
 
+    // ????????????????????????????????????????????????????????
+    // We need not have as many function/filenames as springs!
+    for ( Integer k = fncname_springs_.GetSize(); k < springDom_.GetSize(); k++ )
+      {
+        fncname_springs_.Push_back( "none" );
+      }
+
 #ifdef DEBUG
+    // loads
     (*debug) << "Assemble::SetGeneralParams: We got " << loadDom_.GetSize()
              << " interfaces with loads" << std::endl;
     (*debug) << "Loads: #interfaces = " << loadDom_.GetSize()
@@ -794,6 +909,31 @@ namespace CoupledField {
         if ( k < fncname_loads_.GetSize() )
           {
             (*debug) << ", dynamics = " << fncname_loads_[k] << std::endl;
+          }
+        else
+          {
+            (*debug) << ", dynamics = " << std::endl;
+          }
+      }
+    // springs
+    (*debug) << "Assemble::SetGeneralParams: We got " << springDom_.GetSize()
+             << " interfaces with springs" << std::endl;
+    (*debug) << "Springs: #interfaces = " << springDom_.GetSize()
+             << ", #dof = " << springDof_.GetSize()
+             << ", #mass value = " << springMassVals_.GetSize()
+             << ", #damping value = " << springDampVals_.GetSize()
+             << ", #stiffness value = " << springStiffVals_.GetSize()
+             << ", #dynamics = " << fncname_springs_.GetSize() << std::endl;
+    for ( UInt k = 0; k < springDom_.GetSize(); k++ )
+      {
+        (*debug) << "Springs: interface = " << springDom_[k]
+                 << ", dof = " << springDof_[k]
+                 << ", mass value = " << springMassVals_[k]
+                 << ", damping value = " << springDampVals_[k]
+                 << ", stiffness value = " << springStiffVals_[k];
+        if ( k < fncname_springs_.GetSize() )
+          {
+            (*debug) << ", dynamics = " << fncname_springs_[k] << std::endl;
           }
         else
           {

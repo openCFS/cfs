@@ -183,6 +183,8 @@ namespace CoupledField
     ///  assemble a nonlinear RHS part
     void AssembleNLRHS(const Integer level, const Double time=0);
 
+    ///  assemble a spring into the system matrix
+    void AssembleSprings(const Integer level, const Double time=0);
 
     //! computes the coordinates of an element including the delta
     /*!
@@ -416,6 +418,13 @@ namespace CoupledField
     StdVector<std::string> fncname_loads_; //!< function names of the loads
     StdVector<std::string> fncname_rhs_; //!< function names for RHS integrators
     StdVector<std::string> fncname_rhsSurf_; //!< function names for RHS surface integrators
+
+    StdVector<std::string> springDom_;  //!< spring subdomains
+    StdVector<std::string> springDof_;  //!< dofs of springs
+    StdVector<Double>      springMassVals_; //!< values of the spring mass
+    StdVector<Double>      springDampVals_; //!< values of the spring damping
+    StdVector<Double>      springStiffVals_; //!< values of the spring stiffness
+    StdVector<std::string> fncname_springs_; //!< function names of the loads
 
     StdVector<Double> rhsSrcPhase_;      //!< contains the phase values in harmonic case;
     StdVector<Double> rhsSrcSurfPhase_;  //!< contains the phase values in harmonic case;

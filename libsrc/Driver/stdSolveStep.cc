@@ -165,7 +165,7 @@ namespace CoupledField {
   void StdSolveStep::StepTransLin( const Integer kstep, const Double asteptime,
                               const Integer level, const Boolean reset ) {
 
-    ENTER_FCN( "StdSolveStep::StepTransLin" );
+    ENTER_FCN( "SolveStepMech::StepTransLin" );
 
     Double * ptsol;
     Integer job;
@@ -188,6 +188,7 @@ namespace CoupledField {
            || PDE_.geoUpdate_ == TRUE ) {
         job = 1;
         PDE_.assemble_->AssembleMatrices(level);
+        PDE_.assemble_->AssembleSprings(level, PDE_.lasttimecalc_ );
         PDE_.algsys_->ConstructEffectiveMatrix(PDE_.matrix_factor_);
       }  
     }
@@ -200,6 +201,7 @@ namespace CoupledField {
       if (PDE_.dampingType_) {
         PDE_.algsys_->InitMatrix(DAMPING);
       }
+      PDE_.assemble_->AssembleSprings(level, PDE_.lasttimecalc_ );
       PDE_.algsys_->ConstructEffectiveMatrix(PDE_.matrix_factor_);
     }
     else {
@@ -213,6 +215,7 @@ namespace CoupledField {
         }
         job = 1;
         PDE_.assemble_->AssembleMatrices(level);
+        PDE_.assemble_->AssembleSprings(level, PDE_.lasttimecalc_ );
         PDE_.algsys_->ConstructEffectiveMatrix(PDE_.matrix_factor_);      
       }
     }
