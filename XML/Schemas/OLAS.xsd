@@ -41,6 +41,14 @@
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:attribute>
+          <xsd:attribute name="entry" use="optional" default="double">
+            <xsd:simpleType>
+              <xsd:restriction base="xsd:token">
+                <xsd:enumeration value="double"/>
+                <xsd:enumeration value="complex"/>
+              </xsd:restriction>
+            </xsd:simpleType>
+          </xsd:attribute>
         </xsd:complexType>
       </xsd:element>
 
