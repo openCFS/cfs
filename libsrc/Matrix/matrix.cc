@@ -485,7 +485,7 @@ void Matrix<TYPE>::Mult(CFSVector & mvec, CFSVector & rvec)
 
 // Perform a matrix(Double)-vector(Complex) multiplication rvec = this*mvec
 // where the matrix is supposed to be of type Double, rvec and mvec are complex valued
-//template<class TYPE>
+template<>
 void Matrix<Double>::MatVecMult_DC(Vector<Complex> & mvec, Vector<Complex> & rvec){
  ENTER_IFCN("Matrix::MatVecMult_DC");
   
@@ -515,7 +515,7 @@ void Matrix<Double>::MatVecMult_DC(Vector<Complex> & mvec, Vector<Complex> & rve
 
 // Perform a matrix(Double)-vector(Complex) multiplication rvec = this*mvec
 // where the matrix is supposed to be of type Double, rvec and mvec are complex valued
-//template<class TYPE>
+template<>
 void Matrix<Complex>::MatVecMult_CD(Vector<Double> & mvec, Vector<Complex> & rvec){
  ENTER_IFCN("Matrix::MatVecMult_CD");
 
