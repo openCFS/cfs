@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <stdio.h>
 
 #include "outGMV.hh"
 
@@ -15,18 +16,16 @@ WriteResultsGMV<Dim> :: WriteResultsGMV(const Char * filename)
   (*trace) << "entering WriteResultsGMV :: WriteResultsGMV" << std::endl;
 #endif
 
- Char * help=new Char[20];
- strcpy(help,filename);
- output=new std::ofstream(strcat(help,".gmv"));
+ namefile_=new Char[20];
+ strcpy(namefile_,filename);
+  
+ OpenFile(0);
 
  if (!output)
    Error(" File for output results in .gmv-format ", __FILE__, __LINE__); 
 
- delete [] help;
-
  ptgrid=NULL; 
- variablemode_=0;
-
+ currstep_=0;
 }
 
 template<class Dim>
@@ -36,10 +35,11 @@ WriteResultsGMV<Dim> ::~WriteResultsGMV()
   (*trace) << "entering WriteResultsGMV::~ WriteResultsGMV" << std::endl;
 #endif
 
-//  if (variablemode_) (*output) << "endvars" << std::endl << std::endl;
-
  // write keyword
  (*output) << "endgmv " << std::endl;
+
+ delete output; 
+ delete [] namefile_;
 }
 
 template<class Dim>
@@ -283,12 +283,6 @@ void WriteResultsGMV<Point3D>:: WriteCells(const Integer alevel)
 template<class Dim>
 void WriteResultsGMV<Dim>::WriteVariable(const Vector<Double> var, const std::string name, const Integer type)
 {
-//  if ( !variablemode_) 
-//  {
-//   (*output)<< "variable" << std::endl;
-//   variablemode_=1;
-//  }
-
   (*output) << "variable" << std::endl;
 
   (*output) << name << " " << type << std::endl;
@@ -314,13 +308,44 @@ void WriteResultsGMV<Dim>::WriteGrid(const Integer level)
 template<class Dim>
 void WriteResultsGMV<Dim>::WriteSolution(const Vector<Double> & sol, const Integer step, const Double time, const std::string title)
 {
+#ifdef TRACE
+ (*trace) << " entering WriteResultsGMV<Dim>::WriteSolution " << std::endl;
+#endif
+
   Integer type=1; // 0 - for cell 
                   // 1 - for node
                   // 2 - for face data
 
+     if (step!=currstep_)
+{
+   (*output) << "endgmv " << std::endl;
+   delete output;
+
+   OpenFile(step);
+
+   WriteGrid(ptgrid->GetLastLevel());
+}
+
   WriteVariable(sol,title,type);
   (*output) << "probtime " << time << std::endl;
 
+  currstep_=step;
+}
+
+template<class Dim>
+void WriteResultsGMV<Dim>::OpenFile(const Integer num)
+{
+   Char * name=new Char[20];
+   Char * aux=new Char[1];
+   std::sprintf(aux,"%i",num);
+   strcpy(name,namefile_);
+   strcat(name,".gmv00");
+   strcat(name,aux);
+
+   output=new std::ofstream(name);
+
+   delete [] name;
+   delete [] aux;
 }
 
 template<class Dim>

@@ -29,7 +29,13 @@ public:
   virtual void WriteSolution(const Vector<Double> & sol, const Integer step, const Double time, const std::string title);
 
 private:
-  
+
+  //! name of file for output results
+  Char * namefile_;
+
+  // number of step
+  Integer currstep_;
+
   //!
   Grid<Dim> * ptgrid;
 
@@ -48,9 +54,8 @@ private:
   //! write variable information
   void WriteVariable(const Vector<Double> var, const std::string name, const Integer type);
 
-  //! 
-  Integer variablemode_;  
-
+  //! function for open file with number num 
+  void OpenFile(const Integer num);
 };
 
 #ifdef __GNUC__
