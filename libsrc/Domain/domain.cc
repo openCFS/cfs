@@ -120,12 +120,6 @@ void Domain<Dim> :: InitAlgSys()
   (*trace) << "entering Domain::InitAlgSys" << std::endl;
 #endif
 
-/*
-  //set pointer to Algebraic system
-  ptalgsys_ = new AlgSysPILES();
-  if (!ptalgsys_) Error("Can't allocate memory for algebraic system Piles");
-*/
-
   //check, how much systems are needed and how much matrix graphs
   numsys_   = 1;
   numgraph_ = 1;
@@ -206,34 +200,6 @@ void Domain<Dim> :: PrintGrid(Integer level)
  OutFile_->Init(ptgrid_);
  OutFile_->WriteGrid(level);
 }
-
-/*
-template<class Dim>
-void Domain<Dim> :: SetDBC(Integer apde, Integer level, Integer update)
-{
-#ifdef TRACE
-  (*trace) << "entering Domain::SetDBC" << std::endl;
-#endif
-
-  ptpde_[apde]->SetBCs(ptalgsys, ptBCs, level, update,0);
-}
-
-template<class Dim>
-void Domain<Dim> :: PrintSolution(Double * sol, Integer apde)
-{
-#ifdef TRACE
-  (*trace) << "entering Domain::PrintSolution" << std::endl;
-#endif
-
-  Integer level=0;
-  Integer numnode = ptgrid->GetMaxnumnodes(level);
-
-  Vector<Double> vecsol(numnode,sol);
-  Integer step = 1;
-  Double time  = 1.0;  
-//  ptpde[apde]->PrintSolution(vecsol,step,time);
-}
-*/
 
 template<class Dim>
 void Domain<Dim> :: SetSubdomains()

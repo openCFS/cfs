@@ -61,8 +61,6 @@ void AcousticTimeErrorEstimator::CalcError(const Double dt)
 
   relativeerror_=error/normsol;
  
-  std::cout << "REALTIVE ERROR " << relativeerror_ << std::endl;
-
   thirddersol_=thirddersolA*2 - thirddersol_;
 }
 

@@ -31,8 +31,8 @@ Acoustic2dPDE::Acoustic2dPDE(AbstractAlgebraicSys * ptalgsys, Grid<Point2D> * ap
   else 
   {
      // for water
-   //  coeff_=sqrt(2.25e9/1e3);
-     coeff_=1;
+     coeff_=sqrt(2.25e9/1e3);
+     //  coeff_=1;
   }
 
    size_=ptgrid_->GetMaxnumnodes(0);

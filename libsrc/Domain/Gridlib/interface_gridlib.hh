@@ -86,6 +86,7 @@ inline InterfaceGridlib<Dim>::InterfaceGridlib(FileType * aptFileType)
 #endif
   ptFileType=aptFileType;
   DoesGridSubdivide=FALSE;
+  lastlevel_=0;
 }
 
 #ifdef __GNUC__

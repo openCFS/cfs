@@ -50,12 +50,13 @@ public:
   virtual BaseElem ** getptArrayElem() const=0;
 
   //! Get last level of grid
-  virtual Integer GetLastLevel() const { return 0;} //// !!!!!
+  virtual Integer GetLastLevel() const { return lastlevel_;} 
    
 protected:
 
   FileType * ptFileType;
 
+  Integer lastlevel_;
 private:
   ///
 };

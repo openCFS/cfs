@@ -89,7 +89,8 @@ inline InterfaceNetGen<Dim>::InterfaceNetGen(FileType * aptFileType)
   DoesGridSubdivide=FALSE;
   ptQ_=NULL;
   ptTr_=NULL;
-
+  lastlevel_=0;
+ 
 }
 
 #ifdef __GNUC__

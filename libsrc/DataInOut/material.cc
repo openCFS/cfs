@@ -35,7 +35,6 @@ namespace CoupledField
 
   while ( pos == std::string::npos & !infile.eof() )
   { std::getline(infile, buf, '\n');
-    std::cout << buf << std::endl;
     pos=buf.find("density");
   }
 

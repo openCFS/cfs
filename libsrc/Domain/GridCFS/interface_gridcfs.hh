@@ -75,6 +75,7 @@ inline GridInterfaceCFS<Dim>::GridInterfaceCFS(FileType * aptFileType)
 #ifdef TRACE
  (*trace) << "Entering GridInterfaceCFS<Dim>::GridInterfaceCFS<Dim>" << std::endl;
 #endif
+ lastlevel_=0;
    ptGridCFS=new GridCFS<Dim>(ptFileType); 
 }
 
