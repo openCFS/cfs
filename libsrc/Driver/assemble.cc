@@ -633,22 +633,32 @@ namespace CoupledField {
 	    if (analysisType_==TRANSIENT)
 	      {
 		if (abs(massValue_)>1e-30) 
-		  algsys_->AddToDiagMatrixEntry(MASS, eqnNr, eqnDof, &massValue_ );
+		  {
+		    Info->PrintF ("",  "Adding a value to the mass matrix\n");
+		    algsys_->AddToDiagMatrixEntry(MASS, eqnNr, eqnDof, &massValue_ );
+		  }
 		if (abs(dampingValue_)>1e-30) 
 		  {
 		    if (!dampingMatrix_)
 		      Error("The damping value of a spring can only be added to the damping matrix when there exist one! ",__FILE__,__LINE__);
 
+		    Info->PrintF ("", "Adding a value to the damping matrix");
 		    algsys_->AddToDiagMatrixEntry(DAMPING, eqnNr, eqnDof, &dampingValue_ );
 		  }
 		if (abs(stiffnessValue_)>1e-30) 
-		  algsys_->AddToDiagMatrixEntry(STIFFNESS, eqnNr, eqnDof, &stiffnessValue_ );
+		  {
+		    Info->PrintF ("", "Adding a value to the stiffness matrix");
+		    algsys_->AddToDiagMatrixEntry(STIFFNESS, eqnNr, eqnDof, &stiffnessValue_ );
+		  }
 	      }
 
 	    else if(analysisType_==STATIC)
 	      {
 		if (abs(stiffnessValue_)>1e-30)
-		  algsys_->AddToDiagMatrixEntry(SYSTEM, eqnNr, eqnDof, &stiffnessValue_ );
+		  {
+		    Info->PrintF ("", "Adding a value to the stiffness matrix");
+		    algsys_->AddToDiagMatrixEntry(SYSTEM, eqnNr, eqnDof, &stiffnessValue_ );
+		  }
 		if (abs(dampingValue_)>1e-30 || abs(massValue_)>1e-30 ) 
 		  Error("The damping and mass value of a spring will not considered in an static analysis! ",__FILE__,__LINE__);
 	      }

@@ -95,6 +95,7 @@ namespace CoupledField {
 
     if ( PDE_.geoUpdate_ == TRUE ||  PDE_.firstTimeStepStatic_ == TRUE) {
       PDE_.assemble_->AssembleMatrices(level);
+      PDE_.assemble_->AssembleSprings(level, PDE_.lasttimecalc_);
       job = 1; // calc new preconditioner
     }
   
@@ -198,6 +199,7 @@ namespace CoupledField {
            || PDE_.geoUpdate_ == TRUE ) {
         job = 1;
         PDE_.assemble_->AssembleMatrices(level);
+	PDE_.assemble_->AssembleSprings(level, PDE_.lasttimecalc_);
         PDE_.algsys_->ConstructEffectiveMatrix(PDE_.matrix_factor_);
       }  
     }
@@ -210,6 +212,7 @@ namespace CoupledField {
       if (PDE_.dampingType_) {
         PDE_.algsys_->InitMatrix(DAMPING);
       }
+      PDE_.assemble_->AssembleSprings(level, PDE_.lasttimecalc_);
       PDE_.algsys_->ConstructEffectiveMatrix(PDE_.matrix_factor_);
     }
     else {
@@ -223,6 +226,7 @@ namespace CoupledField {
         }
         job = 1;
         PDE_.assemble_->AssembleMatrices(level);
+	PDE_.assemble_->AssembleSprings(level, PDE_.lasttimecalc_);
         PDE_.algsys_->ConstructEffectiveMatrix(PDE_.matrix_factor_);      
       }
     }
