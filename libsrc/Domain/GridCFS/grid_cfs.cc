@@ -1060,10 +1060,6 @@ namespace CoupledField
 	  {
 	    ptAuxElem=listNeigh4Elem[ine];
 	    
-	    if (surfElems[ise]->elemNum == 2763){
-	      std::cerr << "Checking volume element " << ptAuxElem->elemNum << std::endl;
-	      std::cerr << "it's connect is " << std::endl << ptAuxElem->connect << std::endl;
-	    }
 	    // check are there other vertices of element
 	    // loop over other nodes of surf element
 	    for (je=1;je<connectSE.GetSize();je++) {
