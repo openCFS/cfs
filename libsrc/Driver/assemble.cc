@@ -36,8 +36,8 @@ namespace CoupledField
     firstTime_ = TRUE;
     oneIntIsNonlin_ = FALSE;
     nrMatrices_ = 5+1;  // 5 matrices, but index starts with 1!
-    // reassembleMat_.Resize(nrMatrices_);
-    reassembleMat_.resize(nrMatrices_);
+    reassembleMat_.Resize(nrMatrices_);
+    // reassembleMat_.resize(nrMatrices_);
     nonLinGeo = FALSE;
     deltaCoords_ = NULL;
 
@@ -525,8 +525,8 @@ namespace CoupledField
     ENTER_FCN( "Assemble::InitNonLinMatrices" );
 
     // return, if matrices are not yet assembled
-    // if (!reassembleMat_.GetSize())
-    if ( reassembleMat_.size() == 0 ) {
+    if (!reassembleMat_.GetSize()) {
+    // if ( reassembleMat_.size() == 0 ) {
       InitMatrices();
       return;
     }

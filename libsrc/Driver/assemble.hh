@@ -454,8 +454,8 @@ class IntegratorDescriptor : public BaseIntDescriptor
     Boolean firstTime_;
     Boolean oneIntIsNonlin_;
     Integer nrMatrices_;
-    // Vector<Boolean> reassembleMat_;
-    std::deque<bool> reassembleMat_;
+    Vector<Boolean> reassembleMat_;
+    // std::deque<bool> reassembleMat_;
     Boolean nonLinGeo;
 
     void SetReassemble()
