@@ -46,6 +46,7 @@ namespace CoupledField
   BaseForm::~BaseForm()
   {
     ENTER_FCN( "BaseForm::~BaseForm" );
+    delete ptMaterial;
   }
 
 
