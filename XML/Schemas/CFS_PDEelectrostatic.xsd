@@ -16,9 +16,9 @@
   <!--   Definition of data type for electrostatic PDEs -->
   <!-- ******************************************************************** -->
 
-  <xsd:complexType name="PDE_Type_electrostatic">
+  <xsd:complexType name="DT_PDEElectrostatic">
     <xsd:complexContent>
-      <xsd:extension base="PDE_Type_basic">
+      <xsd:extension base="DT_PDEBasic">
         <xsd:sequence>
 
           <!-- Subdomains the PDE lives on -->

@@ -16,7 +16,7 @@
   <!--   Definition of solver data type -->
   <!-- ******************************************************************** -->
 
-  <xsd:element name="Solver">
+  <xsd:element name="solver">
     <xsd:complexType>
       <xsd:sequence>
 
@@ -52,7 +52,7 @@
        </xsd:element>
 
        <!-- Stopping tolerance (optional) -->
-       <xsd:element name="tol" type="PosFloat" minOccurs="0" maxOccurs="1"/>
+       <xsd:element name="tol" type="DT_PosFloat" minOccurs="0" maxOccurs="1"/>
 
       </xsd:sequence>
     </xsd:complexType>
