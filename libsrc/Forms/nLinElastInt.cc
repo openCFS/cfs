@@ -504,8 +504,8 @@ namespace CoupledField
 
 
   // base class for regarding prestress
-  PreStressInt::PreStressInt(BaseFE * aptelem, MaterialData & matData, Double aPreStressVal, Directions stressDir) 
-    : nLinMechInt_PiolaStress(aptelem, matData), preStressVal_(aPreStressVal), preStressDir_(stressDir)
+  PreStressInt::PreStressInt(BaseFE * aptelem, MaterialData & matData, Vector<Double> aPreStressVal)
+    : nLinMechInt_PiolaStress(aptelem, matData), preStressVal_(aPreStressVal)
   {
     ENTER_FCN( "PreStressInt::PreStressInt" );
 
@@ -515,8 +515,8 @@ namespace CoupledField
   }
  
   // base class for regarding prestress
-  PreStressInt::PreStressInt(MaterialData & matData, Double aPreStressVal, Directions stressDir) 
-    : nLinMechInt_PiolaStress(matData), preStressVal_(aPreStressVal), preStressDir_(stressDir)
+  PreStressInt::PreStressInt(MaterialData & matData, Vector<Double> aPreStressVal) 
+    : nLinMechInt_PiolaStress(matData), preStressVal_(aPreStressVal)
   {
     ENTER_FCN( "PreStressInt::PreStressInt" );
 
@@ -544,106 +544,35 @@ namespace CoupledField
     const Integer nrDofs = getNrDofs();
     const Integer distributedStress = 1;
     
-
-        
+    Vector<Double> preStrainVec(dimD);
     preStressVec.Resize(dimD);
     preStressVec *= 0;
-    
-    if (! distributedStress)
-      switch(preStressDir_)
-	{
-	case X:
-	  preStressVec[0] = preStressVal_;
-	  break;
-	
-	case Y:
-	  preStressVec[1] = preStressVal_;
-	  break;
-	  
-	case Z:
-	  preStressVec[2] = preStressVal_;
-	  break;
-	  
-	case radXY:
-	  {  
-	    Vector<Double> shapeFncIP;
-	    ptelem->GetShFncAtIp(shapeFncIP, ip);
-	    
-	    Vector<Double> coordIP(nrDofs);
-	    coordIP = ptCoord * shapeFncIP;
-	    
-	    
-	    preStressVec[0] = coordIP[0];
-	    preStressVec[1] = coordIP[1];
-	    // in xy-plane, no z-coord has to be regarded
-	    preStressVec[2] = 0;
-	    
-	    
-	    // center of radial prestress is (0,0)
-	    preStressVec *= (preStressVal_ / preStressVec.NormL2());
-	    break;
-	  }
-	  
-	default:
-	  Error("The prestress direction mentioned in the config-file is not implemented! ",__FILE__,__LINE__);
-	}
-    else
-      {
-	Vector<Double> preStrainVec(dimD);
-	
-	preStrainVec *= 0;   // initialize vector
-	
-	    
-	Matrix<Double> matData;
-	if (isaxi_)
-	  //axi
-	  CalcAxiMaterialMat(matData, actOrientation);
-	else if (getNrDofs() == 3)
-	  //3D
-	  calcMaterialDMat(matData);
-	else
-	  //2D-plane strain
-	  Calc2DMaterialMatrix(matData, actOrientation);	    
 
-	switch(preStressDir_)
-	  {
-	  case X:
-	    preStrainVec[0] = preStressVal_ / matData[0][0];
-	    break;
-		
-	  case Y:
-	    preStrainVec[1] = preStressVal_ / matData[1][1];
-	    break;
-		
-	  case Z:
-	    preStrainVec[2] = preStressVal_ / matData[2][2];
-	    break;
-		
-	  case radXY:
-	    {  
-	      Vector<Double> shapeFncIP;
-	      ptelem->GetShFncAtIp(shapeFncIP, ip);
-		  
-	      Vector<Double> coordIP(nrDofs);
-	      coordIP = ptCoord * shapeFncIP;
-		  
-	      // in xy-plane, no z-coord has to be regarded
-	      // center of radial prestress is (0,0)
-	      coordIP[2]= 0;
-		  
-	      for (Integer i=0; i<coordIP.GetSize(); i++)
-		preStrainVec[i] = coordIP[i] / coordIP.NormL2() * preStressVal_ / matData[i][i];
-	      break;
-	    }
-		
-	  default:
-	    Error("The prestress direction mentioned in the config-file is not implemented! ",__FILE__,__LINE__);
-	  }
+    Matrix<Double> matData;
+    if (isaxi_) {
+      //axi
+      CalcAxiMaterialMat(matData, actOrientation);
+      preStrainVec[0]= preStressVal_[0] / matData[0][0];
+      preStrainVec[1]= preStressVal_[1] / matData[1][1];
+    }
+    else if (getNrDofs() == 3) {
+      //3D
+      calcMaterialDMat(matData);
+      preStrainVec[0]= preStressVal_[0] / matData[0][0];
+      preStrainVec[1]= preStressVal_[1] / matData[1][1];
+      preStrainVec[2]= preStressVal_[2] / matData[2][2];
+    }
+    else {
+      //2D-plane strain
+      Calc2DMaterialMatrix(matData, actOrientation);
+      preStrainVec[0]= preStressVal_[0] / matData[0][0];
+      preStrainVec[1]= preStressVal_[1] / matData[1][1];
+    }
+   
 
-	// calc "distributed" stress 
-	preStressVec = matData * preStrainVec;
+    // calc "distributed" stress 
+    preStressVec = matData * preStrainVec;
 	    
-      }
   }
 
 
@@ -738,16 +667,15 @@ namespace CoupledField
   }
 
   // class for regarding 3d prestress
-  PreStressInt3D::PreStressInt3D(BaseFE * aptelem, MaterialData & matData, Double aPreStressVal, 
-				 Directions stressDir) 
-    : PreStressInt(aptelem, matData, aPreStressVal, stressDir)
+  PreStressInt3D::PreStressInt3D(BaseFE * aptelem, MaterialData & matData, Vector<Double> aPreStressVal)
+    : PreStressInt(aptelem, matData, aPreStressVal)
   {
     ENTER_FCN( "PreStressInt3D::PreStressInt3D" );
   }
  
   // class for regarding 3d prestress
-  PreStressInt3D::PreStressInt3D(MaterialData & matData, Double aPreStressVal, Directions stressDir) 
-    : PreStressInt(matData, aPreStressVal, stressDir)
+  PreStressInt3D::PreStressInt3D(MaterialData & matData, Vector<Double> aPreStressVal)
+    : PreStressInt(matData, aPreStressVal)
   {
     ENTER_FCN( "PreStressInt3D::PreStressInt3D" );
   }
@@ -761,17 +689,17 @@ namespace CoupledField
 
 
   // class for regarding 2d prestress in plane strain case
-  PreStressIntPlaneStrain::PreStressIntPlaneStrain(BaseFE * aptelem, MaterialData & matData, Double aPreStressVal, 
-				 Directions stressDir) 
-    : PreStressInt(aptelem, matData, aPreStressVal, stressDir)
+  PreStressIntPlaneStrain::PreStressIntPlaneStrain(BaseFE * aptelem, MaterialData & matData, 
+						   Vector<Double> aPreStressVal)
+    : PreStressInt(aptelem, matData, aPreStressVal)
   {
     ENTER_FCN( "PreStressIntPlaneStrain::PreStressIntPlaneStrain" );
   }
  
   // class for regarding 2d prestress in plane strain case
-  PreStressIntPlaneStrain::PreStressIntPlaneStrain(MaterialData & matData, Double aPreStressVal, 
-						   Directions stressDir) 
-    : PreStressInt(matData, aPreStressVal, stressDir)
+  PreStressIntPlaneStrain::PreStressIntPlaneStrain(MaterialData & matData, 
+						   Vector<Double> aPreStressVal)
+    : PreStressInt(matData, aPreStressVal)
   {
     ENTER_FCN( "PreStressIntPlaneStrain::PreStressIntPlaneStrain" );
   }
@@ -785,18 +713,18 @@ namespace CoupledField
 
 
   // class for regarding 2d axi prestress 
-  PreStressIntAxi::PreStressIntAxi(BaseFE * aptelem, MaterialData & matData, Double aPreStressVal, 
-				   Directions stressDir) 
-    : PreStressInt(aptelem, matData, aPreStressVal, stressDir)
+  PreStressIntAxi::PreStressIntAxi(BaseFE * aptelem, MaterialData & matData, 
+				   Vector<Double> aPreStressVal)   
+    : PreStressInt(aptelem, matData, aPreStressVal)
   {
     ENTER_FCN( "PreStressIntAxi::PreStressIntAxi" );
    isaxi_ = TRUE;
   }
  
   // class for regarding 2d axi prestress 
-  PreStressIntAxi::PreStressIntAxi(MaterialData & matData, Double aPreStressVal, 
-				   Directions stressDir) 
-    : PreStressInt(matData, aPreStressVal, stressDir)
+  PreStressIntAxi::PreStressIntAxi(MaterialData & matData, 
+				   Vector<Double> aPreStressVal)
+    : PreStressInt(matData, aPreStressVal)
   {
     ENTER_FCN( "PreStressIntAxi::PreStressIntAxi" );
    isaxi_ = TRUE;

@@ -359,10 +359,10 @@ public:
   friend class PreStressLinFormInt;
   
   /// Constructor
-  PreStressInt(BaseFE * aptelem, MaterialData & matData, Double aPreStressVal, Directions stressDir);
+  PreStressInt(BaseFE * aptelem, MaterialData & matData, Vector<Double> aPreStressVal);
   
   //! Constructor
-  PreStressInt(MaterialData & matData, Double aPreStressVal, Directions stressDir);
+  PreStressInt(MaterialData & matData, Vector<Double> aPreStressVal);
   
   /// Destructor
   virtual ~PreStressInt();  
@@ -395,10 +395,8 @@ protected:
 
 private: 
   /// 
-  Double preStressVal_;
+  Vector<Double> preStressVal_;
 
-  /// direction of stresses (enumeration type)
-  Directions preStressDir_;
 };
 
 
@@ -407,10 +405,10 @@ class PreStressInt3D : public PreStressInt
 {
 public:
   /// Constructor
-  PreStressInt3D(BaseFE * aptelem, MaterialData & matData, Double aPreStressVal, Directions stressDir);
+  PreStressInt3D(BaseFE * aptelem, MaterialData & matData, Vector<Double> aPreStressVal);
   
   //! Constructor
-  PreStressInt3D(MaterialData & matData, Double aPreStressVal, Directions stressDir);
+  PreStressInt3D(MaterialData & matData, Vector<Double> aPreStressVal);
   
   /// Destructor
   virtual ~PreStressInt3D();  
@@ -436,11 +434,10 @@ class PreStressIntPlaneStrain : public PreStressInt
 {
 public:
   /// Constructor
-  PreStressIntPlaneStrain(BaseFE * aptelem, MaterialData & matData, Double aPreStressVal, 
-			  Directions stressDir);
+  PreStressIntPlaneStrain(BaseFE * aptelem, MaterialData & matData, Vector<Double> aPreStressVal);
   
   //! Constructor
-  PreStressIntPlaneStrain(MaterialData & matData, Double aPreStressVal, Directions stressDir);
+  PreStressIntPlaneStrain(MaterialData & matData, Vector<Double> aPreStressVal);
   
   /// Destructor
   virtual ~PreStressIntPlaneStrain();  
@@ -466,11 +463,10 @@ class PreStressIntAxi : public PreStressInt
 {
 public:
   /// Constructor
-  PreStressIntAxi(BaseFE * aptelem, MaterialData & matData, Double aPreStressVal, 
-	       Directions stressDir);
+  PreStressIntAxi(BaseFE * aptelem, MaterialData & matData, Vector<Double> aPreStressVal);
   
   //! Constructor
-  PreStressIntAxi(MaterialData & matData, Double aPreStressVal, Directions stressDir);
+  PreStressIntAxi(MaterialData & matData, Vector<Double> aPreStressVal);
   
   /// Destructor
   virtual ~PreStressIntAxi();  

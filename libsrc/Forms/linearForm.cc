@@ -543,52 +543,53 @@ void PreStressLinFormInt::CalcElemVector(Matrix<Double>& ptCoord,
 					 Vector<Double> & elemVec)
 {
   ENTER_FCN( "PreStressLinFormInt::CalcElemVector" );
+  Error("PreStressLinFormInt::CalcElemVector: not working");
 
-  const Integer nrIntPts = ptelem->GetNumIntPoints();
-  const Integer nrNodes  = ptelem->GetNumNodes();
-  const Integer nrDofs   = getNrDofs();
-  const Vector<Double> & intWeights = ptelem->GetIntWeights();  
-  Vector<Double> piolaStressVec;    
-  Vector<Double> partElemVec;
+//   const Integer nrIntPts = ptelem->GetNumIntPoints();
+//   const Integer nrNodes  = ptelem->GetNumNodes();
+//   const Integer nrDofs   = getNrDofs();
+//   const Vector<Double> & intWeights = ptelem->GetIntWeights();  
+//   Vector<Double> piolaStressVec;    
+//   Vector<Double> partElemVec;
   
-  Matrix<Double> linBMat; 
-  Matrix<Double> nonLinBMat; 
-  Matrix<Double> dMat;
-  Matrix<Double> transpSumB;    // we need transposed of the b-matrices
+//   Matrix<Double> linBMat; 
+//   Matrix<Double> nonLinBMat; 
+//   Matrix<Double> dMat;
+//   Matrix<Double> transpSumB;    // we need transposed of the b-matrices
   
 
-  // This, as friend defined bilinearform holds the necessary differential operators
-  PreStressInt preStressBiformInt(ptelem, matData_, preStressVal_, preStressDir_);
+//   // This, as friend defined bilinearform holds the necessary differential operators
+//   PreStressInt preStressBiformInt(ptelem, matData_, preStressVal_, preStressDir_);
 
-  if (!elemDisp_.GetSizeRow() || !elemDisp_.GetSizeCol()) 
-    Error("Undefined displacements! ",__FILE__,__LINE__);
+//   if (!elemDisp_.GetSizeRow() || !elemDisp_.GetSizeCol()) 
+//     Error("Undefined displacements! ",__FILE__,__LINE__);
 
-  partElemVec.Resize(nrNodes * nrDofs);
+//   partElemVec.Resize(nrNodes * nrDofs);
 
 
-  elemVec.Resize( nrNodes * nrDofs );
-  elemVec *= 0;    // set elems to 0
+//   elemVec.Resize( nrNodes * nrDofs );
+//   elemVec *= 0;    // set elems to 0
    
 
 
-  for (Integer actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
-    {    
-      preStressBiformInt.setActElemDispl(elemDisp_);
-      preStressBiformInt.CalcStressVec(piolaStressVec, actIntPt, ptCoord);
-      preStressBiformInt.calcNonLinBMat(nonLinBMat, actIntPt, ptCoord);
-      preStressBiformInt.calcLinBMat(linBMat, actIntPt, ptCoord);
+//   for (Integer actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
+//     {    
+//       preStressBiformInt.setActElemDispl(elemDisp_);
+//       preStressBiformInt.CalcStressVec(piolaStressVec, actIntPt, ptCoord);
+//       preStressBiformInt.calcNonLinBMat(nonLinBMat, actIntPt, ptCoord);
+//       preStressBiformInt.calcLinBMat(linBMat, actIntPt, ptCoord);
 
-      nonLinBMat += linBMat;
+//       nonLinBMat += linBMat;
 
-      nonLinBMat.Transpose(transpSumB);
+//       nonLinBMat.Transpose(transpSumB);
 	
-      partElemVec = transpSumB * piolaStressVec;
+//       partElemVec = transpSumB * piolaStressVec;
 
-      Double jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord);
-      partElemVec *= jacDet * intWeights[actIntPt-1];
+//       Double jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord);
+//       partElemVec *= jacDet * intWeights[actIntPt-1];
 	
-      elemVec +=  partElemVec;
-    }
+//       elemVec +=  partElemVec;
+//     }
 }
 
 
