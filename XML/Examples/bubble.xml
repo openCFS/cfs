@@ -16,7 +16,7 @@
          <damping type="rayleigh"/>
      </region>
 
-     <bubbles>
+     <bubbles tag="nina">
        <bubbleType>KellerMiksis</bubbleType>
        <bubbleNumDensity>10.5</bubbleNumDensity>
      </bubbles>
@@ -32,7 +32,7 @@
     </acoustic>
   </pdeList>
 
-  <bubbleDynamic>
+  <bubbleDynamic tag="nina">
     <initRadius> 0.9 </initRadius>
     <initVel>  100</initVel>
     <density>  4.3333</density>
