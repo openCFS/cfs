@@ -324,7 +324,8 @@ PDECoupling::CouplingInterface* PDECoupling::AddOutput(CouplingOutputType output
   Integer inode = 0;
   Integer numNodes = 0;
   StdVector<Elem*> auxElems;
-
+  std::string errMsg;
+  
   // Get Elements/nodes of coupling region
   SD.Clear();
   switch (regionType)
@@ -341,6 +342,22 @@ PDECoupling::CouplingInterface* PDECoupling::AddOutput(CouplingOutputType output
 
       ptGrid_->CalcNumberOfNodesInPatch(SD, myInterface->nodes);
       myInterface->numNodes = myInterface->nodes.GetSize();
+
+      // Check if any nodes at all were found
+      if ( myInterface->numNodes == 0){
+	errMsg  = "Coupling::AddOutput: The region(s) ";
+	for (Integer k=0; k<regions.GetSize()-1; k++) {
+	  errMsg += "'";
+	  errMsg += regions[k];
+	  errMsg += "', ";
+	}
+	errMsg +="'";
+	errMsg += regions[regions.GetSize()-1];
+	errMsg += "' were not found in the mesh or contain no nodes.\n";
+	errMsg += "Please check you mesh file!";
+	Error(errMsg.c_str(), __FILE__, __LINE__);
+      }
+      
       //myInterface->values.resize(myInterface->nodes.GetSize());
       //myInterface->oldValues.resize(myInterface->nodes.GetSize());
       //  myInterface->values->SetNumNodes(myInterface->nodes.GetSize());
@@ -372,13 +389,25 @@ PDECoupling::CouplingInterface* PDECoupling::AddOutput(CouplingOutputType output
 	}
 
       myInterface->numNodes = myInterface->nodes.GetSize();
-      //myInterface->values.resize(myInterface->nodes.GetSize());
-      //myInterface->oldValues.resize(myInterface->nodes.GetSize());
-      // myInterface->values->SetNumNodes(myInterface->nodes.GetSize());
-//       myInterface->oldValues->SetNumNodes(myInterface->nodes.GetSize());
+
+      // Check if any nodes at all were found
+      if ( myInterface->numNodes == 0){
+	errMsg  = "Coupling::AddOutput: The nodes(s) ";
+	for (Integer k=0; k<regions.GetSize()-1; k++) {
+	  errMsg += "'";
+	  errMsg += regions[k];
+	  errMsg += "', ";
+	}
+	errMsg +="'";
+	errMsg += regions[regions.GetSize()-1];
+	errMsg += "' were not found in the mesh or contain no nodes.\n";
+	errMsg += "Please check you mesh file!";
+	Error(errMsg.c_str(), __FILE__, __LINE__);
+      }
       break;
 
     case SURFACE:
+
 
       for (Integer iSD=0; iSD<regions.GetSize(); iSD++)
 	{
@@ -399,37 +428,29 @@ PDECoupling::CouplingInterface* PDECoupling::AddOutput(CouplingOutputType output
       ptGrid_ -> CalcNumberOfNodesInPatch(myInterface->elements, myInterface->nodes);
 
       myInterface->numNodes = myInterface->nodes.GetSize();
+
+      // Check if any nodes at all were found
+      if ( myInterface->numNodes == 0){
+	errMsg  = "Coupling::AddOutput: The surface(s) ";
+	for (Integer k=0; k<regions.GetSize()-1; k++) {
+	  errMsg += "'";
+	  errMsg += regions[k];
+	    errMsg += "', ";
+	}
+	errMsg +="'";
+	errMsg += regions[regions.GetSize()-1];
+	errMsg += "' were not found in the mesh or contain no nodes.\n";
+	errMsg += "Please check you mesh file!";
+	Error(errMsg.c_str(), __FILE__, __LINE__);
+      }
+      
       myInterface->numElems = myInterface->elements.GetSize();
-      //myInterface->oldValues.resize(myInterface->nodes.GetSize());   
-      //myInterface->values.resize(myInterface->nodes.GetSize());      
-      // myInterface->values->SetNumNodes(myInterface->nodes.GetSize());
-      // myInterface->oldValues->SetNumNodes(myInterface->nodes.GetSize());
       myInterface->materials.Resize(myInterface->elements.GetSize());
       myInterface->oppositePdeMaterials.Resize(myInterface->elements.GetSize());
 	    
 
       break;
-
-    // case ELEMS2D:
-//       for (Integer iSD=0; iSD<regions.GetSize(); iSD++)
-// 	{
-// 	  auxElems = ptBCs_->getFacesBC(regions[iSD], level);
-// 	  for (Integer iElem=0; iElem<auxElems.GetSize(); iElem++)
-// 	    SD.Push_back(auxElems[iElem]);
-// 	}
-      
-//       myInterface->elements = SD;
-//       ptGrid_ -> CalcNumberOfNodesInPatch(myInterface->elements, myInterface->nodes);
-      
-//       myInterface->numNodes = myInterface->nodes.GetSize();
-//       myInterface->numElems = myInterface->elements.GetSize();
-//       //myInterface->values.resize(myInterface->nodes.GetSize());
-//       //myInterface->oldValues.resize(myInterface->nodes.GetSize());
-//       // myInterface->values->SetNumNodes(myInterface->nodes.GetSize());
-// //       myInterface->oldValues->SetNumNodes(myInterface->nodes.GetSize());
-//       myInterface->materials.Resize(myInterface->elements.GetSize());
-//       break;
-    }
+     }
 
   outputInterfaces_.Push_back(myInterface);
   
