@@ -47,6 +47,7 @@ namespace CoupledField {
 
     //check, if problem is axisymmetric
 #ifndef XMLPARAMS
+
     isaxi_ = FALSE;
     std::string subtype;
     conf->ifget("subtype",subtype,pdename_);
@@ -59,10 +60,8 @@ namespace CoupledField {
     //check for electric field energy:
     conf->ifgetliststr("calc_Energy",calcEnergy_,pdename_); 
 #else
-
     // Check whether problem has axial symmetry
     if ( params->HasValue( "type", "axi", "geometry" ) ) isaxi_ = TRUE;
-
 #endif
 
     Reset();
@@ -391,16 +390,10 @@ void ElecPDE::CalcNodeForce(StoreSol<Double> & force,
   Vector<Double> sum;
   sum.Resize(dim_);
   
-  for (Integer i=0; i<nodes.size(); i++) 
-    {
-      //std::cerr << "Node[" << nodes[i] << "] = ";
+  for (Integer i=0; i<nodes.size(); i++)
     for (Integer dim=0; dim<dim_; dim++)
-      {
-	sum[dim] += force(i,dim);
-	//std::cerr << force[dim][i] << " , ";
-      }
-    //std::cerr << std::endl;
-    }
+      sum[dim] += force(i,dim);
+
   delete ForceOp;
 
 
@@ -750,6 +743,8 @@ void ElecPDE::CalcInterfaceForces(Integer actCoupling)
   StoreSol<Double> * elemCouplingSols = dynamic_cast<StoreSol<Double> *>(elemCouplingSolsTemp);
    
   elemCouplingSols->Init(0.0);
+
+  Vector<Double> xPosCoupleNode(couplingNodes->size());
   
 
   for (Integer actElem=0; actElem < couplingElems->size(); actElem++)
@@ -845,6 +840,9 @@ void ElecPDE::CalcInterfaceForces(Integer actCoupling)
 	}
 
 
+      
+
+
       // copy result into final solution vector
       for (Integer actNode=0; actNode < ptCoord.GetSizeRow(); actNode++)
 	{
@@ -854,18 +852,17 @@ void ElecPDE::CalcInterfaceForces(Integer actCoupling)
 		nodePos < couplingNodes->size()) 
 	    nodePos++;
 	  
-	  for (Integer actDof=0; actDof < couplingDof ; actDof++)  
+	  for (Integer actDof=0; actDof < couplingDof ; actDof++)
 	    (*elemCouplingSols)(nodePos,actDof)  += interfaceForceOnNodes[actNode] * n[actDof];
+
+	  xPosCoupleNode[nodePos] = ptCoord[0][actNode];
 	}
-      
-
-
-
-//       for (Integer actNode=0; actNode < ptCoord.size_row(); actNode++)
-// 	for (Integer actDof=0; actDof < couplingDof ; actDof++)  
-// 	  (*elemCouplingSols)[actDof][actNode] += interfaceForceOnNodes[actNode] * n[actDof];
     }
-  //*debug << "elem Force: " << myendl << *elemCouplingSols << myendl;
+
+  Vector<double> res;
+  elemCouplingSols-> GetCompleteVector(res);
+  *cla << "elem Force: " << myendl << res << myendl;
+  *cla << "according x-coords of elem Force: " << myendl << xPosCoupleNode << myendl;
 }
 
 
@@ -935,9 +932,19 @@ void ElecPDE::ReadStoreResults() {
   // Determine regions for which electric field and/or energy must be computed
   params->GetValsForHits( "region", calcEfield_, "type", "efield", pdename_,
 			  "elemResults" );
+  // by default, "all" is given as only argument
+  if (calcEfield_.size()==1)
+    if (calcEfield_[0] == "all")
+      calcEfield_ = subdoms_;
+
+
   params->GetValsForHits( "region", calcEnergy_, "type", "energy", pdename_,
 			  "storeResults" );
 
+  // by default, "all" is given as only argument
+  if (calcEnergy_.size()==1)
+    if (calcEnergy_[0] == "all")
+      calcEnergy_ = subdoms_;
 }
 #endif
 

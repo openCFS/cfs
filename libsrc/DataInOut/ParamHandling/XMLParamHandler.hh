@@ -44,7 +44,7 @@ namespace CoupledField
     //! the steering parameters. The file has to be in XML format. The
     //! constructor will parse and validate the file and generate an internal
     //! DOM tree containing the parameters.
-    XMLParamHandler( Char *fname );
+    XMLParamHandler( const char *fname );
 
     //! Default estructor
 

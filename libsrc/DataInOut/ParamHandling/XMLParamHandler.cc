@@ -40,7 +40,7 @@ namespace CoupledField {
   // =========================================
   //   Constructor for XMLParamHandler class
   // =========================================
-  XMLParamHandler::XMLParamHandler( char *fname ): parser_(NULL) {
+  XMLParamHandler::XMLParamHandler( const char *fname ): parser_(NULL) {
 
     ENTER_FCN( "XMLParamHandler::XMLParamHandler" );
 
