@@ -197,6 +197,14 @@
   </xsd:simpleType>
 
 
+  <!-- Data type for non-negative floating point numbers -->
+  <xsd:simpleType name="DT_NonNegFloat">
+    <xsd:restriction base="xsd:float">
+      <xsd:minInclusive value="0"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+
   <!-- Data type for floating point numbers in [0,1] -->
   <xsd:simpleType name="DT_FloatUnitInterval">
     <xsd:restriction base="xsd:float">
