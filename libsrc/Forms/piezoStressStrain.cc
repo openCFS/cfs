@@ -68,18 +68,6 @@ namespace CoupledField
   }
 
 
-  // returns linear B - matrix
-  void PiezoStressStrain::
-  calcBMat(Matrix<Double> & bMat, Integer ip, Matrix<Double> & ptCoord)
-  {
-    ENTER_FCN( "PiezoStressStrain::calcLinBMat" );
-
-    // linear differential operator B_lin
-    linPiezoInt::calcBMat(bMat, ip, ptCoord);
-  }
-
-
-
   // =============================================================================
   // class for 3d stresses
   // =============================================================================
@@ -100,6 +88,16 @@ namespace CoupledField
   {
     ENTER_FCN( "mechStressStrain3D::~mechStressStrain3D" );
 
+  }
+
+  // returns linear B - matrix
+  void PiezoStressStrain3D::
+  calcBMat(Matrix<Double> & bMat, Integer ip, Matrix<Double> & ptCoord)
+  {
+    ENTER_FCN( "PiezoStressStrain3D::calcLinBMat" );
+
+    // linear differential operator B_lin
+    linPiezoInt::calcBMat3D(bMat, ip, ptCoord);
   }
 
   void PiezoStressStrain3D::calcDMat(Matrix<Double> & dMat)
@@ -134,6 +132,16 @@ namespace CoupledField
     ENTER_FCN( "PiezoStressStrainAxi::~PiezoStressStrainAxi" );
   }
 
+  // returns linear B - matrix
+  void PiezoStressStrainAxi::
+  calcBMat(Matrix<Double> & bMat, Integer ip, Matrix<Double> & ptCoord)
+  {
+    ENTER_FCN( "PiezoStressStrainAxi::calcLinBMat" );
+
+    // linear differential operator B_lin
+    linPiezoInt::calcBMatAxi(bMat, ip, ptCoord);
+  }
+
   void PiezoStressStrainAxi::calcDMat(Matrix<Double> & dMat)
   {
     ENTER_FCN( "PiezoStressStrainAxi::calcMaterialDMat" );
@@ -162,6 +170,16 @@ namespace CoupledField
   PiezoStressStrainPlaneStrain::~PiezoStressStrainPlaneStrain()
   {
     ENTER_FCN( "PiezoStressStrainPlaneStrain::~PiezoStressStrainPlaneStrain" );
+  }
+
+  // returns linear B - matrix
+  void PiezoStressStrainPlaneStrain::
+  calcBMat(Matrix<Double> & bMat, Integer ip, Matrix<Double> & ptCoord)
+  {
+    ENTER_FCN( "PiezoStressStrainPlaneStrain::calcLinBMat" );
+
+    // linear differential operator B_lin
+    linPiezoInt::calcBMatPlaneStrain(bMat, ip, ptCoord);
   }
 
   void PiezoStressStrainPlaneStrain::calcDMat(Matrix<Double> & dMat)

@@ -31,6 +31,10 @@ namespace CoupledField
   {
   public:
 
+    //!
+    linPiezoInt(): BDBInt(), actOrientation(yz),isDamping_(FALSE){;}
+    
+
     //! Constructor
     linPiezoInt(BaseFE * aptelem, MaterialData & matData) 
       : BDBInt(aptelem, matData), actOrientation(yz)
@@ -52,6 +56,13 @@ namespace CoupledField
     {
       ENTER_FCN( "linPiezoInt::~linPiezoInt" );
     };
+
+    /// calculates mechanical stresses (vector notation)
+    virtual void CalcStressVec(Vector<Double>& StressVec, Integer ip, Matrix<Double> & ptCoord);  
+
+    virtual void SetActElemSol(Matrix<Double>& disp) {
+      ENTER_FCN( "linPiezoInt::SetActElemSol" );
+      elemSol_ = disp;};
 
   protected:
 
@@ -101,8 +112,11 @@ namespace CoupledField
     //! (just mechanical part)
     Boolean isDamping_;
 
+    //!
     orientation2D actOrientation;
 
+    //! displacement of all nodes of actual element
+    Matrix<Double> elemSol_;
   };
 
 
@@ -126,7 +140,7 @@ namespace CoupledField
     ~linPiezo3DInt();
 
   protected:
-  
+
     //! calculate the data-matrix D.
 
     //! The method computes the matrix D of material properties.
@@ -308,7 +322,6 @@ namespace CoupledField
     //! The method returns the dimension of the data-matrix D. In a 2D
     //! piezoelectric simulation D is a square 5x5 matrix, so the return
     //! value is 5.
-  
     virtual Integer getDimD(){return 5;};
 
     

@@ -18,5 +18,5 @@
 #include "linPiezoInt.hh"
 #include "nLincurlCurlNodeInt.hh"
 #include "mechStressStrain.hh"
-#include "piezoStressStrain.hh"
+//#include "piezoStressStrain.hh"
 #endif
