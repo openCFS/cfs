@@ -973,6 +973,7 @@ void AnsysFile::ReadEl3d(std::vector<Elem*> * allelems, const std::vector<std::s
   {
     switch(itype)
       {
+      case 1:
       case 100:
 	return ptL1;
       case 4:
