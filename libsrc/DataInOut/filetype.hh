@@ -184,10 +184,10 @@ sd)
 
  //! read the save nodes
   /*!
-        \param saveNodes out: list with global number of nodes
-        \param levels in: vector with name of nodes
+        \param saveNodes out: vector with global number of nodes
+        \param level in: name of nodes
   */
-  virtual void ReadSaveNodes(std::list<Integer> * saveNodes , const StdVector<std::string> levels)=0;
+  virtual void ReadSaveNodes(StdVector<Integer> & saveNodes , const std::string level)=0;
   //{ Error(" not implemented",__FILE__,__LINE__);};
   
   //! read only levels (names) of save nodes

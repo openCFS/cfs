@@ -524,7 +524,7 @@ namespace CoupledField
       if (numline) {
 	std::cerr << numline;
       }
-      std::cerr << ")";
+      std::cerr << ")" << std::endl;
     }
     if (cfsInfo) {
       *cfsInfo << myEndl << myEndl << myEndl

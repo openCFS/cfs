@@ -369,26 +369,39 @@ namespace CoupledField {
       Integer actStep = laststepcalc_ + stepOffset;
       
       if (analysistype_==HARMONIC) {
-	if (savesol_){
-	  solHarmonic = dynamic_cast<NodeStoreSol<Complex>*>(sol_);
+	solHarmonic = dynamic_cast<NodeStoreSol<Complex>*>(sol_);
+
+	if (saveSol_)
 	  outFile_->WriteNodeSolutionHarmonic(*solHarmonic,  actFreqStep_, 
 					      actFrequency_, complexFormat_);
-	}
+	if (saveSolHist_)
+	  outFile_->WriteNodeHistoryHarmonic(*solHarmonic,  actFreqStep_, 
+					     actFrequency_, complexFormat_);
       }
       else {  
-	
-	if (savesol_){
-	  solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);
+	solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);
+
+	if (saveSol_){
 	  outFile_->WriteNodeSolutionTransient(*solTransient, actStep, actTime);
+	  
+	  if (saveSolHist_)
+	    outFile_->WriteNodeHistoryTransient(*solTransient, actStep, actTime);
 	}
-	if (savederiv1_) {
-	  sol_der1Array_.SetAlgSysVector(getS1()); 
-	  outFile_->WriteNodeSolutionTransient(sol_der1Array_, actStep, actTime);
+	
+	if (saveDeriv1_) {
+	  solDeriv1_.SetAlgSysVector(getS1()); 
+	  outFile_->WriteNodeSolutionTransient(solDeriv1_, actStep, actTime);
+	
+	  if (saveDeriv1Hist_)
+	    outFile_->WriteNodeHistoryTransient(solDeriv1_, actStep, actTime);
 	}
 
-	if (savederiv2_) {
-	  sol_der2Array_.SetAlgSysVector(getS2());
-	  outFile_->WriteNodeSolutionTransient(sol_der2Array_, actStep, actTime);
+	if (saveDeriv2_) {
+	  solDeriv2_.SetAlgSysVector(getS2());
+	  outFile_->WriteNodeSolutionTransient(solDeriv2_, actStep, actTime);
+	  
+	  if (saveDeriv2Hist_)
+	    outFile_->WriteNodeHistoryTransient(solDeriv2_, actStep, actTime);
 	}
       }
 #ifdef PARALLEL
@@ -401,34 +414,126 @@ namespace CoupledField {
   //   Obtain information on desired output quantities from parameter file
   // ***********************************************************************
 #ifdef XMLPARAMS
-  void AcousticPDE::ReadStoreResults() {
-
+  void AcousticPDE::ReadStoreResults() {  
     ENTER_FCN( "AcousticPDE::ReadStoreResults" );
     
-    //\todo This must be changed soon!!!
-    // By default we only save the solution at nodal values
-    savesol_    = TRUE;
-    savederiv1_ = FALSE;
-    savederiv2_ = FALSE;
-
-    if (savederiv1_) {
-      sol_der1Array_.SetNumSolutions(1);
-      sol_der1Array_.SetNumNodes(numPDENodes_);
-      sol_der1Array_.SetSolutionType(ACOU_POTENTIAL_DERIV_1);
-      sol_der1Array_.SetNumDofs(1);    
-      sol_der1Array_.SetPtrEQNData(eqnData_, ptgrid_, actlevel_);
-      sol_der1Array_.Init(0);
+    // Construct vectors for restricted parameter search
+    StdVector<std::string> keyVec;
+    StdVector<std::string> attrVec;
+    StdVector<std::string> valVec;
+    std::string quantity;
+    
+    // *****************************
+    // Determine nodal results
+    // ***************************** 
+    StdVector<std::string> nodeValues;
+    keyVec  = pdename_, "storeResults", "nodeResults", "region";
+    attrVec = "", "", "type";  
+    
+    // --- Acou Potential, 1. Deriv ---
+    Enum2String(ACOU_POTENTIAL_DERIV_1, quantity);
+    valVec = "", "", quantity;
+    params->GetList( keyVec, attrVec, valVec, nodeValues);
+    if (nodeValues.GetSize() > 0) {
+      saveDeriv1_ = TRUE;
+      
+      // intialize corresponding storesolution object
+      solDeriv1_.SetNumSolutions(1);
+      solDeriv1_.SetNumNodes(numPDENodes_);
+      solDeriv1_.SetSolutionType(ACOU_POTENTIAL_DERIV_1);
+      solDeriv1_.SetNumDofs(1);
+      solDeriv1_.SetPtrEQNData(eqnData_, ptgrid_, actlevel_); 
+      solDeriv1_.Init(0);
     }
 
-    if (savederiv2_) {
-      sol_der2Array_.SetNumSolutions(1);
-      sol_der2Array_.SetNumNodes(numPDENodes_);
-      sol_der2Array_.SetSolutionType(ACOU_POTENTIAL_DERIV_2);
-      sol_der2Array_.SetNumDofs(1);    
-      sol_der2Array_.SetPtrEQNData(eqnData_, ptgrid_, actlevel_);
-      sol_der2Array_.Init(0);
+    // --- Acou Potential, 2. Deriv ---
+    Enum2String(ACOU_POTENTIAL_DERIV_2, quantity);
+    valVec = "", "", quantity;
+    params->GetList( keyVec, attrVec, valVec, nodeValues);
+    if (nodeValues.GetSize() > 0) {
+      saveDeriv2_ = TRUE;
+      
+      // intialize corresponding storesolution object
+      solDeriv2_.SetNumSolutions(1);
+      solDeriv2_.SetNumNodes(numPDENodes_);
+      solDeriv2_.SetSolutionType(ACOU_POTENTIAL_DERIV_2);
+      solDeriv2_.SetNumDofs(1);
+      solDeriv2_.SetPtrEQNData(eqnData_, ptgrid_, actlevel_); 
+      solDeriv2_.Init(0);
     }
+    
+    // *****************************
+    // Determine element results
+    // *****************************
+    
+    // --- nothding to do here ---
 
+    // *****************************
+    // Determine nodal history
+    // *****************************
+    StdVector<std::string> saveNodeHist; 
+    keyVec  = pdename_, "storeResults", "nodeHistory", "saveNodes";
+    attrVec = "", "", "type";
+    
+    // --- Acoustic Potential  ---
+    Enum2String(ACOU_POTENTIAL, quantity);
+    valVec  = "", "", quantity;
+    params->GetList( keyVec, attrVec, valVec, saveNodeHist );
+    
+    if (saveNodeHist.GetSize() > 0) {
+    if (saveSol_ == FALSE) {
+      std::string errMsg = pdename_;
+      errMsg += ": History of ";
+      errMsg += quantity + " can only be written, if it is activated ";
+      errMsg += "in section 'nodalResults', too.";
+      Error(errMsg.c_str(), __FILE__, __LINE__);
+      }
+    saveSolHist_ = TRUE;
+    Info->PrintF( pdename_, " Saving acouPotential for Nodes:" );
+    for ( Integer k = 0; k < saveNodeHist.GetSize(); k++ ) {
+      Info->PrintF( pdename_, " %s", saveNodeHist[k].c_str() );
+    }
+    }
+    
+    // --- Acoustic Potential, 1. Deriv ---
+    Enum2String(ACOU_POTENTIAL_DERIV_1, quantity);
+    valVec  = "", "", quantity;
+    params->GetList( keyVec, attrVec, valVec, saveNodeHist );
+    
+    if (saveNodeHist.GetSize() > 0) {
+      if (saveDeriv1_ == FALSE) {
+	std::string errMsg = pdename_;
+	errMsg += ": History of ";
+	errMsg += quantity + " can only be written, if it is activated ";
+	errMsg += "in section 'nodalResults', too.";
+	Error(errMsg.c_str(), __FILE__, __LINE__);
+      }
+      saveDeriv1Hist_ = TRUE;
+      Info->PrintF( pdename_, " Saving acouPotentialD1 for Nodes:" );
+      for ( Integer k = 0; k < saveNodeHist.GetSize(); k++ ) {
+	Info->PrintF( pdename_, " %s", saveNodeHist[k].c_str() );
+      }
+    }
+    // --- Acoustic Potential, 1. Deriv ---
+    Enum2String(ACOU_POTENTIAL_DERIV_2, quantity);
+    valVec  = "", "", quantity;
+    params->GetList( keyVec, attrVec, valVec, saveNodeHist );
+    
+    if (saveNodeHist.GetSize() > 0) {
+      if (saveDeriv2_ == FALSE) {
+	std::string errMsg = pdename_;
+	errMsg += ": History of ";
+	errMsg += quantity + " can only be written, if it is activated ";
+	errMsg += "in section 'nodalResults', too.";
+	Error(errMsg.c_str(), __FILE__, __LINE__);
+      }
+      saveDeriv1Hist_ = TRUE;
+      Info->PrintF( pdename_, " Saving acouPotetentialD2 for Nodes:" );
+      for ( Integer k = 0; k < saveNodeHist.GetSize(); k++ ) {
+	Info->PrintF( pdename_, " %s", saveNodeHist[k].c_str() );
+      }
+    }
+    
   }
 #endif
 

@@ -96,6 +96,14 @@ protected:
   //DampingType dampingType_; //!< specifies the type of damping model (see environment.hh)
   Integer fracMemory_;      //!< number of old time steps to be saved
 
+  // Postprocessing results
+
+  //! contains 1. derivative of acoustic potential
+  NodeStoreSol<Double> solDeriv1_;
+  
+  //! contains 2. derivative of acoustic potential
+  NodeStoreSol<Double> solDeriv2_;
+
 private:
 
 #ifdef XMLPARAMS

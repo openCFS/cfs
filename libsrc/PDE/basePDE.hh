@@ -181,10 +181,12 @@ class SpaceErrorEstimator;
   virtual void SolveStepHarmonic(const Integer freqStep, const Double frequency, 
 				 Integer level, const Boolean reset);
 
-  virtual void StepHarmonicLin(const Integer freqStep, const Double frequency, 
-			       Integer level, const Boolean reset);
-
-	void CreateIncrementedRHSMatrix(Vector<Double> & harmonicRHSVec, const Double frequency,const Integer level);
+ virtual void StepHarmonicLin(const Integer freqStep, const Double frequency, 
+				 Integer level, const Boolean reset);
+    
+    void CreateIncrementedRHSMatrix(Vector<Double> & harmonicRHSVec, const Double frequency,const Integer level) {
+      Error("Not implemented here", __FILE__, __LINE__);
+    }
 
   virtual void StepHarmonicNonLin(const Integer freqStep, const Double frequency, 
 				  Integer level, const Boolean reset)
@@ -326,13 +328,8 @@ class SpaceErrorEstimator;
     //! This method is used to query the parameter handling object for the
     //! desired output quantities and translate their literal description into
     //! the internal format by setting the corresponding class attributes.
-    //! Currently we define a simple dummy implementation here in basePDE,
-    //! but in the long-run this should become a pure virtual method.
-    virtual void ReadStoreResults() {
-      savesol_ = TRUE;
-      savederiv1_ = TRUE;
-      savederiv2_ = TRUE;
-    };
+    virtual void ReadStoreResults() = 0;
+
 #endif
 
     //! Initialize NonLinearities
@@ -521,13 +518,22 @@ class SpaceErrorEstimator;
     StdVector<Integer> solDofs_;
 
     //! TRUE, if solution should be written to result file
-    Boolean savesol_;
+    Boolean saveSol_;
 
     //! TRUE, if first derivative of solution should be written to result file
-    Boolean savederiv1_;
+    Boolean saveDeriv1_;
 
     //! TRUE, if second derivative of solution should be written to result file
-    Boolean savederiv2_;
+    Boolean saveDeriv2_;
+
+    //! TRUE, if solution should be written to history file
+    Boolean saveSolHist_;
+
+    //! TRUE, if first derivative of solution should be written to history file
+    Boolean saveDeriv1Hist_;
+
+    //! TRUE, if second derivative of solution should be written to history file
+    Boolean saveDeriv2Hist_;
 
     WriteResults * outFile_;  //!< pointer to output file
     //@}

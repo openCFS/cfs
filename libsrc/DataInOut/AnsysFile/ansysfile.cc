@@ -215,6 +215,13 @@ void AnsysFile::ReadBCs(std::list<Integer> * bcs, const StdVector<std::string> l
     Integer numbc;
     ReadMaxnumnodesbc(numbc);
 
+    // Vector which contains Booleans for all boundary nodes for all levels.
+    // It is used to determine, wether a node occurs several times, which could
+    // lead to errors with the number of boundary conditions later on
+    StdVector<StdVector<Integer> > nodesPerLevel;
+    nodesPerLevel.Resize(levels.GetSize());
+    
+
     std::string::size_type pos=0;
     getPosLine("Node BC", pos);
     infile.seekg(pos,std::ios::beg);
@@ -229,21 +236,45 @@ void AnsysFile::ReadBCs(std::list<Integer> * bcs, const StdVector<std::string> l
 	infile.ignore(100,'\n');
 	
 	Boolean Find=FALSE;
+
+	// Find the according level
 	for (j=0; j<levels.GetSize(); j++)
 	  if (str==levels[j]) 
 	    {
 	      Find=TRUE;
 	      break;
 	    }
-    
-
+   
 	if (!Find) 
 	  {
 	    std::string msg=str+": This level of BCs from .mesh file is not mentioned in xml file. Please, check .xml-file";
 	    Error(msg.c_str(),__FILE__,__LINE__);
 	  }
 	
-	bcs[j].push_back(nodalnum);
+	// Check, if node was already read in
+	Boolean onlyNode = TRUE;
+	for (Integer iNode=0; iNode<nodesPerLevel[j].GetSize(); iNode++) 
+	  if (nodesPerLevel[j][iNode] == nodalnum) {
+	    onlyNode = FALSE;
+	    break;
+	  }
+
+	if (onlyNode == FALSE)
+	  {
+	    std::string warnMsg = "ReadBCs: The node with Nr. ";
+	    warnMsg += Info->GenStr(nodalnum);
+	    warnMsg += " of BC level '";
+	    warnMsg += str;
+	    warnMsg += "' occured at least two times in the .mesh file.\n";
+	    warnMsg += "Please make sure that each node occurs only on time in ";
+	    warnMsg += ".mesh file, otherwise some undefined errors may occur!";
+	    Warning(warnMsg.c_str(), __FILE__, __LINE__);
+	  }
+	else
+	  {
+	    nodesPerLevel[j].Push_back(nodalnum);
+	    bcs[j].push_back(nodalnum);
+	  }
       } 
 }
 
@@ -251,12 +282,13 @@ void AnsysFile::ReadBCs(std::list<Integer> * bcs, const StdVector<std::string> l
 
 
 
-void AnsysFile::ReadSaveNodes(std::list<Integer> * saveNodes , const StdVector<std::string> levels)
+void AnsysFile::ReadSaveNodes(StdVector<Integer> & saveNodes , const std::string level)
 {
   ENTER_FCN( "Ansys::ReadSaveNodes" );
 
     Integer nrSaveNodes;
     ReadNumSaveNodes(nrSaveNodes);
+    saveNodes.Clear();
 
     std::string::size_type pos=0;
     getPosLine("Save Nodes", pos);
@@ -271,27 +303,17 @@ void AnsysFile::ReadSaveNodes(std::list<Integer> * saveNodes , const StdVector<s
 	infile >> nodalnum >> str;
 	infile.ignore(100,'\n');
 	
-	Boolean Find=FALSE;
-
-	for (j=0; j<levels.GetSize(); j++) 
-	  if (str==levels[j]) 
-	    {
-	      Find=TRUE;
-	      break;
-	    }
-
-	if (!Find) 
-	  {
-	    std::string msg="The level \"" + str + "\" of \"Save Nodes\" from the .mesh ";
-	    msg += "file is not mentioned in the .xml file. Did ";
-	    msg += "you perhaps miss to define it there?";
-	    Info->Warning(msg.c_str());
-	  }
-	else
-	  saveNodes[j].push_back(nodalnum);
+	if (str == level) 
+	  	  saveNodes.Push_back(nodalnum);
       } 
+ 
+    if (saveNodes.GetSize() == 0) {
+      std::string msg="The level \"" + str + "\" of 'saveNodes'";
+      msg += "is not mentioned in the .mesh file.\n";
+      msg += "History nodes are written with the command 'wsavnod'.";
+      Error(msg.c_str());
+    }
 }
-
 
 
 
@@ -704,9 +726,11 @@ void AnsysFile::ReadEl2d(StdVector<Elem*> * allelems, const StdVector<std::strin
 {
   ENTER_FCN( "AnsysFile::ReadEl2D" );
 
+    Integer actElemNr = 0;
     Integer maxnelems;
-    ReadMaxnumelem(maxnelems,"Num2DElements");
 
+    ReadMaxnumelem(maxnelems,"Num2DElements");
+    
     if (maxnelems)
       {
 	std::string::size_type pos=0;
@@ -730,7 +754,7 @@ void AnsysFile::ReadEl2d(StdVector<Elem*> * allelems, const StdVector<std::strin
 	    if (inum > maxNumElems_) 
 	      {
 		std::string errMsg = "The current element number is higher than the ";
-		errMsg += "maximum number of elements in your .mesh-file. Something might ";
+		errMsg += "maximum number of elements in your .mesh-file.\n  Something might ";
 		errMsg += "have gone wrong in the meshing process.";
 		Error(errMsg.c_str(), __FILE__, __LINE__);
 	      }
@@ -748,6 +772,7 @@ void AnsysFile::ReadEl2d(StdVector<Elem*> * allelems, const StdVector<std::strin
 	      if (namesd == sd[j]) 
 		{ 
 		  allelems[j].Push_back(el);
+		  actElemNr++;
 		  Find=TRUE;
 		}
 	    if (!Find) 

@@ -280,29 +280,52 @@ namespace CoupledField {
  
     if (analysistype_ == STATIC ||
 	analysistype_ == TRANSIENT) {
-      
-      if (savesol_) {
-	solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);
-	outFile_->WriteNodeSolutionTransient(*solTransient, actStep, actTime);
-      }
-      
-      //element results
-      if (calcEfield_.GetSize() !=0 ) {
-	outFile_->WriteElemSolutionTransient(Efield_, actStep, actTime);
-      }
+	solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);      
 
-      if (calcStress_.GetSize() !=0 ) {
-	outFile_->WriteElemSolutionTransient(stress_, actStep, actTime);
-      }
+	if (saveSol_)
+	  outFile_->WriteNodeSolutionTransient(*solTransient, actStep, actTime);
 
-      //element results
-      if (calcCharge_.GetSize() !=0 ) {
-	outFile_->WriteElemSolutionTransient(charges_, actStep, actTime);
-      } 
-      
+	if (saveSolHist_)
+	  outFile_->WriteNodeSolutionTransient(*solTransient, actStep, actTime);
+    
+	
+	// Write derivatives
+	if (analysistype_== TRANSIENT) {
+	  if (saveDeriv1_ == TRUE)
+	    {
+	      solDeriv1_.SetAlgSysVector(getS1());
+	      outFile_->WriteNodeSolutionTransient(solDeriv1_, actStep, actTime);
+	      
+	      if (saveDeriv1Hist_ == TRUE)
+		outFile_->WriteNodeHistoryTransient(solDeriv1_, actStep, actTime);
+	    }
+	  
+	  if (saveDeriv2_ == TRUE)
+	    {
+	      solDeriv2_.SetAlgSysVector(getS2());
+	      outFile_->WriteNodeSolutionTransient(solDeriv2_, actStep, actTime);
+	    }
+	  if (saveDeriv2Hist_ == TRUE)
+	    outFile_->WriteNodeHistoryTransient(solDeriv2_, actStep, actTime);
+	}
+	
+	//element results
+	if (calcEfield_.GetSize() !=0 ) 
+	  outFile_->WriteElemSolutionTransient(Efield_, actStep, actTime);
+	
+	
+	if (calcStress_.GetSize() !=0 ) 
+	  outFile_->WriteElemSolutionTransient(stress_, actStep, actTime);
+	
+	
+	//element results
+	if (calcCharge_.GetSize() !=0 ) {
+	  outFile_->WriteElemSolutionTransient(charges_, actStep, actTime);
+	} 
+	
     } else if (analysistype_ == HARMONIC) {
       
-      if (savesol_)
+      if (saveSol_)
 	{
 	  solHarmonic = dynamic_cast<NodeStoreSol<Complex>*>(sol_);
 	  outFile_->WriteNodeSolutionHarmonic(*solHarmonic,  actFreqStep_, 
@@ -310,7 +333,7 @@ namespace CoupledField {
 	}
     }
   }
-    
+  
 
 
 
@@ -322,35 +345,82 @@ void PiezoPDE::ReadStoreResults() {
 
   ENTER_FCN( "PiezoPDE::ReadStoreResults" );
 
-  // By default we only save the solution at nodal values
-  savesol_    = TRUE;
-  savederiv1_ = FALSE;
-  savederiv2_ = FALSE;
 
-  // Determine what solution values the user wants to be stored
-  StdVector<std::string> nodeValues;
-  params->GetList( "type", nodeValues, pdename_, "nodeHistory" );
-
-  for ( Integer i = 0;  i < nodeValues.GetSize(); i++ ) {
-    if ( nodeValues[i] == "displacement" ) savesol_    = TRUE;
-    if ( nodeValues[i] == "velocity"     ) savederiv1_ = TRUE;
-    if ( nodeValues[i] == "acceleration" ) savederiv2_ = TRUE;
-  }
-
-  // Construct vectors for restricted search parameter
+  // Construct vectors for restricted parameter search
   StdVector<std::string> keyVec;
   StdVector<std::string> attrVec;
   StdVector<std::string> valVec;
-  keyVec  = "electrostatic", "storeResults", "elemResults", "region";
-  attrVec = "", "", "type";
+  std::string quantity;
+  
+  // *****************************
+  // Determine nodal results
+  // ***************************** 
+  StdVector<std::string> nodeValues;
+  keyVec  = pdename_, "storeResults", "nodeResults", "region";
+  attrVec = "", "", "type";  
+
+  // --- Mechanic Velocity ---
+  Enum2String(MECH_VELOCITY, quantity);
+  valVec = "", "", quantity;
+  params->GetList( keyVec, attrVec, valVec, nodeValues);
+  if (nodeValues.GetSize() > 0) {
+    saveDeriv1_ = TRUE;
+    
+    // intialize corresponding storesolution object
+    solDeriv1_.SetNumSolutions(1);
+    solDeriv1_.SetNumNodes(numPDENodes_);
+    solDeriv1_.SetSolutionType(MECH_VELOCITY);
+    solDeriv1_.SetNumDofs(dofspernode_);
+    solDeriv1_.SetPtrEQNData(eqnData_, ptgrid_, actlevel_);
+    solDeriv1_.Init();
+  }
+  
+  // --- Mechanic Acceleration ---
+  Enum2String(MECH_ACCELERATION, quantity);
+  valVec = "", "", quantity;
+  params->GetList( keyVec, attrVec, valVec, nodeValues);
+  if (nodeValues.GetSize() > 0) {
+    saveDeriv2_ = TRUE;
+    
+    // intialize corresponding storesolution object
+    solDeriv2_.SetNumSolutions(1);
+    solDeriv2_.SetNumNodes(numPDENodes_);
+    solDeriv2_.SetSolutionType(MECH_ACCELERATION);
+    solDeriv2_.SetNumDofs(dofspernode_);
+    solDeriv2_.SetPtrEQNData(eqnData_, ptgrid_, actlevel_);
+    solDeriv2_.Init();
+  }
+
+  // *****************************
+  // Determine element results
+  // *****************************
+  StdVector<std::string> elemResults;
+  keyVec  = pdename_, "storeResults", "elemResults", "region";
+  attrVec = "", "", "type";  
+
+  // --- Mechanic Stress ---
+  Enum2String(MECH_STRESS, quantity);
+  valVec  = "", "", quantity;
+  params->GetList( keyVec, attrVec, valVec, calcStress_ );
+
+  // If the symbolic name is "all" compute electric field for all regions
+  if ( calcStress_.GetSize() == 1 && calcStress_[0] == "all" ) {
+    calcStress_ = subdoms_;
+  }
+
+  // Log to info file
+  if ( calcStress_.GetSize() > 0 ) {
+    Info->PrintF( pdename_,
+		  " Computing mechanical stress for regions:");
+    for ( Integer k = 0; k < calcStress_.GetSize(); k++ ) {
+      Info->PrintF( pdename_, " %s", calcStress_[k].c_str() );
+    }
+  }
 
 
-  // ------------------
-  //   Electric Field
-  // ------------------
-
-  // Determine regions for which electric field must be computed
-  valVec  = "", "", "efield";
+  // --- Electric Field Intensity ---
+  Enum2String(ELEC_FIELD_INTENSITY, quantity);
+  valVec  = "", "", quantity;
   params->GetList( keyVec, attrVec, valVec, calcEfield_ );
 
   // If the the symbolic name is "all" compute electric field for all regions
@@ -364,21 +434,18 @@ void PiezoPDE::ReadStoreResults() {
       Info->PrintF( pdename_, " %s", calcEfield_[k].c_str() );
     }
     Efield_.SetNumSolutions(1);
-    Efield_.SetSolutionType(ELEC_FIELD);
+    Efield_.SetSolutionType(ELEC_FIELD_INTENSITY);
     Efield_.SetNumElems(numElems_);
     Efield_.SetNumDofs(dim_);
     Efield_.SetPtrEQNData(eqnData_, ptgrid_, actlevel_);
-    Efield_.Init(0.0);
+    Efield_.Init(); 
   }
 
-  // -----------
-  //   Stress
-  // -----------
-
-  // Determine regions for which stress must be computed
-  valVec  = "", "", "stress";
+  // --- Mechanic Stress ---
+  Enum2String(MECH_STRESS, quantity);
+  valVec  = "", "", quantity;
   params->GetList( keyVec, attrVec, valVec, calcStress_ );
-
+  
   // If the symbolic name is "all" compute stresses for all regions
   if ( calcStress_.GetSize() == 1 && calcStress_[0] == "all" ) {
     calcStress_ = subdoms_;
@@ -401,10 +468,7 @@ void PiezoPDE::ReadStoreResults() {
     stress_.Init(0);
   }
   
-  // -----------
-  //   Charges
-  // -----------
-  
+  // --- Electric Charges ---
   //check for charge computation
   params->GetList( "region", chargeNeighborRegion_, pdename_, "charge" );
   params->GetList( "element", calcCharge_, pdename_, "charge" );
@@ -424,8 +488,90 @@ void PiezoPDE::ReadStoreResults() {
     charges_.SetPtrEQNData(eqnData_, ptgrid_, actlevel_);
     charges_.Init(0);
     } 
+  
+  // *****************************
+  // Determine nodal history
+  // *****************************
+  StdVector<std::string> saveNodeHist; 
+  keyVec  = pdename_, "storeResults", "nodeHistory", "saveNodes";
+  attrVec = "", "", "type";
+  
+  // --- mechDisplacement / elecPotential ---
+  Enum2String(MECH_VELOCITY, quantity);
+  valVec  = "", "", quantity;
+  params->GetList( keyVec, attrVec, valVec, saveNodeHist );
+  
+  if (saveNodeHist.GetSize() > 0) {
+    if (saveSol_ == FALSE) {
+      std::string errMsg = pdename_;
+      errMsg += ": History of ";
+      errMsg += quantity + " can only be written, if it is activated ";
+      errMsg += "in section 'nodalResults', too.";
+      Error(errMsg.c_str(), __FILE__, __LINE__);
+      }
+    saveSolHist_ = TRUE;
+    Info->PrintF( pdename_, " Saving mechDisplacement for Nodes:" );
+    for ( Integer k = 0; k < saveNodeHist.GetSize(); k++ ) {
+      Info->PrintF( pdename_, " %s", saveNodeHist[k].c_str() );
+    }
+  }
+  
+  // --- mechVelocity ---
+  Enum2String(MECH_VELOCITY, quantity);
+  valVec  = "", "", quantity;
+  params->GetList( keyVec, attrVec, valVec, saveNodeHist );
+  
+  if (saveNodeHist.GetSize() > 0) {
+    if (saveDeriv1_ == FALSE) {
+      std::string errMsg = pdename_;
+      errMsg += ": History of ";
+      errMsg += quantity + " can only be written, if it is activated ";
+      errMsg += "in section 'nodalResults', too.";
+      Error(errMsg.c_str(), __FILE__, __LINE__);
+      }
+    saveDeriv1Hist_ = TRUE;
+    Info->PrintF( pdename_, " Saving mechVelocity for Nodes:" );
+    for ( Integer k = 0; k < saveNodeHist.GetSize(); k++ ) {
+      Info->PrintF( pdename_, " %s", saveNodeHist[k].c_str() );
+    }
+  }
 
-     
+  // --- mechAcceleration ---
+  Enum2String(MECH_ACCELERATION, quantity);
+  valVec  = "", "", quantity;
+  params->GetList( keyVec, attrVec, valVec, saveNodeHist );
+  
+  if (saveNodeHist.GetSize() > 0) {
+    if (saveDeriv2_ == FALSE) {
+      std::string errMsg = pdename_;
+      errMsg += ": History of ";
+      errMsg += quantity + " can only be written, if it is activated ";
+      errMsg += "in section 'nodalResults', too.";
+      Error(errMsg.c_str(), __FILE__, __LINE__);
+    }
+    saveDeriv1Hist_ = TRUE;
+    Info->PrintF( pdename_, " Saving mechAcceleration for Nodes:" );
+    for ( Integer k = 0; k < saveNodeHist.GetSize(); k++ ) {
+      Info->PrintF( pdename_, " %s", saveNodeHist[k].c_str() );
+    }
+  } 
+
+  // *****************************
+  // Determine element history
+  // *****************************
+  StdVector<std::string> saveElemHist;
+  keyVec  = pdename_, "storeResults", "elemHistory", "saveElems";
+  attrVec = "", "", "";
+  valVec = "", "", "";
+  params->GetList(keyVec, attrVec, valVec, saveElemHist);
+
+  if (saveElemHist.GetSize() < 0) {
+    std::string errMsg = pdename_;
+    errMsg += ": Saving history elements is not implemented yet!\n";
+    errMsg += "Meanwhile you can use 'unvtool' to extract element data.";
+    Error( errMsg.c_str(), __FILE__, __LINE__);
+  }
+
 }
 
 #endif

@@ -47,6 +47,9 @@ namespace CoupledField
     //! \param dt time step
     virtual void InitTimeStepping(const Double dt);
     
+    //! return pointer to vector with second derivative of solution
+    virtual const Vector<Double> & getS2() const { return TS_alg_->GetDeriv2();}
+
     //! do PostProcessing step
     virtual void PostProcess(const Integer level);
 
@@ -101,16 +104,23 @@ namespace CoupledField
     StdVector<std::string> calcEfield_;  //!< contains the subdomains, on which the electric field is computed
     ElemStoreSol<Double> Efield_;  //!< conatins electric field
 
+
     StdVector<std::string> calcStress_;  //!< contains the subdomains, on which the stress is computed
     ElemStoreSol<Double> stress_;  //!< conatins mechanical stresses
 
     ElemStoreSol<Double> charges_;
     StdVector<std::string> chargeNeighborRegion_;
     StdVector<std::string> calcCharge_;
+
+    //! contains mechanic velocity
+    NodeStoreSol<Double> solDeriv1_;
+    
+    //! contains mechanic acceleration
+    NodeStoreSol<Double> solDeriv2_;
     
     //! calculate stresses
     void CalcEfield();
-
+    
     //! calculate stresses
     void CalcStress();
 

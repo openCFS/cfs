@@ -646,7 +646,7 @@ namespace CoupledField {
       
       // Resize solution arrays
       B_.SetNumSolutions(1);
-      B_.SetSolutionType(MAG_FIELD);
+      B_.SetSolutionType(MAG_FLUX_DENSITY);
       B_.SetNumElems(numElems_);
       B_.SetNumDofs(dim_);
       B_.SetPtrEQNData(eqnData_, ptgrid_, actlevel_);
@@ -1508,14 +1508,14 @@ namespace CoupledField {
     
     if (analysistype_ == STATIC ||
 	analysistype_ == TRANSIENT) {
+      solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);
 
-      // transient/static case
-      if (savesol_)
-	{
-	  solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);
+      if (saveSol_)
 	  outFile_->WriteNodeSolutionTransient(*solTransient, 
 					       actStep, actTime);
-	}
+      if (saveSolHist_)
+	outFile_->WriteNodeHistoryTransient(*solTransient, 
+					    actStep, actTime);
       
       if (calcBfield_.GetSize() !=0 ) {
 	outFile_->WriteElemSolutionTransient(B_, actStep, actTime);
@@ -1524,19 +1524,22 @@ namespace CoupledField {
       if (calcEddy_.GetSize() !=0 ) {
 	outFile_->WriteElemSolutionTransient(Jeddy_, actStep, actTime);
       }
-    } else  if (analysistype_ == HARMONIC) {
-      
-      // harmonic case
-      if (savesol_)
-	{
-	  solHarmonic = dynamic_cast<NodeStoreSol<Complex>*>(sol_);
+    } else  
+      if (analysistype_ == HARMONIC) {
+	
+	solHarmonic = dynamic_cast<NodeStoreSol<Complex>*>(sol_);
+	
+	if (saveSol_)
 	  outFile_->WriteNodeSolutionHarmonic(*solHarmonic, actFreqStep_, 
 					      actFrequency_, complexFormat_);
-	}
-    }
-    else
-      Error("MagPDE: Only static, transient and harmonic results can be written",
-	    __FILE__, __LINE__);
+
+	if (saveSolHist_)
+	  outFile_->WriteNodeHistoryHarmonic(*solHarmonic, actFreqStep_, 
+					      actFrequency_, complexFormat_);
+      }
+      else
+	Error("MagPDE: Only static, transient and harmonic results can be written",
+	      __FILE__, __LINE__);
   }
 
 
@@ -1572,7 +1575,7 @@ namespace CoupledField {
       
       // Resize solution arrays
       B_.SetNumSolutions(1);
-      B_.SetSolutionType(MAG_FIELD);
+      B_.SetSolutionType(MAG_FLUX_DENSITY);
       B_.SetNumElems(numElems_);
       B_.SetNumDofs(dim_);
       B_.SetPtrEQNData(eqnData_, ptgrid_, actlevel_);
@@ -1910,83 +1913,119 @@ namespace CoupledField {
 
     ENTER_FCN( "MagPDE::ReadStoreResults" );
 
-    // By default we only save the solution at nodal values
-    savesol_    = TRUE;
-    savederiv1_ = FALSE;
-    savederiv2_ = FALSE;
-
-    // Construct vectors for restricted search parameter
+    // Construct vectors for restricted parameter search
     StdVector<std::string> keyVec;
     StdVector<std::string> attrVec;
     StdVector<std::string> valVec;
-    keyVec  = "magnetic", "storeResults", "elemResults", "region";
-    attrVec = "", "", "type";
+    std::string quantity;
 
-    // -----------
-    //   B-FIELD
-    // -----------
+    // *****************************
+    // Determine nodal results
+    // ***************************** 
+    
+    // --- nothing to do here ---
 
-    // Determine regions for which B-field must be computed
-    valVec  = "", "", "bfield";
+    // *****************************
+    // Determine element results
+    // *****************************
+    StdVector<std::string> elemResults;
+    keyVec  = pdename_, "storeResults", "elemResults", "region";
+    attrVec = "", "", "type";  
+    
+    // --- Magnetic Flux Density ---
+    Enum2String(MAG_FLUX_DENSITY, quantity);
+    valVec  = "", "", quantity;
     params->GetList( keyVec, attrVec, valVec, calcBfield_ );
-
-    // If the symbolic name is "all" compute electric field for all regions
+    
+    // If the symbolic name is "all" compute magnetic Fieldfor all regions
     if ( calcBfield_.GetSize() == 1 && calcBfield_[0] == "all" ) {
       calcBfield_ = subdoms_;
     }
-
+    
     // Log to info file
     if ( calcBfield_.GetSize() > 0 ) {
       Info->PrintF( pdename_,
-		    " Computing magnetic flux density / B-field for regions:");
+		    " Computing magFluxDensity for regions:");
       for ( Integer k = 0; k < calcBfield_.GetSize(); k++ ) {
 	Info->PrintF( pdename_, " %s", calcBfield_[k].c_str() );
       }
     }
-
-    // ----------
-    //   ENERGY
-    // ----------
-
-    // Determine regions for which energy must be computed
-    valVec  = "", "", "energy";
+    
+    // --- Magnetic Energy ---
+    Enum2String(MAG_ENERGY, quantity);
+    valVec  = "", "", quantity;
     params->GetList( keyVec, attrVec, valVec, calcEnergy_ );
-
-    // If the the symbolic name is "all" compute energy for all regions
+    
+    // If the symbolic name is "all" compute magnetic Fieldfor all regions
     if ( calcEnergy_.GetSize() == 1 && calcEnergy_[0] == "all" ) {
       calcEnergy_ = subdoms_;
     }
-
+    
     // Log to info file
     if ( calcEnergy_.GetSize() > 0 ) {
-      Info->PrintF( pdename_, " Computing energy for regions:" );
+      Info->PrintF( pdename_,
+		    " Computing magEnergy for regions:");
       for ( Integer k = 0; k < calcEnergy_.GetSize(); k++ ) {
 	Info->PrintF( pdename_, " %s", calcEnergy_[k].c_str() );
       }
     }
 
-    // --------
-    //   EDDY
-    // --------
-
-    // Determine regions for which eddy current density must be computed
-    valVec  = "", "", "eddy";
+   // --- Magnetic Eddy Current ---
+    Enum2String(MAG_EDDY_CURRENT, quantity);
+    valVec  = "", "", quantity;
     params->GetList( keyVec, attrVec, valVec, calcEddy_ );
-
-    // If the the symbolic name is "all" compute energy for all regions
+    
+    // If the symbolic name is "all" compute magnetic Fieldfor all regions
     if ( calcEddy_.GetSize() == 1 && calcEddy_[0] == "all" ) {
       calcEddy_ = subdoms_;
     }
-
+    
     // Log to info file
     if ( calcEddy_.GetSize() > 0 ) {
       Info->PrintF( pdename_,
-		    " Computing eddy current densities for regions:" );
+		    " Computing magEddyCurrent for regions:");
       for ( Integer k = 0; k < calcEddy_.GetSize(); k++ ) {
 	Info->PrintF( pdename_, " %s", calcEddy_[k].c_str() );
       }
     }
+   
+    // *****************************
+    // Determine nodal history
+    // *****************************
+    StdVector<std::string> saveNodeHist;
+    keyVec  = pdename_, "storeResults", "nodeHistory", "saveNodes";
+    attrVec = "", "", "type";
+    
+    // --- Magnetic Potential ---
+    Enum2String(MAG_POTENTIAL, quantity);
+    valVec  = "", "", quantity;
+    params->GetList( keyVec, attrVec, valVec, saveNodeHist );
+  
+    if (saveNodeHist.GetSize() > 0) {
+      saveSolHist_ = TRUE;
+      Info->PrintF( pdename_, " Saving magPotential for Nodes:" );
+      for ( Integer k = 0; k < saveNodeHist.GetSize(); k++ ) {
+	Info->PrintF( pdename_, " %s", saveNodeHist[k].c_str() );
+      }
+    }
 
+    // *****************************
+    // Determine element history
+    // *****************************
+    StdVector<std::string> saveElemHist;
+    keyVec  = pdename_, "storeResults", "elemHistory", "saveElems";
+    attrVec = "", "", "";
+    valVec = "", "", "";
+    params->GetList(keyVec, attrVec, valVec, saveElemHist);
+    
+    if (saveElemHist.GetSize() < 0) {
+      std::string errMsg = pdename_;
+      errMsg += ": Saving history elements is not implemented yet!\n";
+      errMsg += "Meanwhile you can use 'unvtool' to extract element data.";
+      Error( errMsg.c_str(), __FILE__, __LINE__);
+    }
+    
+    
   }
 
 

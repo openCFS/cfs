@@ -8,15 +8,16 @@
 namespace CoupledField
 {
 
-WriteResultsUnverg :: WriteResultsUnverg(const Char * const filename, Boolean withHistory, FileType * const aInFile)
-:WriteResults(filename, withHistory, aInFile)
+WriteResultsUnverg :: WriteResultsUnverg(const Char * const filename,
+					 FileType * const aInFile)
+:WriteResults(filename, aInFile)
 {
   ENTER_FCN( "WriteResultsUnverg::WriteResultsUnverg" );
 
+  std::string name = namefile_ + ".unv";
   output = NULL;
-  if (!withHistory)
-    output=new std::ofstream(strcat(namefile_,".unv"));
-}
+  output=new std::ofstream(name.c_str());
+ }
 
 WriteResultsUnverg ::~WriteResultsUnverg()
 {
@@ -32,15 +33,12 @@ void WriteResultsUnverg :: WriteGrid(const Integer level)
 {
   ENTER_FCN( "WriteResultsUnverg::WriteGrid" );
 
- if (!NeedHistory_)
-   {    
      if (!output) 
        Error(" File for output results is not initialized");
 
      Dataset666(level);
      Dataset781(level);
      Dataset780(level);
-   }
  
 }
 
@@ -474,9 +472,10 @@ void WriteResultsUnverg::Dataset56_Harmonic(const std::string & title,
 }
 
 
-void  WriteResultsUnverg::Init(Grid * aptgrid)
+void  WriteResultsUnverg::Init(Grid * aptgrid, BCs * aptbcs)
 {
- ptgrid=aptgrid;
+  ptgrid=aptgrid;
+  ptBCs_ = aptbcs;
 }
 
 void  WriteResultsUnverg::WriteNodeSolutionTransient(const NodeStoreSol<Double> & sol, 
@@ -496,37 +495,13 @@ void  WriteResultsUnverg::WriteNodeSolutionTransient(const NodeStoreSol<Double> 
   
  Integer numNodes =  ptgrid->GetMaxnumnodes(1);
  std::string title;
- 
- if (NeedHistory_) 
-   for (i=0; i< nodeshist_.GetSize(); i++)
-     {
-      if (sol.GetDof() * sol.GetNumNodes() <= nodeshist_[i])
-        Error("Please, check history-nodes in config-file.",__FILE__,__LINE__);
-      if (lastsavetime[i] != time )
-	if (nrDofs > 1)	
-	  {
-	    Vector<Double> solVec;
-	    solVec.Resize(nrDofs);
-	    for (j=0; j<nrDofs; j++)
-	      sol.Get(nodeshist_[i]-1,j,solVec[j]);
 
-	    AddVecInHistory(time, solVec, i);
-	  }
-	else
-	  {
-	    sol.Get(nodeshist_[i]-1,0,help);
-	    AddInHistory(time,help,i);
-	  }
-     }
- else
+ for (Integer iSol=0; iSol<solTypes.GetSize(); iSol++)
    {
-     for (Integer iSol=0; iSol<solTypes.GetSize(); iSol++)
-       {
-	 sol.GetGlobalSolVector(solTypes[iSol],globalSolution);
-	 title = SolutionTypeToString(solTypes[iSol]);
-	 Dataset55_Transient(title, globalSolution, step, 
-			     time, numNodes ,sol.GetDof(solTypes[iSol]));
-       }
+     sol.GetGlobalSolVector(solTypes[iSol],globalSolution);
+     title = SolutionTypeToString(solTypes[iSol]);
+     Dataset55_Transient(title, globalSolution, step, 
+			 time, numNodes ,sol.GetDof(solTypes[iSol]));
    }
 }
 
@@ -541,14 +516,11 @@ void  WriteResultsUnverg::WriteElemSolutionTransient(const ElemStoreSol<Double>&
   std::string title;
   Integer numElems =  ptgrid->GetMaxnumElem(0);  
   
-  if (!NeedHistory_)
-    {
-      sol.GetSolutionTypes(solTypes);
-      sol.TransformElemSolution(globalSolution,ptgrid,0);
-      title = SolutionTypeToString(solTypes[0]);
-      Dataset56_Transient(title, globalSolution, step, 
-			  time, numElems, sol.GetDof());
-    }
+  sol.GetSolutionTypes(solTypes);
+  sol.TransformElemSolution(globalSolution,ptgrid,0);
+  title = SolutionTypeToString(solTypes[0]);
+  Dataset56_Transient(title, globalSolution, step, 
+		      time, numElems, sol.GetDof());
 }
 
 void  WriteResultsUnverg::WriteNodeSolutionHarmonic(const NodeStoreSol<Complex> & sol, 
@@ -571,41 +543,16 @@ void  WriteResultsUnverg::WriteNodeSolutionHarmonic(const NodeStoreSol<Complex> 
   
   Integer numNodes =  ptgrid->GetMaxnumnodes(1);
   std::string title;
-  
-  if (NeedHistory_) 
-    Error("History results not implemented for complex results",
-	  __FILE__, __LINE__);
-    // for (i=0; i< nodeshist_.GetSize(); i++)
-//       {
-// 	if (sol.GetDof() * sol.GetNumNodes() <= nodeshist_[i])
-// 	  Error("Please, check history-nodes in config-file.",__FILE__,__LINE__);
-// 	if (lastsavetime[i] != time )
-// 	  if (nrDofs > 1)	
-// 	  {
-// 	    Vector<Double> solVec;
-// 	    solVec.Resize(nrDofs);
-// 	    for (j=0; j<nrDofs; j++)
-// 	      sol.Get(nodeshist_[i]-1,j,solVec[j]);
-	    
-// 	    AddVecInHistory(time, solVec, i);
-// 	  }
-// 	  else
-// 	    {
-// 	      sol.Get(nodeshist_[i]-1,0,help);
-// 	      AddInHistory(time,help,i);
-// 	    }
-//       }
- else
-   {
-     for (Integer iSol=0; iSol<solTypes.GetSize(); iSol++)
-       {
-	 sol.GetGlobalSolVector(solTypes[iSol],globalSolution);
-	 title = SolutionTypeToString(solTypes[iSol]);
-	 Dataset55_Harmonic(title, globalSolution, step, frequency, 
-			    format, numNodes ,sol.GetDof(solTypes[iSol]));
-       }
-   }
 
+  for (Integer iSol=0; iSol<solTypes.GetSize(); iSol++)
+    {
+      sol.GetGlobalSolVector(solTypes[iSol],globalSolution);
+      title = SolutionTypeToString(solTypes[iSol]);
+      Dataset55_Harmonic(title, globalSolution, step, frequency, 
+			 format, numNodes ,sol.GetDof(solTypes[iSol]));
+    }
+  
+  
 }
 
 
@@ -645,7 +592,7 @@ std::string WriteResultsUnverg::SolutionTypeToString(const SolutionType type) co
     case ELEC_POTENTIAL:
       return "electric potential";
       break;
-    case ELEC_FIELD:
+    case ELEC_FIELD_INTENSITY:
       return "electric field";
       break;
     case ELEC_FORCE_VWP: 
@@ -660,6 +607,8 @@ std::string WriteResultsUnverg::SolutionTypeToString(const SolutionType type) co
     case ELEC_FLUX_DENSITY:
       Error("Not implemented", __FILE__, __LINE__);
       break; 
+    case ELEC_ENERGY:
+      Error("Not implemented", __FILE__, __LINE__);
     case SMOOTH_DISPLACEMENT:
       return "displacement";
       break;
@@ -678,18 +627,21 @@ std::string WriteResultsUnverg::SolutionTypeToString(const SolutionType type) co
     case MAG_POTENTIAL:
       return "mag. vector potential";
       break;
-    case MAG_FIELD:
+    case MAG_FLUX_DENSITY:
       return "mag. flux density";
       break;
     case MAG_EDDY_CURRENT:
       return "eddy current";
       break;
     case MAG_FORCE_VWP:
-      break;
       Error("Not implemented", __FILE__, __LINE__);
+      break;
     case MAG_FORCE_LORENTZ:
-      break;
       Error("Not implemented", __FILE__, __LINE__);
+      break;
+    case MAG_ENERGY:
+      Error("Not implemented", __FILE__, __LINE__);
+      break;
     default:
       Error( "Wrong type of solution or 'SolutionType2String' not implemented for\
 this type of solution", __FILE__, __LINE__);
