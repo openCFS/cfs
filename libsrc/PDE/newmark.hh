@@ -22,7 +22,7 @@ public:
     \param damp type of damping
   */
   Newmark(std::string apdename, BaseSystem * algebraicsystem, Integer dofsprenode, 
-	  Integer numnode, DampingType damp);
+	  Integer numnode, Boolean damp);
 
    //! deconstructor
   virtual ~Newmark();
@@ -55,7 +55,7 @@ private:
   Double alpha_, gamma_, beta_;  //<! integration parameters
   Double a0_,a1_,a2_,a3_,a4_,a5_,a6_,a7_; //<! coefficients from Newmark method
 
-  DampingType damping_;
+  Boolean damping_;
 
   Vector<Double> solpred_, solderiv1pred_;
 };
@@ -77,7 +77,7 @@ public:
     \param damp type of damping
   */
   NewmarkEffMass(std::string apdename, BaseSystem * algebraicsystem, Integer dofsprenode, 
-	  Integer numnode, DampingType damp);
+	  Integer numnode, Boolean damp);
 
    //! deconstructor
   virtual ~NewmarkEffMass();
@@ -111,7 +111,7 @@ private:
   Double alpha_, gamma_, beta_;  //<! integration parameters
   Double a0_,a1_,a2_,a3_,a4_,a5_,a6_,a7_; //<! coefficients from Newmark method
 
-  DampingType damping_;
+  Boolean damping_;
 
   Vector<Double> sol_, solpred_, solderiv1pred_;
 };

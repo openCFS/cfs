@@ -92,8 +92,6 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
   
 #endif
 
-  
-
 
   if (analysis=="static") 
     {
@@ -113,6 +111,7 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
   else
     Error("Analysis Type not supported",__FILE__,__LINE__);
 
+std::cout << "Analaysis: " << analysistype_ << std::endl;
 
   // Determine if solution is of complex type or not
   if (analysistype_ == HARMONIC)

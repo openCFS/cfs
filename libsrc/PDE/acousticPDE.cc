@@ -26,6 +26,8 @@ namespace CoupledField {
     pdename_          = "acoustic";
     pdematerialclass_ = "fluid";
 
+    absorbingBCs_ = FALSE;
+
 #ifndef XMLPARAMS
     isaxi_ = FALSE;
     std::string subtype;
@@ -72,6 +74,8 @@ namespace CoupledField {
     //   Check what type of damping should be used
     // *********************************************
 
+    dampingType_ = NONE;
+    
     // Rayleigh damping
     if ( params->HasValue( "type", "rayleigh", pdename_, "damping" )) {
       dampingType_ = RAYLEIGH;
@@ -88,12 +92,6 @@ namespace CoupledField {
       Info->PrintF( pdename_, msg.c_str(), fracMemory_);
     }
 
-    // Damping by absorbing boundary conditions
-    else if ( params->HasValue( "type", "absorbingBC", pdename_, "damping" )) {
-      Info->PrintF( pdename_, "Using ABCDAMP damping" );
-      dampingType_ = ABCDAMP;
-    }
-
     // Thermoviscous damping
     else if ( params->HasValue( "type", "thermoViscous", pdename_, "damping")){
       Info->PrintF( pdename_, "Using THERMOVISCOUS damping" );
@@ -105,6 +103,13 @@ namespace CoupledField {
       dampingType_ = NONE;
     }
 
+    // Absorbing boundary conditions
+    if ( params->HasValue( "type", "absorbingBC", pdename_, "damping" )) {
+      Info->PrintF( pdename_, "Apply Absorbing Boundary Conditions\n" );
+      absorbingBCs_ = TRUE;
+    }
+
+
 #endif
 
     // ***************************************************************
@@ -115,12 +120,14 @@ namespace CoupledField {
 #ifndef XMLPARAMS
     conf->ifgetliststr("bnd_for_absBCs",absBCs_,pdename_); 
     if (absBCs_.size() > 0) {
-      if ( dampingType_ == NONE) dampingType_ = ABCDAMP;
+       absorbingBCs_ = TRUE;
+       Info->PrintF( pdename_, "Apply Absorbing Boundary Conditions\n" );
     }
+    
 #else
     params->GetList( "name", absBCs_, pdename_, "absorbingBCs" );
     if ( absBCs_.size() > 0 && dampingType_ == NONE ) {
-      dampingType_ = ABCDAMP;
+      absorbingBCs_ = TRUE;
       Info->PrintF( pdename_, "Re-setting damping type to ABCDAMP" );
     }
 #endif
@@ -156,8 +163,11 @@ namespace CoupledField {
     assemble_->SetPtr2Sol(sol_);
     assemble_->SetPtr2TimeFnc(ptTimeFunc_);
 
-    if ( dampingType_ == ABCDAMP || dampingType_ == FRACTIONAL )
+    needsDampingMatrix_ = FALSE;
+    if ( absorbingBCs_ == TRUE || dampingType_ == FRACTIONAL ) {
       assemble_->NeedDampingMatrix();
+      needsDampingMatrix_ = TRUE;
+    }
 
     ReadMaterialData();
    
@@ -212,13 +222,14 @@ namespace CoupledField {
 
     //surface-integration
     // BEGIN DAMPING MATRIX PART: Absorbing boundaries
-    if ( dampingType_ == ABCDAMP  && analysistype_ != HARMONIC ) {
+    if ( absorbingBCs_ == TRUE && analysistype_ != HARMONIC ) {
+std::cout << "num abbs: " << absBCs_.size() << std::endl;
       for (Integer actSD = 0; actSD < absBCs_.size(); actSD++) {
 	//currently hard-coded!!
 	Double density = materialData_[0].GetDensity();
 	Double compressibility = materialData_[0].GetCompressibility();
 	Double coeffdamp = density/((sqrt(compressibility/density)));
-	  
+	
 	BaseForm * bilinear_damp = new MassInt(coeffdamp,dofspernode_, isaxi_);
 	assemble_->AddSurfIntegrator(bilinear_damp,  absBCs_[actSD],
 				     DAMPING, nonLin);
@@ -245,7 +256,7 @@ namespace CoupledField {
 
     else {
       TS_alg_ = new Newmark(pdename_, algsys_, dofspernode_, numPDENodes_,
-			    dampingType_);
+			    needsDampingMatrix_);
     }
 
     TS_alg_->Init(matrix_factor_, dt);
