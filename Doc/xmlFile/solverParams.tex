@@ -400,6 +400,41 @@ the following:
 \subsection{directLU / directLDL}
 %
 %
+The directLDL solver computes in the setup phase a decomposition of the problem
+matrix $A$ in the form $A=LDL^T$, with a lower triangular matrix $L$ and a
+diagonal matrix $D$. For symmetric, positive definite matrices this corresponds
+to a Cholesky decomposition $\hat{L}\hat{L}^T$, but with out the drawing of the
+square root, i.e. $\hat{L} = LD^{-1/2}$. For symmetric indefinite matrices a
+Cholesky decomposition does not exist, and only an $LDL^T$ factorisation can be
+computed. In the complex case the situation is similar.\\[2ex]
+%
+%
+By default the directLDL solver does not need any parameters
+Parameters for the directLDL solver are:
+%
+%
+\begin{center}
+\begin{tabular}{lcp{0.5\textwidth}}
+\hline\noalign{\smallskip}
+element & range of values & meaning \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+saveFacFile     & string  & this parameter can be used to specify the name of
+	                    a file to which the factor matrix $F=D+L^T$ is
+                            exported using the MatrixMarket format
+                            specification; if not specified, the matrix is not
+                            exported\\
+savePatternOnly & yes, no & if set to \xml{yes}, then only the sparsity pattern
+                            of the matrix is exported, but not the numerical
+                            values of the factorisation\\
+logging         & yes, no & if set to \xml{yes}, the solver will be verbose,
+                            i.e. it will write information on its analysis and
+                            factorisation phase and on the individual solves
+                            to the standard logfile.\\
+\noalign{\smallskip}\hline
+\end{tabular}
+\end{center}
+%
+%
 \subsection{CG}
 Setting \xml{type} to \xml{cg} selects the native preconditioned conjugate
 gradient method implemented of OLAS.
@@ -620,7 +655,7 @@ refineSol  & yes, no & if set to yes, we let LAPACK perform some steps of
                        substitution\\
 logging    & yes, no & if set to yes, LAPACK will be verbose about its solution
 	               process, i.e. it will write information to the standard
-	               logfile.\\
+	               logfile\\
 \noalign{\smallskip}\hline
 \end{tabular}
 \end{center}
@@ -808,6 +843,70 @@ This is a simple Jacobi preconditioner. Thus, it does not require or allow the
 specification of any parameters.
 %
 %
+\subsection{Incomplete LDL preconditioners}
+%
+%
+Incomplete LDL preconditioners work with symmetric matrices and compute a
+decomposition of the problem matrix $A$ in the form
+%
+%
+\begin{displaymath}
+A = LDL^T - R
+\enspace,
+\end{displaymath}
+%
+%
+where $L$ is a lower triangular matrix with ones on the diagonal, $D$ is a
+diagonal matrix and $R$ is a remainder matrix, since the factorisation is
+incomplete and $A\neq LDL^T$. OLAS currently supports three different version
+of ILDL preconditioners: ILDL$(k)$, ILDL$(\tau,p)$ and ILDL$_{cn}$. All three
+preconditioners share the following three parameters:
+%
+%
+\begin{center}
+\begin{longtable}{lcp{0.5\textwidth}}
+\hline\noalign{\smallskip}
+element & range of values & meaning \endhead
+\noalign{\smallskip}\hline\noalign{\smallskip}
+saveFacFile     & string  & this parameter can be used to specify the name of
+	                    a file to which the factor matrix $F=D+L^T$ is
+                            exported using the MatrixMarket format
+                            specification; if not specified, the matrix is not
+                            exported\\
+savePatternOnly & yes, no & if set to \xml{yes}, then only the sparsity pattern
+                            of the matrix is exported, but not the numerical
+                            values of the factorisation\\
+logging         & yes, no & if set to \xml{yes}, the preconditioners will be
+                            verbose, i.e. they will write information on their
+                            setup and application to the standard logfile.\\
+\noalign{\smallskip}\hline
+\end{longtable}
+\end{center}
+%
+%
+Besides these common parameters each preconditioner allows to specify its own
+set of steering parameters, which must be speficied in front of the common
+ones. In the case of the ILDL$(\tau,p)$ preconditioner there are two specific
+parameters:
+\begin{center}
+\begin{tabular}{lcp{0.5\textwidth}}
+\hline\noalign{\smallskip}
+\multicolumn{3}{c}{specific parameters for ILDL$(\tau,p)$}\\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+element & range of values & meaning \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+fillVal   & $\mathbb{N}$ & \\
+threshold & $[0,1]$      &  \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+\multicolumn{3}{c}{specific parameters for ILDL$(k)$}\\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+level     & $\mathbb{N}$ & \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+\end{tabular}
+\end{center}
+%
+%
+
 \section{Examples}
 \label{sec:SP_Examples}
 %
