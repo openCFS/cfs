@@ -2,6 +2,7 @@
 #include <fstream>
 #include <string>
 #include <stdio.h>
+#include <complex>
 
 #include "outGMV.hh"
 #include "DataInOut/WriteInfo.hh"
@@ -34,9 +35,11 @@ WriteResultsGMV :: WriteResultsGMV(const Char * const filename,
 
  system(S);
 
- currstep_=0;
+ currStep_=-1;
+ lastStep_ = -1;
+ currTime_ = 0.0;
+ firstGridWritten_ = FALSE;
  output=NULL;
-
  ptgrid=NULL;
 
 
@@ -54,7 +57,7 @@ WriteResultsGMV :: WriteResultsGMV(const Char * const filename,
  if (flag == "no")
    {
      fixedgrid_=FALSE;
-     OpenFile(1);
+      OpenFile(1);
    }
  else
    { 
@@ -66,11 +69,11 @@ WriteResultsGMV :: WriteResultsGMV(const Char * const filename,
  // Output format can be either ascii (default) or binary
  ascii_ = !params->HasValue( "type", "binary", "output" );
  
+ fixedgrid_ = TRUE;
  // Does the grid change over time, or can we use a fixed grid
  fixedgrid_ = params->IsSet( "fixedGrid", "output" );
- if ( fixedgrid_ == FALSE ) OpenFile(1);
- else OpenFile(-1);
 
+ 
 #endif
 
  
@@ -85,9 +88,19 @@ WriteResultsGMV ::~WriteResultsGMV()
 {
   ENTER_FCN( "WriteResultsGMV::~WriteResultsGMV" );
 
- // write keyword
- (*output) << "endgmv  ";
- if (ascii_) (*output) << std::endl;
+
+  // The last gmv-file is closed by the destructor
+  if (ascii_) {
+    (*output) << "\nendvars\n" ;
+    (*output) <<"probtime " << currTime_ << std::endl;
+    (*output) << "endgmv ";
+  }
+  else {
+    (*output) << "endvars ";
+    (*output) << "probtime";
+    output->write((char*)&currTime_,sizeof(Double));
+    (*output) << "endgmv  ";
+  } 
 
  delete [] namedir_;
 
@@ -192,8 +205,7 @@ void WriteResultsGMV::WriteCells(const Integer alevel)
   Integer i;
   for (i=0; i<numelem; i++)
     {
-
-      ptgrid->GetConnection(connect, i, level);
+      ptgrid->GetConnection(connect, i+1, level);
 
       if (dim==2)
 	{
@@ -311,12 +323,44 @@ void WriteResultsGMV::WriteCells(const Integer alevel)
     }
 }
 
-void WriteResultsGMV::WriteNodeVariable(const Vector<Double> var, const std::string name, const Integer dataType)
+
+void WriteResultsGMV::WriteMaterials(const Integer level) {
+
+  StdVector<Integer> regionID;
+  StdVector<std::string> *subdoms;
+  StdVector<Elem*> elemSD;
+  
+  subdoms=ptgrid->GetAllSDs();
+
+  regionID.Resize(ptgrid->GetMaxnumElem(level));
+
+  (*output) << "materials " << (*subdoms).GetSize() << " 0" << std::endl;
+  
+  // loop over all subdomains
+  for (Integer iSD=0; iSD<(*subdoms).GetSize(); iSD++) {
+    (*output) << (*subdoms)[iSD] << std::endl;
+    ptgrid->GetElemSD(elemSD,(*subdoms)[iSD],level);
+
+    // loop over all elemtns
+    for (Integer iElem=0; iElem<elemSD.GetSize(); iElem++) 
+      regionID[elemSD[iElem]->elemNum -1 ] = iSD+1;
+  }
+
+  // write for each element the according regionID
+  for (Integer i=0; i<regionID.GetSize(); i++) 
+    (*output) << regionID[i] << " ";
+
+  (*output) << std::endl;
+}
+
+void WriteResultsGMV::WriteNodeVariableTransient(const Vector<Double> var, 
+						 const std::string name, 
+						 const Integer dataType)
 {
-  (*output) << "variable";
+  
   if (ascii_) (*output) << std::endl;
 
-
+  
   if (ascii_)
     (*output) << name << " " << dataType << std::endl;
   else 
@@ -333,19 +377,163 @@ void WriteResultsGMV::WriteNodeVariable(const Vector<Double> var, const std::str
       Integer i;
       for (i=0; i<var.GetSize(); i++)
 	(*output) << var[i] << " ";
-      (*output) << "\n endvars \n" ;
     }
   else 
     {
       Double * ptvar=var.GetPointer();
       Integer len=var.GetSize();
       output->write((char*)ptvar,len * sizeof(Double));
-      (*output) << "endvars ";
     }
 
 }
 
-  // only for 3D
+void WriteResultsGMV::WriteNodeVariableHarmonic(const Vector<Complex> var, 
+						const std::string name, 
+						const Integer dataType,
+						const ComplexFormat outputFormat)
+{
+  Integer i;
+  Double val;
+  
+  if (outputFormat == REAL_IMAG) {
+  
+      // **********************
+      // REAL-IMAGINARY FORMAT
+      // **********************
+      
+    // --- Real Part ---
+    if (ascii_) (*output) << std::endl;
+    
+    
+    if (ascii_)
+      (*output) << name << "-Real " << dataType << std::endl;
+    else 
+      {
+	Char * str=new Char[8];  
+	to8Char(name,str);
+	str[7] = 'R';
+	(*output) << str;
+	output->write((Char*)&dataType,sizeof(Integer));
+	delete [] str;
+      }
+    
+    if (ascii_) 
+      {
+	Integer i;
+	for (i=0; i<var.GetSize(); i++)
+	  (*output) << real(var[i]) << " ";
+      }
+    else 
+      {
+	for (i=0; i<var.GetSize(); i++){
+	  val = real(var[i]);
+	  output->write((char*)(&val),sizeof(Double));
+	}
+      }
+
+    // --- Imaginary Part ---
+    if (ascii_) (*output) << std::endl;
+    
+    
+    if (ascii_)
+      (*output) << name << "-Imag " << dataType << std::endl;
+    else 
+      {
+	Char * str=new Char[8];  
+	to8Char(name,str);
+	str[7] = 'I';
+	(*output) << str;
+	output->write((Char*)&dataType,sizeof(Integer));
+	delete [] str;
+      }
+    
+    if (ascii_) 
+      {
+	Integer i;
+	for (i=0; i<var.GetSize(); i++)
+	  (*output) << imag(var[i]);
+      }
+    else {
+      for (i=0; i<var.GetSize(); i++){
+	val = imag(var[i]);
+	output->write((char*)(&val),sizeof(Double));
+      }
+    }
+    
+  } else if (outputFormat == AMPLITUDE_PHASE) {
+    // **********************
+    // AMPLITUDE-PHASE FORMAT
+    // ********************** 
+      
+    // --- Amplitude ---
+    if (ascii_) (*output) << std::endl;
+    
+    
+    if (ascii_)
+      (*output) << name << "-Amplitude " << dataType << std::endl;
+    else 
+      {
+	Char * str=new Char[8];  
+	to8Char(name,str);
+	str[7] = 'A';
+	(*output) << str;
+	output->write((Char*)&dataType,sizeof(Integer));
+	delete [] str;
+      }
+    
+    if (ascii_) 
+      {
+	Integer i;
+	for (i=0; i<var.GetSize(); i++)
+	  (*output) << abs(var[i]) << " ";
+      }
+    else 
+      {
+	for (i=0; i<var.GetSize(); i++){
+	  val = abs(var[i]);
+	  output->write((char*)(&val),sizeof(Double));
+	}
+      }
+
+    // --- Phase ---
+    if (ascii_) (*output) << std::endl;
+    
+    
+    if (ascii_)
+      (*output) << name << "-Phase " << dataType << std::endl;
+    else 
+      {
+	Char * str=new Char[8];  
+	to8Char(name,str);
+	str[7] = 'P';
+	(*output) << str;
+	output->write((Char*)&dataType,sizeof(Integer));
+	delete [] str;
+      }
+    
+    if (ascii_) 
+      {
+	for (i=0; i<var.GetSize(); i++) {
+	  if (abs(imag(var[i])) > 1e-16)
+	    (*output) << arg(var[i])*180/PI << " ";
+	  else
+	    (*output) << "0.0 ";
+	}
+      }
+    else {
+      for (i=0; i<var.GetSize(); i++){
+	if (abs(imag(var[i])) > 1e-16)
+	  val = arg(var[i])*180/PI;
+	else
+	  val = 0.0;
+	output->write((char*)(&val),sizeof(Double));
+      }
+    }
+    
+  }
+}
+
+// only for 3D
 void WriteResultsGMV::WriteVelocity(const Vector<Double> *  var, const std::string name, const Integer dataType)
 {
 
@@ -378,11 +566,78 @@ void WriteResultsGMV::WriteVelocity(const Vector<Double> *  var, const std::stri
 
 void WriteResultsGMV::WriteGrid(const Integer level)
 {
-  WriteHeader();
-  WriteNodes(level);
-  WriteCells(level);
-  if (fixedgrid_)
-    OpenFile(1);
+
+  // ---------------------------
+  // Section for PrintGridOnly
+  // ----------------------------
+  if (PrintGridOnly == TRUE) {
+    if(fixedgrid_ == TRUE) 
+      OpenFile(-1);
+    else
+      OpenFile(0);
+
+    WriteHeader();
+    WriteNodes(level);
+    WriteCells(level);
+    WriteMaterials(level);
+    (*output) << "\nendgmv";
+    delete output;
+    return;
+  }
+
+  // ---------------------------
+  // Section for first 
+  // fixedGrid step
+  // ----------------------------
+  if (fixedgrid_ == TRUE &&
+      firstGridWritten_ == FALSE) {
+      OpenFile(-1);
+      WriteHeader();
+      WriteNodes(level);
+      WriteCells(level);
+      WriteMaterials(level);
+      (*output) << "\nendgmv";
+      firstGridWritten_ = TRUE;
+      return;
+  }
+  
+  // ---------------------------
+  // Section for new  time step
+  // ----------------------------
+  
+  // Write Only if time time step has changed
+  // since last write of grid
+  if (currStep_ != lastStep_) { 
+
+    lastStep_ = currStep_;
+    OpenFile(currStep_);
+
+    WriteHeader();
+    if (fixedgrid_){
+      if (ascii_)
+	(*output) << "nodev fromfile \"" << nameGridFile_ 
+		  <<"\""<< std::endl;
+      else 
+	(*output) << "nodev   fromfile\"" << nameGridFile_ <<"\"";
+            
+      if (ascii_)
+	(*output) << "cells fromfile \"" << nameGridFile_ 
+		  <<"\""<< std::endl;
+      else 
+	(*output) << "cells   fromfile\"" << nameGridFile_ <<"\"";
+      
+      if (ascii_)
+	(*output) << "materials fromfile \"" << nameGridFile_
+		  <<"\""<< std::endl;
+      else 
+	(*output) << "materials fromfile\"" << nameGridFile_ <<"\"";
+    } else {
+      WriteNodes(level);
+      WriteCells(level);
+      WriteMaterials(level);
+    }
+    (*output) << std::endl << "variables" << std::endl;
+  }
 }
 
 
@@ -398,89 +653,50 @@ void WriteResultsGMV::WriteNodeSolutionTransient(const NodeStoreSol<Double> & so
   Integer iDof,i,j;
   Integer nrDofs = 0;
   Double help;
-  
   Vector<Double> solhelp;
-  //Vector<Double> globalSolution;
-  // Transform local nodal solution to global one
-  // WARNING: Level for refinemet is hardcoded to 1
-  //sol.TransformNodeSolution(globalSolution,ptgrid,1);
+  std::string outString, errMsg;
+  StdVector<SolutionType> solTypes;
   
+  currTime_ = time;
+  currStep_ = step;
+  WriteGrid(ptgrid->GetLastLevel());  
 
   Integer type=1; // 0 - for cell 
                   // 1 - for node
                   // 2 - for face data
 
-  static Integer flagGrid=0;
-  if (flagGrid==0 && fixedgrid_) {
-    WriteGrid(ptgrid->GetLastLevel());   
-    flagGrid++;
-  }
-  
-  // If a new file is opened (step != currstep_)
-  // the grid or the reference to the gridfile (fixedgrid_ == TRUE)
-  // has to be written
-  if (step!=currstep_)
-    {
-      OpenFile(step);
-
-      if (fixedgrid_)
-	{
-	  WriteHeader();
-	  
-	  std::string name = namefile_ + "_GRID.gmv";
-	  
-	  if (ascii_)
-	    (*output) << "nodev fromfile \"" << name <<"\""<< std::endl;
-	  else 
-	    (*output) << "nodev   fromfile\"" << name <<"\"";
-	  
-	  
-	  if (ascii_)
-	    (*output) << "cells fromfile \"" << name <<"\""<< std::endl;
-	  else 
-	    (*output) << "cells   fromfile\"" << name <<"\"";
-	  
-	} 
-      else 
-	{
-	  WriteGrid(ptgrid->GetLastLevel());   
-	}
-    }
-    
-  std::string outString;
-  StdVector<SolutionType> solTypes;
-
+  // Get all solutiontypes
   sol.GetSolutionTypes(solTypes);
-    for (Integer iSol=0; iSol<sol.GetNumSolutions(); iSol++)
-    {
-      for (iDof=0; iDof< sol.GetDof(solTypes[iSol]); iDof++)
-	{
-	  
-	  
-	  if (sol.GetDof(solTypes[iSol]) > 1)
-	    {
-	      char nrStr[10];
-	      sprintf(nrStr,"%i",iDof+1);
-	      outString = SolutionTypeToString(solTypes[iSol]) + nrStr;
-	    }
-	  else 
-	    outString = SolutionTypeToString(solTypes[iSol]);
-	  
-	  sol.GetGlobalSolVectorSingleDof(solTypes[iSol],iDof,solhelp);
-	  WriteNodeVariable(solhelp, outString , type);
-	}
-    }
-  
-  if (ascii_)
-	(*output) << "probtime " << time << std::endl;
-      else {
-	(*output) << "probtime";
-	output->write((char*)&time,sizeof(Double));
-      }
-      //}
-  
 
-  currstep_=step;
+  // Iterate over all solutiontypes
+  for (Integer iSol=0; iSol<sol.GetNumSolutions(); iSol++) {
+
+    // GMV can not visualize tensor data
+    if (sol.GetDof(solTypes[iSol]) > 3){
+      errMsg  = "OutGMV::WirteNodeSolutionTransient: GMV can only ";
+      errMsg += "visualize 3 dimensional data.\n Your solution has ";
+      errMsg += Info->GenStr(sol.GetDof(solTypes[iSol]));
+      errMsg += " degrees of freedom!";
+      Error(errMsg.c_str(), __FILE__, __LINE__);
+    }
+	
+    // Iterate over all degrees of freedom
+    for (iDof=0; iDof< sol.GetDof(solTypes[iSol]); iDof++) {
+      if (sol.GetDof(solTypes[iSol]) > 1) {
+	char nrStr[10];
+	sprintf(nrStr,"%i",iDof+1);
+	outString = SolutionTypeToString(solTypes[iSol]) + nrStr;
+      }
+      else 
+	outString = SolutionTypeToString(solTypes[iSol]);
+      
+      // Get the solution for one solutiontype and one dof
+      sol.GetGlobalSolVectorSingleDof(solTypes[iSol],iDof,solhelp);
+
+      // Write node solution to file
+      WriteNodeVariableTransient(solhelp, outString , type);
+    }
+  }
 }
 
 
@@ -493,33 +709,38 @@ void WriteResultsGMV::WriteElemSolutionTransient(const ElemStoreSol<Double>& dat
  Integer type=0; // 0 - for cell 
                  // 1 - for node
                  // 2 - for face data
+
+ currTime_ = time;
+ currStep_ = step;
+ std::string errMsg;
  Integer i = 0;
  Vector<Double> solhelp;
  StdVector<SolutionType> solType;
- 
+
+ WriteGrid(ptgrid->GetLastLevel()); 
  data.GetSolutionTypes(solType);
 
-   if (step!=(currstep_)) {
-     Error("You should write solution of this step before printing some cell data",__FILE__,__LINE__);
-   }
-
-  for (i=0; i<data.GetDof(); i++)
-    {
-      char nrStr[10];
-      sprintf(nrStr,"%i",i+1);
-      std::string sumString = SolutionTypeToString(solType[0]) + nrStr;
-      data.GetGlobalSolVectorSingleDof(i,solhelp);
-      
-      WriteNodeVariable(solhelp, sumString , type);
-    }
+ // GMV can not visualize tensor data
+ if (data.GetDof() > 3){
+   errMsg  = "OutGMV::WriteElemSolutionTransient: GMV can only ";
+   errMsg += "visualize 3 dimensional data.\n Your solution has ";
+   errMsg += Info->GenStr(data.GetDof());
+   errMsg += " degrees of freedom!";
+   Error(errMsg.c_str(), __FILE__, __LINE__);
+ }
  
-  if (ascii_)
-    (*output) << "probtime " << time << std::endl;
-  else {
-    (*output) << "probtime";
-    output->write((char*)&time,sizeof(Double));
-  }
-  
+ // Iterate over all degrees of freedom 
+ for (i=0; i<data.GetDof(); i++) {
+   char nrStr[10];
+   sprintf(nrStr,"%i",i+1);
+   std::string sumString = SolutionTypeToString(solType[0]) + nrStr;
+
+   // Get global solution vector for on dof
+   data.GetGlobalSolVectorSingleDof(i,solhelp);
+   
+   // Write global solution to file
+   WriteNodeVariableTransient(solhelp, sumString , type);
+ }
 }
 
 void WriteResultsGMV::WriteNodeSolutionHarmonic(const NodeStoreSol<Complex> & sol, 
@@ -528,8 +749,55 @@ void WriteResultsGMV::WriteNodeSolutionHarmonic(const NodeStoreSol<Complex> & so
 						const ComplexFormat format)
 {
   ENTER_FCN( "WriteResultsGMV::WriteNodeSolutionHarmonic" );
-  Error("WriteResultsGMV::WriteNodeSolutionHarmonic: Not implemented yet",
-	__FILE__, __LINE__);
+
+  Integer iDof,i,j;
+  Integer nrDofs = 0;
+  Double help;
+  Vector<Complex> solhelp;
+  std::string outString, errMsg;
+  StdVector<SolutionType> solTypes;
+  
+  currTime_ = frequency;
+  currStep_ = step;
+  WriteGrid(ptgrid->GetLastLevel());  
+  
+  Integer type=1; // 0 - for cell 
+                  // 1 - for node
+                  // 2 - for face data
+  
+  // Get all solutiontypes
+  sol.GetSolutionTypes(solTypes);
+  
+  // Iterate over all solutiontypes
+  for (Integer iSol=0; iSol<sol.GetNumSolutions(); iSol++) {
+    
+    // GMV can not visualize tensor data
+    if (sol.GetDof(solTypes[iSol]) > 3){
+      errMsg  = "OutGMV::WirteNodeSolutionHarmonic: GMV can only ";
+      errMsg += "visualize 3 dimensional data.\n Your solution has ";
+      errMsg += Info->GenStr(sol.GetDof(solTypes[iSol]));
+      errMsg += " degrees of freedom!";
+      Error(errMsg.c_str(), __FILE__, __LINE__);
+    }
+	
+    // Iterate over all degrees of freedom
+    for (iDof=0; iDof< sol.GetDof(solTypes[iSol]); iDof++) {
+      if (sol.GetDof(solTypes[iSol]) > 1) {
+	char nrStr[10];
+	sprintf(nrStr,"%i",iDof+1);
+	outString = SolutionTypeToString(solTypes[iSol]) + nrStr;
+      }
+      else 
+	outString = SolutionTypeToString(solTypes[iSol]);
+      
+      // Get the solution for one solutiontype and one dof
+      sol.GetGlobalSolVectorSingleDof(solTypes[iSol],iDof,solhelp);
+
+      // Write node solution to file
+      WriteNodeVariableHarmonic(solhelp, outString , type, format);
+    }
+  }
+  
 }
 
 void WriteResultsGMV::WriteElemSolutionHarmonic(const ElemStoreSol<Complex> & sol, 
@@ -538,88 +806,44 @@ void WriteResultsGMV::WriteElemSolutionHarmonic(const ElemStoreSol<Complex> & so
 						const ComplexFormat format)
 {
   ENTER_FCN( "WriteResultsGMV::WriteElemSolutionHarmonic" );
-  Error("WriteResultsGMV::WriteElemSolutionHarmonic: Not implemented yet",
-	__FILE__, __LINE__);
+
+ Integer type=0; // 0 - for cell 
+                 // 1 - for node
+                 // 2 - for face data
+
+ currTime_ = frequency;
+ currStep_ = step;
+ std::string errMsg;
+ Integer i = 0;
+ Vector<Complex> solhelp;
+ StdVector<SolutionType> solType;
+ 
+ WriteGrid(ptgrid->GetLastLevel()); 
+ sol.GetSolutionTypes(solType);
+
+ // GMV can not visualize tensor data
+ if (sol.GetDof() > 3){
+   errMsg  = "OutGMV::WriteElemSolutionHarmonic: GMV can only ";
+   errMsg += "visualize 3 dimensional data.\n Your solution has ";
+   errMsg += Info->GenStr(sol.GetDof());
+   errMsg += " degrees of freedom!";
+   Error(errMsg.c_str(), __FILE__, __LINE__);
+ }
+ 
+ // Iterate over all degrees of freedom 
+ for (i=0; i<sol.GetDof(); i++) {
+   char nrStr[10];
+   sprintf(nrStr,"%i",i+1);
+   std::string sumString = SolutionTypeToString(solType[0]) + nrStr;
+
+   // Get global solution vector for on dof
+   sol.GetGlobalSolVectorSingleDof(i,solhelp);
+   
+   // Write global solution to file
+   WriteNodeVariableHarmonic(solhelp, sumString, type, format);
+ }
 }
 
-// 
-
-// void WriteResultsGMV::WriteDataOnCell(const Vector<Double>&sol,const Integer step, const Double time, const std::string title)
-// {
-//   Integer type=0; // 0 - for cell 
-//                   // 1 - for node
-//                   // 2 - for face data
-
-//   if (step!=currstep_) {
-//     Error("You should write solution of this step before printing some cell data",__FILE__,__LINE__);
-//   }
-
-//   WriteVariable(sol,title,type);
-
-//   if (ascii_)
-//     (*output) << "probtime " << time << std::endl;
-//   else {
-//     (*output) << "probtime";
-//     output->write((char*)&time,sizeof(Double));
-//   }
-
-// }
-
-// void WriteResultsGMV::WriteVecDataOnCell(const Vector<Double>*vec,const Integer step, const Double time, const std::string title)
-// {
-//   Integer type=0; // 0 - for cell-centered 
-//                   // 1 - for node-centered
-//                   // 2 - for face-centered data
-
-//   if (step!=currstep_) {
-//     Error("You should write solution of this step before printing some cell data",__FILE__,__LINE__);
-//   }
-
-//   WriteVelocity(vec,title,type);
-
-//   if (ascii_)
-//     (*output) << "probtime " << time << std::endl;
-//   else {
-//     (*output) << "probtime";
-//     output->write((char*)&time,sizeof(Double));
-//   }
-  
-// }
-
-// void WriteResultsGMV::OpenFile(const Integer num)
-// {
-//    Char * name=new Char[80];
-//    Char * aux=new Char[2];
-//    sprintf(aux,"%i",num);
-
-//    strcpy(name,namedir_);
-//    strcat(name,"/");
-//    strcat(name,namefile_);
-//    if (num/10 < 1) strcat(name,".gmv00");
-//      else if (num/100 < 1) strcat(name,".gmv0");
-//        else strcat(name,".gmv");
-
-//    strcat(name,aux);
-//    if (output) {
-//      if (ascii_)
-//        (*output) << "endgmv " << std::endl; 
-//      else
-//        (*output) << "endgmv  ";
-
-//      delete output;
-//    }
-
-//    // check what kind of data for input
-//    std::string typedata;
-
-//    if (ascii_)
-//      output=new std::ofstream(name);
-//    else
-//      output=new std::ofstream(name,std::ofstream::binary);
-
-//    delete [] name;
-//    delete [] aux;
-// }
 
 void WriteResultsGMV::OpenFile(const Integer num)
 {
@@ -635,6 +859,7 @@ void WriteResultsGMV::OpenFile(const Integer num)
   if ( num == -1 )
     {
       filename.append( "_GRID.gmv" );
+      nameGridFile_ = namefile_ + "_GRID.gmv";;
     }
 
   // Normal output file
@@ -650,53 +875,35 @@ void WriteResultsGMV::OpenFile(const Integer num)
       filename.append( Info->GenStr( num ) );
     }
 
-  // Old version of filename generation
-
-//    Char * name=new Char[80];
-//    Char * aux=new Char[10];
-//    sprintf(aux,"%i",num);
-// 
-//    strcpy(name,namedir_);
-//    strcat(name,"/");
-//    strcat(name,namefile_);
-//    if (num==-1)
-//      {
-//        strcat(name,"_GRID.gmv");
-//      }
-//    else
-//      {
-//        if (num/10 < 1) strcat(name,".gmv00");
-//        else if (num/100 < 1) strcat(name,".gmv0");
-//        else strcat(name,".gmv");
-//        strcat(name,aux);
-//      }
-   
-   if (output) {
-   if (num!=-1)
-     {
-       if (ascii_)
-       (*output) << "endgmv " << std::endl; 
-       else
-	 (*output) << "endgmv  ";
-     }
-   
-     delete output;
-   }
-
+  
+  // If file was already open, write end of variables
+  if (output && num > 1) {
+    if (ascii_) {
+      (*output) << "\nendvars\n" ;
+      (*output) <<"probtime " << currTime_ << std::endl;
+      (*output) << "endgmv ";
+    }
+    else {
+      (*output) << "endvars ";
+      (*output) << "probtime";
+      output->write((char*)&currTime_,sizeof(Double));
+      (*output) << "endgmv  ";
+    } 
+  }
+  delete output;
 
 
    // check what kind of data for input
-   std::string typedata;
-   
-   if (ascii_)
-     output=new std::ofstream(filename.c_str());
-   else
-     output=new std::ofstream(filename.c_str(),std::ofstream::binary);
-
-   if (!output)
-     Error(" File for output results in .gmv-format could not be opened", __FILE__, __LINE__);
-   // delete [] name;
-   // delete [] aux;
+  std::string typedata;
+  
+  if (ascii_)
+    output=new std::ofstream(filename.c_str());
+  else
+    output=new std::ofstream(filename.c_str(),std::ofstream::binary);
+  
+  if (!output)
+    Error(" File for output results in .gmv-format could not be opened", __FILE__, __LINE__);
+  
 }
 
 void WriteResultsGMV::Init(Grid * aptgrid, BCs * aptbcs)
@@ -729,52 +936,52 @@ std::string WriteResultsGMV::SolutionTypeToString(const SolutionType type) const
   switch (type)
     {
     case MECH_DISPLACEMENT:
-      return "displacement";
+      return "mechDisplacement";
       break;
     case MECH_ACCELERATION:
-      return "acceleration";
+      return "mechAcceleration";
       break;
     case MECH_VELOCITY:
-      return "velocity";
+      return "mecVelocity";
       break;
     case MECH_FORCE:
-      return "mech force";
+      return "mechForce";
       break;
     case MECH_STRESS:
-      return "stress";
+      return "mechStress";
       break;
     case MECH_STRAIN:
-      return "mech strain";
+      return "mechStrain";
       break;
     case ELEC_POTENTIAL:
-      return "E-Potential";
+      return "elecPotential";
       break;
     case ELEC_FIELD_INTENSITY:
-      return "E-Field";
+      return "elecField";
       break;
     case ELEC_FORCE_VWP:
-      return "elec force";
+      return "elecForce";
       break;
     case ELEC_INTERFACE_FORCE:
-      return "elec interface force";
+      return "elecInterfaceForce";
       break;
     case ELEC_CHARGE:
-      return "E-Charge";
+      return "elecCharge";
       break;
     case ELEC_FLUX_DENSITY:
-      return "E-Flux Density";
+      return "elecFluxDensity";
       break;
     case ELEC_ENERGY:
-      return "elec Energy";
+      return "elecEnergy";
       break;
     case SMOOTH_DISPLACEMENT:
-      return "displacement";
+      return "smoothDisplacement";
       break;
     case ACOU_POTENTIAL:
-      return "vp";
+      return "acouPotential";
       break;
     case ACOU_FORCE:
-      return "acou force";
+      return "acouForce";
       break;
     case ACOU_POTENTIAL_DERIV_1:
       return "vp_der_1";
@@ -783,22 +990,22 @@ std::string WriteResultsGMV::SolutionTypeToString(const SolutionType type) const
       return "vp_der_2";
       break;
     case MAG_POTENTIAL:
-      return "Mag-Potential";
+      return "magPotential";
       break;
     case MAG_FLUX_DENSITY:
-      return "B-Field";
+      return "magField";
       break;
     case MAG_EDDY_CURRENT:
-      return "eddy current";
+      return "eddyCurrent";
       break;
     case MAG_FORCE_VWP:
-      return "mag force (VWP)";
+      return "magForce(VWP)";
       break;
     case MAG_FORCE_LORENTZ:
-      return "mag force (Lorentz)";
+      return "magForce(Lorentz)";
       break;
     case MAG_ENERGY:
-      return  "mag Energy";
+      return  "magEnergy";
       break;
     default:
       Error( "Wrong type of solution or 'SolutionType2String' not implemented for\
