@@ -754,6 +754,30 @@ namespace CoupledField
     //! in the constructor. It is set to 'true', if the macro DEBUG_SPHANDLER
     //! is defined and to 'false' otherwise.
     bool beVerbose_;
+
+    //! Location of main Schema file for validated parsing
+
+    //! We use a validating parser. Thus, we must specify a Schema against
+    //! which the input xml-file can be tested. This attribute stores the
+    //! location of the main Schema definition file. Its value is derived from
+    //! the value of the XMLSCHEMA macro as
+    //! <b>http://www.cfs++.org XMLSCHEMA/CFS.xsd</b>.
+    std::string cfsSchema_;
+
+    //! Location of XML file for handling of default parameters
+
+    //! In the current implementation we specify default values for parameters
+    //! in the main Schema description. However, due to the fact that default
+    //! values for optional elements are only incorporated into the parsing
+    //! result, if the element appears and is empty, but not, if the element
+    //! does not appear at all, we make use of a sort of skeleton xml file
+    //! for forcing appearance of the default values. This attribute stores
+    //! the location of this defaults file which is parsed to generate the
+    //! default parameter tree, see also rootElemDefaults_. The value of this
+    //! attribute is derived from the macro XMLSCHEMA as
+    //! <b>XMLSCHEMA/Defaults/CFS++Defaults.xml</b>.
+    std::string cfsDefaults_;
+
   };
 
 }
