@@ -119,8 +119,8 @@ namespace CoupledField {
     ReadMaxnumnodesbc(numbc);
 
     // Vector which contains Booleans for all boundary nodes for all levels.
-    // It is used to determine, wether a node occurs several times, which could
-    // lead to errors with the number of boundary conditions later on
+    // It is used to determine, wether a node occurs several times, which
+    // could lead to errors with the number of boundary conditions later on
     StdVector<StdVector<Integer> > nodesPerLevel;
     nodesPerLevel.Resize(levels.GetSize());
     
@@ -387,7 +387,7 @@ namespace CoupledField {
     if ( (elemType == "1D" && ( !ptTet1 || !ptHexa1 || !ptHexa2 || !ptPyra1 ||
                                 !ptWedge1 || !ptWedge2 ) ) ||
          (elemType == "2D" && ( !ptQ1 || !ptQ2 || !ptTr1 || !ptTr2 ) ) ||
-         (elemType == "3D" && ( !ptTet1 || !ptHexa1 || !ptHexa2 || !ptPyra1 || 
+         (elemType == "3D" && ( !ptTet1 || !ptHexa1 || !ptHexa2 || !ptPyra1 ||
                                 !ptWedge1 || !ptWedge2 ) ) ) {
       (*error) << "Pointers to " << elemType << " base elements are not "
                << "completely initialized";
@@ -489,9 +489,9 @@ namespace CoupledField {
         }
       }
       if ( Find == FALSE ) {
-        (*error) << elemType << "element " << eNum << " belongs to the region "
-                 << "'" << region << ". However, that regions is not mentioned"
-                 << " in the xml-file.";
+        (*error) << elemType << " element " << eNum << " belongs to the "
+                 << "region '" << region << "'. However, that regions is "
+                 << "not mentioned in the xml-file.";
         Error( __FILE__, __LINE__ );
       }
     }
@@ -543,9 +543,9 @@ namespace CoupledField {
   }
 
 
-  // ==========================================================================
+  // =========================================================================
   // AUXILLIARY METHODS
-  // ==========================================================================
+  // =========================================================================
 
 
   // **************
@@ -669,9 +669,9 @@ namespace CoupledField {
   }
 
 
-  // ==========================================================================
+  // =========================================================================
   // MISCELLANEOUS METHODS
-  // ==========================================================================
+  // =========================================================================
 
 
   // ***************
@@ -911,9 +911,9 @@ namespace CoupledField {
 
 
 
-  // ==========================================================================
+  // =========================================================================
   // The following methods are concerned with grid adaptation
-  // ==========================================================================
+  // =========================================================================
 
 #ifdef ADAPTGRID
 
