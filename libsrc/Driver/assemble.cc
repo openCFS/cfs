@@ -21,7 +21,8 @@ namespace CoupledField
      convectionMatrix_(FALSE),
      actlevel_(0),
      integrators_(0),
-     rhsIntegrators_(0)
+     rhsIntegrators_(0),
+    rhsSrcIntegrators_(0)
   {
 #ifdef TRACE
     (*trace) << "entering Assemble::Assemble " << std::endl;
@@ -215,7 +216,6 @@ namespace CoupledField
 		std::vector<Double> elemVec;
 		actRhsID->GetIntegrator()->CalcElemVector(ptCoord, elemVec);
 		
-		// subtract internal forces on rhs from external forces 
 		elemVec *= -1;
 
 		algsys_->SetElementRHS(&elemVec[0], connect_PDE.get(), connect_PDE.size());
@@ -316,7 +316,47 @@ namespace CoupledField
 #ifdef TRACE
     (*trace) << "entering Assemble:AssembleRHSIntegralSources" << std::endl;
 #endif    
-  
+ 
+     for (Integer actDom=0; actDom <  subdoms_.size(); actDom++)
+      {	
+	if (rhsSrcIntegrators_[actDom]->size())
+	  {
+	    std::vector<Elem*> elemssd;
+	    ptgrid_->GetElemSD(elemssd, subdoms_[actDom], level);
+	    
+	    Double val_tfunc = 1.0;
+	    if (ptTimeFunc_->GetmaxTimeFnc() > 0 )
+	      val_tfunc=ptTimeFunc_->TimeFuncAtTime(time,fncname_rhs_[actDom]);
+	
+	    for (Integer actEl=0; actEl< elemssd.size(); actEl++)
+	      {	       
+		BaseFE * ptEl = elemssd[actEl]->ptElem;
+		Vector<Integer> connecth = elemssd[actEl]->connect;
+		
+		Matrix<Double> ptCoord;
+		GetElemCoords(connecth, ptCoord, level);
+	    
+		// map connect to PDE node numbers
+		Vector<Integer> connect_PDE;
+		Mesh2PDENode(connect_PDE, connecth, *mesh2PDENode_);
+		
+		for(Integer actRhsInt=0; actRhsInt < rhsSrcIntegrators_[actDom]->size(); actRhsInt++)
+		  {
+		    BaseIntDescriptor * actRhsID = (*rhsSrcIntegrators_[actDom])[actRhsInt];
+		    
+		    actRhsID->GetIntegrator()->SetElemPtr(ptEl);
+		    
+		    std::vector<Double> elemVec;
+		    actRhsID->GetIntegrator()->CalcElemVector(ptCoord, elemVec);
+		    
+		    if (val_tfunc != 1.0)
+		      elemVec *= val_tfunc;
+		    
+		    algsys_->SetElementRHS(&elemVec[0], connect_PDE.get(), connect_PDE.size());
+		  }
+	      }
+	  }
+      }
   }
   
 
@@ -466,11 +506,14 @@ GetBCDof(const std::string dofString)
 
     // for every domain, we need an own integrator list ==========
     integrators_.resize(subdoms_.size());
+    rhsSrcIntegrators_.resize(subdoms_.size());
+
     surfintegrators_.resize(surfdoms_.size());
     rhsIntegrators_.resize(subdoms_.size());
     for (int i=0; i<subdoms_.size();i++)
       {
 	integrators_[i] = new std::vector<IntegratorDescriptor *>;
+	rhsSrcIntegrators_[i] = new std::vector<BaseIntDescriptor *>;
 	rhsIntegrators_[i] = new std::vector<BaseIntDescriptor *>;
       }
 
@@ -562,7 +605,6 @@ GetSolOfElement( Matrix<Double>& elDisp, Vector<Integer>& connect_PDE)
 
 
 
-
 /// define integrators
 void Assemble::AddRhsIntegrator(BaseForm * integrator, const std::string & subDomName, 
 				const Integer nonLin)
@@ -574,6 +616,19 @@ void Assemble::AddRhsIntegrator(BaseForm * integrator, const std::string & subDo
     BaseIntDescriptor * actRhsID = new  BaseIntDescriptor(integrator, nonLin);
     rhsIntegrators_[SubDomIndex(subDomName)]->push_back(actRhsID);
   }
+
+
+void Assemble::AddRhsSrcIntegrator(BaseForm * integrator, const std::string & subDomName, 
+				   const std::string fncname, const Integer nonLin)
+{
+#ifdef TRACE
+  (*trace) << "entering Assemble::AddRhsSrcIntegrator " << std::endl;
+#endif
+
+  BaseIntDescriptor * actRhsID = new  BaseIntDescriptor(integrator, nonLin);
+  rhsSrcIntegrators_[SubDomIndex(subDomName)]->push_back(actRhsID);
+  fncname_rhs_.push_back(fncname);
+}
 
 
   // ==========================================================

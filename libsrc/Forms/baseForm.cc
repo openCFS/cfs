@@ -7,7 +7,7 @@ namespace CoupledField
 {
 
   BaseForm::BaseForm(BaseFE * aptelem, MaterialData & matData)
-    :ptMaterial(&matData), ptelem(aptelem)
+    :ptMaterial(&matData), ptelem(aptelem), isaxi_(FALSE)
   {
 #ifdef TRACE
     (*trace) << "entering BaseForm::BaseForm" << std::endl;
@@ -15,6 +15,7 @@ namespace CoupledField
   }
 
   BaseForm::BaseForm(MaterialData & matData)
+    :isaxi_(FALSE)
   {
 #ifdef TRACE
     (*trace) << "entering BaseForm::BaseForm" << std::endl;
@@ -24,7 +25,7 @@ namespace CoupledField
   }
 
   BaseForm::BaseForm(BaseFE * aptelem)
-    :ptelem(aptelem)
+    :ptelem(aptelem), isaxi_(FALSE)
   {
 #ifdef TRACE
     (*trace) << "entering BaseForm::BaseForm" << std::endl;
@@ -32,6 +33,7 @@ namespace CoupledField
   }
  
   BaseForm::BaseForm()
+    : isaxi_(FALSE)
   {
 #ifdef TRACE
     (*trace) << "entering BaseForm::BaseForm" << std::endl;

@@ -71,6 +71,8 @@ protected:
 
   /// Ptr to material
   MaterialData * ptMaterial ;
+
+  Boolean isaxi_;
 };
 
 } //end namespace

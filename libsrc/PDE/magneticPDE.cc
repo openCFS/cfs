@@ -117,7 +117,7 @@ void MagPDE::DefineIntegrators(const Integer level)
 	{
 	  Double factor = coilDef_[idxcoil].current / coilDef_[idxcoil].coilArea;
 	  BaseForm * coilSource = new VolumeSrcInt(factor,isaxi_);
-	  assemble_->AddRhsIntegrator(coilSource, subdoms_[actSD], nonLin_);
+	  assemble_->AddRhsSrcIntegrator(coilSource, subdoms_[actSD],coilDef_[idxcoil].timefnc, nonLin_);
 	}
 	 
     }
