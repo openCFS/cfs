@@ -85,7 +85,7 @@ void AnsysFile::ReadCoordinate(Point3D * const NodesCoord, const Integer maxnumn
 
  Integer i;
  std::string::size_type pos=0;
- getPosLine("Nodes", pos);
+ getPosLine("[Nodes]", pos);
  infile.seekg(pos,std::ios::beg);
 
  Integer ibuf;
@@ -215,14 +215,12 @@ void AnsysFile::getPosition(const std::string seekexp, std::string::size_type & 
   std::string buf;
   pos=std::string::npos;
 
-  std::cout << seekexp << std::endl;
   std::string::size_type hpos;
 
   while (pos == std::string::npos && !infile.eof())
 {
   hpos=infile.tellg();
   std::getline(infile, buf, '\n');
-  std::cout << hpos << buf << std::endl;
   pos=buf.find(seekexp);
 }
   pos+=hpos+seekexp.length();

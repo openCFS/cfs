@@ -74,8 +74,8 @@ void main(int argc, char *argv[])
   //solve your problem
   std::string adaptTimeOn;
   conf->get("adapttime",adaptTimeOn,"Acoustic");
-  if (adaptTimeOn == "yes")  ptdriver->SolveProblemAdapt();
-                          else ptdriver->SolveProblem();
+//  if (adaptTimeOn == "yes")  ptdriver->SolveProblemAdapt();
+//                          else ptdriver->SolveProblem();
 
   oClockTotal.ClockCount(MyClock::end,"Total time");
 
