@@ -97,7 +97,7 @@ int main(int argc, char *argv[])
   
   
   
-  char *name = argv[1];
+  char *name = argv[argc-1];
   
   Char * filename=new char[100];
 
