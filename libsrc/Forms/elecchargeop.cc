@@ -49,30 +49,26 @@ void ElecChargeOp::CalcElemCharge(Double & charge,
   const Vector<Double> & intWeights = ptElemFE->GetIntWeights();   
   
   ptPDE_->GetElemCoords(ptElement->connect, coordMat, level_);
-  ptElemFE->GetShFnc(shFnc, lCoord);
   
+  // loop over all integration points
   for (Integer actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
     {
-      // std::cerr << "size of shFnc " << shFnc.GetSize() << std::endl;
-//       std::cerr << "size of intWeigts" << intWeights.GetSize() << std::endl;
-//       std::cerr << " before Jacobian" << std::endl;
-//       std::cerr << "coordMat = " << std::endl << coordMat << std::endl;
+      ptElemFE->GetShFncAtIp(shFnc, actIntPt);
       jacDet = ptElemFE->CalcJacobianDetAtIp(actIntPt, coordMat);
-      // std::cerr << "After Jaxo" << std::cerr;
-      chargeAux = shFnc[actIntPt-1] * intWeights[actIntPt-1] ;
-      chargeAux *=  jacDet * eNormalFluxDensity;
-      if (isaxi_)
+      
+      // loop over all shape functions
+      for (Integer actShFnc=1; actShFnc<= shFnc.GetSize(); actShFnc++)
 	{
-	  globCoord = coordMat * shFnc;
-	  chargeAux *= 2 * PI * globCoord[0];
+	  chargeAux = shFnc[actShFnc-1] * intWeights[actIntPt-1];
+	  chargeAux *=  jacDet * eNormalFluxDensity;
+	  if (isaxi_)
+	    {
+	      globCoord = coordMat * shFnc;
+	      chargeAux *= 2 * PI * globCoord[0];
+	    }
+	  charge += chargeAux;
 	}
-      
-      charge += chargeAux;
-      
-      
-	
     }
-  
 }
  
 
