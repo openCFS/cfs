@@ -31,6 +31,7 @@ namespace CoupledField
     ENTER_FCN( "BaseForm::BaseForm" );
     isSetIntPoint_ = FALSE;
     piezoMatType_ = realMaterialParameter;
+    ptMaterial = NULL;
   }
  
   BaseForm::BaseForm()
@@ -39,6 +40,7 @@ namespace CoupledField
     ENTER_FCN( "BaseForm::BaseForm" );
     isSetIntPoint_ = FALSE;
     piezoMatType_ = realMaterialParameter;
+    ptMaterial = NULL;
   }
  
 
