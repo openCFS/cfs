@@ -1,7 +1,9 @@
 #ifndef FILE_ELECPDE_NEW
 #define FILE_ELECPDE_NEW
 
+#include "scalarnodeEQN.hh"
 #include "basePDE.hh" 
+
 
 namespace CoupledField
 {
@@ -131,6 +133,9 @@ namespace CoupledField
   
 
   protected:
+
+    // Pointer to equation class
+    //NodeEQN * eqn_;
 
     /// calculated the electric field at the integration points of the couple element
     void CalcEfieldAtCoupleElemIP(Elem * actVolElem,

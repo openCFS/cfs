@@ -120,6 +120,8 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
     sol_->SetNumDofs(dofspernode_);
     sol_->Init(0.0);
 
+   
+    
 #ifndef XMLPARAMS
     lineSearch_ = FALSE;
     if (conf->get_option("lineSearch",  pdename_ ))
@@ -205,7 +207,7 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 #else
     params->Get( "preStressVal", preStressVal_, pdename_ );
 #endif
-
+    
     if (preStressVal_)
       GetDirection(preStressDir_, "preStressDir");
 
@@ -265,12 +267,18 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 	errmsg += "Dirichlet Boundary Conditions";
 	Info->Error( errmsg, __FILE__, __LINE__ );
       }
- 
-
-  // set assemble parameters
-  assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, subdoms_, surfdoms_);
-  assemble_->SetGraphType(NODEGRAPH);
-  assemble_->SetMesh2PDENode(&mesh2PDENode_);
+    
+    // Initialize equation class
+    //eqn_ = new BlockNodeEQN(ptgrid_, ptBCs_, subdoms_, 
+    //			    actlevel_, dofspernode_);
+    //eqn_->SetHomoDirichletBCs(bcs_hd_, homDirichDof_);
+    //eqn_->CalcMapping();
+    //eqn_->Print(std::cerr);
+    
+    // set assemble parameters
+    assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, subdoms_, surfdoms_);
+    assemble_->SetGraphType(NODEGRAPH);
+    assemble_->SetMesh2PDENode(&mesh2PDENode_);
 
 #ifdef USE_OLAS
   assemble_->SetMatrixEntryType(OLAS::DOUBLE);
