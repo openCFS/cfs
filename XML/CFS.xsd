@@ -125,8 +125,8 @@
 
               <!-- ensure uniqueness of subdomain names -->
               <xsd:key name="uniq_subdomainnames">
-                <xsd:selector xpath="cfs:subdom/cfs:sd_name"/>
-                <xsd:field xpath="."/>
+                <xsd:selector xpath="cfs:subdom"/>
+                <xsd:field xpath="@name"/>
               </xsd:key>
 
             </xsd:element>
@@ -203,7 +203,7 @@
   <!-- Make sure that for every subdomain referenced in the PDE section -->
   <!-- a corresponding subdomain has been designated in the domain part -->
   <xsd:keyref name="subdomExists" refer="uniq_subdomainnames">
-    <xsd:selector xpath="cfs:PDE_list/cfs:PDE_descr/cfs:PDE_subdom"/>
+    <xsd:selector xpath="cfs:PDE_list/*/cfs:subdom"/>
     <xsd:field xpath="."/>
   </xsd:keyref>
 
@@ -215,10 +215,12 @@
 
 <!-- Definition of the type of elements in the subdomain list -->
 <xsd:complexType name="Subdomain">
-  <xsd:sequence>
-    <xsd:element name="sd_name" type="xsd:token"/>
-    <xsd:element name="sd_mat" type="xsd:token"/>
-  </xsd:sequence>
+  <xsd:complexContent>
+    <xsd:restriction base="xsd:anyType">
+      <xsd:attribute name="name" type="xsd:token" use="required"/>
+      <xsd:attribute name="material" type="xsd:token" use="required"/>
+    </xsd:restriction>
+  </xsd:complexContent>
 </xsd:complexType>
 
 
