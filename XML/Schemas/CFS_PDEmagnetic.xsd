@@ -230,7 +230,9 @@
   <xsd:complexType name="DT_MeasurementCoil2D">
     <xsd:complexContent>
       <xsd:extension base="DT_MeasurementCoil3D">
-        <xsd:attribute name="id" type="xsd:positiveInteger" use="required"/>
+        <xsd:sequence>
+          <xsd:element name="id"         type="xsd:positiveInteger"/>
+        </xsd:sequence>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
@@ -253,7 +255,9 @@
   <xsd:complexType name="DT_VoltageCoil2D">
     <xsd:complexContent>
       <xsd:extension base="DT_VoltageCoil3D">
-        <xsd:attribute name="id" type="xsd:positiveInteger" use="required"/>
+        <xsd:sequence>
+          <xsd:element name="id"         type="xsd:positiveInteger"/>
+        </xsd:sequence>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
@@ -266,8 +270,8 @@
           <xsd:element name="value"      type="DT_PosFloat"/>
           <xsd:element name="dynamics"   type="xsd:token"/>
           <xsd:element name="phase"      type="DT_PosFloat"/>
+          <xsd:element name="id"         type="xsd:positiveInteger"/>
         </xsd:sequence>
-        <xsd:attribute name="id" type="xsd:positiveInteger" use="required"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
