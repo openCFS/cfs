@@ -75,7 +75,7 @@ libsrc/DataInOut/DatFile/datfile.hh svneol=native#text/plain
 libsrc/DataInOut/Database/Makefile -text
 libsrc/DataInOut/Database/cfs_material.sql -text
 libsrc/DataInOut/Database/cfs_material_data.sql -text
-libsrc/DataInOut/Database/cfs_oweitzel.sql -text
+libsrc/DataInOut/Database/cfs_user.sql -text
 libsrc/DataInOut/Database/database.cc svneol=native#text/plain
 libsrc/DataInOut/Database/database.hh svneol=native#text/plain
 libsrc/DataInOut/Database/dbColumn.cc svneol=native#text/plain
