@@ -417,6 +417,7 @@ protected:
   std::vector<Integer> PDE2MeshNode_;  //!< array containing Mesh (=global) node numbers
   
   // coupling parameters
+  Boolean PDEisCoupled_;         //!< PDE couples with others
   Array<Double> deltCoords_;    //!< offset to grid coordinates
   Array<Double> matParam_;     //!< change to material parameter
   Boolean updateCouplingBCs_ ;         //!< flag if coupling BC were already set

@@ -60,6 +60,7 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
       conf->ifget("residualStopCrit", residualStopCrit_, pdename_); // residual stopping criterion
     }
 
+  preStressVal_ = 0;
   conf->ifget("preStressVal", preStressVal_, pdename_);
 
   if (preStressVal_)
@@ -101,7 +102,8 @@ void MechPDE::InitCoupling(PDECoupling * Coupling)
   (*trace) << "entering MechPDE::InitCoupling" << std::endl;
 #endif
   
-  ptCoupling_ = Coupling;
+  PDEisCoupled_ = TRUE;
+  ptCoupling_   = Coupling;
   
   Array<Double> * val;
   for (Integer i=0; i<ptCoupling_->GetNumOutputCouplings(); i++)
@@ -717,7 +719,12 @@ void MechPDE::SetBCs(const Integer level, const Integer update, const Double ati
     
     // set dirichlet boundary conditions
     Integer i = 0;
-    Integer j = couplingBCsCounter_;
+    Integer j;
+    if (PDEisCoupled_)
+      j = couplingBCsCounter_;
+    else
+      j = 0;
+
     std::list<Integer> nodes;
     Integer sizebc=bcs_hd_.size();
     

@@ -168,7 +168,6 @@ void AcouFlowNoise::ComputeRHS(const Double atime)
   // This is for the loop over the surface elements
   for (j=0; j< ObstSurf.size(); j++)
     { 
-      std::cout << "Aqui en loop de surface elements "<<j<< std::endl;
       ptElBelongSE=belongSE[j]->ptElem;
       // This will be done inside the 2d element next to the 1d element to get gradP at the center
       Integer n=ptElBelongSE->GetNumNodes(); // This returns number of integration points      

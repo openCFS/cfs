@@ -95,6 +95,9 @@ void BaseFE :: GetGlobDerivShFncAtIp(Matrix<Double> & Deriv,
   // det(A) = 1 / det(A^(-1))
   jacDet = 1.0 / JInv.Det();
 
+  if ( jacDet < 0.0 )
+    Error( "Negative Jacobian determinante ", __FILE__, __LINE__ );
+
 }
 
 
