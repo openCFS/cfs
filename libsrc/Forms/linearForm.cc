@@ -204,16 +204,19 @@ namespace CoupledField
     Matrix<Double> dMat;
     Matrix<Double> transpSumB;    // we need transposed of the b-matrices
 
+
     // This, as friend defined bilinearform holds the necessary differential operators
     nLinMech3dInt_PiolaStress piolaStressBiform(ptelem, matData_);
 
     if (!elemDisp_.size_row() || !elemDisp_.size_col()) 
       Error("Undefined displacements! ",__FILE__,__LINE__);
 
-    // set vector to desired size and set all elements to zero    
-    partElemVec.resize(nrNodes * nrDofs, 0);
-    elemVec.resize(nrNodes*nrDofs, 0);
-    
+    partElemVec.resize(nrNodes * nrDofs);
+
+
+   elemVec.resize(nrNodes*nrDofs);
+   elemVec *= 0;    // set elems to 0
+   
 
 
     for (Integer actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
@@ -234,24 +237,8 @@ namespace CoupledField
 	
 	elemVec +=  partElemVec;
 
-#ifdef DEBUG 
-//  	(*debug) << "------------------------------------------IP " << actIntPt << std::endl;
-//  	(*debug) << "LINFORM: piolaStressVec: "<< std::endl << piolaStressVec << std::endl;
-// 	(*debug) << "LINFORM: linBMAt: "<< std::endl << linBMat << std::endl;
-//  	(*debug) << "LINFORM: nonLinBMAt: "<< std::endl << nonLinBMat << std::endl;
-//  	(*debug) << "LINFORM: transpSumB: "<< std::endl << transpSumB << std::endl;
-//  	(*debug) << "LINFORM: partElemVec: "<< std::endl << partElemVec << std::endl;
-#endif
-
       }
   
-
-#ifdef DEBUG 
-	(*debug) << "CalcElemVector:  "  << std::endl << elemVec << std::endl;
-#endif
-
-
-
 #ifdef TRACE
     (*trace) << "leaving nLinMech_linFormInt::CalcElementVector" << std::endl;
 #endif

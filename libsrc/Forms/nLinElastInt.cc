@@ -22,7 +22,6 @@ calcPiolaStressVec(std::vector<Double>& piolaStressVec, Integer ip, Matrix<Doubl
   // convert displacement of all elem nodes into one vector: 
   // (uNode1X, uNode1Y, uNode2X, uNode2Y, ...)
   std::vector<Double> displVec;
-  //  elemDisp_.ConvertToVec_RowsFirst(displVec);
   elemDisp_.ConvertToVec_AppendCols(displVec);
 
 
@@ -43,6 +42,7 @@ calcPiolaStressVec(std::vector<Double>& piolaStressVec, Integer ip, Matrix<Doubl
   std::vector<Double> nonLinStrain;
   
   nonLinStrain = part1 + part2;
+  //  nonLinStrain = part1;
   piolaStressVec = dMat * nonLinStrain;
 }
 
