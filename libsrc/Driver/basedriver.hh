@@ -8,11 +8,12 @@ namespace CoupledField
 
 /// there is a base class for driving classes where we implemented time-stepping
 
+template<class Dim>
 class BaseDriver
 {
 public:
   //!
-  BaseDriver(Domain<Point2D> * adomain);
+  BaseDriver(Domain<Dim> * adomain);
 
    //!
   virtual ~BaseDriver();
@@ -21,20 +22,26 @@ public:
   virtual void SolveProblem()=0;
 
   //! here adapt. time-stepping is implemented
-  virtual void SolveProblemAdapt()=0; 
+  virtual void SolveProblemAdapt() 
+  { Error("Not implemented"); }
 
   //!
   void SetupMatricesPDE(Integer pdenumber);
 
 protected:
   //!
-  Domain<Point2D> * ptdomain_;
+  Domain<Dim> * ptdomain_;
 
 private:
   //! options from input-file; if true, then we output first-der,second in output-file
 //  Boolean SaveDer1_, SaveDer2_;
   
 };
+
+#ifdef __GNUC__
+template class BaseDriver<Point2D>;
+template class BaseDriver<Point3D>;
+#endif
 
 }
 

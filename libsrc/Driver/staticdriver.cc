@@ -7,8 +7,9 @@
 namespace CoupledField
 {
 
-StaticDriver :: StaticDriver(Domain<Point2D> * adomain)
-:BaseDriver(adomain)
+template<class Dim>
+StaticDriver<Dim> :: StaticDriver(Domain<Dim> * adomain)
+:BaseDriver<Dim>(adomain)
 {
 #ifdef TRACE
   (*trace) << "entering StaticDriver::StaticDriver" << std::endl;
@@ -16,7 +17,8 @@ StaticDriver :: StaticDriver(Domain<Point2D> * adomain)
 
 }
 
-StaticDriver :: ~StaticDriver()
+template<class Dim>
+StaticDriver<Dim> :: ~StaticDriver()
 {
 #ifdef TRACE
   (*trace) << "entering StaticDriver::~StaticDriver" << std::endl;
@@ -24,18 +26,18 @@ StaticDriver :: ~StaticDriver()
 
 }
 
-
-void StaticDriver :: SetupMatricesPDE(Integer pdenumber, Integer type)
+template<class Dim>
+void StaticDriver<Dim> :: SetupMatricesPDE(const Integer pdenumber, const Integer type)
 {
 #ifdef TRACE
   (*trace) << "entering StaticDriver::SetUpMatricesPDE" << std::endl;
 #endif
- 
-  ptdomain_->GetPDE(pdenumber)->SetupMatrices(type);
 
+  ptdomain_->GetPDE(pdenumber)->SetupMatrices(type);
 }
 
-void StaticDriver :: SolveProblem()
+template<class Dim>
+void StaticDriver<Dim> :: SolveProblem()
 {
 #ifdef TRACE
   (*trace) << "entering StaticDriver::SolveProblem" << std::endl;
@@ -48,7 +50,6 @@ void StaticDriver :: SolveProblem()
   ptdomain_->GetPDE(pdenumber)->SolveStepStatic(ptdomain_->GetBCs(), level);
 
   ptdomain_->GetPDE(pdenumber)->WriteResultsInFile();
-
 }
 
 }

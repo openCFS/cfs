@@ -25,6 +25,8 @@ public:
   //! Get density and compressity
   void ReadDensityAndCompressity(Double & density, Double & compress, const Integer, const std::string keyword);
 
+  void ReadDielectricTerms(Double & dielectr,const Integer matnum);
+
 private:
 
   //!

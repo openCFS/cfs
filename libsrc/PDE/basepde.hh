@@ -25,6 +25,8 @@ public:
   //! Constructor( read integration parameters, define class Material)
   BasePDE(AbstractAlgebraicSys * aptalgsys, Material * aMatFile, FileType * aInFile, WriteResults<Point2D> * aOutFile, TimeFunc * aptTimeFunc); 
 
+  BasePDE(AbstractAlgebraicSys * aptalgsys, Material * aMatFile, FileType * aInFile, WriteResults<Point3D> * aOutFile, TimeFunc * aptTimeFunc);
+
   //! Deconstructor
   virtual ~BasePDE(){;}
 
@@ -51,7 +53,8 @@ public:
   virtual void SolveStepStatic(BCs * ptBCs, const Integer level)=0;
 
   //!
-  virtual void SolveStepTrans(BCs * ptBCs, const Integer kstep, const Double asteptime, const Integer level, const Boolean updatesysmat)=0;
+  virtual void SolveStepTrans(BCs * ptBCs, const Integer kstep, const Double asteptime, const Integer level, const Boolean updatesysmat)
+   { Error("Not implemented",__FILE__,__LINE__);}
 
   //!
   virtual void WriteResultsInFile()=0;  
@@ -60,7 +63,8 @@ public:
 //  void CalcIntegrationParam(const Double dt);
 
   //! Calculation parameters in Newmark method
-  virtual void CalcParameters(const Double adt)=0;  
+  virtual void CalcParameters(const Double adt)  
+  { Error("Not implemented");}
 
   //! Create pointer to according class of time error estimation
   virtual TimeErrorEstimator * CreatePtTimeError(){ Error("Function CreatePtTimeError is not overloaded in this class");}  
@@ -69,7 +73,8 @@ public:
   virtual const Vector<Double> & getS() const =0;
 
   //!
-  virtual const Vector<Double> & getS1() const =0;
+  virtual const Vector<Double> & getS1() const 
+  { Error("Not implemented");}
 
   //!
   virtual const Vector<Double> & getS2() const { Error("Function getS2 is not overloaded in this class");}
@@ -101,6 +106,7 @@ protected:
 
   //!
   WriteResults<Point2D> * OutFile_;
+  WriteResults<Point3D> * OutFile3d_;
 
   //!
   TimeFunc * ptTimeFunc_;

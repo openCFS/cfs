@@ -57,4 +57,40 @@ void Material::ReadDensityAndCompressity(Double & density, Double & compress, co
 
 }
 
+void Material::ReadDielectricTerms(Double & dielectr,const Integer matnum)
+{
+#ifdef TRACE
+  if (trace) (*trace) << "Entering  Material::ReadDielectricTerms" << std::endl;
+#endif
+
+  infile.seekg(0, std::ios::beg);
+  std::string buf;
+  std::string::size_type pos=std::string::npos;
+
+ // transfer matnum in string
+  Char s[20];
+  sprintf(s,"%i",matnum);
+
+   while ( pos == std::string::npos & !infile.eof() )
+  { std::getline(infile, buf, '\n');
+    pos=buf.find("piezo");
+    pos=buf.find(s);
+  }
+
+  pos=std::string::npos;
+
+  while ( pos == std::string::npos & !infile.eof() )
+  { std::getline(infile, buf, '\n');
+    pos=buf.find("dielectric");
+  }
+
+  std::getline(infile, buf, '\n');
+  std::getline(infile, buf, '\n');
+
+  if (infile.eof()) Error("Can't find data in material dat-file. Check your dat-file",__FILE__,__LINE__);
+
+  Double dummy;
+  infile >> dummy >> dummy >> dielectr;
+}
+
 } // end of namespace

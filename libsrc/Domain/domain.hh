@@ -99,8 +99,8 @@ private:
 };
 
 #ifdef __GNUC__
-  //template class Domain<Point3D>;
-template class Domain<Point2D>;
+template class Domain<Point3D>;
+//template class Domain<Point2D>;
 #endif
 
 }
