@@ -16,12 +16,14 @@ namespace CoupledField
   /*! Class BasePDE is base class, from which different type of PDEs are derived. 
    */
 
+class TimeErrorEstimator;
+
 class BasePDE
 {
 public:
 
   //! Constructor( read integration parameters, define class Material)
-  BasePDE(Material * aMatFile, FileType * aInFile, WriteResults<Point2D> * aOutFile, TimeFunc * aptTimeFunc); 
+  BasePDE(AbstractAlgebraicSys * aptalgsys, Material * aMatFile, FileType * aInFile, WriteResults<Point2D> * aOutFile, TimeFunc * aptTimeFunc); 
 
   //! Deconstructor
   virtual ~BasePDE(){;}
@@ -33,7 +35,7 @@ public:
   virtual void SetAlgSys_id(Integer AS_sysid)=0;
 
   //!
-  virtual void SetupMatrices(AbstractAlgebraicSys * algsys, Integer type)=0;
+  virtual void SetupMatrices(Integer type)=0;
 
   //!
   virtual void SpecifyMatrices(Integer &matrixtype, Integer *matrixsystype, Integer &graphtype, 
@@ -43,13 +45,13 @@ public:
   virtual void SpecifySolver(Integer &asolvertype, Integer &aprecondtype, Double &aeps, Double &adampiter, Integer &amaxnumit)=0;
 
   //!
-  virtual void SetBCs(AbstractAlgebraicSys *ptalgsys, BCs * ptBCs, const Integer level, const Integer update, const Double atimestep)=0;
+  virtual void SetBCs(BCs * ptBCs, const Integer level, const Integer update, const Double atimestep)=0;
 
   //!
-  virtual void SolveStepStatic(AbstractAlgebraicSys *ptalgsys, BCs * ptBCs, Integer level)=0;
+  virtual void SolveStepStatic(BCs * ptBCs, Integer level)=0;
 
   //!
-  virtual void SolveStepTrans(AbstractAlgebraicSys *ptalgsys, BCs * ptBCs, const Integer kstep, const Double asteptime, const Integer level, const Boolean updatesysmat)=0;
+  virtual void SolveStepTrans(BCs * ptBCs, const Integer kstep, const Double asteptime, const Integer level, const Boolean updatesysmat)=0;
 
   //!
   virtual void WriteResultsInFile()=0;  
@@ -60,6 +62,9 @@ public:
   //! Calculation parameters in Newmark method
   virtual void CalcParameters(const Double adt)=0;  
 
+  //! Create pointer to according class of time error estimation
+  virtual TimeErrorEstimator * CreatePtTimeError()=0;  
+
   //!
   virtual Vector<Double> & getS()=0;
 
@@ -68,11 +73,21 @@ public:
 
   //!
   virtual Vector<Double> & getS2()=0;
- 
-protected:
+
+ //!
+  virtual Vector<Double> & getS2old()=0;
 
   //!
-//  Integer numnode;
+  virtual Double getBeta() const=0;
+  virtual Double getGamma() const=0;
+
+  //!
+  virtual Integer getSize()=0;  
+
+  //!
+  virtual AbstractAlgebraicSys * getAlgSys(){ return ptalgsys_;}
+ 
+protected:
 
   //!
   Double StepTime_;
@@ -91,6 +106,12 @@ protected:
 
  //!
   Double matrix_factor_[4];
+
+ //!
+ TimeErrorEstimator * ptTimeError_;
+
+ //!
+ AbstractAlgebraicSys * ptalgsys_;
 
 };
 

@@ -4,6 +4,7 @@
 #include <iostream.h>
 #include <fstream.h>
 
+#include "environment.hh"
 #include <general.hh>
 #include "multigrid.hh"
 
@@ -239,10 +240,10 @@ void RScalarMatrix :: Print() const
 {
   Integer i,j,rs;
 
-  cout << "start printing the matrix ###########################################################" << endl;
-  cout << size << endl;
-  cout << nne << endl;
-  cout << 1 << endl;
+  (*cla) << "start printing the matrix ###########################################################" << endl;
+  (*cla) << size << endl;
+  (*cla) << nne << endl;
+  (*cla) << 1 << endl;
 
   for (i=0; i<size; i++)
     {
@@ -250,11 +251,11 @@ void RScalarMatrix :: Print() const
 
       for (j=0; j<rs; j++)
 	{
-	  cout << i+1 << " " << pos[start[i]+j] << " " << val[start[i]+j] << endl;
+	  (*cla) << i+1 << " " << pos[start[i]+j] << " " << val[start[i]+j] << endl;
 	} 
     }
   
-  cout << "end printing the matrix #############################################################" << endl;
+  (*cla) << "end printing the matrix #############################################################" << endl;
 }
 
 void RScalarMatrix :: BuildInDirichlet()

@@ -5,6 +5,7 @@
 #include <iostream.h>
 #include <fstream.h>
 
+#include "environment.hh"
 #include <general.hh>
 #include "multigrid.hh"
 
@@ -87,7 +88,7 @@ void RRSolver :: Calc(BaseMatrix & sysmat, BasePrecond & premat,
 //       loop = FALSE;
 //     }
 
-//   cout << 1 << " " << rel[0] << endl;
+//   (*cla) << 1 << " " << rel[0] << endl;
 //   (*conv) << rel[0] << endl;
 
 //   while (loop && (iter <= maxiter))
@@ -105,7 +106,7 @@ void RRSolver :: Calc(BaseMatrix & sysmat, BasePrecond & premat,
 
 //       if (wra[0] < 0)
 // 	{
-// 	  cout << "... EXIT in PCG-SOLVER" << endl;
+// 	  (*cla) << "... EXIT in PCG-SOLVER" << endl;
 // 	  exit(1);
 // 	}
 
@@ -116,11 +117,11 @@ void RRSolver :: Calc(BaseMatrix & sysmat, BasePrecond & premat,
 
 //       rel[0] = sqrt(wra[0]/scal[0]);
 	      
-//       cout << iter << " " << rel[0] << endl;
+//       (*cla) << iter << " " << rel[0] << endl;
 //       (*conv) << rel[0] << endl;
 //     }
 
-  cout << "... number of iterations = " << iter << endl;
+  (*cla) << "... number of iterations = " << iter << endl;
 }
 
 void RRSolver :: CalcRate(BaseMatrix & sysmat, BasePrecond & premat)
@@ -205,7 +206,7 @@ void CRSolver :: Calc(BaseMatrix & sysmat, BasePrecond & premat,
 //       loop = FALSE;
 //     }
 
-//   cout << 1 << " " << rel[0] << endl;
+//   (*cla) << 1 << " " << rel[0] << endl;
 //   (*conv) << rel[0] << endl;
 
 //   while (loop && (iter <= maxiter))
@@ -223,7 +224,7 @@ void CRSolver :: Calc(BaseMatrix & sysmat, BasePrecond & premat,
 
 //       if (wra[0] < 0)
 // 	{
-// 	  cout << "... EXIT in PCG-SOLVER" << endl;
+// 	  (*cla) << "... EXIT in PCG-SOLVER" << endl;
 // 	  exit(1);
 // 	}
 
@@ -234,11 +235,11 @@ void CRSolver :: Calc(BaseMatrix & sysmat, BasePrecond & premat,
 
 //       rel[0] = sqrt(wra[0]/scal[0]);
 	      
-//       cout << iter << " " << rel[0] << endl;
+//       (*cla) << iter << " " << rel[0] << endl;
 //       (*conv) << rel[0] << endl;
 //     }
 
-  cout << "... number of iterations = " << iter << endl;
+  (*cla) << "... number of iterations = " << iter << endl;
 }
 
 void CRSolver :: CalcRate(BaseMatrix & sysmat, BasePrecond & premat)

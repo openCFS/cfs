@@ -4,6 +4,7 @@
 #include <iostream.h>
 #include <fstream.h>
 
+#include "environment.hh"
 #include <general.hh>
 #include "multigrid.hh"
 
@@ -120,10 +121,10 @@ void BaseGraph :: SetElementPos(Integer * connect, Integer elemsize)
 		  
 		  if (graph[p1].actsize >= graph[p1].size)
 		    {
-		      cout << endl;
-		      cout << "Predefined value for neighbors in matrix graph too small! " << endl;
-                      cout << " neeeded value is: " << p1 << endl; 
-		      cout << endl;
+		      (*cla) << endl;
+		      (*cla) << "Predefined value for neighbors in matrix graph too small! " << endl;
+                      (*cla) << " neeeded value is: " << p1 << endl; 
+		      (*cla) << endl;
                       exit (EXIT_FAILURE);
 		    }
 		}

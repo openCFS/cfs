@@ -4,6 +4,7 @@
 #include <iostream.h>
 #include <fstream.h>
 
+#include "environment.hh"
 #include <general.hh>
 #include "multigrid.hh"
 
@@ -419,34 +420,34 @@ void BaseTopology :: Print() const
 
       if (cnn[i] < 0)
 	{
-	  cout << i+1 << " : " << "is fine grid node" << endl;
+	  (*cla) << i+1 << " : " << "is fine grid node" << endl;
 	}      
       else if (cnn[i] > 0)
 	{
-	  cout << i+1 << " : " << "is coarse grid node " << cnn[i] << endl;
+	  (*cla) << i+1 << " : " << "is coarse grid node " << cnn[i] << endl;
 	}
 
       for (j=0; j<rs; j++)
 	{
-	  cout << nh[snh[i]+j] << " ";
+	  (*cla) << nh[snh[i]+j] << " ";
 	}
-      cout << endl;
+      (*cla) << endl;
 
       rs = ss1[i];
 
       for (j=0; j<rs; j++)
 	{
-	  cout << s1[snh[i]+j] << " ";
+	  (*cla) << s1[snh[i]+j] << " ";
 	}
-      cout << endl;
+      (*cla) << endl;
 
       rs = ss2[i];
 
       for (j=0; j<rs; j++)
 	{
-	  cout << s2[snh[i]+j] << " ";
+	  (*cla) << s2[snh[i]+j] << " ";
 	}
-      cout << endl;
+      (*cla) << endl;
     }
 }
 
@@ -596,19 +597,19 @@ void LocalSet :: Print() const
 
   Integer i;
 
-  cout << "printing a local set" << endl;
+  (*cla) << "printing a local set" << endl;
 
   for (i=0; i<acts; i++)
     {
-      cout << p[i] << " ";
+      (*cla) << p[i] << " ";
     }
-  cout << endl;
+  (*cla) << endl;
 
   for (i=0; i<acts*dof*dof; i++)
     {
-      cout << v[i] << " ";
+      (*cla) << v[i] << " ";
     }
-  cout << endl;
+  (*cla) << endl;
 }
 
 }

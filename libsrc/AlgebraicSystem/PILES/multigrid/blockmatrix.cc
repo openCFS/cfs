@@ -5,6 +5,7 @@
 #include <fstream.h>
 #include <math.h>
 
+#include "environment.hh"
 #include <general.hh>
 #include "multigrid.hh"
 
@@ -111,7 +112,7 @@ RBlockMatrix :: ~RBlockMatrix()
       delete [] perm_r;
       delete [] f;
 
-//       cout << "SuperLU" << endl;
+//       (*cla) << "SuperLU" << endl;
 
 //       Destroy_SuperNode_Matrix(&L);
 //       Destroy_CompCol_Matrix(&U);
@@ -259,10 +260,10 @@ void RBlockMatrix :: Print() const
 
   Integer i,j,k,p,q,rs;
 
-  cout << "start printing the matrix ###########################################################" << endl;
-  cout << size << endl;
-  cout << nne << endl;
-  cout << dof << endl;
+  (*cla) << "start printing the matrix ###########################################################" << endl;
+  (*cla) << size << endl;
+  (*cla) << nne << endl;
+  (*cla) << dof << endl;
 
   for (i=0; i<size; i++)
     {
@@ -272,18 +273,18 @@ void RBlockMatrix :: Print() const
 
       for (j=0; j<rs; j++)
 	{
-	  cout << i+1 << " " << pos[p+j] << " ";
+	  (*cla) << i+1 << " " << pos[p+j] << " ";
 
 	  for (k=0; k<dof*dof; k++)
 	    {
-	      cout << val[q+j*dof*dof+k] << " ";
+	      (*cla) << val[q+j*dof*dof+k] << " ";
 	    }
 	  
-	  cout << endl;
+	  (*cla) << endl;
 	} 
     }
   
-  cout << "end printing the matrix #############################################################" << endl;
+  (*cla) << "end printing the matrix #############################################################" << endl;
 }
 
 void RBlockMatrix :: SetAuxMatrix(BaseMatrix & amat)

@@ -702,6 +702,8 @@ libsrc/Elements/triangle1.hh svneol=native#text/plain
 libsrc/Estimator/Makefile -text
 libsrc/Estimator/acoustictimeerror.cc svneol=native#text/plain
 libsrc/Estimator/acoustictimeerror.hh svneol=native#text/plain
+libsrc/Estimator/actimeerror.cc svneol=native#text/plain
+libsrc/Estimator/actimeerror.hh svneol=native#text/plain
 libsrc/Estimator/timeerror.cc svneol=native#text/plain
 libsrc/Estimator/timeerror.hh svneol=native#text/plain
 libsrc/Forms/Makefile -text

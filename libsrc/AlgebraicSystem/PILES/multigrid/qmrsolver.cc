@@ -5,6 +5,7 @@
 #include <iostream.h>
 #include <fstream.h>
 
+#include "environment.hh"
 #include <general.hh>
 #include "multigrid.hh"
 
@@ -276,11 +277,11 @@ void QMRSolver :: Calc(BaseMatrix & sysmat, BasePrecond & premat,
 
 //       relnorm[0] = relnorm[0]/r0[0];
       
-//       cout << iter << " " << relnorm[0] << endl;
+//       (*cla) << iter << " " << relnorm[0] << endl;
 //       (*conv) << iter << " " << relnorm[0] << endl; 
 //     }
 
-  cout << "number of iterations " << iter << endl;
+  (*cla) << "number of iterations " << iter << endl;
 }
 
 void QMRSolver :: CalcRate(BaseMatrix & sysmat, BasePrecond & premat)

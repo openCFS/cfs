@@ -7,7 +7,7 @@
 namespace CoupledField
 {
 
-BasePDE::BasePDE(Material * aMatFile, FileType * aInFile, WriteResults<Point2D> * aOutFile, TimeFunc *aptTimeFunc)
+BasePDE::BasePDE(AbstractAlgebraicSys * aptalgsys, Material * aMatFile, FileType * aInFile, WriteResults<Point2D> * aOutFile, TimeFunc *aptTimeFunc)
 {
 #ifdef TRACE
   (*trace) << "entering BasePDE::BasePDE" << std::endl;
@@ -17,6 +17,8 @@ BasePDE::BasePDE(Material * aMatFile, FileType * aInFile, WriteResults<Point2D> 
   InFile_     = aInFile;
   OutFile_    = aOutFile;
   ptTimeFunc_ = aptTimeFunc;
+  ptalgsys_   = aptalgsys;
+
 }
 
 } // end of namespace

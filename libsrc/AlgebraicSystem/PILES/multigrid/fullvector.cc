@@ -5,6 +5,7 @@
 #include <iostream.h>
 #include <fstream.h>
 
+#include "environment.hh"
 #include <general.hh>
 #include "multigrid.hh"
 
@@ -223,9 +224,9 @@ void RealVector :: Print() const
 
   for (i=0; i<length; i++)
     {
-      cout << val[i] << " ";
+      (*cla) << val[i] << " ";
     }
-  cout << endl;
+  (*cla) << endl;
 }
 
 void RealVector :: Assemble(Double * v, Integer * p, Integer elemsize)

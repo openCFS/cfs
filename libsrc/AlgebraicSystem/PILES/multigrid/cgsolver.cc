@@ -5,6 +5,7 @@
 #include <iostream.h>
 #include <fstream.h>
 
+#include "environment.hh"
 #include <general.hh>
 #include "multigrid.hh"
 
@@ -68,7 +69,7 @@ void CGSolver :: Calc(BaseMatrix & sysmat, BasePrecond & premat,
   (*trace) << "entering CGSolver::Calc" << endl;
 #endif
 
-  cout << "### preconditioned CG Solver" << endl;
+  (*cla) << "### preconditioned CG Solver" << endl;
 
   DenseVector & alpha = (DenseVector &) *aalpha;
   DenseVector & beta  = (DenseVector &) *abeta;
@@ -115,7 +116,7 @@ void CGSolver :: Calc(BaseMatrix & sysmat, BasePrecond & premat,
       loop = FALSE;
     }
 
-  cout << 1 << " " << rel.Get(1) << " " << wra.Get(1) << endl;
+  (*cla) << 1 << " " << rel.Get(1) << " " << wra.Get(1) << endl;
   //(*conv) << rel << endl;
 
   while (loop && (iter <= maxiter))
@@ -146,18 +147,18 @@ void CGSolver :: Calc(BaseMatrix & sysmat, BasePrecond & premat,
 
       if (wra <= -1e-32)
 	{
-	  cout << "... EXIT in PCG-SOLVER " << wra.Get(1) << endl;
+	  (*cla) << "... EXIT in PCG-SOLVER " << wra.Get(1) << endl;
 	  exit(1);
 	}
 
       rel.Div(wra, scal);
       rel.Sqrt();
 	      
-      cout << iter << " " << rel.Get(1) << " " << wra.Get(1) << endl;
+      (*cla) << iter << " " << rel.Get(1) << " " << wra.Get(1) << endl;
       //(*conv) << rel << endl;
     }
 
-  cout << "... number of iterations = " << iter << endl;
+  (*cla) << "... number of iterations = " << iter << endl;
 }
 
 void CGSolver :: CalcRate(BaseMatrix & sysmat, BasePrecond & premat)
@@ -217,7 +218,7 @@ void LanczosSolver :: Calc(BaseMatrix & sysmat, BasePrecond & premat,
   (*trace) << "entering LanczosSolver::Calc" << endl;
 #endif
 
-  cout << "### preconditioned Lanczos Solver" << endl;
+  (*cla) << "### preconditioned Lanczos Solver" << endl;
 
   DenseVector & gamma = (DenseVector &) *agamma;
   DenseVector & err   = (DenseVector &) *aerr;
@@ -243,8 +244,8 @@ void LanczosSolver :: Calc(BaseMatrix & sysmat, BasePrecond & premat,
 
   if (gamma.Get(1) < -1e-20)
     {
-      cout << "LanczosSolve:Calc" << endl;
-      cout << "preconditioner indefinite!" << endl;
+      (*cla) << "LanczosSolve:Calc" << endl;
+      (*cla) << "preconditioner indefinite!" << endl;
       exit(1);
     }
 
@@ -264,7 +265,7 @@ void LanczosSolver :: Calc(BaseMatrix & sysmat, BasePrecond & premat,
     {
       iter++;
 
-      cout << ".";
+      (*cla) << ".";
 
       sol.Inner(*d, scal);
       
@@ -281,9 +282,9 @@ void LanczosSolver :: Calc(BaseMatrix & sysmat, BasePrecond & premat,
 
       if (gamma <= -1e-20)
 	{
-	  cout << "LanczosSolve:Calc" << endl;
-	  cout << "preconditioner indefinite!" << endl;
-	  cout << "gamma " << gamma.Get(1) << endl;
+	  (*cla) << "LanczosSolve:Calc" << endl;
+	  (*cla) << "preconditioner indefinite!" << endl;
+	  (*cla) << "gamma " << gamma.Get(1) << endl;
 	  exit(1);
 	}
 
@@ -307,7 +308,7 @@ void LanczosSolver :: Calc(BaseMatrix & sysmat, BasePrecond & premat,
       err   *= gamma.Get(1);
     }
 
-  cout << endl;
+  (*cla) << endl;
 
   ////////////////////////////////////////////////////////////////////
 
@@ -317,7 +318,7 @@ void LanczosSolver :: Calc(BaseMatrix & sysmat, BasePrecond & premat,
     }
   else
     {
-      cout << "maxnumer iter too large!!!!" << endl;
+      (*cla) << "maxnumer iter too large!!!!" << endl;
     }
 }
 
@@ -389,10 +390,10 @@ void LanczosSolver :: CalcEigenValues()
 	  lmax = 0.5*(xl+xu);
 	}
       
-      cout << "+++ eigenvalue number " << j << " " << 0.5*(xl+xu) << endl;
+      (*cla) << "+++ eigenvalue number " << j << " " << 0.5*(xl+xu) << endl;
     }
-  cout << endl;
-  cout << "condition number " << lmax/lmin << endl;
+  (*cla) << endl;
+  (*cla) << "condition number " << lmax/lmin << endl;
 
 }
 

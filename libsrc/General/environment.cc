@@ -9,6 +9,7 @@ namespace CoupledField
 std::ostream * trace = NULL ;
 std::ostream * debug  = NULL;
 std::ostream * infofile=NULL;
+std::ostream * cla=NULL;
 
 ConfFile * conf=NULL;
 

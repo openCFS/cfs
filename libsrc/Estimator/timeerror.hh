@@ -11,6 +11,7 @@ namespace CoupledField
 class TimeErrorEstimator
 {
 public:
+
   //! constructor with pointer to PDE
   TimeErrorEstimator(BasePDE* aptpde);
 
@@ -18,10 +19,10 @@ public:
   virtual ~TimeErrorEstimator(){;}
 
   //!  return true, if error is more than tolerance
-  virtual Boolean TestError() { return FALSE; }
+  virtual Boolean TestError(const Double dt)=0;
 
   //! 
-  virtual void ChangeStep(Double &){;}
+  virtual void ChangeStep(Double &)=0;
 
 protected:
   

@@ -5,6 +5,7 @@
 #include <fstream.h>
 #include <math.h>
 
+#include "environment.hh"
 #include <general.hh>
 #include "multigrid.hh"
 
@@ -59,8 +60,8 @@ void StandardCoarse :: SetNeighbour(Double alpha, Double epsmat)
       
       if (rs == 0)
 	{
-	  cout << "... matrix is singular exit in CoupledField::StandardCoarse::SetNeighbour" << endl;
-	  cout << "... row number " << i << endl;
+	  (*cla) << "... matrix is singular exit in CoupledField::StandardCoarse::SetNeighbour" << endl;
+	  (*cla) << "... row number " << i << endl;
 	  exit(1);
 	}
       

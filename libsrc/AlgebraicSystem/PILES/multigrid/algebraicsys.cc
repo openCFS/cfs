@@ -4,6 +4,7 @@
 #include <iostream.h>
 #include <fstream.h>
 
+#include "environment.hh"
 #include <general.hh>
 #include "multigrid.hh"
 
@@ -141,7 +142,7 @@ void AlgebraicSystem :: CreateMatrix(Integer matrix_row, Integer matrix_col, Int
       
     default:
       /// no such structure available
-      cout << "no such system type available" << endl;
+      (*cla) << "no such system type available" << endl;
     }
 }
 
@@ -167,7 +168,7 @@ void AlgebraicSystem :: CreateSolver(Integer sys_id)
       
     default:
       scheme[sys_id-1] = NULL;
-      cout << "no iteration scheme available" << endl;
+      (*cla) << "no iteration scheme available" << endl;
     }  
 }
 
@@ -192,7 +193,7 @@ void AlgebraicSystem :: CreatePrecond(Integer matrix_class, Integer sys_id)
 	  
 	default:
 	  premat[sys_id-1] = NULL;
-	  cout << "no preconditioner available" << endl;
+	  (*cla) << "no preconditioner available" << endl;
 	}
       break;
 
@@ -209,7 +210,7 @@ void AlgebraicSystem :: CreatePrecond(Integer matrix_class, Integer sys_id)
 	  
 	default:
 	  premat[sys_id-1] = NULL;
-	  cout << "no preconditioner available" << endl;
+	  (*cla) << "no preconditioner available" << endl;
 	}
       break; 
 
@@ -226,7 +227,7 @@ void AlgebraicSystem :: CreatePrecond(Integer matrix_class, Integer sys_id)
 	  
 	default:
 	  premat[sys_id-1] = NULL;
-	  cout << "no preconditioner available" << endl;
+	  (*cla) << "no preconditioner available" << endl;
 	}
       break;
 
@@ -243,7 +244,7 @@ void AlgebraicSystem :: CreatePrecond(Integer matrix_class, Integer sys_id)
 	  
 	default:
 	  premat[sys_id-1] = NULL;
-	  cout << "no preconditioner available" << endl;
+	  (*cla) << "no preconditioner available" << endl;
 	}
       break;
 
@@ -260,7 +261,7 @@ void AlgebraicSystem :: CreatePrecond(Integer matrix_class, Integer sys_id)
 	  
 	default:
 	  premat[sys_id-1] = NULL;
-	  cout << "no preconditioner available" << endl;
+	  (*cla) << "no preconditioner available" << endl;
 	}
       break;
 
@@ -277,7 +278,7 @@ void AlgebraicSystem :: CreatePrecond(Integer matrix_class, Integer sys_id)
 	  
 	default:
 	  premat[sys_id-1] = NULL;
-	  cout << "no preconditioner available" << endl;
+	  (*cla) << "no preconditioner available" << endl;
 	}
       break;
 
@@ -294,12 +295,12 @@ void AlgebraicSystem :: CreatePrecond(Integer matrix_class, Integer sys_id)
 	  
 	default:
 	  premat[sys_id-1] = NULL;
-	  cout << "no preconditioner available" << endl;
+	  (*cla) << "no preconditioner available" << endl;
 	}
       break;
 
     default:
-      cout << "no matrix class available" << endl;
+      (*cla) << "no matrix class available" << endl;
     }
 }
 
@@ -329,9 +330,9 @@ void AlgebraicSystem :: AddGMGLevel()
   (*trace) << "entering AlgebraicSystem::AddGMGLevel" << endl;
 #endif
 
-  cout << "adding a new level" << endl;
-  cout << "update the hierarchy - premat" << endl;
-  cout << "update the solver" << endl;
+  (*cla) << "adding a new level" << endl;
+  (*cla) << "update the hierarchy - premat" << endl;
+  (*cla) << "update the solver" << endl;
 
 }
 
@@ -612,7 +613,7 @@ void AlgebraicSystem :: RFullCreate(Integer ind, Integer size, Integer nne,
       
 //     default:
 //       premat[i] = NULL;
-//       cout << "no preconditioner available" << endl;
+//       (*cla) << "no preconditioner available" << endl;
 //     }
 
 //   // set the graph for the system matrix
