@@ -35,7 +35,7 @@ USE_NEWBASEPDE=yes
 ##############  XML Parameter File Handling? With Xerces or without?
 #
 XMLPARAMS=no
-XERCES=yes
+XERCES=no
 
 ##############  Path to includes and libraries for external packages
 #

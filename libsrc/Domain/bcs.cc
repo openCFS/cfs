@@ -56,8 +56,8 @@ namespace CoupledField
 	bcsEdges_[i] = NULL;
       }
 
-    // Get list of interfaces
-    params->GetList( "interface_name", levels_, "domain" );
+    // Get list of special node sets
+    params->GetList( "name", levels_, "domain", "nodes" );
     if( levels_.size() > 0 )
       {
 	bcs_[0] = new std::list<Integer>[levels_.size()];

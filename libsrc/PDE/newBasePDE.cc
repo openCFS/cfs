@@ -544,26 +544,46 @@ void BasePDE::ReadBCs( const std::string pde )
 #ifndef XMLPARAMS
   conf->ifgetliststr( "homogeneous_dirichlet"  , bcs_hd_, pde ); 
   conf->ifgetliststr( "inhomogeneous_dirichlet", bcs_id_, pde );
-#else
-  params->GetList( "interface", bcs_hd_, pde, "dirichlet_hom"   );
-  params->GetList( "interface", bcs_id_, pde, "dirichlet_inhom" );
-#endif
 
   val_id_.resize(bcs_id_.size());
   fncnames_id_.resize(bcs_id_.size());
 
   for( Integer i = 0; i < bcs_id_.size(); i++ )
     {
-#ifndef XMLPARAMS
-      conf->get2( bcs_id_[i], val_id_[i], fncnames_id_[i], pde, "bc_conditions",
-		  "inhomogeneous_dirichlet" );
-#else
-      Info->Error( "Case of XMLPARAMS not yet implemented!", __FILE__,
-		   __LINE__ );
-#endif
+      conf->get2( bcs_id_[i], val_id_[i], fncnames_id_[i], pde,
+		  "bc_conditions", "inhomogeneous_dirichlet" );
     }
-}
 
+#else
+
+  // Get names of node sets for homogeneous Dirichlet boundary conditions
+  params->GetList( "name", bcs_hd_, pde, "dirichletHom"   );
+
+  // Get names of node sets, values and filenames for inhomogenous
+  // Dirichlet boundary conditions
+  params->GetList( "name"    , bcs_id_     , pde, "dirichletInhom" );
+  params->GetList( "value"   , val_id_     , pde, "dirichletInhom" );
+  params->GetList( "dynamics", fncnames_id_, pde, "dirichletInhom" );
+
+  // Check consistency
+  if ( bcs_id_.size() != val_id_.size() ||
+       fncnames_id_.size() > bcs_id_.size() )
+    {
+      std::string errmsg = "dirichletInhom: ";
+      errmsg += "#names of node sets = " + Info->GenStr(bcs_id_.size());
+      errmsg += ", #values = " + Info->GenStr(val_id_.size());
+      errmsg += ", #dynamics = " + fncnames_id_.size() + '\n';
+      Info->Error( errmsg, __FILE__, __LINE__ );
+    }
+
+  // We need not have as many function/filenames as boundary conditions!
+  for ( Integer k = fncnames_id_.size(); k < bcs_id_.size(); k++ )
+    {
+      fncnames_id_.push_back( "none" );
+    }
+#endif
+
+}
 
 
 void BasePDE::ReadMaterialData()
@@ -592,7 +612,7 @@ void BasePDE::ReadMaterialData()
 
   // Query name of file with material data
   std::string matFileName;
-  params->Get( "file", matFileName, "material_data" );
+  params->Get( "file", matFileName, "materialData" );
 
   // Generate new material reader
   LoadMaterialData loadMaterial( matFileName.c_str() );
@@ -603,8 +623,8 @@ void BasePDE::ReadMaterialData()
   // Get list of subdomains and materials
   std::vector< std::string > subdomName;
   std::vector< std::string > subdomMaterial;
-  params->GetList( "name", subdomName, "domain", "subdom" );
-  params->GetList( "material", subdomMaterial, "domain", "subdom" );
+  params->GetList( "name", subdomName, "domain", "region" );
+  params->GetList( "material", subdomMaterial, "domain", "region" );
 
   // Load material data for subdomains on which this PDE lives
   // from data file
@@ -1210,6 +1230,8 @@ void BasePDE::TransformElemSolution(Array<Double> & MeshSol,
 {
 
   ENTER_FCN( "BasePDE::TransformElemSolution (string)" );
+
+  MeshSol.reshape(PDESol.dim(), ptgrid_->GetMaxnumElem(actlevel_));
 
   Integer elMesh=0;
   Integer elPDE=0;

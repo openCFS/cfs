@@ -347,12 +347,12 @@ namespace CoupledField {
     }
 
     // Find PDE section
-    DOMNodeList *pdesec = rootElem_->getElementsByTagName( C2X("PDE_list") );
+    DOMNodeList *pdesec = rootElem_->getElementsByTagName( C2X("pdeList") );
 
     // Check that there is only one such section
     if ( pdesec->getLength() != 1 ) {
       errmsg  = "Got " + Info->GenStr( pdesec->getLength() );
-      errmsg += " PDE_list elements in parameter file!";
+      errmsg += " pdeList elements in parameter file!";
       Info->Error( errmsg, __FILE__, __LINE__ );
     }
 

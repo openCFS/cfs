@@ -636,9 +636,9 @@ namespace CoupledField
       }
 
 #else
-    params->GetList( "interface", loadDom_, pdename_, "load" );
-    params->GetList( "dof", loadDof_, pdename_, "load" );
-    params->GetList( "value", loadVals_, pdename_, "load" );
+    params->GetList( "name"    , loadDom_      , pdename_, "load" );
+    params->GetList( "dof"     , loadDof_      , pdename_, "load" );
+    params->GetList( "value"   , loadVals_     , pdename_, "load" );
     params->GetList( "dynamics", fncname_loads_, pdename_, "load" );
 
     // Check consistency
@@ -646,7 +646,7 @@ namespace CoupledField
 	 loadDom_.size() != loadVals_.size() )
       {
 	std::string errmsg = "Loads: ";
-	errmsg += "#interfaces = " + Info->GenStr(loadDom_.size());
+	errmsg += "#name = " + Info->GenStr(loadDom_.size());
 	errmsg += ", #dof = " + Info->GenStr(loadDof_.size());
 	errmsg += ", #value = " + Info->GenStr(loadVals_.size());
 	errmsg += ", #dynamics = " + fncname_loads_.size() + '\n';
