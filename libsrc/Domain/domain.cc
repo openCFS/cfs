@@ -233,7 +233,24 @@ namespace CoupledField {
 	ptpde_[i]=new MechPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
 
       else if (pdeNames[i] == "acoustic")
-  	ptpde_[i]=new AcousticPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
+	{
+#ifndef XMLPARAMS
+	  std::string strAcouFlowNoise="no";
+	  conf->ifget("acouflownoise",strAcouFlowNoise,pdename_);
+	  if (strAcouFlowNoise == "yes")
+	    ptpde_[i]=new AcouFlowNoise(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
+	  else
+	    ptpde_[i]=new AcousticPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
+#else
+	  StdVector<std::string> acouSubType;
+	  params->GetList( "subType", acouSubType,"pdeList", "acoustic");
+	  if (acouSubType.GetSize())
+	    ptpde_[i]=new AcouFlowNoise(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
+	  else
+	    ptpde_[i]=new AcousticPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
+#endif
+	}
+      
 
       else if (pdeNames[i] == "smooth")
 	ptpde_[i]=new SmoothPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
@@ -250,8 +267,8 @@ namespace CoupledField {
       else if (pdeNames[i] == "piezo")
 	ptpde_[i]=new PiezoPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
 
-      else if (pdeNames[i] == "acouflownoise")
-      	ptpde_[i]=new AcouFlowNoise(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
+//       else if (pdeNames[i] == "acouflownoise")
+//       	ptpde_[i]=new AcouFlowNoise(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
 
       //      else if (pdeNames[i] == "smoothlaplace") 
       //	ptpde_[i]=new SmoothLaPlacePDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_); 

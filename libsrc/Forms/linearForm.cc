@@ -700,8 +700,9 @@ void PressureLinForm::CalcElemVector(Matrix<Double>& ptCoord,
 
   
 
-  ////////////////////////////////////////////////////////////////////////////
-  //Members of class LinearFormFlowNoise
+//==================================================================
+//Members of class LinearFormFlowNoise
+//==================================================================
 
 LinearFlowNoiseInt::LinearFlowNoiseInt(BaseFE * aptelem) : LinearForm(aptelem)
 {
@@ -955,7 +956,7 @@ void LinearFlowNoiseInt::GetQttiesOfElement(Matrix<Double>& elVel,
  
   // displacement of element nodes
   elVel.Resize(matrixRow, connecth.GetSize());
-  
+   
   for(Integer actNode=0; actNode<connecth.GetSize(); actNode++)
     for (int dim=0; dim < matrixRow; dim++)
       elVel[dim][actNode] = FlowData[dim+1][connecth[actNode]-1]; // dim+1 because index 0 in FlowData is used for storing pressure

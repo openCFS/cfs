@@ -27,8 +27,6 @@ public:
   //!
   void ComputeRHS(const Double atime);
 
-  //!
-  void preComputeRHS();
 
   //! Reads at every time the flowdatafile from the Fluid's Computation
   void ReadFlowData(const char * aname, const Integer timestep, Matrix<Double> &nodedata );
@@ -42,12 +40,10 @@ public:
 
 private:
 
-  StdVector<std::string> rhs_surfaces_; //!< list of surfaces, on which we have excitation
+  //  StdVector<std::string> rhs_surfaces_; //!< list of surfaces, on which we have excitation
   Integer arg_rhs_; //!< function for RHS
 
-  Boolean SetRHSFnc; //!< Indicator: is there RHS function
-  Boolean SetRHSFlowSrc; //!< Indicator: is there RHS flow source
-  
+
   //Flow Data
   Matrix<Double> flowdata_;
 
@@ -55,9 +51,9 @@ private:
 
   //!MpCCI
 #ifdef MpCCI
+  StdVector<std::string> couplSubDomName_; //!< name of subdomain to be coupled with MpCCI
   StdVector<Integer> mapSD_;
   MpCCIexch * ptMpCCIexch_;
-#endif
   Integer MpCCInodes_; //<! number of FE-nodes for MpCCI-domain
   Integer MpCCI_; //<! if TRUE: coupling via MpCCI to low simulator
   Integer meshId_;
@@ -71,6 +67,7 @@ private:
   Integer *nNodesPerElem_;
   Integer *elemTypes_;
   Integer MpCCIprocess_;
+#endif
 
 };
 
