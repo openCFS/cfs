@@ -385,39 +385,39 @@ namespace CoupledField
     //! This method is called by the CGet routine, which expects to obtain a
     //! unqiue match, if no match is found and we are looking for a string
     //! value.
-    void XMLParamHandler::NoMatchHandler( std::string &value,
-					  const std::string key,
-					  const std::string attribute,
-					  const std::string aValue,
-					  Integer applyToElem,
-					  const std::string section,
-					  const std::string subsection );
+    void NoMatchHandler( std::string &value,
+			 const std::string key,
+			 const std::string attribute,
+			 const std::string aValue,
+			 Integer applyToElem,
+			 const std::string section,
+			 const std::string subsection );
 
     //! Error handler in case we have no match at all
 
     //! This method is called by the CGet routine, which expects to obtain a
     //! unqiue match, if no match is found and we are looking for an Integer
     //! value.
-    void XMLParamHandler::NoMatchHandler( Integer &value,
-					  const std::string key,
-					  const std::string attribute,
-					  const std::string aValue,
-					  Integer applyToElem,
-					  const std::string section,
-					  const std::string subsection );
+    void NoMatchHandler( Integer &value,
+			 const std::string key,
+			 const std::string attribute,
+			 const std::string aValue,
+			 Integer applyToElem,
+			 const std::string section,
+			 const std::string subsection );
 
     //! Error handler in case we have no match at all
 
     //! This method is called by the CGet routine, which expects to obtain a
     //! unqiue match, if no match is found and we are looking for a Double
     //! value.
-    void XMLParamHandler::NoMatchHandler( Double &value,
-					  const std::string key,
-					  const std::string attribute,
-					  const std::string aValue,
-					  Integer applyToElem,
-					  const std::string section,
-					  const std::string subsection );
+    void NoMatchHandler( Double &value,
+			 const std::string key,
+			 const std::string attribute,
+			 const std::string aValue,
+			 Integer applyToElem,
+			 const std::string section,
+			 const std::string subsection );
 
     //! Error reporter for the case that we have no match at all
 
