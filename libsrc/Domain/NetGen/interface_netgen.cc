@@ -197,5 +197,11 @@ InterfaceNetGen<Dim>::~InterfaceNetGen()
   if (ptTr_) delete ptTr_;
 }
 
+template<class Dim>
+void InterfaceNetGen<Dim>::GetNodesBoundaryCondition(Vector<Integer> & nodesDirBC, const Integer level)
+{
+ if (level==0) ptFileType->ReadDirichletBC(nodesDirBC);
+}
+
 } // end of namespace
 
