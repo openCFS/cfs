@@ -1,6 +1,6 @@
 #include "tracing.hh"
 
-namespace CoupledField{
+namespace OutInfo{
 
   // Definition and Initialization of static variables of class Debugger
   // has to be outside class scope
