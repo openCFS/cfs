@@ -603,10 +603,9 @@ namespace CoupledField {
     // ============
     if ( sType == LAPACK_LU || sType == LU_SOLVER || sType == LDL_SOLVER ||
 	 pType == ILU0 ) {
-      if ( rType != SLOAN ) {
-	(*warning) << "Expert: Re-setting re-ordering strategy from '"
-		   <<  	Enum2String( rType ) << "' to 'SLOAN'";
-	Warning( __FILE__, __LINE__ );
+      if ( rType == NOREORDERING ) {
+	Info->PrintF( pdename, "Expert: Setting re-ordering strategy to "
+		      "'SLOAN'" );
 	rType = SLOAN;
       }
       else {
