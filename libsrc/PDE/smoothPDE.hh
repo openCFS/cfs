@@ -85,7 +85,7 @@ public:
    virtual void WriteResultsInFile();
 
    //! returns if PDE can compute the quantity
-  virtual bool HasOutput(std::string output);
+  virtual Boolean HasOutput(std::string output);
   
 protected:
 

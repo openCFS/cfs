@@ -23,7 +23,9 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile, WriteResults * a
 
   actlevel_ = 0;
   couplingBCsCounter_ = 0;
+  numDirichletBCs_ = 0;
   updateCouplingBCs_ = FALSE;
+  updateBCs_ = 0;
   Dim_ = ptgrid_->GetDim();
 
   //standard parameter for solver
@@ -155,8 +157,10 @@ void BasePDE::SetupMatrixGraph(Integer numeq, Integer graphtype)
 	  
 	  //Map Mesh Node numbers to PDE node numbers
 	  Mesh2PDENode(connecth,elemssd[iel]->connect,Mesh2PDENode_);
+
 	  fe_type=elemssd[iel]->ptElem->feType();
 	  algsys_->SetElementPos(connecth.get(),connecth.size(),fe_type);
+
 #ifdef DEBUG
 	  (*debug) << "Nodes to AlgSys, Element: " << iel+1 << std::endl;
 	  (*debug) << connecth << std::endl;
@@ -177,18 +181,21 @@ void BasePDE::CreateMatrices_Solver()
   Integer matrixsystype[5];    
   Integer graphtype; 
   Integer numdofpernode;
-  Integer numdirichlets;
   Integer numconstraints;
 
   //ask the PDE discrete form
   // DiscreteParamsPDE();
 
   numdofpernode  = dofspernode_; 
-  numdirichlets  = GetNumRestraints(actlevel_);
+
+  numDirichletBCs_  += GetNumRestraints(actlevel_);
   numconstraints = 0;  // currently not handled
   matrixclass    = MatrixType_;
   graphtype      = GraphType_;
-
+  
+  //std::cerr << pdename_ << "::CreateMatrices_Solver: found " << GetNumRestraints(actlevel_) << " BCs" << std::endl;
+  //std::cerr << pdename_ << "::CreateMatrices_Solver: insgesamt " << numDirichletBCs_ << " BCs" << std::endl;
+  
   if (SystemMatrix_    != 1)
     Error("One needs at least a system matrix!",__FILE__,__LINE__);
 
@@ -201,7 +208,7 @@ void BasePDE::CreateMatrices_Solver()
    //  SpecifyMatrices(matrixclass, matrixsystype, graphtype, numdofpernode,numdirichlets, numconstraints);
 
   //put to algebraic system
-  algsys_->CreateMatrix(matrixsystype, matrixclass, graphtype, numdofpernode,  numdirichlets,
+  algsys_->CreateMatrix(matrixsystype, matrixclass, graphtype, numdofpernode, numDirichletBCs_,
 			numconstraints);
 
   //create solver and preconditioner
@@ -237,49 +244,57 @@ void BasePDE::CalcInputCoupling()
   for (Integer i=0; i<ptCoupling_->GetNumInputCouplings(); i++)
     {
 
-            ptCoupling_ = &ptCoupling_[i];
+      ptCoupling_ = &ptCoupling_[i];
       ptCoupling_->GetInputValues(i, val);
+
+      //std::cerr << "Calculating Input Coupling" << std::endl;
+      //std::cerr << "Number of InputValues: " << val->size() << std::endl;
 
       switch(ptCoupling_->GetInputType(i))
 	{
-
+	  
 	case COORD:
+	  //std::cerr << "In " << pdename_ << "::CalcInputCoupling - Switch(Coord)" << std::endl;
 	  ptCoupling_->GetInputNodes(i, nodes);
 	  deltCoords_.reshape(Dim_, NumPDENodes_);
-	
+
 	  for (Integer dim=0; dim<ptCoupling_->GetInputDim(i); dim++)
 	    for (Integer j=0; j<nodes->size(); j++)
 	      {
-		// std::cerr << "processing dim = " << dim << ", j = " << j << std::endl;
+		//std::cerr << "processing dim = " << dim << ", j = " << j << std::endl;
 		deltCoords_[dim][Mesh2PDENode_[(*nodes)[j]-1]-1] = (*val)[dim][j];
 	      }
 	      
 	  break;
 
 	case RHS:
+	  //std::cerr << "In " << pdename_ << "::CalcInputCoupling - Switch(RHS)" << std::endl;
 	  ptCoupling_->GetInputNodes(i, nodes);
 
-	  	  for (Integer dim=0; dim<ptCoupling_->GetInputDim(i); dim++)
+	  for (Integer dim=0; dim<ptCoupling_->GetInputDim(i); dim++)
 	    for (Integer j=0; j<nodes->size(); j++)
 	      {
+		//	std::cerr << "Node[" << (*nodes)[j] << "][" << dim+1 << "]= " << (*val)[dim][j] << std::endl; 
 		algsys_->SetNodeRHS((*val)[dim][j], Mesh2PDENode_[(*nodes)[j]-1], dim+1);
 	      }
-	  		
+	  
 	  break;
 
 	case ID_BC:
-	  std::cerr << "in Switch(ID_BC)" << std::endl;
+	  //std::cerr << "In " << pdename_ << "::CalcInputCoupling - Switch(ID_BC)" << std::endl;
  	  ptCoupling_->GetInputNodes(i, nodes);
-	  
-
+	  //std::cerr << "found " << nodes->size() << " IDBCs input nodes" << std::endl;
 	  for (Integer dim=0; dim<ptCoupling_->GetInputDim(i); dim++)
 	    for (Integer j=0; j<nodes->size(); j++, couplingBCsCounter_++)
 	      {
 		if (updateCouplingBCs_)
-		  algsys_->UpdateDirichlet(couplingBCsCounter_+1, (*val)[dim][j], SYSTEM);
+		  {
+		    //std::cerr << "updating BC[" << dim << "][" << (*nodes)[j] << "] = " << (*val)[dim][j] << std::endl;
+		    algsys_->UpdateDirichlet(couplingBCsCounter_+1, (*val)[dim][j], SYSTEM);
+		  }
 		else
 		  {	
-		    std::cerr << "BC[" << dim << "][" << (*nodes)[j] << "] = " << (*val)[dim][j] << std::endl;
+		    //std::cerr << "BC[" << dim << "][" << (*nodes)[j] << "] = " << (*val)[dim][j] << std::endl;
 		    algsys_->SetDirichlet(couplingBCsCounter_+1, Mesh2PDENode_[(*nodes)[j] - 1], (*val)[dim][j], dim+1, SYSTEM);
 		  }
 	      }
@@ -522,13 +537,14 @@ void BasePDE::GetElemCoords(const Vector<Integer> connect, Matrix<Double> &coord
 
   ptgrid_->GetCoordNodesElemMat(connect, coordMat, level);
   
-   if (deltCoords_.size() != 0)
+  if (deltCoords_.size() != 0)
     {
       for (Integer i=0; i<coordMat.size_row(); i++)
 	for (Integer j=0; j<coordMat.size_col(); j++)
 	  coordMat(i,j) += deltCoords_[i][Mesh2PDENode_ [connect[j] - 1] - 1];
     }
 
+   
 }
 
 void BasePDE::TransformNodeSolution(Array<Double> & MeshSol, 
@@ -615,11 +631,11 @@ void BasePDE::NodeSolutionToCoupling(Array<Double>& CouplingSol,
   
   CouplingSol.reshape(dofspernode_, NodeNumbers.size());
   
-  std::cerr << "In " << pdename_ << "-NodeSolutiontoCoupling" << std::endl;
-  std::cerr << "CouplingSol size:" << CouplingSol.size() << ", dim: " << CouplingSol.dim() << std::endl;
-  std::cerr << "sol size:" << sol_.size() << ", dim: " << sol_.dim() << std::endl;
-  std::cerr << "Mesh2PDENode_.size = " << Mesh2PDENode_.size() << std::endl;
-  std::cerr << "NumPDENodes = " << NumPDENodes_ << std::endl;
+  //std::cerr << "In " << pdename_ << "-NodeSolutiontoCoupling" << std::endl;
+  //std::cerr << "CouplingSol size:" << CouplingSol.size() << ", dim: " << CouplingSol.dim() << std::endl;
+  //std::cerr << "sol size:" << sol_.size() << ", dim: " << sol_.dim() << std::endl;
+  //std::cerr << "Mesh2PDENode_.size = " << Mesh2PDENode_.size() << std::endl;
+  //std::cerr << "NumPDENodes = " << NumPDENodes_ << std::endl;
   
   for (Integer i=0; i<CouplingSol.dim(); i++)
     for (Integer j=0; j<CouplingSol.size(); j++)
@@ -678,9 +694,7 @@ void BasePDE::MassMultiDof(Matrix<Double>& massMultDof, const Matrix<Double>& ma
       for (j=0; j < singleDofSize; j++)
 	for (actDof=0; actDof < nrDofs; actDof++)
 	  massMultDof[i*nrDofs + actDof][j*nrDofs + actDof] = massMatSingleDof[i][j]; 
-  }
-
-
+}
 
 BasePDE::~BasePDE()
 {

@@ -190,12 +190,12 @@ namespace CoupledField
     algsys_->CalcPrecond();
     Double preCondTime = cpuClock.GetTime ();
     (*cla) << std::endl << "TIME for PRECONDITIONER SETUP: " << preCondTime - startTime << std::endl;
-    std::cout << "TIME for PRECONDITIONER SETUP: " << preCondTime - startTime << std::endl;
+    //    std::cout << "TIME for PRECONDITIONER SETUP: " << preCondTime - startTime << std::endl;
     
     algsys_->Solve();
     Double solveTime = cpuClock.GetTime ();
     (*cla) << std::endl << "TIME for SOLUTION: " << solveTime - preCondTime << std::endl;
-    std::cout << "TIME for SOLUTION: " << solveTime - preCondTime << std::endl;
+    //    std::cout << "TIME for SOLUTION: " << solveTime - preCondTime << std::endl;
 
     algsys_->CalcComplexity();
 
@@ -203,7 +203,7 @@ namespace CoupledField
 
     // save solution
     for(Integer i=0; i < size_; i++)
-      solRe_[i] = ptsol[i];
+	solRe_[i] = ptsol[i];
 
 
 #ifdef DEBUG
@@ -243,12 +243,12 @@ namespace CoupledField
     algsys_->CalcPrecond();
     Double preCondTime = cpuClock.GetTime ();
     (*cla) << std::endl << "TIME for PRECONDITIONER SETUP: " << preCondTime - startTime << std::endl;
-    std::cout << "TIME for PRECONDITIONER SETUP: " << preCondTime - startTime << std::endl;
+    //    std::cout << "TIME for PRECONDITIONER SETUP: " << preCondTime - startTime << std::endl;
     
     algsys_->Solve();
     Double solveTime = cpuClock.GetTime ();
     (*cla) << std::endl << "TIME for SOLUTION: " << solveTime - preCondTime << std::endl;
-    std::cout << "TIME for SOLUTION: " << solveTime - preCondTime << std::endl;
+    //    std::cout << "TIME for SOLUTION: " << solveTime - preCondTime << std::endl;
 
     algsys_->CalcComplexity();
 
@@ -257,8 +257,8 @@ namespace CoupledField
     // save solution
     for(Integer i=0; i < size_; i++)
       {
-	solRe_[i] = ptsol[i*2];
-	solIm_[i] = ptsol[i*2+1];
+	solRe_[i] = ptsol[2*i];
+	solIm_[i] = ptsol[2*i+1];
       }
   
 
@@ -296,12 +296,16 @@ namespace CoupledField
 
     Vector<Integer> connecth, connect_PDE;  
     Integer i, j;
-    Double reluctivity, conductivity;
+    Double reluctivity, conductivity, harmfactor;
 
     //curently hard coded for tets
     Integer elemsize_edge = 6;
     std::vector<Integer> epos(elemsize_edge);
     std::vector<Integer> esign(elemsize_edge);
+
+    //regularization parameter
+    Double relaxFac = 1.0e-5;
+    conf->ifget("relaxFac", relaxFac, pdename_);
 
     std::vector<Double> harmVec(2*elemsize_edge*elemsize_edge);
 
@@ -314,11 +318,13 @@ namespace CoupledField
 	if (analysistype_==STATIC) conductivity = 0.0;
 
 	// small conductivity is needed for regularization
+	harmfactor = 1.0;
 	if (conductivity <= 0 || analysistype_==STATIC)
 	  {
-	    Double relaxFac = 1.0e-7;
-	    conf->ifget("relaxFac", relaxFac, pdename_);
 	    conductivity = reluctivity * relaxFac;
+	    //if conductivity = 0.0, then we have in the harmonic case no mass matrix;
+	    //computed mass matrix is just used for for regulraization of stiffness matrix
+	    harmfactor = 0.0;
 	  }
 	
 
@@ -393,15 +399,15 @@ namespace CoupledField
 	    if(analysistype_==HARMONIC)
 	      {
 		Integer kkk=0;
-		Double regularizationFactor = reluctivity / conductivity * 1e-6;
+		Double regularizationFactor = reluctivity / conductivity *  relaxFac;
 		
 		if (k!=elemmat.size_row()*elemmat.size_col())
 		  Error("k is wrong!!!!!!!!!!!!!!!!!!!!!",__FILE__,__LINE__);
-		
+
 		for(Integer iii=0; iii<elemmat.size_row(); iii++)
 		  for(Integer jjj=0; jjj < elemmat.size_row(); jjj++)
 		    {    
-		      harmVec[k] = elemmat[iii][jjj] * 2 * PI * freq_;
+		      harmVec[k] = elemmat[iii][jjj] * 2 * PI * freq_ * harmfactor;
 		      // regularization of element stiffness matrix
 		      harmVec[kkk] += elemmat[iii][jjj] * regularizationFactor;
 
@@ -470,7 +476,7 @@ namespace CoupledField
 		// calc abs value of complex magnetic field
 		// outMat[i][j] = sqrt(bFieldRe_[i][j]*bFieldRe_[i][j] + bFieldIm[i][j]*bFieldIm[i][j]);	  
 		// write just real part of solution 
-		outMat[i][j] = bFieldRe_[i][j];
+		  outMat[i][j] = bFieldRe_[i][j];
 
 	    OutFile_->WriteElemSolution(outMat, step, time, fieldname);
 	  
@@ -773,6 +779,7 @@ namespace CoupledField
 	      
 		if (analysistype_==STATIC)
 		  algsys_->SetElementRHS(&elemVec[0], &epos[0], epos.size());
+
 		else if (analysistype_==HARMONIC)
 		  {
 		    for(Integer ii=0; ii<elemVec.size(); ii++)
@@ -868,6 +875,7 @@ namespace CoupledField
 	    actEl++;
 	  }
       }
+
     delete magFieldRe;
     if (analysistype_==HARMONIC)
       delete magFieldIm;

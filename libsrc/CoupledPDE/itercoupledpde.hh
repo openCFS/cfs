@@ -11,7 +11,8 @@ namespace CoupledField
 
 class IterCoupledPDE : public BaseCoupledPDE
 {
-public:
+
+ public:
 
   //! Constructor
   IterCoupledPDE(std::vector<BasePDE*> & PDEs,
@@ -23,8 +24,8 @@ public:
 
   //! Destructor
   ~IterCoupledPDE();
-  
-  //! calculates coupling interfaces
+
+   //! calculates coupling interfaces
   virtual void InitCoupling(Integer level);
   
   //! Solve static step
@@ -36,6 +37,17 @@ public:
   
   //! write results in file
   virtual void WriteResultsInFile();
+
+protected:
+
+  //!
+  void WriteCouplingInfo();
+
+  //! calculates the norm of a vector
+  Double CalcNorm(NormType normtype, Array<Double> & val, Array<Double> & oldval);
+
+  Integer maxiter_;                        //!< maximum number of iterations per time step
+  std::vector<Double> norms_;              //!< norm of coupling values
 
 };
 

@@ -17,6 +17,10 @@ PDECoupling::PDECoupling(Grid * aptgrid, BCs * aptBCs)
 
   ptGrid_ = aptgrid;
   ptBCs_ = aptBCs;
+  
+  defaultEpsilon = 1e-5;
+  defaultNormType = L2REL;
+
 }
 
 PDECoupling::~PDECoupling()
@@ -25,11 +29,11 @@ PDECoupling::~PDECoupling()
   (*trace) << "entering PDECoupling::~PDECoupling" << std::endl;
 #endif 
   
-  for (Integer i=0; i<OutputInterfaces_.size(); i++)
-    if (OutputInterfaces_[i]) delete OutputInterfaces_[i];
+  for (Integer i=0; i<outputInterfaces_.size(); i++)
+    if (outputInterfaces_[i]) delete outputInterfaces_[i];
 
-   for (Integer i=0; i<InputInterfaces_.size(); i++)
-    if (InputInterfaces_[i]) delete InputInterfaces_[i];
+   for (Integer i=0; i<inputInterfaces_.size(); i++)
+    if (inputInterfaces_[i]) delete inputInterfaces_[i];
 
 }
 
@@ -39,16 +43,16 @@ void PDECoupling::RegisterInput(CouplingInputType InType, std::string Quantity)
   (*trace) << "entering PDECoupling::RegisterInput" << std::endl;
 #endif 
   
-  InputTypes_.push_back(InType);
-  InputQuantities_.push_back(Quantity);  
-  InputInterfaces_.push_back(0);
+  inputTypes_.push_back(InType);
+  inputQuantities_.push_back(Quantity);  
+  inputInterfaces_.push_back(0);
 }
 
-void PDECoupling::AddInput(std::string Quantity, 
+void PDECoupling::AddInput(std::string quantity, 
 			   std::string region, 
-			   CouplingRegionType RegionType,
+			   CouplingRegionType regionType,
 			   Integer level,
-			   std::vector<PDECoupling*> & Couplings)
+			   std::vector<PDECoupling*> & couplings)
 {
 #ifdef TRACE
   (*trace) << "entering PDECoupling::AddInput" << std::endl;
@@ -56,47 +60,70 @@ void PDECoupling::AddInput(std::string Quantity,
 
   //std::cerr << "AddInput called with Quantity \"" << Quantity << "\", region \"" << region << "\" regiontype \"" << RegionType << "\" and a vector of Couplings..." << std::endl;
 
-  CouplingInterface *MyInterface = 0; 
-  Integer MyNum = -1;
+  CouplingInterface *myInterface = 0; 
+  Integer myNum = -1;
 
   // search matching  Quantity
-  for (Integer i=0; i<InputQuantities_.size(); i++)
+  for (Integer i=0; i<inputQuantities_.size(); i++)
     {
-      if (InputQuantities_[i] == Quantity)
-	MyNum = i; 
+      if (inputQuantities_[i] == quantity)
+	myNum = i; 
     }
 
-   if (MyNum == -1)
+   if (myNum == -1)
     {
-      std::string ErrMsg = "Qantity \'" + Quantity + "\' not registered for PDE \'" + myPDE_->GetName()+ "\'";
+      std::string ErrMsg = "Qantity \'" + quantity + "\' not registered for PDE \'" + myPDE_->GetName()+ "\'";
       Error(ErrMsg.c_str(),__FILE__,__LINE__);
     }
 
  
   // Add coupling input as output to pde, which can calculate specified quantity
-  CouplingOutputType MyOutputType = Input2OutputType(InputTypes_[MyNum]);
+  CouplingOutputType myOutputType = Input2OutputType(inputTypes_[myNum]);
 
   Integer i=0;
-  while (MyInterface == 0 && i<Couplings.size())
+  while (myInterface == 0 && i<couplings.size())
     {
-      MyInterface = Couplings[i++]->AddOutput(MyOutputType, Quantity, region, RegionType, level);
+      myInterface = couplings[i++]->AddOutput(myOutputType, quantity, region, regionType, level);
     }
   
   // If no pde has the specified quantity as output
-  if (MyInterface == 0)
+  if (myInterface == NULL)
     {
-      std::string ErrMsg = "Qantity \'" + Quantity + "\' can not be calculated with current set of PDEs";
+      std::string ErrMsg = "Qantity \'" + quantity + "\' can not be calculated with current set of PDEs";
       Error(ErrMsg.c_str(),__FILE__,__LINE__);
     }
   
-  InputInterfaces_[MyNum] = MyInterface;
+  
+  // set normtype and epsilon
+  myInterface->epsilon = defaultEpsilon;
+  conf->ifget(inputQuantities_[myNum],myInterface->epsilon,"coupling", "tolerance"); 
+  
+  std::string normtype;
+  myInterface->normtype = defaultNormType;
+  
+  if (conf->ifget(inputQuantities_[myNum],normtype,"coupling","normtype") == TRUE)
+    {
 
+      if (normtype == "L2rel")
+	myInterface->normtype = L2REL;
+      else if (normtype == "L2abs")
+	myInterface->normtype = L2ABS;
+      else 
+	{
+	  std::string errMsg = "Normtype \'" + normtype + "\' not known!";
+	  Error(errMsg.c_str(),__FILE__,__LINE__);
+	} 
+    }
+  
+  inputInterfaces_[myNum] = myInterface;
+          
+  
 }
 
-PDECoupling::CouplingInterface* PDECoupling::AddOutput(CouplingOutputType OutputType, 
-						       std::string Quantity, 
+PDECoupling::CouplingInterface* PDECoupling::AddOutput(CouplingOutputType outputType, 
+						       std::string quantity, 
 						       std::string region,
-						       CouplingRegionType RegionType,
+						       CouplingRegionType regionType,
 						       Integer level)
 {
 #ifdef TRACE
@@ -104,24 +131,28 @@ PDECoupling::CouplingInterface* PDECoupling::AddOutput(CouplingOutputType Output
 #endif 
 
   // search if output exists already
-  for (Integer i=0; i<OutputTypes_.size(); i++)
-    if (OutputTypes_[i] == OutputType 
-	&& OutputQuantities_[i] == Quantity
-	&& OutputInterfaces_[i]->Region == region)
-      return OutputInterfaces_[i];
+  for (Integer i=0; i<outputTypes_.size(); i++)
+    if (outputTypes_[i] == outputType 
+	&& outputQuantities_[i] == quantity
+	&& outputInterfaces_[i]->region == region)
+      return outputInterfaces_[i];
   
   
   // if not find out if PDE can calculate desired output
-  if (!myPDE_->HasOutput(Quantity))
+  if (myPDE_->HasOutput(quantity) == FALSE)
     return 0;
   
+  //std::cerr << "found output " << Quantity << " in PDE " << myPDE_->GetName() << std::endl;
+
   // create new Coupling Output
-  OutputTypes_.push_back(OutputType);
-  OutputQuantities_.push_back(Quantity);
-  CouplingInterface *MyInterface = new CouplingInterface;  
-  MyInterface->Region = region;
-  MyInterface->RegionType = RegionType;
-  MyInterface->level = level;
+  outputTypes_.push_back(outputType);
+  outputQuantities_.push_back(quantity);
+
+  CouplingInterface *myInterface = new CouplingInterface;  
+  myInterface->region = region;
+  myInterface->regionType = regionType;
+  myInterface->level = level;
+
   std::list<Integer> nodesConverted;
   std::vector<Elem*> SD;
   std::list<Integer>::iterator it;
@@ -129,53 +160,54 @@ PDECoupling::CouplingInterface* PDECoupling::AddOutput(CouplingOutputType Output
 
 
    // Get Elements/nodes of coupling region
-  switch (RegionType)
+  switch (regionType)
     {
     case SUBDOMAIN:
       ptGrid_->GetElemSD(SD, region, level);
-      ptGrid_->CalcNumberOfNodesInPatch(SD, MyInterface->Nodes);
-      MyInterface->Values.resize(MyInterface->Nodes.size());
-      MyInterface->Size = MyInterface->Nodes.size();
+      ptGrid_->CalcNumberOfNodesInPatch(SD, myInterface->nodes);
+      myInterface->size = myInterface->nodes.size();
+      myInterface->values.resize(myInterface->nodes.size());
+      myInterface->oldValues.resize(myInterface->nodes.size());
+ 
       
       break;
 
     case NODES:
 
       nodesConverted = ptBCs_->GetNodesLevel(region, level);
-      MyInterface->Nodes.resize(nodesConverted.size());
+      myInterface->nodes.resize(nodesConverted.size());
       it = nodesConverted.begin();
       
       inode = 0;
       for (it=nodesConverted.begin(); it != nodesConverted.end(); it++, inode++)
 	{
-	MyInterface->Nodes[inode] = *it;
+	myInterface->nodes[inode] = *it;
 	}
+      myInterface->size = myInterface->nodes.size();
+      myInterface->values.resize(myInterface->nodes.size());
+      myInterface->oldValues.resize(myInterface->nodes.size());
 
-      MyInterface->Values.resize(MyInterface->Nodes.size());
-      MyInterface->Size = MyInterface->Nodes.size();
-      
       break;
 
     case ELEMS1D:
-      MyInterface->Elements = ptBCs_->getEdgesBC(region, level);
-
-      MyInterface->Values.resize(MyInterface->Elements.size());
-      MyInterface->Size = MyInterface->Elements.size();
-
+      myInterface->elements = ptBCs_->getEdgesBC(region, level);
+      myInterface->size = myInterface->elements.size();
+      myInterface->oldValues.resize(myInterface->elements.size());
+      
       break;
 
     case ELEMS2D:
-      MyInterface->Elements = ptBCs_->getFacesBC(region, level);
-
-      MyInterface->Values.resize(MyInterface->Elements.size());
-      MyInterface->Size = MyInterface->Elements.size();
+      myInterface->elements = ptBCs_->getFacesBC(region, level);
+      myInterface->size = myInterface->elements.size();
+      myInterface->values.resize(myInterface->elements.size());
+      myInterface->oldValues.resize(myInterface->elements.size());
       
       break;
     }
 
-  OutputInterfaces_.push_back(MyInterface);
+  outputInterfaces_.push_back(myInterface);
   
-  return MyInterface;
+  return myInterface;
 }
 
 
@@ -191,30 +223,43 @@ void PDECoupling::SetPDE(BasePDE * aPDE)
 
 }
 
-void PDECoupling::SetOutputSize(Integer i, Integer Size)
+void PDECoupling::SetOutputSize(Integer i, Integer size)
 {
 #ifdef TRACE
   (*trace) << "entering PDECoupling::SetOutputSize" << std::endl;
 #endif 
   
-  std::cerr << "entering PDECoupling::SetOutputSize to " << Size << std::endl;
-  std::cerr << "PdeName: " << myPDE_->GetName() << std::endl;
-  OutputInterfaces_[i]->Size = Size;
-  OutputInterfaces_[i]->Values.resize(Size);
+  // std::cerr << "entering PDECoupling::SetOutputSize to " << Size << std::endl;
+  // std::cerr << "PdeName: " << myPDE_->GetName() << std::endl;
+
+  outputInterfaces_[i]->size = size;
+  outputInterfaces_[i]->values.resize(size);
+  outputInterfaces_[i]->oldValues.resize(size);
 
 }  
 
-void PDECoupling::SetOutputDim(Integer i, ShortInt Dim)
+void PDECoupling::SetOutputDim(Integer i, ShortInt dim)
 {
 #ifdef TRACE
   (*trace) << "entering PDECoupling::SetOutputDim" << std::endl;
 #endif 
-  std::cerr << "entering PDECoupling::SetOutputDim to " << Dim << std::endl;
-  std::cerr << "PdeName: " << myPDE_->GetName() << std::endl;
-  OutputInterfaces_[i]->Dim = Dim;
-  OutputInterfaces_[i]->Values.redim(Dim);
+  // std::cerr << "entering PDECoupling::SetOutputDim to " << Dim << std::endl;
+  // std::cerr << "PdeName: " << myPDE_->GetName() << std::endl;
 
+  outputInterfaces_[i]->dim = dim;
+  outputInterfaces_[i]->values.redim(dim);
+  outputInterfaces_[i]->oldValues.redim(dim);
 }
+
+std::string PDECoupling::GetPDEName()
+{
+#ifdef TRACE
+  (*trace) << "entering PDECoupling::GetPDEName" << std::endl;
+#endif 
+
+  return myPDE_->GetName();
+}
+
 
 Integer PDECoupling::GetNumInputCouplings()
 {
@@ -222,7 +267,7 @@ Integer PDECoupling::GetNumInputCouplings()
   (*trace) << "entering PDECoupling::GetnumInputCouplings" << std::endl;
 #endif 
 
-  return InputInterfaces_.size();
+  return inputInterfaces_.size();
 }
 
 
@@ -232,26 +277,17 @@ Integer PDECoupling::GetNumOutputCouplings()
   (*trace) << "entering PDECoupling::GetnumOutputCouplings" << std::endl;
 #endif
 
-  return OutputInterfaces_.size();
+  return outputQuantities_.size();
 }
 
 
-Double PDECoupling::CalcNorm(std::string type)
-{
-#ifdef TRACE
-  (*trace) << "entering PDECoupling::CalcNorm" << std::endl;
-#endif 
-
-}
-
-
-CouplingOutputType PDECoupling::Input2OutputType(CouplingInputType InputType)
+CouplingOutputType PDECoupling::Input2OutputType(CouplingInputType inputType)
 {
 #ifdef TRACE
   (*trace) << "entering PDECoupling::Input2OutputType" << std::endl;
 #endif 
 
-  switch (InputType)
+  switch (inputType)
     {
     case COORD:
       // Coordinate Coupling -> node values needed

@@ -53,13 +53,17 @@ void ElecForceOp::CalcElemElecForce(Vector<Double> & F,
   NumNodes = ptElement->ptElem->GetNumNodes();
   NumIntPoints = ptElement->ptElem->GetNumIntPoints();
   Ip = ptElement->ptElem->GetIntPoints();
+ 
   ptPDE_->GetElemCoords(ptElement->connect, CornerCoords, level_);
-
+  
   F.Resize(Dim);
   F.Init();
-  
+   
   std::vector<Double> temp;
   temp.resize(Dim);
+
+  //std::cerr << std::endl << std::endl;
+  //std::cerr << "----------------------------" << std::endl;
 
   // Loop over integration points
   for (Integer nIp=1; nIp<NumIntPoints+1; nIp++)
@@ -70,13 +74,20 @@ void ElecForceOp::CalcElemElecForce(Vector<Double> & F,
       //std::cerr << "Ip[" << nIp <<"] = " << Ip[nIp][0] << "," << Ip[nIp][1] << std::endl;
       ElecFieldOp_->CalcElemElecField(E, ptElement, Ip[nIp-1]);
       
+      //std::cerr << "Element [" << ptElement->ElemNum << "] E = " << E[0] << ", " << E[1] << std::endl;
+      
+      //std::cerr << "CornerCoords:" << std::endl << CornerCoords << std::endl;
+      
+      // Calculate J
+      ptElement->ptElem->CalcJacobianAtIp(J, nIp, CornerCoords);
+      //std::cerr << "J = " << std::endl << J << std::endl;
       // Calculate J-1
       ptElement->ptElem->CalcInvJacobianAtIp(JInv, nIp, CornerCoords);
-       // std::cerr << "JInv = " << JInv << std::endl;
+      //std::cerr << "JInv = " << std::endl << JInv << std::endl;
       
       // Calculate Det(J)
       DetJ = ptElement->ptElem->CalcJacobianDetAtIp(nIp, CornerCoords);
-      //  std::cerr << "DetJ = " << DetJ << std::endl;
+      //std::cerr << "DetJ = " << std::endl <<DetJ << std::endl;
       
       Matrix<Double> SpecCornerCoords;
       SpecCornerCoords.Resize(Dim,NumNodes);
@@ -91,24 +102,27 @@ void ElecForceOp::CalcElemElecForce(Vector<Double> & F,
 	  for( Integer j=0; j<NumNodes; j++)
 	    if (IsBoundaryNode[j] == 1)
 	      SpecCornerCoords[i][j] = 1;
-	  //std::cerr << "SpecBoundary" << i <<" = " << SpecCornerCoords << std::endl;
+	  //std::cerr << "SpecBoundary" << i <<" = " << std::endl << SpecCornerCoords << std::endl;
 	  
 	  // calculate dJ_dr and Det(dJ_dr)
 	  ptElement->ptElem->CalcJacobianAtIp(dJ_dr, nIp, SpecCornerCoords);
-	  //std::cerr << "dJ_dr = " << dJ_dr << std::endl;
+	  //std::cerr << "dJ_dr = " << std::endl << dJ_dr << std::endl;
 	  DetdJ_dr = dJ_dr.Det();
-	  
+	  //DetdJ_dr = ptElement->ptElem->CalcJacobianDetAtIp(nIp, SpecCornerCoords);
 	  
 	  // finally calculate electric force per element
 
-	  F[i] -=  (( E * ( JInv * (dJ_dr * E) ) * DetJ 
-	  	     -  ( E * E ) * DetdJ_dr * 0.5) * (epsilon * eps0));
+	  F[i] -=  0.5 * (( E * ( JInv * (dJ_dr * E) ) * DetJ 
+	  	     -  ( E * E ) * DetdJ_dr * 2.0) * epsilon);
 
-	  //std::cerr << "F[" << i << "] = " << F[i] << std::endl;
+	  // std::cerr << "F[" << i << "] = " << F[i] << std::endl;
+	  //std::cerr << "E*E = " << E * E << std::endl;
 	}
+      //std::cerr << "After Ip " << nIp << " F = " << F << std::endl;
     }
 
-  
+  //std::cerr << std::endl;
+  //std::cerr << "F = <<" << F << std::endl;
 }
 
 

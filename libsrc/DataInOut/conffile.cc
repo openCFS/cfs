@@ -70,12 +70,12 @@ Boolean ConfFile::ifget(const std::string keyword, TypeVal & val, const std::str
 
  if (section != "") 
    { 
-     pos1=getsectionpos(section); 
+     pos1=getsectionpos(section,0, FALSE); 
      inSection=TRUE;
    }
  if (subsection !="") 
    {
-     pos1=getsubsectionpos(subsection,pos1);
+     pos1=getsubsectionpos(subsection,pos1,FALSE);
      inSubSection = TRUE;
    }
 
@@ -197,7 +197,7 @@ std::string::size_type ConfFile::getsectionpos(const std::string keyword, const 
     help=infile.tellg();
     std::getline(infile, buf, '\n');
  
-    if (buf[0]!='#') 
+    if (buf[0] !='#' && buf[0] != ' ' && buf[0] != '\t') 
       {
 	pos_helper=buf.find(keyword);
 	if (buf.find(":") < 100)
@@ -425,7 +425,7 @@ Boolean ConfFile::ifgetliststr( const std::string seekexp, std::vector<std::stri
 
  if (section != "")
    {
-     pos=getsectionpos(section);
+     pos=getsectionpos(section,0,FALSE);
      inSection = TRUE;
    }
  if (subsection !="") 

@@ -71,6 +71,11 @@ typedef int Boolean;
   //   ELEMS2D = Coupling region is specified as 2D-interface
   enum CouplingRegionType{SUBDOMAIN, NODES, ELEMS1D, ELEMS2D};
 
+  // Enumeration for types of norms
+  //   L2ABS = absolute L2-norm
+  //   L2REL = relative L2 norm: (|val| - |oldval|) / |val|
+  enum NormType {L2ABS, L2REL};
+
 
   std::ostream & operator << (std::ostream & out, const enum precond & type);
 

@@ -46,6 +46,7 @@ void CoupledPDEDef::CreateCoupling(std::vector<BasePDE*> & OrderedPDEs,
    // iterate over all coupling PDEs
    //std::cerr << "CoupledPDEs_.size() = " << CoupledPDEs_.size() << std::endl;
    //std::cerr << "UnorderedPDEs.size() = " << UnorderedPDEs.size() << std::endl;
+
    for (Integer i=0; i<CoupledPDEs_.size(); i++)
      {
        
@@ -54,6 +55,7 @@ void CoupledPDEDef::CreateCoupling(std::vector<BasePDE*> & OrderedPDEs,
 	{
 	  //std::cerr << "CoupledPDEs[" << i << ".NumPDE == UnorderedPDEs.size()" << std::endl;
 	  CoupledPDEs_[i]->GetNamePDEs(PDENames);
+	
 	  //std::cerr << "PDENames.size() = " << PDENames.size() << std::endl;
 	  // iterate over all PDEnames in ordered direction
 	  for (Integer j=0; j<PDENames.size(); j++)

@@ -484,6 +484,7 @@ namespace CoupledField
 
 	    el->ElemNum=inum;
 	    el->ptElem=Type2ptElem(itype);
+	    el->namesd = namesd;
 	   	
 	    el->connect.Resize(innodes);
 	    for (ii=0; ii<innodes; ii++)
@@ -536,6 +537,7 @@ namespace CoupledField
 	    
 	    el->ElemNum=inum;
 	    el->ptElem=Type2ptElem(itype);
+	    el->namesd=namesd;
 	    el->connect.Resize(innodes);
 
 	    for (ii=0; ii<innodes; ii++)
@@ -584,6 +586,7 @@ namespace CoupledField
 
 	el->ElemNum=inum;
 	el->ptElem=Type2ptElem(itype);
+	el->namesd = namesd;
 	el->connect.Resize(innodes);
 	for (ii=0; ii<innodes; ii++)
 	  infile >> el->connect[ii];

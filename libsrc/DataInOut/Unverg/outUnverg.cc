@@ -15,7 +15,7 @@ WriteResultsUnverg :: WriteResultsUnverg(const Char * const filename, Boolean wi
   (*trace) << "entering WriteResultsUnverg :: WriteResultsUnverg" << std::endl;
 #endif
 
-  output=new std::ofstream(strcat(namefile_,".unverg"));
+  output=new std::ofstream(strcat(namefile_,".unv"));
 }
 
 WriteResultsUnverg ::~WriteResultsUnverg()
@@ -101,60 +101,72 @@ void  WriteResultsUnverg::Dataset781(const Integer level)
 void  WriteResultsUnverg::Dataset780(const Integer level)
 {
   //
- if (!ptgrid)
+  if (!ptgrid)
     Error("ptgrid is not initialized", __FILE__,__LINE__);
 
- (*output) << std::setw(6) << -1 << std::endl << std::setw(6) << 780 << std::endl;
- Integer dim=ptgrid->GetDim();
+  (*output) << std::setw(6) << -1 << std::endl << std::setw(6) << 780 << std::endl;
+  Integer dim=ptgrid->GetDim();
 
- Integer maxnumelem=ptgrid->GetMaxnumElem(level);
+  Integer maxnumelem=ptgrid->GetMaxnumElem(level);
 
- Vector<Integer> connect;
+  Vector<Integer> connect;
+  std::vector<Elem*> elemssd;
+  Integer elmsgrp=1;
 
- for (Integer i=0; i<maxnumelem; i++)
-   {
-     (*output) << std::setw(10) << i+1 << std::setw(10);
+  std::vector<std::string>* subdoms;
+  subdoms=ptgrid->GetAllSDs();
+  Integer i, j, k;
+  k = 0;
+  for (i=0; i<subdoms->size(); i++)
+    {
+      ptgrid->GetElemSD(elemssd,(*subdoms)[i],level);
 
-     ptgrid->GetConnection(connect, i, level);
+      for (j=0; j < elemssd.size(); j++)
+	{  
+	  k++; 
+	  connect=elemssd[j]->connect;
 
-     if (dim==2)
-{     switch(connect.size())
-     {
-       case 3: (*output) << 91 ; break;
-       case 4: (*output) << 94 ; break;
-       case 6: (*output) << 92; break;
-       case 8: (*output) << 95; break;
-       default: Error("Please, put element type according to unverg-format for this number of nodes per element", __FILE__,__LINE__);
-     }
+	  (*output) << std::setw(10) << k << std::setw(10);
 
-     (*output) << std::setw(10) << 2 << std::setw(10) << 2 << std::setw(10) << 1 << std::setw(10) << 1 << std::setw(10) << 1 << std::setw(10) << connect.size()
-<< std::endl;
-}
-   else
-{
-     switch(connect.size())
-     {
-       case 4: (*output) << 111 ; break;
-       case 6: (*output) << 112; break;
-       case 8: (*output) << 115; break;
-       case 15: (*output) << 113; break;
-       case 20: (*output) << 116; break;
-       default: Error("Please, put element type according to unverg-format for this number of nodes per element", __FILE__,__LINE__);
-     }
+	  if (dim==2)
+	    {     switch(connect.size())
+	      {
+	      case 3: (*output) << 91 ; break;
+	      case 4: (*output) << 94 ; break;
+	      case 6: (*output) << 92; break;
+	      case 8: (*output) << 95; break;
+	      default: Error("Please, put element type according to unverg-format for this number of nodes per element", __FILE__,__LINE__);
+	      }
 
-     (*output) << std::setw(10) << 11 << std::setw(10) << 1 << std::setw(10) <<
-1 << std::setw(10) << 1 << std::setw(10) << 1 << std::setw(10) << connect.size() << std::endl;
-}
+	    (*output) << std::setw(10) << 2 << std::setw(10) << 2 << std::setw(10) << 1 << std::setw(10) << 1 << std::setw(10) << elmsgrp << std::setw(10) << connect.size() << std::endl;
+	    }
+	  else
+	    {
+	      switch(connect.size())
+		{
+		case 4: (*output) << 111 ; break;
+		case 6: (*output) << 112; break;
+		case 8: (*output) << 115; break;
+		case 15: (*output) << 113; break;
+		case 20: (*output) << 116; break;
+		default: Error("Please, put element type according to unverg-format for this number of nodes per element", __FILE__,__LINE__);
+		}
 
-     for (Integer ii=0; ii < connect.size(); ii++) 
-       { 
-	 (*output).width(10);
-	 (*output) << connect[ii];
-       }
+	      (*output) << std::setw(10) << 11 << std::setw(10) << 1 << std::setw(10) <<
+		1 << std::setw(10) << 1 << std::setw(10) << elmsgrp << std::setw(10) << connect.size() << std::endl;
+	    }
 
-     (*output) << std::endl;
-   }
- (*output) << std::setw(6) << -1 << std::endl;
+	  for (Integer ii=0; ii < connect.size(); ii++) 
+	    { 
+	      (*output).width(10);
+	      (*output) << connect[ii];
+	    }
+
+	  (*output) << std::endl;
+	} // over elements of group
+      elmsgrp++;
+    } // over groups
+  (*output) << std::setw(6) << -1 << std::endl;
 }
 
 void  WriteResultsUnverg::Dataset55(const std::string & title, const Array<Double> & x, const Integer step, const Double time, const Integer nrDofs)
@@ -196,7 +208,6 @@ void  WriteResultsUnverg::Dataset55(const std::string & title, const Array<Doubl
 
      for (j=0; j<nrDofs; j++)
        (*output) << " " << x[j][i];
-       //(*output) << " " << x[i*nrDofs + j];
      
      (*output) << std::endl;
    }    
@@ -231,44 +242,27 @@ void  WriteResultsUnverg::Dataset56(const std::string & title, const Array<Doubl
   Integer i,j,n;
   n=x.size();  
 
-  if (nrDofs == 1)
+  if (nrDofs == 2)
     {
-      Vector<Double> const &erg1 = x[0];
- 
-      for (i=0; i<n; i++)
-	{
+    for (i=0; i<n; i++)
+ 	{
 	  (*output) << std::setw(10) << i+1 << std::setw(10) << 3 << std::endl;
-     
-	  (*output) << std::setw(13) << erg1[i] << std::endl;
+
+	  (*output) << std::setw(13) << 0.0 << std::setw(13) << x[0][i] << std::setw(13) << x[1][i] << std::endl;
 	}
-    }    
-  else if (nrDofs == 2)
-    {
-      Vector<Double> const &erg1 = x[0];
-      Vector<Double> const &erg2 = x[1];
- 
-      for (i=0; i<n; i++)
-	{
-	  (*output) << std::setw(10) << i+1 << std::setw(10) << 3 << std::endl;
-     
-	  (*output) << std::setw(13) << 0.0 << std::setw(13) << erg1[i] << std::setw(13) <<  erg2[i] << std::endl;
-	}
-    }    
+    } 
   else
     {
-      Vector<Double> const &erg1 = x[0];
-      Vector<Double> const &erg2 = x[1];
-      Vector<Double> const &erg3 = x[2];
- 
       for (i=0; i<n; i++)
-	{
+ 	{
 	  (*output) << std::setw(10) << i+1 << std::setw(10) << 3 << std::endl;
-     
-	  (*output) << std::setw(13) << 0.0 << std::setw(13) << erg1[i] << std::setw(13) <<  erg2[i] 
-		    <<  std::setw(13) <<  erg3[i] << std::endl;
-	}
-    }         
-     
+	  for (j=0; j<nrDofs; j++)
+	    (*output) << std::setw(13) << x[j][i];
+	  
+	  (*output) << std::endl;
+ 	}
+    }
+
  (*output) << std::setw(6) << -1 << std::endl;
 }  
 

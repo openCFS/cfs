@@ -28,15 +28,78 @@
 #include <PDE/pdes_header.hh>
 #include <CoupledPDE/coupled_pdes_header.hh>
 
+#include <Utils/vector.hh>
+#include <Utils/array.hh>
+
 namespace CoupledField
 {
+
+void Domain::ArrayTest()
+{
+
+  Array<Double> A1(3,6);
+  Vector<Double> V1, V2, V3;
+  std::vector<Double> v1, v2;
+
+  std::cerr << "Array 1:" << A1 << std::endl;
+
+  V1.Resize(3);
+  V1[0] = 3.33;
+  V1[1] = 4.5;
+  V1[2] = -6.4;
+
+  V2.Resize(3);
+  V2[0] = 1;
+  V2[1] = 2;
+  V2[2] = 3;
+
+  Array<Double> A2(V2);
+  
+  
+  A1 = V1;
+
+  std::cerr << "A1:" << std::endl << A1 << std::endl;
+  std::cerr << "A2:" << std::endl << A2 << std::endl;
+ 
+  Array<Double> A3;
+
+
+  V3 = A1;
+  std::cerr << "V3 = " << std::endl << V3 << std::endl;
+
+  A3 = A1 + A2;
+  
+  std::cerr << "A1 + A2" << std::endl << A3 << std::endl;
+  
+  A3 = A1 - A2;
+
+  std::cerr << "A1 - A2" << std::endl << A3 << std::endl;
+
+  A3 = A1 * 2;
+  
+  std::cerr << "A1 * 2 = "<< std::endl << A3 << std::endl;
+
+  A3 = A1 / 2;
+  
+  std::cerr << "A1 / 2 = " << std::endl << A3 << std::endl;
+
+  std::cerr << "A1 * A2" << A1*A2 << std::endl;
+
+  
+  
+ 
+}
 
 Domain:: Domain(FileType * const aptFileType, WriteResults * ptOut, TimeFunc * aptTimeFunc) 
 {
 #ifdef TRACE
   (*trace) << "entering Domain::Domain" << std::endl;
 #endif
+  
+  //rayTest();
+  //ror("End of Arraytest!");
 
+  
   newlevel = 0;
 
  InFile_     = aptFileType; 
@@ -109,6 +172,12 @@ Domain:: Domain(FileType * const aptFileType, WriteResults * ptOut, TimeFunc * a
  // Initialize Coupled PDEs
  InitCoupledPDE();
  
+//set the algebraic systems and read material data
+  for (int i=0;i< numpde_;i++)
+    {
+      ptpde_[i]->SetAlgSys(i); 
+      ptpde_[i]->ReadMaterialData();
+     } 
 }
 
 Domain :: ~Domain()
@@ -177,12 +246,7 @@ void Domain :: InitPDEs()
 	}     
     }
 
-  //set the algebraic systems and read material data
-  for (int i=0;i< pdes.size();i++)
-    {
-      ptpde_[i]->SetAlgSys(i); 
-      ptpde_[i]->ReadMaterialData();
-     }
+ 
 
 } // end of InitPDE()
 
@@ -200,52 +264,16 @@ void Domain::InitCoupledPDE()
       return;
     }
 
+
+  // Initialize the definiton of coupled PDEs
   CoupledPDEDef * CouplingDef = new CoupledPDEDef(ptgrid_, ptBCs_);
-
   CouplingDef->CreateCoupling(orderedpdes_,couplings_, ptpde_);
-
+  
+  // create new Coupled PDE
   ptcoupledpde_ = new IterCoupledPDE(orderedpdes_,couplings_,ptgrid_, ptBCs_,InFile_,OutFile_);
-
+  ptcoupledpde_->InitCoupling(newlevel);
 
   delete CouplingDef;
-
-  //allocate all specific PDEs
-  //  if (!ptalgsys_) Error("You try to allocate object BasePDE with null pointer to AlgSys");
-
-  //for (int i=0;i< coupled_pdes.size();i++)
-//    {
-     //  //if (coupled_pdes[i] == "elecmech")
-// 	{
-// 	  std::vector<BasePDE*> PDEs;
-// 	  for (Integer j=0; j<numpde_; j++)
-// 	    {
-// 	      if (ptpde_[j]->GetName() == "electrostatic")
-// 		{ 
-// 		  std::cerr << "found electrostatic" << std::endl;
-// 		  PDEs.push_back(ptpde_[j]);
-// 		}
-// 	      if (ptpde_[j]->GetName() == "mechanic")
-// 		{
-// 		  std::cerr << "found mechanic" << std::endl;
-// 		  PDEs.push_back(ptpde_[j]);
-// 		}
-// 	      if (ptpde_[j]->GetName() == "smooth")
-// 		{
-// 		  std::cerr << "found smooth" << std::endl;
-// 		  PDEs.push_back(ptpde_[j]);
-// 		}
-// 	    }
-	  
-// 	  std::cerr << "PDEs.size() = " << PDEs.size() << std::endl;
-// 	  ptcoupledpde_[i]=new ElecMechPDE(PDEs,ptgrid_,ptBCs_,InFile_,OutFile_);
-//	}
-//      else
-//	{
-//	  std::string msg=coupled_pdes[i]+" - this type of coupled-pde is unknown";
-//	  Error(msg.c_str(),__FILE__,__LINE__);
-//	}     
-//    }
-
 
 }
 
