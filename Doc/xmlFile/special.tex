@@ -13,10 +13,14 @@ special elements to be specified. These are
 %
 These are first level elements coming at the end of the parameter file, see
 Sect.~\ref{sec:general}.
-
+%
+%
+\subsubsection*{\xml{expert}}
+%
+%
 The \xml{expert} element is an empty element with one attribute called
 \xml{override}. Specifying \verb+<expert override="yes">+ in the parameter file
-turns of the Expert() module of the CFS++ --- OLAS interface. This expert
+turns off the Expert() module of the CFS++ --- OLAS interface. This expert
 module normally tries to set certain
 parameters to sensible values depending on the values of other parameters or
 to fix inconsistencies in the input parameters. E.g.~the expert module will
@@ -27,9 +31,13 @@ desired, e.g.~one may want to test the performance of an ILU preconditioner
 without the \xml{Sloan} matrix re-ordering the expert would trigger by default.
 Note that turning off the expert module may lead to run-time aborts in OLAS due
 to inconsistent settings. So be sure to really be an expert, if you do this.
-
+%
+%
+\subsubsection*{\xml{devel}}
+%
+%
 The \xml{devel} element can have arbitrary content, but no children or
 attributes. It is solely there for the sake of the developer who wants to
-wants to quickly test something, without the need to alter the Schema
-definition itself. For normal users the element is not useful, since it is
-not read in the standard CFS++ source code.
+quickly test something, without the need to alter the Schema definition itself.
+For normal users the element is not of interest, since it is never accessed
+in the standard CFS++ source code.
