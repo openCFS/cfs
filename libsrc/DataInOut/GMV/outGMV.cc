@@ -764,13 +764,16 @@ std::string WriteResultsGMV::SolutionTypeToString(const SolutionType type) const
       return "acceleration";
       break;
     case MECH_VELOCITY:
+      return "velocity";
       break;
     case MECH_FORCE:
+      return "mech force";
       break;
     case MECH_STRESS:
       return "stress";
       break;
     case MECH_STRAIN:
+      return "mech strain";
       break;
     case ELEC_POTENTIAL:
       return "E-Potential";
@@ -778,10 +781,17 @@ std::string WriteResultsGMV::SolutionTypeToString(const SolutionType type) const
     case ELEC_FIELD:
       return "E-Field";
       break;
-    case ELEC_FORCE: 
+    case ELEC_FORCE_VWP:
+      return "elec force";
+      break;
+    case ELEC_INTERFACE_FORCE:
+      return "elec interface force";
       break;
     case ELEC_CHARGE:
       return "E-Charge";
+      break;
+    case ELEC_FLUX_DENSITY:
+      return "E-Flux Density";
       break;
     case SMOOTH_DISPLACEMENT:
       return "displacement";
@@ -790,6 +800,7 @@ std::string WriteResultsGMV::SolutionTypeToString(const SolutionType type) const
       return "vp";
       break;
     case ACOU_FORCE:
+      return "acou force";
       break;
     case ACOU_POTENTIAL_DERIV_1:
       return "vp_der_1";
@@ -806,8 +817,11 @@ std::string WriteResultsGMV::SolutionTypeToString(const SolutionType type) const
     case MAG_EDDY_CURRENT:
       return "eddy current";
       break;
-    case MAG_FORCE:
+    case MAG_FORCE_VWP:
+      return "mag force (VWP)";
       break;
+    case MAG_FORCE_LORENTZ:
+      return "maf force (Lorentz)";
     default:
       Error( "Wrong type of solution or 'SolutionType2String' not implemented for\
 this type of solution", __FILE__, __LINE__);

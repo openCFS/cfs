@@ -239,7 +239,7 @@ void AnsysFile::ReadBCs(std::list<Integer> * bcs, const StdVector<std::string> l
 
 	if (!Find) 
 	  {
-	    std::string msg=str+": This level of BCs from .mesh file is not mentioned in .config file. Please, check .config-file";
+	    std::string msg=str+": This level of BCs from .mesh file is not mentioned in xml file. Please, check .xml-file";
 	    Error(msg.c_str(),__FILE__,__LINE__);
 	  }
 	
@@ -283,7 +283,7 @@ void AnsysFile::ReadSaveNodes(std::list<Integer> * saveNodes , const StdVector<s
 	if (!Find) 
 	  {
 	    std::string msg="The level \"" + str + "\" of \"Save Nodes\" from the .mesh ";
-	    msg += "file is not mentioned in the .config file. Did ";
+	    msg += "file is not mentioned in the .xml file. Did ";
 	    msg += "you perhaps miss to define it there?";
 	    Info->Warning(msg.c_str());
 	  }
@@ -465,7 +465,7 @@ void AnsysFile::ReadBCs_GridRG(std::list<Integer> & idBCs,
 	  { if (str==levels[j]) { Find=TRUE; break;}
 	  }         
 	
-	std::string msg=str+"-this level of BCs from .mesh file is not mentioned in .config file. Please, check .config-file";
+	std::string msg=str+"-this level of BCs from .mesh file is not mentioned in .xml file. Please, check .xml-file";
 	if (!Find) Error(msg.c_str(),__FILE__,__LINE__);
 	
 	idBCs.Push_back(nodalnum);
@@ -636,7 +636,7 @@ void AnsysFile::SetNumSD(grd::Element * ptEl, const std::string namesd, const St
     if (namesd == sd[j]) { ptEl->setValue(j);
     Find=TRUE;
     }
-  if (!Find) { std::string msg=namesd + "- this level of element is not mentioned in .conf-file. Please, check .config-file";
+  if (!Find) { std::string msg=namesd + "- this level of element is not mentioned in .xml-file. Please, check .xml-file";
   Error(msg.c_str(),__FILE__,__LINE__);
   }
   }
@@ -691,7 +691,7 @@ void AnsysFile::ReadEl1d(StdVector<Elem*> * allelems, const StdVector<std::strin
 	      if (namesd == sd[j]) { allelems[j].Push_back(el);
 	      Find=TRUE;
 	      }
-	    if (!Find) { std::string msg=namesd + "- this level of element is not mentioned in .conf-file. Please, check .config-file";
+	    if (!Find) { std::string msg=namesd + "- this level of element is not mentioned in .xml-file. Please, check .xml-file";
 	    Error(msg.c_str(),__FILE__,__LINE__);
 	    }
 	  }
@@ -752,7 +752,7 @@ void AnsysFile::ReadEl2d(StdVector<Elem*> * allelems, const StdVector<std::strin
 		}
 	    if (!Find) 
 	      { 
-		std::string msg=namesd + "- this level of element is not mentioned in .conf-file. Please, check .config-file";
+		std::string msg=namesd + "- this level of element is not mentioned in .xml-file. Please, check .xml-file";
 		Error(msg.c_str(),__FILE__,__LINE__);
 	      }
 	  }
@@ -805,7 +805,7 @@ void AnsysFile::ReadEl3d(StdVector<Elem*> * allelems, const StdVector<std::strin
 	  if (namesd == sd[j]) { allelems[j].Push_back(el);
 	  Find=TRUE;
 	  }
-	if (!Find) { std::string msg=namesd + "- this level of element is not mentioned in .conf-file. Please, check .config-file";
+	if (!Find) { std::string msg=namesd + "- this level of element is not mentioned in .xml-file. Please, check .xml-file";
 	Error(msg.c_str(),__FILE__,__LINE__);
 	}
       }

@@ -382,6 +382,17 @@ namespace CoupledField {
   }
 
 
+  // =========================================
+  //   Return a list of iterative coupled PDEs
+  // =========================================
+  void PlainXMLParamHandler::GetIterCoupledPDEList( StdVector<std::string> &list)
+					
+  {
+    ENTER_FCN( "PlainXMLParamHandler::GetIterCoupledPDEList" );
+    Error (" Implement me!", __FILE__, __LINE__);
+  }
+  
+
   // ========================================
   //   Query on/off status of a flag/switch
   // ========================================

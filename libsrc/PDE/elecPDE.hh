@@ -129,7 +129,7 @@ namespace CoupledField
     virtual void CalcOutputCoupling();
 
     //! returns if PDE can compute the quantity
-    virtual Boolean HasOutput(std::string output);
+    virtual Boolean HasOutput(SolutionType output);
   
 
   protected:

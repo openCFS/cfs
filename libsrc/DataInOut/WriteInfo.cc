@@ -27,6 +27,10 @@ namespace CoupledField
   
     cfsInfo = new std::ofstream(filename.c_str());
 
+    warningOccured_ = FALSE;
+    progressRunning_ = FALSE;
+    needAck_ = FALSE;
+
     if (!cfsInfo) 
       Error("Can't open info-file");
   }
@@ -442,7 +446,13 @@ namespace CoupledField
 			  const Char * const filename, const Integer numline)
   {
     ENTER_FCN( "WriteInfo::Warning" );
+
+    if (progressRunning_)
+      std::cerr <<  "\033[31mWARNING\033[0m " << myEndl << myEndl;
+    
     std::cerr << "\033[31mWARNING:\033[0m " << Text << myEndl << myEndl;
+    
+    warningOccured_ = TRUE;
 
     if (filename) 
       {
@@ -482,10 +492,14 @@ namespace CoupledField
   {
     ENTER_FCN( "WriteInfo::Error" );
     
-    std::cerr << std::endl << "\033[31mERROR:\033[0m " << Text;
+    if (progressRunning_);
+    std::cerr << "\033[31mFAILED\033[0m" << std::endl << std::endl;
+
+    std::cerr << std::endl << "\033[31mERROR:\033[0m " << myEndl;
+    std::cerr << Text;
 
     if (filename) {
-      std::cerr <<"\n       The error occurred in '" << filename << "'";
+      std::cerr <<"\n\nThe error occurred in '" << filename << "'";
       if (numline) {
 	std::cerr << " on line " << numline << ".";
       }
@@ -493,7 +507,7 @@ namespace CoupledField
 
 #ifdef TRACE
     OutInfo::FcnTraceHandler::Dump();
-    std::cerr << "\n       See .trace-file for trace dump of function "
+    std::cerr << "\nSee .trace-file for trace dump of function "
 	      << "call tree.";
 #endif
 
@@ -665,4 +679,41 @@ namespace CoupledField
     va_end(argList);
   }  
     
+  void WriteInfo::StartProgress(const std::string &name,
+				Boolean needAck)
+  {
+    ENTER_IFCN( "WriteInfo::StartProgress" );
+   
+    std::string modifiedName = name + " ...";
+
+    needAck_ = needAck;
+    
+    std::cerr << "++ " << std::setw(60) << std::left << modifiedName;
+
+    if (needAck)
+      {
+	warningOccured_ = FALSE;
+	progressRunning_ = TRUE;
+      }
+    else
+      std::cerr << std::endl;
+  }
+
+
+  void WriteInfo::FinishProgress(const Boolean success)
+  {
+    ENTER_IFCN( "WriteInfo::StartProgress" );
+    
+ 
+    if (!warningOccured_)
+      if (success)
+	std::cerr << std::setw(10) << "\033[32mOK\033[0m" << std::endl;
+      else
+	std::cerr << std::setw(10) << "\033[31mFAILED\033[0m" << std::endl;
+
+    warningOccured_ = FALSE;
+    progressRunning_ = FALSE;
+ }
+  
+  
 }

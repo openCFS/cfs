@@ -8,7 +8,7 @@
 #include <Forms/forms_header.hh>
 #include <Estimator/spaceerror.hh>
 #include "blocknodeEQN.hh"
-
+#include "DataInOut/ParamHandling/BaseParamHandler.hh"
 #include "smoothPDE.hh" 
 
 namespace CoupledField
@@ -26,25 +26,74 @@ SmoothPDE::SmoothPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileTyp
   pdematerialclass_ = "piezo";
   
   
-  conf->getstr("subtype", subType_, pdename_ );
-  
-  if (subType_ == "3d")
-    dofspernode_ = 3;
-  else if (subType_ == "axi")
-    {
+#ifndef XMLPARAMS
+    conf->getstr("subtype", subType_, pdename_ );
+
+    if (subType_ == "3d")
+      {
+	dofspernode_ = 3;
+	Info->PrintF("", "=== 3D PROBLEM\n");
+      }
+    else if (subType_ == "axi")
+      {
+	isaxi_ = TRUE;
+	dofspernode_ = 2;
+	Info->PrintF("", "=== AXISYSMMETRIC PROBLEM\n");
+      }
+    else if (subType_ == "planeStrain" )
+      {
+	dofspernode_ = 2;
+	Info->PrintF("", "=== PLAIN STRAIN PROBLEM\n");
+      }
+    else
+      {
+	std::string errmsg = "Subtype " + subType_ + " is not defined for";
+	errmsg += " PDEs of type " + pdename_ + '\n';
+	Info->Error( errmsg, __FILE__, __LINE__ );
+      }
+#else
+
+    // Get problem geometry and PDE subtype
+    params->Get( "subType", subType_, pdename_ );
+    std::string probGeo;
+    params->Get( "type", probGeo, "geometry" );
+
+    // Set number of degrees of freedom and
+    // ensure that subtype fits to problem geometry
+    if ( subType_ == "3d" && probGeo == "3d" ) {
+      dofspernode_ = 3;
+          }
+    else if ( subType_ == "axi" && probGeo == "axi" ) {
       isaxi_ = TRUE;
       dofspernode_ = 2;
     }
-  else
-    dofspernode_ = 2;
+    else if ( subType_ == "planeStrain" && probGeo == "plane" ) {
+      dofspernode_ = 2;
+    }
+    else
+      {
+	std::string errmsg = "Subtype '" + subType_;
+	errmsg += "' of PDE '" + pdename_ + "' does not fit to problem ";
+	errmsg += "geometry '" + probGeo + "'\n";
+	Info->Error( errmsg, __FILE__, __LINE__ );
+      }
+#endif
 
-  conf->getsubdompde(subdoms_,pdename_);
-
+ 
+#ifndef XMLPARAMS
+    conf->getsubdompde(subdoms_,pdename_);
+#else
+    params->GetList( "name", subdoms_, pdename_, "region" );
+    Info->PrintF( pdename_, " MechPDE lives on regions:" );
+    for ( Integer k = 0; k < subdoms_.GetSize(); k++ ) {
+      Info->PrintF( pdename_, " %s", subdoms_[k].c_str() );
+    }
+#endif
 
   //BCs
   ReadBCs(pdename_);
  
-  
+#ifndef XMLPARAMS  
   conf->ifgetliststr("homogenBCDof", homDirichDof_, pdename_);  
   conf->ifgetliststr("inhomogenBCDof", inhomDirichDof_, pdename_);
 
@@ -53,6 +102,10 @@ SmoothPDE::SmoothPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileTyp
   conf->ifgetliststr("homoBCdof", homDirichDof_, pdename_);
   conf->ifgetliststr("inhomoBCDof", inhomDirichDof_, pdename_);
   conf->ifgetliststr("inhomoBCdof", inhomDirichDof_, pdename_);
+#else
+  params->GetList( "dof", homDirichDof_  , pdename_, "dirichletHom" );  
+  params->GetList( "dof", inhomDirichDof_, pdename_, "dirichletInhom" );    
+#endif
 
   //check for b.c. input data
   if (bcs_hd_.GetSize() != homDirichDof_.GetSize()) 
@@ -63,10 +116,15 @@ SmoothPDE::SmoothPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileTyp
   numDirichletBCs_ = GetNumRestraints(actlevel_);
   
   method_ = "mechanic";
+#ifndef XMLPARAMS
   conf->ifget("method", method_, pdename_ );
+#else
+
+#endif
 
   // initialize eqation data object
-  eqnData_  = new BlockNodeEQN(ptgrid_, ptBCs_, subdoms_, actlevel_, dofspernode_);
+  eqnData_  = new BlockNodeEQN(ptgrid_, ptBCs_, subdoms_, 
+			       actlevel_, dofspernode_);
   eqnData_->SetHomoDirichletBCs(bcs_hd_, homDirichDof_);
   eqnData_->CalcMapping();
   //eqnData_->Print(std::cerr);
@@ -134,7 +192,11 @@ void SmoothPDE::DefineIntegrators(const Integer level)
 
       // ==============  add "standard" stiffness ===============================
       BaseForm * bilinearStiff;
+#ifndef XMLPARAMS
       if (subType_ == "plainStrain")
+#else
+      if (subType_ == "planeStrain")
+#endif
 	bilinearStiff = new smoothPlainStrainInt(actSDMat);
       else if (subType_ == "3d")
 	bilinearStiff = new smooth3DInt(actSDMat);
@@ -159,7 +221,7 @@ void SmoothPDE::InitCoupling(PDECoupling * coupling)
   for (Integer i=0; i<ptCoupling_->GetNumInputCouplings(); i++)
     {
       // check for input mechanic displacement
-      if (ptCoupling_->GetInputQuantity(i) == "mechdisplacement")
+      if (ptCoupling_->GetInputQuantity(i) == MECH_DISPLACEMENT)
 	{
 	  numDirichletBCs_ += (dofspernode_ * ptCoupling_->GetInputNumNodes(i));
 	}
@@ -170,7 +232,7 @@ void SmoothPDE::InitCoupling(PDECoupling * coupling)
   for (Integer i=0; i<ptCoupling_->GetNumOutputCouplings(); i++)
     {
       // check for output displacement
-      if (ptCoupling_->GetOutputQuantity(i) == "smoothdisplacement")
+      if (ptCoupling_->GetOutputQuantity(i) == SMOOTH_DISPLACEMENT)
 	{
 	ptCoupling_->CreateCouplingVector(i,isComplex_); 
 	}
@@ -242,7 +304,7 @@ void SmoothPDE::CalcOutputCoupling()
 {
   ENTER_FCN( "SmoothPDE::CalcOutputCoupling" );
 
-  std::string quantity;
+  SolutionType quantity;
   StdVector<Integer> * couplingnodes;
   CFSVector * values;
 
@@ -259,7 +321,7 @@ void SmoothPDE::CalcOutputCoupling()
 	  ptCoupling_->GetOutputNodes(i, couplingnodes);
 	  ptCoupling_->GetOutputValues(i, values);
 
-	  if (quantity == "smoothdisplacement")
+	  if (quantity == SMOOTH_DISPLACEMENT)
 	    {
 	      sol_->NodeSolutionToCoupling(*values,*couplingnodes);
 	    }
@@ -338,11 +400,11 @@ Integer SmoothPDE::GetBCDof(const std::string dofString)
 }
   
 
-Boolean SmoothPDE::HasOutput(std::string output)
+Boolean SmoothPDE::HasOutput(SolutionType output)
 {
   ENTER_FCN( "SmoothPDE::HasOutput" );
   
-  if (output == "smoothdisplacement")
+  if (output == SMOOTH_DISPLACEMENT)
     return TRUE;
 
   return FALSE;

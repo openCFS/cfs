@@ -338,7 +338,93 @@ namespace CoupledField {
     }
   }
 
+  // =========================================
+  //   Return a list of iterative coupled PDEs
+  // =========================================
+  void XMLParamHandler::GetIterCoupledPDEList( StdVector<std::string> &list)
+  {
+    ENTER_FCN( "XMLParamHandler::GetIterCoupledPDEList" );
+    
+    // string for assembling error messages
+    std::string errmsg;
 
+
+    // Check if vector is empty. If not issue a warning
+    // and erase its entries, if this is desired
+    if ( list.IsEmpty() != true ) {
+      if ( beVerbose_ == true ) {
+	errmsg  = "Warning input vector was not empty!\n";
+	errmsg += "Contents have been erased!";
+	Info->Warning( errmsg );
+      }
+      list.Clear();
+    }
+
+    // Find PDE section
+    DOMNodeList *coupledPDEsec = rootElem_->getElementsByTagName( C2X("iterative") );
+
+    // Check that there is only one such section
+    if ( coupledPDEsec->getLength() != 1 ) {
+      errmsg  = "Got " + Info->GenStr( coupledPDEsec->getLength() );
+      errmsg += " couplingList elements in parameter file!";
+      Info->Error( errmsg, __FILE__, __LINE__ );
+    }
+
+    
+    // Find iterative Coupled section
+    DOMNodeList * iterCoupledPDEsec = coupledPDEsec->item(0)->getChildNodes();
+    if ( iterCoupledPDEsec->getLength() == 0 ) {
+      errmsg = "Cannot find an iterative coupling section in parameter file!";
+      Info->Error( errmsg, __FILE__, __LINE__ );
+    }
+
+
+    // iterate over all pairwise couplings
+    for (Integer i=0; i < iterCoupledPDEsec->getLength(); i++)
+      {
+	// Only treat element children and not comments!
+	if ( iterCoupledPDEsec->item(i)->getNodeType() == DOMNode::ELEMENT_NODE ) {
+    
+	  // The names of the PDEs are the tags of the child elements of the
+	  // PDE_list element, except perhaps the last one, which specifies
+	  // the nonlinear coupling
+	  DOMNodeList *iterPDElist = iterCoupledPDEsec->item(i)->getChildNodes();
+	  if ( iterPDElist->getLength() == 0 ) {
+	    errmsg = "Cannot find a single PDE in iterative couplingList of parameter file!";
+	    Info->Error( errmsg, __FILE__, __LINE__ );
+	  }
+	  	  
+	  
+	  // Now get hold of tags, convert them to strings and assemble vector
+	  std::string pdename;
+	  Boolean found = FALSE;
+	  for ( unsigned int k = 0; k < iterPDElist->getLength(); k++ ) {
+	    
+	    // Only treat element children and not comments!
+	    if ( iterPDElist->item(k)->getNodeType() == DOMNode::ELEMENT_NODE ) {
+	      pdename = X2C( Node2Elem( iterPDElist->item(k) )->getNodeName() );
+	      
+	      // only get elements which describe a PDE element
+	      if (pdename != "nonLinear")
+		{
+		  // Now ensure, that each PDEname occurs only one time
+		  found = FALSE;
+		  for (Integer j=0; j<list.GetSize(); j++)
+		    if ( list[j] == pdename)
+		      {
+			found = TRUE;
+			break;
+		      }
+		  
+		  if (!found)
+		    list.Push_back( pdename );
+		}
+	    }
+	  }
+	}
+      }
+  }
+  
   // ======================================
   //   Return a list of the defined coils
   // ======================================

@@ -17,7 +17,6 @@ class Grid;
 class Elem;
 class BCs;
 template<class TYPE> class Vector;
-template<class TYPE> class Array;
 template<class TYPE> class Matrix;
 
   //! This class holds information about Coupling terms, such as coupling quantity, values coupling nodes/elements ...
@@ -32,7 +31,7 @@ class PDECoupling
     CouplingInterface();
     ~CouplingInterface();
 
-    std::string region;                    //!< name of coupling region
+    StdVector<std::string> regions;       //!< name of coupling region
     CouplingRegionType regionType;        //!< type of coupling region (defined in 'environment.hh')
     Integer level;                        //!< multigrid level
     StdVector<Integer> nodes;           //!< vector of coupling nodes 
@@ -64,21 +63,25 @@ public:
     \param, Quantity (input) name of input coupling quantity (e.g. 'elecforce')
   */
   virtual void RegisterInput(CouplingInputType InType, 
-			     std::string quantity);
+			     SolutionType quantity);
 
   //! add coupling input
   /*!
     \param numCoupling (input) number of Couplinginterface
     \param Quantity (input) name of input coupling quantity
-    \param region (input) name of input coupling region
-    \param RegionType (input) type of input coupling region
-    \param level (input) multigrid level
+    \param interfaceNames (input) names of input coupling interfaces
+    \param RegionType (input) type of input coupling interfaces
+    \param level (input) hierarchy level
+    \param epsilon (input) tolerance for quantity
+    \param normtype (input) normtype of epsilon
     \param Couplings (input) vector with all Couplingobjects of coupledpde
   */
-  virtual void AddInput(std::string quantity, 
-			std::string region,
+  virtual void AddInput(SolutionType quantity, 
+			StdVector<std::string> &interfaceNames,
 			CouplingRegionType regionType, 
 			Integer level,
+			Double epsilon,
+			NormType normtype,
 			StdVector<PDECoupling*> & couplings);
   
   //! set PDE
@@ -122,12 +125,12 @@ public:
   { return inputTypes_[i];}
 
   //! get input coupling quantity
-  virtual std::string GetInputQuantity(Integer i)
+  virtual SolutionType GetInputQuantity(Integer i)
   { return inputQuantities_[i]; }
 
   //! get input coupling region
-  virtual std::string GetInputRegion(Integer i)
-  { return inputInterfaces_[i]->region; }
+  virtual void GetInputRegions(Integer i, StdVector<std::string> & regions)
+  { regions = inputInterfaces_[i]->regions; }
 
   //! get input coupling regiontype
   virtual CouplingRegionType GetInputRegionType(Integer i)
@@ -188,12 +191,12 @@ public:
   { return outputTypes_[i];}
 
   //! get output coupling quantity
-  virtual std::string GetOutputQuantity(Integer i)
+  virtual SolutionType GetOutputQuantity(Integer i)
   { return outputQuantities_[i]; }
 
   //! get output coupling region
-  virtual std::string GetOutputRegion(Integer i)
-  { return outputInterfaces_[i]->region; }
+  virtual void GetOutputRegions(Integer i, StdVector<std::string> &regions)
+  { regions = outputInterfaces_[i]->regions; }
 
   //! get output coupling regiontype
   virtual CouplingRegionType GetOutputRegionType(Integer i)
@@ -260,8 +263,8 @@ protected:
     \param level (input) multigrid level
   */
   virtual CouplingInterface* AddOutput(CouplingOutputType outputType, 
-				       std::string quantity, 
-				       std::string region,
+				       SolutionType quantity, 
+				       StdVector<std::string> & region,
 				       CouplingRegionType regionType,
 				       Integer level);
 
@@ -275,12 +278,12 @@ protected:
 
   // Coupling Output parameters
   StdVector<CouplingOutputType> outputTypes_;      //!< vector containing types of coupling output
-  StdVector<std::string> outputQuantities_;        //!< vector containing quantities of coupling output
+  StdVector<SolutionType> outputQuantities_;        //!< vector containing quantities of coupling output
   StdVector<CouplingInterface*> outputInterfaces_; //!< vector containing pointer to coupling interfaces
 
   // Coupling Input parameters
   StdVector<CouplingInputType> inputTypes_;        //!< vector containing types of coupling input
-  StdVector<std::string> inputQuantities_;         //!< vector conatining quantities of coupling input
+  StdVector<SolutionType> inputQuantities_;         //!< vector conatining quantities of coupling input
   StdVector<CouplingInterface*> inputInterfaces_;  //!< vector containing pointer to coupling interfaces
   
   // defautl values for coupling

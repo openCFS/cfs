@@ -257,6 +257,13 @@ namespace CoupledField
     //! strings.
     void GetPDEList( StdVector<std::string> &list );
 
+    //! Obtain list of iterative coupled PDEs defined in parameter file
+
+    //! This methode queries the parameter object for a list of all PDEs
+    //! which are iterative coupled. 
+    //! \param list          List with name of all direct coupling pdes
+    virtual void GetIterCoupledPDEList( StdVector<std::string> &list);
+    
     //! Obtain list of coils defined in parameter file
 
     //! This method queries the parameter object for a list of all coils

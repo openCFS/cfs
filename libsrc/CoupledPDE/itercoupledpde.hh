@@ -43,14 +43,20 @@ class IterCoupledPDE : public BaseCoupledPDE
 
 
 protected:
-  //!
-  void WriteCouplingInfo();
+
+  //! Write information about coupling interfaces
+  //! and coupling setup into ostream
+  void WriteCouplingInfo(std::ostream &out);
 
   //! calculates the norm of a vector
   Double CalcNorm(NormType normtype, CFSVector & val, CFSVector & oldval);
 
   Integer maxiter_;                        //!< maximum number of iterations per time step
   StdVector<Double> norms_;              //!< norm of coupling values
+
+  //! Flag for nonlinear logging
+  Boolean nonLinLogging_;
+  
 };
 
 } // end of namespace

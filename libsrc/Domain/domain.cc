@@ -93,9 +93,14 @@ namespace CoupledField {
 	Error("Unknown type of mesh_library in conf-file",__FILE__,__LINE__);
       }
     }
+    
+    Info->StartProgress("Reading in the mesh");
 
     //read in the mesh information
     ptgrid_->Read();
+
+    Info->FinishProgress();
+    
  
     if (PrintGridOnly) {
       PrintGrid(0);
@@ -111,7 +116,9 @@ namespace CoupledField {
     InitPDEs();
 
     // Initialize Coupled PDEs
+    Info->StartProgress("Initializing coupling");
     InitCoupledPDE();
+    Info->FinishProgress();
  
     // Set the algebraic systems and read material data
     for (int i=0;i< numpde_;i++)
@@ -168,6 +175,7 @@ namespace CoupledField {
 
 
     for (int i=0;i< pdes.GetSize();i++) {
+      Info->StartProgress("Initializing PDE '" + pdes[i] + "'");
       if (pdes[i] == "electrostatic") 
 	ptpde_[i]=new ElecPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
 
@@ -205,6 +213,7 @@ namespace CoupledField {
 	  std::string msg=pdes[i]+" - this type of pdes is unknown";
 	  Error(msg.c_str(),__FILE__,__LINE__);
 	}     
+      Info->FinishProgress();
 
     }
 
@@ -216,22 +225,75 @@ namespace CoupledField {
   void Domain::InitCoupledPDE() {
     ENTER_FCN( "Domain::InitCoupledPDE" );
   
+    std::string errMsg;
+
     // check if more than one PDEs are defined
     if (numpde_ <= 1) {
-      ptcoupledpde_ = 0;
+      ptcoupledpde_ = NULL;
       return;
     }
 
-    // Initialize the definiton of coupled PDEs
-    CoupledPDEDef * CouplingDef = new CoupledPDEDef(ptgrid_, ptBCs_);
-    CouplingDef->CreateCoupling(orderedpdes_,couplings_, ptpde_);
-  
-    // create new Coupled PDE
-    ptcoupledpde_ = new IterCoupledPDE(orderedpdes_,couplings_,ptgrid_,
-				       ptBCs_,InFile_,OutFile_);
-    ptcoupledpde_->InitCoupling(numlevel_);
+    
 
-    delete CouplingDef;
+#ifndef XMLPARAMS
+    std::string errMsg;
+    errMsg  = "Sorry, you are out-dated!\n";
+    errMSg += "Coupling is only supported for .xml-files!";
+    Error(errMsg.c_str(), __FILE__, __LINE__);
+#else
+    // ================================
+    //   Check for iterative coupling
+    // ================================
+    
+    StdVector<BasePDE*> iterCoupledPDEs;
+    StdVector<std::string> iterCoupledPDENames;
+    StdVector<std::string> methods;
+
+    
+
+    params->GetIterCoupledPDEList(iterCoupledPDENames);
+    
+    iterCoupledPDEs.Clear();
+
+    // we have all the names of the PDEs which couple iteratively.
+    // Now we have to get the according pointers to the PDEs
+    for (Integer i=0; i<iterCoupledPDENames.GetSize(); i++)
+	for (Integer j=0; j<ptpde_.GetSize(); j++)
+	  if (iterCoupledPDENames[i] == ptpde_[j]->GetName())
+	      iterCoupledPDEs.Push_back(ptpde_[j]);
+    
+    params->GetList( "method", methods);
+    for (Integer i=0; i<methods.GetSize(); i++)
+      if (methods[i] != "RHS")
+	{
+	  errMsg  = "Domain::InitCoupledPDE: Methode '";
+	  errMsg += methods[i];
+	  errMsg += "' not implemented for iterative coupling";
+	  Error(errMsg.c_str(), __FILE__, __LINE__);
+	} 
+    
+    
+    CoupledPDEDef * CouplingDef = new CoupledPDEDef(ptgrid_, ptBCs_);
+
+    // create coupling objects 
+    CouplingDef->CreateCoupling(orderedpdes_,couplings_, iterCoupledPDEs);
+    
+    // create new iterative coupeld PDE
+    ptcoupledpde_ = new IterCoupledPDE(orderedpdes_,couplings_,
+				       ptgrid_, ptBCs_,InFile_,OutFile_);
+    
+    // initialize coupledPDE
+    ptcoupledpde_->InitCoupling(numlevel_);
+    
+    delete CouplingDef;	
+#endif
+
+
+    // ================================
+    //   Check for direct coupling
+    // ================================
+
+    // -- Not implemented yet --
   }
 
 

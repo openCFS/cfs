@@ -7,6 +7,7 @@
 #include "DataInOut/filetype.hh"
 #include "DataInOut/writeresults.hh"
 #include "Utils/StdVector.hh"
+#include "DataInOut/ParamHandling/BaseParamHandler.hh"
 
 #include <PDE/basePDE.hh>
 
@@ -42,7 +43,6 @@ public:
   virtual ~BaseCoupledPDE();
 
 
-  //! name
   virtual std::string GetName()
   {return coupledpdename_;};
   
@@ -99,9 +99,8 @@ public:
 protected:
   
   // general PDE parameters
-  std::string coupledpdename_;          //!< name of coupled PDE
-  std::string couplingSectionName_;     //!< name of section in conffile, which holds params for coupling
-  AnalysisType analysistype_;           //!< type of analysis
+  std::string coupledpdename_;        //!< name of the coupled pde 
+  AnalysisType analysistype_;         //!< type of analysis
   StdVector<BasePDE *> PDEs_;         //!< list of belonging PDEs
   StdVector<PDECoupling*> Couplings_; //!< vector of coupling objects
   Integer NumPDEs_;                     //!< number of PDEs 
