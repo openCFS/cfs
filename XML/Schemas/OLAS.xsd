@@ -34,10 +34,10 @@
           <xsd:attribute name="matType" use="required">
             <xsd:simpleType>
               <xsd:restriction base="xsd:token">
-                <xsd:enumeration value="CRSRealDof1"/>
-                <xsd:enumeration value="SCRSRealDof1"/>
-                <xsd:enumeration value="HypreMatrix"/>
-                <xsd:enumeration value="LapackGBMatrix"/>
+                <xsd:enumeration value="sparseSym"/>
+                <xsd:enumeration value="sparseNonSym"/>
+                <xsd:enumeration value="hypreMatrix"/>
+                <xsd:enumeration value="lapackGBMatrix"/>
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:attribute>
