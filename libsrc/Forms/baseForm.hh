@@ -78,6 +78,11 @@ public:
   void ReadNlinFunc(std::string fncName, Vector<double> &xval, Vector<Double> &yval)
   {Error("ReadNlinFunc not implemented!");}
 
+  //! set the integration point
+  void SetIntPoint(Vector<Double> point) {
+    intPoint_ = point; isSetIntPoint_ = TRUE;
+  }
+
 protected:
 
   //! Ptr to base element
@@ -87,6 +92,10 @@ protected:
   MaterialData * ptMaterial ;
 
   Boolean isaxi_;
+  //
+  Vector<Double> intPoint_;
+  //
+  Boolean isSetIntPoint_;
 };
 
 } //end namespace

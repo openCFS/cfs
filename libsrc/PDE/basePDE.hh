@@ -230,6 +230,9 @@ class SpaceErrorEstimator;
     //! return name of pde
     virtual std::string GetName() {return pdename_;}
 
+    //! return subtype
+    virtual std::string GetSubType() {return subType_;}
+
     //! return pointer to vector with subdomains, on which we calculate the PDE
     virtual StdVector<std::string> * getSDsPDE()
     { return &subdoms_;}
@@ -352,6 +355,8 @@ class SpaceErrorEstimator;
     //! surface-domain-levels belongig to PDE
     StdVector<std::string> surfdoms_;
 
+    //! defines subtype of mechanic PDE: plainStrain, 3d, ...
+    std::string subType_;
     //@}
 
     // -----------------------------------------------------------------------

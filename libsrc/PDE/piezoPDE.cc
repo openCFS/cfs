@@ -144,8 +144,12 @@ namespace CoupledField {
    if (bcs_id_.GetSize() != inhomDirichDof_.GetSize()) 
      Error("Inconsistent definition of inhomogeneous Dirichlet Boundary Conditions");
    
-//    eqnData_ = new BlockNodeEQN(ptgrid_, ptBCs_, subdoms_, actlevel_, dofspernode_);
+
    eqnData_ = new BlockNodeEQN(ptgrid_, ptBCs_, subdoms_, actlevel_, dofspernode_);
+   
+   //eqnData_  = new ScalarBlockEQN(ptgrid_, ptBCs_, subdoms_, 
+   //				  actlevel_, dofspernode_);
+
    eqnData_->SetHomoDirichletBCs(bcs_hd_, homDirichDof_);
    eqnData_->CalcMapping();
    eqnData_->Print(std::cerr);
@@ -298,6 +302,12 @@ void PiezoPDE :: InitTimeStepping(const Double dt)
 				"displacement");
     outFile_->WriteNodeSolution(potentialPDE, laststepcalc_, lasttimecalc_,
 				"E-Potential");
+
+    //element results
+    if (calcStress_.GetSize() !=0 ) {
+      outFile_->WriteElemSolution(Stress_, laststepcalc_, lasttimecalc_, "stress");
+    }
+
   }
   
 
@@ -321,5 +331,164 @@ void PiezoPDE :: InitTimeStepping(const Double dt)
 
     return nrActDof;
   }
+
+
+// ***********************************************************************
+//   Obtain information on desired output quantities from parameter file
+// ***********************************************************************
+#ifdef XMLPARAMS
+void PiezoPDE::ReadStoreResults() {
+
+  ENTER_FCN( "PiezoPDE::ReadStoreResults" );
+
+  // By default we only save the solution at nodal values
+  savesol_    = TRUE;
+  savederiv1_ = FALSE;
+  savederiv2_ = FALSE;
+
+  // Determine what solution values the user wants to be stored
+  StdVector<std::string> nodeValues;
+  params->GetList( "type", nodeValues, pdename_, "nodeHistory" );
+
+  for ( Integer i = 0;  i < nodeValues.GetSize(); i++ ) {
+    if ( nodeValues[i] == "displacement" ) savesol_    = TRUE;
+    if ( nodeValues[i] == "velocity"     ) savederiv1_ = TRUE;
+    if ( nodeValues[i] == "acceleration" ) savederiv2_ = TRUE;
+  }
+
+  // -----------
+  //   Stress
+  // -----------
+
+  // Determine regions for which stress must be computed
+  params->CGetList( "region", calcStress_, "type", "stress", 0, pdename_,
+		      "elemResults" );
+
+  // If the symbolic name is "all" compute electric field for all regions
+  if ( calcStress_.GetSize() == 1 && calcStress_[0] == "all" ) {
+    calcStress_ = subdoms_;
+  }
+
+  // Log to info file
+  if ( calcStress_.GetSize() > 0 ) {
+    Info->PrintF( pdename_,
+		  " Computing mechanical stress for regions:");
+    for ( Integer k = 0; k < calcStress_.GetSize(); k++ ) {
+      Info->PrintF( pdename_, " %s", calcStress_[k].c_str() );
+    }
+  }
+
+}
+#endif
+
+// ************************************************************
+//   PostProcess
+// ************************************************************
+
+void PiezoPDE::PostProcess(const Integer level) {
+
+  ENTER_FCN( "PiezoPDE::PostProcess" );
+
+  NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
+  
+  if (calcStress_.GetSize() !=0 ) {
+
+    //get the correct bilinearform
+    ShortInt stressDim;
+    Vector<Double> intPoint;
+
+#ifndef XMLPARAMS 
+      if (subType_ == "plainStrain") {
+#else
+      if (subType_ == "planeStrain") {
+#endif
+	stressDim = 3;
+	intPoint.Resize(2); 
+	intPoint.Init(0);
+      }
+
+      else if (subType_ == "axi") {
+	stressDim = 4;
+	intPoint.Resize(2); 
+	intPoint.Init(0);
+      }
+
+      else if (subType_ == "3d") {
+	stressDim = 6;
+	intPoint.Resize(3); 
+	intPoint.Init(0);
+      }
+
+      else 
+	Info->Error("StressOp: Unknown subtype in mech PDE! ",__FILE__,__LINE__);  
+      
+      
+      // Resize solution arrays
+      Stress_.SetNumSolutions(1);
+      Stress_.SetSolutionType(MECH_STRESS);
+      Stress_.SetNumNodes(numElems_);
+      Stress_.SetNumDofs(stressDim);
+      Stress_.SetPtrEQNData(eqnData_);
+      Stress_.Init(0);
+      
+      Vector<Double> elemStress;
+      elemStress.Resize(stressDim);
+      elemStress.Init(0);
+      
+      // loop over all subdomains
+      for (Integer isd=0; isd<subdoms_.GetSize(); isd++) {
+	
+	MaterialData actSDMat(materialData_[isd]);
+	PiezoStressStrain *stress;
+	
+// 	if (subType_ == "planeStrain") 
+// 	  stress = new PiezoStressStrainPlaneStrain(actSDMat);
+
+// 	else if (subType_ == "axi") 
+// 	  stress = new PiezoStressStrainAxi(actSDMat);
+
+	if (subType_ == "3d") 
+	  stress = new PiezoStressStrain3D(actSDMat);
+	else
+	  Error("piezoPDE: Stress computation for 2D plane and axi not supported");
+
+	
+	// get vector of Elements of subdomains
+	StdVector<Elem*> elemssd;     
+	ptgrid_->GetElemSD(elemssd,subdoms_[isd],level);
+	
+	// loop over elements of subdomain
+	for (Integer iel=0; iel< elemssd.GetSize(); iel++) {
+	  Integer pdeElem = eqnData_->Mesh2PDEElem(elemssd[iel]->elemNum);
+	  
+	  //set element pointer
+	  BaseFE * ptEl = elemssd[iel]->ptElem;
+	  stress->SetElemPtr(ptEl);
+	  
+	  //set element solution	
+	  Matrix<Double> elSol;
+	  StdVector<Integer> connecth = elemssd[iel]->connect;
+	  sol_->GetElemSolutionAsMatrix(elSol, connecth);
+	  stress->SetActElemSol(elSol);
+	  
+	  //get coordinates of element
+	  Matrix<Double> ptCoord;
+	  GetElemCoords(connecth, ptCoord, level);
+	  
+	  Vector<Double> actStress;	
+	  
+	  //set the integration point
+	  stress->SetIntPoint(intPoint);
+
+	  //calculates the stress
+	  stress->CalcStressVec(elemStress,1,ptCoord);
+	  
+	  Stress_.SetNodalResult(pdeElem-1, elemStress);
+	}
+      }
+    }
+          
+  }
+
 
 } // end of namespace

@@ -259,8 +259,8 @@ void  WriteResultsUnverg::Dataset56(const std::string & title,
   (*output).precision(6);
   (*output).setf(std::ios::uppercase);
 
-  Integer valsPerNode = 1;
-  if (nrDofs > 1)
+  Integer valsPerNode = nrDofs;
+  if (nrDofs ==2)
     valsPerNode = 3;
 
   (*output) << " " << title << ", step" << std::setw(6) << step <<
@@ -290,7 +290,7 @@ void  WriteResultsUnverg::Dataset56(const std::string & title,
     {
       for (i=0; i<n; i++)
  	{
-	  (*output) << std::setw(10) << i+1 << std::setw(10) << 3 << std::endl;
+	  (*output) << std::setw(10) << i+1 << std::setw(10) <<  nrDofs << std::endl;
 	  for (j=0; j<nrDofs; j++)
 	    (*output) << std::setw(14) << x[i*nrDofs + j];
 	  
