@@ -37,6 +37,33 @@ public:
   //! Calculate element matrix for multiplication of shape functions
   void CalcShapeFncShapeFnc(Point<dim> * ptCoord, Matrix<Double> & Result);
 
+  //! Calculation of vector of RHS Dipole having a FlowSrc term (Lighthill's Tensor)
+  /*! 
+    Calculation of term in the following form:
+    \f $\int_{\Gamma}\frac{\partial P}{\partial \bar n} N_i d\Gamma,$
+    where \f $P$ is fluid pressure fluctuation.
+    \param ptCoord pointer to array with coordinates
+    \param connecth connection array for the element
+    \param Result (output) returned element vector
+    \param gradN_x_P \f $\frac{\partial P}{\partial x}$ at the center of element
+  */
+  virtual void CalcElemVector4FlowSrcDip(Point<dim> * ptCoord,const Vector<Integer> & connecth, Vector<Double> & Result, const std::vector<Double> gradN_x_P)
+  { Error(" This method is not implemented for this class",__FILE__,__LINE__);}
+
+  //!Calculation of vector of RHS Quadrupole having a FlowSrc term (Lighthill's Tensor)
+  /*!
+    Calculation of the following term:
+    \f $ \int_{\Omega} \nabla N_k \nabla \cdot T_{ij} d\Omega$,
+    where \f $T_{ij}$ is Lighthill's Tensor, \f $N_k$ is a shape function 
+
+    \param ptCoord pointer to array with coordinates
+    \param connecth connection array for the element
+    \param Result (output) returned element vector
+    \param FlowData (input) matrix with $(P,U_x,U_y)$ data at the nodes of the element
+  */
+  virtual void CalcElemVector4FlowSrcQuad(Point<dim> * ptCoord,const Vector<Integer> & connecth,const Matrix<Double> & FlowData, Vector<Double> & Result)
+  { Error(" This method is not implemented for this class",__FILE__,__LINE__);}
+
   //!
   virtual void Print(std::ostream * out, const Matrix<Double> Result) const;
 
@@ -47,32 +74,6 @@ protected:
 
   //! Calculation of function in integration points
   Double FuncAtIP(const ShortInt iIP, RHS f);  
-
-
-//////////////////////////////////////////////////////////////// version 2
-  /// calculation of determinat for 2 version, only for 3d
-  Double CalcDet(const Integer iIntPoints, Point<3> * ptCoord);  
-
-   /// Calculation of tramsformation coordinates in integration points
-  Double TransXDxi(Integer iIntPoints, Point<3> * ptCoord) ;
-  /// Calculation of tramsformation coordinates in integration points
-  Double TransXDnu(Integer iIntPoints, Point<3> * ptCoord);
-    /// Calculation of tramsformation coordinates in integration points
-  Double TransXDgam(Integer iIntPoints, Point<3> * ptCoord);
-
-  /// Calculation of tramsformation coordinates in integration points
-  Double TransYDxi(Integer iIntPoints, Point<3> * ptCoord);
- /// Calculation of tramsformation coordinates in integration points
-  Double TransYDnu (Integer iIntPoints, Point<3> * ptCoord);
- /// Calculation of tramsformation coordinates in integration points
-  Double TransYDgam (Integer iIntPoints, Point<3> * ptCoord);
-
-   /// Calculation of tramsformation coordinates in integration points
-  Double TransZDxi(Integer iIntPoints, Point<3> * ptCoord);
- /// Calculation of tramsformation coordinates in integration points
-  Double TransZDnu (Integer iIntPoints, Point<3> * ptCoord);
- /// Calculation of tramsformation coordinates in integration points
-  Double TransZDgam (Integer iIntPoints, Point<3> * ptCoord);
 
 };
 

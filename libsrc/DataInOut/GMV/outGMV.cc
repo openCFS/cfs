@@ -34,6 +34,14 @@ WriteResultsGMV :: WriteResultsGMV(const Char * const filename, Boolean withHist
  ptgrid=NULL;
  currstep_=0;
 
+ ascii_=FALSE;
+
+ std::string typedata;
+ if (conf->ifget("format_data_output",typedata)) {
+   if (typedata == "binary")
+     ascii_=FALSE;
+   else ascii_=TRUE;
+ }
 }
 
 WriteResultsGMV ::~WriteResultsGMV()
@@ -43,7 +51,8 @@ WriteResultsGMV ::~WriteResultsGMV()
 #endif
 
  // write keyword
- (*output) << "endgmv " << std::endl;
+ (*output) << "endgmv  ";
+ if (ascii_) (*output) << std::endl;
 
  delete [] namedir_;
 
@@ -52,7 +61,10 @@ WriteResultsGMV ::~WriteResultsGMV()
 
 void WriteResultsGMV :: WriteHeader()
 {
- (*output) << "gmvinput" << " ascii" << std::endl;
+ (*output) << "gmvinput";
+ if (ascii_) (*output) << " ascii" << std::endl;
+ else (*output) << "ieeei4r8";
+
 }
 
 void WriteResultsGMV :: WriteNodes(const Integer alevel)
@@ -60,11 +72,14 @@ void WriteResultsGMV :: WriteNodes(const Integer alevel)
   Integer level=alevel;
 
   // write keyword
- (*output) << "nodev ";
+ (*output) << "nodev   ";
 
  //get and write number of nodes on the level
  Integer numnodes=ptgrid->GetMaxnumnodes(level);
- (*output) << numnodes << std::endl;
+ if (ascii_)
+   (*output) << numnodes << std::endl;
+ else
+   output->write((char*)&numnodes,sizeof(Integer));
 
  Integer dim=ptgrid->GetDim();
 
@@ -79,7 +94,15 @@ if (dim==2) {
     {
       ptgrid->GetCoordinateNode(i,level,point);
 
+      if (ascii_)
       (*output) << " " << point[0] << " " << point[1] << " " << 0 << std::endl;
+      else {
+        Double z=0.;
+        output->write((char*)&point[0],sizeof(Double));
+        output->write((char*)&point[1],sizeof(Double));
+        output->write((char*)&z,sizeof(Double));
+      }
+	
     }
 }
 else {
@@ -90,7 +113,14 @@ else {
     {
       ptgrid->GetCoordinateNode(i,level,point);
 
+      if (ascii_)
       (*output) << " " << point[0] << " " << point[1] << " " << point[2] << std::endl;
+      else {
+        output->write((char*)&point[0],sizeof(Double));
+        output->write((char*)&point[1],sizeof(Double));
+        output->write((char*)&point[2],sizeof(Double));
+      }
+
     }
 }
 }
@@ -104,7 +134,7 @@ void WriteResultsGMV::WriteCells(const Integer alevel)
   Integer level=alevel;
 
 // write keyword
- (*output) << "cells ";
+    (*output) << "cells   ";
 
  //
  if (!ptgrid)
@@ -114,7 +144,10 @@ void WriteResultsGMV::WriteCells(const Integer alevel)
   Integer numelem; 
   numelem=ptgrid->GetMaxnumElem(level);
 
+  if (ascii_)
   (*output) << numelem << std::endl;
+  else
+    output->write((char*)&numelem,sizeof(Integer));
 
   Vector<Integer> connect;
 
@@ -131,12 +164,30 @@ void WriteResultsGMV::WriteCells(const Integer alevel)
      switch (connect.size())
       {
       case 2:
+	if (ascii_)
 	(*output) << "line 2" << std::endl;
+	else {
+	  (*output) << "line    ";
+	   Integer nn=2;
+	   output->write((char*)&nn,sizeof(Integer));
+	}
       case 3: 
+	if (ascii_)
 	(*output) << "tri 3" << std::endl;
+	else {
+	  (*output) << "tri     ";
+	  Integer nn=3;
+	  output->write((char*)&nn,sizeof(Integer));
+	}
 	break;
       case 4:
+	if (ascii_)
 	(*output) << "quad 4" << std::endl;
+	 else {
+                  (*output) << "quad    ";
+                  Integer nn=4;
+                  output->write((char*)&nn,sizeof(Integer));
+                }
 	break;
       default:
 	Error("This type of element is not implemented", __FILE__, __LINE__);
@@ -147,49 +198,101 @@ void WriteResultsGMV::WriteCells(const Integer alevel)
      switch (connect.size())
       {
         case 4:
-                (*output) << "tet 4" << std::endl;
-                break;
+	  if (ascii_)
+	    (*output) << "tet 4" << std::endl;
+	  else {
+	    (*output) << "tet     ";
+	    Integer nn=4;
+	    output->write((char*)&nn,sizeof(Integer));
+	  }
+	  break;
         case 8:
-                (*output) << "hex 8" << std::endl;
-                 break;
-        default:
+	  if (ascii_)
+	  (*output) << "hex 8" << std::endl;
+	  else {
+	    (*output) << "hex     ";
+	     Integer nn=8;
+	     output->write((char*)&nn,sizeof(Integer));
+	  }
+	  break;
+      default:
           Error("This type of element is not implemented", __FILE__, __LINE__);
       }
 }
 
+if (ascii_) {
      Integer j;
      for (j=0; j< connect.size(); j++)
        (*output) << " " << connect[j] ;
 
      (*output) << std::endl;
+}
+else {
+  Integer * ptcon=connect.get();
+  Integer len=connect.size();
+  output->write((char*)& ptcon,len * sizeof(Integer));
+}
+
    }
 }
 
 void WriteResultsGMV::WriteVariable(const Vector<Double> var, const std::string name, const Integer dataType)
 {
-  (*output) << "variable" << std::endl;
+  (*output) << "variable";
+  if (ascii_) (*output) << std::endl;
 
+  if (ascii_)
   (*output) << name << " " << dataType << std::endl;
+  else {
+    (*output) << "namename";
+    output->write((char*)&dataType,sizeof(Integer));
+  }
+  
 
+  if (ascii_) {
   Integer i;
   for (i=0; i<var.size(); i++)
     (*output) << var[i] << " ";
+  (*output) << "\n endvars \n" ;
+  }
+  else {
+     Double * ptvar=var.get();
+     Integer len=var.size();
+     output->write((char*)ptvar,len * sizeof(Double));
+     (*output) << "endvars ";
+  }
 
-    (*output) << std::endl;
-
-  (*output) << "endvars" << std::endl;
 }
 
+  // only for 3D
 void WriteResultsGMV::WriteVelocity(const Vector<Double>* var, const std::string name, const Integer dataType)
 {
-  (*output) << "velocity" << " " << dataType << std::endl;
 
+  (*output) << "velocity";
+  if (ascii_)
+    (*output) << " " << dataType << std::endl;
+  else {
+     output->write((char*)&dataType,sizeof(Integer));
+  }
+
+  if (ascii_) {
   Integer i,j;
   for (i=0; i<3; i++) {
     for (j=0; j<var[i].size(); j++)
       (*output) << var[i][j] << " ";
     (*output) << std::endl;
   }
+  }
+  else {
+    Integer i;
+    for(i=0; i<3; i++) {
+     Double * ptvar=var[i].get();
+     Integer len=var[i].size();
+     output->write((char*)ptvar,len * sizeof(Double));
+     (*output) << "endvars ";
+    }
+  }
+
 }
 
 void WriteResultsGMV::WriteGrid(const Integer level)
@@ -225,7 +328,13 @@ void WriteResultsGMV::WriteSolution(const Vector<Double> & sol, const Integer st
   }
 
   WriteVariable(sol,title,type);
-  (*output) << "probtime " << time << std::endl;
+
+  if (ascii_)
+    (*output) << "probtime " << time << std::endl;
+  else {
+    (*output) << "probtime";
+    output->write((char*)&time,sizeof(Double));
+  }
 
   currstep_=step;
 }
@@ -241,7 +350,13 @@ void WriteResultsGMV::WriteDataOnCell(const Vector<Double>&sol,const Integer ste
   }
 
   WriteVariable(sol,title,type);
-  (*output) << "probtime " << time << std::endl;
+  if (ascii_)
+    (*output) << "probtime " << time << std::endl;
+  else {
+    (*output) << "probtime";
+    output->write((char*)&time,sizeof(Double));
+  }
+
 }
 
 void WriteResultsGMV::WriteVecDataOnCell(const Vector<Double>*vec,const Integer step, const Double time, const std::string title)
@@ -255,7 +370,13 @@ void WriteResultsGMV::WriteVecDataOnCell(const Vector<Double>*vec,const Integer 
   }
 
   WriteVelocity(vec,title,type);
-  (*output) << "probtime " << time << std::endl;
+  if (ascii_)
+    (*output) << "probtime " << time << std::endl;
+  else {
+    (*output) << "probtime";
+    output->write((char*)&time,sizeof(Double));
+  }
+
 }
 
 void WriteResultsGMV::OpenFile(const Integer num)
@@ -273,21 +394,20 @@ void WriteResultsGMV::OpenFile(const Integer num)
 
    strcat(name,aux);
 
-   if (output) { 
-     (*output) << "endgmv " << std::endl; 
+   if (output) {
+     if (ascii_)
+       (*output) << "endgmv " << std::endl; 
+     else
+       (*output) << "endgmv  ";
+
      delete output;
    }
 
    // check what kind of data for input
    std::string typedata;
 
-   conf->get("format_data_output",typedata);
-   if (typedata == "binary")
-     ascii_=FALSE;
-   else ascii_=TRUE;
-
    if (ascii_)
-   output=new std::ofstream(name);
+     output=new std::ofstream(name);
    else
      output=new std::ofstream(name,std::ofstream::binary);
 

@@ -33,7 +33,7 @@ public:
   void SetupMatrices(const Integer level);
 
   //!
-  void SetBCs(BCs * ptBCs, const Integer level, const Integer update, const Double atime);
+  void SetBCs(BCs * ptBCs, const Integer level, const Integer update, const Double atimestep);
 
   //!
   void ComputeRHS(const Double atime, BCs * ptBCs); 
@@ -42,7 +42,7 @@ public:
   void SolveStepStatic(BCs * ptBCs , const Integer level);
 
   //!
-  void SolveStepTrans(BCs * ptBCs , const Integer kstep, const Double steptime, const Integer level, const Boolean updatesysmat);
+  void SolveStepTrans(BCs * ptBCs , const Integer kstep, const Double asteptime, const Integer level, const Boolean updatesysmat);
 
   //!
   void SaveSolAsPrevStep();
@@ -65,7 +65,8 @@ private:
   //!
   Integer dofspernode_;
 
-  void CalcParameters(const Double dt);
+  //!
+  void CalcParameters(const Double adt);
 
   //!
   Grid * ptgrid_;

@@ -6,27 +6,33 @@
 namespace CoupledField
 {
 
-/// driver for static problems derived from basedriber;
-
+//! driver for transient problems.it is derived from BaseDriver;
   class TransientDriver : virtual public BaseDriver
 {
 public:
-  //!
+  //!  constructor
+  /*!
+    \param adomain pointer to class Domain
+  */
   TransientDriver(Domain * adomain);
 
-   //!
+   //! deconstructor 
   virtual ~TransientDriver();
 
-  //!
+  //!  main method, where time-stepping is implemented. it is for transient and static problem
   virtual void SolveProblem();
 
-  //! with adaptivity in time
+  //! method with adaptivity in time
   virtual void SolveProblemAdapt();
 
-  //!
+  //! method with adaptivity in space 
   virtual void SolveProblemAdaptSpace();
 
-  //!
+  //!  to setup matrices of PDE. we call according method of class PDE for setup matrices of PDE in assembling procedure.
+  /*!
+    \param pdenumber (input) number of PDE
+    \param matrixtype (input) type of system matrix in algebraic system
+  */
   void SetupMatricesPDE(const Integer pdenumber, const Integer matrixtype);
 
 protected:

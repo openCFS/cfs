@@ -2,7 +2,7 @@
 # Makefile for discretization
 C_DIR=../..
 #
-src = baseform.cc linearform.cc massint.cc laplaceint.cc
+src = baseform.cc linearform.cc massint.cc laplaceint.cc dampint.cc
 #
 lib = forms
 libpath = libsrc/Forms

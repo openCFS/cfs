@@ -6,16 +6,25 @@
 namespace CoupledField
 {
 
+  //! class we store description of element
 struct Elem
 {
+public:
+  //! pointer to BaseElem. FE-characteristics of element
   BaseElem * ptElem;
+  //! connection array
   Vector<Integer> connect;
+  //! name of subdomain, to which this element is belogned
   std::string namesd;
   //! flag for refinement; TRUE - then this element should be refined
   Boolean refinementFlag;
 
+  //! overloading operator =
   Elem & operator=(const Elem& t);
+  //! calculation of diameter of element
   Double diameter(const Point<2> * const ptArrayOfNodes);
+  //! calculation of an area of the element
+  //  Double area();
 };
 
 inline Elem & Elem::operator=(const Elem& t) 

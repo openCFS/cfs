@@ -814,14 +814,11 @@ Double GridCFS<2>::CalcAreaElem(const Elem* elem)
     A=ptCoordinate_[elem->connect[0]-1];
     B=ptCoordinate_[elem->connect[1]-1];
     C=ptCoordinate_[elem->connect[2]-1];
-       cout << " ok " << endl;
-    cout << A[0] << " " << A[1] << "\n";
-    cout << B[0] << " " << B[1] << "\n";
-    cout << C[0] << " " << C[1] << "\n";
+  
     a=dist(A,B);
     b=dist(B,C);
     c=dist(A,C);
-    cout << a << " " << b << " " << c << "\n";
+  
     s=(a+b+c)/2;
     res=sqrt(s*(s-a)*(s-b)*(s-c));
 
@@ -832,11 +829,7 @@ Double GridCFS<2>::CalcAreaElem(const Elem* elem)
     B=ptCoordinate_[elem->connect[1]-1];
     C=ptCoordinate_[elem->connect[2]-1];
     D=ptCoordinate_[elem->connect[3]-1];
-    cout << " ok " << endl;
-    cout << A[0] << " " << A[1] << "\n";
-    cout << B[0] << " " << B[1] << "\n";
-    cout << C[0] << " " << C[1] << "\n";
-    cout << D[0] << " " << D[1] << "\n";
+   
     a=dist(A,B);
     b=dist(B,C);
     c=dist(A,C);

@@ -91,6 +91,10 @@ public:
   virtual void TestCoarse();
 
   //!
+   virtual void DefineBelonging4Elems(const std::vector<Elem*>& elemsSurf, const std::vector<Elem*>&elems, std::vector<Elem*> & belongingSE)
+  { ptgridcfs_->DefineBelonging4Elems(elemsSurf,elems,belongingSE);}
+
+  //!
   void forEachElemSd(SetRefFlag & f,const std::string subdomain);
   void forEachElemSd(SetRefFlagTest & f,const std::string subdomain);
 

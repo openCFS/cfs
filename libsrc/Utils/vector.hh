@@ -27,7 +27,6 @@ namespace CoupledField
   template<class TYPE> class SymMatrix;
   template<class TYPE> class Matrix;
 
-  //    template<class Type> istream &operator>> (istream &,Vector<TYPE> &);
   //! Overloading << for class vector
   template<class TYPE>  std::ostream& operator << ( std::ostream & , const Vector<TYPE> &);
 
@@ -72,12 +71,21 @@ public:
   ~Vector	();
 
   //! Change size of vector
+  /*!
+    \param i new size of vector
+  */
   void Resize(const Integer i);
 
   //! Allocate vector of size i
+   /*!
+    \param i size of vector
+  */
   void Allocate(const Integer i);       
 
   //! Initialize vector by zero
+    /*!
+    \param l size of vector, if reszing is needful. can be omitted.
+  */
   void Init(const Integer l=0);
 
   //! Overloading of operation =
@@ -159,6 +167,11 @@ public:
   //! Swap 2 elements in vector Ex swap(v[i],v[j])
   template<class T> void swap(T & a, T & b);
 
+  //! initialize vector with defined data
+  /*!
+    \param nsize size of vector
+    \param ptdata pointer to array with values of vector
+  */
   void  TransformInVector(const Integer nsize, TYPE * ptdata);
 
 };

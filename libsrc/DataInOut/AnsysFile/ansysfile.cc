@@ -247,7 +247,7 @@ void AnsysFile::ReadBCs_GridRG(std::vector<Integer> & idBCs,std::vector<Integer>
 #endif
   
  std::vector<std::string> levels;
- conf->getliststr("list_interfaces",levels);
+ conf->getliststr("list_nodes",levels);
 
  Integer numbc;
  ReadMaxnumnodesbc(numbc);
@@ -467,6 +467,7 @@ void AnsysFile::ReadEl1d(std::vector<Elem*> * allelems, const std::vector<std::s
 	 infile.ignore(100,'\n');
 
 	 (*el).ptElem=Type2ptElem(itype);
+	
 	 (*el).connect.Resize(innodes);
 	 for (ii=0; ii<innodes; ii++)
 	   infile >> (*el).connect[ii];
@@ -483,6 +484,8 @@ void AnsysFile::ReadEl1d(std::vector<Elem*> * allelems, const std::vector<std::s
 	 }
        }
    }
+
+ 
 }
 
 void AnsysFile::ReadEl2d(std::vector<Elem*> * allelems, const std::vector<std::string> sd)

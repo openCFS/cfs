@@ -177,7 +177,7 @@ private:
   //! list with neighbors for nodes
   std::vector<std::vector<Elem*> > vtNeighbors_;
 
-   //! 
+   //! class for mapping Grid_RG and GridCFS
   struct ElementMap {
     int sd;
     std::vector<Integer> map;

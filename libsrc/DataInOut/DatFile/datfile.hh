@@ -8,7 +8,9 @@ namespace CoupledField
 
   //! Derived class from FileType for reading initial data from dat file
   /*!
-    This class is derived from class FileType. It reads necessary data from {\it dat} - file, which is produced by CAPAPRE.
+    This class is derived from class FileType.
+    It reads input data from {\it dat} - file, which is produced by CAPAPRE.
+    At present, it's not used.
   */
 
 class DatFile : virtual public FileType

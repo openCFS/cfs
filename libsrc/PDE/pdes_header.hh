@@ -3,6 +3,7 @@
 
 #include "acoustic2dPDE.hh"
 #include "acoustic3dPDE.hh"
+#include "acou2dFlowNoise.hh"
 #include "therm2dPDE.hh"
 #include "elecst2dPDE.hh"
 #include "elecst3dPDE.hh"

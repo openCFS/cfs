@@ -32,6 +32,7 @@ public:
     \param solvertype type of solver:  1.. RICHARDSON; 2..CG
     \param precondtype type of preconditioner: ID .. 1; MG..2
     \param numeqcoarse number of equations for coarse algebraic system (when using AMG)
+    \param coarsealpha  for coarsening
   */
   virtual void SetSolverParameter(Integer nsys, Double eps, Double dampiter, Integer maxnumit,
                                   Integer solvertype, Integer precondtype, Integer numeqcoarse,
@@ -42,14 +43,16 @@ public:
     \param numelements number of nodes (edges) of mesh (specifies the dimension of the graph)
     \param matrix_row  row index in block structure
     \param matrix_col column index in block structure
+    \param matrix_graphtype type of graph for algebraic system
   */
   virtual void InitAlgSysGraph(Integer numelements, Integer matrix_row, Integer matrix_col,
-			       Integer matrix_gaphtype)=0;
+			       Integer matrix_graphtype)=0;
 
   //! Set up the graph of the nodal (edge) mesh
   /*!
     \param pos global node (edge) numbers of one finite element
     \param elemsize number of nodes (edges) per element
+    \param fe_type type of FE
     \param matrix_row  row index in block structure
     \param matrix_col column index in block structure
   */
@@ -63,20 +66,21 @@ public:
     \param matrixtype array of needed matrices:  matrixtype[0]: SYSTEM; matrixtype[1]: STIFFNESS;
            matrixtype[2]: DAMPING; matrixtype[3]: CONVECTION; matrixtype[4]:  MASS;
            set array value to 1, if matrix type is needed         
-    \param matrix_class type of matrices:  1..RSPARSE; 2..CSPARSE; 3..RBLOCK; 4..CBLOCK;
+    \param matrixsystype type of matrices:  1..RSPARSE; 2..CSPARSE; 3..RBLOCK; 4..CBLOCK;
            5..RFULL; 6..CFULL; 7..MIXED;
     \param graphtype dummy argument (currently not used, will be for specifying node, edge, etc. graph)!!!!
     \param numdofpernode number of degree of freedom per node (edge)
     \param numdirichlets number od restraints (inhomogeneous dirichlet BC)
-    \param constraints number of constraints
+    \param numconstraints number of constraints
   */
-  virtual void CreateAlgSysMatrices(Integer maxtrix_row, Integer matrix_col, Integer *matrixsystype, 
+  virtual void CreateAlgSysMatrices(Integer matrix_row, Integer matrix_col, Integer *matrixsystype, 
 				    Integer matrixtype, Integer graphtype, Integer numdofpernode, 
 				    Integer numdirichlets, Integer numconstraints)=0;
 
   //!Set matrices, rhs-vector and solution vector of algebraic system with ID nsys to zero
   /*!
     \param nsys system id
+    \param nsys2 system id
     \param matrix_id type of matrix (mass, stif,..)
   */
   virtual void ResetAlgSys(Integer nsys, Integer nsys2, Integer matrix_id)=0;
@@ -93,11 +97,10 @@ public:
   virtual void ResetMatrix(Integer matrix_row, Integer matrix_col, Integer matrix_id)=0;
 
   //! Put elemtmatrix to global matrix
-  //! Set matrix to zero
   /*!
-    \param elemt matrix values
-    \param global node (edge) numbers
-    \param number of nodes (edges) of element
+    \param elemmat matrix values
+    \param pos global node (edge) numbers
+    \param numnodelem number of nodes (edges) of element
     \param matrix_row  row index in block structure
     \param matrix_col column index in block structure
     \param matrix_id type of matrix (mass,stiff,..)
@@ -107,9 +110,9 @@ public:
 
   //! Computes the system matrix
   /*! 
-    \param graph_row  row index in matrix structure
-    \param graph_col column index in matrix structure
-    \param matrix_fac factors, with which the matrices (mass, stiffness,..) are multiplyed
+    \param matrix_row  row index in matrix structure
+    \param matrix_col column index in matrix structure
+    \param matrix_factor factors, with which the matrices (mass, stiffness,..) are multiplyed
                         before being added to the system matrix                
   */
   virtual void ComputeSysMatrix(Integer matrix_row, Integer matrix_col, Double * matrix_factor)=0;
@@ -117,11 +120,11 @@ public:
   //! Set the Dirichlet boundary conditions (penalty formulation)
   /*!
     \param restrnum number of Dirichlet boundary condition
-    \param nodenum node (edge) number)
+    \param nodenr node (edge) number)
     \param restrval value of Dirichlet boundary condition
     \param ndof degree of freedom component
-    \param graph_row  row index in matrix structure
-    \param graph_col column index in matrix structure
+    \param matrix_row  row index in matrix structure
+    \param matrix_col column index in matrix structure
     \param matrix_id system ID (for effective mass/stiffness matrix)
   */
   virtual void SetBCDirichlet(Integer restrnum, Integer nodenr, Double restrval, Integer ndof, 
@@ -130,11 +133,11 @@ public:
   //! Update Dirichlet boundary conditions (e.g. in transient analysis)
   /*!
     \param restrnum number of Dirichlet boundary condition
-    \param nodenum node (edge) number)
+    \param nodenr node (edge) number)
     \param restrval value of Dirichlet boundary condition
     \param ndof degree of freedom component
-    \param graph_row  row index in matrix structure
-    \param graph_col column index in matrix structure
+    \param matrix_row  row index in matrix structure
+    \param matrix_col column index in matrix structure
     \param matrix_id system ID (for effective mass/stiffness matrix)
   */
   virtual void SetBCDirichletUpdate(Integer restrnum, Integer nodenr, Double restrval, Integer ndof, 
@@ -142,8 +145,8 @@ public:
 
   //! Update the right hand side (e.g. in transient analysis)
   /*!
-    \param graph_row  row index in matrix structure
-    \param graph_col column index in matrix structure
+    \param matrix_row  row index in matrix structure
+    \param matrix_col column index in matrix structure
     \param matrix_id specifies type od matrix (mass, stiffness, ..)
     \param vec vector, which will be added to the right hand side
   */
@@ -152,8 +155,9 @@ public:
   //! Compute the preconditioner
   /*!
     \param job: 1..for nonlinear stuff; 2..new computation; 3..just update Dirichlet values
-    \param sys_id ID for system in block matrix
+    \param nsys ID for system in block matrix
   */
+  virtual void ComputePrecond(Integer job, Integer nsys)=0;
 
   //! Add element vector to rhs-vector at position pos
   virtual void PutElemRHS(Double * elemrhs, Integer *pos, Integer size, Integer sys_id)=0;
@@ -163,11 +167,11 @@ public:
     \param elemrhs element vector
     \param connect global node (edge) numbers
     \param elemsize number of nodes (edges) of element
-    \param matrix_sys_id row (column) index in block structure
+    \param sys_id row (column) index in block structure
   */
   virtual void AddElementRHS(Double *elemrhs, Integer *connect, Integer elemsize, Integer sys_id)=0;
 
-  virtual void ComputePrecond(Integer job, Integer nsys)=0;
+
 
   //! Solve the algebraic system with ID nsys
   virtual void SolveAlgSys(Integer nsys)=0;
@@ -177,10 +181,10 @@ public:
 
   //! Compute the energy norm of defined matrix with vector u
   /*!
-    \param graph_row  row index in matrix structure
-    \param graph_col column index in matrix structure
+    \param matrix_row  row index in matrix structure
+    \param matrix_col column index in matrix structure
     \param matrix_id specifies type od matrix (mass, stiffness, ..)
-    \param vec vector, which will teh nergy norm will be computed
+    \param u vector, which will teh nergy norm will be computed
   */
   virtual Double CalcEnergyNorm(Integer matrix_row, Integer matrix_col, Integer matrix_id, Double * u)=0;
 

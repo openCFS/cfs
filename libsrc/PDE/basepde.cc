@@ -19,6 +19,8 @@ BasePDE::BasePDE(AbstractAlgebraicSys * aptalgsys, Material * aMatFile, FileType
   OutFile_    = aOutFile;
   ptTimeFunc_ = aptTimeFunc;
   ptalgsys_   = aptalgsys;
+
+ 
 }
 
 void BasePDE::SetAlgSys_id(const Integer as_sysid)

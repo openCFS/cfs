@@ -6,45 +6,50 @@
 namespace CoupledField
 {
 
-/// there is a base class for driving classes where we implemented time-stepping
-
+//! a base class for driving classes where we implemented time-stepping
 class BaseDriver
 {
 public:
-  //!
+  //! constructor
+  /*!
+    \param adomain pointer to class Domain
+  */
   BaseDriver(Domain * adomain);
 
-   //!
+   //! deconstructor
   virtual ~BaseDriver();
   
-  //! there is a main method, where time-steping is implemented
+  //! main method, where time-stepping is implemented. it is for transient and static problem
   virtual void SolveProblem()=0;
 
-  //! here adapt. time-stepping is implemented
+  //! method with adaptive time-stepping is implemented. only for transient problems.
   virtual void SolveProblemAdapt() 
   { Error("Not implemented",__FILE__,__LINE__); }
 
+  //! method with adaptivity in space
   virtual void SolveProblemAdaptSpace()
   { Error("Not implemented",__FILE__,__LINE__); }
 
-  //!
+  //! to setup matrices of PDE. we call according method of class PDE for setup matrices of PDE in assembling procedure.
+  /*!
+    \param pdenumber number of PDE
+  */
   void SetupMatricesPDE(Integer pdenumber);
 
 protected:
-  //!
+  //! pointer to class Domain
   Domain * ptdomain_;
 
   //! for printing a sequence of files in dir meshes in gmv-format
   WriteResults * ptMeshes_;
-  Integer nummeshes_;  // counter of meshes
+  //! counter of meshes for printing meshes
+  Integer nummeshes_;  
 
-  //!
+  //! print mesh in special file. this method is used in adaptive procedure for space.
   void PrintSeqMeshes();
 
 private:
-  //! options from input-file; if true, then we output first-der,second in output-file
-//  Boolean SaveDer1_, SaveDer2_;
-  
+   
 };
 
 }
