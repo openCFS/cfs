@@ -2,7 +2,7 @@
 # Makefile for discretization
 C_DIR=../..
 #
-src =  baseelem.cc triangle1.cc quad1.cc 
+src =  baseelem.cc rectangle.cc quad1.cc getriangle.cc triangle1.cc 
 #
 lib = elements
 libpath = libsrc/Elements

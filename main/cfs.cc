@@ -43,7 +43,7 @@ void main(int argc, char *argv[])
   else name=argv[argc-1];
 
   DefineInOutFiles oDefFiles(name);
- 
+
   Clock oClockTotal;
   oClockTotal.ClockCount(Clock::beg);
 

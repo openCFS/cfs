@@ -14,6 +14,8 @@ typedef int Boolean;
 #define FALSE 0
 #define TRUE 1
 
+#define mark cout<<__FILE__<<__LINE__<<endl;
+
 //#ifndef assert
 //#define assert(ex) \
 //        (void)((ex) ? 1 : \
@@ -33,6 +35,7 @@ typedef int Boolean;
 
 #define GaussOrder2 1
 #define GaussOrder3 2
+#define GaussOrder4 3
 #define GaussOrder5 4
 
 /// for each level of remeshing we create own GridHierarchy with full information about grid
