@@ -31,6 +31,8 @@ Domain<Dim> :: Domain(FileType * const aptFileType, WriteResults<Dim> * ptOut,  
  //  if (libmesh =="gridlib") ptgrid=new InterfaceGridlib<Dim>(InFile);
 //  else
   if (libmesh =="cfsgrid") ptgrid_=new GridInterfaceCFS<Dim>(InFile_);
+    else 
+  if (libmesh == "netgen") ptgrid_=new InterfaceNetGen<Dim>(InFile_);
    else
      Error("Unknown type of mesh_library in conf-file",__FILE__,__LINE__);
 

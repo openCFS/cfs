@@ -47,11 +47,10 @@ void GridCFS<Dim> :: Read()
    Integer NumNodeperElem=data[2];
    ptArrayElem_=new BaseElem*[gh[0].maxnumelem+1];   
    
-   BaseElem * ptQ, *ptTr;
    ptQ_=new Quad1(GaussOrder2);
    ptTr_=new Triangle1(GaussOrder3);
 
-   for (i=0; i<gh[0].maxnumelem+1; i++) 
+   for (i=0; i<gh[0].maxnumelem; i++) 
    { 
        switch(NumNodeperElem)
      {
