@@ -2,8 +2,8 @@
 
 <cfsSimulation xmlns="http://www.cfs++.org">
 
-  <analysis type="static"/>
-  <geometry type="3d"/>
+  <analysis/>
+  <geometry/>
   <input/>
   <output/>
   <materialData/>
@@ -18,6 +18,10 @@
       <region name="dummy"/>
   
       <nonLinear>
+        <lineSearch/>
+        <incStopCrit/>
+        <resStopCrit/>
+        <maxNumIters/>
       </nonLinear>
   
     </mechanic>
