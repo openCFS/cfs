@@ -473,6 +473,8 @@ main/DoxygenConfig/header.html svneol=native#text/html
 main/Makefile -text
 main/Makefile.option -text
 main/cfs.cc svneol=native#text/plain
+main/chan1.conf -text
+main/chan1.mesh -text
 main/chan1.test -text
 main/channel.dat -text
 main/el3d.dat -text
