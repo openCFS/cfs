@@ -34,7 +34,8 @@ UNDER  = -DFORTRANDOUBLEUNDERSCORE
 LINKFLAGS = -pg 
 
 #
-syslib := -lm -lc 
+BLASLAPACK = -lblas -llapack -lg2c
+syslib = -lm -lc $(BLASLAPACK)
 
 # Flag for function tracing
 ifneq "$(TRACE)" "0"
