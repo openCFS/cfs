@@ -54,18 +54,18 @@ void Quad1FE :: SetCornerCoords()
 
 }
 
-void Quad1FE :: CalcShapeFnc(std::vector<Double> & LShape, 
+void Quad1FE :: CalcShapeFnc(std::vector<Double> & Shape, 
 			     const std::vector<Double> & LCoord)
 {
 #ifdef TRACE
   (*trace) << "entering Quad1FE::CalcShapeFnc" << std::endl;
 #endif
 
-  LShape.resize(NumNodes_);
+  Shape.resize(NumNodes_);
   
   for( Integer i=0; i<NumNodes_; i++)
-    LShape[i] = 0.25 * (1 + LCornerCoords_[0][i] * LCoord[0])
-                     * (1 + LCornerCoords_[1][i] * LCoord[1]);
+    Shape[i] = 0.25 * (1 + LCornerCoords_[0][i] * LCoord[0])
+                    * (1 + LCornerCoords_[1][i] * LCoord[1]);
 
 }
 
