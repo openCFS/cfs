@@ -79,4 +79,130 @@
     </xsd:complexContent>
   </xsd:complexType>
 
+
+  <!-- ==================================================================== -->
+  <!-- ==                                                                == -->
+  <!-- ==                      HYPRE_BICGSTAB Solver                     == -->
+  <!-- ==                                                                == -->
+  <!-- ==================================================================== -->
+
+
+  <!-- ******************************************************************** -->
+  <!-- Definition of element for HYPRE_BICGSTAB Solver -->
+  <!-- ******************************************************************** -->
+  <xsd:element name="hypreBICGSTAB" type="DT_SolverHypreBICGSTAB"
+    substitutionGroup="SolverBasic"/>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for HYPRE_BICGSTAB Solver -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_SolverHypreBICGSTAB">
+    <xsd:complexContent>
+      <xsd:extension base="DT_SolverBasic">
+        <xsd:sequence>
+          <xsd:element name="tol" type="DT_PosFloat" minOccurs="0"/>
+          <xsd:element name="maxIter" type="xsd:positiveInteger"
+            minOccurs="0"/>
+          <xsd:element name="logging" minOccurs="0">
+            <xsd:simpleType>
+              <xsd:restriction base="xsd:integer">
+                <xsd:enumeration value="0"/>
+                <xsd:enumeration value="1"/>
+                <xsd:enumeration value="2"/>
+              </xsd:restriction>
+            </xsd:simpleType>
+          </xsd:element>
+          <xsd:element name="printLevel" minOccurs="0">
+            <xsd:simpleType>
+              <xsd:restriction base="xsd:integer">
+                <xsd:enumeration value="0"/>
+                <xsd:enumeration value="1"/>
+                <xsd:enumeration value="2"/>
+              </xsd:restriction>
+            </xsd:simpleType>
+          </xsd:element>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+
+  <!-- ==================================================================== -->
+  <!-- ==                                                                == -->
+  <!-- ==                           HYPRE_PCG Solver                     == -->
+  <!-- ==                                                                == -->
+  <!-- ==================================================================== -->
+
+
+  <!-- ******************************************************************** -->
+  <!-- Definition of element for HYPRE_PCG Solver -->
+  <!-- ******************************************************************** -->
+  <xsd:element name="hyprePCG" type="DT_SolverHyprePCG"
+    substitutionGroup="SolverBasic"/>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for HYPRE_PCG Solver -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_SolverHyprePCG">
+    <xsd:complexContent>
+      <xsd:extension base="DT_SolverBasic">
+        <xsd:sequence>
+          <xsd:element name="tol" type="DT_PosFloat" minOccurs="0"/>
+          <xsd:element name="maxIter" type="xsd:positiveInteger"
+            minOccurs="0"/>
+          <xsd:element name="logging" minOccurs="0">
+            <xsd:simpleType>
+              <xsd:restriction base="xsd:integer">
+                <xsd:enumeration value="0"/>
+                <xsd:enumeration value="1"/>
+                <xsd:enumeration value="2"/>
+              </xsd:restriction>
+            </xsd:simpleType>
+          </xsd:element>
+          <xsd:element name="printLevel" minOccurs="0">
+            <xsd:simpleType>
+              <xsd:restriction base="xsd:integer">
+                <xsd:enumeration value="0"/>
+                <xsd:enumeration value="1"/>
+                <xsd:enumeration value="2"/>
+              </xsd:restriction>
+            </xsd:simpleType>
+          </xsd:element>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+
+  <!-- ==================================================================== -->
+  <!-- ==                                                                == -->
+  <!-- ==                          OLAS_PCG Solver                       == -->
+  <!-- ==                                                                == -->
+  <!-- ==================================================================== -->
+
+
+  <!-- ******************************************************************** -->
+  <!-- Definition of element for OLAS_PCG Solver -->
+  <!-- ******************************************************************** -->
+  <xsd:element name="PCG" type="DT_SolverOLASPCG"
+    substitutionGroup="SolverBasic"/>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for HYPRE_PCG Solver -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_SolverOLASPCG">
+    <xsd:complexContent>
+      <xsd:extension base="DT_SolverBasic">
+        <xsd:sequence>
+          <xsd:element name="tol" type="DT_PosFloat" minOccurs="0"/>
+          <xsd:element name="maxIter" type="xsd:positiveInteger"
+            minOccurs="0"/>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
 </xsd:schema>
