@@ -553,8 +553,8 @@ void BasePDE::StepHarmonicLin(const Integer freqStep, const Double frequency,
   // save solution
   //Vector<Complex> tmp(numPDENodes_*dofspernode_);
 
-  if (dofspernode_ > 1)
-    Error("Currenrly just dofpernode=1 supported in StepHarmonicLin");
+  //  if (dofspernode_ > 1)
+  //    Error("Currenrly just dofpernode=1 supported in StepHarmonicLin");
 
   //Integer k=0;
   

@@ -89,7 +89,7 @@ Integer BaseEQN::GetBCDof(const std::string dofString) const
   else if (dofString == "uy") retVal = 2;
   else if (dofString == "uz") retVal = 3;
   // hard-coded for Piezo PDE
-  else if (dofString == "ep") retVal = 4;
+  else if (dofString == "ep") retVal = dofsPerNode_;
   else
     {
 #ifndef XMLPARAMS
