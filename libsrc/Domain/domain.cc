@@ -139,13 +139,10 @@ namespace CoupledField {
       delete (ptpde_[i]);
     }
 
-    // Same holds for all StdVector<class*> constructs
-    for ( Integer i = 0; i < orderedpdes_.GetSize(); i++ ) {
-      delete (orderedpdes_[i]);
-    }
-    for ( Integer i = 0; i < couplings_.GetSize(); i++ ) {
-      delete (couplings_[i]);
-    }
+    //already deleted in destructor of IterCoupledPDE!!!
+    //     for ( Integer i = 0; i < couplings_.GetSize(); i++ ) {
+    //       delete (couplings_[i]);
+    //     }
 
   }
 

@@ -572,7 +572,15 @@ void PiezoPDE::ReadStoreResults() {
       charges_.Init();
     }
   } 
-  
+
+
+  // *****************************
+  // Check for volume computation of 
+  // deformed surface
+  // *****************************
+  params->GetList( "name" , volAboveDefSurfRegions_ , pdename_, "volumeAboveDefSurf" );
+  params->GetList( "dof" , volAboveDefSurfDir_ , pdename_, "volumeAboveDefSurf" );
+
   // *****************************
   // Determine nodal history
   // *****************************
@@ -676,7 +684,13 @@ void PiezoPDE::PostProcess(const Integer level) {
       CalcComplexValuedCharges();
     else
       CalcCharges();
-  }      
+  }
+
+  //
+  if (volAboveDefSurfRegions_.GetSize() ) {
+    ComputeVolDefSurf(volAboveDefSurfRegions_, volAboveDefSurfDir_);
+  }
+
 }
 
 

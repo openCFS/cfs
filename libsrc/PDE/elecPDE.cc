@@ -504,15 +504,29 @@ void ElecPDE::CalcEnergy()
       totalE += 0.5*energy[i];
     }
 
+  std::string unit = "(Ws)";
   std::string resulttype = "Electric Energy";
-  Info->WriteResult(pdename_,  resulttype, subdoms_ , energy);
+  std::string analysis;
+  Double analysisVal;
+  if ( analysistype_ == HARMONIC ) {
+    analysis    = "Frequency:";
+    analysisVal = actFrequency_;
+  }
+  else {
+    analysis    = "Time:";
+    analysisVal = lasttimecalc_;
+  }
+
+  Info->WriteResult(pdename_,  resulttype, subdoms_, energy, unit,
+		    analysis, analysisVal);
+
 
   StdVector<std::string> suball(1);
   Vector<Double> tmp(1);
   suball[0] = "Summe";
   tmp[0] = totalE;
-  Info->WriteResult(pdename_,  resulttype, suball , tmp);
-
+  Info->WriteResult(pdename_,  resulttype, suball, tmp, unit,
+		    analysis, analysisVal);
 
 }
 

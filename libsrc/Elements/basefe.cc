@@ -385,4 +385,31 @@ void BaseFE::SetStandardIntegration()
 
 }
 
+
+Double BaseFE :: CalcVolume(const Matrix<Double> & CornerCoords, const Boolean isaxi)
+{
+  ENTER_FCN( "BaseFE::CalcVolume" );
+
+  Double elemVol = 0;
+  Double  jacDet, partVol;
+  for (Integer actIntPt=1; actIntPt <= NumIntPoints_; actIntPt++) {
+
+    jacDet = CalcJacobianDetAtIp(actIntPt, CornerCoords);
+	
+    if (isaxi) {
+      Vector<Double> shapeFncAtIp;
+      Vector<Double> CoordAtIP;
+      GetShFncAtIp(shapeFncAtIp, actIntPt);
+      CoordAtIP = CornerCoords * shapeFncAtIp;
+      partVol = 2 * PI * IntWeights_[actIntPt-1] * jacDet * CoordAtIP[0];
+    }
+    else 
+      partVol = IntWeights_[actIntPt-1] * jacDet;
+    
+    elemVol += partVol;
+  }
+  
+  return elemVol;
+}
+
 } // end namespace CoupledField
