@@ -41,8 +41,9 @@
           <!-- Type of damping model (optional) -->
           <xsd:element name="damping" type="DT_PiezoDamp" minOccurs="0"/>
 
-          <!-- Type of materialDataType (real / complex)   (optional) -->
-          <xsd:element name="materialDataType" type="DT_matData" minOccurs="0"/>
+          <!-- Type of materialDataType (real / complex) (optional) -->
+          <xsd:element name="materialDataType" type="DT_matData"
+            minOccurs="0"/>
 
           <!-- Boundary Conditions & Loads (optional) -->
           <xsd:element name="bcsAndLoads" minOccurs="0" maxOccurs="unbounded">
