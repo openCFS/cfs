@@ -512,6 +512,8 @@ void ElecPDE::InitCoupling(PDECoupling * Coupling)
 	    ptCoupling_->GetOutputNeighbourRegion(actCoupling, neighRegions);
 	    ptgrid_->GetInterfaceNeighbours(*couplingnodes, *neighRegions, 
 					    interface_tmp, actlevel_);
+// 	    for (Integer iElem=0; iElem<interface_tmp.GetSize(); iElem++)
+// 	      std::cerr << "VolElems Nr. " << interface_tmp[iElem]->elemNum << std::endl;
 	 //    std::cerr << "ElecPDE: Interface Volume elements are " << std::endl;
 // 	    std::cerr << *neighRegions << std::endl;
 

@@ -160,16 +160,30 @@ void PDECoupling::AddInput(SolutionType quantity,
 
   // set neighbouring region name(s)
   // if only entry is "all", then add all regions
+  Integer numAllOccured = 0;
   StdVector<std::string> keyVec, attrVec, valVec;
-  if (neighRegions.GetSize() == 1){
-    if (neighRegions[0] == "all"){
-      neighRegions.Clear();
-      keyVec = oppositePDE->GetName(), "region", "name";
-      attrVec = "", "";
-      valVec = "", "";
-      params->GetList(keyVec, attrVec, valVec, neighRegions);
-  //     std::cerr << "AddInputCoupling: my neighRegions are " << std::endl << neighRegions << std::endl;
+
+  if (neighRegions.GetSize() != 0){
+    for (Integer iRegion=0; iRegion<neighRegions.GetSize(); iRegion++) {
+      if (neighRegions[iRegion] == "all")
+	numAllOccured ++;
     }
+    if (numAllOccured == neighRegions.GetSize())
+      {
+	neighRegions.Clear();
+	keyVec = oppositePDE->GetName(), "region", "name";
+	attrVec = "", "";
+	valVec = "", "";
+	params->GetList(keyVec, attrVec, valVec, neighRegions);
+      }
+    else if (numAllOccured > 0)
+      {
+	std::string errMsg = "AddInputCoupling: For 'neighbourRegion' either only 'all' ";
+	errMsg += "or only region names are allowed!";
+	Error(errMsg.c_str(), __FILE__, __LINE__);
+      }
+    
+    //     std::cerr << "AddInputCoupling: my neighRegions are " << std::endl << neighRegions << std::endl; 
   }
 //   std::cerr << "AddInputCoupling: my neighRegions are " << std::endl << neighRegions << std::endl;
   myInterface->neighInputRegions = neighRegions;
