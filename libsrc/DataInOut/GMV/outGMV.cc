@@ -192,6 +192,15 @@ void WriteResultsGMV::WriteCells(const Integer alevel)
 		output->write((char*)&nn,sizeof(Integer));
 	      }
 	      break;
+	    case 9:
+	      if (ascii_)
+		(*output) << "quad 9" << std::endl;
+	      else {
+		(*output) << "quad    ";
+		Integer nn=9;
+		output->write((char*)&nn,sizeof(Integer));
+	      }
+	      break;
 	    default:
 	      Error("This type of element is not implemented", __FILE__, __LINE__);
 	    }
@@ -206,6 +215,15 @@ void WriteResultsGMV::WriteCells(const Integer alevel)
 	      else {
 		(*output) << "tet     ";
 		Integer nn=4;
+		output->write((char*)&nn,sizeof(Integer));
+	      }
+	      break;
+	    case 5:
+	      if (ascii_)
+		(*output) << "pyramid 5" << std::endl;
+	      else {
+		(*output) << "pyramid     ";
+		Integer nn=5;
 		output->write((char*)&nn,sizeof(Integer));
 	      }
 	      break;
@@ -228,13 +246,24 @@ void WriteResultsGMV::WriteCells(const Integer alevel)
       if (ascii_) 
 	{
 	  Integer j;
-	  for (j=0; j< connect.size(); j++)
-	    (*output) << " " << connect[j] ;
-  
+	  // For pyramids since order is different for gmv as for CFS++
+	  if (connect.size()==5) 
+	    {
+	    (*output) << " " << connect[connect.size()-1] ;
+	  for (j=0; j< (connect.size()-1); j++)
+	    (*output) << " " << connect[j] ;	  
+	    }
+	  else
+	    {
+	      for (j=0; j< connect.size(); j++)
+		(*output) << " " << connect[j] ;
+	    }
+	  
 	  (*output) << std::endl;
 	}
       else 
 	{
+	  // Still need to do correction for order with pyramids
 	  Integer * ptcon=connect.get();
 	  Integer len=connect.size();
 	  output->write((char*)ptcon,len * sizeof(Integer));

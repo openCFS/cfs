@@ -19,10 +19,14 @@ typedef int Boolean;
 
 #define FALSE 0
 #define TRUE 1
+
 #define myEndl std::endl
 #define myCout std::cout
 
 typedef Double (*pFncWith1Var)(const Double);
+
+#define myEndl std::endl
+#define myCout std::cout
 
   //! useful trick for testing problem
 #define mark std::cout<<__FILE__<<__LINE__<<std::endl;
@@ -119,7 +123,7 @@ extern ConfFile * conf; //name.conf
   /// It is used, when we read information about elements from mesh and create pointer to class with description FE element.
   //extern BaseElem * ptQ, *ptTr, *ptTet, *ptL1, *ptHexa;
 
-  extern BaseFE * ptQ, *ptL1, *ptTet, *ptTr1, *ptHexa;
+  extern BaseFE *ptQ, *ptQ2, *ptL1, *ptTet, *ptTr1, *ptHexa, *ptPyra;
 
   //! class for flags of programm
   class Flags

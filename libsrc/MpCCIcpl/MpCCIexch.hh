@@ -19,7 +19,7 @@ class MpCCIexch
 public:
 
   //!
-  MpCCIexch(Grid * aptgrid);
+  MpCCIexch(Grid * aptgrid, Integer nNodesSD);
 
   //!
   virtual ~MpCCIexch();

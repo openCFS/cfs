@@ -46,6 +46,11 @@ SUBLIBDIR := $(SUBLIBDIR) DataInOut/GSI DataInOut/GSI/CFSSocketComm
 mylibrary := $(mylibrary) gsi
 endif
 #
+ifeq ($(GSI), yes)
+SUBLIBDIR := $(SUBLIBDIR) DataInOut/GSI DataInOut/GSI/CFSSocketComm
+mylibrary := $(mylibrary) gsi
+endif
+#
 ifeq ($(Adaptivity),yes)
 mylibrary := $(mylibrary) adaptgrid 
 endif

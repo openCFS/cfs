@@ -1,8 +1,8 @@
 #ifndef FILE_ACOUFLOWNOISE_2003
 #define FILE_ACOUFLOWNOISE_2003
 
-#include "basepde.hh"
-#include "acousticPDE.hh"
+#include "newBasePDE.hh"
+#include "newAcousticPDE.hh"
 #include <MpCCIcpl/MpCCIexch.hh>
 
 namespace CoupledField
@@ -55,6 +55,7 @@ private:
 
   //!MpCCI
 #ifdef MpCCI
+  std::vector<Integer> mapSD_;
   MpCCIexch * ptMpCCIexch_;
 #endif
   Integer MpCCInodes_; //<! number of FE-nodes for MpCCI-domain

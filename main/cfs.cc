@@ -93,12 +93,12 @@ Integer main(int argc, char *argv[])
       return 0;
     }
 
+
 #ifdef MpCCI
   CCI_Init(&argc, &argv);  
 #endif  
 
   DefineInOutFiles * ptDefineFiles=new DefineInOutFiles(name);
-
   // class writing log-information
   Info = new WriteInfo(name);
   Info->PrintHeader();
@@ -163,5 +163,6 @@ Integer main(int argc, char *argv[])
     delete ptDefineFiles; 
   if (Info)
     delete Info;
+  return 0;
 
 }

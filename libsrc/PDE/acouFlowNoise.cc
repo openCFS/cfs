@@ -28,7 +28,10 @@ AcouFlowNoise::AcouFlowNoise(Grid *aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc,
   (*trace) << "entering AcouFlowNoise::AcouFlowNoise " << std::endl;
 #endif
 #ifdef MpCCI
-ptMpCCIexch_ = new MpCCIexch(ptgrid_);
+   std::vector<Elem*> elemssd;
+      ptgrid_->GetElemSD(elemssd,subdoms_[1],actlevel_);
+       ptgrid_->CalcNumberOfNodesInPatch(elemssd,mapSD_);
+ ptMpCCIexch_ = new MpCCIexch(ptgrid_,mapSD_.size() );
 #endif
  ReadBCs(pdename_);
  preComputeRHS();
@@ -57,8 +60,9 @@ void AcouFlowNoise::preComputeRHS()
       MpCCI_ = TRUE;
       std::cout << "DO COUPLING via MpCCI" << std::endl;
       //      MpCCIexch * ptMpCCIexch_ = new MpCCIexch(ptgrid_);
-      MpCCInodes_=ptgrid_->GetMaxnumnodes(0);
+      //MpCCInodes_=ptgrid_->GetMaxnumnodes(0);
 
+      MpCCInodes_=mapSD_.size();
       ptMpCCIexch_->PutExchangeGrid2MpCCI(subdoms_);
       flowdata_.Resize(3, MpCCInodes_);
       //  delete ptMpCCIexch_;
@@ -224,9 +228,10 @@ void AcouFlowNoise::ComputeRHS(const Double atime)
 
 	// CHANGE connecth
 	Mesh2PDENode(connect_PDE,connObstSurf,Mesh2PDENode_);
-	std::cout<<"connObstSurf :"<<connObstSurf<<std::endl; 
-
-        algsys_->SetElementRHS(&elemvecdip[0], &connect_PDE[0], connect_PDE.size());
+	std::cout<<"connObstSurf :"<<connObstSurf<<std::endl;
+ 	  std::cout<<"elemvect DIPOLE: "<<elemvecdip<<std::endl;
+	// including the dipole contribution for testing!!!!!!!!
+	algsys_->SetElementRHS(&elemvecdip[0], &connect_PDE[0], connect_PDE.size());
 
 	delete linear_loaddipole;
 
@@ -300,7 +305,13 @@ void AcouFlowNoise::ComputeRHS(const Double atime)
 	  // CHANGE connecth
 	  Mesh2PDENode(connect_PDE,connecth,Mesh2PDENode_);
 	  //linear_load->CalcElemVector(ptCoordNodes, elemvec); // for setting with homogeneous rhs
-	  //std::cout<<"elemvect quad: "<<elemvec<<std::endl;
+	  
+	  // if (j>100){ 
+	  //  valmult=-10000.0;
+	    //std::cout<<"elemvect quad: "<<elemvec<<std::endl;
+	  
+	  //}
+	  
 	
 	  algsys_->SetElementRHS(&elemvec[0], connect_PDE.get(), connect_PDE.size());
 	  
@@ -434,9 +445,12 @@ void AcouFlowNoise::SolveStepTrans(const Integer kstep, const Double asteptime, 
     {
       update = 0;
       job = 1;
-      SetupMatrices(level);
+      assemble_->AssembleMatrices(level);
       algsys_->ConstructEffectiveMatrix(matrix_factor_);
+
       algsys_->InitRHS();
+      assemble_->AssembleRHS(level,lasttimecalc_);
+
       ComputeRHS(lasttimecalc_);
       TS_alg_->UpdateRHS();
     }
@@ -445,9 +459,11 @@ void AcouFlowNoise::SolveStepTrans(const Integer kstep, const Double asteptime, 
       update = 1;
       job    = 1;
 
-      algsys_->InitRHS();
       algsys_->InitMatrix(SYSTEM);
       algsys_->ConstructEffectiveMatrix(matrix_factor_);
+
+      algsys_->InitRHS();
+      assemble_->AssembleRHS(level,lasttimecalc_);
       ComputeRHS(lasttimecalc_);
       TS_alg_->UpdateRHS();
     }
@@ -456,6 +472,7 @@ void AcouFlowNoise::SolveStepTrans(const Integer kstep, const Double asteptime, 
       update = 1;
       job    = 3;
       algsys_->InitRHS();
+      assemble_->AssembleRHS(level,lasttimecalc_);
       ComputeRHS(lasttimecalc_);
       TS_alg_->UpdateRHS();
     };
@@ -468,7 +485,7 @@ void AcouFlowNoise::SolveStepTrans(const Integer kstep, const Double asteptime, 
   // save solution
   Integer k = 0;
   
-  for (Integer i=0; i<NumPDENodes_; i++)
+  for (Integer i=0; i<numPDENodes_; i++)
     for (Integer dim=0; dim<dofspernode_; dim++)
       sol_[dim][i] = ptsol[k++];
 
