@@ -343,10 +343,3 @@ depend-cleanfile:
         fi); done
 
 # DO NOT DELETE THIS LINE -- make depend depends on it
-
-cfs.o: /usr/include/time.h /usr/include/features.h /usr/include/sys/cdefs.h
-cfs.o: /usr/include/gnu/stubs.h
-cfs.o: /usr/lib/gcc-lib/i586-suse-linux/3.3.1/include/stddef.h
-cfs.o: /usr/include/bits/time.h /usr/include/bits/types.h
-cfs.o: /usr/include/bits/wordsize.h /usr/include/bits/typesizes.h
-cfs.o: /usr/lib/gcc-lib/i586-suse-linux/3.3.1/include/stdarg.h
