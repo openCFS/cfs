@@ -12,6 +12,7 @@
 
 namespace CoupledField {
 
+
   //*****************
   //   Constructor
   //*****************
@@ -26,12 +27,14 @@ namespace CoupledField {
     std::strcpy( namedir_, filename );
     std::strcat( namedir_, "_gmv" );
 
-    Char command[ nameLength + 4 + 9 + 1 ];
+    Char *command = new Char[ nameLength + 4 + 9 + 1 ];
     std::sprintf( command, "mkdir -p %s", namedir_ );
     std::system( command );
+    delete[] command;
 
     currStep_ = -1;
     lastStep_ = -1;
+    lastTime_ = 0.0;
     currTime_ = 0.0;
 
     firstGridWritten_ = FALSE;
@@ -64,10 +67,16 @@ namespace CoupledField {
     if ( output != NULL ) {
       if (ascii_) {
         (*output) << "\nendvars\n" ;
+        (*output) << "probtime " << lastTime_ << std::endl;
+        (*output) << "cycleno " << lastStep_ << std::endl;
         (*output) << "endgmv ";
       }
       else {
         (*output) << "endvars ";
+        (*output) << "probtime";
+        output->write( (char*)&lastTime_, sizeof(Double) );
+        (*output) << "cycleno";
+        output->write( (char*)&lastStep_, sizeof(Integer) );
         (*output) << "endgmv  ";
       }
       delete output;
@@ -261,18 +270,21 @@ namespace CoupledField {
               break;
 
             case 15:
-              if (ascii_)
-                (*output) << "pprism15 16" << std::endl;
+              if (ascii_) {
+                (*output) << "pprism15 15" << std::endl;
+                // (*output) << "pprism15 16" << std::endl;
+              }
               else {
                 (*output) << "pprism15";
-                Integer nn=16 ;
+                Integer nn=15;
+                // Integer nn=16;
                 output->write((char*)&nn,sizeof(Integer));
               }
 
               // Note: Due to a bug up to the current version of GMV (v3.5)
               // we have to add a 16. node for the wedge element by simply
               // copying the last node
-              connect.Push_back(connect[connect.GetSize()-1]);
+              // connect.Push_back(connect[connect.GetSize()-1]);
               break;
 
             case 8:
@@ -655,7 +667,6 @@ namespace CoupledField {
     // since last write of grid
     if (currStep_ != lastStep_) { 
 
-      lastStep_ = currStep_;
       OpenFile(currStep_);
 
       if (fixedgrid_){
@@ -934,17 +945,28 @@ namespace CoupledField {
     }
 
     // If file was already open, write end of variables
+    // and the time and step number
     if (output && num > 1) {
       if (ascii_) {
         (*output) << "\nendvars\n" ;
+        (*output) << "probtime " << lastTime_ << std::endl;
+        (*output) << "cycleno " << lastStep_ << std::endl;
         (*output) << "endgmv";
       }
       else {
         (*output) << "endvars ";
+        (*output) << "probtime";
+        output->write( (char*)&lastTime_, sizeof(Double) );
+        (*output) << "cycleno";
+        output->write( (char*)&lastStep_, sizeof(Integer) );
         (*output) << "endgmv  ";
       }
     }
     delete output;
+
+    // Update time stepping information
+    lastTime_ = currTime_;
+    lastStep_ = currStep_;
 
     // check what kind of data for input
     std::string typedata;
@@ -964,15 +986,9 @@ namespace CoupledField {
     // Write header, problem time and step number
     if (ascii_) {
       (*output) << "gmvinput ascii" << std::endl;
-      (*output) << "probtime " << currTime_ << std::endl;
-      (*output) << "cycleno " << num << std::endl;
     }
     else {
       (*output) << "gmvinput" << "ieeei4r8";
-      (*output) << "probtime";
-      output->write( (char*)&currTime_, sizeof(Double) );
-      (*output) << "cycleno";
-      output->write( (char*)&num, sizeof(Integer) );
     }
   }
 
