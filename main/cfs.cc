@@ -49,27 +49,28 @@ void main(int argc, char *argv[])
     }
   else name=argv[argc-1];
 
-  DefineInOutFiles oDefFiles(name);
+  DefineInOutFiles * ptDefineFiles=new DefineInOutFiles(name);
 
   MyClock oClockTotal;
   oClockTotal.ClockCount(MyClock::beg);
 
-  FileType * ptInputfile=oDefFiles.Create_ptFileType(argv[1]);
+  FileType * ptInputfile=ptDefineFiles->Create_ptFileType(argv[1]);
 
-//  WriteResults<Point2D> * ptOut=oDefFiles.Create_ptWriteResults2d();
-  WriteResults<Point3D> * ptOut=oDefFiles.Create_ptWriteResults3d();  
+  WriteResults<Point2D> * ptOut=ptDefineFiles->Create_ptWriteResults2d();
+
+//  WriteResults<Point3D> * ptOut=oDefFiles.Create_ptWriteResults3d();  
 
   TimeFunc * ptTimeFunc=new TimeFunc(ptInputfile);
 
-//  Domain<Point2D> *domain=new Domain<Point2D>(ptInputfile,ptOut,ptMaterial, ptTimeFunc);
-   Domain<Point3D> *domain=new Domain<Point3D>(ptInputfile,ptOut,ptMaterial, ptTimeFunc);
+  Domain<Point2D> *domain=new Domain<Point2D>(ptInputfile,ptOut,ptMaterial, ptTimeFunc);
+//   Domain<Point3D> *domain=new Domain<Point3D>(ptInputfile,ptOut,ptMaterial, ptTimeFunc);
 
   // print grid to unverg-file
   domain->PrintGrid(0);
 
   //choose your driver
-//  BaseDriver<Point2D> *ptdriver = new TransientDriver(domain);
-   BaseDriver<Point3D> *ptdriver = new StaticDriver<Point3D>(domain);
+  BaseDriver<Point2D> *ptdriver = new TransientDriver(domain);
+//   BaseDriver<Point3D> *ptdriver = new StaticDriver<Point3D>(domain);
 
   //solve your problem
   std::string adaptTimeOn;
@@ -124,8 +125,8 @@ void main(int argc, char *argv[])
 */
 
 /// Putzen
-  if (ptInputfile) delete ptInputfile;
-  if (ptOut) delete ptOut;
   if (ptdriver) delete ptdriver;
   if (ptMaterial) delete ptMaterial;
+//  if (ptDefineFiles) delete ptDefineFiles;
+
 }

@@ -76,15 +76,15 @@ Domain<Dim> :: ~Domain()
   (*trace) << "entering Domain::~Domain" << std::endl;
 #endif
 
-  if (!ptgrid_) delete ptgrid_;
-  if (!ptBCs_) delete ptBCs_;
-  if (!ptalgsys_) delete ptalgsys_;
+  if (ptgrid_) delete ptgrid_;
+  if (ptBCs_) delete ptBCs_;
+  if (ptalgsys_) delete ptalgsys_;
 
   Integer i;
-  if (!ptpde_) 
+  if (ptpde_) 
      {
       for (i=0; i<numpde_; i++)
-        if (!ptpde_[i]) delete ptpde_[i];
+        if (ptpde_[i]) delete ptpde_[i];
       delete [] ptpde_;
      } 
 }
@@ -97,39 +97,21 @@ void Domain<Dim> :: InitPDE()
 #endif
 
   // get numbers of PDEs in domain
-  numpde_ = 1;
-
-/*
-    //get analysis type
-  Integer soltype;
-  Integer statickey;
-  InFile_->preReadTransAnal(soltype, statickey);
-
-  Integer level = 0;
-  Integer numnode = ptgrid_->GetMaxnumnodes(level);
-
-  // read time step
-  Integer numsteps;
-  Double dt0;
-  InFile_->ReadNumStepsAndTimeSteps(numsteps, dt0);
-*/
+ conf->get("maxnumsd",numpde_);
 
   //allocate all specific PDEs
   if (!ptalgsys_) Error("You try to allocate object BasePDE with null pointer to AlgSys");
 
-//  ptpde_[0]=new Therm2dPDE(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_);
-
-//  ptpde_[0]=new Acoustic2dPDE(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_);
-
-  ptpde_[0]=new Elecst3dPDE(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_);
-
+  std::string eq;
   for (int i=0;i<numpde_;i++)
     {
-      //      ptpde[i] = new Elec2dPDE(grid,ptmaterial,InFile,OutFile,statickey);      
- //     ptpde[i] = new Therm2dPDE(ptgrid,ptmaterial,ptTimeFunc,InFile,OutFile,statickey,numnode);
-    }
-
-//   ptpde_[0]->SetStepData();
+       conf->getequation(eq,i);
+       if (eq == "acoustic2d")  ptpde_[i]=new Acoustic2dPDE(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_);
+//       else
+//       if (eq == "electrostatic3d")  ptpde_[i]=new Elecst3dPDE(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_);
+       else
+       if (eq == "thermal2d") ptpde_[i]=new Therm2dPDE(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_);
+   }
 
 }
 

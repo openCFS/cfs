@@ -3,6 +3,7 @@
 
 #include "basepde.hh"
 #include "abstractAS.hh"
+#include "outUnverg.hh"
  
 namespace CoupledField
 {
@@ -15,6 +16,8 @@ namespace CoupledField
 class Acoustic2dPDE: virtual public BasePDE
 {
 public:
+
+  WriteResultsUnverg<Point2D> * ptOutput;
 
   //!
   Acoustic2dPDE(AbstractAlgebraicSys * aptalgsys, Grid<Point2D> * , Material * , TimeFunc * ,FileType * , WriteResults<Point2D> * );
@@ -66,6 +69,9 @@ Double &adampiter,  Integer &amaxnumit, Integer &numeqcoarse);
   virtual const Vector<Double> & getS1() const { return sol_der1_;}
 
   //!
+  virtual const Vector<Double> & getS1old() const { return sol_der1_old_;}
+
+  //!
   virtual const Vector<Double> & getS2() const { return sol_der2_;}
 
   //!
@@ -77,6 +83,9 @@ Double &adampiter,  Integer &amaxnumit, Integer &numeqcoarse);
   //!
   Double getBeta() const { return beta_;}
   Double getGamma() const { return gamma_;}
+
+  //! We use this function for time-error estimation
+  void CalcThirdDerivateFromEquation(Vector<Double> & result);
 
 private:
   //!
@@ -98,7 +107,7 @@ private:
   Double alpha_,gamma_, beta_;
 
   //! store solution, 1st derivative , 2nd derivative solution
-  Vector<Double> sol_, sol_der1_, sol_der2_, sol_old_, sol_der2_old_;  
+  Vector<Double> sol_, sol_der1_, sol_der2_, sol_old_, sol_der1_old_, sol_der2_old_;  
 
   //! Last time on which we have calculated solution
   Double lasttimecalc_;

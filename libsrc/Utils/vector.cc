@@ -453,6 +453,13 @@ Integer  Vector<TYPE>:: memory() const
  return n*sizeof(TYPE);
 }
 
+template<class TYPE>
+void  Vector<TYPE>::TransformInVector(const Integer nsize, TYPE * ptdata) 
+{
+  n=nsize;
+  p=ptdata;
+}
+
 template<class T>
 void swap(Vector<T> & a, Vector<T> & b) 
 {

@@ -24,12 +24,13 @@ WriteResultsUnverg<Dim> :: WriteResultsUnverg(const Char * const filename)
 }
 
 template<class Dim>
-WriteResultsUnverg<Dim> ::~ WriteResultsUnverg()
+WriteResultsUnverg<Dim> ::~WriteResultsUnverg()
 {
 #ifdef TRACE
  (*trace) << "entering WriteResultsUnverg ::~ WriteResultsUnverg" << std::endl;
 #endif
-  ;
+  
+  if (output) delete output;
 }
 
 template<class Dim>

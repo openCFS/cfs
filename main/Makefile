@@ -15,7 +15,7 @@ SUBLIBDIR := Driver Estimator PDE AlgebraicSystem/LinAlg \
              Domain/GridCFS Domain/NetGen Domain \
              DataInOut/DefineFiles \
              DataInOut/Unverg DataInOut/GMV \
-             DataInOut/DatFile DataInOut\
+             DataInOut/DatFile DataInOut/AnsysFile DataInOut\
              Utils Matrix General
 else
 SUBLIBDIR := Driver Estimator PDE AlgebraicSystem/LinAlg \
@@ -23,7 +23,7 @@ SUBLIBDIR := Driver Estimator PDE AlgebraicSystem/LinAlg \
             Domain/GridCFS Domain/Gridlib Domain \
             DataInOut/DefineFiles \
             DataInOut/Unverg DataInOut/GMV \
-            DataInOut/DatFile DataInOut\
+            DataInOut/DatFile DataInOut\AnsysFile DataInOut\
             Utils Matrix General
 endif
 #
@@ -34,7 +34,7 @@ mylibrary :=  driver estimator pde algsys-own forms  \
             elements3d elements2d elements \
             gridcfs tonetgen\
             domain unverg gmv \
-            definefiles datfile datainout \
+            definefiles datfile ansysfile datainout \
             utils matrix general \
             multigrid-cla general-cla superlu-cla \
             nginterface vis  \
@@ -46,7 +46,7 @@ mylibrary :=  driver estimator pde algsys-own forms  \
             elements3d elements2d elements \
             gridcfs \
             domain unverg gmv \
-            definefiles datfile datainout \
+            definefiles datfile ansysfile datainout \
             utils matrix \
             multigrid-cla general-cla superlu-cla \
             general

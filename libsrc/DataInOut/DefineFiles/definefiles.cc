@@ -45,12 +45,12 @@ DefineInOutFiles :: DefineInOutFiles(const Char * name)
  conf=new ConfFile(name);
  if (!conf) Error("Can't open conf-file");
 
-// ptWriteResults2d=NULL;
-// ptWriteResults3d=NULL;
+ptWriteResults2d=NULL;
+ptWriteResults3d=NULL;
 
 }
  
-DefineInOutFiles ::~ DefineInOutFiles()
+DefineInOutFiles ::~DefineInOutFiles()
 {
 #ifdef TRACE
  (*trace) << "Entering DefineInOutFiles::~DefineInOutFiles" << std::endl;
@@ -70,6 +70,13 @@ if (InfoPrint) delete infofile;
 
 if (conf) delete conf;
 if (cla) delete cla;
+
+if (ptWriteResults2d) delete ptWriteResults2d;
+if (ptWriteResults3d) delete ptWriteResults3d;
+
+if (infiletype) delete infiletype;
+
+cout << " end of deconstructor" << endl;
 }
 
 FileType * DefineInOutFiles :: Create_ptFileType(Char * atype)

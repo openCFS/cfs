@@ -76,6 +76,10 @@ public:
   virtual const Vector<Double> & getS1() const 
   { Error("Not implemented");}
 
+    //!
+  virtual const Vector<Double> & getS1old() const
+  { Error("Not implemented");}
+
   //!
   virtual const Vector<Double> & getS2() const { Error("Function getS2 is not overloaded in this class");}
 
@@ -92,7 +96,10 @@ public:
 
   //!
   virtual AbstractAlgebraicSys * getAlgSys() const { return ptalgsys_;}
- 
+
+  virtual void CalcThirdDerivateFromEquation(Vector<Double> & result)
+ { Error("Function getSize is not overloaded in this class");} 
+
 protected:
 
   //!
