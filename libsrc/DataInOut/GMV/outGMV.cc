@@ -75,7 +75,7 @@ namespace CoupledField {
         (*output) << "endvars ";
         (*output) << "probtime";
         output->write( (char*)&lastTime_, sizeof(Double) );
-        (*output) << "cycleno";
+        (*output) << "cycleno ";
         output->write( (char*)&lastStep_, sizeof(Integer) );
         (*output) << "endgmv  ";
       }
@@ -935,10 +935,11 @@ namespace CoupledField {
     // Normal output file
     else {
       filename.append( ".gmv" );
-      if ( num < 10 ) filename.append( "00" );
-      else if ( num < 100 ) filename.append( "0" );
-      else if ( num > 1000 ) {
-        Info->Error( "Number of gmv file exceeds 999!",
+      if ( num < 10 ) filename.append( "000" );
+      else if ( num < 100 ) filename.append( "00" );
+      else if ( num < 1000 ) filename.append( "0" );
+      else if ( num > 10000 ) {
+        Info->Error( "Number of gmv file exceeds 9999!",
                      __FILE__, __LINE__ );
       }
       filename.append( Info->GenStr( num ) );
@@ -957,7 +958,7 @@ namespace CoupledField {
         (*output) << "endvars ";
         (*output) << "probtime";
         output->write( (char*)&lastTime_, sizeof(Double) );
-        (*output) << "cycleno";
+        (*output) << "cycleno ";
         output->write( (char*)&lastStep_, sizeof(Integer) );
         (*output) << "endgmv  ";
       }

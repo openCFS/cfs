@@ -83,28 +83,28 @@ void MpcciPDE::PreparePDE4Computation()
 {
   ENTER_FCN( "MpcciPDE::PreparePDE4Computation" );
 
-#ifdef MpCCI
+// #ifdef MpCCI
 
-  params->GetList( "name", subdoms_, pdename_, "region" );
+//   params->GetList( "name", subdoms_, pdename_, "region" );
     
-  StdVector<Elem*> elemssd;
+//   StdVector<Elem*> elemssd;
 
-  if (subdoms_.GetSize() != 1)
-    {
-      std::cerr << "currently only one subdomain can be coupled with mpcciPDE" << std::endl;
-      exit(0);
-    }
-  else
-    {
-      ptgrid_->GetElemSD(elemssd,subdoms_[0],actlevel_);
-      ptgrid_->CalcNumberOfNodesInPatch(elemssd,mapSD_);
+//   if (subdoms_.GetSize() != 1)
+//     {
+//       std::cerr << "currently only one subdomain can be coupled with mpcciPDE" << std::endl;
+//       exit(0);
+//     }
+//   else
+//     {
+//       ptgrid_->GetElemSD(elemssd,subdoms_[0],actlevel_);
+//       ptgrid_->CalcNumberOfNodesInPatch(elemssd,mapSD_);
 
-      MpCCInodes_= mapSD_.GetSize();
-      ptMpCCIexch_ = new MpCCIexch(ptgrid_,MpCCInodes_);
-    }
+//       MpCCInodes_= mapSD_.GetSize();
+//       ptMpCCIexch_ = new MpCCIexch(ptgrid_,MpCCInodes_);
+//     }
 
-  ptMpCCIexch_->PutExchangeGrid2MpCCI(subdoms_, *eqnData_);
-#endif
+//   ptMpCCIexch_->PutExchangeGrid2MpCCI(subdoms_, *eqnData_);
+// #endif
 
 }
 
@@ -275,9 +275,9 @@ void MpcciPDE::CalcInputCoupling()
 		    {
 		      flagFirstTimeStep_=FALSE;
 		    }
-#ifdef MpCCI
-		  else ptMpCCIexch_->CouplSendPhase(displ,converged_);
-#endif
+// #ifdef MpCCI
+// 		  else ptMpCCIexch_->CouplSendPhase(displ,converged_);
+// #endif
 		  break;
 		}  // end switch
 	} // end for
@@ -310,9 +310,9 @@ void MpcciPDE::CalcOutputCoupling()
 	  if (quantity == FLUID_FORCE)
 	    {
 
-#ifdef MpCCI
-	      ptMpCCIexch_->CouplRecvPhase(temp[actCoupling]);
-#endif
+// #ifdef MpCCI
+// 	      ptMpCCIexch_->CouplRecvPhase(temp[actCoupling]);
+// #endif
 
 	      forcesCount++;
 	    }

@@ -225,7 +225,7 @@ AcousticPDE::AcousticPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc,
 	needsDampingMatrix_ = TRUE;
   // conservative formulation
   //if ( absorbingBCs_ == TRUE || dampingType_ != NONE )
-  //  needsDampingMatrix_ = TRUE;  
+  //  needsDampingMatrix_ = TRUE;
 }
 
 
@@ -607,6 +607,12 @@ void AcousticPDE::WriteResultsInFile(const Integer kstep,
 	    solDeriv2_.SetAlgSysVector(getS2());
 	    outFile_->WriteNodeHistoryTransient(solDeriv2_, actStep, actTime);
 	  }
+ 	  if (saveRHSval_){
+	    outFile_->WriteNodeSolutionTransient(rhs_, actStep, actTime);
+	  }
+ 	  if (saveRHSvalHist_){
+	    outFile_->WriteNodeHistoryTransient(rhs_, actStep, actTime); 
+	  }
 	}
 
         // ------- for bubble results ----------------------
@@ -686,6 +692,15 @@ node results in pressure. Try element results!", __FILE__,__LINE__);
 	params->GetList( keyVec, attrVec, valVec, nodeValues);
 	if (nodeValues.GetSize() > 0) {
 	  saveSol_ = TRUE;
+	  hasOutput_ = TRUE;
+	}
+
+	// --- acoustic potential ---
+	Enum2String(ACOU_RHSVAL, quantity);
+	valVec = "", "", quantity;
+	params->GetList( keyVec, attrVec, valVec, nodeValues);
+	if (nodeValues.GetSize() > 0) {
+	  saveRHSval_ = TRUE;
 	  hasOutput_ = TRUE;
 	}
 
@@ -789,7 +804,22 @@ history node results in pressure.", __FILE__,__LINE__);
 	  }
 
 	}
+
+	// --- acoustic RHS ---
+	Enum2String(ACOU_RHSVAL, quantity);
+	valVec  = "", "", quantity;
+	params->GetList( keyVec, attrVec, valVec, saveNodeHist );
     
+	if (saveNodeHist.GetSize() > 0) {
+	  saveRHSvalHist_ = TRUE;
+	  hasOutput_ = TRUE;
+	  Info->PrintF( pdename_, "Saving acouRHSval for Nodes:\n" );
+	  for ( Integer k = 0; k < saveNodeHist.GetSize(); k++ ) {
+		Info->PrintF( pdename_, "  %s\n", saveNodeHist[k].c_str() );
+	  }
+
+	}
+
 	// --- acoustic potential, 1. Deriv ---
 	Enum2String(ACOU_POTENTIAL_DERIV_1, quantity);
 	valVec  = "", "", quantity;

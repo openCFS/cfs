@@ -108,12 +108,16 @@ protected:
   // Postprocessing results
   NodeStoreSol<Double> solDeriv1_;       //!< contains 1st derivative of solution
   NodeStoreSol<Double> solDeriv2_;       //!< contains 2nd derivative of solution
+  NodeStoreSol<Double> rhs_;       //!< contains 2nd derivative of solution
 
   //! Attribute describing model for bubble dynamics
   BubbleDynType bubbleDynType_;
 
   //! bubbledensity
   Double bubbleDensity_;
+
+  Boolean plotRHS_; //!< Flag for saving of rhs for output
+
 
 private:
 

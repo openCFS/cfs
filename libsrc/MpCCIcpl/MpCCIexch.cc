@@ -79,14 +79,45 @@ void MpCCIexch::PutExchangeGrid2MpCCI(StdVector<std::string> coupledsubdoms)
       int k=0;
       for (j=0; j< elemssd.GetSize(); j++)
 	{
-
 	  connecth=elemssd[j]->connect;
 	  // 	  ptCoordNodes=new Point<2>[connecth.size()];
 	  //	  ptgrid_->GetCoordNodesElem(connecth,ptCoordNodes,actlevel_);
 	  ptgrid_->GetCoordNodesElemMat(connecth,ptCoordNodes,actlevel_);
 	  for (ii=0; ii<elsize; ii++, k++)
 	    {  
-	      TOPOLOGYDATA[i][k]=connecth[ii];
+	      if ((elsize==8)&&(Dim_==2))
+		{
+		    // A bit hard coded node order transformation
+		    if ((ii==0)||(ii==7))
+		      TOPOLOGYDATA[i][k]=connecth[ii];
+		    else
+		      if ((ii==2)||(ii==4)||(ii==6))
+			TOPOLOGYDATA[i][k]=connecth[ii/2];
+		      else
+			{
+			  switch(ii) 
+			    {
+			    case 1:
+			      {
+				TOPOLOGYDATA[i][k]=connecth[ii+3];
+				break;
+			      }
+			    case 3:
+			      {
+				TOPOLOGYDATA[i][k]=connecth[ii+2];
+				break;
+			      }
+			    case 5:
+			      {
+				TOPOLOGYDATA[i][k]=connecth[ii+1];
+				break;
+			      }
+			    }
+			}
+		  }
+	      else
+		TOPOLOGYDATA[i][k]=connecth[ii];
+	      
 	      NODEDATA[3*(connecth[ii]-1)]=ptCoordNodes[0][ii];		      
 	      NODEDATA[3*(connecth[ii]-1)+1]=ptCoordNodes[1][ii];
 	      if(Dim_==3)
@@ -95,7 +126,6 @@ void MpCCIexch::PutExchangeGrid2MpCCI(StdVector<std::string> coupledsubdoms)
 		NODEDATA[3*(connecth[ii]-1)+2]= 0.0; // z-component for the 2d case is zero		      
 	    }	
 	}
-
 
       // 	      std::cout<<"NODEDATA 1d Array:"<<std::endl;
       // 	      for (ii=0; ii<(3*size_); ii++)
@@ -160,9 +190,13 @@ void MpCCIexch::PutExchangeGrid2MpCCI(StdVector<std::string> coupledsubdoms)
 	  }
 	case 8:
 	  {
-	    nNodesPerElem_[0] = 8;      
-	    elemTypes_[0] = CCI_ELEM_HEXAHEDRON;
+	    nNodesPerElem_[0] = 8; 
+	    if (Dim_==3)
+	      elemTypes_[0] = CCI_ELEM_HEXAHEDRON;
+	    else
+	      elemTypes_[0] = CCI_ELEM_QUAD8;
 	    break;
+	      
 	  }
 	}
       
@@ -246,15 +280,35 @@ void MpCCIexch::CouplCompPhase(Matrix<Double> & flowdata, Integer timestep)
 
     // Putting values in our matrix flowdata
     Integer k = 0;
-    for (Integer inode=0; inode<MpCCInodes_; inode++)
-      {
-	flowdata[0][inode] = value_Press[inode];
-	for(Integer i=0;i<Dim_;i++)
-	  flowdata[i+1][inode] = value_VxVy[k+i];
-	
-	k = k+3;
-      }
 
+
+  Boolean nodalSrc;
+    //check type of flow data
+    if( params->HasValue( "type", "nodalSrc", "acoustic", "flowData" ) ) {
+      nodalSrc = TRUE;
+      Info->PrintF("acoustic", "In MpCCIexch Using FlowData as RHS nodal source\n" );
+    }
+    
+
+
+
+      if (nodalSrc == TRUE)
+	  for (Integer inode=0; inode<MpCCInodes_; inode++)
+	    {
+	      flowdata[0][inode] = value_Press[inode]; // Getting first column as INT(dTdxdw)
+	    }
+      else
+	{
+	  for (Integer inode=0; inode<MpCCInodes_; inode++)
+	    {
+	      flowdata[0][inode] = value_Press[inode];
+	      for(Integer i=0;i<Dim_;i++)
+		flowdata[i+1][inode] = value_VxVy[k+i];
+	      
+	      k = k+3;
+	    }
+	}
+      
  
     //check covergence: do another time step or not!
     CCI_Check_convergence(myConvergence,&globalConvergence,CCI_ANY_CODE);

@@ -226,6 +226,9 @@ protected:
   //! TRUE, if solution should be written to result file
   Boolean saveSol_;
 
+  //! TRUE, if RHS values should be written to result file
+  Boolean saveRHSval_;
+
   //! TRUE, if first derivative of solution should be written to result file
   Boolean saveDeriv1_;
 
@@ -234,6 +237,9 @@ protected:
 
   //! TRUE, if solution should be written to history file
   Boolean saveSolHist_;
+
+  //! TRUE, if RHS values should be written to history file
+  Boolean saveRHSvalHist_;
 
   //! TRUE, if first derivative of solution should be written to history file
   Boolean saveDeriv1Hist_;
