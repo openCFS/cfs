@@ -78,8 +78,10 @@ public:
 			   std::vector<Integer> & couplingNodes,
 			   std::vector<MaterialData*> * couplingMaterials,
 			   Array<Double>& elemCouplingSols,
-			   Integer couplingdof);
+			   Integer couplingdof,
+			   std::vector<Elem*> * neighbours);
   
+
 
 protected:
 

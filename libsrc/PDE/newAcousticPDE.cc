@@ -198,6 +198,7 @@ void AcousticPDE::CalcOutputCoupling()
   Integer dof;
   std::string quantity;
   std::vector<Elem*> * couplingElems = NULL;
+  std::vector<Elem*> * neighbours = NULL;
   std::vector<Integer> * couplingNodes = NULL;
   std::vector<MaterialData*> * couplingMaterials = NULL;
   Array<Double> * values = NULL;
@@ -216,9 +217,10 @@ void AcousticPDE::CalcOutputCoupling()
 	      ptCoupling_->GetOutputNodes(i, couplingNodes);
 	      ptCoupling_->GetOutputMaterials(i, couplingMaterials);
 	      ptCoupling_->GetOutputValues(i, values);
+	      ptCoupling_->GetNeighbourElems(i, neighbours);
 	      dof = ptCoupling_->GetOutputDof(i);
 	    
-	      CalcMechCouplingRHS(couplingElems, *couplingNodes, couplingMaterials, *values, dof);
+	      CalcMechCouplingRHS(couplingElems, *couplingNodes, couplingMaterials, *values, dof, neighbours);
 
 	      //	      myCout << "Acoustic couple forces : " << *values << myEndl;
 
@@ -235,7 +237,8 @@ void AcousticPDE::CalcMechCouplingRHS(std::vector<Elem*> * couplingElems,
 				      std::vector<Integer> & couplingNodes,
 				      std::vector<MaterialData*> * couplingMaterials,
 				      Array<Double>& elemCouplingSols,
-				      Integer couplingdof)
+				      Integer couplingdof,
+				      std::vector<Elem*> * neighbours)
 {
 #ifdef TRACE
   (*trace) << "entering AcousticPDE::CalcMechCouplingRHS" << std::endl;
@@ -274,8 +277,11 @@ void AcousticPDE::CalcMechCouplingRHS(std::vector<Elem*> * couplingElems,
       Vector<Double> forceOnElem = elemmat * sol;
 
       Vector<Double> n;
-      CalcLineNormalVec(n, ptCoord);
-      CalcLineNormalVec(n, *actCoupleElem);
+      //      CalcLineNormalVec(n, ptCoord);
+      CalcLineNormalVec(n, *actCoupleElem, *(*neighbours)[actElem]);
+      
+      //    myCout << "Acoustic: n: " << n << myEndl;
+      
       
       Integer nodePos = 0;
 

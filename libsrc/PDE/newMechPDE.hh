@@ -124,7 +124,8 @@ private:
 			       std::vector<Integer>& couplingNodes,
 			       std::vector<MaterialData*>* materials,
 			       Array<Double>& forceOnElem,
-			       Integer couplingdof);
+			       Integer couplingdof,
+			       std::vector<Elem*> * neighbours);
   
 
   /// does a line search and returns the optimal residual norm
