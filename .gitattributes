@@ -15,6 +15,7 @@ XML/CFS.xsd -text
 XML/Defaults/CFS++Defaults.xml svneol=native#text/xml
 XML/Docs/XMLParams.tex svneol=native#text/plain
 XML/Schemas/CFS_Analysis.xsd -text
+XML/Schemas/CFS_Coupling.xsd -text
 XML/Schemas/CFS_Domain.xsd -text
 XML/Schemas/CFS_IntegRules.xsd -text
 XML/Schemas/CFS_LinearSystem.xsd -text
