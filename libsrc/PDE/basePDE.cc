@@ -120,8 +120,10 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
     // =====================================================================
     // get regions/subdomains for PDE
     // =====================================================================
-#ifndef XMLPARAMS
+#ifndef XMLPARAMS  
+
     conf->getsubdompde(subdoms_,pdename_);
+   
 #else
     params->GetList( "name", subdoms_, pdename_, "region" );
     Info->PrintF( pdename_, " %s lives on regions:", pdename_.c_str());

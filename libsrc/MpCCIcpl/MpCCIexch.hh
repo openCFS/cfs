@@ -25,7 +25,7 @@ public:
   virtual ~MpCCIexch();
 
   //! Reorganizing grid info for MpCCi and hand over to MpCCI
-  void PutExchangeGrid2MpCCI(std::vector<std::string> subdoms);
+  void PutExchangeGrid2MpCCI(StdVector<std::string> subdoms);
 
   //! Performs the coupled computation phase
   void CouplCompPhase(Matrix<Double> & flowdata, Integer timestep);
@@ -34,7 +34,7 @@ private:
 
   // pointers to objects
   Grid * ptgrid_;           //!< pointer to Grid
-  std::vector<std::string> subdoms_;  //!< subdomain-levels belongig to PDE
+  StdVector<std::string> subdoms_;  //!< subdomain-levels belongig to PDE
   Integer actlevel_; //! actual level
   ShortInt Dim_;         //!< space dimension of pde  
 

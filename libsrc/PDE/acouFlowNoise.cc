@@ -26,11 +26,17 @@ AcouFlowNoise::AcouFlowNoise(Grid *aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc,
 {
   ENTER_FCN( "AcouFlowNoise::AcouFlowNoise" );
 
+    pdename_          = "acouflownoise";
+    pdematerialclass_ = "fluid";
+
+
 #ifdef MpCCI
-   StdVector<Elem*> elemssd;
-      ptgrid_->GetElemSD(elemssd,subdoms_[1],actlevel_);
-       ptgrid_->CalcNumberOfNodesInPatch(elemssd,mapSD_);
- ptMpCCIexch_ = new MpCCIexch(ptgrid_,mapSD_.size() );
+  StdVector<Elem*> elemssd;
+  conf->getsubdompde(subdoms_,pdename_);
+  ptgrid_->GetElemSD(elemssd,subdoms_[1],actlevel_);
+  ptgrid_->CalcNumberOfNodesInPatch(elemssd,mapSD_);
+  ptMpCCIexch_ = new MpCCIexch(ptgrid_,mapSD_.GetSize() );
+
 #endif
 //  ReadBCs(pdename_);
  preComputeRHS();
@@ -60,19 +66,19 @@ void AcouFlowNoise::preComputeRHS()
       //      MpCCIexch * ptMpCCIexch_ = new MpCCIexch(ptgrid_);
       //MpCCInodes_=ptgrid_->GetMaxnumnodes(0);
 
-      MpCCInodes_=mapSD_.size();
+      MpCCInodes_=mapSD_.GetSize();
       ptMpCCIexch_->PutExchangeGrid2MpCCI(subdoms_);
       flowdata_.Resize(3, MpCCInodes_);
       //  delete ptMpCCIexch_;
       SetRHSFnc = FALSE;
       SetRHSFlowSrc = FALSE;
       std::string isthererhs;
-      conf->ifget("load_force",isthererhs,"acoustic");
+      conf->ifget("load_force",isthererhs,"acouflownoise");
   
       if (isthererhs=="FlowSrc" ) 
 	{
 	  std::cout<<"In flownoise precomputeRHS"<<std::endl;  
-	  conf->getliststr("rhs_surfaces",rhs_surfaces_,"acoustic");
+	  conf->getliststr("rhs_surfaces",rhs_surfaces_,"acouflownoise");
 	  SetRHSFlowSrc=TRUE;
 	}
 #endif
@@ -82,12 +88,12 @@ void AcouFlowNoise::preComputeRHS()
       SetRHSFnc = FALSE;
       SetRHSFlowSrc = FALSE;
       std::string isthererhs;
-      conf->ifget("load_force",isthererhs,"acoustic");
+      conf->ifget("load_force",isthererhs,"acouflownoise");
   
       if (isthererhs=="FlowSrc" ) 
 	{
 	  std::cout<<"In flownoise precomputeRHS -no MpCCI used-"<<std::endl; 
-	  conf->getliststr("rhs_surfaces",rhs_surfaces_,"acoustic");
+	  conf->getliststr("rhs_surfaces",rhs_surfaces_,"acouflownoise");
 	  SetRHSFlowSrc=TRUE;
 	}
     }
@@ -130,22 +136,9 @@ void AcouFlowNoise::ComputeRHS(const Double atime)
  
   std::string flowdata;
   conf->get("acousrc_file",flowdata);
-    
-  //For the subdomain next to boundary of obstacle (Next2Surf)
-  StdVector<Elem*> Next2Surf;  // vector of Volume elements next to surface from mesh-file      
-  BaseFE * ptElNext2Surf;      
-  StdVector<Elem*> belongSE;
- 
- 
-//   ObstSurf=ptBCs_->getEdgesBC(rhs_surfaces_[0],level);
-//   std::cout<<"Number of surfelems: "<<ObstSurf.size()<<std::endl;
-  
-//   Next2Surf=ptBCs_->getNeighElemsForSurfaces(rhs_surfaces_[1],level);
-//   ptgrid_->DefineBelonging4Elems(ObstSurf,Next2Surf,belongSE);
-  
+
   Double valmult;
 
-  valmult = 3.7; // 3.7 is to give units to the fluid data and coeffRHS is from inhom. wave eq.
 
   std::cout<<"timestep counter in ComputeRHS: "<<timestep<<std::endl;
   
@@ -163,75 +156,7 @@ void AcouFlowNoise::ComputeRHS(const Double atime)
     // If data from fluid file call to get fluid flow data in flowdata_  
     ReadFlowData(flowdata.c_str(), timestep, flowdata_); 
 
-  std::cout << "Processing RHS surface elems for dipole... "<< std::endl;
 
-//   // This is for the loop over the surface elements
-//   for (j=0; j< ObstSurf.size(); j++)
-//     { 
-//       ptElBelongSE=belongSE[j]->ptElem;
-//       // This will be done inside the 2d element next to the 1d element to get gradP at the center
-//       Integer n=ptElBelongSE->GetNumNodes(); // This returns number of integration points      
-
-//       elsize=(belongSE[j]->connect).GetSize(); // Get element number of nodes 
-//       connBelongSE.Resize(elsize);
-//       for (ii=0; ii<elsize; ii++)
-// 	connBelongSE[ii]=(belongSE[j]->connect)[ii];
-
-//       ptgrid_->GetCoordNodesElemMat(connBelongSE,  ptCoordNodBelongSE, level);
-  
-    
-//       StdVector<Double> gradN_x_P; // This is done due to the different parameter type Vector and StdVector
-//       gradN_x_P.resize(dim_);
-//       gradN_x_P*=0;
-//       std::vector<Double> LCoord(dim_,0);
-//       Double jacDet;
-      
-//       // TO COMMENT OUT ONLY WHILE USING FILES WITH GRADIENT VALUE!!!
-//       // Gradient of P at center by average of value at four nodes of neighbour 2d element
-//       //  for (ii=0; ii<n; ii++)
-//       //     {  
-// 	//ptElBelongSE->GetGradientShFncAtCenter(help[ii],ii+1);
-
-//       jacDet=ptElBelongSE->CalcJacobianDet(LCoord, ptCoordNodBelongSE);
-// 		std::cout<<"jacDet:"<<jacDet<<std::endl;      
-	       
-// 	ptElBelongSE->GetGlobDerivShFnc  (deriv, LCoord, ptCoordNodBelongSE);
-// 	//deriv.Transpose(derivTrans);
-
-// 	for (ii=0; ii<n; ii++)
-// 	  {  
-// 	    for(i=0;i<dim_;i++)
-// 	      {
-// 		gradN_x_P[i]+=jacDet*deriv[ii][i]*(flowdata_[0][connBelongSE[ii]-1]);
-// 		std::cout<<"gradN_x_P["<<i<<"] :"<<gradN_x_P[i]<<std::endl;
-// 		std::cout<<std::endl;
-// 	      }
-// 	  }
-
-// 	ptElSurf=ObstSurf[j]->ptElem;
-// 	std::cout<<"connect: "<<ObstSurf[j]->connect<<std::endl;
-	
-// 	BaseForm * linear_loaddipole = new LinearFlowNoiseInt(ptElSurf);
-	  
-// 	connObstSurf=ObstSurf[j]->connect;
-
-// 	ptgrid_->GetCoordNodesElemMat(connObstSurf, ptCoordNodSurf, level);
-//         std::cout<<"coordinates :"<<ptCoordNodSurf<<std::endl;
-// 	linear_loaddipole->CalcElemVector4Dip(ptCoordNodSurf, connObstSurf,elemvecdip,gradN_x_P);
-// 	elemvecdip*=valmult;
-
-
-
-// 	// CHANGE connecth
-// 	Mesh2PDENode(connect_PDE,connObstSurf,mesh2PDENode_);
-// 	std::cout<<"connObstSurf :"<<connObstSurf<<std::endl;
-//  	  std::cout<<"elemvect DIPOLE: "<<elemvecdip<<std::endl;
-// 	// including the dipole contribution for testing!!!!!!!!
-// 	algsys_->SetElementRHS(&elemvecdip[0], connect_PDE.GetPointer(), connect_PDE.GetSize());
-
-// 	delete linear_loaddipole;
-
-//       }
 
   
   // Quadrupole computation
@@ -241,19 +166,21 @@ void AcouFlowNoise::ComputeRHS(const Double atime)
   // Variables for ramping
   Double xfmin, yfmin, xfmax, yfmax, facRampXmin, facRampYmin, facRampXmax, facRampYmax ;
   Double bndoffsetXmin, bndoffsetYmin, bndoffsetXmax, bndoffsetYmax ;
-  conf->get("xfmin",xfmin,"acoustic"); // minimum x coord. of fluid domain
-  conf->get("yfmin",yfmin,"acoustic"); // minimum y coord. of fluid domain	   
-  conf->get("xfmax",xfmax,"acoustic"); // maximum x coord. of fluid domain
-  conf->get("yfmax",yfmax,"acoustic"); // maximum y coord. of fluid domain
-  conf->get("facrampXmin",facRampXmin,"acoustic"); // factor for starting ramping
-  conf->get("facrampYmin",facRampYmin,"acoustic"); // factor for starting ramping
-  conf->get("facrampXmax",facRampXmax,"acoustic"); // factor for starting ramping
-  conf->get("facrampYmax",facRampYmax,"acoustic"); // factor for starting ramping
+  conf->get("xfmin",xfmin,"acouflownoise"); // minimum x coord. of fluid domain
+  conf->get("yfmin",yfmin,"acouflownoise"); // minimum y coord. of fluid domain	   
+  conf->get("xfmax",xfmax,"acouflownoise"); // maximum x coord. of fluid domain
+  conf->get("yfmax",yfmax,"acouflownoise"); // maximum y coord. of fluid domain
+  conf->get("facrampXmin",facRampXmin,"acouflownoise"); // factor for starting ramping
+  conf->get("facrampYmin",facRampYmin,"acouflownoise"); // factor for starting ramping
+  conf->get("facrampXmax",facRampXmax,"acouflownoise"); // factor for starting ramping
+  conf->get("facrampYmax",facRampYmax,"acouflownoise"); // factor for starting ramping
   bndoffsetXmin=facRampXmin*xfmin;
   bndoffsetYmin=facRampYmin*yfmin; 
   bndoffsetXmax=facRampXmax*xfmax;
   bndoffsetYmax=facRampYmax*yfmax;
 
+  // Correct is -1.0, if plugging in source (ddTij/dxidxj) directly in weak form then 1.0
+  //valmult=-1.0;
   valmult=-1.0;
       
   for (i=(subdoms_.GetSize())-1; i<subdoms_.GetSize(); i++)
@@ -309,8 +236,8 @@ void AcouFlowNoise::ComputeRHS(const Double atime)
 	    //std::cout<<"elemvect quad: "<<elemvec<<std::endl;
 	  
 	  //}
-	  
-	
+	  //	  std::cout<<"elemvect QUADRUPOLE: "<<elemvec<<std::endl;
+	  // Quadrupole activated!!	
 	  algsys_->SetElementRHS(&elemvec[0], connect_PDE.GetPointer(), connect_PDE.GetSize());
 	  
 	  delete linear_load;

@@ -789,7 +789,8 @@ void LinearFlowNoiseInt::CalcElemVector4Quad(Matrix<Double>& ptCoord,
   Integer l=ptelem->GetNumIntPoints();
   Integer n=ptelem->GetNumNodes();
   Matrix<Double> xiDx;      
-  Matrix<Double> elVel;    
+  Matrix<Double> elVel;
+  Matrix<Double> elVelAtIP;    
   Double jacDet;
   Integer actInt;
   Double density=1.0;
@@ -802,52 +803,148 @@ void LinearFlowNoiseInt::CalcElemVector4Quad(Matrix<Double>& ptCoord,
   Vector<Double> partResult;
   
   int dimelem=ptCoord.GetSizeRow();
+
+//     std::vector<Double>  VelAtIP;
+//     Matrix<Double> VelDerAtIP;
+//     Matrix<Double> VelDerFromDiag;
+//     Matrix<Double> VelMatrixforMult;
+//     VelMatrixforMult.Resize(dimelem); 
+
+//     std::vector<Double> dTij_di;
+//     VelAtIP.resize(dimelem);
+//     VelDerAtIP.Resize(dimelem);  
+//     dTij_di.resize(dimelem);
+//     std::vector<Double> helpVect;
+
   
-  Vector<Double>  NodalVelAtIP;
+  Vector<Double>  VelAtIP;
   Matrix<Double> VelDerAtIP;
   Matrix<Double> VelDerFromDiag;
+  Matrix<Double> VelMatrixforMult;
+  VelMatrixforMult.Resize(dimelem); 
+
   Vector<Double> dTij_di;
-  NodalVelAtIP.Resize(dimelem);
+  VelAtIP.Resize(dimelem);
   VelDerAtIP.Resize(dimelem);  
   dTij_di.Resize(dimelem);
   Vector<Double> helpVect;
-  
+
+//     //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+// //     // For using with Anne Le Duc source
+//     std::vector<Double> ddTij_dxidxi;
+//     ddTij_dxidxi.resize(n);
+// 	//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
   GetQttiesOfElement(elVel, FlowData, connecth, dimelem);
   
-  for (actInt=1; actInt<=l; actInt++)
-    {
-      ptelem->GetShFncAtIp(Sf, actInt);
-      ptelem->GetGlobDerivShFncAtIp(xiDx, actInt, ptCoord, jacDet);
-      
-      // This work only for quad1 and trilinear hexahedrals elements since we have values
-      // of the flow quantities only at the corners!
-      // Here we compute the derivatives of the Lighthill's tensor needed in the quadrupole term
-      // at the ith integration point
-      
-      //Implementation 26.09.03
-      
-      NodalVelAtIP=elVel*Sf;
-      
-      VelDerAtIP=(elVel*xiDx);
-      VelDerAtIP*=jacDet; 
-      VelDerAtIP.GetDiagInMatrix(VelDerFromDiag);	 
-      VelDerFromDiag.ConvertToVec_AppendRows(helpVect);
-      for (int k=0;k<(dimelem-1);k++)
-	VelDerFromDiag.AddColumn(helpVect,1);
-      
-      VelDerFromDiag.ScaleDiagElems(2.0);
-      
-      dTij_di=(VelDerFromDiag*NodalVelAtIP);
-      dTij_di*=density;
-      
-      partResult=xiDx*dTij_di;
-      partResult*=jacDet;
-      
-      Result+=partResult;
-    }
-  
-} // end of method
 
+// 	//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+// 	// Just for testing with source term from Anne Le Duc (ddTij/dxidxj) in MixLayer example
+//     for (actInt=1; actInt<=l; actInt++)
+//       {
+// 	ddTij_dxidxi[actInt-1]=0; // Set to zero index to be filled in.
+// 	ptelem->GetShFncAtIp(Sf, actInt);
+// 	for (int ctrIP=1; ctrIP<=l; ctrIP++)
+//  	  {
+// 	    // Interpolate to IP and fill in vector
+//  	ddTij_dxidxi[actInt-1]+=(FlowData[0][connecth[ctrIP-1]-1])*Sf[actInt-1]; // In files from MixL first value is ddTij/dxidxj!!
+//  	  }
+//       }
+// 	//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+    
+    elVelAtIP.Resize(dimelem, l);
+    for (actInt=1; actInt<=l; actInt++)
+      {
+	ptelem->GetShFncAtIp(Sf, actInt);
+	//jacDet = ptelem->CalcJacobianDetAtIp(actInt, ptCoord);
+	VelAtIP=elVel*Sf;
+	
+	
+	for (int comp=0;comp<dimelem;comp++)
+	  {
+	    elVelAtIP[comp][actInt-1]=VelAtIP[comp]; //Filling the matrix of velocity components at IP
+	  }
+      }
+    
+
+    for (actInt=1; actInt<=l; actInt++)
+      {
+	ptelem->GetShFncAtIp(Sf, actInt);
+	ptelem->GetGlobDerivShFncAtIp(xiDx, actInt, ptCoord, jacDet);
+      
+	// This work only for quad1 and trilinear hexahedrals elements since we have values
+	// of the flow quantities only at the corners!
+	// Here we compute the derivatives of the Lighthill's tensor needed in the quadrupole term
+	// at the ith integration point
+     
+	//Implementation 26.09.03
+	//Modified 15.06.04
+
+
+
+	//Wrong mathematic derivation!! 
+// 	VelDerAtIP.GetDiagInMatrix(VelDerFromDiag);	 
+// 	VelDerFromDiag.ConvertToVec_AppendRows(helpVect);
+// 	for (int k=0;k<(dimelem-1);k++)
+// 	  VelDerFromDiag.add_col(helpVect,1);
+
+// 	VelDerFromDiag.ScaleDiagElems(2.0);
+//	dTij_di=(VelDerFromDiag*VelAtIP);
+
+// Implementation of new derivation
+
+	VelAtIP=elVel*Sf;
+	
+
+	VelDerAtIP=(elVelAtIP*xiDx); // Now this is computed more accurately using elVelAtIP, before was elVel
+	//VelDerAtIP*=jacDet; 
+
+	VelDerAtIP.GetDiagInMatrix(VelDerFromDiag);
+	VelDerFromDiag.ConvertToVec_AppendRows(helpVect);
+	dTij_di=(VelDerAtIP*VelAtIP);
+	
+	for (int k=0;k<(dimelem);k++)
+	  for (int j=0;j<(dimelem);j++)
+	    VelMatrixforMult[j][k]=VelAtIP[j];
+
+	//std::vector<Double> tempVect;
+	Vector<Double> tempVect;
+	tempVect.Resize(dimelem);
+	
+	tempVect=VelMatrixforMult*helpVect;
+
+	dTij_di+=tempVect;
+
+// END Implementation of new derivation
+
+
+
+	dTij_di*=density;
+
+	partResult=xiDx*dTij_di;
+	partResult*=jacDet;
+
+
+
+
+// 	//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+// 	// Just for testing with source term from Anne Le Duc (ddTij/dxidxj) in MixLayer example
+// 	ddTij_dxidxi*=density;
+// 	for (int ii=0;ii<n;ii++)
+// 	  {
+// 	    partResult[ii]=Sf[ii]*ddTij_dxidxi[ii];
+// 	    partResult[ii]*=jacDet;
+// 	  }
+// 	//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
+	Result+=partResult;
+      }
+
+  } // end of method
+ 
 
 void LinearFlowNoiseInt::GetQttiesOfElement(Matrix<Double>& elVel,
 					    const Matrix<Double>& FlowData,

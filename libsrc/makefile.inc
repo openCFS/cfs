@@ -10,7 +10,7 @@ endif
 include $(LIBSRC_DIR)/makefilemach/make.mach.$(MACHINE)
 #
 ifeq ($(MpCCI),yes)
-  CC=/opt/MpCCI/mpcci-2.0.0-linux-gcc32/bin/cciCC
+  CC=/opt/MpCCI/mpcci-3.0.0-sdk-linux-glibc23-gcc33/bin/cciCC
 #  CFLAGSMpCCI = -DMpCCI
 endif
 

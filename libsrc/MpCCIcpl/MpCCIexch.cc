@@ -39,7 +39,7 @@ MpCCIexch::~MpCCIexch()
 if (nodeIds_)  delete [] nodeIds_;
 }
 
-void MpCCIexch::PutExchangeGrid2MpCCI(std::vector<std::string> subdoms)
+void MpCCIexch::PutExchangeGrid2MpCCI(StdVector<std::string> subdoms)
 {
 #ifdef TRACE
   (*trace) << "entering MpCCIexch::PutExchangeGrid2MpCCI" << std::endl;
@@ -59,7 +59,7 @@ void MpCCIexch::PutExchangeGrid2MpCCI(std::vector<std::string> subdoms)
   
 
   Matrix<Double> ptCoordNodes;
-  Vector<Integer> connecth;
+  StdVector<Integer> connecth;
   Integer i,j,ii;
   Integer elsize = -1;
 
@@ -69,18 +69,18 @@ void MpCCIexch::PutExchangeGrid2MpCCI(std::vector<std::string> subdoms)
   std::cout<<"Nodes: "<<MpCCInodes_<<std::endl;
   Realtype * NODEDATA=new Realtype[3*MpCCInodes_];
   int ** TOPOLOGYDATA;
-  TOPOLOGYDATA=new int*[subdoms_.size()];
-  std::vector<Elem*> elemssd;     
+  TOPOLOGYDATA=new int*[subdoms_.GetSize()];
+  StdVector<Elem*> elemssd;     
   //   std::cout<<"subdomains: "<<subdoms_[1]<<std::endl;
 
-   for (i=(subdoms_.size())-1; i<(subdoms_.size()); i++)
+   for (i=(subdoms_.GetSize())-1; i<(subdoms_.GetSize()); i++)
      {
       ptgrid_->GetElemSD(elemssd,subdoms_[i],actlevel_);
 
       elsize=(elemssd[0]->connect).GetSize();
-      TOPOLOGYDATA[i]=new int[elsize*elemssd.size()];	  
+      TOPOLOGYDATA[i]=new int[elsize*elemssd.GetSize()];	  
       int k=0;
-      for (j=0; j< elemssd.size(); j++)
+      for (j=0; j< elemssd.GetSize(); j++)
 	{
 
 	  connecth=elemssd[j]->connect;
@@ -113,12 +113,12 @@ void MpCCIexch::PutExchangeGrid2MpCCI(std::vector<std::string> subdoms)
   //define the nodes
   CCI_Def_nodes(meshId_, partId_, GlobalDim_, MpCCInodes_, nNodeIds_, nodeIds_, REALTYPE, NODEDATA);
 
-  for (i=(subdoms_.size())-1; i<subdoms_.size(); i++)
+  for (i=(subdoms_.GetSize())-1; i<subdoms_.GetSize(); i++)
     {
       ptgrid_->GetElemSD(elemssd,subdoms_[i],actlevel_);
       int k=0;
       nElemIds_=0;
-      Integer nElemSD=elemssd.size();
+      Integer nElemSD=elemssd.GetSize();
       elemIds_ = new Integer[nElemSD];
       elemIds_[0] = 0;
       nElemTypes_ = 1;
