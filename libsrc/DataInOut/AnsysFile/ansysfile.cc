@@ -871,7 +871,10 @@ void AnsysFile::ReadEl3d(StdVector<Elem*> * allelems, const StdVector<std::strin
     getPosLine("3D Elements", pos);
     infile.seekg(pos,std::ios::beg);
 
-    if (!ptTet1 || !ptHexa1 || !ptHexa2 || !ptPyra1 || !ptWedge1)
+    if (!ptTet1 || 
+    	!ptHexa1 || !ptHexa2 || 
+    	!ptPyra1 || 
+    	!ptWedge1 || !ptWedge2)
       Error(" Pointers to BaseElem is not initialized",__FILE__,__LINE__);
 
     Integer i, ii, j, inum, itype, innodes;
