@@ -480,11 +480,6 @@ namespace CoupledField {
       break;
 
     case ILDLK:
-
-      // Set sub-type
-      olas->SetValue( "ILDLPRECOND_subType", ILDLK );
-
-      // Now parameters
       cfs->GetList( "level", list, pdename, "ILDLK" );
       if( list.GetSize() == 1 ) {
 	olas->SetValue( "ILDLPRECOND_level", atoi(list[0].c_str()) );
@@ -505,11 +500,6 @@ namespace CoupledField {
       break;
 
     case ILDLTP:
-
-      // Set sub-type
-      olas->SetValue( "ILDLPRECOND_subType", ILDLTP );
-
-      // Now parameters
       cfs->GetList( "threshold", list, pdename, "ILDLTP" );
       if( list.GetSize() == 1 ) {
 	olas->SetValue( "ILDLPRECOND_tau", atof(list[0].c_str()) );
