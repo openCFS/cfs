@@ -343,6 +343,7 @@ void InterfaceGridlib<Dim>::SubdivideUniform(const Integer level)
      GbSubdivideUniform((*ptGoMesh),level);
      DoesGridSubdivide=TRUE;
    }
+   lastlevel_=level;
 }
 
 } // end of namespace

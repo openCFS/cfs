@@ -82,10 +82,12 @@ void TransientDriver :: SolveProblemAdapt()
   Integer level=0;
   Integer pdenumber  = 0;
   Integer nsys = 0;
-  Double steptime=firstdt_;
+  Double steptime=0;
 
   // calculation of end-time
   Double endtime=numstep_*firstdt_;
+
+  std::cout << "EndTime" << endtime << std::endl;
 
 //  TimeErrorEstimator ** ptTimeError=new TimeErrorEstimation * [pdenumber];
   TimeErrorEstimator * ptTimeError;
@@ -101,6 +103,7 @@ void TransientDriver :: SolveProblemAdapt()
   Integer nstep=0;
   for (; steptime <= endtime ; nstep++)
     {
+      steptime+=dt;
 
       ptdomain_->GetPDE(pdenumber)->SolveStepTrans(ptdomain_->GetBCs(), nstep, steptime, level, resetsysmat);
 
@@ -124,12 +127,10 @@ void TransientDriver :: SolveProblemAdapt()
       }
    else 
      {
-       // print ino in file.info
+       // print info in file.info
          if (InfoPrint)
           (*infofile) << " step: " << nstep << " timestep: " << steptime << std::endl;
      }
-
-   steptime+=dt;
    }
 }
 }

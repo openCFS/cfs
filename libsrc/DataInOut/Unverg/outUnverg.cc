@@ -283,7 +283,6 @@ template<class Dim>
 void  WriteResultsUnverg<Dim>::WriteSolution(const Vector<Double> & sol, const Integer step, const Double time, const std::string title)
 {
  Dataset55(title, sol, step+1, time);
-
 }
 
 } // end of namespace
