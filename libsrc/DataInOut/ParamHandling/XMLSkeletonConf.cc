@@ -221,27 +221,7 @@ namespace CoupledField
     sd.Clear();
     Integer dim = meshfile_-> ReadDim();
 
-    if (dim == 3){
-
-      //check for 2D-interface elements
-      if (meshfile_->GetNum2DElems() != 0)
-	meshfile_->ReadEl2dConf(sd);
-    
-    } else if (dim == 2) {
-    
-      //check for 1D-interface elements
-      if (meshfile_->GetNum1DElems() != 0) {
-	meshfile_->ReadEl1dConf(sd);
-      }
-    }
-    
-    if (sd.GetSize()) {
-      (*skelfile_) << "      <!--  LIST OF FACES -->" << std::endl;
-      
-      for (Integer i=0; i<sd.GetSize(); i++)
-	(*skelfile_) << "      <elements name=\"" << sd[i] << "\"/>" << myendl;
-      (*skelfile_) << myendl;
-    }
+   
 
 
     //check for node-list
@@ -269,6 +249,28 @@ namespace CoupledField
 	for (Integer i=0; i<sd.GetSize(); i++)
 	  (*skelfile_) << "      <nodes name=\"" << sd[i] << "\"/>" << myendl;
       }
+
+    // Print surface elements
+    if (dim == 3){
+
+      //check for 2D-interface elements
+      if (meshfile_->GetNum2DElems() != 0)
+	meshfile_->ReadEl2dConf(sd);
+    
+    } else if (dim == 2) {
+    
+      //check for 1D-interface elements
+      if (meshfile_->GetNum1DElems() != 0) {
+	meshfile_->ReadEl1dConf(sd);
+      }
+    }
+    if (sd.GetSize()) {
+      (*skelfile_) << "      <!--  LIST OF FACES -->" << std::endl;
+      
+      for (Integer i=0; i<sd.GetSize(); i++)
+	(*skelfile_) << "      <elements name=\"" << sd[i] << "\"/>" << myendl;
+      (*skelfile_) << myendl;
+    }
   }
 
   
@@ -303,8 +305,6 @@ namespace CoupledField
       << myendl
       << "   <!--  <iterative>                                   -->" 
       << myendl 
-      << "   <!--    <!-- pairwise coupling definition           -->" 
-      << myendl
       << "   <!--    <XXX1XXX2 method=\"RHS\">                     -->" 
       << myendl
       << "   <!--      <XXX1>                                    -->" 
