@@ -75,10 +75,10 @@ public:
    virtual void WriteResultsInFile();
 
   //!  return pointer to vector with first derivative of solution
-  virtual const Array<Double>& getS1() const { return TS_alg->GetDeriv1();}
+  virtual const Array<Double>& getS1() const { return TS_alg_->GetDeriv1();}
 
   //! return pointer to vector with second derivative of solution
-  virtual const Array<Double>& getS2() const { return TS_alg->GetDeriv2();}
+  virtual const Array<Double>& getS2() const { return TS_alg_->GetDeriv2();}
 
   //! return size of solution
   virtual Integer getSize() const 
@@ -93,6 +93,9 @@ protected:
 
   Boolean with_absBCs_; //!< Indicator for absorbing boundary conditions 
   std::vector<std::string> bnd_absBCs_;   //!< list of bnds( for absorbing BCs)
+
+  Boolean with_fracdamping_; //!< attenuation according to power law
+  Integer frac_memory_;      //!< number of old time steps to be saved
 
   //General dimension of problem
   Integer dim_;
