@@ -24,6 +24,7 @@ namespace CoupledField
 
   //! redeclaration of types
   typedef int Integer;
+  typedef unsigned int UInt;
   typedef short ShortInt;
   typedef float Float;
   typedef double Double;
