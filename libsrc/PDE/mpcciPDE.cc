@@ -127,8 +127,10 @@ void MpcciPDE::DefineSolveStep()
 // POSTPROCESSING SECTION
 // ======================================================
 
-void MpcciPDE::WriteResultsInFile(Integer stepOffset,
-				 Double timeOffset)
+void MpcciPDE::WriteResultsInFile(const Integer kstep,
+				  const Double asteptime,
+				  Integer stepOffset,
+				  Double timeOffset)
 {
   ENTER_FCN( "MpcciPDE::WriteResultsInFile" );
 }

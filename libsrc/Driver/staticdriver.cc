@@ -70,7 +70,7 @@ namespace CoupledField {
     if (! isPartOfSequence_)
 	ptdomain_->PrintGrid(level);
       
-      ptPDE_->WriteResultsInFile(stepOffset_, timeOffset_);
+    ptPDE_->WriteResultsInFile(nstep, steptime, stepOffset_, timeOffset_);
   }
 
 

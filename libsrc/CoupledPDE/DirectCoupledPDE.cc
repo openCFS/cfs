@@ -44,8 +44,10 @@ void DirectCoupledPDE::PostProcess(const Integer level)
 }
 
 
-void DirectCoupledPDE::WriteResultsInFile(Integer stepOffset,
-				     Double timeOffset)
+void DirectCoupledPDE::WriteResultsInFile(const Integer kstep,
+					  const Double asteptime,
+					  Integer stepOffset,
+					  Double timeOffset)
 {
   ENTER_FCN( "DirectCoupledPDE::WriteResultsInFile" );
 

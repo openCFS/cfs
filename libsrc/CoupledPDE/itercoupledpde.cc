@@ -473,13 +473,15 @@ namespace CoupledField
 
   
 
-void IterCoupledPDE::WriteResultsInFile(Integer stepOffset,
-					Double timeOffset)
+  void IterCoupledPDE::WriteResultsInFile(const Integer kstep,
+					  const Double asteptime,
+					  Integer stepOffset,
+					  Double timeOffset)
 {
   ENTER_FCN( "IterCoupledPDE::WriteResultsInFile" );
 
   for (Integer i=0; i<PDEs_.GetSize(); i++)
-    PDEs_[i]->WriteResultsInFile(stepOffset, timeOffset);
+    PDEs_[i]->WriteResultsInFile(kstep, asteptime, stepOffset, timeOffset);
 }
 
 

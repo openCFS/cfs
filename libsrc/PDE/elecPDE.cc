@@ -83,7 +83,9 @@ void ElecPDE::DefineSolveStep()
 // POSTPROCESSING SECTION
 // ======================================================
 
-void ElecPDE::WriteResultsInFile(Integer stepOffset,
+void ElecPDE::WriteResultsInFile(const Integer kstep,
+				 const Double asteptime,
+				 Integer stepOffset,
 				 Double timeOffset)
 {
   ENTER_FCN( "ElecPDE::WriteResultsInFile" );

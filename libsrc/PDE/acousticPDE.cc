@@ -521,8 +521,10 @@ Boolean AcousticPDE::HasOutput(SolutionType output) {
 // POSTPROCESSING SECTION
 // ======================================================
 
-void AcousticPDE::WriteResultsInFile(Integer stepOffset,
-									 Double timeOffset) {
+void AcousticPDE::WriteResultsInFile(const Integer kstep,
+				     const Double asteptime,
+				     Integer stepOffset,
+				     Double timeOffset) {
   ENTER_FCN( "AcousticPDE::WriteResultsInFile" );
 
 #ifdef PARALLEL //only one thread should write the output

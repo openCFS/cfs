@@ -255,7 +255,9 @@ namespace CoupledField {
   // POSTPROCESSING SECTION
   // ======================================================
 
-  void MagPDE::WriteResultsInFile(Integer stepOffset,
+  void MagPDE::WriteResultsInFile(const Integer kstep,
+				  const Double asteptime,
+				  Integer stepOffset,
                                   Double timeOffset) {
 
     ENTER_FCN( "MagPDE::WriteResultsInFile" );

@@ -57,7 +57,9 @@ public:
   //! write results in file
   //! \param stepOffset offset for starting (time)step
   //! \param timeOffset offset for starting time  
-  void WriteResultsInFile(Integer stepOffset = 0,
+  void WriteResultsInFile(const Integer kstep = 0,
+			  const Double asteptime = 0.0,
+			  Integer stepOffset = 0,
 			  Double timeOffset = 0.0);
   //@}
 

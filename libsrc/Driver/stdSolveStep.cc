@@ -30,8 +30,10 @@ namespace CoupledField {
     lasttimecalc_ = PDE_.lasttimecalc_;
     laststepcalc_ = PDE_.laststepcalc_;
     TS_alg_       = PDE_.TS_alg_;
+    recalc_       = PDE_.recalc_;
 
     lineSearch_       = PDE_.lineSearch_;
+    nonLin_           = PDE_.nonLin_;
     geoUpdate_        = PDE_.geoUpdate_;
     incStopCrit_      = PDE_.incStopCrit_;
     residualStopCrit_ = PDE_.residualStopCrit_;
@@ -41,8 +43,13 @@ namespace CoupledField {
     nonLinPDEName_    = PDE_.nonLinPDEName_;
 
     pdeIsCoupled_       = PDE_.pdeIsCoupled_;
+    firstTimeStepStatic_ =PDE_.firstTimeStepStatic_;
     iterCoupledCounter_ = &PDE_.iterCoupledCounter_;
 
+    dampingType_        = PDE_.dampingType_;
+    solIncr_            = PDE_.solIncr_;
+    actSol_             = PDE_.actSol_;
+    isIncrFormulation_  = PDE_.isIncrFormulation_;
 }
 
   
@@ -165,7 +172,7 @@ namespace CoupledField {
   void StdSolveStep::StepTransLin( const Integer kstep, const Double asteptime,
                               const Integer level, const Boolean reset ) {
 
-    ENTER_FCN( "SolveStepMech::StepTransLin" );
+    ENTER_FCN( "StdSolveStep::StepTransLin" );
 
     Double * ptsol;
     Integer job;
@@ -188,7 +195,6 @@ namespace CoupledField {
            || PDE_.geoUpdate_ == TRUE ) {
         job = 1;
         PDE_.assemble_->AssembleMatrices(level);
-        PDE_.assemble_->AssembleSprings(level, PDE_.lasttimecalc_ );
         PDE_.algsys_->ConstructEffectiveMatrix(PDE_.matrix_factor_);
       }  
     }
@@ -201,7 +207,6 @@ namespace CoupledField {
       if (PDE_.dampingType_) {
         PDE_.algsys_->InitMatrix(DAMPING);
       }
-      PDE_.assemble_->AssembleSprings(level, PDE_.lasttimecalc_ );
       PDE_.algsys_->ConstructEffectiveMatrix(PDE_.matrix_factor_);
     }
     else {
@@ -215,7 +220,6 @@ namespace CoupledField {
         }
         job = 1;
         PDE_.assemble_->AssembleMatrices(level);
-        PDE_.assemble_->AssembleSprings(level, PDE_.lasttimecalc_ );
         PDE_.algsys_->ConstructEffectiveMatrix(PDE_.matrix_factor_);      
       }
     }
