@@ -620,7 +620,8 @@ Boolean MechPDE::HasOutput(std::string output)
 // STATIC SOLVING SECTION
 // ======================================================
 
-void MechPDE:: PreStepStatic(const Integer level)
+void MechPDE:: PreStepStatic(const Integer kstep, const Double asteptime,
+			    const Integer level, const Boolean reset)
 {
 #ifdef TRACE
   (*trace) << "entering MechPDE:: PreStepStatic" << std::endl;
@@ -634,7 +635,8 @@ void MechPDE:: PreStepStatic(const Integer level)
 }
 
 
-void MechPDE::StepStaticNonLin(const Integer level, const Double aTime)
+void MechPDE::StepStaticNonLin(const Integer kstep, const Double aTime,
+			    const Integer level, const Boolean reset)
 {
 #ifdef TRACE
   (*trace) << "entering MechPDE::SolveStepStaticNonLin" << std::endl;
@@ -849,7 +851,8 @@ void MechPDE::WriteClaNlNorms(const Integer iterationCounter, const Double resid
 
 
 
-void MechPDE :: PostStepStatic(const Integer level)
+void MechPDE :: PostStepStatic(const Integer kstep, const Double asteptime,
+			    const Integer level)
 {
 #ifdef TRACE
   (*trace) << "entering MechPDE::PostStepStatic" << std::endl;
@@ -886,7 +889,8 @@ void MechPDE :: InitTimeStepping(const Double dt)
 
 
 
-void MechPDE::StepTransNonLin(const Integer level, const Boolean reset)
+void MechPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
+			    const Integer level, const Boolean reset)
 {
 #ifdef TRACE
   (*trace) << "entering MechPDE::StepTransNonLin" << std::endl;
