@@ -2,6 +2,7 @@
 #include <fstream>
 #include <time.h>
 #include <string>
+#include <iomanip>
  
 //#include <general_head.hh>
 //#include <utils_head.hh>
@@ -429,7 +430,7 @@ template<class S>
 std::ostream & operator << (std::ostream & out, const SymBandMatrix<S> &mat)
 {
 
-out.setf(ios::scientific);
+out.setf(std::ios::scientific);
 
 if (mat.row==0) out << "Null matrix" << std::endl;
 Integer i,j;

@@ -100,7 +100,7 @@ template<class TYPE>
 inline SymBandMatrix<TYPE>::~SymBandMatrix()
 {
 #ifdef TRACE
- cout << "entering SymBandMatrix::~SymBandMatrix" << endl;
+ (*trace)<< "entering SymBandMatrix::~SymBandMatrix" << std::endl;
 #endif
  if (p) {  
           delete [] p[0];

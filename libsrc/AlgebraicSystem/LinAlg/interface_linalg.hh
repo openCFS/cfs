@@ -73,7 +73,7 @@ inline InterfaceAlgSys::InterfaceAlgSys(Grid<Point2D> * aptgrid, const Double ae
 : AbstractAlgSys(aptgrid,aeps)
 {
 #ifdef TRACE
- (*trace) << "Entering InterfaceAlgSys::InterfaceAlgSys" << endl;
+ (*trace) << "Entering InterfaceAlgSys::InterfaceAlgSys" << std::endl;
 #endif
    ptWork=new WorkWithSysMat<Point2D, Matrix<Double> >(ptGrid,eps);
 }

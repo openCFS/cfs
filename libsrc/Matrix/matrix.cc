@@ -2,6 +2,7 @@
 #include <fstream>
 #include <time.h>
 #include <string>
+#include <iomanip>
 
 //#include <general_head.hh>
 //#include <utils_head.hh>
@@ -487,14 +488,14 @@ default:
 template<class S>
 std::ostream & operator << (std::ostream & out, const Matrix<S> &mat)
 {
-out.setf(ios::scientific);
+out.setf(std::ios::scientific);
 
 for (Integer i=0; i < mat.size_row(); i++)
 {for (Integer j=0; j < mat.size_col(); j++)
  out << mat[i][j] << " ";
  out << std::endl;}
 
-out.setf(0, ios::floatfield);
+out.setf(0, std::ios::floatfield);
 
  return out;
 }

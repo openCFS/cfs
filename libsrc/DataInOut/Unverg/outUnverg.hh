@@ -2,12 +2,11 @@
 #define FILE_OUTRESULTUNVERG_2001
 
 #include "tools.hh" 
+#include "domain.hh"
 
 namespace CoupledField
 {
 
-template<class T>
-class Grid;
 ///
 class OutResultUnverg
 {

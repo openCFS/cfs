@@ -2,6 +2,7 @@
 #include <fstream>
 #include <stdarg.h>
 #include <iostream>
+#include <iomanip>
 
 //#include <general_head.hh>
 //#include <utils_head.hh>
@@ -24,7 +25,7 @@ namespace CoupledField
                          ") Can't open " << filename << std::endl;
                 exit(1);}
 
-  infile.seekg(0, ios::end);
+  infile.seekg(0, std::ios::end);
   pos_end=infile.tellg();
 }
   
@@ -48,7 +49,7 @@ Boolean DatFile :: ReadTitle(std::string& title)
 #ifdef TRACE
   (*trace) << "entering DatFile:: ReadTitle" << std::endl;
 #endif
-  infile.seekg(0, ios::beg);   
+  infile.seekg(0, std::ios::beg);   
   std::getline(infile,title,'\n');   
   std::getline(infile,title,'\n');         
   Integer isize_title=title.size();
@@ -79,7 +80,7 @@ void DatFile :: ReadGeneralAnal(Integer * dataGAnal)
 #endif 
   std::string::size_type pos=0;
   TakePos("soltype",pos);
-  infile.seekg(pos, ios::beg);
+  infile.seekg(pos, std::ios::beg);
  
   std::string buf;
   infile >> dataGAnal[soltype] >> dataGAnal[analtype] >> dataGAnal[numnode] >>
@@ -147,7 +148,7 @@ void DatFile:: ReadGeneralAnalChoice(Integer * dataGAnalCh,
 
   if (c=='\n') break;
 
-  infile.seekg(-1, ios::cur);
+  infile.seekg(-1, std::ios::cur);
   infile >> buf;
 
   if (vp==TransformInNameDf(buf.c_str())) { if (j==0) Der1=TRUE;
@@ -171,7 +172,7 @@ void DatFile:: ReadGeneralAnalChoice(Integer * dataGAnalCh,
   Integer n;
 
   TakePos("formsave",pos);
-  infile.seekg(pos, ios::beg);
+  infile.seekg(pos, std::ios::beg);
   infile >> dataOut[formsave] >> dataOut[nsavenode] >> dataOut[savemax];
   infile.ignore(100, '\n');
   
@@ -181,7 +182,7 @@ void DatFile:: ReadGeneralAnalChoice(Integer * dataGAnalCh,
   std::getline(infile, buf, '\n');
   pos=infile.tellg();
   n=CountElemInString(pos);
-  infile.seekg(pos, ios::beg);
+  infile.seekg(pos, std::ios::beg);
   if (n==0) {
            dataOut[k+i]=non;
            infile.ignore(100,'\n'); }
@@ -209,11 +210,11 @@ void DatFile:: ReadGeneralAnalChoice(Integer * dataGAnalCh,
   std::string buf;
   std::string::size_type pos=0;
   TakePos(seekStr,pos);
-  infile.seekg(pos, ios::beg);
+  infile.seekg(pos, std::ios::beg);
   Char c=' ';
   for (Integer i=0; i < sizeArr; i++) {
                                         while (c==' ') infile.get(c);
-                                        infile.seekg(-1, ios::cur);
+                                        infile.seekg(-1, std::ios::cur);
                                         infile >> buf;
                                         c=' ';
                                dataOutArr[i]=TransformInNameDf(buf.c_str());
@@ -230,7 +231,7 @@ void DatFile :: ReadCoordinate(Point3D * const InitNodalCo,                     
  Integer ii;
  std::string::size_type pos=0;
  TakePos("coordinate",pos);
- infile.seekg(pos,ios::beg);
+ infile.seekg(pos,std::ios::beg);
  for (Integer i=0; i < maxnumNod; i++)
   {
    infile >> ii >>InitNodalCo[i].x >>  InitNodalCo[i].y >>  InitNodalCo[i].z; 
@@ -252,7 +253,7 @@ void DatFile :: ReadCoordinate(Point2D * const InitNodalCo,
  TakePos("coordinate",pos);
  std::cout << pos << std::endl;
  mark
- infile.seekg(pos,ios::beg);
+ infile.seekg(pos,std::ios::beg);
  for (Integer i=0; i < maxnumNod; i++)
   {
    infile >> ii >> dummy >> InitNodalCo[i].x >>  InitNodalCo[i].y ;
@@ -272,7 +273,7 @@ void DatFile :: ReadGeneralElem(Integer * dataGElem, const Integer num)
   for (i=0; i<=num; i++)
      TakePos("group definition",pos); 
 
-  infile.seekg(pos, ios::beg);
+  infile.seekg(pos, std::ios::beg);
   std::string buf;
   std::getline(infile,buf,'\n' );
  
@@ -317,12 +318,12 @@ void DatFile :: ReadNumTimeFunc(Integer & maxnumTimeFunc)
    TakePos("timefunctions",pos);
    if (pos==pos_end) {std::cerr << "ERROR time function is absent in your dat file. Don't create object TFuncDat." << std::endl; 
                       exit(1);}
-   infile.seekg(pos,ios::beg); 
+   infile.seekg(pos,std::ios::beg); 
    Char psign;
    infile >> psign; 
    if (psign == '#') maxnumTimeFunc=1;
    else  { 
-           infile.seekg(pos,ios::beg);
+           infile.seekg(pos,std::ios::beg);
            infile >> maxnumTimeFunc ; 
          }
 }
@@ -338,7 +339,7 @@ void DatFile :: ReadNumTimeFunc(Integer & maxnumTimeFunc)
  std::string::size_type pos=0;
  TakePos("timefunctions",pos);
  if (pos==pos_end) {std::cerr << "ERROR" << std::endl; exit(1);}
- infile.seekg(pos, ios::beg);
+ infile.seekg(pos, std::ios::beg);
  for (Integer i=0; i < maxnumTimeFunc; i++)
  {
        pos=std::string::npos;
@@ -362,7 +363,7 @@ void DatFile :: ReadTimeFunc(Double * const timeTimeFunc,
 #endif 
   Integer num=0, nval;
   std::string buf;
-  infile.seekg(0,ios::beg);
+  infile.seekg(0,std::ios::beg);
   std::string::size_type pos=std::string::npos;
   while (num != numTimeFunc)
 { while (pos == std::string::npos) 
@@ -386,11 +387,11 @@ void DatFile :: preReadTransAnal(Integer & soltype, Integer & statickey)
 #endif
   std::string::size_type pos=0;
   TakePos("ibemcheck",pos);
-  infile.seekg(pos, ios::beg);
+  infile.seekg(pos, std::ios::beg);
   infile >> soltype;
 
   TakePos("statkey",pos);
-  infile.seekg(pos, ios::beg);
+  infile.seekg(pos, std::ios::beg);
 
   infile >> statickey;
 }
@@ -404,7 +405,7 @@ void DatFile :: ReadTransAnalDir(Integer * dataTAnalDir, Double & bemtolDir)
 #endif
   std::string::size_type pos=0;
   TakePos("ibemcheck",pos);
-  infile.seekg(pos, ios::beg);
+  infile.seekg(pos, std::ios::beg);
 
  std::string buf;
  Integer dum;
@@ -428,7 +429,7 @@ void  DatFile :: ReadTransAnalIter(Integer * dataTAnalIt, Double & bemtolIt,
  Integer dum;
  std::string::size_type pos=0;
  TakePos("ibemcheck",pos);
- infile.seekg(pos, ios::beg);
+ infile.seekg(pos, std::ios::beg);
 
  infile >> dum >> dataTAnalIt[itersoltype] >> dataTAnalIt[ncorrectIt] >>
                   dataTAnalIt[bemcheckIt] >>  dataTAnalIt[iprecon] >>
@@ -448,11 +449,11 @@ void DatFile :: ReadTransAnalNonl(Integer * dataTAnalNonl,
   (*trace) << "entering DatFile::ReadTransAnalNonl" << std::endl;
 #endif
 
- infile.seekg(0, ios::beg);
+ infile.seekg(0, std::ios::beg);
  std::string buf;
  std::string::size_type pos=0;
  TakePos("nonlinear paramters",pos);
- infile.seekg(pos, ios::beg);
+ infile.seekg(pos, std::ios::beg);
  std::getline(infile, buf,'\n');
  infile >> dataTAnalNonl[nlinalg] >> dataTAnalNonl[nlcrit] >>
            dataTAnalNonl[nform] >>  dataTAnalNonl[nlmaxit] >>
@@ -475,7 +476,7 @@ void DatFile :: ReadTransAnalTran(Integer * dataTAnalTran,
  
   std::string::size_type pos=0;
   TakePos("numsteps",pos);
-  infile.seekg(pos, ios::beg);
+  infile.seekg(pos, std::ios::beg);
 
   infile >> dataTAnalTran[numstep] >> dataTAnalTran[isavebegin] >>
            dataTAnalTran[isaveend] >>  dataTAnalTran[isaveinc] >>
@@ -498,7 +499,7 @@ void DatFile :: ReadTransAnalStat(Integer & numstepStat,
 #endif
    std::string::size_type pos=0;
    TakePos("numsteps",pos);
-   infile.seekg(pos, ios::beg);
+   infile.seekg(pos, std::ios::beg);
    infile >> numstepStat >> deltatStat; 
 }
 
@@ -510,7 +511,7 @@ void DatFile :: ReadEigenvalAnal(Integer * dataEAnal,
 #ifdef TRACE
   (*trace) << "entering DatFile::ReadEigenvalAnal" << std::endl;
 #endif
- infile.seekg(0, ios::beg);
+ infile.seekg(0, std::ios::beg);
  std::string buf;
  std::string::size_type pos=std::string::npos;
  while (pos == std::string::npos)
@@ -536,7 +537,7 @@ void DatFile :: ReadHarmAnal(Integer * dataHarm,
 
   std::string::size_type pos=0;
   TakePos("lower",pos);        // ???????????????????????????????
-  infile.seekg(pos, ios::beg);
+  infile.seekg(pos, std::ios::beg);
 
    infile >> dataHarmReal[cwlower] >> dataHarmReal[cwupper] >>
            dataHarm[cwnumf] >> dataHarm[cwspace] >> dataHarm[cwout];
@@ -553,7 +554,7 @@ void DatFile :: ReadGeneralBound (Integer * dataGBound, Double * dataGBoundD)
   std::string buf;
   std::string::size_type pos=0;
   TakePos("numdofs",pos);
-  infile.seekg(pos, ios::beg);
+  infile.seekg(pos, std::ios::beg);
 
   infile >> dataGBound[numdofs] >> dataGBound[numconstr] >> 
             dataGBound[numrestr] >> dataGBound[numloads] >>
@@ -565,7 +566,7 @@ void DatFile :: ReadGeneralBound (Integer * dataGBound, Double * dataGBoundD)
   infile >> dataGBound[numrad];
   
    TakePos("numpress",pos);
-   infile.seekg(pos, ios::beg);
+   infile.seekg(pos, std::ios::beg);
 
    infile >> dataGBound[numpress] >> dataGBound[ncurrdens];
    infile.ignore(100, '\n');
@@ -581,7 +582,7 @@ void DatFile::ReadNumNodesforDirichletBC(Integer & n)
 #endif
   std::string::size_type pos=0;
   TakePos("numrestr",pos);
-  infile.seekg(pos, ios::beg);
+  infile.seekg(pos, std::ios::beg);
 
   Integer dummy;
   infile >> dummy >> dummy >> n;
@@ -602,7 +603,7 @@ void DatFile::ReadDirichletBC(Integer * nodes)
 
   std::string::size_type pos=0;
   TakePos("restraints",pos);
-  infile.seekg(pos, ios::beg);
+  infile.seekg(pos, std::ios::beg);
 
   Integer i;
   for (i=0; i <n; i++)
@@ -622,7 +623,7 @@ void DatFile::ReadDirichletBC(Vector<Integer> & nodes)
 
   std::string::size_type pos=0;
   TakePos("numrestr",pos);
-  infile.seekg(pos, ios::beg);
+  infile.seekg(pos, std::ios::beg);
  
   Integer dummy;
   infile >> dummy >> dummy >> n;
@@ -631,7 +632,7 @@ void DatFile::ReadDirichletBC(Vector<Integer> & nodes)
   nodes.Allocate(n);
  
   TakePos("restraints",pos);
-  infile.seekg(pos, ios::beg);
+  infile.seekg(pos, std::ios::beg);
 
 //  std::string buf;
 //  std::getline(infile, buf, '\n');
@@ -655,7 +656,7 @@ void DatFile:: ReadBoundDof(Integer ** dataBDof, Integer numberdofs,
 #endif
   std::string::size_type pos=0;
   TakePos("dof-settings",pos);
-  infile.seekg(pos, ios::beg); 
+  infile.seekg(pos, std::ios::beg); 
   std::string str;
   for (Integer i=0; i < numberdofs; i++) {
     infile >> dataBDof[i][0];
@@ -678,7 +679,7 @@ void DatFile:: ReadBoundLoads(Integer ** dataBLoads, Integer number,
 #endif
   std::string::size_type pos=0;
   TakePos(" loads",pos);
-  infile.seekg(pos, ios::beg);
+  infile.seekg(pos, std::ios::beg);
   std::string str;
   for (Integer i=0; i < number; i++) {
     infile >> dataBLoads[i][0];
@@ -698,7 +699,7 @@ void DatFile:: ReadBoundConstr(Integer ** dataBDof, Integer numberdofs,
 #endif
   std::string::size_type pos=0;
   TakePos("constraints",pos);
-  infile.seekg(pos, ios::beg);
+  infile.seekg(pos, std::ios::beg);
   std::string str;
   for (Integer i=0; i < numberdofs; i++) {
     infile >> dataBDof[i][0]; 
@@ -721,7 +722,7 @@ void DatFile:: ReadBoundRestr(Integer ** dataBRestr, Integer numberRestr,
 #endif
   std::string::size_type pos=0;
   TakePos("restraints",pos);
-  infile.seekg(pos, ios::beg);
+  infile.seekg(pos, std::ios::beg);
   std::string str;
   for (Integer i=0; i < numberRestr; i++) {
     infile >> dataBRestr[i][0] >> str >> dataBRestr[i][2] >> factorRestr[i];
@@ -762,7 +763,7 @@ void DatFile:: ReadElemMatCalc(Integer & matnumber, std::string & calc_expr)
 #endif
   std::string::size_type pos=0;
   TakePos("matnum",pos);
-  infile.seekg(pos, ios::beg);
+  infile.seekg(pos, std::ios::beg);
 
   infile >> matnumber;
   infile >> calc_expr;
@@ -779,7 +780,7 @@ void DatFile:: ReadThickness(Double & thickness)
 #endif
   std::string::size_type pos=0;
   TakePos("thickness",pos);
-  infile.seekg(pos, ios::beg);
+  infile.seekg(pos, std::ios::beg);
  
   infile >> thickness;
 }
@@ -799,7 +800,7 @@ void DatFile:: ReadElemRecord3d(Integer elemnum, Integer * connect,
   std::string::size_type pos=0;
   for (i=0; i<=numelemgr; i++)
      TakePos("element definition",pos);
-  infile.seekg(pos, ios::beg);
+  infile.seekg(pos, std::ios::beg);
   
   Integer help;
   std::string buf;
@@ -846,7 +847,7 @@ void DatFile:: ReadElem(const Integer maxelem, Integer ** connect,
   std::string::size_type pos=0;
   for (i=0; i<=numelemgr; i++)
      TakePos("element definition",pos);
-  infile.seekg(pos, ios::beg);
+  infile.seekg(pos, std::ios::beg);
 
   Integer j;
   std::getline(infile, buf, '\n'); 
@@ -889,7 +890,7 @@ void DatFile:: ReadElemConnectionGH(const Integer maxelem, Integer * connect,
   std::string::size_type pos=0;
   for (i=0; i<=numelemgr; i++)
      TakePos("element definition",pos);
-  infile.seekg(pos, ios::beg);
+  infile.seekg(pos, std::ios::beg);
  
   Integer j, counter=0;
   std::getline(infile, buf, '\n');
@@ -929,7 +930,7 @@ void DatFile:: ReadElemConnect(Integer elemnum, Integer * connect,
  
   std::string::size_type pos=0;
   TakePos("element definition",pos);
-  infile.seekg(pos, ios::beg);
+  infile.seekg(pos, std::ios::beg);
  
   Integer help;
   std::string buf;
@@ -968,7 +969,7 @@ void DatFile::ReadMaxRecord(Integer & maxrecord)
 #endif  
   std::string::size_type pos=0;
   TakePos("dof-settings",pos);
-  infile.seekg(pos, ios::beg);
+  infile.seekg(pos, std::ios::beg);
   std::string buf;
   std::getline(infile,buf,'\n');
   pos=infile.tellg();
@@ -984,7 +985,7 @@ void DatFile::ReadIntegrationParam(Double & alpha, Double & beta, Double & gamma
 
   std::string::size_type pos=0;
   TakePos("alpha",pos);
-  infile.seekg(pos, ios::beg);
+  infile.seekg(pos, std::ios::beg);
 
   infile >> alpha >> beta >> gamma;
 }
@@ -996,7 +997,7 @@ void DatFile :: ReadNumStepsAndTimeSteps(Integer & numsteps, Double & dt)
 #endif 
   std::string::size_type pos=0;
   TakePos("delta-t",pos, "deltat");
-  infile.seekg(pos, ios::beg);
+  infile.seekg(pos, std::ios::beg);
 
   Integer dummy;
   infile >> numsteps >>  dummy >>  dummy >>  dummy >> dt;
@@ -1007,7 +1008,7 @@ void DatFile :: ReadNumStepsAndTimeSteps(Integer & numsteps, Double & dt)
 
 void DatFile::TakePos(const std::string seekexp, std::string::size_type & pos, const std::string reservexp)
 { 
-  infile.seekg(pos, ios::beg);
+  infile.seekg(pos, std::ios::beg);
   std::string buf, buf1;
   std::string::size_type pos1=pos;
   pos=std::string::npos;
@@ -1027,7 +1028,7 @@ void DatFile::TakePos(const std::string seekexp, std::string::size_type & pos, c
   if (pos==pos_end & reservexp!="") 
   {
       std::cout << " pos " << pos << std::endl;
-      infile.seekg(0, ios::beg);
+      infile.seekg(0, std::ios::beg);
       if (infile.eof()) std::cout << " end " << std::endl;
       pos=std::string::npos;
 
@@ -1061,7 +1062,7 @@ void DatFile::TakePos(const std::string seekexp, std::string::size_type & pos, c
  
 void DatFile::TakePos(const std::string seekexp, std::string::size_type & pos, std::string & buf_prev, const std::string reservexp)
 {
-  infile.seekg(pos, ios::beg);
+  infile.seekg(pos, std::ios::beg);
   std::string buf;
   std::string::size_type pos1=pos;
   pos=std::string::npos;
@@ -1075,7 +1076,7 @@ void DatFile::TakePos(const std::string seekexp, std::string::size_type & pos, s
   
   if (pos==pos_end & reservexp!="")
   {
-      infile.seekg(pos1, ios::beg);
+      infile.seekg(pos1, std::ios::beg);
       pos=std::string::npos;
  
       while ( pos == std::string::npos & !infile.eof() )
@@ -1099,7 +1100,7 @@ Boolean DatFile::IsThere(const std::string seekexp)
   std::string buf;
   std::string::size_type pos=std::string::npos;
 
-  infile.seekg(0, ios::beg);
+  infile.seekg(0, std::ios::beg);
    while ( pos == std::string::npos & !infile.eof() )
   { std::getline(infile, buf, '\n');
     pos=buf.find(seekexp);
@@ -1251,7 +1252,7 @@ Boolean DatFile::IsThere(const std::string seekexp)
 { 
   Char a,c;
   Integer count;
-  infile.seekg(pos, ios::beg);
+  infile.seekg(pos, std::ios::beg);
   do {infile.get(c);
      } while(c == ' ' &&  c!= '\n');
   if (c=='\n') {count=0;}
