@@ -119,6 +119,9 @@ namespace CoupledField
     //! calculate stresses
     void CalcCharges();
     
+    StdVector<std::string> pressSurf_;  //!< surface of pressure loads
+    StdVector<Double>      pressVals_;  //!< values of the pressure loads
+    StdVector<std::string> pressFnc_;   //!< function names of pressure loads
     
   };
 }

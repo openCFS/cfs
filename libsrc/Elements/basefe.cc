@@ -137,9 +137,7 @@ void BaseFE :: CalcJacobianAtIp(Matrix<Double> & J,
     J.Resize(CornerCoords.GetSizeRow(),Dim_);
 
   J = CornerCoords * ShFncDerivAtIp_[ip-1];
-
 }
-
 
 Double BaseFE :: CalcJacobianDet(const Vector<Double> & LCoord,
 				      const Matrix<Double> & CornerCoords)
@@ -180,14 +178,13 @@ Double BaseFE :: CalcJacobianDetAtIp(const Integer ip,
       return detJ;
     }
 
-  else
-    {
-      Double jacDet ;
-      J.Determinant(jacDet);
-      if ( jacDet < 0.0 )
-	Error( "Negative Jacobian determinante ", __FILE__, __LINE__ );     
-      return jacDet;
-    }  
+  else  {
+    Double jacDet ;
+    J.Determinant(jacDet);
+    if ( jacDet < 0.0 )
+      Error( "Negative Jacobian determinante ", __FILE__, __LINE__ );     
+    return jacDet;
+  }  
 }
 
 

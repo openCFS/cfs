@@ -139,6 +139,27 @@ namespace CoupledField {
 #else
     params->GetList( "dof", homDirichDof_  , pdename_, "dirichletHom" );  
     params->GetList( "dof", inhomDirichDof_, pdename_, "dirichletInhom" );  
+
+    //check for pressure loads
+    params->GetList( "name"    , pressSurf_ , pdename_, "pressure" );
+    params->GetList( "value"   , pressVals_ , pdename_, "pressure" );
+    params->GetList( "dynamics", pressFnc_  , pdename_, "pressure" );
+
+    // Check consistency
+    if ( pressSurf_.GetSize() != pressVals_.GetSize() )
+      {
+	std::string errmsg = "PressureLoads: ";
+	errmsg += "#name = " + Info->GenStr(pressSurf_.GetSize());
+	errmsg += ", #value = " + Info->GenStr(pressVals_.GetSize());
+	errmsg += ", #dynamics = " + pressFnc_.GetSize() + '\n';
+	Info->Error( errmsg, __FILE__, __LINE__ );
+      }
+
+    // We need not have as many function/filenames as pressureloads!
+    for ( Integer k = pressFnc_.GetSize(); k < pressSurf_.GetSize(); k++ )
+      {
+	pressFnc_.Push_back( "none" );
+      }
 #endif
 
    //check for b.c. input data
@@ -178,7 +199,10 @@ namespace CoupledField {
 
    // set assemble parameters
    assemble_->SetPtr2EQNData(eqnData_); 
-   assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, subdoms_, surfdoms_);
+    //currently some hack
+    assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, subdoms_, pressSurf_);
+    //   assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, subdoms_, surfdoms_);
+
    assemble_->SetGraphType(NODEGRAPH);
 
 
@@ -277,6 +301,16 @@ namespace CoupledField {
 	actIntDescrMass->SetSecondaryMat(DAMPING, actSDMat.GetDampingAlfa(),
 					 analysistype_);
       assemble_->AddIntegrator(actIntDescrMass, subdoms_[actSD]);
+
+    //surface integrators
+    //RHS-part
+    Integer nonlin = 0;
+    for (Integer actSF = 0; actSF < pressSurf_.GetSize(); actSF++) {
+      BaseForm * rhsSrcSurf = new PressureLinForm(pressVals_[actSF], isaxi_);
+      assemble_->AddRhsSrcSurfIntegrator(rhsSrcSurf, pressSurf_[actSF], 
+					 pressFnc_[actSF],nonlin);
+    }
+
     }
   }
 
