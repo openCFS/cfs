@@ -18,8 +18,10 @@ TetraFE::TetraFE()
     Dim_      = 3;
     NumEdges_ = 6;
     NumFaces_ = 4;
+    NumCorners_ = 4;
     numChilds_ = 8;
-
+    MidPoint_ = 1./4, 1./4, 1./4;
+    
 #ifndef XMLPARAMS
     std::string integtype = "GaussOrder2";
     std::string IntRule;
@@ -226,6 +228,88 @@ void TetraFE::SetIntPoints()
     for(Integer i=0; i<IntWeights_.GetSize(); i++)
       IntWeights_[i] /= 6.;
   }
+
+
+void TetraFE::GetLocalIntPoints4Surface(const StdVector<Integer> & surfConnect,
+					 const StdVector<Integer> & volConnect,
+					 const Vector<Double> & surfIntPoint,
+					 Vector<Double> & volIntPoint)
+{
+  ENTER_IFCN( "TetraFE::GetLocalIntPoints4Surface" );
+  
+  // Try to find out, which vertices are in common with
+  // the surface element. Then calculate the product of all four
+  // and compare them
+  //
+  //
+  // 4+\
+  //  |\ \           zeta 	
+  //  | \  \ 	      ^ eta 	
+  //  |  \  +3	      |/	
+  //  |   \ |	      0--> xi
+  //  |    \ \
+  //  |     \|     REFERENCE TETRAHEDRAL ELEMENT
+  //  +------+
+  //  1      2
+
+  StdVector<Integer> commonIndex(3);
+  Integer found = 0;
+  Integer indexProduct = 0;
+  std::string errMsg;
+  
+  volIntPoint.Resize(3);
+  
+  // loop over surface connect
+  for (Integer iSurf=0; iSurf<3; iSurf++)
+    // loop over volume connect
+    for (Integer iVol=0; iVol<4; iVol++)
+      if (surfConnect[iSurf] == volConnect[iVol])
+	{
+	  commonIndex[found++] = iVol+1;
+	}
+
+  indexProduct =  commonIndex[0] * commonIndex[1] * commonIndex[2];
+
+  //std::cerr << "indexProduct = " << indexProduct << std::endl;
+  switch(indexProduct)
+    {
+    case 8:
+      std::cerr << "surface [1,2,4] is common" << std::endl;
+      // Surface[1,2,4] is common
+      volIntPoint[0] = surfIntPoint[0];
+      volIntPoint[1] = 0.0;
+      volIntPoint[2] = surfIntPoint[1];
+      break;
+
+    case 24:
+      std::cerr << "surface [2,3,4] is common" << std::endl;
+      // Surface[2,3,4] is common
+      volIntPoint[0] = surfIntPoint[0];
+      volIntPoint[1] = surfIntPoint[1];
+      volIntPoint[2] = 1.0 - surfIntPoint[0] - surfIntPoint[1];
+      break;
+
+    case 12:
+      std::cerr << "surface [1,3,4] is common" << std::endl;
+      // Surface[1,3,4] is common
+      volIntPoint[0] = 0.0;
+      volIntPoint[1] = surfIntPoint[0];
+      volIntPoint[2] = surfIntPoint[1];
+      break;
+      
+    case 6:
+      std::cerr << "surface [1,2,3] is common" << std::endl;
+      // Surface[1,2,3] is common
+      volIntPoint[0] = surfIntPoint[0];
+      volIntPoint[1] = surfIntPoint[1];
+      volIntPoint[2] = 0.0;
+      break;
+    default:
+      errMsg = "TetraFE::GetLocalIntPoints4Surface: surface and volume element ";
+      errMsg = "have not three nodes in common. Check your .mesh-file.";
+      Error(errMsg.c_str(), __FILE__, __LINE__);
+    }
+}
 
 
 } // end of namespace

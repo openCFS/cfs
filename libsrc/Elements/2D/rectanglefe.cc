@@ -19,7 +19,9 @@ RectangleFE::RectangleFE()
   Dim_ = 2;
   NumEdges_ = 4;
   NumFaces_ = 1;
+  NumCorners_ = 4;
   numChilds_ = 4;
+  MidPoint_ = 0.0, 0.0;
   
 
 #ifndef XMLPARAMS
@@ -220,6 +222,77 @@ Double RectangleFE::CalcDistortion(Matrix<Double> &cornerCoords, Vector<Double> 
 {
   ENTER_FCN( "RectangleFE::CalcDistortion" );
   Error("RectangleFE::CalcDistortion: Not implemented", __FILE__, __LINE__);
+}
+
+void RectangleFE::GetLocalIntPoints4Surface(const StdVector<Integer> & surfConnect,
+					const StdVector<Integer> & volConnect,
+					const Vector<Double> & surfIntPoint,
+					Vector<Double> & volIntPoint)
+{
+  ENTER_IFCN( "RectangleFE::GetLocalIntPoints4Surface" );
+  
+  // Try to find out, which vertices are in common with
+  // the surface element. Then calculate the product of both
+  // and compare them
+  //
+  //      eta
+  //       ^
+  // 4 +---|---+ 3    
+  //   |   |   |      
+  //   |   0---|-> xi     REFERENCE VOLUME ELEMENT
+  //   |       |
+  // 1 +-------+ 2
+
+
+
+  StdVector<Integer> commonIndex(2);
+  Integer found = 0;
+  Integer indexProduct = 0;
+  std::string errMsg;
+  
+  volIntPoint.Resize(2);
+  
+  // loop over surface connect
+  for (Integer iSurf=0; iSurf<2; iSurf++)
+    // loop over volume connect
+    for (Integer iVol=0; iVol<4; iVol++)
+      if (surfConnect[iSurf] == volConnect[iVol])
+	{
+	  commonIndex[found++] = iVol+1;
+	}
+
+  indexProduct= commonIndex[0] * commonIndex[1];
+  switch(indexProduct)
+    {
+    case 2:
+      // Edge[1,2] is common
+      volIntPoint[0] = surfIntPoint[0];
+      volIntPoint[1] = -1.0;
+      break;
+
+    case 12:
+      // Edge[4,3] is common
+      volIntPoint[0] = surfIntPoint[0];
+      volIntPoint[1] = 1.0;
+      break;
+
+    case 4:
+      // Edge[1,4] is common
+      volIntPoint[0] = -1.0;
+      volIntPoint[1] = surfIntPoint[0];
+      break;
+
+    case 6:
+      // Edge[2,3] is common
+      volIntPoint[0] = 1.0;
+      volIntPoint[1] = surfIntPoint[0];
+      break;
+
+    default:
+      errMsg = "RectangleFE::GetLocalIntPoints4Surface: surface and volume element ";
+      errMsg = "have not two nodes in common. Check your .mesh-file.";
+      Error(errMsg.c_str(), __FILE__, __LINE__);
+    }
 }
 
 } // end of namespace

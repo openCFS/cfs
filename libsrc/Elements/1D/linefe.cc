@@ -17,9 +17,11 @@ LineFE :: LineFE()
   ENTER_FCN( "LineFE::LineFE" );
 
   Dim_ = 1;
-  NumEdges_ = 1;
-  NumFaces_ = 1;
-  numChilds_ = 1;
+  NumEdges_   = 1;
+  NumFaces_   = 1;
+  NumCorners_ = 2;
+  numChilds_  = 1;
+  MidPoint_ = 0.0, 0.0;
   
 #ifndef XMLPARAMS
   std::string integtype="GaussOrder2";

@@ -17,9 +17,11 @@ TriangleFE::TriangleFE()
   ENTER_FCN( "TriangleFE::TriangleFE" );
   
   Dim_ = 2;
-  NumEdges_ = 3;
-  NumFaces_ = 1;
-  numChilds_ = 4;
+  NumEdges_   = 3;
+  NumFaces_   = 1;
+  NumCorners_ = 3;
+  numChilds_  = 4;
+  MidPoint_ = 1./3, 1./3;
 
 #ifndef XMLPARAMS
   std::string integtype="GaussOrder2";
@@ -221,5 +223,76 @@ void TriangleFE::SetIntPoints()
     }
 
 }
+
+
+void TriangleFE::GetLocalIntPoints4Surface(const StdVector<Integer> & surfConnect,
+					    const StdVector<Integer> & volConnect,
+					    const Vector<Double> & surfIntPoint,
+					    Vector<Double> & volIntPoint)
+{
+  ENTER_IFCN( "TriangleFE::GetLocalIntPoints4Surface" );
+  
+  // Try to find out, which vertices are in common with
+  // the surface element. Then calculate the product of both
+  // and compare them
+  //
+  //            
+  //            
+  // 3 +        
+  //   |\         eta
+  //   | \       ^        REFERENCE VOLUME ELEMENT
+  //   |  \      | 
+  // 1 +---+ 2   +--> xi
+
+
+
+  // NOTE: Since the line element is defined in the range [-1;+1]
+  // we have to calculate (1+surfCoord)/2 in order to get the right
+  // position on the triangular element
+
+  StdVector<Integer> commonIndex(2);
+  Integer found = 0;
+  Integer indexProduct = 0;
+  std::string errMsg;
+  
+  volIntPoint.Resize(2);
+  
+  // loop over surface connect
+  for (Integer iSurf=0; iSurf<2; iSurf++)
+    // loop over volume connect
+    for (Integer iVol=0; iVol<3; iVol++)
+      if (surfConnect[iSurf] == volConnect[iVol])
+	{
+	  commonIndex[found++] = iVol+1;
+	}
+
+  indexProduct= commonIndex[0] * commonIndex[1];
+  switch(indexProduct)
+    {
+    case 2:
+      // Edge[1,2] is common
+      volIntPoint[0] = 0.5 + (surfIntPoint[0] / 2.0);
+      volIntPoint[1] = 0.0;
+      break;
+
+    case 3:
+      // Edge[1,3] is common
+      volIntPoint[0] = 0.0;
+      volIntPoint[1] = 0.5 + (surfIntPoint[0] / 2.0);
+      break;
+
+    case 4:
+      // Edge[2,3] is common
+      volIntPoint[0] = 0.5 - (surfIntPoint[0] / 2.0);
+      volIntPoint[1] = 0.5 + (surfIntPoint[0] / 2.0);
+      break;
+
+    default:
+      errMsg = "TriangleFE::GetLocalIntPoints4Surface: surface and volume element ";
+      errMsg = "have not two nodes in common. Check your .mesh-file.";
+      Error(errMsg.c_str(), __FILE__, __LINE__);
+    }
+}
+
 
 } // end of namespace
