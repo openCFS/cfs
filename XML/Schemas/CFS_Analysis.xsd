@@ -55,6 +55,7 @@
   <xsd:simpleType name="DT_NonLinSolver">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="newton"/>
+      <xsd:enumeration value="fixPoint"/>
     </xsd:restriction>
   </xsd:simpleType>
 
