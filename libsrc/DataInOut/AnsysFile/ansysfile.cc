@@ -49,70 +49,36 @@ Integer AnsysFile::ReadDim()
 {
   ENTER_FCN( "AnsysFile::ReadDim" );
   
-    Integer dim;
-    
-    std::string::size_type pos=0;
-    getPosition("Dimension", pos);
-    std::cerr << "pos = " << pos << std::endl;
-    infile.seekg(pos,std::ios::beg);
-    
-    // std::string auxname;
-    infile >> dim;
-    std::cerr << "dim = " << dim << std::endl;
-    
-    return dim;
+    return GetInteger("Dimension");
 }
 
 Integer AnsysFile::GetNum3DElems()
 {
   ENTER_FCN( "AnsysFile::GetNum3DElems" );
   
-    Integer num;
-    
-    std::string::size_type pos=0;
-    getPosition("Num3DElements", pos);
-    infile.seekg(pos,std::ios::beg);
-    infile >> num;
-    return num;
+  return GetInteger("Num3DElements");
 }
 
 Integer AnsysFile::GetNum2DElems()
 {
   ENTER_FCN( "AnsysFile::GetNum2DElems" );
   
-    Integer num;
-    
-    std::string::size_type pos=0;
-    getPosition("Num2DElements", pos);
-    infile.seekg(pos,std::ios::beg);
-    infile >> num;
-    return num;
+  return GetInteger("Num2DElements");
 }
 
 Integer AnsysFile::GetNum1DElems()
 {
   ENTER_FCN( "AnsysFile::GetNum1DElems" );
-  
-    Integer num;
+ 
+  return GetInteger("Num1DElements");
     
-    std::string::size_type pos=0;
-    getPosition("Num1DElements", pos);
-    infile.seekg(pos,std::ios::beg);
-    infile >> num;
-    return num;
 }
 
 Integer AnsysFile::GetNumBCs()
 {
   ENTER_FCN( "AnsysFile::GetNumBCs" );
-  
-    Integer num;
-    
-    std::string::size_type pos=0;
-    getPosition("NumNodeBC", pos);
-    infile.seekg(pos,std::ios::beg);
-    infile >> num;
-    return num;
+ 
+  return  GetInteger("NumNodeBC");
 }
 
 
@@ -168,45 +134,38 @@ void AnsysFile::ReadMaxnumnodes(Integer & nnodes)
 {
   ENTER_FCN( "Ansys::ReadMaxnumnodes" );
 
-    std::string::size_type pos=0;
-    getPosition("NumNodes", pos);
-    infile.seekg(pos,std::ios::beg);
 
-    infile >> nnodes;
-    maxNumNodes_ = nnodes;
+  maxNumNodes_ = GetInteger("NumNodes");
+  nnodes = maxNumNodes_;
 }
 
 void AnsysFile::ReadMaxnumelem(Integer & nelem,const std::string keyword)
 {
   ENTER_FCN( "AnsysFile::ReadMaxnumelem" );
 
-  std::string::size_type pos=0;
-  getPosition(keyword,pos);
-  infile.seekg(pos,std::ios::beg);
-  
-  infile >> nelem;
+
+//   infile >> nelem;
+  nelem = GetInteger(keyword);
   maxNumElems_ += nelem;
 }
 
 void AnsysFile::ReadMaxnumnodesbc(Integer & nbc)
 {
   ENTER_FCN( "AnsysFile::ReadMaxnumnodesbc" );
-  std::string::size_type pos=0;
-  getPosition("NumNodeBC", pos);
-  infile.seekg(pos,std::ios::beg);
+//   std::string::size_type pos=0;
+//   getPosition("NumNodeBC", pos);
+//   infile.seekg(pos,std::ios::beg);
   
-  infile >> nbc;
+//   infile >> nbc;
+  nbc = GetInteger("NumNodeBC");
 }
 
 
 void AnsysFile::ReadNumSaveNodes(Integer & nrSaveNodes)
 {
   ENTER_FCN( "AnsysFile::ReadNumSaveNodes" );
-  std::string::size_type pos=0;
-  getPosition("NumSaveNodes", pos);
-  infile.seekg(pos,std::ios::beg);
-  
-  infile >> nrSaveNodes;
+
+  nrSaveNodes = GetInteger("NumSaveNodes" );
 }
 
 
@@ -225,17 +184,36 @@ void AnsysFile::ReadBCs(std::list<Integer> * bcs, const StdVector<std::string> l
     
 
     std::string::size_type pos=0;
+    std::string::size_type lineEndPos =0;
     getPosLine("Node BC", pos);
     infile.seekg(pos,std::ios::beg);
     
-    std::string str;
+    std::string str, buf, errMsg;
 
     Integer nodalnum;
     Integer i,j;
     for (i=0; i < numbc; i++)
       {
+	
+	// remember current position and get the position of endline
+	pos = infile.tellg();
+	getline(infile,buf,'\n');
+	lineEndPos=infile.tellg();
+	infile.seekg(pos,std::ios::beg);
+	
+	// try to read in the data
 	infile >> nodalnum >> str;
+
+	// if read in was successfull, enline position and current
+	// position are the same
 	infile.ignore(100,'\n');
+	pos = infile.tellg();
+	if (pos != lineEndPos){
+	  errMsg = "AnsysFile:ReadBCs: The node list for the boundary contitions has ";
+	  errMsg += "wrong size or format. Please correct it!";
+	  Error(errMsg.c_str(), __FILE__, __LINE__);
+	}
+
 	
 	Boolean Find=FALSE;
 
@@ -293,18 +271,36 @@ void AnsysFile::ReadSaveNodes(StdVector<Integer> & saveNodes , const std::string
     saveNodes.Clear();
 
     std::string::size_type pos=0;
+    std::string::size_type lineEndPos=0;
+    
     getPosLine("Save Nodes", pos);
     infile.seekg(pos,std::ios::beg);
     
-    std::string str;
+    std::string str, buf, errMsg;
 
     Integer nodalnum;
     Integer i;
     for (i=0; i < nrSaveNodes; i++)
-      {
-	infile >> nodalnum >> str;
-	infile.ignore(100,'\n');
+      {	
+	// remember current position and get the position of endline
+	pos = infile.tellg();
+	getline(infile,buf,'\n');
+	lineEndPos=infile.tellg();
+	infile.seekg(pos,std::ios::beg);
 	
+	// Read in data
+	infile >> nodalnum >> str;
+
+	// if read in was successfull, enline position and current
+	// position are the same
+	infile.ignore(100,'\n');
+	pos = infile.tellg();
+	if (pos != lineEndPos){
+	  errMsg = "AnsysFile:ReadSaveNodes: The node list for the saveNodes has ";
+	  errMsg += "wrong size or format. Please correct it!";
+	  Error(errMsg.c_str(), __FILE__, __LINE__);
+	}
+	  
 	if (str == level) 
 	  	  saveNodes.Push_back(nodalnum);
       } 
@@ -674,6 +670,8 @@ void AnsysFile::ReadEl1d(StdVector<Elem*> * allelems, const StdVector<std::strin
     if (maxnelems)
       {
 	std::string::size_type pos=0;
+	std::string::size_type lineEndPos=0;
+	std::string buf, errMsg;
 
 	getPosLine("1D Elements", pos);
 	infile.seekg(pos,std::ios::beg);
@@ -687,8 +685,26 @@ void AnsysFile::ReadEl1d(StdVector<Elem*> * allelems, const StdVector<std::strin
 	for (i=0; i<maxnelems; i++)
 	  {
 	    Elem * el=new Elem();
-	    infile >> inum >> itype >> innodes >> namesd;
+
+	    // remember current position and get the position of endline
+	    pos = infile.tellg();
+	    getline(infile,buf,'\n');
+	    lineEndPos=infile.tellg();
+	    infile.seekg(pos,std::ios::beg);
+
+	    // try to read data
+	    infile >> inum >> itype >> innodes >> namesd;	    
+
+	    // if read in was successfull, enline position and current
+	    // position are the same
 	    infile.ignore(100,'\n');
+	    pos = infile.tellg();
+	    if (pos != lineEndPos){
+	      errMsg = "AnsysFile:ReadEl1D: The element list of 1D elements has ";
+	      errMsg += "wrong size or format. Please correct it!";
+	      Error(errMsg.c_str(), __FILE__, __LINE__);
+	    }
+	    
 
 	    el->elemNum=inum;
 	    if (inum > maxNumElems_) 
@@ -733,6 +749,8 @@ void AnsysFile::ReadEl2d(StdVector<Elem*> * allelems, const StdVector<std::strin
     if (maxnelems)
       {
 	std::string::size_type pos=0;
+	std::string::size_type lineEndPos=0;
+	std::string buf, errMsg;
 
 	getPosLine("2D Elements", pos);
 	infile.seekg(pos,std::ios::beg);
@@ -746,9 +764,26 @@ void AnsysFile::ReadEl2d(StdVector<Elem*> * allelems, const StdVector<std::strin
 	for (i=0; i<maxnelems; i++)
 	  {
 	    Elem * el=new Elem();
-	    infile >> inum >> itype >> innodes >> namesd;
-	    infile.ignore(100,'\n');
+	   
+	    // remember current position and get the position of endline
+	    pos = infile.tellg();
+	    getline(infile,buf,'\n');
+	    lineEndPos=infile.tellg();
+	    infile.seekg(pos,std::ios::beg);
 	    
+	    // try to read data
+	    infile >> inum >> itype >> innodes >> namesd;	    
+	    
+	    // if read in was successfull, enline position and current
+	    // position are the same
+	    infile.ignore(100,'\n');
+	    pos = infile.tellg();
+	    if (pos != lineEndPos){
+	      errMsg = "AnsysFile:ReadEl2D: The element list of 2D elements has ";
+	      errMsg += "wrong size or format. Please correct it!";
+	      Error(errMsg.c_str(), __FILE__, __LINE__);
+	    }
+
 	    el->elemNum=inum;
 	    if (inum > maxNumElems_) 
 	      {
@@ -792,6 +827,9 @@ void AnsysFile::ReadEl3d(StdVector<Elem*> * allelems, const StdVector<std::strin
     ReadMaxnumelem(maxnelems,"Num3DElements");
 
     std::string::size_type pos=0;
+    std::string::size_type lineEndPos=0;
+    std::string errMsg, buf;
+
     getPosLine("3D Elements", pos);
     infile.seekg(pos,std::ios::beg);
 
@@ -805,9 +843,26 @@ void AnsysFile::ReadEl3d(StdVector<Elem*> * allelems, const StdVector<std::strin
     for (i=0; i<maxnelems; i++)
       {
 	Elem * el=new Elem();
-	infile >> inum >> itype >> innodes >> namesd;
-	infile.ignore(100,'\n');
 
+	// remember current position and get the position of endline
+	pos = infile.tellg();
+	getline(infile,buf,'\n');
+	lineEndPos=infile.tellg();
+	infile.seekg(pos,std::ios::beg);
+	    
+	// try to read data
+	infile >> inum >> itype >> innodes >> namesd;	    
+	
+	// if read in was successfull, enline position and current
+	// position are the same
+	infile.ignore(100,'\n');
+	pos = infile.tellg();
+	if (pos != lineEndPos){
+	  errMsg = "AnsysFile:ReadEl3D: The element list of 3D elements has ";
+	  errMsg += "wrong size or format. Please correct it!";
+	  Error(errMsg.c_str(), __FILE__, __LINE__);
+	}
+	
 	el->elemNum=inum;
 	if (inum > maxNumElems_) 
 	  {
@@ -996,6 +1051,43 @@ void AnsysFile::ReadEl1dConf(StdVector<std::string> &sd)
 	  }
       }
 
+}
+
+
+Integer AnsysFile::GetInteger(std::string seekexp)
+{
+  ENTER_IFCN( "AnsysFile::GetInteger" );
+
+  std::string::size_type pos=0;
+  std::string::size_type lineEndPos=0;
+  Integer val;
+  std::string buf, errMsg;
+
+  getPosition(seekexp, pos);
+  infile.seekg(pos,std::ios::beg);
+
+   // remember current position and get the position of endline
+  getline(infile,buf,'\n');
+  lineEndPos=infile.tellg();
+  infile.seekg(pos,std::ios::beg);
+  
+  // try to read data
+  infile >> val;
+  
+  // if read in was successfull, endline position and current
+  // position are the same
+  infile.ignore(100,'\n');
+  pos = infile.tellg();
+  if (pos != lineEndPos){
+    errMsg = "AnsysFile: The value for '";
+    errMsg += seekexp;
+    errMsg += "' could not be read. Please check your mesh-file";
+    Error(errMsg.c_str(), __FILE__, __LINE__);
+  }
+
+//   std::cerr << "Seek for " << seekexp << " was " << val << std::endl;
+  return val;
+  
 }
 
 //!
