@@ -11,20 +11,6 @@ template<class TYPE> class Matrix;
 template<class TYPE> class Vector;
 template<class TYPE> class StoreSol;
 
-// ******************************************************
-// * Additional functions related with handling vectors *
-// ******************************************************
-  
-//! Function for swap  number a and b (Integer, Double)
-template <class S> void Swap(S &, S &);
-
-//! Function for swap Vector<T>;
-template<class TYPE>
-void Swap(Vector<TYPE> & a, Vector<TYPE> & b);
-
-//! Overloading << for class vector
-template<class TYPE>  std::ostream& operator << ( std::ostream & , const Vector<TYPE> &);
-
 
 //! Concrete Template class for a general dense vector
 template<class TYPE>
@@ -157,7 +143,7 @@ public:
 
   //*************************************************
   //* old interface which is compatible to previous *
-  //* version of Vector<TYPE>                          *
+  //* version of Vector<TYPE>                       *
   //*************************************************
 
   //! conversion to std::vector
@@ -279,13 +265,31 @@ public:
 
  protected:
 
-  //! length of the vector
+  //! Length of the vector
   Integer size_;
 
-  //! data of the vector
+  //! Data of the vector
   TYPE* data_;
+  
+  //! Capacity of the vector
+  Integer capacity_;
 
 };
+
+// ******************************************************
+// * Additional functions related with handling vectors *
+// ******************************************************
+  
+//! Function for swap  number a and b (Integer, Double)
+template <class S> void Swap(S &, S &);
+
+//! Function for swap Vector<T>;
+template<class TYPE>
+void Swap(Vector<TYPE> & a, Vector<TYPE> & b);
+
+//! Overloading << for class vector
+template<class TYPE>  std::ostream& operator << ( std::ostream & , const Vector<TYPE> &);
+
 
 
   // Template instantiation for used vectors

@@ -21,12 +21,22 @@ StoreSol<TYPE>::StoreSol()
   
 template<class TYPE>
 StoreSol<TYPE>::StoreSol(Integer numNodes, 
-			 std::vector<SolutionType> solutionTypes, 
-			 std::vector<Integer> solutionDofs)
+			 std::vector<SolutionType> solTypes, 
+			 std::vector<Integer> solDofs)
 {
-  ENTER_FCN("StoreSol::StoreSol(numNodes, solutiontypes,solutionDofs");
+  ENTER_FCN("StoreSol::StoreSol(numNodes, solTypes, solDofs");
   Info->Error("Not implemented here", __FILE__,__LINE__);
 }
+
+template<class TYPE>
+StoreSol<TYPE>::StoreSol(const Integer numNodes,
+			 const SolutionType solType,
+			 const Integer numDofs)
+{
+  ENTER_FCN("StoreSol::StoreSol(numNodes, solType, soDofs");
+  Info->Error("Not implemented here", __FILE__,__LINE__);
+}
+
 
 template<class TYPE>
 StoreSol<TYPE>::StoreSol(const StoreSol & x) 
@@ -105,7 +115,7 @@ void StoreSol<TYPE>::SetNumSolutions(const Integer nSols)
   solTypes_.clear();
   solDofs_.clear();
   solOffset_.clear();
-}
+  }
 
 template<class TYPE>
 void StoreSol<TYPE>::SetNumNodes(const Integer nNodes)
@@ -140,7 +150,20 @@ void StoreSol<TYPE>::SetNumDofs(const Integer dof, const SolutionType sol)
 }
 
 template<class TYPE>
-TYPE& StoreSol<TYPE>:: operator()(Integer node, Integer dof)
+void StoreSol<TYPE>::GetSolutionTypes(std::vector<SolutionType> &solTypes) const
+{
+  ENTER_FCN( "StoreSol::GetSolutionTypes" );
+  
+  solTypes.resize(numSolutions_);
+  std::map<SolutionType,Integer>::const_iterator it;
+ 
+    for (it = solTypes_.begin(); it!=solTypes_.end(); it++)
+      solTypes[(*it).second] = (*it).first;
+  
+}
+
+template<class TYPE>
+TYPE& StoreSol<TYPE>::operator()(Integer node, Integer dof)
 {
   ENTER_IFCN("StoreSol::operator()");
   
@@ -200,7 +223,7 @@ void StoreSol<TYPE>::SetSolVector(const SolutionType type, const CFSVector & val
   
 #ifdef CHECK_INDEX
   if (val.GetSize() != data_.GetSize())
-    Info->Error("StoreSik:SetSolVector(): Incompatible dimensions",__FILE__,__LINE__);
+    Info->Error("StoreSol::SetSolVector(): Vector has incompatible dimensions!",__FILE__,__LINE__);
 #endif
 
   const Vector<TYPE> & temp = dynamic_cast<const Vector<TYPE>&>(val);
@@ -407,13 +430,10 @@ void StoreSol<TYPE>::SetDataPointer(TYPE * ptr)
 {
   ENTER_FCN("StoreSol::SetDataPointer");
 #ifdef CHECK_INITIALIZED
-  if (length_ == 0) Info->Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
+  if (length_ == 0) Info->Error("StoreSol: Use of uninitialized object!",
+				__FILE__,__LINE__);
 #endif
   
-  // Unsicher ...
-  //if(data_.data_)
-  // delete[] data_.data_;
- 
   data_.data_ = ptr;
 
 }
@@ -423,7 +443,8 @@ void StoreSol<TYPE>::GetDataPointer(TYPE* &ptr)
 {
   ENTER_FCN("StoreSol::GetDataPointer");
 #ifdef CHECK_INITIALIZED
-  if (length_ == 0) Info->Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
+  if (length_ == 0) Info->Error("StoreSol: Use of uninitialized object!",
+				__FILE__,__LINE__);
 #endif
  
   ptr =  data_.data_;
@@ -435,7 +456,8 @@ Double* StoreSol<Double>::GetDoublePointer()
 {
   ENTER_FCN("StoreSol::GetDoublePointer");
 #ifdef CHECK_INITIALIZED
-  if (length_ == 0) Info->Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
+  if (length_ == 0) Info->Error("StoreSol: Use of uninitialized object!",
+				__FILE__,__LINE__);
 #endif
   return data_.data_;
 }
@@ -589,6 +611,22 @@ template<class TYPE>
 BaseStoreSol & StoreSol<TYPE>::operator= (const BaseStoreSol & x)
 {
   ENTER_FCN("StoreSol::operator=(const BaseStoreSol &");
+  if ( &x == dynamic_cast<BaseStoreSol*>(this))
+    return (*this);
+
+  const StoreSol<TYPE> & temp = dynamic_cast<const StoreSol<TYPE>&>(x);
+  
+  this->numNodes_ = temp.numNodes_;
+  this->numSolutions_ = temp.numSolutions_;
+  this->length_ = temp.length_;
+  this->solTypes_ = temp.solTypes_;
+  this->solOffset_ = temp.solOffset_;
+  this->solDofs_ = temp.solDofs_;
+  this->totalDofs_ = temp.totalDofs_;
+  this->data_ = temp.data_;
+  this->convertedData_ = temp.convertedData_;
+ 
+  return dynamic_cast<BaseStoreSol &> (*this);
 }
 
 } //namespace

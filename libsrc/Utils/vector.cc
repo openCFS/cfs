@@ -19,6 +19,7 @@ Vector<TYPE>::Vector()
   ENTER_IFCN("Vector::Vector");
   data_ = NULL;
   size_ = 0;
+  capacity_ = 0;
 }
 
 template<class TYPE> 
@@ -325,11 +326,6 @@ template<class TYPE>
 Vector<TYPE> &Vector<TYPE>::operator=(const Vector<TYPE> &x)
 {
   ENTER_IFCN( "Vector::operator=(const Vector)");
-
-#ifdef CHECK_INITIALIZED
-  if (x.size_== 0)
-    Error("Vector: undefined Vector in operator=(const Vector)",__FILE__,__LINE__);
-#endif
 
   
   if (this == &x)
