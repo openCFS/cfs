@@ -1,0 +1,45 @@
+/*----------------------------------------------------------------------
+|
+| $Id$
+|
++---------------------------------------------------------------------*/
+
+INLINE unsigned short 
+GrRayCaster::getRendered (int uiX, int uiY) 
+{
+  return (*rendering_)(uiX,uiY);
+}
+
+INLINE unsigned short 
+GrRayCaster::getRendered (int uiIndex) 
+{
+  return (*rendering_)[uiIndex];
+}
+
+INLINE GbImageUShort2D*
+GrRayCaster::getRenderResult () const
+{
+  return rendering_;
+}
+
+INLINE float& 
+GrRayCaster::frame (int uiY, int uiX) 
+{
+  return frameField_[uiY][uiX];
+}
+
+
+/*----------------------------------------------------------------------
+|
+| $Log$
+| Revision 1.1  2002/02/22 14:47:57  elena
+| new: dir Gridlib_inc
+|
+| Revision 1.2  2001/06/15 09:12:38  prkipfer
+| added compiler hints and removed useless signedness
+|
+| Revision 1.1  2001/04/17 12:36:41  prkipfer
+| added RayCaster
+|
+|
++---------------------------------------------------------------------*/

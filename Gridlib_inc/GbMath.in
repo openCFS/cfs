@@ -1,0 +1,344 @@
+/*----------------------------------------------------------------------
+|
+| $Id$
+|
++---------------------------------------------------------------------*/
+
+#include <stdlib.h>
+
+template <class T>
+INLINE const T 
+GbMath<T>::PI = 4.0*(T)atan(1.0);
+
+template <class T>
+INLINE const T 
+GbMath<T>::PIHALF = 0.5*GbMath<T>::PI;
+
+template <class T>
+INLINE const T 
+GbMath<T>::TWOPI = 2.0*GbMath<T>::PI;
+
+template <class T>
+INLINE const T 
+GbMath<T>::DEG2RAD = GbMath<T>::PI/180.0;
+
+template <class T>
+INLINE const T 
+GbMath<T>::RAD2DEG = 1.0/GbMath<T>::DEG2RAD;
+
+template <class T>
+INLINE T 
+GbMath<T>::Abs(T v) 
+{ 
+  return T(fabs((double)v)); 
+}
+
+template <class T>
+INLINE int
+GbMath<T>::Sign(int i) 
+{
+  if ( i > 0 ) return 1;
+  if ( i < 0 ) return -1;
+  return 0;
+}
+
+template <class T>
+INLINE T 
+GbMath<T>::Sign(T v) 
+{
+  if ( v > 0.0 ) return 1.0;
+  if ( v < 0.0 ) return -1.0;
+  return 0.0;
+}
+
+template <class T>
+INLINE T 
+GbMath<T>::Sqrt(T v) 
+{ 
+  return T(sqrt((double)v)); 
+}
+
+template <class T>
+INLINE T 
+GbMath<T>::Sin(T v) 
+{ 
+  return T(sin((double)v)); 
+}
+
+template <class T>
+INLINE T 
+GbMath<T>::Cos(T v) 
+{ 
+  return T(cos((double)v));
+}
+
+template <class T>
+INLINE T 
+GbMath<T>::ASin(T v) 
+{
+  // need to clamp the function arguments, because libm.so sets errno if out of range
+  if ( -1.0 < v ) {
+    if ( v < 1.0 )
+      return T(asin((double)v));
+    else
+      return -GbMath<T>::PIHALF;
+  }
+  else {
+    return GbMath<T>::PIHALF;
+  }
+}
+template <class T>
+INLINE T 
+GbMath<T>::ACos(T v) 
+{
+  // need to clamp the function arguments, because libm.so sets errno if out of range
+  if ( -1.0 < v ) {
+    if ( v < 1.0 )
+      return T(acos((double)v));
+    else
+      return 0.0;
+  }
+  else {
+    return GbMath<T>::PI;
+  }
+}
+
+template <class T>
+INLINE T 
+GbMath<T>::ATan2(T v1, T v2) 
+{ 
+  return T(atan2((double)v1,(double)v2));
+}
+
+template <class T>
+INLINE T 
+GbMath<T>::UnitRandom(T seed) 
+{
+  if ( seed > 0.0 )
+    srand((unsigned int)seed);
+
+  return T(rand())/T(RAND_MAX);
+}
+
+template <class T>
+INLINE T 
+GbMath<T>::SymmetricRandom(T seed) 
+{
+  if ( seed > 0.0 )
+    srand((unsigned int)seed);
+
+  return 2.0 * T(rand())/T(RAND_MAX) - 1.0;
+}
+
+template <class T>
+INLINE T 
+GbMath<T>::IntervalRandom (T fMin, T fMax, T seed)
+{
+  if ( seed > 0.0 )
+    srand((unsigned int)seed);
+  
+  return fMin + (fMax-fMin)*T(rand())/T(RAND_MAX);
+}
+
+template <class T>
+INLINE T 
+GbMath<T>::FastSin0 (T fT)
+{
+  T fTSqr = fT*fT;
+  T fResult = 7.61e-03;
+  fResult *= fTSqr;
+  fResult -= 1.6605e-01;
+  fResult *= fTSqr;
+  fResult += 1.0;
+  fResult *= fT;
+  return fResult;
+}
+
+template <class T>
+INLINE T 
+GbMath<T>::FastSin1 (T fT)
+{
+  T fTSqr = fT*fT;
+  T fResult = -2.39e-08;
+  fResult *= fTSqr;
+  fResult += 2.7526e-06;
+  fResult *= fTSqr;
+  fResult -= 1.98409e-04;
+  fResult *= fTSqr;
+  fResult += 8.3333315e-03;
+  fResult *= fTSqr;
+  fResult -= 1.666666664e-01;
+  fResult *= fTSqr;
+  fResult += 1.0;
+  fResult *= fT;
+  return fResult;
+}
+
+template <class T>
+INLINE T 
+GbMath<T>::FastCos0 (T fT)
+{
+  T fTSqr = fT*fT;
+  T fResult = 3.705e-02;
+  fResult *= fTSqr;
+  fResult -= 4.967e-01;
+  fResult *= fTSqr;
+  fResult += 1.0;
+  return fResult;
+}
+
+template <class T>
+INLINE T 
+GbMath<T>::FastCos1 (T fT)
+{
+  T fTSqr = fT*fT;
+  T fResult = -2.605e-07;
+  fResult *= fTSqr;
+  fResult += 2.47609e-05;
+  fResult *= fTSqr;
+  fResult -= 1.3888397e-03;
+  fResult *= fTSqr;
+  fResult += 4.16666418e-02;
+  fResult *= fTSqr;
+  fResult -= 4.999999963e-01;
+  fResult *= fTSqr;
+  fResult += 1.0;
+  return fResult;
+}
+
+template <class T>
+INLINE T 
+GbMath<T>::FastInvSin0 (T fT)
+{
+  T fRoot = GbMath<T>::Sqrt(1.0-fT);
+
+  T fResult = -0.0187293;
+  fResult *= fT;
+  fResult += 0.0742610;
+  fResult *= fT;
+  fResult -= 0.2121144;
+  fResult *= fT;
+  fResult += 1.5707288;
+  fResult = GbMath<T>::PIHALF - fRoot*fResult;
+  return fResult;
+}
+
+template <class T>
+INLINE T 
+GbMath<T>::FastInvCos0 (T fT)
+{
+  T fRoot = GbMath<T>::Sqrt(1.0-fT);
+
+  T fResult = -0.0187293;
+  fResult *= fT;
+  fResult += 0.0742610;
+  fResult *= fT;
+  fResult -= 0.2121144;
+  fResult *= fT;
+  fResult += 1.5707288;
+  fResult *= fRoot;
+  return fResult;
+}
+
+template <class T>
+INLINE T 
+GbMath<T>::FastTan0 (T fT)
+{
+  T fTSqr = fT*fT;
+  T fResult = 2.033e-01;
+  fResult *= fTSqr;
+  fResult += 3.1755e-01;
+  fResult *= fTSqr;
+  fResult += 1.0;
+  fResult *= fT;
+  return fResult;
+}
+
+template <class T>
+INLINE T 
+GbMath<T>::FastTan1 (T fT)
+{
+  T fTSqr = fT*fT;
+  T fResult = 9.5168091e-03;
+  fResult *= fTSqr;
+  fResult += 2.900525e-03;
+  fResult *= fTSqr;
+  fResult += 2.45650893e-02;
+  fResult *= fTSqr;
+  fResult += 5.33740603e-02;
+  fResult *= fTSqr;
+  fResult += 1.333923995e-01;
+  fResult *= fTSqr;
+  fResult += 3.333314036e-01;
+  fResult *= fTSqr;
+  fResult += 1.0;
+  fResult *= fT;
+  return fResult;
+}
+
+template <class T>
+INLINE T 
+GbMath<T>::FastInvTan0 (T fT)
+{
+  T fTSqr = fT*fT;
+  return fT/(1.0 + 0.28*fTSqr);
+}
+
+template <class T>
+INLINE T 
+GbMath<T>::FastInvTan1 (T fT)
+{
+  T fTSqr = fT*fT;
+  T fResult = 0.0208351;
+  fResult *= fTSqr;
+  fResult -= 0.085133;
+  fResult *= fTSqr;
+  fResult += 0.180141;
+  fResult *= fTSqr;
+  fResult -= 0.3302995;
+  fResult *= fTSqr;
+  fResult += 0.999866;
+  fResult *= fT;
+  return fResult;
+}
+
+template <class T>
+INLINE T 
+GbMath<T>::FastInvTan2 (T fT)
+{
+  T fTSqr = fT*fT;
+  T fResult = 0.0028662257;
+  fResult *= fTSqr;
+  fResult -= 0.0161657367;
+  fResult *= fTSqr;
+  fResult += 0.0429096138;
+  fResult *= fTSqr;
+  fResult -= 0.0752896400;
+  fResult *= fTSqr;
+  fResult += 0.1065626393;
+  fResult *= fTSqr;
+  fResult -= 0.1420889944;
+  fResult *= fTSqr;
+  fResult += 0.1999355085;
+  fResult *= fTSqr;
+  fResult -= 0.3333314528;
+  fResult *= fTSqr;
+  fResult += 1.0;
+  fResult *= fT;
+  return fResult;
+}
+
+/*----------------------------------------------------------------------
+|
+| $Log$
+| Revision 1.1  2002/02/22 14:47:56  elena
+| new: dir Gridlib_inc
+|
+| Revision 1.2  2001/06/15 08:32:25  prkipfer
+| added compiler hints
+|
+| Revision 1.1  2001/01/02 14:51:25  prkipfer
+| introduced new classes
+|
+|
++---------------------------------------------------------------------*/

@@ -1,0 +1,65 @@
+/*----------------------------------------------------------------------
+|
+| $Id$
+|
++---------------------------------------------------------------------*/
+
+INLINE GbBool 
+GrAlphaState::blendEnabled ()
+{
+  return blendEnabled_;
+}
+
+INLINE void
+GrAlphaState::blendEnable(GbBool b)
+{
+  blendEnabled_ = b;
+}
+
+INLINE GrAlphaState::SrcBlendFunction& 
+GrAlphaState::srcBlend ()
+{
+  return srcBlend_;
+}
+
+INLINE GrAlphaState::DstBlendFunction& 
+GrAlphaState::dstBlend ()
+{
+  return dstBlend_;
+}
+
+INLINE GbBool
+GrAlphaState::testEnabled ()
+{
+  return testEnabled_;
+}
+
+INLINE void
+GrAlphaState::testEnable(GbBool b)
+{
+  testEnabled_ = b;
+}
+
+INLINE GrAlphaState::TestFunction& 
+GrAlphaState::test ()
+{
+  return test_;
+}
+
+INLINE float
+GrAlphaState::reference ()
+{
+  return reference_;
+}
+
+/*----------------------------------------------------------------------
+|
+| $Log$
+| Revision 1.1  2002/02/22 14:47:57  elena
+| new: dir Gridlib_inc
+|
+| Revision 1.1  2001/02/13 14:06:39  prkipfer
+| introduced rendering subsystem
+|
+|
++---------------------------------------------------------------------*/

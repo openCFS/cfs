@@ -1,0 +1,131 @@
+/*----------------------------------------------------------------------
+|
+| $Id$
+|
++---------------------------------------------------------------------*/
+
+
+template<class T>
+INLINE GoVertex<T> *
+GoPrismElementBase<T>::getVertex(int i) const 
+{ 
+  return(data_.vertices[i]); 
+}
+
+template<class T>
+INLINE void 
+GoPrismElementBase<T>::getNormal(T& xx, T& yy, T& zz) const 
+{ 
+}
+
+template <class T>
+INLINE GbVec3<T> 
+GoPrismElementBase<T>::getNormal() const 
+{ 
+  return GbVec3<T>(0,0,0); 
+}
+
+template <class T>
+INLINE void 
+GoPrismElementBase<T>::setNormal(const GbVec3<T>& n)
+{
+}
+
+template<class T>
+INLINE void 
+GoPrismElementBase<T>::setFlag(GbGeoStatusFlag f) 
+{ 
+  data_.flag = static_cast<GbGeoStatusFlag>(data_.flag | f); 
+}
+
+template<class T>
+INLINE void 
+GoPrismElementBase<T>::delFlag(GbGeoStatusFlag f) 
+{ 
+  data_.flag = static_cast<GbGeoStatusFlag>(data_.flag & (~f)); 
+}
+
+template<class T>
+INLINE GbBool 
+GoPrismElementBase<T>::testFlag(GbGeoStatusFlag f) const 
+{ 
+  return((data_.flag & f) != 0); 
+}
+
+template<class T>
+INLINE void 
+GoPrismElementBase<T>::setId(int i) 
+{ 
+  data_.id = i; 
+}
+
+template <class T>
+INLINE int 
+GoPrismElementBase<T>::getId() const 
+{ 
+  return data_.id; 
+}
+
+template<class T>
+INLINE void 
+GoPrismElementBase<T>::setPartition(int i) 
+{ 
+  data_.partition = i; 
+}
+
+template <class T>
+INLINE int 
+GoPrismElementBase<T>::getPartition() const 
+{ 
+  return data_.partition; 
+}
+
+template<class T>
+INLINE void 
+GoPrismElementBase<T>::setNeighbour(int i, GoGeometryElement<T> *face) 
+{ 
+  data_.neighbours[i] = face; 
+}
+
+template<class T>
+INLINE GoGeometryElement<T> *
+GoPrismElementBase<T>::getNeighbour(int i) const
+{ 
+  return(data_.neighbours[i]); 
+}
+
+template<class T>
+INLINE void 
+GoPrismElementBase<T>::setVertex(int i, GoVertex<T> *v) 
+{ 
+  if (i<6)
+    data_.vertices[i] = v; 
+}
+
+template<class T>
+INLINE GbBool
+GoPrismElementBase<T>::subdivide()
+{
+  return true;
+}
+
+/*----------------------------------------------------------------------
+|
+| $Log$
+| Revision 1.1  2002/02/22 14:47:57  elena
+| new: dir Gridlib_inc
+|
+| Revision 1.2  2000/11/07 17:27:34  prkipfer
+| introduced external polymorphism for vertices
+|
+| Revision 1.1  2000/09/26 09:30:08  uflabsik
+| initial version
+|
+| Revision 1.2  2000/08/28 09:25:22  prkipfer
+| added localized subdivision mechanism
+|
+| Revision 1.1  2000/07/03 16:15:03  prkipfer
+| extended IO subsystem, created class registry, added prism
+|
+|
++---------------------------------------------------------------------*/

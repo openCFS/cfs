@@ -1,0 +1,87 @@
+/*----------------------------------------------------------------------
+|
+| $Id$
+|
++---------------------------------------------------------------------*/
+
+template <class T>
+INLINE 
+GbPlane<T>::GbPlane()
+  : normal_(GbVec3<T>::ZERO)
+  , constant_(0.0)
+{
+}
+
+template <class T>
+INLINE 
+GbPlane<T>::GbPlane(const GbVec3<T>& rkNormal, T fConstant)
+  : normal_(rkNormal)
+  , constant_(fConstant)
+{
+}
+
+template <class T>
+INLINE 
+GbPlane<T>::GbPlane(const GbVec3<T>& rkNormal, const GbVec3<T>& rkPoint)
+{
+  normal_ = rkNormal;
+  constant_ = rkNormal.dot(rkPoint);
+}
+
+template <class T>
+INLINE T
+GbPlane<T>::operator[] (int i) const
+{
+  if (i<3) return normal_[i];
+  return constant_;
+}
+
+template <class T>
+INLINE void
+GbPlane<T>::setNormal (GbVec3<T>& n)
+{
+  normal_ = n;
+}
+
+template <class T>
+INLINE const GbVec3<T>
+GbPlane<T>::getNormal () const
+{
+  return GbVec3<T>(normal_);
+}
+
+template <class T>
+INLINE void
+GbPlane<T>::setConstant (T c)
+{
+  constant_ = c;
+}
+
+template <class T>
+INLINE const T
+GbPlane<T>::getConstant () const
+{
+  return constant_;
+}
+
+template <class T>
+INLINE T 
+GbPlane<T>::distanceTo (const GbVec3<T>& rkPoint) const
+{
+  return normal_.dot(rkPoint) - constant_;
+}
+
+/*----------------------------------------------------------------------
+|
+| $Log$
+| Revision 1.1  2002/02/22 14:47:56  elena
+| new: dir Gridlib_inc
+|
+| Revision 1.2  2001/01/09 11:12:29  prkipfer
+| fixed reference copy bug
+|
+| Revision 1.1  2001/01/02 14:55:04  prkipfer
+| introduced new classes
+|
+|
++---------------------------------------------------------------------*/

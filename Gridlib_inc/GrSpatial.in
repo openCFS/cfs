@@ -1,0 +1,162 @@
+/*----------------------------------------------------------------------
+|
+| $Id$
+|
++---------------------------------------------------------------------*/
+
+INLINE
+GbMatrix3<float>& 
+GrSpatial::rotate ()
+{
+  return rotate_;
+}
+
+INLINE
+const GbMatrix3<float>& 
+GrSpatial::rotate () const
+{
+  return rotate_;
+}
+
+INLINE
+GbVec3<float>& 
+GrSpatial::translate ()
+{
+  return translate_;
+}
+
+INLINE
+const GbVec3<float>& 
+GrSpatial::translate () const
+{
+  return translate_;
+}
+
+INLINE
+float& 
+GrSpatial::scale ()
+{
+  return scale_;
+}
+
+INLINE
+const float& 
+GrSpatial::scale () const
+{
+  return scale_;
+}
+
+INLINE
+GbMatrix3<float>& 
+GrSpatial::worldRotate ()
+{
+  return worldRotate_;
+}
+
+INLINE 
+const GbMatrix3<float>& 
+GrSpatial::worldRotate () const
+{
+  return worldRotate_;
+}
+
+INLINE
+GbVec3<float>& 
+GrSpatial::worldTranslate ()
+{
+  return worldTranslate_;
+}
+
+INLINE
+const GbVec3<float>& 
+GrSpatial::worldTranslate () const
+{
+  return worldTranslate_;
+}
+
+INLINE
+float& 
+GrSpatial::worldScale ()
+{
+  return worldScale_;
+}
+
+INLINE
+const float& 
+GrSpatial::worldScale () const
+{
+  return worldScale_;
+}
+
+INLINE
+void 
+GrSpatial::setWorldTransformToIdentity ()
+{
+  worldRotate_ = GbMatrix3<float>::IDENTITY;
+  worldTranslate_ = GbVec3<float>::ZERO;
+  worldScale_ = 1.0f;
+}
+
+INLINE
+GrBound<float>& 
+GrSpatial::worldBound ()
+{
+  return worldBound_;
+}
+
+INLINE
+const GrBound<float>& 
+GrSpatial::worldBound () const
+{
+  return worldBound_;
+}
+
+INLINE
+GbBool& 
+GrSpatial::forceCull ()
+{
+  return forceCull_;
+}
+
+INLINE
+const GbBool& 
+GrSpatial::forceCull () const
+{
+  return forceCull_;
+}
+
+INLINE
+void 
+GrSpatial::setParent (GrNode* pkParent)
+{
+  parent_ = pkParent;
+}
+
+INLINE
+GrNode* 
+GrSpatial::getParent ()
+{
+  return parent_;
+}
+
+INLINE
+void
+GrSpatial::setName(GbString& s)
+{
+  name_ = s;
+}
+
+/*----------------------------------------------------------------------
+|
+| $Log$
+| Revision 1.1  2002/02/22 14:47:57  elena
+| new: dir Gridlib_inc
+|
+| Revision 1.2  2001/06/26 12:25:26  prkipfer
+| minor fixes for clean Linux compile
+|
+| Revision 1.1  2001/06/18 11:23:17  prkipfer
+| introduced new classes for spatial partitioning and hierarchical culling
+|
+|
++---------------------------------------------------------------------*/

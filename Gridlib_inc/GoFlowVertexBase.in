@@ -1,0 +1,61 @@
+/*----------------------------------------------------------------------
+|
+| $Id$
+|
++---------------------------------------------------------------------*/
+
+template <class T>
+INLINE void 
+GoFlowVertexBase<T>::setDensity(T v) 
+{ 
+  data_.density = v; 
+}
+
+template <class T>
+INLINE T
+GoFlowVertexBase<T>::getDensity() const 
+{ 
+  return data_.density; 
+}
+
+template <class T>
+INLINE void 
+GoFlowVertexBase<T>::setEnergy(T v) 
+{ 
+  data_.energy = v; 
+}
+
+template <class T>
+INLINE T
+GoFlowVertexBase<T>::getEnergy() const 
+{ 
+  return data_.energy; 
+}
+
+template <class T>
+INLINE void 
+GoFlowVertexBase<T>::setMomentum(const GbVec3<T>& n) 
+{ 
+  data_.momentum[0] = n[0];
+  data_.momentum[1] = n[1];
+  data_.momentum[2] = n[2]; 
+}
+
+template <class T>
+INLINE GbVec3<T>
+GoFlowVertexBase<T>::getMomentum() const 
+{ 
+  return GbVec3<T>(data_.momentum[0],data_.momentum[1],data_.momentum[2]); 
+}
+
+/*----------------------------------------------------------------------
+|
+| $Log$
+| Revision 1.1  2002/02/22 14:47:56  elena
+| new: dir Gridlib_inc
+|
+| Revision 1.1  2000/11/07 17:27:32  prkipfer
+| introduced external polymorphism for vertices
+|
+|
++---------------------------------------------------------------------*/

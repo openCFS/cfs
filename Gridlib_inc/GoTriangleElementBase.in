@@ -1,0 +1,204 @@
+/*----------------------------------------------------------------------
+|
+| $Id$
+|
++---------------------------------------------------------------------*/
+
+
+template<class T>
+INLINE GoVertex<T> *
+GoTriangleElementBase<T>::getVertex(int i) const 
+{ 
+  return(data_.vertices[i]); 
+}
+
+template<class T>
+INLINE void 
+GoTriangleElementBase<T>::getNormal(T& xx, T& yy, T& zz) const 
+{ 
+  xx = data_.normal[0];
+  yy = data_.normal[1];
+  zz = data_.normal[2]; 
+}
+
+template <class T>
+INLINE GbVec3<T> 
+GoTriangleElementBase<T>::getNormal() const 
+{ 
+  return GbVec3<T>(data_.normal[0],data_.normal[1],data_.normal[2]); 
+}
+
+template <class T>
+INLINE void 
+GoTriangleElementBase<T>::setNormal(const GbVec3<T>& n)
+{
+  data_.normal[0] = n[0];
+  data_.normal[1] = n[1];
+  data_.normal[2] = n[2];
+}
+
+template <class T>
+INLINE GbVec3<T> 
+GoTriangleElementBase<T>::getOrigin() const 
+{ 
+  return data_.vertices[0]->getPosition(); 
+}
+
+template <class T>
+INLINE GbVec3<T> 
+GoTriangleElementBase<T>::getEdge(int i) const 
+{ 
+  GbVec3<T> e;
+  switch(i) {
+    case 0: 
+      e = data_.vertices[1]->getPosition() - data_.vertices[0]->getPosition();
+      break;
+    case 1:
+      e = data_.vertices[2]->getPosition() - data_.vertices[0]->getPosition();
+      break;
+    case 2:
+      e = data_.vertices[2]->getPosition() - data_.vertices[1]->getPosition();
+      break;
+    default:
+      warningmsg("Oops, triangles have only 3 edges, not "<<i);
+      break;
+  }
+  return e;
+}
+
+template<class T>
+INLINE void 
+GoTriangleElementBase<T>::setFlag(GbGeoStatusFlag f) 
+{ 
+  data_.flag = static_cast<GbGeoStatusFlag>(data_.flag | f); 
+}
+
+template<class T>
+INLINE void 
+GoTriangleElementBase<T>::delFlag(GbGeoStatusFlag f) 
+{ 
+  data_.flag = static_cast<GbGeoStatusFlag>(data_.flag & (~f)); 
+}
+
+template<class T>
+INLINE GbBool 
+GoTriangleElementBase<T>::testFlag(GbGeoStatusFlag f) const 
+{ 
+  return((data_.flag & f) != 0); 
+}
+
+template<class T>
+INLINE void 
+GoTriangleElementBase<T>::setId(int i) 
+{ 
+  data_.id = i; 
+}
+
+template <class T>
+INLINE int 
+GoTriangleElementBase<T>::getId() const 
+{ 
+  return data_.id; 
+}
+
+template<class T>
+INLINE void 
+GoTriangleElementBase<T>::setPartition(int i) 
+{ 
+  data_.partition = i; 
+}
+
+template <class T>
+INLINE int 
+GoTriangleElementBase<T>::getPartition() const 
+{ 
+  return data_.partition; 
+}
+
+template<class T>
+INLINE void 
+GoTriangleElementBase<T>::setNeighbour(int i, GoGeometryElement<T> *face) 
+{ 
+  data_.neighbours[i] = face; 
+}
+
+template<class T>
+INLINE GoGeometryElement<T> *
+GoTriangleElementBase<T>::getNeighbour(int i) const
+{ 
+  return(data_.neighbours[i]); 
+}
+
+template<class T>
+INLINE GoGeometryElement<T> *
+GoTriangleElementBase<T>::getChild(int i) const
+{ 
+  return(data_.children[i]); 
+}
+
+template<class T>
+INLINE void
+GoTriangleElementBase<T>::setChild(int i, GoGeometryElement<T> *v)
+{ 
+  data_.children[i] = v; 
+}
+
+template<class T>
+INLINE GoGeometryElement<T> *
+GoTriangleElementBase<T>::getParent() const
+{ 
+  return(data_.parent); 
+}
+
+template<class T>
+INLINE void
+GoTriangleElementBase<T>::setParent(GoGeometryElement<T> *v)
+{ 
+  data_.parent = v; 
+}
+
+
+template<class T>
+INLINE void 
+GoTriangleElementBase<T>::setVertex(int i, GoVertex<T> *v) 
+{ 
+  if (i<3) 
+    data_.vertices[i] = v; 
+}
+
+template<class T>
+INLINE GbBool
+GoTriangleElementBase<T>::subdivide()
+{
+  return true;
+}
+
+/*----------------------------------------------------------------------
+|
+| $Log$
+| Revision 1.1  2002/02/22 14:47:57  elena
+| new: dir Gridlib_inc
+|
+| Revision 1.7  2001/01/02 15:16:48  prkipfer
+| changed to use new classes and GbMath
+|
+| Revision 1.6  2000/11/07 17:27:39  prkipfer
+| introduced external polymorphism for vertices
+|
+| Revision 1.5  2000/10/17 14:34:46  uflabsik
+| new primitives added
+|
+| Revision 1.4  2000/08/28 09:25:23  prkipfer
+| added localized subdivision mechanism
+|
+| Revision 1.3  2000/06/16 13:33:50  prkipfer
+| further hierarchy fixes
+|
+| Revision 1.2  2000/06/14 15:39:14  prkipfer
+| improved base classes and added funcstruct processing for mesh
+|
+| Revision 1.1.1.1  2000/06/08 16:24:44  prkipfer
+| Imported source tree to start the project
+|
+|
++---------------------------------------------------------------------*/

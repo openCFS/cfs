@@ -1,0 +1,31 @@
+/*----------------------------------------------------------------------
+|
+| $Id$
+|
++---------------------------------------------------------------------*/
+
+template <class T>
+INLINE typename GrLight<T>::Type 
+GrDirectionalLight<T>::getType () const
+{
+  return LT_DIRECTIONAL;
+}
+
+template <class T>
+INLINE GbVec3<T> 
+GrDirectionalLight<T>::direction ()
+{
+  return GbVec3<T>(direction_);
+}
+
+/*----------------------------------------------------------------------
+|
+| $Log$
+| Revision 1.1  2002/02/22 14:47:57  elena
+| new: dir Gridlib_inc
+|
+| Revision 1.1  2001/02/13 13:29:30  prkipfer
+| introduced basic rendering tools
+|
+|
++---------------------------------------------------------------------*/

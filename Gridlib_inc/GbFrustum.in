@@ -1,0 +1,150 @@
+/*----------------------------------------------------------------------
+|
+| $Id$
+|
++---------------------------------------------------------------------*/
+
+template <class T>
+INLINE GbVec3<T>& 
+GbFrustum<T>::origin ()
+{
+  return origin_;
+}
+
+template <class T>
+INLINE const GbVec3<T>& 
+GbFrustum<T>::origin () const
+{
+  return origin_;
+}
+
+template <class T>
+INLINE GbVec3<T>& 
+GbFrustum<T>::lVector ()
+{
+  return lVector_;
+}
+
+template <class T>
+INLINE const GbVec3<T>& 
+GbFrustum<T>::lVector () const
+{
+  return lVector_;
+}
+
+template <class T>
+INLINE GbVec3<T>& 
+GbFrustum<T>::uVector ()
+{
+  return uVector_;
+}
+
+template <class T>
+INLINE const GbVec3<T>& 
+GbFrustum<T>::uVector () const
+{
+  return uVector_;
+}
+
+template <class T>
+INLINE GbVec3<T>& 
+GbFrustum<T>::dVector ()
+{
+  return dVector_;
+}
+
+template <class T>
+INLINE const GbVec3<T>& 
+GbFrustum<T>::dVector () const
+{
+  return dVector_;
+}
+
+template <class T>
+INLINE T& 
+GbFrustum<T>::lBound ()
+{
+  return lBound_;
+}
+
+template <class T>
+INLINE const T& 
+GbFrustum<T>::lBound () const
+{
+  return lBound_;
+}
+
+template <class T>
+INLINE T& 
+GbFrustum<T>::uBound ()
+{
+  return uBound_;
+}
+
+template <class T>
+INLINE const T& 
+GbFrustum<T>::uBound () const
+{
+  return uBound_;
+}
+
+template <class T>
+INLINE T& 
+GbFrustum<T>::dMin ()
+{
+  return dMin_;
+}
+
+template <class T>
+INLINE const T& 
+GbFrustum<T>::dMin () const
+{
+  return dMin_;
+}
+
+template <class T>
+INLINE T& 
+GbFrustum<T>::dMax ()
+{
+  return dMax_;
+}
+
+template <class T>
+INLINE const T& 
+GbFrustum<T>::dMax () const
+{
+  return dMax_;
+}
+
+template <class T>
+INLINE T 
+GbFrustum<T>::getDRatio () const
+{
+  return dRatio_;
+}
+
+template <class T>
+INLINE T 
+GbFrustum<T>::getMTwoLF () const
+{
+  return -2.0*lBound_*dMax_;
+}
+
+template <class T>
+INLINE T 
+GbFrustum<T>::getMTwoUF () const
+{
+  return -2.0*uBound_*dMax_;
+}
+
+/*----------------------------------------------------------------------
+|
+| $Log$
+| Revision 1.1  2002/02/22 14:47:56  elena
+| new: dir Gridlib_inc
+|
+| Revision 1.1  2001/06/18 10:43:05  prkipfer
+| introduced Frustum object
+|
+|
++---------------------------------------------------------------------*/

@@ -1,0 +1,110 @@
+/*----------------------------------------------------------------------
+|
+| $Id$
+|
++---------------------------------------------------------------------*/
+
+template <class T>
+INLINE T& 
+GbEigen<T>::matrix (int iRow, int iCol)
+{
+  return matrix_[iRow][iCol];
+}
+
+template <class T>
+INLINE int
+GbEigen<T>::getSize() const
+{
+  return size_;
+}
+
+template <class T>
+INLINE T 
+GbEigen<T>::getEigenvalue (int i) const
+{
+  return diagonal_[i];
+}
+
+template <class T>
+INLINE T 
+GbEigen<T>::getEigenvector (int iRow, int iCol) const
+{
+  return matrix_[iRow][iCol];
+}
+
+template <class T>
+INLINE T* 
+GbEigen<T>::getEigenvalue ()
+{
+  return diagonal_;
+}
+
+template <class T>
+INLINE T** 
+GbEigen<T>::getEigenvector ()
+{
+  return matrix_;
+}
+
+template <class T>
+INLINE void 
+GbEigen<T>::setMatrix (T** aafMat)
+{
+  for (int iRow = 0; iRow < size_; iRow++) {
+    for (int iCol = 0; iCol < size_; iCol++)
+      matrix_[iRow][iCol] = aafMat[iRow][iCol];
+  }
+}
+
+template <class T>
+INLINE void 
+GbEigen<T>::eigenSolv()
+{
+  switch ( size_ ) {
+    case 2: tridiagonal2(); break;
+    case 3: tridiagonal3(); break;
+    case 4: tridiagonal4(); break;
+    default: tridiagonalN(); break;
+  }
+  QLAlgorithm();
+}
+
+template <class T>
+INLINE void 
+GbEigen<T>::decrSortEigenSolv()
+{
+  switch ( size_ ) {
+    case 2: tridiagonal2(); break;
+    case 3: tridiagonal3(); break;
+    case 4: tridiagonal4(); break;
+    default: tridiagonalN(); break;
+  }
+  QLAlgorithm();
+  decreasingSort();
+}
+
+template <class T>
+INLINE void 
+GbEigen<T>::incrSortEigenSolv()
+{
+  switch ( size_ ) {
+    case 2: tridiagonal2(); break;
+    case 3: tridiagonal3(); break;
+    case 4: tridiagonal4(); break;
+    default: tridiagonalN(); break;
+  }
+  QLAlgorithm();
+  increasingSort();
+}
+
+/*----------------------------------------------------------------------
+|
+| $Log$
+| Revision 1.1  2002/02/22 14:47:56  elena
+| new: dir Gridlib_inc
+|
+| Revision 1.1  2001/01/02 15:02:12  prkipfer
+| introduced new classes
+|
+|
++---------------------------------------------------------------------*/

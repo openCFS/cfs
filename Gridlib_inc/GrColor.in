@@ -1,0 +1,170 @@
+/*----------------------------------------------------------------------
+|
+| $Id$
+|
++---------------------------------------------------------------------*/
+
+template <class T>
+INLINE const GrColor<T> 
+GrColor<T>::BLACK(0.0,0.0,0.0);
+
+template <class T>
+INLINE const GrColor<T> 
+GrColor<T>::WHITE(1.0,1.0,1.0);
+
+template <class T>
+INLINE 
+GrColor<T>::GrColor()
+{
+  // For efficiency in construction of large arrays of colors,
+  // the default constructor does not initialize a color.
+}
+
+template <class T>
+INLINE 
+GrColor<T>::GrColor(T fR, T fG, T fB)
+{
+  r_ = fR;
+  g_ = fG;
+  b_ = fB;
+}
+
+template <class T>
+INLINE 
+GrColor<T>::GrColor(const GrColor<T>& rkColor)
+{
+  r_ = rkColor[0];
+  g_ = rkColor[1];
+  b_ = rkColor[2];
+}
+
+template <class T>
+INLINE T
+GrColor<T>::operator[] (int i) const
+{
+  switch (i) {
+    case 0: return r_;
+    case 1: return g_;
+  }
+  return b_;
+}
+
+template <class T>
+INLINE GrColor<T>& 
+GrColor<T>::operator= (const GrColor<T>& rkColor)
+{
+  r_ = rkColor[0];
+  g_ = rkColor[1];
+  b_ = rkColor[2];
+  return *this;
+}
+
+template <class T>
+INLINE GbBool 
+GrColor<T>::operator== (const GrColor<T>& rkColor) const
+{
+  return r_ == rkColor[0] && 
+         g_ == rkColor[1] && 
+         b_ == rkColor[2];
+}
+
+template <class T>
+INLINE GbBool 
+GrColor<T>::operator!= (const GrColor<T>& rkColor) const
+{
+  return r_ != rkColor[0] || 
+         g_ != rkColor[1] || 
+         b_ != rkColor[2];
+}
+
+template <class T>
+INLINE GrColor<T> 
+GrColor<T>::operator+ (const GrColor<T>& rkColor) const
+{
+  return GrColor<T>(r_+rkColor[0],g_+rkColor[1],b_+rkColor[2]);
+}
+
+template <class T>
+INLINE GrColor<T> 
+GrColor<T>::operator- (const GrColor<T>& rkColor) const
+{
+  return GrColor<T>(r_-rkColor[0],g_-rkColor[1],b_-rkColor[2]);
+}
+
+template <class T>
+INLINE GrColor<T> 
+GrColor<T>::operator* (const GrColor<T>& rkColor) const
+{
+  return GrColor<T>(r_*rkColor[0],g_*rkColor[1],b_*rkColor[2]);
+}
+
+template <class T>
+INLINE GrColor<T> 
+GrColor<T>::operator- () const
+{
+  return GrColor<T>(-r_,-g_,-b_);
+}
+
+template <class T>
+INLINE GrColor<T>& 
+GrColor<T>::operator+= (const GrColor<T>& rkColor)
+{
+  r_ += rkColor[0];
+  g_ += rkColor[1];
+  b_ += rkColor[2];
+  return *this;
+}
+
+template <class T>
+INLINE GrColor<T>& 
+GrColor<T>::operator-= (const GrColor<T>& rkColor)
+{
+  r_ -= rkColor[0];
+  g_ -= rkColor[1];
+  b_ -= rkColor[2];
+  return *this;
+}
+
+template <class T>
+INLINE GrColor<T>& 
+GrColor<T>::operator*= (const GrColor<T>& rkColor)
+{
+  r_ *= rkColor[0];
+  g_ *= rkColor[1];
+  b_ *= rkColor[2];
+  return *this;
+}
+
+template <class T>
+INLINE GrColor<T> 
+GrColor<T>::operator/ (const GrColor<T>& rkColor) const
+{
+  assert( rkColor[0] > 0.0 &&  rkColor[1] > 0.0 &&  rkColor[2] > 0.0 );
+  return GrColor<T>(r_/rkColor.r_,g_/rkColor.g_,b_/rkColor.b_);
+}
+
+template <class T>
+INLINE GrColor<T>& 
+GrColor<T>::operator/= (const GrColor<T>& rkColor)
+{
+  assert( rkColor[0] > 0.0 &&  rkColor[1] > 0.0 &&  rkColor[2] > 0.0 );
+  r_ /= rkColor.r_;
+  g_ /= rkColor.g_;
+  b_ /= rkColor.b_;
+  return *this;
+}
+
+/*----------------------------------------------------------------------
+|
+| $Log$
+| Revision 1.1  2002/02/22 14:47:57  elena
+| new: dir Gridlib_inc
+|
+| Revision 1.2  2001/06/18 11:13:37  prkipfer
+| made operator/ inline
+|
+| Revision 1.1  2001/02/13 13:29:29  prkipfer
+| introduced basic rendering tools
+|
+|
++---------------------------------------------------------------------*/

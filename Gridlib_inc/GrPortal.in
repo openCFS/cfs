@@ -1,0 +1,31 @@
+/*----------------------------------------------------------------------
+|
+| $Id$
+|
++---------------------------------------------------------------------*/
+
+INLINE 
+GrConvexRegion*& 
+GrPortal::adjacentRegion ()
+{
+  return adjacentRegion_;
+}
+
+INLINE
+GbBool& 
+GrPortal::open ()
+{
+  return isOpen_;
+}
+
+/*----------------------------------------------------------------------
+|
+| $Log$
+| Revision 1.1  2002/02/22 14:47:57  elena
+| new: dir Gridlib_inc
+|
+| Revision 1.1  2001/06/18 11:23:15  prkipfer
+| introduced new classes for spatial partitioning and hierarchical culling
+|
+|
++---------------------------------------------------------------------*/

@@ -1,0 +1,197 @@
+/*----------------------------------------------------------------------
+|
+| $Id$
+|
++---------------------------------------------------------------------*/
+
+template <class T>
+INLINE unsigned int 
+GbTList<T>::getQuantity () const
+{
+  return quantity_;
+}
+
+template <class T>
+INLINE void 
+GbTList<T>::add (T tValue)
+{
+  Node* pkNode = new Node(tValue,front_);
+  front_ = pkNode;
+  quantity_++;
+}
+
+template <class T>
+INLINE GbBool 
+GbTList<T>::addUnique (T tValue)
+{
+  Node* pkSearch = front_;
+  while ( pkSearch ) {
+    if ( pkSearch->value_ == tValue )
+      return false;
+    pkSearch = pkSearch->next_;
+  }
+
+  add(tValue);
+  return true;
+}
+
+template <class T>
+INLINE GbBool 
+GbTList<T>::remove (T tValue)
+{
+  if ( front_ ) {
+    if ( front_->value_ == tValue ) {
+      // item at beginning of list
+      Node* pkSave = front_;
+      front_ = front_->next_;
+      delete pkSave;
+      quantity_--;
+      return true;
+    }
+
+    // search for item
+    Node* pkPrev = front_;
+    Node* pkCurr = front_->next_;
+    while ( pkCurr && pkCurr->value_ != tValue ) {
+      pkPrev = pkCurr;
+      pkCurr = pkCurr->next_;
+    }
+    if ( pkCurr ) {
+      // found the item
+      Node* pkSave = pkCurr;
+      pkPrev->next_ = pkCurr->next_;
+      delete pkSave;
+      quantity_--;
+      return true;
+    }
+  }
+
+  return false;
+}
+
+template <class T>
+INLINE GbBool 
+GbTList<T>::removeFront (T& rtValue)
+{
+  if ( front_ ) {
+    rtValue = front_->value_;
+
+    Node* pkSave = front_;
+    front_ = front_->next_;
+    delete pkSave;
+    quantity_--;
+    return true;
+  }
+  else {
+    return false;
+  }
+}
+
+template <class T>
+INLINE void 
+GbTList<T>::removeAll ()
+{
+  while ( front_ ) {
+    Node* pkSave = front_->next_;
+    delete front_;
+    front_ = pkSave;
+  }
+
+  quantity_ = 0;
+}
+
+template <class T>
+INLINE GbBool 
+GbTList<T>::getFirst (T& rtValue) const
+{
+  if ( front_ ) {
+    rtValue = front_->value_;
+    iterator_ = front_->next_;
+    return true;
+  }
+  else {
+    iterator_ = 0;
+    return false;
+  }
+}
+
+template <class T>
+INLINE GbBool 
+GbTList<T>::getNext (T& rtValue) const
+{
+  if ( iterator_ ) {
+    rtValue = iterator_->value_;
+    iterator_ = iterator_->next_;
+    return true;
+  }
+  else {
+    return false;
+  }
+}
+
+template <class T>
+INLINE GbTList<T>::Iterator 
+GbTList<T>::getFirst () const
+{
+  return front_;
+}
+
+template <class T>
+INLINE GbTList<T>::Iterator 
+GbTList<T>::getNext (Iterator pkIterator) const
+{
+  return ( pkIterator ? ((Node*)pkIterator)->next_ : 0 );
+}
+
+template <class T>
+INLINE T& 
+GbTList<T>::getValue (Iterator pkIterator) const
+{
+  assert( pkIterator );
+  return ((Node*)pkIterator)->value_;
+}
+
+template <class T>
+INLINE void 
+GbTList<T>::reverseOrder ()
+{
+  Node* pkReverse = 0;
+
+  while ( front_ ) {
+    Node* pkNode = front_;
+    front_ = front_->next_;
+    pkNode->next_ = pkReverse;
+    pkReverse = pkNode;
+  }
+
+  front_ = pkReverse;
+}
+
+template <class T>
+INLINE GbBool 
+GbTList<T>::contains (T tValue) const
+{
+  Node* pkSearch = front_;
+
+  while ( pkSearch ) {
+    if ( pkSearch->value_ == tValue )
+      return true;
+
+    pkSearch = pkSearch->next_;
+  }
+  
+  return false;
+}
+
+
+/*----------------------------------------------------------------------
+|
+| $Log$
+| Revision 1.1  2002/02/22 14:47:56  elena
+| new: dir Gridlib_inc
+|
+| Revision 1.1  2001/04/23 10:02:23  prkipfer
+| introduced morphological image operations and TList class
+|
+|
++---------------------------------------------------------------------*/

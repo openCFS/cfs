@@ -1,0 +1,81 @@
+/*----------------------------------------------------------------------
+|
+| $Id$
+|
++---------------------------------------------------------------------*/
+
+
+INLINE GbBool
+GoFileRegistry::containsExtension(const GbString& ex)
+{
+//  ACE_Guard<ACE_Thread_Mutex> guard(mtx_);
+
+  NameMap::const_iterator iter = names_.find(ex);
+  
+  if (iter != names_.end()) {
+    return true;
+  }
+
+  return false;
+}
+
+INLINE GbString
+GoFileRegistry::queryExtension(const GbString& ex)
+{
+//  ACE_Guard<ACE_Thread_Mutex> guard(mtx_);
+
+  return names_[ex];
+}
+
+INLINE GbString
+GoFileRegistry::listExtensions()
+{
+//  ACE_Guard<ACE_Thread_Mutex> guard(mtx_);
+
+  GbString l;
+
+  for (NameMap::const_iterator iter = names_.begin();
+       iter != names_.end();
+       ++iter)
+    l += iter->first + "\n";
+
+  return GbString(l);
+}
+
+INLINE GbString
+GoFileRegistry::queryDescription(const GbString& className)
+{
+//  ACE_Guard<ACE_Thread_Mutex> guard(mtx_);
+
+  return descriptions_[className];
+}
+
+INLINE GbString
+GoFileRegistry::listDescriptions()
+{
+//  ACE_Guard<ACE_Thread_Mutex> guard(mtx_);
+
+  GbString l;
+
+  for (NameMap::const_iterator iter = descriptions_.begin();
+       iter != descriptions_.end();
+       ++iter)
+    l += iter->second + "\n";
+
+  return GbString(l);
+}
+
+/*----------------------------------------------------------------------
+|
+| $Log$
+| Revision 1.1  2002/02/22 14:47:56  elena
+| new: dir Gridlib_inc
+|
+| Revision 1.2  2000/07/25 09:10:39  prkipfer
+| new list function
+|
+| Revision 1.1  2000/07/21 10:40:50  prkipfer
+| dropped g++ support
+|
+|
++---------------------------------------------------------------------*/

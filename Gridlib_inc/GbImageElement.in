@@ -1,0 +1,78 @@
+/*----------------------------------------------------------------------
+|
+| $Id$
+|
++---------------------------------------------------------------------*/
+
+//----------------------------------------------------------------------------
+// color conversion for GbErgb5 and GbErgb8
+//----------------------------------------------------------------------------
+INLINE unsigned short 
+GbGetColor16 (unsigned char ucR, unsigned char ucG,
+	      unsigned char ucB)
+{
+  return (unsigned short)   ((unsigned(ucB) >> 3 ) 
+			  | ((unsigned(ucG) >> 3 ) << 5 ) 
+			  | ((unsigned(ucR) >> 3 ) << 10));
+}
+
+INLINE unsigned char 
+GbGetBlue16 (unsigned short usColor)
+{ 
+  return (unsigned char)(usColor & 0x001F); 
+}
+
+INLINE unsigned char 
+GbGetGreen16 (unsigned short usColor)
+{ 
+  return (unsigned char)((usColor & 0x03E0) >> 5); 
+}
+
+INLINE unsigned char 
+GbGetRed16 (unsigned short usColor)
+{ 
+  return (unsigned char)((usColor & 0x7C00) >> 10);
+}
+
+INLINE unsigned int 
+GbGetColor24 (unsigned char ucR, unsigned char ucG,
+	      unsigned char ucB)
+{
+  return ( unsigned(ucB) )
+         |  ((unsigned(ucG)) << 8)
+         |  ((unsigned(ucR)) << 16);
+}
+
+INLINE unsigned char 
+GbGetBlue24 (unsigned int uiColor)
+{ 
+  return (unsigned char)(uiColor & 0x000000FF); 
+}
+
+INLINE unsigned char 
+GbGetGreen24 (unsigned int uiColor)
+{ 
+  return (unsigned char)((uiColor & 0x0000FF00) >> 8); 
+}
+
+INLINE unsigned char 
+GbGetRed24 (unsigned int uiColor)
+{ 
+  return (unsigned char)((uiColor & 0x00FF0000) >> 16);
+}
+
+
+/*----------------------------------------------------------------------
+|
+| $Log$
+| Revision 1.1  2002/02/22 14:47:56  elena
+| new: dir Gridlib_inc
+|
+| Revision 1.2  2001/04/23 10:02:39  prkipfer
+| minor bug fixes
+|
+| Revision 1.1  2001/03/20 09:50:15  prkipfer
+| introduced image handling tool
+|
+|
++---------------------------------------------------------------------*/
