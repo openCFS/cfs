@@ -33,7 +33,8 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
    dampingType_(NONE),
    needsDampingMatrix_(FALSE),
    isIncrFormulation_(FALSE),
-   TS_alg_(NULL)
+   TS_alg_(NULL),
+   materialData_(NULL)
 {
 
   ENTER_FCN( "BasePDE::BasePDE" );
@@ -1306,17 +1307,17 @@ BasePDE::~BasePDE()
   
   // ATTENTION: Dummy value for as_id!!!!!!!!!!!!!!!!!!!!!!!!!!
   
-
   if (sol_)
     delete sol_;
-
-  
 
   if (eqnData_)
     delete eqnData_;
 
-   if ( TS_alg_)
-     delete TS_alg_;
+  if ( TS_alg_)
+    delete TS_alg_;
+  
+  if ( materialData_ != NULL)
+    delete[] materialData_;
 
 }
 
@@ -1809,7 +1810,7 @@ void BasePDE::CalcInputCoupling()
 		eqnData_->Node2EQN((*nodes)[j],dof+1,eqnNr,eqnDof);
 // 		std::cerr << pdename_ << ":ID_BC node " << (*nodes)[j];
 // 		std::cerr << ", value " <<  help[dof+j*couplingDof] << std::endl;
-		if (pdeNode==0)
+		if (eqnNr==0)
 		  Error("The specified coupling node has no equation number"
 			, __FILE__,__LINE__);
 #ifdef USE_OLAS
