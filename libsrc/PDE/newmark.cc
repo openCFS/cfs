@@ -18,8 +18,9 @@ Newmark::Newmark(std::string apdename, BaseSystem * algebraicsystem, NodeEQN * p
   damping_ = needDampingMatrix;
 
   alpha_ = 0.0;
-  beta_  = 0.25;
-  gamma_ = 0.5;
+  //alpha_ = -1/3;
+  beta_ = (1-alpha_)*(1-alpha_) / 4.0;
+  gamma_ = (1 - 2*alpha_) / 2.0;
 
   //check if integration parameters are defined in conf-file
   std::string analysis;
@@ -59,7 +60,7 @@ void Newmark::Init(Double * matrix_factors, Double dt)
   dt_ = dt;
   CalcParameters(dt_);
 
-  matrix_factors[0] = 1.0;       // factor for stiffness matrix
+  matrix_factors[0] = (1.0 + alpha_);    // factor for stiffness matrix
 
   matrix_factors[1] = 0.0; 
   if (damping_)
@@ -100,6 +101,14 @@ void Newmark::UpdateRHS()
 	coeffDamp = -solderiv1pred_ + solpred_*a4_;
 	algsys_->UpdateRHS(DAMPING,coeffDamp.GetPointer());
   }
+
+  //just in case of alpha-Method
+  if (abs(alpha_) > 0) {
+    Vector<Double> coeffStiff;
+    coeffStiff = solpred_*alpha_;
+    algsys_->UpdateRHS(DAMPING,coeffStiff.GetPointer());
+  }
+
 }
 
 void Newmark::UpdateRHS(Vector<Double>& actSol)
@@ -119,6 +128,14 @@ void Newmark::UpdateRHS(Vector<Double>& actSol)
 	coeffDamp = -solderiv1pred_ + (solpred_-actSol)*a4_;
 	algsys_->UpdateRHS(DAMPING,coeffDamp.GetPointer());
   }
+
+  //just in case of alpha-Method
+  if (abs(alpha_) > 0) {
+    Vector<Double> coeffStiff;
+    coeffStiff = solpred_*alpha_;
+    algsys_->UpdateRHS(DAMPING,coeffStiff.GetPointer());
+  }
+
 }
 
 void Newmark::Corrector(Vector<Double>& solnew)
@@ -150,7 +167,7 @@ void Newmark::CalcParameters(Double dt)
   a3_ = gamma_*dt_;
 
   //for RHS, Matrices
-  a4_ = gamma_ / (beta_*dt_);
+  a4_ = (1+alpha_) * gamma_ / (beta_*dt_);
 }
 
 

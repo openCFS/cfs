@@ -159,12 +159,14 @@ namespace CoupledField
   //! output format for complex numbers
   typedef enum {REAL_IMAG, AMPLITUDE_PHASE} ComplexFormat;
   
+
   //------------------------ Stuff for bubble simulation --------------------
 
-  typedef enum {KELLERMIKSIS, GILMORE} BubbleDynType;
+  typedef enum {NOBUBBLETYPE, KELLERMIKSIS, GILMORE} BubbleDynType;
 
   extern BubbleDynType bubbleDyn;
  
+
   //------------------------ Files for debug, trace and information ---------
 
   // NOTE: OLAS uses the namespace 'OutInfo' for writing out data into the

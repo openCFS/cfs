@@ -104,6 +104,9 @@ public:
   //! get number of pdes
   Integer GetNumPDE() {return numpde_;}
 
+  //! get time pointer to function
+  TimeFunc* GetTimeFncPointer() {return ptTimeFunc_;}
+
 protected:
 
 private:

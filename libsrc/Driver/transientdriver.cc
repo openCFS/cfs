@@ -22,10 +22,10 @@ namespace CoupledField {
 //   Constructor
 // ===============
 TransientDriver::TransientDriver(Domain * adomain, 
-								 Integer stepOffset,
-								 Double timeOffset, 
-								 std::string driverTag,
-								 Boolean isPartOfSequence) 
+				 Integer stepOffset,
+				 Double timeOffset, 
+				 std::string driverTag,
+				 Boolean isPartOfSequence) 
   : SingleDriver(adomain, stepOffset, timeOffset, 
 				 driverTag, isPartOfSequence)
 {

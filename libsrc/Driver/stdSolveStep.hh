@@ -180,6 +180,9 @@ namespace CoupledField
 				  Integer level, const Boolean reset) {;};
 
 
+    //!
+    virtual void WriteResults(Integer actStep, Double actTime) {;};
+
     //----------------------- helpfull methods--------------------------------------
 
     //! computes linear part of RHS
@@ -234,12 +237,14 @@ namespace CoupledField
     //! of the actual element
     void GetDeriv2SolVecOfElement(Vector<Double>& sol, StdVector<Integer>& connect_PDE);
 
+    //    void HaHa(WriteResults* outFile) {;};
 
     //-------------------------------- Pointers to (Copies of) StdPDE -------------------
 
     StdPDE& PDE_;                   //!< reference to PDE
     std::string pdename_;            //!< name of PDE 
     Integer numPDENodes_;            //!< number of nodes belonging to the PDE
+    Integer numPDEElems_;            //!< number of elements belonging to PDE
     Boolean isaxi_;                  //!< TRUE: axisymmetric problem
     StdVector<std::string> subdoms_; //!< subdomain-levels belonging to PDE
     MaterialData * materialData_;    //!< pointer to material data of PDE

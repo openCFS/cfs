@@ -6,8 +6,8 @@
 
 
 #include "ODESolver_RKF45.hh"
-
-
+#include "ODEDescr/Gilmore.hh"
+#include "ODEDescr/KellerMiksis.hh"
 
 namespace CoupledField
 {
@@ -56,6 +56,8 @@ namespace CoupledField
 	h = tStop-t;
       }
       RKAdaptiveStepsize(y,dydt,t,h,yScal,hDid,hNext,myODE);
+      //  Info-> PrintF("","%e %e  %e  %e\n",t,hDid,y[0],y[1]);
+      //(*data)<< t << "    " << y[0] << "    " << y[1] << std::endl;
       if (hDid == h){
 	++numStepsLastSolve_;
       }
@@ -68,16 +70,47 @@ namespace CoupledField
 	  yInitOut[i] = y[i];
 	}
 	successLastSolve_ = true;
+       	//Info-> PrintF("","%d Timestep %e %e %e No. of good steps %d No. of bad steps %d\n",nstp,t,y[0],y[1],numStepsLastSolve_,numBadStepsLastSolve_);
+	//	if (numEl_ == 89){
+	//  (*data)<< t << "    " << numEl_ <<  "    " << y[0] << "    " 
+	//<< y[1];
+	//}
+
+	//	if (numEl_ == 90){
+	//(*data)<< "    " << numEl_ <<  "    " << y[0] << "    " << y[1]//;
+	//		 << "   " << yInitOut[0] << "   " 
+	//<< yInitOut[1] << std::endl;
+	//}
+
+	//if (numEl_ == 91){
+	// (*data)<<"    " << numEl_ <<  "    " << y[0] << "    " 
+	//<< y[1] << std::endl;
+	//}
 	return;      // Normal exit
       }
       if (std::abs(hNext) <= hMin){
-	Error("Step size too small",__FILE__,__LINE__);
-	successLastSolve_ = false;
+	hNext=hMin;
+	//Error("Step size too small",__FILE__,__LINE__);
+	//successLastSolve_ = false;
       }
       h = hNext;
     }
-    Error( "Too many steps", __FILE__, __LINE__ );
-    successLastSolve_ = false;
+	Double dummyp;
+	Double dummydpdt;
+	try { 
+	  //KellerMiksis &theODE = dynamic_cast<KellerMiksis&>(myODE);
+	  Gilmore &theODE = dynamic_cast<Gilmore&>(myODE);
+	  dummyp = theODE.GetP();
+	  dummydpdt = theODE.GetDpdt();
+	  Info->PrintF("","ElemNo. %d P %e Dpdt %e t %e h %e  R %e dRdt %e\n"
+		       ,numEl_,dummyp,dummydpdt,t,h,y[0],y[1]);
+	  Error( "Too many steps", __FILE__, __LINE__ );
+	}
+	catch (...) {
+	  Error( "myODE is not of type Gilmore. Dynamic cast failed!", 
+		 __FILE__, __LINE__ );
+	}
+	successLastSolve_ = false;
 
 	    
   }
@@ -98,7 +131,9 @@ namespace CoupledField
 
     // errCon = (5/safetyFac_) rasied to the power (1/powergrow)
     Double errCon = 1.89e-4;
-
+    //Double errCon =2.48832e-5;
+    //Double errCon =1.0e-5;
+   
     Integer i;
 
     Double  errMax;
@@ -115,6 +150,8 @@ namespace CoupledField
 
     for(;;){
       RKCashKarp(y, dydt, t, h, yTemp, yError, myODE); //Take one step
+      //	std::cerr<<yTemp[0]<<std::endl;
+      // Info-> PrintF("","%e  %e\n",yTemp[0],yTemp[1]);
       errMax = 0.0;
       for (i=0; i<n; i++){
 	errMax = ( errMax > std::abs(yError[i]/yScal[i]) 
@@ -132,7 +169,25 @@ namespace CoupledField
 	    (hTemp>0.1*h ? hTemp : 0.1*h):(hTemp<0.1*h ? hTemp : 0.1*h ));
       tNew = t + h;
       if (tNew == t){
-	Error("Stepsize underflow",__FILE__,__LINE__);
+	Double dummyp;
+	Double dummydpdt;
+	Double testr;
+
+	try {
+	  // KellerMiksis &theODE = dynamic_cast<KellerMiksis&>(myODE);
+	  Gilmore &theODE = dynamic_cast<Gilmore&>(myODE);
+	  dummyp = theODE.GetP();
+	  dummydpdt = theODE.GetDpdt();
+	  //dummyp=myODE.GetP();
+	  //	dummydpdt=myODE.GetDpdt();
+	  Info-> PrintF("","ElemNo. %d P %e Dpdt %e t %e h %e  R %e dRdt %e\n"
+			,numEl_,dummyp,dummydpdt,t,h,yTemp[0],yTemp[1]);
+	  Error("Stepsize underflow",__FILE__,__LINE__);
+	}
+	catch (...) {
+	  Error( "myODE is not of type Gilmore. Dynamic cast failed!", 
+		 __FILE__, __LINE__ );
+	}
       }
     }
 

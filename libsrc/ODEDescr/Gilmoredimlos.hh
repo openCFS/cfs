@@ -109,6 +109,14 @@ namespace CoupledField{
 
     //! \param sonicVelMix_ Sonicvelocity of the bubbly-liquid 
     Double sonicVelMix_;
+
+    //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    // Dimensionless constants
+    Double D_;
+    Double v_;
+    Double mu_;
+    Double a_;
+    Double b_;
     
   };
 

@@ -115,6 +115,8 @@ namespace CoupledField
 				  Integer level, const Boolean reset) = 0;
 
 
+    virtual const StdVector<Double>& GetResultData(std::string resultType)
+    {Error("BaseSolveStep: GetResultData not implemented");}
 
   protected:
 

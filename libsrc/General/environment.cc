@@ -48,12 +48,6 @@ namespace CoupledField {
   BaseParamHandler * params = NULL;
 
 
-  // --------------------------------------------------------------
-  //  Bubbledynamic stuff: used to choose between different typs of
-  //  bubbledynamic models  
-  // --------------------------------------------------------------
-  BubbleDynType bubbleDyn;
-
   // --------------------------------------------
   //  Implementation of enum conversion routines 
   // --------------------------------------------
