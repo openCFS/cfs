@@ -56,6 +56,8 @@ libsrc/DataInOut/Makefile -text
 libsrc/DataInOut/MaterialData.cc svneol=native#text/plain
 libsrc/DataInOut/MaterialData.hh svneol=native#text/plain
 libsrc/DataInOut/ParamHandling/BaseParamHandler.hh svneol=native#text/plain
+libsrc/DataInOut/ParamHandling/CFSOLASParams.cc svneol=native#text/plain
+libsrc/DataInOut/ParamHandling/CFSOLASParams.hh svneol=native#text/plain
 libsrc/DataInOut/ParamHandling/ConfFile.cc svneol=native#text/plain
 libsrc/DataInOut/ParamHandling/ConfFile.hh svneol=native#text/plain
 libsrc/DataInOut/ParamHandling/Makefile -text
