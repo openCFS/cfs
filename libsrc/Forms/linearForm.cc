@@ -16,6 +16,15 @@ namespace CoupledField
   }
 
 
+  LinearForm::LinearForm() : BaseForm()
+  {
+#ifdef TRACE
+    (*trace) << "entering LinearForm::LinearForm" << std::endl;
+#endif
+  }
+
+
+
 
   LinearForm ::~LinearForm()
   {
@@ -172,6 +181,15 @@ namespace CoupledField
 
   nLinMech_linFormInt::nLinMech_linFormInt(BaseFE * aptelem, MaterialData & matData) 
     : LinearForm(aptelem), matData_(matData)
+  {
+#ifdef TRACE
+    (*trace) << "entering nLinMech_linFormInt::nLinMech_linFormInt" << std::endl;
+#endif
+  }
+
+
+  nLinMech_linFormInt::nLinMech_linFormInt(MaterialData & matData) 
+    : LinearForm(), matData_(matData)
   {
 #ifdef TRACE
     (*trace) << "entering nLinMech_linFormInt::nLinMech_linFormInt" << std::endl;

@@ -15,8 +15,85 @@
 namespace CoupledField
 {
 
-  //! Class for anaylsis handling
 
+  /// additional information for every integrator
+class BaseIntDescriptor
+{
+public:
+  /// constructor
+  BaseIntDescriptor();
+      
+  /// constructor
+  BaseIntDescriptor(BaseForm * aIntegrator, const Boolean aNonLin=FALSE);
+  
+  /// destructor
+  virtual ~BaseIntDescriptor();
+  
+  /// is the integrator nonlinear?
+  Boolean IsNonLin() {return nonLin;};
+  
+  /// returns the integrator
+  BaseForm * GetIntegrator(){return integrator;};
+  
+  
+protected:
+  /// pointer to integrator
+  BaseForm * integrator;
+  
+  /// is the integrator a nonlinear one?
+  Boolean nonLin;
+};
+  
+  
+
+
+  /// additional information for every integrator
+class IntegratorDescriptor : public BaseIntDescriptor
+    {
+    public:
+      /// constructor
+      IntegratorDescriptor();
+      
+      /// constructor
+      IntegratorDescriptor(BaseForm * aIntegrator,  enum MatrixType aDestMat, const Boolean aNonLin=FALSE);
+
+      /// destructor
+      virtual ~IntegratorDescriptor();
+      
+
+      /// returns the destination matrix
+      MatrixType DestMat() {return destinationMatrix;};
+
+      /// sets the destination matrix
+      void SetDestMat(enum MatrixType destMat)
+      {destinationMatrix = destMat;};
+      
+
+      /// defines a secondary destination for the calculated element marices of an integrator      
+      void SetSecondaryMat(enum MatrixType aSecMat, Double aSecMatFac)
+      {
+	secondaryMatrix = aSecMat;
+	secMatFac = aSecMatFac;
+      };
+      
+      
+      
+    private:
+      /// holds the destination matrix
+      enum MatrixType destinationMatrix;
+
+      /// holds the secondary desination matrix
+      enum MatrixType secondaryMatrix;
+
+      /// holds the matrix factor for secondaryMatrix
+      Double secMatFac;
+    };
+  
+
+
+
+
+  //! Class for anaylsis handling
   class Assemble
   {
     
@@ -34,18 +111,30 @@ namespace CoupledField
     virtual void AddIntegrator(BaseForm * integrator, const std::string & subdomain,
 			       const enum MatrixType destinationMatrix, const Integer nonLin)=0;
 
-
-
-     //! specify type of system matrix for AlgebraicSystem
-     /*! \param level (input) level of Grid     */
-     virtual void AssembleMatrices(const Integer level);
+    /// adds integrators to the pde
+    virtual void AddIntegrator(IntegratorDescriptor * intDescr, const std::string & subdomain)=0;
 
 
 
+    //! specify type of system matrix for AlgebraicSystem
+    /*! \param level (input) level of Grid     */
+    virtual void AssembleMatrices(const Integer level);
+    
+
+    
+    
     /// setup source term
-     void AssembleRHS(const Integer level);
+    void AssembleRHS(const Integer level, const Double time=0);
+    
+
+    /// assemble integral sources
+    void AssembleRHSIntegralSources(const Integer level, const Double time=0);
 
 
+    /// assembling nodal sources
+    void AssembleRHSNodalSources(const Integer level, const Double time=0);
+    
+  
 
     //! computes the coordinates of an element including the delta
     /*!
@@ -92,8 +181,15 @@ namespace CoupledField
 
     void SetNumDirichlet(Integer numDirichlet)
     {numDirichletBCs_ = numDirichlet;};
-    
 
+    /// define RHS integrators
+    void AddRhsIntegrator(BaseForm * integrator, const std::string & subDomName, 
+			  const Integer nonLin=FALSE);
+    
+    /// set ptr to time function
+    void SetPtr2TimeFnc(TimeFunc * aPtTimeFunc)
+    {ptTimeFunc_ = aPtTimeFunc;};
+  
     // ======================================================
     // STUFF BELONGING TO ALGSYS (matrices, graphs, ...)
     // ======================================================
@@ -161,19 +257,42 @@ namespace CoupledField
 
 
     /// set actual calculation level
-    void SetLevel(Integer alevel)
-    {actlevel_ = alevel;};
+    void SetLevel(Integer alevel){actlevel_ = alevel;};
     
+
     /// sets the pointer to the BCs
-    void SetPtrBCs(BCs* aptBCs) 
-    { ptBCs_ = aptBCs;}
-    
-      
+    void SetPtrBCs(BCs* aptBCs) { ptBCs_ = aptBCs;}      
+
 
     /// require damping matrix
-    void NeedDampingMatrix()
-    {dampingMatrix_ = TRUE;};
+    void NeedDampingMatrix(){dampingMatrix_ = TRUE;};
     
+
+    /// set solution 
+    void SetPtr2Sol(Array<Double> * aSol){sol_ = aSol;};
+    
+
+    /// extracts solution belonging to nodes in connect_PDE
+    void GetSolOfElement(Matrix<Double>& elDisp, Vector<Integer>& connect_PDE);
+
+    /// return index to dof
+    Integer GetBCDof(const std::string dofString);
+    
+//     /// sets the pointer to the loads
+//     void SetPtrLoads(std::vector<std::string> * aLoadDom)
+//     {loadDom_ = aLoadDom;}      
+
+
+//     /// sets the pointer to the loads
+//     void SetPtrLoadDof(std::vector<std::string> * aLoadDof)
+//     {loadDof_ = aLoadDof;}      
+
+
+//     /// sets the pointer to the loads
+//     void SetPtrLoadVals(std::vector<std::string> * aLoadDof)
+//     {loadDof_ = aLoadDof;}      
+
+
 
     // ====================================================
     // DATA SECTION 
@@ -198,22 +317,27 @@ namespace CoupledField
     std::string pdename_;         //!< name of calling pde
     std::vector<Integer> * mesh2PDENode_; //!< array containing PDE (=local) node numbers
 
-    std::vector<std::string> subdoms_; //!< subdomain-levels belongig to PDE
-    std::vector<std::string> loadDoms_;//!< load subdomains
-    std::vector<Double> val_loads_;    //<! values of the load condition
+    std::vector<std::string> subdoms_;  //!< subdomain-levels belongig to PDE
+    std::vector<std::string> loadDom_;  //!< load subdomains
+    std::vector<std::string> loadDof_;  //!< dofs of loads
+    std::vector<Double>      loadVals_; //!< values of the load condition
+    TimeFunc * ptTimeFunc_;             //!< ptr to time function
+    
     BCs *ptBCs_;                       //!< pointer to Boundary Condition  Object
 
     Integer actlevel_;                 //!< actual level of calculation
     
-    struct IntegratorDescriptor        //!< additional information for every integrator
-    {
-      BaseForm * integrator;
-      enum MatrixType destinationMatrix;
-      Integer nonLin;
-    };
     
     /// vector of all needed integrators (every subdomain needs one "list of integrators")
     std::vector< std::vector<IntegratorDescriptor *>* > integrators_;
+
+
+    /// vector of all needed integrators (every subdomain needs one "list of integrators")
+    std::vector< std::vector<BaseIntDescriptor *>* > rhsIntegrators_;
+
+
+    /// ptr to solution
+    Array<Double> * sol_;
 
 
 
@@ -224,11 +348,6 @@ namespace CoupledField
 
 
   protected:
-    /// define integrators
-    struct IntegratorDescriptor * 
-    BuildIntDescriptor(BaseForm * integrator, const std::string & subDomName,
-		       const enum MatrixType destinationMatrix, const Integer nonLin);
-
     //! calculates the index of the subdoman with name "subDomName" in the subdomain-list
     Integer SubDomIndex(const std::string & subDomName);
 
@@ -248,7 +367,6 @@ namespace CoupledField
 
   class StaticAssemble : public Assemble
   {
-    
   public:
     StaticAssemble(BaseSystem * algsys, Grid * agrid);
     
@@ -262,6 +380,10 @@ namespace CoupledField
 
     virtual void AddIntegrator(BaseForm * integrator, const std::string & subdomain,
 			const enum MatrixType destinationMatrix, const Integer nonLin);
+
+    /// adds integrators to the pde
+    virtual void AddIntegrator(IntegratorDescriptor * intDescr, const std::string & subdomain);
+
   };
 
 
@@ -285,8 +407,10 @@ namespace CoupledField
      virtual void AddIntegrator(BaseForm * integrator, const std::string & subdomain,
 		       const enum MatrixType destinationMatrix, const Integer nonLin);
 
+    /// adds integrators to the pde
+    virtual void AddIntegrator(IntegratorDescriptor * intDescr, const std::string & subdomain);
+
   };
-  
 
 } // end of namespace
 #endif

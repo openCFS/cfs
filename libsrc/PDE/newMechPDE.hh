@@ -31,13 +31,12 @@ public:
   MechPDE(Grid *aGrid, BCs *aBCs, TimeFunc *aTimeFunc, FileType *aInFile, WriteResults *aOutFile );
 
   //!  Deconstructor
-  virtual ~MechPDE() {;};
+  virtual ~MechPDE();
 
 
 
   //! define all (bilinearform) integrators needed for this pde
   virtual void DefineIntegrators(const Integer level);
-
 
 
     //! set boundary condition
@@ -49,48 +48,26 @@ public:
   virtual void SetBCs(const Integer level, const Integer update, const Double atimestep);
 
 
-  //! compute rhs
-  /*!
-    \param atime time of calculation
-  */
-  virtual void ComputeRHS(const Double atime) {;};
-
   /// return index of dof defined by keyword (e.g. 'ux')
   Integer GetBCDof(const std::string keyword);
   
 
-  //! Assemble mass part
-  void AssembleMass(BaseFE * ptEl, Vector<Integer>& connect_PDE, Matrix<Double>& ptCoord, Double density);
-
-  //! Assemble stiffness part
-  void AssembleStiffness(BaseFE * ptEl, Vector<Integer>& connect_PDE, Matrix<Double>& ptCoord, MaterialData& actMatData);
-  
-  //! Assemble prestress RHS (if prestress given)
-  void AssemblePreStressRHS(BaseFE * ptEl, Vector<Integer>& connect_PDE, Matrix<Double>& ptCoord, 
-			    MaterialData& actMatData, Matrix<Double>& elDisp);
-
-  //! Assemble prestress matrix (if prestress given)
-  void AssemblePreStressMat(BaseFE * ptEl, Vector<Integer>& connect_PDE, Matrix<Double>& ptCoord, 
-			    MaterialData& actMatData, Matrix<Double>& elDisp);
-
-  /// assemble nodal loads
-  void AssembleNodalLoads(Integer level);
-
-  /// assembles external forces to the algebraic system
-  void AssembleInitialRHS(const Integer level, std::vector<Double>& initalRhsVec);
-    
-  /// calculates the vector of external forces
-  void CalcInitialRhsVec(const Integer level, std::vector<Double>& initalRhsVec);
-
   /// calculates L2-norm of RHS regarding entries due to penalty formulation
   Double RhsL2Norm(std::vector<Double>& stdVec);
+
 
   /// sets external forces and returns L2Norm of them
   Double SetExternalForces(const Integer level);
 
+
   /// reads the directions (e.g. for prestress) from the config-file
   void GetDirection(Directions& dir, const std::string keyword);
+
+
+  /// returns a stiffness integrator appropriate to the actual problem (e.g. 3D)
+  BaseForm * GetStiffIntegrator(MaterialData& actSDMat, Boolean reducedInt=FALSE);
   
+
   // ======================================================
   // COUPLING SECTION
   // ======================================================
@@ -215,6 +192,11 @@ private:
   std::vector<std::string> loadDof_; 
 
 
+  /// material data for reduced integration
+  MaterialData * lambdaMat;
+
+  /// material data for reduced integration
+  MaterialData * mueMat;
 };
 
 } // end of namespace

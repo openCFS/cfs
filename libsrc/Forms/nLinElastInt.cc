@@ -407,6 +407,16 @@ void PreStressInt::CalcStressVec(std::vector<Double>& preStressVec, Integer ip, 
     (*trace) << "entering nLinElastInt::nLinElastInt" << std::endl;
 #endif
   }
+
+
+  // base class for nonlinear calculation of elasticity
+  nLinElastInt::nLinElastInt(MaterialData & matData) 
+    : linElastInt(matData)
+  {
+#ifdef TRACE
+    (*trace) << "entering nLinElastInt::nLinElastInt" << std::endl;
+#endif
+  }
  
 
   nLinElastInt::~nLinElastInt()
@@ -421,6 +431,15 @@ void PreStressInt::CalcStressVec(std::vector<Double>& preStressVec, Integer ip, 
   // nonlinear calculation of elasticity in 3d
   nLinMech3dInt_BNonLin::nLinMech3dInt_BNonLin(BaseFE * aptelem, MaterialData & matData) 
     : nLinElastInt(aptelem, matData)
+  {
+#ifdef TRACE
+    (*trace) << "entering nLinMech3dInt_BNonLin::nLinMech3dInt_BNonLin" << std::endl;
+#endif
+  }
+
+
+  nLinMech3dInt_BNonLin::nLinMech3dInt_BNonLin(MaterialData & matData) 
+    : nLinElastInt(matData)
   {
 #ifdef TRACE
     (*trace) << "entering nLinMech3dInt_BNonLin::nLinMech3dInt_BNonLin" << std::endl;
@@ -441,6 +460,19 @@ void PreStressInt::CalcStressVec(std::vector<Double>& preStressVec, Integer ip, 
   // nonlinear calculation of elasticity in 3d
   nLinMech3dInt_PiolaStress::nLinMech3dInt_PiolaStress(BaseFE * aptelem, MaterialData & matData) 
     : nLinMech3dInt_BNonLin(aptelem, matData), piolaDimD_(9)
+
+  {
+#ifdef TRACE
+    (*trace) << "entering nLinMech3dInt_PiolaStress::nLinMech3dInt_PiolaStress" << std::endl;
+#endif
+    updateDMatInEveryIP_ = 1;
+  }
+
+
+
+  // nonlinear calculation of elasticity in 3d
+  nLinMech3dInt_PiolaStress::nLinMech3dInt_PiolaStress(MaterialData & matData) 
+    : nLinMech3dInt_BNonLin(matData), piolaDimD_(9)
 
   {
 #ifdef TRACE

@@ -12,7 +12,7 @@
 
 #include <Forms/nLinElastInt.hh>
 #include <DataInOut/WriteInfo.hh>
-#include <Driver/analysis.hh>
+#include <Driver/assemble.hh>
 #include "newmark.hh"
 
 #include "newMechPDE.hh" 
@@ -25,7 +25,9 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
   :BasePDE(aptgrid, aptbcs, aptFileType, aptOut, aptTimeFunc), 
    nonLin_(FALSE),
    incStopCrit_(1e-2), 
-   residualStopCrit_(1e-3)
+   residualStopCrit_(1e-3),
+   lambdaMat(NULL),
+   mueMat(NULL)
 {
 #ifdef TRACE
   (*trace) << "entering MechPDE::MechPDE " << std::endl;
@@ -85,8 +87,17 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
   else
    damping_type_ = NONE;
 
+  conf->ifgetliststr("homogenBCDof", homDirichDof_, pdename_);  
+  conf->ifgetliststr("inhomogenBCDof", inhomDirichDof_, pdename_);
+
+
+  // just for consistency with old script
+  conf->ifgetliststr("homoBCDof", homDirichDof_, pdename_);
   conf->ifgetliststr("homoBCdof", homDirichDof_, pdename_);
+  conf->ifgetliststr("inhomoBCDof", inhomDirichDof_, pdename_);
   conf->ifgetliststr("inhomoBCdof", inhomDirichDof_, pdename_);
+
+
 
   //check for b.c. input data
   if (bcs_hd_.size() != homDirichDof_.size()) 
@@ -94,21 +105,18 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
   if (bcs_id_.size() != inhomDirichDof_.size()) 
      Error("Inconsistent definition of inhomogeneous Dirichlet Boundary Conditions");
  
-  conf->ifgetliststr("loadDof", loadDof_, pdename_);
-
-  //check for load data
-  if (bcs_loads_.size() != loadDof_.size()) 
-     Error("Inconsistent definition of loads");
 
 
-  // set analysis parameters
+  // set assemble parameters
   assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, subdoms_);
   assemble_->SetGraphType(NODEGRAPH);
   assemble_->SetMesh2PDENode(&Mesh2PDENode_);
   assemble_->SetMatrixType(RBLOCK);
   assemble_->SetNumDirichlet(GetNumRestraints(actlevel_));
   assemble_->SetPtrBCs(ptBCs_);
-
+  assemble_->SetPtr2Sol(&sol_);
+  assemble_->SetPtr2TimeFnc(ptTimeFunc_);
+  
   if (damping_type_)
     assemble_->NeedDampingMatrix();
 
@@ -118,6 +126,19 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 }
 
 
+  MechPDE::~MechPDE()
+  {
+#ifdef TRACE
+    (*trace) << "entering MechPDE::~MechPDE " << std::endl;
+#endif
+
+    if  (lambdaMat)
+      delete lambdaMat;
+    
+    if  (mueMat)
+      delete mueMat;
+  }
+  
 
 
   void MechPDE::DefineIntegrators(const Integer level)
@@ -131,28 +152,113 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
   if (nonLin_ && subType_ != "3d")
     Error("For nonlin mechanics, up to now only 3d sims supported! ",__FILE__,__LINE__);
 
+
   for (int actSD = 0; actSD < subdoms_.size(); actSD++)
     {
-      BaseForm * bilinearStiff;
-      
-      if (subType_ == "plainStrain")
-	bilinearStiff = new mechPlainStrainInt(materialData_[actSD]);
-      else if (subType_ == "3d")
-	bilinearStiff = new mech3DInt(materialData_[actSD]);
-      else 
-	Error("Unknown subtype in mech PDE! ",__FILE__,__LINE__);
 
+      // ==============  add stiffness ===========================================
+
+      MaterialData actSDMat(materialData_[actSD]);
+
+      // ==============  add "standard" stiffness ===============================
+      if (!reducedInt_)  
+	{
+	  BaseForm * bilinearStiff = GetStiffIntegrator(actSDMat);
+	  IntegratorDescriptor * actIntDescr = new IntegratorDescriptor(bilinearStiff, STIFFNESS);
+
+	  //check for damping
+	  if (damping_type_ == RAYLEIGH)    
+	    actIntDescr->SetSecondaryMat(DAMPING, actSDMat.GetDampingBeta());
 	  
-      //assemble_->AddIntegrator(bilinearStiff, subdoms_[actSD], STIFFNESS, nonLin);
-      assemble_->AddIntegrator(bilinearStiff, subdoms_[actSD], STIFFNESS, nonLin);
+	  assemble_->AddIntegrator(actIntDescr, subdoms_[actSD]);
+	}
+	  
+	
+      // ==================  add reduced stiffness ===============================
+      else 
+	{
+	  
+	  lambdaMat = new MaterialData(actSDMat);
+	  mueMat = new MaterialData(actSDMat);
+	  
+	  // use a "different" material data set for reduced integration
+	  CalcReducedMat(*lambdaMat, *mueMat, actSDMat);	
+
+	  BaseForm * bilinearStiff1 = GetStiffIntegrator(*mueMat);
+	  assemble_->AddIntegrator(bilinearStiff1, subdoms_[actSD], STIFFNESS, nonLin);
 
 
-      // add mass integrator
-      BaseForm * bilinear_mass  = new MassInt(materialData_[actSD].GetDensity(), dofspernode_, isaxi_);
-      assemble_->AddIntegrator(bilinear_mass, subdoms_[actSD], MASS, nonLin);
+	  BaseForm * bilinearStiff2 = GetStiffIntegrator(*lambdaMat);
+	  assemble_->AddIntegrator(bilinearStiff2, subdoms_[actSD], STIFFNESS, nonLin);
+	}
+
+
+      // ==============  add nonlinear stiffness ===============================
+      if (nonLin_)
+	{
+	  if (subType_ != "3d")
+	    Error("For nonlin mechanics, up to now only 3d sims supported! ",__FILE__,__LINE__);
+	  
+	  // assemble prestress, if in config-file given
+// 	  if (preStressVal_)
+// 	    AssemblePreStressMat(ptEl, connect_PDE, ptCoord, actMatData, elDisp);
+	  
+      
+	  BaseForm * nLinPart1 =  new nLinMech3dInt_BNonLin(actSDMat);
+	  assemble_->AddIntegrator(nLinPart1, subdoms_[actSD], STIFFNESS, nonLin_);
+	  
+
+	  BaseForm * nLinPart2 = new nLinMech3dInt_PiolaStress(actSDMat);      
+	  assemble_->AddIntegrator(nLinPart2, subdoms_[actSD], STIFFNESS, nonLin_);
+	}
+
+
+
+      // ==============  add mass ================================================
+      double density = actSDMat.GetDensity();
+      BaseForm * bilinearMass  = new MassInt(density, dofspernode_, isaxi_);
+
+      IntegratorDescriptor * actIntDescr = new IntegratorDescriptor(bilinearMass, MASS);
+
+      //check for damping (mass part)
+      if (damping_type_ == RAYLEIGH)    
+	actIntDescr->SetSecondaryMat(DAMPING, actSDMat.GetDampingAlfa());
+	  
+      assemble_->AddIntegrator(actIntDescr, subdoms_[actSD]);
+
+
+
+
+
+      // ==================== RHS ================================================
+      if (nonLin_)
+	{
+	  BaseForm * rhsSource = new nLinMech_linFormInt(actSDMat);
+	  assemble_->AddRhsIntegrator(rhsSource, subdoms_[actSD], nonLin_);
+	}
+      
     }
-  
   }
+
+
+BaseForm *
+MechPDE::GetStiffIntegrator(MaterialData& actSDMat, Boolean reducedInt)
+{
+#ifdef TRACE
+  (*trace) << "entering MechPDE::GetStiffIntegrator " << std::endl;
+#endif
+  
+  BaseForm * bilinearStiff;
+
+  if (subType_ == "plainStrain")
+    bilinearStiff = new mechPlainStrainInt(actSDMat);
+  else if (subType_ == "3d")
+    bilinearStiff = new mech3DInt(actSDMat);
+  else 
+    Error("Unknown subtype in mech PDE! ",__FILE__,__LINE__);
+
+  return bilinearStiff;
+}
 
 
 
@@ -210,151 +316,8 @@ GetDirection(Directions& dir, const std::string keyword)
 
 
 
-void MechPDE::
-AssemblePreStressMat(BaseFE * ptEl, Vector<Integer>& connect_PDE, Matrix<Double>& ptCoord, MaterialData& actMatData, Matrix<Double>& elDisp)
-{
-#ifdef TRACE
-  (*trace) << "entering MechPDE::AssemblePreStressMat " << std::endl;
-#endif
-
-  // calc matrix part of prestress ==========================================
-  PreStressInt preStressInt(ptEl, actMatData, preStressVal_, preStressDir_);
-  
-  Matrix<Double> elemmat;
-  preStressInt.setActElemDispl(elDisp);
-  preStressInt.CalcElementMatrix(ptCoord, elemmat);
-  
-  algsys_->SetElementMatrix(elemmat.getinarray(), connect_PDE.get(), connect_PDE.size(), SYSTEM);
-}
 
 
-
-
-void MechPDE::
-AssemblePreStressRHS(BaseFE * ptEl, Vector<Integer>& connect_PDE, Matrix<Double>& ptCoord, MaterialData& actMatData, Matrix<Double>& elDisp)
-{
-#ifdef TRACE
-  (*trace) << "entering MechPDE::AssemblePreStressRHS " << std::endl;
-#endif
-
-  // calc RHS prestress =====================================================
-  PreStressLinFormInt rhsPreStress(ptEl, actMatData, preStressVal_, preStressDir_);
-  
-  std::vector<Double> elemVec;  
-  rhsPreStress.setActElemDispl(elDisp);
-  rhsPreStress.CalcElemVector(ptCoord, elemVec);
-  
-  // subtract internal forces on rhs from external forces 
-  elemVec *= -1;
-  
-  algsys_->SetElementRHS(&elemVec[0], connect_PDE.get(), connect_PDE.size());
-}
-
-
-
-
-void MechPDE::
-GetSolOfElement( Matrix<Double>& elDisp, Vector<Integer>& connect_PDE)
-{
-#ifdef TRACE
-    (*trace) << "entering MechPDE::GetSolOfElement" << std::endl;
-#endif
-
-  // displacement of element nodes
-  elDisp.Resize(dofspernode_, connect_PDE.size());
-
-  for (Integer dim=0; dim<dofspernode_; dim++)
-    for(Integer actNode=0; actNode<connect_PDE.size(); actNode++)
-      elDisp[dim][actNode] = sol_[dim][connect_PDE[actNode]-1];
-}
-
-
-void MechPDE::SetupRHS(const Integer level)
-{
-#ifdef TRACE
-  (*trace) << "entering MechPDE::SetupRHS" << std::endl;
-#endif
-  
-  std::vector<Double> elemVec;  
-  Matrix<Double> ptCoord;
-  BaseFE         * ptElem;
-  std::vector<Elem*> elemssd;
-	
-  Vector<Integer> connecth, connect_PDE;
-  Double pressureVal=0;
-  
-  conf->ifget("pressureLoad", pressureVal, pdename_); // incremental stopping criterion
-
-  if (pressureVal)
-    {
-      Directions pressureDir;
-      GetDirection(pressureDir, "pressureDir");
-
-      std::vector <std::string> pressureDomain;  //!< name of all subdomains containing coils
-      conf->ifgetliststr("pressureDomain", pressureDomain, pdename_);
-
-      std::cout << "pressureDomain " << pressureDomain[0] << std::endl;
-      
-      ptgrid_->GetElemSD(elemssd, pressureDomain[0], level);
-	
-      for (Integer j=0; j < elemssd.size(); j++)
-	{  
-	  ptElem   = elemssd[j]->ptElem;
-	  connecth = elemssd[j]->connect;
-	  GetElemCoords(connecth, ptCoord, level);
-	  
-	  // get node numbers belonging to PDE
-	  Mesh2PDENode(connect_PDE,connecth,Mesh2PDENode_);
- 
-	  
-	  SurfaceIntLinForm pressure(ptElem, pressureDir);
-	  pressure.SetMultiplier(pressureVal);
-	  pressure.CalcElemVector(ptCoord, elemVec);
-	  std::cout << "!!!!!!!!!!!!! belemNr= " << j+1 <<std::endl;
-
-	  algsys_->SetElementRHS(&elemVec[0], connect_PDE.get(), connect_PDE.size());
-	}
-    }
-  
-  
-  if (nonLin_)
-    for (Integer i=0; i<subdoms_.size(); i++)
-      {	
-	ptgrid_->GetElemSD(elemssd,subdoms_[i],level);
-	
-	for (Integer j=0; j < elemssd.size(); j++)
-	  {  
-	    ptElem   = elemssd[j]->ptElem;
-	    connecth = elemssd[j]->connect;
-	    GetElemCoords(connecth, ptCoord, level);
-	    
-	    // get node numbers belonging to PDE
-	    Mesh2PDENode(connect_PDE,connecth,Mesh2PDENode_); 
-	    
-	    
-	    // fetch solution at element nodes
-	    Matrix<Double> elDisp;
-	    GetSolOfElement(elDisp, connect_PDE);
-	    
-	    // RHS Integrator
-	    nLinMech_linFormInt rhsSource(ptElem, materialData_[i]);
-	    rhsSource.setActElemDispl(elDisp);
-	    rhsSource.CalcElemVector(ptCoord, elemVec);
-	    
-	    
-	    // subtract internal forces on rhs from external forces 
-	    elemVec *= -1;
-
-	    
-	    algsys_->SetElementRHS(&elemVec[0], connect_PDE.get(), connect_PDE.size());
-
-	    
-	    // assemble prestress, if in config-file given
-	    if (preStressVal_)
-	      AssemblePreStressRHS(ptElem, connect_PDE, ptCoord, materialData_[i], elDisp);
-	  }
-      }
-}
 
 
 void MechPDE::CalcReducedMat(MaterialData& lambdaMat, MaterialData& mueMat, MaterialData& mat)
@@ -413,23 +376,15 @@ void MechPDE::SetBCs(const Integer level, const Integer update, const Double ati
     for (i=0; i< bcs_hd_.size(); i++) 
      {
 	std::string doftype = bcs_hd_[i]; 
-	//	dof = GetNrBCDof (doftype.substr(0,2));
 	dof = GetBCDof(homDirichDof_[i]);
-	Info->WriteHomBC(pdename_, bcs_hd_[i], dof);
-	
+	Info->WriteHomBC(pdename_, bcs_hd_[i], dof);	
       
-// #ifdef DEBUG
-// 	(*debug) << std::endl << " Homog. Dirichlet BC" << std::endl;
-// #endif
 	nodes=ptBCs_->GetNodesLevel(bcs_hd_[i]);
    
 	for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end(); p++, j++)
 	  {
 	    node=*p;
 
-#ifdef DEBUG
- 	    (*debug) << " node: " << Mesh2PDENode_[node-1] << " dof:" << dof << " val: " << val << "    global node nr: " << node << " running nr: " << j << std::endl;
-#endif
 	    if (update==1)
 	      algsys_->UpdateDirichlet(j+1, val, SYSTEM);
 	    else
@@ -441,13 +396,8 @@ void MechPDE::SetBCs(const Integer level, const Integer update, const Double ati
     for (i=0; i<bcs_id_.size(); i++)
       {
 	std::string doftype = bcs_id_[i]; 
-	//	dof = GetNrBCDof (doftype.substr(0,2));
 	dof = GetBCDof(inhomDirichDof_[i]);
       
-// #ifdef DEBUG
-// 	(*debug) << " Inhomog. Dirichlet BC" << std::endl;
-// #endif
-
 	nodes = ptBCs_->GetNodesLevel(bcs_id_[i], level);
 
 	val=val_id_[i];
@@ -455,9 +405,6 @@ void MechPDE::SetBCs(const Integer level, const Integer update, const Double ati
 	for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end(); p++, j++)
 	  {
 	    node=*p;
-// #ifdef DEBUG
-// 	      (*debug) << " node: " << node << " dof:" << dof << " val: " << val << std::endl;
-// #endif
 	  
 	    if (update==1)
 	      algsys_->UpdateDirichlet(j+1, val, SYSTEM);
@@ -465,40 +412,6 @@ void MechPDE::SetBCs(const Integer level, const Integer update, const Double ati
 	      algsys_->SetDirichlet(j+1, Mesh2PDENode_[node-1], val, dof, SYSTEM);
 	  }
       }
-
-
-    // load boundary conditions
-    for (i=0; i<bcs_loads_.size(); i++)
-      {
-	std::string doftype = bcs_loads_[i]; 
-
-	//	dof = GetNrBCDof (doftype.substr(0,2));
-	dof = GetBCDof(loadDof_[i]);
-	
-
-// #ifdef DEBUG
-// 	(*debug) << " Load BC" << std::endl;
-// #endif
-
-	nodes = ptBCs_->GetNodesLevel(bcs_loads_[i], level);
-
-	val = val_loads_[i];
-	Info->WriteLoad(pdename_, bcs_loads_[i], val, dof);
-
-	for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end(); p++, j++)
-	  {
-	    node=*p;
-
-// #ifdef DEBUG
-// 	    (*debug) << " node: " << Mesh2PDENode_[node-1] << " dof:" << dof << " val: "
-// 		     << val << "    global node nr: " << node << std::endl;
-// #endif
-	  
-	    val = val_loads_[i];
-	    algsys_->SetNodeRHS(val, Mesh2PDENode_[node-1], dof);
-	  
-	  }
-      }    
 #ifdef TRACE
     (*trace) << "leaving MechPDE::SetBCs" << std::endl;
 #endif
@@ -646,14 +559,14 @@ void MechPDE::SolveStepStaticLin(const Integer level)
 
   //compute and assemble element matrices
   //  if (updateBCs_ != 1)
-    //    SetupMatrices(level);  
 
   assemble_->AssembleMatrices(level);
 
 
   //account for bcs
   SetBCs(level,updateBCs_,0);
-  SetupRHS(level);
+  assemble_->AssembleRHS(level);
+  
   
   algsys_->CalcPrecond(job);
   
@@ -706,7 +619,6 @@ void MechPDE::SolveStepStaticNonLin(const Integer level)
 	     <<	"Nonlinear Mechanics: Perform internal loop nr. " << iterationCounter << std::endl;      
 #endif      
       // setup and solve new system (rhs is already set) =====================
-      //      SetupMatrices(level);
       assemble_->AssembleMatrices(level);
       
       algsys_->CalcPrecond(job);
@@ -731,7 +643,10 @@ void MechPDE::SolveStepStaticNonLin(const Integer level)
       // recalculate RHS with new values to get new residual (f^(k+1))========
       algsys_->InitRHS();
       SetBCs(level, updateBCs_, 0);
-      SetupRHS(level);      
+
+      //      SetupRHS(level);      
+      assemble_->AssembleRHS(level);
+      
 
       std::vector<Double> actRHS;
       StoreAlgsysToVec(actRHS, algsys_->GetRHSVal() );
@@ -809,12 +724,12 @@ void MechPDE::SolveStepTrans(const Integer kstep, const Double asteptime,
     {
       update = 0;
       job = 1;
-      //      SetupMatrices(level);
+
       assemble_->AssembleMatrices(level);
       
       algsys_->ConstructEffectiveMatrix(matrix_factor_);
       algsys_->InitRHS();
-      ComputeRHS(lasttimecalc_);
+      assemble_->AssembleRHS(level,lasttimecalc_);
       TS_alg_->UpdateRHS();
     }
   else if (reset)
@@ -830,7 +745,7 @@ void MechPDE::SolveStepTrans(const Integer kstep, const Double asteptime,
         algsys_->InitMatrix(DAMPING);
 
       algsys_->ConstructEffectiveMatrix(matrix_factor_);
-      ComputeRHS(lasttimecalc_);
+      assemble_->AssembleRHS(level,lasttimecalc_);
       TS_alg_->UpdateRHS();
     }
   else
@@ -838,7 +753,7 @@ void MechPDE::SolveStepTrans(const Integer kstep, const Double asteptime,
       update = 1;
       job    = 3;
       algsys_->InitRHS();
-      ComputeRHS(lasttimecalc_);
+      assemble_->AssembleRHS(level,lasttimecalc_);
       TS_alg_->UpdateRHS();
     };
 
@@ -890,8 +805,9 @@ Double MechPDE::SetExternalForces(const Integer level)
   // account for bcs before first solving step =======================
   SetBCs(level, updateBCs_, 0);
   // to incorporate pressure loads
-  SetupRHS(level);      
-
+  //  SetupRHS(level);      
+  assemble_->AssembleRHS(level);
+  
 
   // stores rhs vector into extForces and returns that L2-norm
   StoreAlgsysToVec(extForces, algsys_->GetRHSVal() );

@@ -50,9 +50,18 @@ public:
   //! Prints the bilinear form
   virtual void Print(std::ostream * out, const Matrix<Double> Result) const;
 
+
   //! sets pointer to actual element
-  void SetElemPtr(BaseFE * elemPtr)
-  {ptelem = elemPtr;};
+  void SetElemPtr(BaseFE * elemPtr){ptelem = elemPtr;};
+
+
+  //! sets pointer to actual element
+  void SetMaterial(MaterialData * matPtr){ptMaterial = matPtr;};
+
+
+  //! sets actual element solution
+  virtual void SetActElemSol(Matrix<Double>& disp)
+  {Error("SetActElemSol not implemented!",__FILE__,__LINE__);};
   
 
 protected:

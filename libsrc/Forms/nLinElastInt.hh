@@ -16,6 +16,9 @@ class nLinElastInt : public linElastInt
 public:
   /// Constructor
   nLinElastInt(BaseFE * aptelem, MaterialData & matData);
+
+  /// Constructor
+  nLinElastInt(MaterialData & matData);
   
   /// Destructor
   virtual ~nLinElastInt();  
@@ -29,6 +32,16 @@ public:
 	     \end{array}\right) \f]	    
   */
   void setActElemDispl(Matrix<Double>& disp) {elemDisp_ = disp;};  
+
+  /// in nonlinear calculations, the actual displacement of the element is needed
+  /*!
+  \param disp (input) Matrix with displacement d of all nodes of actual element
+  \f[ \left( \begin{array}{ccc} 
+             d_{x1} &  d_{x2} &  d_{x3} \\
+             d_{y1} &  d_{y2} &  d_{y3} \\
+	     \end{array}\right) \f]	    
+  */
+  virtual void SetActElemSol(Matrix<Double>& disp) {elemDisp_ = disp;};
 
 
 protected:    
@@ -54,6 +67,10 @@ public:
 
   /// Constructor
   nLinMech3dInt_BNonLin(BaseFE * aptelem, MaterialData & matData);
+
+  /// Constructor
+  nLinMech3dInt_BNonLin(MaterialData & matData);
+
   
   /// Destructor
   virtual ~nLinMech3dInt_BNonLin();  
@@ -83,6 +100,9 @@ public:
 
   /// Constructor
   nLinMech3dInt_PiolaStress(BaseFE * aptelem, MaterialData & matData);
+
+  /// Constructor
+  nLinMech3dInt_PiolaStress(MaterialData & matData);
   
   /// Destructor
   virtual ~nLinMech3dInt_PiolaStress();  
