@@ -44,9 +44,6 @@
         <resStopCrit>1</resStopCrit>
         <maxNumIters>1</maxNumIters>
       </nonLinear>
-      <storeResults>
-        <saveUnv/>
-      </storeResults>
       <solver>
         <matrix/>
         <stoppingRule/>
@@ -164,10 +161,7 @@
        <damping/>
       </region>
       <timeSteppingFormulation/>
-      <storeResults>
-        <saveUnv/>
-       </storeResults>
-      <solver>
+       <solver>
         <matrix/>
         <stoppingRule/>
       </solver>
