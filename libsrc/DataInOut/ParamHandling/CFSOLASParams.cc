@@ -300,13 +300,19 @@ namespace CoupledField {
       if( list.GetSize() == 1 ) {
 	olas->SetValue( "PARDISO_symStructure", (list[0] == "yes") );
       }
-      cfs->GetList( "ndOrdering", list, pdename, "pardiso" );
+      cfs->GetList( "ordering", list, pdename, "pardiso" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "PARDISO_ndOdering", (list[0] == "yes") );
+        ReorderingType ordering;
+        OLAS::String2Enum( list[0], ordering );
+	olas->SetValue( "PARDISO_ordering", ordering );
       }
       cfs->GetList( "logging", list, pdename, "pardiso" );
       if( list.GetSize() == 1 ) {
 	olas->SetValue( "PARDISO_logging", (list[0] == "yes") );
+      }
+      cfs->GetList( "stats", list, pdename, "pardiso" );
+      if( list.GetSize() == 1 ) {
+	olas->SetValue( "PARDISO_stats", (list[0] == "yes") );
       }
       break;
 
