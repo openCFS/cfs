@@ -437,6 +437,9 @@ std::string::size_type ConfFile::getpos(const std::string keyword,
   std::string buf;
   bool nextSectionReached = FALSE;
 
+  if (startpos == std::string::npos)
+    return std::string::npos;
+
   if (infile.eof()) infile.clear();
   infile.seekg(startpos, std::ios::beg);
  
@@ -478,6 +481,9 @@ std::string::size_type ConfFile::getsectionpos(const std::string keyword, const 
   std::string buf;
   std::string::size_type pos_helper;
 
+  if (startpos == std::string::npos)
+    return std::string::npos;
+
   if (infile.eof()) infile.clear();
   infile.seekg(startpos, std::ios::beg);
     
@@ -509,6 +515,9 @@ std::string::size_type ConfFile::getsubsectionpos(const std::string keyword, con
   std::string buf;
   std::string::size_type pos_helper;
   bool nextSectionReached = FALSE;
+
+  if (startpos == std::string::npos)
+    return std::string::npos;
 
   if (infile.eof()) infile.clear();
   infile.seekg(startpos, std::ios::beg);
