@@ -7,6 +7,7 @@ namespace CoupledField
   //! Overloading << for class Matrix
   template<class TYPE>  std::ostream& operator << ( std::ostream & , const Matrix<TYPE> &);
 
+
   //! Calculate Spur of Matrix
   template <class T> T Spur(const Matrix<T> &);
 
@@ -193,8 +194,11 @@ inline Integer Matrix<TYPE>::size_col () const
         return col;
 }
 
+#ifdef __GNUC__
 template class Matrix<Double>;
-//template class Matrix<Integer>;
+template class Matrix<Integer>;
+#endif
+
 } //end of namespace
 #endif	// FILE_MATRIX
 

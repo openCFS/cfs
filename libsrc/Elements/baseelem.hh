@@ -25,7 +25,7 @@ class Jacobian
     void GetJinvY(Vector<Double> & JinvY);
 };
 
-#ifdef __GNU__
+#ifdef __GNUC__
 template class Jacobian<Point2D>;
 template class Jacobian<Point3D>;
 #else

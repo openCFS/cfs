@@ -33,7 +33,7 @@ public:
   Boolean BiCGSTAB(const Integer maxIter, enum precond typePrecond);
 
   //!
-  void printsol(){ std::out << x << std::endl;}
+  void printsol(){ std::cout << x << std::endl;}
 private:
 
   //! Tolerance 

@@ -14,6 +14,9 @@ RANLIB=ranlib
 #
 # Machine dependent flags:
 #
+#CFLAGS1=-c $(INCL)
+#FLAG_MKSHLIB = -v -shared 
+#
 UNDER  = -DFORTRANDOUBLEUNDERSCORE
 CFLAGS2 = $(ABI) $(OPT) $(LNO) $(UNDER) -w 
 CPLUSPLUSFLAGS2 = $(UNDER) -pg  -fnonnull-objects -I/usr/local/qt/include  -I/usr/local/GL/include

@@ -1,5 +1,7 @@
 #
-#export MACHINE=LINUXg
+ifeq ($(ARCH),LINUX)
+	export MACHINE=LINUXg
+endif
 #
 src = cfs.cc
 #
@@ -9,7 +11,7 @@ C_DIR= ..
 LIBDIR = $(C_DIR)/libsrc
 #
 SUBLIBDIR = Driver PDE AlgebraicSystem/LinAlg \
-            Forms Elements Domain/Gridlib Domain/GridCFS Domain \
+            Forms Elements Domain/GridCFS Domain \
             DataInOut/DefineFiles \
             DataInOut/Unverg DataInOut/DatFile DataInOut\
             Utils Matrix General
@@ -56,9 +58,14 @@ makelibs:
 #
 ############### Print info about variables that should be set before work
 #
-info:
+info: 
+ifeq ($(ARCH), LINUX)
+	@echo Before run of cfs set this variable on SGI:
+	@echo export LD_LIBRARY_PATH=$(LIB_OWN)
+else
 	@echo Before run of cfs set this variable on SGI:
 	@echo setenv LD_LIBRARYN32_PATH $(LIB_GRIDLIB):$(LIB_OWN)
+endif
 #
 ######################  Clean work directory
 clean-driver:
