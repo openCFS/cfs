@@ -22,8 +22,17 @@ namespace CoupledField {
     std::string sTypeString;
     SolverType sType;
     cfs->Get( "type", sTypeString, pdename, "solver" );
+    if ( sTypeString == "PCG" ) {
+      sType = CG;
+    }
+    if ( sTypeString == "hyprePCG" ) {
+      sType = HYPRE_PCG;
+    }
     if ( sTypeString == "hypreGMRES" ) {
       sType = HYPRE_GMRES;
+    }
+    if ( sTypeString == "hypreBICGSTAB" ) {
+      sType = HYPRE_BICGSTAB;
     }
     else {
       std::string errmsg = "Solver " + sTypeString;
@@ -36,6 +45,36 @@ namespace CoupledField {
     std::vector<std::string> list;
 
     switch( sType ) {
+
+    case CG:
+      cfs->GetList( "tol", list, pdename, "PCG" );
+      if( list.size() == 1 ) {
+	olas->SetValue( "CG_epsilon", atof(list[0].c_str()) );
+      }
+      cfs->GetList( "maxIter", list, pdename, "hyprePCG" );
+      if( list.size() == 1 ) {
+	olas->SetValue( "CG_maxIter", atoi(list[0].c_str()) );
+      }
+      break;
+
+    case HYPRE_PCG:
+      cfs->GetList( "tol", list, pdename, "hyprePCG" );
+      if( list.size() == 1 ) {
+	olas->SetValue( "HYPREPCG_epsilon", atof(list[0].c_str()) );
+      }
+      cfs->GetList( "maxIter", list, pdename, "hyprePCG" );
+      if( list.size() == 1 ) {
+	olas->SetValue( "HYPREPCG_maxIter", atoi(list[0].c_str()) );
+      }
+      cfs->GetList( "logging", list, pdename, "hyprePCG" );
+      if( list.size() == 1 ) {
+	olas->SetValue( "HYPREPCG_logging", atoi(list[0].c_str()) );
+      }
+      cfs->GetList( "printLevel", list, pdename, "hyprePCG" );
+      if( list.size() == 1 ) {
+	olas->SetValue( "HYPREPCG_printLevel", atoi(list[0].c_str()) );
+      }
+      break;
 
     case HYPRE_GMRES:
       cfs->GetList( "tol", list, pdename, "hypreGMRES" );
@@ -59,7 +98,28 @@ namespace CoupledField {
 	olas->SetValue( "HYPREGMRES_printLevel", atoi(list[0].c_str()) );
       }
       break;
+
+    case HYPRE_BICGSTAB:
+      cfs->GetList( "tol", list, pdename, "hypreBICGSTAB" );
+      if( list.size() == 1 ) {
+	olas->SetValue( "HYPREBICGSTAB_epsilon", atof(list[0].c_str()) );
+      }
+      cfs->GetList( "maxIter", list, pdename, "hypreBICGSTAB" );
+      if( list.size() == 1 ) {
+	olas->SetValue( "HYPREBICGSTAB_maxIter", atoi(list[0].c_str()) );
+      }
+      cfs->GetList( "logging", list, pdename, "hypreBICGSTAB" );
+      if( list.size() == 1 ) {
+	olas->SetValue( "HYPREBICGSTAB_logging", atoi(list[0].c_str()) );
+      }
+      cfs->GetList( "printLevel", list, pdename, "hypreBICGSTAB" );
+      if( list.size() == 1 ) {
+	olas->SetValue( "HYPREBICGSTAB_printLevel", atoi(list[0].c_str()) );
+      }
+      break;
+
     }
+
   }
 
 
