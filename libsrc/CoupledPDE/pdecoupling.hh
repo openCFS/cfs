@@ -31,22 +31,57 @@ class PDECoupling
     CouplingInterface();
     ~CouplingInterface();
 
-    StdVector<std::string> regions;       //!< name of coupling region
-    CouplingRegionType regionType;        //!< type of coupling region (defined in 'environment.hh')
-    Integer level;                        //!< multigrid level
-    StdVector<Integer> nodes;           //!< vector of coupling nodes 
-    StdVector<Elem*> elements;          //!< vector of coupling elements
-    StdVector<Elem*> neighbours;        //!< vector of neighbour elements
-    StdVector<Elem*> oppositePdeNeighbours;//!< vector of neighbour elements of "opposite" PDE 
-    StdVector<MaterialData*> materials; //!< vector of materials at coupling interface
-    StdVector<MaterialData*> oppositePdeMaterials; //!< vector of materials at coupling interface of "opposite" PDE
-    CFSVector * values;                //!< array containing coupling values
-    CFSVector * oldValues;             //!< array containing coupling values of previous iteration step
-    ShortInt dof;                         //!< dof of coupling values
-    Integer numNodes;                     //!< number of couplingnodes
-    Integer numElems;                     //!< number of couplingelements
-    NormType normtype;                    //!< type of norm
-    Double epsilon;                       //!< maximal error tolerance from one step to another
+    //! name of coupling region
+    StdVector<std::string> regions;       
+
+    //! type of coupling region (defined in 'environment.hh')
+    CouplingRegionType regionType;        
+
+    //! multigrid level
+    Integer level;                        
+
+    //! vector of coupling nodes 
+    StdVector<Integer> nodes;           
+
+    //! vector of coupling elements
+    StdVector<Elem*> elements;          
+
+    //! vector of neighbour elements
+    StdVector<Elem*> neighbours;     
+    
+    //! vector containing neighbouring region of interface
+    //! w.r.t. pde which calculates the values for the coupling
+    StdVector<std::string> neighInputRegions; 
+    
+    //! vector of neighbour elements of "opposite" PDE 
+    StdVector<Elem*> oppositePdeNeighbours;
+
+    //! vector of materials at coupling interface
+    StdVector<MaterialData*> materials; 
+
+    //! vector of materials at coupling interface of "opposite" PDE
+    StdVector<MaterialData*> oppositePdeMaterials; 
+
+    //! array containing coupling values
+    CFSVector * values;
+
+    //! array containing coupling values of previous iteration step
+    CFSVector * oldValues;
+
+    //! dof of coupling values
+    ShortInt dof;
+
+    //! number of couplingnodes
+    Integer numNodes;
+
+    //! number of couplingelements
+    Integer numElems;
+
+    //! type of norm
+    NormType normtype;
+
+    //! maximal error tolerance from one step to another
+    Double epsilon;
   };
 
 public:
@@ -79,6 +114,7 @@ public:
   virtual void AddInput(SolutionType quantity, 
 			StdVector<std::string> &interfaceNames,
 			CouplingRegionType regionType, 
+			StdVector<std::string> & neighRegions,
 			Integer level,
 			Double epsilon,
 			NormType normtype,
@@ -152,7 +188,11 @@ public:
   virtual void GetInputNeighbourElems(Integer i, StdVector<Elem *>*  &elements)
   { elements = &(inputInterfaces_[i]->neighbours);}
 
-   //! get input coupling region material
+  //! get input neighbour region
+  virtual void GetInputNeighbourRegion(Integer i, StdVector<std::string>* &regions)
+  { regions = &(inputInterfaces_[i]->neighInputRegions);}
+  
+  //! get input coupling region material
   virtual void GetOppositeMaterials(Integer i, StdVector<MaterialData *>*  &mat)
   { mat = &(outputInterfaces_[i]->oppositePdeMaterials);}
 
@@ -213,11 +253,15 @@ public:
   //! get output coupling region elements
   virtual void GetOutputElements(Integer i, StdVector<Elem *>* &elements)
   { elements = &(outputInterfaces_[i]->elements);}
-
+  
   //! get output neighbour elements
   virtual void GetOutputNeighbourElems(Integer i, StdVector<Elem *>*  &elements)
   { elements = &(outputInterfaces_[i]->neighbours);}
-
+  
+  //! get output neighbour region
+  virtual void GetOutputNeighbourRegion(Integer i, StdVector<std::string>* &regions)
+  { regions = &(outputInterfaces_[i]->neighInputRegions);}
+    
   //! get output coupling region materials
   virtual void GetOwnMaterials(Integer i, StdVector<MaterialData *>* &mat)
   { mat = &(outputInterfaces_[i]->materials);} 

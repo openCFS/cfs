@@ -1,10 +1,12 @@
 #include "pdecoupling.hh"
 
+#include "PDE/basePDE.hh"
 #include "Domain/elem.hh"
 #include "Domain/grid.hh"
 #include "Domain/bcs.hh"
-#include "list"
-#include "PDE/basePDE.hh"
+#include "DataInOut/ParamHandling/BaseParamHandler.hh"
+#include <list>
+
 
 namespace CoupledField
 {
@@ -17,9 +19,19 @@ PDECoupling::CouplingInterface::CouplingInterface()
   dof = 0;
   numNodes = 0;    
   numElems = 0;
-  epsilon = 0;
+  epsilon = 0.0;
   values = NULL;
   oldValues = NULL;
+  regions.Clear();
+  nodes.Clear();
+  elements.Clear();
+  neighbours.Clear();
+  neighInputRegions.Clear();
+  oppositePdeNeighbours.Clear();
+  materials.Clear();
+  oppositePdeMaterials.Clear();
+  
+  
   }
 
 PDECoupling::CouplingInterface::~CouplingInterface()
@@ -69,6 +81,7 @@ void PDECoupling::RegisterInput(CouplingInputType InType, SolutionType Quantity)
 void PDECoupling::AddInput(SolutionType quantity, 
 			   StdVector<std::string> &region, 
 			   CouplingRegionType regionType,
+			   StdVector<std::string> &neighRegions,
 			   Integer level,
 			   Double epsilon,
 			   NormType normtype,
@@ -102,7 +115,8 @@ void PDECoupling::AddInput(SolutionType quantity,
   Integer i=0;
   while (myInterface == 0 && i<couplings.GetSize())
     {
-      myInterface = couplings[i++]->AddOutput(myOutputType, quantity, region, regionType, level);
+      myInterface = couplings[i++]->AddOutput(myOutputType, quantity, 
+					      region, regionType, level);
     }
   
   // If no pde has the specified quantity as output
@@ -144,23 +158,21 @@ void PDECoupling::AddInput(SolutionType quantity,
   myInterface->epsilon = epsilon;
   myInterface->normtype = normtype;
 
-  // std::string normtype;
-//   myInterface->normtype = defaultNormType;
-  
-  
-  // if (conf->ifget(inputQuantities_[myNum],normtype,"coupling","normtype") == TRUE)
-//     {
-      
-//       if (normtype == "L2rel")
-// 	myInterface->normtype = L2REL;
-//       else if (normtype == "L2abs")
-// 	myInterface->normtype = L2ABS;
-//       else 
-// 	{
-// 	  std::string errMsg = "Normtype \'" + normtype + "\' not known!";
-// 	  Error(errMsg.c_str(),__FILE__,__LINE__);
-// 	} 
-//     }
+  // set neighbouring region name(s)
+  // if only entry is "all", then add all regions
+  StdVector<std::string> keyVec, attrVec, valVec;
+  if (neighRegions.GetSize() == 1){
+    if (neighRegions[0] == "all"){
+      neighRegions.Clear();
+      keyVec = oppositePDE->GetName(), "region", "name";
+      attrVec = "", "";
+      valVec = "", "";
+      params->GetList(keyVec, attrVec, valVec, neighRegions);
+  //     std::cerr << "AddInputCoupling: my neighRegions are " << std::endl << neighRegions << std::endl;
+    }
+  }
+//   std::cerr << "AddInputCoupling: my neighRegions are " << std::endl << neighRegions << std::endl;
+  myInterface->neighInputRegions = neighRegions;
   
   if (myInterface->elements.GetSize() != 0)
     {
