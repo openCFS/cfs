@@ -208,11 +208,9 @@ void MechPDE::SolveStepStaticNonLin(const Integer level)
 
       std::vector<Double> actRHS;
       StoreAlgsysToVec(actRHS, algsys_->GetRHSVal() );
-      *infofile << " === actRHS before 0 setting: " << std::endl << actRHS << std::endl << std::endl;
 
       // calculation of residual error =======================================
       residualL2Norm = RhsL2Norm(actRHS); // L2Norm of  ( f_i^(k+1) - f_a )
-      *infofile << " === actRHS AFTER 0 setting: " << std::endl << actRHS << std::endl << std::endl;
       residualErr = residualL2Norm / extForcesL2Norm;
 
 
@@ -227,13 +225,13 @@ void MechPDE::SolveStepStaticNonLin(const Integer level)
 //       *infofile << " === incrementalSol: " << std::endl << solIncrement << std::endl << std::endl;
 //       *infofile << " === actRHS (after eliminating penalty entries): " << std::endl 
 // 		<< actRHS << std::endl << std::endl;
-      *infofile << " === Residual norm:       " << residualL2Norm << std::endl;
-      *infofile << "     Norm of ext. forces: " << extForcesL2Norm << std::endl;
-      *infofile << "     Residual error    " << residualErr << std::endl;
+      *infofile << " === Residual norm:          " << residualL2Norm << std::endl;
+      *infofile << "     Norm of ext. forces:    " << extForcesL2Norm << std::endl;
+      *infofile << "     Residual error          " << residualErr << std::endl;
 
       *infofile << " === Incremental sol L2Norm: " << solIncrL2Norm << std::endl;
       *infofile << "     Actual solution L2Norm: " << actSolL2Norm << std::endl;
-      *infofile << "     Incremental error " << incrementalErr << std::endl;
+      *infofile << "     Incremental error       " << incrementalErr << std::endl;
       
 
 
@@ -594,18 +592,18 @@ void MechPDE::SetBCs(const Integer level, const Integer update, const Double ati
 	std::string doftype = bcs_hd_[i]; 
 	dof = GetNrBCDof (doftype.substr(0,2));
       
-#ifdef DEBUG
-	(*debug) << std::endl << " Homog. Dirichlet BC" << std::endl;
-#endif
+// #ifdef DEBUG
+// 	(*debug) << std::endl << " Homog. Dirichlet BC" << std::endl;
+// #endif
 	nodes=ptBCs_->GetNodesLevel(bcs_hd_[i]);
    
 	for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end(); p++, j++)
 	  {
 	    node=*p;
 
-#ifdef DEBUG
-	    (*debug) << " node: " << Mesh2PDENode_[node-1] << " dof:" << dof << " val: " << val << "    global node nr: " << node << std::endl;
-#endif
+// #ifdef DEBUG
+// 	    (*debug) << " node: " << Mesh2PDENode_[node-1] << " dof:" << dof << " val: " << val << "    global node nr: " << node << std::endl;
+// #endif
 	    if (update==1)
 	      algsys_->UpdateDirichlet(j+1, val, SYSTEM);
 	    else
