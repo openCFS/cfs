@@ -94,7 +94,7 @@ void BlockNodeEQN::CalcMapping()
 	errMsg  = "BlockNodeEQN::CalcMapping: Homogen. Dirichlet node nr. ";
 	errMsg += Info->GenStr(homoDirichletNodes_[i]);
 	errMsg += " is not contained in any of the regions for this PDE";
-	Error(errMsg.c_str(), __FILE__, __LINE__);
+	Warning(errMsg.c_str(), __FILE__, __LINE__);
 	
       }
       else
