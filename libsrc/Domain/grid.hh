@@ -18,7 +18,7 @@ public:
   virtual ~Grid() { ;}
   
   /// Get coordinates of all nodes which belong to element
-  virtual void GetCoordOfNodesElem(const Integer numElem, const Integer numlevelGrid, Dim * ptCoordElem)=0;  
+  virtual void GetCoordOfNodesElem(const Integer numElem, const Integer numlevelGrid, const Integer numnodes, Dim * ptCoordElem)=0;  
 
    /// Get connection of element
   virtual void GetConnection(Integer * result, const Integer levelGrid, 

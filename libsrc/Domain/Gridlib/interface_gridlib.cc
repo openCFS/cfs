@@ -19,6 +19,23 @@ namespace CoupledField
 {
 
 template<class Dim>
+void InterfaceGridlib<Dim>::GetConnection(Integer * result, const Integer level,
+           const Integer numElem, const Integer numnodesPerElem)
+{
+ Integer i;
+ for (i=0; i<numnodesPerElem)
+ result[i]=ptGoMesh->getElement(numElem,level)->getVertex(i)->getId();
+}
+
+template<class Dim>
+void InterfaceGridlib<Dim>::GetCoordOfNodesElem(const Integer numElem, const Integer numlevel, const Integer numnodes, Dim * ptCoordElem)
+{
+ Integer i;
+ for (i=0; i<numnodes; i++)
+ { result[i]=ptGoMesh->getElement(numElem, numlevel)->getVertex(i)->getId();}
+}
+
+template<class Dim>
 void InterfaceGridlib<Dim>::read() 
 {
 #ifdef TRACE

@@ -8,7 +8,7 @@ C_DIR= ..
 LIBDIR = $(C_DIR)/libsrc
 #
 SUBLIBDIR = Driver PDE AlgebraicSystem/LinAlg \
-            Forms Elements Domain/GridCFS Domain \
+            Forms Elements Domain/GridCFS Domain/Gridlib Domain \
             DataInOut/DefineFiles \
             DataInOut/Unverg DataInOut/DatFile DataInOut\
             Utils Matrix General
@@ -22,7 +22,7 @@ LIB_OWN = $(C_DIR)/lib
 ifeq "$(ARCH)" "LINUX"
 syslib :=
 else
-syslib := -lGridBase -lIO  -lUtil -lMesh
+syslib := -lGridBase -lIO  -lUtil -lMesh -lC
 endif
 ############ General options
 #

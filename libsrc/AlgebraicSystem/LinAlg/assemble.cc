@@ -261,7 +261,7 @@ void Assemble<Dim,T_Matrix>::AssembleGlobal(T_Matrix & Mat) const
   for (i=0; i<numelem; i++) 
     { 
       ptgrid->GetConnection(help,0,i,numnodeelem);
-      ptgrid->GetCoordOfNodesElem(i,0,ptCoord);
+      ptgrid->GetCoordOfNodesElem(i,0,numnodeelem,ptCoord);
       oElemMatrix.CalcElemMatrix(ptCoord, elemmat);
 
       for (ii=0; ii<numnodeelem; ii++)
