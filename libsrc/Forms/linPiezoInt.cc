@@ -133,7 +133,12 @@ namespace CoupledField
     dMat.Resize(sizeofD);
     dMat.Init(0);
 
-    Matrix<Double>*matMatrix = ptMaterial->GetMatrix();
+    Matrix<Double>*matMatrix; 
+
+    if (piezoMatType_ == realMaterialParameter)
+      matMatrix = ptMaterial->GetMatrix();
+    else if (piezoMatType_ == imagMaterialParameter)
+      matMatrix = ptMaterial->GetMatrixC();
 
     // No damping
     if ( isDamping_ == false ) {
@@ -160,7 +165,12 @@ namespace CoupledField
 
       // Copy entries from mechanical part of material matrix object
       // into D matrix and scale with damping parameter
-      Matrix<Double> * matMatrix = ptMaterial->GetMatrix();
+      Matrix<Double> * matMatrix;
+
+      if (piezoMatType_ == realMaterialParameter)
+	matMatrix = ptMaterial->GetMatrix();
+      else if (piezoMatType_ == imagMaterialParameter)
+	matMatrix = ptMaterial->GetMatrixC();
       Double beta = ptMaterial->GetDampingBeta();
       for( Integer i = 0; i < sizeofD; i++ ) {
 	for ( Integer j = 0; j < sizeofD; j++ ) {
@@ -212,7 +222,15 @@ namespace CoupledField
     dMat.Resize(sizeofD);
     dMat.Init(0);
 
-    Matrix<Double> * matMatrix = ptMaterial->GetMatrix();
+
+    Matrix<Double> * matMatrix;
+    
+    if (piezoMatType_ == realMaterialParameter)
+      matMatrix = ptMaterial->GetMatrix();
+    else if (piezoMatType_ == imagMaterialParameter)
+      matMatrix = ptMaterial->GetMatrixC();
+
+
     //    std::cout<<(*matMatrix)<<std::endl;
 
     // No damping
@@ -240,7 +258,15 @@ namespace CoupledField
       
       // Copy entries from mechanical part of material matrix object
       // into D matrix and multiply with damping parameter
-      Matrix<Double> * matMatrix = ptMaterial->GetMatrix();
+
+
+      Matrix<Double> * matMatrix;
+    
+      if (piezoMatType_ == realMaterialParameter)
+	matMatrix = ptMaterial->GetMatrix();
+      else if (piezoMatType_ == imagMaterialParameter)
+	matMatrix = ptMaterial->GetMatrixC();
+
       Double beta = ptMaterial->GetDampingBeta();
       for( Integer i = 0; i < sizeofD-2; i++ ) {
 	for ( Integer j = 0; j < sizeofD-2; j++ ) {
@@ -269,12 +295,18 @@ namespace CoupledField
     if ( isDamping_ == false ) {
 
       // Copy entries from material matrix object into D matrix
-      Matrix<Double> * matMatrix = ptMaterial->GetMatrix();
+      Matrix<Double> * matMatrix;
+    
+      if (piezoMatType_ == realMaterialParameter)
+	matMatrix = ptMaterial->GetMatrix();
+      else if (piezoMatType_ == imagMaterialParameter)
+	matMatrix = ptMaterial->GetMatrixC();
+      
       for( Integer i = 0; i < sizeofD; i++ ) {
 	for ( Integer j = 0; j < sizeofD; j++ ) {
 	  dMat[i][j] = (*matMatrix)[i][j];
 	}
-       }
+      }
 
       // Multiply values of permittivity with -1 to obtain the correct
       // bilinear form
@@ -291,7 +323,14 @@ namespace CoupledField
 
       // Copy entries from mechanical part of material matrix object
       // into D matrix and multiply with damping parameter
-      Matrix<Double> * matMatrix = ptMaterial->GetMatrix();
+
+      Matrix<Double> * matMatrix;
+    
+      if (piezoMatType_ == realMaterialParameter)
+	matMatrix = ptMaterial->GetMatrix();
+      else if (piezoMatType_ == imagMaterialParameter)
+	matMatrix = ptMaterial->GetMatrixC();
+
       Double beta = ptMaterial->GetDampingBeta();
       for( Integer i = 0; i < sizeofD - 3; i++ ) {
 	for ( Integer j = 0; j < sizeofD - 3; j++ ) {
@@ -446,7 +485,7 @@ namespace CoupledField
 
 
 
-// calculates the D-matrix of a axisymmetric-problem 
+  // calculates the D-matrix of a axisymmetric-problem 
   void piezoAxiInt::calcDMaterialMatWithComplexDamping(Matrix<Complex> & dMat, Double & beta, Double & omega)
   {
     ENTER_FCN( "linPiezoAxiInt::calcDMatWithComplexDamping" );
@@ -489,13 +528,19 @@ namespace CoupledField
     // The damping case. The matrix is multiplied by (1+\omega_l*\beta_l*j)
     // Only mech part is damped 
     Complex im=Complex(0,1.0);
-      // Copy entries from mechanical part of material matrix object
-      // into D matrix and multiply with damping parameters
-      Matrix<Double> * matMatrix = ptMaterial->GetMatrix();
+    // Copy entries from mechanical part of material matrix object
+    // into D matrix and multiply with damping parameters
+    Matrix<Double> * matMatrix;
 
-      for ( Integer i = 0; i < sizeofD; i++ ) 
-	for( Integer j = 0; j < sizeofD; j++ ) 
-	  dMat[i][j] = (*matMatrix)[rowPtr[i]-1][rowPtr[j]-1]*(1.0+beta*omega*im);
+    if (piezoMatType_ == realMaterialParameter)
+      matMatrix = ptMaterial->GetMatrix();
+    else if (piezoMatType_ == imagMaterialParameter)
+      matMatrix = ptMaterial->GetMatrixC();
+
+
+    for ( Integer i = 0; i < sizeofD; i++ ) 
+      for( Integer j = 0; j < sizeofD; j++ ) 
+	dMat[i][j] = (*matMatrix)[rowPtr[i]-1][rowPtr[j]-1]*(1.0+beta*omega*im);
 	
   } // end calcDMatWithComplexDamping
 
@@ -512,8 +557,8 @@ namespace CoupledField
     CalcPlaneStrainMaterialMat(dMat);
   }
 
- void piezoPlainStrainInt::calcDMaterialMatWithComplexDamping(Matrix<Complex> &dMat, Double &beta, Double &omega) 
-{
+  void piezoPlainStrainInt::calcDMaterialMatWithComplexDamping(Matrix<Complex> &dMat, Double &beta, Double &omega) 
+  {
     ENTER_FCN( "piezoPlainStrainInt::calcDMaterialMatWithComplexDamping");
     Integer rowPtrXY[]={2,3,5,8,9};
     Integer rowPtrYZ[]={2,3,4,8,9};
@@ -549,15 +594,21 @@ namespace CoupledField
     dMat.Resize(sizeofD);
     dMat.Init(0);
        
-      // Copy entries from mechanical part of material matrix object
-      // into D matrix and scale with damping parameter (1+j*omega*beta)
-      Matrix<Double> * matMatrix = ptMaterial->GetMatrix();
-      Complex imag=Complex(0,1);
-      for( Integer i = 0; i < sizeofD; i++ ) 
-	for ( Integer j = 0; j < sizeofD; j++ ) 
-	  dMat[i][j] = (*matMatrix)[i][j] * beta*omega*imag;
+    // Copy entries from mechanical part of material matrix object
+    // into D matrix and scale with damping parameter (1+j*omega*beta)
+    Matrix<Double> * matMatrix;
+
+    if (piezoMatType_ == realMaterialParameter)
+      matMatrix = ptMaterial->GetMatrix();
+    else if (piezoMatType_ == imagMaterialParameter)
+      matMatrix = ptMaterial->GetMatrixC();
+
+    Complex imag=Complex(0,1);
+    for( Integer i = 0; i < sizeofD; i++ ) 
+      for ( Integer j = 0; j < sizeofD; j++ ) 
+	dMat[i][j] = (*matMatrix)[i][j] * beta*omega*imag;
 	
- }
+  }
 
 
   // determine the matrix B of the BDB operator
@@ -652,17 +703,23 @@ namespace CoupledField
     dMat.Init( 0 );
 
 
-      // Copy entries from mechanical part of material matrix object
-      // into D matrix and multiply with damping parameter beta_l, omega_l and the imaginarity j
-      Matrix<Double> * matMatrix = ptMaterial->GetMatrix();
-      Complex imag=Complex(0,1);
-      //      std::cout<<"\n dmat with complex daming : "<<std::endl;
-      for( Integer i = 0; i < sizeofD - 3; i++ ) 
-	for ( Integer j = 0; j < sizeofD - 3; j++ ) {
-	  dMat[i][j] = (*matMatrix)[i][j] * (1.0+beta*imag*omega);
-	  //  std::cout<<dMat[i][j]<<";\t ";
-	}
-      //      std::cout<<"\n"<<std::endl;
+    // Copy entries from mechanical part of material matrix object
+    // into D matrix and multiply with damping parameter beta_l, omega_l and the imaginarity j
+    Matrix<Double> * matMatrix;
+
+    if (piezoMatType_ == realMaterialParameter)
+      matMatrix = ptMaterial->GetMatrix();
+    else if (piezoMatType_ == imagMaterialParameter)
+      matMatrix = ptMaterial->GetMatrixC();
+
+    Complex imag=Complex(0,1);
+    //      std::cout<<"\n dmat with complex daming : "<<std::endl;
+    for( Integer i = 0; i < sizeofD - 3; i++ ) 
+      for ( Integer j = 0; j < sizeofD - 3; j++ ) {
+	dMat[i][j] = (*matMatrix)[i][j] * (1.0+beta*imag*omega);
+	//  std::cout<<dMat[i][j]<<";\t ";
+      }
+    //      std::cout<<"\n"<<std::endl;
 
 
 

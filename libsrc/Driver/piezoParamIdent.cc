@@ -115,6 +115,7 @@ namespace CoupledField
     nrParameter = 10;
 
     parameter.Resize(10);
+    parameterC.Resize(10);
     whichParameterToUpdate.Resize(10);
     //    parameterIncrement.Resize(10);
     //parameterIncrement = parameter;
@@ -148,6 +149,7 @@ namespace CoupledField
     Boolean reset = TRUE;
     Integer pdenumber  = 0;
 
+
     if (!isPartOfSequence_)
       ptdomain_->PrintGrid(level);
 
@@ -156,10 +158,25 @@ namespace CoupledField
 
     if (isPartOfSequence_ == FALSE){     
       GetMyPDEs();
+      //  std::cout<<"\nWe try to set complexMaterialData ... "<<std::endl;
+      // piezoMaterialType piezoMatType = imagMaterialParameter; 
+      //pdes_[0]->setPDE_piezoMaterialType(piezoMatType);
+      //GetMyPDEs();
       Info->StartProgress ("Starting to solve problem", FALSE);
+
+
     }
 
-    //    std::cout<<"Here begins communication with base PDE" << std::endl;
+
+
+
+    //Boolean setComplMatData = FALSE;
+    //pdes_[0]->setPDE_complexMaterialData(setComplMatData);
+    //pdes_[0]->BooleanComplexMaterialData_=FALSE;
+
+    
+
+      std::cout<<"Here begins communication with base PDE" << std::endl;
 
     // ************************************************************************
     // Communication with BasePDE ... gets i.G. pointers to objects involved  *
@@ -195,6 +212,14 @@ namespace CoupledField
     F_hat.Resize(2*nrMeasuredData);
     overall_res0.Resize(2*nrMeasuredData);
     parameter_new.Resize(nrParameter);
+
+    for(Integer i=0;i<nrParameter;i++)
+      parameterC[i]=0.0;
+    //    parameterC[7]=1.0;
+
+
+      updateComplexMaterialData(parameterC, ptMaterial);
+
 
 
     // ~~~~~~~~~~~~~ modificate the algorithm ~~~~~~~~~~~~~~~
@@ -301,6 +326,15 @@ namespace CoupledField
     // as it will be the single one
 
     updateMaterialData(parameter, ptMaterial);         //Writes initial guesses of parameters (read from MeasuredData.dat) to system
+
+       for(Integer i=0;i<nrParameter;i++)
+     parameterC[i]=parameter[i];
+    std::cout<<"\n we try to set complexMaterialData"<<std::endl;
+
+    // updateComplexMaterialData(parameterC, ptMaterial);
+
+
+
     //    std::cout<<parameter<<std::endl;
  
     pdes_[0]->WriteGeneralPDEdefines(); 
@@ -338,7 +372,8 @@ namespace CoupledField
     
     //  NewtonCG();
     //         NewtonCG2();
-     NewtonCG3();
+    //     NewtonCG3();
+     NewtonCG4(); // Complex material parameter
     //    tichonov();
     //  NewtonLandweber();
     //  createF(ptMaterial, ptBCs, F_hat); // calculates only forward problems over all omegas
@@ -889,6 +924,50 @@ if (CalcImpedanceCurve == 1){
     ptMaterial->SetPiezoMatrixData(6,6, parameter[8]);
     ptMaterial->SetPiezoMatrixData(7,7, parameter[8]);
     ptMaterial->SetPiezoMatrixData(8,8, parameter[9]);
+
+  } // end updateMaterialData
+
+ void piezoParamIdent::updateComplexMaterialData(Vector<Double> & parameterC, MaterialData * ptMaterial){
+    ENTER_FCN("piezoParamIdent::updateComplexMaterialData");    
+    std::cout<<"updateComplexMaterialData"<<std::endl;
+
+    ptMaterial->SetPiezoMatrixDataC(0,0, parameterC[0]);
+    ptMaterial->SetPiezoMatrixDataC(1,1, parameterC[0]);
+    ptMaterial->SetPiezoMatrixDataC(2,2, parameterC[1]);
+    ptMaterial->SetPiezoMatrixDataC(0,1, parameterC[2]);
+    ptMaterial->SetPiezoMatrixDataC(1,0, parameterC[2]);
+    ptMaterial->SetPiezoMatrixDataC(0,2, parameterC[3]);
+    ptMaterial->SetPiezoMatrixDataC(2,0, parameterC[3]);
+    ptMaterial->SetPiezoMatrixDataC(1,2, parameterC[3]);
+    ptMaterial->SetPiezoMatrixDataC(2,1, parameterC[3]);
+    ptMaterial->SetPiezoMatrixDataC(3,3, parameterC[4]);
+    ptMaterial->SetPiezoMatrixDataC(4,4, parameterC[4]);
+    ptMaterial->SetPiezoMatrixDataC(5,5, 0.5*(parameterC[0]-parameterC[2]));
+    ptMaterial->SetPiezoMatrixDataC(6,4, parameterC[5]);
+    ptMaterial->SetPiezoMatrixDataC(7,3, parameterC[5]);
+    ptMaterial->SetPiezoMatrixDataC(4,6, parameterC[5]);
+    ptMaterial->SetPiezoMatrixDataC(3,7, parameterC[5]);
+    ptMaterial->SetPiezoMatrixDataC(8,0, parameterC[6]);
+    ptMaterial->SetPiezoMatrixDataC(8,1, parameterC[6]);
+    ptMaterial->SetPiezoMatrixDataC(0,8, parameterC[6]);
+    ptMaterial->SetPiezoMatrixDataC(1,8, parameterC[6]);
+    ptMaterial->SetPiezoMatrixDataC(8,2, parameterC[7]);
+    ptMaterial->SetPiezoMatrixDataC(2,8, parameterC[7]);
+    ptMaterial->SetPiezoMatrixDataC(6,6, parameterC[8]);
+    ptMaterial->SetPiezoMatrixDataC(7,7, parameterC[8]);
+    ptMaterial->SetPiezoMatrixDataC(8,8, parameterC[9]);
+
+    //    Boolean setComplMatData = TRUE;
+    //pdes_[0]->setPDE_complexMaterialData(setComplMatData);
+    //pdes_[0]->BooleanComplexMaterialData_=TRUE;
+    //    ptAssemble = pdes_[0]->getPDE_assemble();
+
+    //    piezoMaterialType pMatType = imagMaterialParameter;
+    //intDescript->SetPiezoMaterialType(pMatType);
+
+
+
+    std::cout<<"\n From now on we calculate with complex material Data " << std::endl;
 
   } // end updateMaterialData
 

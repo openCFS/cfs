@@ -211,11 +211,10 @@ void Assemble::AssembleMatrices(const Integer level)
 
 		  actDescriptor->GetIntegrator()->CalcElementMatrix(ptCoord, elemmat);
 		  if (analysisType_ == HARMONIC) {
-			TransformMatrix2Harmonic(harmonicVec,elemmat,
-									 actDescriptor->GetOrigMatrixType());
+			TransformMatrix2Harmonic(harmonicVec,elemmat, actDescriptor->GetOrigMatrixType(),
+						 actDescriptor->GetPiezoMaterialType());
 	 
-			algsys_->SetElementMatrix(&harmonicVec[0], connect_PDE.GetPointer(),
-									  connect_PDE.GetSize(), destMat);
+			algsys_->SetElementMatrix(&harmonicVec[0], connect_PDE.GetPointer(), connect_PDE.GetSize(), destMat);
 		  }
 		  else {
 // 			// output matrices
@@ -243,14 +242,13 @@ void Assemble::AssembleMatrices(const Integer level)
 		  if (actDescriptor->GetSecondaryMat() != NOTYPE) {
 			elemmat *= actDescriptor->GetSecMatFac();
 			if (analysisType_ == HARMONIC) {
-			  TransformMatrix2Harmonic(harmonicVec,elemmat,
-									   actDescriptor->GetOrigSecMatrixType());
-			  algsys_->SetElementMatrix(&harmonicVec[0], connect_PDE.GetPointer(),
-										connect_PDE.GetSize(), destMat);
+			  TransformMatrix2Harmonic(harmonicVec,elemmat,actDescriptor->GetOrigSecMatrixType(),
+						   actDescriptor->GetPiezoMaterialType());
+			  algsys_->SetElementMatrix(&harmonicVec[0], connect_PDE.GetPointer(),connect_PDE.GetSize(), destMat);
 			}
 			else
 			  algsys_->SetElementMatrix(elemmat.GetDataPointer(), connect_PDE.GetPointer(), 
-										connect_PDE.GetSize(), actDescriptor->GetSecondaryMat()); 
+						    connect_PDE.GetSize(), actDescriptor->GetSecondaryMat()); 
 		  }
 		  
 		} //over all elements of subdomain		
@@ -317,27 +315,26 @@ void Assemble::AssembleMatrices(const Integer level)
 			}
 		      
 			actDescriptor->GetIntegrator()->CalcElementMatrix(ptCoord, elemmat);
+
 			if (analysisType_ ==HARMONIC) {
-			  TransformMatrix2Harmonic(harmonicVec,elemmat,
-									   actDescriptor->GetOrigMatrixType());
-			  algsys_->SetElementMatrix(&harmonicVec[0], connect_PDE.GetPointer(),
-										connect_PDE.GetSize(), destMat);
+			  TransformMatrix2Harmonic(harmonicVec,elemmat, actDescriptor->GetOrigMatrixType(),
+						   actDescriptor->GetPiezoMaterialType());
+			  algsys_->SetElementMatrix(&harmonicVec[0], connect_PDE.GetPointer(),connect_PDE.GetSize(), destMat);
 			}
+
 			else
-			  algsys_->SetElementMatrix(elemmat.GetDataPointer(), connect_PDE.GetPointer(), 
-										connect_PDE.GetSize(), destMat);
+			  algsys_->SetElementMatrix(elemmat.GetDataPointer(), connect_PDE.GetPointer(), connect_PDE.GetSize(), destMat);
 			
 			if (actDescriptor->GetSecondaryMat()  != NOTYPE ) {
 			  elemmat *= actDescriptor->GetSecMatFac();
 			  if (analysisType_ == HARMONIC) {
-				TransformMatrix2Harmonic(harmonicVec,elemmat,
-										 actDescriptor->GetOrigSecMatrixType());
-				algsys_->SetElementMatrix(&harmonicVec[0], connect_PDE.GetPointer(),
-										  connect_PDE.GetSize(), destMat);
+				TransformMatrix2Harmonic(harmonicVec,elemmat,actDescriptor->GetOrigSecMatrixType(),
+							 actDescriptor->GetPiezoMaterialType());
+				algsys_->SetElementMatrix(&harmonicVec[0], connect_PDE.GetPointer(), connect_PDE.GetSize(), destMat);
 			  }
 			  else
 				algsys_->SetElementMatrix(elemmat.GetDataPointer(), connect_PDE.GetPointer(), 
-										  connect_PDE.GetSize(), actDescriptor->GetSecondaryMat()); 
+							  connect_PDE.GetSize(), actDescriptor->GetSecondaryMat()); 
 			}
 		  }		
 		}
@@ -404,8 +401,7 @@ void Assemble::AssembleRHSIntegralSources(const Integer level,const Double time)
 		    
 				  if (analysisType_ == HARMONIC) {
 					TransformVector2Harmonic(harmVec,elemVec,valPhase);
-					algsys_->SetElementRHS(&harmVec[0], connect_PDE.GetPointer(), 
-										   connect_PDE.GetSize());
+					algsys_->SetElementRHS(&harmVec[0], connect_PDE.GetPointer(), connect_PDE.GetSize());
 				  }
 				  else {
 					if (val_tfunc != 1.0)
@@ -1273,38 +1269,75 @@ IntegratorDescriptor::IntegratorDescriptor()
   :BaseIntDescriptor(),
    destinationMatrix(SYSTEM),
    secondaryMatrix(NOTYPE),
-   secMatFac(0.0)
+   secMatFac(0.0),
+   piezoMaterialType_(realMaterialParameter)
+  
 {
   ENTER_FCN( "IntegratorDescriptor::IntegratorDescriptor" );
+  //    piezoMaterialType_=realMaterialParameter;
 }
 
 
 #ifdef USE_OLAS
 /// define integrators
-IntegratorDescriptor::IntegratorDescriptor(BaseForm * aIntegrator, 
-										   const enum FEMatrixType aDestMat, const Boolean aNonLin)
+IntegratorDescriptor::IntegratorDescriptor(BaseForm * aIntegrator, const enum FEMatrixType aDestMat, const Boolean aNonLin)
   :BaseIntDescriptor(aIntegrator, aNonLin),
    destinationMatrix(aDestMat),
    secondaryMatrix(NOTYPE),
-   secMatFac(0.0)
+   secMatFac(0.0),
+   piezoMaterialType_(realMaterialParameter)
+
 {
   ENTER_FCN( "IntegratorDescriptor::IntegratorDescriptor" );
+  //   piezoMaterialType_=realMaterialParameter;
 }
   
 #else
 /// define integrators
-IntegratorDescriptor::IntegratorDescriptor(BaseForm * aIntegrator, 
-										   const enum MatrixType aDestMat,
-										   const Boolean aNonLin)
+IntegratorDescriptor::IntegratorDescriptor(BaseForm * aIntegrator,  const enum MatrixType aDestMat, const Boolean aNonLin)
   :BaseIntDescriptor(aIntegrator, aNonLin),
    destinationMatrix(aDestMat),
    secondaryMatrix(NOTYPE),
-   secMatFac(0.0)
+   secMatFac(0.0),
+   piezoMaterialType_(realMaterialParameter)
 {
   ENTER_FCN( "IntegratorDescriptor::IntegratorDescriptor" );
+  //   piezoMaterialType_=realMaterialParameter;
 }
   
 #endif
+
+// #ifdef USE_OLAS
+// /// define integrators
+// IntegratorDescriptor::IntegratorDescriptor(BaseForm * aIntegrator, const enum FEMatrixType aDestMat, const Boolean aNonLin, const piezoMaterialType matParType)
+//   :BaseIntDescriptor(aIntegrator, aNonLin),
+//    destinationMatrix(aDestMat),
+//    secondaryMatrix(NOTYPE),
+//    secMatFac(0.0)
+//    //   piezoMaterialType_=(matParType)
+
+// {
+//   ENTER_FCN( "IntegratorDescriptor::IntegratorDescriptor" );
+//     piezoMaterialType_=matParType;
+// }
+  
+// #else
+// /// define integrators
+// IntegratorDescriptor::IntegratorDescriptor(BaseForm * aIntegrator,  const enum MatrixType aDestMat, const Boolean aNonLin, const piezoMaterialType matParType)
+//   :BaseIntDescriptor(aIntegrator, aNonLin),
+//    destinationMatrix(aDestMat),
+//    secondaryMatrix(NOTYPE),
+//    secMatFac(0.0)
+//    //   piezoMaterialType_(matParType)
+// {
+//   ENTER_FCN( "IntegratorDescriptor::IntegratorDescriptor" );
+//   piezoMaterialType_=matParType;
+//   //   piezoMaterialType_=realMaterialParameter;
+// }
+  
+// #endif
+
+
 
 #ifdef USE_OLAS
 /// defines a secondary destination for the calculated element marices of an integrator      
@@ -1527,13 +1560,9 @@ void HarmonicAssemble::AddIntegrator(IntegratorDescriptor * actID,
 
 
 #ifdef USE_OLAS
-void  HarmonicAssemble::TransformMatrix2Harmonic(Vector<Double>& harmMat,
-												 Matrix<Double> origMat,
-												 const FEMatrixType matrixType)
+void  HarmonicAssemble::TransformMatrix2Harmonic(Vector<Double>& harmMat, Matrix<Double> origMat, const FEMatrixType matrixType, const piezoMaterialType piezoMatType)
 #else
-  void  HarmonicAssemble::TransformMatrix2Harmonic(Vector<Double>& harmMat,
-												   Matrix<Double> origMat,
-												   const MatrixType matrixType)
+  void  HarmonicAssemble::TransformMatrix2Harmonic(Vector<Double>& harmMat,Matrix<Double> origMat, const MatrixType matrixType, const piezoMaterialType piezoMatType)
 #endif
 
 {
@@ -1544,36 +1573,79 @@ void  HarmonicAssemble::TransformMatrix2Harmonic(Vector<Double>& harmMat,
   harmMat.Resize(2*numRow*numCol);
 
   Integer k=0;
-  if (matrixType == STIFFNESS)
-	{
-	  for (Integer row=0; row<numRow; row++)
-	    for (Integer col=0; col<numCol; col++) {
-	      harmMat[k] = origMat[row][col];
-	      k++;
-	    }
-	}
 
-  else if (matrixType == MASS)
-	{
-	  Double factor = -actFreq_*actFreq_;
-	  for (Integer row=0; row<numRow; row++)
-	    for (Integer col=0; col<numCol; col++) {
-	      harmMat[k] = factor*origMat[row][col];
-	      k++;
-	    }
-	}
+  if (piezoMatType == realMaterialParameter){
 
-  else if (matrixType == DAMPING)
-	{
-	  Double factor = actFreq_;
+    if (matrixType == STIFFNESS)
+      {
+	for (Integer row=0; row<numRow; row++)
+	  for (Integer col=0; col<numCol; col++) {
+	    harmMat[k] = origMat[row][col];
+	    k++;
+	  }
+      }
+    
+    else if (matrixType == MASS)
+      {
+	Double factor = -actFreq_*actFreq_;
+	for (Integer row=0; row<numRow; row++)
+	  for (Integer col=0; col<numCol; col++) {
+	    harmMat[k] = factor*origMat[row][col];
+	    k++;
+	  }
+      }
+    
+    else if (matrixType == DAMPING)
+      {
+	Double factor = actFreq_;
+	
+	k=numRow*numCol;
+	for (Integer row=0; row<numRow; row++)
+	  for (Integer col=0; col<numCol; col++) {
+	    harmMat[k] = factor*origMat[row][col];
+	    k++;
+	  }
+      }
+  } // end, if piezoMatType == real...
+  else if(piezoMatType == imagMaterialParameter){
+     if (matrixType == STIFFNESS)
+      {
+	k=numRow*numCol;
+	for (Integer row=0; row<numRow; row++)
+	  for (Integer col=0; col<numCol; col++) {
+	    harmMat[k] = origMat[row][col];
+	    k++;
+	  }
+      }
+    
+     else if (matrixType == MASS) // should not occur ...
+      {
+	k=numRow*numCol;
+	Double factor = -actFreq_*actFreq_;
+	for (Integer row=0; row<numRow; row++)
+	  for (Integer col=0; col<numCol; col++) {
+	    harmMat[k] = factor*origMat[row][col];
+	    k++;
+	  }
+      }
+    
+    else if (matrixType == DAMPING)
+      {
+	Double factor = actFreq_;
+	
+	k=0;  
+	for (Integer row=0; row<numRow; row++)
+	  for (Integer col=0; col<numCol; col++) {
+	    harmMat[k] = -factor*origMat[row][col];
+	    k++;
+	  }
+      }
 
-	  k=numRow*numCol;
-	  for (Integer row=0; row<numRow; row++)
-	    for (Integer col=0; col<numCol; col++) {
-	      harmMat[k] = factor*origMat[row][col];
-	      k++;
-	    }
-	}
+  } // end if piezoMatType == imag
+
+  else {
+    std::cerr<<"\n piezoMaterialType" << piezoMatType << "not specified "<<std::endl;
+  }
 }
 
 

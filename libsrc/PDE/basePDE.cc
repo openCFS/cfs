@@ -653,6 +653,12 @@ void BasePDE::StepTransLin(const Integer kstep, const Double asteptime,
 	  algsys_->InitMatrix(MASS);
 	  if (dampingType_)
 		algsys_->InitMatrix(DAMPING);
+// 	  if (piezoMaterialType_ == imagMaterialParamter){
+// 	    algsys_->InitMatrix(SYSTEMC);
+// 	    algsys_->InitMatrix(STIFFNESSC);
+// 	    algsys_->InitMatrix(MASSC);
+
+// 	  }
 
 	  algsys_->ConstructEffectiveMatrix(matrix_factor_);
 	}

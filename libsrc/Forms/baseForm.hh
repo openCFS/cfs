@@ -106,6 +106,9 @@ public:
   //!
   void SetDofZero(Integer posdof)
   {dofzero_ = posdof; };
+
+  void SetPiezoMaterialType(piezoMaterialType & pMatType){
+    piezoMatType_=pMatType; };
  
 protected:
 
@@ -118,6 +121,8 @@ protected:
   Vector<Double> intPoint_;
   //
   Boolean isSetIntPoint_;
+
+  piezoMaterialType piezoMatType_;     //! default = realMaterialParamter, piezoMatType_ = imagMaterialParamter if we consider complex-valued material Paramter;
 
   Boolean isFracDamping_;   //!< if true Assemble::AssembleMatrices will retrieve an additional multiplicative factor
   Integer dofzero_;   //!< for multidof-handling, where one dof is zero (e.g. piezoelectric PDE)

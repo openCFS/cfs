@@ -82,6 +82,17 @@ namespace CoupledField
     IntegratorDescriptor(BaseForm * aIntegrator,  enum MatrixType aDestMat,
 			 const Boolean aNonLin=FALSE);
 #endif
+
+// #ifdef USE_OLAS      
+//     /// constructor
+//     IntegratorDescriptor(BaseForm * aIntegrator, FEMatrixType aDestMat,
+// 			 const Boolean aNonLin=FALSE, const piezoMaterialType=realMaterialParameter);
+// #else
+//     /// constructor
+//     IntegratorDescriptor(BaseForm * aIntegrator,  enum MatrixType aDestMat,
+// 			 const Boolean aNonLin=FALSE, const piezoMaterialType=realMaterialParameter);
+// #endif
+
       
     /// destructor
     virtual ~IntegratorDescriptor();
@@ -126,6 +137,14 @@ namespace CoupledField
 
     /// returns matrix type of the secondary matrix (if there is any, otherwise NOTYPE=0)
     Double GetSecMatFac() const {return secMatFac;} 
+
+    piezoMaterialType piezoMaterialType_;
+
+    piezoMaterialType GetPiezoMaterialType(){return piezoMaterialType_;};
+
+    void SetPiezoMaterialType(piezoMaterialType &pMatType){
+      piezoMaterialType_ = pMatType;};
+
 
       
 #ifdef USE_OLAS  
@@ -185,6 +204,8 @@ namespace CoupledField
 
     /// holds the matrix factor for secondaryMatrix
     Double secMatFac;
+
+    //    piezoMaterialType piezoMaterialType_;
   };
   
 
@@ -568,12 +589,12 @@ namespace CoupledField
     //! transform element matrix to account for harmonic analysis
     virtual void TransformMatrix2Harmonic(Vector<Double>& harmMat,
 					  Matrix<Double> origMat,
-					  const FEMatrixType matrixType) {;};
+					  const FEMatrixType matrixType,const piezoMaterialType piezoMatType) {;};
 #else
     //! transform element matrix to account for harmonic analysis
     virtual void TransformMatrix2Harmonic(Vector<Double>& harmMat,
 					  Matrix<Double> origMat,
-					  const MatrixType matrixType) {;};
+					  const MatrixType matrixType,const piezoMaterialType piezoMatType) {;};
 #endif
 
     //! transform element vector to account for harmonic analysis
@@ -697,12 +718,12 @@ namespace CoupledField
     //! transform element matrix to account for harmonic analysis
     virtual void TransformMatrix2Harmonic(Vector<Double>& harmMat,
 					  Matrix<Double> origMat,
-					  const FEMatrixType matrixType);
+					  const FEMatrixType matrixType,const piezoMaterialType piezoMatType);
 #else
     //! transform element matrix to account for harmonic analysis
     virtual void TransformMatrix2Harmonic(Vector<Double>& harmMat,
 					  Matrix<Double> origMat,
-					  const MatrixType matrixType);
+					  const MatrixType matrixType,const piezoMaterialType piezoMatType);
 #endif
 
     //! transform element vector to account for harmonic analysis

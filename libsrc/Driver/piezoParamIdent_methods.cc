@@ -210,6 +210,7 @@ namespace CoupledField
 
 	//	pdes_[0]->WriteGeneralPDEdefines();   // should not be used, overwrites to much!!    
 
+	//std::cout<<"\n piezoParam:createF PreStepHarmonic"<<std::endl;
 	pdes_[0]->PreStepHarmonic(fstep, freqs[fstep], level, reset); 
 	
 	//	updateMaterialData(parameter,ptMaterial);
@@ -220,10 +221,10 @@ namespace CoupledField
 	//std::cout<<"\n piezoParam:createF setBCs"<<std::endl;
 	//	pdes_[0]-> setBCs_id_phase_(0, imag[fstep]);      
 
-	//std::cout<<"\n piezoParam:createF PostStepHarmonic"<<std::endl;
+	//	std::cout<<"\n piezoParam:createF PostStepHarmonic"<<std::endl;
 	pdes_[0]->PostStepHarmonic(fstep, freqs[fstep], level, reset);
 
-	//	std::cout<<"\n piezoParam:createF PostProcess at step  "<< fstep << std::endl;
+	//std::cout<<"\n piezoParam:createF PostProcess at step  "<< fstep << std::endl;
 	pdes_[0]->PostProcess(level);
 
 
@@ -549,7 +550,7 @@ namespace CoupledField
       //     dparameter[ind_param]=1.3/scaling[ind_param]*bas[ind_param]; // 1.0/scaling[ind_param];
 
       //andere Versuche:
-      dparameter[ind_param]=1.0/scaling[ind_param];//*bas[ind_param]; // 1.0/scaling[ind_param];
+      dparameter[ind_param]=1.3/scaling[ind_param]*bas[ind_param]; // 1.0/scaling[ind_param];
       
      if (ind_param>0)
       	dparameter[ind_param-1]=0.0; 

@@ -57,6 +57,8 @@ namespace CoupledField
     //! \param parameter - new set of piezoelectric material parameters
     void updateMaterialData(Vector<Double> & parameter, MaterialData * ptMaterial);
 
+    void updateComplexMaterialData(Vector<Double> & parameterC, MaterialData * ptMaterial);
+
     //! overwrites values in paramter_new with paramter+step if whichParamterToUpdate ==1
     void setNewParameterSet(Vector<Double> & parameter,Vector<Double> &  parameter_new,Vector<Double> & scaling,Double & theta,Vector<Complex> & step, Vector<Integer> & whichParameterToUpdate);
 
@@ -91,6 +93,9 @@ namespace CoupledField
 
     //! see SFBReport F013 for details ;-)
     void NewtonCG3();
+
+    //! The version schich is supposed to treat complex-valued material Parameter
+    void NewtonCG4();
 
     //! Iterative Method to determine material parameter
     void NewtonLandweber();
@@ -164,6 +169,7 @@ namespace CoupledField
     MaterialData * ptMaterial;
 
     Vector<Double> parameter;
+    Vector<Double> parameterC;
     Vector<Double> parameter_new;
     Vector<Double> parameterIncrement;
     Vector<Double> omegas;

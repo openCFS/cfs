@@ -47,6 +47,7 @@ MaterialData::MaterialData(const MaterialData & mat)
   SetName(mat.name);
 
   piezoMatrix  = new Matrix<Double>( *mat.piezoMatrix);
+  piezoMatrixC = new Matrix<Double> (*mat.piezoMatrixC);
   permeaMatrix = new Matrix<Double>( *mat.permeaMatrix);
   conducMatrix = new Matrix<Double>( *mat.conducMatrix);
 }

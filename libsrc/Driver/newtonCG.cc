@@ -54,9 +54,9 @@
 namespace CoupledField
 {
 
-  // xxxxxxxxxxxxxxxxxxxxxxxxxxxxx NEWTON CG 3 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+  // xxxxxxxxxxxxxxxxxxxxxxxxxxxxx NEWTON CG 4 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
-  void piezoParamIdent::NewtonCG3(){   // here we scale in advance, just once before NewtonCG and afterwards
+  void piezoParamIdent::NewtonCG4(){   // here we scale in advance, just once before NewtonCG and afterwards
     ENTER_FCN("piezoParamIdent::NewtonCG3");
     std::cout<<"\n Entering piezoParamIdent::NewtonCG3 ... "<< std::endl;
 
@@ -82,7 +82,9 @@ namespace CoupledField
     gamma=0.5;
     al=1.5;
     
-    
+
+    std::cout<<"\n piezoParamIdent::NewtonCG3 ... 1"<< std::endl;    
+
     Vector<Complex> y_hat_F_hat (nrMeasuredData);
 
     Vector<Complex> step(nrParameter);
@@ -113,7 +115,444 @@ namespace CoupledField
 
     parstart=parameter;
 
+    std::cout<<"\n piezoParamIdent::NewtonCG3 ... 2"<< std::endl;    
+
     createF(ptMaterial, ptBCs, F_hat);
+
+    std::cout<<"\n piezoParamIdent::NewtonCG3 ... 3"<< std::endl;    
+
+    for (i=0; i<nrMeasuredData;i++)
+      y_hat_F_hat[i]=y_hat[i]-F_hat[i];
+
+    for (i=0;i<nrParameter;i++)
+      bas[i]=1.0;
+
+    Res_outer=res=y_hat-F_hat;
+      
+    misfit=norm2Real(y_hat_F_hat); 
+
+    norm(Res_outer,aval,maxres_outer,y_hat);
+
+    std::cout<<"\n Newton Step 0: Maxres = " << maxres_outer << ", aval = "<< aval<<std::endl;
+    aval_new=aval;
+    aval_old=aval;
+
+    misfit0=misfit;
+
+
+     *piezoLog << "\n Initial misfit ||y-F|| = "<<aval<< " and maxres_outer = max |y-F| = " << maxres_outer << std::endl;
+
+    nrNewtonIterations=0;
+
+    // NEWTON ITERATION -- outer Loop!!
+    while((aval>tau*delta||nrNewtonIterations<maxNumberNewtonLoops)&&nrNewtonIterations<maxNumberNewtonLoops){ // Newton
+      *piezoLog << "\n Newton-Iteration: " << nrNewtonIterations <<std::endl;
+      *piezoLog <<"------------------------"<<std::endl;
+      std::cout<<"\n Newton-Iteration "<< nrNewtonIterations <<std::endl;
+
+      nrNewtonIterations++;
+
+      res0=res;
+      normres02=norm2Real(res0);
+
+      step.Resize(nrParameter);
+    
+      res=y_hat-F_hat;
+
+      // Create the matrices ...
+      createJacobiMatrix2(JacobiMatrix);
+      createAdjointJacobiMatrix(JacobiMatrix,adjJacobiMatrix);
+      // testJacobiMatrix(F_hat, JacobiMatrix, parameter, ptBCs, ptMaterial,parameterIncrement, solElecPot, solMechDispl);
+
+      for (Integer i=0;i<parameter.GetSize();i++)
+	scaling[i]=1.0;
+
+      //JacobiMatrix.MatVecMult_CD(step,JMats); // is not neccessary, since we start with s_i=0;
+      //res = res0-JMats;
+      
+      normres2 = norm2Real(res);
+
+      adjJacobiMatrix.Mult(res, res_NE_C);
+
+      //std::cout<<"\nbas = res NE = (F* res).real(): "<<std::endl;
+      for (Integer i=0;i<res_NE_C.GetSize();i++){
+	res_NE[i]=(1.0/scaling[i]*scaling[i])*res_NE_C[i].real();
+	res_NE_rescaled[i]=scaling[i]*res_NE[i];
+	//std::cout<<"res_NE="<<res_NE[i]<<"; ";
+      }
+
+      bas = res_NE;
+      
+      //      std::cout<<"\n  " <<std::endl;	  
+
+      alin_new = aval;
+      *piezoLog << "\n \t alin_new = aval = " << alin_new;
+
+      normresNEold2 = POW(a2norm(res_NE_rescaled),2);
+      basbar_old.Resize(nrParameter);
+
+      Res_inner = Res_outer;
+
+
+      // ----- INNER LOOP --- CG-ITERATION ---
+      Integer nrCGIter=0;
+      while((alin_new>eta*eta*aval)&&(nrCGIter<maxNumberInnerLoops)||nrCGIter<1){ // CG
+	//      while((normres2>eta*eta*normres02)&&(nrCGIter<9)){ // CG
+	std::cout<<"\n CG Iteration " << nrCGIter << std::endl;
+	nrCGIter++;
+
+	JacobiMatrix.MatVecMult_CD(bas,basbar);
+	
+	//	std::cout<<"\nbasbar = F' bas:  "<<std::endl;
+	//	for (Integer i=0;i<basbar.GetSize();i++){
+	  //	  basbar[i]=basbar[i].real();
+	  //std::cout<<"basbar="<<basbar[i]<<"; ";
+	//}
+	//std::cout<<"\n "<<std::endl;	  
+
+	basbar_old=basbar;
+
+	Double norm_bas_bar = POW(a2norm(basbar),2);
+
+	alpha=normresNEold2 / norm_bas_bar;
+
+	std::cout<<"\n alpha = " << alpha << ",\t || normresNEold || = " << normresNEold2 << ",\t ||bas_bar|| = " << norm_bas_bar << std::endl;
+
+	//	std::cout<<"\nstep = step + alpha *bas: "<<std::endl;
+	for (Integer i=0;i<nrParameter;i++){
+	  step[i]+=alpha*bas[i];
+	  //std::cout<<"step("<<i<<")= "<< step[i] << "; \t ";
+	}
+	
+
+	//	std::cout<<"\n\nres = res - alpha*bas_bar: "<<std::endl;
+	for (Integer i=0;i<res.GetSize();i++){
+	  Res_inner[i]=Res_inner[i]-alpha*basbar[i];
+	  res[i]=res[i]-alpha*basbar[i];
+	  //	  res[i]=res[i].real();
+	  //	  std::cout<<"Res_inner = "<<res[i]<<"; ";
+	}
+
+	//std::cout<<"\n"<<std::endl;
+
+    norm(Res_inner,alin_new,maxres_inner,y_hat);
+	//	maxAndEuclNorm(Res_inner,maxres_inner,alin_new);
+	//		maxAndWeightedResNorm(Res_inner, maxres_inner, alin_new, y_hat);
+
+	//	std::cout<<"\n res.GetSize() " << res.GetSize() << "; res_NE_NEW_COMP.GetSize()= "<< res_NE_new_compl.GetSize()<<std::endl;
+
+	adjJacobiMatrix.Mult(res,res_NE_C);
+
+	//	std::cout<<"\nres_NE = (F*' res).real():"<<std::endl;
+	for(Integer i=0;i<res_NE_new.GetSize();i++){
+	  res_NE[i]=(1.0/(scaling[i]*scaling[i]))*res_NE_C[i].real();
+	  res_NE_rescaled[i]=res_NE[i]*scaling[i];
+	  //	  res_NE_new[i]=1.0/(scaling[i]*scaling[i])*res_NE_new_compl[i].real();
+	  //std::cout<<"resNE = " << res_NE[i];
+	}
+
+	normresNE2=POW(a2norm(res_NE_rescaled),2);
+
+	//	std::cout<<"\n\n normresNE2 =  " << normresNE2<<std::endl; 
+
+	beta = normresNE2/normresNEold2;
+	
+	//	std::cout<<"\n beta = " << beta << " = " << normresNE2 << " / " << normresNEold2<< std::endl; 
+
+	normresNEold2 = normresNE2;
+
+	//	std::cout<<"\nbas = resNE + beta * bas: "<<std::endl;	
+	for(Integer i=0;i<nrParameter;i++){
+	  bas[i]= res_NE[i]+beta*bas[i];
+	  //std::cout<<"bas = "<<bas[i]<<"; ";
+	}
+
+	normres2=norm2Real(res);
+	norm(res,alin_new,maxres_inner,y_hat);
+	//maxAndEuclNorm(res,maxres_inner, alin_new);
+	//maxAndWeightedResNorm(res, maxres_inner, alin_new, y_hat);
+
+	*piezoLog << "\n \t \t alin_new  = " << alin_new;
+
+	//	*piezoLog <<"\t\tnormres2 = ||res|| = "<<normres2 << " normres02 = "<< normres02 << " \nand maxres_inner = " << maxres_inner<< std::endl;
+
+      }// end while CG
+      *piezoLog << "\n \t Number of CG - Iterations performed " << nrCGIter <<std::endl;
+
+      parameter_new=parameter; // no update for other parameters
+
+      Matrix<Double> *matMat = ptMaterial->GetMatrix();
+
+
+    scaling[0]=1.0/((*matMat)[0][0]); 
+    scaling[1]=1.0/((*matMat)[2][2]);
+    scaling[2]=1.0/((*matMat)[1][0]);
+    scaling[3]=1.0/((*matMat)[0][2]);
+    scaling[4]=1.0/((*matMat)[3][3]); 
+    scaling[5]=1.0/((*matMat)[6][4]);
+    scaling[6]=std::abs(1.0/((*matMat)[8][0]));
+    scaling[7]=1.0/((*matMat)[8][2]);
+    scaling[8]=1.0/((*matMat)[6][6]); 
+    scaling[9]=1.0/((*matMat)[8][8]);
+
+
+      //      parameter_new[9]=parameter[9]+(1.0/scaling[9])*step[9].real();        // eps33      
+	setNewParameterSet(parameter, parameter_new, scaling,theta,step,whichParameterToUpdate);
+
+      for (Integer i=0;i<nrParameter;i++){
+	// 	std::cout<<"step("<<i<<")= " << step[i]<< "; \t";
+	// 	//	parameter_new[i]=parameter[i]; //*scaling[i];
+	// 	//	parameter_new[i]=parameter[i]+step[i];
+	// 	//	parameter_new[i]=(1.0/scaling[i])*parameter_new[i];
+	std::cout<<"Paramter_new["<<i<<"]= " << parameter_new[i]<<std::endl; 
+      }
+      std::cout<<"\n"<<std::endl;
+
+      // precautionary measure, if paramters tend to far away from initial values ...
+      //       for(Integer i=0;i<nrParameter;i++)
+      // 	if (std::abs(parameter_new[i]-parstart[i])>0.5*std::abs(parstart[i])){
+      // 	  parameter_new[i]=parameter[i];
+      // 	  std::cout<<"\n parameter("<<i<<") was reset to value " << parameter[i] <<std::endl;
+      // 	}
+
+      updateMaterialData(parameter_new, ptMaterial);
+
+      createF(ptMaterial, ptBCs, F_hat);
+
+      for(Integer i=0;i<F_hat.GetSize();i++)
+	y_hat_F_hat[i]=y_hat[i]-F_hat[i];
+
+      Res_outer = y_hat-F_hat;
+
+      norm(Res_outer,aval_new,maxres_outer,y_hat);
+      //      maxAndWeightedResNorm(Res_outer, maxres_outer, aval_new, y_hat);
+      //      maxAndEuclNorm(Res_outer, maxres_outer, aval_new);
+
+
+      //	backtracking(eta, theta, s, a, a_lin_new);
+      misfitnew=norm2Real(y_hat_F_hat);
+      *piezoLog << "\t misfit before Linesearch " << misfitnew <<std::endl;
+
+      backtrackIterator=0;
+
+     
+      //      while ((misfitnew>(1-t*(1-eta))*misfit) && backtrackIterator<15 && eta<eta_max || backtrackIterator<2){ // Liniensuche
+      while ((aval_new>POW((1.0-t*(1.0-eta)),2)*aval) && backtrackIterator<15 && eta<eta_max || backtrackIterator<2){ // Liniensuche
+	std::cout<<"\n backtracking ... "<< backtrackIterator<< std::endl;
+	backtrackIterator++;
+
+	b=0.0;
+	for(Integer i=0;i<nrMeasuredData;i++)
+	  b+= 2.0*(Res_outer[i]*(Res_inner[i]-Res_outer[i])).real();
+
+
+	// choose theta:
+	aa=misfit*misfit;
+	aa=aval;
+	new_res_res0=Complex(0.0,0.0);
+
+	//	  new_res_res0=new_res_res0+y_hat_F_hat[i]*(res[i]-y_hat_F_hat[i]);
+	//	b=2.0*new_res_res0.real();
+
+	//	std::cout<<"\n b = " << b << std::endl;
+
+	//	c=misfitnew*misfitnew-b-aa;
+	c=aval_new-b-aval;
+	//	std::cout<<"\n c = "<<c<<std::endl;
+
+	if (c==0.0){
+	  if(b<=0.0)
+	    theta=theta_max;
+	  else 
+	    theta=theta_min;
+	}
+	else if (c>0.0){
+	  if (b<-2*c*theta_max)
+	    theta = theta_max;
+	  else if (b>-2*c*theta_min)
+	    theta=theta_min;
+	  else
+	    theta=-b/(2*c);
+	}
+	else{
+	  if (b<-2*c*theta_min)
+	    theta=theta_max;
+	  else if (b>-2*c*theta_max)
+	    theta=theta_min;
+	  else
+	    {
+	      if ((aa+b*theta_min+c*theta_min*theta_min)>=(aa+b*theta_max+c*theta_max*theta_max))
+		theta=theta_max;
+	      else theta=theta_min;
+	    }
+	} // end else if c>0
+	//	theta = 0.35;
+
+	//	std::cout<<"\n Choice of theta = " << theta<<std::endl;
+	*piezoLog<<"\t Choice of theta = " << theta<<std::endl;
+
+	//	std::cout<<"\n"<<std::endl;
+
+	std::cout<<"\n Parameter after backtracking ... " <<std::endl;
+	
+	// parameter_new[i]=parameter[i]+(1.0/scaling[i])*theta*step[i].real(); //e33
+	setNewParameterSet(parameter, parameter_new, scaling,theta,step,whichParameterToUpdate);
+
+	
+	for(Integer i=0;i<nrParameter;i++){
+	  step[i]=theta*step[i]; 
+	  std::cout<<"paramter_new["<<i<<"]= " << parameter_new[i]<<std::endl;
+	}
+
+	//	b = theta*b;
+	eta = 1- theta*(1-eta);
+
+	updateMaterialData(parameter_new,ptMaterial);
+	createF(ptMaterial, ptBCs, F_hat);
+
+	//for(Integer i=0;i<F_hat.GetSize();i++)
+	//y_hat_F_hat[i]=y_hat[i].real()-F_hat[i].real();
+	//misfitnew=norm2Real(y_hat_F_hat);
+
+	Res_outer=y_hat-F_hat;
+
+	//	maxAndWeightedResNorm(Res_outer, maxres_outer, aval_new, y_hat);
+	//		maxAndEuclNorm(Res_outer,maxres_outer,aval_new); 
+    norm(Res_outer,aval_new,maxres_outer,y_hat);
+
+	*piezoLog << "\t misfit after Linesearch " << misfitnew <<std::endl;
+
+	//	std::cout<<"\n misfitnew = " << misfitnew <<std::endl;
+
+
+      }// end linesearch ...
+
+     
+      //choose eta
+      //      eta_new=gamma*POW((misfitnew/misfit),al);
+     
+ 
+
+      eta_new = gamma*POW((aval/aval_old),al);
+ 
+
+      std::cout<<"\n eta_new =  " << eta_new << std::endl;
+      Double gammaEtaAl = gamma*POW(eta,al);
+      if (gammaEtaAl > 0.1) // safeguard choice 2, see Pernice, Walker
+	if (gammaEtaAl>eta)
+	  eta_new=gammaEtaAl;
+
+      //eta_new=std::max(eta_new,gamma*POW(eta,al));
+      //       std::cout<< "\n eta_new " << eta_new <<std::endl;
+
+      
+
+      if(eta_new<=2*(tau*delta)/sqrt(aval)); // final safeguard
+      eta_new=0.8*(tau*delta)/sqrt(aval);
+      //end choose eta
+
+      if (eta_new>eta_max)
+	eta=eta_max;
+      else
+	eta=eta_new;
+
+
+      //    std::cout<< "\n\n *** Choice of eta = " << eta<<std::endl; 
+      *piezoLog<<"\t Choice of eta = " << eta<<std::endl;
+
+      // end choose eta
+      parameter=parameter_new;
+      misfit=misfitnew;
+
+      aval_old=aval;
+      aval=aval_new;
+      Res_inner = Res_outer;
+
+    }// end while Newton
+    //   std::cout<<"\n leaving Newton CG 2 " <<std::endl;
+    //std::cout<<"\n\n *** FINALLY CALCULATED PARAMETERS *** ... here they are:"<<std::endl;
+    *piezoLog<<"\n\n *** FINALLY CALCULATED PARAMETERS *** ... here they are:"<<std::endl;
+
+        for (Integer  i=0;i<parameter.GetSize();i++){
+    //std::cout<<"par[" << i<<"]="<< parameter[i]<<";\n";
+    *piezoLog<<"parameter["<<i<<"] = "<< parameter[i]<<std::endl;
+    }
+
+  }// end NewtonCG 4
+
+  // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+  // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+  // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+
+
+
+  // xxxxxxxxxxxxxxxxxxxxxxxxxxxxx NEWTON CG 3 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+  void piezoParamIdent::NewtonCG3(){   // here we scale in advance, just once before NewtonCG and afterwards
+    ENTER_FCN("piezoParamIdent::NewtonCG3");
+    std::cout<<"\n Entering piezoParamIdent::NewtonCG3 ... "<< std::endl;
+
+    Integer nrNewtonIterations=0;
+    Integer backtrackIterator=0;
+
+    MaterialData * ptMaterial=pdes_[0]->getPDEMaterialData();   // Pointer to MaterialData
+
+    ptBCs = pdes_[0]->getPDE_BCs();
+
+    Double eta_max, eta_new, t, aa,b,c, theta_min, theta_max, gamma, al;
+    Double alpha, beta, tau;
+    tau = 1.1;
+    Integer i,j;
+    Double theta=0.5;
+    delta = 0.1;
+
+    t=1.0e-4;
+    eta_max=0.5;
+    eta=0.1;
+    theta_min=0.1;
+    theta_max=0.5;
+    gamma=0.5;
+    al=1.5;
+    
+
+    std::cout<<"\n piezoParamIdent::NewtonCG3 ... 1"<< std::endl;    
+
+    Vector<Complex> y_hat_F_hat (nrMeasuredData);
+
+    Vector<Complex> step(nrParameter);
+    Vector<Double> parstart (nrParameter);
+    
+    Vector<Double> res_NE(nrParameter);
+    Vector<Double> res_NE_rescaled(nrParameter);
+    Vector<Complex> res_NE_C(nrParameter);
+    bas.Resize(nrParameter);
+    Vector<Complex> basbar(nrMeasuredData);
+    Vector<Complex> basbar_old(nrMeasuredData);
+    Vector<Complex> res(nrMeasuredData);
+    Vector<Complex> JMats(nrMeasuredData);
+    Vector<Complex> res0(nrMeasuredData);
+    Vector<Complex> Res_outer(nrMeasuredData);
+    Vector<Complex> Res_inner(nrMeasuredData);
+
+    Complex new_res_res0;
+    Double misfit, misfit0,misfitnew, normres02, normres2, normresNEold2, normresNEold02, normresNE2;
+
+    Double aval, aval_new, alin_new, maxres_outer, maxres_inner, aval_old, alin;
+
+
+    // NO scaling in NewtonCG!! 
+    for (Integer i=0;i<parameter.GetSize();i++)
+      scaling[i]=1.0;
+    //    parameter[i]=scaling[i]*parameter[i];
+
+    parstart=parameter;
+
+    std::cout<<"\n piezoParamIdent::NewtonCG3 ... 2"<< std::endl;    
+
+    createF(ptMaterial, ptBCs, F_hat);
+
+    std::cout<<"\n piezoParamIdent::NewtonCG3 ... 3"<< std::endl;    
 
     for (i=0; i<nrMeasuredData;i++)
       y_hat_F_hat[i]=y_hat[i]-F_hat[i];
