@@ -5,6 +5,7 @@
 #include <vector>
 #include <string>
 #include "General/environment.hh"
+#include "DataInOut/WriteInfo.hh"
 
 #define STRINGBLOCKSIZE	 1024
 #define ELEMENTBLOCKSIZE   32
@@ -64,7 +65,11 @@ public:
     Integer curVLength= strlen(values);
     if (curVLength+vallength>=valuelength)	// Allocate new memory
     {
-      char *newValues = new char[2*valuelength];
+      char *newValues; 
+      if (strlen(valstr)<valuelength)
+        newValues = new char[2*valuelength];
+      else
+        newValues = new char[valuelength+2*strlen(valstr)];
       strcpy(newValues,values);
       delete[] values;
       values = newValues;
@@ -108,14 +113,17 @@ public:
   char *GetValues ();
 
   //! Field names
-//  std::vector<std::string> field;
   char *fields;
 
   //! Values
-//  std::vector<std::string> value;
   char *values;
 
-  template<class T> void toString(const T val, char *dst)
+  //! Convert any type to a C-string
+  /*!
+    \param val [In] Value to convert
+    \param dst [Out] Where to store the string
+  */
+  template<class T> void toString(const T val, char* &dst)
   {
     ENTER_IFCN("dbLineData::toString(class T, char*)");
     std::stringstream sstream;
@@ -124,16 +132,22 @@ public:
   };
 
 
+  //! Length of fields
   int fieldlength;
+ 
+  //! Length of values
   int valuelength;
 
 private:
   
+  //! Empty default constructor - use dbLineData(std::string) instead
   dbLineData(){};
 
+  //! Copy constructor - not implemented - should not be used at all
   dbLineData(const dbLineData &x)
   {
     ENTER_FCN("dbLineData::copy-constructor");
+    Error("dbLineData copy constructor not implemented - should not be used at all",__FILE__,__LINE__);
   };
 };
 

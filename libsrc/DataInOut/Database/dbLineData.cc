@@ -55,42 +55,42 @@ void dbLineData::Clear()
 //  field.clear();
 }
 
-template<> void dbLineData::toString(const char *val, char *dst)
+template<> void dbLineData::toString(const char *val, char* &dst)
 {
   ENTER_IFCN("dbLineData::toString(char*,char*)");
   if (strlen(val)>ELEMENTBLOCKSIZE)
   {
-    delete dst;
+    delete[] dst;
     dst = new char[strlen(val)+1];
   }
   strcpy(dst,val);
 }
 
-template<> void dbLineData::toString(std::string val, char *dst)
+template<> void dbLineData::toString(std::string val, char* &dst)
 {
   ENTER_IFCN("dbLineData::toString(std::string,char*)");
-  Integer vallen=strlen(val.c_str());
-  if (vallen>ELEMENTBLOCKSIZE)
+  Integer vallen=val.length();
+  if (vallen>=ELEMENTBLOCKSIZE)
   {
-    delete dst;
+    delete[] dst;
     dst = new char[vallen+1];
   }
   strcpy(dst,val.c_str());
 }
 
-template<> void dbLineData::toString(Double val, char *dst)
+template<> void dbLineData::toString(Double val, char* &dst)
 {
   ENTER_IFCN("dbLineData::toString(Double,char*)");
   sprintf(dst,"%e",val);
 }
 
-template<> void dbLineData::toString(float val, char *dst)
+template<> void dbLineData::toString(float val, char* &dst)
 {
   ENTER_IFCN("dbLineData::toString(float,char*)");
   sprintf(dst,"%e",val);
 }
 
-template<> void dbLineData::toString(Integer val, char *dst)
+template<> void dbLineData::toString(Integer val, char* &dst)
 {
   ENTER_IFCN("dbLineData::toString(Integer,char*)");
   sprintf(dst,"%d",val);
