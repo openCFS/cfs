@@ -46,7 +46,7 @@ public:
 				     enum nameGElem first ...)=0;
 
   //!
-  virtual void ReadElemConnectionGH(const Integer maxelem, Integer * connect, const Integer maxnode, const Integer numelemgr)=0;
+  virtual void ReadElemConnectionGH(const Integer maxelem, Integer * connect, const Integer maxnode, const Integer numelemgr, const Integer startposinarrayconn)=0;
 
   //! read maximum number of elements in group number num
   virtual void ReadMaxnumelemGroup(Integer & maxelem, const Integer numgr)=0;

@@ -378,7 +378,6 @@ void Acoustic2dPDE::CalcCoeff(Double & coeff, const Integer numsubdom)
  Double density, compress;
  if (!MatFile_) Error("You didn't specialize material file. Use option -m");
  MatFile_->ReadDensityAndCompressity(density,compress,matnum,"fluid"); 
- std::cout << compress << " d " << density << std::endl;
 
  coeff=sqrt(compress/density);
 }

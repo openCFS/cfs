@@ -905,15 +905,13 @@ void DatFile:: ReadMaxnumelemGroup(Integer & maxelem, const Integer numgr)
   for (i=0; i<=numgr; i++)
      TakePos("numelem",pos);
   infile.seekg(pos, std::ios::beg);
-
-  std::getline(infile, buf, '\n');
-
+ 
   infile >> maxelem;
 }
 
 // --------------- Read connection for element in gridhierarchy----------
 void DatFile:: ReadElemConnectionGH(const Integer maxelem, Integer * connect,
-            const Integer maxnode, const Integer numelemgr)
+            const Integer maxnode, const Integer numelemgr, const Integer startposarrayconn)
 /// number of groups is not implemented
 {
 #ifdef TRACE
@@ -930,7 +928,7 @@ void DatFile:: ReadElemConnectionGH(const Integer maxelem, Integer * connect,
      TakePos("element definition",pos);
   infile.seekg(pos, std::ios::beg);
  
-  Integer j, counter=0;
+  Integer j, counter=startposarrayconn;
   std::getline(infile, buf, '\n');
   for (j=0; j<maxelem; j++)
  {
