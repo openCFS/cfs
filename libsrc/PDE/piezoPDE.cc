@@ -836,6 +836,9 @@ void PiezoPDE::CalcStress(){
       sortStresses(elemStress,sortedStress);
       stress_.SetElemResult(pdeElem-1, sortedStress);
     }
+    // Delete integrator again (Stressabbau ;-)
+    delete stress;
+
   }
 }
   
@@ -1080,6 +1083,9 @@ void PiezoPDE::CalcCharges(){
 	charges_.SetElemResult(pdeElemNum-1, chargeVec);
 	
       }
+    // Delete integrator again (reeller Stressabbau !)
+    delete stress;
+
   }
   //  Warning ("Charges are written to unv/gmv file, although capapost \
 // can not draw them", __FILE__, __LINE__);
