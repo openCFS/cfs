@@ -278,8 +278,12 @@ namespace CoupledField {
       }
       cfs->GetList( "saveFacFile", list, pdename, "directLDL" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "CROUT_saveFacToFile", true );
-	olas->SetValue( "CROUT_facFileName", list[0] );
+	olas->SetValue( "LDLSOLVER_saveFacToFile", true );
+	olas->SetValue( "LDLSOLVER_facFileName", list[0] );
+        cfs->GetList( "savePatternOnly", list, pdename, "ILDLK" );
+        if( list.GetSize() == 1 ) {
+          olas->SetValue( "LDLSOLVER_facPatternOnly", (list[0] == "yes") );
+        }
       }
       break;
 
