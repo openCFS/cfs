@@ -14,41 +14,44 @@ namespace CoupledField
   // ***************************************************
   //   Old constructor version using conffile approach
   // ***************************************************
-#ifndef XMLPARAMS
   BCs :: BCs(FileType * const aInFile)
   {
+#ifndef XMLPARAMS 
     ENTER_FCN( "BCs::BCs" );
 
     InFile_     = aInFile; 
-
- Integer i;
- for (i=0; i<NUMLEVELGRID; i++) { bcs_[i]=NULL; bcsEdges_[i]=NULL; bcsFaces_[0]=NULL; bcsNeighElems_[0]=NULL;}
+    
+    Integer i;
+    for (i=0; i<NUMLEVELGRID; i++) 
+      { 
+	bcs_[i]=NULL; bcsEdges_[i]=NULL; 
+	bcsFaces_[0]=NULL; 
+	bcsNeighElems_[0]=NULL;
+      }
+    
     conf->ifgetliststr("list_nodes",levels_);
     if (levels_.GetSize()) 
       bcs_[0]=new std::list<Integer>[levels_.GetSize()];
- 
+    
+    
     conf->ifgetliststr("list_edges",color_edges_);
     if (color_edges_.GetSize()) 
       bcsEdges_[0]=new StdVector<Elem*>[color_edges_.GetSize()]; 
-
+	
     conf->ifgetliststr("list_faces",color_faces_);
-    if (color_faces_.GetSize()) 
+    if (color_faces_.GetSize())
       bcsFaces_[0]=new StdVector<Elem*>[color_faces_.GetSize()]; 
-
+    
     conf->ifgetliststr("list_neighelems",color_neighelems_);
     if (color_neighelems_.GetSize())
-      bcsNeighElems_[0]=new StdVector<Elem*>[color_neighelems_.GetSize()];
-  }
+	bcsNeighElems_[0]=new StdVector<Elem*>[color_neighelems_.GetSize()];
 
 #else
 
   // ********************************************************
   //   New constructor version using XML parameter handling
   // ********************************************************
-  BCs :: BCs(FileType * const aInFile) : InFile_(aInFile)
-  {
-    ENTER_FCN( "BCs::BCs" );
-
+  
     // Initialise internal pointer arrays
     for( Integer i = 0; i < NUMLEVELGRID; i++ )
       {
@@ -59,8 +62,8 @@ namespace CoupledField
     // Get list of special node sets
     params->GetList( "name", levels_, "domain", "nodes" );
     if( levels_.GetSize() > 0 )
-	bcs_[0] = new std::list<Integer>[levels_.GetSize()];
-
+      bcs_[0] = new std::list<Integer>[levels_.GetSize()];
+    
     //get geometric dimension
     std::string probGeo;
     params->Get( "type", probGeo, "geometry" );
@@ -70,7 +73,7 @@ namespace CoupledField
       params->GetList( "name", color_faces_, "domain", "elements" );
       if (color_faces_.GetSize()) 
 	bcsFaces_[0]=new StdVector<Elem*>[color_faces_.GetSize()]; 
-
+	
       //check for line elements
       Integer num1DElems = InFile_->GetNum1DElems();
       //      if (num1DElems>0)
@@ -78,7 +81,8 @@ namespace CoupledField
     else {
       params->GetList( "name", color_edges_, "domain", "elements" );	
       if (color_edges_.GetSize()) 
-	bcsEdges_[0]=new StdVector<Elem*>[color_edges_.GetSize()]; 
+	bcsEdges_[0]=new StdVector<Elem*>[color_edges_.GetSize()];	
+      
     }
     
     //
@@ -98,8 +102,8 @@ namespace CoupledField
 //    conf->ifgetliststr("list_neighelems",color_neighelems_);
 //    if (color_neighelems_.size())
 //      bcsNeighElems_[0]=new StdVector<Elem*>[color_neighelems_.size()];
-  }
 #endif
+  }
 
 
 BCs :: ~BCs()
