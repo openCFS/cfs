@@ -48,9 +48,6 @@ protected:
   virtual void CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
 				      const Vector<Double> & LCoord);
 
-
-
-
   // ============================= methods for edge elements =======================
   // ===============================================================================
 

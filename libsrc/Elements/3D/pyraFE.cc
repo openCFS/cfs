@@ -15,10 +15,12 @@ PyraFE::PyraFE()
 {
   ENTER_FCN( "PyraFE::PyraFE" );
 
-  Dim_      = 3;
-  NumEdges_ = 8;
-  NumFaces_ = 5;
+  Dim_        = 3;
+  NumEdges_   = 8;
+  NumFaces_   = 5;
+  NumCorners_ = 5;
   //    numChilds_ = 8;
+  MidPoint_ = 0.0, 0.0, 1./5;
   
 #ifndef XMLPARAMS
   std::string integtype = "GaussOrder2";

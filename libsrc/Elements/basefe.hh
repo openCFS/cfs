@@ -205,7 +205,6 @@ public:
 
 
   //! Calculates corresponding volume point of neighbouring surface
-
   //! For a given surface element and a neighbouring volume element this
   //! mehtod calculates the local volume-coordinates out of the given
   //! local surface-coordinates, which have one less dimension.
@@ -243,9 +242,16 @@ public:
   //! Return number of faces
   ShortInt GetNumFaces() const {return NumFaces_;}
 
+  //! Return number of corners
+  ShortInt GetNumCorners() const {return NumCorners_;}
+
   //! Returns number of integration points
   ShortInt GetNumIntPoints() const {return NumIntPoints_;}
   
+  //! 
+  void GetCoordMidPoint(Vector<Double> & coord) 
+  {coord = MidPoint_;};
+
   //! Return FE-Type for LAS++
 #ifdef USE_OLAS
   virtual FEType feType()=0;
@@ -421,8 +427,10 @@ protected:
   ShortInt NumNodes_;               //!< number of nodes
   ShortInt NumEdges_;               //!< number of edges 
   ShortInt NumFaces_;               //!< number of faces
+  ShortInt NumCorners_;             //!< number of corners
   ShortInt NumIntPoints_;           //!< number of integration points
   ShortInt DegreeInteg_;            //!< numerical integration order
+  Vector<Double> MidPoint_;         //!< coordinate of midpoint (for 1. order integration)
   Matrix<Double> LCornerCoords_;    //!< Matrix of local corner coordinates (x:number, y:Dim)
   Vector<Double> * ShFncAtIp_;      //!< Array of vectors of function values at IPs (x:local Dim, y:Number)
   Matrix<Double> * ShFncDerivAtIp_; //!< Array of local derivatives in each integration point

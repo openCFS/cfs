@@ -170,7 +170,6 @@ void Tetra1FE :: CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv,
   for( Integer i=1; i < NumNodes_; i++)
     LDeriv[i][i-1] = 1.0;
 }
-  
 
 // see Kaltenbacher: "Numerical Sim. of Mechatronic Sensors and Actuators" p. 25
 // calculates the edge shape function of a tetrahedral of first order.
