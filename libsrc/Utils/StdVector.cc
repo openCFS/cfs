@@ -350,10 +350,13 @@ template<class TYPE>
 Boolean StdVector<TYPE>::operator== (const StdVector<TYPE> & vec) const
 {
   ENTER_IFCN( "StdVector::operator==" );
-#ifdef CHECK_INITIALIZED 
-  if ((size_ == 0) || (vec.size_ == 0))
-    Error("Vector: undefined Vector in operator==",__FILE__,__LINE__);
-#endif
+// #ifdef CHECK_INITIALIZED 
+//   if ((size_ == 0) || (vec.size_ == 0))
+//     Error("Vector: undefined Vector in operator==",__FILE__,__LINE__);
+// #endif
+
+  if (size_ == 0 && vec.size_ == 0)
+    return TRUE;
   
   for (Integer i = 0; i < size_; i++)
     if (data_[i] != vec.data_ [i])
