@@ -99,53 +99,17 @@ void ElecPDE:: PreStepStatic(const Integer kstep, const Double asteptime,
 {
   ENTER_FCN( "ElecPDE::PreStepStatic" );
 
-  if (pdeIsCoupled_ )
-      algsys_->InitSol();
-
+  if (pdeIsCoupled_ )     
+    algsys_->InitSol();
+  
   if (geoUpdate_)
     {
-      assemble_->SetNonlinGeo();
-
       algsys_->InitRHS();
       algsys_->InitSol();
       assemble_->InitMatrices();
 
       assemble_->SetReassemble();   
     }
-}
-
-
-
-
-void ElecPDE::StepStaticNonLin(const Integer kstep, const Double aTime,
-			       const Integer level, const Boolean reset)
-{
-  ENTER_FCN( "ElecPDE::StepStaticNonLin" );
-
-  Integer job = 1;
-  Double * ptsol;
-
-  assemble_->AssembleMatrices(level);
-  assemble_->AssembleSrcRHS(level);
-  
-  updateBCs_ = 0;
-
-  SetBCs(level,updateBCs_,aTime);
-
-#ifdef USE_OLAS
-  algsys_->BuildInDirichlet();
-  algsys_->SetupPrecond(job);
-#else
-  algsys_->CalcPrecond(job);
-#endif
-
-  algsys_->Solve();
-
-  ptsol = algsys_->GetSolutionVal();
-
-  // save solution
-  sol_->SetAlgSysDataPointer(ptsol);
-  
 }
 
 void ElecPDE::PostStepStatic(const Integer kstep, const Double asteptime,
@@ -233,7 +197,8 @@ void ElecPDE::WriteResultsInFile(Integer stepOffset,
 	  outFile_->WriteElemSolutionTransient(charges_, actStep, actTime);
 	}
       
-      if (flags->CalcErrorMap_)
+      if (flags->CalcErrorMap_
+)
 	{
 	  // this is only a temporar solution
 	  error.SetNumSolutions(1);
@@ -261,43 +226,45 @@ void ElecPDE::WriteResultsInFile(Integer stepOffset,
   else
    Error("ElecPDE: Only static results can be written", __FILE__, __LINE__);
 
-//   // TMPORARILY
-//   SolutionType quantity;
-//   StdVector<Integer> * couplingNodes     = NULL;
-//   CFSVector * values = 0;
-//   Vector<Double> sumForces(dim_);
-//   sumForces.Init();
-  
-  
 
-//   // loop over all output coupling quantities
-//   for (Integer actCoupling=0; actCoupling<ptCoupling_->GetNumOutputCouplings(); actCoupling++)
-//     {
-//       quantity = ptCoupling_->GetOutputQuantity(actCoupling);
-//       ptCoupling_->GetOutputValues(actCoupling, values);
-
-//       Vector<Double> const & temp = dynamic_cast<Vector<Double> &>(*values);
-//       switch(ptCoupling_->GetOutputType(actCoupling))
-// 	{
-	  
-// 	case NODE:	  
-// 	  ptCoupling_->GetOutputNodes(actCoupling, couplingNodes);
-// 	  if (quantity == ELEC_FORCE_VWP)
-// 	    {
-// 	      for (Integer iDof=0; iDof<dim_; iDof++)
-// 		for (Integer iNode=0; iNode<couplingNodes->GetSize(); iNode++)
-// 		  sumForces[iDof] += temp[iNode*dim_ + iDof];
-	      
-// 	      *data << lasttimecalc_ << "\t";
-// 	      for (Integer i=0; i<dim_; i++)
-// 		*data << sumForces[i]<< "\t";
-	      
-// 	      *data << std::endl;
-	      
-// 	    }
-// 	} // switch
-//     } // for
-
+  if (pdeIsCoupled_ == TRUE) {
+    //   // TMPORARILY
+    SolutionType quantity;
+    StdVector<Integer> * couplingNodes     = NULL;
+    CFSVector * values = 0;
+    Vector<Double> sumForces(dim_);
+    sumForces.Init();
+    
+    
+    
+    // loop over all output coupling quantities
+    for (Integer actCoupling=0; actCoupling<ptCoupling_->GetNumOutputCouplings(); actCoupling++)
+      {
+	quantity = ptCoupling_->GetOutputQuantity(actCoupling);
+	ptCoupling_->GetOutputValues(actCoupling, values);
+	
+	Vector<Double> const & temp = dynamic_cast<Vector<Double> &>(*values);
+	switch(ptCoupling_->GetOutputType(actCoupling))
+	  {
+	    
+	  case NODE:	  
+	    ptCoupling_->GetOutputNodes(actCoupling, couplingNodes);
+	    if (quantity == ELEC_FORCE_VWP)
+	      {
+		for (Integer iDof=0; iDof<dim_; iDof++)
+		  for (Integer iNode=0; iNode<couplingNodes->GetSize(); iNode++)
+		    sumForces[iDof] += temp[iNode*dim_ + iDof];
+		
+		*data << lasttimecalc_ << "\t";
+		for (Integer i=0; i<dim_; i++)
+		  *data << sumForces[i]<< "\t";
+		
+		*data << std::endl;
+		
+	      }
+	  } // switch
+      } // for
+  }
 
 #ifdef PARALLEL
     }//!commrank
@@ -538,12 +505,6 @@ void ElecPDE::CalcNodeForce(Vector<Double> & force,
   // write information in .info-file
   Info->PrintF(pdename_, "Sum of electrostatic force (VWM):");
   Info->PrintVec(sum);
-  *data << lasttimecalc_ << "\t";
-  for (Integer i=0; i<dim_; i++)
-    *data << sum[i]<< "\t";
-
-  *data << std::endl;
-      
       
 }
 
@@ -637,26 +598,26 @@ void ElecPDE::InitCoupling(PDECoupling * Coupling)
 
 #ifndef XMLPARAMS
   //check, if geometric nonlinearity is switched of by the user
-  geoUpdate_ = TRUE;
-  nonLin_    = TRUE;    //general nonlinear switch in basepde!
+  nonLin_ = TRUE    //general nonlinear switch in basepde!
   
   if (conf->get_optionNo("nonlingeo",  pdename_ ))
     {
-      geoUpdate_ = FALSE;
       nonLin_    = FALSE;  
     }
 #else
 
-    // ==============================================================
-    // NOTE: Currently we can only treat geometric non-linearity and
-    //       we assume that for a mechanic PDE all regions either
-    //       are linear or non-linear!
-    // ==============================================================
-    StdVector<std::string> nonLinRegion;
     nonLin_ = FALSE;
-    geoUpdate_ = TRUE;
 
-    
+    // NOTE: Since we have no switch for nonlinearities in the 
+    // electric PDE, the following section is obsolete
+
+//     // ==============================================================
+//     // NOTE: Currently we can only treat geometric non-linearity and
+//     //       we assume that for a mechanic PDE all regions either
+//     //       are linear or non-linear!
+//     // ==============================================================
+//     StdVector<std::string> nonLinRegion;
+
 //     params->GetList( "nonLinear", nonLinRegion, pdename_, "region" );
 //     // Should not happen with validating parser, but beware!
 //     std::cout << "nonlinSize: " << nonLinRegion.GetSize() << std::endl;
@@ -684,7 +645,6 @@ void ElecPDE::InitCoupling(PDECoupling * Coupling)
   StdVector<std::string> * neighRegions = NULL;
   //StdVector<Integer> numBoundaryNodes_tmp;
   StdVector<StdVector<Integer> > elemNodeToCouplingNode_tmp;
-
   F_Interface_.Resize(numCouplings);
   isBoundaryNode_.Resize(numCouplings);
   elemNodeToCouplingNode_.Resize(numCouplings);
@@ -695,6 +655,8 @@ void ElecPDE::InitCoupling(PDECoupling * Coupling)
       if (ptCoupling_->GetOutputQuantity(actCoupling) == ELEC_FORCE_VWP
 	  || ptCoupling_->GetOutputQuantity(actCoupling) == ELEC_INTERFACE_FORCE)
 	{
+
+	  
 	  ptCoupling_->GetOutputNodes(actCoupling, couplingnodes);
 	  if (couplingnodes == 0)
 	    std::cerr << "Couplingnodes = 0!!!!" << std::endl;
@@ -755,9 +717,6 @@ void ElecPDE::InitCoupling(PDECoupling * Coupling)
 	} // end if
             
     } // end for (actNode)
-
-
-  iterCoupledCounter_ = 0;
 }
   
 

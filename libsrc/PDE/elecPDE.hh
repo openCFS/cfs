@@ -46,10 +46,6 @@ namespace CoupledField
     // ======================================================
 
     //!
-    virtual void StepStaticNonLin(const Integer kstep, const Double asteptime,
-				  const Integer level, const Boolean reset);
-
-    //!
     virtual void PreStepStatic(const Integer kstep, const Double asteptime,
 			       const Integer level, const Boolean reset);
 
@@ -59,7 +55,11 @@ namespace CoupledField
 
     //! initialize time stepping: 
     //! nothing to do in electrostatics!
-    virtual void InitTimeStepping(const Double dt){};
+    virtual void InitTimeStepping(){};
+
+    //! set current time step
+    //! \params dt Current time step
+    virtual void SetTimeStep(const Double dt){};
 
     //!
     virtual void SolveStepTrans(const Integer kstep, const Double asteptime,
@@ -81,12 +81,7 @@ namespace CoupledField
 			       const Integer level)
     {PostStepStatic(kstep,asteptime,level);};
 
-    //!
-    virtual void StepTransNonLin(const Integer kstep, const Double asteptime,
-				 const Integer level, const Boolean reset)
-    {StepStaticNonLin(kstep,asteptime,level,reset);};
-
-
+   
     // ======================================================
     // POSTPROCESSING SECTION
     // ======================================================
