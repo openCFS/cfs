@@ -42,7 +42,7 @@
           <xsd:element name="damping" type="DT_PiezoDamp" minOccurs="0"/>
 
           <!-- Boundary Conditions & Loads (optional) -->
-          <xsd:element name="bcsAndLoads" minOccurs="0">
+          <xsd:element name="bcsAndLoads" minOccurs="0" maxOccurs="unbounded">
             <xsd:complexType>
               <xsd:sequence>
                 <xsd:element name="dirichletHom" type="DT_PiezoHD"
@@ -53,7 +53,7 @@
                              minOccurs="0" maxOccurs="unbounded"/>
                 <xsd:element name="load" type="DT_PiezoLoad" minOccurs="0"
                              maxOccurs="unbounded"/>
-                <xsd:element name="pressure" type="DT_MechPressure"
+                <xsd:element name="pressure" type="DT_PiezoPressure"
                              minOccurs="0" maxOccurs="unbounded"/>
               </xsd:sequence>
               <xsd:attribute name="tag" type="xsd:token" use="optional"
@@ -141,7 +141,7 @@
 
   <!-- Element type for pressure loads -->
   <!-- We derive it by extending the base type -->
-  <xsd:complexType name="DT_MechPressure">
+  <xsd:complexType name="DT_PiezoPressure">
     <xsd:complexContent>
       <xsd:extension base="DT_BCBasic">
         <xsd:attribute name="name" type="xsd:token" use="required"/>
