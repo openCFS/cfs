@@ -184,7 +184,16 @@ public:
     return Ddummy;
   }
 
-    //! form list with interface-elements neighbours
+  //! Calculates the surface normal pointing OUT OF the neighbouring
+  //! volume element
+  //! \param n (output) Normal vector
+  //! \param surfElem (input) Surface element
+  //! \param surfElem (input) Surface element
+  void CalcSurfNormalOutOfVol(Vector<Double> & n,
+			      const Elem & surfElem,
+			      const Elem & volElem);
+  
+  //! form list with interface-elements neighbours
   //! NOTE: an element is considered as neighbour, if both have 
   //! AT LEAST one common node
   /*!
