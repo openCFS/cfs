@@ -1,7 +1,7 @@
 #
 C_DIR= ../..
 #
-src = basecoupledpde.cc itercoupledpde.cc coupledpdedef.cc pdecoupling.cc
+src = basecoupledpde.cc itercoupledpde.cc coupledpdedef.cc pdecoupling.cc couplingmemento.cc
 #
 lib = coupledpde
 libpath = libsrc/CoupledPDE
