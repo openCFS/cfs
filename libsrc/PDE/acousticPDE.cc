@@ -307,7 +307,6 @@ namespace CoupledField {
       Matrix<Double> elemmat;
       bilinear_mass->CalcElementMatrix(ptCoord, elemmat);
       delete bilinear_mass;	  
-
       Vector<Double> sol;
       GetDerivSolVecOfElement(sol, connecth);
       

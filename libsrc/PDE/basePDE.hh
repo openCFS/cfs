@@ -484,8 +484,11 @@ class SpaceErrorEstimator;
     //! names of surfaces with inhomogeneous Robin boundary conditions
     StdVector<std::string> bcs_ri_;
 
-    //! values of solution at inhomogeneous Dirichlet boundaries
+    //! values of solution/magnitude at inhomogeneous Dirichlet boundaries
     StdVector<Double> val_id_;
+
+    //! values of phases at inhomogeneous Dirichlet boundaries
+    StdVector<Double> bcs_id_phase_;
 
     //! set, if BCs already set (shouldn't this better be a bool?)
     Integer updateBCs_;
