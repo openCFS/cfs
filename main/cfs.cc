@@ -27,7 +27,7 @@
 #include <DataInOut/SkeletonConf.hh>
 #include <Domain/GridCFS/interface_gridcfs.hh>
 #include <General/environment.hh>
-#include <Utils/storeSolution.hh>
+//#include <Utils/storeSolution.hh>
 
 
 #ifdef NETGEN
@@ -112,7 +112,8 @@ Integer main(int argc, char *argv[])
 
   FileType * ptInputfile=ptDefineFiles->Create_ptFileType();
 
-  WriteResults * ptOut=ptDefineFiles->Create_ptWriteResults();
+  WriteResults * ptOut=ptDefineFiles->Create_ptWriteResults(ptInputfile);
+  
 
   //	TimeFunc * ptTimeFunc=NULL;
   TimeFunc * ptTimeFunc = new TimeFunc(ptInputfile);
