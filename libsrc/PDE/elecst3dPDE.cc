@@ -95,27 +95,67 @@ Integer &numconstraints)
   numconstraints = 0;
 }
 
-
 void Elecst3dPDE::SetupMatrices(const Integer level)
 {
 #ifdef TRACE
   (*trace) << "entering Elecst3dPDE::SetupMatrices" << std::endl;
 #endif
+  
+  Matrix<Double> elemmat;
+  Point3D * ptCoord;
+
+  BaseElem * ptElem;
+
+  Integer matrix_stiff=2;
 
   Vector<Double> coeffst;
-  CalcCoeff(coeffst);
+  CalcCoeff(coeffst);  
 
- Integer i;
+  Vector<Integer> connecth;
+  std::vector<Elem> elemssd;
+
+  Integer i, j;
  for (i=0; i<subdoms_.size(); i++)
 {
-  PutElemMatAlgSysElst3d putelmatalgsys(ptalgsys_,ptgrid_,coeffst[i],as_sysid_,level);
+ ptgrid_->GetElemSD(elemssd,subdoms_[i],level);
 
-  ptgrid_->forEachElemSd(putelmatalgsys,subdoms_[i]);
+  for (j=0; j < elemssd.size(); j++)
+{  
+  std::cout << j << std::endl;
 
+  ptElem=elemssd[j].ptElem;
+
+  BaseForm<Point3D> * bilinear_stiff = new LaplaceInt<Point3D>(ptElem,1);
+
+  connecth=elemssd[j].connect;
+
+  ptCoord=new Point3D[connecth.size()];
+  ptgrid_->GetCoordNodesElem(connecth,ptCoord,level);
+
+  // stiffness part
+  bilinear_stiff->CalcElemMatrix(ptCoord, elemmat);
+  elemmat*=coeffst[i];
+
+  if (InfoPrint)
+   (*infofile) << elemmat << std::endl;
+
+#ifdef DEBUG
+      (*debug) << "Stiffnessmatrix, ElementNumber  " <<   i << std::endl;
+
+      (*debug) << elemmat << std::endl;
+#endif
+
+  ptalgsys_->PutElemMatAlgSys(elemmat.getinarray(), connecth.get(), connecth.size(), as_sysid_, as_sysid_, matrix_stiff);
+
+  delete bilinear_stiff;
+  delete [] ptCoord;
+}     
 }
 
+#ifdef TRACE
+  (*trace) << "Leaving Elecst3dPDE::SetupMatrices" << std::endl;
+#endif
 }
-
 
 void Elecst3dPDE::SetBCs(BCs * ptBCs, const Integer level, const Integer update, const Double atime)
 {
@@ -255,6 +295,29 @@ Elecst3dPDE::~Elecst3dPDE()
  ;
 }
 
+} // end of namespace
+
+/*
+void Elecst3dPDE::SetupMatrices(const Integer level)
+{
+#ifdef TRACE
+  (*trace) << "entering Elecst3dPDE::SetupMatrices" << std::endl;
+#endif
+
+  Vector<Double> coeffst;
+  CalcCoeff(coeffst);
+
+ Integer i;
+ for (i=0; i<subdoms_.size(); i++)
+{
+  PutElemMatAlgSysElst3d putelmatalgsys(ptalgsys_,ptgrid_,coeffst[i],as_sysid_,level);
+
+  ptgrid_->forEachElemSd(putelmatalgsys,subdoms_[i]);
+
+}
+
+}
+
 void PutElemMatAlgSysElst3d::operator()(Elem t)
 {
   Matrix<Double> elemmat;
@@ -279,70 +342,5 @@ void PutElemMatAlgSysElst3d::operator()(Elem t)
   delete bilinear_stiff;
   delete [] ptCoord;
    
-}
-
-} // end of namespace
-
-/*
-void Elecst3dPDE::SetupMatrices(const Integer level)
-{
-#ifdef TRACE
-  (*trace) << "entering Elecst3dPDE::SetupMatrices" << std::endl;
-#endif
-  
-  Matrix<Double> elemmat;
-  Point3D * ptCoord;
-
-  BaseElem * ptElem;
-
-  Integer matrix_stiff=2;
-
-  Vector<Double> coeffst;
-  CalcCoeff(coeffst);  
-
-  Vector<Integer> connecth;
-  std::vector<Elem> elemssd;
-
-  Integer i, j;
- for (i=0; i<subdoms_.size(); i++)
-{
- ptgrid_->GetElemSD(elemssd,subdoms_[i],level);
-
-  for (j=0; j < elemssd.size(); j++)
-{  
-  std::cout << j << std::endl;
-
-  ptElem=elemssd[j].ptElem;
-
-  BaseForm<Point3D> * bilinear_stiff = new LaplaceInt<Point3D>(ptElem,1);
-
-  connecth=elemssd[j].connect;
-
-  ptCoord=new Point3D[connecth.size()];
-  ptgrid_->GetCoordNodesElem(connecth,ptCoord,level);
-
-  // stiffness part
-  bilinear_stiff->CalcElemMatrix(ptCoord, elemmat);
-  elemmat*=coeffst[i];
-
-  if (InfoPrint)
-   (*infofile) << elemmat << std::endl;
-
-#ifdef DEBUG
-      (*debug) << "Stiffnessmatrix, ElementNumber  " <<   i << std::endl;
-
-      (*debug) << elemmat << std::endl;
-#endif
-
-  ptalgsys_->PutElemMatAlgSys(elemmat.getinarray(), connecth.get(), connecth.size(), as_sysid_, as_sysid_, matrix_stiff);
-
-  delete bilinear_stiff;
-  delete [] ptCoord;
-}     
-}
-
-#ifdef TRACE
-  (*trace) << "Leaving Elecst3dPDE::SetupMatrices" << std::endl;
-#endif
 }
 */

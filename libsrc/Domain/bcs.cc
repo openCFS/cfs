@@ -43,10 +43,11 @@ void BCs :: ReadBCs()
 #endif
 
  InFile_->ReadBCs(bcs_[0],levels_);
+ toplevel_=0;
 
 }
 
-std::list<Integer> BCs::GetNodesLevel(const std::string level, const Integer lev)
+std::list<Integer> BCs::GetNodesLevel(const std::string color, const Integer lev)
 {
 #ifdef TRACE
   (*trace) << "entering BCs::GetNodesLevel" << std::endl;
@@ -54,13 +55,13 @@ std::list<Integer> BCs::GetNodesLevel(const std::string level, const Integer lev
  
  Integer i;
  for (i=0; i<levels_.size(); i++)
-  if (level==levels_[i]) break;
+  if (color==levels_[i]) break;
 
  return bcs_[lev][i];
  
 }
 
-Integer BCs::GetNumNodesLevel(const std::string level, const Integer lev)
+Integer BCs::GetNumNodesLevel(const std::string color, const Integer lev)
 {
 #ifdef TRACE
   (*trace) << "entering BCs::GetNumNodesLevel" << std::endl;
@@ -68,15 +69,35 @@ Integer BCs::GetNumNodesLevel(const std::string level, const Integer lev)
 
  Integer i;
  for (i=0; i<levels_.size(); i++)
-  if (level==levels_[i]) break;
+  if (color==levels_[i]) break;
 
  return bcs_[lev][i].size();
 
 }
 
 void BCs :: Update(Grid * ptgrid)
+{   
+    bcs_[toplevel_+1]=new std::list<Integer>[levels_.size()]; 
+    if (bcs_[toplevel_+1]) Error(" Not enought memory",__FILE__,__LINE__); 
+
+    ptgrid->UpdateBCs(bcs_[toplevel_],bcs_[toplevel_+1],levels_);
+    toplevel_++;  
+}
+
+void BCs :: printBCs(const Integer alevel)
 {
-   ;
+  Integer level=alevel;
+  if (level==-1) level=toplevel_;
+
+  
+
+  Integer i;
+  for (i=0; i<levels_.size(); i++)
+    {
+      std::cout << levels_[i] << std::endl;
+      for (std::list<Integer>::const_iterator p=bcs_[level][i].begin(); p!=bcs_[level][i].end(); p++)
+	{ std::cout << (*p) << std::endl;} 
+    } 
 }
 
 }

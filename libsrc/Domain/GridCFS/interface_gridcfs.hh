@@ -53,11 +53,11 @@ public:
    void GetCoordNodesElem(const Vector<Integer> connect,Dim * ptCoord, const Integer level)
   { ptGridCFS->GetCoordNodesElem(connect, ptCoord, level);}
     
-  virtual void forEachElemSd(PutElemMatInAlgSys & f,const std::string subdomain) { ptGridCFS->forEachElemSd(f,subdomain);}
+//   virtual void forEachElemSd(PutElemMatInAlgSys & f,const std::string subdomain) { ptGridCFS->forEachElemSd(f,subdomain);}
 
   
- virtual void forEachElemSd(PutElemMatAlgSysElst3d & f,const std::string subdomain)
-{ ptGridCFS->forEachElemSd(f,subdomain);}
+//  virtual void forEachElemSd(PutElemMatAlgSysElst3d & f,const std::string subdomain)
+// { ptGridCFS->forEachElemSd(f,subdomain);}
 
 protected:
 private:

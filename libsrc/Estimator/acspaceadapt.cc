@@ -4,8 +4,9 @@
 #include <math.h>
 
 #include "acspaceadapt.hh"
-#include "grid.hh"
 #include "acoustic2dPDE.hh"
+
+#include "interface_adgrid.hh"
 
 namespace CoupledField
 {
@@ -45,6 +46,15 @@ Double AcousticSpaceErrorEstimator::CalcLocError(const Integer iElem)
 
 }
 
+Boolean AcousticSpaceErrorEstimator::TestLocError(grd::Element * t)
+{
+#ifdef TRACE
+  (*trace) << "entering AcousticSpaceErrorEstimator::TestLocError" << std::endl;
+#endif
+
+  return TRUE;
+}
+
 Boolean AcousticSpaceErrorEstimator::TestError()
 {
 #ifdef TRACE
@@ -70,14 +80,20 @@ Boolean AcousticSpaceErrorEstimator::TestError()
 void  AcousticSpaceErrorEstimator::RefineMesh()
 {
 
- Integer levelGrid=ptGrid_->GetLastLevel();
+  std::vector<std::string> * listSDs=ptPDE_->getSDsPDE();
 
- std::vector<Integer> elems2refinement;
- DefineRefinedElems(levelGrid, elems2refinement);
+  Integer i;
+  SetRefFlag f(this);
+  for(i=0; i<(*listSDs).size(); i++)
+    ptGrid_->forEachElemSd(f,(*listSDs)[i]);
+//  Integer levelGrid=ptGrid_->GetLastLevel();
 
- ptGrid_->SetRefinementFlag(elems2refinement);
+//  std::vector<Integer> elems2refinement;
+//  DefineRefinedElems(levelGrid, elems2refinement);
 
- ptGrid_->Refine();
+//  ptGrid_->SetRefinementFlag(elems2refinement);
+
+//  ptGrid_->Refine();
 }
 
 void AcousticSpaceErrorEstimator::DefineRefinedElems(const Integer level, std::vector<Integer> & elems2ref)

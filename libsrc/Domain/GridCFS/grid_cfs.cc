@@ -9,9 +9,6 @@
 #include "baseelem.hh"
 #include "conffile.hh"
 
-#include "acoustic2dPDE.hh"
-#include "elecst3dPDE.hh"
-
 namespace CoupledField
 {
 
@@ -43,8 +40,6 @@ void GridCFS<Point2D> :: Read()
 
   InFile->ReadEl(elems_,sd_);
   
-  std::cout << " size " << elems_[0].size() << std::endl;
-
 #ifdef TRACE
   (*trace) << "leaving GridCFS::Read" << std::endl;
 #endif
@@ -69,6 +64,131 @@ void GridCFS<Point3D> :: Read()
   (*trace) << "leaving GridCFS::Read" << std::endl;
 #endif
 }
+
+#ifdef ADAPTGRID
+template<>
+void GridCFS<Point2D>:: putNodesFromGrid_RG(grd::MultilevelGrid * grid, const Integer level)
+{
+#ifdef TRACE
+  (*trace) << "entering GridCFS::putNodesFromGrid_R" << std::endl;
+#endif
+
+ Integer maxnumnodes= (*grid).getNoOfVertices();
+ std::cerr << "Tot. no. of nodes: " << maxnumnodes << '\n';
+ maxnumnodes_=maxnumnodes;
+ ptCoordinate_=new Point2D[maxnumnodes];
+
+  typedef std::list<grd::Vertex*>::iterator VerI;  
+  
+  Double * ps;
+  Integer ilev, i=0;
+  Integer topLevel = grid->getTopLevel();
+  for (ilev=0; ilev<=topLevel; ilev++)
+    {
+  std::list<grd::Vertex*> *le=(*grid).getGridLevel(ilev)->getVertexList();
+
+  for (VerI p=le->begin(); p!=le->end(); ++p) 
+  {
+    Integer index = (*p)->getId();
+    index--;
+    ps=(*p)->getPosition();
+    ptCoordinate_[index].x=ps[0];
+    ptCoordinate_[index].y=ps[1];
+    i++;
+  }
+    }
+} // end of function putNodesFromGrid_RG
+
+template<>
+void GridCFS<Point3D>:: putNodesFromGrid_RG(grd::MultilevelGrid * grid, const Integer level)
+{
+#ifdef TRACE
+  (*trace) << "entering GridCFS::putNodesFromGrid_R" << std::endl;
+#endif
+  ;
+}
+
+template<>
+void GridCFS<Point2D>:: putElemsFromGrid_RG(grd::MultilevelGrid * grid, const Integer level)
+{
+#ifdef TRACE
+  (*trace) << "entering GridCFS::putElemsNodesFromGrid_R" << std::endl;
+#endif
+
+  typedef std::list<grd::Element*>::iterator ElmI;
+  ElmI p;
+
+ Integer i, j, nnodes, count=0,startId=1;
+ if (level==0) startId=0;
+
+ std::list<grd::Element*> *le;
+ std::list<grd::Element*> ** lt;
+
+ Elem el;
+
+ //// Achtung !!! Nur Triangles !!!
+ Integer noOfLevels=grid->getNoOfLevels();
+ for (j=0; j<noOfLevels; j++)
+ {
+   std::cerr << "Processing level " << j << '\n';
+   le=(grid->getGridLevel(j))->getTriangleList();
+
+   for ( p=le->begin() ; p!= le->end(); ++p, count++) 
+   {
+     if ((*p)->isRegular()) {
+       Integer nnodes=(*p)->getNoOfVertices();
+
+       el.ptElem=ptTr;
+       el.connect.Resize(nnodes);
+       for (i=0; i<nnodes; i++)
+       {
+         el.connect[i]=((*p)->getVertex(i))->getId();
+       }    
+
+       Integer sd=(*p)->getValue();
+       if (sd >= sd_.size()) Error(" Value in element from Grid_RG is incorrect",__FILE__,__LINE__);
+
+       el.namesd=sd_[sd];
+
+       elems_[sd].push_back(el);  
+     } // if isRegular
+     else if ((*p)->isIrregular()) {
+       grd::ConformingClosure closure;
+       typedef grd::ConformingClosure::triangleIterator TriI;
+       (*p)->close(closure);
+       for (TriI tri = closure.beginTriangle(); tri != closure.endTriangle(); ++tri) {
+	  Integer nnodes=(*tri)->getNoOfVertices();
+
+	  el.ptElem=ptTr;
+	  el.connect.Resize(nnodes);
+	  for (i=0; i<nnodes; i++) {
+	    el.connect[i]=((*tri)->getVertex(i))->getId();
+	  } 
+
+	  Integer sd=(*tri)->getValue();
+	  if (sd >= sd_.size()) Error(" Value in element from Grid_RG is incorrect",__FILE__,__LINE__);
+
+	  el.namesd=sd_[sd];
+
+	  elems_[sd].push_back(el);
+       } // for tri
+     } // else if isIrregular
+   } // for element
+ } // for level
+} // end of function 
+
+template<>
+void GridCFS<Point3D>:: putElemsFromGrid_RG(grd::MultilevelGrid * grid, const Integer level)
+{
+#ifdef TRACE
+  (*trace) << "entering GridCFS::putElemsNodesFromGrid_R" << std::endl;
+#endif
+
+  ;
+}
+
+
+#endif // end of ADAPTGRID
 
 template< class Dim>
 void GridCFS<Dim>::GetConnection(Vector<Integer> & connection, const Integer iElem, const Integer level)
@@ -108,6 +228,39 @@ void GridCFS<Dim> :: GetElemSD(std::vector<Elem> & els, const std::string sd, co
 
 }
 
+template<class Dim>
+void  GridCFS<Dim> :: GetCoordNodesElem(const Vector<Integer> connect, Dim * ptCoord, const Integer level)
+{
+#ifdef TRACE
+  (*trace) << "entering GridCFS :: GetCoordinateNode" << std::endl;
+#endif
+
+  Integer k;
+  for (k=0; k < connect.size(); k++)
+       ptCoord[k]=ptCoordinate_[connect[k]-1];
+ 
+}
+
+template<class Dim>
+GridCFS<Dim> ::~GridCFS() 
+{ if (ptCoordinate_) delete [] ptCoordinate_;
+  if (elems_) delete [] elems_;
+}
+
+template<class Dim>
+Integer GridCFS<Dim>::GetMaxnumElem(const Integer numlevel)
+{
+ Integer i;
+ Integer res=0;
+ for (i=0; i<sd_.size(); i++)
+  res+=elems_[i].size();
+
+ return res;
+}
+
+} // end namespace
+
+/*
 template<class Dim>
 void GridCFS<Dim>::forEachElemSd(PutElemMatInAlgSys & f,const std::string subdomain)
 {
@@ -163,35 +316,4 @@ void GridCFS<Dim>::forEachElemSd(PutElemMatAlgSysElst3d & f,const std::string su
   (*trace) << "leaving iterator GridCFS::forEachElemSD" << std::endl;
 #endif
 }
-
-template<class Dim>
-void  GridCFS<Dim> :: GetCoordNodesElem(const Vector<Integer> connect, Dim * ptCoord, const Integer level)
-{
-#ifdef TRACE
-  (*trace) << "entering GridCFS :: GetCoordinateNode" << std::endl;
-#endif
-
-  Integer k;
-  for (k=0; k < connect.size(); k++)
-       ptCoord[k]=ptCoordinate_[connect[k]-1];
- 
-}
-
-template<class Dim>
-GridCFS<Dim> ::~GridCFS() 
-{ if (ptCoordinate_) delete [] ptCoordinate_;
-  if (elems_) delete [] elems_;
-}
-
-template<class Dim>
-Integer GridCFS<Dim>::GetMaxnumElem(const Integer numlevel)
-{
- Integer i;
- Integer res=0;
- for (i=0; i<sd_.size(); i++)
-  res+=elems_[i].size();
-
- return res;
-}
-
-} // end namespace
+*/

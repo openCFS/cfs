@@ -161,16 +161,12 @@ void Domain :: InitAlgSys(const Integer level)
   Integer insys;
   Integer numeqcoarse;
 
-  std::cout << " a " << std::endl;
-
   for (insys=0;insys<numsys_;insys++)
     {
       ptpde_[insys]->SetAlgSys_id(insys);
       ptpde_[insys]->SpecifySolver(solvertype,precondtype,eps,dampiter,maxnumit,numeqcoarse);
       ptalgsys_->SetSolverParameter(insys,eps,dampiter,maxnumit,solvertype,precondtype,  numeqcoarse);
     }
-
-  std::cout << " b " << std::endl;
 
   //init the algsys-graph
   Integer numnode = ptgrid_->GetMaxnumnodes(level);

@@ -4,6 +4,11 @@
 #include "filetype.hh"
 #include "grid.hh"
 
+#include "grid_cfs.hh"
+#include "spaceerror.hh"
+
+#include "bcs.hh"
+
 // from Adapt Grid
 #include "Vertex.h"
 #include "Edge.h"
@@ -18,7 +23,10 @@
 
 namespace CoupledField
 {
- 
+
+class SetRefFlag;
+class SetRefFlagTest;
+
 /// Interface to library Grid by Roberto G.
 template<class Dim>
 class InterfaceAdaptGrid: public Grid
@@ -29,7 +37,7 @@ public:
 
   /// Deconstructor
   virtual ~InterfaceAdaptGrid();
-  
+
    /// Uniform subdivision of domain
   virtual void SubdivideUniform(const Integer level);
 
@@ -51,21 +59,38 @@ public:
   /// Put information about initial grid in mesh
   virtual void Read();
 
+  // update nodes for boundary conditions
+  virtual void UpdateBCs(std::list<Integer> * data, std::list<Integer> * result, std::vector<std::string> );
+
+  // prolongation of solution
+  void ProlongSol(Vector<Double>& sol,const Integer alevel);
   ///
   virtual Integer GetDim() { return dim_; } // 
-   
+  
+  ///
+  virtual void GetElemSD(std::vector<Elem> &, const std::string sd, const Integer level);
+
   //! Here we mark elements for refinement: ei - number of elem
   virtual void SetRefinementFlag(const Integer ei);
   virtual void SetRefinementFlag(const std::vector<Integer> ei);  
 
   //! Do refinement of elements, which we mark through function SetRefinementFlag
   virtual void Refine();
+  virtual void TestRefine();
+  virtual void TestCoarse();
 
-  virtual void forEachElemSd(PutElemMatInAlgSys & f,const std::string subdomain);
-  virtual void forEachElemSd(PutElemMatAlgSysElst3d & f,const std::string subdomain);
+  //!
+  void forEachElemSd(SetRefFlag & f,const std::string subdomain);
+  void forEachElemSd(SetRefFlagTest & f,const std::string subdomain);
 
+//   virtual void forEachElemSd(PutElemMatInAlgSys & f,const std::string subdomain);
+//   virtual void forEachElemSd(PutElemMatAlgSysElst3d & f,const std::string subdomain);
+
+  //!
+ void  Trans2CFSGrid(const Integer level=-1);
 
 private:
+  BCs * ptBCs;
   //! 
   FileType * ptFileType;
       
@@ -73,11 +98,51 @@ private:
   grd::MultilevelGrid grid_;
 
   //!
+  GridCFS<Dim> * ptgridcfs_;
+
+  //!
   Integer dim_;
 
   //!
   std::vector<grd::Vertex*> vertex_;
   std::vector<grd::Element*> elems_;
+
+  //!
+  grd::ConformingClosure closure_;  
+
+  //!
+  void SetVertexNumbers();
+};
+
+class SetRefFlag
+{
+public:
+
+  SetRefFlag(SpaceErrorEstimator * apt){ ptError_=apt;}
+  ~SetRefFlag(){;}
+
+ void operator() (grd::Element * t)
+ {
+  if (ptError_->TestLocError(t)) t->markForRefinement();
+ }
+
+private:
+ 
+  SpaceErrorEstimator * ptError_;
+
+};
+
+class SetRefFlagTest
+{
+public:
+
+  SetRefFlagTest(){;}
+  ~SetRefFlagTest(){;}
+
+ void operator() (grd::Element * t)
+ {
+   t->markForRefinement();
+ }
 
 };
 

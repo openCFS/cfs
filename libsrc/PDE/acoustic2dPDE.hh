@@ -9,7 +9,7 @@ namespace CoupledField
 
   //! Class for acoustic equation
   /*! 
-    This class is derived from class BasePDE. It is used for solving acoustic equation on one time step. In this class we work with complex WorkWithSystemMatrix. When we create object of this class, we determine what kind of matrix should be system matrix, for example, sparse matrix, band matrix or so on. We set rules for assembling global system matrix according to weak form of PDE, define right hand side and set boundary conditions. Then we cause one of methods of LinSystem for solving linear system. On the last step we calculate first and second derivatives of the solution.
+    This class is derived from class BasePDE. It is used for solving acoustic equation on one time step.  We set rules for assembling global system matrix according to weak form of PDE, define right hand side and set boundary conditions. Then we cause one of methods of LinSystem for solving linear system. On the last step we calculate first and second derivatives of the solution.
   */
 
 class Acoustic2dPDE: virtual public BasePDE
@@ -131,38 +131,38 @@ private:
 
 };
 
-class PutElemMatInAlgSys
-{
-public:
+// class PutElemMatInAlgSys
+// {
+// public:
 
-  PutElemMatInAlgSys(AbstractAlgebraicSys * aptalgsys, Grid * aptgrid, const Double acoeffm, const Double acoeffs, const Integer as_sysid, const Integer alevel)
-  { sysid_=as_sysid; ptalgsys_=aptalgsys; ptgrid_=aptgrid;
-    coeffm_=acoeffm; coeffs_=acoeffs; level_=alevel;
-    matrix_stiff_=2;  matrix_mass_=5; }
+//   PutElemMatInAlgSys(AbstractAlgebraicSys * aptalgsys, Grid * aptgrid, const Double acoeffm, const Double acoeffs, const Integer as_sysid, const Integer alevel)
+//   { sysid_=as_sysid; ptalgsys_=aptalgsys; ptgrid_=aptgrid;
+//     coeffm_=acoeffm; coeffs_=acoeffs; level_=alevel;
+//     matrix_stiff_=2;  matrix_mass_=5; }
 
-  ~PutElemMatInAlgSys() {}
+//   ~PutElemMatInAlgSys() {}
 
-  // method
-  void operator() (Elem t);
+//   // method
+//   void operator() (Elem t);
 
-private:
+// private:
 
-     //!
-  Grid * ptgrid_;
+//      //!
+//   Grid * ptgrid_;
 
-     //!
-  AbstractAlgebraicSys * ptalgsys_;
+//      //!
+//   AbstractAlgebraicSys * ptalgsys_;
 
-     //!
-  Integer sysid_, level_;
+//      //!
+//   Integer sysid_, level_;
 
-     //!
-  Double coeffm_, coeffs_;
+//      //!
+//   Double coeffm_, coeffs_;
 
-  //!
-  Integer matrix_stiff_, matrix_mass_;
+//   //!
+//   Integer matrix_stiff_, matrix_mass_;
 
-};
+// };
 
 } // end of namespace
 #endif
