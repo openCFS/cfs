@@ -41,7 +41,17 @@
           </xsd:element>
 
           <!-- Type of FlowData (optional) -->
-          <xsd:element name="flowData" type="DT_FlowData" minOccurs="0"/>
+          <xsd:element name="flowData" minOccurs="0">
+            <xsd:complexType>
+              <xsd:attribute name="type" use="required">
+                <xsd:simpleType>
+                  <xsd:restriction base="xsd:token">
+                    <xsd:enumeration value="nodalSrc"/>
+                  </xsd:restriction>
+                </xsd:simpleType>
+              </xsd:attribute>
+            </xsd:complexType>
+          </xsd:element>
 
           <!-- Time Stepping Formulation (optional)-->
           <xsd:element name="timeSteppingFormulation"
@@ -112,10 +122,6 @@
       <xsd:enumeration value="nodalSrc"/>
     </xsd:restriction>
   </xsd:simpleType>
-
-  <xsd:complexType name="DT_FlowData">
-    <xsd:attribute name="type" type="DT_FlowDataType" use="required"/>
-  </xsd:complexType>
 
   <!-- ******************************************************************** -->
   <!--   Definition of the boundary condition types for acoustics -->
