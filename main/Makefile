@@ -335,7 +335,7 @@ depend:
         fi); done
 	makedepend $(INCL) -fMakefile.depend cfs.cc
 
-depend-cleanfile:
+clean-depend:
 	@for n in $(PATHSUBLIBDIR);do \
         (if cd $$n; \
                      then $(MAKE) $@;\
