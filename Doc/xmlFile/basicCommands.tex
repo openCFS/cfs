@@ -53,21 +53,26 @@ To specify the name of the material file, the command
 \end{verbatim}
 must be used. The default name for the material file is {\bf mat.dat}.
 
-
+%
+% =============================================================================
+% TYPES OF ANALYSIS
+% =============================================================================
+%
 \section{Analysis Techniques}\label{subsec:Analysis}
 In the config-file, the command defining the analysis type reads as
 
-{\bf $<$analysis type=''TYPE''/$>$}
+\textbf{$<$analysis type=''TYPE''/$>$}
 
 \noindent
-where {\bf TYPE} can be chosen one of
-{\bf
+where {\bf TYPE} can be chosen as one of
 \begin{itemize} 
-\item transient 
-\item static
-\item harmonic
-\item eigenfrequency
-\end{itemize}}
+\item \textbf{transient}
+\item \textbf{static}
+\item \textbf{harmonic}
+\item \textbf{multiSequence}
+\item \textbf{paramIdent}
+\item \textbf{eigenfrequency}\footnote{This is currently not implemented.}
+\end{itemize}
 
 
 \subsection{Static Analysis}
@@ -76,7 +81,7 @@ For static analysis, no additional information beside the command
 {\bf \verb!<analysis type="static"/>!}
 
 \noindent
-are needed.
+is needed.
 
 \subsection{Transient Analysis}
 
@@ -120,7 +125,62 @@ timeVal3          funcVal3
 ...
 \end{verbatim}
 
+\subsection{Multi--Sequence Analysis}
+%
+%
+The idea of multi-sequence analysis is to allow the user to combine different
+types of analyses in one program run. It might, e.g.~be sensible to combine a
+static and a transient analysis in order to compute the pre--stress in a
+mechanically clamped piezoelectric material, before starting a transient
+computation, or to perform several static computations one after the other,
+where different aspects, like e.g.~coils are sucessively added to the setup.
 
+In order to perform a multi sequence run the following steps need to be
+performed:
+%
+%
+\begin{itemize}
+\item The type of analysis in the \xml{analysis} element must be set to
+      \xml{multiSequence}.
+\item A multiSequence block like, e.g.~the following must be inserted into
+      the XML parameter file
+\begin{verbatim}
+<multiSequence>
+  <step>
+    <pde type="electrostatic" analysis="static" tag="elecStep1"/>
+    <pde type="mechanic" analysis="static" tag="mechStep1"/>
+  </step>
+  <step>
+    <pde type="electrostatic" analysis="transient" tag="elecStep2"/>
+    <pde type="mechanic" analysis="transient" tag="mechStep2"/>
+  </step>
+</multiSequence>
+\end{verbatim}
+      The multiSequence driver will read this parameter block and perform
+      an analysis for each \xml{step} element in the sequence of their
+      occurence. The \xml{tag} attribute specified in each \xml{pde}
+      subelement is a symbolic name that should be unique. It is used to
+      locate the appropriate boundary conditions or transient parameters etc.
+      for this step in the file.
+\item In order to specify for each step different boundary conditions or
+      transient parameters the corresponding elements can be tagged with a
+      \xml{tag} attribute. In order to specify different parameters for
+      different steps the element must be given several times and the
+      \xml{tag} must be chosen accordingly.
+
+      It is also possible to give the \xml{tag} attribute the special value
+      \xml{anyTag}. This is also the default value, since the \xml{tag}
+      attribute is optional. The \xml{anyTag} value indicates that the
+      parameters are valid for all steps of the multi sequence analysis.
+
+      A third possibility is to give the \xml{tag} attribute not a single
+      value, but a list of different values, like
+      e.g.~\xml{step1, step4, step5}. This can be used to 'turn on' this
+      specific parameter setting for all PDEs in those steps with the
+      corresponding tags.
+\end{itemize}
+%
+%
 \section{List of PDEs}
 Inside the config file command
 \begin{verbatim}
