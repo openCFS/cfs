@@ -929,22 +929,38 @@ void ElecPDE::ReadStoreResults() {
   savederiv1_ = FALSE;
   savederiv2_ = FALSE;
 
-  // Determine regions for which electric field and/or energy must be computed
-  params->GetValsForHits( "region", calcEfield_, "type", "efield", pdename_,
-			  "elemResults" );
-  // by default, "all" is given as only argument
-  if (calcEfield_.size()==1)
-    if (calcEfield_[0] == "all")
-      calcEfield_ = subdoms_;
+  // Determine regions for which electric field must be computed
+  params->CGetList( "region", calcEfield_, "type", "efield", pdename_,
+		    "elemResults" );
 
+  // If the the symbolic name is "all" compute electric field for all regions
+  if ( calcEfield_.size() == 1 && calcEfield_[0] == "all" ) {
+    calcEfield_ = subdoms_;
+  }
 
-  params->GetValsForHits( "region", calcEnergy_, "type", "energy", pdename_,
-			  "storeResults" );
+  if ( calcEfield_.size() > 0 ) {
+    Info->PrintF( pdename_, " Computing electric field for regions:" );
+    for ( Integer k = 0; k < calcEfield_.size(); k++ ) {
+      Info->PrintF( pdename_, " %s", calcEfield_[k].c_str() );
+    }
+  }
 
-  // by default, "all" is given as only argument
-  if (calcEnergy_.size()==1)
-    if (calcEnergy_[0] == "all")
-      calcEnergy_ = subdoms_;
+  // Determine regions for which energy must be computed
+  params->CGetList( "region", calcEnergy_, "type", "energy", pdename_,
+		    "elemResults" );
+
+  // If the the symbolic name is "all" compute energy for all regions
+  if ( calcEnergy_.size() == 1 && calcEnergy_[0] == "all" ) {
+    calcEnergy_ = subdoms_;
+  }
+
+  if ( calcEnergy_.size() > 0 ) {
+    Info->PrintF( pdename_, " Computing energy for regions:" );
+    for ( Integer k = 0; k < calcEnergy_.size(); k++ ) {
+      Info->PrintF( pdename_, " %s", calcEnergy_[k].c_str() );
+    }
+  }
+
 }
 #endif
 
