@@ -981,7 +981,17 @@ void ElecPDE::ReadStoreResults() {
   // Determine nodal results
   // *****************************
 
-  // -- nothing to do here --
+  // --- Electric Potential ---
+  StdVector<std::string> nodeValues;
+  Enum2String(ELEC_POTENTIAL, quantity);
+  keyVec  = pdename_, "storeResults", "nodeResults", "region";
+  attrVec = "", "", "type";
+  valVec = "", "", quantity;
+  params->GetList( keyVec, attrVec, valVec, nodeValues);
+  if (nodeValues.GetSize() > 0) {
+    saveSol_ = TRUE;
+   	hasOutput_ = TRUE;
+  }
   
   // *****************************
   // Determine element results
@@ -1000,6 +1010,7 @@ void ElecPDE::ReadStoreResults() {
   }
 
   if ( calcEfield_.GetSize() > 0 ) {
+   	hasOutput_ = TRUE;
     Info->PrintF( pdename_, " Computing electric field for regions:" );
     for ( Integer k = 0; k < calcEfield_.GetSize(); k++ ) {
       Info->PrintF( pdename_, " %s", calcEfield_[k].c_str() );
@@ -1023,6 +1034,7 @@ void ElecPDE::ReadStoreResults() {
   }
 
   if ( calcEnergy_.GetSize() > 0 ) {
+   	hasOutput_ = TRUE;
     Info->PrintF( pdename_, " Computing energy for regions:" );
     for ( Integer k = 0; k < calcEnergy_.GetSize(); k++ ) {
       Info->PrintF( pdename_, " %s", calcEnergy_[k].c_str() );
@@ -1036,6 +1048,7 @@ void ElecPDE::ReadStoreResults() {
 
   if (calcCharges_.GetSize() > 0)
     {
+   	hasOutput_ = TRUE;
      Info->PrintF( pdename_,
 		   " Computing electric charges for regions:");
      for ( Integer k = 0; k < calcCharges_.GetSize(); k++ ) {
@@ -1064,6 +1077,7 @@ void ElecPDE::ReadStoreResults() {
   
   if (saveNodeHist.GetSize() > 0) {
     saveSolHist_ = TRUE;
+   	hasOutput_ = TRUE;
     Info->PrintF( pdename_, " Saving ElecPotential for Nodes:" );
     for ( Integer k = 0; k < saveNodeHist.GetSize(); k++ ) {
       Info->PrintF( pdename_, " %s", saveNodeHist[k].c_str() );
@@ -1079,7 +1093,7 @@ void ElecPDE::ReadStoreResults() {
   valVec = "", "", "";
   params->GetList(keyVec, attrVec, valVec, saveElemHist);
   
-  if (saveElemHist.GetSize() < 0) {
+  if (saveElemHist.GetSize() > 0) {
     std::string errMsg = pdename_;
     errMsg += ": Saving history elements is not implemented yet!\n";
     errMsg += "Meanwhile you can use 'unvtool' to extract element data.";

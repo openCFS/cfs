@@ -758,6 +758,15 @@ void AcousticPDE::ReadStoreResults() {
   keyVec  = pdename_, "storeResults", "nodeResults", "region";
   attrVec = "", "", "type";  
     
+  // --- Acou Potential ---
+  Enum2String(ACOU_POTENTIAL, quantity);
+  valVec = "", "", quantity;
+  params->GetList( keyVec, attrVec, valVec, nodeValues);
+  if (nodeValues.GetSize() > 0) {
+  	saveSol_ = TRUE;
+	hasOutput_ = TRUE;
+  }
+    
   // --- Acou Potential, 1. Deriv ---
   Enum2String(ACOU_POTENTIAL_DERIV_1, quantity);
   valVec = "", "", quantity;
@@ -780,7 +789,8 @@ void AcousticPDE::ReadStoreResults() {
   params->GetList( keyVec, attrVec, valVec, nodeValues);
   if (nodeValues.GetSize() > 0) {
 	saveDeriv2_ = TRUE;
-      
+    hasOutput_ = TRUE;
+    	  
 	// intialize corresponding storesolution object
 	solDeriv2_.SetNumSolutions(1);
 	solDeriv2_.SetNumNodes(numPDENodes_);
@@ -809,14 +819,8 @@ void AcousticPDE::ReadStoreResults() {
   params->GetList( keyVec, attrVec, valVec, saveNodeHist );
     
   if (saveNodeHist.GetSize() > 0) {
-	if (saveSol_ == FALSE) {
-	  std::string errMsg = pdename_;
-	  errMsg += ": History of ";
-	  errMsg += quantity + " can only be written, if it is activated ";
-	  errMsg += "in section 'nodalResults', too.";
-	  Error(errMsg.c_str(), __FILE__, __LINE__);
-	}
 	saveSolHist_ = TRUE;
+	hasOutput_ = TRUE;
 	Info->PrintF( pdename_, "Saving acouPotential for Nodes:\n" );
 	for ( Integer k = 0; k < saveNodeHist.GetSize(); k++ ) {
 	  Info->PrintF( pdename_, "  %s\n", saveNodeHist[k].c_str() );
@@ -829,14 +833,8 @@ void AcousticPDE::ReadStoreResults() {
   params->GetList( keyVec, attrVec, valVec, saveNodeHist );
     
   if (saveNodeHist.GetSize() > 0) {
-	if (saveDeriv1_ == FALSE) {
-	  std::string errMsg = pdename_;
-	  errMsg += ": History of ";
-	  errMsg += quantity + " can only be written, if it is activated ";
-	  errMsg += "in section 'nodalResults', too.";
-	  Error(errMsg.c_str(), __FILE__, __LINE__);
-	}
 	saveDeriv1Hist_ = TRUE;
+	hasOutput_ = TRUE;
 	Info->PrintF( pdename_, "Saving acouPotentialD1 for Nodes:\n" );
 	for ( Integer k = 0; k < saveNodeHist.GetSize(); k++ ) {
 	  Info->PrintF( pdename_, "  %s\n", saveNodeHist[k].c_str() );
@@ -848,20 +846,13 @@ void AcousticPDE::ReadStoreResults() {
   params->GetList( keyVec, attrVec, valVec, saveNodeHist );
     
   if (saveNodeHist.GetSize() > 0) {
-	if (saveDeriv2_ == FALSE) {
-	  std::string errMsg = pdename_;
-	  errMsg += ": History of ";
-	  errMsg += quantity + " can only be written, if it is activated ";
-	  errMsg += "in section 'nodalResults', too.";
-	  Error(errMsg.c_str(), __FILE__, __LINE__);
-	}
 	saveDeriv1Hist_ = TRUE;
+	hasOutput_ = TRUE;
 	Info->PrintF( pdename_, "Saving acouPotetentialD2 for Nodes:\n" );
 	for ( Integer k = 0; k < saveNodeHist.GetSize(); k++ ) {
 	  Info->PrintF( pdename_, "  %s\n", saveNodeHist[k].c_str() );
 	}
   }
-    
 }
 
 } // end of namespace

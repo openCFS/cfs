@@ -1299,12 +1299,23 @@ void MechPDE::ReadStoreResults() {
   keyVec  = pdename_, "storeResults", "nodeResults", "region";
   attrVec = "", "", "type";  
 
+  // --- Mechanic Displacement ---
+  Enum2String(MECH_DISPLACEMENT, quantity);
+  valVec = "", "", quantity;
+  params->GetList( keyVec, attrVec, valVec, nodeValues);
+  if (nodeValues.GetSize() > 0) {
+    saveSol_ = TRUE;
+    hasOutput_ = TRUE;
+  }
+
+
   // --- Mechanic Velocity ---
   Enum2String(MECH_VELOCITY, quantity);
   valVec = "", "", quantity;
   params->GetList( keyVec, attrVec, valVec, nodeValues);
   if (nodeValues.GetSize() > 0) {
     saveDeriv1_ = TRUE;
+    hasOutput_ = TRUE;
     
     // intialize corresponding storesolution object
     solDeriv1_.SetNumSolutions(1);
@@ -1321,6 +1332,7 @@ void MechPDE::ReadStoreResults() {
   params->GetList( keyVec, attrVec, valVec, nodeValues);
   if (nodeValues.GetSize() > 0) {
     saveDeriv2_ = TRUE;
+    hasOutput_ = TRUE;
       
     // intialize corresponding storesolution object
     solDeriv2_.SetNumSolutions(1);
@@ -1350,6 +1362,7 @@ void MechPDE::ReadStoreResults() {
 
   // Log to info file
   if ( calcStress_.GetSize() > 0 ) {
+  	hasOutput_ = TRUE;
     Info->PrintF( pdename_,
 		  " Computing mechanical stress for regions:");
     for ( Integer k = 0; k < calcStress_.GetSize(); k++ ) {
@@ -1369,6 +1382,7 @@ void MechPDE::ReadStoreResults() {
 
   // Log to info file
   if ( calcEnergy_.GetSize() > 0 ) {
+  	hasOutput_ = TRUE;
     Info->PrintF( pdename_,
 		  " Computing mechanical Energy for regions:");
     for ( Integer k = 0; k < calcEnergy_.GetSize(); k++ ) {
@@ -1389,14 +1403,8 @@ void MechPDE::ReadStoreResults() {
   params->GetList( keyVec, attrVec, valVec, saveNodeHist );
   
   if (saveNodeHist.GetSize() > 0) {
-    if (saveSol_ == FALSE) {
-      std::string errMsg = pdename_;
-      errMsg += ": History of ";
-      errMsg += quantity + " can only be written, if it is activated ";
-      errMsg += "in section 'nodalResults', too.";
-      Error(errMsg.c_str(), __FILE__, __LINE__);
-      }
     saveSolHist_ = TRUE;
+    hasOutput_ = TRUE;
     Info->PrintF( pdename_, " Saving mechDisplacement for Nodes:" );
     for ( Integer k = 0; k < saveNodeHist.GetSize(); k++ ) {
       Info->PrintF( pdename_, " %s", saveNodeHist[k].c_str() );
@@ -1409,14 +1417,8 @@ void MechPDE::ReadStoreResults() {
   params->GetList( keyVec, attrVec, valVec, saveNodeHist );
   
   if (saveNodeHist.GetSize() > 0) {
-    if (saveDeriv1_ == FALSE) {
-      std::string errMsg = pdename_;
-      errMsg += ": History of ";
-      errMsg += quantity + " can only be written, if it is activated ";
-      errMsg += "in section 'nodalResults', too.";
-      Error(errMsg.c_str(), __FILE__, __LINE__);
-      }
     saveDeriv1Hist_ = TRUE;
+    hasOutput_ = TRUE;
     Info->PrintF( pdename_, " Saving mechVelocity for Nodes:" );
     for ( Integer k = 0; k < saveNodeHist.GetSize(); k++ ) {
       Info->PrintF( pdename_, " %s", saveNodeHist[k].c_str() );
@@ -1429,14 +1431,8 @@ void MechPDE::ReadStoreResults() {
   params->GetList( keyVec, attrVec, valVec, saveNodeHist );
   
   if (saveNodeHist.GetSize() > 0) {
-    if (saveDeriv2_ == FALSE) {
-      std::string errMsg = pdename_;
-      errMsg += ": History of ";
-      errMsg += quantity + " can only be written, if it is activated ";
-      errMsg += "in section 'nodalResults', too.";
-      Error(errMsg.c_str(), __FILE__, __LINE__);
-      }
     saveDeriv1Hist_ = TRUE;
+    hasOutput_ = TRUE;
     Info->PrintF( pdename_, " Saving mechAcceleration for Nodes:" );
     for ( Integer k = 0; k < saveNodeHist.GetSize(); k++ ) {
       Info->PrintF( pdename_, " %s", saveNodeHist[k].c_str() );
@@ -1452,7 +1448,7 @@ void MechPDE::ReadStoreResults() {
   valVec = "", "", "";
   params->GetList(keyVec, attrVec, valVec, saveElemHist);
 
-  if (saveElemHist.GetSize() < 0) {
+  if (saveElemHist.GetSize() >	 0) {
     std::string errMsg = pdename_;
     errMsg += ": Saving history elements is not implemented yet!\n";
     errMsg += "Meanwhile you can use 'unvtool' to extract element data.";

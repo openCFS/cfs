@@ -292,18 +292,23 @@ namespace CoupledField {
 	    {
 	      solDeriv1_.SetAlgSysVector(getS1());
 	      outFile_->WriteNodeSolutionTransient(solDeriv1_, actStep, actTime);
-	      
-	      if (saveDeriv1Hist_ == TRUE)
+	    }
+
+	  if (saveDeriv1Hist_ == TRUE) {
+  	    solDeriv1_.SetAlgSysVector(getS1());
 		outFile_->WriteNodeHistoryTransient(solDeriv1_, actStep, actTime);
 	    }
+
 	  
 	  if (saveDeriv2_ == TRUE)
 	    {
 	      solDeriv2_.SetAlgSysVector(getS2());
 	      outFile_->WriteNodeSolutionTransient(solDeriv2_, actStep, actTime);
 	    }
-	  if (saveDeriv2Hist_ == TRUE)
+	  if (saveDeriv2Hist_ == TRUE){
+  	   solDeriv2_.SetAlgSysVector(getS2());
 	    outFile_->WriteNodeHistoryTransient(solDeriv2_, actStep, actTime);
+	  }
 	}
 	
 	//element results
@@ -357,6 +362,22 @@ void PiezoPDE::ReadStoreResults() {
   StdVector<std::string> nodeValues;
   keyVec  = pdename_, "storeResults", "nodeResults", "region";
   attrVec = "", "", "type";  
+  
+  // --- Mechanic Displacement & Electric Potential ---
+  Enum2String(MECH_DISPLACEMENT, quantity);
+  valVec = "", "", quantity;
+  params->GetList( keyVec, attrVec, valVec, nodeValues);
+  if (nodeValues.GetSize() > 0) {
+    saveSol_ = TRUE;
+    hasOutput_ = TRUE;
+  }
+  Enum2String(ELEC_POTENTIAL, quantity);
+  valVec = "", "", quantity;
+  params->GetList( keyVec, attrVec, valVec, nodeValues);
+  if (nodeValues.GetSize() > 0) {
+    saveSol_ = TRUE;
+    hasOutput_ = TRUE;
+  }
 
   // --- Mechanic Velocity ---
   Enum2String(MECH_VELOCITY, quantity);
@@ -364,6 +385,7 @@ void PiezoPDE::ReadStoreResults() {
   params->GetList( keyVec, attrVec, valVec, nodeValues);
   if (nodeValues.GetSize() > 0) {
     saveDeriv1_ = TRUE;
+    hasOutput_ = TRUE;
     
     // intialize corresponding storesolution object
     solDeriv1_.SetNumSolutions(1);
@@ -380,6 +402,7 @@ void PiezoPDE::ReadStoreResults() {
   params->GetList( keyVec, attrVec, valVec, nodeValues);
   if (nodeValues.GetSize() > 0) {
     saveDeriv2_ = TRUE;
+    hasOutput_ = TRUE;
     
     // intialize corresponding storesolution object
     solDeriv2_.SetNumSolutions(1);
@@ -416,6 +439,7 @@ void PiezoPDE::ReadStoreResults() {
 
   // Log to info file
   if ( calcStress_.GetSize() > 0 ) {
+ 	hasOutput_ = TRUE;
     Info->PrintF( pdename_,
 		  " Computing mechanical stress for regions:");
     for ( Integer k = 0; k < calcStress_.GetSize(); k++ ) {
@@ -435,6 +459,7 @@ void PiezoPDE::ReadStoreResults() {
   }
 
   if ( calcEfield_.GetSize() > 0 ) {
+  	hasOutput_ = TRUE;
     Info->PrintF( pdename_, " Computing electric field for regions:" );
     for ( Integer k = 0; k < calcEfield_.GetSize(); k++ ) {
       Info->PrintF( pdename_, " %s", calcEfield_[k].c_str() );
@@ -469,6 +494,7 @@ void PiezoPDE::ReadStoreResults() {
 
   // Log to info file
   if ( calcStress_.GetSize() > 0 ) {
+  	hasOutput_ = TRUE;
     Info->PrintF( pdename_,
 		  " Computing mechanical stress for regions:");
     for ( Integer k = 0; k < calcStress_.GetSize(); k++ ) {
@@ -505,6 +531,7 @@ void PiezoPDE::ReadStoreResults() {
 
   if (calcCharge_.GetSize() > 0)
     {
+      hasOutput_ = TRUE;
       Info->PrintF( pdename_,
 		    " Computing electric charges for regions:");
       for ( Integer k = 0; k < calcCharge_.GetSize(); k++ ) {
@@ -544,14 +571,8 @@ void PiezoPDE::ReadStoreResults() {
   params->GetList( keyVec, attrVec, valVec, saveNodeHist );
   
   if (saveNodeHist.GetSize() > 0) {
-    if (saveSol_ == FALSE) {
-      std::string errMsg = pdename_;
-      errMsg += ": History of ";
-      errMsg += quantity + " can only be written, if it is activated ";
-      errMsg += "in section 'nodalResults', too.";
-      Error(errMsg.c_str(), __FILE__, __LINE__);
-      }
     saveSolHist_ = TRUE;
+    hasOutput_ = TRUE;
     Info->PrintF( pdename_, " Saving mechDisplacement for Nodes:" );
     for ( Integer k = 0; k < saveNodeHist.GetSize(); k++ ) {
       Info->PrintF( pdename_, " %s", saveNodeHist[k].c_str() );
@@ -564,14 +585,8 @@ void PiezoPDE::ReadStoreResults() {
   params->GetList( keyVec, attrVec, valVec, saveNodeHist );
   
   if (saveNodeHist.GetSize() > 0) {
-    if (saveDeriv1_ == FALSE) {
-      std::string errMsg = pdename_;
-      errMsg += ": History of ";
-      errMsg += quantity + " can only be written, if it is activated ";
-      errMsg += "in section 'nodalResults', too.";
-      Error(errMsg.c_str(), __FILE__, __LINE__);
-      }
     saveDeriv1Hist_ = TRUE;
+    hasOutput_ = TRUE;
     Info->PrintF( pdename_, " Saving mechVelocity for Nodes:" );
     for ( Integer k = 0; k < saveNodeHist.GetSize(); k++ ) {
       Info->PrintF( pdename_, " %s", saveNodeHist[k].c_str() );
@@ -584,14 +599,8 @@ void PiezoPDE::ReadStoreResults() {
   params->GetList( keyVec, attrVec, valVec, saveNodeHist );
   
   if (saveNodeHist.GetSize() > 0) {
-    if (saveDeriv2_ == FALSE) {
-      std::string errMsg = pdename_;
-      errMsg += ": History of ";
-      errMsg += quantity + " can only be written, if it is activated ";
-      errMsg += "in section 'nodalResults', too.";
-      Error(errMsg.c_str(), __FILE__, __LINE__);
-    }
     saveDeriv1Hist_ = TRUE;
+    hasOutput_ = TRUE;
     Info->PrintF( pdename_, " Saving mechAcceleration for Nodes:" );
     for ( Integer k = 0; k < saveNodeHist.GetSize(); k++ ) {
       Info->PrintF( pdename_, " %s", saveNodeHist[k].c_str() );
@@ -607,7 +616,7 @@ void PiezoPDE::ReadStoreResults() {
   valVec = "", "", "";
   params->GetList(keyVec, attrVec, valVec, saveElemHist);
 
-  if (saveElemHist.GetSize() < 0) {
+  if (saveElemHist.GetSize() > 0) {
     std::string errMsg = pdename_;
     errMsg += ": Saving history elements is not implemented yet!\n";
     errMsg += "Meanwhile you can use 'unvtool' to extract element data.";
