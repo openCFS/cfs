@@ -2,6 +2,7 @@
 #include <iostream>
 #include <string>
 
+#include "interface_gridlib.hh"
 #include "acousticPDE.hh"
 #include "driver.hh"
 
@@ -19,6 +20,7 @@ Driver::Driver(FileType * const aptFileType, Integer anummesh, Material * aptMat
 //  ptFileType->ReadOutputOptions(SaveDer1, SaveDer2);
   SaveDer1=FALSE; SaveDer2=FALSE;
 
+//  ptgrid=new InterfaceGridlib<Point2D>(ptFileType);
   ptgrid=new GridInterfaceCFS<Point2D>(ptFileType);
   ptgrid->Read();
   ptMaterial=aptMaterial;
@@ -29,7 +31,7 @@ void Driver::SolveNewmarkMethod(OutResultUnverg * ptUnverg)
 #ifdef TRACE
   (*trace) << "entering Driver :: SolveNewmarkMethod" << std::endl;
 #endif
-  ptUnverg->Create(ptgrid,0);
+//  ptUnverg->Create(ptgrid,0);
 
 //  Double endtime=1.0;   ////////////////////////////////////////////
   Double t=0;

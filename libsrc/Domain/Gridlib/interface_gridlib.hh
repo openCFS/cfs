@@ -2,12 +2,18 @@
 #ifndef FILE_INTERFACE_GRIDLIB_2002
 #define FILE_INTERFACE_GRIDLIB_2002
 
+#include "filetype.hh"
+#include "grid.hh"
+
+// Include from Gridlib
+#include <GoMesh.hh>
+#include <GoTriangleMesh.hh>
+#include <GoDefaultVertex.hh>
+#include <GoTriangleElement.hh>
+
 namespace CoupledField
 {
  
-class FileType;
-class GoMesh;
-
 /// Class for working with grid
 template<class Dim> 
 class InterfaceGridlib: public Grid<Dim>
@@ -27,13 +33,14 @@ public:
            const Integer numElem, const Integer numnodesPerElem);
 
   /// Return pointer to coordinates
-//  virtual Dim * GetptCoordinate(const Integer numlevel)
-//  { ptGridCFS->GetptCoordinate(numlevel);}
+  virtual Dim * GetptCoordinate(const Integer numlevel)
+  { Error("Not implemented  GetptCoordinate"); return NULL;}
 
   /// Return maximum number of nodes
   virtual Integer GetMaxnumnodes(const Integer numlevel)
-  { return ptGoMesh->getNumVertices(numlevel);
-     }
+  { 
+     return ptGoMesh->getNumVertices(numlevel);
+  }
 
   /// Return maximum number of elements 
   virtual Integer GetMaxnumElem(const Integer numlevel)
@@ -50,8 +57,8 @@ public:
   }
 
   /// Print coordinates of grid in out
-  virtual void PrintCoordinate(const Integer level, ostream * out) const
-  { Error("Not implemented yet");}
+  virtual void PrintCoordinate(const Integer level, std::ostream * out) const
+  { Error("Not implemented yet  PrintCoordinate");}
 
 private:
 

@@ -64,10 +64,13 @@ void  Triangle1::GetGradientShFnc(Vector<Double> & grad, const Integer i, const 
 {
  case 1:
     grad[0]=DxTransFncAtIP1[ip]; grad[1]=DyTransFncAtIP1[ip];
+    break;
  case 2:
     grad[0]=DxTransFncAtIP2[ip]; grad[1]=DyTransFncAtIP2[ip];
+    break;
  case 3:
     grad[0]=DxTransFncAtIP3[ip]; grad[1]=DyTransFncAtIP3[ip];
+    break;
 }
 }
 
