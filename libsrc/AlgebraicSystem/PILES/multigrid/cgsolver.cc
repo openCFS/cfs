@@ -96,7 +96,7 @@ void CGSolver :: Calc(BaseMatrix & sysmat, BasePrecond & premat,
 
   // generate an initial guess
 
-  //premat.Step(rhs, sol);
+  premat.Step(rhs, sol);
 
   sysmat.Mult(sol, *d);
 

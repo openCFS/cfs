@@ -78,6 +78,9 @@ public:
   //! return p
   TYPE ** get() const;
 
+  //! return pointer to array of elements in matrix, row by row
+  TYPE * getinarray() const { return p[0];}
+
   //! Add element on position i,j
   void Add(const Integer, const Integer, const TYPE value);
 

@@ -26,7 +26,12 @@ Acoustic2dPDE::Acoustic2dPDE(AbstractAlgebraicSys * ptalgsys, Grid<Point2D> * ap
     MatFile_->ReadDensityAndCompress(density,compress);
     coeff_=sqrt(compress/density);
   }
-  else coeff_=1;
+  else 
+  {
+     // for water
+     coeff_=sqrt(2.25e9/1e3);
+     //coeff_=1;
+  }
 
    size_=ptgrid_->GetMaxnumnodes(0);
    sol_.Resize(size_);
@@ -71,7 +76,7 @@ void Acoustic2dPDE::SetMatrixFactors()
   matrix_factor_[0] = 1.0;
   matrix_factor_[1] = 0.0;
   matrix_factor_[2] = 0.0;
-  matrix_factor_[3] = 1.0*coeff_*a0_;
+  matrix_factor_[3] = 1.0*a0_;
 }
 
 void Acoustic2dPDE::SpecifyMatrices(Integer &matrixtype, Integer * matrixsystype, Integer &graphtype, Integer &numdofpernode, Integer &numdirichlets,
@@ -121,82 +126,54 @@ void Acoustic2dPDE::SetupMatrices(Integer type)
 #endif
 
   Integer k,l;
-  Integer i,ii,iii;
+  Integer i,iii;
   Integer irow,icln;
 
   Integer numnodeelem=ptgrid_->GetNumNodesPerElem(0,0);
   Integer * help=new Integer[numnodeelem];
   Matrix<Double> elemmat;
 
-  Double * pilesmat = new Double[numnodeelem*numnodeelem];
-
   Point2D * ptCoord=new Point2D[numnodeelem];
 
+  Integer numelem=ptgrid_->GetMaxnumElem(0);
+
   BaseElem * ptElem;
-  switch(numnodeelem)
-  {
-    case 3:
-       ptElem=new Triangle1(GaussOrder3);
-       break;
 
-    case 4:
-       ptElem=new Quad1(GaussOrder2);
-       break;
+  BaseElem ** ptArrayElem=ptgrid_->getptArrayElem();
 
-    default:
-       Error("Number of nodes per element is strange",__FILE__,__LINE__);
-  }
+  Integer matrix_stiff=2;
+  Integer matrix_mass=5;
+  
+  for (i=0; i<numelem; i++ )
+    {
+      ptElem=ptArrayElem[i];
 
-   Integer numelem=ptgrid_->GetMaxnumElem(0);
+      BaseForm<Point2D> * bilinear_stiff = new LaplaceInt<Point2D>(ptElem,1);
+      BaseForm<Point2D> * bilinear_mass  = new MassInt<Point2D>(ptElem,1);
 
-   BaseForm<Point2D> * bilinear_stiff = new LaplaceInt<Point2D>(ptElem,1);
-   BaseForm<Point2D> * bilinear_mass  = new MassInt<Point2D>(ptElem,1);
-
-   Integer matrix_stiff=2;
-   Integer matrix_mass=5;
-
-   for (i=0; i<numelem; i++)
-     {
-       ptgrid_->GetConnection(help,0,i,numnodeelem);
-       ptgrid_->GetCoordOfNodesElem(i,0,numnodeelem,ptCoord);
+      ptgrid_->GetConnection(help,0,i,numnodeelem);
+      ptgrid_->GetCoordOfNodesElem(i,0,numnodeelem,ptCoord);
 
        // stiffness part
-       bilinear_stiff->CalcElemMatrix(ptCoord, elemmat);
+      bilinear_stiff->CalcElemMatrix(ptCoord, elemmat);
 
-       ii = 0;
-       for (k=0;k<numnodeelem;k++)
-         {
-           for (l=0;l<numnodeelem;l++)
-             {
-               pilesmat[ii]=elemmat[k][l];
-               ii = ii+1;
-             }
-         }
-       ptalgsys_->PutElemMatAlgSys(pilesmat, help, numnodeelem, AS_sysid_, AS_sysid_, matrix_stiff);
+      ptalgsys_->PutElemMatAlgSys(elemmat.getinarray(), help, numnodeelem, AS_sysid_, AS_sysid_, matrix_stiff);
 
-           // mass part
-           bilinear_mass->CalcElemMatrix(ptCoord, elemmat);
+      // mass part
+      bilinear_mass->CalcElemMatrix(ptCoord, elemmat);
 
-           ii = 0;
-           for (k=0;k<numnodeelem;k++)
-             {
-               for (l=0;l<numnodeelem;l++)
-                 {
-                   pilesmat[ii]=elemmat[k][l];
-                   ii = ii+1;
-                 }
-             }
-           ptalgsys_->PutElemMatAlgSys(pilesmat, help, numnodeelem, AS_sysid_, AS_sysid_,matrix_mass);
+      ptalgsys_->PutElemMatAlgSys(elemmat.getinarray(), help, numnodeelem, AS_sysid_, AS_sysid_,matrix_mass);
+
+      delete bilinear_stiff;
+      delete bilinear_mass;
      }
 
    delete [] ptCoord;
    delete [] help;
-   delete [] pilesmat;
 
 #ifdef TRACE
   (*trace) << "Leaving Acoustic2dPDE::SetupMatrices" << std::endl;
 #endif
-
 }
 
 void Acoustic2dPDE::SetBCs(BCs * ptBCs, const Integer level, const Integer update, const Double atime)

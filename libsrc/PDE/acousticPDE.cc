@@ -26,7 +26,13 @@ AcousticPDE<Dim>::AcousticPDE(const Double dt0, Grid<Dim> * ptgrid, const Intege
     std::cout << "density " << density << "compri " << compress << std::endl;
     c=sqrt(compress/density);
   }
-  else c=1;
+  else 
+  {
+    density  = 1000;
+    compress = 2.25e9;
+    c=sqrt(compress/density);
+    c=1;
+  }
 
   CalcParameters(dt0);
 
