@@ -8,8 +8,7 @@
 namespace CoupledField
 {
 
-template<class Dim>
-WriteResultsUnverg<Dim> :: WriteResultsUnverg(const Char * const filename)
+WriteResultsUnverg :: WriteResultsUnverg(const Char * const filename)
 :WriteResults(filename)
 {
 #ifdef TRACE
@@ -19,8 +18,7 @@ WriteResultsUnverg<Dim> :: WriteResultsUnverg(const Char * const filename)
   output=new std::ofstream(strcat(namefile_,".unverg"));
 }
 
-template<class Dim>
-WriteResultsUnverg<Dim> ::~WriteResultsUnverg()
+WriteResultsUnverg ::~WriteResultsUnverg()
 {
 #ifdef TRACE
  (*trace) << "entering WriteResultsUnverg ::~ WriteResultsUnverg" << std::endl;
@@ -29,8 +27,7 @@ WriteResultsUnverg<Dim> ::~WriteResultsUnverg()
   if (output) delete output;
 }
 
-template<class Dim>
-void WriteResultsUnverg<Dim> :: WriteGrid(const Integer level)
+void WriteResultsUnverg :: WriteGrid(const Integer level)
 {
  Dataset666(level);
  Dataset781(level);
@@ -38,8 +35,7 @@ void WriteResultsUnverg<Dim> :: WriteGrid(const Integer level)
 }
 
 
-template<>
-void  WriteResultsUnverg<Point2D>::Dataset666(const Integer level)
+void  WriteResultsUnverg::Dataset666(const Integer level)
 {
  //
  if (!ptgrid)
@@ -47,30 +43,16 @@ void  WriteResultsUnverg<Point2D>::Dataset666(const Integer level)
 
  (*output)<< std::setw(6) << -1 << std::endl << std::setw(6) << -666 << std::endl ;
 
+ Integer dim=ptgrid->GetDim();
  Integer maxnumnodes=ptgrid-> GetMaxnumnodes(level);
  Integer maxnumelem=ptgrid-> GetMaxnumElem(level);
 
- (*output)<< std::setw(10) << 1 << std::setw(10) << 1 << std::setw(10) << 2 << std::endl << std::setw(10) << maxnumnodes << std::setw(10) << maxnumelem << std::endl;
+ (*output)<< std::setw(10) << 1 << std::setw(10) << 1 << std::setw(10) << dim << std::endl << std::setw(10) << maxnumnodes << std::setw(10) << maxnumelem << std::endl;
 
  (*output) << std::setw(6) << -1 << std::endl;
 }
 
-template<>
-void  WriteResultsUnverg<Point3D>::Dataset666(const Integer level)
-{
-
- (*output)<< std::setw(6) << -1 << std::endl << std::setw(6) << -666 << std::endl ;
-
- Integer maxnumnodes=ptgrid-> GetMaxnumnodes(level);
- Integer maxnumelem=ptgrid-> GetMaxnumElem(level);
-
- (*output)<< std::setw(10) << 1 << std::setw(10) << 1 << std::setw(10) << 3 << std::endl << std::setw(10) << maxnumnodes << std::setw(10) << maxnumelem << std::endl;
-
- (*output) << std::setw(6) << -1 << std::endl;
-}
-
-template< >
-void  WriteResultsUnverg<Point2D>::Dataset781(const Integer level)
+void  WriteResultsUnverg::Dataset781(const Integer level)
 {
   //
  if (!ptgrid)
@@ -78,6 +60,7 @@ void  WriteResultsUnverg<Point2D>::Dataset781(const Integer level)
 
  (*output) << std::setw(6) << -1 << std::endl << std::setw(6) << 781 << std::endl;
 
+ Integer dim=ptgrid->GetDim();
  Integer maxnumnodes=ptgrid-> GetMaxnumnodes(level);
 
  (*output).setf(std::ios::scientific);
@@ -89,64 +72,43 @@ void  WriteResultsUnverg<Point2D>::Dataset781(const Integer level)
 
      (*output).setf(std::ios::uppercase);
 
-     Point2D Point;
+     if (dim==2)
+     { Point2D Point;
+        ptgrid->GetCoordinateNode(i,level,Point);
+
+        (*output) << "   " << 0.0 ;
+
+         PrintPoint(Point,output);
+
+         (*output) << std::endl;
+      }
+      else
+     { Point3D Point;
 
      ptgrid->GetCoordinateNode(i,level,Point);
 
-     (*output) << "   " << 0.0 ;
-
      PrintPoint(Point,output);
 
-     (*output) << std::endl;           
+     (*output) << std::endl;  
+     }         
    }
  
  (*output) << std::setw(6) << -1 << std::endl;
 }
 
-template< >
-void  WriteResultsUnverg<Point3D>::Dataset781(const Integer level)
-{
-  //
- if (!ptgrid)
-    Error("ptgrid is not initialized", __FILE__,__LINE__);
-
- (*output) << std::setw(6) << -1 << std::endl << std::setw(6) << 781 << std::endl;
-
- Integer maxnumnodes=ptgrid-> GetMaxnumnodes(level);
-
- (*output).setf(std::ios::scientific);
- (*output).precision(16);
-
- for (Integer i=0; i<maxnumnodes; i++)
-   {
-     (*output) << std::setw(10) << i+1 << std::setw(10) << 0 << std::setw(10) << 0 << std::setw(10) << 11 << std::endl;
-
-     (*output).setf(std::ios::uppercase);
-
-     Point3D Point;
-
-     ptgrid->GetCoordinateNode(i,level,Point);
-
-     PrintPoint(Point,output);
-
-     (*output) << std::endl;
-   }
-
- (*output) << std::setw(6) << -1 << std::endl;
-}
-
-template<>
-void  WriteResultsUnverg<Point2D>::Dataset780(const Integer level)
+void  WriteResultsUnverg::Dataset780(const Integer level)
 {
   //
  if (!ptgrid)
     Error("ptgrid is not initialized", __FILE__,__LINE__);
 
  (*output) << std::setw(6) << -1 << std::endl << std::setw(6) << 780 << std::endl;
+ Integer dim=ptgrid->GetDim();
 
  Integer maxnumnodes=ptgrid-> GetMaxnumnodes(level);
 
  Integer maxnumelem=ptgrid-> GetMaxnumElem(level);
+
 
  Vector<Integer> connect;
 
@@ -156,7 +118,8 @@ void  WriteResultsUnverg<Point2D>::Dataset780(const Integer level)
 
      ptgrid->GetConnection(connect, i, level);
 
-     switch(connect.size())
+   if (dim==2)
+{     switch(connect.size())
      {
        case 3: (*output) << 91 ; break;
        case 4: (*output) << 94 ; break;
@@ -165,7 +128,24 @@ void  WriteResultsUnverg<Point2D>::Dataset780(const Integer level)
        default: Error("Please, put element type according to unverg-format for this number of nodes per element", __FILE__,__LINE__);
      }
 
-     (*output) << std::setw(10) << 2 << std::setw(10) << 2 << std::setw(10) << 1 << std::setw(10) << 1 << std::setw(10) << 1 << std::setw(10) << connect.size() << std::endl;
+     (*output) << std::setw(10) << 2 << std::setw(10) << 2 << std::setw(10) << 1 << std::setw(10) << 1 << std::setw(10) << 1 << std::setw(10) << connect.size()
+<< std::endl;
+}
+   else
+{
+     switch(connect.size())
+     {
+       case 4: (*output) << 111 ; break;
+       case 6: (*output) << 112; break;
+       case 8: (*output) << 115; break;
+       case 15: (*output) << 113; break;
+       case 20: (*output) << 116; break;
+       default: Error("Please, put element type according to unverg-format for this number of nodes per element", __FILE__,__LINE__);
+     }
+
+     (*output) << std::setw(10) << 11 << std::setw(10) << 1 << std::setw(10) <<
+1 << std::setw(10) << 1 << std::setw(10) << 1 << std::setw(10) << connect.size() << std::endl;
+}
 
      for (Integer ii=0; ii < connect.size(); ii++) 
        { 
@@ -178,52 +158,7 @@ void  WriteResultsUnverg<Point2D>::Dataset780(const Integer level)
  (*output) << std::setw(6) << -1 << std::endl;
 }
 
-template<>
-void  WriteResultsUnverg<Point3D>::Dataset780(const Integer level)
-{
-  //
- if (!ptgrid)
-    Error("ptgrid is not initialized", __FILE__,__LINE__);
-
- (*output) << std::setw(6) << -1 << std::endl << std::setw(6) << 780 << std::endl;
-
- Integer maxnumnodes=ptgrid-> GetMaxnumnodes(level);
-
- Integer maxnumelem=ptgrid-> GetMaxnumElem(level);
-
- Vector<Integer> connect;
-
- for (Integer i=0; i<maxnumelem; i++)
-   {
-     (*output) << std::setw(10) << i+1 << std::setw(10);
-
-     ptgrid->GetConnection(connect, i, level);
-
-     switch(connect.size())
-     {
-       case 4: (*output) << 111 ; break;
-       case 6: (*output) << 112; break;
-       case 8: (*output) << 115; break;
-       case 15: (*output) << 113; break;
-       case 20: (*output) << 116; break;
-       default: Error("Please, put element type according to unverg-format for this number of nodes per element", __FILE__,__LINE__);
-     }
-
-     (*output) << std::setw(10) << 11 << std::setw(10) << 1 << std::setw(10) << 1 << std::setw(10) << 1 << std::setw(10) << 1 << std::setw(10) << connect.size() << std::endl;
-
-     for (Integer ii=0; ii < connect.size(); ii++)
-       {
-         (*output).width(10);
-         (*output) << connect[ii];
-       }
-
-     (*output) << std::endl;
-   }
- (*output) << std::setw(6) << -1 << std::endl;
-}
-
-template<class Dim>
-void  WriteResultsUnverg<Dim>::Dataset55(const std::string & title, const Vector<Double> & x, const Integer step, const Double time)
+void  WriteResultsUnverg::Dataset55(const std::string & title, const Vector<Double> & x, const Integer step, const Double time)
 {
   //
  if (!ptgrid)
@@ -252,30 +187,30 @@ void  WriteResultsUnverg<Dim>::Dataset55(const std::string & title, const Vector
  (*output) << std::setw(6) << -1 << std::endl;
 }  
 
-template<class Dim>
-void  WriteResultsUnverg<Dim>::Dataset56()
+void  WriteResultsUnverg::Dataset56()
 {
  (*output) << std::setw(6) << -1 << std::endl << std::setw(6) << 56 << std::endl;
  
  (*output) << std::setw(6) << -1;
 }
 
-template<class Dim>
-void  WriteResultsUnverg<Dim>::Init(Grid * aptgrid)
+void  WriteResultsUnverg::Init(Grid * aptgrid)
 {
  ptgrid=aptgrid;
 }
 
-template<class Dim>
-void  WriteResultsUnverg<Dim>::WriteSolution(const Vector<Double> & sol, const Integer step, const Double time, const std::string title)
+void  WriteResultsUnverg::WriteSolution(const Vector<Double> & sol, const Integer step, const Double time, const std::string title)
 {
- if (sol.size()<=history_node_) Error("Please, check history-nodes in config-file.",__FILE__,__LINE__);
 
  Integer i;
- if (NeedHistory_ && title == "fluid potential") 
+ if (NeedHistory_) 
    for (i=0; i< nodeshist_.size(); i++)
-      AddInHistory(time,sol[nodeshist_[i]],i); 
-
+    {
+      if (sol.size() <= nodeshist_[i])
+        Error("Please, check history-nodes in config-file.",__FILE__,__LINE__);
+      if (time != lastsavetime[i])
+          AddInHistory(time,sol[nodeshist_[i]],i); 
+    }
  Dataset55(title, sol, step+1, time);
 }
 

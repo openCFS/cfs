@@ -17,7 +17,7 @@ class Acoustic2dPDE: virtual public BasePDE
 {
 public:
 
-  WriteResultsUnverg<Point2D> * ptOutput;
+  WriteResultsUnverg * ptOutput;
 
   //!
   Acoustic2dPDE(AbstractAlgebraicSys * aptalgsys, Grid * , Material * , TimeFunc * ,FileType * , WriteResults * );

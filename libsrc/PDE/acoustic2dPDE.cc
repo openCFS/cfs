@@ -24,7 +24,7 @@ Acoustic2dPDE::Acoustic2dPDE(AbstractAlgebraicSys * ptalgsys, Grid * aptgrid, Ma
   ptgrid_=aptgrid;
 
   Char * name="result";
-  ptOutput=new WriteResultsUnverg<Point2D>(name);
+  ptOutput=new WriteResultsUnverg(name);
   ptOutput->Init(ptgrid_);
   ptOutput->WriteGrid(0);  
 
@@ -323,7 +323,7 @@ void Acoustic2dPDE::SolveStepTrans(BCs * ptBCs, const Integer kstep, const Doubl
    // calculation of derivatives of solution
   CalculationDerivativesSol();
 
- ptOutput->WriteSolution(sol_,laststepcalc_,lasttimecalc_,"fluid potential");
+//  ptOutput->WriteSolution(sol_,laststepcalc_,lasttimecalc_,"fluid potential");
 }
 
 void Acoustic2dPDE::CalcThirdDerivateFromEquation(Vector<Double> & result)

@@ -9,7 +9,6 @@ namespace CoupledField
 
 //! Class for writing information about grid and results in unverg-format file
 
-template<class Dim>
 class WriteResultsUnverg: virtual public WriteResults
 {
 
@@ -45,16 +44,7 @@ private:
 
   ///
   void Dataset56(); 
-
-  ///
-  Dim * ptCoordinate;
- 
 };
-
-#ifdef __GNUC__
-template class WriteResultsUnverg<Point2D>;
-template class WriteResultsUnverg<Point3D>;
-#endif
 
 } // end of namespace
  

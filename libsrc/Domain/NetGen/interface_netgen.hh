@@ -51,6 +51,8 @@ public:
   ///
   virtual BaseElem * GetptElem(const Integer iElem);
 
+  ///
+  virtual Integer GetDim() { return mesh.GetDimension();}
 private:
    
   //! Here we mark elements for refinement: ei - number of elem
@@ -64,6 +66,9 @@ private:
       
   //! 
   Mesh mesh;
+
+  //!
+  Integer dim_;
 
   //! if we do subdivision, then this variable is TRUE
   Boolean DoesGridSubdivide;

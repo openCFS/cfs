@@ -57,7 +57,7 @@ void main(int argc, char *argv[])
 
   FileType * ptInputfile=ptDefineFiles->Create_ptFileType();
 
-  WriteResults * ptOut=ptDefineFiles->Create_ptWriteResults2d();
+  WriteResults * ptOut=ptDefineFiles->Create_ptWriteResults();
 
   TimeFunc * ptTimeFunc=new TimeFunc(ptInputfile);
 
@@ -65,6 +65,8 @@ void main(int argc, char *argv[])
 
   // print grid to unverg-file
   domain->PrintGrid(0);
+
+  domain->TestGrid();
 
   //choose your driver
   BaseDriver *ptdriver = new TransientDriver(domain);
@@ -124,6 +126,5 @@ void main(int argc, char *argv[])
 /// Putzen
   if (ptdriver) delete ptdriver;
   if (ptMaterial) delete ptMaterial;
-//  if (ptDefineFiles) delete ptDefineFiles;
-
+  if (ptDefineFiles) delete ptDefineFiles; // it should be deleted the last
 }

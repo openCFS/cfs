@@ -26,7 +26,7 @@ AnsysFile :: AnsysFile(const Char * const afilename)
  infile.seekg(0, std::ios::end);
  pos_end=infile.tellg();
 
- ReadDim();
+ dim_=ReadDim();
 }
   
 AnsysFile :: ~AnsysFile()
@@ -38,11 +38,13 @@ AnsysFile :: ~AnsysFile()
  infile.close() ;
 }
 
-void AnsysFile::ReadDim()
+Integer AnsysFile::ReadDim()
 {
 #ifdef TRACE
   (*trace) << "entering Ansys::ReadDim" << std::endl;
 #endif
+
+ Integer dim;
 
  Integer i;
  std::string::size_type pos=0;
@@ -50,7 +52,9 @@ void AnsysFile::ReadDim()
  infile.seekg(pos,std::ios::beg);
 
  std::string auxname;
- infile >> dim_;
+ infile >> dim;
+
+ return dim;
 }
 
 void AnsysFile::ReadCoordinate(Point2D * const NodesCoord, const Integer maxnumnodes)
@@ -266,7 +270,7 @@ void AnsysFile::ReadElems(std::vector<Elem> & allelems)
 }
  infile.seekg(pos,std::ios::beg);
 
- if (ptTr || ptQ || ptTet)
+ if (!ptTr || !ptQ || !ptTet)
   Error(" Pointers to BaseElem is not initialized",__FILE__,__LINE__);
 
  Integer i, ii, ibuf, itype, innodes;

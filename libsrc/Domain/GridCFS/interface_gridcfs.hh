@@ -32,9 +32,6 @@ public:
   { ptGridCFS->GetCoordOfNodesElem(numElem, numlevel, numnodes,ptCoordElem);}
 
    /// Get connection of element
-//  virtual void GetConnection(Integer * result, const Integer level, 
-//           const Integer numElem, const Integer numnodesPerElem)
-//  { ptGridCFS->GetConnection(result, level, numElem, numnodesPerElem);}
    virtual void GetConnection(Vector<Integer> & connect, const Integer iElem, const Integer level)
     { ptGridCFS->GetConnection(connect,iElem, level);}
 
@@ -56,6 +53,9 @@ public:
   /// return pointer to BaseElem
     BaseElem * GetptElem(const Integer iElem)
  { return ptGridCFS->GetptElem(iElem);}
+
+  /// return dimension of mesh
+  virtual Integer GetDim(){ ptGridCFS->GetDim();}
 
 protected:
 private:

@@ -35,6 +35,8 @@ void InterfaceNetGen<Point2D>::Read()
 #ifdef TRACE
   (*trace)<< "Entering InterfaceNetGen::Read 2D" << std::endl;
 #endif
+  
+  dim_=ptFileType->ReadDim();
 
   Integer nnodes;
   ptFileType->ReadMaxnumnodes(nnodes); 
@@ -70,7 +72,6 @@ void InterfaceNetGen<Point2D>::Read()
  elemsize=allel[i].connect.size();
  allptElem[i]=allel[i].ptElem;
 
- std::cout << " elemsize " << elemsize << std::endl;
  switch(elemsize)
 {
  case 3:
@@ -117,6 +118,8 @@ void InterfaceNetGen<Point3D>::Read()
 #ifdef TRACE
   (*trace)<< "Entering InterfaceNetGen::Read" << std::endl;
 #endif
+
+  Integer dim_=ptFileType->ReadDim();
 
   Integer nnodes;
   ptFileType->ReadMaxnumnodes(nnodes);
@@ -190,12 +193,28 @@ Integer ei;
 Integer flag=1;
 
 Integer maxnumelem=GetMaxnumElem(level);
-// mesh.SurfaceElement(1).SetRefinementFlag (1);
+std::cout << " maxnumelem " << maxnumelem << std::endl;
+flag=1;
+std::cout << mesh.GetDimension() << " dim " << std::endl;
 
+mesh.SurfaceElement(5).SetRefinementFlag (flag !=0);
+
+ BisectionOptions biopt;
+  biopt.usemarkedelements = 1;
+
+  Refinement ref;
+  ref.Bisect(mesh,biopt);
+
+  mesh.UpdateTopology();
+  mesh.UpdateClusters();
+
+/*
 for(ei=1; ei<=maxnumelem; ei++)
   SetRefinementFlag(ei,flag);
+*/
 
 Refine();
+
 }
 
 template<>

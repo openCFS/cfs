@@ -27,11 +27,8 @@ public:
    FileType * Create_ptFileType();
 
    //!
-   WriteResults * Create_ptWriteResults2d();
+   WriteResults * Create_ptWriteResults();
 
-  //!
-   WriteResults * Create_ptWriteResults3d();
- 
 private:
 
    //!
@@ -41,10 +38,7 @@ private:
    FileType * infiletype;
 
    //!
-   WriteResults * ptWriteResults2d;   
-
-   //!
-   WriteResults * ptWriteResults3d;
+   WriteResults * ptWriteResults;   
 };
 
 } // end of namespace

@@ -47,6 +47,9 @@ public:
   //! Read maximum number of elements
   virtual void ReadMaxnumelem(Integer & maxnumelem);
 
+  //! Read dimension
+  virtual Integer ReadDim(){ return 2;}
+
   //!  Read a title of simulation run 
   Boolean ReadTitle(std::string & title);
 

@@ -37,15 +37,21 @@ Domain:: Domain(FileType * const aptFileType, WriteResults * ptOut,  Material * 
  std::string libmesh;
  conf->get("mesh_library",libmesh);
 
+ Integer dim=InFile_->ReadDim();
+
  // initialize pointer to grid 
 #ifdef GRIDLIB
    if (libmesh =="gridlib") ptgrid_=new InterfaceGridlib<Point2D>(InFile_);
   else
 #endif
-  if (libmesh =="cfsgrid") ptgrid_=new GridInterfaceCFS<Point2D>(InFile_);
+  if (libmesh =="cfsgrid") 
+     if (dim==2) ptgrid_=new GridInterfaceCFS<Point2D>(InFile_);
+         else ptgrid_=new GridInterfaceCFS<Point3D>(InFile_);
 #ifdef NETGEN
     else 
-  if (libmesh == "netgen") ptgrid_=new InterfaceNetGen<Point2D>(InFile_);
+  if (libmesh == "netgen")
+    if (dim==2) ptgrid_=new InterfaceNetGen<Point2D>(InFile_);
+        else ptgrid_=new InterfaceNetGen<Point3D>(InFile_);
 #endif
    else
      Error("Unknown type of mesh_library in conf-file",__FILE__,__LINE__);
@@ -204,6 +210,22 @@ void Domain :: SetSubdomains()
   (*trace) << "entering Domain::SetSubdomains" << std::endl;
 #endif
  ;
+}
+
+void Domain :: TestGrid()
+{
+  InterfaceNetGen<Point2D> * ptGrid=new InterfaceNetGen<Point2D>(InFile_); 
+  ptGrid->Read();
+  Char * name="refine";
+  WriteResults * ptInFile=new WriteResultsUnverg(name);
+
+  ptGrid->SubdivideUniform(0);
+  std::cout << " we do subdivision " << std::endl;
+
+  ptInFile->Init(ptGrid);
+  ptInFile->WriteGrid(0);  
+
+  
 }
 
 }

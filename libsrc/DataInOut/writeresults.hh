@@ -39,13 +39,13 @@ protected:
   ///
   Boolean NeedHistory_;
   ///
-  Integer history_node_;
-  ///
   std::vector<Integer> nodeshist_;
   ///
   std::ofstream * historyfile;
   ///
   void AddInHistory(const Double time, const Double val, const Integer ifile);
+  ///
+  Vector<Double> lastsavetime;
 
 }; 
 

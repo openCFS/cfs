@@ -24,9 +24,7 @@ WriteResults::WriteResults(const Char * const filename)
 
   if (NeedHistory_)
    {
-     std::string S;
-     S="mkdir -p history";
-
+     std::string S="mkdir -p history";
      system(S.c_str());
 
      Char * name=new Char[30];     
@@ -39,17 +37,23 @@ WriteResults::WriteResults(const Char * const filename)
      for (i=0; i<nodeshist_.size(); i++) 
     {
      sprintf(name,"%s%s.%i.hist",namedir.c_str(),namefile_,nodeshist_[i]);
+
      historyfile[i].open(name);
 
-     if (!historyfile[i]) {std::cerr << "ERROR(" << __FILE__ << " " << __LINE__ <<
-                         ") Can't open history file" << std::endl;
-                exit(1);}
+     if (!historyfile[i]) 
+          Error("Can't open history file",__FILE__,__LINE__);
     }
+      
+    lastsavetime.Resize(nnodhist);
+    lastsavetime[0]=-1;
+
+    delete [] name;
    }
 }
 
 void WriteResults::AddInHistory(const Double time, const Double val,const Integer ifile)
-{
+{ 
+ lastsavetime[ifile]=time;
  historyfile[ifile] << time << "  " << val << std::endl;
 }
 
