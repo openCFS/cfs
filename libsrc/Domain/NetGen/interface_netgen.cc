@@ -3,14 +3,9 @@
 #include <string>
 #include <vector.h>
 
-// from NetGen
-#include <myadt.hpp>
-#include <linalg.hpp>
-#include <csg.hpp>
-#include <meshing.hpp>
-
 #include "interface_netgen.hh"
-#include "filetype.hh"
+//#include "filetype.hh"
+#include "elements_header.hh"
 
 namespace CoupledField
 {
@@ -52,75 +47,150 @@ void InterfaceNetGen<Point2D>::Read()
   Integer nelemNodes=data1[1];
 
   Integer * Connect=new Integer[nelems*nelemNodes];
+
+  ptArrayElem_=new BaseElem*[nelems+1];
   // ########################## number of groupes
   ptFileType->ReadElemConnectionGH(nelems, Connect, nelemNodes, 0);
 
   Integer i;
+
+  Element2d el3(3);
+  Element2d el4(4);
+
+  ptQ_=new Quad1(GaussOrder2);
+  ptTr_=new Triangle1(GaussOrder3);
+
+  switch (nelemNodes)
+    {
+      case 3:
+
   for (i=0; i<nelems; i++)
     {
-      Element2d el;
-      el.SetIndex(i+1);
+      el3.SetIndex(i+1);
 
-      switch (nelemNodes)
-	{
-	case 3:
+      el3.PNum(1)=Connect[i*nelemNodes];
+      el3.PNum(2)=Connect[i*nelemNodes+1];
+      el3.PNum(3)=Connect[i*nelemNodes+2];
 
-            el.PNum(1)=Connect[i*nelemNodes];
-            el.PNum(2)=Connect[i*nelemNodes+1];
-            el.PNum(2)=Connect[i*nelemNodes+2];
+      mesh.AddSurfaceElement(el3);
 
-	  break;
+      ptArrayElem_[i]=ptTr_;
+   }
 
-	default:
+      break;
+
+      case 4:
+
+  for (i=0; i<nelems; i++)
+    {
+      el4.SetIndex(i+1);
+
+      el4.PNum(1)=Connect[i*nelemNodes];
+      el4.PNum(2)=Connect[i*nelemNodes+1];
+      el4.PNum(3)=Connect[i*nelemNodes+2];
+      el4.PNum(4)=Connect[i*nelemNodes+3];
+
+      mesh.AddSurfaceElement(el4);
+
+      ptArrayElem_[i]=ptQ_;
+   }
+
+      break;
+
+    default:
 	  Error("Unknown type of element");
 	  break;
-	}
       
-      mesh.AddSurfaceElement (el);
    }
+
+   ptArrayElem_[nelems]=NULL;
 
    delete [] Connect;
 
-      mesh.ClearFaceDescriptors();
-      mesh.AddFaceDescriptor (FaceDescriptor(0,1,0,0));  
+   mesh.ClearFaceDescriptors();
+   mesh.AddFaceDescriptor (FaceDescriptor(0,1,0,0));  
+
+#ifdef TRACE
+ (*trace) << "Leaving InterfaceNetGen<Dim>::Read " << std::endl;
+#endif
+
 }
 
-  template<class Dim>
-  void InterfaceNetGen<Dim>::SubdivideUniform(const Integer level)
+template<class Dim>
+void InterfaceNetGen<Dim>::SubdivideUniform(const Integer level)
+{ Error("Not implemented yet",__FILE__,__LINE__); }
+
+template<class Dim>
+void InterfaceNetGen<Dim>::GetCoordOfNodesElem(const Integer numElem, const Integer numlevel, const Integer numnodes, Dim * ptCoordElem)
+{ 
+  if (!ptCoordElem) Error("Allocate ptCoordElem before using in function InterfaceNetGen::GetCoordOfNodesElem");
+
+  Element2d el=mesh.SurfaceElement(numElem+1);
+  Integer result;
+  Point3d point;
+ 
+  Integer i;
+  for (i=0; i<numnodes; i++)
+  {
+   result=el.PNum(i+1);
+   point=mesh.Point(result);
+
+   ptCoordElem[i].x=point.X();
+   ptCoordElem[i].y=point.Y();
+  }
+}
+
+template<>
+void InterfaceNetGen<Point2D>::GetCoordinateNode(const Integer inode, const Integer numlevel, Point2D & rfPoint) 
+{   
+    Point3d auxPoint=mesh.Point(inode+1);
+    rfPoint.x=auxPoint.X();
+    rfPoint.y=auxPoint.Y();
+}
+
+template<class Dim>
+void InterfaceNetGen<Dim>::GetConnection(Integer * result, const Integer level,   const Integer numElem, const Integer numnodesPerElem)
+{
+ Element2d el=mesh.SurfaceElement(numElem+1);
+ Integer i;
+ for (i=0; i < el.GetNP(); i++)
+  {
+   result[i]=el.PNum(i+1);
+  }
+}
+
+template<class Dim>
+Integer InterfaceNetGen<Dim>::GetMaxnumnodes(const Integer numlevel)
+  { return mesh.GetNP(); }
+
+template<class Dim>
+Integer InterfaceNetGen<Dim>::GetMaxnumElem(const Integer numlevel)
+  { return mesh.GetNSE();}
+
+template<class Dim>
+Integer InterfaceNetGen<Dim>::GetNumNodesPerElem(const Integer iElem, const Integer level)
+{ 
+// Element2d el=mesh.SurfaceElement(iElem);
+// return el.GetNP();
+  return mesh.SurfaceElement(iElem+1).GetNP();
+}
+
+template<class Dim>
+void InterfaceNetGen<Dim>::PrintCoordinate(const Integer level, std::ostream * out) const
   { Error("Not implemented yet",__FILE__,__LINE__); }
 
-  template<class Dim>
-  void InterfaceNetGen<Dim>::GetCoordOfNodesElem(const Integer numElem, const Integer numlevel, const Integer numnodes, Dim * ptCoordElem)
-   { Error("Not implemented yet",__FILE__,__LINE__); }
+template<class Dim>
+void InterfaceNetGen<Dim>::GetNodesBoundaryCondition(Vector<Integer> & nodesDirBC, const Integer level)
+{
+ if (level==0) ptFileType->ReadDirichletBC(nodesDirBC);
+}
 
-  template<class Dim>
-   void InterfaceNetGen<Dim>::GetCoordinateNode(const Integer inode, const Integer numlevel, Dim & rfPoint) 
-  { Error("Not implemented yet",__FILE__,__LINE__); }
-
-  template<class Dim>
-     void InterfaceNetGen<Dim>::GetConnection(Integer * result, const Integer level,
-           const Integer numElem, const Integer numnodesPerElem)
-   { Error("Not implemented yet",__FILE__,__LINE__); }
-
-  template<class Dim>
-     Integer InterfaceNetGen<Dim>::GetMaxnumnodes(const Integer numlevel)
-  { Error("Not implemented yet",__FILE__,__LINE__); }
-
-  template<class Dim>
-     Integer InterfaceNetGen<Dim>::GetMaxnumElem(const Integer numlevel)
-      { Error("Not implemented yet",__FILE__,__LINE__); }
-
-  template<class Dim>
-    Integer InterfaceNetGen<Dim>::GetNumNodesPerElem(const Integer iElem, const Integer level)
-      { Error("Not implemented yet",__FILE__,__LINE__); }
-
-  template<class Dim>
-   void InterfaceNetGen<Dim>::PrintCoordinate(const Integer level, std::ostream * out) const
-    { Error("Not implemented yet",__FILE__,__LINE__); }
-
-  template<class Dim>
-   void InterfaceNetGen<Dim>::GetNodesBoundaryCondition(Vector<Integer> & nodesDirBC, const Integer level)
-   { Error("Not implemented yet",__FILE__,__LINE__); }
+template<class Dim>
+InterfaceNetGen<Dim>::~InterfaceNetGen()
+{
+  if (ptQ_) delete ptQ_;
+  if (ptTr_) delete ptTr_;
+}
 
 } // end of namespace
 

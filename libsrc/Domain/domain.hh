@@ -2,6 +2,7 @@
 #define FILE_DOMAIN_2001
 
 #include "interface_gridcfs.hh"
+#include "interface_netgen.hh"
 #include "basepde.hh"
 
 namespace CoupledField

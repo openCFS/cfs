@@ -4,6 +4,12 @@
 #include "filetype.hh"
 #include "grid.hh"
 
+// from NetGen
+#include <myadt.hpp>
+#include <linalg.hpp>
+#include <csg.hpp>
+#include <meshing.hpp>
+
 namespace CoupledField
 {
  
@@ -16,7 +22,7 @@ public:
   InterfaceNetGen(FileType * const aptFileType);
 
   /// Deconstructor
-  virtual ~InterfaceNetGen(){;}
+  virtual ~InterfaceNetGen();
   
    /// Uniform subdivision of domain
   virtual void SubdivideUniform(const Integer level);
@@ -44,12 +50,18 @@ public:
   virtual void PrintCoordinate(const Integer level, std::ostream * out) const;
 
   /// Put information about grid
-  void Read();
+  virtual void Read();
 
   //! Put global numbers of nodes with boundary condition in Vector
-  void GetNodesBoundaryCondition(Vector<Integer> & nodesDirBC, const Integer level);
+  virtual void GetNodesBoundaryCondition(Vector<Integer> & nodesDirBC, const Integer level);
 
+  //! Get array of pointers to element type
+  virtual BaseElem ** getptArrayElem() const
+  { return ptArrayElem_;}
 private:
+
+  //!
+  BaseElem * ptQ_, * ptTr_;  
 
   //! 
   FileType * ptFileType;
@@ -59,6 +71,10 @@ private:
 
   //! if we do subdivision, then this variable is TRUE
   Boolean DoesGridSubdivide;
+
+  //!
+  BaseElem ** ptArrayElem_;  
+
 };
 
 template<class Dim>
@@ -71,6 +87,8 @@ inline InterfaceNetGen<Dim>::InterfaceNetGen(FileType * aptFileType)
 
   ptFileType=aptFileType;
   DoesGridSubdivide=FALSE;
+  ptQ_=NULL;
+  ptTr_=NULL;
 
 }
 

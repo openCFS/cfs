@@ -328,7 +328,6 @@ void InterfaceGridlib<Dim>::GetNodesBoundaryCondition(Vector<Integer> & nodesDir
    for (j=0; j<nodesDirBC.size(); j++)
     std::cout << nodesDirBC[j] << " ";
    std::cout << std::endl;
-   
    }
 }
 
