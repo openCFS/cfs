@@ -1,5 +1,6 @@
 #include <fstream>
 #include <iostream>
+#include <cstdio>
 #include <string>
 
 #include "definefiles.hh"
@@ -31,14 +32,6 @@ namespace CoupledField
 #endif
 
 
-#ifdef PARALLEL
- // find out who I am and write to seperate files:
- int commrank;
- MPI_Comm comm = MPI_COMM_WORLD;
- MPI_Comm_rank(comm,&commrank);
- char *rank = new char[5];
- sprintf(rank,"_%d",commrank);
-#endif
 
 
   // ===============
@@ -46,6 +39,16 @@ namespace CoupledField
   // ===============
   DefineInOutFiles::DefineInOutFiles(const Char *name)
   {
+
+#ifdef PARALLEL
+ // find out who I am and write to seperate files:
+ int commrank;
+ MPI_Comm comm = MPI_COMM_WORLD;
+ MPI_Comm_rank(comm,&commrank);
+ char *rank = new char[5];
+ sprintf(rank,"_%d",commrank);
+ 
+#endif
 
     // Store the basename of the auxilliary files
     filename_ = new Char[strlen(name)+1];
