@@ -36,12 +36,8 @@ void BCs :: ReadBCs()
   (*trace) << "entering BCs::ReadBCs" << std::endl;
 #endif
 
- // read number of nodes with restraints information
- InFile_->ReadNumNodesforDirichletBC(numrestr_[0]);
+ InFile_->ReadBoundRestr(restr_[0], numrestr_[0]);
 
- // read information about irestraint condition
- Integer a=numrestr_[0];
- InFile_->ReadBoundRestr(restr_[0], a);
 }
 
 }

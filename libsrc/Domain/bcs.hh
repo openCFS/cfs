@@ -14,8 +14,6 @@ struct NodeRestraint
 {
   Integer nodalnum;
   Integer dof;
-  Integer numfunc;
-  Double factor;
 
  int operator<(const NodeRestraint & t);
 };

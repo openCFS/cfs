@@ -4,6 +4,7 @@
 #include <stdarg.h>
 
 #include "ansysfile.hh"
+#include "bcs.hh"
 
 namespace CoupledField
 {
@@ -122,24 +123,45 @@ case 3:
  infile >> nelem;
 }
 
-void AnsysFile::ReadBoundRestr(std::list<NodeRestraint> & restr, const Integer numberRestr)
+void AnsysFile::ReadMaxnumnodesbc(Integer & nbc)
+{
+ std::string::size_type pos=0;
+ takePosition("NumNodeBC", pos);
+ infile.seekg(pos,std::ios::beg);
+
+ infile >> nbc;
+}
+
+void AnsysFile::ReadBoundRestr(std::list<NodeRestraint> & restr, Integer & numberRestr)
 {
 #ifdef TRACE
-  (*trace) << "entering DatFile::ReadBoundRestr" << std::endl;
+  (*trace) << "entering Ansys::ReadBoundRestr" << std::endl;
 #endif
   
  std::string::size_type pos=0;
- takePosition("Nodes BC", pos);
+ takePosition("Node BC", pos);
  infile.seekg(pos,std::ios::beg);
 
+ Integer numbc;
+ ReadMaxnumnodesbc(numbc);
+
+ Integer nrestr=0;
+ std::string str; 
+
  NodeRestraint A;
- for (Integer i=0; i < numbc; i++)
+ Integer i;
+ for (i=0; i < numbc; i++)
    {
-    infile >> A.nodalnum >> str >> A.numfunc >> A.factor;
-    A.dof=TransformInNameDf(str.c_str());
+    infile >> A.nodalnum >> str;
+    A.dof=TransformInDof(str.c_str());
     infile.ignore(100,'\n');
-    restr.push_back(A);
+
+    if (A.dof==5)
+    { restr.push_back(A); nrestr++;}
    }
+
+  numberRestr=nrestr;
+
 }
 
 void AnsysFile::takePosition(const std::string seekexp, std::string::size_type & pos)
@@ -166,6 +188,16 @@ void AnsysFile::takePosition(const std::string seekexp, std::string::size_type &
                << ") Cannot find string: " << seekexp ;
           std::cerr << " in your dat file.\n\t\t Please, change your dat file."<< std::endl;
                       exit(1);}
+}
+
+Integer AnsysFile::TransformInDof(const Char * el)
+{
+  Integer result;
+  if (!strcmp("vp-restrataint", el)) result=5;
+  if (!strcmp("ep-restrataint",el)) result=4;
+  else Error(" This type of level for boundary condition is unknown");
+
+  return result; 
 }
 
 }
