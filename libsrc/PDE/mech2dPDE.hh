@@ -16,20 +16,23 @@ namespace CoupledField
   {
   public:
     
-    //!  Constructor. here we read integration parameters
-    /*!
-      \param  aptalgsys pointer to class Algebraic system
-      \param aGrid pointer to grid
-      \param aMatFile pointer to class Material. material data.
-      \param aInFile pointer to class FileType. input data.
-      \param aOutFile  pointer to class WriteResults. output data.
-      \param aTimeFunc pointer to class TimeFunc
-    */
-    Mech2dPDE(AbstractAlgebraicSys * aptalgsys, Grid * aGrid , Material * aMatFile, TimeFunc * aTimeFunc ,FileType * aInFile, WriteResults * aOutFile );
+  //!  Constructor. here we read integration parameters
+  /*!
+    \param aGrid pointer to grid
+    \param aBCs pointer to Boundary condition object
+    \param aMatFile pointer to class Material. material data.
+    \param aInFile pointer to class FileType. input data.
+    \param aOutFile  pointer to class WriteResults. output data.
+    \param aTimeFunc pointer to class TimeFunc
+  */
+    Mech2dPDE(Grid *aGrid, BCs *aBCs, Material *aMatFile, TimeFunc *aTimeFunc, FileType *aInFile, 
+	      WriteResults *aOutFile );
 
     //!  Deconstructor
     virtual ~Mech2dPDE(){;}
 
+    //! Set algebraic system
+    void SetAlgSys(const Integer as_sysid);
 
     //! specify type of system matrix for AlgebraicSystem
     /*!
@@ -50,7 +53,7 @@ namespace CoupledField
     /*!
       \param level (input) level of Grid
     */
-    virtual void SetupMatrices(const Integer level, BCs * ptBCs=NULL);
+    virtual void SetupMatrices(const Integer level);
 
     //! set boundary condition
     /*!
@@ -59,13 +62,13 @@ namespace CoupledField
       \param update indicator: do we update boundary condition in algebraic system ot set new
       \param atime time of calculation
     */
-    virtual void SetBCs(BCs * ptBCs, const Integer level, const Integer update, const Double atime);
+    virtual void SetBCs(const Integer level, const Integer update, const Double atime);
 
     /*!
       \param ptBCs pointer to class with data about boundary condition
       \param level level of grid
     */
-    virtual void SolveStepStatic(BCs * ptBCs ,const Integer level);
+    virtual void SolveStepStatic(const Integer level);
 
     //! solve one step for transient problem 
     /*!
@@ -75,7 +78,7 @@ namespace CoupledField
       \param level level of grid
       \param updatesysmat indicator: need we to update algebraic system. it is used for adaptive procedure in space
     */
-    virtual void SolveStepTrans(BCs * ptBCs ,const Integer kstep, const Double steptime, const Integer level, const Boolean updatesysmat);
+    virtual void SolveStepTrans(const Integer kstep, const Double steptime, const Integer level, const Boolean updatesysmat);
 
     //! write results in file
     virtual void WriteResultsInFile();
@@ -88,9 +91,6 @@ namespace CoupledField
 
     //!
     Integer dofspernode_;
-
-    //!
-    Grid * ptgrid_;
 
     //! Calculation parameters for Newmark method
     virtual void CalcParameters(const Double dt);
@@ -120,13 +120,6 @@ namespace CoupledField
     //! size of solution and etc.
     Integer size_;
 
-    //! function for RHS
-    Integer arg_rhs_;
-    pfn1var ptRHSFnc_;
-    std::vector<Double> directionFnc_;
-
-    //! Indicator: is there RHS function
-    Boolean SetRHSFnc;
 
   };
 

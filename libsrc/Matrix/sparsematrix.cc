@@ -486,6 +486,7 @@ std::ostream & operator << (std::ostream & out, const SparseMatrix<TYPE> &mat)
   Integer i,ii;
   ElemSparseMatrix<TYPE> * ptElem;
 
+#ifdef __GNUC__
   for (i=0; i < mat.numrows; i++)
     {
       ptElem=mat.ptRow[i];
@@ -505,7 +506,8 @@ std::ostream & operator << (std::ostream & out, const SparseMatrix<TYPE> &mat)
       out << std::endl;
     }
 
-//  out.setf(0, std::ios::floatfield);
+  // out.setf(0, std::ios::floatfield);
+#endif 
 
   return out;
 

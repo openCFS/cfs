@@ -13,7 +13,8 @@ namespace CoupledField
 {
 
 
-Acou3dFlowNoise::Acou3dFlowNoise(AbstractAlgebraicSys * ptalgsys, Grid * aptgrid, Material * ptMaterial, TimeFunc * aptTimeFunc, FileType * aptFileType, WriteResults * aptOut):Acoustic3dPDE(ptalgsys, aptgrid, ptMaterial, aptTimeFunc, aptFileType, aptOut)   
+Acou3dFlowNoise::Acou3dFlowNoise(AbstractAlgebraicSys * ptalgsys, Grid * aptgrid, Material * ptMaterial, TimeFunc * aptTimeFunc, FileType * aptFileType, WriteResults * aptOut)
+:Acoustic3dPDE(ptalgsys, aptgrid, ptMaterial, aptTimeFunc, aptFileType, aptOut)   
   {
 #ifdef TRACE
   (*trace) << "entering Acou3dFlowNoise::Acou3dFlowNoise " << std::endl;

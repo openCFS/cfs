@@ -207,6 +207,36 @@ void GeTriangle :: SetDerTransformFncAtIntPoints()
     } 
 }
 
+void GeTriangle :: SetDerTransformFncAtIntPoints3D()
+{
+#ifdef TRACE
+  (*trace) << "entering Rectangle::SetDerTransFncAtIntPoints 3D" << std::endl;
+#endif
+  Integer i;
+
+  DxiTransFnc1AtIP.Resize(NumIntPoints);
+  DxiTransFnc2AtIP.Resize(NumIntPoints);
+  DxiTransFnc3AtIP.Resize(NumIntPoints);
+
+for (i=0; i < NumIntPoints; i++)
+    { 
+      DxiTransFnc1AtIP[i]=TransFnc1dxi(IntPoints[i][0],IntPoints[i][1],IntPoints[i][2]);
+      DxiTransFnc2AtIP[i]=TransFnc2dxi(IntPoints[i][0],IntPoints[i][1],IntPoints[i][2]);
+      DxiTransFnc3AtIP[i]=TransFnc3dxi(IntPoints[i][0],IntPoints[i][1],IntPoints[i][2]);
+    }
+
+  DetaTransFnc1AtIP.Resize(NumIntPoints);
+  DetaTransFnc2AtIP.Resize(NumIntPoints);
+  DetaTransFnc3AtIP.Resize(NumIntPoints);
+
+for (i=0; i < NumIntPoints; i++)
+    { 
+      DetaTransFnc1AtIP[i]=TransFnc1deta(IntPoints[i][0],IntPoints[i][1],IntPoints[i][2]);
+      DetaTransFnc2AtIP[i]=TransFnc2deta(IntPoints[i][0],IntPoints[i][1],IntPoints[i][2]);
+      DetaTransFnc3AtIP[i]=TransFnc3deta(IntPoints[i][0],IntPoints[i][1],IntPoints[i][2]);
+    }
+}
+
 void GeTriangle::CalcJacobian(Jacobian<2> & J, const Integer ip,
                      Point<2> * ptCoord, const Boolean NeedJinv)
 {
@@ -257,7 +287,42 @@ if (NeedJinv)
 void GeTriangle::CalcJacobian(Jacobian<3> & J, const Integer ip,
                      Point<3> * ptCoord, const Boolean NeedJinv)
 {
- Error("This element is from 2D", __FILE__, __LINE__);
+  if (!IsSet)
+ { 
+ SetTransformFncAtIntPoints();
+ SetDerTransformFncAtIntPoints(); 
+ IsSet=TRUE;
+ }
+ SetDerTransformFncAtIntPoints3D(); 
+
+ std::vector<Double> normal;
+  normal.resize(3);
+  Double JacobianSurf;
+
+ J.J[0][0] = DxiTransFnc1AtIP[ip]*ptCoord[0][0] + DxiTransFnc2AtIP[ip]*ptCoord[1][0]
+             + DxiTransFnc3AtIP[ip]*ptCoord[2][0];
+ 
+ J.J[0][1] = DetaTransFnc1AtIP[ip]*ptCoord[0][0] + DetaTransFnc2AtIP[ip]*ptCoord[1][0]
+          + DetaTransFnc3AtIP[ip]*ptCoord[2][0];
+
+ J.J[1][0] = DxiTransFnc1AtIP[ip]*ptCoord[0][1] + DxiTransFnc2AtIP[ip]*ptCoord[1][1]
+          + DxiTransFnc3AtIP[ip]*ptCoord[2][1];
+
+ J.J[1][1] = DetaTransFnc1AtIP[ip]*ptCoord[0][1] + DetaTransFnc2AtIP[ip]*ptCoord[1][1]
+          + DetaTransFnc3AtIP[ip]*ptCoord[2][1];
+
+ J.J[2][0] = DxiTransFnc1AtIP[ip]*ptCoord[0][2] + DxiTransFnc2AtIP[ip]*ptCoord[1][2]
+          + DxiTransFnc3AtIP[ip]*ptCoord[2][2];
+
+ J.J[2][1] = DetaTransFnc1AtIP[ip]*ptCoord[0][2] + DetaTransFnc2AtIP[ip]*ptCoord[1][2]
+          + DetaTransFnc3AtIP[ip]*ptCoord[2][2];
+
+  normal[0]= J.J[1][0]* J.J[2][1]- J.J[2][0]* J.J[1][1];
+  normal[1]=J.J[2][0]*J.J[0][1]- J.J[0][0]* J.J[2][1];  
+  normal[2]= J.J[0][0]* J.J[1][1]- J.J[1][0]*J.J[0][1];
+
+
+  J.detJ = sqrt(sqr(normal[0])+sqr(normal[1])+sqr(normal[2]));
 }
 
 void GeTriangle::CalcJacobianAtCenter(Jacobian<2> & J,

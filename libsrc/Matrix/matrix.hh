@@ -88,7 +88,7 @@ public:
   //!
   TYPE & operator()(const Integer, const Integer);
 
-  //!
+  //! 
   Matrix	operator+	() const;
 
   //!
@@ -106,7 +106,7 @@ public:
   //!
   Matrix	&operator-=	(const Matrix &);
 
-  //!
+  //! multiplication with scalar value
   Matrix	operator*	(const TYPE &) const;
 
   //!

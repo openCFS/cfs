@@ -69,17 +69,11 @@ private:
    //! initialize pde
    void InitPDE();
 
-   //! initialization of alg.sys.
-  /*!
-    \param level index into hierarchy (multilevel methods)
-  */
-   void InitAlgSys(const Integer level);
-
   //! update alg. sys. in case of new mesh
   /*!
     \param level index into hierarchy (multilevel methods)
   */
-  void UpdateAlgSys(const Integer level);
+  //  void UpdateAlgSys(const Integer level);
 
   Integer numsubdomain_;  //!< number of subdomains
   Integer numsys_;        //!< number of systems (matrix dimension for algebraic system)

@@ -67,7 +67,9 @@ public:
  
   //! in this function we calculate area of element
   virtual Double CalcAreaElem(const Elem* elem)
-    { ptGridCFS->CalcAreaElem(elem);}  
+  { 
+    return ptGridCFS->CalcAreaElem(elem);
+  }  
 
   //!
   virtual void DefineBelonging4Elems(const std::vector<Elem*>& elemsSurf, const std::vector<Elem*>&elems, std::vector<Elem*> & belongingSE)

@@ -43,8 +43,7 @@ void StaticDriver :: SolveProblem()
   Integer level=0;
   Integer pdenumber  = 0;
 
-  ptdomain_->GetPDE(pdenumber)->SetMatrixFactors();
-  ptdomain_->GetPDE(pdenumber)->SolveStepStatic(ptdomain_->GetBCs(), level);
+  ptdomain_->GetPDE(pdenumber)->SolveStepStatic(level);
 
   ptdomain_->PrintGrid(level);
   ptdomain_->GetPDE(pdenumber)->WriteResultsInFile();
@@ -75,7 +74,7 @@ void StaticDriver :: SolveProblemAdaptSpace()
   conf->get("maxnumrepeat",maxnumrepeat,"SpaceAdaptivity");
 
   ptPDE->SetMatrixFactors();
-  ptPDE->SolveStepStatic(ptdomain_->GetBCs(), level);
+  ptPDE->SolveStepStatic(level);
 
   if (InfoPrint)
     (*infofile) << " ---------- step 0 ----------------- " << std::endl;
@@ -92,7 +91,7 @@ void StaticDriver :: SolveProblemAdaptSpace()
     ptdomain_->Update(level);
 
      ptPDE->SetMatrixFactors(); 
-    ptPDE->SolveStepStatic(ptdomain_->GetBCs(), level);
+     ptPDE->SolveStepStatic(level);
 
     numrepeat++;
 

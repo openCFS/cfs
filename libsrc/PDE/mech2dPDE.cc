@@ -16,9 +16,9 @@ namespace CoupledField
 {
 
 
-Mech2dPDE::Mech2dPDE(AbstractAlgebraicSys * ptalgsys, Grid * aptgrid, Material * ptMaterial, 
-		     TimeFunc * aptTimeFunc, FileType * aptFileType, WriteResults * aptOut)
-:BasePDE(ptalgsys,ptMaterial,aptFileType,aptOut,aptTimeFunc)
+Mech2dPDE::Mech2dPDE(Grid * aptgrid, BCs *aptbcs, Material *ptMaterial, TimeFunc *aptTimeFunc, 
+		     FileType *aptFileType, WriteResults *aptOut)
+:BasePDE(aptgrid,aptbcs,ptMaterial,aptFileType,aptOut,aptTimeFunc)
 {
 #ifdef TRACE
   (*trace) << "entering Mech2dPDE::Mech2dPDE " << std::endl;
@@ -26,8 +26,6 @@ Mech2dPDE::Mech2dPDE(AbstractAlgebraicSys * ptalgsys, Grid * aptgrid, Material *
 
   dofspernode_=2;
   pdename_    ="Mechanic2d";
-
-  ptgrid_=aptgrid; 
 
   laststepcalc_=0;
   size_=ptgrid_->GetMaxnumnodes(0);
@@ -53,6 +51,7 @@ Mech2dPDE::Mech2dPDE(AbstractAlgebraicSys * ptalgsys, Grid * aptgrid, Material *
   conf->getsubdompde(subdoms_,pdename_);
   ReadBCs(pdename_);
 
+  SetMatrixFactors();
 }
 
 void Mech2dPDE::SetMatrixFactors()
@@ -65,6 +64,28 @@ void Mech2dPDE::SetMatrixFactors()
   matrix_factor_[1] = 0.0;  // damping
   matrix_factor_[2] = 0.0;  //convection
   matrix_factor_[3] = 0.0;  //mass
+}
+
+void Mech2dPDE::SetAlgSys(const Integer as_sysid)
+{
+#ifdef TRACE
+  (*trace) << "entering Mech2dPDE::SetAlgSys" << std::endl;
+#endif
+
+  as_sysid_ = as_sysid;
+
+  //allocate according algebraic system
+  algsys_ = new StandardSystem();
+
+  //set solver parameters  
+  SetSolverParameters();
+
+  //set the graph type used for the system matrices
+  Integer numnode = ptgrid_->GetMaxnumnodes(actlevel_);
+  SetupMatrixGraph(numnode,NODEGRAPH);
+
+  //allocate the necessary matrices as well as solver and preconditioner
+  CreateMatrices_Solver();
 }
 
 void Mech2dPDE::SpecifyMatrices(Integer &matrixtype, Integer * matrixsystype, Integer &graphtype, 
@@ -85,11 +106,11 @@ void Mech2dPDE::SpecifyMatrices(Integer &matrixtype, Integer * matrixsystype, In
 
   numdofpernode  = dofspernode_;
   //not used; just for interface
-  numdirichlets  = 1;
+  numdirichlets  = GetNumRestraints(actlevel_);;
   numconstraints = 0;
 }
 
-void Mech2dPDE::SetupMatrices(const Integer level, BCs * ptBCs)
+void Mech2dPDE::SetupMatrices(const Integer level)
 {
 #ifdef TRACE
   (*trace) << "entering Mech2dPDE::SetupMatrices" << std::endl;
@@ -153,8 +174,7 @@ void Mech2dPDE::SetupMatrices(const Integer level, BCs * ptBCs)
 	  (*debug) << blockelemmat << std::endl;
 #endif     
 
-	  ptalgsys_->PutElemMatAlgSys(blockelemmat.getinarray(), connecth.get(), connecth.size(), as_sysid_, 
-				      as_sysid_, STIFFNESS);
+	  algsys_->SetElementMatrix(blockelemmat.getinarray(), connecth.get(), connecth.size(), STIFFNESS);
 
 	  // mass part
 	  bilinear_mass->CalcElemMatrix(ptCoord, elemmat);
@@ -173,8 +193,7 @@ void Mech2dPDE::SetupMatrices(const Integer level, BCs * ptBCs)
 	  (*debug) <<blockelemmat << std::endl;
 #endif
       
-	  //	  ptalgsys_->PutElemMatAlgSys(blockelemmat.getinarray(), connecth.get(), connecth.size(), as_sysid_, 
-	  //				      as_sysid_,MASS);
+	  //	  ptalgsys_->PutElemMatAlgSys(blockelemmat.getinarray(), connecth.get(), connecth.size(), MASS);
 
   
 	  delete bilinear_stiff;
@@ -187,7 +206,7 @@ void Mech2dPDE::SetupMatrices(const Integer level, BCs * ptBCs)
 #endif
 }
 
-void Mech2dPDE::SetBCs(BCs * ptBCs, const Integer level, const Integer update, const Double atime)
+void Mech2dPDE::SetBCs(const Integer level, const Integer update, const Double atime)
 {
 #ifdef TRACE
   (*trace) << "entering Mech2dPDE::SetBCs" << std::endl;
@@ -220,18 +239,19 @@ void Mech2dPDE::SetBCs(BCs * ptBCs, const Integer level, const Integer update, c
 #ifdef DEBUG
       (*debug) << " Homog. Dirichlet BC" << std::endl;
 #endif
-      nodes=ptBCs->GetNodesLevel(bcs_hd_[i]);
+      nodes=ptBCs_->GetNodesLevel(bcs_hd_[i]);
    
       for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end(); p++, j++)
 	{
 	  node=*p;
 	  if (update==1)
 	    {
+
 #ifdef DEBUG
 	      (*debug) << " node: " << node << " dof:" << dof << " val: " << val << std::endl;
 #endif
       
-      ptalgsys_->SetBCDirichletUpdate(i+1, node, val, dof, as_sysid_, as_sysid_, SYSTEM);
+	      algsys_->UpdateDirichlet(j+1, val, SYSTEM);
 
 	    }
 	  else
@@ -240,7 +260,7 @@ void Mech2dPDE::SetBCs(BCs * ptBCs, const Integer level, const Integer update, c
 	      (*debug) << " node: " << node << " dof:" << dof << " val: " << val << std::endl;
 #endif
 
-      ptalgsys_->SetBCDirichlet(j+1, node, val, dof, as_sysid_, as_sysid_, SYSTEM);
+	      algsys_->SetDirichlet(j+1, node, val, dof, SYSTEM); 
 
 	    }
 	}  
@@ -262,7 +282,7 @@ void Mech2dPDE::SetBCs(BCs * ptBCs, const Integer level, const Integer update, c
       (*debug) << " Inhomog. Dirichlet BC" << std::endl;
 #endif
 
-      nodes=ptBCs->GetNodesLevel(bcs_id_[i], level);
+      nodes=ptBCs_->GetNodesLevel(bcs_id_[i], level);
 
       val=val_id_[i];
 
@@ -276,7 +296,7 @@ void Mech2dPDE::SetBCs(BCs * ptBCs, const Integer level, const Integer update, c
 	      (*debug) << " node: " << node << " dof:" << dof << " val: " << val << std::endl;
 #endif
 
-              ptalgsys_->SetBCDirichletUpdate(j+1, node, val, dof, as_sysid_, as_sysid_, SYSTEM);
+              algsys_->UpdateDirichlet(j+1, val, SYSTEM); 
             }
           else
             {
@@ -284,7 +304,7 @@ void Mech2dPDE::SetBCs(BCs * ptBCs, const Integer level, const Integer update, c
 #ifdef DEBUG
 	      (*debug) << " node: " << node << " dof:" << dof << " val: " << val << std::endl;
 #endif
-              ptalgsys_->SetBCDirichlet(j+1, node, val, dof, as_sysid_,as_sysid_, SYSTEM);
+              algsys_->SetDirichlet(j+1, node, val, dof, SYSTEM); 
             }
 	}
     }
@@ -295,7 +315,7 @@ void Mech2dPDE::SetBCs(BCs * ptBCs, const Integer level, const Integer update, c
 }
 
 
-void Mech2dPDE::SolveStepStatic(BCs * ptBCs, Integer level)
+void Mech2dPDE::SolveStepStatic(Integer level)
 {
 #ifdef TRACE
   (*trace) << "entering Mech2dPDE::SolveStepStatic" << std::endl;
@@ -304,22 +324,29 @@ void Mech2dPDE::SolveStepStatic(BCs * ptBCs, Integer level)
   Integer update = 0;
   Integer job = 1;
 
-  SetupMatrices(level);
-  SetBCs(ptBCs,level,update,0);
-  ptalgsys_->ComputeSysMatrix(as_sysid_,as_sysid_,matrix_factor_);
-  ptalgsys_->ComputePrecond(job,as_sysid_);
-  ptalgsys_->SolveAlgSys(as_sysid_);
-
-  // get solution
   Double * ptsol;
-  ptsol = ptalgsys_->GetSolution(as_sysid_);
+
+  //compute and assemble element matrices
+  SetupMatrices(level);
+
+  //compute effective mass matrix
+  algsys_->ConstructEffectiveMatrix(matrix_factor_);
+
+  //account for bcs
+  SetBCs(level,update,0);
+
+  algsys_->CalcPrecond(job);
+  algsys_->Solve();
+
+  ptsol = algsys_->GetSolutionVal();
 
   // save solution
   Vector<Double> transsol(ptgrid_->GetMaxnumnodes(level)*dofspernode_, ptsol);
   sol_=transsol;
+
 }
 
-void Mech2dPDE::SolveStepTrans(BCs * ptBCs, const Integer kstep, const Double asteptime, 
+void Mech2dPDE::SolveStepTrans(const Integer kstep, const Double asteptime, 
 			       const Integer level, const Boolean reset)
 {
 #ifdef TRACE

@@ -79,8 +79,13 @@ PATHSUBLIBDIR = $(addprefix $(LIBSRC_DIR)/, $(SUBLIBDIR))
 .cc.o:
 	$(CC) -o $@ $(CFLAGS1) $(CFLAGS2) $(CFLAGS3) $(INCL) $<
 
+ifeq "$(MACHINE)" "SUN"
+$(program):: $(src:.cc=.o) $(mylibrary)
+	$(CC) $(CFLAG_EXE) -o $@ $(src:.cc=.o) $(fsrc:.f=.o) -L$(LIB_DIR) -L$(LIB_GRIDLIB)  -L$(LIB_NETGEN) -L$(LIB_CLA) $(LINKFLAGS2) $(LINKFLAGS3) $(INCL) $(addprefix -l, $(mylibrary)) $(syslib)
+else
 $(program):: $(src:.cc=.o) $(mylibrary)
 	$(CC) $(CFLAG_EXE) -o $@ $(src:.cc=.o) $(fsrc:.f=.o) -L$(LIB_DIR) -L$(LIB_GRIDLIB)  -L$(LIB_NETGEN) -L$(LIB_CLA) $(LINKFLAGS2) $(LINKFLAGS3) $(INCL) $(addprefix -l, $(mylibrary)) $(syslib) -Wl,-rpath,$(LIB_OWN)/$(MACHINE)
+endif
 #
 
 ########### Go to make library

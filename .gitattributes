@@ -157,12 +157,16 @@ libsrc/PDE/acoustic2dPDE.cc svneol=native#text/plain
 libsrc/PDE/acoustic2dPDE.hh svneol=native#text/plain
 libsrc/PDE/acoustic3dPDE.cc svneol=native#text/plain
 libsrc/PDE/acoustic3dPDE.hh svneol=native#text/plain
+libsrc/PDE/acousticPDE.cc svneol=native#text/plain
+libsrc/PDE/acousticPDE.hh svneol=native#text/plain
 libsrc/PDE/basepde.cc svneol=native#text/plain
 libsrc/PDE/basepde.hh svneol=native#text/plain
 libsrc/PDE/elec2dPDE.cc svneol=native#text/plain
 libsrc/PDE/elec2dPDE.hh svneol=native#text/plain
 libsrc/PDE/elec3dPDE.cc svneol=native#text/plain
 libsrc/PDE/elec3dPDE.hh svneol=native#text/plain
+libsrc/PDE/elecPDE.cc svneol=native#text/plain
+libsrc/PDE/elecPDE.hh svneol=native#text/plain
 libsrc/PDE/elecst2dPDE.cc svneol=native#text/plain
 libsrc/PDE/elecst2dPDE.hh svneol=native#text/plain
 libsrc/PDE/elecst3dPDE.cc svneol=native#text/plain
@@ -188,6 +192,7 @@ libsrc/makefilemach/make.mach.LINUXPAR -text
 libsrc/makefilemach/make.mach.LINUXg -text
 libsrc/makefilemach/make.mach.SGI -text
 libsrc/makefilemach/make.mach.SGIg -text
+libsrc/makefilemach/make.mach.SUN -text
 main/DoxygenConfig/doxy-config -text
 main/DoxygenConfig/footer.html svneol=native#text/html
 main/DoxygenConfig/header.html svneol=native#text/html
