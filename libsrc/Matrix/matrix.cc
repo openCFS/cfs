@@ -492,7 +492,7 @@ for (Integer i=0; i < mat.size_row(); i++)
  out << mat[i][j] << " ";
  out << std::endl;}
 
-out.setf(0, std::ios::floatfield);
+//out.setf(0, std::ios::floatfield);
 
  return out;
 }

@@ -304,7 +304,7 @@ void Therm2dPDE::SetBCs(BCs * ptBCs, const Integer level, const Integer update, 
 #endif
 }
 
-void Therm2dPDE::ComputeRHS(const Double atime, BCs * ptBCs=NULL)
+void Therm2dPDE::ComputeRHS(const Double atime, BCs * ptBCs)
 {
 #ifdef TRACE
   (*trace) << "entering Therm2dPDE::ComputeRHS" << std::endl;
@@ -443,7 +443,7 @@ void Therm2dPDE:: WriteResultsInFile()
   (*trace) << "entering Acoustic2dPDE::WriteResultsInFile" << std::endl;
 #endif
 
-  OutFile_->WriteSolution(sol_, laststepcalc_, lasttimecalc_," temperature"); 
+  //  OutFile_->WriteSolution(sol_, laststepcalc_, lasttimecalc_," temperature"); 
 }
 
 } // end of namespace

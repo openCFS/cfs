@@ -89,7 +89,7 @@ template<class TYPE>
 inline BandMatrix<TYPE>::~BandMatrix()
 {
 #ifdef TRACE
- (*trace) << "entering BandMatrix::~BandMatrix" << endl;
+ (*trace) << "entering BandMatrix::~BandMatrix" << std::endl;
 #endif
  if (p) {  
           delete [] p[0];

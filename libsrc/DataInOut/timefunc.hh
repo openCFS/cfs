@@ -1,6 +1,7 @@
 #ifndef FILE_TIMEFUNC_2001
 #define FILE_TIMEFUNC_2001
-
+#include <fstream>
+#include <iostream>
 #include "filetype.hh"
 
 namespace CoupledField
@@ -48,7 +49,7 @@ private:
     Double ** valTimeFunc;
 
     //!
-    ofstream testtf;
+    std::ofstream testtf;
 };
 } // end of namespace
 #endif

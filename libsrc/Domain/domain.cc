@@ -179,7 +179,6 @@ void Domain :: InitAlgSys(const Integer level)
 
   //init the algsys-graph
   Integer numnode = ptgrid_->GetMaxnumnodes(level);
- 
   Integer matrix_graphtype = NODEGRAPH; //nodal graph
 
   //for each system: first diagonal blocks and then off-diagonalblocks

@@ -22,7 +22,7 @@ template<class TYPE>
 BandMatrix<TYPE>::BandMatrix (const Integer arow, const Integer alcln, const Integer arcln)
 {
 #ifdef TRACE
-    (*trace) << "entering BandMatrix::BandMatrix" << endl;
+    (*trace) << "entering BandMatrix::BandMatrix" << std::endl;
 #endif
         row = arow;
         li=alcln;
@@ -371,7 +371,7 @@ Integer ri=mat.GetRi();
 
 for (i=0; i<=ri; i++)  out << mat[0][i] << " "; 
 for (i=ri+1; i <n; i++) out << 0 << " ";
-                        out << endl;
+                        out << std::endl;
 
 for (i=1; i < n-1; i++)
 {
@@ -380,12 +380,12 @@ for (i=1; i < n-1; i++)
   for (j=i-li; j < i+ri+1 ; j++) out << mat[i][-i+j] << " ";
   for (j=i+ri+1; j < n; j++) out << 0 <<" ";
  
-  out << endl;
+  out << std::endl;
 }
 
 for (i=0; i< n-li-1; i++) out << 0 << " ";
 for (i=-li; i<1; i++)  out << mat[n-1][i] << " ";
-                       out << endl;
+                       out << std::endl;
  
  return out;
 }
