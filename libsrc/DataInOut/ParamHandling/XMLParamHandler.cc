@@ -307,13 +307,16 @@ namespace CoupledField {
       Info->Error( errmsg, __FILE__, __LINE__ );
     }
 
-    // Now get hold of tags, convert them to strings and aasemble vector
+    // Now get hold of tags, convert them to strings and assemble vector
     std::string pdename;
     for ( unsigned int i = 0; i < pdelist->getLength(); i++ ) {
-      pdename.assign( X2C( Node2Elem( pdelist->item(i) )->getNodeName() ) );
-      list.push_back( pdename );
-    }
 
+      // Only treat element children and not comments!
+      if ( pdelist->item(i)->getNodeType() == DOMNode::ELEMENT_NODE ) {
+	pdename.assign( X2C( Node2Elem( pdelist->item(i) )->getNodeName() ) );
+	list.push_back( pdename );
+      }
+    }
   }
 
 
