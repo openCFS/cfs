@@ -4,8 +4,7 @@
 
 #include "forms_header.hh"
 
-namespace CoupledField
-{
+namespace CoupledField {
 
 LinearForm::LinearForm(BaseFE * aptelem) : BaseForm(aptelem)
 {
@@ -21,7 +20,7 @@ LinearForm::LinearForm() : BaseForm()
 
 
 
-LinearForm ::~LinearForm()
+LinearForm::~LinearForm()
 {
   ENTER_FCN( "LinearForm::~LinearForm" );
 }
@@ -33,14 +32,9 @@ void LinearForm::CalcElemVector(Matrix<Double>& ptCoord, Vector<Double> & Result
 }
 
 
-
-
-
-
 // =============================================================================
 // edge integration
 // =============================================================================
-
 
 LinearEdgeInt::LinearEdgeInt(BaseFE * aptelem, Double aVal, Integer aDirection,
 			     Vector<Double> * aCoilMidPt) 
@@ -52,11 +46,7 @@ LinearEdgeInt::LinearEdgeInt(BaseFE * aptelem, Double aVal, Integer aDirection,
     coilMidPt_ = new Vector<Double>(*aCoilMidPt);
 }
 
-
-
-
-
-LinearEdgeInt ::~LinearEdgeInt()
+LinearEdgeInt::~LinearEdgeInt()
 {
   ENTER_FCN( "LinearEdgeInt::~LinearEdgeInt" );
 }
@@ -165,13 +155,9 @@ void LinearEdgeInt::CalcElemVector(Matrix<Double>& ptCoord,
 }
 
 
-
-
 // =============================================================================
 // volume source integration
 // =============================================================================
-
-
 
 VolumeSrcInt::VolumeSrcInt(Double aVal, Boolean isaxi)
   : LinearForm(), val_(aVal)
@@ -181,7 +167,7 @@ VolumeSrcInt::VolumeSrcInt(Double aVal, Boolean isaxi)
 }
 
 
-VolumeSrcInt ::~VolumeSrcInt()
+VolumeSrcInt::~VolumeSrcInt()
 {
   ENTER_FCN( "VolumeSrcIntInt::~VolumeSrcInt" );
 }
@@ -218,12 +204,9 @@ void VolumeSrcInt::CalcElemVector(Matrix<Double>& ptCoord, Vector<Double> & elem
 }
 
 
-
 // =============================================================================
 // permanent magnet in 2D
 // =============================================================================
-
-
 
 MagPerm2DInt::MagPerm2DInt(Vector<Double> vecVal, Double rel, Boolean isaxi)
   : LinearForm(), perm_(vecVal), reluctivity_(rel)
@@ -233,7 +216,7 @@ MagPerm2DInt::MagPerm2DInt(Vector<Double> vecVal, Double rel, Boolean isaxi)
 }
 
 
-MagPerm2DInt ::~MagPerm2DInt()
+MagPerm2DInt::~MagPerm2DInt()
 {
   ENTER_FCN( "MagPerm2DInt::~MagPerm2DInt" );
 }
@@ -277,83 +260,80 @@ void MagPerm2DInt::CalcElemVector(Matrix<Double>& ptCoord, Vector<Double> & elem
 }
 
 
-  // ==================================================================
-  // nLinMagnetics
-  // ==================================================================
+// ==================================================================
+// nLinMagnetics
+// ==================================================================
 
+nLinMagNode2D_linFormInt::nLinMagNode2D_linFormInt(BaseFE * aptelem, MaterialData & matData, 
+												   Boolean isaxi) 
+  : LinearForm(aptelem), matData_(matData)
+{
+  ENTER_FCN( "nLinMagNode2D_linFormInt::nLinMagNode2D_linFormInt" );
+  isaxi_ = isaxi;
+}
 
-  nLinMagNode2D_linFormInt::nLinMagNode2D_linFormInt(BaseFE * aptelem, MaterialData & matData, 
-						     Boolean isaxi) 
-    : LinearForm(aptelem), matData_(matData)
-  {
-    ENTER_FCN( "nLinMagNode2D_linFormInt::nLinMagNode2D_linFormInt" );
-    isaxi_ = isaxi;
-  }
-
-
-  nLinMagNode2D_linFormInt::nLinMagNode2D_linFormInt(ApproxData *nlinFnc, Double startVal, 
-						     Boolean axi)
-    : LinearForm()
-  {
-    ENTER_FCN( "nLinMagNode2D_linFormInt::nLinMagNode2D_linFormInt" );
-
-    isaxi_       = axi;
-    startmatVal_ = startVal;
-    nlinFnc_     = nlinFnc;
-  }
+nLinMagNode2D_linFormInt::nLinMagNode2D_linFormInt(ApproxData *nlinFnc, Double startVal, 
+												   Boolean axi)
+  : LinearForm()
+{
+  ENTER_FCN( "nLinMagNode2D_linFormInt::nLinMagNode2D_linFormInt" );
   
-  nLinMagNode2D_linFormInt::nLinMagNode2D_linFormInt(Double startVal, Boolean axi)
-    : LinearForm()
-  {
-    ENTER_FCN( "nLinMagNode2D_linFormInt::nLinMagNode2D_linFormInt" );
+  isaxi_       = axi;
+  startmatVal_ = startVal;
+  nlinFnc_     = nlinFnc;
+}
+  
+nLinMagNode2D_linFormInt::nLinMagNode2D_linFormInt(Double startVal, Boolean axi)
+  : LinearForm()
+{
+  ENTER_FCN( "nLinMagNode2D_linFormInt::nLinMagNode2D_linFormInt" );
+  
+  isaxi_       = axi;
+  startmatVal_ = startVal;
+  nlinFnc_     = NULL;   //since this is a linear subdomain
+}
 
-    isaxi_       = axi;
-    startmatVal_ = startVal;
-    nlinFnc_     = NULL;   //since this is a linear subdomain
+nLinMagNode2D_linFormInt::~nLinMagNode2D_linFormInt()
+{
+  ENTER_FCN( "nLinMagNode2D_linFormInt ::~nLinMagNode2D_linFormInt" );  
+}
+
+void nLinMagNode2D_linFormInt::CalcElemVector(Matrix<Double>& ptCoord, Vector<Double> & elemVec)
+{
+  ENTER_FCN("nLinMagNode2D_linFormInt :: ~CalcElemVector" );
+  
+  const Integer nrNodes  = ptelem->GetNumNodes();
+  
+  BaseForm * curlcurl2D;
+  if (nlinFnc_== NULL) 
+	//define the linear element matrix
+	curlcurl2D = new CurlCurlNode2DInt(startmatVal_, isaxi_);
+  else {
+	//define the nonlinear element matrix
+	curlcurl2D = new nLinCurlCurlNode2DInt(nlinFnc_, startmatVal_, isaxi_);
+	//important to set method to FixPoint, since we compute the RHS!!
+	curlcurl2D->SetNonLinMethod("fixPoint");
+	
+	//set the element solution vector to the bilinearform
+	curlcurl2D->SetActElemSol(magPotinMatrix_);
   }
 
-  nLinMagNode2D_linFormInt ::~ nLinMagNode2D_linFormInt()
-  {
-    ENTER_FCN( "nLinMagNode2D_linFormInt ::~nLinMagNode2D_linFormInt" );
-
-  }
-
-  void nLinMagNode2D_linFormInt::CalcElemVector(Matrix<Double>& ptCoord, Vector<Double> & elemVec)
-  {
-    ENTER_FCN("nLinMagNode2D_linFormInt :: ~CalcElemVector" );
-
-    const Integer nrNodes  = ptelem->GetNumNodes();
-
-    BaseForm * curlcurl2D;
-    if (nlinFnc_== NULL) 
-      //define the linear element matrix
-      curlcurl2D = new CurlCurlNode2DInt(startmatVal_, isaxi_);
-    else {
-      //define the nonlinear element matrix
-      curlcurl2D = new nLinCurlCurlNode2DInt(nlinFnc_, startmatVal_, isaxi_);
-      //important to set method to FixPoint, since we compute the RHS!!
-      curlcurl2D->SetNonLinMethod("fixPoint");
-      
-      //set the element solution vector to the bilinearform
-      curlcurl2D->SetActElemSol(magPotinMatrix_);
-    }
-
-    //set the element-pointer
-    curlcurl2D->SetElemPtr(ptelem);
-
-    Matrix<Double> elemmat;
-    curlcurl2D->CalcElementMatrix(ptCoord, elemmat);
-    
-    elemVec.Resize(nrNodes);
-    elemVec = -elemmat * magPot_;
-  }
+  //set the element-pointer
+  curlcurl2D->SetElemPtr(ptelem);
+  
+  Matrix<Double> elemmat;
+  curlcurl2D->CalcElementMatrix(ptCoord, elemmat);
+  
+  elemVec.Resize(nrNodes);
+  elemVec = -elemmat * magPot_;
+}
 
 
 
 
-  // ==================================================================
-  // nLinMech
-  // ==================================================================
+// ==================================================================
+// nLinMech
+// ==================================================================
 
 
 nLinMech_linFormInt::nLinMech_linFormInt(BaseFE * aptelem, 
@@ -375,7 +355,7 @@ nLinMech_linFormInt::nLinMech_linFormInt(MaterialData & matData, Boolean isaxi)
 
 
 
-nLinMech_linFormInt ::~nLinMech_linFormInt()
+nLinMech_linFormInt::~nLinMech_linFormInt()
 {
   ENTER_FCN( "nLinMech_linFormInt::~nLinMech_linFormInt" );
 }
@@ -389,8 +369,9 @@ void nLinMech_linFormInt::CalcElemVector(Matrix<Double>& ptCoord,
 
   const Integer nrIntPts = ptelem->GetNumIntPoints();
   const Integer nrNodes  = ptelem->GetNumNodes();
+  // getNrDofs() would not work, because CalcElemVec is used for 2d & 3d !
   //    const Integer nrDofs   = getNrDofs();
-  const Integer nrDofs   = ptelem->GetDim(); // getNrDofs() would not work, because CalcElemVec is used for 2d & 3d !
+  const Integer nrDofs   = ptelem->GetDim(); 
   const Vector<Double> & intWeights = ptelem->GetIntWeights();  
   Vector<Double> piolaStressVec;    
   Vector<Double> partElemVec;
@@ -461,9 +442,9 @@ void nLinMech_linFormInt::CalcElemVector(Matrix<Double>& ptCoord,
 
 
 
-  // ==================================================================
-  //  recovery technique. calculation of element matrix for RHS
-  // ==================================================================
+// ==================================================================
+//  recovery technique. calculation of element matrix for RHS
+// ==================================================================
 
 RHSForRecoveryProcedure::RHSForRecoveryProcedure(BaseFE * aptelem) 
   : LinearForm(aptelem)
@@ -514,9 +495,9 @@ void  RHSForRecoveryProcedure::CalcElemVectorRHSForSPR(Matrix<Double>& ptCoord,
   
 }
 
-  // ==================================================================
-  // prestress linearform
-  // ==================================================================
+// ==================================================================
+// prestress linearform
+// ==================================================================
 
 PreStressLinFormInt::PreStressLinFormInt(BaseFE * aptelem, 
 					 MaterialData & mat, 
@@ -531,7 +512,7 @@ PreStressLinFormInt::PreStressLinFormInt(BaseFE * aptelem,
 
 
 
-PreStressLinFormInt ::~PreStressLinFormInt()
+PreStressLinFormInt::~PreStressLinFormInt()
 {
   ENTER_FCN( "PreStressLinFormInt::~PreStressLinFormInt" );
 }
@@ -607,7 +588,7 @@ PressureLinForm::PressureLinForm(Double aVal, Boolean isaxi)
 
 
 
-PressureLinForm ::~PressureLinForm()
+PressureLinForm::~PressureLinForm()
 {
   ENTER_FCN( "PressureLinForm::~PressureLinForm" );
 }
@@ -694,11 +675,6 @@ void PressureLinForm::CalcElemVector(Matrix<Double>& ptCoord,
     }
 } // end of method
 
-
-
-
-
-  
 
 //==================================================================
 //Members of class LinearFormFlowNoise
@@ -964,10 +940,8 @@ void LinearFlowNoiseInt::GetQttiesOfElement(Matrix<Double>& elVel,
 
 
 // =============================================================================
-// volume source integration
+// nonlinear RHS for nonlinear acoustics
 // =============================================================================
-
-
 
 nLinKuznetsovRHSInt::nLinKuznetsovRHSInt(Double aVal, Boolean isaxi)
   : LinearForm(), val_(aVal)
@@ -977,7 +951,7 @@ nLinKuznetsovRHSInt::nLinKuznetsovRHSInt(Double aVal, Boolean isaxi)
 }
 
 
-nLinKuznetsovRHSInt ::~nLinKuznetsovRHSInt()
+nLinKuznetsovRHSInt::~nLinKuznetsovRHSInt()
 {
   ENTER_FCN( "nLinKuznetsovRHSInt::~nLinKuznetsovRHSInt" );
 }
@@ -1008,45 +982,43 @@ void nLinKuznetsovRHSInt::CalcElemVector(Matrix<Double>& ptCoord, Vector<Double>
   elemVec.Init(0.0);
 
   Double factor;
-  for (Integer actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
-    {  
-	  jacDet = 0;
-      ptelem->GetShFncAtIp(ShpFncAtIp,actIntPt);
-	  ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord, jacDet);
+  for (Integer actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {  
 
-	  if (isaxi_) {
-		CoordAtIp = ptCoord * ShpFncAtIp;
-		for (Integer i=0; i<nrNodes; i++)
-		  xiDx[i][0] += ShpFncAtIp[i] / CoordAtIp[0];
-		
-		jacDet *= 2 * PI * CoordAtIp[0];
-	  }
-
-	  xiDx.Transpose(xiDxTransp);
-
-	  //compute gradient of solution and 1st derivative at integration point
-	  solGradAtIp       = xiDxTransp * sol_;
-	  solDeriv1GradAtIp = xiDxTransp * solderiv1_;
+	jacDet = 0;
+	ptelem->GetShFncAtIp(ShpFncAtIp,actIntPt);
+	ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord, jacDet);
+	
+	if (isaxi_) {
+	  CoordAtIp = ptCoord * ShpFncAtIp;
+	  for (Integer i=0; i<nrNodes; i++)
+		xiDx[i][0] += ShpFncAtIp[i] / CoordAtIp[0];
 	  
-	  //get 1st and 2nd derivartive of solution at integration point
-	  solDeriv1AtIp = solderiv1_*ShpFncAtIp;
-	  solDeriv2AtIp = solderiv2_*ShpFncAtIp;
-
-	  Double factor=0;
-	  for (Integer j=0; j<xiDx.GetSizeCol(); j++)
-		factor += solGradAtIp[j]*solDeriv1GradAtIp[j];
-	  factor *= factorN2_;
-
-	  factor += factorN1_ * solDeriv1AtIp * solDeriv2AtIp;
-
-	  factor *= jacDet;
-	  for (Integer i=0; i< nrNodes; i++)
-		elemVec[i] += ShpFncAtIp[i] * factor;
-
-	  //	  std::cerr << "RHS in linearForm:\n" << elemVec << std::endl;
- 
-    }
-
+	  jacDet *= 2 * PI * CoordAtIp[0];
+	}
+	
+	xiDx.Transpose(xiDxTransp);
+	
+	//compute gradient of solution and 1st derivative at integration point
+	solGradAtIp       = xiDxTransp * sol_;
+	solDeriv1GradAtIp = xiDxTransp * solderiv1_;
+	
+	//get 1st and 2nd derivartive of solution at integration point
+	solDeriv1AtIp = solderiv1_*ShpFncAtIp;
+	solDeriv2AtIp = solderiv2_*ShpFncAtIp;
+	
+	Double factor=0;
+	for (Integer j=0; j<xiDx.GetSizeCol(); j++)
+	  factor += solGradAtIp[j]*solDeriv1GradAtIp[j];
+	factor *= factorN2_;
+	
+	factor += factorN1_ * solDeriv1AtIp * solDeriv2AtIp;
+	
+	factor *= jacDet;
+	for (Integer i=0; i< nrNodes; i++)
+	  elemVec[i] += ShpFncAtIp[i] * factor;
+	
+  }
+  
   //  std::cerr << "RHS in linearForm:\n" << elemVec << std::endl;
 }
 
