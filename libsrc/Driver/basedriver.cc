@@ -18,13 +18,12 @@ BaseDriver :: BaseDriver(Domain * adomain)
   ptdomain_ = adomain;
 
   nummeshes_=0;
- 
 }
 
 BaseDriver :: ~BaseDriver()
 {
   ENTER_FCN( "BaseDriver::~BaseDriver" );
-
+  delete ptdomain_;
 }
 
 // for computation with adaptivity
