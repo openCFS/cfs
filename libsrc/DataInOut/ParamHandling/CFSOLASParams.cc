@@ -20,35 +20,16 @@ namespace CoupledField {
     std::string sTypeString;
     SolverType sType;
     cfs->Get( "type", sTypeString, pdename, "solver" );
-    if ( sTypeString == "cg" ) {
-      sType = CG;
+    if ( sTypeString == "expertsChoice" ) {
+      if ( overrideExpert ) {
+	(*error) << "You cannot specify expertsChoice as solver type "
+		 << "and at the same time specify overrideExpert! "
+		 << "This would leave the solver type undefined!";
+	Error( __FILE__, __LINE__ );
+      }
+      sTypeString = "no solver";
     }
-    else if ( sTypeString == "gmres" ) {
-      sType = GMRES;
-    }
-    else if ( sTypeString == "minres" ) {
-      sType = MINRES;
-    }
-    else if ( sTypeString == "hyprePCG" ) {
-      sType = HYPRE_PCG;
-    }
-    else if ( sTypeString == "hypreGMRES" ) {
-      sType = HYPRE_GMRES;
-    }
-    else if ( sTypeString == "hypreBICGSTAB" ) {
-      sType = HYPRE_BICGSTAB;
-    }
-    else if ( sTypeString == "lapackLU" ) {
-      sType = LAPACK_LU;
-    }
-    else if ( sTypeString == "Direct" ) {
-      sType = LU_SOLVER;
-    }
-    else {
-      std::string errmsg = "Solver '" + sTypeString;
-      errmsg += "' not supported yet.";
-      Info->Error( errmsg, __FILE__, __LINE__ );
-    }
+    OLAS::String2Enum( sTypeString, sType );
 
     // Now determine the type of preconditioner for this PDE
     std::string pTypeString;
@@ -60,42 +41,18 @@ namespace CoupledField {
     std::string mMatString;
     MatrixStorageType mType;
     cfs->Get( "storage", mMatString, pdename, "matrix" );
-    if ( mMatString == "sparseSym" ) {
-      mType = SPARSE_SYM;
-    }
-    else if ( mMatString == "sparseNonSym" ) {
-      mType = SPARSE_NONSYM;
-    }
-    else if ( mMatString == "skylineSym" ) {
-      mType = SKYLINE_SYM;
-    }
-    else if ( mMatString == "skylineNonSym" ) {
-      mType = SKYLINE_NONSYM;
-    }
-    else if ( mMatString == "hypreMatrix" ) {
-      mType = HYPRE_MATRIX;
-    }
-    else if ( mMatString == "lapackGBMatrix" ) {
-      mType = LAPACK_GBMATRIX;
-    }
-    else if ( mMatString == "lapackPBMatrix" ) {
-      mType = LAPACK_PBMATRIX;
-    }
-    else if ( mMatString == "expertsChoice" ) {
+    if ( mMatString == "expertsChoice" ) {
       if ( overrideExpert ) {
-	std::string errmsg = "You cannot specify expertsChoice as storage ";
-	errmsg += "'type and set overrideExpert! This would leave the storage";
-	errmsg += " type undefined!";
-	Info->Error( errmsg, __FILE__, __LINE__ );
+	(*error) << "You cannot specify expertsChoice as storage type "
+		 << "and at the same time specify overrideExpert! "
+		 << "This would leave the storage type undefined!";
+	Error( __FILE__, __LINE__ );
       }
-      mType = NOSTORAGETYPE;
+      mMatString = "noStorageType";
     }
-    else {
-      std::string errmsg = "Matrix storage type '" + mMatString;
-      errmsg += "' not supported yet.";
-      Info->Error( errmsg, __FILE__, __LINE__ );
-    }
+    OLAS::String2Enum( mMatString, mType );
 
+    // Determine matrix entry type
     std::string eMatString;
     MatrixEntryType eType;
     cfs->Get( "entry", eMatString, pdename, "matrix" );
@@ -283,15 +240,22 @@ namespace CoupledField {
     case LAPACK_LU:
       cfs->GetList( "tryScaling", list, pdename, "lapackLU" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "LAPACKLU_TryScaling", (list[0] == "yes") );
+	olas->SetValue( "LAPACKLU_tryScaling", (list[0] == "yes") );
       }
       cfs->GetList( "refineSol", list, pdename, "lapackLU" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "LAPACKLU_RefineSol", (list[0] == "yes") );
+	olas->SetValue( "LAPACKLU_refineSol", (list[0] == "yes") );
       }
       cfs->GetList( "logging", list, pdename, "lapackLU" );
       if( list.GetSize() == 1 ) {
 	olas->SetValue( "LAPACKLU_logging", (list[0] == "yes") );
+      }
+      break;
+
+    case LAPACK_LL:
+      cfs->GetList( "logging", list, pdename, "lapackLL" );
+      if( list.GetSize() == 1 ) {
+	olas->SetValue( "LAPACKLL_logging", (list[0] == "yes") );
       }
       break;
 
@@ -490,6 +454,17 @@ namespace CoupledField {
     ENTER_FCN( "CFSOLASParams::Expert" );
 
     std::string warn;
+
+    // ==============
+    //  Solver stuff
+    // ==============
+
+    // If no solver was specified use a direct one
+    // Currently always use LU until LDL is available
+    if ( sType == NOSOLVER ) {
+      sType = LU_SOLVER;
+    }
+
 
     // ======================
     //  Precondtioner stuff
