@@ -129,14 +129,14 @@ void ElecPDE::SetupMatrices(const Integer level)
 
   Vector<Integer> connecth;  
 
-  //reads eps33 (matrix notation starts with 0)
-  Double eps33 = materialData_->GetPermittivity(2,2);
-
   Integer i, j;
 
 
   for (i=0; i<subdoms_.size(); i++)
     {
+      //reads eps33 (matrix notation starts with 0)
+      Double eps33 = materialData_[i].GetPermittivity(2,2);
+
       std::vector<Elem*> elemssd;
    
       ptgrid_->GetElemSD(elemssd,subdoms_[i],level);

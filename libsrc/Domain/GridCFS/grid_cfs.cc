@@ -2,6 +2,7 @@
 #include <fstream>
 #include <vector>
 #include <string>
+#include <math.h>
 
 #include "grid_cfs.hh"
 #include <Domain/grid.hh>

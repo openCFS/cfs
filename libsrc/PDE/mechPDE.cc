@@ -131,7 +131,7 @@ void MechPDE::WriteResultsInFile()
 	  {
 	    ptEl = elemssd[j]->ptElem;
 
-	    const Double density = materialData_->GetDensity();
+	    const Double density = materialData_[i].GetDensity();
 
 	    BaseForm * bilinear_mass  = new MassInt(ptEl, density);
 	    BaseForm * bilinear_stiff;
