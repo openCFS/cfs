@@ -42,7 +42,7 @@ public:
     \param color name of interface
     \param lev index for hierarchy in multilevel method
   */
-  std::vector<Elem*>& BCs::getEdgesBC(const std::string color, const Integer lev=-1);
+  std::vector<Elem*>& getEdgesBC(const std::string color, const Integer lev=-1);
 
 
   //! returns all 2D elements belonging to the requested interface
@@ -50,7 +50,7 @@ public:
     \param color name of interface
     \param lev index for hierarchy in multilevel method
   */
-  std::vector<Elem*>& BCs::getFacesBC(const std::string color, const Integer lev=-1);
+  std::vector<Elem*>& getFacesBC(const std::string color, const Integer lev=-1);
 
   //! get number of nodes belonging to specified level and hierarchy index
   /*!
@@ -68,7 +68,7 @@ public:
 
   //! 
   //! prints boundary data to screen
-  void BCs :: printBCs(const Integer alevel=-1);
+  void printBCs(const Integer alevel=-1);
 
 protected:
 

@@ -16,7 +16,9 @@
 #include "newmark.hh"
 #include <Elements/basefe.hh>
 
-#include "newMechPDE.hh" 
+#include "DataInOut/ParamHandling/BaseParamHandler.hh"
+
+#include "newMechPDE.hh"
 
 namespace CoupledField
 {
@@ -30,107 +32,162 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
    preStressVal_(0.0)
 
 {
-#ifdef TRACE
-  (*trace) << "entering MechPDE::MechPDE " << std::endl;
+    ENTER_FCN( "MechPDE::MechPDE" );
+
+    pdename_          = "mechanic";
+    pdematerialclass_ = "piezo";
+
+#ifndef XMLPARAMS
+    conf->getstr("subtype", subType_, pdename_ );
+#else
+    params->Get( "subtype", subType_, pdename_ );
 #endif
-  pdename_          = "mechanic";
-  pdematerialclass_ = "piezo";
 
-  
-  conf->getstr("subtype", subType_, pdename_ );
-  
-  if (subType_ == "3d")
-    {
-      dofspernode_ = 3;
-      Info->PrintF("", "=== 3D PROBLEM\n");
-    }
-  else if (subType_ == "axi")
-    {
-      isaxi_ = TRUE;
-      dofspernode_ = 2;
-      Info->PrintF("", "=== AXISYSMMETRIC PROBLEM\n");
-    }
-  else
-    {
-      // default is planeStrain 
-      dofspernode_ = 2;
-      Info->PrintF("", "=== PLAIN STRAIN PROBLEM\n");
-    }
-  
+    if (subType_ == "3d")
+      {
+	dofspernode_ = 3;
+	Info->PrintF("", "=== 3D PROBLEM\n");
+      }
+    else if (subType_ == "axi")
+      {
+	isaxi_ = TRUE;
+	dofspernode_ = 2;
+	Info->PrintF("", "=== AXISYSMMETRIC PROBLEM\n");
+      }
+    else
+      {
+	// default is planeStrain 
+	dofspernode_ = 2;
+	Info->PrintF("", "=== PLAIN STRAIN PROBLEM\n");
+      }
 
-
-  conf->getsubdompde(subdoms_,pdename_);
-  ReadBCs(pdename_);
-  
-  AssignPDENodeNumbers(Mesh2PDENode_, PDE2MeshNode_, subdoms_);
-  numPDENodes_ = PDE2MeshNode_.size();
-  size_        = numPDENodes_ * dofspernode_;
-
-
-  sol_.reshape(dofspernode_, numPDENodes_);
-
-
-  if (conf->get_option("reducedInt",  pdename_ ))
-    {
-      std::cout << "REDUCED INTEGRATION set !!" << std::endl << std::endl;
-      reducedInt_=TRUE;
-    }
-
-  lineSearch_ = FALSE;
-  if (conf->get_option("lineSearch",  pdename_ ))
-    lineSearch_ = TRUE;
-
-  effectiveMass_ = FALSE;
-  if (conf->get_option("effMass",  pdename_ ))
-    effectiveMass_ = TRUE;
+#ifndef XMLPARAMS
+    conf->getsubdompde(subdoms_,pdename_);
+#else
+    params->GetList( "subdom", subdoms_, pdename_ );
+#endif
+    ReadBCs(pdename_);
   
 
-
-  nonLin_ = FALSE;
-  if (conf->get_option("nonlin",  pdename_ ))
-    {
-      nonLin_=TRUE;
-
-      conf->ifget("incStopCrit", incStopCrit_, pdename_); // incremental stopping criterion
-      conf->ifget("residualStopCrit", residualStopCrit_, pdename_); // residual stopping criterion
-      
-      extForces_.resize(size_);
-    }
+    AssignPDENodeNumbers(Mesh2PDENode_, PDE2MeshNode_, subdoms_);
+    numPDENodes_ = PDE2MeshNode_.size();
+    size_        = numPDENodes_ * dofspernode_;
+    sol_.reshape(dofspernode_, numPDENodes_);
 
 
-  conf->ifget("preStressVal", preStressVal_, pdename_);
-  if (preStressVal_)
-    GetDirection(preStressDir_, "preStressDir");
+#ifndef XMLPARAMS
+    lineSearch_ = FALSE;
+    if (conf->get_option("lineSearch",  pdename_ ))
+      lineSearch_ = TRUE;
+
+    effectiveMass_ = FALSE;
+    if (conf->get_option("effMass",  pdename_ ))
+      effectiveMass_ = TRUE;
+#endif
 
 
-  //check for damping model
-  std::string dampstr;
-  conf->ifget("damping",dampstr,pdename_);
-  if (dampstr == "rayleigh")
-    damping_type_ = RAYLEIGH;
-  else
-   damping_type_ = NONE;
+    // Check whether reduced integration is to be performed
+#ifndef XMLPARAMS
+    reducedInt_ = conf->get_option( "reducedInt",  pdename_ );
+#else
+    reducedInt_ = params->IsSet( "reducedInt", pdename_ );
+#endif
 
-  if (damping_type_)
-    assemble_->NeedDampingMatrix();
+    if ( reducedInt_ == TRUE )
+      {
+	std::cout << "REDUCED INTEGRATION set !!" << std::endl << std::endl;
+	reducedInt_=TRUE;
+      }
+
+    // Check whether we have to perform a non-linear computation
+#ifndef XMLPARAMS
+    nonLin_ = conf->get_option( "nonlin",  pdename_ );
+#else
+    nonLin_ = params->IsSet( "nonlinear", pdename_ );
+#endif
+
+    if( nonLin_ == TRUE )
+      {
+#ifndef XMLPARAMS
+	// incremental stopping criterion
+	conf->ifget("incStopCrit", incStopCrit_, pdename_);
+
+	// residual stopping criterion
+	conf->ifget("residualStopCrit", residualStopCrit_, pdename_);
+#else
+	// incremental stopping criterion
+	params->Get( "incStopCrit", incStopCrit_, pdename_ );
+
+	// residual stopping criterion
+	params->Get( "residualStopCrit", incStopCrit_, pdename_ );
+#endif
+      }
+
+#ifndef XMLPARAMS
+    preStressVal_ = 0;
+    conf->ifget("preStressVal", preStressVal_, pdename_);
+#else
+    params->Get( "preStressVal", preStressVal_, pdename_ );
+#endif
+
+    if (preStressVal_)
+      GetDirection(preStressDir_, "preStressDir");
 
 
-  conf->ifgetliststr("homogenBCDof", homDirichDof_, pdename_);  
-  conf->ifgetliststr("inhomogenBCDof", inhomDirichDof_, pdename_);
+    // check for damping model
+#ifndef XMLPARAMS
+    std::string dampstr;
+    conf->ifget("damping",dampstr,pdename_);
+    if (dampstr == "rayleigh")
+      damping_type_ = RAYLEIGH;
+    else
+      damping_type_ = NONE;
+#else
+    if( params->HasValue( "damping", "rayleigh", pdename_ ) )
+      {
+	damping_type_ = RAYLEIGH;
+      }
+    else
+      {
+	damping_type_ = NONE;
+      }
+#endif
 
+    if (damping_type_)
+      assemble_->NeedDampingMatrix();
 
-  // just for consistency with old script
-  conf->ifgetliststr("homoBCDof", homDirichDof_, pdename_);
-  conf->ifgetliststr("homoBCdof", homDirichDof_, pdename_);
-  conf->ifgetliststr("inhomoBCDof", inhomDirichDof_, pdename_);
-  conf->ifgetliststr("inhomoBCdof", inhomDirichDof_, pdename_);
+#ifndef XMLPARAMS
+    conf->ifgetliststr("homogenBCDof", homDirichDof_, pdename_);  
+    conf->ifgetliststr("inhomogenBCDof", inhomDirichDof_, pdename_);
 
-  //check for b.c. input data
-  if (bcs_hd_.size() != homDirichDof_.size()) 
-     Error("Inconsistent definition of homogeneous Dirichlet Boundary Conditions");
-  if (bcs_id_.size() != inhomDirichDof_.size()) 
-     Error("Inconsistent definition of inhomogeneous Dirichlet Boundary Conditions");
+    // just for consistency with old script
+    conf->ifgetliststr("homoBCDof", homDirichDof_, pdename_);
+    conf->ifgetliststr("homoBCdof", homDirichDof_, pdename_);
+    conf->ifgetliststr("inhomoBCDof", inhomDirichDof_, pdename_);
+    conf->ifgetliststr("inhomoBCdof", inhomDirichDof_, pdename_);
+#else
+    params->GetList( "dof", homDirichDof_  , pdename_, "dirichlet_hom" );  
+    params->GetList( "dof", inhomDirichDof_, pdename_, "dirichlet_inhom" );  
+#endif
+
+    //check for b.c. input data
+    if (bcs_hd_.size() != homDirichDof_.size())
+      {
+	std::string errmsg = "Inconsistent definition of homogeneous ";
+	errmsg += "Dirichlet Boundary Conditions\n";
+	errmsg += " bcs_hd_.size() = " + Info->GenStr( bcs_hd_.size() );
+	errmsg += "\n homDirichDof_.size() = "
+	  + Info->GenStr( homDirichDof_.size() ) + '\n';
+	Info->Error( errmsg, __FILE__, __LINE__ );
+      }
+    if (bcs_id_.size() != inhomDirichDof_.size()) 
+      {
+	std::string errmsg = "Inconsistent definition of inhomogeneous ";
+	errmsg += "Dirichlet Boundary Conditions";
+	Info->Error( errmsg, __FILE__, __LINE__ );
+      }
  
+
   // set assemble parameters
   assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, subdoms_, surfdoms_);
   assemble_->SetGraphType(NODEGRAPH);
@@ -148,11 +205,11 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
   assemble_->SetPtrBCs(ptBCs_);
   assemble_->SetPtr2Sol(&sol_);
   assemble_->SetPtr2TimeFnc(ptTimeFunc_);
-  
-  ReadMaterialData();
-   
-  DefineIntegrators(actlevel_);  
 
+  ReadMaterialData();
+    
+  DefineIntegrators(actlevel_);  
+  
   ReadSavings();
 
 }
@@ -160,9 +217,7 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 
   MechPDE::~MechPDE()
   {
-#ifdef TRACE
-    (*trace) << "entering MechPDE::~MechPDE " << std::endl;
-#endif
+    ENTER_FCN( "MechPDE::~MechPDE" );
 
     if  (lambdaMat)
       delete lambdaMat;
@@ -175,190 +230,204 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 
   void MechPDE::DefineIntegrators(const Integer level)
   {
-#ifdef TRACE
-  (*trace) << "entering MechPDE::DefineIntegerators" << std::endl;
-#endif
+    ENTER_FCN( "MechPDE::DefineIntegerators" );
 
-  Boolean nonLin = FALSE;
+    Boolean nonLin = FALSE;
 
 
-  for (int actSD = 0; actSD < subdoms_.size(); actSD++)
-    {
+    for (int actSD = 0; actSD < subdoms_.size(); actSD++)
+      {
 
-      // ==============  add stiffness ===========================================
+	// ==============  add stiffness ======================================
 
-      MaterialData actSDMat(materialData_[actSD]);
+	MaterialData actSDMat(materialData_[actSD]);
 
-      // ==============  add "standard" stiffness ===============================
-      if (!reducedInt_)  
-	{
-	  BaseForm * bilinearStiff = GetStiffIntegrator(actSDMat);
-	  IntegratorDescriptor * actIntDescr = new IntegratorDescriptor(bilinearStiff, STIFFNESS);
+	// ==============  add "standard" stiffness ===========================
+	if (!reducedInt_)  
+	  {
+	    BaseForm * bilinearStiff = GetStiffIntegrator(actSDMat);
+	    IntegratorDescriptor * actIntDescr =
+	      new IntegratorDescriptor(bilinearStiff, STIFFNESS);
 
-	  //check for damping
-	  if (damping_type_ == RAYLEIGH)    
+	    //check for damping
+	    if (damping_type_ == RAYLEIGH)    
 	      actIntDescr->SetSecondaryMat(DAMPING, actSDMat.GetDampingBeta());
 	
-	  assemble_->AddIntegrator(actIntDescr, subdoms_[actSD]);
-	}
+	    assemble_->AddIntegrator(actIntDescr, subdoms_[actSD]);
+	  }
 	  
 	
-      // ==================  add reduced stiffness ===============================
-      else 
-	{
+	// ==================  add reduced stiffness ==========================
+	else 
+	  {
 	  
-	  lambdaMat = new MaterialData(actSDMat);
-	  mueMat = new MaterialData(actSDMat);
+	    lambdaMat = new MaterialData(actSDMat);
+	    mueMat = new MaterialData(actSDMat);
 	  
-	  // use a "different" material data set for reduced integration
-	  CalcReducedMat(*lambdaMat, *mueMat, actSDMat);	
+	    // use a "different" material data set for reduced integration
+	    CalcReducedMat(*lambdaMat, *mueMat, actSDMat);	
 
-	  BaseForm * bilinearStiff1 = GetStiffIntegrator(*mueMat);
-	  assemble_->AddIntegrator(bilinearStiff1, subdoms_[actSD], STIFFNESS, nonLin);
+	    BaseForm * bilinearStiff1 = GetStiffIntegrator(*mueMat);
+	    assemble_->AddIntegrator(bilinearStiff1, subdoms_[actSD],
+				     STIFFNESS, nonLin);
+
+	    BaseForm * bilinearStiff2 = GetStiffIntegrator(*lambdaMat);
+	    assemble_->AddIntegrator(bilinearStiff2, subdoms_[actSD],
+				     STIFFNESS, nonLin);
+	  }
 
 
-	  BaseForm * bilinearStiff2 = GetStiffIntegrator(*lambdaMat);
-	  assemble_->AddIntegrator(bilinearStiff2, subdoms_[actSD], STIFFNESS, nonLin);
-	}
-
-
-      // ==============  add nonlinear stiffness ===============================
-      if (nonLin_)
-	{
-	  BaseForm * nLinPart1;
-	  BaseForm * nLinPart2;
+	// ==============  add nonlinear stiffness ============================
+	if (nonLin_)
+	  {
+	    BaseForm *nLinPart1 = NULL;
+	    BaseForm *nLinPart2 = NULL;
 	  
-	  if (subType_ == "3d")
-	    {	  
-	      nLinPart1 = new nLinMech3dInt_BNonLin(actSDMat);    
-	      nLinPart2 = new nLinMech3dInt_PiolaStress(actSDMat);
-	    }
-	  else if (subType_ == "plainStrain")
-	    {
-	      nLinPart1 = new nLinMechPlaneStrainInt_BNonLin(actSDMat);    
-	      nLinPart2 = new nLinMechPlaneStrainInt_PiolaStress(actSDMat);
+	    if (subType_ == "3d")
+	      {	  
+		nLinPart1 = new nLinMech3dInt_BNonLin(actSDMat);    
+		nLinPart2 = new nLinMech3dInt_PiolaStress(actSDMat);
+	      }
+	    else if (subType_ == "plainStrain")
+	      {
+		nLinPart1 = new nLinMechPlaneStrainInt_BNonLin(actSDMat);    
+		nLinPart2 = new nLinMechPlaneStrainInt_PiolaStress(actSDMat);
 
-	    }
-	  else if (subType_ == "axi")
-	    {
-	      nLinPart1 = new nLinMechAxiInt_BNonLin(actSDMat);    
-	      nLinPart2 = new nLinMechAxiInt_PiolaStress(actSDMat);
+	      }
+	    else if (subType_ == "axi")
+	      {
+		nLinPart1 = new nLinMechAxiInt_BNonLin(actSDMat);    
+		nLinPart2 = new nLinMechAxiInt_PiolaStress(actSDMat);
 
-	    }
+	      }
 	  
-	  assemble_->AddIntegrator(nLinPart1, subdoms_[actSD], STIFFNESS, nonLin_);
-	  assemble_->AddIntegrator(nLinPart2, subdoms_[actSD], STIFFNESS, nonLin_);
-	      
+	    assemble_->AddIntegrator(nLinPart1, subdoms_[actSD], STIFFNESS,
+				     nonLin_);
+	    assemble_->AddIntegrator(nLinPart2, subdoms_[actSD], STIFFNESS,
+				     nonLin_);
+
+	    // assemble prestress, if in config-file given
+	    // 	  if (preStressVal_)
+	    // 	    AssemblePreStressMat(ptEl, connect_PDE, ptCoord,
+	    //      actMatData, elDisp);
+	  }
 
 
-	  // assemble prestress, if in config-file given
-// 	  if (preStressVal_)
-// 	    AssemblePreStressMat(ptEl, connect_PDE, ptCoord, actMatData, elDisp);
-	}
+	// ==============  add mass ===========================================
+	double density = actSDMat.GetDensity();
+	BaseForm * bilinearMass  = new MassInt(density, dofspernode_, isaxi_);
 
+	IntegratorDescriptor * actIntDescr =
+	  new IntegratorDescriptor(bilinearMass, MASS);
 
-
-      // ==============  add mass ================================================
-      double density = actSDMat.GetDensity();
-      BaseForm * bilinearMass  = new MassInt(density, dofspernode_, isaxi_);
-
-      IntegratorDescriptor * actIntDescr = new IntegratorDescriptor(bilinearMass, MASS);
-
-      //check for damping (mass part)
-      if (damping_type_ == RAYLEIGH)    
+	//check for damping (mass part)
+	if (damping_type_ == RAYLEIGH)    
 	  actIntDescr->SetSecondaryMat(DAMPING, actSDMat.GetDampingAlfa());
 
-      assemble_->AddIntegrator(actIntDescr, subdoms_[actSD]);
+	assemble_->AddIntegrator(actIntDescr, subdoms_[actSD]);
 
 
-
-      // ==================== RHS ================================================
-      if (nonLin_)
-	{
-	  BaseForm * rhsSource = new nLinMech_linFormInt(actSDMat, isaxi_);
-	  assemble_->AddRhsIntegrator(rhsSource, subdoms_[actSD], nonLin_);
-	}      
-    }
+	// ==================== RHS ===========================================
+	if (nonLin_)
+	  {
+	    BaseForm * rhsSource = new nLinMech_linFormInt(actSDMat, isaxi_);
+	    assemble_->AddRhsIntegrator(rhsSource, subdoms_[actSD], nonLin_);
+	  }      
+      }
   }
 
 
-BaseForm *
-MechPDE::GetStiffIntegrator(MaterialData& actSDMat, Boolean reducedInt)
-{
-#ifdef TRACE
-  (*trace) << "entering MechPDE::GetStiffIntegrator " << std::endl;
-#endif
+  BaseForm *
+  MechPDE::GetStiffIntegrator(MaterialData& actSDMat, Boolean reducedInt)
+  {
+
+    ENTER_FCN( "MechPDE::GetStiffIntegrator" );
   
-  BaseForm * bilinearStiff;
+    BaseForm * bilinearStiff = NULL;
 
-  if (subType_ == "plainStrain")
-    bilinearStiff = new mechPlainStrainInt(actSDMat);
-  else if (subType_ == "axi")
-    bilinearStiff = new mechAxiInt(actSDMat);
-  else if (subType_ == "3d")
-    bilinearStiff = new mech3DInt(actSDMat);
-  else 
-    Error("Unknown subtype in mech PDE! ",__FILE__,__LINE__);
+    if (subType_ == "plainStrain")
+      bilinearStiff = new mechPlainStrainInt(actSDMat);
+    else if (subType_ == "axi")
+      bilinearStiff = new mechAxiInt(actSDMat);
+    else if (subType_ == "3d")
+      bilinearStiff = new mech3DInt(actSDMat);
+    else 
+      Info->Error("Unknown subtype in mech PDE! ",__FILE__,__LINE__);
 
-  return bilinearStiff;
-}
+    return bilinearStiff;
+  }
 
 
 
-Integer MechPDE::
-GetBCDof(const std::string dofString)
-{
-#ifdef TRACE
-  (*trace) << "entering MechPDE::GetBCDof " << std::endl;
-#endif
+  Integer MechPDE::GetBCDof(const std::string dofString)
+  {
+    ENTER_FCN( "MechPDE::GetBCDof" );
 
-  if (dofString == "ux")
-    return 1;
-  else
-    if (dofString == "uy")
-      return 2;
+    Integer retVal = 0;
+
+    if (dofString == "ux") retVal = 1;
+    else if (dofString == "uy") retVal = 2;
+    else if (dofString == "uz") retVal = 3;
     else
-      if (dofString == "uz")
-	return 3;
-      else
-	Error("The direction mentioned in the config-file is not implemented! ",__FILE__,__LINE__);
-}
+      {
+#ifndef XMLPARAMS
+	std::string errmsg = "The direction '" + dofString;
+	errmsg += "' mentioned in the config-file is not implemented";
+	Info->Error( errmsg, __FILE__, __LINE__ );
+#else
+	// According to the Schema definition of the parameter file this cannot
+	// happen. Did the parser not perform validation?
+	std::string errmsg = "Direction should be one of ux, uy, uz\n";
+	  errmsg += "and not" + dofString;
+	Info->Error( errmsg, __FILE__, __LINE__ );
+#endif
+      }
+
+    return retVal;
+  }
   
 
 
-void MechPDE::
-GetDirection(Directions& dir, const std::string keyword)
-{
-#ifdef TRACE
-  (*trace) << "entering MechPDE::GetDirection " << std::endl;
+  void MechPDE::
+  GetDirection(Directions& dir, const std::string keyword)
+  {
+    ENTER_FCN( "MechPDE::GetDirection" );
+
+    std::string dirString;
+
+#ifndef XMLPARAMS
+    conf->getstr(keyword, dirString, pdename_);
+#else
+    params->Get( keyword, dirString, pdename_);
 #endif
 
-  std::string dirString;
-  conf->getstr(keyword, dirString, pdename_); 
-  
-  if (dirString == "x")
-    dir = X;
-  else
-    if (dirString == "y")
+    if (dirString == "x")
+      dir = X;
+    else if (dirString == "y")
       dir = Y;
+    else if (dirString == "z")
+      dir = Z;
+    else if (dirString == "radXY")
+      dir = radXY;
+    else if (dirString == "radXZ")
+      dir = radXZ;
+    else if (dirString == "radYZ")
+      dir = radYZ;
     else
-      if (dirString == "z")
-	dir = Z;
-      else
-	if (dirString == "radXY")
-	  dir = radXY;
-	else
-	  if (dirString == "radXZ")
-	    dir = radXZ;
-	  else
-	    if (dirString == "radYZ")
-	      dir = radYZ;
-	    else
-	      Error("The direction mentioned in the config-file is not implemented! ",__FILE__,__LINE__);
-}
-
-
-
+      {
+#ifndef XMLPARAMS
+	std::string errmsg = "The direction '" + dirString;
+	errmsg += "' mentioned in the config-file is not implemented";
+	Info->Error( errmsg, __FILE__, __LINE__ );
+#else
+	// According to the Schema definition of the parameter file this cannot
+	// happen. Did the parser not perform validation?
+	std::string errmsg = "Direction should be one of x, y, z, radXY, ";
+	  errmsg += "radXZ, radYZ\nand not" + dirString;
+	Info->Error( errmsg, __FILE__, __LINE__ );
+#endif
+      }
+  }
 
 
 
@@ -1245,3 +1314,6 @@ void MechPDE::WriteResultsInFile()
 } // end namespace CoupledField
 
 #endif //#ifdef NEWBASEPDE
+
+
+

@@ -33,9 +33,8 @@ namespace CoupledField
   Boolean PrintGridOnly = FALSE;
 
   Flags * flags=NULL;
-  ConfFile * conf=NULL;
 
-  BaseFE * ptQ   = NULL;
+  BaseFE * ptQ    = NULL;
   BaseFE * ptQ2   = NULL;
   BaseFE * ptTet = NULL;
   BaseFE * ptL1 = NULL;
@@ -46,8 +45,10 @@ namespace CoupledField
   BaseFE * ptPyra=NULL;
   BaseFE * ptWedge=NULL;
 
-   WriteInfo * Info = NULL;
- 
+  WriteInfo * Info = NULL;
+  ConfFile * conf           = NULL;
+  BaseParamHandler * params = NULL;
+
   std::ostream & operator << (std::ostream & out, const enum precond & type)
   {
     switch (type)

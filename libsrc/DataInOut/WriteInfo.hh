@@ -9,6 +9,7 @@
 /* Writes formatted output to the info-file.                              */
 /**************************************************************************/
 
+#include <sstream>
 #include "MaterialData.hh"
 #include <PDE/pdes_header.hh>
 #include <General/environment.hh>
@@ -102,6 +103,15 @@ namespace CoupledField
     void Error(const std::string & text, const Char * const filename=NULL,
                const Integer numline=0);
 
+    //! Convert anything to a standard string
+
+    //! This auxilliary method can convert any data type to a standard string,
+    //! if the << operator has been overloaded for the respective type.
+    template<class T> std::string GenStr( const T &value ) {
+      std::ostringstream mystream;
+      mystream << value << std::ends;
+      return mystream.str();
+    };
 
   };
 } // end namespace CoupledField

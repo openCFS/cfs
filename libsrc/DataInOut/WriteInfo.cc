@@ -44,6 +44,7 @@ namespace CoupledField
   void WriteInfo::PrintHeader()
   {
     std::stringstream header;
+    std::string compileDate = __DATE__;
   
     header << "=======================================================================" << std::endl
 	   << "=======================================================================" << std::endl
@@ -52,8 +53,9 @@ namespace CoupledField
 	   << "|                     (Coupled Field Simulation ++)                   |" << std::endl
 	   << "|                                                                     |" << std::endl
 	   << "|                                                                     |" << std::endl
-	   << "|  Version: 0.091                                                     |" << std::endl
-	   << "|  Date:    08-March-2004                                             |" << std::endl
+	   << "|  Version: 0.092                                                     |" << std::endl
+	   << "|  Date:    " << compileDate
+	   << "                                               |\n"
 	   << "|                                                                     |" << std::endl
 	   << "=======================================================================" << std::endl
 	   << "=======================================================================" << std::endl << std::endl;
@@ -357,18 +359,19 @@ namespace CoupledField
   }
 
 
-  void WriteInfo::WriteLoad(const std::string& pdeName, const std::string& subDom, 
+  void WriteInfo::WriteLoad(const std::string& pdeName,
+			    const std::string& subDom, 
 			    Double value, const std::string & fnc, Integer dof)
   {
-#ifdef TRACE
-    (*trace) << "entering WriteInfo::WriteLoad" << std::endl;
-#endif
+    ENTER_FCN( "WriteInfo::WriteLoad" );
+
     *cfsInfo << pdeName << "-PDE: Loads on \"" << subDom << "\"";
     
     if (dof)
       *cfsInfo << " with DOF number " << dof;
 
-    *cfsInfo << ", Value=" << value <<  ", FncName: " << fnc <<  myEndl << myEndl;
+    *cfsInfo << ", Value=" << value <<  ", FncName: " << fnc <<  myEndl
+	     << myEndl;
   }
   
 
@@ -471,8 +474,3 @@ namespace CoupledField
   }  
     
 }
-
-
-
-
-

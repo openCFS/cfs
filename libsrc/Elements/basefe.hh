@@ -194,8 +194,12 @@ public:
     \param size (input) Absolute size of element in all dimensions
     \param displacement (input) Displacement of the corner points (same ordering as CornerCoords!!)
   */
-  virtual Double CalcMeanStrain(Matrix<Double> &cornerCoords, Array<Double> &displacements)
-  {Error("Not implemented",__FILE__,__LINE__);}
+  virtual Double CalcMeanStrain(Matrix<Double> &cornerCoords,
+				Array<Double> &displacements)
+  {
+    Error("Not implemented",__FILE__,__LINE__);
+    return 0;
+  }
 
 
   //! Return space dimension

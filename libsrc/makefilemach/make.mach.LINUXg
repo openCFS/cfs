@@ -2,6 +2,8 @@
 # Machine dependent make include file for LINUX - optimized version
 # 
 OPT= 
+STANDARD=
+#-ansi -Wall -pedantic
 #
 #
 #F77=g77 $(OPT)
@@ -14,9 +16,14 @@ MAKE=make
 RM=rm
 RANLIB=ranlib
 #
+# Module debug flags
+#
+# MODDEBUG = -DDEBUG_XMLPARAMHANDLER
+MODDEBUG =
+#
 # Machine dependent flags:
 #
-CFLAGS1= -pg -g -ggdb -c -DTRACE -DDEBUG -DMEMTRACE -DDEBUGFULL 
+CFLAGS1= $(STANDARD) -pg -ggdb -c -DTRACE -DDEBUG -DMEMTRACE -DDEBUGFULL $(MODDEBUG)
 CFLAG_EXE= -pg -g
 FLAG_MKSHLIB = -g -v -shared 
 ARFLAGS = r 

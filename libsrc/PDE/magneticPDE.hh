@@ -96,7 +96,10 @@ public:
 
   //! returns if PDE can compute the quantity
   virtual Boolean HasOutput(std::string output)
-  {Error("HasOutput not implemented",__FILE__,__LINE__);}
+  {
+    Error("HasOutput not implemented",__FILE__,__LINE__);
+    return FALSE;
+  }
 
 
 

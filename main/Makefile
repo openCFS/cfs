@@ -16,6 +16,7 @@ SUBLIBDIR := Driver PDE CoupledPDE Estimator\
              Forms Elements Elements/1D Elements/2D Elements/3D \
              Domain/GridCFS Domain \
              DataInOut/DefineFiles \
+             DataInOut/ParamHandling \
              DataInOut/Unverg DataInOut/GMV DataInOut/AnsysOut \
              DataInOut/DatFile DataInOut/AnsysFile DataInOut\
 	     AlgebraicSystem/LinAlg\
@@ -36,7 +37,7 @@ mylibrary = driver domain pde mpccicpl coupledpde\
             elements3d elements2d elements1d elements \
             gridcfs toadaptgrid \
             gmv definefiles unverg \
-	    ansys-out ansysfile datainout \
+	    ansys-out ansysfile datainout paramhandling \
             algsys-own driver \
             utils matrix general 
 #
@@ -74,9 +75,10 @@ include $(C_DIR)/main/Makefile.option
 ifeq ($(MpCCI),yes)
   CC=/opt/MpCCI/mpcci-2.0.0-linux-gcc32/bin/cciCC
   LINKFLAGS2 = -L/opt/MpCCI/mpcci-2.0.0-linux-gcc32/lib -L/opt/MPICH/mpich-1.2.5/lib
-  sysliball = $(syslib) -lcci -lmpich -lg2c
+  sysliball = $(syslib) -lcci -lmpich $(XERCESLIB) -lg2c
 else
-  sysliball = $(syslib)
+  LINKFLAGS2 =
+  sysliball = $(syslib) $(XERCESLIB)
 endif
 #
 ##########
@@ -98,12 +100,17 @@ PATHSUBLIBDIR = $(addprefix $(LIBSRC_DIR)/, $(SUBLIBDIR))
 ifeq ($(PETSc)),yes)
 $(program):: $(src:.cc=.o) $(fsrc:.f=.o) $(mylibrary)
 	$(CXX_CLINKER) -o $@ $(src:.cc=.o) $(fsrc:.f=.o) $(PETSC_LIB) \
-	-L$(LIB_DIR) $(LINKFLAGS2) $(LINKFLAGS3)\
-	-L$(LIB_DIR) -L$(LIB_GRIDLIB)  -L$(LIB_NETGEN) -L$(LIB_CLA) \
-	$(INCL) $(addprefix -l, $(mylibrary)) $(OLAS_INCL) $(sysliball) -Wl,-rpath,$(LIB_OWN)/$(MACHINE) 
+	-L$(LIB_DIR) $(LINKFLAGS2) $(LINKFLAGS3) \
+	-L$(CVSEXTERNAL)/$(MACHINE)/lib -L$(LIB_GRIDLIB) -L$(LIB_NETGEN) \
+	-L$(LIB_CLA) $(INCL) $(addprefix -l, $(mylibrary)) $(sysliball) \
+	-Wl,-rpath,$(LIB_OWN)/$(MACHINE) 
 else
 $(program):: $(src:.cc=.o) $(mylibrary)
-	$(CC) $(CFLAG_EXE) -o $@ $(src:.cc=.o) $(fsrc:.f=.o) -L$(LIB_DIR) -L$(LIB_GRIDLIB)  -L$(LIB_NETGEN) -L$(LIB_CLA) $(LINKFLAGS2) $(LINKFLAGS3) $(INCL) $(addprefix -l, $(mylibrary)) $(OLAS_INCL) $(sysliball) 
+	$(CC) $(CFLAG_EXE) -o $@ $(src:.cc=.o) $(fsrc:.f=.o) -L$(LIB_DIR) \
+	-L$(LIB_GRIDLIB) -L$(LIB_NETGEN) -L$(LIB_CLA) \
+	-L$(CVSEXTERNAL)/$(MACHINE)/lib \
+	$(INCL) $(LINKFLAGS2) $(LINKFLAGS3) $(INCL) \
+	$(addprefix -l, $(mylibrary)) $(sysliball) 
 #-Wl,-rpath,$(LIB_OWN)/$(MACHINE)
 endif
 #
@@ -152,6 +159,8 @@ clean-driver:
 	$(MAKE) clean
 clean-datainout:
 	@cd $(LIBSRC_DIR)/DataInOut&& \
+	$(MAKE) clean
+	@cd $(LIBSRC_DIR)/DataInOut/ParamHandling && \
 	$(MAKE) clean
 clean-ansys:
 	@cd $(LIBSRC_DIR)/DataInOut/AnsysFile && \
@@ -320,5 +329,5 @@ depend: #depend-cleanfile
 #
 depend-cleanfile:
 	@rm -rf $(Dependencies)
- 
+
 # DO NOT DELETE THIS LINE -- make depend depends on it

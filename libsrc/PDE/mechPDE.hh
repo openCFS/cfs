@@ -26,7 +26,8 @@ public:
     \param aOutFile  pointer to class WriteResults. output data.
     \param aTimeFunc pointer to class TimeFunc
   */
-  MechPDE(Grid *aGrid, BCs *aBCs, TimeFunc *aTimeFunc, FileType *aInFile, WriteResults *aOutFile );
+  MechPDE( Grid *aGrid, BCs *aBCs, TimeFunc *aTimeFunc, FileType *aInFile,
+	   WriteResults *aOutFile );
 
   //!  Deconstructor
   virtual ~MechPDE() {;};
@@ -37,7 +38,7 @@ public:
   //! set information for algebraic system about PDE. set matrix factors
   virtual void SetMatrixFactors();
 
- //! initalize PDE coupling
+  //! initalize PDE coupling
   virtual void InitCoupling(PDECoupling * Coupling);
   
   //! specify type of system matrix for AlgebraicSystem
@@ -47,13 +48,15 @@ public:
   virtual void SetupMatrices(const Integer level);
 
 
-    //! set boundary condition
+  //! set boundary condition
   /*!
-    \param level level of grid
-    \param update indicator: do we update boundary condition in algebraic system or set new
+    \param level     level of grid
+    \param update    indicator: do we update boundary condition in algebraic
+                     system or set new
     \param atimestep time step of calculation
   */
-  virtual void SetBCs(const Integer level, const Integer update, const Double atimestep);
+  virtual void SetBCs(const Integer level, const Integer update,
+		      const Double atimestep);
 
 
   //! compute rhs
@@ -79,45 +82,52 @@ public:
 
   //! solve one step for transient problem 
   /*!
-    \param kstep number of calculating step
-    \param steptime time of calculation
-    \param level level of grid
-    \param updatesysmat indicator: need we to update algebraic system. it is used for adaptive procedure in space
+    \param kstep        number of calculating step
+    \param steptime     time of calculation
+    \param level        level of grid
+    \param updatesysmat indicator: do we need to update algebraic system?
+                        This is used for adaptive procedure in space
   */
-  virtual void SolveStepTrans(const Integer kstep, const Double steptime, const Integer level, 
-			      const Boolean updatesysmat);
+  virtual void SolveStepTrans(const Integer kstep, const Double steptime,
+			      const Integer level, const Boolean updatesysmat);
 
   //! calculate coupling terms
   virtual void CalcOutputCoupling();
   
   //! write results in file
-   virtual void WriteResultsInFile();
+  virtual void WriteResultsInFile();
 
   //! returns if PDE can compute the quantity
   virtual Boolean HasOutput(std::string output);
 
   //! Assemble mass part
-  void AssembleMass(BaseFE * ptEl, Vector<Integer>& connect_PDE, Matrix<Double>& ptCoord, MaterialData& actMatData);
+  void AssembleMass(BaseFE * ptEl, Vector<Integer>& connect_PDE,
+		    Matrix<Double>& ptCoord, MaterialData& actMatData);
 
   //! Assemble stiffness part
-  void AssembleStiffness(BaseFE * ptEl, Vector<Integer>& connect_PDE, Matrix<Double>& ptCoord, MaterialData& actMatData);
+  void AssembleStiffness(BaseFE * ptEl, Vector<Integer>& connect_PDE,
+			 Matrix<Double>& ptCoord, MaterialData& actMatData);
   
   //! Assemble prestress RHS (if prestress given)
-  void AssemblePreStressRHS(BaseFE * ptEl, Vector<Integer>& connect_PDE, Matrix<Double>& ptCoord, 
-			    MaterialData& actMatData, Matrix<Double>& elDisp);
+  void AssemblePreStressRHS(BaseFE * ptEl, Vector<Integer>& connect_PDE,
+			    Matrix<Double>& ptCoord, MaterialData& actMatData,
+			    Matrix<Double>& elDisp);
 
   //! Assemble prestress matrix (if prestress given)
-  void AssemblePreStressMat(BaseFE * ptEl, Vector<Integer>& connect_PDE, Matrix<Double>& ptCoord, 
-			    MaterialData& actMatData, Matrix<Double>& elDisp);
+  void AssemblePreStressMat(BaseFE * ptEl, Vector<Integer>& connect_PDE,
+			    Matrix<Double>& ptCoord, MaterialData& actMatData,
+			    Matrix<Double>& elDisp);
 
   /// assemble nodal loads
   void AssembleNodalLoads(Integer level);
 
   /// assembles external forces to the algebraic system
-  void MechPDE::AssembleInitialRHS(const Integer level, std::vector<Double>& initalRhsVec);
+  void MechPDE::AssembleInitialRHS(const Integer level,
+				   std::vector<Double>& initalRhsVec);
     
   /// calculates the vector of external forces
-  void MechPDE::CalcInitialRhsVec(const Integer level, std::vector<Double>& initalRhsVec);
+  void MechPDE::CalcInitialRhsVec(const Integer level,
+				  std::vector<Double>& initalRhsVec);
 
   /// calculates L2-norm of RHS regarding entries due to penalty formulation
   Double RhsL2Norm(std::vector<Double>& stdVec);
@@ -133,43 +143,40 @@ protected:
   /// setup source term
   void SetupRHS(const Integer level);
   
-  
-  Integer size_;        //!< total number of unknowns (equations)
+  Integer size_; //!< total number of unknowns (equations)
 
 
 private:
-  /// calculates matrices D^_ and D^__ (see Hughes p. 217) for reduced integration
-  void CalcReducedMat(MaterialData& lambdaMat, MaterialData& mueMat, MaterialData& mat);
 
+  /// calculates matrices D^_ and D^__ (see Hughes p. 217) for reduced
+  /// integration
+  void CalcReducedMat(MaterialData& lambdaMat, MaterialData& mueMat,
+		      MaterialData& mat);
 
   // defines subtype of mechanic PDE: plainStrain, 3d, ...
   std::string subType_;
 
+
+  // Help: I need to be documented!
   Integer GetNrBCDof (const std::string & dofStartString);
 
   /// stores an algsys_ vector into a std::vector and returns that L2-norm
   void StoreAlgsysToVec(std::vector<Double>& stdVec, Double * pt);
 
-
   /// returns that L2-norm of an algsys vector
   Double AlgsysL2Norm(Double * pt);
-  
 
   /// flag for nonlinear calculations
   Boolean nonLin_;
 
   /// flag for reduced Integration
   Boolean reducedInt_;
-  
-
 
   //! solve one step for linear static problem 
   /*!
     \param level level of grid
   */
   virtual void SolveStepStaticLin(const Integer level);
-  
-
 
   //! solve one step for nonlinear static problem 
   /*!
@@ -193,7 +200,10 @@ private:
   Directions preStressDir_;
 
   Double lasttimecalc_;  //!< Last time on which we have calculated solution
-  Integer laststepcalc_; //!< Number of last timestep on which we have calculated our solution
+
+  //! Number of last timestep on which we have calculated our solution
+  Integer laststepcalc_;
+
 };
 
 } // end of namespace

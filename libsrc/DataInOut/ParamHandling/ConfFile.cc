@@ -3,6 +3,7 @@
 #include <iostream>
 
 #include "General/environment.hh"
+#include "DataInOut/WriteInfo.hh"
 #include "conffile.hh"
 
 namespace CoupledField
@@ -514,7 +515,7 @@ std::string::size_type ConfFile::getpos(const std::string keyword,
   }
    
    if (pos>=pos_end || nextSectionReached)  {
-     if (writeErr) error(keyword);
+     if (writeErr) error( keyword, __LINE__ );
      return std::string::npos;
    }
    
@@ -549,7 +550,7 @@ std::string::size_type ConfFile::getsectionpos(const std::string keyword, const 
   }
    
    if (pos>=pos_end)  {
-     if (writeErr) error(keyword);
+     if (writeErr) error(keyword, __LINE__ );
         return std::string::npos;
    }
 
@@ -590,7 +591,7 @@ std::string::size_type ConfFile::getsubsectionpos(const std::string keyword, con
   }
    
    if (pos>=pos_end && nextSectionReached)  {
-     if (writeErr) error(keyword);
+     if (writeErr) error( keyword, __LINE__ );
         return std::string::npos;
    }
 
@@ -825,12 +826,16 @@ void ConfFile::open_file()
  infile.seekg(0, std::ios::end);
 }
 
-void ConfFile::error(const std::string keyword) const
+void ConfFile::error(const std::string keyword, Integer line ) const
 {
-std::cerr << "\033[32m ERROR: \033[0m (" << __FILE__ <<" "<< __LINE__
-               << ") Cannot find string: " << keyword ;
-          std::cerr << " in your conf-file.\n\t\t Please, check conf-file."<< std::endl;
-                      exit(1);
+  //std::cerr << "\033[32m ERROR: \033[0m (" << __FILE__ <<" "<< line
+  //          << ") Cannot find string: " << keyword ;
+  //std::cerr << " in your conf-file.\n\t\t Please, check conf-file."
+  //          << std::endl;
+  //exit(1);
+  std::string errmsg = "Cannot find string '" + keyword + "' in your ";
+  errmsg += "parameter file.\n Please check your .conf file.";
+  Info->Error( errmsg, __FILE__, line );
 }
 
 void ConfFile::check(const std::string value, const std::vector<std::string> data)

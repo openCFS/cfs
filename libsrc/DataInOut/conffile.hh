@@ -81,7 +81,8 @@ public:
         \param subsection name of a subsection of the section in which keyword there is
         \param subsubsection etc.
    */
-   Boolean get_option(const std::string keyword, const std::string section="", const std::string subsection = "", const std::string subsubsection = "");
+   Boolean get_option(const std::string keyword, const std::string section="", 
+		      const std::string subsection = "", const std::string subsubsection = "");
 
   //! use only in cases when value of keyword is yes/no. if the keyword is absent in file, then return FALSE; if value of keyword is no, return TRUE
   /*!
@@ -90,7 +91,8 @@ public:
         \param subsection name of a subsection of the section in which keyword there is
         \param subsubsection etc.
    */
-   Boolean get_optionNo(const std::string keyword, const std::string section="", const std::string subsection = "", const std::string subsubsection = "");
+   Boolean get_optionNo(const std::string keyword, const std::string section="", 
+			const std::string subsection = "", const std::string subsubsection = "");
 
 
    //! get list of subdomains
@@ -119,7 +121,8 @@ public:
 	\param section name of a section in which keyword is there. can be omitted
 	\param subsection name of a subsection of the section in which keyword is there. can be omitted
   */
-  void getliststr(const std::string seekexp, std::vector<std::string> & pdes, const std::string section="", const std::string subsection="");
+  void getliststr(const std::string seekexp, std::vector<std::string> & pdes, 
+		  const std::string section="", const std::string subsection="");
 
   //! get string-value for a keyword
   /*!
@@ -137,7 +140,8 @@ public:
         \param section name of a section in which keyword is there. can be omitted
         \param subsection name of a subsection of the section in which keyword is there. can be omitted
   */
-  Boolean ifgetliststr(const std::string seekexp, std::vector<std::string> & pdes, const std::string section="", const std::string subsection="");
+  Boolean ifgetliststr(const std::string seekexp, std::vector<std::string> & pdes, 
+		       const std::string section="", const std::string subsection="");
 
   //! get list of subdomains for an equation, which is defined in a section 
     /*!
@@ -145,7 +149,6 @@ public:
 	\param nameSection name of section in which the equation is specified
 	*/
   void getsubdompde(std::vector<std::string> & subdoms, const std::string nameSection);
-
 
   /// return  name of all subdomains
   std::vector<std::string> & GetAllSubDomains() {return allSubDomains_;};
@@ -155,46 +158,46 @@ protected:
 
   //! get value and function name
   void getVal_Fnc( const std::string::size_type startpos, Double &val, std::string & name);
-
+  
   //! name of file
   Char * filename;
-
+  
   //! input file
-  std::ifstream infile;  
-
+    std::ifstream infile;  
+  
   //! write an error and stop an execution of the program
-  void error(const std::string keyword) const;
+  void error(const std::string keyword, Integer line ) const;
   
-  //! get position in conf-file
-  std::string::size_type getpos(const std::string keyword, 
-				const std::string::size_type startpos=0, 
-				Boolean inSection=FALSE,
-				Boolean inSubSection=FALSE,
-				Boolean writeErr=TRUE);
+    //! get position in conf-file
+    std::string::size_type getpos(const std::string keyword, 
+				  const std::string::size_type startpos=0, 
+				  Boolean inSection=FALSE,
+				  Boolean inSubSection=FALSE,
+				  Boolean writeErr=TRUE);
   
-  //! get position of section in conf-file
-  std::string::size_type getsectionpos(const std::string keyword, const std::string::size_type startpos=0, Boolean writeErr=TRUE);
+    //! get position of section in conf-file
+    std::string::size_type getsectionpos(const std::string keyword, const std::string::size_type startpos=0, Boolean writeErr=TRUE);
 
-  //! get poistion of subsection in conf-file
-  std::string::size_type getsubsectionpos(const std::string keyword, const std::string::size_type startpos=0, Boolean writeErr=TRUE);
+    //! get poistion of subsection in conf-file
+    std::string::size_type getsubsectionpos(const std::string keyword, const std::string::size_type startpos=0, Boolean writeErr=TRUE);
   
 
 
-private:
+  private:
 
-  //! final position on file
-  std::string::size_type pos_end;
+    //! final position on file
+    std::string::size_type pos_end;
 
-  //! store list of all subdomains. we need this for checking that subdomains for PDE are valid
-  std::vector<std::string> allSubDomains_;
+    //! store list of all subdomains. we need this for checking that subdomains for PDE are valid
+    std::vector<std::string> allSubDomains_;
 
-  //! checking that the value is from predefined list
-  void check(const std::string value, std::vector<std::string> data);
+    //! checking that the value is from predefined list
+    void check(const std::string value, std::vector<std::string> data);
 
-  //!
-  void open_file();
+    //!
+    void open_file();
 
-};
+  };
 
 } // end of namespace
 

@@ -3,6 +3,7 @@
 # 
 
 OPT=-O3 -mcpu=pentium
+STANDARD=-ansi -Wall -pedantic
 #
 F77=g77 $(OPT)
 CC=g++ 
@@ -16,7 +17,7 @@ RANLIB=ranlib
 #
 # Machine dependent flags:
 #
-CFLAGS1=  -c $(OPT) -DMEMTRACE 
+CFLAGS1=  -c $(OPT) $(STANDARD) -DMEMTRACE 
 
 CFLAG_EXE= 
 FLAG_MKSHLIB = -g -v -shared 

@@ -8,42 +8,45 @@ namespace CoupledField
 { 
 
   //! Define trace, debug, info files
-  /*!
-    In this class we define auxiliary files, such as {\it trace }-file (file,where we list all methods and classes, that are used during running of program;
- this
-    file should help developer to trace a mistake), {\it debug}-file (file, where intermediate results are stored), {\it info} - file (in this file we print specific information about methods and types of data, which were used in code)
-  */
-class DefineInOutFiles
-{
-public:
 
-   //! constructor
-  /*!
-    \param name name of trace file without extension
-  */
-  DefineInOutFiles(const Char * name);
+  //! In this class we define auxiliary files, such as the {\it trace }-file
+  //! (file,where we list all methods and classes, that are used during
+  //! running of program; this file should help developer to trace a mistake),
+  //! {\it debug}-file (file, where intermediate results are stored),
+  //! {\it info} - file (in this file we print specific information about
+  //! methods and types of data, which were used in code)
+  class DefineInOutFiles
+  {
 
-   //! deconstructure
-   ~DefineInOutFiles();
+  public:
 
-   //! create a pointer to a class for reading input-reults, a derived class of the FileType according to the specification of the conf-file.
-  FileType * Create_ptFileType();
-  
+    //! constructor
+    //! \param name This is the basename for all auxilliary file.
+    DefineInOutFiles(const Char * name);
 
-   //! create a pointer to a class for writing output-results, a derived class of the WriteResults according to the specification of the conf-file.
-   WriteResults * Create_ptWriteResults(FileType * const aInFile);
+    //! deconstructor
+    ~DefineInOutFiles();
 
-private:
+    //! create a pointer to a class for reading input-results, a derived class
+    //! of the FileType according to the specification of the conf-file.
+    FileType * Create_ptFileType();
 
-   //! name of all auxialiary files
-   Char * filename;
+    //! create a pointer to a class for writing output-results, a derived class
+    //! of the WriteResults according to the specification of the conf-file.
+    WriteResults * Create_ptWriteResults(FileType * const aInFile);
 
-   //! pointer to a class for reading input mesh-data
-   FileType * infiletype;
+  private:
 
-   //! pointer to a class for writing output data
-   WriteResults * ptWriteResults;   
-};
+    //! Basename of all auxilliary files
+    Char *filename_;
+
+    //! pointer to a class for reading input mesh-data
+    FileType *infileType_;
+
+    //! pointer to a class for writing output data
+    WriteResults *ptWriteResults_;
+
+  };
 
 } // end of namespace
 #endif

@@ -269,17 +269,20 @@ inline Integer Matrix<TYPE>::size_col () const
 }
 
 template<class TYPE>
-inline Double Matrix<TYPE>::Det () const
-{       
+inline Double Matrix<TYPE>::Det() const
+{
   if (!row || !col) Error("Undefined Matrix!",__FILE__,__LINE__);
   if (row != col ) Error("No quadratic matrix!",__FILE__,__LINE__);
+
+  Double retVal = 0;
+
   switch (row)
     {
-    case 1: return p[0][0];
+    case 1: retVal = p[0][0];
       break;
-    case 2: return  p[0][0]*p[1][1]-p[0][1]*p[1][0];
+    case 2: retVal = p[0][0]*p[1][1]-p[0][1]*p[1][0];
       break;
-    case 3: return p[0][0]*p[1][1]*p[2][2] +
+    case 3: retVal = p[0][0]*p[1][1]*p[2][2] +
 	      p[0][1]*p[1][2]*p[2][0] +
 	      p[0][2]*p[1][0]*p[2][1] -
 	      p[0][2]*p[1][1]*p[2][0] -
@@ -288,6 +291,8 @@ inline Double Matrix<TYPE>::Det () const
       break;
     default: Error("Dimension larger than 3!",__FILE__,__LINE__);
     }
+
+  return retVal;
 }
 
 
