@@ -25,7 +25,6 @@ ConfFile::ConfFile(const Char* const afilename)
 
  infile.seekg(0, std::ios::end);
  pos_end=infile.tellg();
-
 }
 
 ConfFile::~ConfFile()
@@ -36,14 +35,14 @@ ConfFile::~ConfFile()
 template<class TypeVal>
 void ConfFile::get(const std::string keyword, TypeVal & val, const std::string section)
 {
-   std::string::size_type pos,pos1=0;
+ std::string::size_type pos,pos1=0;
 
-   if (section != "") pos1=getpos(section);
+ if (section != "") pos1=getpos(section);
 
-   pos=getpos(keyword,pos1);
+ pos=getpos(keyword,pos1);
 
-   infile.seekg(pos, std::ios::beg);
-   infile >> val;
+ infile.seekg(pos, std::ios::beg);
+ infile >> val;
 }
 
 std::string::size_type ConfFile::getpos(const std::string keyword,const std::string::size_type startpos)
