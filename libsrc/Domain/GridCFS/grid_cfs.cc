@@ -8,7 +8,6 @@
 
 #include <Domain/grid.hh>
 #include <Elements/elements_header.hh>
-#include <DataInOut/ParamHandling/ConfFile.hh>
 #include <DataInOut/ParamHandling/BaseParamHandler.hh>
 
 namespace CoupledField
@@ -21,12 +20,7 @@ namespace CoupledField
 
     InFile = aptFileType;
 
-
-#ifndef XMLPARAMS
-    conf->getsubdom(sd_);
-#else
     params->GetList( "name", sd_, "domain", "region" );
-#endif
 
     elems_=new StdVector<Elem*>[sd_.GetSize()];  
 

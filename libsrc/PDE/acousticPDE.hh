@@ -108,7 +108,6 @@ protected:
 
 private:
 
-#ifdef XMLPARAMS
     //! Obtain information on desired output quantities from parameter file
 
     //! This method is used to query the parameter handling object for the
@@ -121,7 +120,6 @@ private:
     //! is specified.\n
     //! \todo Specification of ReadStoreResults for AcousticPDE!!!
     void ReadStoreResults();
-#endif
 
 };
 

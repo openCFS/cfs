@@ -2,7 +2,6 @@
 #define FILE_NEWMARKFRACDAMP_2001
 
 #include <General/environment.hh>
-#include <DataInOut/ParamHandling/ConfFile.hh>
 #include <Domain/grid.hh>
 
 #include "timestepping.hh"

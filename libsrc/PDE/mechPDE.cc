@@ -42,27 +42,6 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
     // DETERMINE GEOMETRY
     // ****************************
 
-#ifndef XMLPARAMS
-    conf->getstr("subtype", subType_, pdename_ );
-
-    if (subType_ == "3d"){
-	dofspernode_ = 3;
-	Info->PrintF("", "=== 3D PROBLEM\n");
-    } else if (subType_ == "axi") {
-      isaxi_ = TRUE;
-      dofspernode_ = 2;
-      Info->PrintF("", "=== AXISYSMMETRIC PROBLEM\n");
-    
-    } else if (subType_ == "planeStrain" ) {
-      dofspernode_ = 2;
-      Info->PrintF("", "=== PLAIN STRAIN PROBLEM\n");
-    } else {
-      std::string errmsg = "Subtype " + subType_ + " is not defined for";
-      errmsg += " PDEs of type " + pdename_ + '\n';
-      Info->Error( errmsg, __FILE__, __LINE__ );
-    }
-#else
-    
     // Get problem geometry and PDE subtype
     params->Get( "subType", subType_, pdename_ );
     std::string probGeo;
@@ -90,7 +69,6 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 	errmsg += "geometry '" + probGeo + "'\n";
 	Info->Error( errmsg, __FILE__, __LINE__ );
       }
-#endif
 
     // =====================================================================
     // set solution information
@@ -98,33 +76,13 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
     solTypes_ = MECH_DISPLACEMENT;
     solDofs_ = dofspernode_;
     
-#ifndef XMLPARAMS
-    lineSearch_ = FALSE;
-    if (conf->get_option("lineSearch",  pdename_ ))
-      lineSearch_ = TRUE;
-
-    effectiveMass_ = FALSE;
-    if (conf->get_option("effMass",  pdename_ ))
-      effectiveMass_ = TRUE;
-#else
     effectiveMass_ = params->IsSet( "effMass" );
-#endif
 
     
     // *********************************
     //  Check damping model
     // *********************************
     
-#ifndef XMLPARAMS
-    std::string dampstr;
-    conf->ifget("damping",dampstr,pdename_);
-    if (dampstr == "rayleigh") {
-      dampingType_ = RAYLEIGH;
-      Info->PrintF(pdename_, " Using RAYLEIGH damping\n" );
-    }
-    else
-      dampingType_ = NONE;
-#else
     if( params->HasValue( "type", "rayleigh", pdename_, "damping" ) )
       {
 	dampingType_ = RAYLEIGH;
@@ -134,7 +92,6 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
       {
 	dampingType_ = NONE;
       }
-#endif
 
     if (dampingType_)
       needsDampingMatrix_ = TRUE;
@@ -142,8 +99,6 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
     // *********************************
     //  Check for pressure loads
     // *********************************
-#ifndef XMLPARAMS
-#else
 
     //check for pressure loads
     params->GetList( "name"    , pressSurf_ , pdename_, "pressure" );
@@ -171,7 +126,6 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
     //check for prestressing
     ReadPreStressing();
 
-#endif
 }
 
 
@@ -191,10 +145,6 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
   void MechPDE::InitNonLin()
   {
     ENTER_FCN( "MechPDE::InitNonLin");
-        // Check whether we have to perform a non-linear computation
-#ifndef XMLPARAMS
-    nonLin_ = conf->get_option( "nonlin",  pdename_ );
-#else
 
     // ==============================================================
     // NOTE: Currently we can only treat geometric non-linearity and
@@ -240,17 +190,8 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
       lineSearch_ = "no";
     }
 
-#endif
-
     if( nonLin_ == TRUE )
       {
-#ifndef XMLPARAMS
-	// incremental stopping criterion
-	conf->ifget("incStopCrit", incStopCrit_, pdename_);
-
-	// residual stopping criterion
-	conf->ifget("residualStopCrit", residualStopCrit_, pdename_);
-#else
 	// incremental stopping criterion
 	params->Get( "incStopCrit", incStopCrit_, pdename_, "nonLinear" );
 
@@ -259,7 +200,6 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 	
 	// maximal number of NL-iterations
 	params->Get("maxNumIters", nonLinMaxIter_, pdename_, "nonLinear");
-#endif
       }
 
     // ------------------------------------
@@ -377,11 +317,8 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 		nLinPart1 = new nLinMech3dInt_BNonLin(actSDMat);    
 		nLinPart2 = new nLinMech3dInt_PiolaStress(actSDMat);
 	      }
-#ifndef XMLPARAMS
-	    else if (subType_ == "plainStrain")
-#else
+
 	    else if (subType_ == "planeStrain")
-#endif
 	      {
 		nLinPart1 = new nLinMechPlaneStrainInt_BNonLin(actSDMat);    
 		nLinPart2 = new nLinMechPlaneStrainInt_PiolaStress(actSDMat);
@@ -448,11 +385,7 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
   
     BaseForm * bilinearStiff = NULL;
 
-#ifndef XMLPARAMS
-    if (subType_ == "plainStrain")
-#else
     if (subType_ == "planeStrain")
-#endif
       bilinearStiff = new mechPlainStrainInt(actSDMat);
     else if (subType_ == "axi")
       bilinearStiff = new mechAxiInt(actSDMat);
@@ -473,11 +406,7 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 
     std::string dirString;
 
-#ifndef XMLPARAMS
-    conf->getstr(keyword, dirString, pdename_);
-#else
     params->Get( keyword, dirString, pdename_);
-#endif
 
     if (dirString == "x")
       dir = X;
@@ -493,17 +422,11 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
       dir = radYZ;
     else
       {
-#ifndef XMLPARAMS
-	std::string errmsg = "The direction '" + dirString;
-	errmsg += "' mentioned in the config-file is not implemented";
-	Info->Error( errmsg, __FILE__, __LINE__ );
-#else
 	// According to the Schema definition of the parameter file this cannot
 	// happen. Did the parser not perform validation?
 	std::string errmsg = "Direction should be one of x, y, z, radXY, ";
-	  errmsg += "radXZ, radYZ\nand not" + dirString;
+	errmsg += "radXZ, radYZ\nand not" + dirString;
 	Info->Error( errmsg, __FILE__, __LINE__ );
-#endif
       }
   }
 
@@ -841,11 +764,7 @@ void MechPDE::StepStaticNonLin(const Integer kstep, const Double aTime,
       Double residualL2Norm = 0;
       Double etaLineSearch=0;
 
-#ifndef XMLPARAMS
-      if (!lineSearch_)
-#else
       if ( lineSearch_ != "no" )
-#endif
 	actSol += solIncrement;
       else
 	// TRUE is for transient simulation
@@ -866,11 +785,7 @@ void MechPDE::StepStaticNonLin(const Integer kstep, const Double aTime,
       // =====================================================================
       // calculation of error norms
       // =====================================================================
-#ifndef XMLPARAMS
-      if (!lineSearch_)
-#else
       if ( lineSearch_ != "no" )
-#endif
 	{
 	  Vector<Double> actRHS;
 	  StoreAlgsysToVec(actRHS, algsys_->GetRHSVal() );       
@@ -1117,11 +1032,7 @@ void MechPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
       Double residualL2Norm;
       Double etaLineSearch = 0;
       
-#ifndef XMLPARAMS
-      if (!lineSearch_)
-#else
       if ( lineSearch_ != "no" )
-#endif
 	actSol += solIncrement;
       else
 	// TRUE is for transient simulation
@@ -1145,11 +1056,7 @@ void MechPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
       // calculation of error norms
       // =====================================================================
 
-#ifndef XMLPARAMS
-      if (!lineSearch_)
-#else
       if ( lineSearch_ != "no" )
-#endif
 	{
 	  Vector<Double> actRHS;
 	  StoreAlgsysToVec(actRHS, algsys_->GetRHSVal() );       
@@ -1375,7 +1282,6 @@ void MechPDE::WriteResultsInFile(Integer stepOffset,
 // ***********************************************************************
 //   Obtain information on desired output quantities from parameter file
 // ***********************************************************************
-#ifdef XMLPARAMS
 void MechPDE::ReadStoreResults() {
 
   ENTER_FCN( "MechPDE::ReadStoreResults" );
@@ -1553,7 +1459,7 @@ void MechPDE::ReadStoreResults() {
     Error( errMsg.c_str(), __FILE__, __LINE__);
     }
 }
-#endif
+
 
 // ************************************************************
 //   PostProcess
@@ -1573,24 +1479,20 @@ void MechPDE::PostProcess(const Integer level) {
     ShortInt stressDim;
     Vector<Double> intPoint;
 
-#ifndef XMLPARAMS 
-      if (subType_ == "plainStrain") {
-#else
-      if (subType_ == "planeStrain") {
-#endif
+    if (subType_ == "planeStrain") {
 	stressDim = 3;
-      }
+    }
 
-      else if (subType_ == "axi") {
-	stressDim = 4;
-      }
-
-      else if (subType_ == "3d") {
-	stressDim = 6;
-      }
-
-      else 
-	Info->Error("StressOp: Unknown subtype in mech PDE! ",__FILE__,__LINE__);  
+    else if (subType_ == "axi") {
+      stressDim = 4;
+    }
+    
+    else if (subType_ == "3d") {
+      stressDim = 6;
+    }
+    
+    else 
+      Info->Error("StressOp: Unknown subtype in mech PDE! ",__FILE__,__LINE__);  
       
       
       // Resize solution arrays

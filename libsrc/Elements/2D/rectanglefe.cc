@@ -3,7 +3,6 @@
 #include <string>
 
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
-#include "DataInOut/ParamHandling/ConfFile.hh"
 #include "DataInOut/WriteInfo.hh"
 #include "Elements/basefe.hh"
 #include "rectanglefe.hh"
@@ -24,15 +23,8 @@ RectangleFE::RectangleFE()
   MidPoint_ = 0.0, 0.0;
   
 
-#ifndef XMLPARAMS
-  std::string integtype="GaussOrder2";
-  std::string IntRule;
-  if (conf->ifget("IntegRules", IntRule)==TRUE)
-      conf->ifget("rectangle",integtype,"IntegRules");
-#else
   std::string integtype;
   params->Get( "type", integtype, "integRules", "rectangle" );
-#endif
 
   IntegType=String2EnumIntegrationType(integtype.c_str());
 

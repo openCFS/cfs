@@ -250,16 +250,12 @@ namespace CoupledField
     std::string pdeNameLong(pdeName);
     std::string analysis;
 
-#ifndef XMLPARAMS
-  conf->get("analysis", analysis);
-#else
-   params->Get( "type", analysis, "analysis" );
-#endif
+    params->Get( "type", analysis, "analysis" );
 
     // write std::out info    
 
 
-   if(analysis != "paramIdent"){ // since the paramIdent driver calls iteratively this step, the output is rather disturbing than helpful
+    if(analysis != "paramIdent"){ // since the paramIdent driver calls iteratively this step, the output is rather disturbing than helpful
 
         std::cout << myEndl << pdeName << ": Harmonic step " 
           << freqStep <<" ======================= " << std::endl;      
@@ -301,76 +297,6 @@ namespace CoupledField
       }
   }
 
-
-#ifndef XMLPARAMS
-
-  void WriteInfo::PrintCoil(std::string& coilDomain,
-			    struct coilDefStruct& coilDef,
-			    AnalysisType& analysistype_)
-  {
-    ENTER_FCN( "WriteInfo::PrintCoil" );
-
-    *cfsInfo <<  "COIL DESCRIPTION ======================================= "
-	     << myEndl <<  "Coil domain: " << coilDomain << std::endl;
-    if (coilDef.type == CURRENT)
-      *cfsInfo << "Coil type  : current-loaded" << std::endl;
-    else if (coilDef.type == VOLTAGE)
-      *cfsInfo << "Coil type  : voltage-loaded" << std::endl;
-    else if (coilDef.type == MEASUREMENT)
-	*cfsInfo << "Coil type  : sensing coil (induced voltage)"
-		 << std::endl;
-    // <<  "  parameters: current direction = " << coilDef.iDir << std::endl
-
-    *cfsInfo   <<  "              ID                = " << coilDef.ID
-	       << std::endl;
-
-    if (coilDef.type == CURRENT)
-      {
-	*cfsInfo << "              current value     = " << coilDef.current
-		 << std::endl;
-	if (analysistype_==HARMONIC)
-	  *cfsInfo << "              current phase     = " << coilDef.phase
-		   << std::endl;
-      }
-
-    else if (coilDef.type == VOLTAGE)
-      {
-	*cfsInfo << "              voltage value     = " << coilDef.voltage
-		 << std::endl
-		 << "              resistance        = "
-		 << coilDef.resistance << std::endl;
-	if (analysistype_==HARMONIC)
-	  *cfsInfo << "              voltage phase     = " << coilDef.phase << std::endl;
-      }
-      
-    *cfsInfo << "              coil area         = " << coilDef.coilArea << std::endl;
-
-    if (analysistype_==TRANSIENT)
-	  *cfsInfo << "              time function     = " << coilDef.timefnc << std::endl;
-
-    if (coilDef.UIfile != "--not--defined")
-      {
-	if (coilDef.type == CURRENT)
-	  *cfsInfo << "              save voltage in: " << coilDef.UIfile << std::endl;
-	else if (coilDef.type == VOLTAGE)
-	  *cfsInfo << "              save current in: " << coilDef.UIfile << std::endl;	  
-	else if (coilDef.type == MEASUREMENT)
-	  *cfsInfo << "              save voltage in: " << coilDef.UIfile << std::endl;
-      }
-
-    if (coilDef.Lfile != "--not--defined")
-      *cfsInfo << "              save inductance in: " << coilDef.Lfile << std::endl;
-
-
-//     if (coilDef.iDir > 3)
-//       *cfsInfo<< "              coilMidPt         = " << coilDef.coilMidPt << std::endl;
-//     if (analysistype_==HARMONIC)
-//       *cfsInfo<< "              current phase     = " << coilDef.currentPhase << std::endl;
-    
-    *cfsInfo << std::endl << myEndl;
-  }
-
-#else
 
   void WriteInfo::PrintCoil( Coil &coil, AnalysisType &analysistype ) {
 
@@ -471,8 +397,6 @@ namespace CoupledField
 
     *cfsInfo << std::endl << myEndl;
   }
-
-#endif
 
 
   void WriteInfo::PrintVec(Vector<Double>& vec)

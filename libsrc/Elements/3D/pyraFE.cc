@@ -3,7 +3,6 @@
 #include <string>
 
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
-#include "DataInOut/ParamHandling/ConfFile.hh"
 #include "DataInOut/WriteInfo.hh"
 #include "General/environment.hh"
 #include "pyraFE.hh"
@@ -22,15 +21,8 @@ PyraFE::PyraFE()
   //    numChilds_ = 8;
   MidPoint_ = 0.0, 0.0, 1./5;
   
-#ifndef XMLPARAMS
-  std::string integtype = "GaussOrder2";
-  std::string IntRule;
-  if (conf->ifget("IntegRules", IntRule)==TRUE)
-    conf->ifget("pyra", integtype, "IntegRules");
-#else
   std::string integtype;
   params->Get( "type", integtype, "integRules", "pyra" );
-#endif
   
   IntegType = String2EnumIntegrationType(integtype.c_str());
   

@@ -39,16 +39,10 @@ NewmarkFracDamp::NewmarkFracDamp(std::string apdename, BaseSystem * algebraicsys
   gamma_ = 0.5;
 
   //check if integration parameters are defined in conf-file
-#ifndef XMLPARAMS
-  conf->ifget("alpha_NM",alpha_,pdename_); 
-  conf->ifget("beta_NM",beta_,pdename_); 
-  conf->ifget("gamma_NM",gamma_,pdename_);
-#else
   std::string analysis;
   params->Get( "type", analysis, "analysis" );
   if(analysis != "paramIdent")
     Info->PrintF( pdename_,"Newmark: Using defaults for alpha, beta and gamma!" );
-#endif
 
 
   Integer numEQNs = ptEQN_->GetNumEQNs();

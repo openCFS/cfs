@@ -4,7 +4,6 @@
 
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
 #include "DataInOut/ParamHandling/CFSOLASParams.hh"
-#include "DataInOut/ParamHandling/ConfFile.hh"
 #include "DataInOut/WriteInfo.hh"
 #include "Domain/elem.hh"
 #include "Estimator/spaceerror.hh"
@@ -122,19 +121,13 @@ void BasePDE::Init(Integer bcSequenceIndex,
   // =====================================================================
   // get regions/subdomains for PDE
   // =====================================================================
-#ifndef XMLPARAMS  
-
-  conf->getsubdompde(subdoms_,pdename_);
-   
-#else
   params->GetList( "name", subdoms_, pdename_, "region" );
   Info->PrintF( pdename_, " %s lives on regions:\n", pdename_.c_str());
   for ( Integer k = 0; k < subdoms_.GetSize(); k++ ) {
 	Info->PrintF( pdename_, " %s\n", subdoms_[k].c_str() );
   }
-#endif
 
-  //    //allocate according algebraic system
+  //allocate according algebraic system
   algsys_ = new StandardSystem();
     
 #ifdef USE_OLAS
@@ -171,11 +164,7 @@ void BasePDE::Init(Integer bcSequenceIndex,
   std::string stepString;
   std::string analysis;
 
-#ifndef XMLPARAMS
-  conf->get("analysis", analysis);
-#else
   params->Get( "type", analysis, "analysis" );
-#endif
 
   AnalysisType analysisHelp;
   StdVector<std::string> tags, analysisTypes, pdenames;
@@ -245,21 +234,11 @@ void BasePDE::Init(Integer bcSequenceIndex,
   // initialize adaptivity
   // =====================================================================
     
-#ifndef XMLPARAMS
-  if (conf->get_option("adaptspace"))
-	conf->get("tolerance_space_error", tolSpaceErr_);
-  else
-	tolSpaceErr_ = .0;
-#else
   if( params->IsSet( "adaptspace" ) )
-	{
-	  params->Get( "tolerance_space_error", tolSpaceErr_ );
-	}
+    params->Get( "tolerance_space_error", tolSpaceErr_ );
+
   else
-	{
-	  tolSpaceErr_ = 0;
-	}
-#endif 
+    tolSpaceErr_ = 0;
     
   // =====================================================================
   // read in boundary conditions
@@ -278,7 +257,6 @@ void BasePDE::Init(Integer bcSequenceIndex,
   // =====================================================================
 
 
-#ifdef XMLPARAMS
   // What type of equation numbering does the user want?
   keyVec = pdename_, "solver", "matrix", "eqnNumbering";
   std::string typeOfNumbering;
@@ -326,19 +304,6 @@ void BasePDE::Init(Integer bcSequenceIndex,
 	}
   }
 
-
-#else
-	
-  // For conf-file always use scalar entries in system matrix
-  if (dofspernode_ == 1) {
-	eqnData_  = new ScalarNodeEQN(ptgrid_, ptBCs_, subdoms_, 
-								  actlevel_, dofspernode_);
-  } else {
-	eqnData_ = new ScalarBlockEQN(ptgrid_, ptBCs_, subdoms_, 
-								  actlevel_, dofspernode_);
-  }
-
-#endif
 
   eqnData_->SetHomoDirichletBCs(bcs_hd_, homDirichDof_);
   eqnData_->CalcMapping();
@@ -412,11 +377,7 @@ void BasePDE::Init(Integer bcSequenceIndex,
   // =====================================================================
   // define which solution types have to be saved
   // =====================================================================
-#ifndef XMLPARAMS
-  ReadSavings();
-#else
   ReadStoreResults();
-#endif
 
   // =====================================================================
   // Create time stepping algorithm
@@ -424,35 +385,6 @@ void BasePDE::Init(Integer bcSequenceIndex,
   InitTimeStepping();
 
 }
-  
-// For XML parameter handling we have replaced this method by the pure
-// virtual ReadStoreResults() method which must be implemented by each
-// PDE according to its demands.
-  
-#ifndef XMLPARAMS
-  
-void BasePDE::ReadSavings() {
-
-  ENTER_FCN( "BasePDE::ReadSavings" );
-
-  //set saving of solution to yes, if user has not used the nodalsave-command
-  saveSol_ = TRUE;
-
-  //check for node saving
-  StdVector<std::string> savings;
-  
-  //reset saving of solution, if user has used the nodalsave-command
-  if (conf->ifgetliststr("nodalsave", savings, pdename_))
-	saveSol_ = FALSE;
-
-  for (Integer i=0; i<savings.GetSize(); i++) {
-	if (savings[i] == "dof")  saveSol_ = TRUE;
-	if (savings[i] == "deriv1") saveDeriv1_ = TRUE;
-	if (savings[i] == "deriv2") saveDeriv2_ = TRUE;
-  }
-}
-
-#endif
   
 
 Integer BasePDE::GetBCDof(const std::string dofStartString)
@@ -1105,32 +1037,6 @@ void BasePDE::ReadBCs()
   ENTER_FCN( "BasePDE::ReadBCs" );
 
 
-#ifndef XMLPARAMS
-  conf->ifgetliststr( "homogeneous_dirichlet"  , bcs_hd_, pdename_ ); 
-  conf->ifgetliststr( "inhomogeneous_dirichlet", bcs_id_, pdename_ );
-  
-  val_id_.Resize(bcs_id_.GetSize());
-  fncnames_id_.Resize(bcs_id_.GetSize());
-
-  for( Integer i = 0; i < bcs_id_.GetSize(); i++ )
-	{
-	  conf->get2( bcs_id_[i], val_id_[i], fncnames_id_[i], pdename_,
-				  "bc_conditions", "inhomogeneous_dirichlet" );
-	}
-
-  if (dofspernode_ > 1)
-	{
-	  conf->ifgetliststr("homogenBCDof", homDirichDof_, pdename_);  
-	  conf->ifgetliststr("inhomogenBCDof", inhomDirichDof_, pdename_);
-      
-	  // just for consistency with old script
-	  conf->ifgetliststr("homoBCDof", homDirichDof_, pdename_);
-	  conf->ifgetliststr("homoBCdof", homDirichDof_, pdename_);
-	  conf->ifgetliststr("inhomoBCDof", inhomDirichDof_, pdename_);
-	  conf->ifgetliststr("inhomoBCdof", inhomDirichDof_, pdename_);
-	}
-#else
-
   // vectors for parameter handling
   StdVector<std::string> keyVec;
   StdVector<std::string> attrVec;
@@ -1189,7 +1095,6 @@ void BasePDE::ReadBCs()
 	  //       params->GetList( "dof", homDirichDof_  , pdename_, "dirichletHom" );  
 	  //       params->GetList( "dof", inhomDirichDof_, pdename_, "dirichletInhom" );
 	}
-#endif
 
   // =====================================================================
   // if pde has more than one dof, initialize dof of boundary
@@ -1225,46 +1130,6 @@ void BasePDE::ReadMaterialData()
 {
   ENTER_FCN( "BasePDE::ReadMaterialData" );
 
-#ifndef XMLPARAMS
-  // -------------------
-  // CONF-FILE
-  // -------------------
-  
-  std::string outformat="unverg";
-  conf->ifget("format_output",outformat);
-  materialData_ = new MaterialData[subdoms_.GetSize()];
-  std::string matName;
-
-  if (outformat!="database")
-	{
-	  // read material-file name from config-file
-	  std::string matFileName;
-	  conf->get( "material_file", matFileName );
-	  LoadMaterialDataFile loadMaterialFile( matFileName.c_str() );
-  
-	  //read material data for each subdomain
-	  for (Integer i=0; i<subdoms_.GetSize(); i++)
-		{
-		  // load material data into array "materialData_"
-		  conf->getstr(subdoms_[i], matName, "list_subdomains");
-		  loadMaterialFile.GetMaterial(materialData_[i], matName, pdematerialclass_);
-		}
-	}
-  else  // outformat=="database"
-	{
-#ifdef USE_DATABASE
-	  LoadMaterialDataDatabase loadMaterialDB;
-	  for (Integer i=0; i<subdoms_.GetSize(); i++)
-		{
-		  conf->getstr(subdoms_[i], matName, "list_subdomains");
-		  loadMaterialDB.GetMaterial(materialData_[i],matName,pdematerialclass_);
-		}
-#else  // No Database
-	  Error("You tried to use a database, but binary was compiled without database support.",__FILE__,__LINE__);
-#endif
-	}
-
-#else
   // -------------------
   // XMLPARAMS
   // -------------------
@@ -1323,7 +1188,7 @@ void BasePDE::ReadMaterialData()
 	Error("You tried to use a database, but binary was compiled without database support.",__FILE__,__LINE__);
 #endif
   }
-#endif
+
 }
 
 
@@ -1399,7 +1264,7 @@ void BasePDE::SetAlgSys()
 
   (*cla) <<  "--- PDE: " << pdename_ << " ---" << std::endl;
 
-#if defined(USE_OLAS) && defined(XMLPARAMS)
+#if defined USE_OLAS
   CFSOLASParams::SetParams( pdename_, params, olasParams_ );
 #else
   SetSolverParameters();
@@ -1421,27 +1286,6 @@ void BasePDE::SetSolverParameters()
 
   // Get Solver and Precond parameters
 #ifdef USE_OLAS
-#ifdef XMLPARAMS
-  Error( "Use CFSOLASParams::SetSolverParams/SetPrecondParams instead",
-		 __FILE__, __LINE__ );
-
-  // The following is compatibility code for interfacing with old
-  // .conf file. This is to be phased out!!!
-
-#else
-
-  //if values are defined in conf-file, take these
-
-  // relative accuracy in the precond. energy
-  conf->ifget("eps",eps_,pdename_);
-  // damping parameter for Jacobi, SSOR
-  conf->ifget("dampiter",dampiter_,pdename_);
-  // maximal number of iterations
-  conf->ifget("maxnumit",maxnumiter_,pdename_);
-  // number of equation for coarsing
-  conf->ifget("numeqcoarse",numeqcoarse_,pdename_);
-  // coarsing parameter for AMG
-  conf->ifget("coarsealpha",coarsealpha_,pdename_);
 
   olasParams_->SetValue( "eps", eps_ );
   olasParams_->SetValue( "MaxIter", maxnumiter_);
@@ -1457,10 +1301,6 @@ void BasePDE::SetSolverParameters()
   Integer solverIntegerVal = 0;
   Integer precondIntegerVal = 0;
   Integer matrixStorageTypeVal = 0;
-
-  conf->ifget("solvertype",solverIntegerVal,pdename_);
-  conf->ifget("precondtype", precondIntegerVal,pdename_);
-  conf->ifget("matrixstoragetype",matrixStorageTypeVal,pdename_);
 
   // Assign correct solver
   switch(solverIntegerVal) {
@@ -1593,33 +1433,10 @@ void BasePDE::SetSolverParameters()
   if ( solvertype_ == DIRECT && precondtype_ != ID ) {
 	precondtype_ = ID;
   }
-#endif //XMLPARAMS
+
 
   // Here starts the branch for LAS
 #else
-
-#ifndef XMLPARAMS
-
-  //if values are defined in conf-file, take these
-
-  conf->ifget( "solvertype",  solvertype_,  pdename_ );
-  conf->ifget( "precondtype", precondtype_, pdename_ );
-  if ( solvertype_ == RealDirect && precondtype_ != ID ) {
-	precondtype_ = ID;
-  }
-
-  // relative accuracy in the precond. energy
-  conf->ifget("eps",eps_,pdename_);
-  // damping parameter for Jacobi, SSOR
-  conf->ifget("dampiter",dampiter_,pdename_);
-  // maximal number of iterations
-  conf->ifget("maxnumit",maxnumiter_,pdename_);
-  // number of equation for coarsing
-  conf->ifget("numeqcoarse",numeqcoarse_,pdename_);
-  // coarsing parameter for AMG
-  conf->ifget("coarsealpha",coarsealpha_,pdename_);
-#else
-  
 
     // Section for LAS and XMLPARAMS
     std::string solverType, errMsg;
@@ -1698,7 +1515,7 @@ void BasePDE::SetSolverParameters()
       maxnumiter_ = atoi(numIters[0].c_str());
     }
   
-#endif
+
     //communicate with algebraic system
     algsys_->CreateParameter();
     algsys_->SetAccuracy(eps_);
@@ -1712,9 +1529,7 @@ void BasePDE::SetSolverParameters()
 
 #endif
 
-} 
-
-
+}
 
 
 void BasePDE::CreateMatrices_Solver()

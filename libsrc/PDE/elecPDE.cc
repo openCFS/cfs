@@ -45,23 +45,7 @@ namespace CoupledField {
     isAlwaysStatic_ = TRUE;
 
     //check, if problem is axisymmetric
-#ifndef XMLPARAMS
-
-    isaxi_ = FALSE;
-    std::string subtype;
-    conf->ifget("subtype",subtype,pdename_);
-    if (subtype == "axi")
-      isaxi_ = TRUE;
-
-    //check for electric field:
-    conf->ifgetliststr("calc_EField",calcEfield_,pdename_); 
-
-    //check for electric field energy:
-    conf->ifgetliststr("calc_Energy",calcEnergy_,pdename_); 
-#else
-    // Check whether problem has axial symmetry
     if ( params->HasValue( "type", "axi", "geometry" ) ) isaxi_ = TRUE;
-#endif
 
     
     //\todo Is this variable needed?
@@ -602,46 +586,7 @@ void ElecPDE::InitCoupling(PDECoupling * Coupling)
   const Integer numCouplings = ptCoupling_->GetNumOutputCouplings();
   
 
-#ifndef XMLPARAMS
-  //check, if geometric nonlinearity is switched of by the user
-  nonLin_ = TRUE;    //general nonlinear switch in basepde!
-  
-  if (conf->get_optionNo("nonlingeo",  pdename_ ))
-    {
-      nonLin_    = FALSE;  
-    }
-#else
-
-    nonLin_ = FALSE;
-
-    // NOTE: Since we have no switch for nonlinearities in the 
-    // electric PDE, the following section is obsolete
-
-//     // ==============================================================
-//     // NOTE: Currently we can only treat geometric non-linearity and
-//     //       we assume that for a mechanic PDE all regions either
-//     //       are linear or non-linear!
-//     // ==============================================================
-//     StdVector<std::string> nonLinRegion;
-
-//     params->GetList( "nonLinear", nonLinRegion, pdename_, "region" );
-//     // Should not happen with validating parser, but beware!
-//     std::cout << "nonlinSize: " << nonLinRegion.GetSize() << std::endl;
-    
-//     if ( nonLinRegion.GetSize() == 0 ) {
-//       nonLin_ = FALSE;
-//     }
-//     else {
-//       for ( Integer k = 0; k <= nonLinRegion.GetSize(); k++ ) {
-// 	if ( nonLinRegion[k] != nonLinRegion[0] ) {
-// 	  Info->Error( "Non-linearity should be the same for all regions!",
-// 		       __FILE__, __LINE__ );
-// 	}
-//       }
-//       nonLin_ = nonLinRegion[0] == "geo" ? TRUE : FALSE;
-//    }
-    
-#endif
+  nonLin_ = FALSE;
 
   // Initialization of coupling helper arrays
   std::string quantity;
@@ -1022,7 +967,6 @@ void ElecPDE::CalcEfieldAtCoupleElemIP(Elem * actVolElem,
 // ***********************************************************************
 //   Obtain information on desired output quantities from parameter file
 // ***********************************************************************
-#ifdef XMLPARAMS
 void ElecPDE::ReadStoreResults() {
 
   ENTER_FCN( "ElecPDE::ReadStoreResults" );
@@ -1143,7 +1087,7 @@ void ElecPDE::ReadStoreResults() {
   }
   
 }
-#endif
+
 
 } // end of namespace
 

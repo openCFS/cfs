@@ -49,7 +49,7 @@ namespace CoupledField
   BaseFE * ptWedge2 = NULL;
 
   WriteInfo * Info = NULL;
-  ConfFile * conf           = NULL;
+  //  ConfFile * conf           = NULL;
   BaseParamHandler * params = NULL;
 
 

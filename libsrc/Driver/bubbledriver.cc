@@ -51,16 +51,6 @@ namespace CoupledField {
     ENTER_FCN( "BubbleDriver:: BubbleDriver" );
 
 
-#ifndef XMLPARAMS
-    // get time steps information from conf-file
-    conf->get("numsteps",numstep_);
-    conf->get("firstdt", firstdt_);
-    conf->get("stepsavebeg",isavebegin_);
-    conf->get("stepsaveend",isaveend_);
-    conf->get("stepsaveincr",isaveincr_);
-
-#else
-
     // vectors for accessing parameters
     StdVector<std::string> keyVec, attrVec, valVec;
 
@@ -84,8 +74,6 @@ namespace CoupledField {
     keyVec = "transient", "stepSaveInc";
     params->Get(keyVec, attrVec, valVec, isaveincr_);  
 
-
-#endif
 
     // Make consistency check. In fact in the XML case the Schema should catch
     // this error. But one can never be sure.

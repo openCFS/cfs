@@ -76,9 +76,6 @@ libsrc/DataInOut/AnsysFile/ansysfile.hh svneol=native#text/plain
 libsrc/DataInOut/AnsysOut/Makefile -text
 libsrc/DataInOut/AnsysOut/outAnsys.cc svneol=native#text/plain
 libsrc/DataInOut/AnsysOut/outAnsys.hh svneol=native#text/plain
-libsrc/DataInOut/DatFile/Makefile -text
-libsrc/DataInOut/DatFile/datfile.cc svneol=native#text/plain
-libsrc/DataInOut/DatFile/datfile.hh svneol=native#text/plain
 libsrc/DataInOut/Database/Makefile -text
 libsrc/DataInOut/Database/cfs_material.sql -text
 libsrc/DataInOut/Database/cfs_material_data.sql -text

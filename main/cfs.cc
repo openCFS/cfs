@@ -204,13 +204,8 @@ int main(int argc, char *argv[]) {
   Boolean      adaptspace;
 
   // Determine type of analysis and, if adaptivity is to be used
-#ifndef XMLPARAMS
-  conf->get("analysis", analysis);
-  adaptspace=conf->get_option("adaptspace");
-#else
   params->Get( "type", analysis, "analysis" );
   adaptspace = params->IsSet( "adaptspace" );
-#endif
   String2Enum( analysis, analysisType );
 
   // Generate log message

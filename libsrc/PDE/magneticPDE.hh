@@ -22,16 +22,11 @@ public:
   MagPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc,
 	 FileType *aptFileType, WriteResults *aptOut);
 
-#ifndef XMLPARAMS
-  //! Destructor
-  virtual ~MagPDE(){};
-#else
   //! Default Destructor
 
   //! The default destructor is responsible for freeing the Coil objects
   //! the ReadCoils() method brought into being.
   ~MagPDE();
-#endif
 
 
   //! Initialize NonLinearities
@@ -99,8 +94,6 @@ public:
 // ======================================================
 
 
-// Coupling is only working with XML input file!!
-#ifdef XMLPARAMS
   //! initalize PDE coupling
   virtual void InitCoupling(PDECoupling * Coupling);
   
@@ -115,7 +108,6 @@ public:
 			    StdVector<StdVector<Integer> > & elemNodeToCouplingNode,
 			    Integer actCoupling, Integer numCouplingNodes);
 
-#endif
 
 protected:
 
@@ -171,17 +163,8 @@ protected:
   //! Names of coils resp. their subdomains
   StdVector<std::string> coilName_;  
 
-#ifndef XMLPARAMS
-
-  //! vector of parameters describing coils
-  StdVector<struct coilDefStruct> coilDef_; 
-
-#else
-
   //! Parameters of the individual coils;
   StdVector<Coil*> coilDef_;
-
-#endif
 
   //@}
 
@@ -224,7 +207,6 @@ protected:
   //! List of regions with non-linearity
   StdVector<std::string> nonLinType_;
 
-#ifdef XMLPARAMS
     //! Obtain information on desired output quantities from parameter file
 
     //! This method is used to query the parameter handling object for the
@@ -280,7 +262,6 @@ protected:
     //!   </tr>
     //! </table>
     void ReadStoreResults();
-#endif
 
 };
 

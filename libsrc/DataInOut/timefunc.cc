@@ -3,7 +3,6 @@
 #include <fstream>
 
 #include "timefunc.hh"
-#include "ParamHandling/ConfFile.hh"
 #include "WriteInfo.hh"
 #include "ParamHandling/BaseParamHandler.hh"
 
@@ -20,21 +19,9 @@ TimeFunc :: TimeFunc(FileType * aptFileType)
   timeFncDatFiles_=FALSE;
   std::string nametf;
 
-#ifndef XMLPARAMS
-  if (conf->ifgetliststr("time_data_files",fnc_names_))
-      timeFncDatFiles_ = TRUE;
-
-  else if (conf->ifget("time_data_file",nametf))
-     Error("Use instead of time_data_file-command the time_data_files-command!");
-
-  else if (conf->ifget("time_fnc",nametf))
-      Error("time_func-command currently not supported");
-    
-#else
   params->GetList( "name", fnc_names_, "transient", "timeDataFile" );
   if (fnc_names_.GetSize())
      timeFncDatFiles_ = TRUE;
-#endif
 
   //read in the time functions
   if (timeFncDatFiles_)  

@@ -48,17 +48,11 @@ namespace CoupledField {
     ptcoupledpde_ = NULL;
 
     // read type of output results from conf-file
-#ifndef XMLPARAMS
-    std::string libmesh="cfsgrid";
-    conf->ifget("mesh_library",libmesh);
-#else
     std::string libmesh;
     params->Get( "mesh_library", libmesh );
-#endif
 
     Integer dim=InFile_->ReadDim();
 
-#ifdef XMLPARAMS
     std::string probGeo;
 
     // Check consistency of mesh and geometry type specified
@@ -70,7 +64,7 @@ namespace CoupledField {
       Info->Error( "Dimensions in parameter file and geometry file do not fit",
 		   __FILE__, __LINE__ );
     }
-#endif
+
     // initialize pointer to grid 
     if (dim==2) {
 
@@ -202,15 +196,6 @@ namespace CoupledField {
 
     ENTER_FCN( "Domain::CreatePDEs" );
 
-//     // get numbers of PDEs in domain
-//     StdVector<std::string> pdes;
-// #ifndef XMLPARAMS
-//     conf->getliststr("list_pdes",pdes);
-// #else
-//     params->GetPDEList( pdes );
-// #endif
-
-
     numpde_ = pdeNames.GetSize();
 
     ptpde_.Clear();
@@ -231,21 +216,12 @@ namespace CoupledField {
 
       else if (pdeNames[i] == "acoustic")
 	{
-#ifndef XMLPARAMS
-	  std::string strAcouFlowNoise="no";
-	  conf->ifget("acouflownoise",strAcouFlowNoise,pdename_);
-	  if (strAcouFlowNoise == "yes")
-	    ptpde_[i]=new AcouFlowNoise(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
-	  else
-	    ptpde_[i]=new AcousticPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
-#else
 	  StdVector<std::string> acouSubType;
 	  params->GetList( "subType", acouSubType,"pdeList", "acoustic");
 	  if (acouSubType.GetSize())
 	    ptpde_[i]=new AcouFlowNoise(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
 	  else
 	    ptpde_[i]=new AcousticPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
-#endif
 	}
       
 
@@ -306,12 +282,6 @@ namespace CoupledField {
 
     Info->StartProgress("Creating coupling");
 
-#ifndef XMLPARAMS
-//    std::string errMsg;
-    errMsg  = "Sorry, you are out-dated!\n";
-    errMsg += "Coupling is only supported for .xml-files!";
-    Error(errMsg.c_str(), __FILE__, __LINE__);
-#else
     // ================================
     //   Check for iterative coupling
     // ================================
@@ -370,7 +340,6 @@ namespace CoupledField {
 				       OutFile_, sequenceTags[0]);
     
     delete CouplingDef;	
-#endif
 
 
     // ================================

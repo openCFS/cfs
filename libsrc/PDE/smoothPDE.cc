@@ -30,58 +30,30 @@ SmoothPDE::SmoothPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileTyp
   
   
   
-#ifndef XMLPARAMS
-    conf->getstr("subtype", subType_, pdename_ );
-
-    if (subType_ == "3d")
-      {
-	dofspernode_ = 3;
-	Info->PrintF("", "=== 3D PROBLEM\n");
-      }
-    else if (subType_ == "axi")
-      {
-	isaxi_ = TRUE;
-	dofspernode_ = 2;
-	Info->PrintF("", "=== AXISYSMMETRIC PROBLEM\n");
-      }
-    else if (subType_ == "planeStrain" )
-      {
-	dofspernode_ = 2;
-	Info->PrintF("", "=== PLAIN STRAIN PROBLEM\n");
-      }
-    else
-      {
-	std::string errmsg = "Subtype " + subType_ + " is not defined for";
-	errmsg += " PDEs of type " + pdename_ + '\n';
-	Info->Error( errmsg, __FILE__, __LINE__ );
-      }
-#else
-
-    // Get problem geometry and PDE subtype
-    params->Get( "subType", subType_, pdename_ );
-    std::string probGeo;
-    params->Get( "type", probGeo, "geometry" );
-
-    // Set number of degrees of freedom and
-    // ensure that subtype fits to problem geometry
-    if ( subType_ == "3d" && probGeo == "3d" ) {
-      dofspernode_ = 3;
-          }
-    else if ( subType_ == "axi" && probGeo == "axi" ) {
-      isaxi_ = TRUE;
-      dofspernode_ = 2;
+  // Get problem geometry and PDE subtype
+  params->Get( "subType", subType_, pdename_ );
+  std::string probGeo;
+  params->Get( "type", probGeo, "geometry" );
+  
+  // Set number of degrees of freedom and
+  // ensure that subtype fits to problem geometry
+  if ( subType_ == "3d" && probGeo == "3d" ) {
+    dofspernode_ = 3;
+  }
+  else if ( subType_ == "axi" && probGeo == "axi" ) {
+    isaxi_ = TRUE;
+    dofspernode_ = 2;
+  }
+  else if ( subType_ == "planeStrain" && probGeo == "plane" ) {
+    dofspernode_ = 2;
+  }
+  else
+    {
+      std::string errmsg = "Subtype '" + subType_;
+      errmsg += "' of PDE '" + pdename_ + "' does not fit to problem ";
+      errmsg += "geometry '" + probGeo + "'\n";
+      Info->Error( errmsg, __FILE__, __LINE__ );
     }
-    else if ( subType_ == "planeStrain" && probGeo == "plane" ) {
-      dofspernode_ = 2;
-    }
-    else
-      {
-	std::string errmsg = "Subtype '" + subType_;
-	errmsg += "' of PDE '" + pdename_ + "' does not fit to problem ";
-	errmsg += "geometry '" + probGeo + "'\n";
-	Info->Error( errmsg, __FILE__, __LINE__ );
-      }
-#endif
 
     // =====================================================================
     // set solution information
@@ -91,11 +63,6 @@ SmoothPDE::SmoothPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileTyp
   solDofs_ = dofspernode_;
   
   method_ = "mechanic";
-#ifndef XMLPARAMS
-  conf->ifget("method", method_, pdename_ );
-#else
-
-#endif
 
   //is a nonlinear PDE, since in each iteration, we have to setup the matrices new!
   nonLin_ = TRUE;
@@ -121,11 +88,7 @@ void SmoothPDE::DefineIntegrators(const Integer level)
 
       // ==============  add "standard" stiffness ===============================
       BaseForm * bilinearStiff;
-#ifndef XMLPARAMS
-      if (subType_ == "plainStrain")
-#else
       if (subType_ == "planeStrain")
-#endif
 	bilinearStiff = new smoothPlainStrainInt(actSDMat);
       else if (subType_ == "3d")
 	bilinearStiff = new smooth3DInt(actSDMat);

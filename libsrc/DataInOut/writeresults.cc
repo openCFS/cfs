@@ -5,7 +5,6 @@
 #include <list>
 
 #include "writeresults.hh"
-#include "ParamHandling/ConfFile.hh"
 #include "DataInOut/AnsysFile/ansysfile.hh"
 #include "DataInOut/WriteInfo.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
@@ -53,11 +52,6 @@ namespace CoupledField {
     ENTER_FCN( "WriteResults::InitHistoryFiles" );
  
     StdVector<Integer> nodesTmp;
-
-#ifndef XMLPARAMS
-    conf->getlist(nodesTmp,"history_node");
-    Warning("History files are not supported anymore for .conf-file format!");
-#else
 
     // *****************************************************************
     //   Determine for which output quantities there are history nodes
@@ -225,7 +219,6 @@ namespace CoupledField {
       }
     }
  
-#endif // ifndef XMLPARAMS
   }
 
 

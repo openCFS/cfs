@@ -4,7 +4,6 @@
 #include <math.h>
 
 #include "Domain/elem.hh"
-#include "DataInOut/ParamHandling/ConfFile.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
 #include "DataInOut/WriteInfo.hh"
 #include "PDE/basePDE.hh"
@@ -694,13 +693,6 @@ void Assemble::CreateMatrices()
   olasParams_->SetValue( "NumDirichletBCs", numDir);
   olasParams_->SetValue( "NumConstraints", numconstraints );
   olasParams_->SetValue( "AuxiliaryMatrix", FALSE);
-
-  // For OLAS_PARAMS we set these via CFSOLASParams::SetParams()
-#ifndef XMLPARAMS
-  olasParams_->SetValue( "MatrixEntryType", entryType_ );
-  olasParams_->SetValue( "MatrixStorageType", storageType_ );
-#endif
-
 #endif
 
 #ifdef USE_OLAS
@@ -735,35 +727,6 @@ void Assemble::SetGeneralParams(const std::string & pdename,
 
 
   // read load values =========================================
-
-#ifndef XMLPARAMS
-  conf->ifgetliststr("loads", loadDom_, pdename_);
-  conf->ifgetliststr("loadDof", loadDof_, pdename_);
-
-
-  if (dofsPerNode_ != 1)
-
-	//check for load data
-	if (loadDom_.GetSize() != loadDof_.GetSize())
-	  {
-		std::string errmsg = "Inconsistent definition of loads\n";
-		errmsg += "Dirichlet Boundary Conditions\n";
-		errmsg += " loadDom_.size() = " + Info->GenStr(loadDom_.GetSize());
-		errmsg += "\n loadDof_.size() = " + Info->GenStr(loadDof_.GetSize())
-		  + '\n';
-		Info->Error( errmsg, __FILE__, __LINE__ );
-	  }
-    
-  loadVals_.Resize(loadDom_.GetSize());
-  fncname_loads_.Resize(loadDom_.GetSize());
-
-  for( int i = 0; i < loadDom_.GetSize(); i++ )
-	{
-	  conf->get2(loadDom_[i], loadVals_[i], fncname_loads_[i], pdename_,
-				 "bc_conditions","loads");
-	}
-
-#else
   StdVector<std::string> keyVec, attrVec, valVec;
 
   attrVec = "", "tag", "";
@@ -830,7 +793,6 @@ void Assemble::SetGeneralParams(const std::string & pdename,
 	{
 	  fncname_loads_.Push_back( "none" );
 	}
-#endif
 
 #ifdef DEBUG
   (*debug) << "Assemble::SetGeneralParams: We got " << loadDom_.GetSize()

@@ -182,7 +182,6 @@ namespace CoupledField
 
   private:
 
-#ifdef XMLPARAMS
     //! Obtain information on desired output quantities from parameter file
 
     //! This method is used to query the parameter handling object for the
@@ -216,7 +215,6 @@ namespace CoupledField
     //!   </tr>
     //! </table>
     void ReadStoreResults();
-#endif
 
   };
 

@@ -85,25 +85,24 @@ Integer BaseEQN::GetBCDof(const std::string dofString) const
   
   Integer retVal = 0;
   
-  if (dofString == "ux") retVal = 1;
-  else if (dofString == "uy") retVal = 2;
-  else if (dofString == "uz") retVal = 3;
+  if (dofString == "ux") 
+    retVal = 1;
+  else if 
+    (dofString == "uy") retVal = 2;
+  else if 
+    (dofString == "uz") retVal = 3;
+  
   // hard-coded for Piezo PDE
-  else if (dofString == "ep") retVal = dofsPerNode_;
-  else
-    {
-#ifndef XMLPARAMS
-      std::string errmsg = "The direction '" + dofString;
-      errmsg += "' mentioned in the config-file is not implemented";
-      Info->Error( errmsg, __FILE__, __LINE__ );
-#else
-      // According to the Schema definition of the parameter file this cannot
-      // happen. Did the parser not perform validation?
-      std::string errmsg = "Direction should be one of ux, uy, uz\n";
-      errmsg += "and not" + dofString;
-      Info->Error( errmsg, __FILE__, __LINE__ );
-#endif
-    }
+  else if 
+    (dofString == "ep") retVal = dofsPerNode_;
+
+  else {
+    // According to the Schema definition of the parameter file this cannot
+    // happen. Did the parser not perform validation?
+    std::string errmsg = "Direction should be one of ux, uy, uz\n";
+    errmsg += "and not" + dofString;
+    Info->Error( errmsg, __FILE__, __LINE__ );
+  }
   
   return retVal;
 }

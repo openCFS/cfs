@@ -37,7 +37,7 @@ endif
 #
 mylibrary = driver domain pde coupledpde forms  \
             elements3d elements2d elements1d elements \
-            gridcfs gmv definefiles unverg\
+            gridcfs definefiles gmv unverg\
 	    ansysfile datainout paramhandling \
             driver \
             utils matrix general  odesolve odedescr

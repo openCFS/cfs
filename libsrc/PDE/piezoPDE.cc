@@ -34,27 +34,6 @@ namespace CoupledField {
     pdename_ = "piezo";
     pdematerialclass_ = "piezo";
 
-#ifndef XMLPARAMS
-    // Determine dimension of problem
-    conf->getstr( "subtype", subType_, pdename_ ); 
-    if (subType_ == "3d") {
-      dofspernode_ = 4;
-      Info->PrintF("", "=== 3D PROBLEM\n");
-    }
-    else if (subType_ == "axi") {
-      isaxi_ = TRUE;
-      dofspernode_ = 3;
-      Info->PrintF("", "=== AXISYSMMETRIC PROBLEM\n");
-    }
-    else {
-      // default is planeStrain 
-      dofspernode_ = 3;
-      Info->PrintF("", "=== PLANE STRAIN PROBLEM\n");
-    }
-
-//     conf->getsubdompde(subdoms_,pdename_);
-#else
-
     // Get problem geometry and PDE subtype
     params->Get( "subtype", subType_, pdename_ );
     std::string probGeo;
@@ -82,57 +61,28 @@ namespace CoupledField {
       Info->Error( errmsg, __FILE__, __LINE__ );
     }
 
-#endif
-
     // =====================================================================
     // set solution information
     // =====================================================================
     solTypes_ = MECH_DISPLACEMENT, ELEC_POTENTIAL;
     solDofs_ = dofspernode_-1, 1;
     
-#ifndef XMLPARAMS
-   effectiveMass_ = FALSE;
-   if (conf->get_option("effMass",  pdename_ ))
-     effectiveMass_ = TRUE;
-
-   //check for damping model
-   std::string dampstr;
-   conf->ifget("damping",dampstr,pdename_);
-   if (dampstr == "rayleigh")
-     {
-       //       Error("Currenrly Rayleigh damping not woirking for PiezoPDE",__FILE__,__LINE__);       
-       dampingType_ = RAYLEIGH;
-     }
-   else
-     dampingType_ = NONE;
-   
-   if (dampingType_)
-     {
-       needsDampingMatrix_ = TRUE;
-     }
-#else
-
-   // Use effective mass approach?
-   effectiveMass_ = params->IsSet( "effMass" );
-
-   // Do we use damping?
-   if( params->HasValue( "type", "rayleigh", pdename_, "damping" ) ) {
-     dampingType_ = RAYLEIGH;
-     Info->PrintF( pdename_, " Using RAYLEIGH damping\n" );
-   }
-   else {
-     dampingType_ = NONE;
-     Info->PrintF( pdename_, " Using no damping\n" );
-   }
-   if( dampingType_ != NONE ) {
-     needsDampingMatrix_ = TRUE;
-   }
-
-#endif
-
-#ifndef XMLPARAMS
-#else
-
+    // Use effective mass approach?
+    effectiveMass_ = params->IsSet( "effMass" );
+    
+    // Do we use damping?
+    if( params->HasValue( "type", "rayleigh", pdename_, "damping" ) ) {
+      dampingType_ = RAYLEIGH;
+      Info->PrintF( pdename_, " Using RAYLEIGH damping\n" );
+    }
+    else {
+      dampingType_ = NONE;
+      Info->PrintF( pdename_, " Using no damping\n" );
+    }
+    if( dampingType_ != NONE ) {
+      needsDampingMatrix_ = TRUE;
+    }
+    
     //check for pressure loads
     params->GetList( "name"    , pressSurf_ , pdename_, "pressure" );
     params->GetList( "value"   , pressVals_ , pdename_, "pressure" );
@@ -153,7 +103,6 @@ namespace CoupledField {
       {
 	pressFnc_.Push_back( "none" );
       }
-#endif
 
   }
 
@@ -341,7 +290,6 @@ namespace CoupledField {
 // ***********************************************************************
 //   Obtain information on desired output quantities from parameter file
 // ***********************************************************************
-#ifdef XMLPARAMS
 void PiezoPDE::ReadStoreResults() {
 
   ENTER_FCN( "PiezoPDE::ReadStoreResults" );
@@ -618,8 +566,6 @@ void PiezoPDE::ReadStoreResults() {
 
 }
 
-#endif
-
 // ************************************************************
 //   PostProcess
 // ************************************************************
@@ -743,29 +689,25 @@ void PiezoPDE::CalcStress(){
   ShortInt stressElecDim, stressDim, elecDim;
   Vector<Double> intPoint;
   
-#ifndef XMLPARAMS 
-  if (subType_ == "plainStrain") 
-#else
-    if (subType_ == "planeStrain") 
-#endif
-      {
+  if (subType_ == "planeStrain") 
+    {
 	
-	stressDim = 3;
-	elecDim   = 2;
-	}
-  
-    else if (subType_ == "axi") {
-      stressDim = 4;
+      stressDim = 3;
       elecDim   = 2;
     }
   
-    else if (subType_ == "3d") {
-      stressDim = 6;
-      elecDim   = 3;
-    }
+  else if (subType_ == "axi") {
+    stressDim = 4;
+    elecDim   = 2;
+  }
   
-    else 
-      Info->Error("StressOp: Unknown subtype in mech PDE! ",__FILE__,__LINE__);  
+  else if (subType_ == "3d") {
+    stressDim = 6;
+    elecDim   = 3;
+  }
+  
+  else 
+    Info->Error("StressOp: Unknown subtype in mech PDE! ",__FILE__,__LINE__);  
   
   
   Vector<Double> elemElecStress, elemStress, sortedStress;
@@ -835,29 +777,24 @@ void PiezoPDE::CalcComplexValuedStress(){
   ShortInt stressElecDim, stressDim, elecDim;
   Vector<Double> intPoint;
   
-#ifndef XMLPARAMS 
-  if (subType_ == "plainStrain") 
-#else
-    if (subType_ == "planeStrain") 
-#endif
-      {
-	
-	stressDim = 3;
-	elecDim   = 2;
-	}
-  
-    else if (subType_ == "axi") {
-      stressDim = 4;
+  if (subType_ == "planeStrain") 
+    {      
+      stressDim = 3;
       elecDim   = 2;
     }
   
-    else if (subType_ == "3d") {
-      stressDim = 6;
-      elecDim   = 3;
-    }
+  else if (subType_ == "axi") {
+    stressDim = 4;
+    elecDim   = 2;
+  }
   
-    else 
-      Info->Error("StressOp: Unknown subtype in mech PDE! ",__FILE__,__LINE__);  
+  else if (subType_ == "3d") {
+    stressDim = 6;
+    elecDim   = 3;
+  }
+  
+  else 
+    Info->Error("StressOp: Unknown subtype in mech PDE! ",__FILE__,__LINE__);  
   
   
   Vector<Complex> elemElecStress, elemStress, sortedStress;
@@ -940,28 +877,24 @@ void PiezoPDE::CalcCharges(){
   ShortInt stressElecDim, stressDim, elecDim;
   Vector<Double> intPoint;
   
-#ifndef XMLPARAMS 
-  if (subType_ == "plainStrain") 
-#else
-    if (subType_ == "planeStrain") 
-#endif
-      {
-	stressDim = 3;
-	elecDim   = 2;
-	}
-  
-    else if (subType_ == "axi") {
-      stressDim = 4;
+  if (subType_ == "planeStrain") 
+    {
+      stressDim = 3;
       elecDim   = 2;
     }
   
-    else if (subType_ == "3d") {
-      stressDim = 6;
-      elecDim   = 3;
-    }
+  else if (subType_ == "axi") {
+    stressDim = 4;
+    elecDim   = 2;
+  }
   
-    else 
-      Info->Error("StressOp: Unknown subtype in mech PDE! ",__FILE__,__LINE__);  
+  else if (subType_ == "3d") {
+    stressDim = 6;
+    elecDim   = 3;
+  }
+  
+  else 
+    Info->Error("StressOp: Unknown subtype in mech PDE! ",__FILE__,__LINE__);  
   
   
   Vector<Double> elemElecStress;
@@ -1097,28 +1030,24 @@ void PiezoPDE::CalcComplexValuedCharges(){
   ShortInt stressElecDim, stressDim, elecDim;
   Vector<Double> intPoint;
   
-#ifndef XMLPARAMS 
-  if (subType_ == "plainStrain") 
-#else
-    if (subType_ == "planeStrain") 
-#endif
-      {
-	stressDim = 3;
-	elecDim   = 2;
-	}
-  
-    else if (subType_ == "axi") {
-      stressDim = 4;
+  if (subType_ == "planeStrain") 
+    {
+      stressDim = 3;
       elecDim   = 2;
     }
   
-    else if (subType_ == "3d") {
-      stressDim = 6;
-      elecDim   = 3;
-    }
+  else if (subType_ == "axi") {
+    stressDim = 4;
+    elecDim   = 2;
+  }
   
-    else 
-      Info->Error("StressOp: Unknown subtype in mech PDE! ",__FILE__,__LINE__);  
+  else if (subType_ == "3d") {
+    stressDim = 6;
+    elecDim   = 3;
+  }
+  
+  else 
+    Info->Error("StressOp: Unknown subtype in mech PDE! ",__FILE__,__LINE__);  
   
   Vector<Complex> elemElecStress;
   elemElecStress.Resize(stressDim+elecDim);

@@ -22,16 +22,10 @@ Newmark :: Newmark(std::string apdename, BaseSystem * algebraicsystem, NodeEQN *
   gamma_ = 0.5;
 
   //check if integration parameters are defined in conf-file
-#ifndef XMLPARAMS
-  conf->ifget("alpha_NM",alpha_,pdename_); 
-  conf->ifget("beta_NM",beta_,pdename_); 
-  conf->ifget("gamma_NM",gamma_,pdename_);
-#else
   std::string analysis;
   params->Get( "type", analysis, "analysis" );
   if(analysis != "paramIdent")
     Info->Warning( "Newmark: Using defaults for alpha, beta and gamma!" );
-#endif
 
   Integer numEQNs = ptEQN_->GetNumEQNs();
   Integer dofs = ptEQN_->GetNumDofsPerEQN();
@@ -203,9 +197,10 @@ NewmarkEffMass :: NewmarkEffMass(std::string apdename,
   gamma_ = 0.5;
 
   //check if integration parameters are defined in conf-file
-  conf->ifget("alpha_NM",alpha_,pdename_); 
-  conf->ifget("beta_NM",beta_,pdename_); 
-  conf->ifget("gamma_NM",gamma_,pdename_);
+  std::string analysis;
+  params->Get( "type", analysis, "analysis" );
+  if(analysis != "paramIdent")
+    Info->Warning( "Newmark: Using defaults for alpha, beta and gamma!" );
 
   Integer numEQNs = ptEQN_->GetNumEQNs();
   Integer dofs = ptEQN_->GetNumDofsPerEQN();

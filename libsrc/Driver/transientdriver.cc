@@ -32,16 +32,6 @@ TransientDriver::TransientDriver(Domain * adomain,
 {
   ENTER_FCN( "TransientDriver::TransientDriver" );
   
-#ifndef XMLPARAMS
-  // get time steps information from conf-file
-  conf->get("numsteps",numstep_);
-  conf->get("firstdt", firstdt_);
-  conf->get("stepsavebeg",isavebegin_);
-  conf->get("stepsaveend",isaveend_);
-  conf->get("stepsaveincr",isaveincr_);
-
-#else
-  
   // vecotrs for accessing parameters
   StdVector<std::string> keyVec, attrVec, valVec;
 
@@ -63,10 +53,7 @@ TransientDriver::TransientDriver(Domain * adomain,
   params->Get(keyVec, attrVec, valVec, isaveend_);
 
   keyVec = "transient", "stepSaveInc";
-  params->Get(keyVec, attrVec, valVec, isaveincr_);  
-  
-
-#endif
+  params->Get(keyVec, attrVec, valVec, isaveincr_);
 
   // Make consistency check. In fact in the XML case the Schema should catch
   // this error. But one can never be sure.

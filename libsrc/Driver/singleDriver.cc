@@ -34,11 +34,7 @@ void SingleDriver::GetMyPDEs()
   ENTER_FCN( "SingleDriver::GetMyPDEs()" );
 
   StdVector<std::string> pdeNames;
-#ifndef XMLPARAMS
-  conf->getliststr("list_pdes",pdeNames);
-#else
   params->GetPDEList( pdeNames );
-#endif
   
   // Initialize pdes with general Tag 'anyTag'
   pdes_.Resize(pdeNames.GetSize());

@@ -11,7 +11,6 @@
 
 #include "definefiles.hh"
 #include "DataInOut/AnsysFile/ansysfile.hh"
-#include "DataInOut/ParamHandling/ConfFile.hh"
 #include "DataInOut/WriteInfo.hh"
 #include "DataInOut/Unverg/outUnverg.hh"
 #include "DataInOut/GMV/outGMV.hh"
@@ -88,19 +87,6 @@ namespace CoupledField
     //   Handle Parameter File
     // *************************
 
-#ifndef XMLPARAMS
-
-    // Generate configuration file object and pass address to global pointer
-    // Note: This is the old-fashioned conffile format
-    Info->StartProgress("Reading in .conf-file");
-    conf = new ConfFile(name);
-    if (!conf) Error("Can't open conf-file");
-    Info->FinishProgress();
-
-#else
-
-    conf = NULL;
-
     // Generate parameter handler and pass address to global pointer
     // Note: This is the new XML-based conffile format
     strcpy( auxfile, name );
@@ -112,7 +98,6 @@ namespace CoupledField
     params = new PlainXMLParamHandler( auxfile );
 #endif
 
-#endif
     
 #ifdef TRACE
     strcpy(auxfile, basename);
@@ -166,7 +151,6 @@ namespace CoupledField
     delete debug;
 #endif
  
-    if (conf) delete conf;
     if (cla) delete cla;
 
     // Delete internal pointers
@@ -190,20 +174,6 @@ namespace CoupledField
   {
     ENTER_FCN( "DefineInOutFiles::Create_ptFileType" );
 
-#ifndef XMLPARAMS
-    std::string informat="mesh";
-    conf->ifget("format_input",informat);
-
-    if  (informat=="mesh")
-      {
-	infileType_=new AnsysFile(filename_);
-      }
-    else
-      {
-	Error( "Wrong format for input file. Please, check your data!",
-	       __FILE__, __LINE__ );
-      }
-#else
     if ( params->HasValue( "format", "mesh", "input" ) )
       {
 	infileType_ = new AnsysFile( filename_ );
@@ -213,7 +183,6 @@ namespace CoupledField
 	Error( "Wrong format for input file. Please, check your data!",
 	       __FILE__, __LINE__ );
       }
-#endif
 
     return infileType_;
   }
@@ -227,32 +196,9 @@ namespace CoupledField
   {
     ENTER_FCN( "DefineInOutFiles::Create_ptWriteResults" );
 
-#ifndef XMLPARAMS
-    std::string outformat="unverg";
-    conf->ifget("format_output",outformat);
-    
-#else
     std::string outformat;
     params->Get( "format", outformat, "output" );
-#endif
 
-#ifndef XMLPARAMS
-    if (outformat=="gmv")
-      ptWriteResults_=new WriteResultsGMV(filename_, aInFile);
-    else if (outformat=="unverg")
-      ptWriteResults_=new WriteResultsUnverg(filename_, aInFile); 
-#ifdef GSI
-    else if (outformat=="gsi")
-      ptWriteResults_=new WriteResultsGSI(filename_, aInFile);
-#endif
-#ifdef USE_DATABASE
-    else if (outformat=="database")
-      ptWriteResults_=new WriteResultsDatabase(filename_, aInFile);
-#endif
-    else
-      Error("Wrong format for writing results. Please, check your data.",
-	    __FILE__, __LINE__);
-#else
     if ( outformat == "gmv" ) {
       ptWriteResults_= new WriteResultsGMV(filename_, aInFile);
     }
@@ -262,6 +208,7 @@ namespace CoupledField
     else if ( outformat == "gsi" ) 
       ptWriteResults_= new WriteResultsGSI(filename_, aInFile);
 #endif
+
 #ifdef USE_DATABASE
     else if (outformat == "database") 
       ptWriteResults_= new WriteResultsDatabase(filename_, aInFile);
@@ -272,7 +219,6 @@ namespace CoupledField
 	errmsg += "' not recognised";
 	Info->Error( errmsg, __FILE__, __LINE__ );
       }
-#endif
 
     if (!ptWriteResults_) 
       Error("Can't open file for output results",__FILE__,__LINE__);

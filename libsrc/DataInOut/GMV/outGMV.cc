@@ -6,7 +6,6 @@
 
 #include "outGMV.hh"
 #include "DataInOut/WriteInfo.hh"
-#include "DataInOut/ParamHandling/ConfFile.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
 #include "General/environment.hh"
 #include "Utils/StdVector.hh"
@@ -46,34 +45,12 @@ WriteResultsGMV :: WriteResultsGMV(const Char * const filename,
  ascii_= TRUE;
  fixedgrid_ = TRUE;
 
-#ifndef XMLPARAMS
- std::string typedata;
- conf->ifget("format_data_output",typedata);
- if (typedata == "binary")
-   ascii_=FALSE;
- else ascii_=TRUE;
- 
- std::string flag;
- conf->ifget("fixed_grid",flag);
- if (flag == "no")
-   {
-     fixedgrid_=FALSE;
-      OpenFile(1);
-   }
- else
-   { 
-     fixedgrid_=TRUE;
-     OpenFile(-1);
-   }
-
-#else
  // Output format can be either ascii (default) or binary
  ascii_ = !params->IsSet( "binaryFormat", "gmv" );
  
  // Does the grid change over time, or can we use a fixed grid
  fixedgrid_ = params->IsSet( "fixedGrid", "gmv" );
 
-#endif
 
  // Initialize history files
  InitHistoryFiles();

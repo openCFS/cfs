@@ -24,17 +24,6 @@ HarmonicDriver :: HarmonicDriver(Domain * adomain,
 {
   ENTER_FCN( " HarmonicDriver::HarmonicDriver" );
 
-#ifndef XMLPARAMS
-  // get time steps information from conf-file
-
-  conf->get("startFreq",startFreq_);
-  conf->get("stopFreq",stopFreq_);
-  conf->get("numFreq", numFreq_);
-
-  saveType_ = 1;
-  conf->ifget("saveType",saveType_);
-  
-#else
   // vectors for accessing parameters
   StdVector<std::string> keyVec, attrVec, valVec;
   
@@ -50,7 +39,6 @@ HarmonicDriver :: HarmonicDriver(Domain * adomain,
   
   keyVec = "harmonic", "numFreq";
   params->Get(keyVec, attrVec, valVec, numFreq_);
-#endif
     
 }
 

@@ -15,11 +15,7 @@ namespace CoupledField
   gamma_ = 1;
 
   //check if integration parameters are defined in conf-file
-#ifndef XMLPARAMS
-  conf->ifget("gamma_P",gamma_,pdename_);
-#else
   Info->Warning( "Trapezoidal: Using defaults for gamma!" );
-#endif  
 
   Integer numEQNs = ptEQN_->GetNumEQNs();
   Integer dofs = ptEQN_->GetNumDofsPerEQN();

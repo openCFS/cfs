@@ -34,12 +34,7 @@ AcouFlowNoise::AcouFlowNoise(Grid *aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc,
 
 #ifdef MpCCI
     StdVector<Elem*> elemssd;
- 
-  
-#ifndef XMLPARAMS
-    conf->getsubdompde(subdoms_,pdename_);
-    conf->getliststr("coupledregion",couplSubDomName_,"acoustic");
-#else
+
     params->GetList( "name", subdoms_, pdename_, "region" );
     params->GetList( "name", couplSubDomName_, "MpCCI-flownoise", "coupledregion" );
 
@@ -49,8 +44,6 @@ AcouFlowNoise::AcouFlowNoise(Grid *aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc,
       Info->PrintF(pdename_, " Using FlowData as RHS nodal source\n" );
     }
     
-
-#endif
     Boolean Find=FALSE;
     for (int i=0; i<subdoms_.GetSize(); i++)
       {
@@ -141,8 +134,10 @@ void AcouFlowNoise::ComputeRHS(const Double atime)
 #else
       // If data from fluid file call to get fluid flow data in flowdata_  
       std::string flowdata;
-      conf->get("acousrc_file",flowdata);
-      ReadFlowData(flowdata.c_str(), timestep, flowdata_); 
+      Error("Need change to XML-Standard");
+      
+      //      conf->get("acousrc_file",flowdata);
+      //      ReadFlowData(flowdata.c_str(), timestep, flowdata_); 
 #endif 
 
 
@@ -156,25 +151,14 @@ void AcouFlowNoise::ComputeRHS(const Double atime)
   Double xfmin, yfmin, xfmax, yfmax, facRampXmin, facRampYmin, facRampXmax, facRampYmax ;
   Double bndoffsetXmin, bndoffsetYmin, bndoffsetXmax, bndoffsetYmax ;
 
-#ifndef XMLPARAMS
-  conf->get("xfmin",xfmin,"acoustic"); // minimum x coord. of fluid domain
-  conf->get("yfmin",yfmin,"acoustic"); // minimum y coord. of fluid domain	   
-  conf->get("xfmax",xfmax,"acoustic"); // maximum x coord. of fluid domain
-  conf->get("yfmax",yfmax,"acoustic"); // maximum y coord. of fluid domain
-  conf->get("facrampXmin",facRampXmin,"acoustic"); // factor for starting ramping
-  conf->get("facrampYmin",facRampYmin,"acoustic"); // factor for starting ramping
-  conf->get("facrampXmax",facRampXmax,"acoustic"); // factor for starting ramping
-  conf->get("facrampYmax",facRampYmax,"acoustic"); // factor for starting ramping
-#else
-    params->Get("xfmin",xfmin, "MpCCI-flownoise");
-    params->Get("yfmin",yfmin, "MpCCI-flownoise");
-    params->Get("xfmax",xfmax, "MpCCI-flownoise");
-    params->Get("yfmax",yfmax, "MpCCI-flownoise");
-    params->Get("facrampXmin",facRampXmin, "MpCCI-flownoise");
-    params->Get("facrampYmin",facRampYmin, "MpCCI-flownoise");
-    params->Get("facrampXmax",facRampXmax, "MpCCI-flownoise");
-    params->Get("facrampYmax",facRampYmax, "MpCCI-flownoise");
-#endif
+  params->Get("xfmin",xfmin, "MpCCI-flownoise");
+  params->Get("yfmin",yfmin, "MpCCI-flownoise");
+  params->Get("xfmax",xfmax, "MpCCI-flownoise");
+  params->Get("yfmax",yfmax, "MpCCI-flownoise");
+  params->Get("facrampXmin",facRampXmin, "MpCCI-flownoise");
+  params->Get("facrampYmin",facRampYmin, "MpCCI-flownoise");
+  params->Get("facrampXmax",facRampXmax, "MpCCI-flownoise");
+  params->Get("facrampYmax",facRampYmax, "MpCCI-flownoise");
 
   bndoffsetXmin=facRampXmin*xfmin;
   bndoffsetYmin=facRampYmin*yfmin; 
