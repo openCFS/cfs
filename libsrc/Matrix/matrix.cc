@@ -665,7 +665,75 @@ template<class TYPE>
 
   return adj;
   
+};
+
+
+
+
+
+std::vector<Double> operator* ( std::vector<Double> & vec, const Matrix<Double> & mat)
+{
+#ifdef TRACE
+  (*trace) << "entering operator* (std::vector<Double> &, Matrix<Double> &)" << std::endl;
+#endif
+
+  if (vec.size() != mat.size_row())
+    Error("Wrong dimensions while multiplying a vector with a matrix!",__FILE__,__LINE__);
+
+  std::vector<Double> result(mat.size_col());
+  
+  for (Integer j=0; j < mat.size_col(); j++)
+    {
+      result[j] = 0;
+
+      for (Integer i=0; i < vec.size(); i++)
+	result[j] += vec[i] * mat[i][j];
+    }
 }
+
+Double operator* (std::vector<Double> & vec1, std::vector<Double> & vec2)
+{
+#ifdef TRACE
+  (*trace) << "entering operator* (std::vector<Double> &, std::vector<Double> &)" << std::endl;
+#endif
+
+  if (vec1.size() != vec2.size())
+    Error("Wrong dimensions while multiplying two vectors!",__FILE__,__LINE__);
+
+  Double mult = 0;
+  
+  for (Integer i=0; i < vec1.size(); i++)
+    mult += vec1[i]*vec2[i];
+
+  return mult;
+  
+}
+
+
+
+Double operator*= (std::vector<Double> & vec, Double val)
+{
+#ifdef TRACE
+  (*trace) << "entering operator*= (std::vector<Double> &, Double)" << std::endl;
+#endif
+
+  for (Integer i=0; i < vec.size(); i++)
+    vec[i]*= val;  
+}
+
+
+Double L2Norm(std::vector<Double> & vec)
+{
+#ifdef TRACE
+  (*trace) << "entering L2Norm(std::vector<Double> &)" << std::endl;
+#endif
+
+  Double abs2 = vec*vec;
+  return sqrt(abs2);
+}
+
+
+
 
 template Integer Spur<Integer>(const Matrix<Integer> &);
 template Double Spur<Double>(const Matrix<Double> &);
@@ -686,5 +754,7 @@ template Double Spur<Double>(const Matrix<Double> &);
  
 // template Matrix<Integer> Trans<Integer>(const Matrix<Integer> &);
 // template Matrix<Double> Trans<Double>(const Matrix<Double> &);
+
+
 
 } // end of namespace

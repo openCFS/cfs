@@ -2,7 +2,7 @@
 # Makefile for physical system
 C_DIR=../..
 #
-src = basedriver.cc transientdriver.cc staticdriver.cc
+src = basedriver.cc transientdriver.cc staticdriver.cc harmonicDriver.cc
 #
 lib = driver
 libpath = libsrc/Driver

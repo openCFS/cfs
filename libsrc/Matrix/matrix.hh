@@ -142,6 +142,7 @@ public:
 
   //!
   Integer	operator!=	(const Matrix &) const;
+ 
 
   //! Cut part of matrix (left index row, right, upper index col, low )
 //   Matrix	part	(const Integer, const Integer,
@@ -252,6 +253,17 @@ inline Double Matrix<TYPE>::Det () const
     }
 }
 
+
+//   template<TYPE>
+//   friend  std::vector<TYPE> operator* (std::vector<TYPE> & vec, const Matrix<TYPE> & mat);
+
+std::vector<Double> operator* (std::vector<Double> & vec, const Matrix<Double> & mat);
+
+Double operator* (std::vector<Double> & vec1, std::vector<Double> & vec2);
+
+Double L2Norm(std::vector<Double> & vec);
+
+Double operator*= (std::vector<Double> & vec, Double val);
 
 
 #ifdef __GNUC__

@@ -24,17 +24,21 @@ public:
 
   //! method with adaptive time-stepping is implemented. only for transient problems.
   virtual void SolveProblemAdapt() 
-  { Error("Not implemented",__FILE__,__LINE__); }
+  { Error("Not implemented",__FILE__,__LINE__); };
 
   //! method with adaptivity in space
   virtual void SolveProblemAdaptSpace()
-  { Error("Not implemented",__FILE__,__LINE__); }
+  { Error("Not implemented",__FILE__,__LINE__); };
+  
 
   //! to setup matrices of PDE. we call according method of class PDE for setup matrices of PDE in assembling procedure.
   /*!
     \param pdenumber number of PDE
+    \param matrixtype type of matrix
   */
-  void SetupMatricesPDE(Integer pdenumber);
+  virtual void SetupMatricesPDE(Integer pdenumber, const Integer matrixtype)
+  { Error("SetupMatricesPDE not implemented in base class!",__FILE__,__LINE__); };
+  
 
 protected:
   //! pointer to class Domain

@@ -92,14 +92,21 @@ public:
   //! write results in file
   virtual void WriteResultsInFile();
 
-  //! return pointer to vector with solution
-  virtual const Vector<Double> & getS() const { return sol_;}
+  //! return pointer to (real) vector with solution
+  virtual const Vector<Double> & getS() const { return solRe_;}
+
+  //! return pointer to imaginary vector with  solution
+  virtual const Vector<Double> & getSIm() const { return solIm_;}
 
   //! return size of solution
   virtual Integer getSize() const { return size_;}
 
   /// calc element quantities
   void PostProcess(const Integer level);
+
+  /// solve one harmonic step
+  virtual void SolveStepHarmonic(const Integer level);
+  
   
 
 protected:
@@ -118,21 +125,26 @@ protected:
   
 
 
-  Vector<Double> sol_;        //!< store solution,
+  Vector<Double> solRe_;      //!< store real part of solution,
+  Vector<Double> solIm_;      //!< store imaginary part of solution
   Integer size_;              //!< size of solution (number of edges)
   Integer NumElems_;          //!< number of elements belonging to PDE
   Integer * EdgeDir_;         //!< stores the Dirichlet-edges
   Integer numEdgedir_;        //!< number of Dirichlet edges
-  Vector<Double>* bField_;    //!< vector of magnetic field induction
-  Vector<Double>* magVecPot_; //!< vector of magnetic magnetic vector potential
+  Vector<Double>* bFieldRe_;  //!< real part of vector of magnetic field induction
+  Vector<Double>* bFieldIm_;  //!< imaginary part of vector of magnetic field induction
+  Vector<Double>* magVecPotRe_; //!< real part of vector of magnetic magnetic vector potential
+  Vector<Double>* magVecPotIm_; //!< imaginary part of vector of magnetic magnetic vector potential
   std::vector <std::string> coilDomain_;  //!< name of all subdomains containing coils
-  
+  Double freq_;               //!< excitation frequency for harmonic analysis
   /// parameters necessary to describe coils
   struct coilDefStruct
   {
     Integer iDir;
     Double  current;
     Double  coilArea;
+    Double currentPhase;
+    std::vector<Double> coilMidPt;
   };
   
 

@@ -198,6 +198,34 @@ void ConfFile::getlist(std::vector<Integer> & hist, const std::string seekexp)
  while (node!=-1);
 }
 
+
+
+void ConfFile::getlist( const std::string seekexp, std::vector<Double> & hist,
+			const std::string section, const std::string subsection)
+{
+ std::string::size_type pos=0;
+
+ if (section != "") pos=getpos(section);
+ if (subsection !="") pos=getpos(subsection,pos);
+
+ pos=getpos(seekexp,pos);
+ infile.seekg(pos,std::ios::beg);
+
+ 
+ Double help;
+ do
+   {
+     infile >> help;
+     
+     if (help != 1e100) hist.push_back(help);
+   }
+ while (help != 1e100);
+}
+
+
+
+
+
 void ConfFile::getliststr( const std::string seekexp, std::vector<std::string> & stlist, const std::string section, const std::string subsection)
 {
  std::string::size_type pos=0;

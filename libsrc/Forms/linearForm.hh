@@ -28,7 +28,8 @@ class LinearEdgeInt : public LinearForm
 {
 public:
   ///
-  LinearEdgeInt(BaseFE * aptelem, Double val, Integer direction);
+  LinearEdgeInt(BaseFE * aptelem, Double val, Integer direction, 
+		std::vector<Double> * coilMidPoint = NULL);
 
   ///
   virtual ~LinearEdgeInt();
@@ -44,7 +45,9 @@ private:
   /*! 1: x-direction, 2: y-direction, 3: z-direction
    */
   Integer direction_;
-  
+
+  /// midpoint of coil (needed for circular coils to calculate the current dirction)
+  std::vector<Double> * coilMidPt_;  
 };
 
 

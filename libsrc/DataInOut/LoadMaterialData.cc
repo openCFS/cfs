@@ -368,10 +368,11 @@ namespace CoupledField
     material->SetPermMag(mX, mY, mZ);
 
     if (InfoPrint)
-      *infofile << "LoadMaterialData::LoadMaterial: Daten von " << materialName << ":" << std::endl
-		<< "Leitwert: " << conductivity << std::endl
-		<< "Permeabilität: " << permeability << std::endl
-		<< "Magnetizierungsvektor: (" << mX << ", " << mY << ", " << mZ <<")" 
+      *infofile << std::endl 
+		<<"Loading material data of " << materialName << ":" << std::endl
+		<< "   conductivity:            " << conductivity << std::endl
+		<< "   permeability:            " << permeability << std::endl
+		<< "   vector of magnetiziation: (" << mX << ", " << mY << ", " << mZ <<")" 
 		<< std::endl << std::endl;
   }
 

@@ -3,6 +3,7 @@
 
 #include <las_environment.hh>
 #include <vector>
+#include <math.h>
 
 namespace CoupledField
 {
@@ -21,6 +22,8 @@ typedef int Boolean;
   //! useful trick for testing problem
 #define mark std::cout<<__FILE__<<__LINE__<<std::endl;
 
+  const Double PI = acos(-1);
+  
 
   //! declaration sof functions. it is used in parsing functions from conf-file
   typedef Double (*pfn1var)(const Double);

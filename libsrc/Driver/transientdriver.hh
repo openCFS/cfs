@@ -33,7 +33,7 @@ public:
     \param pdenumber (input) number of PDE
     \param matrixtype (input) type of system matrix in algebraic system
   */
-  void SetupMatricesPDE(const Integer pdenumber, const Integer matrixtype);
+  virtual void SetupMatricesPDE(const Integer pdenumber, const Integer matrixtype);
 
 protected:
 

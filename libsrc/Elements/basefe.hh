@@ -284,7 +284,17 @@ public:
     \param algsys (input) Pointer to the algebraic system
   */
   virtual void GetGlobalEdgeIndices(std::vector<Integer>& edges, Integer * pDENodes, BaseSystem * algsys);
-  
+
+
+  //! Get global coordinates based on local element coordinates
+  /*! 
+    \param globCoord (output) Vector of global coordinates
+    \param ip (input) Integeration point at which global coord has to be calculated
+    \param cornerCoords (input) Matrix of corner coordinates
+  */
+  virtual void GetGlobalEdgeIndicesAtIP( std::vector<Double> & globCoord,
+					 Integer ip,
+					 const Matrix<Double> & cornerCoords);
   
 
 
