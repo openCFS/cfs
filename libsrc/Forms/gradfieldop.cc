@@ -137,5 +137,11 @@ void GradientFieldOp<TYPE>::CalcSDGradField(CFSVector & elemField,
     }
 }
 
+// explicit template instantiation for SGI compiler
+#ifdef __sgi
+#pragma instantiate GradientFieldOp<Double>
+#pragma instantiate GradientFieldOp<Complex>
+#endif
+
 
 } // namespace CoupledField

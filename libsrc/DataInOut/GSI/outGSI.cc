@@ -1,11 +1,16 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+
+#ifdef __sgi
+#include <stdio.h>
+#else
 #include <cstdio>
+#endif
 
 #include "outGSI.hh"
 
-#include "GSIBaseIO.hh"
+#include "GSIBaseIO.h
 #include "GSIRawIO.hh"
 #include "GSIXDRIO.hh"
 #include "GSIIOException.hh"
@@ -374,8 +379,8 @@ void WriteResultsGSI::Dataset55_Harmonic(const std::string & title,
       {
         for (j=0; j<nrDofs; j++)
         {
-          vec1[i*nrDofs+j] = (float) real(x[i*nrDofs +j]);
-          vec2[i*nrDofs+j] = (float)  imag(x[i*nrDofs +j]);
+          vec1[i*nrDofs+j] = (float) x[i*nrDofs +j].real();
+          vec2[i*nrDofs+j] = (float) x[i*nrDofs +j].imag();
         }
       }
   }
@@ -387,10 +392,10 @@ void WriteResultsGSI::Dataset55_Harmonic(const std::string & title,
       {
         for (j=0; j<nrDofs; j++)
         {
-          vec1[i*nrDofs+j] = (float) abs(x[i*nrDofs +j]);
+          vec1[i*nrDofs+j] = (float) std::abs(x[i*nrDofs +j]);
 
-          if (abs(imag(x[i*nrDofs +j])) > 1e-16)
-            vec2[i*nrDofs+j] = (float) arg(x[i*nrDofs +j])*180/PI;
+          if (abs(x[i*nrDofs +j].imag()) > 1e-16)
+            vec2[i*nrDofs+j] = (float) std::arg(x[i*nrDofs +j])*180/PI;
           else
             vec2[i*nrDofs+j] = (float) 0.0;
         }
@@ -486,8 +491,8 @@ void WriteResultsGSI::Dataset56_Harmonic(const std::string & title,
       {
         for (j=0; j<nrDofs; j++)
         {
-          vec1[i*nrDofs+j] = (float) real(x[i*nrDofs +j]);
-          vec2[i*nrDofs+j] = (float) imag(x[i*nrDofs +j]);
+          vec1[i*nrDofs+j] = (float) x[i*nrDofs +j].real();
+          vec2[i*nrDofs+j] = (float) x[i*nrDofs +j].imag();
         }
       }
   }
@@ -499,10 +504,10 @@ void WriteResultsGSI::Dataset56_Harmonic(const std::string & title,
       {
         for (j=0; j<nrDofs; j++)
         {
-          vec1[i*nrDofs+j] = (float) abs(x[i*nrDofs +j]);
+          vec1[i*nrDofs+j] = (float) std::abs(x[i*nrDofs +j]);
 
-          if (abs(imag(x[i*nrDofs +j])) > 1e-16)
-            vec2[i*nrDofs+j] = (float) arg(x[i*nrDofs +j])*180/PI;
+          if (abs(x[i*nrDofs +j].imag()) > 1e-16)
+            vec2[i*nrDofs+j] = (float) std::arg(x[i*nrDofs +j])*180/PI;
           else
             vec2[i*nrDofs+j] = (float) 0.0;
         }

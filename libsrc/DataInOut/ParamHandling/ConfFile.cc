@@ -162,7 +162,7 @@ void ConfFile::get2(const std::string keyword, Double & val, std::string & fncna
  std::string comma = ","; 
  Boolean fnc_file = FALSE;
 
- getline(infile,dummy);
+ std::getline(infile,dummy);
  Integer idx;
  for (Integer i=0; i<dummy.size(); i++)
    if (dummy[i] == comma[0])  
@@ -847,7 +847,7 @@ Boolean ConfFile::ifgetliststr( const std::string seekexp,
 
  //check for correct deliniter "non"
  std::string help;
- getline(infile,help);
+ std::getline(infile,help);
  std::string::size_type checkpos=help.find("non");
 
  if (checkpos==std::string::npos)
@@ -932,7 +932,7 @@ void ConfFile::getVal_Fnc(const std::string::size_type startpos,
   std::string comma = ","; 
   Boolean fnc_file = FALSE;
   
-  getline(infile,dummy);
+  std::getline(infile,dummy);
   Integer idx;
   for (Integer i=0; i<dummy.size(); i++)
     if (dummy[i] == comma[0])  

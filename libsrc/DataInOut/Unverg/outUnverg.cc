@@ -329,7 +329,7 @@ void WriteResultsUnverg::NodeElemDataHarmonic(const Integer dataSetNr,
 	  for (j=0; j<nrDofs; j++)
 	    {
 	      //std::cerr << "trying to write " << i << ", " << j << std::endl;
-	      (*output) << std::setw(14) << real(x[i*nrDofs +j]);
+	      (*output) << std::setw(14) << x[i*nrDofs +j].real();
 	    }
 	  
 	  (*output) << std::endl;
@@ -357,7 +357,7 @@ void WriteResultsUnverg::NodeElemDataHarmonic(const Integer dataSetNr,
 	  for (j=0; j<nrDofs; j++)
 	    {
 	      //std::cerr << "trying to write " << i << ", " << j << std::endl;
-	      (*output) << std::setw(14) << imag(x[i*nrDofs +j]);
+	      (*output) << std::setw(14) << x[i*nrDofs +j].imag();
 	    }
 	  
 	  (*output) << std::endl;
@@ -388,7 +388,7 @@ void WriteResultsUnverg::NodeElemDataHarmonic(const Integer dataSetNr,
 	for (j=0; j<nrDofs; j++)
 	  {
 	    //std::cerr << "trying to write " << i << ", " << j << std::endl;
-	    (*output) << std::setw(14) << abs(x[i*nrDofs +j]);
+	    (*output) << std::setw(14) << std::abs(x[i*nrDofs +j]);
 	  }
 	
 	(*output) << std::endl;
@@ -415,8 +415,8 @@ void WriteResultsUnverg::NodeElemDataHarmonic(const Integer dataSetNr,
 	
 	for (j=0; j<nrDofs; j++)
 	  {
-	    if (abs(imag(x[i*nrDofs +j])) > 1e-16)
-	      (*output) << std::setw(14) << arg(x[i*nrDofs +j])*180/PI;
+	    if (abs(x[i*nrDofs +j].imag()) > 1e-16)
+	      (*output) << std::setw(14) << std::arg(x[i*nrDofs +j])*180/PI;
 	    else 
 	      (*output) << std::setw(14) << 0.0;
 	  }
@@ -484,7 +484,6 @@ void  WriteResultsUnverg::WriteNodeSolutionHarmonic(const NodeStoreSol<Complex> 
   
   
   Integer i,j;
-  Integer nrDofs = 1;
   Double help;
  
   Vector<Complex> globalSolution;

@@ -5,7 +5,13 @@
 
 #include <sys/types.h>
 #include <sys/time.h>
+
+#ifdef __sgi
+#include <stdio.h>
+#else
 #include <cstdio>
+#endif
+
 #include <string>
 #include <vector>
 

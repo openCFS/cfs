@@ -1185,10 +1185,15 @@ namespace CoupledField
     Error("Not implemented yet",__FILE__,__LINE__);
 
     //just for SUN compiler
-    Double dummy;
+    Double dummy =0.0;
     return dummy;
   }
 
+
+#ifdef __sgi
+#pragma instantiate GridCFS<3>
+#pragma instantiate GridCFS<2>
+#endif
 } // end namespace
 
 

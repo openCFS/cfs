@@ -25,7 +25,19 @@
 #include <iomanip>
 
 #include <stdio.h>
+
+#ifdef __sgi
+#include <stdarg.h>
+#include <stdio.h>
+#include <math.h>
+#define POW pow
+#else
 #include <cstdarg>
+#include <cstdio>
+#include <cmath>
+#define POW std::pow
+#endif
+
 #include "Utils/tools.hh"
 #include <PDE/pdes_header.hh>
 
@@ -342,9 +354,9 @@ namespace CoupledField
       } //end while, end backtracking
 
       //choose eta
-      eta_new=gamma*std::pow((real_misfit_new/real_misfit),al);
-      if (gamma*std::pow(eta,al)>0.1)
-        eta_new=std::max(eta_new,gamma*std::pow(eta,al));
+      eta_new=gamma*POW((real_misfit_new/real_misfit),al);
+      if (gamma*POW(eta,al) > 0.1)
+        eta_new=std::max(eta_new,gamma*POW(eta,al));
       if (eta_new>eta_max)
         eta_new=eta_max;
       if(eta_new<=2*(tau*delta)/real_misfit_new)
@@ -374,7 +386,7 @@ namespace CoupledField
 
   // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXxx - now some methods are following ...
 
-  void piezoParamIdent::calcAbsImped(Complex<Double> & charge, Double & freq, Integer & fstep){
+  void piezoParamIdent::calcAbsImped(Complex & charge, Double & freq, Integer & fstep){
     Double imped;
 
     if (!impedCurve)

@@ -12,32 +12,32 @@ OS=$(shell uname -s)
 #
 include $(C_DIR)/main/Makefile.option
 #
-SUBLIBDIR := Driver PDE CoupledPDE Estimator\
+SUBLIBDIR := Driver PDE CoupledPDE \
              Forms Elements Elements/1D Elements/2D Elements/3D \
              Domain/GridCFS Domain \
              DataInOut/DefineFiles \
              DataInOut/ParamHandling \
-             DataInOut/Unverg DataInOut/GMV DataInOut/AnsysOut \
+             DataInOut/Unverg DataInOut/GMV \
              DataInOut/DatFile DataInOut/AnsysFile DataInOut\
-             DataInOut/Database DataInOut/GSI\
+             DataInOut/Database\
              Utils Matrix General  
 #
 ifeq ($(Adaptivity),yes)
-SUBLIBDIR := $(SUBLIBDIR) Domain/AdaptGrid
+SUBLIBDIR := $(SUBLIBDIR) Domain/AdaptGrid Estimator
+mylibrary := $(mylibrary) estimator toadaptgrid
 endif
 #
 ifeq ($(MpCCI),yes)
 SUBLIBDIR := $(SUBLIBDIR) MpCCIcpl
+mylibrary := $(mylibrary) mpccicpl
 endif
 #
 ############ define my libraries
 #
-mylibrary = driver domain pde mpccicpl coupledpde\
-            estimator forms  \
+mylibrary = driver domain pde coupledpde forms  \
             elements3d elements2d elements1d elements \
-            gridcfs toadaptgrid \
-            gmv definefiles unverg gsi\
-	    ansys-out ansysfile datainout paramhandling \
+            gridcfs gmv definefiles unverg\
+	    ansysfile datainout paramhandling \
             driver \
             utils matrix general 
 #
@@ -68,6 +68,13 @@ ifeq ($(DATABASE),yes)
   LINKFLAGSDB =  -L/usr/lib/mysql 
   SUBLIBDIR  :=  $(SUBLIBDIR) DataInOut/Database
   mylibrary  :=  $(mylibrary) database
+endif
+
+
+#####GSI format
+ifeq ($(GSI),yes)
+  SUBLIBDIR  :=  $(SUBLIBDIR) DataInOut/GSI
+  mylibrary  :=  $(mylibrary) gsi
 endif
 
 ############ MpCCI

@@ -81,7 +81,7 @@ void TimeFunc :: ReadTimeFuncs()
       while(pos <= pos_end)
 	{	  
 	  buf = "";
-	  getline(timefile,buf,'\n');
+	  std::getline(timefile,buf,'\n');
 	  line_end_pos = timefile.tellg();
 	  
 	  // big choice of signs for comment's

@@ -9,6 +9,8 @@
 #include "GSIXDRIO.hh"
 #include "GSIIOException.hh"
 
+using namespace std;
+
 GSIXDRIO::GSIXDRIO(FILE *file_read, FILE *file_write) : GSIBaseIO(file_read, file_write)
 {
   // If we get STREAMS as input we always do blocking IO
@@ -1665,4 +1667,3 @@ void GSIXDRIO :: writeDoubleVector(const std::vector<double>& vec) throw(GSIIOEx
   io_ok = 1;
   delete[] buf;  
 }
-

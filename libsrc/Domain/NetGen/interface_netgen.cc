@@ -399,5 +399,11 @@ void InterfaceNetGen<Dim>::Init()
  testout=new ofstream("test.out");
 }
 
+// explicit template instantiation for SGI compiler
+#ifdef __sgi
+#pragma instantiate InterfaceNetGen<2>
+#pragma instantiate InterfaceNetGen<3>
+#endif
+
 } // end of namespace
 

@@ -406,4 +406,10 @@ template <Integer dim>
   return neighbors;
 }
 
+
+// explicit template instantiation for SGI compiler
+#ifdef __sgi
+#pragma instantiate InterfaceAdaptGrid<2>
+#pragma instantiate InterfaceAdaptGrid<3>
+#endif
 } // end of namespace

@@ -174,7 +174,7 @@ public:
   
   //! Element can be referred to as v[i]
   template<class TYPE>
-  TYPE & StdVector<TYPE>::StdVector::operator[] (const Integer i)
+  TYPE & StdVector<TYPE>::operator[] (const Integer i)
   {	
 #ifdef CHECK_INDEX
     if (i >= size_){

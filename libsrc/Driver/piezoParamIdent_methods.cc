@@ -20,13 +20,25 @@
 #include <Domain/elem.hh>
 #include "Forms/forms_header.hh"
 
-#include <stdlib.h>
 
+#ifdef __sgi
+#include <stdarg.h>
+#include <stdio.h>
+#include <math.h>
+#define POW pow
+#else
+#include <cstdarg>
+#include <cstdio>
+#include <cmath>
+#define POW std::pow
+#endif
+
+#include <stdlib.h>
 #include <sstream>
 #include <iomanip>
 
-#include <stdio.h>
-#include <cstdarg>
+
+
 #include "Utils/tools.hh"
 #include <PDE/pdes_header.hh>
 
@@ -123,7 +135,7 @@ namespace CoupledField
 	  //	  std::cout<<" bas_bar["<<i<<"]="<<bas_bar[i];
 	}
 
-	//		alpha_m=pow(a2norm(res_NE),2)/pow(a2norm(bas_bar),2);
+	//		alpha_m=POW(a2norm(res_NE),2)/POW(a2norm(bas_bar),2);
 	alpha_m=a2norm(res_NE)/a2norm(bas_bar);
 
 	std::cout<<"\n alpha = " <<alpha_m<<std::endl;
@@ -153,7 +165,7 @@ namespace CoupledField
 	  res_NE[i]=res_NE[i]*scaling[i];
        }
 
-       // beta_m=pow(a2norm(res_NE_new),2)/pow(a2norm(res_NE),2);
+       // beta_m=POW(a2norm(res_NE_new),2)/POW(a2norm(res_NE),2);
         beta_m=a2norm(res_NE_new)/a2norm(res_NE);
        res_NE=res_NE_new;
        //       std::cout<<"\n beta_m= "<< beta_m;
@@ -500,7 +512,7 @@ void piezoParamIdent::createF(MaterialData * ptMaterial, BCs * ptBCs, Vector<Com
 	pdes_[0]->PostProcess(level);
         pdes_[0]->PostStepHarmonic(fstep, freqs[fstep], level, reset);
 	Vector<Complex> chargeVec =  pdes_[0]->getPDE_complexValuedCharge();
-	Complex<Double> mean_value_charge;
+	Complex mean_value_charge;
 
 	for (int i=0; i<chargeVec.GetSize();i++)
 	  mean_value_charge=mean_value_charge+chargeVec[i];

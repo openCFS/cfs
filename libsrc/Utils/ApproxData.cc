@@ -43,7 +43,7 @@ void ApproxData ::ReadNlinFunc(std::string fncName)
 
   while(pos <= pos_end)
     {	  
-      getline(datafile,buf);
+      std::getline(datafile,buf);
       
       // big choice of signs for comment's
       if ((buf[0] != '#' || buf[0] != '%' || buf[0] != '!') && buf.size() > 0) 

@@ -3,7 +3,11 @@
 #ifndef GSIRawIO_class
 #define GSIRawIO_class
 
+#ifdef __sgi
+#include <stdio.h>
+#else
 #include <cstdio>
+#endif
 
 #include "GSIBaseIO.hh"
 #include "GSIIOException.hh"

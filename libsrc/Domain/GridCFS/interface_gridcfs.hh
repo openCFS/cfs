@@ -115,7 +115,7 @@ inline GridInterfaceCFS<dim>::GridInterfaceCFS(FileType * aptFileType)
    ptGridCFS=new GridCFS<dim>(ptFileType); 
 }
 
-#ifdef __GNUC__
+#if defined(__GNUC__) || defined(__sgi)
 template class GridInterfaceCFS<3>;
 template class GridInterfaceCFS<2>;
 #endif

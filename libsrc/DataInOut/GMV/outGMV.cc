@@ -476,12 +476,12 @@ void WriteResultsGMV::WriteNodeVariableHarmonic(const Vector<Complex> var,
       {
 	Integer i;
 	for (i=0; i<var.GetSize(); i++)
-	  (*output) << real(var[i]) << " ";
+	  (*output) << var[i].real() << " ";
       }
     else 
       {
 	for (i=0; i<var.GetSize(); i++){
-	  val = real(var[i]);
+	  val = var[i].real();
 	  output->write((char*)(&val),sizeof(Double));
 	}
       }
@@ -506,11 +506,11 @@ void WriteResultsGMV::WriteNodeVariableHarmonic(const Vector<Complex> var,
       {
 	Integer i;
 	for (i=0; i<var.GetSize(); i++)
-	  (*output) << imag(var[i]);
+	  (*output) << var[i].imag();
       }
     else {
       for (i=0; i<var.GetSize(); i++){
-	val = imag(var[i]);
+	val = var[i].imag();
 	output->write((char*)(&val),sizeof(Double));
       }
     }
@@ -540,12 +540,12 @@ void WriteResultsGMV::WriteNodeVariableHarmonic(const Vector<Complex> var,
       {
 	Integer i;
 	for (i=0; i<var.GetSize(); i++)
-	  (*output) << abs(var[i]) << " ";
+	  (*output) << std::abs(var[i]) << " ";
       }
     else 
       {
 	for (i=0; i<var.GetSize(); i++){
-	  val = abs(var[i]);
+	  val = std::abs(var[i]);
 	  output->write((char*)(&val),sizeof(Double));
 	}
       }
@@ -569,16 +569,16 @@ void WriteResultsGMV::WriteNodeVariableHarmonic(const Vector<Complex> var,
     if (ascii_) 
       {
 	for (i=0; i<var.GetSize(); i++) {
-	  if (abs(imag(var[i])) > 1e-16)
-	    (*output) << arg(var[i])*180/PI << " ";
+	  if (abs(var[i].imag()) > 1e-16)
+	    (*output) << std::arg(var[i])*180/PI << " ";
 	  else
 	    (*output) << "0.0 ";
 	}
       }
     else {
       for (i=0; i<var.GetSize(); i++){
-	if (abs(imag(var[i])) > 1e-16)
-	  val = arg(var[i])*180/PI;
+	if (abs(var[i].imag()) > 1e-16)
+	  val = std::arg(var[i])*180/PI;
 	else
 	  val = 0.0;
 	output->write((char*)(&val),sizeof(Double));

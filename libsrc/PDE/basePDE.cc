@@ -322,6 +322,7 @@ if (commsize>1) parallel = "yes";
       }
     }
 
+
 #else
 	
     // For conf-file always use scalar entries in system matrix

@@ -5,8 +5,16 @@
 #include <iostream>
 #include <vector>
 #include <complex>
-#include "General/defs.hh"
 
+
+#ifdef __sgi
+#include<math.h>
+#else
+#include<cmath>
+#endif
+
+
+#include "General/defs.hh"
 #ifdef USE_OLAS
 #include <olas.hh>
 #else
@@ -234,7 +242,7 @@ namespace CoupledField
   void Enum2String(const TYPE &in, std::string &out);
 
   // Instantiation for all known enum types;
-#ifdef __GNUC__
+#if defined (__GNUC__) 
 #define DEFINE_ENUM_CONVERSION(TYPE)                                  \
   template<class TYPE> void String2Enum(const std::string &in, TYPE &out); \
   template<class TYPE> void Enum2String(const TYPE &in, std::string &out);
@@ -247,7 +255,7 @@ namespace CoupledField
   DEFINE_ENUM_CONVERSION(ComplexFormat);
   DEFINE_ENUM_CONVERSION(EQNType);
 #endif
-}
 
+} // end of namespace
 
 #endif // FILE_SCFE_MYDEFS

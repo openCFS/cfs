@@ -4,15 +4,20 @@
 #include <iomanip>
 #include <fstream>
 #include <stdio.h>
+
+#ifdef __sgi
+#include <stdarg.h>
+#else
 #include <cstdarg>
+#endif
 
 #include "WriteInfo.hh"
 
 #include "Utils/tools.hh"
 #include "Utils/Coil.hh"
 #include "MaterialData.hh"
-#include <PDE/pdes_header.hh>
-#include <Utils/vector.hh>
+#include "PDE/pdes_header.hh"
+#include "Utils/vector.hh"
 
 
 namespace CoupledField

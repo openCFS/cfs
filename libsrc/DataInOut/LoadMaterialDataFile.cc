@@ -4,7 +4,15 @@
 #include <iomanip>
 #include <fstream>
 #include <math.h>
+
+// Temporary hack for avoiding namespace conflict for old C-functions and old SGI compiler
+#ifdef __sgi
 #include <stdio.h>
+#define SSCANF sscanf
+#else
+#include <cstdio>
+#define SSCANF std::sscanf
+#endif
 
 //#include <limits.h>
 
@@ -51,8 +59,8 @@ namespace CoupledField
     
     FindMat(fin, charMatName, buffer, charMatType);
 
-	// first line of material record: matNr. matType matName (nonLin)
-	std::sscanf(buffer,"%*d%s", charMatType);
+    // first line of material record: matNr. matType matName (nonLin)
+    SSCANF(buffer,"%*d%s", charMatType);
 
 	/*
 	  if (strcmp(charMatType,"magnonlin") == 0)
@@ -142,8 +150,8 @@ namespace CoupledField
       {
 	pos = fin.tellg();
 	ReadLine(fin, buffer);
-	sscanf(buffer,"%*d%s",tempMatType);
-	sscanf(buffer,"%*d%*s%s",tempMatName);
+	SSCANF(buffer,"%*d%s",tempMatType);
+	SSCANF(buffer,"%*d%*s%s",tempMatName);
 
 	if ( strcmp(matName,tempMatName) == 0 &&  
 	     strcmp(matType, tempMatType) == 0)
@@ -179,7 +187,7 @@ namespace CoupledField
     material->DefFull3dMatrix(); // declare matrix with 9x9 entries
 
     ReadLine(fin,buffer);
-    sscanf(buffer,"%*d%*s%s", materialName);  
+    SSCANF(buffer,"%*d%*s%s", materialName);  
 
     material -> SetName(materialName);
 
@@ -316,7 +324,7 @@ namespace CoupledField
     char materialName[bufLength];
 
     ReadLine(fin,buffer);
-    sscanf(buffer,"%*d%*s%s", materialName);  
+    SSCANF(buffer,"%*d%*s%s", materialName);  
 
     material -> SetName(materialName);
 
@@ -351,7 +359,7 @@ namespace CoupledField
     char aux2[bufLength];
 
     ReadLine(fin,buffer);
-    sscanf( buffer, "%*d%*s%s%s%s", materialName, aux1, aux2 );
+    SSCANF( buffer, "%*d%*s%s%s%s", materialName, aux1, aux2 );
     if ( strcmp(aux1,"bhapprox:") == 0 ) {
       material->SetBHCurveFileName( aux2 );
     }
@@ -711,6 +719,4 @@ namespace CoupledField
 */
 
 
-
-
-
+#undef SSCANF

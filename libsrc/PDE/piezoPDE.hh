@@ -92,10 +92,10 @@ namespace CoupledField
     //!   </tr>
     //! </table>
     void ReadStoreResults();
-
-    //! Init the time stepping
-    void InitTimeStepping();
 #endif
+
+ //! Init the time stepping
+    void InitTimeStepping();
   private:
 
     //postprocessing

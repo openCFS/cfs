@@ -602,7 +602,7 @@ void ElecPDE::InitCoupling(PDECoupling * Coupling)
 
 #ifndef XMLPARAMS
   //check, if geometric nonlinearity is switched of by the user
-  nonLin_ = TRUE    //general nonlinear switch in basepde!
+  nonLin_ = TRUE;    //general nonlinear switch in basepde!
   
   if (conf->get_optionNo("nonlingeo",  pdename_ ))
     {
