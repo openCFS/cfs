@@ -192,7 +192,7 @@ LIBRARY_TYPE = static
 # We define some parameters for handling internal paths correctly.
 # -----------------------------------------------------------------------------
 LIBSRC_DIR = $(C_DIR)/libsrc
-LIB_DIR    = $(C_DIR)/lib/$(ARCH)
+LIB_DIR    = $(C_DIR)/lib/$(MACHINE)
 
 
 # -----------------------------------------------------------------------------
