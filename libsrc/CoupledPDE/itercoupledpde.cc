@@ -320,10 +320,10 @@ namespace CoupledField
 	    // Only solve current PDE, if the corresponding
 	    // flag in 'solvePDE_' is set to TRUE
 	    if (solvePDE_[i] == TRUE) {
-	      PDEs_[i]->PreStepStatic(kstep,aTime,actlevel_,updatesysmat);
+	      PDEs_[i]->GetSolveStep()->PreStepStatic(kstep,aTime,actlevel_,updatesysmat);
 	      PDEs_[i]->CalcInputCoupling();
-	      PDEs_[i]->SolveStepStatic(kstep,aTime,actlevel_,updatesysmat);
-	      PDEs_[i]->PostStepStatic(kstep,aTime,actlevel_);
+	      PDEs_[i]->GetSolveStep()->SolveStepStatic(kstep,aTime,actlevel_,updatesysmat);
+	      PDEs_[i]->GetSolveStep()->PostStepStatic(kstep,aTime,actlevel_);
 	      PDEs_[i]->CalcOutputCoupling();
 	      
 	      // Calculate Norms
@@ -403,10 +403,10 @@ namespace CoupledField
 	    // flag in 'solvePDE_' is set to TRUE
 	    if (solvePDE_[i] == TRUE) {
 	      
-	      PDEs_[i]->PreStepTrans(kstep, steptime, level, updatesysmat);
+	      PDEs_[i]->GetSolveStep()->PreStepTrans(kstep, steptime, level, updatesysmat);
 	      PDEs_[i]->CalcInputCoupling();
-	      PDEs_[i]->SolveStepTrans(kstep, steptime, level, updatesysmat);
-	      PDEs_[i]->PostStepTrans(kstep, steptime, level);
+	      PDEs_[i]->GetSolveStep()->SolveStepTrans(kstep, steptime, level, updatesysmat);
+	      PDEs_[i]->GetSolveStep()->PostStepTrans(kstep, steptime, level);
 	      PDEs_[i]->CalcOutputCoupling();
 	      
 	      // Calculate Norms

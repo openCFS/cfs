@@ -64,8 +64,9 @@ namespace CoupledField {
 
       // branch for single PDE
       pdes_[pdenumber]->WriteGeneralPDEdefines();
-      pdes_[pdenumber]->SolveStepStatic(nstep, steptime, level,
-						    reset);   
+      pdes_[pdenumber]->GetSolveStep()->SolveStepStatic(nstep, steptime, level,
+							reset);   
+
       pdes_[pdenumber]->PostProcess(level);
 
       // if multiSequence is performed, the ms-driver

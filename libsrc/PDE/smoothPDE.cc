@@ -9,6 +9,7 @@
 #include <Estimator/spaceerror.hh>
 #include "blocknodeEQN.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
+#include "Driver/solveStepSmooth.hh"
 #include "smoothPDE.hh" 
 
 namespace CoupledField
@@ -102,6 +103,14 @@ namespace CoupledField
   }
 
 
+  void SmoothPDE::DefineSolveStep()
+  {
+    ENTER_FCN( "SmoothPDE::DefineSolveStep" );
+    
+    solveStep_ = new SolveStepSmooth(*this); 
+  }
+
+
   void SmoothPDE::InitCoupling(PDECoupling * coupling)
   {
     ENTER_FCN( "SmoothPDE::Initcoupling" );
@@ -133,58 +142,6 @@ namespace CoupledField
     // now overwrite number of Dirichlet BCs due to coupling 
     assemble_->SetNumDirichlet(numDirichletBCs_);
   }
-
-  void SmoothPDE::PreStepStatic(const Integer kstep, const Double asteptime,
-				const Integer level, const Boolean reset)
-  {
-    ENTER_FCN( "SmoothPDE::PreStepStatic" );
-
-    algsys_->InitRHS();
-    algsys_->InitSol();
-    assemble_->InitMatrices();
-
-    assemble_->SetReassemble();
-
-  }
-
-
-  void SmoothPDE::StepStaticNonLin(const Integer kstep, const Double aTime,
-				   const Integer level, const Boolean reset)
-  {
-    ENTER_FCN( "SmoothPDE::StepStaticNonLin" );
-
-    Integer job = 1;
-    Double * ptsol;
-
-    assemble_->AssembleMatrices(level);
-    assemble_->AssembleSrcRHS(level);
-  
-    SetBCs(level,0);
-
-    algsys_->BuildInDirichlet();
-    if (job == 1) {
-      algsys_->SetupPrecond(job);
-      algsys_->SetupSolver(job);
-    }
-
-    algsys_->Solve();
-
-    ptsol = algsys_->GetSolutionVal();
-
-    // save solution
-    sol_->CopyFromAlgSysDataPointer(ptsol);
-    //  sol_->SetAlgSysDataPointer(ptsol);
-  }
-
-
-  void SmoothPDE:: PostStepStatic(const Integer kstep, const Double asteptime,
-				  const Integer level)
-  {
-    ENTER_FCN( "SmoothPDE::PostStepStatic" );
-  
-    iterCoupledCounter_++;
-  }
-
 
 
 

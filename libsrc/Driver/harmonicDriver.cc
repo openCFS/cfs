@@ -81,9 +81,9 @@ void HarmonicDriver :: SolveProblem()
     for (fstep = 1; fstep <= numFreq_; fstep++) {
       Info->WriteHarmonicStep(pdes_[0]->GetName(), fstep, actFreq);
       
-      pdes_[0]->PreStepHarmonic(fstep, actFreq, level, reset);
-      pdes_[0]->SolveStepHarmonic(fstep, actFreq, level, reset);
-      pdes_[0]->PostStepHarmonic(fstep, actFreq, level, reset);
+      pdes_[0]->GetSolveStep()->PreStepHarmonic(fstep, actFreq, level, reset);
+      pdes_[0]->GetSolveStep()->SolveStepHarmonic(fstep, actFreq, level, reset);
+      pdes_[0]->GetSolveStep()->PostStepHarmonic(fstep, actFreq, level, reset);
            
       // writing results in output-file
       pdes_[0]->PostProcess(level);

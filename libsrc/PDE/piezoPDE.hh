@@ -39,6 +39,9 @@ namespace CoupledField
     //! define all (bilinearform) integrators needed for this pde
     virtual void DefineIntegrators(const Integer level);
 
+    //! define the SoltionStep-Driver
+    virtual void DefineSolveStep();
+
     /// returns a stiffness integrator appropriate to the actual problem (e.g. 3D)
     BaseForm * GetStiffIntegrator(MaterialData& actSDMat, Boolean reducedInt=FALSE, 
 				  Boolean isdamping=FALSE);
@@ -94,6 +97,8 @@ namespace CoupledField
 
  //! Init the time stepping
     void InitTimeStepping();
+
+
   private:
 
     //postprocessing

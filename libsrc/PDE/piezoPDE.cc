@@ -259,6 +259,14 @@ namespace CoupledField {
     return bilinearStiff;
   }
 
+  void PiezoPDE::DefineSolveStep()
+  {
+    ENTER_FCN( "PiezoPDE::DefineSolveStep" );
+    
+  
+    solveStep_ = new BaseSolveStep(*this);
+  }
+
 
 // ======================================================
 // TRANSIENT SOLVING SECTION

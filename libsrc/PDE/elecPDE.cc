@@ -19,6 +19,7 @@
 #include "DataInOut/ParamHandling/BaseParamHandler.hh" 
 #include <string>
 #include "Utils/StdVector.hh"
+#include "Driver/solveStepElec.hh"
 
 namespace CoupledField {
 
@@ -69,70 +70,12 @@ void ElecPDE::DefineIntegrators(const Integer level)
     }
 }
 
-
-// ======================================================
-// SOLVING SECTION
-// ======================================================
-
-
-  
-
-
-void ElecPDE:: PreStepStatic(const Integer kstep, const Double asteptime,
-			     const Integer level, const Boolean reset)
+void ElecPDE::DefineSolveStep()
 {
-  ENTER_FCN( "ElecPDE::PreStepStatic" );
-
-  if (pdeIsCoupled_ )     
-    algsys_->InitSol();
+  ENTER_FCN( "ElecPDE::DefineSolveStep" );
   
-  if (geoUpdate_)
-    {
-      algsys_->InitRHS();
-      algsys_->InitSol();
-      assemble_->InitMatrices();
-
-      assemble_->SetReassemble();   
-    }
+  solveStep_ = new SolveStepElec(*this);
 }
-
-void ElecPDE::PostStepStatic(const Integer kstep, const Double asteptime,
-			     const Integer level)
-{
-  ENTER_FCN( "ElecPDE::PostStepStatic" );
-
-  if (pdeIsCoupled_)
-    iterCoupledCounter_++;
-
-
-#ifdef ADAPTGRID
-  if (flags->CalcErrorMap_)
-    {
-      Double         totalErr;
-      ElemStoreSol<Double>  Sol_Mesh;
-      Vector<Double> solVec;
-      
-      ptError_=new SpaceErrorEstimator();
-
-      ptError_->Init(this);
-      
-      sol_->TransformNodeSolution(Sol_Mesh,sol_,eqnData_,ptgrid_);
-
-      sol_->GetCompleteVector(solVec);
-
-      //  solVec.Resize(sol_.size());
-      //       int i;
-      //       for (i=0; i<sol_.size(); i++)
-      // 	solVec[i]=sol_[0][i];
-
-      ptError_->CalcErrorMap(solVec,subdoms_,ptgrid_,errorMap_,totalErr,level);
-      
-      std::cout << " total error of calculation:: " << totalErr << std::endl;
-      *data << errorMap_ << std::endl;
-    }
-#endif
-}
-
 
 
 

@@ -37,51 +37,20 @@ namespace CoupledField
     //! define all (bilinearform) integrators needed for this pde
     virtual void DefineIntegrators(const Integer level);
 
+    //! define the SoltionStep-Driver
+    virtual void DefineSolveStep();
+
+    //! Init the time stepping: nothing to do
+    virtual void InitTimeStepping() {;};
+
+    //! nothing to do
+    virtual void SetTimeStep(const Double dt) {;};
+
     //! return size of solution
     virtual Integer getSize() const 
     { return numPDENodes_*dofspernode_;}
 
-    // ======================================================
-    // SOLUTION SECTION
-    // ======================================================
 
-    //!
-    virtual void PreStepStatic(const Integer kstep, const Double asteptime,
-			       const Integer level, const Boolean reset);
-
-    //!
-    virtual void PostStepStatic(const Integer kstep, const Double asteptime,
-				const Integer level);
-
-    //! initialize time stepping: 
-    //! nothing to do in electrostatics!
-    virtual void InitTimeStepping(){};
-
-    //! set current time step
-    //! \params dt Current time step
-    virtual void SetTimeStep(const Double dt){};
-
-    //!
-    virtual void SolveStepTrans(const Integer kstep, const Double asteptime,
-				const Integer level, const Boolean reset)
-    {SolveStepStatic(kstep,asteptime,level,reset);};
-
-    //!
-    virtual void StepTransLin(const Integer kstep, const Double asteptime,
-			      const Integer level, const Boolean reset)
-    {StepStaticLin(kstep,asteptime,level,reset);};
-
-    //!
-    virtual void PreStepTrans(const Integer kstep, const Double asteptime,
-			      const Integer level, const Boolean reset)
-    {PreStepStatic(kstep,asteptime,level,reset);};
-
-    //!
-    virtual void PostStepTrans(const Integer kstep, const Double asteptime,
-			       const Integer level)
-    {PostStepStatic(kstep,asteptime,level);};
-
-   
     // ======================================================
     // POSTPROCESSING SECTION
     // ======================================================
