@@ -3,41 +3,39 @@
 
 #include "singleDriver.hh"
 
-namespace CoupledField
-{
+namespace CoupledField {
 
-//! driver for transient problems.it is derived from BaseDriver;
-  class TransientDriver : virtual public SingleDriver
-{
-public:
-  //! constructor
-  //! \param adomain pointer to class Domain
-  //! \param stepOffset offset for starting (time)step
-  //! \param timeOffset offset for starting time  
-  //! \param driverTag tag for current driver section
-  //! \param isPartOfSequence true, if driver is part of  multiSequence
-  TransientDriver(Domain * adomain,
-		  Integer stepOffset = 0,
-		  Double timeOffset = 0.0,
-		  std::string driverTag = "anyTag",
-		  Boolean isPartOfSequence = FALSE);
+  //! driver for transient problems.it is derived from BaseDriver;
+  class TransientDriver : virtual public SingleDriver {
+
+  public:
+    //! Constructor
+    //! \param adomain pointer to class Domain
+    //! \param stepOffset offset for starting (time)step
+    //! \param timeOffset offset for starting time  
+    //! \param driverTag tag for current driver section
+    //! \param isPartOfSequence true, if driver is part of  multiSequence
+    TransientDriver( Domain * adomain,
+		     Integer stepOffset = 0,
+		     Double timeOffset = 0.0,
+		     std::string driverTag = "anyTag",
+		     Boolean isPartOfSequence = FALSE );
   
-   //! deconstructor 
-  virtual ~TransientDriver();
+    //! Default destructor
+    virtual ~TransientDriver();
 
-  //!  main method, where time-stepping is implemented. it is for transient and static problem
-  virtual void SolveProblem();
+    //! main method, where time-stepping is implemented. it is for transient and static problem
+    virtual void SolveProblem();
 
-protected:
+  protected:
 
-private:
-  //!
-  Integer numstep_,isavebegin_,isaveincr_,isaveend_;
+  private:
+    //!
+    Integer numstep_,isavebegin_,isaveincr_,isaveend_;
 
-  //!
-  Double firstdt_;
-
-};
+    //!
+    Double firstdt_;
+  };
 
 }
 
