@@ -451,7 +451,7 @@ void AnsysFile::ReadEl(std::vector<Elem*> * allelems, const std::vector<std::str
 	ReadEl2d(allelems,sd);
 	break;
       case 3:
-	ReadEl2d(allelems,sd);
+	//ReadEl2d(allelems,sd);
 	ReadEl3d(allelems,sd);
 	break;
       }

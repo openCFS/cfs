@@ -526,7 +526,8 @@ void MechPDE::CalcAcousticCouplingRHS(std::vector<Elem*> * couplingElems,
       nSol.Init();
       
       Vector<Double> n;
-      CalcLineNormalVec(n, ptCoord);
+      CalcLineNormalVec(n, *(*couplingElems)[actElem]);
+
 
       for (Integer actNode=0; actNode < connecth.size(); actNode++)
 	for (Integer actDof=0; actDof<dofspernode_; actDof++)
@@ -1088,7 +1089,7 @@ void MechPDE::WriteResultsInFile()
 
   if (analysistype_== TRANSIENT)
     {
-      if (savederiv1_ = TRUE)
+      if (savederiv1_ == TRUE)
 	{
 	  sol_der1Array = getS1();
 	  TransformNodeSolution(solder1_mesh,sol_der1Array,PDE2MeshNode_);

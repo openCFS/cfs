@@ -155,16 +155,14 @@ PDECoupling::CouplingInterface::CouplingInterface()
 	  {
 	    ptGrid_->GetElemSD(actSubdomain,myPDE_->subdoms_[iSd],level);
 	    for (Integer j=0; j<actSubdomain.size(); j++)
-	      {
-		possibleNeighbours.push_back(actSubdomain[j]);
-	      }
+	      possibleNeighbours.push_back(actSubdomain[j]);
 	  }
   
 	ptGrid_->DefineBelonging4Elems(*interfaceElems, possibleNeighbours, neighbours);
 
 
 	// 2. Step: For each interface element, set the
-	//          material parameter according to its neightbour
+	//          material parameter according to its neighbour
 
 	for (Integer i=0; i<neighbours.size(); i++)
 	  {
@@ -172,13 +170,12 @@ PDECoupling::CouplingInterface::CouplingInterface()
 	    Integer subDomNr = 0;
 
 	    for (subDomNr=0; subDomNr<myPDE_->subdoms_.size(); subDomNr++)
-	      {
-		if (myPDE_->subdoms_[subDomNr] == neighbours[i]->namesd)
-		  {
-		    subdomFound = TRUE;
-		    break;
-		  }
-	      }
+	      if (myPDE_->subdoms_[subDomNr] == neighbours[i]->namesd)
+		{
+		  subdomFound = TRUE;
+		  break;
+		}
+	      
       
 	    if (subdomFound == FALSE)
 	      Error("Subdomain name of neighbouring elements was not found",__FILE__,__LINE__);
