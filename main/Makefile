@@ -1,6 +1,7 @@
 # ############ Makefile for project CFS++ ###############################
 #
 src = cfs.cc
+# src = bubble.cc
 #
 C_DIR= ..
 #
@@ -20,7 +21,7 @@ SUBLIBDIR := Driver PDE CoupledPDE \
              DataInOut/Unverg DataInOut/GMV \
              DataInOut/DatFile DataInOut/AnsysFile DataInOut\
              DataInOut/Database\
-             Utils Matrix General  
+             Utils Matrix General ODESolve ODEDescr
 #
 ifeq ($(Adaptivity),yes)
 SUBLIBDIR := $(SUBLIBDIR) Domain/AdaptGrid Estimator
@@ -39,7 +40,7 @@ mylibrary = driver domain pde coupledpde forms  \
             gridcfs gmv definefiles unverg\
 	    ansysfile datainout paramhandling \
             driver \
-            utils matrix general 
+            utils matrix general  odesolve odedescr
 #
 ifeq "$(LASTYPE)" "OLAS"
 
@@ -249,6 +250,13 @@ clean-newpde:
 	$(MAKE) clean-pde
 	$(MAKE) clean-driver
 	$(MAKE) clean-domain
+clean-odesolve:
+	@cd $(LIBSRC_DIR)/ODESolve && \
+	$(MAKE) clean
+clean-odedescr:
+	@cd $(LIBSRC_DIR)/ODEDescr && \
+	$(MAKE) clean
+
 ######################   Real clean
 
 clean: clean-library clean-prog

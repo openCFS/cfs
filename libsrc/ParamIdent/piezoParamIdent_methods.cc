@@ -852,9 +852,9 @@ namespace CoupledField
 	  // the following lines are the content of: PreStepHarmonic:
 	  // pdes_[0]->PreStepHarmonic(fstep, freqs[fstep], level, reset);
 
-	  pdes_[0]->setPDE_actFrequency(freqs[fstep]);
-	  pdes_[0]->setPDE_actFreqStep(fstep);
-	  ptAssemble->SetFrequency(freqs[fstep]);
+	pdes_[0]->setPDE_actFrequency(freqs[fstep]);
+	pdes_[0]->setPDE_actFreqStep(fstep);
+	ptAssemble->SetFrequency(freqs[fstep]);
 
 
 	  if (reset)

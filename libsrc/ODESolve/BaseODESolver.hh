@@ -31,7 +31,7 @@ namespace CoupledField {
     //! Compute the solution of the initial value problem
     //! \param tInit     initial time
     //! \param tStop     final time
-    //! \param vector    containing on input the initial values and on output
+    //! \param y         containing on input the initial values and on output
     //!                  the solution
     //! \param myODE     object containing information on the right hand side
     //!                  function of the ODE
