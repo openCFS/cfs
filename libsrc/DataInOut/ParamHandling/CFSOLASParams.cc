@@ -120,7 +120,6 @@ namespace CoupledField {
       Info->Error( errmsg, __FILE__, __LINE__ );
     }
 
-
     std::string eMatString;
     MatrixEntryType eType;
     cfs->Get( "entry", eMatString, pdename, "matrix" );
@@ -133,7 +132,7 @@ namespace CoupledField {
 
     // Let expert module modify the settings
     if ( !overrideExpert ) {
-      CFSOLASParams::Expert( sType, pType, mType, eType );
+      CFSOLASParams::Expert( pdename, sType, pType, mType, eType );
     }
 
     // Insert information into OLAS_Params object
@@ -164,6 +163,9 @@ namespace CoupledField {
     else {
       olas->SetValue( "exportLinSys", false );
     }
+
+    // For hypre solvers
+    olas->SetValue( "AccountForPenalty", false );
 
   }
 
@@ -349,7 +351,9 @@ namespace CoupledField {
   // ********************
   //   SetPrecondParams
   // ********************
-  void CFSOLASParams::Expert( SolverType &sType, PrecondType &pType,
+  void CFSOLASParams::Expert( std::string pdename,
+			      SolverType &sType,
+			      PrecondType &pType,
 			      MatrixStorageType &mType,
 			      MatrixEntryType &eType ) {
 
@@ -372,9 +376,9 @@ namespace CoupledField {
     if ( sType == HYPRE_PCG || sType == HYPRE_GMRES || sType == HYPRE_BICGSTAB
 	 && !( pType == NOPRECOND  || pType == HYPRE_AMG ||
 	       pType == HYPRE_SPAI || pType == HYPRE_ILU ) ) {
-      warn = "Expert: Re-setting preconditioner type to 'NOPRECOND'";
+      warn = "Expert: Re-setting preconditioner type to 'ID'";
       Info->Warning( warn );
-      pType = NOPRECOND;
+      pType = ID;
     }
 
     // ===============
@@ -387,6 +391,10 @@ namespace CoupledField {
 	if ( mType != NOSTORAGETYPE ) {
 	  warn = "Expert: Re-setting matrix storage type to 'LAPACK_GBMATRIX'";
 	  Info->Warning( warn );
+	}
+	else {
+	  Info->PrintF( pdename,
+			"Expert: Using LAPACK_GBMATRIX as storage type" );
 	}
 	mType = LAPACK_GBMATRIX;
       }
@@ -428,6 +436,9 @@ namespace CoupledField {
 	  warn = "Expert: Re-setting matrix storage type to 'HYPRE_MATRIX'";
 	  Info->Warning( warn );
 	}
+	else {
+	  Info->PrintF( pdename, "Expert: Using HYPRE_MATRIX as storage type");
+	}
 	mType = HYPRE_MATRIX;
       }
       if ( eType != DOUBLE ) {
@@ -440,6 +451,7 @@ namespace CoupledField {
     // If no storage type was yet assigned use plain CRS
     if ( mType == NOSTORAGETYPE ) {
       mType = SPARSE_NONSYM;
+      Info->PrintF( pdename, "Expert: Using SPARSE_NONSYM as storage type" );
     }
 
   }
