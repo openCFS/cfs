@@ -94,7 +94,6 @@ long int WriteResultsDatabase::WriteNodeCoordinates(const Integer level)
   {
     d.Clear();
     d.SetTableName("Node_coordinates");
-    d.Set("idx",0);
     d.Set("node_label",(i+1));
     if (dim==2)
     {
@@ -156,7 +155,8 @@ long int WriteResultsDatabase::WriteElementNodes(const Integer level)
           case 4: elemtypegeo = 94; break;
           case 6: elemtypegeo = 92; break;
           case 8: elemtypegeo = 95; break;
-	  default: Error("Please, put element type according to unverg-format for this number of nodes per element", __FILE__,__LINE__);
+	  default: Error("Please, put element type according to unverg-format for this number of nodes per element", 
+                          __FILE__,__LINE__);
 	}
 
         elemtypephys = 2;
@@ -174,7 +174,8 @@ long int WriteResultsDatabase::WriteElementNodes(const Integer level)
           case 8: elemtypegeo = 115; break;
           case 15: elemtypegeo = 113; break;
           case 20: elemtypegeo = 116; break;
-          default: Error("Please, put element type according to unverg-format for this number of nodes per element", __FILE__,__LINE__);
+          default: Error("Please, put element type according to unverg-format for this number of nodes per element", 
+                          __FILE__,__LINE__);
         }
               
         elemtypephys = 11;
@@ -193,7 +194,7 @@ long int WriteResultsDatabase::WriteElementNodes(const Integer level)
       d.Set("result_idx",ResultIdx_); 
       unsigned long int idx = Db_.InsertAndGetIndex(d);
 
-      Db_.Lock("Element_nodes");
+      Db_.Lock("Element_nodes");	
       if (dim == 2 && (connect.GetSize() == 6 || connect.GetSize() == 8))
       {
       //quadratic elements
@@ -464,24 +465,16 @@ void WriteResultsDatabase::WriteConfFile()
   Db_.FetchFields(mat);
   if (mat.getNoOfRow()==1)
   {
-#ifdef DEBUG
-    (*debug)<<"Conf-file already exists in database. Use existing file."<<std::endl;
-#endif
     int ref; 
     dbColumn *nOfRef;
     nOfRef = mat["no_references"];
     nOfRef->get(ref,0);
-//    dbLineData set("InputParam");
-//    set.Set("no_references",(ref+1));
     std::stringstream Set;
     Set<<"no_references="<<(ref+1);
     int idx;
     dbColumn *pIdx;
     pIdx = mat["idx"];
     pIdx->get(idx,0);
-//    dbLineData where("InputParam");
-//    where.Set("idx",idx);
-//    Db_.Update(set,where);
     std::stringstream Where;
     Where<<"idx="<<idx;
     Db_.Update("InputParam",Set.str(),Where.str());
@@ -500,9 +493,6 @@ void WriteResultsDatabase::WriteConfFile()
   std::stringstream moddatestr;
   moddatestr<<"FROM_UNIXTIME("<<seconds<<")";
   d.Set("date_modified", moddatestr.str(),FALSE);
-#ifdef DEBUG
-  (*debug)<<"moddate: "<<moddatestr.str()<<std::endl;
-#endif
   d.Set("file",configstring);
   InputParamIdx_ = Db_.InsertAndGetIndex(d);
 }
