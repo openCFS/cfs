@@ -84,6 +84,32 @@ namespace CoupledField {
       Error( __FILE__, __LINE__ );
     }
   }
+
+  void StdPDE::setBCs_id_phase_(Integer i, Double & phase) {
+
+    ENTER_FCN("setBSs_PDE::setBCs_id_phase");
+    
+    if (bcs_id_phase_.GetSize() <= i)
+      Error("no such index in Vector bcs_id_phase_",__FILE__,__LINE__);
+    bcs_id_phase_[i]=phase;
+  }
+  
+  
+  void StdPDE::setPDE_actFrequency(Double & freq) {
+
+    ENTER_FCN("SinglePDE::setPDE_actFrequency");
+
+    actFrequency_ = freq;
+  }
+
+  void StdPDE::setPDE_actFreqStep(Integer & fstep){
+    
+    ENTER_FCN("SinglePDE::setPDE_actFreqStep");
+    
+    actFreqStep_ = fstep;
+  }
+  
+
   
 
   // ======================================================
