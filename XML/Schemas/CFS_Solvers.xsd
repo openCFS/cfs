@@ -240,6 +240,34 @@
 
   <!-- ==================================================================== -->
   <!-- ==                                                                == -->
+  <!-- ==                         LAPACK_LL Solver                       == -->
+  <!-- ==                                                                == -->
+  <!-- ==================================================================== -->
+
+
+  <!-- ******************************************************************** -->
+  <!-- Definition of element for LAPACK_LL Solver -->
+  <!-- ******************************************************************** -->
+  <xsd:element name="lapackLL" type="DT_SolverLAPACKLL"
+    substitutionGroup="SolverBasic"/>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for LAPACK_LL Solver -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_SolverLAPACKLL">
+    <xsd:complexContent>
+      <xsd:extension base="DT_SolverBasic">
+        <xsd:sequence>
+          <xsd:element name="logging" type="DT_CFSBool" minOccurs="0"/>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+
+  <!-- ==================================================================== -->
+  <!-- ==                                                                == -->
   <!-- ==                        SPARSE DIRECT Solver                    == -->
   <!-- ==                                                                == -->
   <!-- ==                     (LU_SOLVER or LDL_SOLVER)                  == -->
