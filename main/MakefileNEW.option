@@ -1,0 +1,347 @@
+###############################################################################
+############# Machine-Indepenent Options for Compilation of CFS++ #############
+###############################################################################
+
+# -----------------------------------------------------------------------------
+#
+# NOTE: Depending on the compilation settings in Makefile.option CFS++ may
+#       depend on some external libraries. These are:
+#
+#       -------------------------------------------------------
+#       | # |   name      | library  | headers  | path        |
+#       |   |             | required | required | variable    |
+#       -------------------------------------------------------
+#       | 1 | OLAS        |   yes    |    yes   | OLAS_ROOT   |
+#       | 2 | hypre       |   yes    |     no   | HYPRE_ROOT  | (c)
+#       | 3 | xerces-c    |   yes    |    yes   | XERCES_ROOT |
+#       | 4 | BLAS        |   yes    |     no   |      (a)    |
+#       | 5 | LAPACK      |   yes    |     no   |      (a)    |
+#       | 6 | mysql       |   yes    |    yes   |      (d)    |
+#       -------------------------------------------------------
+#       | 7 | XML Schemas |         (b)         | XMLSCHEMA   |
+#       -------------------------------------------------------
+#
+#  (a) The Basic Linear Algebra Subroutines (BLAS) and the Linear Algebra
+#      Package (LAPACK) are standard libraries routinely used in Scientific
+#      Computing. Compiler vendors in general provide their own implementations
+#      of these libraries. The libraries therefore reside in the standard
+#      library directories and additional search pathes will not be necessary.
+#      However, the libraries often have proprietary names that must be set in
+#      the corresponding make.mach.<MACHINE> file.
+#
+#  (b) This is not exactly a program library, but refers to the XML Schema
+#      definitions that are used to validate the formal correctness of an .xml
+#      parameter file when it is parsed.
+#
+#  (c) Installing hypre does not lead to a single library, but (as with CFS++)
+#      to a whole bunch of libraries. For linking with CFS++ these must be
+#      combined into a single libHYPRE.a
+#
+#  (d) On a SuSE system mysql headers and libraries should be found in the
+#      directories searched by default. So no extra path variable at the
+#      moment.
+#
+# The corresponding path variable should be set to point to the respective
+# installation directory, i.e. the base of the respective install tree. We
+# will search in
+#
+#  includes:  <path variable>/<MACHINE>/include
+#  libraries: <path variable>/<MACHINE>/lib
+#
+# The path variables can either be set
+#
+# 1) in this file directly (please do not commit your private settings)
+# 2) as environment variables
+# 3) on the command line of gmake
+#
+# Precedence is bottom up, so command line options will over-write environment
+# variables and so on.
+#
+# Note: Setting the path is uncritial. If a certain library is not required the
+#       path will not be included into the final search pathes for includes
+#       and libraries for compilation and linking.
+#
+# -----------------------------------------------------------------------------
+
+
+# -----------------------------------------------------------------------------
+# PATH VARIABLES for external libraries and the like
+#
+# OLAS_ROOT
+# HYPRE_ROOT
+# XERCES_ROOT
+# XMLSCHEMA
+# -----------------------------------------------------------------------------
+
+ifeq ("$(OLAS_ROOT)","")
+OLAS_ROOT =
+endif
+
+ifeq ("$(HYPRE_ROOT)","")
+HYPRE_ROOT = /home/data/proj/SoftwareLibraries/hypre/sequential
+endif
+
+ifeq ("$(XERCES_ROOT)","")
+XERCES_ROOT = /home/data/proj/SoftwareLibraries/xerces-c
+endif
+
+ifeq ("$(XMLSCHEMA)","")
+XMLSCHEMA = /home/data/proj/share/CFS++XML
+endif
+
+# -----------------------------------------------------------------------------
+
+##############  Name of executable
+program = cfs
+
+##############  Name of dependency file
+Dependencies = Makefile.depend
+
+
+# Function tracing depth
+# TRACE = 0: no fct. tracing at all
+# TRACE >= 100: Trace also inline fct.
+# Note: Tracing is activated only if compiling a debug version
+# see make.mach.LINUXg and so on.
+# Note: If TRACE = 0 the TRACE macro will not be defined. Thus trace will
+# be a NULL pointer. This can be problematic, if e.g. LAS was compiled with
+# LINUXg
+TRACE = 10
+
+# LIBRARY_TYPE = shared / static
+LIBRARY_TYPE = static
+
+# Adaptivity = yes / no
+Adaptivity = no
+
+# PETSc solvers
+PETSc=no
+
+# MpCCI
+MpCCI=no
+
+# Use of GSI output format
+# NOTE: On the SGI IRIX the signal handling used in the GSI writer
+# does not work, so the option must be "no" there
+GSI=yes
+
+# compile with Database yes/no (MySQL)
+# can only be compiled if MySQL-devel is installed
+DATABASE=no
+
+##############  Some settings required in conjunction with OLAS
+
+# Was OLAS compiled with support for hypre?
+HYPRE = no
+
+# Was OLAS compiled with support for LAPACK?
+LAPACK = no
+
+##############  XML Parameter File Handling? With Xerces or without?
+#
+XMLPARAMS=yes
+XERCES=yes
+
+
+# =========================================================================== #
+#                                                                             #
+#    BELOW THIS LINE ONLY AUTOMATIC STUFF HAPPENS. PARAMETERS ARE DERIVED     #
+#    FROM THE ABOVE SETTINGS. NORMAL USERS SHOULD NOT NEED TO CHANGE SOME-    #
+#    THING BELOW THIS LINE.                                                   #
+#                                                                             #
+# =========================================================================== #
+
+############ Directories
+#
+
+Include=$(C_DIR)/include
+LIBSRC_DIR=$(C_DIR)/libsrc
+LIB_DIR=$(C_DIR)/lib/$(MACHINE)
+#
+############ Flags for makedepend
+# 
+FlagMadeDepend = $(CFLAGS2) $(CFLAGS3) $(OLAS)\
+                 $(INCL) $(INCLAdaptGrid) $(INCLMpCCI)
+#
+############
+#
+LIB_OWN = $(C_DIR)/lib
+#
+
+
+# -----------------------------------------------------------------------------
+# INCLUDE PATHS
+#
+# Here we generate the include paths. Each package gets its include path
+# as a makefile parameter consisting of an INCDIR_ prefix and the package
+# name, which is one of the following:
+#
+# - OLAS
+# - DATABASE
+# - XERCES
+# - ADAPTIVITY
+#
+# These will be combined into a COMPILE_INCDIRS parameter
+# -----------------------------------------------------------------------------
+
+# OLAS
+INCDIR_OLAS = -I$(OLAS_ROOT)/libsrc
+
+# DATABASE
+ifeq ($(DATABASE),yes)
+   INCDIR_DATABASE = -I/usr/include/mysql
+else
+   INCDIR_DATABASE =
+endif
+
+# XERCES
+ifeq "$(XERCES)" "yes"
+  INCDIR_XERCES = -I$(XERCES_ROOT)/$(MACHINE)/include
+else
+  INCDIR_XERCES =
+endif
+
+# ADAPTIVITY
+ifeq "$(Adaptivity)" "yes"
+  INCDIR_ADAPTIVITY =
+else
+  INCDIR_ADAPTIVITY =
+endif
+
+# Combine everything
+COMPILE_INCDIRS = $(INCDIR_OLAS) $(INCDIR_HYPRE) $(INCDIR_XERCES) \
+	$(INCDIR_ADAPTIVITY)
+
+
+# -----------------------------------------------------------------------------
+# COMPILATION MACROS
+#
+# Generation of macros to be passed to the compiler. Each makefile parameter
+# begins with a MACRO_  prefix followed by one of the following option names
+#
+#  - DATABASE
+#  - MPCCI
+#  - ADAPTIVITY
+#  - BACKWARD ( adds macros for backward compatibility. Can be removed once
+#               the source code was cleaned from USE_OLAS and XMLPARAMS)
+#
+# These will be combined into a COMPILE_MACROS parameter
+# -----------------------------------------------------------------------------
+
+# DATABASE
+ifeq ($(DATABASE),yes)
+   MACRO_DATABASE = -DUSE_DATABASE
+else
+   MACRO_DATABASE =
+endif
+
+# MPCCI
+ifeq ($(MpCCI),yes)
+   MACRO_MPCCI = -DMpCCI
+else
+   MACRO_MPCCI =
+endif
+
+# ADAPTIVITY
+ifeq ($(Adaptivity),yes)
+   MACRO_ADAPTIVITY = -DADAPTGRID
+else
+   MACRO_ADAPTIVITY =
+endif
+
+# GSI
+ifeq ($(GSI),yes)
+   MACRO_GSI = -DGSI
+else
+   MACRO_GSI =
+endif
+
+# BACKWARD
+MACRO_BACKWARD = -DUSE_OLAS -DXMLPARAMS
+
+COMPILE_MACROS = $(MARCO_DATABASE) $(MACRO_MPCCI) $(MACRO_ADAPTIVITY) \
+	 $(MACRO_GSI) $(MACRO_BACKWARD)
+
+
+# -----------------------------------------------------------------------------
+# LIBRARY PATHS and LIBRARIES
+#
+# Generation of macros to be passed to the linker. Each makefile parameter
+# begins with a LIBDIR_ or LIB_ prefix followed by one of the following names
+#
+#  - OLAS
+#  - HYPRE
+#  - XERCES
+#  - DATABASE
+#
+# These will be combined into a LINK_LIBS parameter
+# -----------------------------------------------------------------------------
+
+# OLAS
+LIBDIR_OLAS = -L$(OLAS_ROOT)/lib/$(MACHINE)
+LIB_OLAS = -lolas
+
+# HYPRE
+ifeq ($(HYPRE),yes)
+   LIBDIR_HYPRE = -L$(HYPRE_ROOT)/lib/$(MACHINE)
+   LIB_HYPRE = -lHYPRE
+else
+   LIBDIR_HYPRE =
+   LIB_HYPRE =
+endif
+
+# XERCES
+ifeq "$(XERCES)" "yes"
+   LIBDIR_XERCES = -L$(XERCES_ROOT)/lib/$(MACHINE)
+   LIB_XERCES = -lxerces-c
+else
+   LIBDIR_XERCES =
+   LIB_XERCES =
+endif
+
+# DATABASE
+ifeq ($(DATABASE),yes)
+  LIBDIR_DATABASE = -L$(MYSQL_ROOT)/mysql
+  LIB_DATABASE = -lmysqlclient
+
+
+# Combine everything
+LINK_LIBS = $(LIBDIR_OLAS) $(LIBDIR_HYPRE) $(LIBDIR_XERCES) \
+	$(LIB_OLAS) $(LIB_HYPRE) $(LIB_XERCES)
+
+# -----------------------------------------------------------------------------
+# Determine need to link against BLAS and LAPACK
+#
+# The library names differ from vendor to vendor, so it must be assigned in
+# make.mach.<MACHINE>. We only set macros here to show the need of linking
+# against BLAS or LAPACK.
+# -----------------------------------------------------------------------------
+
+ifeq "$(LAPACK)" "yes"
+LINK_LAPACK = yes
+LINK_BLAS = yes
+
+else
+ifeq "$(HYPRE)" "yes"
+LINK_LAPACK = yes
+LINK_BLAS = yes
+
+else
+LINK_BLAS = no
+LINK_LAPACK = no
+endif
+
+endif
+
+# =========================================================================== #
+#                                                                             #
+#    ASSEMEBLE LEVEL 2 COMPILER AND LINKER OPTION FROM THE SET PARAMETERS     #
+#                                                                             #
+# =========================================================================== #
+
+# Note: Level 1 flags are set in the Makefile and level 3 flags are set in
+#       the make.mach.<MACHINE> file.
+#       (At least that's the way it should sensibly be)
+
+CFLAGS2 = $(COMPILE_MACROS) $(COMPILE_INCDIRS)
+LFLAGS2 = 
