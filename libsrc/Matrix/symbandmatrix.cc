@@ -1,5 +1,5 @@
-#include <iostream.h>
-#include <fstream.h>
+#include <iostream>
+#include <fstream>
 #include <time.h>
 #include <string>
  
@@ -22,7 +22,7 @@ template<class TYPE>
 SymBandMatrix<TYPE>:: SymBandMatrix (const Integer arow, const Integer alcln)
 {
 #ifdef TRACE
-    cout << "entering SymBandMatrix::SymBandMatrix" << endl;
+    (*trace) << "entering SymBandMatrix::SymBandMatrix" << std::endl;
 #endif
         row = arow;
         li=alcln;
@@ -120,7 +120,6 @@ TYPE & SymBandMatrix<TYPE>::At (const Integer i, const Integer j)
 template<class TYPE>
 SymBandMatrix<TYPE> & SymBandMatrix<TYPE>::operator=(const SymBandMatrix<TYPE> &x)
 {
- cout << "entering Copy" << endl;
        if (!x.row) Error("undefined SymBandMatrix",__FILE__,__LINE__);
  
         if (this == &x)  return *this;
@@ -374,7 +373,7 @@ template< class TYPE>
 void SymBandMatrix<TYPE>::precond(Vector<TYPE> & e, const Vector<TYPE> r, const Integer type)
 {
 #ifdef TRACE
-  (*trace) << "entering SymMatrix::precond" << endl;
+  (*trace) << "entering SymMatrix::precond" << std::endl;
 #endif
  
  Integer i,j;
@@ -425,12 +424,12 @@ template Integer Spur<Integer>(const SymBandMatrix<Integer> &);
 template Double Spur<Double>(const SymBandMatrix<Double> &);
 
 template<class S>
-ostream & operator << (ostream & out, const SymBandMatrix<S> &mat)
+std::ostream & operator << (std::ostream & out, const SymBandMatrix<S> &mat)
 {
 
 out.setf(ios::scientific);
 
-if (mat.row==0) out << "Null matrix" << endl;
+if (mat.row==0) out << "Null matrix" << std::endl;
 Integer i,j;
 
 for (i=0; i < mat.row; i++)
@@ -448,16 +447,16 @@ if ( i!=mat.row-1 )
               for (j=i+mat.li+1; j<mat.row; j++) out << 0 << " ";
              } 
 
-               out << endl;
+               out << std::endl;
 }
 
- out.setf(0, ios::floatfield);
+ out.setf(0, std::ios::floatfield);
  return out;
 
 }
  
-template ostream & operator<<<Integer> (ostream & , const SymBandMatrix<Integer>&);
-template ostream & operator<<<Double> (ostream & , const SymBandMatrix<Double>& );
+template std::ostream & operator<<<Integer> (std::ostream & , const SymBandMatrix<Integer>&);
+template std::ostream & operator<<<Double> (std::ostream & , const SymBandMatrix<Double>& );
 
 
 } // end of namespace

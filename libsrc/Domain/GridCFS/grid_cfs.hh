@@ -18,10 +18,10 @@ public:
   ~GridCFS();
   
   /// Print coordinates of grid in out
-  void PrintCoordinate(const Integer level, ostream * out) const;
+  void PrintCoordinate(const Integer level, std::ostream * out) const;
 
   /// Print information about each element in out
-  void PrintInfoElem(const Integer level,const Integer i, ostream * out) const;
+  void PrintInfoElem(const Integer level,const Integer i, std::ostream * out) const;
 
   /// Get coordinates of all nodes which belong to element
   void GetCoordOfNodesElem(const Integer numElem, const Integer numlevel,

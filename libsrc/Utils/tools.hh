@@ -37,10 +37,10 @@ public:
 };
 
 //! Print Point3D (overloading)
- void PrintPoint(const Point3D point, ostream * out) ;
+ void PrintPoint(const Point3D point, std::ostream * out) ;
 
 //! Print Point2D (overloading)
- void PrintPoint(const Point2D point, ostream * out) ;
+ void PrintPoint(const Point2D point, std::ostream * out) ;
 
 } // end of CoupledField
 

@@ -1,6 +1,6 @@
-#include <iostream.h>
-#include <fstream.h>
-#include <string>
+#include <iostream>
+#include <fstream>
+//#include <string>
 
 #include <general_head.hh>
 #include <utils_head.hh>
@@ -15,7 +15,7 @@ template<class Dim>
  GridCFS<Dim> :: GridCFS(FileType * const aptFileType)
 {
 #ifdef TRACE
-  (*trace) << "entering GridCFS::GridCFS" << endl;
+  (*trace) << "entering GridCFS::GridCFS" << std::endl;
 #endif
 
   Integer i,ii;
@@ -91,7 +91,7 @@ template<class Dim>
  GridCFS<Dim>:: ~GridCFS()
 {
 #ifdef TRACE
-  (*trace) << "entering GridCFS::~GridCFS" << endl;
+  (*trace) << "entering GridCFS::~GridCFS" << std::endl;
 #endif
   delete [] gh[0].ptCoordinate;
   delete [] gh[0].Connect;
@@ -105,7 +105,7 @@ void GridCFS<Dim> :: GetCoordOfNodesElem(const Integer i, const Integer l,
                                       Dim * ptCoordElem)
 {
 #ifdef TRACE
-  (*trace) << "entering GridCFS:: GetCoordOfNodesElem" << endl;
+  (*trace) << "entering GridCFS:: GetCoordOfNodesElem" << std::endl;
 #endif
 
  Integer n,k; 
@@ -137,7 +137,7 @@ inline void GridCFS<Dim> :: GetConnection(Integer * p, const Integer l, const In
                                 const Integer n)
 {
 #ifdef TRACE
-  (*trace) << "entering GridCFS:: GetConnection" << endl;
+  (*trace) << "entering GridCFS:: GetConnection" << std::endl;
 #endif
  
  Integer ii;
@@ -151,33 +151,33 @@ inline void GridCFS<Dim> :: GetConnection(Integer * p, const Integer l, const In
 }
 
 template<class Dim>
-void GridCFS<Dim> :: PrintCoordinate(const Integer level,ostream * out) const
+void GridCFS<Dim> :: PrintCoordinate(const Integer level,std::ostream * out) const
 {
 #ifdef TRACE
-  (*trace) << "entering GridCFS::PrintCoordinate" << endl;
+  (*trace) << "entering GridCFS::PrintCoordinate" << std::endl;
 #endif
 
-  (*out) << "# coordinates of grid with level " << level << endl; 
+  (*out) << "# coordinates of grid with level " << level << std::endl; 
 
   for (Integer i=0; i<gh[level].maxnumnode; i++)
     {
       (*out) << i+1 <<"." ; 
       PrintPoint(gh[level].ptCoordinate[i],out);
-      (*out) << endl;  
+      (*out) << std::endl;  
     }
 }
 
 template<class Dim>
-void GridCFS<Dim> :: PrintInfoElem(const Integer l, const Integer i, ostream * out) const
+void GridCFS<Dim> :: PrintInfoElem(const Integer l, const Integer i, std::ostream * out) const
 {
 #ifdef TRACE
-  (*trace) << "entering GridCFS::PrintInfoElem" << endl;
+  (*trace) << "entering GridCFS::PrintInfoElem" << std::endl;
 #endif
  
   (*out) << i+1 <<
   ".\t Level:" <<  gh[l].Info[gh[l].fp[i]+1]
   << "\t ElemType:" <<  gh[l].Info[gh[l].fp[i]+3]
-  << endl;
+  << std::endl;
 
   (*out) << " Connection: ";
   Integer n,ii;
@@ -189,6 +189,6 @@ void GridCFS<Dim> :: PrintInfoElem(const Integer l, const Integer i, ostream * o
     gh[l].Info[gh[l].fp[i]+2];
   for (ii=0; ii<n; ii++) (*out) <<
   gh[l].Connect[gh[l].Info[gh[l].fp[i]+2]+ii] << " "; 
-  (*out) << endl;
+  (*out) << std::endl;
 }
 } // end namespace

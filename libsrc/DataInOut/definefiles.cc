@@ -1,6 +1,6 @@
 #include <string>
-#include <fstream.h>
-#include <iostream.h>
+#include <fstream>
+#include <iostream>
 
 #include <general_head.hh>
 #include <utils_head.hh>
@@ -16,22 +16,22 @@ DefineInOutFiles :: DefineInOutFiles(const Char * name)
 {
  
  filename=new Char[100];
- strcpy(filename, name);
+ std::strcpy(filename, name);
  
 #ifdef TRACE
- strcpy(filename, name);
- trace=new ofstream(strcat(filename,".trace"));
+ std::strcpy(filename, name);
+ trace=new std::ofstream(strcat(filename,".trace"));
 #endif
  
 #ifdef DEBUG
- strcpy(filename, name);
- debug=new ofstream(strcat(filename,".deb"));
+ std::strcpy(filename, name);
+ debug=new std::ofstream(strcat(filename,".deb"));
 #endif
  
- strcpy(filename, name);
- if (InfoPrint) infofile = new ofstream(strcat(filename,".info"));
+ std::strcpy(filename, name);
+ if (InfoPrint) infofile = new std::ofstream(std::strcat(filename,".info"));
 
- strcpy(filename, name); 
+ std::strcpy(filename, name); 
 }
  
 DefineInOutFiles ::~ DefineInOutFiles()
@@ -59,7 +59,7 @@ FileType * DefineInOutFiles :: Create_ptFileType(Char * atype)
     }
   else 
     {
-      cerr << "ERROR: Sorry, we can't read files with type: "<<atype << endl;
+      std::cerr << "ERROR: Sorry, we can't read files with type: "<<atype << std::endl;
       exit(-1);
     }
 }

@@ -6,7 +6,7 @@ namespace CoupledField
  
  template<class TYPE> class BandMatrix;
 
-template<class TYPE>  ostream& operator<<( ostream & , const BandMatrix<TYPE> &); /// Calculate Spur of BandMatrix
+template<class TYPE>  std::ostream& operator<<( std::ostream & , const BandMatrix<TYPE> &); /// Calculate Spur of BandMatrix
 template <class T> T Spur(const BandMatrix<T> &);
 
 template<class TYPE> class BandMatrix
@@ -86,7 +86,7 @@ template<class TYPE>
 inline BandMatrix<TYPE>::~BandMatrix()
 {
 #ifdef TRACE
- cout << "entering BandMatrix::~BandMatrix" << endl;
+ (*trace) << "entering BandMatrix::~BandMatrix" << endl;
 #endif
  if (p) {  
           delete [] p[0];
@@ -130,8 +130,10 @@ inline Boolean BandMatrix<TYPE>::IsSymmetric () const
   return FALSE;
 }
 
+#ifdef __GNUC__
 template class BandMatrix<Double>;
 template class BandMatrix<Integer>;
+#endif
 
 } // end of namespace
 #endif //

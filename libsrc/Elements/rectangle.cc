@@ -1,6 +1,6 @@
-#include <iostream.h>
-#include <fstream.h>
-#include <math.h>
+#include <iostream>
+#include <fstream>
+//#include <math.h>
 
 #include <general_head.hh>
 #include <utils_head.hh>
@@ -13,7 +13,7 @@ namespace CoupledField
 Rectangle :: ~Rectangle()
 {
 #ifdef TRACE
-  (*trace) << "entering Rectangle::~Rectangle" << endl;
+  (*trace) << "entering Rectangle::~Rectangle" << std::endl;
 #endif
 
   ;
@@ -22,7 +22,7 @@ Rectangle :: ~Rectangle()
 void Rectangle:: SetIntPoints()
 {
 #ifdef TRACE
-  (*trace) << "entering Rectangle::SetIntPoints" << endl;
+  (*trace) << "entering Rectangle::SetIntPoints" << std::endl;
 #endif
  
   switch(IntegType) 
@@ -34,16 +34,16 @@ void Rectangle:: SetIntPoints()
       IntPoints.Resize(NumIntPoints, Dim);
       IntWeights=0;
 
-      IntPoints[0][0] = -1.0/sqrt(3);
-      IntPoints[1][0] =  1.0/sqrt(3);
-      IntPoints[2][0] =  1.0/sqrt(3);
-      IntPoints[3][0] = -1.0/sqrt(3);
-      IntPoints[0][1] = -1.0/sqrt(3);
-      IntPoints[1][1] = -1.0/sqrt(3);
-      IntPoints[2][1] =  1.0/sqrt(3);
-      IntPoints[3][1] =  1.0/sqrt(3);
+      IntPoints[0][0] = -0.57735026919;
+      IntPoints[1][0] =  0.57735026919;
+      IntPoints[2][0] =  0.57735026919;
+      IntPoints[3][0] = -0.57735026919;
+      IntPoints[0][1] = -0.57735026919;
+      IntPoints[1][1] = -0.57735026919;
+      IntPoints[2][1] =  0.57735026919;
+      IntPoints[3][1] =  0.57735026919;
       if (InfoPrint)
-       (*infofile) << " For numerical integration procedures we use Gaussian Quadrature with 4 nodes, degree of precision is 3 " << endl; 
+       (*infofile) << " For numerical integration procedures we use Gaussian Quadrature with 4 nodes, degree of precision is 3 " << std::endl; 
       break;
 
     case GaussOrder5:
@@ -84,7 +84,7 @@ void Rectangle:: SetIntPoints()
       (*IntWeights)[8]= 0.308642; 
 
       if (InfoPrint)
-       (*infofile) << " For numerical integration procedures we use Gaussian Quadrature with 9 nodes, degree of precision is 5 " << endl;
+       (*infofile) << " For numerical integration procedures we use Gaussian Quadrature with 9 nodes, degree of precision is 5 " << std::endl;
       break;
 
     case GaussOrder7:
@@ -148,19 +148,19 @@ void Rectangle:: SetIntPoints()
       (*IntWeights)[15]= 0.121003;
 
       if (InfoPrint)
-       (*infofile) << " For numerical integration procedures we use Gaussian Quadrature with 16 nodes, degree of precision is 7 " << endl;
+       (*infofile) << " For numerical integration procedures we use Gaussian Quadrature with 16 nodes, degree of precision is 7 " << std::endl;
       break;
  
     default:
-      cerr << "Integration type " << IntegType 
-	   << " is not implemented\n" << endl; exit(-1);
+      std::cerr << "Integration type " << IntegType 
+	   << " is not implemented\n" << std::endl; exit(-1);
     }
 }
 
 void Rectangle :: SetTransformFncAtIntPoints()
 {
 #ifdef TRACE
-  (*trace) << "entering Rectangle::SetShapeFncAtIntPoints" << endl;
+  (*trace) << "entering Rectangle::SetShapeFncAtIntPoints" << std::endl;
 #endif
   Integer i;
   TransFncAtIP1.Resize(NumIntPoints);
@@ -180,7 +180,7 @@ void Rectangle :: SetTransformFncAtIntPoints()
 void Rectangle :: SetDerTransformFncAtIntPoints()
 {
 #ifdef TRACE
-  (*trace) << "entering Rectangle::SetDerTransFncAtIntPoints" << endl;
+  (*trace) << "entering Rectangle::SetDerTransFncAtIntPoints" << std::endl;
 #endif
   Integer i;
 

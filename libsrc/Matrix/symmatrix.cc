@@ -1,7 +1,7 @@
-#include <iostream.h>
-#include <fstream.h>
+#include <iostream>
+#include <fstream>
 #include <time.h>
-#include <string>
+//#include <string>
 #include <iomanip.h>
 
 #include <general_head.hh>
@@ -432,7 +432,7 @@ default:
 }
 
 template<class S>
-ostream & operator << (ostream & out, const SymMatrix<S> & mat)
+std::ostream & operator << (std::ostream & out, const SymMatrix<S> & mat)
 {
 Integer i,j,jj;
 
@@ -453,8 +453,8 @@ out.setf(0, ios::floatfield);
  return out;
 }
 
-template ostream & operator<<<Integer> (ostream & , const SymMatrix<Integer> &);
-template ostream & operator<<<Double> (ostream & , const SymMatrix<Double> &);
+template std::ostream & operator<<<Integer> (std::ostream & , const SymMatrix<Integer> &);
+template std::ostream & operator<<<Double> (std::ostream & , const SymMatrix<Double> &);
 
 template<class TYPE>
 TYPE Spur (const SymMatrix<TYPE> &x)

@@ -14,7 +14,7 @@ typedef int Boolean;
 #define FALSE 0
 #define TRUE 1
 
-#define mark cout<<__FILE__<<__LINE__<<endl;
+#define mark std::cout<<__FILE__<<__LINE__<<std::endl;
 
 //#ifndef assert
 //#define assert(ex) \
@@ -56,12 +56,12 @@ struct GridHierarchy
 // enum for precondition matrix
  enum precond { non, Jacobi, SSOR, LU}; 
 
-ostream & operator << (ostream & out, const enum precond & type);
+std::ostream & operator << (std::ostream & out, const enum precond & type);
 
 // ------------------------ Files for debug, trace and information ---------
-extern ostream * trace; //name.trace
-extern ostream * debug; //name.deb
-extern ostream * infofile; //name.info
+extern std::ostream * trace; //name.trace
+extern std::ostream * debug; //name.deb
+extern std::ostream * infofile; //name.info
 
 // if InfoPrint=true, then we create file with information about methods, which are used 
 

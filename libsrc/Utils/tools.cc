@@ -1,6 +1,6 @@
 #include <string>
-#include <fstream.h>
-#include <iostream.h>
+#include <fstream>
+#include <iostream>
 
 #include "general_head.hh"
 #include "tools.hh"
@@ -8,13 +8,13 @@
 namespace CoupledField {
 
 /// Print Point3D
-void PrintPoint(const Point3D point, ostream * out) 
+void PrintPoint(const Point3D point, std::ostream * out) 
 {
  (*out)<< "   " << point.x << "   " <<  point.y << "   " <<  point.z ;
 }
 
 /// Print Point2D
-void PrintPoint(const Point2D point, ostream * out) 
+void PrintPoint(const Point2D point, std::ostream * out) 
 {
  (*out)<< "   " << point.x << "   " << point.y ;
 }
@@ -22,11 +22,11 @@ void PrintPoint(const Point2D point, ostream * out)
 void Error(const Char * const Text, const Char * const filename,
                       const Integer numline)
 {
- cerr << "\033[31mERROR:\033[0m " << Text;
- if (filename) { cerr <<"( " << filename <<" ";
-                 if (numline) cerr << numline;
-                 cerr << ")";}
- cerr << endl;
+ std::cerr << "\033[31mERROR:\033[0m " << Text;
+ if (filename) { std::cerr <<"( " << filename <<" ";
+                 if (numline) std::cerr << numline;
+                 std::cerr << ")";}
+ std::cerr << std::endl;
  exit(-1);
 }
 

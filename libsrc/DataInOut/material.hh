@@ -26,7 +26,7 @@ public:
 private:
 
   //!
-  ifstream infile;
+  std::ifstream infile;
   
 };
 } // end of namespace

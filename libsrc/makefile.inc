@@ -7,7 +7,7 @@ include $(LIBSRC_DIR)/makefilemach/make.mach.$(MACHINE)
 #
 ARFLAGS = r 
 #
-LIBB = $(LIB_DIR)/lib$(lib).a
+LIBB = $(LIB_DIR)/lib$(lib).so
 #
 .SUFFIXES: .f .cc .o
 
@@ -18,10 +18,24 @@ libgoal: $(LIB_DIR) $(LIBB)
 #
 # compile each file seperately
 #	
-$(LIBB): $(src:.cc=.o)
-	$(AR) $(ARFLAGS) $@ $(?:.cc=.o) 
-	-$(RANLIB) $@ 
+#LIBB = $(LIB_DIR)/lib$(lib).so
 #
+#ifeq "$(TYPEOFLIB)" "STATIC"
+#
+#$(LIBB): $(LIBB).a
+#
+#$(LIBB).a: $(src:.cc=.o)
+#	$(AR) $(ARFLAGS) $@ $(?:.cc=.o) 
+#	i$(RANLIB) $@ 
+#
+#else
+
+#$(LIBB): $(LIBB).so
+
+$(LIBB): $(src:.cc=.o)
+	$(CC) $(FLAG_MKSHLIB) -o $@ $(?:.cc=.o) 
+
+#endif
 #
 $(LIB_DIR) :
 	-@mkdir $(C_DIR)/lib

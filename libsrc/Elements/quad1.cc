@@ -1,5 +1,5 @@
-#include <iostream.h>
-#include <fstream.h>
+#include <iostream>
+#include <fstream>
 #include <math.h>
 
 #include <general_head.hh>
@@ -14,7 +14,7 @@ namespace CoupledField
 Quad1 :: Quad1(enum IntegrationType aintegtype) : Rectangle(aintegtype)
 {
 #ifdef TRACE
-  (*trace) << "entering Quad1::Quad1" << endl;
+  (*trace) << "entering Quad1::Quad1" << std::endl;
 #endif
   ElemType  = QUADRILATERAL1;  
   Init();
@@ -23,7 +23,7 @@ Quad1 :: Quad1(enum IntegrationType aintegtype) : Rectangle(aintegtype)
 Quad1 :: ~Quad1()
 {
 #ifdef TRACE
-  (*trace) << "entering Quad1::~Quad1" << endl;
+  (*trace) << "entering Quad1::~Quad1" << std::endl;
 #endif
 
   ;
@@ -32,7 +32,7 @@ Quad1 :: ~Quad1()
 void Quad1 :: Init()
 {
 #ifdef TRACE
-  (*trace) << "entering Quad1::Init" << endl;
+  (*trace) << "entering Quad1::Init" << std::endl;
 #endif
 
   Dim      = 2;

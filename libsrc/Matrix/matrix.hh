@@ -5,7 +5,7 @@ namespace CoupledField
 {      
 
   //! Overloading << for class Matrix
-  template<class TYPE>  ostream& operator << ( ostream & , const Matrix<TYPE> &);
+  template<class TYPE>  std::ostream& operator << ( std::ostream & , const Matrix<TYPE> &);
 
   //! Calculate Spur of Matrix
   template <class T> T Spur(const Matrix<T> &);

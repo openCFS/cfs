@@ -6,7 +6,7 @@ namespace CoupledField
  
 template<class TYPE> class SparseMatrix;
 
-template<class TYPE>  ostream& operator<<( ostream & , const SparseMatrix<TYPE> &); 
+template<class TYPE>  std::ostream& operator<<( std::ostream & , const SparseMatrix<TYPE> &); 
 /// Calculate Spur of SparseMatrix
 template <class T> T Spur(const SparseMatrix<T> &);
 
@@ -89,7 +89,7 @@ public:
   void precond(Vector<TYPE> & e, const Vector<TYPE> r, enum precond type);
 
   template<class S>
-friend ostream & operator<< (ostream & out, const SparseMatrix<S> &mat);
+friend std::ostream & operator<< (std::ostream & out, const SparseMatrix<S> &mat);
 
   template<class S>
   friend S Spur(const SparseMatrix<S> &x);
@@ -100,7 +100,7 @@ template<class TYPE>
 inline SparseMatrix<TYPE>::~SparseMatrix()
 {
 #ifdef TRACE
- (*trace) << "entering SparseMatrix::~SparseMatrix" << endl;
+ (*trace) << "entering SparseMatrix::~SparseMatrix" << std::endl;
 #endif
 
  if (p) delete [] p;

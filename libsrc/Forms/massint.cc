@@ -1,5 +1,5 @@
-#include <iostream.h>
-#include <fstream.h>
+#include <iostream>
+#include <fstream>
 
 #include <general_head.hh>
 #include <utils_head.hh>
@@ -14,7 +14,7 @@ template <class Dim>
 MassInt<Dim> :: MassInt(BaseElem * aptelem, const ShortInt ndofs) : BaseForm<Dim>(aptelem)
 {
 #ifdef TRACE
-  (*trace) << "entering MassInt::MassInt" << endl;
+  (*trace) << "entering MassInt::MassInt" << std::endl;
 #endif
   DofsPerNode = ndofs;
 }
@@ -23,7 +23,7 @@ template <class Dim>
 MassInt<Dim> :: ~MassInt()
 {
 #ifdef TRACE
-  (*trace) << "entering MassInt::~MassInt" << endl;
+  (*trace) << "entering MassInt::~MassInt" << std::endl;
 #endif
 
   ;
@@ -33,7 +33,7 @@ template <class Dim>
 void MassInt<Dim> :: CalcElemMatrix(Dim * ptCoord, Matrix<Double> & Result)
 {
 #ifdef TRACE
-  (*trace) << "entering MassInt::CalcElemMatrix" << endl;
+  (*trace) << "entering MassInt::CalcElemMatrix" << std::endl;
 #endif
 
   Integer l=ptelem->GetNumIntPoints(); // l - number of integration points

@@ -27,7 +27,7 @@ namespace CoupledField
 
   //    template<class Type> istream &operator>> (istream &,Vector<TYPE> &);
   //! Overloading << for class vector
-  template<class TYPE>  ostream& operator << ( ostream & , const Vector<TYPE> &);
+  template<class TYPE>  std::ostream& operator << ( std::ostream & , const Vector<TYPE> &);
 
 //! class Vector for working with arrays of Integer or Double numbers 
 template<class TYPE> class Vector
@@ -178,8 +178,10 @@ inline TYPE* Vector<TYPE>::get ()  const
   return p;
 }
 
+#ifdef __GNUC__
 template class Vector<double>;
-template class Vector<Integer>;
+#endif
+//template class Vector<Integer>;
 //template class Vector<Point2D>;
 
 }

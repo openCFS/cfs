@@ -28,8 +28,10 @@ class Jacobian
 #ifdef __GNU__
 template class Jacobian<Point2D>;
 template class Jacobian<Point3D>;
+#else
+#pragma instantiate Jacobian<Point2D>
+#pragma instantiate Jacobian<Point3D> 
 #endif
-
 //-----------------------------------------------------------------------------
 
   //! Base class for description of elements 

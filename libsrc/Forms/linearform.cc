@@ -1,5 +1,5 @@
-#include <iostream.h>
-#include <fstream.h>
+#include <iostream>
+#include <fstream>
 
 #include <general_head.hh>
 #include <utils_head.hh>
@@ -16,7 +16,7 @@ template <class Dim>
 LinearForm<Dim>:: LinearForm(BaseElem * aptelem) : BaseForm<Dim>(aptelem)
 {
 #ifdef TRACE
-  (*trace) << "entering LinearForm::LinearForm" << endl;
+  (*trace) << "entering LinearForm::LinearForm" << std::endl;
 #endif
   ;
 }
@@ -25,7 +25,7 @@ template <class Dim>
 LinearForm<Dim> :: ~LinearForm()
 {
 #ifdef TRACE
-  (*trace) << "entering LinearForm::~LinearForm" << endl;
+  (*trace) << "entering LinearForm::~LinearForm" << std::endl;
 #endif
 
   ;
@@ -35,7 +35,7 @@ template<class Dim>
 void LinearForm<Dim> :: CalcElemMatrix(Dim * ptCoord, Vector<Double> & Result)
 {
 #ifdef TRACE
-  (*trace) << "entering LinearForm::~LinearForm" << endl;
+  (*trace) << "entering LinearForm::~LinearForm" << std::endl;
 #endif
   Integer l=ptelem->GetNumIntPoints();
   Integer n=ptelem->GetNumNodes();

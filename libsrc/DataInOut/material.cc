@@ -1,5 +1,6 @@
 #include <string>
-#include <fstream.h>
+#include <iostream>
+#include <fstream>
 
 #include <general_head.hh> 
 #include "tools.hh"
@@ -15,8 +16,8 @@ namespace CoupledField
   strcpy(name,aname);
 
   infile.open(strcat(name,".dat"));
-  if (!infile) {cerr << "ERROR(" << __FILE__ << " " << __LINE__ <<
-                         ") Can't open " << name << "/ We working only with dat format / " << endl;
+  if (!infile) {std::cerr << "ERROR(" << __FILE__ << " " << __LINE__ <<
+                         ") Can't open " << name << "/ We working only with dat format / " << std::endl;
                 exit(1);}
 }
 
@@ -29,12 +30,12 @@ namespace CoupledField
 #ifdef TRACE
   (*trace) << "entering  ReadMaterial::ReadDensityAndCompress" << endl;
 #endif
-  infile.seekg(0, ios::beg);  
+  infile.seekg(0, std::ios::beg);  
   string buf;
   string::size_type pos=string::npos;
 
   while ( pos == string::npos & !infile.eof() )
-  { getline(infile, buf, '\n');
+  { std::getline(infile, buf, '\n');
     pos=buf.find("density");
   }
 

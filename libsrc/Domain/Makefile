@@ -2,7 +2,7 @@
 # Makefile for grid
 C_DIR=../..
 #
-src = domain.cc grid_cfs.cc 
+src = domain.cc 
 #
 lib = domain
 libpath = libsrc/Domain

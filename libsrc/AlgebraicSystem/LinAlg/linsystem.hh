@@ -21,7 +21,7 @@ public:
   //! set A and b only for check function
   void Set();
   void check()
-  { cout << " check " << A*x << endl << " b " << endl << b << endl;}
+  { std::cout << " check " << A*x << std::endl << " b " << std::endl << b << std::endl;}
 
   //! Conjugate Gradient for positive symmetric matrix
   Boolean CG(const Integer maxIter, enum precond typePrecond);
@@ -33,7 +33,7 @@ public:
   Boolean BiCGSTAB(const Integer maxIter, enum precond typePrecond);
 
   //!
-  void printsol(){ cout << x << endl;}
+  void printsol(){ std::out << x << std::endl;}
 private:
 
   //! Tolerance 

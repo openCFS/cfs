@@ -1,7 +1,7 @@
-#include <stdlib.h>
-#include <fstream.h>
-#include <iostream.h>
-#include <string>
+//#include <stdlib.h>
+#include <fstream>
+#include <iostream>
+//#include <string>
 #include <algorithm>
 
 #include <general_head.hh>
@@ -19,7 +19,7 @@ template<class T, class T_Matrix>
 LinSystem<T, T_Matrix>::LinSystem(const Double tol)
 {
 #ifdef TRACE
-   (*trace) << "entering LinSystem::LinSystem" << endl; 
+   (*trace) << "entering LinSystem::LinSystem" << std::endl; 
 #endif
  eps=tol;
 
@@ -30,7 +30,7 @@ template<class Dim, class T_Matrix>
 void LinSystem<Dim, T_Matrix>::Set()
 {
 #ifdef TRACE
-   (*trace) << "entering LinSystem::SetAb" << endl;
+   (*trace) << "entering LinSystem::SetAb" << std::endl;
 #endif
 
   Integer n=3;
@@ -58,7 +58,7 @@ template<class T, class T_Matrix>
 LinSystem<T, T_Matrix>::~LinSystem()
 {
 #ifdef TRACE
-   (*trace) << "entering LinSystem::~LinSytem" << endl;
+   (*trace) << "entering LinSystem::~LinSytem" << std::endl;
 #endif
   ;
 }
@@ -75,7 +75,7 @@ Boolean LinSystem<T, T_Matrix>::CG(const Integer maxIter,  enum precond typePrec
 //***************************************************************************
 
 #ifdef TRACE
-   (*trace) << "entering LinSystem::CG" << endl;
+   (*trace) << "entering LinSystem::CG" << std::endl;
 #endif
    Clock oClock;
    oClock.ClockCount(Clock::beg);
@@ -122,10 +122,10 @@ Boolean LinSystem<T, T_Matrix>::CG(const Integer maxIter,  enum precond typePrec
 
 if (InfoPrint)
  (*infofile) << "--------------  Conjugate Gradiate Method --------------" <<
-  endl << "Number of max iteration is " << maxIter << endl 
-       << "Number of iterations is " << iter << endl
-       << "Precondition is " << typePrecond << endl
-  << " ----------------------------------------------------- " << endl;
+  std::endl << "Number of max iteration is " << maxIter << endl 
+       << "Number of iterations is " << iter << std::endl
+       << "Precondition is " << typePrecond << std::endl
+  << " ----------------------------------------------------- " << std::endl;
 
   oClock.ClockCount(Clock::end, " CG ");
   if (iter==maxIter) return FALSE;
@@ -145,7 +145,7 @@ Boolean LinSystem<T, T_Matrix>::GMRes_m(const Integer maxIter, enum precond type
 //***************************************************************************
 
 #ifdef TRACE
-  (*trace) << "entering LinSystem::GMRes_m" << endl;
+  (*trace) << "entering LinSystem::GMRes_m" << std::endl;
 #endif
    Double stop, normaW;
 
@@ -188,30 +188,30 @@ Boolean LinSystem<T, T_Matrix>::GMRes_m(const Integer maxIter, enum precond type
    iter=1;
    while (iter<=maxIter)
 {
-    cout << r << " r " << endl;
-    cout << beta << " beta " << endl;
+    cout << r << " r " << std::endl;
+    cout << beta << " beta " << std::endl;
     v[0]=r*(1.0/beta);
     g[0]=beta;
 
     for (k=0; k<m && iter <=maxIter; k++, iter++)
     {
-      cout << endl <<  "NEW ITERATION " << k << endl;
+      cout << std::endl <<  "NEW ITERATION " << k << endl;
       A.precond(w,A*v[k],typePrecond);
-      cout << w << "w" << endl;  /// VVVV
-      cout << v[0] << "v[0]" << endl;
+      cout << w << "w" << std::endl;  /// VVVV
+      cout << v[0] << "v[0]" << std::endl;
       normaW=w.norm_2();
       for (i=0; i<=k; i++) { h[k][i]=w*v[i]; 
-                             cout << h[k][i] << " h[k][i]" << endl;
+                             cout << h[k][i] << " h[k][i]" << std::endl;
                                //// VVVV
-                             cout << v[i]*h[k][i] << endl;
+                             cout << v[i]*h[k][i] << std::endl;
                              w-=v[i]*h[k][i];  //// VVVV
-                             cout << "\t" << i << " i"  << w << " w " << endl;
+                             cout << "\t" << i << " i"  << w << " w " << std::endl;
                             }
-      cout << w << " w " << endl;
-      cout << w.norm_2() << " norma w" << endl;
+      cout << w << " w " << std::endl;
+      cout << w.norm_2() << " norma w" << std::endl;
       h[k][k+1]=w.norm_2();
-      cout << v[0] << endl;
-      cout << h[k][k+1] << " HKK+1 " << i << " i " << k << " k " <<  endl;
+      cout << v[0] << std::endl;
+      cout << h[k][k+1] << " HKK+1 " << i << " i " << k << " k " <<  std::endl;
      
    /// If h[k][k+1] is small, do reorthogonalization
 
@@ -225,14 +225,14 @@ Boolean LinSystem<T, T_Matrix>::GMRes_m(const Integer maxIter, enum precond type
        h[k][k+1]=w.norm_2();
     }
      
-    cout << h[k][k+1] << " after reorthogonalization " << endl; 
+    cout << h[k][k+1] << " after reorthogonalization " << std::endl; 
     if (h[k][k+1] == 0) Error("zero-divisor in GMRes_m()");
-    cout << " w " << w << " w " << endl;
+    cout << " w " << w << " w " << std::endl;
     v[k+1]=w/h[k][k+1];   //// VVVV
-    cout << " v[k+1] " << v[k+1] << endl;
+    cout << " v[k+1] " << v[k+1] << std::endl;
     /// Apply rotations G0,G1, ... ,Gk-1 to column k of h
 
-    cout << __LINE__ << endl;
+    cout << __LINE__ << std::endl;
 
     for (i=0; i<k; i++)
 {   
@@ -241,7 +241,7 @@ Boolean LinSystem<T, T_Matrix>::GMRes_m(const Integer maxIter, enum precond type
     h[k][i]=tmp;
 } 
 
-      cout << __LINE__ << endl; 
+      cout << __LINE__ << std::endl; 
     /// Generate rotations
 
     if (h[k][k+1] == 0) { cs[k]=1; sn[k]=0;}
@@ -256,36 +256,36 @@ Boolean LinSystem<T, T_Matrix>::GMRes_m(const Integer maxIter, enum precond type
   
     /// Apply rotation Gk to column k of h and to g       
 
-      cout << __LINE__ << endl; 
+      cout << __LINE__ << std::endl; 
     tmp=h[k][k]*cs[k]+h[k][k+1]*sn[k];
     h[k][k+1]=-sn[k]*h[k][k]+cs[k]*h[k][k+1];
     h[k][k]=tmp;
 
-      cout << __LINE__ << endl; 
+      cout << __LINE__ << std::endl; 
     tmp=g[k]*cs[i]+g[k+1]*sn[i];
     g[k+1]=-sn[i]*g[k]+cs[i]*g[k+1];
     g[k]=tmp;
 
-(*trace) << g[k+1] << " g[k+1] " << endl << stop << " stop " << endl;
+(*trace) << g[k+1] << " g[k+1] " << std::endl << stop << " stop " << endl;
 
-    if (abs(g[k+1])<=stop) { k++; cout << " break " << endl; break;}
-      cout << __LINE__ << endl; 
+    if (abs(g[k+1])<=stop) { k++; cout << " break " << std::endl; break;}
+      cout << __LINE__ << std::endl; 
    } /// end of loop
 
    // back solve the upper triangular system
-     cout << __LINE__ << endl; 
+     cout << __LINE__ << std::endl; 
    for (i=k-1; i>=0; i--) {
      for (j=i+1; j<k; j++) g[i]-=h[j][i]*g[j];
                      g[i]/=h[i][i];
                            }
-      cout << "g[i]" << g << endl;
-      cout << __LINE__ << endl;  
+      cout << "g[i]" << g << std::endl;
+      cout << __LINE__ << std::endl;  
     for (i=0; i <k; i++) x+=v[i]*g[i];  /// VVVV
 
     A.precond(r, b-A*x, typePrecond);
-    cout << r << " r " << endl;
+    cout << r << " r " << std::endl;
     beta=r.norm_2();
-    cout << " beta " << beta << endl;
+    cout << " beta " << beta << std::endl;
     if (abs(beta)<=stop) { conv=TRUE; break;}
 
 }
@@ -298,10 +298,10 @@ Boolean LinSystem<T, T_Matrix>::GMRes_m(const Integer maxIter, enum precond type
    for (i=0; i<m; i++) delete [] h[i];
    delete [] h;
 
-   cout << " solution " << x << endl;
+   cout << " solution " << x << std::endl;
 
 #ifdef TRACE
- (*trace) << " leaving LinSystem::GMRes_m " << endl;
+ (*trace) << " leaving LinSystem::GMRes_m " << std::endl;
 #endif
 
    return conv;
@@ -320,14 +320,14 @@ Boolean LinSystem<T, T_Matrix>::BiCGSTAB(const Integer maxIter, enum precond typ
 //***************************************************************************
  
 #ifdef TRACE
-  (*trace) << "entering LinSystem::BiCGSTAB" << endl;
+  (*trace) << "entering LinSystem::BiCGSTAB" << std::endl;
 #endif
 
  if (InfoPrint)
   (*infofile) <<   "--------------  BiCGSTAB  --------------" <<
-  endl << "Number of max iteration is " << maxIter << endl
-       << "Precondition is " << typePrecond << endl
-  << " ----------------------------------------------------- " << endl;
+  std::endl << "Number of max iteration is " << maxIter << endl
+       << "Precondition is " << typePrecond << std::endl
+  << " ----------------------------------------------------- " << std::endl;
 
  Double tol;
  Double rho_1, rho_2=1, alpha=1, beta, omega=1;

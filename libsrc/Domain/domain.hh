@@ -35,8 +35,11 @@ private:
 
 };
 
+#ifdef __GNUC__
 template class Domain<Point3D>;
 template class Domain<Point2D>;
+#endif
+
 }
 
 #endif // FILE_DOMAIN

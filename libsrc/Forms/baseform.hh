@@ -31,7 +31,7 @@ public:
   ///
   //  virtual void SetMaterial(Material *material);
   ///
-  virtual void Print(ostream * out, const Matrix<Double> Result) const;
+  virtual void Print(std::ostream * out, const Matrix<Double> Result) const;
 
 protected:
 
@@ -42,8 +42,10 @@ protected:
   Double FuncAtIP(const ShortInt iIP, RHS f);  
 };
 
+#ifdef __GNUC__
 template class BaseForm<Point3D>;
 template class BaseForm<Point2D>;
+#endif
 
 //template void BaseForm<Point2D>:: FuncAtIP<RHSfunction>(const ShortInt, RHSfunction);
 //template void BaseForm<Point3D>:: FuncAtIP<RHSfunction>(const ShortInt, RHSfunction);

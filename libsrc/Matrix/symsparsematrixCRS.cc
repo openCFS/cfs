@@ -1,7 +1,7 @@
-#include <iostream.h>
-#include <fstream.h>
-#include <time.h>
-#include <string>
+#include <iostream>
+#include <fstream>
+//#include <time.h>
+//#include <string>
 
 #include <general_head.hh> 
 #include <utils_head.hh>
@@ -24,7 +24,7 @@ template<class TYPE>
 SymSparseMatrix<TYPE>:: SymSparseMatrix (const Integer anumentry, const Integer arow)
 {
 #ifdef TRACE
-    (*trace) << "entering SymSparseMatrix:: SymSparseMatrix" << endl;
+    (*trace) << "entering SymSparseMatrix:: SymSparseMatrix" << std::endl;
 #endif
         numentry = anumentry;
         row = arow;
@@ -547,7 +547,7 @@ template Double Spur(const SymSparseMatrix<Double> &);
 template Integer Spur(const SymSparseMatrix<Integer> &);
 
 template<class S>
-ostream & operator << (ostream & out, const SymSparseMatrix<S> &m)
+std::ostream & operator << (std::ostream & out, const SymSparseMatrix<S> &m)
 {
 
 Integer i,j,k;
@@ -557,7 +557,7 @@ for (i=0; i<m.row; i++)
           // If we have zero row
        if (m.pf[i]==m.pf[i+1]) 
        { for (k=0; k<i+1; k++) out << 0 << " ";
-         out << endl;
+         out << std::endl;
          continue;
        }
  
@@ -573,14 +573,14 @@ for (i=0; i<m.row; i++)
 
        for (k=m.pc[j-1]+1; k<i+1; k++) out << 0 << " ";
 
-   out << endl;
+   out << std::endl;
 
   }
   return out;
 }
  
-template ostream & operator<<<Integer> (ostream & , const SymSparseMatrix<Integer>&);
-template ostream & operator<<<Double> (ostream & , const SymSparseMatrix<Double>& );
+template std::ostream & operator<<<Integer> (std::ostream & , const SymSparseMatrix<Integer>&);
+template std::ostream & operator<<<Double> (std::ostream & , const SymSparseMatrix<Double>& );
 
 
 } // end of namespace

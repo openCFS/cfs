@@ -3,7 +3,7 @@
 #
 C_DIR=../..
 #
-src = filetype.cc timefunc.cc material.cc definefiles.cc 
+src = filetype.cc timefunc.cc material.cc 
 #
 lib = datainout
 libpath = libsrc/DataInOut

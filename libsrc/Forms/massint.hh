@@ -26,8 +26,10 @@ private:
   ShortInt DofsPerNode;
 };
 
+#ifdef __GNUC__
 template class MassInt<Point2D>;
 template class MassInt<Point3D>;
+#endif
 
 
 }

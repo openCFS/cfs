@@ -20,7 +20,7 @@ public:
     ~TimeFunc();
 
     //! Print 
-    void Print(ostream * outfileDat) const;
+    void Print(std::ostream * outfileDat) const;
 
     //! 
     Double TimeFuncAtTime(const Double, const Integer num);

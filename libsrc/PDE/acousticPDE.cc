@@ -1,5 +1,5 @@
-#include <fstream.h>
-#include <iostream.h>
+#include <fstream>
+#include <iostream>
 #include <string>
 #include <math.h>
 
@@ -18,7 +18,7 @@ AcousticPDE::AcousticPDE(const Double epsilon, const Double dt0, Grid<Point2D> *
 :PDE(aptFileType,aptMaterial)
 {
 #ifdef TRACE
-  (*trace) << "entering AcousticPDE::AcousticPDE " << endl;
+  (*trace) << "entering AcousticPDE::AcousticPDE " << std::endl;
 #endif
 
   ptTimeFunc=new TimeFunc(aptFileType);
@@ -54,7 +54,7 @@ AcousticPDE::AcousticPDE(const Double epsilon, const Double dt0, Grid<Point2D> *
 void AcousticPDE::SolveNewmarkMethodStatic(const Double atime)
 {
 #ifdef TRACE
-  (*trace) << "entering PDE::SolveNewmarkMethod" << endl;
+  (*trace) << "entering PDE::SolveNewmarkMethod" << std::endl;
 #endif
  
    Boolean NeedRestore=FALSE;
@@ -68,7 +68,7 @@ void AcousticPDE::SolveNewmarkMethodStatic(const Double atime)
    ptWork->CG(100, Jacobi);
  
 #ifdef DEBUG
-   string title=" System matrix after applying boundary condition ";
+   std::string title=" System matrix after applying boundary condition ";
    ptWork->printAb(debug, title);
 #endif
  

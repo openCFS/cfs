@@ -1,5 +1,5 @@
-#include <iostream.h>
-#include <fstream.h>
+#include <iostream>
+#include <fstream>
 
 #include <general_head.hh>
 #include <utils_head.hh>
@@ -13,7 +13,7 @@ template <class Dim>
 BaseForm<Dim> :: BaseForm(BaseElem * aptelem) 
 {
 #ifdef TRACE
-  (*trace) << "entering BaseForm::BaseForm" << endl;
+  (*trace) << "entering BaseForm::BaseForm" << std::endl;
 #endif
 
   ptelem=aptelem;
@@ -24,7 +24,7 @@ template <class Dim>
 BaseForm<Dim> :: ~BaseForm()
 {
 #ifdef TRACE
-  (*trace) << "entering BaseForm::~BaseForm" << endl;
+  (*trace) << "entering BaseForm::~BaseForm" << std::endl;
 #endif
 ;
 }
@@ -34,7 +34,7 @@ void BaseForm<Dim> :: CalcShapeFncDxShapeFncDx(Dim * ptCoord,
                                       Matrix<Double> & Result)
 {
 #ifdef TRACE
-  (*trace) << "entering BaseForm::CalcShapeFncDyShapeFncDy" << endl;
+  (*trace) << "entering BaseForm::CalcShapeFncDyShapeFncDy" << std::endl;
 #endif
 
   Integer l=ptelem->GetNumIntPoints(); // l - number of integration points
@@ -87,7 +87,7 @@ void BaseForm<Dim> :: CalcShapeFncDyShapeFncDy(Dim * ptCoord,
                            Matrix<Double> & Result)
 {
 #ifdef TRACE
-  (*trace) << "entering BaseForm::CalcShapeFncDyShapeFncDy" << endl;
+  (*trace) << "entering BaseForm::CalcShapeFncDyShapeFncDy" << std::endl;
 #endif
   Integer l=ptelem->GetNumIntPoints();
   Integer n=ptelem->GetNumNodes();
@@ -137,7 +137,7 @@ void BaseForm<Dim> :: CalcShapeFncShapeFnc(Dim * ptCoord,
                                  Matrix<Double> & Result)
 {
 #ifdef TRACE
-  (*trace) << "entering BaseForm::CalcShapeFncShapeFnc" << endl;
+  (*trace) << "entering BaseForm::CalcShapeFncShapeFnc" << std::endl;
 #endif
 
   Integer l=ptelem->GetNumIntPoints();
@@ -181,7 +181,7 @@ template <class Dim>
 Double BaseForm<Dim> :: FuncAtIP(const ShortInt iIP, RHS f)
 {
 #ifdef TRACE
-  (*trace) <<  "entering BaseForm::FuncAtIP" << endl;
+  (*trace) <<  "entering BaseForm::FuncAtIP" << std::endl;
 #endif
 
   Double result;
@@ -211,16 +211,16 @@ template <class Dim>
 void BaseForm<Dim>::CalcElemMatrix(Dim * ptCoord, Matrix<Double> & StiffMat) 
 {
 #ifdef TRACE
-  (*trace) <<  "entering BaseForm::CalcElemMatrix" << endl;
+  (*trace) <<  "entering BaseForm::CalcElemMatrix" << std::endl;
 #endif
   Error(" Function CalcElemMatrix of BilinieaForm is virtual. You can use it for derived classes LaplaceInt or MassInt.",__FILE__,__LINE__);
 }
 
 template <class Dim>
-void BaseForm<Dim>::Print(ostream * out, const Matrix<Double> Result) const
+void BaseForm<Dim>::Print(std::ostream * out, const Matrix<Double> Result) const
 {
 #ifdef TRACE
-  (*trace) <<  "entering BaseForm::Print" << endl;
+  (*trace) <<  "entering BaseForm::Print" << std::endl;
 #endif
  Error(" Function Print of BilinieaForm is virtual. You can use it for derived  classes LaplaceInt or MassInt.",__FILE__,__LINE__);
 }

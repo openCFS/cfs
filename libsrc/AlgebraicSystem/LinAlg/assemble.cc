@@ -1,6 +1,6 @@
-#include <stdlib.h>
-#include <fstream.h>
-#include <iostream.h>
+//#include <stdlib.h>
+#include <fstream>
+#include <iostream>
 #include <string>
 
 #include <general_head.hh>
@@ -18,7 +18,7 @@ template<class Dim, class T_Matrix>
 Assemble<Dim, T_Matrix>::Assemble(Grid<Dim> * aptgrid)
 {
 #ifdef TRACE
-   (*trace) << "entering Assemble::Assemble" << endl; 
+   (*trace) << "entering Assemble::Assemble" << std::endl; 
 #endif
    
    ptgrid=aptgrid;
@@ -26,9 +26,7 @@ Assemble<Dim, T_Matrix>::Assemble(Grid<Dim> * aptgrid)
    mark
    if (InfoPrint) 
       if (A.IsSymmetric())
-        (*infofile) << "we are working with symmetric matrix" << endl;
-   mark
-   cout << "size" << size << endl;
+        (*infofile) << "we are working with symmetric matrix" << std::endl;
    A.Resize(size,size);
    M.Resize(size,size);
    S.Resize(size,size);
@@ -42,7 +40,7 @@ template<class Dim, class T_Matrix>
 Assemble<Dim, T_Matrix>::~Assemble()
 {
 #ifdef TRACE
-   (*trace) << "entering Assemble::~Assemble" << endl;
+   (*trace) << "entering Assemble::~Assemble" << std::endl;
 #endif
   ;
 }
@@ -51,7 +49,7 @@ template<class Dim, class T_Matrix>
 void Assemble<Dim, T_Matrix>::SetAb()
 {
 #ifdef TRACE
-   (*trace) << "entering Assemble::SetAb" << endl;
+   (*trace) << "entering Assemble::SetAb" << std::endl;
 #endif
 
   Integer n=5;
@@ -70,7 +68,7 @@ template<class Dim, class T_Matrix>
 void Assemble<Dim,T_Matrix>::AssembleSysMatrix(const Double CoefL, const Double CoefM) 
 {
 #ifdef TRACE
-  (*trace) << "entering Assemble::AssembleSysMatrix" << endl;
+  (*trace) << "entering Assemble::AssembleSysMatrix" << std::endl;
 #endif
   Clock oClock;    
   oClock.ClockCount(Clock::beg);
@@ -80,7 +78,7 @@ void Assemble<Dim,T_Matrix>::AssembleSysMatrix(const Double CoefL, const Double 
       AssembleGlobal< LaplaceInt<Dim> >(S);
       IsCalcS=TRUE;
 #ifdef DEBUG
-      (*debug) << "------- Stiffness Matrix ---------" << endl << S;
+      (*debug) << "------- Stiffness Matrix ---------" << std::endl << S;
 #endif
     }
 
@@ -89,7 +87,7 @@ void Assemble<Dim,T_Matrix>::AssembleSysMatrix(const Double CoefL, const Double 
       IsCalcM=TRUE;
       AssembleGlobal< MassInt<Dim> >(M);
 #ifdef DEBUG
-      (*debug) << "------- Mass Matrix ---------" << endl << M;
+      (*debug) << "------- Mass Matrix ---------" << std::endl << M;
 #endif
     }
 
@@ -104,12 +102,12 @@ void Assemble<Dim,T_Matrix>::AssembleSysMatrix(const Double CoefL, const Double 
   oClock.ClockCount(Clock::end, "Assemble matrix");
 
 #ifdef DEBUG
-  (*debug) << "----- System Matrix --------" << endl;
+  (*debug) << "----- System Matrix --------" << std::endl;
   (*debug) << A;
 #endif
 
 #ifdef TRACE
- (*trace) << " have left Assemble::AssembleSysMat " << endl;
+ (*trace) << " have left Assemble::AssembleSysMat " << std::endl;
 #endif
 
 }
@@ -118,7 +116,7 @@ template<class Dim, class T_Matrix>
 void Assemble<Dim, T_Matrix>::SetRHS(const Vector<Double> & CoefM, const Vector<Double> & CoefS, const Vector<Double> & f)
 {
 #ifdef TRACE
-  (*trace) << "entering Assemble::SetRHS" << endl;
+  (*trace) << "entering Assemble::SetRHS" << std::endl;
 #endif
   if (!CoefM.size() && !CoefS.size() && !f.size()) b.Init();
   if (CoefM.size()) b=M*CoefM;
@@ -128,7 +126,7 @@ void Assemble<Dim, T_Matrix>::SetRHS(const Vector<Double> & CoefM, const Vector<
   if (f.size()) if (!CoefM.size() || !CoefS.size()) b+=f; 
   else b=f;
 #ifdef DEBUG
-  (*debug) << " ----- Right hand side -----" << endl;
+  (*debug) << " ----- Right hand side -----" << std::endl;
   (*debug) << b;
 #endif
 }
@@ -137,7 +135,7 @@ template<class Dim, class T_Matrix>
 void Assemble<Dim, T_Matrix>::SetDirichletBoundaryCondSysMat_PenaltyMethod()
 {
 #ifdef TRACE
-  (*trace)<<"entering Assemble::SetDirichletBoundaryCondSysMat_PenaltyMethod"<< endl;
+  (*trace)<<"entering Assemble::SetDirichletBoundaryCondSysMat_PenaltyMethod"<< std::endl;
 #endif
   Integer nn=A.getSize();
   Integer i;
@@ -162,7 +160,7 @@ template<class Dim, class T_Matrix>
 void Assemble<Dim, T_Matrix>::SetDirichletBoundaryCondZero_Cut()
 {
 #ifdef TRACE
-  (*trace)<<"entering Assemble::SetDirichletBoundaryCondSysMat_PenaltyMethod"<< endl;
+  (*trace)<<"entering Assemble::SetDirichletBoundaryCondSysMat_PenaltyMethod"<< std::endl;
 #endif
  
   Integer n;
@@ -181,7 +179,7 @@ template<class Dim, class T_Matrix>
 void Assemble<Dim,T_Matrix>::SetNodesBoundaryCondition(FileType * aptFileType)
 {
 #ifdef TRACE
-   (*trace) << "entering Assemble::SetDirichletBC_penaltySysMat" << endl;
+   (*trace) << "entering Assemble::SetDirichletBC_penaltySysMat" << std::endl;
 #endif
   aptFileType->ReadDirichletBC(nodesDirBC); 
 }
@@ -190,7 +188,7 @@ template<class Dim, class T_Matrix>
 void Assemble<Dim, T_Matrix>::SetDirichletBoundaryCondRHS_PenaltyMethod(const Double val_tf)
 {
 #ifdef TRACE
-  (*trace) << "entering Assemble::SetDirichletBC_penaltySysMat" << endl;
+  (*trace) << "entering Assemble::SetDirichletBC_penaltySysMat" << std::endl;
 #endif
  
   if (!nodesDirBC.size()) Error("Array of nodes with BC is not defined. Use somewhere function SetNodesBoundaryCondition() before this function.");
@@ -212,7 +210,7 @@ template <class typeBaseForm>
 void Assemble<Dim,T_Matrix>::AssembleGlobal(T_Matrix & Mat) const
 {
 #ifdef TRACE
-   (*trace) << "entering Assemble::AssembleGlobal" << endl;
+   (*trace) << "entering Assemble::AssembleGlobal" << std::endl;
 #endif
 
   Integer i,ii,iii; 
@@ -267,7 +265,7 @@ template<class Dim, class T_Matrix>
 void Assemble<Dim, T_Matrix>::Restore() //Restore(FileType * aptFileType)
 {
 #ifdef TRACE
-  (*trace) << "entering Assemble::Restore" << endl;
+  (*trace) << "entering Assemble::Restore" << std::endl;
 #endif
   //  Integer n;
   //  aptFileType->ReadNumNodesforDirichletBC(n);
@@ -289,9 +287,9 @@ template<class Dim, class T_Matrix>
 void Assemble<Dim, T_Matrix>::Print()
 {
 #ifdef TRACE
-   (*trace) << "entering Assemble::Print" << endl;
+   (*trace) << "entering Assemble::Print" << std::endl;
 #endif
-  cout << A;
+  std::cout << A;
 }
 
 } // end of namespace

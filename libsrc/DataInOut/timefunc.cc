@@ -1,6 +1,6 @@
-#include <string>
-#include <iostream.h>
-#include <fstream.h>
+//#include <string>
+#include <iostream>
+#include <fstream>
 
 #include <general_head.hh>
 #include <utils_head.hh>
@@ -16,7 +16,7 @@ namespace CoupledField
   Integer i;
  
 #ifdef TRACE
-  (*trace) << "entering TimeFunc::TimeFunc" << endl;
+  (*trace) << "entering TimeFunc::TimeFunc" << std::endl;
 #endif
    ptFileType=aptFileType;
    ptFileType->ReadNumTimeFunc(maxnumTimeFunc);
@@ -66,7 +66,7 @@ Double TimeFunc::TimeFuncAtTime(const Double time, const Integer num)
 TimeFunc :: ~TimeFunc()
 {
 #ifdef TRACE
-  (*trace) << "entering TimeFunc::~TimeFunc" << endl;
+  (*trace) << "entering TimeFunc::~TimeFunc" << std::endl;
 #endif
  
  if (timeTimeFunc) { for (Integer i=0; i < maxnumTimeFunc; i++ )
@@ -82,17 +82,17 @@ TimeFunc :: ~TimeFunc()
 
 // -------------- Print TimeFunc -------------------------------------------
  
- void TimeFunc::Print(ostream * outfileDat) const
+ void TimeFunc::Print(std::ostream * outfileDat) const
 {
-  (*outfileDat) << "------------- Print Time function ----------------" << endl;  for (Integer i=0; i < maxnumTimeFunc; i++)
+  (*outfileDat) << "------------- Print Time function ----------------" << std::endl;  for (Integer i=0; i < maxnumTimeFunc; i++)
   {
-  (*outfileDat) << " Number of time function is " << i+1 << endl;
+  (*outfileDat) << " Number of time function is " << i+1 << std::endl;
    (*outfileDat) << "\t" << "time" <<
-                       "\t" << "value" << endl;
+                       "\t" << "value" << std::endl;
   for (Integer ii=0; ii < maxvalTimeFunc[i]; ii++ )
     {
       (*outfileDat) << "\t" << timeTimeFunc[i][ii] <<
-                       "\t" << valTimeFunc[i][ii] << endl;
+                       "\t" << valTimeFunc[i][ii] << std::endl;
     }
   } // end of 1st for
  
