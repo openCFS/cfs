@@ -53,6 +53,8 @@
                              minOccurs="0" maxOccurs="unbounded"/>
                 <xsd:element name="load" type="DT_MechLoad" minOccurs="0"
                              maxOccurs="unbounded"/>
+                <xsd:element name="pressure" type="DT_MechPressure" minOccurs="0"
+                             maxOccurs="unbounded"/>
               </xsd:sequence>
 
             </xsd:complexType>
@@ -132,6 +134,19 @@
   <xsd:complexType name="DT_MechLoad">
     <xsd:complexContent>
       <xsd:extension base="DT_MechID"/>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- Element type for pressure loads -->
+  <!-- We derive it by extending the base type -->
+  <xsd:complexType name="DT_MechPressure">
+    <xsd:complexContent>
+      <xsd:extension base="DT_BCBasic">
+        <xsd:attribute name="name" type="xsd:token" use="required"/>
+        <xsd:attribute name="value" type="xsd:double" use="required"/>
+        <xsd:attribute name="dynamics" type="xsd:token" use="optional"
+          default="none"/>
+      </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
 
