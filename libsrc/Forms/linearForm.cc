@@ -391,9 +391,9 @@ void nLinMech_linFormInt::CalcElemVector(Matrix<Double>& ptCoord,
     stressBiformInt = new nLinMechAxiInt_PiolaStress(ptelem, matData_);
   else if (ptelem->GetDim() == 3)
     stressBiformInt = new nLinMech3dInt_PiolaStress (ptelem, matData_);
-  else 
+  else {
     Error("Wrong space dimension of elements! ",__FILE__,__LINE__);
-  
+  }  
   
   
   if (!elemDisp_.GetSizeRow() || !elemDisp_.GetSizeCol()) 
@@ -436,7 +436,8 @@ void nLinMech_linFormInt::CalcElemVector(Matrix<Double>& ptCoord,
       // (see Kaltenbacher  "Numerical Sim. of Mechatronic Sensors and Actuators" p. 55
       elemVec -=  partElemVec;
     }
-  delete stressBiformInt;
+
+    delete stressBiformInt;
 }
 
 
