@@ -482,14 +482,14 @@ namespace CoupledField
 
     // The damping case. The matrix is multiplied by (1+\omega_l*\beta_l*j)
     // Only mech part is damped 
-    Complex imag=(0,1);
+    Complex imag=Complex(0,1);
       // Copy entries from mechanical part of material matrix object
       // into D matrix and multiply with damping parameters
       Matrix<Double> * matMatrix = ptMaterial->GetMatrix();
 
       for( Integer i = 0; i < sizeofD-2; i++ ) 
 	for ( Integer j = 0; j < sizeofD-2; j++ ) 
-	  dMat[i][j] = (*matMatrix)[i][j] *(1.0+beta*omega*imag);
+	  dMat[i][j] = (*matMatrix)[i][j] * (1.0+beta*omega*imag);
   } // end calcDMatWithComplexDamping
 
 
