@@ -347,7 +347,8 @@ namespace CoupledField {
 
     // Report
     if( beVerbose_ ) {
-      std::string msg = "Found " + Info->GenStr( elems.size() ) + " elements ";
+      std::string msg = "Found " + Info->GenStr( elems.size() )
+	+ " elements ";
       msg += "with attribute '" + attribute1 + "' in subsection '";
       msg += subsection + "' of section '" + section + "'";
       Info->Warning( msg );
@@ -494,7 +495,7 @@ namespace CoupledField {
   // =================================
   //   Convert a DOMNode to a string
   // =================================
-  void XMLParamHandler::Node2String( DOMNode *textnode, std::string &value ) {
+  void XMLParamHandler::Node2String( DOMNode *textnode, std::string &value ){
     ENTER_FCN( "XMLParamHandler::Node2String" );
     if ( textnode->getNodeType() != DOMNode::TEXT_NODE ) {
       std::string errmsg;
@@ -527,7 +528,8 @@ namespace CoupledField {
 
     // Perform consistency checks
     if ( keys.size() == 0 ) {
-      Info->Error( "FindMatchingElements: Got zero keys!", __FILE__, __LINE__);
+      Info->Error( "FindMatchingElements: Got zero keys!", __FILE__,
+		   __LINE__);
     }
     if ( curdepth == 0 || curdepth > keys.size() ) {
       std::string errmsg = "FindMatchingElements: curdepth = ";
@@ -669,7 +671,7 @@ namespace CoupledField {
 					const std::string section,
 					const std::string subsection,
 					DOMElement *treeTop,
-					std::vector<DOMElement*> *elemlist ) {
+					std::vector<DOMElement*> *elemlist ){
 
     ENTER_FCN( "XMLParamHandler::FindAllMatches" );
 
@@ -894,7 +896,8 @@ namespace CoupledField {
   // ======================================
   //   Treat case of no match for Integer
   // ======================================
-  void XMLParamHandler::NoMatchHandler( Integer &value, const std::string key,
+  void XMLParamHandler::NoMatchHandler( Integer &value,
+					const std::string key,
 					const std::string section,
 					const std::string subsection ) {
 
@@ -950,13 +953,14 @@ namespace CoupledField {
   // =================================
   void XMLParamHandler::NoMatchErrorReporter( const std::string key,
 					      const std::string section,
-					      const std::string subsection ) {
+					      const std::string subsection ){
 
     ENTER_FCN( "XMLParamHandler::NoMatchErrorReporter" );
 
     std::string errmsg;
 
-    errmsg += "Error: No match and no default found for keyword '" + key + "'";
+    errmsg += "Error: No match and no default found for keyword '" + key
+      + "'";
     if ( section != "" && subsection == "" ) {
       errmsg += " within sections '" + section + "'";
     }
@@ -990,7 +994,8 @@ namespace CoupledField {
       defaultValue.clear();
     }
 
-    // Find all elements/values matching keyword in (restricted) defaults tree
+    // Find all elements/values matching keyword in (restricted) defaults
+    // tree
     std::vector<std::string> matches;
     FindAllMatches( key, matches, section, subsection, rootElemDefaults_ );
 
@@ -1017,6 +1022,11 @@ namespace CoupledField {
       if( key == "preStressVal" ) {
 	defaultFound = TRUE;
 	defaultValue = "0";
+      }
+
+      if( key == "effMass" ) {
+	defaultFound = TRUE;
+	defaultValue = "no";
       }
 
     }
@@ -1055,9 +1065,9 @@ namespace CoupledField {
 	errmsg = "GetElementValue: Encountered element without child!";
       }
       else {
-	errmsg ="GetElementValue: Encountered element with multiple children!";
+	errmsg ="GetElementValue: Encountered element with multiple ";
       }
-      errmsg += "\nGetElementValue: Element tag is '";
+      errmsg += "children!\nGetElementValue: Element tag is '";
       errmsg += X2C(elem->getNodeName());
       errmsg += "'";
       Info->Error( errmsg, __FILE__, __LINE__ );
@@ -1156,8 +1166,9 @@ namespace CoupledField {
     XMLParserErrorHandler *errHandler = new XMLParserErrorHandler();
     (*parser)->setErrorHandler(errHandler);
 
-    // Parse and validate the XML file. This will generate the DOM tree. Catch
-    // all exceptions that the parser could not pass to our error handler.
+    // Parse and validate the XML file. This will generate the DOM tree.
+    // Catch all exceptions that the parser could not pass to our error
+    // handler.
     try {
       (*parser)->parse( xmlFile );
     }

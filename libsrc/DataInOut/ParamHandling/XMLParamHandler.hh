@@ -230,10 +230,16 @@ namespace CoupledField
     //! with a parameter file and a DOM tree.
     XMLParamHandler();
 
+    //! Parsing of XML file
 
-    xercesc::DOMElement*
-    XMLParamHandler::ParseFile( xercesc::XercesDOMParser **parser,
-				const char *xmlFile );
+    //! This method generates a validating parser and parses the XML input
+    //! file with filename xmlFile. A pointer to the generated parser is
+    //! assigned to the parser input parameter and a pointer to the root
+    //! element of the DOM tree representing the contents of the XML file
+    //! is returned.
+    xercesc::DOMElement* ParseFile( xercesc::XercesDOMParser **parser,
+				    const char *xmlFile );
+
 
     // ************************************************************************
     //   Private Auxilliary Methods: Problem Handlers
