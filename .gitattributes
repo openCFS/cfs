@@ -649,6 +649,7 @@ libsrc/Domain/Gridlib/Makefile -text
 libsrc/Domain/Gridlib/interface_gridlib.cc svneol=native#text/plain
 libsrc/Domain/Gridlib/interface_gridlib.hh svneol=native#text/plain
 libsrc/Domain/Makefile -text
+libsrc/Domain/NetGen/Makefile -text
 libsrc/Domain/NetGen/interface_netgen.cc svneol=native#text/plain
 libsrc/Domain/NetGen/interface_netgen.hh svneol=native#text/plain
 libsrc/Domain/bcs.cc svneol=native#text/plain
@@ -699,6 +700,8 @@ libsrc/Elements/rectangle.hh svneol=native#text/plain
 libsrc/Elements/triangle1.cc svneol=native#text/plain
 libsrc/Elements/triangle1.hh svneol=native#text/plain
 libsrc/Estimator/Makefile -text
+libsrc/Estimator/acoustictimeerror.cc svneol=native#text/plain
+libsrc/Estimator/acoustictimeerror.hh svneol=native#text/plain
 libsrc/Estimator/timeerror.cc svneol=native#text/plain
 libsrc/Estimator/timeerror.hh svneol=native#text/plain
 libsrc/Forms/Makefile -text

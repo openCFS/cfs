@@ -1,5 +1,5 @@
-#ifndef FILE_COMPLEXMATRIX
-#define FILE_COMPLEXMATRIX
+#ifndef FILE_COMPLEXMATRIX_CLA
+#define FILE_COMPLEXMATRIX_CLA
 
 namespace CoupledField
 {
@@ -21,4 +21,4 @@ private:
 
 }
 
-#endif // FILE_COMPLEXMATRIX
+#endif // FILE_COMPLEXMATRIX_CLA

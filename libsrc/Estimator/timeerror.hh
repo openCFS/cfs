@@ -2,6 +2,7 @@
 #define FILE_TIMEERROR_2001
 
 #include "tools.hh"
+#include "basepde.hh"
 
 namespace CoupledField
 {
@@ -10,21 +11,25 @@ namespace CoupledField
 class TimeErrorEstimator
 {
 public:
-  //!
-  TimeErrorEstimator();
+  //! constructor with pointer to PDE
+  TimeErrorEstimator(BasePDE* aptpde);
 
   //! Deconstructor
-  virtual ~TimeErrorEstimator();
+  virtual ~TimeErrorEstimator(){;}
+
+  //!  return true, if error is more than tolerance
+  virtual Boolean TestError() { return FALSE; }
 
   //! 
-  virtual Boolean TestError();
+  virtual void ChangeStep(Double &){;}
 
-  //!
-  void CalcError();
+protected:
+  
+   //!
+   BasePDE* ptPDE_;
 
-  //! 
-  void ChangeStep();
- 
+   //!
+   Double relativeerror; 
 };
 
 } // end of namespace

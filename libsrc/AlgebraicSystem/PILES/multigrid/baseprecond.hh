@@ -1,9 +1,10 @@
-#ifndef FILE_BASEPRECOND_PILES
-#define FILE_BASEPRECOND_PILES
+#ifndef FILE_BASEPRECOND_CLA
+#define FILE_BASEPRECOND_CLA
 
 namespace CoupledField
 {
 
+//! Base class for preconditioners
 class BasePrecond
 {
 public:
@@ -37,4 +38,4 @@ protected:
 
 }
 
-#endif // FILE_BASEPRECOND_PILES
+#endif // FILE_BASEPRECOND_CLA

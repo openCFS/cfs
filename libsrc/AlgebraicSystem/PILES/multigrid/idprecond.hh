@@ -1,5 +1,5 @@
-#ifndef FILE_IDPRECOND_PILES
-#define FILE_IDPRECOND_PILES
+#ifndef FILE_IDPRECOND_CLA
+#define FILE_IDPRECOND_CLA
 
 namespace CoupledField
 {
@@ -92,4 +92,4 @@ private:
 
 }
 
-#endif // FILE_IDPRECOND_PILES
+#endif // FILE_IDPRECOND_CLA

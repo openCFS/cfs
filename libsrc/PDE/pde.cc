@@ -14,15 +14,14 @@ PDE::PDE(FileType * ptFileType, Material * aptMaterial)
 
   ptMaterial=aptMaterial;
   ptFileType->ReadIntegrationParam(alpha, beta, gamma);
- 
 }
 
-void PDE :: CalcParamForNewmarkMethod(const Double dt)
+void PDE :: CalcParameters(const Double dt)
 {
 #ifdef TRACE
-  (*trace) << "entering PDE::CalcParamForNewmarkMethod" << std::endl;
+  (*trace) << "entering Acoustic2dPDE::CalcParamForNewmarkMethod" << std::endl;
 #endif
- 
+
  a2=1.0/(beta*dt);
  a0=a2*(1/dt);
  a1=gamma*a2;

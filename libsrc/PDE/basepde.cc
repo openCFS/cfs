@@ -19,13 +19,4 @@ BasePDE::BasePDE(Material * aMatFile, FileType * aInFile, WriteResults<Point2D> 
   ptTimeFunc_ = aptTimeFunc;
 }
 
-void BasePDE::SetStepData()
-{
-#ifdef TRACE
-  (*trace) << "entering BasePDE::SetStepData" << std::endl;
-#endif
-
-  SetMatrixFactors();
-}
-
 } // end of namespace

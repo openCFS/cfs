@@ -80,7 +80,7 @@ void main(int argc, char *argv[])
   BaseDriver *ptdriver = new TransientDriver(domain);
 
   //solve your problem
-  ptdriver->SolveProblem();
+  ptdriver->SolveProblemAdapt();
 
 #ifdef TestGMRes
   Double eps=1e-15;

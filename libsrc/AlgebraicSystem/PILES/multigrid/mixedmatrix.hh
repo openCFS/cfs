@@ -1,5 +1,5 @@
-#ifndef FILE_MIXEDMATRIX_PILES
-#define FILE_MIXEDMATRIX_PILES
+#ifndef FILE_MIXEDMATRIX_CLA
+#define FILE_MIXEDMATRIX_CLA
 
 namespace CoupledField
 {
@@ -57,4 +57,4 @@ private:
 
 }
 
-#endif // FILE_MIXEDMATRIX_PILES
+#endif // FILE_MIXEDMATRIX_CLA

@@ -1,5 +1,5 @@
-#ifndef FILE_RSOLVER
-#define FILE_RSOLVER
+#ifndef FILE_RSOLVER_CLA
+#define FILE_RSOLVER_CLA
 
 namespace CoupledField
 {
@@ -67,4 +67,4 @@ private:
 
 }
 
-#endif // FILE_RSOLVER
+#endif // FILE_RSOLVER_CLA

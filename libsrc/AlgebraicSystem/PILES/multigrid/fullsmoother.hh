@@ -1,5 +1,5 @@
-#ifndef FILE_FULLSMOOTHER_PILES
-#define FILE_FULLSMOOTHER_PILES
+#ifndef FILE_FULLSMOOTHER_CLA
+#define FILE_FULLSMOOTHER_CLA
 
 namespace CoupledField
 {
@@ -42,4 +42,4 @@ public:
 
 }
 
-#endif // FILE_FULLSMOOTHER_PILES
+#endif // FILE_FULLSMOOTHER_CLA

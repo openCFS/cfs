@@ -1,5 +1,5 @@
-#ifndef FILE_BASETOPOLOGY_PILES
-#define FILE_BASETOPOLOGY_PILES
+#ifndef FILE_BASETOPOLOGY_CLA
+#define FILE_BASETOPOLOGY_CLA
 
 namespace CoupledField
 {
@@ -168,4 +168,4 @@ private:
 
 }
 
-#endif // FILE_BASETOPOLOGY_PILES
+#endif // FILE_BASETOPOLOGY_CLA

@@ -1,16 +1,17 @@
-#ifndef FILE_BASESOLVER
-#define FILE_BASESOLVER
+#ifndef FILE_BASESOLVER_CLA
+#define FILE_BASESOLVER_CLA
 
 namespace CoupledField
 {
 
+  //! Base class for algebraic system solver
 class BaseSolver
 {
 public:
-  ///
+  //! Constructor
   BaseSolver();
 
-  ///
+  //! Destructor
   virtual ~BaseSolver();
 
   ///
@@ -30,4 +31,4 @@ protected:
 
 }
 
-#endif // FILE_BASESOLVER
+#endif // FILE_BASESOLVER_CLA

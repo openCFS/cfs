@@ -1,9 +1,10 @@
-#ifndef FILE_BASEMATRIX_PILES
-#define FILE_BASEMATRIX_PILES
+#ifndef FILE_BASEMATRIX_CLA
+#define FILE_BASEMATRIX_CLA
 
 namespace CoupledField
 {
 
+//! base class for matrix
 class BaseMatrix
 {
 public:
@@ -19,10 +20,13 @@ public:
   ///
   virtual void Mult(Double * vec1, Double * vec2, Double factor = 1) const = 0;
 
+  //! Computes the energy norm with vector vec1
+  virtual double CalcEnergyNorm(Double * vec1) const = 0;
+
   ///
   virtual void MultAdd(Double * vec1, BaseVector & vec2) const{;};
   
-  ///
+  //! Assembling of element matrices (here pure virtual)
   virtual void Assemble(Double * v, Integer * p, Integer elemsize) = 0;
 
   ///
@@ -55,7 +59,12 @@ public:
   ///
   void SetStart(Integer row, Integer k) {start[row-1] = k;};
 
-  ///
+  //! Set the pos and start array
+  /*!
+     \param end number of nonzero elements in row
+     \param apos position array (defines the columns)
+     \param row index for the row in the matrix
+  */
   void SetGraphRow(Integer end, Integer * apos, Integer row);
 
   ///
@@ -102,10 +111,10 @@ public:
   ///
   void SetMatrixFactor(Double amatfac){matfac = amatfac;};
 
-  ///
+  //!  points to the first element in array pos
   Integer * GetPosPointer() const {return pos;};
 
-  ///
+  //! points to the first element in array start
   Integer * GetStartPointer() const {return start;};
 
   ///
@@ -117,9 +126,12 @@ public:
   ///
   void SetGraph() {setgraph = TRUE;};
 
-  ///
+  //! set pointer of start and pos array for the matrix to first element
   void SetGraphPointer(BaseMatrix * mat)
-  {cout << "setting graph" << endl; start = mat->GetStartPointer(); pos = mat->GetPosPointer();};
+  {
+    start = mat->GetStartPointer(); 
+    pos = mat->GetPosPointer();
+  };
 
   ///
   Boolean IsSetGraph() const {return setgraph;};
@@ -130,7 +142,7 @@ public:
   ///
   Integer MaxRowSize() const;
 
-  ///
+  //! set matrix entries to zero
   void InitMatrix();
   
   ///
@@ -151,8 +163,13 @@ protected:
   ///
   Double * val, * valdir, matfac, maxdiagentry;
 
-  ///
-  Integer * pos, * start, * numdir, * compdir;
+  //! defines the column positions for each row
+  Integer * pos;
+  
+  //! stores for each row the number of nonzero entries
+  Integer * start;
+
+  Integer * numdir, * compdir;
 
   ///
   Integer * cm;
@@ -172,4 +189,4 @@ protected:
 
 }
 
-#endif // FILE_BASEMATRIX_PILES
+#endif // FILE_BASEMATRIX_CLA

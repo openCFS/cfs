@@ -1,13 +1,20 @@
-#ifndef FILE_CGSOLVER
-#define FILE_CGSOLVER
+#ifndef FILE_CGSOLVER_CLA
+#define FILE_CGSOLVER_CLA
 
 namespace CoupledField
 {
 
+//! Solver class for Conjugate Gradient Method
 class CGSolver : public BaseSolver
 {
 public:
-  ///
+  //! Constructor
+  /*! 
+      \param param solver parameters
+      \param size number of equations
+      \param anumrhs number of right hand sides
+      \param dof number of dofs per node (edge)
+  */
   CGSolver(BaseParameter & param, Integer size, Integer anumrhs, Integer dof);
 
   ///
@@ -72,4 +79,4 @@ private:
 
 }
 
-#endif // FILE_CGSOLVER
+#endif // FILE_CGSOLVER_CLA

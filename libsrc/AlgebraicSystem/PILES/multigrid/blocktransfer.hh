@@ -1,5 +1,5 @@
-#ifndef FILE_BLOCKTRANSFER_PILES
-#define FILE_BLOCKTRANSFER_PILES
+#ifndef FILE_BLOCKTRANSFER_CLA
+#define FILE_BLOCKTRANSFER_CLA
 
 namespace CoupledField
 {
@@ -45,4 +45,4 @@ private:
 
 }
 
-#endif // FILE_BLOCKTRANSFER_PILES
+#endif // FILE_BLOCKTRANSFER_CLA

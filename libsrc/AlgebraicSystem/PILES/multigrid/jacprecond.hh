@@ -1,5 +1,5 @@
-#ifndef FILE_JACPRECOND_PILES
-#define FILE_JACPRECOND_PILES
+#ifndef FILE_JACPRECOND_CLA
+#define FILE_JACPRECOND_CLA
 
 namespace CoupledField
 {
@@ -51,4 +51,4 @@ private:
 
 }
 
-#endif // FILE_JACPRECOND_PILES
+#endif // FILE_JACPRECOND_CLA

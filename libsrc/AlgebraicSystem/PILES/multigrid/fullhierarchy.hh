@@ -1,5 +1,5 @@
-#ifndef FILE_FULLHIERARCHY_PILES
-#define FILE_FULLHIERARCHY_PILES
+#ifndef FILE_FULLHIERARCHY_CLA
+#define FILE_FULLHIERARCHY_CLA
 
 namespace CoupledField
 {
@@ -42,4 +42,4 @@ public:
 
 }
 
-#endif // FILE_FULLHIERARCHY_PILES
+#endif // FILE_FULLHIERARCHY_CLA

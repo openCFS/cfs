@@ -1,5 +1,5 @@
-#ifndef FILE_QMRSOLVER
-#define FILE_QMRSOLVER
+#ifndef FILE_QMRSOLVER_CLA
+#define FILE_QMRSOLVER_CLA
 
 namespace CoupledField
 {
@@ -39,4 +39,4 @@ private:
 
 }
 
-#endif // FILE_QMRSOLVER
+#endif // FILE_QMRSOLVER_CLA

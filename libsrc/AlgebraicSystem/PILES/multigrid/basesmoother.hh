@@ -1,5 +1,5 @@
-#ifndef FILE_BASESMOOTHER_PILES
-#define FILE_BASESMOOTHER_PILES
+#ifndef FILE_BASESMOOTHER_CLA
+#define FILE_BASESMOOTHER_CLA
 
 namespace CoupledField
 {
@@ -34,4 +34,4 @@ protected:
 
 }
 
-#endif // FILE_BASESMOOTHER_PILES
+#endif // FILE_BASESMOOTHER_CLA

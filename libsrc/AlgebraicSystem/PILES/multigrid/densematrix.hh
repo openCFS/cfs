@@ -1,5 +1,5 @@
-#ifndef FILE_DENSEMATRIX_PILES
-#define FILE_DENSEMATRIX_PILES
+#ifndef FILE_DENSEMATRIX_CLA
+#define FILE_DENSEMATRIX_CLA
 
 namespace CoupledField
 {
@@ -53,5 +53,5 @@ private:
 
 }
 
-#endif // FILE_DENSEMATRIX_PILES
+#endif // FILE_DENSEMATRIX_CLA
 

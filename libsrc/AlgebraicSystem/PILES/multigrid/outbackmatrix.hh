@@ -1,5 +1,5 @@
-#ifndef FILE_OUTBACKMATRIX_PILES
-#define FILE_OUTBACKMATRIX_PILES
+#ifndef FILE_OUTBACKMATRIX_CLA
+#define FILE_OUTBACKMATRIX_CLA
 
 namespace CoupledField
 {
@@ -86,4 +86,4 @@ private:
 };
 }
 
-#endif // FILE_OUTBACKMATRIX_PILES
+#endif // FILE_OUTBACKMATRIX_CLA

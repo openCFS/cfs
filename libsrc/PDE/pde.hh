@@ -19,7 +19,7 @@ public:
   PDE(FileType * , Material *);
 
   //! Calculation parameteres for Newmark method for the time step
-  void CalcParamForNewmarkMethod(const Double dt);
+  void CalcParameters(const Double dt);
 
   //! Deconstructor
   virtual ~PDE(){;}

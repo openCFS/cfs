@@ -138,6 +138,37 @@ void RScalarMatrix :: Mult(BaseVector & vec1, BaseVector & vec2, Double factor) 
     }
 }
 
+
+double RScalarMatrix :: CalcEnergyNorm(Double * vec1) const
+{
+#ifdef TRACE
+  (*trace) << "entering RScalarMatrix::CalcEnergyNorm" << endl;
+#endif
+
+  Integer i,j,k,rs;
+  Double sum, norm;
+
+  norm = 0.0;
+  for (i=0; i<size; i++)
+    { 
+      sum = 0;
+      
+      rs = start[i+1]-start[i];
+      k  = start[i];
+
+      for (j=0; j<rs; j++)
+	{
+	  sum += val[k]*vec1[pos[k]-1];
+	  k++;
+	}
+	
+      norm = norm + sum*vec1[i];
+    }
+
+  return norm;
+}
+
+
 void RScalarMatrix :: MultAdd(Double * vec1, BaseVector &vec2) const
 {
 #ifdef TRACE

@@ -1,9 +1,10 @@
-#ifndef FILE_FULLVECTOR
-#define FILE_FULLVECTOR
+#ifndef FILE_FULLVECTOR_CLA
+#define FILE_FULLVECTOR_CLA
 
 namespace CoupledField
 {
 
+//! Class for full populated vector
 class RealVector : public BaseVector
 {
 public:
@@ -119,4 +120,4 @@ public:
 
 }
 
-#endif // FILE_FULLVECTOR
+#endif // FILE_FULLVECTOR_CLA

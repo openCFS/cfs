@@ -1,9 +1,10 @@
-#ifndef FILE_BASEVECTOR_PILES
-#define FILE_BASEVECTOR_PILES
+#ifndef FILE_BASEVECTOR_CLA
+#define FILE_BASEVECTOR_CLA
 
 namespace CoupledField
 {
 
+//! Base class for algebraic vector
 class BaseVector
 {
 public:
@@ -77,4 +78,4 @@ protected:
 
 }
 
-#endif // FILE_BASEVECTOR_PILES
+#endif // FILE_BASEVECTOR_CLA
