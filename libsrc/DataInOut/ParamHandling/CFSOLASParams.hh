@@ -1,3 +1,5 @@
+#ifdef USE_OLAS
+
 #ifndef FILE_CFSOLASPARAMS
 #define FILE_CFSOLASPARAMS
 
@@ -43,5 +45,7 @@ namespace CoupledField
   };
 
 }
+
+#endif
 
 #endif
