@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+
+<cfsSimulation xmlns="http://www.cfs++.org">
+
+  <analysis type="static"/>
+  <geometry type="3D"/>
+  <input/>
+  <output/>
+  <materialData/>
+
+  <domain>
+    <region name="dummyRegion" material="dummyMaterial"/>
+  </domain>
+
+  <pdeList>
+    <mechanic>
+  
+      <region name="dummy"/>
+  
+      <nonLinear>
+        <lineSearch/>
+        <incStopCrit>0.001</incStopCrit>
+        <resStopCrit>    2</resStopCrit>
+        <maxNumIters>   40</maxNumIters>
+      </nonLinear>
+  
+    </mechanic>
+  </pdeList>
+
+</cfsSimulation>
