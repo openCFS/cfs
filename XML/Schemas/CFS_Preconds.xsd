@@ -203,4 +203,35 @@
     </xsd:complexContent>
   </xsd:complexType>
 
+
+  <!-- ==================================================================== -->
+  <!-- ==                                                                == -->
+  <!-- ==                       OLAS_ILU preconditioner                  == -->
+  <!-- ==                                                                == -->
+  <!-- ==================================================================== -->
+
+
+  <!-- ******************************************************************** -->
+  <!-- Definition of element for OLAS_ILU Preconditioner -->
+  <!-- ******************************************************************** -->
+  <xsd:element name="ILUK" type="DT_PrecondILUK"
+    substitutionGroup="PrecondBasic"/>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for OLAS_ILUK Preconditioner -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_PrecondILUK">
+    <xsd:complexContent>
+      <xsd:extension base="DT_PrecondBasic">
+        <xsd:sequence>
+          <xsd:element name="level"       type="xsd:nonNegativeInteger"
+            minOccurs="0"/>
+          <xsd:element name="saveFacFile" type="xsd:token"  minOccurs="0"/>
+          <xsd:element name="logging"     type="DT_CFSBool" minOccurs="0"/>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
 </xsd:schema>
