@@ -205,6 +205,8 @@ libsrc/Elements/3D/tetraFE.cc svneol=native#text/plain
 libsrc/Elements/3D/tetraFE.hh svneol=native#text/plain
 libsrc/Elements/3D/wedge1FE.cc svneol=native#text/plain
 libsrc/Elements/3D/wedge1FE.hh svneol=native#text/plain
+libsrc/Elements/3D/wedge2FE.cc svneol=native#text/plain
+libsrc/Elements/3D/wedge2FE.hh svneol=native#text/plain
 libsrc/Elements/3D/wedgeFE.cc svneol=native#text/plain
 libsrc/Elements/3D/wedgeFE.hh svneol=native#text/plain
 libsrc/Elements/Makefile -text

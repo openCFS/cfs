@@ -12,5 +12,5 @@
 #include <Elements/3D/hexa2FE.hh>
 #include <Elements/3D/pyra1FE.hh>
 #include <Elements/3D/wedge1FE.hh>
-
+#include <Elements/3D/wedge2FE.hh>
 #endif

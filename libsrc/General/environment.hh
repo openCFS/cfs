@@ -190,7 +190,8 @@ namespace CoupledField
   //! They are used, when we read information about elements from mesh and
   //! create a pointer to the class containing the description of the Finite
   //! Element.
-  extern BaseFE *ptQ1, *ptQ2, *ptL1, *ptL2, *ptTet1, *ptTr1, *ptTr2, *ptHexa1, *ptHexa2, *ptPyra1, *ptWedge1;
+  extern BaseFE *ptQ1, *ptQ2, *ptL1, *ptL2, *ptTet1, *ptTr1, *ptTr2, *ptHexa1, *ptHexa2, *ptPyra1, 
+                *ptWedge1, *ptWedge2;
 
   //! class for flags of programm
   class Flags
