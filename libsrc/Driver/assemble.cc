@@ -375,6 +375,7 @@ namespace CoupledField
 	if (ptTimeFunc_->GetmaxTimeFnc() > 0 )
 	    val_tfunc=ptTimeFunc_->TimeFuncAtTime(time,fncname_loads_[actDom]);
 
+
 	for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end(); p++)
 	  {
 	    Integer node = *p;
