@@ -26,7 +26,6 @@ BasePrecond :: ~BasePrecond()
   (*trace) << "entering BasePrecond::~BasePrecond" << endl;
 #endif
 
-  delete mathier;
 }
 
 }

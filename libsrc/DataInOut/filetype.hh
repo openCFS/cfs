@@ -11,7 +11,6 @@ namespace CoupledField
     Base class for reading input data. Its function is virtual due to handle the different types of input files and to hide their features from developer of code.
   */
 
-//template <class T_leaftype>
 class FileType
 {
 
@@ -82,6 +81,20 @@ public:
 
   //! Read output options, concerned saving first, second derivatives of vp
   virtual void ReadOutputOptions(Boolean & Der1, Boolean & Der2)=0;
+
+ //! Read analisys specification data
+  virtual void preReadTransAnal(Integer & soltype, Integer & statickey)=0;
+
+  //! Read analisys specification data
+  virtual void ReadTransAnalTran(Integer * dataTAnalTran,
+                         Double * dataTAnalTranReal)=0;
+
+  //! Read specific info about boundary condition Restrain
+  virtual void ReadBoundRestr(Integer ** dataBRestr, Integer numberRestr,
+                      Double * factorRestr)=0;
+
+  //! Read step data; special for TransientDriver
+  virtual void ReadStepData(Integer & anumstep, Integer & aisavebegin, Integer & aisaveend, Integer & aisaveincr, Double & afirstdt)=0;
 
 protected:
 

@@ -10,7 +10,7 @@ namespace CoupledField
 {
 
 template<class Dim>
-AcousticPDE<Dim>::AcousticPDE(const Double epsilon, const Double dt0, Grid<Dim> * ptgrid, const Integer level,Material * aptMaterial, FileType * aptFileType)
+AcousticPDE<Dim>::AcousticPDE(const Double dt0, Grid<Dim> * ptgrid, const Integer level,Material * aptMaterial, FileType * aptFileType)
 :PDE(aptFileType,aptMaterial)
 {
 #ifdef TRACE
@@ -33,6 +33,9 @@ AcousticPDE<Dim>::AcousticPDE(const Double epsilon, const Double dt0, Grid<Dim> 
   CoefLaplace=1.0;
   CoefMass=a0*c;
 
+  // read a tolerance for the algebraic system from config-file
+  Double epsilon;
+  conf->get("epsilon",epsilon);
   ptWork=new InterfaceAlgSys<Dim>(ptgrid,level,epsilon);
 
   ptWork->AssembleSysMatrix(CoefLaplace,CoefMass);

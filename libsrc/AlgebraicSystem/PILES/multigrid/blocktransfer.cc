@@ -42,6 +42,20 @@ RBlockTransfer :: RBlockTransfer(Integer asize, Integer adof, Integer * rsw)
   dm  = new DenseMatrix(dof,dof);
 
   calculated = FALSE;
+
+#ifdef MEMTRACE
+  double dmb;
+  double imb;
+
+  dmb = (nne*dof*dof+dof)*8./1e6;
+  imb = (size+1+nne)*4./1e6;
+
+  sumdmem += dmb;
+  sumimem += imb;
+
+  (*memtrace) << "+++ ALLOCATE MEMORY: double  RBlockTransfer   " << dmb << " MB" << endl;
+  (*memtrace) << "+++ ALLOCATE MEMORY: integer RBlockTransfer   " << imb << " MB" << endl;
+#endif
 }
   
 RBlockTransfer :: ~RBlockTransfer()
@@ -49,6 +63,13 @@ RBlockTransfer :: ~RBlockTransfer()
 #ifdef TRACE
   (*trace) << "entering RBlockTransfer::~RBlockTransfer" << endl;
 #endif
+
+  if (val != NULL)
+    {
+      delete [] val;
+      delete [] start;
+      delete [] pos;
+    }
 
   if (sum != NULL)
     {
@@ -135,7 +156,7 @@ void RBlockTransfer :: MultHh(BaseVector & uH, BaseVector & uh)
 
   Integer i,j,k,l,q,p,rs;
 
-  DenseMatrix * x = new DenseMatrix(dof,dof);
+  DenseMatrix x(dof,dof);
 
   for (i=0; i<size; i++)
     {
@@ -149,13 +170,13 @@ void RBlockTransfer :: MultHh(BaseVector & uH, BaseVector & uh)
       for (j=0; j<rs; j++)
 	{
 	  p = (pos[start[i]+j]-1)*dof+1;
-	  x = Get(i+1,j+1);
+	  x = *Get(i+1,j+1);
 
 	  for (k=0; k<dof; k++)
 	    {
 	      for (l=0; l<dof; l++)
 		{
-		  sum[k] += x->Get(k+1,l+1)*uc.Get(p+l);
+		  sum[k] += x.Get(k+1,l+1)*uc.Get(p+l);
 		}
 	    }
 	}
@@ -180,7 +201,7 @@ void RBlockTransfer :: MulthH(BaseVector & uh, BaseVector & uH)
 
   Integer i,j,k,l,p,rs;
 
-  DenseMatrix * x = new DenseMatrix(dof,dof);
+  DenseMatrix x(dof,dof);
 
   for (i=0; i<size; i++)
     {
@@ -195,13 +216,13 @@ void RBlockTransfer :: MulthH(BaseVector & uh, BaseVector & uH)
       for (j=0; j<rs; j++)
 	{
 	  p = (pos[start[i]+j]-1)*dof+1;
-	  x = Get(i+1,j+1);
+	  x = *Get(i+1,j+1);
 
 	  for (k=0; k<dof; k++)
 	    {
 	      for (l=0; l<dof; l++)
 		{
-		  uc.Elem(p+k) += x->Get(l+1,k+1)*sum[l];
+		  uc.Elem(p+k) += x.Get(l+1,k+1)*sum[l];
 		}
 	    }
 	}

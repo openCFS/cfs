@@ -111,6 +111,7 @@ void Assemble<Dim, T_Matrix>::SetRHS(const Vector<Double> & CoefM, const Vector<
 #ifdef TRACE
   (*trace) << "entering Assemble::SetRHS" << std::endl;
 #endif
+
   if (!CoefM.size() && !CoefS.size() && !f.size()) b.Init();
   if (CoefM.size()) b=M*CoefM;
   if (CoefS.size()) 
@@ -118,6 +119,7 @@ void Assemble<Dim, T_Matrix>::SetRHS(const Vector<Double> & CoefM, const Vector<
     else b=S*CoefS;
   if (f.size()) if (!CoefM.size() || !CoefS.size()) b+=f; 
   else b=f;
+
 #ifdef DEBUG
   (*debug) << " ----- Right hand side -----" << std::endl;
   (*debug) << b;
@@ -262,8 +264,10 @@ void Assemble<Dim,T_Matrix>::AssembleGlobal(T_Matrix & Mat) const
               Mat.Add(irow,icln,elemmat[ii][iii]);
           }
     }
+
   delete [] ptCoord;
   delete [] help;
+
   /// Convertion from SymMatrix to Matrix
   if (!Mat.IsSymmetric())
     {

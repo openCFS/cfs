@@ -46,6 +46,9 @@ public:
   ///
   virtual void Copy(BaseMatrix * mat);
 
+  ///
+  virtual void ConstructEffectiveMatrix(BaseMatrix ** amat, Double * matrix_fac){;};
+
   /// 
   Double Get(Integer i, Integer j) const {return val[(i-1)*size+j-1];};
 
@@ -106,6 +109,9 @@ public:
 
   ///
   virtual void Copy(BaseMatrix * mat) {;};
+
+  ///
+  virtual void ConstructEffectiveMatrix(BaseMatrix ** amat, Double * matrix_fac){;};
   
 };
 

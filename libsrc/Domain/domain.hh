@@ -2,15 +2,11 @@
 #define FILE_DOMAIN_2001
 
 #include "interface_gridcfs.hh"
-#include "writeresults.hh"
 #include "basepde.hh"
-#include "material.hh"
-#include "matrix.hh"
-#include "abstractAlgSys.hh"
 
 namespace CoupledField
 {
-class FileType;
+//class FileType;
 
 
 /// contain information about calculation domain and according to different meshes create different grids
@@ -20,17 +16,10 @@ class Domain
 {
 public:
   //!
-  Domain(FileType * const aptFileType, WriteResults<Dim> * ptUnverg, Material * materialdata,
-         Grid<Dim> * ptgrid);
+  Domain(FileType * const aptFileType, WriteResults<Dim> * ptOut, Material * materialdata,  TimeFunc * aptTimeFunc);
 
   //!
   virtual ~Domain();
-
-  //!
-  void InitPDE();
-
-  //!
-  void InitAlgSys(AbstractAlgebraicSys * algsys);
 
   //!
   void PrintGrid(Integer level);
@@ -41,15 +30,36 @@ public:
   //!
   void PrintDomain();
 
-  //!
-  BasePDE * ptpde[20];
+  //! set dirichlet boundary condition
+  void SetDBC(Integer apde, Integer level, Integer update);
 
-  //!
-  AbstractAlgebraicSys * ptalgsys;
+  //! print solution
+  void PrintSolution(Double * sol, Integer apde);
+
+  //! get pde
+  BasePDE * GetPDE(const Integer ipde){ return ptpde[ipde];}
+
+  //! get algebraic system
+  AbstractAlgebraicSys * GetAlgSys(){ return ptalgsys;}
+
+  //! get pointer to input-file
+  FileType * GetInFile(){ return InFile;}
+
+  //! get pointer to output-file
+  WriteResults<Dim> * GetOutFile(){ return OutFile;}
+
+  //! get pointer to boundary condition
+  BCs * GetBCs(){ return ptBCs;}
 
 protected:
 
 private:
+   //! initialize pde
+   void InitPDE();
+
+   //! initialization of alg.sys.
+   void InitAlgSys();
+
   //!
   Integer numsubdomain;
 
@@ -66,22 +76,28 @@ private:
   Integer ** syscoupling;
 
   //!
-  //  BasePDE * ptpde[20];
+  BasePDE * ptpde[20];
 
   //!
-  Grid<Dim> * grid;
+  Grid<Dim> * ptgrid;
 
   //!
-  //  AbstractAlgebraicSys * ptalgsys;
+  BCs * ptBCs;
+
+  //!
+  AbstractAlgebraicSys * ptalgsys;
   
   //!
   Material * ptmaterial;
 
   //!
+  TimeFunc * ptTimeFunc;
+
+  //!
   FileType *InFile;
 
   //!
-  WriteResults<Dim> *OutFile;
+  WriteResults<Dim> * OutFile;
 
 };
 

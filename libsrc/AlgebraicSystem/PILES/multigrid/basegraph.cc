@@ -29,6 +29,20 @@ BaseGraph :: BaseGraph(Integer asize)
       graph[i].size    = 50;
     }
 
+#ifdef MEMTRACE
+  double dmb;
+  double imb;
+
+  dmb = 0;
+  imb = 50*size*4./1e6;
+
+  sumdmem += dmb;
+  sumimem += imb;
+
+  (*memtrace) << "+++ ALLOCATE MEMORY: double  BaseGraph        " << dmb << " MB" << endl;
+  (*memtrace) << "+++ ALLOCATE MEMORY: integer BaseGraph        " << imb << " MB" << endl;
+#endif
+
   //cm = new Integer[];
 }
   
@@ -37,6 +51,15 @@ BaseGraph :: ~BaseGraph()
 #ifdef TRACE
   (*trace) << "entering BaseGraph::~BaseGraph" << endl;
 #endif
+
+  Integer i;
+  
+  for (i=0; i<size; i++)
+    {
+      delete [] graph[i].pos;
+    }
+  
+  delete graph;
 }
 
 void BaseGraph :: SetElementPos(Integer * connect, Integer elemsize)

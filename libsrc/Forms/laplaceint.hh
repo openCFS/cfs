@@ -1,5 +1,5 @@
-#ifndef FILE_LAPLACEINT
-#define FILE_LAPLACEINT
+#ifndef FILE_LAPLACEINT_2001
+#define FILE_LAPLACEINT_2001
 
 #include "baseform.hh"
 

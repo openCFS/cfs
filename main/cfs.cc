@@ -14,7 +14,7 @@
 #include "driver.hh"
 #include <abstractAlgSys.hh>
 //#include <interface_piles.hh>
-#include <basedriver.hh>
+#include "transientdriver.hh"
 
 using namespace CoupledField;
 
@@ -46,25 +46,13 @@ void main(int argc, char *argv[])
   oClockTotal.ClockCount(MyClock::beg);
 
   FileType * ptInputfile=oDefFiles.Create_ptFileType(argv[1]);
+  WriteResults<Point2D> * ptOut=oDefFiles.Create_ptWriteResults2d();
 
   TimeFunc * ptTimeFunc=new TimeFunc(ptInputfile);
 
-  // pointer to an object for writing results
-  WriteResults<Point2D> * ptOut;
-
-  // read type of output results from conf-file
-  std::string outformat;
-  conf->get("format_output",outformat); 
-
-  std::cout << outformat << std::endl;
-
-  // according to the type of output allocate an object for writing results
-  if (outformat=="gmv") ptOut=new WriteResultsGMV<Point2D>(name); 
-  else if (outformat=="unverg") ptOut=new WriteResultsUnverg<Point2D>(name);
-   else 
-    Error("Wrong format for writing results. Please, check your data.",__FILE__,__LINE__);
-
 /*
+  /// Test 3D mesh
+
   Integer data[1];
   ptInputfile-> ReadGeneralAnalChoice(data, FileType::numnode, FileType::endGAnal);
   std::cout << "Number of nodes" << data[0] << std::endl;
@@ -77,35 +65,21 @@ void main(int argc, char *argv[])
   ptGridlib->Read();
   
   ptOut->Create(ptGridlib,0);
-*/
-    Driver<Point2D> * ptDriver=new Driver<Point2D>(ptInputfile,1,materialdata);
-    ptDriver->SolveNewmarkMethod(ptOut);
 
-/*
- //  //! choose your grid class
-  Grid<Point2D> *grid =new GridInterfaceCFS<Point2D>(ptInputfile);
-  
-  // construct domain
-  Domain<Point2D> *domain=new Domain<Point2D>(ptInputfile,ptOut,materialdata,grid);
+*/
+//    Driver<Point2D> * ptDriver=new Driver<Point2D>(ptInputfile,1,materialdata);
+//    ptDriver->SolveNewmarkMethod(ptOut);
+
+    Domain<Point2D> *domain=new Domain<Point2D>(ptInputfile,ptOut,materialdata, ptTimeFunc);
 
   // print grid to unverg-file
   domain->PrintGrid(0);
 
-  // setup the pde-information
-  domain->InitPDE();
-
-  //choose your algebraic system
-  AbstractAlgebraicSys * algsys = new AlgSysPILES();
-  
-  // setup algebraic system
-  domain->InitAlgSys(algsys);  
-
   //choose your driver
-  BaseDriver *ptdriver = new BaseDriver(domain);
+  BaseDriver *ptdriver = new TransientDriver(domain);
 
   //solve your problem
   ptdriver->SolveProblem();
-*/
 
 #ifdef TestGMRes
   Double eps=1e-15;

@@ -61,6 +61,9 @@ public:
   DenseVector operator/(const DenseVector &v) const;
 
   ///
+  void Div(DenseVector &vec1, DenseVector &vec2);
+
+  ///
   Boolean operator<=(const DenseVector &x) const;
 
   ///

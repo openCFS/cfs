@@ -24,8 +24,6 @@ BaseCoarse :: ~BaseCoarse()
 #ifdef TRACE
   (*trace) << "entering BaseCoarse::~BaseCoarse" << endl;
 #endif
-
-  delete topology;
 }
 
 

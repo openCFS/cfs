@@ -26,12 +26,6 @@ BaseTransfer :: ~BaseTransfer()
   (*trace) << "entering BaseTransfer::~BaseTransfer" << endl;
 #endif
 
-  if (val != NULL)
-    {
-      delete [] val;
-      delete [] start;
-      delete [] pos;
-    }
 }
 
 }

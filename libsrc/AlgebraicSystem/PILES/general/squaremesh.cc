@@ -31,7 +31,7 @@ SquareMesh :: ~SquareMesh()
   (*trace) << "entering SquareMesh::~SquareMesh" << endl;
 #endif
 
-  delete filename;
+  delete [] filename;
 
   delete [] coord;
   delete [] bval;

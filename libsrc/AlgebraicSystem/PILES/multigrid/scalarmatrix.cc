@@ -55,6 +55,21 @@ RScalarMatrix :: RScalarMatrix(Integer asize, Integer anne, Integer adir)
       val[i] = 0;
     }
 
+#ifdef MEMTRACE
+  double dmb;
+  double imb;
+
+  dmb = (nne+dir)*8./1e6;
+  imb = (nne+size+1+2*dir)*4./1e6;
+
+  sumdmem += dmb;
+  sumimem += imb;
+
+  (*memtrace) << "+++ ALLOCATE MEMORY: double  ScalarMatrix     " << dmb << " MB" << endl;
+  (*memtrace) << "+++ ALLOCATE MEMORY: integer ScalarMatrix     " << imb << " MB" << endl;
+#endif
+
+
   calculated = FALSE;
   setgraph   = FALSE;
   buildindir = FALSE;
@@ -120,6 +135,34 @@ void RScalarMatrix :: Mult(BaseVector & vec1, BaseVector & vec2, Double factor) 
 	}
 	
 	v.Elem(i+1) = factor*sum;
+    }
+}
+
+void RScalarMatrix :: MultAdd(Double * vec1, BaseVector &vec2) const
+{
+#ifdef TRACE
+  (*trace) << "entering RScalarMatrix::MultAdd" << endl;
+#endif
+
+  Integer i,j,k,rs;
+  Double sum;
+
+  RealVector & v = (RealVector &) vec2;
+
+  for (i=0; i<size; i++)
+    { 
+      sum = 0;
+      
+      rs = start[i+1]-start[i];
+      k  = start[i];
+
+      for (j=0; j<rs; j++)
+	{
+	  sum += val[k]*vec1[pos[k]-1];
+	  k++;
+	}
+	
+	v.Elem(i+1) += sum;
     }
 }
 
@@ -203,6 +246,8 @@ void RScalarMatrix :: BuildInDirichlet()
 	}
     }
 
+  maxdiagentry = maxdiag;
+
   maxdiag *= 1e12;
 
   for (i=0; i<dir; i++)
@@ -235,6 +280,7 @@ void RScalarMatrix :: BuildInDirichlet(BaseVector & rhs)
 	}
     }
 
+  maxdiagentry = maxdiag;
   maxdiag *= 1e12;
 
   for (i=0; i<dir; i++)
@@ -244,6 +290,21 @@ void RScalarMatrix :: BuildInDirichlet(BaseVector & rhs)
     }
 
   buildindir = TRUE;
+}
+
+void RScalarMatrix :: UpdateDirichletRHS(BaseVector &rhs)
+{
+  RealVector & a = (RealVector &) rhs;
+
+  Integer i;
+  Double maxdiag;
+  
+  maxdiag = maxdiagentry*1e12;
+
+  for (i=0; i<dir; i++)
+    {
+      a.Elem(numdir[i]) += maxdiag*valdir[i];
+    }
 }
 
 void RScalarMatrix :: Factor()
@@ -461,6 +522,36 @@ void RScalarMatrix :: Copy(BaseMatrix * mat)
     }
 
   buildindir = FALSE;
+}
+
+void RScalarMatrix :: ConstructEffectiveMatrix(BaseMatrix ** amat, Double * matrix_fac)
+{
+#ifdef TRACE
+  (*trace) << "entering RScalarMatrix::ConstructEffectiveMatrix" << endl;
+#endif
+
+  Integer i,j,k,l,rs;
+
+  for (l=0; l<4; l++)
+    {
+      if (amat[l] != NULL)
+	{
+	  RScalarMatrix & mat = (RScalarMatrix &) *amat[l];
+	  
+	  k = 0;
+	  
+	  for (i=0; i<size; i++)
+	    {
+	      rs = start[i+1] - start[i];
+	      
+	      for (j=0; j<rs; j++)
+		{
+		  val[k] += matrix_fac[l]*mat.Get(i+1,j+1);
+		  k++;
+		}
+	    }
+	}
+    }
 }
 
 ////////////////////////////////// complex ///////////////////////////////////////

@@ -25,14 +25,14 @@ public:
   //! write information about grid with level in file
   virtual void WriteGrid(const Integer level);
 
-    /// write information about the solution
-  virtual void WriteSolution(const Vector<Double> & sol, const Integer step, const Integer time);
+  /// write information about the solution
+  virtual void WriteSolution(const Vector<Double> & sol, const Integer step, const Double time);
 
   /// write information about first derivatives of the solution
-  virtual void WriteFirstDerSolution(const Vector<Double> & sol, const Integer step, const Integer time);
+  virtual void WriteFirstDerSolution(const Vector<Double> & sol, const Integer step, const Double time);
 
   /// write information about second derivatives of the solution
-   virtual void WriteSecondDerSolution(const Vector<Double> & sol, const Integer step, const Integer time);
+  virtual void WriteSecondDerSolution(const Vector<Double> & sol, const Integer step, const Double time);
 
 private:
   

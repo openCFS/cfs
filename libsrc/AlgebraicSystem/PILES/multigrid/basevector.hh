@@ -1,5 +1,5 @@
-#ifndef FILE_BASEVECTOR
-#define FILE_BASEVECTOR
+#ifndef FILE_BASEVECTOR_PILES
+#define FILE_BASEVECTOR_PILES
 
 namespace CoupledField
 {
@@ -35,7 +35,10 @@ public:
   virtual void Add(BaseVector &vec) = 0;
 
   ///
-  virtual DenseVector * Inner(BaseVector &vec) const = 0;
+  virtual void Scal(DenseVector &sum) = 0;
+
+  ///
+  virtual void Inner(BaseVector &vec, DenseVector &sum) const = 0;
 
   ///
   virtual DenseVector & L2Norm() const = 0;
@@ -74,4 +77,4 @@ protected:
 
 }
 
-#endif // FILE_BASEVECTOR
+#endif // FILE_BASEVECTOR_PILES

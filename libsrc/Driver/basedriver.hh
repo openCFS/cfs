@@ -18,17 +18,22 @@ public:
   virtual ~BaseDriver();
   
   //!
-  void SolveProblem();
+  virtual void SolveProblem()=0;
 
   //!
   void SetupMatricesPDE(Integer pdenumber);
+
+  //! write solution in file
+//  void WriteResultsInFile(BasePDE * ptPDE, const Integer step, const Double t);
 
 protected:
   //!
   Domain<Point2D> * ptdomain;
 
 private:
-
+  //! options from input-file; if true, then we output first-der,second in output-file
+  Boolean SaveDer1,SaveDer2;
+  
 };
 
 }

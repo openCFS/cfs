@@ -280,19 +280,33 @@ void  WriteResultsUnverg<Dim>::Init(Grid<Dim> * aptgrid)
 }
 
 template<class Dim>
-void  WriteResultsUnverg<Dim>::WriteSolution(const Vector<Double> & sol, const Integer step, const Integer time)
+void  WriteResultsUnverg<Dim>::WriteSolution(const Vector<Double> & sol, const Integer step, const Double time)
 {
  Dataset55(" fluid potential", sol, step+1, time);
+
+/*  switch(typesol)
+ {
+  case fluid:
+   Dataset55(" fluid potential", sol, step+1, time);
+   break;
+  case temperature:
+   Dataset55(" temperature", sol, step+1, time);
+   break;
+  default:
+   Error("Unknown type of results", __FILE__,__LINE__);
+ }
+*/
+
 }
 
 template<class Dim>
-void  WriteResultsUnverg<Dim>::WriteFirstDerSolution(const Vector<Double> & sol, const Integer step, const Integer time)
+void  WriteResultsUnverg<Dim>::WriteFirstDerSolution(const Vector<Double> & sol, const Integer step, const Double time)
 {
  Dataset55(" fluid potential, 1st deriv., ", sol, step+1,time);
 }
 
 template<class Dim>
-void  WriteResultsUnverg<Dim>::WriteSecondDerSolution(const Vector<Double> & sol, const Integer step, const Integer time)
+void  WriteResultsUnverg<Dim>::WriteSecondDerSolution(const Vector<Double> & sol, const Integer step, const Double time)
 {
  Dataset55(" fluid potential, 2nd deriv., ", sol, step+1, time);
 }

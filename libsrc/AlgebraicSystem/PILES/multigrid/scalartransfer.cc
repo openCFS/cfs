@@ -35,6 +35,20 @@ RScalarTransfer :: RScalarTransfer(Integer asize, Integer * rsw, Boolean mem)
       val = new Double[nne];
       pos = new Integer[nne];
 
+#ifdef MEMTRACE
+      double dmb;
+      double imb;
+
+      dmb = (nne)*8./1e6;
+      imb = (nne+size+1)*4./1e6;
+
+      sumdmem += dmb;
+      sumimem += imb;
+
+      (*memtrace) << "+++ ALLOCATE MEMORY: double  ScalarTransder   " << dmb << " MB" << endl;
+      (*memtrace) << "+++ ALLOCATE MEMORY: integer ScalarTransfer   " << imb << " MB" << endl;
+#endif
+
       calculated = FALSE;
     }
   else
@@ -52,6 +66,13 @@ RScalarTransfer :: ~RScalarTransfer()
 #ifdef TRACE
   (*trace) << "entering RScalarTransfer::~RScalarTransfer" << endl;
 #endif
+
+  if (val != NULL)
+    {
+      delete [] val;
+      delete [] start;
+      delete [] pos;
+    }
 }
 
 void RScalarTransfer :: Calc(BaseTopology * topology)

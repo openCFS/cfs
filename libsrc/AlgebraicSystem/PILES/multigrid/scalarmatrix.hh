@@ -20,6 +20,9 @@ public:
   virtual void Mult(Double * vec1, Double * vec2, Double factor) const {;};
 
   ///
+  virtual void MultAdd(Double * vec1, BaseVector &vec2) const;
+
+  ///
   virtual void Assemble(Double * v,Integer * p,Integer elemsize);
 
   ///
@@ -44,6 +47,9 @@ public:
   virtual void BuildInDirichlet(BaseVector & rhs);
 
   ///
+  virtual void UpdateDirichletRHS(BaseVector & rhs);
+
+  ///
   virtual void Factor();
 
   ///
@@ -57,6 +63,9 @@ public:
 
   ///
   virtual void Copy(BaseMatrix * mat);
+
+  ///
+  virtual void ConstructEffectiveMatrix(BaseMatrix ** amat, Double * matrix_fac);
 
 };
 
@@ -92,6 +101,9 @@ public:
   virtual void BuildInDirichlet(BaseVector & rhs);
 
   ///
+  virtual void UpdateDirichletRHS(BaseVector & rhs){;};
+
+  ///
   Double * GetDiag(Integer i) const {return &val[2*start[i-1]];};  
 
   ///
@@ -111,6 +123,9 @@ public:
 
   ///
   virtual void Copy(BaseMatrix * mat);
+
+  ///
+  virtual void ConstructEffectiveMatrix(BaseMatrix ** amat, Double * matrix_fac) {;};
 };
 
 }

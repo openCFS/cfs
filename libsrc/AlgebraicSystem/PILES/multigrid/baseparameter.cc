@@ -42,7 +42,7 @@ void BaseParameter :: Set()
   penalty       = 1e8;
   precond       = 2;
   solver        = 2;
-  coarsesystem  = 5000;
+  coarsesystem  = 100;
   coarsesolver  = 1;
   maxnumiter    = 300;
   coarsening    = 1;

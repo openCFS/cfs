@@ -23,7 +23,10 @@ public:
   virtual void Add(BaseVector &vec);
 
   ///
-  virtual DenseVector * Inner(BaseVector &vec) const;
+  virtual void Inner(BaseVector &vec, DenseVector &sum) const;
+
+  ///
+  virtual void Scal(DenseVector &sum);
 
   ///
   virtual DenseVector & L2Norm() const;
@@ -77,7 +80,10 @@ public:
   virtual void Add(BaseVector &vec);
 
   ///
-  virtual DenseVector * Inner(BaseVector &vec) const;
+  virtual void Scal(DenseVector &sum);
+
+  ///
+  virtual void Inner(BaseVector &vec, DenseVector &sum) const;
 
   ///
   virtual DenseVector & L2Norm() const;

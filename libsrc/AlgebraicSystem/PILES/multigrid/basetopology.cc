@@ -52,6 +52,20 @@ BaseTopology :: BaseTopology(Integer asize, Integer anne, Integer * pos, Integer
       active[i] = 1;
       cnn[i]    = 0;
     }
+#ifdef MEMTRACE
+  double dmb;
+  double imb;
+
+  dmb = 0;
+  imb = (4.*size+2*nne)*4/1e6;
+
+  sumdmem += dmb;
+  sumimem += imb;
+
+  (*memtrace) << "+++ ALLOCATE MEMORY: double  BaseTopology     " << dmb << " MB" << endl;
+  (*memtrace) << "+++ ALLOCATE MEMORY: integer BaseTopology     " << imb << " MB" << endl;
+#endif
+
 }
 
 BaseTopology :: ~BaseTopology()
@@ -59,22 +73,6 @@ BaseTopology :: ~BaseTopology()
 #ifdef TRACE
   (*trace) << "entering BaseTopology::~BaseTopology" << endl;
 #endif
-
-  if (cnn != NULL)
-    {
-      delete [] cnn;
-      delete [] s1;
-      delete [] s2;
-      delete [] ss1;
-      delete [] ss2;
-      delete [] active;
-    }
-
-  if (crs != NULL)
-    {
-      delete [] crs;
-      delete [] nrs;
-    }
 }
 
 Boolean BaseTopology :: MemberS1(Integer p, Integer q)
@@ -481,7 +479,7 @@ LocalSet :: ~LocalSet()
       delete [] p;
     }
 
-  //delete dm;
+  delete dm;
 }
 
 void LocalSet :: Init()

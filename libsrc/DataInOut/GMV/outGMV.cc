@@ -287,19 +287,19 @@ void WriteResultsGMV<Dim>::WriteGrid(const Integer level)
 }
 
 template<class Dim>
-void WriteResultsGMV<Dim>::WriteSolution(const Vector<Double> & sol, const Integer step, const Integer time)
+void WriteResultsGMV<Dim>::WriteSolution(const Vector<Double> & sol, const Integer step, const Double time)
 {
 ;
 }
 
 template<class Dim>
-void WriteResultsGMV<Dim>::WriteFirstDerSolution(const Vector<Double> & sol, const Integer step, const Integer time)
+void WriteResultsGMV<Dim>::WriteFirstDerSolution(const Vector<Double> & sol, const Integer step, const Double time)
 {
 ;
 }
 
 template<class Dim>
-void WriteResultsGMV<Dim>::WriteSecondDerSolution(const Vector<Double> & sol, const Integer step, const Integer time)
+void WriteResultsGMV<Dim>::WriteSecondDerSolution(const Vector<Double> & sol, const Integer step, const Double time)
 {
 ;
 }

@@ -20,6 +20,9 @@ public:
   virtual void Mult(Double * vec1, Double * vec2, Double factor) const {;};
 
   ///
+  virtual void MultAdd(Double * vec1, BaseVector &vec2) const;
+
+  ///
   virtual void Assemble(Double * v,Integer * p, Integer elemsize);
 
   ///
@@ -45,6 +48,9 @@ public:
 
   ///
   virtual void Copy(BaseMatrix * mat);
+
+  ///
+  virtual void ConstructEffectiveMatrix(BaseMatrix ** amat, Double * matrix_fac);
 
   ///
   void SetDiagInv();
@@ -118,6 +124,9 @@ public:
 
   ///
   virtual void Copy(BaseMatrix * mat) {;};
+
+  ///
+  virtual void ConstructEffectiveMatrix(BaseMatrix ** amat, Double * matrix_fac) {;};
 
 };
 }

@@ -11,7 +11,7 @@
 namespace CoupledField
 {
 
-DenseMatrix :: DenseMatrix(Integer asize, Integer awidth, Boolean mem)
+DenseMatrix :: DenseMatrix(Integer asize, Integer awidth, Boolean amem)
 {
 #ifdef TRACE
   (*trace) << "entering DenseMatrix::DenseMatrix" << endl;
@@ -19,8 +19,9 @@ DenseMatrix :: DenseMatrix(Integer asize, Integer awidth, Boolean mem)
 
   size = asize;
   width= awidth;
+  mem  = amem;
 
-  if (mem = TRUE)
+  if (mem == TRUE)
     {
       val = new Double[size*width];
       fac = new Double[size*width];
@@ -52,7 +53,7 @@ DenseMatrix :: ~DenseMatrix()
   (*trace) << "entering DenseMatrix::~DenseMatrix" << endl;
 #endif
 
-  if (val != NULL)
+  if (mem && val != NULL)
     {
       delete [] val;
       delete [] fac;

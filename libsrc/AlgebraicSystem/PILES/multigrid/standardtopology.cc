@@ -25,6 +25,30 @@ StandardTopology :: ~StandardTopology()
   (*trace) << "entering StandardTopology::~StandardTopology" << endl;
 #endif
 
+  if (cnn != NULL)
+    {
+      delete [] cnn;
+      cnn = NULL;
+      delete [] s1;
+      s1 = NULL;
+      delete [] s2;
+      s2 = NULL;
+      delete [] ss1;
+      ss1 = NULL;
+      delete [] ss2;
+      ss2 = NULL;
+      delete [] active;
+      active = NULL;
+    }
+
+  if (crs != NULL)
+    {
+      delete [] crs;
+      crs = NULL;
+      delete [] nrs;
+      nrs = NULL;
+    }
+
 }
 
 void StandardTopology :: CalcCoarseGraph()
@@ -36,6 +60,20 @@ void StandardTopology :: CalcCoarseGraph()
   Integer i,j,k,l,ncn,mcn,nfn,maxnh,c1,c2;
 
   maxnh = MaxNumNeighbour();
+
+#ifdef MEMTRACE
+  double dmb;
+  double imb;
+
+  dmb = 0;
+  imb = (3*maxnh+csize*offset+csize)*4./1e6;
+
+  sumdmem += dmb;
+  sumimem += imb;
+
+  (*memtrace) << "+++ ALLOCATE MEMORY: double  StandardTopology " << dmb << " MB" << endl;
+  (*memtrace) << "+++ ALLOCATE MEMORY: integer StandardTopology " << imb << " MB" << endl;
+#endif
 
   Integer * cnh   = new Integer[maxnh];
   Integer * hnh   = new Integer[maxnh];

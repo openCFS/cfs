@@ -64,6 +64,20 @@ RBlockMatrix :: RBlockMatrix(Integer asize, Integer anne, Integer adof, Integer 
   setgraph   = FALSE;
   buildindir = FALSE;
   outback    = FALSE;
+
+#ifdef MEMTRACE
+  double dmb;
+  double imb;
+
+  dmb = (nne*dof*dof+dof+dir+size*dof*dof)*8./1e6;
+  imb = (size+1+nne+2*dir)*4./1e6;
+
+  sumdmem += dmb;
+  sumimem += imb;
+
+  (*memtrace) << "+++ ALLOCATE MEMORY: double  RBlockMatrix     " << dmb << " MB" << endl;
+  (*memtrace) << "+++ ALLOCATE MEMORY: integer RBlockMatrix     " << imb << " MB" << endl;
+#endif
 }
   
 RBlockMatrix :: ~RBlockMatrix()
@@ -96,6 +110,11 @@ RBlockMatrix :: ~RBlockMatrix()
       delete [] perm_c;
       delete [] perm_r;
       delete [] f;
+
+//       cout << "SuperLU" << endl;
+
+//       Destroy_SuperNode_Matrix(&L);
+//       Destroy_CompCol_Matrix(&U);
     }
 
   if (diaginv != NULL)
@@ -118,7 +137,7 @@ void RBlockMatrix :: Mult(BaseVector & vec1, BaseVector & vec2, Double factor) c
   RealVector & u = (RealVector &) vec1;
   RealVector & v = (RealVector &) vec2;
 
-  DenseMatrix * x = new DenseMatrix(dof,dof);
+  DenseMatrix x(dof,dof);
 
   Integer i,j,k,l,q,p,rs;
 
@@ -134,13 +153,13 @@ void RBlockMatrix :: Mult(BaseVector & vec1, BaseVector & vec2, Double factor) c
       for (j=0; j<rs; j++)
 	{
 	  p = (pos[start[i]+j]-1)*dof+1;
-	  x = Get(i+1,j+1);
+	  x = *Get(i+1,j+1);
 
 	  for (k=0; k<dof; k++)
 	    {
 	      for (l=0; l<dof; l++)
 		{
-		  sum[k] += x->Get(k+1,l+1)*u.Get(p+l);
+		  sum[k] += x.Get(k+1,l+1)*u.Get(p+l);
 		}
 	    }
 	}
@@ -153,6 +172,51 @@ void RBlockMatrix :: Mult(BaseVector & vec1, BaseVector & vec2, Double factor) c
 	}
     }
 }
+
+void RBlockMatrix :: MultAdd(Double * vec1, BaseVector &vec2) const
+{
+#ifdef TRACE
+  (*trace) << "entering RScalarMatrix::MultAdd" << endl;
+#endif
+
+  RealVector & v = (RealVector &) vec2;
+
+  DenseMatrix x(dof,dof);
+
+  Integer i,j,k,l,q,p,rs;
+
+  for (i=0; i<size; i++)
+    {
+      rs  = start[i+1] - start[i];
+
+      for (k=0; k<dof; k++)
+	{
+	  sum[k] = 0;
+	}
+
+      for (j=0; j<rs; j++)
+	{
+	  p = (pos[start[i]+j]-1)*dof+1;
+	  x = *Get(i+1,j+1);
+
+	  for (k=0; k<dof; k++)
+	    {
+	      for (l=0; l<dof; l++)
+		{
+		  sum[k] += x.Get(k+1,l+1)*vec1[p+l-1];
+		}
+	    }
+	}
+
+      p = i*dof+1;
+
+      for (k=0; k<dof; k++)
+	{
+	  v.Elem(p+k) += sum[k];
+	}
+    }
+}
+
 
 void RBlockMatrix :: Assemble(Double * v,Integer * p, Integer elemsize)
 {
@@ -321,6 +385,42 @@ void RBlockMatrix :: Copy(BaseMatrix * mat)
     }
 
   buildindir = FALSE;
+}
+
+void RBlockMatrix :: ConstructEffectiveMatrix(BaseMatrix ** amat, Double * matrix_fac)
+{
+#ifdef TRACE
+  (*trace) << "entering RScalarMatrix::ConstructEffectiveMatrix" << endl;
+#endif
+
+  Integer i,j,k,l,m,n,rs;
+
+  for (n=0; n<4; n++)
+    {
+      if (amat[n] != NULL)
+	{
+	  RBlockMatrix & mat = (RBlockMatrix &) *amat[n];
+	  
+	  m = 0;
+	  
+	  for (i=1; i<=size; i++)
+	    {
+	      rs = start[i] - start[i-1];
+	      
+	      for (j=1; j<=rs; j++)
+		{
+		  for (k=1; k<=dof; k++)
+		    {
+		      for (l=1; l<=dof; l++)
+			{
+			  val[m] += matrix_fac[n]*mat.Get(i,j)->Get(k,l);
+			  m++;
+			}
+		    }
+		}
+	    }
+	}
+    }
 }
 
 void RBlockMatrix :: BuildInDirichlet()
@@ -526,6 +626,8 @@ void RBlockMatrix :: SetDiagInv()
       *y= &diaginv[p];
       y->Inverse(x);
     }
+
+  delete z;
 }
 
 void RBlockMatrix :: Factor()
@@ -533,7 +635,7 @@ void RBlockMatrix :: Factor()
 #ifdef TRACE
   (*trace) << "entering RBlockMatrix::Factor" << endl;
 #endif
-  
+
   int i,j,k,l,m,numrhs,dofsize,dofnne,ind,rs;
   int osb,osr,rsold;
   
@@ -568,7 +670,7 @@ void RBlockMatrix :: Factor()
   /// + construct the pos vector and the val vector
 
   int * os = new int[dof];
-  DenseMatrix * x = new DenseMatrix(dof,dof);
+  DenseMatrix x(dof,dof);
 
   rsold = 0;
   osb   = 0;
@@ -586,7 +688,7 @@ void RBlockMatrix :: Factor()
 
       for (j=0; j<rs; j++)
 	{
-	  x = Get(i+1,j+1);
+	  x = *Get(i+1,j+1);
 	  m  = GetMatrixPos(i+1,j+1);
 
 	  for (k=0; k<dof; k++)
@@ -595,7 +697,7 @@ void RBlockMatrix :: Factor()
 		{
 		  ind         = osb+os[k]+k*osr+l;
 		  dofpos[ind] = (m-1)*dof+l;
-		  dofval[ind] = x->Get(k+1,l+1);
+		  dofval[ind] = x.Get(k+1,l+1);
 		}
 	      
 	      os[k] += dof;
@@ -622,6 +724,7 @@ void RBlockMatrix :: Factor()
   delete [] dofval;
   delete [] dofstart;
   delete [] dofpos;
+  delete [] os;
 }
 
 void RBlockMatrix :: Solve(BaseVector & rhs, BaseVector & sol)
@@ -637,7 +740,8 @@ void RBlockMatrix :: Solve(BaseVector & rhs, BaseVector & sol)
   int dofsize;
   double * h, *g;
   char t[1];
-  
+
+
   *t = 'T';
   
   dofsize= size*dof;
