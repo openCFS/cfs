@@ -193,6 +193,14 @@ void NodeStoreSol<TYPE>::SetSolutionType(const SolutionType solType, const Integ
     Error("NodeStoreSol: Index out of Bounds",__FILE__,__LINE__);
 #endif
 
+  // Check, if the object contains only one entry and if this only entry is overwritten
+  if (solTypes_.size() == 1 &&
+      numSolutions_ == 1 &&
+      numSolution == 0)
+    solTypes_.clear();
+    
+  
+
   solTypes_[solType] = numSolution;
   length_ = 0;
 }
