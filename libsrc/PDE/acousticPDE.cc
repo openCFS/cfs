@@ -36,7 +36,8 @@ AcousticPDE::AcousticPDE(const Double epsilon, const Double dt0, Grid<Point2D> *
   CoefLaplace=1.0;
   CoefMass=a0*c;
 
-  ptWork=new WorkWithSysMat<Point2D, Matrix<Double> >(ptgrid, epsilon);  
+//  ptWork=new WorkWithSysMat<Point2D, Matrix<Double> >(ptgrid, epsilon);  
+  ptWork=new InterfaceAlgSys(ptgrid,epsilon);
 
   ptWork->AssembleSysMatrix(CoefLaplace,CoefMass);
   ptWork->SetRHS();
@@ -59,14 +60,14 @@ void AcousticPDE::SolveNewmarkMethodStatic(const Double atime)
  
    Boolean NeedRestore=FALSE;
    Double valueTF=ptTimeFunc->TimeFuncAtTime(atime,0);
- 
+
    if (valueTF==0)
      { NeedRestore=TRUE; ptWork->SetDirichletBoundaryCondZero_Cut();}
    else
      ptWork->SetDirichletBoundaryCondRHS_PenaltyMethod(valueTF);
  
    ptWork->CG(100, Jacobi);
- 
+
 #ifdef DEBUG
    std::string title=" System matrix after applying boundary condition ";
    ptWork->printAb(debug, title);

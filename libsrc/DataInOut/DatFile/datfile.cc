@@ -138,18 +138,27 @@ void DatFile:: ReadGeneralAnalChoice(Integer * dataGAnalCh,
   Der1=FALSE; Der2=FALSE;
   Char c=' ';
 
+  mark
+
   Integer j;
   for (j=0; j <2; j++) 
-{ TakePos(seek,pos); 
+{ 
+  TakePos(seek,pos); 
+  mark
+  std::cout << pos << std::endl;
   while (c!='\n')
 {
-  while (c==' ') infile.get(c);
+  mark
+  while (c==' ') { infile.get(c);}
 
+  mark
+   
   if (c=='\n') break;
 
   infile.seekg(-1, ios::cur);
   infile >> buf;
 
+  mark
   if (vp==TransformInNameDf(buf.c_str())) { if (j==0) Der1=TRUE;
                                               else Der2=TRUE; }
   c=' ';
@@ -312,12 +321,16 @@ void DatFile :: ReadNumTimeFunc(Integer & maxnumTimeFunc)
 
    std::string::size_type pos=0;
    TakePos("timefunctions",pos);
-   infile.seekg(pos,ios::beg);
    if (pos==pos_end) {std::cerr << "ERROR time function is absent in your dat file. Don't create object TFuncDat." << std::endl; 
                       exit(1);}
- 
-   infile >> maxnumTimeFunc ;
-
+   infile.seekg(pos,ios::beg); 
+   Char psign;
+   infile >> psign; 
+   if (psign == '#') maxnumTimeFunc=1;
+   else  { 
+           infile.seekg(pos,ios::beg);
+           infile >> maxnumTimeFunc ; 
+         }
 }
 // ----------------- Read Max Value for each time function ----------------
 
@@ -979,7 +992,7 @@ void DatFile :: ReadNumStepsAndTimeSteps(Integer & numsteps, Double & dt)
  (*trace)<<" entering DatFile::ReadTimeSteps" << std::endl;
 #endif 
   std::string::size_type pos=0;
-  TakePos("delta-t",pos);
+  TakePos("delta-t",pos, "deltat");
   infile.seekg(pos, ios::beg);
 
   Integer dummy;
@@ -989,10 +1002,11 @@ void DatFile :: ReadNumStepsAndTimeSteps(Integer & numsteps, Double & dt)
 
 // --------------------- Take position in file -----------------------------
 
-void DatFile::TakePos(const std::string seekexp, std::string::size_type & pos)
+void DatFile::TakePos(const std::string seekexp, std::string::size_type & pos, const std::string reservexp)
 { 
   infile.seekg(pos, ios::beg);
   std::string buf;
+  std::string::size_type pos1=pos;
   pos=std::string::npos;
 
   while ( pos == std::string::npos & !infile.eof() )
@@ -1000,19 +1014,36 @@ void DatFile::TakePos(const std::string seekexp, std::string::size_type & pos)
     pos=buf.find(seekexp);
   }
   pos=infile.tellg();
+  std::cout << pos << std::endl;
+
+  std::cout << seekexp << pos << std::endl;
+  if (pos==pos_end & reservexp!="") 
+  {
+      infile.seekg(pos1, ios::beg);
+      pos=std::string::npos;
+
+      while ( pos == std::string::npos & !infile.eof() )
+      { 
+        std::getline(infile, buf, '\n');
+        pos=buf.find(reservexp);
+      }
+      pos=infile.tellg();
+  }
+
   if (pos==pos_end) {std::cerr << "ERROR: (" << __FILE__ <<" "<< __LINE__ 
-                     << ") Cannot find std::string: " << seekexp <<
-             " in your dat file.\n\t\t Please, change your dat file."<< std::endl;
+               << ") Cannot find string: " << seekexp ;
+                    if (reservexp!="") std::cerr <<" and " << reservexp ;
+          std::cerr << " in your dat file.\n\t\t Please, change your dat file."<< std::endl;
                       exit(1);}
 }
 
 // ------------ Take position in file with saving in buf previous std::string -----
  
-void DatFile::TakePos(const std::string seekexp, std::string::size_type & pos, std::string & buf_prev)
+void DatFile::TakePos(const std::string seekexp, std::string::size_type & pos, std::string & buf_prev, const std::string reservexp="")
 {
   infile.seekg(pos, ios::beg);
   std::string buf;
-  
+  std::string::size_type pos1;
   pos=std::string::npos;
  
   while ( pos == std::string::npos & !infile.eof() )
@@ -1021,9 +1052,24 @@ void DatFile::TakePos(const std::string seekexp, std::string::size_type & pos, s
     buf_prev=buf;
   }
   pos=infile.tellg();
+  
+  if (pos==pos_end & reservexp!="")
+  {
+      infile.seekg(pos1, ios::beg);
+      pos=std::string::npos;
+ 
+      while ( pos == std::string::npos & !infile.eof() )
+      { std::getline(infile, buf, '\n');
+        pos=buf.find(reservexp);
+        buf_prev=buf;
+      }
+      pos=infile.tellg();
+  }
+
   if (pos==pos_end) {std::cerr << "ERROR: (" << __FILE__ <<" "<< __LINE__
-                     << ") Cannot find std::string: " << seekexp <<
-             " in your dat file.\n\t\t Please, change your dat file."<< std::endl;
+                     << ") Cannot find string: " << seekexp ;
+                    if (reservexp!="") cerr<<" and "<<reservexp; 
+     cerr <<" in your dat file.\n\t\t Please, change your dat file."<< std::endl;
                       exit(1);}
 }
 

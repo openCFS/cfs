@@ -1,4 +1,3 @@
-//#include <string>
 #include <fstream>
 #include <iostream>
 
@@ -14,22 +13,29 @@ namespace CoupledField
 
 DefineInOutFiles :: DefineInOutFiles(const Char * name)
 {
- 
+
  filename=new Char[100];
  strcpy(filename, name);
- 
+
 #ifdef TRACE
+ mark
  strcpy(filename, name);
  trace=new std::ofstream(strcat(filename,".trace"));
+ if (!trace) Error("Can't open trace-file");
 #endif
  
 #ifdef DEBUG
  strcpy(filename, name);
  debug=new std::ofstream(strcat(filename,".deb"));
+ if (!debug) Error("Can't open debug-file");
 #endif
  
  strcpy(filename, name);
- if (InfoPrint) infofile = new std::ofstream(strcat(filename,".info"));
+ if (InfoPrint)
+       {
+         infofile = new std::ofstream(strcat(filename,".info"));
+         if (!infofile) Error("Can't open info-file");
+       }
 
  strcpy(filename, name); 
 }
@@ -59,7 +65,7 @@ FileType * DefineInOutFiles :: Create_ptFileType(Char * atype)
     }
   else 
     {
-      std::cerr << "ERROR: Sorry, we can't read files with type: "<<atype << std::endl;
+      std::cerr << "ERROR: Sorry, we can't read files with type: "<< atype << std::endl;
       exit(-1);
     }
 }

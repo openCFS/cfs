@@ -1,7 +1,5 @@
-//#include <stdlib.h>
 #include <fstream>
 #include <iostream>
-//#include <string>
 #include <algorithm>
 
 #include <general_head.hh>

@@ -32,9 +32,6 @@ MassInt<Dim> :: ~MassInt()
 template <class Dim>
 void MassInt<Dim> :: CalcElemMatrix(Dim * ptCoord, Matrix<Double> & Result)
 {
-#ifdef TRACE
-  (*trace) << "entering MassInt::CalcElemMatrix" << std::endl;
-#endif
 
   Integer l=ptelem->GetNumIntPoints(); // l - number of integration points
   Integer n=ptelem->GetNumNodes();   // n - number of nodes

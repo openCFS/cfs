@@ -43,8 +43,8 @@ private:
   TimeFunc * ptTimeFunc;
 
   //!
-  WorkWithSysMat<Point2D, Matrix<Double> > * ptWork;
-
+//  WorkWithSysMat<Point2D, Matrix<Double> > * ptWork;
+   AbstractAlgSys * ptWork;
   //!
   Vector<Double> sol, sol_der2, sol_der1;
 
