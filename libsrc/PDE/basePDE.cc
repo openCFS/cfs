@@ -257,7 +257,53 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
     // =====================================================================
     // initialize EQN-object and Storeresults class
     // =====================================================================
-    
+
+#ifdef XMLPARAMS
+    // What type of equation numbering does the user want?
+    keyVec = pdename_, "solver", "matrix", "eqnNumbering";
+    std::string typeOfNumbering;
+    params->Get( keyVec, typeOfNumbering );
+
+    // Assemble a system matrix with scalar complex or double entries
+    if ( typeOfNumbering == "scalar" ) {
+      if ( dofspernode_ == 1 ) {
+	eqnData_ = new ScalarNodeEQN( ptgrid_, ptBCs_, subdoms_, actlevel_,
+				      dofspernode_ );
+      }
+      else {
+	eqnData_ = new ScalarBlockEQN( ptgrid_, ptBCs_, subdoms_, actlevel_,
+				       dofspernode_ );
+      }
+    }
+
+    // Treat all dofs of a node together and assemble a system matrix with
+    // small square matrices as entries
+    else if ( typeOfNumbering == "block" ) {
+      if ( dofspernode_ == 1 ) {
+	Warning("dopspernode = 1, so 'block' numbering identical to 'scalar'");
+	eqnData_ = new ScalarNodeEQN( ptgrid_, ptBCs_, subdoms_, actlevel_,
+				      dofspernode_ );
+      }
+      else {
+	eqnData_ = new BlockNodeEQN( ptgrid_, ptBCs_, subdoms_, actlevel_,
+				     dofspernode_ );
+      }
+    }
+
+    // Only sensible for piezoPDE, will be phased out, once direct
+    // coupling is possible
+    else if ( typeOfNumbering == "superBlock" ) {
+      if ( pdename_ != "piezo" ) {
+	Error( "superBlock numbering only implemented for Piezo PDEs!",
+	       __FILE__, __LINE__ );
+      }
+      else {
+	Error( "Ask Andi how this must be implemented!", __FILE__, __LINE__ );
+      }
+    }
+
+#else
+	
     // #### TEMPORARY UNTIL SCHEMA IS ADAPTED ####
     if (dofspernode_ == 1) {
       eqnData_  = new ScalarNodeEQN(ptgrid_, ptBCs_, subdoms_, 
@@ -265,10 +311,12 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
     } else {
       eqnData_ = new ScalarBlockEQN(ptgrid_, ptBCs_, subdoms_, 
 				      actlevel_, dofspernode_);
-//       eqnData_ = new BlockNodeEQN(ptgrid_, ptBCs_, subdoms_, 
-// 				   actlevel_, dofspernode_);
+      // eqnData_ = new BlockNodeEQN( ptgrid_, ptBCs_, subdoms_, actlevel_,
+      //                              dofspernode_ );
     }
-    
+
+#endif
+
     // ONLY TEMPORARY
     SuperBlockEQN tempEQN (ptgrid_, ptBCs_, subdoms_, actlevel_, 
 			   dofspernode_);
