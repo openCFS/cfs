@@ -30,6 +30,7 @@ public:
   //! Prints the bilinear form
   virtual void Print(std::ostream * out, const Matrix<Double> Result) const;
 
+
 protected:
 
   //! Ptr to base element

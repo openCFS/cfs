@@ -14,6 +14,7 @@
 #include "curlCurlEdgeInt.hh"
 #include "linearForm.hh"
 #include "massEdgeInt.hh"
+#include "nLinElastInt.hh"
 
 
 #endif

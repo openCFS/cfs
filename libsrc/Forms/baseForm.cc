@@ -39,7 +39,7 @@ namespace CoupledField
 #ifdef TRACE
     (*trace) <<  "entering BaseForm::CalcElemMatrix" << std::endl;
 #endif
-    Error(" Function BaseFormCalcElementMatrix is virtual. You can use it for derived classes.",__FILE__,__LINE__);
+    Error(" Function BaseForm::CalcElementMatrix is virtual. You can use it for derived classes.",__FILE__,__LINE__);
   }
 
 

@@ -6,6 +6,8 @@
 namespace CoupledField
 {
 
+
+
   // returns B - matrix for BDB
   void linElastInt::calcBMat(Matrix<Double> & bMat, Integer ip, Matrix<Double> & ptCoord)
   {
@@ -75,6 +77,7 @@ namespace CoupledField
       }
   }
   
+
   
   // calculated the D-matrix for the plain strain state
   void mechPlainStrainInt::calcDMat(Matrix<Double> & dMat)
@@ -136,7 +139,7 @@ namespace CoupledField
     for (Integer i=0; i<nrElems3d; i++)
       for (Integer j=0; j<nrElems3d; j++)
 	dMat[i][j] = (*matMatrix)[i][j];	
-}
+  }
 
 
 
@@ -152,8 +155,6 @@ namespace CoupledField
 #ifdef TRACE
     (*trace) << "entering linElastInt::linElastInt" << std::endl;
 #endif
-
-    ptelem=aptelem;
   }
  
 
@@ -192,8 +193,6 @@ namespace CoupledField
 #ifdef TRACE
     (*trace) << "entering mech3DInt::mech3DInt" << std::endl;
 #endif
-
-    ptelem=aptelem;
   }
  
 
@@ -205,3 +204,5 @@ namespace CoupledField
   }
 
 } // end namespace CoupledField
+
+

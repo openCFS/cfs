@@ -82,7 +82,8 @@ protected:
   /// returns nr. of degrees of freedom
   virtual Integer getNrDofs(){return 3;};  
 };
-  
+
+
 } //end namespace
 
 #endif // FILE_BASERFORM
