@@ -7,6 +7,9 @@
 namespace CoupledField
 {
 
+  // Forward declaration of classes
+  class Coil;
+
   //! Class for magnetic equation (no adaptivity)
   /*! 
     This class is derived from class BasePDE. 
@@ -122,9 +125,24 @@ protected:
   std::vector<std::vector<std::vector<Integer> > > elemNodeToCouplingNode_; //!< assigns each coupling element node the according Coupling Node number
   std::vector<std::vector<Integer> > numBoundaryNodes_;               //!< contains number of surface nodes per element
 
-  // coils
-  std::vector <std::string> coilDomain_;  //!< name of all subdomains containing coils
-  std::vector<struct coilDefStruct> coilDef_; //!< vector of paramters describing coils
+  // ==========================================================================
+  //   COILS
+  // ==========================================================================
+
+  //! Names of coils resp. their subdomains
+  std::vector<std::string> coilName_;  
+
+#ifndef XMLPARAMS
+
+  //! vector of parameters describing coils
+  std::vector<struct coilDefStruct> coilDef_; 
+
+#else
+
+  //! Parameters of the individual coils;
+  std::vector<Coil*> coilDef_;
+
+#endif
 
   // permanent magnets
   std::vector <std::string> magnetsDomain_;  //!< name of all subdomains containing permanent magnets
@@ -137,6 +155,66 @@ protected:
   std::ofstream * UIfile_; //!< file for informational output
   std::string UIfilename_;      //!< name of file for saving current/voltage values
    
+  private:
+
+#ifdef XMLPARAMS
+    //! Obtain information on desired output quantities from parameter file
+
+    //! This method is used to query the parameter handling object for the
+    //! desired output quantities and translate their literal description into
+    //! the internal format by setting the corresponding class attributes.
+    //! The output quantities currently supported by the electrostatics PDE are
+    //! given in the following table. Here 'Keyword' and 'Result Type' refer
+    //! to the XML parameter file, while 'Class Attribute' refers to the
+    //! internal attribute of the MagPDE class that is set, if the keyword
+    //! is specified.\n\n
+    //! <table border="1">
+    //!   <tr>
+    //!     <td><b>Physical quantity</b></td>
+    //!     <td><b>Keyword in parameter file</b></td>
+    //!     <td><b>Result Type</b></td>
+    //!     <td><b>Class Attribute</b></td>
+    //!   </tr>
+    //!   <tr>
+    //!     <td>Magnetic flux density \f$\vec{B}\f$</td>
+    //!     <td>bfield</td>
+    //!     <td>Element result</td>
+    //!     <td>calcBfield_</td>
+    //!   </tr>
+    //!   <tr>
+    //!     <td>Magnetic energy \f$W\f$</td>
+    //!     <td>energy</td>
+    //!     <td>Element result</td>
+    //!     <td>calcEnergy_</td>
+    //!   </tr>
+    //!   <tr>
+    //!     <td>Eddy current density \f$I_E\f$</td>
+    //!     <td>eddy</td>
+    //!     <td>Element result</td>
+    //!     <td>calcEddy_</td>
+    //!   </tr>
+    //!   <tr>
+    //!     <td>depends on formulation</td>
+    //!     <td>none -- always true</td>
+    //!     <td>Nodal results</td>
+    //!     <td>savesol_</td>
+    //!   </tr>
+    //!   <tr>
+    //!     <td align="center">---</td>
+    //!     <td>none -- always false</td>
+    //!     <td>Nodal results</td>
+    //!     <td>deriv1_</td>
+    //!   </tr>
+    //!   <tr>
+    //!     <td align="center">---</td>
+    //!     <td>none -- always false</td>
+    //!     <td>Nodal results</td>
+    //!     <td>deriv2_</td>
+    //!   </tr>
+    //! </table>
+    void ReadStoreResults();
+#endif
+
 };
 
 } // end of namespace
