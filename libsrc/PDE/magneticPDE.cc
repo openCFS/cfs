@@ -227,6 +227,20 @@ namespace CoupledField {
   // ======================================================
   // SOLVING SECTION
   // ======================================================
+Double MagPDE::LineSearch(Vector<Double>& solInc, Vector<Double>& actSol, 
+			   Double& etaLineSearch, Integer level, Boolean trans)
+{
+  ENTER_FCN( "MagPDE::LineSearch" );
+
+  //  Vector<Double> solOld(actSol);
+  const Integer nrEtas = 4;
+  const Double eta[nrEtas] = {1, 0.5, 0.25, 0.125};
+  Double etaOpt;
+  Double residualL2NormOpt = 1e15;
+  
+  actSol += solInc;
+  
+}
 
 void MagPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
 			    const Integer level, const Boolean reset)
