@@ -1182,8 +1182,12 @@ BaseFE * AnsysFile::Type2ptElem(const Integer itype)
 	return ptHexa2;
       case 12:
 	return ptPyra1;
-      case 13:
+//       case 13:
+// 	return ptPyra2;
+      case 14:
 	return ptWedge1;
+      case 15:
+	return ptWedge2;
       default:
 	{
 	  std::cout << "Used Element Type: " << itype << std::endl;  
