@@ -125,10 +125,11 @@ int main(int argc, char *argv[])
 
   
   // class writing log-information
-  Info = new WriteInfo(name);
+  Info = new WriteInfo();
   Info->PrintHeader();
 
   DefineInOutFiles * ptDefineFiles=new DefineInOutFiles(name);
+  Info->CreateFile(name);
   
    if (PrintGridOnly)
     STDOUT << "Printing grid to file " << name << ".unv" << myEndl << myEndl;
@@ -150,8 +151,9 @@ int main(int argc, char *argv[])
 
   // choose your driver
   BaseDriver       * ptdriver;  
-  std::string      analysis;
+  std::string      analysis, errMsg;
   Boolean          adaptspace;
+  AnalysisType analysisType;
 
 #ifndef XMLPARAMS
   conf->get("analysis", analysis);
@@ -162,38 +164,50 @@ int main(int argc, char *argv[])
 #endif
 
   Info->StartProgress("Creating driver");
-  if (analysis=="static") 
-    if (adaptspace)
-      {
+  String2Enum(analysis, analysisType);
+
+  switch(analysisType)
+    {
+    case STATIC:
+      if (adaptspace)
+	{
 #ifdef ADAPTGRID
-	ptdriver = new StaticAdaptSpaceDriver(domain);
+	  ptdriver = new StaticAdaptSpaceDriver(domain);
 #else
-	std::string errmsg;
-	errmsg  = "Your version of cfs does not support adaptivity! ";
-	errmsg += "Recompile with Adaptivity = yes";
-	Info->Error( errmsg, __FILE__, __LINE__ );
+	  std::string errmsg;
+	  errmsg  = "Your version of cfs does not support adaptivity! ";
+	  errmsg += "Recompile with Adaptivity = yes";
+	  Info->Error( errmsg, __FILE__, __LINE__ );
 #endif
-      }
-    else
-      ptdriver = new StaticDriver(domain);
-
-  else if (analysis=="transient") 
-    ptdriver = new TransientDriver(domain);
-
-  else if (analysis=="harmonic")
-    ptdriver = new HarmonicDriver(domain);
-  else
-    Info->Error( "Driver not supported", __FILE__, __LINE__ );
-
+	}
+      else
+	ptdriver = new StaticDriver(domain);
+      break;
+    case TRANSIENT:
+      ptdriver = new TransientDriver(domain);
+      break;
+    case HARMONIC:
+      ptdriver = new HarmonicDriver(domain);
+      break;
+    case MULTI_SEQUENCE:
+      ptdriver = new MultiSequenceDriver(domain);
+      break;
+    default:
+      errMsg = "Driver '";
+      errMsg += analysis;
+      errMsg += "' not supported!";
+      Info->Error( errMsg.c_str(),  __FILE__, __LINE__ );
+    }
   Info->FinishProgress();
 
   Info->StartProgress("Starting to solve problem",FALSE);
   ptdriver->SolveProblem();
-
-  std::cerr << std::endl;
+  std::cout << std::endl;
   Info->StartProgress("Finished solving the problem");
   Info->FinishProgress();
-  std::cerr << std::endl;
+
+  std::cout << std::endl;
+  std::cout << std::endl;
   oClockTotal.ClockCount(MyClock::end,"Total time");
  
 #ifdef MpCCI
