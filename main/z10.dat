@@ -179,7 +179,7 @@
 #           convtol1            convtol2            convtol3            convtol4
   0.000000000000E+00  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
 # numsteps savebegin  savestop  saveincr             delta-t
-        30         1         5         1  0.500000000000E-06
+        30         1         5         1  0.500000000000E-07
 #              alpha                beta             gamma_h             gamma_p
   0.000000000000E+00  0.250000000000E+00  0.500000000000E+00  0.100000000000E+01
 #  numdofs numconstr  numrestr  numloads resistors numspring   bembdry   numflux

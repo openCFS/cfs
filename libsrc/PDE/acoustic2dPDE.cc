@@ -313,7 +313,7 @@ void Acoustic2dPDE::SolveStepTrans(BCs * ptBCs, const Integer kstep, const Doubl
   sol_=transsol;
     
    // calculation of derivatives of solution
-   CalculationDerivativesSol();
+  CalculationDerivativesSol();
 }
 
 void Acoustic2dPDE:: WriteResultsInFile()
@@ -322,10 +322,10 @@ void Acoustic2dPDE:: WriteResultsInFile()
   (*trace) << "entering Acoustic2dPDE::WriteResultsInFile" << std::endl;
 #endif
 
+  std::cout << laststepcalc_ << " " << lasttimecalc_ << std::endl;
   OutFile_->WriteSolution(sol_, laststepcalc_, lasttimecalc_); /// !!!!!!!!!!
   OutFile_->WriteFirstDerSolution(sol_der1_, laststepcalc_,lasttimecalc_);
   OutFile_->WriteSecondDerSolution(sol_der2_,laststepcalc_,lasttimecalc_);
-
 }
 
 void Acoustic2dPDE :: CalcParameters(const Double dt)

@@ -36,16 +36,22 @@ public:
    virtual void WriteSecondDerSolution(const Vector<Double> & sol, const Integer step, const Double time);
 
 private:
+
   ///
   void Dataset666(const Integer level);
+
   ///
   void Dataset781(const Integer level);   
+
   ///
   void Dataset780(const Integer level);
+
   ///
   void Dataset55(const std::string & title, const Vector<Double> & x, const Integer step, const Double time);
+
   ///
   void Dataset56(); 
+
   ///
   Dim * ptCoordinate;
  
