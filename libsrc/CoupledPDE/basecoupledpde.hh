@@ -6,7 +6,12 @@
 #include <Domain/bcs.hh>
 #include <DataInOut/filetype.hh>
 #include <DataInOut/writeresults.hh>
+
+#ifndef NEWBASEPDE
 #include <PDE/basepde.hh>
+#else
+#include <PDE/newBasePDE.hh>
+#endif //#ifndef NEWBASEPDE
 
 namespace CoupledField
 {

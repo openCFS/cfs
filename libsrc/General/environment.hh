@@ -97,7 +97,6 @@ typedef Double (*pFncWith1Var)(const Double);
 // ------------------------ Files for debug, trace and information ---------
 extern std::ostream * trace; //name.trace
 extern std::ostream * debug; //name.deb
-extern std::ostream * infofile; //name.info
 extern std::ostream * cla; //name.cla
 extern std::ostream * memtrace; //name for name.mem 
 extern std::ostream * data; //name.data

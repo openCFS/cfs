@@ -126,7 +126,7 @@ void  WriteResultsUnverg::Dataset780(const Integer level)
 	  k++; 
 	  connect=elemssd[j]->connect;
 
-	  (*output) << std::setw(10) << k << std::setw(10);
+	  (*output) << std::setw(10) << elemssd[j]->ElemNum << std::setw(10);
 
 	  if (dim==2)
 	    {     switch(connect.size())

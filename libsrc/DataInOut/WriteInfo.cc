@@ -20,7 +20,7 @@ namespace CoupledField
 #endif
 
     std::string filename(name);
-    filename += ".log";
+    filename += ".info";
   
     cfsInfo = new std::ofstream(filename.c_str());
 
@@ -129,6 +129,7 @@ namespace CoupledField
 
 
 
+#ifndef NEWBASEPDE
   void WriteInfo::PrintCoil(std::string& coilDomain, struct MagEdgePDE::coilDefStruct& coilDef,  AnalysisType& analysistype_)
   {
     *cfsInfo <<  "COIL DESCRIPTION ======================================= " << myEndl
@@ -144,6 +145,7 @@ namespace CoupledField
     
     *cfsInfo << std::endl << myEndl;
   }
+#endif // NEWBASEPDE
 
 
 
@@ -216,6 +218,33 @@ namespace CoupledField
     
     
     exit(-1);
+  }
+  
+  void WriteInfo::WriteHomBC(const std::string& pdeName,const std::string& subDom, Integer dof)
+  {
+#ifdef TRACE
+    (*trace) << "entering WriteInfo::WriteHomBC" << std::endl;
+#endif
+    *cfsInfo << pdeName << "-PDE: Homogenous BC on \"" << subDom  << "\"";
+    if (dof)
+      *cfsInfo << " with DOF number " << dof;
+    
+    *cfsInfo << myEndl;
+  }
+
+
+  void WriteInfo::WriteLoad(const std::string& pdeName, const std::string& subDom, 
+			    Double value, Integer dof)
+  {
+#ifdef TRACE
+    (*trace) << "entering WriteInfo::WriteLoad" << std::endl;
+#endif
+    *cfsInfo << pdeName << "-PDE: Loads on \"" << subDom << "\"";
+    
+    if (dof)
+      *cfsInfo << " with DOF number " << dof;
+
+    *cfsInfo << ",\t Value=" << value << myEndl << myEndl;
   }
   
 

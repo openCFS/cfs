@@ -44,14 +44,11 @@ DefineInOutFiles :: DefineInOutFiles(const Char * name)
  cla=new std::ofstream(strcat(filename,".las")); 
  if (!cla) Error("Can't open LAS++-file");
 
+
  strcpy(filename, name);
  data=new std::ofstream(strcat(filename,".data"));
  if (!data) Error("Can't open data-file");
 
-//  strcpy(filename, name);
-//  infofile = new std::ofstream(strcat(filename,".info"));
-//  if (!infofile) Error("Can't open info-file");
- 
 
  strcpy(filename, name);
  conf=new ConfFile(name);
@@ -74,8 +71,6 @@ delete debug;
 #endif
  
 if (ptWriteResults) delete ptWriteResults;
-
-if (infofile) delete infofile;
 
 if (conf) delete conf;
 if (cla) delete cla;

@@ -17,17 +17,17 @@ namespace CoupledField
 
   //! Class for anaylsis handling
 
-  class Analysis
+  class Assemble
   {
     
   public:
     
     //!  Constructor
-    Analysis(Grid * aptgrid);
+    Assemble(BaseSystem * algsys, Grid * aptgrid);
     
     
     //!  Deconstructor
-    virtual ~Analysis();
+    virtual ~Assemble();
     
     
     /// adds integrators to the pde
@@ -38,12 +38,12 @@ namespace CoupledField
 
      //! specify type of system matrix for AlgebraicSystem
      /*! \param level (input) level of Grid     */
-     virtual void SetupMatrices(const Integer level);
+     virtual void AssembleMatrices(const Integer level);
 
 
 
     /// setup source term
-     void SetupRHS(const Integer level);
+     void AssembleRHS(const Integer level);
 
 
 
@@ -90,9 +90,12 @@ namespace CoupledField
     
     
 
+    void SetNumDirichlet(Integer numDirichlet)
+    {numDirichletBCs_ = numDirichlet;};
+    
 
     // ======================================================
-    // STUFF BELONGING TO ALGSYS (solvers, matrices, graphs, ...)
+    // STUFF BELONGING TO ALGSYS (matrices, graphs, ...)
     // ======================================================
   
 
@@ -101,34 +104,44 @@ namespace CoupledField
     
 
     //! deletes the algebraic system 
-    void DeleteAlgSys();
+    void DeleteAlgSys(){if (algsys_) delete algsys_;};
 
     
     /// Initialize all necessary matrices 
     void InitMatrices();
 
 
+    /// establish matrices
+    void CreateMatrices();
+    
+
+
     //! define discrete PDE
     virtual void MatrixSettings() = 0;
 
+
+    //! define matrix type
+    virtual void SetMatrixType(Integer matType)
+    {matrixType_=matType;};
+
+
+    //! return matrix type
+    Integer GetMatrixType(){return matrixType_;};
     
-    //! Create the matrices and Solver as well as Preconditioner
-    void CreateMatrices_Solver();
 
     //! Sets the type of the matrix graph
     void SetGraphType(enum GraphType aGraphType)
     {graphType_ = aGraphType;};
     
+
     //! constructes the matrix graph by providing to the algebraic system the element connectivities
-    void SetupMatrixGraph(Integer numeq, Integer graphtype);
+    //    void SetupMatrixGraph(Integer numeq, Integer graphtype);
+    void SetupMatrixGraph(Integer numeq);
 
 
      //! set information for algebraic system about PDE. set matrix factors
      virtual void SetMatrixFactors()=0;
 
-
-    //! define algebraic system solver Parameters
-    virtual void SetSolverParameters();
 
 
     //! returns the local PDE number of an array of nodes
@@ -142,45 +155,30 @@ namespace CoupledField
 		      const std::vector<Integer> & Mesh2PDENode);
     
 
-    /// allocates matrix space
-    void NeedMatrix(const enum MatrixType matType)
-    {algsys_->InitMatrix(matType);};
-
-
 
     void SetMesh2PDENode(std::vector<Integer> * aMesh2PDENode)
     {mesh2PDENode_ = aMesh2PDENode;};
 
 
-    // set actual calculation level
+    /// set actual calculation level
     void SetLevel(Integer alevel)
     {actlevel_ = alevel;};
     
-
-    // "time stepping" for solver
-    virtual void SolveStep()=0;
+    /// sets the pointer to the BCs
+    void SetPtrBCs(BCs* aptBCs) 
+    { ptBCs_ = aptBCs;}
     
+      
 
-
+    /// require damping matrix
+    void NeedDampingMatrix()
+    {dampingMatrix_ = TRUE;};
+    
 
     // ====================================================
     // DATA SECTION 
     // ====================================================
-
-
-    /// additional information for every integrator
-    struct integratorDescriptor
-    {
-      BaseForm * integrator;
-      enum MatrixType destinationMatrix;
-      Integer nonLin;
-    };
     
-    
-    /// vector of all needed integrators (every subdomain needs one "list of integrators")
-    //    Vector< Vector<integratorDescriptor *>* > integrators_;
-    std::vector< std::vector<integratorDescriptor *>* > integrators_;
-
     BaseSystem * algsys_;         //!< pointer to algebraic system  
     Grid * ptgrid_;               //!< pointer to Grid
 
@@ -200,9 +198,23 @@ namespace CoupledField
     std::string pdename_;         //!< name of calling pde
     std::vector<Integer> * mesh2PDENode_; //!< array containing PDE (=local) node numbers
 
-    std::vector<std::string> subdoms_;  //!< subdomain-levels belongig to PDE
-    Integer actlevel_;             //!< actual level of calculation
+    std::vector<std::string> subdoms_; //!< subdomain-levels belongig to PDE
+    std::vector<std::string> loadDoms_;//!< load subdomains
+    std::vector<Double> val_loads_;    //<! values of the load condition
+    BCs *ptBCs_;                       //!< pointer to Boundary Condition  Object
+
+    Integer actlevel_;                 //!< actual level of calculation
     
+    struct integratorDescriptor        //!< additional information for every integrator
+    {
+      BaseForm * integrator;
+      enum MatrixType destinationMatrix;
+      Integer nonLin;
+    };
+    
+    /// vector of all needed integrators (every subdomain needs one "list of integrators")
+    std::vector< std::vector<integratorDescriptor *>* > integrators_;
+
 
 
 
@@ -214,31 +226,55 @@ namespace CoupledField
   private:
     //! calculates the index of the subdoman with name "subDomName" in the subdomain-list
     Integer SubDomIndex(const std::string & subDomName);
+
+    //! returns the index of the named dof
+    Integer GetNrBCDof (const std::string & dofStartString);
+
   };
     
       
 
 
 
-  class StaticAnalysis : public Analysis
+
+
+  class StaticAssemble : public Assemble
   {
     
   public:
-    StaticAnalysis(Grid * agrid):Analysis(agrid){};
+    StaticAssemble(BaseSystem * algsys, Grid * agrid);
     
-    virtual ~StaticAnalysis(){};
+    virtual ~StaticAssemble(){};
 
     //! define discrete PDE
-    virtual void MatrixSettings();
+    virtual void MatrixSettings(){};
 
      //! set information for algebraic system about PDE. set matrix factors
      virtual void SetMatrixFactors(){};
 
     /// "time stepping" for solver
-    void SolveStep();
+//     void SolveStep();
 
   };
 
+
+
+
+  class TransientAssemble : public Assemble
+  {
+    
+  public:
+    TransientAssemble(BaseSystem * algsys, Grid * agrid);
+    
+    virtual ~TransientAssemble(){};
+
+    //! define discrete PDE
+    virtual void MatrixSettings(){};
+
+     //! set information for algebraic system about PDE. set matrix factors
+     virtual void SetMatrixFactors(){};  
+  };
+  
 
 } // end of namespace
 #endif

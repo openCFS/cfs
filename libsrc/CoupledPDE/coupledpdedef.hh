@@ -3,8 +3,13 @@
 
 #include <vector>
 #include <map>
-#include <PDE/basepde.hh>
 #include <CoupledPDE/pdecoupling.hh>
+
+#ifndef NEWBASEPDE
+#include <PDE/basepde.hh>
+#else
+#include <PDE/newBasePDE.hh>
+#endif //#ifndef NEWBASEPDE
 
 
 

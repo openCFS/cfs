@@ -27,18 +27,23 @@ namespace CoupledField
   public:
     /// constructor
     WriteInfo(const Char * name);
+
     
     /// destructor
     virtual ~WriteInfo();
 
+
     /// Prints header for both info-file and standard out
     void PrintHeader();
+
     
     /// prints full data of a piezo material
     void PrintPiezoMat(MaterialData& material);
+
     
     /// prints all fluid data
     void PrintFluidMat(MaterialData& material);
+
 
     /// prints all magnetic data
     void PrintMagMat(MaterialData& material);
@@ -48,9 +53,21 @@ namespace CoupledField
     void PrintCoil(std::string& coilDomain, struct MagEdgePDE::coilDefStruct& coilDef,  AnalysisType& analysistype_);
 #endif // NEWBASEPDE
 
+
     /// prints the process of a nonlinear iteration
     void WriteNonLinIter(const std::string& pdeName, const Integer iterationCounter,    
 			 const Double residualErr, const Double incrementalErr);
+
+
+    /// writes domain and dof of homogenous boundary conditions
+    void WriteHomBC(const std::string& pdeName, 
+		    const std::string& subDom, Integer dof=0);
+
+
+    /// writes domain, value and dof of a load conditon
+    void WriteLoad(const std::string& pdeName, const std::string& subDom, 
+		   Double value, Integer dof=0);
+    
 
     /// write Result values
     void WriteResult(std::string pdename, std::string resulttype, std::vector<std::string> subdoms,
