@@ -40,6 +40,7 @@ private:
   Integer scaledMatDat;
   char * name; 
   //char name[stringLength]; 
+  std::string bhCurveFile_; //!< name of BH-Curve datafile
 
   //const ARRAY <NonlinSpline*> & magneticSpline;
   //  ARRAY <NonlinSpline*> * magneticSpline;
@@ -87,6 +88,11 @@ public:
   /// set permeability of the material
   void SetPermeability(const Double& aPerm){permeability = aPerm;}
 
+  /// set nonlinearity datafile for BH-curve for magnetic material
+  void SetBHCurveFileName( const Char *filename) {
+    bhCurveFile_.assign( filename );
+  }
+
   /// set compressibility of the material
   void SetCompressibility(const Double& compr){compressibility = compr;}
 
@@ -102,6 +108,8 @@ public:
   void GetPermMag( Double& mX,  Double& mY, Double& mZ)
   {mX=permMx, mY=permMy, mZ=permMz;};
 
+  /// get nonlinearity datafile name for BH-curve for magnetic material
+  std::string& GetBHCurveFileName() { return bhCurveFile_; }
 
   /// set one value of the data-matrix on position (i,j)
   void SetMatrixData(const Integer& i, const Integer& j, const Double& value)
@@ -173,12 +181,6 @@ public:
 
   /// get conductivity
   Double GetConductivity() const {return conductivity; };
-
-  // get nonlinear permiability
-  //Double GetPermiability(const Double& MagB) const;
-
-  /// get const permiability - if material is linear!
-  Double GetPermiability() const {return permeability;};
 
   /// get name of the material
   char * GetMaterialName(); 

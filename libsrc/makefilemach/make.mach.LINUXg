@@ -34,7 +34,8 @@ UNDER  = -DFORTRANDOUBLEUNDERSCORE
 LINKFLAGS = -pg 
 
 #
-BLASLAPACK = -lblas -llapack -lg2c
+BLASLAPACK = 
+#-lblas -llapack -lg2c
 syslib = -lm -lc $(BLASLAPACK)
 
 # Flag for function tracing

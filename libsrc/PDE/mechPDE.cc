@@ -180,13 +180,13 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
       Info->PrintF( pdename_,  " Non-linearity in %d regions\n",
 		    nonLinRegion.size() );
 
-      if ( params->HasValue( "type", "none", pdename_, "lineSearch" ) ) {
-	lineSearch_ = FALSE;
+      // type of line search
+      params->Get( "lineSearch", lineSearch_, pdename_, "nonLinear" );
+
+      if ( lineSearch_ == "no" ) {
 	Info->PrintF( pdename_, " Performing no line search" );
       }
-
       else {
-	lineSearch_ = TRUE;
 	Info->PrintF( pdename_, " Will perform line search" );
       }
 
@@ -194,7 +194,7 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 
     // If no non-linearity we do not perform line search anyhow
     else {
-      lineSearch_ = FALSE;
+      lineSearch_ = "no";
     }
 
 #endif
@@ -877,7 +877,11 @@ void MechPDE::StepStaticNonLin(const Integer kstep, const Double aTime,
       Double residualL2Norm;
       Double etaLineSearch=0;
 
+#ifndef XMLPARAMS
       if (!lineSearch_)
+#else
+      if ( lineSearch_ != "no" )
+#endif
 	actSol += solIncrement;
       else
 	// TRUE is for transient simulation
@@ -900,7 +904,11 @@ void MechPDE::StepStaticNonLin(const Integer kstep, const Double aTime,
       // =====================================================================
       // calculation of error norms
       // =====================================================================
+#ifndef XMLPARAMS
       if (!lineSearch_)
+#else
+      if ( lineSearch_ != "no" )
+#endif
 	{
 	  Vector<Double> actRHS;
 	  StoreAlgsysToVec(actRHS, algsys_->GetRHSVal() );       
@@ -1154,7 +1162,11 @@ void MechPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
       Double residualL2Norm;
       Double etaLineSearch = 0;
       
+#ifndef XMLPARAMS
       if (!lineSearch_)
+#else
+      if ( lineSearch_ != "no" )
+#endif
 	actSol += solIncrement;
       else
 	// TRUE is for transient simulation
@@ -1178,7 +1190,11 @@ void MechPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
       // calculation of error norms
       // =====================================================================
 
+#ifndef XMLPARAMS
       if (!lineSearch_)
+#else
+      if ( lineSearch_ != "no" )
+#endif
 	{
 	  Vector<Double> actRHS;
 	  StoreAlgsysToVec(actRHS, algsys_->GetRHSVal() );       

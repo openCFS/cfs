@@ -589,12 +589,20 @@ class SpaceErrorEstimator;
 
     //@{
     //! \name Attributes connected to nonlinearity
-    Boolean nonLin_;           //!<  flag for nonlinear calculations
+    Boolean nonLin_;           //!< flag for nonlinear calculations
     Boolean geoUpdate_;        //!< flag for geometric update
     Double incStopCrit_;       //!< stopping criterion for incremental error
     Double residualStopCrit_;  //!< stopping criterion for residual error
-    Boolean lineSearch_;       //!< switch for lineSearch
     Integer nonLinMaxIter_;    //!< maximal number of NL-iterations
+    std::string nonLinMethod_; //!< method for handling the non-linearity
+    Boolean nonLinLogging_;    //!< log progress of non-linear iterations
+
+#ifndef XMLPARAMS
+    Boolean lineSearch_;
+#else
+    std::string lineSearch_;   //!< switch for lineSearch
+#endif
+    
 
     //@}
 
