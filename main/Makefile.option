@@ -36,9 +36,6 @@ MpCCI=no
 #can only be compiled if MySQL-devel is installed
 DATABASE=no
 
-#General Socket Interface
-GSI = no
-
 #Hypre solvers
 # NOTE: Only used in OLAS
 HYPRE = no 
