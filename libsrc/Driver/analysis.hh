@@ -31,8 +31,8 @@ namespace CoupledField
     
     
     /// adds integrators to the pde
-    void AddIntegrator(BaseForm * integrator, const std::string & subdomain,
-		       const enum MatrixType destinationMatrix, const Integer nonLin);
+    virtual void AddIntegrator(BaseForm * integrator, const std::string & subdomain,
+			       const enum MatrixType destinationMatrix, const Integer nonLin)=0;
 
 
 
@@ -205,7 +205,7 @@ namespace CoupledField
 
     Integer actlevel_;                 //!< actual level of calculation
     
-    struct integratorDescriptor        //!< additional information for every integrator
+    struct IntegratorDescriptor        //!< additional information for every integrator
     {
       BaseForm * integrator;
       enum MatrixType destinationMatrix;
@@ -213,9 +213,7 @@ namespace CoupledField
     };
     
     /// vector of all needed integrators (every subdomain needs one "list of integrators")
-    std::vector< std::vector<integratorDescriptor *>* > integrators_;
-
-
+    std::vector< std::vector<IntegratorDescriptor *>* > integrators_;
 
 
 
@@ -223,12 +221,22 @@ namespace CoupledField
     // AUXILIARY METHODS
     // ==============================================
 
-  private:
+
+
+  protected:
+    /// define integrators
+    struct IntegratorDescriptor * 
+    BuildIntDescriptor(BaseForm * integrator, const std::string & subDomName,
+		       const enum MatrixType destinationMatrix, const Integer nonLin);
+
     //! calculates the index of the subdoman with name "subDomName" in the subdomain-list
     Integer SubDomIndex(const std::string & subDomName);
 
+  private:
+
     //! returns the index of the named dof
     Integer GetNrBCDof (const std::string & dofStartString);
+
 
   };
     
@@ -252,9 +260,8 @@ namespace CoupledField
      //! set information for algebraic system about PDE. set matrix factors
      virtual void SetMatrixFactors(){};
 
-    /// "time stepping" for solver
-//     void SolveStep();
-
+    virtual void AddIntegrator(BaseForm * integrator, const std::string & subdomain,
+			const enum MatrixType destinationMatrix, const Integer nonLin);
   };
 
 
@@ -273,6 +280,11 @@ namespace CoupledField
 
      //! set information for algebraic system about PDE. set matrix factors
      virtual void SetMatrixFactors(){};  
+
+    /// adds integrators to the pde
+     virtual void AddIntegrator(BaseForm * integrator, const std::string & subdomain,
+		       const enum MatrixType destinationMatrix, const Integer nonLin);
+
   };
   
 

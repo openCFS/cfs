@@ -246,13 +246,23 @@ namespace CoupledField
 
     (*skelfile_) << "\t subdomains = XXX non" << std::endl << std::endl;
 
-    (*skelfile_) << "\t bc_conditions:" << std::endl;
-    (*skelfile_) << "\t \t homogeneous_dirichlet = XXX non" << std::endl; 
-    (*skelfile_) << "\t \t inhomogeneous_dirichlet = XXX non" << std::endl; 
+    (*skelfile_) << " \t bc_conditions:" << std::endl;
+    (*skelfile_) << " \t \t homogeneous_dirichlet = XXX non" << std::endl; 
+    (*skelfile_) << "#\t \t If pde has more than one dof (e.g. mechanic), uncomment next line and substitute XXX with dof (e.g. ux):" << std::endl;
+    (*skelfile_) << "#\t \t homoBCDof = XXX non" << std::endl << std::endl;
+    
+    (*skelfile_) << " \t \t inhomogeneous_dirichlet = XXX non" << std::endl; 
     (*skelfile_) << "#\t \t If you have an inhomogeneous_dirichlet BC , uncomment the following line and substitute IHD" << std::endl; 
-    (*skelfile_) << "#\t \t \t IHD = IHDvalue [, IHDfile]" << std::endl << std::endl; 
+    (*skelfile_) << "#\t \t \t XXX = XXXvalue [, XXXfile]" << std::endl;
+    (*skelfile_) << "#\t \t If pde has more than one dof (e.g. mechanic), uncomment next line and substitute XXX with dof (e.g. ux):" << std::endl;
+    (*skelfile_) << "#\t \t inhomoBCDof = XXX non" << std::endl << myEndl;
+    
 
-    (*skelfile_) << "\t loads = XXX non" << std::endl << std::endl; 
+    (*skelfile_) << "\t loads = XXX non" << std::endl;
+    (*skelfile_) << "#\t \t XXX = XXXValue [, XXXFile]" << std::endl;
+    (*skelfile_) << "#\t \t If pde has more than one dof (e.g. mechanic), uncomment next line and substitute XXX with dof (e.g. ux):" << std::endl;
+    (*skelfile_) << "#\t \t loadDof = XXX non" << std::endl << myEndl;
+    
 
     (*skelfile_) << "# --\t ABSORBING BCs: (if yes, uncomment  bnd_for_absBCs and specify" << std::endl; 
     (*skelfile_) << "\t absorbingBCs = no" << std::endl;
