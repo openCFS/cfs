@@ -125,8 +125,7 @@ public:
 
   /// set one value of the data-matrix on position (i,j)
   void SetPiezoMatrixData(const Integer& i, const Integer& j, const Double& value)
-    {(*piezoMatrix)(i,j) = value;
-     (*piezoMatrixC)(i,j) = value;};
+    {(*piezoMatrix)(i,j) = value;};
 
   /// set one value of the data-matrix on position (i,j)
   void SetPiezoMatrixDataC(const Integer& i, const Integer& j, const Double& value)
