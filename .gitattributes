@@ -95,6 +95,8 @@ libsrc/Driver/Makefile -text
 libsrc/Driver/basedriver.cc svneol=native#text/plain
 libsrc/Driver/basedriver.hh svneol=native#text/plain
 libsrc/Driver/driver_header.hh svneol=native#text/plain
+libsrc/Driver/harmonicAdapt.cc svneol=native#text/plain
+libsrc/Driver/harmonicAdapt.hh svneol=native#text/plain
 libsrc/Driver/harmonicDriver.cc svneol=native#text/plain
 libsrc/Driver/harmonicDriver.hh svneol=native#text/plain
 libsrc/Driver/staticAdaptSpaceDriver.cc svneol=native#text/plain

@@ -4,8 +4,6 @@
 
 #include "harmonicDriver.hh"
 
-#include "DataInOut/GMV/outGMV.hh"
-
 namespace CoupledField
 {
 

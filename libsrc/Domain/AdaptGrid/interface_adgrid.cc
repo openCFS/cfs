@@ -287,6 +287,7 @@ void InterfaceAdaptGrid<dim>::Trans2CFSGrid(const Integer alevel)
 
 }
 
+/*
 template<Integer dim>
 void InterfaceAdaptGrid<dim>::ResetToCoarseGrid()
 {
@@ -304,6 +305,7 @@ void InterfaceAdaptGrid<dim>::ResetToCoarseGrid()
   std::cout << " no. of elements: " << grid_.getNoOfTriangles() << " level: " << grid_.getTopLevel() << std::endl;
   std::cout <<  " no. of nodes: " << grid_.getNoOfVertices() << " level: " << grid_.getTopLevel() << std::endl;
 }
+*/
 
 template<Integer dim>
 void InterfaceAdaptGrid<dim>::ProlongSol(const Vector<Double> sol_coarse, Vector<Double> &sol, const Integer alevel)

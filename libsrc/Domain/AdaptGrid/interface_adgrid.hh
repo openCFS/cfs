@@ -16,7 +16,6 @@
 #include "Tetrahedron.h"
 #include "Octahedron.h"
 #include "MultilevelGrid.h"
-#include "GeometrySensor.h"
 #include "MeshReader.h"
 #include "TetrahedronMeasure.h"
 #include "MeshWriter.h"
@@ -81,7 +80,7 @@ public:
   virtual std::vector<std::string> *GetAllSDs();
 
  //! restore initial coarse mesh
-  virtual void ResetToCoarseGrid();
+//  virtual void ResetToCoarseGrid();
 
   //! in this function we calculate area of element
   virtual Double CalcAreaElem(const Elem* elem)

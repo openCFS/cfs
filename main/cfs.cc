@@ -99,7 +99,7 @@ Integer main(int argc, char *argv[])
 
   // class writing log-information
   Info = new WriteInfo(name);
-  Info->PrintHeader();
+  //  Info->PrintHeader();
 
   MyClock oClockTotal;
   oClockTotal.ClockCount(MyClock::beg);

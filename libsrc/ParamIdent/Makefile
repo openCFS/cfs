@@ -4,10 +4,10 @@ include ../../main/Makefile.option
 
 C_DIR=../..
 #
-src = basedriver.cc transientdriver.cc staticdriver.cc harmonicDriver.cc
+src = basedriver.cc transientdriver.cc staticdriver.cc harmonicDriver.cc 
 #
 ifeq ($(Adaptivity),yes)
-  src = basedriver.cc transientdriver.cc staticdriver.cc harmonicDriver.cc staticAdaptSpaceDriver.cc
+  src = basedriver.cc transientdriver.cc staticdriver.cc harmonicDriver.cc harmonicAdapt.cc staticAdaptSpaceDriver.cc
 endif
 #
 lib = driver
