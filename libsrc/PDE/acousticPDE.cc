@@ -32,7 +32,9 @@ namespace CoupledField {
     pdematerialclass_ = "fluid";
 
     absorbingBCs_ = FALSE;
-
+    
+    coarsealpha_ = 0.01;
+    
 #ifndef XMLPARAMS
     isaxi_ = FALSE;
     std::string subtype;
