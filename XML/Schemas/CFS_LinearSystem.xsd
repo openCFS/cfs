@@ -131,6 +131,15 @@
         </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>
+    <xsd:attribute name="reordering" use="optional" default="noReordering">
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:token">
+          <xsd:enumeration value="noReordering"/>
+          <xsd:enumeration value="Metis"/>
+          <xsd:enumeration value="Sloan"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
   </xsd:complexType>
 
 </xsd:schema>
