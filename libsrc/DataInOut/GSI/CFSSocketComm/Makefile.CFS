@@ -1,0 +1,18 @@
+#
+C_DIR = ../../../../
+#
+ifeq ($(GSI),yes)
+src = CFS_BaseIO.cc CFS_ClientSocket.cc CFS_RawIO.cc CFS_ServerSocket.cc CFS_Socket.cc CFS_XDRIO.cc
+else
+src =
+endif
+#
+lib = gsi
+libpath = libsrc/DataInOut/GSI
+CFLAGS3 =
+#
+include $(C_DIR)/libsrc/makefile.inc
+
+# DO NOT DELETE
+
+

@@ -17,6 +17,7 @@ HexaFE::HexaFE()
     Dim_      = 3;
     NumEdges_ = 12;
     NumFaces_ = 6;
+    numChilds_ = 8;
 
   std::string integtype="GaussOrder2";
 

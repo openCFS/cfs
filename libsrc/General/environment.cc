@@ -11,7 +11,9 @@ namespace CoupledField
   std::ostream * infofile=NULL;
   std::ostream * cla=NULL;
   std::ostream * memtrace=NULL;
+  std::ostream * data = NULL;
 
+  Flags * flags=NULL;
   ConfFile * conf=NULL;
 
   Boolean InfoPrint=FALSE;
@@ -22,12 +24,6 @@ namespace CoupledField
   BaseFE * ptTr1 = NULL;
   BaseFE * ptHexa=NULL;
   
-  // BaseElem * ptQ = NULL;
-  // BaseElem * ptTr = NULL;
-  // BaseElem * ptTet = NULL;
-  // BaseElem * ptL1=NULL;
-  // BaseElem * ptHexa=NULL;
-
   std::ostream & operator << (std::ostream & out, const enum precond & type)
   {
     switch (type)

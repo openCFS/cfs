@@ -4,7 +4,6 @@
 #include <math.h>
 
 #include "acousticPDE.hh" 
-#include <Estimator/actimeerror.hh>
 #include <DataInOut/Unverg/outUnverg.hh>
 #include <DataInOut/GMV/outGMV.hh>
 #include <Forms/forms_header.hh>
@@ -54,10 +53,8 @@ AcousticPDE::AcousticPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, Fil
     {
        with_fracdamping_ = TRUE;
        conf->get("frac_memory",frac_memory_,pdename_);
-    if (InfoPrint)
       (*infofile) << "\n Attenuation according to power law, number of memory is " << frac_memory_ 
 		  << std::endl << std::endl;
-    (*infofile) << "\n value 1.5^2.5: " << pow(1.5,2.5) << std::endl;
     }
 
   ReadBCs(pdename_);

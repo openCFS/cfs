@@ -7,7 +7,8 @@ namespace CoupledField
 {
 
 
-  void MassInt::CalcElementMatrix(Matrix<Double> & ptCoord, Matrix<Double> & elemMat)
+  void MassInt::CalcElementMatrix(Matrix<Double> & ptCoord,
+				  Matrix<Double> & elemMat)
   {
 #ifdef TRACE
     (*trace) << "entering MassInt::CalcElemMatrix" << std::endl;

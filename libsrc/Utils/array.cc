@@ -130,7 +130,7 @@ void Array<TYPE>::resize(Integer size)
 	{
 	  if (!sol_)
 	    sol_ = new Vector<TYPE>[dim_];
-	  
+      
 	  for (Integer i=0; i<dim_; i++)
 	    sol_[i].Resize(size);
 	}
@@ -141,7 +141,7 @@ void Array<TYPE>::resize(Integer size)
 template<class TYPE>
 void Array<TYPE>::reshape(ShortInt dim, Integer size)
 {
-  if (size <= 0 || size <= 0)
+  if (dim <= 0 || size <= 0)
     Error ("Array: invalid size/dimension",__FILE__,__LINE__);
 
 
@@ -497,8 +497,11 @@ template<class TYPE>
 void Array<TYPE>::toVector(Vector<TYPE> & v, Integer dim)
 {
 
-  if (dim >= dim_ || dim <= 0)
+  if (dim > dim_ || dim <= 0)
     Error("Array: wrong dimension",__FILE__,__LINE__);
+
+  if (!v.size())
+    v.Resize(size_);
 
    for (Integer i=0; i<size_; i++)
     v[i] = sol_[dim][i];

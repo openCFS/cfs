@@ -4,6 +4,9 @@
 
 #include "tools.hh"
 #include <Matrix/matrix.hh>
+#include <Elements/elements_header.hh>
+#include <Domain/elem.hh>
+#include <Domain/grid.hh>
 
 namespace CoupledField {
 
@@ -195,22 +198,32 @@ char * c_string(const std::string & s)
    return p;
 }
 
+Integer defineRefinements(const Double tolElem, const Double tolTotal, const Integer noOfChilds)
+{
+  Double tmp=log(tolElem/tolTotal)/log(noOfChilds);
+  return (Integer)tmp + 1;
+}
 
-// //! Overloading << for std::vector
-// template<class T> 
-// std::ostream& operator<< ( std::ostream & outStr, std::vector<T> xOut)
-// {
-//   for (Integer i=0; i<xOut.size(); i++)
-//     outStr <<  xOut[i];
-// }
+Double CalcArea(Elem * ptE, Grid * ptgrid, const Integer level)
+{
+  Double         area = 0;
+  BaseFE         * ptelem = ptE->ptElem;
+  const Vector<Integer> & connect = ptE->connect;
+  Matrix<Double> ptCoord;
+  Integer        nrIntPnts = ptelem->GetNumIntPoints();
+  const std::vector<Double> & intWeights = ptelem->GetIntWeights();  
+  Integer        i;
+  Double         jacDet;
 
+  ptgrid->GetCoordNodesElemMat(connect,ptCoord,level);
 
-// //! Overloading << for std::vector
-// std::ostream& operator<< (std::ostream & outStr, std::vector<Double> xOut)
-// {
-//   for (Integer i=0; i<xOut.size(); i++)
-//     outStr <<  xOut[i];
-//   return outStr;
-// }
+  for (i=0; i<nrIntPnts; i++)
+    {
+      jacDet = ptelem->CalcJacobianDetAtIp(i+1, ptCoord);
+      area +=jacDet*intWeights[i];
+    } 
+
+  return area;
+}
  
 }// namespace CoupledField

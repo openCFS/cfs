@@ -306,6 +306,45 @@ Boolean LinSystem<T, T_Matrix>::GMRes_m(const Integer maxIter, enum precond type
 
 }
 
+template<class T, class T_Matrix >
+void LinSystem<T, T_Matrix>::CholerskyMethod()
+{
+#ifdef TRACE
+    (*trace) << "entering LinSystem::Cholersky Method \n";
+#endif
+
+    Integer dim=b.size();
+    x.Resize(dim);
+
+    A.CholerskyDecomposition();
+
+    // Vorwaertseinsetzen
+    Double sum;
+    Integer i,k;
+    for (i=0; i<dim; i++) 
+      {
+	sum=0;
+	for (k=0; k<i; k++)
+	  {
+	    sum+=b[k]*A[i][k];
+	  }
+	b[i]=(b[i]-sum)/A[i][i];
+      }
+
+    //Ruechwaertseinsetzen
+    for (i=dim-1; i>=0; i--)
+      {
+	sum=0;
+	for (k=i+1; k<dim; k++)
+	  {
+	    sum+=x[k]*A[k][i];
+	  }
+	x[i]=(b[i]-sum)/A[i][i];
+      }
+
+  }
+
+
 template<class T, class T_Matrix>
 Boolean LinSystem<T, T_Matrix>::BiCGSTAB(const Integer maxIter, enum precond typePrecond)
 {

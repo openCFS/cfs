@@ -116,7 +116,6 @@ public:
   /// set name of the material
   void SetName(const char* Name);
 
-
   /// 
   void SetScaledFlag(){scaledMatDat = 1;};
 

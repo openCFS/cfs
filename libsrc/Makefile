@@ -1,8 +1,5 @@
 #make the libs
 
-gmv:
-	@cd $(LIBSRC_DIR)/DataInOut/GMV; $(MAKE) -f Makefile
-
 driver:
 	@cd $(LIBSRC_DIR)/Driver; $(MAKE) -f Makefile 
 
@@ -51,8 +48,18 @@ datainout:
 ansysfile:
 	@cd $(LIBSRC_DIR)/DataInOut/AnsysFile; $(MAKE) -f Makefile
 
+ansys-out:
+	@cd $(LIBSRC_DIR)/DataInOut/AnsysOut; $(MAKE) -f Makefile
+
 unverg:
 	@cd $(LIBSRC_DIR)/DataInOut/Unverg; $(MAKE) -f Makefile
+
+gmv:
+	@cd $(LIBSRC_DIR)/DataInOut/GMV; $(MAKE) -f Makefile
+
+gsi:
+	@cd $(LIBSRC_DIR)/DataInOut/GSI; $(MAKE) -f Makefile
+	@cd $(LIBSRC_DIR)/DataInOut/GSI/CFSSocketComm; $(MAKE) -f Makefile.CFS
 
 algsys-own:
 	@cd $(LIBSRC_DIR)/AlgebraicSystem/LinAlg; $(MAKE) -f Makefile

@@ -3,8 +3,8 @@ program = cfs
 #LIBRARY_TYPE = shared / static
 LIBRARY_TYPE = static
 
-#AdaptivLib = yes / no
-AdaptivLib = no
+#Adaptivity = yes / no
+Adaptivity =yes
 
 #PETSc solvers
 PETSc=no
@@ -12,13 +12,15 @@ PETSc=no
 #MpCCI
 MpCCI=no
 
+#General Socket Interface
+GSI = no
+
 ##############  AdaptGrid 
 #
-AdaptGrid=$(C_DIR)/Grid_RG
+AdaptGrid=/home/lse10/lse/manfred/CFS/Grid_RG
 #
 ############### LAS++: Algebraic System
-LAS=$(HOME)/CFS/LAS
-#LAS=$(HOME)/CFS/LAS
+LAS=/home/lse10/lse/manfred/CFS/LAS
 #
 #
 ############### Gridlib
@@ -36,14 +38,14 @@ LIB_NETGEN = $(C_DIR)/libnetgen/LINUX
 #
 #
 #
-
+############## PETSc
+#
 ifeq "$(PETSc)" "yes"
 	BOPT     = g_c++
 	include $(PETSC_DIR)/bmake/common/variables
 	CFLAGS   = $(CFLAGS1) $(CFLAGS2) $(CFLAGS3)
 	CPPFLAGS = $(CFLAGS1) $(CFLAGS2) $(CFLAGS3)
 endif
-
 #
 #--------DO NOT CHANGE ------------------------------------------------------------
 #
@@ -67,9 +69,12 @@ LIB_OWN = $(C_DIR)/lib
 
 INCL1 = -I$(LIBSRC_DIR)  -I$(LIBSRC_DIR)/AlgebraicSystem/LAS/multigrid 
 
-ifeq ($(AdaptivLib),yes)
+ifeq ($(Adaptivity),yes)
    INCL = $(INCL1) -I$(AdaptGrid)
+   INCLAdaptGrid = -DADAPTGRID	
 else
    INCL = $(INCL1) 
+   INCLAdaptGrid = 
 endif
+
 

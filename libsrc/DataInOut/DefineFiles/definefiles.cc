@@ -43,7 +43,11 @@ DefineInOutFiles :: DefineInOutFiles(const Char * name)
  strcpy(filename, name);
  cla=new std::ofstream(strcat(filename,".las")); 
  if (!cla) Error("Can't open LAS++-file");
- 
+
+ strcpy(filename, name);
+ data=new std::ofstream(strcat(filename,".data"));
+ if (!data) Error("Can't open data-file");
+
  strcpy(filename, name);
  if (InfoPrint)
        {
@@ -56,7 +60,9 @@ DefineInOutFiles :: DefineInOutFiles(const Char * name)
  conf=new ConfFile(name);
  if (!conf) Error("Can't open conf-file");
 
-ptWriteResults=NULL;
+ ptWriteResults=NULL;
+
+ flags=new Flags();
 
 }
  
@@ -109,15 +115,16 @@ WriteResults * DefineInOutFiles :: Create_ptWriteResults()
   if (conf->ifget("history_node",val))
 	if (val!=-1) withHistory=TRUE;
 
-  if (outformat=="gmv") ptWriteResults=new WriteResultsGMV(filename,withHistory);
-  else 
-    if (outformat=="unverg") ptWriteResults=new WriteResultsUnverg(filename,withHistory);
-      else
-        Error("Wrong format for writing results. Please, check your data.",__FILE__,__LINE__);
-
+  if (outformat=="gmv")
+    ptWriteResults=new WriteResultsGMV(filename,withHistory);
+  else if (outformat=="unverg")
+    ptWriteResults=new WriteResultsUnverg(filename,withHistory);
+  else
+    Error("Wrong format for writing results. Please, check your data.",__FILE__,__LINE__);
+  
   if (!ptWriteResults) 
     Error("Can't open file for output results",__FILE__,__LINE__);
-
+  
   return ptWriteResults;
 }
 

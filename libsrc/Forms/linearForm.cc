@@ -239,6 +239,64 @@ namespace CoupledField
       }
   }
 
+  // ==================================================================
+  //  recovery technique. calculation of element matrix for RHS
+  // ==================================================================
+
+ RHSForRecoveryProcedure::RHSForRecoveryProcedure(BaseFE * aptelem) 
+    : LinearForm(aptelem)
+  {
+#ifdef TRACE
+    (*trace) << "entering RHSForRecoveryProcedure::RHSForRecoveryProcedure" << std::endl;
+#endif
+  }
+ 
+  RHSForRecoveryProcedure::~RHSForRecoveryProcedure()
+  {
+#ifdef TRACE
+    (*trace) << "entering RHSForRecoveryProcedure::~RHSForRecoveryProcedure" << std::endl;
+#endif
+  }
+
+void  RHSForRecoveryProcedure::CalcElemVectorRHSForSPR(Matrix<Double>& ptCoord,
+					       Vector<Double> & fncNodesElem,
+						       const Integer aComponent,
+						       Vector<Double> & elemVec)
+{
+#ifdef TRACE
+    (*trace) << "entering RHSForRecoveryProcedure::CalcElemVectorRHSForSPR()" << std::endl;
+#endif
+
+    const Integer nrIntPnts = ptelem->GetNumIntPoints();
+    const Integer nrNodes   = ptelem->GetNumNodes();
+    const std::vector<Double> & intWeights = ptelem->GetIntWeights();  
+    std::vector<double> shFnc;
+    Matrix<Double>      dvShFnc ;
+    Double              jacDet;  
+    Double              valFnc=0;
+    Integer             iIntPnts,iShFnc;
+
+    elemVec.Resize(nrNodes);
+   
+    for (iIntPnts=0; iIntPnts < nrIntPnts; iIntPnts ++)
+      {
+	valFnc = 0;
+
+	jacDet = ptelem->CalcJacobianDetAtIp(iIntPnts+1, ptCoord);
+
+	ptelem->GetGlobDerivShFncAtIp(dvShFnc, iIntPnts+1, ptCoord, jacDet);
+
+	ptelem->GetShFncAtIp(shFnc, iIntPnts+1);
+
+	for (iShFnc = 0; iShFnc < nrNodes; iShFnc ++)
+	  valFnc += fncNodesElem[iShFnc]*dvShFnc[iShFnc][aComponent];
+	
+	for (iShFnc = 0; iShFnc < nrNodes; iShFnc++) 
+	  elemVec[iShFnc]+=jacDet*valFnc*shFnc[iShFnc]*intWeights[iIntPnts];
+
+      } // loop over integration points
+   
+}
 
   // ==================================================================
   // prestress linearform
@@ -488,77 +546,6 @@ void LinearFlowNoiseInt::CalcElemVector4Quad(Matrix<Double>& ptCoord,const Vecto
       for (ii=0; ii < n; ii++) Result[ii]+= density*(xiDx[ii][0]*(2.*dTxxdx1part*dTxxdx2part+dTxydx1part*dTxydx2part)+
 						     xiDx[ii][1]*(dTyxdy1part*dTyxdy2part+2.*dTyydy1part*dTyydy2part))*jacDet;
     }
-
-
-
-
-  //28.08, NOCH NICHT UMGESTELLT, IN ZUKUNFT SOLLTE ALLGEMEIN SEIN!!!!
-//   if (dim==3)
-//     {
-
-//       Double dTxzdx1part, dTxzdx2part, dTyzdy1part, dTyzdy2part, dTzxdz1part, dTzxdz2part, dTzydz1part, dTzydz2part, dTzzdz1part, dTzzdz2part;
-//       for (i=0; i<l; i++)
-// 	{
-// 	  ptelem->CalcJacobian(J,i,ptCoord);  
-// 	  J.GetJinvX(JinvX);
-// 	  J.GetJinvY(JinvY);
-// 	  J.GetJinvZ(JinvZ);
-// 	  // Resetting derivatives of tensor
-// 	  dTxxdx1part=0;
-// 	  dTxxdx2part=0;
-// 	  dTxydx1part=0;
-// 	  dTxydx2part=0;
-// 	  dTxzdx1part=0;
-// 	  dTxzdx2part=0;
-	  
-// 	  dTyxdy1part=0;
-// 	  dTyxdy2part=0;
-// 	  dTyydy1part=0;
-// 	  dTyydy2part=0;
-// 	  dTyzdy1part=0;
-// 	  dTyzdy2part=0;
-
-// 	  dTzxdz1part=0;
-// 	  dTzxdz2part=0;
-// 	  dTzydz1part=0;
-// 	  dTzydz2part=0;
-// 	  dTzzdz1part=0;
-// 	  dTzzdz2part=0;
-
-// 	  // This work only for trilinear hexahedral elements since we have values
-// 	  // for ux uy and uz only at the corners!
-// 	  // Here we compute the derivatives of the Lighthill's tensor needed in the quadrupole term
-// 	  // at the ith integration point
-// 	  for (ii=0; ii<n; ii++)
-// 	    {
-// 	      ptelem->GetGradientShFnc(help[ii],ii+1,i);
-
-// 	      dTxxdx1part+=(FlowData[1][connecth[ii]-1]*Sf[ii][i]);
-// 	      dTxxdx2part+=(help[ii]*JinvX)*FlowData[1][connecth[ii]-1];
-// 	      dTxydx1part+=(FlowData[2][connecth[ii]-1]*Sf[ii][i]);
-// 	      dTxydx2part+=(help[ii]*JinvX)*FlowData[1][connecth[ii]-1];
-// 	      dTxzdx1part+=(FlowData[3][connecth[ii]-1]*Sf[ii][i]);
-// 	      dTxzdx2part+=(help[ii]*JinvX)*FlowData[1][connecth[ii]-1];
-
-// 	      dTyxdy1part+=(FlowData[1][connecth[ii]-1]*Sf[ii][i]);
-// 	      dTyxdy2part+=(help[ii]*JinvY)*FlowData[2][connecth[ii]-1];
-// 	      dTyydy1part+=(FlowData[2][connecth[ii]-1]*Sf[ii][i]);
-// 	      dTyydy2part+=(help[ii]*JinvY)*FlowData[2][connecth[ii]-1];
-// 	      dTyzdy1part+=(FlowData[3][connecth[ii]-1]*Sf[ii][i]);
-// 	      dTyzdy2part+=(help[ii]*JinvY)*FlowData[2][connecth[ii]-1];
-
-// 	      dTzxdz1part+=(FlowData[1][connecth[ii]-1]*Sf[ii][i]);
-// 	      dTzxdz2part+=(help[ii]*JinvZ)*FlowData[3][connecth[ii]-1];
-// 	      dTzydz1part+=(FlowData[2][connecth[ii]-1]*Sf[ii][i]);
-// 	      dTzydz2part+=(help[ii]*JinvZ)*FlowData[3][connecth[ii]-1];
-// 	      dTzzdz1part+=(FlowData[3][connecth[ii]-1]*Sf[ii][i]);
-// 	      dTzzdz2part+=(help[ii]*JinvZ)*FlowData[3][connecth[ii]-1];
-// 	    }
-
-// 	  // Setting up the RHS (dw/di,dTij/di) part
-// 	  for (ii=0; ii < n; ii++) Result[ii]+= density*((help[ii]*JinvX)*(2.*dTxxdx1part*dTxxdx2part+dTxydx1part*dTxydx2part+dTxzdx1part*dTxzdx2part)+(help[ii]*JinvY)*(dTyxdy1part*dTyxdy2part+2.*dTyydy1part*dTyydy2part+dTyzdy1part*dTyzdy2part)+(help[ii]*JinvZ)*(dTzxdz1part*dTzxdz2part+dTzydz1part*dTzydz2part+2.*dTzzdz1part*dTzzdz2part))*J.detJ;
-// 	}   
-//     } // end of if (dim==3)
 
 } // end of method
 

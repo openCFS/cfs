@@ -35,7 +35,7 @@ public:
     \param Displacement (input) Displacement of the corner points (same ordering as CornerCoords!!)
   */
   virtual Double CalcDistortion(Matrix<Double> &cornerCoords, Vector<Double> &size, Array<Double> &displacements);
-
+  
 protected:
 
 

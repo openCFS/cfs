@@ -18,7 +18,8 @@ RectangleFE::RectangleFE()
   Dim_ = 2;
   NumEdges_ = 4;
   NumFaces_ = 1;
-
+  numChilds_ = 4;
+  
   std::string integtype="GaussOrder2";
 
   std::string IntRule;

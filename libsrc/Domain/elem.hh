@@ -1,7 +1,7 @@
 #ifndef FILE_CFS_ELEM_2002
 #define FILE_CFS_ELEM_2002
 
-//#include "Elements/baseelem.hh"
+
 #include "Elements/basefe.hh"
 
 namespace CoupledField
@@ -11,8 +11,8 @@ namespace CoupledField
 struct Elem
 {
 public:
-  //! global element number
-  Integer ElemNum;
+ 
+  Integer ElemNum; //!< global element number
   
   //! pointer to BaseElem. FE-characteristics of element
   BaseFE * ptElem;
@@ -20,15 +20,15 @@ public:
   Vector<Integer> connect;
   //! name of subdomain, to which this element is belogned
   std::string namesd;
-  //! flag for refinement; TRUE - then this element should be refined
-  Boolean refinementFlag;
+
+  Boolean refinementFlag; //!< flag for refinement
+  Integer refinementNumber; //!< number of refinement for the element
 
   //! overloading operator =
   Elem & operator=(const Elem& t);
   //! calculation of diameter of element
   Double diameter(const Point<2> * const ptArrayOfNodes);
-  //! calculation of an area of the element
-  //  Double area();
+ 
 };
 
 inline Elem & Elem::operator=(const Elem& t) 

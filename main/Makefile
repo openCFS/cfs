@@ -8,65 +8,58 @@ C_DIR=..
 #
 OS=$(shell uname -s)
 #
-
 ############ General options
 #
 include $(C_DIR)/main/Makefile.option
 #
-
 SUBLIBDIR := Driver PDE CoupledPDE Estimator\
              Forms Elements Elements/1D Elements/2D Elements/3D \
              Domain/GridCFS Domain \
              DataInOut/DefineFiles \
-             DataInOut/Unverg DataInOut/GMV \
+             DataInOut/Unverg DataInOut/GMV DataInOut/AnsysOut \
              DataInOut/DatFile DataInOut/AnsysFile DataInOut\
 	     AlgebraicSystem/LinAlg\
-             Utils Matrix General MpCCIcpl  
-
+             Utils Matrix General  
+#
+ifeq ($(Adaptivity),yes)
+SUBLIBDIR := $(SUBLIBDIR) Domain/AdaptGrid
+endif
+#
+ifeq ($(MpCCI),yes)
+SUBLIBDIR := $(SUBLIBDIR) MpCCIcpl
+endif
+#
+ifeq ($(GSI), yes)
+SUBLIBDIR := $(SUBLIBDIR) DataInOut/GSI DataInOut/GSI/CFSSocketComm
+endif
 #
 ############ define my libraries
 #
-
-ifeq ($(MpCCI),yes) 
-  mylibrary = driver domain pde mpccicpl coupledpde\
+mylibrary = driver domain pde mpccicpl coupledpde\
             estimator forms  \
             elements3d elements2d elements1d elements \
-            gridcfs gmv \
-            definefiles unverg ansysfile datainout \
-            algsys-own\
-            utils matrix general \
-            multigrid-las 
-else
-  mylibrary = driver domain pde coupledpde\
-            estimator forms  \
-            elements3d elements2d elements1d elements \
-            gridcfs \
-            gmv \
-            definefiles unverg ansysfile datainout \
+            gridcfs toadaptgrid \
+            gmv gsi definefiles unverg \
+	    ansys-out ansysfile datainout \
             algsys-own\
             utils matrix general \
             multigrid-las
-endif
-
 #
-ifeq ($(AdaptivLib),yes)
-mylibrary = $(mylibrary) adaptgrid
+ifeq ($(Adaptivity),yes)
+mylibrary := $(mylibrary) adaptgrid 
 endif
-
-
-############ Directories for Adaptivity
-#
-ifeq ($AdaptivLib),yes)
-SUBLIBDIR := $(SUBLIBDIR) Domain/AdaptGrid
-endif
-
 #
 ############ Define specific flags
 #
 include $(LIBSRC_DIR)/makefilemach/make.mach.$(MACHINE)
 #
-
+#
+############ General options
+#
 include $(C_DIR)/main/Makefile.option
+#
+############ MpCCI
+#
 ifeq ($(MpCCI),yes)
   CC=/opt/MpCCI/mpcci-2.0.0-linux-gcc32/bin/cciCC
   LINKFLAGS2 = -L/opt/MpCCI/mpcci-2.0.0-linux-gcc32/lib -L/opt/MPICH/mpich-1.2.5/lib
@@ -74,7 +67,7 @@ ifeq ($(MpCCI),yes)
 else
   sysliball = $(syslib)
 endif
-
+#
 ##########
 #
 PATHSUBLIBDIR = $(addprefix $(LIBSRC_DIR)/, $(SUBLIBDIR))
@@ -86,13 +79,11 @@ PATHSUBLIBDIR = $(addprefix $(LIBSRC_DIR)/, $(SUBLIBDIR))
 .SUFFIXES: .f .c .cc .o
 
 .cc.o:
-	$(CC) -o $@ $(CFLAGS1) $(CFLAGS2) $(CFLAGS3) $(INCL) $<
+	$(CC) -o $@ $(CFLAGS1) $(CFLAGS2) $(CFLAGS3) $(INCL) $(INCLAdaptGrid) $<
 
-#ifeq "$(MACHINE)" "SUN"
-#$(program):: $(src:.cc=.o) $(mylibrary)
-#	$(CC) $(CFLAG_EXE) -o $@ $(src:.cc=.o) $(fsrc:.f=.o) -L$(LIB_DIR) -L$(LIB_GRIDLIB)  -L$(LIB_NETGEN) -L$(LIB_CLA) $(LINKFLAGS2) $(LINKFLAGS3) $(INCL) $(addprefix -l, $(mylibrary)) $(syslib)
-#else
-
+#
+#
+#
 ifeq ($(PETSc)),yes)
 $(program):: $(src:.cc=.o) $(fsrc:.f=.o) $(mylibrary)
 	$(CXX_CLINKER) -o $@ $(src:.cc=.o) $(fsrc:.f=.o) $(PETSC_LIB) \
@@ -108,8 +99,6 @@ endif
 ########### Go to make library
 #
 include $(LIBSRC_DIR)/Makefile
-
-
 #
 ############### Print info about variables that should be set before work
 #
@@ -130,15 +119,6 @@ ifeq "$(OS)" "Linux"
 else
 	rm -rf $(LibCLA) && ln -s $(LAS)/libsrc $(LibCLA)
 endif
-#
-#ifeq "$(OS)" "Linux"
-#	rm -rf $(IncNetGen) &&  ln -s $(NetGen)/libsrc/include $(IncNetGen) && \
-#        rm -rf $(LibNetGen) && ln -s $(NetGen)/lib $(LibNetGen) &&\
-#        rm -rf $(LibCLA) && ln -s $(CLA)/libsrc $(LibCLA) 
-#else
-#	rm -rf $(LibCLA) && ln -s $(CLA)/libsrc $(LibCLA) && \
-#        rm -rf $(IncGridlib) && ln -s $(Gridlib) $(IncGridlib)
-#endif
 #        
 ############## Make links in dir include
 #
@@ -152,14 +132,9 @@ make-include:
           fi); \
          done
 #
-############## Make library adaptgrid
-#
-#adaptgrid:
-#	@cd $(AdaptGrid) && $(MAKE) -f Makefile
+######################  Clean work directory
 clean-adaptgrid:
 	@cd $(AdaptGrid) && $(MAKE) clean
-#
-######################  Clean work directory
 clean-driver:
 	@cd $(LIBSRC_DIR)/Driver && \
 	$(MAKE) clean
@@ -178,6 +153,11 @@ clean-unverg:
 clean-gmv:
 	@cd $(LIBSRC_DIR)/DataInOut/GMV && \
         $(MAKE) clean
+clean-gsi:
+	@cd $(LIBSRC_DIR)/DataInOut/GSI && \
+	$(MAKE) clean
+	@cd $(LIBSRC_DIR)/DataInOut/GSI/CFSSocketComm && \
+	make -f Makefile.CFS clean
 clean-algsys:
 	@cd $(LIBSRC_DIR)/AlgebraicSystem/LinAlg && \
 	$(MAKE) clean

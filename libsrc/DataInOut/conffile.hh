@@ -55,15 +55,12 @@ here is
    //! get list of subdomains
   void getsubdom(std::vector<std::string> & subdoms);
 
-
    //! get list of integer-values for a keyword(for ex. history nodes)
    /*!
 	\param hist list of returned values
 	\param seekexp keyword
     */
   void getlist(std::vector<Integer> & hist,const std::string seekexp);
-
-
 
    //! get list of integer-values for a keyword(for ex. history nodes)
    /*!
@@ -73,8 +70,6 @@ here is
 	\param subsection name of a subsection of the section in which keyword is there. can be omitted
     */
   void getlist(const std::string seekexp, std::vector<Double> & hist, const std::string section="", const std::string subsection="");
-
-
 
   //! get list of string-values(for ex. pdes) for a keyword
   /*!
@@ -87,10 +82,10 @@ here is
 
   //! get string-value for a keyword
   /*!
-        \param seekexp keyword
-        \param str string
-	\param section name of a section in which keyword is there. can be omitted
-	\param subsection name of a subsection of the section in which keyword is there. can be omitted
+    \param seekexp keyword
+    \param str string
+    \param section name of a section in which keyword is there. can be omitted
+    \param subsection name of a subsection of the section in which keyword is there. can be omitted
   */
   void getstr(const std::string seekexp, std::string &str, const std::string section="", const std::string subsection="");
 

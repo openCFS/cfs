@@ -29,10 +29,10 @@ endif
 #
 .SUFFIXES: .f .cc .cpp .o
 .cc.o:
-	$(CC) $(CFLAGS1) $(CFLAGS2) $(CFLAGS3) $(CFLAGSMpCCI) $(CFLAGSPETS) $(INCL) $(ADAPT) $< 
+	$(CC) $(CFLAGS1) $(CFLAGS2) $(CFLAGS3) $(CFLAGSMpCCI) $(CFLAGSPETS) $(INCL) $(INCLAdaptGrid) $< 
 
 .cpp.o:
-	$(CC) $(CFLAGS1) $(CFLAGS2) $(CFLAGS3) $(CFLAGSMpCCI) $(CFLAGSPETS) $(INCL) $<
+	$(CC) $(CFLAGS1) $(CFLAGS2) $(CFLAGS3) $(CFLAGSMpCCI) $(CFLAGSPETS) $(INCL) $(INCLAdaptGrid) $<
 
 
 #
@@ -47,7 +47,6 @@ $(LIBB): $(src:.cc=.o)
 else
 $(LIBB): $(src:.cc=.o)
 	@$(AR) $(ARFLAGS) $@ $(?:.cc=.o); 
-#	-@rm $(?:.cc=.o);  
 	-@$(RANLIB) $@
 endif
 #

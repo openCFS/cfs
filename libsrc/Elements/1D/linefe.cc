@@ -18,6 +18,7 @@ LineFE :: LineFE()
   Dim_ = 1;
   NumEdges_ = 1;
   NumFaces_ = 1;
+  numChilds_ = 1;
   
   std::string integtype="GaussOrder2";
   std::string IntRule;

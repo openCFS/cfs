@@ -103,7 +103,8 @@ public:
     \param noOfElem (input) element level
     \param color (input) subdomain
   */ 
-  std::vector<Elem*> * GetptNeighboursOfElem(const Integer noOfElem, const std::string color);
+  std::vector<Elem*> * GetptNeighboursOfElem(const Integer noOfElem,
+					     const std::string color);
 
   //! return vector of element-neighbors for the node with number noOfNode
   /*!
@@ -153,15 +154,20 @@ public:
   */
   void CalcNumberOfNodesInPatch(const std::vector<Elem*> & patch, std::vector<Integer>& map);
 
-
+  //!
+  void SetDim(const Integer dimension){dim_=dimension;}
+  
 #ifdef ADAPTGRID
   void putNodesFromGrid_RG(grd::MultilevelGrid * grid, const Integer level);
 
- void putElemsFromGrid_RG(grd::MultilevelGrid * grid, const Integer level);
+  void putElemsFromGrid_RG(grd::MultilevelGrid * grid, const Integer level);
 
   void Refine(grd::MultilevelGrid& grid);
 
+  void ReRefine(grd::MultilevelGrid& grid);
+
   void RefineUniform(grd::MultilevelGrid& grid);
+
 #endif
 
 protected:
@@ -199,8 +205,7 @@ private:
     std::vector<Integer> map;
   };
   
-  //! useful for maping betw. elements of GridRG and GridCFS
-  std::vector<ElementMap*> elemMap;
+  std::vector<ElementMap*> elemMap_; //!< mapping between GridRG and GridCFS
 
   //! only for test
   void SetRefinementFlag();

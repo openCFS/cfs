@@ -210,6 +210,7 @@ std::vector<Elem*>& BCs::getFacesBC(const std::string color, const Integer lev)
     }
    
 
+  return bcsFaces_[level][i];
 }
 
 Integer BCs::GetNumNodesLevel(const std::string color, const Integer lev)

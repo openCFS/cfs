@@ -88,10 +88,12 @@ public:
 
         /// Return TRUE
         Boolean IsSymmetric() const;
+
         ///  Precondition: Implemented Jacobi, SSOR(omega=1.2), LU
           void precond(Vector<TYPE> &, const Vector<TYPE>, const Integer type);
-        ///
-//        TYPE At(const Integer i, const Integer j) { return p[i][j];}
+
+        //
+        void CholerskyDecomposition();
 };
 
 // inline member functions

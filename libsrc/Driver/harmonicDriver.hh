@@ -22,11 +22,6 @@ public:
   //!  main method, where time-stepping is implemented. it is for transient and static problem
   virtual void SolveProblem();
 
-  //! method with adaptivity in space
-  void SolveProblemAdaptSpace()
-  {  Error("No adaptivity for harmonic analysis!",__FILE__,__LINE__);};
-  
-
   //!  to setup matrices of PDE. we call according method of class PDE for setup matrices of PDE in assembling procedure.
   /*!
     \param pdenumber number of PDE

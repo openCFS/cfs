@@ -206,7 +206,9 @@ public:
   /// Return weightings of integration points
   std::vector<Double> GetIntWeights() const {return IntWeights_;};
   
-  
+  // return number of childs in refinement
+  virtual Integer getNumChilds() const { return numChilds_;}
+
   // ============================= methods for edge elements =======================
   // =================================================================================
 
@@ -364,7 +366,8 @@ protected:
   Matrix<Double> * ShFncDerivAtIp_; //!< Array of local derivatives in each integration point
   std::vector<Double> * IntPoints_; //!< integration points
   std::vector<Double> IntWeights_;  //!< integration weights
-  
+  Integer             numChilds_;   //!< number of children for element in refinement
+
   enum IntegrationType IntegType;
   
   //! Converts the string used for the integration type to an integer

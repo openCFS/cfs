@@ -17,6 +17,7 @@ namespace CoupledField
     Dim_      = 3;
     NumEdges_ = 6;
     NumFaces_ = 4;
+    numChilds_ = 8;
 
     std::string integtype = "GaussOrder2";
 
@@ -28,9 +29,6 @@ namespace CoupledField
 
     //  isSetAtCenter_=FALSE;
   }
-
-
-
 
   TetraFE::~TetraFE()
   {
