@@ -30,9 +30,6 @@ class Jacobian
 #ifdef __GNUC__
 template class Jacobian<Point2D>;
 template class Jacobian<Point3D>;
-#else
-//#pragma instantiate Jacobian<Point2D>
-//#pragma instantiate Jacobian<Point3D>
 #endif
 
 template <>
