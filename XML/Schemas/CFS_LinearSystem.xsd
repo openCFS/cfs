@@ -30,6 +30,21 @@
           </xsd:complexType>
         </xsd:element>
 
+        <!-- Select stopping rule to be used -->
+        <xsd:element name="stoppingRule" minOccurs="0">
+          <xsd:complexType>
+            <xsd:attribute name="type" use="optional" default="relNormRes0">
+              <xsd:simpleType>
+                <xsd:restriction base="xsd:token">
+                  <xsd:enumeration value="absNorm"/>
+                  <xsd:enumeration value="relNormRHS"/>
+                  <xsd:enumeration value="relNormRes0"/>
+                </xsd:restriction>
+              </xsd:simpleType>
+            </xsd:attribute>
+          </xsd:complexType>
+        </xsd:element>
+
         <!-- Parameters for solver (optional) -->
         <xsd:element ref="SolverBasic" minOccurs="0"/>
 
