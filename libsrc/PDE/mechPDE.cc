@@ -170,17 +170,17 @@ namespace CoupledField
     // In non-linear case determine type of line search strategy
     if ( nonLin_ == TRUE ) {
 
-      Info->PrintF( pdename_,  " Non-linearity in %d regions\n",
+      Info->PrintF( pdename_, "Non-linearity in %d regions\n",
                     nonLinRegion.GetSize() );
 
       // type of line search
       params->Get( "type", lineSearch_, pdename_, "lineSearch" );
 
       if ( lineSearch_ == "no" ) {
-        Info->PrintF( pdename_, " Performing no line search" );
+        Info->PrintF( pdename_, "Performing no line search\n" );
       }
       else {
-        Info->PrintF( pdename_, " Will perform line search" );
+        Info->PrintF( pdename_, "Will perform line search\n" );
       }
 
     }
@@ -202,15 +202,20 @@ namespace CoupledField
         params->Get("maxNumIters", nonLinMaxIter_, pdename_, "nonLinear");
       }
 
-    // ------------------------------------
+    // ------------------------------------------
     //   Get information on reduced integration
-    // ------------------------------------
+    // ------------------------------------------
     params->GetList( "reducedInt", reducedIntegration_, pdename_, "region" );
 
-    if ( nonLin_ == TRUE)
-      for (Integer i=0; i<reducedIntegration_.GetSize(); i++)
-        if (reducedIntegration_[i] == "yes")
-          Error("Currently we do not support nonlinearity with reduced integration!");
+    if ( nonLin_ == TRUE ) {
+      for ( Integer i = 0; i < reducedIntegration_.GetSize(); i++ ) {
+        if ( reducedIntegration_[i] == "yes" ) {
+          (*error) << "Currently we do not support non-linearity with "
+                   << "reduced integration!";
+          Error( __FILE__, __LINE__ );
+        }
+      }
+    }
   }
   
 
