@@ -35,10 +35,6 @@ void GridCFS<Dim> :: Read()
   gh[0].ptCoordinate=new Dim[gh[0].maxnumnode];
   InFile->ReadCoordinate(gh[0].ptCoordinate, gh[0].maxnumnode);
  
-//  if (InfoPrint) { counter1=0;
-//                   if (counter1==0)  PrintCoordinate(0, infofile);
-//                   counter1++;}  
-
   Integer data[3];
   InFile->ReadGeneralElemChoice(0,data, FileType::numelem,
                    FileType::ielemtyp, FileType::maxnode,
@@ -74,6 +70,7 @@ void GridCFS<Dim> :: Read()
       start+=4;
    }
 
+/*
   if (InfoPrint && gh[0].maxnumelem<100)
  {  
   static Integer counter=0;
@@ -87,6 +84,7 @@ void GridCFS<Dim> :: Read()
   }
     counter++;
  }
+*/
 
 }
 

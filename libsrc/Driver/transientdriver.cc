@@ -83,7 +83,9 @@ void TransientDriver :: SolveProblemAdapt()
   Integer pdenumber  = 0;
   Integer nsys = 0;
   Double steptime=firstdt_;
-  Integer stepsave=isavebegin_-1;
+
+  // calculation of end-time
+  Double endtime=numstep_*firstdt_;
 
 //  TimeErrorEstimator ** ptTimeError=new TimeErrorEstimation * [pdenumber];
   TimeErrorEstimator * ptTimeError;
@@ -96,19 +98,16 @@ void TransientDriver :: SolveProblemAdapt()
   ptdomain_->GetPDE(pdenumber)->CalcParameters(dt);
   ptdomain_->GetPDE(pdenumber)->SetMatrixFactors();
 
-  Integer nstep;
-  for (nstep = 0; nstep<numstep_; nstep++)
+  Integer nstep=0;
+  for (; steptime <= endtime ; nstep++)
     {
 
       ptdomain_->GetPDE(pdenumber)->SolveStepTrans(ptdomain_->GetBCs(), nstep, steptime, level, resetsysmat);
 
    // writing results in output-file
-    if (nstep == stepsave && (nstep < isaveend_))
-      {
-        ptdomain_->GetPDE(pdenumber)->WriteResultsInFile();
-        stepsave+=isaveincr_;
-      }
+      ptdomain_->GetPDE(pdenumber)->WriteResultsInFile();
 
+  // test error
    if (ptTimeError->TestError(dt))
       {
          ptTimeError->ChangeStep(dt);
@@ -117,8 +116,18 @@ void TransientDriver :: SolveProblemAdapt()
          ptdomain_->GetPDE(pdenumber)->SetMatrixFactors();
 
          resetsysmat=TRUE;
-         std::cout << "We have change step" << stepsave << " " << dt << std::endl; 
+
+       // print info in file.info
+         if (InfoPrint)
+          (*infofile) <<  " step: " << nstep << " time: " << steptime << " change " << std::endl;
+
       }
+   else 
+     {
+       // print ino in file.info
+         if (InfoPrint)
+          (*infofile) << " step: " << nstep << " time: " << steptime << std::endl;
+     }
 
    steptime+=dt;
    }
