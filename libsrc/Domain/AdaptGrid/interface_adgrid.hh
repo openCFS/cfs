@@ -118,7 +118,7 @@ private:
   void SetVertexNumbers();
 };
 
-#ifdef ADAPTGRID
+
 class SetRefFlag
 {
 public:
@@ -126,10 +126,12 @@ public:
   SetRefFlag(SpaceErrorEstimator * apt){ ptError_=apt;}
   ~SetRefFlag(){;}
 
+#ifdef ADAPTGRID
  void operator() (grd::Element * t)
  {
   if (ptError_->TestLocError(t)) t->markForRefinement();
  }
+#endif
 
 private:
  
@@ -144,13 +146,15 @@ public:
   SetRefFlagTest(){;}
   ~SetRefFlagTest(){;}
 
+#ifdef ADAPTGRID
  void operator() (grd::Element * t)
  {
    t->markForRefinement();
  }
+#endif
 
 };
-#endif
+
 
 #ifdef __GNUC__
 template class InterfaceAdaptGrid<Point3D>;

@@ -313,6 +313,7 @@ void Domain::UpdateAlgSys(const Integer level)
 
 void Domain::TestGrid()
 {
+#ifdef NETGEN
   InterfaceNetGen<Point2D> * ptGrid=new InterfaceNetGen<Point2D>(InFile_); 
   ptGrid->Read();
   Char * name="refine";
@@ -332,6 +333,7 @@ void Domain::TestGrid()
   ptInFile->WriteGrid(0);  
 
   if (ptInFile) delete ptInFile;
+#endif
 }
 
 }

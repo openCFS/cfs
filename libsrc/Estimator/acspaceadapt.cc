@@ -48,6 +48,7 @@ Double AcousticSpaceErrorEstimator::CalcLocError(const Integer iElem)
 
 }
 
+#ifdef ADAPTGRID
 Boolean AcousticSpaceErrorEstimator::TestLocError(grd::Element * t)
 {
 #ifdef TRACE
@@ -56,6 +57,7 @@ Boolean AcousticSpaceErrorEstimator::TestLocError(grd::Element * t)
 
   return TRUE;
 }
+#endif
 
 Boolean AcousticSpaceErrorEstimator::TestError()
 {
