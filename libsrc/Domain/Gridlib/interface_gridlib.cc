@@ -1,18 +1,9 @@
 #include <iostream>
 #include <fstream>
 #include <string>
-#include <vector>
+#include <vector.h>
 
-// Include from Gridlib
-#include <GoMesh.hh>
-#include <GoTriangleMesh.hh>
-#include <GoDefaultVertex.hh>
-#include <GoTriangleElement.hh>
 
-#include <general_head.hh>
-#include <utils_head.hh>
-
-#include <datainout_head.hh>
 #include "interface_gridlib.hh"
 
 namespace CoupledField
@@ -23,23 +14,29 @@ void InterfaceGridlib<Dim>::GetConnection(Integer * result, const Integer level,
            const Integer numElem, const Integer numnodesPerElem)
 {
  Integer i;
- for (i=0; i<numnodesPerElem)
- result[i]=ptGoMesh->getElement(numElem,level)->getVertex(i)->getId();
+ for (i=0; i<numnodesPerElem; i++)
+ result[i]=ptGoMesh->getElement(numElem,level)->getVertex(i)->getId()+1;
 }
 
 template<class Dim>
-void InterfaceGridlib<Dim>::GetCoordOfNodesElem(const Integer numElem, const Integer numlevel, const Integer numnodes, Dim * ptCoordElem)
+void InterfaceGridlib<Dim>::GetCoordOfNodesElem(const Integer numElem, const Integer numlevel, const Integer numnodesPerElem, Dim * ptCoordElem)
 {
+// Error("Not implemented GetCoordOfNodesElem");
+ float x,y,z;
  Integer i;
- for (i=0; i<numnodes; i++)
- { result[i]=ptGoMesh->getElement(numElem, numlevel)->getVertex(i)->getId();}
+ for (i=0; i<numnodesPerElem; i++)
+ { 
+ ptGoMesh->getElement(numElem, numlevel)->getVertex(i)->getPosition(x,y,z);
+ ptCoordElem[i].x= double(x);
+ ptCoordElem[i].y= double(y);
+ }
 }
 
 template<class Dim>
 void InterfaceGridlib<Dim>::read() 
 {
 #ifdef TRACE
-  (*trace)<< "Entering InterfaceGridlib::read" << endl;
+  (*trace)<< "Entering InterfaceGridlib::read" << std::endl;
 #endif
 
   Integer data[1];
@@ -51,7 +48,6 @@ void InterfaceGridlib<Dim>::read()
 
   ptGoMesh=new GoTriangleMesh;
 
-  double pos[3];
   vector<GoDefaultVertex*> vv;
 
 

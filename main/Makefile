@@ -11,7 +11,7 @@ SUBLIBDIR = Driver PDE AlgebraicSystem/LinAlg \
             AlgebraicSystem/PILES/general \
             AlgebraicSystem/PILES/multigrid \
             AlgebraicSystem/PILES/superlu \
-            Forms Elements Domain/GridCFS Domain \
+            Forms Elements Domain/GridCFS Domain/Gridlib Domain \
             DataInOut/DefineFiles \
             DataInOut/Unverg DataInOut/DatFile DataInOut\
             Utils Matrix General

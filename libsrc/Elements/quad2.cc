@@ -136,22 +136,31 @@ void  Quad2::GetGradientShFnc(Vector<Double> & grad, const Integer i, const Inte
 {
  case 1:
     grad[0]=DxShapeFncAtIP1[ip]; grad[1]=DyShapeFncAtIP1[ip];
+    break;
  case 2:
     grad[0]=DxShapeFncAtIP2[ip]; grad[1]=DyShapeFncAtIP2[ip]; 
+    break;
  case 3:
     grad[0]=DxShapeFncAtIP3[ip]; grad[1]=DyShapeFncAtIP3[ip]; 
+    break;
  case 4:
     grad[0]=DxShapeFncAtIP4[ip]; grad[1]=DyShapeFncAtIP4[ip];
+    break;
  case 5:
     grad[0]=DxShapeFncAtIP5[ip]; grad[1]=DyShapeFncAtIP5[ip];
+    break;
  case 6:
     grad[0]=DxShapeFncAtIP6[ip]; grad[1]=DyShapeFncAtIP6[ip];
+    break;
  case 7:
     grad[0]=DxShapeFncAtIP7[ip]; grad[1]=DyShapeFncAtIP7[ip];
+    break;
  case 8:
     grad[0]=DxShapeFncAtIP8[ip]; grad[1]=DyShapeFncAtIP8[ip];
+    break;
  case 9:
     grad[0]=DxShapeFncAtIP9[ip]; grad[1]=DyShapeFncAtIP9[ip];
+    break;
 } 
 
 }

@@ -10,6 +10,7 @@
 #include "material.hh"
 #include "timefunc.hh"
 #include "acousticPDE.hh"
+#include "interface_gridlib.hh"
 #include "driver.hh"
 #include <abstractAlgSys.hh>
 #include <interface_piles.hh>
@@ -61,19 +62,36 @@ void main(int argc, char *argv[])
   ptLS->check();
   // if (ptLS->GMRes_m(100, Jacobi, 100)) std::cout << "convergence is true";
 #endif
-#ifdef Grid
     Grid<Point2D> * ptGridlib=new InterfaceGridlib<Point2D>(ptInputfile);
     std::cout << " Test " << std::endl;
     std::cout << " max number of nodes " << std::endl;
     std::cout << ptGridlib->GetMaxnumnodes(0) << std::endl;
     std::cout << " max num of elements " << std::endl;
     std::cout << ptGridlib->GetMaxnumElem(0) << std::endl;
-#endif
+    std::cout << " number of nodes per element" << std::endl;
+    std::cout <<  ptGridlib->GetNumNodesPerElem(0,0) << std::endl;
+    std::cout << " connection of element " << std::endl;
+    Integer * result=new Integer[3];
+
+    ptGridlib->GetConnection(result, 0, 0, 3);
+    for (int i=0; i < 3; i++)
+     std::cout << result[i] << " ";
+    std::cout << std::endl; 
+    std::cout << "coordinates" << std::endl;  
+    Point2D * ptCoord=new Point2D[3];
+     ptGridlib->GetCoordOfNodesElem(0,0,3,ptCoord);  
+    std::cout << " coordinates of element" << std::endl;
+    for (int i=0; i<3; i++) std::cout << i <<" " << ptCoord[i].x << " " << ptCoord[i].y << std::endl;
+
+
+    ptGridlib->GetCoordOfNodesElem(1,0,3,ptCoord);
+    std::cout << " coordinates of element" << std::endl;
+    for (int i=0; i<3; i++) std::cout << i <<" " << ptCoord[i].x << " " << ptCoord[i].y << std::endl;
 
     //    Driver * ptDriver=new Driver(ptInputfile,1,materialdata);
     //    ptDriver->SolveNewmarkMethod(ptUnverg);
 
-   
+/*   
  //  //! choose your grid class
   Grid<Point2D> *grid =new GridInterfaceCFS<Point2D>(ptInputfile);
   
@@ -97,7 +115,7 @@ void main(int argc, char *argv[])
 
   //solve your problem
   ptdriver->SolveProblem();
-
+*/
 
   oClockTotal.ClockCount(MyClock::end,"Total time");
 
@@ -105,6 +123,7 @@ void main(int argc, char *argv[])
 
   if (ptInputfile) delete ptInputfile;
   if (ptUnverg) delete ptUnverg;
+//  if (ptGridlib) delete ptGridlib;
 //  if (ptDriver) delete ptDriver;
   if (materialdata) delete materialdata;
 }

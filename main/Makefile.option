@@ -15,7 +15,7 @@ ExternInc=$(C_DIR)/Gridlib_inc
 #
 mylibrary=  driver pde algsys-own forms  \
             multigrid-piles general-piles superlu-piles \
-            elements  gridcfs domain unverg   \
+            elements  gridcfs togridlib domain unverg   \
             definefiles datfile datainout \
              utils matrix general
 #
