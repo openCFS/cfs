@@ -101,7 +101,7 @@ namespace CoupledField
       linPiezoInt(matData)
     {
       ENTER_FCN( "linPiezo3DInt::linPiezo3DInt" );
-      isdamping_ = isdamping;
+      isDamping_ = isdamping;
     }
 
     //! Destructor
@@ -136,7 +136,10 @@ namespace CoupledField
     //! we have three mechanical and one potential component.
     virtual Integer getNrDofs(){ return 4; };
 
-    Boolean isdamping_; //if set to true, stiffnessmatrix is computed for damping (just mechanical part)
+    //! If set to true, stiffnessmatrix is computed for damping
+    //! (just mechanical part)
+    Boolean isDamping_;
+ 
   };
 
 }
