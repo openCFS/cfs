@@ -16,11 +16,11 @@ namespace CoupledField
   // ***************************************************
   BCs :: BCs(FileType * const aInFile)
   {
-#ifndef XMLPARAMS 
+
     ENTER_FCN( "BCs::BCs" );
 
     InFile_     = aInFile; 
-    
+#ifndef XMLPARAMS     
     Integer i;
     for (i=0; i<NUMLEVELGRID; i++) 
       { 
