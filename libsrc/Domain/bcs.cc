@@ -59,8 +59,7 @@ std::list<Integer> BCs::GetNodesLevel(const std::string color, const Integer lev
  for (i=0; i<levels_.size(); i++)
   if (color==levels_[i]) break;
 
- return bcs_[level][i];
- 
+ return bcs_[level][i]; 
 }
 
 Integer BCs::GetNumNodesLevel(const std::string color, const Integer lev)

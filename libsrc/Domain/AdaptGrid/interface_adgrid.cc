@@ -22,11 +22,11 @@ InterfaceAdaptGrid<Dim>::InterfaceAdaptGrid(FileType * aptFileType)
  (*trace) << "Entering InterfaceAdaptGrid<Dim>::InterfaceAdaptGrid<Dim>" << std::endl;
 #endif
 
-  ptFileType=aptFileType;
-  conf->getsubdom(listSD_);
-  lastlevel_=0;
+ ptFileType=aptFileType;
+ conf->getsubdom(listSD_);
+ lastlevel_=0;
 
-  ptgridcfs_=NULL;
+ ptgridcfs_=NULL;
 
  ptBCs=new BCs(aptFileType);
  ptBCs->ReadBCs();
@@ -52,7 +52,7 @@ void InterfaceAdaptGrid<Point2D>::Read()
   std::vector<Integer> colorBCs;
   ptFileType->ReadBCs_GridRG(idBCs,colorBCs);
 
-// read vertices  
+  // read vertices  
   Integer inode;
   Integer ibnd=0;
   vertex_.resize(nnodes);  
@@ -67,9 +67,9 @@ void InterfaceAdaptGrid<Point2D>::Read()
       tmpVt->setId(inode+1);
 
       if ((inode+1)==idBCs[ibnd]) {
-         tmpVt->setBoundaryNode();
-         tmpVt->setColorBndNode(colorBCs[ibnd]);
-	 ibnd++;
+	tmpVt->setBoundaryNode();
+	tmpVt->setColorBndNode(colorBCs[ibnd]);
+	ibnd++;
       }
 
       vertex_[inode]= tmpVt;
@@ -77,18 +77,18 @@ void InterfaceAdaptGrid<Point2D>::Read()
 
   if (ptCoord) delete [] ptCoord;
 
-// read elements
- ptFileType->ReadGrid_RG(elems_,&vertex_,listSD_);
+  // read elements
+  ptFileType->ReadGrid_RG(elems_,&vertex_,listSD_);
 
- grid_.buildCoarseMesh(vertex_,elems_);
- // set nodes at level 0 as processed
- std::list<grd::Vertex*>* lt = (grid_.getGridLevel(0))->getVertexList();
- std::list<grd::Vertex*>::iterator p;
- for (p = lt->begin(); p != lt->end(); ++p) {
-   (*p)->setProcessed();
- }
- 
- Trans2CFSGrid();
+  grid_.buildCoarseMesh(vertex_,elems_);
+  // set nodes at level 0 as processed
+  std::list<grd::Vertex*>* lt = (grid_.getGridLevel(0))->getVertexList();
+  std::list<grd::Vertex*>::iterator p;
+  for (p = lt->begin(); p != lt->end(); ++p) {
+    (*p)->setProcessed();
+  }
+  
+  Trans2CFSGrid();
 
 #ifdef TRACE
  (*trace) << "Leaving InterfaceAdaptGrid<Dim>::Read " << std::endl;
@@ -105,14 +105,20 @@ void InterfaceAdaptGrid<Point3D>::Read()
   dim_=ptFileType->ReadDim();
 
   Integer nnodes;
-  ptFileType->ReadMaxnumnodes(nnodes);
+  ptFileType->ReadMaxnumnodes(nnodes); 
 
-  Point3D * ptCoord=new Point3D[nnodes];
+  Point3D * ptCoord=new Point3D[nnodes]; 
   ptFileType->ReadCoordinate(ptCoord, nnodes);
 
-// read vertices
+  // read id of bnd nodes
+  std::vector<Integer> idBCs;
+  std::vector<Integer> colorBCs;
+  ptFileType->ReadBCs_GridRG(idBCs,colorBCs);
+
+  // read vertices  
   Integer inode;
-  vertex_.resize(nnodes);
+  Integer ibnd=0;
+  vertex_.resize(nnodes);  
   for (inode=0; inode<nnodes; inode++)
     {
       Double pos[3];
@@ -123,15 +129,29 @@ void InterfaceAdaptGrid<Point3D>::Read()
       grd::Vertex* tmpVt = new grd::Vertex(pos);
       tmpVt->setId(inode+1);
 
+       if ((inode+1)==idBCs[ibnd]) {
+ 	tmpVt->setBoundaryNode();
+ 	tmpVt->setColorBndNode(colorBCs[ibnd]);
+ 	ibnd++;
+       }
+
       vertex_[inode]= tmpVt;
     }
 
   if (ptCoord) delete [] ptCoord;
 
-// read elements
+  // read elements
   ptFileType->ReadGrid_RG(elems_,&vertex_,listSD_);
 
   grid_.buildCoarseMesh(vertex_,elems_);
+  // set nodes at level 0 as processed
+  std::list<grd::Vertex*>* lt = (grid_.getGridLevel(0))->getVertexList();
+  std::list<grd::Vertex*>::iterator p;
+  for (p = lt->begin(); p != lt->end(); ++p) {
+    (*p)->setProcessed();
+  }
+  
+  Trans2CFSGrid();
 
 #ifdef TRACE
  (*trace) << "Leaving InterfaceAdaptGrid<Dim>::Read " << std::endl;
@@ -258,6 +278,7 @@ void InterfaceAdaptGrid<Dim>::UpdateBCs(std::list<Integer> * bcs)
     lv=(grid_.getGridLevel(level))->getVertexList();
     for (p=lv->begin(); p!=lv->end(); ++p) {
       if ((*p)->isBoundaryNode()) { 
+	cout << " color: " << (*p)->getColorBndNode() << " " << (*p)->getId() << endl; 
 	bcs[(*p)->getColorBndNode()].push_back((*p)->getId());
       }
     }
@@ -266,8 +287,7 @@ void InterfaceAdaptGrid<Dim>::UpdateBCs(std::list<Integer> * bcs)
 
 template<>
 void InterfaceAdaptGrid<Point3D>::SetRefinementFlag(const Integer ei)
-{
- 
+{ 
  ;
 }
 

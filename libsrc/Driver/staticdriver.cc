@@ -3,6 +3,7 @@
 #include <string>
 
 #include "staticdriver.hh"
+#include "spaceerror.hh"
 
 namespace CoupledField
 {
@@ -40,11 +41,40 @@ void StaticDriver :: SolveProblem()
 #endif
   Integer level=0;
   Integer pdenumber  = 0;
-  Integer matrixtype = 0;
-  Integer nsys = 0;
 
   ptdomain_->GetPDE(pdenumber)->SolveStepStatic(ptdomain_->GetBCs(), level);
 
+  ptdomain_->PrintGrid(level);
+  ptdomain_->GetPDE(pdenumber)->WriteResultsInFile();
+}
+
+void StaticDriver :: SolveProblemAdaptSpace()
+{
+#ifdef TRACE
+  (*trace) << "entering SolveProblemAdapt::SolveProblemAdapt " << std::endl;
+#endif
+
+  Integer level=0;
+  Integer pdenumber  = 0;
+
+  SpaceErrorEstimator * ptSpaceError;
+  ptSpaceError=ptdomain_->GetPDE(pdenumber)->CreatePtSpaceError();
+
+  ptdomain_->GetPDE(pdenumber)->SolveStepStatic(ptdomain_->GetBCs(), level);
+
+  Integer maxnumrepeat, numrepeat=0;
+  conf->get("maxnumrepeat",maxnumrepeat,"SpaceAdaptivity");
+
+  while (ptSpaceError->TestError() && numrepeat !=maxnumrepeat) {
+    ptSpaceError->RefineMesh();
+    ptdomain_->Update(level);
+
+    ptdomain_->GetPDE(pdenumber)->SolveStepStatic(ptdomain_->GetBCs(), level);
+
+    numrepeat++;
+  }
+ 
+  ptdomain_->PrintGrid(level);
   ptdomain_->GetPDE(pdenumber)->WriteResultsInFile();
 }
 

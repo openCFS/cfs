@@ -31,10 +31,11 @@ endif
 ############ define my libraries
 #
 ifeq "$(OS)" "Linux"
-mylibrary :=  driver estimator pde forms  \
+mylibrary :=  driver domain pde \
+	    estimator forms  \
             elements3d elements2d elements \
             gridcfs tonetgen toadaptgrid\
-            domain unverg gmv \
+            unverg gmv \
             definefiles datfile ansysfile datainout \
             utils matrix general \
             multigrid-cla general-cla  superlu-cla\
@@ -43,7 +44,8 @@ mylibrary :=  driver estimator pde forms  \
             la gen cfsinterface tix8.1.8.3 tk8.3 tcl8.3\
             GL GLU X11 Xi m dl pthread stdc++ adaptgrid 
 else
-mylibrary :=  driver estimator pde algsys-own forms  \
+mylibrary :=  driver domain pde estimator \
+	    algsys-own forms  \
             elements3d elements2d elements \
             gridcfs \
             domain unverg gmv \
@@ -56,7 +58,7 @@ endif
 ########### define system libraries
 #
 ifeq "$(OS)" "Linux"
-syslib :=  
+syslib := -lm -lc 
 else
 syslib := -lGridBase -lIO  -lUtil -lMesh -lC
 endif
@@ -87,7 +89,7 @@ PATHSUBLIBDIR = $(addprefix $(LIBSRC_DIR)/, $(SUBLIBDIR))
 	$(F77) -o $@ $(FFLAGS1) $(FFLAGS2) $<
  
 $(program):: $(src:.cc=.o) $(fsrc:.f=.o) makelibs 
-	$(CC) $(CFLAG_EXE) -o $@ $(src:.cc=.o) $(fsrc:.f=.o) -L$(LIB_DIR) -L$(LIB_GRIDLIB)  -L$(LIB_NETGEN) -L$(LIB_CLA) $(LINKFLAGS2) $(LINKFLAGS3) $(addprefix -l, $(mylibrary)) $(syslib) $(LIB_NAG) 
+	$(CC) $(CFLAG_EXE) -o $@ $(src:.cc=.o) $(fsrc:.f=.o) -L$(LIB_DIR) -L$(LIB_GRIDLIB)  -L$(LIB_NETGEN) -L$(LIB_CLA) $(LINKFLAGS2) $(LINKFLAGS3) $(addprefix -l, $(mylibrary)) $(syslib) $(LIB_NAG) -Wl,-rpath,$(LIB_OWN)/$(MACHINE):$(NetGen)/lib
 #
 ########## Set varible MACHINE
 setvar:
@@ -271,20 +273,23 @@ doc++:
 #
 LIBSRC=$(addprefix libsrc/,$(SUBLIBDIR))
 CVS_DIR=$(addsuffix /CVS,$(LIBSRC))
+echo:
+	echo $(CVS_DIR)
 #
 distrib: clean 
 	cd $(C_DIR) && \
-	tar -cvf cfs++.tar $(LIBSRC) main/Makefile main/Makefile.option main/cfs.cc main/control --exclude $(CVS_DIR) 
+	tar -cvf cfs++.tar $(LIBSRC) main/Makefile main/Makefile.option main/cfs.cc main/control && \
+	tar --delete $(C_DIR) cfs++.tar 
 #
 ##################### Make check
 #
 ControlDir = control
 ControlExtOut = unverg
-CheckFiles = chan1 
+CheckFiles = channel 
 #
 check:
 	@for n in $(CheckFiles); do\
-	(cfs $$n -m mat; \
+	(cfs $$n ; \
 	if diff $$n.$(ControlExtOut) $$n.test ;\
 		then echo " $$n: Ok :) ";\
 		else echo " $$n: Error or control files are not updated.";\

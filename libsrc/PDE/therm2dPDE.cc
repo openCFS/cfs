@@ -1,11 +1,9 @@
 #include <fstream>
 #include <iostream>
 #include <string>
-#include <math.h>
 
-#include "interface_linalg.hh"
 #include "therm2dPDE.hh"
-
+#include "forms_header.hh"
  
 namespace CoupledField
 {
@@ -18,12 +16,18 @@ Therm2dPDE::Therm2dPDE(AbstractAlgebraicSys * ptalgsys, Grid * agrid, Material *
 #endif
 
   dofspernode_ = 1;
-  doftype_     = 14;
   ptgrid_=agrid;
 
-  conf->get("formulation", effsysmat_, "Thermal");
+  std::string formulation;
+  conf->get("formulation", formulation, "Thermal");
+  
+  if (formulation=="effmass") formulation_=0;
+  else { 
+    if (formulation=="effstiff") formulation_=1;
+    else Error("This type of formulation is wrong",__FILE__,__LINE__);
+  }
 
-  size_=ptgrid_->GetMaxnumnodes(0);
+  size_ = ptgrid_->GetMaxnumnodes(0);
   sol_.Resize(size_);
   sol_.Init(0);
   sol_der1_.Resize(size_);
@@ -35,8 +39,10 @@ Therm2dPDE::Therm2dPDE(AbstractAlgebraicSys * ptalgsys, Grid * agrid, Material *
   sol_pred_.Resize(size_);
   sol_pred_.Init(0);
 
-  conf->get("gamma_parabolic",gamma_parab_,"Thermal"); 
- 
+  conf->get("gamma_parabolic",gamma_parab_,"Thermal");
+
+  conf->getsubdompde(subdoms_,"Thermal");
+  ReadBCs("Thermal"); 
 }
 
 Therm2dPDE::~Therm2dPDE()
@@ -55,21 +61,20 @@ void Therm2dPDE::SetMatrixFactors()
   (*trace) << "entering Therm2dPDE::SetMatrixFactors" << std::endl;
 #endif
 
-if (effsysmat_==1)
-{
- matrix_factor_[0] = 1.0*a0_;
-  matrix_factor_[1] = 0.0;
-  matrix_factor_[2] = 0.0;
-  matrix_factor_[3] = 1.0;
-}
-else 
-{
-  matrix_factor_[0] = 1.0;
-  matrix_factor_[1] = 0.0;
-  matrix_factor_[2] = 0.0;
-  matrix_factor_[3] = 1.0*factor1_;
-}
-
+  switch(formulation_) {
+  case 0:
+    matrix_factor_[0] = 1.0*a0_;
+    matrix_factor_[1] = 0.0;
+    matrix_factor_[2] = 0.0;
+    matrix_factor_[3] = 1.0;
+    break;
+  case 1:
+     matrix_factor_[0] = 1.0;
+     matrix_factor_[1] = 0.0;
+     matrix_factor_[2] = 0.0;
+     matrix_factor_[3] = 1.0*factor1_;
+     break;
+  }
 }
 
 void Therm2dPDE::CalcParameters(const Double dt)
@@ -78,7 +83,7 @@ void Therm2dPDE::CalcParameters(const Double dt)
   (*trace) << "entering Therm2dPDE::CalcParameters" << std::endl;
 #endif
 
- a0_=gamma_parab_*dt;
+ a0_ = gamma_parab_*dt;
  factor1_ = 1.0/(gamma_parab_*dt);
  factor2_ = (1-gamma_parab_)/gamma_parab_;
  factor_pred_ = (1-gamma_parab_)*dt;
@@ -91,7 +96,7 @@ void Therm2dPDE::Predictor()
   (*trace) << "entering Therm2dPDE::Predictor" << std::endl;
 #endif
 
-  sol_pred_=sol_+ sol_der1_*factor_pred_;
+  sol_pred_ = sol_old_+ sol_der1_old_*factor_pred_;
 
 }
 
@@ -139,12 +144,6 @@ void Therm2dPDE::SpecifyMatrices(Integer &matrixtype, Integer * matrixsystype, I
   matrixsystype[3] = 0;   // memory for the convection matrix
   matrixsystype[4] = 5;   // memory for the mass matrix
 
-//  if (statickey==0)
-//    {
-//      matrixsystype[1] = 2;   
-//      matrixsystype[4] = 5;   
-//    }
-
   graphtype = 1; // NOGRAPH = 0
                  // NODE   = 1
                  // EDGE   = 2
@@ -157,66 +156,81 @@ void Therm2dPDE::SpecifyMatrices(Integer &matrixtype, Integer * matrixsystype, I
 
 }
 
-void Therm2dPDE::SetupMatrices(const Integer type)
+void Therm2dPDE::SetupMatrices(const Integer level)
 {
 #ifdef TRACE
   (*trace) << "entering Therm2dPDE::SetupMatrices" << std::endl;
 #endif
 
-  Integer numnodeelem;
-  numnodeelem=ptgrid_->GetNumNodesPerElem(0,0);
-  Integer * help=new Integer[numnodeelem];
   Matrix<Double> elemmat;
+  Point2D * ptCoord; 
 
-  Point2D * ptCoord=new Point2D[numnodeelem];
-
-  Integer numelem=ptgrid_->GetMaxnumElem(0);
- 
   BaseElem * ptElem;
-
-  BaseElem ** ptArrayElem=ptgrid_->getptArrayElem();
 
   Integer matrix_stiff=2;
   Integer matrix_mass=5;
 
-  Integer i; 
-  for (i=0; i<numelem; i++)
+  Vector<Integer> connecth;
+  std::vector<Elem*> elemssd;
+
+  Integer i,j; 
+  for (i=0; i<subdoms_.size(); i++)
   {
-    ptElem=ptArrayElem[i];
+    ptgrid_->GetElemSD(elemssd,subdoms_[i],level);
 
-    ptElem->test();
+    for (j=0; j<elemssd.size(); j++)
+      {
+	ptElem=elemssd[j]->ptElem;
+	
+	BaseForm<Point2D> * bilinear_stiff = new LaplaceInt<Point2D>(ptElem,1);
+	BaseForm<Point2D> * bilinear_mass  = new MassInt<Point2D>(ptElem,1);
 
-   BaseForm<Point2D> * bilinear_stiff = new LaplaceInt<Point2D>(ptElem,1);
-   BaseForm<Point2D> * bilinear_mass  = new MassInt<Point2D>(ptElem,1);
+	if (!bilinear_stiff) Error("Problems with allocation of object Laplace");
+	if (!bilinear_mass)  Error("Problems with allocation of object Mass");
 
-   if (!bilinear_stiff) Error("Problems with allocation of object Laplace");
-   if (!bilinear_mass)  Error("Problems with allocation of object Mass");
+	 Integer ii;
+	  Integer elsize=(elemssd[j]->connect).size();
+	  connecth.Resize(elsize);
+	  for (ii=0; ii<elsize; ii++)
+	    connecth[ii]=(elemssd[j]->connect)[ii];
+  
+	  ptCoord=new Point2D[connecth.size()];
+	  ptgrid_->GetCoordNodesElem(connecth,ptCoord,level); 
 
-   ptgrid_->GetConnection(help,0,i,numnodeelem);
-   ptgrid_->GetCoordOfNodesElem(i,0,numnodeelem,ptCoord);
+	  // stiffness part
+	  bilinear_stiff->CalcElemMatrix(ptCoord, elemmat);
+ 
+	  
+	  std::cout << " stiffness: " << elemmat << std::endl;
+#ifdef DEBUG
+	  (*debug) << "Stiffnessmatrix, ElementNumber  " <<   i << std::endl;
 
-       // stiffness part
-      std::cout << "before" << std::endl;
-      bilinear_stiff->CalcElemMatrix(ptCoord, elemmat);
+	  (*debug) << elemmat << std::endl;
+	  (*debug) << "Connection array " << std::endl;
+	  (*debug)  << connecth  << std::endl;
 
-      std::cout << "intermediate" << std::endl;
-      ptalgsys_->PutElemMatAlgSys(elemmat.getinarray(), help, numnodeelem, AS_sysid_, AS_sysid_, matrix_stiff);
+#endif
+  
+      ptalgsys_->PutElemMatAlgSys(elemmat.getinarray(), connecth.get(), connecth.size(), as_sysid_, as_sysid_, matrix_stiff);
 
-       std::cout << "intermediate1" << std::endl;
       // mass part
       bilinear_mass->CalcElemMatrix(ptCoord, elemmat);
+ 
+      std::cout << " mass: " << elemmat << std::endl;
 
-        std::cout << "intermediate2" << std::endl;
-      ptalgsys_->PutElemMatAlgSys(elemmat.getinarray(), help, numnodeelem, AS_sysid_, AS_sysid_,matrix_mass);
+#ifdef DEBUG
+	  (*debug) << "Massmatrix, ElementNumber  " << i << std::endl;
 
-       std::cout << "end" << std::endl;
+	  (*debug) << elemmat << std::endl;
+#endif
+
+      ptalgsys_->PutElemMatAlgSys(elemmat.getinarray(), connecth.get(), connecth.size(), as_sysid_, as_sysid_,matrix_mass);  
 
       delete bilinear_stiff;
       delete bilinear_mass;
-     }
-
-   delete [] ptCoord;
-   delete [] help;
+      delete [] ptCoord;
+      }
+  } 
 
 #ifdef TRACE
   (*trace) << "Leaving Therm2dPDE::SetupMatrices" << std::endl;
@@ -228,58 +242,90 @@ void Therm2dPDE::SetBCs(BCs * ptBCs, const Integer level, const Integer update, 
 #ifdef TRACE
   (*trace) << "entering Therm2dPDE::SetBCs" << std::endl;
 #endif
- 
-  Integer num, node, type, tfunc;
+
+  Integer node;
   Double val, valueTF;
 
   //system matrix: id = 1
   Integer matrix_id = 1;
 
-  std::list<NodeRestraint> restr;
-  ptBCs->GetRestraints(restr,level);
-
   val=ptTimeFunc_->TimeFuncAtTime(atime,level);
+  //  val=20;
 
-  Integer i=0;
-  for (std::list<NodeRestraint>::const_iterator p=restr.begin(); p!=restr.end(); p++, i++)
-  {
-        Integer node=p->nodalnum;
-        if (p->dof==doftype_)
-	  {
-        if (update==1)
-           {
-        ptalgsys_->SetBCDirichletUpdate(i+1, node, val, dofspernode_, AS_sysid_, AS_sysid_, matrix_id);
-           }
-          else
-           {
-              ptalgsys_->SetBCDirichlet(i+1, node, val, dofspernode_, AS_sysid_,AS_sysid_, matrix_id);
-           }
-          }
-   }  
+  // set homogeneous boundary conditions
+  Integer i,j=0;
+  std::list<Integer> nodes_hd;
+  Integer sizebc=bcs_hd_.size();
+  for (i=0; i< bcs_hd_.size(); i++)
+    {
+      val = 0;
+      nodes_hd=ptBCs->GetNodesLevel(bcs_hd_[i]);
+   
+      for (std::list<Integer>::const_iterator p=nodes_hd.begin(); p!=nodes_hd.end(); p++, j++)
+	{
+	  node=*p;	 
+	  if (update==1)
+	    {
+	      ptalgsys_->SetBCDirichletUpdate(j+1, node, val, dofspernode_, as_sysid_, as_sysid_, matrix_id);
+	    }
+	  else
+	    {    
+	      ptalgsys_->SetBCDirichlet(j+1, node, val, dofspernode_, as_sysid_, as_sysid_, matrix_id);
+	    }
+	}  
+    }
+
+  // set dirichlet boundary conditions
+  val=1.0;
+  j=0;
+  std::list<Integer> nodes_id;
+  sizebc=bcs_id_.size();
+  for (i=0; i< bcs_id_.size(); i++)
+    {
+      nodes_id=ptBCs->GetNodesLevel(bcs_id_[i]);
+   
+      for (std::list<Integer>::const_iterator p=nodes_id.begin(); p!=nodes_id.end(); p++, j++)
+	{
+	  node=*p;	 
+	  if (update==1)
+	    {
+	      ptalgsys_->SetBCDirichletUpdate(j+1, node, val, dofspernode_, as_sysid_, as_sysid_, matrix_id);
+	    }
+	  else
+	    {   
+
+	      ptalgsys_->SetBCDirichlet(j+1, node, val, dofspernode_, as_sysid_, as_sysid_, matrix_id);
+	    }
+	}  
+    }
+
+#ifdef TRACE
+  (*trace) << "leaving Acoustic2dPDE::SetBCs" << std::endl;
+#endif
 }
 
-void Therm2dPDE::ComputeRHS()
+void Therm2dPDE::ComputeRHS(const Double atime, BCs * ptBCs=NULL)
 {
 #ifdef TRACE
   (*trace) << "entering Therm2dPDE::ComputeRHS" << std::endl;
 #endif
-  Integer n;
-  Integer matrix_id;
 
-  if (effsysmat_ == 1)
-    {
-      matrix_id = 2;
-      Vector<Double> help=sol_pred_*(-1); 
-      ptalgsys_->UpdateRHS(AS_sysid_,AS_sysid_,matrix_id,help.get());
-      
-    }
-  else
-    {
-      matrix_id = 5;
-      Vector<Double> help=sol_pred_*factor1_;
-      ptalgsys_->UpdateRHS(AS_sysid_,AS_sysid_,matrix_id,help.get());
-    }
-  std::cout << " end " << std::endl;
+  Integer matrix_id;
+  Vector<Double> help;
+
+  switch(formulation_) {
+  case 0:
+    matrix_id = 2;
+    help=sol_pred_*(-1);
+    ptalgsys_->UpdateRHS(as_sysid_,as_sysid_,matrix_id,help.get());
+    break;
+
+  case 1:
+    matrix_id = 5;
+    help=sol_pred_*factor1_;
+    ptalgsys_->UpdateRHS(as_sysid_,as_sysid_,matrix_id,help.get());
+    break;
+  }
 }
 
 
@@ -295,8 +341,8 @@ void Therm2dPDE::SolveStepStatic(BCs * ptBCs, const Integer level)
 
   SetupMatrices(type);
   SetBCs(ptBCs,level,update,0);
-  ptalgsys_->ComputePrecond(job,AS_sysid_);
-  ptalgsys_->SolveAlgSys(AS_sysid_);
+  ptalgsys_->ComputePrecond(job,as_sysid_);
+  ptalgsys_->SolveAlgSys(as_sysid_);
 
 }
 
@@ -316,75 +362,79 @@ void Therm2dPDE::SolveStepTrans(BCs * ptBCs, const Integer kstep, const Double a
 
   if (kstep==0) 
     {
-      Integer type=0;
       update = 0;
       job = 1;
-      SetupMatrices(type);
-      ptalgsys_->ComputeSysMatrix(AS_sysid_,AS_sysid_,matrix_factor_);
+      SetupMatrices(level);
+      ptalgsys_->ComputeSysMatrix(as_sysid_,as_sysid_,matrix_factor_);
     }
-  else if (reset)
-    {
+  else if (reset) {   
       update = 1;
-      job    = 0;
+      job    = 1;
 
-   //   if (effsysmat_ == 2)
-   	Predictor();
+      Predictor();
 
-      ptalgsys_->ResetRHS(AS_sysid_);
+      ptalgsys_->ResetRHS(as_sysid_);
       ptalgsys_->ResetMatrix(0,0,1);
-      ptalgsys_->ComputeSysMatrix(AS_sysid_,AS_sysid_,matrix_factor_);
-      ComputeRHS();
+      ptalgsys_->ComputeSysMatrix(as_sysid_,as_sysid_,matrix_factor_);
+      ComputeRHS(lasttimecalc_,ptBCs);
     }
-      else
-    { update = 1;
-      job = 3;
+  else {
+    update = 1;
+    job = 3;
 
-    //  if (effsysmat_ == 2)
-        Predictor();
-
-      ptalgsys_->ResetRHS(AS_sysid_);
-      ComputeRHS();
+    Predictor();
+    ptalgsys_->ResetRHS(as_sysid_);
+    ComputeRHS(lasttimecalc_,ptBCs);
     }
 
   SetBCs(ptBCs,level,update,lasttimecalc_);
-  ptalgsys_->ComputePrecond(job,AS_sysid_);
-  ptalgsys_->SolveAlgSys(AS_sysid_);
-  ptsol = ptalgsys_->GetSolution(AS_sysid_);
+  ptalgsys_->ComputePrecond(job,as_sysid_);
+  ptalgsys_->SolveAlgSys(as_sysid_);
+  ptsol = ptalgsys_->GetSolution(as_sysid_);
 
- Vector<Double> transsol(ptgrid_->GetMaxnumnodes(level), ptsol);
+  // save solution
+  Integer i;
+  switch(formulation_) {
 
-  //save solution
-  if (effsysmat_==1)
-    {
-      sol_der1_old_=sol_der1_;
-      sol_der1_=transsol;
-      sol_old_=sol_;
+  case 0:      // effective mass formulation
+    for (i=0; i<ptgrid_->GetMaxnumnodes(level); i++)
+      sol_der1_[i]=ptsol[i];
+    break;
 
-      CalculationDerivativesSol();
-    }
-  else
-    {
-     sol_old_=sol_;
-     sol_=transsol;
-     sol_der1_old_=sol_der1_;
-     CalculationDerivativesSol();
-    }
+  case 1:      // effective stiffness formulation
+    for (i=0; i<ptgrid_->GetMaxnumnodes(level); i++)
+      sol_[i]=ptsol[i];
+    break;
+  }
+
+  CalcDerSol();
 }
 
-void Therm2dPDE::CalculationDerivativesSol()
+void Therm2dPDE::CalcDerSol()
 {
 #ifdef TRACE
-  (*trace) << "entering Therm2dPDE::CalculationDerivativesSol" << std::endl;
+  (*trace) << "entering Therm2dPDE::CalcDerSol" << std::endl;
 #endif
 
-  if (effsysmat_==1)
-   {
-    sol_+=sol_der1_*a0_+sol_der1_old_*factor_pred_;
-   }
-  else
-   {
-    sol_der1_=(sol_-sol_pred_)*factor1_;
-   }
+  switch(formulation_) {
+  case 0:        // effective mass formulation
+    sol_ = sol_pred_ + sol_der1_*a0_;
+    break;
+
+  case 1:        // effective stiffness formulation
+    sol_der1_ = (sol_-sol_pred_)*factor1_;
+    break;
+  }
+}
+
+void Therm2dPDE::SaveSolAsPrevStep()
+{
+#ifdef TRACE
+  (*trace) << "entering Acoustic2dPDE::SaveSolAsPrevStep" << std::endl;
+#endif
+
+  sol_old_=sol_;
+  sol_der1_old_=sol_der1_;
 }
 
 void Therm2dPDE:: WriteResultsInFile()

@@ -64,7 +64,7 @@ private:
   void getPosLine(const std::string seekexp, std::string::size_type & pos);
 
   // get position in line
- void getPosition(const std::string seekexp, std::string::size_type & pos);
+  void getPosition(const std::string seekexp, std::string::size_type & pos);
 
   // read number of nodes for boundary condition
   void ReadMaxnumnodesbc(Integer & nbc);
@@ -72,16 +72,18 @@ private:
   //
   void ReadMaxnumelem(Integer & , const std::string keyword);
   //
-void ReadEl2d(std::vector<Elem*> * allelems, const std::vector<std::string> sd);
-void ReadEl3d(std::vector<Elem*> * allelems, const std::vector<std::string> sd);
+  void ReadEl2d(std::vector<Elem*> * allelems, const std::vector<std::string> sd);
+  void ReadEl3d(std::vector<Elem*> * allelems, const std::vector<std::string> sd);
 
   // transform type of elem in pointer to base class BaseElem
   BaseElem * Type2ptElem(const Integer itype);
 
 #ifdef ADAPTGRID
- void ReadEl4AdaptGrid2d(std::vector<grd::Element*> & elems, vector<grd::Vertex*> * vertices,  const std::vector<std::string> sd);  
+  void ReadEl4AdaptGrid2d(std::vector<grd::Element*> & elems, vector<grd::Vertex*> * vertices,  const std::vector<std::string> sd);  
 
- void SetNumSD(grd::Element * ptEl, const std::string namesd,  const std::vector<std::string> sd);
+  void ReadEl4AdaptGrid3d(std::vector<grd::Element*> & elems, vector<grd::Vertex*> * vertices,  const std::vector<std::string> sd);
+
+  void SetNumSD(grd::Element * ptEl, const std::string namesd,  const std::vector<std::string> sd);
 #endif
 
 };

@@ -52,7 +52,7 @@ void TransientDriver :: SolveProblem()
 #ifdef TRACE
   (*trace) << "entering TransientDriver::SolveProblem" << std::endl;
 #endif
-
+  
   Integer level=0;
   Integer pdenumber  = 0;
   Integer nsys = 0;
@@ -64,6 +64,8 @@ void TransientDriver :: SolveProblem()
 
   ptdomain_->GetPDE(pdenumber)->CalcParameters(dt);
   ptdomain_->GetPDE(pdenumber)->SetMatrixFactors();
+
+  ptdomain_->PrintGrid(level);
 
   Integer nstep;
   for (nstep = 0; nstep<numstep_; nstep++)
@@ -78,15 +80,16 @@ void TransientDriver :: SolveProblem()
         stepsave+=isaveincr_;
       }
 
-   Vector<Double> derAdt=ptdomain_->GetPDE(pdenumber)->getS2()-ptdomain_->GetPDE(pdenumber)->getS2old();
+    //   Vector<Double> derAdt=ptdomain_->GetPDE(pdenumber)->getS2()-ptdomain_->GetPDE(pdenumber)->getS2old();
 
-   Double size=ptdomain_->GetPDE(pdenumber)->getSize();
-   Double error1=sqrt(derAdt*derAdt/size)*dt*dt*0.0833;
+    //   Double size=ptdomain_->GetPDE(pdenumber)->getSize();
+   //   Double error1=sqrt(derAdt*derAdt/size)*dt*dt*0.0833;
 
 // l2 norm solution
    Vector<Double> sol=ptdomain_->GetPDE(pdenumber)->getS();
 
-   std::cout << " Error " << error1 << " " << sol.norm_2() << " ratio " << error1/sol.norm_2() << std::endl; 
+   std::cout << " norm L2 " << sol.norm_2() << std::endl;
+   //   std::cout << " Error " << error1 << " " << sol.norm_2() << " ratio " << error1/sol.norm_2() << std::endl; 
 
    steptime+=dt;
    }
@@ -189,6 +192,9 @@ void TransientDriver :: SolveProblemAdapt()
   Double steptime_prev=0;
   Integer nstep=0;
 
+  // when we change only time-step, grid is constant
+  ptdomain_->PrintGrid(level);
+ 
   // calculation of end-time
   Double endtime=numstep_*firstdt_;
 
@@ -313,7 +319,7 @@ void TransientDriver :: SolveProblemAdaptSpace()
 
       numrepeat=0;
       maxnumrepeat=1;
-      while (ptSpaceError->TestError() && numrepeat != maxnumrepeat )
+      while (ptSpaceError->TestError() && numrepeat != maxnumrepeat && nstep < 3)
       {
 	ptSpaceError->RefineMesh();	
 	ptdomain_->Update(level); // update BCs and AlgSys

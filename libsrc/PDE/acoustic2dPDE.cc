@@ -161,7 +161,7 @@ void Acoustic2dPDE::SetupMatrices(const Integer level)
 
 	  Integer ii;
 	  Integer elsize=(elemssd[j]->connect).size();
-	  connecth.Resize(4);
+	  connecth.Resize(elsize);
 	  for (ii=0; ii<elsize; ii++)
 	    connecth[ii]=(elemssd[j]->connect)[ii];
   
@@ -174,11 +174,12 @@ void Acoustic2dPDE::SetupMatrices(const Integer level)
 	  elemmat*=coeffst[i];
 
 #ifdef DEBUG
-	  (*debug) << "Stiffnessmatrix, ElementNumber  " <<   i << std::endl;
-
-	  (*debug) << elemmat << std::endl;
-	  (*debug) << "Connect  " << std::endl;
+	  (*debug) << "Connection array  " << std::endl;
 	  (*debug)  << connecth  << std::endl;
+
+	  (*debug) << "Stiffnessmatrix, ElementNumber  " <<   i << std::endl;
+	  (*debug) << elemmat << std::endl;
+
 
 #endif     
 
@@ -201,7 +202,6 @@ void Acoustic2dPDE::SetupMatrices(const Integer level)
 	  delete bilinear_stiff;
 	  delete bilinear_mass;
 	  delete [] ptCoord;
-
 	}
     }
 #ifdef TRACE
@@ -474,7 +474,7 @@ Double Acoustic2dPDE::CalcEnergyNorm()
 
 void Acoustic2dPDE::CalcCoeff(Vector<Double> & coeffmass, Vector<Double> & coeffstiff)
 {
-  if (!MatFile_) Error("You didn't specialize material file. Use option -m");
+  if (!MatFile_) Error("You didn't specialize material file. Check your config-file.");
 
   coeffmass.Resize(subdoms_.size());
   coeffstiff.Resize(subdoms_.size());

@@ -33,7 +33,7 @@ using namespace CoupledField;
 void main(int argc, char *argv[])
 {
   std::cout << " Wellcome to sample session. " << argc << std::endl ;
-  std::cout << " \033[36mUsage\033[0m : cfs [-i] name [-m materialfile]"<< std::endl 
+  std::cout << " \033[36mUsage\033[0m : cfs [-i] name "<< std::endl 
 	    << "\t \033[36m i \033[0m: to create info-file " << std::endl
 	    << "\t \033[36m name \033[0m: name of input file without extension" << std::endl << std::endl;
 
@@ -41,20 +41,18 @@ void main(int argc, char *argv[])
 
   if (!strcmp("-i", argv[1])) InfoPrint=TRUE;
 
-  Char * name=NULL;
-  Material * ptMaterial=NULL;
-  if (!strcmp("-m", argv[argc-2])) 
-    { 
-      name=argv[argc-3];
-      ptMaterial=new Material(argv[argc-1]);
-    }
-  else name=argv[argc-1];
-
+  Char * name=argv[argc-1];
+  
   DefineInOutFiles * ptDefineFiles=new DefineInOutFiles(name);
 
   MyClock oClockTotal;
   oClockTotal.ClockCount(MyClock::beg);
 
+  Material * ptMaterial=NULL;
+  std::string material;
+  conf->get("material_file",material);
+  if (material != "non") ptMaterial=new Material(material.c_str());
+	
   FileType * ptInputfile=ptDefineFiles->Create_ptFileType();
 
   WriteResults * ptOut=ptDefineFiles->Create_ptWriteResults();
@@ -62,9 +60,6 @@ void main(int argc, char *argv[])
   TimeFunc * ptTimeFunc=new TimeFunc(ptInputfile);
 
   Domain * domain=new Domain(ptInputfile,ptOut,ptMaterial, ptTimeFunc);
-
-  // print grid to unverg-file
-  domain->PrintGrid(0);
 
   //  domain->TestGrid();
 
