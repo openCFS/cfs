@@ -147,13 +147,15 @@ void Acoustic2dPDE::SetupMatrices(const Integer type)
 
   Integer * ptElemSubdomain; 
   Integer i,j; 
-  Double coeff;
+  Double coeffmass,coeffstiff;
 
   for (i=0; i<numsubdom; i++)
 {  
   ptElemSubdomain=ptgrid_->GetElemSubdomain(i,0);
 
-  CalcCoeff(coeff,i);
+  CalcCoeff(coeffmass, coeffstiff,i);
+
+  //  std::cout << coeff << "coefficient" << std::endl;
 
    for (j=0; ptElemSubdomain[j]!=-1; j++)
     {
@@ -167,15 +169,28 @@ void Acoustic2dPDE::SetupMatrices(const Integer type)
 
        // stiffness part
       bilinear_stiff->CalcElemMatrix(ptCoord, elemmat);
+      elemmat*=coeffstiff;
+
+#ifdef DEBUG
+      (*debug) << "Stiffnessmatrix, ElementNumber  " <<   ptElemSubdomain[j] << " Element Group " << j << std::endl;
+
+      (*debug) << elemmat << std::endl;
+#endif     
 
       ptalgsys_->PutElemMatAlgSys(elemmat.getinarray(), help, numnodeelem, AS_sysid_, AS_sysid_, matrix_stiff);
 
       // mass part
       bilinear_mass->CalcElemMatrix(ptCoord, elemmat);
+      elemmat*=coeffmass;
 
-      elemmat*=coeff;
+#ifdef DEBUG
+      (*debug) << "Massmatrix, ElementNumber  " <<   ptElemSubdomain[j] << " Element Group " << j << std::endl;
 
+      (*debug) << elemmat << std::endl;
+#endif
+      
       ptalgsys_->PutElemMatAlgSys(elemmat.getinarray(), help, numnodeelem, AS_sysid_, AS_sysid_,matrix_mass);
+
 
       delete bilinear_stiff;
       delete bilinear_mass;
@@ -198,7 +213,6 @@ void Acoustic2dPDE::SetBCs(BCs * ptBCs, const Integer level, const Integer updat
   Integer num, node, type, tfunc;
   Double val, valueTF;
 
-
   //system matrix: id = 1
   Integer matrix_id = 1;
 
@@ -211,6 +225,7 @@ void Acoustic2dPDE::SetBCs(BCs * ptBCs, const Integer level, const Integer updat
     for (std::list<NodeRestraint>::const_iterator p=restr.begin(); p!=restr.end(); p++, i++)
    {
           Integer node=p->nodalnum;
+
           if (p->dof==doftype_)
 	    {
           if (update==1)
@@ -219,11 +234,13 @@ void Acoustic2dPDE::SetBCs(BCs * ptBCs, const Integer level, const Integer updat
             }
           else
             {
-              ptalgsys_->SetBCDirichlet(i+1, node, val, dofspernode_, AS_sysid_,
-AS_sysid_, matrix_id);
+              ptalgsys_->SetBCDirichlet(i+1, node, val, dofspernode_, AS_sysid_, AS_sysid_, matrix_id);
             }
 	    }
     }
+#ifdef TRACE
+  (*trace) << "leaving Acoustic2dPDE::SetBCs" << std::endl;
+#endif
 }
 
 void Acoustic2dPDE::ComputeRHS()
@@ -253,8 +270,10 @@ void Acoustic2dPDE::SolveStepStatic(BCs * ptBCs, Integer level)
 
   SetupMatrices(type);
   SetBCs(ptBCs,level,update,0);
+  std::cout << " before compute precond " << std::endl;
   ptalgsys_->ComputePrecond(job,AS_sysid_);
   ptalgsys_->SolveAlgSys(AS_sysid_);
+  std::cout << " after solving " << std::endl;
 }
 
 void Acoustic2dPDE::SolveStepTrans(BCs * ptBCs, const Integer kstep, const Double asteptime, const Integer level, const Boolean reset)
@@ -297,14 +316,16 @@ void Acoustic2dPDE::SolveStepTrans(BCs * ptBCs, const Integer kstep, const Doubl
         };
 
   SetBCs(ptBCs,level,update,lasttimecalc_);
+  std::cout << " before compute precond " << std::endl;
   ptalgsys_->ComputePrecond(job,AS_sysid_);
   ptalgsys_->SolveAlgSys(AS_sysid_);
+  std::cout << " after solving " << std::endl;
   ptsol = ptalgsys_->GetSolution(AS_sysid_);
 
     // save solution
   Vector<Double> transsol(ptgrid_->GetMaxnumnodes(level), ptsol);
   sol_=transsol;
-    
+
    // calculation of derivatives of solution
   CalculationDerivativesSol();
 }
@@ -351,6 +372,7 @@ void Acoustic2dPDE :: CalculationDerivativesSol()
 #ifdef TRACE
   (*trace) << "entering Acoustic2dPDE::CalculationDerivativesSol" << std::endl;
 #endif
+
   sol_der2_old_=sol_der2_;
 
   sol_der2_=(sol_-sol_old_)*a0_-sol_der1_*a2_-sol_der2_old_*a3_;
@@ -368,7 +390,7 @@ Double Acoustic2dPDE::CalcEnergyNorm()
  return sqrt(help1+help2);
 }
 
-void Acoustic2dPDE::CalcCoeff(Double & coeff, const Integer numsubdom)
+void Acoustic2dPDE::CalcCoeff(Double & coeffmass, Double & coeffstiff, const Integer numsubdom)
 {
  // get material number for subdomain with number numsubdom from config-file
  Integer matnum;
@@ -379,7 +401,8 @@ void Acoustic2dPDE::CalcCoeff(Double & coeff, const Integer numsubdom)
  if (!MatFile_) Error("You didn't specialize material file. Use option -m");
  MatFile_->ReadDensityAndCompressity(density,compress,matnum,"fluid"); 
 
- coeff=sqrt(compress/density);
+ coeffmass  = density*density/compress;
+ coeffstiff = density;
 }
 
 TimeErrorEstimator * Acoustic2dPDE::CreatePtTimeError()

@@ -27,7 +27,7 @@ template<class Dim>
 WriteResultsUnverg<Dim> ::~ WriteResultsUnverg()
 {
 #ifdef TRACE
-  (*trace) << "entering WriteResultsUnverg ::~ WriteResultsUnverg" << std::endl;
+ (*trace) << "entering WriteResultsUnverg ::~ WriteResultsUnverg" << std::endl;
 #endif
   ;
 }
@@ -148,6 +148,7 @@ void  WriteResultsUnverg<Point2D>::Dataset780(const Integer level)
  (*output) << std::setw(6) << -1 << std::endl << std::setw(6) << 780 << std::endl;
 
  Integer maxnumnodes=ptgrid-> GetMaxnumnodes(level);
+
  Integer maxnumelem=ptgrid-> GetMaxnumElem(level);
 
  Integer * ConnectElem=NULL;
@@ -196,7 +197,10 @@ void  WriteResultsUnverg<Point3D>::Dataset780(const Integer level)
  (*output) << std::setw(6) << -1 << std::endl << std::setw(6) << 780 << std::endl;
 
  Integer maxnumnodes=ptgrid-> GetMaxnumnodes(level);
+
  Integer maxnumelem=ptgrid-> GetMaxnumElem(level);
+
+ std::cout << maxnumelem << " " << maxnumnodes << std::endl;
 
  Integer * ConnectElem=NULL;
  Integer numnodesPerElem=0;
@@ -282,6 +286,8 @@ void  WriteResultsUnverg<Dim>::Init(Grid<Dim> * aptgrid)
 template<class Dim>
 void  WriteResultsUnverg<Dim>::WriteSolution(const Vector<Double> & sol, const Integer step, const Double time, const std::string title)
 {
+ if (NeedHistory_ && title=="fluid potential") AddInHistory(time,sol[history_node_]);
+
  Dataset55(title, sol, step+1, time);
 }
 

@@ -114,6 +114,8 @@ void GeTetrahedral::SetIntPoints()
       if (InfoPrint)
       (*infofile) << " For numerical integration procedures we use Gaussian Quadrature with 5 nodes, degree of precision is 4 " << std::endl;
 
+      break;
+
       case GaussOrder5:
   /// A.H.Stroud "Approximate Calculation of Multiple Integrals"
   /// Printice Hall 1971

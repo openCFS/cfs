@@ -25,6 +25,9 @@ class Jacobian
 
     //! Return colomn with derivatives respect to y in inverse Jacobian
     void GetJinvY(Vector<Double> & JinvY);
+
+    //! Return colomn with derivatives respect to z in inverse Jacobian
+    void GetJinvZ(Vector<Double> & JinvZ);
 };
 
 #ifdef __GNUC__

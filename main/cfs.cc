@@ -22,9 +22,9 @@
 //#include <interface_piles.hh>
 #include "transientdriver.hh"
 #include "staticdriver.hh"
-#include "interface_gridcfs.hh"
 
-//#include "interface_netgen.hh"
+#include "interface_gridcfs.hh"
+#include "interface_netgen.hh"
 
 using namespace CoupledField;
 
@@ -56,20 +56,20 @@ void main(int argc, char *argv[])
 
   FileType * ptInputfile=oDefFiles.Create_ptFileType(argv[1]);
 
-//  WriteResults<Point2D> * ptOut=oDefFiles.Create_ptWriteResults2d();
-  WriteResults<Point3D> * ptOut=oDefFiles.Create_ptWriteResults3d();  
+  WriteResults<Point2D> * ptOut=oDefFiles.Create_ptWriteResults2d();
+//  WriteResults<Point3D> * ptOut=oDefFiles.Create_ptWriteResults3d();  
 
   TimeFunc * ptTimeFunc=new TimeFunc(ptInputfile);
 
-//  Domain<Point2D> *domain=new Domain<Point2D>(ptInputfile,ptOut,ptMaterial, ptTimeFunc);
-   Domain<Point3D> *domain=new Domain<Point3D>(ptInputfile,ptOut,ptMaterial, ptTimeFunc);
+  Domain<Point2D> *domain=new Domain<Point2D>(ptInputfile,ptOut,ptMaterial, ptTimeFunc);
+//   Domain<Point3D> *domain=new Domain<Point3D>(ptInputfile,ptOut,ptMaterial, ptTimeFunc);
 
   // print grid to unverg-file
   domain->PrintGrid(0);
 
   //choose your driver
-//  BaseDriver *ptdriver = new TransientDriver(domain);
-   BaseDriver<Point3D> *ptdriver = new StaticDriver<Point3D>(domain);
+  BaseDriver<Point2D> *ptdriver = new TransientDriver(domain);
+//   BaseDriver<Point3D> *ptdriver = new StaticDriver<Point3D>(domain);
 
   //solve your problem
   std::string adaptTimeOn;
@@ -79,6 +79,41 @@ void main(int argc, char *argv[])
 
   oClockTotal.ClockCount(MyClock::end,"Total time");
 
+// for testing refinement of mesh
+
+/*
+   WriteResults<Point2D> * ptOut=oDefFiles.Create_ptWriteResults2d();
+
+   Grid<Point2D> * ptgrid=new InterfaceNetGen<Point2D>(ptInputfile);
+
+   ptgrid->Read();
+ 
+   ptOut->Init(ptgrid);
+   ptOut->WriteGrid(0);
+
+//   ptgrid->SubdivideUniform(0);
+//   ptOut->Init(ptgrid);
+//   ptOut->WriteGrid(0);
+
+   if (ptgrid) delete ptgrid;
+*/
+/*
+   WriteResults<Point3D> * ptOut=oDefFiles.Create_ptWriteResults3d();
+
+   Grid<Point3D> * ptgrid=new InterfaceNetGen<Point3D>(ptInputfile);
+
+   ptgrid->Read();
+
+   ptOut->Init(ptgrid);
+   ptOut->WriteGrid(0);
+
+//   ptgrid->SubdivideUniform(0);
+//   ptOut->Init(ptgrid);
+//   ptOut->WriteGrid(0);
+
+   if (ptgrid) delete ptgrid;
+   if (ptOut) delete ptOut;
+*/
 /*
    Grid<Point3D> * ptgrid=new GridInterfaceCFS<Point3D>(ptInputfile);
    ptgrid->Read();
@@ -90,9 +125,8 @@ void main(int argc, char *argv[])
 */
 
 /// Putzen
-
   if (ptInputfile) delete ptInputfile;
   if (ptOut) delete ptOut;
-//  if (ptdriver) delete ptdriver;
+  if (ptdriver) delete ptdriver;
   if (ptMaterial) delete ptMaterial;
 }

@@ -57,8 +57,6 @@ void GeTriangle :: SetIntPoints()
       (*IntWeights)[2]=0.520833333333333;
       (*IntWeights)[3]=0.520833333333333;
 
-      if (InfoPrint)
-       (*infofile) << " For numerical integration procedures we use Gaussian Quadrature with 4 nodes, degree of precision is 3 " << std::endl;
       break;
 
     case GaussOrder2:
@@ -79,8 +77,6 @@ void GeTriangle :: SetIntPoints()
       (*IntWeights)[1]= 0.166666666666667 ;
       (*IntWeights)[2]= 0.166666666666667 ;
 
-      if (InfoPrint)
-    (*infofile) << " For numerical integration procedures we use Gaussian Quadrature with 3 nodes, degree of precision is 2 " << std::endl;
       break;
 
    case GaussOrder4:
@@ -115,8 +111,6 @@ void GeTriangle :: SetIntPoints()
       (*IntWeights)[4]= 5.497587182766100e-02*2; 
       (*IntWeights)[5]= 5.497587182766100e-02*2; 
  
-      if (InfoPrint)
-    (*infofile) << " For numerical integration procedures we use Gaussian Quadrature with 6 nodes, degree of precision is 4 " << std::endl;
       break;
 
    case GaussOrder5:
@@ -154,8 +148,6 @@ void GeTriangle :: SetIntPoints()
       (*IntWeights)[5]=  0.125939180544827;
       (*IntWeights)[6]=  0.125939180544827; 
  
-      if (InfoPrint)
-    (*infofile) << " For numerical integration procedures we use Gaussian Quadrature with 7 nodes, degree of precision is 5 " << std::endl;
       break;
  
     default:

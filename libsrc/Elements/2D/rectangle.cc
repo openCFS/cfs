@@ -54,8 +54,6 @@ void Rectangle:: SetIntPoints()
       IntPoints[1][1] = -0.57735026919;
       IntPoints[2][1] =  0.57735026919;
       IntPoints[3][1] =  0.57735026919;
-      if (InfoPrint)
-       (*infofile) << " For numerical integration procedures we use Gaussian Quadrature with 4 nodes, degree of precision is 3 " << std::endl; 
       break;
 
     case GaussOrder5:
@@ -95,8 +93,6 @@ void Rectangle:: SetIntPoints()
       (*IntWeights)[7]= 0.493827; 
       (*IntWeights)[8]= 0.308642; 
 
-      if (InfoPrint)
-       (*infofile) << " For numerical integration procedures we use Gaussian Quadrature with 9 nodes, degree of precision is 5 " << std::endl;
       break;
 
     case GaussOrder7:
@@ -159,8 +155,6 @@ void Rectangle:: SetIntPoints()
       (*IntWeights)[14]= 0.226852;
       (*IntWeights)[15]= 0.121003;
 
-      if (InfoPrint)
-       (*infofile) << " For numerical integration procedures we use Gaussian Quadrature with 16 nodes, degree of precision is 7 " << std::endl;
       break;
  
     default:

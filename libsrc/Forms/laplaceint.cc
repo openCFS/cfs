@@ -28,17 +28,18 @@ LaplaceInt<Dim> :: ~LaplaceInt()
   ;
 }
 
-template <class Dim>
-void LaplaceInt<Dim> :: CalcElemMatrix(Dim * ptCoord, Matrix<Double> & Result)  
+template <>
+void LaplaceInt<Point2D> :: CalcElemMatrix(Point2D * ptCoord, Matrix<Double> & Result)  
 {
 #ifdef TRACE
   (*trace) << "entering LaplaceInt::CalcElemMatrix" << std::endl;
 #endif
   
   Integer l=ptelem->GetNumIntPoints();
+
   Integer n=ptelem->GetNumNodes();
- 
-  Jacobian<Dim>  J;
+
+  Jacobian<Point2D>  J;
   Vector<Double> JinvX, JinvY;
  
   Vector<Double> * help=new Vector<Double>[n];
@@ -78,6 +79,61 @@ void LaplaceInt<Dim> :: CalcElemMatrix(Dim * ptCoord, Matrix<Double> & Result)
     for (iii=0; iii<ii; iii++)
       Result[iii][ii]=Result[ii][iii];
  
+  delete [] help;
+}
+
+template <>
+void LaplaceInt<Point3D> :: CalcElemMatrix(Point3D * ptCoord, Matrix<Double> & Result)
+{
+#ifdef TRACE
+  (*trace) << "entering LaplaceInt::CalcElemMatrix" << std::endl;
+#endif
+
+  Integer l=ptelem->GetNumIntPoints();
+
+  Integer n=ptelem->GetNumNodes();
+
+  Jacobian<Point3D>  J;
+  Vector<Double> JinvX, JinvY, JinvZ;
+
+  Vector<Double> * help=new Vector<Double>[n];
+  Integer i,ii,iii;
+
+  Result.Resize(n,n);
+
+  Vector<Double> * intWeights=ptelem->GetIntWeights();
+
+  for (i=0; i<l; i++)
+    {
+
+      ptelem->test();
+      ptelem->CalcJacobian(J,i,ptCoord);
+
+      J.GetJinvX(JinvX);
+      J.GetJinvY(JinvY);
+      J.GetJinvZ(JinvZ);
+
+      for (ii=0; ii<n; ii++)
+        {
+          ptelem->GetGradientShFnc(help[ii],ii+1,i);
+        }
+
+      for (ii=0; ii < n; ii++)
+        for (iii=0; iii<ii+1; iii++)
+        {
+          if (intWeights)
+          Result[ii][iii]+=((help[ii]*JinvX)*(help[iii]*JinvX)
+            +(help[ii]*JinvY)*(help[iii]*JinvY)+(help[ii]*JinvZ)*(help[iii]*JinvZ))*J.detJ*(*intWeights)[i];
+          else
+         Result[ii][iii]+=((help[ii]*JinvX)*(help[iii]*JinvX)
+                 +(help[ii]*JinvY)*(help[iii]*JinvY)+(help[ii]*JinvZ)*(help[iii]*JinvZ))*J.detJ;
+        }
+    }
+
+  for (ii=0; ii<n; ii++)
+    for (iii=0; iii<ii; iii++)
+      Result[iii][ii]=Result[ii][iii];
+
   delete [] help;
 }
 
