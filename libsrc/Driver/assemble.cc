@@ -193,10 +193,7 @@ namespace CoupledField
 
 		    actDescriptor->GetIntegrator()->CalcElementMatrix(ptCoord, elemmat);
 		    algsys_->SetElementMatrix(elemmat.getinarray(), connect_PDE.get(), 
-					      connect_PDE.size(), destMat); 
-
-		    *cla << "In Assemble: actual element solution " << myendl << elSol << myEndl;
-		    *cla << "In Assemble: Element matrix " << myendl << elemmat << myEndl;
+					      connect_PDE.size(), destMat);
 		    
 
 		    if (actDescriptor->GetSecondaryMat() != NOTYPE)
@@ -262,7 +259,9 @@ namespace CoupledField
 			oneIntIsNonlin_ = TRUE;
 			reassembleMat_[actDescriptor->DestMat()] = TRUE;
 		
-			//			actDescriptor->GetIntegrator()->SetActElemSol(elSol);
+			// ?????????????????????????????????????????
+			// was commented out before (18.3.04)
+			actDescriptor->GetIntegrator()->SetActElemSol(elSol);
 		      }
 
 		    actDescriptor->GetIntegrator()->CalcElementMatrix(ptCoord, elemmat);

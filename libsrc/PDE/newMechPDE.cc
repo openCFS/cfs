@@ -713,8 +713,6 @@ void MechPDE::StepStaticNonLin(const Integer level, const Double aTime)
 	  
 	  // calculation of residual error =======================================
 	  residualL2Norm = RhsL2Norm(actRHS); // L2Norm of  ( f_i^(k+1) - f_a )
-	  *cla << "actRHS: " << myendl << actRHS << myendl;
-	  
 	}
 
 

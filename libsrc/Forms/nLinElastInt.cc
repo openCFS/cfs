@@ -52,6 +52,8 @@ CalcStressVec(std::vector<Double>& piolaStressVec, Integer ip, Matrix<Double> & 
 }
 
 
+
+
 void nLinMech3dInt_PiolaStress::
 calcMaterialDMat(Matrix<Double> & dMat)
 {
@@ -161,17 +163,13 @@ convertStressVecToTensor(Matrix<Double>& stressTensor, std::vector<Double>& piol
     dMat.Resize(dimD);
     
 
-    // ???????????????????????????????????????????????????????
-    // AXI:       dMat = stressTensor ???????????????
-
     if (isaxi_)
+      // the stressTensor has already the correct shape due to the 
+      // method "convertStressVecToTensor"
       dMat = stressTensor;
     else
       for (Integer i=0; i<nrDofs; i++)
-	dMat.SetSubMatrix(stressTensor, i*nrDofs, i*nrDofs);
-
-    *cla << "PiolaStressOverallTensor=[" << myendl << dMat << myendl <<"];" << myendl;
-    
+	dMat.SetSubMatrix(stressTensor, i*nrDofs, i*nrDofs);    
   }
 
 
@@ -220,8 +218,6 @@ convertStressVecToTensor(Matrix<Double>& stressTensor, std::vector<Double>& piol
 	for (int actNode = 0; actNode < nrNodes; actNode++)	     
 	  bMat[getDimD() -1][actNode * spaceDim] = shpFncAtIp[actNode] / coordAtIP[0];
       }
-
-    *cla << "PIOLABmat=[ " << myEndl << bMat << myEndl <<"];" << myendl;
   }
 
 
@@ -379,14 +375,15 @@ void PreStressInt::CalcStressVec(std::vector<Double>& preStressVec, Integer ip, 
     if (!elemDisp_.size_row() || !elemDisp_.size_col()) 
       Error("Undefined displacements! ",__FILE__,__LINE__);
 
-    const Integer nrNodes  = ptelem->GetNumNodes();
-    const Integer nrDofs   = getNrDofs();    
+    const Integer nrNodes = ptelem->GetNumNodes();
+    const Integer nrDofs  = getNrDofs();    
+    const Integer dimD    = getDimD();
 
     Matrix<Double> linBMat;    
     linElastInt::calcBMat( linBMat, ip, ptCoord);
 
 
-    bMat.Resize(getDimD(), nrNodes * nrDofs);
+    bMat.Resize(dimD, nrNodes * nrDofs);
 
     
     // local shape functions derived after global coords 
@@ -410,14 +407,15 @@ void PreStressInt::CalcStressVec(std::vector<Double>& preStressVec, Integer ip, 
     Matrix<Double> bMatOneNode;
     // size_row() = nr of rows!!
     bMatOneNode.Resize(linBMat.size_row(), nrDofs);
- 
+
+    
 
     for(int actNode=0; actNode < nrNodes; actNode++)
       {
 	linBMat.GetSubMatrix(bMatOneNode, 0, actNode*nrDofs);
 
 	bMatOneNode *= displDerivTransp;	
-	
+
 	bMat.SetSubMatrix(bMatOneNode, 0, actNode*nrDofs);
       }
 
@@ -432,19 +430,18 @@ void PreStressInt::CalcStressVec(std::vector<Double>& preStressVec, Integer ip, 
 	std::vector<Double> coordAtIP;
 	coordAtIP = ptCoord * shpFncAtIp;
 
+	Double  l33=0;  // for l33, see Bathe, page 552
+	for (Integer actPos=0; actPos < shpFncAtIp.size(); actPos++)
+	  l33 += elemDisp_[0][actPos] * shpFncAtIp[actPos] / coordAtIP[0];
+	
+	
 	for (Integer actNode = 0; actNode < nrNodes; actNode++)	     
-	  {
+	  {	    
 	    //  (N_a/r) * (u_x/r)
-	    bMat[getDimD() - 1][actNode * spaceDim]     = elemDisp_[0][actNode] * shpFncAtIp[actNode] / pow(coordAtIP[0],2);
-	    bMat[getDimD() - 1][actNode * spaceDim + 1] = 0;
+	    bMat[dimD - 1][actNode * spaceDim]     = l33 * shpFncAtIp[actNode] / coordAtIP[0];
+	    bMat[dimD - 1][actNode * spaceDim + 1] = 0;
 	  }
       }
-
-    // FRED
-    //    myCout << "calcNLBMat" << myEndl << bMat << myEndl;
-    
-//  	 << "nlinBMat" << myEndl << nLinBMat << myEndl
-// 	 << "nLinStrain" << myEndl << nonLinStrain << myEndl;
 
   }
   
@@ -508,8 +505,6 @@ void  nLinMechPlaneStrainInt_BNonLin::calcDMat(Matrix<Double> & dMat)
 #endif
 
   Calc2DMaterialMatrix(dMat, actOrientation);
-
-  *cla << " nLinMechPlaneStrainInt_BNonLin::calcDMat, dMat : " << myendl << dMat << myendl;
   
   }
 
@@ -562,7 +557,7 @@ convertStressVecToTensor(Matrix<Double>& stressTensor, std::vector<Double>& piol
 // =============================================================================
 
   
-  // calculated the D-matrix for the plain strain state
+  // calculated the D-matrix for the axi state
 void  nLinMechAxiInt_BNonLin::calcDMat(Matrix<Double> & dMat)
   {
 #ifdef TRACE
@@ -613,8 +608,6 @@ convertStressVecToTensor(Matrix<Double>& stressTensor, std::vector<Double>& piol
 	stressTensor[ indexRow[i] -1 ][ indexCol[i] -1 ] = piolaStress[ indexPiola[i] -1 ];	
 	stressTensor[ indexCol[i] -1 ][ indexRow[i] -1 ] = piolaStress[ indexPiola[i] -1 ];	
       }
-//     myCout << "stressTensor " << myEndl << stressTensor << myEndl
-// 	   << "piolaStress " << myEndl << piolaStress << myEndl;    
 }
 
 

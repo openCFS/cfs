@@ -139,6 +139,7 @@ public:
   //!
   Matrix	&operator*=	(const TYPE &);
 
+
   //!
   Matrix	&operator*=	(const Matrix &);
 
