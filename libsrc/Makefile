@@ -2,6 +2,9 @@
 
 driver:
 	@cd $(LIBSRC_DIR)/Driver; $(MAKE) -f Makefile 
+	
+paramIdent:
+	@cd $(LIBSRC_DIR)/paramIdent; $(MAKE) -f Makefile 
 
 domain:
 	@cd $(LIBSRC_DIR)/Domain; $(MAKE) -f Makefile
