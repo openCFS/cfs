@@ -83,6 +83,8 @@ namespace CoupledField {
     beVerbose_ = false;
 #endif
 
+    beVerbose_ = true;
+
     Info->FinishProgress();
 
   }
@@ -583,6 +585,8 @@ namespace CoupledField {
     valVec.Push_back( "" );
 
     keyVec.Push_back( "*" );
+    attrVec.Push_back( "" );
+    valVec.Push_back( "" );
     
     // Find coil names
     StdVector<DOMAttr*> *attrs =
@@ -615,18 +619,23 @@ namespace CoupledField {
     StdVector<std::string> attrVec;
     StdVector<std::string> valVec;
     keyVec.Push_back( "pdeList" );
+    attrVec.Push_back( "" );
+    valVec.Push_back( "" );
     if ( pde != "" ) {
       keyVec.Push_back( pde );
       attrVec.Push_back( "" );
       valVec.Push_back( "" );
     }
     keyVec.Push_back( "coils" );
+    attrVec.Push_back( "" );
+    valVec.Push_back( "" );
     coilSec = FindMatchingElements( keyVec, attrVec, valVec, rootElem_, 1 );
     if ( coilSec->GetSize() == 0 ) {
       Info->Error( "Cannot find a 'coils' section", __FILE__, __LINE__ );
     }
     else if ( coilSec->GetSize() > 1 ) {
-      Info->Error( "Cannot more than one 'coils' section", __FILE__, __LINE__);
+      Info->Error( "Cannot deal with multiple 'coils' sections", __FILE__,
+		   __LINE__);
     }
     DOMNodeList *coils = (*coilSec)[0]->getChildNodes();
 
@@ -911,7 +920,8 @@ namespace CoupledField {
 
       // Report descend
       if ( beVerbose_ == true ) {
-	std::cerr << " Descending: Got " << branchTops->GetSize() << " new subtrees\n";
+	std::cerr << " Descending: Got " << branchTops->GetSize()
+		  << " new subtrees\n";
       }
 
       // Generate results vector for this level
@@ -1196,7 +1206,7 @@ namespace CoupledField {
     if ( nmatches > 1 ) {
 
       fprintf( stderr, "\n\n XMLParamHandler:\n Found %d matches ", nmatches );
-      fprintf( stderr, "while searchin for:\n\n" );
+      fprintf( stderr, " while searching for:\n\n" );
       PrintSearchParams( keyVec, attrVec, valVec, stderr );
 
       std::string errmsg;
@@ -1249,7 +1259,7 @@ namespace CoupledField {
     ENTER_IFCN( "XMLParamHandler::NoMatchErrorReporter" );
 
     fprintf( stderr, "\n\n XMLParamHandler:\n No match and no default found" );
-    fprintf( stderr, "while searchin for:\n\n" );
+    fprintf( stderr, " while searching for:\n\n" );
     PrintSearchParams( keyVec, attrVec, valVec, stderr );
 
     std::string errmsg;
@@ -1267,7 +1277,10 @@ namespace CoupledField {
 				    const StdVector<std::string> &valVec,
 				    std::string &defaultValue ) {
 
+    ENTER_IFCN( "XMLParamHandler::CheckForDefault" );
+
     Boolean defaultFound = FALSE;
+    StdVector<std::string> newValVec( valVec );
 
     // Check if string is empty. If not issue a warning
     // and erase it, if this is desired
@@ -1280,21 +1293,25 @@ namespace CoupledField {
       defaultValue.clear();
     }
 
+    // NOTE: There is a conceptual problem with a restricted search and a
+    //       default parameter tree, e.g. we can look for a property of a
+    //       coil and select that coil by restricting the name attribute,
+    //       however in the default XML file we cannot now that name.
+    //       This is a brute force attempt to fix this for the above coil
+    //       example.
+    for ( unsigned int i = 0; i < keyVec.GetSize(); i++ ) {
+      if ( keyVec[i] == "coils" && attrVec[i+1] == "name" ) {
+	newValVec[i+1] = "dummyRegion";
+	if ( beVerbose_ == true ) {
+	  Info->Warning( "Adapted name of coil to dummyRegion" );
+	}
+	break;
+      }
+    }
+
     // Search for matching elements/attributes in default tree
     StdVector<std::string> matches;
-    FindAllMatches( keyVec, attrVec, valVec, matches, rootElemDefaults_ );
-
-    // We will have to incorporate the code piece below at a later time!!!
-
-    // NOTE: This now is a brute force attempt to fix a conceptual problem
-    //       with combining a constrained search with a default tree
-    // std::string newValue;
-    // if ( attribute == "name" ) {
-    //  newValue = "dummyRegion";
-    //}
-    //else {
-    //  newValue = aValue;
-    //}
+    FindAllMatches( keyVec, attrVec, newValVec, matches, rootElemDefaults_ );
 
     // If there was no unique match, call problem handler
     if ( matches.GetSize() > 1 ) {
