@@ -21,6 +21,7 @@
               <xsd:enumeration value="static"/>
               <xsd:enumeration value="harmonic"/>
               <xsd:enumeration value="transient"/>
+							<xsd:enumeration value="paramIdent"/>
             </xsd:restriction>
           </xsd:simpleType>
         </xsd:attribute>
@@ -59,6 +60,10 @@
       <xsd:element name="stopFreq" type="DT_PosFloat"/>
     </xsd:sequence>
   </xsd:complexType>
+
+	  <!-- Data type for inverse Problem of parameter identification in piezoelectric systems
+		, i.e. parameters required for  performing a piezoParamIdent analysis -->
+  <!--<xsd:simpleType name="DT_PiezoParamIdent"/>-->
 
   <!-- ******************************************************************** -->
   <!--   Definition of data type for global non-linear parameters -->
