@@ -51,8 +51,19 @@
       </solver-->
 
       <!-- == DIRECT LDL == -->
-      <solver type="directLDL" precond="Id">
+      <!--solver type="directLDL" precond="Id">
         <matrix eqnNumbering="scalar" entry="double" storage="sparseSym"/>
+      </solver-->
+
+      <!-- == PCG with ILDL(k) == -->
+      <solver type="cg" precond="ILDLK">
+        <matrix eqnNumbering="scalar" entry="double" storage="sparseSym"/>
+        <ILDLK>
+          <level>                   1 </level>
+          <saveFacFile>     ILDLK.mtx </saveFacFile>
+          <savePatternOnly>        no </savePatternOnly>
+          <logging>                 1 </logging>
+        </ILDLK>
       </solver>
 
     </mechanic>
