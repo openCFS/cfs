@@ -4,8 +4,11 @@
 #include <iomanip>
 #include <fstream>
 #include <stdio.h>
-#include "Utils/tools.hh"
 #include <cstdarg>
+
+#include "Utils/tools.hh"
+#include "Utils/Coil.hh"
+
 #include "WriteInfo.hh"
 
 
@@ -191,6 +194,7 @@ namespace CoupledField
   }
 
 
+#ifndef XMLPARAMS
 
   void WriteInfo::PrintCoil(std::string& coilDomain,
 			    struct coilDefStruct& coilDef,
@@ -228,7 +232,7 @@ namespace CoupledField
 		 << "              resistance        = "
 		 << coilDef.resistance << std::endl;
 	if (analysistype_==HARMONIC)
-	  *cfsInfo << "              voltage pahse     = " << coilDef.phase << std::endl;
+	  *cfsInfo << "              voltage phase     = " << coilDef.phase << std::endl;
       }
       
     *cfsInfo << "              coil area         = " << coilDef.coilArea << std::endl;
@@ -258,6 +262,105 @@ namespace CoupledField
     *cfsInfo << std::endl << myEndl;
   }
 
+#else
+
+  void WriteInfo::PrintCoil( Coil &coil, AnalysisType &analysistype ) {
+
+    ENTER_FCN( "WriteInfo::PrintCoil" );
+
+    *cfsInfo << "COIL DESCRIPTION ======================================= "
+	     << myEndl;
+
+    // Basic coil info
+    *cfsInfo << "Coil domain: " << coil.coilName_  << std::endl;
+    *cfsInfo << "Coil type: "   << coil.coilTypeS_ << std::endl;
+    *cfsInfo << "Coil area: "   << coil.area_      << std::endl;
+
+    // ID tag for 2D coils
+    if ( coil.coilType_ == Coil::MEASUREMENT2D ||
+	 coil.coilType_ == Coil::VOLTAGE2D ||
+	 coil.coilType_ == Coil::CURRENT2D ) {
+      *cfsInfo <<  "Coil ID: " << coil.id_ << std::endl;
+    }
+
+    // Special things for voltage coils
+    if ( coil.coilType_ == Coil::VOLTAGE2D ||
+	 coil.coilType_ == Coil::VOLTAGE3D ) {
+
+      *cfsInfo << "Voltage value = " << coil.value_      << std::endl;
+      *cfsInfo << "Resistance    = " << coil.resistance_ << std::endl;
+
+      if ( analysistype == HARMONIC ) {
+	*cfsInfo << "Voltage phase = " << coil.phase_ << std::endl;
+      }
+      else if ( analysistype == TRANSIENT ) {
+	*cfsInfo << "File describing dynamics = " << coil.dynamicsFile_
+		 << std::endl;
+      }
+    }
+
+    // Special things for current coils
+    if ( coil.coilType_ == Coil::CURRENT2D ||
+	 coil.coilType_ == Coil::CURRENT3D ) {
+
+      *cfsInfo << "Current value = " << coil.value_      << std::endl;
+
+      if ( analysistype == HARMONIC ) {
+	*cfsInfo << "Current phase = " << coil.phase_ << std::endl;
+      }
+      else if ( analysistype == TRANSIENT ) {
+	*cfsInfo << "File describing dynamics = " << coil.dynamicsFile_
+		 << std::endl;
+      }
+
+    }
+
+    // Special things for measurement coils
+    if ( coil.coilType_ == Coil::MEASUREMENT2D ||
+	 coil.coilType_ == Coil::MEASUREMENT3D ) {
+
+      if ( coil.saveFileL_ != "none" ) {
+	*cfsInfo << " Storing inductivity in file: " << coil.saveFileL_
+		 << std::endl;
+      }
+
+      if ( coil.saveFileUI_ != "none" ) {
+	*cfsInfo << " Storing current/voltage in file: " << coil.saveFileUI_
+		 << std::endl;
+      }
+    }
+
+    // Special things for 3D current and voltage coils
+    if ( coil.coilType_ == Coil::CURRENT3D ) {
+      if ( coil.isRotational_ ) {
+	*cfsInfo << "Rotational current flow specification." << std::endl;
+	*cfsInfo << "Midpoint = ( "
+		 << coil.midX_ << " , "
+		 << coil.midY_ << " , "
+		 << coil.midZ_ << " )" << std::endl;
+	*cfsInfo << "Orientation = ( "
+		 << coil.oriX_ << " , "
+		 << coil.oriY_ << " , "
+		 << coil.oriZ_ << " )" << std::endl;
+      }
+      else {
+	*cfsInfo << "Direction of current flow: ";
+	if ( coil.flowDir_ == Coil::XDIR ) {
+	  *cfsInfo << "xDir" << std::endl;
+	}
+	if ( coil.flowDir_ == Coil::YDIR ) {
+	  *cfsInfo << "yDir" << std::endl;
+	}
+	if ( coil.flowDir_ == Coil::ZDIR ) {
+	  *cfsInfo << "zDir" << std::endl;
+	}
+      }
+    }
+
+    *cfsInfo << std::endl << myEndl;
+  }
+
+#endif
 
 
   void WriteInfo::PrintVec(Vector<Double>& vec)
