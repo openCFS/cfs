@@ -89,6 +89,10 @@ libsrc/DataInOut/GSI/outGSI.cc svneol=native#text/plain
 libsrc/DataInOut/GSI/outGSI.hh svneol=native#text/plain
 libsrc/DataInOut/LoadMaterialData.cc svneol=native#text/plain
 libsrc/DataInOut/LoadMaterialData.hh svneol=native#text/plain
+libsrc/DataInOut/LoadMaterialDataDatabase.cc svneol=native#text/plain
+libsrc/DataInOut/LoadMaterialDataDatabase.hh svneol=native#text/plain
+libsrc/DataInOut/LoadMaterialDataFile.cc svneol=native#text/plain
+libsrc/DataInOut/LoadMaterialDataFile.hh svneol=native#text/plain
 libsrc/DataInOut/Makefile -text
 libsrc/DataInOut/MaterialData.cc svneol=native#text/plain
 libsrc/DataInOut/MaterialData.hh svneol=native#text/plain
