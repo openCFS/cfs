@@ -504,10 +504,33 @@ protected:
   inline Integer BaseNodeStoreSol::GetDof(const SolutionType solType) const
   {
     ENTER_IFCN( "BaseNodeStoreSol::GetDof" );
+#ifdef CHECK_INDEX
+    std::string errMsg;
+    if (numSolutions_ > 1 &&
+	solType == NO_SOLUTION_TYPE)
+      {
+	errMsg = "BaseNodeStoresol::GetDof: Solution contains more than ";
+	errMsg += "one solutiontype. \n Please specify a solutiontype as ";
+	errMsg += "parameter";
+	Error(errMsg.c_str(), __FILE__, __LINE__);
+      }
+#endif
+    Integer dof;
     if (numSolutions_ == 1 && solType == NO_SOLUTION_TYPE)
-      return (*solDofs_.begin()).second;
+      dof = (*solDofs_.begin()).second;
     else
-      return (*solDofs_.find(solType)).second;
+      dof = (*solDofs_.find(solType)).second;
+
+    std::string warningMsg;
+    if (dof == 0)
+      {
+	warningMsg = "BaseNodeStoresol::GetDof: Either this type ";
+	warningMsg += "of solution was not found or it has ";
+	warningMsg += "0 degrees of freedom.";
+	Error(warningMsg.c_str(), __FILE__, __LINE__);
+      }
+
+    return dof;
   }
   
   inline Integer BaseNodeStoreSol::GetNumNodes() const

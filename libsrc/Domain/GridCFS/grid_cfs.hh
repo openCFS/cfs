@@ -131,7 +131,9 @@ public:
     \param elems
     \param belongingSE
   */
-  void DefineBelonging4Elems(const StdVector<Elem*>& elemsSurf, const StdVector<Elem*>&elems, StdVector<Elem*> & belongingSE);
+  void DefineBelonging4Elems(const StdVector<Elem*>& elemsSurf, 
+			     const StdVector<Elem*>&elems, 
+			     StdVector<Elem*> & belongingSE);
 
 
 
@@ -145,6 +147,11 @@ public:
 			      StdVector<std::string> & subdoms, 
 			      StdVector<Elem*> & neighbours,
 			      Integer level);
+
+  //!
+  void GetNeighbouringVolumElens(StdVector<std::string> & surfaceElems,
+				 const StdVector<std::string> & regionNeighbours,
+				 StdVector<Elem*> & volumeElems);
 
   //! in this function we calculate area of element
   /*!

@@ -168,7 +168,8 @@ void NodeStoreSol<TYPE>::SetSolutionType(const SolutionType solType, const Integ
   ENTER_IFCN("NodeStoreSol::SetSolutionType");
 
 #ifdef CHECK_INDEX
-  if (numSolution >= numSolutions_) Error("NodeStoreSol: Index out of Bounds",__FILE__,__LINE__);
+  if (numSolution >= numSolutions_) 
+    Error("NodeStoreSol: Index out of Bounds",__FILE__,__LINE__);
 #endif
 
   solTypes_[solType] = numSolution;
@@ -257,7 +258,8 @@ void NodeStoreSol<TYPE>::GetGlobalSolVector(const SolutionType type,
 {
   ENTER_FCN("NodeStoreSol::GetGlobalSolVector");
 #ifdef CHECK_INITIALIZED
-  if (length_ == 0) Error("NodeStoreSol: Use of uninitialized object!",__FILE__,__LINE__);
+  if (length_ == 0) 
+    Error("NodeStoreSol: Use of uninitialized object!",__FILE__,__LINE__);
 #endif
 
   
@@ -405,10 +407,116 @@ void NodeStoreSol<TYPE>::GetGlobalSolVectorSingleDof(const SolutionType type,
 						     CFSVector & val) const
 {
   ENTER_FCN("NodeStoreSol::GetSolVectorSingleDof");
+
+  Integer solDof = (*solDofs_.find(type)).second;
 #ifdef CHECK_INITIALIZED
-  if (length_ == 0) Error("NodeStoreSol: Use of uninitialized object!",__FILE__,__LINE__);
+  
+  if (length_ == 0) 
+    Error("NodeStoreSol: Use of uninitialized object!",__FILE__,__LINE__);
+
+  
+  std::string errMsg;
+  if (dof > solDof)
+    {
+      errMsg = "NodeStoreSol::GetSolVectorSingleDof: Desired dof ";
+      errMsg += Info->GenStr(dof);
+      errMsg += " is higher than dofs of solution = ";
+      errMsg += Info->GenStr(solDof);
+      Error (errMsg.c_str(), __FILE__, __LINE__);
+    }
 #endif
-  Error( "Not implemented here" );
+  
+  
+  Integer offset = (*solOffset_.find(type)).second;
+  
+  
+  Vector<TYPE> & temp = dynamic_cast<Vector<TYPE>&>(val);
+  
+  Integer globalPos, eqnDofs, dofsPerEQN, eqnDof;
+  Integer numElecEQNs, numMechEQNs, remainder;
+  
+  temp.Resize(ptGrid_->GetMaxnumnodes(level_));
+  eqnDofs = ptEQN_->GetNumDofs();
+  dofsPerEQN = ptEQN_->GetNumDofsPerEQN();
+ 
+  // std::cerr << "temp has size " << temp.GetSize() << std::endl;
+//   std::cerr << "data_ has size " << data_.GetSize() << std::endl;
+//   std::cerr << "totalDofs = " << totalDofs_ << std::endl;
+  SuperBlockEQN * tempEQN;
+  
+  
+  if (typeid(*ptEQN_) == typeid(SuperBlockEQN))
+    {
+      
+      Error ("SuperBlock not yet implemented", __FILE__, __LINE__);
+      tempEQN = dynamic_cast<SuperBlockEQN * >(ptEQN_);
+      numMechEQNs = tempEQN->GetNumMechEQNs();
+      numElecEQNs = tempEQN->GetNumElecEQNs();
+      if (dof == 1)
+	{
+	  //std::cerr << "Im Block für ElecPotential" << std::endl;
+	  for (Integer iEQN=numMechEQNs; iEQN<numMechEQNs+numElecEQNs; iEQN++)
+	    {
+	      //std::cerr << "Trying to get pos for eqn " << iEQN+1 << std::endl;
+	      ptEQN_->EQN2SolVectorPos(iEQN+1,1,globalPos);
+	      //std::cerr << "Position is " << globalPos << std::endl;
+	      globalPos = (Integer) (globalPos - eqnDofs +1 ) / eqnDofs;
+	      //std::cerr << "Corrected Position is " << globalPos << std::endl;
+	      temp[globalPos] = data_[iEQN];
+	    }
+	}
+      else
+	{
+	  //std::cerr << "im Block für MechDisp" << std::endl;
+	  for (Integer iEQN=0; iEQN<numMechEQNs; iEQN++)
+	    {
+	      //std::cerr << "Trying to get pos for eqn " << iEQN+1 << std::endl;
+	      ptEQN_->EQN2SolVectorPos(iEQN+1,1,globalPos);
+	      //std::cerr << "Position is " << globalPos << std::endl;
+	      
+	      globalPos = (Integer) globalPos / (totalDofs_)*(totalDofs_-1) + globalPos%(totalDofs_);
+	      //std::cerr << "Corrected Position is " << globalPos << std::endl;
+	      temp[globalPos] = data_[iEQN];
+	    }
+	}
+    }
+  else
+    {
+      if (ptEQN_->IsBlockMapped())
+	{
+	  // In this case each eqn has a dof number > 1 and we need
+	  // two loops to map each eqn to its positionS
+	  //std::cerr << "In BlockMapped" << std::endl;
+	  // Loop over all Equations
+	  for (Integer iEQN=0; iEQN<ptEQN_->GetNumEQNs(); iEQN++)
+	    {
+	      ptEQN_->EQN2SolVectorPos(iEQN+1,offset+dof+1,globalPos);
+	      //std::cerr << "SolVectorPos for EQN " << iEQN+1 << " is " << globalPos << std::endl;
+	      
+	      // Correct global position for EQNs with more than one solutiontype
+	      globalPos =(Integer) (globalPos-dof-offset)/eqnDofs;    
+	      //std::cerr << "Corrected position is " << globalPos << std::endl;
+	      temp[globalPos] = data_[iEQN*totalDofs_ +dof + offset];
+	    }
+	} 
+      else 
+	{
+	  
+	  for (Integer iEQN=0; iEQN< ptEQN_->GetNumEQNs(); iEQN++)
+	    {
+	      ptEQN_->EQN2SolVectorPos(iEQN+1,1,globalPos);
+	      remainder = globalPos%totalDofs_;
+	      if (remainder == dof+offset)
+		{
+		  globalPos = (Integer) ((globalPos-dof)/totalDofs_);
+		  temp[globalPos] = data_[iEQN];
+		}
+	      
+	    }
+	  
+	}
+    }  
+  
 }
 
 template<class TYPE>

@@ -47,14 +47,9 @@ namespace CoupledField
 
     InFile->ReadEl(elems_,sd_);
       
-    if (dim == 3)
-      if (InFile->GetNum2DElems() > 0 ||
-	  InFile->GetNum1DElems() > 0)
-	FormNeighborsLists();
-    
-    if (dim == 2)
-      if (InFile->GetNum1DElems() > 0)
-	FormNeighborsLists();
+#ifdef ADAPTGRID
+    FormNeighborsLists();
+#endif
   }
 
 
