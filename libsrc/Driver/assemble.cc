@@ -613,6 +613,11 @@ namespace CoupledField
     matrixsystype[4] = OLAS::NOTYPE;
 #else
     Integer matrixsystype[5];
+    matrixsystype[0] = 0;
+    matrixsystype[1] = 0;
+    matrixsystype[2] = 0;
+    matrixsystype[3] = 0;
+    matrixsystype[4] = 0;
 #endif
     
     matrixsystype[0] = SYSTEM;      // memory for the system matrix
