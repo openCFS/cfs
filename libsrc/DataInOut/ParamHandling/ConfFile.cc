@@ -29,6 +29,10 @@ ConfFile::ConfFile(const Char* const afilename)
 
 ConfFile::~ConfFile()
 {
+#ifdef TRACE
+  (*trace) << " entering ConfFile::~ConfFile " << std::endl;
+#endif
+
  infile.close();
 }
 

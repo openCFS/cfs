@@ -39,6 +39,7 @@ public:
   //! get pointer to boundary condition
   BCs * GetBCs(){ return ptBCs_;}
 
+ void TestGrid();
 protected:
 
 private:

@@ -55,6 +55,8 @@ public:
   BaseElem * GetptElem(const Integer iElem)
  { return allelems[iElem].ptElem;}  
 
+  //!
+  Integer GetDim() { return dim_;}
 protected:
 private:
   //!
@@ -65,7 +67,8 @@ private:
   Integer maxnumnodes_;
   //
   Dim * ptCoordinate_;
-
+  //
+  Integer dim_;
 };
 
 template class GridCFS<Point3D>;

@@ -8,8 +8,7 @@
 namespace CoupledField
 {
 
-template<class Dim>
-WriteResultsGMV<Dim> :: WriteResultsGMV(const Char * const filename)
+WriteResultsGMV :: WriteResultsGMV(const Char * const filename)
 : WriteResults(filename)
 {
 #ifdef TRACE
@@ -35,8 +34,7 @@ WriteResultsGMV<Dim> :: WriteResultsGMV(const Char * const filename)
 
 }
 
-template<class Dim>
-WriteResultsGMV<Dim> ::~WriteResultsGMV()
+WriteResultsGMV ::~WriteResultsGMV()
 {
 #ifdef TRACE
   (*trace) << "entering WriteResultsGMV::~ WriteResultsGMV" << std::endl;
@@ -49,67 +47,29 @@ WriteResultsGMV<Dim> ::~WriteResultsGMV()
  delete [] namedir_;
 }
 
-template<class Dim>
-void WriteResultsGMV<Dim> :: WriteHeader()
+void WriteResultsGMV :: WriteHeader()
 {
  (*output) << "gmvinput" << " ascii" << std::endl;
 }
 
-template<>
-void WriteResultsGMV<Point2D> :: WriteNodes(const Integer alevel)
+void WriteResultsGMV :: WriteNodes(const Integer alevel)
 {
   Integer level=alevel;
 
-/*
- // write keyword
- (*output) << "nodes ";
-
- //get and write number of nodes on the level 
- Integer numnodes=ptgrid->GetMaxnumnodes(level); 
- (*output) << numnodes << std::endl;
-
- //get and write coodinates of nodes
- Integer i;
- Point2D point;
-
- // 
- if (!ptgrid)
-    Error("ptgrid is not initialized", __FILE__,__LINE__);
-
- // write x-coordinate
-  for (i=0; i<numnodes; i++)
-    { 
-      ptgrid->GetCoordinateNode(i,level,point);
-      (*output) << point.x << " ";
-    }
-  (*output) << std::endl;
-
- // write y-coordinate
-  for (i=0; i<numnodes; i++)
-    {
-      ptgrid->GetCoordinateNode(i,level,point);
-      (*output) << point.y << " ";
-    }
-   (*output) << std::endl;
-
- // write z-coordinate
-   for (i=0; i<numnodes; i++)
-    {
-      (*output) << 0 << " ";
-    }
-   (*output) << std::endl;
-*/
-
-   // alternative
-    // write keyword
+  // write keyword
  (*output) << "nodev ";
 
  //get and write number of nodes on the level
  Integer numnodes=ptgrid->GetMaxnumnodes(level);
  (*output) << numnodes << std::endl;
 
+ Integer dim=ptgrid->GetDim();
+
  //get and write coodinates of nodes
  Integer i;
+
+ if (dim==2)
+{
  Point2D point;
 
  // write x,y,z-coordinate
@@ -119,58 +79,8 @@ void WriteResultsGMV<Point2D> :: WriteNodes(const Integer alevel)
       (*output) << " " << point.x << " " << point.y << " " << 0 << std::endl;
     }
 }
-
-template<>
-void WriteResultsGMV<Point3D> :: WriteNodes(const Integer alevel)
+  else
 {
-  Integer level=alevel;
-
-/*
- // write keyword
- (*output) << "nodes ";
-
- //get and write number of nodes on the level
- Integer numnodes=ptgrid->GetMaxnumnodes(level);
- (*output) << numnodes << std::endl;
-
- //get and write coodinates of nodes
- Integer i;
- Point2D point;
-
- // write x-coordinate
-  for (i=0; i<numnodes; i++)
-    {
-      ptgrid->GetCoordinateNode(i,level,point);
-      (*output) << point.x << " ";
-    }
-  (*output) << std::endl;
-
- // write y-coordinate
-  for (i=0; i<numnodes; i++)
-    {
-      ptgrid->GetCoordinateNode(i,level,point);
-      (*output) << point.y << " ";
-    }
-   (*output) << std::endl;
-
- // write z-coordinate
-   for (i=0; i<numnodes; i++)
-    {
-      (*output) << 0 << " ";
-    }
-   (*output) << std::endl;
-*/
-
-   // alternative
-    // write keyword
- (*output) << "nodev ";
-
- //get and write number of nodes on the level
- Integer numnodes=ptgrid->GetMaxnumnodes(level);
- (*output) << numnodes << std::endl;
-
- //get and write coodinates of nodes
- Integer i;
  Point3D point;
 
  //
@@ -184,9 +94,9 @@ void WriteResultsGMV<Point3D> :: WriteNodes(const Integer alevel)
       (*output) << " " << point.x << " " << point.y << " " << point.z << std::endl;
     }
 }
+}
 
-template<>
-void WriteResultsGMV<Point2D>:: WriteCells(const Integer alevel) 
+void WriteResultsGMV:: WriteCells(const Integer alevel) 
 {
   Integer level=alevel;
 
@@ -205,12 +115,16 @@ void WriteResultsGMV<Point2D>:: WriteCells(const Integer alevel)
 
   Vector<Integer> connect;
 
+  Integer dim=ptgrid->GetDim();
+
   Integer i;
   for (i=0; i<numelem; i++)
    {
 
      ptgrid->GetConnection(connect, i, level);
 
+   if (dim==2)
+{
      switch (connect.size())
       {
         case 3: 
@@ -222,40 +136,9 @@ void WriteResultsGMV<Point2D>:: WriteCells(const Integer alevel)
         default:
           Error("This type of element is not implemented", __FILE__, __LINE__);
       }
-
-     Integer j;
-     for (j=0; j< connect.size(); j++)
-       (*output) << " " << connect[j] ;
-
-     (*output) << std::endl;
-   }
 }
-
-template<>
-void WriteResultsGMV<Point3D>:: WriteCells(const Integer alevel)
+   else
 {
-  Integer level=alevel;
-
-// write keyword
- (*output) << "cells ";
-
- //
- if (!ptgrid)
-    Error("ptgrid is not initialized", __FILE__,__LINE__);
-
-// read information about number of elements and number of nodes per element
-  Integer numelem;
-
-  numelem=ptgrid->GetMaxnumElem(level);
-  (*output) << numelem << std::endl;
-
-  Vector<Integer> connect;
-
-  Integer i;
-  for (i=0; i<numelem; i++)
-   {
-     ptgrid->GetConnection(connect, i, level);
-
      switch (connect.size())
       {
         case 4:
@@ -267,17 +150,17 @@ void WriteResultsGMV<Point3D>:: WriteCells(const Integer alevel)
         default:
           Error("This type of element is not implemented", __FILE__, __LINE__);
       }
+}
 
      Integer j;
-     for (j=0; j<connect.size(); j++)
+     for (j=0; j< connect.size(); j++)
        (*output) << " " << connect[j] ;
 
      (*output) << std::endl;
    }
 }
 
-template<class Dim>
-void WriteResultsGMV<Dim>::WriteVariable(const Vector<Double> var, const std::string name, const Integer type)
+void WriteResultsGMV::WriteVariable(const Vector<Double> var, const std::string name, const Integer type)
 {
   (*output) << "variable" << std::endl;
 
@@ -292,8 +175,7 @@ void WriteResultsGMV<Dim>::WriteVariable(const Vector<Double> var, const std::st
   (*output) << "endvars" << std::endl;
 }
 
-template<class Dim>
-void WriteResultsGMV<Dim>::WriteGrid(const Integer level)
+void WriteResultsGMV::WriteGrid(const Integer level)
 {
 
  WriteHeader();
@@ -301,19 +183,20 @@ void WriteResultsGMV<Dim>::WriteGrid(const Integer level)
  WriteCells(level);
 }
 
-template<class Dim>
-void WriteResultsGMV<Dim>::WriteSolution(const Vector<Double> & sol, const Integer step, const Double time, const std::string title)
+void WriteResultsGMV::WriteSolution(const Vector<Double> & sol, const Integer step, const Double time, const std::string title)
 {
 #ifdef TRACE
- (*trace) << " entering WriteResultsGMV<Dim>::WriteSolution " << std::endl;
+ (*trace) << " entering WriteResultsGMV::WriteSolution " << std::endl;
 #endif
-
-  if (sol.size()<=history_node_) Error("Please, check history-nodes in config-file.",__FILE__,__LINE__);
 
   Integer i;
   if (NeedHistory_)
        for (i=0; i<nodeshist_.size(); i++)
+       { if (sol.size()<=nodeshist_[i])
+         Error("Please, check history-nodes in config-file.",__FILE__,__LINE__);
+         if (lastsavetime[i] != time )
           AddInHistory(time,sol[nodeshist_[i]],i);
+       }
 
   Integer type=1; // 0 - for cell 
                   // 1 - for node
@@ -335,8 +218,7 @@ void WriteResultsGMV<Dim>::WriteSolution(const Vector<Double> & sol, const Integ
   currstep_=step;
 }
 
-template<class Dim>
-void WriteResultsGMV<Dim>::OpenFile(const Integer num)
+void WriteResultsGMV::OpenFile(const Integer num)
 {
    Char * name=new Char[30];
    Char * aux=new Char[2];
@@ -357,8 +239,7 @@ void WriteResultsGMV<Dim>::OpenFile(const Integer num)
    delete [] aux;
 }
 
-template<class Dim>
-void WriteResultsGMV<Dim>::Init(Grid * aptgrid)
+void WriteResultsGMV::Init(Grid * aptgrid)
 {
 ptgrid=aptgrid;
 }

@@ -8,7 +8,6 @@ namespace CoupledField
 {
 
 //! This class provides an interface for writing files in gmv-format
-template<class Dim>
 class WriteResultsGMV: virtual public WriteResults
 {
 public:
@@ -57,11 +56,6 @@ private:
   //! function for open file with number num 
   void OpenFile(const Integer num);
 };
-
-#ifdef __GNUC__
-template class WriteResultsGMV<Point3D>;
-template class WriteResultsGMV<Point2D>;
-#endif
 
 } // end of namespace
 

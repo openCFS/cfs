@@ -45,6 +45,9 @@ public:
 
   //!
   virtual void ReadElems(std::vector<Elem> & allelems)=0;
+ 
+  //!
+  virtual Integer ReadDim()=0;  
 
 protected:
 

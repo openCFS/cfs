@@ -46,8 +46,7 @@ DefineInOutFiles :: DefineInOutFiles(const Char * name)
  conf=new ConfFile(name);
  if (!conf) Error("Can't open conf-file");
 
-ptWriteResults2d=NULL;
-ptWriteResults3d=NULL;
+ptWriteResults=NULL;
 
 }
  
@@ -57,27 +56,24 @@ DefineInOutFiles ::~DefineInOutFiles()
  (*trace) << "Entering DefineInOutFiles::~DefineInOutFiles" << std::endl;
 #endif
 
-delete [] filename;
- 
-#ifdef TRACE
-delete trace;
-#endif
- 
 #ifdef DEBUG
 delete debug;
 #endif
  
-//if (InfoPrint) delete infofile;
+if (infofile) delete infofile;
 
-//if (conf) delete conf;
-//if (cla) delete cla;
+if (conf) delete conf;
+if (cla) delete cla;
 
-//if (ptWriteResults2d) delete ptWriteResults2d;
-//if (ptWriteResults3d) delete ptWriteResults3d;
+if (ptWriteResults) delete ptWriteResults;
 
-//if (infiletype) delete infiletype;
+if (infiletype) delete infiletype;
 
-cout << " end of deconstructor" << endl;
+#ifdef TRACE
+// delete trace;
+#endif
+
+delete [] filename;
 }
 
 FileType * DefineInOutFiles :: Create_ptFileType()
@@ -96,38 +92,21 @@ FileType * DefineInOutFiles :: Create_ptFileType()
    return infiletype;
 }
 
-WriteResults * DefineInOutFiles :: Create_ptWriteResults2d()
+WriteResults * DefineInOutFiles :: Create_ptWriteResults()
 {
   std::string outformat;
   conf->get("format_output",outformat);
 
-  if (outformat=="gmv") ptWriteResults2d=new WriteResultsGMV<Point2D>(filename);
+  if (outformat=="gmv") ptWriteResults=new WriteResultsGMV(filename);
   else 
-    if (outformat=="unverg") ptWriteResults2d=new WriteResultsUnverg<Point2D>(filename);
+    if (outformat=="unverg") ptWriteResults=new WriteResultsUnverg(filename);
       else
         Error("Wrong format for writing results. Please, check your data.",__FILE__,__LINE__);
 
-  if (!ptWriteResults2d) 
+  if (!ptWriteResults) 
     Error("Can't open file for output results",__FILE__,__LINE__);
 
-  return ptWriteResults2d;
-}
-
-WriteResults * DefineInOutFiles :: Create_ptWriteResults3d()
-{
-  std::string outformat;
-  conf->get("format_output",outformat);
-
-  if (outformat=="gmv") ptWriteResults3d=new WriteResultsGMV<Point3D>(filename);
-  else
-    if (outformat=="unverg") ptWriteResults3d=new WriteResultsUnverg<Point3D>(filename);
-      else
-        Error("Wrong format for writing results. Please, check your data.",__FILE__,__LINE__);
-
-  if (!ptWriteResults3d)
-      Error("Can't open file for output results",__FILE__,__LINE__);
-
-  return ptWriteResults3d;
+  return ptWriteResults;
 }
 
 } // end of namespace

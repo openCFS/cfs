@@ -25,7 +25,9 @@ void GridCFS<Point2D> :: Read()
 #ifdef TRACE
   (*trace) << "entering GridCFS::Read" << std::endl;
 #endif
-  
+ 
+  dim_=InFile->ReadDim();
+ 
   InFile->ReadMaxnumnodes(maxnumnodes_);
   ptCoordinate_=new Point2D[maxnumnodes_];
   InFile->ReadCoordinate(ptCoordinate_, maxnumnodes_);
@@ -43,6 +45,8 @@ void GridCFS<Point3D> :: Read()
 #ifdef TRACE
   (*trace) << "entering GridCFS::Read" << std::endl;
 #endif
+
+  dim_=InFile->ReadDim();
 
   InFile->ReadMaxnumnodes(maxnumnodes_);
   ptCoordinate_=new Point3D[maxnumnodes_];

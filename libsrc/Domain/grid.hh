@@ -53,6 +53,10 @@ public:
 
   //! return pointer to BaseElem 
   virtual BaseElem * GetptElem(const Integer iElem)=0;
+
+  //! return dimension of mesh
+  virtual Integer GetDim()=0;
+
 protected:
 
   FileType * ptFileType;

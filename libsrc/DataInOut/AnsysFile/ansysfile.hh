@@ -42,6 +42,9 @@ public:
   //!
   virtual void ReadElems(std::vector<Elem> & allelems);
 
+  //!
+  Integer ReadDim();
+
 protected:
   //! 
   std::ifstream infile;
@@ -52,9 +55,6 @@ private:
 
   // dimension of problem
   Integer dim_;
-
-  //!
-  void ReadDim();
 
   // get position after line with seekexp and comments lines
   void getPosLine(const std::string seekexp, std::string::size_type & pos);
