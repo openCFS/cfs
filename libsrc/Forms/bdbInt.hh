@@ -1,5 +1,5 @@
-#ifndef FILE_BDBINT
-#define FILE_BDBINT
+#ifndef FILE_BASEFORMINT_1
+#define FILE_BASEFORMINT_1
 
 #include "baseForm.hh" 
 
@@ -22,13 +22,19 @@ public:
   /// Function for calculation bdb matrix 
   virtual void CalcElementMatrix(Matrix<Double>& ptCoord, Matrix<Double> & );
 
+
 protected:
   /// returns B - matrix for BDB
-  virtual void getBMat(Matrix<Double> & bMat);
+  virtual void calcBMat(Matrix<Double> & bMat, Integer ip, Matrix<Double> & ptCoord)=0;
 
   /// returns D - matrix for BDB
-  virtual void getDMat(Matrix<Double> & dMat);
-  
+  virtual void calcDMat(Matrix<Double> & dMat)=0;
+
+  /// returns dimension of D matrix
+  virtual Integer getDimD()=0;
+
+  /// returns nr. of degrees of freedom
+  virtual Integer getNrDofs()=0;
 
 };
 

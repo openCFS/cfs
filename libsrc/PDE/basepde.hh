@@ -98,11 +98,8 @@ public:
     \param level level of grid
   */
   virtual void SolveStepStatic(const Integer level)=0;
-//   { 
-//     Error("Not implemented",__FILE__,__LINE__);
-//   }
 
-  //! solve one step for transient problem 
+
   /*!
     \param kstep number of calculating step
     \param asteptime time of calculation
