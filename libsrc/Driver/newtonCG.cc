@@ -143,7 +143,7 @@ namespace CoupledField
     nrNewtonIterations=0;
 
     // NEWTON ITERATION -- outer Loop!!
-    while((misfit>tau*delta||nrNewtonIterations<5)&&nrNewtonIterations<25){ // Newton
+    while((misfit>tau*delta||nrNewtonIterations<10)&&nrNewtonIterations<25){ // Newton
       *piezoLog << "\n Newton-Iteration: " << nrNewtonIterations <<std::endl;
       *piezoLog <<"------------------------"<<std::endl;
       nrNewtonIterations++;
@@ -196,7 +196,7 @@ namespace CoupledField
 
       // ----- INNER LOOP --- CG-ITERATION ---
       Integer nrCGIter=0;
-      while((normres2>eta*eta*normres02)&&(nrCGIter<10)){ // CG
+      while((normres2>eta*eta*normres02)&&(nrCGIter<9)){ // CG
 	std::cout<<"\n CG Iteration " << nrCGIter << std::endl;
 	nrCGIter++;
 
@@ -261,6 +261,7 @@ namespace CoupledField
 	}
 
 	normres2=norm2Real(res);
+	*piezoLog <<"\t\tnormres2 = ||res|| = "<<normres2 << " normres02 = "<< normres02 <<std::endl;
 
       }// end while CG
 	*piezoLog << "\t Number of CG - Iterations performed " << nrCGIter <<std::endl;
@@ -274,7 +275,7 @@ namespace CoupledField
       scaling[9]=1.0/((*matMat)[8][8]);
       
      	parameter_new[9]=parameter[9]+(1.0/scaling[9])*step[9].real();        // eps33
-	parameter_new[1]=parameter[1]+(1.0/scaling[1])*step[1].real(); // c33
+	//	parameter_new[1]=parameter[1]+(1.0/scaling[1])*step[1].real(); // c33
 	parameter_new[7]=parameter[7]+(1.0/scaling[7])*step[7].real(); //e33
 	      
         std::cout<<"\n"<<std::endl;
@@ -363,7 +364,7 @@ namespace CoupledField
 	std::cout<<"\n Parameter after backtracking ... " <<std::endl;
 	
 	parameter_new[9]=parameter[9]+(1.0/scaling[9])*theta*step[9].real();        // eps33
-	parameter_new[1]=parameter[1]+(1.0/scaling[1])*theta*step[1].real(); // c33
+	//	parameter_new[1]=parameter[1]+(1.0/scaling[1])*theta*step[1].real(); // c33
 	parameter_new[7]=parameter[7]+(1.0/scaling[7])*theta*step[7].real(); //e33
 	
 	for(Integer i=0;i<nrParameter;i++){

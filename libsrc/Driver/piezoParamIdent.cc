@@ -18,13 +18,11 @@
 #include "singleDriver.hh"
 #include "PDE/nodeEQN.hh"
 
-#include <stdlib.h>
 #include <Domain/elem.hh>
 
 #include <sstream>
 #include <iomanip>
 
-#include <stdio.h>
 
 #ifdef __sgi
 #include <stdarg.h>
@@ -65,18 +63,19 @@ namespace CoupledField
 		  driverTag, isPartOfSequence){
 
     ENTER_FCN( "piezoParamIdent::piezoParamIdent" );
- 
-    //Char* measuredData="measuredData.dat";
-    allMeasuredData->open("measuredData.dat");
-    ptDomain = adomain;
 
-    if (!allMeasuredData->good())
+    ptDomain = adomain;
+ 
+    Char* measuredData="measuredData.dat";
+    allMeasuredData = new std::ifstream(measuredData, std::basic_ios<char>::in);
+
+    if (!allMeasuredData)
       {
-	std::cerr << "File measuredData.dat does not exist!" << std::endl;
+	std::cerr << "\n File measuredData.dat does not exist!" << std::endl;
 	exit(1);
       }
     else
-      std::cerr <<"File measuredData is opened to be read" << std::endl;
+      std::cerr <<"\n File measuredData is opened to be read" << std::endl;
 
     std::cout<<"\n Opens impedCurve.dat and piezoLog.dat ... "<<std::endl;
     std::string filename= "imped.dat";
@@ -84,7 +83,7 @@ namespace CoupledField
 
     if (!impedCurve)
       {
-	std::cerr << "ImpedanceCurve.dat could not be initialized" << std::endl;
+	std::cerr << "\n ImpedanceCurve.dat could not be initialized" << std::endl;
       }
 
     std::string filenameLog= "piezoLog.dat";

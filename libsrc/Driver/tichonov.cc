@@ -33,7 +33,6 @@
 #define POW std::pow
 #endif
 
-#include <stdlib.h>
 #include <sstream>
 #include <iomanip>
 
@@ -133,7 +132,7 @@ namespace CoupledField
 	   if(i==j)
 	     JacobiMatrixNE[i][i]=JacobiMatrixNE[i][i]+reg_alpha;
 	   // std::cout << std::setprecision(15);
-	    std::cout<<JacobiMatrixNE[i][j].real()<<" ";
+	    std::cout<<JacobiMatrixNE[i][j]<<" ";
 	   if(j==JacobiMatrix.GetSizeCol()-1)
 	    std::cout<<"; \n";
 	 }
