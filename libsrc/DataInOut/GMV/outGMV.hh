@@ -97,7 +97,13 @@ private:
   Char * namedir_;
 
   // number of step
-  Integer currstep_;
+  Integer currStep_;
+
+  //! number of last step
+  Integer lastStep_;
+
+  // current time 
+  Double currTime_;
 
   //! pointer to Grid
   Grid * ptgrid;
@@ -108,6 +114,12 @@ private:
   //! indicator of adaptive grid or not
   Boolean fixedgrid_; 
 
+  //! True, if grid was already written one time
+  Boolean firstGridWritten_;
+
+  //! name of gridfile
+  std::string nameGridFile_;
+
   //! write header of gmv-file: only ascii is implemented
   void WriteHeader();
 
@@ -117,14 +129,31 @@ private:
   //! write cell description 
   void WriteCells(const Integer level); 
 
+  //! write cell materials
+  void WriteMaterials(const Integer level);
+
   //! write variable information
   /*!
     \param dataType data type of the var: 0.. cell data, 1.. node data, 2.. face data
      \param var vector with data
      \param name name of output-data
   */
-  void WriteNodeVariable(const Vector<Double> var, const std::string name, const Integer dataType);
+  void WriteNodeVariableTransient(const Vector<Double> var, 
+				  const std::string name, 
+				  const Integer dataType);
   
+  //! write variable information
+  /*!
+    \param dataType data type of the var: 0.. cell data, 1.. node data, 2.. face data
+    \param var vector with data
+    \param name name of output-data
+    \param outFormat format of complex numbers
+  */
+  void WriteNodeVariableHarmonic(const Vector<Complex> var, 
+				 const std::string name, 
+				 const Integer dataType,
+				 const ComplexFormat outFormat);
+
    //! write vector-variable information
   /*!
     \param dataType data type of the var: 0.. cell data, 1.. node data, 2.. face data
