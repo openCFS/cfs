@@ -22,9 +22,8 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
    firstTimeStepStatic_(TRUE),
    isaxi_(FALSE)
 {
-#ifdef TRACE
-  (*trace) << "entering BasePDE::BasePDE" << std::endl;
-#endif
+
+  ENTER_FCN( "BasePDE::BasePDE" );
 
   nonLin_ = FALSE;
   incStopCrit_ = 1e-2;
@@ -138,9 +137,8 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
 
 void BasePDE::ReadSavings()
 {
-#ifdef TRACE
-  (*trace) << "entering BasePDE::ReadSavings" << std::endl;
-#endif
+
+  ENTER_FCN( "BasePDE::ReadSavings" );
 
   //set saving of solution to yes, if user has not used the nodalsave-command
   savesol_ = TRUE;
@@ -164,9 +162,8 @@ void BasePDE::ReadSavings()
 
 void BasePDE::WriteGeneralPDEdefines()
 {
-#ifdef TRACE
-  (*trace) << "entering BasePDE::WriteGeneralPDEdefines" << std::endl;
-#endif
+
+  ENTER_FCN( "BasePDE::WriteGeneralPDEdefines" );
 
   //BC-section
   for (Integer i=0; i< bcs_hd_.size(); i++) 
@@ -302,9 +299,8 @@ void BasePDE::StepStaticLin(const Integer kstep, const Double aTime,
 void BasePDE::SolveStepTrans(const Integer kstep, const Double asteptime, 
 			     const Integer level, const Boolean reset)
 {
-#ifdef TRACE
-  (*trace) << "entering BasePDE::SolveStepTrans" << std::endl;
-#endif
+
+  ENTER_FCN( "BasePDE::SolveStepTrans" );
 
   lasttimecalc_= asteptime;
   Recalc_ = FALSE;
@@ -324,9 +320,8 @@ void BasePDE::SolveStepTrans(const Integer kstep, const Double asteptime,
 void BasePDE::PreStepTrans(const Integer kstep, const Double asteptime,
 			   const Integer level, const Boolean reset)
 {
-#ifdef TRACE
-  (*trace) << "entering BasePDE::PreStepTrans" << std::endl;
-#endif
+
+  ENTER_FCN( "BasePDE::PreStepTrans" );
 
   lasttimecalc_= asteptime;
 
@@ -342,9 +337,8 @@ void BasePDE::PreStepTrans(const Integer kstep, const Double asteptime,
 
 void BasePDE::PostStepTrans(const Integer kstep, const Double asteptime, const Integer level)
 {
-#ifdef TRACE
-  (*trace) << "entering BasePDE::PostStepTrans" << std::endl;
-#endif
+
+  ENTER_FCN( "BasePDE::PostStepTrans" );
 
   if (PDEisCoupled_)
     {
@@ -368,24 +362,20 @@ void BasePDE::PostStepTrans(const Integer kstep, const Double asteptime, const I
 
 
 // initialize PDEs before iteration (done for each time step)
-void BasePDE::InitStepTransCoupled(Double asteptime)
-{
-#ifdef TRACE
-  (*trace) << "entering BasePDE::InitStepTransCoupled" << std::endl;
-#endif
-
-  lasttimecalc_= asteptime;
-  iterCoupledCounter_ = 0;
-}
-
+ void BasePDE::InitStepTransCoupled(Double asteptime)
+  {
+    ENTER_FCN( "BasePDE::InitStepTransCoupled" );
+    lasttimecalc_= asteptime;
+    iterCoupledCounter_ = 0;
+  }
+ 
 
 
 void BasePDE::StepTransLin(const Integer kstep, const Double asteptime,
 			   const Integer level, const Boolean reset)
 {
-#ifdef TRACE
-  (*trace) << "entering BasePDE::StepTransLin" << std::endl;
-#endif
+
+  ENTER_FCN( "BasePDE::StepTransLin" );
 
   Double * ptsol;
   Integer update,job;
@@ -472,9 +462,8 @@ void BasePDE::StepTransLin(const Integer kstep, const Double asteptime,
 
 void  BasePDE::SetBCs(const Integer level, const Integer update, const Double time)
 {
-#ifdef TRACE
-  (*trace) << "entering  BasePDE::SetBCs" << std::endl;
-#endif
+
+  ENTER_FCN( " BasePDE::SetBCs" );
 
   Integer node, dof;
   Double val, val_tfunc;
@@ -541,10 +530,6 @@ void  BasePDE::SetBCs(const Integer level, const Integer update, const Double ti
 #endif
 	}
     }
-  
-#ifdef TRACE
-  (*trace) << " leaving BasePDE::SetBCs " << std::endl;
-#endif 
 }
 
 
@@ -552,9 +537,8 @@ void  BasePDE::SetBCs(const Integer level, const Integer update, const Double ti
 
 void BasePDE::ReadBCs( const std::string pde )
 {
-#ifdef TRACE
-  (*trace) << " entering BasePDE::ReadBCs " << std::endl;
-#endif
+
+  ENTER_FCN( " entering BasePDE::ReadBCs " );
 
 
 #ifndef XMLPARAMS
@@ -644,9 +628,8 @@ void BasePDE::ReadMaterialData()
 
 Integer BasePDE::GetNumRestraints(const Integer level)
 {
-#ifdef TRACE
-  (*trace) << "entering BasePDE::GetNumRestraints" << std::endl;
-#endif
+
+  ENTER_FCN( "BasePDE::GetNumRestraints" );
     
   Integer res=0;
   Integer i;
@@ -668,12 +651,13 @@ Integer BasePDE::GetNumRestraints(const Integer level)
 
 
 
-
+// **********************
+//   Default Destructor
+// **********************
 BasePDE::~BasePDE()
 {
-#ifdef TRACE
-  (*trace) << " entering BasePDE::~BasePDE() " << std::endl;
-#endif
+
+  ENTER_FCN( " entering BasePDE::~BasePDE" );
 
   // ATTENTION: Dummy value for as_id!!!!!!!!!!!!!!!!!!!!!!!!!!
   DeleteAlgSys(0);
@@ -688,13 +672,11 @@ BasePDE::~BasePDE()
 
   void BasePDE::SetAlgSys(int sysid)
   {
-#ifdef TRACE
-    (*trace) << "entering  Analysis::SetAlgSys" << std::endl;
-#endif
+
+    ENTER_FCN( " Analysis::SetAlgSys" );
 
     //set solver parameters  
     SetSolverParameters();
-
 
     //ask the PDE matrix settings
     //    assemble_->MatrixSettings();
@@ -711,9 +693,8 @@ BasePDE::~BasePDE()
 
 void BasePDE::SetSolverParameters()
 {
-#ifdef TRACE
-  (*trace) << "entering  BasePDE::SetSolverParameters" << std::endl;
-#endif
+
+  ENTER_FCN( " BasePDE::SetSolverParameters" );
 
   // Get Solver and Precond parameters
 #ifdef USE_OLAS
@@ -898,9 +879,9 @@ void BasePDE::SetSolverParameters()
 
 void BasePDE::CreateMatrices_Solver()
 {
-#ifdef TRACE
-  (*trace) << "entering  BasePDE::CreateMatrices_Solver" << std::endl;
-#endif
+
+  ENTER_FCN( " BasePDE::CreateMatrices_Solver" );
+
   // create and initialize matrices 
   assemble_->CreateMatrices();  
   assemble_->InitMatrices();  
@@ -925,6 +906,9 @@ void BasePDE::CreateMatrices_Solver()
 
 void BasePDE::StoreToSolArray(Double * ptSol)
 {
+
+  ENTER_FCN( " BasePDE::StoreToSolArray" );
+
   Integer k=0;
 
   for (Integer i=0; i<numPDENodes_; i++)   
@@ -936,6 +920,9 @@ void BasePDE::StoreToSolArray(Double * ptSol)
 
 void BasePDE::StoreVecToSolArray(std::vector<Double>& sol)
 {
+
+  ENTER_FCN( " BasePDE::StoreVecToSolArray" );
+
   Integer k=0;
 
   for (Integer i=0; i<numPDENodes_; i++)   
@@ -955,9 +942,8 @@ void BasePDE::StoreVecToSolArray(std::vector<Double>& sol)
 
 void BasePDE::CalcInputCoupling()
 {
-#ifdef TRACE
-  (*trace) << "entering  BasePDE::CalcInputCoupling" << std::endl;
-#endif
+
+  ENTER_FCN( " BasePDE::CalcInputCoupling" );
 
   std::vector<Integer> * nodes;
   std::vector<Elem*> * elements;
@@ -1069,9 +1055,8 @@ void BasePDE::Mesh2PDENode(Vector<Integer> & PDENodes,
 			   const Vector<Integer> & MeshNodes,
 			   const std::vector<Integer> & Mesh2PDENode)
 {
-#ifdef TRACE
-  (*trace) << "entering BasePDE::Mesh2PDENode " << std::endl;
-#endif
+
+  ENTER_FCN( "BasePDE::Mesh2PDENode " );
 
   PDENodes.Resize(MeshNodes.size());
   
@@ -1086,9 +1071,8 @@ void BasePDE::PDE2MeshNode(Vector<Integer> & MeshNodes,
 			   const Vector<Integer> & PDENodes,
 			   const std::vector<Integer> & PDE2MeshNode)
 {
-#ifdef TRACE
-  (*trace) << "entering BasePDE::PDE2MeshNode " << std::endl;
-#endif
+
+  ENTER_FCN( "BasePDE::PDE2MeshNode " );
 
   MeshNodes.Resize(PDENodes.size());
 
@@ -1110,9 +1094,8 @@ void BasePDE::AssignPDENodeNumbers(std::vector<Integer> & Mesh2PDENode,
 			  std::vector<Integer> & PDE2MeshNode,
 			  const std::vector<std::string> & subdoms)
 {
-#ifdef TRACE
-  (*trace) << "entering BasePDE:AssignPDENodeNumbers:" << std::endl;
-#endif
+
+  ENTER_FCN( "BasePDE:AssignPDENodeNumbers:" );
 
   // Initialize Mesh2PDENode and PDE2MeshNode
   Mesh2PDENode.resize(ptgrid_->GetMaxnumnodes(actlevel_),-1);
@@ -1167,9 +1150,8 @@ void BasePDE::AssignPDENodeNumbers(std::vector<Integer> & Mesh2PDENode,
 
 void BasePDE::GetElemCoords(const Vector<Integer> connect, Matrix<Double> &coordMat, const Integer level)
 {
-#ifdef TRACE
-  (*trace) << "entering BasePDE:GetElemCoords:" << std::endl;
-#endif
+
+  ENTER_FCN( "BasePDE:GetElemCoords:" );
 
   ptgrid_->GetCoordNodesElemMat(connect, coordMat, level);
   
@@ -1185,9 +1167,8 @@ void BasePDE::TransformNodeSolution(Array<Double> & MeshSol,
 				    Array<Double> & PDESol, 
 				    const std::vector<Integer> & PDE2MeshNode)
 {
-#ifdef TRACE
-  (*trace) << "entering BasePDE::TransformNodeSolution" << std::endl;
-#endif
+
+  ENTER_FCN( "BasePDE::TransformNodeSolution" );
 
   Integer node, idx;
   MeshSol.reshape(PDESol.dim(), ptgrid_->GetMaxnumnodes(actlevel_));
@@ -1207,12 +1188,11 @@ void BasePDE::TransformElemSolution(Array<Double> & MeshSol,
 				    Array<Double> & PDESol, 
 				    const std::vector<Elem*> & Elems)
 {
-#ifdef TRACE
-  (*trace) << "entering BasePDE::TransformElemSolution Elem*" << std::endl;
-#endif
 
-   MeshSol.reshape(PDESol.dim(), ptgrid_->GetMaxnumElem(actlevel_));
-   std::cout << "dim= " << ptgrid_->GetMaxnumElem(actlevel_) << std::endl;
+  ENTER_FCN( "BasePDE::TransformElemSolution (Elem*)" );
+
+  MeshSol.reshape(PDESol.dim(), ptgrid_->GetMaxnumElem(actlevel_));
+  std::cout << "dim= " << ptgrid_->GetMaxnumElem(actlevel_) << std::endl;
    
   // loop over all dimensions
   for (Integer dim=0; dim<PDESol.dim(); dim++)
@@ -1228,12 +1208,8 @@ void BasePDE::TransformElemSolution(Array<Double> & MeshSol,
 				    Array<Double> & PDESol, 
 				    const std::vector<std::string> & SD)
 {
-#ifdef TRACE
-  (*trace) << "entering BasePDE::TransformElemSolution string" << std::endl;
-#endif
 
-  MeshSol.reshape(PDESol.dim(), ptgrid_->GetMaxnumElem(actlevel_,SD));
-
+  ENTER_FCN( "BasePDE::TransformElemSolution (string)" );
 
   Integer elMesh=0;
   Integer elPDE=0;
@@ -1272,9 +1248,8 @@ void BasePDE::TransformElemSolution(Array<Double> & MeshSol,
 void BasePDE::NodeSolutionToCoupling(Array<Double>& CouplingSol,
 				     const std::vector<Integer>& NodeNumbers)
 {
-#ifdef TRACE
-  (*trace) << "entering BasePDE::NodeSolutionToCoupling" << std::endl;
-#endif
+
+  ENTER_FCN( "BasePDE::NodeSolutionToCoupling" );
   
   CouplingSol.reshape(dofspernode_, NodeNumbers.size());
   
@@ -1295,9 +1270,8 @@ void BasePDE::ElemSolutionToCoupling(Array<Double>& CouplingSol,
 				     Vector<Double>& elemSol)
 				     
 {
-#ifdef TRACE
-  (*trace) << "entering BasePDE::ElemSolutionToCoupling" << std::endl;
-#endif
+
+  ENTER_FCN( "BasePDE::ElemSolutionToCoupling" );
   
   const Integer couplingDof = CouplingSol.dim();
   
@@ -1322,9 +1296,8 @@ void BasePDE::ElemSolutionToCoupling(Array<Double>& CouplingSol,
 #ifdef ADAPTGRID
 void BasePDE::RefineMesh(const Integer level)
 {
-#ifdef TRACE
-  (*trace) << "entering BasePDE::RefineMesh" << std::endl;
-#endif
+
+  ENTER_FCN( "BasePDE::RefineMesh" );
   
   Integer                  numChilds;
   Integer                  numElems;
@@ -1390,9 +1363,8 @@ void BasePDE::RefineMesh(const Integer level)
 
 Boolean BasePDE::TestError(const Integer level)
 {
-#ifdef TRACE
-  (*trace) << "entering BasePDE::TestError" << std::endl;
-#endif
+
+  ENTER_FCN( "BasePDE::TestError" );
 
   if (!ptError_) ConstructorError();
   
@@ -1421,9 +1393,8 @@ Boolean BasePDE::TestError(const Integer level)
 //In this fnc we delete old pointer to Error-object & create new
 void BasePDE::ConstructorError()
 {
-#ifdef TRACE
-  (*trace) << "entering BasePDE::ConstructorError" << std::endl;
-#endif
+
+  ENTER_FCN( "BasePDE::ConstructorError" );
 
   if (ptError_) delete ptError_;
   
@@ -1447,9 +1418,8 @@ void BasePDE::WriteErrorInfo(WriteResults * ptmeshes)
 
 void BasePDE::GetSolVecOfElement(Vector<Double>& sol, Vector<Integer>& connect_PDE)
 {
-#ifdef TRACE
-  (*trace) << "entering BasePDE::GetSolVecOfElement" << std::endl;
-#endif
+
+  ENTER_FCN( "BasePDE::GetSolVecOfElement" );
 
   // displacement of element nodes
   sol.Resize(dofspernode_ * connect_PDE.size());
@@ -1463,9 +1433,8 @@ void BasePDE::GetSolVecOfElement(Vector<Double>& sol, Vector<Integer>& connect_P
 
 void BasePDE::GetDerivSolVecOfElement(Vector<Double>& sol, Vector<Integer>& connect_PDE)
 {
-#ifdef TRACE
-  (*trace) << "entering BasePDE::GetDerivSolVecOfElement" << std::endl;
-#endif
+
+  ENTER_FCN( "BasePDE::GetDerivSolVecOfElement" );
 
   // displacement of element nodes
   sol.Resize(dofspernode_ * connect_PDE.size());
@@ -1483,9 +1452,8 @@ void BasePDE::GetDerivSolVecOfElement(Vector<Double>& sol, Vector<Integer>& conn
 
 void BasePDE::GetDerivSolOfElement(Matrix<Double>& sol, Vector<Integer>& connect_PDE)
 {
-#ifdef TRACE
-  (*trace) << "entering BasePDE::GetDerivSolOfElement" << std::endl;
-#endif
+
+  ENTER_FCN( "BasePDE::GetDerivSolOfElement" );
 
   // displacement of element nodes
   sol.Resize(dofspernode_, connect_PDE.size());
@@ -1506,9 +1474,8 @@ void BasePDE::GetDerivSolOfElement(Matrix<Double>& sol, Vector<Integer>& connect
 
 void BasePDE::CalcLineNormalVec(Vector<Double>& n, const Elem& interfaceElem, const Elem& neighbour)
 {
-#ifdef TRACE
-  (*trace) << "entering BasePDE::CalcLineNormalVec" << std::endl;
-#endif
+
+ENTER_FCN( "BasePDE::CalcLineNormalVec" );
 
   const Integer nrVecElem2d = 2;
 
@@ -1560,9 +1527,8 @@ void BasePDE::CalcLineNormalVec(Vector<Double>& n, const Elem& interfaceElem, co
 // normal of line element: ATTENTION no defined sign!!
 void BasePDE::CalcLineNormalVec(Vector<Double>& n, Matrix<Double>& ptCoord)
 {
-#ifdef TRACE
-  (*trace) << "entering BasePDE::CalcLineNormalVec" << std::endl;
-#endif
+
+  ENTER_FCN( "BasePDE::CalcLineNormalVec" );
 
   const Integer nrVecElem2d = 2;
   
