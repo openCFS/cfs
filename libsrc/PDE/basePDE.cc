@@ -106,9 +106,10 @@ namespace CoupledField {
     // get regions/subdomains for PDE
     // =====================================================================
     params->GetList( "name", subdoms_, pdename_, "region" );
-    Info->PrintF( pdename_, "%s lives on regions:\n", pdename_.c_str());
+    Info->PrintF( pdename_, "The %s PDE lives on the following regions:\n",
+		  pdename_.c_str());
     for ( Integer k = 0; k < subdoms_.GetSize(); k++ ) {
-      Info->PrintF( pdename_, "  %s, index %d\n", subdoms_[k].c_str(), k );
+      Info->PrintF( pdename_, " %s, index %d\n", subdoms_[k].c_str(), k );
     }
 
     // Generate a fitting algebraic system
@@ -273,7 +274,7 @@ namespace CoupledField {
     eqnData_->CalcMapping();
 
     // Report results to logfile
-    Info->PrintF( pdename_, "Linear system will have %d equations",
+    Info->PrintF( pdename_, "Linear system will have %d equations\n",
                   eqnData_->GetNumEQNs() );
 
     //eqnData_->Print(*debug);
@@ -466,7 +467,7 @@ namespace CoupledField {
 
     // If the geometry has changed or the system matrix
     // is calculated for the first time,
-    // the matrices have to be reassembled and therfore
+    // the matrices have to be reassembled and therefore
     // the preconditioner has to be recalculated
 
     if (  geoUpdate_ == TRUE || firstTimeStepStatic_ == TRUE) {
@@ -479,11 +480,13 @@ namespace CoupledField {
 
     SetBCs(level, aTime);
 
-    // Incorporate Boundary conitions and
+    // Incorporate Boundary conditions and
     // recalc the prconditioner eventually
     algsys_->BuildInDirichlet();
-    algsys_->SetupPrecond( job );
-    algsys_->SetupSolver( job );
+    if ( job == 1 ) {
+      algsys_->SetupPrecond( job );
+      algsys_->SetupSolver( job );
+    }
 
     // Solve problem
     algsys_->Solve();
