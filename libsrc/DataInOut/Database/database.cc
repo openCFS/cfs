@@ -19,7 +19,11 @@ Database::Database()
   FieldsStored_ = FALSE;
 }
 
-int Database::Connect (std::string hostname, unsigned int port, std::string user, std::string passwd, std::string db)
+int Database::Connect (std::string hostname, 
+                       unsigned int port, 
+                       std::string user, 
+                       std::string passwd, 
+                       std::string db)
 {
   ENTER_FCN("Database::Connect(..)");
   Hostname_ = hostname;
@@ -48,7 +52,6 @@ int Database::Connect ()
   (*debug) << "port = " << Port_ << std::endl;
   (*debug) << "databaseName = " << Db_ << std::endl;
   (*debug) << "userName = " << User_ << std::endl;
-  (*debug) << "password = " << Passwd_ << std::endl;
 #endif
   IsConnected = TRUE;
   return (0);
@@ -66,7 +69,7 @@ int Database::Query (std::string statement)
   ENTER_FCN("Database::Query(string)");
   if (IsConnected==FALSE)
     exit (-1);
-#ifdef DEBUG
+#ifdef DEBUG2
   (*debug) << "Database::Query : " << statement << std::endl;	
 #endif
   FreeResult();
@@ -172,26 +175,29 @@ Boolean Database::FetchFields(dbMatrix &matrix)
 }
 
 
-int Database::Insert (dbLineData d) //std::string table, std::vector<std::string> field, std::vector<std::string> value)
+int Database::Insert (dbLineData &d) 
 {
  ENTER_FCN("Database::Insert");
- int size = d.Size();
+// int size = d.Size();
  std::stringstream querystr;
  querystr<<"INSERT INTO "<<d.tablename<<" (";
- int i;
+/* int i;
  for (i=0; i<size; i++)
  {
    querystr<<d.GetFieldName(i);
    if (i!=size-1)
      querystr<<",";
- }
+ }*/
+ querystr<<d.GetFieldNames();
  querystr<<") values (";
- for (i=0; i<size; i++)
+/* for (i=0; i<size; i++)
  {
    querystr<<d.GetValue(i);
    if (i!=size-1)
      querystr<<","; 
  }
+ querystr<<")";*/
+ querystr<<d.GetValues();
  querystr<<")";
  return Query(querystr.str());
 }  
@@ -226,7 +232,9 @@ std::string Database::EscapeString(std::string source)
   return to;
 }
 
-Boolean Database::SelectFrom(std::string fields, std::string table, std::string where)
+Boolean Database::SelectFrom(std::string fields, 
+                             std::string table, 
+                             std::string where)
 {
   ENTER_FCN("Database::SelectFrom");
   std::stringstream statement;
@@ -238,7 +246,18 @@ Boolean Database::SelectFrom(std::string fields, std::string table, std::string 
   return TRUE;
 }
 
-Boolean Database::Update (dbLineData d, dbLineData where)
+Boolean Database::Update (std::string table, 
+                          std::string set, 
+                          std::string where)
+{
+  std::stringstream querystr;
+  querystr<<"UPDATE "<<table<<" SET "<<set<<" WHERE "<<where;
+  if (Query(querystr.str())==-1)
+    return FALSE;
+  return TRUE;
+}
+
+/*Boolean Database::Update (dbLineData &d, dbLineData &where)
 {
   int size = d.Size();
   std::stringstream querystr;
@@ -247,7 +266,10 @@ Boolean Database::Update (dbLineData d, dbLineData where)
     (*debug)<<"Database::Update : Table names differ!!"<<std::endl;
 #endif
   querystr<<"UPDATE "<<d.tablename<<" SET ";
-  for (int i=0; i<size; i++)
+
+  char *pStr = */
+
+/*  for (int i=0; i<size; i++)
   {
     querystr<<d.GetFieldName(i)<<"="<<d.GetValue(i);
     if (i!=size-1)
@@ -263,13 +285,13 @@ Boolean Database::Update (dbLineData d, dbLineData where)
       if (i!=wsize-1)
         querystr<<" AND ";
     }
-  }
-  if (Query(querystr.str())==-1)
-    return FALSE;
-  return TRUE;
-}
+  }*/
+/*  if (Query(querystr.str())==-1)
+    return FALSE;*/
+/*  return TRUE;
+}*/
 
-int Database::InsertAndGetIndex (dbLineData d) //std::string table, std::vector<std::string> field, std::vector<std::string> value)
+int Database::InsertAndGetIndex (dbLineData &d) //std::string table, std::vector<std::string> field, std::vector<std::string> value)
 {
   ENTER_FCN("Database::InsertAndGetIndex");
   Insert (d);

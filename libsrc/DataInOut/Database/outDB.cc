@@ -4,8 +4,9 @@
 namespace CoupledField
 {
 
-WriteResultsDatabase::WriteResultsDatabase(const Char * const filename, FileType * const aInFile)
-:WriteResults(filename, aInFile)
+WriteResultsDatabase::WriteResultsDatabase(const Char * const filename, 
+                                           FileType * const aInFile)
+                     :WriteResults(filename, aInFile)
 {
   ENTER_FCN("WriteResultsDatabase::WriteResultsDatabase");
 }
@@ -49,7 +50,7 @@ void WriteResultsDatabase::WriteBasisData()
 
   dbLineData d("Calculation");
   d.Set("idx","0");
-  d.SetUnquoted("stamp","NULL");
+  d.Set("stamp","NULL",FALSE);
   d.Set("inputparam_idx",InputParamIdx_);
   d.Set("solution_type","1");
   d.Set("analysis_type","1");
@@ -247,7 +248,7 @@ void WriteResultsDatabase::Dataset55(const std::string & title,
   Integer transIdx=0,normIdx=0,freqIdx=0,Idx=0;
   if (1)		// Transient analysis
   {
-    d.SetTableName("Nodal_result_transient");
+    d.SetTableName("Nodal_result_trans");
     d.Set("idx","0"); 
     d.Set("result_type",title); 
     d.Set("time_step",step); 
@@ -451,8 +452,10 @@ void WriteResultsDatabase::WriteConfFile()
 
   // Check if file is already in database
   std::stringstream wherestr;
-  wherestr<<"(filename='"<<filename<<"') AND (date_modified=FROM_UNIXTIME("<<seconds<<"))";
-  Db_.SelectFrom("idx,filename,date_modified,no_references","InputParam",wherestr.str());
+  wherestr<<"(filename='"<<filename;
+  wherestr<<"') AND (date_modified=FROM_UNIXTIME("<<seconds<<"))";
+  Db_.SelectFrom("idx,filename,date_modified,no_references",
+                 "InputParam",wherestr.str());
   dbMatrix mat;
   Db_.FetchFields(mat);
   if (mat.getNoOfRow()==1)
@@ -464,15 +467,20 @@ void WriteResultsDatabase::WriteConfFile()
     dbColumn *nOfRef;
     nOfRef = mat["no_references"];
     nOfRef->get(ref,0);
-    dbLineData set("InputParam");
-    set.Set("no_references",(ref+1));
+//    dbLineData set("InputParam");
+//    set.Set("no_references",(ref+1));
+    std::stringstream Set;
+    Set<<"no_references="<<(ref+1);
     int idx;
     dbColumn *pIdx;
     pIdx = mat["idx"];
     pIdx->get(idx,0);
-    dbLineData where("InputParam");
-    where.Set("idx",idx);
-    Db_.Update(set,where);
+//    dbLineData where("InputParam");
+//    where.Set("idx",idx);
+//    Db_.Update(set,where);
+    std::stringstream Where;
+    Where<<"idx="<<idx;
+    Db_.Update("InputParam",Set.str(),Where.str());
     InputParamIdx_ = idx;
     return;
   }
@@ -487,7 +495,7 @@ void WriteResultsDatabase::WriteConfFile()
   d.Set("filename",filename);
   std::stringstream moddatestr;
   moddatestr<<"FROM_UNIXTIME("<<seconds<<")";
-  d.SetUnquoted("date_modified", moddatestr.str());
+  d.Set("date_modified", moddatestr.str(),FALSE);
 #ifdef DEBUG
   (*debug)<<"moddate: "<<moddatestr.str()<<std::endl;
 #endif

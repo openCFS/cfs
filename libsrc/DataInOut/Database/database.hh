@@ -53,13 +53,13 @@ public:
   /*!
     \param d Dataset with the data to insert into table
   */
-  int Insert (dbLineData d);
+  int Insert (dbLineData &d);
 
   //! Insert data and get Index
   /*!
     \param d Dataset with the data to insert into table
   */
-  int InsertAndGetIndex (dbLineData d);
+  int InsertAndGetIndex (dbLineData &d);
 
   //! Convert string to escaped string (use for strings with special characters
   /*!
@@ -100,7 +100,17 @@ public:
     \param d New data
     \param wherestr WHERE-string, selection within table
   */
-  Boolean Update (dbLineData d, dbLineData where);
+//  Boolean Update (dbLineData &d, dbLineData &where);
+
+  //! Update selected fields
+  /*!
+    \param table Table name
+    \param set Variables to set (e.g: "value=3")
+    \param where Selection (e.g: "idx=123")
+  */
+  Boolean Update (std::string table,
+                  std::string set,
+                  std::string where);
 
 protected:
   //! Connection to the database
