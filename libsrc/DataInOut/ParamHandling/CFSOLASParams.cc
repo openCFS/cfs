@@ -479,6 +479,60 @@ namespace CoupledField {
       }
       break;
 
+    case ILDLK:
+
+      // Set sub-type
+      olas->SetValue( "ILDLPRECOND_subType", ILDLK );
+
+      // Now parameters
+      cfs->GetList( "level", list, pdename, "ILDLK" );
+      if( list.GetSize() == 1 ) {
+	olas->SetValue( "ILDLPRECOND_level", atoi(list[0].c_str()) );
+      }
+      cfs->GetList( "logging", list, pdename, "ILDLK" );
+      if( list.GetSize() == 1 ) {
+	olas->SetValue( "ILDLKPRECOND_logging", (list[0] == "yes") );
+      }
+      cfs->GetList( "saveFacFile", list, pdename, "ILDLK" );
+      if( list.GetSize() == 1 ) {
+	olas->SetValue( "ILDLPRECOND_saveFacToFile", true );
+	olas->SetValue( "ILDLPRECOND_facFileName", list[0] );
+        cfs->GetList( "savePatternOnly", list, pdename, "ILDLK" );
+        if( list.GetSize() == 1 ) {
+          olas->SetValue( "ILDLPRECOND_facPatternOnly", (list[0] == "yes") );
+        }
+      }
+      break;
+
+    case ILDLTP:
+
+      // Set sub-type
+      olas->SetValue( "ILDLPRECOND_subType", ILDLTP );
+
+      // Now parameters
+      cfs->GetList( "threshold", list, pdename, "ILDLTP" );
+      if( list.GetSize() == 1 ) {
+	olas->SetValue( "ILDLPRECOND_tau", atof(list[0].c_str()) );
+      }
+      cfs->GetList( "fillVal", list, pdename, "ILDLTP" );
+      if( list.GetSize() == 1 ) {
+	olas->SetValue( "ILDLPRECOND_fillVal", atoi(list[0].c_str()) );
+      }
+      cfs->GetList( "logging", list, pdename, "ILDLTP" );
+      if( list.GetSize() == 1 ) {
+	olas->SetValue( "ILDLTPPRECOND_logging", (list[0] == "yes") );
+      }
+      cfs->GetList( "saveFacFile", list, pdename, "ILDLTP" );
+      if( list.GetSize() == 1 ) {
+	olas->SetValue( "ILDLPRECOND_saveFacToFile", true );
+	olas->SetValue( "ILDLPRECOND_facFileName", list[0] );
+        cfs->GetList( "savePatternOnly", list, pdename, "ILDLTP" );
+        if( list.GetSize() == 1 ) {
+          olas->SetValue( "ILDLPRECOND_facPatternOnly", (list[0] == "yes") );
+        }
+      }
+      break;
+
       // If this point is reached, it indicates that something is broken.
       // Probably not all preconditioners that SetParams allows are yet
       // implemented here?
