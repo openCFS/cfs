@@ -822,8 +822,17 @@ void BasePDE::CreateIncrementedRHSMatrix(Vector<Double> & harmonicRHSVec, const 
     ENTER_FCN("BasePDE::CreateIncrementedRHSMatrix");
 		assemble_->AssembleMatrices(level);
 		Matrix<Double> elemmat = assemble_->GetElemMat();
+		//	std::cout<<"ELEMMAT"<<std::endl;
+		//	for (int i=0;i<elemmat.GetSizeRow();i++)
+		// for (int j=0;j<elemmat.GetSizeCol();j++)
+		//   std::cout<<elemmat[i][j]<<"; ";
+
 		assemble_->TransformMatrix2HarmonicRHS_for_paramIdent(harmonicRHSVec,elemmat);
+		//	std::cout<<"\n harmonicRHS_VEC"<<std::endl;
+		//for (int i=0;i<harmonicRHSVec.GetSize();i++)
+		//   std::cout<<harmonicRHSVec[i]<<"; ";
 }
+
 
 
 void BasePDE::StepHarmonicLin(const Integer freqStep, const Double frequency,

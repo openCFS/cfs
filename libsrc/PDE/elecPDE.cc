@@ -344,6 +344,7 @@ void ElecPDE::CalcCharges()
 
   NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
   StdVector<Elem*> surfElems, volElems;
+
   Vector<Double> lCoordSurf, lCoordVol, elemDField, normal;
   BaseFE * ptSurfElem, * ptVolElem;
   Double permittivity = 0.0;

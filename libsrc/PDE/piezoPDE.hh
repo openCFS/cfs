@@ -51,6 +51,8 @@ namespace CoupledField
     //! \param timeOffset offset for starting time  
     virtual void WriteResultsInFile(Integer stepOffset = 0,
 				    Double timeOffset = 0.0);
+
+   ElemStoreSol<Complex>  GetComplexValuedCharge(){return chargesComplex_;};
     
   protected:
   
