@@ -20,6 +20,9 @@
     <xsd:complexType>
 
       <xsd:sequence>
+        <!-- Matrix format, entries and layout (optional) -->
+        <xsd:element name="matrix" type="DT_MatrixDescription" minOccurs="0"/>
+
         <!-- Parameters for solver (optional) -->
         <xsd:element ref="SolverBasic" minOccurs="0"/>
 
@@ -29,7 +32,7 @@
       </xsd:sequence>
 
       <!-- List of available solvers to chose from --> 
-      <xsd:attribute name="type" use="optional" default="Direct">
+      <xsd:attribute name="type" use="optional" default="lapackLU">
         <xsd:simpleType>
           <xsd:restriction base="xsd:token">
             <xsd:enumeration value="Direct"/>
@@ -45,9 +48,10 @@
      </xsd:attribute>
 
      <!-- Desired Preconditioner (if any) -->
-     <xsd:attribute name="precond" use="optional" default="Id">
+     <xsd:attribute name="precond" use="optional" default="noPrecond">
        <xsd:simpleType>
          <xsd:restriction base="xsd:token">
+           <xsd:enumeration value="noPrecond"/>
            <xsd:enumeration value="Id"/>
            <xsd:enumeration value="MG"/>
            <xsd:enumeration value="Jacobi"/>
@@ -62,5 +66,42 @@
 
     </xsd:complexType>
   </xsd:element>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of matrix description type -->
+  <!-- ******************************************************************** -->
+
+  <xsd:complexType name="DT_MatrixDescription">
+    <xsd:attribute name="structure" use="optional" default="standard">
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:token">
+          <xsd:enumeration value="standard"/>
+          <xsd:enumeration value="SBM"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
+    <xsd:attribute name="entry" use="optional" default="double">
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:token">
+          <xsd:enumeration value="double"/>
+          <xsd:enumeration value="complex"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
+    <xsd:attribute name="storage" use="optional" default="sparseNonSym">
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:token">
+          <xsd:enumeration value="sparseSym"/>
+          <xsd:enumeration value="sparseNonSym"/>
+          <xsd:enumeration value="skylineSym"/>
+          <xsd:enumeration value="skylineNonSym"/>
+          <xsd:enumeration value="hypreMatrix"/>
+          <xsd:enumeration value="lapackGBMatrix"/>
+          <xsd:enumeration value="lapackPBMatrix"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
+  </xsd:complexType>
 
 </xsd:schema>
