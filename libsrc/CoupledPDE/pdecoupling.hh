@@ -5,7 +5,7 @@
 #include <Utils/vector.hh>
 #include <list>
 #include <DataInOut/MaterialData.hh>
-
+#include <Utils/basestoresol.hh>
 namespace CoupledField
 {
 
@@ -14,10 +14,9 @@ class BasePDE;
 class Grid;
 class Elem;
 class BCs;
-class BaseStoreSol;
-  template<class TYPE> class Vector;
-  template<class TYPE> class Array;
-  template<class TYPE> class Matrix;
+template<class TYPE> class Vector;
+template<class TYPE> class Array;
+template<class TYPE> class Matrix;
 
   //! This class holds information about Coupling terms, such as coupling quantity, values coupling nodes/elements ...
   /*! This class holds information about Coupling terms, such as coupling quantity, values coupling nodes/elements ...
@@ -67,6 +66,7 @@ public:
 
   //! add coupling input
   /*!
+    \param numCoupling (input) number of Couplinginterface
     \param Quantity (input) name of input coupling quantity
     \param region (input) name of input coupling region
     \param RegionType (input) type of input coupling region
@@ -100,6 +100,20 @@ public:
   //! get number of output couplings
   virtual Integer GetNumOutputCouplings();
 
+
+  //! creates a new StoreSolution-object for the 
+  //! couplingvalues.
+  //! This method has to be called from the according
+  //! PDE in the method 'InitCoupling'
+  /*!
+    \param i (input) Number of Couplinginterface
+    \param solType (input) Type of Solution (ref. Enum-type)
+    \param isComplex (inut) True if values are complex
+  */
+  virtual void CreateStoreSol(Integer i,
+			      SolutionType solType, 
+			      Boolean isComplex);
+  
   // ------------ input coupling -----------
 
   //! get input coupling type
@@ -133,7 +147,6 @@ public:
   //! get input neighbour elements
   virtual void GetInputNeighbourElems(Integer i, std::vector<Elem *>*  &elements)
   { elements = &(inputInterfaces_[i]->neighbours);}
-
 
    //! get input coupling region material
   virtual void GetOppositeMaterials(Integer i, std::vector<MaterialData *>*  &mat)

@@ -130,7 +130,7 @@ void ElecPDE::InitCoupling(PDECoupling * Coupling)
 	  F_Interface_.push_back(interface_tmp);
 
 	  // Intialize the memory
-	  ptCoupling_->SetOutputDim(i, Dim_);
+	  // ptCoupling_->SetOutputDim(i, Dim_);
 	 
 	  // Assign arrays for element boundary nodes
 	  isBoundaryNode_tmp.clear();

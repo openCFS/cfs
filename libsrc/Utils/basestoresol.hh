@@ -26,11 +26,11 @@ template<class TYPE> class Array;
 // Enumerations //
 //////////////////
 typedef enum{NOSOLUTIONTYPE, COUPLING_TYPE,\
-	     MECH_DISPLACEMENT, MECH_ACCELERATION, MECH_VELOCITY,\
-	     ELEC_POTENTIAL, ELEC_FIELD,\
+	     MECH_DISPLACEMENT, MECH_ACCELERATION, MECH_VELOCITY, MECH_FORCE,\
+	     ELEC_POTENTIAL, ELEC_FIELD, ELEC_FORCE,\
 	     SMOOTH_DISPLACEMENT,\
-	     ACOU_POTENTIAL, ACOU_VELOCITY, ACOU_PRESSURE,\
-	     MAG_POTENTIAL, MAG_FIELD, MAG_EDDY_CURRENT} SolutionType;
+	     ACOU_POTENTIAL, ACOU_VELOCITY, ACOU_PRESSURE, ACOU_FORCE,\
+	     MAG_POTENTIAL, MAG_FIELD, MAG_EDDY_CURRENT, MAG_FORCE} SolutionType;
 	       
 //! This class is the new interface for handling the 
 //! (multidimensional) solutions of PDEs (instead of 

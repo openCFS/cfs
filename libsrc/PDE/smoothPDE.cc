@@ -118,7 +118,7 @@ void SmoothPDE::InitCoupling(PDECoupling * coupling)
     {
       // check for output displacement
       if (ptCoupling_->GetOutputQuantity(i) == "smoothdisplacement")
-	  ptCoupling_->SetOutputDim(i, dofspernode_);
+	 ptCoupling_->CreateStoreSol(i,SMOOTH_DISPLACEMENT,isComplex_); 
     }
 }
   
