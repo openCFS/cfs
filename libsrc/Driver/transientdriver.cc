@@ -11,6 +11,7 @@
 
 #include <CoupledPDE/basecoupledpde.hh>
 #include <CoupledPDE/itercoupledpde.hh>
+#include <DataInOut/WriteInfo.hh>
 
 #ifndef NEWBASEPDE
 #include <PDE/basepde.hh>
@@ -35,6 +36,9 @@ TransientDriver :: TransientDriver(Domain * adomain)
   conf->get("stepsaveend",isaveend_);
   conf->get("stepsaveincr",isaveincr_);
 
+  if(isavebegin_ <= 0)
+    Error("Value of stepsavebegin must be positive and nonzero! ",__FILE__,__LINE__);
+   
   ptMeshes_=NULL;
 }
 
@@ -61,62 +65,70 @@ void TransientDriver :: SolveProblem()
 
   Double dt=firstdt_;
   Boolean updatesysmat=FALSE;
-
+  BasePDE * actPDE = ptdomain_->GetPDE(pdenumber);
+  
 
   if (ptdomain_->GetNumPDE() <= 1) 
     {
-      ptdomain_->GetPDE(pdenumber)->InitTimeStepping(dt);
+      actPDE->InitTimeStepping(dt);
       
       ptdomain_->PrintGrid(level);
 
       if (PrintGridOnly)
 	exit(0);
       
-      ptdomain_->GetPDE(pdenumber)->WriteGeneralPDEdefines();
+      actPDE->WriteGeneralPDEdefines();
       
       Integer nstep;
       for (nstep = 0; nstep<numstep_; nstep++)
 	{
-	  ptdomain_->GetPDE(pdenumber)->PreStepTrans(level, updatesysmat);
-	  ptdomain_->GetPDE(pdenumber)->SolveStepTrans(nstep, steptime, level, updatesysmat);
-	  ptdomain_->GetPDE(pdenumber)->PostStepTrans(level);
+	  Info->WriteTimeStep(actPDE->GetName(), nstep+1, steptime);
+
+	  actPDE->PreStepTrans(level, updatesysmat);
+	  actPDE->SolveStepTrans(nstep, steptime, level, updatesysmat);
+	  actPDE->PostStepTrans(level);
 	  
 	  // writing results in output-file
 	  if (nstep == stepsave && (nstep < isaveend_))
 	    { 
-	      ptdomain_->GetPDE(pdenumber)->PostProcess(level);
-	      ptdomain_->GetPDE(pdenumber)->WriteResultsInFile();
+	      actPDE->PostProcess(level);
+	      actPDE->WriteResultsInFile();
 	      stepsave+=isaveincr_;
 	    }
 	  
-	  steptime+=dt;
+	  steptime+=dt;	 
 	}
     }
   else
     {
-      ptdomain_->GetCoupledPDE() -> InitTimeStepping(dt);
-      ptdomain_->GetCoupledPDE() -> SetTimeSteppingParams(numstep_, firstdt_, isavebegin_, 
-							  isaveend_, isaveincr_); 
+      BaseCoupledPDE * actCoupledPDE = ptdomain_->GetCoupledPDE();
+
+      actCoupledPDE -> InitTimeStepping(dt);
+      actCoupledPDE -> SetTimeSteppingParams(numstep_, firstdt_, isavebegin_, 
+					     isaveend_, isaveincr_); 
       
       ptdomain_->PrintGrid(level);
       
       if (PrintGridOnly)
 	exit(0);
       
-      ptdomain_->GetCoupledPDE() -> WriteGeneralPDEdefines();
+      actCoupledPDE -> WriteGeneralPDEdefines();
       
-      Integer nstep;
-      for (nstep = 0; nstep<numstep_; nstep++)
+      for (Integer nstep = 0; nstep<numstep_; nstep++)
 	{
-	  //	  ptdomain_->GetCoupledPDE()->PreStepTrans(level, updatesysmat);
-	  ptdomain_->GetCoupledPDE()->SolveStepTrans(nstep, steptime, level, updatesysmat);
-	  //	  ptdomain_->GetCoupledPDE()->PostStepTrans(level);
+	  Info->WriteTimeStep(actCoupledPDE->GetName(), nstep+1, steptime);
+
+	  actCoupledPDE->InitStepTransCoupled(steptime);
+	  
+	  //	  actCoupledPDE->PreStepTrans(level, updatesysmat);
+	  actCoupledPDE->SolveStepTrans(nstep, steptime, level, updatesysmat);
+	  actCoupledPDE->PostStepTrans(level);
 	  
 	  // writing results in output-file
 	  if (nstep == stepsave && (nstep < isaveend_))
 	    { 
-	      ptdomain_->GetCoupledPDE()->PostProcess(level);
-	      ptdomain_->GetCoupledPDE()->WriteResultsInFile();
+	      actCoupledPDE->PostProcess(level);
+	      actCoupledPDE->WriteResultsInFile();
 	      stepsave+=isaveincr_;
 	    }
 	  steptime+=dt;

@@ -250,7 +250,6 @@ void BasePDE::SolveStepTrans(const Integer kstep, const Double asteptime,
     StepTransNonLin(level,reset);
   else
     StepTransLin(level,reset);
-
 }
 
 
@@ -269,6 +268,47 @@ void BasePDE::PreStepTrans(const Integer level, const Boolean reset)
 }
 
 
+
+void BasePDE::PostStepTrans(const Integer level)
+{
+#ifdef TRACE
+  (*trace) << "entering BasePDE::PostStepTrans" << std::endl;
+#endif
+
+  if (PDEisCoupled_)
+    {
+      //save solution
+      Integer k=0;
+      Array<Double> solhelp(1, numPDENodes_*dofspernode_);
+
+      for (Integer i=0; i< numPDENodes_; i++)
+	for (Integer dim=0; dim<dofspernode_; dim++)
+	  {
+	    solhelp[0][k] = sol_[dim][i];
+	    k++;
+	  }
+    
+      TS_alg_->Corrector(solhelp);  //perform corrector step
+    }
+  
+  if (PDEisCoupled_)
+    iterCoupledCounter_++;
+}
+
+
+// initialize PDEs before iteration (done for each time step)
+void BasePDE::InitStepTransCoupled(Double asteptime)
+{
+#ifdef TRACE
+  (*trace) << "entering BasePDE::InitStepTransCoupled" << std::endl;
+#endif
+
+  lasttimecalc_= asteptime;
+  iterCoupledCounter_ = 0;
+}
+
+
+
 void BasePDE::StepTransLin(const Integer level, const Boolean reset)
 {
 #ifdef TRACE
@@ -282,24 +322,33 @@ void BasePDE::StepTransLin(const Integer level, const Boolean reset)
   Array<Double> solhelp;
   solhelp.reshape(1, numPDENodes_*dofspernode_);
   Integer k=0;
-  for (Integer i=0; i< numPDENodes_; i++)
-    for (Integer j=0; j<dofspernode_; j++)
-      {
-	solhelp[0][k] = sol_[j][i];
-	k++;
-      }
 
-  //perform predictor step
-  TS_alg_->Predictor(solhelp);
 
+  if ( PDEisCoupled_ == FALSE || iterCoupledCounter_ == 0)
+    {    
+      for (Integer i=0; i< numPDENodes_; i++)
+	for (Integer j=0; j<dofspernode_; j++)
+	  {
+	    solhelp[0][k] = sol_[j][i];
+	    k++;
+	  }
+      
+      //perform predictor step
+      TS_alg_->Predictor(solhelp);
+    }
+  
 
   if (laststepcalc_==0)
     {
       update = 0;
-      job = 1;
-      assemble_->AssembleMatrices(level);
-      algsys_->ConstructEffectiveMatrix(matrix_factor_);
-      TS_alg_->UpdateRHS();
+      job = 3;
+
+      if ( PDEisCoupled_ == FALSE || iterCoupledCounter_ == 0)
+	{
+	  job = 1;
+	  assemble_->AssembleMatrices(level);
+	  algsys_->ConstructEffectiveMatrix(matrix_factor_);
+	}  
     }
   else if (reset)
     {
@@ -313,16 +362,15 @@ void BasePDE::StepTransLin(const Integer level, const Boolean reset)
         algsys_->InitMatrix(DAMPING);
 
       algsys_->ConstructEffectiveMatrix(matrix_factor_); 
-      TS_alg_->UpdateRHS();
     }
   else
     {
       update = 1;
-      job    = 3;      
- 
-      TS_alg_->UpdateRHS();
+      job    = 3; 
     }
 
+
+  TS_alg_->UpdateRHS();
 
   SetBCs(level,update,lasttimecalc_);
   algsys_->CalcPrecond(job);
@@ -338,9 +386,9 @@ void BasePDE::StepTransLin(const Integer level, const Boolean reset)
 	solhelp[0][k] = ptsol[k];
 	k++;
       }
-
-  //perform corrector step  
-  TS_alg_->Corrector(solhelp);
+  
+  if (!PDEisCoupled_)
+    TS_alg_->Corrector(solhelp);  //perform corrector step
 }
 
 
@@ -350,16 +398,6 @@ void  BasePDE::SetBCs(const Integer level, const Integer update, const Double ti
   (*trace) << "entering  BasePDE::SetBCs" << std::endl;
 #endif
 
-//   Double BigConst;
-//   if (SolverCFS_)
-//     {
-//       Integer matsize=sysmat_.getSize(),i;
-//       Double max=sysmat_(0,0);
-//       for (i=0;i<matsize;i++)
-// 	if (sysmat_(i,i)>max) max=sysmat_(i,i);
-//       BigConst=(10e+10)*max;
-//     }
-  
   Integer node, dof;
   Double val, val_tfunc;
 
@@ -1142,7 +1180,7 @@ void BasePDE::WriteErrorInfo(WriteResults * ptmeshes)
 void BasePDE::GetSolVecOfElement(Vector<Double>& sol, Vector<Integer>& connect_PDE)
 {
 #ifdef TRACE
-  (*trace) << "entering MechPDE::GetSolVecOfElement" << std::endl;
+  (*trace) << "entering BasePDE::GetSolVecOfElement" << std::endl;
 #endif
 
   // displacement of element nodes
@@ -1152,6 +1190,47 @@ void BasePDE::GetSolVecOfElement(Vector<Double>& sol, Vector<Integer>& connect_P
     for(Integer actDof=0; actDof < dofspernode_; actDof++)
       sol[actDof + actNode*dofspernode_] = sol_[actDof][connect_PDE[actNode]-1];
 }
+
+
+
+void BasePDE::GetDerivSolVecOfElement(Vector<Double>& sol, Vector<Integer>& connect_PDE)
+{
+#ifdef TRACE
+  (*trace) << "entering BasePDE::GetDerivSolVecOfElement" << std::endl;
+#endif
+
+  // displacement of element nodes
+  sol.Resize(dofspernode_ * connect_PDE.size());
+
+  const Array<Double>& sol_der1Array = getS1();
+  
+  for(Integer actNode=0; actNode<connect_PDE.size(); actNode++)
+    for(Integer actDof=0; actDof < dofspernode_; actDof++)
+      sol[actDof + actNode*dofspernode_] = sol_der1Array[0][actDof + dofspernode_*(connect_PDE[actNode]-1)];
+}
+
+
+
+
+
+void BasePDE::GetDerivSolOfElement(Matrix<Double>& sol, Vector<Integer>& connect_PDE)
+{
+#ifdef TRACE
+  (*trace) << "entering BasePDE::GetDerivSolOfElement" << std::endl;
+#endif
+
+  // displacement of element nodes
+  sol.Resize(dofspernode_, connect_PDE.size());
+
+  const Array<Double>& sol_der1Array = getS1();  
+
+  for(Integer actNode=0; actNode<connect_PDE.size(); actNode++)
+    for(Integer actDof=0; actDof < dofspernode_; actDof++)
+      sol[actDof][actNode] =  sol_der1Array[0][actDof + dofspernode_*(connect_PDE[actNode]-1)];
+  //sol_der1Array[actDof][connect_PDE[actNode]-1];
+}
+
+
 
 
 

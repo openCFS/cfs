@@ -219,6 +219,9 @@ void AcousticPDE::CalcOutputCoupling()
 	      dof = ptCoupling_->GetOutputDof(i);
 	    
 	      CalcMechCouplingRHS(couplingElems, *couplingNodes, couplingMaterials, *values, dof);
+
+	      //	      myCout << "Acoustic couple forces : " << *values << myEndl;
+
 	    }	  
 	  break;
 
@@ -238,8 +241,10 @@ void AcousticPDE::CalcMechCouplingRHS(std::vector<Elem*> * couplingElems,
   (*trace) << "entering AcousticPDE::CalcMechCouplingRHS" << std::endl;
 #endif
 
-   Double density;
+  Double density;
    
+  elemCouplingSols.init();
+
   for (Integer actElem=0; actElem<couplingElems->size(); actElem++)
     {
       BaseFE * ptElem = (*couplingElems)[actElem]->ptElem;
@@ -247,7 +252,7 @@ void AcousticPDE::CalcMechCouplingRHS(std::vector<Elem*> * couplingElems,
       
       Matrix<Double> ptCoord; 
       GetElemCoords(connecth, ptCoord, actlevel_);
-
+      
       density = (*couplingMaterials)[actElem]->GetDensity();
           
       BaseForm * bilinear_mass = new MassInt(ptElem, density, isaxi_);
@@ -260,27 +265,31 @@ void AcousticPDE::CalcMechCouplingRHS(std::vector<Elem*> * couplingElems,
       Mesh2PDENode(connect_PDE, connecth, Mesh2PDENode_);
       
       Vector<Double> sol;
-      GetSolVecOfElement(sol, connect_PDE);
+      GetDerivSolVecOfElement(sol, connect_PDE);
 
       Vector<Double> forceOnElem = elemmat * sol;
 
       Vector<Double> n;
       CalcLineNormalVec(n, ptCoord);
 
-     Integer nodePos = 0;
-     
-     for (Integer actNode=0; actNode<ptCoord.size_row(); actNode++)
-       {
-	 nodePos = 0;
-	 
-	 while(connecth[actNode] != couplingNodes[nodePos] && nodePos < couplingNodes.size()) 
-	   nodePos++;
-	 
-	 for (Integer actDof=0; actDof < couplingdof ; actDof++)  
-	   elemCouplingSols[actDof][nodePos] += forceOnElem[actNode] * n[actDof];
-       }      
-    }  
-  
+      //      myCout << "normal Vec: " << n << myEndl;
+      
+      Integer nodePos = 0;
+
+      // force has to be added on RHS with negative sign
+      forceOnElem *= -1;
+      
+      for (Integer actNode=0; actNode<ptCoord.size_row(); actNode++)
+	{
+	  nodePos = 0;
+	  
+	  while(connecth[actNode] != couplingNodes[nodePos] && nodePos < couplingNodes.size()) 
+	    nodePos++;
+	  
+	  for (Integer actDof=0; actDof < couplingdof ; actDof++)  
+	    elemCouplingSols[actDof][nodePos] += forceOnElem[actNode] * n[actDof];
+	}      
+    }
 }
 
 

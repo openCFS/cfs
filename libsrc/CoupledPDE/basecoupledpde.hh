@@ -44,6 +44,11 @@ public:
   //! Deconstructor
   virtual ~BaseCoupledPDE();
 
+
+  //! name
+  virtual std::string GetName()
+  {return coupledpdename_;};
+  
   //! calculates coupling interfaces
   virtual void InitCoupling(Integer level)=0;
   
@@ -78,6 +83,10 @@ public:
   /// perform on every pde a post step (after solving transient step
   virtual void PostStepTrans(const Integer level);
 
+  /// initialize PDEs before iteration (done for each time step)
+  void InitStepTransCoupled(Double asteptime);
+  
+
 
   // ======================================================
   // POSTPROC SECTION
@@ -110,7 +119,6 @@ protected:
   Integer isavebegin_;       //!< starting index of saving
   Integer isaveend_;         //!< end index of saving
   Integer isaveincr_;        //!< incremental step of saving
-   
 };
 
 } // end of namespace

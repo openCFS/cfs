@@ -128,7 +128,6 @@ void Newmark::UpdateRHS(std::vector<Double>& actSol)
       coeffDamp = (solpred_-actSol)*a4_;
       algsys_->UpdateRHS(DAMPING,coeffDamp.get());
    }
-   
 }
 
 
@@ -143,8 +142,9 @@ void Newmark::Corrector(Array<Double>& solnew)
 
   solderiv2_ = (solnew - solpred_) * a2_;
   solderiv1_ = solderiv1pred_ + solderiv2_*a3_;
-
 }
+
+
 
 void Newmark :: CalcParameters(Double dt)
 {

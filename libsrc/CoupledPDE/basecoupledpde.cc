@@ -29,7 +29,6 @@ BaseCoupledPDE::BaseCoupledPDE(std::vector<BasePDE*> & PDEs,
 
   actlevel_ = 0;
   NumPDEs_ = PDEs.size();
-  coupledpdename_ = "coupling";
 
   // get analysis type
   std::string analysis;
@@ -42,6 +41,13 @@ BaseCoupledPDE::BaseCoupledPDE(std::vector<BasePDE*> & PDEs,
     analysistype_ = TRANSIENT;
   else
     Error("Analysis Type not supported",__FILE__,__LINE__);
+
+  coupledpdename_ = "CoupledPDE: ";
+
+  for (Integer actPDE=0; actPDE < PDEs.size()-1; actPDE++)
+    coupledpdename_ += PDEs[actPDE] -> GetName() + "+";
+
+  coupledpdename_ += PDEs[PDEs.size()-1] -> GetName();
 }
 
 BaseCoupledPDE::~BaseCoupledPDE()
@@ -51,6 +57,7 @@ BaseCoupledPDE::~BaseCoupledPDE()
 #endif
 
 }
+
 
 
 
@@ -94,6 +101,18 @@ void BaseCoupledPDE::PostStepTrans(const Integer level)
 
     for (Integer i=0; i<PDEs_.size(); i++)
       PDEs_[i]->PostStepTrans(level);
+}
+
+
+
+void BaseCoupledPDE::InitStepTransCoupled(Double stepTime) 
+{
+#ifdef TRACE
+  (*trace) << "entering BaseCoupledPDE::InitStepTransCoupled" << std::endl;
+#endif
+
+    for (Integer i=0; i<PDEs_.size(); i++)
+      PDEs_[i]->InitStepTransCoupled(stepTime);
 }
 
 

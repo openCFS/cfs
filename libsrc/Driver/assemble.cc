@@ -362,7 +362,9 @@ namespace CoupledField
       {
 	std::string doftype = loadDom_[actDom];
 
-	Integer dof = GetBCDof( loadDof_[actDom] );	
+	Integer dof = 1;
+	if (dofsPerNode_ != 1)
+	  dof = GetBCDof( loadDof_[actDom] );	
 
 	std::list<Integer> nodes;
 	nodes = ptBCs_->GetNodesLevel(loadDom_[actDom], level);
@@ -574,8 +576,9 @@ GetBCDof(const std::string dofString)
     conf->ifgetliststr("loadDof", loadDof_, pdename_);
     
 
-    if (loadDom_.size() != loadDof_.size())   //check for load data
-      Error("Inconsistent definition of loads");
+    if (dofsPerNode_ != 1)
+      if (loadDom_.size() != loadDof_.size())   //check for load data
+	Error("Inconsistent definition of loads");
     
     loadVals_.resize(loadDom_.size());
     fncname_loads_.resize(loadDom_.size());

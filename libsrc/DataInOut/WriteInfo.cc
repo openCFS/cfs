@@ -120,11 +120,11 @@ namespace CoupledField
     std::string pdeNameLong(pdeName);
 
     // write std::out info    
-    std::cout << myEndl << "Nonlinear Mechanics: Time step " 
+    std::cout << myEndl << pdeName << ": Time step " 
 	      << timeStep <<" ======================= " << std::endl;      
 
 
-    *cla << myEndl << "Nonlinear Mechanics: Time step " 
+    *cla << myEndl << pdeName << ": Time step " 
 	 << timeStep <<" ********************************************" << std::endl;      
 
 
