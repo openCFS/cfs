@@ -608,11 +608,11 @@ interface. For a detailed description of BoomerAMG see the hypre documentation.
 \hline\noalign{\smallskip}
 element & range of values & meaning \\
 \noalign{\smallskip}\hline\noalign{\smallskip}
-maxLevels & $k\in\mathbb{N}$ & maximal number of levels in multigrid
+maxLevels & $\mathbb{N}$     & maximal number of levels in multigrid
                                hierarchy\\
 alpha     & [0,1]            & central threshold parameter for judging strength
                                of node couplings\\
-numSweeps & $k\in\mathbb{N}$ & number of multigrid cycles to perform in each
+numSweeps & $\mathbb{N}$     & number of multigrid cycles to perform in each
                                preconditioning step\\
 cycleType & V-cycle, W-cycle & specifies the cycling strategy\\
 \noalign{\smallskip}\hline
@@ -629,10 +629,10 @@ preconditioner. Currently it only officially supports ILU(k) preconditioning.
 \hline\noalign{\smallskip}
 element & range of values & meaning \\
 \noalign{\smallskip}\hline\noalign{\smallskip}
-level  & $k\in\mathbb{N}$ & generation level of allowed fill-in for ILU(k)
-                            approach\\
-stats  & yes, no          & print some statistics to standard output\\
-memory & yes, no          & print memory some statistics to standard output\\
+level  & $\mathbb{N}_0$ & generation level of allowed fill-in for ILU(k)
+                          approach\\
+stats  & yes, no        & print some statistics to standard output\\
+memory & yes, no        & print memory some statistics to standard output\\
 \noalign{\smallskip}\hline
 \end{tabular}
 \end{center}
@@ -653,12 +653,12 @@ sparsified matrix (PSM) approach.
 \hline\noalign{\smallskip}
 element & range of values & meaning \\
 \noalign{\smallskip}\hline\noalign{\smallskip}
-thresh & $[-1,1]$ & threshold for determining strong connections in the
-                    PSM approach\\
-levels & positive integer & number of levels for the PSM approach\\
-symmetry & 0, 1, 2 & chooses between SPAI and FSAI\\
-loadBalance & yes, no & only important in parallel context\\
-reuse & yes, no & do we want to re-use a sparsity pattern\\
+thresh      & $[-1,1]$     & threshold for determining strong connections in
+                             the PSM approach\\
+levels      & $\mathbb{N}$ & number of levels for the PSM approach\\
+symmetry    & 0, 1, 2      & chooses between SPAI and FSAI\\
+loadBalance & yes, no      & only important in parallel context\\
+reuse       & yes, no      & do we want to re-use a sparsity pattern\\
 \noalign{\smallskip}\hline
 \end{tabular}
 \end{center}
