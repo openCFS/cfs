@@ -21,7 +21,6 @@ void InterfaceGridlib<Dim>::GetConnection(Integer * result, const Integer level,
 template<class Dim>
 void InterfaceGridlib<Dim>::GetCoordOfNodesElem(const Integer numElem, const Integer numlevel, const Integer numnodesPerElem, Dim * ptCoordElem)
 {
-// Error("Not implemented GetCoordOfNodesElem");
  float x,y,z;
  Integer i;
  for (i=0; i<numnodesPerElem; i++)
@@ -33,10 +32,10 @@ void InterfaceGridlib<Dim>::GetCoordOfNodesElem(const Integer numElem, const Int
 }
 
 template<class Dim>
-void InterfaceGridlib<Dim>::read() 
+void InterfaceGridlib<Dim>::Read() 
 {
 #ifdef TRACE
-  (*trace)<< "Entering InterfaceGridlib::read" << std::endl;
+  (*trace)<< "Entering InterfaceGridlib::Read" << std::endl;
 #endif
 
   Integer data[1];

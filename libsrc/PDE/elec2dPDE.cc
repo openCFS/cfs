@@ -127,20 +127,20 @@ mark
 //   //   oElemMatrix.CalcElemMatrix(ptCoord, elemmat);
 
    Integer numelem=ptgrid->GetMaxnumElem(0); 
-   std::cout << "numelem:" << numelem << endl;
+   std::cout << "numelem:" << numelem << std::endl;
    bilinear = new LaplaceInt<Point2D>(ptElem,1);
 
-   std::cout << "nodesperelem: " << numnodeelem << endl;
+   std::cout << "nodesperelem: " << numnodeelem << std::endl;
    for (i=0; i<numelem; i++) 
      { 
        ptgrid->GetConnection(help,0,i,numnodeelem);
        ptgrid->GetCoordOfNodesElem(i,0,numnodeelem,ptCoord);
        for (int j=0;j<numnodeelem;j++)
        {
-       std::cout << "x=" << ptCoord[j].x << " y=" << ptCoord[j].y << endl; 
+       std::cout << "x=" << ptCoord[j].x << " y=" << ptCoord[j].y << std::endl; 
        }
        bilinear->CalcElemMatrix(ptCoord, elemmat);
-       std:: cout << "ElemStiff: "<< elemmat << endl;
+       std:: cout << "ElemStiff: "<< elemmat << std::endl;
 
      }
    delete [] ptCoord;

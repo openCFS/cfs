@@ -68,7 +68,6 @@ void Assemble<Dim,T_Matrix>::AssembleSysMatrix(const Double CoefL, const Double 
 
   if (!IsCalcS) 
     { 
-      mark
       AssembleGlobal< LaplaceInt<Dim> >(S);
       IsCalcS=TRUE;
 #ifdef DEBUG
@@ -148,6 +147,7 @@ void Assemble<Dim, T_Matrix>::SetDirichletBoundaryCondSysMat_PenaltyMethod()
   for (i=0; i<n; i++) 
     {
       aux=nodesDirBC[i]-1;
+      std::cout << " nodes for BC " << aux << std::endl;
       A(aux,aux)+=BigConst;
     }
 }
