@@ -21,7 +21,7 @@
 
       <xsd:sequence>
         <!-- Parameters for solver (optional) -->
-        <!--xsd:element ref="SolverParams" minOccurs="0"/-->
+        <xsd:element ref="SolverBasic" minOccurs="0"/>
 
         <!-- Parameters for preconditioner (optional) -->
         <xsd:element ref="PrecondBasic" minOccurs="0"/>
