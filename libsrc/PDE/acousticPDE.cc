@@ -14,6 +14,7 @@
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
 #include "PDE/scalarnodeEQN.hh"
 #include "Utils/mathfunctions.hh"
+#include "Utils/nodestoresol.hh"
 
 namespace CoupledField {
 
@@ -27,15 +28,34 @@ AcousticPDE::AcousticPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc,
   ENTER_FCN( "AcousticPDE::AcousticPDE" );
 
   dofspernode_ = 1;
-  solTypes_ = ACOU_POTENTIAL;
   solDofs_ = 1;
   pdename_          = "acoustic";
   pdematerialclass_ = "fluid";
-
-  coarsealpha_ = 0.01;
-
   laststepcalc_ = 0;
-    
+
+  coarsealpha_ = 0.01; // solver parameter, see basePDE.cc
+
+  // PDE formulation either in acoustic potential or pressure
+  std::string s_;
+  params->Get( "formulation", s_, "pdeList", pdename_ );
+  solTypes_.Resize(1);
+  String2Enum( s_, solTypes_[0] );
+  //  solTypes_ = ACOU_POTENTIAL;
+  s_ = "Using * " + s_ + " in PDE\n";
+  Info->PrintF( pdename_, s_.c_str() );
+
+  // timestepping formulation
+  params->Get( "timeSteppingFormulation", s_, "pdeList", pdename_ );
+  if ( s_ == "effMassMatrix" ) {
+	effectiveMass_ = TRUE;
+	Info->PrintF( pdename_, "      * effective mass matrix timestepping\n");
+  } 
+  else {
+	effectiveMass_ = FALSE;
+	Info->PrintF( pdename_, "      * effective stiffness matrix timestepping\n");
+  }
+
+  // axisymmetric setup    
   isaxi_ = params->HasValue( "type", "axi", "geometry" );
 
   // *********************************************
@@ -46,28 +66,25 @@ AcousticPDE::AcousticPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc,
   params->GetList( "type", dampingList_, pdename_, "damping");
 
   if ( dampingList_.GetSize() == 0 )
-	Info->PrintF( pdename_, "\nNo Damping information detected!\n" );
+	Info->PrintF( pdename_, "No Damping information detected!\n" );
 
   Boolean sorted_ = TRUE;
   for ( Integer k = 0; k < dampingList_.GetSize(); k++) {
-	// Rayleigh damping
 	if (dampingList_[k] == "rayleigh") {
 	  dampingType_ = RAYLEIGH;
-	  Info->PrintF( pdename_, "\nUsing RAYLEIGH damping for region: %d\n", k );
+	  Info->PrintF( pdename_, "      * RAYLEIGH damping for region: %d\n", k );
 	}
-	// Thermoviscous damping
 	else if (dampingList_[k] == "thermoViscous") {
 	  dampingType_ = THERMOVISCOUS;
-	  Info->PrintF(pdename_,"\nUsing THERMOVISCOUS damping for region: %d\n", k );
+	  Info->PrintF( pdename_, "      * THERMOVISCOUS damping for region: %d\n", k );
 	}
-	// Fractional damping
 	else if (dampingList_[k] == "fractional") {
 	  dampingType_ = FRACTIONAL;
-	  Info->PrintF( pdename_, "\nUsing FRACTIONAL damping for region: %d\n", k );
+	  Info->PrintF( pdename_, "      * FRACTIONAL damping for region: %d\n", k );
 	}
 	else if (dampingList_[k] == "no") {
 	  dampingType_ = NONE;
-	  Info->PrintF( pdename_, "\nUsing NO damping at all for region: %d\n", k );
+	  Info->PrintF( pdename_, "      * NO damping at all for region: %d\n", k );
 	}
 	if ( k > 1 )
 	  if ( dampingList_[k] != dampingList_[k-1] )
@@ -92,18 +109,18 @@ AcousticPDE::AcousticPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc,
 	// up to now take values from first subdomain
 	else {
 	  if ( fracAlgList_[0] == "gl" )
-		Info->PrintF( pdename_, "  with Gruenwald-Letnikov algorithm,\n");
+		Info->PrintF( pdename_, "         with Gruenwald-Letnikov algorithm,\n");
 	  else if (fracAlgList_[0] == "blank")
-		Info->PrintF( pdename_, "  with Blanks algorithm,\n");
+		Info->PrintF( pdename_, "         with Blanks algorithm,\n");
 
 	  fracMemory_ = fracMemoryList_[0];
-	  Info->PrintF( pdename_, "  memory size is: %d,\n", fracMemory_);
+	  Info->PrintF( pdename_, "         memory size is: %d,\n", fracMemory_);
 
 	  if ( interpolationList_[0] == "lin1pt")
 		inType_ = LIN1PT;
 	  else
 		inType_ = NOTUSED;
-	  Info->PrintF( pdename_, "  %s interpolation of past values\n\n"
+	  Info->PrintF( pdename_, "         %s interpolation of past values\n\n"
 					, interpolationList_[0].c_str() );
 	}
 	// modify dampingList, so that fracAlg is included
@@ -123,12 +140,17 @@ AcousticPDE::AcousticPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc,
   params->GetList( "nonLinear", nonLinPDEType_, pdename_, "region" );
 
   for ( Integer k = 0; k < nonLinPDEType_.GetSize(); k++ ) {
-	if ( nonLinPDEType_[k] != "no" ) {
+	if ( nonLinPDEType_[k] != "no" )
 	  nonLin_ = TRUE;
-	  break;
-	}
-  }
 
+	if ( nonLinPDEType_[k] != "kuznetsov" && solTypes_ == ACOU_PRESSURE )
+	  Error("Acoustic pressure formulation not supported for Kuznetsov equation!"
+			,__FILE__,__LINE__);
+
+	if ( nonLinPDEType_[k] != "westervelt" && solTypes_ == ACOU_POTENTIAL )
+	  Error("Acoustic potential formulation not supported for Westervelt equation!"
+			,__FILE__,__LINE__);
+  }
   if( nonLin_ ) {
 	// solution method
 	params->Get("method", nonLinMethod_, pdename_, "nonLinear" );
@@ -158,9 +180,11 @@ AcousticPDE::AcousticPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc,
 
   needsDampingMatrix_ = FALSE;
   // two matrices formulation
-  // if ( absorbingBCs_ == TRUE || (dampingType_ != NONE  && dampingType_ != FRACTIONAL) )
-  if ( absorbingBCs_ == TRUE || dampingType_ != NONE )
-	needsDampingMatrix_ = TRUE;  
+  if ( absorbingBCs_ == TRUE || (dampingType_ != NONE  && dampingType_ != FRACTIONAL) )
+	needsDampingMatrix_ = TRUE;
+  // conservative formulation
+  //if ( absorbingBCs_ == TRUE || dampingType_ != NONE )
+  //  needsDampingMatrix_ = TRUE;  
 }
 
 
@@ -169,7 +193,7 @@ void AcousticPDE::DefineIntegrators(const Integer level) {
   ENTER_FCN( "AcousticPDE::DefineIntegerators" );
 
   Boolean nonLin = FALSE;
-  Double density, compressibility, c0, alpha0, y, BoverA;
+  Double density, compressibility, c0, alpha, beta, BoverA;
   Double coeffmass, coeffdamp;
 
   for (Integer actSD = 0; actSD < subdoms_.GetSize(); actSD++) {
@@ -178,8 +202,9 @@ void AcousticPDE::DefineIntegrators(const Integer level) {
 	compressibility = materialData_[actSD].GetCompressibility();
 	c0 = sqrt(compressibility/density);
 
-	alpha0 = materialData_[actSD].GetDampingAlfa();
-	y      = materialData_[actSD].GetDampingBeta();
+	alpha  = materialData_[actSD].GetDampingAlfa();
+	beta   = materialData_[actSD].GetDampingBeta();
+	BoverA = materialData_[actSD].GetBoverA();
 
 	// **********************************************************************
 	//   Linear wave equation
@@ -192,28 +217,31 @@ void AcousticPDE::DefineIntegrators(const Integer level) {
 
 	// mass integrator
 	coeffmass = density / (c0*c0);
-	//coeffmass  = density*density/compressibility;
 	BaseForm * bilinearMass  = new MassInt(coeffmass, dofspernode_, isaxi_);
 	IntegratorDescriptor * massIntDescr = new IntegratorDescriptor(bilinearMass, MASS);
 	assemble_->AddIntegrator(massIntDescr, subdoms_[actSD]);
 
 	// **********************************************************************
-	//   Additional terms for damping in linear wave equation
+	//   Additional terms for damping
 	// **********************************************************************
 
-	if ( nonLinPDEType_[actSD]=="no" && dampingList_.GetSize() != 0) {
+	if ( !dampingList_.IsEmpty() ) {
 
 	  if (dampingList_[actSD] == "rayleigh") {
-		// This works even after assemble_->AddIntegrator() is executed because of the pointers...
+		// This works even after assemble_->AddIntegrator() is executed
+		//   because of the pointers...
 		// stiffness part
-		stiffIntDescr->SetSecondaryMat(DAMPING, materialData_[actSD].GetDampingBeta(), analysistype_);
+		std::cout << "beta=" << beta << std::endl;
+
+		stiffIntDescr->SetSecondaryMat(DAMPING, beta, analysistype_);
 		
 		// mass part
-		massIntDescr->SetSecondaryMat(DAMPING, materialData_[actSD].GetDampingAlfa(), analysistype_);
+		std::cout << "alpha=" << alpha << std::endl;
+		massIntDescr->SetSecondaryMat(DAMPING, alpha, analysistype_);
 	  }
 	  
 	  else if ( dampingList_[actSD] == "thermoViscous" ) {
-		coeffdamp  =  density * 2.0 * alpha0 * c0;
+		coeffdamp  =  density * 2.0 * alpha * c0;
 		BaseForm * bilinearStiff  = new LaplaceInt(coeffdamp, isaxi_);	
 		IntegratorDescriptor * dampIntDescr = new IntegratorDescriptor(bilinearStiff, DAMPING);
 		
@@ -221,7 +249,7 @@ void AcousticPDE::DefineIntegrators(const Integer level) {
 	  }
 
 	  else if ( dampingList_[actSD] == "fractional_gl" ) {
- 		coeffdamp = - density * 2.0 * alpha0 / c0 / sin((y-1.0)*PI/2.0);
+ 		coeffdamp = - density * 2.0 * alpha / c0 / sin((beta-1.0)*PI/2.0);
 		BaseForm * bilinearDamp  = new MassInt(coeffdamp, dofspernode_, isaxi_);
 		bilinearDamp->SetFracDamping();
 		// conservative formulation
@@ -235,9 +263,9 @@ void AcousticPDE::DefineIntegrators(const Integer level) {
 	  }
 
 	  else if  ( dampingList_[actSD] == "fractional_blank" ) {
- 		coeffdamp =  - density * 2.0 * alpha0 / c0 / sin((y-1.0)*PI/2.0);
-		coeffdamp *= exp(-gammaln(1.0- (y- 1.0)) ); // prefactor of blank alg
-		coeffdamp *= 1.0/(1.0- (y- 1.0));           // weight factor of index 0
+ 		coeffdamp =  - density * 2.0 * alpha / c0 / sin((beta-1.0)*PI/2.0);
+		coeffdamp *= exp(-gammaln(1.0- (beta- 1.0)) ); // prefactor of blank alg
+		coeffdamp *= 1.0/(1.0- (beta- 1.0));           // weight factor of index 0
 		BaseForm * bilinearDamp  = new MassInt(coeffdamp, dofspernode_, isaxi_);
 		bilinearDamp->SetFracDamping();
 		// conservative formulation
@@ -249,43 +277,22 @@ void AcousticPDE::DefineIntegrators(const Integer level) {
 
 		assemble_->AddIntegrator(dampIntDescr, subdoms_[actSD]);
 	  }
-
 	}
 
-	// **********************************************************************
-	//   Additional terms for nonlinear wave equation
-	// **********************************************************************
-      
-	else if ( nonLinPDEType_[actSD] == "kuznetsov" ) {
-	
-	  BoverA = materialData_[actSD].GetBoverA();
-	  Double coeffN1 = BoverA * pow(compressibility/density,2);
-	  BaseForm * N1 = new nLinAcoustic1(isaxi_);
-	  assemble_->AddRhsIntegrator(N1, subdoms_[actSD], nonLin_);
-	
-	  Double coeffN2 = 2 * compressibility/density;
-	  BaseForm * N2 = new nLinAcoustic2(isaxi_);
-	  assemble_->AddRhsIntegrator(N2, subdoms_[actSD], nonLin_);
-	
-	  if ( dampingType_ == THERMOVISCOUS ) {
-		alpha0 = materialData_[actSD].GetDampingAlfa();
-		coeffdamp = 1.0;
-		stiffIntDescr->SetSecondaryMat(DAMPING, coeffdamp, analysistype_);
-		assemble_->AddIntegrator(stiffIntDescr, subdoms_[actSD]);
-	  }
-	
-	}
-	else if ( nonLinPDEType_[actSD] == "westervelt" ) {
-	  alpha0 = materialData_[actSD].GetDampingAlfa();
-	  coeffdamp = 1.0;
-	  stiffIntDescr->SetSecondaryMat(DAMPING, coeffdamp, analysistype_);
-	  assemble_->AddIntegrator(stiffIntDescr, subdoms_[actSD]);
-	
-	  BoverA = materialData_[actSD].GetBoverA();
-	  Double coeffN1 = (1.0+0.5*BoverA)*pow(compressibility/density,2)/density;
-	  BaseForm * N1 = new nLinAcoustic1(isaxi_);
-	  assemble_->AddRhsIntegrator(N1, subdoms_[actSD], nonLin_);  
-	}
+// 	if ( nonLinPDEType_[actSD] == "kuznetsov" ) {
+// 	  Double coeffN1 = density * BoverA / pow(c0,4);
+// 	  BaseForm * N1 = new nLinAcoustic1(coeffN1, isaxi_);
+// 	  assemble_->AddRhsIntegrator(N1, subdoms_[actSD], nonLin_);
+// 	  Double coeffN2 = density * 2 / (c0*c0);
+// 	  BaseForm * N2 = new nLinAcoustic2(coeffN2, isaxi_);
+// 	  assemble_->AddRhsIntegrator(N2, subdoms_[actSD], nonLin_);
+// 	}
+// 	else if ( nonLinPDEType_[actSD] == "westervelt" ) {
+// 	  Double coeffN1 = (1.0+0.5*BoverA) / pow(c0,4);
+// 	  BaseForm * N1 = new nLinAcoustic1(coeffN1, isaxi_);
+// 	  assemble_->AddRhsIntegrator(N1, subdoms_[actSD], nonLin_);  
+// 	}
+
   }
 
   // **********************************************************************
@@ -313,20 +320,31 @@ void AcousticPDE::DefineIntegrators(const Integer level) {
 
 void AcousticPDE::InitTimeStepping() {
   ENTER_FCN( "AcousticPDE::InitTimeStepping" );
+
+  if ( dampingType_!=FRACTIONAL ) {
+	// this includes rayleigh and thermoviscous damping
+	if ( effectiveMass_ == FALSE )
+	  TS_alg_ = new Newmark(pdename_, algsys_, eqnData_, needsDampingMatrix_);
+
+	else
+	  TS_alg_ = new NewmarkEffMass(pdename_, algsys_, eqnData_, needsDampingMatrix_);
+  }
     
   if ( dampingType_ == FRACTIONAL ) {
-	TS_alg_ = new NewmarkFracDamp(pdename_, algsys_, eqnData_, ptgrid_, this,
-								  subdoms_, dampingList_, 
-								  fracMemory_, inType_, isaxi_);
-  }
-  else {
-	// this includes rayleigh and thermoviscous damping
-	TS_alg_ = new Newmark(pdename_, algsys_, eqnData_, needsDampingMatrix_);
+	if ( effectiveMass_ == FALSE )
+	  TS_alg_ = new NewmarkFracDamp(pdename_, algsys_, eqnData_, ptgrid_, this,
+									subdoms_, dampingList_, 
+									fracMemory_, inType_, isaxi_);
+	else
+	  ; // needs to be implemented
   }
 
-  // Needed for fractional damping model.
-  // See Assemble::AssembleMatrices
+  // Needed for fractional damping model, see Assemble::AssembleMatrices
   assemble_->SetPDEPointer(this);
+
+  // Needed for nonlinear wave equation, get memory for linear part of RHS
+  if ( nonLin_ )
+	RhsLinVal_.Resize(numPDENodes_);
 
 }
 
@@ -335,190 +353,228 @@ void AcousticPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
 
   ENTER_FCN( "AcousticPDE::StepTransNonLin" );
 
-//    lasttimecalc_ = asteptime;
-//    laststepcalc_ = kstep;
+  laststepcalc_ = kstep;
 
-
-//    const Integer job = 1;
+  Integer job;
+  Boolean performOneMoreStep;
+  Integer iterationCounter=0;
   
-//    static Integer timeStepCounter=1;
-//    Boolean performOneMoreStep;
-//    Integer iterationCounter=0;
-
-//    Vector<Double> actSol(numPDENodes_);
-//    Vector<Double> solInc(numPDENodes_);
+  Vector<Double> newSol(numPDENodes_);
+  Vector<Double> oldSol(numPDENodes_);
   
-//    // Cast BaseStoreSol into StoreSol<Double>,
-//    // since this function is only called
-//    // in the transient case
-//    NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
-
-//    //set actual solution  
-//    actSol = solhelp->GetAlgSysVector();
-
-//    //compute predictors
-//    TS_alg_->Predictor(solhelp->GetAlgSysVector());
-
-//    // inner forces due to nonlin formulation
-//    assemble_->AssembleNLRHS(level, lasttimecalc_);  
-
-//    //Update RHS (mass matrix on right hand side)
-//    TS_alg_->UpdateRHS(solhelp->GetAlgSysVector());
+  // just update dirichlet values
+  job = 3;
   
-//    timeStepCounter++;
-//    do {
-// 	  iterationCounter++;
-// 	  std::cout << std::endl
-// 				<< "Nonlinear Acoustics: Perform internal loop no. " 
-// 				<< iterationCounter << std::endl;
+  // if first time step, setup system matrix
+  if (laststepcalc_ == 1) {
+	assemble_->AssembleMatrices(level);
+	algsys_->ConstructEffectiveMatrix(matrix_factor_);
+	
+	// set BCs 
+	SetBCs(level, lasttimecalc_);
+	
+	//set job to 1: build in dirichlet BCs and compute preconditioner
+	job = 1;
+  }  
+  
+  NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
 
+  //compute predictors
+  TS_alg_->Predictor(solhelp->GetAlgSysVector());
+
+  //set old solution  
+  newSol = solhelp->GetAlgSysVector();
+
+  //Update RHS (mass matrix on right hand side)
+  TS_alg_->UpdateRHS(solhelp->GetAlgSysVector());
+  
+  // stores linear part of RHS
+  StoreAlgsysToVec(RhsLinVal_, algsys_->GetRHSVal() );
+
+  do {
+	iterationCounter++;
+	// for every time step write out number of iteration loops to standard out
+	if (iterationCounter == 1)
+	  std::cout << std::endl << std::endl << "Time step:     "  << kstep 
+				<< "  , internal loop no. " << iterationCounter;
+	else 
+	  std::cout << std::endl << "                  " 
+				<< "  , internal loop no. " << iterationCounter;
+
+#ifdef DEBUG
+	*debug << std::endl
+		   << "====================================================== "
+		   << std::endl
+		   <<	"Nonlinear Acoustics: Perform internal loop no. "
+		   << iterationCounter << std::endl;      
+#endif
+	
+	//set solution of previous iteration
+	oldSol = newSol;
+	
+	if ( iterationCounter>1 ) 
+	  job = 3;
+	
+	//set linear part of RHS
+#ifndef USE_OLAS    
+	algsys_->InitRHS(RhsLinVal_.GetPointer());
+#else
+    Error("algsys_->InitRHS not supported in OLAS");
+#endif
+	
+	
+	//put nonlinear part to RHS
+	AddNonlinearRHS();
+
+#ifdef USE_OLAS
+	algsys_->BuildInDirichlet();
+	algsys_->SetupPrecond(job);
+#else
+	algsys_->CalcPrecond(job);
+#endif
+
+	algsys_->Solve();
+	
+	// store new solution in newSol
+	StoreAlgsysToVec(newSol, algsys_->GetSolutionVal() );
+
+	//put new solution to sol_
+	sol_->SetAlgSysVector(newSol);	
+
+#ifdef DEBUG
+	*debug << std::endl
+		   << "New Solution:" << std::endl << newSol << std::endl;
+#endif
+
+	//perform corrector step  
+	TS_alg_->Corrector(newSol);
+
+	// compute L2-Norm of error between last incremental solution and
+	//   actual incremental solution
+	Double solIncrL2Norm=0;
+	for (Integer i=0; i<newSol.GetSize(); i++)
+	  solIncrL2Norm += (newSol[i]-oldSol[i])*(newSol[i]-oldSol[i]);
+	
+	solIncrL2Norm = sqrt(solIncrL2Norm);
+	Double actSolL2Norm = newSol.NormL2();
+
+	Double incrementalErr;
+	if (actSolL2Norm > 1)
+	  incrementalErr = solIncrL2Norm / actSolL2Norm;
+	else
+	  incrementalErr = solIncrL2Norm;
+	
+	// output of norms and data
+	if ( nonLinLogging_ == TRUE ) {
+	  Info->WriteNonLinIter(pdename_, iterationCounter, incrementalErr,
+							incrementalErr);
+	}
+	
+	// boolean variable, holds condition if another iteration step
+	//   is necessary
+	performOneMoreStep = 	(incrementalErr > incStopCrit_);
+      
+  } while(performOneMoreStep && iterationCounter < nonLinMaxIter_);  
+  
+
+}
+
+void AcousticPDE::AddNonlinearRHS() {
+  
+  ENTER_FCN( "AcousticPDE::AddNonlinearRHS" );
+  
+  Double coeffN1 = 1.0, coeffN2 = 1.0;
+  Double density, compressibility, c0, BoverA;
+
+  BaseForm * rhsInt = new  nLinKuznetsovRHSInt(coeffN1, isaxi_);
+//   BaseForm * N1 = new nLinAcoustic1(coeffN1, isaxi_);
+//   BaseForm * N2 = new nLinAcoustic2(coeffN2, isaxi_);
+
+  Matrix<Double> ptCoord, elemmat;
+  Vector<Double> sol, solderiv1, solderiv2, rhs, rhsElem;
+  BaseFE         * ptElem;
+  StdVector<Integer> connect, Eqns;  
+  Integer numEl=0;
+
+  for (Integer actSD=0; actSD<subdoms_.GetSize(); actSD++) {
+	StdVector<Elem*> elemssd;
+	ptgrid_->GetElemSD(elemssd,subdoms_[actSD],actlevel_);
+	
+	//set correct factors for bilinear forms
+	density         = materialData_[actSD].GetDensity();
+	compressibility = materialData_[actSD].GetCompressibility();
+	c0 = sqrt(compressibility/density);
+	BoverA = materialData_[actSD].GetBoverA();
+
+ 	coeffN1 = density * BoverA / pow(c0,4);
+	rhsInt->SetFactor(coeffN1);
+// 	N1->SetFactor(coeffN1);
+	
+ 	coeffN2 = density * 2.0 / (c0*c0);
+	rhsInt->SetSecondFactor(coeffN2);
+// 	N2->SetFactor(coeffN1);
+	
+	for (Integer j=0; j < elemssd.GetSize(); j++) {
+	  ptElem  = elemssd[j]->ptElem;
+	  connect = elemssd[j]->connect;
+	  
+	  GetElemCoords(connect, ptCoord, actlevel_);
+	  
+	  GetSolVecOfElement(sol, connect);
+	  GetDerivSolVecOfElement(solderiv1, connect);
+	  GetDeriv2SolVecOfElement(solderiv2, connect);
+
+
+// 	  sol[0] = 1.00000000000000e-4;
+// 	  sol[1] = 0;
+// 	  sol[2] = 0;
+// 	  sol[3] = 1.00000000000000e-4;
+// 	  solderiv1[0] = 20000.00;
+// 	  solderiv1[1] = 0;
+// 	  solderiv1[2] = 0;
+// 	  solderiv1[3] = 20000.00;
+// 	  solderiv2[0] = 4000000000000.00;
+// 	  solderiv2[1] = 0;
+// 	  solderiv2[2] = 0;
+// 	  solderiv2[3] = 4000000000000.00;
+
+ 	  rhsInt->SetElemPtr(ptElem);
+ 	  rhsInt->SetActElemSol(sol);
+ 	  rhsInt->SetActElemSolDeriv1(solderiv1);
+ 	  rhsInt->SetActElemSolDeriv2(solderiv2);
+ 	  rhsInt->CalcElemVector(ptCoord, rhs);
+	  
+// 	  N1->SetElemPtr(ptElem);
+// 	  N1->SetActElemSolDeriv1(solderiv1);
+// 	  N1->CalcElementMatrix(ptCoord, elemmat);
 // #ifdef DEBUG
 // 	  *debug << std::endl
-// 			 << "====================================================== "
-// 			 << std::endl
-// 			 <<	"Nonlinear Acoustics: Perform internal loop no. "
-// 			 << iterationCounter << std::endl;      
+// 			 << "N1-Matrix: " << std::endl << elemmat << std::endl;
 // #endif
-
-// 	  // setup and solve new system (rhs is already set) ====================
-// 	  assemble_->InitNonLinMatrices();
-// 	  assemble_->AssembleMatrices(level);
-// 	  algsys_->ConstructEffectiveMatrix(matrix_factor_);
-
-// 	  SetBCs(level, lasttimecalc_);
-
-// #ifdef USE_OLAS
-//       algsys_->BuildInDirichlet();
-//       algsys_->SetupPrecond(job);
-// #else
-//       algsys_->CalcPrecond(job);
+// 	  rhs = elemmat * solderiv2;
+// 	  N2->SetElemPtr(ptElem);
+// 	  N2->SetActElemSol(sol);
+// 	  N2->CalcElementMatrix(ptCoord, elemmat);
+// #ifdef DEBUG
+// 	  *debug << std::endl
+// 			 << "N2-Matrix: " << std::endl << elemmat << std::endl;
 // #endif
+// 	  rhs += rhsElem;
 
-// 	  algsys_->Solve();
+	  //get equation numbers 
+	  StdVector<Integer> connect_PDE;
+	  eqnData_->Node2EQN(connect, connect_PDE);
 
-// 	  // new solution is only an increment of the full solution =============
-// 	  StoreAlgsysToVec(solInc, algsys_->GetSolutionVal() );
+// 	  std::cerr << "Sol:\n" << sol << std::endl;
+// 	  std::cerr << "SolD1:\n" << solderiv1 << std::endl;
+// 	  std::cerr << "SolD2:\n" << solderiv2 << std::endl;
+// 	  std::cerr << "RHS:\n" << rhs << std::endl;
 
-// 	  Double residualL2Norm;
-//       Double etaLineSearch = 0;
-      
-//       if ( lineSearch_ != "no" ) {
-// 		actSol += solInc;
-//       }
-//       else {
-		
-// 		// TRUE is for transient simulation
-// 		residualL2Norm = LineSearch(solInc, actSol, etaLineSearch, level,TRUE);
-//       }
-
-// 	  //store A_/n+1) in the solution-object sol_
-// 	  sol_->SetAlgSysVector(actSol);
-
-// 	  // recalculate RHS with new values to get new residual (f^(k+1))=======
-// #ifndef USE_OLAS    
-// 	  algsys_->InitRHS(RhsLinVal_.GetPointer());
-// #endif
-
-// 	  //Update RHS (mass matrix on right hand side)
-// 	  TS_alg_->UpdateRHS(actSol);
-
-// 	  // inner forces due to nonlin formulation
-// 	  assemble_->AssembleNLRHS(level, lasttimecalc_);
- 
-
-// 	  // ====================================================================
-// 	  // calculation of error norms
-// 	  // ====================================================================
-
-//       if ( lineSearch_ != "no" ) {
-		
-// 		Vector<Double> actRHS;
-// 		StoreAlgsysToVec(actRHS, algsys_->GetRHSVal() );       
-		
-// 		// ------------------------------------------------------------------
-// 		// calculation of residual error: L2Norm of ( f_i^(k+1) - f_a )
-// 		// ------------------------------------------------------------------
-// 		residualL2Norm = RhsL2Norm(actRHS);
-//       }
-	  
-// 	  Double residualErr;
-// 	  // Please adapt!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
-// 	  if (1)
-// 		residualErr    = residualL2Norm;
-// 	  else
-// 		residualErr    = residualL2Norm;
-	  
-// 	  // --------------------------------------------------------------------
-// 	  // calculate incremental error
-// 	  // --------------------------------------------------------------------
-// 	  Double solIncrL2Norm = solInc.NormL2();
-// 	  Double actSolL2Norm = actSol.NormL2();
-// 	  Double incrementalErr;
-      
-// 	  if (actSolL2Norm > 1)
-// 		incrementalErr = solIncrL2Norm / actSolL2Norm;
-// 	  else
-// 		incrementalErr = solIncrL2Norm;
-	  
-// 	  // --------------------------------------------------------------------
-// 	  // output of norms and data
-// 	  // --------------------------------------------------------------------
-// 	  if ( nonLinLogging_ == TRUE ) {
-// 		Info->WriteNonLinIter(pdename_, iterationCounter, residualErr,
-// 							  incrementalErr);
-// 	  }
-	  
-// 	  // boolean variable, holds condition if another iteration step
-// 	  // is necessary
-// 	  performOneMoreStep = 
-// 		(incrementalErr > incStopCrit_)||(residualErr > residualStopCrit_);
-      
-//    } while(performOneMoreStep && iterationCounter < nonLinMaxIter_);  
-
-//    //perform corrector step  
-//    TS_alg_->Corrector(actSol);
-}
-
-
-// calculates L2-norm of RHS regarding dirichlet entries due to penalty
-// formulation by setting them 0
-Double AcousticPDE::RhsL2Norm(Vector<Double>& actRHS) {
-  ENTER_FCN( "AcousticPDE::RhsL2Norm" );
-    
-  Integer node, dof;
-  StdVector<Integer> eqn(1);
-  std::list<Integer> nodes;
-    
-  // Eliminate dirichlet node from RHS (due to penalty formulation)
-  for (Integer i=0; i< bcs_hd_.GetSize(); i++) {
-
-	nodes=ptBCs_->GetNodesLevel(bcs_hd_[i]);
-      
-	for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end();
-		 p++) {
-	  node=*p;
-	  eqnData_->Node2EQN(node,eqn);
-	  if (eqn[0] != 0){
-		actRHS[(eqn[0]-1)] = 0;
-	  }
-	}
+	  //assemble
+	  algsys_->SetElementRHS(&rhs[0], connect_PDE.GetPointer(), connect_PDE.GetSize());
+	}  
   }
-  return actRHS.NormL2();
-}
 
-Double AcousticPDE::LineSearch( Vector<Double>& solInc, Vector<Double>& actSol, 
-								Double& etaLineSearch, Integer level,
-								Boolean trans ) {
-  ENTER_FCN( "AcousticPDE::LineSearch" );
-
-  //  Vector<Double> solOld(actSol);
-  const Integer nrEtas = 4;
-  const Double eta[nrEtas] = {1, 0.5, 0.25, 0.125};
-  Double etaOpt;
-  Double residualL2NormOpt = 1e15;
-  
-  actSol += solInc;
-  
 }
 
 // ======================================================

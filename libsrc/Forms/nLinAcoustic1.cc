@@ -6,82 +6,80 @@
 
 namespace CoupledField {
 
-nLinAcoustic1::nLinAcoustic1(Boolean axi)
-   : BaseForm()
+nLinAcoustic1::nLinAcoustic1(Double factor, Boolean axi)
+  : BaseForm()
 {
-   ENTER_FCN( "nLinAcoustic1::nLinAcoustic1");
+  ENTER_FCN( "nLinAcoustic1::nLinAcoustic1");
 
-   isaxi_      = axi;
-   nonLinType_ = FIXEDPOINT;
+  factor_     = factor;
+  isaxi_      = axi;
+  nonLinType_ = FIXEDPOINT;
 }
+
 
 nLinAcoustic1::~nLinAcoustic1()
 {
-   ENTER_FCN( "nLinAcoustic1::~nLinAcoustic1");
+  ENTER_FCN( "nLinAcoustic1::~nLinAcoustic1");
 }
 
 
 void nLinAcoustic1::CalcElementMatrix(Matrix<Double> & ptCoord, Matrix<Double> & elemMat)
 {
-   ENTER_FCN( "nLinAcoustic1::CalcElementMatrix");
+  ENTER_FCN( "nLinAcoustic1::CalcElementMatrix");
   
-   const Integer nrIntPts= ptelem->GetNumIntPoints();
-   const Integer nrNodes = ptelem->GetNumNodes();
-   const Vector<Double> & intWeights = ptelem->GetIntWeights();  
-   Double jacDet;  
+  const Integer nrIntPts= ptelem->GetNumIntPoints();
+  const Integer nrNodes = ptelem->GetNumNodes();
+  const Vector<Double> & intWeights = ptelem->GetIntWeights();  
+  Double jacDet;  
 
+  Matrix<Double> partElemMat;
+  Vector<Double> ShpFncAtIp;
+  Vector<Double> CoordAtIP;
 
-   // derivation of shape functions after global coordinates 
-   Matrix<Double> xiDx;
-   Matrix<Double> xiDxTransp;
-   Matrix<Double> partElemMat;
-   Matrix<Double> partElemMatAxi;
-   Vector<Double> ShpFncAtIp;
-   Vector<Double> CoordAtIP;
-   Vector<Double> drAtIp;
+  Double solderiv1AtIP;
 
-   // set matrix to desired size and set all elements to zero
-   elemMat.Resize(nrNodes); elemMat.Init(0);
+  // set matrix to desired size and set all elements to zero
+  elemMat.Resize(nrNodes); elemMat.Init(0);
 
-   for (Integer actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
-   {
-	  jacDet = 0;
+  for (Integer actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
 	
-	  ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord, jacDet);
+	jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord);
+	ptelem->GetShFncAtIp(ShpFncAtIp,actIntPt);
 
-	  if (isaxi_)
-	  {
-		 ptelem->GetShFncAtIp(ShpFncAtIp,actIntPt);
-		 CoordAtIP = ptCoord * ShpFncAtIp;
-		 for (Integer i=0; i<nrNodes; i++)
-			xiDx[i][0] += ShpFncAtIp[i] / CoordAtIP[0];
-            
-		 jacDet *= 2 * PI * CoordAtIP[0];
-	  }
-  
-	  xiDx.Transpose(xiDxTransp);
-	  partElemMat = xiDx * xiDxTransp;
+	//get 1st derivartive of solution at integration point
+	solderiv1AtIP = solderiv1_*ShpFncAtIp;
+	
+	partElemMat.DyadicMult(ShpFncAtIp);
 
-
-   }
+	if (isaxi_) {
+	  CoordAtIP = ptCoord * ShpFncAtIp;
+	  partElemMat *= 2 * PI * intWeights[actIntPt-1] * factor_
+                     * jacDet * CoordAtIP[0] * solderiv1AtIP;
+	}
+	else 
+	  partElemMat *= intWeights[actIntPt-1] * factor_ 
+                     * jacDet * solderiv1AtIP;
+	
+	elemMat += partElemMat;
+  }
 }
 
 
 void nLinAcoustic1::SetNonLinMethod(std::string atype)
 {
-   ENTER_FCN( "nLinAcoustic1::SetNonLinMethod");
+  ENTER_FCN( "nLinAcoustic1::SetNonLinMethod");
     
-   if (atype == "fixPoint")
-      nonLinType_ = FIXEDPOINT;
+  if (atype == "fixPoint")
+	nonLinType_ = FIXEDPOINT;
     
 }
 
 
 void nLinAcoustic1::Print(std::ostream * out, const Matrix<Double> Result) const
 {
-   ENTER_FCN( "nLinAcoustic1::Print");
+  ENTER_FCN( "nLinAcoustic1::Print");
 
-   (*out)<< "nLinAcoustic1 matrix:" << std::endl << Result;
+  (*out)<< "nLinAcoustic1 matrix:" << std::endl << Result;
 }
 
 } // end namespace CoupledField

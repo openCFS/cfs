@@ -80,15 +80,11 @@ public:
 
 protected:
 
-  //! calculates L2-norm of RHS regarding entries due to penalty formulation
-  Double RhsL2Norm(Vector<Double>& stdVec);
-
-  //! does a line search and returns the optimal residual norm
-  Double LineSearch(Vector<Double>& solIncrement, Vector<Double>& actSol,
-                    Double& etaLineSearch, Integer level, Boolean trans=FALSE);
-
   //! Init the time stepping
   void InitTimeStepping();
+
+  //! compute nonlinear part of RHS
+  void AddNonlinearRHS();
 
   // Double freq_;   //!< excitation frequency for harmonic analysis
   NodeStoreSol<Double> sol_der1Array_, sol_der2Array_;
