@@ -1656,7 +1656,7 @@ void MagPDE::PostProcess(const Integer level) {
       B_.SetSolutionType(MAG_FIELD);
       B_.SetNumNodes(numElems_);
       B_.SetNumDofs(dim_);
-      B_.SetPtrEQNData_(eqnData_);
+      B_.SetPtrEQNData(eqnData_);
       B_.Init(0);
       
       // loop over all subdomains
@@ -1701,7 +1701,7 @@ void MagPDE::PostProcess(const Integer level) {
 
       // dimension hard coded for .unv file!
       Jeddy_.SetNumDofs(3);
-      Jeddy_.SetPtrEQNData_(eqnData_);
+      Jeddy_.SetPtrEQNData(eqnData_);
       Jeddy_.Init(0);
 
       // loop over all subdomains
