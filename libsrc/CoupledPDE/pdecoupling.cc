@@ -93,7 +93,7 @@ PDECoupling::CouplingInterface::CouplingInterface()
 
     if (myNum == -1)
       {
-	std::string ErrMsg = "Qantity \'" + quantity + "\' not registered for PDE \'" + myPDE_->GetName()+ "\'";
+	std::string ErrMsg = "Quantity \'" + quantity + "\' not registered for PDE \'" + myPDE_->GetName()+ "\'";
 	Error(ErrMsg.c_str(),__FILE__,__LINE__);
       }
 
