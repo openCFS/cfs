@@ -73,6 +73,11 @@ void Newmark::Predictor(Vector<Double>& solold)
 
   solpred_ = solold + solderiv1_*dt_ + solderiv2_*a0_;
   solderiv1pred_ = solderiv1_ + solderiv2_*a1_;
+#ifdef DEBUG
+  (*debug) << "Predictor:\n";
+  (*debug) << "solpred: \n" << solpred_ << std::endl;
+  (*debug) << " solderiv1pred: \n" <<  solderiv1pred_ << std::endl;
+#endif
 }
 
 
@@ -136,6 +141,12 @@ void Newmark::Corrector(Vector<Double>& solnew)
 
   solderiv2_ = (solnew - solpred_) * a2_;
   solderiv1_ = solderiv1pred_ + solderiv2_*a3_;
+#ifdef DEBUG
+  (*debug) << "Corrector:\n";
+  (*debug) << "sol: \n" << solnew << std::endl;
+  (*debug) << "solderiv1: \n" <<  solderiv1_ << std::endl;
+  (*debug) << "solderiv2: \n" <<  solderiv2_ << std::endl;
+#endif
 }
 
 
@@ -233,6 +244,12 @@ void NewmarkEffMass::Predictor(Vector<Double>& solold)
 
   solpred_ = sol_ + solderiv1_*dt_ + solderiv2_*a0_;
   solderiv1pred_ = solderiv1_ + solderiv2_*a1_;
+
+#ifdef DEBUG
+  (*debug) << "Predictor:\n";
+  (*debug) << "solpred: \n" << solpred_ << std::endl;
+  (*debug) << " solderiv1pred: \n" <<  solderiv1pred_ << std::endl;
+#endif
 }
 
 
@@ -244,6 +261,12 @@ void NewmarkEffMass::Corrector(Vector<Double>& aNew)
   sol_ = solpred_ + aNew * a2_;
   solderiv1_ = solderiv1pred_ + aNew*a3_;
   solderiv2_ = aNew;
+#ifdef DEBUG
+  (*debug) << "Corrector:\n";
+  (*debug) << "sol: \n" << sol_ << std::endl;
+  (*debug) << "solderiv1: \n" <<  solderiv1_ << std::endl;
+  (*debug) << "solderiv2: \n" <<  solderiv2_ << std::endl;
+#endif
 }
 
 

@@ -266,10 +266,6 @@ void BasePDE::StepStaticLin(const Integer kstep, const Double aTime,
   assemble_->AssembleSrcRHS(level, aTime);
 
   const Integer numElems = numPDENodes_ * dofspernode_;
-  *cla << myendl << "RHS " << myendl;
-  for (Integer i=0; i<numElems; i++)   
-    *cla << algsys_->GetRHSVal()[i] << myendl;
-  *cla << myendl;
 
   if ( pdeIsCoupled_ == FALSE || iterCoupledCounter_ == 0)
     {

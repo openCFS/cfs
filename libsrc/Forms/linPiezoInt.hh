@@ -97,11 +97,12 @@ namespace CoupledField
     linPiezo3DInt(BaseFE * aptelem, MaterialData & matDat);
   
     //! Constructor
-    linPiezo3DInt(MaterialData & matData) : linPiezoInt(matData)
+    linPiezo3DInt(MaterialData & matData, Boolean isdamping=FALSE) : linPiezoInt(matData)
     {
-      ENTER_FCN( "linPiezoInt::linPiezoInt" );
+      ENTER_FCN( "linPiezo3DInt::linPiezo3DInt" );
+      isdamping_ = isdamping;
     }
-  
+
     //! Destructor
     ~linPiezo3DInt();
 
@@ -133,6 +134,8 @@ namespace CoupledField
     //! The current return value is fixed to 4, since in 3D simulations
     //! we have three mechanical and one potential component.
     virtual Integer getNrDofs(){ return 4; };
+
+    Boolean isdamping_; //if set to true, stiffnessmatrix is computed for damping (just mechanical part)
   };
 
 }

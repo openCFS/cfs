@@ -78,7 +78,7 @@ namespace CoupledField
     // treat electrical part
     for( actDim = 0; actDim < spaceDim; actDim++ )
       for( actNode = 0; actNode < nrNodes; actNode++ )
-	bMat[2*spaceDim+actDim][(actNode+1)*offset-1] =
+	bMat[2*spaceDim+actDim][(actNode+1)*offset-1] = 
 	  xiDx[actNode][actDim];
 
 #ifdef DEBUG
@@ -125,6 +125,31 @@ namespace CoupledField
     for( Integer i = 0; i < sizeofD; i++ )
       for ( Integer j = 0; j < sizeofD; j++ )
 	dMat[i][j] = (*matMatrix)[i][j];	
+
+    //multiply values of permittivity with -1 to obtain the correct bilinearform
+    //hardcoded for 3D!!!
+    for (Integer i = sizeofD-4; i <sizeofD; i++)
+      for (Integer j = sizeofD-4; j <sizeofD; j++)
+	dMat[i][j] *= -1.0;
+
+    //check if stiffness matrix has to be computed for Rayleigh damping purpose
+    //this means: just mechanical part damps
+    if (isdamping_)
+      {
+	for (Integer i = sizeofD-4; i <sizeofD; i++)
+	  for (Integer j = 0; j < sizeofD; j++ )
+	    dMat[i][j] = 0;
+
+	for (Integer i = 0; i < sizeofD-3; i++)
+	  for (Integer j = sizeofD-4; j <sizeofD; j++)
+	    dMat[i][j] = 0;
+
+	//multiply mechanical part with damping parameter
+	Double beta = ptMaterial->GetDampingBeta();
+	for (Integer i = 0; i < sizeofD-3; i++)
+	  for (Integer j = 0; j < sizeofD-3; j++ )
+	    dMat[i][j] *= beta;
+      }
 
   }
 
