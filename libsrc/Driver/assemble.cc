@@ -882,9 +882,7 @@ namespace CoupledField
   void StaticAssemble::AddIntegrator(BaseForm * integrator, const std::string & subDomName,
 					const FEMatrixType destinationMatrix, const Integer nonLin)
   {
-#ifdef TRACE
-    (*trace) << "entering StaticAssemble::AddIntegrator " << std::endl;
-#endif
+    ENTER_FCN( "StaticAssemble::AddIntegrator" );
 
 #ifdef USE_OLAS
     FEMatrixType actMatType = destinationMatrix;
@@ -934,9 +932,7 @@ namespace CoupledField
   void StaticAssemble::AddSurfIntegrator(BaseForm * integrator, const std::string & subDomName,
 					const FEMatrixType destinationMatrix, const Integer nonLin)
   {
-#ifdef TRACE
-    (*trace) << "entering StaticAssemble::AddSurfIntegrator " << std::endl;
-#endif
+    ENTER_FCN( "StaticAssemble::AddSurfIntegrator" );
    
 #ifdef USE_OLAS
     FEMatrixType actMatType = destinationMatrix;
@@ -1017,12 +1013,11 @@ namespace CoupledField
   void TransientAssemble::AddIntegrator(BaseForm * integrator, const std::string & subDomName,
 					const FEMatrixType destinationMatrix, const Integer nonLin)
   {
-#ifdef TRACE
-    (*trace) << "entering TransientAssemble::AddIntegrator " << std::endl;
-#endif
+    ENTER_FCN( "TransientAssemble::AddIntegrator" );
+    
     if (destinationMatrix == SYSTEM)
       Info->Error("In transient assembling, no SYSTEM matrix may be defined directly", __FILE__, __LINE__);
-
+    
     IntegratorDescriptor * actID = new IntegratorDescriptor(integrator, destinationMatrix, nonLin);
     integrators_[SubDomIndex(subDomName)]->push_back(actID);
   }
@@ -1031,9 +1026,8 @@ namespace CoupledField
   void TransientAssemble::AddIntegrator(BaseForm * integrator, const std::string & subDomName,
 					const enum MatrixType destinationMatrix, const Integer nonLin)
   {
-#ifdef TRACE
-    (*trace) << "entering TransientAssemble::AddIntegrator " << std::endl;
-#endif
+    ENTER_FCN( "TransientAssemble::AddIntegrator" );
+
     if (destinationMatrix == SYSTEM)
       Info->Error("In transient assembling, no SYSTEM matrix may be defined directly", __FILE__, __LINE__);
 
@@ -1049,9 +1043,7 @@ namespace CoupledField
   void TransientAssemble::AddSurfIntegrator(BaseForm * integrator, const std::string & subDomName,
 					const FEMatrixType destinationMatrix, const Integer nonLin)
   {
-#ifdef TRACE
-    (*trace) << "entering TransientAssemble::AddSurfIntegrator " << std::endl;
-#endif
+    ENTER_FCN( "TransientAssemble::AddSurfIntegrator" );
     if (destinationMatrix == SYSTEM)
       Info->Error("In transient assembling, no SYSTEM matrix may be defined directly", __FILE__, __LINE__);
 
@@ -1147,9 +1139,7 @@ namespace CoupledField
      secondaryMatrix(NOTYPE),
      secMatFac(0.0)
 {
-#ifdef TRACE
-  (*trace) << "entering IntegratorDescriptor::IntegratorDescriptor" << std::endl;
-#endif
+  ENTER_FCN( "IntegratorDescriptor::IntegratorDescriptor" );
   }
   
 #else
@@ -1243,9 +1233,7 @@ namespace CoupledField
    /// set actual frequency (already multipolied by 2*pi)
   void HarmonicAssemble::SetFrequency(Double frequency)
   {
-#ifdef TRACE
-    (*trace) << "entering HarmonicAssemble::SetFrequency " << std::endl;
-#endif
+    ENTER_FCN( "HarmonicAssemble::SetFrequency" );
 
     actFreq_ = 2*PI*frequency;
   } 
@@ -1256,9 +1244,7 @@ namespace CoupledField
   void HarmonicAssemble::AddIntegrator(BaseForm * integrator, const std::string & subDomName,
 					const FEMatrixType destinationMatrix, const Integer nonLin)
   {
-#ifdef TRACE
-    (*trace) << "entering HarmonicAssemble::AddIntegrator " << std::endl;
-#endif
+    ENTER_FCN( "HarmonicAssemble::AddIntegrator" );
 
     FEMatrixType actMatType = destinationMatrix;
     FEMatrixType matType;  
@@ -1314,9 +1300,7 @@ namespace CoupledField
   void HarmonicAssemble::AddSurfIntegrator(BaseForm * integrator, const std::string & subDomName,
 					const FEMatrixType destinationMatrix, const Integer nonLin)
   {
-#ifdef TRACE
-    (*trace) << "entering HarmonicAssemble::AddSurfIntegrator " << std::endl;
-#endif
+    ENTER_FCN( "HarmonicAssemble::AddSurfIntegrator" );
    
     FEMatrixType actMatType = destinationMatrix;
     FEMatrixType matType;
