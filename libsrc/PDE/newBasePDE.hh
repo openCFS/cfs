@@ -120,7 +120,7 @@ public:
     \param dt time step
   */
   virtual void InitTimeStepping(const Double dt)
-  {Error("Not implemented");};
+  {Error("InitTimeStepping not implemented");};
 
   //! deletes the algebraic system
   void DeleteAlgSys(int as_id)
@@ -169,7 +169,7 @@ public:
 
   //! initalize PDE coupling
   virtual void InitCoupling(PDECoupling * Coupling)
-  {Error("Not implemented");}
+  {Error("InitCoupling Not implemented");}
 
 
   //! Fill in input coupling terms
@@ -178,7 +178,7 @@ public:
 
   //! calculate coupling terms
   virtual void CalcOutputCoupling()
-  {Error("Not implemented");}
+  {Error("InitCoupling Not implemented");}
 
   
 

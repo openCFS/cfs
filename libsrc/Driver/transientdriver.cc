@@ -80,6 +80,7 @@ void TransientDriver :: SolveProblem()
       // writing results in output-file
     if (nstep == stepsave && (nstep < isaveend_))
       { 
+	ptdomain_->GetPDE(pdenumber)->PostProcess(level);
         ptdomain_->GetPDE(pdenumber)->WriteResultsInFile();
         stepsave+=isaveincr_;
       }

@@ -60,6 +60,7 @@ void StaticDriver :: SolveProblem()
   else
     {
       ptdomain_->GetCoupledPDE()->SolveStepStatic(level);
+      //      ptdomain_->GetCoupledPDE()->PostProcess(level);
       ptdomain_->PrintGrid(level);
       ptdomain_->GetCoupledPDE()->WriteResultsInFile();
     }
