@@ -19,9 +19,6 @@ public:
    //! Deconstructor
    virtual ~GeTetrahedral() { ;}
 
-   //! Define variables of this class
-   virtual void Init();
-
 protected:
 
    //! Define integration points for this type of integration

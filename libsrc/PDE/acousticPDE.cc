@@ -9,7 +9,8 @@
 namespace CoupledField
 {
 
-AcousticPDE::AcousticPDE(const Double epsilon, const Double dt0, Grid<Point2D> * ptgrid, const Integer level,Material * aptMaterial, FileType * aptFileType)
+template<class Dim>
+AcousticPDE<Dim>::AcousticPDE(const Double epsilon, const Double dt0, Grid<Dim> * ptgrid, const Integer level,Material * aptMaterial, FileType * aptFileType)
 :PDE(aptFileType,aptMaterial)
 {
 #ifdef TRACE
@@ -32,7 +33,7 @@ AcousticPDE::AcousticPDE(const Double epsilon, const Double dt0, Grid<Point2D> *
   CoefLaplace=1.0;
   CoefMass=a0*c;
 
-  ptWork=new InterfaceAlgSys(ptgrid,level,epsilon);
+  ptWork=new InterfaceAlgSys<Dim>(ptgrid,level,epsilon);
 
   ptWork->AssembleSysMatrix(CoefLaplace,CoefMass);
   ptWork->SetRHS();
@@ -48,7 +49,8 @@ AcousticPDE::AcousticPDE(const Double epsilon, const Double dt0, Grid<Point2D> *
   sol_der2.Resize(size);
 }
 
-void AcousticPDE::SolveNewmarkMethodStatic(const Double atime)
+template<class Dim>
+void AcousticPDE<Dim>::SolveNewmarkMethodStatic(const Double atime)
 {
 #ifdef TRACE
   (*trace) << "entering PDE::SolveNewmarkMethod" << std::endl;

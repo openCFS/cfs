@@ -160,8 +160,10 @@
          0         0         0         0         0  0.000000000000E+00
 #              nltol
   0.000000000000E+00  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
-#  numstep        deltat
+#  numstep        delta-t
          1  1.000000000000E+00
+#         constalpha           constbeta        constgamma_h        constgamma_p
+  0.000000000000E+00  2.500000000000E-01  5.000000000000E-01  1.000000000000E+00
 #  numdofs numconstr  numrestr  numloads numresist numspring numbembdr
         20         0         5         0         0         0         0         0
          0         0         0         0         0         0         0         0

@@ -125,6 +125,10 @@ clean-forms:
 clean-elements:
 	@cd $(LIBSRC_DIR)/Elements&&\
 	$(MAKE) clean
+	@cd $(LIBSRC_DIR)/Elements/2D&&\
+        $(MAKE) clean
+	@cd $(LIBSRC_DIR)/Elements/3D&&\
+        $(MAKE) clean
 clean-utils:
 	@cd $(LIBSRC_DIR)/Utils&&\
 	$(MAKE) clean

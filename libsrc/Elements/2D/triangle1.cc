@@ -71,6 +71,8 @@ void  Triangle1::GetGradientShFnc(Vector<Double> & grad, const Integer i, const 
  case 3:
     grad[0]=DxTransFncAtIP3[ip]; grad[1]=DyTransFncAtIP3[ip];
     break;
+  default:
+   Error("Wrong number of shape function",__FILE__,__LINE__);
 }
 }
 

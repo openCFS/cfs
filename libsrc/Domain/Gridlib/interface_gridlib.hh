@@ -28,7 +28,7 @@ public:
   virtual ~InterfaceGridlib() { if (ptGoMesh ) delete ptGoMesh ;}
   
    /// Uniform subdivision of domain
-  virtual void Subdiv(const Integer level){
+  virtual void SubdivideUniform(const Integer level){
    if (ptGoMesh)  {
      GbSubdivideUniform((*ptGoMesh),level);
    }

@@ -21,7 +21,7 @@ public:
   virtual void Read()=0;
 
   /// 
-  virtual void Subdiv(const Integer level)=0;
+  virtual void SubdivideUniform(const Integer level)=0;
 
   /// Get coordinates of all nodes which belong to element
   virtual void GetCoordOfNodesElem(const Integer numElem, const Integer numlevelGrid, const Integer numnodes, Dim * ptCoordElem)=0;  

@@ -47,27 +47,27 @@ void main(int argc, char *argv[])
 
   FileType * ptInputfile=oDefFiles.Create_ptFileType(argv[1]);
 
-  OutResultUnverg<Point3D> * ptUnverg=new OutResultUnverg<Point3D>(name); 
-
-  // DDD
   TimeFunc * ptTimeFunc=new TimeFunc(ptInputfile);
-  // DDD
 
-   Integer data[1];
-   ptInputfile-> ReadGeneralAnalChoice(data, FileType::numnode, FileType::endGAnal);
+  OutResultUnverg<Point2D> * ptUnverg=new OutResultUnverg<Point2D>(name); 
+
+/*
+  Integer data[1];
+  ptInputfile-> ReadGeneralAnalChoice(data, FileType::numnode, FileType::endGAnal);
   std::cout << "Number of nodes" << data[0] << std::endl;
  
   Point3D * ptCoord=new Point3D[data[0]];
   ptInputfile->ReadCoordinate(ptCoord, data[0]);
   std::cout << "We have read coordinates" << std::endl;
-  
+
   Grid<Point3D> * ptGridlib=new InterfaceGridlib<Point3D>(ptInputfile);
   ptGridlib->Read();
   
   ptUnverg->Create(ptGridlib,0);
+*/
+    Driver<Point2D> * ptDriver=new Driver<Point2D>(ptInputfile,1,materialdata);
+    ptDriver->SolveNewmarkMethod(ptUnverg);
 
-//    Driver<Point2D> * ptDriver=new Driver<Point2D>(ptInputfile,1,materialdata);
-//    ptDriver->SolveNewmarkMethod(ptUnverg);
 /*
  //  //! choose your grid class
   Grid<Point2D> *grid =new GridInterfaceCFS<Point2D>(ptInputfile);

@@ -24,13 +24,14 @@ namespace CoupledField
     ///
     Grid<Dim> * ptgrid;
     ///
-    AcousticPDE * ptAcPDE;
+    AcousticPDE<Dim> * ptAcPDE;
     ///
     FileType * ptFileType; 
     ///
     Material * ptMaterial;
     ///
     Integer numsteps; 
+    ///
     Double dt0;
   
   private:

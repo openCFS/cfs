@@ -105,8 +105,7 @@ void GeTetrahedral::SetIntPoints()
       break;
 
    default:
-     std::cerr << "Integration type " << IntegType
-           << " is not implemented \n" << std::endl; exit(-1);
+      Error("Integration type is not implemented",__FILE__,__LINE__);
    }
 }
 
@@ -135,7 +134,7 @@ void GeTetrahedral::SetTransformFncAtIntPoints()
 void GeTetrahedral::SetDerTransformFncAtIntPoints()
 {
 #ifdef TRACE
-  (*trace) << "entering GeTetrahedral::SetDShapeFnc" << std::endl;
+  (*trace) << "entering GeTetrahedral::SetDerTransformFncAtIntPoints" << std::endl;
 #endif
 
   Integer i;
@@ -165,6 +164,11 @@ void GeTetrahedral::SetDerTransformFncAtIntPoints()
       DyTransFncAtIP3[i]=TransFnc3dy(IntPoints[i][0],IntPoints[i][1],IntPoints[i][2]);
       DyTransFncAtIP4[i]=TransFnc4dy(IntPoints[i][0],IntPoints[i][1],IntPoints[i][2]);
     }
+
+  DzTransFncAtIP1.Resize(NumIntPoints);
+  DzTransFncAtIP2.Resize(NumIntPoints);
+  DzTransFncAtIP3.Resize(NumIntPoints);
+  DzTransFncAtIP4.Resize(NumIntPoints);
 
     for (i=0; i < NumIntPoints; i++)
     {
