@@ -135,6 +135,7 @@
               <xsd:enumeration value="magForceVWP"/>
               <xsd:enumeration value="magForceLorentz"/>
               <xsd:enumeration value="acouForce"/>
+              <xsd:enumeration value="fluidForce"/>
             </xsd:restriction>
           </xsd:simpleType>
         </xsd:attribute>
@@ -211,6 +212,29 @@
           <xsd:simpleType>
             <xsd:restriction base="xsd:token">
               <xsd:enumeration value="smoothDisplacement"/>
+	      <xsd:enumeration value="mechDisplacement"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
+        <xsd:attribute name="name" type="xsd:token" use="required"/>
+      </xsd:restriction>
+    </xsd:complexContent>
+  </xsd:complexType>
+  
+  <!-- MpCCI "PDE" -->
+  <xsd:complexType name="DT_CouplingMpcci">
+    <xsd:complexContent>
+      <xsd:restriction base="xsd:anyType">
+        <xsd:attribute name="type" use="required">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
+              <xsd:enumeration value="node"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
+        <xsd:attribute name="quantity" use="required">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
 	      <xsd:enumeration value="mechDisplacement"/>
             </xsd:restriction>
           </xsd:simpleType>
@@ -312,6 +336,36 @@
               <xsd:complexType>
                 <xsd:sequence>
                   <xsd:element name="coupling" type="DT_CouplingSmooth"
+                               maxOccurs="unbounded" />
+                </xsd:sequence>
+              </xsd:complexType>
+            </xsd:element>
+          </xsd:sequence>
+          <xsd:attribute name="method" type="DT_IterCouplingMethod" use="required"/>
+        </xsd:extension>
+      </xsd:complexContent>
+    </xsd:complexType>
+  </xsd:element> 
+
+
+  <!-- MpCCI-mechanic coupling -->
+  <xsd:element name="mpcciMech" substitutionGroup="PDEBasicIterCoupling">
+    <xsd:complexType>
+      <xsd:complexContent>
+        <xsd:extension base="DT_BasicIterCoupling">
+          <xsd:sequence>
+            <xsd:element name="mpcci">
+              <xsd:complexType>
+                <xsd:sequence>
+                  <xsd:element name="coupling" type="DT_CouplingMpcci"
+                               maxOccurs="unbounded" />
+                </xsd:sequence>
+              </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="mechanic">
+              <xsd:complexType>
+                <xsd:sequence>
+                  <xsd:element name="coupling" type="DT_CouplingMech"
                                maxOccurs="unbounded" />
                 </xsd:sequence>
               </xsd:complexType>

@@ -182,6 +182,17 @@
 
     </smooth>
 
+    <!-- Template for mpcci PDE -->
+    <mpcci>
+  
+      <region name="dummyRegion"/>
+
+      <solver>
+        <matrix/>
+      </solver>
+
+    </mpcci>
+
   </pdeList>
 
   
