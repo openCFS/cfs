@@ -95,6 +95,8 @@
         </xsd:attribute>
         <xsd:attribute name="fixedGrid" type="DT_CFSBool" use="optional"
           default="no"/>
+        <xsd:attribute name="noGrid" type="DT_CFSBool" use="optional"
+          default="no"/>
       </xsd:restriction>
     </xsd:complexContent>
   </xsd:complexType>
