@@ -26,7 +26,9 @@ namespace CoupledField
 	      << ", column " << event.getColumnNumber() << '\n'
 	      << " It issued the following warning:\n\n "
 	      << xercesc::XMLString::transcode( event.getMessage() )
-	      << '\n' << std::endl;
+	      << "\n\n"
+              << " XML parsers used the Schema: http://www.cfs++.org\n "
+              << XMLSCHEMA <<  "/CFS.xsd\n" << std::endl;
     XMLPARSERABORT;
   }
 
@@ -42,7 +44,10 @@ namespace CoupledField
 	      << ", column " << event.getColumnNumber()
 	      << "\n The only hint I can give is the following:\n\n "
 	      << xercesc::XMLString::transcode( event.getMessage() )
-	      << '\n' << std::endl;
+	      << "\n\n"
+              << " XML parsers used the Schema: http://www.cfs++.org\n "
+              << XMLSCHEMA <<  "/CFS.xsd\n" << std::endl;
+
     XMLPARSERABORT;
   }
 
@@ -59,7 +64,9 @@ namespace CoupledField
 	      << ", column " << event.getColumnNumber()
 	      << "\n This is what it was complaining about:\n\n "
 	      << xercesc::XMLString::transcode( event.getMessage() )
-	      << '\n' << std::endl;
+	      << "\n\n"
+              << " XML parsers used the Schema: http://www.cfs++.org\n "
+              << XMLSCHEMA <<  "/CFS.xsd\n" << std::endl;
     XMLPARSERABORT;
   }
 
