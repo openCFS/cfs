@@ -37,9 +37,6 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 
 #ifndef XMLPARAMS
     conf->getstr("subtype", subType_, pdename_ );
-#else
-    params->Get( "subtype", subType_, pdename_ );
-#endif
 
     if (subType_ == "3d")
       {
@@ -63,12 +60,46 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 	errmsg += " PDEs of type " + pdename_ + '\n';
 	Info->Error( errmsg, __FILE__, __LINE__ );
       }
+#else
+
+    // Get problem geometry and PDE subtype
+    params->Get( "subtype", subType_, pdename_ );
+    std::string probGeo;
+    params->Get( "type", probGeo, "geometry" );
+
+    // Set number of degrees of freedom and
+    // ensure that subtype fits to problem geometry
+    if ( subType_ == "3d" && probGeo == "3d" ) {
+      dofspernode_ = 3;
+      Info->PrintF("", "=== 3D PROBLEM\n");
+    }
+    else if ( subType_ == "axi" && probGeo == "axi" ) {
+      isaxi_ = TRUE;
+      dofspernode_ = 2;
+      Info->PrintF("", "=== AXISYSMMETRIC PROBLEM\n");
+    }
+    else if ( subType_ == "plainStrain" && probGeo == "plane" ) {
+	dofspernode_ = 2;
+	Info->PrintF("", "=== PLAIN STRAIN PROBLEM\n");
+      }
+    else
+      {
+	std::string errmsg = "Subtype " + subType_;
+	errmsg += "of PDE " + pdename_ + " does not fit to problem geometry ";
+	errmsg += probGeo + '\n';
+	Info->Error( errmsg, __FILE__, __LINE__ );
+      }
+#endif
 
 
 #ifndef XMLPARAMS
     conf->getsubdompde(subdoms_,pdename_);
 #else
     params->GetList( "name", subdoms_, pdename_, "region" );
+    Info->PrintF( pdename_, " MechPDE lives on regions:" );
+    for ( Integer k = 0; k < subdoms_.size(); k++ ) {
+      Info->PrintF( pdename_, " %s", subdoms_[k].c_str() );
+    }
 #endif
 
     ReadBCs(pdename_);
@@ -76,6 +107,7 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 
     AssignPDENodeNumbers(Mesh2PDENode_, PDE2MeshNode_, subdoms_);
     numPDENodes_ = PDE2MeshNode_.size();
+    std::cerr << " numPDENodes = " << numPDENodes_ << '\n';
     size_        = numPDENodes_ * dofspernode_;
 
     // Initialize solution class
@@ -141,6 +173,8 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
       }
       nonLin_ = nonLinRegion[0] == "geo" ? TRUE : FALSE;
     }
+    Info->PrintF( pdename_,  "Nonlinearity in %d regions\n",
+		  nonLinRegion.size() );
 #endif
 
     if( nonLin_ == TRUE )
@@ -156,7 +190,7 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 	params->Get( "incStopCrit", incStopCrit_, pdename_, "nonLinear" );
 
 	// residual stopping criterion
-	params->Get( "resStopCrit", incStopCrit_, pdename_, "nonLinear" );
+	params->Get( "resStopCrit", residualStopCrit_, pdename_, "nonLinear" );
 #endif
       }
 
@@ -644,8 +678,7 @@ void MechPDE::CalcAcousticCouplingRHS(std::vector<Elem*> * couplingElems,
   (*trace) << "entering MechPDE::CalcAcousticCouplingRHS" << std::endl;
 #endif
 
-  Double density ;  
-  Integer nrNodesperEl;
+  Double density;
 
   elemCouplingSols.Init(0.0);
   
