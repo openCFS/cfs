@@ -31,20 +31,30 @@ GSI = no
 
 #Hypre solvers
 # NOTE: Only used in OLAS
-HYPRE = yes
+HYPRE = no 
 
 #Using LAS or OLAS
-LASTYPE = OLAS
+LASTYPE = LAS
 
 ##############  XML Parameter File Handling? With Xerces or without?
 #
 XMLPARAMS=yes
 XERCES=yes
 
+
 ##############  Path to includes and libraries for external packages
 #
 ifeq ("$(CVSEXTERNAL)","")
    CVSEXTERNAL = /home/data/proj/SoftwareLibraries/CVSExternal
+endif
+
+
+##############  Path to XML Schema definitions
+#
+ifeq ("$(XMLPARAMS)","yes")
+ifeq ("$(XMLSCHEMA)","")
+   XMLSCHEMA $(CVSEXTERNAL)/CFS++XML
+endif
 endif
 
 ##############  AdaptGrid 
@@ -148,7 +158,7 @@ endif
 ifeq "$(XMLPARAMS)" "yes"
 PARAMHANDLING := -DXMLPARAMS
 ifeq "$(XERCES)" "yes"
-PARAMHANDLING := $(PARAMHANDLING) -DUSE_XERCES -DCVSEXTERNAL='"$(CVSEXTERNAL)"'
+PARAMHANDLING := $(PARAMHANDLING) -DUSE_XERCES -DCVSEXTERNAL='"$(CVSEXTERNAL)"' -DXMLSCHEMA='"$(XMLSCHEMA)"'
 XERCESLIB = -lxerces-c
 endif
 else
