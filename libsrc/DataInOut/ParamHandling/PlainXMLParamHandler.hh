@@ -33,7 +33,7 @@ namespace CoupledField
 
     //! The constructor expects as input the name of the input file containing
     //! the steering parameters.
-    PlainXMLParamHandler( Char *fname );
+    PlainXMLParamHandler( const char *fname );
 
     //! Deconstructor
     ~PlainXMLParamHandler();
@@ -83,6 +83,83 @@ namespace CoupledField
 	      const std::string section="",
 	      const std::string subsection="" );
 
+    //! Get string-value for a element with certain attribute
+
+    //! The method will try to find the specified keyword in the parameter tree
+    //! returning the found value as a string, if the corresponding element
+    //! has an attribute of the specified name which has the specified value.
+    //! The search can be restricted to a certain section and subsection.
+    //! If the applyToElem input argument is set to false, then the
+    //! attribute/value test is applied not to the element itself, but to its
+    //! parent.
+    //! \param key          Keyword
+    //! \param value        String (output)
+    //! \param attribute    Name of attribute of element
+    //! \param aValue       Value to test attribute's value against
+    //! \param applyToElem  Specifies which element to test
+    //! \param section      Name of a section in which to look for keyword
+    //!                     (optional)
+    //! \param subsection   Name of a subsection in which to look for keyword
+    //!                     (optional)
+    void CGet( const std::string key,
+	       std::string &value,
+	       const std::string attribute,
+	       const std::string aValue,
+	       Integer applyToElem,
+	       const std::string section,
+	       const std::string subsection );
+
+    //! Get Double-value for a element with certain attribute
+
+    //! The method will try to find the specified keyword in the parameter tree
+    //! returning the found value as a Double, if the corresponding element
+    //! has an attribute of the specified name which has the specified value.
+    //! The search can be restricted to a certain section and subsection.
+    //! If the applyToElem input argument is set to false, then the
+    //! attribute/value test is applied not to the element itself, but to its
+    //! parent.
+    //! \param key          Keyword
+    //! \param value        Double (output)
+    //! \param attribute    Name of attribute of element
+    //! \param aValue       Value to test attribute's value against
+    //! \param applyToElem  Specifies which element to test
+    //! \param section      Name of a section in which to look for keyword
+    //!                     (optional)
+    //! \param subsection   Name of a subsection in which to look for keyword
+    //!                     (optional)
+    void CGet( const std::string key,
+	       Double &value,
+	       const std::string attribute,
+	       const std::string aValue,
+	       Integer applyToElem,
+	       const std::string section,
+	       const std::string subsection ) ;
+
+    //! Get Integer-value for a element with certain attribute
+
+    //! The method will try to find the specified keyword in the parameter tree
+    //! returning the found value as a Integer, if the corresponding element
+    //! has an attribute of the specified name which has the specified value.
+    //! The search can be restricted to a certain section and subsection.
+    //! If the applyToElem input argument is set to false, then the
+    //! attribute/value test is applied not to the element itself, but to its
+    //! parent.
+    //! \param key        Keyword
+    //! \param value      Integer (output)
+    //! \param attribute  Name of attribute of element
+    //! \param aValue     Value to test attribute's value against
+    //! \param section    Name of a section in which to look for keyword
+    //!                   (optional)
+    //! \param subsection Name of a subsection in which to look for keyword
+    //!                   (optional)
+    void CGet( const std::string key,
+	       Integer &value,
+	       const std::string attribute,
+	       const std::string aValue,
+	       Integer applyToElem,
+	       const std::string section,
+	       const std::string subsection ) ;
+
     //! Get a list of strings matching a keyword
 
     //! The method will try to find the specified keyword in the parameter
@@ -103,6 +180,7 @@ namespace CoupledField
 		  const std::string section = "",
 		  const std::string subsection = "" );
 
+    
     //! Get a list of Doubles matching a keyword
 
     //! The method will try to find the specified keyword in the parameter
@@ -123,12 +201,64 @@ namespace CoupledField
 		  const std::string section = "",
 		  const std::string subsection = "" );
 
+   //! Get a list of strings for keyword and elements with certain attribute
+
+    //! The method will try to find the specified keyword in the parameter
+    //! tree. Once found, it tests, whether the corresponding elements have
+    //! a specified value for a specified attribute. For these elements it
+    //! will return the values of the respective elements or of the attributes
+    //! matching the keyword. The search can be restricted to certain subtrees
+    //! by specifying keywords for section and subsection.
+    //! The method will return an empty vector, if there is no match at all.
+    //! It will issue an error message, if there are matches for both, elements
+    //! and attributes, or if one of the found elements does not have an
+    //! attribute of the specified type. If the applyToElem input argument is
+    //! set to false, then the attribute/value test is applied not to the
+    //! element itself, but to its parent.
+    //! \param key          Keyword
+    //! \param list         Vector of strings (output)
+    //! \param attribute    Name of attribute of element
+    //! \param value        Value to test attribute's value against
+    //! \param applyToElem  Specifies which element to test
+    //! \param section      Name of a section in which to look for keyword
+    //!                     (optional)
+    //! \param subsection   Name of a subsection in which to look for keyword
+    //!                     (optional)
+    void CGetList( const std::string key,
+		   StdVector<std::string> &list,
+		   const std::string attribute,
+		   const std::string value,
+		   Integer applyToElem,
+		   const std::string section,
+		   const std::string subsection );
+
     //! Obtain list of PDEs defined in parameter file
 
     //! This method queries the parameter object for a list of all PDEs defined
     //! in the parameter file. The list is returned as a vector of standard
     //! strings.
     void GetPDEList( StdVector<std::string> &list );
+
+    //! Obtain list of coils defined in parameter file
+    
+    //! This method queries the parameter object for a list of all coils
+    //! defined in the parameter file. The list is returned as a vector of
+    //! standard strings. The method will return an empty vector, if there are
+    //! no matches. By specifying the optional pde input parameter the search
+    //! can be restricted to a certain PDE entry in the pdeList section.
+    void GetCoilList( StdVector<std::string> &list,
+		      const std::string pde ="" );
+
+    //! Obtain the type of a certain coils
+
+    //! This method queries the parameter object for the type of a coils.
+    //! The desired coil is specified via the coilName input argument.
+    //! By specifying the optional pde input parameter the search can be
+    //! restricted to a certain PDE entry in the pdeList section.
+    void GetCoilType( std::string &coilType,
+		      const std::string coilName,
+		      const std::string pde ="" );
+    
 
     //! Obtain list of iterative coupled PDEs defined in parameter file
 
