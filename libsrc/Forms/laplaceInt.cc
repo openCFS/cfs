@@ -27,7 +27,7 @@ namespace CoupledField
   void LaplaceInt::CalcElementMatrix(Matrix<Double> & ptCoord, Matrix<Double> & elemMat)
   {
 #ifdef TRACE
-    (*trace) << "entering LaplaceInt::CalcElemMatrix" << std::endl;
+    (*trace) << "entering LaplaceInt::CalcElementMatrix" << std::endl;
 #endif
   
     const Integer nrIntPts= ptelem->GetNumIntPoints();

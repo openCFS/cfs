@@ -149,8 +149,8 @@ void Domain :: InitPDE()
 // 	 ptpde_[i]=new Acoustic3dPDE(ptgrid_,ptBCs_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_);
 //        else if (pdes[i] == "acou2dflownoise")
 // 	 ptpde_[i]=new Acou2dFlowNoise(ptgrid_,ptBCs_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_);
-//        else if (pdes[i] == "mechanic2d")
-// 	 ptpde_[i]=new Mech2dPDE(ptgrid_,ptBCs_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_);
+      else if (pdes[i] == "plainStrain")
+	ptpde_[i]=new PlainStrainPDE(ptgrid_,ptBCs_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_);
       else if (pdes[i] == "electric2d") 
 	 ptpde_[i]=new Elec2dPDE(ptgrid_,ptBCs_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_); 
 //        else if (pdes[i] == "electric3d") 

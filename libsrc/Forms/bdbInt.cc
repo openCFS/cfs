@@ -6,6 +6,49 @@
 namespace CoupledField
 {
 
+
+  void BDBInt::CalcElementMatrix(Matrix<Double>& ptCoord, Matrix<Double> & elemMat)
+  {
+#ifdef TRACE
+    (*trace) << "entering BDBInt::CalcElementMatrix" << std::endl;
+#endif
+
+    const Integer nrIntPts = ptelem->GetNumIntPoints(); 
+    const Integer nrNodes  = ptelem->GetNumNodes();   
+    const Integer nrDofs   = getNrDofs();  
+    const std::vector<Double> & intWeights = ptelem->GetIntWeights();  
+    double jacDet;  
+
+
+    Matrix<Double> bMat; 
+    Matrix<Double> dMat; 
+    Matrix<Double> dB; 
+    Matrix<Double> bTrans; 
+    Matrix<Double> partElemMat;
+  
+    elemMat.Resize(nrNodes * nrDofs);
+ 
+    calcDMat(dMat);
+
+    for (Integer actIntPt=1; actIntPt<=nrIntPts; actIntPt++)
+      {
+	calcBMat(bMat, actIntPt, ptCoord);  
+
+	dB = dMat * bMat;
+
+	bMat.Transpose(bTrans);
+	
+	partElemMat = bTrans * dB;
+	
+	jacDet = ptelem->CalcJacobianDetAtIp(actIntPt,ptCoord);
+	
+	elemMat += partElemMat * jacDet * intWeights[actIntPt] ;
+      }
+  }
+
+
+
+
   BDBInt::BDBInt(BaseFE * aptelem) : BaseForm(aptelem)
   {
 #ifdef TRACE
@@ -23,38 +66,6 @@ namespace CoupledField
     ;
   }
 
-  void BDBInt::CalcElementMatrix(Matrix<Double>& ptCoord, Matrix<Double> & elemMat)
-  {
 
-    Integer nrIntPts = ptelem->GetNumIntPoints(); // l - number of integration points
-    Integer nrNodes  = ptelem->GetNumNodes();   // n - number of nodes
 
-    Matrix<Double> bMat; 
-    Matrix<Double> dMat; 
-    Matrix<Double> dB; 
-    Matrix<Double> bTrans; 
-    Matrix<Double> partElemMat; 
-
-    Integer const spaceDim = 2;  // has to be read with an apropriate method on the future !!!!!
-
-    std::vector<Double> intWeights=ptelem->GetIntWeights();
-
-  
-
-  
-    elemMat.Resize(nrNodes*spaceDim);
- 
-    getBMat(bMat);  
-    getDMat(dMat);
-
-    for (int actIntPt=1; actIntPt<=nrIntPts; actIntPt++)
-      {
-	dB = dMat * bMat;
-	bMat.Transpose(bTrans);
-	
-	partElemMat = bTrans * dB;
-	
-	elemMat += partElemMat * ptelem->CalcJacobianDetAtIp(actIntPt,ptCoord) * intWeights[actIntPt] ;
-      }
-  }
-}
+} // namespace CoupledField

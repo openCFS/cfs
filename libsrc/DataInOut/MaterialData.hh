@@ -144,8 +144,8 @@ public:
 	\param keyword name of material in the  material file
   */
   // for compatibility with elena
-  void ReadDensityAndCompressity(Double & density, Double & compress, const Integer matnum, const std::string keyword)
-  { Error("Not implemented",__FILE__,__LINE__);}
+//   void ReadDensityAndCompressity(Double & density, Double & compress, const Integer matnum, const std::string keyword)
+//   { Error("Not implemented",__FILE__,__LINE__);}
 
 
   //! get dielectric term for an electrostatic equation from the material file
@@ -154,8 +154,8 @@ public:
 	\param matnum in: material number
   */
   // for compatibility with elena
-  void ReadDielectricTerms(Double & dielectr,const Integer matnum)
-  { Error("Not implemented",__FILE__,__LINE__);}
+//   void ReadDielectricTerms(Double & dielectr,const Integer matnum)
+//   { Error("Not implemented",__FILE__,__LINE__);}
 
   // get value for error functional (see Institusbericht Michael Schinnerl: Behandlung gekoppelter
   // Systeme mit Mehrgitterverfahren)
