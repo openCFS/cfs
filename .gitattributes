@@ -95,8 +95,12 @@ libsrc/Elements/2D/rectanglefe.cc svneol=native#text/plain
 libsrc/Elements/2D/rectanglefe.hh svneol=native#text/plain
 libsrc/Elements/2D/triangle1.cc svneol=native#text/plain
 libsrc/Elements/2D/triangle1.hh svneol=native#text/plain
+libsrc/Elements/2D/triangle1fe.cc svneol=native#text/plain
+libsrc/Elements/2D/triangle1fe.hh svneol=native#text/plain
 libsrc/Elements/2D/triangle2.cc svneol=native#text/plain
 libsrc/Elements/2D/triangle2.hh svneol=native#text/plain
+libsrc/Elements/2D/trianglefe.cc svneol=native#text/plain
+libsrc/Elements/2D/trianglefe.hh svneol=native#text/plain
 libsrc/Elements/3D/Makefile -text
 libsrc/Elements/3D/gehexahedral.cc svneol=native#text/plain
 libsrc/Elements/3D/gehexahedral.hh svneol=native#text/plain
