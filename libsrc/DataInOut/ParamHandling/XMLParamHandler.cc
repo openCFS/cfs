@@ -616,7 +616,8 @@ namespace CoupledField {
   //   Return a list of the defined coils
   // ======================================
   void XMLParamHandler::GetCoilList( StdVector<std::string> &list,
-				     const std::string pde ) {
+				     const std::string pde,
+				     const std::string sequenceTag) {
 
     ENTER_FCN( "XMLParamHandler::GetCoilList" );
 
@@ -653,8 +654,8 @@ namespace CoupledField {
     valVec.Push_back( "" );
 
     keyVec.Push_back( "*" );
-    attrVec.Push_back( "" );
-    valVec.Push_back( "" );
+    attrVec.Push_back( "tag" );
+    valVec.Push_back( sequenceTag );
     
     // Find coil names
     StdVector<DOMAttr*> *attrs =
