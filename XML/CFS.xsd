@@ -110,7 +110,7 @@
       <xsd:element name="integRules" type="DT_IntegRules" minOccurs="0"/>
 
       <!-- Enforce parameter settings by disabling Expert() (optional) -->
-      <xsd:element name="expert" minOccurs="1" maxOccurs="1">
+      <xsd:element name="expert" minOccurs="0" maxOccurs="1">
         <xsd:complexType>
           <xsd:attribute name="override" type="DT_CFSBool" use="optional" 
                          default="no"/>
