@@ -60,7 +60,7 @@ void main(int argc, char *argv[])
 
   TimeFunc * ptTimeFunc=new TimeFunc(ptInputfile);
 
-  Domain *domain=new Domain(ptInputfile,ptOut,ptMaterial, ptTimeFunc);
+  Domain * domain=new Domain(ptInputfile,ptOut,ptMaterial, ptTimeFunc);
 
   // print grid to unverg-file
   domain->PrintGrid(0);
