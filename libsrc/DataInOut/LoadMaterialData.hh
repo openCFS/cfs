@@ -20,6 +20,13 @@
 
 namespace CoupledField
 {
+
+  //! Class for reading material data file
+  /*! 
+    Includes all functions for reading material data out of file
+  */
+
+
   class LoadMaterialData
   {
   private:

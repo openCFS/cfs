@@ -18,6 +18,11 @@
 namespace CoupledField
 {
 
+  //! Class for Material Data
+  /*! 
+    Interface class for getting material data
+  */
+
 class MaterialData
 {
 private:

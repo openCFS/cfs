@@ -1,7 +1,8 @@
 #
 C_DIR= ../..
 #
-src = basepde.cc elecPDE.cc acousticPDE.cc acouFlowNoise.cc mechPDE.cc magEdgePDE.cc smoothPDE.cc smoothlaplacePDE.cc timestepping.cc newmark.cc
+src = basepde.cc elecPDE.cc acousticPDE.cc acouFlowNoise.cc mechPDE.cc magEdgePDE.cc smoothPDE.cc smoothlaplacePDE.cc \
+      timestepping.cc newmark.cc newmarkdamp.cc
 
 #
 lib = pde

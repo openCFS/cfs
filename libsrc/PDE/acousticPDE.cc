@@ -10,6 +10,8 @@
 #include <Forms/forms_header.hh>
 #include <Estimator/spaceerror.hh>
 #include "newmark.hh"
+#include "newmarkdamp.hh"
+
 
 namespace CoupledField
 {
@@ -45,6 +47,19 @@ AcousticPDE::AcousticPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, Fil
   if (absBCs == "yes")
       with_absBCs_ = TRUE;
 
+  with_fracdamping_=FALSE;
+  std::string frac_damping ="no";
+  conf->ifget("frac_damping",frac_damping,pdename_);
+  if (frac_damping == "yes")
+    {
+       with_fracdamping_ = TRUE;
+       conf->get("frac_memory",frac_memory_,pdename_);
+    if (InfoPrint)
+      (*infofile) << "\n Attenuation according to power law, number of memory is " << frac_memory_ 
+		  << std::endl << std::endl;
+    (*infofile) << "\n value 1.5^2.5: " << pow(1.5,2.5) << std::endl;
+    }
+
   ReadBCs(pdename_);
 
 }
@@ -63,7 +78,7 @@ void AcousticPDE::DiscreteParamsPDE()
   StiffnessMatrix_  = TRUE;
   MassMatrix_       = TRUE;
 
-  if (with_absBCs_)
+  if (with_absBCs_ || with_fracdamping_)
     DampingMatrix_  = TRUE;
 }
 
@@ -93,7 +108,7 @@ void AcousticPDE::SolveStepTrans(const Integer kstep, const Double asteptime,
   Integer update,job;
 
   //perform predictor step
-  TS_alg->Predictor(sol_);
+  TS_alg_->Predictor(sol_);
 
   if (kstep==0)
     {
@@ -103,7 +118,7 @@ void AcousticPDE::SolveStepTrans(const Integer kstep, const Double asteptime,
       algsys_->ConstructEffectiveMatrix(matrix_factor_);
       algsys_->InitRHS();
       ComputeRHS(lasttimecalc_);
-      TS_alg->UpdateRHS();
+      TS_alg_->UpdateRHS();
     }
   else if (reset)
     {
@@ -114,7 +129,7 @@ void AcousticPDE::SolveStepTrans(const Integer kstep, const Double asteptime,
       algsys_->InitMatrix(SYSTEM);
       algsys_->ConstructEffectiveMatrix(matrix_factor_);
       ComputeRHS(lasttimecalc_);
-      TS_alg->UpdateRHS();
+      TS_alg_->UpdateRHS();
     }
   else
     {
@@ -122,7 +137,7 @@ void AcousticPDE::SolveStepTrans(const Integer kstep, const Double asteptime,
       job    = 3;
       algsys_->InitRHS();
       ComputeRHS(lasttimecalc_);
-      TS_alg->UpdateRHS();
+      TS_alg_->UpdateRHS();
     };
 
   SetBCs(level,update,lasttimecalc_);
@@ -138,7 +153,7 @@ void AcousticPDE::SolveStepTrans(const Integer kstep, const Double asteptime,
       sol_[dim][i] = ptsol[k++];
 
   //perform corrector step  
-  TS_alg->Corrector(sol_);
+  TS_alg_->Corrector(sol_);
 
 
   if (InfoPrint)
@@ -185,8 +200,18 @@ void AcousticPDE :: InitTimeStepping(const Double dt)
   (*trace) << "entering AcousticPDE::InitTimeStepping" << std::endl;
 #endif
 
-  TS_alg = new Newmark(pdename_, algsys_, dofspernode_, NumPDENodes_, DampingMatrix_);
-  TS_alg->Init(matrix_factor_, dt);
+  if (with_fracdamping_)
+    {
+      //currently the parameter y is taken from the first subdomain
+      //=> currently just one subdomain makes sense
+      Double y = materialData_[0].GetDampingBeta();
+      TS_alg_ = new NewmarkDamp(pdename_, algsys_, dofspernode_, NumPDENodes_, DampingMatrix_,
+			      frac_memory_,y);
+    }
+  else
+    TS_alg_ = new Newmark(pdename_, algsys_, dofspernode_, NumPDENodes_, DampingMatrix_);
+
+  TS_alg_->Init(matrix_factor_, dt);
 
 }
 
@@ -202,7 +227,7 @@ void AcousticPDE::SetupMatrices(const Integer level)
 
 
   BaseFE * ptEl;
-  Double coeffstiff, coeffmass;
+  Double coeffstiff, coeffmass, coeffdamp;
   Vector<Integer> connecth, connect_PDE;
   std::vector<Elem*> elemssd;
 
@@ -213,9 +238,12 @@ void AcousticPDE::SetupMatrices(const Integer level)
       //compute material coefficient
       const Double density = materialData_[i].GetDensity();
       const Double compressibility = materialData_[i].GetCompressibility();
+      const Double alpha0 =  materialData_[i].GetDampingAlfa();
+      const Double y =  materialData_[i].GetDampingBeta();
 
       coeffmass  = density*density/compressibility;
       coeffstiff = density;
+      coeffdamp  = 2*density*alpha0*sqrt(density/compressibility)/sin((y-1)*PI/2);
 
 
       ptgrid_->GetElemSD(elemssd,subdoms_[i],level);
@@ -226,7 +254,7 @@ void AcousticPDE::SetupMatrices(const Integer level)
     
 	  BaseForm * bilinear_mass  = new MassInt(ptEl, coeffmass);
 	  BaseForm * bilinear_stiff = new LaplaceInt(ptEl, coeffstiff);
-
+	  BaseForm * bilinear_damp  = new MassInt(ptEl, coeffdamp);
 	  connecth=elemssd[j]->connect;
 	  GetElemCoords(connecth, ptCoord, level); 
 
@@ -255,13 +283,28 @@ void AcousticPDE::SetupMatrices(const Integer level)
 
 	  algsys_->SetElementMatrix(elemmat.getinarray(), connect_PDE.get(), connect_PDE.size(), MASS);
 
+	  //Damping part
+	  if (with_fracdamping_)
+	    {
+	      bilinear_damp->CalcElementMatrix(ptCoord, elemmat);
+
+#ifdef DEBUG
+	      (*debug) << "Damping matrix, ElementNumber  " << i << std::endl;
+	      (*debug) << elemmat << std::endl;
+#endif
+
+	      algsys_->SetElementMatrix(elemmat.getinarray(), connect_PDE.get(), connect_PDE.size(), DAMPING);
+	      delete bilinear_damp;
+	    }
+
 	  delete bilinear_stiff;
 	  delete bilinear_mass;
 
 	}
     }
 
-  // BEGIN DAMPING MATRIX PART
+
+  // BEGIN DAMPING MATRIX PART: Absorbing boundaries
   if (with_absBCs_) {
     std::vector<Elem*>  DomainBnd;
     Double coeffdamp;

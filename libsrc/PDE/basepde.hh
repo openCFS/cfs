@@ -464,7 +464,7 @@ protected:
   Double StepTime_; //!< time step;
   Double matrix_factor_[4]; //!< factors for constructing effective mass / stiffness matrix
 
-  TimeStepping * TS_alg;  //<! handels the time stepping
+  TimeStepping * TS_alg_;  //<! handels the time stepping
 
   Integer actlevel_; //! actual level
   TimeErrorEstimator * ptTimeError_; //!< pointer to extimator
