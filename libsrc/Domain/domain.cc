@@ -43,8 +43,8 @@ Domain:: Domain(FileType * const aptFileType, WriteResults * ptOut,  Material * 
    ptpde_[i]=NULL;
 
   // read type of output results from conf-file
- std::string libmesh;
- conf->get("mesh_library",libmesh);
+ std::string libmesh="cfsgrid";
+ conf->ifget("mesh_library",libmesh);
 
  Integer dim=InFile_->ReadDim();
 
@@ -157,7 +157,7 @@ void Domain :: InitPDE()
 	ptpde_[i]=new Acoustic3dPDE(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_); 
       else if (pdes[i] == "acou2dflownoise")
 	ptpde_[i]=new Acou2dFlowNoise(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_); 
-      else if (pdes[i] == "mech2d")
+      else if (pdes[i] == "mechanic2d")
 	ptpde_[i]=new Mech2dPDE(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_); 
       else if (pdes[i] == "electric2d") 
 	ptpde_[i]=new Elec2dPDE(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_); 

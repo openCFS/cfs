@@ -14,8 +14,9 @@ Line :: Line()
   (*trace) << "entering Line::Line" << std::endl;
 #endif
 
-  std::string integtype;
-  conf->get("line",integtype,"IntegRules");
+  std::string integtype="GaussOrder2";
+
+  conf->ifget("line",integtype,"IntegRules");
 
   IntegType=String2EnumIntegrationType(integtype.c_str());
 

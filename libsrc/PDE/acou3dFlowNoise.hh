@@ -21,15 +21,6 @@ public:
   //!
   virtual ~Acou3dFlowNoise();
 
-//   //!
-//   void SpecifyMatrices(Integer &matrixtype, Integer *matrixsystype, Integer &graphtype, Integer &numdofpernode, Integer &numdirichlets, Integer &numconstraints);
-
-//   //!
-//   void SetMatrixFactors();
-
-//   //!
-//   void SetupMatrices(const Integer level, BCs * ptBCs=NULL);
-
     //!
   void SetBCs(BCs * ptBCs, const Integer level, const Integer update, const Double atime);
 

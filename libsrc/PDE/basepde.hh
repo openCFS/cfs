@@ -77,7 +77,7 @@ public:
     \param numeqcoarse number of equation for coarsing
     \param coarsealpha coarsing parameter for AMG
   */
-  virtual void SpecifySolver(Integer &asolvertype, Integer &aprecondtype, Double &aeps, Double &adampiter, Integer &amaxnumit, Integer &numeqcoarse, Double &coarsealpha)=0;
+  virtual void SpecifySolver(Integer &asolvertype, Integer &aprecondtype, Double &aeps, Double &adampiter, Integer &amaxnumit, Integer &numeqcoarse, Double &coarsealpha);
 
   //! set boundary condition
   /*!
@@ -197,6 +197,13 @@ public:
 protected:
    //! read from .config-file info about BCs
    void ReadBCs(const std::string eq);
+
+  //! type of PDE (set in the derived classes
+  std::string pdename_;
+
+  //!solver parameters
+  Integer maxnumiter_, solvertype_, precondtype_, numeqcoarse_;
+  Double  eps_, dampiter_, coarsealpha_;
 
   //! 
   Double StepTime_;

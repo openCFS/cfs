@@ -35,20 +35,22 @@ Elecst3dPDE::Elecst3dPDE(AbstractAlgebraicSys * ptalgsys, Grid * aptgrid, Materi
   ptError_=NULL;
 }
 
-void Elecst3dPDE::SpecifySolver(Integer &solvertype, Integer &precondtype, Double &eps, Double &dampiter, Integer &maxnumit, Integer &numeqcoarse, Double &coarsealpha)
+void Elecst3dPDE::SpecifySolver(Integer &solvertype, Integer &precondtype, Double &eps, Double &dampiter, Integer &maxnumit, Integer &numeqcoarse, Double &coarsealpha )
 {
 #ifdef TRACE
   (*trace) << "entering Elecst3dPDE::SpecifySolver" << std::endl;
 #endif
 
-  conf->get("eps",eps,"Elecst3d"); // relative accuracy in the precond. energy
-  conf->get("dampiter",dampiter,"Elecst3d"); // damping parameter for Jacobi, SSOR
-  conf->get("maxnumit",maxnumit,"Elecst3d"); // max number of iterations
-  conf->get("solvertype",solvertype,"Elecst3d"); // Richardson or CG
-  conf->get("precondtype", precondtype, "Elecst3d"); //ID or MG
-  conf->get("numeqcoarse",numeqcoarse,"Elecst3d"); // number of equation for coarsing
-  conf->get("coarsealpha",coarsealpha,"Elecst3d"); // coarsing parameter for AMG
-}
+  conf->get("eps",eps,"Elecst2d"); // relative accuracy in the precond. energy
+  conf->get("dampiter",dampiter,"Elecst2d"); // damping parameter for Jacobi, SSOR
+  conf->get("maxnumit",maxnumit,"Elecst2d"); // max number of iterations
+  conf->get("solvertype",solvertype,"Elecst2d"); // Richardson or CG
+  conf->get("precondtype", precondtype, "Elecst2d"); //ID or MG
+  conf->get("numeqcoarse",numeqcoarse,"Elecst2d"); // number of equation for coarsing
+  conf->get("coarsealpha",coarsealpha,"Elecst2d"); // coarsing parameter for AMG
+
+} 
+
 
 void Elecst3dPDE::SetMatrixFactors()
 {

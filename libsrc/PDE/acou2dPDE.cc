@@ -65,22 +65,6 @@ Acou2dPDE::Acou2dPDE(AbstractAlgebraicSys * ptalgsys, Grid * aptgrid, Material *
   preComputeRHS();
 }
 
-void Acou2dPDE::SpecifySolver(Integer &solvertype, Integer &precondtype, Double &eps, Double &dampiter, Integer &maxnumit, Integer &numeqcoarse, Double &coarsealpha)
-{
-#ifdef TRACE
-  (*trace) << "entering Acou2dPDE::SpecifySolver" << std::endl;
-#endif
-
-  conf->get("eps",eps,"Acoustic"); // relative accuracy in the precond. energy
-  conf->get("dampiter",dampiter,"Acoustic"); // damping parameter for Jacobi, SSOR
-  conf->get("maxnumit",maxnumit,"Acoustic"); // max number of iterations
-  conf->get("solvertype",solvertype,"Acoustic"); // Richardson or CG
-  conf->get("precondtype", precondtype, "Acoustic"); // ID or MG
-  conf->get("numeqcoarse",numeqcoarse,"Acoustic"); // number of equation for coarsing
-  conf->get("coarsealpha",coarsealpha,"Acoustic"); // coarsing parameter for AMG
-}
-
-
 void Acou2dPDE::SetMatrixFactors()
 {
 #ifdef TRACE

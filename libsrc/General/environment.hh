@@ -1,6 +1,8 @@
 #ifndef FILE_SCFE_MYDEFS_2001
 #define FILE_SCFE_MYDEFS_2001
 
+#include <las_environment.hh>
+
 namespace CoupledField
 {
 
@@ -36,18 +38,6 @@ typedef int Boolean;
   enum IntegrationType {GaussOrder2, GaussOrder3, GaussOrder4, GaussOrder5, GaussOrder7, null};
   //! enumeration precondition's types. it is used in methods of LinAlg
  enum precond { non, Jacobi, SSOR, LU}; 
-
-// ---------------solver specific enumerations: begin
-enum GraphType   {NOGRAPH, NODEGRAPH, EDGEGRAPH, FACEGRAPH, VOLUMEGRAPH};
-enum FEType      {NOFETYPE, TRIA, QUAD, TET, HEX};
-enum MatrixType  {NOTYPE, SYSTEM, STIFFNESS, DAMPING, CONVECTION, MASS};
-enum MatrixClass {NOCLASS, RSCALAR, CSCALAR, RBLOCK, CBLOCK, RFULL, CFULL, RSCALAREDGE, CSCALAREDGE, HBFEM};
-enum PrecondType {NOPRECOND, ID, MG};
-enum SolverType  {NOSOLVER, RealRichardson, ComplexRichardson, RealCG, ComplexCG, Lanczos, RealQMR, 
-		  ComplexQMR, RealDirect};
-enum CycleType   {NOCYCLE, VCYCLE, WCYCLE};
-
-// ---------------solver specific enumerations: end
 
 std::ostream & operator << (std::ostream & out, const enum precond & type);
 

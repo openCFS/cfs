@@ -77,9 +77,11 @@ Integer main(int argc, char *argv[])
 
   //solve your problem
   std::string adaptTimeOn, adaptSpaceOn;
-  //  conf->get("adapttime",adaptTimeOn);
-  conf->get("adaptspace",adaptSpaceOn);
+
+  adaptSpaceOn =  "no";
+  conf->ifget("adapttime",adaptTimeOn);
   adaptTimeOn = "no";
+  conf->ifget("adaptspace",adaptSpaceOn);
 
   if (adaptTimeOn == "yes")  
     ptdriver->SolveProblemAdapt();

@@ -162,7 +162,7 @@ public:
   //! Add element vector to rhs-vector at position pos
   virtual void PutElemRHS(Double * elemrhs, Integer *pos, Integer size, Integer sys_id)=0;
 
-  //! Put elemtmvector to global RHS
+  //! Put elementvector to global RHS
   /*!
     \param elemrhs element vector
     \param connect global node (edge) numbers
@@ -174,7 +174,7 @@ public:
 
 
   //! Solve the algebraic system with ID nsys
-  virtual void SolveAlgSys(Integer nsys)=0;
+  virtual void SolveAlgSys(Integer nsys, Integer newsolve=1)=0;
 
   //! Get the solution for algebraic system with ID nsys
   virtual Double * GetSolution(Integer nsys)=0;
@@ -184,7 +184,7 @@ public:
     \param matrix_row  row index in matrix structure
     \param matrix_col column index in matrix structure
     \param matrix_id specifies type od matrix (mass, stiffness, ..)
-    \param u vector, which will teh nergy norm will be computed
+    \param u vector, with which the energy norm will be computed
   */
   virtual Double CalcEnergyNorm(Integer matrix_row, Integer matrix_col, Integer matrix_id, Double * u)=0;
 

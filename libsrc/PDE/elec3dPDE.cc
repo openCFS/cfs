@@ -20,31 +20,18 @@ Elec3dPDE::Elec3dPDE(AbstractAlgebraicSys * ptalgsys, Grid * aptgrid, Material *
 #endif
 
   dofspernode_=1;
+  pdename_    = "Electric3d";
+
   ptgrid_=aptgrid;
 
   size_=ptgrid_->GetMaxnumnodes(0);
   sol_.Resize(size_);
   sol_.Init(0);
 
-  conf->getsubdompde(subdoms_,"Electric3d");
-  ReadBCs("Electric3d");
+  conf->getsubdompde(subdoms_,pdename_);
+  ReadBCs(pdename_);
 }
 
-void Elec3dPDE::SpecifySolver(Integer &solvertype, Integer &precondtype, Double &eps, Double &dampiter, 
-			      Integer &maxnumit, Integer &numeqcoarse, Double &coarsealpha)
-{
-#ifdef TRACE
-  (*trace) << "entering Elec3dPDE::SpecifySolver" << std::endl;
-#endif
-
-  conf->get("eps",eps,"Electric3d"); // relative accuracy in the precond. energy
-  conf->get("dampiter",dampiter,"Electric3d"); // damping parameter for Jacobi, SSOR
-  conf->get("maxnumit",maxnumit,"Electric3d"); // max number of iterations
-  conf->get("solvertype",solvertype,"Electric3d"); // Richardson or CG
-  conf->get("precondtype", precondtype, "Electric3d"); //ID or MG
-  conf->get("numeqcoarse",numeqcoarse,"Electric3d"); // number of equation for coarsing
-  conf->get("coarsealpha",coarsealpha,"Electric3d"); // coarsing parameter for AMG
-}
 
 void Elec3dPDE::SetMatrixFactors()
 {
@@ -52,10 +39,10 @@ void Elec3dPDE::SetMatrixFactors()
   (*trace) << "entering Elec3dPDE::SetMatrixFactors" << std::endl;
 #endif
  
-  matrix_factor_[0] = 1.0;
-  matrix_factor_[1] = 0.0;
-  matrix_factor_[2] = 0.0;
-  matrix_factor_[3] = 0.0;
+  matrix_factor_[0] = 1.0;  // factor for stiffness matrix
+  matrix_factor_[1] = 0.0;  // factor for damping matrix
+  matrix_factor_[2] = 0.0;  // factor for convection matrix
+  matrix_factor_[3] = 0.0;  // factor for mass matrix
 }
 
 void Elec3dPDE::SpecifyMatrices(Integer &matrixtype, Integer * matrixsystype, Integer &graphtype, 
@@ -65,36 +52,17 @@ void Elec3dPDE::SpecifyMatrices(Integer &matrixtype, Integer * matrixsystype, In
   (*trace) << "entering Elec3dPDE::SpecifyMatrices" << std::endl;
 #endif
 
-  matrixtype = 1;     // NOCLASS = 0
-                      // RSPARSE = 1
-                      // CSPARSE = 2
-                      // RBLOCK  = 3
-                      // CBLOCK  = 4
-                      // RFULL   = 5
-                      // CFULL   = 6
-                      // MIXED   = 7
+  matrixtype = RSCALAR; 
+  graphtype  = NODEGRAPH; 
 
-  /* matrixsystype: NOTYPE     = 0
-                    SYSTEM     = 1
-                    STIFFNESS  = 2
-                    DAMPING    = 3
-                    CONVECTION = 4
-                    MASS       = 5
-  */
+  matrixsystype[0] = SYSTEM;      // memory for the system matrix
+  matrixsystype[1] = STIFFNESS;   // memory for the stiffness matrix
+  matrixsystype[2] = 0;           // memory for the damping matrix
+  matrixsystype[3] = 0;           // memory for the convection matrix
+  matrixsystype[4] = 0;           // memory for the mass matrix
 
-  matrixsystype[0] = 1;   // memory for the system matrix
-  matrixsystype[1] = 2;   // memory for the stiffness matrix
-  matrixsystype[2] = 0;   // memory for the damping matrix
-  matrixsystype[3] = 0;   // memory for the convection matrix
-  matrixsystype[4] = 0;   // memory for the mass matrix
 
-  graphtype = 1; // NOGRAPH = 0
-                 // NODE   = 1
-                 // EDGE   = 2
-                 // FACE   = 3
-                 // VOLUME = 4
-
-  numdofpernode  = 1;
+  numdofpernode  = dofspernode_;
   numdirichlets = 1;
   numconstraints = 0;
 }
@@ -109,8 +77,6 @@ void Elec3dPDE::SetupMatrices(const Integer level, BCs * ptBCs)
   Point<3> * ptCoord;
 
   BaseElem * ptElem;
-
-  Integer matrix_stiff=2;
 
   Vector<Double> coeffst;
   CalcCoeff(coeffst);  
@@ -148,7 +114,7 @@ void Elec3dPDE::SetupMatrices(const Integer level, BCs * ptBCs)
 #endif
 
 	  ptalgsys_->PutElemMatAlgSys(elemmat.getinarray(), connecth.get(), connecth.size(), as_sysid_, as_sysid_, 
-				      matrix_stiff);
+				      STIFFNESS);
 
 	  delete bilinear_stiff;
 	  delete [] ptCoord;
@@ -169,9 +135,6 @@ void Elec3dPDE::SetBCs(BCs * ptBCs, const Integer level, const Integer update, c
   Integer node;
   Double val, valueTF;
 
-  //system matrix: id = 1
-  Integer matrix_id = 1;
-
   Integer i,j=0;
   std::list<Integer> nodes;
 
@@ -186,10 +149,11 @@ void Elec3dPDE::SetBCs(BCs * ptBCs, const Integer level, const Integer update, c
           if (update==1)
             {
 
-	       if (InfoPrint)
+	      if (InfoPrint)
 		(*infofile) << " node: " << node << " val: " << val << std::endl;
 
-              ptalgsys_->SetBCDirichletUpdate(j+1, node, val, dofspernode_, as_sysid_, as_sysid_, matrix_id);
+              ptalgsys_->SetBCDirichletUpdate(j+1, node, val, dofspernode_, as_sysid_, 
+					      as_sysid_, SYSTEM);
             }
           else
             {
@@ -198,7 +162,7 @@ void Elec3dPDE::SetBCs(BCs * ptBCs, const Integer level, const Integer update, c
 		(*infofile) << " node: " << node << " val: " << val << std::endl;
 
               ptalgsys_->SetBCDirichlet(j+1, node, val, dofspernode_, as_sysid_,
-					as_sysid_, matrix_id);
+					as_sysid_, SYSTEM);
             }
 	}
     }
@@ -218,7 +182,8 @@ void Elec3dPDE::SetBCs(BCs * ptBCs, const Integer level, const Integer update, c
 	      if (InfoPrint)
 		(*infofile) << " node: " << node << " val: " << val << std::endl;
 
-              ptalgsys_->SetBCDirichletUpdate(j+1, node, val, dofspernode_, as_sysid_, as_sysid_, matrix_id);
+              ptalgsys_->SetBCDirichletUpdate(j+1, node, val, dofspernode_, as_sysid_, 
+					      as_sysid_, SYSTEM);
             }
           else
             {
@@ -226,7 +191,8 @@ void Elec3dPDE::SetBCs(BCs * ptBCs, const Integer level, const Integer update, c
 	      if (InfoPrint)
 		(*infofile) << " node: " << node << " val: " << val << std::endl;
 	      
-              ptalgsys_->SetBCDirichlet(j+1, node, val, dofspernode_, as_sysid_,as_sysid_, matrix_id);
+              ptalgsys_->SetBCDirichlet(j+1, node, val, dofspernode_, as_sysid_,as_sysid_, 
+					SYSTEM);
             }
 	}
     }

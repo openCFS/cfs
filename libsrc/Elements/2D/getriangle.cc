@@ -14,8 +14,8 @@ GeTriangle::GeTriangle()
   (*trace) << "entering GeTriangle::GeTriangle" << std::endl;
 #endif
  
-  std::string integtype;
-  conf->get("triangle",integtype,"IntegRules");
+  std::string integtype="GaussOrder2";
+  conf->ifget("triangle",integtype,"IntegRules");
 
   IntegType=String2EnumIntegrationType(integtype.c_str());
 

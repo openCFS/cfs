@@ -14,8 +14,8 @@ Rectangle::Rectangle()
   (*trace) << "entering Rectangle::Rectangle" << std::endl;
 #endif
 
-  std::string integtype;
-  conf->get("rectangle",integtype,"IntegRules");
+  std::string integtype="GaussOrder2";
+  conf->ifget("rectangle",integtype,"IntegRules");
 
   IntegType=String2EnumIntegrationType(integtype.c_str());
 

@@ -16,7 +16,8 @@ namespace CoupledField
 {
 
 
-Mech2dPDE::Mech2dPDE(AbstractAlgebraicSys * ptalgsys, Grid * aptgrid, Material * ptMaterial, TimeFunc * aptTimeFunc, FileType * aptFileType, WriteResults * aptOut)
+Mech2dPDE::Mech2dPDE(AbstractAlgebraicSys * ptalgsys, Grid * aptgrid, Material * ptMaterial, 
+		     TimeFunc * aptTimeFunc, FileType * aptFileType, WriteResults * aptOut)
 :BasePDE(ptalgsys,ptMaterial,aptFileType,aptOut,aptTimeFunc)
 {
 #ifdef TRACE
@@ -24,6 +25,8 @@ Mech2dPDE::Mech2dPDE(AbstractAlgebraicSys * ptalgsys, Grid * aptgrid, Material *
 #endif
 
   dofspernode_=2;
+  pdename_    ="Mechanic2d";
+
   ptgrid_=aptgrid; 
 
   laststepcalc_=0;
@@ -38,30 +41,19 @@ Mech2dPDE::Mech2dPDE(AbstractAlgebraicSys * ptalgsys, Grid * aptgrid, Material *
   sol_der2_.Resize(size_*dofspernode_);
   sol_der2_.Init(0);
 
-  //  conf->get("alpha_NM",alpha_,"Mech2d"); 
-  //  conf->get("beta_NM",beta_,"Mech2d"); 
-  //  conf->get("gamma_NM",gamma_,"Mech2d");
+  alpha_ = 0.0;
+  beta_  = 0.25;
+  gamma_ = 0.5;
 
-  conf->getsubdompde(subdoms_,"Mech2d");
-  ReadBCs("Mech2d");
+  //check if integration parameters are defined in conf-file
+  conf->ifget("alpha_NM",alpha_,pdename_); 
+  conf->ifget("beta_NM",beta_,pdename_); 
+  conf->ifget("gamma_NM",gamma_,pdename_);
+
+  conf->getsubdompde(subdoms_,pdename_);
+  ReadBCs(pdename_);
 
 }
-
-void Mech2dPDE::SpecifySolver(Integer &solvertype, Integer &precondtype, Double &eps, Double &dampiter, Integer &maxnumit, Integer &numeqcoarse, Double &coarsealpha)
-{
-#ifdef TRACE
-  (*trace) << "entering Mech2dPDE::SpecifySolver" << std::endl;
-#endif
-
-  conf->get("eps",eps,"Mech2d"); // relative accuracy in the precond. energy
-  conf->get("dampiter",dampiter,"Mech2d"); // damping parameter for Jacobi, SSOR
-  conf->get("maxnumit",maxnumit,"Mech2d"); // max number of iterations
-  conf->get("solvertype",solvertype,"Mech2d"); // Richardson or CG
-  conf->get("precondtype", precondtype, "Mech2d"); // ID or MG
-  conf->get("numeqcoarse",numeqcoarse,"Mech2d"); // number of equation for coarsing
-  conf->get("coarsealpha",coarsealpha,"Mech2d"); // coarsing parameter for AMG
-}
-
 
 void Mech2dPDE::SetMatrixFactors()
 {
@@ -72,28 +64,26 @@ void Mech2dPDE::SetMatrixFactors()
   matrix_factor_[0] = 1.0;  // stiffness
   matrix_factor_[1] = 0.0;  // damping
   matrix_factor_[2] = 0.0;  //convection
-  matrix_factor_[3] = 0.0; //mass
+  matrix_factor_[3] = 0.0;  //mass
 }
 
-void Mech2dPDE::SpecifyMatrices(Integer &matrixtype, Integer * matrixsystype, Integer &graphtype, Integer &numdofpernode, Integer &numdirichlets,
-Integer &numconstraints)
+void Mech2dPDE::SpecifyMatrices(Integer &matrixtype, Integer * matrixsystype, Integer &graphtype, 
+				Integer &numdofpernode, Integer &numdirichlets, Integer &numconstraints)
 {
 #ifdef TRACE
   (*trace) << "entering Mech2dPDE::SpecifyMatrices" << std::endl;
 #endif
 
   matrixtype = RBLOCK;
+  graphtype  = NODEGRAPH; 
 
-  matrixsystype[0] = 1;   // memory for the system matrix
-  matrixsystype[1] = 2;   // memory for the stiffness matrix
-  matrixsystype[2] = 0;   // memory for the damping matrix
-  matrixsystype[3] = 0;   // memory for the convection matrix
-  matrixsystype[4] = 5;   // memory for the mass matrix
-
-  graphtype = NODEGRAPH;
+  matrixsystype[0] = SYSTEM;      // memory for the system matrix
+  matrixsystype[1] = STIFFNESS;   // memory for the stiffness matrix
+  matrixsystype[2] = 0;   
+  matrixsystype[3] = 0;           // memory for the convection matrix
+  matrixsystype[4] = MASS;        // memory for the mass matrix
 
   numdofpernode  = dofspernode_;
-
   //not used; just for interface
   numdirichlets  = 1;
   numconstraints = 0;
@@ -159,19 +149,15 @@ void Mech2dPDE::SetupMatrices(const Integer level, BCs * ptBCs)
 #ifdef DEBUG
 	  (*debug) << "Connection array  " << std::endl;
 	  (*debug)  << connecth  << std::endl;
-
 	  (*debug) << "Stiffnessmatrix, ElementNumber  " <<   j << std::endl;
 	  (*debug) << blockelemmat << std::endl;
-
-
 #endif     
 
 	  ptalgsys_->PutElemMatAlgSys(blockelemmat.getinarray(), connecth.get(), connecth.size(), as_sysid_, 
-				      as_sysid_, SYSTEM);
+				      as_sysid_, STIFFNESS);
 
 	  // mass part
 	  bilinear_mass->CalcElemMatrix(ptCoord, elemmat);
-
 	  //	  elemmat*=coeffm[i];
 
 	  blockelemmat.Init();
@@ -184,7 +170,6 @@ void Mech2dPDE::SetupMatrices(const Integer level, BCs * ptBCs)
 
 #ifdef DEBUG
 	  (*debug) << "Massmatrix, ElementNumber  " << j << std::endl;
-
 	  (*debug) <<blockelemmat << std::endl;
 #endif
       
@@ -321,7 +306,7 @@ void Mech2dPDE::SolveStepStatic(BCs * ptBCs, Integer level)
 
   SetupMatrices(level);
   SetBCs(ptBCs,level,update,0);
-  //  ptalgsys_->ComputeSysMatrix(as_sysid_,as_sysid_,matrix_factor_);
+  ptalgsys_->ComputeSysMatrix(as_sysid_,as_sysid_,matrix_factor_);
   ptalgsys_->ComputePrecond(job,as_sysid_);
   ptalgsys_->SolveAlgSys(as_sysid_);
 
@@ -334,7 +319,8 @@ void Mech2dPDE::SolveStepStatic(BCs * ptBCs, Integer level)
   sol_=transsol;
 }
 
-void Mech2dPDE::SolveStepTrans(BCs * ptBCs, const Integer kstep, const Double asteptime, const Integer level, const Boolean reset)
+void Mech2dPDE::SolveStepTrans(BCs * ptBCs, const Integer kstep, const Double asteptime, 
+			       const Integer level, const Boolean reset)
 {
 #ifdef TRACE
   (*trace) << "entering Mech2dPDE::SolveStepTrans" << std::endl;
