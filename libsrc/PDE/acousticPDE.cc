@@ -434,6 +434,7 @@ namespace CoupledField {
   // ***********************************************************************
   //   Obtain information on desired output quantities from parameter file
   // ***********************************************************************
+#ifdef XMLPARAMS
   void AcousticPDE::ReadStoreResults() {
 
     ENTER_FCN( "AcousticPDE::ReadStoreResults" );
@@ -445,5 +446,6 @@ namespace CoupledField {
     savederiv2_ = FALSE;
 
   }
+#endif
 
 }

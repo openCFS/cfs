@@ -80,10 +80,6 @@ MagPDE::MagPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *apt
   sol_->Init(0.0);
   
   
-
-
-  numElems_ = ptgrid_->GetMaxnumElem(actlevel_,subdoms_);
-
   // set analysis parameters
   assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, subdoms_, surfdoms_);
   assemble_->SetGraphType(NODEGRAPH);
@@ -278,10 +274,10 @@ void MagPDE::PostProcess(const Integer level)
       B_.Init(0);
       
       // loop over all subdomains
-      for (Integer isd=0; isd<subdoms_.size(); isd++)
+      for (Integer isd=0; isd<calcBfield_.size(); isd++)
 	{
 	  // get vector of Elem of subdomain with color: subdoms[isd]
-	  ptgrid_->GetElemSD(elemssd,subdoms_[isd],level);
+	  ptgrid_->GetElemSD(elemssd,calcBfield_[isd],level);
 	  
 	  // loop over elements of subdomain
 	  for (Integer iel=0; iel< elemssd.size(); iel++,counterElems++)
@@ -304,6 +300,7 @@ void MagPDE::PostProcess(const Integer level)
       std::vector<Double> ShpFnc, tmp;
       Vector<Double> magVecDeriv1Elem;
       Vector<Integer> connect, connect_PDE;
+      Double conductivity = 0.0;
 
       Integer counterElems=0;
 
@@ -321,11 +318,15 @@ void MagPDE::PostProcess(const Integer level)
       Jeddy_.Init(0);
 
       // loop over all subdomains
-      for (Integer actSD=0; actSD<subdoms_.size(); actSD++)
+      for (Integer actSD=0; actSD<calcEddy_.size(); actSD++)
 	{
 	  // get vector of Elem of subdomain with color: subdoms[isd]
-	  ptgrid_->GetElemSD(elemssd,subdoms_[actSD],level);
-	  Double conductivity = materialData_[actSD].GetConductivity(); 	  
+	  ptgrid_->GetElemSD(elemssd,calcEddy_[actSD],level);
+	  
+	  // Get the right material parameter for actual subdomain
+	  for (Integer iSD=0; iSD<subdoms_.size(); iSD++)
+	    if (subdoms_[iSD] == calcEddy_[actSD])
+		conductivity = materialData_[iSD].GetConductivity(); 	  
 
 	  // loop over elements of subdomain
 	  for (Integer actEl=0; actEl< elemssd.size(); actEl++,counterElems++)
@@ -368,15 +369,15 @@ void MagPDE::CalcEnergy()
   Vector<double> help;
 
   Integer i, j;
-  std::vector<Double> energy(subdoms_.size());
+  std::vector<Double> energy(calcEnergy_.size());
 
-  for (i=0; i<subdoms_.size(); i++)
+  for (i=0; i<calcEnergy_.size(); i++)
     {
       //reads eps33 (matrix notation starts with 0)
       Double eps33 = materialData_[i].GetPermittivity(2,2);
 
       std::vector<Elem*> elemssd;
-      ptgrid_->GetElemSD(elemssd,subdoms_[i],actlevel_);
+      ptgrid_->GetElemSD(elemssd,calcEnergy_[i],actlevel_);
 
       energy[i] = 0;
       for (j=0; j < elemssd.size(); j++)
@@ -406,7 +407,7 @@ void MagPDE::CalcEnergy()
     }
 
   std::string resulttype = "Electric Energy";
-  Info->WriteResult(pdename_,  resulttype, subdoms_ , energy);
+  Info->WriteResult(pdename_,  resulttype, calcEnergy_ , energy);
 }
 
 

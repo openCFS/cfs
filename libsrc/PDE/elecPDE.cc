@@ -331,10 +331,10 @@ void ElecPDE::PostProcess(const Integer level)
       Vector<Double> TempE;
       
       // loop over all subdomains
-      for (Integer isd=0; isd<subdoms_.size(); isd++)
+      for (Integer isd=0; isd<calcEfield_.size(); isd++)
 	{
 	  // get vector of Elem of subdomain with color: subdoms[isd]
-	  ptgrid_->GetElemSD(elemssd,subdoms_[isd],level);
+	  ptgrid_->GetElemSD(elemssd,calcEfield_[isd],level);
 	  
 	  // loop over elements of subdomain
 	  for (Integer iel=0; iel< elemssd.size(); iel++,counterElems++)
@@ -518,7 +518,6 @@ void ElecPDE::Reset()
   sol_->SetNumDofs(dofspernode_);
   sol_->Init(0.0);
 
-  numElems_ = ptgrid_->GetMaxnumElem(actlevel_,subdoms_);
   
   E_.SetNumSolutions(1);
   E_.SetSolutionType(ELEC_FIELD);
@@ -938,6 +937,7 @@ void ElecPDE::CalcEfieldAtCoupleElemIP(Elem * actVolElem,
 // ***********************************************************************
 //   Obtain information on desired output quantities from parameter file
 // ***********************************************************************
+#ifdef XMLPARAMS
 void ElecPDE::ReadStoreResults() {
 
   ENTER_FCN( "ElecPDE::ReadStoreResults" );
@@ -954,7 +954,7 @@ void ElecPDE::ReadStoreResults() {
 			  "storeResults" );
 
 }
-
+#endif
 
 } // end of namespace
 
