@@ -16,12 +16,12 @@
   <xsd:complexType name="DT_Geometry">
     <xsd:complexContent>
       <xsd:restriction base="xsd:anyType">
-        <xsd:attribute name="type" use="optional" default="3D">
+        <xsd:attribute name="type" use="optional" default="3d">
           <xsd:simpleType>
             <xsd:restriction base="xsd:token">
-              <xsd:enumeration value="plain"/>
+              <xsd:enumeration value="plane"/>
               <xsd:enumeration value="axi"/>
-              <xsd:enumeration value="3D"/>
+              <xsd:enumeration value="3d"/>
             </xsd:restriction>
           </xsd:simpleType>
         </xsd:attribute>
