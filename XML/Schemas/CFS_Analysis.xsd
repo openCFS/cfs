@@ -45,6 +45,7 @@
 
   <!-- This element is abstract in order to force substitution -->
   <!-- by the derived specialised analysis elements -->
+
   <xsd:element name="AnalysisBasic" type="DT_AnalysisBasic" abstract="true"/> 
 
 

@@ -39,6 +39,7 @@
 <xsd:include schemaLocation="Schemas/CFS_Domain.xsd"/>
 <xsd:include schemaLocation="Schemas/CFS_Misc.xsd"/>
 <xsd:include schemaLocation="Schemas/CFS_IntegRules.xsd"/>
+<xsd:include schemaLocation="Schemas/CFS_MpCCI.xsd"/>
 
 
 <!-- ********************************************************************** -->
@@ -98,6 +99,10 @@
      
       <!-- Parameters for transient/harmonic analysis (semi-optional) -->
       <xsd:element ref="AnalysisBasic" minOccurs="0"
+        maxOccurs="unbounded"/>
+
+      <!-- Parameters for MpCCI computation (semi-optional) -->
+      <xsd:element ref="MpCCI" minOccurs="0"
         maxOccurs="unbounded"/>
 
       <!-- Parameters for specifying integration rules (optional) -->
