@@ -924,8 +924,7 @@ namespace CoupledField
       return;
 
     IntegratorDescriptor * actID = new IntegratorDescriptor(integrator, actMatType, nonLin);
-    integrators_[SubDomIndex(subDomName)]->push_back(actID);
-
+    integrators_[SubDomIndex(subDomName)]->Push_back(actID);
   }
 
 #else
