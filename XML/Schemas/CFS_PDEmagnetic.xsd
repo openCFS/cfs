@@ -287,7 +287,8 @@
         <xsd:sequence>
           <xsd:element name="value"      type="DT_PosFloat"/>
           <xsd:element name="dynamics"   type="xsd:token" minOccurs="0"/>
-          <xsd:element name="phase"      type="DT_DegAngle" minOccurs="0"/>
+          <xsd:element name="phase"      type="DT_DegAngle" minOccurs="0"
+            default="0"/>
           <xsd:element ref="FlowDirection"/>
         </xsd:sequence>
       </xsd:extension>
