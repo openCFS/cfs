@@ -302,10 +302,11 @@ namespace CoupledField
 
     //! This methode queries the parameter object for a list of all PDEs
     //! which are iterative coupled. 
-    //! \param list          List with name of all direct coupling pdes
+    //! \param list        List with name of all direct coupling pdes
+    //! \param sequenceTag Symbolic tag for multi-sequence analysis (optional)
     virtual void GetIterCoupledPDEList( StdVector<std::string> &list,
-					const std::string sequenceTag = "") = 0;
-					
+					const std::string sequenceTag = "")= 0;
+
 
     //! Obtain list of coils defined in parameter file
 
