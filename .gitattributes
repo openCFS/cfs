@@ -13,6 +13,7 @@ Doc/xmlFile/basicCommands.tex svneol=native#text/plain
 Doc/xmlFile/coupledfields.tex svneol=native#text/plain
 Doc/xmlFile/general.tex svneol=native#text/plain
 Doc/xmlFile/mycommands.tex svneol=native#text/plain
+Doc/xmlFile/paramIdent.tex svneol=native#text/plain
 Doc/xmlFile/singlefields.tex svneol=native#text/plain
 Doc/xmlFile/solverParams.tex svneol=native#text/plain
 Doc/xmlFile/special.tex svneol=native#text/plain
