@@ -1615,10 +1615,10 @@ void MechPDE::PostProcess(const Integer level) {
 	  sortStresses(elemStress,sortedStress);
   	  Stress_.SetElemResult(pdeElem-1, sortedStress);
 	}
+
+	delete stress;
       }
     }
-          
   }
-
-
+  
 } // end namespace CoupledField
