@@ -71,6 +71,9 @@ public:
   //! constraint nodes were set
   virtual void CalcMapping() = 0;
 
+  //! Calculate only the mapping from global to
+  //! local node numbers and back.
+  //! This is a reduced form of "CalcMapping()"
   virtual void CalcMpcciMapping(){};
 
   //! Print the mapping nodes <->EQNs
