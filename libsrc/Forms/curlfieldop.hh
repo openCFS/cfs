@@ -30,7 +30,7 @@ namespace CoupledField
       \param algsys (input) pointer to algebraic system
     */
     CurlEdgeOp(Grid * ptGrid,
-	       BasePDE * ptPDE,
+	       StdPDE * ptPDE,
 	       NodeEQN * ptEQN,
 	       NodeStoreSol<Double> & sol,
 	       const Integer level,
@@ -72,7 +72,7 @@ namespace CoupledField
 
     //! Constructor
     CurlNodeOp(Grid * ptGrid,
-	       BasePDE * ptPDE,
+	       StdPDE * ptPDE,
 	       NodeEQN * ptEQN,
 	       NodeStoreSol<Double> & sol,
 	       const Integer level);

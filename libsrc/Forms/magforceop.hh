@@ -28,7 +28,7 @@ namespace CoupledField
     //!                           potential for all nodes of domain
     //! \param level      (input) Multigrid level
     MagLorentzForceOp(Grid * ptGrid, 
-		BasePDE * ptPDE,
+		StdPDE * ptPDE,
 		NodeEQN * ptEQN,
 		NodeStoreSol<Double> & magPotential,
 		const Integer level, Boolean isaxi);

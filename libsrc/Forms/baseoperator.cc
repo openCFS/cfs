@@ -3,7 +3,7 @@
 namespace CoupledField
 {
 
-BaseOperator::BaseOperator(Grid * ptGrid, BasePDE * ptPDE, 
+BaseOperator::BaseOperator(Grid * ptGrid, StdPDE * ptPDE, 
 			   NodeEQN * ptEQN, 
 			   const Integer level, 
 			   Boolean isaxi)

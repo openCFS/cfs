@@ -38,7 +38,7 @@ namespace CoupledField {
     
     */
     ElecChargeOp(Grid * ptGrid,
-		 BasePDE * ptPDE,
+		 StdPDE * ptPDE,
 		 NodeEQN * ptEQN,
 		 const Integer level,
 		 Boolean isaxi=FALSE);

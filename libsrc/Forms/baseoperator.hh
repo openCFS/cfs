@@ -9,7 +9,7 @@ namespace CoupledField
 {
 
   class Grid;
-  class BasePDE;
+  class StdPDE;
 
  //! Base class for operators working on elements
   /*! Class BaseOperator is base class from which different kinds of operators are derived
@@ -20,7 +20,7 @@ public:
 
    //! Constructor
   BaseOperator(Grid * ptGrid, 
-	       BasePDE * ptPDE,  
+	       StdPDE * ptPDE,  
 	       NodeEQN * ptEQN, 
 	       const Integer level,
 	       Boolean isaxi=FALSE);
@@ -31,7 +31,7 @@ public:
 protected:
 
   Grid * ptGrid_;     //!< pointer to grid
-  BasePDE * ptPDE_;   //!< pointer to PDE
+  StdPDE * ptPDE_;   //!< pointer to PDE
   NodeEQN * ptEQN_;   //!< pointer to Equation object
   Integer level_;     //!< current level 
   Boolean isaxi_;
