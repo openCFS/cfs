@@ -46,6 +46,9 @@ namespace CoupledField
     //! writes skeleton for PDE coupling list
     void WriteCouplingList();
 
+    //! write analysis types
+    void WriteAnalysisTypes();
+
   private:
 
     std::ofstream * skelfile_; //!< file pointer fo conf-file
