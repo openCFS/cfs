@@ -13,7 +13,7 @@ SolveStepAcousticBubble::SolveStepAcousticBubble(StdPDE& apde,
   : StdSolveStep(apde) 
 {
   ENTER_FCN( "SolveStepAcousticBubble::SolveStepAcousticBubble" );
-
+  std::cerr << ":SolveStepAcousticBubble" << std::endl;
   
   // setup the structure for bubble dynamics
   // query if cavitation model should be used will be added after setup of new
@@ -43,6 +43,7 @@ void SolveStepAcousticBubble::SolveStepTrans( const Integer kstep, const Double 
 
   lasttimecalc_ = asteptime;
   laststepcalc_ = kstep;
+
   StepTransBubble(kstep, asteptime, level, reset);
 
 }
@@ -212,20 +213,20 @@ void SolveStepAcousticBubble::StepTransBubble(const Integer kstep, const Double 
 
 
         // Output of nlRHSNew for all nodes of desired element
-	if (numEl == 90){
-	  Integer eqnNr = 0;
-	  Integer eqnDof = 0;
-	  Integer dof = 1;
-	  std::cerr << lasttimecalc_ << "   "  << numEl; 
-	  for ( Integer i=0; i < connect.GetSize(); i++){
-	    eqnData_ -> Node2EQN(connect[i],dof, eqnNr, eqnDof);
-	    std::cerr << "             " << connect[i];
-	    if (eqnNr != 0){
-	      std::cerr << "    " << nlRhsNew[ (eqnNr - 1)];
-	    }
-	  }
-	  std::cerr << "   " << std::endl;
-	}
+	//if (numEl == 90){
+	// Integer eqnNr = 0;
+	// Integer eqnDof = 0;
+	// Integer dof = 1;
+	// std::cerr << lasttimecalc_ << "   "  << numEl; 
+	// for ( Integer i=0; i < connect.GetSize(); i++){
+	//   eqnData_ -> Node2EQN(connect[i],dof, eqnNr, eqnDof);
+	//   std::cerr << "             " << connect[i];
+	//   if (eqnNr != 0){
+	//     std::cerr << "    " << nlRhsNew[ (eqnNr - 1)];
+	//   }
+	// }
+	// std::cerr << "   " << std::endl;
+	//}
 		
 
 
