@@ -30,7 +30,8 @@ namespace CoupledField
     //! necessary. This behaviour can be disabled by setting overrideExpert
     //! to no.
     static void SetParams( std::string pdename, BaseParamHandler *cfs,
-                           OLAS_Params *olas, bool overrideExpert = false );
+                           OLAS_Params *olas, AnalysisType analysistype,
+			   bool overrideExpert = false );
 
   private:
 
@@ -72,7 +73,8 @@ namespace CoupledField
     static void Expert( BaseParamHandler *cfs,
                         std::string pdename, SolverType &sType,
                         PrecondType &pType, MatrixStorageType &mType,
-                        MatrixEntryType &eType, ReorderingType &rType );
+                        MatrixEntryType &eType, ReorderingType &rType,
+			AnalysisType analysisType );
 
   };
 

@@ -254,6 +254,8 @@ namespace CoupledField {
               (*debug) << "Mass      matrix of Element " << actEl << std::endl;
             if (destMat == DAMPING)
               (*debug) << "Damping   matrix of Element " << actEl << std::endl;
+            if (destMat == SYSTEM)
+              (*debug) << "System matrix of Element " << actEl << std::endl;
             (*debug) << elemmat << std::endl;
             if ( !elemmat.IsSymmetric() ) {
               (*debug) << " --> Matrix is not symmetric " << std::endl << std::endl;

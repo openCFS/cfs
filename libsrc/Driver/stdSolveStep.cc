@@ -366,7 +366,7 @@ namespace CoupledField {
     }
 
     PDE_.algsys_->BuildInDirichlet();
-    
+ 
     if (job == 1) {
       PDE_.algsys_->SetupPrecond( job );
       PDE_.algsys_->SetupSolver( job );
@@ -375,7 +375,6 @@ namespace CoupledField {
     PDE_.algsys_->Solve();
 
     ptsol = PDE_.algsys_->GetSolutionVal();
-
     PDE_.sol_->CopyFromAlgSysDataPointer(ptsol);
   }
 

@@ -12,7 +12,9 @@ namespace CoupledField {
   // *************
   void CFSOLASParams::SetParams( std::string pdename,
 				 BaseParamHandler *cfs,
-				 OLAS_Params *olas, bool overrideExpert ) {
+				 OLAS_Params *olas, 
+				 AnalysisType analysisType,
+				 bool overrideExpert ) {
 
     ENTER_FCN( "CFSOLASParams::SetParams" );
 
@@ -72,7 +74,7 @@ namespace CoupledField {
     // Let expert module modify the settings
     if ( !overrideExpert ) {
       CFSOLASParams::Expert( cfs, pdename, sType, pType, mType, eType,
-			     orderType );
+			     orderType, analysisType );
     }
 
     // Insert information into OLAS_Params object
@@ -596,7 +598,8 @@ namespace CoupledField {
 			      PrecondType &pType,
 			      MatrixStorageType &mType,
 			      MatrixEntryType &eType,
-			      ReorderingType &rType ) {
+			      ReorderingType &rType,
+			      AnalysisType analysisType ) {
 
     ENTER_FCN( "CFSOLASParams::Expert" );
 
@@ -742,6 +745,14 @@ namespace CoupledField {
       eType = COMPLEX;
       Info->PrintF( pdename, "Expert: Using COMPLEX as matrix entry type "
 		    "for parameter identification\n" );
+    }
+
+    if ( analysis == "multiSequence" ) {
+      if ( analysisType == HARMONIC  && eType != COMPLEX ) {
+	eType = COMPLEX;
+	Info->PrintF( pdename, "Expert: Using COMPLEX as matrix entry type "
+		      "for parameter identification\n" );
+      }
     }
 
     // ============
