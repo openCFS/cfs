@@ -1,5 +1,6 @@
 #include "pdecoupling.hh"
 
+#include "couplingmemento.hh"
 #include "PDE/basePDE.hh"
 #include "Domain/elem.hh"
 #include "Domain/grid.hh"
@@ -31,8 +32,48 @@ PDECoupling::CouplingInterface::CouplingInterface()
   materials.Clear();
   oppositePdeMaterials.Clear();
   
-  
   }
+
+PDECoupling::CouplingInterface &
+PDECoupling::CouplingInterface::operator= (const CouplingInterface & x)
+{
+  regions = x.regions;
+  regionType = x.regionType;
+  level = x.level;
+  nodes = x.nodes;
+  elements = x.elements;
+  neighbours = x.neighbours;
+  neighInputRegions = x.neighInputRegions;
+  oppositePdeNeighbours;
+  materials = x.materials;
+  oppositePdeMaterials = x.oppositePdeMaterials;
+
+  if (x.values != NULL) {
+    if (x.values->IsComplex()) {
+      std::cerr << "IM FALSCHEN TEIL" << std::endl;
+      Error("Im falschen Zweig");
+      values = new Vector<Complex>(dynamic_cast<Vector<Complex>&>(*(x.values)));
+      oldValues = new Vector<Complex>(dynamic_cast<Vector<Complex>&>(*(x.oldValues)));
+    } else {
+      values = new Vector<Double>(dynamic_cast<Vector<Double>&>(*(x.values)));
+      oldValues = new Vector<Double>(dynamic_cast<Vector<Double>&>(*(x.oldValues)));
+    }
+  }  
+
+  dof = x.dof;
+  numNodes = x.numNodes;
+  numElems = x.numElems;
+  normtype = x.normtype;
+  epsilon = x.epsilon;
+
+}
+ 
+
+PDECoupling::CouplingInterface::
+CouplingInterface(const CouplingInterface &x ){
+  *this = x;
+ 
+}
 
 PDECoupling::CouplingInterface::~CouplingInterface()
 {
@@ -190,9 +231,7 @@ void PDECoupling::AddInput(SolutionType quantity,
 	Error(errMsg.c_str(), __FILE__, __LINE__);
       }
     
-    //     std::cerr << "AddInputCoupling: my neighRegions are " << std::endl << neighRegions << std::endl; 
   }
-//   std::cerr << "AddInputCoupling: my neighRegions are " << std::endl << neighRegions << std::endl;
   myInterface->neighInputRegions = neighRegions;
   
   if (myInterface->elements.GetSize() != 0)
@@ -313,9 +352,6 @@ PDECoupling::CouplingInterface* PDECoupling::AddOutput(CouplingOutputType output
   if (myPDE_->HasOutput(quantity) == FALSE)
     return 0;
   
-  //  std::cerr << "\n found output " << quantity << " in PDE " << myPDE_->GetName() << std::endl;
-  //  std::cerr << "Type: " << regionType << std::endl;
-
   // create new Coupling Output
   outputTypes_.Push_back(outputType);
   outputQuantities_.Push_back(quantity);
@@ -578,7 +614,124 @@ CouplingOutputType PDECoupling::Input2OutputType(CouplingInputType inputType)
   
 }
 
+void PDECoupling::GetMemento(CouplingMemento & memento) {
+  ENTER_FCN( "PDECoupling::GetMemento" );
+  
+  memento.inputTypes_ = inputTypes_;
+  memento.inputQuantities_ = inputQuantities_;
+  memento.inputInterfaces_.Resize(inputInterfaces_.GetSize());
 
+  for (Integer i=0; i<inputInterfaces_.GetSize(); i++){
+    memento.inputInterfaces_[i] = *(inputInterfaces_[i]);
+  }
+  memento.isSet_ = TRUE;
+}
+
+
+void PDECoupling::SetMemento(CouplingMemento & memento) {
+  ENTER_FCN( "PDECoupling::GetMemento" );
+  
+  std::string errMsg, warnMsg, helper;
+
+  // if there is no information in the menmento just leave
+  if (memento.isSet_ == FALSE)
+    return;
+  
+  // Check if size of internal vectors
+  if ((memento.inputTypes_.GetSize() != memento.inputQuantities_.GetSize()) ||
+      (memento.inputTypes_.GetSize() != memento.inputInterfaces_.GetSize())) {
+    errMsg  = "PDECoupling::SetMemento: Incnsistent definition!\n";
+    errMsg += "Size of 'inputTypes_': ";
+    errMsg += inputTypes_.GetSize();
+    errMsg += "\nSize of 'inputQuantities_': ";
+    errMsg += inputQuantities_.GetSize();
+    errMsg += "\nSize of 'inputInterfaces_: ";
+    errMsg += inputInterfaces_.GetSize();
+    Error(errMsg.c_str(), __FILE__, __LINE__);
+  }
+
+  // Iterate over all quantities and check which values can be assigned
+
+  // loop over all memento interfaces
+  for (Integer iMem=0; iMem<memento.inputTypes_.GetSize(); iMem++) {
+    Boolean couplingFound = FALSE;
+
+    // loop over all own interfaces
+    for (Integer iOwn=0; iOwn<inputTypes_.GetSize(); iOwn++) {
+      if ((memento.inputTypes_[iMem] == inputTypes_[iOwn]) && 
+	  
+	  (memento.inputQuantities_[iMem] == inputQuantities_[iOwn]) &&
+	  
+	  (memento.inputInterfaces_[iMem].regions  == 
+	   inputInterfaces_[iOwn]->regions) &&
+	  
+	  (memento.inputInterfaces_[iMem].regionType  == 
+	   inputInterfaces_[iOwn]->regionType) &&
+	  
+	  (memento.inputInterfaces_[iMem].nodes  == 
+	   inputInterfaces_[iOwn]->nodes) &&
+	  
+	  (memento.inputInterfaces_[iMem].elements  == 
+	   inputInterfaces_[iOwn]->elements) &&
+	  
+	  (memento.inputInterfaces_[iMem].neighbours  == 
+	   inputInterfaces_[iOwn]->neighbours) &&
+	  
+	  (memento.inputInterfaces_[iMem].dof  == 
+	   inputInterfaces_[iOwn]->dof) &&
+	  
+	  (memento.inputInterfaces_[iMem].numNodes  == 
+	   inputInterfaces_[iOwn]->numNodes) &&
+	  
+	  (memento.inputInterfaces_[iMem].numElems  == 
+	   inputInterfaces_[iOwn]->numElems) &&
+	  
+	  (memento.inputInterfaces_[iMem].values->IsComplex() == 
+	   inputInterfaces_[iOwn]->values->IsComplex()))
+	{
+	  
+	  // This section is reached, if the two couplings
+	  // are the same
+	  if (inputInterfaces_[iOwn]->values->IsComplex()){
+	    
+	    // --- Complex values --
+	    dynamic_cast<Vector<Complex>&> (*(inputInterfaces_[iOwn]->values)) 
+	      = dynamic_cast<Vector<Complex>&>
+	      (*(memento.inputInterfaces_[iMem].values));
+	    
+	  } else {
+	    // --- Real values --
+
+	    Vector<Double> const & help = dynamic_cast<Vector<Double>&> (*(inputInterfaces_[iOwn]->values));
+	    dynamic_cast<Vector<Double>&> (*(inputInterfaces_[iOwn]->values))
+	      = dynamic_cast<Vector<Double>&>
+	      (*(memento.inputInterfaces_[iMem].values));
+	  }
+	    
+	  couplingFound = TRUE;
+	  break;
+	} // if satement
+      
+      if (! couplingFound) {
+	Enum2String(memento.inputQuantities_[iMem], helper);
+	warnMsg  = "PDECoupling::SetMemento: The coupling quantitiy '";
+	warnMsg += helper;
+	warnMsg += "' at the interface(s) '";
+	for (Integer i=0; i<memento.inputInterfaces_[iMem].regions.GetSize()-1; i++) {
+	  warnMsg +=  memento.inputInterfaces_[iMem].regions[i];
+	  warnMsg += ", ";
+	}
+	warnMsg += memento.inputInterfaces_[iMem].
+	  regions[memento.inputInterfaces_[iMem].regions.GetSize()-1];
+	warnMsg +="' is not present anymore in the current coupling set for PDE '";
+	warnMsg += myPDE_->GetName();
+	warnMsg += "'.";
+	Warning(warnMsg.c_str(), __FILE__, __LINE__);
+      } //if coupling not found
+    } // loop over own couplings
+  } // looop over memento couplings
+  
+}
 
 //   std::ostream& operator << ( std::ostream & out , const CouplingInterface & inter)
 //   {
