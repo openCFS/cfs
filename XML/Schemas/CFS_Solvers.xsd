@@ -191,7 +191,7 @@
 
 
   <!-- ******************************************************************** -->
-  <!--   Definition of data type for HYPRE_PCG Solver -->
+  <!--   Definition of data type for OLAS_PCG Solver -->
   <!-- ******************************************************************** -->
   <xsd:complexType name="DT_SolverOLASPCG">
     <xsd:complexContent>
@@ -200,6 +200,35 @@
           <xsd:element name="tol" type="DT_PosFloat" minOccurs="0"/>
           <xsd:element name="maxIter" type="xsd:positiveInteger"
             minOccurs="0"/>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+
+  <!-- ==================================================================== -->
+  <!-- ==                                                                == -->
+  <!-- ==                         LAPACK_LU Solver                       == -->
+  <!-- ==                                                                == -->
+  <!-- ==================================================================== -->
+
+
+  <!-- ******************************************************************** -->
+  <!-- Definition of element for LAPACK_LU Solver -->
+  <!-- ******************************************************************** -->
+  <xsd:element name="lapackLU" type="DT_SolverLAPACKLU"
+    substitutionGroup="SolverBasic"/>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for LAPACK_LU Solver -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_SolverLAPACKLU">
+    <xsd:complexContent>
+      <xsd:extension base="DT_SolverBasic">
+        <xsd:sequence>
+          <xsd:element name="tryScaling" type="DT_CFSBool" minOccurs="0"/>
+          <xsd:element name="refineSol" type="DT_CFSBool" minOccurs="0"/>
         </xsd:sequence>
       </xsd:extension>
     </xsd:complexContent>
