@@ -48,14 +48,13 @@ namespace OutInfo {
   public:
 
     //! Constructor
-    FcnTraceListElem( char *name, int depth ){
+    FcnTraceListElem( char *name, int depth, int limit ) {
       this->name_ = name;
       fcnDepth_ = depth;
+      limit_ = limit;
     
-    if (fcnDepth_<=TRACE && 
-	TRACESTREAM != NULL)
-      {
-	for (int i = 0; i < fcnDepth_; i++) {
+      if ( fcnDepth_ <= limit_ && TRACESTREAM != NULL ) {
+	for ( int i = 0; i < fcnDepth_; i++ ) {
 	  (*TRACESTREAM) << TRACE_INDENT;
 	}
 	(*TRACESTREAM) << "entering function " << name_ << std::endl;
@@ -66,15 +65,13 @@ namespace OutInfo {
 
     //! The default destructor is responsible for issuing a "leaving
     //! function" message to the trace stream object.
-    ~FcnTraceListElem(){
-      if (fcnDepth_<=TRACE &&
-	  TRACESTREAM != NULL)
-	{
-	  for (int i = 0; i < fcnDepth_; i++ ) {
-	    (*TRACESTREAM) << TRACE_INDENT;
-	  }
-	  (*TRACESTREAM) << "leaving function " << name_ << std::endl;
+    ~FcnTraceListElem() {
+      if ( fcnDepth_ <= limit_ && TRACESTREAM != NULL ) {
+	for ( int i = 0; i < fcnDepth_; i++ ) {
+	  (*TRACESTREAM) << TRACE_INDENT;
 	}
+	(*TRACESTREAM) << "leaving function " << name_ << std::endl;
+      }
       fcnDepth_ = 0;
       name_ = NULL;
     }
@@ -84,6 +81,7 @@ namespace OutInfo {
 
   private:
     int fcnDepth_;
+    int limit_;
     char *name_;
 
   };
@@ -114,12 +112,14 @@ namespace OutInfo {
     //! of a method.
     static void EnterFcn(char *name){
       if ( foo_ == NULL ){
-	foo_ = new FcnTraceListElem( name, fcnTraceDepth_++ );
+	foo_ = new FcnTraceListElem( name, fcnTraceDepth_++,
+				     fcnTraceDepthLimit_ );
 	foo_->caller_ = NULL;
 	foo_->called_ = NULL;
       }
       else{
-	foo_->called_ = new FcnTraceListElem( name, fcnTraceDepth_++ );
+	foo_->called_ = new FcnTraceListElem( name, fcnTraceDepth_++,
+					      fcnTraceDepthLimit_ );
 	foo_->called_->caller_ = foo_;
 	foo_ = foo_->called_;
       }
@@ -147,6 +147,7 @@ namespace OutInfo {
   private:
     static FcnTraceListElem *foo_;
     static unsigned int fcnTraceDepth_;
+    static unsigned int fcnTraceDepthLimit_;
   };
 
 
