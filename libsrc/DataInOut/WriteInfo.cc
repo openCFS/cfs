@@ -467,7 +467,7 @@ namespace CoupledField
     std::cerr << std::endl << "\033[31mERROR:\033[0m " << Text;
 
 #ifdef TRACE
-    FcnTraceHandler::Dump();
+    OutInfo::FcnTraceHandler::Dump();
     std::cerr << "-> See .trace-file for function tracing dump" << Text;
 #endif
 
