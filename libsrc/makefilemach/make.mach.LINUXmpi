@@ -1,0 +1,30 @@
+#
+# Machine dependent make include file for LINUX - optimized version
+# 
+
+OPT=-O3 
+STANDARD=-ansi -pedantic -Wno-long-long
+#
+F77=mpif77 $(OPT)
+CC=mpiCC
+
+CPLUSPLUS=$(CC)
+AR=ar
+LINK=$(CC)
+MAKE=make
+RM=rm
+RANLIB=ranlib
+#
+# Machine dependent flags:
+#
+CFLAGS1=  -c -DPARALLEL $(OPT) $(STANDARD) 
+
+CFLAG_EXE= 
+FLAG_MKSHLIB = -g -v -shared 
+ARFLAGS = r 
+#
+UNDER  = -DFORTRANDOUBLEUNDERSCORE
+LINKFLAGS = 
+LINKFLAGS2 = 
+BLASLAPACK = -lg2c
+syslib = -lm -lc $(BLASLAPACK)
