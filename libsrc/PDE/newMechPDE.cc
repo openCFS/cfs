@@ -511,6 +511,8 @@ void MechPDE::CalcAcousticCouplingRHS(std::vector<Elem*> * couplingElems,
       Matrix<Double> ptCoord; 
       GetElemCoords(connecth, ptCoord, actlevel_);
       
+      // get correct density belonging to the the neighbouring element
+      // in the fluid subdomain
       density = (*couplingMaterials)[actElem]->GetDensity();
       
       BaseForm * bilinear_mass = new MassInt(ptElem, density, isaxi_);
@@ -529,10 +531,11 @@ void MechPDE::CalcAcousticCouplingRHS(std::vector<Elem*> * couplingElems,
       nSol.Init();
       
       Vector<Double> n;
-      CalcLineNormalVec(n, ptCoord);
-      //CalcLineNormalVec(n, *(*couplingElems)[actElem], *(*neighbours)[actElem]);
+      //CalcLineNormalVec(n, ptCoord);
 
-      //      myCout << "Mechanic: n: " << n << myEndl;
+      // the normal vector points outwards of the mechanical domain
+      // (see. Kaltenbacher, "Num. Sim. of Mech. Act. & Sens." chapter 8.2)
+      CalcLineNormalVec(n, *(*couplingElems)[actElem], *(*neighbours)[actElem]);
 
 
       for (Integer actNode=0; actNode < connecth.size(); actNode++)
@@ -540,17 +543,15 @@ void MechPDE::CalcAcousticCouplingRHS(std::vector<Elem*> * couplingElems,
 	  nSol[actNode] += sol[actDof + actNode*dofspernode_] * n[actDof];
 
 
-      Vector<Double> forceOnElem = elemmat * nSol;
-      Integer nodePos = 0;
-  
+      Vector<Double> forceOnElem = elemmat * nSol;  
       
       for (Integer actNode=0; actNode<ptCoord.size_row(); actNode++)
 	{
-	  nodePos = 0;
+	  Integer nodePos = 0;
 	  
 	  while(connecth[actNode] != couplingNodes[nodePos] && nodePos < couplingNodes.size()) 
 	    nodePos++;
-	  
+
 	  elemCouplingSols[0][nodePos] += forceOnElem[actNode];
 	}      
     }

@@ -258,8 +258,8 @@ void AcousticPDE::CalcMechCouplingRHS(std::vector<Elem*> * couplingElems,
       Matrix<Double> ptCoord; 
       GetElemCoords(connecth, ptCoord, actlevel_);
 
+      // get correct density belonging to the neighbouring element of the interface
       for (Integer actSD = 0; actSD < subdoms_.size(); actSD++)
-	//	if (actCoupleElem->namesd ==  subdoms_[actSD])
 	if ((*neighbours)[actElem]->namesd ==  subdoms_[actSD])
 	  density = materialData_[actSD].GetDensity();
           
@@ -276,22 +276,20 @@ void AcousticPDE::CalcMechCouplingRHS(std::vector<Elem*> * couplingElems,
       GetDerivSolVecOfElement(sol, connect_PDE);
 
       Vector<Double> forceOnElem = elemmat * sol;
-
-      Vector<Double> n;
-      CalcLineNormalVec(n, ptCoord);
-      //CalcLineNormalVec(n, *actCoupleElem, *(*neighbours)[actElem]);
-      
-      //    myCout << "Acoustic: n: " << n << myEndl;
-      
-      
-      Integer nodePos = 0;
-
       // force has to be added on RHS with negative sign
       forceOnElem *= -1;
+
+
+      Vector<Double> n;
+      CalcLineNormalVec(n, *actCoupleElem, *(*neighbours)[actElem]); // points outward own domain
+
+      // the normal vector points outwards of the MECHANICAL domain
+      // (see. Kaltenbacher, "Num. Sim. of Mechatr. Act. & Sens." chapter 8.2)
+      n *= -1;
       
       for (Integer actNode=0; actNode<ptCoord.size_row(); actNode++)
 	{
-	  nodePos = 0;
+	  Integer nodePos = 0;      
 	  
 	  while(connecth[actNode] != couplingNodes[nodePos] && nodePos < couplingNodes.size()) 
 	    nodePos++;
