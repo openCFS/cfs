@@ -25,6 +25,7 @@ UNDER  =
 #CFLAGS2 = -n32 -D TRACE -D DEBUG -w -I. -I/usr/include/X11 -I/usr/include/CC -I/usr/include
 #
 CFLAGS1 = -LANG::std -n32 -prelink -ptused -D TRACE -D DEBUG 
+CFLAG_EXE = -LANG::std -n32
 #
 #ifeq "$(TYPEOFLIB)" "SHARED"
 #LINKFLAGS2=-shared 
