@@ -380,6 +380,77 @@ void  RHSForRecoveryProcedure::CalcElemVectorRHSForSPR(Matrix<Double>& ptCoord,
   }
 
 
+  // ========================================================================
+  // SurfaceIntLinForm 
+  // ========================================================================
+
+
+  SurfaceIntLinForm::SurfaceIntLinForm(BaseFE * aptelem, Directions aPressureDir) 
+    : LinearForm(aptelem), pressureDir_(aPressureDir)
+  {
+#ifdef TRACE
+    (*trace) << "entering SurfaceIntLinForm::SurfaceIntLinForm" << std::endl;
+#endif
+  }
+
+
+
+  SurfaceIntLinForm ::~SurfaceIntLinForm()
+  {
+#ifdef TRACE
+    (*trace) << "entering SurfaceIntLinForm::~SurfaceIntLinForm" << std::endl;
+#endif
+  }
+
+
+void SurfaceIntLinForm::CalcElemVector(Matrix<Double>& ptCoord, std::vector<Double> & elemVec)
+  {
+#ifdef TRACE
+    (*trace) << "entering SurfaceIntLinForm::CalcElemVector" << std::endl;
+#endif
+
+    const Integer nrIntPts = ptelem->GetNumIntPoints();
+    const Integer nrNodes  = ptelem->GetNumNodes();
+    const Integer nrDofs   = getNrDofs();
+    const std::vector<Double> & intWeights = ptelem->GetIntWeights();
+    std::vector<Double> shapeFnc;
+    Integer pressureDof;
+    
+
+    std::vector<Double> partElemVec;
+    partElemVec.resize(nrNodes * nrDofs );
+    partElemVec *= 0; //initialize vec
+    
+
+    elemVec.resize(nrNodes*nrDofs);
+    elemVec *= 0;    // set elems to 0
+
+    switch(pressureDir_)
+      {
+      case X: pressureDof = 0; break;
+      case Y: pressureDof = 1; break;
+      case Z: pressureDof = 2; break;
+      default: 	Error("SurfaceIntLinForm: pressure direction not implemented!" 
+		      ,__FILE__,__LINE__);
+      }
+    
+    for (Integer actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
+      {
+	ptelem->GetShFncAtIp(shapeFnc, actIntPt);
+
+	Double jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord);
+	
+	std::vector<Double> helpVec = multiplier_ * intWeights[actIntPt-1] * jacDet * shapeFnc;
+
+	SetSubVector(partElemVec, helpVec, pressureDof*nrNodes);
+	elemVec += partElemVec;
+      }
+  } // end of method
+
+
+
+
+
   
 
   ////////////////////////////////////////////////////////////////////////////

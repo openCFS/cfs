@@ -29,21 +29,22 @@ ifeq ($(MpCCI),yes)
 SUBLIBDIR := $(SUBLIBDIR) MpCCIcpl
 endif
 #
-ifeq ($(GSI), yes)
-SUBLIBDIR := $(SUBLIBDIR) DataInOut/GSI DataInOut/GSI/CFSSocketComm
-endif
-#
 ############ define my libraries
 #
 mylibrary = driver domain pde mpccicpl coupledpde\
             estimator forms  \
             elements3d elements2d elements1d elements \
             gridcfs toadaptgrid \
-            gmv gsi definefiles unverg \
+            gmv definefiles unverg \
 	    ansys-out ansysfile datainout \
             algsys-own\
             utils matrix general \
             multigrid-las
+#
+ifeq ($(GSI), yes)
+SUBLIBDIR := $(SUBLIBDIR) DataInOut/GSI DataInOut/GSI/CFSSocketComm
+mylibrary := $(mylibrary) gsi
+endif
 #
 ifeq ($(Adaptivity),yes)
 mylibrary := $(mylibrary) adaptgrid 

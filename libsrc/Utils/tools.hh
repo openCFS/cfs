@@ -146,7 +146,18 @@ Double ScalarMult(std::vector<Double> a, std::vector<Double> b);
 
 
 char * c_string(const std::string & s);
-  
+
+/// writes subVec into mainVec starting at position 
+void SetSubVector(std::vector<Double>& mainVec,
+		  std::vector<Double>& subVec, Integer position);
+
+
+
+// // std::vector output
+//   template<class TYPE> std::ostream& operator<< ( std::ostream & outStr, std::vector<TYPE> xOut);
+
+// // std::vector output
+// std::ostream & operator<< (std::ostream & outStr, std::vector<Double> & xOut);  
 } // end of CoupledField
 
 #endif

@@ -146,7 +146,8 @@ void MechPDE::SolveStepStaticLin(const Integer level)
 
   //account for bcs
   SetBCs(level,updateBCs_,0);
-
+  SetupRHS(level);
+  
   algsys_->CalcPrecond(job);
   
   updateBCs_ = 1;
@@ -282,6 +283,8 @@ Double MechPDE::SetExternalForces(const Integer level)
 
   // account for bcs before first solving step =======================
   SetBCs(level, updateBCs_, 0);
+  // to incorporate pressure loads
+  SetupRHS(level);      
 
 
   // stores rhs vector into extForces and returns that L2-norm
@@ -599,7 +602,7 @@ GetDirection(Directions& dir, const std::string keyword)
     if (dirString == "y")
       dir = Y;
     else
-      if (dirString == "y")
+      if (dirString == "z")
 	dir = Z;
       else
 	if (dirString == "radXY")
@@ -608,8 +611,8 @@ GetDirection(Directions& dir, const std::string keyword)
 	  if (dirString == "radXZ")
 	    dir = radXZ;
 	  else
-	    if (dirString == "radXZ")
-	      dir = radXZ;
+	    if (dirString == "radYZ")
+	      dir = radYZ;
 	    else
 	      Error("The direction mentioned in the config-file is not implemented! ",__FILE__,__LINE__);
 }
@@ -871,15 +874,48 @@ void MechPDE::SetupRHS(const Integer level)
   std::vector<Double> elemVec;  
   Matrix<Double> ptCoord;
   BaseFE         * ptElem;
-  
+  std::vector<Elem*> elemssd;
+	
   Vector<Integer> connecth, connect_PDE;
+  Double pressureVal=0;
+  
+  conf->ifget("pressureLoad", pressureVal, pdename_); // incremental stopping criterion
+
+  if (pressureVal)
+    {
+      Directions pressureDir;
+      GetDirection(pressureDir, "pressureDir");
+
+      std::vector <std::string> pressureDomain;  //!< name of all subdomains containing coils
+      conf->ifgetliststr("pressureDomain", pressureDomain, pdename_);
+
+      std::cout << "pressureDomain " << pressureDomain[0] << std::endl;
+      
+      ptgrid_->GetElemSD(elemssd, pressureDomain[0], level);
+	
+      for (Integer j=0; j < elemssd.size(); j++)
+	{  
+	  ptElem   = elemssd[j]->ptElem;
+	  connecth = elemssd[j]->connect;
+	  GetElemCoords(connecth, ptCoord, level);
+	  
+	  // get node numbers belonging to PDE
+	  Mesh2PDENode(connect_PDE,connecth,Mesh2PDENode_);
+ 
+	  
+	  SurfaceIntLinForm pressure(ptElem, pressureDir);
+	  pressure.SetMultiplier(pressureVal);
+	  pressure.CalcElemVector(ptCoord, elemVec);
+	  std::cout << "!!!!!!!!!!!!! belemNr= " << j+1 <<std::endl;
+
+	  algsys_->SetElementRHS(&elemVec[0], connect_PDE.get(), connect_PDE.size());
+	}
+    }
   
   
   if (nonLin_)
     for (Integer i=0; i<subdoms_.size(); i++)
       {	
-	std::vector<Elem*> elemssd;
-	
 	ptgrid_->GetElemSD(elemssd,subdoms_[i],level);
 	
 	for (Integer j=0; j < elemssd.size(); j++)
