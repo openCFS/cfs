@@ -8,7 +8,7 @@
 #include <Domain/grid.hh>
 #include <Domain/bcs.hh>
 
-#include <PDE/basePDE.hh>
+#include <PDE/StdPDE.hh>
 
 
 namespace CoupledField
@@ -17,7 +17,8 @@ namespace CoupledField
 class TimeFunc;
 class WriteResults;
 class BasePDE;
-class BaseCoupledPDE;
+class StdPDE;
+class IterCoupledPDE;
 class PDECoupling;
 class  AbstractAlgebraicSys;
 
@@ -55,11 +56,19 @@ public:
   //!
   void SetSubdomains();
 
-  //! get pde
-  BasePDE * GetPDE(const std::string pdeName);
+  //! get pointer to basePDE
 
-  //! get coupled pde
-  BaseCoupledPDE * GetCoupledPDE() {return ptcoupledpde_;}
+  //! If only one PDE is defined, this method returns the pointer to it.
+  //! In the iterative coupled case, the pointer to the coupled PDE is 
+  //! returned
+  BasePDE * GetBasePDE();
+
+  //! get pointer to StdPDE
+  StdPDE * GetStdPDE(const std::string pdename);
+
+  //! get iterative coupled pde
+  // \obsolete
+  IterCoupledPDE * GetCoupledPDE() {return ptcoupledpde_;}
 
   //! get algebraic system
   // AbstractAlgebraicSys * GetAlgSys(){ return ptalgsys_;}
@@ -122,9 +131,9 @@ private:
   Integer numcoupledpde_; //!< number of coupled PDEs
   Integer numgraph_;      //!< number of graphs needed (node-graphs, edge-graphs, etc.)
   Integer ** syscoupling_; //!< matrix, containing coupling information between the systems
-  StdVector<BasePDE*> ptpde_;   //!< pointers to PDEs
-  BaseCoupledPDE * ptcoupledpde_; //!< pointer to coupled PDEs
-  StdVector<BasePDE*> orderedpdes_; //!<pointer to PDEs in right order for coupling
+  StdVector<StdPDE*> ptpde_;   //!< pointers to PDEs
+  IterCoupledPDE * ptcoupledpde_; //!< pointer to coupled PDEs
+  StdVector<StdPDE*> orderedpdes_; //!<pointer to PDEs in right order for coupling
   StdVector<PDECoupling*> couplings_; //!<pointer to coupling objects
   Grid * ptgrid_; //!< pointer to grid object
   BCs * ptBCs_;   //!< pointer to object storing boundary conditions
