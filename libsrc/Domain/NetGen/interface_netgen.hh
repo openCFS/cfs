@@ -68,9 +68,15 @@ public:
    { return pptelemsubdom_[num]; }
 
 private:
+   
+  //! Here we mark elements for refinement: ei - number of elem
+  void SetRefinementFlag(const Integer ei, const Integer flag);
+
+  //! Do refinement of elements, which we mark through function SetRefinementFlag
+  void Refine();
 
   //!
-  BaseElem * ptQ_, * ptTr_;  
+  BaseElem * ptQ_, * ptTr_, *ptTet_;  
 
   //! 
   FileType * ptFileType;
@@ -104,11 +110,12 @@ inline InterfaceNetGen<Dim>::InterfaceNetGen(FileType * aptFileType)
   DoesGridSubdivide=FALSE;
   ptQ_=NULL;
   ptTr_=NULL;
+  ptTet_=NULL;
   lastlevel_=0; 
 }
 
 #ifdef __GNUC__
-//template class InterfaceNetGen<Point3D>;
+template class InterfaceNetGen<Point3D>;
 template class InterfaceNetGen<Point2D>;
 #endif
 

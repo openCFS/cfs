@@ -10,6 +10,9 @@ template<class Dim>
 class WriteResults
 {
 public:
+   /// constructor
+   WriteResults();
+
    //!
    enum nameSol{fluid, temperature};
 
@@ -30,6 +33,14 @@ protected:
   std::ofstream * output;
   ///
   Grid<Dim> * ptgrid;
+  ///
+  Boolean NeedHistory_;
+  ///
+  Integer history_node_;
+  ///
+  std::ofstream historyfile;
+  ///
+  void AddInHistory(const Double time, const Double val);
 
 }; 
 
@@ -41,6 +52,7 @@ WriteResults<Dim>::~WriteResults()
 #endif
 
  if (!output) delete output;
+ if (NeedHistory_) historyfile.close();
 
 }
 

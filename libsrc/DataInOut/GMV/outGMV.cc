@@ -323,6 +323,8 @@ void WriteResultsGMV<Dim>::WriteSolution(const Vector<Double> & sol, const Integ
  (*trace) << " entering WriteResultsGMV<Dim>::WriteSolution " << std::endl;
 #endif
 
+  if (NeedHistory_) AddInHistory(time,sol[history_node_]);
+
   Integer type=1; // 0 - for cell 
                   // 1 - for node
                   // 2 - for face data

@@ -144,7 +144,8 @@ void Elecst3dPDE::SetupMatrices(const Integer type)
       for(ii=0; ii<4; ii++)
 {
       std::cout << ii << " " << ptCoord[ii].x << " " <<  ptCoord[ii].y << " " << ptCoord[ii].z << std::endl;
-} 
+}
+ 
       // stiffness part
       bilinear_stiff->CalcElemMatrix(ptCoord, elemmat);
 

@@ -15,7 +15,7 @@ namespace CoupledField
 class BaseElem
 {
 public:
-  virtual void test(){ std::cout << "test1" << std::endl; }
+  virtual void test(){;} 
 
   //! constructor (does nothing)
   BaseElem();

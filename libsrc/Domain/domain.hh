@@ -76,8 +76,8 @@ private:
   BasePDE * ptpde_[20];
 
   //!
-//  Grid<Point2D> * ptgrid_;
-  Grid<Point3D> * ptgrid_;
+  Grid<Point2D> * ptgrid_;
+//  Grid<Point3D> * ptgrid_;
   
 
   //!
@@ -101,8 +101,8 @@ private:
 };
 
 #ifdef __GNUC__
-template class Domain<Point3D>;
-//template class Domain<Point2D>;
+//template class Domain<Point3D>;
+template class Domain<Point2D>;
 #endif
 
 }

@@ -89,7 +89,7 @@ private:
   virtual void CalcParameters(const Double dt);
 
   //! calculation of coefficient in equation
-  void CalcCoeff(Double & coeff, const Integer numsubdom);  
+  void CalcCoeff(Double & coeffmass, Double & coeffstiff, const Integer numsubdom);  
 
   //!
   Double a0_,a1_,a2_,a3_,a4_,a5_,a6_,a7_;

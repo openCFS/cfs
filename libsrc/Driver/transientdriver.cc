@@ -100,10 +100,27 @@ void TransientDriver :: SolveProblemAdapt()
   ptdomain_->GetPDE(pdenumber)->CalcParameters(dt);
   ptdomain_->GetPDE(pdenumber)->SetMatrixFactors();
 
+  if (InfoPrint)
+   (*infofile) << "# step   " << " timestep " << std::endl << 0 << "  " << dt << std::endl;
+  
+  Double steptime_prev;  
+
   Integer nstep=0;
-  for (; steptime <= endtime ; nstep++)
+  for (; steptime < endtime ; nstep++)
     {
+      steptime_prev=steptime;
+
       steptime+=dt;
+
+      if (steptime > endtime)
+   {
+      std::cout << steptime << std::endl;
+      dt=endtime-steptime_prev;
+      ptdomain_->GetPDE(pdenumber)->CalcParameters(dt);
+      ptdomain_->GetPDE(pdenumber)->SetMatrixFactors();
+
+      steptime=endtime;
+   }
 
       ptdomain_->GetPDE(pdenumber)->SolveStepTrans(ptdomain_->GetBCs(), nstep, steptime, level, resetsysmat);
 
@@ -122,14 +139,14 @@ void TransientDriver :: SolveProblemAdapt()
 
        // print info in file.info
          if (InfoPrint)
-          (*infofile) <<  " step: " << nstep << " timestep: " << steptime << " change " << std::endl;
+          (*infofile) <<  nstep+1 << "  " << steptime << "     change " << std::endl;
 
       }
    else 
      {
        // print info in file.info
          if (InfoPrint)
-          (*infofile) << " step: " << nstep << " timestep: " << steptime << std::endl;
+          (*infofile) << nstep << "  " << steptime << std::endl;
      }
    }
 }
