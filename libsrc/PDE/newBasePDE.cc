@@ -443,7 +443,7 @@ void  BasePDE::SetBCs(const Integer level, const Integer update, const Double ti
       //get the correct time function value
       val_tfunc = 1.0;
       if (ptTimeFunc_->GetmaxTimeFnc() > 0 )
-	val_tfunc=ptTimeFunc_->TimeFuncAtTime(time,fncnames_id_[i]);
+	  val_tfunc=ptTimeFunc_->TimeFuncAtTime(time,fncnames_id_[i]);
 
       val=val_id_[i]*val_tfunc;
 
