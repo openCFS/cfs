@@ -1,0 +1,7 @@
+SOLVED   DATE        PROBLEM
+
+			2003-07-09  Config-File revision
+			2003-07-09  material-data: the "type" of material (e.g. piezo) is not regarded!
+			2003-07-09  fast direct solver (to get rid of sensitve number of coarse equations)
+
+			2003-09-03  Hack in blockmatrix.cc RBlockMatrix::Factor: commented out "delete x" !! 
