@@ -208,6 +208,9 @@ protected:
    
   private:
 
+  //! List of regions with non-linearity
+  std::vector<std::string> nonLinType_;
+
 #ifdef XMLPARAMS
     //! Obtain information on desired output quantities from parameter file
 

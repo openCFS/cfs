@@ -155,7 +155,7 @@ namespace CoupledField {
 
     for (int actSD = 0; actSD < subdoms_.size(); actSD++)
       {
-	Double reluctivity  = materialData_[actSD].GetPermiability();
+	Double reluctivity  = materialData_[actSD].GetPermeability();
 	if ( reluctivity == 0)
 	  Error("Permeability can not be zero!");
 
@@ -844,29 +844,25 @@ namespace CoupledField {
     // ------------------------------------
     //   Get information on non-linearity
     // ------------------------------------
-
-    // ==============================================================
-    // NOTE: Currently we can only treat geometric non-linearity and
-    //       we assume that for a mechanic PDE all regions either
-    //       are linear or non-linear!
-    // ==============================================================
-    std::vector<std::string> nonLinRegion;
-    params->GetList( "nonLinear", nonLinRegion, pdename_, "region" );
-    // Should not happen with validating parser, but beware!
-    if ( nonLinRegion.size() == 0 ) {
-      nonLin_ = FALSE;
-    }
-    else {
-      for ( Integer k = 0; k <= nonLinRegion.size(); k++ ) {
-	if ( nonLinRegion[k] != nonLinRegion[0] ) {
-	  Info->Error( "Non-linearity should be the same for all regions!",
-		       __FILE__, __LINE__ );
-	}
+    nonLin_ = FALSE;
+    params->GetList( "nonLinear", nonLinType_, pdename_, "region" );
+    for ( Integer k = 0; k <= nonLinType_.size(); k++ ) {
+      if ( nonLinType_[k] != "no" ) {
+	nonLin_ = TRUE;
+	break;
       }
-      nonLin_ = nonLinRegion[0] == "geo" ? TRUE : FALSE;
     }
 
     if( nonLin_ ) {
+
+      // solution method
+      params->Get( "method", nonLinMethod_, pdename_, "nonLinear" );
+
+      // perform logging?
+      nonLinLogging_ = params->IsSet( "logging", pdename_, "nonLinear" );
+
+      // type of line search
+      params->Get( "type", lineSearch_, pdename_, "lineSearch" );
 
       // incremental stopping criterion
       params->Get( "incStopCrit", incStopCrit_, pdename_, "nonLinear" );
@@ -875,7 +871,7 @@ namespace CoupledField {
       params->Get( "resStopCrit", residualStopCrit_, pdename_, "nonLinear" );
 
       // maximal number of NL-iterations
-      // params->Get("nonlinMaxIter", nonLinMaxIter_, pdename_, "nonLinear");
+      params->Get("maxNumIters", nonLinMaxIter_, pdename_, "nonLinear");
     }
 
 
@@ -962,25 +958,50 @@ namespace CoupledField {
 
     ENTER_FCN( "MagPDE::DefineIntegerators" );
 
-    Boolean nonLin = FALSE;
-
     // Loop over all regions this PDE lives on
     for ( Integer actSD = 0; actSD < subdoms_.size(); actSD++ ) {
 
       // Get reluctivity for this domain and perform consistency check
-      Double reluctivity = materialData_[actSD].GetPermiability();
+      Double reluctivity = materialData_[actSD].GetPermeability();
       if ( reluctivity == 0 ) {
 	Info->Error( "Region '" + subdoms_[actSD] + "' has zero" +
 		     " permeability!", __FILE__, __LINE__ );
-	reluctivity = 1/reluctivity;
+      }
+      
+      reluctivity = 1/reluctivity;
+ 
+
+      BaseForm * curlcurl2D;
+      
+      if ( nonLinType_[actSD] != "no" ) {
+
+	//read in the BH-curve data and compute the approximation
+	std::string nlfnc = materialData_[actSD].GetBHCurveFileName();
+	ApproxData *nlinFnc = new SmoothSpline(nlfnc);
+	nlinFnc->CalcBestParameter();
+	nlinFnc->CalcApproximation();
+
+	curlcurl2D = new nLinCurlCurlNode2DInt(nlinFnc,reluctivity, isaxi_);
+	assemble_->AddIntegrator(curlcurl2D, subdoms_[actSD], STIFFNESS, TRUE);
+
+	// do RHS!!
+	BaseForm * rhsSource = new nLinMagNode2D_linFormInt(nlinFnc, reluctivity, isaxi_);
+	assemble_->AddRhsIntegrator(rhsSource, subdoms_[actSD], TRUE);
+      }
+      else {
+	curlcurl2D = new CurlCurlNode2DInt(reluctivity, isaxi_);
+	assemble_->AddIntegrator(curlcurl2D, subdoms_[actSD], STIFFNESS,FALSE);
+	if (nonLin_==TRUE) {
+	  // do RHS!!
+	  BaseForm * rhsSource = new nLinMagNode2D_linFormInt(reluctivity, isaxi_);
+	  assemble_->AddRhsIntegrator(rhsSource, subdoms_[actSD], TRUE);
+	}
       }
 
-      BaseForm *curlcurl2D = new CurlCurlNode2DInt( reluctivity, isaxi_ );
-      assemble_->AddIntegrator(curlcurl2D, subdoms_[actSD], STIFFNESS, nonLin);
-
+      // Mass matrix
       Double conductivity = materialData_[actSD].GetConductivity();      
       BaseForm *bilinear_mass = new MassInt(conductivity, dofspernode_,isaxi_);
-      assemble_->AddIntegrator(bilinear_mass, subdoms_[actSD], MASS, nonLin );
+      assemble_->AddIntegrator(bilinear_mass, subdoms_[actSD], MASS, FALSE );
 
       // If this subdomain is a coil we have to do special things
       for ( Integer coil = 0; coil < coilDef_.size(); coil++ ) {
@@ -1114,8 +1135,11 @@ namespace CoupledField {
       // output of norms and data
       // =====================================================================
       Double etaLineSearch = 1;
-      Info->WriteNonLinIter(pdename_, iterationCounter, residualErr,
-			    incrementalErr, etaLineSearch);
+      if ( nonLinLogging_ == TRUE ) {
+	Info->WriteNonLinIter(pdename_, iterationCounter, residualErr,
+			      incrementalErr, etaLineSearch);
+      }
+      
 
       // boolean variable, holds condition if another
       // iteration step is necessary

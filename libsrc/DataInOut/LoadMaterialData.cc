@@ -349,9 +349,14 @@ namespace CoupledField
     std::istringstream * strPtr;
     char buffer[bufLength];
     char materialName[bufLength];
+    char aux1[bufLength];
+    char aux2[bufLength];
 
     ReadLine(fin,buffer);
-    sscanf(buffer,"%*d%*s%s", materialName);  
+    sscanf( buffer, "%*d%*s%s%s%s", materialName, aux1, aux2 );
+    if ( strcmp(aux1,"bhapprox:") == 0 ) {
+      material->SetBHCurveFileName( aux2 );
+    }
 
     material -> SetName(materialName);
 
