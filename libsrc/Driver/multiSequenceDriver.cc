@@ -50,12 +50,14 @@ namespace CoupledField {
     // vector containing pointer to current set of PDEs
     StdVector<BasePDE *> ptPDEs;
     
-    // Vector of solutions
-    StdVector<Vector<Double> > sols;
+    // Vector of memento objects, which save the internal state
+    // of a PDE
+    StdVector<PDEMemento> memento;
     Integer level = 0;
     Integer nextStep = 0;
     Double nextTime = 0.0;
-    Integer actNumSteps, actDt;
+    Integer actNumSteps;
+    Double actDt = 0.0;
   
     // helper variables
     Integer iPDE, kPDE;
@@ -94,7 +96,7 @@ namespace CoupledField {
 	  
 	keyVec = "transient", "firstDt"; 
 	params->Get(keyVec, attrVec, valVec, actDt);
-	  
+	
 	nextStep = actStep_ + actNumSteps;
 	nextTime = actTime_ + actNumSteps * actDt;
       }
@@ -118,8 +120,8 @@ namespace CoupledField {
       // with the solution of the previous run
       if (iStep > 0) {
 	for (Integer i=0; i<pdesPerStep_[iStep].GetSize(); i++)
-	  if (sols[i].GetSize() != 0)
-	    ptPDEs[i]->SetSolution(sols[i]);
+	  if (memento[i].IsSet())
+	    ptPDEs[i]->SetMemento(memento[i]);
       }
       
       // Solve Problem
@@ -128,12 +130,8 @@ namespace CoupledField {
       // Get solution for next step and delete
       // all PDEs
       if (iStep < numSteps_-1) {
-	sols.Resize(pdesPerStep_[iStep+1].GetSize());
+	memento.Resize(pdesPerStep_[iStep+1].GetSize());
 
-	// Initialize solution vectors
-	for (Integer i=0; i<sols.GetSize(); i++)
-	  sols[i].Init();
-	
 	// Iterate over all PDEs in the next step
 	for (iPDE=0; iPDE<pdesPerStep_[iStep+1].GetSize(); iPDE++) 
 	  // Iterate over all PDEs in the current step
@@ -142,7 +140,7 @@ namespace CoupledField {
 	    // for the next step
 	    if (pdesPerStep_[iStep+1][iPDE] == pdesPerStep_[iStep][kPDE])
 	      //dynamic_cast<const NodeStoreSol<Double>& >
-	      ptPDEs[kPDE]->GetSolution().GetAlgSysVector(sols[iPDE]);
+	      ptPDEs[kPDE]->GetMemento(memento[iPDE]);
 	
 	// delete PDEs
 	ptdomain_->ResetPDEs();
@@ -151,8 +149,9 @@ namespace CoupledField {
       // delete analysistypes
       delete actDriver;
       
-      // increase stepNumber
+      // increase stepNumber and time
       actStep_ = nextStep;
+      actTime_ = nextTime;
     } // iStep
   }
 
