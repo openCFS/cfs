@@ -199,10 +199,10 @@ namespace CoupledField
 
 	}
 	else {
-	  epsilon = -1.0;
+	  epsilon = 0.0;
 	  normtype = "no";
 	}
-	
+
 	  String2Enum(normtype, normTypeAux);
 	  String2Enum(interfaceTypesSorted[iQuant], regionTypeAux);
 	  
@@ -384,7 +384,7 @@ namespace CoupledField
 		  Couplings_[i]->GetOutputValues(k, val);
 		  Couplings_[i]->GetOutputOldValues(k, oldVal);
 		  norms_[counter] = CalcNorm(Couplings_[i]->GetOutputNormType(k), *val, *oldVal);
-		  
+
 		  if (nonLinLogging_)
 		    {
 		      Enum2String(Couplings_[i]->GetOutputQuantity(k), quantityConv);
@@ -392,7 +392,7 @@ namespace CoupledField
 				   (Couplings_[i]->GetPDEName()).c_str(),
 				   quantityConv.c_str(), norms_[counter]);
 		    }
-		  if (norms_[counter] > Couplings_[i]->GetOutputEpsilon(k))
+		  if (norms_[counter] > Couplings_[i]->GetOutputEpsilon(k)) 
 		    normsReached = FALSE;
 		  
 		  *oldVal = *val;
