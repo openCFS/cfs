@@ -86,6 +86,14 @@ public:
 
   //! returns if PDE can compute the quantity
   virtual Boolean HasOutput(std::string output);
+
+  //! Assemble mass part
+  void AssembleMass(BaseFE * ptEl, Vector<Integer>& connect_PDE,  Matrix<Double>& ptCoord, Double density);
+
+  //! Assemble stiffness part
+  void AssembleStiffness(BaseFE * ptEl, Vector<Integer>& connect_PDE,  Matrix<Double>& ptCoord, MaterialData& actMatData);
+  
+
 protected:
   
   
@@ -97,6 +105,10 @@ private:
   std::string subType_;
 
   Integer GetNrBCDof (const std::string & dofStartString);
+
+  /// flag for nonlinear calculations
+  Boolean nonLin_;
+  
   
 };
 

@@ -10,13 +10,14 @@
 #include <Estimator/spaceerror.hh>
 
 #include "mechPDE.hh" 
+#include <Forms/nLinElastInt.hh>
 
 namespace CoupledField
 {
 
 MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *aptFileType, 
 		 WriteResults *aptOut)
-:BasePDE(aptgrid, aptbcs, aptFileType, aptOut, aptTimeFunc)
+  :BasePDE(aptgrid, aptbcs, aptFileType, aptOut, aptTimeFunc), nonLin_(FALSE)
 {
 #ifdef TRACE
   (*trace) << "entering MechPDE::MechPDE " << std::endl;
@@ -42,6 +43,12 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
   size_ = NumPDENodes_*dofspernode_;
 
   sol_.reshape(dofspernode_,NumPDENodes_);
+
+  if (conf->get_option("nonlin",  pdename_ ))
+    {
+      std::cout << "NONLIN option set !!" << std::endl << std::endl;
+      nonLin_=TRUE;
+    }
   
 }
 
@@ -201,15 +208,12 @@ void MechPDE::WriteResultsInFile()
 }
 
 
-  void MechPDE::SetupMatrices(const Integer level)
+void MechPDE::SetupMatrices(const Integer level)
   {
 #ifdef TRACE
     (*trace) << "entering MechPDE::SetupMatrices" << std::endl;
 #endif
 
-    Matrix<Double> elemmat;
-    // This is a smaller matrix since it is just for linear 1D elements.
-    Matrix<Double> elemmatbnd;
     BaseFE * ptEl;
     Vector<Integer> connecth, connect_PDE;
     std::vector<Elem*> elemssd;
@@ -222,52 +226,25 @@ void MechPDE::WriteResultsInFile()
 	for (j=0; j< elemssd.size(); j++)
 	  {
 	    ptEl = elemssd[j]->ptElem;
+	    connecth = elemssd[j]->connect;
 
-	    const Double density = materialData_[i].GetDensity();
-
-	    BaseForm * bilinear_mass  = new MassInt(ptEl, density);
-	    BaseForm * bilinear_stiff;
-	    
-	    if (subType_ == "plainStrain")
-	      bilinear_stiff = new mechPlainStrainInt(ptEl, materialData_[i]);
-	    else if (subType_ == "3d")
-	      bilinear_stiff = new mech3DInt(ptEl, materialData_[i]);
-	    else 
-	      {
-		std::string errMessg;
-		errMessg = "Unknown subtype \"" + subType_ + "\" in mech PDE!";		
-		Error(errMessg.c_str(),__FILE__,__LINE__);
-	      }
-
-
-	    connecth=elemssd[j]->connect;
 
 	    Matrix<Double> ptCoord;
 	    GetElemCoords(connecth, ptCoord, level);
- 
 	    // map connect to PDE node numbers
-	    Mesh2PDENode(connect_PDE,connecth,Mesh2PDENode_);
+	    Mesh2PDENode(connect_PDE, connecth, Mesh2PDENode_);
 
-	    // stiffness part
-	    bilinear_stiff->CalcElementMatrix(ptCoord, elemmat);
 
-	    algsys_->SetElementMatrix(elemmat.getinarray(), connect_PDE.get(), connecth.size(), SYSTEM);
+	    // =================================================================
+	    // stiffness matrix 
+	    // =================================================================
+	    AssembleStiffness(ptEl, connect_PDE, ptCoord, materialData_[i]);
 
-#ifdef DEBUG
-	    (*debug) << "Mech3d elemmat: " << std::endl << elemmat << std::endl;
-#endif
 
- 	    // mass part
- 	    bilinear_mass->CalcElementMatrix(ptCoord, elemmat);
-
- 	    Matrix <Double> elemMatMultDof;
- 	    MassMultiDof(elemMatMultDof, elemmat, dofspernode_);
-
- 	    algsys_->SetElementMatrix(elemMatMultDof.getinarray(), connect_PDE.get(), connecth.size(), MASS);
-
-  
-	    delete bilinear_stiff;
-	    delete bilinear_mass;
+	    // =================================================================
+	    // mass matrix 
+	    // =================================================================
+	    AssembleMass(ptEl, connect_PDE, ptCoord, materialData_[i].GetDensity());
 	  }
       }
 
@@ -282,7 +259,96 @@ void MechPDE::WriteResultsInFile()
   }
 
 
-  void MechPDE::SetBCs(const Integer level, const Integer update, const Double atime)
+
+
+
+
+// assemble stiffness part of FE-equation
+void MechPDE::AssembleStiffness(BaseFE * ptEl, Vector<Integer>& connect_PDE,  Matrix<Double>& ptCoord, MaterialData& actMatData)
+{
+  Matrix<Double> elemmat;
+  BaseForm * bilinear_stiff;
+  
+  
+  if (subType_ == "plainStrain")
+    bilinear_stiff = new mechPlainStrainInt(ptEl, actMatData);
+  else if (subType_ == "3d")
+    bilinear_stiff = new mech3DInt(ptEl, actMatData);
+  else 
+    {
+      std::string errMessg;
+      errMessg = "Unknown subtype \"" + subType_ + "\" in mech PDE!";		
+      Error(errMessg.c_str(),__FILE__,__LINE__);
+    }
+  
+  // stiffness part
+  bilinear_stiff->CalcElementMatrix(ptCoord, elemmat);
+  algsys_->SetElementMatrix(elemmat.getinarray(), connect_PDE.get(), connect_PDE.size(), SYSTEM);
+  
+  delete bilinear_stiff;
+  
+
+  if (nonLin_)
+    {
+      if (subType_ != "3d")
+	Error("For nonlin mechanics, up to now only 3d sims supported! ",__FILE__,__LINE__);
+
+      Matrix<Double> elDisp;
+      std::cout << "For nonlin Sim: no elem disp defined yet!" << std::endl;
+      exit(1);
+
+      nLinMech3dInt * stiff_nonLin1 = NULL;      
+      stiff_nonLin1 = new nLinMech3dInt(ptEl, actMatData);
+
+      stiff_nonLin1->setActElemDispl(elDisp);
+      stiff_nonLin1->CalcElementMatrix(ptCoord, elemmat);
+      algsys_->SetElementMatrix(elemmat.getinarray(), connect_PDE.get(), connect_PDE.size(), SYSTEM);
+
+      /*
+	nLinMech3dInt * stiff_nonLin2 = NULL;
+	stiff_nonLin2 = new nLinMech3dInt_part2(ptEl, actMatData);      
+	stiff_nonLin1->setActElemDispl(elDisp);
+	bilinear_stiff_nonLin2->CalcElementMatrix(ptCoord, elemmat);
+	algsys_->SetElementMatrix(elemmat.getinarray(), connect_PDE.get(), connecth.size(), SYSTEM);
+      */
+    }
+
+}
+
+
+
+
+
+
+// assemble mass part of FE-equation
+void MechPDE::AssembleMass(BaseFE * ptEl, Vector<Integer>& connect_PDE,  Matrix<Double>& ptCoord, Double density)
+{
+
+  Matrix<Double> elemmat;
+  BaseForm * bilinear_mass  = new MassInt(ptEl, density);
+  
+  
+  // mass part
+  bilinear_mass->CalcElementMatrix(ptCoord, elemmat);
+  
+  Matrix <Double> elemMatMultDof;
+  MassMultiDof(elemMatMultDof, elemmat, dofspernode_);
+  
+  // 	    algsys_->SetElementMatrix(elemMatMultDof.getinarray(), connect_PDE.get(), connecth.size(), MASS);
+  algsys_->SetElementMatrix(elemMatMultDof.getinarray(), connect_PDE.get(), connect_PDE.size(), MASS);  
+
+#ifdef DEBUG
+	    (*debug) << "Mech3d elemmat: " << std::endl << elemmat << std::endl;
+#endif
+  
+  delete bilinear_mass;
+}
+
+
+
+
+
+void MechPDE::SetBCs(const Integer level, const Integer update, const Double atime)
   {
 #ifdef TRACE
     (*trace) << "entering MechPDE::SetBCs" << std::endl;
