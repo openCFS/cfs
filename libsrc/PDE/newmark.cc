@@ -9,7 +9,7 @@
 namespace CoupledField
 {
 
-Newmark :: Newmark(std::string apdename, BaseSystem * algebraicsystem, NodeEQN * ptEQN, 
+Newmark::Newmark(std::string apdename, BaseSystem * algebraicsystem, NodeEQN * ptEQN, 
 		   Boolean needDampingMatrix)
 :TimeStepping(apdename, algebraicsystem,ptEQN)
 {
@@ -46,7 +46,7 @@ Newmark :: Newmark(std::string apdename, BaseSystem * algebraicsystem, NodeEQN *
 
 }
 
-Newmark :: ~Newmark()
+Newmark::~Newmark()
 {
   ENTER_FCN( "Newmark::~Newmark" );
 
@@ -70,7 +70,6 @@ void Newmark::Init(Double * matrix_factors, Double dt)
 
 }
 
-
 void Newmark::Predictor(Vector<Double>& solold)
 {
   ENTER_FCN( "Newmark::Predictor" );
@@ -84,7 +83,6 @@ void Newmark::Predictor(Vector<Double>& solold)
 #endif
 }
 
-
 void Newmark::UpdateRHS()
 {
   ENTER_FCN( "Newmark::UpdateRHS" );
@@ -95,29 +93,14 @@ void Newmark::UpdateRHS()
   coeffMass = solpred_*a2_;
   algsys_->UpdateRHS(MASS,coeffMass.GetPointer());
 
-//   // additional term for thermoviscous damping model
-//   if ( dampType_ == THERMOVISCOUS ) {
-
-// 	coeffDamp = -solderiv1pred_ + solpred_*a4_; // damping part
-// 	algsys_->UpdateRHS(DAMPING,coeffDamp.GetPointer());
-//   }
-
   // damping part
-  if (damping_) 
-    {
-      Vector<Double> coeffDamp;
-
-      coeffDamp = -solderiv1pred_;
-      algsys_->UpdateRHS(DAMPING,coeffDamp.GetPointer());
-
-      coeffDamp = solpred_*a4_;
-      algsys_->UpdateRHS(DAMPING,coeffDamp.GetPointer());
-   }
+  if (damping_) {
+	Vector<Double> coeffDamp;
+	
+	coeffDamp = -solderiv1pred_ + solpred_*a4_;
+	algsys_->UpdateRHS(DAMPING,coeffDamp.GetPointer());
+  }
 }
-
-
-
-
 
 void Newmark::UpdateRHS(Vector<Double>& actSol)
 {
@@ -130,21 +113,13 @@ void Newmark::UpdateRHS(Vector<Double>& actSol)
 
 
   // damping part
-  if (damping_) 
-    {
-      Vector<Double> coeffDamp;
-
-      coeffDamp = -solderiv1pred_;
-      algsys_->UpdateRHS(DAMPING,coeffDamp.GetPointer());
-
-      coeffDamp = (solpred_-actSol)*a4_;
-      algsys_->UpdateRHS(DAMPING,coeffDamp.GetPointer());
-   }
+  if (damping_) {
+	Vector<Double> coeffDamp;
+	
+	coeffDamp = -solderiv1pred_ + (solpred_-actSol)*a4_;
+	algsys_->UpdateRHS(DAMPING,coeffDamp.GetPointer());
+  }
 }
-
-
-
-
 
 void Newmark::Corrector(Vector<Double>& solnew)
 {
@@ -162,7 +137,7 @@ void Newmark::Corrector(Vector<Double>& solnew)
 
 
 
-void Newmark :: CalcParameters(Double dt)
+void Newmark::CalcParameters(Double dt)
 {
   ENTER_FCN( "Newmark::CalcParameters" );
 
@@ -183,9 +158,7 @@ void Newmark :: CalcParameters(Double dt)
 // Effective Mass Matrix Formulation
 // ====================================================
 
-
-
-NewmarkEffMass :: NewmarkEffMass(std::string apdename, 
+NewmarkEffMass::NewmarkEffMass(std::string apdename, 
 				 BaseSystem * algebraicsystem, 
 				 NodeEQN * ptEQN, 
 				 Boolean adamping)
@@ -225,9 +198,7 @@ NewmarkEffMass :: NewmarkEffMass(std::string apdename,
   solderiv1pred_.Init();
 }
 
-
-
-NewmarkEffMass :: ~NewmarkEffMass()
+NewmarkEffMass::~NewmarkEffMass()
 {
   ENTER_FCN( "NewmarkEffMass::~NewmarkEffMass" );
 
@@ -240,7 +211,7 @@ void NewmarkEffMass::Init(Double * matrix_factors, Double dt)
   dt_ = dt;
   CalcParameters(dt_);
 
-  matrix_factors[0] = 1.0*a2_;       // factor for stiffness matrix
+  matrix_factors[0] = 1.0*a2_;   // factor for stiffness matrix
 
   matrix_factors[1] = 0.0; 
   if (damping_)
@@ -266,8 +237,6 @@ void NewmarkEffMass::Predictor(Vector<Double>& solold)
 #endif
 }
 
-
-
 void NewmarkEffMass::Corrector(Vector<Double>& aNew)
 {
   ENTER_FCN( "NewmarkEffMass::Corrector" );
@@ -282,9 +251,6 @@ void NewmarkEffMass::Corrector(Vector<Double>& aNew)
   (*debug) << "solderiv2: \n" <<  solderiv2_ << std::endl;
 #endif
 }
-
-
-
 
 void NewmarkEffMass::UpdateRHS()
 {
@@ -305,20 +271,7 @@ void NewmarkEffMass::UpdateRHS()
     }
 }
 
-
-
-void const NewmarkEffMass :: StoreSolution(Vector<Double> & solArr) const
-{
-  ENTER_FCN( "NewmarkEffMass::CalcParameters" );
-
-  solArr = sol_; 
- }
-
-
-
-
-
-void NewmarkEffMass :: CalcParameters(Double dt)
+void NewmarkEffMass::CalcParameters(Double dt)
 {
   ENTER_FCN( "NewmarkEffMass::CalcParameters" );
 
@@ -331,6 +284,27 @@ void NewmarkEffMass :: CalcParameters(Double dt)
   a3_ = gamma_*dt_;
   
 }
+
+void const NewmarkEffMass::StoreSolution(Vector<Double> & solArr) const
+{
+  ENTER_FCN( "NewmarkEffMass::CalcParameters" );
+
+  solArr = sol_; 
+}
+
+Double NewmarkEffMass::DirichletBC4EffMassMatrix(Integer node, Double val)
+{
+  ENTER_FCN( "NewmarkEffMass::DirichletBC4EffMassMatrix" );
+
+  Double accval;
+
+  std::cout << " val_dis:" << val << " solpred: " << solpred_[node] << std::endl;
+  accval = a2_*(val- solpred_[node]);
+  std::cout << " val_acc:" << accval << std::endl;
+  
+  return accval;
+}
+
 
 
 } // end of namespace

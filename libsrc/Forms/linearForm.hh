@@ -309,6 +309,59 @@ private:
 };
 
 
+// =============================================================================
+// compute nonlinear rhs fo acoustics using Kuznetsov equation
+// =============================================================================
+
+
+/// class for calculation of right hand side of an volume source
+class nLinKuznetsovRHSInt : public LinearForm
+{
+public:
+  ///
+  nLinKuznetsovRHSInt(Double val, Boolean isaxi);
+
+  ///
+  virtual ~nLinKuznetsovRHSInt();
+
+  /// Calculation of vector of right hand side 
+  virtual void CalcElemVector(Matrix<Double>& ptCoord, Vector<Double> & result);
+
+  //! the solution is needed for setting up the matrix
+  virtual void SetActElemSol(Vector<Double>& asol) 
+  { sol_ = asol;};
+
+  //! the first time derivative is needed for setting up the matrix
+  virtual void SetActElemSolDeriv1(Vector<Double>& solderiv1) 
+  { solderiv1_ = solderiv1;};
+
+  //! the second time derivative is needed for setting up the matrix
+  virtual void SetActElemSolDeriv2(Vector<Double>& solderiv2) 
+  { solderiv2_ = solderiv2;};
+
+  //! set multiplicative factor for matrix
+  virtual void SetFactor(Double factor) 
+  {factorN1_ = factor;};
+
+  //! set multiplicative factor for matrix
+  virtual void SetSecondFactor(Double factor) 
+  {factorN2_ = factor;};
+
+
+private:
+  Vector<Double> sol_;        //!< solution
+  Vector<Double> solderiv1_;  //!< first time derivative of solution
+  Vector<Double> solderiv2_;  //!< second time derivative of solution
+
+  Double factorN1_;             //!< multiplicative value for integrator
+  Double factorN2_;             //!< multiplicative value for integrator
+
+  /// source factor
+  Double val_;
+};
+
+
+
 /// class for calculation of right hand side for recovery procedure
 class RHSForRecoveryProcedure : public LinearForm
 {

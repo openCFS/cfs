@@ -64,16 +64,11 @@ NewmarkFracDamp::NewmarkFracDamp(std::string apdename,
   if ( fracMemory_ <= 1 )
     Error("Attenuation model needs frac_memory larger than 1",__FILE__,__LINE__);
   else {
-	// create vector decribing storing of values when using interpolation
-	solMemoryVal_.resize(fracMemory_);
-
 	// get the memory
 	solMemory_ = new Vector<Double>[fracMemory_];
 	for (Integer i=0; i<fracMemory_; i++) {
 	  solMemory_[i].Resize(numEQNs * dofs);  
 	  solMemory_[i].Init();
-		
-	  solMemoryVal_[i] = NOTUSED;
 	}
   }
 
@@ -108,12 +103,8 @@ void NewmarkFracDamp::Predictor(Vector<Double>& solold)
   laststepcalc_ = ptBasePDE_->GetTimeStepCounter();
 
   // determine number of terms over which BDF is calculated
-  if (laststepcalc_ == 1)  // assumes first nstep = 1 (see transientdriver.cc)!
-	calclimit_ = 0;        // no stored values, no BDF has to be computed!
-  else if ( laststepcalc_>1 && laststepcalc_<=solMemoryVal_.size() )
-	calclimit_ = laststepcalc_ - 1;
-  else
-	calclimit_ = solMemoryVal_.size(); 
+  //   assumes first nstep = 1 (see transientdriver.cc)!
+  calclimit_ = solMemoryVal_.size(); 
 
   solpred_ = solold + solderiv1_*dt_ + solderiv2_*a0_;
   solderiv1pred_ = solderiv1_ + solderiv2_*a1_;
@@ -204,20 +195,17 @@ void NewmarkFracDamp::UpdateRHS()
 	  for (Integer i=1; i<=calclimit_; i++) {
 
 		if ( solMemoryVal_[i-1] == TRUEVAL ) {
-		  GetElemSolution(solMemory_[i-1], elemsol, connect_PDE);
+		  GetElemSolution(solMemory_[i-1-noInt], elemsol, connect_PDE);
 		  rhsvec += elemsol * coeff_[i];
 		}
 		else if ( solMemoryVal_[i-1] == LIN1PT ) {
 		  noInt++;
 		  GetElemSolution(solMemory_[i-1-noInt], elemsol, connect_PDE);
-		  rhsvec +=  solMemory_[i-1-noInt] * 0.5 * coeff_[i];
+		  rhsvec += elemsol * 0.5 * coeff_[i];
 		  GetElemSolution(solMemory_[i-1-noInt+1], elemsol, connect_PDE);
-		  rhsvec += solMemory_[i-1-noInt+1] * 0.5 * coeff_[i];
+		  rhsvec += elemsol * 0.5 * coeff_[i];
 		}
-		else
-		  Error("Something went wrong in calculation of BDF!",__FILE__,__LINE__);
 	  }
-
 	  rhsAssemble = elemmat * rhsvec;
 
 #ifdef DEBUG
@@ -249,33 +237,37 @@ void NewmarkFracDamp::Corrector(Vector<Double>& solnew)
   // solMemory_[0]=p_n, solMemory_[1]=p_(n-1)...solMemory_[fracMemory_ - 1]=p_(n-fracMemory_+1)
   // no interpolation
   if (inType_ == NOTUSED) {
+
 	for ( Integer i=fracMemory_-1; i>=1; i-- ) {
 	  solMemory_[i] = solMemory_[i-1];
-	  solMemoryVal_[i] = solMemoryVal_[i-1];
 	}
 	solMemory_[0] = solnew - solpred_;
-	solMemoryVal_[0] = TRUEVAL;
+
+	if (laststepcalc_ <= fracMemory_)
+	  solMemoryVal_.insert( solMemoryVal_.begin(),TRUEVAL);
+	// when solMemoryVal_ reaches size fracMemory_ , all entries are TRUEVAL
+	//  and stay the same for all time steps
+
   }
   // linear interpolation of one solution value	
   else if (inType_ == LIN1PT) {
 
 	if (laststepcalc_ <= fracMemory_) {
-	  for (Integer i=fracMemory_-1; i>=1; i--) {
+	  for (Integer i=fracMemory_-1; i>=1; i--)
 		solMemory_[i] = solMemory_[i-1];
-		solMemoryVal_[i] = solMemoryVal_[i-1];
-	  }
-	  solMemoryVal_[0] = TRUEVAL;
+
+	  solMemoryVal_.insert( solMemoryVal_.begin(),TRUEVAL);
 	}
 	else if ( (laststepcalc_ > fracMemory_) && (laststepcalc_ < 2*fracMemory_) ) {
-	  for (Integer i=(2*fracMemory_-laststepcalc_-2); i>=1; i--)
+	  for (Integer i=(2*fracMemory_-laststepcalc_-1); i>=1; i--)
 		solMemory_[i] = solMemory_[i-1];
 		
 	  solMemoryVal_[0] = TRUEVAL;
-	  solMemoryVal_.insert( (solMemoryVal_.begin()+2*fracMemory_-laststepcalc_-1),LIN1PT);
-	  Info->PrintF(pdename_, "Middle section, timestep: %d\n",laststepcalc_ );
+	  solMemoryVal_.insert( (solMemoryVal_.begin()+2*fracMemory_-laststepcalc_),LIN1PT);
+	  //Info->PrintF(pdename_, "Middle section, timestep: %d\n",laststepcalc_ );
 	}
 	else if (laststepcalc_ >= 2*fracMemory_ ) {
-	  if ( (laststepcalc_%2)==1 ) {
+	  if ( (laststepcalc_%2)==0 ) {
 		for (Integer i=fracMemory_-1; i>=1; i--)
 		  solMemory_[i] = solMemory_[i-1];
 
@@ -283,7 +275,7 @@ void NewmarkFracDamp::Corrector(Vector<Double>& solnew)
 		solMemoryVal_.pop_back();
 		solMemoryVal_.insert(solMemoryVal_.begin(), TRUEVAL);
 	  }
-	  else if ( (laststepcalc_%2)==0 )
+	  else if ( (laststepcalc_%2)==1 )
 		solMemoryVal_.insert( (solMemoryVal_.begin()+1), LIN1PT);
 	}
 	solMemory_[0] = solnew - solpred_;
@@ -372,7 +364,7 @@ void NewmarkFracDamp::PrintSolMemoryVal()
 	else if ( solMemoryVal_[i] ==  LIN1PT )
 	  msg += " L";
   }
-  msg += "\n";
+  msg += "\n\n";
   Info->PrintF(pdename_, msg.c_str() );
 }
 

@@ -963,4 +963,92 @@ void LinearFlowNoiseInt::GetQttiesOfElement(Matrix<Double>& elVel,
 }
 
 
+// =============================================================================
+// volume source integration
+// =============================================================================
+
+
+
+nLinKuznetsovRHSInt::nLinKuznetsovRHSInt(Double aVal, Boolean isaxi)
+  : LinearForm(), val_(aVal)
+{
+  ENTER_FCN( "nLinKuznetsovRHSInt::nLinKuznetsovRHSInt" );
+  isaxi_ = isaxi;
+}
+
+
+nLinKuznetsovRHSInt ::~nLinKuznetsovRHSInt()
+{
+  ENTER_FCN( "nLinKuznetsovRHSInt::~nLinKuznetsovRHSInt" );
+}
+
+
+void nLinKuznetsovRHSInt::CalcElemVector(Matrix<Double>& ptCoord, Vector<Double> & elemVec)
+{
+  ENTER_FCN( "nLinKuznetsovRHSInt::CalcElemVector" );
+
+  const Integer nrIntPts = ptelem->GetNumIntPoints();
+  const Integer nrNodes  = ptelem->GetNumNodes();
+  const Vector<Double> & intWeights = ptelem->GetIntWeights();  
+
+  // derivation of shape functions after global coordinates 
+  Matrix<Double> xiDx;
+  Matrix<Double> xiDxTransp;
+
+  Vector<Double> ShpFncAtIp;
+  Vector<Double> CoordAtIp;
+  Vector<Double> solGradAtIp;
+  Vector<Double> solDeriv1GradAtIp;
+  Double solDeriv1AtIp;
+  Double solDeriv2AtIp;
+
+  Double jacDet;
+  
+  elemVec.Resize(nrNodes);
+  elemVec.Init(0.0);
+
+  Double factor;
+  for (Integer actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
+    {  
+	  jacDet = 0;
+      ptelem->GetShFncAtIp(ShpFncAtIp,actIntPt);
+	  ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord, jacDet);
+
+	  if (isaxi_) {
+		CoordAtIp = ptCoord * ShpFncAtIp;
+		for (Integer i=0; i<nrNodes; i++)
+		  xiDx[i][0] += ShpFncAtIp[i] / CoordAtIp[0];
+		
+		jacDet *= 2 * PI * CoordAtIp[0];
+	  }
+
+	  xiDx.Transpose(xiDxTransp);
+
+	  //compute gradient of solution and 1st derivative at integration point
+	  solGradAtIp       = xiDxTransp * sol_;
+	  solDeriv1GradAtIp = xiDxTransp * solderiv1_;
+	  
+	  //get 1st and 2nd derivartive of solution at integration point
+	  solDeriv1AtIp = solderiv1_*ShpFncAtIp;
+	  solDeriv2AtIp = solderiv2_*ShpFncAtIp;
+
+	  Double factor=0;
+	  for (Integer j=0; j<xiDx.GetSizeCol(); j++)
+		factor += solGradAtIp[j]*solDeriv1GradAtIp[j];
+	  factor *= factorN2_;
+
+	  factor += factorN1_ * solDeriv1AtIp * solDeriv2AtIp;
+
+	  factor *= jacDet;
+	  for (Integer i=0; i< nrNodes; i++)
+		elemVec[i] += ShpFncAtIp[i] * factor;
+
+	  //	  std::cerr << "RHS in linearForm:\n" << elemVec << std::endl;
+ 
+    }
+
+  //  std::cerr << "RHS in linearForm:\n" << elemVec << std::endl;
+}
+
+
 } // end of namespace

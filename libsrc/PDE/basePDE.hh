@@ -430,8 +430,15 @@ namespace CoupledField
     /// returns the time derivative of the solution belonging to all nodes of the actual element
     void GetDerivSolOfElement(Matrix<Double>& sol, StdVector<Integer>& connect_PDE);
 
+    /// returns the vector of the solution belonging to all nodes of the actual element
+    void GetSolVecOfElement(Vector<Double>& sol, StdVector<Integer>& connect_PDE);
+
     /// returns the vector of time derivative of the solution belonging to all nodes of the actual element
     void GetDerivSolVecOfElement(Vector<Double>& sol, StdVector<Integer>& connect_PDE);
+
+    /// returns the vector of 2nd time derivative of the solution belonging to all nodes 
+	/// of the actual element
+    void GetDeriv2SolVecOfElement(Vector<Double>& sol, StdVector<Integer>& connect_PDE);
 
     //!
     void sortStresses(Vector<Double>& unsorted, Vector<Double>& sorted);

@@ -115,9 +115,19 @@ void TransientDriver::SolveProblem()
 	Integer nstep;
 	for (nstep = 1; nstep <= numstep_; nstep++) {
 
-	  if ( numstep_ < 50 )
+	  if ( numstep_ <= 50 )
 		Info->WriteTimeStep(pdes_[0]->GetName(), nstep+stepOffset_, 
 							steptime+timeOffset_);
+	  else if ( (numstep_ > 50) && (numstep_ <= 500) ) {
+		if ( (nstep%10) == 0 )		
+		  Info->WriteTimeStep(pdes_[0]->GetName(), nstep+stepOffset_, 
+							  steptime+timeOffset_);
+	  }
+	  else if ( numstep_ > 500 ) {
+		if ( (nstep%25) == 0 )		
+		  Info->WriteTimeStep(pdes_[0]->GetName(), nstep+stepOffset_, 
+							  steptime+timeOffset_);
+	  }
 
 	  pdes_[0]->PreStepTrans(nstep, steptime, level, updatesysmat);
 	  pdes_[0]->SolveStepTrans(nstep, steptime, level, updatesysmat);

@@ -80,6 +80,9 @@ public:
   //! set additional multiplicative factor for matrix
   virtual void SetFactor(Double factor) {;};
 
+  //! set second multiplicative factor for matrix
+  virtual void SetSecondFactor(Double factor) {;};
+
   //! sets pointer to actual element
   void SetElemPtr(BaseFE * elemPtr){ptelem = elemPtr;};
 
@@ -96,6 +99,21 @@ public:
   virtual void SetActElemSol(CFSMatrix & disp)
   {Error("SetActElemSol not implemented!",__FILE__,__LINE__);};
 
+  //! sets actual element solution
+  virtual void SetActElemSol(Vector<Double>& disp)
+  {Error("SetActElemSol not implemented!",__FILE__,__LINE__);};
+
+  //! sets actual first time derivative of element solution
+  virtual void SetActElemSolDeriv1(Matrix<Double>& disp)
+  {Error("SetActElemSol not implemented!",__FILE__,__LINE__);};
+
+  //! sets actual first time derivative of element solution
+  virtual void SetActElemSolDeriv1(Vector<Double>& disp)
+  {Error("SetActElemSolDeriv1 not implemented!",__FILE__,__LINE__);};
+
+  //! sets actual 2nd time derivative of element solution
+  virtual void SetActElemSolDeriv2(Vector<Double>& disp)
+  {Error("SetActElemSolDeriv2 not implemented!",__FILE__,__LINE__);};
 
   //! reads the values y(x) out of the file with name fncName  
   void ReadNlinFunc(std::string fncName, Vector<double> &xval, Vector<Double> &yval)

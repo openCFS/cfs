@@ -1882,10 +1882,36 @@ Double BasePDE::GetFracDampMatrixCoeff(Integer actSD) {
   Double beta = TS_alg_->GetNewmarkBeta();
   coeff *= 1.0 / (beta*dt*dt);
 
-  std::cout << "Returned Value in GetFracDampMatrixCoeff is:" << coeff << std::endl;
+  //std::cout << "Returned Value in GetFracDampMatrixCoeff is:" << coeff << std::endl;
 
   return coeff;
 }
+
+void BasePDE::GetSolVecOfElement(Vector<Double>& elemSol, StdVector<Integer>& connecth)
+{
+
+  ENTER_FCN( "BasePDE::GetSolVecOfElement" );
+
+  // displacement of element nodes
+  elemSol.Resize(dofspernode_ * connecth.GetSize());
+  elemSol.Init(0);
+  Integer eqnNr, eqnDof;
+  Integer dofsPerEQN = eqnData_->GetNumDofsPerEQN();
+
+  NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
+  Vector<Double> sol = solhelp->GetAlgSysVector();
+  
+  for(Integer actNode=0; actNode<connecth.GetSize(); actNode++)
+	for(Integer actDof=0; actDof < dofspernode_; actDof++)
+	  {
+		eqnData_->Node2EQN(connecth[actNode],actDof+1,eqnNr,eqnDof);
+		if (eqnNr!= 0)
+		  elemSol[actDof + actNode*dofspernode_] = sol[eqnDof-1 + dofsPerEQN*(abs(eqnNr-1))];
+		else
+		  elemSol[actDof + actNode*dofspernode_] = 0.0;
+	  }
+}
+
 
 void BasePDE::GetDerivSolVecOfElement(Vector<Double>& sol, StdVector<Integer>& connecth)
 {
@@ -1913,6 +1939,33 @@ void BasePDE::GetDerivSolVecOfElement(Vector<Double>& sol, StdVector<Integer>& c
 		}
   }
 }
+
+void BasePDE::GetDeriv2SolVecOfElement(Vector<Double>& sol, StdVector<Integer>& connecth)
+{
+
+  ENTER_FCN( "BasePDE::GetDeriv2SolVecOfElement" );
+
+  // displacement of element nodes
+  sol.Resize(dofspernode_ * connecth.GetSize());
+  sol.Init(0);
+  Integer eqnNr, eqnDof;
+  Integer dofsPerEQN = eqnData_->GetNumDofsPerEQN();
+  
+  if (analysistype_ == TRANSIENT) {
+	const Vector<Double> & sol_der2 = getS2();
+    
+	for(Integer actNode=0; actNode<connecth.GetSize(); actNode++)
+	  for(Integer actDof=0; actDof < dofspernode_; actDof++)
+		{
+		  eqnData_->Node2EQN(connecth[actNode],actDof+1,eqnNr,eqnDof);
+		  if (eqnNr!= 0)
+			sol[actDof + actNode*dofspernode_] = sol_der2[eqnDof-1 + dofsPerEQN*(abs(eqnNr-1))];
+		  else
+			sol[actDof + actNode*dofspernode_] = 0.0;
+		}
+  }
+}
+
 
 void BasePDE::GetDerivSolOfElement(Matrix<Double>& sol, StdVector<Integer>& connect_PDE)
 {
