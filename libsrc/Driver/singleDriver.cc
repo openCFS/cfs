@@ -17,7 +17,7 @@ SingleDriver::SingleDriver(Domain * adomain,
   ENTER_FCN( "SingleDriver::SingleDriver" );
 
   stepOffset_ = stepOffset;
-  timeOffset_ = timeOffset_;
+  timeOffset_ = timeOffset;
   driverTag_ = driverTag;
   isPartOfSequence_ = isPartOfSequence;
 }
