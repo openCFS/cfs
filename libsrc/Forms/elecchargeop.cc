@@ -55,20 +55,37 @@ namespace CoupledField
       {
 	ptElemFE->GetShFncAtIp(shFnc, actIntPt);
 	jacDet = ptElemFE->CalcJacobianDetAtIp(actIntPt, coordMat);
-      
-	// loop over all shape functions
-	for (Integer actShFnc=1; actShFnc<= shFnc.GetSize(); actShFnc++)
+	chargeAux =  eNormalFluxDensity * jacDet * intWeights[actIntPt-1];
+	if (isaxi_)
 	  {
-	    chargeAux = shFnc[actShFnc-1] * intWeights[actIntPt-1];
-	    chargeAux *=  jacDet * eNormalFluxDensity;
-	    if (isaxi_)
-	      {
-		globCoord = coordMat * shFnc;
-		chargeAux *= 2 * PI * globCoord[0];
-	      }
-	    charge += chargeAux;
+	    globCoord = coordMat * shFnc;
+	    chargeAux *= 2 * PI * globCoord[0];
 	  }
+	charge += chargeAux;
       }
+
+
+      //     // loop over all integration points
+//     for (Integer actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
+//       {
+// 	ptElemFE->GetShFncAtIp(shFnc, actIntPt);
+// 	jacDet = ptElemFE->CalcJacobianDetAtIp(actIntPt, coordMat);
+      
+// 	// loop over all shape functions
+// 	for (Integer actShFnc=1; actShFnc<= shFnc.GetSize(); actShFnc++)
+// 	  {
+// 	    chargeAux = shFnc[actShFnc-1] * intWeights[actIntPt-1];
+// 	    chargeAux *=  jacDet; // * eNormalFluxDensity;
+// 	    if (isaxi_)
+// 	      {
+// 		globCoord = coordMat * shFnc;
+// 		chargeAux *= 2 * PI * globCoord[0];
+// 	      }
+// 	    charge += chargeAux;
+// 	  }
+//       }
+
+
   }
 
   void ElecChargeOp::CalcElemCharge(Complex & charge,
