@@ -2,7 +2,7 @@
 #include <fstream>
 #include <time.h>
 //#include <string>
-#include <iomanip.h>
+#include <iomanip>
 
 //#include <general_head.hh>
 //#include <utils_head.hh>
@@ -394,7 +394,7 @@ template< class TYPE>
 void SymMatrix<TYPE>::precond(Vector<TYPE> & e, const Vector<TYPE> r, const Integer type)
 {
 #ifdef TRACE
-  (*trace) << "entering SymMatrix::precond" << endl;
+  (*trace) << "entering SymMatrix::precond" << std::endl;
 #endif
  
  Integer i,j;
@@ -438,7 +438,7 @@ std::ostream & operator << (std::ostream & out, const SymMatrix<S> & mat)
 {
 Integer i,j;
 
-out.setf(ios::scientific);
+out.setf(std::ios::scientific);
 
 for (i=0; i < mat.getSize(); i++)
 {
@@ -447,10 +447,10 @@ for (i=0; i < mat.getSize(); i++)
 // for printing matrix in full size, uncomment line below
 //  for (jj=i+1; jj < mat.getSize(); jj++) out << mat[jj][i] <<" ";
 
- out << endl;
+ out << std::endl;
 }
 
-out.setf(0, ios::floatfield);
+out.setf(0, std::ios::floatfield);
 
  return out;
 }

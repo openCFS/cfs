@@ -27,7 +27,7 @@ inline WorkWithSysMat<Dim, T_Matrix>::WorkWithSysMat(Grid<Dim> * aptgrid, const 
  : Assemble<Dim, T_Matrix>(aptgrid), LinSystem<Double, T_Matrix>(eps) 
 {
 #ifdef TRACE
- (*trace) << " entering WorkWithSysMat<Dim>::WorkWithSysMat " << endl;
+ (*trace) << " entering WorkWithSysMat<Dim>::WorkWithSysMat " << std::endl;
 #endif
  ;
 }

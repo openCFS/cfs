@@ -5,7 +5,7 @@
 
 //#include <general_head.hh>
 //#include <utils_head.hh>
-#include <domain_head.hh>
+//#include <domain_head.hh>
 #include "outUnverg.hh"
 
 namespace CoupledField
@@ -74,7 +74,7 @@ void  OutResultUnverg::Dataset781(Grid<Point2D> * ptgrid, const Integer level)
 
  Integer maxnumnodes=ptgrid-> GetMaxnumnodes(level);
 
- (*output).setf(ios::scientific);
+ (*output).setf(std::ios::scientific);
  (*output).precision(16);
 
  ptCoordinate=ptgrid->GetptCoordinate(level); 
@@ -83,7 +83,7 @@ void  OutResultUnverg::Dataset781(Grid<Point2D> * ptgrid, const Integer level)
    {
      (*output) << std::setw(10) << i+1 << std::setw(10) << 0 << std::setw(10) << 0 << std::setw(10) << 11 << std::endl;
 
-     (*output).setf(ios::uppercase);
+     (*output).setf(std::ios::uppercase);
      if (ptCoordinate->is2D()) 
        {
 	 (*output) << "   " << 0.0 ; 
@@ -149,9 +149,9 @@ void  OutResultUnverg::Dataset55(const std::string & title, const Vector<Double>
 {
  (*output) << std::setw(6) << -1 << std::endl << std::setw(6) << 55 << std::endl;
 
- (*output).setf(ios::scientific);
+ (*output).setf(std::ios::scientific);
  (*output).precision(6);
- (*output).setf(ios::uppercase);
+ (*output).setf(std::ios::uppercase);
 
  (*output) << " " << title << ", step" << std::setw(6) << step <<
              " time   " << time << std::endl;  

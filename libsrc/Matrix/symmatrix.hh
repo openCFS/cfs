@@ -9,7 +9,7 @@ namespace CoupledField
 
  template<class TYPE> class SymMatrix;
 /// Overloading << for class SymMatrix
-template<class TYPE>  ostream& operator << ( ostream & , const SymMatrix<TYPE> &);
+template<class TYPE>  std::ostream& operator << ( std::ostream & , const SymMatrix<TYPE> &);
  /// Calculate Spur of SymMatrix
 template <class T> T Spur(const SymMatrix<T> &);
 

@@ -42,7 +42,7 @@ template<class TYPE> class Vector
   //! pointer to array
   TYPE	*p;
 
-  void	help	(const Integer, istream &);
+  void	help	(const Integer, std::istream &);
         
 public:
 

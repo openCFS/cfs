@@ -28,13 +28,13 @@ namespace CoupledField
  void Material::ReadDensityAndCompress(Double & density, Double & compress)
 {
 #ifdef TRACE
-  (*trace) << "entering  ReadMaterial::ReadDensityAndCompress" << endl;
+  (*trace) << "entering  ReadMaterial::ReadDensityAndCompress" << std::endl;
 #endif
   infile.seekg(0, std::ios::beg);  
-  string buf;
-  string::size_type pos=string::npos;
+  std::string buf;
+  std::string::size_type pos=std::string::npos;
 
-  while ( pos == string::npos & !infile.eof() )
+  while ( pos == std::string::npos & !infile.eof() )
   { std::getline(infile, buf, '\n');
     pos=buf.find("density");
   }
