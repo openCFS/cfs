@@ -930,7 +930,7 @@ void ElecPDE::ReadStoreResults() {
   savederiv2_ = FALSE;
 
   // Determine regions for which electric field must be computed
-  params->CGetList( "region", calcEfield_, "type", "efield", pdename_,
+  params->CGetList( "region", calcEfield_, "type", "efield", 0, pdename_,
 		    "elemResults" );
 
   // If the the symbolic name is "all" compute electric field for all regions
@@ -946,7 +946,7 @@ void ElecPDE::ReadStoreResults() {
   }
 
   // Determine regions for which energy must be computed
-  params->CGetList( "region", calcEnergy_, "type", "energy", pdename_,
+  params->CGetList( "region", calcEnergy_, "type", "energy", 0, pdename_,
 		    "elemResults" );
 
   // If the the symbolic name is "all" compute energy for all regions
