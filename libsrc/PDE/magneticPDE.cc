@@ -75,7 +75,7 @@ MagPDE::MagPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *apt
   sol_->SetNumSolutions(1);
   sol_->SetSolutionType(MAG_POTENTIAL);
   sol_->SetNumNodes(numPDENodes_);
-  sol_->SetDof(dofspernode_);
+  sol_->SetNumDofs(dofspernode_);
   sol_->Init(0.0);
   
   
@@ -282,7 +282,7 @@ void MagPDE::PostProcess(const Integer level)
       B_.SetNumSolutions(1);
       B_.SetSolutionType(MAG_FIELD);
       B_.SetNumNodes(numElems_);
-      B_.SetDof(Dim_);
+      B_.SetNumDofs(Dim_);
       B_.Init(0);
       
       // loop over all subdomains
@@ -325,7 +325,7 @@ void MagPDE::PostProcess(const Integer level)
       Jeddy_.SetSolutionType(MAG_EDDY_CURRENT);
       Jeddy_.SetNumNodes(numElems_);
       // dimension hard coded for .unv file!
-      Jeddy_.SetDof(3);
+      Jeddy_.SetNumDofs(3);
       Jeddy_.Init(0);
 
       // loop over all subdomains

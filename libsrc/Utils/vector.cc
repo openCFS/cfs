@@ -57,6 +57,7 @@ template<class TYPE>
 Vector<TYPE>::Vector(const std::vector<TYPE>  &vec)
 {
   ENTER_IFCN("Vector::Vector");    
+  Error("Not implemented yet",__FILE__,__LINE__);
 
   // ** TO IMPLEMENT **
 }

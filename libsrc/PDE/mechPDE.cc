@@ -82,7 +82,7 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
     sol_->SetNumSolutions(1);
     sol_->SetSolutionType(MECH_DISPLACEMENT);
     sol_->SetNumNodes(numPDENodes_);
-    sol_->SetDof(dofspernode_);
+    sol_->SetNumDofs(dofspernode_);
     sol_->Init(0.0);
 
     effectiveMass_ = FALSE;
@@ -1330,7 +1330,7 @@ void MechPDE::WriteResultsInFile()
 	  sol_der1Array.SetNumSolutions(1);
 	  sol_der1Array.SetNumNodes(numPDENodes_);
 	  sol_der1Array.SetSolutionType(MECH_VELOCITY);
-	  sol_der1Array.SetDof(Dim_);
+	  sol_der1Array.SetNumDofs(Dim_);
 	  sol_der1Array.Init(0);
 	  sol_der1Array.SetSolVector(MECH_VELOCITY,getS1());
 	  
@@ -1343,7 +1343,7 @@ void MechPDE::WriteResultsInFile()
 	  sol_der2Array.SetNumSolutions(1);
 	  sol_der2Array.SetNumNodes(numPDENodes_);
 	  sol_der2Array.SetSolutionType(MECH_ACCELERATION);
-	  sol_der2Array.SetDof(Dim_);
+	  sol_der2Array.SetNumDofs(Dim_);
 	  sol_der2Array.Init(0);
 	  sol_der2Array.SetSolVector(MECH_ACCELERATION,getS2());
 	  sol_der2Array.TransformNodeSolution(solder2_mesh,PDE2MeshNode_,ptgrid_,actlevel_);

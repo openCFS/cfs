@@ -440,14 +440,14 @@ void PDECoupling::CreateStoreSol(Integer i,
   outputInterfaces_[i]->values->SetNumSolutions(1);
   outputInterfaces_[i]->values->SetNumNodes(numNodes);
   outputInterfaces_[i]->values->SetSolutionType(solType);
-  outputInterfaces_[i]->values->SetDof(dof);
+  outputInterfaces_[i]->values->SetNumDofs(dof);
   outputInterfaces_[i]->values->Init(0.0);
   
   // initialize storesol-object oldValues
   outputInterfaces_[i]->oldValues->SetNumSolutions(1);
   outputInterfaces_[i]->oldValues->SetNumNodes(numNodes);
   outputInterfaces_[i]->oldValues->SetSolutionType(solType);
-  outputInterfaces_[i]->oldValues->SetDof(dof);
+  outputInterfaces_[i]->oldValues->SetNumDofs(dof);
   outputInterfaces_[i]->oldValues->Init(0.0);
 
  }

@@ -509,9 +509,21 @@ void AcouFlowNoise::WriteResultsInFile()
   StoreSol<Double> arraysol,arraysol_der1,arraysol_der2;
   StoreSol<Double> sol_der1Array, sol_der2Array;
   
-  sol_der1Array = getS1();
-  sol_der2Array = getS2();
 
+  sol_der1Array.SetNumSolutions(1);
+  sol_der1Array.SetNumNodes(numPDENodes_);
+  sol_der1Array.SetSolutionType(ACOU_VELOCITY);
+  sol_der1Array.SetNumDofs(dofspernode_);
+  sol_der1Array.Init(0.0);
+  sol_der1Array.SetCompleteVector(getS1());
+  
+  sol_der2Array.SetNumSolutions(1);
+  sol_der2Array.SetNumNodes(numPDENodes_);
+  sol_der2Array.SetSolutionType(ACOU_FORCE);
+  sol_der2Array.SetNumDofs(dofspernode_);
+  sol_der2Array.Init(0.0);
+  sol_der2Array.SetCompleteVector(getS2());
+  
   sol_->TransformNodeSolution(arraysol,PDE2MeshNode_,ptgrid_,actlevel_);
   sol_der1Array.TransformNodeSolution(arraysol_der1,PDE2MeshNode_,ptgrid_,actlevel_);
   sol_der2Array.TransformNodeSolution(arraysol_der2,PDE2MeshNode_,ptgrid_,actlevel_);
