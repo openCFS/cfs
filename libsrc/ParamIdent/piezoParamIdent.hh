@@ -32,9 +32,9 @@ public:
     void SolveProblem();
 
 protected:
-    void createF(BasePDE * actPDE, MaterialData * ptMaterial, BCs * ptBCs, Vector<Complex> & F_hat);
+    void createF(MaterialData * ptMaterial, BCs * ptBCs, Vector<Complex> & F_hat);
 
-    void createJacobiMatrix(BasePDE * actPDE, MaterialData * ptMaterial, BCs * ptBCs, Vector<Complex> & F_ha, Vector<Double> & parameterIncrement, Matrix<Complex> & JacobiMatrix, Vector<Complex> & solElecPot,Vector<Complex> & solMechDispl);
+    void createJacobiMatrix(MaterialData * ptMaterial, BCs * ptBCs, Vector<Complex> & F_ha, Vector<Double> & parameterIncrement, Matrix<Complex> & JacobiMatrix, Vector<Complex> & solElecPot,Vector<Complex> & solMechDispl);
 
 		    void createAdjointJacobiMatrix(Vector<Double> & parameterIncrement,Vector<Double> &  parameter, Matrix<Complex> & JacobiMatrix, Vector<Complex> & solElecPot,Vector<Complex> & solMechDispl, Vector<Double> & freqs, Matrix<Complex> & adjJacobiMatrix);
 

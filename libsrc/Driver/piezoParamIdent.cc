@@ -14,6 +14,7 @@
 #include "DataInOut/MaterialData.hh"
 #include "PDE/timestepping.hh"
 #include "Utils/baseelemstoresol.hh"
+#include "singleDriver.hh"
 //#include "/../OLAS/algsys/basesystem.hh"
 //#include "DataInOut/piezoParameterData.hh"
 
@@ -101,9 +102,12 @@ namespace CoupledField
     Integer level=0;
     Boolean reset = TRUE;
     Integer pdenumber  = 0;
-    ptdomain_->PrintGrid(level);
+    if (!isPartOfSequence_)
+      ptdomain_->PrintGrid(level);
+
     if (PrintGridOnly)
       exit(0);
+
     std::cout<<"Here begins communication with base PDE" << std::endl;
 
     // ************************************************************************
@@ -113,6 +117,7 @@ namespace CoupledField
 
     // if driver is not part of multiSequence Driver, get list
     // of pdes which have to be solved and intialize them
+
     if (isPartOfSequence_ == FALSE){     
       GetMyPDEs();
       Info->StartProgress ("Starting to solve problem", FALSE);
@@ -121,36 +126,36 @@ namespace CoupledField
     // since this driver normally will not be used in a coupled 
     // field simulation, we simply can access the first PDE,
     // as it will be the single one
-    BasePDE * actPDE = pdes_[0];
-    actPDE->WriteGeneralPDEdefines();
- 
-    MaterialData * ptMaterial=actPDE->getPDEMaterialData();   // Pointer to MaterialData
-    Matrix<Double> * matMatrix =  ptMaterial->GetMatrix();
-   
-    ptBCs = actPDE->getPDE_BCs();                             // Pointer to BCs
-    ptAlgsys = actPDE->getPDE_algsys();                       //Pointer to AlgebraicSystem
-   
-    Integer numElems = actPDE->getPDE_numElems();
-    dofs=actPDE->getPDE_dofspernode();
-   
-    numNodes= actPDE->getPDE_numPDENodes();
-   
 
-    /*for (Integer fstep = 0; fstep < nrMeasuredData; fstep++) { // harmonic solver for different frequency - values
-      measureMechDeformationInZ_Direction(solMechDispl,radius,meanValueMechDeformation,dofs);
-      updateMaterialData(parameter, ptMaterial);         //member function of piezoParamIdent
-      } // end of loop over all frequencies */
-    //while (nrIterations<3 && anorm >tau*tau*delta*delta){ // Newton- Iteration
-    
+ 
+    std::cout<<" WriteGeneralPDEdefines() ... "<<std::endl;
+    pdes_[0]->WriteGeneralPDEdefines(); 
+ 
+    MaterialData * ptMaterial=pdes_[0]->getPDEMaterialData();   // Pointer to MaterialData
+    Matrix<Double> * matMatrix =  ptMaterial->GetMatrix();
+ 
+    ptBCs = pdes_[0]->getPDE_BCs();                             // Pointer to BCs
+ 
+     ptAlgsys = pdes_[0]->getPDE_algsys();                       //Pointer to AlgebraicSystem
+   
+ 
+    Integer numElems = pdes_[0]->getPDE_numElems();
+ 
+    dofs=pdes_[0]->getPDE_dofspernode();
+   
+    numNodes= pdes_[0]->getPDE_numPDENodes();
+ 
+   std::cout<<"TEStMark:4"<<std::endl;
+   
     while (nrIterations<2){
       nrIterations++;
       std::cout<<"\n NewtonCG ... Newton-Iteration-Nr = "<<nrIterations<<std::endl;
       calcNorm2Resid(res,anorm,nrMeasuredData);
       std::cout<<"A-Norm:" << anorm << std::endl;
 
-      createF(actPDE, ptMaterial, ptBCs, F_hat);
-      createJacobiMatrix(actPDE, ptMaterial, ptBCs, F_hat, parameterIncrement,JacobiMatrix, solElecPot, solMechDispl);
-      createAdjointJacobiMatrix(parameterIncrement, parameter, JacobiMatrix,solElecPot,solMechDispl,freqs,adjJacobiMatrix);
+      createF(ptMaterial, ptBCs, F_hat);
+       createJacobiMatrix(ptMaterial, ptBCs, F_hat, parameterIncrement,JacobiMatrix, solElecPot, solMechDispl);
+       createAdjointJacobiMatrix(parameterIncrement, parameter, JacobiMatrix,solElecPot,solMechDispl,freqs,adjJacobiMatrix);
       updateMaterialData(parameter, ptMaterial);         //member function of piezoParamIdent
 
       while(nrCGIterations<5&&res_norm>tolCG){ // CG
@@ -170,51 +175,57 @@ namespace CoupledField
     }
   }
 
-  void piezoParamIdent::createF(BasePDE * actPDE, MaterialData * ptMaterial, BCs * ptBCs, Vector<Complex> & F_hat){
+  void piezoParamIdent::createF(MaterialData * ptMaterial, BCs * ptBCs, Vector<Complex> & F_hat){
     ENTER_FCN("PiezoParamIdent:createF");
     std::cout<<"creates F ..."<<std::endl;
 
-    actPDE = ptdomain_->GetPDE(0);    
-    actPDE->WriteGeneralPDEdefines();
-    ptMaterial=actPDE->getPDEMaterialData();   // Pointer to MaterialData
+    ptMaterial=pdes_[0]->getPDEMaterialData();   // Pointer to MaterialData
     Matrix<Double> * matMatrix =  ptMaterial->GetMatrix();
-    ptBCs = actPDE->getPDE_BCs();                             // Pointer to BCs
-
-    ptAlgsys = actPDE->getPDE_algsys();
+    ptBCs = pdes_[0]->getPDE_BCs();                             // Pointer to BCs
+    ptAlgsys = pdes_[0]->getPDE_algsys();
 
     Integer level=0;
-
     Boolean reset = TRUE;
     Integer pdenumber = 0;
 
-    Integer numElems = actPDE->getPDE_numElems();
-    Integer dofs=actPDE->getPDE_dofspernode();
+    Integer numElems = pdes_[0]->getPDE_numElems();
 
-    Integer numNodes= actPDE->getPDE_numPDENodes();
-    Integer spaceDim = actPDE->getPDE_spaceDim();
+    Integer dofs=pdes_[0]->getPDE_dofspernode();
+    std::cout<<"Create F, 2"<<std::endl;
+
+    Integer numNodes= pdes_[0]->getPDE_numPDENodes();
+    std::cout<<"Create F, 3"<<std::endl;
+
+    Integer spaceDim = pdes_[0]->getPDE_spaceDim();
+    std::cout<<"Create F, 4"<<std::endl;
 
     tau=1.0;
     Matrix<Double> couplingMatrix; // \bf e
     Matrix<Double> dielectricMatrix; // \eps^S
     couplingMatrix.Resize(spaceDim, 2*spaceDim);
     dielectricMatrix.Resize(spaceDim, spaceDim);
-    Integer numElems_ = actPDE->getPDE_numElems();
+    Integer numElems_ = pdes_[0]->getPDE_numElems();
 
 
     createMaterialTensorMatrices(parameter, couplingMatrix, dielectricMatrix, spaceDim);
-   
-    for (Integer fstep = 0; fstep < nrMeasuredData; fstep++) { // harmonic solver for different frequency - values
-      Info->WriteHarmonicStep(actPDE->GetName(), fstep, freqs[fstep]);
-   
-      actPDE->PreStepHarmonic(fstep, freqs[fstep], level, reset);
-   
-      actPDE->SolveStepHarmonic(fstep, freqs[fstep], level, reset);
-   
+    // std::cout<<"Create F,3"<<std::endl;
 
-      BaseNodeStoreSol * ptSol = actPDE->getPDESolution();
+
+    for (Integer fstep = 0; fstep < nrMeasuredData; fstep++) { // harmonic solver for different frequency - values
+
+      Info->WriteHarmonicStep(pdes_[0]->GetName(), fstep, freqs[fstep]);
+
+
+      Info->WriteHarmonicStep(pdes_[0]->GetName(), fstep, freqs[fstep]);
+      std::cout<<"Create F, 5"<<std::endl;
+
+      pdes_[0]->SolveStepHarmonic(fstep, freqs[fstep], level, reset);
+
+      BaseNodeStoreSol * ptSol = pdes_[0]->getPDESolution();
+
       NodeStoreSol<Complex> * ptNodeStoreSol;
       ptNodeStoreSol = dynamic_cast<NodeStoreSol<Complex>*>(ptSol);
-
+      std::cout<<"Create F, 7"<<std::endl;
 
       ptNodeStoreSol->GetGlobalSolVector(ELEC_POTENTIAL, solElecPot);
       ptNodeStoreSol->GetGlobalSolVector(MECH_DISPLACEMENT, solMechDispl);
@@ -223,35 +234,43 @@ namespace CoupledField
 
       // typeOutSolutionOnScreen(solElecPot, solMechDispl);              //member function of piezoParamIdent
       measureMechDeformationInZ_Direction(solMechDispl,radius,meanValueMechDeformation,dofs); // Braucht üÜberarbeitung!!
-     
-      actPDE->PostStepHarmonic(fstep, freqs[fstep], level, reset);
-     
-      actPDE->PostProcess(level);
-     
+
+
+
+      pdes_[0]->PostStepHarmonic(fstep, freqs[fstep], level, reset);
+      std::cout<<"Create F, 9"<<std::endl;
+      //      actPDE->PostProcess(level);
+      pdes_[0]->PostProcess(level);
+      // pdes_[0]->PostStepHarmonic(fstep, freqs[fstep], level, reset);
+
+      std::cout<<"Create F, 10"<<std::endl;
       Info->PrintPiezoMat(*ptMaterial);
-      actPDE->WriteResultsInFile();     
+
+      pdes_[0]->WriteResultsInFile();     
+      std::cout<<"Finished to create F ..."<<std::endl;
 
     } // end of loop over all frequencies
   } // end createF
 
-  void piezoParamIdent::createJacobiMatrix(BasePDE * actPDE, MaterialData * ptMaterial, BCs * ptBCs, Vector<Complex> & F_hat, Vector<Double> & parameterIncrement,Matrix<Complex> & JacobiMatrix, Vector<Complex> & solElecPot,Vector<Complex> & solMechDispl){
+
+
+  void piezoParamIdent::createJacobiMatrix(MaterialData * ptMaterial, BCs * ptBCs, Vector<Complex> & F_hat, Vector<Double> & parameterIncrement,Matrix<Complex> & JacobiMatrix, Vector<Complex> & solElecPot,Vector<Complex> & solMechDispl){
     ENTER_FCN("piezoParamIdent::createJacobiMatrix");
     std::cout<<"JacobiMatrix will be created"<<std::endl;
     Vector<Double> IncrementedRHSMatrix;
-    actPDE = ptdomain_->GetPDE(0);
-
-    actPDE->WriteGeneralPDEdefines();
+   
+    //    pdes_[0]->WriteGeneralPDEdefines();
 
     Matrix<Double> * matMatrix =  ptMaterial->GetMatrix();
-    ptBCs = actPDE->getPDE_BCs();                             // Pointer to BCs
-    ptAlgsys = actPDE->getPDE_algsys();
+    ptBCs = pdes_[0]->getPDE_BCs();                             // Pointer to BCs
+    ptAlgsys = pdes_[0]->getPDE_algsys();
     Integer level=0;
     Boolean reset = TRUE;
     //Integer nrMeasuredData = freqs.GetSize();
-    Integer numElems_ = actPDE->getPDE_numElems();
+    Integer numElems_ = pdes_[0]->getPDE_numElems();
     JacobiMatrix.Resize(2*nrMeasuredData);
     Integer pdenumber = 0;
-    actPDE->WriteGeneralPDEdefines();
+    
 
     //     for(int i=0;i<parameter.GetSize();i++){
     //       parameter[i]=1; // noch reelle Parameterwerte !!
@@ -264,10 +283,10 @@ namespace CoupledField
 
     for (Integer fstep = 0; fstep < nrMeasuredData; fstep++) { // harmonic solver for different frequency - values
 
-      actPDE->CreateIncrementedRHSMatrix(IncrementedRHSMatrix, freqs[fstep], level);
+      pdes_[0]->CreateIncrementedRHSMatrix(IncrementedRHSMatrix, freqs[fstep], level);
 
       // Now we calculate the MatVecProduct in the Right Hand Site, only real parts!!:
-      BaseNodeStoreSol * ptSol = actPDE->getPDESolution();
+      BaseNodeStoreSol * ptSol = pdes_[0]->getPDESolution();
 
       NodeStoreSol<Complex> * ptNodeStoreSol;
       ptNodeStoreSol = dynamic_cast<NodeStoreSol<Complex>*>(ptSol);
@@ -291,9 +310,9 @@ namespace CoupledField
 	}
       }
       updateRHS(RHSsol);	//member function of piezoParamIdent
-      Info->WriteHarmonicStep(actPDE->GetName(), fstep, freqs[fstep]);
-      actPDE->PreStepHarmonic(fstep, freqs[fstep], level, reset);
-      actPDE->SolveStepHarmonic(fstep, freqs[fstep], level, reset);
+      Info->WriteHarmonicStep(pdes_[0]->GetName(), fstep, freqs[fstep]);
+      pdes_[0]->PreStepHarmonic(fstep, freqs[fstep], level, reset);
+      pdes_[0]->SolveStepHarmonic(fstep, freqs[fstep], level, reset);
       // ptNodeStoreSol->GetGlobalSolVector(ELEC_POTENTIAL, solElecPot);
       //ptNodeStoreSol->GetGlobalSolVector(MECH_DISPLACEMENT, solMechDispl);
       
@@ -303,12 +322,12 @@ namespace CoupledField
 	  std::cout<<"RHS(" <<i<<") " << IncrementedRHSMatrix[i] << std::endl;
 	  }*/
 
-      actPDE->PostStepHarmonic(fstep, freqs[fstep], level, reset);
+      //  pdes_[0]->PostStepHarmonic(fstep, freqs[fstep], level, reset);
 
-       actPDE->PostProcess(level);
+      pdes_[0]->PostProcess(level);
 
       Info->PrintPiezoMat(*ptMaterial);
-      actPDE->WriteResultsInFile();
+      pdes_[0]->WriteResultsInFile();
      
      
     }		// end for over all frequencies
