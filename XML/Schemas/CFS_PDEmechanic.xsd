@@ -1,0 +1,143 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org"
+  xmlns:cfs="http://www.cfs++.org"
+  elementFormDefault="qualified">
+
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Coupled Field Solver project CFS++
+      Schema for PDE description for a mechanic PDE
+    </xsd:documentation>
+  </xsd:annotation>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of element for mechanic PDEs -->
+  <!-- ******************************************************************** -->
+  <xsd:element name="mechanic" type="PDE_Type_mechanic"
+       substitutionGroup="PDE_basic"/>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for mechanic PDEs -->
+  <!-- ******************************************************************** -->
+
+  <xsd:complexType name="PDE_Type_mechanic">
+    <xsd:complexContent>
+      <xsd:extension base="PDE_Type_basic">
+        <xsd:sequence>
+      
+          <!-- Subtype of PDE -->
+          <xsd:element name="subtype">
+            <xsd:simpleType>
+              <xsd:restriction base="xsd:token">
+                <xsd:enumeration value="axi"/>
+                <xsd:enumeration value="3d"/>
+                <xsd:enumeration value="plainStrain"/>
+              </xsd:restriction>
+            </xsd:simpleType>
+          </xsd:element>
+
+          <!-- Subdomains the PDE lives on -->
+          <xsd:element name="subdom" type="xsd:token" minOccurs="1"
+                       maxOccurs="unbounded"/>
+    
+          <!-- Boundary Conditions -->
+          <xsd:element name="BoundaryConds">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="dirichlet_hom" type="BC_mechhd"
+                             minOccurs="0" maxOccurs="unbounded"/>
+                <xsd:element name="dirichlet_inhom" type="BC_mechid"
+                             minOccurs="0" maxOccurs="unbounded"/>
+                <xsd:element name="neumann_inhom" type="BC_mechin"
+                             minOccurs="0" maxOccurs="unbounded"/>
+                <xsd:element name="load" type="BC_mechload" minOccurs="0"
+                             maxOccurs="unbounded"/>
+              </xsd:sequence>
+            </xsd:complexType>
+          </xsd:element>
+
+          <!-- Desired solution values (optional) -->
+          <xsd:element name="StoreResults" minOccurs="0" maxOccurs="1">
+            <xsd:simpleType>
+              <xsd:restriction base="xsd:token">
+                <xsd:enumeration value="dof"/>
+                <xsd:enumeration value="deriv1"/>
+                <xsd:enumeration value="deriv2"/>
+              </xsd:restriction>
+            </xsd:simpleType>
+          </xsd:element>
+
+          <!-- Section for specifying solver -->
+          <xsd:element ref="Solver"/>
+
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of enumeration type describing the degrees of freedom   -->
+  <!-- ******************************************************************** -->
+
+  <xsd:simpleType name="mechdof">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="ux"/>
+      <xsd:enumeration value="uy"/>
+      <xsd:enumeration value="uz"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of the boundary condition types for mechanic -->
+  <!-- ******************************************************************** -->
+
+  <!-- Element type for homogeneous Dirichlet boundary conditions -->
+  <!-- We derive it by extending the base type -->
+  <xsd:complexType name="BC_mechhd">
+    <xsd:complexContent>
+      <xsd:extension base="BC_type">
+        <xsd:attribute name="interface" type="xsd:token" use="required"/>
+        <xsd:attribute name="dof" type="mechdof" use="required"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- Element type for inhomogeneous Dirichlet boundary conditions -->
+  <!-- We derive it by extending the homogeneous case -->
+  <xsd:complexType name="BC_mechid">
+    <xsd:complexContent>
+      <xsd:extension base="BC_mechhd">
+        <xsd:attribute name="value" type="xsd:double" use="required"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- Element type for specifying inhomogeneous neumann conditions -->
+  <!-- We derive it by extending the base case -->
+  <xsd:complexType name="BC_mechin">
+    <xsd:complexContent>
+      <xsd:extension base="BC_type">
+        <xsd:attribute name="surface" type="xsd:token" use="required"/>
+        <xsd:attribute name="dof" type="mechdof" use="required"/>
+        <xsd:attribute name="value" type="xsd:double" use="required"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- Element type for specifying loads -->
+  <!-- We derive it by extending the homogeneous Dirichlet case -->
+  <xsd:complexType name="BC_mechload">
+    <xsd:complexContent>
+      <xsd:extension base="BC_mechhd">
+        <xsd:attribute name="value" type="xsd:double" use="required"/>
+        <xsd:attribute name="dynamics" type="xsd:token" use="optional"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+</xsd:schema>

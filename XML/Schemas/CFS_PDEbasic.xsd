@@ -1,0 +1,83 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org"
+  xmlns:cfs="http://www.cfs++.org"
+  elementFormDefault="qualified">
+
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Coupled Field Solver project CFS++
+      Schema for basic PDE description and boundary conditions
+      All other PDE descriptions are derived from this type
+    </xsd:documentation>
+  </xsd:annotation>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of basic PDE data type -->
+  <!-- ******************************************************************** -->
+
+  <!-- This is an abstract basic type so that it cannot appear in an -->
+  <!-- instance document -->
+  <xsd:complexType name="PDE_Type_basic" abstract="true"/>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of basic PDE element -->
+  <!-- ******************************************************************** -->
+
+  <!-- This element is abstract in order to force substitution -->
+  <!-- by the derived specialised PDE elements -->
+  <xsd:element name="PDE_basic" type="PDE_Type_basic" abstract="true"/>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of standard type for boundary conditions -->
+  <!-- ******************************************************************** -->
+
+  <!-- Base element type for specifying boundary conditions -->
+  <xsd:complexType name="BC_type">
+    <xsd:complexContent>
+      <xsd:restriction base="xsd:anyType">
+      </xsd:restriction>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of standard boundary conditions in the scalar setting -->
+  <!-- ******************************************************************** -->
+
+  <!-- Element type for specifying homogeneous boundary conditions -->
+  <!-- We derive it by extending the base type -->
+  <xsd:complexType name="BC_scalarhd">
+    <xsd:complexContent>
+      <xsd:extension base="BC_type">
+        <xsd:attribute name="interface" type="xsd:token" use="required"/>
+        <xsd:attribute name="dof" type="xsd:token" use="optional"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+  
+  <!-- Element type for specifying inhomogeneous boundary conditions -->
+  <!-- We derive it by extending the homogeneous case -->
+  <xsd:complexType name="BC_scalarid">
+    <xsd:complexContent>
+      <xsd:extension base="BC_scalarhd">
+        <xsd:attribute name="value" type="xsd:double" use="required"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+  
+  <!-- Element type for specifying inhomogeneous neumann conditions -->
+  <!-- We derive it by extending the base case -->
+  <xsd:complexType name="BC_scalarin">
+    <xsd:complexContent>
+      <xsd:extension base="BC_type">
+        <xsd:attribute name="surface" type="xsd:token" use="required"/>
+        <xsd:attribute name="value" type="xsd:double" use="required"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+</xsd:schema>

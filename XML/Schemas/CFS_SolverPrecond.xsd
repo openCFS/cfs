@@ -1,0 +1,61 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org"
+  xmlns:cfs="http://www.cfs++.org"
+  elementFormDefault="qualified">
+
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Coupled Field Solver project CFS++
+      Schema for description of solvers and preconditioner
+    </xsd:documentation>
+  </xsd:annotation>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of solver data type -->
+  <!-- ******************************************************************** -->
+
+  <xsd:element name="Solver">
+    <xsd:complexType>
+      <xsd:sequence>
+
+        <!-- List of available solvers to chose from --> 
+        <xsd:element name="SolverType">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
+              <xsd:enumeration value="Direct"/>
+              <xsd:enumeration value="Richardson"/>
+              <xsd:enumeration value="CG"/>
+              <xsd:enumeration value="Lanczos"/>
+              <xsd:enumeration value="QMR"/>
+              <xsd:enumeration value="HYPRE_PGC"/>
+              <xsd:enumeration value="LAPACK_LU"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+       </xsd:element>
+
+       <!-- Desired Preconditioner (if any) -->
+       <xsd:element name="PrecondType" minOccurs="0" maxOccurs="1">
+         <xsd:simpleType>
+           <xsd:restriction base="xsd:token">
+             <xsd:enumeration value="Id"/>
+             <xsd:enumeration value="MG"/>
+             <xsd:enumeration value="Jacobi"/>
+             <xsd:enumeration value="SSOR"/>
+             <xsd:enumeration value="Hypre_Jacobi"/>
+             <xsd:enumeration value="Hypre_AMG"/>
+             <xsd:enumeration value="Hypre_ILU"/>
+             <xsd:enumeration value="Hypre_SPAI"/>
+           </xsd:restriction>
+         </xsd:simpleType>
+       </xsd:element>
+
+       <!-- Stopping tolerance (optional) -->
+       <xsd:element name="tol" type="PosFloat" minOccurs="0" maxOccurs="1"/>
+
+      </xsd:sequence>
+    </xsd:complexType>
+  </xsd:element>
+
+</xsd:schema>

@@ -1,0 +1,58 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org"
+  xmlns:cfs="http://www.cfs++.org"
+  elementFormDefault="qualified">
+
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Coupled Field Solver project CFS++
+      Schema for PDE description for an electrostatic PDE
+    </xsd:documentation>
+  </xsd:annotation>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for electrostatic PDEs -->
+  <!-- ******************************************************************** -->
+
+  <xsd:complexType name="PDE_Type_electrostatic">
+    <xsd:complexContent>
+      <xsd:extension base="PDE_Type_basic">
+        <xsd:sequence>
+
+          <!-- Subdomains the PDE lives on -->
+          <xsd:element name="PDE_subdom" type="xsd:token" minOccurs="1"
+                       maxOccurs="unbounded"/>
+    
+          <!-- Boundary Conditions -->
+          <xsd:element name="BoundaryConds">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="dirichlet_hom" type="BC_scalarhd"
+                             minOccurs="0" maxOccurs="unbounded"/>
+                <xsd:element name="dirichlet_inhom" type="BC_scalarid"
+                             minOccurs="0" maxOccurs="unbounded"/>
+                <xsd:element name="neumann_inhom" type="BC_scalarin"
+                             minOccurs="0" maxOccurs="unbounded"/>
+              </xsd:sequence>
+            </xsd:complexType>
+          </xsd:element>
+
+          <!-- Desired solution values (optional) -->
+          <xsd:element name="StoreResults" minOccurs="0" maxOccurs="1">
+            <xsd:simpleType>
+              <xsd:restriction base="xsd:token">
+                <xsd:enumeration value="dof"/>
+                <xsd:enumeration value="deriv1"/>
+                <xsd:enumeration value="deriv2"/>
+              </xsd:restriction>
+            </xsd:simpleType>
+          </xsd:element>
+  
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+</xsd:schema>
