@@ -1,6 +1,8 @@
 #ifndef FILE_MASSINT
 #define FILE_MASSINT
 
+#include "baseform.hh" 
+
 namespace CoupledField
 {
 /// class for calculation of Mass matrix

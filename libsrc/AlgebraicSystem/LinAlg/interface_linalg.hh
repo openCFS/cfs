@@ -1,5 +1,8 @@
 #ifndef FILE_INTERFACE_LINALG_2002
 #define FILE_INTERFACE_LINALG_2002
+
+#include "work.hh"
+#include "abstractAS.hh"
  
 namespace CoupledField
 {

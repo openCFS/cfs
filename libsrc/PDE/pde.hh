@@ -1,5 +1,8 @@
 #ifndef FILE_PDE_2001
 #define FILE_PDE_2001
+
+#include "material.hh"
+#include "filetype.hh"
  
 namespace CoupledField
 {

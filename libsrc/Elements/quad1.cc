@@ -1,11 +1,11 @@
 #include <iostream>
 #include <fstream>
-#include <math.h>
+//#include <math.h>
 
-#include <general_head.hh>
-#include <utils_head.hh>
-#include "baseelem.hh"
-#include "rectangle.hh"
+//#include <general_head.hh>
+//#include <utils_head.hh>
+//#include "baseelem.hh"
+//#include "rectangle.hh"
 #include "quad1.hh"
 
 namespace CoupledField

@@ -1,6 +1,8 @@
 #ifndef FILE_SYSTEMMATRIX_2001
 #define FILE_SYSTEMMATRIX_2001
 
+#include "symmatrix.hh"
+
 namespace CoupledField
 {
 
@@ -43,7 +45,7 @@ public:
 #ifdef __GNUC__
   template class SystemMatrix< Matrix<Double> >;
   template class SystemMatrix< SymMatrix<Double> >;
-  template class SystemMatrix< SymBandMatrix<Double> >; 
+//  template class SystemMatrix< SymBandMatrix<Double> >; 
 #endif
 
 

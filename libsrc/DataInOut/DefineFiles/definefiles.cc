@@ -1,12 +1,14 @@
 #include <fstream>
 #include <iostream>
+#include <string>
 
-#include <general_head.hh>
-#include <utils_head.hh>
+//#include <general_head.hh>
+//#include <utils_head.hh>
 
-#include "filetype.hh"
-#include "datfile.hh"
+//#include "filetype.hh"
+
 #include "definefiles.hh"
+#include "datfile.hh"
 
 namespace CoupledField
 {
@@ -19,25 +21,25 @@ DefineInOutFiles :: DefineInOutFiles(const Char * name)
 
 #ifdef TRACE
  mark
- strcpy(filename, name);
- trace=new std::ofstream(strcat(filename,".trace"));
+ std::strcpy(filename, name);
+ trace=new std::ofstream(std::strcat(filename,".trace"));
  if (!trace) Error("Can't open trace-file");
 #endif
  
 #ifdef DEBUG
- strcpy(filename, name);
- debug=new std::ofstream(strcat(filename,".deb"));
+ std::strcpy(filename, name);
+ debug=new std::ofstream(std::strcat(filename,".deb"));
  if (!debug) Error("Can't open debug-file");
 #endif
  
- strcpy(filename, name);
+ std::strcpy(filename, name);
  if (InfoPrint)
        {
-         infofile = new std::ofstream(strcat(filename,".info"));
+         infofile = new std::ofstream(std::strcat(filename,".info"));
          if (!infofile) Error("Can't open info-file");
        }
 
- strcpy(filename, name); 
+ std::strcpy(filename, name); 
 }
  
 DefineInOutFiles ::~ DefineInOutFiles()

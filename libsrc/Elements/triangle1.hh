@@ -1,5 +1,7 @@
 #ifndef FILE_TRIANGLE1_2002
 #define FILE_TRIANGLE1_2002
+
+#include "getriangle.hh"
  
 namespace CoupledField
 {

@@ -1,5 +1,8 @@
 #ifndef FILE_MATRIX_2001
 #define FILE_MATRIX_2001
+
+#include "vector.hh"
+#include "absmatrix.hh"
  
 namespace CoupledField
 {      

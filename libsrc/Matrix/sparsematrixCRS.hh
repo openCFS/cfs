@@ -1,5 +1,8 @@
 #ifndef FILE_SPARSEMATRIXCRS_2001
 #define FILE_SPARSEMATRIXCRS_2001
+
+#include "matrix.hh"
+#include "absmatrix.hh"
  
 namespace CoupledField
 {

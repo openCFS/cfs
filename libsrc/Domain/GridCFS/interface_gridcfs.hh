@@ -1,6 +1,9 @@
 #ifndef FILE_GRID_INTERFACE_CFS_2002
 #define FILE_GRID_INTERFACE_CFS_2002
 
+#include "grid.hh"
+#include "grid_cfs.hh"
+
 namespace CoupledField
 {
  

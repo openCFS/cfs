@@ -1,6 +1,9 @@
 #ifndef FILE_WORK_2001
 #define FILE_WORK_2001
- 
+
+#include "linsystem.hh"
+#include "assemble.hh" 
+
 namespace CoupledField
 {
 

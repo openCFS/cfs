@@ -1,6 +1,8 @@
 #ifndef DEFINEFILES_2001
 #define DEFINEFILES_2001
 
+#include "filetype.hh"
+
 namespace CoupledField
 { 
 

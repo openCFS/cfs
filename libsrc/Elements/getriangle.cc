@@ -2,9 +2,9 @@
 #include <iostream>
 #include <fstream>
 
-#include <general_head.hh>
-#include <utils_head.hh>
-#include "baseelem.hh"
+//#include <general_head.hh>
+//#include <utils_head.hh>
+//#include "baseelem.hh"
 #include "getriangle.hh"
 
 namespace CoupledField

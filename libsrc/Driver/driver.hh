@@ -1,6 +1,10 @@
 #ifndef FILE_DRIVER_2001
 #define FILE_DRIVER_2001
 
+#include "filetype.hh"
+#include "outUnverg.hh"
+#include "pde.hh"
+
 namespace CoupledField
 {
 

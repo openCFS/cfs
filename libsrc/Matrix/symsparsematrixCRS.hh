@@ -1,5 +1,8 @@
 #ifndef FILE_SYMSPARSEMATRIXCRS_2001
 #define FILE_SYMSPARSEMATRIXCRS_2001
+
+#include "symmatrix.hh"
+#include "absmatrix.hh"
  
 namespace CoupledField
 {

@@ -1,6 +1,9 @@
 #ifndef FILE_DOMAIN_2001
 #define FILE_DOMAIN_2001
 
+#include "interface_gridcfs.hh"
+//#include "interface_gridlib.hh"
+
 namespace CoupledField
 {
 class FileType;

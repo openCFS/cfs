@@ -1,13 +1,12 @@
-//#include <stdlib.h>
 #include <iostream>
 #include <fstream>
 #include <string>
 
-#include <general_head.hh>
-#include <utils_head.hh>
-#include "grid_cfs.hh"
-#include "grid.hh" 
-#include "interface_gridcfs.hh"
+//#include <general_head.hh>
+//#include <utils_head.hh>
+//#include "grid_cfs.hh"
+//#include "grid.hh" 
+//#include "interface_gridcfs.hh"
 #include "domain.hh"
 
 namespace CoupledField

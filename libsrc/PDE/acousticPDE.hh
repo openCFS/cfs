@@ -1,5 +1,10 @@
 #ifndef FILE_ACOUSTICPDE_2001
 #define FILE_ACOUSTICPDE_2001
+
+#include "timefunc.hh"
+#include "pde.hh"
+#include "domain.hh"
+#include "abstractAS.hh"
  
 namespace CoupledField
 {

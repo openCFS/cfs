@@ -2,11 +2,11 @@
 #include <iostream>
 #include <fstream>
 
-#include <general_head.hh> 
-#include "tools.hh"
+//#include <general_head.hh> 
+//#include "tools.hh"
 
 #include "material.hh"
-using namespace std;
+
 namespace CoupledField
 {
 

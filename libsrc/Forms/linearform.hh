@@ -1,6 +1,8 @@
 #ifndef FILE_LINEARFORM
 #define FILE_LINEARFORM
 
+#include "baseform.hh"
+
 namespace CoupledField
 {
 

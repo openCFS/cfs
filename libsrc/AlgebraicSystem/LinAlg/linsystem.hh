@@ -1,5 +1,9 @@
 #ifndef FILE_LINSYSTEM_2001
 #define FILE_LINSYSTEM_2001
+
+#include "systemmatrix.hh"
+
+#include "clock.hh"
  
 namespace CoupledField
 {
@@ -43,7 +47,7 @@ private:
 #ifdef __GNUC__
 template class LinSystem<Double, Matrix<Double> >;
 template class LinSystem<Double, SymMatrix<Double> >; 
-template class LinSystem<Double, SymBandMatrix<Double> >;
+//template class LinSystem<Double, SymBandMatrix<Double> >;
 #endif
 
 }
