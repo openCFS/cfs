@@ -92,6 +92,7 @@ void CoupledPDEDef::CreateCoupling(StdVector<BasePDE*> & OrderedPDEs,
   StdVector<Boolean> inputOptionality;
   Couplings.Resize(MyCoupledPDE->GetNumPDEs());
 
+  StdVector<std::string> keyVec, attrVec, valVec;
   StdVector<std::string> couplingTerms;
 
 
@@ -110,21 +111,24 @@ void CoupledPDEDef::CreateCoupling(StdVector<BasePDE*> & OrderedPDEs,
 	// if this coupling type is not needed in every coupled simulation
 	if (inputOptionality[j])
 	  {
-	    params->GetList( "quantity", couplingTerms, "couplingList", "coupling");
+	    keyVec = "couplingList", "iterative", OrderedPDEs[i]->GetName() ,"coupling", "quantity";
+	    attrVec = "", "", "", "";
+	    valVec = "", "", "" ,"";
+	    params->GetList( keyVec, attrVec, valVec, couplingTerms);
 
 	    couplingTermsConv.Clear();
 	    couplingTermsConv.Resize(couplingTerms.GetSize());
 	    for (Integer k=0; k<couplingTerms.GetSize(); k++)
-		 String2Enum(couplingTerms[k],couplingTermsConv[i]);
+		 String2Enum(couplingTerms[k],couplingTermsConv[k]);
 
 	    Boolean found = FALSE;
-	    
 	    for (Integer k=0; k<couplingTermsConv.GetSize(); k++)
 	      if (couplingTermsConv[k] == InputQuantity[j])
 		found = TRUE;
 
-	    if (found)
+	    if (found) {
 	      Couplings[i]->RegisterInput(InputType[j], InputQuantity[j]);
+	    }
 	  }
 	else
 	  Couplings[i]->RegisterInput(InputType[j], InputQuantity[j]);
