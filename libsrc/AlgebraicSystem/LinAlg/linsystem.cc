@@ -71,7 +71,7 @@ Boolean LinSystem<T, T_Matrix>::CG(const Integer maxIter,  enum precond typePrec
    (*trace) << "entering LinSystem::CG" << std::endl;
 #endif
    MyClock oClock;
-   oClock.ClockCount(MyClock::beg);
+   //   oClock.ClockCount(MyClock::beg);
 
   Integer iter;
   T alpha, beta, pAp, zr, zrOld;
@@ -90,7 +90,7 @@ Boolean LinSystem<T, T_Matrix>::CG(const Integer maxIter,  enum precond typePrec
   A.precond(z,r,typePrecond);
   p=z;
   zr=z*r;
-  stop=eps*b.norm_2();  
+  stop=eps*b.normL2();  
 
   for (iter=0; iter < maxIter; iter++)
 { 
@@ -101,7 +101,7 @@ Boolean LinSystem<T, T_Matrix>::CG(const Integer maxIter,  enum precond typePrec
   x+=p*alpha;
   r-=Ap*alpha;
 
-  if ( r.norm_2()<=stop) break;
+  if ( r.normL2()<=stop) break;
 
   A.precond(z,r,typePrecond);
 
@@ -112,14 +112,14 @@ Boolean LinSystem<T, T_Matrix>::CG(const Integer maxIter,  enum precond typePrec
   p=z+p*beta;   
 }
 
-if (InfoPrint)
- (*infofile) << "--------------  Conjugate Gradiate Method --------------" <<
-  std::endl << "Number of max iteration is " << maxIter << std::endl 
-       << "Number of iterations is " << iter << std::endl
-       << "Precondition is " << typePrecond << std::endl
-  << " ----------------------------------------------------- " << std::endl;
+// if (InfoPrint)
+//  (*infofile) << "--------------  Conjugate Gradiate Method --------------" <<
+//   std::endl << "Number of max iteration is " << maxIter << std::endl 
+//        << "Number of iterations is " << iter << std::endl
+//        << "Precondition is " << typePrecond << std::endl
+//   << " ----------------------------------------------------- " << std::endl;
 
-  oClock.ClockCount(MyClock::end, " CG ");
+  // oClock.ClockCount(MyClock::end, " CG ");
 
 #ifdef TRACE
    (*trace) << "leaving LinSystem::CG" << std::endl;
@@ -172,12 +172,12 @@ Boolean LinSystem<T, T_Matrix>::GMRes_m(const Integer maxIter, enum precond type
    // Define stopping criterion
 
    A.precond(help,b,typePrecond);
-   stop=help.norm_2()*eps;
+   stop=help.normL2()*eps;
 
    // Calculate first residual
    
    A.precond(r,b-A*x,typePrecond);
-   Double beta=r.norm_2();
+   Double beta=r.normL2();
 
    /// Check: Is our initial guess suited as approximate solution
    if (beta<=stop) { std::cout << " 777 You guessed solution "; return 0;}
@@ -196,7 +196,7 @@ Boolean LinSystem<T, T_Matrix>::GMRes_m(const Integer maxIter, enum precond type
       A.precond(w,A*v[k],typePrecond);
       std::cout << w << "w" << std::endl;  /// VVVV
       std::cout << v[0] << "v[0]" << std::endl;
-      normaW=w.norm_2();
+      normaW=w.normL2();
       for (i=0; i<=k; i++) { h[k][i]=w*v[i]; 
                              std::cout << h[k][i] << " h[k][i]" << std::endl;
                                //// VVVV
@@ -205,8 +205,8 @@ Boolean LinSystem<T, T_Matrix>::GMRes_m(const Integer maxIter, enum precond type
                              std::cout << "\t" << i << " i"  << w << " w " << std::endl;
                             }
       std::cout << w << " w " << std::endl;
-      std::cout << w.norm_2() << " norma w" << std::endl;
-      h[k][k+1]=w.norm_2();
+      std::cout << w.normL2() << " norma w" << std::endl;
+      h[k][k+1]=w.normL2();
       std::cout << v[0] << std::endl;
       std::cout << h[k][k+1] << " HKK+1 " << i << " i " << k << " k " <<  std::endl;
      
@@ -219,7 +219,7 @@ Boolean LinSystem<T, T_Matrix>::GMRes_m(const Integer maxIter, enum precond type
            h[k][i]+=tmp;
            w-=v[i]*tmp;
          }
-       h[k][k+1]=w.norm_2();
+       h[k][k+1]=w.normL2();
     }
      
     std::cout << h[k][k+1] << " after reorthogonalization " << std::endl; 
@@ -281,13 +281,13 @@ Boolean LinSystem<T, T_Matrix>::GMRes_m(const Integer maxIter, enum precond type
 
     A.precond(r, b-A*x, typePrecond);
     std::cout << r << " r " << std::endl;
-    beta=r.norm_2();
+    beta=r.normL2();
     std::cout << " beta " << beta << std::endl;
 
     if (abs(beta)<=stop) { conv=TRUE; break;}
 
 }
-   Double tol=(b-A*x).norm_2();
+   Double tol=(b-A*x).normL2();
   
 //   for (i=0; i<=m; i++) delete v[i];   //// VVVVVV
    delete [] v;
@@ -321,11 +321,11 @@ Boolean LinSystem<T, T_Matrix>::BiCGSTAB(const Integer maxIter, enum precond typ
   (*trace) << "entering LinSystem::BiCGSTAB" << std::endl;
 #endif
 
- if (InfoPrint)
-  (*infofile) <<   "--------------  BiCGSTAB  --------------" <<
-  std::endl << "Number of max iteration is " << maxIter << endl
-       << "Precondition is " << typePrecond << std::endl
-  << " ----------------------------------------------------- " << std::endl;
+//  if (InfoPrint)
+//   (*infofile) <<   "--------------  BiCGSTAB  --------------" <<
+//   std::endl << "Number of max iteration is " << maxIter << endl
+//        << "Precondition is " << typePrecond << std::endl
+//   << " ----------------------------------------------------- " << std::endl;
 
  Double tol;
  Double rho_1, rho_2=1, alpha=1, beta, omega=1;
@@ -340,11 +340,11 @@ Boolean LinSystem<T, T_Matrix>::BiCGSTAB(const Integer maxIter, enum precond typ
  Vector<Double> r=b-A*x;
  Vector<Double> rtilde=r;
 
- Double normb = b.norm_2();
+ Double normb = b.normL2();
  if (normb == 0) normb=1;
  
  Double stop=eps*normb;
- if (r.norm_2() <= stop ) { tol=r.norm_2()/normb; return TRUE; }
+ if (r.normL2() <= stop ) { tol=r.normL2()/normb; return TRUE; }
 
  Integer i;
  for (i=0; i<=maxIter; i++)
@@ -359,7 +359,7 @@ Boolean LinSystem<T, T_Matrix>::BiCGSTAB(const Integer maxIter, enum precond typ
     v=A*phat;
     alpha=rho_1/(rtilde*v);
     s=r-v*alpha;
-    if (s.norm_2()<= stop) { x+=phat*alpha; tol=r.norm_2()/normb; return FALSE;} 
+    if (s.normL2()<= stop) { x+=phat*alpha; tol=r.normL2()/normb; return FALSE;} 
     A.precond(shat,s,typePrecond);
     t=A*shat;
     omega=(t*s)/(t*t);
@@ -367,11 +367,11 @@ Boolean LinSystem<T, T_Matrix>::BiCGSTAB(const Integer maxIter, enum precond typ
     r=s-t*omega;
    
     rho_2=rho_1;
-    if (r.norm_2()<= stop) { tol=r.norm_2()/normb; return TRUE;} 
-    if ( omega == 0) { tol=r.norm_2()/b.norm_2();
+    if (r.normL2()<= stop) { tol=r.normL2()/normb; return TRUE;} 
+    if ( omega == 0) { tol=r.normL2()/b.normL2();
                        return FALSE;}
 }
-   tol=r.norm_2()/b.norm_2(); 
+   tol=r.normL2()/b.normL2(); 
    return TRUE;
 } 
 } // end of namespace

@@ -8,8 +8,8 @@
 namespace CoupledField
 {
 
-WriteResultsUnverg :: WriteResultsUnverg(const Char * const filename)
-:WriteResults(filename)
+WriteResultsUnverg :: WriteResultsUnverg(const Char * const filename, Boolean withHistory)
+:WriteResults(filename,withHistory)
 {
 #ifdef TRACE
   (*trace) << "entering WriteResultsUnverg :: WriteResultsUnverg" << std::endl;
@@ -76,26 +76,24 @@ void  WriteResultsUnverg::Dataset781(const Integer level)
 
      (*output).setf(std::ios::uppercase);
 
-     if (dim==2)
-     { Point2D Point;
+	if (dim==2)
+{
+ 	Point<2> Point;
         ptgrid->GetCoordinateNode(i,level,Point);
 
         (*output) << "   " << 0.0 ;
-
          PrintPoint(Point,output);
-
          (*output) << std::endl;
-      }
+}
       else
-     { Point3D Point;
+{
+	Point<3> Point;
+        ptgrid->GetCoordinateNode(i,level,Point);
 
-     ptgrid->GetCoordinateNode(i,level,Point);
-
-     PrintPoint(Point,output);
-
-     (*output) << std::endl;  
-     }         
-   }
+	 PrintPoint(Point,output);
+         (*output) << std::endl;
+}
+}
  
  (*output) << std::setw(6) << -1 << std::endl;
 }
@@ -188,12 +186,34 @@ void  WriteResultsUnverg::Dataset55(const std::string & title, const Vector<Doub
  (*output) << std::setw(6) << -1 << std::endl;
 }  
 
-void  WriteResultsUnverg::Dataset56()
+void  WriteResultsUnverg::Dataset56(const std::string & title, const Vector<Double> & x, const Integer step, const Double time)
 {
+  //
+  if (!ptgrid)
+     Error("ptgrid is not initialized", __FILE__,__LINE__);
+
  (*output) << std::setw(6) << -1 << std::endl << std::setw(6) << 56 << std::endl;
- 
- (*output) << std::setw(6) << -1;
-}
+
+ (*output).setf(std::ios::scientific);
+ (*output).precision(6);
+ (*output).setf(std::ios::uppercase);
+
+ (*output) << " " << title << ", step" << std::setw(6) << step <<
+             " time   " << time << std::endl;  
+ (*output) << std::endl << std::endl << std::endl << std::endl;
+ (*output) << std::setw(10) << 1 << std::setw(10) << 4 << std::setw(10) << 1 << std::setw(10) << 0
+           << std::setw(10) << 2 << std::setw(10) << 3 << std::endl;
+ (*output) << std::setw(10) << 2 << std::setw(10) << 1 << std::setw(10) << 1 << std::setw(10) <<
+              step << std::endl;
+ (*output) << " " << time << std::endl;       
+
+ Integer i,n;
+ n=x.size();  
+ for (i=0; i<n; i++)
+   (*output) << std::setw(10) << i+1 << std::setw(10) << 3 << std::endl << "   " << 0.0 << "    " << 0.0 << "   " << x[i] << std::endl;
+     
+ (*output) << std::setw(6) << -1 << std::endl;
+}  
 
 void  WriteResultsUnverg::Init(Grid * aptgrid)
 {
@@ -214,6 +234,17 @@ void  WriteResultsUnverg::WriteSolution(const Vector<Double> & sol, const Intege
           AddInHistory(time,sol[nodeshist_[i]-1],i); 
     }
  Dataset55(title, sol, step+1, time);
+}
+
+void  WriteResultsUnverg::WriteDataOnCell(const Vector<Double> & sol, const Integer step, const Double time, const std::string title)
+{
+  std::string aux;
+  if (title == "elecfield") {
+    aux="electric field";
+    Dataset56(aux, sol, step+1, time);
+  }
+  else 
+    Warning("This cell-data is not printed, since this type is not supported by Capapost",__FILE__,__LINE__);
 }
 
 } // end of namespace

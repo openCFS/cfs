@@ -20,7 +20,7 @@ namespace CoupledField
   /*! This class provides methods for assembling global system matrix according to the weak form of differential equations.
   */
 
-template< class Dim, class T_Matrix> 
+template< Integer Dim, class T_Matrix> 
 class Assemble: virtual public SystemMatrix<T_Matrix>  
 {
 public:
@@ -93,12 +93,12 @@ private:
 };
 
 #ifdef __GNUC__
-template class Assemble<Point2D, Matrix<Double> >;
-template class Assemble<Point2D, SymMatrix<Double> >;
-template class Assemble<Point3D, Matrix<Double> >;
-template class Assemble<Point3D, SymMatrix<Double> >;
-template class Assemble<Point2D, SparseMatrix<Double> >;
-template class Assemble<Point3D, SparseMatrix<Double> >;
+template class Assemble<2, Matrix<Double> >;
+template class Assemble<2, SymMatrix<Double> >;
+template class Assemble<3, Matrix<Double> >;
+template class Assemble<3, SymMatrix<Double> >;
+template class Assemble<2, SparseMatrix<Double> >;
+template class Assemble<3, SparseMatrix<Double> >;
 #endif
 
 }

@@ -7,8 +7,8 @@ namespace CoupledField
 {
 
 /// class for calculation right hand side
-template <class Dim>
-class LinearForm : public BaseForm<Dim> 
+template <Integer dim>
+class LinearForm : public BaseForm<dim> 
 {
 public:
   ///
@@ -18,7 +18,10 @@ public:
   virtual ~LinearForm();
 
   /// Calculation of vector of right hand side 
-  void CalcElemMatrix(Dim * ptCoord, Vector<Double> & Result);
+  void CalcElemVector(Point<dim> * ptCoord, Vector<Double> & Result);
+
+  /// Calculation of vector of RHS such form: int(shape fnc X interpolated fnc in element)
+  void CalcElemVector4InterpolatedFnc(Point<dim> * ptCoord, const Integer acom, Vector<Double> & aValueAtNodePoints, Vector<Double> & Result);
 
 protected:
 
@@ -27,8 +30,8 @@ private:
 };
 
 #ifdef __GNUC__
-template class  LinearForm <Point2D>;
-template class  LinearForm <Point3D>;
+template class  LinearForm <2>;
+template class  LinearForm <3>;
 #endif
 
 }

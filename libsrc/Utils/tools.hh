@@ -2,6 +2,8 @@
 #define TOOLS_2001
 
 #include "environment.hh"
+#include <string>
+#include <vector>
 
 namespace CoupledField
 {
@@ -10,40 +12,51 @@ namespace CoupledField
   void Error(const Char * Text, const Char * const filename=NULL,
                const Integer numline=0);
 
+  //! Function for output warnings 
+  void Warning(const Char * Text, const Char * const filename=NULL,
+               const Integer numline=0);
+
+  //! Reader of Fnc from conf-file
+ pfn1var FncReader(const std::string namefnc);
+
  //! Absolute value of number
 template<class T>
 T abs(T x) { return (x>0 ? x: -x); } 
 
-//! Point in 2D
-class Point2D
+  //! square of value
+template<class T>
+T sqr(T x) { return x*x;}
+
+template<Integer dim>
+class Point
 {
 public:
-
-  Double x,y;
-
-  Point2D & operator=(const Point2D & t);
-  Point2D & operator+(const Point2D & t);
-  Boolean is2D(){return TRUE;}
-
-};
-
-//! Point in 3D
-class Point3D
-{
-public:
-
-  Double x,y,z;
-  Point3D  & operator=(const Point3D & t);
-  Point3D  & operator+(const Point3D & t);
-  Boolean is2D(){return FALSE;}
+  Point(){;}
+  ~Point(){;}
   
+  Point & operator=(const Point & t);
+  Point & operator+(const Point & t);
+
+  Double &operator[](Integer i){return p[i];} 
+private:
+  Double p[dim];
 };
 
-//! Print Point3D (overloading)
- void PrintPoint(const Point3D point, std::ostream * out) ;
+#ifdef __GNUC__
+template class Point<2>;
+template class Point<3>;
+#endif
 
-//! Print Point2D (overloading)
- void PrintPoint(const Point2D point, std::ostream * out) ;
+template<Integer dim>
+Double dist(Point<dim> a, Point<dim> b);
+
+template<Integer dim>
+void PrintPoint(Point<dim> point, std::ostream * out); 
+
+/// a-->b
+void calcNormal2Line(std::vector<Double> & normal,Point<2> a,Point<2> b);
+
+Double ScalarMult(std::vector<Double> a, std::vector<Double> b);
 
 } // end of CoupledField
 

@@ -15,7 +15,8 @@ GeTetrahedral::GeTetrahedral()
   conf->get("tetrahedra",integtype,"IntegRules");
 
   IntegType=String2EnumIntegrationType(integtype.c_str());
-
+	
+  isSetAtCenter_=FALSE;
 }
 
 GeTetrahedral::~GeTetrahedral()
@@ -205,6 +206,18 @@ void GeTetrahedral::SetTransformFncAtIntPoints()
     }
 }
 
+void GeTetrahedral::SetTransformFncAtCenter()
+{
+#ifdef TRACE
+  (*trace) << "entering GeTetrahedral::SetTransformFncAtCenter" << std::endl;
+#endif
+
+ TransFncAtCenter[0]=TransFnc1(0.25,0.25,0.25);
+ TransFncAtCenter[1]=TransFnc2(0.25,0.25,0.25);
+ TransFncAtCenter[2]=TransFnc3(0.25,0.25,0.25);
+ TransFncAtCenter[3]=TransFnc4(0.25,0.25,0.25);
+}
+
 void GeTetrahedral::SetDerTransformFncAtIntPoints()
 {
 #ifdef TRACE
@@ -253,8 +266,31 @@ void GeTetrahedral::SetDerTransformFncAtIntPoints()
     }
 }
 
-void GeTetrahedral::CalcJacobian(Jacobian<Point3D> & J, const Integer ip,
-                     const Point3D * const ptCoord, const Boolean NeedJinv)
+void GeTetrahedral::SetDerTransformFncAtCenter()
+{
+#ifdef TRACE
+  (*trace) << "entering GeTetrahedral::SetDerTransFncAtCenter" << std::endl;
+#endif
+ 
+  DxTransFncAtCenter[0]=TransFnc1dx(0.25,0.25,0.25);
+  DxTransFncAtCenter[1]=TransFnc2dx(0.25,0.25,0.25);
+  DxTransFncAtCenter[2]=TransFnc3dx(0.25,0.25,0.25);
+  DxTransFncAtCenter[3]=TransFnc4dx(0.25,0.25,0.25);
+
+  DyTransFncAtCenter[0]=TransFnc1dy(0.25,0.25,0.25);
+  DyTransFncAtCenter[1]=TransFnc2dy(0.25,0.25,0.25);
+  DyTransFncAtCenter[2]=TransFnc3dy(0.25,0.25,0.25);
+  DyTransFncAtCenter[3]=TransFnc4dy(0.25,0.25,0.25);
+    
+  DzTransFncAtCenter[0]=TransFnc1dz(0.25,0.25,0.25);
+  DzTransFncAtCenter[1]=TransFnc2dz(0.25,0.25,0.25);
+  DzTransFncAtCenter[2]=TransFnc3dz(0.25,0.25,0.25);
+  DzTransFncAtCenter[3]=TransFnc4dz(0.25,0.25,0.25);
+
+}
+
+void GeTetrahedral::CalcJacobian(Jacobian<3> & J, const Integer ip,
+                     Point<3> * ptCoord, const Boolean NeedJinv)
 {
 
   if (!IsSet)
@@ -266,32 +302,32 @@ void GeTetrahedral::CalcJacobian(Jacobian<Point3D> & J, const Integer ip,
 
  Double aux=0;
 
-J.J[0][0] = DxTransFncAtIP1[ip]*ptCoord[0].x + DxTransFncAtIP2[ip]*ptCoord[1].x
-          + DxTransFncAtIP3[ip]*ptCoord[2].x + DxTransFncAtIP4[ip]*ptCoord[3].x;
+J.J[0][0] = DxTransFncAtIP1[ip]*ptCoord[0][0] + DxTransFncAtIP2[ip]*ptCoord[1][0]
+          + DxTransFncAtIP3[ip]*ptCoord[2][0] + DxTransFncAtIP4[ip]*ptCoord[3][0];
 
-J.J[0][1] = DyTransFncAtIP1[ip]*ptCoord[0].x + DyTransFncAtIP2[ip]*ptCoord[1].x
-          + DyTransFncAtIP3[ip]*ptCoord[2].x + DyTransFncAtIP4[ip]*ptCoord[3].x;
+J.J[0][1] = DyTransFncAtIP1[ip]*ptCoord[0][0] + DyTransFncAtIP2[ip]*ptCoord[1][0]
+          + DyTransFncAtIP3[ip]*ptCoord[2][0] + DyTransFncAtIP4[ip]*ptCoord[3][0];
 
-J.J[0][2] = DzTransFncAtIP1[ip]*ptCoord[0].x + DzTransFncAtIP2[ip]*ptCoord[1].x
-          + DzTransFncAtIP3[ip]*ptCoord[2].x + DzTransFncAtIP4[ip]*ptCoord[3].x;
+J.J[0][2] = DzTransFncAtIP1[ip]*ptCoord[0][0] + DzTransFncAtIP2[ip]*ptCoord[1][0]
+          + DzTransFncAtIP3[ip]*ptCoord[2][0] + DzTransFncAtIP4[ip]*ptCoord[3][0];
 
-J.J[1][0] = DxTransFncAtIP1[ip]*ptCoord[0].y + DxTransFncAtIP2[ip]*ptCoord[1].y
-          + DxTransFncAtIP3[ip]*ptCoord[2].y + DxTransFncAtIP4[ip]*ptCoord[3].y;
+J.J[1][0] = DxTransFncAtIP1[ip]*ptCoord[0][1] + DxTransFncAtIP2[ip]*ptCoord[1][1]
+          + DxTransFncAtIP3[ip]*ptCoord[2][1] + DxTransFncAtIP4[ip]*ptCoord[3][1];
 
-J.J[1][1] = DyTransFncAtIP1[ip]*ptCoord[0].y + DyTransFncAtIP2[ip]*ptCoord[1].y
-          + DyTransFncAtIP3[ip]*ptCoord[2].y + DyTransFncAtIP4[ip]*ptCoord[3].y;
+J.J[1][1] = DyTransFncAtIP1[ip]*ptCoord[0][1] + DyTransFncAtIP2[ip]*ptCoord[1][1]
+          + DyTransFncAtIP3[ip]*ptCoord[2][1] + DyTransFncAtIP4[ip]*ptCoord[3][1];
 
-J.J[1][2] = DzTransFncAtIP1[ip]*ptCoord[0].y + DzTransFncAtIP2[ip]*ptCoord[1].y
-          + DzTransFncAtIP3[ip]*ptCoord[2].y + DzTransFncAtIP4[ip]*ptCoord[3].y;
+J.J[1][2] = DzTransFncAtIP1[ip]*ptCoord[0][1] + DzTransFncAtIP2[ip]*ptCoord[1][1]
+          + DzTransFncAtIP3[ip]*ptCoord[2][1] + DzTransFncAtIP4[ip]*ptCoord[3][1];
 
-J.J[2][0] = DxTransFncAtIP1[ip]*ptCoord[0].z + DxTransFncAtIP2[ip]*ptCoord[1].z
-          + DxTransFncAtIP3[ip]*ptCoord[2].z + DxTransFncAtIP4[ip]*ptCoord[3].z;
+J.J[2][0] = DxTransFncAtIP1[ip]*ptCoord[0][2] + DxTransFncAtIP2[ip]*ptCoord[1][2]
+          + DxTransFncAtIP3[ip]*ptCoord[2][2] + DxTransFncAtIP4[ip]*ptCoord[3][2];
 
-J.J[2][1] = DyTransFncAtIP1[ip]*ptCoord[0].z + DyTransFncAtIP2[ip]*ptCoord[1].z
-          + DyTransFncAtIP3[ip]*ptCoord[2].z + DyTransFncAtIP4[ip]*ptCoord[3].z;
+J.J[2][1] = DyTransFncAtIP1[ip]*ptCoord[0][2] + DyTransFncAtIP2[ip]*ptCoord[1][2]
+          + DyTransFncAtIP3[ip]*ptCoord[2][2] + DyTransFncAtIP4[ip]*ptCoord[3][2];
 
-J.J[2][2] = DzTransFncAtIP1[ip]*ptCoord[0].z + DzTransFncAtIP2[ip]*ptCoord[1].z
-          + DzTransFncAtIP3[ip]*ptCoord[2].z + DzTransFncAtIP4[ip]*ptCoord[3].z;
+J.J[2][2] = DzTransFncAtIP1[ip]*ptCoord[0][2] + DzTransFncAtIP2[ip]*ptCoord[1][2]
+          + DzTransFncAtIP3[ip]*ptCoord[2][2] + DzTransFncAtIP4[ip]*ptCoord[3][2];
 
 J.detJ = J.J[0][0]*J.J[1][1]*J.J[2][2]-J.J[0][0]*J.J[1][2]*J.J[2][1]-J.J[0][1]*J.J[1][0]*J.J[2][2]+J.J[0][1]*J.J[1][2]*J.J[2][0]+J.J[0][2]*J.J[1][0]*J.J[2][1]-J.J[0][2]*J.J[1][1]*J.J[2][0];
 
@@ -322,8 +358,74 @@ if (NeedJinv)
 
 }
 
-void GeTetrahedral::CalcJacobian(Jacobian<Point2D> & J, const Integer ip,
-                     const Point2D * const ptCoord, const Boolean NeedJinv)
+void GeTetrahedral::CalcJacobianAtCenter(Jacobian<3> & J,
+              Point<3> * ptCoord, const Boolean NeedJinv)
+{
+
+  if (!isSetAtCenter_)
+    { 
+      SetTransformFncAtCenter();
+      SetDerTransformFncAtCenter(); 
+      isSetAtCenter_=TRUE;
+    }
+
+  Double aux=0;
+
+  // Init
+  J.J[0][0]  = 0;
+  J.J[0][1]  = 0;
+  J.J[0][2]  = 0;
+  J.J[1][0]  = 0;
+  J.J[1][1]  = 0;
+  J.J[1][2]  = 0;
+  J.J[2][0]  = 0;
+  J.J[2][1]  = 0;
+  J.J[2][2]  = 0;
+
+  Integer ish;
+  for (ish=0; ish < 4; ish++) {
+    J.J[0][0]  += DxTransFncAtCenter[ish]*ptCoord[ish][0];
+    J.J[0][1]  += DyTransFncAtCenter[ish]*ptCoord[ish][0];
+    J.J[0][2]  += DzTransFncAtCenter[ish]*ptCoord[ish][0];
+    J.J[1][0]  += DxTransFncAtCenter[ish]*ptCoord[ish][1];
+    J.J[1][1]  += DyTransFncAtCenter[ish]*ptCoord[ish][1];
+    J.J[1][2]  += DzTransFncAtCenter[ish]*ptCoord[ish][1];
+    J.J[2][0]  += DxTransFncAtCenter[ish]*ptCoord[ish][2];
+    J.J[2][1]  += DyTransFncAtCenter[ish]*ptCoord[ish][2];
+    J.J[2][2]  += DzTransFncAtCenter[ish]*ptCoord[ish][2];
+  }
+
+ J.detJ = J.J[0][0]*J.J[1][1]*J.J[2][2]-J.J[0][0]*J.J[1][2]*J.J[2][1]-J.J[0][1]*J.J[1][0]*J.J[2][2]+J.J[0][1]*J.J[1][2]*J.J[2][0]+J.J[0][2]*J.J[1][0]*J.J[2][1]-J.J[0][2]*J.J[1][1]*J.J[2][0];
+
+if (NeedJinv)
+{
+ aux=1.0/J.detJ;
+
+ J.Jinv[0][0] = J.J[1][1]*J.J[2][2]-J.J[1][2]*J.J[2][1];
+
+ J.Jinv[0][1] = J.J[0][2]*J.J[2][1]- J.J[0][1]*J.J[2][2];
+
+ J.Jinv[0][2] = J.J[0][1]*J.J[1][2]- J.J[1][1]*J.J[0][2];
+
+ J.Jinv[1][0] = J.J[1][2]*J.J[2][0]-J.J[1][0]*J.J[2][2];
+
+ J.Jinv[1][1] = J.J[0][0]*J.J[2][2]-J.J[0][2]*J.J[2][0];
+
+ J.Jinv[1][2] = J.J[0][2]*J.J[1][0]-J.J[0][0]*J.J[1][2];
+
+ J.Jinv[2][0] = J.J[1][0]*J.J[2][1]-J.J[1][1]*J.J[2][0];
+
+ J.Jinv[2][1] = J.J[0][1]*J.J[2][0]-J.J[0][0]*J.J[2][1];
+
+ J.Jinv[2][2] = J.J[0][0]*J.J[1][1]-J.J[0][1]*J.J[1][0];
+
+ J.Jinv*=aux;
+}
+ 
+}
+
+void GeTetrahedral::CalcJacobian(Jacobian<2> & J, const Integer ip,
+                     Point<2> * ptCoord, const Boolean NeedJinv)
 {
  Error("This element is from 3D", __FILE__, __LINE__);
 }

@@ -98,14 +98,6 @@ void Vector<TYPE>::Init(const Integer l)
 template<class TYPE>
 Vector<TYPE> &Vector<TYPE>::operator=(const Vector<TYPE> &x)
 {
-//	if (x.n==0)
-//		{ if (p) delete [] p;
-//                  p=NULL;
-//                  n=0; 
-//                  return * this;}
-//if (!x.n) 
-//    Error("Undefined vector for copy-constructor",__FILE__,__LINE__);
-
 	if (this == &x)
 		return *this;
 
@@ -242,6 +234,19 @@ Error("Vector: undefined Vector in operator/",__FILE__,__LINE__);
 }
 
 template<class TYPE>
+Vector<TYPE> &Vector<TYPE>::operator/= (const TYPE &x)
+{	if (!n)
+Error("Vector: undefined Vector in operator/=",__FILE__,__LINE__); 
+
+	TYPE	y = x;
+
+	for (Integer i = 0; i < n; i++)
+		p [i] /= y;
+
+	return *this;
+}
+
+template<class TYPE>
 TYPE Vector<TYPE>::operator* (const Vector<TYPE> &x) const
 {	if (!n || !x.n)
 Error("Vector: undefined Vector in operator *(vector)",__FILE__,__LINE__);
@@ -375,7 +380,7 @@ Vector<TYPE> Vector<TYPE>::unit (const Integer n,const Integer i)
 
 
 template<class TYPE>
-Double Vector<TYPE> :: norm_2 ()
+Double Vector<TYPE> :: normL2 ()
 {	if (!(*this).size())
   Error("Vector: undefined Vector in function norm_2()", __FILE__, __LINE__);
 

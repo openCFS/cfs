@@ -13,7 +13,7 @@
 namespace CoupledField
 {
 
-Elecst2dErrEstimator::Elecst2dErrEstimator(BasePDE * aptPDE, Grid * aptGrid): SpaceErrorEstimator(aptPDE,aptGrid)
+Elecst2dErrEstimator::Elecst2dErrEstimator(BasePDE * aptPDE, Grid * aptGrid): SpaceErrorEstimator(aptGrid)
 {
 #ifdef TRACE
   (*trace) << "entering Elecst2dErrEstimator::Elecst2dErrEstimator" << std::endl;
@@ -22,6 +22,8 @@ Elecst2dErrEstimator::Elecst2dErrEstimator(BasePDE * aptPDE, Grid * aptGrid): Sp
   // read tolerance 
     conf->get("tol_sp",tol_,"Elecst2d");
     conf->get("theta_sp", theta_, "Elecst2d");
+
+    Init(aptPDE);
 
   maxenergynormsol_=0.0;
 }

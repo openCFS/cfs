@@ -6,6 +6,8 @@
 #include "filetype.hh"
 #include "grid.hh"
 
+struct Elem;
+
 namespace CoupledField
 {
 /// class BCs contains information about calculation domain and according to different meshes create different grids
@@ -27,6 +29,9 @@ public:
 
   //!
   std::list<Integer> GetNodesLevel(const std::string level, const Integer lev=-1);  
+
+  //! get edges
+  std::vector<Elem*> BCs::getEdgesBC(const std::string color, const Integer lev=-1);
   //!
   Integer GetNumNodesLevel(const std::string level, const Integer lev=-1);
 
@@ -37,9 +42,10 @@ protected:
 
 private:
 
-   std::vector<std::string> levels_;
+   std::vector<std::string> levels_,color_edges_;
 
    std::list<Integer> * bcs_[NUMLEVELGRID];
+   std::vector<Elem*> * bcsEdges_[NUMLEVELGRID];
 
   //!
    FileType* InFile_;

@@ -1,7 +1,7 @@
 #
 # Machine dependent make include file for LINUX - optimized version
 # 
-OPT=-O3 -m486 
+OPT=-O3 -mcpu=i486
 #
 F77=g77 $(OPT)
 CC=g++ 
@@ -15,12 +15,12 @@ RANLIB=ranlib
 # Machine dependent flags:
 #
 #CFLAGS1=-c -DDEBUG -DTRACE -DNETGEN -DADAPTGRID $(INCL)
-CFLAGS1=-c $(OPT) $(INCL)
+CFLAGS1=-c -pg -O3 -DADAPTGRID $(INCL)
 FLAG_MKSHLIB = -v -shared
 ARFLAGS = r 
 #
 #CFLAGS1 = 
 UNDER  = -DFORTRANDOUBLEUNDERSCORE
 #CFLAGS2 = $(ABI) $(OPT) $(LNO) $(UNDER) -w 
-CPLUSPLUSFLAGS2 = $(UNDER) -pg  -fnonnull-objects -I/usr/local/qt/include  -I/usr/local/GL/include
+CPLUSPLUSFLAGS2 = $(UNDER) -pg  -O3 -fnonnull-objects -I/usr/local/qt/include  -I/usr/local/GL/include
 LINKFLAGS2 = -pg -L/usr/openwin/lib -L/usr/X11R6/lib

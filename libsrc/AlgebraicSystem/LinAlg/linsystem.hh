@@ -22,6 +22,15 @@ public:
   //! deconstructor
   ~LinSystem();
 
+   //! put system matrix
+  void SetSysMatrix(const T_Matrix &aA){ A=aA;}
+
+  //! put RHS
+  void SetRHS(const Vector<Double>& v_rhs){b=v_rhs;}
+
+  //! get solution of system Ax=b
+  void GetSolution(Vector<Double> & result){ result=x;} 
+
   //! set A and b only for check function
   void Set();
   void check()

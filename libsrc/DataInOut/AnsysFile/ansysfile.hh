@@ -27,14 +27,17 @@ public:
   virtual void ReadMaxnumnodes(Integer & );
 
   //!
-  virtual void ReadCoordinate(Point3D * const NodesCoord,                                                     const Integer maxnumNodes);
+  virtual void ReadCoordinate(Point<3> * const NodesCoord,                                                     const Integer maxnumNodes);
 
   //!
-  virtual void ReadCoordinate(Point2D * const NodesCoord,
+  virtual void ReadCoordinate(Point<2> * const NodesCoord,
 			      const Integer maxnumNodes);
 
   //!
-  void ReadEl(std::vector<Elem*> * elems, const std::vector<std::string> sd);  
+  void ReadEl(std::vector<Elem*> * elems, const std::vector<std::string> sd); 
+
+  //! read 1D element. we cause it directly when we set BCs
+  void ReadEl1d(std::vector<Elem*> * allelems, const std::vector<std::string> sd);
 
   //!
   Integer ReadDim();
@@ -79,9 +82,9 @@ private:
   BaseElem * Type2ptElem(const Integer itype);
 
 #ifdef ADAPTGRID
-  void ReadEl4AdaptGrid2d(std::vector<grd::Element*> & elems, vector<grd::Vertex*> * vertices,  const std::vector<std::string> sd);  
+  void ReadEl4AdaptGrid2d(std::vector<grd::Element*> & elems, std::vector<grd::Vertex*> * vertices,  const std::vector<std::string> sd);  
 
-  void ReadEl4AdaptGrid3d(std::vector<grd::Element*> & elems, vector<grd::Vertex*> * vertices,  const std::vector<std::string> sd);
+  void ReadEl4AdaptGrid3d(std::vector<grd::Element*> & elems, std::vector<grd::Vertex*> * vertices,  const std::vector<std::string> sd);
 
   void SetNumSD(grd::Element * ptEl, const std::string namesd,  const std::vector<std::string> sd);
 #endif

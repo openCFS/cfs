@@ -1,49 +1,49 @@
 #include <iostream>
 #include <fstream>
 
-#include "quad2.hh"
+#include "triangle2.hh"
 
 namespace CoupledField
 {
-
-Quad2 :: Quad2() : Rectangle()
+                   
+Triangle2 :: Triangle2() : GeTriangle()
 {
 #ifdef TRACE
-  (*trace) << "entering Quad2::Quad2" << std::endl;
+  (*trace) << "entering Triangle1::Triangle2" << std::endl;
 #endif
-  Init();
+   Init();
 }
   
-Quad2 :: ~Quad2()
+Triangle2 :: ~Triangle2()
 {
 #ifdef TRACE
-  (*trace) << "entering Quad2::~Quad2" << std::endl;
+  (*trace) << "entering Triangle2::~Triangle2" << std::endl;
 #endif
 
   ;
 }
 
-void Quad2 :: Init()
+void Triangle2 :: Init()
 {
 #ifdef TRACE
-  (*trace) << "entering Quad2::Init" << std::endl;
+  (*trace) << "entering Triangle2::Init" << std::endl;
 #endif
 
-  Dim      = 2;
-  NumNodes = 9;
-  NumEdges = 4;
+  Dim = 2;
+  NumNodes = 3;
+  NumEdges = 3;
   NumFaces = 1;
 
   SetIntPoints();
-  SetTransformFncAtIntPoints(); 
+  SetTransformFncAtIntPoints();
   SetDerTransformFncAtIntPoints();
   IsSet=TRUE;
 }
 
-void Quad2 :: SetShapeFncAtIntPoints()
+void Triangle2 :: SetShapeFncAtIntPoints()
 {
 #ifdef TRACE
-  (*trace) << "entering Quad2::SetShapeFncAtIntPoints" << std::endl;
+  (*trace) << "entering Triangle2::SetShapeFncAtIntPoints" << std::endl;
 #endif
   Integer i;
   ShapeFncAtIP1.Resize(NumIntPoints);
@@ -52,9 +52,6 @@ void Quad2 :: SetShapeFncAtIntPoints()
   ShapeFncAtIP4.Resize(NumIntPoints);
   ShapeFncAtIP5.Resize(NumIntPoints);
   ShapeFncAtIP6.Resize(NumIntPoints);
-  ShapeFncAtIP7.Resize(NumIntPoints);
-  ShapeFncAtIP8.Resize(NumIntPoints);
-  ShapeFncAtIP9.Resize(NumIntPoints);
  
   for (i=0; i < NumIntPoints; i++)
     {
@@ -64,16 +61,13 @@ void Quad2 :: SetShapeFncAtIntPoints()
       ShapeFncAtIP4[i]=ShapeFnc4(IntPoints[i][0],IntPoints[i][1]);
       ShapeFncAtIP5[i]=ShapeFnc5(IntPoints[i][0],IntPoints[i][1]);
       ShapeFncAtIP6[i]=ShapeFnc6(IntPoints[i][0],IntPoints[i][1]);
-      ShapeFncAtIP7[i]=ShapeFnc7(IntPoints[i][0],IntPoints[i][1]);
-      ShapeFncAtIP8[i]=ShapeFnc8(IntPoints[i][0],IntPoints[i][1]);
-      ShapeFncAtIP9[i]=ShapeFnc9(IntPoints[i][0],IntPoints[i][1]);
     }
 }
 
-void Quad2 :: SetDerShapeFncAtIntPoints()
+void Triangle2::SetDerShapeFncAtIntPoints()
 {
 #ifdef TRACE
-  (*trace) << "entering Quad2::SetDerShapeFncAtIntPoints" << std::endl;
+  (*trace) << "entering Triangle2::SetDerShapeFncAtIntPoints" << std::endl;
 #endif
   Integer i;
 
@@ -83,9 +77,6 @@ void Quad2 :: SetDerShapeFncAtIntPoints()
   DxShapeFncAtIP4.Resize(NumIntPoints);
   DxShapeFncAtIP5.Resize(NumIntPoints);
   DxShapeFncAtIP6.Resize(NumIntPoints);
-  DxShapeFncAtIP7.Resize(NumIntPoints);
-  DxShapeFncAtIP8.Resize(NumIntPoints);
-  DxShapeFncAtIP9.Resize(NumIntPoints);
  
   for (i=0; i < NumIntPoints; i++)
     {
@@ -95,9 +86,6 @@ void Quad2 :: SetDerShapeFncAtIntPoints()
       DxShapeFncAtIP4[i]=DxShapeFnc4(IntPoints[i][0],IntPoints[i][1]);
       DxShapeFncAtIP5[i]=DxShapeFnc5(IntPoints[i][0],IntPoints[i][1]);
       DxShapeFncAtIP6[i]=DxShapeFnc6(IntPoints[i][0],IntPoints[i][1]);
-      DxShapeFncAtIP7[i]=DxShapeFnc7(IntPoints[i][0],IntPoints[i][1]);
-      DxShapeFncAtIP8[i]=DxShapeFnc8(IntPoints[i][0],IntPoints[i][1]);
-      DxShapeFncAtIP9[i]=DxShapeFnc9(IntPoints[i][0],IntPoints[i][1]);
     }
 
   DyShapeFncAtIP1.Resize(NumIntPoints);
@@ -106,9 +94,6 @@ void Quad2 :: SetDerShapeFncAtIntPoints()
   DyShapeFncAtIP4.Resize(NumIntPoints);
   DyShapeFncAtIP5.Resize(NumIntPoints);
   DyShapeFncAtIP6.Resize(NumIntPoints);
-  DyShapeFncAtIP7.Resize(NumIntPoints);
-  DyShapeFncAtIP8.Resize(NumIntPoints);
-  DyShapeFncAtIP9.Resize(NumIntPoints);
  
   for (i=0; i < NumIntPoints; i++)
     {
@@ -118,59 +103,16 @@ void Quad2 :: SetDerShapeFncAtIntPoints()
       DyShapeFncAtIP4[i]=DyShapeFnc4(IntPoints[i][0],IntPoints[i][1]);
       DyShapeFncAtIP5[i]=DyShapeFnc5(IntPoints[i][0],IntPoints[i][1]);
       DyShapeFncAtIP6[i]=DyShapeFnc6(IntPoints[i][0],IntPoints[i][1]);
-      DyShapeFncAtIP7[i]=DyShapeFnc7(IntPoints[i][0],IntPoints[i][1]);
-      DyShapeFncAtIP8[i]=DyShapeFnc8(IntPoints[i][0],IntPoints[i][1]);
-      DyShapeFncAtIP9[i]=DyShapeFnc9(IntPoints[i][0],IntPoints[i][1]);
     }
  
 }
 
-void  Quad2::GetGradientShFnc(Vector<Double> & grad, const Integer i, const Integer ip)
+Vector<Double> & Triangle2::GetShFncAtIP(const Integer iShFnc)
 {
-  SetDerShapeFncAtIntPoints();
-
-  grad.Resize(2);
-
-  switch(i)
-{
- case 1:
-    grad[0]=DxShapeFncAtIP1[ip]; grad[1]=DyShapeFncAtIP1[ip];
-    break;
- case 2:
-    grad[0]=DxShapeFncAtIP2[ip]; grad[1]=DyShapeFncAtIP2[ip]; 
-    break;
- case 3:
-    grad[0]=DxShapeFncAtIP3[ip]; grad[1]=DyShapeFncAtIP3[ip]; 
-    break;
- case 4:
-    grad[0]=DxShapeFncAtIP4[ip]; grad[1]=DyShapeFncAtIP4[ip];
-    break;
- case 5:
-    grad[0]=DxShapeFncAtIP5[ip]; grad[1]=DyShapeFncAtIP5[ip];
-    break;
- case 6:
-    grad[0]=DxShapeFncAtIP6[ip]; grad[1]=DyShapeFncAtIP6[ip];
-    break;
- case 7:
-    grad[0]=DxShapeFncAtIP7[ip]; grad[1]=DyShapeFncAtIP7[ip];
-    break;
- case 8:
-    grad[0]=DxShapeFncAtIP8[ip]; grad[1]=DyShapeFncAtIP8[ip];
-    break;
- case 9:
-    grad[0]=DxShapeFncAtIP9[ip]; grad[1]=DyShapeFncAtIP9[ip];
-    break;
-} 
-
-}
-
-Vector<Double> & Quad2::GetShFncAtIP(const Integer iShFnc) 
-{
-
-  SetShapeFncAtIntPoints();
+ SetShapeFncAtIntPoints();
 
   switch(iShFnc)
-    { 
+    {
     case 1:
       return ShapeFncAtIP1;
     case 2:
@@ -182,13 +124,51 @@ Vector<Double> & Quad2::GetShFncAtIP(const Integer iShFnc)
     case 5:
       return ShapeFncAtIP5;
     case 6:
-      return ShapeFncAtIP6;
-    case 7:
-      return ShapeFncAtIP7;
-    case 8:
-      return ShapeFncAtIP8;
-    case 9:
-      return ShapeFncAtIP9;
+      return ShapeFncAtIP6;  
+    default:
+    Error("Shape function does not exist with this number", __FILE__,__LINE__);
     }
 }
+
+void  Triangle2::GetGradientShFnc(Vector<Double> & grad, const Integer i, const Integer ip)
+{
+  SetDerShapeFncAtIntPoints();
+ 
+  grad.Resize(2);
+
+  switch(i)
+{
+ case 1:
+    grad[0]=DxShapeFncAtIP1[ip]; grad[1]=DyShapeFncAtIP1[ip];
+    break;
+ case 2:
+    grad[0]=DxShapeFncAtIP2[ip]; grad[1]=DyShapeFncAtIP2[ip];
+    break;
+ case 3:
+    grad[0]=DxShapeFncAtIP3[ip]; grad[1]=DyShapeFncAtIP3[ip];
+    break;
+ case 4:
+    grad[0]=DxShapeFncAtIP4[ip]; grad[1]=DyShapeFncAtIP4[ip];
+    break;
+ case 5:
+   grad[0]=DxShapeFncAtIP5[ip]; grad[1]=DyShapeFncAtIP5[ip];
+    break;
+  case 6:
+    grad[0]=DxShapeFncAtIP6[ip]; grad[1]=DyShapeFncAtIP6[ip];
+   break; 
+  default:
+   Error("Wrong number of shape function",__FILE__,__LINE__);
 }
+}
+
+
+void  Triangle2::GetGradientShFncAtCenter(Vector<Double> & grad, const Integer ish)
+{
+  grad.Resize(2);
+
+  Error("Not implemented",__FILE__,__LINE__);
+ //  grad[0]=DxShapeFncAtCenter[ish-1];
+//   grad[1]=DyShapeFncAtCenter[ish-1];
+}
+
+} // end of namespace

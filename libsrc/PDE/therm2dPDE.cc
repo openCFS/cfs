@@ -163,7 +163,7 @@ void Therm2dPDE::SetupMatrices(const Integer level)
 #endif
 
   Matrix<Double> elemmat;
-  Point2D * ptCoord; 
+  Point<2> * ptCoord; 
 
   BaseElem * ptElem;
 
@@ -182,8 +182,8 @@ void Therm2dPDE::SetupMatrices(const Integer level)
       {
 	ptElem=elemssd[j]->ptElem;
 	
-	BaseForm<Point2D> * bilinear_stiff = new LaplaceInt<Point2D>(ptElem,1);
-	BaseForm<Point2D> * bilinear_mass  = new MassInt<Point2D>(ptElem,1);
+	BaseForm<2> * bilinear_stiff = new LaplaceInt<2>(ptElem,1);
+	BaseForm<2> * bilinear_mass  = new MassInt<2>(ptElem,1);
 
 	if (!bilinear_stiff) Error("Problems with allocation of object Laplace");
 	if (!bilinear_mass)  Error("Problems with allocation of object Mass");
@@ -194,7 +194,7 @@ void Therm2dPDE::SetupMatrices(const Integer level)
 	  for (ii=0; ii<elsize; ii++)
 	    connecth[ii]=(elemssd[j]->connect)[ii];
   
-	  ptCoord=new Point2D[connecth.size()];
+	  ptCoord=new Point<2>[connecth.size()];
 	  ptgrid_->GetCoordNodesElem(connecth,ptCoord,level); 
 
 	  // stiffness part

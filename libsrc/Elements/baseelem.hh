@@ -28,18 +28,30 @@ public:
   //!
   virtual void SetIntPoints()=0;
 
-  //!
+  //! get gradient of shape fnc for node i at integration point j
   virtual  void GetGradientShFnc(Vector<Double> & ,const Integer i, const Integer j)=0;
 
+  //! get gradient of shape fnc for node i at center of element
+  virtual  void GetGradientShFncAtCenter(Vector<Double> & ,const Integer i)
+  { Error("Not implemented ",__FILE__,__LINE__);}
+
    //! Calculation of Jacobian in 2D
-  virtual void CalcJacobian(Jacobian<Point2D> & J, const Integer ip,
-         const Point2D * const ptCoord, const Boolean NeedJinv=TRUE)=0;
+  virtual void CalcJacobian(Jacobian<2> & J, const Integer ip,
+          Point<2> *  ptCoord, const Boolean NeedJinv=TRUE)=0;
 
   //! Calculation of Jacobian in 3D
- virtual void CalcJacobian(Jacobian<Point3D> & J, const Integer ip,
-              const Point3D * const ptCoord, const Boolean NeedJinv=TRUE)=0;
+ virtual void CalcJacobian(Jacobian<3> & J, const Integer ip,
+              Point<3> *  ptCoord, const Boolean NeedJinv=TRUE)=0;
 
-  //!
+  //! Calculation of Jacobian for center point in 2D
+  virtual void CalcJacobianAtCenter(Jacobian<2> & J, Point<2> * ptCoord, const Boolean NeedJinv=TRUE)
+  { Error(" This function is not implemented ", __FILE__,__LINE__);}
+
+   //! Calculation of Jacobian for center point in 3D
+  virtual void CalcJacobianAtCenter(Jacobian<3> & J, Point<3> *  ptCoord, const Boolean NeedJinv=TRUE)
+  { Error(" This function is not implemented ", __FILE__,__LINE__);}
+
+  //! get value of shape fnc number iShFnc at integration points
   virtual Vector<Double> &  GetShFncAtIP(const Integer iShFnc)=0 ;
 
   //! Return number of nodes   
@@ -60,6 +72,10 @@ public:
   //! Return pointer to integration weights
   Vector<Double> * GetIntWeights(){ return IntWeights;}
 
+  //! return intergral of shape function over line. only for 1d-line
+  virtual Double getIntVal(const Point<2> * const ptCoord)
+  { Error(" This function is implemented only for 1D elements",__FILE__,__LINE__);}	
+
 ///////////////////////////////////////////////////////////////////////
 virtual Vector<Double> *  GetDxShFncAtIP(const Integer iShFnc)
  { Error("Not implemented") ;}
@@ -68,7 +84,8 @@ virtual Vector<Double> *  GetDyShFncAtIP(const Integer iShFnc)
 virtual Vector<Double> *  GetDzShFncAtIP(const Integer iShFnc) 
  { Error("Not implemented") ;}
 
-  virtual enum ElementType type(){ ;}
+  //! return FE-Type for CLA++
+  virtual Integer feType()=0;
 
 protected:
 

@@ -16,8 +16,6 @@ class Acoustic2dPDE: virtual public BasePDE
 {
 public:
 
-  //  WriteResultsUnverg * ptOutput;
-
   //!
   Acoustic2dPDE(AbstractAlgebraicSys * aptalgsys, Grid * , Material * , TimeFunc * ,FileType * , WriteResults * );
 
@@ -50,9 +48,6 @@ public:
   //! create pointer to class for time error estimation
   virtual TimeErrorEstimator * CreatePtTimeError();  
 
-  //! create pointer to class for time error estimation
-  virtual SpaceErrorEstimator * CreatePtSpaceError();
-
   //! Calculation of energy norm
   virtual Double CalcEnergyNorm();
 
@@ -73,6 +68,12 @@ public:
 
   //!
    void WriteResultsInFile();
+
+  //! test error of solution. Do we need to refine it?
+  Boolean TestError();
+
+  //! refine mesh
+  void RefineMesh();
 
   //!
   virtual const Vector<Double> & getS() const { return sol_;}
@@ -101,6 +102,15 @@ public:
 
 private:
   //!
+  void preComputeRHS();
+
+  //! recovery solution for SPR
+  void RecoverySol(Vector<Double> & result);
+
+  //! 
+  void ComputeRHS4RecoverySol();
+
+  //!
   Integer dofspernode_;
 
   //!
@@ -111,6 +121,15 @@ private:
 
   //!
   void CalcCoeff(Vector<Double> & coeffmass, Vector<Double> & coeffstiff);
+
+  //! initialization of pointer to SpaceErrorEstimator
+  void ConstructorError();
+
+  //! calculation of error for each cell of mesh.
+  void CalcErrorMap();
+
+  //! calculation of error for the element of mesh
+  void CalcErrorForElem(const Elem* elem, const Vector<Double>* gradSPR, Double & error, Double & normGradSPR);
 
   //!
   Double a0_,a1_,a2_,a3_,a4_,a5_,a6_,a7_;
@@ -131,6 +150,37 @@ private:
 
   //! size of solution and etc.
   Integer size_;
+
+  //! list of surfaces, on which we have force
+  std::vector<std::string> rhs_surfaces_;
+
+  //! function for RHS
+  Integer arg_rhs_;
+  pfn1var ptRHSFnc_;
+  std::vector<Double> directionFnc_;
+
+  //! Indicator: is there RHS function
+  Boolean SetRHSFnc;
+
+  //! --------------------- for adaptivity data ------------
+   //! array, in which we store error map
+  Vector<Double> errorMap_;
+  //! 
+  Vector<Double> gradSPRElemL2norm_;
+  Vector<Double> relativeErrorMap_;
+  Vector<Double> markingElems_;
+  //! norm of gradient SPR
+  Double normError_;
+  //! error tolerance
+  Double errorTol_;
+  //! indicators
+  Boolean WriteErrorMap_;
+  Boolean WriteMarkedElements_;
+  Boolean GridIsRefined_;
+
+  //! pointer to class of error estimators
+  SpaceErrorEstimator<2> * ptError_;
+  
 
 };
 

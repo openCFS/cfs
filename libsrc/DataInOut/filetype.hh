@@ -35,10 +35,10 @@ public:
   virtual void ReadMaxnumnodes(Integer & maxnumnodes)=0;  
 
   //!
-  virtual void ReadCoordinate(Point3D * const InitNodalCo,                                                     const Integer maxnumNodes)=0;
+  virtual void ReadCoordinate(Point<3> * const InitNodalCo,                                                     const Integer maxnumNodes)=0;
 
   //!
-  virtual void ReadCoordinate(Point2D * const InitNodalCo,
+  virtual void ReadCoordinate(Point<2> * const InitNodalCo,
 			      const Integer maxnumNodes)=0;
 
   //!
@@ -48,6 +48,10 @@ public:
   virtual void ReadEl(std::vector<Elem*> * elems, const std::vector<std::string>
 sd)
  { Error(" not implemented",__FILE__,__LINE__);}
+
+//! read 1D element. we cause it directly when we set BCs
+  virtual void ReadEl1d(std::vector<Elem*> * allelems, const std::vector<std::string> sd)
+ { Error(" not implemented",__FILE__,__LINE__);}  
 
 #ifdef ADAPTGRID
   virtual void ReadGrid_RG(std::vector<grd::Element*> & elems, std::vector<grd::Vertex*> * vertex, const std::vector<std::string> sd)

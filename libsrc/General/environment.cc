@@ -18,6 +18,8 @@ Boolean InfoPrint=FALSE;
 BaseElem * ptQ = NULL;
 BaseElem * ptTr = NULL;
 BaseElem * ptTet = NULL;
+BaseElem * ptL1=NULL;
+BaseElem * ptHexa=NULL;
 
 std::ostream & operator << (std::ostream & out, const enum precond & type)
 {

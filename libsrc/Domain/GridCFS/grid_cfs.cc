@@ -12,10 +12,10 @@
 namespace CoupledField
 {
 
-template<class Dim>
- GridCFS<Dim> :: GridCFS(FileType * const aptFileType)
+template<Integer dim>
+ GridCFS<dim> :: GridCFS(FileType * const aptFileType)
 {
-#ifdef TRACES
+#ifdef TRACE
   (*trace) << "entering GridCFS::GridCFS" << std::endl;
 #endif
 
@@ -23,50 +23,26 @@ template<class Dim>
 
   conf->getsubdom(sd_);
   elems_=new std::vector<Elem*>[sd_.size()];  
-  dim_ = 0;
-}
 
-template<>
-void GridCFS<Point2D> :: Read()
+  elNeighbors_=NULL;
+} 
+
+template<Integer dim>
+void GridCFS<dim> :: Read()
 {
 #ifdef TRACE
-  (*trace) << "entering GridCFS::Read 2D" << std::endl;
+  (*trace) << "entering GridCFS::Read " << std::endl;
 #endif
  
   dim_=InFile->ReadDim();
  
   InFile->ReadMaxnumnodes(maxnumnodes_);
-  ptCoordinate_=new Point2D[maxnumnodes_];
+  ptCoordinate_=new Point<dim>[maxnumnodes_];
   InFile->ReadCoordinate(ptCoordinate_, maxnumnodes_);
+
   InFile->ReadEl(elems_,sd_);
-//   Integer i,j;
-//   for(i=0; i<elems_[0].size(); i++){
-//     Integer elemsize=(elems_[0][i]->connect).size();
-//     testconnect_[i]=new Integer[elemsize];
-//     for (j=0; j<elemsize; j++) {
-//       testconnect_[i][j]=(elems_[0][i]->connect)[j];
-//     }
-//   }
       
-#ifdef TRACE
-  (*trace) << "leaving GridCFS::Read" << std::endl;
-#endif
-}
-
-template<>
-void GridCFS<Point3D> :: Read()
-{
-#ifdef TRACE
-  (*trace) << "entering GridCFS::Read 3D" << std::endl;
-#endif
-
-  dim_=InFile->ReadDim();
-
-  InFile->ReadMaxnumnodes(maxnumnodes_);
-  ptCoordinate_=new Point3D[maxnumnodes_];
-  InFile->ReadCoordinate(ptCoordinate_, maxnumnodes_);
-
-  InFile->ReadEl(elems_,sd_);
+  FormNeighborsLists();
 
 #ifdef TRACE
   (*trace) << "leaving GridCFS::Read" << std::endl;
@@ -74,8 +50,8 @@ void GridCFS<Point3D> :: Read()
 }
 
 #ifdef ADAPTGRID
-template<>
-void GridCFS<Point2D>::putNodesFromGrid_RG(grd::MultilevelGrid * grid, const Integer level)
+template<Integer dim>
+void GridCFS<dim>::putNodesFromGrid_RG(grd::MultilevelGrid * grid, const Integer level)
 {
 #ifdef TRACE
   (*trace) << "entering GridCFS::putNodesFromGrid_R" << std::endl;
@@ -83,7 +59,7 @@ void GridCFS<Point2D>::putNodesFromGrid_RG(grd::MultilevelGrid * grid, const Int
 
  Integer maxnumnodes= (*grid).getNoOfVertices();
  maxnumnodes_=maxnumnodes;
- ptCoordinate_=new Point2D[maxnumnodes];
+ ptCoordinate_=new Point<dim>[maxnumnodes];
 
   typedef std::list<grd::Vertex*>::iterator VerI;  
   
@@ -101,24 +77,17 @@ void GridCFS<Point2D>::putNodesFromGrid_RG(grd::MultilevelGrid * grid, const Int
 	          << " The index: " << index << "  the maxnumnodes: " << maxnumnodes << '\n';
       }
       ps=(*p)->getPosition();
-      ptCoordinate_[index].x=ps[0];
-      ptCoordinate_[index].y=ps[1];
+      ptCoordinate_[index][0]=ps[0];
+      ptCoordinate_[index][1]=ps[1];
+	if (dim==3)
+	ptCoordinate_[index][2]=ps[2];
       i++;
     }
   }
 } // end of function putNodesFromGrid_RG
 
 template<>
-void GridCFS<Point3D>:: putNodesFromGrid_RG(grd::MultilevelGrid * grid, const Integer level)
-{
-#ifdef TRACE
-  (*trace) << "entering GridCFS::putNodesFromGrid_R" << std::endl;
-#endif
-  ;
-}
-
-template<>
-void GridCFS<Point2D>::putElemsFromGrid_RG(grd::MultilevelGrid * grid, const Integer level)
+void GridCFS<2>::putElemsFromGrid_RG(grd::MultilevelGrid * grid, const Integer level)
 {
 #ifdef TRACE
   (*trace) << "entering GridCFS::putElemsFromGrid_R" << std::endl;
@@ -132,6 +101,16 @@ void GridCFS<Point2D>::putElemsFromGrid_RG(grd::MultilevelGrid * grid, const Int
  std::list<grd::Element*> * le;
  std::list<grd::Element*> ** lt;
 
+ // Element Map
+ if (!elemMap.empty()) {
+   for (i = 0; i < elemMap.size(); i++) {
+     ElementMap* tmp = elemMap[i];
+     delete tmp;
+   }
+   elemMap.clear();
+ } 
+ 
+
  Integer noOfLevels=grid->getNoOfLevels();
  for (j=0; j< noOfLevels; j++)
  {
@@ -142,6 +121,8 @@ void GridCFS<Point2D>::putElemsFromGrid_RG(grd::MultilevelGrid * grid, const Int
      for ( p=lt[type]->begin() ; p!= lt[type]->end(); ++p) {
           if ((*p)->isRegular()) {
         Elem * el=new Elem();
+	// Element maping
+	ElementMap* tmpMap = new ElementMap;
 	 
        Integer nnodes=(*p)->getNoOfVertices();
        Integer etype = (*p)->type();
@@ -165,20 +146,24 @@ void GridCFS<Point2D>::putElemsFromGrid_RG(grd::MultilevelGrid * grid, const Int
          (*el).connect[i]=((*p)->getVertex(i))->getId();	 
        }
  
-       // test connection array
-       Integer * testconnection=new Integer[nnodes];
-       for (i=0; i<nnodes; i++)
-	 testconnection[i]=((*p)->getVertex(i))->getId();
-	 testconnect_.push_back(testconnection);
-
        Integer sd=(*p)->getValue();
        if (sd >= sd_.size()) Error(" Value in element from Grid_RG is incorrect",__FILE__,__LINE__);
 
        (*el).namesd=sd_[sd];
 
        elems_[sd].push_back(el);
+
+       // put info in elemMap
+       Integer position = elems_[sd].size()-1;
+       tmpMap->map.resize(1);
+       tmpMap->map[0] = position;
+       tmpMap->sd = sd;
+       elemMap.push_back(tmpMap);
+
      } // if isRegular
      else if ((*p)->isIrregular()) {
+	ElementMap* tmpMap = new ElementMap;
+	tmpMap->sd = (*p)->getValue();
        grd::ConformingClosure closure;
        typedef grd::ConformingClosure::triangleIterator TriI;
        typedef grd::ConformingClosure::quadrangleIterator QuadI;
@@ -198,6 +183,10 @@ void GridCFS<Point2D>::putElemsFromGrid_RG(grd::MultilevelGrid * grid, const Int
 
 	 (*el).namesd=sd_[sd];
 	 elems_[sd].push_back(el);
+
+	 // maping
+	 Integer position = elems_[sd].size()-1;
+	 tmpMap->map.push_back(position);
        } // for tri
        // Process now the quads
        for (QuadI quad = closure.beginQuadrangle(); quad != closure.endQuadrangle(); ++quad) {
@@ -213,30 +202,242 @@ void GridCFS<Point2D>::putElemsFromGrid_RG(grd::MultilevelGrid * grid, const Int
 
 	 (*el).namesd=sd_[sd];
 	 elems_[sd].push_back(el);
+
+	 // maping
+	 Integer position = elems_[sd].size() - 1;
+	 tmpMap->map.push_back(position);
        } // for quad
+       // update element map list
+       elemMap.push_back(tmpMap);
      } // else if isIrregular
    } // for element
    type++;
    } // end while(); list of elements types
  } // for level
 
+ std::string SpaceAdapt;
+ conf->get("adaptspace",SpaceAdapt);
+ if (SpaceAdapt=="yes") FormNeighborsLists();
+ FormNeighborsLists();
+
 } // end of function 
 
 template<>
-void GridCFS<Point3D>:: putElemsFromGrid_RG(grd::MultilevelGrid * grid, const Integer level)
+void GridCFS<3>:: putElemsFromGrid_RG(grd::MultilevelGrid * grid, const Integer level)
 {
 #ifdef TRACE
   (*trace) << "entering GridCFS::putElemsNodesFromGrid_R" << std::endl;
 #endif
 
+  typedef std::list<grd::Element*>::iterator ElmI;
+  ElmI p;
+
+  Integer i, j, nnodes,type;
+
+  std::list<grd::Element*> * le;
+  std::list<grd::Element*> ** lt;
+
+ // Element Map
+ if (!elemMap.empty()) {
+   for (i = 0; i < elemMap.size(); i++) {
+     ElementMap* tmp = elemMap[i];
+     delete tmp;
+   }
+   elemMap.clear();
+ } 
+ 
+ Integer noOfLevels=grid->getNoOfLevels();
+ for (j=0; j< noOfLevels; j++)
+ {
+   lt=grid->getGridLevel(j)->getElementList();
+   type=0;
+
+   while(lt[type]) {
+     for ( p=lt[type]->begin() ; p!= lt[type]->end(); ++p) {
+          if ((*p)->isRegular()) {
+        Elem * el=new Elem();
+	// Element maping
+	ElementMap* tmpMap = new ElementMap;
+	 
+       Integer nnodes=(*p)->getNoOfVertices();
+       Integer etype = (*p)->type();
+
+       Boolean Elem2D=FALSE;
+       switch(etype) {
+       case GRD_TRIANGLE:
+	 Elem2D=TRUE;
+	 break;
+       case GRD_QUADRANGLE:
+	 Elem2D=TRUE;
+	 break;
+       case GRD_TETRAHEDRON:
+        el->ptElem=ptTet;
+        break;
+       case GRD_HEXAHEDRON:
+        el->ptElem=ptHexa;
+        break;
+       default:
+	 Error("Unknown type of element in GridRG", __FILE__,__LINE__);
+	 break;
+       }
+
+       if (!Elem2D) {
+       (*el).connect.Resize(nnodes);
+ 
+       for (i=0; i<nnodes; i++)
+       {	
+         (*el).connect[i]=((*p)->getVertex(i))->getId();	 
+       }
+ 
+       Integer sd=(*p)->getValue();
+       if (sd >= sd_.size()) Error(" Value in element from Grid_RG is incorrect",__FILE__,__LINE__);
+
+       (*el).namesd=sd_[sd];
+
+       elems_[sd].push_back(el);
+
+       // put info in elemMap
+       Integer position = elems_[sd].size()-1;
+       tmpMap->map.resize(1);
+       tmpMap->map[0] = position;
+       tmpMap->sd = sd;
+       elemMap.push_back(tmpMap);
+       }
+
+     } // if isRegular
+     else if ((*p)->isIrregular()) {
+	ElementMap* tmpMap = new ElementMap;
+	tmpMap->sd = (*p)->getValue();
+       grd::ConformingClosure closure;
+       typedef grd::ConformingClosure::tetrahedronIterator TetI;
+       (*p)->close(closure);
+       
+       // Process closing triangles
+       for (TetI tet = closure.beginTetrahedron(); tet != closure.endTetrahedron(); ++tet) {
+	 Elem * el=new Elem();
+         Integer nnodes=(*tet)->getNoOfVertices();
+         el->ptElem=ptTet;
+         (*el).connect.Resize(nnodes);
+         for (i=0; i<nnodes; i++) {
+	   (*el).connect[i]=((*tet)->getVertex(i))->getId();
+	 }
+	 Integer sd=(*tet)->getValue();
+	 if (sd >= sd_.size()) Error(" Value in element from Grid_RG is incorrect",__FILE__,__LINE__);
+
+	 (*el).namesd=sd_[sd];
+	 elems_[sd].push_back(el);
+
+	 // maping
+	 Integer position = elems_[sd].size()-1;
+	 tmpMap->map.push_back(position);
+       } // for tri
+       // update element map list
+       elemMap.push_back(tmpMap);
+     } // else if isIrregular
+   } // for element
+   type++;
+   } // end while(); list of elements types
+ } // for level
+
+ std::string SpaceAdapt;
+ conf->get("adaptspace",SpaceAdapt);
+ if (SpaceAdapt=="yes") FormNeighborsLists();
+ FormNeighborsLists();
   ;
 }
 
+template<Integer dim>
+void GridCFS<dim>::Refine(grd::MultilevelGrid& grid)
+{
+#ifdef TRACE
+  (*trace) << " entering  GridCFS<Dim>::Refine " << std::endl;
+#endif
+
+ Integer i,j;
+ Integer counter = 0;
+
+ // Mesh refinement
+ Integer noOfLevels = grid.getNoOfLevels();
+ typedef std::list<grd::Element*>::iterator ElmI;
+ typedef grd::ConformingClosure::triangleIterator  TriI;
+ for (Integer j = 0; j < noOfLevels; j++) {
+   grd::GridLevel* gridlv = grid.getGridLevel(j);
+   list<grd::Element*>** lt = gridlv->getElementList();
+   Integer type = 0;
+   while (lt[type]) {
+     for (ElmI p = lt[type]->begin(); p != lt[type]->end(); ++p) {
+       if (!(*p)->isRefined()) {
+	 Integer  sde = (*p)->getValue();
+	 bool flag = false;
+	 ElementMap* map = elemMap[counter];
+	 
+	 Integer sdm = map->sd;
+	 if (sde != sdm)
+	   Error("Wrong number of subdomain",__FILE__,__LINE__);
+	 
+	 for (i = 0; i < map->map.size(); i++) {
+	   Integer elmId = map->map[i];
+	   flag = elems_[sdm][elmId]->refinementFlag;
+	 }
+	 
+	 if (flag) {
+	   (*p)->markForRefinement();
+	 }
+	 // update counter
+	 counter++;
+       }
+     } // for loop elems
+     // next element type
+     type++;
+   } // type loop
+ } // level loop
+
+ std::list<int> vtId;
+ grid.refine(vtId);
+}
+
+template<Integer dim>
+void GridCFS<dim>::RefineUniform(grd::MultilevelGrid& grid)
+{
+ Integer i,j;
+ Integer counter = 0;
+
+ // Mesh refinement
+ Integer noOfLevels = grid.getNoOfLevels();
+ typedef std::list<grd::Element*>::iterator ElmI;
+ typedef grd::ConformingClosure::triangleIterator  TriI;
+ for (Integer j = 0; j < noOfLevels; j++) {
+   grd::GridLevel* gridlv = grid.getGridLevel(j);
+   list<grd::Element*>** lt = gridlv->getElementList();
+   Integer type = 0;
+   while (lt[type]) {
+     for (ElmI p = lt[type]->begin(); p != lt[type]->end(); ++p) {
+	   (*p)->markForRefinement();
+     } // for loop elems
+     // next element type
+     type++;
+   } // type loop
+ } // level loop
+
+ std::list<int> vtId;
+ grid.refine(vtId);
+}
+
+template<Integer dim>
+void GridCFS<dim>::SetRefinementFlag()
+{
+  Integer i,j;
+  for (i=0; i<sd_.size(); i++) {
+    for (j=0; j<elems_[i].size(); j++) {
+      elems_[i][j]->refinementFlag=TRUE;
+    }
+  }
+}
 
 #endif // end of ADAPTGRID
 
-template< class Dim>
-void GridCFS<Dim>::GetConnection(Vector<Integer> & connection, const Integer iElem, const Integer level)
+template<Integer dim>
+void GridCFS<dim>::GetConnection(Vector<Integer> & connection, const Integer iElem, const Integer level)
 {
   Integer i,j;
   Integer sum=0,sum1;
@@ -255,8 +456,8 @@ void GridCFS<Dim>::GetConnection(Vector<Integer> & connection, const Integer iEl
   }
 }
 
-template<class Dim>
-void GridCFS<Dim> :: GetCoordinateNode(const Integer inode, const Integer numlevel, Dim & rfPoint) 
+template<Integer dim>
+void GridCFS<dim> :: GetCoordinateNode(const Integer inode, const Integer numlevel, Point<dim> & rfPoint) 
 {
 #ifdef TRACE
   (*trace) << "entering GridCFS::GetCoordinateNode" << std::endl;
@@ -264,8 +465,8 @@ void GridCFS<Dim> :: GetCoordinateNode(const Integer inode, const Integer numlev
   rfPoint=ptCoordinate_[inode];
 }
 
-template<class Dim>
-void GridCFS<Dim> :: GetElemSD(std::vector<Elem*> & els, const std::string sd, const Integer level)
+template<Integer dim>
+void GridCFS<dim> :: GetElemSD(std::vector<Elem*> & els, const std::string sd, const Integer level)
 {
 #ifdef TRACE
   (*trace) << "entering GridCFS::GetElemSD" << std::endl;
@@ -277,21 +478,21 @@ void GridCFS<Dim> :: GetElemSD(std::vector<Elem*> & els, const std::string sd, c
 
 }
 
-template<class Dim>
-void  GridCFS<Dim> :: GetCoordNodesElem(const Vector<Integer> connect, Dim * ptCoord, const Integer level)
+template<Integer dim>
+void  GridCFS<dim> :: GetCoordNodesElem(const Vector<Integer> connect, Point<dim> * ptCoord, const Integer level)
 {
 #ifdef TRACE
-  (*trace) << "entering GridCFS :: GetCoordinateNode" << std::endl;
+  (*trace) << "entering GridCFS :: GetCoordinateNodesElem" << std::endl;
 #endif
 
   Integer k;
-  for (k=0; k < connect.size(); k++)
+  for (k=0; k < connect.size(); k++) 
        ptCoord[k]=ptCoordinate_[connect[k]-1];
- 
+
 }
 
-template<class Dim>
-GridCFS<Dim> ::~GridCFS() 
+template<Integer dim>
+GridCFS<dim> ::~GridCFS() 
 { 
 #ifdef TRACE
   (*trace) << " entering GridCFS<Dim> ::~GridCFS() \n";
@@ -308,12 +509,26 @@ if (ptCoordinate_) delete [] ptCoordinate_;
    delete [] elems_;
  }
 
- for (i=0; i<testconnect_.size(); i++)
-     if (testconnect_[i]) delete [] testconnect_[i];
+ //! list with neighbors for element
+ if (elNeighbors_) {    
+   for (i = 0; i < sd_.size(); i++) {
+     delete elNeighbors_[i];    
+   }
+   delete [] elNeighbors_;
+ }
+
+ // deconstructor for elemMap
+ if (elemMap.size() > 0) {
+   for (i = 0; i < elemMap.size(); i++) {
+     ElementMap* tmp = elemMap[i];
+     delete tmp;
+   }
+   elemMap.clear();
+ }
 }
 
-template<class Dim>
-Integer GridCFS<Dim>::GetMaxnumElem(const Integer numlevel)
+template<Integer dim>
+Integer GridCFS<dim>::GetMaxnumElem(const Integer numlevel)
 {
  Integer i;
  Integer res=0;
@@ -321,6 +536,330 @@ Integer GridCFS<Dim>::GetMaxnumElem(const Integer numlevel)
   res+=elems_[i].size();
 
  return res;
+}
+
+template<Integer dim>
+Integer GridCFS<dim>::GetMaxnumElem(const Integer numlevel, const std::vector<std::string> & subdoms)
+{
+  Integer res=0;
+  Integer i,j;
+  for (j=0; j<subdoms.size(); j++)
+    for (i=0; i<sd_.size(); i++)
+      if (sd_[i]==subdoms[j]) res+=elems_[i].size();
+
+  return res;
+}
+
+template<Integer dim>
+void GridCFS<dim>::FormNeighborsLists()
+{
+#ifdef TRACE
+  (*trace) << " entering  GridCFS<Dim>::FormNeighborsLists " << std::endl;
+#endif
+
+  Integer i,j,k,n,m;
+
+  Integer size=sd_.size(); // number of subdomains in domain
+  elNeighbors_ = new  std::vector<std::vector<Elem*> >*[size];
+  // initialize                                           
+  // for each subdomain of grid we create vector( noOfElems) with vector of neighbors of each element
+  for (i = 0; i < sd_.size(); i++) {
+    size=elems_[i].size();
+    elNeighbors_[i] = new std::vector<std::vector<Elem*> >(size);    
+  }
+
+  vtNeighbors_.resize(maxnumnodes_);     // vector with vector of neighbors-elements for each node
+
+  // first main loop: form list with element-neighbors for each node
+  for (i = 0; i < sd_.size(); i++) {
+    for (j = 0; j < elems_[i].size(); j++) {
+      Integer noOfVertices = elems_[i][j]->connect.size();
+      for (k = 0; k < noOfVertices; k++) {
+	Integer id = elems_[i][j]->connect[k];
+	vtNeighbors_[id-1].push_back(elems_[i][j]);
+      } // for loop over vertices, index k
+    } // for loop over elements of the subdomain i, index j
+  } // for loop over sd, index i
+
+//   // check of nodes list
+//   for (i=0; i<maxnumnodes_; i++) {
+//     for (j=0; j<vtNeighbors_[i].size(); j++) {
+//       cout << " size " << vtNeighbors_[i].size() << endl;
+//       Elem* ptE=vtNeighbors_[i][j];
+//       cout << " no of nodes " << i+1 << endl;
+//       cout << ptE->connect << endl;
+//     }
+//   }
+      
+  // second main loop: form list with element-neighbors for each element
+  for (i = 0; i < sd_.size(); i++) {   // do loop over subdomains
+    for (j = 0; j < elems_[i].size(); j++) {   // do loop over elements of subdomain
+      Integer noOfVertices = elems_[i][j]->connect.size(); 
+      for (k = 0; k < noOfVertices; k++) {   // do loop over vertices of elements of the subdomain
+	Integer id = elems_[i][j]->connect[k]; 
+	for (n= 0; n < vtNeighbors_[id-1].size(); n++) {  // do loop over list of neighbors for node
+	  Elem* ptel = vtNeighbors_[id-1][n];           
+
+	  if (ptel != elems_[i][j]) {           // check that this element is not the same element for which we are looking for neighbors
+	    Boolean flag = false;
+	    for (m = 0; m < (*elNeighbors_[i])[j].size(); m++) { // check that this element is new in list of neighbors
+	      Elem* ptel_tmp = (*elNeighbors_[i])[j][m];
+	      if (ptel_tmp == ptel)
+		flag = true;
+	    } // for loop over neighbors, index m
+	    if (!flag)
+	      (*elNeighbors_[i])[j].push_back(ptel);
+	  } // if (ptle != elem)
+	} // for loop over vtNeighbors, index n
+      } // for loop over vertices, index k
+    } // for loop over elements of the subdomain, index j
+  } // for loop over sd, index i
+
+  //check of element-neighbors
+//   for (i=0; i<sd_.size(); i++) {
+//       for (j = 0; j < elems_[i].size(); j++) {  
+// 	cout << " element: " << j << " with connect " << elems_[i][j]->connect << endl;	
+
+// 	for (m = 0; m < (*elNeighbors_[i])[j].size(); m++) { // loop over neigbors for elem j
+// 	  cout << " neighbors: " << m << endl;   
+// 	  Elem * ptElm=(*elNeighbors_[i])[j][m];
+// 	  cout << ptElm->connect;
+// 	}
+//       }
+//   }
+
+} // end of function FormNeighborsLists
+
+//! return pointer to vector of element-neighbors for the element with number noOfElem
+template<Integer dim>
+std::vector<Elem*> * GridCFS<dim>::GetptNeighboursOfElem(const Integer noOfElem, const std::string color)
+{
+  
+  std::vector<Elem*> * result;
+
+  if (elNeighbors_==NULL) Error("You can't use function GetptNeighboursOfElem, since list of neighbors is not formed. You should use function FormNeighborsList before.");
+
+  Integer i;
+  for (i=0; i<sd_.size(); i++) {
+    if (sd_[i]==color) {          
+        result=&(*elNeighbors_[i])[noOfElem];
+    }
+  }
+
+  return result;
+}
+
+ //! return vector of element-neighbors for the node with number noOfNode
+template<Integer dim>
+void  GridCFS<dim>::GetNeighboursOfNode(const Integer noOfNode, std::vector<Elem*> * neighbours)
+{
+  neighbours=&vtNeighbors_[noOfNode];
+}
+
+template<Integer dim>
+void GridCFS<dim>::FormNeighbors4NodesOfElements(const std::vector<Elem*>& elems, std::vector<std::vector<Elem*> > &nodeNeighbors, std::vector<Integer> & map)
+{
+#ifdef TRACE
+  (*trace) << " entering  GridCFS<Dim>::FormNeighbors4NodeOfElements " << std::endl;
+#endif
+
+  Integer iel,k;
+  CalcNumberOfNodesInPatch(elems,map);
+  Integer maxnumnodes=map.size();
+ // calculation number of nodes in patch of elements
+
+   // vector with vector of neighbors-elements for each node
+  nodeNeighbors.resize(maxnumnodes);    
+
+  // first main loop: form list with element-neighbors for each node
+    for (iel = 0; iel < elems.size(); iel++) {
+      Integer noOfVertices = elems[iel]->connect.size();
+      for (k = 0; k < noOfVertices; k++) {
+	Integer id = elems[iel]->connect[k];
+	Integer imp;
+	for (imp=0;imp<map.size();imp++) 
+	  {
+	    if (id==map[imp]) 
+	      {
+		break;
+	      }	    
+	  }	
+	nodeNeighbors[imp].push_back(elems[iel]);
+      } // for loop over vertices, index k
+    } // for loop over elements iel
+
+} // end of function FormNeighbors4NodesOfElements
+
+template<Integer dim>
+void GridCFS<dim>::DefineBelonging4Elems(const std::vector<Elem*>& elemsSurf, const std::vector<Elem*>&elems, std::vector<Elem*> & belongingSE)
+{
+#ifdef TRACE
+  (*trace) << " entering  GridCFS<Dim>:DefineBelonging4Elems " << std::endl;
+#endif
+
+  Integer noOfSurfElems=elemsSurf.size();
+  belongingSE.resize(noOfSurfElems);
+
+  // form list with neighbors for each nodes in patch of boundary elements
+  std::vector<Integer> map;
+  std::vector<std::vector<Elem*> > listNeighbors;
+  FormNeighbors4NodesOfElements(elems,listNeighbors,map);
+
+  Integer ise,je;
+  for (ise=0; ise<noOfSurfElems; ise++) { // loop over surface elements
+
+    Boolean FoundNd=FALSE;
+    Elem * ptAuxElem;
+
+    Vector<Integer> &connectSE=elemsSurf[ise]->connect;
+
+    // get list of neighbors for first node of the surface element
+    Integer imp;   // get local number for this node
+    for (imp=0; imp<map.size(); imp++) 
+      {
+	if (connectSE[0]==map[imp]) 
+	  break;
+      }
+    
+    std::vector<Elem*> &listNeigh4Elem=listNeighbors[imp];
+       
+    // loop over list of neighbors
+    Integer ine;
+    for (ine=0;ine<listNeigh4Elem.size();ine++) {
+      ptAuxElem=listNeigh4Elem[ine];
+
+      // check is there other vertices of element
+      // loop over other nodes of surf element
+      for (je=1;je<connectSE.size();je++) {
+	Integer verSE=connectSE[je];
+
+	//loop over vertices of the element
+	FoundNd=FALSE;
+	Vector<Integer> &vertices=ptAuxElem->connect;
+	Integer ivt;
+	for(ivt=0;ivt<vertices.size();ivt++) {
+	  if (verSE==vertices[ivt]) {
+	    FoundNd=TRUE;
+	    break;
+	  }
+	} // end of loop over vertices of neigh-element
+	
+	if (!FoundNd) break;
+      } // end of loop over nodes of surf element
+
+      if (FoundNd) {
+	belongingSE[ise]=ptAuxElem;
+	break;
+      }
+    } // end loop over neighbors 
+
+  } // loop over Surf element
+	     
+}
+
+template<Integer dim>
+void GridCFS<dim>::CalcNumberOfNodesInPatch(const std::vector<Elem*> & patch, std::vector<Integer> & map)
+{
+#ifdef TRACE
+  (*trace) << "entering Elecst2dPDE::CalcNumberOfNodesInPatch" << std::endl;
+#endif
+
+  Integer iels,ivc,imp;
+  Vector<Integer> vec_connect;
+  Boolean NewNode;
+
+  for (iels=0; iels<patch.size(); iels++) // loop over elements in patch
+    {
+     
+      vec_connect=patch[iels]->connect;
+      
+      for (ivc=0; ivc<vec_connect.size(); ivc++) { 
+	 NewNode=TRUE;
+	// loop over vector with global nodes for previous elements
+	for (imp=0; imp<map.size(); imp++) {
+	  // check that this node is not new
+	  if (map[imp] == vec_connect[ivc]) { 
+	    NewNode=FALSE;
+	  }	 
+	}
+
+      if (NewNode) {
+	map.push_back(vec_connect[ivc]);
+      }
+
+      } // end of loop over nodes in element
+
+    } // end of loop over elements in patch   
+}
+
+template<>
+Double GridCFS<2>::CalcAreaElem(const Elem* elem)
+{
+#ifdef TRACE
+  (*trace) << "entering Elecst2dPDE::CalcAreaElem" << std::endl;
+#endif
+
+  Double res;
+  Double a,b,c,s;
+  Point<2> A,B,C,D;
+
+  Integer type=elem->ptElem->feType();
+  switch(type) {
+  case 0: // line
+    A=ptCoordinate_[elem->connect[0]-1];
+    B=ptCoordinate_[elem->connect[1]-1];
+    res=dist(A,B);
+    break;
+  case 1:     // triangle
+    A=ptCoordinate_[elem->connect[0]-1];
+    B=ptCoordinate_[elem->connect[1]-1];
+    C=ptCoordinate_[elem->connect[2]-1];
+       cout << " ok " << endl;
+    cout << A[0] << " " << A[1] << "\n";
+    cout << B[0] << " " << B[1] << "\n";
+    cout << C[0] << " " << C[1] << "\n";
+    a=dist(A,B);
+    b=dist(B,C);
+    c=dist(A,C);
+    cout << a << " " << b << " " << c << "\n";
+    s=(a+b+c)/2;
+    res=sqrt(s*(s-a)*(s-b)*(s-c));
+
+    break; 
+  case 2:     // quadrilateral
+    Double res1, res2;
+    A=ptCoordinate_[elem->connect[0]-1];
+    B=ptCoordinate_[elem->connect[1]-1];
+    C=ptCoordinate_[elem->connect[2]-1];
+    D=ptCoordinate_[elem->connect[3]-1];
+    cout << " ok " << endl;
+    cout << A[0] << " " << A[1] << "\n";
+    cout << B[0] << " " << B[1] << "\n";
+    cout << C[0] << " " << C[1] << "\n";
+    cout << D[0] << " " << D[1] << "\n";
+    a=dist(A,B);
+    b=dist(B,C);
+    c=dist(A,C);
+    s=(a+b+c)/2;
+    res1=sqrt(s*(s-a)*(s-b)*(s-c));
+    a=dist(C,D);
+    b=dist(A,D);
+    s=(a+b+c)/2;
+    res2=sqrt(s*(s-a)*(s-b)*(s-c));
+    res=res1+res2;
+    break;
+
+  default:
+    Error("There isn't such kind of element's type",__FILE__,__LINE__);
+  }
+
+  return res;
+}
+
+template<>
+Double GridCFS<3>::CalcAreaElem(const Elem* elem)
+{
+  Error("Not implemented yet",__FILE__,__LINE__);
 }
 
 } // end namespace

@@ -10,7 +10,7 @@
 namespace CoupledField
 {
 
-  //! Class for acoustic equation
+  //! Class for electrostatic equation
   /*! 
     This class is derived from class PDE. It is used for solving electrostatic equation 
   */
@@ -60,6 +60,9 @@ private:
 
   //!
   Integer size;  
+
+  //! indicator that used in function SetupMatrices. TRUE, if we need mass matrix; otherwise - FALSE
+  Boolean NeedMassMatrix_;
 
 };
 

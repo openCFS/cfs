@@ -54,7 +54,7 @@ void AcousticTimeErrorEstimator::CalcError(const Double dt)
   Double help=sqrt(thirddersolAdt*thirddersolAdt/size)*dt*dt*0.0833;
  
   Vector<Double> solution=ptPDE_->getS();
-  Double norm=solution.norm_2();
+  Double norm=solution.normL2();
 
   if (norm>maxnorml2sol_) maxnorml2sol_=norm;
 

@@ -14,14 +14,11 @@ RANLIB=ranlib
 #
 # Machine dependent flags:
 #
-CFLAGS1= -g -c -DDEBUG -DTRACE $(INCL)
-#CFLAGS1= -g -c -DDEBUG -DTRACE -DADAPTGRID $(INCL)
+CFLAGS1= -g -c -DTRACE -DADAPTGRID $(INCL)
 CFLAG_EXE= -g
 FLAG_MKSHLIB = -g -v -shared 
 ARFLAGS = r 
 #
-#CFLAGS1 = 
 UNDER  = -DFORTRANDOUBLEUNDERSCORE
-#CFLAGS2 = $(ABI) $(OPT) $(LNO) $(UNDER) -w 
 CPLUSPLUSFLAGS2 = $(UNDER) -pg  -fnonnull-objects -I/usr/local/qt/include  -I/usr/local/GL/include
 LINKFLAGS2 = -pg -L/usr/openwin/lib -L/usr/X11R6/lib

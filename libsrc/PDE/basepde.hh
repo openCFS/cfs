@@ -9,6 +9,7 @@
 #include "material.hh"
 #include "conffile.hh"
 
+
 namespace CoupledField
 {
 
@@ -17,6 +18,8 @@ namespace CoupledField
    */
 
 class TimeErrorEstimator;
+
+template<Integer dim>
 class SpaceErrorEstimator;
 
 class BasePDE
@@ -67,9 +70,6 @@ public:
 
   //! Create pointer to according class of time error estimation
   virtual TimeErrorEstimator * CreatePtTimeError(){ Error("Function CreatePtTimeError is not overloaded in this class");}  
-
-  //! Create pointer to according class of space error estimation
-  virtual SpaceErrorEstimator * CreatePtSpaceError(){ Error("Function CreatePtSpaceError is not overloaded in this class");}
 
   virtual std::vector<std::string> * getSDsPDE(){ return &subdoms_;}
 
@@ -125,6 +125,18 @@ public:
   virtual  Double CalcEnergyNorm()
    { Error("Function PDE::CalcEnergyNorm is not implemented in this class");}
 
+  //! refine mesh
+  virtual void RefineMesh()
+  { Error("Function BasePDE::RefineMesh is not implemented in this class");} 
+
+    //! refine mesh
+  virtual Boolean TestError()
+  { Error("Function BasePDE::TestError is not implemented in this class");} 
+
+ //! write additional info (marked elements, relative error) to files with mesh
+  virtual void PrintMeshesInfo(WriteResults * ptMehes)
+  { Error("Function BasePDE::TestError is not implemented in this class");}
+
 protected:
    //! read from .config-file info about BCs
    void ReadBCs(const std::string eq);
@@ -149,7 +161,6 @@ protected:
 
  //!
   TimeErrorEstimator * ptTimeError_;
-  SpaceErrorEstimator * ptSpaceError_;
 
  //!
   AbstractAlgebraicSys * ptalgsys_;

@@ -2,32 +2,10 @@
 #define FILE_SCFE_GRID_2001
 
 #include "filetype.hh"
-#include "baseelem.hh"
+#include "elem.hh"
 
 namespace CoupledField
 {
-
-struct Elem
-{
-  BaseElem * ptElem;
-  Vector<Integer> connect;
-  std::string namesd;
-
-  Elem & operator=(const Elem& t);
-};
-
-inline Elem & Elem::operator=(const Elem& t) {
-  if (this!=&t) {
-    ptElem=t.ptElem;
-    connect=t.connect;
-    namesd=t.namesd;
-  }
-  return *this;
-}
-    
-
-class SetRefFlag;
-class SetRefFlagTest;
 
 /// Class for working with grid
 class Grid
@@ -42,25 +20,24 @@ public:
   //!
   virtual void Read()=0;
 
-  /// 
-  virtual void SubdivideUniform(const Integer level)
-   { Error(" Not implemented",__FILE__,__LINE__);}
-
    /// Get connection of element
    virtual void GetConnection(Vector<Integer> & connect, const Integer iElem, const Integer level)=0;
 
    /// Get coordinates of node with global number inode
-   virtual void GetCoordinateNode(const Integer inode, const Integer numlevel, Point2D & rfPoint)
-   { Error(" Not implemented",__FILE__,__LINE__);}
+   virtual void GetCoordinateNode(const Integer inode, const Integer numlevel, Point<2> & rfPoint)
+  { Error(" Not implemented",__FILE__,__LINE__);}
 
-   virtual void GetCoordinateNode(const Integer inode, const Integer numlevel, Point3D & rfPoint)
-   { Error(" Not implemented",__FILE__,__LINE__);}
+  virtual void GetCoordinateNode(const Integer inode, const Integer numlevel, Point<3> & rfPoint)
+  { Error(" Not implemented",__FILE__,__LINE__);}
 
   /// Return maximum number of nodes
   virtual Integer GetMaxnumnodes(const Integer numlevel)=0;
 
   /// Return maximum number of elements 
   virtual Integer GetMaxnumElem(const Integer numlevel)=0;
+  //! Return maximum number of elements, which belong to subdoms
+  virtual Integer GetMaxnumElem(const Integer numlevel, const std::vector<std::string> & subdoms)
+   { Error(" Not implemented",__FILE__,__LINE__);}  
 
   //! Get last level of grid
   virtual Integer GetLastLevel() const { return lastlevel_;} 
@@ -76,45 +53,46 @@ public:
   virtual void UpdateBCs(std::list<Integer> * bcs)
   { Error(" Not implemented",__FILE__,__LINE__);}
 
-    //! Here we mark elements for refinement: ei - number of elem
-  virtual void SetRefinementFlag(const Integer ei)
+    //! return vector of element-neighbors for the element with number noOfElem
+  virtual  std::vector<Elem*> *GetNeighboursOfElem(const Integer noOfElem, std::string color)
   { Error(" Not implemented",__FILE__,__LINE__);}
 
-  virtual void SetRefinementFlag(const std::vector<Integer> ei)
+  //! return vector of element-neighbors for the node with number noOfNode
+  virtual void GetNeighboursOfNode(const Integer noOfNode, std::vector<Elem*> * neighbours)
   { Error(" Not implemented",__FILE__,__LINE__);}
 
   //! Do refinement of elements, which we mark through function SetRefinementFlag
   virtual void Refine()
+  { Error(" This fnc is valid only for adaptgrid. Change your config-file",__FILE__,__LINE__);}
+
+  //! Do uniform refinement of elements, which we mark through function SetRefinementFlag
+  virtual void RefineUniform()
   { Error(" Not implemented",__FILE__,__LINE__);}
 
-    //!
+  //! restore initial coarse mesh
+  virtual void RestoreInitialMesh()
+  { Error(" Not implemented",__FILE__,__LINE__);}
+
+  //!
  virtual void GetElemSD(std::vector<Elem*> &, const std::string sd, const Integer level)
    { Error(" Not implemented",__FILE__,__LINE__);}
 
   //!
-  virtual void GetCoordNodesElem(const Vector<Integer> connect, Point2D * ptCoord, const Integer level)
+  virtual std::vector<std::string>* GetAllSDs()
+  { Error("Not implemented",__FILE__,__LINE__);}
+
+  //!
+  virtual void GetCoordNodesElem(const Vector<Integer> connect, Point<2> * ptCoord, const Integer level)
   { Error(" Not implemented",__FILE__,__LINE__);}
 
-  virtual void GetCoordNodesElem(const Vector<Integer> connect, Point3D * ptCoord, const Integer level)
+  //!
+  virtual void GetCoordNodesElem(const Vector<Integer> connect, Point<3> * ptCoord, const Integer level)
   { Error(" Not implemented",__FILE__,__LINE__);}
 
-
-  virtual void forEachElemSd(SetRefFlag & f,const std::string subdomain)
-   { Error(" Not implemented",__FILE__,__LINE__);}
-
-  virtual void forEachElemSd(SetRefFlagTest & f,const std::string subdomain)
-   { Error(" Not implemented",__FILE__,__LINE__);}
-
-  virtual  std::vector<Integer*> * GetPtTestConnection()
-   { Error(" Not implemented",__FILE__,__LINE__);}
-
-
- //  virtual void forEachElemSd(PutElemMatInAlgSys & f,const std::string subdomain)
-// { Error(" Not implemented",__FILE__,__LINE__);}
-
-//  virtual void forEachElemSd(PutElemMatAlgSysElst3d & f,const std::string subdomain)
-// { Error(" Not implemented",__FILE__,__LINE__);}
-
+  //! in this function we calculate area of element
+  virtual Double CalcAreaElem(const Elem* elem)
+    { Error(" Not implemented",__FILE__,__LINE__);}
+  
 protected:
 
   FileType * ptFileType;
@@ -126,8 +104,6 @@ protected:
 private:
   ///
 };
-
-//template void Grid::forEachElemSd();
 
 } // end of namespace
 #endif // FILE_GRID

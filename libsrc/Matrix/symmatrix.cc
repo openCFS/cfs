@@ -451,7 +451,7 @@ for (i=0; i < mat.getSize(); i++)
  return out;
 }
 
-template std::ostream & operator<<<Integer> (std::ostream & , const SymMatrix<Integer> &);
+//template std::ostream & operator<<<Integer> (std::ostream & , const SymMatrix<Integer> &);
 template std::ostream & operator<<<Double> (std::ostream & , const SymMatrix<Double> &);
 
 template<class TYPE>

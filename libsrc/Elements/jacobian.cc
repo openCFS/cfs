@@ -6,71 +6,50 @@
 namespace CoupledField
 {
 
-template <>
-Jacobian<Point2D>::Jacobian()
+template <Integer dim>
+Jacobian<dim>::Jacobian()
 {
-  J.Resize(2,2);
-  Jinv.Resize(2,2);
+  J.Resize(dim,dim);
+  Jinv.Resize(dim,dim);
 }
 
-template <>
-Jacobian<Point3D>::Jacobian()
+template<Integer dim>
+void Jacobian<dim>::GetJinvX(Vector<Double> & JinvX)
 {
-  J.Resize(3,3);
-  Jinv.Resize(3,3);
-}
-
-template<>
-void Jacobian<Point3D>::GetJinvX(Vector<Double> & JinvX)
-{
-  JinvX.Resize(3);
+  JinvX.Resize(dim);
 
   JinvX[0]=Jinv[0][0];
   JinvX[1]=Jinv[1][0];
+
+  if (dim==3)
   JinvX[2]=Jinv[2][0];
 }
 
-template<>
-void Jacobian<Point2D>::GetJinvX(Vector<Double> & JinvX)
+template<Integer dim>
+void Jacobian<dim>::GetJinvY(Vector<Double> & JinvY)
 {
-  JinvX.Resize(2);
-  JinvX[0]=Jinv[0][0];
-  JinvX[1]=Jinv[1][0];
-}
-
-template<>
-void Jacobian<Point2D>::GetJinvY(Vector<Double> & JinvY)
-{
-  JinvY.Resize(2);
+  JinvY.Resize(dim);
 
   JinvY[0]=Jinv[0][1];
   JinvY[1]=Jinv[1][1];
-}
 
-template<>
-void Jacobian<Point2D>::GetJinvZ(Vector<Double> & JinvZ)
-{
-  Error("Function GetJinvZ is implemented only for 3D",__FILE__,__LINE__);
-}
-
-template<>
-void Jacobian<Point3D>::GetJinvY(Vector<Double> & JinvY)
-{
-  JinvY.Resize(3);
-
-  JinvY[0]=Jinv[0][1];
-  JinvY[1]=Jinv[1][1];
+  if (dim==3)
   JinvY[2]=Jinv[2][1];
 }
 
-template<>
-void Jacobian<Point3D>::GetJinvZ(Vector<Double> & JinvZ)
+template<Integer dim>
+void Jacobian<dim>::GetJinvZ(Vector<Double> & JinvZ)
 {
+  if (dim==2)
+  Error("Function GetJinvZ is implemented only for 3D",__FILE__,__LINE__);
+  else {
   JinvZ.Resize(3);
 
   JinvZ[0]=Jinv[0][2];
   JinvZ[1]=Jinv[1][2];
   JinvZ[2]=Jinv[2][2];
+}
+
 }
 
 } // end of namespace

@@ -14,11 +14,13 @@ namespace CoupledField
 {
 
 AcousticSpaceErrorEstimator::AcousticSpaceErrorEstimator(BasePDE * aptPDE, Grid * aptGrid)
-:SpaceErrorEstimator(aptPDE,aptGrid)
+:SpaceErrorEstimator(aptGrid)
 {
 #ifdef TRACE
   (*trace) << "entering AcousticSpaceErrorEstimator::AcousticTimeErrorEstimator" << std::endl;
 #endif
+
+  Init(aptPDE);
 
   // read tolerance 
   conf->get("tol_sp",tol_,"Acoustic");
@@ -97,7 +99,7 @@ void  AcousticSpaceErrorEstimator::RefineMesh()
   SetRefFlagTest f;  
   for(i=0; i<(*listSDs).size(); i++)
     ptGrid_->forEachElemSd(f,(*listSDs)[i]);
-  ptGrid_->Refine();
+    ptGrid_->Refine();
 #endif
 
 }

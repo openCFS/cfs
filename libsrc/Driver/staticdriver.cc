@@ -3,7 +3,6 @@
 #include <string>
 
 #include "staticdriver.hh"
-#include "spaceerror.hh"
 
 #include "outGMV.hh"
 
@@ -54,38 +53,59 @@ void StaticDriver :: SolveProblem()
 void StaticDriver :: SolveProblemAdaptSpace()
 {
 #ifdef TRACE
-  (*trace) << "entering SolveProblemAdapt::SolveProblemAdapt " << std::endl;
+  (*trace) << "entering SolveProblemAdapt::SolveProblemAdaptSpace " << std::endl;
 #endif
 
   Integer level = 0;
   Integer pdenumber = 0;
+  Integer numrepeat=0;
 
-  SpaceErrorEstimator * ptSpaceError;
-  ptSpaceError = ptdomain_->GetPDE(pdenumber)->CreatePtSpaceError();
+// create files for printing seq. of meshes  
+  Boolean PrintMeshes=TRUE;
+  // conf->is_there("sequence_of_meshes");
+  ptMeshes_=new WriteResultsGMV("meshes");
+  ptMeshes_->Init(ptdomain_->GetGrid());
+  if (PrintMeshes) PrintSeqMeshes();
+  //
 
-  ptdomain_->GetPDE(pdenumber)->SolveStepStatic(ptdomain_->GetBCs(), level);
+  BasePDE * ptPDE;
+  ptPDE=ptdomain_->GetPDE(pdenumber);
 
-  Integer maxnumrepeat, numrepeat = 0;
+  Integer maxnumrepeat;
   conf->get("maxnumrepeat",maxnumrepeat,"SpaceAdaptivity");
 
-  while (ptSpaceError->TestError() && numrepeat !=maxnumrepeat) {
-    ptSpaceError->RefineMesh();
+  ptPDE->SetMatrixFactors();
+  ptPDE->SolveStepStatic(ptdomain_->GetBCs(), level);
 
-//   Char * name="laplace_test";
-//   WriteResults * ptOut=new WriteResultsGMV(name);
-//   ptOut->Init(ptdomain_->GetGrid());
-//   ptOut->WriteGrid(0);
-//   if (ptOut) delete ptOut; 
+  if (InfoPrint)
+    (*infofile) << " ---------- step 0 ----------------- " << std::endl;
+
+  while (ptPDE->TestError() && numrepeat!=maxnumrepeat ) {
+    ptPDE->RefineMesh();
+        
+    if (PrintMeshes) 
+      {
+	ptPDE->PrintMeshesInfo(ptMeshes_);
+	PrintSeqMeshes();
+      }
 
     ptdomain_->Update(level);
-  
-    ptdomain_->GetPDE(pdenumber)->SolveStepStatic(ptdomain_->GetBCs(), level);
+
+     ptPDE->SetMatrixFactors(); 
+    ptPDE->SolveStepStatic(ptdomain_->GetBCs(), level);
 
     numrepeat++;
+
+    if (InfoPrint)
+      (*infofile) << " ---------- step " << numrepeat << " ----------------- " << std::endl;
   }
- 
+    
   ptdomain_->PrintGrid(level);
   ptdomain_->GetPDE(pdenumber)->WriteResultsInFile();
-}
 
+  if (PrintMeshes) { 
+	ptPDE->PrintMeshesInfo(ptMeshes_);
+	delete ptMeshes_;
+  }
 }
+} // end of namespace

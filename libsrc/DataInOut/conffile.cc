@@ -57,7 +57,61 @@ void ConfFile::get(const std::string keyword, TypeVal & val, const std::string s
  infile >> val;
 }
 
-std::string::size_type ConfFile::getpos(const std::string keyword,const std::string::size_type startpos)
+template<class TypeVal>
+Boolean ConfFile::ifget(const std::string keyword, TypeVal & val, const std::string section, const std::string subsection, const std::string subsubsection)
+{
+ std::string::size_type pos,pos1=0;
+
+ if (section != "") pos1=getpos(section);
+ if (subsection !="") pos1=getpos(subsection,pos1);
+ if (subsubsection != "") { pos1=getpos(subsubsection,pos1);
+                            infile.seekg(pos1, std::ios::beg);
+                            infile.ignore(100,'\n');                      
+                            pos1=infile.tellg();
+                          }
+
+ pos=getpos(keyword,pos1,FALSE);
+
+ if (pos==std::string::npos) return FALSE;
+
+ infile.seekg(pos, std::ios::beg);
+ infile >> val;
+ 
+ return TRUE;  
+}
+
+Boolean ConfFile::get_option(const std::string keyword, const std::string section, const std::string subsection, const std::string subsubsection)
+{
+#ifdef TRACE
+  (*trace) << " entering ConfFile::get_option " << std::endl;
+#endif
+
+ std::string::size_type pos,pos1=0;
+
+ if (section != "") pos1=getpos(section);
+ if (subsection !="") pos1=getpos(subsection,pos1);
+ if (subsubsection != "") { pos1=getpos(subsubsection,pos1);
+                            infile.seekg(pos1, std::ios::beg);
+                            infile.ignore(100,'\n');                      
+                            pos1=infile.tellg();
+                          }
+
+ pos=getpos(keyword,pos1,FALSE);
+
+ Boolean val=FALSE;
+
+ if (pos==std::string::npos) return val;
+
+ infile.seekg(pos, std::ios::beg);
+ std::string option;
+ infile >> option;
+ 
+ if (option == "yes") val=TRUE;
+
+ return val;  
+}
+
+std::string::size_type ConfFile::getpos(const std::string keyword,const std::string::size_type startpos,Boolean writeErr)
 {
   std::string::size_type help,pos=std::string::npos;
   std::string buf;
@@ -67,19 +121,27 @@ std::string::size_type ConfFile::getpos(const std::string keyword,const std::str
   {
     help=infile.tellg();
     std::getline(infile, buf, '\n');
-    pos=buf.find(keyword);
+    if (buf[0]!='#') pos=buf.find(keyword);
   }
 
-  if (pos>=pos_end) error(keyword);
+   if (pos>=pos_end)  {
+	if (writeErr) error(keyword);
+        return std::string::npos;
+   }
 
   pos=buf.find("=");
   return pos+help+1;
+
 }
 
 #ifdef __GNUC__
 template void ConfFile::get(const std::string , std::string &);
 template void ConfFile::get(const std::string , Integer &);
 template void ConfFile::get(const std::string , Double &);
+
+template Boolean ConfFile::ifget(const std::string , std::string &);
+template Boolean ConfFile::ifget(const std::string , Integer &);
+template Boolean ConfFile::ifget(const std::string , Double &);
 #endif
 
 void ConfFile::getsubdom(std::vector<std::string> & subdoms)
@@ -99,6 +161,7 @@ void ConfFile::getsubdom(std::vector<std::string> & subdoms)
  for (i=0; i < nsubds; i++)
  {
    infile >> subdoms[i];
+   allSubDomains_.push_back(subdoms[i]);
    infile.ignore(100,'\n');
  }
 }
@@ -115,7 +178,10 @@ void ConfFile::getsubdompde(std::vector<std::string> & subdoms, const std::strin
   do
   {
    infile >> help;
-   if (help!="non") subdoms.push_back(help);   
+   if (help!="non") {
+     check(help,allSubDomains_);
+     subdoms.push_back(help);   
+   }
   } while(help!="non");
 }
 
@@ -152,7 +218,6 @@ void ConfFile :: getliststr( const std::string seekexp, std::vector<std::string>
 
   if (help != "non") stlist.push_back(help);
  } while  (help != "non");
-
 }
 
 void ConfFile::error(const std::string keyword) const
@@ -161,6 +226,26 @@ std::cerr << "\033[32m ERROR: \033[0m (" << __FILE__ <<" "<< __LINE__
                << ") Cannot find string: " << keyword ;
           std::cerr << " in your conf-file.\n\t\t Please, check conf-file."<< std::endl;
                       exit(1);
+}
+
+void ConfFile::check(const std::string value, const std::vector<std::string> data)
+{
+  Boolean Find=FALSE;
+  Integer id;
+  for (id=0; id<data.size();id++) {
+    if (value==data[id]) {
+      Find=TRUE;
+      break;
+    }
+  }
+
+  if (!Find) {
+    std::cerr << " \033[32m ERROR: \033[0m (" << __FILE__ <<" "<< __LINE__
+               << ") This subdomain: " << value ;
+          std::cerr << " is not specified in list of all subdomains.\n\t\t Please, check conf-file."<< std::endl;
+                      exit(1);
+  }		      
+
 }
 
 } // end of namespace

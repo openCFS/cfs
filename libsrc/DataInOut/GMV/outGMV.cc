@@ -4,12 +4,13 @@
 #include <stdio.h>
 
 #include "outGMV.hh"
+#include "conffile.hh"
 
 namespace CoupledField
 {
 
-WriteResultsGMV :: WriteResultsGMV(const Char * const filename)
-: WriteResults(filename)
+WriteResultsGMV :: WriteResultsGMV(const Char * const filename, Boolean withHistory)
+: WriteResults(filename,withHistory)
 {
 #ifdef TRACE
   (*trace) << "entering WriteResultsGMV :: WriteResultsGMV" << std::endl;
@@ -24,6 +25,7 @@ WriteResultsGMV :: WriteResultsGMV(const Char * const filename)
 
  system(S);
 
+ output=NULL;
  OpenFile(0);
 
  if (!output)
@@ -69,30 +71,26 @@ void WriteResultsGMV :: WriteNodes(const Integer alevel)
  //get and write coodinates of nodes
  Integer i;
 
- if (dim==2)
-{
- Point2D point;
+if (dim==2) {
+    Point<2> point;
 
  // write x,y,z-coordinate
   for (i=0; i<numnodes; i++)
     {
       ptgrid->GetCoordinateNode(i,level,point);
-      (*output) << " " << point.x << " " << point.y << " " << 0 << std::endl;
+
+      (*output) << " " << point[0] << " " << point[1] << " " << 0 << std::endl;
     }
 }
-  else
-{
- Point3D point;
-
- //
- if (!ptgrid)
-    Error("ptgrid is not initialized", __FILE__,__LINE__);
+else {
+    Point<3> point;
 
  // write x,y,z-coordinate
   for (i=0; i<numnodes; i++)
     {
       ptgrid->GetCoordinateNode(i,level,point);
-      (*output) << " " << point.x << " " << point.y << " " << point.z << std::endl;
+
+      (*output) << " " << point[0] << " " << point[1] << " " << point[2] << std::endl;
     }
 }
 }
@@ -132,14 +130,16 @@ void WriteResultsGMV::WriteCells(const Integer alevel)
 {
      switch (connect.size())
       {
-        case 3: 
-                (*output) << "tri 3" << std::endl;
-                break;
-        case 4:
-                (*output) << "quad 4" << std::endl;
-                 break;
-        default:
-          Error("This type of element is not implemented", __FILE__, __LINE__);
+      case 2:
+	(*output) << "line 2" << std::endl;
+      case 3: 
+	(*output) << "tri 3" << std::endl;
+	break;
+      case 4:
+	(*output) << "quad 4" << std::endl;
+	break;
+      default:
+	Error("This type of element is not implemented", __FILE__, __LINE__);
       }
 }
    else
@@ -165,11 +165,11 @@ void WriteResultsGMV::WriteCells(const Integer alevel)
    }
 }
 
-void WriteResultsGMV::WriteVariable(const Vector<Double> var, const std::string name, const Integer type)
+void WriteResultsGMV::WriteVariable(const Vector<Double> var, const std::string name, const Integer dataType)
 {
   (*output) << "variable" << std::endl;
 
-  (*output) << name << " " << type << std::endl;
+  (*output) << name << " " << dataType << std::endl;
 
   Integer i;
   for (i=0; i<var.size(); i++)
@@ -180,9 +180,20 @@ void WriteResultsGMV::WriteVariable(const Vector<Double> var, const std::string 
   (*output) << "endvars" << std::endl;
 }
 
+void WriteResultsGMV::WriteVelocity(const Vector<Double>* var, const std::string name, const Integer dataType)
+{
+  (*output) << "velocity" << " " << dataType << std::endl;
+
+  Integer i,j;
+  for (i=0; i<3; i++) {
+    for (j=0; j<var[i].size(); j++)
+      (*output) << var[i][j] << " ";
+    (*output) << std::endl;
+  }
+}
+
 void WriteResultsGMV::WriteGrid(const Integer level)
 {
-
  WriteHeader();
  WriteNodes(level);
  WriteCells(level);
@@ -196,31 +207,55 @@ void WriteResultsGMV::WriteSolution(const Vector<Double> & sol, const Integer st
 
   Integer i;
   if (NeedHistory_)
-       for (i=0; i<nodeshist_.size(); i++)
-       { if (sol.size()<=nodeshist_[i])
-         Error("Please, check history-nodes in config-file.",__FILE__,__LINE__);
-         if (lastsavetime[i] != time )
-          AddInHistory(time,sol[nodeshist_[i]],i);
-       }
+    for (i=0; i<nodeshist_.size(); i++) {
+      if (sol.size()<=nodeshist_[i])
+        Error("Please, check history-nodes in config-file.",__FILE__,__LINE__);
+      if (lastsavetime[i] != time )
+	AddInHistory(time,sol[nodeshist_[i]],i);
+    }
 
   Integer type=1; // 0 - for cell 
                   // 1 - for node
                   // 2 - for face data
 
-     if (step!=currstep_)
-{
-   (*output) << "endgmv " << std::endl;
-   delete output;
+  if (step!=currstep_) {
+    OpenFile(step);
 
-   OpenFile(step);
-
-   WriteGrid(ptgrid->GetLastLevel());
-}
+    WriteGrid(ptgrid->GetLastLevel());
+  }
 
   WriteVariable(sol,title,type);
   (*output) << "probtime " << time << std::endl;
 
   currstep_=step;
+}
+
+void WriteResultsGMV::WriteDataOnCell(const Vector<Double>&sol,const Integer step, const Double time, const std::string title)
+{
+  Integer type=0; // 0 - for cell 
+                  // 1 - for node
+                  // 2 - for face data
+
+  if (step!=currstep_) {
+    Error("You should write solution of this step before printing some cell data",__FILE__,__LINE__);
+  }
+
+  WriteVariable(sol,title,type);
+  (*output) << "probtime " << time << std::endl;
+}
+
+void WriteResultsGMV::WriteVecDataOnCell(const Vector<Double>*vec,const Integer step, const Double time, const std::string title)
+{
+  Integer type=0; // 0 - for cell-centered 
+                  // 1 - for node-centered
+                  // 2 - for face-centered data
+
+  if (step!=currstep_) {
+    Error("You should write solution of this step before printing some cell data",__FILE__,__LINE__);
+  }
+
+  WriteVelocity(vec,title,type);
+  (*output) << "probtime " << time << std::endl;
 }
 
 void WriteResultsGMV::OpenFile(const Integer num)
@@ -238,7 +273,23 @@ void WriteResultsGMV::OpenFile(const Integer num)
 
    strcat(name,aux);
 
+   if (output) { 
+     (*output) << "endgmv " << std::endl; 
+     delete output;
+   }
+
+   // check what kind of data for input
+   std::string typedata;
+
+   conf->get("format_data_output",typedata);
+   if (typedata == "binary")
+     ascii_=FALSE;
+   else ascii_=TRUE;
+
+   if (ascii_)
    output=new std::ofstream(name);
+   else
+     output=new std::ofstream(name,std::ofstream::binary);
 
    delete [] name;
    delete [] aux;

@@ -12,15 +12,16 @@ OS=$(shell uname -s)
 #
 ifeq "$(OS)" "Linux"
 SUBLIBDIR := Driver Estimator PDE \
-             Forms Elements Elements/2D Elements/3D \
-             Domain/GridCFS   Domain \
+             Forms Elements Elements/1D Elements/2D Elements/3D \
+             Domain/GridCFS Domain/AdaptGrid Domain \
              DataInOut/DefineFiles \
              DataInOut/Unverg DataInOut/GMV \
              DataInOut/DatFile DataInOut/AnsysFile DataInOut\
+	     AlgebraicSystem/LinAlg\
              Utils Matrix General 
 else
 SUBLIBDIR := Driver Estimator PDE AlgebraicSystem/LinAlg \
-            Forms Elements Elements/2D Elements/3D \
+            Forms Elements Elements/1D Elements/2D Elements/3D \
             Domain/GridCFS Domain/Gridlib Domain \
             DataInOut/DefineFiles \
             DataInOut/Unverg DataInOut/GMV \
@@ -31,21 +32,25 @@ endif
 ############ define my libraries
 #
 ifeq "$(OS)" "Linux"
-mylibrary :=  driver domain pde estimator forms  \
-            elements3d elements2d elements \
-            gridcfs \
-	    gmv definefiles unverg datfile ansysfile datainout \
-	    utils matrix general \
-            multigrid-cla general-cla
+mylibrary :=  driver domain pde \
+	    estimator forms  \
+            elements3d elements2d elements1d elements \
+            gridcfs toadaptgrid\
+            gmv \
+            definefiles unverg datfile ansysfile datainout \
+            algsys-own\
+            utils matrix general \
+            multigrid-las general-las \
+            adaptgrid
 else
 mylibrary :=  driver domain pde estimator \
 	    algsys-own forms  \
-            elements3d elements2d elements \
+            elements3d elements2d elements1d elements \
             gridcfs \
             domain unverg gmv \
             definefiles datfile ansysfile datainout \
             utils matrix \
-            multigrid-cla general-cla superlu-cla \
+            multigrid-las general-las \
             general
 endif
 #
@@ -83,7 +88,7 @@ PATHSUBLIBDIR = $(addprefix $(LIBSRC_DIR)/, $(SUBLIBDIR))
 	$(F77) -o $@ $(FFLAGS1) $(FFLAGS2) $<
  
 $(program):: $(src:.cc=.o) $(fsrc:.f=.o) makelibs 
-	$(CC) $(CFLAG_EXE) -o $@ $(src:.cc=.o) $(fsrc:.f=.o) -L$(LIB_DIR) -L$(LIB_GRIDLIB)  -L$(LIB_NETGEN) -L$(LIB_CLA) $(LINKFLAGS2) $(LINKFLAGS3) $(addprefix -l, $(mylibrary)) $(syslib) $(LIB_NAG) -Wl,-rpath,$(LIB_OWN)/$(MACHINE):$(NetGen)/lib
+	$(CC) $(CFLAG_EXE) -o $@ $(src:.cc=.o) $(fsrc:.f=.o) -L$(LIB_DIR) -L$(LIB_GRIDLIB)  -L$(LIB_NETGEN) -L$(LIB_CLA) $(LINKFLAGS2) $(LINKFLAGS3) $(addprefix -l, $(mylibrary)) $(syslib) $(LIB_NAG) -Wl,-rpath,$(LIB_OWN)/$(MACHINE)
 #
 ########## Set varible MACHINE
 setvar:
@@ -118,10 +123,19 @@ endif
 #
 link:
 ifeq "$(OS)" "Linux"
-	rm -rf $(LibCLA) && ln -s $(CLA)/libsrc $(LibCLA) 
+	rm -rf $(LibCLA) && ln -s $(CLA)/libsrc $(LibCLA)
 else
-	rm -rf $(LibCLA) && ln -s $(CLA)/libsrc $(LibCLA) 
+	rm -rf $(LibCLA) && ln -s $(CLA)/libsrc $(LibCLA)
 endif
+#
+#ifeq "$(OS)" "Linux"
+#	rm -rf $(IncNetGen) &&  ln -s $(NetGen)/libsrc/include $(IncNetGen) && \
+#        rm -rf $(LibNetGen) && ln -s $(NetGen)/lib $(LibNetGen) &&\
+#        rm -rf $(LibCLA) && ln -s $(CLA)/libsrc $(LibCLA) 
+#else
+#	rm -rf $(LibCLA) && ln -s $(CLA)/libsrc $(LibCLA) && \
+#        rm -rf $(IncGridlib) && ln -s $(Gridlib) $(IncGridlib)
+#endif
 #        
 ############## Make links in dir include
 #
@@ -249,6 +263,7 @@ libclean:
 #
 ######################  Make documentation  
 doc: doxygen
+
 	@echo To see documentation run: netscape  $(C_DIR)/doc/html/index.html 
 doxygen:
 	doxygen DoxygenConfig/doxy-config

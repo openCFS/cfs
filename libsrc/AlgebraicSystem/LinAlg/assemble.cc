@@ -8,7 +8,7 @@
 namespace CoupledField
 {
 
-template<class Dim, class T_Matrix>
+template<Integer Dim, class T_Matrix>
 Assemble<Dim, T_Matrix>::Assemble(Grid * aptgrid, const Integer alevel)
 {
 #ifdef TRACE
@@ -30,7 +30,7 @@ Assemble<Dim, T_Matrix>::Assemble(Grid * aptgrid, const Integer alevel)
    IsCalcS=FALSE;
 }
 
-template<class Dim, class T_Matrix>
+template<Integer Dim, class T_Matrix>
 Assemble<Dim, T_Matrix>::~Assemble()
 {
 #ifdef TRACE
@@ -39,7 +39,7 @@ Assemble<Dim, T_Matrix>::~Assemble()
   ;
 }
 
-template<class Dim, class T_Matrix>
+template<Integer Dim, class T_Matrix>
 void Assemble<Dim, T_Matrix>::SetAb()
 {
 #ifdef TRACE
@@ -58,7 +58,7 @@ void Assemble<Dim, T_Matrix>::SetAb()
   for (i=0; i<n; i++) b[i]=n;
 }
 
-template<class Dim, class T_Matrix>
+template<Integer Dim, class T_Matrix>
 void Assemble<Dim,T_Matrix>::AssembleSysMatrix(const Double CoefL, const Double CoefM) 
 {
 #ifdef TRACE
@@ -105,7 +105,7 @@ void Assemble<Dim,T_Matrix>::AssembleSysMatrix(const Double CoefL, const Double 
 
 }
 
-template<class Dim, class T_Matrix>
+template<Integer Dim, class T_Matrix>
 void Assemble<Dim, T_Matrix>::SetRHS(const Vector<Double> & CoefM, const Vector<Double> & CoefS, const Vector<Double> & f)
 {
 #ifdef TRACE
@@ -126,7 +126,7 @@ void Assemble<Dim, T_Matrix>::SetRHS(const Vector<Double> & CoefM, const Vector<
 #endif
 }
 
-template<class Dim, class T_Matrix>
+template<Integer Dim, class T_Matrix>
 void Assemble<Dim, T_Matrix>::SetDirichletBoundaryCondSysMat_PenaltyMethod()
 {
 #ifdef TRACE
@@ -152,7 +152,7 @@ void Assemble<Dim, T_Matrix>::SetDirichletBoundaryCondSysMat_PenaltyMethod()
     }
 }
 
-template<class Dim, class T_Matrix>
+template<Integer Dim, class T_Matrix>
 void Assemble<Dim, T_Matrix>::SetDirichletBoundaryCondZero_Cut()
 {
 #ifdef TRACE
@@ -171,7 +171,7 @@ void Assemble<Dim, T_Matrix>::SetDirichletBoundaryCondZero_Cut()
     }
 }
 
-template<class Dim, class T_Matrix>
+template<Integer Dim, class T_Matrix>
 void Assemble<Dim,T_Matrix>::SetNodesBoundaryCondition(FileType * aptFileType)
 {
 #ifdef TRACE
@@ -182,7 +182,7 @@ void Assemble<Dim,T_Matrix>::SetNodesBoundaryCondition(FileType * aptFileType)
 
 }
 
-template<class Dim, class T_Matrix>
+template<Integer Dim, class T_Matrix>
 void Assemble<Dim, T_Matrix>::SetDirichletBoundaryCondRHS_PenaltyMethod(const Double val_tf)
 {
 #ifdef TRACE
@@ -203,7 +203,7 @@ void Assemble<Dim, T_Matrix>::SetDirichletBoundaryCondRHS_PenaltyMethod(const Do
     }
 }
 
-template<class Dim,class T_Matrix>
+template<Integer Dim,class T_Matrix>
 template <class typeBaseForm>
 void Assemble<Dim,T_Matrix>::AssembleGlobal(T_Matrix & Mat) const
 {
@@ -280,7 +280,7 @@ void Assemble<Dim,T_Matrix>::AssembleGlobal(T_Matrix & Mat) const
 /*
 template<class T_Matrix>
 template <class typeBaseForm>
-void Assemble<Point3D,T_Matrix>::AssembleGlobal(T_Matrix & Mat) const
+void Assemble<3,T_Matrix>::AssembleGlobal(T_Matrix & Mat) const
 {
 #ifdef TRACE
    (*trace) << "entering Assemble::AssembleGlobal" << std::endl;
@@ -295,7 +295,7 @@ void Assemble<Point3D,T_Matrix>::AssembleGlobal(T_Matrix & Mat) const
   Integer * help=new Integer[numnodeelem];
   Matrix<Double> elemmat;
 
-  Point3D * ptCoord=new Point3D[numnodeelem];
+  Point<3> * ptCoord=new Point<3>[numnodeelem];
 
   BaseElem * ptElem=new Tetrahedral1(GaussOrder5);
 
@@ -336,7 +336,7 @@ void Assemble<Point3D,T_Matrix>::AssembleGlobal(T_Matrix & Mat) const
 }
 */
 
-template<class Dim, class T_Matrix>
+template<Integer Dim, class T_Matrix>
 void Assemble<Dim, T_Matrix>::Restore() 
 {
 #ifdef TRACE
@@ -352,7 +352,7 @@ void Assemble<Dim, T_Matrix>::Restore()
 }
 
 
-template<class Dim, class T_Matrix>
+template<Integer Dim, class T_Matrix>
 void Assemble<Dim, T_Matrix>::Print()
 {
 #ifdef TRACE

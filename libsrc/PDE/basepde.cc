@@ -38,6 +38,7 @@ void BasePDE::ReadBCs(const std::string eq)
   Integer i;
 
   val_id_.resize(bcs_id_.size());
+  //val_id_=new Integer[bcs_id_.size()];
 
   for(i=0; i<bcs_id_.size(); i++)
     {
@@ -68,7 +69,10 @@ Integer BasePDE::GetNumRestraints(BCs* ptBCs, const Integer level)
 
 BasePDE::~BasePDE()
 {
-;
+#ifdef TRACE
+  (*trace) << " entering BasePDE::~BasePDE() " << std::endl;
+#endif
+
 }
 
 } // end of namespace

@@ -10,7 +10,7 @@ class WriteResults
 {
 public:
    /// constructor
-   WriteResults(const Char * const filename);
+   WriteResults(const Char * const filename,Boolean withHistory);
 
    //!
    enum nameSol{fluid, temperature};
@@ -27,12 +27,23 @@ public:
   /// write information about the solution
   virtual void WriteSolution(const Vector<Double> & sol, const Integer step, const Double time, const std::string title)=0;
 
+  //! write cell data
+  virtual void WriteDataOnCell(const Vector<Double> & data, const Integer step, const Double time, const std::string title)=0;
+
+   //! write cell data
+  virtual void WriteVecDataOnCell(const Vector<Double> * data, const Integer step, const Double time, const std::string title)
+  { Error("Not implemented",__FILE__,__LINE__);}
+
+
+  //! open file - only for GMV
+  virtual void OpenFile(const Integer number)
+  { Error("Not implemented",__FILE__,__LINE__);}
+
   virtual Boolean IsGMV()=0;
 
 protected:
   //! name of file for output results
   Char * namefile_;
-
   ///
   Grid * ptgrid;
   ///
@@ -45,6 +56,12 @@ protected:
   void AddInHistory(const Double time, const Double val, const Integer ifile);
   ///
   Vector<Double> lastsavetime;
+  //!
+  Boolean ascii_;
+
+private:
+  //!
+  void InitHistoryFiles();
 
 }; 
 
