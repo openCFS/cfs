@@ -22,20 +22,25 @@ namespace CoupledField
 {
  infile.close();
 }
- void Material::ReadDensityAndCompress(Double & density, Double & compress)
+
+ void Material::ReadDensityAndCompressity(Double & density, Double & compress)
 {
 #ifdef TRACE
-  (*trace) << "entering  ReadMaterial::ReadDensityAndCompress" << std::endl;
+  if (trace) (*trace) << "Entering  ReadMaterial::ReadDensityAndCompress" << std::endl;
 #endif
+
   infile.seekg(0, std::ios::beg);  
   std::string buf;
   std::string::size_type pos=std::string::npos;
 
   while ( pos == std::string::npos & !infile.eof() )
   { std::getline(infile, buf, '\n');
+    std::cout << buf << std::endl;
     pos=buf.find("density");
   }
 
   infile >> density >> compress;
+
 }
+
 } // end of namespace

@@ -24,14 +24,14 @@ Acoustic2dPDE::Acoustic2dPDE(AbstractAlgebraicSys * ptalgsys, Grid<Point2D> * ap
   Double density, compress;
   if (MatFile_)
   {
-    MatFile_->ReadDensityAndCompress(density,compress);
+    MatFile_->ReadDensityAndCompressity(density,compress);
     coeff_=sqrt(compress/density);
   }
   else 
   {
      // for water
-     coeff_=sqrt(2.25e9/1e3);
-     //coeff_=1;
+   //  coeff_=sqrt(2.25e9/1e3);
+     coeff_=1;
   }
 
    size_=ptgrid_->GetMaxnumnodes(0);

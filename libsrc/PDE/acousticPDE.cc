@@ -22,7 +22,7 @@ AcousticPDE<Dim>::AcousticPDE(const Double dt0, Grid<Dim> * ptgrid, const Intege
   Double density, compress,c;
   if (ptMaterial)
   {
-    ptMaterial->ReadDensityAndCompress(density,compress);
+    ptMaterial->ReadDensityAndCompressity(density,compress);
     std::cout << "density " << density << "compri " << compress << std::endl;
     c=sqrt(compress/density);
   }
