@@ -13,7 +13,7 @@ RANLIB=ranlib
 # Machine dependent flags:
 #
 UNDER  = -DFORTRANDOUBLEUNDERSCORE
-CFLAGS2 = -DDEBUG -DTRACE -DCHECK_DAT
+CFLAGS1 = -ansi -DDEBUG -DTRACE 
 #CFLAGS2 = -DTRACE
 #
 #CPLUSPLUSFLAGS2 = $(UNDER) -pg -g -I/usr/local/qt/include  

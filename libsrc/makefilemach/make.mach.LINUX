@@ -17,7 +17,8 @@ RANLIB=ranlib
 #CFLAGS1=-c $(INCL)
 #FLAG_MKSHLIB = -v -shared 
 #
+CFLAGS1 = -ansi
 UNDER  = -DFORTRANDOUBLEUNDERSCORE
-CFLAGS2 = $(ABI) $(OPT) $(LNO) $(UNDER) -w 
+#CFLAGS2 = $(ABI) $(OPT) $(LNO) $(UNDER) -w 
 CPLUSPLUSFLAGS2 = $(UNDER) -pg  -fnonnull-objects -I/usr/local/qt/include  -I/usr/local/GL/include
 LINKFLAGS2 = -pg -L/usr/openwin/lib -L/usr/X11R6/lib
