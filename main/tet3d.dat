@@ -3,14 +3,17 @@
 #  soltype  analtype   numnode  numgroup   restart
          1         1        23         1         0
 # inactiv.   circuit
-         0         0
+         3         0
 # globally deactivated degrees of freedom
+     dx
+     dy
+     dz
 # masstype  damptype    noopti
          2         1         0
 # formsave nsavenode   savemax
          1        23         0
 # save nodal degrees of freedom
-   dx   ep  enp   vp  vnp  chg   ax  anx   tp  tnp  esp  mue  sig   vz
+   ep
 # save first deriv. of nodal degrees of freedom
 
 # save secnd. deriv. of nodal degrees of freedom
