@@ -13,6 +13,13 @@
 
 
   <!-- ******************************************************************** -->
+  <!--   Definition of element for electrostatic PDEs -->
+  <!-- ******************************************************************** -->
+  <xsd:element name="electrostatic" type="DT_PDEElectrostatic"
+       substitutionGroup="PDEBasic"/>
+
+
+  <!-- ******************************************************************** -->
   <!--   Definition of data type for electrostatic PDEs -->
   <!-- ******************************************************************** -->
 
@@ -21,38 +28,130 @@
       <xsd:extension base="DT_PDEBasic">
         <xsd:sequence>
 
-          <!-- Subdomains the PDE lives on -->
-          <xsd:element name="PDE_subdom" type="xsd:token" minOccurs="1"
-                       maxOccurs="unbounded"/>
+          <!-- Regions the PDE lives on -->
+          <xsd:element name="region" minOccurs="1" maxOccurs="unbounded">
+            <xsd:complexType>
+              <xsd:attribute name="name" type="xsd:token" use="required"/>
+              <xsd:attribute name="nonLinear" type="DT_ElecNonLin"
+                use="optional" default="no"/>
+            </xsd:complexType>
+          </xsd:element>
     
           <!-- Boundary Conditions -->
           <xsd:element name="BoundaryConds">
             <xsd:complexType>
               <xsd:sequence>
-                <xsd:element name="dirichlet_hom" type="BC_scalarhd"
+                <xsd:element name="dirichletHom" type="BC_scalarhd"
                              minOccurs="0" maxOccurs="unbounded"/>
-                <xsd:element name="dirichlet_inhom" type="BC_scalarid"
+                <xsd:element name="dirichletInhom" type="BC_scalarid"
                              minOccurs="0" maxOccurs="unbounded"/>
-                <xsd:element name="neumann_inhom" type="BC_scalarin"
+                <xsd:element name="neumannInhom" type="BC_scalarin"
                              minOccurs="0" maxOccurs="unbounded"/>
               </xsd:sequence>
             </xsd:complexType>
           </xsd:element>
 
+          <!-- Section for specifying non-linear parameters (optional) -->
+          <xsd:element name="nonLinear" type="DT_NonLinParams" minOccurs="0"/>
+
           <!-- Desired solution values (optional) -->
-          <xsd:element name="StoreResults" minOccurs="0" maxOccurs="1">
-            <xsd:simpleType>
-              <xsd:restriction base="xsd:token">
-                <xsd:enumeration value="dof"/>
-                <xsd:enumeration value="deriv1"/>
-                <xsd:enumeration value="deriv2"/>
-              </xsd:restriction>
-            </xsd:simpleType>
-          </xsd:element>
+          <xsd:element name="storeResults" type="DT_MechStoreResults"
+            minOccurs="0" maxOccurs="1"/>
   
         </xsd:sequence>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of syntax for specifying output quantities of CFS -->
+  <!-- ******************************************************************** -->
+
+  <!-- What data can a single node have in an electrostatic PDE -->
+  <xsd:simpleType name="DT_NodeDataElec">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="voltage"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <!-- What data can a single element have in a mechanic PDE -->
+  <xsd:simpleType name="DT_ElemData">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="efield"/>
+      <xsd:enumeration value="energy"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <!-- Data type for describing final node values to be stored -->
+  <xsd:complexType name="DT_NodeResultsElec">
+    <xsd:attribute name="type" type="DT_NodeDataElec" use="optional"
+      default="voltage"/>
+    <xsd:attribute name="region" type="xsd:token" use="optional"
+      default="all"/>
+  </xsd:complexType>
+
+  <!-- Data type for describing history of node values to be stored -->
+  <xsd:complexType name="DT_NodeHistoryElec">
+    <xsd:attribute name="type" type="DT_NodeDataElec" use="optional"
+      default="voltage"/>
+    <xsd:attribute name="saveNodes" type="xsd:token" use="optional"
+      default="none"/>
+  </xsd:complexType>
+
+  <!-- Data type for describing final element values to be stored -->
+  <xsd:complexType name="DT_ElemResultsElec">
+    <xsd:attribute name="type" type="DT_ElemDataElec" use="optional"
+      default="efield"/>
+    <xsd:attribute name="region" type="xsd:token" use="optional"
+      default="all"/>
+  </xsd:complexType>
+
+  <!-- Data type for describing history of element values to be stored -->
+  <xsd:complexType name="DT_ElemHistoryElec">
+    <xsd:attribute name="type" type="DT_ElemDataElec" use="optional"
+      default="efield"/>
+    <xsd:attribute name="saveElems" type="xsd:token" use="optional"
+      default="none"/>
+  </xsd:complexType>
+
+  <!-- Global type for specifying the desired mechanical output quantities -->
+  <xsd:complexType name="DT_ElecStoreResults">
+    <xsd:sequence>
+      <xsd:element name="nodeResults" type="DT_NodeResultsElec" minOccurs="0"
+        maxOccurs="unbounded"/>
+      <xsd:element name="nodeHistory" type="DT_NodeHistoryElec" minOccurs="0"
+        maxOccurs="unbounded"/>
+      <xsd:element name="elemResults" type="DT_ElemResultsElec" minOccurs="0"
+        maxOccurs="unbounded"/>
+      <xsd:element name="elemHistory" type="DT_ElemHistoryElec" minOccurs="0"
+        maxOccurs="unbounded"/>
+    </xsd:sequence>
+  </xsd:complexType>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for damping model -->
+  <!-- ******************************************************************** -->
+  <xsd:simpleType name="DT_MechDampType">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="rayleigh"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <xsd:complexType name="DT_MechDamp">
+    <xsd:attribute name="type" type="DT_MechDampType" use="required"/>
+  </xsd:complexType>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for non-linearity in mechanic PDEs -->
+  <!-- ******************************************************************** -->
+  <xsd:simpleType name="DT_MechNonLin">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="no"/>
+      <xsd:enumeration value="geo"/>
+    </xsd:restriction>
+  </xsd:simpleType>
 
 </xsd:schema>
