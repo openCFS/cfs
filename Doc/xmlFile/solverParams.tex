@@ -45,8 +45,8 @@ Attribute value & solver\\
 \noalign{\smallskip}\hline\noalign{\smallskip}
 Direct        & direct solution (only supported for LAS)\\
 Richardson    & richardson iteration\\
-CG	      & conjugate gradient algorithm\\
-GMRES	      & generalised minimal residual method\\
+cg	      & (preconditioned) conjugate gradient algorithm\\
+gmres	      & generalised minimal residual method\\
 QMR	      & quasi-minimal residual method\\
 hyprePCG      & hypre's version of the classical conjugate gradient algorithm\\
 hypreGMRES    & hypre's version of the generalised minimal residual method\\
@@ -204,8 +204,8 @@ all parameters are omitted the respective default value defined within OLAS
 will be used, cf.~Sec.~\ref{sec:SP_Interface}.
 %
 %
-\subsection{PCG}
-Setting \xml{type} to \xml{pcg} selects the native preconditioned conjugate
+\subsection{CG}
+Setting \xml{type} to \xml{cg} selects the native preconditioned conjugate
 gradient method implemented of OLAS.
 %
 %
