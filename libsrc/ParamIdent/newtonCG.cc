@@ -85,59 +85,34 @@ namespace CoupledField
     
     Vector<Complex> y_hat_F_hat (nrMeasuredData);
 
-    //    real_misfit=norm_res;
-    //real_misfit_new=norm_res_new;
-
     Vector<Complex> step(nrParameter);
     Vector<Double> parstart (nrParameter);
     
     Vector<Double> res_NE(nrParameter);
     Vector<Double> res_NE_rescaled(nrParameter);
     Vector<Complex> res_NE_C(nrParameter);
-    //    Vector<Double> bas(nrParameter);
     bas.Resize(nrParameter);
     Vector<Complex> basbar(nrMeasuredData);
     Vector<Complex> basbar_old(nrMeasuredData);
-    // Vector<Complex> res_old(nrMeasuredData);
     Vector<Complex> res(nrMeasuredData);
     Vector<Complex> JMats(nrMeasuredData);
     Vector<Complex> res0(nrMeasuredData);
     Vector<Complex> Res_outer(nrMeasuredData);
     Vector<Complex> Res_inner(nrMeasuredData);
 
-
-    //    Vector<Complex> y_hat_F_hat(nrMeasuredData);
     Complex new_res_res0;
     Double misfit, misfit0,misfitnew, normres02, normres2, normresNEold2, normresNEold02, normresNE2;
 
     Double aval, aval_new, alin_new, maxres_outer, maxres_inner, aval_old, alin;
 
 
-    //     scaling[0]=1.0e-11;    scaling[1]=1.0e-11;    scaling[2]=1.0e-11;    scaling[3]=1.0e-11;    scaling[4]=1.0e-10;
-    //       scaling[5]=0.1;     scaling[6]=1.0;     scaling[7]=0.1;
-    //       scaling[8]=1.0e+8; scaling[9]=1.0e+9;
-
     // NO scaling in NewtonCG!! 
     for (Integer i=0;i<parameter.GetSize();i++)
       scaling[i]=1.0;
     //    parameter[i]=scaling[i]*parameter[i];
 
-    /* whichParameterToUpdate[0]=0;
-    whichParameterToUpdate[1]=1;
-    whichParameterToUpdate[2]=0; 
-    whichParameterToUpdate[3]=0;
-    whichParameterToUpdate[4]=0;
-    whichParameterToUpdate[5]=0;    
-    whichParameterToUpdate[6]=0;    
-    whichParameterToUpdate[7]=1;
-    whichParameterToUpdate[8]=0;
-    whichParameterToUpdate[9]=1;*/
-
     parstart=parameter;
 
-    //    updateMaterialData(parameter,ptMaterial);
-
-    // Create the Matrices F, F', F*
     createF(ptMaterial, ptBCs, F_hat);
 
     for (i=0; i<nrMeasuredData;i++)
@@ -146,37 +121,34 @@ namespace CoupledField
     for (i=0;i<nrParameter;i++)
       bas[i]=1.0;
 
-    
     Res_outer=res=y_hat-F_hat;
       
     misfit=norm2Real(y_hat_F_hat); 
 
+    norm(Res_outer,aval,maxres_outer,y_hat);
 
-        maxAndEuclNorm(Res_outer, maxres_outer, aval);
-    //    maxAndWeightedResNorm(Res_outer, maxres_outer, aval, y_hat);
-
-    std::cout<<"\n maxres = " << maxres_outer << ", aval = "<< aval<<std::endl;
+    std::cout<<"\n Newton Step 0: Maxres = " << maxres_outer << ", aval = "<< aval<<std::endl;
     aval_new=aval;
     aval_old=aval;
 
     misfit0=misfit;
 
-    std::cout << "\n misfit = |y-F| =  " <<  misfit <<std::endl;
 
-    //  *piezoLog << "\n Initial misfit ||y-F|| = "<<misfit<< " and maxres_outer = max |y-F| = " << maxres_outer << std::endl;
+     *piezoLog << "\n Initial misfit ||y-F|| = "<<aval<< " and maxres_outer = max |y-F| = " << maxres_outer << std::endl;
 
     nrNewtonIterations=0;
 
     // NEWTON ITERATION -- outer Loop!!
-    while((aval>tau*delta||nrNewtonIterations<1)&&nrNewtonIterations<maxNumberNewtonLoops){ // Newton
+    while((aval>tau*delta||nrNewtonIterations<maxNumberNewtonLoops)&&nrNewtonIterations<maxNumberNewtonLoops){ // Newton
       *piezoLog << "\n Newton-Iteration: " << nrNewtonIterations <<std::endl;
       *piezoLog <<"------------------------"<<std::endl;
+      std::cout<<"\n Newton-Iteration "<< nrNewtonIterations <<std::endl;
+
       nrNewtonIterations++;
 
       res0=res;
       normres02=norm2Real(res0);
 
-      std::cout<<"\n Newton-Iteration "<< nrNewtonIterations <<std::endl;
       step.Resize(nrParameter);
     
       res=y_hat-F_hat;
@@ -192,27 +164,20 @@ namespace CoupledField
       //JacobiMatrix.MatVecMult_CD(step,JMats); // is not neccessary, since we start with s_i=0;
       //res = res0-JMats;
       
-      std::cout<<"\n \nres = res0 - JMats: "<<std::endl;
-      for (Integer i=0;i<basbar.GetSize();i++){
-	std::cout<<"res="<<res[i]<<"; ";
-	//  std::cout<<"JMats="<<JMats[i]<<"; "<<std::endl;
-      }
-      std::cout<<"\n  " <<std::endl;	  
-
       normres2 = norm2Real(res);
 
       adjJacobiMatrix.Mult(res, res_NE_C);
 
-      std::cout<<"\nbas = res NE = (F* res).real(): "<<std::endl;
+      //std::cout<<"\nbas = res NE = (F* res).real(): "<<std::endl;
       for (Integer i=0;i<res_NE_C.GetSize();i++){
 	res_NE[i]=(1.0/scaling[i]*scaling[i])*res_NE_C[i].real();
 	res_NE_rescaled[i]=scaling[i]*res_NE[i];
-	std::cout<<"res_NE="<<res_NE[i]<<"; ";
+	//std::cout<<"res_NE="<<res_NE[i]<<"; ";
       }
 
       bas = res_NE;
       
-      std::cout<<"\n  " <<std::endl;	  
+      //      std::cout<<"\n  " <<std::endl;	  
 
       alin_new = aval;
       *piezoLog << "\n \t alin_new = aval = " << alin_new;
@@ -232,12 +197,12 @@ namespace CoupledField
 
 	JacobiMatrix.MatVecMult_CD(bas,basbar);
 	
-	std::cout<<"\nbasbar = F' bas:  "<<std::endl;
-	for (Integer i=0;i<basbar.GetSize();i++){
+	//	std::cout<<"\nbasbar = F' bas:  "<<std::endl;
+	//	for (Integer i=0;i<basbar.GetSize();i++){
 	  //	  basbar[i]=basbar[i].real();
-	  std::cout<<"basbar="<<basbar[i]<<"; ";
-	}
-	std::cout<<"\n "<<std::endl;	  
+	  //std::cout<<"basbar="<<basbar[i]<<"; ";
+	//}
+	//std::cout<<"\n "<<std::endl;	  
 
 	basbar_old=basbar;
 
@@ -247,59 +212,58 @@ namespace CoupledField
 
 	std::cout<<"\n alpha = " << alpha << ",\t || normresNEold || = " << normresNEold2 << ",\t ||bas_bar|| = " << norm_bas_bar << std::endl;
 
-	std::cout<<"\nstep = step + alpha *bas: "<<std::endl;
+	//	std::cout<<"\nstep = step + alpha *bas: "<<std::endl;
 	for (Integer i=0;i<nrParameter;i++){
 	  step[i]+=alpha*bas[i];
-	  std::cout<<"step("<<i<<")= "<< step[i] << "; \t ";
+	  //std::cout<<"step("<<i<<")= "<< step[i] << "; \t ";
 	}
 	
 
-	std::cout<<"\n\nres = res - alpha*bas_bar: "<<std::endl;
+	//	std::cout<<"\n\nres = res - alpha*bas_bar: "<<std::endl;
 	for (Integer i=0;i<res.GetSize();i++){
-
 	  Res_inner[i]=Res_inner[i]-alpha*basbar[i];
-
 	  res[i]=res[i]-alpha*basbar[i];
 	  //	  res[i]=res[i].real();
-	  std::cout<<"Res_inner = "<<res[i]<<"; ";
+	  //	  std::cout<<"Res_inner = "<<res[i]<<"; ";
 	}
 
-	std::cout<<"\n"<<std::endl;
+	//std::cout<<"\n"<<std::endl;
 
-	maxAndEuclNorm(Res_inner,maxres_inner,alin_new);
+    norm(Res_inner,alin_new,maxres_inner,y_hat);
+	//	maxAndEuclNorm(Res_inner,maxres_inner,alin_new);
 	//		maxAndWeightedResNorm(Res_inner, maxres_inner, alin_new, y_hat);
 
 	//	std::cout<<"\n res.GetSize() " << res.GetSize() << "; res_NE_NEW_COMP.GetSize()= "<< res_NE_new_compl.GetSize()<<std::endl;
 
 	adjJacobiMatrix.Mult(res,res_NE_C);
 
-	std::cout<<"\nres_NE = (F*' res).real():"<<std::endl;
+	//	std::cout<<"\nres_NE = (F*' res).real():"<<std::endl;
 	for(Integer i=0;i<res_NE_new.GetSize();i++){
 	  res_NE[i]=(1.0/(scaling[i]*scaling[i]))*res_NE_C[i].real();
 	  res_NE_rescaled[i]=res_NE[i]*scaling[i];
 	  //	  res_NE_new[i]=1.0/(scaling[i]*scaling[i])*res_NE_new_compl[i].real();
-	  std::cout<<"resNE = " << res_NE[i];
+	  //std::cout<<"resNE = " << res_NE[i];
 	}
 
 	normresNE2=POW(a2norm(res_NE_rescaled),2);
 
-	std::cout<<"\n\n normresNE2 =  " << normresNE2<<std::endl; 
+	//	std::cout<<"\n\n normresNE2 =  " << normresNE2<<std::endl; 
 
 	beta = normresNE2/normresNEold2;
 	
-	std::cout<<"\n beta = " << beta << " = " << normresNE2 << " / " << normresNEold2<< std::endl; 
+	//	std::cout<<"\n beta = " << beta << " = " << normresNE2 << " / " << normresNEold2<< std::endl; 
 
 	normresNEold2 = normresNE2;
 
-	std::cout<<"\nbas = resNE + beta * bas: "<<std::endl;	
+	//	std::cout<<"\nbas = resNE + beta * bas: "<<std::endl;	
 	for(Integer i=0;i<nrParameter;i++){
 	  bas[i]= res_NE[i]+beta*bas[i];
-	  std::cout<<"bas = "<<bas[i]<<"; ";
+	  //std::cout<<"bas = "<<bas[i]<<"; ";
 	}
 
 	normres2=norm2Real(res);
-
-	maxAndEuclNorm(res,maxres_inner, alin_new);
+	norm(res,alin_new,maxres_inner,y_hat);
+	//maxAndEuclNorm(res,maxres_inner, alin_new);
 	//maxAndWeightedResNorm(res, maxres_inner, alin_new, y_hat);
 
 	*piezoLog << "\n \t \t alin_new  = " << alin_new;
@@ -313,18 +277,21 @@ namespace CoupledField
 
       Matrix<Double> *matMat = ptMaterial->GetMatrix();
 
-      scaling[1]=1.0/((*matMat)[2][2]);
-      scaling[7]=1.0/((*matMat)[8][2]);
-      scaling[9]=1.0/((*matMat)[8][8]);
+
+    scaling[0]=1.0/((*matMat)[0][0]); 
+    scaling[1]=1.0/((*matMat)[2][2]);
+    scaling[2]=1.0/((*matMat)[1][0]);
+    scaling[3]=1.0/((*matMat)[0][2]);
+    scaling[4]=1.0/((*matMat)[3][3]); 
+    scaling[5]=1.0/((*matMat)[6][4]);
+    scaling[6]=std::abs(1.0/((*matMat)[8][0]));
+    scaling[7]=1.0/((*matMat)[8][2]);
+    scaling[8]=1.0/((*matMat)[6][6]); 
+    scaling[9]=1.0/((*matMat)[8][8]);
+
 
       //      parameter_new[9]=parameter[9]+(1.0/scaling[9])*step[9].real();        // eps33      
 	setNewParameterSet(parameter, parameter_new, scaling,theta,step,whichParameterToUpdate);
-
-	      
-      std::cout<<"\n"<<std::endl;
-
-
-      std::cout<<"\n"<<std::endl;
 
       for (Integer i=0;i<nrParameter;i++){
 	// 	std::cout<<"step("<<i<<")= " << step[i]<< "; \t";
@@ -351,8 +318,9 @@ namespace CoupledField
 
       Res_outer = y_hat-F_hat;
 
+      norm(Res_outer,aval_new,maxres_outer,y_hat);
       //      maxAndWeightedResNorm(Res_outer, maxres_outer, aval_new, y_hat);
-      maxAndEuclNorm(Res_outer, maxres_outer, aval_new);
+      //      maxAndEuclNorm(Res_outer, maxres_outer, aval_new);
 
 
       //	backtracking(eta, theta, s, a, a_lin_new);
@@ -380,12 +348,11 @@ namespace CoupledField
 	//	  new_res_res0=new_res_res0+y_hat_F_hat[i]*(res[i]-y_hat_F_hat[i]);
 	//	b=2.0*new_res_res0.real();
 
-	std::cout<<"\n b = " << b << std::endl;
+	//	std::cout<<"\n b = " << b << std::endl;
 
 	//	c=misfitnew*misfitnew-b-aa;
 	c=aval_new-b-aval;
-
-	std::cout<<"\n c = "<<c<<std::endl;
+	//	std::cout<<"\n c = "<<c<<std::endl;
 
 	if (c==0.0){
 	  if(b<=0.0)
@@ -415,10 +382,10 @@ namespace CoupledField
 	} // end else if c>0
 	//	theta = 0.35;
 
-	std::cout<<"\n Choice of theta = " << theta<<std::endl;
+	//	std::cout<<"\n Choice of theta = " << theta<<std::endl;
 	*piezoLog<<"\t Choice of theta = " << theta<<std::endl;
 
-	std::cout<<"\n"<<std::endl;
+	//	std::cout<<"\n"<<std::endl;
 
 	std::cout<<"\n Parameter after backtracking ... " <<std::endl;
 	
@@ -444,11 +411,12 @@ namespace CoupledField
 	Res_outer=y_hat-F_hat;
 
 	//	maxAndWeightedResNorm(Res_outer, maxres_outer, aval_new, y_hat);
-		maxAndEuclNorm(Res_outer,maxres_outer,aval_new); 
+	//		maxAndEuclNorm(Res_outer,maxres_outer,aval_new); 
+    norm(Res_outer,aval_new,maxres_outer,y_hat);
 
 	*piezoLog << "\t misfit after Linesearch " << misfitnew <<std::endl;
 
-	std::cout<<"\n misfitnew = " << misfitnew <<std::endl;
+	//	std::cout<<"\n misfitnew = " << misfitnew <<std::endl;
 
 
       }// end linesearch ...
@@ -483,7 +451,7 @@ namespace CoupledField
 	eta=eta_new;
 
 
-      std::cout<< "\n\n *** Choice of eta = " << eta<<std::endl; 
+      //    std::cout<< "\n\n *** Choice of eta = " << eta<<std::endl; 
       *piezoLog<<"\t Choice of eta = " << eta<<std::endl;
 
       // end choose eta
@@ -495,13 +463,13 @@ namespace CoupledField
       Res_inner = Res_outer;
 
     }// end while Newton
-    std::cout<<"\n leaving Newton CG 2 " <<std::endl;
-    std::cout<<"\n\n *** FINALLY CALCULATED PARAMETERS *** ... here they are:"<<std::endl;
+    //   std::cout<<"\n leaving Newton CG 2 " <<std::endl;
+    //std::cout<<"\n\n *** FINALLY CALCULATED PARAMETERS *** ... here they are:"<<std::endl;
     *piezoLog<<"\n\n *** FINALLY CALCULATED PARAMETERS *** ... here they are:"<<std::endl;
 
-    for (Integer  i=0;i<parameter.GetSize();i++){
-      std::cout<<"par[" << i<<"]="<< parameter[i]<<";\n";
-      *piezoLog<<"parameter["<<i<<"] = "<< parameter[i]<<std::endl;
+        for (Integer  i=0;i<parameter.GetSize();i++){
+    //std::cout<<"par[" << i<<"]="<< parameter[i]<<";\n";
+    *piezoLog<<"parameter["<<i<<"] = "<< parameter[i]<<std::endl;
     }
 
   }// end NewtonCG 3
@@ -857,7 +825,7 @@ namespace CoupledField
 
       // xxxxxxxxxxxxxxxx how should we solve the inner problem? xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
-      CG(); // calls CG Routine ... uses F, F', F'*    
+      //      CG(); // calls CG Routine ... uses F, F', F'*    
 
       std::cout<< "\n s determined with CG ... " <<std::endl;
       for (int i=0;i<parameter.GetSize();i++){ 
@@ -904,7 +872,7 @@ namespace CoupledField
   
       //here begins attempt to implement the backtracking Algo .... ;-)
 
-      backtracking(eta, theta, s, real_misfit, real_misfit_new);
+      //    backtracking(eta, theta, s, real_misfit, real_misfit_new);
      
       std::cout<<"\n\n currently calculated parameters: " << std::endl;
       

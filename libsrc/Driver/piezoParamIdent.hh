@@ -82,9 +82,7 @@ namespace CoupledField
 
     Double calcEuclidianMatrixNorm(Matrix<Complex> & mat);
     
-    //! CG method, approximates F'^(-1)(F-y_hat)
-    void CG();
-
+  
     //! see SFBReport F013 for details ;-)
     void NewtonCG();
 
@@ -99,9 +97,6 @@ namespace CoupledField
 
     //! The classical regularisation strategy for ill-posed systems of equations
     void tichonov();
-
-    //! Implementation of a linesearchstrategy, Idea by Eisenstat, Walker
-    void backtracking(Double & eta, Double & theta, Vector<Complex> & s, Double & norm_res, Double & norm_res_new);
 
     //! saves sysmat of forward problem, multiplication with \omega*\beta*j ...
     void createAndSetRHSforJacobian(Integer & fstep);
@@ -121,7 +116,11 @@ namespace CoupledField
     //! Calculates Euclidian norm of only real-parts of vec
     Double norm2Real(Vector<Complex> &vec);
 
+    void norm(Vector<Complex> &  vec, Double & norm, Double & norm2,Vector<Complex> & q_meas);
+
     void maxAndEuclNorm(Vector<Complex> & vec, Double & maxNorm, Double & euclNorm);
+
+    void logNorm(Vector<Complex> & vec, Double & logNorm);
   
     void maxAndWeightedResNorm(Vector<Complex> & vec, Double & maxNorm, Double & wNorm, Vector<Complex> & q_meas);
 
@@ -143,6 +142,7 @@ namespace CoupledField
     Integer CalcImpedanceCurve;
     Integer maxNumberInnerLoops;
     Integer maxNumberNewtonLoops;
+    Integer whichNorm;
     Boolean considerMechDeformation;
     Vector<Integer> whichParameterToUpdate;
     Double sign;

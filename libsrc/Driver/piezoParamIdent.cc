@@ -54,6 +54,8 @@ namespace CoupledField
   // ========================================================================
 
   //constructor
+  // opens datafiles: measuredData.dat for input, imedCurve.dat and piezoLog.dat for output
+
   piezoParamIdent::piezoParamIdent(Domain * adomain,
 				   Integer stepOffset,
 				   Double timeOffset,
@@ -74,11 +76,11 @@ namespace CoupledField
 	std::cerr << "\n File measuredData.dat does not exist!" << std::endl;
 	exit(1);
       }
-    else
-      std::cerr <<"\n File measuredData is opened to be read" << std::endl;
 
     std::cout<<"\n Opens impedCurve.dat and piezoLog.dat ... "<<std::endl;
+
     std::string filename= "imped.dat";
+
     impedCurve = new std::ofstream(filename.c_str(),std::basic_ios<char>::out);
 
     if (!impedCurve)
@@ -87,44 +89,44 @@ namespace CoupledField
       }
 
     std::string filenameLog= "piezoLog.dat";
+
     piezoLog = new std::ofstream(filenameLog.c_str(),std::basic_ios<char>::out);
 
     if (!piezoLog)
       {
-	std::cerr << "piezoLog.dat could not be initialized" << std::endl;
+	std::cerr << "\n piezoLog.dat could not be initialized" << std::endl;
       }
 
-
-
   } // end of constructor
-
 
   // destructor
   piezoParamIdent :: ~piezoParamIdent()
   {
     ENTER_FCN( "piezoParamIdent::~piezoParamIdent" );
     allMeasuredData->close();
-    std::cout<<"File measuredData.dat is closed" << std::endl;
+    impedCurve->close();
+    piezoLog->close();
   }
 
   void piezoParamIdent :: SolveProblem() {
     ENTER_FCN( "piezoParamIdent::SolveProblem" );
 
-    Integer highestAssumableNrOfMeasData=20;
+    Integer highestAssumableNrOfMeasData=25;
+    nrParameter = 10;
 
     parameter.Resize(10);
     whichParameterToUpdate.Resize(10);
-    parameterIncrement.Resize(10);
-    parameterIncrement = parameter;
+    //    parameterIncrement.Resize(10);
+    //parameterIncrement = parameter;
     omegas.Resize(highestAssumableNrOfMeasData);
     freqs.Resize(highestAssumableNrOfMeasData);
     real.Resize(highestAssumableNrOfMeasData);
     imag.Resize(highestAssumableNrOfMeasData);
     amplitude_phase.Resize(highestAssumableNrOfMeasData);
     F_hat.Resize(highestAssumableNrOfMeasData);
-    nrParameter = 10;
-    Double pi = 3.14159265358979;
-    Double tau=1.0;
+
+    //    Double pi = 3.14159265358979;
+    Double tau=1.5;
    
 
     // the following passage reads Data from file measuredData.dat
@@ -139,8 +141,7 @@ namespace CoupledField
     // freqs[i]=2*pi*freqs[i];
 
     std::cout<<"\n Size of piezoElectric Body:"<< thickness << " x " << radius <<std::endl;
-    std::cout<<"Number of measure points: " << nrMeasuredData << " with DataError: " << delta <<  std::endl;
-    std::cout<<"Number of parameters: " << nrParameter<< std::endl;
+    std::cout<<"\n Number of measure points: " << nrMeasuredData << " with DataError: " << delta <<  std::endl;
 
     //Settings for harmonic PDE - Driver
     Integer level=0;
@@ -158,7 +159,6 @@ namespace CoupledField
       Info->StartProgress ("Starting to solve problem", FALSE);
     }
 
-
     //    std::cout<<"Here begins communication with base PDE" << std::endl;
 
     // ************************************************************************
@@ -168,14 +168,12 @@ namespace CoupledField
     // if driver is not part of multiSequence Driver, get list
     // of pdes which have to be solved and intialize them
 
-
     MaterialData * ptMaterial=pdes_[0]->getPDEMaterialData();   // Pointer to MaterialData
-    //   Matrix<Double> * matMatrix =  ptMaterial->GetMatrix();
-    ptBCs = pdes_[0]->getPDE_BCs();                             // Pointer to BCs
-    ptAlgsys = pdes_[0]->getPDE_algsys();                       //Pointer to AlgebraicSystem
-    Integer numElems = pdes_[0]->getPDE_numElems();
-    dofs=pdes_[0]->getPDE_dofspernode();
-    numNodes= pdes_[0]->getPDE_numPDENodes();
+ //    ptBCs = pdes_[0]->getPDE_BCs();                             // Pointer to BCs
+//     ptAlgsys = pdes_[0]->getPDE_algsys();                       //Pointer to AlgebraicSystem
+//     Integer numElems = pdes_[0]->getPDE_numElems();
+//     dofs=pdes_[0]->getPDE_dofspernode();
+//     numNodes= pdes_[0]->getPDE_numPDENodes();
 
     //xxxxxxxxxxxxxxxx Initialize and resize all matrices and vectors involved xxxxxxxxxx
 
@@ -204,9 +202,7 @@ namespace CoupledField
     // If we donnot want to consider the mechanical deformation ...
     considerMechDeformation=FALSE;
     // calculates and determines the ImpedanceCurve before and after identification
-
     sign=-1.0;
-
     // ~~~~~~~~~~ end of modification part  ~~~~~~~~~~~~~~
 
 
@@ -253,7 +249,7 @@ namespace CoupledField
       calc_measuredCharge(freqs, real, imag, y_hat); // out of measurements, values are taken from measuredData.dat
       // calcSyntheticData(y_hat); // Generates synthetic data, i.e. one forward simulation will be performed.
 
-    std::cout<<"\n"<<std::endl;
+    std::cout<<"\n Measured Data - Set: "<<std::endl;
     for(int i=0;i<y_hat.GetSize();i++)
       std::cout<<"y("<<i<<")= "<< y_hat[i]<<"; ";
     std::cout<<"\n"<<std::endl;
@@ -342,36 +338,50 @@ namespace CoupledField
     
     //  NewtonCG();
     //         NewtonCG2();
-      NewtonCG3();
+     NewtonCG3();
     //    tichonov();
-    //   NewtonLandweber();
+    //  NewtonLandweber();
     //  createF(ptMaterial, ptBCs, F_hat); // calculates only forward problems over all omegas
 
     // xxxxxxxxxxxxxxxxxxxxxxx End of choice xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx //
 
 
-    std::cout<<"\n\n *** FINALLY CALCULATED PARAMETERS *** ... here they are:"<<std::endl;
+    std::cout<<"\n\n *** FINALLY CALCULATED PARAMETERS *** ... here they are: " <<std::endl;
 
     for (int i=0;i<parameter.GetSize();i++)
-      std::cout<<"par[" << i<<"]="<< parameter[i]<<";\n";
-
+      std::cout<<"par[" << i<<"]="<< parameter[i]<<";"<<std::endl;
 
 // <<<<<<<<<<<<<< for a hopefully nice imped curve after identification !! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
      
-    if (CalcImpedanceCurve == 1){
-      updateMaterialData(parameter,ptMaterial);
+if (CalcImpedanceCurve == 1){
+      Vector<Double> freqsTemp = freqs;
       Integer nrfreq=100;
       freqs.Resize(nrfreq);
-      Double startfreq=2.0e+06;
-      Double stopfreq=6.0e+06;
+      Double startfreq=8.8e+05;
+      Double stopfreq=4.0e+06;
       Double freqincr=(stopfreq-startfreq)/nrfreq;
       for(Integer i=0;i<nrfreq;i++){
 	startfreq+=freqincr;
 	freqs[i]=startfreq;
       }
       calcImpedanceCurve();
+      freqs = freqsTemp;
     }
+
+//     if (CalcImpedanceCurve == 1){
+//       updateMaterialData(parameter,ptMaterial);
+//       Integer nrfreq=100;
+//       freqs.Resize(nrfreq);
+//       Double startfreq=2.0e+06;
+//       Double stopfreq=6.0e+06;
+//       Double freqincr=(stopfreq-startfreq)/nrfreq;
+//       for(Integer i=0;i<nrfreq;i++){
+// 	startfreq+=freqincr;
+// 	freqs[i]=startfreq;
+//       }
+//       calcImpedanceCurve();
+//     }
 
    
   }// End solveProblem
@@ -403,6 +413,7 @@ namespace CoupledField
 
     if (!impedCurve)
       std::cerr<<"Error opening 'ImpedCurve.dat' "<<std::endl;
+
     Complex im=Complex(0.0,1);
     impedC=voltage/(charge*2.0*PI*freq*im);
     // We need the following line for a comparison with CAPA
@@ -412,22 +423,52 @@ namespace CoupledField
         imped = std::abs(voltage/(charge*2.0*PI*freq*im));
 	phase = 180/PI*(std::arg(impedC));
 
-	std::cout <<"Frequency: "<< freq << ", |Z|: "<< std::abs(impedC) << "; Phase: "<< phase << std::endl;
+	//	std::cout<<"\n Frequency - Impendace - Phase: "<<std::endl;
+	std::cout <<"\n Frequency: "<< freq << ", |Z|: "<< std::abs(impedC) << "; Phase: "<< phase << std::endl;
 
 	*impedCurve <<"\n" << freq << "  " << impedC.real()<<"  " << impedC.imag() << imped << "   " << phase << std::endl;
 
   }  // end calcAbsImped 
 
-  /*  void piezoParamIdent::norm(Vector<Complex> &  vec, Double & norm, Double & 2ndNorm,Double & q_meas){
+   void piezoParamIdent::norm(Vector<Complex> &  vec, Double & norm, Double & norm2,Vector<Complex> & q_meas){
+     ENTER_FCN("piezoParamIdent::norm");
 
-    switch (whichNorm)
+     Vector<Complex> y_comp(nrParameter);
+     Vector<Complex> y_temp(nrParameter);
 
-     case l:
-  norm = a2norm(vec);
-    break;
-  case w:
-    maxAndWeightedResNorm(vec,maxNorm,wNorm, q_meas)
-  */
+     switch (whichNorm){
+
+     case 1:
+       norm = a2norm(vec);
+       std::cout<<"\n l2-Norm = "<<norm<<std::endl;
+       break;
+     case 2:
+       maxAndWeightedResNorm(vec,norm2,norm, q_meas);
+       std::cout<<"\n weighted-Norm = "<<norm<<std::endl;
+       break;
+     case 3:
+       maxAndEuclNorm(vec,norm,norm2);
+       std::cout<<"\n max-Norm = "<<norm<<std::endl;
+       break;
+     case 4:
+       //       std::cout<<"\n weighted - logarithmic Norm will be determined ..."<< std::endl;
+       for(Integer i=0;i<nrParameter;i++){
+	 y_comp[i]=q_meas[i] - vec[i];
+	 y_comp[i]=std::log(y_comp[i]);
+	 y_temp[i]=std::log(q_meas[i]);
+	 vec[i]= std::abs(y_comp[i]-y_temp[i]);
+       }
+       //       norm=std::sqrt(a2norm(vec));
+       maxAndWeightedResNorm(vec,norm2,norm,y_temp);
+       // std::cout<<"\n weighted - logarithmic Norm = "<< norm <<std::endl;
+       break;
+
+     default:
+       norm=a2norm(vec);
+
+     }
+   } // end norm
+  
   
 
   Double piezoParamIdent::calcEuclidianMatrixNorm(Matrix<Complex> & mat){
@@ -458,6 +499,16 @@ namespace CoupledField
 
   } // end maxAndEuclNorm
 
+  void piezoParamIdent::logNorm(Vector<Complex> & vec, Double & logNorm){
+    ENTER_FCN("piezoParamIdent::logNorm");
+    logNorm=0.0;
+    for (Integer i=0;i<vec.GetSize();i++){
+      logNorm = logNorm + std::abs(std::log(vec[i]*vec[i]));
+    }
+    //    euclNorm=std::sqrt(euclNorm);
+  } // end logNorm
+
+
 
   void piezoParamIdent::maxAndWeightedResNorm(Vector<Complex> & vec, Double & maxNorm, Double & wNorm, Vector<Complex> & q_meas){
     ENTER_FCN("piezoParamIdent::maxAndWeightedResNorm");
@@ -474,11 +525,9 @@ namespace CoupledField
       if (maxNormTemp>maxNorm)
 	maxNorm=maxNormTemp;
     }
-    std::cout<<"\n WeightedResNorm = " << wNorm<< std::endl;
+    //    std::cout<<"\n WeightedResNorm = " << wNorm<< std::endl;
     //wNorm=std::sqrt(wNorm);
-
   } // end maxAndWeightedNorm
-
 
 
   void piezoParamIdent::calcNorm2Resid(Vector<Complex> &res, Double & anorm, Integer nrMeasuredData){
@@ -490,32 +539,6 @@ namespace CoupledField
     }
   } // end calcNorm2Resid
 
-    /*  Double piezoParamIdent::a2norm(Vector<Complex> &vec){
-	ENTER_FCN("piezoParamIdent::a2norm");
-	Complex result=Complex(0.0,0.0);
-	Double real_result;
-	for(int i=0;i<vec.GetSize();i++)
-	result+=vec[i]*vec[i];
-	result=sqrt(result);
-	real_result=result.real();
-	///    real_result=sqrt(real_result);
-	std::cout<<" \n real_result"<<real_result<<std::endl;
-	return real_result;
-	}*/
-   
-    /*Double piezoParamIdent::a2norm(Vector<Complex> &vec){
-      ENTER_FCN("piezoParamIdent::a2norm");
-      Complex result=Complex(0.0,0.0);
-      Double real_result;
-      for(int i=0;i<vec.GetSize();i++)
-      real_result+=std::abs(vec[i].real())+std::abs(vec[i].imag());
-      //    real_result=sqrt(real_result);
-      //    real_result=result.real();
-      ///    real_result=sqrt(real_result);
-      //std::cout<<" \n real_result"<<real_result<<std::endl;
-      return real_result;
-      }*/
-
  Double piezoParamIdent::norm2Real(Vector<Complex> &vec){
     ENTER_FCN("piezoParamIdent::realA2norm");
     Double result=0.0; 
@@ -525,7 +548,6 @@ namespace CoupledField
     result=sqrt(result);
     return result;
   }
-
 
   Double piezoParamIdent::realA2norm(Vector<Complex> &vec){
     ENTER_FCN("piezoParamIdent::realA2norm");
@@ -559,51 +581,6 @@ namespace CoupledField
     result=sqrt(result);
     return result;
   }
-
-  //   void piezoParamIdent::updateRHS(Vector<Complex> & solElecPot, Vector<Complex> & solMechDispl, Double omega){
-  //     ENTER_FCN (" piezoParamIdent::updateRHS");
-  //     Vector<Double> new_RHS;
-  //     new_RHS.Resize(numNodes * dofs);
-  //     for(int i=0;i<numNodes;i++){
-  //       new_RHS[i]=solElecPot[i].real();
-  //       for(int j=0;j<dofs-1;j++){	
-  // 	new_RHS[(j+1)*numNodes+i]=solMechDispl[j*numNodes+i].real();
-  // 	//	std::cout<<new_RHS[(j+1)*numNodes+i]<<"; ";
-  // 	// matVecRHS(IncrementedRHSMatrix,solMechDispl, solElecPot,newRHS);	
-  //       }
-  //     }
-
-  //     ptAlgsys->UpdateRHS(1,new_RHS.GetPointer());
-  //     std::cout<<"RHS was updated"<< std::endl;
-  //   } // end update RHS
-
-  //   void piezoParamIdent::updateRHS(Vector<Complex> & RHSsol){
-  //     ENTER_FCN("piezoParamIdent::updateRHS");
-  //     Vector<Double> temp;
-  //     temp.Resize(RHSsol.GetSize());
-  //     for(int i=0;i<RHSsol.GetSize();i++){
-  //       temp[i]=RHSsol[i].real();
-  //       std::cout<<RHSsol[i]<<"; ";
-  //     }
-  //     //    ptAlgsys->InitRHS();
-  //     ptAlgsys->UpdateRHS(1,temp.GetPointer());
-  //     std::cout<<"RHS was updated"<< std::endl;
-
-  //   }
-
-  //   void piezoParamIdent::updateRHS2(Vector<Complex> & RHSsol){
-  //     ENTER_FCN("piezoParamIdent::updateRHS2");
-  //     Vector<Double> temp;
-  //     temp.Resize(RHSsol.GetSize());
-  //     for(int i=0;i<RHSsol.GetSize();i++){
-  //       temp[i]=RHSsol[i].real();
-  //       std::cout<<RHSsol[i]<<"; ";
-  //     }
-  //     //    ptAlgsys->InitRHS();
-  //     ptAlgsys->UpdateRHS(1,temp.GetPointer());
-  //     std::cout<<"RHS2 was updated"<< std::endl;
-
-  //   }
 
 
   void piezoParamIdent::measureMechDeformationInZ_Direction(Vector<Complex> & mechDisplacement, Double & Radius, Double & meanValueMechDeformation, int dof){
@@ -831,7 +808,7 @@ namespace CoupledField
 	for (int l=0;l<=k;l++)
 	  helpChar[l]=0;
       }
-      else if (mDataRow[0]=='N'){
+      else if (mDataRow[0]=='O'){
 	i=2; k=0;
 	while(mDataRow){
 	  if (mDataRow[i]=='/')
@@ -840,6 +817,18 @@ namespace CoupledField
 	  k++; i++;
 	}
 	maxNumberNewtonLoops=atoi(helpChar); 
+	for (int l=0;l<=k;l++)
+	  helpChar[l]=0;
+      }
+      else if (mDataRow[0]=='N'){
+	i=2; k=0;
+	while(mDataRow){
+	  if (mDataRow[i]=='/')
+	    break;
+	  helpChar[k]=mDataRow[i];
+	  k++; i++;
+	}
+	whichNorm=atoi(helpChar); 
 	for (int l=0;l<=k;l++)
 	  helpChar[l]=0;
       }
@@ -901,15 +890,7 @@ namespace CoupledField
     ptMaterial->SetPiezoMatrixData(7,7, parameter[8]);
     ptMaterial->SetPiezoMatrixData(8,8, parameter[9]);
 
-//     StdVector<std::string> pdeNames;
-//     params->GetPDEList( pdeNames );
-//     StdVector<std::string> tags;
-//     tags.Resize(pdes_.GetSize());
-//     tags.Init("anyTag");
-    //ptDomain->InitPDEs(pdeNames,1,tags);
-
   } // end updateMaterialData
-
 
   void piezoParamIdent::setNewParameterSet(Vector<Double> & parameter,Vector<Double> &  parameter_new,Vector<Double> & scaling,Double & theta,Vector<Complex> & step, Vector<Integer> & whichParameterToUpdate){
 
@@ -922,7 +903,6 @@ namespace CoupledField
 
 
   } // end setNewParameterSet
-
 
 } // end namespace CoupledField
 
