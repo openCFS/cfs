@@ -44,6 +44,9 @@
     <viscosity> 13 </viscosity>
   </bubbleDynamic>
 
+  <!-- This block is only required for a stand-alone bubble simulation.
+       Otherwise the relevant data come from the acoustic PDE, while
+       the bubbleType is specified in the <acoustic> block -->
   <bubbleDriver>
     <bubbleType>Gilmore</bubbleType>
     <pressure>  123 </pressure>
