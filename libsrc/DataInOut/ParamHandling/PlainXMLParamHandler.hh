@@ -268,7 +268,7 @@ namespace CoupledField
     //! This methode queries the parameter object for a list of all PDEs
     //! which are iterative coupled. 
     //! \param list          List with name of all direct coupling pdes
-    virtual void GetIterCoupledPDEList( StdVector<std::string> &list,
+    void GetIterCoupledPDEList( StdVector<std::string> &list,
 					const std::string sequenceTag = "");
 					
     //! Query the on/off status of a flag/switch
@@ -308,13 +308,88 @@ namespace CoupledField
 		      const std::string section = "",
 		      const std::string subsection = "" );
 
+void GetList (const StdVector< std::string > &keyVec,
+		  const StdVector< std::string > &attrVec, 
+		  const StdVector< std::string > &valVec, 
+		  StdVector< std::string > &list);
+    
+    
+
+void 	GetList (const StdVector< std::string > &keyVec,
+		 const StdVector< std::string > &attrVec,
+		 const StdVector< std::string > &valVec,
+		 StdVector< Double > &list);
+    
+
+void 	GetList (const StdVector< std::string > &keyVec,
+		 const StdVector< std::string > &attrVec,
+		 const StdVector< std::string > &valVec,
+		 StdVector< Integer > &list);
+    
+
+void 	Get (const StdVector< std::string > &keyVec,
+	     const StdVector< std::string > &attrVec,
+	     const StdVector< std::string > &valVec,
+	     std::string &value);
+    
+
+void 	Get (const StdVector< std::string > &keyVec,
+	     const StdVector< std::string > &attrVec,
+	     const StdVector< std::string > &valVec,
+	     Double &value);
+    
+
+void 	Get (const StdVector< std::string > &keyVec,
+	     const StdVector< std::string > &attrVec,
+	     const StdVector< std::string > &valVec,
+	     Integer &value);
+    
+
+
+void GetList( const std::string key, StdVector<Integer> &list,
+	      const std::string section = "",
+	      const std::string subsection = "" );
+    
+
+void Get( const StdVector<std::string> &keyVec,
+	  std::string &value ) ;
+    
+
+
+void Get( const StdVector<std::string> &keyVec,
+	  Double &value );
+    
+
+
+void Get( const StdVector<std::string> &keyVec,
+	  Integer &value );
+    
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   private:
 
     //! Shortcut for standard type
     typedef std::string::size_type sType;
 
     //! XML-file with input parameters
-    std::ifstream infile;
+    std::ifstream inFile;
 
     //! Final position in file. Used instead of std::eof
     sType pos_end_;
