@@ -79,8 +79,7 @@ public:
   virtual void DefineBelonging4Elems(const std::vector<Elem*>& elemsSurf, const std::vector<Elem*>&elems, std::vector<Elem*> & belongingSE)
   { ptGridCFS->DefineBelonging4Elems(elemsSurf,elems,belongingSE);}
 
-protected:
-private:
+privat:
   GridCFS<dim> * ptGridCFS;
   ///
 };

@@ -39,9 +39,6 @@ void Elec3dPDE::SetupMatrices(const Integer level)
 
   BaseFE * ptElem;
 
-//   Vector<Double> coeffst;
-//   CalcCoeff(coeffst);  
-
 
  //reads eps33 (matrix notation starts with 0)
   Double eps33 = materialData_->GetPermittivity(2,2);
@@ -58,7 +55,7 @@ void Elec3dPDE::SetupMatrices(const Integer level)
 	{  
 	  ptElem=elemssd[j]->ptElem;
 
-	  BaseForm * bilinear_stiff = new LaplaceInt(ptElem, materialData_[i]);
+	  BaseForm * bilinear_stiff = new LaplaceInt(ptElem, eps33);
 
 	  connecth=elemssd[j]->connect;
 
@@ -66,11 +63,6 @@ void Elec3dPDE::SetupMatrices(const Integer level)
 
 	  // stiffness part
 	  bilinear_stiff->CalcElementMatrix(ptCoord, elemmat);
-
-	  std::cout << "NO MATERIAL CONSIDERED " << std::endl;
-	  
-
-	  //	  elemmat *= eps33;
 
 #ifdef DEBUG
 	  Integer jj;

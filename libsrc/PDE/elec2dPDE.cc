@@ -47,7 +47,7 @@ void Elec2dPDE::SetupMatrices(const Integer level)
   Vector<Integer> connecth;  
 
   //reads eps33 (matrix notation starts with 0)
-  Double eps0 = materialData_->GetPermittivity(2,2);
+  Double eps33 = materialData_->GetPermittivity(2,2);
 
   Integer i, j;
 
@@ -62,7 +62,7 @@ void Elec2dPDE::SetupMatrices(const Integer level)
 	{  
 	  ptElem=elemssd[j]->ptElem;
 
-	  BaseForm * bilinear_stiff = new LaplaceInt(ptElem, materialData_[i]);
+	  BaseForm * bilinear_stiff = new LaplaceInt(ptElem, eps33);
 
 	  connecth=elemssd[j]->connect;
 	  
@@ -70,7 +70,6 @@ void Elec2dPDE::SetupMatrices(const Integer level)
 
 	  // stiffness part
 	  bilinear_stiff->CalcElementMatrix(ptCoord, elemmat);
-	  elemmat *= eps0;
 	  
 #ifdef DEBUG
 	  (*debug) << "Stiffnessmatrix, ElementNumber  " <<   i << std::endl;

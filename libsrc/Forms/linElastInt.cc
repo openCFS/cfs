@@ -27,7 +27,7 @@ namespace CoupledField
     ptelem->GetGlobDerivShFncAtIp(xiDx, ip, ptCoord);
 
 #ifdef DEBUG
-    *debug << std::endl << "xiDx inf calcBMat of BDBInt: " << std::endl 
+    *debug << std::endl << "xiDx in calcBMat of BDBInt: " << std::endl 
 	   << xiDx << std::endl;
 #endif
 

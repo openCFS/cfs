@@ -100,6 +100,10 @@ libsrc/Elements/3D/getetrahedral.cc svneol=native#text/plain
 libsrc/Elements/3D/getetrahedral.hh svneol=native#text/plain
 libsrc/Elements/3D/hexahedral1.cc svneol=native#text/plain
 libsrc/Elements/3D/hexahedral1.hh svneol=native#text/plain
+libsrc/Elements/3D/tetra1FE.cc svneol=native#text/plain
+libsrc/Elements/3D/tetra1FE.hh svneol=native#text/plain
+libsrc/Elements/3D/tetraFE.cc svneol=native#text/plain
+libsrc/Elements/3D/tetraFE.hh svneol=native#text/plain
 libsrc/Elements/3D/tetrahedral1.cc svneol=native#text/plain
 libsrc/Elements/3D/tetrahedral1.hh svneol=native#text/plain
 libsrc/Elements/Makefile -text

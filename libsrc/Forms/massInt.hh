@@ -11,7 +11,7 @@ class MassInt : public BaseForm
 {
 public:
   /// Constructor
-  MassInt(BaseFE * aptelemt, MaterialData & aMat);
+  MassInt(BaseFE * aptelemt, Double aDensity);
 
   /// Destructor
   virtual ~MassInt();
@@ -21,6 +21,11 @@ public:
 
 
   virtual void Print(std::ostream * out, const Matrix<Double> Result) const;
+
+private:
+  // multiplicative value for mass integrator
+  Double density_;
+  
 };
 
 }

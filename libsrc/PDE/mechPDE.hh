@@ -37,14 +37,22 @@ public:
   //! set information for algebraic system about PDE. set matrix factors
   virtual void SetMatrixFactors();
 
+
   //! specify type of system matrix for AlgebraicSystem
   /*!
     \param level (input) level of Grid
   */
-  virtual void SetupMatrices(const Integer level)
-  { 
-    Error("Not implemented in base class of Mechs",__FILE__,__LINE__);
-  }
+  virtual void SetupMatrices(const Integer level);
+
+
+    //! set boundary condition
+  /*!
+    \param level level of grid
+    \param update indicator: do we update boundary condition in algebraic system or set new
+    \param atimestep time step of calculation
+  */
+  virtual void SetBCs(const Integer level, const Integer update, const Double atimestep);
+
 
   //! compute rhs
   /*!
@@ -79,6 +87,12 @@ protected:
   Integer size_;        //!< total number of unknowns (equations)
 
 
+private:
+  // defines subtype of mechanic PDE: plainStrain, 3d, ...
+  std::string subType_;
+
+  Integer GetNrBCDof (const std::string & dofStartString);
+  
 };
 
 } // end of namespace

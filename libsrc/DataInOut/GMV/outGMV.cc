@@ -315,9 +315,10 @@ void WriteResultsGMV::WriteSolution(const Vector<Double> & sol, const Integer st
   Integer i,j;
   if (NeedHistory_)
     for (i=0; i<nodeshist_.size(); i++) {
-      if (sol.size()<=nodeshist_[i])
+      {
+	if (sol.size()<=nodeshist_[i])
         Error("Please, check history-nodes in config-file.",__FILE__,__LINE__);
-      if (lastsavetime[i] != time )
+	//     if (lastsavetime[i] != time )
 	if (nrDofs > 1)	
 	  {
 	    std::vector<Double> solVec;
@@ -329,6 +330,8 @@ void WriteResultsGMV::WriteSolution(const Vector<Double> & sol, const Integer st
 	  }
 	else
 	  AddInHistory(time,sol[nodeshist_[i]-1],i);
+      }
+      
     }
 
   Integer type=1; // 0 - for cell 

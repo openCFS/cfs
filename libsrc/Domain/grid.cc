@@ -17,7 +17,7 @@ Grid::Grid(FileType * aptFileType)
 #endif
 
   ptFileType = aptFileType;
-  //  ptQ   = new Quad1FE();
+  ptQ   = new Quad1FE();
   ptTet = new Tetra1FE();
 
 //   ptTr=new Triangle1();

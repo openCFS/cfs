@@ -14,6 +14,15 @@ namespace CoupledField
 
     ptelem=aptelem;
   }
+
+  BaseForm::BaseForm(BaseFE * aptelem)
+  {
+#ifdef TRACE
+    (*trace) << "entering BaseForm::BaseForm" << std::endl;
+#endif
+
+    ptelem=aptelem;
+  }
  
 
   BaseForm::~BaseForm()
