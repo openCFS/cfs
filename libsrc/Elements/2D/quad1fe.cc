@@ -28,7 +28,7 @@ void Quad1FE :: Init()
 #ifdef TRACE
   (*trace) << "entering Quad1FE::Init" << std::endl;
 #endif  
-  NumNodes = 4;
+  NumNodes_ = 4;
   SetIntPoints();
   SetCornerCoords();
   SetShapeFncAtIp();
@@ -41,50 +41,50 @@ void Quad1FE :: SetCornerCoords()
   (*trace) << "entering Quad1FE::SetCornerCoords" << std::endl;
 #endif
 
-  LCornerCoords.Resize(Dim,NumNodes);
+  LCornerCoords_.Resize(Dim_,NumNodes_);
   
-  LCornerCoords[0][0] =  1;
-  LCornerCoords[1][0] =  1;
-  LCornerCoords[0][1] = -1;
-  LCornerCoords[1][1] =  1;
-  LCornerCoords[0][2] = -1;
-  LCornerCoords[1][2] = -1;
-  LCornerCoords[0][3] =  1;
-  LCornerCoords[1][3] = -1;
+  LCornerCoords_[0][0] =  1;
+  LCornerCoords_[1][0] =  1;
+  LCornerCoords_[0][1] = -1;
+  LCornerCoords_[1][1] =  1;
+  LCornerCoords_[0][2] = -1;
+  LCornerCoords_[1][2] = -1;
+  LCornerCoords_[0][3] =  1;
+  LCornerCoords_[1][3] = -1;
 
 }
 
-void Quad1FE :: CalcShapeFnc(Vector<Double> & LShape, 
-			     const Vector<Double> & LCoord)
+void Quad1FE :: CalcShapeFnc(std::vector<Double> & LShape, 
+			     const std::vector<Double> & LCoord)
 {
 #ifdef TRACE
   (*trace) << "entering Quad1FE::CalcShapeFnc" << std::endl;
 #endif
 
-  LShape.Resize(NumNodes);
+  LShape.resize(NumNodes_);
   
-  for( Integer i=0; i<NumNodes; i++)
-    LShape[i] = 0.25 * (1 + LCornerCoords[0][i] * LCoord[0])
-                     * (1 + LCornerCoords[1][i] * LCoord[1]);
+  for( Integer i=0; i<NumNodes_; i++)
+    LShape[i] = 0.25 * (1 + LCornerCoords_[0][i] * LCoord[0])
+                     * (1 + LCornerCoords_[1][i] * LCoord[1]);
 
 }
 
 
 void Quad1FE :: CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
-				       const Vector<Double> & LCoord)
+				       const std::vector<Double> & LCoord)
 {
 #ifdef TRACE
   (*trace) << "entering Quad1FE::CalcLocalDerivShapeFnc" << std::endl;
 #endif
 
-  LDeriv.Resize(NumNodes,Dim);
+  LDeriv.Resize(NumNodes_,Dim_);
 
-  for( Integer i=0; i<NumNodes; i++)
+  for( Integer i=0; i<NumNodes_; i++)
     {
-      LDeriv[i][0] = 0.25 * LCornerCoords[0][i] 
-                          * (1 + LCornerCoords[1][i] * LCoord[1] );
-      LDeriv[i][1] = 0.25 * (1 + LCornerCoords[0][i] * LCoord[0] )
-                          * LCornerCoords[i][1];
+      LDeriv[i][0] = 0.25 * LCornerCoords_[0][i] 
+                          * (1 + LCornerCoords_[1][i] * LCoord[1] );
+      LDeriv[i][1] = 0.25 * (1 + LCornerCoords_[0][i] * LCoord[0] )
+                          * LCornerCoords_[i][1];
     }
   
 }

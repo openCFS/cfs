@@ -34,7 +34,7 @@ protected:
   virtual void SetShapeFncDerivAtIp();
 
   //! Calculation of Jacobian determinant at arbitrary local point
-  virtual Double CalcJacobianDet(const Vector<Double> & LCoord,
+  virtual Double CalcJacobianDet(const std::vector<Double> & LCoord,
 				 const Matrix<Double> & CornerCoords);
 
   //! Calculation of Jacobian determinant at integration point ip
@@ -43,7 +43,7 @@ protected:
 
   //! calculates the Jacobian Matrix at an arbitrary local point
   virtual void CalcJacobian(Matrix<Double> & J, 
-			    const Vector<Double> & LCoord, 
+			    const std::vector<Double> & LCoord, 
 			    const Matrix<Double> & CornerCoords);
   
    //! Calculates the Jacobian Matrix at integration point ip
@@ -53,7 +53,7 @@ protected:
 
   //! calculates the Inverse Jacobian Matrix at an arbitrary local point
   virtual void CalcInvJacobian(Matrix<Double> & JInv,
-			       const Vector<Double> & LCoord,
+			       const std::vector<Double> & LCoord,
 			       const Matrix<Double> & CornerCoords);
   
   //! Calculates the Inverse Jacobian Matrix at integration point ip
