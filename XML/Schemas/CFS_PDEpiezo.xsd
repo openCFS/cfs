@@ -81,6 +81,10 @@
         <xsd:attribute name="subtype" type="xsd:token" use="optional"
           default="planeStrain"/>
 
+        <!-- Equilibration of material parameters -->
+        <xsd:attribute name="equilibrate" type="DT_CFSBool" use="optional"
+          default="no"/>
+
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
