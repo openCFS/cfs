@@ -394,7 +394,8 @@ void WriteResultsGMV::WriteNodeSolutionTransient(const NodeStoreSol<Double> & so
 {
   ENTER_FCN( "WriteResultsGMV::WriteNodeSolutionTransient" );
 
-  Integer i,j;
+  Integer iDof,i,j;
+  Integer nrDofs = 0;
   Double help;
   
   Vector<Double> solhelp;
@@ -475,53 +476,27 @@ void WriteResultsGMV::WriteNodeSolutionTransient(const NodeStoreSol<Double> & so
 	  WriteGrid(ptgrid->GetLastLevel());   
 	}
     }
-  
-  // Write reference to grid-file only
-  // if a new file was opened (step != currstep_)
-  // and a fixed grid is used
-  // if (fixedgrid_ && step != currstep_)
-//     {
-//       WriteHeader();
-      
-//       Char * name=new Char[80];
-//       strcpy(name,"");
-//       strcat(name,namefile_);
-//       strcat(name,"_GRID.gmv");
-      
-//       if (ascii_)
-// 	(*output) << "nodev fromfile \"" << name <<"\""<< std::endl;
-//       else 
-// 	(*output) << "nodev   fromfile\"" << name <<"\"";
-      
-      
-//       if (ascii_)
-// 	(*output) << "cells fromfile \"" << name <<"\""<< std::endl;
-//       else 
-// 	(*output) << "cells   fromfile\"" << name <<"\"";
-      
-//       delete [] name;
-//     }
-  
+    
   std::string outString;
   StdVector<SolutionType> solTypes;
 
   sol.GetSolutionTypes(solTypes);
-  for (Integer iSol=0; iSol<sol.GetNumSolutions(); iSol++)
+    for (Integer iSol=0; iSol<sol.GetNumSolutions(); iSol++)
     {
-      for (i=0; i< sol.GetDof(); i++)
+      for (iDof=0; iDof< sol.GetDof(solTypes[iSol]); iDof++)
 	{
 	  
-	  if (sol.GetDof() > 1)
+	  
+	  if (sol.GetDof(solTypes[iSol]) > 1)
 	    {
 	      char nrStr[10];
-	      sprintf(nrStr,"%i",i+1);
+	      sprintf(nrStr,"%i",iDof+1);
 	      outString = SolutionTypeToString(solTypes[iSol]) + nrStr;
 	    }
 	  else 
 	    outString = SolutionTypeToString(solTypes[iSol]);
 	  
-	  sol.GetGlobalSolVectorSingleDof(i,solhelp);
-	  
+	  sol.GetGlobalSolVectorSingleDof(solTypes[iSol],iDof,solhelp);
 	  WriteNodeVariable(solhelp, outString , type);
 	}
     }

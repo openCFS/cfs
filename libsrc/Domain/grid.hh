@@ -220,7 +220,7 @@ public:
 				      StdVector<std::string> & subdoms, 
 				      StdVector<Elem*> & Neighbours,
 				      Integer level) = 0;
-
+  
    //! calculate number of nodes in patch of elements
   /*!
     \param patch (input)
