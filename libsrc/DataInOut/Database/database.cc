@@ -152,6 +152,7 @@ Boolean Database::FetchFields(dbMatrix &matrix)
       case FIELD_TYPE_DOUBLE:
         matrix.appendDoubleColumn(std::string(fields[i].name));
         break;
+      case FIELD_TYPE_DATETIME:
       case FIELD_TYPE_BLOB:          // use only for text fields, not for real blobs
       case FIELD_TYPE_STRING:
         matrix.appendStringColumn(std::string(fields[i].name));
