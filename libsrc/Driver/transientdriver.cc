@@ -119,14 +119,14 @@ void TransientDriver :: SolveProblemAdapt()
 
        // print info in file.info
          if (InfoPrint)
-          (*infofile) <<  " step: " << nstep << " time: " << steptime << " change " << std::endl;
+          (*infofile) <<  " step: " << nstep << " timestep: " << steptime << " change " << std::endl;
 
       }
    else 
      {
        // print ino in file.info
          if (InfoPrint)
-          (*infofile) << " step: " << nstep << " time: " << steptime << std::endl;
+          (*infofile) << " step: " << nstep << " timestep: " << steptime << std::endl;
      }
 
    steptime+=dt;

@@ -36,8 +36,10 @@ private:
   Vector<Double> thirddersol_;
 
   //!
-  Double tol_;
+  Double tol_, beta_, theta_;
 
+  //!
+  Integer numrepeat_, counter_;
 };
 
 inline AcousticTimeErrorEstimator::~AcousticTimeErrorEstimator()
