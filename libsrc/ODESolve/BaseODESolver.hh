@@ -1,0 +1,101 @@
+#ifndef BASE_ODE_SOLVER_HH
+#define BASE_ODE_SOLVER_HH
+
+#include "General/environment.hh"
+#include "Utils/StdVector.hh"
+#include "ODEDescr/BaseODEProblem.hh"
+
+namespace CoupledField {
+
+  //! Base class from which all ODE solvers are derived
+  class BaseODESolver {
+
+  public:
+
+    //! Default Constructor
+    BaseODESolver() {
+      ENTER_FCN( "BaseODESolver::BaseODESolver" );
+      successLastSolve_     = false;
+      numStepsLastSolve_    = 0;
+      numBadStepsLastSolve_ = 0;
+      eps_                  = 10e-4;
+      maxSteps_             = 50000;
+      safetyFac_            = 0.9;
+    }
+
+    //! Default Destructor
+    virtual ~BaseODESolver() {
+      ENTER_FCN( "BaseODESolver::~BaseODESolver" );
+    }
+
+    //! Compute the solution of the initial value problem
+    //! \param tInit     initial time
+    //! \param tStop     final time
+    //! \param vector    containing on input the initial values and on output
+    //!                  the solution
+    //! \param myODE     object containing information on the right hand side
+    //!                  function of the ODE
+    //! \param hInit     Suggestion for size of first time step
+    //! \param hMin      Minimal allowed size for time step
+    //! \param hMax      Maximal allowed size for time step
+    virtual void Solve( const Double tInit,
+			const Double tStop,
+			StdVector<Double> &y,
+			BaseODEProblem &myODE,
+			Double hInit = -1.0,
+			Double hMin = -1.0,
+			Double hMax = -1.0) = 0;
+
+    //! Query status information on last solve
+    //! \param success     Was the last solve successful?
+    //! \param numSteps    Number of time steps for last solve
+    //! \param numBadSteps Number of rejected time steps in last solve
+    void GetStatus( bool &success, Integer &numSteps, Integer &numBadSteps ) {
+      ENTER_FCN( "BaseODESolver::GetStatus" );
+      success     = successLastSolve_;
+      numSteps    = numStepsLastSolve_;
+      numBadSteps = numBadStepsLastSolve_;
+    }
+
+    Double GetEps (){ return eps_;}
+
+    void SetEps (Double epsNew){eps_ = epsNew;}
+
+    Integer GetMaxSteps (){ return maxSteps_;}
+
+    void SetMaxSteps(Integer maxStepsNew) {
+      ENTER_IFCN( "BaseODESolver::SetMaxSteps" );
+      maxSteps_ = maxStepsNew;
+    }
+
+    Double GetSafetyFac (){ return safetyFac_;}
+
+    void SetSafetyFac (Double safetyFacNew){safetyFac_ = safetyFacNew;}
+
+
+  protected:
+
+    //! Was the last solve attempt successful?
+    bool successLastSolve_;
+
+    //! Number of time steps in last solve
+    Integer numStepsLastSolve_;
+
+    //! Number of rejected time steps in last solve
+    Integer numBadStepsLastSolve_;
+
+    //! Threshold for stopping test
+    Double eps_;
+
+    //! \param maxSteps  Maximal allowed number of time steps
+    Integer maxSteps_;
+
+    //! \param safetyFac Safety factor for step size computation
+    Double safetyFac_;
+
+  };
+
+}
+
+
+#endif
