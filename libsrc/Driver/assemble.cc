@@ -203,29 +203,8 @@ namespace CoupledField
 		      }
 		    
 		  }		
-	      }
-
-
-
-// 	    // =========================================================================
-// 	    //                             assemble RHS
-// 	    // =========================================================================
-
-// 	    for(Integer actRhsInt=0; actRhsInt < rhsIntegrators_[actDom]->size(); actRhsInt++)
-// 	      {
-// 		BaseIntDescriptor * actRhsID = (*rhsIntegrators_[actDom])[actRhsInt];
-
-// 		actRhsID->GetIntegrator()->SetElemPtr(ptEl);
-
-// 		if (actRhsID->IsNonLin())
-// 		  actRhsID->GetIntegrator()->SetActElemSol(elSol);
-
-		
-// 		std::vector<Double> elemVec;
-// 		actRhsID->GetIntegrator()->CalcElemVector(ptCoord, elemVec);
-		
-// 		algsys_->SetElementRHS(&elemVec[0], connect_PDE.get(), connect_PDE.size());
-// 	      }
+		*cla << "ELEMMAT " << myEndl << elemmat << myEndl;
+	      }	    
 	  }
       }
 

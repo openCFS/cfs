@@ -21,12 +21,13 @@ RectangleFE::RectangleFE()
   numChilds_ = 4;
   
   std::string integtype="GaussOrder2";
+  //std::string integtype="GaussOrder5";
 
   std::string IntRule;
   if (conf->ifget("IntegRules", IntRule)==TRUE)
       conf->ifget("rectangle",integtype,"IntegRules");
 
-  //  myCout << "SEAS" <<integtype << myEndl;
+  myCout << "SEAS " <<integtype << myEndl;
   
   IntegType=String2EnumIntegrationType(integtype.c_str());
 
