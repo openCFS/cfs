@@ -184,7 +184,7 @@ void MagPDE::WriteResultsInFile()
   Array<Double> sol_der1 = getS1();
 
   // transform solution vector for electric potential
-  TransformNodeSolution(Sol_Mesh,sol_der1,PDE2MeshNode_);
+  TransformNodeSolution(Sol_Mesh,sol_,PDE2MeshNode_);
 
   // CHANGE F_Interface_
   // TransformElemSolution(Force_Mesh,Force_,F_Interface_[0]);

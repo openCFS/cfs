@@ -203,7 +203,6 @@ namespace CoupledField
 		      }
 		    
 		  }		
-		*cla << "ELEMMAT " << myEndl << elemmat << myEndl;
 	      }	    
 	  }
       }
@@ -317,10 +316,7 @@ namespace CoupledField
 	    
 	    Double val_tfunc = 1.0;
 	    if (ptTimeFunc_->GetmaxTimeFnc() > 0 )
-	      {
-		std::cerr << fncname_rhs_[actDom] << std::endl;
 		val_tfunc=ptTimeFunc_->TimeFuncAtTime(time,fncname_rhs_[actDom]);
-	      }
 	
 	    for (Integer actEl=0; actEl< elemssd.size(); actEl++)
 	      {	       

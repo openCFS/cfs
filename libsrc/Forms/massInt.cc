@@ -39,8 +39,6 @@ namespace CoupledField
 
 	partElemMat.DyadicMult(shapeFnc);
 
-	*cla << "shape@IP: " << actIntPt << " = " << shapeFnc << myEndl;
-
 	if (isaxi_)
 	  {
 	    ptelem->GetShFncAtIp(ShpFncAtIp,actIntPt);

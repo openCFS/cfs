@@ -84,7 +84,6 @@ void Trapezoidal::Corrector(Array<Double>& solnew)
 #endif
 
   solderiv1_ = (solnew - solpred_)*a1_;
-
 }
 
 void Trapezoidal :: CalcParameters(Double dt)
