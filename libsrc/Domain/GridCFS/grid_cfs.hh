@@ -82,7 +82,6 @@ private:
   Integer ** pptelemsubdom;
 };
 
-
 template class GridCFS<Point3D>;
 template class GridCFS<Point2D>;
 
