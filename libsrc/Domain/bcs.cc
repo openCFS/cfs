@@ -7,29 +7,23 @@
 #include "DataInOut/WriteInfo.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
 
-namespace CoupledField
-{
+namespace CoupledField {
 
-  // ***************************************************
-  //   Old constructor version using conffile approach
-  // ***************************************************
-  BCs :: BCs(FileType * const aInFile)
-  {
+
+  // ****************************************************
+  //   Constructor version using XML parameter handling
+  // ****************************************************
+  BCs::BCs(FileType * const aInFile) {
 
     ENTER_FCN( "BCs::BCs" );
 
     InFile_     = aInFile; 
-
-  // ********************************************************
-  //   New constructor version using XML parameter handling
-  // ********************************************************
   
     // Initialise internal pointer arrays
-    for( Integer i = 0; i < NUMLEVELGRID; i++ )
-      {
-	bcs_[i] = NULL;
-	bcsEdges_[i] = NULL;
-      }
+    for( Integer i = 0; i < NUMLEVELGRID; i++ ) {
+      bcs_[i] = NULL;
+      bcsEdges_[i] = NULL;
+    }
 
     // Get list of special node sets
     params->GetList( "name", levels_, "domain", "nodes" );
@@ -43,17 +37,15 @@ namespace CoupledField
     if ( probGeo == "3d" ) {
       //surface elements can occure
       params->GetList( "name", color_faces_, "domain", "elements" );
-      if (color_faces_.GetSize()) 
-	{
-	bcsFaces_[0]=new StdVector<Elem*>[color_faces_.GetSize()]; 
-	}
-	
+      if (color_faces_.GetSize()) {
+        bcsFaces_[0] = new StdVector<Elem*>[color_faces_.GetSize()]; 
+      }
     }    
     else {
-      params->GetList( "name", color_edges_, "domain", "elements" );	
-      if (color_edges_.GetSize()) 
-	bcsEdges_[0]=new StdVector<Elem*>[color_edges_.GetSize()];	
-      
+      params->GetList( "name", color_edges_, "domain", "elements" );    
+      if (color_edges_.GetSize()) {
+        bcsEdges_[0] = new StdVector<Elem*>[color_edges_.GetSize()];
+      }
     }
     
     //
@@ -109,24 +101,28 @@ namespace CoupledField
       }
     }
 
-    if ( color_faces_.GetSize() ) {
+    // NOTE: color_faces_ and color_edges_ are identical (see the code in
+    //       the constructor), thus we should not try to do another deep
+    //       deletion)
+    delete [] bcsFaces_[i];
+    // if ( color_faces_.GetSize() ) {
 
-      // loop over levels of grid
-      for ( i = 0; i < NUMLEVELGRID; i++ ) {
-        if ( bcsFaces_[i] ) {
+    // loop over levels of grid
+    // for ( i = 0; i < NUMLEVELGRID; i++ ) {
+    // if ( bcsFaces_[i] ) {
 
-          // loop over colors of grid / subdomains
-          for ( j = 0; j < color_faces_.GetSize(); j++ ) {
+    // loop over colors of grid / subdomains
+    // for ( j = 0; j < color_faces_.GetSize(); j++ ) {
 
-            // loop over elements of one color
-            for ( k = 0; k < bcsFaces_[i][j].GetSize(); k++ ) {
-              delete (bcsFaces_[i][j][k]);
-            }
-          }
-          delete [] bcsFaces_[i];
-        }
-      }
-    }
+    // loop over elements of one color
+    // for ( k = 0; k < bcsFaces_[i][j].GetSize(); k++ ) {
+    // delete (bcsFaces_[i][j][k]);
+    // }
+    // }
+    // delete [] bcsFaces_[i];
+    // }
+    // }
+    // }
 
     if ( color_neighelems_.GetSize() ) {
 
@@ -151,197 +147,197 @@ namespace CoupledField
 
   void BCs::ReadBCs() {
 
-  ENTER_FCN( "BCs::ReadBCs" );
+    ENTER_FCN( "BCs::ReadBCs" );
 
-  // Create a dummy vector, since we do not need
-  // an vector with pointers to the elements, sorted
-  // by element numbers
-  StdVector<Elem*> temp;
+    // Create a dummy vector, since we do not need
+    // an vector with pointers to the elements, sorted
+    // by element numbers
+    StdVector<Elem*> temp;
 
- if (levels_.GetSize())
-   InFile_->ReadBCs(bcs_[0],levels_);
- toplevel_=0;
+    if (levels_.GetSize())
+      InFile_->ReadBCs(bcs_[0],levels_);
+    toplevel_=0;
 
- if (color_edges_.GetSize())
-   InFile_->ReadEl1d(bcsEdges_[0],temp,color_edges_);
+    if (color_edges_.GetSize())
+      InFile_->ReadEl1d(bcsEdges_[0],temp,color_edges_);
 
- if (color_faces_.GetSize())
-   {
-     InFile_->ReadEl2d(bcsFaces_[0],temp,color_faces_);
-   }
-
- if (color_neighelems_.GetSize()) {
-    if (InFile_->ReadDim()==2)
-       InFile_->ReadEl2d(bcsNeighElems_[0],temp,color_neighelems_);
-     else
-       InFile_->ReadEl3d(bcsNeighElems_[0],temp,color_neighelems_);   
-   }
-}
-
-std::list<Integer>&  BCs::GetNodesLevel(const std::string color, const Integer lev)
-{
-  ENTER_FCN( "BCs::GetNodesLevel" );
-  
-  Boolean Found = FALSE;
-
-  Integer level=lev;
-  if (lev==-1) level=toplevel_;
-  Integer i;
-  for (i=0; i<levels_.GetSize(); i++)
-    if (color==levels_[i]) 
+    if (color_faces_.GetSize())
       {
-	Found = TRUE;
-	break;
+        InFile_->ReadEl2d(bcsFaces_[0],temp,color_faces_);
       }
 
-  if (!Found)
-    {
-      std::string ErrMsg = "Nodes for level \'" + color + "\' could not be found!";
-      Error(ErrMsg.c_str(),__FILE__,__LINE__); 
+    if (color_neighelems_.GetSize()) {
+      if (InFile_->ReadDim()==2)
+        InFile_->ReadEl2d(bcsNeighElems_[0],temp,color_neighelems_);
+      else
+        InFile_->ReadEl3d(bcsNeighElems_[0],temp,color_neighelems_);   
     }
+  }
 
- return bcs_[level][i]; 
-}
-
-StdVector<Elem*>& BCs::getEdgesBC(const std::string color, const Integer lev)
-{
-  ENTER_FCN( "BCs::getEdgesBC" );
-
-  Boolean Found = FALSE;
-
-  Integer level=lev;
-  if (lev==-1) level=toplevel_;
-  Integer i;
-  for (i=0; i<color_edges_.GetSize(); i++)
-    if (color==color_edges_[i]) 
-      {
-	Found = TRUE;
-	break;
-      }
+  std::list<Integer>&  BCs::GetNodesLevel(const std::string color, const Integer lev)
+  {
+    ENTER_FCN( "BCs::GetNodesLevel" );
   
-  if (!Found)
-    {
-      std::string ErrMsg = "Edges for level \'" + color + "\' could not be found!";
-      Error(ErrMsg.c_str(),__FILE__,__LINE__); 
-    }
+    Boolean Found = FALSE;
 
-  return bcsEdges_[level][i];
-}
+    Integer level=lev;
+    if (lev==-1) level=toplevel_;
+    Integer i;
+    for (i=0; i<levels_.GetSize(); i++)
+      if (color==levels_[i]) 
+        {
+          Found = TRUE;
+          break;
+        }
 
-StdVector<Elem*>& BCs::getFacesBC(const std::string color, const Integer lev)
-{
-  ENTER_FCN( "BCs::getFacesBC" );
+    if (!Found)
+      {
+        std::string ErrMsg = "Nodes for level \'" + color + "\' could not be found!";
+        Error(ErrMsg.c_str(),__FILE__,__LINE__); 
+      }
 
-  Boolean Found = FALSE;
+    return bcs_[level][i]; 
+  }
+
+  StdVector<Elem*>& BCs::getEdgesBC(const std::string color, const Integer lev)
+  {
+    ENTER_FCN( "BCs::getEdgesBC" );
+
+    Boolean Found = FALSE;
+
+    Integer level=lev;
+    if (lev==-1) level=toplevel_;
+    Integer i;
+    for (i=0; i<color_edges_.GetSize(); i++)
+      if (color==color_edges_[i]) 
+        {
+          Found = TRUE;
+          break;
+        }
+  
+    if (!Found)
+      {
+        std::string ErrMsg = "Edges for level \'" + color + "\' could not be found!";
+        Error(ErrMsg.c_str(),__FILE__,__LINE__); 
+      }
+
+    return bcsEdges_[level][i];
+  }
+
+  StdVector<Elem*>& BCs::getFacesBC(const std::string color, const Integer lev)
+  {
+    ENTER_FCN( "BCs::getFacesBC" );
+
+    Boolean Found = FALSE;
  
-  Integer level=lev;
-  if (lev==-1) level=toplevel_;
-  Integer i;
+    Integer level=lev;
+    if (lev==-1) level=toplevel_;
+    Integer i;
 
- if (color_faces_.GetSize())
-  for (i=0; i<color_faces_.GetSize(); i++)
-    if (color==color_faces_[i]) 
+    if (color_faces_.GetSize())
+      for (i=0; i<color_faces_.GetSize(); i++)
+        if (color==color_faces_[i]) 
+          {
+            Found = TRUE;
+            return bcsFaces_[level][i];
+            break;
+          }
+
+    if (color_edges_.GetSize())
+      for (i=0; i<color_edges_.GetSize(); i++)
+        if (color==color_edges_[i]) 
+          {
+            Found = TRUE;
+            return bcsEdges_[level][i];
+            break;
+          }
+
+    if (!Found)
       {
-	Found = TRUE;
-	return bcsFaces_[level][i];
-	break;
+        std::string ErrMsg = "Faces nor Edges for level \'" + color + "\' could not be found!";
+        Error(ErrMsg.c_str(),__FILE__,__LINE__); 
       }
-
- if (color_edges_.GetSize())
-  for (i=0; i<color_edges_.GetSize(); i++)
-    if (color==color_edges_[i]) 
-      {
-	Found = TRUE;
-	return bcsEdges_[level][i];
-	break;
-      }
-
-   if (!Found)
-    {
-      std::string ErrMsg = "Faces nor Edges for level \'" + color + "\' could not be found!";
-      Error(ErrMsg.c_str(),__FILE__,__LINE__); 
-    }
    
 
-  return bcsFaces_[level][i];
-}
+    return bcsFaces_[level][i];
+  }
 
-Integer BCs::GetNumNodesLevel(const std::string color, const Integer lev)
-{
-  ENTER_FCN( "BCs::GetNumNodesLevel" );
+  Integer BCs::GetNumNodesLevel(const std::string color, const Integer lev)
+  {
+    ENTER_FCN( "BCs::GetNumNodesLevel" );
 
-   Boolean Found = FALSE;
+    Boolean Found = FALSE;
 
-   Integer level=lev;
-   if (lev==-1) level=toplevel_; 
-   Integer i;
-   for (i=0; i<levels_.GetSize(); i++)
-     if (color==levels_[i]) 
-       {
-	 Found = TRUE;
-	 break;
-       }
+    Integer level=lev;
+    if (lev==-1) level=toplevel_; 
+    Integer i;
+    for (i=0; i<levels_.GetSize(); i++)
+      if (color==levels_[i]) 
+        {
+          Found = TRUE;
+          break;
+        }
 
-   if (!Found)
-     {
-       std::string ErrMsg = "Nodes for level \'" + color
-	 + "\' could not be found!";
-       Error( ErrMsg.c_str(), __FILE__, __LINE__ ); 
-     }
+    if (!Found)
+      {
+        std::string ErrMsg = "Nodes for level \'" + color
+          + "\' could not be found!";
+        Error( ErrMsg.c_str(), __FILE__, __LINE__ ); 
+      }
 
-   return bcs_[level][i].size();
+    return bcs_[level][i].size();
 
-}
+  }
 
-void BCs :: Update(Grid * ptgrid)
-{   
-  ENTER_FCN( "BCs::Update" );
+  void BCs :: Update(Grid * ptgrid)
+  {   
+    ENTER_FCN( "BCs::Update" );
     toplevel_++;
     bcs_[toplevel_]=new std::list<Integer>[levels_.GetSize()]; 
     if (!bcs_[toplevel_]) Error(" Not enought memory",__FILE__,__LINE__); 
 
     ptgrid->UpdateBCs(bcs_[toplevel_]); 
-}
+  }
 
-void BCs :: printBCs(const Integer alevel)
-{
-  ENTER_FCN( "BCs::printBCs" );
-  Integer level=alevel;
-  if (level==-1) level=toplevel_;  
+  void BCs :: printBCs(const Integer alevel)
+  {
+    ENTER_FCN( "BCs::printBCs" );
+    Integer level=alevel;
+    if (level==-1) level=toplevel_;  
 
-  Integer i,ilevel;
-  for (i=0; i<levels_.GetSize(); i++)
-    {
-      for (std::list<Integer>::const_iterator p=bcs_[ilevel][i].begin(); p!=bcs_[ilevel][i].end(); p++)
-	{ std::cout << (*p) << std::endl;} 
-      
-    } 
-}
-
-StdVector<Elem*> BCs::getNeighElemsForSurfaces(const std::string color, const Integer lev
-)
-{
-  ENTER_FCN( "BCs::getNeighElems" );
-
-  Boolean Found = FALSE;
-
-  Integer level=lev;
-  if (lev==-1) level=toplevel_;
-  Integer i;
-  for (i=0; i<color_neighelems_.GetSize(); i++)
-    if (color==color_neighelems_[i]) 
+    Integer i,ilevel;
+    for (i=0; i<levels_.GetSize(); i++)
       {
-	Found = TRUE;
-	break;
+        for (std::list<Integer>::const_iterator p=bcs_[ilevel][i].begin(); p!=bcs_[ilevel][i].end(); p++)
+          { std::cout << (*p) << std::endl;} 
+      
+      } 
+  }
+
+  StdVector<Elem*> BCs::getNeighElemsForSurfaces(const std::string color, const Integer lev
+                                                 )
+  {
+    ENTER_FCN( "BCs::getNeighElems" );
+
+    Boolean Found = FALSE;
+
+    Integer level=lev;
+    if (lev==-1) level=toplevel_;
+    Integer i;
+    for (i=0; i<color_neighelems_.GetSize(); i++)
+      if (color==color_neighelems_[i]) 
+        {
+          Found = TRUE;
+          break;
+        }
+
+    if (!Found)
+      {
+        std::string ErrMsg = "Neighbor to surface Elements for level \'" + color + "\' could not be found!";
+        Error(ErrMsg.c_str(),__FILE__,__LINE__); 
       }
 
-  if (!Found)
-    {
-      std::string ErrMsg = "Neighbor to surface Elements for level \'" + color + "\' could not be found!";
-      Error(ErrMsg.c_str(),__FILE__,__LINE__); 
-    }
-
-  return bcsNeighElems_[level][i];
-}
+    return bcsNeighElems_[level][i];
+  }
 
 }
