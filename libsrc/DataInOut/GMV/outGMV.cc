@@ -68,10 +68,10 @@ WriteResultsGMV :: WriteResultsGMV(const Char * const filename,
 
 #else
  // Output format can be either ascii (default) or binary
- ascii_ = !params->IsSet( "binaryFormat", "GMV" );
+ ascii_ = !params->IsSet( "binaryFormat", "gmv" );
  
  // Does the grid change over time, or can we use a fixed grid
- fixedgrid_ = params->IsSet( "fixedGrid", "GMV" );
+ fixedgrid_ = params->IsSet( "fixedGrid", "gmv" );
 
 #endif
 
@@ -287,13 +287,38 @@ void WriteResultsGMV::WriteCells(const Integer alevel)
 		output->write((char*)&nn,sizeof(Integer));
 	      }
 	      break;
+
+	    case 15:
+	      if (ascii_)
+		(*output) << "pprism15 15" << std::endl;
+	      else {
+		(*output) << "pprism15";
+		Integer nn=15 ;
+		output->write((char*)&nn,sizeof(Integer));
+	      }
+
+	      // Note: Due to a bug up to the current version of GMV (v3.5)
+	      // we have to add a 16. node for the wedge element by simply
+	      // copying the last node
+	      connect.Push_back(connect[connect.GetSize()-1]);
+
 	    case 8:
 	      if (ascii_)
-		(*output) << "hex 8" << std::endl;
+		(*output) << "phex8 8" << std::endl;
 	      else 
 		{
-		  (*output) << "hex     ";
+		  (*output) << "phex8   ";
 		  Integer nn=8;
+		  output->write((char*)&nn,sizeof(Integer));
+		}
+	      break;
+	    case 20:
+	      if (ascii_)
+		(*output) << "phex20 20" << std::endl;
+	      else 
+		{
+		  (*output) << "phex20  ";
+		  Integer nn=20;
 		  output->write((char*)&nn,sizeof(Integer));
 		}
 	      break;
