@@ -2,6 +2,7 @@
 Doc/DoxygenConfig/doxygen_manual.pdf -text svneol=unset#application/pdf
 /Makefile -text
 XML/CFS.xsd -text
+XML/Schemas/CFS_Domain.xsd -text
 XML/Schemas/CFS_LinearSystem.xsd -text
 XML/Schemas/CFS_PDEbasic.xsd -text
 XML/Schemas/CFS_PDEelectrostatic.xsd -text
