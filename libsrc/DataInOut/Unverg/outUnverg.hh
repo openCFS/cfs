@@ -2,42 +2,57 @@
 #define FILE_OUTRESULTUNVERG_2001
 
 #include "grid.hh"
+#include "writeresults.hh"
 
 namespace CoupledField
 {
-///
-template <class Dim>
-class OutResultUnverg
+
+//! Class for writing information about grid and results in unverg-format file
+
+template<class Dim>
+class WriteResultsUnverg: virtual public WriteResults<Dim>
 {
+
 public:
   ///
-  OutResultUnverg(const Char * const filename); 
+  WriteResultsUnverg(const Char * const filename); 
   ///
-  void Create(Grid<Dim> * ptgrid, const Integer level);
+  ~WriteResultsUnverg();
+  
+   /// initialization with grid
+  virtual void Init(Grid<Dim> * aptgrid);
+
+  /// write information about grid on level i in file
+  virtual void WriteGrid(const Integer level);
+
+  /// write information about the solution
+  virtual void WriteSolution(const Vector<Double> & sol, const Integer step, const Integer time);
+
+  /// write information about first derivatives of the solution
+  virtual void WriteFirstDerSolution(const Vector<Double> & sol, const Integer step, const Integer time);
+
+  /// write information about second derivatives of the solution
+   virtual void WriteSecondDerSolution(const Vector<Double> & sol, const Integer step, const Integer time);
+
+private:
   ///
-  void Dataset666(Grid<Dim> * ptgrid, const Integer level);
+  void Dataset666(const Integer level);
   ///
-  void Dataset781(Grid<Dim> * ptgrid, const Integer level);   
+  void Dataset781(const Integer level);   
   ///
-  void Dataset780(Grid<Dim> * ptgrid, const Integer level);
+  void Dataset780(const Integer level);
   ///
   void Dataset55(const std::string & title, const Vector<Double> & x, const Integer step, const Double time);
   ///
   void Dataset56(); 
-  ///
-  ~OutResultUnverg();
- 
-private:
-  ///
-  std::ofstream * output;
   ///
   Dim * ptCoordinate;
  
 };
 
 #ifdef __GNUC__
-template class OutResultUnverg<Point2D>;
-template class OutResultUnverg<Point3D>;
+template class WriteResultsUnverg<Point2D>;
+template class WriteResultsUnverg<Point3D>;
 #endif
 
 } // end of namespace

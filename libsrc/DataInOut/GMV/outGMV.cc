@@ -8,10 +8,11 @@ namespace CoupledField
 {
 
 template<class Dim>
-OutGMV<Dim> :: OutGMV(const Char * filename, Grid<Dim> * aptgrid)
+WriteResultsGMV<Dim> :: WriteResultsGMV(const Char * filename, Grid<Dim> * aptgrid)
+: WriteResults<Dim>()
 {
 #ifdef TRACE
-  (*trace) << "entering OutGMV :: OutGMV" << std::endl;
+  (*trace) << "entering WriteResultsGMV :: WriteResultsGMV" << std::endl;
 #endif
 
  Char * help=new Char[20];
@@ -28,10 +29,10 @@ OutGMV<Dim> :: OutGMV(const Char * filename, Grid<Dim> * aptgrid)
 }
 
 template<class Dim>
-OutGMV<Dim> ::~OutGMV()
+WriteResultsGMV<Dim> ::~WriteResultsGMV()
 {
 #ifdef TRACE
-  (*trace) << "entering OutGMV::~ OutGMV" << std::endl;
+  (*trace) << "entering WriteResultsGMV::~ WriteResultsGMV" << std::endl;
 #endif
 
  // write keyword
@@ -41,13 +42,13 @@ OutGMV<Dim> ::~OutGMV()
 }
 
 template<class Dim>
-void OutGMV<Dim> :: WriteHeader()
+void WriteResultsGMV<Dim> :: WriteHeader()
 {
  (*output) << "gmvinput" << " ascii" << std::endl;
 }
 
 template<>
-void OutGMV<Point2D> :: WriteNodes(const Integer alevel)
+void WriteResultsGMV<Point2D> :: WriteNodes(const Integer alevel)
 {
   Integer level=alevel;
 
@@ -108,7 +109,7 @@ void OutGMV<Point2D> :: WriteNodes(const Integer alevel)
 }
 
 template<>
-void OutGMV<Point3D> :: WriteNodes(const Integer alevel)
+void WriteResultsGMV<Point3D> :: WriteNodes(const Integer alevel)
 {
   Integer level=alevel;
 
@@ -169,7 +170,7 @@ void OutGMV<Point3D> :: WriteNodes(const Integer alevel)
 }
 
 template<>
-void OutGMV<Point2D>:: WriteCells(const Integer alevel) 
+void WriteResultsGMV<Point2D>:: WriteCells(const Integer alevel) 
 {
   Integer level=alevel;
 
@@ -216,7 +217,7 @@ void OutGMV<Point2D>:: WriteCells(const Integer alevel)
 }
 
 template<>
-void OutGMV<Point3D>:: WriteCells(const Integer alevel)
+void WriteResultsGMV<Point3D>:: WriteCells(const Integer alevel)
 {
   Integer level=alevel;
 
@@ -263,13 +264,36 @@ void OutGMV<Point3D>:: WriteCells(const Integer alevel)
 }
 
 template<class Dim>
-void OutGMV<Dim>::Write(const Integer level)
+void WriteResultsGMV<Dim>::WriteGrid(const Integer level)
 {
 
  WriteHeader();
  WriteNodes(level);
  WriteCells(level);
+}
 
+template<class Dim>
+void WriteResultsGMV<Dim>::WriteSolution(const Vector<Double> & sol, const Integer step, const Integer time)
+{
+;
+}
+
+template<class Dim>
+void WriteResultsGMV<Dim>::WriteFirstDerSolution(const Vector<Double> & sol, const Integer step, const Integer time)
+{
+;
+}
+
+template<class Dim>
+void WriteResultsGMV<Dim>::WriteSecondDerSolution(const Vector<Double> & sol, const Integer step, const Integer time)
+{
+;
+}
+
+template<class Dim>
+void WriteResultsGMV<Dim>::Init(Grid<Dim> * aptgrid)
+{
+ptgrid=aptgrid;
 }
 
 } // end of namespace

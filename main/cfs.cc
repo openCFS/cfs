@@ -49,7 +49,7 @@ void main(int argc, char *argv[])
 
   TimeFunc * ptTimeFunc=new TimeFunc(ptInputfile);
 
-  OutResultUnverg<Point2D> * ptUnverg=new OutResultUnverg<Point2D>(name); 
+  WriteResults<Point2D> * ptUnverg=new WriteResultsUnverg<Point2D>(name); 
 
 /*
   Integer data[1];

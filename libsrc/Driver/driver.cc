@@ -33,7 +33,7 @@ Driver<Dim>::Driver(FileType * const aptFileType, Integer anummesh, Material * a
 }
 
 template<class Dim>
-void Driver<Dim>::SolveNewmarkMethod(OutResultUnverg<Dim> * ptUnverg)
+void Driver<Dim>::SolveNewmarkMethod(WriteResults<Dim> * ptOutput)
 {
 #ifdef TRACE
   (*trace) << "entering Driver :: SolveNewmarkMethod" << std::endl;
@@ -41,15 +41,16 @@ void Driver<Dim>::SolveNewmarkMethod(OutResultUnverg<Dim> * ptUnverg)
  
 /// Save the grid before a uniform refinement in a separate unverg-file 
 /*
-  OutResultUnverg<Dim> * ptUnvergPreGrid=new OutResultUnverg<Dim>("grid_pre"); 
-  ptUnvergPreGrid->Create(ptgrid,0);  
-  if (ptUnvergPreGrid) delete ptUnvergPreGrid;
+  OutResultUnverg<Dim> * ptOutputPreGrid=new OutResultUnverg<Dim>("grid_pre"); 
+  ptOutputPreGrid->Create(ptgrid,0);  
+  if (ptOutputPreGrid) delete ptOutputPreGrid;
   ptgrid->SubdivideUniform(0);
 */
-   ptUnverg->Create(ptgrid,0);
+   ptOutput->Init(ptgrid);
+   ptOutput->WriteGrid(0);
 
-   OutGMV<Dim> * ptGMV=new OutGMV<Dim>("test",ptgrid);
-   ptGMV->Write(0);
+   WriteResultsGMV<Dim> * ptGMV=new WriteResultsGMV<Dim>("test",ptgrid);
+   ptGMV->WriteGrid(0);
    delete ptGMV;
 
 //  Double endtime=1.0;   ////////////////////////////////////////////
@@ -65,7 +66,7 @@ void Driver<Dim>::SolveNewmarkMethod(OutResultUnverg<Dim> * ptUnverg)
 
       ptAcPDE->SolveNewmarkMethodStatic(t);
 
-      PrintResultsUnverg(ptUnverg, ptAcPDE,i,t);  
+      WriteResultsInFile(ptOutput, ptAcPDE,i,t);  
     }
 }
 
@@ -80,19 +81,11 @@ Driver<Dim> :: ~Driver()
 }
 
 template<class Dim>
-void Driver<Dim> :: PrintResultsUnverg(OutResultUnverg<Dim> * ptUnverg, PDE * ptPDE, const Integer step, const Double t)
+void Driver<Dim> :: WriteResultsInFile(WriteResults<Dim> * ptOutput, PDE * ptPDE, const Integer step, const Double t)
 {
-
-      ptUnverg->Dataset55(" fluid potential", ptPDE->getS(), step+1, t);
-
-      if (SaveDer1)
-      ptUnverg->Dataset55(" fluid potential, 1st deriv., ", ptPDE->getS1(),
-step+1, t);
-
-      if (SaveDer2)
-      ptUnverg->Dataset55(" fluid potential, 2nd deriv., ", ptPDE->getS2(),
-step+1, t);
-
-}
+  ptOutput->WriteSolution(ptPDE->getS(),step,t);
+  ptOutput->WriteFirstDerSolution(ptPDE->getS1(),step,t);
+  ptOutput->WriteSecondDerSolution(ptPDE->getS2(),step,t);
+} 
 
 } // end of namespace

@@ -17,7 +17,7 @@ namespace CoupledField
     ///
     Driver(FileType * const aptFileType, Integer anummesh, Material * ptMaterial);
     ///
-    void SolveNewmarkMethod(OutResultUnverg<Dim> * aptUnverg);
+    void SolveNewmarkMethod(WriteResults<Dim> * aptUnverg);
     ///
     virtual ~Driver();
   
@@ -41,7 +41,7 @@ namespace CoupledField
 
   //! Output results(solution, first, second derivatives of solution on current step) in .unverg format
 
-   void PrintResultsUnverg(OutResultUnverg<Dim> *, PDE * , const Integer, const Double );
+   void WriteResultsInFile(WriteResults<Dim> *, PDE * , const Integer, const Double );
 
   };
 
