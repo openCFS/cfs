@@ -71,8 +71,7 @@ endif
 ifeq ("$(XMLPARAMS)","yes")
 ifeq ("$(XMLSCHEMA)","")
 
-# XMLSCHEMA = $(CVSEXTERNAL)/CFS++XML
- XMLSCHEMA = /home/lse10/lse/mescobar/CFS++XML
+XMLSCHEMA = $(CVSEXTERNAL)/CFS++XML
 
 endif
 endif
