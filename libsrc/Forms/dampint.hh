@@ -15,7 +15,7 @@ public:
 	\param aptelem pointer to Elems
 	\param ndofs number of dofs
 	*/
-  DampInt(BaseElem * aptelem, const ShortInt ndofs);
+  DampInt(BaseFE * aptelem, const ShortInt ndofs);
 
   //! Deconstructor
   virtual ~DampInt();

@@ -54,10 +54,12 @@ extern ConfFile * conf; //name.conf
   //! indicator for info-file. TRUE, if we need it, FALSE, otherwise
 extern Boolean InfoPrint;
 
-class BaseElem;
+  //class BaseElem;
+  class BaseFE;
 
   //! pointers to derived classes of BaseElem. it is initialized in grid.hh(grid.cc). it is used, when we read information about elements from mesh and create pointer to class with description FE element.
-extern BaseElem * ptQ, *ptTr, *ptTet, *ptL1, *ptHexa;
+  //extern BaseElem * ptQ, *ptTr, *ptTet, *ptL1, *ptHexa;
+  extern BaseFE * ptQ;
 
 }
 

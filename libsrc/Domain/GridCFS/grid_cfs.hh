@@ -87,13 +87,18 @@ public:
   //! returns all names of the subdomains contained in teh grid
   std::vector<std::string>* GetAllSDs(){ return &sd_;}
 
+  void GetCoordNodesElem(const Vector<Integer> connect, Point<dim> * ptCoord, const Integer level); 
+
+
   //! gets the coordinates of the element nodes
   /*!
     \param connect (input) global node numbers of element
-    \param ptCoord (output) coordinates of the element nodes
+    \param ptCoord (output) coordinates of the element nodes (nrNodes \f$\times$ spaceDim);
     \param level (input) index for multilevel hierarchy
   */
-  void GetCoordNodesElem(const Vector<Integer> connect, Point<dim> * ptCoord, const Integer level); 
+  virtual void GetCoordNodesElemMat(const Vector<Integer> connect, Matrix<Double>& coordMat, const Integer level);
+  
+
 
  //! return pointer to vector of element-neighbors for the element with number noOfElem
   /*!

@@ -3,18 +3,19 @@
 
 #include "baseform.hh" 
 
+
 namespace CoupledField
 {
 /// class for calculation of Mass matrix
 template<Integer dim>
-class MassInt : public BaseForm<dim>
+class MassInt1 : public BaseForm<dim>
 {
 public:
   /// Constructor with pointer to BaseElem
-  MassInt(BaseElem * aptelem, const ShortInt ndofs);
+  MassInt1(BaseFE * aptelem, const ShortInt ndofs);
 
   /// Deconstructor
-  virtual ~MassInt();
+  virtual ~MassInt1();
 
   /// Function for calculation mass matrix 
   virtual void CalcElemMatrix(Point<dim> * ptCoord, Matrix<Double> &);

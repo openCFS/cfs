@@ -48,6 +48,13 @@ class Jacobian
                     derivative with respect to z-coordiante
     */
     void GetJinvZ(Vector<Double> & JinvZ);
+
+
+    //! Returns the inverse Jacobian
+    /*! 
+       \param Jinv inverse Jacobian (used for computation of global derivative)
+    */
+    void GetJinv(Matrix<Double> & jInv);
 };
 
 #ifdef __GNUC__

@@ -6,6 +6,7 @@
 #include <Elements/2D/quad2.hh>
 #include <Elements/2D/triangle1.hh>
 #include <Elements/2D/triangle2.hh>
+#include <Elements/2D/quad1fe.hh>
 #include <Elements/3D/tetrahedral1.hh>
 #include <Elements/3D/hexahedral1.hh>
 

@@ -7,7 +7,7 @@ namespace CoupledField
 {
 
 template <Integer dim>
-BaseForm<dim> :: BaseForm(BaseElem * aptelem) 
+BaseForm<dim> :: BaseForm(BaseFE * aptelem) 
 {
 #ifdef TRACE
   (*trace) << "entering BaseForm::BaseForm" << std::endl;
@@ -26,180 +26,180 @@ BaseForm<dim> :: ~BaseForm()
 ;
 }
 
-template <Integer dim>
-void BaseForm<dim> :: CalcShapeFncDxShapeFncDx(Point<dim> * ptCoord, 
-                                      Matrix<Double> & Result)
-{
-#ifdef TRACE
-  (*trace) << "entering BaseForm::CalcShapeFncDyShapeFncDy" << std::endl;
-#endif
+// template <Integer dim>
+// void BaseForm<dim> :: CalcShapeFncDxShapeFncDx(Point<dim> * ptCoord, 
+//                                       Matrix<Double> & Result)
+// {
+// #ifdef TRACE
+//   (*trace) << "entering BaseForm::CalcShapeFncDyShapeFncDy" << std::endl;
+// #endif
 
-  Integer l=ptelem->GetNumIntPoints(); // l - number of integration points
-  Integer n=ptelem->GetNumNodes(); // n - number of nodes in element
+//   Integer l=ptelem->GetNumIntPoints(); // l - number of integration points
+//   Integer n=ptelem->GetNumNodes(); // n - number of nodes in element
 
-  Jacobian<dim>  J;
-  Vector<Double> JinvX;
+//   Jacobian<dim>  J;
+//   Vector<Double> JinvX;
  
-  Vector<Double> * help=new Vector<Double>[n];
-  Integer i,ii,iii;
+//   Vector<Double> * help=new Vector<Double>[n];
+//   Integer i,ii,iii;
  
-  Result.Resize(n,n);
- 
-
-  Vector<Double> * intWeights=ptelem->GetIntWeights();  
-
-  for (i=0; i<l; i++)
-    {
-
-      ptelem->CalcJacobian(J,i,ptCoord);
-
-      J.GetJinvX(JinvX);
-
-      for (ii=0; ii<n; ii++)
-	{ 
-          ptelem->GetGradientShFnc(help[ii],ii+1,i);
-        }
+//   Result.Resize(n,n);
  
 
-      for (ii=0; ii < n; ii++)
-	for (iii=0; iii<ii+1; iii++)
-	  {
-	    if (intWeights)  
-	      Result[ii][iii]+=(help[ii]*JinvX)*(help[iii]*JinvX)*J.detJ*(*intWeights)[i];
-	    else
-	      Result[ii][iii]+=(help[ii]*JinvX)*(help[iii]*JinvX)*J.detJ;
-	  }
+//   Vector<Double> * intWeights=ptelem->GetIntWeights();  
 
-    }
+//   for (i=0; i<l; i++)
+//     {
 
-  for (ii=0; ii<n; ii++)
-    for (iii=0; iii<ii; iii++)
-      Result[iii][ii]=Result[ii][iii];
+//       ptelem->CalcJacobian(J,i,ptCoord);
 
-  delete [] help;
-}
+//       J.GetJinvX(JinvX);
 
-template <Integer dim>
-void BaseForm<dim> :: CalcShapeFncDyShapeFncDy(Point<dim> * ptCoord,
-                           Matrix<Double> & Result)
-{
-#ifdef TRACE
-  (*trace) << "entering BaseForm::CalcShapeFncDyShapeFncDy" << std::endl;
-#endif
-  Integer l=ptelem->GetNumIntPoints();
-  Integer n=ptelem->GetNumNodes();
-
-  Jacobian<dim>  J;
-  Vector<Double> JinvY;
+//       for (ii=0; ii<n; ii++)
+// 	{ 
+//           ptelem->GetGradientShFnc(help[ii],ii+1,i);
+//         }
  
-  Vector<Double> * help=new Vector<Double>[n];
-  Integer i,ii,iii;
 
-  Result.Resize(n,n);
+//       for (ii=0; ii < n; ii++)
+// 	for (iii=0; iii<ii+1; iii++)
+// 	  {
+// 	    if (intWeights)  
+// 	      Result[ii][iii]+=(help[ii]*JinvX)*(help[iii]*JinvX)*J.detJ*(*intWeights)[i];
+// 	    else
+// 	      Result[ii][iii]+=(help[ii]*JinvX)*(help[iii]*JinvX)*J.detJ;
+// 	  }
 
-  Vector<Double> * intWeights=ptelem->GetIntWeights(); 
+//     }
 
-  for (i=0; i<l; i++)
-    {
+//   for (ii=0; ii<n; ii++)
+//     for (iii=0; iii<ii; iii++)
+//       Result[iii][ii]=Result[ii][iii];
+
+//   delete [] help;
+// }
+
+// template <Integer dim>
+// void BaseForm<dim> :: CalcShapeFncDyShapeFncDy(Point<dim> * ptCoord,
+//                            Matrix<Double> & Result)
+// {
+// #ifdef TRACE
+//   (*trace) << "entering BaseForm::CalcShapeFncDyShapeFncDy" << std::endl;
+// #endif
+//   Integer l=ptelem->GetNumIntPoints();
+//   Integer n=ptelem->GetNumNodes();
+
+//   Jacobian<dim>  J;
+//   Vector<Double> JinvY;
+ 
+//   Vector<Double> * help=new Vector<Double>[n];
+//   Integer i,ii,iii;
+
+//   Result.Resize(n,n);
+
+//   Vector<Double> * intWeights=ptelem->GetIntWeights(); 
+
+//   for (i=0; i<l; i++)
+//     {
   
-      ptelem->CalcJacobian(J,i,ptCoord);  
+//       ptelem->CalcJacobian(J,i,ptCoord);  
 
-      J.GetJinvY(JinvY);
+//       J.GetJinvY(JinvY);
 
-      for (ii=0; ii<n; ii++)
-        {
-          ptelem->GetGradientShFnc(help[ii],ii+1,i);
-        }
+//       for (ii=0; ii<n; ii++)
+//         {
+//           ptelem->GetGradientShFnc(help[ii],ii+1,i);
+//         }
 
-      for (ii=0; ii < n; ii++)
-	for (iii=0; iii<ii+1; iii++)
-	  {
-	    if (intWeights) 
-	      Result[ii][iii]+=(help[ii]*JinvY)*(help[iii]*JinvY)*J.detJ*(*intWeights)[i];
-	    else
-	      Result[ii][iii]+=(help[ii]*JinvY)*(help[iii]*JinvY)*J.detJ;
-	  }
+//       for (ii=0; ii < n; ii++)
+// 	for (iii=0; iii<ii+1; iii++)
+// 	  {
+// 	    if (intWeights) 
+// 	      Result[ii][iii]+=(help[ii]*JinvY)*(help[iii]*JinvY)*J.detJ*(*intWeights)[i];
+// 	    else
+// 	      Result[ii][iii]+=(help[ii]*JinvY)*(help[iii]*JinvY)*J.detJ;
+// 	  }
 
-    }
+//     }
  
-  for (ii=0; ii<n; ii++)
-    for (iii=0; iii<ii; iii++)
-      Result[iii][ii]=Result[ii][iii];
+//   for (ii=0; ii<n; ii++)
+//     for (iii=0; iii<ii; iii++)
+//       Result[iii][ii]=Result[ii][iii];
 
-  delete [] help;
-}
+//   delete [] help;
+// }
 
-template <Integer dim>
-void BaseForm<dim> :: CalcShapeFncShapeFnc(Point<dim> * ptCoord,
-                                 Matrix<Double> & Result)
-{
-#ifdef TRACE
-  (*trace) << "entering BaseForm::CalcShapeFncShapeFnc" << std::endl;
-#endif
+// template <Integer dim>
+// void BaseForm<dim> :: CalcShapeFncShapeFnc(Point<dim> * ptCoord,
+//                                  Matrix<Double> & Result)
+// {
+// #ifdef TRACE
+//   (*trace) << "entering BaseForm::CalcShapeFncShapeFnc" << std::endl;
+// #endif
 
-  Integer l=ptelem->GetNumIntPoints();
-  Integer n=ptelem->GetNumNodes();
+//   Integer l=ptelem->GetNumIntPoints();
+//   Integer n=ptelem->GetNumNodes();
 
-  Jacobian<dim> J; 
-  Integer i,ii,iii;
+//   Jacobian<dim> J; 
+//   Integer i,ii,iii;
  
-  Result.Resize(n,n);
+//   Result.Resize(n,n);
  
-  Vector<Double> * Sf=new Vector<Double> [n];
-  for (i=0; i < n; i++)
-    Sf[i]=ptelem->GetShFncAtIP(i+1);
+//   Vector<Double> * Sf=new Vector<Double> [n];
+//   for (i=0; i < n; i++)
+//     Sf[i]=ptelem->GetShFncAtIP(i+1);
 
-  Vector<Double> * intWeights=ptelem->GetIntWeights();  
+//   Vector<Double> * intWeights=ptelem->GetIntWeights();  
  
-  for (i=0; i<l; i++)
-    {
-      ptelem->CalcJacobian(J, i, ptCoord, FALSE);
+//   for (i=0; i<l; i++)
+//     {
+//       ptelem->CalcJacobian(J, i, ptCoord, FALSE);
  
-      for (ii=0; ii < n; ii++)
-	for (iii=0; iii<ii+1; iii++)
-	  { 
-	    if (intWeights)	  
-	      Result[ii][iii]+=J.detJ*Sf[ii][i]*Sf[iii][i]*(*intWeights)[i];
-	    else
-	      Result[ii][iii]+=J.detJ*Sf[ii][i]*Sf[iii][i];
-	  }
+//       for (ii=0; ii < n; ii++)
+// 	for (iii=0; iii<ii+1; iii++)
+// 	  { 
+// 	    if (intWeights)	  
+// 	      Result[ii][iii]+=J.detJ*Sf[ii][i]*Sf[iii][i]*(*intWeights)[i];
+// 	    else
+// 	      Result[ii][iii]+=J.detJ*Sf[ii][i]*Sf[iii][i];
+// 	  }
 
-    }
+//     }
 
-  for (ii=0; ii<n; ii++)
-    for (iii=0; iii<ii; iii++)
-      Result[iii][ii]=Result[ii][iii];
+//   for (ii=0; ii<n; ii++)
+//     for (iii=0; iii<ii; iii++)
+//       Result[iii][ii]=Result[ii][iii];
 
-  delete [] Sf;
-}
+//   delete [] Sf;
+// }
 
 
-template <Integer dim>
-Double BaseForm<dim> :: FuncAtIP(const ShortInt iIP, RHS f)
-{
-#ifdef TRACE
-  (*trace) <<  "entering BaseForm::FuncAtIP" << std::endl;
-#endif
+// template <Integer dim>
+// Double BaseForm<dim> :: FuncAtIP(const ShortInt iIP, RHS f)
+// {
+// #ifdef TRACE
+//   (*trace) <<  "entering BaseForm::FuncAtIP" << std::endl;
+// #endif
 
-  Double result;
+//   Double result;
 
-  switch(dim)
-    { 
-    case 2:
-      Double x,y;
+//   switch(dim)
+//     { 
+//     case 2:
+//       Double x,y;
 
-      x=ptelem->GetIntPointsX(iIP);
-      y=ptelem->GetIntPointsY(iIP);
-      result=f(x,y,0);
+//       x=ptelem->GetIntPointsX(iIP);
+//       y=ptelem->GetIntPointsY(iIP);
+//       result=f(x,y,0);
 
-      break;
+//       break;
 
-    case 3:
-      Error("3D has not implemented yet",__FILE__,__LINE__);
-    }
+//     case 3:
+//       Error("3D has not implemented yet",__FILE__,__LINE__);
+//     }
 
-  return result;
-}
+//   return result;
+// }
 
 template <Integer dim>
 void BaseForm<dim>::CalcElemMatrix(Point<dim> * ptCoord, Matrix<Double> & StiffMat) 

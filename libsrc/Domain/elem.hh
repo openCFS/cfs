@@ -1,7 +1,8 @@
 #ifndef FILE_CFS_ELEM_2002
 #define FILE_CFS_ELEM_2002
 
-#include "Elements/baseelem.hh"
+//#include "Elements/baseelem.hh"
+#include "Elements/basefe.hh"
 
 namespace CoupledField
 {
@@ -11,7 +12,7 @@ struct Elem
 {
 public:
   //! pointer to BaseElem. FE-characteristics of element
-  BaseElem * ptElem;
+  BaseFE * ptElem;
   //! connection array
   Vector<Integer> connect;
   //! name of subdomain, to which this element is belogned

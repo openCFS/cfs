@@ -1,4 +1,8 @@
 #make the libs
+
+gmv:
+	@cd $(LIBSRC_DIR)/DataInOut/GMV; $(MAKE) -f Makefile
+
 driver:
 	@cd $(LIBSRC_DIR)/Driver; $(MAKE) -f Makefile 
 
@@ -46,9 +50,6 @@ ansysfile:
 
 unverg:
 	@cd $(LIBSRC_DIR)/DataInOut/Unverg; $(MAKE) -f Makefile
-
-gmv:
-	@cd $(LIBSRC_DIR)/DataInOut/GMV; $(MAKE) -f Makefile
 
 algsys-own:
 	@cd $(LIBSRC_DIR)/AlgebraicSystem/LinAlg; $(MAKE) -f Makefile

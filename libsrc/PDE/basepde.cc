@@ -75,7 +75,7 @@ void BasePDE::SetupMatrixGraph(Integer numeq, Integer graphtype)
   algsys_->CreateGraph(numeq,graphtype);
 
   // set the graph - connectivity matrix
-  BaseElem * ptElem; 
+  BaseFE * ptElem; 
   Integer nsub, iel, fe_type;
   Vector<Integer> connecth;
 

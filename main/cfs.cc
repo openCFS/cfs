@@ -31,10 +31,11 @@ using namespace CoupledField;
 
 Integer main(int argc, char *argv[])
 {
-  std::cout << " Wellcome to sample session. " << argc << std::endl ;
+  std::cout << " Welcome to sample session. " << argc << std::endl ;
   std::cout << " \033[36mUsage\033[0m : cfs [-i] name "<< std::endl 
 	    << "\t \033[36m i \033[0m: to create info-file " << std::endl
-	    << "\t \033[36m name \033[0m: name of input file without extension" << std::endl << std::endl;
+	    << "\t \033[36m name \033[0m: name of input file without extension" 
+	    << std::endl << std::endl;
 
   if (argc < 2) Error("Invalid running of cfs. See Usage above.");
 
@@ -47,11 +48,13 @@ Integer main(int argc, char *argv[])
   MyClock oClockTotal;
   oClockTotal.ClockCount(MyClock::beg);
 
+
   Material * ptMaterial=NULL;
   std::string material;
   conf->get("material_file",material);
   if (material != "non") ptMaterial=new Material(material.c_str());
-	
+
+
   FileType * ptInputfile=ptDefineFiles->Create_ptFileType();
 
   WriteResults * ptOut=ptDefineFiles->Create_ptWriteResults();

@@ -28,6 +28,35 @@ public:
   //!
   virtual void SetIntPoints()=0;
 
+
+
+  /// get matrix of shape functions in all integration points
+  /*! 
+    @param shapeMat: nrIntPts \f$\times \f$ nrSpaceDim
+  */
+  virtual void GetShapeMatIP(Matrix<Double> shapeMat) //=0;
+  { Error("Not implemented ",__FILE__,__LINE__);}
+
+
+
+  /// get matrix of shape functions derived after local coordinates in all integration points
+  /*! 
+    @param derivShapeMat: nrIntPts \f$\times \f$ nrSpaceDim
+  */
+  virtual void GetLocDerivShapeMatIP(Matrix<Double> derivShapeMat) //=0;
+  { Error("Not implemented ",__FILE__,__LINE__);}
+
+
+
+  /// get matrix of shape functions derived after global coordinates in all integration points
+  /*! 
+    @param derivShapeMat: nrIntPts \f$\times \f$ nrSpaceDim
+  */
+  virtual void GetGlobDerivShapeMatIP(Matrix<Double> derivShapeMat) //=0;
+  { Error("Not implemented ",__FILE__,__LINE__);}
+
+
+
   //! get gradient of shape fnc for node i at integration point j
   virtual  void GetGradientShFnc(Vector<Double> & ,const Integer i, const Integer j)=0;
 

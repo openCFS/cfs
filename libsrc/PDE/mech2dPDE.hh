@@ -2,7 +2,6 @@
 #define FILE_MECHANIC2DPDE_2001
 
 #include "basepde.hh"
-
  
 namespace CoupledField
 {
@@ -16,23 +15,20 @@ namespace CoupledField
   {
   public:
     
-  //!  Constructor. here we read integration parameters
-  /*!
-    \param aGrid pointer to grid
-    \param aBCs pointer to Boundary condition object
-    \param aMatFile pointer to class Material. material data.
-    \param aInFile pointer to class FileType. input data.
-    \param aOutFile  pointer to class WriteResults. output data.
-    \param aTimeFunc pointer to class TimeFunc
-  */
-    Mech2dPDE(Grid *aGrid, BCs *aBCs, Material *aMatFile, TimeFunc *aTimeFunc, FileType *aInFile, 
-	      WriteResults *aOutFile );
+    //!  Constructor. here we read integration parameters
+    /*!
+      \param  aptalgsys pointer to class Algebraic system
+      \param aGrid pointer to grid
+      \param aMatFile pointer to class Material. material data.
+      \param aInFile pointer to class FileType. input data.
+      \param aOutFile  pointer to class WriteResults. output data.
+      \param aTimeFunc pointer to class TimeFunc
+    */
+    Mech2dPDE(Grid * aGrid , BCs * aBCs, Material * aMatFile, TimeFunc * aTimeFunc ,FileType * aInFile, WriteResults * aOutFile );
 
     //!  Deconstructor
     virtual ~Mech2dPDE(){;}
 
-    //! Set algebraic system
-    void SetAlgSys(const Integer as_sysid);
 
     //! specify type of system matrix for AlgebraicSystem
     /*!
@@ -62,7 +58,7 @@ namespace CoupledField
       \param update indicator: do we update boundary condition in algebraic system ot set new
       \param atime time of calculation
     */
-    virtual void SetBCs(const Integer level, const Integer update, const Double atime);
+    virtual void SetBCs(BCs * ptBCs, const Integer level, const Integer update, const Double atime);
 
     /*!
       \param ptBCs pointer to class with data about boundary condition
@@ -87,10 +83,16 @@ namespace CoupledField
     //! return pointer to vector with solution
     virtual const Vector<Double> & getS() const { return sol_;};
 
+    //! Set algebraic system
+    void SetAlgSys(const Integer as_sysid);
+    
   protected:
 
     //!
     Integer dofspernode_;
+
+    //!
+    Grid * ptgrid_;
 
     //! Calculation parameters for Newmark method
     virtual void CalcParameters(const Double dt);
@@ -120,6 +122,13 @@ namespace CoupledField
     //! size of solution and etc.
     Integer size_;
 
+    //! function for RHS
+    Integer arg_rhs_;
+    pfn1var ptRHSFnc_;
+    std::vector<Double> directionFnc_;
+
+    //! Indicator: is there RHS function
+    Boolean SetRHSFnc;
 
   };
 

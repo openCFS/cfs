@@ -17,6 +17,7 @@ namespace CoupledField
 //   //! Transporting Matrix 
 //   template <class T> Matrix<T> Trans(const Matrix<T> &);
 
+
 //! Own class for working with full matrixes
 template<class TYPE>
 class Matrix: public AbsMatrix<Matrix<TYPE> , TYPE>
@@ -51,8 +52,12 @@ public:
   //! Default Copy Construcctor
   Matrix	(const Matrix &);
 
+  //! Change size of quadratic matrix
+  void Resize(const Integer);
+
   //! Change size of matrix (row, col)
   void Resize(const Integer, const Integer);
+
 
   //! Initialized by zero matrix 
   void Init();
@@ -143,6 +148,15 @@ public:
   //! Precondition: Implemented Jacobi, SSOR(omega=1.2), LU
   void precond(Vector<TYPE> &, const Vector<TYPE>, enum precond type);
 
+  /// Transpose actual matrix
+  void Transpose (Matrix<TYPE> &transposedMat);  
+
+  /// Dyadic multiplication of two vectors
+  void DyadicMult(std::vector<TYPE> v1);
+
+  /// Dyadic multiplication of two vectors
+  void DyadicMult(std::vector<TYPE> v1, std::vector<TYPE> v2);
+  
   //!
   //       TYPE At( const Integer i, const Integer j) { return p[i][j]; }
 };

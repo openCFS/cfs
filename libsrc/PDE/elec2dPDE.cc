@@ -35,19 +35,22 @@ void Elec2dPDE::SetupMatrices(const Integer level)
   (*trace) << "entering Elec2dPDE::SetupMatrices" << std::endl;
 #endif
   
-  Matrix<Double> elemmat;
-  Point<2> * ptCoord;
+  Matrix<Double> elemmat;  
+  Matrix<Double> ptCoord;
 
-  BaseElem * ptElem;
+  BaseFE * ptElem;
 
   if (InfoPrint)
     (*infofile) << " ------------------------- Element matrices --------------- " << std::endl;
 
   Vector<Double> coeffst;
+  Vector<Integer> connecth;  
   
   CalcCoeff(coeffst);  
 
   Integer i, j;
+
+
   for (i=0; i<subdoms_.size(); i++)
     {
       std::vector<Elem*> elemssd;
@@ -56,20 +59,17 @@ void Elec2dPDE::SetupMatrices(const Integer level)
 
       for (j=0; j < elemssd.size(); j++)
 	{  
-	  Vector<Integer> connecth;
- 
 	  ptElem=elemssd[j]->ptElem;
 
-	  BaseForm<2> * bilinear_stiff = new LaplaceInt<2>(ptElem,1);
+	  BaseForm * bilinear_stiff = new LaplaceInt(ptElem);
 
 	  connecth=elemssd[j]->connect;
-
-	  ptCoord=new Point<2>[connecth.size()];
-	  ptgrid_->GetCoordNodesElem(connecth,ptCoord,level);
+	  
+	  ptgrid_->GetCoordNodesElemMat(connecth, ptCoord, level);
 
 	  // stiffness part
-	  bilinear_stiff->CalcElemMatrix(ptCoord, elemmat);
-	  elemmat*=coeffst[i];
+	  bilinear_stiff->CalcElementMatrix(ptCoord, elemmat);
+	  elemmat *= coeffst[i];
 	  
 #ifdef DEBUG
 	  (*debug) << "Stiffnessmatrix, ElementNumber  " <<   i << std::endl;
@@ -77,9 +77,10 @@ void Elec2dPDE::SetupMatrices(const Integer level)
 #endif
 
 	  algsys_->SetElementMatrix(elemmat.getinarray(), connecth.get(), connecth.size(), SYSTEM);
-
+	  
 	  delete bilinear_stiff;
-	  delete [] ptCoord;
+	  
+
 	}  
       
     }

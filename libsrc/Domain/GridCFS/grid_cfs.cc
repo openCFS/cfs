@@ -520,6 +520,23 @@ void  GridCFS<dim> :: GetCoordNodesElem(const Vector<Integer> connect, Point<dim
 
 }
 
+
+template<Integer dim>
+void  GridCFS<dim> :: GetCoordNodesElemMat(const Vector<Integer> connect, Matrix<Double>& coordMat, const Integer level)
+{
+#ifdef TRACE
+  (*trace) << "entering GridCFS :: GetCoordinateNodesElemMat" << std::endl;
+#endif
+
+  coordMat.Resize(dim, connect.size());
+  
+  Integer k;
+  for (k=0; k < connect.size(); k++)    
+    for (int actDim=0; actDim < dim; actDim++)
+      coordMat[actDim][k] = ptCoordinate_[connect[k]-1][actDim];
+}
+
+
 template<Integer dim>
 GridCFS<dim> ::~GridCFS() 
 { 

@@ -7,7 +7,7 @@ namespace CoupledField
 {
 
 template <Integer dim>
-LaplaceInt<dim> :: LaplaceInt(BaseElem * aptelem, const ShortInt ndofs)
+LaplaceInt<dim> :: LaplaceInt(BaseFE * aptelem, const ShortInt ndofs)
               : BaseForm<dim>(aptelem)
 {
 #ifdef TRACE

@@ -12,7 +12,7 @@ class LinearForm : public BaseForm<dim>
 {
 public:
   ///
-  LinearForm(BaseElem * aptelem);
+  LinearForm(BaseFE * aptelem);
 
   ///
   virtual ~LinearForm();

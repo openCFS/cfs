@@ -138,4 +138,14 @@ void calcNormal2Surface(std::vector<Double> & normal,Point<3> a,Point<3> b, Poin
   normal[1]=normal[1]/L2_normal;
   normal[2]=normal[2]/L2_normal;  
 }
+
+char * c_string(const std::string & s)
+{
+  char * p = new char[s.length()+1];
+  s.copy(p, std::string::npos);
+  p[s.length()]=0;
+  return p;
+}
+
+
 } // close namespace CoupledField

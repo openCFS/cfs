@@ -3,6 +3,7 @@
 #include <string>
 #include <math.h>
 #include <iomanip>
+#include <stdio.h>
 
 #include "acou2dFlowNoise.hh"
 #include <Domain/bcs.hh>

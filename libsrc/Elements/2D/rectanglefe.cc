@@ -41,19 +41,26 @@ void RectangleFE:: SetIntPoints()
   (*trace) << "entering RectangleFE::SetIntPoints" << std::endl;
 #endif
  
+
   switch(IntegType) 
     {
     case GaussOrder2:
 
       NumIntPoints_=4;
       DegreeInteg_=2;
+
       
       if ( !IntPoints_)
 	IntPoints_ = new std::vector<Double>[NumIntPoints_];
 
-      for(Integer i=0; i<NumIntPoints_; i++)
-	IntPoints_[i].resize(Dim_);
+      IntWeights_.resize(NumIntPoints_);
 
+      for(Integer i=0; i<NumIntPoints_; i++)
+	{	  
+	  IntWeights_[i]=1;
+	  IntPoints_[i].resize(Dim_);
+	}
+      
       IntPoints_[0][0] = -0.57735026919;
       IntPoints_[1][0] =  0.57735026919;
       IntPoints_[2][0] =  0.57735026919;
@@ -62,6 +69,9 @@ void RectangleFE:: SetIntPoints()
       IntPoints_[1][1] = -0.57735026919;
       IntPoints_[2][1] =  0.57735026919;
       IntPoints_[3][1] =  0.57735026919;
+
+
+  
 
       break;
 
@@ -120,7 +130,6 @@ void RectangleFE:: SetIntPoints()
 
       for(Integer i=0; i<NumIntPoints_; i++)
 	IntPoints_[i].resize(Dim_);
-      IntWeights_.resize(NumIntPoints_);
       
       IntPoints_[0][0] = -0.861136311594053;
       IntPoints_[1][0] =  -0.339981043584856;
