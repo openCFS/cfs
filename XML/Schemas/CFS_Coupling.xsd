@@ -125,7 +125,7 @@
     </xsd:complexContent>
   </xsd:complexType>
 
-	  <!-- Acoustic PDE -->
+  <!-- Acoustic PDE -->
   <xsd:complexType name="DT_CouplingAcou">
     <xsd:complexContent>
       <xsd:restriction base="xsd:anyType">
@@ -186,10 +186,13 @@
                 <xsd:enumeration value="acousticForce"/>
        	        <xsd:enumeration value="elecForceVWP"/> 
                 <xsd:enumeration value="mechDisplacement"/>
-                <xsd:enumeration value="elecForceVWP"/>
+                <xsd:enumeration value="smoothDisplacement"/>
+                <xsd:enumeration value="magForceVWP"/>
+                <xsd:enumeration value="magForceLorentz"/>
             </xsd:restriction>
           </xsd:simpleType>
         </xsd:attribute>
+
 	<xsd:attribute name="value" type="DT_PosFloat" use="required"/>
         <xsd:attribute name="l2Norm" use="optional" default="rel">
           <xsd:simpleType>
@@ -210,7 +213,7 @@
         <xsd:extension base="DT_BasicCoupling">
           <xsd:sequence>
 	  
-	   <xsd:element name="AcouMech" minOccurs="0">
+	   <xsd:element name="acouMech" minOccurs="0">
 	     <xsd:complexType>
                <xsd:complexContent>
                  <xsd:extension base="DT_BasicCoupling">
@@ -238,7 +241,7 @@
              </xsd:complexType>
 	   </xsd:element> <!-- end of element AcouMech -->
 	   
-	   <xsd:element name="ElecMech" minOccurs="0">
+	   <xsd:element name="elecMech" minOccurs="0">
 	     <xsd:complexType>
                <xsd:complexContent>
                  <xsd:extension base="DT_BasicCoupling">
@@ -276,7 +279,7 @@
              </xsd:complexType>
 	   </xsd:element> <!-- end of element ElecMech -->
 	   
-	   <xsd:element name="MagMech" minOccurs="0">
+	   <xsd:element name="magMech" minOccurs="0">
 	     <xsd:complexType>
                <xsd:complexContent>
                  <xsd:extension base="DT_BasicCoupling">

@@ -20,6 +20,7 @@
 <xsd:include schemaLocation="Schemas/CFS_PDEacoustic.xsd"/>
 <xsd:include schemaLocation="Schemas/CFS_PDEmagnetic.xsd"/>
 <xsd:include schemaLocation="Schemas/CFS_PDEpiezo.xsd"/>
+<xsd:include schemaLocation="Schemas/CFS_PDEsmooth.xsd"/>
 
 
 <!-- ********************************************************************** -->
