@@ -39,6 +39,7 @@ XML/Schemas/CFS_PDEsmooth.xsd -text
 XML/Schemas/CFS_Preconds.xsd -text
 XML/Schemas/CFS_SolverPrecond.xsd -text
 XML/Schemas/CFS_Solvers.xsd -text
+XML/TestParser/Doc/doxy.conf -text
 XML/TestParser/ErrorHandler.hh svneol=native#text/plain
 XML/TestParser/Makefile -text
 XML/TestParser/SPHandler.cc svneol=native#text/plain
