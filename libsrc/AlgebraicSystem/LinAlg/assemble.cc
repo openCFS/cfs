@@ -9,14 +9,15 @@ namespace CoupledField
 {
 
 template<class Dim, class T_Matrix>
-Assemble<Dim, T_Matrix>::Assemble(Grid<Dim> * aptgrid)
+Assemble<Dim, T_Matrix>::Assemble(Grid<Dim> * aptgrid, const Integer alevel)
 {
 #ifdef TRACE
    (*trace) << "entering Assemble::Assemble" << std::endl; 
 #endif
    
    ptgrid=aptgrid;
-   size=ptgrid->GetMaxnumnodes(0);
+   level=alevel;
+   size=ptgrid->GetMaxnumnodes(level);
    if (InfoPrint) 
       if (A.IsSymmetric())
         (*infofile) << "we are working with symmetric matrix" << std::endl;
@@ -77,14 +78,12 @@ void Assemble<Dim,T_Matrix>::AssembleSysMatrix(const Double CoefL, const Double 
 
   if (!IsCalcM) 
     {
-      mark
       IsCalcM=TRUE;
       AssembleGlobal< MassInt<Dim> >(M);
 #ifdef DEBUG
       (*debug) << "------- Mass Matrix ---------" << std::endl << M;
 #endif
     }
-mark
   if (CoefM!=1.0) 
     A+=M*CoefM;
   else A+=M;
@@ -209,23 +208,17 @@ void Assemble<Dim,T_Matrix>::AssembleGlobal(T_Matrix & Mat) const
    (*trace) << "entering Assemble::AssembleGlobal" << std::endl;
 #endif
 
-  mark
-
   Integer i,ii,iii; 
   Integer irow,icln; 
 
   Integer numnodeelem;
-  numnodeelem=ptgrid->GetNumNodesPerElem(0,0);
-
-  mark
+  numnodeelem=ptgrid->GetNumNodesPerElem(0,level);
 
   Integer * help=new Integer[numnodeelem];
   Matrix<Double> elemmat;
 
   Dim * ptCoord=new Dim[numnodeelem];
 
-  mark
-  
   BaseElem * ptElem;
   switch(numnodeelem)
   {
@@ -243,11 +236,7 @@ void Assemble<Dim,T_Matrix>::AssembleGlobal(T_Matrix & Mat) const
 //  BaseElem * ptElem=new Quad1(GaussOrder5);  /////////////////////
 //  BaseElem * ptElem=new Triangle1(GaussOrder5);
 
-  mark  
-  
   typeBaseForm oElemMatrix(ptElem,1);
-
-  mark
 
   Mat.Init();
 
@@ -255,12 +244,11 @@ void Assemble<Dim,T_Matrix>::AssembleGlobal(T_Matrix & Mat) const
   //   ptgrid->GetCoordOfNodesElem(0,0,ptCoord);
   //   oElemMatrix.CalcElemMatrix(ptCoord, elemmat);
 
-  Integer numelem=ptgrid->GetMaxnumElem(0); 
-  std::cout << " num of elem " << numelem << std::endl;
+  Integer numelem=ptgrid->GetMaxnumElem(level); 
   for (i=0; i<numelem; i++) 
     { 
-      ptgrid->GetConnection(help,0,i,numnodeelem);
-      ptgrid->GetCoordOfNodesElem(i,0,numnodeelem,ptCoord);
+      ptgrid->GetConnection(help,level,i,numnodeelem);
+      ptgrid->GetCoordOfNodesElem(i,level,numnodeelem,ptCoord);
       oElemMatrix.CalcElemMatrix(ptCoord, elemmat);
 
       for (ii=0; ii<numnodeelem; ii++)
@@ -269,7 +257,6 @@ void Assemble<Dim,T_Matrix>::AssembleGlobal(T_Matrix & Mat) const
             irow=help[ii]-1;
             icln=help[iii]-1;
             if (irow >= icln)
-	      //       Mat(irow,icln)+=elemmat[ii][iii];
 	      Mat.Add(irow,icln,elemmat[ii][iii]);
 	  }
     }

@@ -20,6 +20,9 @@ public:
   /// Deconstructor
   virtual ~GridInterfaceCFS() { if (ptGridCFS) delete ptGridCFS;}
   
+  /// Uniform subdivision of domain
+  virtual void Subdiv(const Integer level) {Error("Not implemented Subdiv()");} 
+
   //! Read of mesh 
   virtual void Read() 
   { ptGridCFS->Read();}

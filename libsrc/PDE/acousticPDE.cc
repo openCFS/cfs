@@ -9,7 +9,7 @@
 namespace CoupledField
 {
 
-AcousticPDE::AcousticPDE(const Double epsilon, const Double dt0, Grid<Point2D> * ptgrid, Material * aptMaterial, FileType * aptFileType)
+AcousticPDE::AcousticPDE(const Double epsilon, const Double dt0, Grid<Point2D> * ptgrid, const Integer level,Material * aptMaterial, FileType * aptFileType)
 :PDE(aptFileType,aptMaterial)
 {
 #ifdef TRACE
@@ -32,8 +32,7 @@ AcousticPDE::AcousticPDE(const Double epsilon, const Double dt0, Grid<Point2D> *
   CoefLaplace=1.0;
   CoefMass=a0*c;
 
-//  ptWork=new WorkWithSysMat<Point2D, Matrix<Double> >(ptgrid, epsilon);  
-  ptWork=new InterfaceAlgSys(ptgrid,epsilon);
+  ptWork=new InterfaceAlgSys(ptgrid,level,epsilon);
 
   ptWork->AssembleSysMatrix(CoefLaplace,CoefMass);
   ptWork->SetRHS();
@@ -41,11 +40,9 @@ AcousticPDE::AcousticPDE(const Double epsilon, const Double dt0, Grid<Point2D> *
   ptWork->SetNodesBoundaryCondition(aptFileType);
   ptWork->SetDirichletBoundaryCondSysMat_PenaltyMethod();
 
- mark  
-
   size=ptWork->getSize();
-mark
-   
+
+  std::cout << " size of solution " << size << std::endl;   
   sol.Resize(size);
   sol_der1.Resize(size);
   sol_der2.Resize(size);
@@ -59,7 +56,7 @@ void AcousticPDE::SolveNewmarkMethodStatic(const Double atime)
  
    Double valueTF=ptTimeFunc->TimeFuncAtTime(atime,0);
 
-     ptWork->SetDirichletBoundaryCondRHS_PenaltyMethod(valueTF);
+   ptWork->SetDirichletBoundaryCondRHS_PenaltyMethod(valueTF);
  
    ptWork->CG(100, Jacobi);
 

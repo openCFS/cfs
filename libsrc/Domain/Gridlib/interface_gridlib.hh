@@ -6,9 +6,12 @@
 
 // Include from Gridlib
 #include <GoMesh.hh>
-#include <GoTriangleMesh.hh>
-#include <GoDefaultVertex.hh>
-#include <GoTriangleElement.hh>
+#include <GbSubdivideUniform.hh>
+//#include <GoTriangleMesh.hh>
+//#include <GoVolumeMesh.hh>
+//#include <GoDefaultVertex.hh>
+//#include <GoTriangleElement.hh>
+//#include <GbSubdivideUniform.hh>
 
 namespace CoupledField
 {
@@ -24,6 +27,13 @@ public:
   /// Deconstructor
   virtual ~InterfaceGridlib() { if (ptGoMesh ) delete ptGoMesh ;}
   
+   /// Uniform subdivision of domain
+  virtual void Subdiv(const Integer level){
+   if (ptGoMesh)  {
+     GbSubdivideUniform((*ptGoMesh),level);
+   }
+  }
+
   /// Get coordinates of all nodes which belong to element
   virtual void GetCoordOfNodesElem(const Integer numElem, const Integer numlevel, const Integer numnodes, Dim * ptCoordElem); 
 
@@ -37,21 +47,18 @@ public:
   /// Return maximum number of nodes
   virtual Integer GetMaxnumnodes(const Integer numlevel)
   { 
-     std::cout << numlevel << std::endl;
      return ptGoMesh->getNumVertices(numlevel);
   }
 
   /// Return maximum number of elements 
   virtual Integer GetMaxnumElem(const Integer numlevel)
   {
-    std::cout << numlevel << std::endl; 
     return ptGoMesh->getNumElements(numlevel);
   }
 
   /// Return num of nodes per element i
   virtual Integer GetNumNodesPerElem(const Integer iElem, const Integer level)
   { 
-    std::cout << level << std::endl;
     return ptGoMesh->getElement(iElem, level)->getNumVertices();
 }
 

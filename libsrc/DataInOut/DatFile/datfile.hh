@@ -216,8 +216,8 @@ public:
   void Peel(std::string & buf, Char * init);
 
   //!  Axualary function : return position in file where seekexp is found first time
-  void TakePos(const std::string seekexp,  std::string::size_type & pos, const std::string reservexp="");
-  void TakePos(const std::string seekexp,  std::string::size_type & pos, std::string & buf_prev, const std::string reservexp="");
+  void TakePos(const std::string seekexp,  std::string::size_type & pos);
+  void TakePos(const std::string seekexp,  std::string::size_type & pos, std::string & buf_prev);
 
   //! Return TRUE if there is seekexp in datfile
   Boolean IsThere(const std::string seekexp) ;

@@ -20,9 +20,11 @@ Driver::Driver(FileType * const aptFileType, Integer anummesh, Material * aptMat
 //  ptFileType->ReadOutputOptions(SaveDer1, SaveDer2);
   SaveDer1=FALSE; SaveDer2=FALSE;
 
-//  ptgrid=new InterfaceGridlib<Point2D>(ptFileType);
-  ptgrid=new GridInterfaceCFS<Point2D>(ptFileType);
+  ptgrid=new InterfaceGridlib<Point2D>(ptFileType);
+//  ptgrid=new GridInterfaceCFS<Point2D>(ptFileType);
   ptgrid->Read();
+  std::cout << " we do subdivosion " << std::endl;
+
   ptMaterial=aptMaterial;
 }
 
@@ -31,6 +33,11 @@ void Driver::SolveNewmarkMethod(OutResultUnverg * ptUnverg)
 #ifdef TRACE
   (*trace) << "entering Driver :: SolveNewmarkMethod" << std::endl;
 #endif
+ 
+/// Save the grid before a uniform refinement in a separate unverg-file 
+//  OutResultUnverg * ptUnvergPreGrid=new OutResultUnverg("grid_pre"); 
+//  ptUnvergPreGrid->Create(ptgrid,0);  
+//  if (ptUnvergPreGrid) delete ptUnvergPreGrid;
 
   ptUnverg->Create(ptgrid,0);
 
@@ -38,7 +45,7 @@ void Driver::SolveNewmarkMethod(OutResultUnverg * ptUnverg)
   Double t=0;
   
   Double epsilon=1e-25; 
-  ptAcPDE=new AcousticPDE(epsilon,dt0,ptgrid,ptMaterial, ptFileType);
+  ptAcPDE=new AcousticPDE(epsilon,dt0,ptgrid,0,ptMaterial, ptFileType);
 
   Integer i;
   for (i=0; i<numsteps; i++) 
