@@ -27,39 +27,42 @@
     <xsd:complexContent>
       <xsd:extension base="DT_PDEBasic">
 
-        <!-- Subtype of PDE -->
-        <xsd:attribute name="subtype" type="xsd:token" use="optional"
-          default="plainStrain"/>
-
         <xsd:sequence>
 
           <!-- Subdomains the PDE lives on -->
           <xsd:element name="subdom" type="xsd:token" minOccurs="1"
                        maxOccurs="unbounded"/>
     
-          <!-- Boundary Conditions -->
-          <xsd:element name="boundaryConds">
+          <!-- Boundary Conditions (optional) -->
+          <xsd:element name="boundaryConds" minOccurs="0">
             <xsd:complexType>
               <xsd:sequence>
-                <xsd:element name="dirichlet_hom" type="DT_MechHD"
+                <xsd:element name="dirichletHom" type="DT_MechHD"
                              minOccurs="0" maxOccurs="unbounded"/>
-                <xsd:element name="dirichlet_inhom" type="DT_MechID"
+                <xsd:element name="dirichletInhom" type="DT_MechID"
                              minOccurs="0" maxOccurs="unbounded"/>
-                <xsd:element name="neumann_inhom" type="DT_MechIn"
+                <xsd:element name="neumannInhom" type="DT_MechIN"
                              minOccurs="0" maxOccurs="unbounded"/>
                 <xsd:element name="load" type="DT_MechLoad" minOccurs="0"
                              maxOccurs="unbounded"/>
               </xsd:sequence>
+
             </xsd:complexType>
           </xsd:element>
 
           <!-- Desired solution values (optional) -->
-          <xsd:element type="DT_MechStoreResults" minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="storeResults" type="DT_MechStoreResults"
+            minOccurs="0" maxOccurs="1"/>
 
-          <!-- Section for specifying solver -->
-          <xsd:element ref="solver"/>
+          <!-- Section for specifying solver (optional) -->
+          <xsd:element ref="solver" minOccurs="0"/>
 
         </xsd:sequence>
+
+        <!-- Subtype of PDE -->
+        <xsd:attribute name="subtype" type="xsd:token" use="optional"
+          default="plainStrain"/>
+
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
@@ -144,37 +147,33 @@
   </xsd:simpleType>
 
   <!-- Data type for describing node values to be stored -->
-  <xds:complexType name="DT_NodeResults">
-    <xsd:complexContent>
-      <xsd:attribute name="type" type="xsd:DT_NodeData" use="optional"
-        default="displacement"/>
-      <xsd:attribute name="region" type="xsd:token" use="optional"
-        default="none"/>
-      <xsd:attribute name="saveNodes" type="xsd:token" use="optional"
-        default="none"/>
-    </xsd:complexContent>
-  </xds:complexType>
+  <xsd:complexType name="DT_NodeResults">
+    <xsd:attribute name="type" type="DT_NodeData" use="optional"
+      default="displacement"/>
+    <xsd:attribute name="region" type="xsd:token" use="optional"
+      default="none"/>
+    <xsd:attribute name="saveNodes" type="xsd:token" use="optional"
+      default="none"/>
+  </xsd:complexType>
 
   <!-- Data type for describing elemnt values to be stored -->
-  <xds:complexType name="DT_ElemResults">
-    <xsd:complexContent>
-      <xsd:attribute name="type" type="xsd:DT_ElemData" use="optional"
-        default="stress"/>
-      <xsd:attribute name="region" type="xsd:token" use="optional"
-        default="none"/>
-      <xsd:attribute name="saveElems" type="xsd:token" use="optional"
-        default="none"/>
-    </xsd:complexContent>
-  </xds:complexType>
+  <xsd:complexType name="DT_ElemResults">
+    <xsd:attribute name="type" type="DT_ElemData" use="optional"
+      default="stress"/>
+    <xsd:attribute name="region" type="xsd:token" use="optional"
+      default="none"/>
+    <xsd:attribute name="saveElems" type="xsd:token" use="optional"
+      default="none"/>
+  </xsd:complexType>
 
   <!-- Global type for specifying the desired mechanical output quantities -->
   <xsd:complexType name="DT_MechStoreResults">
-    <xsd:complexContent>
-      <xsd:sequence>
-        <xsd:element name="nodeResults" type="DT_NodeResults" minOccurs="0"/>
-        <xsd:element name="elemResults" type="DT_ElemResults" minOccurs="0"/>
-      </xsd:sequence>
-    </xsd:complexContent>
-  </xsd:element>
+    <xsd:sequence>
+      <xsd:element name="nodeResults" type="DT_NodeResults" minOccurs="0"
+        maxOccurs="unbounded"/>
+      <xsd:element name="elemResults" type="DT_ElemResults" minOccurs="0"
+        maxOccurs="unbounded"/>
+    </xsd:sequence>
+  </xsd:complexType>
 
 </xsd:schema>

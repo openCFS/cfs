@@ -28,7 +28,7 @@
 
   <!-- This element is abstract in order to force substitution -->
   <!-- by the derived specialised PDE elements -->
-  <xsd:element name="PDEBasic" type="DT_PDEbasic" abstract="true"/>
+  <xsd:element name="PDEBasic" type="DT_PDEBasic" abstract="true"/>
 
 
   <!-- ******************************************************************** -->
