@@ -26,3 +26,6 @@ SOLVED   DATE        PROBLEM
 2004: 
 ====
 				2004-01-14  save_nodes: in mechanic 2d case, wrong data are written to history file (x,y-data instead of y,z data of unv-results)
+				2004-02-18  Make: no *.o files ==> compile directly into *.a files
+				2004-02-18  Make: dependencies of .h-files (with the aid of make depend)
+				2004-02-20  isAxi of forms has to move into baseForm

@@ -163,15 +163,6 @@ Integer main(int argc, char *argv[])
     delete ptDefineFiles; 
   if (Info)
     delete Info;
+
   return 0;
-
-#ifdef TRACE
-      delete trace;
-#endif
- 
-#ifdef DEBUG
-      delete debug;
-#endif
-
-
 }
