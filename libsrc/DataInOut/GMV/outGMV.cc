@@ -17,15 +17,25 @@ WriteResultsGMV<Dim> :: WriteResultsGMV(const Char * filename)
 #endif
 
  namefile_=new Char[20];
+ namedir_=new Char[30];
+
  strcpy(namefile_,filename);
   
+ Char S[50];
+ strcpy(namedir_,filename);
+ strcat(namedir_,"_gmv");
+ sprintf(S,"mkdir -p %s",namedir_);
+
+ system(S);
+
  OpenFile(0);
 
  if (!output)
-   Error(" File for output results in .gmv-format ", __FILE__, __LINE__); 
+   Error(" File for output results in .gmv-format ", __FILE__, __LINE__);
 
- ptgrid=NULL; 
+ ptgrid=NULL;
  currstep_=0;
+
 }
 
 template<class Dim>
@@ -40,6 +50,7 @@ WriteResultsGMV<Dim> ::~WriteResultsGMV()
 
  delete output; 
  delete [] namefile_;
+ delete [] namedir_;
 }
 
 template<class Dim>
@@ -335,10 +346,13 @@ void WriteResultsGMV<Dim>::WriteSolution(const Vector<Double> & sol, const Integ
 template<class Dim>
 void WriteResultsGMV<Dim>::OpenFile(const Integer num)
 {
-   Char * name=new Char[20];
+   Char * name=new Char[30];
    Char * aux=new Char[2];
    std::sprintf(aux,"%i",num);
-   strcpy(name,namefile_);
+
+   strcpy(name,namedir_);
+   strcat(name,"/");
+   strcat(name,namefile_);
    if (num/10 < 1) strcat(name,".gmv00");
      else if (num/100 < 1) strcat(name,".gmv0");
        else strcat(name,".gmv");
