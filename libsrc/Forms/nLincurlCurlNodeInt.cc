@@ -98,8 +98,6 @@ namespace CoupledField
 	partElemMat *= reluctivity;
 	
 	if (nonLinType_ == NEWTON) {
-	  std::cout << "DO NEWTON" << std::endl;
-	  
 	  if (Babs ==0) 
 	    derivReluctivity = 0;
 	  else {	  
