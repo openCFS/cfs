@@ -120,7 +120,11 @@ void BaseGraph :: SetElementPos(Integer * connect, Integer elemsize)
 		  
 		  if (graph[p1].actsize >= graph[p1].size)
 		    {
-		      cout << "shit " << p1 << endl; 
+		      cout << endl;
+		      cout << "Predefined value for neighbors in matrix graph too small! " << endl;
+                      cout << " neeeded value is: " << p1 << endl; 
+		      cout << endl;
+                      exit (EXIT_FAILURE);
 		    }
 		}
 	    }
@@ -130,6 +134,10 @@ void BaseGraph :: SetElementPos(Integer * connect, Integer elemsize)
 
 void BaseGraph :: Create()
 {
+#ifdef TRACE
+  (*trace) << "entering BaseGraph::Create" << endl;
+#endif
+
   Integer i,j,k,l,rs;
 
   nne = 0;
@@ -167,6 +175,9 @@ void BaseGraph :: Create()
 
 void BaseGraph :: Print() const
 {
+#ifdef TRACE
+  (*trace) << "entering BaseGraph::Print" << endl;
+#endif
   Integer i,j;
 
   (*test) << "printing auxiliary graph" << endl;

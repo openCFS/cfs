@@ -87,8 +87,9 @@ void AlgebraicSystem :: CreateGlobal2Local(Integer aglobsize)
 }
 
 
-void AlgebraicSystem :: CreateMatrix(Integer matrix_row, Integer matrix_col, Integer * matrix_type, Integer matrix_class,
-				     Integer matrix_graph, Integer adof, Integer dir, Integer con)
+void AlgebraicSystem :: CreateMatrix(Integer matrix_row, Integer matrix_col, Integer * matrix_type, 
+				     Integer matrix_class, Integer matrix_graph, Integer adof, Integer dir, 
+				     Integer con)
 {
 #ifdef TRACE
   (*trace) << "entering AlgebraicSystem::CreateMatrix" << endl;
@@ -98,6 +99,7 @@ void AlgebraicSystem :: CreateMatrix(Integer matrix_row, Integer matrix_col, Int
 
   ind = (matrix_row-1)*blocksize+matrix_col-1;
 
+  // sort the graph array
   graph[ind]->Create();
   
   nne  = graph[ind]->GetNumNNE();
@@ -339,6 +341,9 @@ void AlgebraicSystem :: AddGMGLevel()
 void AlgebraicSystem :: RScalarCreate(Integer sys_id, Integer ind, Integer size, Integer nne, 
 				      Integer dir, Integer con, Integer * matrix_type)
 {
+#ifdef TRACE
+  (*trace) << "entering AlgebraicSystem::RScalarCreate" << endl;
+#endif
   Integer i,j;
   Integer * pos, rs;
 

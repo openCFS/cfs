@@ -1,5 +1,5 @@
-#ifndef FILE_BASEHIERARCHY_PILES
-#define FILE_BASEHIERARCHY_PILES
+#ifndef FILE_BASEHIERARCHY_CLA
+#define FILE_BASEHIERARCHY_CLA
 
 namespace CoupledField
 {
@@ -96,4 +96,4 @@ protected:
 
 }
 
-#endif // FILE_BASEHIERARCHY_PILES
+#endif // FILE_BASEHIERARCHY_CLA

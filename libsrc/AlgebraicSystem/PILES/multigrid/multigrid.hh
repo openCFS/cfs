@@ -1,5 +1,5 @@
-#ifndef FILE_MULTIGRID_PILES
-#define FILE_MULTIGRID_PILES
+#ifndef FILE_MULTIGRID_CLA
+#define FILE_MULTIGRID_CLA
 
 #include <dsp_defs.h>
 #include <util.h>
@@ -55,4 +55,4 @@
 #include <algebraicsys.hh>
 #include <blocksys.hh>
 
-#endif // FILE_MULTIGRID_PILES
+#endif // FILE_MULTIGRID_CLA

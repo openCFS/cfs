@@ -1,5 +1,5 @@
-#ifndef FILE_DENSEVECTOR_PILES
-#define FILE_DENSEVECTOR_PILES
+#ifndef FILE_DENSEVECTOR_CLA
+#define FILE_DENSEVECTOR_CLA
 
 namespace CoupledField
 {
@@ -129,5 +129,5 @@ private:
 
 }
 
-#endif // FILE_DENSEVECTOR_PILES
+#endif // FILE_DENSEVECTOR_CLA
 

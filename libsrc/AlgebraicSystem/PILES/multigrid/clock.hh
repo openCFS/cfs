@@ -1,5 +1,5 @@
-#ifndef FILE_CLOCK
-#define FILE_CLOCK
+#ifndef FILE_CLOCK_CLA
+#define FILE_CLOCK_CLA
 
 /**************************************************************************/
 /* File:   clock.hh                                                       */
@@ -56,4 +56,4 @@ public:
 };
 
 
-#endif // FILE_CLOCK
+#endif // FILE_CLOCK_CLA

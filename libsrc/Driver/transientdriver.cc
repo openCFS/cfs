@@ -3,6 +3,7 @@
 #include <string>
 
 #include "transientdriver.hh"
+#include "acoustictimeerror.hh"
 
 namespace CoupledField
 {
@@ -47,20 +48,19 @@ void TransientDriver :: SolveProblem()
   Integer level=0;
   Integer pdenumber  = 0;
   Integer nsys = 0;
-  Double steptime=0.0;
+  Double steptime=firstdt_;
   Integer stepsave=isavebegin_-1;
 
-  std::cout << "steps" << isavebegin_ << " " << isaveend_ << " " << isaveincr_ << std::endl;
+  Double dt=firstdt_;
+  Boolean updatesysmat=FALSE;
+
+  ptdomain_->GetPDE(pdenumber)->CalcParameters(dt);
+  ptdomain_->GetPDE(pdenumber)->SetMatrixFactors();
 
   Integer nstep;
-
   for (nstep = 0; nstep<numstep_; nstep++)
     {
-      steptime += firstdt_;
-
-//      ptdomain->GetPDE(pdenumber)->CalcParamForNewmarkMethod(firstdt_);
-
-      ptdomain_->GetPDE(pdenumber)->SolveStepTrans(ptdomain_->GetAlgSys(), ptdomain_->GetBCs(), nstep, steptime, level);
+      ptdomain_->GetPDE(pdenumber)->SolveStepTrans(ptdomain_->GetAlgSys(), ptdomain_->GetBCs(), nstep, steptime, level, updatesysmat);
 
    // writing results in output-file
     if (nstep == stepsave && (nstep < isaveend_))
@@ -68,7 +68,54 @@ void TransientDriver :: SolveProblem()
         ptdomain_->GetPDE(pdenumber)->WriteResultsInFile();
         stepsave+=isaveincr_;
       }
-    }
+
+   steptime+=dt;
+   }
+}
+
+void TransientDriver :: SolveProblemAdapt()
+{
+#ifdef TRACE
+  (*trace) << "entering TransientDriver::SolveProblemAdapt" << std::endl;
+#endif
+
+  Integer level=0;
+  Integer pdenumber  = 0;
+  Integer nsys = 0;
+  Double steptime=firstdt_;
+  Integer stepsave=isavebegin_-1;
+
+  TimeErrorEstimator * ptTimeError;
+  ptTimeError=new AcousticTimeErrorEstimator(ptdomain_->GetPDE(pdenumber));
+
+  Double dt=firstdt_;
+  Boolean updatesysmat=FALSE;
+
+  ptdomain_->GetPDE(pdenumber)->CalcParameters(dt);
+  ptdomain_->GetPDE(pdenumber)->SetMatrixFactors();
+
+  Integer nstep;
+  for (nstep = 0; nstep<numstep_; nstep++)
+    {
+
+      ptdomain_->GetPDE(pdenumber)->SolveStepTrans(ptdomain_->GetAlgSys(), ptdomain_->GetBCs(), nstep, steptime, level, updatesysmat);
+
+   // writing results in output-file
+    if (nstep == stepsave && (nstep < isaveend_))
+      {
+        ptdomain_->GetPDE(pdenumber)->WriteResultsInFile();
+        stepsave+=isaveincr_;
+      }
+
+   if (ptTimeError->TestError())
+      {
+         ptTimeError->ChangeStep(dt);
+         ptdomain_->GetPDE(pdenumber)->CalcParameters(dt);
+         updatesysmat=TRUE;
+      }
+
+   steptime+=dt;
+   }
 }
 
 }

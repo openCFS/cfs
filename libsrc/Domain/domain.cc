@@ -96,8 +96,7 @@ void Domain<Dim> :: InitPDE()
  //     ptpde[i] = new Therm2dPDE(ptgrid,ptmaterial,ptTimeFunc,InFile,OutFile,statickey,numnode);
     }
 
-   
-   ptpde_[0]->SetStepData();
+//   ptpde_[0]->SetStepData();
 
 }
 

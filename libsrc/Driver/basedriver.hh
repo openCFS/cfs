@@ -20,6 +20,9 @@ public:
   //! there is a main method, where time-steping is implemented
   virtual void SolveProblem()=0;
 
+  //! here adapt. time-stepping is implemented
+  virtual void SolveProblemAdapt()=0; 
+
   //!
   void SetupMatricesPDE(Integer pdenumber);
 

@@ -1,5 +1,5 @@
-#ifndef FILE_BASEPRECOND
-#define FILE_BASEPRECOND
+#ifndef FILE_BASEPRECOND_CLA
+#define FILE_BASEPRECOND_CLA
 
 namespace CoupledField
 {
@@ -29,4 +29,4 @@ protected:
 
 }
 
-#endif // FILE_BASEPRECOND
+#endif // FILE_BASEPRECOND_CLA

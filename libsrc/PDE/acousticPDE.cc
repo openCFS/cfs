@@ -28,7 +28,7 @@ AcousticPDE<Dim>::AcousticPDE(const Double dt0, Grid<Dim> * ptgrid, const Intege
   }
   else c=1;
 
-  CalcParamForNewmarkMethod(dt0);
+  CalcParameters(dt0);
 
   CoefLaplace=1.0;
   CoefMass=a0*c;

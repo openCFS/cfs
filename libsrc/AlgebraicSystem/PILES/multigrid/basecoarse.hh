@@ -1,5 +1,5 @@
-#ifndef FILE_BASECOARSE_PILES
-#define FILE_BASECOARSE_PILES
+#ifndef FILE_BASECOARSE_CLA
+#define FILE_BASECOARSE_CLA
 
 namespace CoupledField
 {
@@ -62,4 +62,4 @@ protected:
 
 }
 
-#endif // FILE_BASECOARSE_PILES
+#endif // FILE_BASECOARSE_CLA

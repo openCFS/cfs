@@ -1,9 +1,10 @@
-#ifndef FILE_SCALARMATRIX_PILES
-#define FILE_SCALARMATRIX_PILES
+#ifndef FILE_SCALARMATRIX_CLA
+#define FILE_SCALARMATRIX_CLA
 
 namespace CoupledField
 {
 
+//! Class for scalar real valued matrices
 class RScalarMatrix : public BaseMatrix
 {
 public:
@@ -18,6 +19,9 @@ public:
 
   ///
   virtual void Mult(Double * vec1, Double * vec2, Double factor) const {;};
+
+  //! Computes the energy norm with vector vec1
+  virtual double CalcEnergyNorm(Double * vec1) const;
 
   ///
   virtual void MultAdd(Double * vec1, BaseVector &vec2) const;
@@ -85,6 +89,9 @@ public:
   ///
   virtual void Mult(BaseVector & vec1, BaseVector & vec2, Double factor) const;
 
+  //! Computes the energy norm with vector vec1
+  virtual double CalcEnergyNorm(Double * vec1) const {;};
+
   ///
   virtual void Mult(Double * vec1, Double * vec2, Double factor) const {;};
 
@@ -130,4 +137,4 @@ public:
 
 }
 
-#endif // FILE_SCALARMATRIX_PILES
+#endif // FILE_SCALARMATRIX_CLA

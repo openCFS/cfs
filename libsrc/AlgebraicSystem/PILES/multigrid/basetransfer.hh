@@ -1,5 +1,5 @@
-#ifndef FILE_BASETRANSFER_PILES
-#define FILE_BASETRANSFER_PILES
+#ifndef FILE_BASETRANSFER_CLA
+#define FILE_BASETRANSFER_CLA
 
 namespace CoupledField
 {
@@ -47,4 +47,4 @@ protected:
 
 }
 
-#endif // FILE_BASETRANSFER_PILES
+#endif // FILE_BASETRANSFER_CLA

@@ -52,8 +52,8 @@ public:
   {
     matrix_row ++;
     matrix_col ++;
-    algsys->CreateMatrix(matrix_row,matrix_col,matrixsystype,matrixtype,graphtype,numdofpernode,numdirichlets,
-                         numconstraints);
+    algsys->CreateMatrix(matrix_row,matrix_col,matrixsystype,matrixtype,graphtype,numdofpernode,
+			 numdirichlets,numconstraints);
     algsys->CreateSolver(matrix_row);
     algsys->CreatePrecond(matrixtype, matrix_row);
   }
@@ -71,6 +71,13 @@ public:
   {
     matrix_row ++;
     algsys->InitRHS(matrix_row);
+  }
+
+  virtual void ResetMatrix(Integer matrix_row, Integer matrix_col, Integer matrix_id)
+  {
+    matrix_row ++;
+    matrix_col ++;
+    algsys->InitMatrix(matrix_row,matrix_col,matrix_id);
   }
 
   virtual void PutElemMatAlgSys(Double *elemmat, Integer *help, Integer numnodelem, Integer matrix_row,
@@ -137,6 +144,13 @@ public:
     return algsys->GetSolutionVal(nsys);
   }
 
+  //!
+  virtual Double CalcEnergyNorm(Integer matrix_row, Integer matrix_col, Integer matrix_id, Double * u)
+  {
+    matrix_row ++;
+    matrix_col ++;
+    return algsys->CalcEnergyNorm(matrix_row,matrix_col,matrix_id,u);
+  }
 
 private:
   AlgebraicSystem * algsys;

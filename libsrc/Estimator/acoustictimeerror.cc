@@ -2,20 +2,33 @@
 #include <fstream>
 #include <string>
 
-#include "timeerror.hh"
+#include "acoustictimeerror.hh"
 
 namespace CoupledField
 {
 
-TimeErrorEstimator::TimeErrorEstimator(BasePDE* aptPDE)
+AcousticTimeErrorEstimator::AcousticTimeErrorEstimator(BasePDE * aptPDE)
+:TimeErrorEstimator(aptPDE)
 {
 #ifdef TRACE
-  (*trace) << "entering TimeErrorEstimator::TimeErrorEstimator" << std::endl;
+  (*trace) << "entering AcousticTimeErrorEstimator::AcousticTimeErrorEstimator" << std::endl;
+#endif
+  
+}
+
+void AcousticTimeErrorEstimator::ChangeStep(Double & dt)
+{
+#ifdef TRACE
+  (*trace) << "entering TimeErrorEstimator::ChangeStep" << std::endl;
 #endif
 
-  if (!aptPDE) Error("Wrong type of pointer in constructor of TimeError");
- 
-  ptPDE_=aptPDE;
+  Double tol, theta;
+
+  conf->get("tol",tol,"Acoustic");
+  conf->get("theta", theta, "Acoustic");
+
+ dt*=sqrt(theta*tol/relativeerror);
+
 }
 
 /*

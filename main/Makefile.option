@@ -26,9 +26,11 @@ mylibrary=  driver estimator pde algsys-own forms  \
             domain unverg gmv \
             definefiles datfile datainout \
             utils matrix general \
-#              nginterface vis csg \
+#            Xext Xmu \
+#            nginterface vis csg \
 #            stlgeom mesh gprim opti \
-#            la gen tk8.3 tcl8.3\
+#            la gen tix8.1.8.3 tk8.3 tcl8.3\
+#            GL GLU X11 Xi m dl pthread stdc++ 
 #mylibrary=  driver pde algsys-own forms  \
 #            elements3d elements2d elements \
 #            gridcfs togridlib domain unverg   \
@@ -47,7 +49,8 @@ INCL =  -I$(IncGridlib) -I$(IncNetGen) \
            -I$(LIBSRC_DIR)/AlgebraicSystem/PILES \
           -I$(LIBSRC_DIR)/AlgebraicSystem/PILES/multigrid \
              -I$(LIBSRC_DIR)/AlgebraicSystem/PILES/general \
-         -I$(LIBSRC_DIR)/AlgebraicSystem/PILES/superlu
+         -I$(LIBSRC_DIR)/AlgebraicSystem/PILES/superlu \
+         -I$(LIBSRC_DIR)/Estimator
 #
 CFLAGS2 = -c $(INCL) 
 #

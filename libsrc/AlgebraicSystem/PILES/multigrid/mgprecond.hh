@@ -1,9 +1,10 @@
-#ifndef FILE_MGPRECOND_PILES
-#define FILE_MGPRECOND_PILES
+#ifndef FILE_MGPRECOND_CLA
+#define FILE_MGPRECOND_CLA
 
 namespace CoupledField
 {
 
+//! Multigrid preconditioner
 class BaseMGPrecond : public BasePrecond
 {
 public:
@@ -77,4 +78,4 @@ public:
 
 }
 
-#endif // FILE_MGPRECOND_PILES
+#endif // FILE_MGPRECOND_CLA

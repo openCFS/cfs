@@ -1,19 +1,20 @@
-#ifndef FILE_BASEPARAMETER
-#define FILE_BASEPARAMETER
+#ifndef FILE_BASEPARAMETER_CLA
+#define FILE_BASEPARAMETER_CLA
 
 namespace CoupledField
 {
 
+//! Parameter class for lagebraic equation solvers
 class BaseParameter
 {
 public:
-  ///
+  //! Constructor
   BaseParameter();
 
-  ///
+  //! Destructor
   virtual ~BaseParameter();
 
-  ///
+  //! Set all parameters of the solver to predefined values
   void Set();
 
   ///
@@ -76,10 +77,10 @@ public:
   void SetOutBackMemory()
     {outback = 1;};
 
-  ///
+  //! Get the preconditioner-type (IC, ILU, etc.)
   Integer GetPrecond() const {return precond;};
 
-  ///
+  //! Get the solver type (CG, etc.)
   Integer GetSolver() const {return solver;};
 
   ///
@@ -169,4 +170,4 @@ private:
 
 }
 
-#endif // FILE_BASEPARAMETER
+#endif // FILE_BASEPARAMETER_CLA

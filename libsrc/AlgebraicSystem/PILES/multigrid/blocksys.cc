@@ -97,7 +97,7 @@ void BlockSystem :: CalcPrecond(Integer newprecond, Integer mat)
 void BlockSystem :: Solve()
 {
 #ifdef TRACE
-  (*trace) << "entering AlgebraicSystem::CreateParameter" << endl;
+  (*trace) << "entering AlgebraicSystem::Solve" << endl;
 #endif
 
   Integer i;
@@ -111,7 +111,7 @@ void BlockSystem :: Solve()
 void BlockSystem :: Solve(Double * f, Double * u)
 {
 #ifdef TRACE
-  (*trace) << "entering AlgebraicSystem::CreateParameter" << endl;
+  (*trace) << "entering AlgebraicSystem::Solve" << endl;
 #endif
 
   Integer i,dof,size;

@@ -51,8 +51,7 @@ Double &adampiter,  Integer &amaxnumit);
   void SolveStepStatic(AbstractAlgebraicSys *ptalgsys, BCs * ptBCs ,Integer level);
 
   //!
-  void SolveStepTrans(AbstractAlgebraicSys *ptalgsys, BCs * ptBCs ,Integer kstep, Double steptime,
-                      Integer level);
+  void SolveStepTrans(AbstractAlgebraicSys *ptalgsys, BCs * ptBCs ,const Integer kstep, const Double steptime, const Integer level, const Boolean updatesysmat);
 
   //!
    void WriteResultsInFile();
@@ -67,6 +66,14 @@ Double &adampiter,  Integer &amaxnumit);
   virtual Vector<Double> & getS2() { return sol_der2_;}
 
 private:
+   //!
+  void SolveStepTransNewAssemble(AbstractAlgebraicSys *ptalgsys, BCs * ptBCs, const Integer level);
+
+  //!
+  void SolveStepTransContinue(AbstractAlgebraicSys *ptalgsys, BCs * ptBCs, const Integer level);
+
+  //!
+  void SolveStepTransReset(AbstractAlgebraicSys *ptalgsys, BCs * ptBCs, const Integer level);
 
   //!
   Integer dofspernode_;
@@ -77,8 +84,8 @@ private:
   //!
   Integer AS_sysid_;
 
-  //!
-  void CalcParamForNewmarkMethod(const Double dt);
+  //! Calculation parameters for Newmark method
+  virtual void CalcParameters(const Double dt);
 
   //!
   Double a0_,a1_,a2_,a3_,a4_,a5_,a6_,a7_;

@@ -20,6 +20,9 @@ public:
   //!
   virtual void SolveProblem();
 
+  //! with adaptivity in time
+  virtual void SolveProblemAdapt();
+
   //!
   void SetupMatricesPDE(Integer pdenumber, Integer matrixtype);
 

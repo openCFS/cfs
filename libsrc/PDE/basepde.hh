@@ -49,8 +49,7 @@ public:
   virtual void SolveStepStatic(AbstractAlgebraicSys *ptalgsys, BCs * ptBCs, Integer level)=0;
 
   //!
-  virtual void SolveStepTrans(AbstractAlgebraicSys *ptalgsys, BCs * ptBCs, Integer kstep, Double asteptime,
-			      Integer level)=0;
+  virtual void SolveStepTrans(AbstractAlgebraicSys *ptalgsys, BCs * ptBCs, const Integer kstep, const Double asteptime, const Integer level, const Boolean updatesysmat)=0;
 
   //!
   virtual void WriteResultsInFile()=0;  
@@ -59,10 +58,7 @@ public:
 //  void CalcIntegrationParam(const Double dt);
 
   //! Calculation parameters in Newmark method
-  virtual void CalcParamForNewmarkMethod(const Double adt)=0;  
-
-   //!
-  void SetStepData();
+  virtual void CalcParameters(const Double adt)=0;  
 
   //!
   virtual Vector<Double> & getS()=0;

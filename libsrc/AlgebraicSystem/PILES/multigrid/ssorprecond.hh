@@ -1,5 +1,5 @@
-#ifndef FILE_SSORPRECOND_PILES
-#define FILE_SSORPRECOND_PILES
+#ifndef FILE_SSORPRECOND_CLA
+#define FILE_SSORPRECOND_CLA
 
 namespace CoupledField
 {
@@ -49,4 +49,4 @@ private:
 
 }
 
-#endif // FILE_SSORPRECOND_PILES
+#endif // FILE_SSORPRECOND_CLA

@@ -1,5 +1,5 @@
-#ifndef FILE_BLOCKSMOOTHER_PILES
-#define FILE_BLOCKSMOOTHER_PILES
+#ifndef FILE_BLOCKSMOOTHER_CLA
+#define FILE_BLOCKSMOOTHER_CLA
 
 namespace CoupledField
 {
@@ -50,4 +50,4 @@ public:
 
 }
 
-#endif // FILE_BLOCKSMOOTHER_PILES
+#endif // FILE_BLOCKSMOOTHER_CLA
