@@ -44,6 +44,10 @@ DocTeX/src/part2.tex svneol=native#text/plain
 DocTeX/src/part3.aux -text
 DocTeX/src/part3.tex svneol=native#text/plain
 DocTeX/src/schedule.tex svneol=native#text/plain
+libgrid/libGridBase.so -text svneol=unset#unset
+libgrid/libIO.so -text svneol=unset#unset
+libgrid/libMesh.so -text svneol=unset#unset
+libgrid/libUtil.so -text svneol=unset#unset
 libsrc/AlgebraicSystem/LinAlg/Makefile -text
 libsrc/AlgebraicSystem/LinAlg/assemble.cc svneol=native#text/plain
 libsrc/AlgebraicSystem/LinAlg/assemble.hh svneol=native#text/plain
