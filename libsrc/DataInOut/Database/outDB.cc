@@ -17,7 +17,7 @@ WriteResultsDatabase::~WriteResultsDatabase()
   Db_.Close();
 }
 
-void WriteResultsDatabase::Init (Grid *aptgrid, BCs * aptbcs)
+void WriteResultsDatabase::Init (Grid *aptgrid)
 {
   ENTER_FCN("WriteResultsDatabase::Init");
   std::string hostName, userName, passwd, databaseName;

@@ -29,7 +29,7 @@ WriteResultsDatabase(const Char * const filename, FileType * const aInFile=NULL)
 ~WriteResultsDatabase();
 
 //! Initialization with grid
-virtual void Init (Grid *aptgrid, BCs * aptbcs);
+virtual void Init (Grid *aptgrid);
 
 //! Write basis information (Calculation parameter, configuration file..)
 void WriteBasisData();
