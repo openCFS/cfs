@@ -10,7 +10,7 @@
 #define TRACE_INDENT "  "
 
 
-namespace CoupledField {
+namespace OutInfo {
 
   //! Function tracing is written to this file stream
   extern std::ostream *trace;
