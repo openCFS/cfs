@@ -11,9 +11,7 @@ namespace CoupledField
 
  BaseFE :: BaseFE()
 {
-#ifdef TRACE
-  (*trace) << "entering BaseFE::BaseFE" << std::endl;
-#endif
+  ENTER_FCN( "entering BaseFE::BaseFE" );
   
   // initializing dynamic objects
   ShFncAtIp_      = NULL;
@@ -24,9 +22,7 @@ namespace CoupledField
  
 BaseFE :: ~BaseFE()
 {
-#ifdef TRACE
-  (*trace) << "entering BaseFE::~BaseFE" << std::endl;
-#endif
+  ENTER_FCN( "BaseFE::~BaseFE" );
  
   if( ShFncAtIp_ ) delete[] ShFncAtIp_;
   if( ShFncDerivAtIp_ ) delete[] ShFncDerivAtIp_;
@@ -36,9 +32,7 @@ BaseFE :: ~BaseFE()
 void BaseFE :: GetShFnc(std::vector<double> & S, 
 			const std::vector<Double> & LCoord)
 {
-#ifdef TRACE
-  (*trace) << "entering BaseFE::GetShFnc" << std::endl;
-#endif
+  ENTER_FCN( "BaseFE::GetShFnc" );
 
   CalcShapeFnc(S, LCoord);
 
@@ -47,9 +41,7 @@ void BaseFE :: GetShFnc(std::vector<double> & S,
 void BaseFE :: GetShFncAtIp(std::vector<Double> & S, 
 			    const Integer ip)
 {
-#ifdef TRACE
-  (*trace) << "entering BaseFE::GetShFncAtIp" << std::endl;
-#endif
+  ENTER_FCN( "GetShFncAtIp" );
 
   S.resize(NumNodes_);
 
@@ -61,10 +53,7 @@ void BaseFE :: GetGlobDerivShFnc(Matrix<Double> & Deriv,
 				 const std::vector<Double> & LCoord,
 				 const Matrix<Double> & CornerCoords)
 {
-#ifdef TRACE
-  (*trace) << "entering BaseFE::GetGlobDerivShFnc" << std::endl;
-#endif
-
+  ENTER_FCN( "BaseFE::GetGlobDerivShFnc" );
 
   Deriv.Resize(NumNodes_,Dim_);
   Matrix<Double> LDeriv, JInv;
@@ -81,9 +70,7 @@ void BaseFE :: GetGlobDerivShFncAtIp(Matrix<Double> & Deriv,
 				     const Matrix<Double> & CornerCoords,
 				     Double & jacDet)
 {
-#ifdef TRACE
-  (*trace) << "entering BaseFE::GetGlobDerivShFncAtIp" << std::endl;
-#endif
+  ENTER_FCN( "BaseFE::GetGlobDerivShFncAtIp" );
 
   //  Deriv.Resize(NumNodes_,Dim_);
   Matrix<Double> JInv;
@@ -107,9 +94,7 @@ void BaseFE :: GetGlobDerivShFncAtIp(Matrix<Double> & Deriv,
 				     const Integer ip,
 				     const Matrix<Double> & CornerCoords)
 {
-#ifdef TRACE
-  (*trace) << "entering BaseFE::GetGlobDerivShFncAtIp" << std::endl;
-#endif
+  ENTER_FCN( "BaseFE::GetGlobDerivShFncAtIp" );
 
   //  Deriv.Resize(NumNodes_,Dim_);
   Matrix<Double> JInv;
@@ -126,9 +111,8 @@ void BaseFE :: CalcJacobian(Matrix<Double> & J,
 			    const std::vector<Double> & LCoord, 
 			    const Matrix<Double> & CornerCoords)
 {
-#ifdef TRACE
-  (*trace) << "entering BaseFE::CalcJacobian" << std::endl;
-#endif
+  ENTER_FCN( "BaseFE::CalcJacobian" );
+
   //  J.Resize(Dim_,Dim_);
 
   Matrix<Double> LDeriv;
@@ -142,9 +126,7 @@ void BaseFE :: CalcJacobianAtIp(Matrix<Double> & J,
 				const Integer ip, 
 				const Matrix<Double> & CornerCoords)
 {
-#ifdef TRACE
-  (*trace) << "entering BaseFE::CalcJacobianAtIp" << std::endl;
-#endif
+  ENTER_FCN( "BaseFE::CalcJacobianAtIp" );
 
   if (CornerCoords.GetSizeRow()==3 && Dim_==2) // Surface element in 3D
     J.Resize(CornerCoords.GetSizeRow(),Dim_);
@@ -157,9 +139,7 @@ void BaseFE :: CalcJacobianAtIp(Matrix<Double> & J,
 Double BaseFE :: CalcJacobianDet(const std::vector<Double> & LCoord,
 				      const Matrix<Double> & CornerCoords)
 {
-#ifdef TRACE
-  (*trace) << "entering BaseFE::CalcJacobianDet" << std::endl;
-#endif
+  ENTER_FCN( "BaseFE::CalcJacobianDet" );
 
   Matrix<Double> J;
   Double jacDet;
@@ -174,9 +154,7 @@ Double BaseFE :: CalcJacobianDet(const std::vector<Double> & LCoord,
 Double BaseFE :: CalcJacobianDetAtIp(const Integer ip, 
 				     const Matrix<Double> & CornerCoords)
 {
-#ifdef TRACE
-  (*trace) << "entering BaseFE::CalcJacobianDetAtIp" << std::endl;
-#endif
+  ENTER_FCN( "BaseFE::CalcJacobianDetAtIp" );
 
   Matrix<Double> J;
 
@@ -213,9 +191,7 @@ void BaseFE :: CalcInvJacobian(Matrix<Double> & JInv,
 			       const std::vector<Double> & LCoord,
 			       const Matrix<Double> & CornerCoords)
 {
-#ifdef TRACE
-  (*trace) << "entering BaseFE::CalcInvJacobian" << std::endl;
-#endif
+  ENTER_FCN( "BaseFE::CalcInvJacobian" );
   
   Matrix<Double> J, LDeriv;
 
@@ -235,9 +211,8 @@ void BaseFE :: CalcInvJacobianAtIp(Matrix<Double> & JInv,
 				   const Integer ip,
 				   const Matrix<Double> & CornerCoords)
 {
-#ifdef TRACE
-  (*trace) << "entering BaseFE::CalcInvJacobianAtIp" << std::endl;
-#endif
+  ENTER_FCN( "BaseFE::CalcInvJacobianAtIp" );
+
   JInv.Resize(Dim_,Dim_);
 
   Matrix<Double> J;
@@ -252,9 +227,7 @@ void BaseFE :: CalcInvJacobianAtIp(Matrix<Double> & JInv,
 
 void BaseFE :: SetShapeFncAtIp()
 {
-#ifdef TRACE
-  (*trace) << "entering BaseFE::SetShapeFncAtIp" << std::endl;
-#endif
+  ENTER_FCN( "BaseFE::SetShapeFncAtIp" );
   
   if (!ShFncAtIp_)
     ShFncAtIp_ = new std::vector<Double>[NumIntPoints_];
@@ -266,9 +239,7 @@ void BaseFE :: SetShapeFncAtIp()
   
 void BaseFE :: SetShapeFncDerivAtIp()
 {
-#ifdef TRACE
-  (*trace) << "entering BaseFE::SetShapeFncDerivAtIp" << std::endl;
-#endif
+  ENTER_FCN( "BaseFE::SetShapeFncDerivAtIp" );
 
   if( !ShFncDerivAtIp_)
     ShFncDerivAtIp_ = new Matrix<Double>[NumIntPoints_];
@@ -282,9 +253,7 @@ void BaseFE :: SetShapeFncDerivAtIp()
 
 enum IntegrationType BaseFE::String2EnumIntegrationType(const Char * inttype)
 {
-#ifdef TRACE
-  (*trace) << "entering BaseFE::String2EnumIntegrationType" << std::endl;
-#endif
+  ENTER_FCN( "BaseFE::String2EnumIntegrationType" );
 
  enum IntegrationType result=null;
  if (!std::strcmp(inttype,"GaussOrder2")) result=GaussOrder2;
@@ -303,6 +272,7 @@ enum IntegrationType BaseFE::String2EnumIntegrationType(const Char * inttype)
 void BaseFE::GetGlobalEdgeIndicesAtIP( std::vector<Double> & globCoord, Integer ip,
 				       const Matrix<Double> & cornerCoords)
 {
+  ENTER_FCN( "BaseFE::GetGlobalEdgeIndicesAtIP" );
   // cornerCoords: nrCorners x dim
 
   globCoord.resize(Dim_);
@@ -318,9 +288,7 @@ void BaseFE::GetEdgeGlobDerivShFncAtIp(std::vector< Matrix<Double>* > & deriv,
 			       const Integer ip,
 			       const Matrix<Double> & cornerCoords)
 {
-#ifdef TRACE
-  (*trace) << "entering BaseFE::GetEdgeGlobDerivShFncAtIp" << std::endl;
-#endif
+  ENTER_FCN( "BaseFE::GetEdgeGlobDerivShFncAtIp" );
 
   // vector of coordinates of the desired integration point
   std::vector<Double> lCoord;
@@ -336,6 +304,8 @@ void BaseFE::CalcEdgeShapeFncAtIp(Matrix<Double> & shape,
 				  const Integer ip,
 				  const Matrix<Double> & cornerCoords)
 {
+  ENTER_FCN( "BaseFE::CalcEdgeShapeFncAtIp" );
+
   std::vector<Double> lCoord;
   lCoord.resize(Dim_);
 
@@ -349,6 +319,7 @@ void BaseFE::CalcEdgeShapeFncAtIp(Matrix<Double> & shape,
 void BaseFE::GetGlobalEdgeIndices(std::vector<Integer> & globEdgeIndex,
 					  Integer * pDENodes, BaseSystem * algsys)
 {
+  ENTER_FCN( "BaseFE::GetGlobalEdgeIndices" );
   // define the global edge number
   for(Integer actEdge=0; actEdge < globEdgeIndex.size(); actEdge++)
     globEdgeIndex[actEdge] = 
