@@ -96,8 +96,10 @@ public:
   virtual void PostProcess(const Integer level);
 
   //! write results in file
-  //! \todo The definition of the errorMap_ has to
+  //! \todo Elena: The definition of the errorMap_ has to
   //! be changed to a StoreSol<Double> or BaseStoreSol object
+  //! \todo Elena: The solution of the elements might have to be
+  //! transformed with mesh2DPEElems_
   virtual void WriteResultsInFile();
 
   //! computes the electric energy for each subdomain

@@ -43,7 +43,7 @@ template<class TYPE> class Array;
 //! A StoreSolution example for the Piezoelectric PDE would look
 //! like this:
 //! \f[ \left( \begin{array}{c} disp_x^1 \\ disp_y^1 \\  disp_z^1 \\  
-//! V_{elec}^1 \\ disp_x^2 & disp_y^2 \\  disp_z^2 \\ V_{elec}^2 \\ \cdots
+//! V_{elec}^1 \\ disp_x^2 \\ disp_y^2 \\  disp_z^2 \\ V_{elec}^2 \\ \cdots
 //! \end{array} \right) \f] 
 
 class BaseStoreSol
@@ -218,21 +218,10 @@ public:
   
   //!
   virtual void TransformElemSolution(BaseStoreSol & transformedSolution,
-				     const std::vector<Elem*> & elems,
+				     const std::vector<Integer> & mapping,
 				     Grid * ptGrid,
 				     const Integer level) const = 0;
   
-  //! maps the local element solution to the global mesh solution
-  /*!
-    \param MeshSol (output) Solution vector referring to mesh node numbers
-    \param PDESol (input) Solution vector
-    \param Elems (input) Vector of subdomains to which PDESol belongs to
-  */
-  virtual void TransformElemSolution(BaseStoreSol & MeshSol, 
-				     const std::vector<std::string> & SD,
-				     Grid * ptGrid,
-				     const Integer level) const = 0;
-
   //! maps the local node solution to the coupling nodes
   virtual
   void NodeSolutionToCoupling(BaseStoreSol & couplingSol,

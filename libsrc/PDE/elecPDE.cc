@@ -86,7 +86,7 @@ ElecPDE::ElecPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
   // set analysis parameters
   assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, subdoms_, surfdoms_);
   assemble_->SetGraphType(NODEGRAPH);
-  assemble_->SetMesh2PDENode(&Mesh2PDENode_);
+  assemble_->SetMesh2PDENode(&mesh2PDENode_);
 
 #ifdef USE_OLAS
   assemble_->SetMatrixEntryType(DOUBLE);
@@ -140,10 +140,10 @@ void ElecPDE:: PreStepStatic(const Integer kstep, const Double asteptime,
 {
   ENTER_FCN( "ElecPDE::PreStepStatic" );
 
-  if (PDEisCoupled_ )
+  if (pdeIsCoupled_ )
       algsys_->InitSol();
 
-  if (GeoUpdate_)
+  if (geoUpdate_)
     {
       assemble_->SetNonlinGeo();
 
@@ -194,7 +194,7 @@ void ElecPDE::PostStepStatic(const Integer kstep, const Double asteptime,
 {
   ENTER_FCN( "ElecPDE::PostStepStatic" );
 
-  if (PDEisCoupled_)
+  if (pdeIsCoupled_)
     iterCoupledCounter_++;
 
 
@@ -209,7 +209,7 @@ void ElecPDE::PostStepStatic(const Integer kstep, const Double asteptime,
 
       ptError_->Init(this);
       
-      sol_->TransformNodeSolution(Sol_Mesh,sol_,PDE2MeshNode_,ptgrid_);
+      sol_->TransformNodeSolution(Sol_Mesh,sol_,pde2MeshNode_,ptgrid_);
 
       sol_->GetCompleteVector(solVec);
 
@@ -255,34 +255,35 @@ void ElecPDE::WriteResultsInFile()
 
 
   // transform solution vector for electric potential
-  sol_->TransformNodeSolution(Sol_Mesh,PDE2MeshNode_,ptgrid_,actlevel_);
+  sol_->TransformNodeSolution(Sol_Mesh,pde2MeshNode_,ptgrid_,actlevel_);
 
   
 
    
   // write results
-  if (OutFile_->IsGMV())
+  if (outFile_->IsGMV())
     {
       // write electric potential
       if (savesol_)
-	OutFile_->WriteNodeSolution(Sol_Mesh, laststepcalc_, time, "E-Potential");
+	outFile_->WriteNodeSolution(Sol_Mesh, laststepcalc_, time, "E-Potential");
       
       if (calcEfield_.size() !=0 )
 	{
-	  E_.TransformElemSolution(E_Mesh,subdoms_,ptgrid_,actlevel_);
-	  OutFile_->WriteElemSolution(E_Mesh,laststepcalc_,time,"E-Field");
+	  E_.TransformElemSolution(E_Mesh,pde2MeshElem_,ptgrid_,actlevel_);
+	  outFile_->WriteElemSolution(E_Mesh,laststepcalc_,time,"E-Field");
 	}
     }
   else
     {
       // write electric potential
       if (savesol_)
-	OutFile_->WriteNodeSolution(Sol_Mesh,laststepcalc_,time,"electric potential");
+	outFile_->WriteNodeSolution(Sol_Mesh,laststepcalc_,time,"electric potential");
 
       if (calcEfield_.size() !=0 )
-	  //	  TransformElemSolution(E_Mesh,E_,subdoms_);
-	  OutFile_->WriteElemSolution(E_, laststepcalc_, time, "electric field");
-	
+	{
+	  E_.TransformElemSolution(E_Mesh,pde2MeshElem_,ptgrid_,actlevel_);
+	  outFile_->WriteElemSolution(E_Mesh, laststepcalc_, time, "electric field");
+	}
     }
 
     if (flags->CalcErrorMap_)
@@ -294,9 +295,13 @@ void ElecPDE::WriteResultsInFile()
 	Error.SetNumDofs(dofspernode_);
 	Error.Init(0);
 	Error.SetCompleteVector(errorMap_);
-	Error.TransformElemSolution(Error_Mesh,subdoms_,ptgrid_,actlevel_);
+	
+	// ATTENTION!!
+	// up to now now transformation of the Error performed,
+	// since the calculation of the error is done on the global element numeration
+	//Error.TransformElemSolution(Error_Mesh,subdoms_,ptgrid_,actlevel_);
 	//OutFile_->WriteElemSolution(errorMap_, laststepcalc_, time, "relERR-E-Potential"); 
-	OutFile_->WriteElemSolution(Error_Mesh, laststepcalc_, time, "relERR-E-Potential"); 
+	outFile_->WriteElemSolution(Error_Mesh, laststepcalc_, time, "relERR-E-Potential"); 
       }
 
     if (calcEnergy_.size() !=0 )
@@ -318,12 +323,12 @@ void ElecPDE::PostProcess(const Integer level)
 
   if (calcEfield_.size() !=0 )
     {
-      ElecFieldOp * FieldOp = new ElecFieldOp(ptgrid_, this, &Mesh2PDENode_, * solhelp, level, isaxi_);
+      ElecFieldOp * FieldOp = new ElecFieldOp(ptgrid_, this, &mesh2PDENode_, * solhelp, level, isaxi_);
 
       // ------ Calculation of the electric field ------
 
       std::vector<Double> LCoord;
-      LCoord.resize(Dim_);
+      LCoord.resize(dim_);
       LCoord[0] = 0;
       LCoord[1] = 0;
       
@@ -341,7 +346,7 @@ void ElecPDE::PostProcess(const Integer level)
 	  for (Integer iel=0; iel< elemssd.size(); iel++,counterElems++)
 	    {
 	      FieldOp->CalcElemElecField( TempE, elemssd[iel], LCoord); 
-	      E_.SetNodalResult(elemssd[iel]->ElemNum-1,TempE);
+	      E_.SetNodalResult(mesh2PDEElem_[elemssd[iel]->elemNum - 1]-1,TempE);
 	    }
 	}
       delete FieldOp;
@@ -363,7 +368,7 @@ void ElecPDE::CalcNodeForce(StoreSol<Double> & force,
   PTRCAST(sol_,StoreSol<Double>,solhelp);
   
   
-  ElecForceOp * ForceOp = new ElecForceOp(ptgrid_, this, &Mesh2PDENode_, *solhelp, actlevel_, isaxi_);
+  ElecForceOp * ForceOp = new ElecForceOp(ptgrid_, this, &mesh2PDENode_, *solhelp, actlevel_, isaxi_);
    
   StoreSol<Double> force_temp;
   
@@ -388,18 +393,18 @@ void ElecPDE::CalcNodeForce(StoreSol<Double> & force,
 
       // Add the element force to the according coupling node
       for (Integer ielemnode=0; ielemnode<elems[ielem]->connect.GetSize(); ielemnode++)
-	for( Integer idim=0; idim<Dim_; idim++)
+	for( Integer idim=0; idim<dim_; idim++)
 	  force(elemNodeToCouplingNode[ielem][ielemnode],idim) += force_temp(ielemnode,idim);
     }
 
 
   Vector<Double> sum;
-  sum.Resize(Dim_);
+  sum.Resize(dim_);
   
   for (Integer i=0; i<nodes.size(); i++) 
     {
       //std::cerr << "Node[" << nodes[i] << "] = ";
-    for (Integer dim=0; dim<Dim_; dim++)
+    for (Integer dim=0; dim<dim_; dim++)
       {
 	sum[dim] += force(i,dim);
 	//std::cerr << force[dim][i] << " , ";
@@ -454,7 +459,7 @@ void ElecPDE::CalcEnergy()
 	  bilinear_stiff->CalcElementMatrix(ptCoord, elemmat);
 
 	  // Mape Mesh to PDE node numbers
-	  Mesh2PDENode(connect_PDE,connecth,Mesh2PDENode_);
+	  Mesh2PDENode(connect_PDE,connecth,mesh2PDENode_);
 
 // 	  EqnData_->Mesh2Eqn(Eqns,connecth);
 // 	  (*debug) << "Nodes:" << connecth << std::endl;
@@ -504,9 +509,13 @@ void ElecPDE::Reset()
   EqnData_ = new ScalarNodeEQN(ptgrid_,ptBCs_,subdoms_, bcs_hd_,actlevel_);
   EqnData_->Print();
 
-  AssignPDENodeNumbers(Mesh2PDENode_,PDE2MeshNode_,subdoms_);
-  numPDENodes_=PDE2MeshNode_.size();
+  // Map global numeration of element and nodes to local one
+  AssignPDENodeNumbers(mesh2PDENode_, pde2MeshNode_, subdoms_);  
+  AssignPDEElemNumbers(mesh2PDEElem_, pde2MeshElem_, subdoms_);
+  numPDENodes_ = pde2MeshNode_.size();
+  numElems_ = pde2MeshElem_.size();
 
+  
 
   // Initalize solution class
   sol_->SetNumSolutions(1);
@@ -520,7 +529,7 @@ void ElecPDE::Reset()
   E_.SetNumSolutions(1);
   E_.SetSolutionType(ELEC_FIELD);
   E_.SetNumNodes(numElems_);
-  E_.SetNumDofs(Dim_);
+  E_.SetNumDofs(dim_);
   E_.Init(0.0); 
 }
 
@@ -535,7 +544,7 @@ void ElecPDE::InitCoupling(PDECoupling * Coupling)
 {
   ENTER_FCN( "ElecPDE::InitCoupling" );
   
-  PDEisCoupled_ = TRUE;
+  pdeIsCoupled_ = TRUE;
   ptCoupling_   = Coupling;
 
   const Integer numCouplings = ptCoupling_->GetNumOutputCouplings();
@@ -543,12 +552,12 @@ void ElecPDE::InitCoupling(PDECoupling * Coupling)
 
 #ifndef XMLPARAMS
   //check, if geometric nonlinearity is switched of by the user
-  GeoUpdate_ = TRUE;
+  geoUpdate_ = TRUE;
   nonLin_    = TRUE;    //general nonlinear switch in basepde!
   
   if (conf->get_optionNo("nonlingeo",  pdename_ ))
     {
-      GeoUpdate_ = FALSE;
+      geoUpdate_ = FALSE;
       nonLin_    = FALSE;  
     }
 #else
@@ -683,7 +692,7 @@ void ElecPDE::CalcOutputCoupling()
 	  ptCoupling_->GetOutputNodes(actCoupling, couplingNodes);
 	  
 	  if (quantity == "elecpotential")
-	    sol_->NodeSolutionToCoupling(*values, *couplingNodes,Mesh2PDENode_);
+	    sol_->NodeSolutionToCoupling(*values, *couplingNodes,mesh2PDENode_);
 	    
 	  if (quantity == "elecforce")
 	    {
@@ -785,7 +794,7 @@ void ElecPDE::CalcInterfaceForces(Integer actCoupling)
       Vector<Integer> connect_PDE;
 
       GetElemCoords(connecth, ptCoord, actlevel_);
-      Mesh2PDENode(connect_PDE, connecth, Mesh2PDENode_);
+      Mesh2PDENode(connect_PDE, connecth, mesh2PDENode_);
 
 
 
@@ -926,7 +935,7 @@ void ElecPDE::CalcEfieldAtCoupleElemIP(Elem * actVolElem,
   
   TRY_CAST
     PTRCAST(sol_,StoreSol<Double>,solTemp);
-  ElecFieldOp elecFieldOp(ptgrid_, this, &Mesh2PDENode_, *solTemp, actlevel_, isaxi_);
+  ElecFieldOp elecFieldOp(ptgrid_, this, &mesh2PDENode_, *solTemp, actlevel_, isaxi_);
 
   elecFieldOp.CalcElemElecField(tempE, actVolElem, lCoord);
   CATCH_CAST

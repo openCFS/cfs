@@ -123,7 +123,7 @@ void PDECoupling::AddInput(std::string quantity,
   // dimension of the grid, otherwise the number dofs
   // must be equal to that of my PDE
   if (inputTypes_[myNum] == COORD)
-    myInterface->dof = myPDE_->Dim_;
+    myInterface->dof = myPDE_->dim_;
   else
     myInterface->dof = myPDE_->dofspernode_;
   

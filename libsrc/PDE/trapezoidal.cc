@@ -11,9 +11,7 @@ Trapezoidal :: Trapezoidal(std::string apdename, BaseSystem * algebraicsystem, I
 		   Integer numnode)
 :TimeStepping(apdename, algebraicsystem)
 {
-#ifdef TRACE
-  (*trace) << "entering Trapezoidal::Trapezoidal" << std::endl;
-#endif
+  ENTER_FCN( "Trapezoidal::Trapezoidal" );
 
   gamma_ = 1;
 
@@ -30,17 +28,14 @@ Trapezoidal :: Trapezoidal(std::string apdename, BaseSystem * algebraicsystem, I
 
 Trapezoidal :: ~Trapezoidal()
 {
-#ifdef TRACE
-  (*trace) << "entering Trapezoidal::~Trapezoidal" << std::endl;
-#endif
+  ENTER_FCN( "Trapezoidal::~Trapezoidal" );
 
 }
 
 void Trapezoidal::Init(Double * matrix_factors, Double dt)
 {
-#ifdef TRACE
-  (*trace) << "entering Trapezoidal::Init" << std::endl;
-#endif
+  ENTER_FCN( "Trapezoidal::Init" );
+
   dt_ = dt;
   CalcParameters(dt_);
 
@@ -55,9 +50,7 @@ void Trapezoidal::Init(Double * matrix_factors, Double dt)
 
 void Trapezoidal::Predictor(Vector<Double>& solold)
 {
-#ifdef TRACE
-  (*trace) << "entering Trapezoidal::Predictor" << std::endl;
-#endif
+  ENTER_FCN( "Trapezoidal::Predictor" );
 
   solpred_ = solold + solderiv1_*a0_;
 }
@@ -65,9 +58,7 @@ void Trapezoidal::Predictor(Vector<Double>& solold)
 
 void Trapezoidal::UpdateRHS()
 {
-#ifdef TRACE
-  (*trace) << "entering Trapezoidal::UpdateRHS" << std::endl;
-#endif
+  ENTER_FCN( "Trapezoidal::UpdateRHS" );
 
   Vector<Double> coeffMass;
 
@@ -79,18 +70,14 @@ void Trapezoidal::UpdateRHS()
 
 void Trapezoidal::Corrector(Vector<Double>& solnew)
 {
-#ifdef TRACE
-  (*trace) << "entering Trapezoidal::Corrector" << std::endl;
-#endif
+  ENTER_FCN( "Trapezoidal::Corrector" );
 
   solderiv1_ = (solnew - solpred_)*a1_;
 }
 
 void Trapezoidal :: CalcParameters(Double dt)
 {
-#ifdef TRACE
-  (*trace) << "entering Trapezoidal::CalcParameters" << std::endl;
-#endif
+  ENTER_FCN( "Trapezoidal::CalcParameters" );
 
   //for predictors
   a0_ = (1-gamma_)*dt_;

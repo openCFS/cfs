@@ -29,8 +29,8 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
   incStopCrit_ = 1e-2;
   residualStopCrit_ = 1e-3;
 
-  InFile_     = aInFile;
-  OutFile_    = aOutFile;
+  inFile_     = aInFile;
+  outFile_    = aOutFile;
   ptTimeFunc_ = aptTimeFunc;
   ptgrid_     = aptgrid;
   ptBCs_      = aptBCs;
@@ -38,11 +38,11 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
   actlevel_ = 0;
   couplingBCsCounter_ = 0;
   numDirichletBCs_ = 0;
-  PDEisCoupled_ = FALSE;
+  pdeIsCoupled_ = FALSE;
   updateCouplingBCs_ = FALSE;
   updateBCs_ = 0;
-  Dim_ = ptgrid_->GetDim();
-  InitMatrices_ = FALSE;
+  dim_ = ptgrid_->GetDim();
+  initMatrices_ = FALSE;
 
 
 
@@ -274,14 +274,14 @@ void BasePDE::StepStaticLin(const Integer kstep, const Double aTime,
   lasttimecalc_ = aTime; // for correct output in unv-file
   
 
-  if ( PDEisCoupled_ == FALSE || iterCoupledCounter_ == 0 && firstTimeStepStatic_)
+  if ( pdeIsCoupled_ == FALSE || iterCoupledCounter_ == 0 && firstTimeStepStatic_)
     assemble_->AssembleMatrices(level);
 
 
   //this has to be done each time!
   assemble_->AssembleSrcRHS(level, aTime);
 
-  if ( PDEisCoupled_ == FALSE || iterCoupledCounter_ == 0)
+  if ( pdeIsCoupled_ == FALSE || iterCoupledCounter_ == 0)
     {
       //account for bcs
       SetBCs(level, updateBCs_, aTime);
@@ -336,10 +336,10 @@ void BasePDE::SolveStepTrans(const Integer kstep, const Double asteptime,
   ENTER_FCN( "BasePDE::SolveStepTrans" );
 
   lasttimecalc_= asteptime;
-  Recalc_ = FALSE;
+  recalc_ = FALSE;
 
   if (laststepcalc_ == kstep && kstep != 1) 
-    Recalc_=TRUE;
+    recalc_=TRUE;
   else 
     laststepcalc_= kstep;
 
@@ -375,7 +375,7 @@ void BasePDE::PostStepTrans(const Integer kstep, const Double asteptime, const I
   TRY_CAST
   PTRCAST(sol_,StoreSol<Double>,solhelp)
     
-  if (PDEisCoupled_)
+  if (pdeIsCoupled_)
     {
       //save solution
       Vector<Double> solvector= solhelp->GetCompleteVector();
@@ -384,7 +384,7 @@ void BasePDE::PostStepTrans(const Integer kstep, const Double asteptime, const I
       TS_alg_->Corrector(solvector); 
     }
   
-  if (PDEisCoupled_)
+  if (pdeIsCoupled_)
     iterCoupledCounter_++;
   CATCH_CAST
 }
@@ -415,7 +415,7 @@ void BasePDE::StepTransLin(const Integer kstep, const Double asteptime,
   
   
 
-  if ( PDEisCoupled_ == FALSE || iterCoupledCounter_ == 0)
+  if ( pdeIsCoupled_ == FALSE || iterCoupledCounter_ == 0)
     {    
       
       Vector<Double> solvector= solhelp->GetCompleteVector();
@@ -429,7 +429,7 @@ void BasePDE::StepTransLin(const Integer kstep, const Double asteptime,
       update = 0;
       job = 3;
 
-      if ( PDEisCoupled_ == FALSE || iterCoupledCounter_ == 0)
+      if ( pdeIsCoupled_ == FALSE || iterCoupledCounter_ == 0)
 	{
 	  job = 1;
 	  assemble_->AssembleMatrices(level);
@@ -476,7 +476,7 @@ void BasePDE::StepTransLin(const Integer kstep, const Double asteptime,
   Vector<Double> solvector;
   dynamic_cast<StoreSol<Double>*>(sol_)->GetCompleteVector(solvector);
 
-  if (!PDEisCoupled_)
+  if (!pdeIsCoupled_)
     TS_alg_->Corrector(solvector);
   CATCH_CAST
 }
@@ -493,7 +493,7 @@ void  BasePDE::SetBCs(const Integer level, const Integer update, const Double ti
 
   Integer i;
   Integer j;
-  if (PDEisCoupled_)
+  if (pdeIsCoupled_)
     j = couplingBCsCounter_;
   else
     j=0;
@@ -513,9 +513,9 @@ void  BasePDE::SetBCs(const Integer level, const Integer update, const Double ti
 	{
 	  node=*p;
 #ifdef USE_OLAS
-	  algsys_->SetDirichlet(j+1, Mesh2PDENode_[node-1],val, dof);
+	  algsys_->SetDirichlet(j+1, mesh2PDENode_[node-1],val, dof);
 #else
-	  algsys_->SetDirichlet(j+1, Mesh2PDENode_[node-1],val, dof, SYSTEM);
+	  algsys_->SetDirichlet(j+1, mesh2PDENode_[node-1],val, dof, SYSTEM);
 #endif
 	}
     }
@@ -543,10 +543,10 @@ void  BasePDE::SetBCs(const Integer level, const Integer update, const Double ti
 	  node=*p;
 	  // Mesh node numbers are mapped to PDE node numbers
 #ifdef USE_OLAS
-	  algsys_->SetDirichlet(j+1, Mesh2PDENode_[node-1],
+	  algsys_->SetDirichlet(j+1, mesh2PDENode_[node-1],
 				val, dof);
 #else
-	  algsys_->SetDirichlet(j+1, Mesh2PDENode_[node-1],
+	  algsys_->SetDirichlet(j+1, mesh2PDENode_[node-1],
 				val, dof, SYSTEM);
 #endif
 	}
@@ -996,13 +996,13 @@ void BasePDE::CalcInputCoupling()
 	{
 	  
 	case COORD:
-	  InitMatrices_ = TRUE;
+	  initMatrices_ = TRUE;
 	  ptCoupling_->GetInputNodes(i, nodes);
 	  // -- OLD --
 	  //deltCoords_.reshape(Dim_, numPDENodes_);
 
 	  val->GetDataPointer(help);
-	  deltCoords_.Resize(Dim_, numPDENodes_);
+	  deltCoords_.Resize(dim_, numPDENodes_);
 	  
 	  // set ptr of deltCoords to assembly-object
 	  assemble_->SetPtrDeltaCoordinates(&deltCoords_);
@@ -1012,11 +1012,11 @@ void BasePDE::CalcInputCoupling()
 	    for (Integer dof=0; dof<ptCoupling_->GetInputDof(i); dof++)
 	      {
 		//std::cerr << "processing dim = " << dim << ", j = " << j << std::endl;
-		PDEnode = Mesh2PDENode_[(*nodes)[j]-1]-1;
+		PDEnode = mesh2PDENode_[(*nodes)[j]-1]-1;
 		if (PDEnode==-1)
 		  Error("Node not assigned to coupling domain: see mesh- and config-file",__FILE__,__LINE__);
 		
-		deltCoords_(dof,PDEnode) = help[dof + j*Dim_];
+		deltCoords_(dof,PDEnode) = help[dof + j*dim_];
 	      }
 	  
 	  break;
@@ -1031,7 +1031,7 @@ void BasePDE::CalcInputCoupling()
 	  for (Integer dof=0; dof<couplingDof; dof++)
 	    for (Integer j=0; j<nodes->size(); j++)
 	      {
-		PDEnode = Mesh2PDENode_[(*nodes)[j]-1];
+		PDEnode = mesh2PDENode_[(*nodes)[j]-1];
 		if (PDEnode==-1)
 		  {
 		    // std::cerr << "PDENODE: "  << PDEnode << "Node[" << (*nodes)[j] << "][" 
@@ -1054,7 +1054,7 @@ void BasePDE::CalcInputCoupling()
 	  for (Integer dof=0; dof<ptCoupling_->GetInputDof(i); dof++)
 	    for (Integer j=0; j<nodes->size(); j++, couplingBCsCounter_++)
 	      {
-		PDEnode = Mesh2PDENode_[(*nodes)[j]-1];
+		PDEnode = mesh2PDENode_[(*nodes)[j]-1];
 		if (PDEnode==-1)
 		  Error("Node not assigned to coupling domain: see mesh- and config-file",__FILE__,__LINE__);
 #ifdef USE_OLAS
@@ -1110,51 +1110,51 @@ void BasePDE::Mesh2PDENode(Vector<Integer> & PDENodes,
 
 
 
-void BasePDE::PDE2MeshNode(Vector<Integer> & MeshNodes, 
-			   const Vector<Integer> & PDENodes,
-			   const std::vector<Integer> & PDE2MeshNode)
+void BasePDE::PDE2MeshNode(Vector<Integer> & meshNodes, 
+			   const Vector<Integer> & pdeNodes,
+			   const std::vector<Integer> & pde2MeshNode)
 {
 
   ENTER_FCN( "BasePDE::PDE2MeshNode " );
 
-  MeshNodes.Resize(PDENodes.GetSize());
+  meshNodes.Resize(pdeNodes.GetSize());
 
-  for (Integer i=0; i<PDENodes.GetSize(); i++)
-    MeshNodes[i] = PDE2MeshNode[PDENodes[i]-1];
+  for (Integer i=0; i<pdeNodes.GetSize(); i++)
+    meshNodes[i] = pde2MeshNode[pdeNodes[i]-1];
 
 #ifdef DEBUG
   (*debug) << "--------------------" << std::endl;
   (*debug) << " PDE2MeshNode()" << std::endl;
-  for (Integer i=0; i<PDENodes.GetSize(); i++)
-    (*debug) << "in: " << PDENodes[i] << " out: " << MeshNodes[i] << std::endl;
+  for (Integer i=0; i<pdeNodes.GetSize(); i++)
+    (*debug) << "in: " << pdeNodes[i] << " out: " << meshNodes[i] << std::endl;
 #endif
 }
 
 
 
 
-void BasePDE::AssignPDENodeNumbers(std::vector<Integer> & Mesh2PDENode,
-			  std::vector<Integer> & PDE2MeshNode,
+void BasePDE::AssignPDENodeNumbers(std::vector<Integer> & mesh2PDENode,
+			  std::vector<Integer> & pde2MeshNode,
 			  const std::vector<std::string> & subdoms)
 {
 
   ENTER_FCN( "BasePDE:AssignPDENodeNumbers:" );
 
   // Initialize Mesh2PDENode and PDE2MeshNode
-  Mesh2PDENode.resize(ptgrid_->GetMaxnumnodes(actlevel_),-1);
+  mesh2PDENode.resize(ptgrid_->GetMaxnumnodes(actlevel_),-1);
   std::vector<Elem*> SD;
-  Integer NodeCounter = 1;
+  Integer nodecounter = 1;
 
 #ifdef ADAPTGRID
   std::cout << "NO MAPPING OF NODES!! " << std::endl << std::endl;
   
-  PDE2MeshNode_.resize(ptgrid_->GetMaxnumnodes(actlevel_),-1);
+  PDEMeshNode_.resize(ptgrid_->GetMaxnumnodes(actlevel_),-1);
   for (Integer i=0;i<ptgrid_->GetMaxnumnodes(actlevel_);i++)
     {
-      Mesh2PDENode_[i] = i+1;
-      PDE2MeshNode_[i] = i+1;
+      mesh2PDENode_[i] = i+1;
+      pde2MeshNode_[i] = i+1;
     }
-  numPDENodes_ = PDE2MeshNode_.GetSize();
+  numPDENodes_ = pde2MeshNode_.size();
   
   return;
 #endif  
@@ -1167,42 +1167,78 @@ void BasePDE::AssignPDENodeNumbers(std::vector<Integer> & Mesh2PDENode,
       for (Integer j=0; j<SD.size(); j++)
 	{
 	  // Iterate over all element nodes
-	  for (Integer NumNodes=0; NumNodes<SD[j]->connect.GetSize(); NumNodes++)
+	  for (Integer numNodes=0; numNodes<SD[j]->connect.GetSize(); numNodes++)
 	    {
 	      // Check if node was already assigned
-	      if (Mesh2PDENode[SD[j]->connect[NumNodes] - 1] == -1)
+	      if (mesh2PDENode[SD[j]->connect[numNodes] - 1] == -1)
 		{
-		  Mesh2PDENode[SD[j]->connect[NumNodes] - 1] = NodeCounter;
-		  PDE2MeshNode.push_back(SD[j]->connect[NumNodes]);
-		  NodeCounter++;
+		  mesh2PDENode[SD[j]->connect[numNodes] - 1] = nodecounter;
+		  pde2MeshNode.push_back(SD[j]->connect[numNodes]);
+		  nodecounter++;
 		}
 	    }
 	}
     }
 
-  numPDENodes_ = PDE2MeshNode_.size();
-
-#ifdef DEBUG
-  (*debug) << "Mesh2PDENodes:" << std::endl << Mesh2PDENode << std::endl;
-#endif
+  numPDENodes_ = pde2MeshNode_.size();
+  
 }
 
+void BasePDE::AssignPDEElemNumbers(std::vector<Integer> & mesh2PDEElem,
+				   std::vector<Integer> & pde2MeshElem,
+				   const std::vector<std::string> & subdoms)
+{
+
+  ENTER_FCN( "BasePDE::AssignPDEElemNumbers" );
+
+  // Resize mesh2PDEElem and pde2MeshElem to correct size
+  // and initialize with -1 = not assigned to PDE
+  mesh2PDEElem.resize(ptgrid_->GetMaxnumElem(actlevel_),-1);
+  pde2MeshElem.resize(ptgrid_->GetMaxnumElem(actlevel_,subdoms),-1);
+
+  //std::cerr << "mesh2PDEElem.size = " << mesh2PDEElem.size() << std::endl;
+  //std::cerr << "PDE2meshElem.size = " << pde2MeshElem.size() << std::endl;
+  std::vector<Elem*> SD;
+  Integer elemCounter = 1;
 
 
+  // Iterate over Subdomains
+  for (Integer iSD=0; iSD<subdoms.size(); iSD++)
+    {
+      ptgrid_->GetElemSD(SD,subdoms[iSD],actlevel_);
+
+      // Iterate over all elements in subdomain
+      for (Integer iElem=0; iElem<SD.size(); iElem++)
+	{
+	  //std::cerr << "assigning mesh2PDEElem[SD[iElem]->elemNum - 1 ] = elemCounter: ";
+	  //std::cerr << SD[iElem]->elemNum - 1 << "=" << elemCounter << std::endl;
+	  //std::cerr << "assigning pde2MeshElem[elemCounter-1] = SD[iElem]->elemNum: ";
+	  //std::cerr << elemCounter-1 << " = " << SD[iElem]->elemNum << std::endl;
+	  mesh2PDEElem[SD[iElem]->elemNum - 1 ] = elemCounter;
+	  pde2MeshElem[elemCounter-1] = SD[iElem]->elemNum;
+	  elemCounter++;
+	}
+      
+    }
   
+  numElems_ = mesh2PDEElem.size();
+  
+				  
+}
+     
 
 void BasePDE::GetElemCoords(const Vector<Integer> connect, Matrix<Double> &coordMat, const Integer level)
 {
 
-  ENTER_FCN( "BasePDE:GetElemCoords:" );
+  ENTER_FCN( "BasePDE::GetElemCoords" );
 
   ptgrid_->GetCoordNodesElemMat(connect, coordMat, level);
   
-  if (deltCoords_.GetSizeRow() != 0 && GeoUpdate_ == TRUE)
+  if (deltCoords_.GetSizeRow() != 0 && geoUpdate_ == TRUE)
     {
       for (Integer i=0; i<coordMat.GetSizeRow(); i++)
 	for (Integer j=0; j<coordMat.GetSizeCol(); j++) 
-	  coordMat(i,j) += deltCoords_(i,Mesh2PDENode_ [connect[j] - 1] - 1);
+	  coordMat(i,j) += deltCoords_(i,mesh2PDENode_ [connect[j] - 1] - 1);
     }
 
 }

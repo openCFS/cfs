@@ -24,9 +24,8 @@ AcouFlowNoise::AcouFlowNoise(Grid *aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc,
 :AcousticPDE(aptgrid, aptbcs, aptTimeFunc, aptFileType, 
 			 aptOut)
 {
-#ifdef TRACE
-  (*trace) << "entering AcouFlowNoise::AcouFlowNoise " << std::endl;
-#endif
+  ENTER_FCN( "AcouFlowNoise::AcouFlowNoise" );
+
 #ifdef MpCCI
    std::vector<Elem*> elemssd;
       ptgrid_->GetElemSD(elemssd,subdoms_[1],actlevel_);
@@ -39,6 +38,7 @@ AcouFlowNoise::AcouFlowNoise(Grid *aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc,
 
 AcouFlowNoise::~AcouFlowNoise()
 {
+  ENTER_FCN( "AcouFlowNoise::AcouFlowNoise" );
 #ifdef MpCCI
   delete ptMpCCIexch_;
 #endif
@@ -46,10 +46,8 @@ AcouFlowNoise::~AcouFlowNoise()
 
 void AcouFlowNoise::preComputeRHS()
 {
-#ifdef TRACE
-  (*trace) << "entering AcouFlowNoise::preComputeRHS" << std::endl;
-#endif
-
+  ENTER_FCN( "AcouFlowNoise::preComputeRHS" );
+  
   //first check if coupling per MpCCI or if a flow-result file is provided
   MpCCI_=FALSE;
   std::string strMpCCI="no";
@@ -98,9 +96,7 @@ void AcouFlowNoise::preComputeRHS()
 
 void AcouFlowNoise::ComputeRHS(const Double atime)
 {
-#ifdef TRACE
-  (*trace) << "entering AcouFlowNoise::ComputeRHS" << std::endl;
-#endif
+  ENTER_FCN( "AcouFlowNoise::ComputeRHS" );
 
   Vector<Double> coeffMass, coeffDamp;
   std::vector<Double> elemvec;
@@ -158,7 +154,7 @@ void AcouFlowNoise::ComputeRHS(const Double atime)
 #ifdef MpCCI
       std::cout<<"MpCCInodes_: "<<MpCCInodes_<<std::endl;
       //     MpCCIexch * ptMpCCIexch_ = new MpCCIexch(ptgrid_);
-      flowdata_.Resize(1+Dim_, MpCCInodes_);
+      flowdata_.Resize(1+dim_, MpCCInodes_);
       ptMpCCIexch_->CouplCompPhase(flowdata_, timestep);
       //  delete ptMpCCIexch_;
 #endif
@@ -185,9 +181,9 @@ void AcouFlowNoise::ComputeRHS(const Double atime)
   
     
       std::vector<Double> gradN_x_P; // This is done due to the different parameter type Vector and std::vector
-      gradN_x_P.resize(Dim_);
+      gradN_x_P.resize(dim_);
       gradN_x_P*=0;
-      std::vector<Double> LCoord(Dim_,0);
+      std::vector<Double> LCoord(dim_,0);
       Double jacDet;
       
       // TO COMMENT OUT ONLY WHILE USING FILES WITH GRADIENT VALUE!!!
@@ -204,7 +200,7 @@ void AcouFlowNoise::ComputeRHS(const Double atime)
 
 	for (ii=0; ii<n; ii++)
 	  {  
-	    for(i=0;i<Dim_;i++)
+	    for(i=0;i<dim_;i++)
 	      {
 		gradN_x_P[i]+=jacDet*deriv[ii][i]*(flowdata_[0][connBelongSE[ii]-1]);
 		std::cout<<"gradN_x_P["<<i<<"] :"<<gradN_x_P[i]<<std::endl;
@@ -227,7 +223,7 @@ void AcouFlowNoise::ComputeRHS(const Double atime)
 
 
 	// CHANGE connecth
-	Mesh2PDENode(connect_PDE,connObstSurf,Mesh2PDENode_);
+	Mesh2PDENode(connect_PDE,connObstSurf,mesh2PDENode_);
 	std::cout<<"connObstSurf :"<<connObstSurf<<std::endl;
  	  std::cout<<"elemvect DIPOLE: "<<elemvecdip<<std::endl;
 	// including the dipole contribution for testing!!!!!!!!
@@ -303,7 +299,8 @@ void AcouFlowNoise::ComputeRHS(const Double atime)
 	  //end ramping
 
 	  // CHANGE connecth
-	  Mesh2PDENode(connect_PDE,connecth,Mesh2PDENode_);
+	  Mesh2PDENode(connect_PDE,connecth,mesh2PDENode_);
+
 	  //linear_load->CalcElemVector(ptCoordNodes, elemvec); // for setting with homogeneous rhs
 	  
 	  // if (j>100){ 
@@ -328,9 +325,7 @@ void AcouFlowNoise::ComputeRHS(const Double atime)
 
 void AcouFlowNoise::ReadFlowData(const Char * aname, Integer timestep, Matrix<Double> &flowdata_)
 {
-#ifdef TRACE
-  (*trace) << "entering AcouFlowNoise ::ReadFlowData" << std::endl;
-#endif
+  ENTER_FCN( "AcouFlowNoise::ReadFlowData" );
 
   std::ifstream flowdatafile;
   Integer maxnumnodes;
@@ -425,9 +420,7 @@ void AcouFlowNoise::ReadFlowData(const Char * aname, Integer timestep, Matrix<Do
 void AcouFlowNoise::SolveStepTrans(const Integer kstep, const Double asteptime, const Integer level, 
 				     const Boolean reset)
 {
-#ifdef TRACE
-  (*trace) << "entering AcouFlowNoise::SolveStepTrans" << std::endl;
-#endif
+  ENTER_FCN( "AcouFlowNoise::SolveStepTrans" );
 
   lasttimecalc_= asteptime;
   Boolean Recalc=FALSE;
@@ -501,9 +494,8 @@ void AcouFlowNoise::SolveStepTrans(const Integer kstep, const Double asteptime, 
 
 void AcouFlowNoise::WriteResultsInFile()
 {
-#ifdef TRACE
-  (*trace) << "entering AcouFlowNoise::WriteResultsInFile" << std::endl;
-#endif
+  ENTER_FCN( "AcouFlowNoise::WriteResultsInFile" );
+
   Integer Dim = 2;
 
   StoreSol<Double> arraysol,arraysol_der1,arraysol_der2;
@@ -524,21 +516,21 @@ void AcouFlowNoise::WriteResultsInFile()
   sol_der2Array.Init(0.0);
   sol_der2Array.SetCompleteVector(getS2());
   
-  sol_->TransformNodeSolution(arraysol,PDE2MeshNode_,ptgrid_,actlevel_);
-  sol_der1Array.TransformNodeSolution(arraysol_der1,PDE2MeshNode_,ptgrid_,actlevel_);
-  sol_der2Array.TransformNodeSolution(arraysol_der2,PDE2MeshNode_,ptgrid_,actlevel_);
+  sol_->TransformNodeSolution(arraysol,pde2MeshNode_,ptgrid_,actlevel_);
+  sol_der1Array.TransformNodeSolution(arraysol_der1,pde2MeshNode_,ptgrid_,actlevel_);
+  sol_der2Array.TransformNodeSolution(arraysol_der2,pde2MeshNode_,ptgrid_,actlevel_);
 
-  if (OutFile_->IsGMV())
+  if (outFile_->IsGMV())
     {
-      OutFile_->WriteNodeSolution(arraysol,laststepcalc_,lasttimecalc_,"vp");
-//       OutFile_->WriteNodeSolution(arraysol_der1,laststepcalc_,lasttimecalc_,"vp_1der");
-//       OutFile_->WriteNodeSolution(arraysol_der2,laststepcalc_,lasttimecalc_,"vp_2der");
+      outFile_->WriteNodeSolution(arraysol,laststepcalc_,lasttimecalc_,"vp");
+//       outFile_->WriteNodeSolution(arraysol_der1,laststepcalc_,lasttimecalc_,"vp_1der");
+//       outFile_->WriteNodeSolution(arraysol_der2,laststepcalc_,lasttimecalc_,"vp_2der");
     }
   else
     {
-      OutFile_->WriteNodeSolution(arraysol,laststepcalc_,lasttimecalc_,"fluid potential");
-      //OutFile_->WriteNodeSolution(sol_der1,laststepcalc_,lasttimecalc_,"fluid potential, 1st deriv., ",1);
-      //OutFile_->WriteNodeSolution(sol_der2,laststepcalc_,lasttimecalc_,"fluid potential, 2nd deriv., ",1);
+      outFile_->WriteNodeSolution(arraysol,laststepcalc_,lasttimecalc_,"fluid potential");
+      //outFile_->WriteNodeSolution(sol_der1,laststepcalc_,lasttimecalc_,"fluid potential, 1st deriv., ",1);
+      //outFile_->WriteNodeSolution(sol_der2,laststepcalc_,lasttimecalc_,"fluid potential, 2nd deriv., ",1);
     }
 }
 
