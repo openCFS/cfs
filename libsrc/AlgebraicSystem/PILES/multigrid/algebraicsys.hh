@@ -17,7 +17,7 @@ public:
   virtual void CalcPrecond() = 0;
 
   ///
-  virtual void CalcPrecond(Integer newprecond, Integer mat) = 0;
+  virtual void CalcPrecond(Integer newprecond, Integer sys_id) = 0;
 
   ///
   virtual void Solve() = 0;
@@ -31,64 +31,64 @@ public:
   ////////////////////////////////////////////////////////////////////////////
 
   ///
-  void SetAccuracy(Double aeps, Integer mat)
-    {param[mat-1]->SetAccuracy(aeps);}
+  void SetAccuracy(Double aeps, Integer sys_id)
+    {param[sys_id-1]->SetAccuracy(aeps);}
 
   ///
-  void SetMaxNumIter(Integer amaxnumiter, Integer mat)
-    {param[mat-1]->SetMaxNumIter(amaxnumiter);}
+  void SetMaxNumIter(Integer amaxnumiter, Integer sys_id)
+    {param[sys_id-1]->SetMaxNumIter(amaxnumiter);}
   
   ///
-  void SetPrecond(Integer aprecond, Integer mat)
-    {param[mat-1]->SetPrecond(aprecond);}
+  void SetPrecond(Integer aprecond, Integer sys_id)
+    {param[sys_id-1]->SetPrecond(aprecond);}
 
   ///
-  void SetSolver(Integer asolver, Integer mat)
-    {param[mat-1]->SetSolver(asolver);}
+  void SetSolver(Integer asolver, Integer sys_id)
+    {param[sys_id-1]->SetSolver(asolver);}
   
   ///
-  void SetDampIter(Double adampiter, Integer mat)
-    {param[mat-1]->SetDampIter(adampiter);}
+  void SetDampIter(Double adampiter, Integer sys_id)
+    {param[sys_id-1]->SetDampIter(adampiter);}
 
   ///
-  void SetEpsMat(Double aepsmat, Integer mat)
-    {param[mat-1]->SetEpsMat(aepsmat);};
+  void SetEpsMat(Double aepsmat, Integer sys_id)
+    {param[sys_id-1]->SetEpsMat(aepsmat);};
 
   ///
-  void SetAlpha(Double aalpha, Integer mat)
-    {param[mat-1]->SetAlpha(aalpha);};
+  void SetAlpha(Double aalpha, Integer sys_id)
+    {param[sys_id-1]->SetAlpha(aalpha);};
 
   ///
-  void SetCoarseSystem(Integer acoarsesystem, Integer mat)
-    {param[mat-1]->SetCoarseSystem(acoarsesystem);};
+  void SetCoarseSystem(Integer acoarsesystem, Integer sys_id)
+    {param[sys_id-1]->SetCoarseSystem(acoarsesystem);};
   
   ///
-  void SetCycle(Integer acycle, Integer mat)
-    {param[mat-1]->SetCycle(acycle);};
+  void SetCycle(Integer acycle, Integer sys_id)
+    {param[sys_id-1]->SetCycle(acycle);};
 
   ///
-  void SetSmoothType(Integer asmoothingtype, Integer mat)
-    {param[mat-1]->SetSmoothType(asmoothingtype);};
+  void SetSmoothType(Integer asmoothingtype, Integer sys_id)
+    {param[sys_id-1]->SetSmoothType(asmoothingtype);};
 
   ///
-  void SetSmoothStepFor(Integer asmoothingfor, Integer mat)
-    {param[mat-1]->SetSmoothStepFor(asmoothingfor);};
+  void SetSmoothStepFor(Integer asmoothingfor, Integer sys_id)
+    {param[sys_id-1]->SetSmoothStepFor(asmoothingfor);};
 
   ///
-  void SetSmoothStepBack(Integer asmoothingback, Integer mat)
-    {param[mat-1]->SetSmoothStepBack(asmoothingback);};
+  void SetSmoothStepBack(Integer asmoothingback, Integer sys_id)
+    {param[sys_id-1]->SetSmoothStepBack(asmoothingback);};
 
   ///
-  void SetSpectralMatrix(Integer mat)
-    {param[mat-1]->SetSpectralMatrix();}
+  void SetSpectralMatrix(Integer sys_id)
+    {param[sys_id-1]->SetSpectralMatrix();}
 
   ///
-  void SetPenalty(double apenalty, Integer mat)
-    {param[mat-1]->SetPenalty(apenalty);};
+  void SetPenalty(double apenalty, Integer sys_id)
+    {param[sys_id-1]->SetPenalty(apenalty);};
 
   ///
-  void SetOutBackMemory(Integer mat)
-    {param[mat-1]->SetOutBackMemory();}
+  void SetOutBackMemory(Integer sys_id)
+    {param[sys_id-1]->SetOutBackMemory();}
 
   /////////////////////////////////////////////////////////////////////////////
 
@@ -107,84 +107,109 @@ public:
 
   ///
   void SetElementMatrix(Double * elemmat, Integer * connect, Integer elemsize, 
-			Integer type,Integer mat)
-    {sysmat[type*offset+mat-1]->Assemble(elemmat, connect, elemsize);}
+			Integer matrix_row, Integer matrix_col,Integer matrix_id)
+    {sysmat[(matrix_id-1)*offset+(matrix_row-1)*blocksize+matrix_col-1]->Assemble(elemmat, connect, elemsize);}
 
   ///
-  void SetAuxElementMatrix(Double * elemmat, Integer * connect, Integer elemsize ,Integer mat)
-    {auxmat[mat-1]->Assemble(elemmat, connect, elemsize);}
+  void SetAuxElementMatrix(Double * elemmat, Integer * connect, Integer elemsize ,Integer sys_id)
+    {auxmat[sys_id-1]->Assemble(elemmat, connect, elemsize);}
 
   ///
-  void SetElementRHS(Double * elemrhs, Integer * connect, Integer elemsize, Integer mat)
-    {rhs[mat-1]->Assemble(elemrhs, connect, elemsize);};
+  void SetElementRHS(Double * elemrhs, Integer * connect, Integer elemsize, Integer sys_id)
+    {rhs[sys_id-1]->Assemble(elemrhs, connect, elemsize);};
 
   ///
-  void InitRHS(Integer mat)
-    {rhs[mat-1]->Init();};
+  void InitRHS(Integer sys_id)
+    {rhs[sys_id-1]->Init();};
 
-  void InitSol(Integer mat)
-    {sol[mat-1]->Init();};
-
-  ///
-  void CreateMatrix(Integer * typesys, Integer * typemat, Integer * typegraph, Integer * dof, 
-		    Integer * dir, Integer * con);
+  void InitSol(Integer sys_id)
+    {sol[sys_id-1]->Init();};
 
   ///
-  void SetMatrixFactor(Double val, Integer type, Integer mat)
-    {sysmat[type*offset+mat-1]->SetMatrixFactor(val);};
+  void CreateMatrix(Integer matrix_row, Integer matrix_col, Integer * matrix_type, Integer matrix_class,
+		    Integer graph, Integer adof, Integer dir, Integer con);
 
   ///
-  void MultMat(Integer i, Integer j, Integer type, Double * u, Double * v)
-    {sysmat[type*offset+(i-1)*numsys+j-1]->Mult(u,v);};
+  void CreateSolver(Integer sys_id);
+
+  ///
+  void CreatePrecond(Integer matrix_class, Integer sys_id);
+
+  ///
+  void SetMatrixFactor(Double val, Integer matrix_row, Integer matrix_col, Integer matrix_id)
+    {sysmat[(matrix_id-1)*offset+(matrix_row-1)*blocksize+matrix_col-1]->SetMatrixFactor(val);};
+
+  ///
+  void MultMat(Integer matrix_row, Integer matrix_col, Integer matrix_id, Double * u, Double * v)
+    {sysmat[(matrix_id-1)*offset+(matrix_row-1)*blocksize+matrix_col-1]->Mult(u,v);};
 
   ///
   void AddGMGLevel();
 
   ///
-  void InitMatrix(Integer mat, Integer type)
-    {sysmat[type*offset+mat-1]->InitMatrix();};
+  void InitMatrix(Integer matrix_row, Integer matrix_col, Integer matrix_id)
+    {sysmat[(matrix_id-1)*offset+(matrix_row-1)*blocksize+matrix_col-1]->InitMatrix();};
 
   ///
-  void SetMatrixPointer(Integer * astart, Integer * apos, Double * aval, Integer mat)
-    {sysmat[mat-1]->SetPointer(astart, apos, aval);};
+  void SetMatrixPointer(Integer * astart, Integer * apos, Double * aval, 
+			Integer matrix_row, Integer matrix_col, Integer matrix_id)
+    {sysmat[(matrix_id-1)*offset+(matrix_row-1)*blocksize+matrix_col-1]->SetPointer(astart, apos, aval);};
 
   /////////////////////////////////////////////////////////////////////////////////////////
   
   ///
-  void SetDirichlet(Integer i, Integer num, Double val, Integer comp, Integer mat)
-    {sysmat[mat-1]->SetDirichlet(i, num, val, comp);};
+  void UpdateRHS(Integer matrix_row, Integer matrix_col, Integer matrix_id, Double * fup)
+    {sysmat[(matrix_id-1)*offset+(matrix_row-1)*blocksize+matrix_col-1]->MultAdd(fup, *rhs[matrix_row-1]);};
 
   ///
-  void UpdateDirichlet(Integer num, Double val, Integer mat)
-    {sysmat[mat-1]->UpdateDirichlet(num, val);};
+  void SetDirichlet(Integer i, Integer num, Double val, Integer comp, 
+		    Integer matrix_row, Integer matrix_col, Integer matrix_id)
+    {sysmat[(matrix_id-1)*offset+(matrix_row-1)*blocksize+matrix_col-1]->SetDirichlet(i, num, val, comp);};
 
   ///
-  void SetConstraint(Integer * cm, Double * cf, Integer mat)
-    {sysmat[mat-1]->SetConstraint(cm, cf);};
+  void UpdateDirichlet(Integer num, Double val, Integer matrix_row, Integer matrix_col, Integer matrix_id)
+    {sysmat[(matrix_id-1)*offset+(matrix_row-1)*blocksize+matrix_col-1]->UpdateDirichlet(num, val);};
+
+  ///
+  void SetConstraint(Integer * cm, Double * cf, Integer matrix_row, Integer matrix_col, Integer matrix_id)
+    {sysmat[(matrix_id-1)*offset+(matrix_row-1)*blocksize+matrix_col-1]->SetConstraint(cm, cf);};
   
   /////////////////////////////////////////////////////////////////////////////////////////
 
   ///
-  void CreateGraph(Integer * size);
+  void CreateGlobal2Local(Integer aglobsize);
 
   ///
-  void SetGraph(Integer * row, Integer * col, Integer size, Integer mat);
+  void CreateGraph(Integer size, Integer graph_row, Integer graph_col)
+    {graph[(graph_row-1)*blocksize+graph_col-1] = new BaseGraph(size);};
 
   ///
-  void SetElementPos(Integer * connect, Integer elemsize, Integer mat)
-  { graph[mat-1]->SetElementPos(connect, elemsize);};
+  void SetElementPos(Integer * connect, Integer elemsize, Integer matrix_row, Integer matrix_col)
+    {graph[(matrix_row-1)*blocksize+matrix_col-1]->SetElementPos(connect, elemsize);};
 
   /////////////////////////////////////////////////////////////////////////////////////////
 
   ///
-  Integer GetNumIter(Integer mat) const 
-    {return scheme[mat-1]->GetNumIter();};
+  void ConstructEffectiveMatrix(Integer matrix_row, Integer matrix_col, Double * matrix_fac);
 
   ///
-  Double * GetSolution(Integer mat) const {return sol[mat-1]->GetPointer();};
+  Integer GetNumIter(Integer sys_id) const 
+    {return scheme[sys_id-1]->GetNumIter();};
 
   ///
-  void Print(Integer type, Integer mat) const {sysmat[type*offset+mat-1]->Print();};
+  Integer GetSizeSystemVec(Integer sys_id) const
+    {return sysmat[(sys_id-1)*blocksize+sys_id-1]->GetSize();};
+
+  ///
+  Double * GetSolutionVal(Integer sys_id) const 
+    {return sol[sys_id-1]->GetPointer();};
+
+  Integer * GetSolutionInd(Integer sys_id) const
+    {return NULL;};
+
+  ///
+  void Print(Integer matrix_id, Integer matrix_row, Integer matrix_col) const 
+    {sysmat[(matrix_id-1)*offset+(matrix_row-1)*blocksize+matrix_col-1]->Print();};
 
   /////////////////////////////////////////////////////////////////////////////////////////
   
@@ -210,27 +235,36 @@ protected:
   BaseParameter * param[4];
 
   ///
-  Integer numsys, numgraph, numrhs, numbases, count, offset, numpart;
+  Integer numsys, numgraph, numrhs, numbases, count, offset, numpart, blocksize, size, nne, dof, globsize;
 
 private:
 
   ///
-  void RScalarCreate(Integer i, Integer size, Integer nne, Integer dir, Integer dof, Integer * typemat);
+  void RScalarCreate(Integer sys_id, Integer ind, Integer size, Integer nne, 
+		     Integer dir, Integer con, Integer * matrix_type);
 
   ///
-  void CScalarCreate(Integer i, Integer size, Integer nne, Integer dir, Integer dof, Integer * typemat);
+  void CScalarCreate(Integer ind, Integer size, Integer nne, 
+		     Integer dir, Integer con, Integer * matrix_type);
 
   ///
-  void RBlockCreate(Integer i, Integer size, Integer nne, Integer dir, Integer dof, Integer * typemat);
+  void RBlockCreate(Integer sys_id, Integer ind, Integer size, Integer nne, 
+		    Integer dir, Integer dof, Integer con, Integer * matrix_type);
 
   ///
-  void CBlockCreate(Integer i, Integer size, Integer nne, Integer dir, Integer dof, Integer * typemat);
+  void CBlockCreate(Integer ind, Integer size, Integer nne, 
+		    Integer dir, Integer dof, Integer con, Integer * matrix_type);
 
   ///
-  void RFullCreate(Integer i, Integer size, Integer nne, Integer dir, Integer dof, Integer * typemat);
+  void RFullCreate(Integer ind, Integer size, Integer nne, 
+		   Integer dir, Integer dof, Integer con, Integer * matrix_type);
 
   ///
-  void CFullCreate(Integer i, Integer size, Integer nne, Integer dir, Integer dof, Integer * typemat);
+  void CFullCreate(Integer ind, Integer size, Integer nne, 
+		   Integer dir, Integer dof, Integer con, Integer * matrix_type);
+
+  ///
+  Integer * glob2loc;
 };
 
 }

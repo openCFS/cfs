@@ -162,6 +162,8 @@ public:
   void ReadBoundLoads(Integer ** dataBLoads, Integer number,
 		      Double * factor); 
 
+  //! Read step data; special function for TransientDriver
+  void ReadStepData(Integer & anumstep, Integer & aisavebegin, Integer & aisaveend, Integer & aisaveincr, Double & afirstdt);
 
   //! Enum for output specification data 
   enum nameOut{ formsave, nsavenode, savemax, savedofs, savederiv, 

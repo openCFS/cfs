@@ -60,22 +60,121 @@ BaseHierarchy :: ~BaseHierarchy()
 
   Integer i;
 
-  for (i=0; i<amglevel; i++)
+  if (node[offset].vec1 != NULL)
+    {
+      delete node[offset].vec1;
+      node[offset].vec1 = NULL;
+    }
+  
+  if (node[offset].vec2 != NULL)
+    {
+      delete node[offset].vec2;
+      node[offset].vec2 = NULL;
+    }
+  
+  if (node[offset].vec3 != NULL)
+    {
+      delete node[offset].vec3;
+      node[offset].vec3 = NULL;
+    }
+  
+  if (node[offset].vec4 != NULL)
+    {
+      delete node[offset].vec4;
+      node[offset].vec4 = NULL;
+    }
+  
+  if (node[offset].syspro != NULL)
+    {
+      delete node[offset].syspro;
+      node[offset].syspro = NULL;
+      node[offset].sysres = NULL;
+    }
+  
+  if (node[offset].auxpro != NULL)
+    {
+      delete node[offset].auxpro;
+      node[offset].auxpro = NULL;
+      node[offset].auxres = NULL;
+    }
+  
+  if (node[offset].coarse != NULL)
+    {
+      delete node[offset].coarse;
+      node[offset].coarse = NULL;
+    }
+  
+  if (node[offset].smooth != NULL)
+    {
+      delete node[offset].smooth;
+      node[offset].smooth = NULL;
+    }
+
+  for (i=1; i<amglevel; i++)
     {
       level = offset-i;
 
-      delete node[level].sysmat;
-      delete node[level].auxmat;
-      delete node[level].vec1;
-      delete node[level].vec2;
-      delete node[level].vec3;
-      delete node[level].vec4;
-      delete node[level].syspro;
-      delete node[level].sysres;
-      delete node[level].auxpro;
-      delete node[level].auxres;
-      delete node[level].coarse;
-      delete node[level].smooth;
+      if (node[level].sysmat != NULL)
+	{
+	  delete node[level].sysmat;
+	  node[level].sysmat = NULL;
+	}
+
+      if (node[level].auxmat != NULL)
+	{
+	  delete node[level].auxmat;
+	  node[level].auxmat = NULL;
+	}
+
+      if (node[level].vec1 != NULL)
+	{
+	  delete node[level].vec1;
+	  node[level].vec1 = NULL;
+	}
+      
+      if (node[level].vec2 != NULL)
+	{
+	  delete node[level].vec2;
+	  node[level].vec2 = NULL;
+	}
+
+      if (node[level].vec3 != NULL)
+	{
+	  delete node[level].vec3;
+	  node[level].vec3 = NULL;
+	}
+
+      if (node[level].vec4 != NULL)
+	{
+	  delete node[level].vec4;
+	  node[level].vec4 = NULL;
+	}
+
+      if (node[level].syspro != NULL)
+	{
+	  delete node[level].syspro;
+	  node[level].syspro = NULL;
+	  node[level].sysres = NULL;
+	}
+
+      if (node[level].auxpro != NULL)
+	{
+	  delete node[level].auxpro;
+	  node[level].auxpro = NULL;
+	  node[level].auxres = NULL;
+	}
+
+      if (node[level].coarse != NULL)
+	{
+	  delete node[level].coarse;
+	  node[level].coarse = NULL;
+	}
+      
+      if (node[level].smooth != NULL)
+	{
+	  delete node[level].smooth;
+	  node[level].smooth = NULL;
+	}
     }
   
   delete [] rsw;

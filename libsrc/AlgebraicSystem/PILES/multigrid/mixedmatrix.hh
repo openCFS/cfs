@@ -46,6 +46,9 @@ public:
   ///
   virtual void Copy(BaseMatrix * mat) {;};
 
+  ///
+  virtual void ConstructEffectiveMatrix(BaseMatrix ** amat, Double * matrix_fac) {;};
+
 private:
   ///
   BaseMatrix * sysmat[4];

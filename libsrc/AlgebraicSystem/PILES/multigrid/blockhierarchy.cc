@@ -26,6 +26,7 @@ RBlockHierarchy :: ~RBlockHierarchy()
   (*trace) << "entering RBlockHierarchy::~RBlockHierarchy" << endl;
 #endif
   
+
 }
 
 void RBlockHierarchy :: Init()
@@ -53,6 +54,9 @@ void RBlockHierarchy :: Init()
   delete node[level].auxpro;
   node[level].auxpro = NULL;
   node[level].auxres = NULL;
+
+  //delete node[level].coarse;
+  node[level].coarse = NULL;
   
   delete node[level].smooth;
   node[level].smooth = NULL;
@@ -82,6 +86,9 @@ void RBlockHierarchy :: Init()
       node[level].auxpro = NULL;
       node[level].auxres = NULL;
 
+      delete node[level].coarse;
+      node[level].coarse = NULL;
+
       delete node[level].smooth;
       node[level].smooth = NULL;
     }  
@@ -95,8 +102,11 @@ void RBlockHierarchy :: DeleteAuxMemory()
   (*trace) << "entering RBlockHierarchy::DeleteAuxMemory" << endl;
 #endif
 
-  //delete node[level].coarse;
-  node[level].coarse = NULL;
+//   if (node[level].coarse != NULL)
+//     {
+//       //delete node[level].coarse;
+//       node[level].coarse = NULL;
+//     }
 }
 
 void RBlockHierarchy :: MakeSmoother()

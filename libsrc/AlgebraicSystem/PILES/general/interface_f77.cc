@@ -23,6 +23,7 @@ Double cputime;
 CPUClock cpuclock;
 
 AlgebraicSystem * algsys;
+FileSystem filesys("capa-test");
 
 extern "C"
 {

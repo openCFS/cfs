@@ -34,6 +34,21 @@ RealVector :: RealVector(Integer asize, Integer anumrhs, Integer adof, Boolean m
 	  val[i] = 0;
 	}
 
+#ifdef MEMTRACE
+  double dmb;
+  double imb;
+
+  dmb = length*8./1e6;
+  imb = 0;
+
+  sumdmem += dmb;
+  sumimem += imb;
+
+  (*memtrace) << "+++ ALLOCATE MEMORY: double  RealVector       " << dmb << " MB" << endl;
+  (*memtrace) << "+++ ALLOCATE MEMORY: integer RealVector       " << imb << " MB" << endl;
+#endif
+
+
       outback = FALSE;
     }
   else
@@ -41,8 +56,6 @@ RealVector :: RealVector(Integer asize, Integer anumrhs, Integer adof, Boolean m
       val     = NULL;
       outback = TRUE;
     }
-
- 
 }
   
 RealVector :: ~RealVector()
@@ -124,13 +137,13 @@ void RealVector :: Add(BaseVector &vec)
     }
 }
 
-DenseVector * RealVector :: Inner(BaseVector &vec) const
+void RealVector :: Inner(BaseVector &vec, DenseVector &sum) const
 {
   Integer i;
 
   RealVector & u = (RealVector &) vec;
-  
-  DenseVector * sum = new DenseVector(numrhs);
+
+  sum.Elem(1) = 0;
 
   for (i=0; i<length; i++)
     {
@@ -142,11 +155,19 @@ DenseVector * RealVector :: Inner(BaseVector &vec) const
 	  sum.Elem(j+1) += val[i*numrhs+j]*u.Get(i+1,j+1);
 	}
 #else
-      sum->Elem(1) += val[i]*u.Get(i+1);
+      sum.Elem(1) += val[i]*u.Get(i+1);
 #endif
     }
-  
-  return sum;
+}
+
+void RealVector :: Scal(DenseVector &sum)
+{
+  Integer i;
+
+  for (i=0; i<length; i++)
+    {
+      val[i] *= sum.Get(1);
+    }
 }
 
 DenseVector & RealVector :: L2Norm() const
@@ -350,24 +371,26 @@ void ComplexVector :: Add(BaseVector &vec)
     }
 }
 
-DenseVector * ComplexVector :: Inner(BaseVector &vec) const
+void ComplexVector :: Inner(BaseVector &vec, DenseVector &sum) const
 {
   Integer i, j;
 
   ComplexVector & u = (ComplexVector &) vec;
-  DenseVector * sum = new DenseVector(1);
 
   j = 1;
 
   for (i=0; i<size; i++)
     {
-      sum->Elem(1) += val[j-1]*u.Get(j) - val[j]*u.Get(j+1);
-      sum->Elem(2) += val[j-1]*u.Get(j+1) + val[j]*u.Get(j);
+      sum.Elem(1) += val[j-1]*u.Get(j) - val[j]*u.Get(j+1);
+      sum.Elem(2) += val[j-1]*u.Get(j+1) + val[j]*u.Get(j);
 
       j += 2;
     }
+}
 
-  return sum;
+void ComplexVector :: Scal(DenseVector &sum)
+{
+
 }
 
 DenseVector & ComplexVector :: L2Norm() const

@@ -482,6 +482,19 @@ void DatFile :: ReadTransAnalTran(Integer * dataTAnalTran,
            dataTAnalTranReal[gamma_h] >>  dataTAnalTranReal[gamma_p];
 }
 
+// --------------- This function is spesial for TransientDriver
+void DatFile :: ReadStepData(Integer & anumstep, Integer & aisavebegin, Integer & aisaveend, Integer & aisaveincr, Double & afirstdt)
+{
+#ifdef TRACE
+  (*trace) << "entering DatFile::ReadStepData" << std::endl;
+#endif
+
+  std::string::size_type pos=0;
+  TakePos("numsteps",pos);
+  infile.seekg(pos, std::ios::beg);
+
+  infile >> anumstep >> aisavebegin >> aisaveend >> aisaveincr >> afirstdt;
+}
 // ----------------- Read transient analysis data for static behavior 
 
 void DatFile :: ReadTransAnalStat(Integer & numstepStat,
@@ -710,7 +723,8 @@ void DatFile:: ReadBoundRestr(Integer ** dataBRestr, Integer numberRestr,
   TakePos("restraints",pos);
   infile.seekg(pos, std::ios::beg);
   std::string str;
-  for (Integer i=0; i < numberRestr; i++) {
+  for (Integer i=0; i < numberRestr; i++)
+   {
     infile >> dataBRestr[i][0] >> str >> dataBRestr[i][2] >> factorRestr[i];
     dataBRestr[i][1]=TransformInNameDf(str.c_str());
     infile.ignore(100,'\n');

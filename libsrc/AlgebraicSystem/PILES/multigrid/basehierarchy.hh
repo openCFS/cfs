@@ -1,7 +1,6 @@
 #ifndef FILE_BASEHIERARCHY_PILES
 #define FILE_BASEHIERARCHY_PILES
 
-//#include "clock.hh"
 namespace CoupledField
 {
   

@@ -34,7 +34,12 @@ StandardCoarse :: ~StandardCoarse()
 #ifdef TRACE
   (*trace) << "entering StandardCoarse::~StandardCoarse" << endl;
 #endif
-  
+
+  if (topology != NULL)
+    {
+      delete topology;
+      topology = NULL;
+    }
 }
 
 void StandardCoarse :: SetNeighbour(Double alpha, Double epsmat)

@@ -643,6 +643,10 @@ libsrc/Domain/Gridlib/Makefile -text
 libsrc/Domain/Gridlib/interface_gridlib.cc svneol=native#text/plain
 libsrc/Domain/Gridlib/interface_gridlib.hh svneol=native#text/plain
 libsrc/Domain/Makefile -text
+libsrc/Domain/bcs.cc svneol=native#text/plain
+libsrc/Domain/bcs.hh svneol=native#text/plain
+libsrc/Domain/boundcond.cc svneol=native#text/plain
+libsrc/Domain/boundcond.hh svneol=native#text/plain
 libsrc/Domain/domain.cc svneol=native#text/plain
 libsrc/Domain/domain.hh svneol=native#text/plain
 libsrc/Domain/grid.hh svneol=native#text/plain
@@ -651,6 +655,10 @@ libsrc/Driver/basedriver.cc svneol=native#text/plain
 libsrc/Driver/basedriver.hh svneol=native#text/plain
 libsrc/Driver/driver.cc svneol=native#text/plain
 libsrc/Driver/driver.hh svneol=native#text/plain
+libsrc/Driver/staticdriver.cc svneol=native#text/plain
+libsrc/Driver/staticdriver.hh svneol=native#text/plain
+libsrc/Driver/transientdriver.cc svneol=native#text/plain
+libsrc/Driver/transientdriver.hh svneol=native#text/plain
 libsrc/Elements/2D/Makefile -text
 libsrc/Elements/2D/getriangle.cc svneol=native#text/plain
 libsrc/Elements/2D/getriangle.hh svneol=native#text/plain
@@ -715,6 +723,8 @@ libsrc/Matrix/symmatrix.hh svneol=native#text/plain
 libsrc/Matrix/symsparsematrixCRS.cc svneol=native#text/plain
 libsrc/Matrix/symsparsematrixCRS.hh svneol=native#text/plain
 libsrc/PDE/Makefile -text
+libsrc/PDE/acoustic2dPDE.cc svneol=native#text/plain
+libsrc/PDE/acoustic2dPDE.hh svneol=native#text/plain
 libsrc/PDE/acousticPDE.cc svneol=native#text/plain
 libsrc/PDE/acousticPDE.hh svneol=native#text/plain
 libsrc/PDE/basepde.cc svneol=native#text/plain

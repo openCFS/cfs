@@ -13,6 +13,10 @@ BaseDriver :: BaseDriver(Domain<Point2D> * adomain)
   (*trace) << "entering BaseDriver::BaseDriver" << std::endl;
 #endif
   ptdomain = adomain;
+
+    // read info Should we save first,second derivatives or not
+  ptdomain->GetInFile()->ReadOutputOptions(SaveDer1,SaveDer2);
+
 }
 
 BaseDriver :: ~BaseDriver()
@@ -20,29 +24,21 @@ BaseDriver :: ~BaseDriver()
 #ifdef TRACE
   (*trace) << "entering BaseDriver::~BaseDriver" << std::endl;
 #endif
-  if (ptdomain) delete ptdomain;
 
 }
 
-
-void BaseDriver :: SetupMatricesPDE(Integer pdenumber)
+/*
+void BaseDriver :: WriteResultsInFile(BasePDE * ptPDE, const Integer step, const Double t)
 {
-#ifdef TRACE
-  (*trace) << "entering BaseDriver::SetUpMatricesPDE" << std::endl;
-#endif
  
-  ptdomain->ptpde[pdenumber]->AssembleGlobal(ptdomain->ptalgsys);
+  ptdomain->GetOutFile()->WriteSolution(ptPDE->getS(),step,t);
 
-}
+  if (SaveDer1)
+  ptdomain->GetOutFile()->WriteFirstDerSolution(ptPDE->getS1(),step,t);
 
-void BaseDriver :: SolveProblem()
-{
-#ifdef TRACE
-  (*trace) << "entering BaseDriver::SolveProblem" << std::endl;
-#endif
- 
-  Integer pdenumber = 0;
-  SetupMatricesPDE(pdenumber);
+  if (SaveDer2)
+  ptdomain->GetOutFile()->WriteSecondDerSolution(ptPDE->getS2(),step,t);
 }
+*/
 
 }

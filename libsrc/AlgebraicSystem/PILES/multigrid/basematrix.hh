@@ -18,6 +18,9 @@ public:
 
   ///
   virtual void Mult(Double * vec1, Double * vec2, Double factor = 1) const = 0;
+
+  ///
+  virtual void MultAdd(Double * vec1, BaseVector & vec2) const{;};
   
   ///
   virtual void Assemble(Double * v, Integer * p, Integer elemsize) = 0;
@@ -63,6 +66,9 @@ public:
   
   ///
   virtual void BuildInDirichlet(BaseVector & rhs) = 0;
+
+  ///
+  virtual void UpdateDirichletRHS(BaseVector & rhs){;};
 
   ///
   virtual void Factor() = 0;
@@ -112,6 +118,10 @@ public:
   void SetGraph() {setgraph = TRUE;};
 
   ///
+  void SetGraphPointer(BaseMatrix * mat)
+  {cout << "setting graph" << endl; start = mat->GetStartPointer(); pos = mat->GetPosPointer();};
+
+  ///
   Boolean IsSetGraph() const {return setgraph;};
 
   ///
@@ -127,6 +137,9 @@ public:
   virtual void Copy(BaseMatrix * mat) = 0;
 
   ///
+  virtual void ConstructEffectiveMatrix(BaseMatrix ** amat, Double * matrix_fac) = 0;
+
+  ///
   void CopyGraph(Integer * astart, Integer * apos);
 
   ///
@@ -136,7 +149,7 @@ public:
 protected:
 
   ///
-  Double * val, * valdir, matfac;
+  Double * val, * valdir, matfac, maxdiagentry;
 
   ///
   Integer * pos, * start, * numdir, * compdir;

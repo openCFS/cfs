@@ -8,7 +8,7 @@ class DenseMatrix
 {
 public:
   ///
-  DenseMatrix(Integer asize, Integer awidth, Boolean mem = FALSE);
+  DenseMatrix(Integer asize, Integer awidth, Boolean amem = FALSE);
 
   ///
   virtual ~DenseMatrix();
@@ -46,6 +46,9 @@ private:
 
   ///
   Double * val, * fac, * u, * v, * y;
+
+  ///
+  Boolean mem;
 };
 
 }

@@ -23,8 +23,9 @@ ConfFile::ConfFile(const Char* const afilename)
                          ") Can't open " << filename << std::endl;
                 exit(1);}
 
-  infile.seekg(0, std::ios::end);
-  pos_end=infile.tellg();
+ infile.seekg(0, std::ios::end);
+ pos_end=infile.tellg();
+
 }
 
 ConfFile::~ConfFile()
@@ -33,24 +34,36 @@ ConfFile::~ConfFile()
 }
 
 template<class TypeVal>
-void ConfFile::get(const std::string keyword, TypeVal & val)
+void ConfFile::get(const std::string keyword, TypeVal & val, const std::string section)
 {
-  infile.seekg(0, std::ios::beg);
-   std::string buf;
-  std::string::size_type pos=std::string::npos,pos1;
+   std::string::size_type pos,pos1=0;
 
-  while ( pos == std::string::npos && !infile.eof() )
+   if (section != "") pos1=getpos(section);
+
+   pos=getpos(keyword,pos1);
+
+   infile.seekg(pos, std::ios::beg);
+   infile >> val;
+}
+
+std::string::size_type ConfFile::getpos(const std::string keyword,const std::string::size_type startpos)
+{
+  std::string::size_type help,pos=std::string::npos;
+  std::string buf;
+
+  infile.seekg(startpos, std::ios::beg);
+   while ( pos == std::string::npos && !infile.eof() )
   {
-    pos1=infile.tellg();
+    help=infile.tellg();
     std::getline(infile, buf, '\n');
     pos=buf.find(keyword);
   }
 
-   pos=buf.find("=");
-   infile.seekg(pos1+pos+1, std::ios::beg);
-   infile >> val;
-
   if (pos>=pos_end) error(keyword);
+
+  pos=buf.find("=");
+
+  return pos+help+1;
 }
 
 #ifdef __GNUC__

@@ -15,6 +15,7 @@ Driver<Dim>::Driver(FileType * const aptFileType, Integer anummesh, Material * a
 #ifdef TRACE
   (*trace) << "entering Driver::Driver" << std::endl;
 #endif
+
   ptFileType=aptFileType;
   ptgrid=NULL;
 
@@ -68,7 +69,7 @@ void Driver<Dim>::SolveNewmarkMethod(WriteResults<Dim> * ptOutput)
   Double t=0;
   
   Double epsilon=1e-25; 
-  ptAcPDE=new AcousticPDE<Dim>(epsilon,dt0,ptgrid,0,ptMaterial, ptFileType);
+  ptAcPDE=new AcousticPDE<Dim>(dt0,ptgrid,0,ptMaterial, ptFileType);
 
   Integer i;
   for (i=0; i<numsteps; i++) 

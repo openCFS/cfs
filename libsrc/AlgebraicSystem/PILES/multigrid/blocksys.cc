@@ -40,6 +40,13 @@ void BlockSystem :: CalcPrecond()
       spemat[i]->BuildInDirichlet();
       premat[i]->Calc(*spemat[i], *auxmat[i]);
     }
+
+#ifdef MEMTRACE
+  (*memtrace) << "------------------------------------------------------------------" << endl;
+  (*memtrace) << "+++ ALLOCATE MEMORY: double                   " << sumdmem << " MB" << endl;
+  (*memtrace) << "+++ ALLOCATE MEMORY: integer                  " << sumimem << " MB" << endl;
+  (*memtrace) << endl;
+#endif
 }
 
 
@@ -51,7 +58,7 @@ void BlockSystem :: CalcPrecond(Integer newprecond, Integer mat)
 
   switch (newprecond)
     {
-    case 1:
+    case 1: // nonlinear stuff
       premat[mat-1]->InitPrecond();
       spemat[mat-1]->Copy(sysmat[mat-1]);
       sysmat[mat-1]->BuildInDirichlet(*rhs[mat-1]);
@@ -66,16 +73,25 @@ void BlockSystem :: CalcPrecond(Integer newprecond, Integer mat)
       premat[mat-1]->InitPrecond();
       spemat[mat-1]->Copy(sysmat[mat-1]);
       sysmat[mat-1]->BuildInDirichlet(*rhs[mat-1]);
+      sysmat[mat-1]->BuildInDirichlet();
       spemat[mat-1]->BuildInDirichlet();
 
       premat[mat-1]->Calc(*spemat[mat-1], *auxmat[mat-1]);
       break;
       
-    default:
-      cout << "keeping the old preconditioner" << endl;
+    case 3:
+      sysmat[mat-1]->UpdateDirichletRHS(*rhs[mat-1]);
+      break;
 
+    default:
       sysmat[mat-1]->BuildInDirichlet(*rhs[mat-1]);
     }
+#ifdef MEMTRACE
+  (*memtrace) << "------------------------------------------------------------------" << endl;
+  (*memtrace) << "+++ ALLOCATE MEMORY: double                   " << sumdmem << " MB" << endl;
+  (*memtrace) << "+++ ALLOCATE MEMORY: integer                  " << sumimem << " MB" << endl;
+  (*memtrace) << endl;
+#endif
 }
 
 void BlockSystem :: Solve()

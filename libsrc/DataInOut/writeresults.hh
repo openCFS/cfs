@@ -10,6 +10,8 @@ template<class Dim>
 class WriteResults
 {
 public:
+   //!
+   enum nameSol{fluid, temperature};
 
    /// initialization with grid
   virtual void Init(Grid<Dim> * aptgrid)=0;
@@ -21,26 +23,27 @@ public:
   virtual void WriteGrid(const Integer level)=0;
 
   /// write information about the solution
-  virtual void WriteSolution(const Vector<Double> & sol, const Integer step, const Integer time)=0;
+  virtual void WriteSolution(const Vector<Double> & sol, const Integer step, const Double time)=0;
 
   /// write information about first derivatives of the solution
-  virtual void WriteFirstDerSolution(const Vector<Double> & sol, const Integer step, const Integer time)=0;
+  virtual void WriteFirstDerSolution(const Vector<Double> & sol, const Integer step, const Double time)=0;
 
   /// write information about second derivatives of the solution
-   virtual void WriteSecondDerSolution(const Vector<Double> & sol, const Integer step, const Integer time)=0;
+   virtual void WriteSecondDerSolution(const Vector<Double> & sol, const Integer step, const Double time)=0;
   
 protected:
   ///
   std::ofstream * output;
   ///
   Grid<Dim> * ptgrid;
+
 }; 
 
 template<class Dim>
 WriteResults<Dim>::~WriteResults()
 {
 #ifdef TRACE
-  (*trace) << "entering FileType::~FileType" << std::endl;
+  (*trace) << "entering WriteResults::~WriteResults" << std::endl;
 #endif
 
  if (!output) delete output;

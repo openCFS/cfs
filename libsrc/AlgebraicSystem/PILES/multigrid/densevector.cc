@@ -50,6 +50,8 @@ DenseVector :: ~DenseVector()
 #ifdef TRACE
   (*trace) << "entering RDenseVector::~RDenseVector" << endl;
 #endif
+
+  delete val;
 }
 
 void DenseVector :: Sqrt()
@@ -123,6 +125,16 @@ DenseVector DenseVector :: operator-() const
 
  return tmp;
 }  
+
+void DenseVector :: Div(DenseVector &vec1, DenseVector &vec2)
+{
+  Integer i;
+
+  for (i=1; i<=size; i++)
+    {
+      val[i-1] = vec1.Get(i)/vec2.Get(i);
+    }
+}
 
 DenseVector DenseVector :: operator/(const DenseVector &src) const
 {

@@ -17,7 +17,7 @@ public:
 
   //! get from conf-file TypeVal(string, integer, double) value
   template<class TypeVal>
-  void get(const std::string keyword, TypeVal & val);
+  void get(const std::string keyword, TypeVal & val, const std::string section="");
 
 protected:
 
@@ -29,6 +29,9 @@ protected:
 
    //! write warning
    void error(const std::string keyword) const;
+
+   //! get position in conf-file
+   std::string::size_type getpos(const std::string keyword, const std::string::size_type startpos=0);
 
 private:
 

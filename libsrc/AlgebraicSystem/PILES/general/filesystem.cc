@@ -31,6 +31,11 @@ FileSystem :: FileSystem(char * ainputfile)
   
 #endif
 
+#ifdef MEMTRACE
+  strcpy(filename,ainputfile);
+  memtrace = new ofstream(strcat(filename,".mem"));
+#endif
+
   strcpy(filename,ainputfile);
   conv = new ofstream(strcat(filename,".con"));
 }
@@ -41,7 +46,7 @@ FileSystem :: ~FileSystem()
   (*trace) << "entering FileSystem::~FileSystem" << endl;
 #endif
 
-  delete filename;
+  delete [] filename;
 }
 
 }

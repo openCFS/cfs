@@ -12,7 +12,7 @@ SUBLIBDIR = Driver Estimator PDE AlgebraicSystem/LinAlg \
             AlgebraicSystem/PILES/multigrid \
             AlgebraicSystem/PILES/superlu \
             Forms Elements Elements/2D Elements/3D \
-            Domain/GridCFS Domain \
+            Domain/GridCFS Domain/NetGen Domain \
             DataInOut/DefineFiles \
             DataInOut/Unverg DataInOut/GMV \
             DataInOut/DatFile DataInOut\
@@ -31,6 +31,7 @@ PATHSUBLIBDIR = $(addprefix $(LIBDIR)/, $(SUBLIBDIR))
 #
 LIB_GRIDLIB = $(C_DIR)/libgrid
 LIB_OWN = $(C_DIR)/lib
+LIB_NETGEN = $(C_DIR)/libnetgen/LINUX
 #
 #
 ############
@@ -61,7 +62,7 @@ include $(LIBSRC_DIR)/makefilemach/make.mach.$(MACHINE)
 	$(F77) -o $@ $(FFLAGS1) $(FFLAGS2) $<
  
 $(program):: $(src:.cc=.o) $(fsrc:.f=.o) makelibs 
-	$(CC) $(CFLAG_EXE) -o $@ $(src:.cc=.o) $(fsrc:.f=.o) -L$(LIB_DIR) -L$(LIB_GRIDLIB)  $(LINKFLAGS2) $(LINKFLAGS3) $(addprefix -l, $(mylibrary)) $(syslib) $(LIB_NAG) 
+	$(CC) $(CFLAG_EXE) -o $@ $(src:.cc=.o) $(fsrc:.f=.o) -L$(LIB_DIR) -L$(LIB_GRIDLIB)  -L$(LIB_NETGEN) $(LINKFLAGS2) $(LINKFLAGS3) $(addprefix -l, $(mylibrary)) $(syslib) $(LIB_NAG) 
 #
 ########## Set varible MACHINE
 setvar:
@@ -86,7 +87,7 @@ makelibs:
 info: 
 ifeq "$(ARCH)" "LINUX"
 	@echo Before run of cfs set this variable on LINUX:
-	@echo export LD_LIBRARY_PATH=$(LIB_OWN)/$(MACHINE)
+	@echo export LD_LIBRARY_PATH=$(LIB_OWN)/$(MACHINE):$(NetGen)/lib
 else
 	@echo Before run of cfs set this variable on SGI:
 	@echo setenv LD_LIBRARYN32_PATH $(LIB_GRIDLIB):$(LIB_OWN)/$(MACHINE)
@@ -95,7 +96,9 @@ endif
 ############## Make link to the source of another programm
 #
 link:
-	ln -s $(Gridlib) $(IncGridlib)
+	-ln -s $(Gridlib) $(IncGridlib) && \
+        -ln -s $(NetGen)/libsrc/include $(IncNetGen) && \
+        -ln -s $(NetGen)/lib $(LibNetGen)
 #
 ######################  Clean work directory
 clean-driver:

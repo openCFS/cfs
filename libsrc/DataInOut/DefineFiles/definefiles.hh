@@ -2,6 +2,7 @@
 #define DEFINEFILES_2001
 
 #include "filetype.hh"
+#include "writeresults.hh"
 
 namespace CoupledField
 { 
@@ -14,7 +15,7 @@ namespace CoupledField
 
 class DefineInOutFiles
 {
- public:
+public:
 
    //!
    DefineInOutFiles(const Char * NameOfInputFile);
@@ -24,14 +25,27 @@ class DefineInOutFiles
 
    //!
    FileType * Create_ptFileType(Char * atype);
+
+   //!
+   WriteResults<Point2D> * Create_ptWriteResults2d();
+
+  //!
+   WriteResults<Point3D> * Create_ptWriteResults3d();
  
- private:
+private:
 
    //!
    Char * filename;
 
    //!
    FileType * infiletype;
+
+   //!
+   WriteResults<Point2D> * ptWriteResults2d;   
+
+   //!
+   WriteResults<Point3D> * ptWriteResults3d;
+
 };
 
 } // end of namespace

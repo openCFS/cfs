@@ -63,6 +63,8 @@ BaseMGPrecond :: ~BaseMGPrecond()
 #ifdef TRACE
   (*trace) << "entering RScalarMGPrecond::~RScalarMGPrecond" << endl;
 #endif
+
+  delete mathier;
 }
 
 void BaseMGPrecond :: Step(BaseVector & rhs, BaseVector & sol, Integer level)

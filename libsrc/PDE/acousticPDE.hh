@@ -20,7 +20,7 @@ class AcousticPDE: virtual public PDE
 public:
 
   //!
-  AcousticPDE(const Double , const Double , Grid<Dim> * , const Integer level, Material * , FileType * ptFileType);
+  AcousticPDE(const Double , Grid<Dim> * , const Integer level, Material * , FileType * ptFileType);
 
   //!
   virtual ~AcousticPDE();
