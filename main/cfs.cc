@@ -101,6 +101,9 @@ Integer main(int argc, char *argv[])
   Info = new WriteInfo(name);
   //  Info->PrintHeader();
 
+  if (PrintGridOnly)
+    std::cout << "Printing grid to file " << name << ".unv" << myEndl << myEndl;
+
   MyClock oClockTotal;
   oClockTotal.ClockCount(MyClock::beg);
 
@@ -112,6 +115,7 @@ Integer main(int argc, char *argv[])
   TimeFunc * ptTimeFunc = new TimeFunc(ptInputfile);
 
   Domain * domain=new Domain(ptInputfile, ptOut, ptTimeFunc);
+
 
   //choose your driver
   BaseDriver       * ptdriver;  

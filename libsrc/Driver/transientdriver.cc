@@ -8,7 +8,12 @@
 #include <Utils/vector.hh>
 
 #include <DataInOut/GMV/outGMV.hh>
+
+#ifndef NEWBASEPDE
 #include <PDE/basepde.hh>
+#else
+#include <PDE/newBasePDE.hh>
+#endif //#ifndef NEWBASEPDE
 
 namespace CoupledField
 {

@@ -177,6 +177,10 @@ public:
   //! Add element of the same type at position pos, by default to the beginning Beware of numeration in C++
   void add(const TYPE & y, Integer pos=0);
 
+  //! Add element of the same type at the end of the vector
+  void push_back(const TYPE & y);
+
+
   //! Add vector to vector at position pos
   void  add (const Vector<TYPE> & y, Integer pos=0);
 

@@ -14,3 +14,5 @@ SOLVED   DATE        PROBLEM
 			2003-09-26  MechPDE::SetupRHS is not in MechPDE::SolveStepStaticLin
 
 			2003-09-29  check before creating output files, if input file is existent!
+
+			2003-11-26  Config-File: keyword bc_conditions is not needed!!

@@ -1,9 +1,14 @@
 #
 C_DIR= ../..
+include ../../main/Makefile.option
 #
-src = basepde.cc elecPDE.cc acousticPDE.cc acouFlowNoise.cc acouStandWave.cc mechPDE.cc magEdgePDE.cc smoothPDE.cc smoothlaplacePDE.cc \
+ifeq ($(CFLAGS2),-DNEWBASEPDE)
+src = newBasePDE.cc newElecPDE.cc
+else
+#src = basepde.cc elecPDE.cc acousticPDE.cc acouFlowNoise.cc acouStandWave.cc mechPDE.cc magEdgePDE.cc smoothPDE.cc smoothlaplacePDE.cc \
+src = basepde.cc elecPDE.cc acousticPDE.cc acouFlowNoise.cc mechPDE.cc magEdgePDE.cc smoothPDE.cc smoothlaplacePDE.cc \
       timestepping.cc newmark.cc newmarkdamp.cc
-
+endif
 #
 lib = pde
 CFLAGS3 =

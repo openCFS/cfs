@@ -37,9 +37,9 @@ mylibrary = driver domain pde mpccicpl coupledpde\
             gridcfs toadaptgrid \
             gmv definefiles unverg \
 	    ansys-out ansysfile datainout \
-            algsys-own\
+            algsys-own driver \
             utils matrix general \
-            multigrid-las
+            multigrid-las 
 #
 ifeq ($(GSI), yes)
 SUBLIBDIR := $(SUBLIBDIR) DataInOut/GSI DataInOut/GSI/CFSSocketComm
@@ -212,6 +212,10 @@ clean-multigrid-piles:
 clean-superlu-piles:
 	@cd $(LIBSRC_DIR)/AlgebraicSystem/CLA/superlu && \
 	$(MAKE) clean
+clean-newpde:
+	$(MAKE) clean-pde
+	$(MAKE) clean-driver
+	$(MAKE) clean-domain
 ######################   Real clean
 
 clean: clean-library clean-prog

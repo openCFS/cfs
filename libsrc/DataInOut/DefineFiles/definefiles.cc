@@ -48,9 +48,9 @@ DefineInOutFiles :: DefineInOutFiles(const Char * name)
  data=new std::ofstream(strcat(filename,".data"));
  if (!data) Error("Can't open data-file");
 
- strcpy(filename, name);
- infofile = new std::ofstream(strcat(filename,".info"));
- if (!infofile) Error("Can't open info-file");
+//  strcpy(filename, name);
+//  infofile = new std::ofstream(strcat(filename,".info"));
+//  if (!infofile) Error("Can't open info-file");
  
 
  strcpy(filename, name);

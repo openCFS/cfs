@@ -4,6 +4,15 @@
 
 #include "harmonicDriver.hh"
 
+#include "DataInOut/GMV/outGMV.hh"
+
+#ifndef NEWBASEPDE
+#include <PDE/basepde.hh>
+#else
+#include <PDE/newBasePDE.hh>
+#endif //#ifndef NEWBASEPDE
+
+
 namespace CoupledField
 {
 
@@ -30,7 +39,9 @@ void HarmonicDriver :: SetupMatricesPDE(const Integer pdenumber, const Integer t
   (*trace) << "entering HarmonicDriver::SetUpMatricesPDE" << std::endl;
 #endif
 
-  ptdomain_->GetPDE(pdenumber)->SetupMatrices(type);
+  // ATTENTION !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  // Commented out for testing purposes!!!!!!!!!!!!!
+  //  ptdomain_->GetPDE(pdenumber)->SetupMatrices(type);
 }
 
 void HarmonicDriver :: SolveProblem()

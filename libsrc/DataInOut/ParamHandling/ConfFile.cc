@@ -287,6 +287,7 @@ void ConfFile::getsubdom(std::vector<std::string> & subdoms)
  }
 }
 
+
 void ConfFile::getsubdompde(std::vector<std::string> & subdoms, const std::string section)
 {
   std::string::size_type pos=0;

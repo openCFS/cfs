@@ -10,7 +10,7 @@
 /**************************************************************************/
 
 #include "MaterialData.hh"
-#include "PDE/magEdgePDE.hh"
+#include <PDE/pdes_header.hh>
 
 namespace CoupledField
 {
@@ -43,8 +43,10 @@ namespace CoupledField
     /// prints all magnetic data
     void PrintMagMat(MaterialData& material);
 
+#ifndef NEWBASEPDE
     /// prints all data of a coil (e.g. current, area, magnetization, ...)
     void PrintCoil(std::string& coilDomain, struct MagEdgePDE::coilDefStruct& coilDef,  AnalysisType& analysistype_);
+#endif // NEWBASEPDE
 
     /// prints the process of a nonlinear iteration
     void WriteNonLinIter(const std::string& pdeName, const Integer iterationCounter,    
