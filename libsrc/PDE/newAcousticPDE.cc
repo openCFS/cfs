@@ -160,7 +160,7 @@ void AcousticPDE :: InitTimeStepping(const Double dt)
     {
       //currently the parameter y is taken from the first subdomain
       //=> currently just one subdomain makes sense
-      Double y = materialData_[0].GetDampingBeta();
+      //      Double y = materialData_[0].GetDampingBeta();
       //      TS_alg_ = new NewmarkDamp(pdename_, algsys_, dofspernode_, numPDENodes_, damping_type_,
       //			      frac_memory_,y);
     }
@@ -228,7 +228,8 @@ void AcousticPDE::CalcOutputCoupling()
 	    {
 	      ptCoupling_->GetOutputElements(i, couplingElems);
 	      ptCoupling_->GetOutputNodes(i, couplingNodes);
-	      ptCoupling_->GetInputMaterials(i, couplingMaterials);
+	      //	      ptCoupling_->GetInputMaterials(i, couplingMaterials);
+	      ptCoupling_->GetOwnMaterials(i, couplingMaterials);
 	      ptCoupling_->GetOutputValues(i, values);
 	      ptCoupling_->GetInputNeighbourElems(i, interfaceVolElems);
 	      dof = ptCoupling_->GetOutputDof(i);
@@ -255,7 +256,7 @@ void AcousticPDE::CalcMechCouplingRHS(std::vector<Elem*> * couplingElems,
   (*trace) << "entering AcousticPDE::CalcMechCouplingRHS" << std::endl;
 #endif
 
-  Double density;
+  Double density=0;
    
   elemCouplingSols.init();
 
