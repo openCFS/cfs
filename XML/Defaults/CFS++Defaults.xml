@@ -29,7 +29,7 @@
     </mechanic>
 
     <!-- Template for piezo PDE -->
-    <mechanic>
+    <piezo>
   
       <region name="dummyRegion"/>
 
@@ -40,7 +40,7 @@
         <maxNumIters>1</maxNumIters>
       </nonLinear>
 
-    </mechanic>
+    </piezo>
 
 
     <!-- Template for magnetics PDE -->
