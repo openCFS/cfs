@@ -295,10 +295,10 @@ namespace CoupledField
     (*trace) << "Entering WriteInfo::Error" << std::endl;
 #endif
     
-    std::cerr << "\033[31mERROR:\033[0m " << Text;
+    std::cerr << std::endl << "\033[31mERROR:\033[0m " << Text;
     if (filename) 
       {
-	std::cerr <<"( " << filename <<" ";
+	std::cerr <<" (" << filename <<" ";
 	if (numline) 
 	  std::cerr << numline;
 	std::cerr << ")";
@@ -315,17 +315,18 @@ namespace CoupledField
     
     if (filename) 
       {
-	*cfsInfo <<"( " << filename <<" ";
+	*cfsInfo <<" (" << filename <<" ";
 	if (numline) 
 	  *cfsInfo << numline;
 	*cfsInfo << ")";
       }
-    *cfsInfo << std::endl;
-    
+    *cfsInfo << std::endl;  
     
     exit(-1);
   }
   
+
+
   void WriteInfo::WriteHomBC(const std::string& pdeName,const std::string& subDom, Integer dof)
   {
 #ifdef TRACE

@@ -164,6 +164,8 @@ PDECoupling::CouplingInterface::CouplingInterface()
 	  }
   
 	ptGrid_->DefineBelonging4Elems(*interfaceElems, possibleNeighbours, myInterface->neighbours);
+	if (!myInterface->neighbours.size())
+	  Error("No neighbours for element coupling found!",  __FILE__,__LINE__);
 
 
 

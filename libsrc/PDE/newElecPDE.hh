@@ -51,13 +51,26 @@ public:
 // ======================================================
 
   //!
-  virtual void StepStaticNonLin(const Integer level);
+  virtual void StepStaticNonLin(const Integer level, const Double aTime=0);
 
   //!
   virtual void PreStepStatic(const Integer level);
 
   //!
   virtual void PostStepStatic(const Integer level);
+
+
+  //! initialize time stepping: nothing to do in electrostatics!
+  virtual void InitTimeStepping(const Double dt){;};
+
+  //!
+  virtual void SolveStepTrans(const Integer kstep, const Double asteptime,
+			      const Integer level, const Boolean updatesysmat)
+  {SolveStepStatic(level, asteptime);};
+
+  //!
+  virtual void StepTransLin(const Integer level)
+  {StepStaticLin(level);};
 
   //!
   virtual void PreStepTrans(const Integer level)

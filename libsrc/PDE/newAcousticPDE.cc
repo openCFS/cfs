@@ -29,6 +29,12 @@ AcousticPDE::AcousticPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, Fil
   pdename_    ="acoustic";
   pdematerialclass_ = "fluid";
 
+  isaxi_ = FALSE;
+  std::string subtype;
+  conf->ifget("subtype",subtype,pdename_);
+  if (subtype == "axi")
+    isaxi_ = TRUE;
+
   laststepcalc_=0;
 
   conf->getsubdompde(subdoms_,pdename_);
@@ -217,7 +223,7 @@ void AcousticPDE::CalcOutputCoupling()
 	      ptCoupling_->GetOutputNodes(i, couplingNodes);
 	      ptCoupling_->GetOutputMaterials(i, couplingMaterials);
 	      ptCoupling_->GetOutputValues(i, values);
-	      ptCoupling_->GetNeighbourElems(i, neighbours);
+	      ptCoupling_->GetOutputNeighbourElems(i, neighbours);
 	      dof = ptCoupling_->GetOutputDof(i);
 	    
 	      CalcMechCouplingRHS(couplingElems, *couplingNodes, couplingMaterials, *values, dof, neighbours);

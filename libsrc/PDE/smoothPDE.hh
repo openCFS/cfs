@@ -62,7 +62,7 @@ public:
   */
   virtual void ComputeRHS(const Double atime) {;};
   
-  virtual void SolveStepStatic(const Integer level);
+  virtual void SolveStepStatic(const Integer level, const Double aTime=0);
   
 
   //! solve one step for transient problem 

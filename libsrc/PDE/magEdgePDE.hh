@@ -80,7 +80,7 @@ public:
     \param ptBCs pointer to class with data about boundary condition
     \param level level of grid
   */
-  virtual void SolveStepStatic(const Integer level);
+  virtual void SolveStepStatic(const Integer level, const Double aTime=0);
 
   virtual void SolveStepTrans(const Integer kstep, const Double steptime, const Integer level, 
 			      const Boolean updatesysmat)

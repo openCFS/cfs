@@ -13,13 +13,13 @@ namespace CoupledField
     : BaseCoupledPDE(PDEs, Couplings, aptgrid, aptBCs, aInFile, aOutFile)
   {
 #ifdef TRACE
-    (*trace) << "entering  IterCoupledPDE::IterCoupledPDE" << std::endl;
+    (*trace) << "entering IterCoupledPDE::IterCoupledPDE" << std::endl;
 #endif
  
     maxiter_ = 100;
    
     //if values are defined in conf-file, take these
-    conf->ifget("maxiter", maxiter_, coupledpdename_); // maximal number of iterations
+    conf->ifget("maxiter", maxiter_, couplingSectionName_); // maximal number of iterations
   } 
 
 
@@ -29,7 +29,7 @@ namespace CoupledField
   IterCoupledPDE::~IterCoupledPDE()
   {
 #ifdef TRACE
-    (*trace) << "entering  InitCoupling::~IterCoupledPDE" << std::endl;
+    (*trace) << "entering IterCoupledPDE::~IterCoupledPDE" << std::endl;
 #endif
   }
 
@@ -71,31 +71,30 @@ namespace CoupledField
 		      Couplings_[i]->AddInput(CouplingTerms[j], NodeCouplings[k], NODES, actlevel_, Couplings_);
 		      norms_.push_back(1.0);
 		    }
-		  
-
-		// Read in subdomain coupling terms
-		if (conf->ifgetliststr(CouplingTerms[j], SubdomainCouplings, PDEs_[i]->GetName(), "subdomain_coupling"))
-		  for (Integer k=0; k<SubdomainCouplings.size(); k++)
-		    {
-		      Couplings_[i]->AddInput(CouplingTerms[j], SubdomainCouplings[k], SUBDOMAIN, actlevel_, Couplings_);
-		      norms_.push_back(1.0);
-		    }
-	      
-		// Read in elem1D coupling terms
-		if (conf->ifgetliststr(CouplingTerms[j], Elem1DCouplings, PDEs_[i]->GetName(), "elem1d_coupling"))
-		  for (Integer k=0; k<Elem1DCouplings.size(); k++)
-		    {
-		      Couplings_[i]->AddInput(CouplingTerms[j], Elem1DCouplings[k], ELEMS1D, actlevel_, Couplings_);
-		      norms_.push_back(1.0);
-		    }
-	      
-		// Read in elem2D coupling terms
-		if (conf->ifgetliststr(CouplingTerms[j], Elem2DCouplings, PDEs_[i]->GetName(), "elem2d_coupling"))
-		  for (Integer k=0; k<Elem2DCouplings.size(); k++)
-		    {
-		      Couplings_[i]->AddInput(CouplingTerms[j], Elem2DCouplings[k], ELEMS2D, actlevel_, Couplings_);
-		      norms_.push_back(1.0);
-		    }
+		else
+		  // Read in subdomain coupling terms
+		  if (conf->ifgetliststr(CouplingTerms[j], SubdomainCouplings, PDEs_[i]->GetName(), "subdomain_coupling"))
+		    for (Integer k=0; k<SubdomainCouplings.size(); k++)
+		      {
+			Couplings_[i]->AddInput(CouplingTerms[j], SubdomainCouplings[k], SUBDOMAIN, actlevel_, Couplings_);
+			norms_.push_back(1.0);
+		      }
+		  else
+		    // Read in elem1D coupling terms
+		    if (conf->ifgetliststr(CouplingTerms[j], Elem1DCouplings, PDEs_[i]->GetName(), "elem1d_coupling"))
+		      for (Integer k=0; k<Elem1DCouplings.size(); k++)
+			{
+			  Couplings_[i]->AddInput(CouplingTerms[j], Elem1DCouplings[k], ELEMS1D, actlevel_, Couplings_);
+			  norms_.push_back(1.0);
+			}
+		    else
+		      // Read in elem2D coupling terms
+		      if (conf->ifgetliststr(CouplingTerms[j], Elem2DCouplings, PDEs_[i]->GetName(), "elem2d_coupling"))
+			for (Integer k=0; k<Elem2DCouplings.size(); k++)
+			  {
+			    Couplings_[i]->AddInput(CouplingTerms[j], Elem2DCouplings[k], ELEMS2D, actlevel_, Couplings_);
+			    norms_.push_back(1.0);
+			  }
 	      }
 	  }
       }
@@ -109,7 +108,7 @@ namespace CoupledField
   }
 
 
-  void IterCoupledPDE::SolveStepStatic(const Integer level)
+  void IterCoupledPDE::SolveStepStatic(const Integer level, const Double aTime)
   {
 #ifdef TRACE
     (*trace) << "entering  IterCoupledPDE::SolveStepStatic" << std::endl;
@@ -119,8 +118,6 @@ namespace CoupledField
     Integer iter = 0;
     Integer counter = 0;
     Boolean normsReached = FALSE;
-
-    //std::cerr << "IterCoupledPDE::SolveStepStatic: maxiter: = " << maxiter_ << std::endl;
 
 
     while (iter < maxiter_ &&  (! normsReached))
@@ -140,7 +137,7 @@ namespace CoupledField
 
 	    PDEs_[i]->PreStepStatic(actlevel_);
 	    PDEs_[i]->CalcInputCoupling();
-	    PDEs_[i]->SolveStepStatic(actlevel_);
+	    PDEs_[i]->SolveStepStatic(actlevel_, aTime);
 	    PDEs_[i]->PostStepStatic(actlevel_);
 	    PDEs_[i]->CalcOutputCoupling();
 
@@ -251,7 +248,6 @@ void IterCoupledPDE::WriteResultsInFile()
 
   for (Integer i=0; i<PDEs_.size(); i++)
     PDEs_[i]->WriteResultsInFile();
-
 }
 
 
@@ -281,12 +277,13 @@ void IterCoupledPDE::WriteCouplingInfo()
       (*debug) << "=====================================" << std::endl;
       
       // Show InputCouplings
-      (*debug) << "Input Coupling:" << std::endl;
-      (*debug) << "---------------------" << std::endl;
       for (Integer i=0; i<Couplings_[ipde]->GetNumInputCouplings(); i++)
 	{
 	  Couplings_[ipde]->GetInputNodes(i, nodes);
 	  Couplings_[ipde]->GetInputValues(i,val);
+	  (*debug) << std::endl;
+	  (*debug) << "Input Coupling " << i+1 << ":" << std::endl;
+	  (*debug) << "---------------------" << std::endl;
 	  (*debug) << "Coupling Type: " << Couplings_[ipde]->GetInputType(i) << std::endl;
 	  (*debug) << "InputQuantity: " << Couplings_[ipde]->GetInputQuantity(i) << std::endl;
 	  (*debug) << "Region: " << Couplings_[ipde]->GetInputRegion(i) << std::endl;
@@ -304,12 +301,13 @@ void IterCoupledPDE::WriteCouplingInfo()
       
       // Show OutputCouplings
       nodes = 0;
-      (*debug) << "Output Coupling:" << std::endl;
-      (*debug) << "---------------------" << std::endl;
       for (Integer i=0; i<Couplings_[ipde]->GetNumOutputCouplings(); i++)
 	{
 	  Couplings_[ipde]->GetOutputNodes(i, nodes);
 	  Couplings_[ipde]->GetOutputValues(i,val);
+	  (*debug) << std::endl;
+	  (*debug) << "Output Coupling " << i+1 << ":" << std::endl;
+	  (*debug) << "---------------------" << std::endl;
 	  (*debug) << "Coupling Type: " << Couplings_[ipde]->GetOutputType(i) << std::endl;
 	  (*debug) << "OutputQuantity: " << Couplings_[ipde]->GetOutputQuantity(i) << std::endl;
 	  (*debug) << "Region: " << Couplings_[ipde]->GetOutputRegion(i) << std::endl;
@@ -317,7 +315,7 @@ void IterCoupledPDE::WriteCouplingInfo()
 	  (*debug) << "Size of Output Values: " << val->size() << std::endl;
 	  (*debug) << "Dof of Output Values: " << Couplings_[ipde]->GetOutputDof(i) << std::endl;
  	  (*debug) << "Number of Output Nodes: " << Couplings_[ipde]->GetOutputNumNodes(i) << std::endl;
-	  (*debug) << "Number of Output elems: " << Couplings_[ipde]->GetOutputNumNodes(i) << std::endl;
+	  (*debug) << "Number of Output elems: " << Couplings_[ipde]->GetOutputNumElems(i) << std::endl;
 	  (*debug) << "NormType: " << Couplings_[ipde]->GetOutputNormType(i) << std::endl;
 	  (*debug) << "Tolerance: " << Couplings_[ipde]->GetOutputEpsilon(i) << std::endl;
 	  

@@ -18,7 +18,9 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile, WriteResults * a
 		 TimeFunc *aptTimeFunc)
   :nonLin_(FALSE),
    incStopCrit_(1e-2), 
-   residualStopCrit_(1e-3)
+   residualStopCrit_(1e-3),
+   firstTimeStepStatic_(TRUE),
+   isaxi_(FALSE)
 {
 #ifdef TRACE
   (*trace) << "entering BasePDE::BasePDE" << std::endl;
@@ -111,7 +113,7 @@ void BasePDE::ReadSavings()
 
   for (Integer i=0; i<savings.size(); i++)
     {
-      if (savings[i] == "value")  savesol_ = TRUE;
+      if (savings[i] == "dof")  savesol_ = TRUE;
       if (savings[i] == "deriv1") savederiv1_ = TRUE;
       if (savings[i] == "deriv2") savederiv2_ = TRUE;
     }
@@ -172,7 +174,9 @@ void BasePDE::WriteGeneralPDEdefines()
   // Solve Step SECTION  
   // ======================================================
 
-void BasePDE::SolveStepStatic(const Integer level)
+// time is used for a series of static calculations
+// don't get confused with REAL transient simulations!
+void BasePDE::SolveStepStatic(const Integer level, const Double aTime)
 {
 #ifdef TRACE
   (*trace) << "entering BasePDE::SolveStepStatic" << std::endl;
@@ -184,39 +188,48 @@ void BasePDE::SolveStepStatic(const Integer level)
   //  PreStepStatic(level);
 
   if (nonLin_)
-    StepStaticNonLin(level);
+    StepStaticNonLin(level, aTime);
   else
-    StepStaticLin(level);
+    StepStaticLin(level, aTime);
 
   //  PostStepStatic(level);
-
 }
 
 
-void BasePDE::StepStaticLin(const Integer level)
+void BasePDE::StepStaticLin(const Integer level, Double aTime)
 {
 #ifdef TRACE
   (*trace) << "entering BasePDE::StepStaticLin" << std::endl;
 #endif
 
-  Integer job = 1;
+  Integer job;
   Double * ptsol;
+  lasttimecalc_ = aTime; // for correct output in unv-file
+  
 
-  if ( PDEisCoupled_ == FALSE || iterCoupledCounter_ == 0)
+  if ( PDEisCoupled_ == FALSE || iterCoupledCounter_ == 0 && firstTimeStepStatic_)
     assemble_->AssembleMatrices(level);
 
 
   //this has to be done each time!
-  assemble_->AssembleSrcRHS(level);
+  assemble_->AssembleSrcRHS(level, aTime);
 
   if ( PDEisCoupled_ == FALSE || iterCoupledCounter_ == 0)
     {
       //account for bcs
-      SetBCs(level,updateBCs_,0);
+      SetBCs(level, updateBCs_, aTime);
       updateBCs_ = 0;
-      algsys_->CalcPrecond(job);
+
+      if (firstTimeStepStatic_)
+	job = 1; // calc new preconditioner
+      else 
+	job = 3;  // just set new BCs    
     }
-    
+  else
+    job = 3;
+
+  algsys_->CalcPrecond(job);
+  
 
   algsys_->Solve();
 
@@ -229,6 +242,7 @@ void BasePDE::StepStaticLin(const Integer level)
     for (Integer dim=0; dim<dofspernode_; dim++)
       sol_[dim][i] = ptsol[k++];
 
+  firstTimeStepStatic_ = FALSE;
 }
 
 
@@ -684,7 +698,7 @@ void BasePDE::CalcInputCoupling()
   for (Integer i=0; i<ptCoupling_->GetNumInputCouplings(); i++)
     {
 
-      ptCoupling_ = &ptCoupling_[i];
+      //    ptCoupling_ = &ptCoupling_[i];
       ptCoupling_->GetInputValues(i, val);
 
       switch(ptCoupling_->GetInputType(i))
@@ -814,6 +828,8 @@ void BasePDE::PDE2MeshNode(Vector<Integer> & MeshNodes,
 }
 
 
+
+
 void BasePDE::AssignPDENodeNumbers(std::vector<Integer> & Mesh2PDENode,
 			  std::vector<Integer> & PDE2MeshNode,
 			  const std::vector<std::string> & subdoms)
@@ -863,7 +879,7 @@ void BasePDE::AssignPDENodeNumbers(std::vector<Integer> & Mesh2PDENode,
     }
 
   numPDENodes_ = PDE2MeshNode_.size();
-  //  (*cla) << "Mesh2PDENod   " << Mesh2PDENode << std::endl;
+
 #ifdef DEBUG
   (*debug) << "Mesh2PDENodes:" << std::endl << Mesh2PDENode << std::endl;
 #endif
@@ -872,35 +888,6 @@ void BasePDE::AssignPDENodeNumbers(std::vector<Integer> & Mesh2PDENode,
 
 
   
-// void BasePDE::AssignPDENodeNumbers(std::vector<Integer> & Mesh2PDENode,
-// 			  std::vector<Integer> & PDE2MeshNode,
-// 			  const std::vector<Elem*> & Elements)
-// {
-// #ifdef TRACE
-//   (*trace) << "entering BasePDE:AssignPDENodeNumbers:" << std::endl;
-// #endif
-
-//   // Initialize Mesh2PDENode_ and PDE2MeshNode
-//   Mesh2PDENode.resize(ptgrid_->GetMaxnumnodes(actlevel_),-1);
-//   Integer NodeCounter = 1;
-  
-//   // Iterate over all elements 
-//   for (Integer j=0; j<Elements.size(); j++)
-//     {
-//       // Iterate over all element nodes
-//       for (Integer NumNodes=0; NumNodes<Elements[j]->connect.size(); NumNodes++)
-// 	{
-// 	  // Check if node was already assigned
-// 	  if (Mesh2PDENode[Elements[j]->connect[NumNodes] - 1] == -1)
-// 	    {
-// 	      Mesh2PDENode[Elements[j]->connect[NumNodes] - 1] = NodeCounter;
-// 	      PDE2MeshNode.push_back(Elements[j]->connect[NumNodes]);
-// 	      NodeCounter++;
-// 	    }
-// 	}
-//     }
-// }
-
 
 void BasePDE::GetElemCoords(const Vector<Integer> connect, Matrix<Double> &coordMat, const Integer level)
 {
@@ -1248,24 +1235,6 @@ void BasePDE::CalcLineNormalVec(Vector<Double>& n, const Elem& interfaceElem, co
   // calculates normal to element ==========================================
   CalcLineNormalVec(n, ptCoord);  // normal vector is a rotation of 90° in pos. math. direction
                                   // of the vector from node 1 to node 2 in ptCoord
-
-
-//   // search for neighbouring 2D element in same domain =====================
-//   std::vector<Elem*> interfaceElems;
-//   interfaceElems.push_back(&interfaceElem);
-
-//   std::vector<Elem*>  possibleNeighbours;   //possible neighbours are all elems of subdomain
-//   std::vector<Elem*>  neighbours;           // is just one neighbour, but has to be defined as vector
-//   std::vector<Elem*>  actSubdomain;
-
-//   for (Integer iSd=0; iSd < subdoms_.size(); iSd++)
-//     {
-//       ptgrid_->GetElemSD(actSubdomain, subdoms_[iSd], actlevel_);
-//       for (Integer j=0; j<actSubdomain.size(); j++)
-// 	possibleNeighbours.push_back(actSubdomain[j]);
-//     }
-
-//   ptgrid_->DefineBelonging4Elems(interfaceElems, possibleNeighbours, neighbours);
 
 
   connecth = neighbour.connect;

@@ -59,6 +59,13 @@ ElecPDE::ElecPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
   
   SolverCFS_ = FALSE;
 
+
+  // only static analysis are possible =======================
+  delete assemble_;
+  assemble_ = new StaticAssemble(algsys_, ptgrid_);
+  analysistype_ = STATIC;
+
+
   // set analysis parameters
   assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, subdoms_, surfdoms_);
   assemble_->SetGraphType(NODEGRAPH);
@@ -94,6 +101,7 @@ void ElecPDE::DefineIntegrators(const Integer level)
       BaseForm * lapl = new LaplaceInt(eps33, isaxi_);
 
       assemble_->AddIntegrator(lapl, subdoms_[actSD], SYSTEM, nonLin);
+      //assemble_->AddIntegrator(lapl, subdoms_[actSD], STIFFNESS, nonLin);
     }
 }
 
@@ -103,13 +111,16 @@ void ElecPDE::DefineIntegrators(const Integer level)
 // ======================================================
 
 
+  
+
+
 void ElecPDE:: PreStepStatic(const Integer level)
 {
 #ifdef TRACE
   (*trace) << "entering ElecPDE:: PreStepStatic" << std::endl;
 #endif
 
-  if (PDEisCoupled_)
+  if (PDEisCoupled_ )
       algsys_->InitSol();
 
   if (nonLin_)
@@ -126,10 +137,11 @@ void ElecPDE:: PreStepStatic(const Integer level)
 
 
 
-void ElecPDE::StepStaticNonLin(const Integer level)
+
+void ElecPDE::StepStaticNonLin(const Integer level, const Double aTime)
 {
 #ifdef TRACE
-  (*trace) << "entering ElecPDE::StepStaticLin" << std::endl;
+  (*trace) << "entering ElecPDE::StepStaticNonLin" << std::endl;
 #endif
 
   Integer job = 1;
@@ -205,13 +217,14 @@ void ElecPDE::WriteResultsInFile()
 #endif
 
   Integer step=0;
-  Double time=0;
+  Double time= lasttimecalc_;
   ShortInt Dim = ptgrid_->GetDim();
 
   Array<Double> E_Mesh, Force_Mesh, Sol_Mesh;
   
   // transform solution vector for electric potential
   TransformNodeSolution(Sol_Mesh,sol_,PDE2MeshNode_);
+
 
   // CHANGE F_Interface_
   // TransformElemSolution(Force_Mesh,Force_,F_Interface_[0]);
@@ -540,25 +553,13 @@ void ElecPDE::InitCoupling(PDECoupling * Coupling)
 
 	  isBoundaryNode_.push_back(isBoundaryNode_tmp);
 	  elemNodeToCouplingNode_.push_back(elemNodeToCouplingNode_tmp);
-	  //numBoundaryNodes_.push_back(numBoundaryNodes_tmp);
-
-	    
-// 	  for (Integer k=0; k<isBoundaryNode_tmp.size(); k++)
-// 	    {
-// 	      //std::cerr << "Element " << interface_tmp[k]->ElemNum << " nodes: " << interface_tmp[k]->connect << std::endl;
-// 	      for (Integer l=0; l<4; l++)
-// 		std::cerr << isBoundaryNode_tmp[k][l] << " ";
-
-// 	      std::cerr << std::endl << std::endl;
-// 	    }
-	  
+	  //numBoundaryNodes_.push_back(numBoundaryNodes_tmp);	    
 	} // end if
             
     } // end for (i)
 
 
   iterCoupledCounter_ = 0;
-
 }
   
 

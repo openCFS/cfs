@@ -467,13 +467,26 @@ void MechPDE::CalcOutputCoupling()
 
 	  if (quantity == "mechforce")
 	    {
+	      PDECoupling * myCouple = ptCoupling_;  // just for debugging!
 	      ptCoupling_->GetOutputNodes(i, couplingnodes);
 	      ptCoupling_->GetOutputElements(i, couplingElems);
 	      ptCoupling_->GetOutputValues(i, values);
 	      ptCoupling_->GetOutputMaterials(i, couplingMaterials);
-	      ptCoupling_->GetNeighbourElems(i, neighbours);
+	      ptCoupling_->GetOutputNeighbourElems(i, neighbours);
 	      dof = ptCoupling_->GetOutputDof(i);
 
+	      if (!neighbours->size())
+		{
+		  std::string errMsg = "In mechanic PDE: No neighbour elements for acoustic-coupling at output interface ";
+		  errMsg += ptCoupling_->GetOutputRegion(i);
+		  Error(errMsg.c_str(),  __FILE__,__LINE__);  
+		}
+	  
+
+// 	      for (Integer ii=0; ii<neighbours->size(); ii++)
+// 		myCout << (*neighbours)[ii]->ElemNum << myEndl;
+	      
+	      
 	      CalcAcousticCouplingRHS(couplingElems, *couplingnodes, couplingMaterials, *values, dof, neighbours);
 
 	      //	      myCout << "Mech couple forces : " << *values << myEndl;
@@ -530,11 +543,10 @@ void MechPDE::CalcAcousticCouplingRHS(std::vector<Elem*> * couplingElems,
       Vector<Double> nSol(connecth.size());   // solution in normal direction
       nSol.Init();
       
-      Vector<Double> n;
-      //CalcLineNormalVec(n, ptCoord);
 
       // the normal vector points outwards of the mechanical domain
       // (see. Kaltenbacher, "Num. Sim. of Mech. Act. & Sens." chapter 8.2)
+      Vector<Double> n;
       CalcLineNormalVec(n, *(*couplingElems)[actElem], *(*neighbours)[actElem]);
 
 
@@ -615,7 +627,7 @@ void MechPDE:: PreStepStatic(const Integer level)
 }
 
 
-void MechPDE::StepStaticNonLin(const Integer level)
+void MechPDE::StepStaticNonLin(const Integer level, const Double aTime)
 {
 #ifdef TRACE
   (*trace) << "entering MechPDE::SolveStepStaticNonLin" << std::endl;

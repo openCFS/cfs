@@ -132,9 +132,9 @@ public:
 
   virtual void PreStepStatic(const Integer level) {;};
 
-  virtual void SolveStepStatic(const Integer level);
-  virtual void StepStaticLin(const Integer level);
-  virtual void StepStaticNonLin(const Integer level)
+  virtual void SolveStepStatic(const Integer level, const Double aTime=0);
+  virtual void StepStaticLin(const Integer level, const Double aTime=0);
+  virtual void StepStaticNonLin(const Integer level, const Double aTime=0)
   {Error("StepStaticNonLin not implemented!",__FILE__,__LINE__);};
 
   virtual void PostStepStatic(const Integer level) {;};
@@ -499,6 +499,8 @@ protected:
   Boolean nonLin_; //!<  flag for nonlinear calculations
   Double incStopCrit_; //!< stopping criterion for incremental error
   Double residualStopCrit_;  //!< stopping criterion for residual error
+
+  Boolean firstTimeStepStatic_; //!< needed for coupled, iterative methods
 
 };
 

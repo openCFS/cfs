@@ -7,9 +7,12 @@
 #include <Elements/elements_header.hh>
 #include <Domain/elem.hh>
 #include <Domain/grid.hh>
+#include <DataInOut/WriteInfo.hh>
+
 
 namespace CoupledField {
-
+  
+  
 
 template<Integer dim>
 void PrintPoint(Point<dim> point, std::ostream * out) 
@@ -27,16 +30,7 @@ template void PrintPoint(Point<3>, std::ostream *);
 void Error(const Char * Text, const Char * const filename,
                       const Integer numline)
 {
- std::cerr << "\033[31mERROR:\033[0m " << Text;
-
-#ifdef DEBUG
- if (filename) { std::cerr <<"( " << filename <<" ";
-                 if (numline) std::cerr << numline;
-                 std::cerr << ")";}
-#endif
-
- std::cerr << std::endl;
- exit(-1);
+  Info->Error(Text, filename, numline);
 }
 
 void Warning(const Char *Text, const Char * const filename,
