@@ -125,7 +125,7 @@ AcousticPDE::AcousticPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, Fil
 	  Double density = materialData_[0].GetDensity();
 	  Double compressibility = materialData_[0].GetCompressibility();
 	  Double coeffdamp = density/((sqrt(compressibility/density)));
-
+	  
 	  BaseForm * bilinear_damp = new MassInt(coeffdamp,dofspernode_, isaxi_);
 	  assemble_->AddSurfIntegrator(bilinear_damp,  bnd_absBCs_[actSD], DAMPING, nonLin);
 	}

@@ -705,7 +705,6 @@ void MechPDE::StepStaticNonLin(const Integer level)
       performOneMoreStep = 
 	(incrementalErr > incStopCrit_) && (residualErr > residualStopCrit_);      
       
-      *cla << "solution: " << myEndl << sol_ << myEndl;
       
     }while(performOneMoreStep && iterationCounter < maxnumiter_);  
 }

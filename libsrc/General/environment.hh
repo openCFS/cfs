@@ -124,7 +124,7 @@ extern ConfFile * conf; //name.conf
   /// It is used, when we read information about elements from mesh and create pointer to class with description FE element.
   //extern BaseElem * ptQ, *ptTr, *ptTet, *ptL1, *ptHexa;
 
-  extern BaseFE *ptQ, *ptQ2, *ptL1, *ptTet, *ptTr1, *ptHexa, *ptPyra;
+  extern BaseFE *ptQ, *ptQ2, *ptL1, *ptL2, *ptTet, *ptTr1, *ptTr2, *ptHexa, *ptPyra, *ptWedge;
 
   //! class for flags of programm
   class Flags

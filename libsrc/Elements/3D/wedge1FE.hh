@@ -1,31 +1,31 @@
-#ifndef FILE_QUAD2FE_2004
-#define FILE_QUAD2FE_2004
+#ifndef FILE_WEDGE1FE
+#define FILE_WEDGE1FE
 
-#include <Elements/basefe.hh>
-#include <Elements/2D/rectanglefe.hh>
+#include "wedgeFE.hh"
 
 namespace CoupledField
 {
-  //! Quadrilateral finite element with eight nodes (quadratic interpolation function)
-  
-class Quad2FE : public RectangleFE
+
+//! Class with  description of six-node wedge element
+
+class Wedge1FE : public WedgeFE
 {
 public:
-  
-  //! Constructor with type of integration rule
-  Quad2FE();
-  
-  //! Destructor
-  virtual ~Quad2FE();
-  
+   //! Constructor with type of integration rule
+   Wedge1FE();
+
+   //! Deconstructor
+   virtual ~Wedge1FE();
 
 protected:
+   //! Define variables of this class
+   virtual void Init();
 
-  //! Initialize Quadrilateral element
-  virtual void Init();
 
-  //! Set local nodal coordinates
+  //! Set local corner coordinates
   virtual void SetCornerCoords();
+
+
 
   //! calculates the shape functions at an arbitrary local point
   /*!
@@ -34,6 +34,8 @@ protected:
   */
   virtual void CalcShapeFnc(std::vector<Double> & LShape, 
 			    const std::vector<Double> & LCoord);
+
+
   
   //! calculates the local derivatives of shape functions at an arbitrary local point
   /*!
@@ -45,18 +47,23 @@ protected:
   */
   virtual void CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
 				      const std::vector<Double> & LCoord);
-  
-   //! NOT YET IMPLEMENTED FOR QUADRATIC ELEMENTS!!!Calculates a measure for the geometric distortion of an element
-  /*!
-    \param cornerCoords (input) Corner coordinates of the element
-    \param size (input) Absolute size of element in all dimensions
-    \param displacement (input) Displacement of the corner points (same ordering as CornerCoords!!)
-  */
-  virtual Double CalcMeanStrain(Matrix<Double> &cornerCoords, Array<Double> &displacements);
 
-private:
+
+
+
+  // ============================= methods for edge elements =======================
+  // ===============================================================================
+
+
+
+  
+  
+
+
+
+protected:
+
 };
 
-} // end of namespace
-
-#endif // FILE_QUAD2FE_2004
+}
+#endif //

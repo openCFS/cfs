@@ -73,21 +73,6 @@ void Pyra1FE::SetCornerCoords()
   LCornerCoords_[1][4] =  0;
   LCornerCoords_[2][4] =  1;
 
-//   LCornerCoords_[0][0] =  1;
-//   LCornerCoords_[1][0] =  0;
-//   LCornerCoords_[2][0] =  0;
-
-//   LCornerCoords_[0][1] =  0;
-//   LCornerCoords_[1][1] =  1;
-//   LCornerCoords_[2][1] =  0;
-
-//   LCornerCoords_[0][2] =  0;
-//   LCornerCoords_[1][2] =  0;
-//   LCornerCoords_[2][2] =  1;
-
-//   LCornerCoords_[0][3] =  0;
-//   LCornerCoords_[1][3] =  0;
-//   LCornerCoords_[2][3] =  0;
 }
 
 
@@ -113,7 +98,6 @@ void Pyra1FE :: CalcShapeFnc(std::vector<Double> & Shape,
 	//"Pyramidal Elements"
 	// F. Zgainski, J.L. Coulomb, Y. Marechal. IEEE Transactions on Magnetics, Vol. 32, No. 3, May 1996
 
-  Integer sign_switch=1;
 
   Shape[4] = LCoord[2];
 

@@ -64,6 +64,9 @@ private:
   //! indicator of type for data
   Boolean ascii_;
 
+  //! indicator of adaptive grid or not
+  Boolean fixedgrid_; 
+
   //! write header of gmv-file: only ascii is implemented
   void WriteHeader();
 

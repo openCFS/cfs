@@ -47,7 +47,8 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile, WriteResults * a
   eps_         = 1.0e-8;
   dampiter_    = 1.0;
   maxnumiter_  = 100;
-  solvertype_  = RealDirect;
+    solvertype_  = RealDirect;
+    //solvertype_  = RealCG;
   precondtype_ = ID;
   numeqcoarse_ = 200;
   coarsealpha_ = 0.1;

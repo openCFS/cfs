@@ -451,7 +451,6 @@ void AnsysFile::ReadEl(std::vector<Elem*> * allelems, const std::vector<std::str
 	ReadEl2d(allelems,sd);
 	break;
       case 3:
-	//ReadEl2d(allelems,sd);
 	ReadEl3d(allelems,sd);
 	break;
       }
@@ -671,7 +670,7 @@ void AnsysFile::ReadBCs_GridRG(std::vector<Integer> & idBCs,std::vector<Integer>
 
 #endif
 
-  void AnsysFile::ReadEl1d(std::vector<Elem*> * allelems, const std::vector<std::string> sd)
+void AnsysFile::ReadEl1d(std::vector<Elem*> * allelems, const std::vector<std::string> sd)
   {
 #ifdef TRACE
     (*trace) << " entering AnsysFile::ReadEl1D " << std::endl;
@@ -687,7 +686,7 @@ void AnsysFile::ReadBCs_GridRG(std::vector<Integer> & idBCs,std::vector<Integer>
 	getPosLine("1D Elements", pos);
 	infile.seekg(pos,std::ios::beg);
 
-	if (!ptL1)
+	if (!ptL1 || !ptL2)
 	  Error(" Pointers to BaseElem is not initialized",__FILE__,__LINE__);
 
 	Integer i, ii, j, inum, itype, innodes;
@@ -709,7 +708,7 @@ void AnsysFile::ReadBCs_GridRG(std::vector<Integer> & idBCs,std::vector<Integer>
 
 	    infile.ignore(100,'\n');
 
-	    Boolean Find;
+	    Boolean Find=FALSE;
 	    for (j=0; j<sd.size(); j++)
 	      if (namesd == sd[j]) { allelems[j].push_back(el);
 	      Find=TRUE;
@@ -723,7 +722,7 @@ void AnsysFile::ReadBCs_GridRG(std::vector<Integer> & idBCs,std::vector<Integer>
  
   }
 
-  void AnsysFile::ReadEl2d(std::vector<Elem*> * allelems, const std::vector<std::string> sd)
+void AnsysFile::ReadEl2d(std::vector<Elem*> * allelems, const std::vector<std::string> sd)
   {
 #ifdef TRACE
     (*trace) << " entering AnsysFile::ReadEl2D " << std::endl;
@@ -739,7 +738,7 @@ void AnsysFile::ReadBCs_GridRG(std::vector<Integer> & idBCs,std::vector<Integer>
 	getPosLine("2D Elements", pos);
 	infile.seekg(pos,std::ios::beg);
 
-	if (!ptQ || !ptQ2 || !ptTr1)
+	if (!ptQ || !ptQ2 || !ptTr1 || !ptTr2)
 	  Error(" Pointers to BaseElem is not initialized",__FILE__,__LINE__);
 
 	Integer i, ii, j, inum, itype, innodes;
@@ -792,7 +791,7 @@ void AnsysFile::ReadEl3d(std::vector<Elem*> * allelems, const std::vector<std::s
     infile.seekg(pos,std::ios::beg);
 
     //    if (!ptTr || !ptQ || !ptTet)
-    if (!ptTet || !ptHexa || !ptPyra)
+    if (!ptTet || !ptHexa || !ptPyra || !ptWedge)
       Error(" Pointers to BaseElem is not initialized",__FILE__,__LINE__);
 
     Integer i, ii, j, inum, itype, innodes;
@@ -813,7 +812,7 @@ void AnsysFile::ReadEl3d(std::vector<Elem*> * allelems, const std::vector<std::s
 
 	infile.ignore(100,'\n');
 
-	Boolean Find;
+	Boolean Find=FALSE;
 	for (j=0; j<sd.size(); j++)
 	  if (namesd == sd[j]) { allelems[j].push_back(el);
 	  Find=TRUE;
@@ -838,7 +837,7 @@ void AnsysFile::ReadEl3d(std::vector<Elem*> * allelems, const std::vector<std::s
     getPosLine("3D Elements", pos);
     infile.seekg(pos,std::ios::beg);
 
-    if (!ptTet || !ptHexa)
+    if (!ptTet || !ptHexa  || !ptPyra || !ptWedge)
       Error(" Pointers to BaseElem is not initialized",__FILE__,__LINE__);
 
     Integer i, ii, j, inum, itype, innodes;
@@ -887,7 +886,7 @@ void AnsysFile::ReadEl3d(std::vector<Elem*> * allelems, const std::vector<std::s
     getPosLine("2D Elements", pos);
     infile.seekg(pos,std::ios::beg);
 
-    if (!ptQ || !ptTr1)
+    if (!ptQ || !ptTr1 || !ptTr2)
       Error(" Pointers to BaseElem is not initialized",__FILE__,__LINE__);
 
     Integer i, ii, j, inum, itype, innodes;
@@ -936,7 +935,7 @@ void AnsysFile::ReadEl3d(std::vector<Elem*> * allelems, const std::vector<std::s
     getPosLine("1D Elements", pos);
     infile.seekg(pos,std::ios::beg);
 
-    if (!ptL1)
+    if (!ptL1 || !ptL2)
       Error(" Pointers to BaseElem is not initialized",__FILE__,__LINE__);
 
     Integer i, ii, j, inum, itype, innodes;
@@ -977,12 +976,14 @@ void AnsysFile::ReadEl3d(std::vector<Elem*> * allelems, const std::vector<std::s
   {
     switch(itype)
       {
+      case 1:
+	return ptL2;
       case 100:
 	return ptL1;
-	//       case 101:
-	// 	return ptL2;
       case 4:
 	return ptTr1;
+      case 5:
+	return ptTr2;
       case 6:
 	return ptQ;
       case 7:
@@ -993,6 +994,8 @@ void AnsysFile::ReadEl3d(std::vector<Elem*> * allelems, const std::vector<std::s
 	return ptHexa;
       case 12:
 	return ptPyra;
+      case 13:
+	return ptWedge;
       default:
 	{
 	  std::cout << "Used Element Type: " << itype << std::endl;  

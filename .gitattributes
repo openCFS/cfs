@@ -112,6 +112,8 @@ libsrc/Driver/transientdriver.hh svneol=native#text/plain
 libsrc/Elements/1D/Makefile -text
 libsrc/Elements/1D/line1fe.cc svneol=native#text/plain
 libsrc/Elements/1D/line1fe.hh svneol=native#text/plain
+libsrc/Elements/1D/line2fe.cc svneol=native#text/plain
+libsrc/Elements/1D/line2fe.hh svneol=native#text/plain
 libsrc/Elements/1D/linefe.cc svneol=native#text/plain
 libsrc/Elements/1D/linefe.hh svneol=native#text/plain
 libsrc/Elements/2D/Makefile -text
@@ -123,6 +125,8 @@ libsrc/Elements/2D/rectanglefe.cc svneol=native#text/plain
 libsrc/Elements/2D/rectanglefe.hh svneol=native#text/plain
 libsrc/Elements/2D/triangle1fe.cc svneol=native#text/plain
 libsrc/Elements/2D/triangle1fe.hh svneol=native#text/plain
+libsrc/Elements/2D/triangle2fe.cc svneol=native#text/plain
+libsrc/Elements/2D/triangle2fe.hh svneol=native#text/plain
 libsrc/Elements/2D/trianglefe.cc svneol=native#text/plain
 libsrc/Elements/2D/trianglefe.hh svneol=native#text/plain
 libsrc/Elements/3D/Makefile -text
@@ -138,6 +142,10 @@ libsrc/Elements/3D/tetra1FE.cc svneol=native#text/plain
 libsrc/Elements/3D/tetra1FE.hh svneol=native#text/plain
 libsrc/Elements/3D/tetraFE.cc svneol=native#text/plain
 libsrc/Elements/3D/tetraFE.hh svneol=native#text/plain
+libsrc/Elements/3D/wedge1FE.cc svneol=native#text/plain
+libsrc/Elements/3D/wedge1FE.hh svneol=native#text/plain
+libsrc/Elements/3D/wedgeFE.cc svneol=native#text/plain
+libsrc/Elements/3D/wedgeFE.hh svneol=native#text/plain
 libsrc/Elements/Makefile -text
 libsrc/Elements/basefe.cc svneol=native#text/plain
 libsrc/Elements/basefe.hh svneol=native#text/plain

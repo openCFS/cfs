@@ -1,30 +1,30 @@
-#ifndef FILE_QUAD2FE_2004
-#define FILE_QUAD2FE_2004
+#ifndef FILE_TRIANGLE2FE_2004
+#define FILE_TRIANGLE2FE_2004
 
 #include <Elements/basefe.hh>
-#include <Elements/2D/rectanglefe.hh>
+#include <Elements/2D/trianglefe.hh>
 
 namespace CoupledField
 {
-  //! Quadrilateral finite element with eight nodes (quadratic interpolation function)
+  //!  Triangle finite element with six nodes (quadratic interpolation function)
   
-class Quad2FE : public RectangleFE
+class Triangle2FE : public TriangleFE
 {
 public:
-  
+
   //! Constructor with type of integration rule
-  Quad2FE();
+  Triangle2FE();
   
   //! Destructor
-  virtual ~Quad2FE();
+  virtual ~Triangle2FE();
   
 
 protected:
 
-  //! Initialize Quadrilateral element
+  //! Initialize Trianglerilateral element
   virtual void Init();
 
-  //! Set local nodal coordinates
+  //! Set local corner coordinates
   virtual void SetCornerCoords();
 
   //! calculates the shape functions at an arbitrary local point
@@ -45,18 +45,10 @@ protected:
   */
   virtual void CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
 				      const std::vector<Double> & LCoord);
-  
-   //! NOT YET IMPLEMENTED FOR QUADRATIC ELEMENTS!!!Calculates a measure for the geometric distortion of an element
-  /*!
-    \param cornerCoords (input) Corner coordinates of the element
-    \param size (input) Absolute size of element in all dimensions
-    \param displacement (input) Displacement of the corner points (same ordering as CornerCoords!!)
-  */
-  virtual Double CalcMeanStrain(Matrix<Double> &cornerCoords, Array<Double> &displacements);
 
 private:
 };
 
 } // end of namespace
 
-#endif // FILE_QUAD2FE_2004
+#endif // FILE_TRIANGLE2FE_2004

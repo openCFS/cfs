@@ -17,7 +17,7 @@ BCs :: BCs(FileType * const aInFile)
  InFile_     = aInFile; 
 
  Integer i;
- for (i=0; i<NUMLEVELGRID; i++) { bcs_[i]=NULL; bcsEdges_[i]=NULL;}
+ for (i=0; i<NUMLEVELGRID; i++) { bcs_[i]=NULL; bcsEdges_[i]=NULL; bcsFaces_[0]=NULL; bcsNeighElems_[0]=NULL;}
   
  conf->ifgetliststr("list_nodes",levels_);
  if (levels_.size()) 
