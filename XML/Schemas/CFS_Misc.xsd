@@ -42,6 +42,14 @@
             </xsd:restriction>
           </xsd:simpleType>
         </xsd:attribute>
+        <xsd:attribute name="meshLibrary" use="optional" default="cfsGrid">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
+              <xsd:enumeration value="cfsGrid"/>
+              <xsd:enumeration value="adaptGrid"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
       </xsd:restriction>
     </xsd:complexContent>
   </xsd:complexType>
