@@ -99,8 +99,6 @@ namespace CoupledField
     ENTER_FCN( "TransientDriver::SolveProblem" );
   
     Integer level     = 0;
-    Integer pdenumber = 0;
-    Integer nsys      = 0;
     Double  steptime  = firstdt_;
     Integer stepsave  = isavebegin_;
 

@@ -158,7 +158,6 @@ void SuperBlockEQN::Print(std::ostream & out) const
   out << std::setfill('-') << std::setw(39) << "-" << std::endl;
   out << std::setfill(' ');
   
-  Integer numLeadingSpaces = 0;
   for (Integer iNode=0; iNode<pde2MeshNode_.GetSize(); iNode++)
     {
       // Print out first dof

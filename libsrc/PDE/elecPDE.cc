@@ -262,6 +262,9 @@ void ElecPDE::WriteResultsInFile(Integer stepOffset,
 		*data << std::endl;
 		
 	      }
+	  case ELEM:
+	    Error( "Element input coupling not implemented for elecPDE",
+		   __FILE__, __LINE__ );
 	  } // switch
       } // for
   }
@@ -831,7 +834,7 @@ void ElecPDE::CalcInterfaceForces(Integer actCoupling)
     {
       Elem * actCoupleElem     = (*couplingElems)[actElem];
       Elem * actVolElem        = (*innerInterfaceVolElems)[actElem];
-      BaseFE * ptVolElem       = actVolElem->ptElem;
+      // BaseFE * ptVolElem       = actVolElem->ptElem;
       BaseFE * ptCoupleElem    = actCoupleElem->ptElem;
 
       const Vector<Double> & intWeights = ptCoupleElem->GetIntWeights();  
@@ -848,7 +851,6 @@ void ElecPDE::CalcInterfaceForces(Integer actCoupling)
       //StdVector<Integer> connect_PDE;
 
       GetElemCoords(connecth, ptCoord, actlevel_);
-      //Mesh2PDENode(connect_PDE, connecth, mesh2PDENode_);
 
 
 
@@ -870,7 +872,7 @@ void ElecPDE::CalcInterfaceForces(Integer actCoupling)
 
       StdVector<Integer> boundNodesOfVolElem;
   
-      Integer ptCount = 0;
+      // Integer ptCount = 0;
       for (Integer nNode=0; nNode < isBoundaryNode_[actCoupling][actElem].GetSize(); nNode++)
 	if (isBoundaryNode_[actCoupling][actElem][nNode] == 1)
 	  boundNodesOfVolElem.Push_back(nNode);

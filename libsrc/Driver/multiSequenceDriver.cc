@@ -168,21 +168,17 @@ namespace CoupledField {
 
     // 1.) Read in all steps
     params->GetList("index", steps, "multiSequence", "step");
-//     std::cerr << std::endl;
-//     std::cerr << "steps = " << std::endl << steps << std::endl;
 
     // 2.) ensure that all steps occur and none is left out
     Integer currStep = 0;
     for (Integer iStep=1; iStep<=steps.GetSize(); iStep++) {
       for (Integer j=0; j<steps.GetSize(); j++) {
 	if (steps[j] == iStep) {
-	  //std::cerr << "iStep = steps[" << j << "] = " << iStep << std::endl;
 	  currStep++;
 	  break;
 	}
       }
     }
-//     std::cerr << "currStep = " << currStep << std::endl;
     
     std::string errMsg;
     if (currStep != steps.GetSize()) {
@@ -194,7 +190,6 @@ namespace CoupledField {
     numSteps_ = steps.GetSize();
     
     // 3.) Resize 'outer' vectors
-//     std::cerr << "numSteps_ = " << numSteps_ << std::endl;
     pdesPerStep_.Resize(numSteps_);
     tagsPerStep_.Resize(numSteps_);
     analysisPerStep_.Resize(numSteps_);
@@ -216,10 +211,7 @@ namespace CoupledField {
       stepString = Info->GenStr(iStep+1);
       //params->GetList("tag", tagsAux, "step", "pde");
       valVec  = "", stepString, "";
-      Boolean isTrue = (stepString == "1");
-//       if (isTrue)
-// 	std::cerr << "TRUE" << std::endl;
-//       std::cerr << "stepString = '" << stepString << "'" << std::endl;
+
       keyVec  = "multiSequence", "step", "pde", "refTag";      
       params->GetList( keyVec, attrVec, valVec, tagsAux );
 

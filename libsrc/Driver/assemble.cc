@@ -599,8 +599,10 @@ namespace CoupledField
       else
 	if (dofString == "uz")
 	  return 3;
-	else
+	else {
 	  Error("The direction mentioned in the config-file is not implemented! ",__FILE__,__LINE__);
+	  return -1;
+	}
   }
 
 

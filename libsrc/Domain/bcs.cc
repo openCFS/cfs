@@ -76,9 +76,6 @@ namespace CoupledField
 	bcsFaces_[0]=new StdVector<Elem*>[color_faces_.GetSize()]; 
 	}
 	
-      //check for line elements
-      Integer num1DElems = InFile_->GetNum1DElems();
-      //      if (num1DElems>0)
     }    
     else {
       params->GetList( "name", color_edges_, "domain", "elements" );	
