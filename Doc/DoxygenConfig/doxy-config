@@ -59,14 +59,14 @@ WARN_LOGFILE           =
 #---------------------------------------------------------------------------
 INPUT                  = ../libsrc/AlgebraicSystem \
                          ../libsrc/DataInOut \
-                         ../libsrc/DataInOut/AnsysFile
-                         ../libsrc/DataInOut/AnsysOut
-                         ../libsrc/DataInOut/Database
-                         ../libsrc/DataInOut/DefineFiles
-                         ../libsrc/DataInOut/GMV
-                         ../libsrc/DataInOut/GSI
-                         ../libsrc/DataInOut/ParamHandling
-                         ../libsrc/DataInOut/Unverg
+                         ../libsrc/DataInOut/AnsysFile \
+                         ../libsrc/DataInOut/AnsysOut \
+                         ../libsrc/DataInOut/Database \
+                         ../libsrc/DataInOut/DefineFiles \
+                         ../libsrc/DataInOut/GMV \
+                         ../libsrc/DataInOut/GSI \
+                         ../libsrc/DataInOut/ParamHandling \
+                         ../libsrc/DataInOut/Unverg \
                          ../libsrc/Domain/ \
                          ../libsrc/Domain/GridCFS \
                          ../libsrc/Domain/AdaptGrid \
@@ -85,7 +85,6 @@ INPUT                  = ../libsrc/AlgebraicSystem \
                          ../libsrc/MpCCIcpl \
                          ../libsrc/ODEDescr \
                          ../libsrc/ODESolve
-
 FILE_PATTERNS          = *.hh
 RECURSIVE              = NO
 EXCLUDE                = 
