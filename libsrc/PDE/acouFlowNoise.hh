@@ -47,11 +47,10 @@ private:
   //Flow Data
   Matrix<Double> flowdata_;
 
-
+  StdVector<std::string> couplSubDomName_; //!< name of subdomain to be coupled with MpCCI
 
   //!MpCCI
 #ifdef MpCCI
-  StdVector<std::string> couplSubDomName_; //!< name of subdomain to be coupled with MpCCI
   StdVector<Integer> mapSD_;
   MpCCIexch * ptMpCCIexch_;
   Integer MpCCInodes_; //<! number of FE-nodes for MpCCI-domain
