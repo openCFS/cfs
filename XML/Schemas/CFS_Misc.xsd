@@ -59,6 +59,14 @@
             </xsd:restriction>
           </xsd:simpleType>
         </xsd:attribute>
+        <xsd:attribute name="type" use="optional" default="ascii">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
+              <xsd:enumeration value="ascii"/>
+              <xsd:enumeration value="binary"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
       </xsd:restriction>
     </xsd:complexContent>
   </xsd:complexType>
