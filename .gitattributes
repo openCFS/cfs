@@ -55,6 +55,8 @@ libsrc/DataInOut/ParamHandling/ConfFile.hh svneol=native#text/plain
 libsrc/DataInOut/Unverg/Makefile -text
 libsrc/DataInOut/Unverg/outUnverg.cc svneol=native#text/plain
 libsrc/DataInOut/Unverg/outUnverg.hh svneol=native#text/plain
+libsrc/DataInOut/WriteInfo.cc svneol=native#text/plain
+libsrc/DataInOut/WriteInfo.hh svneol=native#text/plain
 libsrc/DataInOut/conffile.cc svneol=native#text/plain
 libsrc/DataInOut/conffile.hh svneol=native#text/plain
 libsrc/DataInOut/filetype.cc svneol=native#text/plain
