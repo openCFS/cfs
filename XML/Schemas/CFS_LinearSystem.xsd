@@ -54,21 +54,24 @@
       </xsd:sequence>
 
       <!-- List of available solvers to chose from --> 
-      <xsd:attribute name="type" use="optional" default="Direct">
+      <xsd:attribute name="type" use="optional" default="expertsChoice">
         <xsd:simpleType>
           <xsd:restriction base="xsd:token">
-            <xsd:enumeration value="Direct"/>
+            <xsd:enumeration value="expertsChoice"/>
             <xsd:enumeration value="Richardson"/>
             <xsd:enumeration value="cg"/>
             <xsd:enumeration value="gmres"/>
             <xsd:enumeration value="minres"/>
             <xsd:enumeration value="symmlq"/>
-            <xsd:enumeration value="QMR"/>
+            <xsd:enumeration value="qmr"/>
             <xsd:enumeration value="hyprePCG"/>
             <xsd:enumeration value="hypreAMG"/>
             <xsd:enumeration value="hypreGMRES"/>
             <xsd:enumeration value="hypreBICGSTAB"/>
             <xsd:enumeration value="lapackLU"/>
+            <xsd:enumeration value="lapackLL"/>
+            <xsd:enumeration value="directLU"/>
+            <xsd:enumeration value="directLDL"/>
           </xsd:restriction>
         </xsd:simpleType>
      </xsd:attribute>
