@@ -268,8 +268,8 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
   assemble_->SetMesh2PDENode(&mesh2PDENode_);
 
 #ifdef USE_OLAS
-  assemble_->SetMatrixEntryType(DOUBLE);
-  assemble_->SetMatrixStorageType(SPARSE_NONSYM);
+  assemble_->SetMatrixEntryType(OLAS::DOUBLE);
+  assemble_->SetMatrixStorageType(OLAS::SPARSE_NONSYM);
 #else
   assemble_->SetMatrixType(RBLOCK);
 #endif 

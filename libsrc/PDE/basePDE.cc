@@ -808,7 +808,7 @@ void BasePDE::SetSolverParameters()
       precondtype_ = OLAS::JACOBI;
       break;
     case 4:
-      precondtype_ = OLAS::HYPRE_ILU;
+      precondtype_ = OLAS::ILU;
 	break;
     case 5:
       precondtype_ = OLAS::SSOR;
@@ -820,6 +820,8 @@ void BasePDE::SetSolverParameters()
       precondtype_ = OLAS::HYPRE_AMG;
       break;
     case 8:
+      precondtype_ = OLAS::HYPRE_ILU;
+    case 9:
       precondtype_ = OLAS::HYPRE_SPAI;
       break;
     default:
@@ -887,15 +889,15 @@ void BasePDE::SetSolverParameters()
 #endif
 
   //communicate with algebraic system
+ 
 
 #ifdef USE_OLAS
-  olasParams_->SetValue( "eps", eps_ );
+    olasParams_->SetValue( "eps", eps_ );
   olasParams_->SetValue( "MaxIter", maxnumiter_);
   olasParams_->SetValue( "epsmach", 1e-30 );
   olasParams_->SetValue( "Solver", solvertype_ );
   olasParams_->SetValue( "Precond", precondtype_);
- 
- // The following parameters are not passed yet
+   // The following parameters are not passed yet
   // -> Contact Uwe regarding multrigrid parameters
   // olasParams_->SetValue( "dampiter", dampiter_);
   // olasParams_->SetValue( "numeqcoarse", numeqcoarse_);
