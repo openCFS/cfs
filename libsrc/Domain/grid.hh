@@ -49,6 +49,9 @@ public:
   //! Get array of pointers to element type
   virtual BaseElem ** getptArrayElem() const=0;
 
+  //! Get last level of grid
+  virtual Integer GetLastLevel() const { return 0;} //// !!!!!
+   
 protected:
 
   FileType * ptFileType;
