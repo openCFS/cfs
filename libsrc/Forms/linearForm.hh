@@ -207,16 +207,6 @@ protected:
   Matrix<Double> elemDisp_;
 };
 
-
-
-
-
-// =============================================================================
-// prestress
-// =============================================================================
-
-
-
 /// class for calculation of right-hand-side of prestress
 class PreStressLinFormInt : public nLinMech_linFormInt
 {
@@ -243,12 +233,6 @@ private:
   Directions preStressDir_;
 };
 
-
-// =============================================================================
-// pressure load
-// =============================================================================
-
-
 /// class for surface integration
 class PressureLinForm : public LinearForm
 {
@@ -274,8 +258,11 @@ private:
 };
 
 
+// =============================================================================
+// calculation for right hand side of flownoise problem
+// =============================================================================
 
-/// class for calculation of right hand side for flownoise problem
+/// class for right hand side of flownoise problem
 class LinearFlowNoiseInt : public LinearForm
 {
 public:
@@ -303,18 +290,16 @@ public:
 			  const StdVector<Integer>& connecth, 
 			  Integer matrixRow);
   
-  
 private:
 
 };
 
 
 // =============================================================================
-// compute nonlinear rhs fo acoustics using Kuznetsov equation
+// compute nonlinear rhs for acoustics
 // =============================================================================
 
-
-/// class for calculation of right hand side of an volume source
+/// calculation of RHS in nonlinear acoustics using Kuznetsov's equation
 class nLinKuznetsovRHSInt : public LinearForm
 {
 public:
@@ -341,12 +326,11 @@ public:
 
   //! set multiplicative factor for matrix
   virtual void SetFactor(Double factor) 
-  {factorN1_ = factor;};
+  { factorN1_ = factor;};
 
   //! set multiplicative factor for matrix
   virtual void SetSecondFactor(Double factor) 
-  {factorN2_ = factor;};
-
+  { factorN2_ = factor;};
 
 private:
   Vector<Double> sol_;        //!< solution
@@ -358,6 +342,44 @@ private:
 
   /// source factor
   Double val_;
+};
+
+/// calculation of RHS in nonlinear acoustics using Westervelt's equation
+class nLinWesterveltRHSInt : public LinearForm
+{
+public:
+  ///
+  nLinWesterveltRHSInt(Double val, Boolean isaxi);
+
+  ///
+  virtual ~nLinWesterveltRHSInt();
+
+  /// Calculation of vector of right hand side 
+  virtual void CalcElemVector(Matrix<Double>& ptCoord, Vector<Double> & result);
+
+  //! the solution is needed for setting up the matrix
+  virtual void SetActElemSol(Vector<Double>& asol) 
+  { sol_ = asol;};
+
+  //! the first time derivative is needed for setting up the matrix
+  virtual void SetActElemSolDeriv1(Vector<Double>& solderiv1) 
+  { solderiv1_ = solderiv1;};
+
+  //! the second time derivative is needed for setting up the matrix
+  virtual void SetActElemSolDeriv2(Vector<Double>& solderiv2) 
+  { solderiv2_ = solderiv2;};
+
+  //! set multiplicative factor for matrix
+  virtual void SetFactor(Double factor) 
+  { factor_ = factor;};
+
+private:
+  Vector<Double> sol_;        //!< solution
+  Vector<Double> solderiv1_;  //!< first time derivative of solution
+  Vector<Double> solderiv2_;  //!< second time derivative of solution
+  Double factor_;             //!< multiplicative value for integrator
+
+  Double val_;                //!< source factor
 };
 
 

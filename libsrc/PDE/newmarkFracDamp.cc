@@ -18,7 +18,7 @@ NewmarkFracDamp::NewmarkFracDamp(std::string apdename,
 								 NodeEQN * ptEQN, Grid * aptgrid,
 								 BasePDE * aptBasePDE,
 								 StdVector<std::string> asubdomainList,
-								 StdVector<std::string> adampingList, 
+								 StdVector<DampingType> adampingList, 
 								 Integer afracMemory, 
 								 InterpolType ainType, Boolean isaxi)
   :TimeStepping(apdename, algebraicsystem, ptEQN)
@@ -147,18 +147,20 @@ void NewmarkFracDamp::UpdateRHS()
 
 	// factor: pre factor in Newmark timestepping scheme
 	// coeff_: weight factors in BDF
-	if ( dampingList_[actSD] == "fractional_gl" ) {
+	if ( dampingList_[actSD] == FRACTIONAL_GL ) {
 	  factor = density * 2.0 * alpha0 / c0 / sin((y-1.0)*PI/2.0);
 	  factor *= exp(-(y-1.0)*log(dt_));
 	  factor *= a2_;
 	  GLWeights(calclimit_, y);
 	}
-	else if ( dampingList_[actSD] == "fractional_blank" ) {
+	else if ( dampingList_[actSD] == FRACTIONAL_BLANK ) {
 	  factor =  density * 2.0 * alpha0 / c0 / sin((y-1.0)*PI/2.0);
 	  factor *= exp(-(y-1.0)*log(dt_)) * exp(-gammaln(1.0- (y- 1.0)) );
 	  factor *= a2_;
 	  BlankWeights(calclimit_, y, TRUE);
 	}
+	else
+	  std::cout << "Scheisse!" << std::endl;
 
 // 	// output coeff_
 // 	std::cerr << "Weight factors of BDF are:" << std::endl;

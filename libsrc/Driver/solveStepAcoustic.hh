@@ -31,8 +31,11 @@ namespace CoupledField
     void StepTransNonLin(const Integer kstep, const Double asteptime,
 			 const Integer level, const Boolean reset);
 
-    //! compute nonlinear part of RHS
-    void AddNonlinearRHS();
+    //! compute nonlinear part of RHS in Westervelt's equation
+    void AddWesterveltRHS();
+
+    //! compute nonlinear part of RHS in Kuznetsov's equation
+    void AddKuznetsovRHS();
 
   private:
 

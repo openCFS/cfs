@@ -274,7 +274,7 @@ namespace CoupledField
     Integer nonLinMaxIter_;    //!< maximal number of NL-iterations
     std::string nonLinMethod_; //!< method for handling the non-linearity
     Boolean nonLinLogging_;    //!< log progress of non-linear iterations
-
+	StdVector<NonLinPDE> nonLinPDEName_;//!< some PDEs carry a name (->acoustics!)
 
   };
 

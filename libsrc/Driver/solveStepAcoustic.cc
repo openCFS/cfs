@@ -67,11 +67,10 @@ void SolveStepAcoustic::StepTransNonLin(const Integer kstep, const Double astept
 	iterationCounter++;
 	// for every time step write out number of iteration loops to standard out
 	if (iterationCounter == 1)
-	  std::cout << std::endl << std::endl << "Time step:     "  << kstep 
-				<< "  , internal loop no. " << iterationCounter;
+	  std::cout << std::endl << "Time step:   "  << kstep 
+				<< "  ,Iterations: " << iterationCounter;
 	else 
-	  std::cout << std::endl << "                  " 
-				<< "  , internal loop no. " << iterationCounter;
+	  std::cout	<< "  " << iterationCounter;
 
 #ifdef DEBUG
 	*debug << std::endl
@@ -81,7 +80,7 @@ void SolveStepAcoustic::StepTransNonLin(const Integer kstep, const Double astept
 		   << iterationCounter << std::endl;      
 #endif
         
-	//set solution of previous iteration
+	// set solution of previous iteration
 	oldSol = newSol;
         
 	if ( iterationCounter>1 ) 
@@ -90,8 +89,12 @@ void SolveStepAcoustic::StepTransNonLin(const Integer kstep, const Double astept
 	// Set linear part of RHS
 	algsys_->InitRHS(RhsLinVal_.GetPointer());
         
-	//put nonlinear part to RHS
-	AddNonlinearRHS();
+	// put nonlinear part to RHS
+	// decide depending on first region
+	if ( nonLinPDEName_[0] == WESTERVELT )
+	  AddWesterveltRHS();
+	if ( nonLinPDEName_[0] == KUZNETSOV )
+	  AddKuznetsovRHS();
 
 	algsys_->BuildInDirichlet();
 	if ( job == 1 ) {
@@ -147,17 +150,71 @@ void SolveStepAcoustic::StepTransNonLin(const Integer kstep, const Double astept
 
 }
 
-void SolveStepAcoustic::AddNonlinearRHS() {
+void SolveStepAcoustic::AddWesterveltRHS() {
   
-  ENTER_FCN( "SolveStepAcoustic::AddNonlinearRHS" );
+  ENTER_FCN( "SolveStepAcoustic::AddWesterveltRHS" );
 
-  Matrix<Double> ptCoord, elemmat;
-  Vector<Double> sol, solderiv1, solderiv2, rhs, rhsElem;
-  BaseFE         * ptElem;
-  StdVector<Integer> connect, Eqns;  
-  Integer numEl=0;
+  Matrix<Double>     ptCoord;
+  Vector<Double>     sol, solderiv1, solderiv2, rhs;
+  BaseFE             * ptElem;
+  StdVector<Integer> connect, connect_PDE;
   
-  Double coeffN1, coeffN2;
+  Double coeff;
+  Double density, compressibility, c0, BoverA;
+
+  BaseForm * rhsInt = new  nLinWesterveltRHSInt(1.0, isaxi_);
+
+  for (Integer actSD=0; actSD<subdoms_.GetSize(); actSD++) {
+	StdVector<Elem*> elemssd;
+	ptgrid_->GetElemSD(elemssd,subdoms_[actSD],actlevel_);
+        
+	// get material data
+	density         = materialData_[actSD].GetDensity();
+	compressibility = materialData_[actSD].GetCompressibility();
+	c0 = sqrt(compressibility/density);
+	BoverA = materialData_[actSD].GetBoverA();
+
+	// set correct factors for bilinear forms
+	coeff = (1+0.5*BoverA) / pow(c0,4);
+	rhsInt->SetFactor(coeff);
+        
+	for (Integer j=0; j < elemssd.GetSize(); j++) {
+
+	  ptElem  = elemssd[j]->ptElem;
+	  connect = elemssd[j]->connect;
+ 	  GetElemCoords(connect, ptCoord, actlevel_);
+
+	  GetSolVecOfElement(sol, connect);
+	  GetDerivSolVecOfElement(solderiv1, connect);
+	  GetDeriv2SolVecOfElement(solderiv2, connect);
+
+	  rhsInt->SetElemPtr(ptElem);
+
+	  rhsInt->SetActElemSol(sol);
+	  rhsInt->SetActElemSolDeriv1(solderiv1);
+	  rhsInt->SetActElemSolDeriv2(solderiv2);
+	  rhsInt->CalcElemVector(ptCoord, rhs);
+
+	  //get equation numbers 
+	  eqnData_->Node2EQN(connect, connect_PDE);
+
+	  //assemble
+	  algsys_->SetElementRHS(&rhs[0], connect_PDE.GetPointer(), connect_PDE.GetSize());
+	}  
+  }
+
+}
+
+void SolveStepAcoustic::AddKuznetsovRHS() {
+  
+  ENTER_FCN( "SolveStepAcoustic::AddKuznetsovRHS" );
+
+  Matrix<Double>     ptCoord;
+  Vector<Double>     sol, solderiv1, solderiv2, rhs;
+  BaseFE             * ptElem;
+  StdVector<Integer> connect, connect_PDE;
+  
+  Double coeff1, coeff2;
   Double density, compressibility, c0, BoverA;
 
   BaseForm * rhsInt = new  nLinKuznetsovRHSInt(1.0, isaxi_);
@@ -175,24 +232,23 @@ void SolveStepAcoustic::AddNonlinearRHS() {
 	BoverA = materialData_[actSD].GetBoverA();
 
 	// set correct factors for bilinear forms
-	coeffN1 = density * BoverA / pow(c0,4);
-	rhsInt->SetFactor(coeffN1);
-	coeffN2 = density * 2.0 / (c0*c0);
-	rhsInt->SetSecondFactor(coeffN2);
-	//      N1->SetFactor(coeffN1);
-	//      N2->SetFactor(coeffN1);
+	coeff1 = density * BoverA / pow(c0,4);
+	rhsInt->SetFactor(coeff1);
+	coeff2 = density * 2.0 / (c0*c0);
+	rhsInt->SetSecondFactor(coeff2);
         
 	for (Integer j=0; j < elemssd.GetSize(); j++) {
+
 	  ptElem  = elemssd[j]->ptElem;
 	  connect = elemssd[j]->connect;
-          
-	  GetElemCoords(connect, ptCoord, actlevel_);
-          
+ 	  GetElemCoords(connect, ptCoord, actlevel_);
+
 	  GetSolVecOfElement(sol, connect);
 	  GetDerivSolVecOfElement(solderiv1, connect);
 	  GetDeriv2SolVecOfElement(solderiv2, connect);
 
 	  rhsInt->SetElemPtr(ptElem);
+
 	  rhsInt->SetActElemSol(sol);
 	  rhsInt->SetActElemSolDeriv1(solderiv1);
 	  rhsInt->SetActElemSolDeriv2(solderiv2);
@@ -208,7 +264,6 @@ void SolveStepAcoustic::AddNonlinearRHS() {
 	  //        rhs += elemmat * solderiv1;
 
 	  //get equation numbers 
-	  StdVector<Integer> connect_PDE;
 	  eqnData_->Node2EQN(connect, connect_PDE);
 
 	  //assemble
@@ -217,6 +272,7 @@ void SolveStepAcoustic::AddNonlinearRHS() {
   }
 
 }
+
 
 } // end of namespace
 
