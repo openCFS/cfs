@@ -1,5 +1,5 @@
-#ifndef FILE_ACOU2DPDE_2001
-#define FILE_ACOU2DPDE_2001
+#ifndef FILE_ACOUSTIC2DPDE_2001
+#define FILE_ACOUSTIC2DPDE_2001
 
 #include "basepde.hh"
 

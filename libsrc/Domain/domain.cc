@@ -164,7 +164,7 @@ void Domain :: InitPDE()
       else if (pdes[i] == "electric3d") 
 	ptpde_[i]=new Elec3dPDE(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_); 
       else if (pdes[i] == "acoustics2d")
-	ptpde_[i]=new Acou2dPDE(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_);
+      	ptpde_[i]=new Acou2dPDE(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_);
       else
 	{
 	  std::string msg=pdes[i]+" - this type of pdes is unknown";
