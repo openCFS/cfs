@@ -241,6 +241,8 @@ libsrc/PDE/timestepping.hh svneol=native#text/plain
 libsrc/PDE/trapezoidal.cc svneol=native#text/plain
 libsrc/PDE/trapezoidal.hh svneol=native#text/plain
 libsrc/ParamIdent/Makefile -text
+libsrc/Utils/Coil.cc svneol=native#text/plain
+libsrc/Utils/Coil.hh svneol=native#text/plain
 libsrc/Utils/Makefile -text
 libsrc/Utils/basestoresol.hh svneol=native#text/plain
 libsrc/Utils/cfsvector.hh svneol=native#text/plain
