@@ -22,7 +22,7 @@ void PrintPoint(const Point2D point, ostream * out)
 void Error(const Char * const Text, const Char * const filename,
                       const Integer numline)
 {
- cerr << "ERROR: " << Text;
+ cerr << "\033[31mERROR:\033[0m " << Text;
  if (filename) { cerr <<"( " << filename <<" ";
                  if (numline) cerr << numline;
                  cerr << ")";}

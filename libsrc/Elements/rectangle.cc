@@ -51,18 +51,104 @@ void Rectangle:: SetIntPoints()
       NumIntPoints=9;
       DegreeInteg=5;
       IntPoints.Resize(NumIntPoints, Dim);
-      IntWeights=0;
+      IntWeights=new Vector<Double>(NumIntPoints);
 
-      IntPoints[0][0] = -1.0/sqrt(3);
-      IntPoints[1][0] =  1.0/sqrt(3);
-      IntPoints[2][0] =  1.0/sqrt(3);
-      IntPoints[3][0] = -1.0/sqrt(3);
-      IntPoints[0][1] = -1.0/sqrt(3);
-      IntPoints[1][1] = -1.0/sqrt(3);
-      IntPoints[2][1] =  1.0/sqrt(3);
-      IntPoints[3][1] =  1.0/sqrt(3);
+      IntPoints[0][0] = -0.774596669241483;
+      IntPoints[1][0] =  0.0;
+      IntPoints[2][0] =  0.774596669241483;
+      IntPoints[3][0] = -0.774596669241483;
+      IntPoints[4][0] = 0.0;
+      IntPoints[5][0] =  0.774596669241483;
+      IntPoints[6][0] = -0.774596669241483;
+      IntPoints[7][0] = 0.0;
+      IntPoints[8][0] =  0.774596669241483; 
+
+      IntPoints[0][1] = -0.774596669241483;
+      IntPoints[1][1] = -0.774596669241483;
+      IntPoints[2][1] = -0.774596669241483;
+      IntPoints[3][1] = 0.0;
+      IntPoints[4][1] = 0.0;
+      IntPoints[5][1] = 0.0;
+      IntPoints[6][1] =  0.774596669241483;
+      IntPoints[7][1] =  0.774596669241483;
+      IntPoints[8][1] =  0.774596669241483;
+
+      (*IntWeights)[0]= 0.308642;
+      (*IntWeights)[1]= 0.493827;
+      (*IntWeights)[2]= 0.308642;
+      (*IntWeights)[3]= 0.493827;
+      (*IntWeights)[4]= 0.790123; 
+      (*IntWeights)[5]= 0.493827; 
+      (*IntWeights)[6]= 0.308642; 
+      (*IntWeights)[7]= 0.493827; 
+      (*IntWeights)[8]= 0.308642; 
+
       if (InfoPrint)
-       (*infofile) << " For numerical integration procedures we use Gaussian Quadrature with 4 nodes, degree of precision is 3 " << endl;
+       (*infofile) << " For numerical integration procedures we use Gaussian Quadrature with 9 nodes, degree of precision is 5 " << endl;
+      break;
+
+    case GaussOrder7:
+
+      Error("Type of integration Gauss with order 7 is incorrect", __FILE__, __LINE__);
+      NumIntPoints=16;
+      DegreeInteg=7;
+      IntPoints.Resize(NumIntPoints, Dim);
+      IntWeights=new Vector<Double>(NumIntPoints);
+ 
+      IntPoints[0][0] = -0.861136311594053;
+      IntPoints[1][0] =  -0.339981043584856;
+      IntPoints[2][0] =  0.339981043584856;
+      IntPoints[3][0] = 0.861136311594053;
+      IntPoints[4][0] = -0.861136311594053;
+      IntPoints[5][0] = -0.339981043584856;
+      IntPoints[6][0] =   0.339981043584856;
+      IntPoints[7][0] =  0.861136311594053;
+      IntPoints[8][0] =  -0.861136311594053;
+      IntPoints[9][0] =  -0.339981043584856;
+      IntPoints[10][0] =  0.339981043584856;
+      IntPoints[11][0] =  0.861136311594053;
+      IntPoints[12][0] =  -0.861136311594053;
+      IntPoints[13][0] =  -0.339981043584856;
+      IntPoints[14][0] =  0.339981043584856;
+      IntPoints[15][0] =  0.861136311594053;
+
+
+      IntPoints[0][1] =  -0.861136311594053;
+      IntPoints[1][1] =   -0.861136311594053;
+      IntPoints[2][1] =  -0.861136311594053;
+      IntPoints[3][1] =  -0.861136311594053;
+      IntPoints[4][1] =  -0.339981043584856;
+      IntPoints[5][1] =  -0.339981043584856;
+      IntPoints[6][1] =  -0.339981043584856;
+      IntPoints[7][1] =  -0.339981043584856;
+      IntPoints[8][1] =  0.339981043584856;
+      IntPoints[9][1] =  0.339981043584856;
+      IntPoints[10][1] =  0.339981043584856;
+      IntPoints[11][1] =  0.339981043584856;
+      IntPoints[12][1] =  0.861136311594053;
+      IntPoints[13][1] =  0.861136311594053;
+      IntPoints[14][1] =  0.861136311594053;
+      IntPoints[15][1] =  0.861136311594053;
+
+      (*IntWeights)[0]= 0.121003;
+      (*IntWeights)[1]= 0.226852;
+      (*IntWeights)[2]= - 0.226852;
+      (*IntWeights)[3]= - 0.121003;
+      (*IntWeights)[4]= 0.226852;
+      (*IntWeights)[5]= 0.425293;
+      (*IntWeights)[6]= -0.425293;
+      (*IntWeights)[7]= -0.226852;
+      (*IntWeights)[8]= -0.226852;
+      (*IntWeights)[9]= -0.425293;
+      (*IntWeights)[10]= 0.425293;
+      (*IntWeights)[11]= 0.226852;
+      (*IntWeights)[12]= -0.121003;
+      (*IntWeights)[13]= -0.226852;
+      (*IntWeights)[14]= 0.226852;
+      (*IntWeights)[15]= 0.121003;
+
+      if (InfoPrint)
+       (*infofile) << " For numerical integration procedures we use Gaussian Quadrature with 16 nodes, degree of precision is 7 " << endl;
       break;
  
     default:

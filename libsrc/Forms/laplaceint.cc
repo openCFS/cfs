@@ -50,6 +50,8 @@ void LaplaceInt<Dim> :: CalcElemMatrix(Dim * ptCoord, Matrix<Double> & Result)
  
   Result.Resize(n,n);
 
+  Vector<Double> * intWeights=ptelem->GetIntWeights();  
+
   for (i=0; i<l; i++)
     {
  
@@ -65,8 +67,14 @@ void LaplaceInt<Dim> :: CalcElemMatrix(Dim * ptCoord, Matrix<Double> & Result)
  
       for (ii=0; ii < n; ii++)
         for (iii=0; iii<ii+1; iii++)
+        {
+          if (intWeights) 
 	  Result[ii][iii]+=((help[ii]*JinvX)*(help[iii]*JinvX)
-			    +(help[ii]*JinvY)*(help[iii]*JinvY))*J.detJ;
+            +(help[ii]*JinvY)*(help[iii]*JinvY))*J.detJ*(*intWeights)[i];
+          else  
+         Result[ii][iii]+=((help[ii]*JinvX)*(help[iii]*JinvX)
+                 +(help[ii]*JinvY)*(help[iii]*JinvY))*J.detJ;
+        }
     }
 
   for (ii=0; ii<n; ii++)

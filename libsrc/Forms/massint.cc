@@ -47,6 +47,8 @@ void MassInt<Dim> :: CalcElemMatrix(Dim * ptCoord, Matrix<Double> & Result)
   Vector<Double> * Sf=new Vector<Double>[n];
   for (i=0; i < n; i++)
     Sf[i]=ptelem->GetShFncAtIP(i+1);
+
+  Vector<Double> * intWeights=ptelem->GetIntWeights();
  
   for (i=0; i<l; i++)
     {
@@ -54,7 +56,13 @@ void MassInt<Dim> :: CalcElemMatrix(Dim * ptCoord, Matrix<Double> & Result)
  
       for (ii=0; ii < n; ii++)
 	for (iii=0; iii<ii+1; iii++)
-	  Result[ii][iii]+=J.detJ*Sf[ii][i]*Sf[iii][i];
+       {
+        if  (intWeights)
+	  Result[ii][iii]+=J.detJ*Sf[ii][i]*Sf[iii][i]*(*intWeights)[i];
+         else
+           Result[ii][iii]+=J.detJ*Sf[ii][i]*Sf[iii][i];
+       }
+
     }
 
   for (ii=0; ii<n; ii++)

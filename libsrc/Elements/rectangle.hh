@@ -12,7 +12,7 @@ class Rectangle : public BaseElem
 public:
 
   //! Constructor with type of integration rule
-  Rectangle(ShortInt aintegtype){ IntegType = aintegtype; IsSet=FALSE; }
+  Rectangle(enum IntegrationType aintegtype){ IntegType = aintegtype; IsSet=FALSE; }
   
   //! Deconstructor
   virtual ~Rectangle();
@@ -68,7 +68,7 @@ private:
   Double TransFnc4dx (Double x,Double y)  { return 0.25*(1-y);} 
   Double TransFnc4dy (Double x,Double y)  { return 0.25*(-1-x);} 
 
-  ShortInt IntegType; //!< integration rule 
+//  ShortInt IntegType; //!< integration rule 
 
 };
 

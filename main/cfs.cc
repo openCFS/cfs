@@ -28,7 +28,6 @@ void main(int argc, char *argv[])
        << "\t \033[36m i \033[0m: to create info-file " << endl
        << "\t \033[36m name \033[0m: name of input file without extension" << endl << endl;
 
-
   if (argc < 3) Error("Invalid running of scfe. See Usage above.");
 
   if (!strcmp("-i", argv[2])) InfoPrint=TRUE;
