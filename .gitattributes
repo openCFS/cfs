@@ -37,6 +37,8 @@ XML/TestParser/Makefile -text
 XML/TestParser/SPHandler.cc svneol=native#text/plain
 XML/TestParser/SPHandler.hh svneol=native#text/plain
 XML/TestParser/TestParser.cc svneol=native#text/plain
+auxiliary/mysql/empty_tables.csh svneol=native#text/plain
+auxiliary/mysql/empty_tables.sql -text
 auxiliary/mysql/getdataset.csh svneol=native#text/plain
 auxiliary/mysql/getdataset55.sql -text
 auxiliary/mysql/getdataset56.sql -text
