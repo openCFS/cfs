@@ -533,7 +533,7 @@ namespace CoupledField {
   }
 
 
-  //stores an algsys_ vector into a StdVector and returns that L2-norm
+  //stores an algsys_ vector into an StdVector
   void StdPDE::StoreAlgsysToVec(Vector<Double>& vec, Double * pt) {
 
     ENTER_FCN( "StdPDE::StoreAlgsysToVec" );
