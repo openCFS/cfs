@@ -896,6 +896,10 @@ namespace CoupledField {
     // of matching elements
     if ( curdepth == keys.GetSize() ) {
       elemvec = branchTops;
+      if ( beVerbose_ == true ) {
+	std::cerr << " Found " << elemvec->GetSize() << " matches!\n";
+	std::cerr << " Reached bottom of recursion!\n";
+      }
     }
 
     // This is not the lowest level, so we descend and look for elements
@@ -903,17 +907,28 @@ namespace CoupledField {
     // append the results to the element vector
     else {
 
+      // Report descend
+      if ( beVerbose_ == true ) {
+	std::cerr << " Descending: Got " << branchTops->GetSize() << " new subtrees\n";
+      }
+
       // Generate results vector for this level
       elemvec = new StdVector<DOMElement *>;
 
       // auxilliary vector for intermediate results
       StdVector<DOMElement *> *tmpvec = NULL;
 
-      for ( unsigned int i = 0; i < list->getLength(); i++ ) {
+      // loop over all allowed subtrees
+      for ( unsigned int i = 0; i < branchTops->GetSize(); i++ ) {
 
 	// get results for each subtree
 	tmpvec = FindMatchingElements( keys, attribs, aValues,
 				       (*branchTops)[i], curdepth+1 );
+
+	// Report ascend
+	if ( beVerbose_ == true ) {
+	  std::cerr << "Back on level " << curdepth << '\n';
+	}
 
 	// append results to our element vector
 	for ( unsigned int k = 0; k < tmpvec->GetSize(); k++ ) {
@@ -1139,7 +1154,17 @@ namespace CoupledField {
     }
 
     // *******************
-    //   Part 5: Cleanup
+    //   Part 6: Report
+    // *******************
+    if ( beVerbose_ == true ) {
+      std::cerr << "\n FindAllMatches found the following matches:\n";
+      for ( unsigned int i = 0; i < list.GetSize(); i++ ) {
+	std::cerr << "match[" << i << "] = '" << list[i] << "'\n\n";
+      }
+    }
+
+    // *******************
+    //   Part 7: Cleanup
     // *******************
     delete elem_matches;
     delete attr_matches;
