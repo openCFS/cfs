@@ -76,18 +76,23 @@ namespace CoupledField
     //! returning the found value as a string, if the corresponding element
     //! has an attribute of the specified name which has the specified value.
     //! The search can be restricted to a certain section and subsection.
-    //! \param key        Keyword
-    //! \param value      String (output)
-    //! \param attribute  Name of attribute of element
-    //! \param aValue     Value to test attribute's value against
-    //! \param section    Name of a section in which to look for keyword
-    //!                   (optional)
-    //! \param subsection Name of a subsection in which to look for keyword
-    //!                   (optional)
+    //! If the applyToElem input argument is set to false, then the
+    //! attribute/value test is applied not to the element itself, but to its
+    //! parent.
+    //! \param key          Keyword
+    //! \param value        String (output)
+    //! \param attribute    Name of attribute of element
+    //! \param aValue       Value to test attribute's value against
+    //! \param applyToElem  Specifies which element to test
+    //! \param section      Name of a section in which to look for keyword
+    //!                     (optional)
+    //! \param subsection   Name of a subsection in which to look for keyword
+    //!                     (optional)
     virtual void CGet( const std::string key,
 		       std::string &value,
 		       const std::string attribute,
 		       const std::string aValue,
+		       Integer applyToElem,
 		       const std::string section,
 		       const std::string subsection ) = 0;
 
@@ -97,18 +102,23 @@ namespace CoupledField
     //! returning the found value as a Double, if the corresponding element
     //! has an attribute of the specified name which has the specified value.
     //! The search can be restricted to a certain section and subsection.
-    //! \param key        Keyword
-    //! \param value      Double (output)
-    //! \param attribute  Name of attribute of element
-    //! \param aValue     Value to test attribute's value against
-    //! \param section    Name of a section in which to look for keyword
-    //!                   (optional)
-    //! \param subsection Name of a subsection in which to look for keyword
-    //!                   (optional)
+    //! If the applyToElem input argument is set to false, then the
+    //! attribute/value test is applied not to the element itself, but to its
+    //! parent.
+    //! \param key          Keyword
+    //! \param value        Double (output)
+    //! \param attribute    Name of attribute of element
+    //! \param aValue       Value to test attribute's value against
+    //! \param applyToElem  Specifies which element to test
+    //! \param section      Name of a section in which to look for keyword
+    //!                     (optional)
+    //! \param subsection   Name of a subsection in which to look for keyword
+    //!                     (optional)
     virtual void CGet( const std::string key,
 		       Double &value,
 		       const std::string attribute,
 		       const std::string aValue,
+		       Integer applyToElem,
 		       const std::string section,
 		       const std::string subsection ) = 0;
 
@@ -118,6 +128,9 @@ namespace CoupledField
     //! returning the found value as a Integer, if the corresponding element
     //! has an attribute of the specified name which has the specified value.
     //! The search can be restricted to a certain section and subsection.
+    //! If the applyToElem input argument is set to false, then the
+    //! attribute/value test is applied not to the element itself, but to its
+    //! parent.
     //! \param key        Keyword
     //! \param value      Integer (output)
     //! \param attribute  Name of attribute of element
@@ -130,6 +143,7 @@ namespace CoupledField
 		       Integer &value,
 		       const std::string attribute,
 		       const std::string aValue,
+		       Integer applyToElem,
 		       const std::string section,
 		       const std::string subsection ) = 0;
 
@@ -184,19 +198,23 @@ namespace CoupledField
     //! The method will return an empty vector, if there is no match at all.
     //! It will issue an error message, if there are matches for both, elements
     //! and attributes, or if one of the found elements does not have an
-    //! attribute of the specified type.
-    //! \param key        Keyword
-    //! \param list       Vector of strings (output)
-    //! \param attribute  Name of attribute of element
-    //! \param value      Value to test attribute's value against
-    //! \param section    Name of a section in which to look for keyword
-    //!                   (optional)
-    //! \param subsection Name of a subsection in which to look for keyword
-    //!                   (optional)
+    //! attribute of the specified type. If the applyToElem input argument is
+    //! set to false, then the attribute/value test is applied not to the
+    //! element itself, but to its parent.
+    //! \param key          Keyword
+    //! \param list         Vector of strings (output)
+    //! \param attribute    Name of attribute of element
+    //! \param value        Value to test attribute's value against
+    //! \param applyToElem  Specifies which element to test
+    //! \param section      Name of a section in which to look for keyword
+    //!                     (optional)
+    //! \param subsection   Name of a subsection in which to look for keyword
+    //!                     (optional)
     virtual void CGetList( const std::string key,
 			   std::vector<std::string> &list,
 			   const std::string attribute,
 			   const std::string value,
+			   Integer applyToElem,
 			   const std::string section,
 			   const std::string subsection ) = 0;
 
@@ -216,6 +234,16 @@ namespace CoupledField
     //! no matches. By specifying the optional pde input parameter the search
     //! can be restricted to a certain PDE entry in the pdeList section.
     virtual void GetCoilList( std::vector<std::string> &list,
+			      const std::string pde ="" ) = 0;
+
+    //! Obtain the type of a certain coils
+
+    //! This method queries the parameter object for the type of a coils.
+    //! The desired coil is specified via the coilName input argument.
+    //! By specifying the optional pde input parameter the search can be
+    //! restricted to a certain PDE entry in the pdeList section.
+    virtual void GetCoilType( std::string &coilType,
+			      const std::string coilName,
 			      const std::string pde ="" ) = 0;
 
     //! Query the on/off status of a flag/switch
