@@ -13,7 +13,7 @@ interface {\sf type} - which can be {\sf node}(Coupling),
 the interface, which has to correspond with the according interface
 {\sf type}. At the end, we have to define
 the stopping criteria and the maximum number of iterations
-within the section {\sf nonlLnear}. Therefore, the general structure 
+within the section {\sf nonlLinear}. Therefore, the general structure 
 looks as follows
 
 
@@ -54,10 +54,11 @@ looks as follows
 For the stopping criteria, we have currently the following names:
 
 \begin{verbatim}
-    <stopCrit value="1e-2" quantity="mechDisplacement" l2Norm="rel"/>
-    <stopCrit value="1e-2" quantity="smoothDisplacement" l2Norm="rel"/>
-    <stopCrit value="1e-2" quantity="elecForceVWP" l2Norm="rel"/>
-    <stopCrit value="1e-2" quantity="magForceLorentz" l2Norm="rel"/>
+    <stopCrit value="1e-3" quantity="mechDisplacement" l2Norm="rel"/>
+    <stopCrit value="1e-3" quantity="smoothDisplacement" l2Norm="rel"/>
+    <stopCrit value="1e-3" quantity="elecForceVWP" l2Norm="rel"/>
+    <stopCrit value="1e-3" quantity="magForceLorentz" l2Norm="rel"/>
+    <stopCrit value="1e-2" quantity="mechForce" l2Norm="rel"/>
     <stopCrit value="1e-2" quantity="acouForce" l2Norm="rel"/>
 
 \end{verbatim}
@@ -78,8 +79,8 @@ Currently we have definitions for electrostatics, mechanics, magnetics and acous
 \bigskip
 \begin{tabular}{l|l}
 input coupling & type \\\hline \hline
-nodeCoupling & mechDisplacement \\
-regionCoupling & smoothDisplacement 
+nodeCoupling / regionCoupling & mechDisplacement \\
+nodeCoupling / regionCoupling & smoothDisplacement 
 \end{tabular}
 \end{center}
 \end{table}
@@ -90,8 +91,8 @@ regionCoupling & smoothDisplacement
 \bigskip
 \begin{tabular}{l|l}
 input coupling    & type \\\hline \hline
-nodeCoupling      & elecForceVWP \\
-nodeCoupling      & magForceVWP \\
+nodeCoupling / regionCoupling     & elecForceVWP \\
+nodeCoupling / regionCoupling    & magForceVWP \\
 regionCoupling    & magForceLorentz \\
 interfaceCoupling & acouForce 
 \end{tabular}
@@ -104,8 +105,8 @@ interfaceCoupling & acouForce
 \bigskip
 \begin{tabular}{l|l}
 input coupling    & type \\\hline \hline
-nodeCoupling & mechDisplacement \\
-regionCoupling & smoothDisplacement 
+nodeCoupling / regionCoupling & mechDisplacement \\
+nodeCoupling / regionCoupling & smoothDisplacement 
 \end{tabular}
 \end{center}
 \end{table}
@@ -116,7 +117,7 @@ regionCoupling & smoothDisplacement
 \bigskip
 \begin{tabular}{l|l}
 input coupling    & type \\\hline \hline
-nodeCoupling      & mechForce \\
+interfaceCoupling      & mechForce \\
 \end{tabular}
 \end{center}
 \end{table}
@@ -212,6 +213,6 @@ as the element normals are needed for calculating the coupling forces.
       <stopCrit value="1e-2" quantity="mechDisplacement" l2Norm="rel"/>
       <maxNumIters> 20 </maxNumIters>
     </nonLinear>
-  </iterativeAcouMech>
+  </AcouMech>
 </couplingList>
 \end{verbatim}
