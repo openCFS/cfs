@@ -326,7 +326,9 @@ namespace CoupledField {
       Vector<Double> n;
 
       // points outward own domain
-      CalcLineNormalVec(n, *actCoupleElem, *(*interfaceVolElems)[actElem]);
+      ptgrid_->CalcSurfNormalOutOfVol(n, *actCoupleElem, *(*interfaceVolElems)[actElem]); 
+      n *=-1;
+      //std::cerr << "acoustic Normal =\n" << n << std::endl;
 
       for (Integer actNode=0; actNode<ptCoord.GetSizeRow(); actNode++) {
 	Integer nodePos = 0;
@@ -339,8 +341,7 @@ namespace CoupledField {
 	for (Integer actDof=0; actDof < couplingdof ; actDof++) {
 	  elemCouplingSols[nodePos*couplingdof +actDof] += 
 	    forceOnElem[actNode] * n[actDof];
-	  //  std::cout << "AcouForce:" << forceOnElem[actNode] * n[actDof] << std::endl;
-	
+	  //std::cerr << "acouforceonElem +=" << forceOnElem[actNode] * n[actDof] << std::endl;
 	}
       }
     }

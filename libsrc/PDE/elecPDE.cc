@@ -298,9 +298,6 @@ void ElecPDE::CalcElectricField()
       						      actlevel_, isaxi_);
   
   Vector<Double> LCoord;
-  LCoord.Resize(dim_);
-  LCoord[0] = 0;
-  LCoord[1] = 0;
   
   StdVector<Elem*> elemssd;
   Integer counterElems=0;
@@ -323,6 +320,7 @@ void ElecPDE::CalcElectricField()
       // loop over elements of subdomain
       for (Integer iel=0; iel< elemssd.GetSize(); iel++,counterElems++)
 	{
+	  elemssd[iel]->ptElem->GetCoordMidPoint(LCoord);
 	  FieldOp->CalcElemGradField( TempE, elemssd[iel], LCoord, 1); 
 	  pdeElem = eqnData_->Mesh2PDEElem(elemssd[iel]->elemNum);
 	  // 	      E_.SetNodalResult(mesh2PDEElem_[elemssd[iel]->elemNum - 1]-1,TempE);
@@ -387,9 +385,12 @@ void ElecPDE::CalcCharges()
 	// surfe integration coordinat for evalauting the 
 	// electric flux density on the surface of the volume
 	// element
+	ptSurfElem->GetCoordMidPoint(lCoordSurf);
 	ptVolElem->GetLocalIntPoints4Surface(surfConnect, volConnect,
 					     lCoordSurf, lCoordVol);
 
+
+	//std::cerr << "Volume coordinates are:\n" << lCoordVol << std::endl;
 	// Get the right material parameter for actual volume element
 	for (Integer i=0; i<subdoms_.GetSize(); i++)
 	  {
@@ -398,13 +399,14 @@ void ElecPDE::CalcCharges()
 	  }
 	
 	// Calc electric flux density
-	
 	dFieldOp->CalcElemGradField(elemDField, volElems[iElem], 
 				    lCoordVol,permittivity);
 	
 	// Calc global normal
-	CalcLineNormalVec(normal, *surfElems[iElem], *volElems[iElem]);
-	
+	ptgrid_->CalcSurfNormalOutOfVol(normal, *surfElems[iElem], 
+					*volElems[iElem]);
+	normal *= -1;
+	//std::cerr << "new normal =\n " << normal << std::endl << std::endl;
 	// Calc normal flux density component
 	Vector<Double> elemNoralD;
 
@@ -412,7 +414,7 @@ void ElecPDE::CalcCharges()
 	// which points in the OPPOSITE direction of the volume elment,
 	// we have to multiply the normal with -1 to get the correct sign for
 	// the charges
-	elemNormalD =  -normal * elemDField;
+	elemNormalD =  normal * elemDField;
 	
 	chargeOp->CalcElemCharge(charge, surfElems[iElem], 
 				 lCoordSurf, elemNormalD);
@@ -648,11 +650,6 @@ void ElecPDE::InitCoupling(PDECoupling * Coupling)
 	    ptCoupling_->GetOutputNeighbourRegion(actCoupling, neighRegions);
 	    ptgrid_->GetInterfaceNeighbours(*couplingnodes, *neighRegions, 
 					    interface_tmp, actlevel_);
-// 	    for (Integer iElem=0; iElem<interface_tmp.GetSize(); iElem++)
-// 	      std::cerr << "VolElems Nr. " << interface_tmp[iElem]->elemNum << std::endl;
-	 //    std::cerr << "ElecPDE: Interface Volume elements are " << std::endl;
-// 	    std::cerr << *neighRegions << std::endl;
-
 	  }
 	  else if (ptCoupling_->GetOutputQuantity(actCoupling) == ELEC_INTERFACE_FORCE)
 	    {
@@ -848,7 +845,11 @@ void ElecPDE::CalcInterfaceForces(Integer actCoupling)
       // the normal vector points outwards of the MECHANICAL domain
       // (see. Kaltenbacher, "Num. Sim. of Mechatr. Act. & Sens." chapter 8.2)
       Vector<Double> n;
-      CalcLineNormalVec(n, *actCoupleElem, *(*innerInterfaceVolElems)[actElem]); // points outward own domain
+
+
+      // Note: The following line has to be replaced by a call to 
+      ptgrid_->CalcSurfNormalOutOfVol(n, *actCoupleElem, *(*innerInterfaceVolElems)[actElem]); 
+      //CalcLineNormalVec(n, *actCoupleElem, *(*innerInterfaceVolElems)[actElem]); // points outward own domain
 
 
 

@@ -673,9 +673,6 @@ void PiezoPDE::CalcEfield(){
   // ------ Calculation of the electric field ------
 
   Vector<Double> LCoord;
-  LCoord.Resize(dim_);
-  LCoord[0] = 0;
-  LCoord[1] = 0;
       
   StdVector<Elem*> elemssd;
   Integer counterElems=0;
@@ -691,6 +688,7 @@ void PiezoPDE::CalcEfield(){
       // loop over elements of subdomain
       for (Integer iel=0; iel< elemssd.GetSize(); iel++,counterElems++)
 	{
+	  elemssd[iel]->ptElem->GetCoordMidPoint(LCoord);
 	  FieldOp->CalcElemGradField( TempE, elemssd[iel], LCoord, 1); 
 	  pdeElem = eqnData_->Mesh2PDEElem(elemssd[iel]->elemNum);
 	  Efield_.SetElemResult(pdeElem-1,TempE);
@@ -712,9 +710,7 @@ void PiezoPDE::CalcComplexValuedEfield(){
   // ------ Calculation of the electric field ------
 
   Vector<Double> LCoord;
-  LCoord.Resize(dim_);
-  LCoord[0] = 0;
-  LCoord[1] = 0;
+ 
       
   StdVector<Elem*> elemssd;
   Integer counterElems=0;
@@ -730,7 +726,7 @@ void PiezoPDE::CalcComplexValuedEfield(){
       // loop over elements of subdomain
       for (Integer iel=0; iel< elemssd.GetSize(); iel++,counterElems++)
 	{
-
+	  elemssd[iel]->ptElem->GetCoordMidPoint(LCoord);
 	  FieldOp->CalcElemGradField(TempE, elemssd[iel], LCoord, 1); 
 	  pdeElem = eqnData_->Mesh2PDEElem(elemssd[iel]->elemNum);
 	  EfieldComplex_.SetElemResult(pdeElem-1,TempE);
@@ -758,22 +754,16 @@ void PiezoPDE::CalcStress(){
 	
 	stressDim = 3;
 	elecDim   = 2;
-	intPoint.Resize(2); 
-	intPoint.Init(0);
 	}
   
     else if (subType_ == "axi") {
       stressDim = 4;
       elecDim   = 2;
-      intPoint.Resize(2); 
-      intPoint.Init(0);
     }
   
     else if (subType_ == "3d") {
       stressDim = 6;
       elecDim   = 3;
-      intPoint.Resize(3); 
-      intPoint.Init(0);
     }
   
     else 
@@ -809,7 +799,8 @@ void PiezoPDE::CalcStress(){
     // loop over elements of subdomain
     for (Integer iel=0; iel< elemssd.GetSize(); iel++) {
       Integer pdeElem = eqnData_->Mesh2PDEElem(elemssd[iel]->elemNum);
-      
+      elemssd[iel]->ptElem->GetCoordMidPoint(intPoint);
+
       //set element pointer
       BaseFE * ptEl = elemssd[iel]->ptElem;
       stress->SetElemPtr(ptEl);
@@ -855,22 +846,16 @@ void PiezoPDE::CalcComplexValuedStress(){
 	
 	stressDim = 3;
 	elecDim   = 2;
-	intPoint.Resize(2); 
-	intPoint.Init(0);
 	}
   
     else if (subType_ == "axi") {
       stressDim = 4;
       elecDim   = 2;
-      intPoint.Resize(2); 
-      intPoint.Init(0);
     }
   
     else if (subType_ == "3d") {
       stressDim = 6;
       elecDim   = 3;
-      intPoint.Resize(3); 
-      intPoint.Init(0);
     }
   
     else 
@@ -906,7 +891,8 @@ void PiezoPDE::CalcComplexValuedStress(){
     // loop over elements of subdomain
     for (Integer iel=0; iel< elemssd.GetSize(); iel++) {
       Integer pdeElem = eqnData_->Mesh2PDEElem(elemssd[iel]->elemNum);
-      
+      elemssd[iel]->ptElem->GetCoordMidPoint(intPoint);
+	    
       //set element pointer
       BaseFE * ptEl = elemssd[iel]->ptElem;
       stress->SetElemPtr(ptEl);
