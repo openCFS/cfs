@@ -6,10 +6,13 @@
 #include <stdio.h>
 #include <cstdarg>
 
+#include "WriteInfo.hh"
+
 #include "Utils/tools.hh"
 #include "Utils/Coil.hh"
-
-#include "WriteInfo.hh"
+#include "MaterialData.hh"
+#include <PDE/pdes_header.hh>
+#include <Utils/vector.hh>
 
 
 namespace CoupledField

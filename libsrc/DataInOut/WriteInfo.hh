@@ -9,13 +9,15 @@
 /* Writes formatted output to the info-file.                              */
 /**************************************************************************/
 
-#include <sstream>
-#include "MaterialData.hh"
-#include <PDE/pdes_header.hh>
+
+
 #include <General/environment.hh>
 
 namespace CoupledField
 {
+  // Forward declarations
+  class MaterialData;
+  template <class TYPE> class Vector;
 
   // Forward declaration of classes
   class Coil;
