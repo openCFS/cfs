@@ -45,13 +45,18 @@ public:
   virtual void UpdateRHS(Vector<Double>& actSol)
   {Error("Error not implemented!",__FILE__,__LINE__);};
 
-
+  //! set vector with first derivative
+  virtual void SetDeriv1(const Vector<Double> & deriv1)
+  {solderiv1_ = deriv1;}
+  
+  //! set vector with second derivative
+  virtual void SetDeriv2(const Vector<Double> & deriv2)
+  {solderiv2_ = deriv2;}
 
   //!  return pointer to vector with first derivative of solution
   virtual const Vector<Double>& GetDeriv1() const { return solderiv1_;}
   
   //! return pointer to vector with second derivative of solution
-  
   virtual const Vector<Double>& GetDeriv2() const { return solderiv2_;}
 
   //! store solution to solution array (especially for effective mass formulation)
@@ -59,7 +64,7 @@ public:
   virtual const void StoreSolution(NodeStoreSol<Double> & solArr) const
   {Error("Not implemented in base class!", __FILE__, __LINE__);};
 
-	NodeEQN * getNodeEQN(){return ptEQN_;};
+  NodeEQN * getNodeEQN(){return ptEQN_;};
 
 
 protected:
