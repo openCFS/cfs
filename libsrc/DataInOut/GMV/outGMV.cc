@@ -43,7 +43,8 @@ WriteResultsGMV :: WriteResultsGMV(const Char * const filename,
  ptgrid=NULL;
 
 
- ascii_=FALSE;
+ ascii_= TRUE;
+ fixedgrid_ = TRUE;
 
 #ifndef XMLPARAMS
  std::string typedata;
@@ -67,20 +68,12 @@ WriteResultsGMV :: WriteResultsGMV(const Char * const filename,
 
 #else
  // Output format can be either ascii (default) or binary
- ascii_ = !params->HasValue( "type", "binary", "output" );
+ ascii_ = !params->IsSet( "binaryFormat", "GMV" );
  
- fixedgrid_ = TRUE;
  // Does the grid change over time, or can we use a fixed grid
- fixedgrid_ = params->IsSet( "fixedGrid", "output" );
+ fixedgrid_ = params->IsSet( "fixedGrid", "GMV" );
 
- // HARDCODED
- fixedgrid_ = TRUE;
- ascii_ = FALSE;
- 
 #endif
-
- fixedgrid_ = TRUE;
- ascii_ = TRUE;
 
 }
 
