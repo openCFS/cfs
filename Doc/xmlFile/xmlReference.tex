@@ -1,7 +1,8 @@
-\documentclass[12pt,dvips]{report}
+\documentclass[12pt]{report}
 %
 %
 %\usepackage{lsemanfred,ifthen,isolatin1}
+\usepackage{../LaTeXStuff/lsepaper}
 \usepackage{ifthen}
 \usepackage[isolatin]{inputenc}
 \usepackage{subfigure}
@@ -9,25 +10,31 @@
 \usepackage{longtable}
 %
 %
-\addtolength{\textwidth}{3cm}
-\addtolength{\oddsidemargin}{-1.5cm}
+%\addtolength{\textwidth}{3cm}
+%\addtolength{\oddsidemargin}{-1.5cm}
 %
 %
-\newcounter{pdfordvi}\setcounter{pdfordvi}{1}
-\ifthenelse{\value{pdfordvi} = 0}{\usepackage{graphicx}}{\usepackage[pdftex]{graphicx}}
-\pdfoutput = \value{pdfordvi}
+%\newcounter{pdfordvi}\setcounter{pdfordvi}{1}
+%\ifthenelse{\value{pdfordvi} = 0}{\usepackage{graphicx}}{\usepackage[pdftex]{graphicx}}
+%\pdfoutput = \value{pdfordvi}
 
 \include{mycommands}
+\graphicspath{{../LaTeXStuff}}
 
 %\includeonly{xmlintro}
 
 
 \begin{document}
-\ifthenelse{\value{pdfordvi} = 0}{\DeclareGraphicsExtensions{.eps}}{\DeclareGraphicsExtensions{.jpg,.pdf}}          
+%\ifthenelse{\value{pdfordvi} = 0}{\DeclareGraphicsExtensions{.eps}}{\DeclareGraphicsExtensions{.jpg,.pdf}}          
     
-\title{CFS++ --- XML Reference Manual}
-\author{cfs--devel}
-\maketitle
+%
+%
+\LSETITLE{CFS++ --- XML Reference Manual}{cfs--devel}{User's Guide}
+%
+%
+%\title{CFS++ --- XML Reference Manual}
+%\author{cfs--devel}
+%\maketitle
 %\thispagestyle{empty}
 %\include{cover}
 %\setcounter{page}{0}
