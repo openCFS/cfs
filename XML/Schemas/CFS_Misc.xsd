@@ -82,5 +82,13 @@
     </xsd:restriction>
   </xsd:simpleType>
 
+
+  <!-- Data type for non-negative integer numbers -->
+  <xsd:simpleType name="DT_PosFloat">
+    <xsd:restriction base="xsd:float">
+      <xsd:minExclusive value="0"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
 </xsd:schema>
 
