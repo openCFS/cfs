@@ -487,7 +487,90 @@ namespace CoupledField {
 	msg += "' is '" + value + "'";
 	Info->Warning( msg );
     }
+  }
 
+
+  // ================================================================
+  //   Return as Double the value of a parameter matching a keyword
+  //   under side-constraints on attributes of matching elements
+  // ================================================================
+  void XMLParamHandler::CGet( const std::string key,
+			      Double &value,
+			      const std::string attribute,
+			      const std::string aValue,
+			      const std::string section,
+			      const std::string subsection ) {
+
+    ENTER_FCN( "XMLParamHandler::CGet" );
+
+    // Find all elements/values matching keyword in (restricted) tree
+    std::vector<std::string> matches;
+    CGetList( key, matches, attribute, aValue, section, subsection );
+
+    // If there was no unique match, call problem handler
+    if ( matches.size() > 1 ) {
+      MultipleMatchHandler( key, section, subsection, matches.size() );
+    }
+
+    // If there was no match at all, call problem handler
+    else if ( matches.size() == 0 ) {
+      NoMatchHandler( value, key, section, subsection );
+    }
+    
+    // There was a unique match, so convert detected value
+    else {
+      const char *val = matches[0].c_str();
+      value = atof(val);
+    }
+
+    // Tell what we found
+    if ( beVerbose_ == true ) {
+	std::string msg = "CGet: Value for parameter '" + key;
+	msg += "' is '" + matches[0] + "'";
+	Info->Warning( msg );
+    }
+  }
+
+
+  // =================================================================
+  //   Return as Integer the value of a parameter matching a keyword
+  //   under side-constraints on attributes of matching elements
+  // =================================================================
+  void XMLParamHandler::CGet( const std::string key,
+			      Integer &value,
+			      const std::string attribute,
+			      const std::string aValue,
+			      const std::string section,
+			      const std::string subsection ) {
+
+    ENTER_FCN( "XMLParamHandler::CGet" );
+
+    // Find all elements/values matching keyword in (restricted) tree
+    std::vector<std::string> matches;
+    CGetList( key, matches, attribute, aValue, section, subsection );
+
+    // If there was no unique match, call problem handler
+    if ( matches.size() > 1 ) {
+      MultipleMatchHandler( key, section, subsection, matches.size() );
+    }
+
+    // If there was no match at all, call problem handler
+    else if ( matches.size() == 0 ) {
+      NoMatchHandler( value, key, section, subsection );
+    }
+    
+    // There was a unique match, so convert detected value
+    else {
+      const char *val = matches[0].c_str();
+      value = atoi(val);
+    }
+
+    // Tell what we found
+    if ( beVerbose_ == true ) {
+	std::string msg = "CGet: Value for parameter '" + key;
+	msg += "' is '" + matches[0] + "'";
+	Info->Warning( msg );
+    }
   }
 
 
