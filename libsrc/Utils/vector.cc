@@ -90,13 +90,14 @@ Vector<TYPE>::Vector (const Vector<TYPE> &x)
 		p [i] = x.p [i];
 }
 
+
 template<class TYPE>
 void Vector<TYPE>::Init(const Integer l)
 {
  if (!n) Error("Don't use Init() to undefined vector", __FILE__, __LINE__);
  
  Integer i;
- for (i=0; i<n; i++) p[i]=l;
+ for (i=0; i<n; i++) p[i]=0;
 }
 
 template<class TYPE>
@@ -105,7 +106,7 @@ Vector<TYPE> &Vector<TYPE>::operator=(const Array<TYPE> &x)
 
   if (x.dim_ != 1)
     Error("only 1 dimensional arrays can be assigned to vector", __FILE__, __LINE__);
- 
+
   *this = x.sol_[0];
 
   return *this;

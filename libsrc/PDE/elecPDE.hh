@@ -79,13 +79,14 @@ public:
   virtual Integer getSize() const { return NumPDENodes_*dofspernode_;}
 
   //! returns if PDE can compute the quantity
-  virtual bool HasOutput(std::string output);
+  virtual Boolean HasOutput(std::string output);
   
 protected:
 
   void CalcNodeForce(Array<Double> & force, 
 		     std::vector<Integer> & nodes, 
-		     std::vector<Elem*> elems,
+		     std::vector<Elem*> & elems,
+		     std::vector<Integer> & numBoundaryNodes,
 		     std::vector<std::vector<ShortInt> > & isBoundaryNode);
 
   Array<Double> E_;  //!< conatins elecric field
@@ -93,8 +94,8 @@ protected:
   // ---- Electric Force varables ---
   Array<Double> Force_;        //!< stores Electric force of each element
   std::vector<std::vector<Elem*> > F_Interface_; //!<vector of vectors conaining Elements with acting force
-  std::vector<std::vector<std::vector<ShortInt> > > isBoundaryNode_; //!< vector containing flag array for
-
+  std::vector<std::vector<std::vector<ShortInt> > > isBoundaryNode_; //!< vector containing flag array for element boundary nodes
+  std::vector<std::vector<Integer> > numBoundaryNodes_;               //!< contains number of surface nodes per element
  
 };
 

@@ -4,6 +4,7 @@
 #include <vector>
 #include <General/environment.hh>
 #include <Utils/vector.hh>
+#include <iostream>
 
 namespace CoupledField
 {
@@ -14,11 +15,13 @@ namespace CoupledField
   
   template<class TYPE> class Vector;
 
+  template<class TYPE> std::ostream &operator << (std::ostream &, const Array<TYPE> &);
+
   //! This class stores values in the format row(dimension) x column(values)
 template<class TYPE> class Array{
 
 public:
-
+  
   friend class Matrix<TYPE>;
   friend class Vector<TYPE>;
 
@@ -67,14 +70,14 @@ public:
   //! adds an vector at the and
   void push_back(Vector<TYPE> & v);
 
-  //!
+  //! returns the size
   Integer size() const {return size_;}
 
-  //!
+  //! return the dimension
   Integer dim() const {return dim_;}
 
-    //!
-  inline Vector<TYPE>& operator[] (Integer dim)
+  //! access operator
+  inline Vector<TYPE>& operator[] (Integer dim) const 
   {
     if (dim >= dim_)
       Error("Array: index out of bounds",__FILE__,__LINE__);
@@ -82,14 +85,16 @@ public:
     return sol_[dim];
   }
 
-  //!
-  inline Vector<TYPE> operator[] (Integer dim) const
-  {
-    if (dim >= dim_)
-      Error("Array: index out of bounds",__FILE__,__LINE__);
+  
+
+//   //!
+//   inline Vector<TYPE> operator[] (Integer dim) const
+//   {
+//     if (dim >= dim_)
+//       Error("Array: index out of bounds",__FILE__,__LINE__);
     
-    return sol_[dim];
-  }
+//     return sol_[dim];
+//   }
 
   //! assignment operator with array
   Array& operator= (const Array & x);
@@ -155,13 +160,14 @@ public:
   //! converts array to Vector
   void toVector(Vector<TYPE> & v, Integer dim = 0);
 
+ 
 private:
 
   ShortInt dim_;                          //!< dimension of array
 
   Integer size_;                          //!< size of array
 
-  std::vector<Vector<TYPE> > sol_; //!< values
+  Vector<TYPE> * sol_;                    //!< values
 
 
 };

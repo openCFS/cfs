@@ -26,10 +26,9 @@ AcousticPDE::AcousticPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, Fil
   pdename_    ="acoustic";
   pdematerialclass_ = "fluid";
 
-  conf->getsubdompde(subdoms_,pdename_);
-  ReadBCs(pdename_);
-
   laststepcalc_=0;
+
+  conf->getsubdompde(subdoms_,pdename_);
 
   AssignPDENodeNumbers(Mesh2PDENode_, PDE2MeshNode_, subdoms_);  
   NumPDENodes_ = PDE2MeshNode_.size();
@@ -56,25 +55,6 @@ AcousticPDE::AcousticPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, Fil
   sol_der2_old_.reshape(dofspernode_, NumPDENodes_);
   sol_der2_old_.init();
    
-
- //  sol_der1_[0].Resize(size_);
-//   sol_der1_[0].Init(0);
-
-//   sol_der1_old_[0].Resize(size_);
-//   sol_der1_old_[0].Init(0);
-
-//   sol_der1_.Resize(size_);
-//   sol_der1_.Init(0);
-
-//   sol_der2_.Resize(size_);
-//   sol_der2_.Init(0);
-
-//   sol_old_.Resize(size_);
-//   sol_old_.Init(0);
-
-//   sol_der2_old_.Resize(size_);
-//   sol_der2_old_.Init(0);
-
   alpha_ = 0.0;
   beta_  = 0.25;
   gamma_ = 0.5;
@@ -94,7 +74,8 @@ AcousticPDE::AcousticPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, Fil
     }
 
   SetMatrixFactors();
-
+  ReadBCs(pdename_);
+  
   //currently not available
   // preComputeRHS();
 }
@@ -151,21 +132,18 @@ void AcousticPDE::ComputeRHS(const Double atime)
   Integer i;
 
   coeffMass = (sol_old_*a0_+sol_der1_old_*a2_+sol_der2_old_*a3_);
-  //temp.toVector(coeffMass);
-  
+   
   algsys_->UpdateRHS(MASS,coeffMass.get());
 
   // damping matrix part
   if (with_absBCs_) 
     {
       coeffDamp = -sol_der1_old_-sol_der2_old_*a6_;   
-      //temp.toVector(coeffDamp);
-
+ 
       algsys_->UpdateRHS(DAMPING,coeffDamp.get());
 
       coeffDamp = sol_old_*a1_+sol_der1_old_*a2_*a7_+sol_der2_old_*a7_*a3_;  
-      //temp.toVector(coeffDamp);
-      
+       
       algsys_->UpdateRHS(DAMPING,coeffDamp.get());
    }
    
@@ -218,14 +196,15 @@ void AcousticPDE::SolveStepTrans(const Integer kstep, const Double asteptime,
   SetBCs(level,update,lasttimecalc_);
   algsys_->CalcPrecond(job);
   algsys_->Solve();
+  ptsol = algsys_->GetSolutionVal();
 
   // save solution
-  Integer k=0;
+  Integer k = 0;
   
   for (Integer i=0; i<NumPDENodes_; i++)
     for (Integer dim=0; dim<dofspernode_; dim++)
       sol_[dim][i] = ptsol[k++];
-
+  
   if (InfoPrint)
     (*infofile) << "maxnode:" <<  ptgrid_->GetMaxnumnodes(level) << std::endl;
 
@@ -239,7 +218,14 @@ void AcousticPDE::WriteResultsInFile()
   (*trace) << "entering AcousticPDE::WriteResultsInFile" << std::endl;
 #endif
 
-  Array<Double> sol_mesh, solder1_mesh, solder2_mesh;  
+  Array<Double> sol_mesh, solder1_mesh, solder2_mesh;
+  Array<Double> solArray_, sol_der1Array_, sol_der2Array_;
+  
+  solArray_ = sol_;
+  sol_der1Array_ = sol_der1_;
+  sol_der2Array_ = sol_der2_;
+
+  
   TransformNodeSolution(sol_mesh,sol_,PDE2MeshNode_);
   TransformNodeSolution(solder1_mesh,sol_der1_,PDE2MeshNode_);
   TransformNodeSolution(solder2_mesh,sol_der2_,PDE2MeshNode_);
@@ -253,8 +239,8 @@ void AcousticPDE::WriteResultsInFile()
   else
     {
       OutFile_->WriteNodeSolution(sol_mesh,laststepcalc_,lasttimecalc_,"fluid potential");
-      //      OutFile_->WriteSolution(solder1_mesh,laststepcalc_,lasttimecalc_,"fluid potential, 1st deriv., ");
-      //      OutFile_->WriteSolution(solder2_mesh,laststepcalc_,lasttimecalc_,"fluid potential, 2nd deriv., ");
+      OutFile_->WriteNodeSolution(solder1_mesh,laststepcalc_,lasttimecalc_,"fluid potential, 1st deriv., ");
+      OutFile_->WriteNodeSolution(solder2_mesh,laststepcalc_,lasttimecalc_,"fluid potential, 2nd deriv., ");
     }
 
 }
@@ -350,7 +336,7 @@ void AcousticPDE::SetupMatrices(const Integer level)
 	  (*debug) << elemmat << std::endl;
 #endif     
 
-	  algsys_->SetElementMatrix(elemmat.getinarray(), connect_PDE.get(), connecth.size(), STIFFNESS);
+	  algsys_->SetElementMatrix(elemmat.getinarray(), connect_PDE.get(), connect_PDE.size(), STIFFNESS);
 
 	  // mass part
 	  bilinear_mass->CalcElementMatrix(ptCoord, elemmat);
@@ -360,7 +346,7 @@ void AcousticPDE::SetupMatrices(const Integer level)
 	  (*debug) << elemmat << std::endl;
 #endif
       
-	  algsys_->SetElementMatrix(elemmat.getinarray(), connect_PDE.get(), connecth.size(), MASS);
+	  algsys_->SetElementMatrix(elemmat.getinarray(), connect_PDE.get(), connect_PDE.size(), MASS);
   
 	  delete bilinear_stiff;
 	  delete bilinear_mass;

@@ -77,47 +77,7 @@ public:
 
   //! initalize PDE coupling
   virtual void InitCoupling(PDECoupling * Coupling)
-  {
-    Array<Double> * val;
-    std::vector<Integer> * nodes;
-    std::cerr << "Entering " << pdename_ << ".InitCoupling" << std::endl;
-    std::cerr << "=====================================" << std::endl;
-
-    // Show InputCouplings
-    std::cerr << "Input Coupling:" << std::endl;
-    std::cerr << "---------------------" << std::endl;
-    for (Integer i=0; i<Coupling->GetNumInputCouplings(); i++)
-      {
-	Coupling->GetInputNodes(i, nodes);
-	std::cerr << "Coupling Type: " << Coupling->GetInputType(i) << std::endl;
-	std::cerr << "InputQuantity: " << Coupling->GetInputQuantity(i) << std::endl;
-	std::cerr << "Region: " << Coupling->GetInputRegion(i) << std::endl;
-	std::cerr << "RegionType: " << Coupling->GetInputRegionType(i) << std::endl;
-	std::cerr << "Size of Input Nodes" << Coupling->GetInputSize(i) << std::endl;
-	for (Integer inode=0; inode<25; inode++)
-	  std::cerr << "node[" << inode << "] = " << (*nodes)[inode]<< std::endl;
-	
-      }
-    std::cerr << std::endl;
-
-    // Show OutputCouplings
-    nodes = 0;
-    std::cerr << "Output Coupling:" << std::endl;
-    std::cerr << "---------------------" << std::endl;
-    for (Integer i=0; i<Coupling->GetNumOutputCouplings(); i++)
-      {
-	Coupling->GetOutputNodes(i, nodes);
-	std::cerr << "Coupling Type: " << Coupling->GetOutputType(i) << std::endl;
-	std::cerr << "InputQuantity: " << Coupling->GetOutputQuantity(i) << std::endl;
-	std::cerr << "Region: " << Coupling->GetOutputRegion(i) << std::endl;
-	std::cerr << "RegionType: " << Coupling->GetOutputRegionType(i) << std::endl;
-	std::cerr << "Size of Input Nodes" << Coupling->GetOutputSize(i) << std::endl;
-	for (Integer inode=0; inode<25; inode++)
-	  std::cerr << "node[" << inode << "] = " << (*nodes)[inode]<< std::endl;
-	
-      }
-    std::cerr << std::endl;
-  }
+  {Error("Not implemented");}
 
   //! Create the matrices and Solver as well as Preconditioner
   virtual void CreateMatrices_Solver();
@@ -213,7 +173,7 @@ public:
   }
 
    //! returns if PDE can compute the quantity
-  virtual bool HasOutput(std::string output)
+  virtual Boolean HasOutput(std::string output)
   {Error("not implemented"); }
 
   //! return pointer to vector with solution
@@ -328,7 +288,7 @@ public:
     Error("Not implemented",__FILE__,__LINE__);
   }
 
-
+  
   //! computes the coordinates of an element including the delta
   /*!
     \param connect (input) global node numbers of element
@@ -474,6 +434,7 @@ protected:
   std::vector<Elem*> CouplingElements; //!< elements where coupling terms are calculated
   std::list<Integer> CouplingNodes;   //!< nodes where coupling terms are calculated
   Integer couplingBCsCounter_;        //!< counter for number of coupling BCs
+  Integer numDirichletBCs_;                  //!< number of dirichlet boundary conditions
 
   //!solver parameters
   Integer maxnumiter_;    //!< maximum of iterations (for iterative solver)
@@ -502,8 +463,10 @@ protected:
   std::vector<std::string> bcs_ri_;  //!< inhomogeneous Robin BC levels
   std::vector<std::string> bcs_loads_;  //!< load BC levels
 
+
   std::vector<Double> val_id_;   //<! values of the inhomogeneous Dirichlet BC
   std::vector<Double> val_loads_; //<! values of the load BC
+  Integer updateBCs_;                 //!< set, if BCs already set
   
   //Dummies, just for SUN compiler
   Array<Double> DVec;

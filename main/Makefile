@@ -188,6 +188,9 @@ clean-general:
 clean-pde:
 	@cd $(LIBSRC_DIR)/PDE&&\
 	$(MAKE) clean
+clean-coupledpde:
+	@cd $(LIBSRC_DIR)/CoupledPDE&&\
+        $(MAKE) clean
 clean-forms:
 	@cd $(LIBSRC_DIR)/Forms&&\
 	$(MAKE) clean

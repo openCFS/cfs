@@ -46,7 +46,8 @@ SmoothPDE::SmoothPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileTyp
   sol_.init();
   
   smooth_factor_ = 1.0;
-  conf->get("smooth_factor", smooth_factor_, pdename_ );
+  conf->ifget("smooth_factor", smooth_factor_, pdename_ );
+
 }
 
 
@@ -84,10 +85,26 @@ void SmoothPDE::InitCoupling(PDECoupling * Coupling)
 
   ptCoupling_ = Coupling; 
 
+  // input couplings
+  for (Integer i=0; i<ptCoupling_->GetNumInputCouplings(); i++)
+    {
+      // check for input mechanic displacement
+      if (ptCoupling_->GetInputQuantity(i) == "mechdisplacement")
+	{
+	  numDirichletBCs_ += (dofspernode_ * ptCoupling_->GetInputSize(i));
+	  // std::cerr << "Added to SmoothPDE::numDirichletBCs " << dofspernode_ * ptCoupling_->GetInputSize(i) << std::endl;
+	}
+    }
 
+  // output couplings
   for (Integer i=0; i<ptCoupling_->GetNumOutputCouplings(); i++)
-    if (ptCoupling_->GetOutputQuantity(i) == "smoothdisplacement")
-      ptCoupling_->SetOutputDim(i, Dim_);
+    {
+      // check for output displacement
+      if (ptCoupling_->GetOutputQuantity(i) == "smoothdisplacement")
+	  ptCoupling_->SetOutputDim(i, dofspernode_);
+    }
+
+  //std::cerr << "SmoothPDE: Set NumIDBCs_ to " << numDirichletBCs_ << std::endl;
 }
   
 
@@ -97,7 +114,6 @@ void SmoothPDE::SolveStepStatic(const Integer level)
   (*trace) << "entering SmoothPDE::SolveStepStatic" << std::endl;
 #endif
 
-  Integer update = 0;
   Integer job = 1;
 
   Double * ptsol;
@@ -106,7 +122,9 @@ void SmoothPDE::SolveStepStatic(const Integer level)
   SetupMatrices(level);
 
   //account for bcs
-  SetBCs(level,update,0);
+  SetBCs(level,updateBCs_,0);
+
+  //updateBCs_ = 1;
 
   algsys_->CalcPrecond(job);
   algsys_->Solve();
@@ -119,6 +137,25 @@ void SmoothPDE::SolveStepStatic(const Integer level)
   for (Integer i=0; i<NumPDENodes_; i++)  
     for (Integer dim=0; dim<dofspernode_; dim++)
        sol_[dim][i] = ptsol[k++];
+
+
+  // Initialize matrices in order to get BCs correct
+  Integer matrixsystype[5];    
+  if (SystemMatrix_     == 1) matrixsystype[0] = SYSTEM;      // memory for the system matrix
+  if (StiffnessMatrix_  == 1) matrixsystype[1] = STIFFNESS;   // memory for the stiffness matrix
+  if (DampingMatrix_    == 1) matrixsystype[2] = DAMPING;     // memory for the damping matrix
+  if (ConvectionMatrix_ == 1) matrixsystype[3] = CONVECTION;  // memory for the convection matrix
+  if (MassMatrix_       == 1) matrixsystype[4] = MASS;        // memory for the mass matrix
+  
+  algsys_->InitRHS();
+  algsys_->InitSol();
+  
+  for (Integer i=0;i<5;i++)
+    {
+      if (matrixsystype[i] !=0)
+  	algsys_->InitMatrix(i+1);
+  }
+  
   
 }
 
@@ -182,6 +219,11 @@ void SmoothPDE::WriteResultsInFile()
 #endif
 
     Matrix<Double> elemmat;
+    Matrix<Double> ptCoord;
+    Matrix<Double> oldCoord;
+    std::vector<Double> LCoord(dofspernode_,0.0);
+    Double JDet;
+    
     // This is a smaller matrix since it is just for linear 1D elements.
     Matrix<Double> elemmatbnd;
     BaseFE * ptEl;
@@ -216,21 +258,25 @@ void SmoothPDE::WriteResultsInFile()
 
 	    connecth=elemssd[j]->connect;
 
-	    Matrix<Double> ptCoord;
+	    
 	    GetElemCoords(connecth, ptCoord, level);
  
 	    // map connect to PDE node numbers
 	    Mesh2PDENode(connect_PDE,connecth,Mesh2PDENode_);
 
-	    std::vector<Double> LCoord(dofspernode_,0.0);
-	    Double JDet;
+	   
+	    
 	    // stiffness part
 	    bilinear_stiff->CalcElementMatrix(ptCoord, elemmat);
 
-	    // Divide elemmat by JDet
-	    JDet = ptEl->CalcJacobianDet(LCoord,ptCoord);
-	    elemmat = elemmat * (smooth_factor_ * 1.0 / JDet);
+	    // Calculate JDet for old coordinates plus displacement
+	    oldCoord = ptCoord;
+	    for (Integer k=0; k<oldCoord.size_row(); k++)
+	      for (Integer l=0; l<oldCoord.size_col(); l++)
+		oldCoord[k][l] += sol_[k][Mesh2PDENode_ [elemssd[j]->connect[l] - 1] - 1];
 
+	    JDet = ptEl->CalcJacobianDet(LCoord,oldCoord);
+	    elemmat  *= (smooth_factor_ * 1.0 / JDet);
 	    algsys_->SetElementMatrix(elemmat.getinarray(), connect_PDE.get(), connecth.size(), SYSTEM);
 
 #ifdef DEBUG
@@ -301,9 +347,14 @@ void SmoothPDE::WriteResultsInFile()
 	    (*debug) << " node: " << Mesh2PDENode_[node-1] << " dof:" << dof << " val: " << val << std::endl;
 #endif
 	    if (update==1)
+	      {
+		//std::cerr << "SmoothPDE::SetBCs: updating node " << Mesh2PDENode_[node-1] << std::endl;
 	      algsys_->UpdateDirichlet(j+1, val, SYSTEM);
-	    else
+	      }
+	    else{
+	      //std::cerr << "SmoothPDE: Setting HD_BC[ " << Mesh2PDENode_[node-1] << "]" << std::endl;
 	      algsys_->SetDirichlet(j+1, Mesh2PDENode_[node-1], val, dof, SYSTEM);
+	    }
 	  }  
       }
     
@@ -327,13 +378,13 @@ void SmoothPDE::WriteResultsInFile()
 #ifdef DEBUG
 	    (*debug) << " node: " << node << " dof:" << dof << " val: " << val << std::endl;
 #endif
-	    std::cerr << "Smooth: Setting ID_BCs .... " << std::endl;
+	    //std::cerr << "Smooth: Setting ID_BCs .... " << std::endl;
 
 	    if (update==1)
 	      algsys_->UpdateDirichlet(j+1, val, SYSTEM);
 	    else	  
 	      {
-		std::cerr << "Smooth: Setting ID_BC[" << dof << "][" << node << "] = " << val << std::endl;
+		//std::cerr << "Smooth: Setting ID_BC[" << dof << "][" << node << "] = " << val << std::endl;
 	      algsys_->SetDirichlet(j+1, Mesh2PDENode_[node-1], val, dof, SYSTEM);
 	      }
 	  }
@@ -368,6 +419,7 @@ void SmoothPDE::WriteResultsInFile()
 	  
 	  }
       }    
+
 #ifdef TRACE
     (*trace) << "leaving SmoothPDE::SetBCs" << std::endl;
 #endif
@@ -406,14 +458,16 @@ Integer SmoothPDE::GetNrBCDof(const std::string & dofStartString)
     return nrActDof;
   }
 
-bool SmoothPDE::HasOutput(std::string output)
+Boolean SmoothPDE::HasOutput(std::string output)
 {
 #ifdef TRACE
   (*trace) << "entering SmoothPDE::HasOutput" << std::endl;
 #endif
   
   if (output == "smoothdisplacement")
-    return true;
+    return TRUE;
+
+  return FALSE;
 }
 
 

@@ -83,6 +83,8 @@ protected:
 
 private:
   
+  void ArrayTest();
+
   Integer newlevel;
 
   //! initialize pde

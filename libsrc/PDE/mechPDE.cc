@@ -84,10 +84,10 @@ void MechPDE::InitCoupling(PDECoupling * Coupling)
     {
       if (ptCoupling_->GetOutputQuantity(i) == "mechdisplacement")
 	{
-	  std::cerr << "MechPDE::InitCoupling" << std::endl;
+	  //std::cerr << "MechPDE::InitCoupling" << std::endl;
 	  ptCoupling_->SetOutputDim(i, Dim_);
 	  ptCoupling_->GetOutputValues(i, val);
-	  std::cerr << "mechdisplacement size = " << (*val).size() << " dim = " << val->dim() << std::endl;
+	  //std::cerr << "mechdisplacement size = " << (*val).size() << " dim = " << val->dim() << std::endl;
 	}
     }
 }
@@ -99,19 +99,23 @@ void MechPDE::SolveStepStatic(const Integer level)
   (*trace) << "entering MechPDE::SolveStepStatic" << std::endl;
 #endif
 
-  Integer update = 0;
   Integer job = 1;
 
   Double * ptsol;
 
   //compute and assemble element matrices
-  SetupMatrices(level);
+  if (updateBCs_ != 1)
+    SetupMatrices(level);
+  
 
   //account for bcs
-  SetBCs(level,update,0);
-
+  SetBCs(level,updateBCs_,0);
   algsys_->CalcPrecond(job);
-  algsys_->Solve();
+
+  
+  updateBCs_ = 1;
+
+   algsys_->Solve();
 
   ptsol = algsys_->GetSolutionVal();
 
@@ -122,6 +126,22 @@ void MechPDE::SolveStepStatic(const Integer level)
     for (Integer dim=0; dim<dofspernode_; dim++)
       sol_[dim][i] = ptsol[k++];
   
+ //  //Initialize matrices in order to get BCs correct
+  Integer matrixsystype[5];    
+  if (SystemMatrix_     == 1) matrixsystype[0] = SYSTEM;      // memory for the system matrix
+  if (StiffnessMatrix_  == 1) matrixsystype[1] = STIFFNESS;   // memory for the stiffness matrix
+  if (DampingMatrix_    == 1) matrixsystype[2] = DAMPING;     // memory for the damping matrix
+  if (ConvectionMatrix_ == 1) matrixsystype[3] = CONVECTION;  // memory for the convection matrix
+  if (MassMatrix_       == 1) matrixsystype[4] = MASS;        // memory for the mass matrix
+  
+  algsys_->InitRHS();
+  algsys_->InitSol();
+  
+  //for (Integer i=0;i<5;i++)
+  //{
+       //     if (matrixsystype[i] !=0)
+  //algsys_->InitMatrix(i+1);
+//   }
 }
 
 void MechPDE::CalcOutputCoupling()
@@ -134,6 +154,8 @@ void MechPDE::CalcOutputCoupling()
   std::vector<Integer> * couplingnodes;
   Array<Double> * values;
   
+  // std::cerr << "MechPDE has " << ptCoupling_->GetNumOutputCouplings() << "couplings " << std::endl;
+
   // loop over all output coupling quantities
   for (Integer i=0; i<ptCoupling_->GetNumOutputCouplings(); i++)
     {
@@ -150,6 +172,7 @@ void MechPDE::CalcOutputCoupling()
 	  if (quantity == "mechdisplacement")
 	    {
 	      NodeSolutionToCoupling(*values, *couplingnodes);
+	      //std::cerr << "CouplingTerms: " << *values << std::endl;
 	    }
 	  
 	  break;
@@ -393,14 +416,16 @@ Integer MechPDE::GetNrBCDof(const std::string & dofStartString)
     return nrActDof;
   }
 
-bool MechPDE::HasOutput(std::string output)
+Boolean MechPDE::HasOutput(std::string output)
 {
 #ifdef TRACE
   (*trace) << "entering MechPDE::HasOutput" << std::endl;
 #endif
 
   if (output == "mechdisplacement")
-    return true;
+    return TRUE;
+
+  return FALSE;
 }
 
 

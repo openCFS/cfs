@@ -50,25 +50,19 @@ void StaticDriver :: SolveProblem()
 #endif
   Integer level=0;
   Integer pdenumber  = 0;
+
  if (ptdomain_->GetNumPDE() <= 1) 
     {
-      ptdomain_->GetPDE(pdenumber)->SolveStepStatic(level);
-      //  std::cout << "Solve Step ok" << std::endl;
+      ptdomain_->GetPDE(pdenumber)->SolveStepStatic(level);   
       ptdomain_->GetPDE(pdenumber)->PostProcess(level);
-      //  std::cout << "Post ok" << std::endl;
       ptdomain_->PrintGrid(level);
-      //  std::cout << "Print Grid ok" << std::endl;
-      ptdomain_->GetPDE(pdenumber)->WriteResultsInFile();
+            ptdomain_->GetPDE(pdenumber)->WriteResultsInFile();
     }
  else
    {
-     ptdomain_->GetCoupledPDE()->InitCoupling(level);
-     //  std::cout << "Solve Step ok" << std::endl;
      ptdomain_->GetCoupledPDE()->SolveStepStatic(level);
-      //  std::cout << "Post ok" << std::endl;
      ptdomain_->PrintGrid(level);
-      //  std::cout << "Print Grid ok" << std::endl;
-      ptdomain_->GetCoupledPDE()->WriteResultsInFile();
+     ptdomain_->GetCoupledPDE()->WriteResultsInFile();
    }
  
 }
