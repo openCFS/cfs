@@ -56,7 +56,7 @@ namespace CoupledField {
   
     // savederiv1_ = FALSE;
     // savederiv2_ = FALSE;
-  
+
     // =====================================================================
     // set postprocessing parameters
     // =====================================================================
@@ -163,7 +163,8 @@ namespace CoupledField {
     laststepcalc_ = 1;
   }
 
-  else if ( analysis=="harmonic" || analysis == "paramIdent" || analysis == "multiHarmonic") {
+  else if ( analysis=="harmonic" || analysis == "paramIdent" ||
+            analysis == "multiHarmonic") {
     isComplex_ = TRUE;
     assemble_ = new HarmonicAssemble(algsys_, ptgrid_);
     analysistype_ = HARMONIC;
@@ -195,11 +196,15 @@ namespace CoupledField {
       analysistype_ = HARMONIC;
     }
     else {
-      Error("SinglePDE::Init: AnalysisType not supported", __FILE__, __LINE__);
+      (*error) << "SinglePDE::Init: AnalysisType '" << analysis
+               << "' is not supported";
+      Error( __FILE__, __LINE__ );
     }
   }
   else {
-    Error("Analysis Type not supported",__FILE__,__LINE__);
+    (*error) << "SinglePDE::Init: AnalysisType '" << analysisHelp
+             << "' is not supported";
+    Error( __FILE__, __LINE__ );
   }
     
   // Determine if solution is of complex type or not
@@ -530,7 +535,8 @@ namespace CoupledField {
           phase = bcs_id_phase_[i];
 
           // set real part
-          algsys_->SetDirichlet(j*2+1, eqnNr, val * cos(phase/180*PI), eqnDof);
+          algsys_->SetDirichlet( j*2+1, eqnNr, val * cos(phase/180*PI),
+                                 eqnDof );
 
           // set imaginary part 
           algsys_->SetDirichlet(j*2+2, eqnNr, val * sin(phase/180*PI),
