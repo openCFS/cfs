@@ -11,6 +11,7 @@
 #include <Utils/myclock.hh>
 #include <DataInOut/DefineFiles/definefiles.hh>
 #include <DataInOut/timefunc.hh>
+#include <DataInOut/WriteInfo.hh>
 
 #ifdef MpCCI
 #include <cci.h>
@@ -33,9 +34,15 @@ using namespace CoupledField;
 
 Integer main(int argc, char *argv[])
 {
-  std::cout << std::endl;
-  std::cout << " Welcome to CFS++ session. " << std::endl << std::endl;
- 
+  
+  Char * name=argv[argc-1];
+  DefineInOutFiles * ptDefineFiles=new DefineInOutFiles(name);
+
+  // class writing log-information
+  Info = new WriteInfo(name);
+  Info->PrintHeader();
+
+  
   if (argc < 2) 
     {
       std::cout << " \033[36mUsage\033[0m : cfs name "<< std::endl 
@@ -44,16 +51,13 @@ Integer main(int argc, char *argv[])
       Error("Invalid running of cfs. See Usage above.");
     }
 
-  // always write info file: material parameters, data of nonlin iteration ...
-  InfoPrint=TRUE;
-
-  Char * name=argv[argc-1];
 
 #ifdef MpCCI
   CCI_Init(&argc, &argv);  
 #endif  
 
-  DefineInOutFiles * ptDefineFiles=new DefineInOutFiles(name);
+
+  
 
   MyClock oClockTotal;
   oClockTotal.ClockCount(MyClock::beg);
@@ -105,6 +109,9 @@ Integer main(int argc, char *argv[])
   if (ptTimeFunc) delete ptTimeFunc;
   //  if (domain) delete domain;
   if (ptDefineFiles) delete ptDefineFiles; // it should be deleted the last
+
+  if (Info)
+    delete Info;
 
   return 1;
 }

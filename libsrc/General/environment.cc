@@ -16,13 +16,13 @@ namespace CoupledField
   Flags * flags=NULL;
   ConfFile * conf=NULL;
 
-  Boolean InfoPrint=FALSE;
-
   BaseFE * ptQ   = NULL;
   BaseFE * ptTet = NULL;
   BaseFE * ptL1 = NULL;
   BaseFE * ptTr1 = NULL;
   BaseFE * ptHexa=NULL;
+  
+  WriteInfo * Info = NULL;
   
   std::ostream & operator << (std::ostream & out, const enum precond & type)
   {

@@ -18,9 +18,6 @@ Assemble<Dim, T_Matrix>::Assemble(Grid * aptgrid, const Integer alevel)
    ptgrid=aptgrid;
    level=alevel;
    size=ptgrid->GetMaxnumnodes(level);
-   if (InfoPrint) 
-      if (A.IsSymmetric())
-        (*infofile) << "we are working with symmetric matrix" << std::endl;
    A.Resize(size,size);
    M.Resize(size,size);
    S.Resize(size,size);

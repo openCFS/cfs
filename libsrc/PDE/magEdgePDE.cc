@@ -10,6 +10,7 @@
 #include <Forms/elecforceop.hh>
 #include <Estimator/spaceerror.hh>
 #include <General/environment.hh>
+#include <DataInOut/WriteInfo.hh>
  
 namespace CoupledField
 {
@@ -289,9 +290,6 @@ namespace CoupledField
 
     Matrix<Double> ptCoord;
     BaseFE         * ptElem;
-
-    if (InfoPrint)
-      (*infofile) << " ------------------------- Element matrices --------------- " << std::endl;
 
     Vector<Integer> connecth, connect_PDE;  
     Integer i, j;
@@ -897,9 +895,6 @@ namespace CoupledField
       {
 	coilDef_.resize(nrCoils);
 	
-	if (InfoPrint)
-	  (*infofile) <<  nrCoils << " coil domain(s) defined " << std::endl;
-	
   
 	for (Integer i=0; i < nrCoils; i++)
 	  {
@@ -930,20 +925,7 @@ namespace CoupledField
 // 	      }
 	  
 
-	    if (InfoPrint)
-	      {
-		(*infofile) <<  "Coil domain " << coilDomain_[i] << std::endl
-			    <<  "     parameters: iDir       = " << coilDef_[i].iDir << std::endl
-			    <<  "                 current    = " << coilDef_[i].current << std::endl
-			    <<  "                 coilArea   = " << coilDef_[i].coilArea << std::endl;
-
-		if (coilDef_[i].iDir > 3)
-		  (*infofile)<< "                 coilMidPt  = " << coilDef_[i].coilMidPt << std::endl;
-		if (analysistype_==HARMONIC)
-		  (*infofile)<< "                 current phase = " << coilDef_[i].currentPhase << std::endl;
-
-		(*infofile) << std::endl;
-	      }
+	    Info->PrintCoil(coilDomain_[i], coilDef_[i], analysistype_);
 	  }
       }  
   }

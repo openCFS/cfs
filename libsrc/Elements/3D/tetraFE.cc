@@ -71,11 +71,6 @@ void TetraFE::SetIntPoints()
 
 	CorrectIntWeights();
 
-	if (InfoPrint)
-	  (*infofile) << "For numerical integration procedures " 
-		      << "we use Gaussian Quadrature with 1 node, degree of precision is 2 " 
-		      << std::endl << std::endl;
-
 	break;
 
       case GaussOrder2:
@@ -114,11 +109,6 @@ void TetraFE::SetIntPoints()
 	IntPoints_[3][2]=0.1381966;
 
 	CorrectIntWeights();
-
-	if (InfoPrint)
-	  (*infofile) << "For numerical integration procedures we use Gaussian " 
-		      << "Quadrature with 4 nodes, degree of precision is 3 " 
-		      << std::endl << std::endl;
 
 	break;
       
@@ -163,9 +153,6 @@ void TetraFE::SetIntPoints()
 	IntWeights_[4]=0.45;
 
 	CorrectIntWeights();
-
-	if (InfoPrint)
-	  (*infofile) << " For numerical integration procedures we use Gaussian Quadrature with 5 nodes, degree of precision is 4 " << std::endl;
 
 	break;
 

@@ -10,6 +10,7 @@
 
 #include "mechPDE.hh" 
 #include <Forms/nLinElastInt.hh>
+#include <DataInOut/WriteInfo.hh>
 
 namespace CoupledField
 {
@@ -53,7 +54,6 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 
   if (conf->get_option("nonlin",  pdename_ ))
     {
-      std::cout << "NONLIN option set !!" << std::endl << std::endl;
       nonLin_=TRUE;
 
       conf->ifget("incStopCrit", incStopCrit_, pdename_); // incremental stopping criterion
@@ -233,23 +233,20 @@ void MechPDE::SolveStepStaticNonLin(const Integer level)
 
 
 
-      std::cout << " === Residual error    " << residualErr << std::endl;
-      std::cout << " === Incremental error " << incrementalErr << std::endl;      
 
-      *infofile << std::endl << " ======================================================= " << std::endl
+      *cla << std::endl << " ======================================================= " << std::endl
 		<< " NONLINEAR ITERATION " << iterationCounter << std::endl
 		<< " ======================================================= " << std::endl;
-      //      *infofile << " === actSol: " << std::endl << actSol << std::endl << std::endl;
-//       *infofile << " === incrementalSol: " << std::endl << solIncrement << std::endl << std::endl;
-//       *infofile << " === actRHS (after eliminating penalty entries): " << std::endl 
-// 		<< actRHS << std::endl << std::endl;
-      *infofile << " === Residual norm:          " << residualL2Norm << std::endl;
-      *infofile << "     Norm of ext. forces:    " << extForcesL2Norm << std::endl;
-      *infofile << "     Residual error          " << residualErr << std::endl;
+      *cla << " === Residual norm:          " << residualL2Norm << std::endl;
+      *cla << "     Norm of ext. forces:    " << extForcesL2Norm << std::endl;
+      *cla << "     Residual error          " << residualErr << std::endl;
 
-      *infofile << " === Incremental sol L2Norm: " << solIncrL2Norm << std::endl;
-      *infofile << "     Actual solution L2Norm: " << actSolL2Norm << std::endl;
-      *infofile << "     Incremental error       " << incrementalErr << std::endl;
+      *cla << " === Incremental sol L2Norm: " << solIncrL2Norm << std::endl;
+      *cla << "     Actual solution L2Norm: " << actSolL2Norm << std::endl;
+      *cla << "     Incremental error       " << incrementalErr << std::endl;
+
+      
+      Info->WriteNonLinIter(iterationCounter, residualErr, incrementalErr);
       
 
 

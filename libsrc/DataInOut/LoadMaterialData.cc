@@ -10,7 +10,8 @@
 
 #include "MaterialData.hh"
 #include "LoadMaterialData.hh"
-
+#include "WriteInfo.hh"
+#include "General/environment.hh"
 
 namespace CoupledField
 {
@@ -79,7 +80,6 @@ void LoadMaterialData::GetMaterial( MaterialData& material, const std::string ma
 	  {
 	    EulerAnglesRotate(&material, eulerAngles[i]);
 	    
-	    if (InfoPrint)
 	    *infofile << "after EULER ROTATION : " << std::endl
 		    << "LoadMaterialData::LoadMaterial: gesamte Piezo-Datenmatrix von " << matName
 		      << ":" << std::endl << *material.GetMatrix() << std::endl << std::endl
@@ -289,16 +289,11 @@ void LoadMaterialData::ReadLine(std::ifstream & fin, char* buffer)
 
     material -> SetDensity(density);
     material -> SetDampingCoeffs(alfa,beta);
+    
+    Info->PrintPiezoMat(*material);
+    
 
-
-    if (InfoPrint)
-      *infofile << "LoadMaterialData::LoadMaterial: gesamte Piezo-Datenmatrix von " << material->GetMaterialName()
-		<< ":" << std::endl << *material->GetMatrix() << std::endl << std::endl
-		<< "density = " << material->GetDensity() << std::endl
-		<< "damping coefficient alfa = " << material->GetDampingAlfa() << std::endl
-		<< "damping coefficient beta = " << material->GetDampingBeta() << std::endl <<  std::endl;
-
-    if (InfoPrint && scaleMatDat)
+    if (scaleMatDat)
       *infofile << std::endl << "!!!!!! SCALING with Diag(1e-5, 1e-5, 1e-5, 1e-5, 1e-5, 1e-5, "
 		<< "1e5, 1e5, 1e5) IS ON !!!!! " << std::endl << std::endl;
     
@@ -331,12 +326,7 @@ void LoadMaterialData::ReadLine(std::ifstream & fin, char* buffer)
     material->SetDensity(density);
     material->SetDampingCoeffs(alfa,beta);
 
-    if (InfoPrint)
-      *infofile << "LoadMaterialData::LoadMaterial: Daten von " << material->GetMaterialName() << ":" << std::endl
-		<< "Kompressibilität: " << material->GetCompressibility() << std::endl
-		<< "Dichte: " << material->GetDensity() << std::endl
-		<< "Alfa: " << material->GetDampingAlfa() << std::endl
-		<< "Beta: " << material->GetDampingBeta() << std::endl << std::endl;
+    Info->PrintFluidMat(*material);
   }
 
 
@@ -367,13 +357,7 @@ void LoadMaterialData::ReadLine(std::ifstream & fin, char* buffer)
     material->SetConductivity(conductivity);
     material->SetPermMag(mX, mY, mZ);
 
-    if (InfoPrint)
-      *infofile << std::endl 
-		<<"Loading material data of " << materialName << ":" << std::endl
-		<< "   conductivity:            " << conductivity << std::endl
-		<< "   permeability:            " << permeability << std::endl
-		<< "   vector of magnetiziation: (" << mX << ", " << mY << ", " << mZ <<")" 
-		<< std::endl << std::endl;
+    Info->PrintMagMat(*material);
   }
 
 

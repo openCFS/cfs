@@ -9,6 +9,7 @@
 #include <Forms/elecfieldop.hh>
 #include <Forms/elecforceop.hh>
 #include <Estimator/spaceerror.hh>
+#include <DataInOut/WriteInfo.hh>
  
 #include <AlgebraicSystem/LinAlg/linsystem.hh>
 
@@ -406,13 +407,9 @@ void ElecPDE::CalcNodeForce(Array<Double> & force,
 
   //std::cerr << "Sum of E-Force:" << std::endl << sum << std::endl;
   
-  if (! InfoPrint)
-    return;
-
-    // write information in .info-file
- 
-  (*infofile) << "Sum of electrostatic force:" << std::endl;
-  (*infofile) << sum << std::endl;
+  // write information in .info-file
+  Info->PrintF("Sum of electrostatic force:");
+  Info->PrintVec(sum);
 
 }
 
@@ -426,8 +423,6 @@ void ElecPDE::SetupMatrices(const Integer level)
   Matrix<Double> ptCoord;
   BaseFE         * ptElem;
 
-  if (InfoPrint)
-    (*infofile) << " ------------------------- Element matrices --------------- " << std::endl;
 
   Vector<Integer> connecth, connect_PDE;  
   Integer i, j;

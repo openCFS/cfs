@@ -49,14 +49,11 @@ DefineInOutFiles :: DefineInOutFiles(const Char * name)
  if (!data) Error("Can't open data-file");
 
  strcpy(filename, name);
- if (InfoPrint)
-       {
-         infofile = new std::ofstream(strcat(filename,".info"));
-         if (!infofile) Error("Can't open info-file");
-       }
+ infofile = new std::ofstream(strcat(filename,".info"));
+ if (!infofile) Error("Can't open info-file");
+ 
 
- strcpy(filename, name); 
-
+ strcpy(filename, name);
  conf=new ConfFile(name);
  if (!conf) Error("Can't open conf-file");
 
