@@ -108,6 +108,21 @@ namespace CoupledField {
     // For hypre solvers
     olas->SetValue( "AccountForPenalty", false );
 
+    // Consistency test
+    //
+    // Currently only harmonic analysis can deal with complex material
+    // parameters. For static and transient this will lead to a seg fault.
+    // So we check this to avoid this unclear problem
+    std::string matType, analysis;
+    cfs->Get( "type", matType, pdename, "materialDataType" );
+    cfs->Get( "type", analysis, "analysis" );
+    if ( matType == "imagMaterialParameter" && analysis != "harmonic" ) {
+      (*error) << "XML-file specifies material parameters with imaginary part "
+               << "for an analysis of type '" << analysis << "'. Complex "
+               << "parameters are currently only implemented for a 'harmonic' "
+               << "analysis, however.";
+      Error( __FILE__, __LINE__ );
+    }
   }
 
 
