@@ -111,6 +111,33 @@
     </xsd:complexContent>
   </xsd:complexType> 
 
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of element paramIdent -->
+  <!-- ******************************************************************** -->
+
+ <xsd:element name="paramIdent" type="DT_AnalysisParamIdent"
+    substitutionGroup="AnalysisBasic"/>
+
+  <!-- Data type for parameter Identification and simple computations of impedance curves.-->
+  <xsd:complexType name="DT_AnalysisParamIdent">
+    <xsd:complexContent>
+      <xsd:extension base="DT_AnalysisBasic">
+        <xsd:sequence>
+          <xsd:element name="calcImpedanceCurve" type="DT_CFSBool" minOccurs="0" maxOccurs="1" default="no"/>
+          <xsd:element name="numFreq" type="xsd:nonNegativeInteger"/>
+          <xsd:element name="startFreq" type="DT_PosFloat"/>
+          <xsd:element name="stopFreq" type="DT_PosFloat"/>
+          <xsd:element name="maxNrInnerIterations" type="xsd:nonNegativeInteger"/>
+          <xsd:element name="maxNrOuterIterations" type="xsd:nonNegativeInteger"/>
+          <xsd:element name="artDataNoise" type="DT_NonNegFloat"/>
+        </xsd:sequence>
+        <xsd:attribute name="tag"  type="xsd:string" use="optional"
+          default="anyTag"/> 
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType> 
+
  <!-- ******************************************************************** -->
   <!--   Definition of element AnalysisMultiHarmonic -->
   <!-- ******************************************************************** -->
