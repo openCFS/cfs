@@ -70,6 +70,15 @@ here is
   */
   void getliststr(const std::string seekexp, std::vector<std::string> & pdes, const std::string section="", const std::string subsection="");
 
+  //! get string-value for a keyword
+  /*!
+        \param seekexp keyword
+        \param str string
+	\param section name of a section in which keyword is there. can be omitted
+	\param subsection name of a subsection of the section in which keyword is there. can be omitted
+  */
+  void getstr(const std::string seekexp, std::string &str, const std::string section="", const std::string subsection="");
+
    //! get list of string-values(for ex. pdes) for a keyword, if this keyword is in config-file.
   /*!
         \param seekexp keyword

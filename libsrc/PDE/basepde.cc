@@ -84,12 +84,13 @@ void BasePDE::ReadMaterialData()
   //read material data for each subdomain
   materialData_  = new MaterialData[subdoms_.size()];
 
+  std::string matName;
   for (Integer i=0; i<subdoms_.size(); i++)
     {
       // load material data into array "matData"
-      std::vector<std::string> matName;
-      conf->getliststr(subdoms_[i], matName, "list_subdomains");	
-      loadMaterial_->GetMaterial(materialData_[i], matName[i], pdematerialclass_);
+      conf->getstr(subdoms_[i], matName, "list_subdomains");
+      std::cout << "matname:" << matName << "  sub:" << subdoms_[i] << std::endl;	
+      loadMaterial_->GetMaterial(materialData_[i], matName, pdematerialclass_);
     }
 }
 

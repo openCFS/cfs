@@ -218,6 +218,22 @@ void ConfFile::getliststr( const std::string seekexp, std::vector<std::string> &
  } while  (help != "non");
 }
 
+void ConfFile::getstr( const std::string seekexp, std::string &str, const std::string section, const std::string subsection)
+{
+ std::string::size_type pos=0;
+
+ if (section != "") pos=getpos(section);
+ if (subsection !="") pos=getpos(subsection,pos);
+
+ pos=getpos(seekexp,pos);
+
+ infile.seekg(pos,std::ios::beg);
+
+ std::string help;
+ infile >> str;
+
+}
+
 Boolean ConfFile::ifgetliststr( const std::string seekexp, std::vector<std::string> & stlist, const std::string section, const std::string subsection)
 {
  std::string::size_type pos=0;
