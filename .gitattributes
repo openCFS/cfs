@@ -174,6 +174,7 @@ libsrc/Driver/multiSequenceDriver.cc svneol=native#text/plain
 libsrc/Driver/multiSequenceDriver.hh svneol=native#text/plain
 libsrc/Driver/piezoParamIdent.cc svneol=native#text/plain
 libsrc/Driver/piezoParamIdent.hh svneol=native#text/plain
+libsrc/Driver/piezoParamIdent_methods.cc svneol=native#text/plain
 libsrc/Driver/singleDriver.cc svneol=native#text/plain
 libsrc/Driver/singleDriver.hh svneol=native#text/plain
 libsrc/Driver/staticAdaptSpaceDriver.cc svneol=native#text/plain
@@ -334,6 +335,7 @@ libsrc/PDE/trapezoidal.hh svneol=native#text/plain
 libsrc/ParamIdent/Makefile -text
 libsrc/ParamIdent/piezoParamIdent.cc svneol=native#text/plain
 libsrc/ParamIdent/piezoParamIdent.hh svneol=native#text/plain
+libsrc/ParamIdent/piezoParamIdent_methods.cc svneol=native#text/plain
 libsrc/Utils/ApproxData.cc svneol=native#text/plain
 libsrc/Utils/ApproxData.hh svneol=native#text/plain
 libsrc/Utils/Coil.cc svneol=native#text/plain
