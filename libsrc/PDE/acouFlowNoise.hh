@@ -49,6 +49,9 @@ private:
 
   StdVector<std::string> couplSubDomName_; //!< name of subdomain to be coupled with MpCCI
 
+  //!type of FlowData
+  Boolean nodalSrc_;
+  
   //!MpCCI
 #ifdef MpCCI
   StdVector<Integer> mapSD_;

@@ -29,7 +29,8 @@ AcouFlowNoise::AcouFlowNoise(Grid *aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc,
 
   pdename_          = "acoustic"; // this is also acoustic since no need for new name
   pdematerialclass_ = "fluid";
-
+  nodalSrc_ = FALSE;
+  
 
 #ifdef MpCCI
     StdVector<Elem*> elemssd;
@@ -41,6 +42,14 @@ AcouFlowNoise::AcouFlowNoise(Grid *aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc,
 #else
     params->GetList( "name", subdoms_, pdename_, "region" );
     params->GetList( "name", couplSubDomName_, "MpCCI-flownoise", "coupledregion" );
+
+    //check type of flow data
+    if( params->HasValue( "type", "nodalSrc", pdename_, "flowData" ) ) {
+      nodalSrc_ = TRUE;
+      Info->PrintF(pdename_, " Using FlowData as RHS nodal source\n" );
+    }
+    
+
 #endif
     Boolean Find=FALSE;
     for (int i=0; i<subdoms_.GetSize(); i++)
@@ -119,11 +128,15 @@ void AcouFlowNoise::ComputeRHS(const Double atime)
 
 
   //  std::cout<<"timestep counter in ComputeRHS: "<<timestep<<std::endl;
-  
 
 #ifdef MpCCI
       std::cout<<"MpCCInodes_: "<< MpCCInodes_ << " dimension: " << dim_ << std::endl;
-      flowdata_.Resize(1+dim_, MpCCInodes_);
+      if (nodalSrc_ == TRUE)
+	//we get already the integrated acoustic source term
+	flowdata_.Resize(1, MpCCInodes_);
+      else
+	flowdata_.Resize(1+dim_, MpCCInodes_);
+
       ptMpCCIexch_->CouplCompPhase(flowdata_, timestep);
 #else
       // If data from fluid file call to get fluid flow data in flowdata_  
@@ -170,69 +183,111 @@ void AcouFlowNoise::ComputeRHS(const Double atime)
 
   // Correct is -1.0, if plugging in source (ddTij/dxidxj) directly in weak form then 1.0
   //valmult=-1.0;
-  valmult=-1.0;
+
+  if (nodalSrc_ == FALSE) {
       
-  for (i=0; i<couplSubDomName_.GetSize(); i++)
-    {
-      ptgrid_->GetElemSD(elemssd,couplSubDomName_[i],level);
-
-      for (j=0; j< elemssd.GetSize(); j++)
-	{
-	  ptEl=elemssd[j]->ptElem;
-	  BaseForm * linear_load = new LinearFlowNoiseInt(ptEl);
-
-	  Integer ii;
-	  elsize=(elemssd[j]->connect).GetSize();
-	  connecth.Resize(elsize);
-	  for (ii=0; ii<elsize; ii++)
-	    connecth[ii]=(elemssd[j]->connect)[ii];
-
-	  Matrix<Double> ptCoordNodes;
-	  ptgrid_->GetCoordNodesElemMat(connecth,  ptCoordNodes, level);	  
-	  linear_load->CalcElemVector4Quad(ptCoordNodes, connecth, flowdata_, elemvec);
-	  elemvec*=valmult;
-
-	  // Ramping before adding elemrhs to global vector to avoid spurious effect at bnd. of fluid dom.
-
-	  for (ii=0; ii<elsize; ii++)
-	    {
-	      if (ptCoordNodes[0][ii]<bndoffsetXmin)
-		{
-		  
-		  elemvec[ii]-=elemvec[ii]*(ptCoordNodes[0][ii]-bndoffsetXmin)/(xfmin-bndoffsetXmin);
-		}
-	       
-	      else
-		if (ptCoordNodes[0][ii]>bndoffsetXmax)
-		  elemvec[ii]-=elemvec[ii]*(ptCoordNodes[0][ii]-bndoffsetXmax)/(xfmax-bndoffsetXmax);
-	      if (ptCoordNodes[1][ii]<bndoffsetYmin)
-		elemvec[ii]-=elemvec[ii]*(ptCoordNodes[1][ii]-bndoffsetYmin)/(yfmin-bndoffsetYmin);
-	      else	
-		if (ptCoordNodes[1][ii]>bndoffsetYmax)
-		  elemvec[ii]-=elemvec[ii]*(ptCoordNodes[1][ii]-bndoffsetYmax)/(yfmax-bndoffsetYmax);
-	    }
-	   
-	  //end ramping
-
-	  // CHANGE connecth
-	  //Mesh2PDENode(connect_PDE,connecth,mesh2PDENode_);
-	  eqnData_->Node2EQN(connecth, connect_PDE);
-
-	  //linear_load->CalcElemVector(ptCoordNodes, elemvec); // for setting with homogeneous rhs
-	  
-	  // if (j>100){ 
-	  //  valmult=-10000.0;
+    valmult=-1.0;
+      
+    for (i=0; i<couplSubDomName_.GetSize(); i++)
+      {
+	ptgrid_->GetElemSD(elemssd,couplSubDomName_[i],level);
+	
+	for (j=0; j< elemssd.GetSize(); j++)
+	  {
+	    ptEl=elemssd[j]->ptElem;
+	    BaseForm * linear_load = new LinearFlowNoiseInt(ptEl);
+	    
+	    Integer ii;
+	    elsize=(elemssd[j]->connect).GetSize();
+	    connecth.Resize(elsize);
+	    for (ii=0; ii<elsize; ii++)
+	      connecth[ii]=(elemssd[j]->connect)[ii];
+	    
+	    Matrix<Double> ptCoordNodes;
+	    ptgrid_->GetCoordNodesElemMat(connecth,  ptCoordNodes, level);	  
+	    linear_load->CalcElemVector4Quad(ptCoordNodes, connecth, flowdata_, elemvec);
+	    elemvec*=valmult;
+	    
+	    // Ramping before adding elemrhs to global vector to avoid spurious effect at bnd. of fluid dom.
+	    
+	    for (ii=0; ii<elsize; ii++)
+	      {
+		if (ptCoordNodes[0][ii]<bndoffsetXmin)
+		  {
+		    
+		    elemvec[ii]-=elemvec[ii]*(ptCoordNodes[0][ii]-bndoffsetXmin)/(xfmin-bndoffsetXmin);
+		  }
+		
+		else
+		  if (ptCoordNodes[0][ii]>bndoffsetXmax)
+		    elemvec[ii]-=elemvec[ii]*(ptCoordNodes[0][ii]-bndoffsetXmax)/(xfmax-bndoffsetXmax);
+		if (ptCoordNodes[1][ii]<bndoffsetYmin)
+		  elemvec[ii]-=elemvec[ii]*(ptCoordNodes[1][ii]-bndoffsetYmin)/(yfmin-bndoffsetYmin);
+		else	
+		  if (ptCoordNodes[1][ii]>bndoffsetYmax)
+		    elemvec[ii]-=elemvec[ii]*(ptCoordNodes[1][ii]-bndoffsetYmax)/(yfmax-bndoffsetYmax);
+	      }
+	    
+	    //end ramping
+	    
+	    // CHANGE connecth
+	    //Mesh2PDENode(connect_PDE,connecth,mesh2PDENode_);
+	    eqnData_->Node2EQN(connecth, connect_PDE);
+	    
+	    //linear_load->CalcElemVector(ptCoordNodes, elemvec); // for setting with homogeneous rhs
+	    
+	    // if (j>100){ 
+	    //  valmult=-10000.0;
 	    //std::cout<<"elemvect quad: "<<elemvec<<std::endl;
-	  
-	  //}
-	  //	  std::cout<<"elemvect QUADRUPOLE: "<<elemvec<<std::endl;
-	  // Quadrupole activated!!	
-	  algsys_->SetElementRHS(&elemvec[0], connect_PDE.GetPointer(), connect_PDE.GetSize());
-	  
-	  delete linear_load;
-	}
-    }
+	    
+	    //}
+	    //	  std::cout<<"elemvect QUADRUPOLE: "<<elemvec<<std::endl;
+	    // Quadrupole activated!!	
+	    algsys_->SetElementRHS(&elemvec[0], connect_PDE.GetPointer(), connect_PDE.GetSize());
+	    
+	    delete linear_load;
+	  }
+      }
+  }
 
+  else {
+    Integer eqnDof, eqnNr, node, dof;
+    StdVector<Integer> connect(1);
+    
+    eqnDof = 1;
+    dof    = 1;
+    for (Integer idx=0; idx<flowdata_.GetSizeCol() ; idx++) {
+      Double val = flowdata_[0][idx];
+      node = idx + 1;
+
+      // Ramping before adding to RHS vector
+      Matrix<Double> ptCoordNodes;
+      connecth[0] = node;
+      ptgrid_->GetCoordNodesElemMat(connecth,  ptCoordNodes, level);	  
+
+      if (ptCoordNodes[0][0]<bndoffsetXmin)
+	val -= val*(ptCoordNodes[0][0]-bndoffsetXmin)/(xfmin-bndoffsetXmin);
+      else
+	if (ptCoordNodes[0][0]>bndoffsetXmax)
+	  val -= val*(ptCoordNodes[0][0]-bndoffsetXmax)/(xfmax-bndoffsetXmax);
+
+      if (ptCoordNodes[1][0]<bndoffsetYmin)
+	val -= val*(ptCoordNodes[1][0]-bndoffsetYmin)/(yfmin-bndoffsetYmin);
+      else	
+	if (ptCoordNodes[1][0]>bndoffsetYmax)
+	  val -= val*(ptCoordNodes[1][0]-bndoffsetYmax)/(yfmax-bndoffsetYmax);	    
+      //end ramping
+
+      //add to RHS
+      eqnData_->Node2EQN(node,dof,eqnNr,eqnDof);
+      algsys_->SetNodeRHS(val, eqnNr, eqnDof);      
+    }
+    
+    
+  }
+  
+      
+  
 
   
   //     timestep=timestep+1;
