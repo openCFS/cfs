@@ -957,7 +957,7 @@ void  BasePDE::SetBCs(const Integer level, const Integer update, const Double ti
 	    {
 	      
 	      // Increment counter for BCs
-	      //	      std::cerr << "   -> SET!" << std::endl;
+	      std::cerr << "   -> SET!" << std::endl;
 #ifdef USE_OLAS
 	      algsys_->SetDirichlet(j+1, eqnNr, val, eqnDof);
 #else
@@ -2039,86 +2039,6 @@ void BasePDE::GetDerivSolOfElement(Matrix<Double>& sol, StdVector<Integer>& conn
     for(Integer actDof=0; actDof < dofspernode_; actDof++)
       sol[actDof][actNode] =  sol_der1[actDof + dofspernode_*(connect_PDE[actNode]-1)];
 
-}
-
-
-
-
-
-
-
-void BasePDE::CalcLineNormalVec(Vector<Double>& n, 
-				const Elem& interfaceElem, 
-				const Elem& neighbour)
-{
-
-ENTER_FCN( "BasePDE::CalcLineNormalVec" );
-
-  const Integer nrVecElem2d = 2;
-
-  // get coords of interface elemmt ========================================
-  BaseFE * ptElem = interfaceElem.ptElem;
-  StdVector<Integer> connecth = interfaceElem.connect;
-  
-  Matrix<Double> ptCoord; 
-  GetElemCoords(connecth, ptCoord, actlevel_);
-
-  // calculates normal to element ==========================================
-  CalcLineNormalVec(n, ptCoord);  // normal vector is a rotation of 90? in pos. math. direction
-                                  // of the vector from node 1 to node 2 in ptCoord
-
-
-  connecth = neighbour.connect;
-  
-  Integer indexNode1=-1;
-  Integer indexNode2=-1;
-  
-  for(Integer actNode=0; actNode < connecth.GetSize(); actNode++)
-    {
-      if (connecth[actNode] == interfaceElem.connect[0])
-	indexNode1 = actNode;
-      if (connecth[actNode] == interfaceElem.connect[1])
-	indexNode2 = actNode;
-    }
-
-  if (indexNode1==-1 || indexNode2==-1)
-    Error("Nodes of neighbouring element not found!", __FILE__, __LINE__);
-
-
-  // counterclockwise orientation of nodes (difference of node indizes is +1)
-  if (indexNode2-indexNode1 == 1 || 
-      (indexNode2-indexNode1)+connecth.GetSize() == 1 )
-    n *= -1;
-  
-  else
-    // if not clockwise orientation of nodes (difference of node indizes is -1)
-    if (! (indexNode2-indexNode1 == -1 || 
-	   (indexNode2-indexNode1)-connecth.GetSize()==-1) )
-      Error("Nodes of interface don't lie beneath each other in neighbouring element!", __FILE__, __LINE__);  
-}
-
-
-
-
-
-// normal of line element: ATTENTION no defined sign!!
-void BasePDE::CalcLineNormalVec(Vector<Double>& n, Matrix<Double>& ptCoord)
-{
-
-  ENTER_FCN( "BasePDE::CalcLineNormalVec" );
-
-  const Integer nrVecElem2d = 2;
-  
-  if (ptCoord.GetSizeRow()!=nrVecElem2d)
-    Error("Calc element normal: no line element! ", __FILE__,__LINE__);
-
-  n.Resize(nrVecElem2d);
-  
-  // normal of a vector: interchange x-coord and y-coord and take the new x-coord as negative
-
-  n[0] = -(ptCoord[1][1] - ptCoord[1][0]);
-  n[1] =  (ptCoord[0][1] - ptCoord[0][0]);
-  n /= n.NormL2();
 }
 
 
