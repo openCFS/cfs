@@ -4,7 +4,7 @@
 #include <map>
 #include "CoupledPDE/pdecoupling.hh"
 
-#include "PDE/basePDE.hh"
+#include "PDE/StdPDE.hh"
 #include "Utils/StdVector.hh"
 
 
@@ -36,9 +36,9 @@ public:
     \param Couplings (output) vector with coupling objects
     \param UnorderedPDEs (inpu) unordered vector with PDEs for coupling
   */
-  virtual void CreateCoupling(StdVector<BasePDE*> &  OrderedPDEs, 
+  virtual void CreateCoupling(StdVector<StdPDE*> &  OrderedPDEs, 
 			      StdVector<PDECoupling*> & Couplings,
-			      StdVector<BasePDE*> & UnorderedPDEs);
+			      StdVector<StdPDE*> & UnorderedPDEs);
 
 protected:
 

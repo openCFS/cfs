@@ -62,9 +62,9 @@ auxiliary/mysql/getnodalresult.sql -text
 auxiliary/mysql/getresultidx.sql -text
 /libgoal -text
 libsrc/AlgebraicSystem/README -text
+libsrc/CoupledPDE/DirectCoupledPDE.cc svneol=native#text/plain
+libsrc/CoupledPDE/DirectCoupledPDE.hh svneol=native#text/plain
 libsrc/CoupledPDE/Makefile -text
-libsrc/CoupledPDE/basecoupledpde.cc svneol=native#text/plain
-libsrc/CoupledPDE/basecoupledpde.hh svneol=native#text/plain
 libsrc/CoupledPDE/coupledPDE.conf -text
 libsrc/CoupledPDE/coupled_pdes_header.hh svneol=native#text/plain
 libsrc/CoupledPDE/coupledpdedef.cc svneol=native#text/plain

@@ -2,22 +2,46 @@
 #include "DataInOut/WriteInfo.hh"
 #include "Utils/vector.hh"
 #include "Utils/StdVector.hh"
+#include "PDE/StdPDE.hh"
+#include "Driver/iterSolveStep.hh"
 
 namespace CoupledField
 {
 
-  IterCoupledPDE::IterCoupledPDE(StdVector<BasePDE*> & PDEs,
+  IterCoupledPDE::IterCoupledPDE(StdVector<StdPDE*> & PDEs,
 				 StdVector<PDECoupling*> & Couplings,
-				 Grid *aptgrid, 
-				 BCs *aptBCs, 
-				 FileType *aInFile, 
-				 WriteResults *aOutFile,
 				 std::string sequenceTag) 
-    : BaseCoupledPDE(PDEs, Couplings, 
-		     aptgrid, aptBCs, aInFile, aOutFile, sequenceTag)
+    : BasePDE()
   {
     ENTER_FCN( "IterCoupledPDE::IterCoupledPDE" );
+    
+    PDEs_       = PDEs;
+    Couplings_  = Couplings;
+    
+    actlevel_ = 0;
+    NumPDEs_ = PDEs.GetSize();
+    sequenceTag_ = sequenceTag;
+    
+    
+    // get analysis type
+    std::string analysis;
+    params->Get( "type", analysis, "analysis" );
+    
+    //  if (analysis=="static") 
+    // analysype_ = STATIC;
+    // else if (analysis=="transient")
+    //   analysistype_ = TRANSIENT;
+    //else
+    // Error("Analysis Type not supported",__FILE__,__LINE__);
+    
+    pdename_ = "CoupledPDE: ";
 
+
+    for (Integer actPDE=0; actPDE < PDEs.GetSize()-1; actPDE++)
+      pdename_ += PDEs[actPDE] -> GetName() + "+";
+    
+    pdename_ += PDEs[PDEs.GetSize()-1] -> GetName();
+      
     maxiter_ = 100;
     nonLinLogging_ = TRUE;
     std::string loggingString;
@@ -25,13 +49,13 @@ namespace CoupledField
     // Per default all PDEs are solved
     solvePDE_.Resize(PDEs_.GetSize());
     solvePDE_.Init(TRUE);
-   
+    
     //if values are defined in conf-file, take these
     StdVector<std::string> keyVec, attrVec, valVec;
     keyVec = "couplingList", "iterative", "nonLinear", "maxNumIters";
     attrVec = "tag", "", "";
     valVec = sequenceTag_, "", "";
-
+    
     params->Get( keyVec, attrVec, valVec, maxiter_ );
     keyVec = "couplingList", "iterative", "nonLinear", "logging";
     params->Get( keyVec, attrVec, valVec, loggingString  );
@@ -40,7 +64,7 @@ namespace CoupledField
       nonLinLogging_ = TRUE;
     else
       nonLinLogging_ = FALSE;
-
+    
   } 
 
 
@@ -66,7 +90,7 @@ namespace CoupledField
 
   void IterCoupledPDE::InitCoupling(Integer level) {
 
-    ENTER_FCN ("IterCoupledPDE::InitCoupling" );
+    ENTER_FCN ("IterSolveStep::InitCoupling" );
   
     StdVector<std::string> quantities;
     StdVector<std::string> interfaceTypes;
@@ -256,10 +280,13 @@ namespace CoupledField
 
     // write coupling data in .info-file
     WriteCouplingInfo(*debug);
+
+    // create solve step object
+    solveStep_ = new IterSolveStep( *this );
   }
 
 
-  void IterCoupledPDE::DefineSolvingPDEs(StdVector<BasePDE*> & pdes)
+  void IterCoupledPDE::DefineSolvingPDEs(StdVector<StdPDE*> & pdes)
   {
     ENTER_FCN( "IterCoupledPDE::DefineSolvingPDEs" );
 
@@ -286,158 +313,163 @@ namespace CoupledField
 
 
 
-  void IterCoupledPDE::SolveStepStatic(const Integer kstep, const Double aTime,
-				       const Integer level,
-				       const Boolean updatesysmat ) {
+  // void IterCoupledPDE::SolveStepStatic(const Integer kstep, const Double aTime,
+// 				       const Integer level,
+// 				       const Boolean updatesysmat ) {
 
-    ENTER_FCN ( "entering  IterCoupledPDE::SolveStepStatic" );
+//     ENTER_FCN ( "entering  IterCoupledPDE::SolveStepStatic" );
   
-    CFSVector *val, *oldVal;
-    Integer iter = 0;
-    Integer counter = 0;
-    Boolean normsReached = FALSE;
-    std::string quantityConv;
+//     CFSVector *val, *oldVal;
+//     Integer iter = 0;
+//     Integer counter = 0;
+//     Boolean normsReached = FALSE;
+//     std::string quantityConv;
 
 
-    while (iter < maxiter_ &&  (! normsReached))
-      {
-	if (nonLinLogging_)
-	  {
-	Info->PrintF(coupledpdename_,"\n"); 
-	Info->PrintF(coupledpdename_, " COUPLED ITERATION %i =================================\n", 
-		     iter+1);
-	  }
+//     while (iter < maxiter_ &&  (! normsReached))
+//       {
+// 	if (nonLinLogging_)
+// 	  {
+// 	Info->PrintF(pdename_,"\n"); 
+// 	Info->PrintF(pdename_, " COUPLED ITERATION %i =================================\n", 
+// 		     iter+1);
+// 	  }
 	
-	counter = 0;
-	normsReached = TRUE;
+// 	counter = 0;
+// 	normsReached = TRUE;
       
-	for (Integer i=0; i<PDEs_.GetSize(); i++)
-	  {
-	    if (nonLinLogging_)
-	    Info->PrintF(coupledpdename_, " Processing PDE %s\n", 
-			 (PDEs_[i]->GetName()).c_str());
+// 	for (Integer i=0; i<PDEs_.GetSize(); i++)
+// 	  {
+// 	    if (nonLinLogging_)
+// 	    Info->PrintF(pdename_, " Processing PDE %s\n", 
+// 			 (PDEs_[i]->GetName()).c_str());
 
-	    // Only solve current PDE, if the corresponding
-	    // flag in 'solvePDE_' is set to TRUE
-	    if (solvePDE_[i] == TRUE) {
-	      PDEs_[i]->GetSolveStep()->PreStepStatic(kstep,aTime,actlevel_,updatesysmat);
-	      PDEs_[i]->CalcInputCoupling();
-	      PDEs_[i]->GetSolveStep()->SolveStepStatic(kstep,aTime,actlevel_,updatesysmat);
-	      PDEs_[i]->GetSolveStep()->PostStepStatic(kstep,aTime,actlevel_);
-	      PDEs_[i]->CalcOutputCoupling();
+// 	    // Only solve current PDE, if the corresponding
+// 	    // flag in 'solvePDE_' is set to TRUE
+// 	    if (solvePDE_[i] == TRUE) {
+// 	      PDEs_[i]->GetSolveStep()->PreStepStatic(kstep,aTime,actlevel_,updatesysmat);
+// 	      PDEs_[i]->CalcInputCoupling();
+// 	      PDEs_[i]->GetSolveStep()->SolveStepStatic(kstep,aTime,actlevel_,updatesysmat);
+// 	      PDEs_[i]->GetSolveStep()->PostStepStatic(kstep,aTime,actlevel_);
+// 	      PDEs_[i]->CalcOutputCoupling();
 	      
-	      // Calculate Norms
-	      for (Integer k=0; k<Couplings_[i]->GetNumOutputCouplings(); k++)
-		{
-		  Couplings_[i]->GetOutputValues(k, val);
-		  Couplings_[i]->GetOutputOldValues(k, oldVal);
-		  norms_[counter] = CalcNorm(Couplings_[i]->GetOutputNormType(k), *val, *oldVal);
+// 	      // Calculate Norms
+// 	      for (Integer k=0; k<Couplings_[i]->GetNumOutputCouplings(); k++)
+// 		{
+// 		  Couplings_[i]->GetOutputValues(k, val);
+// 		  Couplings_[i]->GetOutputOldValues(k, oldVal);
+// 		  norms_[counter] = CalcNorm(Couplings_[i]->GetOutputNormType(k), *val, *oldVal);
 
-		  if (nonLinLogging_)
-		    {
-		      Enum2String(Couplings_[i]->GetOutputQuantity(k), quantityConv);
-		      Info->PrintF(coupledpdename_, " %s : Norm of %s = %g\n", 
-				   (Couplings_[i]->GetPDEName()).c_str(),
-				   quantityConv.c_str(), norms_[counter]);
-		    }
+// 		  if (nonLinLogging_)
+// 		    {
+// 		      Enum2String(Couplings_[i]->GetOutputQuantity(k), quantityConv);
+// 		      Info->PrintF(pdename_, " %s : Norm of %s = %g\n", 
+// 				   (Couplings_[i]->GetPDEName()).c_str(),
+// 				   quantityConv.c_str(), norms_[counter]);
+// 		    }
 		  
-		  if (norms_[counter] > Couplings_[i]->GetOutputEpsilon(k) && 
-		      Couplings_[i]->GetOutputNormType(k) != NO_NORM)
-		    normsReached = FALSE;
+// 		  if (norms_[counter] > Couplings_[i]->GetOutputEpsilon(k) && 
+// 		      Couplings_[i]->GetOutputNormType(k) != NO_NORM)
+// 		    normsReached = FALSE;
 		
-		  //copy values of new solution to old one
-		  *oldVal = *val;
+// 		  //copy values of new solution to old one
+// 		  *oldVal = *val;
 
-		} // end of if 
-		counter++;	      
-	      }
-	  }
+// 		} // end of if 
+// 		counter++;	      
+// 	      }
+// 	  }
 
-	iter++;
+// 	iter++;
 	
-	if(nonLinLogging_)
-	Info->PrintF(coupledpdename_, "\n"); 
-      }
+// 	if(nonLinLogging_)
+// 	Info->PrintF(pdename_, "\n"); 
+//       }
 
-    // now we are converged and can compute any postprocessing-quantities
-    for (Integer i=0; i<PDEs_.GetSize(); i++)
-      PDEs_[i]->PostProcess(actlevel_);
+//     // now we are converged and can compute any postprocessing-quantities
+//     for (Integer i=0; i<PDEs_.GetSize(); i++)
+//       PDEs_[i]->PostProcess(actlevel_);
 
-  }
+//   }
 
 
 
   
 
 
-  void IterCoupledPDE::SolveStepTrans(const Integer kstep, const Double asteptime, const Integer level, 
-				      const Boolean updatesysmat)
-  {
-    ENTER_FCN( "IterCoupledPDE::SolveStepTrans" );
+//   void IterCoupledPDE::SolveStepTrans(const Integer kstep, const Double asteptime, const Integer level, 
+// 				      const Boolean updatesysmat)
+//   {
+//     ENTER_FCN( "IterCoupledPDE::SolveStepTrans" );
 
-    Double  steptime  = asteptime;
+//     Double  steptime  = asteptime;
 
-    Integer iter = 0;
-    Boolean normsReached = FALSE;
-    std::string quantityConv;
+//     Integer iter = 0;
+//     Boolean normsReached = FALSE;
+//     std::string quantityConv;
 
-    while (iter < maxiter_ &&  (! normsReached))
-      {
-	if (nonLinLogging_)
-	  {
-	    Info->PrintF(coupledpdename_,"\n"); 
-	    Info->PrintF(coupledpdename_, " COUPLED ITERATION %i =================================\n", 
-			 iter+1);
-	  }
+//     // In the beginning of each time step
+//     // the coupling data has to be reseted
+//     for (Integer i=0; i<PDEs_.GetSize(); i++)
+//       PDEs_[i]->ResetCoupling();
 
-	Integer counter = 0;
-	normsReached = TRUE;
+//     while (iter < maxiter_ &&  (! normsReached))
+//       {
+// 	if (nonLinLogging_)
+// 	  {
+// 	    Info->PrintF(pdename_,"\n"); 
+// 	    Info->PrintF(pdename_, " COUPLED ITERATION %i =================================\n", 
+// 			 iter+1);
+// 	  }
+
+// 	Integer counter = 0;
+// 	normsReached = TRUE;
       
-	for (Integer i=0; i<PDEs_.GetSize(); i++)
-	  {
-	    if (nonLinLogging_)
-	      Info->PrintF(coupledpdename_, " Processing PDE %s\n", 
-			   (PDEs_[i]->GetName()).c_str());
+// 	for (Integer i=0; i<PDEs_.GetSize(); i++)
+// 	  {
+// 	    if (nonLinLogging_)
+// 	      Info->PrintF(pdename_, " Processing PDE %s\n", 
+// 			   (PDEs_[i]->GetName()).c_str());
 
-	    // Only solve current PDE, if the corresponding
-	    // flag in 'solvePDE_' is set to TRUE
-	    if (solvePDE_[i] == TRUE) {
+// 	    // Only solve current PDE, if the corresponding
+// 	    // flag in 'solvePDE_' is set to TRUE
+// 	    if (solvePDE_[i] == TRUE) {
 	      
-	      PDEs_[i]->GetSolveStep()->PreStepTrans(kstep, steptime, level, updatesysmat);
-	      PDEs_[i]->CalcInputCoupling();
-	      PDEs_[i]->GetSolveStep()->SolveStepTrans(kstep, steptime, level, updatesysmat);
-	      PDEs_[i]->GetSolveStep()->PostStepTrans(kstep, steptime, level);
-	      PDEs_[i]->CalcOutputCoupling();
+// 	      PDEs_[i]->GetSolveStep()->PreStepTrans(kstep, steptime, level, updatesysmat);
+// 	      PDEs_[i]->CalcInputCoupling();
+// 	      PDEs_[i]->GetSolveStep()->SolveStepTrans(kstep, steptime, level, updatesysmat);
+// 	      PDEs_[i]->GetSolveStep()->PostStepTrans(kstep, steptime, level);
+// 	      PDEs_[i]->CalcOutputCoupling();
 	      
-	      // Calculate Norms
-	      for (Integer k=0; k<Couplings_[i]->GetNumOutputCouplings(); k++)
-		{
-		  CFSVector *val, *oldVal;
-		  Couplings_[i]->GetOutputValues(k, val);
-		  Couplings_[i]->GetOutputOldValues(k, oldVal);
-		  norms_[counter] = CalcNorm(Couplings_[i]->GetOutputNormType(k), *val, *oldVal);
+// 	      // Calculate Norms
+// 	      for (Integer k=0; k<Couplings_[i]->GetNumOutputCouplings(); k++)
+// 		{
+// 		  CFSVector *val, *oldVal;
+// 		  Couplings_[i]->GetOutputValues(k, val);
+// 		  Couplings_[i]->GetOutputOldValues(k, oldVal);
+// 		  norms_[counter] = CalcNorm(Couplings_[i]->GetOutputNormType(k), *val, *oldVal);
 
-		  if (nonLinLogging_)
-		    {
-		      Enum2String(Couplings_[i]->GetOutputQuantity(k), quantityConv);
-		      Info->PrintF(coupledpdename_, " %s : Norm of %s = %g\n", 
-				   (Couplings_[i]->GetPDEName()).c_str(),
-				   quantityConv.c_str(), norms_[counter]);
-		    }
-		  if (norms_[counter] > Couplings_[i]->GetOutputEpsilon(k)) 
-		    normsReached = FALSE;
+// 		  if (nonLinLogging_)
+// 		    {
+// 		      Enum2String(Couplings_[i]->GetOutputQuantity(k), quantityConv);
+// 		      Info->PrintF(pdename_, " %s : Norm of %s = %g\n", 
+// 				   (Couplings_[i]->GetPDEName()).c_str(),
+// 				   quantityConv.c_str(), norms_[counter]);
+// 		    }
+// 		  if (norms_[counter] > Couplings_[i]->GetOutputEpsilon(k)) 
+// 		    normsReached = FALSE;
 		  
-		  *oldVal = *val;
-		} // end if
-	      counter++;	      
-	      }
-	  }
+// 		  *oldVal = *val;
+// 		} // end if
+// 	      counter++;	      
+// 	      }
+// 	  }
 
-	iter++;
-	if (nonLinLogging_)
-	  Info->PrintF(coupledpdename_, "\n"); 
-      }
-  }
+// 	iter++;
+// 	if (nonLinLogging_)
+// 	  Info->PrintF(pdename_, "\n"); 
+//       }
+//   }
 
   
 
@@ -555,49 +587,81 @@ void IterCoupledPDE::WriteCouplingInfo(std::ostream &out)
 }
 
 
-Double IterCoupledPDE::CalcNorm(NormType normtype, CFSVector & val, CFSVector & oldval)
-{
-  ENTER_FCN( "IterCoupledPDE::CalcNorm" );
+// Double IterCoupledPDE::CalcNorm(NormType normtype, CFSVector & val, CFSVector & oldval)
+// {
+//   ENTER_FCN( "IterCoupledPDE::CalcNorm" );
 
-  // ATTENTION: Currently only working with Double-values
-  // will be changed as soon as dynamic type information
-  // is available
+//   // ATTENTION: Currently only working with Double-values
+//   // will be changed as soon as dynamic type information
+//   // is available
 
-  Vector<Double> delta;
+//   Vector<Double> delta;
  
-  Double norm, valNorm2;
+//   Double norm, valNorm2;
   
 
-  Vector<Double> & val_vec =\
-    dynamic_cast<Vector<Double>& >(val);
+//   Vector<Double> & val_vec =\
+//     dynamic_cast<Vector<Double>& >(val);
 
-  Vector<Double> & oldval_vec =\
-    dynamic_cast<Vector<Double>& >(oldval);
+//   Vector<Double> & oldval_vec =\
+//     dynamic_cast<Vector<Double>& >(oldval);
   
-  delta = val_vec - oldval_vec;
+//   delta = val_vec - oldval_vec;
 
-  switch (normtype)
-    {
-    case NO_NORM:
-      return 0;
-      break;
+//   switch (normtype)
+//     {
+//     case NO_NORM:
+//       return 0;
+//       break;
       
-    case L2ABS:
-      norm = delta.NormL2();
-      break;
+//     case L2ABS:
+//       norm = delta.NormL2();
+//       break;
 
-    case L2REL:
-      valNorm2 =  val_vec.NormL2();
-      if (valNorm2 > 0)
-	norm = delta.NormL2() / valNorm2;
-      else
-	norm = delta.NormL2();
+//     case L2REL:
+//       valNorm2 =  val_vec.NormL2();
+//       if (valNorm2 > 0)
+// 	norm = delta.NormL2() / valNorm2;
+//       else
+// 	norm = delta.NormL2();
 
-      break;
-    }
+//       break;
+//     }
 
-  return norm;
+//   return norm;
+// }
+
+
+void IterCoupledPDE::SetTimeStep(const Double dt)
+{
+  ENTER_FCN( "IterCoupledPDE::SetTimeStep" );
+
+    for (Integer i=0; i<PDEs_.GetSize(); i++)
+      PDEs_[i]->SetTimeStep(dt);
+};
+
+
+void IterCoupledPDE::WriteGeneralPDEdefines()
+{
+  ENTER_FCN( "IterCoupledPDE::WriteGeneralPDEdefines" );
+
+    for (Integer i=0; i<PDEs_.GetSize(); i++)
+      PDEs_[i]->WriteGeneralPDEdefines();
 }
+
+// ======================================================
+// POSTPROC SECTION
+// ======================================================
+
+// Do Postprocessing as descriped in conf file
+void IterCoupledPDE::PostProcess(const Integer level) 
+{
+  ENTER_FCN( "IterCoupledPDE::PostProcess" );
+
+    for (Integer i=0; i<PDEs_.GetSize(); i++)
+      PDEs_[i]->PostProcess(level);
+}
+
 
 
 } // end of namespace

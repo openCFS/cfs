@@ -1,7 +1,7 @@
 #include "pdecoupling.hh"
 
 #include "couplingmemento.hh"
-#include "PDE/basePDE.hh"
+#include "PDE/StdPDE.hh"
 #include "Domain/elem.hh"
 #include "Domain/grid.hh"
 #include "Domain/bcs.hh"
@@ -180,7 +180,7 @@ void PDECoupling::AddInput(SolutionType quantity,
   // the coupling object, which shares the data
   // of this coupling object
   i--;  // because i has been incremented before;
-  BasePDE * oppositePDE = couplings[i]->myPDE_;
+  StdPDE * oppositePDE = couplings[i]->myPDE_;
   
   
   // Set dof according to myPDE's dof
@@ -503,7 +503,7 @@ PDECoupling::CouplingInterface* PDECoupling::AddOutput(CouplingOutputType output
 
 
 
-void PDECoupling::SetPDE(BasePDE * aPDE)
+void PDECoupling::SetPDE(StdPDE * aPDE)
 {
   ENTER_FCN("PDECoupling::SetPDE");
   myPDE_ = aPDE;

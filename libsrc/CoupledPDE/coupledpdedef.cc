@@ -31,9 +31,9 @@ CoupledPDEDef::~CoupledPDEDef()
     if (CoupledPDEs_[i]) delete CoupledPDEs_[i];
 }
   
-void CoupledPDEDef::CreateCoupling(StdVector<BasePDE*> & OrderedPDEs, 
+void CoupledPDEDef::CreateCoupling(StdVector<StdPDE*> & OrderedPDEs, 
 				   StdVector<PDECoupling*> & Couplings,
-				   StdVector<BasePDE*> & UnorderedPDEs)
+				   StdVector<StdPDE*> & UnorderedPDEs)
 {
   ENTER_FCN( "CoupledPDEDef::OrderPDEs" );
 
