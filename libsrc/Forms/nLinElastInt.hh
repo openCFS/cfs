@@ -140,7 +140,7 @@ protected:
   virtual void setPiolaDimD(Integer actDim){piolaDimD_ = actDim;};
 
   /// calculates Piola-Kirchoff-stresses (vector notation)
-  void CalcStressVec(std::vector<Double>& piolaStressVec, Integer ip, Matrix<Double> & ptCoord);  
+  void CalcStressVec(Vector<Double>& piolaStressVec, Integer ip, Matrix<Double> & ptCoord);  
 
   /// returns linear B - matrix
   virtual void calcLinBMat(Matrix<Double> & bMat, Integer ip, Matrix<Double> & ptCoord);
@@ -158,7 +158,7 @@ protected:
   virtual Integer getFullPiolaDMatSize()=0;
 
   /// conversion of stress vector to stress tensor
-  virtual void convertStressVecToTensor(Matrix<Double>& stressTensor, std::vector<Double>& piolaStress);
+  virtual void convertStressVecToTensor(Matrix<Double>& stressTensor, Vector<Double>& piolaStress);
   
 private:
   
@@ -254,7 +254,7 @@ protected:
   virtual Integer getNrDofs(){return 2;};  
 
   /// conversion of stress vector to stress tensor
-  virtual void convertStressVecToTensor(Matrix<Double>& stressTensor, std::vector<Double>& piolaStress);
+  virtual void convertStressVecToTensor(Matrix<Double>& stressTensor, Vector<Double>& piolaStress);
 
   /// returns material D-matrix for 3d mechanics
   virtual void calcMaterialDMat(Matrix<Double> & dMat);
@@ -326,7 +326,7 @@ protected:
   virtual Integer getNrDofs(){return 2;};  
 
   /// conversion of stress vector to stress tensor
-  virtual void convertStressVecToTensor(Matrix<Double>& stressTensor, std::vector<Double>& piolaStress);
+  virtual void convertStressVecToTensor(Matrix<Double>& stressTensor, Vector<Double>& piolaStress);
 
   /// returns material D-matrix for 3d mechanics
   virtual void calcMaterialDMat(Matrix<Double> & dMat);
@@ -368,7 +368,7 @@ public:
 
 protected:
   /// calculates pre-stresses (vector notation)
-  void CalcStressVec(std::vector<Double>& piolaStressVec, Integer ip, Matrix<Double> & ptCoord);
+  void CalcStressVec(Vector<Double>& piolaStressVec, Integer ip, Matrix<Double> & ptCoord);
 
   /// returns the size of the full piola d-matrix
   virtual Integer getFullPiolaDMatSize(){return 9;};

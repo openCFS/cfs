@@ -210,13 +210,13 @@ namespace CoupledField {
     // ***********************
     //   Read flow direction
     // ***********************
-    std::vector<std::string> aux;
+    StdVector<std::string> aux;
     if ( coilType_ == CURRENT3D ) {
       
       // Check for currentFlow specification
       params->CGetList( "currentFlow", aux, "name", coilName_, 1, pdeName,
 			"coils" );
-      if ( aux.size() == 1 ) {
+      if ( aux.GetSize() == 1 ) {
 	if ( aux[0] == "xDir" ) {
 	  flowDir_ = XDIR;
 	}
@@ -230,7 +230,7 @@ namespace CoupledField {
 	  Info->Error( "Unknown currentFlow " + aux[0], __FILE__, __LINE__ );
 	}
       }
-      else if ( aux.size() > 1 ) {
+      else if ( aux.GetSize() > 1 ) {
 	Info->Error( "More than 1 currentFlow specifications for coil " +
 		     coilName_, __FILE__, __LINE__ );
       }

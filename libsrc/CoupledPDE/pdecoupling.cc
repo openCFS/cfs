@@ -4,7 +4,6 @@
 #include <Domain/grid.hh>
 #include <Domain/bcs.hh>
 #include <list>
-#include <Utils/storesol.hh>
 
 #include <PDE/basePDE.hh>
 
@@ -49,10 +48,10 @@ PDECoupling::~PDECoupling()
 {
   ENTER_FCN("PDECoupling::~PDECoupling")
 
-  for (Integer i=0; i<outputInterfaces_.size(); i++)
+  for (Integer i=0; i<outputInterfaces_.GetSize(); i++)
     if (outputInterfaces_[i]) delete outputInterfaces_[i];
   
-  for (Integer i=0; i<inputInterfaces_.size(); i++)
+  for (Integer i=0; i<inputInterfaces_.GetSize(); i++)
     if (inputInterfaces_[i]) delete inputInterfaces_[i];
   
 }
@@ -61,9 +60,9 @@ void PDECoupling::RegisterInput(CouplingInputType InType, std::string Quantity)
 {
   ENTER_FCN("PDECoupling::RegisterInput")
   
-  inputTypes_.push_back(InType);
-  inputQuantities_.push_back(Quantity);  
-  inputInterfaces_.push_back(0);
+  inputTypes_.Push_back(InType);
+  inputQuantities_.Push_back(Quantity);  
+  inputInterfaces_.Push_back(0);
 }
 
 
@@ -71,7 +70,7 @@ void PDECoupling::AddInput(std::string quantity,
 			   std::string region, 
 			   CouplingRegionType regionType,
 			   Integer level,
-			   std::vector<PDECoupling*> & couplings)
+			   StdVector<PDECoupling*> & couplings)
 {
   ENTER_FCN("PDECoupling::AddInput");
   
@@ -80,7 +79,7 @@ void PDECoupling::AddInput(std::string quantity,
   Integer myNum = -1;
   
   // search matching  Quantity
-  for (Integer i=0; i<inputQuantities_.size(); i++)
+  for (Integer i=0; i<inputQuantities_.GetSize(); i++)
     {
       if (inputQuantities_[i] == quantity)
 	myNum = i; 
@@ -97,7 +96,7 @@ void PDECoupling::AddInput(std::string quantity,
   CouplingOutputType myOutputType = Input2OutputType(inputTypes_[myNum]);
   
   Integer i=0;
-  while (myInterface == 0 && i<couplings.size())
+  while (myInterface == 0 && i<couplings.GetSize())
     {
       myInterface = couplings[i++]->AddOutput(myOutputType, quantity, region, regionType, level);
     }
@@ -155,7 +154,7 @@ void PDECoupling::AddInput(std::string quantity,
 	} 
     }
   
-  if (myInterface->elements.size() != 0)
+  if (myInterface->elements.GetSize() != 0)
     {
       // Set the material of the interface.
       // Since the Inputcoupling values are computed by another PDE
@@ -164,20 +163,20 @@ void PDECoupling::AddInput(std::string quantity,
       
       // 1. Step: get the neighbouring elements 
       
-      const std::vector<Elem*> * interfaceElems = &(myInterface->elements);
-      std::vector<Elem*>  actSubdomain, possibleNeighbours;
+      const StdVector<Elem*> * interfaceElems = &(myInterface->elements);
+      StdVector<Elem*>  actSubdomain, possibleNeighbours;
       
       
       
-      for (Integer iSd=0; iSd < myPDE_->subdoms_.size(); iSd++)
+      for (Integer iSd=0; iSd < myPDE_->subdoms_.GetSize(); iSd++)
 	{
 	  ptGrid_->GetElemSD(actSubdomain, myPDE_->subdoms_[iSd], level);
-	  for (Integer j=0; j<actSubdomain.size(); j++)
-	    possibleNeighbours.push_back(actSubdomain[j]);
+	  for (Integer j=0; j<actSubdomain.GetSize(); j++)
+	    possibleNeighbours.Push_back(actSubdomain[j]);
 	}
       
       ptGrid_->DefineBelonging4Elems(*interfaceElems, possibleNeighbours, myInterface->neighbours);
-      if (!myInterface->neighbours.size())
+      if (!myInterface->neighbours.GetSize())
 	Error("No neighbours for element coupling found!",  __FILE__,__LINE__);
       
       
@@ -186,12 +185,12 @@ void PDECoupling::AddInput(std::string quantity,
       // 2. Step: For each interface element, set the
       //          material parameter according to its neighbour
       
-      for (Integer i=0; i<myInterface->neighbours.size(); i++)
+      for (Integer i=0; i<myInterface->neighbours.GetSize(); i++)
 	{
 	  Boolean subdomFound = FALSE;
 	  Integer subDomNr = 0;
 	  
-	  for (subDomNr=0; subDomNr<myPDE_->subdoms_.size(); subDomNr++)
+	  for (subDomNr=0; subDomNr<myPDE_->subdoms_.GetSize(); subDomNr++)
 	    if (myPDE_->subdoms_[subDomNr] == myInterface->neighbours[i]->namesd)
 	      {
 		subdomFound = TRUE;
@@ -209,26 +208,26 @@ void PDECoupling::AddInput(std::string quantity,
       
       // Set the material of the neighbours elements of the "opposite" PDE
       // 1. Step: get the neighbouring elements
-      possibleNeighbours.clear();
+      possibleNeighbours.Clear();
       
       
-      for (Integer iSd=0; iSd < oppositePDE->subdoms_.size(); iSd++)
+      for (Integer iSd=0; iSd < oppositePDE->subdoms_.GetSize(); iSd++)
 	{
 	  ptGrid_->GetElemSD(actSubdomain, oppositePDE->subdoms_[iSd], level);
-	  for (Integer j=0; j<actSubdomain.size(); j++)
-	    possibleNeighbours.push_back(actSubdomain[j]);
+	  for (Integer j=0; j<actSubdomain.GetSize(); j++)
+	    possibleNeighbours.Push_back(actSubdomain[j]);
 	}
       
       ptGrid_->DefineBelonging4Elems(*interfaceElems, possibleNeighbours, myInterface->oppositePdeNeighbours);
-      if (!myInterface->oppositePdeNeighbours.size())
+      if (!myInterface->oppositePdeNeighbours.GetSize())
 	Error("No opposite neighbours for element coupling found!",  __FILE__,__LINE__);
       
-      for (Integer i=0; i<myInterface->oppositePdeNeighbours.size(); i++)
+      for (Integer i=0; i<myInterface->oppositePdeNeighbours.GetSize(); i++)
 	{
 	  Boolean subdomFound = FALSE;
 	  Integer subDomNr = 0;
 	  
-	  for (subDomNr=0; subDomNr<oppositePDE->subdoms_.size(); subDomNr++)
+	  for (subDomNr=0; subDomNr<oppositePDE->subdoms_.GetSize(); subDomNr++)
 	    if (oppositePDE->subdoms_[subDomNr] == myInterface->oppositePdeNeighbours[i]->namesd)
 	      {
 		subdomFound = TRUE;
@@ -259,7 +258,7 @@ PDECoupling::CouplingInterface* PDECoupling::AddOutput(CouplingOutputType output
   ENTER_FCN("PDECoupling::AddOutput");
   
   // search if output exists already
-  for (Integer i=0; i<outputTypes_.size(); i++)
+  for (Integer i=0; i<outputTypes_.GetSize(); i++)
     if (outputTypes_[i] == outputType 
 	&& outputQuantities_[i] == quantity
 	&& outputInterfaces_[i]->region == region)
@@ -273,8 +272,8 @@ PDECoupling::CouplingInterface* PDECoupling::AddOutput(CouplingOutputType output
   //std::cerr << "found output " << Quantity << " in PDE " << myPDE_->GetName() << std::endl;
 
   // create new Coupling Output
-  outputTypes_.push_back(outputType);
-  outputQuantities_.push_back(quantity);
+  outputTypes_.Push_back(outputType);
+  outputQuantities_.Push_back(quantity);
 
   CouplingInterface *myInterface = new CouplingInterface;  
   myInterface->region = region;
@@ -282,7 +281,7 @@ PDECoupling::CouplingInterface* PDECoupling::AddOutput(CouplingOutputType output
   myInterface->level = level;
 
   std::list<Integer> nodesConverted;
-  std::vector<Elem*> SD;
+  StdVector<Elem*> SD;
   std::list<Integer>::iterator it;
   Integer inode = 0;
 
@@ -293,11 +292,11 @@ PDECoupling::CouplingInterface* PDECoupling::AddOutput(CouplingOutputType output
     case SUBDOMAIN:
       ptGrid_->GetElemSD(SD, region, level);
       ptGrid_->CalcNumberOfNodesInPatch(SD, myInterface->nodes);
-      myInterface->numNodes = myInterface->nodes.size();
-      //myInterface->values.resize(myInterface->nodes.size());
-      //myInterface->oldValues.resize(myInterface->nodes.size());
-     //  myInterface->values->SetNumNodes(myInterface->nodes.size());
-//       myInterface->oldValues->SetNumNodes(myInterface->nodes.size());
+      myInterface->numNodes = myInterface->nodes.GetSize();
+      //myInterface->values.resize(myInterface->nodes.GetSize());
+      //myInterface->oldValues.resize(myInterface->nodes.GetSize());
+     //  myInterface->values->SetNumNodes(myInterface->nodes.GetSize());
+//       myInterface->oldValues->SetNumNodes(myInterface->nodes.GetSize());
 	    
       
       break;
@@ -305,18 +304,18 @@ PDECoupling::CouplingInterface* PDECoupling::AddOutput(CouplingOutputType output
     case NODES:
 
       nodesConverted = ptBCs_->GetNodesLevel(region, level);
-      myInterface->nodes.resize(nodesConverted.size());
+      myInterface->nodes.Resize(nodesConverted.size());
       it = nodesConverted.begin();
       
       inode = 0;
       for (it=nodesConverted.begin(); it != nodesConverted.end(); it++, inode++)
 	myInterface->nodes[inode] = *it;
 
-      myInterface->numNodes = myInterface->nodes.size();
-      //myInterface->values.resize(myInterface->nodes.size());
-      //myInterface->oldValues.resize(myInterface->nodes.size());
-      // myInterface->values->SetNumNodes(myInterface->nodes.size());
-//       myInterface->oldValues->SetNumNodes(myInterface->nodes.size());
+      myInterface->numNodes = myInterface->nodes.GetSize();
+      //myInterface->values.resize(myInterface->nodes.GetSize());
+      //myInterface->oldValues.resize(myInterface->nodes.GetSize());
+      // myInterface->values->SetNumNodes(myInterface->nodes.GetSize());
+//       myInterface->oldValues->SetNumNodes(myInterface->nodes.GetSize());
       break;
 
     case ELEMS1D:
@@ -328,14 +327,14 @@ PDECoupling::CouplingInterface* PDECoupling::AddOutput(CouplingOutputType output
       ptGrid_ -> CalcNumberOfNodesInPatch(myInterface->elements, myInterface->nodes);
 
             
-      myInterface->numNodes = myInterface->nodes.size();
-      myInterface->numElems = myInterface->elements.size();
-      //myInterface->oldValues.resize(myInterface->nodes.size());   
-      //myInterface->values.resize(myInterface->nodes.size());      
-      // myInterface->values->SetNumNodes(myInterface->nodes.size());
-      // myInterface->oldValues->SetNumNodes(myInterface->nodes.size());
-      myInterface->materials.resize(myInterface->elements.size());
-      myInterface->oppositePdeMaterials.resize(myInterface->elements.size());
+      myInterface->numNodes = myInterface->nodes.GetSize();
+      myInterface->numElems = myInterface->elements.GetSize();
+      //myInterface->oldValues.resize(myInterface->nodes.GetSize());   
+      //myInterface->values.resize(myInterface->nodes.GetSize());      
+      // myInterface->values->SetNumNodes(myInterface->nodes.GetSize());
+      // myInterface->oldValues->SetNumNodes(myInterface->nodes.GetSize());
+      myInterface->materials.Resize(myInterface->elements.GetSize());
+      myInterface->oppositePdeMaterials.Resize(myInterface->elements.GetSize());
 	    
 
       break;
@@ -344,17 +343,17 @@ PDECoupling::CouplingInterface* PDECoupling::AddOutput(CouplingOutputType output
       myInterface->elements = ptBCs_->getFacesBC(region, level);
       ptGrid_ -> CalcNumberOfNodesInPatch(myInterface->elements, myInterface->nodes);
       
-      myInterface->numNodes = myInterface->nodes.size();
-      myInterface->numElems = myInterface->elements.size();
-      //myInterface->values.resize(myInterface->nodes.size());
-      //myInterface->oldValues.resize(myInterface->nodes.size());
-      // myInterface->values->SetNumNodes(myInterface->nodes.size());
-//       myInterface->oldValues->SetNumNodes(myInterface->nodes.size());
-      myInterface->materials.resize(myInterface->elements.size());
+      myInterface->numNodes = myInterface->nodes.GetSize();
+      myInterface->numElems = myInterface->elements.GetSize();
+      //myInterface->values.resize(myInterface->nodes.GetSize());
+      //myInterface->oldValues.resize(myInterface->nodes.GetSize());
+      // myInterface->values->SetNumNodes(myInterface->nodes.GetSize());
+//       myInterface->oldValues->SetNumNodes(myInterface->nodes.GetSize());
+      myInterface->materials.Resize(myInterface->elements.GetSize());
       break;
     }
 
-  outputInterfaces_.push_back(myInterface);
+  outputInterfaces_.Push_back(myInterface);
   
   return myInterface;
 }
@@ -400,55 +399,46 @@ std::string PDECoupling::GetPDEName()
 Integer PDECoupling::GetNumInputCouplings()
 {
   ENTER_FCN("PDECoupling::GetnumInputCouplings");
-  return inputInterfaces_.size();
+  return inputInterfaces_.GetSize();
 }
 
 
 Integer PDECoupling::GetNumOutputCouplings()
 {
   ENTER_FCN("PDECoupling::GetnumOutputCouplings");
-  return outputQuantities_.size();
+  return outputQuantities_.GetSize();
 }
 
 
-void PDECoupling::CreateStoreSol(Integer i,
-				 SolutionType solType, 
-				 Boolean isComplex)
+void PDECoupling::CreateCouplingVector(Integer i,
+				       Boolean isComplex)
 {
-  ENTER_FCN("PDECoupling::CreateStoreSol");
+  ENTER_FCN("PDECoupling::CreateCouplingVector");
 
   Integer numNodes = outputInterfaces_[i]->numNodes;
   Integer dof =  outputInterfaces_[i]->dof;
 
   if (outputInterfaces_[i]->values != NULL || \
       outputInterfaces_[i]->oldValues != NULL)
-    Error("PDECoupling::CreateStoreSol: This function may only\
+    Error("PDECoupling::CreateCouplingVector: This function may only\
            be called for Output-Coupling interfaces!",__FILE__,__LINE__);
 
   if (isComplex)
     {
-      outputInterfaces_[i]->values = new StoreSol<Complex>;
-      outputInterfaces_[i]->oldValues = new StoreSol<Complex>;
+      outputInterfaces_[i]->values = new Vector<Complex>;
+      outputInterfaces_[i]->oldValues = new Vector<Complex>;
     } 
   else
     {
-      outputInterfaces_[i]->values = new StoreSol<Double>;
-      outputInterfaces_[i]->oldValues = new StoreSol<Double>;
+      outputInterfaces_[i]->values = new Vector<Double>;
+      outputInterfaces_[i]->oldValues = new Vector<Double>;
     }
   
-  // initialize storesol-object values
-  outputInterfaces_[i]->values->SetNumSolutions(1);
-  outputInterfaces_[i]->values->SetNumNodes(numNodes);
-  outputInterfaces_[i]->values->SetSolutionType(solType);
-  outputInterfaces_[i]->values->SetNumDofs(dof);
-  outputInterfaces_[i]->values->Init(0.0);
+  // resize vector with coupling values
+  outputInterfaces_[i]->values->Resize(dof*numNodes);
   
-  // initialize storesol-object oldValues
-  outputInterfaces_[i]->oldValues->SetNumSolutions(1);
-  outputInterfaces_[i]->oldValues->SetNumNodes(numNodes);
-  outputInterfaces_[i]->oldValues->SetSolutionType(solType);
-  outputInterfaces_[i]->oldValues->SetNumDofs(dof);
-  outputInterfaces_[i]->oldValues->Init(0.0);
+  // resize vector with old coupling values
+  outputInterfaces_[i]->oldValues->Resize(dof*numNodes);
 
  }
 
@@ -488,10 +478,10 @@ CouplingOutputType PDECoupling::Input2OutputType(CouplingInputType inputType)
 //   {
 //     out << myendl 
 // 	<< "Interface: coupling region: " << inter.region << myendl
-// 	<< "           nr. coupling nodes: " <<  inter.nodes.size() << myendl
-// 	<< "           nr. coupling elements: " <<  inter.elements.size() << myendl
+// 	<< "           nr. coupling nodes: " <<  inter.nodes.GetSize() << myendl
+// 	<< "           nr. coupling elements: " <<  inter.elements.GetSize() << myendl
 // 	<< "           name of 1. coupling element: " <<  inter.elements[0].namesd << myendl;
-// 	<< "           nr. neighbours elements: " <<  inter.neighbours.size() << myendl
+// 	<< "           nr. neighbours elements: " <<  inter.neighbours.GetSize() << myendl
 // 	<< "           name of 1. neighbours element: " <<  inter.neighbours[0].namesd << myendl;
 
 //   } 

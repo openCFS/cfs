@@ -9,26 +9,21 @@ namespace CoupledField
 
 Tetra1FE::Tetra1FE():TetraFE()
 { 
-#ifdef TRACE
-  (*trace) << "entering Tetra1FE::Tetra1FE" << std::endl;
-#endif
-   Init();
+  ENTER_FCN( "Tetra1FE::Tetra1FE" );
+
+  Init();
 }
 
 
 Tetra1FE::~Tetra1FE()
 {
-#ifdef TRACE
-  (*trace) << "entering Tetra1FE::~Tetra1FE" << std::endl;
-#endif
- ; 
+  ENTER_FCN( "Tetra1FE::~Tetra1FE" );
+  
 }
 
 void Tetra1FE::Init()
 {
-#ifdef TRACE
-  (*trace) << "entering Tetra1FE::Init" << std::endl;
-#endif
+  ENTER_FCN( "Tetra1FE::Init" );
   
   Dim_ = 3;
   NumNodes_ = 4;
@@ -47,9 +42,7 @@ void Tetra1FE::Init()
 
 void Tetra1FE::SetCornerCoords()
 {
-#ifdef TRACE
-  (*trace) << "entering Tetra1FE::SetCornerCoords" << std::endl;
-#endif
+  ENTER_FCN( "Tetra1FE::SetCornerCoords" );
 
   LCornerCoords_.Resize(Dim_,NumNodes_);
   
@@ -89,6 +82,7 @@ void Tetra1FE::SetCornerCoords()
 /// defines the connection between nodes with "their" edge 
 void Tetra1FE :: SetEdgeVertices()
 {
+  ENTER_FCN( "SetEdgeVertices" );
   const Integer nrNodesPerEdge = 2;
   
   edgeVertices_.Resize(NumEdges_, nrNodesPerEdge);
@@ -132,7 +126,7 @@ void Tetra1FE :: SetEdgeVertices()
 
 
 
-// std::ostream& operator<< (std::ostream & outStr, std::vector<Double> xOut)
+// std::ostream& operator<< (std::ostream & outStr, Vector<Double> xOut)
 // {
 //   for (Integer i=0; i<xOut.size(); i++)
 //     outStr <<  " " << xOut[i];
@@ -140,14 +134,13 @@ void Tetra1FE :: SetEdgeVertices()
 // }
 
 
-void Tetra1FE :: CalcShapeFnc(std::vector<Double> & Shape, 
-			     const std::vector<Double> & LCoord)
+void Tetra1FE :: CalcShapeFnc(Vector<Double> & Shape, 
+			     const Vector<Double> & LCoord)
 {
-#ifdef TRACE
-  (*trace) << "entering Tetra1FE::CalcShapeFnc" << std::endl;
-#endif
+  ENTER_FCN( "Tetra1FE::CalcShapeFnc" );
 
-  Shape.resize(NumNodes_);
+
+  Shape.Resize(NumNodes_);
 
   // see Hughes p. 170
   
@@ -163,11 +156,9 @@ void Tetra1FE :: CalcShapeFnc(std::vector<Double> & Shape,
 
 
 void Tetra1FE :: CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
-				       const std::vector<Double> & LCoord)
+				       const Vector<Double> & LCoord)
 {
-#ifdef TRACE
-  (*trace) << "entering Tetra1FE::CalcLocalDerivShapeFnc" << std::endl;
-#endif
+  ENTER_FCN( "Tetra1FE::CalcLocalDerivShapeFnc" );
 
   LDeriv.Resize(NumNodes_,Dim_);
 
@@ -184,17 +175,16 @@ void Tetra1FE :: CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv,
 // see Kaltenbacher: "Numerical Sim. of Mechatronic Sensors and Actuators" p. 25
 // calculates the edge shape function of a tetrahedral of first order.
 void Tetra1FE :: CalcEdgeShapeFnc(Matrix<Double> & edgeShape, 
-			     const std::vector<Double> & LCoord, const Matrix<Double> & cornernodes)
+				  const Vector<Double> & LCoord, 
+				  const Matrix<Double> & cornernodes)
 {
-#ifdef TRACE
-  (*trace) << "entering Tetra1FE::CalcShapeFnc" << std::endl;
-#endif
+  ENTER_FCN( "Tetra1FE::CalcShapeFnc" );
 
   edgeShape.Resize(NumEdges_, Dim_);
   edgeShape.Init();
 
   // nodal shape functions of a tet
-  std::vector<Double> nodeShape;
+  Vector<Double> nodeShape;
   CalcShapeFnc(nodeShape, LCoord);
 
 
@@ -218,15 +208,13 @@ void Tetra1FE :: CalcEdgeShapeFnc(Matrix<Double> & edgeShape,
 
 
 // calculated the Nedelec shape function in an arbitrary point
-void Tetra1FE :: GetEdgeGlobalDerivShapeFnc(std::vector< Matrix<Double>* > & shapeDeriv, 
-					    const std::vector<Double> & lCoord,
+void Tetra1FE :: GetEdgeGlobalDerivShapeFnc(Vector< Matrix<Double>* > & shapeDeriv, 
+					    const Vector<Double> & lCoord,
 					    const Matrix<Double> & cornerCoords)
 {
-#ifdef TRACE
-  (*trace) << "entering Tetra1FE::GetEdgeGlobalDerivShapeFnc" << std::endl;
-#endif
+  ENTER_FCN( "Tetra1FE::GetEdgeGlobalDerivShapeFnc" );
 
-  shapeDeriv.resize(NumEdges_);
+  shapeDeriv.Resize(NumEdges_);
 
 
   // local derivates of nodal tet, dimension: nrNodes x Dim_

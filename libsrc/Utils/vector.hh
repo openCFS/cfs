@@ -9,8 +9,8 @@ namespace CoupledField {
 // Forward class declarations
 template<class TYPE> class Matrix;
 template<class TYPE> class Vector;
-template<class TYPE> class StoreSol;
-
+template<class TYPE> class NodeStoreSol;
+template<class TYPE> class ElemStoreSol;
 
 //! Concrete Template class for a general dense vector
 template<class TYPE>
@@ -19,7 +19,8 @@ public:
 
   // Friend declarations
   friend class Matrix<TYPE>;
-  friend class StoreSol<TYPE>;
+  friend class NodeStoreSol<TYPE>;
+  friend class ElemStoreSol<TYPE>;
   template<class S>
   friend void Swap(Vector<S> &, Vector<S> &);
 
@@ -28,7 +29,7 @@ public:
 
   //! Constructor with inital size.
   //! All entries are filled with zeroes
-  Vector(int size);
+  Vector(const Integer size, const TYPE entry = TYPE());
 
   //! Copy constructor
   Vector(const Vector<TYPE> & vec);
@@ -155,6 +156,9 @@ public:
   //! build vector from std::vector
   Vector & operator= (const std::vector<TYPE> & vec);
   
+  //! Assignment operator for base class
+  CFSVector & operator= (const CFSVector & vec);
+
 
   //! Element can be referred to as v[i]
   inline TYPE	&operator[]	(const Integer i) const

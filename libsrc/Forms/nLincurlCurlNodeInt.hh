@@ -37,7 +37,7 @@ private:
   /// start value for reluctivity
   Double startmatVal_;
   ApproxData *nlinFnc_;
-  std::vector<Double> magPot_;
+  Vector<Double> magPot_;
   NonLinMethod nonLinType_;
 
 };

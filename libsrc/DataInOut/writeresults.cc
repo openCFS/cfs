@@ -9,17 +9,16 @@
 #include "DataInOut/WriteInfo.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
 
-namespace CoupledField
-{
+namespace CoupledField {
 
-WriteResults::WriteResults(const Char * const filename, Boolean withHistory, FileType * const aInFile)
-  :NeedHistory_(withHistory)
-{
-#ifdef TRACE
- if (trace) (*trace)<< "entering WriteResults::WriteResults()" << std::endl;
-#endif
-  namefile_=new Char[20];
-  strcpy(namefile_,filename);
+  WriteResults::WriteResults(const Char * const filename, Boolean withHistory,
+			     FileType * const aInFile)
+    : NeedHistory_(withHistory) {
+
+    ENTER_FCN( "WriteResults::WriteResults" );
+
+    namefile_ = new Char[strlen(filename)+1+MAXPOSTFIX];
+    strcpy(namefile_,filename);
 
   ascii_=TRUE;
 
@@ -37,17 +36,20 @@ WriteResults::WriteResults(const Char * const filename, Boolean withHistory, Fil
 
 void WriteResults::AddInHistory(const Double time, const Double val,const Integer ifile)
 { 
- lastsavetime[ifile]=time;
+  ENTER_FCN( "WriteResults::AddInHistory" );
+  lastsavetime[ifile]=time;
  historyfile[ifile] << time << "  " << val << std::endl;
 }
 
 
-void WriteResults::AddVecInHistory(const Double time, const std::vector<Double> val,const Integer ifile)
+void WriteResults::AddVecInHistory(const Double time, const Vector<Double> val,const Integer ifile)
 { 
+  ENTER_FCN( "WriteResults::AddVecInHistory" );
+  
  lastsavetime[ifile]=time;
  historyfile[ifile] << time;
  
- for (Integer i=0; i<val.size(); i++)
+ for (Integer i=0; i<val.GetSize(); i++)
    historyfile[ifile] <<  "  " << val[i];
  
  historyfile[ifile] <<  std::endl;
@@ -56,13 +58,11 @@ void WriteResults::AddVecInHistory(const Double time, const std::vector<Double> 
 
 WriteResults::~WriteResults()
 {
-#ifdef TRACE
-  (*trace) << "entering WriteResults::~WriteResults" << std::endl;
-#endif
+  ENTER_FCN( "WriteResults::~WriteResults" );
   
   if (historyfile) {
   Integer i;
-  for (i=0; i<nodeshist_.size(); i++)
+  for (i=0; i<nodeshist_.GetSize(); i++)
      historyfile[i].close();
   }
   if (historyfile) delete [] historyfile;
@@ -74,10 +74,9 @@ WriteResults::~WriteResults()
 
 void WriteResults::ReadSaveNodes()
 {
-#ifdef TRACE
-  (*trace)<< "entering WriteResults::ReadSaveNodes" << std::endl;
-#endif
- std::vector<std::string> historyList; 
+  ENTER_FCN( "WriteResults::ReadSaveNodes" );
+
+ StdVector<std::string> historyList; 
  std::list<Integer> * histNodes;
 
 #ifndef XMLPARAMS 
@@ -86,17 +85,17 @@ void WriteResults::ReadSaveNodes()
  params->GetList( "saveNodes", historyList, "storeResults", "nodeResults" );
 #endif
 
- if (historyList.size())
+ if (historyList.GetSize())
    {
-     histNodes = new std::list<Integer>[historyList.size()];
+     histNodes = new std::list<Integer>[historyList.GetSize()];
      
      pt2Inputfile_->ReadSaveNodes(histNodes, historyList);
 
      Info->PrintVec("Area names, in which save nodes are stored:", historyList);
      
-     for(int i=0; i<historyList.size(); i++)
+     for(int i=0; i<historyList.GetSize(); i++)
        for (std::list<Integer>::const_iterator p=histNodes[i].begin(); p!=histNodes[i].end(); p++)
-	 nodeshist_.push_back(*p);
+	 nodeshist_.Push_back(*p);
    }
 }
 
@@ -107,14 +106,12 @@ void WriteResults::ReadSaveNodes()
 
 void WriteResults::InitHistoryFiles()
 {
-#ifdef TRACE
- if (trace) (*trace)<< "entering WriteResults::InitHistoryFiles()" << std::endl;
-#endif
+  ENTER_FCN( "WriteResults::InitHistoryFiles" );
 
  // read nodes "by name" from the config-file command "save_nodes"
  ReadSaveNodes();
  
- std::vector<Integer> nodesTmp;
+ StdVector<Integer> nodesTmp;
 
 #ifndef XMLPARAMS
  conf->getlist(nodesTmp,"history_node");
@@ -124,12 +121,12 @@ void WriteResults::InitHistoryFiles()
  // params->GetList( "historyNodes", nodesTmp, "storeResults", "nodeResults" );
 #endif
 
- for (int i=0; i < nodesTmp.size(); i++)
+ for (int i=0; i < nodesTmp.GetSize(); i++)
    // there are allready elements in nodeshist_
-   nodeshist_.push_back(nodesTmp[i]);
+   nodeshist_.Push_back(nodesTmp[i]);
 
 
- if (nodeshist_.empty()) 
+ if (nodeshist_.IsEmpty()) 
    NeedHistory_=FALSE;
  else
    {
@@ -140,14 +137,14 @@ void WriteResults::InitHistoryFiles()
 
      std::string namedir="history/";
    
-     Integer nnodhist=nodeshist_.size(); 
+     Integer nnodhist=nodeshist_.GetSize(); 
      historyfile=new std::ofstream[nnodhist];
 
 
      // write save nodes to info file
      Info->PrintVec("List of node numbers, in which results have to be saved:", nodeshist_);     
 
-     for (Integer i=0; i<nodeshist_.size(); i++) 
+     for (Integer i=0; i<nodeshist_.GetSize(); i++) 
        {
 
 	 sprintf(name,"%s%s.%i.hist",namedir.c_str(),namefile_,nodeshist_[i]);
@@ -168,6 +165,8 @@ void WriteResults::InitHistoryFiles()
 void WriteResults::WriteSolMatrix(Grid * ptgrid, const Integer level, const Vector<Double> sol, 
 				  const std::string matFileName, const Integer nrDofs)
 {
+  ENTER_FCN( "WriteResults::WriteSolMatrix" );
+
   //get and write number of nodes on the level
   Integer numnodes=ptgrid->GetMaxnumnodes(level);
   Integer dim=ptgrid->GetDim();

@@ -14,9 +14,7 @@ namespace CoupledField
 
 RectangleFE::RectangleFE()
 {
-#ifdef TRACE
-  (*trace) << "entering RectangleFE::RectangleFE" << std::endl;
-#endif
+  ENTER_FCN( "RectangleFE::RectangleFE" );
   
   Dim_ = 2;
   NumEdges_ = 4;
@@ -40,18 +38,13 @@ RectangleFE::RectangleFE()
 
 RectangleFE :: ~RectangleFE()
 {
-#ifdef TRACE
-  (*trace) << "entering RectangleFE::~RectangleFE" << std::endl;
-#endif
+  ENTER_FCN( "RectangleFE::~RectangleFE" );
 }
 
 
 void RectangleFE:: SetIntPoints()
 {
-#ifdef TRACE
-  (*trace) << "entering RectangleFE::SetIntPoints" << std::endl;
-#endif
- 
+  ENTER_FCN( "RectangleFE::SetIntPoints" );
 
   switch(IntegType) 
     {
@@ -62,14 +55,14 @@ void RectangleFE:: SetIntPoints()
       
       
       if ( !IntPoints_)
-	IntPoints_ = new std::vector<Double>[NumIntPoints_];
+	IntPoints_ = new Vector<Double>[NumIntPoints_];
       
-      IntWeights_.resize(NumIntPoints_);
+      IntWeights_.Resize(NumIntPoints_);
       
       for(Integer i=0; i<NumIntPoints_; i++)
 	{
 	  IntWeights_[i]=1;
-	  IntPoints_[i].resize(Dim_);
+	  IntPoints_[i].Resize(Dim_);
 	}
       
       IntPoints_[0][0] = 0;
@@ -83,14 +76,14 @@ void RectangleFE:: SetIntPoints()
 
       
       if ( !IntPoints_)
-	IntPoints_ = new std::vector<Double>[NumIntPoints_];
+	IntPoints_ = new Vector<Double>[NumIntPoints_];
 
-      IntWeights_.resize(NumIntPoints_);
+      IntWeights_.Resize(NumIntPoints_);
 
       for(Integer i=0; i<NumIntPoints_; i++)
 	{	  
 	  IntWeights_[i]=1;
-	  IntPoints_[i].resize(Dim_);
+	  IntPoints_[i].Resize(Dim_);
 	}
       
       IntPoints_[0][0] = -0.57735026919;
@@ -111,12 +104,12 @@ void RectangleFE:: SetIntPoints()
       DegreeInteg_=5;
 
       if( !IntPoints_)
-	IntPoints_ = new std::vector<Double>[NumIntPoints_];
+	IntPoints_ = new Vector<Double>[NumIntPoints_];
       
       for(Integer i=0; i<NumIntPoints_; i++)
-	IntPoints_[i].resize(Dim_);
+	IntPoints_[i].Resize(Dim_);
 
-      IntWeights_.resize(NumIntPoints_);
+      IntWeights_.Resize(NumIntPoints_);
 
       IntPoints_[0][0] = -0.774596669241483;
       IntPoints_[1][0] =  0.0;
@@ -156,10 +149,10 @@ void RectangleFE:: SetIntPoints()
       NumIntPoints_=16;
       DegreeInteg_=7;
       if ( !IntPoints_) 
-	IntPoints_ = new std::vector<Double>[NumIntPoints_];
+	IntPoints_ = new Vector<Double>[NumIntPoints_];
 
       for(Integer i=0; i<NumIntPoints_; i++)
-	IntPoints_[i].resize(Dim_);
+	IntPoints_[i].Resize(Dim_);
       
       IntPoints_[0][0] = -0.861136311594053;
       IntPoints_[1][0] =  -0.339981043584856;
@@ -224,17 +217,15 @@ void RectangleFE:: SetIntPoints()
 
 void RectangleFE::CalcSize(Vector<Double> &size, Array<Double> &coordinates)
 {
-#ifdef TRACE
-  (*trace) << "entering RectangleFE::CalcSize" << std::endl;
-#endif
+  ENTER_FCN( "RectangleFE::CalcSize" );
+  Error("RectangleFE::CalcSize: Not implemented", __FILE__, __LINE__);
 
 }
 
-Double RectangleFE::CalcDistortion(Matrix<Double> &cornerCoords, Vector<Double> &size, Array<Double> &displacements)
+Double RectangleFE::CalcDistortion(Matrix<Double> &cornerCoords, Vector<Double> &size, Matrix<Double> &displacements)
 {
-#ifdef TRACE
-  (*trace) << "entering RectangleFE::CalcSize" << std::endl;
-#endif
+  ENTER_FCN( "RectangleFE::CalcDistortion" );
+  Error("RectangleFE::CalcDistortion: Not implemented", __FILE__, __LINE__);
 }
 
 } // end of namespace

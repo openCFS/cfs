@@ -1,8 +1,9 @@
 #ifndef FILE_BASEOPERATOR_2003
 #define FILE_BASEOPERATOR_2003
 
-#include <General/environment.hh>
-#include <vector>
+#include "General/environment.hh"
+#include "Utils/StdVector.hh"
+#include "PDE/nodeEQN.hh"
 
 namespace CoupledField
 {
@@ -20,7 +21,7 @@ public:
    //! Constructor
   BaseOperator(Grid * ptGrid, 
 	       BasePDE * ptPDE,  
-	       std::vector<Integer> *ptMesh2PDENode, 
+	       NodeEQN * ptEQN, 
 	       const Integer level,
 	       Boolean isaxi=FALSE);
   
@@ -29,10 +30,10 @@ public:
 
 protected:
 
-  Grid * ptGrid_;                       //!< pointer to grid
-  BasePDE * ptPDE_;
-  std::vector<Integer> *ptMesh2PDENode_; //!< pointer to node transformation array
-  Integer level_;                       //!< current level 
+  Grid * ptGrid_;     //!< pointer to grid
+  BasePDE * ptPDE_;   //!< pointer to PDE
+  NodeEQN * ptEQN_;   //!< pointer to Equation object
+  Integer level_;     //!< current level 
   Boolean isaxi_;
 };
 

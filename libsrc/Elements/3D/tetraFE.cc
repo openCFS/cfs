@@ -11,11 +11,9 @@
 namespace CoupledField
 {
 
-  TetraFE::TetraFE()
-  {
-#ifdef TRACE
-    (*trace) << "entering TetraFE::TetraFE" << std::endl;
-#endif
+TetraFE::TetraFE()
+{
+  ENTER_FCN( "TetraFE::TetraFE" );
 
     Dim_      = 3;
     NumEdges_ = 6;
@@ -37,18 +35,14 @@ namespace CoupledField
     //  isSetAtCenter_=FALSE;
   }
 
-  TetraFE::~TetraFE()
-  {
-#ifdef TRACE
-    (*trace) << "entering TetraFE::~TetraFE" << std::endl;
-#endif
-  }
+TetraFE::~TetraFE()
+{
+  ENTER_FCN( "TetraFE::~TetraFE" );
+}
 
 void TetraFE::SetIntPoints()
-  {
-#ifdef TRACE
-    (*trace) << "entering TetraFE::SetIntPoints" << std::endl;
-#endif
+{
+  ENTER_FCN( "TetraFE::SetIntPoints" );
 
     switch(IntegType)
       {
@@ -59,9 +53,9 @@ void TetraFE::SetIntPoints()
 	DegreeInteg_  = 1;
 
 	if ( !IntPoints_)
-	  IntPoints_ = new std::vector<Double>[NumIntPoints_];
+	  IntPoints_ = new Vector<Double>[NumIntPoints_];
       
-	IntWeights_.resize(NumIntPoints_);
+	IntWeights_.Resize(NumIntPoints_);
 
 
 	// just one point, but keep the procedure general ... ;O)
@@ -69,7 +63,7 @@ void TetraFE::SetIntPoints()
 	  {	  
 	    IntWeights_[i] = 1;
 
-	    IntPoints_[i].resize(Dim_);
+	    IntPoints_[i].Resize(Dim_);
 
 	    // all integration coords are at 1/4
 	    for(Integer j=0; j<Dim_; j++)
@@ -87,17 +81,17 @@ void TetraFE::SetIntPoints()
 	DegreeInteg_  = 3;
 
 
-	IntWeights_.resize(NumIntPoints_);
+	IntWeights_.Resize(NumIntPoints_);
 	// all weights are 0.25
-	for(Integer i=0; i<IntWeights_.size(); i++)
+	for(Integer i=0; i<IntWeights_.GetSize(); i++)
 	  IntWeights_[i] = 0.25;
 
 
 	if (!IntPoints_)
-	  IntPoints_ = new std::vector<Double>[NumIntPoints_];
+	  IntPoints_ = new Vector<Double>[NumIntPoints_];
 
 	for(Integer i=0; i<NumIntPoints_; i++)
-	  IntPoints_[i].resize(Dim_);
+	  IntPoints_[i].Resize(Dim_);
       
 	IntPoints_[0][0]=0.5854102;
 	IntPoints_[0][1]=0.1381966;
@@ -126,12 +120,12 @@ void TetraFE::SetIntPoints()
 	DegreeInteg_  = 4;
      
 	if (!IntPoints_)
-	  IntPoints_ = new std::vector<Double>[NumIntPoints_];
+	  IntPoints_ = new Vector<Double>[NumIntPoints_];
      
 	for(Integer i=0; i<NumIntPoints_; i++)
-	  IntPoints_[i].resize(Dim_);
+	  IntPoints_[i].Resize(Dim_);
      
-	IntWeights_.resize(NumIntPoints_);
+	IntWeights_.Resize(NumIntPoints_);
 
 	IntPoints_[0][0]=0.25;
 	IntPoints_[0][1]=0.25;
@@ -171,12 +165,12 @@ void TetraFE::SetIntPoints()
 	DegreeInteg_  = 5;
 
 	if (!IntPoints_)
-	  IntPoints_ = new std::vector<Double>[NumIntPoints_];
+	  IntPoints_ = new Vector<Double>[NumIntPoints_];
 
 	for(Integer i=0; i<NumIntPoints_; i++)
-	  IntPoints_[i].resize(Dim_);
+	  IntPoints_[i].Resize(Dim_);
 
-	IntWeights_.resize(NumIntPoints_);
+	IntWeights_.Resize(NumIntPoints_);
 
 	IntPoints_[0][0]=0.25;  IntPoints_[0][1]=0.25;  IntPoints_[0][2]=0.25;
 	IntPoints_[1][0]=0.09197107805272303;  IntPoints_[1][1]=0.09197107805272303;  IntPoints_[1][2]=0.09197107805272303;
@@ -227,10 +221,9 @@ void TetraFE::SetIntPoints()
   // and no volume is regarded! (see Hughes, p. 174)
   void TetraFE::CorrectIntWeights()
   { 
-#ifdef TRACE
-    (*trace) << "entering TetraFE::CorrectIntWeights" << std::endl;
-#endif
-    for(Integer i=0; i<IntWeights_.size(); i++)
+    ENTER_FCN( "TetraFE::CorrectIntWeights" );
+
+    for(Integer i=0; i<IntWeights_.GetSize(); i++)
       IntWeights_[i] /= 6.;
   }
 

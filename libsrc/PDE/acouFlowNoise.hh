@@ -42,7 +42,7 @@ public:
 
 private:
 
-  std::vector<std::string> rhs_surfaces_; //!< list of surfaces, on which we have excitation
+  StdVector<std::string> rhs_surfaces_; //!< list of surfaces, on which we have excitation
   Integer arg_rhs_; //!< function for RHS
 
   Boolean SetRHSFnc; //!< Indicator: is there RHS function
@@ -55,7 +55,7 @@ private:
 
   //!MpCCI
 #ifdef MpCCI
-  std::vector<Integer> mapSD_;
+  StdVector<Integer> mapSD_;
   MpCCIexch * ptMpCCIexch_;
 #endif
   Integer MpCCInodes_; //<! number of FE-nodes for MpCCI-domain

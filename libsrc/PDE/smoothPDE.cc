@@ -7,6 +7,7 @@
 #include <DataInOut/GMV/outGMV.hh>
 #include <Forms/forms_header.hh>
 #include <Estimator/spaceerror.hh>
+#include "blocknodeEQN.hh"
 
 #include "smoothPDE.hh" 
 
@@ -54,25 +55,20 @@ SmoothPDE::SmoothPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileTyp
   conf->ifgetliststr("inhomoBCdof", inhomDirichDof_, pdename_);
 
   //check for b.c. input data
-  if (bcs_hd_.size() != homDirichDof_.size()) 
+  if (bcs_hd_.GetSize() != homDirichDof_.GetSize()) 
      Error("Inconsistent definition of homogeneous Dirichlet Boundary Conditions");
-  if (bcs_id_.size() != inhomDirichDof_.size()) 
+  if (bcs_id_.GetSize() != inhomDirichDof_.GetSize()) 
      Error("Inconsistent definition of inhomogeneous Dirichlet Boundary Conditions");
 
   // Map global numeration of element and nodes to local one
   AssignPDENodeNumbers(mesh2PDENode_, pde2MeshNode_, subdoms_);  
   AssignPDEElemNumbers(mesh2PDEElem_, pde2MeshElem_, subdoms_);
-  numPDENodes_ = pde2MeshNode_.size();
-  numElems_ = pde2MeshElem_.size();
+  numPDENodes_ = pde2MeshNode_.GetSize();
+  numElems_ = pde2MeshElem_.GetSize();
 
   size_ = numPDENodes_*dofspernode_;
 
-  // Initalize solution class
-  sol_->SetNumSolutions(1);
-  sol_->SetSolutionType(SMOOTH_DISPLACEMENT);
-  sol_->SetNumNodes(numPDENodes_);
-  sol_->SetNumDofs(dofspernode_);
-  sol_->Init(0.0);
+  
     
   method_ = "mechanic";
   conf->ifget("method", method_, pdename_ );
@@ -80,7 +76,22 @@ SmoothPDE::SmoothPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileTyp
   factor_.Resize(numElems_);
   for (Integer i=0; i<factor_.GetSize(); i++)
     factor_[i] = 1.0;
-    
+ 
+ // initialize eqation data object
+  eqnData_  = new BlockNodeEQN(ptgrid_, ptBCs_, subdoms_, actlevel_, dofspernode_);
+  eqnData_->SetHomoDirichletBCs(bcs_hd_, homDirichDof_);
+  eqnData_->CalcMapping();
+  //eqnData_->Print(std::cerr);
+  assemble_->SetPtr2EQNData(eqnData_);   
+  
+  // Initalize solution class
+  sol_->SetNumSolutions(1);
+  sol_->SetSolutionType(SMOOTH_DISPLACEMENT);
+  sol_->SetNumNodes(numPDENodes_);
+  sol_->SetNumDofs(dofspernode_);
+  sol_->SetPtrEQNData(eqnData_);
+  sol_->Init(0.0);
+  
   // set assemble parameters
   assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, subdoms_, surfdoms_);
   assemble_->SetGraphType(NODEGRAPH);
@@ -119,7 +130,7 @@ void SmoothPDE::DefineIntegrators(const Integer level)
 
   Boolean nonLin = FALSE;
 
-  for (int actSD = 0; actSD < subdoms_.size(); actSD++)
+  for (int actSD = 0; actSD < subdoms_.GetSize(); actSD++)
     {
       // ==============  add stiffness ===========================================
 
@@ -153,7 +164,10 @@ void SmoothPDE::InitCoupling(PDECoupling * coupling)
     {
       // check for input mechanic displacement
       if (ptCoupling_->GetInputQuantity(i) == "mechdisplacement")
-	numDirichletBCs_ += (dofspernode_ * ptCoupling_->GetInputNumNodes(i));
+	{
+	  numDirichletBCs_ += (dofspernode_ * ptCoupling_->GetInputNumNodes(i));
+	}
+
     }
 
   // output couplings
@@ -161,7 +175,9 @@ void SmoothPDE::InitCoupling(PDECoupling * coupling)
     {
       // check for output displacement
       if (ptCoupling_->GetOutputQuantity(i) == "smoothdisplacement")
-	ptCoupling_->CreateStoreSol(i,MECH_FORCE,isComplex_); 
+	{
+	ptCoupling_->CreateCouplingVector(i,isComplex_); 
+	}
     }
 
   // now overwrite number of Dirichlet BCs due to coupling 
@@ -231,8 +247,8 @@ void SmoothPDE::CalcOutputCoupling()
   ENTER_FCN( "SmoothPDE::CalcOutputCoupling" );
 
   std::string quantity;
-  std::vector<Integer> * couplingnodes;
-  BaseStoreSol * values;
+  StdVector<Integer> * couplingnodes;
+  CFSVector * values;
 
   // loop over all output coupling quantities
   for (Integer i=0; i<ptCoupling_->GetNumOutputCouplings(); i++)
@@ -249,7 +265,7 @@ void SmoothPDE::CalcOutputCoupling()
 
 	  if (quantity == "smoothdisplacement")
 	    {
-	      sol_->NodeSolutionToCoupling(*values,*couplingnodes,mesh2PDENode_);
+	      sol_->NodeSolutionToCoupling(*values,*couplingnodes);
 	    }
 	  
 	  break;
@@ -265,10 +281,10 @@ void SmoothPDE::WriteResultsInFile()
 {
   ENTER_FCN( "SmoothPDE::WriteResultsInFile" );
 
-  StoreSol<Double> DispMesh;
+  NodeStoreSol<Double> const & solConverted =
+    dynamic_cast<NodeStoreSol<Double>&>(*sol_);
  
-  sol_->TransformNodeSolution(DispMesh, pde2MeshNode_,ptgrid_,actlevel_);
-  outFile_->WriteNodeSolution(DispMesh, laststepcalc_, lasttimecalc_,"displacement");
+  outFile_->WriteNodeSolution(solConverted, laststepcalc_, lasttimecalc_,"displacement");
 }
 
 

@@ -12,7 +12,7 @@
 #include "newmarkdamp.hh"
 #include "DataInOut/WriteInfo.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
-
+#include "PDE/scalarnodeEQN.hh"
 
 namespace CoupledField {
 
@@ -39,7 +39,7 @@ namespace CoupledField {
     isaxi_ = params->HasValue( "type", "axi", "geometry" );
     params->GetList( "name", subdoms_, pdename_, "region" );
     Info->PrintF( pdename_, " PDE lives on regions:" );
-    for ( Integer k = 0; k < subdoms_.size(); k++ ) {
+    for ( Integer k = 0; k < subdoms_.GetSize(); k++ ) {
       Info->PrintF( pdename_, " %s", subdoms_[k].c_str() );
     }
 #endif
@@ -48,23 +48,12 @@ namespace CoupledField {
 
     AssignPDENodeNumbers(mesh2PDENode_, pde2MeshNode_, subdoms_);  
     AssignPDEElemNumbers(mesh2PDEElem_, pde2MeshElem_, subdoms_);
-    numPDENodes_ = pde2MeshNode_.size();
-    numElems_ = pde2MeshElem_.size();
+    numPDENodes_ = pde2MeshNode_.GetSize();
+    numElems_ = pde2MeshElem_.GetSize();
 
     size_ = numPDENodes_;
 
-    // Initalize solution class
-    sol_->SetNumSolutions(1);
-    sol_->SetSolutionType(ACOU_POTENTIAL);
-    sol_->SetNumNodes(numPDENodes_);
-    sol_->SetNumDofs(dofspernode_);
-
-  if (analysistype_ == HARMONIC) {
-    Complex setnull = 0;
-    sol_->Init(setnull);
-  }
-  else
-    sol_->Init(0.0);
+    
 
 
 #ifndef XMLPARAMS
@@ -131,14 +120,14 @@ namespace CoupledField {
 
 #ifndef XMLPARAMS
     conf->ifgetliststr("bnd_for_absBCs",absBCs_,pdename_); 
-    if (absBCs_.size() > 0) {
+    if (absBCs_.GetSize() > 0) {
        absorbingBCs_ = TRUE;
        Info->PrintF( pdename_, "Apply Absorbing Boundary Conditions\n" );
     }
     
 #else
     params->GetList( "name", absBCs_, pdename_, "absorbingBCs" );
-    if ( absBCs_.size() > 0 && dampingType_ == NONE ) {
+    if ( absBCs_.GetSize() > 0 && dampingType_ == NONE ) {
       absorbingBCs_ = TRUE;
       Info->PrintF( pdename_, "Re-setting damping type to ABCDAMP" );
     }
@@ -191,12 +180,28 @@ namespace CoupledField {
 #else
     ReadStoreResults();
 #endif
+    
+    // initialize eqation data object
+    eqnData_  = new ScalarNodeEQN(ptgrid_, ptBCs_, subdoms_, actlevel_, dofspernode_);
+    eqnData_->SetHomoDirichletBCs(bcs_hd_, homDirichDof_);
+    eqnData_->CalcMapping();
+    //eqnData_->Print(std::cerr);
+    assemble_->SetPtr2EQNData(eqnData_); 
 
+    // Initalize solution class
+    sol_->SetNumSolutions(1);
+    sol_->SetSolutionType(ACOU_POTENTIAL);
+    sol_->SetNumNodes(numPDENodes_);
+    sol_->SetNumDofs(dofspernode_);
+    sol_->SetPtrEQNData(eqnData_);
+    sol_->Init();
+    
     if (savederiv1_) {
       sol_der1Array_.SetNumSolutions(1);
       sol_der1Array_.SetNumNodes(numPDENodes_);
       sol_der1Array_.SetSolutionType(ACOU_POTENTIAL_DERIV1);
-      sol_der1Array_.SetNumDofs(1);
+      sol_der1Array_.SetNumDofs(1);    
+      sol_der1Array_.SetPtrEQNData(eqnData_);
       sol_der1Array_.Init(0);
     }
 
@@ -204,7 +209,8 @@ namespace CoupledField {
       sol_der2Array_.SetNumSolutions(1);
       sol_der2Array_.SetNumNodes(numPDENodes_);
       sol_der2Array_.SetSolutionType(ACOU_POTENTIAL_DERIV2);
-      sol_der2Array_.SetNumDofs(1);
+      sol_der2Array_.SetNumDofs(1);    
+      sol_der2Array_.SetPtrEQNData(eqnData_);
       sol_der2Array_.Init(0);
     }
   
@@ -217,7 +223,7 @@ namespace CoupledField {
 
     Boolean nonLin = FALSE;
 
-    for (Integer actSD = 0; actSD < subdoms_.size(); actSD++) {
+    for (Integer actSD = 0; actSD < subdoms_.GetSize(); actSD++) {
 
       Double density = materialData_[actSD].GetDensity();
       Double compressibility = materialData_[actSD].GetCompressibility();
@@ -249,7 +255,7 @@ namespace CoupledField {
     //surface-integration
     // BEGIN DAMPING MATRIX PART: Absorbing boundaries
     if ( absorbingBCs_ == TRUE && analysistype_ != HARMONIC ) {
-      for (Integer actSD = 0; actSD < absBCs_.size(); actSD++) {
+      for (Integer actSD = 0; actSD < absBCs_.GetSize(); actSD++) {
 	//currently hard-coded!!
 	Double density = materialData_[0].GetDensity();
 	Double compressibility = materialData_[0].GetCompressibility();
@@ -280,8 +286,7 @@ namespace CoupledField {
     }
 
     else {
-      TS_alg_ = new Newmark(pdename_, algsys_, dofspernode_, numPDENodes_,
-			    needsDampingMatrix_);
+      TS_alg_ = new Newmark(pdename_, algsys_, eqnData_, needsDampingMatrix_);
     }
 
     TS_alg_->Init(matrix_factor_, dt);
@@ -303,7 +308,7 @@ namespace CoupledField {
     // Intialize the memory of the coupling values
     for (Integer i=0; i<ptCoupling_->GetNumOutputCouplings(); i++) {
       if (ptCoupling_->GetOutputQuantity(i) == "acousticforce")	{
-	ptCoupling_->CreateStoreSol(i,ACOU_FORCE,isComplex_);
+	ptCoupling_->CreateCouplingVector(i,isComplex_);
       }
     }
 
@@ -317,17 +322,18 @@ namespace CoupledField {
 
     Integer dof;
     std::string quantity;
-    std::vector<Elem*> * couplingElems = NULL;
-    std::vector<Elem*> * interfaceVolElems = NULL;
-    std::vector<Integer> * couplingNodes = NULL;
-    std::vector<MaterialData*> * couplingMaterials = NULL;
-    BaseStoreSol * values = NULL;
+    StdVector<Elem*> * couplingElems = NULL;
+    StdVector<Elem*> * interfaceVolElems = NULL;
+    StdVector<Integer> * couplingNodes = NULL;
+    StdVector<MaterialData*> * couplingMaterials = NULL;
+    CFSVector * temp_values = NULL;
   
     // loop over all output coupling quantities
     for (Integer i=0; i<ptCoupling_->GetNumOutputCouplings(); i++) {
       quantity = ptCoupling_->GetOutputQuantity(i);
-      ptCoupling_->GetOutputValues(i, values);
-      StoreSol<Double> * temp = dynamic_cast<StoreSol<Double>*>(values);
+      ptCoupling_->GetOutputValues(i, temp_values);
+      
+      Vector<Double> * values = dynamic_cast<Vector<Double>*>(temp_values);
 
       switch(ptCoupling_->GetOutputType(i)) {
 
@@ -340,7 +346,7 @@ namespace CoupledField {
 	    dof = ptCoupling_->GetOutputDof(i);
 	    
 	    CalcMechCouplingRHS(couplingElems, *couplingNodes,
-				couplingMaterials, *temp, dof,
+				couplingMaterials, *values, dof,
 				interfaceVolElems);
 	  }
 	  break;
@@ -352,12 +358,12 @@ namespace CoupledField {
   }
 
 
-  void AcousticPDE::CalcMechCouplingRHS(std::vector<Elem*> * couplingElems, 
-					std::vector<Integer> & couplingNodes,
-					std::vector<MaterialData*> * couplingMaterials,
-					StoreSol<Double>& elemCouplingSols,
+  void AcousticPDE::CalcMechCouplingRHS(StdVector<Elem*> * couplingElems, 
+					StdVector<Integer> & couplingNodes,
+					StdVector<MaterialData*> * couplingMaterials,
+					Vector<Double>& elemCouplingSols,
 					Integer couplingdof,
-					std::vector<Elem*> * interfaceVolElems)
+					StdVector<Elem*> * interfaceVolElems)
   {
     ENTER_FCN( "AcousticPDE::CalcMechCouplingRHS" );
 
@@ -365,11 +371,11 @@ namespace CoupledField {
    
     elemCouplingSols.Init(0.0);
 
-    for (Integer actElem=0; actElem<couplingElems->size(); actElem++) {
+    for (Integer actElem=0; actElem<couplingElems->GetSize(); actElem++) {
       Elem * actCoupleElem = (*couplingElems)[actElem];
       BaseFE * ptElem          = actCoupleElem->ptElem;
 
-      Vector<Integer> connecth = actCoupleElem->connect;
+      StdVector<Integer> connecth = actCoupleElem->connect;
 
       Matrix<Double> ptCoord; 
       GetElemCoords(connecth, ptCoord, actlevel_);
@@ -378,7 +384,7 @@ namespace CoupledField {
       
       // get correct density belonging to the neighbouring element
       // of the interface
-      for (Integer actSD = 0; actSD < subdoms_.size(); actSD++)	{  
+      for (Integer actSD = 0; actSD < subdoms_.GetSize(); actSD++)	{  
 	if ((*interfaceVolElems)[actElem]->namesd ==  subdoms_[actSD]) {
 	  density = materialData_[actSD].GetDensity();
 	  found = TRUE;
@@ -397,11 +403,8 @@ namespace CoupledField {
       bilinear_mass->CalcElementMatrix(ptCoord, elemmat);
       delete bilinear_mass;	  
 
-      Vector<Integer> connect_PDE;
-      Mesh2PDENode(connect_PDE, connecth, mesh2PDENode_);
-      
       Vector<Double> sol;
-      GetDerivSolVecOfElement(sol, connect_PDE);
+      GetDerivSolVecOfElement(sol, connecth);
       
       Vector<Double> forceOnElem = elemmat * sol;
       // force has to be added on RHS with negative sign
@@ -418,12 +421,13 @@ namespace CoupledField {
 	Integer nodePos = 0;
 	  
 	while(connecth[actNode] != couplingNodes[nodePos] &&
-	      nodePos < couplingNodes.size()) {
+	      nodePos < couplingNodes.GetSize()) {
 	  nodePos++;
 	}
 	  
 	for (Integer actDof=0; actDof < couplingdof ; actDof++) {
-	  elemCouplingSols(nodePos,actDof) += forceOnElem[actNode] * n[actDof];
+	  elemCouplingSols[nodePos*couplingdof +actDof] += 
+	    forceOnElem[actNode] * n[actDof];
 	}
       }
     }
@@ -451,11 +455,14 @@ namespace CoupledField {
     MPI_Comm_rank(MPI_COMM_WORLD,&commrank);
     if (!commrank) {
 #endif
-      StoreSol<Double> sol_mesh, solder1_mesh, solder2_mesh, solIm_mesh;
+      NodeStoreSol<Double> solIm_mesh;
+      
+      NodeStoreSol<Double> const & solConverted = 
+	dynamic_cast<NodeStoreSol<Double>&>(*sol_);
  
       if (analysistype_==HARMONIC) {
-	StoreSol<Complex> solmesh;
-	sol_->TransformNodeSolution(solmesh,pde2MeshNode_,ptgrid_,actlevel_);
+	Error(" Has to be adapted due to new StoreSol class", __FILE__, __LINE__);
+	NodeStoreSol<Complex> solmesh;
 	Vector<Complex> solution;
 	solmesh.GetCompleteVector(solution);
 	for (Integer k=0; k<solution.GetSize(); k++)
@@ -466,44 +473,39 @@ namespace CoupledField {
       }
       else {  
 
-	if (savesol_) {
-	  sol_->TransformNodeSolution(sol_mesh,pde2MeshNode_,ptgrid_,
-				      actlevel_);
-	}
+	//if (savesol_) {
+	//  sol_->TransformNodeSolution(sol_mesh, ptgrid_, actlevel_);
+	//}
 	if (savederiv1_) {
 	  sol_der1Array_.SetSolVector(ACOU_VELOCITY,getS1());
-	  sol_der1Array_.TransformNodeSolution(solder1_mesh,pde2MeshNode_,
-					       ptgrid_,actlevel_);
 	}
 
 	if (savederiv2_) {
 	  sol_der2Array_.SetSolVector(ACOU_VELOCITY,getS2());
-	  sol_der2Array_.TransformNodeSolution(solder2_mesh,pde2MeshNode_,
-					       ptgrid_,actlevel_);
+	  //sol_der2Array_.TransformNodeSolution(solder2_mesh, ptgrid_,actlevel_);
 	}
       
 	if (outFile_->IsGMV()) {
 	  if (savesol_)
-	    outFile_->WriteNodeSolution(sol_mesh,laststepcalc_,lasttimecalc_,
-					"vp");
+	    outFile_->WriteNodeSolution(solConverted,laststepcalc_,lasttimecalc_,"vp");
 	  if (savederiv1_)
-	    outFile_->WriteNodeSolution(solder1_mesh,laststepcalc_,
+	    outFile_->WriteNodeSolution(sol_der1Array_,laststepcalc_,
 					lasttimecalc_,"vp_1der");
 	  if (savederiv2_)
-	    outFile_->WriteNodeSolution(solder2_mesh,laststepcalc_,
+	    outFile_->WriteNodeSolution(sol_der2Array_,laststepcalc_,
 					lasttimecalc_,"vp_2der");
 	}
 	else {
 	  if (savesol_)
-	    outFile_->WriteNodeSolution(sol_mesh,laststepcalc_,lasttimecalc_,
+	    outFile_->WriteNodeSolution(solConverted,laststepcalc_,lasttimecalc_,
 					"fluid potential");
 	  
 	  if (savederiv1_)
-	    outFile_->WriteNodeSolution(solder1_mesh,laststepcalc_,
+	    outFile_->WriteNodeSolution(sol_der1Array_,laststepcalc_,
 					lasttimecalc_,
 					"fluid potential, 1st deriv.");
 	  if (savederiv2_)
-	    outFile_->WriteNodeSolution(solder2_mesh,laststepcalc_,
+	    outFile_->WriteNodeSolution(sol_der2Array_,laststepcalc_,
 					lasttimecalc_,
 					"fluid potential, 2nd deriv.");
 	}

@@ -107,10 +107,10 @@ private:
   Integer numcoupledpde_; //!< number of coupled PDEs
   Integer numgraph_;      //!< number of graphs needed (node-graphs, edge-graphs, etc.)
   Integer ** syscoupling_; //!< matrix, containing coupling information between the systems
-  std::vector<BasePDE*> ptpde_;   //!< pointers to PDEs
+  StdVector<BasePDE*> ptpde_;   //!< pointers to PDEs
   BaseCoupledPDE * ptcoupledpde_; //!< pointer to coupled PDEs
-  std::vector<BasePDE*> orderedpdes_; //!<pointer to PDEs in right order for coupling
-  std::vector<PDECoupling*> couplings_; //!<pointer to coupling objects
+  StdVector<BasePDE*> orderedpdes_; //!<pointer to PDEs in right order for coupling
+  StdVector<PDECoupling*> couplings_; //!<pointer to coupling objects
   Grid * ptgrid_; //!< pointer to grid object
   BCs * ptBCs_;   //!< pointer to object storing boundary conditions
   // AbstractAlgebraicSys * ptalgsys_; //!< pointer to algebraic system

@@ -3,6 +3,7 @@
 
 // Required for the CFS own data types
 #include "General/environment.hh"
+#include "Utils/StdVector.hh"
 
 namespace CoupledField
 {
@@ -163,7 +164,7 @@ namespace CoupledField
     //! \param subsection Name of a subsection in which to look for keyword
     //!                   (optional)
     virtual void GetList( const std::string key,
-			  std::vector<std::string> &list,
+			  StdVector<std::string> &list,
 			  const std::string section = "",
 			  const std::string subsection = "" ) = 0;
 
@@ -183,7 +184,7 @@ namespace CoupledField
     //! \param subsection Name of a subsection in which to look for keyword
     //!                   (optional)
     virtual void GetList( const std::string key,
-			  std::vector<Double> &list,
+			  StdVector<Double> &list,
 			  const std::string section = "",
 			  const std::string subsection = "" ) = 0;
 
@@ -211,7 +212,7 @@ namespace CoupledField
     //! \param subsection   Name of a subsection in which to look for keyword
     //!                     (optional)
     virtual void CGetList( const std::string key,
-			   std::vector<std::string> &list,
+			   StdVector<std::string> &list,
 			   const std::string attribute,
 			   const std::string value,
 			   Integer applyToElem,
@@ -224,7 +225,7 @@ namespace CoupledField
     //! in the parameter file. The list is returned as a vector of standard
     //! strings. The method will return an empty vector, if there are no
     //! matches.
-    virtual void GetPDEList( std::vector<std::string> &list ) = 0;
+    virtual void GetPDEList( StdVector<std::string> &list ) = 0;
 
     //! Obtain list of coils defined in parameter file
 
@@ -233,7 +234,7 @@ namespace CoupledField
     //! standard strings. The method will return an empty vector, if there are
     //! no matches. By specifying the optional pde input parameter the search
     //! can be restricted to a certain PDE entry in the pdeList section.
-    virtual void GetCoilList( std::vector<std::string> &list,
+    virtual void GetCoilList( StdVector<std::string> &list,
 			      const std::string pde ="" ) = 0;
 
     //! Obtain the type of a certain coils

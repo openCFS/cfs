@@ -5,8 +5,8 @@
 namespace CoupledField
 {
 
-  IterCoupledPDE::IterCoupledPDE(std::vector<BasePDE*> & PDEs,
-				 std::vector<PDECoupling*> & Couplings,
+  IterCoupledPDE::IterCoupledPDE(StdVector<BasePDE*> & PDEs,
+				 StdVector<PDECoupling*> & Couplings,
 				 Grid *aptgrid, 
 				 BCs *aptBCs, 
 				 FileType *aInFile, 
@@ -37,35 +37,35 @@ namespace CoupledField
   {
     ENTER_FCN ("IterCoupledPDE::InitCoupling" );
   
-    std::vector<std::string> CouplingTerms;
-    std::vector<std::string> NodeCouplings;
-    std::vector<std::string> SubdomainCouplings;
-    std::vector<std::string> Elem1DCouplings;
-    std::vector<std::string> Elem2DCouplings;
+    StdVector<std::string> CouplingTerms;
+    StdVector<std::string> NodeCouplings;
+    StdVector<std::string> SubdomainCouplings;
+    StdVector<std::string> Elem1DCouplings;
+    StdVector<std::string> Elem2DCouplings;
 
     // Iterate over all PDEs
-    for (Integer i=0; i<PDEs_.size(); i++)
+    for (Integer i=0; i<PDEs_.GetSize(); i++)
       {
-	CouplingTerms.clear();
+	CouplingTerms.Clear();
 
 	// read in "input_coupling_terms"
 	if (conf->ifgetliststr("input_coupling_terms", CouplingTerms, PDEs_[i]->GetName()))
 	  {
-	    for (Integer j=0; j<CouplingTerms.size(); j++)
+	    for (Integer j=0; j<CouplingTerms.GetSize(); j++)
 	      {
 
-		NodeCouplings.clear();
-		SubdomainCouplings.clear();
-		Elem1DCouplings.clear();
-		Elem2DCouplings.clear();
+		NodeCouplings.Clear();
+		SubdomainCouplings.Clear();
+		Elem1DCouplings.Clear();
+		Elem2DCouplings.Clear();
 
 		// Read in node coupling terms
 		if (conf->ifgetliststr(CouplingTerms[j], NodeCouplings, PDEs_[i]->GetName(), "node_coupling"))
 		  {
-		  for (Integer k=0; k<NodeCouplings.size(); k++)
+		  for (Integer k=0; k<NodeCouplings.GetSize(); k++)
 		    {
 		      Couplings_[i]->AddInput(CouplingTerms[j], NodeCouplings[k], NODES, actlevel_, Couplings_);
-		      norms_.push_back(1.0);
+		      norms_.Push_back(1.0);
 		    }
 		  }
 		
@@ -75,11 +75,11 @@ namespace CoupledField
 		    // Read in subdomain coupling terms
 		    if (conf->ifgetliststr(CouplingTerms[j], SubdomainCouplings, PDEs_[i]->GetName(), 
 					 "subdomain_coupling"))
-		      for (Integer k=0; k<SubdomainCouplings.size(); k++)
+		      for (Integer k=0; k<SubdomainCouplings.GetSize(); k++)
 			{
 			  Couplings_[i]->AddInput(CouplingTerms[j], SubdomainCouplings[k], SUBDOMAIN, actlevel_, 
 						  Couplings_);
-			  norms_.push_back(1.0);
+			  norms_.Push_back(1.0);
 			}
 		  }
 		
@@ -87,11 +87,11 @@ namespace CoupledField
 					    "elem1d_coupling"))
 		  {
 		    // Read in elem1D coupling terms
-		    for (Integer k=0; k<Elem1DCouplings.size(); k++)
+		    for (Integer k=0; k<Elem1DCouplings.GetSize(); k++)
 		      {
 			Couplings_[i]->AddInput(CouplingTerms[j], Elem1DCouplings[k], ELEMS1D, actlevel_, 
 						Couplings_);
-			norms_.push_back(1.0);
+			norms_.Push_back(1.0);
 		      }
 		  }
 		
@@ -99,11 +99,11 @@ namespace CoupledField
 					     "elem2d_coupling"))
 		  {
 		    // Read in elem2D coupling terms
-		    for (Integer k=0; k<Elem2DCouplings.size(); k++)
+		    for (Integer k=0; k<Elem2DCouplings.GetSize(); k++)
 		      {
 			Couplings_[i]->AddInput(CouplingTerms[j], Elem2DCouplings[k], ELEMS2D, actlevel_, 
 						Couplings_);
-			norms_.push_back(1.0);
+			norms_.Push_back(1.0);
 		      }
 		  }
 		
@@ -125,7 +125,7 @@ namespace CoupledField
       }
   
     // Initialize each PDEs coupling terms
-    for (Integer i=0; i<PDEs_.size(); i++)
+    for (Integer i=0; i<PDEs_.GetSize(); i++)
       PDEs_[i]->InitCoupling(Couplings_[i]); 
   
     // write coupling data in .info-file
@@ -138,7 +138,7 @@ namespace CoupledField
   {
     ENTER_FCN ( "entering  IterCoupledPDE::SolveStepStatic" );
   
-    BaseStoreSol *val, *oldVal;
+    CFSVector *val, *oldVal;
     Integer iter = 0;
     Integer counter = 0;
     Boolean normsReached = FALSE;
@@ -154,7 +154,7 @@ namespace CoupledField
 	counter = 0;
 	normsReached = TRUE;
       
-	for (Integer i=0; i<PDEs_.size(); i++)
+	for (Integer i=0; i<PDEs_.GetSize(); i++)
 	  {
 	    Info->PrintF(coupledpdename_, " Processing PDE %s", 
 			 (PDEs_[i]->GetName()).c_str());
@@ -180,10 +180,8 @@ namespace CoupledField
 		  normsReached = FALSE;
 		
 		//copy values of new solution to old one
-		Vector<Double> valnew;
-		val->GetCompleteVector(valnew);
-		oldVal->SetCompleteVector(valnew);
-
+		*oldVal = *val;
+	
 		counter++;	      
 	      }
 	  }
@@ -193,7 +191,7 @@ namespace CoupledField
       }
 
     // now we are converged and can compute any postprocessing-quantities
-    for (Integer i=0; i<PDEs_.size(); i++)
+    for (Integer i=0; i<PDEs_.GetSize(); i++)
       PDEs_[i]->PostProcess(actlevel_);
 
   }
@@ -222,7 +220,7 @@ namespace CoupledField
 	Integer counter = 0;
 	normsReached = TRUE;
       
-	for (Integer i=0; i<PDEs_.size(); i++)
+	for (Integer i=0; i<PDEs_.GetSize(); i++)
 	  {
 	    Info->PrintF(coupledpdename_, " Processing PDE %s", 
 			 (PDEs_[i]->GetName()).c_str());
@@ -236,7 +234,7 @@ namespace CoupledField
 	    // Calculate Norms
 	    for (Integer k=0; k<Couplings_[i]->GetNumOutputCouplings(); k++)
 	      {
-		BaseStoreSol *val, *oldVal;
+		CFSVector *val, *oldVal;
 		Couplings_[i]->GetOutputValues(k, val);
 		Couplings_[i]->GetOutputOldValues(k, oldVal);
 		norms_[counter] = CalcNorm(Couplings_[i]->GetOutputNormType(k), *val, *oldVal);
@@ -265,7 +263,7 @@ void IterCoupledPDE::WriteResultsInFile()
 {
   ENTER_FCN( "IterCoupledPDE::WriteResultsInFile" );
 
-  for (Integer i=0; i<PDEs_.size(); i++)
+  for (Integer i=0; i<PDEs_.GetSize(); i++)
     PDEs_[i]->WriteResultsInFile();
 }
 
@@ -274,8 +272,8 @@ void IterCoupledPDE::WriteCouplingInfo()
 {
   ENTER_FCN( "IterCoupledPDE::WriteCouplingInfo" );
 
-  BaseStoreSol *val;
-  std::vector<Integer> * nodes;
+  CFSVector *val;
+  StdVector<Integer> * nodes;
 
   if (!debug)
     return;
@@ -286,11 +284,12 @@ void IterCoupledPDE::WriteCouplingInfo()
   (*debug) << "=======================" << std::endl;
   (*debug) << std::endl;
 
-  for (Integer ipde=0; ipde<PDEs_.size(); ipde++)
+  for (Integer ipde=0; ipde<PDEs_.GetSize(); ipde++)
     {
       
       (*debug) << "Entering " << Couplings_[ipde]->GetPDEName() << ".InitCoupling" << std::endl;
       (*debug) << "=====================================" << std::endl;
+      
       
       // Show InputCouplings
       for (Integer i=0; i<Couplings_[ipde]->GetNumInputCouplings(); i++)
@@ -343,7 +342,7 @@ void IterCoupledPDE::WriteCouplingInfo()
 }
 
 
-Double IterCoupledPDE::CalcNorm(NormType normtype, BaseStoreSol & val, BaseStoreSol & oldval)
+Double IterCoupledPDE::CalcNorm(NormType normtype, CFSVector & val, CFSVector & oldval)
 {
   ENTER_FCN( "IterCoupledPDE::CalcNorm" );
 
@@ -356,13 +355,14 @@ Double IterCoupledPDE::CalcNorm(NormType normtype, BaseStoreSol & val, BaseStore
   Double norm, valNorm2;
   
 
-  const Vector<Double> & val_vec =\
-    dynamic_cast<StoreSol<Double>& >(val).GetCompleteVector();
-  const Vector<Double> & oldval_vec =\
-    dynamic_cast<StoreSol<Double>& >(oldval).GetCompleteVector();
+  Vector<Double> & val_vec =\
+    dynamic_cast<Vector<Double>& >(val);
+
+  Vector<Double> & oldval_vec =\
+    dynamic_cast<Vector<Double>& >(oldval);
   
   delta = val_vec - oldval_vec;
-  
+
   switch (normtype)
     {
     case L2ABS:

@@ -10,11 +10,11 @@
 #include "Estimator/spaceerror.hh"
 #include "DataInOut/WriteInfo.hh"
 #include "Driver/assemble.hh"
-#include "nodeEQN.hh"
 #include "trapezoidal.hh"
 #include "Utils/Coil.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
 #include "Utils/SmoothSpline.hh"
+#include "PDE/scalarnodeEQN.hh"
 #include "magneticPDE.hh"
 
 namespace CoupledField {
@@ -105,17 +105,12 @@ namespace CoupledField {
     // Map global numeration of element and nodes to local one
     AssignPDENodeNumbers(mesh2PDENode_, pde2MeshNode_, subdoms_);  
     AssignPDEElemNumbers(mesh2PDEElem_, pde2MeshElem_, subdoms_);
-    numPDENodes_ = pde2MeshNode_.size();
-    numElems_ = pde2MeshElem_.size();
+    numPDENodes_ = pde2MeshNode_.GetSize();
+    numElems_ = pde2MeshElem_.GetSize();
 
     deltCoords_.Resize(dim_,numPDENodes_);
 
-    // Initalize solution class
-    sol_->SetNumSolutions(1);
-    sol_->SetSolutionType(MAG_POTENTIAL);
-    sol_->SetNumNodes(numPDENodes_);
-    sol_->SetNumDofs(dofspernode_);
-    sol_->Init(0.0);
+   
   
   
     // set analysis parameters
@@ -136,6 +131,21 @@ namespace CoupledField {
     assemble_->SetPtr2Sol(sol_);
     assemble_->SetPtr2TimeFnc(ptTimeFunc_);
 
+    // initialize eqation data object
+    eqnData_  = new ScalarNodeEQN(ptgrid_, ptBCs_, subdoms_, actlevel_, dofspernode_);
+    eqnData_->SetHomoDirichletBCs(bcs_hd_, homDirichDof_);
+    eqnData_->CalcMapping();
+    //eqnData_->Print(std::cerr);
+    assemble_->SetPtr2EQNData(eqnData_); 
+
+    // Initalize solution class
+    sol_->SetNumSolutions(1);
+    sol_->SetSolutionType(MAG_POTENTIAL);
+    sol_->SetNumNodes(numPDENodes_);
+    sol_->SetNumDofs(dofspernode_);
+    sol_->SetPtrEQNData(eqnData_);
+    sol_->Init();
+    
     ReadMaterialData();
    
     DefineIntegrators(actlevel_);  
@@ -153,7 +163,7 @@ namespace CoupledField {
     Boolean iscoil;
     Integer idxcoil;
 
-    for (int actSD = 0; actSD < subdoms_.size(); actSD++)
+    for (int actSD = 0; actSD < subdoms_.GetSize(); actSD++)
       {
 	Double reluctivity  = materialData_[actSD].GetPermeability();
 	if ( reluctivity == 0)
@@ -204,7 +214,7 @@ namespace CoupledField {
 
 	//=========================== RHS =====================================
 	iscoil = FALSE;
-	for (Integer dom=0; dom<coilDef_.size(); dom++)
+	for (Integer dom=0; dom<coilDef_.GetSize(); dom++)
 	  if (subdoms_[actSD] == coilName_[dom]) 
 	    {
 	      iscoil = TRUE;
@@ -265,7 +275,7 @@ void MagPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
   // Cast BaseStoreSol into StoreSol<Double>,
   // since this function is only called
   // in the transient case
-  StoreSol<Double> * solhelp = dynamic_cast<StoreSol<Double>*>(sol_);
+  NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
 
   //set actual solution  
   actSol = solhelp->GetCompleteVector();
@@ -335,9 +345,10 @@ void MagPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
 
       // recalculate RHS with new values to get new residual (f^(k+1))========
 #ifndef USE_OLAS    
-      std::vector<Double>  help;
-      RhsLinVal_.ToStdVector(help);
-      algsys_->InitRHS(help);
+      //std::vector<Double>  help;
+      //RhsLinVal_.ToStdVector(help);
+      //algsys_->InitRHS(help);
+      algsys_->InitRHS(RhsLinVal_.GetPointer());
 #endif
 
       //Update RHS (mass matrix on right hand side)
@@ -402,7 +413,7 @@ void MagPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
 
   void MagPDE :: InitTimeStepping(const Double dt) {
     ENTER_FCN( "MagPDE::InitTimeStepping" );
-    TS_alg_ = new Trapezoidal(pdename_, algsys_, 1, numPDENodes_*dofspernode_);
+    TS_alg_ = new Trapezoidal(pdename_, algsys_, eqnData_);
     TS_alg_->Init(matrix_factor_, dt);
   }
 
@@ -469,9 +480,10 @@ void MagPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
 
 	// recalculate RHS with new values to get new residual (f^(k+1))========
 #ifndef USE_OLAS    
-	std::vector<Double>  help;
-	RhsLinVal_.ToStdVector(help);
-	algsys_->InitRHS(help);
+	//std::vector<Double>  help;
+	//RhsLinVal_.ToStdVector(help);
+	//algsys_->InitRHS(help);
+	algsys_->InitRHS(RhsLinVal_.GetPointer());
 #endif
 
 	assemble_->AssembleNLRHS(level);  // nonlinear part of RHS
@@ -549,35 +561,59 @@ void MagPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
     return RhsLinL2Norm;
   }
 
+Double MagPDE::RhsL2Norm(Vector<Double>& actRHS)
+{
+  ENTER_FCN( "MagPDE::RhsL2Norm" );
 
-  // calculates L2-norm of RHS regarding dirichlet entries due to penalty formulation by setting them 0
-  Double MagPDE::RhsL2Norm(Vector<Double>& actRHS)
-  {
-    ENTER_FCN( "MagPDE::RhsL2Norm" );
-
-    Integer node;
+  Integer node, eqn;
   
-    std::list<Integer> nodes;
-
-    // Eliminate dirichlet node from RHS (due to penalty formulation)
-    for (Integer i=0; i< bcs_hd_.size(); i++)
-      {
-	nodes=ptBCs_->GetNodesLevel(bcs_hd_[i]);
+  std::list<Integer> nodes;
+  
+  // Eliminate dirichlet node from RHS (due to penalty formulation)
+  for (Integer i=0; i< bcs_hd_.GetSize(); i++)
+    {
+      nodes=ptBCs_->GetNodesLevel(bcs_hd_[i]);
       
-	for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end(); p++)
-	  {
+      for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end(); p++)
+	{
 	    node=*p;
-	    actRHS[mesh2PDENode_[node-1]-1] = 0;
-	  }
-      }
+	    eqn = eqnData_->Node2EQN(node);
+	    if (eqn != 0){
+	      actRHS[(eqn-1)] = 0;
+	    }
+	}
+    }
+  return actRHS.NormL2();
+}
 
-    return actRHS.NormL2();
-  }
+//   // calculates L2-norm of RHS regarding dirichlet entries due to penalty formulation by setting them 0
+//   Double MagPDE::RhsL2Norm(Vector<Double>& actRHS)
+//   {
+//     ENTER_FCN( "MagPDE::RhsL2Norm" );
 
-  void MagPDE::PostStepStatic(const Integer level) {
-    ENTER_FCN( "MagPDE::PostStepStatic" );
-    if (pdeIsCoupled_) iterCoupledCounter_++;
-  }
+//     Integer node;
+  
+//     std::list<Integer> nodes;
+
+//     // Eliminate dirichlet node from RHS (due to penalty formulation)
+//     for (Integer i=0; i< bcs_hd_.GetSize(); i++)
+//       {
+// 	nodes=ptBCs_->GetNodesLevel(bcs_hd_[i]);
+      
+// 	for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end(); p++)
+// 	  {
+// 	    node=*p;
+// 	    actRHS[mesh2PDENode_[node-1]-1] = 0;
+// 	  }
+//       }
+
+//     return actRHS.NormL2();
+//   }
+
+   void MagPDE::PostStepStatic(const Integer level) {
+     ENTER_FCN( "MagPDE::PostStepStatic" );
+     if (pdeIsCoupled_) iterCoupledCounter_++;
+   }
 
 
 
@@ -586,8 +622,8 @@ void MagPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
   {
     ENTER_FCN( "MagPDE::StoreAlgsysToVec" );
 
-    const Integer numElems = numPDENodes_ * dofspernode_;
-  
+    //    const Integer numElems = numPDENodes_ * dofspernode_;
+    Integer numElems = eqnData_->GetNumEQNs() * eqnData_->GetNumDofsPerEQN();
     vec.Resize(numElems);
 
     for (Integer i=0; i<numElems; i++)   
@@ -605,24 +641,20 @@ void MagPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
 
     ShortInt Dim = ptgrid_->GetDim();
 
-    StoreSol<Double> B_Mesh, Jeddy_Mesh, Force_Mesh, Sol_Mesh;
-
-    // transform solution vector for electric potential
-    sol_->TransformNodeSolution(Sol_Mesh,pde2MeshNode_,ptgrid_,actlevel_);
-
-    // CHANGE F_Interface_
-    // TransformElemSolution(Force_Mesh,Force_,F_Interface_[0]);
+    //ElemStoreSol<Double> B_Mesh, Jeddysh, Force_Mesh;
+    
+    NodeStoreSol<Double> const & solConverted = 
+      dynamic_cast<NodeStoreSol<Double>&>(*sol_);
    
     // write results
     if (outFile_->IsGMV()) {
 
       // write magnetic potential
-      outFile_->WriteNodeSolution(Sol_Mesh,laststepcalc_,lasttimecalc_,
+      outFile_->WriteNodeSolution(solConverted,laststepcalc_,lasttimecalc_,
 				  "Mag-Potential");
       
-      if (calcBfield_.size() !=0 ) {
-	B_.TransformElemSolution(B_Mesh,pde2MeshElem_,ptgrid_,actlevel_);
-	outFile_->WriteElemSolution(B_Mesh,laststepcalc_,lasttimecalc_,
+      if (calcBfield_.GetSize() !=0 ) {
+	outFile_->WriteElemSolution(B_,laststepcalc_,lasttimecalc_,
 				    "B-Field");
 	//outFile_->WriteElemSolution(Force_Mesh,step,time,"E-Force");
       }
@@ -631,19 +663,16 @@ void MagPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
     else {
 
       // write magnetic potential
-      outFile_->WriteNodeSolution(Sol_Mesh,laststepcalc_,lasttimecalc_,
+      outFile_->WriteNodeSolution(solConverted, laststepcalc_, lasttimecalc_,
 				  "mag. vector potential");
 
-      if (calcBfield_.size() !=0 ) {
-	B_.TransformElemSolution(B_Mesh,pde2MeshElem_,ptgrid_,actlevel_);
-	outFile_->WriteElemSolution(B_Mesh,laststepcalc_,lasttimecalc_,
+      if (calcBfield_.GetSize() !=0 ) {
+	outFile_->WriteElemSolution(B_, laststepcalc_, lasttimecalc_,
 				    "mag. flux density");
       }
 
-      if (calcEddy_.size() !=0 ) {
-	Jeddy_.TransformElemSolution(Jeddy_Mesh,pde2MeshElem_,ptgrid_,
-				     actlevel_);
-	outFile_->WriteElemSolution(Jeddy_Mesh,laststepcalc_,lasttimecalc_,
+      if (calcEddy_.GetSize() !=0 ) {
+	outFile_->WriteElemSolution(Jeddy_, laststepcalc_, lasttimecalc_,
 				    "eddy current");
       }
     }
@@ -654,25 +683,25 @@ void MagPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
 
     ENTER_FCN( "MagPDE::PostProcess" );
 
-    StoreSol<Double> * solhelp = dynamic_cast<StoreSol<Double>*>(sol_);
+    NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
   
-    if (calcEnergy_.size() !=0 )
+    if (calcEnergy_.GetSize() !=0 )
       CalcEnergy();
 
-    if (calcBfield_.size() !=0 ) {
+    if (calcBfield_.GetSize() !=0 ) {
 
-      CurlNodeOp * FieldOp = new CurlNodeOp(ptgrid_, this, &mesh2PDENode_,
+      CurlNodeOp * FieldOp = new CurlNodeOp(ptgrid_, this, eqnData_,
 					    *solhelp, level);
       FieldOp->Set2DType(isaxi_);
  
       // ------ Calculation of the electric field ------
 
-      std::vector<Double> LCoord;
-      LCoord.resize(dim_);
+      Vector<Double> LCoord;
+      LCoord.Resize(dim_);
       LCoord[0] = 0;
       LCoord[1] = 0;
       
-      std::vector<Elem*> elemssd;
+      StdVector<Elem*> elemssd;
       Integer counterElems=0;
       Vector<Double> TempE;
       
@@ -682,15 +711,16 @@ void MagPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
       B_.SetNumNodes(numElems_);
       B_.SetNumDofs(dim_);
       B_.Init(0);
+      B_.SetElemMapping(pde2MeshElem_);
       
       // loop over all subdomains
-      for (Integer isd=0; isd<calcBfield_.size(); isd++) {
+      for (Integer isd=0; isd<calcBfield_.GetSize(); isd++) {
 
 	// get vector of Elem of subdomain with color: subdoms[isd]
 	ptgrid_->GetElemSD(elemssd,calcBfield_[isd],level);
 	  
 	// loop over elements of subdomain
-	for (Integer iel=0; iel< elemssd.size(); iel++,counterElems++) {
+	for (Integer iel=0; iel< elemssd.GetSize(); iel++,counterElems++) {
 
 	  FieldOp->CalcElemCurlNode( TempE, elemssd[iel], LCoord); 
 	  B_.SetNodalResult(mesh2PDEElem_[elemssd[iel]->elemNum - 1]-1, TempE);
@@ -699,17 +729,17 @@ void MagPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
       delete FieldOp;
     }
 
-    if (calcEddy_.size() !=0 ) {
+    if (calcEddy_.GetSize() !=0 ) {
 
-      std::vector<Double> LCoord;
-      LCoord.resize(dim_);
+      Vector<Double> LCoord;
+      LCoord.Resize(dim_);
       LCoord[0] = 0;
       LCoord[1] = 0;
       
-      std::vector<Elem*> elemssd;
-      std::vector<Double> ShpFnc, tmp;
+      StdVector<Elem*> elemssd;
+      Vector<Double> ShpFnc, tmp;
       Vector<Double> magVecDeriv1Elem;
-      Vector<Integer> connect, connect_PDE;
+      StdVector<Integer> connect, connect_PDE;
       Double conductivity = 0.0;
 
       Integer counterElems=0;
@@ -725,31 +755,29 @@ void MagPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
 
       // dimension hard coded for .unv file!
       Jeddy_.SetNumDofs(3);
+      Jeddy_.SetElemMapping(mesh2PDEElem_);
       Jeddy_.Init(0);
 
       // loop over all subdomains
-      for (Integer actSD=0; actSD<calcEddy_.size(); actSD++) {
+      for (Integer actSD=0; actSD<calcEddy_.GetSize(); actSD++) {
 
 	// get vector of Elem of subdomain with color: subdoms[isd]
 	ptgrid_->GetElemSD(elemssd,calcEddy_[actSD],level);
 	  
 	// Get the right material parameter for actual subdomain
-	for (Integer iSD=0; iSD<subdoms_.size(); iSD++)
+	for (Integer iSD=0; iSD<subdoms_.GetSize(); iSD++)
 	  if (subdoms_[iSD] == calcEddy_[actSD])
 	    conductivity = materialData_[iSD].GetConductivity(); 	  
 
 	// loop over elements of subdomain
-	for (Integer actEl=0; actEl< elemssd.size(); actEl++,counterElems++) {
+	for (Integer actEl=0; actEl< elemssd.GetSize(); actEl++,counterElems++) {
 	  BaseFE * ptEl = elemssd[actEl]->ptElem;
 	  ptEl->GetShFnc(ShpFnc,LCoord);
 
 	  connect = elemssd[actEl]->connect;
-	  // Mape Mesh to PDE node numbers
-	  Mesh2PDENode(connect_PDE,connect,mesh2PDENode_);
-
-	  GetSolDerivOfElement(magVecDeriv1Elem,connect_PDE);
-	  magVecDeriv1Elem.ToStdVector(tmp);
-	  JeddyElem[0] = tmp * ShpFnc;
+	  
+	  GetDerivSolVecOfElement(magVecDeriv1Elem,connect);
+	  JeddyElem[0] = magVecDeriv1Elem * ShpFnc;
 	  JeddyElem[0] *= -conductivity;
 	  Jeddy_.SetNodalResult(mesh2PDEElem_[elemssd[actEl]->elemNum - 1]-1,
 				JeddyElem);
@@ -773,22 +801,22 @@ void MagPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
     Matrix<Double> ptCoord;
     BaseFE         * ptElem;
 
-    Vector<Integer> connecth, connect_PDE, Eqns;  
+    StdVector<Integer> connecth, Eqns;  
     Vector<double> help;
 
     Integer i, j;
-    std::vector<Double> energy(calcEnergy_.size());
+    Vector<Double> energy(calcEnergy_.GetSize());
 
-    for (i=0; i<calcEnergy_.size(); i++) {
+    for (i=0; i<calcEnergy_.GetSize(); i++) {
 
       //reads eps33 (matrix notation starts with 0)
       Double eps33 = materialData_[i].GetPermittivity(2,2);
 
-      std::vector<Elem*> elemssd;
+      StdVector<Elem*> elemssd;
       ptgrid_->GetElemSD(elemssd,calcEnergy_[i],actlevel_);
 
       energy[i] = 0;
-      for (j=0; j < elemssd.size(); j++) {
+      for (j=0; j < elemssd.GetSize(); j++) {
 
 	ptElem=elemssd[j]->ptElem;
 	BaseForm * bilinear_stiff = new LaplaceInt(ptElem, eps33, isaxi_);
@@ -797,16 +825,15 @@ void MagPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
 	GetElemCoords(connecth, ptCoord, actlevel_);
 	bilinear_stiff->CalcElementMatrix(ptCoord, elemmat);
 
-	// Mape Mesh to PDE node numbers
-	Mesh2PDENode(connect_PDE,connecth,mesh2PDENode_);
-
 	// 	  EqnData_->Mesh2Eqn(Eqns,connecth);
 	// 	  (*debug) << "Nodes:" << connecth << std::endl;
 	// 	  (*debug) << "Eqns :" << Eqns << std::endl;
 
 
 	Vector<Double> magvecpot;
-	GetSolOfElement(magvecpot, connect_PDE);	 
+	
+	sol_->GetElemSolution(magvecpot,connecth);
+	
 	help = elemmat * magvecpot;
 	energy[i] += help * magvecpot;
 	    
@@ -823,51 +850,48 @@ void MagPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
 
     ENTER_FCN( "MagPDE::ComputeUI" );
 
-    uiSD.Resize(coilDef_.size());
+    uiSD.Resize(coilDef_.GetSize());
   
     // loop over all subdomains
-    for (Integer actSD=0; actSD<subdoms_.size(); actSD++) {
+    for (Integer actSD=0; actSD<subdoms_.GetSize(); actSD++) {
 
-      for (Integer dom=0; dom<coilDef_.size(); dom++) {
+      for (Integer dom=0; dom<coilDef_.GetSize(); dom++) {
 	if (subdoms_[actSD] == coilName_[dom]) {
 	   
-	  std::vector<Elem*> elemssd;		
+	  StdVector<Elem*> elemssd;		
 	  // get vector of Elem of subdomain with color: subdoms[isd]
 	  ptgrid_->GetElemSD(elemssd,subdoms_[actSD],actlevel_);
 	    
 
 	  // loop over elements of subdomain	    
-	  for (Integer actEl=0; actEl< elemssd.size(); actEl++) {
+	  for (Integer actEl=0; actEl< elemssd.GetSize(); actEl++) {
 	    BaseFE * ptEl = elemssd[actEl]->ptElem;
 		
 	    const Integer nrIntPts= ptEl->GetNumIntPoints();
 	    const Integer nrNodes = ptEl->GetNumNodes();
-	    const std::vector<Double> & intWeights = ptEl->GetIntWeights();  
+	    const Vector<Double> & intWeights = ptEl->GetIntWeights();  
 	    Double jacDet;
 		
-	    Vector<Integer> connect, connect_PDE;
+	    StdVector<Integer> connect;
 	    connect = elemssd[actEl]->connect;
 
 	    Matrix<Double> ptCoord;
 	    GetElemCoords(connect, ptCoord, actlevel_);
 
-	    // Mape Mesh to PDE node numbers
-	    Mesh2PDENode(connect_PDE,connect,mesh2PDENode_);
-
 	    Vector<Double> magVecDeriv1Elem;
-	    GetSolDerivOfElement(magVecDeriv1Elem,connect_PDE);
+	    GetDerivSolVecOfElement(magVecDeriv1Elem,connect);
 		
 	    Double uiElem=0;
 		
 	    for (Integer actIntPt=1; actIntPt<=nrIntPts;  actIntPt++) {
-	      std::vector<Double> shapeFnc;
+	      Vector<Double> shapeFnc;
 	      jacDet = ptEl->CalcJacobianDetAtIp(actIntPt, ptCoord);	
-	      ptEl -> GetShFncAtIp(shapeFnc, actIntPt);
+	      ptEl->GetShFncAtIp(shapeFnc, actIntPt);
 
 	      uiElem += shapeFnc * magVecDeriv1Elem;
 		    
 	      if (isaxi_) {
-		std::vector<Double> coordAtIP = ptCoord * shapeFnc;
+		Vector<Double> coordAtIP = ptCoord * shapeFnc;
 		uiElem += shapeFnc * magVecDeriv1Elem * 2 * PI * coordAtIP[0]
 		  * intWeights[actIntPt-1];
 	      }
@@ -893,7 +917,7 @@ void MagPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
 
     Integer maxID = coilDef_[0].ID;
 
-    for (Integer dom=1; dom < coilDef_.size(); dom++) {
+    for (Integer dom=1; dom < coilDef_.GetSize(); dom++) {
 
       Boolean isInVec = FALSE;
       
@@ -911,7 +935,7 @@ void MagPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
     Vector<Double> uiID(maxID);
     uiID.Init();
 
-    for (Integer dom=0; dom < coilDef_.size(); dom++) {
+    for (Integer dom=0; dom < coilDef_.GetSize(); dom++) {
       Integer actCoilID = coilDef_[dom].ID;
       uiID[abs(actCoilID)-1] += uiSD[dom] * actCoilID/abs(actCoilID);
     }
@@ -928,44 +952,15 @@ void MagPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
   }
 
 
-  void MagPDE::GetSolOfElement( Vector<Double>& magvecpot,
-				Vector<Integer>& connect_PDE ) {
-
-    ENTER_FCN( "GetSolOfElement" );
-
-    StoreSol<Double> * solhelp = dynamic_cast<StoreSol<Double>*>(sol_);
-
-    // displacement of element nodes
-    magvecpot.Resize(connect_PDE.GetSize());
-
-    for(Integer actNode=0; actNode<connect_PDE.GetSize(); actNode++)
-      magvecpot[actNode] = (*solhelp)(connect_PDE[actNode]-1,0);
-  }
-
-
-  void MagPDE::GetSolDerivOfElement( Vector<Double>& magvecpot_deriv1,
-				     Vector<Integer>& connect_PDE) {
-
-    ENTER_FCN( "MagPDE::GetSolDerivOfElement" );
-  
-    // displacement of element nodes
-    magvecpot_deriv1.Resize(connect_PDE.GetSize());
-    const Vector<Double>  & sol_der1 = getS1();
-
-    for(Integer actNode=0; actNode<connect_PDE.GetSize(); actNode++)
-      magvecpot_deriv1[actNode] = sol_der1[connect_PDE[actNode]-1];
-  }
-
-
   // reads all information in the config file concerning coils 
   void MagPDE::ReadCoils() {
 
     ENTER_FCN( "MagEdgePDE::ReadCoils" );
 
     conf->ifgetliststr("list_coils", coilName_, pdename_);
-    Integer nrCoils = coilName_.size();
+    Integer nrCoils = coilName_.GetSize();
     if (nrCoils) {
-      coilDef_.resize(nrCoils);
+      coilDef_.Resize(nrCoils);
       for (Integer i=0; i < nrCoils; i++) {
 	conf->getCoilData(coilDef_[i],pdename_,coilName_[i]+":");
 	Info->PrintCoil(coilName_[i], coilDef_[i], analysistype_);
@@ -1018,7 +1013,7 @@ void MagPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
     nonLin_ = FALSE;
     params->GetList( "nonLinear", nonLinType_, pdename_, "region" );
     
-    for ( Integer k = 0; k < nonLinType_.size(); k++ ) {
+    for ( Integer k = 0; k < nonLinType_.GetSize(); k++ ) {
       if ( nonLinType_[k] != "no" ) {
 	nonLin_ = TRUE;
 	break;
@@ -1062,23 +1057,14 @@ void MagPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
     // -----------------------------------------------------------
     AssignPDENodeNumbers(mesh2PDENode_, pde2MeshNode_, subdoms_);  
     AssignPDEElemNumbers(mesh2PDEElem_, pde2MeshElem_, subdoms_);
-    numPDENodes_ = pde2MeshNode_.size();
-    numElems_ = pde2MeshElem_.size();
+    numPDENodes_ = pde2MeshNode_.GetSize();
+    numElems_ = pde2MeshElem_.GetSize();
 
     // ---------------------------
     //   Set coupling parameters
     // ---------------------------
     deltCoords_.Resize( dim_, numPDENodes_ );
 
-    // ----------------------------
-    //   Initalize solution class
-    // ----------------------------
-    sol_->SetNumSolutions(1);
-    sol_->SetSolutionType(MAG_POTENTIAL);
-    sol_->SetNumNodes(numPDENodes_);
-    sol_->SetNumDofs(dofspernode_);
-    sol_->Init(0.0);
-  
     // ---------------------------
     //   Set analysis parameters
     // ---------------------------
@@ -1099,6 +1085,24 @@ void MagPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
     assemble_->SetPtr2Sol(sol_);
     assemble_->SetPtr2TimeFnc(ptTimeFunc_);
 
+    // ----------------------------
+    //   Initalize equation data class
+    // ----------------------------
+    eqnData_  = new ScalarNodeEQN(ptgrid_, ptBCs_, subdoms_, actlevel_, dofspernode_);
+    eqnData_->SetHomoDirichletBCs(bcs_hd_, homDirichDof_);
+    eqnData_->CalcMapping();
+    //eqnData_->Print(std::cerr);
+    assemble_->SetPtr2EQNData(eqnData_); 
+
+    // ----------------------------
+    //   Initalize solution class
+    // ----------------------------
+    sol_->SetNumSolutions(1);
+    sol_->SetSolutionType(MAG_POTENTIAL);
+    sol_->SetNumNodes(numPDENodes_);
+    sol_->SetNumDofs(dofspernode_);
+    sol_->SetPtrEQNData(eqnData_);
+    sol_->Init();
     ReadMaterialData();
    
     DefineIntegrators(actlevel_);
@@ -1117,7 +1121,7 @@ void MagPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
   // ************
   MagPDE::~MagPDE() {
     ENTER_FCN( "MagPDE::~MagPDE" );
-    for ( UInt k = 0; k < coilDef_.size(); k++ ) {
+    for ( UInt k = 0; k < coilDef_.GetSize(); k++ ) {
       delete coilDef_[k];
     }
   }
@@ -1131,7 +1135,7 @@ void MagPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
     ENTER_FCN( "MagPDE::DefineIntegerators" );
 
     // Loop over all regions this PDE lives on
-    for ( Integer actSD = 0; actSD < subdoms_.size(); actSD++ ) {
+    for ( Integer actSD = 0; actSD < subdoms_.GetSize(); actSD++ ) {
 
       // Get reluctivity for this domain and perform consistency check
       Double reluctivity = materialData_[actSD].GetPermeability();
@@ -1174,7 +1178,7 @@ void MagPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
       assemble_->AddIntegrator(bilinear_mass, subdoms_[actSD], MASS, FALSE );
 
       // If this subdomain is a coil we have to do special things
-      for ( Integer coil = 0; coil < coilDef_.size(); coil++ ) {
+      for ( Integer coil = 0; coil < coilDef_.GetSize(); coil++ ) {
 	if ( subdoms_[actSD] == coilName_[coil] ) {
 	  Double factor = coilDef_[coil]->value_ /
 	    coilDef_[coil]->windingCrossSection_;
@@ -1195,7 +1199,7 @@ void MagPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
 
   void MagPDE :: InitTimeStepping(const Double dt) {
     ENTER_FCN( "MagPDE::InitTimeStepping" );
-    TS_alg_ = new Trapezoidal(pdename_, algsys_, 1, numPDENodes_*dofspernode_);
+    TS_alg_ = new Trapezoidal(pdename_, algsys_, eqnData_);
     TS_alg_->Init(matrix_factor_, dt);
   }
 
@@ -1221,8 +1225,8 @@ void MagPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
     Boolean performOneMoreStep;
     Integer iterationCounter=0;
   
-    Vector<Double> solInc(numPDENodes_);
-    Vector<Double> actSol(numPDENodes_);
+    Vector<Double> solInc(eqnData_->GetNumEQNs());
+    Vector<Double> actSol(eqnData_->GetNumEQNs());
 
     sol_->GetCompleteVector(actSol);
 
@@ -1268,9 +1272,10 @@ void MagPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
 
       // recalculate RHS with new values to get new residual (f^(k+1))========
 #ifndef USE_OLAS    
-      std::vector<Double>  help;
-      RhsLinVal_.ToStdVector(help);
-      algsys_->InitRHS(help);
+      //std::vector<Double>  help;
+      //RhsLinVal_.ToStdVector(help);
+      //algsys_->InitRHS(help);
+      algsys_->InitRHS(RhsLinVal_.GetPointer());
 #endif
 
       assemble_->AssembleNLRHS(level);  // nonlinear part of RHS
@@ -1365,7 +1370,7 @@ void MagPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
   // Cast BaseStoreSol into StoreSol<Double>,
   // since this function is only called
   // in the transient case
-  StoreSol<Double> * solhelp = dynamic_cast<StoreSol<Double>*>(sol_);
+  NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
 
   //set actual solution  
   actSol = solhelp->GetCompleteVector();
@@ -1435,9 +1440,10 @@ void MagPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
 
       // recalculate RHS with new values to get new residual (f^(k+1))========
 #ifndef USE_OLAS    
-      std::vector<Double>  help;
-      RhsLinVal_.ToStdVector(help);
-      algsys_->InitRHS(help);
+      //std::vector<Double>  help;
+      //RhsLinVal_.ToStdVector(help);
+      //algsys_->InitRHS(help);
+      algsys_->InitRHS(RhsLinVal_.GetPointer());
 #endif
 
       //Update RHS (mass matrix on right hand side)
@@ -1522,32 +1528,61 @@ void MagPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
     return RhsLinL2Norm;
   }
 
+// calculates L2-norm of RHS regarding dirichlet entries due to penalty formulation by setting them 0
+Double MagPDE::RhsL2Norm(Vector<Double>& actRHS)
+{
+  ENTER_FCN( "MagPDE::RhsL2Norm" );
 
-  // calculates L2-norm of RHS regarding dirichlet entries due
-  // to penalty formulation by setting them to zero
-  Double MagPDE::RhsL2Norm(Vector<Double>& actRHS) {
-    ENTER_FCN( "MagPDE::RhsL2Norm" );
-
-    Integer node;
-    std::list<Integer> nodes;
-
-    // Eliminate dirichlet node from RHS (due to penalty formulation)
-    for (Integer i=0; i< bcs_hd_.size(); i++) {
+  Integer node, dof, eqn;
+  
+  std::list<Integer> nodes;
+  
+  // Eliminate dirichlet node from RHS (due to penalty formulation)
+  for (Integer i=0; i< bcs_hd_.GetSize(); i++)
+    {
       nodes=ptBCs_->GetNodesLevel(bcs_hd_[i]);
       
-      for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end();
-	   p++) {
-	node=*p;
-	actRHS[mesh2PDENode_[node-1]-1] = 0;
-      }
+      for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end(); p++)
+	{
+	    node=*p;
+	    eqn = eqnData_->Node2EQN(node,1);
+	    if (eqn != 0){
+	      actRHS[(eqn-1)] = 0;
+	    }
+	}
     }
-    return actRHS.NormL2();
-  }
+  return actRHS.NormL2();
+}
+
+
+//   // calculates L2-norm of RHS regarding dirichlet entries due
+//   // to penalty formulation by setting them to zero
+
+
+//   Double MagPDE::RhsL2Norm(Vector<Double>& actRHS) {
+//     ENTER_FCN( "MagPDE::RhsL2Norm" );
+
+//     Integer node;
+//     std::list<Integer> nodes;
+
+//     // Eliminate dirichlet node from RHS (due to penalty formulation)
+//     for (Integer i=0; i< bcs_hd_.GetSize(); i++) {
+//       nodes=ptBCs_->GetNodesLevel(bcs_hd_[i]);
+      
+//       for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end();
+// 	   p++) {
+// 	node=*p;
+// 	actRHS[mesh2PDENode_[node-1]-1] = 0;
+//       }
+//     }
+//     return actRHS.NormL2();
+//   }
 
   // stores an algsys_ vector into a std::vector and returns that L2-norm
   void MagPDE::StoreAlgsysToVec(Vector<Double>& vec, Double * pt) {
     ENTER_FCN( "MagPDE::StoreAlgsysToVec" );
-    const Integer numElems = numPDENodes_ * dofspernode_;
+    //const Integer numElems = numPDENodes_ * dofspernode_;
+    Integer numElems = eqnData_->GetNumEQNs() * eqnData_->GetNumDofsPerEQN();
     vec.Resize(numElems);
     for (Integer i=0; i<numElems; i++) {
       vec[i] = pt[i];
@@ -1558,31 +1593,26 @@ void MagPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
   // ======================================================
   // POSTPROCESSING SECTION
   // ======================================================
-
-  void MagPDE::WriteResultsInFile() {
+ void MagPDE::WriteResultsInFile() {
 
     ENTER_FCN( "MagPDE::WriteResultsInFile" );
 
     ShortInt Dim = ptgrid_->GetDim();
 
-    StoreSol<Double> B_Mesh, Jeddy_Mesh, Force_Mesh, Sol_Mesh;
-
-    // transform solution vector for electric potential
-    sol_->TransformNodeSolution(Sol_Mesh,pde2MeshNode_,ptgrid_,actlevel_);
-
-    // CHANGE F_Interface_
-    // TransformElemSolution(Force_Mesh,Force_,F_Interface_[0]);
+    //ElemStoreSol<Double> B_Mesh, Jeddysh, Force_Mesh;
+    
+    NodeStoreSol<Double> const & solConverted = 
+      dynamic_cast<NodeStoreSol<Double>&>(*sol_);
    
     // write results
     if (outFile_->IsGMV()) {
 
       // write magnetic potential
-      outFile_->WriteNodeSolution(Sol_Mesh,laststepcalc_,lasttimecalc_,
+      outFile_->WriteNodeSolution(solConverted,laststepcalc_,lasttimecalc_,
 				  "Mag-Potential");
       
-      if (calcBfield_.size() !=0 ) {
-	B_.TransformElemSolution(B_Mesh,pde2MeshElem_,ptgrid_,actlevel_);
-	outFile_->WriteElemSolution(B_Mesh,laststepcalc_,lasttimecalc_,
+      if (calcBfield_.GetSize() !=0 ) {
+	outFile_->WriteElemSolution(B_,laststepcalc_,lasttimecalc_,
 				    "B-Field");
 	//outFile_->WriteElemSolution(Force_Mesh,step,time,"E-Force");
       }
@@ -1591,48 +1621,45 @@ void MagPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
     else {
 
       // write magnetic potential
-      outFile_->WriteNodeSolution(Sol_Mesh,laststepcalc_,lasttimecalc_,
+      outFile_->WriteNodeSolution(solConverted, laststepcalc_, lasttimecalc_,
 				  "mag. vector potential");
 
-      if (calcBfield_.size() !=0 ) {
-	B_.TransformElemSolution(B_Mesh,pde2MeshElem_,ptgrid_,actlevel_);
-	outFile_->WriteElemSolution(B_Mesh,laststepcalc_,lasttimecalc_,
+      if (calcBfield_.GetSize() !=0 ) {
+	outFile_->WriteElemSolution(B_, laststepcalc_, lasttimecalc_,
 				    "mag. flux density");
       }
 
-      if (calcEddy_.size() !=0 ) {
-	Jeddy_.TransformElemSolution(Jeddy_Mesh,pde2MeshElem_,ptgrid_,
-				     actlevel_);
-	outFile_->WriteElemSolution(Jeddy_Mesh,laststepcalc_,lasttimecalc_,
+      if (calcEddy_.GetSize() !=0 ) {
+	outFile_->WriteElemSolution(Jeddy_, laststepcalc_, lasttimecalc_,
 				    "eddy current");
       }
     }
   }
 
 
-  void MagPDE::PostProcess(const Integer level) {
+void MagPDE::PostProcess(const Integer level) {
 
     ENTER_FCN( "MagPDE::PostProcess" );
 
-    StoreSol<Double> * solhelp = dynamic_cast<StoreSol<Double>*>(sol_);
+    NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
   
-    if (calcEnergy_.size() !=0 )
+    if (calcEnergy_.GetSize() !=0 )
       CalcEnergy();
 
-    if (calcBfield_.size() !=0 ) {
+    if (calcBfield_.GetSize() !=0 ) {
 
-      CurlNodeOp * FieldOp = new CurlNodeOp(ptgrid_, this, &mesh2PDENode_,
+      CurlNodeOp * FieldOp = new CurlNodeOp(ptgrid_, this, eqnData_,
 					    *solhelp, level);
       FieldOp->Set2DType(isaxi_);
  
       // ------ Calculation of the electric field ------
 
-      std::vector<Double> LCoord;
-      LCoord.resize(dim_);
+      Vector<Double> LCoord;
+      LCoord.Resize(dim_);
       LCoord[0] = 0;
       LCoord[1] = 0;
       
-      std::vector<Elem*> elemssd;
+      StdVector<Elem*> elemssd;
       Integer counterElems=0;
       Vector<Double> TempE;
       
@@ -1642,15 +1669,16 @@ void MagPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
       B_.SetNumNodes(numElems_);
       B_.SetNumDofs(dim_);
       B_.Init(0);
+      B_.SetElemMapping(pde2MeshElem_);
       
       // loop over all subdomains
-      for (Integer isd=0; isd<calcBfield_.size(); isd++) {
+      for (Integer isd=0; isd<calcBfield_.GetSize(); isd++) {
 
 	// get vector of Elem of subdomain with color: subdoms[isd]
 	ptgrid_->GetElemSD(elemssd,calcBfield_[isd],level);
 	  
 	// loop over elements of subdomain
-	for (Integer iel=0; iel< elemssd.size(); iel++,counterElems++) {
+	for (Integer iel=0; iel< elemssd.GetSize(); iel++,counterElems++) {
 
 	  FieldOp->CalcElemCurlNode( TempE, elemssd[iel], LCoord); 
 	  B_.SetNodalResult(mesh2PDEElem_[elemssd[iel]->elemNum - 1]-1, TempE);
@@ -1659,17 +1687,17 @@ void MagPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
       delete FieldOp;
     }
 
-    if (calcEddy_.size() !=0 ) {
+    if (calcEddy_.GetSize() !=0 ) {
 
-      std::vector<Double> LCoord;
-      LCoord.resize(dim_);
+      Vector<Double> LCoord;
+      LCoord.Resize(dim_);
       LCoord[0] = 0;
       LCoord[1] = 0;
       
-      std::vector<Elem*> elemssd;
-      std::vector<Double> ShpFnc, tmp;
+      StdVector<Elem*> elemssd;
+      Vector<Double> ShpFnc, tmp;
       Vector<Double> magVecDeriv1Elem;
-      Vector<Integer> connect, connect_PDE;
+      StdVector<Integer> connect, connect_PDE;
       Double conductivity = 0.0;
 
       Integer counterElems=0;
@@ -1685,31 +1713,29 @@ void MagPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
 
       // dimension hard coded for .unv file!
       Jeddy_.SetNumDofs(3);
+      Jeddy_.SetElemMapping(mesh2PDEElem_);
       Jeddy_.Init(0);
 
       // loop over all subdomains
-      for (Integer actSD=0; actSD<calcEddy_.size(); actSD++) {
+      for (Integer actSD=0; actSD<calcEddy_.GetSize(); actSD++) {
 
 	// get vector of Elem of subdomain with color: subdoms[isd]
 	ptgrid_->GetElemSD(elemssd,calcEddy_[actSD],level);
 	  
 	// Get the right material parameter for actual subdomain
-	for (Integer iSD=0; iSD<subdoms_.size(); iSD++)
+	for (Integer iSD=0; iSD<subdoms_.GetSize(); iSD++)
 	  if (subdoms_[iSD] == calcEddy_[actSD])
 	    conductivity = materialData_[iSD].GetConductivity(); 	  
 
 	// loop over elements of subdomain
-	for (Integer actEl=0; actEl< elemssd.size(); actEl++,counterElems++) {
+	for (Integer actEl=0; actEl< elemssd.GetSize(); actEl++,counterElems++) {
 	  BaseFE * ptEl = elemssd[actEl]->ptElem;
 	  ptEl->GetShFnc(ShpFnc,LCoord);
 
 	  connect = elemssd[actEl]->connect;
-	  // Mape Mesh to PDE node numbers
-	  Mesh2PDENode(connect_PDE,connect,mesh2PDENode_);
-
-	  GetSolDerivOfElement(magVecDeriv1Elem,connect_PDE);
-	  magVecDeriv1Elem.ToStdVector(tmp);
-	  JeddyElem[0] = tmp * ShpFnc;
+	  
+	  GetDerivSolVecOfElement(magVecDeriv1Elem,connect);
+	  JeddyElem[0] = magVecDeriv1Elem * ShpFnc;
 	  JeddyElem[0] *= -conductivity;
 	  Jeddy_.SetNodalResult(mesh2PDEElem_[elemssd[actEl]->elemNum - 1]-1,
 				JeddyElem);
@@ -1725,7 +1751,7 @@ void MagPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
   }
 
 
-  void MagPDE::CalcEnergy() {
+ void MagPDE::CalcEnergy() {
 
     ENTER_FCN( "MagPDE::CalcEnergy" );
 
@@ -1733,22 +1759,22 @@ void MagPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
     Matrix<Double> ptCoord;
     BaseFE         * ptElem;
 
-    Vector<Integer> connecth, connect_PDE, Eqns;  
+    StdVector<Integer> connecth, Eqns;  
     Vector<double> help;
 
     Integer i, j;
-    std::vector<Double> energy(calcEnergy_.size());
+    Vector<Double> energy(calcEnergy_.GetSize());
 
-    for (i=0; i<calcEnergy_.size(); i++) {
+    for (i=0; i<calcEnergy_.GetSize(); i++) {
 
       //reads eps33 (matrix notation starts with 0)
       Double eps33 = materialData_[i].GetPermittivity(2,2);
 
-      std::vector<Elem*> elemssd;
+      StdVector<Elem*> elemssd;
       ptgrid_->GetElemSD(elemssd,calcEnergy_[i],actlevel_);
 
       energy[i] = 0;
-      for (j=0; j < elemssd.size(); j++) {
+      for (j=0; j < elemssd.GetSize(); j++) {
 
 	ptElem=elemssd[j]->ptElem;
 	BaseForm * bilinear_stiff = new LaplaceInt(ptElem, eps33, isaxi_);
@@ -1757,16 +1783,15 @@ void MagPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
 	GetElemCoords(connecth, ptCoord, actlevel_);
 	bilinear_stiff->CalcElementMatrix(ptCoord, elemmat);
 
-	// Mape Mesh to PDE node numbers
-	Mesh2PDENode(connect_PDE,connecth,mesh2PDENode_);
-
 	// 	  EqnData_->Mesh2Eqn(Eqns,connecth);
 	// 	  (*debug) << "Nodes:" << connecth << std::endl;
 	// 	  (*debug) << "Eqns :" << Eqns << std::endl;
 
 
 	Vector<Double> magvecpot;
-	GetSolOfElement(magvecpot, connect_PDE);	 
+	
+	sol_->GetElemSolution(magvecpot,connecth);
+	
 	help = elemmat * magvecpot;
 	energy[i] += help * magvecpot;
 	    
@@ -1778,56 +1803,51 @@ void MagPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
     Info->WriteResult(pdename_,  resulttype, calcEnergy_ , energy);
   }
 
-
   void MagPDE::ComputeUI(Vector<Double>& uiSD) {
 
     ENTER_FCN( "MagPDE::ComputeUI" );
 
-    uiSD.Resize(coilDef_.size());
+    uiSD.Resize(coilDef_.GetSize());
   
     // loop over all subdomains
-    for (Integer actSD=0; actSD<subdoms_.size(); actSD++) {
+    for (Integer actSD=0; actSD<subdoms_.GetSize(); actSD++) {
 
-      for (Integer dom=0; dom<coilDef_.size(); dom++) {
+      for (Integer dom=0; dom<coilDef_.GetSize(); dom++) {
 	if (subdoms_[actSD] == coilName_[dom]) {
 	   
-	  std::vector<Elem*> elemssd;		
+	  StdVector<Elem*> elemssd;		
 	  // get vector of Elem of subdomain with color: subdoms[isd]
 	  ptgrid_->GetElemSD(elemssd,subdoms_[actSD],actlevel_);
 	    
 
 	  // loop over elements of subdomain	    
-	  for (Integer actEl=0; actEl< elemssd.size(); actEl++) {
+	  for (Integer actEl=0; actEl< elemssd.GetSize(); actEl++) {
 	    BaseFE * ptEl = elemssd[actEl]->ptElem;
 		
 	    const Integer nrIntPts= ptEl->GetNumIntPoints();
 	    const Integer nrNodes = ptEl->GetNumNodes();
-	    const std::vector<Double> & intWeights = ptEl->GetIntWeights();  
+	    const Vector<Double> & intWeights = ptEl->GetIntWeights();  
 	    Double jacDet;
 		
-	    Vector<Integer> connect, connect_PDE;
+	    StdVector<Integer> connect;
 	    connect = elemssd[actEl]->connect;
 
 	    Matrix<Double> ptCoord;
 	    GetElemCoords(connect, ptCoord, actlevel_);
 
-	    // Mape Mesh to PDE node numbers
-	    Mesh2PDENode(connect_PDE,connect,mesh2PDENode_);
-
 	    Vector<Double> magVecDeriv1Elem;
-	    GetSolDerivOfElement(magVecDeriv1Elem,connect_PDE);
-		
+	    GetDerivSolVecOfElement(magVecDeriv1Elem,connect);
 	    Double uiElem=0;
 		
 	    for (Integer actIntPt=1; actIntPt<=nrIntPts;  actIntPt++) {
-	      std::vector<Double> shapeFnc;
+	      Vector<Double> shapeFnc;
 	      jacDet = ptEl->CalcJacobianDetAtIp(actIntPt, ptCoord);	
 	      ptEl -> GetShFncAtIp(shapeFnc, actIntPt);
 
 	      uiElem += shapeFnc * magVecDeriv1Elem;
 		    
 	      if (isaxi_) {
-		std::vector<Double> coordAtIP = ptCoord * shapeFnc;
+		Vector<Double> coordAtIP = ptCoord * shapeFnc;
 		uiElem += shapeFnc * magVecDeriv1Elem * 2 * PI * coordAtIP[0]
 		  * intWeights[actIntPt-1];
 	      }
@@ -1856,7 +1876,7 @@ void MagPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
 
     Integer maxID = coilDef_[0]->id_;
 
-    for (Integer dom=1; dom < coilDef_.size(); dom++) {
+    for (Integer dom=1; dom < coilDef_.GetSize(); dom++) {
 
       Boolean isInVec = FALSE;
       
@@ -1874,7 +1894,7 @@ void MagPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
     Vector<Double> uiID(maxID);
     uiID.Init();
 
-    for (Integer dom=0; dom < coilDef_.size(); dom++) {
+    for (Integer dom=0; dom < coilDef_.GetSize(); dom++) {
       Integer actCoilID = coilDef_[dom]->id_;
       uiID[abs(actCoilID)-1] += uiSD[dom] * actCoilID/abs(actCoilID);
     }
@@ -1892,35 +1912,6 @@ void MagPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
   }
 
 
-  void MagPDE::GetSolOfElement( Vector<Double>& magvecpot,
-				Vector<Integer>& connect_PDE ) {
-
-    ENTER_FCN( "GetSolOfElement" );
-
-    StoreSol<Double> * solhelp = dynamic_cast<StoreSol<Double>*>(sol_);
-
-    // displacement of element nodes
-    magvecpot.Resize(connect_PDE.GetSize());
-
-    for(Integer actNode=0; actNode<connect_PDE.GetSize(); actNode++)
-      magvecpot[actNode] = (*solhelp)(connect_PDE[actNode]-1,0);
-  }
-
-
-  void MagPDE::GetSolDerivOfElement( Vector<Double>& magvecpot_deriv1,
-				     Vector<Integer>& connect_PDE) {
-
-    ENTER_FCN( "MagPDE::GetSolDerivOfElement" );
-  
-    // displacement of element nodes
-    magvecpot_deriv1.Resize(connect_PDE.GetSize());
-    const Vector<Double>  & sol_der1 = getS1();
-
-    for(Integer actNode=0; actNode<connect_PDE.GetSize(); actNode++)
-      magvecpot_deriv1[actNode] = sol_der1[connect_PDE[actNode]-1];
-  }
-
-
   // ******************************************************
   //   Query parameter object for information about coils
   // ******************************************************
@@ -1932,12 +1923,12 @@ void MagPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
     params->GetCoilList( coilName_, pdename_ );
 
     // Read parameters for individual coils and log to info file
-    UInt nrCoils = coilName_.size();
+    UInt nrCoils = coilName_.GetSize();
     if ( nrCoils > 0 ) {
       Info->PrintF( pdename_, " Using the following coils:\n" );
-      coilDef_.reserve( nrCoils );
+      coilDef_.Reserve( nrCoils );
       for ( UInt k = 0; k < nrCoils; k++ ) {
-	coilDef_.push_back( new Coil( coilName_[k], pdename_ ) );
+	coilDef_.Push_back( new Coil( coilName_[k], pdename_ ) );
 	Info->PrintCoil( (*coilDef_[k]), analysistype_ );
       }
     }
@@ -1954,7 +1945,7 @@ void MagPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
     // get domain names of magnets
     params->GetList( "name", magnetsDomain_, pdename_, "magnets" );
 
-    if ( magnetsDomain_.size() > 0 ) {
+    if ( magnetsDomain_.GetSize() > 0 ) {
 
       Info->PrintF( pdename_,
 		    " Found permanent magnets in the following regions:" );
@@ -1962,7 +1953,7 @@ void MagPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
       Double tmpDir[3];
 
       // for each magnet ...
-      for ( UInt k = 0; k < magnetsDomain_.size(); k++ ) {
+      for ( UInt k = 0; k < magnetsDomain_.GetSize(); k++ ) {
 
 	// ... report name to logfile
 	Info->PrintF( pdename_, " %s", magnetsDomain_[k].c_str() );
@@ -1974,9 +1965,9 @@ void MagPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
 		      pdename_, "magnets" );
 	params->CGet( "orientX", tmpDir[2], "name", magnetsDomain_[k], true,
 		      pdename_, "magnets" );
-	magnetsOriX_.push_back( tmpDir[0] );
-	magnetsOriY_.push_back( tmpDir[1] );
-	magnetsOriZ_.push_back( tmpDir[2] );
+	magnetsOriX_.Push_back( tmpDir[0] );
+	magnetsOriY_.Push_back( tmpDir[1] );
+	magnetsOriZ_.Push_back( tmpDir[2] );
       }
     }
   }
@@ -2003,15 +1994,15 @@ void MagPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
 		      "elemResults" );
 
     // If the the symbolic name is "all" compute electric field for all regions
-    if ( calcBfield_.size() == 1 && calcBfield_[0] == "all" ) {
+    if ( calcBfield_.GetSize() == 1 && calcBfield_[0] == "all" ) {
       calcBfield_ = subdoms_;
     }
 
     // Log to info file
-    if ( calcBfield_.size() > 0 ) {
+    if ( calcBfield_.GetSize() > 0 ) {
       Info->PrintF( pdename_,
 		    " Computing magnetic flux density / B-field for regions:");
-      for ( Integer k = 0; k < calcBfield_.size(); k++ ) {
+      for ( Integer k = 0; k < calcBfield_.GetSize(); k++ ) {
 	Info->PrintF( pdename_, " %s", calcBfield_[k].c_str() );
       }
     }
@@ -2025,14 +2016,14 @@ void MagPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
 		      "elemResults" );
 
     // If the the symbolic name is "all" compute energy for all regions
-    if ( calcEnergy_.size() == 1 && calcEnergy_[0] == "all" ) {
+    if ( calcEnergy_.GetSize() == 1 && calcEnergy_[0] == "all" ) {
       calcEnergy_ = subdoms_;
     }
 
     // Log to info file
-    if ( calcEnergy_.size() > 0 ) {
+    if ( calcEnergy_.GetSize() > 0 ) {
       Info->PrintF( pdename_, " Computing energy for regions:" );
-      for ( Integer k = 0; k < calcEnergy_.size(); k++ ) {
+      for ( Integer k = 0; k < calcEnergy_.GetSize(); k++ ) {
 	Info->PrintF( pdename_, " %s", calcEnergy_[k].c_str() );
       }
     }
@@ -2046,15 +2037,15 @@ void MagPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
 		      "elemResults" );
 
     // If the the symbolic name is "all" compute energy for all regions
-    if ( calcEddy_.size() == 1 && calcEddy_[0] == "all" ) {
+    if ( calcEddy_.GetSize() == 1 && calcEddy_[0] == "all" ) {
       calcEnergy_ = subdoms_;
     }
 
     // Log to info file
-    if ( calcEddy_.size() > 0 ) {
+    if ( calcEddy_.GetSize() > 0 ) {
       Info->PrintF( pdename_,
 		    " Computing eddy current densities for regions:" );
-      for ( Integer k = 0; k < calcEddy_.size(); k++ ) {
+      for ( Integer k = 0; k < calcEddy_.GetSize(); k++ ) {
 	Info->PrintF( pdename_, " %s", calcEddy_[k].c_str() );
       }
     }

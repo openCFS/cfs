@@ -2,12 +2,12 @@
 #include <iostream>
 #include <string>
 #include <stdarg.h>
-#include <vector>
 
 #include "ansysfile.hh"
 #include "Domain/bcs.hh"
 #include "Domain/GridCFS/grid_cfs.hh"
 #include "DataInOut/WriteInfo.hh"
+#include "Utils/StdVector.hh"
 
 #ifdef ADAPTGRID
 #include "DataInOut/ParamHandling/ConfFile.hh"
@@ -22,9 +22,7 @@ namespace CoupledField
 AnsysFile::AnsysFile(const Char * const afilename)
 :FileType(afilename)
 {
-#ifdef TRACE
-    (*trace) << "entering AnsysFile::AnsysFile" << std::endl;
-#endif
+  ENTER_FCN( "AnsysFile::AnsysFile" );
 
     infile.open(strcat(filename,".mesh"));
     if (!infile.good()) {std::cerr << "ERROR(" << __FILE__ << " " << __LINE__ <<
@@ -39,18 +37,14 @@ AnsysFile::AnsysFile(const Char * const afilename)
   
 AnsysFile::~AnsysFile()
 {
-#ifdef TRACE
-  (*trace) << "entering AnsysFile::~AnsysFile" << std::endl;
-#endif
+  ENTER_FCN( "AnsysFile::~AnsysFile" );
   
   infile.close() ;
 }
 
 Integer AnsysFile::ReadDim()
 {
-#ifdef TRACE
-  (*trace) << "entering AnsysFile::ReadDim" << std::endl;
-#endif
+  ENTER_FCN( "AnsysFile::ReadDim" );
   
     Integer dim;
     
@@ -66,9 +60,7 @@ Integer AnsysFile::ReadDim()
 
 Integer AnsysFile::GetNum3DElems()
 {
-#ifdef TRACE
-  (*trace) << "entering AnsysFile::GetNum3DElems" << std::endl;
-#endif
+  ENTER_FCN( "AnsysFile::GetNum3DElems" );
   
     Integer num;
     
@@ -81,9 +73,7 @@ Integer AnsysFile::GetNum3DElems()
 
 Integer AnsysFile::GetNum2DElems()
 {
-#ifdef TRACE
-  (*trace) << "entering AnsysFile::GetNum2DElems" << std::endl;
-#endif
+  ENTER_FCN( "AnsysFile::GetNum2DElems" );
   
     Integer num;
     
@@ -96,9 +86,7 @@ Integer AnsysFile::GetNum2DElems()
 
 Integer AnsysFile::GetNum1DElems()
 {
-#ifdef TRACE
-  (*trace) << "entering AnsysFile::GetNum1DElems" << std::endl;
-#endif
+  ENTER_FCN( "AnsysFile::GetNum1DElems" );
   
     Integer num;
     
@@ -111,9 +99,7 @@ Integer AnsysFile::GetNum1DElems()
 
 Integer AnsysFile::GetNumBCs()
 {
-#ifdef TRACE
-  (*trace) << "entering AnsysFile::GetNumBCs" << std::endl;
-#endif
+  ENTER_FCN( "AnsysFile::GetNumBCs" );
   
     Integer num;
     
@@ -128,9 +114,7 @@ Integer AnsysFile::GetNumBCs()
 
 Integer AnsysFile::GetNumSaveNodes()
 {
-#ifdef TRACE
-  (*trace) << "entering AnsysFile::GetNumSaveNodes" << std::endl;
-#endif
+  ENTER_FCN( "AnsysFile::GetNumSaveNodes" );
 
     Integer nrSaveNodes;
     ReadNumSaveNodes(nrSaveNodes);
@@ -141,9 +125,7 @@ Integer AnsysFile::GetNumSaveNodes()
 
 void AnsysFile::ReadCoordinate(Point<2> * const NodesCoord, const Integer maxnumnodes)
 {
-#ifdef TRACE
-  (*trace) << "entering Ansys::ReadCoordinate 2D" << std::endl;
-#endif
+  ENTER_FCN( "Ansys::ReadCoordinate 2D" );
 
   Integer i;
   std::string::size_type pos=0;
@@ -161,9 +143,7 @@ void AnsysFile::ReadCoordinate(Point<2> * const NodesCoord, const Integer maxnum
 
 void AnsysFile::ReadCoordinate(Point<3> * const NodesCoord, const Integer maxnumnodes)
 {
-#ifdef TRACE
-  (*trace) << "entering Ansys::ReadCoordinate 3D" << std::endl;
-#endif
+  ENTER_FCN( "Ansys::ReadCoordinate 3D" );
   
   Integer i;
   std::string::size_type pos=0;
@@ -181,9 +161,7 @@ void AnsysFile::ReadCoordinate(Point<3> * const NodesCoord, const Integer maxnum
 
 void AnsysFile::ReadMaxnumnodes(Integer & nnodes)
 {
-#ifdef TRACE
-    (*trace) << "entering Ansys::ReadMaxnumnodes" << std::endl;
-#endif
+  ENTER_FCN( "Ansys::ReadMaxnumnodes" );
 
     std::string::size_type pos=0;
     getPosition("NumNodes", pos);
@@ -194,6 +172,8 @@ void AnsysFile::ReadMaxnumnodes(Integer & nnodes)
 
 void AnsysFile::ReadMaxnumelem(Integer & nelem,const std::string keyword)
 {
+  ENTER_FCN( "AnsysFile::ReadMaxnumelem" );
+
   std::string::size_type pos=0;
   getPosition(keyword,pos);
   infile.seekg(pos,std::ios::beg);
@@ -203,29 +183,29 @@ void AnsysFile::ReadMaxnumelem(Integer & nelem,const std::string keyword)
 
 void AnsysFile::ReadMaxnumnodesbc(Integer & nbc)
 {
-    std::string::size_type pos=0;
-    getPosition("NumNodeBC", pos);
-    infile.seekg(pos,std::ios::beg);
-
-    infile >> nbc;
+  ENTER_FCN( "AnsysFile::ReadMaxnumnodesbc" );
+  std::string::size_type pos=0;
+  getPosition("NumNodeBC", pos);
+  infile.seekg(pos,std::ios::beg);
+  
+  infile >> nbc;
 }
 
 
 void AnsysFile::ReadNumSaveNodes(Integer & nrSaveNodes)
 {
-    std::string::size_type pos=0;
-    getPosition("NumSaveNodes", pos);
-    infile.seekg(pos,std::ios::beg);
-
-    infile >> nrSaveNodes;
+  ENTER_FCN( "AnsysFile::ReadNumSaveNodes" );
+  std::string::size_type pos=0;
+  getPosition("NumSaveNodes", pos);
+  infile.seekg(pos,std::ios::beg);
+  
+  infile >> nrSaveNodes;
 }
 
 
-void AnsysFile::ReadBCs(std::list<Integer> * bcs, const std::vector<std::string> levels)
+void AnsysFile::ReadBCs(std::list<Integer> * bcs, const StdVector<std::string> levels)
 {
-#ifdef TRACE
-    (*trace) << "entering Ansys::ReadBCs" << std::endl;
-#endif
+  ENTER_FCN( "AnsysFile::ReadBCs" );
     
     Integer numbc;
     ReadMaxnumnodesbc(numbc);
@@ -244,7 +224,7 @@ void AnsysFile::ReadBCs(std::list<Integer> * bcs, const std::vector<std::string>
 	infile.ignore(100,'\n');
 	
 	Boolean Find=FALSE;
-	for (j=0; j<levels.size(); j++)
+	for (j=0; j<levels.GetSize(); j++)
 	  if (str==levels[j]) 
 	    {
 	      Find=TRUE;
@@ -266,12 +246,10 @@ void AnsysFile::ReadBCs(std::list<Integer> * bcs, const std::vector<std::string>
 
 
 
-void AnsysFile::ReadSaveNodes(std::list<Integer> * saveNodes , const std::vector<std::string> levels)
+void AnsysFile::ReadSaveNodes(std::list<Integer> * saveNodes , const StdVector<std::string> levels)
 {
-#ifdef TRACE
-    (*trace) << "entering Ansys::ReadSaveNodes" << std::endl;
-#endif
-    
+  ENTER_FCN( "Ansys::ReadSaveNodes" );
+
     Integer nrSaveNodes;
     ReadNumSaveNodes(nrSaveNodes);
 
@@ -290,7 +268,7 @@ void AnsysFile::ReadSaveNodes(std::list<Integer> * saveNodes , const std::vector
 	
 	Boolean Find=FALSE;
 
-	for (j=0; j<levels.size(); j++) 
+	for (j=0; j<levels.GetSize(); j++) 
 	  if (str==levels[j]) 
 	    {
 	      Find=TRUE;
@@ -313,11 +291,9 @@ void AnsysFile::ReadSaveNodes(std::list<Integer> * saveNodes , const std::vector
 
 
 
-void AnsysFile::ReadLevelOfSaveNodes(std::vector<std::string>& levels)
+void AnsysFile::ReadLevelOfSaveNodes(StdVector<std::string>& levels)
 {
-#ifdef TRACE
-    (*trace) << "entering Ansys::ReadLevelOfSaveNodes" << std::endl;
-#endif
+  ENTER_FCN( "Ansys::ReadLevelOfSaveNodes" );
     
     Integer nrSaveNodes;
     ReadNumSaveNodes(nrSaveNodes);
@@ -337,23 +313,21 @@ void AnsysFile::ReadLevelOfSaveNodes(std::vector<std::string>& levels)
 	
 	Boolean found=FALSE;
 
-	for (j=0; j<levels.size(); j++) 
+	for (j=0; j<levels.GetSize(); j++) 
 	  if (str==levels[j])
 	    found=TRUE;
 
 	if (!found) 
-	  levels.push_back(str);
+	  levels.Push_back(str);
       } 
 }
 
 
 
 
-void AnsysFile::ReadBCsConf(std::vector<std::string> &levels)
+void AnsysFile::ReadBCsConf(StdVector<std::string> &levels)
 {
-#ifdef TRACE
-    (*trace) << "entering Ansys::ReadBCsConf" << std::endl;
-#endif
+  ENTER_FCN( "Ansys::ReadBCsConf" );
     
     Integer numbc;
     ReadMaxnumnodesbc(numbc);
@@ -372,20 +346,21 @@ void AnsysFile::ReadBCsConf(std::vector<std::string> &levels)
 	infile.ignore(100,'\n');
 	
 	if (i==0) 
-	    levels.push_back(str);
+	    levels.Push_back(str);
 	else
 	  {
 	    Integer find = 0;
-	    for (j=0; j<levels.size(); j++)
+	    for (j=0; j<levels.GetSize(); j++)
 		if (str == levels[j]) find = 1;
 
-	    if (!find) levels.push_back(str);	      
+	    if (!find) levels.Push_back(str);	      
 	  }
       } 
 }
 
 void AnsysFile::getPosLine(const std::string seekexp, std::string::size_type & pos)
 {
+  ENTER_IFCN( "AnsysFile::getPosLine" );
     infile.seekg(pos, std::ios::beg);
     std::string buf;
     pos=std::string::npos;
@@ -418,6 +393,7 @@ void AnsysFile::getPosLine(const std::string seekexp, std::string::size_type & p
 
 void AnsysFile::getPosition(const std::string seekexp, std::string::size_type & pos)
 {
+  ENTER_IFCN( "AnsysFile::getPosition" );
     infile.seekg(pos, std::ios::beg);
     std::string buf;
     pos=std::string::npos;
@@ -439,11 +415,9 @@ void AnsysFile::getPosition(const std::string seekexp, std::string::size_type & 
 }
 
 
-void AnsysFile::ReadEl(std::vector<Elem*> * allelems, const std::vector<std::string> sd)
+void AnsysFile::ReadEl(StdVector<Elem*> * allelems, const StdVector<std::string> sd)
 {
-#ifdef TRACE
-  (*trace) << " entering AnsysFile::ReadEl " << std::endl;
-#endif
+  ENTER_FCN( "AnsysFile::ReadEl" );
   
     switch(dim_)
       {
@@ -457,13 +431,12 @@ void AnsysFile::ReadEl(std::vector<Elem*> * allelems, const std::vector<std::str
   }
 
 #ifdef ADAPTGRID
-void AnsysFile::ReadBCs_GridRG(std::vector<Integer> & idBCs,std::vector<Integer> &colorBCs)
+void AnsysFile::ReadBCs_GridRG(std::list<Integer> & idBCs,
+			       StdVector<Integer> &colorBCs)
 {
-#ifdef TRACE
-  (*trace) << " entering AnsysFile::ReadGrid_RG " << std::endl;
-#endif
+  ENTER_FCN( "AnsysFile::ReadGrid_RG" );
   
-  std::vector<std::string> levels;
+  StdVector<std::string> levels;
   conf->getliststr("list_nodes",levels);
     
   Integer numbc;
@@ -483,24 +456,22 @@ void AnsysFile::ReadBCs_GridRG(std::vector<Integer> & idBCs,std::vector<Integer>
 	infile.ignore(100,'\n');
 	
 	Boolean Find=FALSE;
-	for (j=0; j<levels.size(); j++)
+	for (j=0; j<levelsGetSize(); j++)
 	  { if (str==levels[j]) { Find=TRUE; break;}
 	  }         
 	
 	std::string msg=str+"-this level of BCs from .mesh file is not mentioned in .config file. Please, check .config-file";
 	if (!Find) Error(msg.c_str(),__FILE__,__LINE__);
 	
-	idBCs.push_back(nodalnum);
-	colorBCs.push_back(j);
+	idBCs.Push_back(nodalnum);
+	colorBCs.Push_back(j);
       } 
   
 }
 
-  void AnsysFile::ReadGrid_RG(std::vector<grd::Element*> & elems, std::vector<grd::Vertex*> * vertex, const std::vector<std::string> sd)
-  {
-#ifdef TRACE
-    (*trace) << " entering AnsysFile::ReadGrid_RG " << std::endl;
-#endif
+void AnsysFile::ReadGrid_RG(StdVector<grd::Element*> & elems, StdVector<grd::Vertex*> * vertex, const StdVector<std::string> sd)
+{
+  ENTER_FCN( "AnsysFile::ReadGrid_RG ");
 
     switch(dim_)
       {
@@ -511,17 +482,13 @@ void AnsysFile::ReadBCs_GridRG(std::vector<Integer> & idBCs,std::vector<Integer>
 	ReadEl4AdaptGrid3d(elems, vertex, sd);
 	break;
       } 
-
-#ifdef TRACE
-    (*trace) << " leaving AnsysFile::ReadGrid_RG " << std::endl;
-#endif
   }
 
-  void AnsysFile::ReadEl4AdaptGrid2d(std::vector<grd::Element*> & elems, std::vector<grd::Vertex*> * vertex,  const std::vector<std::string> sd)
+void AnsysFile::ReadEl4AdaptGrid2d(StdVector<grd::Element*> & elems, 
+				   StdVector<grd::Vertex*> * vertex,  
+				   const StdVector<std::string> sd)
   {
-#ifdef TRACE
-    (*trace) << " entering AnsysFile::ReadElems4AdaptGrid " << std::endl;
-#endif
+    ENER_FCN( "AnsysFile::ReadElems4AdaptGrid" );
 
     Integer maxnelems;
     ReadMaxnumelem(maxnelems,"Num2DElements");
@@ -582,11 +549,11 @@ void AnsysFile::ReadBCs_GridRG(std::vector<Integer> & idBCs,std::vector<Integer>
       } // end of if
   }
 
-  void AnsysFile::ReadEl4AdaptGrid3d(std::vector<grd::Element*> & elems, std::vector<grd::Vertex*> * vertex,  const std::vector<std::string> sd)
-  {
-#ifdef TRACE
-    (*trace) << " entering AnsysFile::ReadElems4AdaptGrid3d " << std::endl;
-#endif
+void AnsysFile::ReadEl4AdaptGrid3d(StdVector<grd::Element*> & elems, 
+				   StdVector<grd::Vertex*> * vertex,  
+				   const StdVector<std::string> sd)
+{
+  ENTER_FCN( "AnsysFile::ReadElems4AdaptGrid3d" );
 
     Integer maxnelems;
     ReadMaxnumelem(maxnelems,"Num3DElements");
@@ -655,26 +622,25 @@ void AnsysFile::ReadBCs_GridRG(std::vector<Integer> & idBCs,std::vector<Integer>
       } // end of if
   }
 
-  void AnsysFile::SetNumSD(grd::Element * ptEl, const std::string namesd, const std::vector<std::string> sd)
-  {
-    Boolean Find;
-    Integer j;
-    for (j=0; j<sd.size(); j++)
-      if (namesd == sd[j]) { ptEl->setValue(j);
-      Find=TRUE;
-      }
-    if (!Find) { std::string msg=namesd + "- this level of element is not mentioned in .conf-file. Please, check .config-file";
-    Error(msg.c_str(),__FILE__,__LINE__);
+void AnsysFile::SetNumSD(grd::Element * ptEl, const std::string namesd, const StdVector<std::string> sd)
+{
+  ENTER_FCN( "AnsysFile::SetNumSD" );
+  Boolean Find;
+  Integer j;
+  for (j=0; j<sdGetSize(); j++)
+    if (namesd == sd[j]) { ptEl->setValue(j);
+    Find=TRUE;
     }
+  if (!Find) { std::string msg=namesd + "- this level of element is not mentioned in .conf-file. Please, check .config-file";
+  Error(msg.c_str(),__FILE__,__LINE__);
+  }
   }
 
 #endif
 
-void AnsysFile::ReadEl1d(std::vector<Elem*> * allelems, const std::vector<std::string> sd)
-  {
-#ifdef TRACE
-    (*trace) << " entering AnsysFile::ReadEl1D " << std::endl;
-#endif
+void AnsysFile::ReadEl1d(StdVector<Elem*> * allelems, const StdVector<std::string> sd) 
+{
+  ENTER_FCN( "AnsysFile::ReadEl1D" );
     
     Integer maxnelems;
     ReadMaxnumelem(maxnelems,"Num1DElements");
@@ -709,8 +675,8 @@ void AnsysFile::ReadEl1d(std::vector<Elem*> * allelems, const std::vector<std::s
 	    infile.ignore(100,'\n');
 
 	    Boolean Find=FALSE;
-	    for (j=0; j<sd.size(); j++)
-	      if (namesd == sd[j]) { allelems[j].push_back(el);
+	    for (j=0; j<sd.GetSize(); j++)
+	      if (namesd == sd[j]) { allelems[j].Push_back(el);
 	      Find=TRUE;
 	      }
 	    if (!Find) { std::string msg=namesd + "- this level of element is not mentioned in .conf-file. Please, check .config-file";
@@ -722,11 +688,9 @@ void AnsysFile::ReadEl1d(std::vector<Elem*> * allelems, const std::vector<std::s
  
   }
 
-void AnsysFile::ReadEl2d(std::vector<Elem*> * allelems, const std::vector<std::string> sd)
-  {
-#ifdef TRACE
-    (*trace) << " entering AnsysFile::ReadEl2D " << std::endl;
-#endif
+void AnsysFile::ReadEl2d(StdVector<Elem*> * allelems, const StdVector<std::string> sd)
+{
+  ENTER_FCN( "AnsysFile::ReadEl2D" );
 
     Integer maxnelems;
     ReadMaxnumelem(maxnelems,"Num2DElements");
@@ -761,10 +725,10 @@ void AnsysFile::ReadEl2d(std::vector<Elem*> * allelems, const std::vector<std::s
 	    infile.ignore(100,'\n');
 
 	    Boolean Find=FALSE;
-	    for (j=0; j<sd.size(); j++)
+	    for (j=0; j<sd.GetSize(); j++)
 	      if (namesd == sd[j]) 
 		{ 
-		  allelems[j].push_back(el);
+		  allelems[j].Push_back(el);
 		  Find=TRUE;
 		}
 	    if (!Find) 
@@ -777,11 +741,9 @@ void AnsysFile::ReadEl2d(std::vector<Elem*> * allelems, const std::vector<std::s
   }
 
 
-void AnsysFile::ReadEl3d(std::vector<Elem*> * allelems, const std::vector<std::string> sd)
+void AnsysFile::ReadEl3d(StdVector<Elem*> * allelems, const StdVector<std::string> sd)
   {
-#ifdef TRACE
-    (*trace) << " entering AnsysFile::ReadEl3d " << std::endl;
-#endif
+    ENTER_FCN( "AnsysFile::ReadEl3d" );
 
     Integer maxnelems;
     ReadMaxnumelem(maxnelems,"Num3DElements");
@@ -813,8 +775,8 @@ void AnsysFile::ReadEl3d(std::vector<Elem*> * allelems, const std::vector<std::s
 	infile.ignore(100,'\n');
 
 	Boolean Find=FALSE;
-	for (j=0; j<sd.size(); j++)
-	  if (namesd == sd[j]) { allelems[j].push_back(el);
+	for (j=0; j<sd.GetSize(); j++)
+	  if (namesd == sd[j]) { allelems[j].Push_back(el);
 	  Find=TRUE;
 	  }
 	if (!Find) { std::string msg=namesd + "- this level of element is not mentioned in .conf-file. Please, check .config-file";
@@ -824,11 +786,9 @@ void AnsysFile::ReadEl3d(std::vector<Elem*> * allelems, const std::vector<std::s
 
   }
 
-  void AnsysFile::ReadEl3dConf(std::vector<std::string> &sd)
-  {
-#ifdef TRACE
-    (*trace) << " entering AnsysFile::ReadEl3dConf " << std::endl;
-#endif
+void AnsysFile::ReadEl3dConf(StdVector<std::string> &sd)
+{
+  ENTER_FCN( "AnsysFile::ReadEl3dConf" );
 
     Integer maxnelems;
     ReadMaxnumelem(maxnelems,"Num3DElements");
@@ -858,14 +818,14 @@ void AnsysFile::ReadEl3d(std::vector<Elem*> * allelems, const std::vector<std::s
 
 	infile.ignore(100,'\n');
 	if (i==0) 
-	    sd.push_back(namesd);
+	    sd.Push_back(namesd);
 	else
 	  {
 	    Integer find = 0;
-	    for (j=0; j<sd.size(); j++)
+	    for (j=0; j<sd.GetSize(); j++)
 		if (namesd == sd[j]) find = 1;
 
-	    if (!find) sd.push_back(namesd);
+	    if (!find) sd.Push_back(namesd);
 	      
 	  }
       }
@@ -873,11 +833,9 @@ void AnsysFile::ReadEl3d(std::vector<Elem*> * allelems, const std::vector<std::s
   }
 
 
-  void AnsysFile::ReadEl2dConf(std::vector<std::string> &sd)
-  {
-#ifdef TRACE
-    (*trace) << " entering AnsysFile::ReadEl2dConf " << std::endl;
-#endif
+void AnsysFile::ReadEl2dConf(StdVector<std::string> &sd)
+{
+  ENTER_FCN( "AnsysFile::ReadEl2dConf" );
 
     Integer maxnelems;
     ReadMaxnumelem(maxnelems,"Num2DElements");
@@ -906,27 +864,25 @@ void AnsysFile::ReadEl3d(std::vector<Elem*> * allelems, const std::vector<std::s
 	  infile >> el->connect[ii];
 
 	infile.ignore(100,'\n');
-	//	allelems.push_back(el);
+	//	allelems.Push_back(el);
 	if (i==0) 
-	    sd.push_back(namesd);
+	    sd.Push_back(namesd);
 	else
 	  {
 	    Integer find = 0;
-	    for (j=0; j<sd.size(); j++)
+	    for (j=0; j<sd.GetSize(); j++)
 		if (namesd == sd[j]) find = 1;
 
-	    if (!find) sd.push_back(namesd);
+	    if (!find) sd.Push_back(namesd);
 	      
 	  }
       }
 
-  }
+}
 
-  void AnsysFile::ReadEl1dConf(std::vector<std::string> &sd)
-  {
-#ifdef TRACE
-    (*trace) << " entering AnsysFile::ReadEl1dConf " << std::endl;
-#endif
+void AnsysFile::ReadEl1dConf(StdVector<std::string> &sd)
+{
+  ENTER_FCN( "AnsysFile::ReadEl1dConf" );
 
     Integer maxnelems;
     ReadMaxnumelem(maxnelems,"Num1DElements");
@@ -955,25 +911,26 @@ void AnsysFile::ReadEl3d(std::vector<Elem*> * allelems, const std::vector<std::s
 	  infile >> el->connect[ii];
 
 	infile.ignore(100,'\n');
-	//	allelems.push_back(el);
+	//	allelems.Push_back(el);
 	if (i==0) 
-	    sd.push_back(namesd);
+	    sd.Push_back(namesd);
 	else
 	  {
 	    Integer find = 0;
-	    for (j=0; j<sd.size(); j++)
+	    for (j=0; j<sd.GetSize(); j++)
 		if (namesd == sd[j]) find = 1;
 
-	    if (!find) sd.push_back(namesd);
+	    if (!find) sd.Push_back(namesd);
 	      
 	  }
       }
 
-  }
+}
 
-  //!
-  BaseFE * AnsysFile::Type2ptElem(const Integer itype)
-  {
+//!
+BaseFE * AnsysFile::Type2ptElem(const Integer itype)
+{
+  ENTER_IFCN( "AnsysFile::Type2ptElem" );
     switch(itype)
       {
       case 1:
@@ -1003,5 +960,5 @@ void AnsysFile::ReadEl3d(std::vector<Elem*> * allelems, const std::vector<std::s
 	}
 	
       }
-  }
+}
 }

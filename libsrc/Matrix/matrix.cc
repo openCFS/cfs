@@ -561,7 +561,7 @@ void Matrix<TYPE>::AddRow (const Vector<TYPE> &x, const Integer pos)
 
 
 template<class TYPE>
-void Matrix<TYPE>::AddColumn (const std::vector<TYPE> &x, const Integer pos)
+void Matrix<TYPE>::AddColumn (const Vector<TYPE> &x, const Integer pos)
 {
   ENTER_IFCN("Matrix::AddColumn");
 
@@ -646,7 +646,7 @@ ENTER_FCN("Matrix::Transpose");
 
 
 template<class TYPE>
-void Matrix<TYPE>::DyadicMult(std::vector<TYPE> v1)
+void Matrix<TYPE>::DyadicMult(Vector<TYPE> v1)
 {
 ENTER_FCN("Matrix::DyadicMult");
   DyadicMult(v1, v1);
@@ -656,11 +656,11 @@ ENTER_FCN("Matrix::DyadicMult");
 
 
 template<class TYPE>
-void Matrix<TYPE>::DyadicMult(std::vector<TYPE> v1, std::vector<TYPE> v2)
+void Matrix<TYPE>::DyadicMult(Vector<TYPE> v1, Vector<TYPE> v2)
 {
 ENTER_FCN("Matrix::DyadicMult");
-  Integer row = v1.size();
-  Integer col = v2.size();
+  Integer row = v1.GetSize();
+  Integer col = v2.GetSize();
   
   this->Resize(row,col);
 
@@ -819,10 +819,10 @@ void Matrix<TYPE>::SetSubMatrix(Matrix<TYPE>& subMat, Integer startRow, Integer 
 
 /// converts a matrix into a vector, by appending successively all rows
 template<class TYPE>
-void Matrix<TYPE>::ConvertToVec_AppendRows(std::vector<TYPE>& vec) const
+void Matrix<TYPE>::ConvertToVec_AppendRows(Vector<TYPE>& vec) const
 {
 ENTER_FCN("Matrix::ConvertToVec_AppendRows");
-  vec.resize(size_row_ * size_col_);
+  vec.Resize(size_row_ * size_col_);
   
   for(int i=0; i < size_row_; i++)
     for(int j=0; j < size_col_; j++)
@@ -831,10 +831,10 @@ ENTER_FCN("Matrix::ConvertToVec_AppendRows");
 
 /// converts a matrix into a vector, by appending successively all colums
 template<class TYPE>
-void Matrix<TYPE>::ConvertToVec_AppendCols(std::vector<TYPE>& vec) const
+void Matrix<TYPE>::ConvertToVec_AppendCols(Vector<TYPE>& vec) const
 {
 ENTER_FCN("Matrix::ConvertToVec_AppendCols");
-  vec.resize(size_row_ * size_col_);
+  vec.Resize(size_row_ * size_col_);
   
   for(int actCol=0; actCol < size_col_; actCol++)
     for(int actRow=0; actRow < size_row_; actRow++)

@@ -122,7 +122,7 @@ template Double dist(Point<3>,Point<3>);
 
 
 /// a-->b
-void calcNormal2Line(std::vector<Double> & normal,Point<2> a,Point<2> b)
+void calcNormal2Line(Vector<Double> & normal,Point<2> a,Point<2> b)
 {
   Double distance=dist(a,b);
   normal[0]=(b[1]-a[1])/distance;
@@ -130,7 +130,7 @@ void calcNormal2Line(std::vector<Double> & normal,Point<2> a,Point<2> b)
 }
 
 /// a-->b
-void calcNormal2Line_Mat(std::vector<Double> & normal,Matrix<Double> a)
+void calcNormal2Line_Mat(Vector<Double> & normal,Matrix<Double> a)
 {
   Double distance=dist_Mat(a);
   // std::cout<<"distance :"<<distance<<std::endl;
@@ -139,21 +139,9 @@ void calcNormal2Line_Mat(std::vector<Double> & normal,Matrix<Double> a)
   normal[1]=(a[0][1]-a[0][0])/distance;
 }
 
-Double ScalarMult(std::vector<Double> a, std::vector<Double> b)
-{
-  Integer i;
-  Double res=0;
-  if (a.size()!=b.size()) 
-    Error("Dimensions in scalar multiplivcation of 2 vectors are not comparable",__FILE__,__LINE__);
-
-  for (i=0; i<a.size(); i++)
-    res+=a[i]*b[i];
-
-  return res;
-}
 
 /// a-->b-->c. no fix orientation.
-void calcNormal2Surface(std::vector<Double> & normal,Point<3> a,Point<3> b, Point<3> c)
+void calcNormal2Surface(Vector<Double> & normal,Point<3> a,Point<3> b, Point<3> c)
 {
   Point<3> t,s;
   Double L2_normal; 
@@ -169,7 +157,7 @@ void calcNormal2Surface(std::vector<Double> & normal,Point<3> a,Point<3> b, Poin
 }
 
 /// a-->b-->c. no fix orientation.
-void calcNormal2Surface_Mat(std::vector<Double> & normal,Matrix<Double> ptCoord)
+void calcNormal2Surface_Mat(Vector<Double> & normal,Matrix<Double> ptCoord)
 {
   Point<3> t,s,a,b,c;
 
@@ -201,22 +189,6 @@ char * c_string(const std::string & s)
 }
 
 
-void SetSubVector(std::vector<Double>& mainVec, std::vector<Double>& subVec, Integer position)
-{
-#ifdef TRACE
-  (*trace) << "entering SetSubVector" << std::endl;
-#endif
-
-  if (position + subVec.size() > mainVec.size()) 
-    Error("Too less space for subvector!",__FILE__,__LINE__);
-
-  if (!(mainVec.size() && subVec.size()) )
-    Error("Vectors not initialized!",__FILE__,__LINE__);
-
-  for(Integer i=0; i<subVec.size(); i++)
-    mainVec[i+position] = subVec[i];
-}
-
 Integer defineRefinements(const Double tolElem, const Double tolTotal, const Integer noOfChilds)
 {
   Double tmp=log(tolElem/tolTotal)/log(noOfChilds);
@@ -227,10 +199,10 @@ Double CalcArea(Elem * ptE, Grid * ptgrid, const Integer level)
 {
   Double         area = 0;
   BaseFE         * ptelem = ptE->ptElem;
-  const Vector<Integer> & connect = ptE->connect;
+  const StdVector<Integer> & connect = ptE->connect;
   Matrix<Double> ptCoord;
   Integer        nrIntPnts = ptelem->GetNumIntPoints();
-  const std::vector<Double> & intWeights = ptelem->GetIntWeights();  
+  const Vector<Double> & intWeights = ptelem->GetIntWeights();  
   Integer        i;
   Double         jacDet;
 

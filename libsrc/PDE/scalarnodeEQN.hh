@@ -16,7 +16,7 @@ public:
   //! Constructor
   ScalarNodeEQN(Grid * aptGrid, 
 		BCs * aptBCs,
-		std::vector<std::string>& asubdoms, 
+		StdVector<std::string>& asubdoms, 
 		Integer actlevel, 
 		Integer dofsPerNode);
   
@@ -36,21 +36,25 @@ public:
   
    //! Map vector of equation numbers to 
   //! positions in global solution vector
-  void EQN2SolVectorPos(const std::vector<Integer> &eqnNr, 
-			std::vector<Integer> &pos) const;
-  
+  void EQN2SolVectorPos(const StdVector<Integer> &eqnNr, 
+			StdVector<Integer> &pos) const;
+
+  //! Map node number and dof to according equation number
+  Integer Node2EQN(const Integer nodeNr, 
+		   const Integer dof) const;
+
   //! Map node number to according equation number(s)
-  void Node2EQN(const Integer nodeNr, std::vector<Integer> &eqns) const;
+  void Node2EQN(const Integer nodeNr, StdVector<Integer> &eqns) const;
   
   //! Map vector of node numbers to according
   //! vector of equiation numbers
-  void Node2EQN(const std::vector<Integer> &nodeNr,
-		std::vector<Integer> &eqnNr) const;
+  void Node2EQN(const StdVector<Integer> &nodeNr,
+		StdVector<Integer> &eqnNr) const;
 
 private:
 
   //! Mapping global node number->EQN
-  std::vector<Integer> pdeNode2EQN_;
+  StdVector<Integer> pdeNode2EQN_;
   
   
 };

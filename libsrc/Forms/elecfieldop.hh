@@ -1,13 +1,14 @@
 #ifndef FILE_ELECFIELDOP_2003
 #define FILE_ELECFIELDOP_2003
 
-#include <Forms/baseoperator.hh>
-#include <Utils/tools.hh>
+#include "Forms/baseoperator.hh"
+#include "Utils/tools.hh"
+#include "Utils/StdVector.hh"
 
 #ifdef USE_OLAS
-#include <olas.hh>
+#include "olas.hh"
 #else
-#include <multigrid.hh>
+#include "multigrid.hh"
 #endif
 
 namespace CoupledField
@@ -15,7 +16,7 @@ namespace CoupledField
 
   class Grid;
   class Elem;
-  template<class TYPE> class StoreSol;
+  template<class TYPE> class ElemStoreSol;
   template<class TYPE> class Vector;
   template<class TYPE> class Matrix;
  
@@ -39,8 +40,8 @@ public:
   */
   ElecFieldOp(Grid * ptGrid,
 	      BasePDE * ptPDE,
-	      std::vector<Integer> * ptMesh2PDENode,
-	      StoreSol<Double> & EPotential,
+	      NodeEQN * ptEQN,
+	      NodeStoreSol<Double> & EPotential,
 	      const Integer level,
 	      Boolean isaxi=FALSE);
 
@@ -55,7 +56,7 @@ public:
    */
   virtual void CalcElemElecField(Vector<Double> & E,
 				 const Elem * ptElement,
-				 const std::vector<Double> & LCoord);
+				 const Vector<Double> & LCoord);
   
 
   //! Calculate electric field for list of subdomains
@@ -67,14 +68,14 @@ public:
     \param SD (input) Name of the subdomain
     \param LCoord (input) Local coordinates of evalutation point
   */
-  virtual void CalcSDElecField(StoreSol<Double> & E,
-			       const std::vector<std::string> & SD,
-			       const std::vector<Double> & LCoord);
+  virtual void CalcSDElecField(NodeStoreSol<Double> & E,
+			       const StdVector<std::string> & SD,
+			       const Vector<Double> & LCoord);
 			    			       
 
 protected:
   
-  Vector<Double> * EPotential_;
+  NodeStoreSol<Double> * EPotential_;
 
 };
 
@@ -95,8 +96,8 @@ public:
   */
   CurlEdgeOp(Grid * ptGrid,
 	     BasePDE * ptPDE,
-	     std::vector<Integer> * ptMesh2PDENode,
-	     StoreSol<Double> & sol,
+	     NodeEQN * ptEQN,
+	     NodeStoreSol<Double> & sol,
 	     const Integer level,
 	     BaseSystem * algsys);
 
@@ -111,16 +112,16 @@ public:
    */
   virtual void CalcElemCurlEdge(Vector<Double> & E,
 				const Elem * ptElement,
-				const std::vector<Double> & LCoord);
+				const Vector<Double> & LCoord);
   
 
   void CalcElemMagVec(Vector<Double> & magVecPot, 
 		      const Elem * ptElement,
-		      const std::vector<Double> & LCoord);
+		      const Vector<Double> & LCoord);
   
 protected:
   
-  Vector<Double> * sol_;
+  const NodeStoreSol<Double> * sol_;
   BaseSystem * algsys_;
 };
 
@@ -137,8 +138,8 @@ public:
   //! Constructor
   CurlNodeOp(Grid * ptGrid,
 	     BasePDE * ptPDE,
-	     std::vector<Integer> * ptMesh2PDENode,
-	     StoreSol<Double> & sol,
+	     NodeEQN * ptEQN,
+	     NodeStoreSol<Double> & sol,
 	     const Integer level);
 
   //! Destructor
@@ -154,16 +155,16 @@ public:
    */
   virtual void CalcElemCurlNode(Vector<Double> & E,
 				const Elem * ptElement,
-				const std::vector<Double> & LCoord);
+				const Vector<Double> & LCoord);
 
   void CalcElemMagVec(Vector<Double> & magVecPot, 
 		      const Elem * ptElement,
-		      const std::vector<Double> & LCoord)
+		      const Vector<Double> & LCoord)
   {Error("CalcElemMagVec not implemented",__FILE__,__LINE__);};
   
 protected:
   
-  Vector<Double> * sol_;
+  NodeStoreSol<Double> * sol_;
 };
 
 } // end of namespace

@@ -10,8 +10,8 @@
 namespace CoupledField
 {
 
-BaseCoupledPDE::BaseCoupledPDE(std::vector<BasePDE*> & PDEs,
-			       std::vector<PDECoupling*> & Couplings,
+BaseCoupledPDE::BaseCoupledPDE(StdVector<BasePDE*> & PDEs,
+			       StdVector<PDECoupling*> & Couplings,
 			       Grid *aptgrid, 
 			       BCs *aptBCs, 
 			       FileType *aInFile, 
@@ -29,7 +29,7 @@ BaseCoupledPDE::BaseCoupledPDE(std::vector<BasePDE*> & PDEs,
   Couplings_  = Couplings;
 
   actlevel_ = 0;
-  NumPDEs_ = PDEs.size();
+  NumPDEs_ = PDEs.GetSize();
 
   couplingSectionName_ = "coupling";
   
@@ -47,10 +47,10 @@ BaseCoupledPDE::BaseCoupledPDE(std::vector<BasePDE*> & PDEs,
 
   coupledpdename_ = "CoupledPDE: ";
 
-  for (Integer actPDE=0; actPDE < PDEs.size()-1; actPDE++)
+  for (Integer actPDE=0; actPDE < PDEs.GetSize()-1; actPDE++)
     coupledpdename_ += PDEs[actPDE] -> GetName() + "+";
 
-  coupledpdename_ += PDEs[PDEs.size()-1] -> GetName();
+  coupledpdename_ += PDEs[PDEs.GetSize()-1] -> GetName();
 }
 
 BaseCoupledPDE::~BaseCoupledPDE()
@@ -89,7 +89,7 @@ void BaseCoupledPDE::PreStepTrans(const Integer kstep, const Double asteptime,
   (*trace) << "entering BaseCoupledPDE::PreStepTrans" << std::endl;
 #endif
 
-    for (Integer i=0; i<PDEs_.size(); i++)
+    for (Integer i=0; i<PDEs_.GetSize(); i++)
       PDEs_[i]->PreStepTrans(kstep, asteptime, level, reset);
 };
 
@@ -104,7 +104,7 @@ void BaseCoupledPDE::PostStepTrans(const Integer kstep, const Double asteptime,
   (*trace) << "entering BaseCoupledPDE::PostStepTrans" << std::endl;
 #endif
 
-    for (Integer i=0; i<PDEs_.size(); i++)
+    for (Integer i=0; i<PDEs_.GetSize(); i++)
       PDEs_[i]->PostStepTrans(kstep,asteptime,level);
 }
 
@@ -116,7 +116,7 @@ void BaseCoupledPDE::InitStepTransCoupled(Double stepTime)
   (*trace) << "entering BaseCoupledPDE::InitStepTransCoupled" << std::endl;
 #endif
 
-    for (Integer i=0; i<PDEs_.size(); i++)
+    for (Integer i=0; i<PDEs_.GetSize(); i++)
       PDEs_[i]->InitStepTransCoupled(stepTime);
 }
 
@@ -128,7 +128,7 @@ void BaseCoupledPDE::InitTimeStepping(const Double dt)
   (*trace) << "entering BaseCoupledPDE::InitTimeStepping" << std::endl;
 #endif
 
-    for (Integer i=0; i<PDEs_.size(); i++)
+    for (Integer i=0; i<PDEs_.GetSize(); i++)
       PDEs_[i]->InitTimeStepping(dt);
 };
 
@@ -139,7 +139,7 @@ void BaseCoupledPDE::WriteGeneralPDEdefines()
   (*trace) << "entering BaseCoupledPDE::WriteGeneralPDEdefines" << std::endl;
 #endif
 
-    for (Integer i=0; i<PDEs_.size(); i++)
+    for (Integer i=0; i<PDEs_.GetSize(); i++)
       PDEs_[i]->WriteGeneralPDEdefines();
 }
 
@@ -155,7 +155,7 @@ void BaseCoupledPDE::PostProcess(const Integer level)
   (*trace) << "entering BaseCoupledPDE::PostProcess" << std::endl;
 #endif
 
-    for (Integer i=0; i<PDEs_.size(); i++)
+    for (Integer i=0; i<PDEs_.GetSize(); i++)
       PDEs_[i]->PostProcess(level);
 }
 

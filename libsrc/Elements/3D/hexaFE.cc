@@ -13,9 +13,7 @@ namespace CoupledField
 
 HexaFE::HexaFE()
 {
-#ifdef TRACE
-    (*trace) << "entering HexaFE::HexaFE" << std::endl;
-#endif
+  ENTER_FCN( "HexaFE::HexaFE" );
 
     Dim_      = 3;
     NumEdges_ = 12;
@@ -38,17 +36,13 @@ HexaFE::HexaFE()
 
 HexaFE::~HexaFE()
 {
-#ifdef TRACE
-    (*trace) << "entering HexaFE::~HexaFE" << std::endl;
-#endif
-    //  if (IntWeights) delete IntWeights;
+  ENTER_FCN( "HexaFE::~HexaFE" );
+  //  if (IntWeights) delete IntWeights;
 }
 
 void HexaFE::SetIntPoints()
 {
-#ifdef TRACE
-  (*trace) << "entering HexaFE::SetIntPoints" << std::endl;
-#endif
+  ENTER_FCN( "HexaFE::SetIntPoints" );
  
   switch(IntegType) 
     {
@@ -58,16 +52,16 @@ void HexaFE::SetIntPoints()
       DegreeInteg_  = 2;
 
 
-      IntWeights_.resize(NumIntPoints_);
+      IntWeights_.Resize(NumIntPoints_);
 	// all weights are 1.0
-      for(Integer i=0; i<IntWeights_.size(); i++)
+      for(Integer i=0; i<IntWeights_.GetSize(); i++)
 	IntWeights_[i] = 1.0;
       
       if (!IntPoints_)
-	IntPoints_ = new std::vector<Double>[NumIntPoints_];
+	IntPoints_ = new Vector<Double>[NumIntPoints_];
       
       for(Integer i=0; i<NumIntPoints_; i++)
-	IntPoints_[i].resize(Dim_);
+	IntPoints_[i].Resize(Dim_);
 
       IntPoints_[0][0] = 0;
       IntPoints_[0][1] = 0;
@@ -81,16 +75,16 @@ void HexaFE::SetIntPoints()
       DegreeInteg_=3;
 
 
-	IntWeights_.resize(NumIntPoints_);
+	IntWeights_.Resize(NumIntPoints_);
 	// all weights are 1.0
-	for(Integer i=0; i<IntWeights_.size(); i++)
+	for(Integer i=0; i<IntWeights_.GetSize(); i++)
 	  IntWeights_[i] = 1.0;
       
 	if (!IntPoints_)
-	  IntPoints_ = new std::vector<Double>[NumIntPoints_];
+	  IntPoints_ = new Vector<Double>[NumIntPoints_];
 
 	for(Integer i=0; i<NumIntPoints_; i++)
-	  IntPoints_[i].resize(Dim_);
+	  IntPoints_[i].Resize(Dim_);
 
       IntPoints_[0][0] = -0.57735026919;
       IntPoints_[0][1] = -0.57735026919;

@@ -3,9 +3,10 @@
 
 
 #include <list>
-#include <Domain/bcs.hh>
-#include <DataInOut/filetype.hh>
-#include <DataInOut/writeresults.hh>
+#include "Domain/bcs.hh"
+#include "DataInOut/filetype.hh"
+#include "DataInOut/writeresults.hh"
+#include "Utils/StdVector.hh"
 
 #include <PDE/basePDE.hh>
 
@@ -30,8 +31,8 @@ public:
     \param aInFile pointer to class FileType. input data.
     \param aOutFile  pointer to class WriteResults. output data.
   */
-  BaseCoupledPDE(std::vector<BasePDE*> & PDEs,
-		 std::vector<PDECoupling*> & Couplings,
+  BaseCoupledPDE(StdVector<BasePDE*> & PDEs,
+		 StdVector<PDECoupling*> & Couplings,
 		 Grid *aptgrid, 
 		 BCs *aptBCs, 
 		 FileType *aInFile, 
@@ -101,8 +102,8 @@ protected:
   std::string coupledpdename_;          //!< name of coupled PDE
   std::string couplingSectionName_;     //!< name of section in conffile, which holds params for coupling
   AnalysisType analysistype_;           //!< type of analysis
-  std::vector<BasePDE *> PDEs_;         //!< list of belonging PDEs
-  std::vector<PDECoupling*> Couplings_; //!< vector of coupling objects
+  StdVector<BasePDE *> PDEs_;         //!< list of belonging PDEs
+  StdVector<PDECoupling*> Couplings_; //!< vector of coupling objects
   Integer NumPDEs_;                     //!< number of PDEs 
   Integer actlevel_;                    //!< current level (for multigrid)
 

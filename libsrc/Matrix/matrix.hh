@@ -136,7 +136,7 @@ public:
   */			  
   //! \deprecated Do not use std::vectors for 
   //! numerical values anymore
-  void DyadicMult(std::vector<TYPE> vec1);
+  void DyadicMult(Vector<TYPE> vec1);
   
   
   //! Assignes the matrix itself the dyadic product of a vector vec1 
@@ -155,7 +155,7 @@ public:
   */		
   //! \deprecated Do not use std::vectors for 
   //! numerical values anymore
-  void DyadicMult(std::vector<TYPE> vec1, std::vector<TYPE> vec2); 
+  void DyadicMult(Vector<TYPE> vec1, Vector<TYPE> vec2); 
   
   //! copies a submatrix at the position (row, col) into subMat, 
   //! the amount of copied elements depends on the size of subMat
@@ -290,7 +290,7 @@ public:
    void AddRow(const Vector<TYPE> & x, const Integer pos );
 
    //! Add a colomn to Matrix at position i
-   void AddColumn(const std::vector<TYPE> & x, const Integer pos ); 
+   void AddColumn(const Vector<TYPE> & x, const Integer pos ); 
 
 //   //! get a column out of the matrix
 //   std::vector<TYPE> get_col(const Integer acol);
@@ -307,10 +307,10 @@ public:
   void SetSubMatrix(Matrix<TYPE>& subMat, Integer row, Integer col);
 
   /// converts a matrix into a vector, by appending successively all rows
-  void ConvertToVec_AppendRows(std::vector<TYPE>& vec) const;
+  void ConvertToVec_AppendRows(Vector<TYPE>& vec) const;
 
   /// converts a matrix into a vector, by appending successively all columns
-  void ConvertToVec_AppendCols(std::vector<TYPE>& vec) const;
+  void ConvertToVec_AppendCols(Vector<TYPE>& vec) const;
 
    /// gets the diagonal elements of a  matrix in a one column matrix
   void GetDiagInMatrix(Matrix<TYPE>& columnMat);

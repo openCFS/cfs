@@ -1,9 +1,10 @@
 #ifndef FILE_CONFIGFILE_2002
 #define FILE_CONFIGFILE_2002
 
-#include "Utils/tools.hh"
 #include <fstream>
-#include <vector>
+
+#include "Utils/tools.hh"
+#include "Utils/StdVector.hh"
 
 namespace CoupledField
 {
@@ -96,14 +97,14 @@ public:
 
 
    //! get list of subdomains
-  void getsubdom(std::vector<std::string> & subdoms);
+  void getsubdom(StdVector<std::string> & subdoms);
 
    //! get list of integer-values for a keyword(for ex. history nodes)
    /*!
 	\param hist list of returned values
 	\param seekexp keyword
     */
-  void getlist(std::vector<Integer> & hist,const std::string seekexp);
+  void getlist(StdVector<Integer> & hist,const std::string seekexp);
 
    //! get list of integer-values for a keyword(for ex. history nodes)
    /*!
@@ -112,7 +113,7 @@ public:
 	\param section name of a section in which keyword is there. can be omitted
 	\param subsection name of a subsection of the section in which keyword is there. can be omitted
     */
-  void getlist(const std::string seekexp, std::vector<Double> & hist, const std::string section="", const std::string subsection="");
+  void getlist(const std::string seekexp, StdVector<Double> & hist, const std::string section="", const std::string subsection="");
 
   //! get list of string-values(for ex. pdes) for a keyword
   /*!
@@ -121,7 +122,7 @@ public:
 	\param section name of a section in which keyword is there. can be omitted
 	\param subsection name of a subsection of the section in which keyword is there. can be omitted
   */
-  void getliststr(const std::string seekexp, std::vector<std::string> & pdes, 
+  void getliststr(const std::string seekexp, StdVector<std::string> & pdes, 
 		  const std::string section="", const std::string subsection="");
 
   //! get string-value for a keyword
@@ -140,7 +141,7 @@ public:
         \param section name of a section in which keyword is there. can be omitted
         \param subsection name of a subsection of the section in which keyword is there. can be omitted
   */
-  Boolean ifgetliststr(const std::string seekexp, std::vector<std::string> & pdes, 
+  Boolean ifgetliststr(const std::string seekexp, StdVector<std::string> & pdes, 
 		       const std::string section="", const std::string subsection="");
 
   //! get list of subdomains for an equation, which is defined in a section 
@@ -148,10 +149,10 @@ public:
 	\param subdoms vector with returned values
 	\param nameSection name of section in which the equation is specified
 	*/
-  void getsubdompde(std::vector<std::string> & subdoms, const std::string nameSection);
+  void getsubdompde(StdVector<std::string> & subdoms, const std::string nameSection);
 
   /// return  name of all subdomains
-  std::vector<std::string> & GetAllSubDomains() {return allSubDomains_;};
+  StdVector<std::string> & GetAllSubDomains() {return allSubDomains_;};
   
 
 protected:
@@ -189,10 +190,10 @@ protected:
     std::string::size_type pos_end;
 
     //! store list of all subdomains. we need this for checking that subdomains for PDE are valid
-    std::vector<std::string> allSubDomains_;
+    StdVector<std::string> allSubDomains_;
 
     //! checking that the value is from predefined list
-    void check(const std::string value, std::vector<std::string> data);
+    void check(const std::string value, StdVector<std::string> data);
 
     //!
     void open_file();

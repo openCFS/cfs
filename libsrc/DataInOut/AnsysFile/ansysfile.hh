@@ -56,52 +56,52 @@ public:
 	\param elems out: pointer to vector with elements
 	\param sd vector with color of subdomains, for which elements are read
   */
-  void ReadEl(std::vector<Elem*> * elems, const std::vector<std::string> sd); 
+  void ReadEl(StdVector<Elem*> * elems, const StdVector<std::string> sd); 
 
   //! read 1D-elements. we cause it directly when we set BCs
   /*!
    \param allelems out: pointer to vector with 1D-elements
    \param sd color of subdomains, for which elements are read
   */
-  void ReadEl1d(std::vector<Elem*> * allelems, const std::vector<std::string> sd);
+  void ReadEl1d(StdVector<Elem*> * allelems, const StdVector<std::string> sd);
 
   //! read 2d - elements from the mesh-file
     /*!
    \param allelems out: pointer to vector with 2D-elements
    \param sd color of subdomains, for which elements are read
   */
-  void ReadEl2d(std::vector<Elem*> * allelems, const std::vector<std::string> sd);
+  void ReadEl2d(StdVector<Elem*> * allelems, const StdVector<std::string> sd);
 
   //! read 3d -elements from the mesh-file
    /*!
    \param allelems out: pointer to vector with 3D-elements
    \param sd color of subdomains, for which elements are read
   */
-  void ReadEl3d(std::vector<Elem*> * allelems, const std::vector<std::string> sd);
+  void ReadEl3d(StdVector<Elem*> * allelems, const StdVector<std::string> sd);
 
   //! read 3d -elements from the mesh-file and extractes the data for the conf-file
    /*!
    \param sd color of subdomains, for which elements are read
   */
-  void ReadEl3dConf(std::vector<std::string> &sd);
+  void ReadEl3dConf(StdVector<std::string> &sd);
 
   //! read 2d -elements from the mesh-file and extractes the data for the conf-file
    /*!
    \param sd color of subdomains, for which elements are read
   */
-  void ReadEl2dConf(std::vector<std::string> &sd);
+  void ReadEl2dConf(StdVector<std::string> &sd);
 
   //! read 1d -elements from the mesh-file and extractes the data for the conf-file
    /*!
    \param sd color of subdomains, for which elements are read
   */
-  void ReadEl1dConf(std::vector<std::string> &sd);
+  void ReadEl1dConf(StdVector<std::string> &sd);
 
   //! read BCs from the mesh-file and extractes the data for the conf-file
    /*!
    \param sd color of subdomains, for which elements are read
   */
-  void ReadBCsConf(std::vector<std::string> &sd);
+  void ReadBCsConf(StdVector<std::string> &sd);
 
   //! return dimension of the mesh
   Integer ReadDim();
@@ -126,7 +126,7 @@ public:
         \param bcs out: vector with global number of nodes which are applied to boundary condition
         \param levels in: vector with color of nodes
   */
-  void ReadBCs(std::list<Integer> * bcs, const std::vector<std::string> levels);
+  void ReadBCs(std::list<Integer> * bcs, const StdVector<std::string> levels);
 
 
  //! read the save nodes
@@ -134,11 +134,11 @@ public:
         \param saveNodes out: list with global number of nodes
         \param levels in: vector with name of nodes
   */
-  virtual void ReadSaveNodes(std::list<Integer> * saveNodes , const std::vector<std::string> levels);
+  virtual void ReadSaveNodes(std::list<Integer> * saveNodes , const StdVector<std::string> levels);
   
   //! read only levels (names) of save nodes
   /*! \param levels out: list with names of save node levels  */
-  void ReadLevelOfSaveNodes(std::vector<std::string>& levels);
+  void ReadLevelOfSaveNodes(StdVector<std::string>& levels);
   
 
   //!
@@ -149,7 +149,7 @@ public:
 	\param vertex out: vector with vertices
 	\param sd in: vector with color of subdomains which is put in Grid_RG
   */
-  void ReadGrid_RG(std::vector<grd::Element*> & elems, std::vector<grd::Vertex*> * vertex, const std::vector<std::string> sd);
+  void ReadGrid_RG(StdVector<grd::Element*> & elems, StdVector<grd::Vertex*> * vertex, const StdVector<std::string> sd);
 
  //! read the mesh from mesh-file for Grid_RG
   /*!
@@ -157,7 +157,7 @@ public:
         \param vertex out: vector with vertices
         \param sd in: vector with color of subdomains which is put in Grid_RG
   */
-  void ReadBCs_GridRG(std::vector<Integer> & idBCs,std::vector<Integer> &colorBCs);
+  void ReadBCs_GridRG(StdVector<Integer> & idBCs,StdVector<Integer> &colorBCs);
 #endif
 
 protected:
@@ -191,17 +191,17 @@ private:
 
 #ifdef ADAPTGRID
   //! read 2d elements from the input mesh-file for the Grid_RG 
-  void ReadEl4AdaptGrid2d(std::vector<grd::Element*> & elems, std::vector<grd::Vertex*> * vertices,  const std::vector<std::string> sd);  
+  void ReadEl4AdaptGrid2d(StdVector<grd::Element*> & elems, StdVector<grd::Vertex*> * vertices,  const StdVector<std::string> sd);  
 
   //! read 3d elements from the input mesh-file for the Grid_RG 
-  void ReadEl4AdaptGrid3d(std::vector<grd::Element*> & elems, std::vector<grd::Vertex*> * vertices,  const std::vector<std::string> sd);
+  void ReadEl4AdaptGrid3d(StdVector<grd::Element*> & elems, StdVector<grd::Vertex*> * vertices,  const StdVector<std::string> sd);
 
   //! for each element of the mesh in format of Grid_RG set value: color of subdomain
   /*!
     \param namesd name of the subdomain
     \param sd vector with colors of all subdomains
   */
-  void SetNumSD(grd::Element * ptEl, const std::string namesd,  const std::vector<std::string> sd);
+  void SetNumSD(grd::Element * ptEl, const std::string namesd,  const StdVector<std::string> sd);
 #endif
 
 };

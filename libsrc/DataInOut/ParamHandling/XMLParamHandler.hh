@@ -196,7 +196,7 @@ namespace CoupledField
     //! \param subsection Name of a subsection in which to look for keyword
     //!                   (optional)
     void GetList( const std::string key,
-		  std::vector<std::string> &list,
+		  StdVector<std::string> &list,
 		  const std::string section = "",
 		  const std::string subsection = "" );
 
@@ -215,7 +215,7 @@ namespace CoupledField
     //!                   (optional)
     //! \param subsection Name of a subsection in which to look for keyword
     //!                   (optional)
-    void GetList( const std::string key, std::vector<Double> &list,
+    void GetList( const std::string key, StdVector<Double> &list,
 		  const std::string section = "",
 		  const std::string subsection = "" );
 
@@ -243,7 +243,7 @@ namespace CoupledField
     //! \param subsection   Name of a subsection in which to look for keyword
     //!                     (optional)
     void CGetList( const std::string key,
-		   std::vector<std::string> &list,
+		   StdVector<std::string> &list,
 		   const std::string attribute,
 		   const std::string value,
 		   Integer applyToElem,
@@ -255,7 +255,7 @@ namespace CoupledField
     //! This method queries the parameter object for a list of all PDEs defined
     //! in the parameter file. The list is returned as a vector of standard
     //! strings.
-    void GetPDEList( std::vector<std::string> &list );
+    void GetPDEList( StdVector<std::string> &list );
 
     //! Obtain list of coils defined in parameter file
 
@@ -264,7 +264,7 @@ namespace CoupledField
     //! standard strings. The method will return an empty vector, if there are
     //! no matches. By specifying the optional pde input parameter the search
     //! can be restricted to a certain PDE entry in the pdeList section.
-    void GetCoilList( std::vector<std::string> &list,
+    void GetCoilList( StdVector<std::string> &list,
 		      const std::string pde = "" );
 
     //! Obtain the type of a certain coils
@@ -587,10 +587,10 @@ namespace CoupledField
     //! \param treeTop  Top node  of search tree.
     //! \param elemlist Optionally we can return a vector of the elements for
     //!                 which there have been matches.
-    std::vector<xercesc::DOMAttr*>*
-    FindMatchingAttributes( std::string key, std::vector<std::string> &keys,
+    StdVector<xercesc::DOMAttr*>*
+    FindMatchingAttributes( std::string key, StdVector<std::string> &keys,
 			    xercesc::DOMElement *treeTop,
-			    std::vector<xercesc::DOMElement*> *elemlist=NULL );
+			    StdVector<xercesc::DOMElement*> *elemlist=NULL );
 
     //! Search (restricted) tree for elements matching keyword 
 
@@ -607,8 +607,8 @@ namespace CoupledField
     //!                   through in the recursion.
     //! \param curdepth   Current depth of recursion. This is used to identitfy
     //!                   the current keyword.
-    std::vector<xercesc::DOMElement*>*
-    FindMatchingElements( std::vector<std::string> &keys,
+    StdVector<xercesc::DOMElement*>*
+    FindMatchingElements( StdVector<std::string> &keys,
 			  xercesc::DOMElement *treeTop,
 			  unsigned int curdepth );
 
@@ -632,11 +632,11 @@ namespace CoupledField
     //! \param elemlist   Vector containing the found elements
     //!                   (output/optional)
     void FindAllMatches( const std::string key,
-			 std::vector<std::string> &list,
+			 StdVector<std::string> &list,
 			 const std::string section,
 			 const std::string subsection,
 			 xercesc::DOMElement *treeTop,
-			 std::vector<xercesc::DOMElement*> *elemlist=NULL );
+			 StdVector<xercesc::DOMElement*> *elemlist=NULL );
 
     //! Get a list of strings for keyword and elements with certain attribute
 
@@ -662,7 +662,7 @@ namespace CoupledField
     //! \param subsection   Name of a subsection in which to look for keyword
     //!                     (optional)
     void CFindAllMatches( const std::string key,
-			  std::vector<std::string> &list,
+			  StdVector<std::string> &list,
 			  const std::string attribute,
 			  const std::string value,
 			  Integer applyToElem,

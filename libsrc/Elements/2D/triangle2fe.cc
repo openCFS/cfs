@@ -8,25 +8,20 @@ namespace CoupledField
 
 Triangle2FE :: Triangle2FE() : TriangleFE()
 {
-#ifdef TRACE
-  (*trace) << "entering Triangle2FE::Triangle2FE" << std::endl;
-#endif
+  ENTER_FCN( "Triangle2FE::Triangle2FE" );
 
   Init();
 }
   
 Triangle2FE :: ~Triangle2FE()
 {
-#ifdef TRACE
-  (*trace) << "entering Triangle2FE::~Triangle2FE" << std::endl;
-#endif
+  ENTER_FCN( "Triangle2FE::~Triangle2FE" );
 }
 
 void Triangle2FE :: Init()
 {
-#ifdef TRACE
-  (*trace) << "entering Triangle2FE::Init" << std::endl;
-#endif
+  ENTER_FCN( "Triangle2FE::Init" );
+
   NumNodes_ = 6;
   SetIntPoints();
   SetCornerCoords();
@@ -36,9 +31,7 @@ void Triangle2FE :: Init()
 
 void Triangle2FE :: SetCornerCoords()
 {
-#ifdef TRACE
-  (*trace) << "entering Triangle2FE::SetCornerCoords" << std::endl;
-#endif
+  ENTER_FCN( "Triangle2FE::SetCornerCoords" );
 
   LCornerCoords_.Resize(Dim_,NumNodes_);
   
@@ -57,15 +50,14 @@ void Triangle2FE :: SetCornerCoords()
   LCornerCoords_[1][5] = 0.5;
 }
 
-void Triangle2FE :: CalcShapeFnc(std::vector<Double> & Shape, 
-			     const std::vector<Double> & LCoord)
+void Triangle2FE :: CalcShapeFnc(Vector<Double> & Shape, 
+				 const Vector<Double> & LCoord)
 {
-#ifdef TRACE
-  (*trace) << "entering Triangle2FE::CalcShapeFnc" << std::endl;
-#endif
-   // From Zienkiewicz, The Finite Element Method. Vol 1, page 128.
- // corner nodes
-  Shape.resize(NumNodes_);
+  ENTER_FCN( "Triangle2FE::CalcShapeFnc" );
+
+  // From Zienkiewicz, The Finite Element Method. Vol 1, page 128.
+  // corner nodes
+  Shape.Resize(NumNodes_);
 
   Double t = 1.0 - LCoord[0] - LCoord[1]; // Define the third component of the triangular coord.
 
@@ -88,11 +80,9 @@ void Triangle2FE :: CalcShapeFnc(std::vector<Double> & Shape,
 
 
 void Triangle2FE :: CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
-				       const std::vector<Double> & LCoord)
+					   const Vector<Double> & LCoord)
 {
-#ifdef TRACE
-  (*trace) << "entering Triangle2FE::CalcLocalDerivShapeFnc" << std::endl;
-#endif
+  ENTER_FCN( "Triangle2FE::CalcLocalDerivShapeFnc" );
 
   LDeriv.Resize(NumNodes_,Dim_);
 

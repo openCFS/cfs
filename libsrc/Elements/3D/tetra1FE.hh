@@ -32,8 +32,8 @@ protected:
     \param Shape (output) Vector of shape fnc values \f$ (N_{1},\cdots\,N_{NumNodes})^T \f$
     \param LCoord (input) Local coordinates of evalutation point 
   */
-  virtual void CalcShapeFnc(std::vector<Double> & LShape, 
-			    const std::vector<Double> & LCoord);
+  virtual void CalcShapeFnc(Vector<Double> & LShape, 
+			    const Vector<Double> & LCoord);
 
 
   
@@ -46,7 +46,7 @@ protected:
     \param LCoord (input) Local coordinates of evalutation point 
   */
   virtual void CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
-				      const std::vector<Double> & LCoord);
+				      const Vector<Double> & LCoord);
 
 
 
@@ -66,7 +66,7 @@ protected:
     \param LCoord (input) Local coordinates of evalutation point 
   */
   virtual void CalcEdgeShapeFnc(Matrix<Double> & shape, 
-				const std::vector<Double> & LCoord, 
+				const Vector<Double> & LCoord, 
 				const Matrix<Double> & CornerCoords);
   
   
@@ -82,8 +82,8 @@ protected:
 					     \end{array}\right) \f]
     \param lCoord (input) Local coordinates of evalutation point 
   */
-  virtual void GetEdgeGlobalDerivShapeFnc(std::vector<Matrix<Double>* > & deriv, 
-					  const std::vector<Double> & lCoord,
+  virtual void GetEdgeGlobalDerivShapeFnc(Vector<Matrix<Double>* > & deriv, 
+					  const Vector<Double> & lCoord,
 					  const Matrix<Double> & CornerCoords);
 
 protected:

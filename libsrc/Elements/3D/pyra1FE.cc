@@ -9,26 +9,20 @@ namespace CoupledField
 
 Pyra1FE::Pyra1FE():PyraFE()
 { 
-#ifdef TRACE
-  (*trace) << "entering Pyra1FE::Pyra1FE" << std::endl;
-#endif
-   Init();
+  ENTER_FCN( "Pyra1FE::Pyra1FE" );
+  
+  Init();
 }
 
 
 Pyra1FE::~Pyra1FE()
 {
-#ifdef TRACE
-  (*trace) << "entering Pyra1FE::~Pyra1FE" << std::endl;
-#endif
- ; 
+  ENTER_FCN( "Pyra1FE::~Pyra1FE" );
 }
 
 void Pyra1FE::Init()
 {
-#ifdef TRACE
-  (*trace) << "entering Pyra1FE::Init" << std::endl;
-#endif
+  ENTER_FCN( "Pyra1FE::Init" );
   
   Dim_ = 3;
   NumNodes_ = 5;
@@ -47,9 +41,7 @@ void Pyra1FE::Init()
 
 void Pyra1FE::SetCornerCoords()
 {
-#ifdef TRACE
-  (*trace) << "entering Pyra1FE::SetCornerCoords" << std::endl;
-#endif
+  ENTER_FCN( "Pyra1FE::SetCornerCoords" );
 
   LCornerCoords_.Resize(Dim_,NumNodes_);
   
@@ -78,7 +70,7 @@ void Pyra1FE::SetCornerCoords()
 
 
 
-// std::ostream& operator<< (std::ostream & outStr, std::vector<Double> xOut)
+// std::ostream& operator<< (std::ostream & outStr, Vector<Double> xOut)
 // {
 //   for (Integer i=0; i<xOut.size(); i++)
 //     outStr <<  " " << xOut[i];
@@ -86,14 +78,12 @@ void Pyra1FE::SetCornerCoords()
 // }
 
 
-void Pyra1FE :: CalcShapeFnc(std::vector<Double> & Shape, 
-			     const std::vector<Double> & LCoord)
+void Pyra1FE :: CalcShapeFnc(Vector<Double> & Shape, 
+			     const Vector<Double> & LCoord)
 {
-#ifdef TRACE
-  (*trace) << "entering Pyra1FE::CalcShapeFnc" << std::endl;
-#endif
+  ENTER_FCN( "Pyra1FE::CalcShapeFnc" );
 
-  Shape.resize(NumNodes_);
+  Shape.Resize(NumNodes_);
 
 	//"Pyramidal Elements"
 	// F. Zgainski, J.L. Coulomb, Y. Marechal. IEEE Transactions on Magnetics, Vol. 32, No. 3, May 1996
@@ -129,11 +119,9 @@ void Pyra1FE :: CalcShapeFnc(std::vector<Double> & Shape,
 
 
 void Pyra1FE :: CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
-				       const std::vector<Double> & LCoord)
+				       const Vector<Double> & LCoord)
 {
-#ifdef TRACE
-  (*trace) << "entering Pyra1FE::CalcLocalDerivShapeFnc" << std::endl;
-#endif
+  ENTER_FCN( "Pyra1FE::CalcLocalDerivShapeFnc" );
 
   LDeriv.Resize(NumNodes_,Dim_);
 

@@ -1,8 +1,9 @@
 #ifndef FILE_TIMESTEPPING_2001
 #define FILE_TIMESTEPPING_2001
 
-#include <General/environment.hh>
-#include <Utils/storesol.hh>
+#include "General/environment.hh"
+#include "Utils/nodestoresol.hh"
+#include "PDE/nodeEQN.hh"
 
 #ifdef USE_OLAS
 #include <olas.hh>
@@ -23,7 +24,7 @@ public:
     \param apdename name of PDE
     \param algebraicsystem pointer to algebraic system used by PDE
   */
-  TimeStepping(std::string apdename, BaseSystem * algebraicsystem);
+  TimeStepping(std::string apdename, BaseSystem * algebraicsystem, NodeEQN * ptEQN);
 
    //! deconstructor
   virtual ~TimeStepping();
@@ -55,7 +56,7 @@ public:
 
   //! store solution to solution array (especially for effective mass formulation)
   
-  virtual const void StoreSolution(StoreSol<Double> & solArr) const 
+  virtual const void StoreSolution(NodeStoreSol<Double> & solArr) const 
   {Error("Not implemented in base class!", __FILE__, __LINE__);};
 
 
@@ -63,6 +64,7 @@ protected:
 
   std::string pdename_;  //<! name of PDE
   BaseSystem * algsys_;  //<! pointer to algebraic system
+  NodeEQN * ptEQN_;      //<! pointer to eqn-object
 
   Vector<Double> solderiv1_, solderiv2_;
 

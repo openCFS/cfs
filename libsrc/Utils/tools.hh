@@ -1,16 +1,15 @@
 #ifndef TOOLS_2001
 #define TOOLS_2001
 
-
-#include "General/environment.hh"
 #include <string>
-#include <vector>
 #include <iostream>
 
+#include "General/environment.hh"
 
 namespace CoupledField
 {
   template<class TYPE> class Matrix; 
+  template<class TYPE> class Vector;
 
   //! Function for working with errors. The program stops after the error-message. 
   /*!
@@ -116,21 +115,21 @@ Integer defineRefinements(const Double tolElem, const Double tolTotal,
     \param normal normal
     \param a,b pointes
   */
-void calcNormal2Line(std::vector<Double> & normal,Point<2> a, Point<2> b);
+void calcNormal2Line(Vector<Double> & normal,Point<2> a, Point<2> b);
 
 //! calculate the normal to line with following orientation: a-->b
   /*!
     \param normal normal
     \param a,b points embedded in Matrix
   */
-void calcNormal2Line_Mat(std::vector<Double> & normal,Matrix<Double> a);
+void calcNormal2Line_Mat(Vector<Double> & normal,Matrix<Double> a);
 
   //! calculate normal to surface element
   /*!
     \param normal normal
     \param a,b,c vertices of element
   */
-void calcNormal2Surface(std::vector<Double> & normal,Point<3> a,Point<3> b, Point<3> c);
+void calcNormal2Surface(Vector<Double> & normal,Point<3> a,Point<3> b, Point<3> c);
 
 
   //! calculate normal to surface element using matrix parameter
@@ -138,19 +137,10 @@ void calcNormal2Surface(std::vector<Double> & normal,Point<3> a,Point<3> b, Poin
     \param normal normal
     \param ptCoord matrix containing vertices of surface element
   */
-void calcNormal2Surface_Mat(std::vector<Double> & normal,Matrix<Double> ptCoord);
-
-
-  //! scalar multiplication of 2 vectors
-Double ScalarMult(std::vector<Double> a, std::vector<Double> b);
+void calcNormal2Surface_Mat(Vector<Double> & normal,Matrix<Double> ptCoord);
 
 
 char * c_string(const std::string & s);
-
-/// writes subVec into mainVec starting at position 
-void SetSubVector(std::vector<Double>& mainVec,
-		  std::vector<Double>& subVec, Integer position);
-
 
 /// prints formatted header including name, version, date
 void PrintCFSHeader(std::ostream & out);

@@ -170,7 +170,7 @@ namespace CoupledField
     skelfile_->clear();
     skelfile_->open(strcat(filename,".xml"),std::ios_base::app);
 
-    std::vector<std::string> sd;
+    StdVector<std::string> sd;
     Integer dim = meshfile_-> ReadDim();
     if (dim == 3)
       {
@@ -196,7 +196,7 @@ namespace CoupledField
     (*skelfile_) << "   <domain>" << myEndl;
     (*skelfile_) << "      <!-- LIST OF SUBDOMAINS -->"<< std::endl;
 
-    for (Integer i=0; i<sd.size(); i++)
+    for (Integer i=0; i<sd.GetSize(); i++)
       (*skelfile_) << "      <region name=\"" << sd[i] << "\" material=\"XXX\"/>" << std::endl;
 
     (*skelfile_) << std::endl;
@@ -215,8 +215,8 @@ namespace CoupledField
   {
     ENTER_FCN("Entering SkeletonConf::WriteLists");
 
-    std::vector<std::string> sd;
-    sd.clear();
+    StdVector<std::string> sd;
+    sd.Clear();
     Integer dim = meshfile_-> ReadDim();
 
     if (dim == 3)
@@ -230,35 +230,35 @@ namespace CoupledField
       if (meshfile_->GetNum1DElems() != 0)
 	meshfile_->ReadEl1dConf(sd);
 
-    if (sd.size())
+    if (sd.GetSize())
       (*skelfile_) << "      <!--  LIST OF FACES -->" << std::endl;
 
-    for (Integer i=0; i<sd.size(); i++)
+    for (Integer i=0; i<sd.GetSize(); i++)
       (*skelfile_) << "      <elements name=\"" << sd[i] << "\"/>" << myendl;
 
 
     //check for node-list
     if (meshfile_->GetNumBCs() != 0)
       {
-	sd.clear();
+	sd.Clear();
 	meshfile_->ReadBCsConf(sd);
 
-	if (sd.size())
+	if (sd.GetSize())
 	  (*skelfile_) << "      <!-- LIST OF NODES FOR BCs  --> " << myendl;
 	
-	for (Integer i=0; i<sd.size(); i++)
+	for (Integer i=0; i<sd.GetSize(); i++)
 	  (*skelfile_) << "      <nodes name=\"" << sd[i] << "\"/>" << myendl;
       }
 
 
     if (meshfile_->GetNumSaveNodes() )
       {
-	sd.clear();
+	sd.Clear();
 	meshfile_->ReadLevelOfSaveNodes(sd);
-	if (sd.size())
+	if (sd.GetSize())
 	  (*skelfile_) << "      <!-- LIST OF SAVE NODES --> " << std::endl;
 
-	for (Integer i=0; i<sd.size(); i++)
+	for (Integer i=0; i<sd.GetSize(); i++)
 	  (*skelfile_) << "      <nodes name=\"" << sd[i] << "\"/>" << myendl;
       }
   }

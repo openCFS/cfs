@@ -7,9 +7,8 @@
 namespace CoupledField
 {
 
-Trapezoidal :: Trapezoidal(std::string apdename, BaseSystem * algebraicsystem, 
-			   Integer dofspernode, Integer numnode)
-:TimeStepping(apdename, algebraicsystem)
+  Trapezoidal :: Trapezoidal(std::string apdename, BaseSystem * algebraicsystem, NodeEQN * ptEQN)
+:TimeStepping(apdename, algebraicsystem, ptEQN)
 {
   ENTER_FCN( "Trapezoidal::Trapezoidal" );
 
@@ -22,11 +21,14 @@ Trapezoidal :: Trapezoidal(std::string apdename, BaseSystem * algebraicsystem,
   Info->Warning( "Trapezoidal: Using defaults for gamma!" );
 #endif  
 
+  Integer numEQNs = ptEQN_->GetNumEQNs();
+  Integer dofs = ptEQN_->GetNumDofsPerEQN();
+
   //get the memory
-  solderiv1_.Resize(dofspernode * numnode);  
+  solderiv1_.Resize(numEQNs * dofs);  
   solderiv1_.Init();
 
-  solpred_.Resize(dofspernode * numnode); 
+  solpred_.Resize(numEQNs * dofs); 
   solpred_.Init();
 }
 

@@ -25,7 +25,7 @@ public:
   { ptGridCFS->Read();}
 
    /// Get connection of element
-   virtual void GetConnection(Vector<Integer> & connect, const Integer iElem, const Integer level)
+   virtual void GetConnection(StdVector<Integer> & connect, const Integer iElem, const Integer level)
     { ptGridCFS->GetConnection(connect,iElem, level);}
 
    /// Get coordinates of node with global number inode
@@ -40,33 +40,33 @@ public:
   { return ptGridCFS->GetMaxnumElem(numlevel);}
 
   //! Return maximum number of elements in subdomains
-  virtual Integer GetMaxnumElem(const Integer numlevel, const std::vector<std::string> & subdoms)
+  virtual Integer GetMaxnumElem(const Integer numlevel, const StdVector<std::string> & subdoms)
   { return ptGridCFS->GetMaxnumElem(numlevel,subdoms);}
 
   /// return dimension of mesh
   virtual Integer GetDim(){ return ptGridCFS->GetDim();}
 
   //!
-  void GetElemSD(std::vector<Elem*> & els, const std::string sd, const Integer level)
+  void GetElemSD(StdVector<Elem*> & els, const std::string sd, const Integer level)
   { ptGridCFS->GetElemSD(els,sd,level);}
 
   //!
-  std::vector<std::string>* GetAllSDs(){ return ptGridCFS->GetAllSDs();}
+  StdVector<std::string>* GetAllSDs(){ return ptGridCFS->GetAllSDs();}
 
   //!
-  virtual void GetCoordNodesElem(const Vector<Integer> connect, Point<dim> * ptCoord, const Integer level)
+  virtual void GetCoordNodesElem(const StdVector<Integer> connect, Point<dim> * ptCoord, const Integer level)
   { ptGridCFS->GetCoordNodesElem(connect, ptCoord, level);}
 
   //! gets the coordinates of the element nodes
-  virtual void GetCoordNodesElemMat(const Vector<Integer> connect, Matrix<Double>& coordMat, const Integer level)
+  virtual void GetCoordNodesElemMat(const StdVector<Integer> connect, Matrix<Double>& coordMat, const Integer level)
   { ptGridCFS->GetCoordNodesElemMat(connect, coordMat, level);}  
 
      //! return vector of element-neighbors for the element with number noOfElem
-  virtual  std::vector<Elem*> *  GetNeighboursOfElem(const Integer noOfElem, std::string color)
+  virtual  StdVector<Elem*> *  GetNeighboursOfElem(const Integer noOfElem, std::string color)
   { return ptGridCFS->GetptNeighboursOfElem(noOfElem,color);}
 
   //! return vector of element-neighbors for the node with number noOfNode
-  virtual void GetNeighboursOfNode(const Integer noOfNode, std::vector<Elem*> * neighbours)
+  virtual void GetNeighboursOfNode(const Integer noOfNode, StdVector<Elem*> * neighbours)
   { ptGridCFS->GetNeighboursOfNode(noOfNode,neighbours);}
  
   //! in this function we calculate area of element
@@ -76,19 +76,19 @@ public:
   }  
 
   //!
-  void FormNeighbors4NodesOfElements(const std::vector<Elem*> &elems, std::vector<std::vector<Elem*> > &nodeNeighbors, std::vector<Integer> & map)
+  void FormNeighbors4NodesOfElements(const StdVector<Elem*> &elems, StdVector<StdVector<Elem*> > &nodeNeighbors, StdVector<Integer> & map)
   { ptGridCFS->FormNeighbors4NodesOfElements(elems, nodeNeighbors,  map);}
   
   //!
-  virtual void DefineBelonging4Elems(const std::vector<Elem*>& elemsSurf, const std::vector<Elem*>&elems, std::vector<Elem*> & belongingSE)
+  virtual void DefineBelonging4Elems(const StdVector<Elem*>& elemsSurf, const StdVector<Elem*>&elems, StdVector<Elem*> & belongingSE)
   { ptGridCFS->DefineBelonging4Elems(elemsSurf,elems,belongingSE);}
 
   //!
-  virtual void GetInterfaceNeighbours(std::vector<Integer> & interfaceNodes, std::vector<std::string> & subdoms, std::vector<Elem*> & neighbours, Integer level)
+  virtual void GetInterfaceNeighbours(StdVector<Integer> & interfaceNodes, StdVector<std::string> & subdoms, StdVector<Elem*> & neighbours, Integer level)
   {  ptGridCFS->GetInterfaceNeighbours(interfaceNodes, subdoms, neighbours, level);}
   
   //!
-  virtual void CalcNumberOfNodesInPatch(const std::vector<Elem*> & patch, std::vector<Integer>& map) 
+  virtual void CalcNumberOfNodesInPatch(const StdVector<Elem*> & patch, StdVector<Integer>& map) 
   { ptGridCFS->CalcNumberOfNodesInPatch(patch,map);}
 
 protected:

@@ -3,10 +3,11 @@
 #include <string>
 #include <math.h>
 
-#include <DataInOut/Unverg/outUnverg.hh>
-#include <DataInOut/GMV/outGMV.hh>
-#include <Forms/forms_header.hh>
-#include <Estimator/spaceerror.hh>
+#include "DataInOut/Unverg/outUnverg.hh"
+#include "DataInOut/GMV/outGMV.hh"
+#include "Forms/forms_header.hh"
+#include "Estimator/spaceerror.hh"
+#include "blocknodeEQN.hh"
 
 #include <Forms/nLinElastInt.hh>
 #include <DataInOut/WriteInfo.hh>
@@ -97,7 +98,7 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 #else
     params->GetList( "name", subdoms_, pdename_, "region" );
     Info->PrintF( pdename_, " MechPDE lives on regions:" );
-    for ( Integer k = 0; k < subdoms_.size(); k++ ) {
+    for ( Integer k = 0; k < subdoms_.GetSize(); k++ ) {
       Info->PrintF( pdename_, " %s", subdoms_[k].c_str() );
     }
 #endif
@@ -108,19 +109,13 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
     // Map global numeration of element and nodes to local one
     AssignPDENodeNumbers(mesh2PDENode_, pde2MeshNode_, subdoms_);  
     AssignPDEElemNumbers(mesh2PDEElem_, pde2MeshElem_, subdoms_);
-    numPDENodes_ = pde2MeshNode_.size();
-    numElems_ = pde2MeshElem_.size();
+    numPDENodes_ = pde2MeshNode_.GetSize();
+    numElems_ = pde2MeshElem_.GetSize();
 
     size_        = numPDENodes_ * dofspernode_;
 
-    // Initialize solution class
-    sol_->SetNumSolutions(1);
-    sol_->SetSolutionType(MECH_DISPLACEMENT);
-    sol_->SetNumNodes(numPDENodes_);
-    sol_->SetNumDofs(dofspernode_);
-    sol_->Init(0.0);
-
    
+    
     
 #ifndef XMLPARAMS
     lineSearch_ = FALSE;
@@ -158,14 +153,14 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
     //       we assume that for a mechanic PDE all regions either
     //       are linear or non-linear!
     // ==============================================================
-    std::vector<std::string> nonLinRegion;
+    StdVector<std::string> nonLinRegion;
     params->GetList( "nonLinear", nonLinRegion, pdename_, "region" );
     // Should not happen with validating parser, but beware!
-    if ( nonLinRegion.size() == 0 ) {
+    if ( nonLinRegion.GetSize() == 0 ) {
       nonLin_ = FALSE;
     }
     else {
-      for ( Integer k = 1; k < nonLinRegion.size(); k++ ) {
+      for ( Integer k = 1; k < nonLinRegion.GetSize(); k++ ) {
 	if ( nonLinRegion[k] != nonLinRegion[0] ) {
 	  Info->Error( "Non-linearity should be the same for all regions!",
 		       __FILE__, __LINE__ );
@@ -178,7 +173,7 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
     if ( nonLin_ == TRUE ) {
 
       Info->PrintF( pdename_,  " Non-linearity in %d regions\n",
-		    nonLinRegion.size() );
+		    nonLinRegion.GetSize() );
 
       // type of line search
       params->Get( "type", lineSearch_, pdename_, "lineSearch" );
@@ -197,6 +192,8 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
       lineSearch_ = "no";
     }
 
+    Info->PrintF( pdename_,  " Non-linearity in %d regions\n",
+		  nonLinRegion.GetSize() );
 #endif
 
     if( nonLin_ == TRUE )
@@ -267,29 +264,37 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 #endif
 
     //check for b.c. input data
-    if (bcs_hd_.size() != homDirichDof_.size())
+    if (bcs_hd_.GetSize() != homDirichDof_.GetSize())
       {
 	std::string errmsg = "Inconsistent definition of homogeneous ";
 	errmsg += "Dirichlet Boundary Conditions\n";
-	errmsg += " bcs_hd_.size() = " + Info->GenStr( bcs_hd_.size() );
-	errmsg += "\n homDirichDof_.size() = "
-	  + Info->GenStr( homDirichDof_.size() ) + '\n';
+	errmsg += " bcs_hd_.GetSize() = " + Info->GenStr( bcs_hd_.GetSize() );
+	errmsg += "\n homDirichDof_.GetSize() = "
+	  + Info->GenStr( homDirichDof_.GetSize() ) + '\n';
 	Info->Error( errmsg, __FILE__, __LINE__ );
       }
-    if (bcs_id_.size() != inhomDirichDof_.size()) 
+    if (bcs_id_.GetSize() != inhomDirichDof_.GetSize()) 
       {
 	std::string errmsg = "Inconsistent definition of inhomogeneous ";
 	errmsg += "Dirichlet Boundary Conditions";
 	Info->Error( errmsg, __FILE__, __LINE__ );
       }
     
-    // Initialize equation class
-    //eqn_ = new BlockNodeEQN(ptgrid_, ptBCs_, subdoms_, 
-    //			    actlevel_, dofspernode_);
-    //eqn_->SetHomoDirichletBCs(bcs_hd_, homDirichDof_);
-    //eqn_->CalcMapping();
-    //eqn_->Print(std::cerr);
+    // initialize eqation data object
+    eqnData_  = new BlockNodeEQN(ptgrid_, ptBCs_, subdoms_, actlevel_, dofspernode_);
+    eqnData_->SetHomoDirichletBCs(bcs_hd_, homDirichDof_);
+    eqnData_->CalcMapping();
+    //eqnData_->Print(std::cerr);
+    assemble_->SetPtr2EQNData(eqnData_); 
     
+    // Initialize solution class
+    sol_->SetNumSolutions(1);
+    sol_->SetSolutionType(MECH_DISPLACEMENT);
+    sol_->SetNumNodes(numPDENodes_);
+    sol_->SetNumDofs(dofspernode_);
+    sol_->SetPtrEQNData(eqnData_);
+    sol_->Init(0.0); 
+
     // set assemble parameters
     assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, subdoms_, surfdoms_);
     assemble_->SetGraphType(NODEGRAPH);
@@ -341,7 +346,7 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
     Boolean nonLin = FALSE;
 
 
-    for (int actSD = 0; actSD < subdoms_.size(); actSD++)
+    for (int actSD = 0; actSD < subdoms_.GetSize(); actSD++)
       {
 
 	// ==============  add stiffness ======================================
@@ -618,13 +623,13 @@ void MechPDE::InitCoupling(PDECoupling * Coupling)
       if (ptCoupling_->GetOutputQuantity(i) == "mechdisplacement")
 	{
 	  // Intialize the memory of the coupling values
-	  ptCoupling_->CreateStoreSol(i,MECH_DISPLACEMENT,isComplex_);
+	  ptCoupling_->CreateCouplingVector(i,isComplex_);
 	}
 
       if (ptCoupling_->GetOutputQuantity(i) == "mechforce")
 	{
 	  // Intialize the memory of the coupling values
-	  ptCoupling_->CreateStoreSol(i,MECH_FORCE,isComplex_); 
+	  ptCoupling_->CreateCouplingVector(i,isComplex_); 
 	}
     }
 
@@ -641,21 +646,21 @@ void MechPDE::CalcOutputCoupling()
 
   Integer dof = 0;
   std::string quantity;
-  std::vector<Integer> * couplingnodes = NULL;
-  std::vector<Elem*> * couplingElems = NULL;
-  std::vector<Elem*> * neighbours = NULL;
-  std::vector<MaterialData*> * couplingMaterials = NULL;
-  BaseStoreSol * values = NULL;
-  StoreSol<Double> * temp;
+  StdVector<Integer> * couplingnodes = NULL;
+  StdVector<Elem*> * couplingElems = NULL;
+  StdVector<Elem*> * neighbours = NULL;
+  StdVector<MaterialData*> * couplingMaterials = NULL;
+  CFSVector * temp_values = NULL;
+  Vector<Double> * values;
   
 
   // loop over all output coupling quantities
   for (Integer i=0; i<ptCoupling_->GetNumOutputCouplings(); i++)
     {
       quantity = ptCoupling_->GetOutputQuantity(i);
-      ptCoupling_->GetOutputValues(i, values);
+      ptCoupling_->GetOutputValues(i, temp_values);
 
-      temp = dynamic_cast<StoreSol<Double>*>(values);
+      values = dynamic_cast<Vector<Double>*>(temp_values);
 	
       switch(ptCoupling_->GetOutputType(i))
 	{
@@ -665,7 +670,7 @@ void MechPDE::CalcOutputCoupling()
 	    {
 	      ptCoupling_->GetOutputNodes(i, couplingnodes);
 	    	      
-	      sol_->NodeSolutionToCoupling(*values, *couplingnodes,mesh2PDENode_);
+	      sol_->NodeSolutionToCoupling(*values, *couplingnodes);
 	    }
 	  
 
@@ -678,7 +683,7 @@ void MechPDE::CalcOutputCoupling()
 	      ptCoupling_->GetOutputNeighbourElems(i, neighbours);
 	      dof = ptCoupling_->GetOutputDof(i);
 
-	      if (!neighbours->size())
+	      if (!neighbours->GetSize())
 		{
 		  std::string errMsg = "In mechanic PDE: No neighbour elements ";
 		  errMsg += "for acoustic-coupling at output interface ";
@@ -688,7 +693,7 @@ void MechPDE::CalcOutputCoupling()
 	  
 	      
 	      CalcAcousticCouplingRHS(couplingElems, *couplingnodes, 
-				      couplingMaterials, *temp, dof, neighbours);	      
+				      couplingMaterials, *values, dof, neighbours);	      
 	    } 
 	  break;
 
@@ -699,23 +704,23 @@ void MechPDE::CalcOutputCoupling()
 }
 
 
-void MechPDE::CalcAcousticCouplingRHS(std::vector<Elem*> * couplingElems, 
-				      std::vector<Integer>& couplingNodes,
-				      std::vector<MaterialData*>* couplingMaterials,
-				      StoreSol<Double> & elemCouplingSols,
+void MechPDE::CalcAcousticCouplingRHS(StdVector<Elem*> * couplingElems, 
+				      StdVector<Integer>& couplingNodes,
+				      StdVector<MaterialData*>* couplingMaterials,
+				      Vector<Double> & elemCouplingSols,
 				      Integer couplingdofM,
-				      std::vector<Elem*> * neighbours)
+				      StdVector<Elem*> * neighbours)
 {
   ENTER_FCN( "MechPDE::CalcAcousticCouplingRHS" );
 
-  Double density;
+  Double density = 0;
 
   elemCouplingSols.Init(0.0);
   
-  for (Integer actElem=0; actElem<couplingElems->size(); actElem++)
+  for (Integer actElem=0; actElem<couplingElems->GetSize(); actElem++)
     {
       BaseFE * ptElem = (*couplingElems)[actElem]->ptElem;
-      Vector<Integer> connecth = (*couplingElems)[actElem]->connect;
+      StdVector<Integer> connecth = (*couplingElems)[actElem]->connect;
       
       Matrix<Double> ptCoord; 
       GetElemCoords(connecth, ptCoord, actlevel_);
@@ -730,11 +735,11 @@ void MechPDE::CalcAcousticCouplingRHS(std::vector<Elem*> * couplingElems,
       delete bilinear_mass;	  
 
 
-      Vector<Integer> connect_PDE;
-      Mesh2PDENode(connect_PDE, connecth, mesh2PDENode_);
+      //StdVector<Integer> connect_PDE;
+      //Mesh2PDENode(connect_PDE, connecth, mesh2PDENode_);
       
       Vector<Double> sol;
-      GetDerivSolVecOfElement(sol, connect_PDE);	 
+      GetDerivSolVecOfElement(sol, connecth);	 
 
       Vector<Double> nSol(connecth.GetSize());   // solution in normal direction
       nSol.Init();
@@ -757,9 +762,9 @@ void MechPDE::CalcAcousticCouplingRHS(std::vector<Elem*> * couplingElems,
 	{
 	  Integer nodePos = 0;
 	  
-	  while(connecth[actNode] != couplingNodes[nodePos] && nodePos < couplingNodes.size()) 
+	  while(connecth[actNode] != couplingNodes[nodePos] && nodePos < couplingNodes.GetSize()) 
 	    nodePos++;
-	  elemCouplingSols(nodePos,0) += forceOnElem[actNode];
+	  elemCouplingSols[nodePos] += forceOnElem[actNode];
 	}      
     }
 } 
@@ -768,10 +773,11 @@ void MechPDE::CalcAcousticCouplingRHS(std::vector<Elem*> * couplingElems,
 
 
 
-void MechPDE::GetSolOfElement( Matrix<Double>& sol, Vector<Integer>& connect_PDE)
+void MechPDE::GetSolOfElement( Matrix<Double>& sol, StdVector<Integer>& connect_PDE)
 {
   ENTER_FCN( "MechPDE::GetSolOfElement" );
 
+  Error("This function should never be reached ... ", __FILE__, __LINE__);
   // displacement of element nodes
   sol.Resize(dofspernode_, connect_PDE.GetSize());
   
@@ -828,26 +834,18 @@ void MechPDE::StepStaticNonLin(const Integer kstep, const Double aTime,
   const Integer job = 1;
   Boolean performOneMoreStep;
   Integer iterationCounter=0;
+  NodeStoreSol<Double>  & solHelp = dynamic_cast<NodeStoreSol<Double>&>(*sol_);
   
-  Vector<Double> actSol(numPDENodes_ * dofspernode_);
-  
-  Integer k=0;
-  for (Integer i=0; i< numPDENodes_; i++)
-    for (Integer j=0; j<dofspernode_; j++)
-      {
-	//actSol[k] = sol_[j][i];
-	sol_->Get(i,j,actSol[k]);
-	k++;
-      }
+  Vector<Double>  actSol = solHelp.GetCompleteVector();
 
-
-  Vector<Double> solIncrement(numPDENodes_ * dofspernode_);
+  Vector<Double> solIncrement;
+  solIncrement.Resize(eqnData_->GetNumEQNs() * dofspernode_);
 
   SetBCs(level, updateBCs_, 0);
 
   // setup right hand side ==============================================      
 
-  Double extForcesL2Norm = SetExternalForces(level);  
+  Double extForcesL2Norm = SetExternalForces(level); 
   assemble_->AssembleNLRHS(level);
 
 
@@ -882,7 +880,7 @@ void MechPDE::StepStaticNonLin(const Integer kstep, const Double aTime,
       // new solution is only an increment of the full solution =============
       StoreAlgsysToVec(solIncrement, algsys_->GetSolutionVal() );
 
-      Double residualL2Norm;
+      Double residualL2Norm = 0;
       Double etaLineSearch=0;
 
 #ifndef XMLPARAMS
@@ -901,9 +899,7 @@ void MechPDE::StepStaticNonLin(const Integer kstep, const Double aTime,
 
       // recalculate RHS with new values to get new residual (f^(k+1))========
 #ifndef USE_OLAS    
-      std::vector<Double>  help;
-      extForces_.ToStdVector(help);
-      algsys_->InitRHS(help);
+      algsys_->InitRHS(extForces_.GetPointer());
 #endif
 
       assemble_->AssembleNLRHS(level);  // inner forces due to nonlin formulation
@@ -997,9 +993,7 @@ Double MechPDE::LineSearch(Vector<Double>& solIncrement, Vector<Double>& actSol,
 
       // recalculate RHS with new values to get new residual (f^(k+1))========
 #ifndef USE_OLAS      
-      std::vector<Double>  help;
-      extForces_.ToStdVector(help);
-      algsys_->InitRHS(help);
+      algsys_->InitRHS(extForces_.GetPointer());
 #endif
 
       if(trans)
@@ -1085,9 +1079,9 @@ void MechPDE :: InitTimeStepping(const Double dt)
   if (dampingType_) needsDampingMatrix = TRUE;
 
   if (effectiveMass_)  
-    TS_alg_ = new NewmarkEffMass(pdename_, algsys_, 1, numPDENodes_*dofspernode_, needsDampingMatrix);
+    TS_alg_ = new NewmarkEffMass(pdename_, algsys_, eqnData_, needsDampingMatrix);
   else
-    TS_alg_ = new Newmark(pdename_, algsys_, 1, numPDENodes_*dofspernode_, needsDampingMatrix);
+    TS_alg_ = new Newmark(pdename_, algsys_, eqnData_, needsDampingMatrix);
 
   TS_alg_->Init(matrix_factor_, dt);
 
@@ -1119,7 +1113,7 @@ void MechPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
   // Cast BaseStoreSol into StoreSol<Double>,
   // since this function is only called
   // in the transient case
-  StoreSol<Double> * solhelp = dynamic_cast<StoreSol<Double>*>(sol_);
+  NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
   
 
   actSol = solhelp->GetCompleteVector();
@@ -1302,40 +1296,39 @@ Double MechPDE::RhsL2Norm(Vector<Double>& actRHS)
 {
   ENTER_FCN( "MechPDE::RhsL2Norm" );
 
-  Integer node, dof;
+  Integer node, dof, eqn;
   
   std::list<Integer> nodes;
-
-  //  myCout << " RHS " << actRHS << myEndl;
-  
   
   // Eliminate dirichlet node from RHS (due to penalty formulation)
-  for (Integer i=0; i< bcs_hd_.size(); i++)
+  for (Integer i=0; i< bcs_hd_.GetSize(); i++)
     {
       dof = GetNrBCDof ( homDirichDof_[i] );
       nodes=ptBCs_->GetNodesLevel(bcs_hd_[i]);
       
       for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end(); p++)
 	{
-	  node=*p;
-
-	  actRHS[(mesh2PDENode_[node-1]-1)*dofspernode_ + dof-1] = 0;
+	    node=*p;
+	    eqn = eqnData_->Node2EQN(node,dof);
+	    if (eqn != 0){
+	      actRHS[(eqn-1)*dofspernode_ + dof-1] = 0;
+	    }
 	}
     }
-
   return actRHS.NormL2();
 }
 
 
 
 
-// stores an algsys_ vector into a std::vector and returns that L2-norm
+// stores an algsys_ vector into a StdVector and returns that L2-norm
 void MechPDE::StoreAlgsysToVec(Vector<Double>& vec, Double * pt)
 {
   ENTER_FCN( "MechPDE::StoreAlgsysToVec" );
 
-  const Integer numElems = numPDENodes_ * dofspernode_;
-  
+  //const Integer numElems = numPDENodes_ * dofspernode_;
+  Integer numElems = eqnData_->GetNumEQNs() * dofspernode_;
+
   vec.Resize(numElems);
 
   for (Integer i=0; i<numElems; i++)   
@@ -1350,7 +1343,8 @@ Double MechPDE::AlgsysL2Norm(Double * pt)
 {
   ENTER_FCN( "MechPDE::AlgsysL2Norm" );
 
-  const Integer numElems = numPDENodes_ * dofspernode_;
+  //const Integer numElems = numPDENodes_ * dofspernode_;
+  Integer numElems = eqnData_->GetNumEQNs() * dofspernode_;
   Double quadSum = 0;
   
   for (Integer i=0; i<numElems; i++)   
@@ -1371,14 +1365,16 @@ void MechPDE::WriteResultsInFile()
 {
   ENTER_FCN( "MechPDE::WriteResultsInFile" );
 
-  StoreSol<Double> sol_mesh, solder1_mesh, solder2_mesh;
-  StoreSol<Double> sol_der1Array, sol_der2Array;
+  NodeStoreSol<Double> sol_der1Array, sol_der2Array;
+  
+  NodeStoreSol<Double> const & solConverted =
+    dynamic_cast<NodeStoreSol<Double>&>(*sol_);
   
   if (savesol_ == TRUE && (analysistype_== STATIC || analysistype_== TRANSIENT))
     {
-      sol_->TransformNodeSolution(sol_mesh,pde2MeshNode_,ptgrid_,actlevel_);
+      // sol_->TransformNodeSolution(sol_mesh,ptgrid_,actlevel_);
       //TransformNodeSolution(sol_mesh, sol_, pde2MeshNode_);
-      outFile_->WriteNodeSolution(sol_mesh, laststepcalc_, lasttimecalc_,"displacement");
+      outFile_->WriteNodeSolution(solConverted, laststepcalc_, lasttimecalc_,"displacement");
     }
 
   if (analysistype_== TRANSIENT)
@@ -1393,8 +1389,8 @@ void MechPDE::WriteResultsInFile()
 	  sol_der1Array.Init(0);
 	  sol_der1Array.SetSolVector(MECH_VELOCITY,getS1());
 	  
-	  sol_der1Array.TransformNodeSolution(solder1_mesh,pde2MeshNode_,ptgrid_,actlevel_);
-	  outFile_->WriteNodeSolution(solder1_mesh,laststepcalc_,lasttimecalc_,"velocity");
+	  //sol_der1Array.TransformNodeSolution(solder1_mesh,ptgrid_,actlevel_);
+	  outFile_->WriteNodeSolution(sol_der1Array,laststepcalc_,lasttimecalc_,"velocity");
 	}
 
       if (savederiv2_ == TRUE)
@@ -1405,8 +1401,8 @@ void MechPDE::WriteResultsInFile()
 	  sol_der2Array.SetNumDofs(dim_);
 	  sol_der2Array.Init(0);
 	  sol_der2Array.SetSolVector(MECH_ACCELERATION,getS2());
-	  sol_der2Array.TransformNodeSolution(solder2_mesh,pde2MeshNode_,ptgrid_,actlevel_);
-	  outFile_->WriteNodeSolution(solder2_mesh,laststepcalc_,lasttimecalc_,"acceleration");
+	  //sol_der2Array.TransformNodeSolution(solder2_mesh,ptgrid_,actlevel_);
+	  outFile_->WriteNodeSolution(sol_der2Array,laststepcalc_,lasttimecalc_,"acceleration");
 	}
     }
 }
@@ -1425,14 +1421,16 @@ void MechPDE::ReadStoreResults() {
   savederiv2_ = FALSE;
 
   // Determine what solution values the user wants to be stored
-  std::vector<std::string> nodeValues;
+  StdVector<std::string> nodeValues;
   params->GetList( "type", nodeValues, pdename_, "nodeHistory" );
 
-  for ( Integer i = 0;  i < nodeValues.size(); i++ ) {
+  for ( Integer i = 0;  i < nodeValues.GetSize(); i++ ) {
     if ( nodeValues[i] == "displacement" ) savesol_    = TRUE;
     if ( nodeValues[i] == "velocity"     ) savederiv1_ = TRUE;
     if ( nodeValues[i] == "acceleration" ) savederiv2_ = TRUE;
   }
+
+
 }
 #endif
 

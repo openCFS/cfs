@@ -42,7 +42,7 @@ namespace CoupledField
   
     const Integer nrIntPts= ptelem->GetNumIntPoints();
     const Integer nrNodes = ptelem->GetNumNodes();
-    const std::vector<Double> & intWeights = ptelem->GetIntWeights();  
+    const Vector<Double> & intWeights = ptelem->GetIntWeights();  
     Double jacDet;  
 
 
@@ -51,9 +51,9 @@ namespace CoupledField
     Matrix<Double> xiDxTransp;
     Matrix<Double> partElemMat;
     Matrix<Double> partElemMatAxi;
-    std::vector<Double> ShpFncAtIp;
-    std::vector<Double> CoordAtIP;
-    std::vector<Double> drAtIp;
+    Vector<Double> ShpFncAtIp;
+    Vector<Double> CoordAtIP;
+    Vector<Double> drAtIp;
 
     Double reluctivity, derivReluctivity, Hfield, dHfield;
 

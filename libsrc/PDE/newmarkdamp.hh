@@ -18,8 +18,8 @@ public:
     \param apdename name of PDE
     \param algebraicsystem pointer to algebraic system used by PDE
   */
-  NewmarkDamp(std::string apdename, BaseSystem * algebraicsystem, Integer dofsprenode, 
-	  Integer numnode, Integer adamping, Integer afrac_memory, Double damp);
+  NewmarkDamp(std::string apdename, BaseSystem * algebraicsystem, NodeEQN * ptEQN, 
+	  Integer adamping, Integer afrac_memory, Double damp);
 
    //! deconstructor
   virtual ~NewmarkDamp();

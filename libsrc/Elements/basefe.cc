@@ -30,8 +30,8 @@ BaseFE :: ~BaseFE()
   if( IntPoints_ ) delete[] IntPoints_;
 }
 
-void BaseFE :: GetShFnc(std::vector<double> & S, 
-			const std::vector<Double> & LCoord)
+void BaseFE :: GetShFnc(Vector<double> & S, 
+			const Vector<Double> & LCoord)
 {
   ENTER_FCN( "BaseFE::GetShFnc" );
 
@@ -39,19 +39,19 @@ void BaseFE :: GetShFnc(std::vector<double> & S,
 
 }
 
-void BaseFE :: GetShFncAtIp(std::vector<Double> & S, 
+void BaseFE :: GetShFncAtIp(Vector<Double> & S, 
 			    const Integer ip)
 {
   ENTER_FCN( "GetShFncAtIp" );
 
-  S.resize(NumNodes_);
+  S.Resize(NumNodes_);
 
   S = ShFncAtIp_[ip-1];
   
 }
 
 void BaseFE :: GetGlobDerivShFnc(Matrix<Double> & Deriv, 
-				 const std::vector<Double> & LCoord,
+				 const Vector<Double> & LCoord,
 				 const Matrix<Double> & CornerCoords)
 {
   ENTER_FCN( "BaseFE::GetGlobDerivShFnc" );
@@ -113,7 +113,7 @@ void BaseFE :: GetGlobDerivShFncAtIp(Matrix<Double> & Deriv,
 
 
 void BaseFE :: CalcJacobian(Matrix<Double> & J, 
-			    const std::vector<Double> & LCoord, 
+			    const Vector<Double> & LCoord, 
 			    const Matrix<Double> & CornerCoords)
 {
   ENTER_FCN( "BaseFE::CalcJacobian" );
@@ -141,7 +141,7 @@ void BaseFE :: CalcJacobianAtIp(Matrix<Double> & J,
 }
 
 
-Double BaseFE :: CalcJacobianDet(const std::vector<Double> & LCoord,
+Double BaseFE :: CalcJacobianDet(const Vector<Double> & LCoord,
 				      const Matrix<Double> & CornerCoords)
 {
   ENTER_FCN( "BaseFE::CalcJacobianDet" );
@@ -167,8 +167,8 @@ Double BaseFE :: CalcJacobianDetAtIp(const Integer ip,
 
   if (CornerCoords.GetSizeRow()==3 && Dim_==2)
     {
-      std::vector<Double> normal;
-      normal.resize(CornerCoords.GetSizeRow());  
+      Vector<Double> normal;
+      normal.Resize(CornerCoords.GetSizeRow());  
       normal[0]= J[1][0]* J[2][1]- J[2][0]* J[1][1];
       normal[1]=J[2][0]*J[0][1]- J[0][0]* J[2][1];  
       normal[2]= J[0][0]* J[1][1]- J[1][0]*J[0][1];
@@ -193,7 +193,7 @@ Double BaseFE :: CalcJacobianDetAtIp(const Integer ip,
 
 
 void BaseFE :: CalcInvJacobian(Matrix<Double> & JInv,
-			       const std::vector<Double> & LCoord,
+			       const Vector<Double> & LCoord,
 			       const Matrix<Double> & CornerCoords)
 {
   ENTER_FCN( "BaseFE::CalcInvJacobian" );
@@ -235,7 +235,7 @@ void BaseFE :: SetShapeFncAtIp()
   ENTER_FCN( "BaseFE::SetShapeFncAtIp" );
   
   if (!ShFncAtIp_)
-    ShFncAtIp_ = new std::vector<Double>[NumIntPoints_];
+    ShFncAtIp_ = new Vector<Double>[NumIntPoints_];
 
 
   for( Integer i=0; i<NumIntPoints_; i++ )      
@@ -274,13 +274,13 @@ enum IntegrationType BaseFE::String2EnumIntegrationType(const Char * inttype)
 
 
 
-void BaseFE::GetGlobalEdgeIndicesAtIP( std::vector<Double> & globCoord, Integer ip,
+void BaseFE::GetGlobalEdgeIndicesAtIP( Vector<Double> & globCoord, Integer ip,
 				       const Matrix<Double> & cornerCoords)
 {
   ENTER_FCN( "BaseFE::GetGlobalEdgeIndicesAtIP" );
   // cornerCoords: nrCorners x dim
 
-  globCoord.resize(Dim_);
+  globCoord.Resize(Dim_);
   
   globCoord =  cornerCoords * ShFncAtIp_[ip-1];
 }
@@ -289,15 +289,15 @@ void BaseFE::GetGlobalEdgeIndicesAtIP( std::vector<Double> & globCoord, Integer 
 
 
 // calculate global derivates of edge shape functions in integration point ip
-void BaseFE::GetEdgeGlobDerivShFncAtIp(std::vector< Matrix<Double>* > & deriv, 
+void BaseFE::GetEdgeGlobDerivShFncAtIp(StdVector< Matrix<Double>* > & deriv, 
 			       const Integer ip,
 			       const Matrix<Double> & cornerCoords)
 {
   ENTER_FCN( "BaseFE::GetEdgeGlobDerivShFncAtIp" );
 
   // vector of coordinates of the desired integration point
-  std::vector<Double> lCoord;
-  lCoord.resize(Dim_);
+  Vector<Double> lCoord;
+  lCoord.Resize(Dim_);
 
   for (Integer i=0; i<Dim_; i++)
     lCoord[i] = IntPoints_[ip-1][i];
@@ -311,8 +311,8 @@ void BaseFE::CalcEdgeShapeFncAtIp(Matrix<Double> & shape,
 {
   ENTER_FCN( "BaseFE::CalcEdgeShapeFncAtIp" );
 
-  std::vector<Double> lCoord;
-  lCoord.resize(Dim_);
+  Vector<Double> lCoord;
+  lCoord.Resize(Dim_);
 
   for (Integer i=0; i<Dim_; i++)
     lCoord[i] = IntPoints_[ip-1][i];
@@ -321,12 +321,12 @@ void BaseFE::CalcEdgeShapeFncAtIp(Matrix<Double> & shape,
 }
 
 
-void BaseFE::GetGlobalEdgeIndices(std::vector<Integer> & globEdgeIndex,
+void BaseFE::GetGlobalEdgeIndices(StdVector<Integer> & globEdgeIndex,
 					  Integer * pDENodes, BaseSystem * algsys)
 {
   ENTER_FCN( "BaseFE::GetGlobalEdgeIndices" );
   // define the global edge number
-  for(Integer actEdge=0; actEdge < globEdgeIndex.size(); actEdge++)
+  for(Integer actEdge=0; actEdge < globEdgeIndex.GetSize(); actEdge++)
     globEdgeIndex[actEdge] = 
       algsys->GetNode2Edge(pDENodes[ edgeVertices_[actEdge][0]],
 			   pDENodes[ edgeVertices_[actEdge][1]]);

@@ -1,6 +1,6 @@
 #include "coupledpdedef.hh"
-#include <Domain/grid.hh>
-#include <Domain/bcs.hh>
+#include "Domain/grid.hh"
+#include "Domain/bcs.hh"
 
 namespace CoupledField
 {
@@ -8,9 +8,7 @@ namespace CoupledField
 
 CoupledPDEDef::CoupledPDEDef(Grid * aptGrid, BCs * aptBCs)
 {
-#ifdef TRACE
-  (*trace) << "entering  CoupledPDEDef::CoupledPDEDef" << std::endl;
-#endif 
+  ENTER_FCN( "CoupledPDEDef::CoupledPDEDef" );
 
   ptGrid_ = aptGrid;
   ptBCs_ = aptBCs;
@@ -25,49 +23,45 @@ CoupledPDEDef::CoupledPDEDef(Grid * aptGrid, BCs * aptBCs)
 
 CoupledPDEDef::~CoupledPDEDef()
 {
-#ifdef TRACE
-  (*trace) << "entering  CoupledPDEDef::~CoupledPDEDef" << std::endl;
-#endif 
+  ENTER_FCN( "CoupledPDEDef::~CoupledPDEDef" );
 
-  for (Integer i=0; i<CoupledPDEs_.size(); i++)
+  for (Integer i=0; i<CoupledPDEs_.GetSize(); i++)
     if (CoupledPDEs_[i]) delete CoupledPDEs_[i];
 }
   
-void CoupledPDEDef::CreateCoupling(std::vector<BasePDE*> & OrderedPDEs, 
-				   std::vector<PDECoupling*> & Couplings,
-				   std::vector<BasePDE*> & UnorderedPDEs)
+void CoupledPDEDef::CreateCoupling(StdVector<BasePDE*> & OrderedPDEs, 
+				   StdVector<PDECoupling*> & Couplings,
+				   StdVector<BasePDE*> & UnorderedPDEs)
 {
-#ifdef TRACE
-  (*trace) << "entering  CoupledPDEDef::OrderPDEs" << std::endl;
-#endif   
+  ENTER_FCN( "CoupledPDEDef::OrderPDEs" );
 
    bool found = false;
    Integer CoupledPDENumber;
-   std::vector<std::string> PDENames;
-   OrderedPDEs.clear();
+   StdVector<std::string> PDENames;
+   OrderedPDEs.Clear();
 
    // iterate over all coupling PDEs to find the 
    // corresponding coupling definition for current set of PDEs
-   for (Integer i=0; i<CoupledPDEs_.size(); i++)
+   for (Integer i=0; i<CoupledPDEs_.GetSize(); i++)
      {
        
       // check if number of PDEs in coupling matches
-      if (CoupledPDEs_[i]->GetNumPDEs() == UnorderedPDEs.size())
+      if (CoupledPDEs_[i]->GetNumPDEs() == UnorderedPDEs.GetSize())
 	{
 	  CoupledPDEs_[i]->GetNamePDEs(PDENames);
 	
 	  // iterate over all PDEnames in ordered direction
-	  for (Integer j=0; j<PDENames.size(); j++)
+	  for (Integer j=0; j<PDENames.GetSize(); j++)
 	    {
 	      // iterate over all PDEnames in the vector of unordered PDEs
-	      for (Integer k=0; k<UnorderedPDEs.size(); k++)
+	      for (Integer k=0; k<UnorderedPDEs.GetSize(); k++)
 		if (PDENames[j] == UnorderedPDEs[k]->GetName())
-		  OrderedPDEs.push_back(UnorderedPDEs[k]);
+		  OrderedPDEs.Push_back(UnorderedPDEs[k]);
 	    }
 	}
       
       // check if all PDEs could be assigned
-      if (OrderedPDEs.size() == CoupledPDEs_[i]->GetNumPDEs())
+      if (OrderedPDEs.GetSize() == CoupledPDEs_[i]->GetNumPDEs())
 	{
 	  found = true;
 	  CoupledPDENumber = i;
@@ -75,7 +69,7 @@ void CoupledPDEDef::CreateCoupling(std::vector<BasePDE*> & OrderedPDEs,
 	} 
       else
 	{
-	  OrderedPDEs.clear();
+	  OrderedPDEs.Clear();
 	}
       
     }
@@ -85,14 +79,14 @@ void CoupledPDEDef::CreateCoupling(std::vector<BasePDE*> & OrderedPDEs,
 
   
   // Create Coupling objects
-  Couplings.clear();
+  Couplings.Clear();
   Definition * MyCoupledPDE = CoupledPDEs_[CoupledPDENumber];					   
-  std::vector<CouplingInputType>  InputType;
-  std::vector<std::string> InputQuantity;
-  std::vector<Boolean> inputOptionality;
-  Couplings.resize(MyCoupledPDE->GetNumPDEs());
+  StdVector<CouplingInputType>  InputType;
+  StdVector<std::string> InputQuantity;
+  StdVector<Boolean> inputOptionality;
+  Couplings.Resize(MyCoupledPDE->GetNumPDEs());
 
-  std::vector<std::string> couplingTerms;
+  StdVector<std::string> couplingTerms;
 
   // iterate over all PDEs specified CoupledPDE
   for (Integer i=0; i<MyCoupledPDE->GetNumPDEs(); i++)
@@ -104,7 +98,7 @@ void CoupledPDEDef::CreateCoupling(std::vector<BasePDE*> & OrderedPDEs,
       Couplings[i]->SetPDE(OrderedPDEs[i]);
 
       // add all coupling terms of PDE
-      for (Integer j=0; j<InputType.size(); j++)
+      for (Integer j=0; j<InputType.GetSize(); j++)
 
 	// if this coupling type is not needed every coupled simulation
 	if (inputOptionality[j])
@@ -113,7 +107,7 @@ void CoupledPDEDef::CreateCoupling(std::vector<BasePDE*> & OrderedPDEs,
 	    
 	    Boolean found = FALSE;
 	    
-	    for (Integer k=0; k<couplingTerms.size(); k++)
+	    for (Integer k=0; k<couplingTerms.GetSize(); k++)
 	      if (couplingTerms[k] == InputQuantity[j])
 		found = TRUE;
 
@@ -130,35 +124,27 @@ void CoupledPDEDef::CreateCoupling(std::vector<BasePDE*> & OrderedPDEs,
 
 void CoupledPDEDef::DefineOrdering()
 {
-#ifdef TRACE
-  (*trace) << "entering  CoupledPDEDef::DefineOrdering" << std::endl;
-#endif
+  ENTER_FCN( "CoupledPDEDef::DefineOrdering" );
 
 #include <CoupledPDE/coupledPDE.conf>
 }
 
 Definition::Definition()
 {
-#ifdef TRACE
-  (*trace) << "entering  Definition::Definition" << std::endl;
-#endif 
+  ENTER_FCN ( "Definition::Definition" );
 }
 
 Definition::~Definition()
 {
-#ifdef TRACE
-  (*trace) << "entering  Definition::~Definition" << std::endl;
-#endif
+  ENTER_FCN( "Definition::~Definition" );
 }
 
 void Definition::AddPDE(std::string PDEName)
 {
-#ifdef TRACE
-  (*trace) << "entering  Definition::AddPDE" << std::endl;
-#endif 
+  ENTER_FCN( "Definition::AddPDE" );
 
-  PDEs_.push_back(PDEName);
-  NumPDEs_ = PDEs_.size();
+  PDEs_.Push_back(PDEName);
+  NumPDEs_ = PDEs_.GetSize();
 }
 
 void Definition::AddInputCoupling(std::string PDEName, 
@@ -166,13 +152,11 @@ void Definition::AddInputCoupling(std::string PDEName,
 				  std::string Quantity,
 				  Boolean optionalCoupling) //"optionalCoupling" is by default FALSE
 {
-#ifdef TRACE
-  (*trace) << "entering  Definition::AddCoupling" << std::endl;
-#endif 
+  ENTER_FCN( "Definition::AddCoupling" );
 
-  InputCouplingTypes_[PDEName].push_back(InType);
-  InputCouplingQuantities_[PDEName].push_back(Quantity);
-  optionalCoupling_[PDEName].push_back(optionalCoupling);  
+  InputCouplingTypes_[PDEName].Push_back(InType);
+  InputCouplingQuantities_[PDEName].Push_back(Quantity);
+  optionalCoupling_[PDEName].Push_back(optionalCoupling);  
 }
 
 

@@ -11,7 +11,6 @@ namespace CoupledField
   // Forward declaration of classes
   class Grid;
   class Elem;
-  template<class TYPE> class StoreSol;
   template<class TYPE> class Vector;
   template<class TYPE> class Matrix;
 
@@ -41,8 +40,8 @@ namespace CoupledField
     //! \param level      (input) Multigrid level
     ElecForceOp(Grid * ptGrid, 
 		BasePDE * ptPDE,
-		std::vector<Integer> * ptMesh2PDENode,
-		StoreSol<Double> & EPotential,
+		NodeEQN * ptEQN,
+		NodeStoreSol<Double> & EPotential,
 		const Integer level, Boolean isaxi);
 
     //! Destructor
@@ -56,10 +55,10 @@ namespace CoupledField
     //! \param IsBoundaryNode (input)  contains 1, if corresponding node is a
     //!                                boundary node, otherwise 0
     //! \param LCoord         (input)  Local coordinates of evaluation point
-    virtual void CalcElemElecForce(StoreSol<Double> & F,
+    virtual void CalcElemElecForce(ElemStoreSol<Double> & F,
 				   const Elem * ptElement,
 				   Double epsilon,
-				   const std::vector<ShortInt> & IsBoundaryNode);
+				   const StdVector<ShortInt> & IsBoundaryNode);
 
   protected:
   

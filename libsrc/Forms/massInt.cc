@@ -10,20 +10,18 @@ namespace CoupledField
   void MassInt::CalcElementMatrix(Matrix<Double> & ptCoord,
 				  Matrix<Double> & elemMat)
   {
-#ifdef TRACE
-    (*trace) << "entering MassInt::CalcElemMatrix" << std::endl;
-#endif
+    ENTER_FCN( "MassInt::CalcElemMatrix" );
   
     const Integer nrIntPts= ptelem->GetNumIntPoints();
     const Integer nrNodes = ptelem->GetNumNodes();
-    const std::vector<Double> & intWeights = ptelem->GetIntWeights();  
+    const Vector<Double> & intWeights = ptelem->GetIntWeights();  
     Double jacDet;
 
     // derivation of shape functions after global coordinates 
 
-    std::vector<Double> shapeFncAtIp;
+    Vector<Double> shapeFncAtIp;
     Matrix<Double> partElemMat;
-    std::vector<Double> CoordAtIP;
+    Vector<Double> CoordAtIP;
 
     // set matrix to desired size and set all elements to zero
     //    partElemMat.Resize(nrNodes);
@@ -62,11 +60,7 @@ namespace CoupledField
 	MassMultiDof(multDofMass, elemMat, nrDofsPerNode_);	
 	elemMat = multDofMass;
       }
-    
 
-#ifdef TRACE
-    (*trace) << "leaving MassInt::CalcElemMatrix" << std::endl;
-#endif
   }
 
 
@@ -76,9 +70,7 @@ namespace CoupledField
 
   void MassInt::Print(std::ostream * out, const Matrix<Double> Result) const
   {
-#ifdef TRACE
-    (*trace) << "entering MassInt::Print" << std::endl;
-#endif
+    ENTER_FCN( "MassInt::Print" );
   }
 
 
@@ -87,9 +79,8 @@ namespace CoupledField
       density_(aDensity), 
       nrDofsPerNode_(1)
   {
-#ifdef TRACE
-    (*trace) << "entering MassInt::MassInt" << std::endl;
-#endif
+    ENTER_FCN( "MassInt::MassInt" );
+
     isaxi_ = axi;
     dofzero_ = 0;
   }
@@ -101,9 +92,8 @@ namespace CoupledField
       density_(aDensity), 
       nrDofsPerNode_(nrDofsPerNode)
   {
-#ifdef TRACE
-    (*trace) << "entering MassInt::MassInt" << std::endl;
-#endif
+    ENTER_FCN( "MassInt::MassInt" );
+
     isaxi_ = axi;
     dofzero_ = 0;
     
@@ -113,9 +103,8 @@ namespace CoupledField
  
   MassInt::~MassInt()
   {
-#ifdef TRACE
-    (*trace) << "entering MassInt::~MassInt" << std::endl;
-#endif
+    ENTER_FCN( "MassInt::~MassInt" );
+
   }
 
 
@@ -123,10 +112,7 @@ namespace CoupledField
   void MassInt::MassMultiDof(Matrix<Double>& massMultDof, 
 			     const Matrix<Double>& massMatSingleDof,  const Integer nrDofs)
   {
-    
-#ifdef TRACE
-    (*trace) << "entering MassInt::MassMultiDof" << std::endl;
-#endif
+    ENTER_FCN( "MassInt::MassMultiDof" );
     
     const Integer singleDofSize = massMatSingleDof.GetSizeRow();
 
@@ -148,18 +134,15 @@ namespace CoupledField
       density_(aDensity), 
       nrDofsPerNode_(nrDofsPerNode)
   {
-#ifdef TRACE
-    (*trace) << "entering MassInt::MassInt" << std::endl;
-#endif
+    ENTER_FCN( "MassInt::MassInt" );
+
     isaxi_ = axi;
     dofzero_ = dofzero;
   }
 
   void MassInt::MassMultiDofZero(Matrix<Double>& massMultDofZero, const Matrix<Double>& massMatSingleDof)
   {
-#ifdef TRACE
-    (*trace) << "entering MassInt::MassMultiDofZero" << std::endl;
-#endif
+    ENTER_FCN( "MassInt::MassMultiDofZero" );
     
     Integer nrDofs = nrDofsPerNode_ -1;
     const Integer singleDofSize = massMatSingleDof.GetSizeRow();

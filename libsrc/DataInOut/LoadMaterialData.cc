@@ -20,18 +20,15 @@ namespace CoupledField
   LoadMaterialData::LoadMaterialData (const char * aFilename)
     :filename(aFilename),scaleMatDat(0)
   {
-#ifdef TRACE
-    if (trace) (*trace) << "Entering  LoadMaterialData::LoadMaterialData " << std::endl;
-#endif
+    ENTER_FCN( "LoadMaterialData::LoadMaterialData" );
   }
 
 
   // load material information from file "filename"
   void LoadMaterialData::GetMaterial( MaterialData& material, const std::string matName, const std::string matType)
   {
-#ifdef TRACE
-    if (trace) (*trace) << "Entering  LoadMaterialData::GetMaterial " << std::endl;
-#endif
+    ENTER_FCN( "LoadMaterialData::GetMaterial" );
+
     char buffer[bufLength];  
     
     // 
@@ -112,9 +109,8 @@ namespace CoupledField
   // read next line - ignor lines with char # in it
   void LoadMaterialData::ReadLine(std::ifstream & fin, char* buffer)
   {
-#ifdef TRACE
-    if (trace) (*trace) << "Entering  LoadMaterialData::ReadLine " << std::endl;
-#endif
+    ENTER_FCN( "LoadMaterialData::ReadLine" );
+
     Integer found = 0;
 
     while (!found && !fin.eof())
@@ -135,9 +131,8 @@ namespace CoupledField
 
   void LoadMaterialData :: FindMat(std::ifstream & fin, const char* matName, char* buffer, char* matType)
   {
-#ifdef TRACE
-    if (trace) (*trace) << "Entering  LoadMaterialData::FindMat " << std::endl;
-#endif
+    ENTER_FCN( "LoadMaterialData::FindMat" );
+
     Integer found = 0;
     Integer pos;
     char tempMatName[bufLength];
@@ -170,9 +165,8 @@ namespace CoupledField
 
   void LoadMaterialData :: ReadPiezo(std::ifstream & fin, MaterialData * material)
   {
-#ifdef TRACE
-    if (trace) (*trace) << "Entering  LoadMaterialData::ReadPiezo " << std::endl;
-#endif
+    ENTER_FCN( "LoadMaterialData::ReadPiezo" );
+
     Integer i,j;
     Double helpval;
     Double alfa,beta;
@@ -313,6 +307,8 @@ namespace CoupledField
 
   void LoadMaterialData :: ReadFluid(std::ifstream & fin, MaterialData * material)
   {
+    ENTER_FCN( "LoadMaterialData::ReadFluid" );
+
     Double alfa,beta;
     Double density, compress;
     std::istringstream * strPtr;
@@ -343,6 +339,7 @@ namespace CoupledField
 
   void LoadMaterialData :: ReadMagnetic(std::ifstream & fin, MaterialData * material)
   {
+    ENTER_FCN( "LoadMaterialData::ReadMagnetic" );
     Double mX, mY, mZ;
     Double conductivity, permeability;
 

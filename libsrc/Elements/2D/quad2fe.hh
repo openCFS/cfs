@@ -32,8 +32,8 @@ protected:
     \param Shape (output) Vector of shape fnc values \f$ (N_{1},\cdots\,N_{NumNodes})^T \f$
     \param LCoord (input) Local coordinates of evalutation point 
   */
-  virtual void CalcShapeFnc(std::vector<Double> & LShape, 
-			    const std::vector<Double> & LCoord);
+  virtual void CalcShapeFnc(Vector<Double> & LShape, 
+			    const Vector<Double> & LCoord);
   
   //! calculates the local derivatives of shape functions at an arbitrary local point
   /*!
@@ -44,7 +44,7 @@ protected:
     \param LCoord (input) Local coordinates of evalutation point 
   */
   virtual void CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
-				      const std::vector<Double> & LCoord);
+				      const Vector<Double> & LCoord);
   
    //! NOT YET IMPLEMENTED FOR QUADRATIC ELEMENTS!!!Calculates a measure for the geometric distortion of an element
   /*!
@@ -52,7 +52,7 @@ protected:
     \param size (input) Absolute size of element in all dimensions
     \param displacement (input) Displacement of the corner points (same ordering as CornerCoords!!)
   */
-  virtual Double CalcMeanStrain(Matrix<Double> &cornerCoords, Array<Double> &displacements);
+  virtual Double CalcMeanStrain(Matrix<Double> &cornerCoords, Matrix<Double> &displacements);
 
 private:
 };

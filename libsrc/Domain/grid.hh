@@ -29,7 +29,7 @@ public:
     \param iElem (input) element level
     \param level (input) index for multilevel hierarchy
   */
-   virtual void GetConnection(Vector<Integer> & connect, const Integer iElem, const Integer level)=0;
+   virtual void GetConnection(StdVector<Integer> & connect, const Integer iElem, const Integer level)=0;
 
    //! Get coordinates of node with global number inode
   /*!
@@ -66,7 +66,7 @@ public:
     \param numlevel (input) index for multilevel hierarchy
     \param subdoms (input) contains the names of the subdomains
   */
-  virtual Integer GetMaxnumElem(const Integer numlevel, const std::vector<std::string> & subdoms)
+  virtual Integer GetMaxnumElem(const Integer numlevel, const StdVector<std::string> & subdoms)
   { 
     Error(" Not implemented",__FILE__,__LINE__);
     return Dint;
@@ -99,7 +99,7 @@ public:
     \param noOfElem (input) element level
     \param color (input) subdomain
   */ 
-  virtual  std::vector<Elem*> *GetNeighboursOfElem(const Integer noOfElem, std::string color)
+  virtual  StdVector<Elem*> *GetNeighboursOfElem(const Integer noOfElem, std::string color)
   { 
     Error(" Not implemented",__FILE__,__LINE__);
     return Evec;
@@ -112,7 +112,7 @@ public:
     \param subdomains (input) list of subdomains, on which neighbors are searched
   */
   virtual void GetNeighboursOfNode(const Integer noOfNode,
-				   std::vector<Elem*> * neighbours)
+				   StdVector<Elem*> * neighbours)
   { Error(" Not implemented",__FILE__,__LINE__);}
 
   //! Do refinement of elements, which we mark through function SetRefinementFlag
@@ -133,11 +133,11 @@ public:
     \param sd (input) contains the name of the subdomain
     \param level (input) index for multilevel hierarchy
   */
-  virtual void GetElemSD(std::vector<Elem*> & els, const std::string sd, const Integer level)
+  virtual void GetElemSD(StdVector<Elem*> & els, const std::string sd, const Integer level)
    { Error(" Not implemented",__FILE__,__LINE__);}
 
   //!
-  virtual std::vector<std::string>* GetAllSDs()
+  virtual StdVector<std::string>* GetAllSDs()
   { 
     Error("Not implemented",__FILE__,__LINE__);
     return Dstr;
@@ -149,7 +149,9 @@ public:
     \param ptCoord (output) coordinates of the element nodes
     \param level (input) index for multilevel hierarchy
   */
-  virtual void GetCoordNodesElem(const Vector<Integer> connect, Point<2> * ptCoord, const Integer level)
+  virtual void GetCoordNodesElem(const StdVector<Integer> connect, 
+				 Point<2> * ptCoord, 
+				 const Integer level)
   { Error(" Not implemented",__FILE__,__LINE__);}
 
   //! gets a matrix of the coordinates of the element nodes
@@ -158,7 +160,9 @@ public:
     \param ptCoord (output) coordinates of the element nodes (spaceDim \f$\times\f$ nrNodes);
     \param level (input) index for multilevel hierarchy
   */
-  virtual void GetCoordNodesElemMat(const Vector<Integer> connect, Matrix<Double>& coordMat, const Integer level)
+  virtual void GetCoordNodesElemMat(const StdVector<Integer> connect, 
+				    Matrix<Double>& coordMat, 
+				    const Integer level)
   { Error(" Not implemented",__FILE__,__LINE__);}
 
   //! gets the coordinates of the element nodes
@@ -167,7 +171,7 @@ public:
     \param ptCoord (output) coordinates of the element nodes
     \param level (input) index for multilevel hierarchy
   */
-  virtual void GetCoordNodesElem(const Vector<Integer> connect, Point<3> * ptCoord, const Integer level)
+  virtual void GetCoordNodesElem(const StdVector<Integer> connect, Point<3> * ptCoord, const Integer level)
   { Error(" Not implemented",__FILE__,__LINE__);}
 
   //! in this function we calculate area of element
@@ -186,7 +190,9 @@ public:
     \param nodeNeighbors (output)
     \param map (input)
   */
-  virtual void FormNeighbors4NodesOfElements(const std::vector<Elem*> &elems, std::vector<std::vector<Elem*> > &nodeNeighbors, std::vector<Integer> & map) = 0;
+  virtual void FormNeighbors4NodesOfElements(const StdVector<Elem*> &elems, 
+					     StdVector<StdVector<Elem*> > &nodeNeighbors, 
+					     StdVector<Integer> & map) = 0;
 
 
   //! Determines to a given list of elements (e.g. surface elements) the neighbouring elements 
@@ -197,7 +203,9 @@ public:
     \param elems (input) List of all possible neighbouring elements (e.g. whole subdomain)
     \param belongingSE (output) Elements neighbouring surface Elements
   */
-  virtual void DefineBelonging4Elems(const std::vector<Elem*>& elemsSurf, const std::vector<Elem*>&elems, std::vector<Elem*> & belongingSE)=0;
+  virtual void DefineBelonging4Elems(const StdVector<Elem*>& elemsSurf, 
+				     const StdVector<Elem*>&elems, 
+				     StdVector<Elem*> & belongingSE)=0;
 
 
   //! form list with interface-elements neighbours
@@ -208,9 +216,9 @@ public:
     \param Next2Surf (input) Subdomain adjacent to interface
     \param neighbours (output) Elements neighbouring (= have min. 1 node in common) to interface
   */
-  virtual void GetInterfaceNeighbours(std::vector<Integer> & interfaceNodes, 
-				      std::vector<std::string> & subdoms, 
-				      std::vector<Elem*> & Neighbours,
+  virtual void GetInterfaceNeighbours(StdVector<Integer> & interfaceNodes, 
+				      StdVector<std::string> & subdoms, 
+				      StdVector<Elem*> & Neighbours,
 				      Integer level) = 0;
 
    //! calculate number of nodes in patch of elements
@@ -218,13 +226,14 @@ public:
     \param patch (input)
     \param map (output)
   */
-  virtual void CalcNumberOfNodesInPatch(const std::vector<Elem*> & patch, std::vector<Integer> & map) = 0;
+  virtual void CalcNumberOfNodesInPatch(const StdVector<Elem*> & patch, 
+					StdVector<Integer> & map) = 0;
 
 
   /// resets the integration type of all known elements
   void SetIntTypeAllElems(IntegrationType aIntType);
   
-  std::vector<std::string>& GetListSubDomains()
+  StdVector<std::string>& GetListSubDomains()
   { return listSD_;}
   
   
@@ -232,13 +241,13 @@ protected:
 
   FileType * ptFileType;   //!< pointer to input file
   Integer lastlevel_;      //!< last level in multilevel hierarchy
-  std::vector<std::string> listSD_; //!< list of names of subdomains
+  StdVector<std::string> listSD_; //!< list of names of subdomains
 
   // dummies just for sun compiler
   Integer Dint;
   Double Ddummy;
-  std::vector<Elem*> *Evec;
-  std::vector<std::string>* Dstr;
+  StdVector<Elem*> *Evec;
+  StdVector<std::string>* Dstr;
 
 private:
   ///

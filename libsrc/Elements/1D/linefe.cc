@@ -14,9 +14,7 @@ namespace CoupledField
 
 LineFE :: LineFE()
 {
-#ifdef TRACE
-  (*trace) << "entering LineFE::LineFE" << std::endl;
-#endif
+  ENTER_FCN( "LineFE::LineFE" );
 
   Dim_ = 1;
   NumEdges_ = 1;
@@ -39,17 +37,13 @@ LineFE :: LineFE()
 
 LineFE :: ~LineFE()
 {
-#ifdef TRACE
-  (*trace) << "entering LineFE::~LineFE" << std::endl;
-#endif
+  ENTER_FCN( "LineFE::~LineFE" );
 }
 
 
 void LineFE::SetIntPoints()
 {
-#ifdef TRACE
-  (*trace) << "entering LineFE::SetIntPoints" << std::endl;
-#endif
+  ENTER_FCN( "LineFE::SetIntPoints" );
 
   switch(IntegType)
     {
@@ -59,14 +53,14 @@ void LineFE::SetIntPoints()
       DegreeInteg_  = 1;
 
       if ( !IntPoints_)
-	IntPoints_ = new std::vector<Double>[NumIntPoints_];
+	IntPoints_ = new Vector<Double>[NumIntPoints_];
       
-      IntWeights_.resize(NumIntPoints_);
+      IntWeights_.Resize(NumIntPoints_);
       
       for(Integer i=0; i<NumIntPoints_; i++)
 	{	  
 	  IntWeights_[i]=1;
-	  IntPoints_[i].resize(Dim_);
+	  IntPoints_[i].Resize(Dim_);
 	}
       
       IntPoints_[0][0] = 0;
@@ -79,14 +73,14 @@ void LineFE::SetIntPoints()
       DegreeInteg_=2;
 
       if ( !IntPoints_)
-	IntPoints_ = new std::vector<Double>[NumIntPoints_];
+	IntPoints_ = new Vector<Double>[NumIntPoints_];
       
-      IntWeights_.resize(NumIntPoints_);
+      IntWeights_.Resize(NumIntPoints_);
       
       for(Integer i=0; i<NumIntPoints_; i++)
 	{	  
 	  IntWeights_[i]=1;
-	  IntPoints_[i].resize(Dim_);
+	  IntPoints_[i].Resize(Dim_);
 	}
       
       IntPoints_[0][0] = -0.57735026919;
@@ -102,12 +96,10 @@ void LineFE::SetIntPoints()
 
 void LineFE::SetShapeFncAtIp()
 {
-#ifdef TRACE
-  (*trace) << "entering LineFE::SetShapeFncAtIp" << std::endl;
-#endif
+  ENTER_FCN( "LineFE::SetShapeFncAtIp" );
 
   if (!ShFncAtIp_)
-    ShFncAtIp_ = new std::vector<Double>[NumIntPoints_];
+    ShFncAtIp_ = new Vector<Double>[NumIntPoints_];
   
   for( Integer i=0; i<NumIntPoints_; i++ )
     CalcShapeFnc( ShFncAtIp_[i], IntPoints_[i]);
@@ -117,9 +109,7 @@ void LineFE::SetShapeFncAtIp()
 
 void LineFE::SetShapeFncDerivAtIp()
 {
-#ifdef TRACE
-  (*trace) << "entering LineFE::SetShapeFncDerivAtIp" << std::endl;
-#endif
+  ENTER_FCN( "LineFE::SetShapeFncDerivAtIp" );
 
   if( !ShFncDerivAtIp_)
     ShFncDerivAtIp_ = new Matrix<Double>[NumIntPoints_];
@@ -129,12 +119,10 @@ void LineFE::SetShapeFncDerivAtIp()
 }
 
 
-Double LineFE::CalcJacobianDet(const std::vector<Double> & LCoord,
+Double LineFE::CalcJacobianDet(const Vector<Double> & LCoord,
 				 const Matrix<Double> & CornerCoords)
 {
-#ifdef TRACE
-  (*trace) << "entering LineFE::CalcJacobianDet" << std::endl;
-#endif
+  ENTER_FCN( "LineFE::CalcJacobianDet" );
 
   Matrix<Double> J;
   
@@ -147,9 +135,7 @@ Double LineFE::CalcJacobianDet(const std::vector<Double> & LCoord,
 Double LineFE::CalcJacobianDetAtIp(const Integer ip, 
 				   const Matrix<Double> & CornerCoords)
 {
-#ifdef TRACE
-  (*trace) << "entering LineFE::CalcJacobianDetAtIp" << std::endl;
-#endif
+  ENTER_FCN( "LineFE::CalcJacobianDetAtIp" );
 
 //   Matrix<Double> J;
 
@@ -163,12 +149,10 @@ Double LineFE::CalcJacobianDetAtIp(const Integer ip,
 }
 
 void LineFE:: CalcJacobian(Matrix<Double> & J, 
-		  const std::vector<Double> & LCoord, 
+		  const Vector<Double> & LCoord, 
 			  const Matrix<Double> & CornerCoords)
 {
-#ifdef TRACE
-  (*trace) << "entering LineFE::CalcJacobian" << std::endl;
-#endif
+  ENTER_FCN( "LineFE::CalcJacobian" );
 
   J.Resize(1,1);
 
@@ -183,9 +167,7 @@ void LineFE::CalcJacobianAtIp(Matrix<Double> & J,
 		      const Integer ip, 
 		      const Matrix<Double> & CornerCoords)
 {
-#ifdef TRACE
-  (*trace) << "entering LineFE::CalcJacobianAtIp" << std::endl;
-#endif
+  ENTER_FCN( "LineFE::CalcJacobianAtIp" );
 
   J.Resize(1,1);
 
@@ -194,12 +176,10 @@ void LineFE::CalcJacobianAtIp(Matrix<Double> & J,
 
 
 void LineFE::CalcInvJacobian(Matrix<Double> & JInv,
-			     const std::vector<Double> & LCoord,
+			     const Vector<Double> & LCoord,
 			     const Matrix<Double> & CornerCoords)
 {
-#ifdef TRACE
-  (*trace) << "entering LineFE::CalcInvJacobian" << std::endl;
-#endif
+  ENTER_FCN( "LineFE::CalcInvJacobian" );
   
   JInv.Resize(1,1);
 
@@ -217,9 +197,7 @@ void LineFE::CalcInvJacobianAtIp(Matrix<Double> & JInv,
 				 const Integer ip,
 				 const Matrix<Double> & CornerCoords)
 {
-#ifdef TRACE
-  (*trace) << "entering LineFE::CalcInvJacobianAtIp" << std::endl;
-#endif
+  ENTER_FCN( "LineFE::CalcInvJacobianAtIp" );
   
   JInv.Resize(1,1);
 

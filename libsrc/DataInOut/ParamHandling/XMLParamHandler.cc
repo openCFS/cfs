@@ -111,16 +111,16 @@ namespace CoupledField {
     ENTER_FCN( "XMLParamHandler::Get" );
 
     // Find all elements/values matching keyword in (restricted) tree
-    std::vector<std::string> matches;
+    StdVector<std::string> matches;
     GetList( key, matches, section, subsection );
 
     // If there was no unique match, call problem handler
-    if ( matches.size() > 1 ) {
-      MultipleMatchHandler( key, section, subsection, matches.size() );
+    if ( matches.GetSize() > 1 ) {
+      MultipleMatchHandler( key, section, subsection, matches.GetSize() );
     }
 
     // If there was no match at all, call problem handler
-    else if ( matches.size() == 0 ) {
+    else if ( matches.GetSize() == 0 ) {
       NoMatchHandler( value, key, section, subsection );
     }
     
@@ -149,16 +149,16 @@ namespace CoupledField {
     ENTER_FCN( "XMLParamHandler::Get" );
 
     // Find all elements/values matching keyword in (restricted) tree
-    std::vector<std::string> matches;
+    StdVector<std::string> matches;
     GetList( key, matches, section, subsection );
 
     // If there was no unique match, call problem handler
-    if ( matches.size() > 1 ) {
-      MultipleMatchHandler( key, section, subsection, matches.size() );
+    if ( matches.GetSize() > 1 ) {
+      MultipleMatchHandler( key, section, subsection, matches.GetSize() );
     }
 
     // If there was no match at all, call problem handler
-    else if ( matches.size() == 0 ) {
+    else if ( matches.GetSize() == 0 ) {
       NoMatchHandler( value, key, section, subsection );
     }
     
@@ -188,16 +188,16 @@ namespace CoupledField {
     ENTER_FCN( "XMLParamHandler::Get" );
 
     // Find all elements/values matching keyword in (restricted) tree
-    std::vector<std::string> matches;
+    StdVector<std::string> matches;
     GetList( key, matches, section, subsection );
 
     // If there was no unique match, call problem handler
-    if ( matches.size() > 1 ) {
-      MultipleMatchHandler( key, section, subsection, matches.size() );
+    if ( matches.GetSize() > 1 ) {
+      MultipleMatchHandler( key, section, subsection, matches.GetSize() );
     }
 
     // If there was no match at all, call problem handler
-    else if ( matches.size() == 0 ) {
+    else if ( matches.GetSize() == 0 ) {
       NoMatchHandler( value, key, section, subsection );
     }
     
@@ -221,7 +221,7 @@ namespace CoupledField {
   //   Return list of strings values matching a keyword
   // ====================================================
   void XMLParamHandler::GetList( const std::string key,
-				 std::vector<std::string> &list,
+				 StdVector<std::string> &list,
 				 const std::string section,
 				 const std::string subsection ) {
 
@@ -239,7 +239,7 @@ namespace CoupledField {
   //   side-constraints on attributes of matching elements
   // ==========================================================
   void XMLParamHandler::CGetList( const std::string key,
-				  std::vector<std::string> &list,
+				  StdVector<std::string> &list,
 				  const std::string attribute,
 				  const std::string value,
 				  Integer applyToElem,
@@ -257,7 +257,7 @@ namespace CoupledField {
   //   Return list of Double values matching a keyword
   // ===================================================
   void XMLParamHandler::GetList( const std::string key,
-				 std::vector<Double> &list,
+				 StdVector<Double> &list,
 				 const std::string section,
 				 const std::string subsection ) {
 
@@ -265,22 +265,22 @@ namespace CoupledField {
 
     // Check if vector is empty. If not issue a warning
     // and erase its entries, if this is desired
-    if ( list.empty() != true ) {
+    if ( list.IsEmpty() != true ) {
       if ( beVerbose_ == true ) {
 	std::string errmsg  = "Warning input vector was not empty!\n";
 	errmsg += "Contents have been erased!";
 	Info->Warning( errmsg );
       }
-      list.clear();
+      list.Clear();
     }
 
     // First determine all matches as strings
-    std::vector<std::string> matches;
+    StdVector<std::string> matches;
     FindAllMatches( key, matches, section, subsection, rootElem_ );
 
     // Now perform conversion
-    for ( unsigned int i = 0; i < matches.size(); i++ ) {
-      list.push_back( String2Double( matches[i] ) );
+    for ( unsigned int i = 0; i < matches.GetSize(); i++ ) {
+      list.Push_back( String2Double( matches[i] ) );
     }
 
   }
@@ -289,7 +289,7 @@ namespace CoupledField {
   // =====================================
   //   Return a list of the defined PDEs
   // =====================================
-  void XMLParamHandler::GetPDEList( std::vector<std::string> &list ) {
+  void XMLParamHandler::GetPDEList( StdVector<std::string> &list ) {
 
     ENTER_FCN( "XMLParamHandler::GetPDEList" );
 
@@ -298,13 +298,13 @@ namespace CoupledField {
 
     // Check if vector is empty. If not issue a warning
     // and erase its entries, if this is desired
-    if ( list.empty() != true ) {
+    if ( list.IsEmpty() != true ) {
       if ( beVerbose_ == true ) {
 	errmsg  = "Warning input vector was not empty!\n";
 	errmsg += "Contents have been erased!";
 	Info->Warning( errmsg );
       }
-      list.clear();
+      list.Clear();
     }
 
     // Find PDE section
@@ -333,7 +333,7 @@ namespace CoupledField {
       // Only treat element children and not comments!
       if ( pdelist->item(i)->getNodeType() == DOMNode::ELEMENT_NODE ) {
 	pdename.assign( X2C( Node2Elem( pdelist->item(i) )->getNodeName() ) );
-	list.push_back( pdename );
+	list.Push_back( pdename );
       }
     }
   }
@@ -342,7 +342,7 @@ namespace CoupledField {
   // ======================================
   //   Return a list of the defined coils
   // ======================================
-  void XMLParamHandler::GetCoilList( std::vector<std::string> &list,
+  void XMLParamHandler::GetCoilList( StdVector<std::string> &list,
 				     const std::string pde ) {
 
     ENTER_FCN( "XMLParamHandler::GetCoilList" );
@@ -352,32 +352,32 @@ namespace CoupledField {
 
     // Check if vector is empty. If not issue a warning
     // and erase its entries, if this is desired
-    if ( list.empty() != true ) {
+    if ( list.IsEmpty() != true ) {
       if ( beVerbose_ == true ) {
 	errmsg  = "Warning input vector was not empty!\n";
 	errmsg += "Contents have been erased!";
 	Info->Warning( errmsg );
       }
-      list.clear();
+      list.Clear();
     }
 
     // Assemble keywords for attribute search
-    std::vector<std::string> keys;
-    keys.push_back( "pdeList" );
+    StdVector<std::string> keys;
+    keys.Push_back( "pdeList" );
     if ( pde != "" ) {
-      keys.push_back( pde );
+      keys.Push_back( pde );
     }
-    keys.push_back( "coils" );
-    keys.push_back( "*" );
+    keys.Push_back( "coils" );
+    keys.Push_back( "*" );
 
     // Find coil names
-    std::vector<DOMAttr*> *attrs =
+    StdVector<DOMAttr*> *attrs =
       FindMatchingAttributes( "name", keys, rootElem_ );
 
     std::string value;
-    for ( unsigned int i = 0; i < attrs->size(); i++ ) {
+    for ( unsigned int i = 0; i < attrs->GetSize(); i++ ) {
       value.assign( X2C( (*attrs)[i]->getValue() ) );
-      list.push_back( value );
+      list.Push_back( value );
     }
 
     // Cleanup
@@ -396,18 +396,18 @@ namespace CoupledField {
     ENTER_FCN( "XMLParamHandler::GetCoilType" );
 
     // First generate a vector of all coils
-    std::vector<DOMElement*> *coilSec = NULL;
-    std::vector<std::string> keys;
-    keys.push_back( "pdeList" );
+    StdVector<DOMElement*> *coilSec = NULL;
+    StdVector<std::string> keys;
+    keys.Push_back( "pdeList" );
     if ( pde != "" ) {
-      keys.push_back( pde );
+      keys.Push_back( pde );
     }
-    keys.push_back( "coils" );
+    keys.Push_back( "coils" );
     coilSec = FindMatchingElements( keys, rootElem_, 1 );
-    if ( coilSec->size() == 0 ) {
+    if ( coilSec->GetSize() == 0 ) {
       Info->Error( "Cannot find a 'coils' section", __FILE__, __LINE__ );
     }
-    else if ( coilSec->size() > 1 ) {
+    else if ( coilSec->GetSize() > 1 ) {
       Info->Error( "Cannot more than one 'coils' section", __FILE__, __LINE__);
     }
     DOMNodeList *coils = (*coilSec)[0]->getChildNodes();
@@ -462,17 +462,17 @@ namespace CoupledField {
     ENTER_FCN( "XMLParamHandler::CGet" );
 
     // Find all elements/values matching keyword in (restricted) tree
-    std::vector<std::string> matches;
+    StdVector<std::string> matches;
     CGetList( key, matches, attribute, aValue, applyToElem, section,
 	      subsection );
 
     // If there was no unique match, call problem handler
-    if ( matches.size() > 1 ) {
-      MultipleMatchHandler( key, section, subsection, matches.size() );
+    if ( matches.GetSize() > 1 ) {
+      MultipleMatchHandler( key, section, subsection, matches.GetSize() );
     }
 
     // If there was no match at all, call problem handler
-    else if ( matches.size() == 0 ) {
+    else if ( matches.GetSize() == 0 ) {
       NoMatchHandler( value, key, attribute, aValue, applyToElem, section,
 		      subsection );
     }
@@ -506,17 +506,17 @@ namespace CoupledField {
     ENTER_FCN( "XMLParamHandler::CGet" );
 
     // Find all elements/values matching keyword in (restricted) tree
-    std::vector<std::string> matches;
+    StdVector<std::string> matches;
     CGetList( key, matches, attribute, aValue, applyToElem, section,
 	      subsection );
 
     // If there was no unique match, call problem handler
-    if ( matches.size() > 1 ) {
-      MultipleMatchHandler( key, section, subsection, matches.size() );
+    if ( matches.GetSize() > 1 ) {
+      MultipleMatchHandler( key, section, subsection, matches.GetSize() );
     }
 
     // If there was no match at all, call problem handler
-    else if ( matches.size() == 0 ) {
+    else if ( matches.GetSize() == 0 ) {
       NoMatchHandler( value, key, attribute, aValue, applyToElem, section,
 		      subsection );
     }
@@ -551,17 +551,17 @@ namespace CoupledField {
     ENTER_FCN( "XMLParamHandler::CGet" );
 
     // Find all elements/values matching keyword in (restricted) tree
-    std::vector<std::string> matches;
+    StdVector<std::string> matches;
     CGetList( key, matches, attribute, aValue, applyToElem, section,
 	      subsection );
 
     // If there was no unique match, call problem handler
-    if ( matches.size() > 1 ) {
-      MultipleMatchHandler( key, section, subsection, matches.size() );
+    if ( matches.GetSize() > 1 ) {
+      MultipleMatchHandler( key, section, subsection, matches.GetSize() );
     }
 
     // If there was no match at all, call problem handler
-    else if ( matches.size() == 0 ) {
+    else if ( matches.GetSize() == 0 ) {
       NoMatchHandler( value, key, attribute, aValue, applyToElem, section,
 		      subsection );
     }
@@ -593,17 +593,17 @@ namespace CoupledField {
     Boolean flagStatus = FALSE;
 
     // Find all elements/values matching keyword in (restricted) tree
-    std::vector<std::string> matches;
+    StdVector<std::string> matches;
     GetList( key, matches, section, subsection );
 
     // If there is no match, return false
-    if ( matches.size() == 0 ) {
+    if ( matches.GetSize() == 0 ) {
       flagStatus = FALSE;
     }
 
     // If there is a match, but it is not unique, call problem handler
-    else if ( matches.size() > 1 ) {
-      MultipleMatchHandler( key, section, subsection, matches.size() );
+    else if ( matches.GetSize() > 1 ) {
+      MultipleMatchHandler( key, section, subsection, matches.GetSize() );
     }
 
     // So, there is a matching parameter. Thus, test its value
@@ -635,11 +635,11 @@ namespace CoupledField {
     Boolean flagStatus = FALSE;
 
     // Find all elements/values matching keyword in (restricted) tree
-    std::vector<std::string> matches;
+    StdVector<std::string> matches;
     GetList( key, matches, section, subsection );
 
     // If there is no match, check for default
-    if ( matches.size() == 0 ) {
+    if ( matches.GetSize() == 0 ) {
       std::string defaultValue;
       flagStatus = CheckForDefault( defaultValue, key, section, subsection,
 				    false );
@@ -654,8 +654,8 @@ namespace CoupledField {
     }
 
     // If there is a match, but it is not unique, call problem handler
-    else if ( matches.size() > 1 ) {
-      MultipleMatchHandler( key, section, subsection, matches.size() );
+    else if ( matches.GetSize() > 1 ) {
+      MultipleMatchHandler( key, section, subsection, matches.GetSize() );
     }
 
     // So, there is a matching parameter. Thus, test its value
@@ -733,23 +733,23 @@ namespace CoupledField {
   // ========================================
   //   Recursive search method for elements
   // ========================================
-  std::vector<DOMElement *>*
-  XMLParamHandler::FindMatchingElements( std::vector<std::string> &keys,
+  StdVector<DOMElement *>*
+  XMLParamHandler::FindMatchingElements( StdVector<std::string> &keys,
 					 DOMElement *treetop,
 					 unsigned int curdepth ) {
 
     ENTER_IFCN( "XMLParamHandler::FindMatchingElements" );
 
     // Perform consistency checks
-    if ( keys.size() == 0 ) {
+    if ( keys.GetSize() == 0 ) {
       Info->Error( "FindMatchingElements: Got zero keys!", __FILE__,
 		   __LINE__);
     }
-    if ( curdepth == 0 || curdepth > keys.size() ) {
+    if ( curdepth == 0 || curdepth > keys.GetSize() ) {
       std::string errmsg = "FindMatchingElements: curdepth = ";
       errmsg += Info->GenStr( curdepth );
       errmsg += ", but should be in [1,";
-      errmsg += Info->GenStr( keys.size() );
+      errmsg += Info->GenStr( keys.GetSize() );
       errmsg += "]";
       Info->Error( errmsg, __FILE__, __LINE__ );
     }
@@ -762,7 +762,7 @@ namespace CoupledField {
     }
 
     // Generate element vector
-    std::vector<DOMElement *> *elemvec = new std::vector<DOMElement *>;
+    StdVector<DOMElement *> *elemvec = new StdVector<DOMElement *>;
 
     // Generate list of all elements in subtree starting at treetop
     // that match the curdepth'th keyword
@@ -770,9 +770,9 @@ namespace CoupledField {
 
     // If we are on the lowest level allowed, convert the node list
     // to an element vector
-    if ( curdepth == keys.size() ) {
+    if ( curdepth == keys.GetSize() ) {
       for ( unsigned int i = 0; i < list->getLength(); i++ ) {
-	elemvec->push_back( Node2Elem( list->item(i) ) );
+	elemvec->Push_back( Node2Elem( list->item(i) ) );
       }
     }
 
@@ -782,7 +782,7 @@ namespace CoupledField {
     else {
 
       // auxilliary variable for intermediate results
-      std::vector<DOMElement *> *tmpvec = NULL;
+      StdVector<DOMElement *> *tmpvec = NULL;
 
       for ( unsigned int i = 0; i < list->getLength(); i++ ) {
 
@@ -791,8 +791,8 @@ namespace CoupledField {
 				       curdepth+1 );
 
 	// append results to our element vector
-	for ( unsigned int k = 0; k < tmpvec->size(); k++ ) {
-	  elemvec->push_back( (*tmpvec)[k] );
+	for ( unsigned int k = 0; k < tmpvec->GetSize(); k++ ) {
+	  elemvec->Push_back( (*tmpvec)[k] );
 	}
 
 	// delete intermediate result to avoids memory leak
@@ -809,36 +809,36 @@ namespace CoupledField {
   // ==========================================
   //   Recursive search method for attributes
   // ==========================================
-  std::vector<DOMAttr*>*
+  StdVector<DOMAttr*>*
   XMLParamHandler::FindMatchingAttributes( std::string attr_key,
-					   std::vector<std::string> &keys,
+					   StdVector<std::string> &keys,
 					   DOMElement *treeTop,
-					   std::vector<DOMElement*> *elemlist){
+					   StdVector<DOMElement*> *elemlist){
 
     ENTER_IFCN( "XMLParamHandler::FindMatchingAttributes" );
 
     // Perform consistency check
-    if ( keys.size() == 0 ) {
+    if ( keys.GetSize() == 0 ) {
       std::string errmsg;
       errmsg  = "FindMatchingAttributes: Need at least one keyword! Got none!";
       Info->Error( errmsg, __FILE__, __LINE__ );
     }
 
     // Generate return vector
-    std::vector<DOMAttr*> *attrvec = new std::vector<DOMAttr*>;
+    StdVector<DOMAttr*> *attrvec = new StdVector<DOMAttr*>;
 
     // Clear element vector
     if ( elemlist != NULL ) {
-      elemlist->clear();
+      elemlist->Clear();
     }
 
     // Find all matching elements
-    std::vector<DOMElement *>* elements;
+    StdVector<DOMElement *>* elements;
     elements = FindMatchingElements( keys, treeTop, 1 );
 
     // Be verbose, if demanded
     if ( beVerbose_ == true ) {
-      std::cerr << " FindMatchingAttributes: Found " << elements->size()
+      std::cerr << " FindMatchingAttributes: Found " << elements->GetSize()
 		<< " matches for section '" << keys[0] << "'" << std::endl;
     }
 
@@ -847,7 +847,7 @@ namespace CoupledField {
     DOMNode* aux_node = NULL;
     DOMAttr* match_attr = NULL;
     std::string dummy;
-    for ( unsigned int i = 0; i < elements->size(); i++ ) {
+    for ( unsigned int i = 0; i < elements->GetSize(); i++ ) {
 
       // Get attribute of elements
       attributes = (*elements)[i]->getAttributes();
@@ -864,9 +864,9 @@ namespace CoupledField {
       // If there is a match, append attribute to result vector
       // and also append element to element list
       if ( match_attr != NULL ) {
-	attrvec->push_back( match_attr );
+	attrvec->Push_back( match_attr );
 	if ( elemlist != NULL ) {
-	  elemlist->push_back( (*elements)[i] );
+	  elemlist->Push_back( (*elements)[i] );
 	}
       }
     }
@@ -881,11 +881,11 @@ namespace CoupledField {
   //   Return a list of strings matching a keyword
   // ===============================================
   void XMLParamHandler::FindAllMatches( const std::string key,
-					std::vector<std::string> &list,
+					StdVector<std::string> &list,
 					const std::string section,
 					const std::string subsection,
 					DOMElement *treeTop,
-					std::vector<DOMElement*> *elemlist ){
+					StdVector<DOMElement*> *elemlist ){
 
     ENTER_IFCN( "XMLParamHandler::FindAllMatches" );
 
@@ -899,10 +899,10 @@ namespace CoupledField {
 
     bool elem_match = false;
     bool attr_match = false;
-    std::vector<DOMElement*>* elem_matches = NULL;
-    std::vector<DOMAttr*   >* attr_matches = NULL;
-    std::vector<DOMElement*> attr_elements;
-    std::vector<std::string> keys;
+    StdVector<DOMElement*>* elem_matches = NULL;
+    StdVector<DOMAttr*   >* attr_matches = NULL;
+    StdVector<DOMElement*> attr_elements;
+    StdVector<std::string> keys;
     std::string value;
 
     // *************************************
@@ -917,18 +917,18 @@ namespace CoupledField {
 
     // Check if vector is empty. If not issue a warning
     // and erase its entries, if this is desired
-    if ( list.empty() != true ) {
+    if ( list.IsEmpty() != true ) {
       if ( beVerbose_ == true ) {
 	std::string errmsg = "Warning input vector was not empty!\n";
 	errmsg += "Contents have been erased!";
 	Info->Warning( errmsg );
       }
-      list.clear();
+      list.Clear();
     }
 
     // Clear element vector
     if ( elemlist != NULL ) {
-      elemlist->clear();
+      elemlist->Clear();
     }
 
     // **************************************************
@@ -937,24 +937,24 @@ namespace CoupledField {
 
     // Generate vector of keywords
     if ( section != "" ) {
-      keys.push_back( section );
+      keys.Push_back( section );
     }
     if ( subsection != "" ) {
-      keys.push_back( subsection );
+      keys.Push_back( subsection );
     }
-    keys.push_back( key );
+    keys.Push_back( key );
 
     // Find matching elements
     elem_matches = FindMatchingElements( keys, treeTop, 1 );
 
     // Check if there was a match
-    if ( elem_matches->size() > 0 ) {
+    if ( elem_matches->GetSize() > 0 ) {
       elem_match = true;
     }
 
     // Be verbose, if demanded
     if ( beVerbose_ == true ) {
-      std::cerr << " FindAllMatches: Found " << elem_matches->size()
+      std::cerr << " FindAllMatches: Found " << elem_matches->GetSize()
 		<< " matching elements for key '" << key << "'"<< std::endl;
     }
 
@@ -967,10 +967,10 @@ namespace CoupledField {
     if ( section != "" ) {
 
       // Generate vector of keywords
-      keys.clear();
-      keys.push_back( section );
+      keys.Clear();
+      keys.Push_back( section );
       if ( subsection != "" ) {
-	keys.push_back( subsection );
+	keys.Push_back( subsection );
       }
 
       // Find matching attributes
@@ -979,13 +979,13 @@ namespace CoupledField {
 
       // Be verbose, if demanded
       if ( beVerbose_ == true ) {
-	std::cerr << " FindAllMatches: Found " << attr_matches->size()
+	std::cerr << " FindAllMatches: Found " << attr_matches->GetSize()
 		  << " matching attributes for key '" << key << "'"
 		  << std::endl;
       }
 
       // Check if there was a match, if not call problem handler
-      if ( attr_matches->size() > 0 ) {
+      if ( attr_matches->GetSize() > 0 ) {
 	attr_match = true;
       }
 
@@ -1005,11 +1005,11 @@ namespace CoupledField {
     // Convert element values to strings and append to list
     // If desired also save found elements
     else if ( elem_match == true ) {
-      for ( unsigned int i = 0; i < elem_matches->size(); i++ ) {
+      for ( unsigned int i = 0; i < elem_matches->GetSize(); i++ ) {
 	value.assign( GetElementValue( (*elem_matches)[i] ) );
-	list.push_back( value );
+	list.Push_back( value );
 	if ( elemlist != NULL ) {
-	  elemlist->push_back( (*elem_matches)[i] );
+	  elemlist->Push_back( (*elem_matches)[i] );
 	}
       }
     }
@@ -1017,11 +1017,11 @@ namespace CoupledField {
     // Convert element values to strings and append to list
     // If desired also save found elements
     else if ( attr_match == true ) {
-      for ( unsigned int i = 0; i < attr_matches->size(); i++ ) {
+      for ( unsigned int i = 0; i < attr_matches->GetSize(); i++ ) {
 	value.assign( X2C( (*attr_matches)[i]->getValue() ) );
-	list.push_back( value );
+	list.Push_back( value );
 	if ( elemlist != NULL ) {
-	  elemlist->push_back( attr_elements[i] );
+	  elemlist->Push_back( attr_elements[i] );
 	}
       }
     }
@@ -1034,7 +1034,7 @@ namespace CoupledField {
       std::string msg = "Section '" + section + "' -> Subsection '" +
 	subsection + "' -> Keyword '" + key + "'";
       Info->PrintF( "", "%s", msg.c_str() );
-      for ( unsigned int k = 0; k < list.size(); k++ ) {
+      for ( unsigned int k = 0; k < list.GetSize(); k++ ) {
 	msg = "Value = '" + list[k] + "'";
 	Info->PrintF( "", "%s", msg.c_str() );
       }
@@ -1054,7 +1054,7 @@ namespace CoupledField {
   //   side-constraints on attributes of matching elements
   // ==========================================================
   void XMLParamHandler::CFindAllMatches( const std::string key,
-					 std::vector<std::string> &list,
+					 StdVector<std::string> &list,
 					 const std::string attribute,
 					 const std::string value,
 					 Integer applyToElem,
@@ -1078,28 +1078,28 @@ namespace CoupledField {
 
     // Check if vector is empty. If not issue a warning
     // and erase its entries, if this is desired
-    if ( list.empty() != true ) {
+    if ( list.IsEmpty() != true ) {
       if ( beVerbose_ == true ) {
 	std::string errmsg  = "Warning input vector was not empty!\n";
 	errmsg += "Contents have been erased!";
 	Info->Warning( errmsg );
       }
-      list.clear();
+      list.Clear();
     }
 
     // First assemble a vector of all elements matching the keyword
     // and their values
-    std::vector<DOMElement*> elemMatches;
-    std::vector<std::string> elemValues;
+    StdVector<DOMElement*> elemMatches;
+    StdVector<std::string> elemValues;
     FindAllMatches( key, elemValues, section, subsection, rootElem,
 		    &elemMatches );
 
     // From the list of matching elements and their values, we select
     // those whose attribute's value matches the specification
     if ( applyToElem == 0 ) {
-      for ( unsigned int k = 0; k < elemMatches.size(); k++ ) {
+      for ( unsigned int k = 0; k < elemMatches.GetSize(); k++ ) {
 	if ( AttribHasValue( elemMatches[k], attribute, value ) ) {
-	  list.push_back( elemValues[k] );
+	  list.Push_back( elemValues[k] );
 	}
       }
     }
@@ -1109,14 +1109,14 @@ namespace CoupledField {
       DOMElement *parent1 = NULL;
       DOMElement *parent2 = NULL;
 
-      for ( unsigned int k = 0; k < elemMatches.size(); k++ ) {
+      for ( unsigned int k = 0; k < elemMatches.GetSize(); k++ ) {
 	parent1 = Node2Elem( elemMatches[k]->getParentNode() );
 	for ( Integer i = 1; i < applyToElem; i++ ) {
 	  parent2 = Node2Elem( parent1->getParentNode() );
 	  parent1 = parent2;
 	}
 	if ( AttribHasValue( parent1, attribute, value ) ) {
-	  list.push_back( elemValues[k] );
+	  list.Push_back( elemValues[k] );
 	}
       }
     }
@@ -1396,7 +1396,7 @@ namespace CoupledField {
 
     // Find all elements/values matching keyword in (restricted) defaults
     // tree
-    std::vector<std::string> matches;
+    StdVector<std::string> matches;
 
     if ( constrained == false ) {
       FindAllMatches( key, matches, section, subsection, rootElemDefaults_ );
@@ -1417,20 +1417,20 @@ namespace CoupledField {
     }
 
     // If there was no unique match, call problem handler
-    if ( matches.size() > 1 ) {
+    if ( matches.GetSize() > 1 ) {
       if ( constrained == false ) {
-	MultipleMatchHandler( key, section, subsection, matches.size() );
+	MultipleMatchHandler( key, section, subsection, matches.GetSize() );
       }
       else {
 	// Test if matches are different
 	bool valsAgree = true;
-	for ( UInt k = 1; k < matches.size(); k++ ) {
+	for ( UInt k = 1; k < matches.GetSize(); k++ ) {
 	  if ( matches[k] != matches[0] ) {
 	    valsAgree = false;
 	  }
 	}
 	if ( valsAgree == false ) {
-	  MultipleMatchHandler( key, section, subsection, matches.size() );
+	  MultipleMatchHandler( key, section, subsection, matches.GetSize() );
 	}
 
 	// value agree
@@ -1442,7 +1442,7 @@ namespace CoupledField {
     }
 
     // Check, if a default was found
-    if ( matches.size() == 1 ) {
+    if ( matches.GetSize() == 1 ) {
       defaultFound = TRUE;
       defaultValue = matches[0];
     }

@@ -9,9 +9,8 @@ namespace CoupledField
   LaplaceInt::LaplaceInt(BaseFE * aptelem, Double aVal, Boolean axi)
     : BaseForm(aptelem),laplVal_ (aVal)
   {
-#ifdef TRACE
-    (*trace) << "entering LaplaceInt::LaplaceInt" << std::endl;
-#endif
+    ENTER_FCN( "LaplaceInt::LaplaceInt");
+
     isaxi_ = axi;
   }
 
@@ -19,9 +18,8 @@ namespace CoupledField
   LaplaceInt::LaplaceInt(Double aVal, Boolean axi)
     : BaseForm(),laplVal_ (aVal)
   {
-#ifdef TRACE
-    (*trace) << "entering LaplaceInt::LaplaceInt" << std::endl;
-#endif
+    ENTER_FCN( "LaplaceInt::LaplaceInt" );
+
     isaxi_ = axi;
   }
 
@@ -29,22 +27,18 @@ namespace CoupledField
  
   LaplaceInt::~LaplaceInt()
   {
-#ifdef TRACE
-    (*trace) << "entering LaplaceInt::~LaplaceInt" << std::endl;
-#endif
+    ENTER_FCN( "LaplaceInt::~LaplaceInt" );
   }
 
 
 
   void LaplaceInt::CalcElementMatrix(Matrix<Double> & ptCoord, Matrix<Double> & elemMat)
   {
-#ifdef TRACE
-    (*trace) << "entering LaplaceInt::CalcElementMatrix" << std::endl;
-#endif
+    ENTER_FCN( "LaplaceInt::CalcElementMatrix" );
   
     const Integer nrIntPts= ptelem->GetNumIntPoints();
     const Integer nrNodes = ptelem->GetNumNodes();
-    const std::vector<Double> & intWeights = ptelem->GetIntWeights();  
+    const Vector<Double> & intWeights = ptelem->GetIntWeights();  
     Double jacDet;  
 
 
@@ -52,8 +46,8 @@ namespace CoupledField
     Matrix<Double> xiDx;
     Matrix<Double> xiDxTransp;
     Matrix<Double> partElemMat;
-    std::vector<Double> ShpFncAtIp;
-    std::vector<Double> CoordAtIP;
+    Vector<Double> ShpFncAtIp;
+    Vector<Double> CoordAtIP;
 
     // set matrix to desired size and set all elements to zero
     elemMat.Resize(nrNodes); elemMat.Init();
@@ -81,19 +75,13 @@ namespace CoupledField
 	elemMat += partElemMat;
       }
   
-
-#ifdef TRACE
-    (*trace) << "leaving LaplaceInt::CalcElemMatrix" << std::endl;
-#endif
   }
 
 
 
   void LaplaceInt::Print(std::ostream * out, const Matrix<Double> Result) const
   {
-#ifdef TRACE
-    (*trace) << "entering LaplaceInt::Print" << std::endl;
-#endif
+    ENTER_FCN( "LaplaceInt::Print"); 
     (*out)<< "Laplace stiffness matrix:" << std::endl << Result;
   }
 

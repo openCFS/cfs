@@ -16,9 +16,7 @@ namespace CoupledField
   nLinElastInt::nLinElastInt(BaseFE * aptelem, MaterialData & matData) 
     : linElastInt(aptelem, matData)
   {
-#ifdef TRACE
-    (*trace) << "entering nLinElastInt::nLinElastInt" << std::endl;
-#endif
+    ENTER_FCN( "nLinElastInt::nLinElastInt" );
   }
 
 
@@ -26,17 +24,13 @@ namespace CoupledField
   nLinElastInt::nLinElastInt(MaterialData & matData) 
     : linElastInt(matData)
   {
-#ifdef TRACE
-    (*trace) << "entering nLinElastInt::nLinElastInt" << std::endl;
-#endif
+    ENTER_FCN( "nLinElastInt::nLinElastInt" );
   }
  
 
   nLinElastInt::~nLinElastInt()
   {
-#ifdef TRACE
-    (*trace) << "entering nLinElastInt::~nLinElastInt" << std::endl;
-#endif
+    ENTER_FCN( "nLinElastInt::~nLinElastInt" );
   }
 
 
@@ -44,9 +38,7 @@ namespace CoupledField
   // returns nonlinear B - matrix (first part) for BDB
   void nLinElastInt::calcBMat(Matrix<Double> & bMat, Integer ip, Matrix<Double> & ptCoord)
   {
-#ifdef TRACE
-    (*trace) << "entering nLinElastInt::calcBMat " << std::endl;
-#endif
+    ENTER_FCN( "nLinElastInt::calcBMat" );
 
     
     if (!elemDisp_.GetSizeRow() || !elemDisp_.GetSizeCol()) 
@@ -101,14 +93,14 @@ namespace CoupledField
       {
 	const Integer spaceDim  = ptelem->GetDim();
 
-	std::vector<Double> shpFncAtIp;
+	Vector<Double> shpFncAtIp;
 	ptelem->GetShFncAtIp(shpFncAtIp, ip);
 
-	std::vector<Double> coordAtIP;
+	Vector<Double> coordAtIP;
 	coordAtIP = ptCoord * shpFncAtIp;
 
 	Double  l33=0;  // for l33, see Bathe, page 552
-	for (Integer actPos=0; actPos < shpFncAtIp.size(); actPos++)
+	for (Integer actPos=0; actPos < shpFncAtIp.GetSize(); actPos++)
 	  l33 += elemDisp_[0][actPos] * shpFncAtIp[actPos] / coordAtIP[0];
 	
 	
@@ -128,6 +120,7 @@ namespace CoupledField
   void nLinElastInt::
   Calc2DMaterialMatrix(Matrix<Double> & dMat, enum orientation2D actOrientation)
   {  
+    ENTER_FCN( "nLinElastInt::Calc2DMaterialMatrix" );
     const Integer nrElems2d = 3;
   
     Integer rowPtrXY[] = {1,2,6};  // indices of rows and lines for xy-plane
@@ -176,9 +169,7 @@ namespace CoupledField
   nLinMech3dInt_BNonLin::nLinMech3dInt_BNonLin(BaseFE * aptelem, MaterialData & matData) 
     : nLinElastInt(aptelem, matData)
   {
-#ifdef TRACE
-    (*trace) << "entering nLinMech3dInt_BNonLin::nLinMech3dInt_BNonLin" << std::endl;
-#endif
+    ENTER_FCN( "nLinMech3dInt_BNonLin::nLinMech3dInt_BNonLin" );
 
     className = "nLinMech3dInt_BNonLin";
   }
@@ -187,17 +178,13 @@ namespace CoupledField
   nLinMech3dInt_BNonLin::nLinMech3dInt_BNonLin(MaterialData & matData) 
     : nLinElastInt(matData)
   {
-#ifdef TRACE
-    (*trace) << "entering nLinMech3dInt_BNonLin::nLinMech3dInt_BNonLin" << std::endl;
-#endif
+    ENTER_FCN( "nLinMech3dInt_BNonLin::nLinMech3dInt_BNonLin" );
   }
  
 
   nLinMech3dInt_BNonLin::~nLinMech3dInt_BNonLin()
   {
-#ifdef TRACE
-    (*trace) << "entering nLinMech3dInt_BNonLin::~nLinMech3dInt_BNonLin" << std::endl;
-#endif
+    ENTER_FCN( "nLinMech3dInt_BNonLin::~nLinMech3dInt_BNonLin" );
   }
 
 
@@ -205,9 +192,8 @@ namespace CoupledField
   // (see mech3dInt::calcDMat)
   void nLinMech3dInt_BNonLin::calcDMat(Matrix<Double> & dMat)
   {
-#ifdef TRACE
-    (*trace) << "entering nLinMech3dInt_BNonLin::calcDMat " << std::endl;
-#endif
+    ENTER_FCN( "nLinMech3dInt_BNonLin::calcDMat" );
+
     const Integer nrElems3d = getDimD();
     
     Matrix<Double> * matMatrix =  ptMaterial->GetMatrix();
@@ -232,9 +218,8 @@ namespace CoupledField
     : nLinElastInt(aptelem, matData)
 
   {
-#ifdef TRACE
-    (*trace) << "entering nLinMechInt_PiolaStress::nLinMechInt_PiolaStress" << std::endl;
-#endif
+    ENTER_FCN( "nLinMechInt_PiolaStress::nLinMechInt_PiolaStress" );
+
     updateDMatInEveryIP_ = 1;
     //    setPiolaDimD( getFullPiolaDMatSize() );
     className = "  nLinMechInt_PiolaStress";
@@ -245,9 +230,8 @@ namespace CoupledField
   nLinMechInt_PiolaStress::nLinMechInt_PiolaStress(MaterialData & matData) 
     : nLinElastInt(matData)
   {
-#ifdef TRACE
-    (*trace) << "entering nLinMechInt_PiolaStress::nLinMechInt_PiolaStress" << std::endl;
-#endif
+    ENTER_FCN( "nLinMechInt_PiolaStress::nLinMechInt_PiolaStress" );
+
     updateDMatInEveryIP_ = 1;
     //    setPiolaDimD( getFullPiolaDMatSize() );
   }
@@ -255,9 +239,7 @@ namespace CoupledField
 
   nLinMechInt_PiolaStress::~nLinMechInt_PiolaStress()
   {
-#ifdef TRACE
-    (*trace) << "entering nLinMechInt_PiolaStress::~nLinMechInt_PiolaStress" << std::endl;
-#endif
+    ENTER_FCN( "nLinMechInt_PiolaStress::~nLinMechInt_PiolaStress" );
   }
 
 
@@ -270,17 +252,16 @@ namespace CoupledField
   // V = B_lin * u  +  1/2 * B_nonLin * u
   // see Habil. M. Kaltenbacher Eq. (3.33)
   void nLinMechInt_PiolaStress::
-  CalcStressVec(std::vector<Double>& piolaStressVec, Integer ip, Matrix<Double> & ptCoord)
+  CalcStressVec(Vector<Double>& piolaStressVec, Integer ip, Matrix<Double> & ptCoord)
   {
-#ifdef TRACE
-    (*trace) << "entering mech3DInt_PiolaStress::calcPiolaStressTensor" << std::endl;
-#endif
+    ENTER_FCN( "mech3DInt_PiolaStress::calcPiolaStressTensor" );
+
     Matrix<Double> dMat;
     calcMaterialDMat(dMat);
   
     // convert displacement of all elem nodes into one vector: 
     // (uNode1X, uNode1Y, uNode2X, uNode2Y, ...)
-    std::vector<Double> displVec;
+    Vector<Double> displVec;
     elemDisp_.ConvertToVec_AppendCols(displVec);
 
 
@@ -296,9 +277,9 @@ namespace CoupledField
 
     // special construction: direct addition of these two terms does not work, 
     // because of temporary vectors ... :O(    
-    std::vector<Double> part1(linBMat * displVec );
-    std::vector<Double> part2(nLinBMat * 0.5 * displVec);
-    std::vector<Double> nonLinStrain;
+    Vector<Double> part1(linBMat * displVec );
+    Vector<Double> part2(nLinBMat * 0.5 * displVec);
+    Vector<Double> nonLinStrain;
   
     nonLinStrain = part1 + part2;
     piolaStressVec = dMat * nonLinStrain;
@@ -310,9 +291,7 @@ namespace CoupledField
   void nLinMechInt_PiolaStress::
   calcMaterialDMat(Matrix<Double> & dMat)
   {
-#ifdef TRACE
-    (*trace) << "entering mech3DInt_PiolaStress::calcMaterialDMat" << std::endl;
-#endif
+    ENTER_FCN( "mech3DInt_PiolaStress::calcMaterialDMat" );
 
     const Integer nrElems3d = getMaterialDMatSize();
   
@@ -332,9 +311,8 @@ namespace CoupledField
   void nLinMechInt_PiolaStress::
   calcLinBMat(Matrix<Double> & bMat, Integer ip, Matrix<Double> & ptCoord)
   {
-#ifdef TRACE
-    (*trace) << "entering mech3DInt_PiolaStress::calcLinBMat" << std::endl;
-#endif
+    ENTER_FCN( "mech3DInt_PiolaStress::calcLinBMat" );
+
     // dirty trick: dimension of d-matrix is set to 6 (as it should be in 3d mechanics)
     // this is done, because the special Piola-Kirchhoff-BDB uses a d-matrix of size 9
     // this means, the calculation of the "standard" (linear mech.) and the nonlinear b-matrix
@@ -355,6 +333,7 @@ namespace CoupledField
   void nLinMechInt_PiolaStress::
   calcNonLinBMat(Matrix<Double> & bMat, Integer ip, Matrix<Double> & ptCoord)
   {
+    ENTER_FCN( "nLinMechInt_PiolaStress::calcNonLinBMat" );
     // dirty trick: dimension of d-matrix is set to 6 (as it should be in 3d mechanics)
     // this is done, because the special Piola-Kirchhoff-BDB uses a d-matrix of size 9
     // this means, the calculation of the "standard" (linear mech.) and the nonlinear b-matrix
@@ -370,11 +349,9 @@ namespace CoupledField
 
   /// conversion of stress vector to stress tensor
   void nLinMechInt_PiolaStress::
-  convertStressVecToTensor(Matrix<Double>& stressTensor, std::vector<Double>& piolaStress)
+  convertStressVecToTensor(Matrix<Double>& stressTensor, Vector<Double>& piolaStress)
   {
-#ifdef TRACE
-    (*trace) << "entering mech3DInt_PiolaStress::convertStressVecToTensor " << std::endl;
-#endif
+    ENTER_FCN( "mech3DInt_PiolaStress::convertStressVecToTensor" );
 
     Integer indexRow[] = {1, 2, 3, 2, 1, 1}; // first index of tensor notation
     Integer indexCol[] = {1, 2, 3, 3, 3, 2}; // second index of tensor notation
@@ -382,7 +359,7 @@ namespace CoupledField
     stressTensor.Resize( getNrDofs() );
     
     // build symmetrical tensor
-    for (Integer i=0; i<piolaStress.size(); i++)
+    for (Integer i=0; i<piolaStress.GetSize(); i++)
       {
 	stressTensor[ indexRow[i] -1 ][ indexCol[i] -1 ] = piolaStress[i];	
 	stressTensor[ indexCol[i] -1 ][ indexRow[i] -1 ] = piolaStress[i];	
@@ -399,14 +376,12 @@ namespace CoupledField
   // (see e.g. Bathe: "Finite Element Procedures" p. 556)
   void nLinMechInt_PiolaStress::calcDMat(Matrix<Double> & dMat, Integer ip, Matrix<Double> & ptCoord)
   {
-#ifdef TRACE
-    (*trace) << "entering nLinMechInt_PiolaStress::calcDMat " << std::endl;
-#endif
+    ENTER_FCN( "nLinMechInt_PiolaStress::calcDMat");
 
     const Integer dimD = getDimD();
     const Integer nrDofs = getNrDofs();
 
-    std::vector<Double> piolaStressVec;
+    Vector<Double> piolaStressVec;
     Matrix<Double> stressTensor;
     
     CalcStressVec(piolaStressVec, ip, ptCoord );
@@ -435,9 +410,7 @@ namespace CoupledField
   void nLinMechInt_PiolaStress::
   calcBMat(Matrix<Double> & bMat, Integer ip, Matrix<Double> & ptCoord)
   {
-#ifdef TRACE
-    (*trace) << "entering nLinMechInt_PiolaStress::calcBMat " << std::endl;
-#endif    
+    ENTER_FCN( "nLinMechInt_PiolaStress::calcBMat" );
 
     const Integer nrNodes  = ptelem->GetNumNodes();
     const Integer nrDofs   = getNrDofs();    
@@ -462,8 +435,8 @@ namespace CoupledField
     if (isaxi_)
       {
 	const Integer spaceDim = ptelem->GetDim();
-	std::vector<Double> shpFncAtIp;
-	std::vector<Double> coordAtIP;
+	Vector<Double> shpFncAtIp;
+	Vector<Double> coordAtIP;
 	
 	ptelem->GetShFncAtIp(shpFncAtIp,ip);
 	coordAtIP = ptCoord * shpFncAtIp;
@@ -493,9 +466,8 @@ namespace CoupledField
     :nLinMechInt_PiolaStress(aptelem, matData)
 
   {
-#ifdef TRACE
-    (*trace) << "entering nLinMech3dInt_PiolaStress::nLinMech3dInt_PiolaStress" << std::endl;
-#endif
+    ENTER_FCN( "nLinMech3dInt_PiolaStress::nLinMech3dInt_PiolaStress" );
+
     updateDMatInEveryIP_ = 1;
     setPiolaDimD( getFullPiolaDMatSize() );
     className = "  nLinMech3dInt_PiolaStress";
@@ -506,9 +478,8 @@ namespace CoupledField
   nLinMech3dInt_PiolaStress::nLinMech3dInt_PiolaStress(MaterialData & matData) 
     :nLinMechInt_PiolaStress(matData)
   {
-#ifdef TRACE
-    (*trace) << "entering nLinMech3dInt_PiolaStress::nLinMech3dInt_PiolaStress" << std::endl;
-#endif
+    ENTER_FCN( "nLinMech3dInt_PiolaStress::nLinMech3dInt_PiolaStress");
+
     updateDMatInEveryIP_ = 1;
     setPiolaDimD( getFullPiolaDMatSize() );
   }
@@ -516,9 +487,8 @@ namespace CoupledField
 
   nLinMech3dInt_PiolaStress::~nLinMech3dInt_PiolaStress()
   {
-#ifdef TRACE
-    (*trace) << "entering nLinMech3dInt_PiolaStress::~nLinMech3dInt_PiolaStress" << std::endl;
-#endif
+    ENTER_FCN( "nLinMech3dInt_PiolaStress::~nLinMech3dInt_PiolaStress" );
+
   }
 
 
@@ -536,9 +506,8 @@ namespace CoupledField
   PreStressInt::PreStressInt(BaseFE * aptelem, MaterialData & matData, Double aPreStressVal, Directions stressDir) 
     : nLinMechInt_PiolaStress(aptelem, matData), preStressVal_(aPreStressVal), preStressDir_(stressDir)
   {
-#ifdef TRACE
-    (*trace) << "entering PreStressInt::PreStressInt" << std::endl;
-#endif
+    ENTER_FCN( "PreStressInt::PreStressInt" );
+
     updateDMatInEveryIP_ = 1;
     setPiolaDimD( getFullPiolaDMatSize() );
     className = "PreStressInt";
@@ -547,20 +516,18 @@ namespace CoupledField
 
   PreStressInt::~PreStressInt()
   {
-#ifdef TRACE
-    (*trace) << "entering PreStressInt::~PreStressInt" << std::endl;
-#endif
+    ENTER_FCN( "PreStressInt::~PreStressInt" );
+
   }
 
 
 
 
   // calculates the D-matrix needed for regarding pre-stresses
-  void PreStressInt::CalcStressVec(std::vector<Double>& preStressVec, Integer ip, Matrix<Double> & ptCoord)
+  void PreStressInt::CalcStressVec(Vector<Double>& preStressVec, Integer ip, Matrix<Double> & ptCoord)
   {
-#ifdef TRACE
-    (*trace) << "entering PreStressInt::CalcStressVec" << std::endl;
-#endif
+    ENTER_FCN( "PreStressInt::CalcStressVec" );
+
     // ???????????????????????????????????????????????
     //    const Integer dimD = nLinMechInt_BNonLin::getDimD();
     const Integer dimD = getDimD();
@@ -569,7 +536,7 @@ namespace CoupledField
     
 
         
-    preStressVec.resize(dimD);
+    preStressVec.Resize(dimD);
     preStressVec *= 0;
     
     if (! distributedStress)
@@ -589,10 +556,10 @@ namespace CoupledField
 	  
 	case radXY:
 	  {  
-	    std::vector<Double> shapeFncIP;
+	    Vector<Double> shapeFncIP;
 	    ptelem->GetShFncAtIp(shapeFncIP, ip);
 	    
-	    std::vector<Double> coordIP(nrDofs);
+	    Vector<Double> coordIP(nrDofs);
 	    coordIP = ptCoord * shapeFncIP;
 	    
 	    
@@ -603,7 +570,7 @@ namespace CoupledField
 	    
 	    
 	    // center of radial prestress is (0,0)
-	    preStressVec *= (preStressVal_ / L2Norm(preStressVec));
+	    preStressVec *= (preStressVal_ / preStressVec.NormL2());
 	    break;
 	  }
 	  
@@ -612,7 +579,7 @@ namespace CoupledField
 	}
     else
       {
-	std::vector<Double> preStrainVec(dimD);
+	Vector<Double> preStrainVec(dimD);
 	
 	preStrainVec *= 0;   // initialize vector
 	
@@ -636,18 +603,18 @@ namespace CoupledField
 		
 	  case radXY:
 	    {  
-	      std::vector<Double> shapeFncIP;
+	      Vector<Double> shapeFncIP;
 	      ptelem->GetShFncAtIp(shapeFncIP, ip);
 		  
-	      std::vector<Double> coordIP(nrDofs);
+	      Vector<Double> coordIP(nrDofs);
 	      coordIP = ptCoord * shapeFncIP;
 		  
 	      // in xy-plane, no z-coord has to be regarded
 	      // center of radial prestress is (0,0)
 	      coordIP[2]= 0;
 		  
-	      for (Integer i=0; i<coordIP.size(); i++)
-		preStrainVec[i] = coordIP[i] / L2Norm(coordIP) * preStressVal_ / matData[i][i];
+	      for (Integer i=0; i<coordIP.GetSize(); i++)
+		preStrainVec[i] = coordIP[i] / coordIP.NormL2() * preStressVal_ / matData[i][i];
 	      break;
 	    }
 		
@@ -674,9 +641,7 @@ namespace CoupledField
   // calculated the D-matrix for the plain strain state
   void  nLinMechPlaneStrainInt_BNonLin::calcDMat(Matrix<Double> & dMat)
   {
-#ifdef TRACE
-    (*trace) << "entering mechPlainStrainNLinIntInt::calcDMat " << std::endl;
-#endif
+    ENTER_FCN( "mechPlainStrainNLinIntInt::calcDMat" );
 
     Calc2DMaterialMatrix(dMat, actOrientation);
   
@@ -689,9 +654,7 @@ namespace CoupledField
 
   void nLinMechPlaneStrainInt_PiolaStress::calcMaterialDMat(Matrix<Double> & dMat)
   {
-#ifdef TRACE
-    (*trace) << "entering mechPlaneStraneInt_PiolaStress::calcMaterialDMat" << std::endl;
-#endif
+    ENTER_FCN( "mechPlaneStraneInt_PiolaStress::calcMaterialDMat" );
 
     Calc2DMaterialMatrix(dMat, actOrientation);
   }
@@ -701,11 +664,9 @@ namespace CoupledField
 
   /// conversion of stress vector to stress tensor
   void nLinMechPlaneStrainInt_PiolaStress::
-  convertStressVecToTensor(Matrix<Double>& stressTensor, std::vector<Double>& piolaStress)
+  convertStressVecToTensor(Matrix<Double>& stressTensor, Vector<Double>& piolaStress)
   {
-#ifdef TRACE
-    (*trace) << "entering mechMechPlanseStrainInt_PiolaStress::convertStressVecToTensor " << std::endl;
-#endif
+    ENTER_FCN( "mechMechPlanseStrainInt_PiolaStress::convertStressVecToTensor" );
 
     Integer indexRow[] = {1, 2, 1}; // first index of tensor notation
     Integer indexCol[] = {1, 2, 2}; // second index of tensor notation
@@ -713,7 +674,7 @@ namespace CoupledField
     stressTensor.Resize( getNrDofs() );
     
     // build symmetrical tensor
-    for (Integer i=0; i<piolaStress.size(); i++)
+    for (Integer i=0; i<piolaStress.GetSize(); i++)
       {
 	stressTensor[ indexRow[i] -1 ][ indexCol[i] -1 ] = piolaStress[i];	
 	stressTensor[ indexCol[i] -1 ][ indexRow[i] -1 ] = piolaStress[i];	
@@ -734,9 +695,7 @@ namespace CoupledField
   // calculated the D-matrix for the axi state
   void  nLinMechAxiInt_BNonLin::calcDMat(Matrix<Double> & dMat)
   {
-#ifdef TRACE
-    (*trace) << "entering mechPlainStrainNLinIntInt::calcDMat " << std::endl;
-#endif
+    ENTER_FCN( "mechPlainStrainNLinIntInt::calcDMat" );
 
     CalcAxiMaterialMat(dMat, actOrientation);
   }
@@ -746,9 +705,8 @@ namespace CoupledField
   nLinMechAxiInt_PiolaStress::nLinMechAxiInt_PiolaStress(BaseFE * aptelem, MaterialData & matData) 
     : nLinMechInt_PiolaStress(aptelem, matData)
   {
-#ifdef TRACE
-    (*trace) << "entering nLinMechAxiInt_PiolaStress::nLinMechAxiInt_PiolaStress" << std::endl;
-#endif
+    ENTER_FCN( "nLinMechAxiInt_PiolaStress::nLinMechAxiInt_PiolaStress" );
+
     isaxi_ = TRUE;
     setPiolaDimD( getFullPiolaDMatSize() );
     className = "nLinMechAxiInt_PiolaStress";    
@@ -761,9 +719,8 @@ namespace CoupledField
     : nLinMechInt_PiolaStress(matData)
 
   {
-#ifdef TRACE
-    (*trace) << "entering nLinMechAxiInt_PiolaStress::nLinMechAxiInt_PiolaStress" << std::endl;
-#endif
+    ENTER_FCN( "nLinMechAxiInt_PiolaStress::nLinMechAxiInt_PiolaStress" );
+
     isaxi_ = TRUE;
     setPiolaDimD( getFullPiolaDMatSize() );
   }
@@ -771,9 +728,8 @@ namespace CoupledField
 
   nLinMechAxiInt_PiolaStress::~nLinMechAxiInt_PiolaStress()
   {
-#ifdef TRACE
-    (*trace) << "entering nLinMechAxiInt_PiolaStress::~nLinMechAxiInt_PiolaStress" << std::endl;
-#endif
+    ENTER_FCN( "nLinMechAxiInt_PiolaStress::~nLinMechAxiInt_PiolaStress" );
+
   }
 
 
@@ -781,9 +737,7 @@ namespace CoupledField
 
   void nLinMechAxiInt_PiolaStress::calcMaterialDMat(Matrix<Double> & dMat)
   {
-#ifdef TRACE
-    (*trace) << "entering nLinMechAxiInt_PiolaStress::calcMaterialDMat" << std::endl;
-#endif
+    ENTER_FCN( "nLinMechAxiInt_PiolaStress::calcMaterialDMat" );
 
     CalcAxiMaterialMat(dMat, actOrientation);
   }
@@ -791,11 +745,9 @@ namespace CoupledField
 
   /// conversion of stress vector to stress tensor
   void nLinMechAxiInt_PiolaStress::
-  convertStressVecToTensor(Matrix<Double>& stressTensor, std::vector<Double>& piolaStress)
+  convertStressVecToTensor(Matrix<Double>& stressTensor, Vector<Double>& piolaStress)
   {
-#ifdef TRACE
-    (*trace) << "entering nLinMechAxiInt_PiolaStress::convertStressVecToTensor " << std::endl;
-#endif
+    ENTER_FCN( "nLinMechAxiInt_PiolaStress::convertStressVecToTensor" );
 
     // indizes see Bathe: "Finite Element Procedures", Sec. 6.3, 
     // page 553: "2. Piola-Kirchhoff stress matrix & vector"
@@ -834,9 +786,8 @@ namespace CoupledField
   nLinMechPlaneStrainInt_BNonLin::nLinMechPlaneStrainInt_BNonLin(BaseFE * aptelem, MaterialData & matData) 
     : nLinElastInt(aptelem, matData)
   {
-#ifdef TRACE
-    (*trace) << "entering nLinMechPlaneStrainInt_BNonLin::nLinMechPlaneStrainInt_BNonLin" << std::endl;
-#endif
+    ENTER_FCN( "nLinMechPlaneStrainInt_BNonLin::nLinMechPlaneStrainInt_BNonLin" );
+
     className = "nLinMechPlaneStrainInt_BNonLin";
   }
 
@@ -844,17 +795,15 @@ namespace CoupledField
   nLinMechPlaneStrainInt_BNonLin::nLinMechPlaneStrainInt_BNonLin(MaterialData & matData) 
     : nLinElastInt(matData)
   {
-#ifdef TRACE
-    (*trace) << "entering nLinMechPlaneStrainInt_BNonLin::nLinMechPlaneStrainInt_BNonLin" << std::endl;
-#endif
+    ENTER_FCN( "nLinMechPlaneStrainInt_BNonLin::nLinMechPlaneStrainInt_BNonLin" );
+
   }
  
 
   nLinMechPlaneStrainInt_BNonLin::~nLinMechPlaneStrainInt_BNonLin()
   {
-#ifdef TRACE
-    (*trace) << "entering nLinMechPlaneStrainInt_BNonLin::~nLinMechPlaneStrainInt_BNonLin" << std::endl;
-#endif
+    ENTER_FCN( "nLinMechPlaneStrainInt_BNonLin::~nLinMechPlaneStrainInt_BNonLin" );
+
   }
 
 
@@ -865,9 +814,8 @@ namespace CoupledField
   nLinMechPlaneStrainInt_PiolaStress::nLinMechPlaneStrainInt_PiolaStress(BaseFE * aptelem, MaterialData & matData) 
     : nLinMechInt_PiolaStress(aptelem, matData)
   {
-#ifdef TRACE
-    (*trace) << "entering nLinMechPlaneStrainInt_PiolaStress::nLinMechPlaneStrainInt_PiolaStress" << std::endl;
-#endif
+    ENTER_FCN( "nLinMechPlaneStrainInt_PiolaStress::nLinMechPlaneStrainInt_PiolaStress" );
+
     setPiolaDimD( getFullPiolaDMatSize() );
 
     className = "nLinMechPlaneStrainInt_PiolaStress";    
@@ -880,18 +828,15 @@ namespace CoupledField
     : nLinMechInt_PiolaStress(matData)
 
   {
-#ifdef TRACE
-    (*trace) << "entering nLinMechPlaneStrainInt_PiolaStress::nLinMechPlaneStrainInt_PiolaStress" << std::endl;
-#endif
+    ENTER_FCN( "nLinMechPlaneStrainInt_PiolaStress::nLinMechPlaneStrainInt_PiolaStress" );
+
     setPiolaDimD( getFullPiolaDMatSize() );
   }
  
 
   nLinMechPlaneStrainInt_PiolaStress::~nLinMechPlaneStrainInt_PiolaStress()
   {
-#ifdef TRACE
-    (*trace) << "entering nLinMechPlaneStrainInt_PiolaStress::~nLinMechPlaneStrainInt_PiolaStress" << std::endl;
-#endif
+    ENTER_FCN( "nLinMechPlaneStrainInt_PiolaStress::~nLinMechPlaneStrainInt_PiolaStress" );
   }
 
 
@@ -905,9 +850,8 @@ namespace CoupledField
   nLinMechAxiInt_BNonLin::nLinMechAxiInt_BNonLin(BaseFE * aptelem, MaterialData & matData) 
     : nLinElastInt(aptelem, matData)
   {
-#ifdef TRACE
-    (*trace) << "entering nLinMechAxiInt_BNonLin::nLinMechAxiInt_BNonLin" << std::endl;
-#endif
+    ENTER_FCN( "nLinMechAxiInt_BNonLin::nLinMechAxiInt_BNonLin" );
+
     isaxi_ = TRUE;
     className = "nLinMechAxiInt_BNonLin";    
   }
@@ -916,18 +860,16 @@ namespace CoupledField
   nLinMechAxiInt_BNonLin::nLinMechAxiInt_BNonLin(MaterialData & matData) 
     : nLinElastInt(matData)
   {
-#ifdef TRACE
-    (*trace) << "entering nLinMechAxiInt_BNonLin::nLinMechAxiInt_BNonLin" << std::endl;
-#endif
+    ENTER_FCN( "nLinMechAxiInt_BNonLin::nLinMechAxiInt_BNonLin" );
+
     isaxi_ = TRUE;
   }
  
 
   nLinMechAxiInt_BNonLin::~nLinMechAxiInt_BNonLin()
   {
-#ifdef TRACE
-    (*trace) << "entering nLinMechAxiInt_BNonLin::~nLinMechAxiInt_BNonLin" << std::endl;
-#endif
+    ENTER_FCN( "nLinMechAxiInt_BNonLin::~nLinMechAxiInt_BNonLin" );
+
   }
 
 

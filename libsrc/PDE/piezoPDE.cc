@@ -9,9 +9,9 @@
 #include "Driver/assemble.hh"
 #include "newmark.hh"
 #include "Elements/basefe.hh"
+#include "blocknodeEQN.hh"
 
 #include "piezoPDE.hh" 
-
 
 namespace CoupledField {
 
@@ -76,7 +76,7 @@ namespace CoupledField {
     // Get list of subdomains
     params->GetList( "name", subdoms_, pdename_, "region" );
     Info->PrintF( pdename_, " PiezoPDE lives on regions:" );
-    for ( Integer k = 0; k < subdoms_.size(); k++ ) {
+    for ( Integer k = 0; k < subdoms_.GetSize(); k++ ) {
       Info->PrintF( pdename_, " %s", subdoms_[k].c_str() );
     }
 
@@ -87,18 +87,10 @@ namespace CoupledField {
    // Map global numeration of element and nodes to local one
    AssignPDENodeNumbers(mesh2PDENode_, pde2MeshNode_, subdoms_);  
    AssignPDEElemNumbers(mesh2PDEElem_, pde2MeshElem_, subdoms_);
-   numPDENodes_ = pde2MeshNode_.size();
-   numElems_ = pde2MeshElem_.size(); 
+   numPDENodes_ = pde2MeshNode_.GetSize();
+   numElems_ = pde2MeshElem_.GetSize(); 
    
    size_        = numPDENodes_ * dofspernode_;
-
-   sol_->SetNumSolutions(2);
-   sol_->SetNumNodes(numPDENodes_);
-   sol_->SetSolutionType(MECH_DISPLACEMENT,0);
-   sol_->SetSolutionType(ELEC_POTENTIAL,1);
-   sol_->SetNumDofs(dim_,MECH_DISPLACEMENT); // displacements have dof of mesh-dimension
-   sol_->SetNumDofs(1,ELEC_POTENTIAL);  // electric potential
-   sol_->Init(0.0);
 
 #ifndef XMLPARAMS
    effectiveMass_ = FALSE;
@@ -152,12 +144,27 @@ namespace CoupledField {
 #endif
 
    //check for b.c. input data
-   if (bcs_hd_.size() != homDirichDof_.size()) 
+   if (bcs_hd_.GetSize() != homDirichDof_.GetSize()) 
      Error("Inconsistent definition of homogeneous Dirichlet Boundary Conditions");
-   if (bcs_id_.size() != inhomDirichDof_.size()) 
+   if (bcs_id_.GetSize() != inhomDirichDof_.GetSize()) 
      Error("Inconsistent definition of inhomogeneous Dirichlet Boundary Conditions");
- 
-  // set assemble parameters
+   
+   eqnData_ = new BlockNodeEQN(ptgrid_, ptBCs_, subdoms_, actlevel_, dofspernode_);
+   eqnData_->SetHomoDirichletBCs(bcs_hd_, homDirichDof_);
+   eqnData_->CalcMapping();
+   //eqnData_->Print(std::cerr);
+   assemble_->SetPtr2EQNData(eqnData_); 
+   
+   sol_->SetNumSolutions(2);
+   sol_->SetNumNodes(numPDENodes_);
+   sol_->SetSolutionType(MECH_DISPLACEMENT,0);
+   sol_->SetSolutionType(ELEC_POTENTIAL,1);
+   sol_->SetNumDofs(dim_,MECH_DISPLACEMENT); // displacements have dof of mesh-dimension
+   sol_->SetNumDofs(1,ELEC_POTENTIAL);  // electric potential
+   sol_->SetPtrEQNData(eqnData_);
+   sol_->Init(0.0);
+
+   // set assemble parameters
   assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, subdoms_, surfdoms_);
   assemble_->SetGraphType(NODEGRAPH);
   assemble_->SetMesh2PDENode(&mesh2PDENode_);
@@ -194,7 +201,7 @@ namespace CoupledField {
   Boolean nonLin = FALSE;
 
 
-  for (int actSD = 0; actSD < subdoms_.size(); actSD++)
+  for (int actSD = 0; actSD < subdoms_.GetSize(); actSD++)
     {
 
       // ==============  add stiffness ===========================================
@@ -268,9 +275,9 @@ void PiezoPDE :: InitTimeStepping(const Double dt)
   ENTER_FCN( "PiezoPDE::InitTimeStepping" );
 
   if (effectiveMass_)  
-    TS_alg_ = new NewmarkEffMass(pdename_, algsys_, 1, numPDENodes_*dofspernode_, dampingType_);
+    TS_alg_ = new NewmarkEffMass(pdename_, algsys_, eqnData_, dampingType_);
   else
-    TS_alg_ = new Newmark(pdename_, algsys_, 1, numPDENodes_*dofspernode_, dampingType_);
+    TS_alg_ = new Newmark(pdename_, algsys_, eqnData_, dampingType_);
 
   TS_alg_->Init(matrix_factor_, dt);
 
@@ -281,19 +288,15 @@ void PiezoPDE :: InitTimeStepping(const Double dt)
   {
     ENTER_FCN( "PiezoPDE::WriteResultsInFile" );
 
-    StoreSol<Double> DispMesh;
-    StoreSol<Double> PotentialMesh;
-    StoreSol<Double> DispPDE, PotentialPDE;
+   //  NodeStoreSol<Double> DispMesh;
+    NodeStoreSol<Double> dispPDE, potentialPDE;
 
-    sol_->GetSolution(MECH_DISPLACEMENT,DispPDE);
-    sol_->GetSolution(ELEC_POTENTIAL,PotentialPDE);
+    sol_->GetSolution(MECH_DISPLACEMENT,dispPDE);
+    sol_->GetSolution(ELEC_POTENTIAL,potentialPDE);
 
-    DispPDE.TransformNodeSolution( DispMesh,pde2MeshNode_,ptgrid_,actlevel_);
-    PotentialPDE.TransformNodeSolution( PotentialMesh,pde2MeshNode_,ptgrid_,actlevel_);
-
-    outFile_->WriteNodeSolution(DispMesh, laststepcalc_, lasttimecalc_,
+    outFile_->WriteNodeSolution(dispPDE, laststepcalc_, lasttimecalc_,
 				"displacement");
-    outFile_->WriteNodeSolution(PotentialMesh, laststepcalc_, lasttimecalc_,
+    outFile_->WriteNodeSolution(potentialPDE, laststepcalc_, lasttimecalc_,
 				"E-Potential");
   }
   

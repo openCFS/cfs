@@ -81,20 +81,15 @@ public:
   void CalcEnergy();
 
 
-  //! callculates nodal forces
-  void CalcNodeForce(StoreSol<Double> & force, 
-		     std::vector<Integer> & nodes, 
-		     std::vector<Elem*> & elems,
-		     std::vector<std::vector<ShortInt> > & isBoundaryNode,
-		     std::vector<std::vector<Integer> > & elemNodeToCouplingNode)
+  //! calculates nodal forces
+  void CalcNodeForce(ElemStoreSol<Double> & force, 
+		     StdVector<Integer> & nodes, 
+		     StdVector<Elem*> & elems,
+		     StdVector<StdVector<ShortInt> > & isBoundaryNode,
+		     StdVector<StdVector<Integer> > & elemNodeToCouplingNode)
   {Error("CalcNodeForce not implemented",__FILE__,__LINE__);}
 
 
-  //! GET SOLUTION AT ALL NODES OF AN ELEMENT
-  void GetSolOfElement( Vector<Double>& elpot, Vector<Integer>& connect_PDE);
-
-  //! GET 1st derivativ of SOLUTION AT ALL NODES OF AN ELEMENT
-  void GetSolDerivOfElement( Vector<Double>& elpot, Vector<Integer>& connect_PDE);
 
 // ======================================================
 // COUPLING SECTION
@@ -148,15 +143,15 @@ protected:
 
   Vector<Double> RhsLinVal_;
 
-  StoreSol<Double> B_;  //!< conatins magnetic field
-  StoreSol<Double> Jeddy_;  //!< conatins eddy currents field
+  ElemStoreSol<Double> B_;  //!< conatins magnetic field
+  ElemStoreSol<Double> Jeddy_;  //!< conatins eddy currents field
   
   // ---- Electric Force variables ---
-  StoreSol<Double> Force_;        //!< stores Magnetic force of each element
-  std::vector<std::vector<Elem*> > F_Interface_; //!<vector of vectors conaining Elements with acting force
-  std::vector<std::vector<std::vector<ShortInt> > > isBoundaryNode_; //!< vector containing flag array for element boundary nodes
-  std::vector<std::vector<std::vector<Integer> > > elemNodeToCouplingNode_; //!< assigns each coupling element node the according Coupling Node number
-  std::vector<std::vector<Integer> > numBoundaryNodes_;               //!< contains number of surface nodes per element
+  ElemStoreSol<Double> Force_;        //!< stores Magnetic force of each element
+  StdVector<StdVector<Elem*> > F_Interface_; //!<vector of vectors conaining Elements with acting force
+  StdVector<StdVector<StdVector<ShortInt> > > isBoundaryNode_; //!< vector containing flag array for element boundary nodes
+  StdVector<StdVector<StdVector<Integer> > > elemNodeToCouplingNode_; //!< assigns each coupling element node the according Coupling Node number
+  StdVector<StdVector<Integer> > numBoundaryNodes_;               //!< contains number of surface nodes per element
 
   // ==========================================================================
   //   COILS
@@ -165,17 +160,17 @@ protected:
   //@{ \name Attributes related to coils
 
   //! Names of coils resp. their subdomains
-  std::vector<std::string> coilName_;  
+  StdVector<std::string> coilName_;  
 
 #ifndef XMLPARAMS
 
   //! vector of parameters describing coils
-  std::vector<struct coilDefStruct> coilDef_; 
+  StdVector<struct coilDefStruct> coilDef_; 
 
 #else
 
   //! Parameters of the individual coils;
-  std::vector<Coil*> coilDef_;
+  StdVector<Coil*> coilDef_;
 
 #endif
 
@@ -188,7 +183,7 @@ protected:
   //@{ \name Attributes related to permanent magnets
 
   //! Subdomains containing permanent magnets
-  std::vector <std::string> magnetsDomain_;
+  StdVector <std::string> magnetsDomain_;
 
   //! x-component of direction of magnetisation for each magnet
 
@@ -197,20 +192,20 @@ protected:
   //! permanent magnet must now be specified in the XML parameter file and
   //! no longer in the material data file. While magneticPDE already reads
   //! these data, they are not yet used in the simulation.
-  std::vector<Double> magnetsOriX_;
+  StdVector<Double> magnetsOriX_;
 
   //! y-component of direction of magnetisation for each magnet
-  std::vector<Double> magnetsOriY_;
+  StdVector<Double> magnetsOriY_;
 
   //! z-component of direction of magnetisation for each magnet
-  std::vector<Double> magnetsOriZ_;
+  StdVector<Double> magnetsOriZ_;
 
   //@}
 
   //postprocessing
-  std::vector<std::string> calcBfield_;  //!< contains the subdomains, on which the magnetic field is computed
-  std::vector<std::string> calcEnergy_;  //!< contains the subdomains, on which the magnetic energy is computed
-  std::vector<std::string> calcEddy_;  //!< contains the subdomains, on which the eddy currents are computed
+  StdVector<std::string> calcBfield_;  //!< contains the subdomains, on which the magnetic field is computed
+  StdVector<std::string> calcEnergy_;  //!< contains the subdomains, on which the magnetic energy is computed
+  StdVector<std::string> calcEddy_;  //!< contains the subdomains, on which the eddy currents are computed
 
   std::ofstream * UIfile_; //!< file for informational output
   std::string UIfilename_;      //!< name of file for saving current/voltage values
@@ -218,7 +213,7 @@ protected:
   private:
 
   //! List of regions with non-linearity
-  std::vector<std::string> nonLinType_;
+  StdVector<std::string> nonLinType_;
 
 #ifdef XMLPARAMS
     //! Obtain information on desired output quantities from parameter file

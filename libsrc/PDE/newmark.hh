@@ -21,8 +21,8 @@ public:
     \param numnode number of nodes in PDE
     \param damp type of damping
   */
-  Newmark(std::string apdename, BaseSystem * algebraicsystem, Integer dofsprenode, 
-	  Integer numnode, Boolean damp);
+  Newmark(std::string apdename, BaseSystem * algebraicsystem, NodeEQN * ptEQN,
+	  Boolean damp);
 
    //! deconstructor
   virtual ~Newmark();
@@ -76,8 +76,8 @@ public:
     \param numnode number of nodes in PDE
     \param damp type of damping
   */
-  NewmarkEffMass(std::string apdename, BaseSystem * algebraicsystem, Integer dofsprenode, 
-	  Integer numnode, Boolean damp);
+  NewmarkEffMass(std::string apdename, BaseSystem * algebraicsystem, NodeEQN * ptEQN, 
+		 Boolean damp);
 
    //! deconstructor
   virtual ~NewmarkEffMass();

@@ -12,9 +12,7 @@ namespace CoupledField
 
 TimeFunc :: TimeFunc(FileType * aptFileType)
 {
-#ifdef TRACE
-  (*trace) << "entering TimeFunc::TimeFunc" << std::endl;
-#endif
+  ENTER_FCN( "TimeFunc::TimeFunc" );
 
   ptFileType = aptFileType;
   maxnumTF_  = 0;
@@ -34,7 +32,7 @@ TimeFunc :: TimeFunc(FileType * aptFileType)
     
 #else
   params->GetList( "name", fnc_names_, "transient", "timeDataFile" );
-  if (fnc_names_.size())
+  if (fnc_names_.GetSize())
      timeFncDatFiles_ = TRUE;
 #endif
 
@@ -45,11 +43,9 @@ TimeFunc :: TimeFunc(FileType * aptFileType)
 
 void TimeFunc :: ReadTimeFuncs()
 {
-#ifdef TRACE
-  (*trace) << "entering TimeFunc::ReadTimeFuncs " << std::endl;
-#endif
+  ENTER_FCN( "TimeFunc::ReadTimeFuncs" );
 
-  maxnumTF_ =  fnc_names_.size();
+  maxnumTF_ =  fnc_names_.GetSize();
 
   valTF_    =  new std::list<Double>[maxnumTF_];
   timeTF_     =  new std::list<Double>[maxnumTF_]; 
@@ -101,9 +97,7 @@ void TimeFunc :: ReadTimeFuncs()
 
 Double TimeFunc::TimeFuncAtTime(const Double time,  const std::string fncname)
 {
-#ifdef TRACE
-  (*trace) << " entering TimeFunc::TimeFuncAtTime " << std::endl;
-#endif 
+  ENTER_FCN( "TimeFunc::TimeFuncAtTime" );
   
   Integer     numfnc;
   Integer     i;
@@ -115,7 +109,7 @@ Double TimeFunc::TimeFuncAtTime(const Double time,  const std::string fncname)
 
  //get correct time function
  numfnc = -1;
- for (i=0; i<fnc_names_.size(); i++)
+ for (i=0; i<fnc_names_.GetSize(); i++)
    if (fnc_names_[i] == fncname) numfnc = i;
 
  if (numfnc == -1)
@@ -157,9 +151,7 @@ Double TimeFunc::TimeFuncAtTime(const Double time,  const std::string fncname)
 
 TimeFunc :: ~TimeFunc()
 {
-#ifdef TRACE
-  (*trace) << "entering TimeFunc::~TimeFunc" << std::endl;
-#endif
+  ENTER_FCN( "TimeFunc::~TimeFunc" );
  
   if (maxnumTF_) 
     {
@@ -178,6 +170,7 @@ TimeFunc :: ~TimeFunc()
 
  void TimeFunc::Print(std::ostream * outfileDat) const
 {
+  ENTER_FCN( "TimeFunc::Print" );
   (*outfileDat) << "------------- Print Time function ----------------" 
 		<< std::endl;
   for (Integer i=0; i < maxnumTF_; i++)

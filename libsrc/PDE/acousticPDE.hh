@@ -74,23 +74,23 @@ public:
   virtual Boolean HasOutput(std::string output);
   
   //! calculate the vector of coupling forces to the mechanical PDE
-  void CalcMechCouplingRHS(std::vector<Elem*> * couplingElems, 
-			   std::vector<Integer> & couplingNodes,
-			   std::vector<MaterialData*> * couplingMaterials,
-			   StoreSol<Double>& elemCouplingSols,
+  void CalcMechCouplingRHS(StdVector<Elem*> * couplingElems, 
+			   StdVector<Integer> & couplingNodes,
+			   StdVector<MaterialData*> * couplingMaterials,
+			   Vector<Double>& elemCouplingSols,
 			   Integer couplingdof,
-			   std::vector<Elem*> * neighbours);
+			   StdVector<Elem*> * neighbours);
   
 
 
 protected:
 
   // Double freq_;   //!< excitation frequency for harmonic analysis
-  StoreSol<Double> sol_der1Array_, sol_der2Array_;
+  NodeStoreSol<Double> sol_der1Array_, sol_der2Array_;
 
   Integer size_; //!< total number of unknowns (equations)
 
-  std::vector<std::string> absBCs_;   //!< list of boundaries( for absorbing BCs)
+  StdVector<std::string> absBCs_;   //!< list of boundaries( for absorbing BCs)
   Boolean absorbingBCs_;               //!< switch for absorbing boundary conditions
   //DampingType dampingType_; //!< specifies the type of damping model (see environment.hh)
   Boolean needsDampingMatrix_;  //!< TRUE, if we need a dampoin gmatrix (absorb. BC or any damping switched on)

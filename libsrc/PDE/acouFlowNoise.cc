@@ -20,9 +20,9 @@ namespace CoupledField
 {
 
 AcouFlowNoise::AcouFlowNoise(Grid *aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, 
-				 FileType *aptFileType, WriteResults *aptOut)
-:AcousticPDE(aptgrid, aptbcs, aptTimeFunc, aptFileType, 
-			 aptOut)
+			     FileType *aptFileType, WriteResults *aptOut)
+  :AcousticPDE(aptgrid, aptbcs, aptTimeFunc, aptFileType, 
+	       aptOut)
 {
   ENTER_FCN( "AcouFlowNoise::AcouFlowNoise" );
 
@@ -99,8 +99,8 @@ void AcouFlowNoise::ComputeRHS(const Double atime)
   ENTER_FCN( "AcouFlowNoise::ComputeRHS" );
 
   Vector<Double> coeffMass, coeffDamp;
-  std::vector<Double> elemvec;
-  std::vector<Double> elemvecdip;
+  Vector<Double> elemvec;
+  Vector<Double> elemvecdip;
   Integer i;
 
   Integer level=0;
@@ -113,18 +113,18 @@ void AcouFlowNoise::ComputeRHS(const Double atime)
   Matrix<Double> ptCoordNodSurf; // For ObstSurf
   Matrix<Double> ptCoordNodBelongSE; // For set of elements corresponding to surface elements
   Matrix<Double> deriv;
-  Vector<Integer> connecth;
-  Vector<Integer> connect_PDE;	// For changing connecth to PDE
+  StdVector<Integer> connecth;
+  StdVector<Integer> connect_PDE;	// For changing connecth to PDE
   Vector<Integer> connObstSurf;	// For ObstSurf
   Vector<Integer> connBelongSE;
-  std::vector<Elem*> ObstSurf;  // vector of 1D-elements (ObstSurf) from mesh-file
+  StdVector<Elem*> ObstSurf;  // vector of 1D-elements (ObstSurf) from mesh-file
   BaseFE * ptEl;
   BaseFE * ptElSurf;
   BaseFE * ptElBelongSE;
   Matrix<Double> flowdata_; // Where the nodal data is going to be stored
   
   Integer j,ii, elsize = -1;
-  std::vector<Elem*> elemssd;     
+  StdVector<Elem*> elemssd;     
   static Integer timestep=0;
   static int auxtime=0;
  
@@ -132,9 +132,9 @@ void AcouFlowNoise::ComputeRHS(const Double atime)
   conf->get("acousrc_file",flowdata);
     
   //For the subdomain next to boundary of obstacle (Next2Surf)
-  std::vector<Elem*> Next2Surf;  // vector of Volume elements next to surface from mesh-file      
+  StdVector<Elem*> Next2Surf;  // vector of Volume elements next to surface from mesh-file      
   BaseFE * ptElNext2Surf;      
-  std::vector<Elem*> belongSE;
+  StdVector<Elem*> belongSE;
  
  
 //   ObstSurf=ptBCs_->getEdgesBC(rhs_surfaces_[0],level);
@@ -180,7 +180,7 @@ void AcouFlowNoise::ComputeRHS(const Double atime)
 //       ptgrid_->GetCoordNodesElemMat(connBelongSE,  ptCoordNodBelongSE, level);
   
     
-//       std::vector<Double> gradN_x_P; // This is done due to the different parameter type Vector and std::vector
+//       StdVector<Double> gradN_x_P; // This is done due to the different parameter type Vector and std::vector
 //       gradN_x_P.resize(dim_);
 //       gradN_x_P*=0;
 //       std::vector<Double> LCoord(dim_,0);
@@ -256,11 +256,11 @@ void AcouFlowNoise::ComputeRHS(const Double atime)
 
   valmult=-1.0;
       
-  for (i=(subdoms_.size())-1; i<subdoms_.size(); i++)
+  for (i=(subdoms_.GetSize())-1; i<subdoms_.GetSize(); i++)
     {
       ptgrid_->GetElemSD(elemssd,subdoms_[i],level);
 
-      for (j=0; j< elemssd.size(); j++)
+      for (j=0; j< elemssd.GetSize(); j++)
 	{
 	  ptEl=elemssd[j]->ptElem;
 	  BaseForm * linear_load = new LinearFlowNoiseInt(ptEl);
@@ -432,7 +432,7 @@ void AcouFlowNoise::SolveStepTrans(const Integer kstep, const Double asteptime, 
   Integer update,job;
 
   //perform predictor step
-  StoreSol<Double> * solhelp = dynamic_cast<StoreSol<Double>*>(sol_);
+  NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
   
   TS_alg_->Predictor(solhelp->GetCompleteVector());
 
@@ -496,9 +496,11 @@ void AcouFlowNoise::WriteResultsInFile()
 
   Integer Dim = 2;
 
-  StoreSol<Double> arraysol,arraysol_der1,arraysol_der2;
-  StoreSol<Double> sol_der1Array, sol_der2Array;
-  
+  NodeStoreSol<Double> arraysol_der1,arraysol_der2;
+  NodeStoreSol<Double> sol_der1Array, sol_der2Array;
+
+  NodeStoreSol<Double> const & solConverted =
+    dynamic_cast<NodeStoreSol<Double>&>(*sol_);
 
   sol_der1Array.SetNumSolutions(1);
   sol_der1Array.SetNumNodes(numPDENodes_);
@@ -514,19 +516,19 @@ void AcouFlowNoise::WriteResultsInFile()
   sol_der2Array.Init(0.0);
   sol_der2Array.SetCompleteVector(getS2());
   
-  sol_->TransformNodeSolution(arraysol,pde2MeshNode_,ptgrid_,actlevel_);
-  sol_der1Array.TransformNodeSolution(arraysol_der1,pde2MeshNode_,ptgrid_,actlevel_);
-  sol_der2Array.TransformNodeSolution(arraysol_der2,pde2MeshNode_,ptgrid_,actlevel_);
+  //sol_->TransformNodeSolution(arraysol, ptgrid_, actlevel_);
+  //sol_der1Array.TransformNodeSolution(arraysol_der1, ptgrid_, actlevel_);
+  //sol_der2Array.TransformNodeSolution(arraysol_der2, ptgrid_, actlevel_);
 
   if (outFile_->IsGMV())
     {
-      outFile_->WriteNodeSolution(arraysol,laststepcalc_,lasttimecalc_,"vp");
+      outFile_->WriteNodeSolution(solConverted,laststepcalc_,lasttimecalc_,"vp");
 //       outFile_->WriteNodeSolution(arraysol_der1,laststepcalc_,lasttimecalc_,"vp_1der");
 //       outFile_->WriteNodeSolution(arraysol_der2,laststepcalc_,lasttimecalc_,"vp_2der");
     }
   else
     {
-      outFile_->WriteNodeSolution(arraysol,laststepcalc_,lasttimecalc_,"fluid potential");
+      outFile_->WriteNodeSolution(solConverted,laststepcalc_,lasttimecalc_,"fluid potential");
       //outFile_->WriteNodeSolution(sol_der1,laststepcalc_,lasttimecalc_,"fluid potential, 1st deriv., ",1);
       //outFile_->WriteNodeSolution(sol_der2,laststepcalc_,lasttimecalc_,"fluid potential, 2nd deriv., ",1);
     }
