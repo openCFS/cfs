@@ -185,8 +185,9 @@ namespace CoupledField
     //! the keyword. If the keyword is found, its value will be compared to the
     //! value given by the value input parameter. If the keyword is found and
     //! its value matches, then the method will return TRUE. If the keyword
-    //! is not found, or it does not match, it will return FALSE. The search
-    //! can be restricted to a subtree, by specifying a section and subsection
+    //! is not found (and there is also no default), or it does not match,
+    //! it will return FALSE. The search can be restricted to a subtree, by
+    //! specifying a section and subsection
     //! argument.
     //! \param key        Keyword
     //! \param section    Name of a section in which to look for keyword
