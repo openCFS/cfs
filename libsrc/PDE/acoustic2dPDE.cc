@@ -17,6 +17,7 @@ Acoustic2dPDE::Acoustic2dPDE(AbstractAlgebraicSys * ptalgsys, Grid<Point2D> * ap
   (*trace) << "entering Acoustic2dPDE::Acoustic2dPDE " << std::endl;
 #endif
 
+  doftype_=5;
   dofspernode_=1;
   ptgrid_=aptgrid;
 
@@ -63,10 +64,6 @@ void Acoustic2dPDE::SpecifySolver(Integer &solvertype, Integer &precondtype, Dou
   conf->get("numeqcoarse",numeqcoarse,"Acoustic"); // number of equation for coarsing
 }
 
-void Acoustic2dPDE::SetAlgSys_id(const Integer as_sysid)
-{
- AS_sysid_ = as_sysid;
-}
 
 void Acoustic2dPDE::SetMatrixFactors()
 {
@@ -197,6 +194,8 @@ void Acoustic2dPDE::SetBCs(BCs * ptBCs, const Integer level, const Integer updat
     for (list<NodeRestraint>::const_iterator p=restr.begin(); p!=restr.end(); p++, i++)
    {
           Integer node=p->nodalnum;
+          if (p->dof==doftype_)
+	    {
           if (update==1)
             {
               ptalgsys_->SetBCDirichletUpdate(i+1, node, val, dofspernode_, AS_sysid_, AS_sysid_, matrix_id);
@@ -206,6 +205,7 @@ void Acoustic2dPDE::SetBCs(BCs * ptBCs, const Integer level, const Integer updat
               ptalgsys_->SetBCDirichlet(i+1, node, val, dofspernode_, AS_sysid_,
 AS_sysid_, matrix_id);
             }
+	    }
     }
 }
 

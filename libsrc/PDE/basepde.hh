@@ -32,7 +32,7 @@ public:
   virtual void SetMatrixFactors()=0;
 
   //! define algebraic system identifictaion
-  virtual void SetAlgSys_id(const Integer AS_sysid)=0;
+  virtual void SetAlgSys_id(const Integer AS_sysid);
 
   //!
   virtual void SetupMatrices(const Integer type)=0;
@@ -114,6 +114,8 @@ protected:
  //!
   AbstractAlgebraicSys * ptalgsys_;
 
+ //!
+  Integer AS_sysid_;
 };
 
 } // end of namespace
