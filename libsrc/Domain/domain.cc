@@ -29,6 +29,7 @@
 
 #include "Utils/vector.hh"
 #include "PDE/basePDE.hh"
+#include "CoupledPDE/DirectCoupledPDE.hh"
 
 namespace CoupledField {
 
@@ -144,18 +145,16 @@ namespace CoupledField {
   // **********************
   //   Getter function
   // **********************
-  BasePDE * Domain::GetPDE(const std::string pdeName)
+ StdPDE * Domain::GetStdPDE(const std::string pdeName)
   {
     ENTER_IFCN( "Domain::GetDPE" );
-
     Boolean pdeFound = FALSE;
     Integer i;
     std::string errMsg;
-
     for (i=0; i<numpde_; i++)
       if (ptpde_[i]->GetName() == pdeName) {
-	pdeFound = TRUE;
-	break;
+ 	pdeFound = TRUE;
+ 	break;
       }
     if (pdeFound == TRUE)
       return ptpde_[i];
@@ -166,6 +165,18 @@ namespace CoupledField {
       Error(errMsg.c_str(), __FILE__, __LINE__);
       return NULL;
     }
+  }
+  
+  BasePDE* Domain::GetBasePDE()
+  {
+    ENTER_IFCN( "Domain::GetDPE" );
+    
+    if (numpde_ <= 1) {
+      return ptpde_[0];
+    } else {
+      return ptcoupledpde_;
+    }
+    
   }
 
   // **************************
@@ -276,6 +287,7 @@ namespace CoupledField {
 
       Info->FinishProgress();
 
+
     }
 
 
@@ -299,7 +311,7 @@ namespace CoupledField {
     //   Check for iterative coupling
     // ================================
     
-    StdVector<BasePDE*> iterCoupledPDEs;
+    StdVector<StdPDE*> iterCoupledPDEs;
     StdVector<std::string> iterCoupledPDENames;
     StdVector<std::string> methods;
 
@@ -349,8 +361,7 @@ namespace CoupledField {
     
     // create new iterative coupeld PDE
     ptcoupledpde_ = new IterCoupledPDE(orderedpdes_,couplings_,
-				       ptgrid_, ptBCs_,InFile_,
-				       OutFile_, sequenceTags[0]);
+				       sequenceTags[0]);
     
     delete CouplingDef;	
 
@@ -413,7 +424,11 @@ namespace CoupledField {
     for (int i=0;i< numpde_;i++)
       {
 	ptpde_[i]->DeleteAlgSys(i);
-	ptpde_[i]->Reset();
+	
+	// the 'Reset' function was never implemented
+	// for a PDE, so what sould the function call
+	// trigger?
+	//ptpde_[i]->Reset();
 	ptpde_[i]->SetAlgSys(); 
       }
   }
