@@ -47,8 +47,6 @@ namespace CoupledField {
     ptTimeFunc_ = aptTimeFunc;
     ptcoupledpde_ = NULL;
 
-    // Integer i;
- 
     // read type of output results from conf-file
 #ifndef XMLPARAMS
     std::string libmesh="cfsgrid";
@@ -127,11 +125,6 @@ namespace CoupledField {
     //read restraints information
     ptBCs_->ReadBCs();
 
-    // Create PDEs
-    //CreatePDEs();
-
-    // Create Coupled PDE
-    //CreateCoupledPDE();
   }
 
 
@@ -183,13 +176,10 @@ namespace CoupledField {
     CreatePDEs(pdeNames);    
 
     for (Integer i=0; i<numpde_; i++) {
-      //Info->StartProgress( "Initializing PDE '" + pdes[i]->GetName() + "'");
       ptpde_[i]->Init(sequenceStep,tags[i]);
-      //Info->FinishProgress();
-
      }
 
-    CreateCoupledPDE();
+    CreateCoupledPDE(tags);
 
     // initialize coupledPDE
     if (numpde_ > 1)
@@ -288,7 +278,7 @@ namespace CoupledField {
 } // end of InitPDE()
 
 
-  void Domain::CreateCoupledPDE() {
+  void Domain::CreateCoupledPDE(StdVector<std::string> & sequenceTags) {
     ENTER_FCN( "Domain::InitCoupledPDE" );
   
     std::string errMsg;
@@ -315,9 +305,23 @@ namespace CoupledField {
     StdVector<std::string> iterCoupledPDENames;
     StdVector<std::string> methods;
 
-    
+    // Check if all sequenceTags are the same.
+    // Currently the tag for the current coupling in a multisequence
+    // analysis is determined by simply taking the first tag of
+    // all tags for the PDEs, which have to be the same.
+    std::string firstTag;
+    if (sequenceTags.GetSize() > 1) {
+      firstTag = sequenceTags[0];
+      for (Integer i=1; i<sequenceTags.GetSize(); i++)
+	if (sequenceTags[i] != firstTag) {
+	  errMsg = "CreateCoupledPDE: The tags in the <multiSequence> section ";
+	  errMsg = "are not all the same in each step.\n Coupling is only ";
+	  errMsg = "possible if in each step all the <refTag> are the same!";
+	  Error(errMsg.c_str(), __FILE__, __LINE__ );
+	}
+    }
 
-    params->GetIterCoupledPDEList(iterCoupledPDENames);
+    params->GetIterCoupledPDEList(iterCoupledPDENames, sequenceTags[0]);
     
     iterCoupledPDEs.Clear();
 
@@ -347,7 +351,8 @@ namespace CoupledField {
     
     // create new iterative coupeld PDE
     ptcoupledpde_ = new IterCoupledPDE(orderedpdes_,couplings_,
-				       ptgrid_, ptBCs_,InFile_,OutFile_);
+				       ptgrid_, ptBCs_,InFile_,
+				       OutFile_, sequenceTags[0]);
     
     delete CouplingDef;	
 #endif

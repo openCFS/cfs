@@ -31,13 +31,15 @@ public:
     \param aptBCs pointer to boundary condition object
     \param aInFile pointer to class FileType. input data.
     \param aOutFile  pointer to class WriteResults. output data.
+    \param tag for current multisequence step
   */
   BaseCoupledPDE(StdVector<BasePDE*> & PDEs,
 		 StdVector<PDECoupling*> & Couplings,
 		 Grid *aptgrid, 
 		 BCs *aptBCs, 
 		 FileType *aInFile, 
-		 WriteResults *aOutFile); 
+		 WriteResults *aOutFile,
+		 std::string sequenceTag); 
 
   //! Deconstructor
   virtual ~BaseCoupledPDE();
@@ -112,8 +114,9 @@ protected:
   AnalysisType analysistype_;         //!< type of analysis
   StdVector<BasePDE *> PDEs_;         //!< list of belonging PDEs
   StdVector<PDECoupling*> Couplings_; //!< vector of coupling objects
-  Integer NumPDEs_;                     //!< number of PDEs 
-  Integer actlevel_;                    //!< current level (for multigrid)
+  Integer NumPDEs_;                   //!< number of PDEs 
+  Integer actlevel_;                  //!< current level (for multigrid)
+  std::string sequenceTag_;           //!< tag for current multisequence step
   
   //! vector of flags indicating if specified
   //! PDE gets solved. The ordering corresponds
