@@ -168,8 +168,8 @@
                        maxOccurs="1" default="3306"/>
           <xsd:element name="databaseName"  type="xsd:string" minOccurs="1"
                        maxOccurs="1" default=""/>
-          <xsd:element name="materialDatabaseName"  type="xsd:string" minOccurs="0"
-                       maxOccurs="1" default="cfs_material"/>
+          <xsd:element name="materialDatabaseName" type="xsd:string"
+                       minOccurs="0" maxOccurs="1" default="cfs_material"/>
           <xsd:element name="userName"  type="xsd:string" minOccurs="1"
                        maxOccurs="1" default=""/>
           <xsd:element name="password"  type="xsd:string" minOccurs="0"
