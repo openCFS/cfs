@@ -81,7 +81,7 @@
             </xsd:complexType>
           </xsd:element>
         </xsd:sequence>
-        <xsd:attribute name="tag"  type="xsd:string" use="optional"
+        <xsd:attribute name="tag" type="xsd:string" use="optional"
           default="anyTag"/> 
       </xsd:extension>
     </xsd:complexContent>
@@ -235,6 +235,8 @@
           <xsd:element name="polytrop"              type="DT_NonNegFloat" />
           <xsd:element name="viscosity"             type="DT_NonNegFloat" />
         </xsd:sequence>
+        <xsd:attribute name="tag" type="xsd:string" use="optional"
+          default="anyTag"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType> 
