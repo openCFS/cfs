@@ -54,7 +54,15 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
       conf->ifget("incStopCrit", incStopCrit_, pdename_); // incremental stopping criterion
       conf->ifget("residualStopCrit", residualStopCrit_, pdename_); // residual stopping criterion
     }
+
+  conf->ifget("preStressVal", preStressVal_, pdename_);
+
+  if (preStressVal_)
+    GetDirection(preStressDir_, "preStressDir");
 }
+
+
+
 
 void MechPDE::DiscreteParamsPDE()
 {
@@ -178,8 +186,10 @@ void MechPDE::SolveStepStaticNonLin(const Integer level)
       iterationCounter++;
       std::cout << std::endl << "Nonlinear Mechanics: Perform internal loop nr. " 
 		<< iterationCounter << std::endl;      
-      
-      
+#ifdef DEBUG
+      *debug << std::endl << "====================================================== " << std::endl
+	     <<	"Nonlinear Mechanics: Perform internal loop nr. " << iterationCounter << std::endl;      
+#endif      
       // setup and solve new system (rhs is already set) =====================
       SetupMatrices(level);
       algsys_->CalcPrecond(job);
@@ -492,6 +502,16 @@ void MechPDE::AssembleStiffness(BaseFE * ptEl, Vector<Integer>& connect_PDE,
   algsys_->SetElementMatrix(elemmat.getinarray(), connect_PDE.get(), connect_PDE.size(), SYSTEM);
   
   delete bilinear_stiff;
+
+
+
+  // returns the solution vector belonging to all nodes of the actual element      
+  Matrix<Double> elDisp;
+  GetSolOfElement(elDisp, connect_PDE);
+  
+  // assemble prestress, if in config-file given
+  if (preStressVal_)
+    AssemblePreStressMat(ptEl, connect_PDE, ptCoord, actMatData, elDisp);
   
 
   if (nonLin_)
@@ -499,26 +519,99 @@ void MechPDE::AssembleStiffness(BaseFE * ptEl, Vector<Integer>& connect_PDE,
       if (subType_ != "3d")
 	Error("For nonlin mechanics, up to now only 3d sims supported! ",__FILE__,__LINE__);
 
-
-      // returns the solution vector belonging to all nodes of the actual element      
-      Matrix<Double> elDisp;
-      GetSolOfElement(elDisp, connect_PDE);
-
-
       
-      nLinMech3dInt_BNonLin * stiff_nonLin1 = new nLinMech3dInt_BNonLin(ptEl, actMatData);
-      stiff_nonLin1->setActElemDispl(elDisp);
-      stiff_nonLin1->CalcElementMatrix(ptCoord, elemmat);
+      nLinMech3dInt_BNonLin stiff_nonLin1(ptEl, actMatData);
+      stiff_nonLin1.setActElemDispl(elDisp);
+      stiff_nonLin1.CalcElementMatrix(ptCoord, elemmat);
       algsys_->SetElementMatrix(elemmat.getinarray(), connect_PDE.get(), connect_PDE.size(), SYSTEM);
       
 
-      nLinMech3dInt_PiolaStress * stiff_nonLin2 = new nLinMech3dInt_PiolaStress(ptEl, actMatData);      
-      stiff_nonLin2->setActElemDispl(elDisp);
-      stiff_nonLin2->CalcElementMatrix(ptCoord, elemmat);
+      nLinMech3dInt_PiolaStress stiff_nonLin2(ptEl, actMatData);      
+      stiff_nonLin2.setActElemDispl(elDisp);
+      stiff_nonLin2.CalcElementMatrix(ptCoord, elemmat);
       algsys_->SetElementMatrix(elemmat.getinarray(), connect_PDE.get(), connect_PDE.size(), SYSTEM);
     }
 
 }
+
+void MechPDE::
+GetDirection(Directions& dir, const std::string keyword)
+{
+#ifdef TRACE
+  (*trace) << "entering MechPDE::GetDirection " << std::endl;
+#endif
+
+  std::string dirString;
+  conf->getstr(keyword, dirString, pdename_); 
+  
+  if (dirString == "x")
+    dir = X;
+  else
+    if (dirString == "y")
+      dir = Y;
+    else
+      if (dirString == "y")
+	dir = Z;
+      else
+	if (dirString == "radXY")
+	  dir = radXY;
+	else
+	  if (dirString == "radXZ")
+	    dir = radXZ;
+	  else
+	    if (dirString == "radXZ")
+	      dir = radXZ;
+	    else
+	      Error("The direction mentioned in the config-file is not implemented! ",__FILE__,__LINE__);
+}
+
+
+
+
+
+
+void MechPDE::
+AssemblePreStressMat(BaseFE * ptEl, Vector<Integer>& connect_PDE, Matrix<Double>& ptCoord, MaterialData& actMatData, Matrix<Double>& elDisp)
+{
+#ifdef TRACE
+  (*trace) << "entering MechPDE::AssemblePreStressMat " << std::endl;
+#endif
+
+  // calc matrix part of prestress ==========================================
+  PreStressInt preStressInt(ptEl, actMatData, preStressVal_, preStressDir_);
+  
+  Matrix<Double> elemmat;
+  preStressInt.setActElemDispl(elDisp);
+  preStressInt.CalcElementMatrix(ptCoord, elemmat);
+  
+  algsys_->SetElementMatrix(elemmat.getinarray(), connect_PDE.get(), connect_PDE.size(), SYSTEM);
+}
+
+
+void MechPDE::
+AssemblePreStressRHS(BaseFE * ptEl, Vector<Integer>& connect_PDE, Matrix<Double>& ptCoord, MaterialData& actMatData, Matrix<Double>& elDisp)
+{
+#ifdef TRACE
+  (*trace) << "entering MechPDE::AssemblePreStressRHS " << std::endl;
+#endif
+
+  // calc RHS prestress =====================================================
+  PreStressLinFormInt rhsPreStress(ptEl, actMatData, preStressVal_, preStressDir_);
+  
+  std::vector<Double> elemVec;  
+  rhsPreStress.setActElemDispl(elDisp);
+  rhsPreStress.CalcElemVector(ptCoord, elemVec);
+  
+  // subtract internal forces on rhs from external forces 
+  elemVec *= -1;
+  
+  algsys_->SetElementRHS(&elemVec[0], connect_PDE.get(), connect_PDE.size());
+}
+
+
+
+
+
 
 void MechPDE::
 GetSolOfElement( Matrix<Double>& elDisp, Vector<Integer>& connect_PDE)
@@ -761,6 +854,11 @@ void MechPDE::SetupRHS(const Integer level)
 
 	    algsys_->SetElementRHS(&elemVec[0], connect_PDE.get(), connect_PDE.size());
 
+
+
+	    // assemble prestress, if in config-file given
+	    if (preStressVal_)
+	      AssemblePreStressRHS(ptElem, connect_PDE, ptCoord, materialData_[i], elDisp);
 	  }
       }
   }

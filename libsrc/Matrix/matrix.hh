@@ -282,9 +282,11 @@ inline Double Matrix<TYPE>::Det () const
 
 Double operator* (std::vector<Double> & vec1, std::vector<Double> & vec2);
 
-Double operator*= (std::vector<Double> & vec, Double val);
-
 Double L2Norm(std::vector<Double> & vec);
+
+std::vector<Double> operator*= (std::vector<Double> & vec, Double val);
+
+std::vector<Double> operator/= (std::vector<Double> & vec, Double val);
 
 std::vector<Double> operator+ (std::vector<Double> & vec, std::vector<Double> & vec2);
 

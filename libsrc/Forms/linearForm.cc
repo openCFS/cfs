@@ -167,8 +167,8 @@ namespace CoupledField
   // ==================================================================
 
 
-  nLinMech_linFormInt::nLinMech_linFormInt(BaseFE * aptelem, MaterialData & mat) 
-    : LinearForm(aptelem), matData_(mat)
+  nLinMech_linFormInt::nLinMech_linFormInt(BaseFE * aptelem, MaterialData & matData) 
+    : LinearForm(aptelem), matData_(matData)
   {
 #ifdef TRACE
     (*trace) << "entering nLinMech_linFormInt::nLinMech_linFormInt" << std::endl;
@@ -206,7 +206,7 @@ namespace CoupledField
 
 
     // This, as friend defined bilinearform holds the necessary differential operators
-    nLinMech3dInt_PiolaStress piolaStressBiform(ptelem, matData_);
+    nLinMech3dInt_PiolaStress stressBiformInt(ptelem, matData_);
 
     if (!elemDisp_.size_row() || !elemDisp_.size_col()) 
       Error("Undefined displacements! ",__FILE__,__LINE__);
@@ -221,10 +221,10 @@ namespace CoupledField
 
     for (Integer actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
       {    
-	piolaStressBiform.setActElemDispl(elemDisp_);
-	piolaStressBiform.calcPiolaStressVec(piolaStressVec, actIntPt, ptCoord);
-	piolaStressBiform.calcNonLinBMat(nonLinBMat, actIntPt, ptCoord);
-	piolaStressBiform.calcLinBMat(linBMat, actIntPt, ptCoord);
+	stressBiformInt.setActElemDispl(elemDisp_);
+	stressBiformInt.CalcStressVec(piolaStressVec, actIntPt, ptCoord);
+	stressBiformInt.calcNonLinBMat(nonLinBMat, actIntPt, ptCoord);
+	stressBiformInt.calcLinBMat(linBMat, actIntPt, ptCoord);
 
 	nonLinBMat += linBMat;
 
@@ -236,15 +236,90 @@ namespace CoupledField
 	partElemVec *= jacDet * intWeights[actIntPt-1];
 	
 	elemVec +=  partElemVec;
-
       }
-  
-#ifdef TRACE
-    (*trace) << "leaving nLinMech_linFormInt::CalcElementVector" << std::endl;
-#endif
-
   }
 
+
+  // ==================================================================
+  // prestress linearform
+  // ==================================================================
+
+  PreStressLinFormInt::PreStressLinFormInt(BaseFE * aptelem, MaterialData & mat, Double aPreStressVal, Directions stressDir) 
+    :nLinMech_linFormInt(aptelem, mat), preStressVal_(aPreStressVal), preStressDir_(stressDir)
+    
+  {
+#ifdef TRACE
+    (*trace) << "entering PreStressLinFormInt::PreStressLinFormInt" << std::endl;
+#endif
+  }
+
+
+  
+  PreStressLinFormInt ::~PreStressLinFormInt()
+  {
+#ifdef TRACE
+    (*trace) << "entering PreStressLinFormInt::~PreStressLinFormInt" << std::endl;
+#endif
+  }
+
+
+
+
+  void PreStressLinFormInt::CalcElemVector(Matrix<Double>& ptCoord, std::vector<Double> & elemVec)
+  {
+#ifdef TRACE
+    (*trace) << "entering PreStressLinFormInt::CalcElemVector" << std::endl;
+#endif
+
+    const Integer nrIntPts = ptelem->GetNumIntPoints();
+    const Integer nrNodes  = ptelem->GetNumNodes();
+    const Integer nrDofs   = getNrDofs();
+    const std::vector<Double> & intWeights = ptelem->GetIntWeights();  
+    std::vector<Double> piolaStressVec;    
+    std::vector<Double> partElemVec;
+
+    Matrix<Double> linBMat; 
+    Matrix<Double> nonLinBMat; 
+    Matrix<Double> dMat;
+    Matrix<Double> transpSumB;    // we need transposed of the b-matrices
+
+
+    // This, as friend defined bilinearform holds the necessary differential operators
+    PreStressInt preStressBiformInt(ptelem, matData_, preStressVal_, preStressDir_);
+
+    if (!elemDisp_.size_row() || !elemDisp_.size_col()) 
+      Error("Undefined displacements! ",__FILE__,__LINE__);
+
+    partElemVec.resize(nrNodes * nrDofs);
+
+
+   elemVec.resize( nrNodes * nrDofs );
+   elemVec *= 0;    // set elems to 0
+   
+
+
+    for (Integer actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
+      {    
+	preStressBiformInt.setActElemDispl(elemDisp_);
+	preStressBiformInt.CalcStressVec(piolaStressVec, actIntPt, ptCoord);
+	preStressBiformInt.calcNonLinBMat(nonLinBMat, actIntPt, ptCoord);
+	preStressBiformInt.calcLinBMat(linBMat, actIntPt, ptCoord);
+
+	nonLinBMat += linBMat;
+
+	nonLinBMat.Transpose(transpSumB);
+	
+	partElemVec = transpSumB * piolaStressVec;
+
+	Double jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord);
+	partElemVec *= jacDet * intWeights[actIntPt-1];
+	
+	elemVec +=  partElemVec;
+      }
+  }
+
+
+  
 
   ////////////////////////////////////////////////////////////////////////////
   //Members of class LinearFormFlowNoise

@@ -100,9 +100,13 @@ protected:
   /// returns nr. of degrees of freedom
   virtual Integer getNrDofs(){return 3;};  
 
-private:
+
+protected:
   /// sets the size of d-matrix (needed for lin and nonlin B-matrix)
   virtual void setPiolaDimD(Integer actDim){piolaDimD_ = actDim;};
+
+  /// calculates Piola-Kirchoff-stresses (vector notation)
+  void CalcStressVec(std::vector<Double>& piolaStressVec, Integer ip, Matrix<Double> & ptCoord);  
 
   /// returns linear B - matrix
   virtual void calcLinBMat(Matrix<Double> & bMat, Integer ip, Matrix<Double> & ptCoord);
@@ -110,20 +114,48 @@ private:
   /// returns nonlinear B - matrix
   virtual void calcNonLinBMat(Matrix<Double> & bMat, Integer ip, Matrix<Double> & ptCoord);
 
-  /// calculates Piola-Kirchoff-stresses (vector notation)
-  void calcPiolaStressVec(std::vector<Double>& piolaStressVec, Integer ip, Matrix<Double> & ptCoord);
-  
-  /// conversion of stress vector to stress tensor
-  void convertStressVecToTensor(Matrix<Double>& stressTensor, std::vector<Double>& piolaStress);
-  
   /// returns material D-matrix for 3d mechanics
   virtual void calcMaterialDMat(Matrix<Double> & dMat);
 
+
+private:
+  /// conversion of stress vector to stress tensor
+  void convertStressVecToTensor(Matrix<Double>& stressTensor, std::vector<Double>& piolaStress);
+  
   /// dimension of d-matrix (has to be changed for some dirty implementation features ... )
   Integer piolaDimD_;
   
 };
   
+
+
+
+/// class for regarding 3d prestress
+class PreStressInt : public nLinMech3dInt_PiolaStress
+{
+public:
+  // preStressLinFormInt uses calcDMat from this class
+  friend class PreStressLinFormInt;
+  
+  /// Constructor
+  PreStressInt(BaseFE * aptelem, MaterialData & matData, Double aPreStressVal, Directions stressDir);
+  
+  
+  /// Destructor
+  virtual ~PreStressInt();  
+  
+protected:
+  /// calculates pre-stresses (vector notation)
+  void CalcStressVec(std::vector<Double>& piolaStressVec, Integer ip, Matrix<Double> & ptCoord);
+
+
+private: 
+  /// 
+  Double preStressVal_;
+
+  /// direction of stresses (enumeration type)
+  Directions preStressDir_;
+};
 
 
 
