@@ -58,8 +58,9 @@ namespace CoupledField
     /// read next line of materialfile
     void ReadLine(std::ifstream & fin, char* buffer);
 
-    /// find next datarecord with materialname matName, material type matType in the current line (if found) is written into buffer
-    void FindMat(std::ifstream & fin, const char* matName, char* buffer, char* matType);
+    //! Find next datarecord with materialname matName, material type matType in the current line (if found) is written into buffer
+    void FindMat( std::ifstream &fin, const char* matName, char* buffer,
+                  const char* matType );
 
     /// rotate into decired euler angles
     void EulerAnglesRotate(MaterialData * material, const Vector<Double> & eulerAngles);
