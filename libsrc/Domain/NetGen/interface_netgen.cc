@@ -105,8 +105,10 @@ void InterfaceNetGen<Point2D>::Read()
 }
 }
 
-   mesh.ClearFaceDescriptors();
-   mesh.AddFaceDescriptor (FaceDescriptor(0,1,0,0));  
+  std::cout << " dimension " << mesh.GetDimension() << std::endl;
+
+//   mesh.ClearFaceDescriptors();
+//   mesh.AddFaceDescriptor (FaceDescriptor(0,1,0,0));  
 #ifdef TRACE
  (*trace) << "Leaving InterfaceNetGen<Dim>::Read " << std::endl;
 #endif

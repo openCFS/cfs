@@ -10,7 +10,7 @@ OS=$(shell uname -s)
 ############ Directories
 #
 ifeq "$(OS)" "Linux"
-SUBLIBDIR := Driver Estimator PDE AlgebraicSystem/LinAlg \
+SUBLIBDIR := Driver Estimator PDE \
              Forms Elements Elements/2D Elements/3D \
              Domain/GridCFS Domain/NetGen Domain \
              DataInOut/DefineFiles \
@@ -30,7 +30,7 @@ endif
 ############ define my libraries
 #
 ifeq "$(OS)" "Linux"
-mylibrary :=  driver estimator pde algsys-own forms  \
+mylibrary :=  driver estimator pde forms  \
             elements3d elements2d elements \
             gridcfs tonetgen\
             domain unverg gmv \

@@ -406,6 +406,7 @@ libsrc/Estimator/timeerror.hh svneol=native#text/plain
 libsrc/Forms/Makefile -text
 libsrc/Forms/baseform.cc svneol=native#text/plain
 libsrc/Forms/baseform.hh svneol=native#text/plain
+libsrc/Forms/forms_header.hh svneol=native#text/plain
 libsrc/Forms/laplaceint.cc svneol=native#text/plain
 libsrc/Forms/laplaceint.hh svneol=native#text/plain
 libsrc/Forms/linearform.cc svneol=native#text/plain

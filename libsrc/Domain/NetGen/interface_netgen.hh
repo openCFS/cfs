@@ -52,7 +52,7 @@ public:
   virtual BaseElem * GetptElem(const Integer iElem);
 
   ///
-  virtual Integer GetDim() { return mesh.GetDimension();}
+  virtual Integer GetDim() { return dim_; } // mesh.GetDimension();}
 private:
    
   //! Here we mark elements for refinement: ei - number of elem
