@@ -44,6 +44,8 @@ libsrc/CoupledPDE/coupledPDE.conf -text
 libsrc/CoupledPDE/coupled_pdes_header.hh svneol=native#text/plain
 libsrc/CoupledPDE/coupledpdedef.cc svneol=native#text/plain
 libsrc/CoupledPDE/coupledpdedef.hh svneol=native#text/plain
+libsrc/CoupledPDE/couplingmemento.cc svneol=native#text/plain
+libsrc/CoupledPDE/couplingmemento.hh svneol=native#text/plain
 libsrc/CoupledPDE/itercoupledpde.cc svneol=native#text/plain
 libsrc/CoupledPDE/itercoupledpde.hh svneol=native#text/plain
 libsrc/CoupledPDE/pdecoupling.cc svneol=native#text/plain
