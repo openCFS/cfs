@@ -23,7 +23,7 @@ template<>
 void GridCFS<Point2D> :: Read()
 {
 #ifdef TRACE
-  (*trace) << "entering GridCFS::Read" << std::endl;
+  (*trace) << "entering GridCFS::Read 2D" << std::endl;
 #endif
  
   dim_=InFile->ReadDim();
@@ -43,7 +43,7 @@ template<>
 void GridCFS<Point3D> :: Read()
 {
 #ifdef TRACE
-  (*trace) << "entering GridCFS::Read" << std::endl;
+  (*trace) << "entering GridCFS::Read 3D" << std::endl;
 #endif
 
   dim_=InFile->ReadDim();

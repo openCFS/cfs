@@ -107,8 +107,8 @@ void InterfaceNetGen<Point2D>::Read()
 
   std::cout << " dimension " << mesh.GetDimension() << std::endl;
 
-//   mesh.ClearFaceDescriptors();
-//   mesh.AddFaceDescriptor (FaceDescriptor(0,1,0,0));  
+   mesh.ClearFaceDescriptors();
+   mesh.AddFaceDescriptor (FaceDescriptor(0,1,0,0));  
 #ifdef TRACE
  (*trace) << "Leaving InterfaceNetGen<Dim>::Read " << std::endl;
 #endif
@@ -272,8 +272,6 @@ void InterfaceNetGen<Point2D>::GetCoordOfNodesElem(const Integer iElem, const In
 void InterfaceNetGen<Point3D>::GetCoordOfNodesElem(const Integer iElem, const Integer numlevel, const Integer numnodes, Point3D * ptCoordElem)
 {
 
- Error("Not implemented");
-/*
   if (!ptCoordElem) Error("Allocate ptCoordElem before using in function InterfaceNetGen::GetCoordOfNodesElem");
 
   Element el=mesh.VolumeElement(iElem+1);
@@ -290,7 +288,6 @@ void InterfaceNetGen<Point3D>::GetCoordOfNodesElem(const Integer iElem, const In
    ptCoordElem[i].y=point.Y();
    ptCoordElem[i].z=point.Z();
   }
-*/
 }
 
 template<class Dim>
@@ -303,7 +300,7 @@ template<>
 void InterfaceNetGen<Point2D>::GetConnection(Vector<Integer> & connect, const Integer iElem, const Integer level)
 {
   Element2d el=mesh.SurfaceElement(iElem+1);
-  Integer elemsize=4;              //// !!!! Attention
+  Integer elemsize=el.GetNP();           
   connect.Resize(elemsize);
 
   Integer i;
@@ -316,9 +313,8 @@ void InterfaceNetGen<Point2D>::GetConnection(Vector<Integer> & connect, const In
 template<>
 void InterfaceNetGen<Point3D>::GetConnection(Vector<Integer> & connect, const Integer iElem, const Integer level)
 {
-  Error("Not implemented",__FILE__,__LINE__);
-  Element2d el=mesh.SurfaceElement(iElem+1);
-  Integer elemsize=4;              //// !!!! Attention
+  Element el=mesh.VolumeElement(iElem+1);
+  Integer elemsize=el.GetNP();         
   connect.Resize(elemsize);
 
   Integer i;
