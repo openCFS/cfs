@@ -1,7 +1,7 @@
 #ifndef FILE_SMOOTHPDE
 #define FILE_SMOOTHPDE
 
-#include "basepde.hh"
+#include "basePDE.hh"
 
  
 namespace CoupledField
@@ -31,56 +31,31 @@ public:
   //!  Deconstructor
   virtual ~SmoothPDE() {;};
 
-  //! define discrete PDE
-  virtual void DiscreteParamsPDE();
-
-  //! set information for algebraic system about PDE. set matrix factors
-  virtual void SetMatrixFactors();
+  //! define all (bilinearform) integrators needed for this pde
+  virtual void DefineIntegrators(const Integer level);
 
   //! initalize PDE coupling
   virtual void InitCoupling(PDECoupling * Coupling);
-  
-   //! specify type of system matrix for AlgebraicSystem
-  /*!
-    \param level (input) level of Grid
-  */
-  virtual void SetupMatrices(const Integer level);
 
-
-    //! set boundary condition
-  /*!
-    \param level level of grid
-    \param update indicator: do we update boundary condition in algebraic system or set new
-    \param atimestep time step of calculation
-  */
-  virtual void SetBCs(const Integer level, const Integer update, const Double atimestep);
-
-
-  //! compute rhs
-  /*!
-    \param atime time of calculation
-  */
-  virtual void ComputeRHS(const Double atime) {;};
-
-   //! initialize time stepping: nothing to do in smoother!
+  //! initialize time stepping: nothing to do in smoother!
   virtual void InitTimeStepping(const Double dt){;};
- 
-  virtual void SolveStepStatic(const Integer level, const Double aTime=0);
-  
 
-  //! solve one step for transient problem 
-  /*!
-    \param kstep number of calculating step
-    \param steptime time of calculation
-    \param level level of grid
-    \param updatesysmat indicator: need we to update algebraic system. it is used for adaptive procedure in space
-  */
+  //! perform ..
+  virtual void PreStepStatic(const Integer kstep, const Double asteptime,
+			     const Integer level, const Boolean reset);
+
+  //!
+  virtual void StepStaticNonLin(const Integer kstep, const Double asteptime,
+				const Integer level, const Boolean reset);
+
   virtual void SolveStepTrans(const Integer kstep, const Double steptime, const Integer level, 
 			      const Boolean updatesysmat)
-  { 
-    Error("Currently not available",__FILE__,__LINE__);
-  }
- 
+  {Error("Currently not available",__FILE__,__LINE__);}
+
+  //! 
+  virtual void PostStepStatic(const Integer kstep, const Double asteptime,
+			      const Integer level);
+
   //! calculate coupling terms
   virtual void CalcOutputCoupling();
   
@@ -95,18 +70,13 @@ protected:
   Integer size_;        //!< total number of unknowns (equations)
 
 private:
+
   // defines subtype of mechanic PDE: plainStrain, 3d, ...
   std::string subType_;
   
-  // set up matrices for LaPlace smoother
-  void SetupMatricesDistortion(Integer level);
-
-  // set up matrices for mechanic smoother
-  void SetupMatricesMechanic(Integer level);
-
   Integer GetNrBCDof (const std::string & dofStartString);
-  
-  Integer itercount_;
+
+  Integer GetBCDof(const std::string dofString);
 
   std::string method_;
 

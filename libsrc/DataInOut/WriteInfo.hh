@@ -50,10 +50,8 @@ namespace CoupledField
     /// prints all magnetic data
     void PrintMagMat(MaterialData& material);
 
-#ifdef NEWBASEPDE
     /// prints all data of a coil (e.g. current, area, magnetization, ...)
     void PrintCoil(std::string& coilDomain, struct coilDefStruct& coilDef,  AnalysisType& analysistype_);
-#endif // NEWBASEPDE
 
 
     /// prints the process of a nonlinear iteration

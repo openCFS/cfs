@@ -1,7 +1,7 @@
 #ifndef FILE_MAGEDGEPDE_2002
 #define FILE_MAGEDGEPDE_2002
 
-#include "basepde.hh" 
+#include "basePDE.hh" 
 
 namespace CoupledField
 {

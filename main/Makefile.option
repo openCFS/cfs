@@ -34,9 +34,6 @@ HYPRE = no
 #Using LAS or OLAS
 LASTYPE = LAS
 
-##############  Use the new BasePDE class?
-USE_NEWBASEPDE=yes
-
 ##############  XML Parameter File Handling? With Xerces or without?
 #
 XMLPARAMS=no

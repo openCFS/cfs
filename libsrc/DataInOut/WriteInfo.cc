@@ -158,7 +158,6 @@ namespace CoupledField
 
 
 
-#ifdef NEWBASEPDE
   void WriteInfo::PrintCoil(std::string& coilDomain, struct coilDefStruct& coilDef,  AnalysisType& analysistype_)
   {
     *cfsInfo <<  "COIL DESCRIPTION ======================================= " << myEndl
@@ -215,8 +214,6 @@ namespace CoupledField
     
     *cfsInfo << std::endl << myEndl;
   }
-#endif // NEWBASEPDE
-
 
 
 

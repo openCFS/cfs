@@ -6,11 +6,7 @@
 #include <list>
 #include <Utils/storesol.hh>
 
-#ifndef NEWBASEPDE
-#include <PDE/basepde.hh>
-#else
-#include <PDE/newBasePDE.hh>
-#endif //#ifndef NEWBASEPDE
+#include <PDE/basePDE.hh>
 
 namespace CoupledField
 {

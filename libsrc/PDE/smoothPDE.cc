@@ -8,7 +8,7 @@
 #include <Forms/forms_header.hh>
 #include <Estimator/spaceerror.hh>
 
-#include "smoothPDE.hh"
+#include "smoothPDE.hh" 
 
 namespace CoupledField
 {
@@ -22,8 +22,6 @@ SmoothPDE::SmoothPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileTyp
 #endif
 
   firstTurn_ = TRUE;
-
-  SetMatrixFactors();
 
   pdename_ = "smooth";
   pdematerialclass_ = "piezo";
@@ -42,55 +40,101 @@ SmoothPDE::SmoothPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileTyp
     dofspernode_ = 2;
 
   conf->getsubdompde(subdoms_,pdename_);
-  ReadBCs(pdename_);
-  
-  AssignPDENodeNumbers(Mesh2PDENode_, PDE2MeshNode_, subdoms_);
-  NumPDENodes_ = PDE2MeshNode_.size();
-  NumElems_ = ptgrid_->GetMaxnumElem(actlevel_, subdoms_);
-  size_ = NumPDENodes_*dofspernode_;
 
-  sol_.reshape(dofspernode_, NumPDENodes_);
-  sol_.init();
+
+  //BCs
+  ReadBCs(pdename_);
+  numDirichletBCs_ = GetNumRestraints(actlevel_);
   
+  conf->ifgetliststr("homogenBCDof", homDirichDof_, pdename_);  
+  conf->ifgetliststr("inhomogenBCDof", inhomDirichDof_, pdename_);
+
+  // just for consistency with old script
+  conf->ifgetliststr("homoBCDof", homDirichDof_, pdename_);
+  conf->ifgetliststr("homoBCdof", homDirichDof_, pdename_);
+  conf->ifgetliststr("inhomoBCDof", inhomDirichDof_, pdename_);
+  conf->ifgetliststr("inhomoBCdof", inhomDirichDof_, pdename_);
+
+  //check for b.c. input data
+  if (bcs_hd_.size() != homDirichDof_.size()) 
+     Error("Inconsistent definition of homogeneous Dirichlet Boundary Conditions");
+  if (bcs_id_.size() != inhomDirichDof_.size()) 
+     Error("Inconsistent definition of inhomogeneous Dirichlet Boundary Conditions");
+
+  AssignPDENodeNumbers(Mesh2PDENode_, PDE2MeshNode_, subdoms_);
+  numPDENodes_ = PDE2MeshNode_.size();
+  numElems_    = ptgrid_->GetMaxnumElem(actlevel_, subdoms_);
+  size_ = numPDENodes_*dofspernode_;
+
+  // Initalize solution class
+  sol_->SetNumSolutions(1);
+  sol_->SetSolutionType(SMOOTH_DISPLACEMENT);
+  sol_->SetNumNodes(numPDENodes_);
+  sol_->SetDof(dofspernode_);
+  sol_->Init(0.0);
+    
   method_ = "mechanic";
   conf->ifget("method", method_, pdename_ );
 
-  factor_.Resize(NumElems_);
-  for (Integer i=0; i<factor_.size(); i++)
+  factor_.Resize(numElems_);
+  for (Integer i=0; i<factor_.GetSize(); i++)
     factor_[i] = 1.0;
     
-  Integer i,j;
-  std::vector<Elem*> elemssd;
-  Integer level = actlevel_;
+  // set assemble parameters
+  assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, subdoms_, surfdoms_);
+  assemble_->SetGraphType(NODEGRAPH);
+  assemble_->SetMesh2PDENode(&Mesh2PDENode_);
 
-  itercount_ = 1;
+#ifdef USE_OLAS
+  assemble_->SetMatrixEntryType(DOUBLE);
+  assemble_->SetMatrixStorageType(SPARSE_NONSYM);
+#else
+  assemble_->SetMatrixType(RBLOCK);
+#endif
 
+  assemble_->SetNumDirichlet(numDirichletBCs_);
+  assemble_->SetPtrBCs(ptBCs_);
+  assemble_->SetPtr2Sol(sol_);
+  assemble_->SetPtr2TimeFnc(ptTimeFunc_);
+  
+  ReadMaterialData();
+   
+  DefineIntegrators(actlevel_);  
+
+  ReadSavings();
+
+  //is a nonlinear PDE, since in each iteration, we have to setup the matrices new!
+  nonLin_ = TRUE;
 }
 
 
-void SmoothPDE::DiscreteParamsPDE()
+void SmoothPDE::DefineIntegrators(const Integer level)
 {
 #ifdef TRACE
-  (*trace) << "entering SmoothPDE ::DiscreteParamsPDE" << std::endl;
+  (*trace) << "entering SmoothPDE::DefineIntegerators" << std::endl;
 #endif
 
-  MatrixType_   = RBLOCK;
-  GraphType_    = NODEGRAPH; 
-  SystemMatrix_ = TRUE;
+  Boolean nonLin = FALSE;
 
-}
+  for (int actSD = 0; actSD < subdoms_.size(); actSD++)
+    {
+      // ==============  add stiffness ===========================================
 
+      MaterialData actSDMat(materialData_[actSD]);
 
-void SmoothPDE::SetMatrixFactors()
-{
-#ifdef TRACE
-  (*trace) << "entering SmoothPDE::SetMatrixFactors" << std::endl;
-#endif
+      // ==============  add "standard" stiffness ===============================
+      BaseForm * bilinearStiff;
+      if (subType_ == "plainStrain")
+	bilinearStiff = new smoothPlainStrainInt(actSDMat);
+      else if (subType_ == "3d")
+	bilinearStiff = new smooth3DInt(actSDMat);
+      else if (subType_ == "axi")
+	bilinearStiff = new SmoothAxiInt(actSDMat);
+      else 
+	Error("Unknown subtype in smooth PDE! ",__FILE__,__LINE__);
 
-  matrix_factor_[0] = 0.0;  // factor for stiffness matrix
-  matrix_factor_[1] = 0.0;  // factor for damping matrix
-  matrix_factor_[2] = 0.0;  // factor for convection matrix
-  matrix_factor_[3] = 0.0;  // factor for mass matrix
+      assemble_->AddIntegrator(bilinearStiff, subdoms_[actSD], STIFFNESS, nonLin);
+    }
 }
 
 
@@ -108,9 +152,7 @@ void SmoothPDE::InitCoupling(PDECoupling * coupling)
     {
       // check for input mechanic displacement
       if (ptCoupling_->GetInputQuantity(i) == "mechdisplacement")
-	{
-	  numDirichletBCs_ += (dofspernode_ * ptCoupling_->GetInputSize(i));
-	}
+	numDirichletBCs_ += (dofspernode_ * ptCoupling_->GetInputNumNodes(i));
     }
 
   // output couplings
@@ -118,67 +160,75 @@ void SmoothPDE::InitCoupling(PDECoupling * coupling)
     {
       // check for output displacement
       if (ptCoupling_->GetOutputQuantity(i) == "smoothdisplacement")
-	 ptCoupling_->CreateStoreSol(i,SMOOTH_DISPLACEMENT,isComplex_); 
+	  ptCoupling_->SetOutputDof(i, dofspernode_);
     }
+
+  // now overwrite number of Dirichlet BCs due to coupling 
+  assemble_->SetNumDirichlet(numDirichletBCs_);
+
+  iterCoupledCounter_ = 0;
 }
   
 
-void SmoothPDE::SolveStepStatic(const Integer level, const Double aTime)
+void SmoothPDE::PreStepStatic(const Integer kstep, const Double asteptime,
+			      const Integer level, const Boolean reset)
 {
 #ifdef TRACE
-  (*trace) << "entering SmoothPDE::SolveStepStatic" << std::endl;
+  (*trace) << "entering SmoothPDE::PreStepStatic" << std::endl;
 #endif
-
-  Integer job = 1;
-
-  Double * ptsol;
-  
-   //compute and assemble element matrices
-  SetupMatrices(level);
-
-  //account for bcs
-  SetBCs(level,updateBCs_,0);
-
-  //updateBCs_ = 1;
-
-  algsys_->CalcPrecond(job);
-  algsys_->Solve();
-
-  firstTurn_ = FALSE;
-
-  ptsol = algsys_->GetSolutionVal();
-
-  // save solution
-  Integer k=0;
-  
-  for (Integer i=0; i<NumPDENodes_; i++)  
-    for (Integer dim=0; dim<dofspernode_; dim++)
-       sol_[dim][i] = ptsol[k++];
 
   algsys_->InitRHS();
   algsys_->InitSol();
+  assemble_->InitMatrices();
 
-  
-  // after merging with FRED's Code, unqote following line
-  // and delete the rest of the lines
-  // InitMatrices();
-  
-  // Temporarily
-  Integer matrixsystype[5];    
-  if (SystemMatrix_     == 1) matrixsystype[0] = SYSTEM;      // memory for the system matrix
-  if (StiffnessMatrix_  == 1) matrixsystype[1] = STIFFNESS;   // memory for the stiffness matrix
-  if (DampingMatrix_    == 1) matrixsystype[2] = DAMPING;     // memory for the damping matrix
-  if (ConvectionMatrix_ == 1) matrixsystype[3] = CONVECTION;  // memory for the convection matrix
-  if (MassMatrix_       == 1) matrixsystype[4] = MASS;        // memory for the mass matrix
-  
-  for (Integer i=0;i<5;i++)
-    {
-      if (matrixsystype[i] !=0)
-  	algsys_->InitMatrix(i+1);
-  }
-  
-  itercount_++;
+  assemble_->SetReassemble();
+
 }
+
+
+void SmoothPDE::StepStaticNonLin(const Integer kstep, const Double aTime,
+				const Integer level, const Boolean reset)
+{
+#ifdef TRACE
+  (*trace) << "entering SmoothPDE::StepStaticLin" << std::endl;
+#endif
+
+  Integer job = 1;
+  Double * ptsol;
+
+  assemble_->AssembleMatrices(level);
+  assemble_->AssembleSrcRHS(level);
+  
+  updateBCs_ = 0;
+  SetBCs(level,updateBCs_,0);
+
+#ifdef USE_OLAS
+  algsys_->BuildInDirichlet();
+  algsys_->SetupPrecond(job);
+#else
+  algsys_->CalcPrecond(job);
+#endif
+
+  algsys_->Solve();
+
+  ptsol = algsys_->GetSolutionVal();
+
+   // save solution
+  sol_->SetDataPointer(ptsol);
+}
+
+
+void SmoothPDE:: PostStepStatic(const Integer kstep, const Double asteptime,
+				const Integer level)
+{
+#ifdef TRACE
+  (*trace) << "entering SmoothPDE::PostStepStatic" << std::endl;
+#endif
+  
+  iterCoupledCounter_++;
+}
+
+
 
 
 void SmoothPDE::CalcOutputCoupling()
@@ -189,7 +239,7 @@ void SmoothPDE::CalcOutputCoupling()
 
   std::string quantity;
   std::vector<Integer> * couplingnodes;
-  Array<Double> * values;
+  BaseStoreSol * values;
 
   // loop over all output coupling quantities
   for (Integer i=0; i<ptCoupling_->GetNumOutputCouplings(); i++)
@@ -206,7 +256,7 @@ void SmoothPDE::CalcOutputCoupling()
 
 	  if (quantity == "smoothdisplacement")
 	    {
-	      NodeSolutionToCoupling(*values, *couplingnodes);
+	      sol_->NodeSolutionToCoupling(*values,*couplingnodes,Mesh2PDENode_);
 	    }
 	  
 	  break;
@@ -224,310 +274,11 @@ void SmoothPDE::WriteResultsInFile()
   (*trace) << "entering SmoothPDE::WriteResultsInFile" << std::endl;
 #endif
 
-  Integer laststepcalc=0;
-  Double  lasttimecalc=0;
-  Array<Double> DispMesh;
+  StoreSol<Double> DispMesh;
  
-  TransformNodeSolution(DispMesh, sol_, PDE2MeshNode_);
-  OutFile_->WriteNodeSolution(DispMesh, laststepcalc, lasttimecalc,"displacement");
+  sol_->TransformNodeSolution(DispMesh,  PDE2MeshNode_,ptgrid_,actlevel_);
+  OutFile_->WriteNodeSolution(DispMesh, laststepcalc_, lasttimecalc_,"displacement");
 }
-
-
-void SmoothPDE::SetupMatrices(const Integer level)
-{
-#ifdef TRACE
-  (*trace) << "entering SmoothPDE::SetupMatrices" << std::endl;
-#endif
-
-  if (method_ == "mechanic")
-    SetupMatricesMechanic(level);
-  else if (method_ == "distortion")
-    SetupMatricesDistortion(level);
-  else 
-    {
-      std::string errMessg;
-      errMessg = "Unknown smoothening method \"" + method_ + "\" in SmoothPDE!";		
-      Error(errMessg.c_str(),__FILE__,__LINE__);
-    }  
-  
-   
-#ifdef DEBUG
-  algsys_->Print(SYSTEM);
-#endif
-  
-  
-#ifdef TRACE
-  (*trace) << "Leaving SmoothPDE::SetupMatrices" << std::endl;
-#endif
-}
-
-
-void SmoothPDE::SetupMatricesDistortion(Integer level)
-{
-#ifdef TRACE
-    (*trace) << "Entering SmoothPDE::SetupMatricesDistortion" << std::endl;
-#endif
-
-    Matrix<Double> elemmat;
-    Matrix<Double> ptCoord;
-    std::vector<Double> LCoord(dofspernode_,0.0);
-    BaseFE * ptEl;
-    Vector<Integer> connecth, connect_PDE;
-    std::vector<Integer> connect_help;
-    std::vector<Elem*> elemssd;
-    Array<Double> elemDisplacements;
-    Integer i, j;
-    
-   
-    Integer counter = 0;
-
-
-    for (i=0; i<subdoms_.size(); i++)
-      {	
-	ptgrid_->GetElemSD(elemssd,subdoms_[i],level);
-	
-	for (j=0; j< elemssd.size(); j++)
-	  {
-	    ptEl = elemssd[j]->ptElem;
-	    
-	    const Double density = materialData_[i].GetDensity();
-	    
-	    BaseForm * bilinear_stiff;
-	    
-	    bilinear_stiff = new mechPlainStrainInt(ptEl, materialData_[i]);
-
-	    connecth=elemssd[j]->connect;
-
-	    GetElemCoords(connecth, ptCoord, level);
- 
-	    // map connect to PDE node numbers
-	    Mesh2PDENode(connect_PDE,connecth,Mesh2PDENode_);
-	    
-	    // stiffness part
-	    bilinear_stiff->CalcElementMatrix(ptCoord, elemmat);
-
-	    // smoothening factor is only calculated once
-	    if (itercount_ == 2)
-	      {
-		elemssd[j]->connect.toStdVector(connect_help);
-		NodeSolutionToCoupling(elemDisplacements,connect_help);
-		
-		factor_[counter] = ptEl->CalcMeanStrain(ptCoord, elemDisplacements);
-	      }
-
-	    elemmat *= factor_[counter++];
-	    algsys_->SetElementMatrix(elemmat.getinarray(), connect_PDE.get(), connecth.size(), SYSTEM);
-
-#ifdef DEBUG
-	    (*debug) << "Smooth elemmat: " << std::endl << elemmat << std::endl;
-#endif
-
-	    delete bilinear_stiff;
-	    
-	  }
-      }
-}
-
-
-void SmoothPDE::SetupMatricesMechanic(Integer level)
-{
-#ifdef TRACE
-    (*trace) << "Entering SmoothPDE::SetupMatricesMechanic" << std::endl;
-#endif 
-    
-    Matrix<Double> elemmat;
-    Matrix<Double> ptCoord;
-    Matrix<Double> oldCoord;
-    std::vector<Double> LCoord(dofspernode_,0.0);
-    Double JDet;
-    
-    // This is a smaller matrix since it is just for linear 1D elements.
-    Matrix<Double> elemmatbnd;
-    BaseFE * ptEl;
-    Vector<Integer> connecth, connect_PDE;
-    std::vector<Elem*> elemssd;
-    Integer i, j, counter;
-
-    counter = 0;
-    
-    for (i=0; i<subdoms_.size(); i++)
-      {	
-	ptgrid_->GetElemSD(elemssd,subdoms_[i],level);
-	
-	for (j=0; j< elemssd.size(); j++)
-	  {
-	    ptEl = elemssd[j]->ptElem;
-	    
-	    const Double density = materialData_[i].GetDensity();
-	    
-	    BaseForm * bilinear_stiff;
-	    
-	    if (subType_ == "plainStrain")
-	      bilinear_stiff = new mechPlainStrainInt(ptEl, materialData_[i]);
-	    else if (subType_ == "3d")
-	      bilinear_stiff = new mech3DInt(ptEl, materialData_[i]);
-	    else 
-	      {
-		std::string errMessg;
-		errMessg = "Unknown subtype \"" + subType_ + "\" in SmoothPDE!";		
-		Error(errMessg.c_str(),__FILE__,__LINE__);
-	      }
-
-
-	    connecth=elemssd[j]->connect;
-
-	    GetElemCoords(connecth, ptCoord, level);
- 
-	    // map connect to PDE node numbers
-	    Mesh2PDENode(connect_PDE,connecth,Mesh2PDENode_);
-
-	    
-	    // stiffness part
-	    bilinear_stiff->CalcElementMatrix(ptCoord, elemmat);
-
-	    // Calculate JDet for old coordinates plus displacement
-	    // This factor is only calculated once after the first iteration step
-	    if (itercount_ == 2) 
-	      {
-		oldCoord = ptCoord;
-		for (Integer k=0; k<oldCoord.size_row(); k++)
-		  for (Integer l=0; l<oldCoord.size_col(); l++)
-		    oldCoord[k][l] += sol_[k][Mesh2PDENode_ [elemssd[j]->connect[l] - 1] - 1];
-		
-		JDet = ptEl->CalcJacobianDet(LCoord,oldCoord); 
-		factor_[counter] = 1.0/JDet;
-	      }
-
-	    elemmat *= factor_[counter++];
-	    algsys_->SetElementMatrix(elemmat.getinarray(), connect_PDE.get(), connecth.size(), SYSTEM);
-	    
-#ifdef DEBUG
-	    (*debug) << "Smooth3d elemmat: " << std::endl << elemmat << std::endl;
-#endif
-
-	    delete bilinear_stiff;
-	    
-	  }
-      }
-}
-
-
-void SmoothPDE::SetBCs(const Integer level, const Integer update, const Double atime)
-  {
-#ifdef TRACE
-    (*trace) << "entering SmoothPDE::SetBCs" << std::endl;
-#endif
-    
-    Integer node,dof;
-    Double val;
-    
-    // set dirichlet boundary conditions
-    Integer i = 0;
-    Integer j = couplingBCsCounter_;
-    std::list<Integer> nodes;
-    Integer sizebc=bcs_hd_.size();
-    
-    std::vector<Elem*> edgesBC;  // vector of 1D-elements from mesh-file
-    Vector<Integer> connecth;
-	  
-
-    // homogeneous boundary conditions
-    val = 0;
-    for (i=0; i< bcs_hd_.size(); i++)
-      {
-	std::string doftype = bcs_hd_[i]; 
-	dof = GetNrBCDof (doftype.substr(0,2));
-
-#ifdef DEBUG
-	//	(*debug) << " Homog. Dirichlet BC" << std::endl;
-#endif
-	nodes=ptBCs_->GetNodesLevel(bcs_hd_[i]);
-   
-	for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end(); p++, j++)
-	  {
-	    node=*p;
-	    
-#ifdef DEBUG
-	    //  (*debug) << " node: " << Mesh2PDENode_[node-1] << " dof:" << dof << " val: " << val << std::endl;
-#endif
-	    if (update==1)
-	      {
-		//std::cerr << "SmoothPDE::SetBCs: updating node " << Mesh2PDENode_[node-1] << std::endl;
-	      algsys_->UpdateDirichlet(j+1, val, SYSTEM);
-	      }
-	    else{
-	      //std::cerr << "SmoothPDE: Setting HD_BC[ " << Mesh2PDENode_[node-1] << "]" << std::endl;
-	      algsys_->SetDirichlet(j+1, Mesh2PDENode_[node-1], val, dof, SYSTEM);
-	    }
-	  }  
-      }
-    
-    //inhomogeneous boundary conditions
-    for (i=0; i<bcs_id_.size(); i++)
-      {
-	std::string doftype = bcs_id_[i]; 
-	dof = GetNrBCDof (doftype.substr(0,2));
-      
-#ifdef DEBUG
-	(*debug) << " Inhomog. Dirichlet BC" << std::endl;
-#endif
-
-	nodes = ptBCs_->GetNodesLevel(bcs_id_[i], level);
-
-	val=val_id_[i];
-
-	for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end(); p++, j++)
-	  {
-	    node=*p;
-#ifdef DEBUG
-	    (*debug) << " node: " << node << " dof:" << dof << " val: " << val << std::endl;
-#endif
-	    //std::cerr << "Smooth: Setting ID_BCs .... " << std::endl;
-
-	    if (update==1)
-	      algsys_->UpdateDirichlet(j+1, val, SYSTEM);
-	    else	  
-	      {
-		//std::cerr << "Smooth: Setting ID_BC[" << dof << "][" << node << "] = " << val << std::endl;
-	      algsys_->SetDirichlet(j+1, Mesh2PDENode_[node-1], val, dof, SYSTEM);
-	      }
-	  }
-      }
-
-
-    // load boundary conditions
-    for (i=0; i<bcs_loads_.size(); i++)
-      {
-	std::string doftype = bcs_loads_[i]; 
-
-	dof = GetNrBCDof (doftype.substr(0,2));
-
-#ifdef DEBUG
-	(*debug) << " Load BC" << std::endl;
-#endif
-
-	nodes = ptBCs_->GetNodesLevel(bcs_loads_[i], level);
-
-	val = val_loads_[i];
-
-	for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end(); p++, j++)
-	  {
-	    node=*p;
-
-#ifdef DEBUG
-	    (*debug) << " node: " << Mesh2PDENode_[node-1] << " dof:" << dof << " val: " << val << std::endl;
-#endif
-	  
-	    val = val_loads_[i];
-	    algsys_->SetNodeRHS(val, Mesh2PDENode_[node-1], dof);
-	  
-	  }
-      }    
-
-#ifdef TRACE
-    (*trace) << "leaving SmoothPDE::SetBCs" << std::endl;
-#endif
-  }
 
 
 
@@ -561,6 +312,26 @@ Integer SmoothPDE::GetNrBCDof(const std::string & dofStartString)
     
     return nrActDof;
   }
+
+
+Integer SmoothPDE::GetBCDof(const std::string dofString)
+{
+#ifdef TRACE
+  (*trace) << "entering SmoothPDE::GetBCDof " << std::endl;
+#endif
+
+  if (dofString == "ux")
+    return 1;
+  else
+    if (dofString == "uy")
+      return 2;
+    else
+      if (dofString == "uz")
+	return 3;
+      else
+	Error("The direction mentioned in the config-file is not implemented! ",__FILE__,__LINE__);
+}
+  
 
 Boolean SmoothPDE::HasOutput(std::string output)
 {

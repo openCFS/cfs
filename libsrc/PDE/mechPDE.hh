@@ -1,8 +1,8 @@
-#ifndef FILE_BASEMECHPDE
-#define FILE_BASEMECHPDE
+#ifndef FILE_NEWBASEMECHPDE
+#define FILE_NEWBASEMECHPDE
 
-#include "basepde.hh"
-#include <General/environment.hh>
+#include "basePDE.hh"
+
  
 namespace CoupledField
 {
@@ -26,185 +26,173 @@ public:
     \param aOutFile  pointer to class WriteResults. output data.
     \param aTimeFunc pointer to class TimeFunc
   */
-  MechPDE( Grid *aGrid, BCs *aBCs, TimeFunc *aTimeFunc, FileType *aInFile,
-	   WriteResults *aOutFile );
+  MechPDE(Grid *aGrid, BCs *aBCs, TimeFunc *aTimeFunc, FileType *aInFile, WriteResults *aOutFile );
 
   //!  Deconstructor
-  virtual ~MechPDE() {;};
+  virtual ~MechPDE();
 
-  //! define discrete PDE
-  virtual void DiscreteParamsPDE();
 
-  //! set information for algebraic system about PDE. set matrix factors
-  virtual void SetMatrixFactors();
 
-  //! initalize PDE coupling
-  virtual void InitCoupling(PDECoupling * Coupling);
+  //! define all (bilinearform) integrators needed for this pde
+  virtual void DefineIntegrators(const Integer level);
+
+
+  /// return index of dof defined by keyword (e.g. 'ux')
+  virtual Integer GetBCDof(const std::string keyword);
   
-  //! specify type of system matrix for AlgebraicSystem
-  /*!
-    \param level (input) level of Grid
-  */
-  virtual void SetupMatrices(const Integer level);
-
-
-  //! set boundary condition
-  /*!
-    \param level     level of grid
-    \param update    indicator: do we update boundary condition in algebraic
-                     system or set new
-    \param atimestep time step of calculation
-  */
-  virtual void SetBCs(const Integer level, const Integer update,
-		      const Double atimestep);
-
-
-  //! compute rhs
-  /*!
-    \param atime time of calculation
-  */
-  virtual void ComputeRHS(const Double atime) {;};
-
-  
-  //! solve one step for static problems
-  /*!
-    \param level level of grid
-  */
-  virtual void SolveStepStatic(const Integer level);
-
-
-  //! prepare for correct time stepping
-  /*!
-    \param dt time step
-  */
-  virtual void InitTimeStepping(const Double dt);
-  
-
-  //! solve one step for transient problem 
-  /*!
-    \param kstep        number of calculating step
-    \param steptime     time of calculation
-    \param level        level of grid
-    \param updatesysmat indicator: do we need to update algebraic system?
-                        This is used for adaptive procedure in space
-  */
-  virtual void SolveStepTrans(const Integer kstep, const Double steptime,
-			      const Integer level, const Boolean updatesysmat);
-
-  //! calculate coupling terms
-  virtual void CalcOutputCoupling();
-  
-  //! write results in file
-  virtual void WriteResultsInFile();
-
-  //! returns if PDE can compute the quantity
-  virtual Boolean HasOutput(std::string output);
-
-  //! Assemble mass part
-  void AssembleMass(BaseFE * ptEl, Vector<Integer>& connect_PDE,
-		    Matrix<Double>& ptCoord, MaterialData& actMatData);
-
-  //! Assemble stiffness part
-  void AssembleStiffness(BaseFE * ptEl, Vector<Integer>& connect_PDE,
-			 Matrix<Double>& ptCoord, MaterialData& actMatData);
-  
-  //! Assemble prestress RHS (if prestress given)
-  void AssemblePreStressRHS(BaseFE * ptEl, Vector<Integer>& connect_PDE,
-			    Matrix<Double>& ptCoord, MaterialData& actMatData,
-			    Matrix<Double>& elDisp);
-
-  //! Assemble prestress matrix (if prestress given)
-  void AssemblePreStressMat(BaseFE * ptEl, Vector<Integer>& connect_PDE,
-			    Matrix<Double>& ptCoord, MaterialData& actMatData,
-			    Matrix<Double>& elDisp);
-
-  /// assemble nodal loads
-  void AssembleNodalLoads(Integer level);
-
-  /// assembles external forces to the algebraic system
-  void MechPDE::AssembleInitialRHS(const Integer level,
-				   std::vector<Double>& initalRhsVec);
-    
-  /// calculates the vector of external forces
-  void MechPDE::CalcInitialRhsVec(const Integer level,
-				  std::vector<Double>& initalRhsVec);
 
   /// calculates L2-norm of RHS regarding entries due to penalty formulation
-  Double RhsL2Norm(std::vector<Double>& stdVec);
+  Double RhsL2Norm(Vector<Double>& stdVec);
+
 
   /// sets external forces and returns L2Norm of them
   Double SetExternalForces(const Integer level);
 
+
   /// reads the directions (e.g. for prestress) from the config-file
   void GetDirection(Directions& dir, const std::string keyword);
+
+
+  /// returns a stiffness integrator appropriate to the actual problem (e.g. 3D)
+  BaseForm * GetStiffIntegrator(MaterialData& actSDMat, Boolean reducedInt=FALSE);
   
-protected:
+
+  // ======================================================
+  // COUPLING SECTION
+  // ======================================================
+  
+ //! initalize PDE coupling
+  virtual void InitCoupling(PDECoupling * Coupling);
+
+  //! calculate coupling terms
+  virtual void CalcOutputCoupling();
+  
+  //! returns if PDE can compute the quantity
+  virtual Boolean HasOutput(std::string output);
+
 
   /// setup source term
   void SetupRHS(const Integer level);
   
-  Integer size_; //!< total number of unknowns (equations)
 
+// ======================================================
+// SOLVING SECTION
+// ======================================================
 
-private:
+/// do one transient step
+  void StepTransNonLin(const Integer kstep, const Double asteptime,
+		       const Integer level, const Boolean reset);
+  
 
-  /// calculates matrices D^_ and D^__ (see Hughes p. 217) for reduced
-  /// integration
-  void CalcReducedMat(MaterialData& lambdaMat, MaterialData& mueMat,
-		      MaterialData& mat);
+  //! prepare for correct time stepping
+  /*! \param dt time step  */
+  virtual void InitTimeStepping(const Double dt);
 
-  // defines subtype of mechanic PDE: plainStrain, 3d, ...
-  std::string subType_;
-
-
-  // Help: I need to be documented!
-  Integer GetNrBCDof (const std::string & dofStartString);
-
-  /// stores an algsys_ vector into a std::vector and returns that L2-norm
-  void StoreAlgsysToVec(std::vector<Double>& stdVec, Double * pt);
-
-  /// returns that L2-norm of an algsys vector
-  Double AlgsysL2Norm(Double * pt);
-
-  /// flag for nonlinear calculations
-  Boolean nonLin_;
-
-  /// flag for reduced Integration
-  Boolean reducedInt_;
-
-  //! solve one step for linear static problem 
-  /*!
-    \param level level of grid
-  */
-  virtual void SolveStepStaticLin(const Integer level);
+  //!
+  virtual void PreStepStatic(const Integer kstep, const Double asteptime,
+			     const Integer level, const Boolean reset);
 
   //! solve one step for nonlinear static problem 
   /*!
     \param level level of grid
+    \param aTime sequence of different levels for RHS
   */
-  virtual void SolveStepStaticNonLin(const Integer level);
+  virtual void StepStaticNonLin(const Integer kstep, const Double asteptime,
+				const Integer level, const Boolean reset);
 
-  /// returns the solution vector belonging to all nodes of the actual element
-  void GetSolOfElement( Matrix<Double>& elDisp, Vector<Integer>& connect_PDE);
+  //!
+  virtual void PostStepStatic(const Integer kstep, const Double asteptime,
+			      const Integer level);
+  
 
-  /// stopping criterion for incremental error
-  Double incStopCrit_;
+  // ======================================================
+  // POSTPROC SECTION
+  // ======================================================
 
-  /// stopping criterion for residual error
-  Double residualStopCrit_;  
+  //! write results in file
+   virtual void WriteResultsInFile();
+
+  //!  return pointer to vector with first derivative of solution
+  //virtual const Array<Double>& getS1() const { return TS_alg_->GetDeriv1();}
+  virtual const Vector<Double>& getS1() const { return TS_alg_->GetDeriv1();}
+
+  //! return pointer to vector with second derivative of solution
+  //virtual const Array<Double>& getS2() const { return TS_alg_->GetDeriv2();}
+  virtual const Vector<Double> & getS2() const { return TS_alg_->GetDeriv2();}
+protected:
+
+  
+  Integer size_;        //!< total number of unknowns (equations)
+
+
+private:
+
+  /// calc rhs coupling to acoustic pde
+  //void CalcAcousticCouplingRHS(std::vector<Elem*> * couplingElems, Vector<Double>& forceOnElem);
+  
+  /// calc rhs coupling to acoustic pde
+  void CalcAcousticCouplingRHS(std::vector<Elem*> * couplingElems, 
+			       std::vector<Integer>& couplingNodes,
+			       std::vector<MaterialData*>* materials,
+			       //Array<Double>& forceOnElem,
+			       StoreSol<Double> & forceOnElem,
+			       Integer couplingdof,
+			       std::vector<Elem*> * neighbours);
+  
+
+  /// does a line search and returns the optimal residual norm
+  Double LineSearch(Vector<Double>& solIncrement, Vector<Double>& actSol, 
+		    Double& etaLineSearch, Integer level, Boolean trans=FALSE);
+
+
+  /// Write nonlin iteration norms to the cla-file
+  void WriteClaNlNorms(const Integer iterationCounter, const Double residualL2Norm,
+		       const Double extForcesL2Norm, const Double residualErr, 
+		       const Double solIncrL2Norm, const Double actSolL2Norm, 
+		       const Double incrementalErr);
+  
+
+  /// calculates matrices D^_ and D^__ (see Hughes p. 217) for reduced integration
+  void CalcReducedMat(MaterialData& lambdaMat, MaterialData& mueMat, MaterialData& mat);
+
+
+  // defines subtype of mechanic PDE: plainStrain, 3d, ...
+  std::string subType_;
+
+  Integer GetNrBCDof (const std::string & dofStartString);
+
+  /// stores an algsys_ vector into a std::vector and returns that L2-norm
+  void StoreAlgsysToVec(Vector<Double>& vec, Double * pt);
+
+
+  /// returns that L2-norm of an algsys vector
+  Double AlgsysL2Norm(Double * pt);
+  
+
+  /// flag for reduced Integration
+  Boolean reducedInt_;
+
+  /// returns the solution matrix belonging to all nodes of the actual element
+  void GetSolOfElement( Matrix<Double>& elDisp, Vector<Integer>& connect_PDE);  
+  
 
   /// value of prestress
   Double preStressVal_;
 
   /// direction of prestress
   Directions preStressDir_;
+  
+  /// material data for reduced integration
+  MaterialData * lambdaMat;
 
-  Double lasttimecalc_;  //!< Last time on which we have calculated solution
+  /// material data for reduced integration
+  MaterialData * mueMat;
 
-  //! Number of last timestep on which we have calculated our solution
-  Integer laststepcalc_;
+  /// external forces (for nonlin simulations)
+  Vector<Double> extForces_;
 
 };
 
 } // end of namespace
 #endif
+

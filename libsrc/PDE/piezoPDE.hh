@@ -1,10 +1,8 @@
-#ifdef NEWBASEPDE
-
 #ifndef FILE_PIEZOPDE
 #define FILE_PIEZOPDE
 
 
-#include "newBasePDE.hh"
+#include "basePDE.hh"
 
  
 namespace CoupledField
@@ -67,4 +65,3 @@ namespace CoupledField
 
 #endif
 
-#endif

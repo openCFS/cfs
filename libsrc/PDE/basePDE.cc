@@ -1,5 +1,3 @@
-#ifdef NEWBASEPDE
-
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -9,7 +7,7 @@
 #include "Estimator/spaceerror.hh"
 #include "DataInOut/WriteInfo.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
-#include "newBasePDE.hh"
+#include "basePDE.hh"
 
 
 namespace CoupledField
@@ -1417,4 +1415,3 @@ void BasePDE::CalcLineNormalVec(Vector<Double>& n, Matrix<Double>& ptCoord)
 
 } // end of namespace
 
-#endif // #ifdef NEWBASEPDE

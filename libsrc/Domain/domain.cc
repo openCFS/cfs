@@ -29,12 +29,7 @@
 #include "CoupledPDE/coupled_pdes_header.hh"
 
 #include "Utils/vector.hh"
-
-#ifndef NEWBASEPDE
-#include "PDE/basepde.hh"
-#else
-#include "PDE/newBasePDE.hh"
-#endif //#ifndef NEWBASEPDE
+#include "PDE/basePDE.hh"
 
 namespace CoupledField
 {
@@ -181,20 +176,16 @@ void Domain :: InitPDEs()
       else if (pdes[i] == "piezo")
 	ptpde_[i]=new PiezoPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
 
-      
-#ifndef NEWBASEPDE
-      else if (pdes[i] == "acouflownoise")
- 	 ptpde_[i]=new AcouFlowNoise(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
+//      else if (pdes[i] == "acouflownoise")
+// 	 ptpde_[i]=new AcouFlowNoise(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
 
-      else if (pdes[i] == "smoothlaplace") 
-	ptpde_[i]=new SmoothLaPlacePDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_); 
+//      else if (pdes[i] == "smoothlaplace") 
+//	ptpde_[i]=new SmoothLaPlacePDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_); 
 
 
-      else if (pdes[i] == "magnetic") 
-	if (dim == 3
-	ptpde_[i]=new MagEdgePDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_); 
-#endif // NEWBASEPDE
-
+//      else if (pdes[i] == "magnetic") 
+//	if (dim == 3
+//	ptpde_[i]=new MagEdgePDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_); 
 
       else
 	{
