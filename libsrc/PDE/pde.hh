@@ -23,6 +23,15 @@ public:
 
   //! Deconstructor
   virtual ~PDE(){;}
+
+  //! Return solution
+  virtual Vector<Double> & getS() { Error("Not implemented");}
+
+ //! Return first derivatives of solution
+  virtual Vector<Double> & getS1() { Error("Not implemented"); }
+
+ //! Return second derivatives of solution
+  virtual Vector<Double> & getS2() { Error("Not implemented"); }
  
 protected:
   

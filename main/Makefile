@@ -14,7 +14,8 @@ SUBLIBDIR = Driver Estimator PDE AlgebraicSystem/LinAlg \
             Forms Elements Elements/2D Elements/3D \
             Domain/GridCFS Domain \
             DataInOut/DefineFiles \
-            DataInOut/Unverg DataInOut/DatFile DataInOut\
+            DataInOut/Unverg DataInOut/GMV \
+            DataInOut/DatFile DataInOut\
             Utils Matrix General
 #SUBLIBDIR = Driver PDE AlgebraicSystem/LinAlg \
 #            AlgebraicSystem/PILES/general \
@@ -109,6 +110,9 @@ clean-dat:
 clean-unverg:
 	@cd $(LIBSRC_DIR)/DataInOut/Unverg && \
 	$(MAKE) clean
+clean-gmv:
+	@cd $(LIBSRC_DIR)/DataInOut/GMV && \
+        $(MAKE) clean
 clean-algsys:
 	@cd $(LIBSRC_DIR)/AlgebraicSystem/LinAlg && \
 	$(MAKE) clean
@@ -134,6 +138,9 @@ clean-elements:
 	@cd $(LIBSRC_DIR)/Elements/2D&&\
         $(MAKE) clean
 	@cd $(LIBSRC_DIR)/Elements/3D&&\
+        $(MAKE) clean
+clean-estimator:
+	@cd $(LIBSRC_DIR)/Estimator && \
         $(MAKE) clean
 clean-utils:
 	@cd $(LIBSRC_DIR)/Utils&&\

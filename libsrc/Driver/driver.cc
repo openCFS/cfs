@@ -6,6 +6,8 @@
 #include "acousticPDE.hh"
 #include "driver.hh"
 
+#include "outGMV.hh"
+
 namespace CoupledField
 {
 
@@ -26,7 +28,7 @@ Driver<Dim>::Driver(FileType * const aptFileType, Integer anummesh, Material * a
 //  ptgrid=new InterfaceGridlib<Dim>(ptFileType);
   ptgrid=new GridInterfaceCFS<Dim>(ptFileType);
   ptgrid->Read();
- 
+
   ptMaterial=aptMaterial;
 }
 
@@ -46,6 +48,10 @@ void Driver<Dim>::SolveNewmarkMethod(OutResultUnverg<Dim> * ptUnverg)
 */
    ptUnverg->Create(ptgrid,0);
 
+   OutGMV<Dim> * ptGMV=new OutGMV<Dim>("test",ptgrid);
+   ptGMV->Write(0);
+   delete ptGMV;
+
 //  Double endtime=1.0;   ////////////////////////////////////////////
   Double t=0;
   
@@ -58,12 +64,8 @@ void Driver<Dim>::SolveNewmarkMethod(OutResultUnverg<Dim> * ptUnverg)
       t+=dt0;
 
       ptAcPDE->SolveNewmarkMethodStatic(t);
-  
-      ptUnverg->Dataset55(" fluid potential", ptAcPDE->getS(), i+1, t);
-      if (SaveDer1) 
-	ptUnverg->Dataset55(" fluid potential, 1st deriv., ", ptAcPDE->getS1(), i+1, t); 
-      if (SaveDer2)
-	ptUnverg->Dataset55(" fluid potential, 2nd deriv., ", ptAcPDE->getS2(), i+1, t);
+
+      PrintResultsUnverg(ptUnverg, ptAcPDE,i,t);  
     }
 }
 
@@ -77,4 +79,20 @@ Driver<Dim> :: ~Driver()
   if (ptAcPDE) delete ptAcPDE;
 }
 
+template<class Dim>
+void Driver<Dim> :: PrintResultsUnverg(OutResultUnverg<Dim> * ptUnverg, PDE * ptPDE, const Integer step, const Double t)
+{
+
+      ptUnverg->Dataset55(" fluid potential", ptPDE->getS(), step+1, t);
+
+      if (SaveDer1)
+      ptUnverg->Dataset55(" fluid potential, 1st deriv., ", ptPDE->getS1(),
+step+1, t);
+
+      if (SaveDer2)
+      ptUnverg->Dataset55(" fluid potential, 2nd deriv., ", ptPDE->getS2(),
+step+1, t);
+
 }
+
+} // end of namespace
