@@ -243,7 +243,7 @@ class SpaceErrorEstimator;
 
     //! return pointer to vector with first derivative of solution
     virtual const Array<Double>& getS1() const 
-    { Error("Not implemented",__FILE__,__LINE__); }
+    { Error("Not implemented",__FILE__,__LINE__);}
 
     //! return size of solution
     virtual Integer getSize() const 

@@ -236,7 +236,6 @@ void BaseFE :: CalcInvJacobianAtIp(Matrix<Double> & JInv,
 #endif
   JInv.Resize(Dim_,Dim_);
 
-  Double detJ, aux;
   Matrix<Double> J;
 
   //  J.Resize(Dim_,Dim_);

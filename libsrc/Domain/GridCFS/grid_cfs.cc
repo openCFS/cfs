@@ -945,7 +945,10 @@ void GridCFS<dim>::CalcNumberOfNodesInPatch(const std::vector<Elem*> & patch, st
 }
 
 template<Integer dim>
-void GridCFS<dim>::GetInterfaceNeighbours(std::vector<Integer> & interfaceNodes, std::vector<std::string> & subdoms, std::vector<Elem*> & neighbours, Integer level)
+void GridCFS<dim>::GetInterfaceNeighbours(std::vector<Integer> & interfaceNodes, 
+					  std::vector<std::string> & subdoms, 
+					  std::vector<Elem*> & neighbours, 
+					  Integer level)
 {
 #ifdef TRACE
   (*trace) << "entering GridCFS<Dim>::GetInterfaceNeighbours" << std::endl;
@@ -955,25 +958,16 @@ void GridCFS<dim>::GetInterfaceNeighbours(std::vector<Integer> & interfaceNodes,
   std::vector<Elem*> elems;
   std::vector<Integer> map;
   
-  //std::cerr << "In GetInterfaceNeighbourS" << std::endl;
-  //std::cerr << "InterfaceNodes.size = " << interfaceNodes.size() << std::endl;
-
   // loop over all subdomains
   for (Integer isd=0; isd<subdoms.size(); isd++)
     {
-      //std::cerr << "-----------------------------------" << std::endl;
-      //std::cerr << "examing Subdomain " << subdoms[isd] << std::endl;
       GetElemSD(elems, subdoms[isd], level);
 
       // loop over all elements in subdomain
       for (Integer iNS=0; iNS < elems.size(); iNS++)
 	{
-
 	  Elem *aux = elems[iNS];
 	  Vector<Integer>  aux_connect = aux->connect;
-	  //std::cerr << " ====" << std::endl;
-	  // std::cerr << "examing element Nr " << iNS << std::endl;
-	  //std::cerr << "connect = " << aux_connect << std::endl;
 	  
 	  belongs2Interface = false;
 	  
@@ -994,7 +988,10 @@ void GridCFS<dim>::GetInterfaceNeighbours(std::vector<Integer> & interfaceNodes,
 	}
     }
 }
-  
+
+
+
+
 template<>
 Double GridCFS<2>::CalcAreaElem(const Elem* elem)
 {

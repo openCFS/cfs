@@ -246,9 +246,9 @@ void WriteResultsAnsys::WriteNodeSolution(const Vector<Double> & sol, const Inte
 	AddInHistory(time,sol[nodeshist_[i]],i);
     }
 
-  Integer type=1; // 0 - for cell 
-                  // 1 - for node
-                  // 2 - for face data
+  //  Integer type=1; // 0 - for cell 
+                      // 1 - for node
+                      // 2 - for face data
 
   if (step!=currnum_) {
     OpenFile(step);

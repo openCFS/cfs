@@ -119,8 +119,6 @@ void  WriteResultsUnverg::Dataset780(const Integer level)
   (*output) << std::setw(6) << -1 << std::endl << std::setw(6) << 780 << std::endl;
   Integer dim=ptgrid->GetDim();
 
-  Integer maxnumelem=ptgrid->GetMaxnumElem(level);
-
   Vector<Integer> connect;
   std::vector<Elem*> elemssd;
   Integer elmsgrp=1;

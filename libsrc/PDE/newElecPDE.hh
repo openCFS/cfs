@@ -141,6 +141,15 @@ public:
   
 
 protected:
+  /// calculated the electric field at the integration points of the couple element
+  void CalcEfieldAtCoupleElemIP(Elem * actVolElem,
+				Elem * actCoupleElem,
+				std::vector<Double>& coordAtIP, 
+				std::vector<Integer>& boundNodesOfVolElem,
+				Vector<Double>& tempE);
+  
+  
+
   Array<Double> E_;  //!< conatins elecric field
 
   //  Boolean nonLinGeo_;  //! switch for geometric update 

@@ -213,12 +213,7 @@ namespace CoupledField
     (*trace) << "entering  IterCoupledPDE::SolveStepTrans" << std::endl;
 #endif
 
-    Integer pdenumber = 0;
-    Integer nsys      = 0;
     Double  steptime  = asteptime;
-    Integer stepsave  = isavebegin_-1;
-    Double  dt        = firstdt_;  
-
 
     Integer iter = 0;
     Boolean normsReached = FALSE;
@@ -289,7 +284,7 @@ void IterCoupledPDE::WriteCouplingInfo()
   (*trace) << "entering  IterCoupledPDE::WriteCouplingInfo" << std::endl;
 #endif 
 
-  Array<Double> *val, *oldval;
+  Array<Double> *val;
   std::vector<Integer> * nodes;
 
   if (!debug)
