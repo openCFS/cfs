@@ -63,6 +63,11 @@ public:
 			      const Elem * ptElement,
 			      const Vector<Double> & lCoord,
 			      const Double & eNormalFluxDensity);
+ 
+ virtual void CalcElemCharge(Complex & charge,
+			      const Elem * ptElement,
+			      const Vector<Double> & lCoord,
+			      const Complex & eNormalFluxDensity);
   
 
   //! Calculate charges for whole surface
@@ -73,10 +78,10 @@ public:
     \param eFluxDensity (input) Vector of normal components of 
     Flux density in lCoord
   */
-  virtual void CalcElemCharges(Vector<Double> & charges,
+  virtual void CalcElemCharges(CFSVector & charges,
 			       const StdVector<Elem*> & surfElems,
 			       const Vector<Double> & lCoord,
-			       const Vector<Double> & eNormalFluxDensity);
+			       const CFSVector & eNormalFluxDensity);
  protected:
   
 };

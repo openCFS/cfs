@@ -13,6 +13,7 @@
 
 #include <Matrix/matrix.hh>
 #include <Utils/vector.hh>
+#include <Forms/gradfieldop.hh>
 #include "elecPDE.hh"
 #include <General/defs.hh>
 #include "DataInOut/ParamHandling/BaseParamHandler.hh" 
@@ -287,9 +288,14 @@ void ElecPDE::CalcElectricField()
   ENTER_FCN( "ElecPDE::PostProcess" );
   
   NodeStoreSol<Double> & solhelp = dynamic_cast<NodeStoreSol<Double>&>(*sol_);
-  GradientFieldOp * FieldOp = new GradientFieldOp(ptgrid_, this, eqnData_,
-						  solhelp, ELEC_POTENTIAL,
-						  actlevel_, isaxi_);
+  //  GradientFieldOp * FieldOp = new GradientFieldOp(ptgrid_, this, eqnData_,
+  //					  solhelp, ELEC_POTENTIAL,
+  //					  actlevel_, isaxi_);
+
+
+  GradientFieldOp<Double> * FieldOp = new GradientFieldOp<Double>(ptgrid_, this, eqnData_,
+      						      solhelp, ELEC_POTENTIAL,
+      						      actlevel_, isaxi_);
   
   Vector<Double> LCoord;
   LCoord.Resize(dim_);
@@ -304,6 +310,13 @@ void ElecPDE::CalcElectricField()
   // loop over all subdomains
   for (Integer isd=0; isd<calcEfield_.GetSize(); isd++)
     {
+
+      // ------ Calculation of the electric field ------
+
+      //     Vector<Double> LCoord;
+      // LCoord.Resize(dim_);
+      // LCoord[0] = 0;
+      // LCoord[1] = 0;
       // get vector of Elem of subdomain with color: subdoms[isd]
       ptgrid_->GetElemSD(elemssd,calcEfield_[isd],actlevel_);
       
@@ -326,8 +339,8 @@ void ElecPDE::CalcCharges()
   NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
   StdVector<Elem*> surfElems, volElems;
   Vector<Double> lCoordSurf, lCoordVol, elemDField;
-  GradientFieldOp * dFieldOp;
-  ElecChargeOp * chargeOp;
+  //GradientFieldOp<Double> * dFieldOp;
+  // ElecChargeOp<Double> * chargeOp;
   BaseFE * ptSurfElem, * ptVolElem;
   Double permittivity = 0.0;
   Double elemNormalD = 0.0;
@@ -343,9 +356,9 @@ void ElecPDE::CalcCharges()
   lCoordSurf.Init(0);
   
   // Create operator for electric flux density and charge calculation
-  dFieldOp = new GradientFieldOp(ptgrid_, this, eqnData_, *solhelp,
+  GradientFieldOp<Double> * dFieldOp = new GradientFieldOp<Double>(ptgrid_, this, eqnData_, *solhelp,
 				 ELEC_POTENTIAL, actlevel_, isaxi_);
-  chargeOp = new ElecChargeOp(ptgrid_, this, eqnData_, actlevel_, isaxi_);
+  ElecChargeOp * chargeOp = new ElecChargeOp(ptgrid_, this, eqnData_, actlevel_, isaxi_);
   
   // loop over all subdomains
   for (Integer iSD=0; iSD<calcCharges_.GetSize(); iSD++){
@@ -960,10 +973,12 @@ void ElecPDE::CalcEfieldAtCoupleElemIP(Elem * actVolElem,
   lCoord[1] = volCoord1Y + relPosIP * (volCoord2Y - volCoord1Y);
   
   NodeStoreSol<Double> *solTemp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
-  GradientFieldOp elecFieldOp(ptgrid_, this, eqnData_, *solTemp, ELEC_POTENTIAL,
+
+  GradientFieldOp<Double> * elecFieldOp = new  GradientFieldOp<Double>(ptgrid_, this, eqnData_, *solTemp, ELEC_POTENTIAL,
 			      actlevel_, isaxi_);
 
-  elecFieldOp.CalcElemGradField(tempE, actVolElem, lCoord, 1);
+
+  elecFieldOp->CalcElemGradField(tempE, actVolElem, lCoord, 1);
 }
 
 

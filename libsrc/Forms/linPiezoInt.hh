@@ -57,12 +57,29 @@ namespace CoupledField
       ENTER_FCN( "linPiezoInt::~linPiezoInt" );
     };
 
-    /// calculates mechanical stresses (vector notation)
+    /// calculates mechanical stresses (vector notation), overloaded for real and complexvalued stresses
     virtual void CalcStressVec(Vector<Double>& StressVec, Integer ip, Matrix<Double> & ptCoord);  
+    virtual void CalcStressVec(Vector<Complex>& StressVec, Integer ip, Matrix<Double> & ptCoord);  
 
-    virtual void SetActElemSol(Matrix<Double>& disp) {
-      ENTER_FCN( "linPiezoInt::SetActElemSol" );
-      elemSol_ = disp;};
+//     virtual void SetActElemSol(Matrix<Double>& disp) {
+//       ENTER_FCN( "linPiezoInt::SetActElemSol 1" );
+//       elemSol_ = disp;};
+
+//     virtual void SetActElemSol(CFSMatrix& disp) {
+//         ENTER_FCN( "linPiezoInt::SetActElemSol 2" );
+//         Matrix<Double> & helpSol = dynamic_cast <Matrix<Double>&> (disp);
+//         elemSol_ = helpSol;};
+
+    virtual void SetActElemSol(CFSMatrix& disp){
+      ENTER_FCN("linPiezoInt::SetActElemSol 3");
+      
+      if(disp.IsComplex())
+	//        Matrix<Complex> & elemSolComplex_ = dynamic_cast <Matrix<Complex>&> (disp);
+        elemSol_ = new Matrix<Complex> (dynamic_cast<Matrix<Complex>&> (disp));
+      else
+	elemSol_ = new Matrix<Double> (dynamic_cast<Matrix<Double>&>(disp));
+      //     Matrix<Double> & elemSol_ = dynamic_cast <Matrix<Double>&> (disp);
+};
 
   protected:
 
@@ -116,7 +133,10 @@ namespace CoupledField
     orientation2D actOrientation;
 
     //! displacement of all nodes of actual element
-    Matrix<Double> elemSol_;
+    CFSMatrix * elemSol_;
+    //    Matrix<Double> elemSol_;
+    //    Matrix<Complex> elemSolComplex_;
+
   };
 
 

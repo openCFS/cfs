@@ -70,7 +70,6 @@ class SpaceErrorEstimator;
     //! read material data
     virtual void ReadMaterialData();
 
-    //! read pde-specific boundary conditions/loads
     virtual void ReadSpecialBCs(){}
 
     // The following Methods used durig parameter Identification process!!
@@ -189,9 +188,7 @@ class SpaceErrorEstimator;
  virtual void StepHarmonicLin(const Integer freqStep, const Double frequency, 
 				 Integer level, const Boolean reset);
     
-    void CreateIncrementedRHSMatrix(Vector<Double> & harmonicRHSVec, const Double frequency,const Integer level) {
-      Error("Not implemented here", __FILE__, __LINE__);
-    }
+    void CreateIncrementedRHSMatrix(Vector<Double> & harmonicRHSVec, const Double frequency,const Integer level);
 
   virtual void StepHarmonicNonLin(const Integer freqStep, const Double frequency, 
 				  Integer level, const Boolean reset)
@@ -367,6 +364,7 @@ class SpaceErrorEstimator;
 
     //!
     void sortStresses(Vector<Double>& unsorted, Vector<Double>& sorted);
+    void sortStresses(Vector<Complex>& unsorted, Vector<Complex>& sorted);
 
     // ======================================================
     // DATA SECTION

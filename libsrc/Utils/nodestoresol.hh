@@ -121,6 +121,7 @@ public:
   //! \note Only necessary when default constructor was used
   void Init(const TYPE val);
 
+	
 
   //! Set the number of different solution types
   /*! 
@@ -200,7 +201,7 @@ public:
     \param (input) Solution type (ref. enum SolutionType)
     \param (output) Vector with given solution type)
   */
-  void GetGlobalSolVector(const SolutionType solType, 
+  void GetGlobalSolVector(const SolutionType solType,
 			  CFSVector & val) const;
 
 
