@@ -120,6 +120,7 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
 
   else if (analysis=="harmonic")
     {
+      isComplex_ = TRUE;
       assemble_ = new HarmonicAssemble(algsys_, ptgrid_);
       analysistype_ = HARMONIC;
       //overwrite defualt solver
@@ -1062,9 +1063,84 @@ void BasePDE::SetSolverParameters()
   // coarsing parameter for AMG
   conf->ifget("coarsealpha",coarsealpha_,pdename_);
 #else
-#ifdef DEBUG
-  Info->Warning( "SetSolverParameters: XML does not support LAS solvers!");
-#endif
+  
+ // Section for LAS and XMLPARAMS
+  std::string solverType, errMsg;
+  std::string precondType;
+  StdVector<std::string> numIters;
+  StdVector<Double> eps;
+  
+  params->Get( "type", solverType, pdename_, "solver");
+  
+  if (solverType == "Direct") {
+    if (!isComplex_)
+      solvertype_ = RealDirect;
+    else
+      solvertype_ = ComplexDirectSolver;
+  }
+  else if (solverType == "CG") {
+    if (!isComplex_)
+      solvertype_ = RealCG;
+    else
+      solvertype_ = ComplexCG;
+  }
+  else if (solverType == "Richardson") {
+    if (!isComplex_)
+      solvertype_ = RealRichardson;
+    else
+      solvertype_ = ComplexRichardson;
+  }
+  else if (solverType == "QMR") {
+    if (!isComplex_)
+      solvertype_ = RealQMR;
+    else
+      solvertype_ = ComplexQMR;
+  }
+  else {
+    errMsg = "Solvertype '";
+    errMsg += solverType;
+    errMsg += "' is not known for PDE '";
+    errMsg += pdename_;
+    errMsg += "' !";
+    Error(errMsg.c_str(), __FILE__, __LINE__);
+  }
+  
+  
+  
+  params->Get( "precond", precondType, pdename_, "solver");
+  if (precondType == "noPrecond")
+    precondtype_ = ID;
+  else if (precondType == "Id")
+    precondtype_ = ID;
+  else if (precondType == "Jacobi")
+    precondtype_ = JACOBI;
+  else if (precondType == "SSOR")
+    precondtype_ = SSOR;
+  else if (precondType == "ILU")
+    precondtype_ = ILU;
+  else if (precondType == "MG") {
+    precondtype_ = MG;
+    Warning("No addtional MG parameters available", __FILE__, __LINE__);
+  }
+  else {
+    
+    errMsg = "Precondtype '";
+    errMsg += precondType;
+    errMsg += "' is not known for PDE '";
+    errMsg += pdename_;
+    errMsg += "' !";
+    Error(errMsg.c_str(), __FILE__, __LINE__);
+  }
+    
+  params->GetList( "tol", eps, pdename_ );
+  if (eps.GetSize() == 1) {
+    eps_ = eps[0];
+  }
+  params->GetList( "maxIter", numIters, pdename_);
+  if (numIters.GetSize() == 1) {
+    maxnumiter_ = atoi(numIters[0].c_str());
+  }
+  
 #endif
   //communicate with algebraic system
   algsys_->CreateParameter();
