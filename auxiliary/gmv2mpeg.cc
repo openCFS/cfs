@@ -86,15 +86,26 @@ int main(int argc,char **argv)
 
 // create snapshots in format YUV
    int i,counter;
+   char name[50];
    for(i=start;i<=stop;i+=add)
      {
-        sprintf(S,"test -r %s.gmv00%i",argv[1],i);
+        if (i/10 < 1) 
+        sprintf(name,"%s.gmv00%i",argv[1],i);
+         else if (i/100 < 1)
+           sprintf(name,"%s.gmv0%i",argv[1],i);  
+            else sprintf(name,"%s.gmv%i",argv[1],i);     
+
+        std::cout << name << std::endl;
+
+        sprintf(S,"test -r %s",name);
         if(system(S))
           {
-             printf("Can't find file  %s.gmv00%i!\n",argv[1],i);
+             printf("Can't find file  %s!\n",name);
              exit(1);
           }
-        sprintf(S,"gmv -m -a %s -w 0 0 %d %d -i %s.gmv00%d -s\n", attr.c_str(),xres,yres, argv[1],i);
+
+        sprintf(S,"gmv -m -a %s -w 0 0 %d %d -i %s -s\n", attr.c_str(),xres,yres, name);
+
         printf(S);
         system(S);
         sprintf(S,"sgitopnm AzsnapgmvAz | ppmtoyuvsplit %s%d\n",argv[1],i+1);
