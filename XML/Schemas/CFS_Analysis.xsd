@@ -25,6 +25,7 @@
               <xsd:enumeration value="multiSequence"/>
               <xsd:enumeration value="bubbleDynamic"/>
               <xsd:enumeration value="transient4Slice"/>
+              <xsd:enumeration value="multiHarmonic"/>
             </xsd:restriction>
           </xsd:simpleType>
         </xsd:attribute>
@@ -101,6 +102,29 @@
           <xsd:element name="numFreq" type="xsd:nonNegativeInteger"/>
           <xsd:element name="startFreq" type="DT_PosFloat"/>
           <xsd:element name="stopFreq" type="DT_PosFloat"/>
+        </xsd:sequence>
+        <xsd:attribute name="tag"  type="xsd:string" use="optional"
+          default="anyTag"/> 
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType> 
+
+ <!-- ******************************************************************** -->
+  <!--   Definition of element AnalysisMultiHarmonic -->
+  <!-- ******************************************************************** -->
+  <xsd:element name="multiHarmonic" type="DT_AnalysisMultiHarmonic"
+    substitutionGroup="AnalysisBasic"/>
+
+  <!-- Data type for harmonic section, i.e. parameters required for
+       performing a harmonic analysis -->
+  <xsd:complexType name="DT_AnalysisMultiHarmonic">
+    <xsd:complexContent>
+      <xsd:extension base="DT_AnalysisBasic">
+        <xsd:sequence>
+          <xsd:element name="numFreq" type="xsd:nonNegativeInteger"/>
+          <xsd:element name="startFreq" type="DT_PosFloat"/>
+          <xsd:element name="stopFreq" type="DT_PosFloat"/>
+          <xsd:element name="nrMultiHarmonics" type="xsd:nonNegativeInteger"/>
         </xsd:sequence>
         <xsd:attribute name="tag"  type="xsd:string" use="optional"
           default="anyTag"/> 
