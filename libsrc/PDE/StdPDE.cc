@@ -103,7 +103,6 @@ namespace CoupledField {
       for (Integer i=0; i<coordMat.GetSizeRow(); i++) {
         for (Integer j=0; j<coordMat.GetSizeCol(); j++) {
           pdeNode = eqnData_->Mesh2PDENode(connect[j]);
-          //coordMat(i,j) += deltCoords_(i,mesh2PDENode_ [connect[j] - 1] - 1);
           coordMat(i,j) += deltCoords_(i, pdeNode - 1);
         }
       }
@@ -132,7 +131,8 @@ namespace CoupledField {
 
         nodes=ptBCs_->GetNodesLevel(bcs_hd_[i]);
       
-        for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end(); p++)
+        for (std::list<Integer>::const_iterator p=nodes.begin(); 
+	     p!=nodes.end(); p++)
           {
             node=*p;
             eqnData_->Node2EQN(node,dof,eqnNr,eqnDof);
@@ -227,8 +227,10 @@ namespace CoupledField {
 
       if ( transFromTo == "complexToReal" ) {
 	// --- transform complex values to real one --
-	Vector<Double>& sol = dynamic_cast<NodeStoreSol<Double>&>(*(sol_)).GetAlgSysVector();
-	Vector<Complex>& mementoSol = dynamic_cast<Vector<Complex>&>(*(memento.sol_));
+	Vector<Double>& sol = 
+	  dynamic_cast<NodeStoreSol<Double>&>(*(sol_)).GetAlgSysVector();
+	Vector<Complex>& mementoSol = 
+	  dynamic_cast<Vector<Complex>&>(*(memento.sol_));
 
 	for ( Integer i=0; i<mementoSol.GetSize(); i++ ) {
 	  sol[i] = mementoSol[i].real();
@@ -243,7 +245,8 @@ namespace CoupledField {
 	  for ( Integer i=0; i<mementoSol.GetSize(); i++ ) {
 	    val   = mementoSol[i];
 	    memento.solDeriv1_[i] = - 2*PI*frequency * val.imag();
-	    memento.solDeriv2_[i] = - 4 * PI * PI * frequency * frequency * val.real();
+	    memento.solDeriv2_[i] = 
+	      - 4 * PI * PI * frequency * frequency * val.real();
 	  }
 
 	  TS_alg_->SetDeriv1(memento.solDeriv1_);
@@ -357,7 +360,8 @@ namespace CoupledField {
     Integer eqnNr, eqnDof;
     Integer dofsPerEQN = eqnData_->GetNumDofsPerEQN();
 
-    NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
+    NodeStoreSol<Double> * solhelp = 
+      dynamic_cast<NodeStoreSol<Double>*>(sol_);
     Vector<Double> sol = solhelp->GetAlgSysVector();
   
     for(Integer actNode=0; actNode<connecth.GetSize(); actNode++) {
@@ -612,7 +616,8 @@ namespace CoupledField {
 	    solHarmonic->Get(connecth[lnode]-1, dof, disp[lnode]);
 	  }
 	  // extract to volume element
-	  subDomVolComplex[actSF] += ComputeVolElem(ptSurfEl,ptSurfCoord,disp); 
+	  subDomVolComplex[actSF] += 
+	    ComputeVolElem(ptSurfEl,ptSurfCoord,disp); 
 	}
 	else {
 	  Vector<Double> disp(ptSurfEl->GetNumNodes());
@@ -638,14 +643,14 @@ namespace CoupledField {
  
       analysis    = "Frequency:";
       analysisVal = actFrequency_;
-      Info->WriteResult(pdename_,  resulttype, surfRegions, subDomVolReal, unit,
-			analysis, analysisVal);
+      Info->WriteResult(pdename_,  resulttype, surfRegions, subDomVolReal, 
+			unit, analysis, analysisVal);
     }
     else {
       analysis    = "Time:";
       analysisVal = lasttimecalc_;
-      Info->WriteResult(pdename_,  resulttype, surfRegions, subDomVolReal, unit,
-			analysis, analysisVal);
+      Info->WriteResult(pdename_,  resulttype, surfRegions, subDomVolReal, 
+			unit, analysis, analysisVal);
     }
   }
 
