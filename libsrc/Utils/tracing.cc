@@ -7,7 +7,7 @@ namespace OutInfo{
 #ifdef TRACE
   FcnTraceListElem* FcnTraceHandler::foo_ = NULL;
   unsigned int FcnTraceHandler::fcnTraceDepth_ = 0;
-  unsigned int FcnTraceHandler::fcnTraceDepthLimit_ = TRACE;
+  unsigned int FcnTraceHandler::fcnTraceDepthLimit_ = 0;
 #endif
 }
 
