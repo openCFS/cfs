@@ -7,7 +7,8 @@
 
 namespace CoupledField {
 
-SolveStepAcoustic::SolveStepAcoustic(BasePDE& apde) : BaseSolveStep(apde) {
+SolveStepAcoustic::SolveStepAcoustic(StdPDE& apde) : StdSolveStep(apde) 
+{
   ENTER_FCN( "SolveStepAcoustic::SolveStepAcoustic" );
 }
 

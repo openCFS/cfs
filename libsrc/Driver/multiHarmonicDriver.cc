@@ -136,46 +136,35 @@ void MultiHarmonicDriver::SolveProblem() {
     Info->StartProgress ("Starting to solve problem", FALSE);
   }
   
-  pdes_[0]->WriteGeneralPDEdefines();
+  ptPDE_->WriteGeneralPDEdefines();
       
   Integer fstep;
   Double actFreq  = startFreq_;
   Double freqIncr = (stopFreq_ - startFreq_) / numFreq_;
   std::string errMsg;
   
-  if (pdes_.GetSize() <= 1) {
-
-    // branch for single PDE
-    for (fstep = 1; fstep <= numFreq_; fstep++) {
-      Info->WriteHarmonicStep(pdes_[0]->GetName(), fstep, actFreq);
-      
-      //      std::cout<<"\n multiHarm: 1 " <<std::endl;
-      pdes_[0]->GetSolveStep()->PreStepHarmonic(fstep, actFreq, level, reset);
-
-      //      std::cout<<"\n multiHarm: 2"  <<std::endl;
-      pdes_[0]->GetSolveStep()->SolveStepHarmonic(fstep, actFreq, level, reset);
-
-      //      std::cout<<"\n multiHarm: 3 " <<std::endl;
-      pdes_[0]->GetSolveStep()->PostStepHarmonic(fstep, actFreq, level, reset);
-
-      //      std::cout<<"\n multiHarm: nrMultHarms_ =  " <<nrMultHarms_ <<std::endl;
-           
-      // writing results in output-file
-      pdes_[0]->PostProcess(level);
-      pdes_[0]->WriteResultsInFile();
-           
-      actFreq += freqIncr;
-    }
-  } 
-  else {
-    errMsg  = "MultiHarmonicDriver::Solve: Harmonic simulation is ";
-    errMsg += "not yet implemented for coupled PDEs, sorry!";
-    Error(errMsg.c_str(), __FILE__, __LINE__);
+  // branch for single PDE
+  for (fstep = 1; fstep <= numFreq_; fstep++) {
+    Info->WriteHarmonicStep(ptPDE_->GetName(), fstep, actFreq);
+    
+    //      std::cout<<"\n multiHarm: 1 " <<std::endl;
+    ptPDE_->GetSolveStep()->PreStepHarmonic(fstep, actFreq, level, reset);
+    
+    //      std::cout<<"\n multiHarm: 2"  <<std::endl;
+    ptPDE_->GetSolveStep()->SolveStepHarmonic(fstep, actFreq, level, reset);
+    
+    //      std::cout<<"\n multiHarm: 3 " <<std::endl;
+    ptPDE_->GetSolveStep()->PostStepHarmonic(fstep, actFreq, level, reset);
+    
+    //      std::cout<<"\n multiHarm: nrMultHarms_ =  " <<nrMultHarms_ <<std::endl;
+    
+    // writing results in output-file
+    ptPDE_->PostProcess(level);
+    ptPDE_->WriteResultsInFile();
+    
+    actFreq += freqIncr;
   }
-
-
-
-  }
+}
 
 
 

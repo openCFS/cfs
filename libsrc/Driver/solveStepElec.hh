@@ -1,20 +1,20 @@
 #ifndef FILE_SOLVESTEPELEC
 #define FILE_SOLVESTEPELEC
 
-#include "baseSolveStep.hh"
+#include "stdSolveStep.hh"
 
 namespace CoupledField
 {
 
   //! Base class for solution of a single step: Electrostatic-PDE
 
-  class SolveStepElec : public BaseSolveStep
+  class SolveStepElec : public StdSolveStep
   {
 
   public:
 
     //! Constructor
-    SolveStepElec(BasePDE& apde);
+    SolveStepElec(StdPDE& apde);
 
     //! Destructor
     virtual ~SolveStepElec();

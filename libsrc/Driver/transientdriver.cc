@@ -9,7 +9,6 @@
 
 #include "DataInOut/GMV/outGMV.hh"
 
-#include "CoupledPDE/basecoupledpde.hh"
 #include "CoupledPDE/itercoupledpde.hh"
 #include "DataInOut/WriteInfo.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
@@ -81,103 +80,65 @@ TransientDriver::~TransientDriver()
 void TransientDriver::SolveProblem()
 {
   ENTER_FCN( "TransientDriver::SolveProblem" );
-
+  
   Integer level     = 0;
   Double  steptime  = firstdt_;
   Integer stepsave  = isavebegin_;
-
+  
   Double  dt = firstdt_;
   Boolean updatesysmat=FALSE;
-
+  
   // if driver is not part of multiSequence Driver, get list
   // of pdes which have to be solved and intialize them
   if (isPartOfSequence_ == FALSE) {     
-	GetMyPDEs();
-	Info->StartProgress ("Starting to solve problem", FALSE);
+    GetMyPDEs();
+    Info->StartProgress ("Starting to solve problem", FALSE);
   }
-    
+  
   // Solve problem
-  if (pdes_.GetSize() <= 1) {
-	
-	// branch for single PDE
-	pdes_[0]->SetTimeStep(dt);
-
-	// if multiSequence is performed, the ms-driver
-	// writes out the grid one time
-	if (! isPartOfSequence_)
-	  ptdomain_->PrintGrid(level);
-	
-	if (PrintGridOnly) 
-	  exit(0);
-	
-	pdes_[0]->WriteGeneralPDEdefines();
-      
-	Integer nstep;
-	for (nstep = 1; nstep <= numstep_; nstep++) {
-
-	  if ( numstep_ <= 50 )
-		Info->WriteTimeStep(pdes_[0]->GetName(), nstep+stepOffset_, 
-							steptime+timeOffset_);
-	  else if ( (numstep_ > 50) && (numstep_ <= 500) ) {
-		if ( (nstep%10) == 0 )		
-		  Info->WriteTimeStep(pdes_[0]->GetName(), nstep+stepOffset_, 
-							  steptime+timeOffset_);
-	  }
-	  else if ( numstep_ > 500 ) {
-		if ( (nstep%25) == 0 )		
-		  Info->WriteTimeStep(pdes_[0]->GetName(), nstep+stepOffset_, 
-							  steptime+timeOffset_);
-	  }
-
-	  pdes_[0]->GetSolveStep()->PreStepTrans(nstep, steptime, level, updatesysmat);
-	  pdes_[0]->GetSolveStep()->SolveStepTrans(nstep, steptime, level, updatesysmat);
-	  pdes_[0]->GetSolveStep()->PostStepTrans(nstep,steptime,level);
-	  
-	  // writing results in output-file
-	  if (nstep == stepsave && (nstep <= isaveend_)) { 
-		pdes_[0]->PostProcess(level);
-		pdes_[0]->WriteResultsInFile(stepOffset_, timeOffset_);
-		stepsave+=isaveincr_;
-	  }
-	  
-	  steptime+=dt;	 
-	}
+  ptPDE_->SetTimeStep(dt);
+  
+  // if multiSequence is performed, the ms-driver
+  // writes out the grid one time
+  if (! isPartOfSequence_)
+    ptdomain_->PrintGrid(level);
+  
+  if (PrintGridOnly) 
+    exit(0);
+  
+  ptPDE_->WriteGeneralPDEdefines();
+  
+  Integer nstep;
+  for (nstep = 1; nstep <= numstep_; nstep++) {
+    
+    if ( numstep_ <= 50 )
+      Info->WriteTimeStep(ptPDE_->GetName(), nstep+stepOffset_, 
+			  steptime+timeOffset_);
+    else if ( (numstep_ > 50) && (numstep_ <= 500) ) {
+      if ( (nstep%10) == 0 )		
+	Info->WriteTimeStep(ptPDE_->GetName(), nstep+stepOffset_, 
+			    steptime+timeOffset_);
+    }
+    else if ( numstep_ > 500 ) {
+      if ( (nstep%25) == 0 )		
+	Info->WriteTimeStep(ptPDE_->GetName(), nstep+stepOffset_, 
+			    steptime+timeOffset_);
+    }
+    
+    ptPDE_->GetSolveStep()->PreStepTrans(nstep, steptime, level, updatesysmat);
+    ptPDE_->GetSolveStep()->SolveStepTrans(nstep, steptime, level, updatesysmat);
+    ptPDE_->GetSolveStep()->PostStepTrans(nstep,steptime,level);
+    
+    // writing results in output-file
+    if (nstep == stepsave && (nstep <= isaveend_)) { 
+      ptPDE_->PostProcess(level);
+      ptPDE_->WriteResultsInFile(stepOffset_, timeOffset_);
+      stepsave+=isaveincr_;
+    }
+    
+    steptime+=dt;	 
   }
-  else {
-	BaseCoupledPDE * actCoupledPDE = ptdomain_->GetCoupledPDE();
-	actCoupledPDE->SetTimeStep(firstdt_);
-	
-	// if multiSequence is performed, the ms-driver
-	// writes out the grid one time
-	if (! isPartOfSequence_)
-	  ptdomain_->PrintGrid(level);
-	
-	if (PrintGridOnly) 
-	  exit(0);
-
-	actCoupledPDE -> WriteGeneralPDEdefines();
-
-	// define which PDEs participate in solving process
-	ptdomain_->GetCoupledPDE()->DefineSolvingPDEs(pdes_);
-
-	for (Integer nstep = 1; nstep <= numstep_; nstep++) {
-	  Info->WriteTimeStep(actCoupledPDE->GetName(), nstep, steptime);
-
-	  actCoupledPDE->InitStepTransCoupled(steptime);
-	  
-	  // actCoupledPDE->PreStepTrans(nstep,steptime,level,updatesysmat);
-	  actCoupledPDE->SolveStepTrans(nstep, steptime, level,updatesysmat);
-	  // actCoupledPDE->PostStepTrans(level);
-	    
-	  // writing results in output-file
-	  if (nstep == stepsave && (nstep <= isaveend_)) { 
-		actCoupledPDE->PostProcess(level);
-		actCoupledPDE->WriteResultsInFile(stepOffset_, timeOffset_);
-		stepsave+=isaveincr_;
-	  }
-	  steptime+=dt;
-	}
-  }
+  
 }
 
 } // end of namespace

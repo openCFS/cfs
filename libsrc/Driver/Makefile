@@ -4,19 +4,21 @@ include ../../main/Makefile.option
 
 C_DIR=../..
 #
-src =  	solveStepMech.cc solveStepMag.cc solveStepAcoustic.cc baseSolveStep.cc \
+src =  	solveStepMech.cc solveStepMag.cc solveStepAcoustic.cc stdSolveStep.cc \
 	solveStepAcouFlowNoise.cc solveStepMpCCI.cc solveStepSmooth.cc \
-	solveStepElec.cc solveStepPiezo.cc basedriver.cc transientdriver.cc \
+	baseSolveStep.cc solveStepElec.cc basedriver.cc transientdriver.cc \
 	staticdriver.cc harmonicDriver.cc multiSequenceDriver.cc\
-	assemble.cc singleDriver.cc bubbledriver.cc multiHarmonicDriver.cc \
+	assemble.cc singleDriver.cc \
+	iterSolveStep.cc bubbledriver.cc multiHarmonicDriver.cc
 #
 ifeq ($(Adaptivity),yes)
 
-  src = solveStepMech.cc solveStepMag.cc solveStepAcoustic.cc baseSolveStep.cc \
+  src = solveStepMech.cc solveStepMag.cc solveStepAcoustic.cc stdSolveStep.cc \
 	solveStepAcouFlowNoise.cc solveStepMpCCI.cc solveStepSmooth.cc \
-	solveStepElec.cc basedriver.cc transientdriver.cc staticdriver.cc \
+	baseSolveStep.cc solveStepElec.cc basedriver.cc transientdriver.cc staticdriver.cc \
 	multiSequenceDriver.cc harmonicDriver.cc harmonicAdapt.cc staticAdaptSpaceDriver.cc \
-	singleDriver.cc multiHarmonicDriver.cc \
+	piezoParamIdent.cc singleDriver.cc
+	iterSolveStep.cc multiHarmonicDriver.cc
 
 
 endif

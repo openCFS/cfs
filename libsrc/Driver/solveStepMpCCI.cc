@@ -7,7 +7,7 @@
 
 namespace CoupledField {
 
-  SolveStepMpCCI::SolveStepMpCCI(BasePDE& apde) : BaseSolveStep(apde)
+  SolveStepMpCCI::SolveStepMpCCI(StdPDE& apde) : StdSolveStep(apde)
   {
 
     ENTER_FCN( "SolveStepMpCCI::SolveStepMpCCI" );

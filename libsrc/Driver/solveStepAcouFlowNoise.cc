@@ -8,7 +8,7 @@
 
 namespace CoupledField {
 
-  SolveStepAcouFlowNoise::SolveStepAcouFlowNoise(BasePDE& apde) : BaseSolveStep(apde)
+  SolveStepAcouFlowNoise::SolveStepAcouFlowNoise(StdPDE& apde) : StdSolveStep(apde)
   {
 
     ENTER_FCN( "SolveStepAcouFlowNoise::SolveStepAcouFlowNoise" );

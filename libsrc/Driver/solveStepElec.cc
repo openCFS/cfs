@@ -7,7 +7,7 @@
 
 namespace CoupledField {
 
-  SolveStepElec::SolveStepElec(BasePDE& apde) : BaseSolveStep(apde)
+  SolveStepElec::SolveStepElec(StdPDE& apde) : StdSolveStep(apde)
   {
 
     ENTER_FCN( "SolveStepElec::SolveStepElec" );

@@ -23,7 +23,7 @@ BaseDriver :: BaseDriver(Domain * adomain)
 BaseDriver :: ~BaseDriver()
 {
   ENTER_FCN( "BaseDriver::~BaseDriver" );
-  delete ptdomain_;
+  //delete ptdomain_;
 }
 
 // for computation with adaptivity

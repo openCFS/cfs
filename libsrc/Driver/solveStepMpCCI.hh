@@ -1,20 +1,20 @@
 #ifndef FILE_SOLVESTEPMPCCI
 #define FILE_SOLVESTEPMPCCI
 
-#include "baseSolveStep.hh"
+#include "stdSolveStep.hh"
 
 namespace CoupledField
 {
 
   //! Base class for solution of a single step: MpCCI-PDE
 
-  class SolveStepMpCCI : public BaseSolveStep
+  class SolveStepMpCCI : public StdSolveStep
   {
 
   public:
 
     //! Constructor
-    SolveStepMpCCI(BasePDE& apde);
+    SolveStepMpCCI(StdPDE& apde);
 
     //! Destructor
     virtual ~SolveStepMpCCI();

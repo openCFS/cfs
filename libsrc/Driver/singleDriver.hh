@@ -3,6 +3,9 @@
 
 #include "basedriver.hh"
 
+#include "PDE/basePDE.hh"
+#include "stdSolveStep.hh"
+
 namespace CoupledField {
 
 
@@ -26,9 +29,9 @@ namespace CoupledField {
     //! Default destructor
     virtual ~SingleDriver();
   
-    //! set the pdes, which have to be solved
-    void SetPDEs(StdVector<BasePDE *> & pdes) {
-      pdes_ = pdes;
+    //! set the pde, which gets to be solved
+    void SetPDE(BasePDE * pde) {
+      ptPDE_ = pde;
     }
 
     //! main method, where time-stepping is implemented. it is for transient and static problem
@@ -50,8 +53,8 @@ namespace CoupledField {
     //! are initialized would be much appreciated!
     void GetMyPDEs();
 
-    //! vector of PDEs to solve
-    StdVector<BasePDE*> pdes_; 
+    //! pointer to basePDE 
+    BasePDE * ptPDE_;
 
     //! true, if driver is part of a multiSequence
     Boolean isPartOfSequence_;

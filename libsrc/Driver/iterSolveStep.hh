@@ -1,26 +1,27 @@
-#ifndef FILE_BASESOLVESTEP
-#define FILE_BASESOLVESTEP
+#ifndef FILE_ITERSOLVESTEP
+#define FILE_ITERSOLVESTEP
 
-#include "Utils/StdVector.hh"
-#include "General/environment.hh"
+#include "baseSolveStep.hh"
+#include "CoupledPDE/itercoupledpde.hh"
+#include "CoupledPDE/pdecoupling.hh"
 
 namespace CoupledField
 {
+  //! Derived class for step-wise solving of iterative coupled StdPDEs
 
-  //! Base class for solution of a single step
-
-  class BaseSolveStep
+  class IterSolveStep : public BaseSolveStep
   {
 
   public:
 
-    
+    //! Constructor
+    IterSolveStep(IterCoupledPDE& apde);
 
     //! Destructor
-    virtual ~BaseSolveStep();
+    virtual ~IterSolveStep();
 
 
-     //----------------------- STATIC---------------------------------------
+    //----------------------- STATIC---------------------------------------
 
     //! routine for initilizations befor execution the SolveStep-method
     /*!
@@ -30,7 +31,7 @@ namespace CoupledField
       \param reset TRUE: perfrom new assembly, etc
     */  
     virtual void PreStepStatic(const Integer kstep, const Double asteptime,
-			       const Integer level, const Boolean reset) = 0;
+			       const Integer level, const Boolean reset)  {;};
  
     //! base method for solving one static step 
     /*!
@@ -40,7 +41,7 @@ namespace CoupledField
       \param reset TRUE: perfrom new assembly, etc
     */
     virtual void SolveStepStatic(const Integer kstep, const Double asteptime,
-				 const Integer level, const Boolean reset) = 0;
+				 const Integer level, const Boolean reset);
 
     //! routine for acttions after the SolveStep-method
     /*!
@@ -49,11 +50,12 @@ namespace CoupledField
       \param level level of grid
     */  
     virtual void PostStepStatic(const Integer kstep, const Double asteptime,
-				const Integer level)  = 0;
+				const Integer level) {;};
 
 
 
     //----------------------- TRANSIENT---------------------------------------
+
     //! routine for initilizations befor execution the SolveStep-method
     /*!
       \param kstep time step counter
@@ -62,7 +64,8 @@ namespace CoupledField
       \param reset TRUE: perfrom new assembly, etc
     */  
     virtual void PreStepTrans(const Integer kstep, const Double asteptime,
-			      const Integer level, const Boolean reset) = 0;
+			      const Integer level, const Boolean reset) {;};
+
 
     //! base method for solving one transient step 
     /*!
@@ -72,8 +75,8 @@ namespace CoupledField
       \param reset TRUE: perfrom new assembly, etc
     */
     virtual void SolveStepTrans(const Integer kstep, const Double asteptime,
-				const Integer level, const Boolean reset) = 0;
-
+				const Integer level, const Boolean updatesysmat);
+    
     //! routine for actions after the SolveStep-method
     /*!
       \param kstep time step counter
@@ -81,9 +84,10 @@ namespace CoupledField
       \param level level of grid
     */  
     virtual void PostStepTrans(const Integer kstep, const Double asteptime,
-			       const Integer level) = 0;
+			       const Integer level) {;};
 
     //----------------------- HARMONIC---------------------------------------
+    
     //! routine for initilizations befor execution the SolveStep-method
     /*!
       \param freqStep frequency step counter
@@ -92,7 +96,8 @@ namespace CoupledField
       \param reset TRUE: perfrom new assembly, etc
     */   
     virtual void PreStepHarmonic(const Integer freqStep, const Double frequency, 
-				 Integer level, const Boolean reset) = 0;
+				 Integer level, const Boolean reset) {;};
+
 
     //!  base method for solving one harmonic step 
     /*!
@@ -102,7 +107,8 @@ namespace CoupledField
       \param reset TRUE: perfrom new assembly, etc
     */
     virtual void SolveStepHarmonic(const Integer freqStep, const Double frequency, 
-				   Integer level, const Boolean reset) = 0;
+				   Integer level, const Boolean reset);
+
 
     //!  routine for actions after the SolveStep-method
     /*!
@@ -112,17 +118,26 @@ namespace CoupledField
       \param reset TRUE: perfrom new assembly, etc
     */
     virtual void PostStepHarmonic(const Integer freqStep, const Double frequency, 
-				  Integer level, const Boolean reset) = 0;
+				  Integer level, const Boolean reset) {;};
 
 
 
   protected:
 
-    //! Constructor
-    BaseSolveStep();
+    //! calculates the norm of a vector
+    Double CalcNorm(NormType normtype, CFSVector & val, CFSVector & oldval); 
+    
 
+    //! reference to PDE
+    IterCoupledPDE &rPDE_;
+
+    //! reference to coupling
+    StdVector<PDECoupling*> & rCouplings_;
+
+    //! reference to current level of solution
+    Integer &actlevel_;
+    
   };
-
 
 } // end of namespace
 

@@ -24,7 +24,7 @@ namespace CoupledField
 {
 
   // Forward declaration of BasePDE
-  class BasePDE;
+  class StdPDE;
 
   //! additional information for every integrator
   class BaseIntDescriptor {
@@ -370,7 +370,7 @@ namespace CoupledField
     void SetFE2StandardInt();
 
         //! set the PDE pointer
-        void SetPDEPointer(BasePDE * aptPDE)
+        void SetPDEPointer(StdPDE * aptPDE)
         {ptPDE_ = aptPDE;};
 
     // ====================================================
@@ -378,7 +378,7 @@ namespace CoupledField
     // ====================================================
 
         
-        BasePDE * ptPDE_;                    //!< pointer to class BasePDE
+    StdPDE * ptPDE_;                    //!< pointer to class StdPDE
     
     BaseSystem * algsys_;                //!< pointer to algebraic system  
     Grid * ptgrid_;                      //!< pointer to Grid
