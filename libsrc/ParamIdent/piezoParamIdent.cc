@@ -114,17 +114,22 @@ namespace CoupledField
     Integer highestAssumableNrOfMeasData=25;
     nrParameter = 10;
 
-    parameter.Resize(10);
-    parameterC.Resize(10);
-    whichParameterToUpdate.Resize(10);
-    //    parameterIncrement.Resize(10);
-    //parameterIncrement = parameter;
-    omegas.Resize(highestAssumableNrOfMeasData);
-    freqs.Resize(highestAssumableNrOfMeasData);
-    real.Resize(highestAssumableNrOfMeasData);
-    imag.Resize(highestAssumableNrOfMeasData);
-    amplitude_phase.Resize(highestAssumableNrOfMeasData);
-    F_hat.Resize(highestAssumableNrOfMeasData);
+     parameter.Resize(nrParameter);
+     parameterC.Resize(nrParameter);
+     whichParameterToUpdate.Resize(nrParameter);
+
+     whichParameterToUpdateC.Resize(nrParameter);
+
+     whichParameterToUpdateRC.Resize(nrParameter);
+
+     parameterIncrement.Resize(nrParameter);
+     parameterIncrement = parameter;
+     omegas.Resize(highestAssumableNrOfMeasData);
+     freqs.Resize(highestAssumableNrOfMeasData);
+     real.Resize(highestAssumableNrOfMeasData);
+     imag.Resize(highestAssumableNrOfMeasData);
+     amplitude_phase.Resize(highestAssumableNrOfMeasData);
+     F_hat.Resize(highestAssumableNrOfMeasData);
 
     //    Double pi = 3.14159265358979;
     Double tau=1.5;
@@ -144,6 +149,7 @@ namespace CoupledField
     std::cout<<"\n Size of piezoElectric Body:"<< thickness << " x " << radius <<std::endl;
     std::cout<<"\n Number of measure points: " << nrMeasuredData << " with DataError: " << delta <<  std::endl;
 
+
     //Settings for harmonic PDE - Driver
     Integer level=0;
     Boolean reset = TRUE;
@@ -158,21 +164,56 @@ namespace CoupledField
 
     if (isPartOfSequence_ == FALSE){     
       GetMyPDEs();
-      //  std::cout<<"\nWe try to set complexMaterialData ... "<<std::endl;
-      // piezoMaterialType piezoMatType = imagMaterialParameter; 
-      //pdes_[0]->setPDE_piezoMaterialType(piezoMatType);
-      //GetMyPDEs();
       Info->StartProgress ("Starting to solve problem", FALSE);
-
-
     }
 
+    actNrParameter=0;
+    actNrParameterC=0;
+
+    // how many parameters are there actually to set?
+    for (Integer i=0;i<whichParameterToUpdate.GetSize();i++)
+      if (whichParameterToUpdate[i]==1)
+	actNrParameter++;
+
+//     for (Integer i=0;i<whichParameterToUpdateC.GetSize();i++)
+//       if (whichParameterToUpdateC[i]==1)
+// 	actNrParameterC++;
+   
+    whichParToUpInd.Resize(actNrParameter);
+
+    Integer intTemp=0;
+
+    for (Integer i=0;i<whichParameterToUpdate.GetSize()-1;i++)
+      if (whichParameterToUpdate[i]==1){	
+	  whichParToUpInd[intTemp]=i;
+	  intTemp++;
+      }
+
+//     std::cout<<whichParToUpInd<<std::endl;
+//     std::cout<<"test1 " <<std::endl;
+
+//     intTemp=0;
+//     for (Integer i=0;i<whichParameterToUpdateC.GetSize()-1;i++)
+//       if (whichParameterToUpdateC[i]==1) {
+// 	  whichParToUpIndC[intTemp]=i;
+// 	  intTemp++;
+//       }
+//     std::cout<<whichParToUpIndC<<std::endl;
+//     std::cout<<"test2 " <<std::endl;
+
+
+//     std::cout<<"\n WhichparToUpRC"<<std::endl;
+
+//     whichParameterToUpdateRC.InsertVector(whichParameterToUpdate,0);
+//     whichParameterToUpdateRC.InsertVector(whichParameterToUpdateC,10);
+
+//     std::cout<<whichParameterToUpdateRC<< std::endl;
 
 
 
-    //Boolean setComplMatData = FALSE;
+//    Boolean setComplMatData = FALSE;
     //pdes_[0]->setPDE_complexMaterialData(setComplMatData);
-    //pdes_[0]->BooleanComplexMaterialData_=FALSE;
+    //  pdes_[0]->BooleanComplexMaterialData_=FALSE;
 
     
 
@@ -187,11 +228,22 @@ namespace CoupledField
 
     MaterialData * ptMaterial=pdes_[0]->getPDEMaterialData();   // Pointer to MaterialData
 
+    std::cout<<"\n Der materialpointer: in piezoParamIdent:" << ptMaterial <<std::endl;
+
     Matrix<Double> *matMat = ptMaterial->GetMatrix();
     Matrix<Double> *matMatC = ptMaterial->GetMatrixC();
+    //    std::cout<<*matMat<<std::endl;
+    //getchar();
 
-    std::cout<<*matMat<<std::endl;
-    std::cout<<*matMatC<<std::endl;
+    Matrix<Double> matMatStart(9,9); // = ptMaterial->GetMatrix();
+    Matrix<Double> matMatCStart(9,9); // = ptMaterial->GetMatrixC();
+
+    for(Integer i=0;i<9;i++)
+      for(Integer j=0;j<9;j++){
+	matMatStart[i][j]=(*matMat)[i][j];
+	matMatCStart[i][j]=(*matMatC)[i][j];
+      }
+
 
  //    ptBCs = pdes_[0]->getPDE_BCs();                             // Pointer to BCs
 //     ptAlgsys = pdes_[0]->getPDE_algsys();                       //Pointer to AlgebraicSystem
@@ -207,26 +259,28 @@ namespace CoupledField
     amplitude_phase.Part(0,nrMeasuredData);
  
     y_hat.Resize(2*nrMeasuredData);
-    s_0.Resize(nrParameter);    
+    s_0.Resize(actNrParameter);    
     //    bas.Resize(nrParameter);
-    res_NE_new.Resize(nrParameter);
-    res_NE.Resize(nrParameter);
+    res_NE_new.Resize(actNrParameter);
+    res_NE.Resize(actNrParameter);
     lin_res.Resize(2*nrMeasuredData);
     res.Resize(2*nrMeasuredData);
     bas_bar.Resize(2*nrMeasuredData);
-    s.Resize(nrParameter);
+    s.Resize(actNrParameter);
     scaling.Resize(nrParameter);
+    scalingC.Resize(nrParameter);
     F_hat.Resize(2*nrMeasuredData);
     overall_res0.Resize(2*nrMeasuredData);
     parameter_new.Resize(nrParameter);
 
-    for(Integer i=0;i<nrParameter;i++)
-      parameterC[i]=0.0;
+    //    for(Integer i=0;i<nrParameter;i++)
+    // parameterC[i]=0.0;
     //    parameterC[7]=1.0;
 
+    updateMaterialData(parameter, ptMaterial);
+    updateComplexMaterialData(parameterC, ptMaterial);
 
-      updateComplexMaterialData(parameterC, ptMaterial);
-
+    //	pdes_[0]->DefineIntegratorsWithMatInfo(level,ptMaterial); // deletes all Integrators and creates new ones with Material in ptMaterial
 
 
     // ~~~~~~~~~~~~~ modificate the algorithm ~~~~~~~~~~~~~~~
@@ -234,7 +288,7 @@ namespace CoupledField
     // If we donnot want to consider the mechanical deformation ...
     considerMechDeformation=FALSE;
     // calculates and determines the ImpedanceCurve before and after identification
-    sign=-1.0;
+    sign=1.0;
     // ~~~~~~~~~~ end of modification part  ~~~~~~~~~~~~~~
 
 
@@ -246,8 +300,7 @@ namespace CoupledField
       s.Resize(nrParameter);
       scaling.Resize(nrParameter);
       F_hat.Resize(nrMeasuredData);
-      overall_res0.Resize(nrMeasuredData);
-      //    nrMeasuredData=1.0/2.0*nrMeasuredData;
+      overall_res0.Resize(nrMeasuredData);      //    nrMeasuredData=1.0/2.0*nrMeasuredData;
       std::cout<<"\n NRMEASURED DATA = " <<nrMeasuredData<<std::endl;
     }
 
@@ -257,10 +310,7 @@ namespace CoupledField
      
     if (CalcImpedanceCurve == 1){
       Vector<Double> freqsTemp = freqs;
-      Integer nrfreq=300;
       freqs.Resize(nrfreq);
-      Double startfreq=2.0e+06;
-      Double stopfreq=6.0e+06;
       Double freqincr=(stopfreq-startfreq)/nrfreq;
       for(Integer i=0;i<nrfreq;i++){
 	startfreq+=freqincr;
@@ -268,6 +318,7 @@ namespace CoupledField
       }
       calcImpedanceCurve();
       freqs = freqsTemp;
+      getchar();
     }
    
 
@@ -331,31 +382,18 @@ namespace CoupledField
     // since this driver normally will not be used in a coupled 
     // field simulation, we simply can access the first PDE,
     // as it will be the single one
-
-    updateMaterialData(parameter, ptMaterial);         //Writes initial guesses of parameters (read from MeasuredData.dat) to system
-
-       for(Integer i=0;i<nrParameter;i++)
-     parameterC[i]=parameter[i];
-    std::cout<<"\n we try to set complexMaterialData"<<std::endl;
-
-    // updateComplexMaterialData(parameterC, ptMaterial);
-
-
-
-    //    std::cout<<parameter<<std::endl;
  
     pdes_[0]->WriteGeneralPDEdefines(); 
    
     Complex misfit;
 
     alpha_m; 
-    //    Matrix<Double> *matMat = ptMaterial->GetMatrix();
-    //Matrix<Double> *matMatC = ptMaterial->GetMatrixC();
+    matMat = ptMaterial->GetMatrix();
+    matMatC = ptMaterial->GetMatrixC();
 
+    std::cout<<"We start the calculation with the following material!"<<std::endl;
     std::cout<<*matMat<<std::endl;
-    std::cout<<*matMatC<<std::endl;
-
-    std::cout<<"\n before scaling"<<std::endl;
+    //    std::cout<<matMatC<<std::endl;
 
     scaling[0]=1.0/((*matMat)[0][0]); 
     scaling[1]=1.0/((*matMat)[2][2]);
@@ -369,12 +407,6 @@ namespace CoupledField
     scaling[9]=1.0/((*matMat)[8][8]);
 
 
-
-
-//     scaling[0]=1.0e-11;    scaling[1]=1.0e-11;    scaling[2]=1.0e-11;    scaling[3]=1.0e-11;    scaling[4]=1.0e-10;
-//     scaling[5]=0.1;     scaling[6]=1.0;     scaling[7]=0.1;
-//     scaling[8]=1.0e+8; scaling[9]=1.0e+9;
-
     // if we do not wanna scale ..
     //  for (Integer i=0;i<nrParameter;i++)
     //scaling[i]=1.0;
@@ -384,11 +416,15 @@ namespace CoupledField
     
     //  NewtonCG();
     //         NewtonCG2();
-    //     NewtonCG3();
-     NewtonCG4(); // Complex material parameter
+    if (whichNewtonCG==3)
+         NewtonCG3();
+    else if (whichNewtonCG==4)
+      NewtonCG4(); // Complex material parameter
+    else
+      std::cout<<"\n There was no valid NewtonCG method specified - see in your measuredData.dat -file "<<std::endl;
     //    tichonov();
     //  NewtonLandweber();
-    //  createF(ptMaterial, ptBCs, F_hat); // calculates only forward problems over all omegas
+    //  createF(ptMaterial, ptBCs, F_hat,FALSE); // calculates only forward problems over all omegas
 
     // xxxxxxxxxxxxxxxxxxxxxxx End of choice xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx //
 
@@ -396,17 +432,18 @@ namespace CoupledField
     std::cout<<"\n\n *** FINALLY CALCULATED PARAMETERS *** ... here they are: " <<std::endl;
 
     for (int i=0;i<parameter.GetSize();i++)
-      std::cout<<"par[" << i<<"]="<< parameter[i]<<";"<<std::endl;
+      std::cout<<"par[" << i<<"]="<< parameter[i]<<" + " << parameterC[i]<<"i"<<std::endl;
+
+
+    //    std::cout<<matMatStart<<std::endl;
+    //std::cout<<matMatCStart<<std::endl;
 
 // <<<<<<<<<<<<<< for a hopefully nice imped curve after identification !! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
      
 if (CalcImpedanceCurve == 1){
       Vector<Double> freqsTemp = freqs;
-      Integer nrfreq=100;
       freqs.Resize(nrfreq);
-      Double startfreq=8.8e+05;
-      Double stopfreq=4.0e+06;
       Double freqincr=(stopfreq-startfreq)/nrfreq;
       for(Integer i=0;i<nrfreq;i++){
 	startfreq+=freqincr;
@@ -414,22 +451,8 @@ if (CalcImpedanceCurve == 1){
       }
       calcImpedanceCurve();
       freqs = freqsTemp;
+      getchar();
     }
-
-//     if (CalcImpedanceCurve == 1){
-//       updateMaterialData(parameter,ptMaterial);
-//       Integer nrfreq=100;
-//       freqs.Resize(nrfreq);
-//       Double startfreq=2.0e+06;
-//       Double stopfreq=6.0e+06;
-//       Double freqincr=(stopfreq-startfreq)/nrfreq;
-//       for(Integer i=0;i<nrfreq;i++){
-// 	startfreq+=freqincr;
-// 	freqs[i]=startfreq;
-//       }
-//       calcImpedanceCurve();
-//     }
-
    
   }// End solveProblem
 
@@ -437,24 +460,7 @@ if (CalcImpedanceCurve == 1){
 
   // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXxx - now some methods are following ...
 
-
-
-//   void piezoParamIdent::calcAbsImped(Complex & charge, Double & freq, Integer & fstep){
-//     Double imped, phase;
-//     Complex impedC;
-
-//     if (!impedCurve)
-//       std::cerr<<"Error opening 'ImpedCurve.dat' "<<std::endl;
-//     Complex im=Complex(0.0,1);
-//     impedC=voltage/(charge*2.0*PI*freq*im);
-//     imped = std::abs(voltage/(charge*2.0*PI*freq*im)); phase = -90 - 180.0/PI*(std::arg(charge));
-//     std::cout <<"Impedanz: "<< impedC << "; Frequenz: " << freq <<"; Phase: "<< phase << std::endl;
-//     *impedCurve <<"\n" << freq << "  " << impedC.real()<<"  " << impedC.imag() << imped << "   " << phase << std::endl;
-
-//   }  // end calcAbsImped 
-
-
-  void piezoParamIdent::calcAbsImped(Complex & charge, Double & freq, Integer & fstep){
+  void piezoParamIdent::calcAbsImped(Complex & charge, Double & freq, Integer & fstep, Boolean typeOut){
     Double imped, phase;
     Complex impedC;
 
@@ -470,8 +476,10 @@ if (CalcImpedanceCurve == 1){
         imped = std::abs(voltage/(charge*2.0*PI*freq*im));
 	phase = 180/PI*(std::arg(impedC));
 
-	//	std::cout<<"\n Frequency - Impendace - Phase: "<<std::endl;
-	std::cout <<"\n Frequency: "<< freq << ", |Z|: "<< std::abs(impedC) << "; Phase: "<< phase << std::endl;
+	if(typeOut==TRUE){
+	  //	std::cout<<"\n Frequency - Impendace - Phase: "<<std::endl;
+	  std::cout <<"\n Frequency: "<< freq << ", |Z|: "<< std::abs(impedC) << "; Phase: "<< phase << std::endl;
+	}
 
 	*impedCurve <<"\n" << freq << "  " << impedC.real()<<"  " << impedC.imag() << imped << "   " << phase << std::endl;
 
@@ -490,12 +498,12 @@ if (CalcImpedanceCurve == 1){
        std::cout<<"\n l2-Norm = "<<norm<<std::endl;
        break;
      case 2:
-       maxAndWeightedResNorm(vec,norm2,norm, q_meas);
-       std::cout<<"\n weighted-Norm = "<<norm<<std::endl;
+       maxAndWeightedResNorm(vec,norm2,norm, q_meas); // for real -  valued driver suitable
+       //       std::cout<<"\n weighted-Norm = "<<norm<<std::endl;
        break;
      case 3:
        maxAndEuclNorm(vec,norm,norm2);
-       std::cout<<"\n max-Norm = "<<norm<<std::endl;
+       //       std::cout<<"\n max-Norm = "<<norm<<std::endl;
        break;
      case 4:
        //       std::cout<<"\n weighted - logarithmic Norm will be determined ..."<< std::endl;
@@ -508,6 +516,11 @@ if (CalcImpedanceCurve == 1){
        //       norm=std::sqrt(a2norm(vec));
        maxAndWeightedResNorm(vec,norm2,norm,y_temp);
        // std::cout<<"\n weighted - logarithmic Norm = "<< norm <<std::endl;
+       break;
+
+     case 5:
+       maxAndWeightedResNorm(vec,norm2,norm, q_meas);  // for complex valued problem
+       //       std::cout<<"\n weighted-Norm = "<<norm<<std::endl;
        break;
 
      default:
@@ -567,7 +580,10 @@ if (CalcImpedanceCurve == 1){
     for (Integer i=0;i<vec.GetSize();i++){
       maxNormTemp=std::abs(vec[i]);
       Denominator = std::abs(q_meas[i])*std::abs(q_meas[i]);
-      wNorm = wNorm+((1.0/Denominator)*vec[i]*vec[i]).real();
+      if (whichNorm==2)
+	wNorm = wNorm+((1.0/Denominator)*vec[i]*vec[i]).real();
+      else if (whichNorm==5)
+	wNorm = wNorm+((1.0/Denominator)*std::abs(vec[i])*std::abs(vec[i]));
 
       if (maxNormTemp>maxNorm)
 	maxNorm=maxNormTemp;
@@ -790,6 +806,23 @@ if (CalcImpedanceCurve == 1){
 	  }
 	}
       }
+      else if (mDataRow[0]=='i'){
+	i=2; k=0; j=0;
+	while(mDataRow){
+	  if (mDataRow[i]=='/')
+	    break;
+	  if(mDataRow[i]!=','){
+	    helpChar[k]=mDataRow[i];
+	    k++; i++;
+	  }
+	  else{
+	    parameterC[j]=atof(helpChar);
+	    for(int l=0;l<=k;l++)
+	      helpChar[l]=0;
+	    j++; i++; k=0;
+	  }
+	}
+      }
       else if (mDataRow[0]=='P'){
 	i=2; k=0; j=0;
 	while(mDataRow){
@@ -801,6 +834,23 @@ if (CalcImpedanceCurve == 1){
 	  }
 	  else{
 	     whichParameterToUpdate[j]=atoi(helpChar);
+	    for(int l=0;l<=k;l++)
+	      helpChar[l]=0;
+	    j++; i++; k=0;
+	  }
+	}
+      }
+ else if (mDataRow[0]=='Q'){
+	i=2; k=0; j=0;
+	while(mDataRow){
+	  if (mDataRow[i]=='/')
+	    break;
+	  if(mDataRow[i]!=','){
+	    helpChar[k]=mDataRow[i];
+	    k++; i++;
+	  }
+	  else{
+	     whichParameterToUpdateC[j]=atoi(helpChar);
 	    for(int l=0;l<=k;l++)
 	      helpChar[l]=0;
 	    j++; i++; k=0;
@@ -843,6 +893,42 @@ if (CalcImpedanceCurve == 1){
 	for (int l=0;l<=k;l++)
 	  helpChar[l]=0;
       }
+      else if (mDataRow[0]=='S'){
+	i=2; k=0;
+	while(mDataRow){
+	  if (mDataRow[i]=='/')
+	    break;
+	  helpChar[k]=mDataRow[i];
+	  k++; i++;
+	}
+	nrfreq=atoi(helpChar);
+	for (int l=0;l<=k;l++)
+	  helpChar[l]=0;
+      }
+      else if (mDataRow[0]=='L'){
+	i=2; k=0;
+	while(mDataRow){
+	  if (mDataRow[i]=='/')
+	    break;
+	  helpChar[k]=mDataRow[i];
+	  k++; i++;
+	}
+	startfreq=atof(helpChar);
+	for (int l=0;l<=k;l++)
+	  helpChar[l]=0;
+      }
+      else if (mDataRow[0]=='R'){
+	i=2; k=0;
+	while(mDataRow){
+	  if (mDataRow[i]=='/')
+	    break;
+	  helpChar[k]=mDataRow[i];
+	  k++; i++;
+	}
+	stopfreq=atof(helpChar);
+	for (int l=0;l<=k;l++)
+	  helpChar[l]=0;
+      }
       else if (mDataRow[0]=='C'){
 	i=2; k=0;
 	while(mDataRow){
@@ -867,6 +953,18 @@ if (CalcImpedanceCurve == 1){
 	for (int l=0;l<=k;l++)
 	  helpChar[l]=0;
       }
+      else if (mDataRow[0]=='M'){
+	i=2; k=0;
+	while(mDataRow){
+	  if (mDataRow[i]=='/')
+	    break;
+	  helpChar[k]=mDataRow[i];
+	  k++; i++;
+	}
+	whichNewtonCG=atoi(helpChar); 
+	for (int l=0;l<=k;l++)
+	  helpChar[l]=0;
+      }
       else if (mDataRow[0]=='N'){
 	i=2; k=0;
 	while(mDataRow){
@@ -876,6 +974,18 @@ if (CalcImpedanceCurve == 1){
 	  k++; i++;
 	}
 	whichNorm=atoi(helpChar); 
+	for (int l=0;l<=k;l++)
+	  helpChar[l]=0;
+      }
+      else if (mDataRow[0]=='r'){
+	i=2; k=0;
+	while(mDataRow){
+	  if (mDataRow[i]=='/')
+	    break;
+	  helpChar[k]=mDataRow[i];
+	  k++; i++;
+	}
+	relaxParameter=atof(helpChar); 
 	for (int l=0;l<=k;l++)
 	  helpChar[l]=0;
       }
@@ -909,7 +1019,8 @@ if (CalcImpedanceCurve == 1){
   //! Updates material data & updates system matrices!!
   void piezoParamIdent::updateMaterialData(Vector<Double> & parameter, MaterialData * ptMaterial){
     ENTER_FCN("piezoParamIdent::updateMaterialData");    
-    //  std::cout<<"updateMaterialData"<<std::endl;
+    // std::cout<<"updateMaterialData"<<std::endl;
+      // std::cout<<parameter<<std::endl;
 
     ptMaterial->SetPiezoMatrixData(0,0, parameter[0]);
     ptMaterial->SetPiezoMatrixData(1,1, parameter[0]);
@@ -922,7 +1033,8 @@ if (CalcImpedanceCurve == 1){
     ptMaterial->SetPiezoMatrixData(2,1, parameter[3]);
     ptMaterial->SetPiezoMatrixData(3,3, parameter[4]);
     ptMaterial->SetPiezoMatrixData(4,4, parameter[4]);
-    ptMaterial->SetPiezoMatrixData(5,5, 0.5*(parameter[0]-parameter[2]));
+    // std::cout<<"updateMaterialData Set Data 44"<<std::endl;
+     ptMaterial->SetPiezoMatrixData(5,5, 0.5*(parameter[0]-parameter[2]));
     ptMaterial->SetPiezoMatrixData(6,4, parameter[5]);
     ptMaterial->SetPiezoMatrixData(7,3, parameter[5]);
     ptMaterial->SetPiezoMatrixData(4,6, parameter[5]);
@@ -937,11 +1049,18 @@ if (CalcImpedanceCurve == 1){
     ptMaterial->SetPiezoMatrixData(7,7, parameter[8]);
     ptMaterial->SetPiezoMatrixData(8,8, parameter[9]);
 
+    ptAssemble = pdes_[0]->getPDE_assemble();
+    ptAssemble->SetAlternatingMaterial(TRUE);
+    ptAssemble->SetMaterialPointer(ptMaterial);
+
+    //std::cout<<"\n Material in piezoParamIdent::updateMaterialData: " << ptMaterial<< std::endl;
+
+   
   } // end updateMaterialData
 
  void piezoParamIdent::updateComplexMaterialData(Vector<Double> & parameterC, MaterialData * ptMaterial){
     ENTER_FCN("piezoParamIdent::updateComplexMaterialData");    
-    std::cout<<"updateComplexMaterialData"<<std::endl;
+    //    std::cout<<"updateComplexMaterialData"<<std::endl;
 
     ptMaterial->SetPiezoMatrixDataC(0,0, parameterC[0]);
     ptMaterial->SetPiezoMatrixDataC(1,1, parameterC[0]);
@@ -977,20 +1096,21 @@ if (CalcImpedanceCurve == 1){
     //    piezoMaterialType pMatType = imagMaterialParameter;
     //intDescript->SetPiezoMaterialType(pMatType);
 
-
-
-    std::cout<<"\n From now on we calculate with complex material Data " << std::endl;
+    //  std::cout<<"\n From now on we calculate with complex material Data " << std::endl;
 
   } // end updateMaterialData
 
-  void piezoParamIdent::setNewParameterSet(Vector<Double> & parameter,Vector<Double> &  parameter_new,Vector<Double> & scaling,Double & theta,Vector<Complex> & step, Vector<Integer> & whichParameterToUpdate){
-
+  void piezoParamIdent::setNewParameterSet(Vector<Double> & par,Vector<Double> &  par_new,Vector<Double> & scaling,Double & theta,Vector<Double> & uStep, Vector<Integer> & whichParameterToUpdate){
+    Integer helpInd=0;
     for (Integer i=0;i<nrParameter;i++){
       std::cout<<whichParameterToUpdate[i]<<", ";
-      if (whichParameterToUpdate[i]==1)
-	parameter_new[i]=parameter[i]+(1.0/scaling[i])*theta*step[i].real(); 
+      if (whichParameterToUpdate[i]==1){
+	par_new[i]=par[i]+(1.0/scaling[i])*theta*uStep[helpInd];
+	helpInd++;
+      }
     }
     std::cout<<"\n-----------------------------"<<std::endl;
+    //    getchar();
 
 
   } // end setNewParameterSet

@@ -440,8 +440,12 @@ namespace CoupledField
 
     /// set actual calculation level
     void SetLevel(Integer alevel){actlevel_ = alevel;};
-    
 
+    void SetMaterialPointer(MaterialData * ptMat){ptMaterial_ = ptMat;};    
+
+    void SetAlternatingMaterial(Boolean boolVar){alternateMaterialData_=boolVar;};
+
+    
     /// sets the pointer to the BCs
     void SetPtrBCs(BCs* aptBCs) { ptBCs_ = aptBCs;}      
 
@@ -535,6 +539,8 @@ namespace CoupledField
     BCs *ptBCs_;                       //!< pointer to Boundary Condition  Object
 
     Integer actlevel_;                 //!< actual level of calculation
+
+    MaterialData * ptMaterial_;              //!< pointer to material
     
     
     /// vector of all needed integrators (every subdomain needs one "list of integrators")
@@ -563,6 +569,9 @@ namespace CoupledField
     Integer nrMatrices_;
     StdVector<Boolean> reassembleMat_;
     Boolean nonLinGeo;
+
+    //! Default = FALSE, if content of ptMaterial changes, set TRUE
+    Boolean alternateMaterialData_;
 
     Double actFreq_; //!< contains the frequency multiplied by 2*pi
 

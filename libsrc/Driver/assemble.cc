@@ -38,6 +38,7 @@ Assemble::Assemble(BaseSystem * algsys, Grid * aptgrid)
   // reassembleMat_.resize(nrMatrices_);
   nonLinGeo = FALSE;
   deltaCoords_ = NULL;
+  alternateMaterialData_=FALSE;
 
 #ifdef USE_OLAS
   olasParams_ = algsys_->GetOLASParams();
@@ -157,6 +158,9 @@ void Assemble::AssembleMatrices(const Integer level)
 
 	for(Integer actInteg=0; actInteg < integrators_[actDom]->GetSize(); actInteg++) {
 	  IntegratorDescriptor * actDescriptor = (*integrators_[actDom])[actInteg];
+
+	  if (alternateMaterialData_ == TRUE)
+	    actDescriptor->GetIntegrator()->SetMaterial(ptMaterial_);
 	    	    
 	  // assemble only if nonlinear or first time
 	  if (reassembleMat_[actDescriptor->DestMat()] || firstTime_) {
@@ -191,7 +195,7 @@ void Assemble::AssembleMatrices(const Integer level)
 		  // this matrix is nonlinear and, therefore, has to be reassembled next time
 		  if ((oneIntIsNonlin_ || firstTime_ ) && analysisType_ != HARMONIC)
 			// fetch solution at element nodes
-			sol_->GetElemSolutionAsMatrix(elSol, connecth);
+		    sol_->GetElemSolutionAsMatrix(elSol, connecth);
 	    
 		  actDescriptor->GetIntegrator()->SetElemPtr(ptEl);
 #ifdef USE_OLAS
@@ -293,6 +297,7 @@ void Assemble::AssembleMatrices(const Integer level)
 		Matrix<Double> elSol;
 	      
 		// this matrix is nonlinear and, therefore, has to be reassembled next time
+
 		if (oneIntIsNonlin_ || firstTime_)
 		  // fetch solution at element nodes
 		  //GetSolOfElement(elSol, connect_PDE);
@@ -1584,7 +1589,7 @@ void  HarmonicAssemble::TransformMatrix2Harmonic(Vector<Double>& harmMat, Matrix
 
     if (matrixType == STIFFNESS)
       {
-	//	std::cout<<"real_stiff"<<std::endl;
+	// std::cout<<"real_stiff - actfreq: "<< actFreq_<<std::endl;
 	for (Integer row=0; row<numRow; row++)
 	  for (Integer col=0; col<numCol; col++) {
 	    harmMat[k] = origMat[row][col];
@@ -1595,6 +1600,7 @@ void  HarmonicAssemble::TransformMatrix2Harmonic(Vector<Double>& harmMat, Matrix
     else if (matrixType == MASS)
       {
 	//std::cout<<"real_mass"<<std::endl;
+
 	Double factor = -actFreq_*actFreq_;
 	for (Integer row=0; row<numRow; row++)
 	  for (Integer col=0; col<numCol; col++) {
@@ -1652,9 +1658,7 @@ void  HarmonicAssemble::TransformMatrix2Harmonic(Vector<Double>& harmMat, Matrix
 
 
 
-void  HarmonicAssemble::TransformVector2Harmonic(Vector<Double>& harmVec,
-												 Vector<Double> origVec,
-												 const Double valPhase)
+void  HarmonicAssemble::TransformVector2Harmonic(Vector<Double>& harmVec, Vector<Double> origVec, const Double valPhase)
 {
   ENTER_FCN( "HarmonicAssemble::TransformVector2Harmonic" );
 
@@ -1665,6 +1669,7 @@ void  HarmonicAssemble::TransformVector2Harmonic(Vector<Double>& harmVec,
   Double valImag = sin(valPhase);
 
   Integer k=0;
+  std::cout<<" HarmonicAssemble::TransformVector2Harmonic valPhase = " <<valPhase <<std::endl;
   //real part
   for (Integer i=0; i<size; i++) {
 	harmVec[k] = origVec[i]*valReal;

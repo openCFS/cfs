@@ -165,7 +165,6 @@ namespace CoupledField {
 
 	// check for complex-valued material parameter
 	if (piezoMaterialType_ == imagMaterialParameter){
-	  std::cout<<"\n We want to set complex-damping!!"<<std::endl;
 	  Boolean isdamping = TRUE;
 	  Boolean reducedIntegration = FALSE; //is currently not supported
 	  BaseForm * dampStiffC = GetStiffIntegrator( actSDMat,reducedIntegration,

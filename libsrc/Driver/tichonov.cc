@@ -75,6 +75,7 @@ namespace CoupledField
     Vector<Complex> basC;
     bas.Resize(nrParameter);
     basC.Resize(nrParameter);
+    Vector<Double> stepR(nrParameter);
 
     Matrix<Double> testA(3,3);
     Vector<Double> eigen(3);
@@ -102,7 +103,7 @@ namespace CoupledField
 
     Vector<Complex> step(nrParameter);
 
-    createF(ptMaterial, ptBCs, F_hat);
+    createF(ptMaterial, ptBCs, F_hat,TRUE);
 
     for (i=0; i<nrMeasuredData;i++)
       y_hat_F_hat[i]=y_hat[i]-F_hat[i];
@@ -120,7 +121,7 @@ namespace CoupledField
       scaling[i]=1.0;
 
       nrNewtonIterations++;
-      createF(ptMaterial, ptBCs, y_hat);
+      createF(ptMaterial, ptBCs, y_hat,FALSE);
 
       createJacobiMatrix2(JacobiMatrix);
 
@@ -206,7 +207,10 @@ namespace CoupledField
       scaling[8]=1.0/((*matMat)[6][6]); 
       scaling[9]=1.0/((*matMat)[8][8]);
       
-      setNewParameterSet(parameter, parameter_new, scaling, theta, s, whichParameterToUpdate);
+    for (Integer i=0;i<nrParameter;i++)
+      stepR[i]=s[i].real();
+
+      setNewParameterSet(parameter, parameter_new, scaling, theta, stepR, whichParameterToUpdate);
 
 // 	parameter_new[9]=parameter[9]+(1.0/scaling[9])*step[9].real();        // eps33
 // 	parameter_new[1]=parameter[1]+(1.0/scaling[1])*step[1].real(); // c33
@@ -215,7 +219,7 @@ namespace CoupledField
         std::cout<<"\n"<<std::endl;
 	updateMaterialData(parameter_new,ptMaterial);
 
-	createF(ptMaterial, ptBCs, F_hat);
+	createF(ptMaterial, ptBCs, F_hat,FALSE);
 	y_hat_F_hat=y_hat-F_hat;
 	//	misfit = realA2norm(y_hat_F_hat);
 	JacobiMatrix.Mult(step,JacFS);
@@ -242,7 +246,7 @@ namespace CoupledField
 
       updateMaterialData(parameter_new, ptMaterial);
 
-      createF(ptMaterial, ptBCs, F_hat);
+      createF(ptMaterial, ptBCs, F_hat,FALSE);
       y_hat_F_hat=y_hat-F_hat;
       misfit = realA2norm(y_hat_F_hat);
       parameter=parameter_new;

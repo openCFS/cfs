@@ -22,6 +22,7 @@ public:
   //! Constructor
   BaseForm(BaseFE * aptelem);
 
+
   //! Constructor
   BaseForm();
 
@@ -82,10 +83,10 @@ public:
   //! sets pointer to actual element
   void SetElemPtr(BaseFE * elemPtr){ptelem = elemPtr;};
 
-
   //! sets pointer to actual material
   void SetMaterial(MaterialData * matPtr){ptMaterial = matPtr;};
 
+  MaterialData * GetMaterial(){return ptMaterial;};
 
   //! sets actual element solution
   virtual void SetActElemSol(Matrix<Double>& disp)
