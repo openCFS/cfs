@@ -26,7 +26,7 @@ template<Integer dim>
 #ifndef XMLPARAMS
   conf->getsubdom(sd_);
 #else
-  params->GetList( "name", sd_, "domain", "subdom" );
+  params->GetList( "name", sd_, "domain", "region" );
 #endif
 
   elems_=new std::vector<Elem*>[sd_.size()];  

@@ -34,7 +34,7 @@ Grid::Grid(FileType * aptFileType)
 #ifndef XMLPARAMS
   conf->getsubdom(listSD_);
 #else
-  params->GetList( "name", listSD_, "domain", "subdom" );
+  params->GetList( "name", listSD_, "domain", "region" );
 #endif
 
 }

@@ -54,12 +54,18 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 	dofspernode_ = 2;
 	Info->PrintF("", "=== AXISYSMMETRIC PROBLEM\n");
       }
-    else
+    else if (subType_ == "plainStrain" )
       {
-	// default is planeStrain 
 	dofspernode_ = 2;
 	Info->PrintF("", "=== PLAIN STRAIN PROBLEM\n");
       }
+    else
+      {
+	std::string errmsg = "Subtype " + subType_ + " is not defined for";
+	errmsg += " PDEs of type " + pdename_ + '\n';
+	Info->Error( errmsg, __FILE__, __LINE__ );
+      }
+
 
 #ifndef XMLPARAMS
     conf->getsubdompde(subdoms_,pdename_);
@@ -166,8 +172,8 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
     conf->ifgetliststr("inhomoBCDof", inhomDirichDof_, pdename_);
     conf->ifgetliststr("inhomoBCdof", inhomDirichDof_, pdename_);
 #else
-    params->GetList( "dof", homDirichDof_  , pdename_, "dirichlet_hom" );  
-    params->GetList( "dof", inhomDirichDof_, pdename_, "dirichlet_inhom" );  
+    params->GetList( "dof", homDirichDof_  , pdename_, "dirichletHom" );  
+    params->GetList( "dof", inhomDirichDof_, pdename_, "dirichletInhom" );  
 #endif
 
     //check for b.c. input data
