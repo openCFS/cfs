@@ -20,6 +20,7 @@
 #include <AlgebraicSystem/abstractAlgSys.hh>
 #include <Driver/transientdriver.hh>
 #include <Driver/staticdriver.hh>
+#include <Driver/harmonicDriver.hh>
 
 #include <Domain/GridCFS/interface_gridcfs.hh>
 
@@ -68,11 +69,12 @@ Integer main(int argc, char *argv[])
 
   if (analysis=="static") 
     ptdriver = new StaticDriver(domain);
-  else  
-    {
+  else if (analysis=="transient") 
     ptdriver = new TransientDriver(domain);
-    //	ptTimeFunc = new TimeFunc(ptInputfile);
-    }
+  else if (analysis=="harmonic")
+    ptdriver = new HarmonicDriver(domain);
+  else
+    Error("Driver not supported",__FILE__,__LINE__);
 
   //solve your problem
   std::string adaptTimeOn, adaptSpaceOn;
@@ -92,11 +94,12 @@ Integer main(int argc, char *argv[])
 
   oClockTotal.ClockCount(MyClock::end,"Total time");
 
-  /// Putzen
+
+  //delete objects
   if (ptdriver) delete ptdriver;
   if (ptTimeFunc) delete ptTimeFunc;
-  if (domain) delete domain;
+  //  if (domain) delete domain;
   if (ptDefineFiles) delete ptDefineFiles; // it should be deleted the last
 
-    return 0;
+  return 0;
 }

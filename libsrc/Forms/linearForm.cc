@@ -112,7 +112,6 @@ namespace CoupledField
 
 	    len = L2Norm(currentVec);
 	    currentVec *= val_ / len;
-	    
 	    break;
 
 	  case 5: // current in yz-plane ==> x=0
