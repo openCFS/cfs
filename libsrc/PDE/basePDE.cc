@@ -772,7 +772,7 @@ void BasePDE::SetSolverParameters()
       break;
     case 9:
        Error("The specified solver in the config file is not implemented in OLAS",__FILE__,__LINE__);
-      break;
+       break;
     case 10:
       Error("The specified solver in the config file is not implemented in OLAS",__FILE__,__LINE__);
       break;
@@ -994,11 +994,12 @@ void BasePDE::CalcInputCoupling()
 	    for (Integer dof=0; dof<ptCoupling_->GetInputDof(i); dof++)
 	      {
 		//std::cerr << "processing dim = " << dim << ", j = " << j << std::endl;
-		PDEnode = mesh2PDENode_[(*nodes)[j]-1]-1;
+		PDEnode = mesh2PDENode_[(*nodes)[j]-1];
 		if (PDEnode==-1)
-		  Error("Node not assigned to coupling domain: see mesh- and config-file",__FILE__,__LINE__);
+		  Error("Coupling node not in my subdomains. See mesh- and config-file for errors",
+			__FILE__,__LINE__);
 		
-		deltCoords_(dof,PDEnode) = help[dof + j*dim_];
+		deltCoords_(dof,PDEnode-1) = help[dof + j*dim_];
 	      }
 	  
 	  break;
