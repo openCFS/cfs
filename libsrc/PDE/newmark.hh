@@ -91,11 +91,8 @@ public:
   //! compute parameters for multiplication
   void CalcParameters(Double dt);
 
-  //! store solution to solution array (especially for effective mass formulation)
-  virtual const void StoreSolution(Vector<Double> & solArr) const;
-
   //! Dirichlet boundary condition has to be adapted
-  Double DirichletBC4EffMassMatrix(Integer node, Double val);
+  Double DirichletBC4EffMassMatrix(Double val, Integer eq);
 
   //! set the time step
   void SetTimeStep(Double dt) 

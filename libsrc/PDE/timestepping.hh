@@ -55,10 +55,6 @@ public:
   //! return pointer to vector with second derivative of solution
   virtual const Vector<Double>& GetDeriv2() const { return solderiv2_;}
 
-  //! store solution to solution array (especially for effective mass formulation)
-  virtual void StoreSolution(NodeStoreSol<Double> & solArr) const
-  {Error("Not implemented in base class!", __FILE__, __LINE__);};
-
   NodeEQN * getNodeEQN(){return ptEQN_;};
 
   //! set the time step
@@ -73,6 +69,10 @@ public:
   virtual Double GetNewmarkBeta()
   {;};
 
+ //! Dirichlet boundary condition has to be adapted
+  virtual Double DirichletBC4EffMassMatrix(Double val, Integer eq) {
+    Error("DirichletBC4EffMassMatrix not implemented");
+  }
 
 protected:
 

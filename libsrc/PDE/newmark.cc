@@ -241,9 +241,15 @@ void NewmarkEffMass::Corrector(Vector<Double>& aNew)
 {
   ENTER_FCN( "NewmarkEffMass::Corrector" );
 
+  // after solving the algebraic system of equation, we obtain as solution
+  // the 2nd time derivative: aNew .. 2nd second time derivative
   sol_ = solpred_ + aNew * a2_;
   solderiv1_ = solderiv1pred_ + aNew*a3_;
   solderiv2_ = aNew;
+
+  //now overwrite the solution with the physical quantity itself
+  aNew = sol_;
+
 #ifdef DEBUG
   (*debug) << "Corrector:\n";
   (*debug) << "sol: \n" << sol_ << std::endl;
@@ -285,23 +291,13 @@ void NewmarkEffMass::CalcParameters(Double dt)
   
 }
 
-void const NewmarkEffMass::StoreSolution(Vector<Double> & solArr) const
-{
-  ENTER_FCN( "NewmarkEffMass::CalcParameters" );
-
-  solArr = sol_; 
-}
-
-Double NewmarkEffMass::DirichletBC4EffMassMatrix(Integer node, Double val)
+Double NewmarkEffMass::DirichletBC4EffMassMatrix(Double val, Integer eq)
 {
   ENTER_FCN( "NewmarkEffMass::DirichletBC4EffMassMatrix" );
 
   Double accval;
 
-  std::cout << " val_dis:" << val << " solpred: " << solpred_[node] << std::endl;
-  accval = a2_*(val- solpred_[node]);
-  std::cout << " val_acc:" << accval << std::endl;
-  
+  accval = (val- solpred_[eq-1]) / a2_;
   return accval;
 }
 
