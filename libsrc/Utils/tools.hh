@@ -17,12 +17,12 @@ namespace CoupledField {
   //! This function can be used to issue an error message and terminate
   //! execution of the program. In fact this method is only a shortcut for
   //! calling the Error() method of the WriteInfo class.
-  //! \param Text     text of the error message
-  //! \param filename another text string. This is intended to contain the
+  //! \param Text     Text of the error message
+  //! \param filename This is intended to contain the
   //!                 name of the module/file in which the error occured. The
   //!                 __FILE__ macro should be inserted in the call. The
   //!                 argument is optional.
-  //! \param numline  another text string. This is intended to contain the
+  //! \param numline  This is intended to contain the
   //!                 number of the code line of the module/file in which the
   //!                 error occured. The __LINE__ macro should be inserted in
   //!                 the call. The argument is optional.
@@ -30,22 +30,63 @@ namespace CoupledField {
 	      const Integer numline = 0 );
 
 
-  //! Function for issuing an warning message, will not terminate the program
+  //! Function for issuing an error message and terminating program execution.
 
   //! This function can be used to issue an error message and terminate
-  //! execution of the program. In fact this method is only a shortcut for
-  //! calling the Warning() method of the WriteInfo class.
-  //! \param Text     text of the warning message
-  //! \param filename another text string. This is intended to contain the
+  //! execution of the program. This variant of Error() obtains the error
+  //! message from the global <b>(*error)</b> string stream. As in the
+  //! other Error() variant the actual work is delegated to WriteInfo::Error().
+  //! Apropriate usage of this function looks like this
+  //! \code
+  //! (*error) << "Cannot open file '" << fname << "' for reading";
+  //! Error( __FILE__, __LINE__ );
+  //! \endcode
+  //! \param filename This is intended to contain the
+  //!                 name of the module/file in which the error occured. The
+  //!                 __FILE__ macro should be inserted in the call.
+  //! \param numline  This is intended to contain the
+  //!                 number of the code line of the module/file in which the
+  //!                 error occured. The __LINE__ macro should be inserted in
+  //!                 the call.
+  void Error( const Char *const filename, const Integer numline );
+
+
+  //! Function for issuing an warning message, will not terminate the program
+
+  //! This function can be used to issue a warning message. It is actually
+  //! only a shortcut for calling the Warning() method of the WriteInfo class.
+  //! \param Text     Text of the warning message
+  //! \param filename This is intended to contain the
   //!                 name of the module/file in which the problem occured. The
   //!                 __FILE__ macro should be inserted in the call. The
   //!                 argument is optional.
-  //! \param numline  another text string. This is intended to contain the
+  //! \param numline  This is intended to contain the
   //!                 number of the code line of the module/file in which the
   //!                 problem occured. The __LINE__ macro should be inserted in
   //!                 the call. The argument is optional.
-  void Warning( const Char * Text, const Char * const filename = NULL,
+  void Warning( const Char* Text, const Char* const filename = NULL,
 		const Integer numline = 0 );
+
+
+  //! Function for issuing an warning message, will not terminate the program
+
+  //! This function can be used to issue a warning message. This variant of
+  //! Warning() obtains the warning message from the global <b>(*warning)</b>
+  //! string stream. As in the other Warning() variant the actual work is
+  //! delegated to WriteInfo::Warning().
+  //! Apropriate usage of this function looks like this
+  //! \code
+  //! (*warning) << "Index k ='" << k << "' already treated!";
+  //! Warning( __FILE__, __LINE__ );
+  //! \endcode
+  //! \param filename this is intended to contain the
+  //!                 name of the module/file in which the problem occured. The
+  //!                 __FILE__ macro should be inserted in the call.
+  //! \param numline  This is intended to contain the
+  //!                 number of the code line of the module/file in which the
+  //!                 problem occured. The __LINE__ macro should be inserted in
+  //!                 the call.
+  void Warning( const Char *const filename, const Integer numline );
 
 
   //! Function for splitting a string into a vector of single entries

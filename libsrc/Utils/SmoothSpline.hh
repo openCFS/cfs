@@ -6,6 +6,9 @@
 
 namespace CoupledField {
 
+  //! \todo Replace C Arrays in constructor
+  //! by normal vectors and improve error robustness,
+  //! if position gets out of range
 class SmoothSpline : public ApproxData
 {
 public:

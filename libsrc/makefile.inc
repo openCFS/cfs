@@ -29,11 +29,7 @@ endif
 #
 .SUFFIXES: .f .cc .cpp .o
 .cc.o:
-	$(CC) $(CFLAGS1) $(CFLAGS2) $(CFLAGS3) $(CFLAGSMpCCI) $(CFLAGSPETS) $(OLAS) $(TRACEFLAGS) $(INCL) $(INCLAdaptGrid) $(INCLMpCCI) $(INCLDATABASE) $< 
-
-.cpp.o:
-	$(CC) $(CFLAGS1) $(CFLAGS2) $(CFLAGS3) $(CFLAGSMpCCI) $(CFLAGSPETS) $(OLAS) $(TRACEFLAGS) $(INCL) $(INCLAdaptGrid) $(INCLMpCCI) $(INCLDATABASE) $<
-
+	$(CC) -c -I$(LIBSRC_DIR) $(CFLAGS_GLOBAL) $(CFLAGS_MACHINE) $< 
 
 #
 libgoal: $(LIB_DIR) $(LIBB)
@@ -71,11 +67,11 @@ make-include: $(src:.cc=.hh) $(src_h)
 ######### Make depend 
 #
 depend:
-	@touch $(Dependencies)
-	@makedepend $(INCL) -f$(Dependencies) $(FlagMakeDepend) $(src)
+	@touch $(DEPEND_FILE)
+	@makedepend -I$(LIBSRC_DIR) -f$(DEPEND_FILE) $(DEPEND_FILE) $(src)
 
 clean-depend:
-	@rm -rf $(Dependencies)
-	@rm -rf $(Dependencies).bak
+	@rm -f $(DEPEND_FILE)
+	@rm -f $(DEPEND_FILE).bak
 
 # DO NOT DELETE THIS LINE -- make depend depends on it

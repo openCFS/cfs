@@ -182,7 +182,7 @@ private:
   Integer GetInteger(std::string seekexp);
 
   //! tests the next line for emptyness
-  //! \para actPos last position of file pointer before next line
+  //! \param actPos last position of file pointer before next line
   Boolean IsNextLineEmpty(std::string::size_type actPos);
   
   //! get position after line with seekexp and comments lines

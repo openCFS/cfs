@@ -9,5 +9,5 @@ libpath = libsrc/Matrix
 CFLAGS3 =
 #
 include ../makefile.inc
--include $(Dependencies)
+-include $(DEPEND_FILE)
 

@@ -64,16 +64,9 @@ void BlockNodeEQN::CalcMapping()
   //
   // Therefore both pdeNode2EQN has the same size
   // as number of PDE nodes.
-  // Furthermore, eqn2Pos has the length of
-  // total number of equations, which is the total
-  // number of pdenodes minus the number of hom.
-  // Dirichlet nodes - the number of constraintNodes
   std::string warnMsg, errMsg;
   pdeNode2EQN_.Clear();
-  eqn2Pos_.Clear();
   pdeNode2EQN_.Resize(numPDENodes_);
-  StdVector<Integer> eqn2Pos_Temp;
-  eqn2Pos_Temp.Reserve(numPDENodes_ * dofsPerNode_);
 
   // STEP 2
   // Check if there exist nodes, which only have
@@ -150,8 +143,6 @@ void BlockNodeEQN::CalcMapping()
 	eqnCounter ++;
 	pdeNode2EQN_[i] = eqnCounter;
 	//std::cerr << "Pushing back" << (pde2MeshNode_[eqnCounter-1]-1)*dofsPerNode_ << std::endl;
-	for (Integer iDof=0; iDof<dofsPerNode_; iDof++)
-	  eqn2Pos_Temp.Push_back((pde2MeshNode_[i]-1)* dofsPerNode_ + iDof);
       }	
   
   
@@ -170,8 +161,6 @@ void BlockNodeEQN::CalcMapping()
   numDirichletDofsPerNode.Clear();
   numConstraintDofsPerNode.Clear();
   masterNodes.Clear();
-  eqn2Pos_ = eqn2Pos_Temp;
-  eqn2Pos_Temp.Clear();
   isInitialized_ = TRUE;
   numEqns_ = eqnCounter;
 }
@@ -203,13 +192,6 @@ void BlockNodeEQN::Print(std::ostream & out) const
     }
 }
 
-
-void BlockNodeEQN::EQN2SolVectorPos(const StdVector<Integer> &eqnNr, 
-				     StdVector<Integer> &pos) const
-{
-  ENTER_FCN( "BlockNodeEQN::EQN2SolVectorPos" );
-  Error( "Not implemented",__FILE__, __LINE__ );
-}
 
 void BlockNodeEQN::Node2EQN(const Integer nodeNr, 
 			    const Integer dof,
@@ -243,5 +225,24 @@ void BlockNodeEQN::Node2EQN(const StdVector<Integer> &nodeNr,
   for (Integer i=0; i<nodeNr.GetSize(); i++)
        eqnNr[i] =  pdeNode2EQN_[mesh2PDENode_[nodeNr[i]-1]-1];
 }
+
+  // ==========================================
+  //   Equation mapping according to reordering
+  // ==========================================
+  void BlockNodeEQN::ReorderMapping(Integer *order) {
+
+    ENTER_FCN( "BlockNodeEQN::ReorderMapping" );
+
+    for ( Integer i = 0; i < pdeNode2EQN_.GetSize(); i++ ) {
+      if ( pdeNode2EQN_[i] > 0 ) {
+	pdeNode2EQN_[i] = order[pdeNode2EQN_[i]-1];
+      }
+      else if(pdeNode2EQN_[i] < 0 ) {
+	//due to constraints
+	pdeNode2EQN_[i] = -order[-pdeNode2EQN_[i]-1];	
+      }
+    }
+  }
+
 
 } // end of namespace

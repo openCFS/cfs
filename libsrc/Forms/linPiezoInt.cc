@@ -1,10 +1,11 @@
 #include <iostream>
 #include <fstream>
 
+#include "General/environment.hh"
+#include "DataInOut/ParamHandling/BaseParamHandler.hh"
 #include "linPiezoInt.hh"
 
-namespace CoupledField
-{
+namespace CoupledField {
 
   // ========================================================================
   // ========================= linPiezoInt - Part ===========================
@@ -13,7 +14,7 @@ namespace CoupledField
 
   // determine the matrix B of the BDB operator
   void linPiezoInt::calcBMat( Matrix<Double> &bMat, Integer ip,
-			      Matrix<Double> &ptCoord ) {
+                              Matrix<Double> &ptCoord ) {
 
     ENTER_FCN( "linPiezoInt::calcBMat" );
 
@@ -41,51 +42,51 @@ namespace CoupledField
     // treat mechanical part (same as in linElastInt)
     for(actDim=0; actDim < spaceDim; actDim++)
       for(actNode=0; actNode < nrNodes; actNode++)
-	bMat[actDim][actNode * offset + actDim] = xiDx[actNode][actDim];    
+        bMat[actDim][actNode * offset + actDim] = xiDx[actNode][actDim];    
     switch(spaceDim)
       {
       case 2:
-	for ( actNode = 0; actNode < nrNodes; actNode++ )
-	  {
-	    bMat[spaceDim][actNode * offset + 1] = xiDx[actNode][0];
-	    bMat[spaceDim][actNode * offset + 0] = xiDx[actNode][1];
-	  }
-	break;
+        for ( actNode = 0; actNode < nrNodes; actNode++ )
+          {
+            bMat[spaceDim][actNode * offset + 1] = xiDx[actNode][0];
+            bMat[spaceDim][actNode * offset + 0] = xiDx[actNode][1];
+          }
+        break;
 
 
       case 3:
-	actDim = spaceDim;
-	for ( actNode = 0; actNode < nrNodes; actNode++ )
-	  {
-	    bMat[actDim][actNode * offset + 1] = xiDx[actNode][2];
-	    bMat[actDim][actNode * offset + 2] = xiDx[actNode][1];
-	  }
+        actDim = spaceDim;
+        for ( actNode = 0; actNode < nrNodes; actNode++ )
+          {
+            bMat[actDim][actNode * offset + 1] = xiDx[actNode][2];
+            bMat[actDim][actNode * offset + 2] = xiDx[actNode][1];
+          }
 
-	actDim++;
-	for ( actNode = 0; actNode < nrNodes; actNode++ )
-	  {
-	    bMat[actDim][actNode * offset    ] = xiDx[actNode][2];
-	    bMat[actDim][actNode * offset + 2] = xiDx[actNode][0];
-	  }
+        actDim++;
+        for ( actNode = 0; actNode < nrNodes; actNode++ )
+          {
+            bMat[actDim][actNode * offset    ] = xiDx[actNode][2];
+            bMat[actDim][actNode * offset + 2] = xiDx[actNode][0];
+          }
 
-	actDim++;
-	for (actNode = 0; actNode < nrNodes; actNode++)
-	  {
-	    bMat[actDim][actNode * offset    ] = xiDx[actNode][1];
-	    bMat[actDim][actNode * offset + 1] = xiDx[actNode][0];
-	  }
-	break;
+        actDim++;
+        for (actNode = 0; actNode < nrNodes; actNode++)
+          {
+            bMat[actDim][actNode * offset    ] = xiDx[actNode][1];
+            bMat[actDim][actNode * offset + 1] = xiDx[actNode][0];
+          }
+        break;
       }
 
     // treat electrical part
     for( actDim = 0; actDim < spaceDim; actDim++ )
       for( actNode = 0; actNode < nrNodes; actNode++ )
-	bMat[2*spaceDim+actDim][(actNode+1)*offset-1] = 
-	  xiDx[actNode][actDim];
+        bMat[2*spaceDim+actDim][(actNode+1)*offset-1] = 
+          xiDx[actNode][actDim];
 
 #ifdef DEBUG
     //    (*debug) << std::endl << " Matrix bMat is " << bMat.GetSizeRow()
-    //	     << " x " << bMat.GetSizeCol() << std::endl;
+    //       << " x " << bMat.GetSizeCol() << std::endl;
     //    (*debug) << bMat << std::endl;
 #endif
 
@@ -107,25 +108,25 @@ namespace CoupledField
     switch(actOrientation)
       {
       case xy:
-	{
-	  rowPtr=rowPtrXY;
-	  break;
-	}
+        {
+          rowPtr=rowPtrXY;
+          break;
+        }
       case yz:
-	{
-	  rowPtr=rowPtrYZ;
-	  break;
-	}
+        {
+          rowPtr=rowPtrYZ;
+          break;
+        }
       case xz:
-	{
-	  rowPtr=rowPtrXZ;
-	  break;
-	}
-      default:	//if no orientation was specified
-	{
-	  rowPtr=rowPtrYZ;
-	  break;
-	}
+        {
+          rowPtr=rowPtrXZ;
+          break;
+        }
+      default:  //if no orientation was specified
+        {
+          rowPtr=rowPtrYZ;
+          break;
+        }
       }
 
     // set the material matrix
@@ -145,17 +146,17 @@ namespace CoupledField
 
       // Copy entries from material matrix object into D matrix
       for ( Integer i = 0; i < sizeofD; i++ ) {
-	for ( Integer j = 0; j < sizeofD; j++ ) {
-	  dMat[i][j] = (*matMatrix)[rowPtr[i]-1][rowPtr[j]-1];
-	}
+        for ( Integer j = 0; j < sizeofD; j++ ) {
+          dMat[i][j] = (*matMatrix)[rowPtr[i]-1][rowPtr[j]-1];
+        }
       }
 
       // multiply values of permittivity with -1 to obtain the correct
       // bilinearform
-      for ( Integer i = sizeofD-2; i < sizeofD; i++ ) {
-	for ( Integer j = sizeofD-2; j < sizeofD; j++ ) {
-	  dMat[i][j] *= -1.0;
-	}
+      for ( Integer i = sizeofD - 2; i < sizeofD; i++ ) {
+        for ( Integer j = sizeofD - 2; j < sizeofD; j++ ) {
+          dMat[i][j] *= -1.0;
+        }
       }
     }
 
@@ -181,10 +182,36 @@ namespace CoupledField
       Double beta = ptMaterial->GetDampingBeta();
 
       for( Integer i = 0; i < sizeofD - 2; i++ ) {
-	for ( Integer j = 0; j < sizeofD - 2; j++ ) {
-	  dMat[i][j] = (*matMatrix)[i][j] * beta;
-	}
+        for ( Integer j = 0; j < sizeofD - 2; j++ ) {
+          dMat[i][j] = (*matMatrix)[i][j] * beta;
+        }
       }
+    }
+
+    // If desired, try to equilibrate the material parameters
+    std::string equilibrate;
+    params->Get( "equilibrate", equilibrate, "piezo" );
+    if ( equilibrate == "yes" ) {
+
+#ifdef DEBUG_LINPIEZOINT
+      (*debug) << "CalcPlaneStrainMaterialMat uses equilibrated material "
+	       << "parameters" << std::endl;
+#endif
+
+      // Scale mechanical parameters by 10^{-10}
+      for( Integer i = 0; i < sizeofD - 2; i++ ) {
+        for ( Integer j = 0; j < sizeofD - 2; j++ ) {
+          dMat[i][j] *= 1e-10;
+        }
+      }
+
+      // Scale electrical parameters by 10^{+10}
+      for( Integer i = sizeofD - 2; i < sizeofD; i++ ) {
+        for ( Integer j = sizeofD - 2; j < sizeofD; j++ ) {
+          dMat[i][j] *= 1e+10;
+        }
+      }
+
     }
   }
 
@@ -199,29 +226,29 @@ namespace CoupledField
     Integer rowPtrXY[]={1,2,6,3,7,8};
     Integer rowPtrYZ[]={2,3,4,1,8,9};
     Integer rowPtrXZ[]={1,3,5,2,7,9};
-    Integer * rowPtr; 	//alte Version
+    Integer * rowPtr;   //alte Version
 
     switch(actOrientation) {
 
     case xy:
       {
-	rowPtr = rowPtrXY;
-	break;
+        rowPtr = rowPtrXY;
+        break;
       }
     case yz:
       {
-	rowPtr = rowPtrYZ;
-	break;
+        rowPtr = rowPtrYZ;
+        break;
       }
     case xz:
       {
-	rowPtr = rowPtrXZ;
-	break;
+        rowPtr = rowPtrXZ;
+        break;
       }
-    default:	//if no orientation was specified
+    default:    //if no orientation was specified
       {
-	rowPtr = rowPtrYZ;
-	break;
+        rowPtr = rowPtrYZ;
+        break;
       }
     }
 
@@ -244,17 +271,17 @@ namespace CoupledField
 
       // Copy entries from material matrix object into D matrix
       for ( Integer i = 0; i < sizeofD; i++ ) {
-	for( Integer j = 0; j < sizeofD; j++ ) {
-	  dMat[i][j] = (*matMatrix)[rowPtr[i]-1][rowPtr[j]-1];
-	}
+        for( Integer j = 0; j < sizeofD; j++ ) {
+          dMat[i][j] = (*matMatrix)[rowPtr[i]-1][rowPtr[j]-1];
+        }
       }
 
       // Multiply values of permittivity with -1 to obtain the
       // correct bilinearform
-      for ( Integer i = sizeofD-2; i < sizeofD; i++ ) {
-	for ( Integer j = sizeofD-2; j < sizeofD; j++ ) {
-	  dMat[i][j] *= -1.0;
-	}
+      for ( Integer i = sizeofD - 2; i < sizeofD; i++ ) {
+        for ( Integer j = sizeofD - 2; j < sizeofD; j++ ) {
+          dMat[i][j] *= -1.0;
+        }
       }
     }
     
@@ -274,11 +301,37 @@ namespace CoupledField
 	matMatrix = ptMaterial->GetMatrixC();
 
       Double beta = ptMaterial->GetDampingBeta();
-      for( Integer i = 0; i < sizeofD-2; i++ ) {
-	for ( Integer j = 0; j < sizeofD-2; j++ ) {
-	  dMat[i][j] = (*matMatrix)[i][j] * beta;
-	}
+      for( Integer i = 0; i < sizeofD - 2; i++ ) {
+        for ( Integer j = 0; j < sizeofD - 2; j++ ) {
+          dMat[i][j] = (*matMatrix)[i][j] * beta;
+        }
       }
+    }
+
+    // If desired, try to equilibrate the material parameters
+    std::string equilibrate;
+    params->Get( "equilibrate", equilibrate, "piezo" );
+    if ( equilibrate == "yes" ) {
+
+#ifdef DEBUG_LINPIEZOINT
+      (*debug) << "CalcAxiMaterialMat uses equilibrated material parameters"
+	       << std::endl;
+#endif
+
+      // Scale mechanical parameters by 10^{-10}
+      for( Integer i = 0; i < sizeofD - 2; i++ ) {
+        for ( Integer j = 0; j < sizeofD - 2; j++ ) {
+          dMat[i][j] *= 1e-10;
+        }
+      }
+
+      // Scale electrical parameters by 10^{+10}
+      for( Integer i = sizeofD - 2; i < sizeofD; i++ ) {
+        for ( Integer j = sizeofD - 2; j < sizeofD; j++ ) {
+          dMat[i][j] *= 1e+10;
+        }
+      }
+
     }
   }
   
@@ -307,17 +360,17 @@ namespace CoupledField
 	matMatrix = ptMaterial->GetMatrixC();
       
       for( Integer i = 0; i < sizeofD; i++ ) {
-	for ( Integer j = 0; j < sizeofD; j++ ) {
-	  dMat[i][j] = (*matMatrix)[i][j];
-	}
+        for ( Integer j = 0; j < sizeofD; j++ ) {
+          dMat[i][j] = (*matMatrix)[i][j];
+        }
       }
 
       // Multiply values of permittivity with -1 to obtain the correct
       // bilinear form
       for ( Integer i = sizeofD - 3; i < sizeofD; i++ ) {
-	for ( Integer j = sizeofD - 3; j <sizeofD; j++ ) {
-	  dMat[i][j] *= -1.0;
-	}
+        for ( Integer j = sizeofD - 3; j <sizeofD; j++ ) {
+          dMat[i][j] *= -1.0;
+        }
       }
     }
 
@@ -337,11 +390,42 @@ namespace CoupledField
 
       Double beta = ptMaterial->GetDampingBeta();
       for( Integer i = 0; i < sizeofD - 3; i++ ) {
-	for ( Integer j = 0; j < sizeofD - 3; j++ ) {
-	  dMat[i][j] = (*matMatrix)[i][j] * beta;
-	}
+        for ( Integer j = 0; j < sizeofD - 3; j++ ) {
+          dMat[i][j] = (*matMatrix)[i][j] * beta;
+        }
       }
     }
+
+    // If desired, try to equilibrate the material parameters
+    std::string equilibrate;
+    params->Get( "equilibrate", equilibrate, "piezo" );
+    if ( equilibrate == "yes" ) {
+
+#ifdef DEBUG_LINPIEZOINT
+      (*debug) << "Calc3DMaterialMat uses equilibrated material parameters"
+	       << std::endl;
+#endif
+
+      // Scale mechanical parameters by 10^{-10}
+      for( Integer i = 0; i < sizeofD - 3; i++ ) {
+        for ( Integer j = 0; j < sizeofD - 3; j++ ) {
+          dMat[i][j] *= 1e-10;
+        }
+      }
+
+      // Scale electrical parameters by 10^{+10}
+      for( Integer i = sizeofD - 3; i < sizeofD; i++ ) {
+        for ( Integer j = sizeofD - 3; j < sizeofD; j++ ) {
+          dMat[i][j] *= 1e+10;
+        }
+      }
+
+    }
+
+#ifdef DEBUG_LINPIEZOINT
+    (*debug) << std::endl << " Matrix dMat:\n" << dMat << std::endl;
+#endif
+
   }
 
 
@@ -352,7 +436,7 @@ namespace CoupledField
   // E = Belec V
   // see Habil. M. Kaltenbacher 
   void linPiezoInt::CalcStressVec( Vector<Double>& stressElecVec, Integer ip, 
-				   Matrix<Double> & ptCoord ) {
+                                   Matrix<Double> & ptCoord ) {
 
     ENTER_FCN( "linPiezoInt::CalcStressVec" );
       
@@ -378,7 +462,7 @@ namespace CoupledField
   }
 
   void linPiezoInt::CalcStressVec( Vector<Complex>& stressElecVec, Integer ip, 
-				   Matrix<Double> & ptCoord ) {
+                                   Matrix<Double> & ptCoord ) {
 
     ENTER_FCN( "linPiezoInt::CalcStressVec" );
      
@@ -417,7 +501,7 @@ namespace CoupledField
 
   // determine the matrix B of the BDB operator
   void piezoAxiInt::calcBMat( Matrix<Double> &bMat, Integer ip,
-			      Matrix<Double> &ptCoord ) {
+                              Matrix<Double> &ptCoord ) {
 
     ENTER_FCN( "piezoAxiInt::calcBMat" );
 
@@ -455,7 +539,7 @@ namespace CoupledField
     // treat mechanical part (same as in linElastInt)
     for(actDim=0; actDim < spaceDim; actDim++)
       for(actNode=0; actNode < nrNodes; actNode++)
-	bMat[actDim][actNode * (spaceDim+1) + actDim] = xiDx[actNode][actDim];
+        bMat[actDim][actNode * (spaceDim+1) + actDim] = xiDx[actNode][actDim];
 
     for (actNode = 0; actNode<nrNodes;actNode++){
       bMat[2][actNode*offset] = xiDx[actNode][1];
@@ -466,12 +550,12 @@ namespace CoupledField
     // treat electrical part
     for( actDim = 0; actDim < spaceDim; actDim++ )
       for( actNode = 0; actNode < nrNodes; actNode++ )
- 	bMat[2*spaceDim+actDim][(actNode+1)*offset-1] = xiDx[actNode][actDim];
+        bMat[2*spaceDim+actDim][(actNode+1)*offset-1] = xiDx[actNode][actDim];
 
-#ifdef DEBUG
-    //    (*debug) << std::endl << " Matrix bMat is " << bMat.GetSizeRow()
-    //	     << " x " << bMat.GetSizeCol() << std::endl;
-    //    (*debug) << bMat << std::endl;
+#ifdef DEBUG_LINPIEZOINT
+    (*debug) << std::endl << " Matrix bMat is " << bMat.GetSizeRow()
+	     << " x " << bMat.GetSizeCol() << std::endl;
+    (*debug) << bMat << std::endl;
 #endif
 
   }
@@ -485,38 +569,39 @@ namespace CoupledField
   }
 
 
-
   // calculates the D-matrix of a axisymmetric-problem 
-  void piezoAxiInt::calcDMaterialMatWithComplexDamping(Matrix<Complex> & dMat, Double & beta, Double & omega)
-  {
+  void piezoAxiInt::calcDMaterialMatWithComplexDamping( Matrix<Complex> &dMat,
+							Double &beta,
+							Double &omega ) {
+
     ENTER_FCN( "linPiezoAxiInt::calcDMatWithComplexDamping" );
 
     Integer rowPtrXY[]={1,2,6,3,7,8};
     Integer rowPtrYZ[]={2,3,4,1,8,9};
     Integer rowPtrXZ[]={1,3,5,2,7,9};
-    Integer * rowPtr; 	//alte Version
+    Integer * rowPtr;   //alte Version
 
     switch(actOrientation) {
 
     case xy:
       {
-	rowPtr = rowPtrXY;
-	break;
+        rowPtr = rowPtrXY;
+        break;
       }
     case yz:
       {
-	rowPtr = rowPtrYZ;
-	break;
+        rowPtr = rowPtrYZ;
+        break;
       }
     case xz:
       {
-	rowPtr = rowPtrXZ;
-	break;
+        rowPtr = rowPtrXZ;
+        break;
       }
-    default:	//if no orientation was specified
+    default:    //if no orientation was specified
       {
-	rowPtr = rowPtrYZ;
-	break;
+        rowPtr = rowPtrYZ;
+        break;
       }
     }
 
@@ -538,11 +623,13 @@ namespace CoupledField
     else if (piezoMatType_ == imagMaterialParameter)
       matMatrix = ptMaterial->GetMatrixC();
 
+    for ( Integer i = 0; i < sizeofD; i++ ) {
+      for( Integer j = 0; j < sizeofD; j++ ) {
+	dMat[i][j] = (*matMatrix)[rowPtr[i]-1][rowPtr[j]-1] *
+	  ( 1.0 + beta * omega * im );
+      }
+    }
 
-    for ( Integer i = 0; i < sizeofD; i++ ) 
-      for( Integer j = 0; j < sizeofD; j++ ) 
-	dMat[i][j] = (*matMatrix)[rowPtr[i]-1][rowPtr[j]-1]*(1.0+beta*omega*im);
-	
   } // end calcDMatWithComplexDamping
 
 
@@ -558,37 +645,36 @@ namespace CoupledField
     CalcPlaneStrainMaterialMat(dMat);
   }
 
-  void piezoPlainStrainInt::calcDMaterialMatWithComplexDamping(Matrix<Complex> &dMat, Double &beta, Double &omega) 
-  {
-    ENTER_FCN( "piezoPlainStrainInt::calcDMaterialMatWithComplexDamping");
+  void piezoPlainStrainInt::
+  calcDMaterialMatWithComplexDamping( Matrix<Complex> &dMat, Double &beta,
+				      Double &omega ) {
+
+    ENTER_FCN( "piezoPlainStrainInt::calcDMaterialMatWithComplexDamping" );
+
     Integer rowPtrXY[]={2,3,5,8,9};
     Integer rowPtrYZ[]={2,3,4,8,9};
     Integer rowPtrXZ[]={1,3,5,7,9};
     Integer * rowPtr;
 
-    switch(actOrientation)
-      {
+    switch(actOrientation) {
+
       case xy:
-	{
-	  rowPtr=rowPtrXY;
-	  break;
-	}
+	rowPtr = rowPtrXY;
+	break;
+
       case yz:
-	{
-	  rowPtr=rowPtrYZ;
-	  break;
-	}
+	rowPtr = rowPtrYZ;
+	break;
+
       case xz:
-	{
-	  rowPtr=rowPtrXZ;
-	  break;
-	}
-      default:	//if no orientation was specified
-	{
-	  rowPtr=rowPtrYZ;
-	  break;
-	}
-      }
+	rowPtr = rowPtrXZ;
+	break;
+
+	// No orientation was specified
+      default:
+	rowPtr = rowPtrYZ;
+	break;
+    }
 
     // set the material matrix
     Integer sizeofD=getDimD();
@@ -605,16 +691,17 @@ namespace CoupledField
       matMatrix = ptMaterial->GetMatrixC();
 
     Complex imag=Complex(0,1);
-    for( Integer i = 0; i < sizeofD; i++ ) 
-      for ( Integer j = 0; j < sizeofD; j++ ) 
-	dMat[i][j] = (*matMatrix)[i][j] * beta*omega*imag;
-	
+    for( Integer i = 0; i < sizeofD; i++ ) {
+      for ( Integer j = 0; j < sizeofD; j++ ) {
+	dMat[i][j] = (*matMatrix)[i][j] * beta * omega * imag;
+      }
+    }
   }
 
 
   // determine the matrix B of the BDB operator
   void piezoPlainStrainInt::calcBMat( Matrix<Double> &bMat, Integer ip,
-				      Matrix<Double> &ptCoord ) {
+                                      Matrix<Double> &ptCoord ) {
 
     ENTER_FCN( "piezoPlainStrainInt::calcBMat" );
 
@@ -641,27 +728,27 @@ namespace CoupledField
 
     for(actDim=0; actDim < spaceDim; actDim++)
       for(actNode=0; actNode < nrNodes; actNode++){
-	bMat[actDim][actNode * offset + actDim] = xiDx[actNode][actDim];
+        bMat[actDim][actNode * offset + actDim] = xiDx[actNode][actDim];
       }
 
 
     for ( actNode = 0; actNode < nrNodes; actNode++ )
       {
-	bMat[spaceDim][actNode * offset + 1] = xiDx[actNode][0];
-	bMat[spaceDim][actNode * offset + 0] = xiDx[actNode][1];
+        bMat[spaceDim][actNode * offset + 1] = xiDx[actNode][0];
+        bMat[spaceDim][actNode * offset + 0] = xiDx[actNode][1];
       }
 
     // treat electrical part
     for( actDim = 0; actDim < spaceDim; actDim++ ) {
       for( actNode = 0; actNode < nrNodes; actNode++ ) {
-	bMat[2*spaceDim+actDim-1][(actNode+1)*offset-1] =
-	  xiDx[actNode][actDim];
+        bMat[2*spaceDim+actDim-1][(actNode+1)*offset-1] =
+          xiDx[actNode][actDim];
       }
     }
 
 #ifdef DEBUG
     //    (*debug) << std::endl << " Matrix bMat is " << bMat.GetSizeRow()
-    //	     << " x " << bMat.GetSizeCol() << std::endl;
+    //       << " x " << bMat.GetSizeCol() << std::endl;
     //    (*debug) << bMat << std::endl;
 #endif
 
@@ -692,9 +779,13 @@ namespace CoupledField
   }
 
   // reimplemented  method of Calc3DMaterialMat. 
-  // It is needed to damp the mechanical part in the following way: K=(1+j* \beta_l* \omega_l)K_dd
-  // it is needed in the piezoParamIdent Driver during the calculation of the Jacbian matrix of the parameter to solution map.
-  void linPiezo3DInt::calcDMaterialMatWithComplexDamping(Matrix<Complex> &dMat, Double &beta, Double &omega) {
+  // It is needed to damp the mechanical part in the following way:
+  // K=(1+j*\beta_l* \omega_l)K_dd
+  // it is needed in the piezoParamIdent Driver during the calculation of the
+  // Jacbian matrix of the parameter to solution map.
+  void linPiezo3DInt::calcDMaterialMatWithComplexDamping(Matrix<Complex> &dMat,
+							 Double &beta,
+							 Double &omega ) {
 
     ENTER_FCN( "linPiezoInt::Calc3DMaterialMatWithComplexDamping" );
 
@@ -703,22 +794,25 @@ namespace CoupledField
     dMat.Resize( sizeofD );
     dMat.Init( 0 );
 
-
     // Copy entries from mechanical part of material matrix object
-    // into D matrix and multiply with damping parameter beta_l, omega_l and the imaginarity j
+    // into D matrix and multiply with damping parameter beta_l, omega_l
+    // and the imaginary j
     Matrix<Double> * matMatrix;
 
-    if (piezoMatType_ == realMaterialParameter)
+    if (piezoMatType_ == realMaterialParameter) {
       matMatrix = ptMaterial->GetMatrix();
-    else if (piezoMatType_ == imagMaterialParameter)
+    }
+    else if (piezoMatType_ == imagMaterialParameter) {
       matMatrix = ptMaterial->GetMatrixC();
+    }
 
-    Complex imag=Complex(0,1);
-    for( Integer i = 0; i < sizeofD - 3; i++ ) 
+    Complex imag = Complex( 0, 1.0 );
+    for( Integer i = 0; i < sizeofD - 3; i++ ) {
       for ( Integer j = 0; j < sizeofD - 3; j++ ) {
-	dMat[i][j] = (*matMatrix)[i][j] * (1.0+beta*imag*omega);
+	dMat[i][j] = (*matMatrix)[i][j] * ( 1.0 + beta * imag * omega );
       }
-	
-  }// end Calc3dMaterialMatWithComplexDamping
+    }
+
+  } // end Calc3dMaterialMatWithComplexDamping
 
 } // end namespace CoupledField

@@ -50,19 +50,14 @@ void SuperBlockEQN::CalcMapping()
   numElecEQNs_ = pde2MeshNode_.GetSize() - 
     (homoDirichletNodes_.GetSize() - numMechBCs);
 
-  std::cerr << "We habe " << pde2MeshNode_.GetSize() << " local nodes " << std::endl;
-  std::cerr << "We have " << numMechEQNs_ << " mechanic EQNs" << std::endl;
-  std::cerr << "We have " << numElecEQNs_ << " electric EQNs" << std::endl;
+  //std::cerr << "We habe " << pde2MeshNode_.GetSize() << " local nodes " << std::endl;
+  //std::cerr << "We have " << numMechEQNs_ << " mechanic EQNs" << std::endl;
+  //std::cerr << "We have " << numElecEQNs_ << " electric EQNs" << std::endl;
   
   mechNode2EQN_.Resize(pde2MeshNode_.GetSize(), dofsPerNode_-1);
   mechNode2EQN_.Init(1);
   elecNode2EQN_.Resize(pde2MeshNode_.GetSize());
   elecNode2EQN_.Init(1);
-  eqn2Pos_.Resize(numPDENodes_ * dofsPerNode_
-		  - homoDirichletNodes_.GetSize()
-		  - constraintSlaveNodes_.GetSize());
-  
-  std::cerr << "size of eqn2Pos_ = " << eqn2Pos_.GetSize() << std::endl;
    
   // STEP 2
   for (Integer i=0; i<homoDirichletNodes_.GetSize(); i++)
@@ -73,8 +68,9 @@ void SuperBlockEQN::CalcMapping()
 	mechNode2EQN_[mesh2PDENode_[homoDirichletNodes_[i]-1]-1]
 	  [homoDirichletDofs_[i]-1] = 0;
     }
-  std::cerr << "After setting homoDirichletNodes" << std::endl;
-
+  
+  //std::cerr << "After setting homoDirichletNodes" << std::endl;
+  
   // STEP 3
   for (Integer i=0; i<constraintSlaveNodes_.GetSize(); i++)
     if (homoDirichletDofs_[i] == dofsPerNode_)
@@ -83,7 +79,7 @@ void SuperBlockEQN::CalcMapping()
       mechNode2EQN_[mesh2PDENode_[constraintSlaveNodes_[i]-1]-1]
 	[constraintDofs_[i]-1] = 0;
   
-  std::cerr << "After setting constraints" << std::endl;
+  //std::cerr << "After setting constraints" << std::endl;
 
   // STEP 4
 
@@ -91,7 +87,7 @@ void SuperBlockEQN::CalcMapping()
   Integer elecEQNCounter = numMechEQNs_;
   for (Integer iNode=0; iNode<pde2MeshNode_.GetSize(); iNode++)
     {
-      std::cerr << "Checking Local Node " << iNode << std::endl;
+      //std::cerr << "Checking Local Node " << iNode << std::endl;
       // Assign mechanic equation numbers
       for (Integer iDof=0; iDof<dofsPerNode_-1; iDof++)
 	{
@@ -99,11 +95,6 @@ void SuperBlockEQN::CalcMapping()
 	    {
 	      mechEQNCounter++;
 	      mechNode2EQN_[iNode][iDof] = mechEQNCounter;
-	      std::cerr << "mechNode2EQN_[" << iNode << "][" << iDof << " = " << mechEQNCounter << std::endl;
-	      eqn2Pos_[mechEQNCounter-1] = 
-	      (pde2MeshNode_[iNode]-1)*dofsPerNode_ + iDof;
-	      std::cerr << "eqnPos_[" << mechEQNCounter-1 << "] = " << (pde2MeshNode_[iNode]-1)*dofsPerNode_ + iDof << std::endl;
-	      
 	    }
 	}
 	  // Assign electric equation numbers
@@ -111,10 +102,7 @@ void SuperBlockEQN::CalcMapping()
 	    {
 	      elecEQNCounter++;
 	      elecNode2EQN_[iNode] = elecEQNCounter;
-	       std::cerr << "elecNode2EQN_[" << iNode << "] = " << elecEQNCounter << std::endl;
-	      eqn2Pos_[elecEQNCounter-1] = 
-		(pde2MeshNode_[iNode]-1)*dofsPerNode_ + dofsPerNode_ -1;
-	      std::cerr << "eqnPos_[" << elecEQNCounter-1 << "] = " << (pde2MeshNode_[iNode]-1)*dofsPerNode_  + dofsPerNode_ -1  << std::endl;
+	      //std::cerr << "elecNode2EQN_[" << iNode << "] = " << elecEQNCounter << std::endl;
 	    }
     }
   
@@ -135,8 +123,8 @@ void SuperBlockEQN::CalcMapping()
   numEqns_ = numMechEQNs_ + numElecEQNs_;
 
   numBuildInDirichletEQNs_ = numPDENodes_ * dofsPerNode_ - numEqns_;
-  std::cerr << "size of homoDirichletNodes = " << homoDirichletNodes_.GetSize() << std::endl;
-  std::cerr << "Size of numBuildInDirichletEQNs_ = " << numBuildInDirichletEQNs_ << std::endl;
+  //std::cerr << "size of homoDirichletNodes = " << homoDirichletNodes_.GetSize() << std::endl;
+  //std::cerr << "Size of numBuildInDirichletEQNs_ = " << numBuildInDirichletEQNs_ << std::endl;
 }
 
 void SuperBlockEQN::Print(std::ostream & out) const
@@ -180,13 +168,6 @@ void SuperBlockEQN::Print(std::ostream & out) const
   
 }
 
-
-void SuperBlockEQN::EQN2SolVectorPos(const StdVector<Integer> &eqnNr, 
-				     StdVector<Integer> &pos) const
-{
-  ENTER_FCN( "SuperBlockEQN::EQN2SolVectorPos" );
-  Error( "Not implemented" );
-}
 
 void SuperBlockEQN::Node2EQN(const Integer nodeNr, 
 			     const Integer dof,

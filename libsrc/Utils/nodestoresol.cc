@@ -289,107 +289,28 @@ void NodeStoreSol<TYPE>::GetGlobalSolVector(const SolutionType type,
 
   Vector<TYPE> & temp = dynamic_cast<Vector<TYPE>&>(val);
 
+  Integer eqnNr, eqnDof, dofsPerEQN;
+  Integer globNumNodes = ptGrid_->GetMaxnumnodes(level_);
 
-  Integer globalPos, eqnDofs, dofsPerEQN, eqnDof;
-  Integer numElecEQNs, numMechEQNs, remainder;
-
-
-  temp.Resize(ptGrid_->GetMaxnumnodes(level_)*dof);
-  eqnDofs = ptEQN_->GetNumDofs();
+  temp.Resize(globNumNodes *dof);
   dofsPerEQN = ptEQN_->GetNumDofsPerEQN();
 
-  //std::cerr << "temp has size " << temp.GetSize() << std::endl;
-  //std::cerr << "data_ has size " << data_.GetSize() << std::endl;
-  //std::cerr << "totalDofs = " << totalDofs_ << std::endl;
-  //SuperBlockEQN * tempEQN;
-
-
-  // if (typeid(*ptEQN_) == typeid(SuperBlockEQN))
-//     {
-//       tempEQN = dynamic_cast<SuperBlockEQN * >(ptEQN_);
-//       numMechEQNs = tempEQN->GetNumMechEQNs();
-//       numElecEQNs = tempEQN->GetNumElecEQNs();
-//       if (dof == 1)
-// 	{
-// 	  //std::cerr << "Im Block für ElecPotential" << std::endl;
-// 	  for (Integer iEQN=numMechEQNs; iEQN<numMechEQNs+numElecEQNs; iEQN++)
-// 	    {
-// 	      //std::cerr << "Trying to get pos for eqn " << iEQN+1 << std::endl;
-// 	      ptEQN_->EQN2SolVectorPos(iEQN+1,1,globalPos);
-// 	      //std::cerr << "Position is " << globalPos << std::endl;
-// 	      globalPos = (Integer) (globalPos - eqnDofs +1 ) / eqnDofs;
-// 	      //std::cerr << "Corrected Position is " << globalPos << std::endl;
-// 	      temp[globalPos] = data_[iEQN];
-// 	    }
-// 	}
-//       else
-// 	{std::cout<<"NodeStoreSolution 6"<<std::endl;
-// 	  //std::cerr << "im Block für MechDisp" << std::endl;
-// 	  for (Integer iEQN=0; iEQN<numMechEQNs; iEQN++)
-// 	    {
-// 	      //std::cerr << "Trying to get pos for eqn " << iEQN+1 << std::endl;
-// 	    ptEQN_->EQN2SolVectorPos(iEQN+1,1,globalPos);
-// 	    //std::cerr << "Position is " << globalPos << std::endl;
-
-// 	    globalPos = (Integer) globalPos / (totalDofs_)*(totalDofs_-1) + globalPos%(totalDofs_);
-// 	    //std::cerr << "Corrected Position is " << globalPos << std::endl;
-// 	    temp[globalPos] = data_[iEQN];
-// 	    }
-// 	}
-//     }
-//   else
-//     {
-      if (ptEQN_->IsBlockMapped())
-	{
-	  // In this case each eqn has a dof number > 1 and we need
-	  // two loops to map each eqn to its positionS
-	  //std::cerr << "In BlockMapped" << std::endl;
-	  // Loop over all Equations
-	  for (Integer iEQN=0; iEQN<ptEQN_->GetNumEQNs(); iEQN++)
-	    for (Integer iDof=0; iDof<dof; iDof++)
-	      {
-		ptEQN_->EQN2SolVectorPos(iEQN+1,offset+iDof+1,globalPos);
-		//std::cerr << "SolVectorPos for EQN " << iEQN+1 << " is " << globalPos << std::endl;
-
-		// Correct global position for EQNs with more than one solutiontype
-		globalPos =(Integer) (globalPos-iDof-offset)/eqnDofs * dof + iDof;
-		//std::cerr << "Corrected position is " << globalPos << std::endl;
-		temp[globalPos] = data_[iEQN*totalDofs_ +iDof + offset];
-	      }
-	}
-      else
-	{
-	  // In this case each eqn has only one dof
-	  // and only one for loop is needed
-	  //std::cerr << "Number of equations = " << ptEQN_->GetNumEQNs() << std::endl;
-	  //std::cerr << "We are longing for dof " << dof << std::endl;
-	  //std::cerr << "dof = " << dof << std::endl;
-	  for (Integer iEQN=0; iEQN< ptEQN_->GetNumEQNs(); iEQN++)
-	    {
-	      ptEQN_->EQN2SolVectorPos(iEQN+1,1,globalPos);
-	      //std::cerr << "SolVectorPos for EQN " << iEQN+1 << " is " << globalPos << std::endl;
-	      // ONLY TEMPORARY, until superblocknumbering
-	      // for piezoPDE works ;-)
-	      //std::cerr << "Corrected Position is " << (Integer) globalPos/ *totalDofs_ << std::endl;
-
-	      //std::cerr << "position is " << globalPos << std::endl;
-	      for (Integer iDof=dof+offset-1; iDof>=offset; iDof--)
-		{
-		  //std::cerr << "iDof = " << iDof << std::endl;
-		  remainder = globalPos%totalDofs_;
-		  if (remainder == iDof)
-		    {
-		      //std::cerr << "remainder = " <<  iDof << std::endl;
-		      globalPos = (Integer) ((globalPos-iDof)/totalDofs_*dof) + iDof-offset;
-		      //std::cerr << "Corrected position is " << globalPos << std::endl;
-		      temp[globalPos] = data_[iEQN];
-		      iDof = offset;
-		      //std::cerr << " -> is Written out " << std::endl;
-		    }
-		}
-	    }
-	  
-	}
+  Integer numLocNodes = ptEQN_->GetNumLocalNodes();
+  Integer globNode = 0;
+    for (Integer iNode=0; iNode<numLocNodes; iNode++) {
+      for (Integer iDof=0; iDof<dof; iDof++) {
+	globNode = ptEQN_->PDE2MeshNode(iNode+1);
+	ptEQN_->Node2EQN(globNode,iDof+1+offset,eqnNr,eqnDof);
+	
+	if (eqnNr > 0) 
+	  temp[(globNode-1)*dof + iDof] = data_[(eqnNr-1) * dofsPerEQN + (eqnDof-1)];
+	else if (eqnNr == 0)
+	  temp[(globNode-1)*dof + iDof] = TYPE();
+	else
+	  Error("Constraints not yet implemented!",__FILE__,__LINE__);
+	
+      }
+    } 
 }
 
 
@@ -448,95 +369,31 @@ void NodeStoreSol<TYPE>::GetGlobalSolVectorSingleDof(const SolutionType type,
     }
 #endif
   
-  
   Integer offset = (*solOffset_.find(type)).second;
-  
+  Integer dofs = (*solDofs_.find(type)).second;
   
   Vector<TYPE> & temp = dynamic_cast<Vector<TYPE>&>(val);
   
-  Integer globalPos, eqnDofs, dofsPerEQN, eqnDof;
-  Integer numElecEQNs, numMechEQNs, remainder;
+  Integer eqnNr, eqnDof, dofsPerEQN;
+  Integer globNumNodes = ptGrid_->GetMaxnumnodes(level_);
   
-  temp.Resize(ptGrid_->GetMaxnumnodes(level_));
-  eqnDofs = ptEQN_->GetNumDofs();
+  temp.Resize(globNumNodes);
   dofsPerEQN = ptEQN_->GetNumDofsPerEQN();
- 
-  // std::cerr << "temp has size " << temp.GetSize() << std::endl;
-//   std::cerr << "data_ has size " << data_.GetSize() << std::endl;
-//   std::cerr << "totalDofs = " << totalDofs_ << std::endl;
-  //SuperBlockEQN * tempEQN;
   
+  Integer numLocNodes = ptEQN_->GetNumLocalNodes();
+  Integer globNode = 0;
+  for (Integer iNode=0; iNode<numLocNodes; iNode++) {
+    globNode = ptEQN_->PDE2MeshNode(iNode+1);
+    ptEQN_->Node2EQN(globNode,dof+1+offset,eqnNr,eqnDof);
+    
+    if (eqnNr > 0) 
+      temp[globNode-1] = data_[(eqnNr-1) * dofsPerEQN + (eqnDof-1)];
+    else if (eqnNr == 0)
+      temp[globNode-1] = TYPE();
+    else
+      Error("Constraints not yet implemented!",__FILE__,__LINE__);
+  } 
   
- //  if (typeid(*ptEQN_) == typeid(SuperBlockEQN))
-//     {
-      
-//       Error ("SuperBlock not yet implemented", __FILE__, __LINE__);
-//       tempEQN = dynamic_cast<SuperBlockEQN * >(ptEQN_);
-//       numMechEQNs = tempEQN->GetNumMechEQNs();
-//       numElecEQNs = tempEQN->GetNumElecEQNs();
-//       if (dof == 1)
-// 	{
-// 	  //std::cerr << "Im Block für ElecPotential" << std::endl;
-// 	  for (Integer iEQN=numMechEQNs; iEQN<numMechEQNs+numElecEQNs; iEQN++)
-// 	    {
-// 	      //std::cerr << "Trying to get pos for eqn " << iEQN+1 << std::endl;
-// 	      ptEQN_->EQN2SolVectorPos(iEQN+1,1,globalPos);
-// 	      //std::cerr << "Position is " << globalPos << std::endl;
-// 	      globalPos = (Integer) (globalPos - eqnDofs +1 ) / eqnDofs;
-// 	      //std::cerr << "Corrected Position is " << globalPos << std::endl;
-// 	      temp[globalPos] = data_[iEQN];
-// 	    }
-// 	}
-//       else
-// 	{
-// 	  //std::cerr << "im Block für MechDisp" << std::endl;
-// 	  for (Integer iEQN=0; iEQN<numMechEQNs; iEQN++)
-// 	    {
-// 	      //std::cerr << "Trying to get pos for eqn " << iEQN+1 << std::endl;
-// 	      ptEQN_->EQN2SolVectorPos(iEQN+1,1,globalPos);
-// 	      //std::cerr << "Position is " << globalPos << std::endl;
-	      
-// 	      globalPos = (Integer) globalPos / (totalDofs_)*(totalDofs_-1) + globalPos%(totalDofs_);
-// 	      //std::cerr << "Corrected Position is " << globalPos << std::endl;
-// 	      temp[globalPos] = data_[iEQN];
-// 	    }
-// 	}
-//     }
-//   else
-//     {
-      if (ptEQN_->IsBlockMapped())
-	{
-	  // In this case each eqn has a dof number > 1 and we need
-	  // two loops to map each eqn to its positionS
-	  //std::cerr << "In BlockMapped" << std::endl;
-	  // Loop over all Equations
-	  for (Integer iEQN=0; iEQN<ptEQN_->GetNumEQNs(); iEQN++)
-	    {
-	      ptEQN_->EQN2SolVectorPos(iEQN+1,offset+dof+1,globalPos);
-	      //std::cerr << "SolVectorPos for EQN " << iEQN+1 << " is " << globalPos << std::endl;
-	      
-	      // Correct global position for EQNs with more than one solutiontype
-	      globalPos =(Integer) (globalPos-dof-offset)/eqnDofs;    
-	      //std::cerr << "Corrected position is " << globalPos << std::endl;
-	      temp[globalPos] = data_[iEQN*totalDofs_ +dof + offset];
-	    }
-	} 
-      else 
-	{
-	  
-	  for (Integer iEQN=0; iEQN< ptEQN_->GetNumEQNs(); iEQN++)
-	    {
-	      ptEQN_->EQN2SolVectorPos(iEQN+1,1,globalPos);
-	      remainder = globalPos%totalDofs_;
-	      if (remainder == dof+offset)
-		{
-		  globalPos = (Integer) ((globalPos-dof)/totalDofs_);
-		  temp[globalPos] = data_[iEQN];
-		}
-	      
-	    }
-	  
-	}
 }  
 
 
@@ -551,23 +408,24 @@ void NodeStoreSol<TYPE>::GetGlobalSolVectorSingleDof(const Integer dof,
   
   Vector<TYPE> & temp = dynamic_cast<Vector<TYPE>&>(val);
  
-  Integer globalPos, eqnDofs;
-  
-  temp.Resize(ptEQN_->GetNumGlobalNodes());
-  eqnDofs = ptEQN_->GetNumDofs();
- 
-  Warning ("Not sure if this is working properly!!!");
-  // Loop over all Equations
-  for (Integer iEQN=0; iEQN<ptEQN_->GetNumEQNs(); iEQN++)
-    {
-      ptEQN_->EQN2SolVectorPos(iEQN+1, 1, globalPos);
+  Error ("Not working properly at the moment", __FILE__, __LINE__);
 
-      // ONLY TEMPORARY, until superblocknumbering
-      // for piezoPDE works ;-)
-      globalPos =(Integer) globalPos/eqnDofs;
+//   Integer globalPos, eqnDofs;
+  
+//   temp.Resize(ptEQN_->GetNumGlobalNodes());
+//   eqnDofs = ptEQN_->GetNumDofs();
+ 
+//   // Loop over all Equations
+//   for (Integer iEQN=0; iEQN<ptEQN_->GetNumEQNs(); iEQN++)
+//     {
+//       ptEQN_->EQN2SolVectorPos(iEQN+1, 1, globalPos);
+
+//       // ONLY TEMPORARY, until superblocknumbering
+//       // for piezoPDE works ;-)
+//       globalPos =(Integer) globalPos/eqnDofs;
       
-      temp[globalPos] = data_[iEQN*totalDofs_ + dof];
-    }
+//       temp[globalPos] = data_[iEQN*totalDofs_ + dof];
+//     }
 }
 
 
@@ -649,7 +507,7 @@ void NodeStoreSol<TYPE>::SetAlgSysVector(const CFSVector & val)
      {
        std::cerr << "Vector has Size" << lengthVector_ << std::endl;
        std::cerr << "Your vector has size " << val.GetSize() << std::endl;
-       Error("NodeStoreSol::SetCompleteVector(): Vector has wrong size!",__FILE__,__LINE__);
+       Error("NodeStoreSol::SetAlgSysVector(): Vector has wrong size!",__FILE__,__LINE__);
      }
 #endif
 
@@ -834,117 +692,6 @@ void NodeStoreSol<TYPE>::GetElemSolutionAsMatrix(CFSMatrix & elemSol,
       }
 }
 
-template<class TYPE>
-void NodeStoreSol<TYPE>::TransformNodeSolution(CFSVector & transformedSolution,
-					       Grid * ptGrid,
-					       const Integer level) const
-{
-  ENTER_FCN("NodeStoreSol::TransformNodeSolution");
-#ifdef CHECK_INITIALIZED
-  if (length_ == 0) 
-    Error("NodeStoreSol: Use of uninitialized object!",__FILE__,__LINE__);
-#endif
-
-  //std::cerr << std::endl << std::endl;
-  //  std::cerr << "Entering TransformNodeSolution" << std::endl;
-  
-  Vector<TYPE> & temp = dynamic_cast<Vector<TYPE>&>(transformedSolution);
- 
-  Integer globalPos, eqnDofs, factor, dofsPerEQN, eqnDof;
-  
-  temp.Resize(ptGrid->GetMaxnumnodes(level)*totalDofs_);
-  eqnDofs = ptEQN_->GetNumDofs();
-  dofsPerEQN = ptEQN_->GetNumDofsPerEQN();
- 
-  // std::cerr << "temp has size " << temp.GetSize() << std::endl;
-//   std::cerr << "data_ has size " << data_.GetSize() << std::endl;
-//   std::cerr << "totalDofs = " << totalDofs_ << std::endl;
-//   SuperBlockEQN * tempEQN;
-  Integer numElecEQNs, numMechEQNs;
-  
-  // if (typeid(*ptEQN_) == typeid(SuperBlockEQN))
-//     {
-//       tempEQN = dynamic_cast<SuperBlockEQN * >(ptEQN_);
-//       numMechEQNs = tempEQN->GetNumMechEQNs();
-//       numElecEQNs = tempEQN->GetNumElecEQNs();
-//       if (totalDofs_ == 1)
-// 	{
-// 	  std::cerr << "Im Block für ElecPotential" << std::endl;
-// 	  for (Integer iEQN=numMechEQNs; iEQN<numMechEQNs+numElecEQNs; iEQN++)
-// 	    {
-// 	      std::cerr << "Trying to get pos for eqn " << iEQN+1 << std::endl;
-// 	      ptEQN_->EQN2SolVectorPos(iEQN+1,1,globalPos);
-// 	      std::cerr << "Position is " << globalPos << std::endl;
-// 	      globalPos = (Integer) (globalPos - eqnDofs +1 ) / eqnDofs;
-// 	      std::cerr << "Corrected Position is " << globalPos << std::endl;
-// 	      temp[globalPos] = data_[iEQN-numMechEQNs];
-// 	    }
-// 	}
-//       else
-// 	{
-// 	  std::cerr << "im Block für MechDisp" << std::endl;
-// 	  for (Integer iEQN=0; iEQN<numMechEQNs; iEQN++)
-// 	    {
-// 	    std::cerr << "Trying to get pos for eqn " << iEQN+1 << std::endl;
-// 	    ptEQN_->EQN2SolVectorPos(iEQN+1,1,globalPos);
-// 	    std::cerr << "Position is " << globalPos << std::endl;
-// 	    globalPos = (Integer) globalPos / (totalDofs_+1)*totalDofs_ + globalPos%(totalDofs_+1);
-// 	    std::cerr << "Corrected Position is " << globalPos << std::endl;
-// 	    temp[globalPos] = data_[iEQN];
-// 	    }
-// 	}
-//     }
-//   else
-//     {
-      if (ptEQN_->IsBlockMapped())
-	{
-	  // In this case each eqn has a dof number > 1 and we need
-	  // two loops to map each eqn to its positionS
-	  
-	  // Loop over all Equations
-	  for (Integer iEQN=0; iEQN<(Integer) ptEQN_->GetNumEQNs(); iEQN++)
-	    for (Integer iDof=0; iDof<totalDofs_; iDof++)
-	      {
-		ptEQN_->EQN2SolVectorPos(iEQN+1,eqnOffset_+iDof+1,globalPos);
-		//std::cerr << "SolVectorPos for EQN " << iEQN+1 << " is " << globalPos << std::endl;
-		// ONLY TEMPORARY, until superblocknumbering
-		// for piezoPDE works ;-)
-		globalPos =(Integer) (globalPos-iDof)/eqnDofs *totalDofs_+iDof;    bool isDamping_ = false;
-		
-		
-		//std::cerr << "Corrected position is " << globalPos << std::endl;
-		// 	  for (Integer iDof=0; iDof<totalDofs_; iDof++)
-		// 	    {
-		//std::cerr << "Equation" << iEQN+1 << "gets stored to location" << globalPos+iDof << std::endl;
-		//std::cerr << "Data is read from data_[" << iEQN*totalDofs_+iDof << "] = " <<  data_[iEQN*totalDofs_+iDof] << std::endl;
-		//std::cerr << "Try to store data_[" <<  +iDof;
-		
-		//    std::cerr <<  "] to temp[" << globalPos+iDof << "]" << std::endl;
-		temp[globalPos] = data_[iEQN*totalDofs_ +iDof];
-		// }
-	      }
-	} 
-      else 
-	{
-	  // In this case each eqn has only one dof 
-	  // and only one for loop is needed
-	  for (Integer iEQN=0; iEQN<(Integer) ptEQN_->GetNumEQNs(); iEQN++)
-	    {
-	      ptEQN_->EQN2SolVectorPos(iEQN+1,1,globalPos);
-	      //std::cerr << "SolVectorPos for EQN " << iEQN+1 << " is " << globalPos << std::endl;
-	      // ONLY TEMPORARY, until superblocknumbering
-	      // for piezoPDE works ;-)
-	      //globalPos =(Integer) globalPos/eqnDofs *totalDofs_;
-	      
-	      //std::cerr << "Corrected position is " << globalPos << std::endl;
-	      
-	      temp[globalPos] = data_[iEQN];
-	      // }
-	    }
-	  
-	}
-}  
-
   
 template<class TYPE>
 void NodeStoreSol<TYPE>::NodeSolutionToCoupling(CFSVector & couplingSol,
@@ -967,8 +714,6 @@ void NodeStoreSol<TYPE>::NodeSolutionToCoupling(CFSVector & couplingSol,
 	  temp.data_[iNode*totalDofs_ + iDof] = data_[abs((eqnNr-1)*eqnDofs_ + eqnDof-1)];
 	else
 	  temp.data_[iNode*totalDofs_ + iDof] = TYPE();
-	
-	//std::cerr << "TocOupling[" << nodeNumbers[iNode] << " = " << data_[abs((eqn-1)*totalDofs_+iDof)] << std::endl;
       }
 }
 

@@ -25,7 +25,6 @@ public:
   //! Destructor
   virtual ~BaseEQN();
   
-  
   //! Return true if eqns are assigned
   inline Boolean IsInitialized() {return isInitialized_;}
 
@@ -34,6 +33,15 @@ public:
   //! - hom. Dirichlet nodes <br>
   //! - constraint nodes)
   inline Integer GetNumEQNs() const {return numEqns_;}
+
+  //! Return the number of real equations
+  //! (= number of nodes * total number Dofs
+  //! - hom. Dirichlet nodes
+  //! - inhom. Dirichlet nodes
+  //! - constraint nodes)
+  inline Integer GetNumRealEQNs() const {
+    return numRealEqns_;
+  }
   
   //! Return number of degree of freedoms per node
   inline Integer GetNumDofs() const {return dofsPerNode_;}
@@ -57,16 +65,19 @@ public:
 
   //! Set the node numbers and dofs 
   //! with homogeneous Dirchlet BC
-  virtual void SetHomoDirichletBCs(const StdVector<std::string> & nodeNrs,
-				   const StdVector<std::string> & dofs);
+  void SetHomoDirichletBCs(const StdVector<std::string> & nodeNrs,
+			   const StdVector<std::string> & dofs);
+
+  //! Set the node numbers and dof for inhomogeneous Dirchlet BC
+  void SetInhomDirichletBCs( const StdVector<std::string> & nodeNrs,
+			     const StdVector<std::string> & dofs );
 
   //! Set the node numbers and dofs which are
   //! slave nodes w.r.t. to constraints
-  virtual void SetConstraints(const StdVector<Integer> & slaveNodeNrs,
-			      const StdVector<Integer> & masterodeNrs,
-			      const StdVector<std::string> & dofs);
+  void SetConstraints(const StdVector<Integer> & slaveNodeNrs,
+		      const StdVector<Integer> & masterodeNrs,
+		      const StdVector<std::string> & dofs);
 			      
-
   //! Calculate the mapping after Dirichlet and
   //! constraint nodes were set
   virtual void CalcMapping() = 0;
@@ -76,12 +87,15 @@ public:
   //! This is a reduced form of "CalcMapping()"
   virtual void CalcMpcciMapping(){};
 
+  //! Maps the equation numbers according to the reordering
+  virtual void ReorderMapping(Integer *order)=0;
+
   //! Print the mapping nodes <->EQNs
   virtual void Print(std::ostream & out) const = 0;
   
 protected:
 
-  //! Flag for initialisation
+  //! Status flag; TRUE indicates state after computation of mappings
   Boolean isInitialized_;
   
   //! Flag for indicating blockwise numbering
@@ -89,7 +103,14 @@ protected:
 
   //! Flag for indicating nodal numbering vs. edge numbering
   Boolean isNodalMapped_;
-  
+
+  //! Flag for turning on ordering of equation numbers
+
+  //! If this flag is TRUE, the equation numbers are ordered in the following
+  //! fashion. The set of highest equation numbers belongs to "unknowns" whose
+  //! values are fixed by inhomogeneous Dirichlet boundary conditions.
+  Boolean sortEQNs_;
+
   //! Pointer to Grid
   Grid * ptGrid_;  
 
@@ -110,6 +131,16 @@ protected:
 
   //! Number of equations in PDE
   Integer numEqns_;
+
+  //! Number of "real" equations in PDE
+
+  //! This attribute stores the number of "real" equations in the linear
+  //! system associated with the underlying PDE. "Real" here means that the
+  //! value of the unknown that corresponds to an equation is not fixed by
+  //! a Dirichlet boundary condition.
+  //! \note This value is only computed, when sortEqns_ is TRUE, otherwise
+  //!       we store a -1.
+  Integer numRealEqns_;
   
   //! Number of Dirichlet values
   //! which have been eliminated
@@ -120,12 +151,18 @@ protected:
   //! of according PDE
   StdVector<std::string> subdoms_;  
 
-  //! Vector containing dirichlet Nodes
+  //! Vector with indices of nodes with hom. Dirichlet boundary conditions
   StdVector<Integer> homoDirichletNodes_;
 
   //! Vector containing dofs associated
   //! with hom. Dirichlet nodes
   StdVector<Integer> homoDirichletDofs_;
+
+  //! Vector with indices of nodes with inhom. Dirichlet boundary conditions
+  StdVector<Integer> inhomDirichletNodes_;
+
+  //! Vector containing dofs associated with inhom. Dirichlet nodes
+  StdVector<Integer> inhomDirichletDofs_;
   
   //! Vector containing constraint master nodes
   StdVector<Integer> constraintMasterNodes_;

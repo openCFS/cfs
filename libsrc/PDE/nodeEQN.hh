@@ -40,22 +40,6 @@ public:
   //! Get number of global elements
   inline Integer GetNumGlobalElems() 
   {return mesh2PDEElem_.GetSize();}
-
-  //! Get PDE node number from global node number
-  inline Integer GetPDENodeFromGlobNode(const Integer globNode)
-  {return mesh2PDENode_[globNode-1];}
-
-
-  //! Map equation number to position in 
-  //! global solution vector
-  inline void EQN2SolVectorPos(const Integer eqnNr, 
-			       const Integer eqnDof,
-			       Integer &pos) const;
-
-  //! Map vector of equation numbers to 
-  //! positions in global solution vector
-  virtual void EQN2SolVectorPos(const StdVector<Integer> &eqnNr, 
-				StdVector<Integer> &pos) const = 0;
   
   //! Map node number and dof to according equation number
   virtual void Node2EQN(const Integer nodeNr, 
@@ -79,6 +63,13 @@ public:
   //! Map global to local node number
   //! (needed for nodal displacement of grid)
   inline Integer Mesh2PDENode(const Integer meshNode) const;
+
+  //! Map local to global node number
+  void PDE2MeshNode(StdVector<Integer> & meshNodes,
+		    const StdVector<Integer> & pdeNodes) const;
+
+  //! Map local to global node number
+  inline Integer PDE2MeshNode(const Integer pdeNode) const;
 
 
   //! Map global to local elem number
@@ -106,14 +97,6 @@ protected:
   //! Element mapping from global->local
   StdVector<Integer> mesh2PDEElem_;
   
-  //! Mapping for EQN->position in solution vector
-
-  //! This mapping can already be done at 
-  //! this level, since the mapping of
-  //! an equation to a postition in the 
-  //! solution vector is uniquely defined
-  StdVector<Integer> eqn2Pos_;
-
 protected:
   
   //! Default constructor is disallowed
@@ -125,24 +108,6 @@ protected:
   // Inline function definition
   // -----------------------------------------------------------------------
   
-  void NodeEQN::EQN2SolVectorPos(const Integer eqnNr, 
-				 const Integer eqnDof,
-				 Integer &pos) const
-  {
-    
-    ENTER_IFCN( "NodeEQN::EQN2SolVectorPos(Integer)" );
-#ifdef CHECK_INITIALIZED
-    if(!isInitialized_)
-      Error("Use of uninitialized object. Call 'CalcMapping' before use");
-#endif
-    
-#ifdef CHECK_INDEX
-    if (eqnNr -1 > numEqns_)
-      Error("Index out of bounds", __FILE__, __LINE__);
-#endif 
-    pos = eqn2Pos_[(eqnNr-1)*dofsPerEQN_ + eqnDof-1];
-  }
-  
   Integer NodeEQN::Mesh2PDENode(const Integer meshNode) const
   {
     ENTER_FCN( "NodeEQN::Mesh2PDENode" );
@@ -153,7 +118,18 @@ protected:
     return mesh2PDENode_[meshNode-1];
   }
   
-  
+  //! Map local to global node number
+  Integer NodeEQN::PDE2MeshNode(const Integer pdeNode) const {
+    ENTER_FCN( "NodeEQN::PDEN2Meshode" );
+#ifdef CHECK_INDEX
+    if (pdeNode > pde2MeshNode_.GetSize())
+      Error( "Index out of bounds", __FILE__, __LINE__ );
+#endif
+    return pde2MeshNode_[pdeNode-1];
+  }
+
+
+
   Integer NodeEQN::Mesh2PDEElem(const Integer elemNumGlob) const
   {
     ENTER_IFCN( "NodeEQN::Mesh2PDEElem" );

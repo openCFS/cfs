@@ -36,6 +36,18 @@ void NodeEQN::Mesh2PDENode(StdVector<Integer> & PDENodes,
   
 }
 
+void NodeEQN::PDE2MeshNode(StdVector<Integer> & meshNodes,
+			   const StdVector<Integer> & pdeNodes) const
+{
+  ENTER_FCN( "NodeEQN::PDE2MeshNode" );
+  
+  meshNodes.Resize(pdeNodes.GetSize());
+   
+  for (Integer i=0; i<pdeNodes.GetSize(); i++) 
+    meshNodes[i] = pde2MeshNode_[pdeNodes[i]-1];
+  
+}
+
 
 void NodeEQN::CalcLocalGlobalMapping(StdVector<Integer> & mesh2PDENode,
 				     StdVector<Integer> & pde2MeshNode,

@@ -9,7 +9,6 @@
 // Since OLAS uses a separate namespace for 
 // writing out data, two different declarations
 // have to be made
-#ifdef USE_OLAS
 namespace OutInfo{
   std::ostream * trace    = NULL;
   std::ostream * debug    = NULL;
@@ -17,20 +16,16 @@ namespace OutInfo{
   std::ostream * memtrace = NULL;
   std::ostream * data     = NULL;
 }
-#else
-namespace CoupledField{
-  std::ostream * trace = NULL ;
-  std::ostream * debug  = NULL;
-  std::ostream * cla=NULL;
-  std::ostream * memtrace=NULL;
-  std::ostream * data = NULL;
-}
-#endif
 
 
+namespace CoupledField {
 
-namespace CoupledField
-{
+  // Generate string stream for generation of error messages
+  std::stringstream *error = new std::stringstream();
+
+  // Generate string stream for generation of warning messages
+  std::stringstream *warning = new std::stringstream();
+
   Boolean PrintGridOnly = FALSE;
 
   Flags * flags=NULL;
@@ -78,9 +73,7 @@ namespace CoupledField
 
   // AnalysisType
   template<>
-  void String2Enum<AnalysisType>(const std::string &in, AnalysisType &out)
-  {
-    std::string errMsg;
+  void String2Enum<AnalysisType>(const std::string &in, AnalysisType &out) {
 
     if (in == "static")
       out = STATIC;
@@ -93,50 +86,44 @@ namespace CoupledField
     else if(in == "multiSequence")
       out = MULTI_SEQUENCE;
     else if (in == "paramIdent")
-      out = HARMONIC;  // since the parameter identification process lives in freqeuncy domain
+      // since the parameter identification process lives in freqeuncy domain
+      out = HARMONIC;
     else if(in == "bubbleDynamic")
       out = BUBBLEDYNAMIC;
-    else
-     {
-	errMsg  = "'";
-	errMsg += in;
-	errMsg += "' cannot be converted into item of 'AnalysisType'!";
-	Error(errMsg.c_str(), __FILE__, __LINE__);
-     } 
+    else {
+      (*error) << "'" << in << "' cannot be converted into item of "
+	       << "'AnalysisType'!";
+      Error( __FILE__, __LINE__ );
+    } 
   }
 
   template<> 
-  void Enum2String<AnalysisType>(const AnalysisType &in, std::string &out)
-  {
-    switch(in)
-      {
-      case STATIC:
-	out = "static";
-	break; 
-      case TRANSIENT:
-	out = "transient";
-	break;
-      case HARMONIC:
-	out = "harmonic";
-	break;
-      case EIGENFREQUENCY:
-	out = "eigenfrequency";
-	break;
-      case MULTI_SEQUENCE:
-	out = "multiSequence";
-	break;
-      default:	
-	Error("No conversion found for your 'AnalysisType'",
-	      __FILE__, __LINE__);
-      } 
+  void Enum2String<AnalysisType>(const AnalysisType &in, std::string &out) {
+    switch(in) {
+    case STATIC:
+      out = "static";
+      break; 
+    case TRANSIENT:
+      out = "transient";
+      break;
+    case HARMONIC:
+      out = "harmonic";
+      break;
+    case EIGENFREQUENCY:
+      out = "eigenfrequency";
+      break;
+    case MULTI_SEQUENCE:
+      out = "multiSequence";
+      break;
+    default:  
+      Error("No conversion found for your 'AnalysisType'", __FILE__, __LINE__);
+    }
   }
 
   // CouplingInputType
   template<>
-  void String2Enum<CouplingInputType>(const std::string &in, 
-				      CouplingInputType &out)
-  {
-    std::string errMsg;
+  void String2Enum<CouplingInputType>( const std::string &in, 
+				       CouplingInputType &out ) {
 
     if (in == "Coordinate-Displacement")
       out = COORD;
@@ -146,162 +133,144 @@ namespace CoupledField
       out = ID_BC;
     else if (in == "materialParam")
       out = MAT;
-    else
-     {
-	errMsg  = "'";
-	errMsg += in;
-	errMsg += "' cannot be converted into item of 'CouplingInputType'!";
-	Error(errMsg.c_str(), __FILE__, __LINE__);
-     } 
+    else {
+      (*error) << "'" << in << "' cannot be converted into item of "
+	       << "'CouplingInputType'!";
+      Error( __FILE__, __LINE__);
+    }
   }
 
   template<> 
   void Enum2String<CouplingInputType>(const CouplingInputType &in, 
-				      std::string &out)
-  {
-    switch(in)
-      {
-      case COORD:
-	out = "Coordinate-Displacement";
-	break; 
-      case RHS:
-	out = "RHS";
-	break;
-      case ID_BC:
-	out = "DirichletInhom";
-	break;
-      case MAT:
-	out = "materialParam";
-	break;
-      default:	
-	Error("No conversion found for your 'CouplingInputType'",
-	      __FILE__, __LINE__);
-      } 
+                                      std::string &out) {
+
+    switch(in) {
+
+    case COORD:
+      out = "Coordinate-Displacement";
+      break; 
+    case RHS:
+      out = "RHS";
+      break;
+    case ID_BC:
+      out = "DirichletInhom";
+      break;
+    case MAT:
+      out = "materialParam";
+      break;
+    default:  
+      Error("No conversion found for your 'CouplingInputType'",
+	    __FILE__, __LINE__);
+    }
   }
 
   // BubbleDynType
   template<>
   void String2Enum<BubbleDynType>( const std::string &in, 
 				   BubbleDynType &out ) {
-    std::string errMsg;
 
     if ( in == "KellerMiksis" )
       out = KELLERMIKSIS;
     else if ( in == "Gilmore" )
       out = GILMORE;
-    else
-     {
-	errMsg  = "'";
-	errMsg += in;
-	errMsg += "' cannot be converted into item of 'BubbleDynType'!";
-	Error(errMsg.c_str(), __FILE__, __LINE__);
-     }
+    else {
+      (*error) << "'" << in << "' cannot be converted into item of "
+	       << "'BubbleDynType'!";
+      Error( __FILE__, __LINE__);
+    }
   }
 
   template<> 
   void Enum2String<BubbleDynType>( const BubbleDynType &in, 
 				   std::string &out ) {
     switch(in) {
-      case KELLERMIKSIS:
-	out = "KellerMiksis";
-	break;
-      case GILMORE:
-	out = "Gilmore";
-	break;
-      default:	
-	Error( "No conversion found for your 'BubbleDynType'",
-	       __FILE__, __LINE__ );
+
+    case KELLERMIKSIS:
+      out = "KellerMiksis";
+      break;
+    case GILMORE:
+      out = "Gilmore";
+      break;
+    default:	
+      Error( "No conversion found for your 'BubbleDynType'",
+	     __FILE__, __LINE__ );
     }
   }
 
   // CouplingOutputType
   template<>
   void String2Enum<CouplingOutputType>(const std::string &in, 
-				       CouplingOutputType &out)
-  {
-    std::string errMsg;
+                                       CouplingOutputType &out) {
 
     if (in == "nodal")
       out = NODE;
     else if (in == "elem")
       out = ELEM;
-    else
-     {
-	errMsg  = "'";
-	errMsg += in;
-	errMsg += "' cannot be converted into item of 'CouplingOutputType'!";
-	Error(errMsg.c_str(), __FILE__, __LINE__);
-     } 
+    else {
+      (*error) << "'" << in << "' cannot be converted into item of "
+	       <<"'CouplingOutputType'!";
+      Error( __FILE__, __LINE__ );
+    }
   }
 
   template<> 
   void Enum2String<CouplingOutputType>(const CouplingOutputType &in, 
-				       std::string &out)
-  {
-    switch(in)
-      {
-      case NODE:
-	out = "nodal";
-	break; 
-      case ELEM:
-	out = "elem";
-	break;
-      default:	
-	Error("No conversion found for your 'CouplingOutputType'",
-	      __FILE__, __LINE__);
-      } 
-  }
+                                       std::string &out) {
+    switch(in) {
 
+    case NODE:
+      out = "nodal";
+      break; 
+    case ELEM:
+      out = "elem";
+      break;
+    default:  
+      Error("No conversion found for your 'CouplingOutputType'",
+	    __FILE__, __LINE__ );
+    }
+  }
   
   // CouplingRegionType
   template<>
   void String2Enum<CouplingRegionType>(const std::string &in, 
-				       CouplingRegionType &out)
-  {
-    std::string errMsg;
-
+                                       CouplingRegionType &out) {
     if (in == "region")
       out = REGION;
     else if (in == "node")
       out = NODES;
     else if (in == "interface")
       out = SURFACE;
-    else 
-      {
-	errMsg  = "'";
-	errMsg += in;
-	errMsg += "' cannot be converted into item of 'CouplingRegionType'!";
-	Error(errMsg.c_str(), __FILE__, __LINE__);
-      }
-    
+    else {
+      (*error) << "'" << in << "' cannot be converted into item of "
+	       << "'CouplingRegionType'!";
+      Error( __FILE__, __LINE__ );
+    }
   }
 
   template<> 
   void Enum2String<CouplingRegionType>(const CouplingRegionType &in, 
-				       std::string &out)
-  {
-    switch(in)
-      {
-      case REGION:
-	out = "region";
-	break; 
-      case NODES:
-	out = "node";
-	break;
-      case SURFACE:
-	out = "interface";
-	break;
-      default:	
-	Error("No conversion found for your 'CouplingRegionType'",
-	      __FILE__, __LINE__);
-      }
+                                       std::string &out) {
+
+    switch(in) {
+
+    case REGION:
+      out = "region";
+      break; 
+    case NODES:
+      out = "node";
+      break;
+    case SURFACE:
+      out = "interface";
+      break;
+    default:  
+      Error( "No conversion found for your 'CouplingRegionType'",
+	     __FILE__, __LINE__ );
+    }
   }
 
   // NormType
   template<>
-  void String2Enum<NormType>(const std::string &in, NormType &out)
-  {
-    std::string errMsg;
+  void String2Enum<NormType>(const std::string &in, NormType &out) {
 
     if (in == "no")
       out = NO_NORM;
@@ -309,41 +278,34 @@ namespace CoupledField
       out = L2REL;
     else if (in == "abs")
       out = L2ABS;
-    else 
-      {
-	errMsg  = "'";
-	errMsg += in;
-	errMsg += "' cannot be converted into item of 'NormType'!";
-	Error(errMsg.c_str(), __FILE__, __LINE__);
-      }
-    
-  } 
+    else {
+      (*error) << "'" << in << "' cannot be converted into item of "
+	       << "'NormType'!";
+      Error( __FILE__, __LINE__ );
+    }
+  }
 
   template<>
-  void Enum2String<NormType>(const NormType &in, std::string &out)
-  {
-    switch(in)
-      {
-      case NO_NORM:
-	out = "no";
-	break;
-      case L2REL:
-	out = "rel";
-	break;
-      case L2ABS:
-	out = "abs";
-	break;
-      default:
-	Error("No conversion found for your 'NormType'",
-	      __FILE__, __LINE__);
-      }
+  void Enum2String<NormType>(const NormType &in, std::string &out) {
+
+    switch(in) {
+    case NO_NORM:
+      out = "no";
+      break;
+    case L2REL:
+      out = "rel";
+      break;
+    case L2ABS:
+      out = "abs";
+      break;
+    default:
+      Error("No conversion found for your 'NormType'", __FILE__, __LINE__);
+    }
   }
 
   // SolutionType
   template<>
-  void String2Enum<SolutionType>(const std::string &in, SolutionType &out)
-  {
-    std::string errMsg;
+  void String2Enum<SolutionType>(const std::string &in, SolutionType &out) {
 
     //mechanics
     if (in == "mechDisplacement")
@@ -412,13 +374,11 @@ namespace CoupledField
     else if (in == "fluidForce")
       out = FLUID_FORCE;
 
-    else 
-      {
-	errMsg  = "'";
-	errMsg += in;
-	errMsg += "' cannot be converted into item of 'SolutionType'!";
-	Error(errMsg.c_str(), __FILE__, __LINE__);
-      }
+    else {
+      (*error) << "'" << in << "' cannot be converted into item of "
+	       << "'SolutionType'!";
+      Error( __FILE__, __LINE__ );
+    }
   }
 
   template<>
@@ -521,16 +481,15 @@ namespace CoupledField
       break;
       
     default:
-      Error( "Wrong type of solution or 'SolutionType2String' not implemented for\
-this type of solution", __FILE__, __LINE__);
+      (*error) << "Wrong type of solution or 'SolutionType2String' not "
+	       << "implemented for this type of solution";
+      Error( __FILE__, __LINE__);
     }
   } 
 
- // EQNType
+  // EQNType
   template<>
-  void String2Enum<EQNType>(const std::string &in, EQNType &out)
-  {
-   std::string errMsg;
+  void String2Enum<EQNType>(const std::string &in, EQNType &out) {
 
     if (in == "scalar")
       out = NODE_SCALAR;
@@ -540,51 +499,42 @@ this type of solution", __FILE__, __LINE__);
       out = NODE_SCALAR_BLOCK;
     else if (in == "superBlock")
       out = NODE_SUPER_BLOCK;
-    else 
-      {
-	errMsg  = "'";
-	errMsg += in;
-	errMsg += "' cannot be converted into item of 'EQNType'!";
-	Error(errMsg.c_str(), __FILE__, __LINE__);
-      } 
+    else {
+      (*error) << "'" << in << "' cannot be converted into item of 'EQNType'!";
+      Error( __FILE__, __LINE__);
+    }
   }
 
   template<>
-  void Enum2String<EQNType>(const EQNType &in, std::string &out)
-  {
-     switch(in)
-      {
-      case NODE_SCALAR:
-	out = "scalar";
-	break; 
-      case NODE_BLOCK:
-	out = "block";
-	break;
-      case NODE_SCALAR_BLOCK:
-	out = "scalarBlock";
-	break;
-      case NODE_SUPER_BLOCK:
-	out = "superBlock";
-	break;
-      default:	
-	Error("No conversion found for your 'EQNType'",
-	      __FILE__, __LINE__);
-      } 
-   
+  void Enum2String<EQNType>(const EQNType &in, std::string &out) {
+
+    switch(in) {
+    case NODE_SCALAR:
+      out = "scalar";
+      break; 
+    case NODE_BLOCK:
+      out = "block";
+      break;
+    case NODE_SCALAR_BLOCK:
+      out = "scalarBlock";
+      break;
+    case NODE_SUPER_BLOCK:
+      out = "superBlock";
+      break;
+    default:  
+      Error("No conversion found for your 'EQNType'", __FILE__, __LINE__);
+    }
   }
-  
+
   // ComplexFormat
   template<>
-  void String2Enum<ComplexFormat>(const std::string &in, ComplexFormat &out)
-  {
-    Error("Not implemented", __FILE__, __LINE__);
+  void String2Enum<ComplexFormat>(const std::string &in, ComplexFormat &out) {
+    Error( "Not implemented", __FILE__, __LINE__ );
   }
 
   template<>
-  void Enum2String<ComplexFormat>(const ComplexFormat &in, std::string &out)
-  {
-    
-    Error("Not implemented", __FILE__, __LINE__);
+  void Enum2String<ComplexFormat>(const ComplexFormat &in, std::string &out) {
+    Error( "Not implemented", __FILE__, __LINE__ );
   }
 
 }

@@ -1,5 +1,3 @@
-#ifdef USE_OLAS
-
 #include <string.h>
 
 #include "General/environment.hh"
@@ -43,6 +41,9 @@ namespace CoupledField {
     else if ( sTypeString == "lapackLU" ) {
       sType = LAPACK_LU;
     }
+    else if ( sTypeString == "Direct" ) {
+      sType = LU_SOLVER;
+    }
     else {
       std::string errmsg = "Solver '" + sTypeString;
       errmsg += "' not supported yet.";
@@ -53,38 +54,7 @@ namespace CoupledField {
     std::string pTypeString;
     PrecondType pType;
     cfs->Get( "precond", pTypeString, pdename, "solver" );
-    if ( pTypeString == "noPrecond" ) {
-      pType = NOPRECOND;
-    }
-    else if ( pTypeString == "Id" ) {
-      pType = ID;
-    }
-    else if ( pTypeString == "Jacobi" ) {
-      pType = ID;
-    }
-    else if ( pTypeString == "SSOR" ) {
-      pType = SSOR;
-    }
-    else if ( pTypeString == "MG" ) {
-      pType = MG;
-    }
-    else if ( pTypeString == "hypreJACOBI" ) {
-      pType = HYPRE_JACOBI;
-    }
-    else if ( pTypeString == "hypreSPAI" ) {
-      pType = HYPRE_SPAI;
-    }
-    else if ( pTypeString == "hypreILU" ) {
-      pType = HYPRE_ILU;
-    }
-    else if ( pTypeString == "hypreAMG" ) {
-      pType = HYPRE_AMG;
-    }
-    else {
-      std::string errmsg = "Preconditioner '" + pTypeString;
-      errmsg += "' not supported yet.";
-      Info->Error( errmsg, __FILE__, __LINE__ );
-    }
+    OLAS::String2Enum( pTypeString, pType );
 
     // Next determine the matrix type for this PDE
     std::string mMatString;
@@ -136,17 +106,25 @@ namespace CoupledField {
       eType = COMPLEX;
     }
 
+    // Type of re-odering
+    std::string orderString;
+    ReorderingType orderType;
+    cfs->Get( "reordering", orderString, pdename, "matrix" );
+    OLAS::String2Enum( orderString, orderType );
+
     // Let expert module modify the settings
     if ( !overrideExpert ) {
-      CFSOLASParams::Expert( pdename, sType, pType, mType, eType );
+      CFSOLASParams::Expert( cfs, pdename, sType, pType, mType, eType,
+			     orderType );
     }
 
     // Insert information into OLAS_Params object
-    olas->SetValue( "Solver", sType );
-    olas->SetValue( "Precond", pType );
+    olas->SetValue( "Solver"             , sType );
+    olas->SetValue( "Precond"            , pType );
     olas->SetValue( "MatrixStructureType", STDMATRIX );
-    olas->SetValue( "MatrixStorageType", mType );
-    olas->SetValue( "MatrixEntryType"  , eType );
+    olas->SetValue( "MatrixStorageType"  , mType );
+    olas->SetValue( "MatrixEntryType"    , eType );
+    olas->SetValue( "GRAPH_reordering"   , orderType );
 
     // Set special parameters for solver and preconditioner
     CFSOLASParams::SetSolverParams( pdename, cfs, olas, sType );
@@ -193,11 +171,11 @@ namespace CoupledField {
     switch( sType ) {
 
     case CG:
-      cfs->GetList( "tol", list, pdename, "PCG" );
+      cfs->GetList( "tol", list, pdename, "cg" );
       if( list.GetSize() == 1 ) {
 	olas->SetValue( "CG_epsilon", atof(list[0].c_str()) );
       }
-      cfs->GetList( "maxIter", list, pdename, "hyprePCG" );
+      cfs->GetList( "maxIter", list, pdename, "cg" );
       if( list.GetSize() == 1 ) {
 	olas->SetValue( "CG_maxIter", atoi(list[0].c_str()) );
       }
@@ -254,6 +232,10 @@ namespace CoupledField {
       if( list.GetSize() == 1 ) {
 	olas->SetValue( "HYPREPCG_printLevel", atoi(list[0].c_str()) );
       }
+      cfs->GetList( "twoNorm", list, pdename, "hyprePCG" );
+      if( list.GetSize() == 1 ) {
+	olas->SetValue( "HYPREPCG_twoNorm", (list[0] == "yes") );
+      }
       break;
 
     case HYPRE_GMRES:
@@ -298,7 +280,49 @@ namespace CoupledField {
       }
       break;
 
+    case LAPACK_LU:
+      cfs->GetList( "tryScaling", list, pdename, "lapackLU" );
+      if( list.GetSize() == 1 ) {
+	olas->SetValue( "LAPACKLU_TryScaling", (list[0] == "yes") );
+      }
+      cfs->GetList( "refineSol", list, pdename, "lapackLU" );
+      if( list.GetSize() == 1 ) {
+	olas->SetValue( "LAPACKLU_RefineSol", (list[0] == "yes") );
+      }
+      cfs->GetList( "logging", list, pdename, "lapackLU" );
+      if( list.GetSize() == 1 ) {
+	olas->SetValue( "LAPACKLU_logging", (list[0] == "yes") );
+      }
+      break;
+
+    case LU_SOLVER:
+      cfs->GetList( "logging", list, pdename, "Direct" );
+      if( list.GetSize() == 1 ) {
+	olas->SetValue( "LUSOLVER_logging", (list[0] == "yes") );
+      }
+      cfs->GetList( "saveFacFile", list, pdename, "Direct" );
+      if( list.GetSize() == 1 ) {
+	olas->SetValue( "CROUT_saveFacToFile", true );
+	olas->SetValue( "CROUT_facFileName", list[0] );
+      }
+      break;
+
+      // If this point is reached, it indicates that something is broken.
+      // Probably not all solvers that SetParams allows are yet implemented
+      // here?
+    default:
+      Error( "Internal error. Maybe a missing implementation of a case?",
+	     __FILE__, __LINE__ );
+      break;
+
     }
+
+    // Now set the stopping rule
+    std::string stopCrit;
+    cfs->Get( "type", stopCrit, pdename, "stoppingRule" );
+    StopCritType stopRule;
+    OLAS::String2Enum( stopCrit, stopRule );
+    olas->SetValue( "StoppingCriterion", stopRule );
 
   }
 
@@ -318,6 +342,14 @@ namespace CoupledField {
     StdVector<std::string> list;
 
     switch( pType ) {
+
+      // The easiest cases. No parameters exist.
+    case ID:
+    case NOPRECOND:
+    case JACOBI:
+    case ILU0:
+    case HYPRE_JACOBI:
+      break;
 
     case HYPRE_ILU:
       cfs->GetList( "level", list, pdename, "hypreILU" );
@@ -383,6 +415,63 @@ namespace CoupledField {
 	olas->SetValue( "BOOMERAMG_cycleType", cycleType );
       }
       break;
+
+    case MG:
+      cfs->GetList( "maxCoarseDepend", list, pdename, "MG" );
+      if( list.GetSize() == 1 ) {
+	olas->SetValue( "AMG_MaxCoarseDependency", atoi(list[0].c_str()) );
+      }
+      cfs->GetList( "minSystemSize", list, pdename, "MG" );
+      if( list.GetSize() == 1 ) {
+	olas->SetValue( "AMG_MinSystemSize", atoi(list[0].c_str()) );
+      }
+      cfs->GetList( "numPreSmooth", list, pdename, "MG" );
+      if( list.GetSize() == 1 ) {
+	olas->SetValue( "AMG_NumPreSmoothing", atoi(list[0].c_str()) );
+      }
+      cfs->GetList( "numPostSmooth", list, pdename, "MG" );
+      if( list.GetSize() == 1 ) {
+	olas->SetValue( "AMG_NumPostSmoothing", atoi(list[0].c_str()) );
+      }
+      cfs->GetList( "cycleParam", list, pdename, "MG" );
+      if( list.GetSize() == 1 ) {
+	olas->SetValue( "AMG_CycleParameter", atoi(list[0].c_str()) );
+      }
+      cfs->GetList( "alpha", list, pdename, "MG" );
+      if( list.GetSize() == 1 ) {
+	olas->SetValue( "AMG_CoarseningAlpha", atof(list[0].c_str()) );
+      }
+      cfs->GetList( "strongDiagRatio", list, pdename, "MG" );
+      if( list.GetSize() == 1 ) {
+	olas->SetValue( "AMG_StrongDiagRatio", atof(list[0].c_str()) );
+      }
+      cfs->GetList( "forceFineRatio", list, pdename, "MG" );
+      if( list.GetSize() == 1 ) {
+	olas->SetValue( "AMG_ForceFineRatio", atof(list[0].c_str()) );
+      }
+      cfs->GetList( "directSolver", list, pdename, "MG" );
+      if( list.GetSize() == 1 ) {
+	if ( list[0] == "lapackLU" ) {
+	  olas->SetValue( "AMG_DirectSolver", LAPACK_LU );
+	}
+	else {
+	  olas->SetValue( "AMG_DirectSolver", NOSOLVER );
+	}
+      }
+      cfs->GetList( "logging", list, pdename, "MG" );
+      if( list.GetSize() == 1 ) {
+	olas->SetValue( "AMG_logging", (list[0] == "yes") );
+      }
+      break;
+
+
+      // If this point is reached, it indicates that something is broken.
+      // Probably not all preconditioners that SetParams allows are yet
+      // implemented here?
+    default:
+      Error( "Internal error. Maybe a missing implementation of a case?",
+	     __FILE__, __LINE__ );
+      break;
     }
   }
 
@@ -390,11 +479,13 @@ namespace CoupledField {
   // *******************
   //   Expert's Choice
   // *******************
-  void CFSOLASParams::Expert( std::string pdename,
+  void CFSOLASParams::Expert( BaseParamHandler *cfs,
+			      std::string pdename,
 			      SolverType &sType,
 			      PrecondType &pType,
 			      MatrixStorageType &mType,
-			      MatrixEntryType &eType ) {
+			      MatrixEntryType &eType,
+			      ReorderingType &rType ) {
 
     ENTER_FCN( "CFSOLASParams::Expert" );
 
@@ -412,16 +503,20 @@ namespace CoupledField {
     }
 
     // Hypre solvers only work together with hypre preconditioners
-    if ( sType == HYPRE_PCG || sType == HYPRE_GMRES || 
-         sType == HYPRE_BICGSTAB ) {
-	    
-        if (!( pType == NOPRECOND  || pType == HYPRE_AMG ||
-	        pType == HYPRE_SPAI || pType == HYPRE_ILU ) ) {
-              warn = "Expert: Re-setting preconditioner type to 'ID'";
-              Info->Warning( warn );
-              pType = ID;
-            }
-        }
+    if ( (sType == HYPRE_PCG || sType == HYPRE_GMRES ||
+	  sType == HYPRE_BICGSTAB)
+
+	 && !( pType == NOPRECOND    ||
+	       pType == ID           ||
+	       pType == HYPRE_JACOBI ||
+	       pType == HYPRE_SPAI   ||
+	       pType == HYPRE_ILU    ||
+	       pType == HYPRE_AMG ) ) {
+
+      warn = "Expert: Re-setting preconditioner type to 'ID'";
+      Info->Warning( warn );
+      pType = ID;
+    }
 
     // ===============
     //  Matrix stuff
@@ -436,38 +531,27 @@ namespace CoupledField {
 	}
 	else {
 	  Info->PrintF( pdename,
-			"Expert: Using LAPACK_GBMATRIX as storage type" );
+			"Expert: Using LAPACK_GBMATRIX as storage type\n" );
 	}
 	mType = LAPACK_GBMATRIX;
       }
+    }
 
-      // The following block is useless, as long as OLAS does not really
-      // use F77xxx entry type specifiers
-
-      // if ( eType == DOUBLE ) {
-      //   if ( sizeof(Double) == sizeof(float) ) {
-      //     eType = F77FLOAT;
-      //     warn = "Expert: Re-setting matrix entry type to F77FLOAT";
-      //     Info->Warning( warn );
-      //   }
-      //   else {
-      //     eType = F77DOUBLE;
-      //     warn = "Expert: Re-setting matrix entry type to F77DOUBLE";
-      //     Info->Warning( warn );
-      //   }
-      // }
-      // else if ( eType == COMPLEX ) {
-      //   if ( sizeof(Complex) == sizeof(std::complex<float>) ) {
-      //     eType = F77COMPLEX8;
-      //     warn = "Expert: Re-setting matrix entry type to F77COMPLEX8";
-      //     Info->Warning( warn );
-      //   }
-      //   else {
-      //     eType = F77COMPLEX16;
-      //     warn = "Expert: Re-setting matrix entry type to F77COMPLEX16";
-      //     Info->Warning( warn );
-      //   }
-      // }
+    // The direct solver LU_SOLVER expects a CRS matrix
+    if ( sType == LU_SOLVER ) {
+      if ( mType != SPARSE_NONSYM ) {
+	if ( mType != NOSTORAGETYPE ) {
+	  (*warning) << "Expert: Changing matrix storage type from "
+		     << Enum2String( mType ) << " to SPARSE_NONSYM for "
+		     << "direct solver";
+	  Warning( __FILE__, __LINE__ );
+	}
+	else {
+	  Info->PrintF( pdename, "Expert: Using SPARSE_NONSYM as storage "
+			"type for direct solver\n" );
+	}
+	mType = SPARSE_NONSYM;
+      }
     }
 
     // Hypre solvers want their own matrix format
@@ -475,16 +559,17 @@ namespace CoupledField {
 	 sType == HYPRE_BICGSTAB ) {
       if ( mType != HYPRE_MATRIX ) {
 	if ( mType != NOSTORAGETYPE ) {
-	  warn = "Expert: Re-setting matrix storage type to 'HYPRE_MATRIX'";
+	  warn = "Expert: Re-setting matrix storage type to 'HYPRE_MATRIX'\n";
 	  Info->Warning( warn );
 	}
 	else {
-	  Info->PrintF( pdename, "Expert: Using HYPRE_MATRIX as storage type");
+	  Info->PrintF( pdename, "Expert: Using HYPRE_MATRIX as storage "
+			"type\n" );
 	}
 	mType = HYPRE_MATRIX;
       }
       if ( eType != DOUBLE ) {
-	warn = "Expert: Re-setting matrix entry type to DOUBLE";
+	warn = "Expert: Re-setting matrix entry type to DOUBLE\n";
 	Info->Warning( warn );
 	eType = DOUBLE;
       }
@@ -493,9 +578,36 @@ namespace CoupledField {
     // If no storage type was yet assigned use plain CRS
     if ( mType == NOSTORAGETYPE ) {
       mType = SPARSE_NONSYM;
-      Info->PrintF( pdename, "Expert: Using SPARSE_NONSYM as storage type" );
+      Info->PrintF( pdename, "Expert: Using SPARSE_NONSYM as storage type\n" );
     }
 
+    // In case of a harmonic analysis, we expect complex matrix entries
+    std::string analysis;
+    cfs->Get( "type", analysis, "analysis" );
+    if ( analysis == "harmonic" 
+	 && eType != COMPLEX ) {
+      eType = COMPLEX;
+      Info->PrintF( pdename, "Expert: Using COMPLEX as matrix entry type "
+		    "for HARMONIC analysis\n" );
+    }
+
+
+    // ============
+    //  Reordering
+    // ============
+    if ( sType == LAPACK_LU || sType == LU_SOLVER || sType == LDL_SOLVER ||
+	 pType == ILU0 ) {
+      if ( rType != SLOAN ) {
+	(*warning) << "Expert: Re-setting re-ordering strategy from '"
+		   <<  	Enum2String( rType ) << "' to 'SLOAN'";
+	Warning( __FILE__, __LINE__ );
+	rType = SLOAN;
+      }
+      else {
+	Info->PrintF( pdename, "Expert: Using SLOAN for re-ordering\n" );
+	rType = SLOAN;
+      }
+    }
   }
+
 }
-#endif

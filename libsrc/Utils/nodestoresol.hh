@@ -399,12 +399,6 @@ public:
 			       const StdVector<Integer> & connect) const;
 
 
-  //!
-  void TransformNodeSolution(CFSVector & transformedSolution,
-			     Grid * ptGrid,
-			     const Integer level) const;
-
-
    //! maps the local node solution to the coupling nodes
   void NodeSolutionToCoupling(CFSVector & couplingSol,
 			      const StdVector<Integer>& nodeNumbers) const;

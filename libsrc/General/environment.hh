@@ -83,6 +83,11 @@ namespace CoupledField
   //! print grid only and then exit
   extern Boolean PrintGridOnly;
 
+  //! Global pointer to a stringstream used for generating error messages
+  extern std::stringstream *error;
+
+  //! Global pointer to a stringstream used for generating warning messages
+  extern std::stringstream *warning;
 
   //! enumeration with elements types.
   enum ElementType{Line1, Triang1, Triang2, Quadrilateral1, Quadrilateral2};

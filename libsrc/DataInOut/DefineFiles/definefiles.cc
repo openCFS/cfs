@@ -149,20 +149,28 @@ namespace CoupledField
 
 #ifdef DEBUG
     delete debug;
+    debug = NULL;
 #endif
- 
-    if (cla) delete cla;
 
+    if (cla) delete cla;
+    cla = NULL;
+    
     // Delete internal pointers
     if (ptWriteResults_) delete ptWriteResults_;
+    ptWriteResults_ = NULL;
+    
     if (infileType_) delete infileType_;
+    infileType_ = NULL;
+
     delete[] filename_;
 
 #ifdef TRACE
     delete trace;
+    trace = NULL;
 #endif
 
     delete flags;
+    flags = NULL;
 
   }
 
