@@ -124,27 +124,24 @@ int main(int argc, char *argv[])
 #endif  
 
   
-
-  DefineInOutFiles * ptDefineFiles=new DefineInOutFiles(name);
   // class writing log-information
   Info = new WriteInfo(name);
   Info->PrintHeader();
 
+  DefineInOutFiles * ptDefineFiles=new DefineInOutFiles(name);
+  
    if (PrintGridOnly)
     STDOUT << "Printing grid to file " << name << ".unv" << myEndl << myEndl;
 
   MyClock oClockTotal;
   oClockTotal.ClockCount(MyClock::beg);
 
-  Info->StartProgress("Creating file pointers");
-
+  
   FileType * ptInputfile=ptDefineFiles->Create_ptFileType();
 
   WriteResults * ptOut=ptDefineFiles->Create_ptWriteResults(ptInputfile);
   
-  Info->FinishProgress();
-
-
+  
   // TimeFunc * ptTimeFunc=NULL;
   TimeFunc * ptTimeFunc = new TimeFunc(ptInputfile);
 
