@@ -8,7 +8,7 @@ namespace CoupledField
   class BaseParamHandler;
   class OLAS_Params;
 
-  //! Class for passing steering parameters from CFSü++ to OLAS
+  //! Class for passing steering parameters from CFS++ to OLAS
   class CFSOLASParams {
 
   public:
