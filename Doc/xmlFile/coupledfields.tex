@@ -24,7 +24,7 @@ looks as follows
         <coupling type="..." quantity="..." name="..."/>
      </Pde2>
      <nonLinear logging="yes">
-       <stopCrit name="..." value="1e-3"/>
+       <stopCrit value="1e-2" name="..." l2Norm="..."/>
        <maxNumIters>  200</maxNumIters>
      </nonLinear>
   </iterativePde1Pde2>
@@ -38,7 +38,7 @@ looks as follows
         <coupling type="..." quantity="..." name="..."/>
      </Pde4>
      <nonLinear logging="no">
-       <stopCrit name="..." value="1e-2"/>
+       <stopCrit value="1e-2" name="..." l2Norm="..."/>
        <maxNumIters> 20 </maxNumIters>
      </nonLinear>
   </iterativePde3Pde4>
@@ -49,10 +49,13 @@ looks as follows
 For the stopping criteria, we have currently the following names:
 
 \begin{verbatim}
-    <stopCrit name="mechdisplacement" value="1e-2"/>
-    <stopCrit name="elecForce" value="1e-2"/>
-    <stopCrit name="magForce" value="1e-2"/>
+    <stopCrit value="1e-2" name="mechdisplacement" l2Norm="rel"/>
+    <stopCrit value="1e-2" name="elecForce" l2Norm="rel"/>
+    <stopCrit value="1e-2" name="magForce" l2Norm="rel"/>
 \end{verbatim}
+Instead of using a relative accuracy $\epsilon^{rel}$, i.e. $\|u_{k+1}-u_k\|_2 < \epsilon^{rel} \|u_{k+1}\|_2$ you can as well
+truncate the iterations by choosing an absolute accuracy $\epsilon^{abs}$, i.e. $\|u_{k+1}-u_k\|_2 < \epsilon^{abs}$ setting {\sf
+l2Norm="abs"}.
 
 
 \section{Specifications within the single fields}
@@ -131,11 +134,11 @@ body problem).
         <coupling type="node" quantity="mechDisplacement" name="electrode1"/>
      </smooth>
      <nonLinear logging="no">
-       <stopCrit name="mechdisplacement" value="1e-2"/>
-       <stopCrit name="elecForce" value="1e-2"/>
+       <stopCrit value="1e-2" name="mechDisplacement" l2Norm="rel"/>
+       <stopCrit value="1e-3" name="elecForce" l2Norm="abs"/>
        <maxNumIters> 20 </maxNumIters>
      </nonLinear>
-  </iterativeAcouMech>
+  </iterativeElecMech>
 </couplingList>
 \end{verbatim}
 
@@ -162,8 +165,8 @@ body problem).
         <coupling type="node" quantity="mechDisplacement" name="surf1 "/>
      </smooth>
      <nonLinear logging="no">
-       <stopCrit name="mechdisplacement" value="1e-2"/>
-       <stopCrit name="magForce" value="1e-2"/>
+       <stopCrit value="1e-2" name="mechDisplacement" l2Norm="rel"/>
+       <stopCrit value="1e-3" name="magForce" l2Norm="abs"/>
        <maxNumIters> 20 </maxNumIters>
      </nonLinear>
   </iterativeMagMech>
@@ -189,7 +192,7 @@ just implemented the iterative coupling.
         <coupling type="node" quantity="mechForce" name="surf1"/>
      </acoustic>
      <nonLinear logging="no">
-       <stopCrit name="mechdisplacement" value="1e-2"/>
+       <stopCrit value="1e-2" name="mechDisplacement" l2Norm="rel"/>
        <maxNumIters> 20 </maxNumIters>
      </nonLinear>
   </iterativeAcouMech>
