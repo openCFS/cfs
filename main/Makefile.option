@@ -95,8 +95,7 @@
 # -----------------------------------------------------------------------------
 
 ifeq ("$(OLAS_ROOT)","")
-# OLAS_ROOT = /home/data/proj/SoftwareLibraries/OLAS_STABLE_1
-OLAS_ROOT = /home/lse24/lse/mmohr/Software/OLAS
+OLAS_ROOT = /home/data/proj/SoftwareLibraries/OLAS_STABLE_1
 endif
 
 ifeq ("$(HYPRE_ROOT)","")
@@ -181,7 +180,7 @@ LAPACK = yes
 TVMET = yes
 
 # Was OLAS compiled with support for Pardiso?
-PARDISO = yes
+PARDISO = no
 
 # Was OLAS compiled with support for Metis?
 METIS = no
