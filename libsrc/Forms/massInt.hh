@@ -34,7 +34,6 @@ protected:
 private:
   // multiplicative value for mass integrator
   Double density_;
-  Boolean isaxi_;
   Integer nrDofsPerNode_;
 };
 

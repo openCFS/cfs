@@ -7,20 +7,24 @@ namespace CoupledField
 {
 
   CurlCurlNode2DInt::CurlCurlNode2DInt(BaseFE * aptelem, Double aVal, Boolean axi)
-    : BaseForm(aptelem),matVal_ (aVal), isaxi_(axi)
+    : BaseForm(aptelem),matVal_ (aVal)
   {
 #ifdef TRACE
     (*trace) << "entering CurlCurlNode2DInt::CurlCurlNode2DInt" << std::endl;
 #endif
+
+    isaxi_ = axi;
   }
 
 
   CurlCurlNode2DInt::CurlCurlNode2DInt(Double aVal, Boolean axi)
-    : BaseForm(),matVal_ (aVal), isaxi_(axi)
+    : BaseForm(),matVal_ (aVal)
   {
 #ifdef TRACE
     (*trace) << "entering CurlCurlNode2DInt::CurlCurlNode2DInt" << std::endl;
 #endif
+
+    isaxi_ = axi;
   }
 
 
