@@ -97,9 +97,6 @@ private:
   //! Integration parameters
   Double alpha_,gamma_, beta_;
 
-  //! coefficient in equation
-  Double coeff_;
-
   //! store solution, 1st derivative , 2nd derivative solution
   Vector<Double> sol_, sol_der1_, sol_der2_, sol_old_, sol_der2_old_;  
 
