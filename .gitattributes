@@ -92,6 +92,8 @@ libsrc/Domain/elem.hh svneol=native#text/plain
 libsrc/Domain/grid.cc svneol=native#text/plain
 libsrc/Domain/grid.hh svneol=native#text/plain
 libsrc/Driver/Makefile -text
+libsrc/Driver/analysis.cc svneol=native#text/plain
+libsrc/Driver/analysis.hh svneol=native#text/plain
 libsrc/Driver/basedriver.cc svneol=native#text/plain
 libsrc/Driver/basedriver.hh svneol=native#text/plain
 libsrc/Driver/driver_header.hh svneol=native#text/plain
