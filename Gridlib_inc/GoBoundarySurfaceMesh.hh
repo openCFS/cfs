@@ -49,8 +49,8 @@ public:
 /*----------------------------------------------------------------------
 |
 | $Log$
-| Revision 1.2  2002/03/21 14:58:57  elena
-| new: changes in dat-file for reading tetrahedral (bugs in element connection)
+| Revision 1.3  2002/04/03 11:17:07  elena
+| new: changes in CFS++ on SGI and new function for gridlib
 |
 | Revision 1.1  2001/02/13 11:17:03  prkipfer
 | introduced boundary surface mesh

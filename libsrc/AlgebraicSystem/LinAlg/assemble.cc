@@ -146,7 +146,6 @@ void Assemble<Dim, T_Matrix>::SetDirichletBoundaryCondSysMat_PenaltyMethod()
   for (i=0; i<n; i++) 
     {
       aux=nodesDirBC[i]-1;
-      std::cout << " nodes for BC " << aux << std::endl;
       A(aux,aux)+=BigConst;
     }
 }
@@ -176,7 +175,9 @@ void Assemble<Dim,T_Matrix>::SetNodesBoundaryCondition(FileType * aptFileType)
 #ifdef TRACE
    (*trace) << "entering Assemble::SetNodesBoundaryCondition " << std::endl;
 #endif
-  aptFileType->ReadDirichletBC(nodesDirBC); 
+
+  ptgrid->GetNodesBoundaryCondition(nodesDirBC,level); 
+
 }
 
 template<class Dim, class T_Matrix>

@@ -55,6 +55,9 @@ public:
   virtual void PrintCoordinate(const Integer level, std::ostream * out) const
   { ptGridCFS->PrintCoordinate(level, out);}
 
+  //! Get array of nodes for boundary condition
+    virtual void GetNodesBoundaryCondition(Vector<Integer> & nodesDirBC, const Integer level);
+
 protected:
 private:
   GridCFS<Dim> * ptGridCFS;
@@ -69,6 +72,12 @@ inline GridInterfaceCFS<Dim>::GridInterfaceCFS(FileType * aptFileType)
  (*trace) << "Entering GridInterfaceCFS<Dim>::GridInterfaceCFS<Dim>" << std::endl;
 #endif
    ptGridCFS=new GridCFS<Dim>(ptFileType); 
+}
+
+template<class Dim>
+void GridInterfaceCFS<Dim>::GetNodesBoundaryCondition(Vector<Integer> & nodesDirBC, const Integer level)
+{
+ if (level==0) ptFileType->ReadDirichletBC(nodesDirBC);
 }
 
 #ifdef __GNUC__

@@ -52,8 +52,8 @@ GbGaussPointsFit (const GoMesh* mesh, GbVertexFlag flag, GbBox3<float>& box, int
 /*----------------------------------------------------------------------
 |
 | $Log$
-| Revision 1.2  2002/03/21 14:58:56  elena
-| new: changes in dat-file for reading tetrahedral (bugs in element connection)
+| Revision 1.3  2002/04/03 11:17:07  elena
+| new: changes in CFS++ on SGI and new function for gridlib
 |
 | Revision 1.2  2001/09/12 09:15:35  prkipfer
 | made GaussPointsFit work on a specific mesh level

@@ -5,6 +5,7 @@
 
 
 #include "interface_gridlib.hh"
+#include "filetype.hh"
 #include <GoTriangleMesh.hh>
 #include <GoVolumeMesh.hh>
 #include <GoDefaultVertex.hh>
@@ -280,4 +281,33 @@ void InterfaceGridlib<Point3D>::Read()
       }
     }
 }
+
+template<class Dim>
+void InterfaceGridlib<Dim>::GetNodesBoundaryCondition(Vector<Integer> & nodesDirBC, const Integer level)
+{
+ if (level==0) ptFileType->ReadDirichletBC(nodesDirBC);
+ else {
+    Integer numAddNodes=nodesDirBC.size()-1;
+    
+    Vector<Integer> help(numAddNodes);   
+    ElementVector * ptElemList;
+ 
+    Integer i;
+    for (i=0; i<numAddNodes; i++)
+   {
+   ptGoMesh->getNeighboursAtEdge(nodesDirBC[i],nodesDirBC[i+1],level,ptElemList);
+
+      if ( (*ptElemList).size()!=1) 
+         Error("Nodes for boundary condition of previous grid are not on the boundary, so you get several elements in function from Gridlib : getNeighboursAtEdge(...); in this case we can't determine nodes for boundary condition in new grid by that way "); 
+
+   help[i]=(*ptElemList)[0]->getChild(0)->getVertex(1)->getId();
+   }
+
+   nodesDirBC.add(help,0);
+   sort(nodesDirBC.get(),nodesDirBC.size());
+   
+   }
+}
+
 } // end of namespace
+

@@ -4,8 +4,6 @@
 #include <iostream>
 
 #include "tools.hh"
-//#include "matrix_head.hh"
-
 
 namespace CoupledField
 {          
