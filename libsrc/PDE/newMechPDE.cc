@@ -467,7 +467,6 @@ void MechPDE::CalcOutputCoupling()
 
 	  if (quantity == "mechforce")
 	    {
-	      PDECoupling * myCouple = ptCoupling_;  // just for debugging!
 	      ptCoupling_->GetOutputNodes(i, couplingnodes);
 	      ptCoupling_->GetOutputElements(i, couplingElems);
 	      ptCoupling_->GetOutputValues(i, values);
@@ -477,20 +476,15 @@ void MechPDE::CalcOutputCoupling()
 
 	      if (!neighbours->size())
 		{
-		  std::string errMsg = "In mechanic PDE: No neighbour elements for acoustic-coupling at output interface ";
+		  std::string errMsg = "In mechanic PDE: No neighbour elements ";
+		  errMsg += "for acoustic-coupling at output interface ";
 		  errMsg += ptCoupling_->GetOutputRegion(i);
 		  Error(errMsg.c_str(),  __FILE__,__LINE__);  
 		}
 	  
-
-// 	      for (Integer ii=0; ii<neighbours->size(); ii++)
-// 		myCout << (*neighbours)[ii]->ElemNum << myEndl;
 	      
-	      
-	      CalcAcousticCouplingRHS(couplingElems, *couplingnodes, couplingMaterials, *values, dof, neighbours);
-
-	      //	      myCout << "Mech couple forces : " << *values << myEndl;
-	      
+	      CalcAcousticCouplingRHS(couplingElems, *couplingnodes, 
+				      couplingMaterials, *values, dof, neighbours);	      
 	    } 
 	  break;
 
@@ -657,7 +651,11 @@ void MechPDE::StepStaticNonLin(const Integer level, const Double aTime)
 #endif      
 
       // setup right hand side ==============================================      
-      algsys_->InitRHS();
+
+      // ????????????????????????????????????????????????????????????????????
+      //      if (!PDEisCoupled_)
+	algsys_->InitRHS();
+
       SetBCs(level, updateBCs_, 0);
       assemble_->AssembleSrcRHS(level);
       assemble_->AssembleNLRHS(level);
@@ -675,6 +673,7 @@ void MechPDE::StepStaticNonLin(const Integer level, const Double aTime)
       // new solution is only an increment of the full solution =============
       StoreAlgsysToVec(solIncrement, algsys_->GetSolutionVal() );
 
+      
       Double residualL2Norm = LineSearch(solIncrement, actSol, level);
       
       StoreVecToSolArray(actSol);

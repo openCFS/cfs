@@ -48,6 +48,9 @@ namespace CoupledField
 
 	jacDet = ptelem->CalcJacobianDetAtIp(actIntPt,ptCoord);
 
+	if (jacDet < 0)
+	  Error("Negative Jacobian determinant!", __FILE__, __LINE__);
+
 	if (isaxi_)
 	  {
 	    std::vector<Double> ShpFncAtIp;

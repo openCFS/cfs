@@ -110,7 +110,8 @@ PDECoupling::CouplingInterface::CouplingInterface()
     // If no pde has the specified quantity as output
     if (myInterface == NULL)
       {
-	std::string ErrMsg = "Qantity \'" + quantity + "\' can not be calculated with current set of PDEs";
+	std::string ErrMsg = "Qantity \'" + quantity 
+	  + "\' can not be calculated with current set of PDEs";
 	Error(ErrMsg.c_str(),__FILE__,__LINE__);
       }
   
@@ -122,7 +123,7 @@ PDECoupling::CouplingInterface::CouplingInterface()
  
     // set normtype and epsilon
     myInterface->epsilon = defaultEpsilon;
-    conf->ifget(inputQuantities_[myNum],myInterface->epsilon,"coupling", "tolerance"); 
+    conf->ifget(inputQuantities_[myNum], myInterface->epsilon, "coupling", "tolerance"); 
   
     std::string normtype;
     myInterface->normtype = defaultNormType;
