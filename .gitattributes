@@ -343,6 +343,7 @@ libsrc/Domain/GridCFS/grid_cfs.cc svneol=native#text/plain
 libsrc/Domain/GridCFS/grid_cfs.hh svneol=native#text/plain
 libsrc/Domain/GridCFS/interface_gridcfs.hh svneol=native#text/plain
 libsrc/Domain/Gridlib/Makefile -text
+libsrc/Domain/Gridlib/grid_interface_gridlib.hh svneol=native#text/plain
 libsrc/Domain/Gridlib/interface_gridlib.cc svneol=native#text/plain
 libsrc/Domain/Gridlib/interface_gridlib.hh svneol=native#text/plain
 libsrc/Domain/Makefile -text
