@@ -1,0 +1,125 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org"
+  xmlns:cfs="http://www.cfs++.org"
+  elementFormDefault="qualified">
+
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Coupled Field Solver project CFS++
+      Schema for PDE description for an acoustics PDE
+    </xsd:documentation>
+  </xsd:annotation>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of element for acoustics PDEs -->
+  <!-- ******************************************************************** -->
+  <xsd:element name="acoustic" type="DT_PDEAcoustic"
+       substitutionGroup="PDEBasic"/>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for electrostatic PDEs -->
+  <!-- ******************************************************************** -->
+
+  <xsd:complexType name="DT_PDEAcoustic">
+    <xsd:complexContent>
+      <xsd:extension base="DT_PDEBasic">
+        <xsd:sequence>
+
+          <!-- Regions the PDE lives on -->
+          <xsd:element name="region" minOccurs="1" maxOccurs="unbounded">
+            <xsd:complexType>
+              <xsd:attribute name="name" type="xsd:token" use="required"/>
+              <xsd:attribute name="nonLinear" type="DT_AcousticNonLin"
+                use="optional" default="no"/>
+            </xsd:complexType>
+          </xsd:element>
+
+          <!-- Boundary Conditions & Loads (optional) -->
+          <xsd:element name="bcsAndLoads" minOccurs="0">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="dirichletHom" type="DT_AcousticHD"
+                             minOccurs="0" maxOccurs="unbounded"/>
+                <xsd:element name="dirichletInhom" type="DT_AcousticID"
+                             minOccurs="0" maxOccurs="unbounded"/>
+                <xsd:element name="neumannInhom" type="DT_AcousticIN"
+                             minOccurs="0" maxOccurs="unbounded"/>
+                <xsd:element name="absorbingBCs" type="DT_AbsorbingBC"
+                             minOccurs="0" maxOccurs="unbounded"/>
+              </xsd:sequence>
+
+            </xsd:complexType>
+          </xsd:element>
+
+          <!-- Section for specifying non-linear parameters (optional) -->
+          <xsd:element name="nonLinear" type="DT_NonLinParams" minOccurs="0"/>
+
+          <!-- Desired solution values (optional) -->
+          <!-- Currently this is not supported, since it is difficult
+               to define in the acoustics case since it depends on the
+               boundary conditions
+          <xsd:element name="storeResults" type="DT_AcousticStoreResults"
+            minOccurs="0" maxOccurs="1"/-->
+  
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of the boundary condition types for electrostatic -->
+  <!-- ******************************************************************** -->
+
+  <!-- Element type for homogeneous Dirichlet boundary conditions -->
+  <!-- We derive it by extending the base type -->
+  <xsd:complexType name="DT_AcousticHD">
+    <xsd:complexContent>
+      <xsd:extension base="DT_BCBasic">
+        <xsd:attribute name="name" type="xsd:token" use="required"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- Element type for inhomogeneous Dirichlet boundary conditions -->
+  <!-- We derive it by extending the homogeneous case -->
+  <xsd:complexType name="DT_AcousticID">
+    <xsd:complexContent>
+      <xsd:extension base="DT_AcousticHD">
+        <xsd:attribute name="value" type="xsd:double" use="required"/>
+        <xsd:attribute name="dynamics" type="xsd:token" use="optional"
+          default="none"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- Element type for specifying inhomogeneous neumann conditions -->
+  <!-- Identical to that of inhomogeneous Dirichlet case -->
+  <xsd:complexType name="DT_AcousticIN">
+    <xsd:complexContent>
+      <xsd:extension base="DT_AcousticID"/>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- Element type for specifying absorbing boundary conditions -->
+  <!-- Identical to that of homogeneous Dirichlet case -->
+  <xsd:complexType name="DT_AbsorbingBC">
+    <xsd:complexContent>
+      <xsd:extension base="DT_AcousticHD"/>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for non-linearity in mechanic PDEs -->
+  <!-- ******************************************************************** -->
+  <xsd:simpleType name="DT_ElecNonLin">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="no"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+</xsd:schema>
