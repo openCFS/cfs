@@ -149,13 +149,13 @@ namespace CoupledField
 	}
       }    
   
-    Matrix<Double> * matMatrix =  ptMaterial->GetMatrix();
+    Matrix<Double> const & matMatrix =  *(ptMaterial->GetMatrix());
   
     dMat.Resize(nrElems2d);
   
     for (i=0; i<nrElems2d; i++)
       for (j=0; j<nrElems2d; j++)
-	dMat[i][j] = (*matMatrix)[rowPtr[i]-1][rowPtr[j]-1];	
+	dMat[i][j] = matMatrix[rowPtr[i]-1][rowPtr[j]-1];	
   }
 
 
@@ -196,13 +196,13 @@ namespace CoupledField
 
     const Integer nrElems3d = getDimD();
     
-    Matrix<Double> * matMatrix =  ptMaterial->GetMatrix();
+    Matrix<Double> const & matMatrix = *(ptMaterial->GetMatrix());
     
     dMat.Resize(nrElems3d);
 
     for (Integer i=0; i<nrElems3d; i++)
       for (Integer j=0; j<nrElems3d; j++)
-	dMat[i][j] = (*matMatrix)[i][j];	
+	dMat[i][j] = matMatrix[i][j];	
   }
   
 
@@ -295,13 +295,13 @@ namespace CoupledField
 
     const Integer nrElems3d = getMaterialDMatSize();
   
-    Matrix<Double> * matMatrix =  ptMaterial->GetMatrix();
+    Matrix<Double> const &  matMatrix = (*ptMaterial->GetMatrix());
   
     dMat.Resize(nrElems3d);
   
     for (Integer i=0; i<nrElems3d; i++)
       for (Integer j=0; j<nrElems3d; j++)
-	dMat[i][j] = (*matMatrix)[i][j];	
+	dMat[i][j] = matMatrix[i][j];	
   }
 
 
