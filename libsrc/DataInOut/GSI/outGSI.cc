@@ -60,7 +60,7 @@ namespace CoupledField {
 
     ENTER_FCN( "WriteResultsGSI::WriteGrid" );
 
-    if ( !NeedHistory_ ) {    
+
       if ( !io_ ) {
 	Error( "File for output results is not initialized" );
       }
@@ -77,11 +77,11 @@ namespace CoupledField {
 	std::cerr << "Exception in WriteResultsGSI::WriteGrid" << std::endl
 		  << e.description() << std::endl;
       }
-
+      
       Dataset666(level);
       Dataset781(level);
-      Dataset780(level);
-    }
+      Dataset780(level); 
+
   }
 
 
