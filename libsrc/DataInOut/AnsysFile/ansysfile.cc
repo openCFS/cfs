@@ -1145,7 +1145,7 @@ Boolean AnsysFile::IsNextLineEmpty(std::string::size_type actPos) {
   
   infile.seekg(actPos,std::ios::beg);  
   getline(infile,buf,'\n');
-   std::cerr << "buf = " << buf << std::endl;
+//    std::cerr << "buf = " << buf << std::endl;
 
   if (buf == "")
     return TRUE;
