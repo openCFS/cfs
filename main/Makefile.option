@@ -30,7 +30,7 @@ Adaptivity = no
 PETSc=no
 
 # MpCCI
-MpCCI=yes
+MpCCI=no
 
 # Use of GSI output format
 # NOTE: On the SGI IRIX the signal handling used in the GSI writer
@@ -55,8 +55,8 @@ LINK_LAPACK = no
 
 ##############  XML Parameter File Handling? With Xerces or without?
 #
-XMLPARAMS=no
-XERCES=no
+XMLPARAMS=yes
+XERCES=yes
 
 
 ##############  Path to includes and libraries for external packages
@@ -71,7 +71,8 @@ endif
 ifeq ("$(XMLPARAMS)","yes")
 ifeq ("$(XMLSCHEMA)","")
 
- XMLSCHEMA = $(CVSEXTERNAL)/CFS++XML
+# XMLSCHEMA = $(CVSEXTERNAL)/CFS++XML
+ XMLSCHEMA = /home/lse10/lse/mescobar/CFS++XML
 
 endif
 endif

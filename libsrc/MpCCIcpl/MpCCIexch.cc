@@ -5,6 +5,7 @@
 
 #include "MpCCIexch.hh"
 #include <DataInOut/ParamHandling/ConfFile.hh>
+#include "DataInOut/ParamHandling/BaseParamHandler.hh"
 
  //#ifdef MpCCI
 #include <cci.h>
@@ -24,14 +25,24 @@ MpCCIexch::MpCCIexch(Grid *aptgrid, Integer nNodesSD)
   MpCCInodes_ = nNodesSD;
 
   Dim_ = ptgrid_->GetDim();
-  //Get general specific coupling description for CFS++ side
 
+
+  //Get general specific coupling description for CFS++ side
+#ifndef XMLPARAMS
   conf->get("meshId",meshId_,"MpCCIdata");
   conf->get("partId",partId_,"MpCCIdata");
   conf->get("nNodeIds",nNodeIds_,"MpCCIdata");
+  conf->get("GlobalDim",GlobalDim_,"MpCCIdata");
+#else
+    params->Get("meshId", meshId_, "MpCCI-flownoise");
+    params->Get("partId",partId_, "MpCCI-flownoise");
+    params->Get("nNodeIds", nNodeIds_,"MpCCI-flownoise");
+    params->Get("GlobalDim", GlobalDim_, "MpCCI-flownoise");
+#endif
+
   nodeIds_   = new Integer[MpCCInodes_]; 
   nodeIds_[0] = 0;
-  conf->get("GlobalDim",GlobalDim_,"MpCCIdata");
+
 }
 
 MpCCIexch::~MpCCIexch()
@@ -39,24 +50,18 @@ MpCCIexch::~MpCCIexch()
 if (nodeIds_)  delete [] nodeIds_;
 }
 
-void MpCCIexch::PutExchangeGrid2MpCCI(StdVector<std::string> subdoms)
+void MpCCIexch::PutExchangeGrid2MpCCI(StdVector<std::string> coupledsubdoms)
 {
 #ifdef TRACE
   (*trace) << "entering MpCCIexch::PutExchangeGrid2MpCCI" << std::endl;
 #endif
 
 
-  // Here starts part for giving mixed mesh to MpCCI (quadrilaterals and triangles)
+  // Here starts part for giving mixed mesh to MpCCI
   
   CCI_Def_partition(meshId_, partId_);
  
   actlevel_= 0;
-  subdoms_ = subdoms;
-
-  //  Integer maxnumelem=ptgrid_->GetMaxnumElem(actlevel_,subdoms_);
-
-  std::cout << "Subdoms: " << subdoms_[0] << std::endl;
-  
 
   Matrix<Double> ptCoordNodes;
   StdVector<Integer> connecth;
@@ -69,13 +74,12 @@ void MpCCIexch::PutExchangeGrid2MpCCI(StdVector<std::string> subdoms)
   std::cout<<"Nodes: "<<MpCCInodes_<<std::endl;
   Realtype * NODEDATA=new Realtype[3*MpCCInodes_];
   int ** TOPOLOGYDATA;
-  TOPOLOGYDATA=new int*[subdoms_.GetSize()];
+  TOPOLOGYDATA=new int*[coupledsubdoms.GetSize()];
   StdVector<Elem*> elemssd;     
-  //   std::cout<<"subdomains: "<<subdoms_[1]<<std::endl;
 
-   for (i=(subdoms_.GetSize())-1; i<(subdoms_.GetSize()); i++)
-     {
-      ptgrid_->GetElemSD(elemssd,subdoms_[i],actlevel_);
+    for (i=0; i<(coupledsubdoms.GetSize()); i++)
+      {
+      ptgrid_->GetElemSD(elemssd,coupledsubdoms[i],actlevel_);
 
       elsize=(elemssd[0]->connect).GetSize();
       TOPOLOGYDATA[i]=new int[elsize*elemssd.GetSize()];	  
@@ -107,15 +111,16 @@ void MpCCIexch::PutExchangeGrid2MpCCI(StdVector<std::string> subdoms)
       // 	      std::cout<<"TOPOLOGYDATA 1d Array:"<<std::endl;
       // 	      for (ii=0; ii<(elsize*maxnumelem_); ii++)
       // 		std::cout<<TOPOLOGYDATA[ii]<<"\t";		    
-      // 	      std::cout<<std::endl;		    
+      // 	      std::cout<<std::endl;
+
     }
 
   //define the nodes
   CCI_Def_nodes(meshId_, partId_, GlobalDim_, MpCCInodes_, nNodeIds_, nodeIds_, REALTYPE, NODEDATA);
 
-  for (i=(subdoms_.GetSize())-1; i<subdoms_.GetSize(); i++)
-    {
-      ptgrid_->GetElemSD(elemssd,subdoms_[i],actlevel_);
+   for (i=0; i<coupledsubdoms.GetSize(); i++)
+     {
+      ptgrid_->GetElemSD(elemssd,coupledsubdoms[i],actlevel_);
       int k=0;
       nElemIds_=0;
       Integer nElemSD=elemssd.GetSize();
@@ -127,6 +132,12 @@ void MpCCIexch::PutExchangeGrid2MpCCI(StdVector<std::string> subdoms)
       elsize=(elemssd[0]->connect).GetSize();// each subdomain must have only one elementtype
       switch(elsize)
 	{
+	case 2:
+	  {
+	    nNodesPerElem_[0] = 2;      
+	    elemTypes_[0] = CCI_ELEM_LINE;
+	    break;
+	  }
 	case 3:
 	  {
 	    nNodesPerElem_[0] = 3;      
@@ -142,6 +153,18 @@ void MpCCIexch::PutExchangeGrid2MpCCI(StdVector<std::string> subdoms)
 	      elemTypes_[0] = CCI_ELEM_QUAD;
 	    break;
 	  }
+	case 5:
+	  {
+	    nNodesPerElem_[0] = 5;      
+	    elemTypes_[0] = CCI_ELEM_PYRAMID;
+	    break;
+	  }
+	case 6:
+	  {
+	    nNodesPerElem_[0] = 6;
+	    elemTypes_[0] = CCI_ELEM_PRISM;
+	    break;
+	  }
 	case 8:
 	  {
 	    nNodesPerElem_[0] = 8;      
@@ -152,7 +175,7 @@ void MpCCIexch::PutExchangeGrid2MpCCI(StdVector<std::string> subdoms)
       
       //define the elements
       CCI_Def_elems(meshId_, partId_, nElemSD, nElemIds_, elemIds_, nElemTypes_, elemTypes_, nNodesPerElem_, TOPOLOGYDATA[i]);
-    }
+          }
   
 
   //Close the definition phase; contact detection.
@@ -184,26 +207,36 @@ void MpCCIexch::CouplCompPhase(Matrix<Double> & flowdata, Integer timestep)
   localMeshIds[0] = 0;
   Integer remoteCodeId;
 
-  conf->get("nQuantityIds",nQuantityIds,"MpCCIdata");
-  conf->get("nLocalMeshIds",nLocalMeshIds,"MpCCIdata");
-  conf->get("remoteCodeId",remoteCodeId,"MpCCIdata");
 
-  CCI_Status status;
-
-  Integer comm = CCI_COMM_RCODE[remoteCodeId];
-
- // read out from conffile
   Integer quantityId1; // Id for pressure
   Integer quantityId2; // Id for vel
   Integer quantityDim1; //pressure (scalar)
   Integer quantityDim2; //velx, vely, velz (vector)
   Integer maxnEmptyNodes;
+
+#ifndef XMLPARAMS
+ // read out from conffile
+  conf->get("nQuantityIds",nQuantityIds,"MpCCIdata");
+  conf->get("nLocalMeshIds",nLocalMeshIds,"MpCCIdata");
+  conf->get("remoteCodeId",remoteCodeId,"MpCCIdata");
   conf->get("quantityId1",quantityId1,"MpCCIdata");
   conf->get("quantityId2",quantityId2,"MpCCIdata");
   conf->get("quantityDim1",quantityDim1,"MpCCIdata");
   conf->get("quantityDim2",quantityDim2,"MpCCIdata");
   conf->get("maxnEmptyNodes",maxnEmptyNodes,"MpCCIdata");
+#else
+    params->Get("nQuantityIds",nQuantityIds, "MpCCI-flownoise");
+    params->Get("nLocalMeshIds",nLocalMeshIds, "MpCCI-flownoise");
+    params->Get("remoteCodeId",remoteCodeId, "MpCCI-flownoise");
+    params->Get("quantityId1",quantityId1, "MpCCI-flownoise");
+    params->Get("quantityId2",quantityId2, "MpCCI-flownoise");
+    params->Get("quantityDim1",quantityDim1, "MpCCI-flownoise");
+    params->Get("quantityDim2",quantityDim2, "MpCCI-flownoise");
+    params->Get("maxnEmptyNodes",maxnEmptyNodes, "MpCCI-flownoise");
+#endif
 
+  CCI_Status status;
+  Integer comm = CCI_COMM_RCODE[remoteCodeId];
   quantityIds[0] = quantityId1;
   quantityIds[1] = quantityId2;
 
@@ -241,11 +274,7 @@ void MpCCIexch::CouplCompPhase(Matrix<Double> & flowdata, Integer timestep)
 	k = k+3;
       }
 
-    if (timestep==3)
-      {
-	myConvergence=CCI_STOP;
-      }
-
+ 
     //check covergence: do another time step or not!
     CCI_Check_convergence(myConvergence,&globalConvergence,CCI_ANY_CODE);
 

@@ -11,6 +11,7 @@
 #include <DataInOut/GMV/outGMV.hh>
 #include <Forms/forms_header.hh>
 #include <MpCCIcpl/MpCCIexch.hh>
+#include "DataInOut/ParamHandling/BaseParamHandler.hh"
 
 #ifdef MpCCI
 #include <cci.h>
@@ -26,20 +27,49 @@ AcouFlowNoise::AcouFlowNoise(Grid *aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc,
 {
   ENTER_FCN( "AcouFlowNoise::AcouFlowNoise" );
 
-    pdename_          = "acouflownoise";
-    pdematerialclass_ = "fluid";
+  pdename_          = "acoustic"; // this is also acoustic since no need for new name
+  pdematerialclass_ = "fluid";
 
 
 #ifdef MpCCI
-  StdVector<Elem*> elemssd;
-  conf->getsubdompde(subdoms_,pdename_);
-  ptgrid_->GetElemSD(elemssd,subdoms_[1],actlevel_);
-  ptgrid_->CalcNumberOfNodesInPatch(elemssd,mapSD_);
-  ptMpCCIexch_ = new MpCCIexch(ptgrid_,mapSD_.GetSize() );
+    StdVector<Elem*> elemssd;
+ 
+  
+#ifndef XMLPARAMS
+    conf->getsubdompde(subdoms_,pdename_);
+    conf->getliststr("coupledregion",couplSubDomName_,"acoustic");
+#else
+    params->GetList( "name", subdoms_, pdename_, "region" );
+    params->GetList( "name", couplSubDomName_, "MpCCI-flownoise", "coupledregion" );
+#endif
+    Boolean Find=FALSE;
+    for (int i=0; i<subdoms_.GetSize(); i++)
+      {
+	for (int j=0; j<couplSubDomName_.GetSize(); j++)
+	  {
+	    if (couplSubDomName_[j] == subdoms_[i])
+	      {
+		ptgrid_->GetElemSD(elemssd,couplSubDomName_[j],actlevel_);
+		ptgrid_->CalcNumberOfNodesInPatch(elemssd,mapSD_);
+		ptMpCCIexch_ = new MpCCIexch(ptgrid_,mapSD_.GetSize() );
+		Find=TRUE;
+	      }
+	  }
+      }
+    if (!Find) 
+      {
+	std::string msg="Subdom to be coupled is not in list of PDE subdomains. Please, check .xml-file";
+	Error(msg.c_str(),__FILE__,__LINE__);
+      }
+
+      MpCCInodes_=mapSD_.GetSize();
+      ptMpCCIexch_->PutExchangeGrid2MpCCI(couplSubDomName_);
 
 #endif
-//  ReadBCs(pdename_);
- preComputeRHS();
+
+
+
+
 }
 
 AcouFlowNoise::~AcouFlowNoise()
@@ -49,56 +79,6 @@ AcouFlowNoise::~AcouFlowNoise()
   delete ptMpCCIexch_;
 #endif
 }
-
-void AcouFlowNoise::preComputeRHS()
-{
-  ENTER_FCN( "AcouFlowNoise::preComputeRHS" );
-  
-  //first check if coupling per MpCCI or if a flow-result file is provided
-  MpCCI_=FALSE;
-  std::string strMpCCI="no";
-  conf->ifget("MpCCI",strMpCCI,pdename_);
-  if (strMpCCI == "yes")
-    {
-#ifdef MpCCI
-      MpCCI_ = TRUE;
-      std::cout << "DO COUPLING via MpCCI" << std::endl;
-      //      MpCCIexch * ptMpCCIexch_ = new MpCCIexch(ptgrid_);
-      //MpCCInodes_=ptgrid_->GetMaxnumnodes(0);
-
-      MpCCInodes_=mapSD_.GetSize();
-      ptMpCCIexch_->PutExchangeGrid2MpCCI(subdoms_);
-      flowdata_.Resize(3, MpCCInodes_);
-      //  delete ptMpCCIexch_;
-      SetRHSFnc = FALSE;
-      SetRHSFlowSrc = FALSE;
-      std::string isthererhs;
-      conf->ifget("load_force",isthererhs,"acouflownoise");
-  
-      if (isthererhs=="FlowSrc" ) 
-	{
-	  std::cout<<"In flownoise precomputeRHS"<<std::endl;  
-	  conf->getliststr("rhs_surfaces",rhs_surfaces_,"acouflownoise");
-	  SetRHSFlowSrc=TRUE;
-	}
-#endif
-    }
-  else
-    {
-      SetRHSFnc = FALSE;
-      SetRHSFlowSrc = FALSE;
-      std::string isthererhs;
-      conf->ifget("load_force",isthererhs,"acouflownoise");
-  
-      if (isthererhs=="FlowSrc" ) 
-	{
-	  std::cout<<"In flownoise precomputeRHS -no MpCCI used-"<<std::endl; 
-	  conf->getliststr("rhs_surfaces",rhs_surfaces_,"acouflownoise");
-	  SetRHSFlowSrc=TRUE;
-	}
-    }
-}
-
 
 void AcouFlowNoise::ComputeRHS(const Double atime)
 {
@@ -127,34 +107,30 @@ void AcouFlowNoise::ComputeRHS(const Double atime)
   BaseFE * ptEl;
   BaseFE * ptElSurf;
   BaseFE * ptElBelongSE;
-  Matrix<Double> flowdata_; // Where the nodal data is going to be stored
+  //  Matrix<Double> flowdata_; // Where the nodal data is going to be stored
   
   Integer j,ii, elsize = -1;
   StdVector<Elem*> elemssd;     
   static Integer timestep=0;
   static int auxtime=0;
  
-  std::string flowdata;
-  conf->get("acousrc_file",flowdata);
 
   Double valmult;
 
 
-  std::cout<<"timestep counter in ComputeRHS: "<<timestep<<std::endl;
+  //  std::cout<<"timestep counter in ComputeRHS: "<<timestep<<std::endl;
   
-  if(MpCCI_)
-    {
+
 #ifdef MpCCI
-      std::cout<<"MpCCInodes_: "<< MpCCInodes_ << "dimension: " << dim_ << std::endl;
-      //     MpCCIexch * ptMpCCIexch_ = new MpCCIexch(ptgrid_);
+      std::cout<<"MpCCInodes_: "<< MpCCInodes_ << " dimension: " << dim_ << std::endl;
       flowdata_.Resize(1+dim_, MpCCInodes_);
       ptMpCCIexch_->CouplCompPhase(flowdata_, timestep);
-      //  delete ptMpCCIexch_;
-#endif
-    }
-  else
-    // If data from fluid file call to get fluid flow data in flowdata_  
-    ReadFlowData(flowdata.c_str(), timestep, flowdata_); 
+#else
+      // If data from fluid file call to get fluid flow data in flowdata_  
+      std::string flowdata;
+      conf->get("acousrc_file",flowdata);
+      ReadFlowData(flowdata.c_str(), timestep, flowdata_); 
+#endif 
 
 
 
@@ -166,14 +142,27 @@ void AcouFlowNoise::ComputeRHS(const Double atime)
   // Variables for ramping
   Double xfmin, yfmin, xfmax, yfmax, facRampXmin, facRampYmin, facRampXmax, facRampYmax ;
   Double bndoffsetXmin, bndoffsetYmin, bndoffsetXmax, bndoffsetYmax ;
-  conf->get("xfmin",xfmin,"acouflownoise"); // minimum x coord. of fluid domain
-  conf->get("yfmin",yfmin,"acouflownoise"); // minimum y coord. of fluid domain	   
-  conf->get("xfmax",xfmax,"acouflownoise"); // maximum x coord. of fluid domain
-  conf->get("yfmax",yfmax,"acouflownoise"); // maximum y coord. of fluid domain
-  conf->get("facrampXmin",facRampXmin,"acouflownoise"); // factor for starting ramping
-  conf->get("facrampYmin",facRampYmin,"acouflownoise"); // factor for starting ramping
-  conf->get("facrampXmax",facRampXmax,"acouflownoise"); // factor for starting ramping
-  conf->get("facrampYmax",facRampYmax,"acouflownoise"); // factor for starting ramping
+
+#ifndef XMLPARAMS
+  conf->get("xfmin",xfmin,"acoustic"); // minimum x coord. of fluid domain
+  conf->get("yfmin",yfmin,"acoustic"); // minimum y coord. of fluid domain	   
+  conf->get("xfmax",xfmax,"acoustic"); // maximum x coord. of fluid domain
+  conf->get("yfmax",yfmax,"acoustic"); // maximum y coord. of fluid domain
+  conf->get("facrampXmin",facRampXmin,"acoustic"); // factor for starting ramping
+  conf->get("facrampYmin",facRampYmin,"acoustic"); // factor for starting ramping
+  conf->get("facrampXmax",facRampXmax,"acoustic"); // factor for starting ramping
+  conf->get("facrampYmax",facRampYmax,"acoustic"); // factor for starting ramping
+#else
+    params->Get("xfmin",xfmin, "MpCCI-flownoise");
+    params->Get("yfmin",yfmin, "MpCCI-flownoise");
+    params->Get("xfmax",xfmax, "MpCCI-flownoise");
+    params->Get("yfmax",yfmax, "MpCCI-flownoise");
+    params->Get("facrampXmin",facRampXmin, "MpCCI-flownoise");
+    params->Get("facrampYmin",facRampYmin, "MpCCI-flownoise");
+    params->Get("facrampXmax",facRampXmax, "MpCCI-flownoise");
+    params->Get("facrampYmax",facRampYmax, "MpCCI-flownoise");
+#endif
+
   bndoffsetXmin=facRampXmin*xfmin;
   bndoffsetYmin=facRampYmin*yfmin; 
   bndoffsetXmax=facRampXmax*xfmax;
@@ -183,9 +172,9 @@ void AcouFlowNoise::ComputeRHS(const Double atime)
   //valmult=-1.0;
   valmult=-1.0;
       
-  for (i=(subdoms_.GetSize())-1; i<subdoms_.GetSize(); i++)
+  for (i=0; i<couplSubDomName_.GetSize(); i++)
     {
-      ptgrid_->GetElemSD(elemssd,subdoms_[i],level);
+      ptgrid_->GetElemSD(elemssd,couplSubDomName_[i],level);
 
       for (j=0; j< elemssd.GetSize(); j++)
 	{
