@@ -115,7 +115,11 @@ namespace CoupledField
    
   DefineIntegrators(actlevel_);  
 
+#ifndef XMLPARAMS
   ReadSavings();
+#else
+  ReadStoreResults();
+#endif
 
   }
 

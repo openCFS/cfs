@@ -282,9 +282,13 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 
   ReadMaterialData();
     
-  DefineIntegrators(actlevel_);  
-  
+  DefineIntegrators(actlevel_);
+
+#ifndef XMLPARAMS
   ReadSavings();
+#else
+  ReadStoreResults();
+#endif
 
 }
 
@@ -1358,6 +1362,28 @@ void MechPDE::WriteResultsInFile()
     }
 }
 
+// ***********************************************************************
+//   Obtain information on desired output quantities from parameter file
+// ***********************************************************************
+void MechPDE::ReadStoreResults() {
+
+  ENTER_FCN( "MechPDE::ReadStoreResults" );
+
+  // By default we only save the solution at nodal values
+  savesol_    = TRUE;
+  savederiv1_ = FALSE;
+  savederiv2_ = FALSE;
+
+  // Determine what solution values the user wants to be stored
+  std::vector<std::string> nodeValues;
+  params->GetList( "type", nodeValues, pdename_, "nodeHistory" );
+
+  for ( Integer i = 0;  i < nodeValues.size(); i++ ) {
+    if ( nodeValues[i] == "displacement" ) savesol_    = TRUE;
+    if ( nodeValues[i] == "velocity"     ) savederiv1_ = TRUE;
+    if ( nodeValues[i] == "acceleration" ) savederiv2_ = TRUE;
+  }
+}
+
 
 } // end namespace CoupledField
-

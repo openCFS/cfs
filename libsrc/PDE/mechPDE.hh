@@ -26,11 +26,11 @@ public:
     \param aOutFile  pointer to class WriteResults. output data.
     \param aTimeFunc pointer to class TimeFunc
   */
-  MechPDE(Grid *aGrid, BCs *aBCs, TimeFunc *aTimeFunc, FileType *aInFile, WriteResults *aOutFile );
+  MechPDE(Grid *aGrid, BCs *aBCs, TimeFunc *aTimeFunc, FileType *aInFile,
+	  WriteResults *aOutFile );
 
   //!  Deconstructor
   virtual ~MechPDE();
-
 
 
   //! define all (bilinearform) integrators needed for this pde
@@ -53,15 +53,16 @@ public:
   void GetDirection(Directions& dir, const std::string keyword);
 
 
-  /// returns a stiffness integrator appropriate to the actual problem (e.g. 3D)
-  BaseForm * GetStiffIntegrator(MaterialData& actSDMat, Boolean reducedInt=FALSE);
+  /// returns a stiffness integrator appropriate to the actual problem (e.g.3D)
+  BaseForm * GetStiffIntegrator(MaterialData& actSDMat,
+				Boolean reducedInt=FALSE);
   
 
   // ======================================================
   // COUPLING SECTION
   // ======================================================
   
- //! initalize PDE coupling
+  //! initalize PDE coupling
   virtual void InitCoupling(PDECoupling * Coupling);
 
   //! calculate coupling terms
@@ -75,11 +76,11 @@ public:
   void SetupRHS(const Integer level);
   
 
-// ======================================================
-// SOLVING SECTION
-// ======================================================
+  // ======================================================
+  // SOLVING SECTION
+  // ======================================================
 
-/// do one transient step
+  /// do one transient step
   void StepTransNonLin(const Integer kstep, const Double asteptime,
 		       const Integer level, const Boolean reset);
   
@@ -119,16 +120,54 @@ public:
   //! return pointer to vector with second derivative of solution
   //virtual const Array<Double>& getS2() const { return TS_alg_->GetDeriv2();}
   virtual const Vector<Double> & getS2() const { return TS_alg_->GetDeriv2();}
+
 protected:
 
   
   Integer size_;        //!< total number of unknowns (equations)
 
+#ifdef XMLPARAMS
+    //! Obtain information on desired output quantities from parameter file
+
+    //! This method is used to query the parameter handling object for the
+    //! desired output quantities and translate their literal description into
+    //! the internal format by setting the corresponding class attributes.
+    //! The output quantities currently supported by the mechanics PDE are
+    //! given in the following table. Here 'Keyword' and 'Result Type' refer
+    //! to the XML parameter file, while 'Class Attribute' refers to the
+    //! internal attribute of the MechPDE class that is set, if the keyword
+    //! is specified.\n\n
+    //! <table border="1">
+    //!   <tr>
+    //!     <td><b>Keyword</b></td>
+    //!     <td><b>Result Type</b></td>
+    //!     <td><b>Class Attribute</b></td>
+    //!   </tr>
+    //!   <tr>
+    //!     <td>displacement</td>
+    //!     <td>nodeResults</td>
+    //!     <td>savesol_</td>
+    //!   </tr>
+    //!   <tr>
+    //!     <td>velocity</td>
+    //!     <td>nodeResults</td>
+    //!     <td>savederiv_</td>
+    //!   </tr>
+    //!   <tr>
+    //!     <td>acceleration</td>
+    //!     <td>nodeResults</td>
+    //!     <td>savederiv2_</td>
+    //!   </tr>
+    //! </table>
+    void ReadStoreResults();
+#endif
+
 
 private:
 
-  /// calc rhs coupling to acoustic pde
-  //void CalcAcousticCouplingRHS(std::vector<Elem*> * couplingElems, Vector<Double>& forceOnElem);
+  // calc rhs coupling to acoustic pde
+  // void CalcAcousticCouplingRHS(std::vector<Elem*> * couplingElems,
+  // Vector<Double>& forceOnElem);
   
   /// calc rhs coupling to acoustic pde
   void CalcAcousticCouplingRHS(std::vector<Elem*> * couplingElems, 
@@ -146,15 +185,16 @@ private:
 
 
   /// Write nonlin iteration norms to the cla-file
-  void WriteClaNlNorms(const Integer iterationCounter, const Double residualL2Norm,
+  void WriteClaNlNorms(const Integer iterationCounter,
+		       const Double residualL2Norm,
 		       const Double extForcesL2Norm, const Double residualErr, 
 		       const Double solIncrL2Norm, const Double actSolL2Norm, 
 		       const Double incrementalErr);
   
 
   /// calculates matrices D^_ and D^__ (see Hughes p. 217) for reduced integration
-  void CalcReducedMat(MaterialData& lambdaMat, MaterialData& mueMat, MaterialData& mat);
-
+  void CalcReducedMat(MaterialData& lambdaMat, MaterialData& mueMat,
+		      MaterialData& mat);
 
   // defines subtype of mechanic PDE: plainStrain, 3d, ...
   std::string subType_;
@@ -164,18 +204,14 @@ private:
   /// stores an algsys_ vector into a std::vector and returns that L2-norm
   void StoreAlgsysToVec(Vector<Double>& vec, Double * pt);
 
-
   /// returns that L2-norm of an algsys vector
   Double AlgsysL2Norm(Double * pt);
   
-
   /// flag for reduced Integration
   Boolean reducedInt_;
 
   /// returns the solution matrix belonging to all nodes of the actual element
-  void GetSolOfElement( Matrix<Double>& elDisp, Vector<Integer>& connect_PDE);  
-  
-
+  void GetSolOfElement( Matrix<Double>& elDisp, Vector<Integer>& connect_PDE);
   /// value of prestress
   Double preStressVal_;
 

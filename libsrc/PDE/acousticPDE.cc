@@ -4,91 +4,99 @@
 #include <math.h>
 
 #include "acousticPDE.hh" 
-#include <DataInOut/Unverg/outUnverg.hh>
-#include <DataInOut/GMV/outGMV.hh>
-#include <Forms/forms_header.hh>
-#include <Estimator/spaceerror.hh>
+#include "DataInOut/Unverg/outUnverg.hh"
+#include "DataInOut/GMV/outGMV.hh"
+#include "Forms/forms_header.hh"
+#include "Estimator/spaceerror.hh"
 #include "newmark.hh"
 #include "newmarkdamp.hh"
-#include <DataInOut/WriteInfo.hh>
+#include "DataInOut/WriteInfo.hh"
+#include "DataInOut/ParamHandling/BaseParamHandler.hh"
 
 
-namespace CoupledField
-{
+namespace CoupledField {
 
-AcousticPDE::AcousticPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *aptFileType, 
-			 WriteResults *aptOut)
-:BasePDE(aptgrid,aptbcs,aptFileType,aptOut,aptTimeFunc)
-{
-  ENTER_FCN( "AcousticPDE::AcousticPDE" );
+  AcousticPDE::AcousticPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc,
+			   FileType *aptFileType, WriteResults *aptOut)
+    :BasePDE(aptgrid,aptbcs,aptFileType,aptOut,aptTimeFunc) {
 
-  dofspernode_=1;
+    ENTER_FCN( "AcousticPDE::AcousticPDE" );
 
-  pdename_    ="acoustic";
-  pdematerialclass_ = "fluid";
+    dofspernode_=1;
 
-  isaxi_ = FALSE;
-  std::string subtype;
-  conf->ifget("subtype",subtype,pdename_);
-  if (subtype == "axi")
-    isaxi_ = TRUE;
+    pdename_    ="acoustic";
+    pdematerialclass_ = "fluid";
 
-  laststepcalc_=0;
+#ifndef XMLPARAMS
+    isaxi_ = FALSE;
+    std::string subtype;
+    conf->ifget("subtype",subtype,pdename_);
+    if (subtype == "axi")
+      isaxi_ = TRUE;
+    conf->getsubdompde(subdoms_,pdename_);
+#else
+    isaxi_ = params->HasValue( "type", "axi", "geometry" );
+    params->GetList( "name", subdoms_, pdename_, "region" );
+    Info->PrintF( pdename_, " PDE lives on regions:" );
+    for ( Integer k = 0; k < subdoms_.size(); k++ ) {
+      Info->PrintF( pdename_, " %s", subdoms_[k].c_str() );
+    }
+#endif
 
-  conf->getsubdompde(subdoms_,pdename_);
+    laststepcalc_=0;
 
-  AssignPDENodeNumbers(mesh2PDENode_, pde2MeshNode_, subdoms_);  
-  AssignPDEElemNumbers(mesh2PDEElem_, pde2MeshElem_, subdoms_);
-  numPDENodes_ = pde2MeshNode_.size();
-  numElems_ = pde2MeshElem_.size();
+    AssignPDENodeNumbers(mesh2PDENode_, pde2MeshNode_, subdoms_);  
+    AssignPDEElemNumbers(mesh2PDEElem_, pde2MeshElem_, subdoms_);
+    numPDENodes_ = pde2MeshNode_.size();
+    numElems_ = pde2MeshElem_.size();
 
-  size_ = numPDENodes_;
+    size_ = numPDENodes_;
 
-  // Initalize solution class
-  sol_->SetNumSolutions(1);
-  sol_->SetSolutionType(ACOU_POTENTIAL);
-  sol_->SetNumNodes(numPDENodes_);
-  sol_->SetNumDofs(dofspernode_);
-  sol_->Init(0.0);
+    // Initalize solution class
+    sol_->SetNumSolutions(1);
+    sol_->SetSolutionType(ACOU_POTENTIAL);
+    sol_->SetNumNodes(numPDENodes_);
+    sol_->SetNumDofs(dofspernode_);
+    sol_->Init(0.0);
 
-  
-  
-  with_fracdamping_=FALSE;
-  std::string dampstr;
-  conf->ifget("damping",dampstr,pdename_);
+    std::string dampstr;
+#ifndef XMLPARAMS
+    with_fracdamping_=FALSE;
+    conf->ifget("damping",dampstr,pdename_);
+#else
+    Info->Error( "Damping not implemented in XML Schema for Acoustic PDE",
+		 __FILE__, __LINE__ );
+#endif
 
-  if (dampstr == "fractional")
-    {
+
+    if (dampstr == "fractional") {
       Info->PrintF(pdename_,"\n Attenuation according to power law, number of memory is %g\n\n", frac_memory_);
-       with_fracdamping_ = TRUE;
-       conf->get("frac_memory",frac_memory_,pdename_);
-       damping_type_ = FRACTIONAL;
+      with_fracdamping_ = TRUE;
+      conf->get("frac_memory",frac_memory_,pdename_);
+      damping_type_ = FRACTIONAL;
     }
 
-  with_absBCs_=FALSE;
-  conf->ifgetliststr("bnd_for_absBCs",bnd_absBCs_,pdename_); 
-  if (bnd_absBCs_.size() > 0)
-    {
+    with_absBCs_=FALSE;
+    conf->ifgetliststr("bnd_for_absBCs",bnd_absBCs_,pdename_); 
+    if (bnd_absBCs_.size() > 0) {
       with_absBCs_ = TRUE;
       if ( damping_type_ == NONE) damping_type_ = ABCDamp;
     }
 
-  ReadBCs(pdename_);
+    ReadBCs(pdename_);
 
-
-  if (analysistype_==HARMONIC)
-    {
-      conf->get("frequency", freq_, pdename_);
-      solIm_.SetNumSolutions(1);
-      solIm_.SetSolutionType(ACOU_POTENTIAL);
-      solIm_.SetNumNodes(numPDENodes_);
-      solIm_.SetNumDofs(dofspernode_);
-      solIm_.Init(0);
-
-    }
+  if (analysistype_==HARMONIC) {
+    conf->get("frequency", freq_, pdename_);
+    solIm_.SetNumSolutions(1);
+    solIm_.SetSolutionType(ACOU_POTENTIAL);
+    solIm_.SetNumNodes(numPDENodes_);
+    solIm_.SetNumDofs(dofspernode_);
+    solIm_.Init(0);
+  }
 
   // set analysis parameters
-  assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, subdoms_, bnd_absBCs_);
+  assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, subdoms_,
+			      bnd_absBCs_);
   assemble_->SetGraphType(NODEGRAPH);
   assemble_->SetMesh2PDENode(&mesh2PDENode_);
 
@@ -111,7 +119,12 @@ AcousticPDE::AcousticPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, Fil
    
   DefineIntegrators(actlevel_);
 
+#ifndef XMLPARAMS
   ReadSavings();
+#else
+  ReadStoreResults();
+#endif
+
   if (savederiv1_)
     {
       sol_der1Array_.SetNumSolutions(1);
@@ -130,23 +143,24 @@ AcousticPDE::AcousticPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, Fil
       sol_der2Array_.Init(0);
     }
   
-}
+  }
 
 
-void AcousticPDE::DefineIntegrators(const Integer level)
-{
-  ENTER_FCN( "AcousticPDE::DefineIntegerators" );
+  void AcousticPDE::DefineIntegrators(const Integer level) {
 
-  Boolean nonLin = FALSE;
+    ENTER_FCN( "AcousticPDE::DefineIntegerators" );
 
-  for (Integer actSD = 0; actSD < subdoms_.size(); actSD++)
-    {
+    Boolean nonLin = FALSE;
+
+    for (Integer actSD = 0; actSD < subdoms_.size(); actSD++) {
+
       Double density = materialData_[actSD].GetDensity();
       Double compressibility = materialData_[actSD].GetCompressibility();
 
       //stiffness integrator
       BaseForm * bilinearStiff = new LaplaceInt(density,isaxi_);	  
-      assemble_->AddIntegrator(bilinearStiff, subdoms_[actSD], STIFFNESS, nonLin);
+      assemble_->AddIntegrator(bilinearStiff, subdoms_[actSD], STIFFNESS,
+			       nonLin);
 
       //mass integrator
       Double coeffmass  = density*density/compressibility;
@@ -154,171 +168,156 @@ void AcousticPDE::DefineIntegrators(const Integer level)
       assemble_->AddIntegrator(bilinear_mass, subdoms_[actSD], MASS, nonLin);
     }
 
-  //surface-integration
-  // BEGIN DAMPING MATRIX PART: Absorbing boundaries
-  if (with_absBCs_ && analysistype_!=HARMONIC) 
-    {  
-      for (Integer actSD = 0; actSD < bnd_absBCs_.size(); actSD++)
-	{
-	  //currently hard-coded!!
-	  Double density = materialData_[0].GetDensity();
-	  Double compressibility = materialData_[0].GetCompressibility();
-	  Double coeffdamp = density/((sqrt(compressibility/density)));
+    //surface-integration
+    // BEGIN DAMPING MATRIX PART: Absorbing boundaries
+    if (with_absBCs_ && analysistype_!=HARMONIC) {  
+      for (Integer actSD = 0; actSD < bnd_absBCs_.size(); actSD++) {
+	//currently hard-coded!!
+	Double density = materialData_[0].GetDensity();
+	Double compressibility = materialData_[0].GetCompressibility();
+	Double coeffdamp = density/((sqrt(compressibility/density)));
 	  
-	  BaseForm * bilinear_damp = new MassInt(coeffdamp,dofspernode_, isaxi_);
-	  assemble_->AddSurfIntegrator(bilinear_damp,  bnd_absBCs_[actSD], DAMPING, nonLin);
-	}
+	BaseForm * bilinear_damp = new MassInt(coeffdamp,dofspernode_, isaxi_);
+	assemble_->AddSurfIntegrator(bilinear_damp,  bnd_absBCs_[actSD],
+				     DAMPING, nonLin);
+      }
     }
   }
 
+  // ======================================================
+  // SOLVING SECTION
+  // ======================================================
 
-// ======================================================
-// SOLVING SECTION
-// ======================================================
+  void AcousticPDE::InitTimeStepping(const Double dt) {
 
-void AcousticPDE :: InitTimeStepping(const Double dt)
-{
-  ENTER_FCN( "AcousticPDE::InitTimeStepping" );
+    ENTER_FCN( "AcousticPDE::InitTimeStepping" );
 
-  if (with_fracdamping_)
-    {
-      //currently the parameter y is taken from the first subdomain
-      //=> currently just one subdomain makes sense
-      //      Double y = materialData_[0].GetDampingBeta();
-      //      TS_alg_ = new NewmarkDamp(pdename_, algsys_, dofspernode_, numPDENodes_, damping_type_,
-      //			      frac_memory_,y);
-    }
-  else
-    TS_alg_ = new Newmark(pdename_, algsys_, dofspernode_, numPDENodes_, damping_type_);
+    if (with_fracdamping_) {
 
-  TS_alg_->Init(matrix_factor_, dt);
-
-}
-
-
-
-
-// ======================================================
-// COUPLING SECTION
-// ======================================================
-
-
-void AcousticPDE::InitCoupling(PDECoupling * Coupling)
-{
-  ENTER_FCN( "AcousticPDE::InitCoupling" );
-  
-  pdeIsCoupled_ = TRUE;
-  ptCoupling_   = Coupling;
-  
-  for (Integer i=0; i<ptCoupling_->GetNumOutputCouplings(); i++)
-    {
-      if (ptCoupling_->GetOutputQuantity(i) == "acousticforce")
-	{
-	  // Intialize the memory of the coupling values
-	  ptCoupling_->CreateStoreSol(i,ACOU_FORCE,isComplex_);
-	}
+      // currently the parameter y is taken from the first subdomain
+      // => currently just one subdomain makes sense
+      // Double y = materialData_[0].GetDampingBeta();
+      // TS_alg_ = new NewmarkDamp(pdename_, algsys_, dofspernode_,
+      // numPDENodes_, damping_type_, frac_memory_,y);
     }
 
-  iterCoupledCounter_ = 0;
-}
+    else {
+      TS_alg_ = new Newmark(pdename_, algsys_, dofspernode_, numPDENodes_,
+			    damping_type_);
+    }
+
+    TS_alg_->Init(matrix_factor_, dt);
+
+  }
 
 
+  // ======================================================
+  // COUPLING SECTION
+  // ======================================================
 
+  void AcousticPDE::InitCoupling(PDECoupling * Coupling) {
 
-void AcousticPDE::CalcOutputCoupling()
-{
-  ENTER_FCN( "AcousticPDE::CalcOutputCoupling" );
+    ENTER_FCN( "AcousticPDE::InitCoupling" );
 
-  Integer dof;
-  std::string quantity;
-  std::vector<Elem*> * couplingElems = NULL;
-  std::vector<Elem*> * interfaceVolElems = NULL;
-  std::vector<Integer> * couplingNodes = NULL;
-  std::vector<MaterialData*> * couplingMaterials = NULL;
-  BaseStoreSol * values = NULL;
+    pdeIsCoupled_ = TRUE;
+    ptCoupling_   = Coupling;
   
-  TRY_CAST
+    // Intialize the memory of the coupling values
+    for (Integer i=0; i<ptCoupling_->GetNumOutputCouplings(); i++) {
+      if (ptCoupling_->GetOutputQuantity(i) == "acousticforce")	{
+	ptCoupling_->CreateStoreSol(i,ACOU_FORCE,isComplex_);
+      }
+    }
 
-  // loop over all output coupling quantities
-  for (Integer i=0; i<ptCoupling_->GetNumOutputCouplings(); i++)
-    {
+    iterCoupledCounter_ = 0;
+  }
+
+
+  void AcousticPDE::CalcOutputCoupling() {
+
+    ENTER_FCN( "AcousticPDE::CalcOutputCoupling" );
+
+    Integer dof;
+    std::string quantity;
+    std::vector<Elem*> * couplingElems = NULL;
+    std::vector<Elem*> * interfaceVolElems = NULL;
+    std::vector<Integer> * couplingNodes = NULL;
+    std::vector<MaterialData*> * couplingMaterials = NULL;
+    BaseStoreSol * values = NULL;
+  
+    // loop over all output coupling quantities
+    for (Integer i=0; i<ptCoupling_->GetNumOutputCouplings(); i++) {
       quantity = ptCoupling_->GetOutputQuantity(i);
       ptCoupling_->GetOutputValues(i, values);
       PTRCAST(values,StoreSol<Double>,temp);
 
-      switch(ptCoupling_->GetOutputType(i))
-	{
-	case NODE:	  
-	  if (quantity == "acousticforce")
-	    {
-	      ptCoupling_->GetOutputElements(i, couplingElems);
-	      ptCoupling_->GetOutputNodes(i, couplingNodes);
-	      ptCoupling_->GetOwnMaterials(i, couplingMaterials);
-	      ptCoupling_->GetInputNeighbourElems(i, interfaceVolElems);
-	      dof = ptCoupling_->GetOutputDof(i);
-	    
-	      CalcMechCouplingRHS(couplingElems, *couplingNodes, couplingMaterials, *temp, dof, interfaceVolElems);
+      switch(ptCoupling_->GetOutputType(i)) {
 
-	    }	  
+	case NODE:
+	  if (quantity == "acousticforce") {
+	    ptCoupling_->GetOutputElements(i, couplingElems);
+	    ptCoupling_->GetOutputNodes(i, couplingNodes);
+	    ptCoupling_->GetOwnMaterials(i, couplingMaterials);
+	    ptCoupling_->GetInputNeighbourElems(i, interfaceVolElems);
+	    dof = ptCoupling_->GetOutputDof(i);
+	    
+	    CalcMechCouplingRHS(couplingElems, *couplingNodes,
+				couplingMaterials, *temp, dof,
+				interfaceVolElems);
+	  }
 	  break;
 
-	case ELEM:
-	  Error("No Element coupling output", __FILE__,__LINE__);
-	}
+      case ELEM:
+	Error("No Element coupling output", __FILE__,__LINE__);
+      }
     }
+  }
 
-  CATCH_CAST
-}
 
-void AcousticPDE::CalcMechCouplingRHS(std::vector<Elem*> * couplingElems, 
-				      std::vector<Integer> & couplingNodes,
-				      std::vector<MaterialData*> * couplingMaterials,
-				      StoreSol<Double>& elemCouplingSols,
-				      Integer couplingdof,
-				      std::vector<Elem*> * interfaceVolElems)
-{
-  ENTER_FCN( "AcousticPDE::CalcMechCouplingRHS" );
+  void AcousticPDE::CalcMechCouplingRHS(std::vector<Elem*> * couplingElems, 
+					std::vector<Integer> & couplingNodes,
+					std::vector<MaterialData*> * couplingMaterials,
+					StoreSol<Double>& elemCouplingSols,
+					Integer couplingdof,
+					std::vector<Elem*> * interfaceVolElems)
+  {
+    ENTER_FCN( "AcousticPDE::CalcMechCouplingRHS" );
 
-  Double density=0;
+    Double density=0;
    
-  elemCouplingSols.Init(0.0);
+    elemCouplingSols.Init(0.0);
 
-  for (Integer actElem=0; actElem<couplingElems->size(); actElem++)
-    {
+    for (Integer actElem=0; actElem<couplingElems->size(); actElem++) {
       Elem * actCoupleElem = (*couplingElems)[actElem];
-      
       BaseFE * ptElem          = actCoupleElem->ptElem;
+
       Vector<Integer> connecth = actCoupleElem->connect;
-      
+
       Matrix<Double> ptCoord; 
       GetElemCoords(connecth, ptCoord, actlevel_);
 
       Boolean found = FALSE;
       
-      // get correct density belonging to the neighbouring element of the interface
-      for (Integer actSD = 0; actSD < subdoms_.size(); actSD++)
-	{  
-	  if ((*interfaceVolElems)[actElem]->namesd ==  subdoms_[actSD])
-	    {
-	      density = materialData_[actSD].GetDensity();
-	      found = TRUE;	      
-	    }
+      // get correct density belonging to the neighbouring element
+      // of the interface
+      for (Integer actSD = 0; actSD < subdoms_.size(); actSD++)	{  
+	if ((*interfaceVolElems)[actElem]->namesd ==  subdoms_[actSD]) {
+	  density = materialData_[actSD].GetDensity();
+	  found = TRUE;
 	}
+      }
       
-      if (found ==FALSE) 
-	{
-	  mycout << "Could not found correct density to compute acoustic pressure forces!!!!!"
-		 << myendl;
-	  mycout << "Take density of acoustic subdomain 1" << myendl;
-	  density = materialData_[0].GetDensity();
-	}
-  
+      if (found ==FALSE) {
+	std::string msg = "Cannot find correct density to compute acoustic ";
+	msg += "pressure forces! Using density of acoustic subdomain 1";
+	Info->Warning( msg );
+	density = materialData_[0].GetDensity();
+      }
           
       BaseForm * bilinear_mass = new MassInt(ptElem, density, isaxi_);
       Matrix<Double> elemmat;
       bilinear_mass->CalcElementMatrix(ptCoord, elemmat);
       delete bilinear_mass;	  
-
 
       Vector<Integer> connect_PDE;
       Mesh2PDENode(connect_PDE, connecth, mesh2PDENode_);
@@ -330,111 +329,121 @@ void AcousticPDE::CalcMechCouplingRHS(std::vector<Elem*> * couplingElems,
       // force has to be added on RHS with negative sign
       forceOnElem *= -1;
 
-
       // the normal vector points outwards of the MECHANICAL domain
       // (see. Kaltenbacher, "Num. Sim. of Mechatr. Act. & Sens." chapter 8.2)
       Vector<Double> n;
-      CalcLineNormalVec(n, *actCoupleElem, *(*interfaceVolElems)[actElem]); // points outward own domain
 
-      
-      for (Integer actNode=0; actNode<ptCoord.GetSizeRow(); actNode++)
-	{
-	  Integer nodePos = 0;      
+      // points outward own domain
+      CalcLineNormalVec(n, *actCoupleElem, *(*interfaceVolElems)[actElem]);
+
+      for (Integer actNode=0; actNode<ptCoord.GetSizeRow(); actNode++) {
+	Integer nodePos = 0;
 	  
-	  while(connecth[actNode] != couplingNodes[nodePos] && nodePos < couplingNodes.size()) 
-	    nodePos++;
+	while(connecth[actNode] != couplingNodes[nodePos] &&
+	      nodePos < couplingNodes.size()) {
+	  nodePos++;
+	}
 	  
-	  for (Integer actDof=0; actDof < couplingdof ; actDof++)  
-	    elemCouplingSols(nodePos,actDof) += forceOnElem[actNode] * n[actDof];
-	}      
+	for (Integer actDof=0; actDof < couplingdof ; actDof++) {
+	  elemCouplingSols(nodePos,actDof) += forceOnElem[actNode] * n[actDof];
+	}
+      }
     }
-}
+  }
 
 
+  Boolean AcousticPDE::HasOutput(std::string output) {
+    ENTER_FCN( "AcousticPDE::HasOutput" );
+    if (output == "acousticforce") {
+      return TRUE;
+    }
+    return FALSE;
+  }
 
 
-Boolean AcousticPDE::HasOutput(std::string output)
-{
-  ENTER_FCN( "AcousticPDE::HasOutput" );
+  // ======================================================
+  // POSTPROCESSING SECTION
+  // ======================================================
 
-  if (output == "acousticforce")
-    return TRUE;
-
-  return FALSE;
-}
-
-
-
-// ======================================================
-// POSTPROCESSING SECTION
-// ======================================================
-
-void AcousticPDE::WriteResultsInFile()
-{
-  ENTER_FCN( "AcousticPDE::WriteResultsInFile" );
+  void AcousticPDE::WriteResultsInFile() {
+    ENTER_FCN( "AcousticPDE::WriteResultsInFile" );
 
 #ifdef PARALLEL //only one thread should write the output
-  int commrank;
-  MPI_Comm_rank(MPI_COMM_WORLD,&commrank);
-  if (!commrank) 
-  	{
+    int commrank;
+    MPI_Comm_rank(MPI_COMM_WORLD,&commrank);
+    if (!commrank) {
 #endif
-  StoreSol<Double> sol_mesh, solder1_mesh, solder2_mesh, solIm_mesh;
+      StoreSol<Double> sol_mesh, solder1_mesh, solder2_mesh, solIm_mesh;
  
-  if (analysistype_==HARMONIC)
-    {
-      sol_->TransformNodeSolution(sol_mesh,pde2MeshNode_,ptgrid_,actlevel_);
-      sol_->TransformNodeSolution(solIm_mesh,pde2MeshNode_,ptgrid_,actlevel_);      
-      outFile_->WriteNodeSolution(sol_mesh,laststepcalc_,lasttimecalc_,"fluid potential, cw realpart,");
-      outFile_->WriteNodeSolution(solIm_mesh,laststepcalc_,lasttimecalc_,"fluid potential, cw imagpart, ");
-    }
-  else
-    {  
+      if (analysistype_==HARMONIC) {
+	sol_->TransformNodeSolution(sol_mesh,pde2MeshNode_,ptgrid_,actlevel_);
+	sol_->TransformNodeSolution(solIm_mesh,pde2MeshNode_,ptgrid_,actlevel_);      
+	outFile_->WriteNodeSolution(sol_mesh,laststepcalc_,lasttimecalc_,"fluid potential, cw realpart,");
+	outFile_->WriteNodeSolution(solIm_mesh,laststepcalc_,lasttimecalc_,"fluid potential, cw imagpart, ");
+      }
+      else {  
 
-      if (savesol_)
-	  sol_->TransformNodeSolution(sol_mesh,pde2MeshNode_,ptgrid_,actlevel_);
-
-      if (savederiv1_) 
-	{
+	if (savesol_) {
+	  sol_->TransformNodeSolution(sol_mesh,pde2MeshNode_,ptgrid_,
+				      actlevel_);
+	}
+	if (savederiv1_) {
 	  sol_der1Array_.SetSolVector(ACOU_VELOCITY,getS1());
-	  sol_der1Array_.TransformNodeSolution(solder1_mesh,pde2MeshNode_,ptgrid_,actlevel_);
+	  sol_der1Array_.TransformNodeSolution(solder1_mesh,pde2MeshNode_,
+					       ptgrid_,actlevel_);
 	}
 
-      if (savederiv2_)
-	{
+	if (savederiv2_) {
 	  sol_der2Array_.SetSolVector(ACOU_VELOCITY,getS2());
-	  sol_der2Array_.TransformNodeSolution(solder2_mesh,pde2MeshNode_,ptgrid_,actlevel_);
+	  sol_der2Array_.TransformNodeSolution(solder2_mesh,pde2MeshNode_,
+					       ptgrid_,actlevel_);
 	}
       
-      if (outFile_->IsGMV())
-	{
+	if (outFile_->IsGMV()) {
 	  if (savesol_)
-	    outFile_->WriteNodeSolution(sol_mesh,laststepcalc_,lasttimecalc_,"vp");
+	    outFile_->WriteNodeSolution(sol_mesh,laststepcalc_,lasttimecalc_,
+					"vp");
 	  if (savederiv1_)
-	    outFile_->WriteNodeSolution(solder1_mesh,laststepcalc_,lasttimecalc_,"vp_1der");
+	    outFile_->WriteNodeSolution(solder1_mesh,laststepcalc_,
+					lasttimecalc_,"vp_1der");
 	  if (savederiv2_)
-	    outFile_->WriteNodeSolution(solder2_mesh,laststepcalc_,lasttimecalc_,"vp_2der");
+	    outFile_->WriteNodeSolution(solder2_mesh,laststepcalc_,
+					lasttimecalc_,"vp_2der");
 	}
-      else
-	{
+	else {
 	  if (savesol_)
-	    outFile_->WriteNodeSolution(sol_mesh,laststepcalc_,lasttimecalc_,"fluid potential");
+	    outFile_->WriteNodeSolution(sol_mesh,laststepcalc_,lasttimecalc_,
+					"fluid potential");
 	  
-
 	  if (savederiv1_)
-	    outFile_->WriteNodeSolution(solder1_mesh,laststepcalc_,lasttimecalc_,"fluid potential, 1st deriv.");
+	    outFile_->WriteNodeSolution(solder1_mesh,laststepcalc_,
+					lasttimecalc_,
+					"fluid potential, 1st deriv.");
 	  if (savederiv2_)
-	    outFile_->WriteNodeSolution(solder2_mesh,laststepcalc_,lasttimecalc_,"fluid potential, 2nd deriv.");
+	    outFile_->WriteNodeSolution(solder2_mesh,laststepcalc_,
+					lasttimecalc_,
+					"fluid potential, 2nd deriv.");
 	}
-    }
-    #ifdef PARALLEL
+      }
+#ifdef PARALLEL
     }//!commrank
-    #endif
+#endif
+  }
+
+
+  // ***********************************************************************
+  //   Obtain information on desired output quantities from parameter file
+  // ***********************************************************************
+  void AcousticPDE::ReadStoreResults() {
+
+    ENTER_FCN( "AcousticPDE::ReadStoreResults" );
+    
+    // NOTE: This must be changed soon!!!
+    // By default we only save the solution at nodal values
+    savesol_    = TRUE;
+    savederiv1_ = FALSE;
+    savederiv2_ = FALSE;
+
+  }
+
 }
-
-
-
-
-}
-
-

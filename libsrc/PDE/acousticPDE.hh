@@ -103,6 +103,23 @@ protected:
   //General dimension of problem
   Integer dim_;
   
+private:
+
+#ifdef XMLPARAMS
+    //! Obtain information on desired output quantities from parameter file
+
+    //! This method is used to query the parameter handling object for the
+    //! desired output quantities and translate their literal description into
+    //! the internal format by setting the corresponding class attributes.
+    //! The output quantities currently supported by the acoustics PDE are
+    //! given in the following table. Here 'Keyword' and 'Result Type' refer
+    //! to the XML parameter file, while 'Class Attribute' refers to the
+    //! internal attribute of the AcousticPDE class that is set, if the keyword
+    //! is specified.\n
+    //! \todo Specification of ReadStoreResults for AcousticPDE!!!
+    void ReadStoreResults();
+#endif
+
 };
 
 } // end of namespace

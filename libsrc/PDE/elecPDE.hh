@@ -8,173 +8,198 @@ namespace CoupledField
 
   //! Class for electrostatic equation in 3D (no adaptivity)
   /*! 
-    This class is derived from class BasePDE. It is used for solving electrostatic equation in 3D. 
+    This class is derived from class BasePDE. It is used for solving
+    electrostatic equation in 3D. 
   */
 
-class ElecPDE : public BasePDE
-{
-public:
+  class ElecPDE : public BasePDE {
 
-  //! Constructor. here we read integration parameters
-  /*!
-    \param 
-    \param aGrid pointer to grid
-    \param aBCs pointer to Boundary condition object
-    \param aGrid pointer to class Grid
-    \param aInFile pointer to class FileType. input data.
-    \param aOutFile  pointer to class WriteResults. output data.
-    \param aTimeFunc pointer to class TimeFunc
-  */
-  ElecPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *aptFileType, WriteResults *aptOut);
+  public:
 
-  //! Deconstructor
-  virtual ~ElecPDE(){};
+    //! Constructor. here we read integration parameters
+    /*!
+      \param 
+      \param aGrid pointer to grid
+      \param aBCs pointer to Boundary condition object
+      \param aGrid pointer to class Grid
+      \param aInFile pointer to class FileType. input data.
+      \param aOutFile  pointer to class WriteResults. output data.
+      \param aTimeFunc pointer to class TimeFunc
+    */
+    ElecPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc,
+	    FileType *aptFileType, WriteResults *aptOut);
 
+    //! Deconstructor
+    virtual ~ElecPDE(){};
 
+    //! define all (bilinearform) integrators needed for this pde
+    virtual void DefineIntegrators(const Integer level);
 
-  //! define all (bilinearform) integrators needed for this pde
-  virtual void DefineIntegrators(const Integer level);
+    //! reset 
+    virtual void Reset();
 
+    //! return size of solution
+    virtual Integer getSize() const 
+    { return numPDENodes_*dofspernode_;}
 
-  //! reset 
-  virtual void Reset();
+    // ======================================================
+    // SOLUTION SECTION
+    // ======================================================
 
-   //! return size of solution
-  virtual Integer getSize() const 
-  { return numPDENodes_*dofspernode_;}
+    //!
+    virtual void StepStaticNonLin(const Integer kstep, const Double asteptime,
+				  const Integer level, const Boolean reset);
 
-// ======================================================
-// SOLUTION SECTION
-// ======================================================
+    //!
+    virtual void PreStepStatic(const Integer kstep, const Double asteptime,
+			       const Integer level, const Boolean reset);
 
-  //!
-  virtual void StepStaticNonLin(const Integer kstep, const Double asteptime,
-				const Integer level, const Boolean reset);
+    //!
+    virtual void PostStepStatic(const Integer kstep, const Double asteptime,
+				const Integer level);
 
-  //!
-  virtual void PreStepStatic(const Integer kstep, const Double asteptime,
-			     const Integer level, const Boolean reset);
+    //! initialize time stepping: nothing to do in electrostatics!
+    virtual void InitTimeStepping(const Double dt){;};
 
-  //!
-  virtual void PostStepStatic(const Integer kstep, const Double asteptime,
-			      const Integer level);
+    //!
+    virtual void SolveStepTrans(const Integer kstep, const Double asteptime,
+				const Integer level, const Boolean reset)
+    {SolveStepStatic(kstep,asteptime,level,reset);};
 
-  //! initialize time stepping: nothing to do in electrostatics!
-  virtual void InitTimeStepping(const Double dt){;};
-
-  //!
-  virtual void SolveStepTrans(const Integer kstep, const Double asteptime,
+    //!
+    virtual void StepTransLin(const Integer kstep, const Double asteptime,
 			      const Integer level, const Boolean reset)
-  {SolveStepStatic(kstep,asteptime,level,reset);};
+    {StepStaticLin(kstep,asteptime,level,reset);};
 
-  //!
-  virtual void StepTransLin(const Integer kstep, const Double asteptime,
-			    const Integer level, const Boolean reset)
-  {StepStaticLin(kstep,asteptime,level,reset);};
+    //!
+    virtual void PreStepTrans(const Integer kstep, const Double asteptime,
+			      const Integer level, const Boolean reset)
+    {PreStepStatic(kstep,asteptime,level,reset);};
 
-  //!
-  virtual void PreStepTrans(const Integer kstep, const Double asteptime,
-			    const Integer level, const Boolean reset)
-  {PreStepStatic(kstep,asteptime,level,reset);};
+    //!
+    virtual void PostStepTrans(const Integer kstep, const Double asteptime,
+			       const Integer level)
+    {PostStepStatic(kstep,asteptime,level);};
 
-  //!
-  virtual void PostStepTrans(const Integer kstep, const Double asteptime,
-			    const Integer level)
-  {PostStepStatic(kstep,asteptime,level);};
-
-  //!
-  virtual void StepTransNonLin(const Integer kstep, const Double asteptime,
-			    const Integer level, const Boolean reset)
-  {StepStaticNonLin(kstep,asteptime,level,reset);};
-
-// ======================================================
-// POSTPROCESSING SECTION
-// ======================================================
+    //!
+    virtual void StepTransNonLin(const Integer kstep, const Double asteptime,
+				 const Integer level, const Boolean reset)
+    {StepStaticNonLin(kstep,asteptime,level,reset);};
 
 
-  //! do PostProcessing step
-  virtual void PostProcess(const Integer level);
+    // ======================================================
+    // POSTPROCESSING SECTION
+    // ======================================================
 
-  //! write results in file
-  //! \todo Elena: The definition of the errorMap_ has to
-  //! be changed to a StoreSol<Double> or BaseStoreSol object
-  //! \todo Elena: The solution of the elements might have to be
-  //! transformed with mesh2DPEElems_
-  virtual void WriteResultsInFile();
+    //! do PostProcessing step
+    virtual void PostProcess(const Integer level);
 
-  //! computes the electric energy for each subdomain
-  void CalcEnergy();
+    //! write results in file
+    //! \todo The definition of the errorMap_ has to
+    //! be changed to a StoreSol<Double> or BaseStoreSol object
+    virtual void WriteResultsInFile();
+
+    //! computes the electric energy for each subdomain
+    void CalcEnergy();
+
+    //! callculates nodal forces
+    void CalcNodeForce(StoreSol<Double> & force, 
+		       std::vector<Integer> & nodes, 
+		       std::vector<Elem*> & elems,
+		       std::vector<std::vector<ShortInt> > &isBoundaryNode,
+		       std::vector<std::vector<Integer> > &elemNodeToCouplingNode);
+
+    //!
+    void CalcInterfaceForces(Integer actCoupling);
+
+    //! GET SOLUTION AT ALL NODES OF AN ELEMENT
+    void GetSolOfElement( Vector<Double>& elpot, Vector<Integer>& connect_PDE);
 
 
-  //! callculates nodal forces
-  void CalcNodeForce(StoreSol<Double> & force, 
-		     std::vector<Integer> & nodes, 
-		     std::vector<Elem*> & elems,
-		     std::vector<std::vector<ShortInt> > & isBoundaryNode,
-		     std::vector<std::vector<Integer> > & elemNodeToCouplingNode);
+    // ======================================================
+    // COUPLING SECTION
+    // ======================================================
 
+    //! initalize PDE coupling
+    virtual void InitCoupling(PDECoupling * Coupling);
 
-  void CalcInterfaceForces(Integer actCoupling);
+    //! calculate coupling terms
+    virtual void CalcOutputCoupling();
+
+    //! returns if PDE can compute the quantity
+    virtual Boolean HasOutput(std::string output);
   
 
+  protected:
 
-  //! GET SOLUTION AT ALL NODES OF AN ELEMENT
-  void GetSolOfElement( Vector<Double>& elpot, Vector<Integer>& connect_PDE);
-
-
-
-// ======================================================
-// COUPLING SECTION
-// ======================================================
-
-
-  //! initalize PDE coupling
-  virtual void InitCoupling(PDECoupling * Coupling);
+    /// calculated the electric field at the integration points of the couple element
+    void CalcEfieldAtCoupleElemIP(Elem * actVolElem,
+				  Elem * actCoupleElem,
+				  std::vector<Double>& coordAtIP, 
+				  std::vector<Integer>& boundNodesOfVolElem,
+				  Vector<Double>& tempE);
   
+    StoreSol<Double> E_;  //!< conatins electric field
+
+    //  Boolean nonLinGeo_;  //! switch for geometric update 
   
-  //! calculate coupling terms
-  virtual void CalcOutputCoupling();
+    // ---- Electric Force variables ---
+    StoreSol<Double> Force_;        //!< stores Electric force of each element
+    std::vector<std::vector<Elem*> > F_Interface_; //!<vector of vectors conaining Elements with acting force
+    std::vector<std::vector<std::vector<ShortInt> > > isBoundaryNode_; //!< vector containing flag array for element boundary nodes
+    std::vector<std::vector<std::vector<Integer> > > elemNodeToCouplingNode_; //!< assigns each coupling element node the according Coupling Node number
+    //  std::vector<std::vector<Integer> > numBoundaryNodes_;               //!< contains number of surface nodes per element
+    
+    //postprocessing
+    std::vector<std::string> calcEfield_;  //!< contains the subdomains, on which the electric field is computed
+    std::vector<std::string> calcEnergy_;  //!< contains the subdomains, on which the electric energy is computed
+    
 
+    // for check: own solver
+    Boolean SolverCFS_; //<! parameter indicator: TRUE, if you want to use Solver CFS. reading from config-file
+    Matrix<Double> sysmat_;
+    Vector<Double> vecrhs_;
 
-  //! returns if PDE can compute the quantity
-  virtual Boolean HasOutput(std::string output);
+  private:
 
-  
+#ifdef XMLPARAMS
+    //! Obtain information on desired output quantities from parameter file
 
-protected:
-  /// calculated the electric field at the integration points of the couple element
-  void CalcEfieldAtCoupleElemIP(Elem * actVolElem,
-				Elem * actCoupleElem,
-				std::vector<Double>& coordAtIP, 
-				std::vector<Integer>& boundNodesOfVolElem,
-				Vector<Double>& tempE);
-  
-  
-
-  StoreSol<Double> E_;  //!< conatins electric field
-
-  //  Boolean nonLinGeo_;  //! switch for geometric update 
-  
-  // ---- Electric Force variables ---
-  StoreSol<Double> Force_;        //!< stores Electric force of each element
-  std::vector<std::vector<Elem*> > F_Interface_; //!<vector of vectors conaining Elements with acting force
-  std::vector<std::vector<std::vector<ShortInt> > > isBoundaryNode_; //!< vector containing flag array for element boundary nodes
-  std::vector<std::vector<std::vector<Integer> > > elemNodeToCouplingNode_; //!< assigns each coupling element node the according Coupling Node number
-  //  std::vector<std::vector<Integer> > numBoundaryNodes_;               //!< contains number of surface nodes per element
-
-  //postprocessing
-  std::vector<std::string> calcEfield_;  //!< contains the subdomains, on which the electric field is computed
-  std::vector<std::string> calcEnergy_;  //!< contains the subdomains, on which the electric energy is computed
-
-
- // for check: own solver
-  Boolean SolverCFS_; //<! parameter indicator: TRUE, if you want to use Solver CFS. reading from config-file
-  Matrix<Double> sysmat_;
-  Vector<Double> vecrhs_;
-
- 
-};
-
-} // end of namespace
+    //! This method is used to query the parameter handling object for the
+    //! desired output quantities and translate their literal description into
+    //! the internal format by setting the corresponding class attributes.
+    //! The output quantities currently supported by the electrostatics PDE are
+    //! given in the following table. Here 'Keyword' and 'Result Type' refer
+    //! to the XML parameter file, while 'Class Attribute' refers to the
+    //! internal attribute of the ElecPDE class that is set, if the keyword
+    //! is specified.\n\n
+    //! <table border="1">
+    //!   <tr>
+    //!     <td><b>Keyword</b></td>
+    //!     <td><b>Result Type</b></td>
+    //!     <td><b>Class Attribute</b></td>
+    //!   </tr>
+    //!   <tr>
+    //!     <td>potential</td>
+    //!     <td>nodeResults</td>
+    //!     <td>savesol_</td>
+    //!   </tr>
+    //!   <tr>
+    //!     <td>efield</td>
+    //!     <td>elemResults</td>
+    //!     <td>calcEfield_</td>
+    //!   </tr>
+    //!   <tr>
+    //!     <td>energy</td>
+    //!     <td>elemResults</td>
+    //!     <td>calcEnergy_</td>
+    //!   </tr>
+    //! </table>
+    void ReadStoreResults();
 #endif
 
+  };
+
+} // end of namespace
+
+#endif

@@ -105,7 +105,11 @@ MagPDE::MagPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *apt
    
   DefineIntegrators(actlevel_);  
 
+#ifndef XMLPARAMS
   ReadSavings();
+#else
+  ReadStoreResults();
+#endif
 }
 
 
