@@ -1243,27 +1243,29 @@ namespace CoupledField
 
 #ifdef USE_OLAS 
   /// define integrators
-  void HarmonicAssemble::AddIntegrator(BaseForm * integrator, const std::string & subDomName,
-					const FEMatrixType destinationMatrix, const Integer nonLin)
-  {
+  void HarmonicAssemble::AddIntegrator(BaseForm * integrator,
+				       const std::string & subDomName,
+				       const FEMatrixType destinationMatrix,
+				       const Integer nonLin) {
+
     ENTER_FCN( "HarmonicAssemble::AddIntegrator" );
 
     FEMatrixType actMatType = destinationMatrix;
     FEMatrixType matType;  
     
-    if (actMatType == STIFFNESS || actMatType == MASS || actMatType == DAMPING )
-      MatType = SYSTEM;
-    else
-      {
-	std::string error_msg = "Matrix type " + actMatType + " not supported in harmonic analysis";
-	Error(error_msg.c_str());
-      }
+    if (actMatType == STIFFNESS || actMatType == MASS ||
+	actMatType == DAMPING )
+      matType = SYSTEM;
+    else {
+      std::string error_msg = "Matrix type ";
+      error_msg += actMatType + " not supported in harmonic analysis";
+      Error(error_msg.c_str());
+    }
 
-    IntegratorDescriptor * actID = new IntegratorDescriptor(integrator, MatType, nonLin);
+    IntegratorDescriptor * actID = new IntegratorDescriptor(integrator,
+							    matType, nonLin);
     actID->SetOrigMatrixType(actMatType);
-
     integrators_[SubDomIndex(subDomName)]->push_back(actID);
-
   }
 
 #else
@@ -1299,8 +1301,10 @@ namespace CoupledField
 
 #ifdef USE_OLAS 
   /// define integrators
-  void HarmonicAssemble::AddSurfIntegrator(BaseForm * integrator, const std::string & subDomName,
-					const FEMatrixType destinationMatrix, const Integer nonLin)
+  void HarmonicAssemble::AddSurfIntegrator(BaseForm * integrator,
+					   const std::string & subDomName,
+					   const FEMatrixType destinationMatrix,
+					   const Integer nonLin)
   {
     ENTER_FCN( "HarmonicAssemble::AddSurfIntegrator" );
    
@@ -1311,7 +1315,8 @@ namespace CoupledField
       matType = SYSTEM;
     else
       {
-	std::string error_msg = "Matrix type " + actMatType + " not supported in harmonic analysis";
+	std::string error_msg = "Matrix type ";
+	error_msg += actMatType + " not supported in harmonic analysis";
 	Error(error_msg.c_str());
       }
 

@@ -117,7 +117,7 @@ class IntegratorDescriptor : public BaseIntDescriptor
       {return origMatrixType_;};
 
       void SetOrigSecMatrixType(FEMatrixType matType)
-      {origSeccondMatrixType_ = matType;};
+      {origSecondMatrixType_ = matType;};
 
       FEMatrixType GetOrigSecMatrixType()
       {return origSecondMatrixType_;};
