@@ -44,7 +44,8 @@
           <xsd:restriction base="xsd:token">
             <xsd:enumeration value="Direct"/>
             <xsd:enumeration value="Richardson"/>
-            <xsd:enumeration value="CG"/>
+            <xsd:enumeration value="pcg"/>
+            <xsd:enumeration value="gmres"/>
             <xsd:enumeration value="QMR"/>
             <xsd:enumeration value="hyprePCG"/>
             <xsd:enumeration value="hypreGMRES"/>
