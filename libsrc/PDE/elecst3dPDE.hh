@@ -20,7 +20,7 @@ public:
   Elecst3dPDE(AbstractAlgebraicSys * aptalgsys, Grid<Point3D> * , Material * , TimeFunc * ,FileType * , WriteResults<Point3D> * );
 
   //!
-  virtual ~Electst3dPDE();
+  virtual ~Elecst3dPDE();
 
   //!
   void SpecifySolver(Integer &asolvertype, Integer &aprecondtype, Double &aeps,
@@ -44,17 +44,11 @@ Double &adampiter,  Integer &amaxnumit, Integer &numeqcoarse);
   //! calculation derivates of solution 
   void CalculationDerivativesSol();
 
-  //! create pointer to class for time error estimation
-  virtual TimeErrorEstimator * CreatePtTimeError();  
-
   //! Calculation of energy norm
   Double CalcEnergyNorm();
 
   //!
   void SolveStepStatic(BCs * ptBCs ,const Integer level);
-
-  //!
-  void SolveStepTrans(BCs * ptBCs ,const Integer kstep, const Double steptime, const Integer level, const Boolean updatesysmat);
 
   //!
    void WriteResultsInFile();
@@ -70,10 +64,13 @@ private:
   Integer dofspernode_;
 
   //!
+  void CalcCoeff(Double & coeff, const Integer numsubdom);
+
+  //!
   Grid<Point3D> * ptgrid_;
 
   //! store solution, 1st derivative , 2nd derivative solution
-  Vector<Double> sol__;  
+  Vector<Double> sol_;  
 
   //! Last time on which we have calculated solution
   Double lasttimecalc_;

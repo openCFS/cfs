@@ -5,6 +5,7 @@
 
 #include "interface_linalg.hh"
 #include "elecst3dPDE.hh"
+#include "outUnverg.hh"
  
 namespace CoupledField
 {
@@ -16,7 +17,7 @@ Elecst3dPDE::Elecst3dPDE(AbstractAlgebraicSys * ptalgsys, Grid<Point3D> * aptgri
   (*trace) << "entering Elecst3dPDE::Electst3dPDE " << std::endl;
 #endif
 
-  doftype_=i1;
+  doftype_=1;
   dofspernode_=1;
   ptgrid_=aptgrid;
 
@@ -154,7 +155,7 @@ void Elecst3dPDE::SetupMatrices(const Integer type)
 #endif
 }
 
-void Electst3dPDE::SetBCs(BCs * ptBCs, const Integer level, const Integer update, const Double atime)
+void Elecst3dPDE::SetBCs(BCs * ptBCs, const Integer level, const Integer update, const Double atime)
 {
 #ifdef TRACE
   (*trace) << "entering Elecst3dPDE::SetBCs" << std::endl;
@@ -189,21 +190,6 @@ AS_sysid_, matrix_id);
             }
 	    }
     }
-}
-
-void Elecst3dPDE::ComputeRHS()
-{
-#ifdef TRACE
-  (*trace) << "entering Elecst3dPDE::ComputeRHS" << std::endl;
-#endif
-  Integer n;
-  Integer matrix_id;
-  Vector<Double> coeffMass;
-
-      matrix_id = 5;
-      coeffMass=sol_*a0_+sol_der1_*a2_+sol_der2_*a3_;
-
-      ptalgsys_->UpdateRHS(AS_sysid_,AS_sysid_,matrix_id,coeffMass.get());
 }
 
 void Elecst3dPDE::SolveStepStatic(BCs * ptBCs, Integer level)
@@ -241,10 +227,10 @@ void Elecst3dPDE:: WriteResultsInFile()
 
   Integer step=0;
 
-if (dynamic_cast<WriteResultsUnverg<Point3D> *> (OutFile_))
-  OutFile_->WriteSolution(sol_,step,lasttimecalc_,"electric potential");
+if (dynamic_cast<WriteResultsUnverg<Point3D> *> (OutFile3d_))
+  OutFile3d_->WriteSolution(sol_,step,lasttimecalc_,"electric potential");
   else
-  OutFile_->WriteSolution(sol_,step,lasttimecalc_,"elect_potential"); 
+  OutFile3d_->WriteSolution(sol_,step,lasttimecalc_,"elect_potential"); 
 
 }
 
@@ -270,7 +256,7 @@ void Elecst3dPDE::CalcCoeff(Double & coeff, const Integer numsubdom)
  coeff=dielectr;
 }
 
-Electst3dPDE::~Elecst3dPDE()
+Elecst3dPDE::~Elecst3dPDE()
 {
  ;
 }

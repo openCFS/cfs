@@ -16,6 +16,22 @@ BasePDE::BasePDE(AbstractAlgebraicSys * aptalgsys, Material * aMatFile, FileType
   MatFile_    = aMatFile;
   InFile_     = aInFile;
   OutFile_    = aOutFile;
+  OutFile3d_=NULL;
+  ptTimeFunc_ = aptTimeFunc;
+  ptalgsys_   = aptalgsys;
+
+}
+
+BasePDE::BasePDE(AbstractAlgebraicSys * aptalgsys, Material * aMatFile, FileType * aInFile, WriteResults<Point3D> * aOutFile, TimeFunc *aptTimeFunc)
+{
+#ifdef TRACE
+  (*trace) << "entering BasePDE::BasePDE" << std::endl;
+#endif
+
+  MatFile_    = aMatFile;
+  InFile_     = aInFile;
+  OutFile3d_    = aOutFile;
+  OutFile_=NULL;
   ptTimeFunc_ = aptTimeFunc;
   ptalgsys_   = aptalgsys;
 

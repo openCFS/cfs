@@ -13,6 +13,7 @@
 #include "elec2dPDE.hh"
 #include "therm2dPDE.hh"
 #include "acoustic2dPDE.hh"
+#include "elecst3dPDE.hh"
 
 namespace CoupledField
 {
@@ -30,8 +31,8 @@ Domain<Dim> :: Domain(FileType * const aptFileType, WriteResults<Dim> * ptOut,  
  ptTimeFunc_ = aptTimeFunc;
 
   // read type of output results from conf-file
-  std::string libmesh;
-  conf->get("mesh_library",libmesh);
+ std::string libmesh;
+ conf->get("mesh_library",libmesh);
 
  // initialize pointer to grid 
 #ifdef GRIDLIB
@@ -112,7 +113,10 @@ void Domain<Dim> :: InitPDE()
 
 //  ptpde_[0]=new Therm2dPDE(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_);
 
-  ptpde_[0]=new Acoustic2dPDE(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_);
+//  ptpde_[0]=new Acoustic2dPDE(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_);
+
+  ptpde_[0]=new Elecst3dPDE(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_);
+
   for (int i=0;i<numpde_;i++)
     {
       //      ptpde[i] = new Elec2dPDE(grid,ptmaterial,InFile,OutFile,statickey);      
@@ -217,7 +221,7 @@ void Domain<Dim> :: SetSubdomains()
 #ifdef TRACE
   (*trace) << "entering Domain::SetSubdomains" << std::endl;
 #endif
-
+ ;
 }
 
 }

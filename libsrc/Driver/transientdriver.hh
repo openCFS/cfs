@@ -8,7 +8,7 @@ namespace CoupledField
 
 /// driver for static problems derived from basedriber;
 
-  class TransientDriver : virtual public BaseDriver
+  class TransientDriver : virtual public BaseDriver<Point2D>
 {
 public:
   //!
@@ -24,7 +24,7 @@ public:
   virtual void SolveProblemAdapt();
 
   //!
-  void SetupMatricesPDE(Integer pdenumber, Integer matrixtype);
+  void SetupMatricesPDE(const Integer pdenumber, const Integer matrixtype);
 
 protected:
 

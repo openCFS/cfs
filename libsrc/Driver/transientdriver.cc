@@ -9,7 +9,7 @@ namespace CoupledField
 {
 
 TransientDriver :: TransientDriver(Domain<Point2D> * adomain)
-:BaseDriver(adomain)
+:BaseDriver<Point2D>(adomain)
 {
 #ifdef TRACE
   (*trace) << "entering TransientDriver::TransientDriver" << std::endl;
@@ -29,7 +29,7 @@ TransientDriver :: ~TransientDriver()
 }
 
 
-void TransientDriver :: SetupMatricesPDE(Integer pdenumber, Integer type)
+void TransientDriver :: SetupMatricesPDE(const Integer pdenumber,const Integer type)
 {
 #ifdef TRACE
   (*trace) << "entering TransientDriver::SetUpMatricesPDE" << std::endl;
