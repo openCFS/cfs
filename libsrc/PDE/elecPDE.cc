@@ -949,9 +949,16 @@ void ElecPDE::ReadStoreResults() {
   savederiv1_ = FALSE;
   savederiv2_ = FALSE;
 
+  // Construct vectors for restricted parameter search
+  StdVector<std::string> keyVec;
+  StdVector<std::string> attrVec;
+  StdVector<std::string> valVec;
+  keyVec  = "electrostatic", "storeResults", "elemResults", "region";
+  attrVec = "", "", "type";
+
   // Determine regions for which electric field must be computed
-  params->CGetList( "region", calcEfield_, "type", "efield", 0, pdename_,
-		    "elemResults" );
+  valVec  = "", "", "efield";
+  params->GetList( keyVec, attrVec, valVec, calcEfield_ );
 
   // If the the symbolic name is "all" compute electric field for all regions
   if ( calcEfield_.GetSize() == 1 && calcEfield_[0] == "all" ) {
@@ -966,8 +973,8 @@ void ElecPDE::ReadStoreResults() {
   }
 
   // Determine regions for which energy must be computed
-  params->CGetList( "region", calcEnergy_, "type", "energy", 0, pdename_,
-		    "elemResults" );
+  valVec  = "", "", "energy";
+  params->GetList( keyVec, attrVec, valVec, calcEnergy_ );
 
   // If the the symbolic name is "all" compute energy for all regions
   if ( calcEnergy_.GetSize() == 1 && calcEnergy_[0] == "all" ) {
