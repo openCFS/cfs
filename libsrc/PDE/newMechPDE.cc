@@ -148,9 +148,6 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 
   Boolean nonLin = FALSE;
 
-  if (nonLin_ && subType_ != "3d")
-    Error("For nonlin mechanics, up to now only 3d sims supported! ",__FILE__,__LINE__);
-
 
   for (int actSD = 0; actSD < subdoms_.size(); actSD++)
     {
@@ -168,7 +165,7 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 	  //check for damping
 	  if (damping_type_ == RAYLEIGH)    
 	      actIntDescr->SetSecondaryMat(DAMPING, actSDMat.GetDampingBeta());
-	  
+	
 	  assemble_->AddIntegrator(actIntDescr, subdoms_[actSD]);
 	}
 	  
@@ -195,20 +192,29 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
       // ==============  add nonlinear stiffness ===============================
       if (nonLin_)
 	{
-	  if (subType_ != "3d")
-	    Error("For nonlin mechanics, up to now only 3d sims supported! ",__FILE__,__LINE__);
+	  BaseForm * nLinPart1;
+	  BaseForm * nLinPart2;
 	  
+	  if (subType_ == "3d")
+	    {	  
+	      nLinPart1 =  new nLinMech3dInt_BNonLin(actSDMat);    
+	      nLinPart2 = new nLinMech3dInt_PiolaStress(actSDMat);
+	    }
+	  else if (subType_ == "plainStrain")
+	    {
+	      nLinPart1 = new nLinMechPlaneStrainInt_BNonLin(actSDMat);    
+	      nLinPart2 = new nLinMechPlaneStrainInt_PiolaStress(actSDMat);
+
+	    }
+	  
+	  assemble_->AddIntegrator(nLinPart1, subdoms_[actSD], STIFFNESS, nonLin_);
+	  assemble_->AddIntegrator(nLinPart2, subdoms_[actSD], STIFFNESS, nonLin_);
+	      
+
+
 	  // assemble prestress, if in config-file given
 // 	  if (preStressVal_)
 // 	    AssemblePreStressMat(ptEl, connect_PDE, ptCoord, actMatData, elDisp);
-	  
-      
-	  BaseForm * nLinPart1 =  new nLinMech3dInt_BNonLin(actSDMat);
-	  assemble_->AddIntegrator(nLinPart1, subdoms_[actSD], STIFFNESS, nonLin_);
-	  
-
-	  BaseForm * nLinPart2 = new nLinMech3dInt_PiolaStress(actSDMat);      
-	  assemble_->AddIntegrator(nLinPart2, subdoms_[actSD], STIFFNESS, nonLin_);
 	}
 
 
@@ -656,8 +662,7 @@ Double MechPDE::RhsL2Norm(std::vector<Double>& actRHS)
   // Eliminate dirichlet node from RHS (due to penalty formulation)
   for (Integer i=0; i< bcs_hd_.size(); i++)
     {
-      std::string doftype = bcs_hd_[i]; 
-      dof = GetNrBCDof (doftype.substr(0,2));      
+      dof = GetNrBCDof ( homDirichDof_[i] );
       nodes=ptBCs_->GetNodesLevel(bcs_hd_[i]);
       
       for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end(); p++)

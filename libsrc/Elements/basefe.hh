@@ -182,7 +182,7 @@ public:
   {Error("Not implemented",__FILE__,__LINE__);}
 
 
-  //! Return number of nodes   
+  //! Return space dimension
   ShortInt GetDim() const {return Dim_;}
  
   //! Get integration points

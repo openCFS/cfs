@@ -876,11 +876,11 @@ std::vector<Double> operator+ ( std::vector<Double> & vec1,  std::vector<Double>
 std::vector<Double> operator- ( std::vector<Double> & vec1,  std::vector<Double> & vec2)
 {
 #ifdef TRACE
-  (*trace) << "entering operator+ (std::vector<Double> &, std::vector<Double> &)" << std::endl;
+  (*trace) << "entering operator- (std::vector<Double> &, std::vector<Double> &)" << std::endl;
 #endif
 
   if (vec1.size() != vec2.size())
-    Error("Wrong dimensions by adding vectors!",__FILE__,__LINE__);
+    Error("Wrong dimensions by subtracting vectors!",__FILE__,__LINE__);
 
   std::vector<Double> result(vec1);
   

@@ -5,10 +5,16 @@
 #include <DataInOut/MaterialData.hh>
 
 #include <Forms/linElastInt.hh>
+#include <General/environment.hh>
 
 namespace CoupledField
 {
   
+
+
+// =============================================================================
+// base class for nonlinear mechanics
+// =============================================================================
 
   /// base class for calculation of nonlinear linear elasticity
 class nLinElastInt : public linElastInt
@@ -49,6 +55,9 @@ protected:
   /// returns B - matrix for BDB
   virtual void calcBMat(Matrix<Double> & bMat, Integer ip, Matrix<Double> & ptCoord);
 
+  /// calcs the material matrix for the 2d case
+  virtual void Calc2DMaterialMatrix(Matrix<Double> & dMat, enum orientation2D actOrientation);
+
 
   /// displacement of all nodes of actual element
   Matrix<Double> elemDisp_;
@@ -56,6 +65,10 @@ protected:
   
   
  
+
+// =============================================================================
+// 3D nonlinear mechanics
+// =============================================================================
 
 
 /// class for calculation of 3d nonlinear linear elasticity
@@ -86,6 +99,10 @@ protected:
   virtual Integer getNrDofs(){return 3;};  
 };
   
+
+  
+
+
 
 
 
@@ -137,16 +154,103 @@ protected:
   /// returns material D-matrix for 3d mechanics
   virtual void calcMaterialDMat(Matrix<Double> & dMat);
 
+  /// returns the size of the material d-matrix
+  virtual Integer getMaterialDMatSize(){return 6;};
 
-private:
+  /// returns the size of the full piola d-matrix
+  virtual Integer getFullPiolaDMatSize(){return 9;};
+
   /// conversion of stress vector to stress tensor
-  void convertStressVecToTensor(Matrix<Double>& stressTensor, std::vector<Double>& piolaStress);
+  virtual void convertStressVecToTensor(Matrix<Double>& stressTensor, std::vector<Double>& piolaStress);
+  
+private:
   
   /// dimension of d-matrix (has to be changed for some dirty implementation features ... )
   Integer piolaDimD_;
   
 };
   
+
+
+
+
+// =============================================================================
+// nonlinear plane strain mechanics (2D)
+// =============================================================================
+
+/// class for calculation of plane strain nonlinear linear elasticity
+// derived from nLinElastInt with plane strain material matrix 
+// first part: nonlinear B-matrix
+class nLinMechPlaneStrainInt_BNonLin : public nLinElastInt
+{
+public:
+
+  /// Constructor
+  nLinMechPlaneStrainInt_BNonLin(BaseFE * aptelem, MaterialData & matData);
+
+  /// Constructor
+  nLinMechPlaneStrainInt_BNonLin(MaterialData & matData);
+
+  
+  /// Destructor
+  virtual ~nLinMechPlaneStrainInt_BNonLin();  
+  
+protected:  
+  /// returns D - matrix for BDB
+  virtual void calcDMat(Matrix<Double> & dMat);
+
+  /// returns dimension of D matrix
+  virtual Integer getDimD(){return 3;};
+  
+  /// returns nr. of degrees of freedom
+  virtual Integer getNrDofs(){return 2;};  
+};
+
+
+
+
+/// class for calculation of 3d nonlinear linear elasticity
+// derived from nLinMech3dInt_BNonLin (3d material matrix is needed)
+// second part: regarding internal stresses
+class nLinMechPlaneStrainInt_PiolaStress : public nLinMech3dInt_PiolaStress
+{
+public:
+  /// Constructor
+  nLinMechPlaneStrainInt_PiolaStress(BaseFE * aptelem, MaterialData & matData);
+
+  /// Constructor
+  nLinMechPlaneStrainInt_PiolaStress(MaterialData & matData);
+  
+  /// Destructor
+  virtual ~nLinMechPlaneStrainInt_PiolaStress();  
+  
+protected:  
+  /// returns nr. of degrees of freedom
+  virtual Integer getNrDofs(){return 2;};  
+
+  /// conversion of stress vector to stress tensor
+  virtual void convertStressVecToTensor(Matrix<Double>& stressTensor, std::vector<Double>& piolaStress);
+
+  /// returns material D-matrix for 3d mechanics
+  virtual void calcMaterialDMat(Matrix<Double> & dMat);
+
+protected:
+  /// returns the size of the material d-matrix
+  virtual Integer getMaterialDMatSize(){return 3;};
+
+  /// returns the size of the full piola d-matrix
+  virtual Integer getFullPiolaDMatSize(){return 6;};  
+};
+  
+
+
+
+
+
+
+// =============================================================================
+// prestress
+// =============================================================================
 
 
 

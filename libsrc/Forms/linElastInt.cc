@@ -131,6 +131,9 @@ namespace CoupledField
 	dMat[i][j] = (*matMatrix)[rowPtr[i]-1][rowPtr[j]-1];	
 }
 
+
+
+
   // calculated the D-matrix for the axisymmetric state
   void mechAxiInt::calcDMat(Matrix<Double> & dMat)
   {

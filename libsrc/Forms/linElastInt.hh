@@ -4,6 +4,7 @@
 #include <Elements/basefe.hh>
 #include <Forms/bdbInt.hh>
 #include <DataInOut/MaterialData.hh>
+#include <General/environment.hh>
 
 namespace CoupledField
 {
@@ -26,10 +27,6 @@ protected:
   
   /// returns B - matrix for BDB
   virtual void calcBMat(Matrix<Double> & bMat, Integer ip, Matrix<Double> & ptCoord);
-
-  /// orientation of calculation plane in 2D 
-  //  (especially important for anisotropic simulations)
-  enum orientation2D {xy, xz, yz};
 
   orientation2D actOrientation;
 

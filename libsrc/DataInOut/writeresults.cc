@@ -94,7 +94,6 @@ void WriteResults::ReadSaveNodes()
        for (std::list<Integer>::const_iterator p=histNodes[i].begin(); p!=histNodes[i].end(); p++)
 	 nodeshist_.push_back(*p);
    }
- 
 }
 
 
@@ -114,10 +113,12 @@ void WriteResults::InitHistoryFiles()
  std::vector<Integer> nodesTmp;
 
  conf->getlist(nodesTmp,"history_node");
- 
+
+
  for (int i=0; i < nodesTmp.size(); i++)
    // there are allready elements in nodeshist_
    nodeshist_.push_back(nodesTmp[i]);
+
 
  if (nodeshist_.empty()) 
    NeedHistory_=FALSE;
