@@ -35,16 +35,17 @@ namespace CoupledField
 
   Flags * flags=NULL;
 
-  BaseFE * ptQ    = NULL;
-  BaseFE * ptQ2   = NULL;
-  BaseFE * ptTet = NULL;
-  BaseFE * ptL1 = NULL;
-  BaseFE * ptL2 = NULL;
-  BaseFE * ptTr1 = NULL;
-  BaseFE * ptTr2 = NULL;
-  BaseFE * ptHexa=NULL;
-  BaseFE * ptPyra=NULL;
-  BaseFE * ptWedge=NULL;
+  BaseFE * ptQ1     = NULL;
+  BaseFE * ptQ2     = NULL;
+  BaseFE * ptTet1   = NULL;
+  BaseFE * ptL1     = NULL;
+  BaseFE * ptL2     = NULL;
+  BaseFE * ptTr1    = NULL;
+  BaseFE * ptTr2    = NULL;
+  BaseFE * ptHexa1  = NULL;
+  BaseFE * ptHexa2  = NULL;
+  BaseFE * ptPyra1  = NULL;
+  BaseFE * ptWedge1 = NULL;
 
   WriteInfo * Info = NULL;
   ConfFile * conf           = NULL;

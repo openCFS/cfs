@@ -782,7 +782,7 @@ void AnsysFile::ReadEl2d(StdVector<Elem*> * allelems, const StdVector<std::strin
 	getPosLine("2D Elements", pos);
 	infile.seekg(pos,std::ios::beg);
 
-	if (!ptQ || !ptQ2 || !ptTr1 || !ptTr2)
+	if (!ptQ1 || !ptQ2 || !ptTr1 || !ptTr2)
 	  Error(" Pointers to BaseElem is not initialized",__FILE__,__LINE__);
 
 	Integer i, ii, j, inum, itype, innodes;
@@ -871,8 +871,7 @@ void AnsysFile::ReadEl3d(StdVector<Elem*> * allelems, const StdVector<std::strin
     getPosLine("3D Elements", pos);
     infile.seekg(pos,std::ios::beg);
 
-    //    if (!ptTr || !ptQ || !ptTet)
-    if (!ptTet || !ptHexa || !ptPyra || !ptWedge)
+    if (!ptTet1 || !ptHexa1 || !ptHexa2 || !ptPyra1 || !ptWedge1)
       Error(" Pointers to BaseElem is not initialized",__FILE__,__LINE__);
 
     Integer i, ii, j, inum, itype, innodes;
@@ -951,7 +950,7 @@ void AnsysFile::ReadEl3dConf(StdVector<std::string> &sd)
     getPosLine("3D Elements", pos);
     infile.seekg(pos,std::ios::beg);
 
-    if (!ptTet || !ptHexa  || !ptPyra || !ptWedge)
+    if (!ptTet1 || !ptHexa1 || !ptHexa2 || !ptPyra1 || !ptWedge1)
       Error(" Pointers to BaseElem is not initialized",__FILE__,__LINE__);
 
     Integer i, ii, j, inum, itype, innodes;
@@ -1006,7 +1005,7 @@ void AnsysFile::ReadEl2dConf(StdVector<std::string> &sd)
     getPosLine("2D Elements", pos);
     infile.seekg(pos,std::ios::beg);
 
-    if (!ptQ || !ptTr1 || !ptTr2)
+    if (!ptQ1 || !ptQ2 || !ptTr1 || !ptTr2)
       Error(" Pointers to BaseElem is not initialized",__FILE__,__LINE__);
 
     Integer i, ii, j, inum, itype, innodes;
@@ -1172,17 +1171,19 @@ BaseFE * AnsysFile::Type2ptElem(const Integer itype)
       case 5:
 	return ptTr2;
       case 6:
-	return ptQ;
+	return ptQ1;
       case 7:
 	return ptQ2;
       case 8:
-	return ptTet;
+	return ptTet1;
       case 10:
-	return ptHexa;
+	return ptHexa1;
+      case 11:
+	return ptHexa2;
       case 12:
-	return ptPyra;
+	return ptPyra1;
       case 13:
-	return ptWedge;
+	return ptWedge1;
       default:
 	{
 	  std::cout << "Used Element Type: " << itype << std::endl;  

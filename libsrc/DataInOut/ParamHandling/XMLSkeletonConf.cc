@@ -147,15 +147,16 @@ namespace CoupledField
 #endif
 
 
-    ptQ   = new Quad1FE();
-    ptTet = new Tetra1FE();
-    ptL1  = new Line1FE();
-    ptL2  = new Line2FE();
-    ptTr1 = new Triangle1FE();
-    ptTr2 = new Triangle2FE();
-    ptHexa = new Hexa1FE();
-    ptPyra = new Pyra1FE();
-    ptWedge = new Wedge1FE();
+    ptQ1   = new Quad1FE();
+    ptTet1 = new Tetra1FE();
+    ptL1   = new Line1FE();
+    ptL2   = new Line2FE();
+    ptTr1  = new Triangle1FE();
+    ptTr2  = new Triangle2FE();
+    ptHexa1 = new Hexa1FE();
+    ptHexa2 = new Hexa2FE();
+    ptPyra1 = new Pyra1FE();
+    ptWedge1 = new Wedge1FE();
     // now we can delete conf-object already
     delete params;
 
