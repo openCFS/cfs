@@ -6,6 +6,9 @@
 ##############  Name of executable
 program = cfs
 
+##############  Name of dependency file
+Dependencies = Makefile.depend
+
 
 # Function tracing depth
 # TRACE = 0: no fct. tracing at all
@@ -122,6 +125,11 @@ Include=$(C_DIR)/include
 LIBSRC_DIR=$(C_DIR)/libsrc
 #
 LIB_DIR=$(C_DIR)/lib/$(MACHINE)
+#
+############ Flags for makedepend
+# 
+FlagMadeDepend = $(CFLAGS2) $(CFLAGS3) $(OLAS)\
+                 $(INCL) $(INCLAdaptGrid) $(INCLMpCCI)
 #
 ############
 #

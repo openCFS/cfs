@@ -10,7 +10,7 @@ libpath = libsrc/Utils
 CFLAGS3 =
 #
 include ../makefile.inc
-
+-include $(Dependencies)
 # DO NOT DELETE this line
 
 

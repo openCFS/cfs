@@ -9,7 +9,7 @@ libpath = libsrc/Domain/NetGen
 CFLAGS3 =
 #
 include ../../makefile.inc
-
+-include $(Dependencies)
 # DO NOT DELETE
 
 

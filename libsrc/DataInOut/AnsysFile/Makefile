@@ -9,7 +9,7 @@ libpath = libsrc/DataInOut/AnsysFile
 CFLAGS3 =
 #
 include ../../makefile.inc
-
+-include $(Dependencies)
 # DO NOT DELETE
 
 
