@@ -87,7 +87,7 @@
 # -----------------------------------------------------------------------------
 
 ifeq ("$(OLAS_ROOT)","")
-OLAS_ROOT = /home/lse10/lse/mmohr/local/OLAS
+OLAS_ROOT = /home/data/proj/SoftwareLibraries/OLAS_STABLE_1
 endif
 
 ifeq ("$(HYPRE_ROOT)","")
@@ -257,6 +257,7 @@ COMPILE_INCDIRS = $(INCDIR_OLAS) $(INCDIR_HYPRE) $(INCDIR_XERCES) \
 #  - MPCCI
 #  - ADAPTIVITY
 #  - XERCES
+#  - TVMET
 #
 # These will be combined into a COMPILE_MACROS parameter
 # -----------------------------------------------------------------------------
@@ -296,9 +297,16 @@ else
    MACRO_XERCES =
 endif
 
+# TVMET
+ifeq "$(TVMET)" "yes"
+  MACRO_TVMET =
+else
+  MACRO_TVMET = -DOLAS_SCALAR_ONLY
+endif
+
 # Combine everything
 COMPILE_MACROS = $(MARCO_DATABASE) $(MACRO_MPCCI) $(MACRO_ADAPTIVITY) \
-                 $(MACRO_GSI) $(MACRO_XERCES)
+                 $(MACRO_GSI) $(MACRO_XERCES) $(MACRO_TVMET)
 
 
 # -----------------------------------------------------------------------------
