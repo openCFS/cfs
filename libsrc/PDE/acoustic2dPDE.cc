@@ -401,7 +401,6 @@ void Acoustic2dPDE::ComputeRHS(const Double atime, BCs * ptBCs)
   ptalgsys_->UpdateRHS(as_sysid_,as_sysid_,matrix_id,coeffMass.get());
 
   // damping matrix part
-  std::cout << "absBCs:" << without_absBCs_ << std::endl;
 
   if (!without_absBCs_) 
     {
@@ -416,6 +415,50 @@ void Acoustic2dPDE::ComputeRHS(const Double atime, BCs * ptBCs)
   
       ptalgsys_->UpdateRHS(as_sysid_,as_sysid_,matrix_id,coeffDamp.get());
     }
+
+  Integer level=0;          ////
+  if (SetRHSFnc) {         // for standing waves
+
+    Double density, compress;    // get density & compressity
+    Integer i,matnum;
+    for (i=0; i<subdoms_.size(); i++)
+      {
+	conf->get(subdoms_[i],matnum,"list_subdomains");
+	MatFile_->ReadDensityAndCompressity(density,compress,matnum,"fluid");
+      }
+
+    Integer j,node1,node2;
+    Double valfnc,integrShFnc,val,multiplier;
+    Point<2> * ptCoordNodes;
+    std::vector<Double> normal;
+    normal.resize(2);
+    Vector<Integer> connecth;
+    std::vector<Elem*> edgesBC;  // vector of 1D-elements from mesh-file
+
+    edgesBC=ptBCs->getEdgesBC(rhs_surfaces_[0],level);
+    valfnc = ptRHSFnc_(atime*arg_rhs_*2*3.1416); // value of fnc at the timestep
+
+    for (j=0; j< edgesBC.size(); j++) { // loop over surface elements
+      ptCoordNodes=new Point<2>[2];
+
+      connecth=edgesBC[j]->connect;
+      ptgrid_->GetCoordNodesElem(connecth,ptCoordNodes,level);  
+      calcNormal2Line(normal,ptCoordNodes[0],ptCoordNodes[1]); 
+
+      multiplier=ScalarMult(normal,directionFnc_); // n * V /direction fnc/
+      integrShFnc = edgesBC[j]->ptElem->getIntVal(ptCoordNodes);
+      val=integrShFnc*multiplier*valfnc*density; 
+
+      Double * valArr=new Double[2];
+      valArr[0]=val;
+      valArr[1]=val;
+      // 2 - number of nodes in element
+      ptalgsys_->AddElementRHS(valArr,connecth.get(),2,as_sysid_);
+
+      delete [] valArr;
+      delete [] ptCoordNodes;
+    }    
+  } // end of part: standing waves      
 
 }
 
