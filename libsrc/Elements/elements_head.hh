@@ -4,6 +4,7 @@
 #include <baseelem.hh>
 #include <rectangle.hh>
 #include <quad1.hh>
+#include <quad2.hh>
 #include <getriangle.hh>
 #include <triangle1.hh>
 
