@@ -174,6 +174,9 @@ public:
   //! Perform a matrix-vector multiplication rvec = this*mvec
   void Mult(CFSVector & mvec, CFSVector & rvec);
 
+  //! Perform a matrix-matrix multiplication rMat = this*mMat
+  void Mult(CFSMatrix & mMat, CFSMatrix & rMat);
+
   //! Perform a matrix(Double)-vector(Complex) multiplication rvec = this*mvec
   //! where the matrix is supposed to be of type Double, rvec and mvec are complex valued
     void MatVecMult_DC(Vector<Complex> & mvec, Vector<Complex> & rvec);
