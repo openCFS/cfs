@@ -106,6 +106,9 @@ namespace CoupledField
     // current time 
     Double currTime_;
 
+    // previous time 
+    Double lastTime_;
+
     //! pointer to Grid
     Grid * ptgrid;
 
@@ -120,9 +123,6 @@ namespace CoupledField
 
     //! name of gridfile
     std::string nameGridFile_;
-
-    //! write header of gmv-file: only ascii is implemented
-    void WriteHeader();
 
     //! write number of nodes and coordinates of them
     void WriteNodes(const Integer level);
@@ -174,9 +174,6 @@ namespace CoupledField
       \param result (output) result
     */
     void to8Char(const std::string name, char * result);
-  
-    //! Convertes enum SolutionType to string
-    std::string SolutionTypeToString(const SolutionType type) const;
   
   };
 
