@@ -33,6 +33,8 @@ ConfFile::~ConfFile()
   (*trace) << " entering ConfFile::~ConfFile " << std::endl;
 #endif
 
+  delete [] filename;
+
  infile.close();
 }
 

@@ -43,7 +43,7 @@ public:
                                Integer &numdofpernode, Integer &numdirichlets, Integer &numconstraints)=0;
 
   //!
-  virtual void SpecifySolver(Integer &asolvertype, Integer &aprecondtype, Double &aeps, Double &adampiter, Integer &amaxnumit, Integer &numeqcoarse)=0;
+  virtual void SpecifySolver(Integer &asolvertype, Integer &aprecondtype, Double &aeps, Double &adampiter, Integer &amaxnumit, Integer &numeqcoarse, Double &coarsealpha)=0;
 
   //!
   virtual void SetBCs(BCs * ptBCs, const Integer level, const Integer update, const Double atimestep)=0;

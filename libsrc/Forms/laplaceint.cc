@@ -103,7 +103,6 @@ void LaplaceInt<Point3D> :: CalcElemMatrix(Point3D * ptCoord, Matrix<Double> & R
 
   for (i=0; i<l; i++)
     {
-      ptelem->test();
       ptelem->CalcJacobian(J,i,ptCoord);
 
       J.GetJinvX(JinvX);

@@ -28,6 +28,7 @@ public:
   virtual void WriteSolution(const Vector<Double> & sol, const Integer step, const Double time, const std::string title)=0;
 
   virtual Boolean IsGMV()=0;
+
 protected:
   //! name of file for output results
   Char * namefile_;

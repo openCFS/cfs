@@ -319,7 +319,7 @@ void TransientDriver :: SolveProblemAdaptSpace()
 
       numrepeat=0;
       maxnumrepeat=1;
-      while (ptSpaceError->TestError() && numrepeat != maxnumrepeat && nstep < 3)
+      while (ptSpaceError->TestError() && numrepeat != maxnumrepeat && nstep < 1)
       {
 	ptSpaceError->RefineMesh();	
 	ptdomain_->Update(level); // update BCs and AlgSys
@@ -335,7 +335,7 @@ void TransientDriver :: SolveProblemAdaptSpace()
    ptdomain_->GetPDE(pdenumber)->SolveStepTransNewMesh(ptdomain_->GetBCs(), nstep, steptime, level);
   
     std::cerr << " step " << nstep << " steptime " << steptime << " level " << level << std::endl;
-  std::cerr << " we solve on new mesh " << std::endl;
+  std::cerr << " we solved on new mesh " << std::endl;
 
   numrepeat++; 
       }

@@ -18,6 +18,11 @@ GeTetrahedral::GeTetrahedral()
 
 }
 
+GeTetrahedral::~GeTetrahedral()
+{
+  if (IntWeights) delete IntWeights;
+}
+
 void GeTetrahedral::SetIntPoints()
 {
 #ifdef TRACE

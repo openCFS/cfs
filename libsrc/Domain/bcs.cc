@@ -32,8 +32,7 @@ BCs :: ~BCs()
 
  Integer i;
  for (i=0; i<NUMLEVELGRID; i++)   
-   if (bcs_[i]) delete [] bcs_[i];  
-
+   if (bcs_[i]) delete [] bcs_[i];   
 }
 
 void BCs :: ReadBCs()

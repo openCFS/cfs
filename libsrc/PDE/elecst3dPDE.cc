@@ -28,7 +28,7 @@ Elecst3dPDE::Elecst3dPDE(AbstractAlgebraicSys * ptalgsys, Grid * aptgrid, Materi
   ReadBCs("Elecst3d");
 }
 
-void Elecst3dPDE::SpecifySolver(Integer &solvertype, Integer &precondtype, Double &eps, Double &dampiter, Integer &maxnumit, Integer &numeqcoarse)
+void Elecst3dPDE::SpecifySolver(Integer &solvertype, Integer &precondtype, Double &eps, Double &dampiter, Integer &maxnumit, Integer &numeqcoarse, Double &coarsealpha)
 {
 #ifdef TRACE
   (*trace) << "entering Elecst3dPDE::SpecifySolver" << std::endl;
@@ -40,6 +40,7 @@ void Elecst3dPDE::SpecifySolver(Integer &solvertype, Integer &precondtype, Doubl
   conf->get("solvertype",solvertype,"Elecst3d"); // Richardson or CG
   conf->get("precondtype", precondtype, "Elecst3d"); //ID or MG
   conf->get("numeqcoarse",numeqcoarse,"Elecst3d"); // number of equation for coarsing
+  conf->get("coarsealpha",coarsealpha,"Elecst3d"); // coarsing parameter for AMG
 }
 
 void Elecst3dPDE::SetMatrixFactors()

@@ -165,8 +165,7 @@ public:
 template<class TYPE>
 inline Vector<TYPE>::~Vector ()
 {
-	if (p)
-		delete [] p;
+	if (p) 	delete [] p;
 }
 
 template<class TYPE>

@@ -17,6 +17,9 @@ namespace CoupledField
   if (!infile) {std::cerr << "ERROR(" << __FILE__ << " " << __LINE__ <<
                          ") Can't open " << name << "/ We working only with dat format / " << std::endl;
                 exit(1);}
+
+  delete [] name;
+
 }
 
   Material :: ~Material()

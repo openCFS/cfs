@@ -17,8 +17,7 @@ public:
    GeTetrahedral();
 
    //! Deconstructor
-   virtual ~GeTetrahedral() { ;}
-
+  virtual ~GeTetrahedral(); 
 ///////////////////////////////////////////////////////////////////////
 
 virtual Vector<Double> *  GetDxShFncAtIP(const Integer iShFnc) ;

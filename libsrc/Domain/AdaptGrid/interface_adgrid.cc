@@ -66,12 +66,14 @@ void InterfaceAdaptGrid<Point2D>::Read()
       grd::Vertex* tmpVt = new grd::Vertex(pos);
       tmpVt->setId(inode+1);
 
-      if ((inode+1)==idBCs[ibnd]) {
-	tmpVt->setBoundaryNode();
-	tmpVt->setColorBndNode(colorBCs[ibnd]);
-	ibnd++;
+      std::vector<Integer>::const_iterator p;
+      ibnd = 0;
+      for ( p=idBCs.begin(); p!=idBCs.end(); p++,ibnd++) {
+	if ((inode+1) == *p) {      
+	  tmpVt->setBoundaryNode();
+	  tmpVt->setColorBndNode(colorBCs[ibnd]);
+	}
       }
-
       vertex_[inode]= tmpVt;
     }
 
@@ -278,7 +280,6 @@ void InterfaceAdaptGrid<Dim>::UpdateBCs(std::list<Integer> * bcs)
     lv=(grid_.getGridLevel(level))->getVertexList();
     for (p=lv->begin(); p!=lv->end(); ++p) {
       if ((*p)->isBoundaryNode()) { 
-	cout << " color: " << (*p)->getColorBndNode() << " " << (*p)->getId() << endl; 
 	bcs[(*p)->getColorBndNode()].push_back((*p)->getId());
       }
     }
@@ -424,9 +425,9 @@ Integer InterfaceAdaptGrid<Point3D>::GetMaxnumElem(const Integer numlevel)
 template<class Dim>
 InterfaceAdaptGrid<Dim>::~InterfaceAdaptGrid()
 {
+  delete ptBCs;
  if (ptgridcfs_) delete ptgridcfs_;
 }
-
 
 template<class Dim>
 void InterfaceAdaptGrid<Dim>::forEachElemSd(SetRefFlag & f,const std::string subdomain)
@@ -555,7 +556,7 @@ void InterfaceAdaptGrid<Dim>::Trans2CFSGrid(const Integer alevel)
   (*trace) << " entering InterfaceAdaptGrid<Dim>::Transform2CFSGrid()" << std::endl;
 #endif
 
-  // if (ptgridcfs_) { delete ptgridcfs_;} 
+  if (ptgridcfs_) { delete ptgridcfs_;} 
 
   ptgridcfs_=new GridCFS<Dim>(ptFileType);
 

@@ -35,14 +35,14 @@ mylibrary :=  driver domain pde \
 	    estimator forms  \
             elements3d elements2d elements \
             gridcfs tonetgen toadaptgrid\
-            unverg gmv \
-            definefiles datfile ansysfile datainout \
+            gmv \
+            definefiles unverg datfile ansysfile datainout \
             utils matrix general \
             multigrid-cla general-cla  superlu-cla\
             nginterface vis  \
             stlgeom mesh csg gprim opti \
             la gen cfsinterface tix8.1.8.3 tk8.3 tcl8.3\
-            GL GLU X11 Xi m dl pthread stdc++ adaptgrid 
+            GL GLU X11 Xi m dl pthread stdc++ adaptgrid
 else
 mylibrary :=  driver domain pde estimator \
 	    algsys-own forms  \
@@ -278,8 +278,8 @@ echo:
 #
 distrib: clean 
 	cd $(C_DIR) && \
-	tar -cvf cfs++.tar $(LIBSRC) main/Makefile main/Makefile.option main/cfs.cc main/control && \
-	tar --delete $(C_DIR) cfs++.tar 
+	tar -czvf cfs++.tgz $(LIBSRC) main/Makefile main/Makefile.option main/cfs.cc main/control 
+#	tar --delete $(C_DIR) cfs++.tar 
 #
 ##################### Make check
 #

@@ -19,7 +19,7 @@ public:
   GeTriangle() ; 
  
   //! Deconstructor
-  virtual ~GeTriangle();
+  virtual ~GeTriangle();  
 
 protected:
  

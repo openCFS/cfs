@@ -25,8 +25,8 @@ public:
   virtual ~Acoustic2dPDE();
 
   //!
-  void SpecifySolver(Integer &asolvertype, Integer &aprecondtype, Double &aeps,
-Double &adampiter,  Integer &amaxnumit, Integer &numeqcoarse);
+  void SpecifySolver(Integer &solvertype, Integer &precondtype, Double &eps, Double &dampiter, Integer &maxnumit, 
+		     Integer &numeqcoarse, Double &coarsealpha);
 
   //!
   void SpecifyMatrices(Integer &matrixtype, Integer *matrixsystype, Integer &graphtype, Integer &numdofpernode, Integer &numdirichlets, Integer &numconstraints);

@@ -26,7 +26,7 @@ GeTriangle :: ~GeTriangle()
   (*trace) << "entering GeTriangle::~GeTriangle" << std::endl;
 #endif
 
-  ;
+  if (IntWeights) delete IntWeights;
 }
 
 void GeTriangle :: SetIntPoints()

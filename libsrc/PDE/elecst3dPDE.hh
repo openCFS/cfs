@@ -23,7 +23,7 @@ public:
 
   //!
   void SpecifySolver(Integer &asolvertype, Integer &aprecondtype, Double &aeps,
-Double &adampiter,  Integer &amaxnumit, Integer &numeqcoarse);
+Double &adampiter,  Integer &amaxnumit, Integer &numeqcoarse, Double &coarsealpha);
 
   //!
   void SpecifyMatrices(Integer &matrixtype, Integer *matrixsystype, Integer &graphtype, Integer &numdofpernode, Integer &numdirichlets, Integer &numconstraints);

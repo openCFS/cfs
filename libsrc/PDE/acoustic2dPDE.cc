@@ -58,7 +58,7 @@ Acoustic2dPDE::Acoustic2dPDE(AbstractAlgebraicSys * ptalgsys, Grid * aptgrid, Ma
   ReadBCs("Acoustic");
 }
 
-void Acoustic2dPDE::SpecifySolver(Integer &solvertype, Integer &precondtype, Double &eps, Double &dampiter, Integer &maxnumit, Integer &numeqcoarse)
+void Acoustic2dPDE::SpecifySolver(Integer &solvertype, Integer &precondtype, Double &eps, Double &dampiter, Integer &maxnumit, Integer &numeqcoarse, Double &coarsealpha)
 {
 #ifdef TRACE
   (*trace) << "entering Acoustic2dPDE::SpecifySolver" << std::endl;
@@ -70,7 +70,7 @@ void Acoustic2dPDE::SpecifySolver(Integer &solvertype, Integer &precondtype, Dou
   conf->get("solvertype",solvertype,"Acoustic"); // Richardson or CG
   conf->get("precondtype", precondtype, "Acoustic"); //ID or MG
   conf->get("numeqcoarse",numeqcoarse,"Acoustic"); // number of equation for coarsing
-
+  conf->get("coarsealpha",coarsealpha,"Acoustic"); // coarsing parameter for AMG
 }
 
 
