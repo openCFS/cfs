@@ -112,8 +112,9 @@ namespace CoupledField {
 
     // Consistency test
     //
-    // Currently only harmonic and paramIdent analysis can deal with complex material
-    // parameters. For static and transient this will lead to a seg fault.
+    // Currently only harmonic and paramIdent analysis can deal with 
+    // complex material parameters.
+    // For static and transient this will lead to a seg fault.
     // So we check this to avoid this unclear problem
     StdVector<std::string> matType;
     std::string analysis;
@@ -125,7 +126,8 @@ namespace CoupledField {
         Error( __FILE__, __LINE__ );
       }
       cfs->Get( "type", analysis, "analysis" );
-      if ( matType[0] == "imagMaterialParameter" && (analysis != "harmonic" && analysis != "paramIdent") ) {
+      if ( matType[0] == "imagMaterialParameter" && 
+	   (analysis != "harmonic" && analysis != "paramIdent") ) {
         (*error) << "XML-file specifies material parameters with imaginary "
                  << "part for an analysis of type '" << analysis << "'. "
                  << "Complex parameters are currently only implemented for "
