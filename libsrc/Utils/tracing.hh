@@ -111,20 +111,21 @@ namespace OutInfo {
     //! This method performs all things needed for tracing at the startup
     //! of a method.
     static void EnterFcn(char *name){
-      if ( foo_ == NULL ){
-	foo_ = new FcnTraceListElem( name, fcnTraceDepth_++,
-				     fcnTraceDepthLimit_ );
-	foo_->caller_ = NULL;
-	foo_->called_ = NULL;
-      }
-      else{
-	foo_->called_ = new FcnTraceListElem( name, fcnTraceDepth_++,
-					      fcnTraceDepthLimit_ );
-	foo_->called_->caller_ = foo_;
-	foo_ = foo_->called_;
+      if (fcnTraceDepth_ < fcnTraceDepthLimit_) {
+	if ( foo_ == NULL ){
+	  foo_ = new FcnTraceListElem( name, fcnTraceDepth_++,
+				       fcnTraceDepthLimit_ );
+	  foo_->caller_ = NULL;
+	  foo_->called_ = NULL;
+	}
+	else{
+	  foo_->called_ = new FcnTraceListElem( name, fcnTraceDepth_++,
+						fcnTraceDepthLimit_ );
+	  foo_->called_->caller_ = foo_;
+	  foo_ = foo_->called_;
+	}
       }
     }
-
     //! Handle termination of a function.
 
     //! This method performs all things needed for tracing when a function
@@ -143,6 +144,10 @@ namespace OutInfo {
     static void Dump(){
       while(foo_) LeaveFcn();
     }
+
+    //! Set maximum tracing depths
+    static void SetMaxTraceDepth(unsigned int limit)
+    {fcnTraceDepthLimit_ = limit;}
 
   private:
     static FcnTraceListElem *foo_;
