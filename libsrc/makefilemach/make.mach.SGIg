@@ -8,34 +8,59 @@ LINK=CC
 MAKE=make
 RM=rm
 RANLIB=echo
+
 #
-# flags
+# Application binary interface (one of -32, -o32, -n32, -64)
 #
-# Machine dependent flags:
-#
-ABI    = 
-#
-OPT    = 
-LNO    = 
-UNDER  = 
-#
-#CFLAGS1 = -v -LANG::std -n32 -c $(INCL) 
-#FLAG_MKSHLIB = -v -LANG::std -n32 -ptused -prelink -shared
-#
-#CFLAGS2 = -n32 -D TRACE -D DEBUG -w -I. -I/usr/include/X11 -I/usr/include/CC -I/usr/include
-#
-CFLAGS1 = -LANG:std -n32 -g -prelink -ptused -w -D TRACE -D DEBUG -D GRIDLIB
-CFLAG_EXE=  -LANG:std -n32 -g -w
-#
-#ifeq "$(TYPEOFLIB)" "SHARED"
-#LINKFLAGS2=-shared 
-#else
-#LINKFLAGS2 := -static
-#endif
-#
-FLAG_MKSHLIB = -LANG:std -n32 -g -ptused -prelink -shared
+ABI = -n32
+
 #
 # Flag for function tracing
+#
 ifneq "$(TRACE)" "0"
-TRACEFLAGS=-DTRACE=$(TRACE)
+TRACEFLAGS = -DTRACE=$(TRACE)
+ELSE
+TRACEFLAGS =
 endif
+
+#
+# Options for debugging
+#
+DEBUG = -g -D DEBUG $(TRACEFLAGS)
+
+#
+# Temlate instantiation options
+#
+TEMPL = -ptuse -no_prelink -no_auto_include
+
+#
+# Suppression of certain varnings
+#
+SUPP = -woff1681,1682
+
+#
+# Combine flags together
+#
+CFLAGS1   = -c -LANG:std $(ABI) $(TEMPL) $(SUPP) $(DEBUG) -fullwarn
+CFLAG_EXE = -LANG:std $(ABI) $(DEBUG) 
+FLAG_MKSHLIB = -v -LANG:std $(ABI) $(TEMPL) -shared
+
+#
+# Set libraries for linking against LAPACK and BLAS
+#
+ifeq "$(LINK_LAPACK)" "yes"
+BLASLAPACK = -lscsl
+else
+ifeq "$(LINK_BLAS)" "yes"
+BLASLAPACK = -lscsl
+else
+BLASLAPACK =
+endif
+endif
+
+#
+# System libraries to link against
+#
+syslib = -lCio -lC $(BLASLAPACK)
+
+# EOF

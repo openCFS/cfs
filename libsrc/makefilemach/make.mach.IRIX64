@@ -1,37 +1,58 @@
 #
 # make machine dependent inlcude file: optimized on SGI
 #
-CC=CC
-F77=f77
-AR=ar
-LINK=CC
-MAKE=make
-RM=rm
-RANLIB=echo
+CC     = CC
+F77    = f77
+AR     = ar
+LINK   = CC
+MAKE   = gmake
+RM     = rm
+RANLIB = echo
+
 #
-# flags
+# Application binary interface (one of -332, -o32, -n32, -64)
 #
-# Machine dependent flags:
+ABI = -64
+
 #
-ABI    = 
+# Options for optimisation
 #
-OPT    = 
-LNO    = 
-UNDER  = 
+OPT = -O3 -r12000 -LNO
+
 #
-#CFLAGS1 = -v -LANG::std -n32 -c $(INCL) 
-#FLAG_MKSHLIB = -v -LANG::std -n32 -ptused -prelink -shared
+# Temlate instantiation options
 #
-#CFLAGS2 = -n32 -D TRACE -D DEBUG -w -I. -I/usr/include/X11 -I/usr/include/CC -I/usr/include
+TEMPL = -ptused -no_prelink -no_auto_include
+
 #
-CFLAGS1 = -LANG:std -n32 -prelink -ptused -D TRACE -D DEBUG  -D GRIDLIB
-CFLAG_EXE=  -LANG:std -n32
+# Suppression of certain varnings
 #
-#ifeq "$(TYPEOFLIB)" "SHARED"
-#LINKFLAGS2=-shared 
-#else
-#LINKFLAGS2 := -static
-#endif
+SUPP = -woff1681,1682
+
 #
-FLAG_MKSHLIB = -v -LANG:std -n32 -ptused -prelink -shared
+# Combine flags together
 #
+CFLAGS1   = -c -LANG:std $(ABI) $(TEMPL) $(SUPP) $(OPT)
+CFLAG_EXE = -LANG:std $(ABI) $(OPT) 
+FLAG_MKSHLIB = -v -LANG:std $(ABI) $(TEMPL) -shared
+
+#
+# Set libraries for linking against LAPACK and BLAS
+#
+ifeq "$(LINK_LAPACK)" "yes"
+BLASLAPACK = -lscsl
+else
+ifeq "$(LINK_BLAS)" "yes"
+BLASLAPACK = -lscsl
+else
+BLASLAPACK =
+endif
+endif
+
+#
+# System libraries to link against
+#
+syslib = -lmx -lCio -lC $(BLASLAPACK)
+
+# EOF
+
