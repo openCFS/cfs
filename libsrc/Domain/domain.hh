@@ -10,18 +10,27 @@
 namespace CoupledField
 {
 
-/// contain information about calculation domain and according to different meshes create different grids
+//! contain information about calculation domain and according to different meshes create different grids
 
 class Domain
 {
 public:
-  //!
+  //! Constructor
+  /*!
+    \param aptFileType (input) input file (mesh-data)
+    \param ptOut (input) output file
+    \param materialdata (input) material data base
+    \param aptTimeFunc (input) time function data base
+  */
   Domain(FileType * const aptFileType, WriteResults * ptOut, Material * materialdata,  TimeFunc * aptTimeFunc);
 
   //!
   virtual ~Domain();
 
   //!
+  /*!
+    \param level index into grid hierarchy
+  */
   void PrintGrid(const Integer level);
 
   //!
@@ -43,6 +52,9 @@ public:
   BCs * GetBCs(){ return ptBCs_;}
 
   //! update algebraic system and bcs after refinement the mesh
+  /*!
+    \param level index into hierarchy (multilevel methods)
+  */
   void Update(const Integer level);
 
   //!
@@ -58,49 +70,30 @@ private:
    void InitPDE();
 
    //! initialization of alg.sys.
+  /*!
+    \param level index into hierarchy (multilevel methods)
+  */
    void InitAlgSys(const Integer level);
 
   //! update alg. sys. in case of new mesh
+  /*!
+    \param level index into hierarchy (multilevel methods)
+  */
   void UpdateAlgSys(const Integer level);
 
-  //!
-  Integer numsubdomain_;
-
-  //!
-  Integer numsys_;
-
-  //!
-  Integer numpde_;
-
-  //!
-  Integer numgraph_;
-
-  //! 
-  Integer ** syscoupling_;
-
-  //!
-  BasePDE * ptpde_[MAXNUMPDE];
-
-  //!
-  Grid * ptgrid_;
-  
-  //!
-  BCs * ptBCs_;
-
-  //!
-  AbstractAlgebraicSys * ptalgsys_;
-  
-  //!
-  Material * ptmaterial_;
-
-  //!
-  TimeFunc * ptTimeFunc_;
-
-  //!
-  FileType *InFile_;
-
-  //!
-  WriteResults * OutFile_;
+  Integer numsubdomain_;  //!< number of subdomains
+  Integer numsys_;        //!< number of systems (matrix dimension for algebraic system)
+  Integer numpde_;        //!< number of PDEs
+  Integer numgraph_;      //!< number of graphs needed (node-graphs, edge-graphs, etc.)
+  Integer ** syscoupling_; //!< matrix, containing coupling information between the systems
+  BasePDE * ptpde_[MAXNUMPDE]; //!< pointers to PDEs
+  Grid * ptgrid_; //!< pointer to grid object
+  BCs * ptBCs_;   //!< pointer to object storing boundary conditions
+  AbstractAlgebraicSys * ptalgsys_; //!< pointer to algebraic system
+  Material * ptmaterial_; //!< pointer to object handling material data
+  TimeFunc * ptTimeFunc_; //!< pointer to object handling time functions
+  FileType *InFile_;      //!< pointer to object handling input file (mesh data)
+  WriteResults * OutFile_; //!<  pointer to object handling output file 
 
 };
 

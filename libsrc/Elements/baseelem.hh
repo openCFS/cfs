@@ -77,14 +77,16 @@ public:
   { Error(" This function is implemented only for 1D elements",__FILE__,__LINE__);}	
 
 ///////////////////////////////////////////////////////////////////////
-virtual Vector<Double> *  GetDxShFncAtIP(const Integer iShFnc)
- { Error("Not implemented") ;}
-virtual Vector<Double> *  GetDyShFncAtIP(const Integer iShFnc) 
- { Error("Not implemented") ;}
-virtual Vector<Double> *  GetDzShFncAtIP(const Integer iShFnc) 
+  virtual Vector<Double> *  GetDxShFncAtIP(const Integer iShFnc)
+  { Error("Not implemented") ;}
+
+  virtual Vector<Double> *  GetDyShFncAtIP(const Integer iShFnc) 
+  { Error("Not implemented") ;}
+
+  virtual Vector<Double> *  GetDzShFncAtIP(const Integer iShFnc) 
  { Error("Not implemented") ;}
 
-  //! return FE-Type for CLA++
+  //! return FE-Type for LAS++
   virtual Integer feType()=0;
 
 protected:
@@ -99,6 +101,7 @@ protected:
   Vector<Double> * IntWeights; //!< integration weights
   enum IntegrationType IntegType;
 
+  //! Converts the string used for the integration type to an integer
   enum IntegrationType String2EnumIntegrationType(const Char * inttype);
 private:
  

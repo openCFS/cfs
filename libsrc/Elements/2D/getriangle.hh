@@ -21,7 +21,7 @@ public:
   //! Deconstructor
   virtual ~GeTriangle();  
 
-  //! return FE-Type for CLA++
+  //! return FE-Type for LAS++
   virtual Integer feType() { return TRIA;}
 
 protected:
@@ -29,60 +29,72 @@ protected:
   //! Define integration points for this type of integration
   virtual void SetIntPoints();
 
-  //! Calculate transformation function at these integration points
+  //! Calculate shape functions at these integration points
   virtual void SetTransformFncAtIntPoints();
 
-  //! Calculate derivative of transformation function at these integration points
+  //! Calculate derivative of shape functions at these integration points
   virtual void SetDerTransformFncAtIntPoints();
  
-  //! Calculate transformation function at the center of element
+  //! Calculate shape functions at the center of element
   virtual void SetTransformFncAtCenter();
 
-     //! Calculate derivative of transformation function at the center of element
+     //! Calculate derivatives of shape functions at the center of element
   virtual void SetDerTransformFncAtCenter();
   
   //! Calculation of Jacobian, inverse Jacobian and detJacobian
+  /*! 
+      \param J (output) Jacobian matrix (2,2)
+      \param ip (input) number of integration point
+      \param ptCoord (input) contains global coordinates of element nodes
+      \param NeedJinv (input) TRUE: inverse Jacobian computed; FALSE: no inverse Jacobian computed  
+  */
   void CalcJacobian(Jacobian<2> & J, const Integer ip,
                  Point<2> * ptCoord, const Boolean NeedJinv=TRUE);
  
-    //! Calculation of Jacobian, inverse Jacobian and detJacobian
+  // Calculation of Jacobian, inverse Jacobian and detJacobian
   void CalcJacobian(Jacobian<3> & J, const Integer ip,
                   Point<3> * ptCoord, const Boolean NeedJinv=TRUE);
  
- //! Calculation of Jacobian for center point in 2D
+  //! Calculation of Jacobian for center point in 2D
+  /*! 
+      \param J (output) Jacobian matrix (2,2)
+      \param ptCoord (input) contains global coordinates of element nodes
+      \param NeedJinv (input) TRUE: inverse Jacobian computed; FALSE: no inverse Jacobian computed  
+  */
   virtual void CalcJacobianAtCenter(Jacobian<2> & J, Point<2> * ptCoord, const Boolean NeedJinv=TRUE);
 
-  Vector<Double> TransFncAtIP1;
-  Vector<Double> TransFncAtIP2;
-  Vector<Double> TransFncAtIP3;
+  Vector<Double> TransFncAtIP1; //!< contains \f$ N_1 \f$ at all integration points
+  Vector<Double> TransFncAtIP2; //!< contains \f$ N_2 \f$ at all integration points
+  Vector<Double> TransFncAtIP3; //!< contains \f$ N_3 \f$ at all integration points
  
-  Vector<Double> DxTransFncAtIP1;
-  Vector<Double> DxTransFncAtIP2;
-  Vector<Double> DxTransFncAtIP3;
+  Vector<Double> DxTransFncAtIP1; //!< contains \f$ N_{1,\xi} \f$ at all integration points
+  Vector<Double> DxTransFncAtIP2; //!< contains \f$ N_{2,\xi} \f$ at all integration points
+  Vector<Double> DxTransFncAtIP3; //!< contains \f$ N_{3,\xi} \f$ at all integration points
  
-  Vector<Double> DyTransFncAtIP1;
-  Vector<Double> DyTransFncAtIP2;
-  Vector<Double> DyTransFncAtIP3;
+  Vector<Double> DyTransFncAtIP1; //!< contains \f$ N_{1,\eta} \f$ at all integration points
+  Vector<Double> DyTransFncAtIP2; //!< contains \f$ N_{2,\eta} \f$ at all integration points
+  Vector<Double> DyTransFncAtIP3; //!< contains \f$ N_{3,\eta} \f$ at all integration points
 
-  Double TransFncAtCenter[3];
-  Double DxTransFncAtCenter[3];
-  Double DyTransFncAtCenter[3];
+  Double TransFncAtCenter[3];    //!< contains \f$ N_1\f$ - \f$N_4\f$ at center 
+  Double DxTransFncAtCenter[3];  //!< contains \f$ N_{1,\xi}\f$ - \f$N_{4,\xi}\f$ at center
+  Double DyTransFncAtCenter[3];  //!< contains \f$ N_{1,\eta}\f$ - \f$N_{4,\xi}\f$ at center
 
-  Boolean IsSet;
-  Boolean isSetAtCenter_;
+  Boolean IsSet; //!< parameter is TRUE if we have already computed transformation function at integration points
+  Boolean isSetAtCenter_; //!< parameter is TRUE if we calculated tranformation function at integration points
+
 
 private:
 
-  Double TransFnc1(Double x,Double y) { return 1-x-y; }
-  Double TransFnc2(Double x,Double y) { return x; }
-  Double TransFnc3(Double x,Double y) { return y; }
+  Double TransFnc1(Double x,Double y) { return 1-x-y; }  //!< \f$ N_1 \f$
+  Double TransFnc2(Double x,Double y) { return x; }      //!< \f$ N_2 \f$
+  Double TransFnc3(Double x,Double y) { return y; }      //!< \f$ N_3 \f$
 
-  Double TransFnc1dx (Double x,Double y)  { return -1.0; }
-  Double TransFnc1dy (Double x,Double y)  { return -1.0; }
-  Double TransFnc2dx (Double x,Double y) { return 1.0; }
-  Double TransFnc2dy (Double x,Double y) { return 0.0; }
-  Double TransFnc3dx (Double x,Double y) { return 0.0; }
-  Double TransFnc3dy (Double x,Double y) { return 1.0; }
+  Double TransFnc1dx (Double x,Double y)  { return -1.0; } //!< \f$ N_{1,\xi} \f$
+  Double TransFnc1dy (Double x,Double y)  { return -1.0; } //!< \f$ N_{1,\eta} \f$
+  Double TransFnc2dx (Double x,Double y) { return 1.0; }   //!< \f$ N_{2,\xi} \f$
+  Double TransFnc2dy (Double x,Double y) { return 0.0; }   //!< \f$ N_{2,\eta} \f$
+  Double TransFnc3dx (Double x,Double y) { return 0.0; }   //!< \f$ N_{3,\xi} \f$
+  Double TransFnc3dy (Double x,Double y) { return 1.0; }   //!< \f$ N_{3,\eta} \f$
 
 };
  
