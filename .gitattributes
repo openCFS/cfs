@@ -480,7 +480,9 @@ main/cfs.cc svneol=native#text/plain
 main/chan1.conf -text
 main/chan1.mesh -text
 main/chan1.test -text
+main/channel.conf -text
 main/channel.dat -text
+main/channel.mesh -text
 main/el3d.dat -text
 main/elec.dat -text
 main/elec3d.dat -text
