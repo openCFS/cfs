@@ -73,6 +73,8 @@ Integer main(int argc, char *argv[])
     ptdriver = new TransientDriver(domain);
   else if (analysis=="harmonic")
     ptdriver = new HarmonicDriver(domain);
+  else if (analysis=="harmonic")
+    ptdriver = new HarmonicDriver(domain);
   else
     Error("Driver not supported",__FILE__,__LINE__);
 
@@ -93,8 +95,6 @@ Integer main(int argc, char *argv[])
       ptdriver->SolveProblem();
 
   oClockTotal.ClockCount(MyClock::end,"Total time");
-
-
   //delete objects
   if (ptdriver) delete ptdriver;
   if (ptTimeFunc) delete ptTimeFunc;
