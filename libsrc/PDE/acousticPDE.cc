@@ -333,7 +333,7 @@ namespace CoupledField {
 	for (Integer actDof=0; actDof < couplingdof ; actDof++) {
 	  elemCouplingSols[nodePos*couplingdof +actDof] += 
 	    forceOnElem[actNode] * n[actDof];
-	  std::cout << "AcouForce:" << forceOnElem[actNode] * n[actDof] << std::endl;
+	  //  std::cout << "AcouForce:" << forceOnElem[actNode] * n[actDof] << std::endl;
 	
 	}
       }
