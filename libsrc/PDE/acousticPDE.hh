@@ -99,7 +99,7 @@ protected:
   Integer fracMemory_;      //!< number of old time steps to be saved
 
   //General dimension of problem
-  Integer dim_;
+  //  Integer dim_;
   
 private:
 

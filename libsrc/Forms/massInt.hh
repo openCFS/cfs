@@ -16,6 +16,9 @@ public:
   /// Constructor
   MassInt(const Double aDensity, const Integer nrDofsPerNode=1, Boolean axi=FALSE);
 
+  /// Constructor
+  MassInt(const Double aDensity, const Integer nrDofsPerNode, Integer dofzero, Boolean axi=FALSE);
+
   /// Destructor
   virtual ~MassInt();
 
@@ -30,11 +33,16 @@ protected:
   virtual void MassMultiDof(Matrix<Double>& massMultDof, const Matrix<Double>& massMatSingleDof,  
 			    const Integer nrDofs);
 
+  virtual void MassMultiDofZero(Matrix<Double>& massMultDofZero, 
+				const Matrix<Double>& massMatSingleDof);
+  
 
 private:
   // multiplicative value for mass integrator
   Double density_;
   Integer nrDofsPerNode_;
+  Integer dofzero_;
+  
 };
 
 

@@ -43,6 +43,10 @@ namespace CoupledField
     /// returns a stiffness integrator appropriate to the actual problem (e.g. 3D)
     BaseForm * GetStiffIntegrator(MaterialData& actSDMat, Boolean reducedInt=FALSE);
 
+    //! prepare for correct time stepping
+    /*! \param dt time step  */
+    virtual void InitTimeStepping(const Double dt);
+
     //! write results in file
     virtual void WriteResultsInFile();
   

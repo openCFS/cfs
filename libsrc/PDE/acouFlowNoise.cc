@@ -137,11 +137,11 @@ void AcouFlowNoise::ComputeRHS(const Double atime)
   std::vector<Elem*> belongSE;
  
  
-  ObstSurf=ptBCs_->getEdgesBC(rhs_surfaces_[0],level);
-  std::cout<<"Number of surfelems: "<<ObstSurf.size()<<std::endl;
+//   ObstSurf=ptBCs_->getEdgesBC(rhs_surfaces_[0],level);
+//   std::cout<<"Number of surfelems: "<<ObstSurf.size()<<std::endl;
   
-  Next2Surf=ptBCs_->getNeighElemsForSurfaces(rhs_surfaces_[1],level);
-  ptgrid_->DefineBelonging4Elems(ObstSurf,Next2Surf,belongSE);
+//   Next2Surf=ptBCs_->getNeighElemsForSurfaces(rhs_surfaces_[1],level);
+//   ptgrid_->DefineBelonging4Elems(ObstSurf,Next2Surf,belongSE);
   
   Double valmult;
 
@@ -152,7 +152,7 @@ void AcouFlowNoise::ComputeRHS(const Double atime)
   if(MpCCI_)
     {
 #ifdef MpCCI
-      std::cout<<"MpCCInodes_: "<<MpCCInodes_<<std::endl;
+      std::cout<<"MpCCInodes_: "<< MpCCInodes_ << "dimension: " << dim_ << std::endl;
       //     MpCCIexch * ptMpCCIexch_ = new MpCCIexch(ptgrid_);
       flowdata_.Resize(1+dim_, MpCCInodes_);
       ptMpCCIexch_->CouplCompPhase(flowdata_, timestep);
@@ -165,73 +165,73 @@ void AcouFlowNoise::ComputeRHS(const Double atime)
 
   std::cout << "Processing RHS surface elems for dipole... "<< std::endl;
 
-  // This is for the loop over the surface elements
-  for (j=0; j< ObstSurf.size(); j++)
-    { 
-      ptElBelongSE=belongSE[j]->ptElem;
-      // This will be done inside the 2d element next to the 1d element to get gradP at the center
-      Integer n=ptElBelongSE->GetNumNodes(); // This returns number of integration points      
+//   // This is for the loop over the surface elements
+//   for (j=0; j< ObstSurf.size(); j++)
+//     { 
+//       ptElBelongSE=belongSE[j]->ptElem;
+//       // This will be done inside the 2d element next to the 1d element to get gradP at the center
+//       Integer n=ptElBelongSE->GetNumNodes(); // This returns number of integration points      
 
-      elsize=(belongSE[j]->connect).GetSize(); // Get element number of nodes 
-      connBelongSE.Resize(elsize);
-      for (ii=0; ii<elsize; ii++)
-	connBelongSE[ii]=(belongSE[j]->connect)[ii];
+//       elsize=(belongSE[j]->connect).GetSize(); // Get element number of nodes 
+//       connBelongSE.Resize(elsize);
+//       for (ii=0; ii<elsize; ii++)
+// 	connBelongSE[ii]=(belongSE[j]->connect)[ii];
 
-      ptgrid_->GetCoordNodesElemMat(connBelongSE,  ptCoordNodBelongSE, level);
+//       ptgrid_->GetCoordNodesElemMat(connBelongSE,  ptCoordNodBelongSE, level);
   
     
-      std::vector<Double> gradN_x_P; // This is done due to the different parameter type Vector and std::vector
-      gradN_x_P.resize(dim_);
-      gradN_x_P*=0;
-      std::vector<Double> LCoord(dim_,0);
-      Double jacDet;
+//       std::vector<Double> gradN_x_P; // This is done due to the different parameter type Vector and std::vector
+//       gradN_x_P.resize(dim_);
+//       gradN_x_P*=0;
+//       std::vector<Double> LCoord(dim_,0);
+//       Double jacDet;
       
-      // TO COMMENT OUT ONLY WHILE USING FILES WITH GRADIENT VALUE!!!
-      // Gradient of P at center by average of value at four nodes of neighbour 2d element
-      //  for (ii=0; ii<n; ii++)
-      //     {  
-	//ptElBelongSE->GetGradientShFncAtCenter(help[ii],ii+1);
+//       // TO COMMENT OUT ONLY WHILE USING FILES WITH GRADIENT VALUE!!!
+//       // Gradient of P at center by average of value at four nodes of neighbour 2d element
+//       //  for (ii=0; ii<n; ii++)
+//       //     {  
+// 	//ptElBelongSE->GetGradientShFncAtCenter(help[ii],ii+1);
 
-      jacDet=ptElBelongSE->CalcJacobianDet(LCoord, ptCoordNodBelongSE);
-		std::cout<<"jacDet:"<<jacDet<<std::endl;      
+//       jacDet=ptElBelongSE->CalcJacobianDet(LCoord, ptCoordNodBelongSE);
+// 		std::cout<<"jacDet:"<<jacDet<<std::endl;      
 	       
-	ptElBelongSE->GetGlobDerivShFnc  (deriv, LCoord, ptCoordNodBelongSE);
-	//deriv.Transpose(derivTrans);
+// 	ptElBelongSE->GetGlobDerivShFnc  (deriv, LCoord, ptCoordNodBelongSE);
+// 	//deriv.Transpose(derivTrans);
 
-	for (ii=0; ii<n; ii++)
-	  {  
-	    for(i=0;i<dim_;i++)
-	      {
-		gradN_x_P[i]+=jacDet*deriv[ii][i]*(flowdata_[0][connBelongSE[ii]-1]);
-		std::cout<<"gradN_x_P["<<i<<"] :"<<gradN_x_P[i]<<std::endl;
-		std::cout<<std::endl;
-	      }
-	  }
+// 	for (ii=0; ii<n; ii++)
+// 	  {  
+// 	    for(i=0;i<dim_;i++)
+// 	      {
+// 		gradN_x_P[i]+=jacDet*deriv[ii][i]*(flowdata_[0][connBelongSE[ii]-1]);
+// 		std::cout<<"gradN_x_P["<<i<<"] :"<<gradN_x_P[i]<<std::endl;
+// 		std::cout<<std::endl;
+// 	      }
+// 	  }
 
-	ptElSurf=ObstSurf[j]->ptElem;
-	std::cout<<"connect: "<<ObstSurf[j]->connect<<std::endl;
+// 	ptElSurf=ObstSurf[j]->ptElem;
+// 	std::cout<<"connect: "<<ObstSurf[j]->connect<<std::endl;
 	
-	BaseForm * linear_loaddipole = new LinearFlowNoiseInt(ptElSurf);
+// 	BaseForm * linear_loaddipole = new LinearFlowNoiseInt(ptElSurf);
 	  
-	connObstSurf=ObstSurf[j]->connect;
+// 	connObstSurf=ObstSurf[j]->connect;
 
-	ptgrid_->GetCoordNodesElemMat(connObstSurf, ptCoordNodSurf, level);
-        std::cout<<"coordinates :"<<ptCoordNodSurf<<std::endl;
-	linear_loaddipole->CalcElemVector4Dip(ptCoordNodSurf, connObstSurf,elemvecdip,gradN_x_P);
-	elemvecdip*=valmult;
+// 	ptgrid_->GetCoordNodesElemMat(connObstSurf, ptCoordNodSurf, level);
+//         std::cout<<"coordinates :"<<ptCoordNodSurf<<std::endl;
+// 	linear_loaddipole->CalcElemVector4Dip(ptCoordNodSurf, connObstSurf,elemvecdip,gradN_x_P);
+// 	elemvecdip*=valmult;
 
 
 
-	// CHANGE connecth
-	Mesh2PDENode(connect_PDE,connObstSurf,mesh2PDENode_);
-	std::cout<<"connObstSurf :"<<connObstSurf<<std::endl;
- 	  std::cout<<"elemvect DIPOLE: "<<elemvecdip<<std::endl;
-	// including the dipole contribution for testing!!!!!!!!
-	algsys_->SetElementRHS(&elemvecdip[0], connect_PDE.GetPointer(), connect_PDE.GetSize());
+// 	// CHANGE connecth
+// 	Mesh2PDENode(connect_PDE,connObstSurf,mesh2PDENode_);
+// 	std::cout<<"connObstSurf :"<<connObstSurf<<std::endl;
+//  	  std::cout<<"elemvect DIPOLE: "<<elemvecdip<<std::endl;
+// 	// including the dipole contribution for testing!!!!!!!!
+// 	algsys_->SetElementRHS(&elemvecdip[0], connect_PDE.GetPointer(), connect_PDE.GetSize());
 
-	delete linear_loaddipole;
+// 	delete linear_loaddipole;
 
-      }
+//       }
 
   
   // Quadrupole computation
