@@ -179,7 +179,7 @@ template<class TYPE>
 void NodeStoreSol<TYPE>::SetNumDofs(const Integer dof, const SolutionType sol)
 {
   ENTER_IFCN("NodeStoreSol::SetDof");
-  
+
   // check if only one dof was assigned
   // -> only one entry exists
   if (numSolutions_ == 1 && sol == NO_SOLUTION_TYPE)
@@ -338,6 +338,7 @@ void NodeStoreSol<TYPE>::GetGlobalSolVector(const SolutionType type,
 	  // and only one for loop is needed
 	  //std::cerr << "Number of equations = " << ptEQN_->GetNumEQNs() << std::endl;
 	  //std::cerr << "We are longing for dof " << dof << std::endl;
+	  //std::cerr << "dof = " << dof << std::endl;
 	  for (Integer iEQN=0; iEQN< ptEQN_->GetNumEQNs(); iEQN++)
 	    {
 	      ptEQN_->EQN2SolVectorPos(iEQN+1,1,globalPos);
@@ -346,16 +347,18 @@ void NodeStoreSol<TYPE>::GetGlobalSolVector(const SolutionType type,
 	      // for piezoPDE works ;-)
 	      //std::cerr << "Corrected Position is " << (Integer) globalPos/ *totalDofs_ << std::endl;
 	      
-	      //std::cerr << "Corrected position is " << globalPos << std::endl;
-	      for (Integer iDof=0; iDof<dof; iDof++)
+	      //std::cerr << "position is " << globalPos << std::endl;
+	      for (Integer iDof=dof+offset-1; iDof>=offset; iDof--)
 		{
-		  remainder = globalPos%dof;
+		  //std::cerr << "iDof = " << iDof << std::endl;
+		  remainder = globalPos%totalDofs_;
 		  if (remainder == iDof)
 		    {
-		      //std::cerr << "remainder = 0 for Dof " << iDof << std::endl;
-		      globalPos = (Integer) ((globalPos-iDof)/totalDofs_*dof) + iDof;
+		      //std::cerr << "remainder = " <<  iDof << std::endl;
+		      globalPos = (Integer) ((globalPos-iDof)/totalDofs_*dof) + iDof-offset;
 		      //std::cerr << "Corrected position is " << globalPos << std::endl;
 		      temp[globalPos] = data_[iEQN];
+		      iDof = offset;
 		      //std::cerr << " -> is Written out " << std::endl;
 		    }
 		}
