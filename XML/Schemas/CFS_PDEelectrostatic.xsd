@@ -121,7 +121,7 @@
     </xsd:restriction>
   </xsd:simpleType>
 
-  <!-- What data can a single element have in a mechanic PDE -->
+  <!-- What data can a single element have in a electrostatic PDE -->
   <xsd:simpleType name="DT_ElemDataElec">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="efield"/>
@@ -161,7 +161,7 @@
       default="none"/>
   </xsd:complexType>
 
-  <!-- Global type for specifying the desired mechanical output quantities -->
+  <!-- Global type for specifying desired electrostatic output quantities -->
   <xsd:complexType name="DT_ElecStoreResults">
     <xsd:sequence>
       <xsd:element name="nodeResults" type="DT_NodeResultsElec" minOccurs="0"
@@ -177,7 +177,7 @@
 
 
   <!-- ******************************************************************** -->
-  <!--   Definition of data type for non-linearity in mechanic PDEs -->
+  <!--   Definition of data type for non-linearity in electrostatic PDEs -->
   <!-- ******************************************************************** -->
   <xsd:simpleType name="DT_ElecNonLin">
     <xsd:restriction base="xsd:token">
