@@ -89,10 +89,9 @@ class SpaceErrorEstimator;
     BaseSystem * getPDE_algsys(){return algsys_;};
     Integer getPDE_numElems(){return numElems_;};
     Integer getPDE_dofspernode(){return dofspernode_;};
-    //   Integer getPDE_numEQNS(){return dofspernode_;};
+
     Integer getPDE_numPDENodes(){return numPDENodes_;};
     Integer getPDE_spaceDim(){return dim_;};
-    //   Set explicetely inhomogenous Dirichlet B.C. "phase"
     NodeEQN * getPDE_eqnData(){return eqnData_;}; 
     Grid * getPDE_grid(){return ptgrid_;};  
     Assemble * getPDE_assemble(){return assemble_;}
@@ -103,6 +102,14 @@ class SpaceErrorEstimator;
       if (bcs_id_phase_.GetSize() <= i)
 	Error("no such index in Vector bcs_id_phase_",__FILE__,__LINE__);
       bcs_id_phase_[i]=phase;
+    };
+    void setPDE_actFrequency(Double & freq){
+      ENTER_FCN("basePDE::setPDE_actFrequency");
+      actFrequency_ = freq;
+    };
+    void setPDE_actFreqStep(Integer & fstep){
+      ENTER_FCN("basePDE::setPDE_actFreqStep");
+      actFreqStep_ = fstep;
     };
     Vector<Complex> complexValuedCharge_;
     Vector<Complex> getPDE_complexValuedCharge(){return complexValuedCharge_;};
