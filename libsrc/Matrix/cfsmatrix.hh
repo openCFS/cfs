@@ -128,6 +128,14 @@ public:
   //! with a vector, the according function like 'MultT' should be used
   virtual void Transpose(CFSMatrix & trans) const = 0;
 
+ 
+  //! Solves directly a small system of equations of the form Ax=b
+  //! using LU-Decomposition (no pivoting - so dear numerical people, do not exhaust this method!)
+  //! The Matrix A=LU contains afterwards the the values of L in the lower triangular,
+  //! and the values of U in the upper part.
+ virtual void DirectSolve(CFSVector & x, CFSVector & b) const
+  {Error("CFSMatrix:DirectSolve(): Not implemented here",__FILE__,__LINE__);}
+
   //!
   virtual  void DyadicMult(CFSVector & vec1) const
   {Error("CFSMatrix:: DyadicMult(): Not implemented here",__FILE__,__LINE__);} 
@@ -150,7 +158,6 @@ public:
   virtual void ConvertToVec_AppendRows(CFSVector & vec) const
   {Error("CFSMatrix::ConvertToVec_AppendRows(): Not implemented here",__FILE__,__LINE__);} 
    
-
   //! converts a matrix into a vector, by appending successively all columns
   virtual void ConvertToVec_AppendCols(CFSVector & vec) const
   {Error("CFSMatrix::ConvertToVec_AppendCols(): Not implemented here",__FILE__,__LINE__);} 

@@ -705,6 +705,7 @@ std::ostream & operator << (std::ostream & out, const Matrix<S> &mat)
 
 template std::ostream & operator<<<Integer> (std::ostream & , const Matrix<Integer> &);
 template std::ostream & operator<<<Double> (std::ostream & , const Matrix<Double> &);
+template std::ostream & operator<<<Complex> (std::ostream & , const Matrix<Complex> &);
 
 
 template<class TYPE>
@@ -722,12 +723,68 @@ ENTER_FCN("Matrix::Transpose");
 
 
 template<class TYPE>
+void Matrix<TYPE>::DirectSolve(CFSVector & x1, CFSVector & b1)
+{
+  ENTER_FCN("Matrix::DirectSolve");
+
+  Vector<TYPE> & x = dynamic_cast<Vector<TYPE>& >(x1);
+  Vector<TYPE> & b = dynamic_cast<Vector<TYPE>& >(b1);
+    
+  Integer nmat = size_row_-1;
+  Integer i, j, k, k1;
+    
+  //  the Gauss elimination 
+    
+  for (k=0; k<=nmat-1; ++k)
+    {
+      k1 = k + 1;
+      for (i=k1; i<=nmat; ++i)
+	{
+	  if (data_[k][k] != 0.0)
+	    {
+	      data_[i][k] /= data_[k][k];
+	      for (j=k1; j<=nmat; ++j)
+		data_[i][j] -= data_[i][k] * data_[k][j];
+	    }
+	  else
+	    {
+	      std::cerr<<"\n Matrix::DirectSolve Step " << k <<std::endl;
+	      std::cerr<<"\n The element at position ("<< k << "," << k << ") of the matrix is zero. "<<std::endl;
+	      //		std::exit(0);
+	    }
+	}
+    }
+
+  // solve Ly = b by forward substitution 
+   
+  Vector<TYPE> y(b.GetSize());
+
+  for (i=0; i<=nmat; ++i)
+    {
+      y[i] = b[i];
+      for (j=0; j<=i-1; ++j)
+	y[i] -= data_[i][j] * y[j];
+    }
+    
+  // solve Ux = y backward substitution
+    
+  for (i=nmat; i>=0; --i)
+    {
+      x[i] = y[i];
+      for (j=nmat; j>=i+1; --j)
+	x[i] -= data_[i][j] * x[j];
+      x[i] /= data_[i][i];
+    }
+}
+
+
+
+template<class TYPE>
 void Matrix<TYPE>::DyadicMult(CFSVector & v1)
 {
   ENTER_FCN("Matrix::DyadicMult");
   DyadicMult(v1, v1);
 }
-
 
 
 

@@ -121,6 +121,17 @@ public:
   //! with a vector, the according function like 'MultT' should be used
   void Transpose(CFSMatrix & trans) const
     {Error("!!! IMPLEMENT !!!");};
+
+
+  //! Solves a small system of equations (Ax=b) directly
+  /*!
+    \param x (output) solution vector
+    \param b (input) right-hand-side vector
+  */
+  //! Solves directly a small system of equations of the form Ax=b
+  //! using LU - decomposition (no pivoting - so dear numerical people, do not exhaust this method!)
+  //! \note The Matrix A=LU contains afterwards the the values of L in the lower triangular, and the values of U in the upper part.
+  void DirectSolve(CFSVector & x, CFSVector & b);
   
   //! Assignes the matrix itself the dyadic product of a vector vec1 
   //! with itself
@@ -136,8 +147,7 @@ public:
 	\left( \begin{array}{ccc} v_1 & v_2 & \cdots  \end{array} \right)
       \f]
   */			  
-  void DyadicMult(CFSVector & vec1);
-  
+  void DyadicMult(CFSVector & vec1);  
   
   //! Assignes the matrix itself the dyadic product of a vector vec1 
   //! with a vector vec2
