@@ -308,7 +308,7 @@ void AnsysFile::ReadSaveNodes(StdVector<Integer> & saveNodes , const std::string
       } 
  
     if (saveNodes.GetSize() == 0) {
-      std::string msg="The level \"" + str + "\" of 'saveNodes'";
+      std::string msg="The level \"" + level + "\" of 'saveNodes'";
       msg += "is not mentioned in the .mesh file.\n";
       msg += "History nodes are written with the command 'wsavnod'.";
       Error(msg.c_str());

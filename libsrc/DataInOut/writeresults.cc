@@ -235,7 +235,7 @@ void WriteResults::WriteNodeHistoryTransient(const NodeStoreSol<Double>& data,
     iQuant = -1;
     for (Integer i=0; i<histQuantities_.GetSize(); i++) {
      
-//       std::cerr << "Quantity = " << histQuantities_[i] << std::endl;
+ std::cerr << "Quantity = " << histQuantities_[i] << std::endl;
       if (histQuantities_[i] == solTypes[iSol]){
 	iQuant = i;
 	break;
@@ -262,7 +262,7 @@ void WriteResults::WriteNodeHistoryTransient(const NodeStoreSol<Double>& data,
       for (Integer iDof=0; iDof<actDof; iDof++) {
 // 	std::cerr << "Writing out Sol " << iSol << ", Node " << histNodesPerPDE_[iQuant][iNode];
 // 	std::cerr << ", and dof " << iDof << std::endl;
-	data.Get(histNodesPerPDE_[iQuant][iNode]-1, iDof, val);
+	data.Get(solTypes[iSol],histNodesPerPDE_[iQuant][iNode]-1, iDof, val);
 	(*myHist) << "  " << val;
       } // iDof
       (*myHist) << std::endl;
