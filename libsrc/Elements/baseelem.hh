@@ -15,12 +15,11 @@ namespace CoupledField
 class BaseElem
 {
 public:
+  virtual void test(){ std::cout << "test1" << std::endl; }
 
   //! constructor (does nothing)
   BaseElem();
 
-  void test(){ std::cout << "test" << std::endl;}
- 
   //! deconstructor 
   virtual ~BaseElem();
  
@@ -74,6 +73,7 @@ protected:
   Vector<Double> * IntWeights; //!< integration weights
   enum IntegrationType IntegType;
 
+  enum IntegrationType String2EnumIntegrationType(const Char * inttype);
 private:
  
 };

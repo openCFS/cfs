@@ -12,7 +12,7 @@ class Tetrahedral1 : public GeTetrahedral
 {
 public:
    //! Constructor with type of integration rule
-   Tetrahedral1(enum IntegrationType aintegtype);
+   Tetrahedral1();
 
    //! Deconstructor
    virtual ~Tetrahedral1();

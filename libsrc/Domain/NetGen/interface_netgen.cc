@@ -62,8 +62,8 @@ void InterfaceNetGen<Point2D>::Read()
   Element2d el3(3);
   Element2d el4(4);
 
-  ptQ_=new Quad1(GaussOrder2);
-  ptTr_=new Triangle1(GaussOrder3);
+  ptQ_=new Quad1();
+  ptTr_=new Triangle1();
 
   switch (nelemNodes)
     {

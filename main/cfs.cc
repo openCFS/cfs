@@ -22,6 +22,7 @@
 //#include <interface_piles.hh>
 #include "transientdriver.hh"
 #include "staticdriver.hh"
+#include "interface_gridcfs.hh"
 
 //#include "interface_netgen.hh"
 
@@ -54,6 +55,7 @@ void main(int argc, char *argv[])
   oClockTotal.ClockCount(MyClock::beg);
 
   FileType * ptInputfile=oDefFiles.Create_ptFileType(argv[1]);
+
 //  WriteResults<Point2D> * ptOut=oDefFiles.Create_ptWriteResults2d();
   WriteResults<Point3D> * ptOut=oDefFiles.Create_ptWriteResults3d();  
 
@@ -91,6 +93,6 @@ void main(int argc, char *argv[])
 
   if (ptInputfile) delete ptInputfile;
   if (ptOut) delete ptOut;
-  if (ptdriver) delete ptdriver;
+//  if (ptdriver) delete ptdriver;
   if (ptMaterial) delete ptMaterial;
 }

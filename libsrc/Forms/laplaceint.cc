@@ -50,7 +50,8 @@ void LaplaceInt<Dim> :: CalcElemMatrix(Dim * ptCoord, Matrix<Double> & Result)
 
   for (i=0; i<l; i++)
     {
- 
+
+      ptelem->test(); 
       ptelem->CalcJacobian(J,i,ptCoord);
 
       J.GetJinvX(JinvX);

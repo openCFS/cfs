@@ -76,7 +76,9 @@ private:
   BasePDE * ptpde_[20];
 
   //!
-  Grid<Dim> * ptgrid_;
+//  Grid<Point2D> * ptgrid_;
+  Grid<Point3D> * ptgrid_;
+  
 
   //!
   BCs * ptBCs_;

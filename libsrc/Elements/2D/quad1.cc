@@ -6,7 +6,7 @@
 namespace CoupledField
 {
 
-Quad1 :: Quad1(enum IntegrationType aintegtype) : Rectangle(aintegtype)
+Quad1 :: Quad1() : Rectangle()
 {
 #ifdef TRACE
   (*trace) << "entering Quad1::Quad1" << std::endl;

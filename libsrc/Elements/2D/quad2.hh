@@ -12,7 +12,7 @@ namespace CoupledField
 public:
 
   //! Constructor with type of integration rule
-  Quad2(enum IntegrationType aintegtype);
+  Quad2();
   
   //! Deconstructor
   virtual ~Quad2();

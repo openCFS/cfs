@@ -17,13 +17,11 @@ Elecst3dPDE::Elecst3dPDE(AbstractAlgebraicSys * ptalgsys, Grid<Point3D> * aptgri
   (*trace) << "entering Elecst3dPDE::Electst3dPDE " << std::endl;
 #endif
 
-  doftype_=1;
+  doftype_=4;
   dofspernode_=1;
   ptgrid_=aptgrid;
 
   size_=ptgrid_->GetMaxnumnodes(0);
-  std::cout << size_ << " maxnumnodes " << std::endl;
-
   sol_.Resize(size_);
   sol_.Init(0);
 }
@@ -108,6 +106,8 @@ void Elecst3dPDE::SetupMatrices(const Integer type)
   Integer * help=new Integer[numnodeelem];
   Matrix<Double> elemmat;
 
+  std::cout << numnodeelem << " numnodeelem" << std::endl;
+
   Point3D * ptCoord=new Point3D[numnodeelem];
 
   Integer numelem=ptgrid_->GetMaxnumElem(0);
@@ -130,15 +130,25 @@ void Elecst3dPDE::SetupMatrices(const Integer type)
 
    for (j=0; ptElemSubdomain[j]!=-1; j++)
     {
+      std::cout << ptElemSubdomain[j] << "elemnum" << std::endl;
       ptElem=ptArrayElem[ptElemSubdomain[j]];
+
+      ptElem->test();
 
       BaseForm<Point3D> * bilinear_stiff = new LaplaceInt<Point3D>(ptElem,1);
 
       ptgrid_->GetConnection(help,0,ptElemSubdomain[j],numnodeelem);
       ptgrid_->GetCoordOfNodesElem(ptElemSubdomain[j],0,numnodeelem,ptCoord);
 
-       // stiffness part
+      Integer ii;
+      for(ii=0; ii<4; ii++)
+{
+      std::cout << ii << " " << ptCoord[ii].x << " " <<  ptCoord[ii].y << " " << ptCoord[ii].z << std::endl;
+} 
+      // stiffness part
       bilinear_stiff->CalcElemMatrix(ptCoord, elemmat);
+
+      std::cout << elemmat << std::endl;
 
       elemmat*=coeff;
 
@@ -177,6 +187,7 @@ void Elecst3dPDE::SetBCs(BCs * ptBCs, const Integer level, const Integer update,
     for (list<NodeRestraint>::const_iterator p=restr.begin(); p!=restr.end(); p++, i++)
    {
           Integer node=p->nodalnum;
+ 
           if (p->dof==doftype_)
 	    {
           if (update==1)

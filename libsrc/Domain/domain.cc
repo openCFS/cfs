@@ -47,11 +47,11 @@ Domain<Dim> :: Domain(FileType * const aptFileType, WriteResults<Dim> * ptOut,  
    else
      Error("Unknown type of mesh_library in conf-file",__FILE__,__LINE__);
 
-  // allocate an object with an information about boundary condition
-  ptBCs_=new BCs(InFile_);
-
  //read in the mesh information
  ptgrid_->Read();
+
+ // allocate an object with an information about boundary condition
+  ptBCs_=new BCs(InFile_);
 
  //read restraints information
  ptBCs_->ReadBCs();
@@ -95,6 +95,7 @@ void Domain<Dim> :: InitPDE()
   // get numbers of PDEs in domain
   numpde_ = 1;
 
+/*
     //get analysis type
   Integer soltype;
   Integer statickey;
@@ -107,6 +108,7 @@ void Domain<Dim> :: InitPDE()
   Integer numsteps;
   Double dt0;
   InFile_->ReadNumStepsAndTimeSteps(numsteps, dt0);
+*/
 
   //allocate all specific PDEs
   if (!ptalgsys_) Error("You try to allocate object BasePDE with null pointer to AlgSys");

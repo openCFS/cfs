@@ -57,7 +57,6 @@ private:
 
   //! number of nodes with restraints
   Integer numrestr_[20];
-
 };
 
 }

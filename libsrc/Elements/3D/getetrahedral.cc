@@ -1,10 +1,22 @@
 #include <iostream>
 #include <fstream>
+#include <string>
 
+#include "conffile.hh"
 #include "getetrahedral.hh"
 
 namespace CoupledField
 {
+
+GeTetrahedral::GeTetrahedral()
+{
+
+  std::string integtype;
+  conf->get("tetrahedra",integtype,"IntegRules");
+
+  IntegType=String2EnumIntegrationType(integtype.c_str());
+
+}
 
 void GeTetrahedral::SetIntPoints()
 {
@@ -20,7 +32,7 @@ void GeTetrahedral::SetIntPoints()
       NumIntPoints=1;
       DegreeInteg=2;
       IntPoints.Resize(NumIntPoints, Dim);
-      IntWeights=0;
+      IntWeights=NULL;
 
       IntPoints[0][0]=0.25;
       IntPoints[0][1]=0.25;
@@ -43,15 +55,15 @@ void GeTetrahedral::SetIntPoints()
       IntPoints[0][1]=0.1381966;
       IntPoints[0][2]=0.1381966;
 
-      IntPoints[1][0]=0.5854102;
-      IntPoints[1][1]=0.1381966;
+      IntPoints[1][1]=0.5854102;
       IntPoints[1][2]=0.1381966;
+      IntPoints[1][0]=0.1381966;
 
-      IntPoints[2][0]=0.5854102;
+      IntPoints[2][2]=0.5854102;
+      IntPoints[2][0]=0.1381966;
       IntPoints[2][1]=0.1381966;
-      IntPoints[2][2]=0.1381966;
 
-      IntPoints[3][0]=0.5854102;
+      IntPoints[3][0]=0.1381966;
       IntPoints[3][1]=0.1381966;
       IntPoints[3][2]=0.1381966;
 
@@ -81,15 +93,15 @@ void GeTetrahedral::SetIntPoints()
       IntPoints[1][1]=0.1666667; 
       IntPoints[1][2]=0.1666667; 
 
-      IntPoints[2][0]=0.3333333;
-      IntPoints[2][1]=0.1666667;
+      IntPoints[2][1]=0.3333333;
       IntPoints[2][2]=0.1666667;
+      IntPoints[2][0]=0.1666667;
 
-      IntPoints[3][0]=0.3333333;
+      IntPoints[3][2]=0.3333333;
+      IntPoints[3][0]=0.1666667;
       IntPoints[3][1]=0.1666667;
-      IntPoints[3][2]=0.1666667;
 
-      IntPoints[4][0]=0.3333333;
+      IntPoints[4][0]=0.1666667;
       IntPoints[4][1]=0.1666667;
       IntPoints[4][2]=0.1666667;
 
@@ -249,7 +261,7 @@ void GeTetrahedral::CalcJacobian(Jacobian<Point3D> & J, const Integer ip,
  Double aux=0;
 
 J.J[0][0] = DxTransFncAtIP1[ip]*ptCoord[0].x + DxTransFncAtIP2[ip]*ptCoord[1].x
-             + DxTransFncAtIP3[ip]*ptCoord[2].x + DxTransFncAtIP4[ip]*ptCoord[3].x;
+          + DxTransFncAtIP3[ip]*ptCoord[2].x + DxTransFncAtIP4[ip]*ptCoord[3].x;
 
 J.J[0][1] = DyTransFncAtIP1[ip]*ptCoord[0].x + DyTransFncAtIP2[ip]*ptCoord[1].x
           + DyTransFncAtIP3[ip]*ptCoord[2].x + DyTransFncAtIP4[ip]*ptCoord[3].x;
@@ -275,7 +287,7 @@ J.J[2][1] = DyTransFncAtIP1[ip]*ptCoord[0].z + DyTransFncAtIP2[ip]*ptCoord[1].z
 J.J[2][2] = DzTransFncAtIP1[ip]*ptCoord[0].z + DzTransFncAtIP2[ip]*ptCoord[1].z
           + DzTransFncAtIP3[ip]*ptCoord[2].z + DzTransFncAtIP4[ip]*ptCoord[3].z;
 
-J.detJ = J.J[0][0]*J.J[1][1]*J.J[2][2]-J.J[0][0]*J.J[1][2]*J.J[2][1]-J.J[0][1]*J.J[1][0]*J.J[1][2]+J.J[0][1]*J.J[1][2]*J.J[2][0]+J.J[0][2]*J.J[1][0]*J.J[0][1]-J.J[0][2]*J.J[1][1]*J.J[2][0];
+J.detJ = J.J[0][0]*J.J[1][1]*J.J[2][2]-J.J[0][0]*J.J[1][2]*J.J[2][1]-J.J[0][1]*J.J[1][0]*J.J[2][2]+J.J[0][1]*J.J[1][2]*J.J[2][0]+J.J[0][2]*J.J[1][0]*J.J[2][1]-J.J[0][2]*J.J[1][1]*J.J[2][0];
 
 if (NeedJinv)
 {

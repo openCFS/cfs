@@ -15,7 +15,7 @@ class Rectangle : public BaseElem
 public:
 
   //! Constructor with type of integration rule
-  Rectangle(enum IntegrationType aintegtype){ IntegType = aintegtype; IsSet=FALSE; }
+  Rectangle(); 
   
   //! Deconstructor
   virtual ~Rectangle();

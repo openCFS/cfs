@@ -77,7 +77,7 @@ private:
   ///
   BaseElem ** ptArrayElem_;
   //
-  BaseElem * ptQ_, * ptTr_;
+  BaseElem * ptQ_, * ptTr_, *ptTet_;
   //
   Integer ** pptelemsubdom;
 };
