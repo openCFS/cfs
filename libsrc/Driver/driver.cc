@@ -48,11 +48,8 @@ void Driver::SolveNewmarkMethod(OutResultUnverg * ptUnverg)
     {
       t+=dt0;
 
-      std::cout << "begin of step number " << i << std::endl;
-
       ptAcPDE->SolveNewmarkMethodStatic(t);
   
-      std::cout << i << " " << ptAcPDE->getS().size() << std::endl;
       ptUnverg->Dataset55(" fluid potential", ptAcPDE->getS(), i+1, t);
       if (SaveDer1) 
 	ptUnverg->Dataset55(" fluid potential, 1st deriv., ", ptAcPDE->getS1(), i+1, t); 

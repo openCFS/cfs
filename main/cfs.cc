@@ -71,8 +71,8 @@ void main(int argc, char *argv[])
     std::cout << ptGridlib->GetMaxnumElem(0) << std::endl;
 #endif
 
-//  Driver * ptDriver=new Driver(ptInputfile,1,materialdata);
-//  ptDriver->SolveNewmarkMethod(ptUnverg);
+  Driver * ptDriver=new Driver(ptInputfile,1,materialdata);
+  ptDriver->SolveNewmarkMethod(ptUnverg);
 
   oClockTotal.ClockCount(Clock::end,"Total time");
 
