@@ -31,8 +31,8 @@ void GridCFS<Point2D> :: Read()
 #endif
 
   Integer dataHelp[1];
-  InFile->ReadGeneralAnalChoice(dataHelp,FileType::numgroup,FileType::endGAnal);
-  maxnumsubdomain=dataHelp[0];
+//  InFile->ReadGeneralAnalChoice(dataHelp,FileType::numgroup,FileType::endGAnal);
+  maxnumsubdomain=1;
   pptelemsubdom=new Integer*[maxnumsubdomain];
 
   InFile->ReadMaxnumnodes(gh[0].maxnumnode);
@@ -42,24 +42,18 @@ void GridCFS<Point2D> :: Read()
 
 //  !!!!!!! just for check
 
-  Integer data[3];
-  InFile->ReadGeneralElemChoice(0,data, FileType::numelem,
-                   FileType::ielemtyp, FileType::maxnode,
-                   FileType::endGElem);
+  InFile->ReadMaxnumelem(gh[0].maxnumelem);
 
-   gh[0].maxnumelem=data[0];
+  Integer NumNodeperElem;
+  InFile->ReadNumberNodesPerElem(NumNodeperElem);
 
-   InFile->ReadMaxnumelem(gh[0].maxnumelem);
-
-//#################### V etom meste budet check na 3 tochki
-   Integer NumNodeperElem=data[2];
-   ptArrayElem_=new BaseElem*[gh[0].maxnumelem+1];   
+  ptArrayElem_=new BaseElem*[gh[0].maxnumelem+1];   
    
-   ptQ_=new Quad1();
-   ptTr_=new Triangle1();
+  ptQ_=new Quad1();
+  ptTr_=new Triangle1();
 
-   Integer i;
-   for (i=0; i<gh[0].maxnumelem; i++) 
+  Integer i;
+  for (i=0; i<gh[0].maxnumelem; i++) 
    { 
        switch(NumNodeperElem)
      {
@@ -93,10 +87,13 @@ void GridCFS<Point2D> :: Read()
    Integer numelemothergr=0;
    Integer startposarrayconn=0;
    Integer j;
+
+   InFile->ReadMaxnumelem(maxnumelemgr);
+
 for (j=0; j<maxnumsubdomain; j++)
 {
    
-   InFile->ReadMaxnumelemGroup(maxnumelemgr,j);
+//   InFile->ReadMaxnumelemGroup(maxnumelemgr,j);
 // InFile->ReadElemConnectionGH(gh[0].maxnumelem, gh[0].Connect, NumNodeperElem, 0);
    std::cout << maxnumelemgr << std::endl;
 
@@ -133,13 +130,11 @@ void GridCFS<Point3D> :: Read()
 #endif
 
   Integer dataHelp[1];
-  InFile->ReadGeneralAnalChoice(dataHelp,FileType::numgroup,FileType::endGAnal);  maxnumsubdomain=dataHelp[0];
+//  InFile->ReadGeneralAnalChoice(dataHelp,FileType::numgroup,FileType::endGAnal); 
+  maxnumsubdomain=1;
   pptelemsubdom=new Integer*[maxnumsubdomain];
 
-  InFile->ReadGeneralAnalChoice(dataHelp,FileType::numnode,
-                                  FileType::endGAnal);
-
-  gh[0].maxnumnode=dataHelp[0];
+ InFile->ReadMaxnumnodes(gh[0].maxnumnode);
 
   std::cout << gh[0].maxnumnode << " " << maxnumsubdomain << " maxnumnode " << std::endl;
 
@@ -149,11 +144,6 @@ void GridCFS<Point3D> :: Read()
 //  !!!!!!! just for check
 
   Integer data[3];
-  InFile->ReadGeneralElemChoice(0,data, FileType::numelem,
-                   FileType::ielemtyp, FileType::maxnode,
-                   FileType::endGElem);
-
-   gh[0].maxnumelem=data[0];
 
    InFile->ReadMaxnumelem(gh[0].maxnumelem);
 
@@ -198,10 +188,13 @@ void GridCFS<Point3D> :: Read()
    Integer numelemothergr=0;
    Integer startposarrayconn=0;
    Integer j;
+
+   InFile->ReadMaxnumelem(maxnumelemgr);
+
 for (j=0; j<maxnumsubdomain; j++)
 {
 
-   InFile->ReadMaxnumelemGroup(maxnumelemgr,j);
+//   InFile->ReadMaxnumelemGroup(maxnumelemgr,j);
 // InFile->ReadElemConnectionGH(gh[0].maxnumelem, gh[0].Connect, NumNodeperElem, 0);
    std::cout << maxnumelemgr << std::endl;
 

@@ -58,19 +58,15 @@ void main(int argc, char *argv[])
 
   WriteResults * ptOut=ptDefineFiles->Create_ptWriteResults2d();
 
-//  WriteResults<Point3D> * ptOut=oDefFiles.Create_ptWriteResults3d();  
-
   TimeFunc * ptTimeFunc=new TimeFunc(ptInputfile);
 
   Domain *domain=new Domain(ptInputfile,ptOut,ptMaterial, ptTimeFunc);
-//   Domain<Point3D> *domain=new Domain<Point3D>(ptInputfile,ptOut,ptMaterial, ptTimeFunc);
 
   // print grid to unverg-file
   domain->PrintGrid(0);
 
   //choose your driver
   BaseDriver *ptdriver = new TransientDriver(domain);
-//   BaseDriver<Point3D> *ptdriver = new StaticDriver<Point3D>(domain);
 
   //solve your problem
   std::string adaptTimeOn;

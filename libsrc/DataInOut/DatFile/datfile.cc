@@ -1304,4 +1304,17 @@ Boolean DatFile::IsThere(const std::string seekexp)
       }
    return count;
 }
+
+void DatFile::ReadNumberNodesPerElem(Integer & numnodesperelem)
+{
+
+ Integer data[3];
+
+ ReadGeneralElemChoice(0,data, FileType::numelem,
+                   FileType::ielemtyp, FileType::maxnode,
+                   FileType::endGElem);
+
+ numnodesperelem=data[2];     
+}
+
 }

@@ -50,7 +50,10 @@ Acoustic2dPDE::Acoustic2dPDE(AbstractAlgebraicSys * ptalgsys, Grid * aptgrid, Ma
   sol_der2_old_.Resize(size_);
   sol_der2_old_.Init(0);
 
-  InFile_->ReadIntegrationParam(alpha_, beta_, gamma_);
+  conf->get("alpha_NM",alpha_,"Acoustic"); 
+  conf->get("beta_NM",beta_,"Acoustic"); 
+  conf->get("gamma_NM",gamma_,"Acoustic");
+
 }
 
 void Acoustic2dPDE::SpecifySolver(Integer &solvertype, Integer &precondtype, Double &eps, Double &dampiter, Integer &maxnumit, Integer &numeqcoarse)
@@ -445,6 +448,8 @@ void Acoustic2dPDE::CalcCoeff(Double & coeffmass, Double & coeffstiff, const Int
 
  coeffmass  = density*density/compress;
  coeffstiff = density;
+
+ std::cout << " calc coeff is over " << std::endl;
 }
 
 TimeErrorEstimator * Acoustic2dPDE::CreatePtTimeError()

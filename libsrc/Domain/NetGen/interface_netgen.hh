@@ -52,9 +52,6 @@ public:
   /// Put information about grid
   virtual void Read();
 
-  //! Put global numbers of nodes with boundary condition in Vector
-  virtual void GetNodesBoundaryCondition(Vector<Integer> & nodesDirBC, const Integer level);
-
   //! Get array of pointers to element type
   virtual BaseElem ** getptArrayElem() const
   { return ptArrayElem_;}

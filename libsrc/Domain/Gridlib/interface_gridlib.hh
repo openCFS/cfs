@@ -61,7 +61,7 @@ public:
   void Read();
 
   //! Put global numbers of nodes with boundary condition in Vector
-  void GetNodesBoundaryCondition(Vector<Integer> & nodesDirBC, const Integer level);
+//  void GetNodesBoundaryCondition(Vector<Integer> & nodesDirBC, const Integer level);
 
   //! Get number of subdomains
   virtual Integer GetNumSubdomains() const

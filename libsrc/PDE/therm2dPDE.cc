@@ -35,8 +35,8 @@ Therm2dPDE::Therm2dPDE(AbstractAlgebraicSys * ptalgsys, Grid * agrid, Material *
   sol_pred_.Resize(size_);
   sol_pred_.Init(0);
 
-  InFile_->ReadParabolicParam(gamma_parab_);
-  std::cout << "gamma_parab_" << std::endl;
+  conf->get("gamma_parabolic",gamma_parab_,"Thermal"); 
+ 
 }
 
 Therm2dPDE::~Therm2dPDE()

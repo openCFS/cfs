@@ -1,4 +1,5 @@
 #include <iostream>
+#include <string>
 #include <fstream>
 
 #include "timefunc.hh"
@@ -6,30 +7,40 @@
 namespace CoupledField
 {
 
- TimeFunc :: TimeFunc(FileType * aptFileType)
+TimeFunc :: TimeFunc(FileType * aptFileType)
 {
 #ifdef TRACE
   (*trace) << "entering TimeFunc::TimeFunc" << std::endl;
 #endif
 
-   ptFileType=aptFileType;
-   ptFileType->ReadNumTimeFunc(maxnumTimeFunc);
+  ptFileType=aptFileType;
+  std::ifstream timefile;
+  timefile.open("general.tfunc");
+  if (!timefile)  Error("Can't open general.tfunc file");
 
-   maxvalTimeFunc = new Integer [maxnumTimeFunc];
- 
-   ptFileType->ReadInfoTimeFunc(maxvalTimeFunc, maxnumTimeFunc);
+  std::string buffer;
+  std::getline(timefile,buffer,'\n');
+
+  maxnumTimeFunc=1; // at present we are working only with 1 function
+
+  maxvalTimeFunc = new Integer [maxnumTimeFunc];
+
+  Integer ibuf;
+  timefile >> ibuf >> maxvalTimeFunc[0];
  
   timeTimeFunc = new Double * [maxnumTimeFunc];  // timeTF and valTF
 
-  Integer i;
+  Integer i,j;
   for (i=0; i < maxnumTimeFunc; i++)
         timeTimeFunc[i] = new Double[maxvalTimeFunc[i]];
   valTimeFunc = new Double * [maxnumTimeFunc];
   for (i=0; i < maxnumTimeFunc; i++)
         valTimeFunc[i] = new Double[maxvalTimeFunc[i]];
   for (i=0; i < maxnumTimeFunc; i++)
-  ptFileType->ReadTimeFunc(timeTimeFunc[i],valTimeFunc[i],i+1);
-  
+   for (j=0; j < maxvalTimeFunc[i]; j++)
+     timefile >> timeTimeFunc[i][j] >> valTimeFunc[i][j];
+
+  timefile.close();
 }
 
 Double TimeFunc::TimeFuncAtTime(const Double time, const Integer num)
