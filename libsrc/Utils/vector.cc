@@ -74,8 +74,7 @@ Vector<TYPE>::Vector (const Integer i, const TYPE *const x)
 		p [j] = x [j];
 }
 
-template
-<class TYPE>
+template<class TYPE>
 Vector<TYPE>::Vector (const Vector<TYPE> &x)
 {  
 //    if (!x.n)
@@ -90,6 +89,17 @@ Vector<TYPE>::Vector (const Vector<TYPE> &x)
 		p [i] = x.p [i];
 }
 
+
+template<class TYPE>
+void Vector<TYPE>::toStdVector(std::vector<TYPE> &vec)
+{
+  if (!n) Error("Don't use toStdVector() to undefined vector", __FILE__, __LINE__);
+
+  vec.resize(n);
+  for (Integer i=0; i<n; i++)
+    vec[i] = p[i];
+
+}
 
 template<class TYPE>
 void Vector<TYPE>::Init(const Integer l)

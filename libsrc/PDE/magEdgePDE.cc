@@ -35,7 +35,6 @@ namespace CoupledField
 
     AssignPDENodeNumbers(Mesh2PDENode_, PDE2MeshNode_, subdoms_);
     NumPDENodes_ = PDE2MeshNode_.size();
-
     NumElems_ = ptgrid_->GetMaxnumElem(actlevel_, subdoms_); 
 
     bFieldRe_ = NULL;

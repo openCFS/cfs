@@ -896,9 +896,6 @@ void GridCFS<dim>::GetInterfaceNeighbours(std::vector<Integer> & interfaceNodes,
     }
 }
   
-  
-
-
 template<>
 Double GridCFS<2>::CalcAreaElem(const Elem* elem)
 {
@@ -955,6 +952,9 @@ Double GridCFS<2>::CalcAreaElem(const Elem* elem)
 
   return res;
 }
+
+
+
 
 template<>
 Double GridCFS<3>::CalcAreaElem(const Elem* elem)

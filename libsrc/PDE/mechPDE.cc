@@ -55,6 +55,7 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
       conf->ifget("residualStopCrit", residualStopCrit_, pdename_); // residual stopping criterion
     }
 
+  preStressVal_ = 0.0;
   conf->ifget("preStressVal", preStressVal_, pdename_);
 
   if (preStressVal_)
@@ -139,6 +140,7 @@ void MechPDE::SolveStepStaticLin(const Integer level)
 
   //account for bcs
   SetBCs(level,updateBCs_,0);
+  AssembleNodalLoads(level);
 
   algsys_->CalcPrecond(job);
   
@@ -150,7 +152,7 @@ void MechPDE::SolveStepStaticLin(const Integer level)
 
   // initialize for (eventual) new setup
   // if condition is needed here !!!!!
-  InitMatrices();
+  // InitMatrices();
   algsys_->InitRHS();
   algsys_->InitSol();  
 }
@@ -174,12 +176,24 @@ void MechPDE::SolveStepStaticNonLin(const Integer level)
   Boolean performOneMoreStep;
   Integer iterationCounter=0;
   
-  std::vector<Double> actSol(NumPDENodes_ * dofspernode_,0);
-  std::vector<Double> solIncrement(NumPDENodes_ * dofspernode_,0);
+  std::vector<Double> actSol(size_, 0);
+
+  //necessary for coupled field computation
+  //  sol_.ConvertToVec_AppendCols(actSol);
+
+  for (Integer actNode=0; actNode < NumPDENodes_; actNode++)
+    for (Integer actDof=0; actDof < dofspernode_; actDof++)
+      actSol[actDof + dofspernode_*actNode] = sol_[actDof][actNode];
+
+  std::vector<Double> solIncrement(size_, 0);
 
 
-  extForcesL2Norm = SetExternalForces(level);
+  std::vector<Double> initialRhsVec(size_, 0);
+  CalcInitialRhsVec(level, initialRhsVec);
+  extForcesL2Norm = L2Norm(initialRhsVec);
 
+  SetBCs(level, updateBCs_, 0);
+  SetupRHS(level);   
 
   do
     {
@@ -213,7 +227,7 @@ void MechPDE::SolveStepStaticNonLin(const Integer level)
 
       // recalculate RHS with new values to get new residual (f^(k+1))========
       algsys_->InitRHS();
-      SetBCs(level, updateBCs_, 0);
+      AssembleInitialRHS(level, initialRhsVec);
       SetupRHS(level);      
 
       std::vector<Double> actRHS;
@@ -263,39 +277,19 @@ void MechPDE::SolveStepStaticNonLin(const Integer level)
 
 
 // sets external forces and returns L2Norm of them
-Double MechPDE::SetExternalForces(const Integer level)
+void MechPDE::CalcInitialRhsVec(const Integer level, std::vector<Double>& initalRhsVec)
 {
 #ifdef TRACE
-  (*trace) << "entering MechPDE::SetExternalForces" << std::endl;
+  (*trace) << "entering MechPDE::CalcInitialRhsVec" << std::endl;
 #endif
 
-  Double extForcesL2Norm;  
-  std::vector<Double> extForces;
-
-
   // account for bcs before first solving step =======================
-  SetBCs(level, updateBCs_, 0);
+  AssembleNodalLoads(level);
 
 
-  // stores rhs vector into extForces and returns that L2-norm
-  StoreAlgsysToVec(extForces, algsys_->GetRHSVal() );
-
-
-//   *infofile << " === extForces: " << std::endl << extForces 
-// 	    << std::endl << std::endl;
-
-
-  extForcesL2Norm = L2Norm(extForces);
- 
-  //  if extForcesL2Norm is 0, no residual norm can be calculated
-  if (!extForcesL2Norm)
-    Error("Zero external force vector!! ", __FILE__,__LINE__);
-
-  
-  return extForcesL2Norm;
+  // stores rhs vector into initialRhsVec
+  StoreAlgsysToVec(initalRhsVec, algsys_->GetRHSVal() );
 }
-
-
 
 
 
@@ -350,7 +344,6 @@ void MechPDE::StoreAlgsysToVec(std::vector<Double>& stdVec, Double * pt)
 
 
   
-
 // returns that L2-norm of an algsys vector
 Double MechPDE::AlgsysL2Norm(Double * pt)
 {
@@ -422,7 +415,6 @@ void MechPDE::WriteResultsInFile()
   OutFile_->WriteNodeSolution(DispMesh, laststepcalc, lasttimecalc,"displacement");
 }
 
-
 void MechPDE::SetupMatrices(const Integer level)
   {
 #ifdef TRACE
@@ -472,9 +464,6 @@ void MechPDE::SetupMatrices(const Integer level)
     (*trace) << "Leaving MechPDE::SetupMatrices" << std::endl;
 #endif
   }
-
-
-
 
 
 
@@ -685,18 +674,18 @@ void MechPDE::SetBCs(const Integer level, const Integer update, const Double ati
 	std::string doftype = bcs_hd_[i]; 
 	dof = GetNrBCDof (doftype.substr(0,2));
       
-// #ifdef DEBUG
-// 	(*debug) << std::endl << " Homog. Dirichlet BC" << std::endl;
-// #endif
+#ifdef DEBUG
+	// 	(*debug) << std::endl << " Homog. Dirichlet BC" << std::endl;
+#endif
 	nodes=ptBCs_->GetNodesLevel(bcs_hd_[i]);
    
 	for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end(); p++, j++)
 	  {
 	    node=*p;
 
-// #ifdef DEBUG
-// 	    (*debug) << " node: " << Mesh2PDENode_[node-1] << " dof:" << dof << " val: " << val << "    global node nr: " << node << std::endl;
-// #endif
+#ifdef DEBUG
+	    // 	    (*debug) << " node: " << Mesh2PDENode_[node-1] << " dof:" << dof << " val: " << val << "    global node nr: " << node << std::endl;
+#endif
 	    if (update==1)
 	      algsys_->UpdateDirichlet(j+1, val, SYSTEM);
 	    else
@@ -731,37 +720,7 @@ void MechPDE::SetBCs(const Integer level, const Integer update, const Double ati
 	      algsys_->SetDirichlet(j+1, Mesh2PDENode_[node-1], val, dof, SYSTEM);
 	  }
       }
-
-
-    // load boundary conditions
-    for (i=0; i<bcs_loads_.size(); i++)
-      {
-	std::string doftype = bcs_loads_[i]; 
-
-	dof = GetNrBCDof (doftype.substr(0,2));
-
-// #ifdef DEBUG
-// 	(*debug) << " Load BC" << std::endl;
-// #endif
-
-	nodes = ptBCs_->GetNodesLevel(bcs_loads_[i], level);
-
-	val = val_loads_[i];
-
-	for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end(); p++, j++)
-	  {
-	    node=*p;
-
-// #ifdef DEBUG
-// 	    (*debug) << " node: " << Mesh2PDENode_[node-1] << " dof:" << dof << " val: "
-// 		     << val << "    global node nr: " << node << std::endl;
-// #endif
-	  
-	    val = val_loads_[i];
-	    algsys_->SetNodeRHS(val, Mesh2PDENode_[node-1], dof);
-	  
-	  }
-      }    
+     
 #ifdef TRACE
     (*trace) << "leaving MechPDE::SetBCs" << std::endl;
 #endif
@@ -807,6 +766,62 @@ Boolean MechPDE::HasOutput(std::string output)
 }
 
 
+// load boundary conditions
+void MechPDE::AssembleInitialRHS(const Integer level, std::vector<Double>& initialRHS)
+{
+#ifdef TRACE
+  (*trace) << "entering MechPDE::AssembleInitialRHS" << std::endl;
+#endif
+
+  for (Integer actNode=1; actNode <= NumPDENodes_; actNode++)      
+    for (Integer actDof=1; actDof <= dofspernode_; actDof++ )		  	
+      {
+	Double val = initialRHS[(actNode-1)*dofspernode_ + actDof-1];
+	algsys_->SetNodeRHS(val, actNode, actDof);	
+      }
+}
+
+
+
+
+
+// load boundary conditions
+void MechPDE::AssembleNodalLoads(const Integer level)
+{
+#ifdef TRACE
+  (*trace) << "entering MechPDE::AssembleNodalLoads" << std::endl;
+#endif
+  std::list<Integer> nodes;
+
+  for (Integer i=0; i<bcs_loads_.size(); i++)
+    {
+      std::string doftype = bcs_loads_[i]; 
+      
+      Integer dof = GetNrBCDof (doftype.substr(0,2));
+      
+      // #ifdef DEBUG
+      // 	(*debug) << " Load BC" << std::endl;
+      // #endif
+      
+      nodes = ptBCs_->GetNodesLevel(bcs_loads_[i], level);
+      
+      Double val = val_loads_[i];
+      
+      for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end(); p++)
+	{
+	  Integer node=*p;
+	  
+	  // #ifdef DEBUG
+	  // 	    (*debug) << " node: " << Mesh2PDENode_[node-1] << " dof:" << dof << " val: "
+	  // 		     << val << "    global node nr: " << node << std::endl;
+	  // #endif
+	  
+	  val = val_loads_[i];
+	  algsys_->SetNodeRHS(val, Mesh2PDENode_[node-1], dof);
+	}
+    }
+}
+
 
 void MechPDE::SetupRHS(const Integer level)
   {
@@ -820,50 +835,50 @@ void MechPDE::SetupRHS(const Integer level)
 
     Vector<Integer> connecth, connect_PDE;
 
-
-
-    for (Integer i=0; i<subdoms_.size(); i++)
-      {	
-	std::vector<Elem*> elemssd;
-	
-	ptgrid_->GetElemSD(elemssd,subdoms_[i],level);
-	
-	for (Integer j=0; j < elemssd.size(); j++)
-	  {  
-	    ptElem   = elemssd[j]->ptElem;
-	    connecth = elemssd[j]->connect;
-	    GetElemCoords(connecth, ptCoord, level);
-	    
-	    // get node numbers belonging to PDE
-	    Mesh2PDENode(connect_PDE,connecth,Mesh2PDENode_); 
-
-
-	    // fetch solution at element nodes
-	    Matrix<Double> elDisp;
-	    GetSolOfElement(elDisp, connect_PDE);
-
-	    // RHS Integrator
-	    nLinMech_linFormInt rhsSource(ptElem, materialData_[i]);
-	    rhsSource.setActElemDispl(elDisp);
-	    rhsSource.CalcElemVector(ptCoord, elemVec);
-
-
-	    // subtract internal forces on rhs from external forces 
-	    elemVec *= -1;
-
-
-	    algsys_->SetElementRHS(&elemVec[0], connect_PDE.get(), connect_PDE.size());
-
-
-
-	    // assemble prestress, if in config-file given
-	    if (preStressVal_)
-	      AssemblePreStressRHS(ptElem, connect_PDE, ptCoord, materialData_[i], elDisp);
-	  }
-      }
+    if(nonLin_)
+      for (Integer i=0; i<subdoms_.size(); i++)
+	{	
+	  std::vector<Elem*> elemssd;
+	  
+	  ptgrid_->GetElemSD(elemssd,subdoms_[i],level);
+	  
+	  for (Integer j=0; j < elemssd.size(); j++)
+	    {  
+	      ptElem   = elemssd[j]->ptElem;
+	      connecth = elemssd[j]->connect;
+	      GetElemCoords(connecth, ptCoord, level);
+	      
+	      // get node numbers belonging to PDE
+	      Mesh2PDENode(connect_PDE,connecth,Mesh2PDENode_); 
+	      
+	      
+	      // fetch solution at element nodes
+	      Matrix<Double> elDisp;
+	      GetSolOfElement(elDisp, connect_PDE);
+	      
+	      // RHS Integrator
+	      nLinMech_linFormInt rhsSource(ptElem, materialData_[i]);
+	      rhsSource.setActElemDispl(elDisp);
+	      rhsSource.CalcElemVector(ptCoord, elemVec);
+	      
+	      
+	      // subtract internal forces on rhs from external forces 
+	      elemVec *= -1;
+	      
+	      
+	      algsys_->SetElementRHS(&elemVec[0], connect_PDE.get(), connect_PDE.size());
+	      
+	      
+	      
+	      // assemble prestress, if in config-file given
+	      if (preStressVal_)
+		AssemblePreStressRHS(ptElem, connect_PDE, ptCoord, materialData_[i], elDisp);
+	    }
+	}
   }
 
 
 
 
 } // end namespace CoupledField
+

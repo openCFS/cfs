@@ -59,8 +59,8 @@ public:
   //! Get global derivatives of all shape fnc at integration point ip
   /*! 
     \param deriv (output) Matrix with global derivatives of all shape functions
-    \f[ \left( \begin{array}{ccc} N_{1,d\xi} & N_{1,d\eta} & \cdots \\
-                                  N_{2,d\xi} & N_{2,d\eta} & \cdots \\
+    \f[ \left( \begin{array}{ccc} N_{1,dx} & N_{1,dx} & \cdots \\
+                                  N_{2,dx} & N_{2,dy} & \cdots \\
                                   \cdots     & \cdots      & \cdots \end{array}\right) \f]
     \param ip(input) Integration point
     \param cornerCoords (input) Coordinates of element corners
@@ -78,8 +78,8 @@ public:
   //! Get global derivatives of all shape fnc at integration point ip
   /*! 
     \param S (output) Matrix with global derivatives of all shape functions
-    \f[ \left( \begin{array}{ccc} N_{1,d\xi} & N_{1,d\eta} & \cdots \\
-                                  N_{2,d\xi} & N_{2,d\eta} & \cdots \\
+    \f[ \left( \begin{array}{ccc} N_{1,dx} & N_{1,dy} & \cdots \\
+                                  N_{2,dx} & N_{2,dy} & \cdots \\
                                   \cdots     & \cdots      & \cdots \end{array}\right) \f]
     \param ip(input) Integration point
     \param CornerCoords (input) Coordinates of element corners
@@ -170,6 +170,15 @@ public:
   */
   virtual Double CalcJacobianDetAtIp(const Integer ip, 
 				     const Matrix<Double> & CornerCoords);
+  //! Calculates a measure for the geometric distortion of an element
+  /*!
+    \param cornerCoords (input) Corner coordinates of the element
+    \param size (input) Absolute size of element in all dimensions
+    \param displacement (input) Displacement of the corner points (same ordering as CornerCoords!!)
+  */
+  virtual Double CalcMeanStrain(Matrix<Double> &cornerCoords, Array<Double> &displacements)
+  {Error("Not implemented",__FILE__,__LINE__);}
+
 
   //! Return number of nodes   
   ShortInt GetDim() const {return Dim_;}

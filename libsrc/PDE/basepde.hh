@@ -410,7 +410,7 @@ protected:
   Integer DampingMatrix_;       //!< need damping matrix (TRUE/FALSE)
   Integer MassMatrix_;          //!< need mass matrix (TRUE/FALSE)
   Integer ConvectionMatrix_;    //!< need convective matrix (TRUE/FALSE)
-
+  Boolean InitMatrices_;        //!< true, if matrix is set up each iteration step
 
   std::string pdename_; //!< type of PDE (set in the derived classes)
   ShortInt Dim_;         //!< space dimension of pde

@@ -195,8 +195,19 @@ void RectangleFE:: SetIntPoints()
     }
 }
 
+void RectangleFE::CalcSize(Vector<Double> &size, Array<Double> &coordinates)
+{
+#ifdef TRACE
+  (*trace) << "entering RectangleFE::CalcSize" << std::endl;
+#endif
 
+}
 
-
+Double RectangleFE::CalcDistortion(Matrix<Double> &cornerCoords, Vector<Double> &size, Array<Double> &displacements)
+{
+#ifdef TRACE
+  (*trace) << "entering RectangleFE::CalcSize" << std::endl;
+#endif
+}
 
 } // end of namespace

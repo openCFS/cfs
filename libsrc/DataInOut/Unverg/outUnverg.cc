@@ -200,14 +200,14 @@ void  WriteResultsUnverg::Dataset55(const std::string & title, const Array<Doubl
  n=x.size();  
  for (i=0; i<n; i++)
    {
-     (*output) << std::setw(10) << i+1 << std::endl << " ";
+     (*output) << std::setw(10) << i+1 << std::endl;
 
      // in the universal file eihter one or three results datas must exist
      if (nrDofs == 2)
        (*output) << 0.0;
 
      for (j=0; j<nrDofs; j++)
-       (*output) << " " << x[j][i];
+       (*output) << std::setw(14) << x[j][i];
      
      (*output) << std::endl;
    }    
@@ -257,7 +257,7 @@ void  WriteResultsUnverg::Dataset56(const std::string & title, const Array<Doubl
  	{
 	  (*output) << std::setw(10) << i+1 << std::setw(10) << 3 << std::endl;
 	  for (j=0; j<nrDofs; j++)
-	    (*output) << std::setw(13) << x[j][i];
+	    (*output) << std::setw(14) << x[j][i];
 	  
 	  (*output) << std::endl;
  	}

@@ -108,6 +108,15 @@ public:
   void AssemblePreStressMat(BaseFE * ptEl, Vector<Integer>& connect_PDE, Matrix<Double>& ptCoord, 
 			    MaterialData& actMatData, Matrix<Double>& elDisp);
 
+  /// assemble nodal loads
+  void AssembleNodalLoads(Integer level);
+
+  /// assembles external forces to the algebraic system
+  void MechPDE::AssembleInitialRHS(const Integer level, std::vector<Double>& initalRhsVec);
+    
+  /// calculates the vector of external forces
+  void MechPDE::CalcInitialRhsVec(const Integer level, std::vector<Double>& initalRhsVec);
+
   /// calculates L2-norm of RHS regarding entries due to penalty formulation
   Double RhsL2Norm(std::vector<Double>& stdVec);
 
