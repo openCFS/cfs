@@ -34,8 +34,7 @@ public:
    virtual void GetCoordinateNode(const Integer inode, const Integer numlevel, Dim & rfPoint);
 
    /// Get connection of element
-  virtual void GetConnection(Integer * result, const Integer level, 
-           const Integer numElem, const Integer numnodesPerElem);
+ virtual void GetConnection(Vector<Integer> & connect, const Integer iElem, const Integer level);
 
   /// Return maximum number of nodes
   virtual Integer GetMaxnumnodes(const Integer numlevel);
@@ -44,25 +43,13 @@ public:
   virtual Integer GetMaxnumElem(const Integer numlevel);
 
   /// Return num of nodes per element i
-  virtual Integer GetNumNodesPerElem(const Integer iElem, const Integer level);
+  Integer GetNumNodesPerElem(const Integer iElem, const Integer level);
 
-  /// Print coordinates of grid in out
-  virtual void PrintCoordinate(const Integer level, std::ostream * out) const;
-
-  /// Put information about grid
+  /// Put information about initial grid in mesh
   virtual void Read();
 
-  //! Get array of pointers to element type
-  virtual BaseElem ** getptArrayElem() const
-  { return ptArrayElem_;}
-
-  //! Get number of subdomains
-  virtual Integer GetNumSubdomains() const
-  { return maxnumsubdomain_;}
-
-  //! Get pointer to array with nodes, that belongs to subdomain number num
-  virtual Integer * GetElemSubdomain(const Integer num, const Integer level) const
-   { return pptelemsubdom_[num]; }
+  ///
+  virtual BaseElem * GetptElem(const Integer iElem);
 
 private:
    
@@ -71,9 +58,6 @@ private:
 
   //! Do refinement of elements, which we mark through function SetRefinementFlag
   void Refine();
-
-  //!
-  BaseElem * ptQ_, * ptTr_, *ptTet_;  
 
   //! 
   FileType * ptFileType;
@@ -84,15 +68,8 @@ private:
   //! if we do subdivision, then this variable is TRUE
   Boolean DoesGridSubdivide;
 
-  //!
-  BaseElem ** ptArrayElem_;  
-
-  //!
-  Integer maxnumsubdomain_;
-
-  //!
-  Integer ** pptelemsubdom_;
-
+  //! array of pointers to BaseElem
+  std::vector<BaseElem*> allptElem;
 };
 
 template<class Dim>
@@ -105,9 +82,6 @@ inline InterfaceNetGen<Dim>::InterfaceNetGen(FileType * aptFileType)
 
   ptFileType=aptFileType;
   DoesGridSubdivide=FALSE;
-  ptQ_=NULL;
-  ptTr_=NULL;
-  ptTet_=NULL;
   lastlevel_=0; 
 }
 

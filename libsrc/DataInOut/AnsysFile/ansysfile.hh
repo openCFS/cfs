@@ -2,6 +2,7 @@
 #define FILE_ANSYSFILE_2002
 
 #include "filetype.hh"
+#include "grid.hh"
 
 namespace CoupledField
 {
@@ -28,11 +29,6 @@ public:
   //!
   virtual void ReadMaxnumelem(Integer & );
 
- void ReadNumberNodesPerElem(Integer & nnodesperelem);
-
-  //!
-  virtual void ReadElemConnectionGH(const Integer maxelem, Integer * connect, const Integer maxnode, const Integer numelemgr, const Integer startposinarrayconn);
-
   //!
   virtual void ReadCoordinate(Point3D * const NodesCoord,                                                     const Integer maxnumNodes);
 
@@ -42,6 +38,9 @@ public:
 
   //!
   virtual void ReadBoundRestr(std::list<NodeRestraint> & restr, Integer & numberRestr);
+
+  //!
+  virtual void ReadElems(std::vector<Elem> & allelems);
 
 protected:
   //! 
@@ -69,8 +68,10 @@ void getPosition(const std::string seekexp, std::string::size_type & pos);
   // read number of nodes for boundary condition
   void ReadMaxnumnodesbc(Integer & nbc);
 
+  // transform type of elem in pointer to base class BaseElem
+  BaseElem * Type2ptElem(const Integer itype);
 };
 
 }
 
-#endif // FILE_FILETYPE
+#endif // FILE_ANSYSFILE

@@ -1,6 +1,5 @@
 #include <fstream>
 #include <iostream>
-#include <stdarg.h>
 
 #include "filetype.hh"
 

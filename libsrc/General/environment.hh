@@ -23,19 +23,6 @@ typedef int Boolean;
 //               __LINE__, __FILE__), 0))
 //#endif
 
-/*
-#define TRIANGLE1 1
-#define TRIANGLE2 2
-#define QUADRILATERAL1 3
-#define QUADRILATERAL2 4
-#define TETRAHEDRAL1 11
-#define TETRAHEDRAL2 12
-*/
-
-//#define TETRAHEDRA1 10
-//#define TETRAHEDRA2 11
-//#define HEXAHEDRA1 12
-//#define HEXAHEDRA2 13
 enum ElementType{Triang1, Triang2, Quadrilateral1, Quadrilateral2};
 
 enum MatType{ fluid};
@@ -71,9 +58,10 @@ extern std::ostream * cla; //name.cla
 class ConfFile;
 extern ConfFile * conf; //name.conf
 
-// if InfoPrint=true, then we create file with information about methods, which are used 
-
 extern Boolean InfoPrint;
+
+class BaseElem;
+extern BaseElem * ptQ, *ptTr, *ptTet;
 
 }
 

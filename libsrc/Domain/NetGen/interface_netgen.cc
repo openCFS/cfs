@@ -4,7 +4,6 @@
 #include <vector.h>
 
 #include "interface_netgen.hh"
-//#include "filetype.hh"
 #include "elements_header.hh"
 #include  "nginterface.h"
 
@@ -22,6 +21,14 @@
 namespace CoupledField
 {
 
+//! struct for Element
+struct Elem
+{
+  BaseElem * ptElem;
+  Vector<Integer> connect;
+  std::string namesd;
+};
+
 template<>
 void InterfaceNetGen<Point2D>::Read() 
 {
@@ -31,9 +38,6 @@ void InterfaceNetGen<Point2D>::Read()
 
   Integer nnodes;
   ptFileType->ReadMaxnumnodes(nnodes); 
-
-  maxnumsubdomain_=1;
-  pptelemsubdom_=new Integer*[maxnumsubdomain_];
 
   Point2D * ptCoord=new Point2D[nnodes]; 
   ptFileType->ReadCoordinate(ptCoord, nnodes);
@@ -51,66 +55,45 @@ void InterfaceNetGen<Point2D>::Read()
   if (ptCoord) delete [] ptCoord;
 
   // put information about elements
-  Integer nelems;
-  ptFileType->ReadMaxnumelem(nelems);
-
-  std::cout << " nelems " << nelems << std::endl;
-
-  Integer nelemNodes;
-  ptFileType->ReadNumberNodesPerElem(nelemNodes);
-
-  std::cout << " nelemNodes " << nelemNodes << std::endl;
-
-  Integer * Connect=new Integer[nelems*nelemNodes];
-
-  ptArrayElem_=new BaseElem*[nelems+1];
-  // ########################## number of groupes
-
-  Integer i;
-
-//  for (i=0; i<maxnumsubdomain_; i++)
-  ptFileType->ReadElemConnectionGH(nelems, Connect, nelemNodes, 0,0);
+  std::vector<Elem> allel;
+  ptFileType->ReadElems(allel);
 
   Element2d el3(3);
   Element2d el4(4);
 
-  ptQ_=new Quad1();
-  ptTr_=new Triangle1();
+ allptElem.resize(allel.size());
+ 
+ Integer i, elemsize;
+ for (i=0; i < allel.size(); i++)
+{ 
 
-  switch (nelemNodes)
-    {
-  case 3:
+ elemsize=allel[i].connect.size();
+ allptElem[i]=allel[i].ptElem;
 
-  for (i=0; i<nelems; i++)
-    {
+ std::cout << " elemsize " << elemsize << std::endl;
+ switch(elemsize)
+{
+ case 3:
       el3.SetIndex(1);
 
-      el3.PNum(1)=Connect[i*nelemNodes];
-      el3.PNum(2)=Connect[i*nelemNodes+1];
-      el3.PNum(3)=Connect[i*nelemNodes+2];
+      el3.PNum(1)=allel[i].connect[0];
+      el3.PNum(2)=allel[i].connect[1];
+      el3.PNum(3)=allel[i].connect[2];
 
       mesh.AddSurfaceElement(el3);
 
-      ptArrayElem_[i]=ptTr_;
-   }
-
       break;
 
-      case 4:
+  case 4:
 
-  for (i=0; i<nelems; i++)
-    {
       el4.SetIndex(1);
 
-      el4.PNum(1)=Connect[i*nelemNodes];
-      el4.PNum(2)=Connect[i*nelemNodes+1];
-      el4.PNum(3)=Connect[i*nelemNodes+2];
-      el4.PNum(4)=Connect[i*nelemNodes+3];
+      el4.PNum(1)=allel[i].connect[0];
+      el4.PNum(2)=allel[i].connect[1];
+      el4.PNum(3)=allel[i].connect[2];
+      el4.PNum(4)=allel[i].connect[3];
 
       mesh.AddSurfaceElement(el4);
-
-      ptArrayElem_[i]=ptQ_;
-   }
 
       break;
 
@@ -118,15 +101,11 @@ void InterfaceNetGen<Point2D>::Read()
 	  Error("Unknown type of element");
 	  break;
       
-   }
-
-   ptArrayElem_[nelems]=NULL;
-
-   delete [] Connect;
+}
+}
 
    mesh.ClearFaceDescriptors();
    mesh.AddFaceDescriptor (FaceDescriptor(0,1,0,0));  
-
 #ifdef TRACE
  (*trace) << "Leaving InterfaceNetGen<Dim>::Read " << std::endl;
 #endif
@@ -139,15 +118,8 @@ void InterfaceNetGen<Point3D>::Read()
   (*trace)<< "Entering InterfaceNetGen::Read" << std::endl;
 #endif
 
-  Integer data[1];
-//  ptFileType-> ReadGeneralAnalChoice(data, FileType::numnode, FileType::endGAnal);
-
   Integer nnodes;
   ptFileType->ReadMaxnumnodes(nnodes);
-
-//  ptFileType->ReadGeneralAnalChoice(data,FileType::numgroup,FileType::endGAnal);
-  maxnumsubdomain_= 1;
-  pptelemsubdom_=new Integer*[maxnumsubdomain_];
 
   Point3D * ptCoord=new Point3D[nnodes];
   ptFileType->ReadCoordinate(ptCoord, nnodes);
@@ -165,65 +137,41 @@ void InterfaceNetGen<Point3D>::Read()
   if (ptCoord) delete [] ptCoord;
 
   // put information about elements
+  std::vector<Elem> allel;
+  ptFileType->ReadElems(allel);
 
-  // ######################### number of groupes
+  Element el(4);
 
-  Integer nelems;
-  ptFileType->ReadMaxnumelem(nelems);
+  Integer i, elemsize;
 
-  Integer nelemNodes;
-  ptFileType->ReadNumberNodesPerElem(nelemNodes);
+for (i=0; i< allel.size(); i++)
+{
 
-  Integer * Connect=new Integer[nelems*nelemNodes];
+elemsize=allel[i].connect.size();
 
-  ptArrayElem_=new BaseElem*[nelems+1];
-  // ########################## number of groupes
-
-  Integer i;
-
-//  for (i=0; i<maxnumsubdomain_; i++)
-  ptFileType->ReadElemConnectionGH(nelems, Connect, nelemNodes, 0,0);
-
-  Element el (4);
-
-  ptTet_=new Tetrahedral1();
-
-  switch (nelemNodes)
-    {
-      case 4:
-
-  for (i=0; i<nelems; i++)
-    {
-      Element el (4);
+switch (elemsize)
+{
+ case 4:
       el.SetIndex(1);
 
-      el.PNum(1)=Connect[i*nelemNodes];
-      el.PNum(2)=Connect[i*nelemNodes+1];
-      el.PNum(3)=Connect[i*nelemNodes+2];
-      el.PNum(4)=Connect[i*nelemNodes+3];
+      el.PNum(1)=allel[i].connect[0];
+      el.PNum(2)=allel[i].connect[1];
+      el.PNum(3)=allel[i].connect[2];
+      el.PNum(4)=allel[i].connect[3];
 
-      std::cout << Connect[i*nelemNodes] << " " << Connect[i*nelemNodes+1] << " " << Connect[i*nelemNodes+2] << " " << Connect[i*nelemNodes+3] << std::endl;
- 
       mesh.AddVolumeElement(el);
-
-      ptArrayElem_[i]=ptTet_;
-   }
-
       break;
 
-    default:
-          Error("Unknown type of element");
-          break;
+ default:
+       Error("Unknown type of element");
+       break;
 
-   }
+}
+} // end of for
 
-   ptArrayElem_[nelems]=NULL;
-
-   delete [] Connect;
 
    mesh.ClearFaceDescriptors();
    mesh.AddFaceDescriptor (FaceDescriptor(0,1,0,0));
-
 #ifdef TRACE
  (*trace) << "Leaving InterfaceNetGen<Dim>::Read " << std::endl;
 #endif
@@ -248,7 +196,6 @@ for(ei=1; ei<=maxnumelem; ei++)
   SetRefinementFlag(ei,flag);
 
 Refine();
-
 }
 
 template<>
@@ -282,12 +229,11 @@ void InterfaceNetGen<Dim>::Refine()
  std::cout << " 3 " << std::endl;
 }
 
-template<class Dim>
-void InterfaceNetGen<Dim>::GetCoordOfNodesElem(const Integer numElem, const Integer numlevel, const Integer numnodes, Dim * ptCoordElem)
+void InterfaceNetGen<Point2D>::GetCoordOfNodesElem(const Integer iElem, const Integer numlevel, const Integer numnodes, Point2D * ptCoordElem)
 { 
   if (!ptCoordElem) Error("Allocate ptCoordElem before using in function InterfaceNetGen::GetCoordOfNodesElem");
 
-  Element2d el=mesh.SurfaceElement(numElem+1);
+  Element2d el=mesh.SurfaceElement(iElem+1);
   Integer result;
   Point3d point;
  
@@ -299,6 +245,65 @@ void InterfaceNetGen<Dim>::GetCoordOfNodesElem(const Integer numElem, const Inte
 
    ptCoordElem[i].x=point.X();
    ptCoordElem[i].y=point.Y();
+  }
+}
+
+void InterfaceNetGen<Point3D>::GetCoordOfNodesElem(const Integer iElem, const Integer numlevel, const Integer numnodes, Point3D * ptCoordElem)
+{
+
+ Error("Not implemented");
+/*
+  if (!ptCoordElem) Error("Allocate ptCoordElem before using in function InterfaceNetGen::GetCoordOfNodesElem");
+
+  Element el=mesh.VolumeElement(iElem+1);
+  Integer result;
+  Point3d point;
+
+  Integer i;
+  for (i=0; i<numnodes; i++)
+  {
+   result=el.PNum(i+1);
+   point=mesh.Point(result);
+
+   ptCoordElem[i].x=point.X();
+   ptCoordElem[i].y=point.Y();
+   ptCoordElem[i].z=point.Z();
+  }
+*/
+}
+
+template<class Dim>
+BaseElem * InterfaceNetGen<Dim>::GetptElem(const Integer iElem)
+{
+ return allptElem[iElem]; 
+}
+
+template<>
+void InterfaceNetGen<Point2D>::GetConnection(Vector<Integer> & connect, const Integer iElem, const Integer level)
+{
+  Element2d el=mesh.SurfaceElement(iElem+1);
+  Integer elemsize=4;              //// !!!! Attention
+  connect.Resize(elemsize);
+
+  Integer i;
+  for (i=0; i<elemsize; i++)
+  {
+   connect[i]=el.PNum(i+1);
+  } 
+}
+
+template<>
+void InterfaceNetGen<Point3D>::GetConnection(Vector<Integer> & connect, const Integer iElem, const Integer level)
+{
+  Error("Not implemented",__FILE__,__LINE__);
+  Element2d el=mesh.SurfaceElement(iElem+1);
+  Integer elemsize=4;              //// !!!! Attention
+  connect.Resize(elemsize);
+
+  Integer i;
+  for (i=0; i<elemsize; i++)
+  {
+   connect[i]=el.PNum(i+1);
   }
 }
 
@@ -317,30 +322,6 @@ void InterfaceNetGen<Point3D>::GetCoordinateNode(const Integer inode, const Inte
     rfPoint.x=auxPoint.X();
     rfPoint.y=auxPoint.Y();
     rfPoint.z=auxPoint.Z();
-}
-
-template<>
-void InterfaceNetGen<Point2D>::GetConnection(Integer * result, const Integer level,   const Integer numElem, const Integer numnodesPerElem)
-{
- Element2d el=mesh.SurfaceElement(numElem+1);
- Integer i;
- for (i=0; i < el.GetNP(); i++)
-  {
-   result[i]=el.PNum(i+1);
-  }
-}
-
-template<>
-void InterfaceNetGen<Point3D>::GetConnection(Integer * result, const Integer level,   const Integer numElem, const Integer numnodesPerElem)
-{
- Element el=mesh.VolumeElement(numElem+1);
- Integer i;
- for (i=0; i < el.GetNP(); i++)
-  {
-   result[i]=el.PNum(i+1);
-   std::cout << " el num " << numElem << " " << result[i] << std::endl;
-  }
-
 }
 
 template<class Dim>
@@ -372,15 +353,9 @@ Integer InterfaceNetGen<Point3D>::GetNumNodesPerElem(const Integer iElem, const 
 }
 
 template<class Dim>
-void InterfaceNetGen<Dim>::PrintCoordinate(const Integer level, std::ostream * out) const
-  { Error("Not implemented yet",__FILE__,__LINE__); }
-
-template<class Dim>
 InterfaceNetGen<Dim>::~InterfaceNetGen()
 {
-  if (ptQ_) delete ptQ_;
-  if (ptTr_) delete ptTr_;
-  if (ptTet_) delete ptTet_;
+;
 }
 
 } // end of namespace

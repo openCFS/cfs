@@ -15,6 +15,10 @@ ConfFile * conf=NULL;
 
 Boolean InfoPrint=FALSE;
 
+BaseElem * ptQ = NULL;
+BaseElem * ptTr = NULL;
+BaseElem * ptTet = NULL;
+
 std::ostream & operator << (std::ostream & out, const enum precond & type)
 {
 switch (type)

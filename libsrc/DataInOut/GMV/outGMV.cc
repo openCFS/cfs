@@ -201,26 +201,21 @@ void WriteResultsGMV<Point2D>:: WriteCells(const Integer alevel)
  if (!ptgrid)
     Error("ptgrid is not initialized", __FILE__,__LINE__);
 
-// read information about number of elements and number of nodes per element
-  Integer numelem, elemsize; 
-
+// read information about number of elements 
+  Integer numelem; 
   numelem=ptgrid->GetMaxnumElem(level);
-  elemsize=ptgrid->GetNumNodesPerElem(0,level);  //// !!! Attention !!!
 
   (*output) << numelem << std::endl;
 
-  Integer * connect;
+  Vector<Integer> connect;
 
   Integer i;
   for (i=0; i<numelem; i++)
    {
 
-     elemsize=ptgrid->GetNumNodesPerElem(i,level);
-     connect=new Integer[elemsize];
+     ptgrid->GetConnection(connect, i, level);
 
-     ptgrid->GetConnection(connect, level, i, elemsize);
-
-     switch (elemsize)
+     switch (connect.size())
       {
         case 3: 
                 (*output) << "tri 3" << std::endl;
@@ -233,7 +228,7 @@ void WriteResultsGMV<Point2D>:: WriteCells(const Integer alevel)
       }
 
      Integer j;
-     for (j=0; j<elemsize; j++)
+     for (j=0; j< connect.size(); j++)
        (*output) << " " << connect[j] ;
 
      (*output) << std::endl;
@@ -253,25 +248,19 @@ void WriteResultsGMV<Point3D>:: WriteCells(const Integer alevel)
     Error("ptgrid is not initialized", __FILE__,__LINE__);
 
 // read information about number of elements and number of nodes per element
-  Integer numelem, elemsize;
+  Integer numelem;
 
   numelem=ptgrid->GetMaxnumElem(level);
-  elemsize=ptgrid->GetNumNodesPerElem(0,level);  //// !!! Attention !!!
-
   (*output) << numelem << std::endl;
 
-  Integer * connect;
+  Vector<Integer> connect;
 
   Integer i;
   for (i=0; i<numelem; i++)
    {
+     ptgrid->GetConnection(connect, i, level);
 
-     elemsize=ptgrid->GetNumNodesPerElem(i,level);
-     connect=new Integer[elemsize];
-
-     ptgrid->GetConnection(connect, level, i, elemsize);
-
-     switch (elemsize)
+     switch (connect.size())
       {
         case 4:
                 (*output) << "tet 4" << std::endl;
@@ -284,7 +273,7 @@ void WriteResultsGMV<Point3D>:: WriteCells(const Integer alevel)
       }
 
      Integer j;
-     for (j=0; j<elemsize; j++)
+     for (j=0; j<connect.size(); j++)
        (*output) << " " << connect[j] ;
 
      (*output) << std::endl;

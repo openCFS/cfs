@@ -3,6 +3,7 @@
 
 #include "vector.hh"
 #include <list>
+#include <vector>
 
 namespace CoupledField
 {
@@ -13,6 +14,7 @@ namespace CoupledField
   */
 
 struct NodeRestraint;
+struct Elem;
 
 class FileType
 {
@@ -32,12 +34,6 @@ public:
   virtual void ReadMaxnumelem(Integer & maxnumelem)=0;
 
   //!
-  virtual void ReadNumberNodesPerElem(Integer &)=0;
-
-  //!
-  virtual void ReadElemConnectionGH(const Integer maxelem, Integer * connect, const Integer maxnode, const Integer numelemgr, const Integer startposinarrayconn)=0;
-
-  //!
   virtual void ReadCoordinate(Point3D * const InitNodalCo,                                                     const Integer maxnumNodes)=0;
 
   //!
@@ -46,6 +42,9 @@ public:
 
   //!
   virtual void ReadBoundRestr(std::list<NodeRestraint> & restr, Integer & numberRestr)=0;
+
+  //!
+  virtual void ReadElems(std::vector<Elem> & allelems)=0;
 
 protected:
 
