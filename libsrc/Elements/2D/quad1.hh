@@ -29,7 +29,6 @@ public:
 protected:
 
 private:
-  ShortInt ElemType;  //!< element type
 };
 
 }

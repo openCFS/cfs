@@ -18,7 +18,8 @@ Acoustic2dPDE::Acoustic2dPDE(AbstractAlgebraicSys * ptalgsys, Grid * aptgrid, Ma
   (*trace) << "entering Acoustic2dPDE::Acoustic2dPDE " << std::endl;
 #endif
 
-  doftype_=5;
+//  doftype_=5;
+  doftype_=vp_restraint;
   dofspernode_=1;
   ptgrid_=aptgrid;
 
@@ -155,21 +156,30 @@ void Acoustic2dPDE::SetupMatrices(const Integer type)
 
   for (i=0; i<numsubdom; i++)
 {  
+
+  std::cout << " before elem connection " << std::endl;
+
   ptElemSubdomain=ptgrid_->GetElemSubdomain(i,0);
 
+  std::cout << " after elem connection " << std::endl;
+  
   CalcCoeff(coeffmass, coeffstiff,i);
-
-  //  std::cout << coeff << "coefficient" << std::endl;
 
    for (j=0; ptElemSubdomain[j]!=-1; j++)
     {
       ptElem=ptArrayElem[ptElemSubdomain[j]];
 
+ std::cout << "1  before GetConnection " << std::endl;
+
       BaseForm<Point2D> * bilinear_stiff = new LaplaceInt<Point2D>(ptElem,1);
       BaseForm<Point2D> * bilinear_mass  = new MassInt<Point2D>(ptElem,1);
 
+ std::cout << " before GetConnection " << std::endl;
+
       ptgrid_->GetConnection(help,0,ptElemSubdomain[j],numnodeelem);
       ptgrid_->GetCoordOfNodesElem(ptElemSubdomain[j],0,numnodeelem,ptCoord);
+
+ std::cout << " after GetConnection " << std::endl;
 
        // stiffness part
       bilinear_stiff->CalcElemMatrix(ptCoord, elemmat);

@@ -82,7 +82,9 @@ private:
   Integer size_;
 
   //! type of dof
-  Integer doftype_;
+//  Integer doftype_;
+  enum TypeBCs doftype_;
+
 };
 
 } // end of namespace

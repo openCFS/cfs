@@ -26,22 +26,18 @@ template<>
 void InterfaceNetGen<Point2D>::Read() 
 {
 #ifdef TRACE
-  (*trace)<< "Entering InterfaceNetGen::Read" << std::endl;
+  (*trace)<< "Entering InterfaceNetGen::Read 2D" << std::endl;
 #endif
 
-  Integer data[1];
-//  ptFileType-> ReadGeneralAnalChoice(data, FileType::numnode, FileType::endGAnal);
- 
   Integer nnodes;
   ptFileType->ReadMaxnumnodes(nnodes); 
 
-//  ptFileType->ReadGeneralAnalChoice(data,FileType::numgroup,FileType::endGAnal); 
-   maxnumsubdomain_=1;
+  maxnumsubdomain_=1;
   pptelemsubdom_=new Integer*[maxnumsubdomain_];
 
   Point2D * ptCoord=new Point2D[nnodes]; 
   ptFileType->ReadCoordinate(ptCoord, nnodes);
-   
+  
   Integer inode;
   for (inode=0; inode<nnodes; inode++)
     {
@@ -55,16 +51,15 @@ void InterfaceNetGen<Point2D>::Read()
   if (ptCoord) delete [] ptCoord;
 
   // put information about elements
-  
-  // ######################### number of groupes
-
-//  Integer data1[2];
-//  ptFileType->ReadGeneralElemChoice(0,data1, FileType::numelem, FileType::maxnode, FileType::endGElem);
   Integer nelems;
   ptFileType->ReadMaxnumelem(nelems);
 
+  std::cout << " nelems " << nelems << std::endl;
+
   Integer nelemNodes;
   ptFileType->ReadNumberNodesPerElem(nelemNodes);
+
+  std::cout << " nelemNodes " << nelemNodes << std::endl;
 
   Integer * Connect=new Integer[nelems*nelemNodes];
 
@@ -84,7 +79,7 @@ void InterfaceNetGen<Point2D>::Read()
 
   switch (nelemNodes)
     {
-      case 3:
+  case 3:
 
   for (i=0; i<nelems; i++)
     {
@@ -135,7 +130,6 @@ void InterfaceNetGen<Point2D>::Read()
 #ifdef TRACE
  (*trace) << "Leaving InterfaceNetGen<Dim>::Read " << std::endl;
 #endif
-
 }
 
 template<>

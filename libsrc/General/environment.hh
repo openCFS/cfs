@@ -23,20 +23,26 @@ typedef int Boolean;
 //               __LINE__, __FILE__), 0))
 //#endif
 
+/*
 #define TRIANGLE1 1
 #define TRIANGLE2 2
 #define QUADRILATERAL1 3
 #define QUADRILATERAL2 4
 #define TETRAHEDRAL1 11
 #define TETRAHEDRAL2 12
+*/
 
 //#define TETRAHEDRA1 10
 //#define TETRAHEDRA2 11
 //#define HEXAHEDRA1 12
 //#define HEXAHEDRA2 13
-enum ElementType {Triang1, Triang2, Quadrilateral1, Quadrilateral2};
+enum ElementType{Triang1, Triang2, Quadrilateral1, Quadrilateral2};
+
+enum MatType{ fluid};
 
 enum IntegrationType {GaussOrder2, GaussOrder3, GaussOrder4, GaussOrder5, GaussOrder7, null};
+
+enum TypeBCs{ vp_restraint, ep_restraint};
 
 /// for each level of remeshing we create own GridHierarchy with full information about grid
 template <class Dim>

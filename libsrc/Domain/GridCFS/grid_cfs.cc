@@ -20,7 +20,6 @@ template<class Dim>
   ptTr_=NULL;
   ptTet_=NULL;
   ptQ_=NULL;
-
 }
 
 template<>
@@ -30,8 +29,6 @@ void GridCFS<Point2D> :: Read()
   (*trace) << "entering GridCFS::Read" << std::endl;
 #endif
 
-  Integer dataHelp[1];
-//  InFile->ReadGeneralAnalChoice(dataHelp,FileType::numgroup,FileType::endGAnal);
   maxnumsubdomain=1;
   pptelemsubdom=new Integer*[maxnumsubdomain];
 
@@ -40,7 +37,6 @@ void GridCFS<Point2D> :: Read()
   gh[0].ptCoordinate=new Point2D[gh[0].maxnumnode];
   InFile->ReadCoordinate(gh[0].ptCoordinate, gh[0].maxnumnode);
 
-//  !!!!!!! just for check
   InFile->ReadMaxnumelem(gh[0].maxnumelem);
 
   Integer NumNodeperElem;

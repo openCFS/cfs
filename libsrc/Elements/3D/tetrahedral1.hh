@@ -27,7 +27,6 @@ public:
    virtual Vector<Double> & GetShFncAtIP(const Integer iShFnc);
 
 private:
-   ShortInt ElemType; //!< element type
    
 };
 

@@ -745,6 +745,8 @@ void DatFile:: ReadBoundConstr(Integer ** dataBDof, Integer numberdofs,
 }
 
 // ---------------- Read boundary conditions: restraint conditions  ----------
+
+// This is garbage.
 void DatFile:: ReadBoundRestr(Integer ** dataBRestr, Integer numberRestr, 
                               Double * factorRestr)
 {
@@ -779,10 +781,22 @@ void DatFile:: ReadBoundRestr(std::list<NodeRestraint> & restr, Integer & number
   for (Integer i=0; i < numberRestr; i++)
    {
     infile >> A.nodalnum >> str ;
-    A.dof=TransformInNameDf(str.c_str());
+    A.dof=TransformInTypeBCs(str.c_str());
     infile.ignore(100,'\n');
     restr.push_back(A);
    }
+}
+
+enum TypeBCs DatFile::TransformInTypeBCs(const std::string str)
+{
+  enum TypeBCs result;
+
+  if (str=="vp") result=vp_restraint;
+  else
+  if (str=="ep") result=ep_restraint;
+  else Error(" This type of dof for boundary condition isn't used in our programm");
+
+  return result;
 }
 
 // --------------- Read parameters about boundary condition by choice -------- 
@@ -1310,9 +1324,9 @@ void DatFile::ReadNumberNodesPerElem(Integer & numnodesperelem)
 
  Integer data[3];
 
- ReadGeneralElemChoice(0,data, FileType::numelem,
-                   FileType::ielemtyp, FileType::maxnode,
-                   FileType::endGElem);
+ ReadGeneralElemChoice(0,data, DatFile::numelem,
+                   DatFile::ielemtyp, DatFile::maxnode,
+                   DatFile::endGElem);
 
  numnodesperelem=data[2];     
 }

@@ -34,7 +34,6 @@ public:
            const Integer numElem, const Integer numnodesPerElem)=0;
 
    /// Get coordinates of node with global number inode
-
    virtual void GetCoordinateNode(const Integer inode, const Integer numlevel, Point2D & rfPoint){ Error(" Not implemented");}
    virtual void GetCoordinateNode(const Integer inode, const Integer numlevel, Point3D & rfPoint){ Error(" Not implemented");}
 
