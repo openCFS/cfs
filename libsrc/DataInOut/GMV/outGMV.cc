@@ -61,17 +61,19 @@ namespace CoupledField {
     ENTER_FCN( "WriteResultsGMV::~WriteResultsGMV" );
 
     // The last gmv-file is closed by the destructor
-    if (ascii_) {
-      (*output) << "\nendvars\n" ;
-      (*output) << "endgmv ";
+    if ( output != NULL ) {
+      if (ascii_) {
+        (*output) << "\nendvars\n" ;
+        (*output) << "endgmv ";
+      }
+      else {
+        (*output) << "endvars ";
+        (*output) << "endgmv  ";
+      }
+      delete output;
     }
-    else {
-      (*output) << "endvars ";
-      (*output) << "endgmv  ";
-    } 
 
     delete [] namedir_;
-    delete output;
   }
 
 
