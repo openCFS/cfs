@@ -32,10 +32,14 @@ TimeFunc :: TimeFunc(FileType * aptFileType)
   else if (conf->ifget("time_fnc",nametf))
       Error("time_func-command currently not supported");
     
-  if (timeFncDatFiles_) ReadTimeFuncs();
 #else
   params->GetList( "name", fnc_names_, "transient", "timeDataFile" );
+  if (fnc_names_.size())
+     timeFncDatFiles_ = TRUE;
 #endif
+
+  //read in the time functions
+  if (timeFncDatFiles_)  ReadTimeFuncs();
 
 }
 
