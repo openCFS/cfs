@@ -336,10 +336,13 @@ template<class Dim>
 void WriteResultsGMV<Dim>::OpenFile(const Integer num)
 {
    Char * name=new Char[20];
-   Char * aux=new Char[1];
+   Char * aux=new Char[2];
    std::sprintf(aux,"%i",num);
    strcpy(name,namefile_);
-   strcat(name,".gmv00");
+   if (num/10 < 1) strcat(name,".gmv00");
+     else if (num/100 < 1) strcat(name,".gmv0");
+       else strcat(name,".gmv");
+
    strcat(name,aux);
 
    output=new std::ofstream(name);
