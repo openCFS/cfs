@@ -66,7 +66,15 @@ namespace CoupledField
 
     void calcNorm2Resid(Vector<Complex> &res, Double & anorm, Integer nrMeasuredData);
 
+    Double calcEuclidianMatrixNorm(Matrix<Complex> & mat);
+
     void CG();
+
+    void NewtonCG();
+
+    void NewtonLandweber();
+
+    void backtracking(Double & eta, Double & theta, Vector<Complex> & s, Double & norm_res, Double & norm_res_new);
 
     void createAndSetRHSforJacobian(Integer & fstep);
 
@@ -76,6 +84,11 @@ namespace CoupledField
 
     void createMaterialTensorMatrices(Vector<Double> & parameter, Matrix<Double> & couplingMatrix, Matrix<Double> & dielectricMatrix, Integer spaceDim);
 
+
+    void testJacobiMatrix(Vector<Complex> & F_hat, Matrix<Complex> & JacobiMatrix, Vector<Double> & parameter,BCs * ptBCs,MaterialData * ptMaterial, Vector<Double> & parameterIncrement, Vector<Complex>& solElecPot,Vector<Complex> &solMechDispl);
+
+
+    Boolean considerMechDeformation;
     Matrix<Double> * piezoMatrix;
     Integer dofs;
     Integer numNodes;
@@ -93,6 +106,7 @@ namespace CoupledField
     MaterialData * ptMaterial;
 
     Vector<Double> parameter;
+    Vector<Double> parameter_new;
     Vector<Double> parameterIncrement;
     Vector<Double> omegas;
     Vector<Double> freqs;
@@ -102,7 +116,7 @@ namespace CoupledField
     Vector<Complex> y_hat;
     Vector<Complex> s_0;    
     Vector<Complex> bas;
-    Vector<Complex> res_NE, res_NE_new;
+    Vector<Complex> res_NE, res_NE_new, lin_res;
     Vector<Complex> res;
     Vector<Complex> bas_bar;
     Vector<Complex> s;
