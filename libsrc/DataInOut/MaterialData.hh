@@ -48,6 +48,7 @@ private:
 
   /// contains the stiffnes matrix, the piezelectric coefficients and the permitivity matrix
   Matrix<Double> * piezoMatrix;
+  Matrix<Double> * piezoMatrixC;
 
   Matrix<Double> * permeaMatrix;
   Matrix<Double> * conducMatrix;
@@ -124,11 +125,23 @@ public:
 
   /// set one value of the data-matrix on position (i,j)
   void SetPiezoMatrixData(const Integer& i, const Integer& j, const Double& value)
-    {(*piezoMatrix)(i,j) = value;};
+    {(*piezoMatrix)(i,j) = value;
+     (*piezoMatrixC)(i,j) = value;};
+
+  /// set one value of the data-matrix on position (i,j)
+  void SetPiezoMatrixDataC(const Integer& i, const Integer& j, const Double& value)
+    {(*piezoMatrixC)(i,j) = value;};
 
   /// get the value of the data-matrix on position (i,j)
   void GetPiezoMatrixData(const Integer& i, const Integer& j, Double& value)
     {value = (*piezoMatrix)(i,j);};
+
+  /// get the value of the data-matrix on position (i,j)
+  void GetPiezoMatrixDataC(const Integer& i, const Integer& j, Double& value)
+    {value = (*piezoMatrixC)(i,j);};
+
+  /// return a pointer to the data-matrix
+  Matrix<Double> * GetMatrixC(){return piezoMatrixC;};
 
   /// return a pointer to the data-matrix
   Matrix<Double> * GetMatrix(){return piezoMatrix;};
@@ -157,7 +170,9 @@ public:
   /// this matrix includes the stiffness, piezoelectric coupling and permitivity matrix
   void DefFull3dMatrix(){
     piezoMatrix = new Matrix<Double>; 
-    piezoMatrix->Resize(GetNrElems3d(), GetNrElems3d() );};
+    piezoMatrix->Resize(GetNrElems3d(), GetNrElems3d() );
+    piezoMatrixC = new Matrix<Double>; 
+    piezoMatrixC->Resize(GetNrElems3d(), GetNrElems3d() );};
 
   /// set conductivity of the material
   void SetConductivity(const Double& Conductivity);

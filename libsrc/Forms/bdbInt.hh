@@ -22,7 +22,7 @@ namespace CoupledField {
     virtual ~BDBInt();
 
     //! Function for calculation bdb matrix 
-    virtual void CalcElementMatrix(Matrix<Double> &ptCoord, Matrix<Double> & );
+    virtual void CalcElementMatrix(Matrix<Double> &ptCoord, Matrix<Double> & elemmat);
 
     virtual void CalcComplexElementMatrix(Matrix<Double>& ptCoord, Matrix<Complex> & elemMat,Double & beta, Double & omega);
 

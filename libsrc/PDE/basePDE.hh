@@ -96,6 +96,7 @@ namespace CoupledField
     Grid * getPDE_grid(){return ptgrid_;};  
     Assemble * getPDE_assemble(){return assemble_;}
     StdVector<std::string> getPDE_subdoms(){return subdoms_;}
+    Boolean BooleanComplexMaterialData_;
    
     void setBCs_id_phase_(Integer i, Double & phase){
       ENTER_FCN("basePDE::setBCs_id_phase");
@@ -111,10 +112,17 @@ namespace CoupledField
       ENTER_FCN("basePDE::setPDE_actFreqStep");
       actFreqStep_ = fstep;
     };
+
     Vector<Complex> complexValuedCharge_;
     Vector<Complex> getPDE_complexValuedCharge(){return complexValuedCharge_;};
-    
-    
+
+    piezoMaterialType piezoMaterialType_; 
+
+    void setPDE_piezoMaterialType(piezoMaterialType & pMatType){
+      piezoMaterialType_ = pMatType;};
+
+    piezoMaterialType getPDE_piezoMaterialType(){return piezoMaterialType_;}
+        
     
     //	StdVector< StdVector<BaseIntDescriptor *>* > * rhsSrcIntegrators_;
     
@@ -470,6 +478,7 @@ namespace CoupledField
     // LoadMaterialData *loadMaterial_; //!< material reader
     MaterialData *materialData_;     //!< material data structure
     std::string pdematerialclass_;    //!< material class
+
     //@}
 
     // -----------------------------------------------------------------------

@@ -778,7 +778,6 @@ void Matrix<TYPE>::DirectSolve(CFSVector & x1, CFSVector & b1)
 }
 
 
-
 template<class TYPE>
 void Matrix<TYPE>::DyadicMult(CFSVector & v1)
 {
