@@ -404,6 +404,9 @@ protected:
   //! Set value of shape fnc derivatives at integration points
   virtual void SetShapeFncDerivAtIp();
 
+  //! Helper function for printing a coordinate matrix in a string
+  std::string CoordMatrix2String(const Matrix<Double> & coordMat);
+
 
   ShortInt Dim_;                    //!< space dimension
   ShortInt NumNodes_;               //!< number of nodes
