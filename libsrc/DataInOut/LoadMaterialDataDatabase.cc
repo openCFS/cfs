@@ -1,5 +1,6 @@
 #include "DataInOut/LoadMaterialDataDatabase.hh"
 #include "General/environment.hh"
+#include "WriteInfo.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
 
 namespace CoupledField
@@ -138,6 +139,8 @@ void LoadMaterialDataDatabase::ReadPiezo (MaterialData &matData, const std::stri
   matData.SetDampingCoeffs(alpha,beta);
 
   matData.SetName(matName.c_str());
+
+  Info->PrintPiezoMat(matData);
 }
 
 void LoadMaterialDataDatabase::ReadStiffnessLinear(MaterialData &matData, const std::string &matName, int matidx)
@@ -271,6 +274,7 @@ void LoadMaterialDataDatabase::ReadFluid (MaterialData &matData, const std::stri
   matData.SetDampingCoeffs(alpha,beta);
   
   matData.SetName(matName.c_str());
+  Info->PrintFluidMat(matData);
 }
 
 
@@ -343,6 +347,7 @@ void LoadMaterialDataDatabase::ReadMagnetic (MaterialData &matData, const std::s
   else
     Error ("Unknown result at field 'magnetisation' in table 'Material_parameter'");
   matData.SetName(matName.c_str());
+  Info->PrintMagMat(matData);
 }
 
 void LoadMaterialDataDatabase::ReadConductivityLinear(MaterialData &matData, const std::string &matName, int matidx)
