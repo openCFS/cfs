@@ -702,10 +702,12 @@ libsrc/Utils/vector.cc svneol=native#text/plain
 libsrc/Utils/vector.hh svneol=native#text/plain
 libsrc/makefile.inc -text
 libsrc/makefilemach/make.mach.IRIX64 -text
+libsrc/makefilemach/make.mach.IRIX64g -text
 libsrc/makefilemach/make.mach.LINUX -text
 libsrc/makefilemach/make.mach.LINUXPAR -text
 libsrc/makefilemach/make.mach.LINUXg -text
 libsrc/makefilemach/make.mach.SGI -text
+libsrc/makefilemach/make.mach.SGIg -text
 main/DoxygenConfig/doxy-config -text
 main/DoxygenConfig/footer.html svneol=native#text/html
 main/DoxygenConfig/header.html svneol=native#text/html
