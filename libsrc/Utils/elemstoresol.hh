@@ -82,7 +82,9 @@ public:
   //! Destructor
   virtual ~ElemStoreSol();
 
-
+  //! Set Pointer to nodal equation object
+  void SetPtrEQNData(NodeEQN * ptNodeEQN);
+  
   //! Deletes all data and layout information
 
   //! Deletes all data and layout information.
@@ -90,11 +92,6 @@ public:
   //! solution object is modified via SetNumSolution(), SetNumNodes(),
   //! SetNumDofs() or SetSolutionType().
   void Clear();
-
-
-  //!
-  void SetElemMapping(StdVector<Integer> &mapping)
-  {mapping_ = mapping;}
 
   //! Initialization of the StoreSolution-object with 0-element(REQUIRED)
   
@@ -430,9 +427,6 @@ protected:
   //! contains the solution itself
   Vector<TYPE> data_;
     
-  //! contains mapping from local->global numbering
-  StdVector<Integer> mapping_;
-  
 };
 
  

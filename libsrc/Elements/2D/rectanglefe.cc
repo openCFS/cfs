@@ -215,12 +215,6 @@ void RectangleFE:: SetIntPoints()
     }
 }
 
-void RectangleFE::CalcSize(Vector<Double> &size, Array<Double> &coordinates)
-{
-  ENTER_FCN( "RectangleFE::CalcSize" );
-  Error("RectangleFE::CalcSize: Not implemented", __FILE__, __LINE__);
-
-}
 
 Double RectangleFE::CalcDistortion(Matrix<Double> &cornerCoords, Vector<Double> &size, Matrix<Double> &displacements)
 {

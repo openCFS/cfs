@@ -387,59 +387,6 @@ Vector<TYPE> Matrix<TYPE>::operator*(const Vector<TYPE> &x) const
   return z;
 }
 
-
-template<class TYPE>
-std::vector<TYPE> Matrix<TYPE>::operator*(const std::vector<TYPE> &x) const
-{
-  ENTER_IFCN("Matrix::operator*");
-
-#ifdef CHECK_INITIALIZED
-  if (size_row_ == 0 || size_col_ == 0) 
-    Error("undefined Matrix",__FILE__,__LINE__);
-  if (x.size() == 0) Error("undefined Vector",__FILE__,__LINE__);
-#endif
-
-#ifdef CHECK_INDEX
-  if (size_col_ != x.size()) Error("incompatible dimension",__FILE__,__LINE__);
-#endif
-  
-  std::vector<TYPE> z(size_row_);
-  
-  Integer k,kk;
-  
-  for ( k = 0; k < size_row_; k++)
-    for ( kk = 0; kk < size_col_; kk++)
-      z[k] += data_[k][kk]*x[kk];
-  
-  return z;
-}
-
-// template<class TYPE>
-// Array<TYPE> Matrix<TYPE>::operator*(const Array<TYPE> &x) const
-// {
-//   ENTER_IFCN("Matrix::operator*");
-
-// #ifdef CHECK_INITIALIZED
-//   if (size_row_ == 0 || size_col_ == 0) 
-//     Error("undefined Matrix",__FILE__,__LINE__);
-// #endif
-  
-// #ifdef CHECK_INDEX
-//   if (x.dim_ != 1) 
-//     Error("operator* only defined vor arrays of dimension 1",__FILE__,__LINE__);
-//   if (size_col_ != x.size_) 
-//     Error("incompatible dimension",__FILE__,__LINE__);
-// #endif
-//   Array<TYPE> z(1,size_row_);
-  
-//   Integer k,kk;
-//   for ( k = 0; k < size_row_; k++)
-//     for ( kk = 0; kk < size_col_; kk++)
-//       z.sol_[0][k] += data_[k][kk]*x.sol_[0][kk];
-  
-//   return z;
-// }
-
 template<class TYPE>
 Matrix<TYPE> Matrix<TYPE>::operator*(const Matrix<TYPE> &x) const
 {
@@ -594,23 +541,6 @@ void Matrix<TYPE>::AddColumn (const Vector<TYPE> &x, const Integer pos)
   data_[0]=help[0]; 
 }
 
-
-// template<class TYPE>
-// std::vector<TYPE> Matrix<TYPE>::GetColumn(const Integer acol)
-// {
-//   ENTER_IFCN("Matrix::GetColumn"); 
-//   if (acol < 0 || acol > col-1)
-//          Error("invalid index in function cut",__FILE__,__LINE__);
-
-//   std::vector<TYPE> colvec(row);
-
-//   for (Integer i=0; i<row ; i++)
-//     colvec[i] = data_[i][acol];
-
-//   return colvec;
-// }
- 
-
 template<class S>
 std::ostream & operator << (std::ostream & out, const Matrix<S> &mat)
 {
@@ -646,9 +576,9 @@ ENTER_FCN("Matrix::Transpose");
 
 
 template<class TYPE>
-void Matrix<TYPE>::DyadicMult(Vector<TYPE> v1)
+void Matrix<TYPE>::DyadicMult(CFSVector & v1)
 {
-ENTER_FCN("Matrix::DyadicMult");
+  ENTER_FCN("Matrix::DyadicMult");
   DyadicMult(v1, v1);
 }
 
@@ -656,17 +586,21 @@ ENTER_FCN("Matrix::DyadicMult");
 
 
 template<class TYPE>
-void Matrix<TYPE>::DyadicMult(Vector<TYPE> v1, Vector<TYPE> v2)
+void Matrix<TYPE>::DyadicMult(CFSVector & v1, CFSVector & v2)
 {
-ENTER_FCN("Matrix::DyadicMult");
-  Integer row = v1.GetSize();
-  Integer col = v2.GetSize();
+  ENTER_FCN("Matrix::DyadicMult");
+  
+  Vector<TYPE> & vec1 = dynamic_cast<Vector<TYPE>& >(v1);
+  Vector<TYPE> & vec2 = dynamic_cast<Vector<TYPE>& >(v2);
+  
+  Integer row = vec1.GetSize();
+  Integer col = vec2.GetSize();
   
   this->Resize(row,col);
 
   for(Integer actRow=0; actRow<row; actRow++)
     for(Integer actCol=0; actCol < col; actCol++)
-      data_[actRow][actCol] = v1[actRow] * v2[actCol];
+      data_[actRow][actCol] = vec1[actRow] * vec2[actCol];
 }
 
 template<class TYPE>
@@ -819,9 +753,12 @@ void Matrix<TYPE>::SetSubMatrix(Matrix<TYPE>& subMat, Integer startRow, Integer 
 
 /// converts a matrix into a vector, by appending successively all rows
 template<class TYPE>
-void Matrix<TYPE>::ConvertToVec_AppendRows(Vector<TYPE>& vec) const
+void Matrix<TYPE>::ConvertToVec_AppendRows(CFSVector & v) const
 {
-ENTER_FCN("Matrix::ConvertToVec_AppendRows");
+  ENTER_FCN("Matrix::ConvertToVec_AppendRows");
+  
+  Vector<TYPE> & vec = dynamic_cast<Vector<TYPE>&>(v);
+
   vec.Resize(size_row_ * size_col_);
   
   for(int i=0; i < size_row_; i++)
@@ -831,9 +768,10 @@ ENTER_FCN("Matrix::ConvertToVec_AppendRows");
 
 /// converts a matrix into a vector, by appending successively all colums
 template<class TYPE>
-void Matrix<TYPE>::ConvertToVec_AppendCols(Vector<TYPE>& vec) const
+void Matrix<TYPE>::ConvertToVec_AppendCols(CFSVector & v) const
 {
-ENTER_FCN("Matrix::ConvertToVec_AppendCols");
+  ENTER_FCN("Matrix::ConvertToVec_AppendCols");
+  Vector<TYPE> & vec = dynamic_cast<Vector<TYPE>&>(v);
   vec.Resize(size_row_ * size_col_);
   
   for(int actCol=0; actCol < size_col_; actCol++)
@@ -922,138 +860,6 @@ Double* Matrix<Complex>::GetDoublePointer()
 
   return help;
 }
-
-
-Double operator* (std::vector<Double> & vec1, std::vector<Double> & vec2)
-{
-ENTER_IFCN("vector::operator*");
- if (vec1.size() != vec2.size())
-   Error("Wrong dimensions while multiplying two vectors!",__FILE__,__LINE__);
-
-  Double mult = 0;
-  
-  for (Integer i=0; i < vec1.size(); i++)
-    mult += vec1[i]*vec2[i];
-
-  return mult;  
-}
-
-
-
-Double operator* (std::vector<Double> & vec1, Vector<Double> & vec2)
-{
-ENTER_IFCN("vector::operator*");
- if (vec1.size() != vec2.GetSize())
-   Error("Wrong dimensions while multiplying two vectors!",__FILE__,__LINE__);
- 
- Double mult = 0;
- 
- for (Integer i=0; i < vec1.size(); i++)
-   mult += vec1[i]*vec2[i];
- 
- return mult;  
-}
-
-
-
-std::vector<Double> operator*= (std::vector<Double> & vec, Double val)
-{
-ENTER_IFCN("vector::operator*=");
-  for (Integer i=0; i < vec.size(); i++)
-    vec[i] *= val;  
-
-  return vec;
-}
-
-
-std::vector<Double> operator/= (std::vector<Double> & vec, Double val)
-{
-ENTER_IFCN("vector::operator/=");
- for (Integer i=0; i < vec.size(); i++)
-   vec[i] /= val;  
- 
- return vec;
-}
-
-
-Double L2Norm(std::vector<Double> & vec)
-{
-  ENTER_IFCN("vector::L2Norm");
-  Double abs2 = vec*vec;
-  return sqrt(abs2);
-}
-
-
-
-std::vector<Double> operator+ ( std::vector<Double> & vec1,  std::vector<Double> & vec2)
-{
-ENTER_IFCN("vector::operator+");
-
-  if (vec1.size() != vec2.size())
-    Error("Wrong dimensions by adding vectors!",__FILE__,__LINE__);
-
-  std::vector<Double> result(vec1);
-  
-  for (Integer j=0; j < vec2.size(); j++)
-    result[j] += vec2[j];
-
-  return result;
-}
-
-
-std::vector<Double> operator- ( std::vector<Double> & vec1,  std::vector<Double> & vec2)
-{
-ENTER_IFCN("vector::operator-");
-
-  if (vec1.size() != vec2.size())
-    Error("Wrong dimensions by subtracting vectors!",__FILE__,__LINE__);
-
-  std::vector<Double> result(vec1);
-  
-  for (Integer j=0; j < vec2.size(); j++)
-    result[j] -= vec2[j];
-
-  return result;
-}
-
-
-std::vector<Double> operator+= ( std::vector<Double> & vec1,  std::vector<Double> & vec2)
-{
-ENTER_IFCN("vector::operator+=");
-
-  vec1 = vec1 + vec2;
-  
-  return vec1;
-}
-
-
-
-std::vector<Double> operator-= ( std::vector<Double> & vec1,  std::vector<Double> & vec2)
-{
-ENTER_IFCN("vector::operator-");
-  vec1 = vec1 - vec2;
-  
-  return vec1;
-}
-
-
-
-
-std::vector<Double> operator* (Double val, std::vector<Double> & vec)
-{
-ENTER_IFCN("Matrix::operator*");
-
-  if (!vec.size())
-    Error("Vector not defined!",__FILE__,__LINE__);
-  
-  std::vector<Double> result(vec);
-  
-  for (Integer j=0; j < vec.size(); j++)
-    result[j] *= val;
-
-  return result;
-}
-
 
 template<class TYPE> bool Matrix<TYPE>::IsSymmetric() {
   ENTER_FCN( "Matrix::IsSymmetric" );

@@ -79,18 +79,11 @@ namespace CoupledField
   enum IntegrationType {GaussOrder1, GaussOrder2, GaussOrder3, GaussOrder4,
 			GaussOrder5, GaussOrder7, null};
 
-  //! enumeration precondition's types. it is used in methods of LinAlg
-  //enum precond { non, Jacobi, SSOR, LU}; 
-
-  //std::ostream& operator << (std::ostream & out, const enum precond & type);
-  std::ostream& operator << (std::ostream & outStr, std::vector<Double> xOut);
-  std::ostream& operator << (std::ostream & outStr, std::vector<Integer> xOut);
-
   //! Damping type
   enum DampingType{NONE=0, RAYLEIGH=1, FRACTIONAL=2, ABCDAMP=3,
 		   THERMOVISCOUS=4};
 
-  //! Describes all possible solution types in an CFS simulation
+  //! Describes all possible solution types in a CFS simulation
   typedef enum{NO_SOLUTION_TYPE, 
 		 MECH_DISPLACEMENT, MECH_ACCELERATION,
 		 MECH_VELOCITY, MECH_FORCE, 

@@ -345,9 +345,6 @@ void MagPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
 
       // recalculate RHS with new values to get new residual (f^(k+1))========
 #ifndef USE_OLAS    
-      //std::vector<Double>  help;
-      //RhsLinVal_.ToStdVector(help);
-      //algsys_->InitRHS(help);
       algsys_->InitRHS(RhsLinVal_.GetPointer());
 #endif
 
@@ -480,9 +477,6 @@ void MagPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
 
 	// recalculate RHS with new values to get new residual (f^(k+1))========
 #ifndef USE_OLAS    
-	//std::vector<Double>  help;
-	//RhsLinVal_.ToStdVector(help);
-	//algsys_->InitRHS(help);
 	algsys_->InitRHS(RhsLinVal_.GetPointer());
 #endif
 
@@ -617,7 +611,7 @@ Double MagPDE::RhsL2Norm(Vector<Double>& actRHS)
 
 
 
-  // stores an algsys_ vector into a std::vector and returns that L2-norm
+  // stores an algsys_ vector into a StdVector and returns that L2-norm
   void MagPDE::StoreAlgsysToVec(Vector<Double>& vec, Double * pt)
   {
     ENTER_FCN( "MagPDE::StoreAlgsysToVec" );
@@ -710,8 +704,8 @@ Double MagPDE::RhsL2Norm(Vector<Double>& actRHS)
       B_.SetSolutionType(MAG_FIELD);
       B_.SetNumNodes(numElems_);
       B_.SetNumDofs(dim_);
+      B_.SetPtrEQNData(eqnData_);
       B_.Init(0);
-      B_.SetElemMapping(pde2MeshElem_);
       
       // loop over all subdomains
       for (Integer isd=0; isd<calcBfield_.GetSize(); isd++) {
@@ -754,8 +748,8 @@ Double MagPDE::RhsL2Norm(Vector<Double>& actRHS)
       Jeddy_.SetNumNodes(numElems_);
 
       // dimension hard coded for .unv file!
-      Jeddy_.SetNumDofs(3);
-      Jeddy_.SetElemMapping(mesh2PDEElem_);
+      Jeddy_.SetNumDofs(3);  
+      Jeddy_.SetPtrEQNData(eqnData_);
       Jeddy_.Init(0);
 
       // loop over all subdomains
@@ -1272,9 +1266,6 @@ Double MagPDE::RhsL2Norm(Vector<Double>& actRHS)
 
       // recalculate RHS with new values to get new residual (f^(k+1))========
 #ifndef USE_OLAS    
-      //std::vector<Double>  help;
-      //RhsLinVal_.ToStdVector(help);
-      //algsys_->InitRHS(help);
       algsys_->InitRHS(RhsLinVal_.GetPointer());
 #endif
 
@@ -1440,9 +1431,6 @@ void MagPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
 
       // recalculate RHS with new values to get new residual (f^(k+1))========
 #ifndef USE_OLAS    
-      //std::vector<Double>  help;
-      //RhsLinVal_.ToStdVector(help);
-      //algsys_->InitRHS(help);
       algsys_->InitRHS(RhsLinVal_.GetPointer());
 #endif
 
@@ -1578,7 +1566,7 @@ Double MagPDE::RhsL2Norm(Vector<Double>& actRHS)
 //     return actRHS.NormL2();
 //   }
 
-  // stores an algsys_ vector into a std::vector and returns that L2-norm
+  // stores an algsys_ vector into a StdVector and returns that L2-norm
   void MagPDE::StoreAlgsysToVec(Vector<Double>& vec, Double * pt) {
     ENTER_FCN( "MagPDE::StoreAlgsysToVec" );
     //const Integer numElems = numPDENodes_ * dofspernode_;
@@ -1668,8 +1656,8 @@ void MagPDE::PostProcess(const Integer level) {
       B_.SetSolutionType(MAG_FIELD);
       B_.SetNumNodes(numElems_);
       B_.SetNumDofs(dim_);
+      B_.SetPtrEQNData_(eqnData_);
       B_.Init(0);
-      B_.SetElemMapping(pde2MeshElem_);
       
       // loop over all subdomains
       for (Integer isd=0; isd<calcBfield_.GetSize(); isd++) {
@@ -1713,7 +1701,7 @@ void MagPDE::PostProcess(const Integer level) {
 
       // dimension hard coded for .unv file!
       Jeddy_.SetNumDofs(3);
-      Jeddy_.SetElemMapping(mesh2PDEElem_);
+      Jeddy_.SetPtrEQNData_(eqnData_);
       Jeddy_.Init(0);
 
       // loop over all subdomains

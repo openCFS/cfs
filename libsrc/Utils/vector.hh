@@ -34,9 +34,6 @@ public:
   //! Copy constructor
   Vector(const Vector<TYPE> & vec);
 
-  //! Copy constructor with std::vector
-  Vector(const std::vector<TYPE> & vec);
-
   //! Destructor
   ~Vector();  
 
@@ -147,16 +144,10 @@ public:
   //* version of Vector<TYPE>                       *
   //*************************************************
 
-  //! conversion to std::vector
-  void ToStdVector(std::vector<TYPE> &vec) const;
-
-  //! Overloading of operation =
+    //! Overloading of operation =
   Vector	&operator=	(const Vector &);
 
-  //! build vector from std::vector
-  Vector & operator= (const std::vector<TYPE> & vec);
-  
-  //! Assignment operator for base class
+    //! Assignment operator for base class
   CFSVector & operator= (const CFSVector & vec);
 
 

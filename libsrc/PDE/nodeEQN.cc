@@ -37,16 +37,28 @@ void NodeEQN::Mesh2PDENode(StdVector<Integer> & PDENodes,
 }
 
 
-void NodeEQN::CalcMesh2PDENode(StdVector<Integer> & mesh2PDENode,
-			       StdVector<Integer> & pde2MeshNode)
+void NodeEQN::CalcLocalGlobalMapping(StdVector<Integer> & mesh2PDENode,
+				     StdVector<Integer> & pde2MeshNode,
+				     StdVector<Integer> & mesh2PDEElem,
+				     StdVector<Integer> & pde2MeshElem)
 {
-  ENTER_FCN( "NodeEQN::CalcMesh2PDENode" );
+  ENTER_FCN( "NodeEQN::CalcLocalGlobalMapping" );
   
-  mesh2PDENode.Clear();
   mesh2PDENode.Resize(ptGrid_->GetMaxnumnodes(actlevel_));
+  mesh2PDENode.Init(-1);
   pde2MeshNode.Clear();
-  
+  //std::cerr << "Number of global elems " << ptGrid_->GetMaxnumElem(actlevel_);
+  mesh2PDEElem.Resize(ptGrid_->GetMaxnumElem(actlevel_));
+  //std::cerr << "number of local elems " <<ptGrid_->GetMaxnumElem(actlevel_,subdoms_); 
+  mesh2PDEElem.Init(-1);
+  pde2MeshElem.Resize(ptGrid_->GetMaxnumElem(actlevel_,subdoms_));
+  //std::cerr << "Size of pde2MeshElem" << pde2MeshElem.GetSize() << std::endl;
+  pde2MeshElem.Init(-1);
+  //std::cerr << "After init of pde2MeshElem" << std::endl;
+  //std::cerr << "Size of pde2MeshEl
+
   Integer nodeCounter = 0;
+  Integer elemCounter = 1;
  
   StdVector<Elem*> subdom;
  
@@ -57,14 +69,24 @@ void NodeEQN::CalcMesh2PDENode(StdVector<Integer> & mesh2PDENode,
 
       // iterate over all elems in subdomain
       for (Integer iElem=0; iElem<subdom.GetSize(); iElem++)
-	// iterate over all nodes in elem
-	for (Integer iNode=0; iNode<subdom[iElem]->connect.GetSize(); iNode++)
-	  // Check if node was already assigned
-	  if (mesh2PDENode[subdom[iElem]->connect[iNode]-1] == 0)
-	    {
-	      mesh2PDENode[subdom[iElem]->connect[iNode]-1] = ++nodeCounter;
-	      pde2MeshNode.Push_back(subdom[iElem]->connect[iNode]);
-	    }
+	{
+	  // *** Mapping of Elements ***
+	  mesh2PDEElem[subdom[iElem]->elemNum - 1 ] = elemCounter;
+	  pde2MeshElem[elemCounter-1] = subdom[iElem]->elemNum;
+	  elemCounter++;
+
+	  
+	  // *** Mapping of Nodes ***
+	  
+	  // iterate over all nodes in elem
+	  for (Integer iNode=0; iNode<subdom[iElem]->connect.GetSize(); iNode++)
+	    // Check if node was already assigned
+	    if (mesh2PDENode[subdom[iElem]->connect[iNode]-1] == -1)
+	      {
+		mesh2PDENode[subdom[iElem]->connect[iNode]-1] = ++nodeCounter;
+		pde2MeshNode.Push_back(subdom[iElem]->connect[iNode]);
+	      }
+	}
     }
 
   numPDENodes_ = nodeCounter;
