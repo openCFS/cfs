@@ -113,10 +113,11 @@ namespace CoupledField {
    // Do we use damping?
    if( params->HasValue( "type", "rayleigh", pdename_, "damping" ) ) {
      dampingType_ = RAYLEIGH;
-     Info->PrintF(pdename_, " Using RAYLEIGH damping\n" );
+     Info->PrintF( pdename_, " Using RAYLEIGH damping\n" );
    }
    else {
      dampingType_ = NONE;
+     Info->PrintF( pdename_, " Using no damping\n" );
    }
    if( dampingType_ != NONE ) {
      assemble_->NeedDampingMatrix();
@@ -198,73 +199,87 @@ namespace CoupledField {
   }
 
 
-  void PiezoPDE::DefineIntegrators(const Integer level)
-  {
+  // *********************
+  //   DefineIntegrators
+  // *********************
+  void PiezoPDE::DefineIntegrators( const Integer level ) {
     ENTER_FCN( "PiezoPDE::DefineIntegerators" );
 
-  Boolean nonLin = FALSE;
+    Boolean nonLin = FALSE;
 
+    for ( int actSD = 0; actSD < subdoms_.GetSize(); actSD++ ) {
 
-  for (int actSD = 0; actSD < subdoms_.GetSize(); actSD++)
-    {
-
-      // ==============  add stiffness ===========================================
+      // ==============  add stiffness ========================================
 
       MaterialData actSDMat(materialData_[actSD]);
 
-      // ==============  add "standard" stiffness ===============================
+      // ==============  add "standard" stiffness =============================
+
       BaseForm * bilinearStiff = GetStiffIntegrator(actSDMat);
-      IntegratorDescriptor * actIntDescrStiff = new IntegratorDescriptor(bilinearStiff, STIFFNESS);
+      IntegratorDescriptor *actIntDescrStiff =
+	new IntegratorDescriptor(bilinearStiff, STIFFNESS);
       assemble_->AddIntegrator(actIntDescrStiff, subdoms_[actSD]);
       
       //check for damping
-      if (dampingType_ == RAYLEIGH)    
-	{
-	  Boolean isdamping = TRUE;
-	  Boolean reducedIntegration = FALSE; //is currently not supported
-	  BaseForm * dampStiff = GetStiffIntegrator(actSDMat,reducedIntegration,
-						    isdamping);
-	  IntegratorDescriptor * actIntDescrDamp = new IntegratorDescriptor(dampStiff, DAMPING);
-	  assemble_->AddIntegrator(actIntDescrDamp, subdoms_[actSD]);
-	}
+      if ( dampingType_ == RAYLEIGH ) {
+	Boolean isdamping = TRUE;
+	Boolean reducedIntegration = FALSE; //is currently not supported
+	BaseForm * dampStiff = GetStiffIntegrator( actSDMat,reducedIntegration,
+						   isdamping );
+	IntegratorDescriptor *actIntDescrDamp =
+	  new IntegratorDescriptor(dampStiff, DAMPING);
+	assemble_->AddIntegrator(actIntDescrDamp, subdoms_[actSD]);
+      }
 
-	  
-      // ==============  add mass ================================================
+      // ==============  add mass =============================================
       Double density = actSDMat.GetDensity();
       Integer electricPot = 4;
       
-      BaseForm * bilinearMass  = new MassInt(density, dofspernode_, electricPot, isaxi_);
+      BaseForm * bilinearMass  = new MassInt(density, dofspernode_,
+					     electricPot, isaxi_);
 
-      IntegratorDescriptor * actIntDescrMass = new IntegratorDescriptor(bilinearMass, MASS);
+      IntegratorDescriptor * actIntDescrMass =
+	new IntegratorDescriptor(bilinearMass, MASS);
 
       //check for damping (mass part)
       if (dampingType_ == RAYLEIGH)    
-	actIntDescrMass->SetSecondaryMat(DAMPING, actSDMat.GetDampingAlfa(),analysistype_);
-
+	actIntDescrMass->SetSecondaryMat(DAMPING, actSDMat.GetDampingAlfa(),
+					 analysistype_);
       assemble_->AddIntegrator(actIntDescrMass, subdoms_[actSD]);
-
     }
   }
 
 
-  BaseForm *
-  PiezoPDE::GetStiffIntegrator(MaterialData& actSDMat, Boolean reducedInt, Boolean isdamping)
-  {
+  // **********************
+  //   GetStiffIntegrator
+  // **********************
+  BaseForm *PiezoPDE::GetStiffIntegrator( MaterialData& actSDMat,
+					  Boolean reducedInt,
+					  Boolean isdamping ) {
+
     ENTER_FCN( "PiezoPDE::GetStiffIntegrator" );
   
     BaseForm * bilinearStiff;
     
-    if (subType_ == "plainStrain")
-      Error("plainStrain for PiezoPDE currently not supported",__FILE__,__LINE__);
-    //bilinearStiff = new mechPlainStrainInt(actSDMat);
-    else if (subType_ == "axi")
-      Error("axi for PiezoPDE currently not supported",__FILE__,__LINE__);
-    //    bilinearStiff = new mechAxiInt(actSDMat);
-    else if (subType_ == "3d")
-      bilinearStiff = new linPiezo3DInt(actSDMat,isdamping);
-    else 
-      Error("Unknown subtype in mech PDE! ",__FILE__,__LINE__);
-    
+    if ( subType_ == "plainStrain" ) {
+      Error( "plainStrain for PiezoPDE currently not supported",
+	     __FILE__, __LINE__ );
+      // bilinearStiff = new mechPlainStrainInt(actSDMat);
+    }
+
+    else if ( subType_ == "axi" ) {
+      Error( "axi for PiezoPDE currently not supported", __FILE__, __LINE__ );
+      // bilinearStiff = new mechAxiInt(actSDMat);
+    }
+
+    else if ( subType_ == "3d" ) {
+      bilinearStiff = new linPiezo3DInt( actSDMat, isdamping );
+    }
+
+    else {
+      Error( "Unknown subtype in piezo PDE!", __FILE__, __LINE__ );
+    }
+
     return bilinearStiff;
   }
 
@@ -274,18 +289,16 @@ namespace CoupledField {
 // ======================================================
 
 
-void PiezoPDE :: InitTimeStepping(const Double dt)
-{
-  ENTER_FCN( "PiezoPDE::InitTimeStepping" );
+  void PiezoPDE::InitTimeStepping( const Double dt ) {
+    ENTER_FCN( "PiezoPDE::InitTimeStepping" );
 
-  if (effectiveMass_)  
-    TS_alg_ = new NewmarkEffMass(pdename_, algsys_, eqnData_, dampingType_);
-  else
-    TS_alg_ = new Newmark(pdename_, algsys_, eqnData_, dampingType_);
+    if (effectiveMass_)
+      TS_alg_ = new NewmarkEffMass(pdename_, algsys_, eqnData_, dampingType_);
+    else
+      TS_alg_ = new Newmark(pdename_, algsys_, eqnData_, dampingType_);
 
-  TS_alg_->Init(matrix_factor_, dt);
-
-}
+    TS_alg_->Init(matrix_factor_, dt);
+  }
 
 
   void PiezoPDE::WriteResultsInFile()
