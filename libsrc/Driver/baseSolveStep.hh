@@ -259,8 +259,8 @@ namespace CoupledField
 
     Double * matrix_factor_;       //!< factors for compution effective system matrix
     TimeStepping * TS_alg_;        //!< pointer to time-stepping object
-	Double lasttimecalc_;          //!< last time on which we have calculated solution
-	Integer laststepcalc_;         //!< Number of last timestep on which we have calculated 
+    Double lasttimecalc_;          //!< last time on which we have calculated solution
+    Integer laststepcalc_;         //!< Number of last timestep on which we have calculated 
                                    //!< our solution
 
     Boolean pdeIsCoupled_;         //!< TRUE, if PDE is coupled to other ones
@@ -274,7 +274,7 @@ namespace CoupledField
     Integer nonLinMaxIter_;    //!< maximal number of NL-iterations
     std::string nonLinMethod_; //!< method for handling the non-linearity
     Boolean nonLinLogging_;    //!< log progress of non-linear iterations
-	StdVector<NonLinPDE> nonLinPDEName_;//!< some PDEs carry a name (->acoustics!)
+    StdVector<NonLinPDE> nonLinPDEName_;//!< some PDEs carry a name (->acoustics!)
 
   };
 
