@@ -21,17 +21,19 @@ typedef int Boolean;
 //               __LINE__, __FILE__), 0))
 //#endif
 
-//#define TRIANGLE1 1
-//#define TRIANGLE2 2
+#define TRIANGLE1 1
+#define TRIANGLE2 2
 #define QUADRILATERAL1 3
-//#define QUADRILATERAL2 4
+#define QUADRILATERAL2 4
 
 //#define TETRAHEDRA1 10
 //#define TETRAHEDRA2 11
 //#define HEXAHEDRA1 12
 //#define HEXAHEDRA2 13
 
-#define GAUSSINT 1
+#define GaussOrder2 1
+#define GaussOrder3 2
+#define GaussOrder5 4
 
 /// for each level of remeshing we create own GridHierarchy with full information about grid
 template <class Dim>
