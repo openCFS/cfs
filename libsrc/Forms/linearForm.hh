@@ -2,7 +2,7 @@
 #define FILE_LINEARFORM_2
 
 #include "baseForm.hh"
-#include <Forms/nLinElastInt.hh>
+#include "Forms/nLinElastInt.hh"
 #include "Utils/ApproxData.hh"
 
 namespace CoupledField
@@ -22,7 +22,7 @@ public:
   virtual ~LinearForm();
 
   /// Calculation of vector of right hand side 
-  virtual void CalcElemVector(Matrix<Double>& ptCoord, std::vector<Double> & result);
+  virtual void CalcElemVector(Matrix<Double>& ptCoord, Vector<Double> & result);
 };
 
 
@@ -38,13 +38,13 @@ class LinearEdgeInt : public LinearForm
 public:
   ///
   LinearEdgeInt(BaseFE * aptelem, Double val, Integer direction, 
-		std::vector<Double> * coilMidPoint = NULL);
+		Vector<Double> * coilMidPoint = NULL);
 
   ///
   virtual ~LinearEdgeInt();
 
   /// Calculation of vector of right hand side 
-  virtual void CalcElemVector(Matrix<Double>& ptCoord, std::vector<Double> & result);
+  virtual void CalcElemVector(Matrix<Double>& ptCoord, Vector<Double> & result);
 
 private:
   /// source factor
@@ -56,7 +56,7 @@ private:
   Integer direction_;
 
   /// midpoint of coil (needed for circular coils to calculate the current dirction)
-  std::vector<Double> * coilMidPt_;  
+  Vector<Double> * coilMidPt_;  
 };
 
 
@@ -78,7 +78,7 @@ public:
   virtual ~VolumeSrcInt();
 
   /// Calculation of vector of right hand side 
-  virtual void CalcElemVector(Matrix<Double>& ptCoord, std::vector<Double> & result);
+  virtual void CalcElemVector(Matrix<Double>& ptCoord, Vector<Double> & result);
 
 private:
   /// source factor
@@ -107,7 +107,7 @@ public:
   virtual ~ nLinMagNode2D_linFormInt();
 
   /// Calculation of vector of right hand side 
-  virtual void CalcElemVector(Matrix<Double>& ptCoord, std::vector<Double> & result);
+  virtual void CalcElemVector(Matrix<Double>& ptCoord, Vector<Double> & result);
 
  /// in nonlinear calculations, the actual magnetic vector potential of the element is needed
   virtual void SetActElemSol(Matrix<Double>& magPot) 
@@ -119,7 +119,7 @@ protected:
 
   Double startmatVal_;
   ApproxData *nlinFnc_;
-  std::vector<Double> magPot_;
+  Vector<Double> magPot_;
   Matrix<Double> magPotinMatrix_;
 };
 
@@ -143,7 +143,7 @@ public:
   virtual ~nLinMech_linFormInt();
 
   /// Calculation of vector of right hand side 
-  virtual void CalcElemVector(Matrix<Double>& ptCoord, std::vector<Double> & result);
+  virtual void CalcElemVector(Matrix<Double>& ptCoord, Vector<Double> & result);
 
  /// in nonlinear calculations, the actual displacement of the element is needed
   /*!
@@ -193,14 +193,18 @@ class PreStressLinFormInt : public nLinMech_linFormInt
 {
 public:
   /// constructor
-  PreStressLinFormInt(BaseFE * aptelem, MaterialData & matData, Double aPreStressVal, Directions stressDir);
+  PreStressLinFormInt(BaseFE * aptelem, 
+		      MaterialData & matData, 
+		      Double aPreStressVal, 
+		      Directions stressDir);
   
 
   /// destructor
   virtual ~PreStressLinFormInt();
 
   /// Calculation of vector of right hand side 
-  virtual void CalcElemVector(Matrix<Double>& ptCoord, std::vector<Double> & result);
+  virtual void CalcElemVector(Matrix<Double>& ptCoord, 
+			      Vector<Double> & result);
 
 private: 
   ///
@@ -227,7 +231,8 @@ public:
   virtual ~SurfaceIntLinForm();
 
   /// Calculation of vector of right hand side 
-  virtual void CalcElemVector(Matrix<Double>& ptCoord, std::vector<Double> & elemVec);
+  virtual void CalcElemVector(Matrix<Double>& ptCoord, 
+			      Vector<Double> & elemVec);
 
   virtual void SetMultiplier(Double mult){multiplier_ = mult;};
   
@@ -256,16 +261,22 @@ public:
   virtual ~LinearFlowNoiseInt();
 
   /// Calculation of vector of right hand side for the surface elements on the obstacle (dipole)
-  void CalcElemVector4Dip(Matrix<Double>& ptCoord, const Vector<Integer> & connecth, 
-			  std::vector<Double> & Result, const std::vector<Double> gradN_x_P);
+  void CalcElemVector4Dip(Matrix<Double>& ptCoord, 
+			  const StdVector<Integer> & connecth, 
+			  Vector<Double> & Result, 
+			  const Vector<Double> gradN_x_P);
 
   /// Calculation of vector of right hand side given from quadrupole contribution
-  void CalcElemVector4Quad(Matrix<Double>& ptCoord, const Vector<Integer> & connecth,
-			   const Matrix<Double> & FlowData, std::vector<Double> & Result);
+  void CalcElemVector4Quad(Matrix<Double>& ptCoord, 
+			   const StdVector<Integer> & connecth,
+			   const Matrix<Double> & FlowData, 
+			   Vector<Double> & Result);
 
   /// Extraction of element velocity values from total flowdata matrix to a matrix (connecth, dim)
-  void GetQttiesOfElement(Matrix<Double>& elVec, const Matrix<Double>& FlowData,
-			  const Vector<Integer>& connecth, Integer matrixRow);
+  void GetQttiesOfElement(Matrix<Double>& elVec, 
+			  const Matrix<Double>& FlowData,
+			  const StdVector<Integer>& connecth, 
+			  Integer matrixRow);
   
   
 private:

@@ -56,16 +56,16 @@ namespace CoupledField
   {
     ENTER_FCN( "Assemble::~Assemble" );
     
-    for (int i=0; i<integrators_.size();i++)
-      for (int j=0; j<integrators_[i]->size(); j++)
+    for (int i=0; i<integrators_.GetSize();i++)
+      for (int j=0; j<integrators_[i]->GetSize(); j++)
 	delete (*integrators_[i])[j];
 
-    for (int i=0; i<surfintegrators_.size();i++)
-      for (int j=0; j<surfintegrators_[i]->size(); j++)
+    for (int i=0; i<surfintegrators_.GetSize();i++)
+      for (int j=0; j<surfintegrators_[i]->GetSize(); j++)
 	delete (*surfintegrators_[i])[j];
 
-    for (int i=0; i<rhsIntegrators_.size();i++)
-      for (int j=0; j<rhsIntegrators_[i]->size(); j++)
+    for (int i=0; i<rhsIntegrators_.GetSize();i++)
+      for (int j=0; j<rhsIntegrators_[i]->GetSize(); j++)
 	delete (*rhsIntegrators_[i])[j];
   }
 
@@ -74,7 +74,7 @@ namespace CoupledField
   {
     ENTER_FCN( "Assemble::SubDomIndex" );
 
-    for (int i=0; i < subdoms_.size();i++)
+    for (int i=0; i < subdoms_.GetSize();i++)
       {
 	if (subDomName == subdoms_[i]) return i;
       }
@@ -90,7 +90,7 @@ namespace CoupledField
   {
     ENTER_FCN( "Assemble::SurfDomIndex" );
 
-    for (int i=0; i < surfdoms_.size();i++)
+    for (int i=0; i < surfdoms_.GetSize();i++)
       if (surfDomName == surfdoms_[i])
 	return i;
     
@@ -101,7 +101,7 @@ namespace CoupledField
   }
 
 
-  void Assemble::GetElemCoords(const Vector<Integer> connect, 
+  void Assemble::GetElemCoords(const StdVector<Integer> connect, 
 			       Matrix<Double> &coordMat, const Integer level)
   {
     ENTER_FCN( "Assemble:GetElemCoords" );
@@ -113,8 +113,9 @@ namespace CoupledField
 	if (deltaCoords_ == NULL)
 	  Error("ElecPDE: set input_coupling_terms = smoothdisplacement or nonlin = no");
 
-	Vector<Integer> connect_PDE;
-	Mesh2PDENode(connect_PDE, connect, *mesh2PDENode_);
+	StdVector<Integer> connect_PDE;
+	//Mesh2PDENode(connect_PDE, connect, *mesh2PDENode_);
+	ptEQN_->Mesh2PDENode(connect_PDE, connect);
 	Double val;
 	for (Integer i=0; i<coordMat.GetSizeRow(); i++)
 	  for (Integer j=0; j<coordMat.GetSizeCol(); j++) 
@@ -141,17 +142,17 @@ namespace CoupledField
 	reassembleMat_[actMat] = FALSE;
 
     
-    for (int actDom=0; actDom < subdoms_.size(); actDom++)
+    for (int actDom=0; actDom < subdoms_.GetSize(); actDom++)
       {	
-	std::vector<Elem*> elemssd;
+	StdVector<Elem*> elemssd;
 
 	ptgrid_->GetElemSD(elemssd, subdoms_[actDom], level);
 
 
-	for (int actEl=0; actEl< elemssd.size(); actEl++)
+	for (int actEl=0; actEl< elemssd.GetSize(); actEl++)
 	  {
 	    BaseFE * ptEl = elemssd[actEl]->ptElem;
-	    Vector<Integer> connecth = elemssd[actEl]->connect;
+	    StdVector<Integer> connecth = elemssd[actEl]->connect;
 
 
 	    Matrix<Double> ptCoord;
@@ -159,23 +160,23 @@ namespace CoupledField
 
 
 	    // map connect to PDE node numbers
-	    Vector<Integer> connect_PDE;
-	    Mesh2PDENode(connect_PDE, connecth, *mesh2PDENode_);
-
+	    StdVector<Integer> connect_PDE;
+	    
+	    //Mesh2PDENode(connect_PDE, connecth, *mesh2PDENode_);
+	    ptEQN_->Node2EQN(connecth, connect_PDE);
 
 	    Matrix<Double> elSol;
 
 	    // this matrix is nonlinear and, therefore, has to be reassembled next time
 	    if ((oneIntIsNonlin_ || firstTime_ ) && analysisType_ != HARMONIC)
 	      // fetch solution at element nodes
-	      sol_->GetElemSolutionAsMatrix(elSol, connect_PDE);
+	      sol_->GetElemSolutionAsMatrix(elSol, connecth);
 	      
-	    
 	    // ================================================================
 	    //                             assemble matrices
 	    // ================================================================
 
-	    for(Integer actInteg=0; actInteg < integrators_[actDom]->size();
+	    for(Integer actInteg=0; actInteg < integrators_[actDom]->GetSize();
 		actInteg++)
 	      {
 		IntegratorDescriptor * actDescriptor =
@@ -244,15 +245,15 @@ namespace CoupledField
       }
 
      //assemble matrices for surface integrators
-     for (Integer actDom=0; actDom < surfdoms_.size(); actDom++)
+     for (Integer actDom=0; actDom < surfdoms_.GetSize(); actDom++)
       {	
-	std::vector<Elem*> elemssd;
+	StdVector<Elem*> elemssd;
 	elemssd=ptBCs_->getFacesBC(surfdoms_[actDom],level);
 
-	for (int actEl=0; actEl< elemssd.size(); actEl++)
+	for (int actEl=0; actEl< elemssd.GetSize(); actEl++)
 	  {
 	    BaseFE * ptEl = elemssd[actEl]->ptElem;
-	    Vector<Integer> connecth = elemssd[actEl]->connect;
+	    StdVector<Integer> connecth = elemssd[actEl]->connect;
 
 
 	    Matrix<Double> ptCoord;
@@ -260,9 +261,9 @@ namespace CoupledField
 
 
 	    // map connect to PDE node numbers
-	    Vector<Integer> connect_PDE;
-	    Mesh2PDENode(connect_PDE, connecth, *mesh2PDENode_);
-
+	    StdVector<Integer> connect_PDE;
+	    //Mesh2PDENode(connect_PDE, connecth, *mesh2PDENode_);
+	    ptEQN_->Node2EQN(connecth, connect_PDE);
 
 	    Matrix<Double> elSol;
 
@@ -270,14 +271,14 @@ namespace CoupledField
 	    if (oneIntIsNonlin_ || firstTime_)
 	      // fetch solution at element nodes
 	      //GetSolOfElement(elSol, connect_PDE);
-	      sol_->GetElemSolutionAsMatrix(elSol, connect_PDE);
+	      sol_->GetElemSolutionAsMatrix(elSol, connecth);
 	      
 	    
 	    // ================================================================
 	    //                             assemble matrices
 	    // ================================================================
 
-	    for(Integer actInteg=0; actInteg < surfintegrators_[actDom]->size(); actInteg++)
+	    for(Integer actInteg=0; actInteg < surfintegrators_[actDom]->GetSize(); actInteg++)
 	      {
 		IntegratorDescriptor * actDescriptor =
 		  (*surfintegrators_[actDom])[actInteg];
@@ -359,11 +360,11 @@ namespace CoupledField
 
     Vector<Double> harmVec;
 
-     for (Integer actDom=0; actDom <  subdoms_.size(); actDom++)
+     for (Integer actDom=0; actDom <  subdoms_.GetSize(); actDom++)
       {	
-	if (rhsSrcIntegrators_[actDom]->size())
+	if (rhsSrcIntegrators_[actDom]->GetSize())
 	  {
-	    std::vector<Elem*> elemssd;
+	    StdVector<Elem*> elemssd;
 	    ptgrid_->GetElemSD(elemssd, subdoms_[actDom], level);
 	    
 	    Double val_tfunc = 1.0;
@@ -375,25 +376,25 @@ namespace CoupledField
 		val_tfunc=ptTimeFunc_->TimeFuncAtTime(time,fncname_rhs_[actDom]);
 	    }
 
-	    for (Integer actEl=0; actEl< elemssd.size(); actEl++)
+	    for (Integer actEl=0; actEl< elemssd.GetSize(); actEl++)
 	      {	       
 		BaseFE * ptEl = elemssd[actEl]->ptElem;
-		Vector<Integer> connecth = elemssd[actEl]->connect;
+		StdVector<Integer> connecth = elemssd[actEl]->connect;
 		
 		Matrix<Double> ptCoord;
 		GetElemCoords(connecth, ptCoord, level);
 	    
 		// map connect to PDE node numbers
-		Vector<Integer> connect_PDE;
-		Mesh2PDENode(connect_PDE, connecth, *mesh2PDENode_);
-		
-		for(Integer actRhsInt=0; actRhsInt < rhsSrcIntegrators_[actDom]->size(); actRhsInt++)
+		StdVector<Integer> connect_PDE;
+		//Mesh2PDENode(connect_PDE, connecth, *mesh2PDENode_);
+		ptEQN_->Node2EQN(connecth, connect_PDE);
+		for(Integer actRhsInt=0; actRhsInt < rhsSrcIntegrators_[actDom]->GetSize(); actRhsInt++)
 		  {
 		    BaseIntDescriptor * actRhsID = (*rhsSrcIntegrators_[actDom])[actRhsInt];
 		    
 		    actRhsID->GetIntegrator()->SetElemPtr(ptEl);
 		    
-		    std::vector<Double> elemVec;
+		    Vector<Double> elemVec;
 		    actRhsID->GetIntegrator()->CalcElemVector(ptCoord, elemVec);
 		    
 		    if (analysisType_ == HARMONIC) {
@@ -419,7 +420,9 @@ namespace CoupledField
   {
     ENTER_FCN( "Assemble:AssembleRHSNodalSources" );
     
-    for (int actDom=0; actDom < loadDom_.size(); actDom++)
+    Integer loadEQN;
+    
+    for (int actDom=0; actDom < loadDom_.GetSize(); actDom++)
       {
 	std::string doftype = loadDom_[actDom];
 
@@ -442,7 +445,9 @@ namespace CoupledField
 	    Integer node = *p;
 	    
 	    val = loadVals_[actDom] * val_tfunc;
-	    algsys_->SetNodeRHS(val, (*mesh2PDENode_)[node-1], dof);	
+	   
+	    loadEQN = ptEQN_->Node2EQN(node,dof);
+	    algsys_->SetNodeRHS(val, loadEQN, dof);	
 	  }
       }
   }
@@ -460,38 +465,38 @@ namespace CoupledField
 
     Matrix<Double> elemmat;
 
-    for (int actDom=0; actDom < subdoms_.size(); actDom++)
+    StdVector<Elem*> elemssd;
+   
+    for (int actDom=0; actDom < subdoms_.GetSize(); actDom++)
       {	
-	if (rhsIntegrators_[actDom]->size())
+	if (rhsIntegrators_[actDom]->GetSize())
 	  {
-	    std::vector<Elem*> elemssd;
 	    ptgrid_->GetElemSD(elemssd, subdoms_[actDom], level);
-	    
-	    for (int actEl=0; actEl< elemssd.size(); actEl++)
+	
+	    for (int actEl=0; actEl< elemssd.GetSize(); actEl++)
 	      {
 		BaseFE * ptEl = elemssd[actEl]->ptElem;
-		Vector<Integer> connecth = elemssd[actEl]->connect;
-		
-		
+		StdVector<Integer> connecth = elemssd[actEl]->connect;
+
+
 		Matrix<Double> ptCoord;
 		GetElemCoords(connecth, ptCoord, level);
-		
-		
+
+
 		// map connect to PDE node numbers
-		Vector<Integer> connect_PDE;
-		Mesh2PDENode(connect_PDE, connecth, *mesh2PDENode_);
-		
+		StdVector<Integer> connect_PDE;
+		//Mesh2PDENode(connect_PDE, connecth, *mesh2PDENode_);
+		ptEQN_->Node2EQN(connecth, connect_PDE);
 		
 		Matrix<Double> elSol;
 		
-		sol_->GetElemSolutionAsMatrix(elSol, connect_PDE);
-		
+		sol_->GetElemSolutionAsMatrix(elSol, connecth);
 		
 		// ================================================================
 		//                             assemble RHS
 		// ================================================================
 		
-		for(Integer actRhsInt=0; actRhsInt < rhsIntegrators_[actDom]->size(); actRhsInt++)
+		for(Integer actRhsInt=0; actRhsInt < rhsIntegrators_[actDom]->GetSize(); actRhsInt++)
 		  {
 		    BaseIntDescriptor * actRhsID = (*rhsIntegrators_[actDom])[actRhsInt];
 		    
@@ -501,7 +506,7 @@ namespace CoupledField
 		      actRhsID->GetIntegrator()->SetActElemSol(elSol);
 		    
 		    
-		    std::vector<Double> elemVec;
+		    Vector<Double> elemVec;
 		    actRhsID->GetIntegrator()->CalcElemVector(ptCoord, elemVec);
 		    
 		    algsys_->SetElementRHS(&elemVec[0], connect_PDE.GetPointer(), connect_PDE.GetSize());
@@ -532,9 +537,9 @@ namespace CoupledField
 
 
 
-  void Assemble::Mesh2PDENode(Vector<Integer> & PDENodes, 
-			      const Vector<Integer> & MeshNodes,
-			      const std::vector<Integer> & Mesh2PDENode)
+  void Assemble::Mesh2PDENode(StdVector<Integer> & PDENodes, 
+			      const StdVector<Integer> & MeshNodes,
+			      const StdVector<Integer> & Mesh2PDENode)
   {
     ENTER_FCN( "Assemble::Mesh2PDENode" );
     PDENodes.Resize(MeshNodes.GetSize());
@@ -578,7 +583,7 @@ namespace CoupledField
 
     // return, if matrices are not yet assembled
     if (!reassembleMat_.GetSize()) {
-    // if ( reassembleMat_.size() == 0 ) {
+    // if ( reassembleMat_.GetSize() == 0 ) {
       InitMatrices();
       return;
     }
@@ -632,7 +637,10 @@ namespace CoupledField
     if (convectionMatrix_ == 1) matrixsystype[3] = CONVECTION;  // memory for the convection matrix
     if (massMatrix_       == 1) matrixsystype[4] = MASS;        // memory for the mass matrix
     
+    Integer numBuildInDirichletEQNs_ = ptEQN_->GetNumBuildInDirichletEQNs();
+    Integer numDir = numDirichletBCs_ - numBuildInDirichletEQNs_;
     //put to algebraic system
+    
 
 #ifdef USE_OLAS
     olasParams_->SetValue( "FEMatrixType1", matrixsystype[0] );
@@ -641,7 +649,7 @@ namespace CoupledField
     olasParams_->SetValue( "FEMatrixType4", matrixsystype[3] );
     olasParams_->SetValue( "FEMatrixType5", matrixsystype[4] );
     olasParams_->SetValue( "NumDof", dofsPerNode_ );
-    olasParams_->SetValue( "NumDirichletBCs", numDirichletBCs_ );
+    olasParams_->SetValue( "NumDirichletBCs", numDir);
     olasParams_->SetValue( "NumConstraints", numconstraints );
     olasParams_->SetValue( "AuxiliaryMatrix", FALSE);
 
@@ -653,7 +661,6 @@ namespace CoupledField
 #ifdef USE_OLAS
     algsys_->CreateLinSys();
 #else
-    Integer numDir = numDirichletBCs_;
     if (analysisType_ == HARMONIC)
       numDir *=2;
 
@@ -667,8 +674,8 @@ namespace CoupledField
   void Assemble::SetGeneralParams(const std::string & pdename, 
 				  const Integer dofsPerNode,
 				  const Integer numPDENodes, 
-				  const std::vector<std::string> subdoms,
-				  const std::vector<std::string> surfdoms)
+				  const StdVector<std::string> subdoms,
+				  const StdVector<std::string> surfdoms)
   {
     ENTER_FCN( "Assemble::SetGeneralParams" );
 
@@ -690,20 +697,20 @@ namespace CoupledField
     if (dofsPerNode_ != 1)
 
       //check for load data
-      if (loadDom_.size() != loadDof_.size())
+      if (loadDom_.GetSize() != loadDof_.GetSize())
 	{
 	  std::string errmsg = "Inconsistent definition of loads\n";
 	  errmsg += "Dirichlet Boundary Conditions\n";
-	  errmsg += " loadDom_.size() = " + Info->GenStr(loadDom_.size());
-	  errmsg += "\n loadDof_.size() = " + Info->GenStr(loadDof_.size())
+	  errmsg += " loadDom_.size() = " + Info->GenStr(loadDom_.GetSize());
+	  errmsg += "\n loadDof_.size() = " + Info->GenStr(loadDof_.GetSize())
 	    + '\n';
 	  Info->Error( errmsg, __FILE__, __LINE__ );
 	}
     
-    loadVals_.resize(loadDom_.size());
-    fncname_loads_.resize(loadDom_.size());
+    loadVals_.Resize(loadDom_.GetSize());
+    fncname_loads_.Resize(loadDom_.GetSize());
 
-    for( int i = 0; i < loadDom_.size(); i++ )
+    for( int i = 0; i < loadDom_.GetSize(); i++ )
       {
 	conf->get2(loadDom_[i], loadVals_[i], fncname_loads_[i], pdename_,
 		   "bc_conditions","loads");
@@ -716,37 +723,37 @@ namespace CoupledField
     params->GetList( "dynamics", fncname_loads_, pdename_, "load" );
 
     // Check consistency
-    if ( loadDom_.size() != loadDof_.size() ||
-	 loadDom_.size() != loadVals_.size() )
+    if ( loadDom_.GetSize() != loadDof_.GetSize() ||
+	 loadDom_.GetSize() != loadVals_.GetSize() )
       {
 	std::string errmsg = "Loads: ";
-	errmsg += "#name = " + Info->GenStr(loadDom_.size());
-	errmsg += ", #dof = " + Info->GenStr(loadDof_.size());
-	errmsg += ", #value = " + Info->GenStr(loadVals_.size());
-	errmsg += ", #dynamics = " + fncname_loads_.size() + '\n';
+	errmsg += "#name = " + Info->GenStr(loadDom_.GetSize());
+	errmsg += ", #dof = " + Info->GenStr(loadDof_.GetSize());
+	errmsg += ", #value = " + Info->GenStr(loadVals_.GetSize());
+	errmsg += ", #dynamics = " + fncname_loads_.GetSize() + '\n';
 	Info->Error( errmsg, __FILE__, __LINE__ );
       }
 
     // We need not have as many function/filenames as loads!
-    for ( Integer k = fncname_loads_.size(); k < loadDom_.size(); k++ )
+    for ( Integer k = fncname_loads_.GetSize(); k < loadDom_.GetSize(); k++ )
       {
-	fncname_loads_.push_back( "none" );
+	fncname_loads_.Push_back( "none" );
       }
 #endif
 
 #ifdef DEBUG
-    (*debug) << "Assemble::SetGeneralParams: We got " << loadDom_.size()
+    (*debug) << "Assemble::SetGeneralParams: We got " << loadDom_.GetSize()
 	     << " interfaces with loads" << std::endl;
-    (*debug) << "Loads: #interfaces = " << loadDom_.size()
-	     << ", #dof = " << loadDof_.size()
-	     << ", #value = " << loadVals_.size()
-	     << ", #dynamics = " << fncname_loads_.size() << std::endl;
-    for ( unsigned int k = 0; k < loadDom_.size(); k++ )
+    (*debug) << "Loads: #interfaces = " << loadDom_.GetSize()
+	     << ", #dof = " << loadDof_.GetSize()
+	     << ", #value = " << loadVals_.GetSize()
+	     << ", #dynamics = " << fncname_loads_.GetSize() << std::endl;
+    for ( UInt k = 0; k < loadDom_.GetSize(); k++ )
       {
 	(*debug) << "Loads: interface = " << loadDom_[k]
 		 << ", dof = " << loadDof_[k]
 		 << ", value = " << loadVals_[k];
-	if ( k < fncname_loads_.size() )
+	if ( k < fncname_loads_.GetSize() )
 	  {
 	    (*debug) << ", dynamics = " << fncname_loads_[k] << std::endl;
 	  }
@@ -758,21 +765,21 @@ namespace CoupledField
 #endif
 
     // for every domain, we need an own integrator list ==========
-    integrators_.resize(subdoms_.size());
-    rhsSrcIntegrators_.resize(subdoms_.size());
-    fncname_rhs_.resize(subdoms_.size());
+    integrators_.Resize(subdoms_.GetSize());
+    rhsSrcIntegrators_.Resize(subdoms_.GetSize());
+    fncname_rhs_.Resize(subdoms_.GetSize());
 
-    surfintegrators_.resize(surfdoms_.size());
-    rhsIntegrators_.resize(subdoms_.size());
-    for (int i=0; i<subdoms_.size();i++)
+    surfintegrators_.Resize(surfdoms_.GetSize());
+    rhsIntegrators_.Resize(subdoms_.GetSize());
+    for (int i=0; i<subdoms_.GetSize();i++)
       {
-	integrators_[i] = new std::vector<IntegratorDescriptor *>;
-	rhsSrcIntegrators_[i] = new std::vector<BaseIntDescriptor *>;
-	rhsIntegrators_[i] = new std::vector<BaseIntDescriptor *>;
+	integrators_[i] = new StdVector<IntegratorDescriptor *>;
+	rhsSrcIntegrators_[i] = new StdVector<BaseIntDescriptor *>;
+	rhsIntegrators_[i] = new StdVector<BaseIntDescriptor *>;
       }
 
-    for (int i=0; i<surfdoms_.size();i++)
-      surfintegrators_[i] = new std::vector<IntegratorDescriptor *>;
+    for (int i=0; i<surfdoms_.GetSize();i++)
+      surfintegrators_[i] = new StdVector<IntegratorDescriptor *>;
   }
   
 
@@ -801,21 +808,21 @@ namespace CoupledField
   Integer fe_type;
 #endif
   
-  Vector<Integer> connecth;
-
-  for (nsub=0; nsub<subdoms_.size(); nsub++)
+  StdVector<Integer> connecth;
+  StdVector<Integer> connect_PDE;
+  for (nsub=0; nsub<subdoms_.GetSize(); nsub++)
     {
-      std::vector<Elem*> elemssd;
+      StdVector<Elem*> elemssd;
       ptgrid_->GetElemSD(elemssd,subdoms_[nsub],actlevel_);
 
-      for (iel=0; iel < elemssd.size(); iel++)
+      for (iel=0; iel < elemssd.GetSize(); iel++)
 	{  
 	  ptElem=elemssd[iel]->ptElem;
-	  //Map Mesh Node numbers to PDE node numbers
-	  Mesh2PDENode(connecth,elemssd[iel]->connect, *mesh2PDENode_);
+	  connecth = elemssd[iel]->connect;
+	  ptEQN_->Node2EQN(connecth, connect_PDE);
 
 	  fe_type=elemssd[iel]->ptElem->feType();
-	  algsys_->SetElementPos(connecth.GetPointer(),connecth.GetSize(),fe_type);
+	  algsys_->SetElementPos(connect_PDE.GetPointer(),connect_PDE.GetSize(),fe_type);
 	}
     }
   }
@@ -854,7 +861,7 @@ namespace CoupledField
   {
     ENTER_FCN( "Assemble::AddRhsIntegrator" );
     BaseIntDescriptor * actRhsID = new  BaseIntDescriptor(integrator, nonLin);
-    rhsIntegrators_[SubDomIndex(subDomName)]->push_back(actRhsID);
+    rhsIntegrators_[SubDomIndex(subDomName)]->Push_back(actRhsID);
   }
 
 
@@ -866,7 +873,7 @@ namespace CoupledField
   {
     ENTER_FCN( "Assemble::AddRhsSrcIntegrator" );
     BaseIntDescriptor * actRhsID = new  BaseIntDescriptor(integrator, nonLin);
-    rhsSrcIntegrators_[SubDomIndex(subDomName)]->push_back(actRhsID);
+    rhsSrcIntegrators_[SubDomIndex(subDomName)]->Push_back(actRhsID);
     fncname_rhs_[SubDomIndex(subDomName)] = fncname;
   }
 
@@ -878,7 +885,7 @@ namespace CoupledField
   {
     ENTER_FCN( "Assemble::AddRhsSrcIntegrator" );
     BaseIntDescriptor * actRhsID = new  BaseIntDescriptor(integrator, nonLin);
-    rhsSrcIntegrators_[SubDomIndex(subDomName)]->push_back(actRhsID);
+    rhsSrcIntegrators_[SubDomIndex(subDomName)]->Push_back(actRhsID);
     rhsSrcPhase_[SubDomIndex(subDomName)] = phaseval;
   }
 
@@ -940,7 +947,7 @@ namespace CoupledField
 
     IntegratorDescriptor * actID =
       new IntegratorDescriptor(integrator, actMatType, nonLin);
-    integrators_[SubDomIndex(subDomName)]->push_back(actID);
+    integrators_[SubDomIndex(subDomName)]->Push_back(actID);
   }
 
 
@@ -966,7 +973,7 @@ namespace CoupledField
       return;
 
     IntegratorDescriptor * actID = new IntegratorDescriptor(integrator, actMatType, nonLin);
-    surfintegrators_[SurfDomIndex(subDomName)]->push_back(actID);
+    surfintegrators_[SurfDomIndex(subDomName)]->Push_back(actID);
   }
 #else
   /// define integrators
@@ -989,7 +996,7 @@ namespace CoupledField
     IntegratorDescriptor * actID =
       new IntegratorDescriptor(integrator, actMatType, nonLin);
 
-    surfintegrators_[SurfDomIndex(subDomName)]->push_back(actID);
+    surfintegrators_[SurfDomIndex(subDomName)]->Push_back(actID);
   }
 #endif
 
@@ -1005,7 +1012,7 @@ namespace CoupledField
     if (actID->DestMat() !=  SYSTEM)
       return;
 
-    integrators_[SubDomIndex(subDomName)]->push_back(actID);
+    integrators_[SubDomIndex(subDomName)]->Push_back(actID);
   }
     
 
@@ -1038,7 +1045,7 @@ namespace CoupledField
       Info->Error("In transient assembling, no SYSTEM matrix may be defined directly", __FILE__, __LINE__);
     
     IntegratorDescriptor * actID = new IntegratorDescriptor(integrator, destinationMatrix, nonLin);
-    integrators_[SubDomIndex(subDomName)]->push_back(actID);
+    integrators_[SubDomIndex(subDomName)]->Push_back(actID);
   }
 #else
   /// define integrators
@@ -1052,7 +1059,7 @@ namespace CoupledField
 
     IntegratorDescriptor * actID =
       new IntegratorDescriptor(integrator, destinationMatrix, nonLin);
-    integrators_[SubDomIndex(subDomName)]->push_back(actID);
+    integrators_[SubDomIndex(subDomName)]->Push_back(actID);
   }
 #endif
 
@@ -1067,7 +1074,7 @@ namespace CoupledField
       Info->Error("In transient assembling, no SYSTEM matrix may be defined directly", __FILE__, __LINE__);
 
     IntegratorDescriptor * actID = new IntegratorDescriptor(integrator, destinationMatrix, nonLin);
-    surfintegrators_[SurfDomIndex(subDomName)]->push_back(actID);
+    surfintegrators_[SurfDomIndex(subDomName)]->Push_back(actID);
   }
 #else
 
@@ -1086,7 +1093,7 @@ namespace CoupledField
     
     IntegratorDescriptor * actID =
       new IntegratorDescriptor(integrator, destinationMatrix, nonLin);
-    surfintegrators_[SurfDomIndex(subDomName)]->push_back(actID);
+    surfintegrators_[SurfDomIndex(subDomName)]->Push_back(actID);
   }
 #endif
 
@@ -1102,7 +1109,7 @@ namespace CoupledField
     if (actID->DestMat() == SYSTEM)
       Info->Error("In transient assembling, no SYSTEM matrix may be defined directly", __FILE__, __LINE__);
 
-    integrators_[SubDomIndex(subDomName)]->push_back(actID);
+    integrators_[SubDomIndex(subDomName)]->Push_back(actID);
   }
 
 
@@ -1282,7 +1289,9 @@ namespace CoupledField
     IntegratorDescriptor * actID = new IntegratorDescriptor(integrator,
 							    matType, nonLin);
     actID->SetOrigMatrixType(actMatType);
-    integrators_[SubDomIndex(subDomName)]->push_back(actID);
+
+    integrators_[SubDomIndex(subDomName)]->Push_back(actID);
+
   }
 
 #else
@@ -1310,7 +1319,7 @@ namespace CoupledField
       new IntegratorDescriptor(integrator, matType, nonLin);
     actID->SetOrigMatrixType(actMatType);
     
-    integrators_[SubDomIndex(subDomName)]->push_back(actID);
+    integrators_[SubDomIndex(subDomName)]->Push_back(actID);
   }
 
 
@@ -1340,7 +1349,7 @@ namespace CoupledField
     IntegratorDescriptor * actID = new IntegratorDescriptor(integrator, matType, nonLin);
     actID->SetOrigMatrixType(actMatType);
 
-    surfintegrators_[SurfDomIndex(subDomName)]->push_back(actID);
+    surfintegrators_[SurfDomIndex(subDomName)]->Push_back(actID);
   }
 #else
   /// define integrators
@@ -1368,7 +1377,7 @@ namespace CoupledField
       new IntegratorDescriptor(integrator, matType, nonLin);
     actID->SetOrigMatrixType(actMatType);
 
-    surfintegrators_[SurfDomIndex(subDomName)]->push_back(actID);
+    surfintegrators_[SurfDomIndex(subDomName)]->Push_back(actID);
 
   }
 #endif
@@ -1389,7 +1398,7 @@ namespace CoupledField
 	 Error(error_msg.c_str());
        }
 
-    integrators_[SubDomIndex(subDomName)]->push_back(actID);
+    integrators_[SubDomIndex(subDomName)]->Push_back(actID);
   }
 
 

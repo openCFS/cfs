@@ -2,8 +2,9 @@
 #define FILE_PLAIN_XML_PARAMHANDLER
 
 #include "General/environment.hh"
+#include "Utils/StdVector.hh"
 #include <fstream>
-#include <vector>
+
 
 namespace CoupledField
 {
@@ -98,7 +99,7 @@ namespace CoupledField
     //! \param subsection Name of a subsection in which to look for keyword
     //!                   (optional)
     void GetList( const std::string key,
-		  std::vector<std::string> &list,
+		  StdVector<std::string> &list,
 		  const std::string section = "",
 		  const std::string subsection = "" );
 
@@ -118,7 +119,7 @@ namespace CoupledField
     //! \param subsection Name of a subsection in which to look for keyword
     //!                   (optional)
     void GetList( const std::string key,
-		  std::vector<Double> &list,
+		  StdVector<Double> &list,
 		  const std::string section = "",
 		  const std::string subsection = "" );
 
@@ -127,7 +128,7 @@ namespace CoupledField
     //! This method queries the parameter object for a list of all PDEs defined
     //! in the parameter file. The list is returned as a vector of standard
     //! strings.
-    void GetPDEList( std::vector<std::string> &list );
+    void GetPDEList( StdVector<std::string> &list );
 
     //! Query the on/off status of a flag/switch
 
@@ -198,28 +199,28 @@ namespace CoupledField
 
     //! To find the final and the initial positions for required elements
     //! with keys: section, subsection, etc.
-    void FindPosElems( std::vector<std::string> keys, int level,
-		       std::vector<sType> & s_elems,
-		       std::vector<sType> & e_elems,
-		       std::vector<sType> s_section,
-		       std::vector<sType> e_section);
+    void FindPosElems( StdVector<std::string> keys, int level,
+		       StdVector<sType> & s_elems,
+		       StdVector<sType> & e_elems,
+		       StdVector<sType> s_section,
+		       StdVector<sType> e_section);
     
     //! To find the final and the initial positions for required elements
     //! with keys: section, subsection, etc., where the last key is an
     //! attribute.
-    void FindPosAttrs( std::vector<std::string> keys, int level,
-		       std::vector<sType> & s_elems,
-		       std::vector<sType> & e_elems,
-		       std::vector<sType> s_section,
-		       std::vector<sType> e_section);
+    void FindPosAttrs( StdVector<std::string> keys, int level,
+		       StdVector<sType> & s_elems,
+		       StdVector<sType> & e_elems,
+		       StdVector<sType> s_section,
+		       StdVector<sType> e_section);
 
     //! To find the final and initial positions of required elements with the
     //! key
     void getElems( const std::string key,
-		   std::vector<sType> & s_elems,
-		   std::vector<sType> & e_elems,
-		   std::vector<sType> s_section,
-		   std::vector<sType> e_section,
+		   StdVector<sType> & s_elems,
+		   StdVector<sType> & e_elems,
+		   StdVector<sType> s_section,
+		   StdVector<sType> e_section,
 		   sType start=0,
 		   const int type = 1 );
 
@@ -227,24 +228,24 @@ namespace CoupledField
     //! key
     void getAttr(const std::string attr,
 		 const std::string element,
-		 std::vector<sType> & s_elems,
-		 std::vector<sType> & e_elems,
-		 std::vector<sType> s_section,
-		 std::vector<sType> e_section,
+		 StdVector<sType> & s_elems,
+		 StdVector<sType> & e_elems,
+		 StdVector<sType> s_section,
+		 StdVector<sType> e_section,
 		 sType start=0);
     
     //! Find position of the input keyword key in the file
     sType findPos( const std::string key, sType start );
 
     //! Read values of an element
-    void ReadValuesElem( std::vector<std::string> & list,
-			 std::vector<sType> s_elems,
-			 std::vector<sType> e_elems );
+    void ReadValuesElem( StdVector<std::string> & list,
+			 StdVector<sType> s_elems,
+			 StdVector<sType> e_elems );
     
     //! Read attributes of an element
-    void ReadAttrsElem( std::vector<std::string> & list,
-			std::vector<sType> s_elems,
-			std::vector<sType> e_elems );
+    void ReadAttrsElem( StdVector<std::string> & list,
+			StdVector<sType> s_elems,
+			StdVector<sType> e_elems );
 
     //! Read the position of the end of an element
     sType findEndPosElementType2( sType start );

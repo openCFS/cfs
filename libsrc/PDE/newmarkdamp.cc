@@ -8,9 +8,9 @@
 namespace CoupledField
 {
 
-NewmarkDamp :: NewmarkDamp(std::string apdename, BaseSystem * algebraicsystem, Integer dofspernode, 
-		   Integer numnode, Integer adamping, Integer afrac_memory, Double damp)
-:TimeStepping(apdename, algebraicsystem)
+NewmarkDamp :: NewmarkDamp(std::string apdename, BaseSystem * algebraicsystem, NodeEQN * ptEQN, 
+		   Integer adamping, Integer afrac_memory, Double damp)
+:TimeStepping(apdename, algebraicsystem, ptEQN)
 {
 #ifdef TRACE
   (*trace) << "entering NewmarkDamp::NewmarkDamp" << std::endl;
@@ -29,16 +29,19 @@ NewmarkDamp :: NewmarkDamp(std::string apdename, BaseSystem * algebraicsystem, I
   conf->ifget("beta_NM",beta_,pdename_); 
   conf->ifget("gamma_NM",gamma_,pdename_);
 
+  Integer numEQNs = ptEQN_->GetNumEQNs();
+  Integer dofs = ptEQN_->GetNumDofsPerEQN();
+
   //get the memory
-  solderiv1_.Resize(dofspernode * numnode);  
+  solderiv1_.Resize(numEQNs * dofs);  
   solderiv1_.Init();
-  solderiv2_.Resize(dofspernode * numnode);  
+  solderiv2_.Resize(numEQNs * dofs);  
   solderiv2_.Init();
   
 
   solpred_.Resize(dofspernode * numnode); 
   solpred_.init();
-  solderiv1pred_.Resize(dofspernode *  numnode); 
+  solderiv1pred_.Resize(numEQNs * dofs); 
   solderiv1pred_.Init();
   
   if (frac_memory_==0)
@@ -48,7 +51,7 @@ NewmarkDamp :: NewmarkDamp(std::string apdename, BaseSystem * algebraicsystem, I
   solfrac_ = new Vector<Double>[frac_memory_];
   for (Integer i=0; i<frac_memory_; i++)
     {
-      solfrac_[i].Resize(dofspernode * numnode);  
+      solfrac_[i].Resize(numEQNs * dofs);  
       solfrac_[i].Init();
     }
 }

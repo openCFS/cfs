@@ -31,10 +31,10 @@ public:
   virtual void WriteGrid(const Integer level);
 
    //! write vectorial cell data
-  virtual void WriteNodeSolution(const StoreSol<Double>& sol, const Integer step, const Double time, const std::string title);
+  virtual void WriteNodeSolution(const NodeStoreSol<Double>& sol, const Integer step, const Double time, const std::string title);
   
   //!
-  virtual void WriteElemSolution(const StoreSol<Double>& data, const Integer step, const Double time, const std::string title);
+  virtual void WriteElemSolution(const ElemStoreSol<Double>& data, const Integer step, const Double time, const std::string title);
 
   //! write comments
   /*!

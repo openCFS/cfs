@@ -1,11 +1,13 @@
 #ifndef FILE_PDECOUPLING_2003
 #define FILE_PDECOUPLING_2003
 
-#include <General/environment.hh>
-#include <Utils/vector.hh>
 #include <list>
-#include <DataInOut/MaterialData.hh>
-#include <Utils/basestoresol.hh>
+
+#include "General/environment.hh"
+#include "Utils/vector.hh"
+#include "Utils/StdVector.hh"
+#include "DataInOut/MaterialData.hh"
+
 namespace CoupledField
 {
 
@@ -33,14 +35,14 @@ class PDECoupling
     std::string region;                    //!< name of coupling region
     CouplingRegionType regionType;        //!< type of coupling region (defined in 'environment.hh')
     Integer level;                        //!< multigrid level
-    std::vector<Integer> nodes;           //!< vector of coupling nodes 
-    std::vector<Elem*> elements;          //!< vector of coupling elements
-    std::vector<Elem*> neighbours;        //!< vector of neighbour elements
-    std::vector<Elem*> oppositePdeNeighbours;//!< vector of neighbour elements of "opposite" PDE 
-    std::vector<MaterialData*> materials; //!< vector of materials at coupling interface
-    std::vector<MaterialData*> oppositePdeMaterials; //!< vector of materials at coupling interface of "opposite" PDE
-    BaseStoreSol * values;                //!< array containing coupling values
-    BaseStoreSol * oldValues;             //!< array containing coupling values of previous iteration step
+    StdVector<Integer> nodes;           //!< vector of coupling nodes 
+    StdVector<Elem*> elements;          //!< vector of coupling elements
+    StdVector<Elem*> neighbours;        //!< vector of neighbour elements
+    StdVector<Elem*> oppositePdeNeighbours;//!< vector of neighbour elements of "opposite" PDE 
+    StdVector<MaterialData*> materials; //!< vector of materials at coupling interface
+    StdVector<MaterialData*> oppositePdeMaterials; //!< vector of materials at coupling interface of "opposite" PDE
+    CFSVector * values;                //!< array containing coupling values
+    CFSVector * oldValues;             //!< array containing coupling values of previous iteration step
     ShortInt dof;                         //!< dof of coupling values
     Integer numNodes;                     //!< number of couplingnodes
     Integer numElems;                     //!< number of couplingelements
@@ -77,7 +79,7 @@ public:
 			std::string region,
 			CouplingRegionType regionType, 
 			Integer level,
-			std::vector<PDECoupling*> & couplings);
+			StdVector<PDECoupling*> & couplings);
   
   //! set PDE
   virtual void SetPDE(BasePDE * aPDE);
@@ -101,7 +103,7 @@ public:
   virtual Integer GetNumOutputCouplings();
 
 
-  //! creates a new StoreSolution-object for the 
+  //! creates a new CFSVector-object for the 
   //! couplingvalues.
   //! This method has to be called from the according
   //! PDE in the method 'InitCoupling'
@@ -110,9 +112,8 @@ public:
     \param solType (input) Type of Solution (ref. Enum-type)
     \param isComplex (inut) True if values are complex
   */
-  virtual void CreateStoreSol(Integer i,
-			      SolutionType solType, 
-			      Boolean isComplex);
+  virtual void CreateCouplingVector(Integer i,
+				    Boolean isComplex);
   
   // ------------ input coupling -----------
 
@@ -137,27 +138,27 @@ public:
   { return inputInterfaces_[i]->level; }
 
  //! get input coupling region nodes
-  virtual void GetInputNodes(Integer i, std::vector<Integer>* &nodes)
+  virtual void GetInputNodes(Integer i, StdVector<Integer>* &nodes)
   { nodes  = &(inputInterfaces_[i]->nodes);}
 
   //! get input coupling region elements
-  virtual void GetInputElements(Integer i, std::vector<Elem *>*  &elements)
+  virtual void GetInputElements(Integer i, StdVector<Elem *>*  &elements)
   { elements = &(inputInterfaces_[i]->elements);}
 
   //! get input neighbour elements
-  virtual void GetInputNeighbourElems(Integer i, std::vector<Elem *>*  &elements)
+  virtual void GetInputNeighbourElems(Integer i, StdVector<Elem *>*  &elements)
   { elements = &(inputInterfaces_[i]->neighbours);}
 
    //! get input coupling region material
-  virtual void GetOppositeMaterials(Integer i, std::vector<MaterialData *>*  &mat)
+  virtual void GetOppositeMaterials(Integer i, StdVector<MaterialData *>*  &mat)
   { mat = &(outputInterfaces_[i]->oppositePdeMaterials);}
 
   //! get input coupling values
-  virtual void GetInputValues(Integer i, BaseStoreSol* &values)
+  virtual void GetInputValues(Integer i, CFSVector* &values)
   { values = (inputInterfaces_[i]->values);}
 
   //! get input coupling values
-  virtual void GetInputOldValues(Integer i, BaseStoreSol* &values)
+  virtual void GetInputOldValues(Integer i, CFSVector* &values)
   { values = (inputInterfaces_[i]->oldValues);}
 
   //! get input coupling values dof
@@ -203,27 +204,27 @@ public:
   { return outputInterfaces_[i]->level; }
   
   //! get output coupling region nodes
-  virtual void GetOutputNodes(Integer i, std::vector<Integer>* &nodes)
+  virtual void GetOutputNodes(Integer i, StdVector<Integer>* &nodes)
   { nodes  = &(outputInterfaces_[i]->nodes);}
 
   //! get output coupling region elements
-  virtual void GetOutputElements(Integer i, std::vector<Elem *>* &elements)
+  virtual void GetOutputElements(Integer i, StdVector<Elem *>* &elements)
   { elements = &(outputInterfaces_[i]->elements);}
 
   //! get output neighbour elements
-  virtual void GetOutputNeighbourElems(Integer i, std::vector<Elem *>*  &elements)
+  virtual void GetOutputNeighbourElems(Integer i, StdVector<Elem *>*  &elements)
   { elements = &(outputInterfaces_[i]->neighbours);}
 
   //! get output coupling region materials
-  virtual void GetOwnMaterials(Integer i, std::vector<MaterialData *>* &mat)
+  virtual void GetOwnMaterials(Integer i, StdVector<MaterialData *>* &mat)
   { mat = &(outputInterfaces_[i]->materials);} 
 
   //! get output coupling values
-  virtual void GetOutputValues(Integer i, BaseStoreSol* &values)
+  virtual void GetOutputValues(Integer i, CFSVector* &values)
   { values = (outputInterfaces_[i]->values);}
 
   //! get old output coupling values
-  virtual void GetOutputOldValues(Integer i, BaseStoreSol* &values)
+  virtual void GetOutputOldValues(Integer i, CFSVector* &values)
   { values = (outputInterfaces_[i]->oldValues);}
 
   //! get output coupling values dof
@@ -273,14 +274,14 @@ protected:
 
 
   // Coupling Output parameters
-  std::vector<CouplingOutputType> outputTypes_;      //!< vector containing types of coupling output
-  std::vector<std::string> outputQuantities_;        //!< vector containing quantities of coupling output
-  std::vector<CouplingInterface*> outputInterfaces_; //!< vector containing pointer to coupling interfaces
+  StdVector<CouplingOutputType> outputTypes_;      //!< vector containing types of coupling output
+  StdVector<std::string> outputQuantities_;        //!< vector containing quantities of coupling output
+  StdVector<CouplingInterface*> outputInterfaces_; //!< vector containing pointer to coupling interfaces
 
   // Coupling Input parameters
-  std::vector<CouplingInputType> inputTypes_;        //!< vector containing types of coupling input
-  std::vector<std::string> inputQuantities_;         //!< vector conatining quantities of coupling input
-  std::vector<CouplingInterface*> inputInterfaces_;  //!< vector containing pointer to coupling interfaces
+  StdVector<CouplingInputType> inputTypes_;        //!< vector containing types of coupling input
+  StdVector<std::string> inputQuantities_;         //!< vector conatining quantities of coupling input
+  StdVector<CouplingInterface*> inputInterfaces_;  //!< vector containing pointer to coupling interfaces
   
   // defautl values for coupling
   Double defaultEpsilon;

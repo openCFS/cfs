@@ -39,7 +39,7 @@ public:
     \param CornerCoords (input) Corner coordinates of the element
     \param Displacement (input) Displacement of the corner points (same ordering as CornerCoords!!)
   */
-  virtual Double CalcDistortion(Matrix<Double> &cornerCoords, Vector<Double> &size, Array<Double> &displacements);
+  virtual Double CalcDistortion(Matrix<Double> &cornerCoords, Vector<Double> &size, Matrix<Double> &displacements);
   
 protected:
 

@@ -3,8 +3,10 @@
 
 #include <list>
 
+#include "Utils/StdVector.hh"
 #include "Domain/elem.hh"
-#include "Utils/storesol.hh"
+#include "Utils/nodestoresol.hh"
+#include "Utils/elemstoresol.hh"
 #include "General/environment.hh"
 #include "Domain/bcs.hh"
 #include "DataInOut/timefunc.hh"
@@ -25,7 +27,7 @@
 #include "CoupledPDE/pdecoupling.hh"
 #include "Driver/assemble.hh"
 #include "timestepping.hh"
-#include "baseEQN.hh"
+#include "nodeEQN.hh"
 
 namespace CoupledField
 {
@@ -75,19 +77,19 @@ class SpaceErrorEstimator;
     virtual void WriteGeneralPDEdefines();
 
     //! retruns the load names
-    std::vector<std::string>& GetLoadDom()
+    StdVector<std::string>& GetLoadDom()
     {return assemble_->loadDom_;};
 
     //! returns the load dofs
-    std::vector<std::string>& GetLoadDof()
+    StdVector<std::string>& GetLoadDof()
     {return assemble_->loadDof_;};
 
     //! returns the load values
-    std::vector<Double>& GetLoadVals()
+    StdVector<Double>& GetLoadVals()
     {return assemble_->loadVals_;};
 
     //!returns the load functions
-    std::vector<std::string>& GetLoadFncs()
+    StdVector<std::string>& GetLoadFncs()
     {return assemble_->fncname_loads_;};
 
     // ======================================================
@@ -229,7 +231,7 @@ class SpaceErrorEstimator;
     virtual std::string GetName() {return pdename_;}
 
     //! return pointer to vector with subdomains, on which we calculate the PDE
-    virtual std::vector<std::string> * getSDsPDE()
+    virtual StdVector<std::string> * getSDsPDE()
     { return &subdoms_;}
 
     //! returns if PDE can compute the quantity
@@ -258,17 +260,17 @@ class SpaceErrorEstimator;
     Integer GetNumRestraints(const Integer level=-1);
 
     //! return assignment array Mesh2PDENode
-    inline std::vector<Integer> & GetMesh2PDENode() {return mesh2PDENode_;}
+    inline StdVector<Integer> & GetMesh2PDENode() {return mesh2PDENode_;}
 
     //! return assignment array PDE2MeshNode
-    inline std::vector<Integer> & GetPDE2MeshNode() {return pde2MeshNode_;}
+    inline StdVector<Integer> & GetPDE2MeshNode() {return pde2MeshNode_;}
     
     //! computes the coordinates of an element including the delta
     //! \param connect (input) global node numbers of element
     //! \param ptCoord (output) coordinates of the element nodes
     //!                (nrNodes \f$\times\f$ spaceDim);
     //! \param level (input) index for multilevel hierarchy
-    virtual void GetElemCoords(const Vector< Integer > connect,
+    virtual void GetElemCoords(const StdVector< Integer > connect,
 			       Matrix< Double > &coordMat,
 			       const Integer level);
 
@@ -278,9 +280,9 @@ class SpaceErrorEstimator;
       \param MeshNodes (input) Vector of mesh node numbers
       \param Mesh2PDENode (input) Vector assigning PDE to mesh node numbers
     */
-    virtual void Mesh2PDENode(Vector<Integer> & PDENodes, 
-			      const Vector<Integer> & MeshNodes,
-			      const std::vector<Integer> & Mesh2PDENode);
+    virtual void Mesh2PDENode(StdVector<Integer> & PDENodes, 
+			      const StdVector<Integer> & MeshNodes,
+			      const StdVector<Integer> & Mesh2PDENode);
   
     //! returns the local global Mesh node numbers of an array of nodes
     /*!
@@ -288,9 +290,9 @@ class SpaceErrorEstimator;
       \param PDENodes (input) Vector of PDE node numbers
       \param PDE2MeshNode (input) Vector assigning mesh to PDE  node numbers
     */
-    virtual void PDE2MeshNode(Vector<Integer> & MeshNodes, 
-			      const Vector<Integer> & PDENodes,
-			      const std::vector<Integer> & PDE2MeshNode);
+    virtual void PDE2MeshNode(StdVector<Integer> & MeshNodes, 
+			      const StdVector<Integer> & PDENodes,
+			      const StdVector<Integer> & PDE2MeshNode);
     //@}
 
     // Does this method belong to postproc section?
@@ -339,9 +341,9 @@ class SpaceErrorEstimator;
       \param pde2MeshNode (output) Vector assigning PDE to mesh node numbers
       \param subdoms (input) Vector of subdomains which are to be mapped
     */
-    virtual void AssignPDENodeNumbers(std::vector<Integer> & mesh2PDENode,
-				      std::vector<Integer> & pde2MeshNode,
-				      const std::vector<std::string> & subdoms);
+    virtual void AssignPDENodeNumbers(StdVector<Integer> & mesh2PDENode,
+				      StdVector<Integer> & pde2MeshNode,
+				      const StdVector<std::string> & subdoms);
 
 
     //! assign local PDE element numbers to own subdomains
@@ -351,9 +353,9 @@ class SpaceErrorEstimator;
       \param subdoms (input) Vector of subdomains which are to be mapped
     */
     //! \todo Elena: Is there a Mapping of Elements in adapted grids?
-    virtual void AssignPDEElemNumbers(std::vector<Integer> & mesh2PDEElem,
-				      std::vector<Integer> & pde2MeshElem,
-				      const std::vector<std::string> & subdoms);
+    virtual void AssignPDEElemNumbers(StdVector<Integer> & mesh2PDEElem,
+				      StdVector<Integer> & pde2MeshElem,
+				      const StdVector<std::string> & subdoms);
     
 
 #ifdef ADAPTGRID  
@@ -364,10 +366,10 @@ class SpaceErrorEstimator;
 
 
     /// returns the time derivative of the solution belonging to all nodes of the actual element
-    void GetDerivSolOfElement(Matrix<Double>& sol, Vector<Integer>& connect_PDE);
+    void GetDerivSolOfElement(Matrix<Double>& sol, StdVector<Integer>& connect_PDE);
 
     /// returns the vector of time derivative of the solution belonging to all nodes of the actual element
-    void GetDerivSolVecOfElement(Vector<Double>& sol, Vector<Integer>& connect_PDE);
+    void GetDerivSolVecOfElement(Vector<Double>& sol, StdVector<Integer>& connect_PDE);
 
     /// calc the normal vector of a line element (for acoustic coupling)
     void CalcLineNormalVec(Vector<Double>& n, Matrix<Double>& ptCoord);
@@ -393,10 +395,10 @@ class SpaceErrorEstimator;
     Grid * ptgrid_;        //!< pointer to grid object
 
     //! subdomain-levels belonging to PDE
-    std::vector<std::string> subdoms_;
+    StdVector<std::string> subdoms_;
 
     //! surface-domain-levels belongig to PDE
-    std::vector<std::string> surfdoms_;
+    StdVector<std::string> surfdoms_;
 
     // Assignment MeshNodeNumers <-> PDENodeNumbers
     // Note: PDE/Mesh-Node numbers start with 1, but the arrayindex always
@@ -404,16 +406,16 @@ class SpaceErrorEstimator;
     // PDENode = Mesh2PDENode[PDENode - 1]
 
     //! vector containing PDE (=local) node numbers
-    std::vector<Integer> mesh2PDENode_;
+    StdVector<Integer> mesh2PDENode_;
 
     //! vector containing Mesh (=global) node numbers
-    std::vector<Integer> pde2MeshNode_;
+    StdVector<Integer> pde2MeshNode_;
    
     //! vector containing PDE (=local) element numbers
-    std::vector<Integer> mesh2PDEElem_;
+    StdVector<Integer> mesh2PDEElem_;
 
     //! vector containing Mesh (=global) element numbers
-    std::vector<Integer> pde2MeshElem_;
+    StdVector<Integer> pde2MeshElem_;
     //@}
 
     // -----------------------------------------------------------------------
@@ -446,7 +448,7 @@ class SpaceErrorEstimator;
     std::list<Integer> couplingNodes;    
 
     //! elements at which coupling terms are calculated
-    std::vector<Elem*> couplingElements;
+    StdVector<Elem*> couplingElements;
 
     //! iteration counter for coupled PDE solution process
     Integer iterCoupledCounter_;
@@ -472,43 +474,43 @@ class SpaceErrorEstimator;
     //! \name Attributes connected to the handling of boundary conditions
 
     //! names of interfaces with homogeneous Dirichlet boundary conditions
-    std::vector<std::string> bcs_hd_;
+    StdVector<std::string> bcs_hd_;
 
     //! names of interfaces with inhomogeneous Dirichlet boundary conditions
-    std::vector<std::string> bcs_id_;
+    StdVector<std::string> bcs_id_;
 
     //! names of surfaces with homogeneous von Neumann boundary conditions
-    std::vector<std::string> bcs_nh_;
+    StdVector<std::string> bcs_nh_;
 
     //! names of surfaces with inhomogeneous von Neumann boundary conditions
-    std::vector<std::string> bcs_ni_;
+    StdVector<std::string> bcs_ni_;
 
     //! names of surfaces with inhomogeneous Robin boundary conditions
-    std::vector<std::string> bcs_rh_;
+    StdVector<std::string> bcs_rh_;
 
     //! names of surfaces with inhomogeneous Robin boundary conditions
-    std::vector<std::string> bcs_ri_;
+    StdVector<std::string> bcs_ri_;
 
     //! values of solution at inhomogeneous Dirichlet boundaries
-    std::vector<Double> val_id_;
+    StdVector<Double> val_id_;
 
     //! set, if BCs already set (shouldn't this better be a bool?)
     Integer updateBCs_;
 
     //! names of the time functions for inhomogeneous Dirichlet BCs
-    std::vector<std::string> fncnames_id_;
+    StdVector<std::string> fncnames_id_;
 
     //! degrees of freedom (e.g. ux) of homogenous Dirichlet BC
 
     //! This is a vector of strings, which describe the degrees of freedom
     //! (e.g. ux) that are fixed at a certain interface by the homogenous
     //! Dirichlet boundary conditions.
-    std::vector<std::string> homDirichDof_;
+    StdVector<std::string> homDirichDof_;
 
     //! This is a vector of strings, which describe the degrees of freedom
     //! (e.g. ux) that are fixed at a certain interface by the inhomogenous
     //! Dirichlet boundary conditions.
-    std::vector<std::string> inhomDirichDof_;
+    StdVector<std::string> inhomDirichDof_;
 
     //! pointer to boundary condition object
     BCs *ptBCs_;
@@ -544,7 +546,7 @@ class SpaceErrorEstimator;
     SpaceErrorEstimator * ptError_;
 
     //! array where  we store the number of refinement for the element
-    Vector<Double> markingElems_;
+    StdVector<Double> markingElems_;
 
     Vector<Double> errorMap_;  //!< array with error map
     Double tolSpaceErr_;       //!< tolerance
@@ -617,9 +619,9 @@ class SpaceErrorEstimator;
     ShortInt dim_;              //!< space dimension of pde
     Boolean isaxi_;             //!< TRUE: axisymmetric problem
     Boolean isComplex_;         //!< true, if some part of PDE is complex (Material, solution)
-    BaseEQN * EqnData_;         //!< equation handling
+    NodeEQN * eqnData_;         //!< equation handling
 
-      BaseStoreSol * sol_;      //!< solution
+    BaseStoreSol * sol_;        //!< solution
 
     Boolean initMatrices_; //!< true, if matrix is set up each iteration step
 

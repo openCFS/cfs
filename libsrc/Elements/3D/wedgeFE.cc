@@ -11,44 +11,38 @@
 namespace CoupledField
 {
 
-  WedgeFE::WedgeFE()
-  {
-#ifdef TRACE
-    (*trace) << "entering WedgeFE::WedgeFE" << std::endl;
-#endif
+WedgeFE::WedgeFE()
+{
+  ENTER_FCN( "WedgeFE::WedgeFE" );
 
-    Dim_      = 3;
-    NumEdges_ = 9;
-    NumFaces_ = 5;
-    //    numChilds_ = 8;
-
+  Dim_      = 3;
+  NumEdges_ = 9;
+  NumFaces_ = 5;
+  //    numChilds_ = 8;
+  
 #ifndef XMLPARAMS
-    std::string integtype = "GaussOrder2";
-    std::string IntRule;
-    if (conf->ifget("IntegRules", IntRule)==TRUE)
-      conf->ifget("wedge", integtype, "IntegRules");
+  std::string integtype = "GaussOrder2";
+  std::string IntRule;
+  if (conf->ifget("IntegRules", IntRule)==TRUE)
+    conf->ifget("wedge", integtype, "IntegRules");
 #else
-    std::string integtype;
-    params->Get( "type", integtype, "integRules", "wedge" );
+  std::string integtype;
+  params->Get( "type", integtype, "integRules", "wedge" );
 #endif
-
-    IntegType = String2EnumIntegrationType(integtype.c_str());
-
-    //  isSetAtCenter_=FALSE;
-  }
-
-  WedgeFE::~WedgeFE()
-  {
-#ifdef TRACE
-    (*trace) << "entering WedgeFE::~WedgeFE" << std::endl;
-#endif
-  }
+  
+  IntegType = String2EnumIntegrationType(integtype.c_str());
+  
+  //  isSetAtCenter_=FALSE;
+}
+  
+WedgeFE::~WedgeFE()
+{
+  ENTER_FCN( "WedgeFE::~WedgeFE" );
+}
 
 void WedgeFE::SetIntPoints()
-  {
-#ifdef TRACE
-    (*trace) << "entering WedgeFE::SetIntPoints" << std::endl;
-#endif
+{
+  ENTER_FCN( "WedgeFE::SetIntPoints" );
 
     switch(IntegType)
       {
@@ -63,18 +57,18 @@ void WedgeFE::SetIntPoints()
 	NumIntPoints_ = 6;
 	DegreeInteg_  = 3;
 
-	IntWeights_.resize(NumIntPoints_);
+	IntWeights_.Resize(NumIntPoints_);
 	// weights are different for the lower and upper integration points
-	for(Integer i=0; i<IntWeights_.size(); i++)
+	for(Integer i=0; i<IntWeights_.GetSize(); i++)
 	  {
 	    IntWeights_[i] = 0.25*1.732050808;
 	  }
 	
 	if (!IntPoints_)
-	  IntPoints_ = new std::vector<Double>[NumIntPoints_];
+	  IntPoints_ = new Vector<Double>[NumIntPoints_];
 
 	for(Integer i=0; i<NumIntPoints_; i++)
-	  IntPoints_[i].resize(Dim_);
+	  IntPoints_[i].Resize(Dim_);
 
 	IntPoints_[0][0] =  1.0;
 	IntPoints_[0][1] =  0.0;

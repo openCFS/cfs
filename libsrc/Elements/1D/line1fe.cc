@@ -9,25 +9,20 @@ namespace CoupledField
 
 Line1FE :: Line1FE() : LineFE()
 {
-#ifdef TRACE
-  (*trace) << "entering Line1FE::Line1FE" << std::endl;
-#endif
+  ENTER_FCN( "Line1FE::Line1FE" );
 
   Init();
 }
   
 Line1FE :: ~Line1FE()
 {
-#ifdef TRACE
-  (*trace) << "entering Line1FE::~Line1FE" << std::endl;
-#endif
+  ENTER_FCN( "Line1FE::~Line1FE" );
 }
 
 void Line1FE :: Init()
 {
-#ifdef TRACE
-  (*trace) << "entering Line1FE::Init" << std::endl;
-#endif  
+  ENTER_FCN( "Line1FE::Init" );
+
   NumNodes_ = 2;
   SetIntPoints();
   SetCornerCoords();
@@ -37,9 +32,7 @@ void Line1FE :: Init()
 
 void Line1FE :: SetCornerCoords()
 {
-#ifdef TRACE
-  (*trace) << "entering Line1FE::SetCornerCoords" << std::endl;
-#endif
+  ENTER_FCN( "Line1FE::SetCornerCoords" );
 
   LCornerCoords_.Resize(Dim_,NumNodes_);
   
@@ -48,14 +41,12 @@ void Line1FE :: SetCornerCoords()
 
 }
 
-void Line1FE :: CalcShapeFnc(std::vector<Double> & Shape, 
-			     const std::vector<Double> & LCoord)
+void Line1FE :: CalcShapeFnc(Vector<Double> & Shape, 
+			     const Vector<Double> & LCoord)
 {
-#ifdef TRACE
-  (*trace) << "entering Line1FE::CalcShapeFnc" << std::endl;
-#endif
+  ENTER_FCN( "Line1FE::CalcShapeFnc" );
 
-  Shape.resize(NumNodes_);
+  Shape.Resize(NumNodes_);
   
   for( Integer i=0; i<NumNodes_; i++)
     Shape[i] = 0.5*(1+LCornerCoords_[0][i] * LCoord[0]);
@@ -64,11 +55,9 @@ void Line1FE :: CalcShapeFnc(std::vector<Double> & Shape,
 
 
 void Line1FE :: CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
-				       const std::vector<Double> & LCoord)
+				       const Vector<Double> & LCoord)
 {
-#ifdef TRACE
-  (*trace) << "entering Line1FE::CalcLocalDerivShapeFnc" << std::endl;
-#endif
+  ENTER_FCN( "Line1FE::CalcLocalDerivShapeFnc" );
 
   LDeriv.Resize(NumNodes_,Dim_);
 

@@ -9,25 +9,20 @@ namespace CoupledField
 
 Quad2FE :: Quad2FE() : RectangleFE()
 {
-#ifdef TRACE
-  (*trace) << "entering Quad2FE::Quad2FE" << std::endl;
-#endif
+  ENTER_FCN( "Quad2FE::Quad2FE" );
 
   Init();
 }
   
 Quad2FE :: ~Quad2FE()
 {
-#ifdef TRACE
-  (*trace) << "entering Quad2FE::~Quad2FE" << std::endl;
-#endif
+  ENTER_FCN( "Quad2FE::~Quad2FE" );
 }
 
 void Quad2FE :: Init()
 {
-#ifdef TRACE
-  (*trace) << "entering Quad2FE::Init" << std::endl;
-#endif  
+  ENTER_FCN( "Quad2FE::Init" );
+
   NumNodes_ = 8;
   SetIntPoints();
   SetCornerCoords();
@@ -37,9 +32,7 @@ void Quad2FE :: Init()
 // Should be called SetNodalCoords!!
 void Quad2FE :: SetCornerCoords()
 {
-#ifdef TRACE
-  (*trace) << "entering Quad2FE::SetCornerCoords" << std::endl;
-#endif
+  ENTER_FCN( "Quad2FE::SetCornerCoords" );
 
   LCornerCoords_.Resize(Dim_,NumNodes_);
   
@@ -63,14 +56,12 @@ void Quad2FE :: SetCornerCoords()
 
 }
 
-void Quad2FE :: CalcShapeFnc(std::vector<Double> & Shape, 
-			     const std::vector<Double> & LCoord)
+void Quad2FE :: CalcShapeFnc(Vector<Double> & Shape, 
+			     const Vector<Double> & LCoord)
 {
-#ifdef TRACE
-  (*trace) << "entering Quad2FE::CalcShapeFnc" << std::endl;
-#endif
+  ENTER_FCN( "Quad2FE::CalcShapeFnc" );
 
-  Shape.resize(NumNodes_);
+  Shape.Resize(NumNodes_);
    // From Zienkiewicz, The Finite Element Method. Vol 1, page 122.
  // corner nodes
   for( Integer i=0; i<(NumNodes_/2); i++)
@@ -90,11 +81,9 @@ void Quad2FE :: CalcShapeFnc(std::vector<Double> & Shape,
 
 
 void Quad2FE :: CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
-				       const std::vector<Double> & LCoord)
+				       const Vector<Double> & LCoord)
 {
-#ifdef TRACE
-  (*trace) << "entering Quad2FE::CalcLocalDerivShapeFnc" << std::endl;
-#endif
+  ENTER_FCN( "Quad2FE::CalcLocalDerivShapeFnc" );
 
   LDeriv.Resize(NumNodes_,Dim_);
 
@@ -131,11 +120,9 @@ void Quad2FE :: CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv,
 }
 
 
-Double Quad2FE::CalcMeanStrain(Matrix<Double> &cornerCoords, Array<Double> &displacements)
+Double Quad2FE::CalcMeanStrain(Matrix<Double> &cornerCoords, Matrix<Double> &displacements)
 {
-#ifdef TRACE
-  (*trace) << "entering Quad2FE::CalcDistortion" << std::endl;
-#endif
+  ENTER_FCN( "Quad2FE::CalcDistortion" );
 
  std::cout << "Quad2FE::CalcDistortion. This function has not yet been implemented in quadratic quadrilaterals" << std::endl;
 

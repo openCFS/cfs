@@ -139,7 +139,7 @@ namespace CoupledField
     skelfile_->clear();
     skelfile_->open(strcat(filename,".conf"),std::ios_base::app);
 
-    std::vector<std::string> sd;
+    StdVector<std::string> sd;
     Integer dim = meshfile_-> ReadDim();
     if (dim == 3)
       {
@@ -149,12 +149,12 @@ namespace CoupledField
 
 	meshfile_->ReadEl3dConf(sd);
 	(*skelfile_) << "# -- SUBDOMAINS" 
-		     << std::endl << "subdomains = " << sd.size() << std::endl << std::endl;
+		     << std::endl << "subdomains = " << sd.GetSize() << std::endl << std::endl;
 
 	(*skelfile_) << "# -- LIST OF SUBDOMAINS (for each subdomain, specify the material name)" 
 		     << std::endl;
 	(*skelfile_) << "list_subdomains: " << std::endl;
-	for (Integer i=0; i<sd.size(); i++)
+	for (Integer i=0; i<sd.GetSize(); i++)
 	  (*skelfile_) << "\t" << sd[i] << " = XXX" << std::endl;
 	(*skelfile_) << std::endl;
       }
@@ -162,18 +162,18 @@ namespace CoupledField
     else if (dim == 2)
       {
 	//subdomains consists of 2d elements
- 	std::vector<std::string> sd;
+ 	StdVector<std::string> sd;
 	if (meshfile_->GetNum2DElems() == 0)
 	  Error("2D-Problem specified, but no 2D-Elements in mesh-File",__FILE__,__LINE__);
 
 	meshfile_->ReadEl2dConf(sd);
 	(*skelfile_) << "# -- SUBDOMAINS" 
-		     << std::endl << "subdomains = " << sd.size() << std::endl << std::endl;
+		     << std::endl << "subdomains = " << sd.GetSize() << std::endl << std::endl;
 
 	(*skelfile_) << "# -- LIST OF SUBDOMAINS (SPECIFY FOR EACH SUBDOMAIN THE MATERIAL NAME)" 
 		     << std::endl;
 	(*skelfile_) << "list_subdomains: " << std::endl;
-	for (Integer i=0; i<sd.size(); i++)
+	for (Integer i=0; i<sd.GetSize(); i++)
 	  (*skelfile_) << "\t" << sd[i] << " = XXX" << std::endl;
 	(*skelfile_) << std::endl;
       }
@@ -192,18 +192,18 @@ namespace CoupledField
     (*trace) << "Entering SkeletonConf::WriteLists" << std::endl;
 #endif
 
-    std::vector<std::string> sd;
+    StdVector<std::string> sd;
     Integer dim = meshfile_-> ReadDim();
     if (dim == 3)
       {
 	//check for 2D-interface elements
 	if (meshfile_->GetNum2DElems() != 0)
 	  {
-	    sd.clear();
+	    sd.Clear();
 	    meshfile_->ReadEl2dConf(sd);
 	    (*skelfile_) << "# -- LIST OF FACES" 
 			 << std::endl << "list_faces = " ;
-	    for (Integer i=0; i<sd.size(); i++)
+	    for (Integer i=0; i<sd.GetSize(); i++)
 	      (*skelfile_) << sd[i] << " ";
 	    (*skelfile_) << "non" << std::endl << std::endl;
 	  }
@@ -214,11 +214,11 @@ namespace CoupledField
 	//check for 1D-interface elements
 	if (meshfile_->GetNum1DElems() != 0)
 	  {
-	    sd.clear();
+	    sd.Clear();
 	    meshfile_->ReadEl1dConf(sd);
 	    (*skelfile_) << "# -- LIST OF EDGES" 
 			 << std::endl << "list_edges = " ;
-	    for (Integer i=0; i<sd.size(); i++)
+	    for (Integer i=0; i<sd.GetSize(); i++)
 	      (*skelfile_) << sd[i] << " ";
 	    (*skelfile_) << "non" << std::endl << std::endl;
 	  }
@@ -227,11 +227,11 @@ namespace CoupledField
     //check for node-list
     if (meshfile_->GetNumBCs() != 0)
       {
-	sd.clear();
+	sd.Clear();
 	meshfile_->ReadBCsConf(sd);
 	(*skelfile_) << "# -- LIST OF NODES (has to be finished by \"non\") " 
 		     << std::endl << "list_nodes = " ;
-	for (Integer i=0; i<sd.size(); i++)
+	for (Integer i=0; i<sd.GetSize(); i++)
 	  (*skelfile_) << sd[i] << " ";
 	(*skelfile_) << "non" << std::endl << std::endl;
       }
@@ -242,11 +242,11 @@ namespace CoupledField
 
     if (meshfile_->GetNumSaveNodes() )
       {
-	sd.clear();
+	sd.Clear();
 	meshfile_->ReadLevelOfSaveNodes(sd);
 	(*skelfile_) << "# -- LIST OF SAVE NODE LEVELS (has to be finished by \"non\") "
 		     << std::endl << "save_nodes = " ;
-	for (Integer i=0; i<sd.size(); i++)
+	for (Integer i=0; i<sd.GetSize(); i++)
 	  (*skelfile_) << sd[i] << " ";
 	(*skelfile_) << "non" << std::endl << std::endl;	  
       }

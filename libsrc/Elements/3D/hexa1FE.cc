@@ -9,25 +9,20 @@ namespace CoupledField
 
 Hexa1FE::Hexa1FE():HexaFE()
 { 
-#ifdef TRACE
-  (*trace) << "entering Hexa1FE::Hexa1FE" << std::endl;
-#endif
-   Init();
+  ENTER_FCN( "Hexa1FE::Hexa1FE" );
+
+  Init();
 }
 
 Hexa1FE::~Hexa1FE()
 {
-#ifdef TRACE
-  (*trace) << "entering Hexa1FE::~Hexa1FE" << std::endl;
-#endif
- ; 
+  ENTER_FCN( "Hexa1FE::~Hexa1FE" );
+
 }
 
 void Hexa1FE::Init()
 {
-#ifdef TRACE
-  (*trace) << "entering Hexa1FE::Init" << std::endl;
-#endif
+  ENTER_FCN( "Hexa1FE::Init" );
   
   Dim_ = 3;
   NumNodes_ = 8;
@@ -48,9 +43,7 @@ void Hexa1FE::Init()
 
 void Hexa1FE::SetCornerCoords()
 {
-#ifdef TRACE
-  (*trace) << "entering Hexa1FE::SetCornerCoords" << std::endl;
-#endif
+  ENTER_FCN( "Hexa1FE::SetCornerCoords" );
 
   LCornerCoords_.Resize(Dim_,NumNodes_);
   
@@ -90,14 +83,12 @@ void Hexa1FE::SetCornerCoords()
 
 
 
-void Hexa1FE :: CalcShapeFnc(std::vector<Double> & Shape, 
-			     const std::vector<Double> & LCoord)
+void Hexa1FE :: CalcShapeFnc(Vector<Double> & Shape, 
+			     const Vector<Double> & LCoord)
 {
-#ifdef TRACE
-  (*trace) << "entering Hexa1FE::CalcShapeFnc" << std::endl;
-#endif
+  ENTER_FCN( "Hexa1FE::CalcShapeFnc" );
 
-  Shape.resize(NumNodes_);
+  Shape.Resize(NumNodes_);
 
  
   for( Integer i=0; i<NumNodes_; i++)
@@ -107,11 +98,9 @@ void Hexa1FE :: CalcShapeFnc(std::vector<Double> & Shape,
 }
 
 void Hexa1FE::CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
-				       const std::vector<Double> & LCoord)
+				     const Vector<Double> & LCoord)
 {
-#ifdef TRACE
-  (*trace) << "entering Hexa1FE::CalcLocalDerivShapeFnc" << std::endl;
-#endif
+  ENTER_FCN( "Hexa1FE::CalcLocalDerivShapeFnc" );
 
   LDeriv.Resize(NumNodes_,Dim_);
 

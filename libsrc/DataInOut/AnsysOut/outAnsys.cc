@@ -123,7 +123,7 @@ void WriteResultsAnsys::WriteCells(const Integer alevel)
   Integer numelem; 
   numelem=ptgrid->GetMaxnumElem(level);
 
-  Vector<Integer> connect;
+  StdVector<Integer> connect;
   Integer dim=ptgrid->GetDim();
 
   Integer f=8; // format of output
@@ -239,7 +239,7 @@ void WriteResultsAnsys::WriteNodeSolution(const Vector<Double> & sol, const Inte
 
   Integer i;
   if (NeedHistory_)
-    for (i=0; i<nodeshist_.size(); i++) {
+    for (i=0; i<nodeshist_.GetSize(); i++) {
       if (sol.GetSize()<=nodeshist_[i])
         Error("Please, check history-nodes in config-file.",__FILE__,__LINE__);
       if (lastsavetime[i] != time )

@@ -1,15 +1,16 @@
 #ifndef FILE_BASESTORESOL_2004
 #define FILE_BASESTORESOL_2004
 
-#include <vector>
 #include <iostream>
 #include <map>
 
+#include "Utils/StdVector.hh"
 #include "DataInOut/WriteInfo.hh"
 #include "PDE/nodeEQN.hh"
 #include "General/environment.hh"
 #include "Utils/tools.hh"
 #include "Utils/vector.hh"
+#include "PDE/nodeEQN.hh"
 
 
 namespace CoupledField{
@@ -77,7 +78,10 @@ public:
   //! by the help of type casts.
   virtual BaseStoreSol & operator= (const BaseStoreSol & x) = 0;
 
-
+  //! Set Pointer to nodal equation object
+  virtual void SetPtrEQNData(NodeEQN * ptNodeEQN)
+  {Error( "Not implemented here", __FILE__, __LINE__);}
+ 
   //! Deletes all data and layout information
 
   //! Deletes all data and layout information.
@@ -86,6 +90,14 @@ public:
   //! SetNumDofs() or SetSolutionType().
   virtual void Clear() = 0;
   
+  //! Initialization of the StoreSolution-object with 0-entries (REQUIRED)
+  
+  //! Initializes the object AFTER the other layout
+  //! functions have been called with a given value
+  //! \note Only after calling Init(), the object can
+  //! store information
+  virtual void Init()
+  {Error("BaseStoreSol::Init() not implemented here", __FILE__, __LINE__);}  
   
   //! Initialization of the StoreSolution-object (REQUIRED)
   
@@ -97,7 +109,7 @@ public:
     \param val (input) Value the object gets initialized with
   */
   virtual void Init(const Double val)
-  {Info->Error("BaseStoreSol::Init() not implemented here", __FILE__, __LINE__);}
+  {Error("BaseStoreSol::Init() not implemented here", __FILE__, __LINE__);}
   
   //  virtual void Init(const Complex val)
   //  {Error("BaseStoreSol::Init() not implemented here", __FILE__, __LINE__);}
@@ -149,7 +161,7 @@ public:
   /*!
     \param solTypes (output) Vector of solution types
   */
-  virtual void GetSolutionTypes(std::vector<SolutionType> &solTypes) const = 0;
+  virtual void GetSolutionTypes(StdVector<SolutionType> &solTypes) const = 0;
 
 
   //! Return total number of dofs
@@ -391,32 +403,40 @@ public:
   // pde to mesh solution and vice versa //
   /////////////////////////////////////////
 
+  virtual void GetElemSolution(CFSVector & elemSol,
+			       const StdVector<Integer> & connect) const
+  {Error ("Not implemented here", __FILE__, __LINE__);}
+
   //! 
   virtual void GetElemSolutionAsMatrix(CFSMatrix & elemSol,
-				       Vector<Integer> & connect) const = 0;
-
-  //!
-  virtual void TransformNodeSolution(BaseStoreSol & transformedSolution,
-				     const std::vector<Integer> & mapping,
-				     Grid * ptGrid,
-				     const Integer level) const = 0;
+				       const StdVector<Integer> & connect) const
+  {Error ("Not implemented here", __FILE__, __LINE__);}
   
   //!
-  virtual void TransformElemSolution(BaseStoreSol & transformedSolution,
-				     const std::vector<Integer> & mapping,
+  virtual void TransformNodeSolution(CFSVector & transformedSolution,
 				     Grid * ptGrid,
-				     const Integer level) const = 0;
+				     const Integer level) const
+  {Error ("Not implemented here", __FILE__, __LINE__);}
+  
+  //!
+  virtual void TransformElemSolution(CFSVector & transformedSolution,
+				     Grid * ptGrid,
+				     StdVector<Integer> & mapping,
+				     const Integer level) const
+  {Error ("Not implemented here", __FILE__, __LINE__);}
   
   //! maps the local node solution to the coupling nodes
   virtual
-  void NodeSolutionToCoupling(BaseStoreSol & couplingSol,
-			      const std::vector<Integer>& nodeNumbers,
-			      const std::vector<Integer> & mapping) const= 0;
+  void NodeSolutionToCoupling(CFSVector & couplingSol,
+			      const StdVector<Integer>& nodeNumbers) const
+  {Error ("Not implemented here", __FILE__, __LINE__);}
   
   //! maps the local element solution to the coupling nodes
-  virtual void ElemSolutionToCoupling(BaseStoreSol & couplingSol,
-				      const std::vector<Elem*>& elements,
-				      const CFSVector & elemSol) const = 0;
+  virtual void ElemSolutionToCoupling(CFSVector & couplingSol,
+				      const StdVector<Elem*>& elements,
+				      const CFSVector & elemSol) const
+  {Error ("Not implemented here", __FILE__, __LINE__);}  
+    
 
   // ==========================================================
   // DECLARATION OF INTERFACES FOR NON-DOUBLE STORESOL-CLASSES
@@ -462,7 +482,7 @@ public:
 protected:
   
   //! Pointer to equation class
-  //NodeEQN * ptNodeEQN_;
+  NodeEQN * ptEQN_;
   
 
   //! Number of nodes
@@ -479,6 +499,9 @@ protected:
   //! (= numNodes * sumOf(solDofs_[i]))
   Integer length_;
 
+
+  //! 
+  Integer lengthVector_;
   
   //! Contains order of solution types
 
@@ -496,12 +519,18 @@ protected:
   std::map<SolutionType,Integer> solOffset_;
 
 
+  //! Stores offset
+  Integer eqnOffset_;
+
   //! Contains number of dofs for each quantity
   std::map<SolutionType,Integer> solDofs_;
  
  
   //! Total number of dofs 
   Integer totalDofs_;
+
+  //! Number of equation dofs
+  Integer eqnDofs_;
 
   //! Array for convertin complex data to double
 

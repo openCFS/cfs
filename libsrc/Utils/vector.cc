@@ -6,8 +6,7 @@
 #include <string>
 
 #include "vector.hh"
-#include <Matrix/matrix.hh>
-
+#include "Matrix/matrix.hh"
 
 namespace CoupledField
 { 
@@ -23,7 +22,7 @@ Vector<TYPE>::Vector()
 }
 
 template<class TYPE> 
-Vector<TYPE>::Vector(Integer size)
+Vector<TYPE>::Vector(Integer size, const TYPE entry)
   : CFSVector(size)
 {
   ENTER_IFCN("Vector::Vector");
@@ -31,7 +30,7 @@ Vector<TYPE>::Vector(Integer size)
   data_ = new TYPE [size];
 
   for (Integer i = 0; i < size; i++)
-    data_ [i] = 0;
+    data_ [i] = entry;
 }
 
 template<class TYPE> 
@@ -49,7 +48,7 @@ template<class TYPE>
 Vector<TYPE>::Vector(const std::vector<TYPE>  &vec)
 {
   ENTER_IFCN("Vector::Vector");    
-  Error("Not implemented yet",__FILE__,__LINE__);
+  Error("Not implemented yet",__FILE__, __LINE__);
 
   // ** TO IMPLEMENT **
 }
@@ -81,7 +80,8 @@ Double* Vector<Integer>::GetDoublePointer()
 {
   ENTER_IFCN("Vector::GetDoublePointer");
 
-  Error("Vector<Integer>::GetDoublePointer: Not implemented!",__FILE__,__LINE__);
+  Error("Vector<Integer>::GetDoublePointer: Not implemented!",
+	      __FILE__, __LINE__);
   return NULL;
 }
 
@@ -106,7 +106,8 @@ void Vector<TYPE>::Init(const TYPE entry)
   ENTER_IFCN("Vector::Init");
 
 #ifdef CHECK_INITIALIZED
-  if (size_ == 0) Error("Don't use Init() to undefined vector", __FILE__, __LINE__);
+  if (size_ == 0) 
+    Warning("Don't use Init() to undefined vector", __FILE__, __LINE__);
 #endif
 
  for (Integer i=0; i<size_; i++) 
@@ -120,7 +121,8 @@ void Vector<TYPE>::Resize(const Integer size)
   ENTER_IFCN("Vector::Resize");
 
 #ifdef CHECK_INDEX
-  if (size <= 0) Error("invalid dimension for Resize", __FILE__, __LINE__);
+  if (size <= 0) 
+    Error("invalid dimension for Resize", __FILE__, __LINE__);
 #endif  
   
   if (size != size_)
@@ -132,7 +134,7 @@ void Vector<TYPE>::Resize(const Integer size)
     }
   
   for (Integer i = 0; i < size_; i++)
-    data_ [i] = 0;
+    data_ [i] = TYPE();
 }
 
 
@@ -144,9 +146,10 @@ void Vector<TYPE>::SetEntry(const Integer i, const TYPE &s)
 #ifdef CHECK_INDEX
     std::string errorMsg;
     std::stringstream errorMsgStream(errorMsg);
-    errorMsgStream << "Vector: invalid access to element " << i << "\n Length of vector: " << size_;
+    errorMsgStream << "Vector: invalid access to element ";
+    errorMsgStream << i << "\n Length of vector: " << size_;
     if (i >= size_)
-      Error(errorMsg.c_str(),__FILE__,__LINE__);
+      Error(errorMsg.c_str(),__FILE__, __LINE__);
 #endif
     data_[i] = s;
 }
@@ -159,9 +162,10 @@ void Vector<TYPE>::GetEntry(const Integer i, TYPE &ret) const
 #ifdef CHECK_INDEX
     std::string errorMsg;
     std::stringstream errorMsgStream(errorMsg);
-    errorMsgStream << "Vector: invalid access to element " << i << "\n Length of vector: " << size_;
+    errorMsgStream << "Vector: invalid access to element ";
+    errorMsgStream << i << "\n Length of vector: " << size_;
     if (i >= size_)
-      Error(errorMsg.c_str(),__FILE__,__LINE__);
+      Error(errorMsg.c_str(),__FILE__, __LINE__);
 #endif
     ret=  data_[i];
 }
@@ -174,9 +178,10 @@ void Vector<TYPE>::AddEntry(const Integer i, const TYPE &s)
 #ifdef CHECK_INDEX
     std::string errorMsg;
     std::stringstream errorMsgStream(errorMsg);
-    errorMsgStream << "Vector: invalid access to element " << i << "\n Length of vector: " << size_;
+    errorMsgStream << "Vector: invalid access to element ";
+    errorMsgStream << i << "\n Length of vector: " << size_;
     if (i >= size_)
-      Error(errorMsg.c_str(),__FILE__,__LINE__);
+      Error(errorMsg.c_str(),__FILE__, __LINE__);
 #endif
 
     data_[i]+=s;
@@ -193,7 +198,7 @@ void Vector<TYPE>::MultEntry(const Integer i, const TYPE &s)
     errorMsgStream << "Vector::MultEntry: invalid access to element ";
     errorMsgStream << i << "\n Length of vector: " << size_;
     if (i >= size_)
-      Error(errorMsg.c_str(),__FILE__,__LINE__);
+      Error(errorMsg.c_str(),__FILE__, __LINE__);
 #endif
 
     data_[i]+=s;
@@ -210,7 +215,7 @@ void Vector<TYPE>::MultAddEntry(const Integer i, const TYPE &a, const TYPE &s)
     errorMsgStream << "Vector::MultEntry: invalid access to element ";
     errorMsgStream << i << "\n Length of vector: " << size_;
     if (i >= size_)
-      Error(errorMsg.c_str(),__FILE__,__LINE__);
+      Error(errorMsg.c_str(),__FILE__, __LINE__);
 #endif
 
     data_[i]=a*data_[i] + s;
@@ -225,7 +230,8 @@ void Vector<TYPE>::Add(const CFSVector& y)
 
 #ifdef CHECK_INDEX
   if (size_ != vec.size_)
-    Error("Vector: incompatible dimension for operator Add(Basevector)",__FILE__,__LINE__);
+    Error("Vector: incompatible dimension for operator Add(Basevector)",
+	  __FILE__, __LINE__);
 #endif
 
   for (Integer i=0; i<size_; i++)
@@ -241,7 +247,8 @@ void Vector<TYPE>::Add(const TYPE a, const CFSVector &y)
 
 #ifdef CHECK_INDEX
   if (size_ != vec.size_)
-    Error("Vector: incompatible dimension for operator Add(TYPE,Basevector)",__FILE__,__LINE__);
+    Error("Vector: incompatible dimension for operator Add(TYPE,Basevector)",
+		__FILE__, __LINE__);
 #endif
 
   for (Integer i=0; i<size_; i++)
@@ -259,7 +266,8 @@ void Vector<TYPE>::Add( const TYPE a, const CFSVector& y,
 
 #ifdef CHECK_INDEX
   if (size_ != vec.size_)
-    Error("Vector: incompatible dimension for operator Add(T,Basevector,T,Basevector)",__FILE__,__LINE__);
+    Error("Vector: incompatible dimension for operator \
+Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
 #endif
 
   for (Integer i=0; i<size_; i++)
@@ -275,7 +283,8 @@ void Vector<TYPE>::Axpy(const TYPE a, const CFSVector &y)
 
 #ifdef CHECK_INDEX
   if (size_ != vec.size_)
-    Error("Vector: incompatible dimension for operator Add(TYPE,Basevector)",__FILE__,__LINE__);
+    Error("Vector: incompatible dimension for operator Add(TYPE,Basevector)",
+	  __FILE__, __LINE__);
 #endif
 
   for (Integer i=0; i<size_; i++)
@@ -290,7 +299,8 @@ void Vector<TYPE>::Inner(const CFSVector &y, TYPE &result) const
   const Vector<TYPE> & vec = dynamic_cast<const Vector<TYPE>& >(y);
 #ifdef CHECK_INDEX
   if (size_ != vec.size_)
-    Error("Vector: incompatible dimension for operator Add(T,Basevector)",__FILE__,__LINE__);
+    Error("Vector: incompatible dimension for operator Add(T,Basevector)",
+	  __FILE__, __LINE__);
 #endif
 
   result = 0;
@@ -312,7 +322,7 @@ void Vector<TYPE>::ToStdVector(std::vector<TYPE> &vec) const
 {
 #ifdef CHECK_INITIALIZED
   if (size_ == 0) 
-    Error("Don't use toStdVector() to undefined vector", __FILE__, __LINE__);
+    Warning("Don't use toStdVector() to undefined vector", __FILE__, __LINE__);
 #endif
 
   vec.resize(size_);
@@ -326,7 +336,6 @@ template<class TYPE>
 Vector<TYPE> &Vector<TYPE>::operator=(const Vector<TYPE> &x)
 {
   ENTER_IFCN( "Vector::operator=(const Vector)");
-
   
   if (this == &x)
     return *this;
@@ -345,6 +354,33 @@ Vector<TYPE> &Vector<TYPE>::operator=(const Vector<TYPE> &x)
   
   return *this;
 }
+
+template<class TYPE>
+CFSVector & Vector<TYPE>::operator= (const CFSVector & vec)
+{
+  ENTER_IFCN( "Vector::operator=(const CFSVector)");
+
+  Vector<TYPE> const & temp = dynamic_cast<const Vector<TYPE>&>(vec);
+  
+  if (this == &temp)
+    return *this;
+  
+  if (size_ != temp.size_)
+    {	
+      if (data_)
+	delete [] data_;
+      
+      size_ = temp.size_;
+      data_ = new TYPE [size_];
+    }
+  
+  for (Integer i = 0; i < size_; i++)
+    data_ [i] = temp.data_[i];
+  
+  return dynamic_cast<CFSVector &>(*this);
+
+}
+
 
 template<class TYPE>
 Vector<TYPE> &Vector<TYPE>::operator=(const std::vector<TYPE> &x)
@@ -376,12 +412,14 @@ Vector<TYPE> Vector<TYPE>::operator+(const Vector<TYPE> &x) const
 
 #ifdef CHECK_INITIALIZED
   if ((size_ == 0) || (x.size_ == 0))
-    Error("Vector: undefined Vector in operator +(vector)",__FILE__,__LINE__);
+    Warning("Vector: undefined Vector in operator +(vector)",
+	    __FILE__, __LINE__);
 #endif  
   
 #ifdef CHECK_INDEX
   if (size_ != x.size_)
-    Error("Vector: incompatible dimension for operator +(vector)",__FILE__,__LINE__);
+    Error("Vector: incompatible dimension for operator +(vector)",
+	  __FILE__, __LINE__);
 #endif
   
   Vector ret(size_);
@@ -399,12 +437,14 @@ Vector<TYPE> &Vector<TYPE>::operator+=(const Vector<TYPE> &x)
   ENTER_IFCN( "Vector::operator+" );
 #ifdef CHECK_INITIALIZED
   if ((size_ == 0) || (x.size_ == 0))
-    Error("Vector: undefined Vector in operator +=(vector)",__FILE__,__LINE__);
+    Warning("Vector: undefined Vector in operator +=(vector)",
+	    __FILE__, __LINE__);
 #endif  
   
 #ifdef CHECK_INDEX
   if (size_ != x.size_)
-    Error("Vector: incompatible dimension for operator +=(vector)",__FILE__,__LINE__);
+    Error("Vector: incompatible dimension for operator +=(vector)",
+	  __FILE__, __LINE__);
 #endif
 
   for (Integer i = 0; i < size_; i++)
@@ -419,7 +459,7 @@ Vector<TYPE> Vector<TYPE>::operator- () const
   ENTER_IFCN( "Vector::operator-" );
 #ifdef CHECK_INITIALIZED
   if (size_ == 0)
-    Error("Vector: undefined Vector in oprator -()",__FILE__,__LINE__); 
+    Warning("Vector: undefined Vector in oprator -()",__FILE__, __LINE__); 
 #endif
 
   Vector ret(size_);
@@ -436,12 +476,14 @@ Vector<TYPE> Vector<TYPE>::operator-(const Vector<TYPE> &x) const
   ENTER_IFCN( "Vector::operator-" );
 #ifdef CHECK_INITIALIZED
   if ((size_ == 0) || (x.size_ == 0))
-    Error("Vector: undefined Vector in operator -(vector)",__FILE__,__LINE__);
+    Warning("Vector: undefined Vector in operator -(vector)",
+	    __FILE__, __LINE__);
 #endif  
   
 #ifdef CHECK_INDEX
   if (size_ != x.size_)
-    Error("Vector: incompatible dimension for operator -(vector)",__FILE__,__LINE__);
+    Error("Vector: incompatible dimension for operator -(vector)",
+	  __FILE__, __LINE__);
 #endif
   Vector ret(size_);
 
@@ -457,12 +499,14 @@ Vector<TYPE> &Vector<TYPE>::operator-=(const Vector<TYPE> &x)
   ENTER_IFCN( "Vector::operator-=" );
 #ifdef CHECK_INITIALIZED
   if ((size_ == 0) || (x.size_ == 0))
-    Error("Vector: undefined Vector in operator -=(vector)",__FILE__,__LINE__);
+    Warning("Vector: undefined Vector in operator -=(vector)",
+	    __FILE__, __LINE__);
 #endif  
   
 #ifdef CHECK_INDEX
   if (size_ != x.size_)
-    Error("Vector: incompatible dimension for operator -=(vector)",__FILE__,__LINE__);
+    Error("Vector: incompatible dimension for operator -=(vector)",
+	  __FILE__, __LINE__);
 #endif
 
   for (Integer i = 0; i < size_; i++)
@@ -478,7 +522,8 @@ Vector<TYPE> Vector<TYPE>::operator* (const TYPE &x) const
   ENTER_IFCN( "Vector::operator*" );
 #ifdef CHECK_INITIALIZED
   if (size_ == 0)
-    Error("Vector: undefined Vector in operator *(number)",__FILE__,__LINE__); 
+    Warning("Vector: undefined Vector in operator *(number)",
+	    __FILE__, __LINE__); 
 #endif
   
   Vector ret(size_);
@@ -495,7 +540,8 @@ Vector<TYPE> Vector<TYPE>::operator/ (const TYPE &x) const
   ENTER_IFCN( "Vector::operator/" );
 #ifdef CHECK_INITIALIZED
   if (size_ == 0)
-    Error("Vector: undefined Vector in operator /(number)",__FILE__,__LINE__); 
+    Warning("Vector: undefined Vector in operator /(number)",
+	    __FILE__, __LINE__); 
 #endif
   
   Vector ret(size_);
@@ -512,7 +558,8 @@ Vector<TYPE> &Vector<TYPE>::operator/= (const TYPE &x)
   ENTER_IFCN( "Vector::operator/=" );
 #ifdef CHECK_INITIALIZED
   if (size_ == 0)
-    Error("Vector: undefined Vector in operator /=(number)",__FILE__,__LINE__); 
+    Warning("Vector: undefined Vector in operator /=(number)",
+	    __FILE__, __LINE__); 
 #endif
 
   TYPE y = x;
@@ -529,12 +576,14 @@ TYPE Vector<TYPE>::operator* (const Vector<TYPE> &x) const
   ENTER_IFCN( "Vector::operator*" );
 #ifdef CHECK_INITIALIZED
   if ((size_ == 0) || (x.size_ == 0))
-    Error("Vector: undefined Vector in operator *(vector)",__FILE__,__LINE__);
+    Warning("Vector: undefined Vector in operator *(vector)",
+	    __FILE__, __LINE__);
 #endif  
   
 #ifdef CHECK_INDEX
   if (size_ != x.size_)
-    Error("Vector: incompatible dimension for operator *(vector)",__FILE__,__LINE__);
+    Error("Vector: incompatible dimension for operator *(vector)", 
+	  __FILE__, __LINE__);
 #endif
 
   TYPE ret;
@@ -552,14 +601,17 @@ Vector<TYPE> Vector<TYPE>::operator*(const Matrix<TYPE> &x) const
   ENTER_IFCN( "Vector::operator*" );
 #ifdef CHECK_INITIALIZED
   if (size_ == 0)
-    Error("Vector: undefined Vector in operator *(Matrix)",__FILE__,__LINE__);
+    Warning("Vector: undefined Vector in operator *(Matrix)",
+	    __FILE__, __LINE__);
   if (!x.data_)
-    Error("Vector: undefined Matrix in operator *(Matrix)",__FILE__,__LINE__);
+    Warning("Vector: undefined Matrix in operator *(Matrix)",
+	  __FILE__, __LINE__);
 #endif  
   
 #ifdef CHECK_INDEX
   if (size_ != x.size_row_)
-    Error("Vector: incompatible dimension for operator *(Matrix)",__FILE__,__LINE__);
+    Error("Vector: incompatible dimension for operator *(Matrix)",
+	  __FILE__, __LINE__);
 #endif
 
   TYPE  a;
@@ -582,15 +634,16 @@ Vector<TYPE> Vector<TYPE>::operator=(const Matrix<TYPE> &x) const
   ENTER_IFCN( "Vector::operator=(const Matrix)" );
 #ifdef CHECK_INITIALIZED
   if (size_ == 0)
-    Error( "undefined Vector in operator =", __FILE__,__LINE__);
+    Warning( "undefined Vector in operator =", __FILE__, __LINE__);
 #endif
 
 #ifdef CHECK_INDEX
   if (!x.data_)
-    Error( "undefined Matrix in operator = ", __FILE__,__LINE__);
+    Error( "undefined Matrix in operator = ", __FILE__, __LINE__);
 
   if (x.size_col_ != 1)
-    Error( "matrix has more tha one row. No assignment to vector possible ", __FILE__,__LINE__);
+    Error( "matrix has more tha one row. No assignment to vector possible ", 
+	   __FILE__, __LINE__);
 #endif
   
   Vector ret(x.size_row_);
@@ -608,7 +661,7 @@ Vector<TYPE> &Vector<TYPE>::operator*= (const TYPE &x)
   ENTER_IFCN( "Vector::operator*=" );	
 #ifdef CHECK_INITIALIZED
   if (size_ == 0)
-    Error("Vector: undefined Vector in operator*=",__FILE__,__LINE__); 
+    Warning("Vector: undefined Vector in operator*=",__FILE__, __LINE__); 
 #endif
   
   TYPE y = x;
@@ -634,7 +687,8 @@ Integer Vector<TYPE>::operator== (const Vector<TYPE> &x) const
 {	
 #ifdef CHECK_INITIALIZED 
   if ((size_ == 0) || (x.size_ == 0))
-    Error("Vector: undefined Vector in operator==",__FILE__,__LINE__);
+    Warning("Vector: undefined Vector in operator==",
+	    __FILE__, __LINE__);
 #endif
   
   for (Integer i = 0; i < size_; i++)
@@ -650,7 +704,8 @@ Integer Vector<TYPE>::operator!= (const Vector<TYPE> &x) const
   ENTER_IFCN( "Vector::operator!=" );
 #ifdef CHECK_INITIALIZED
   if ((size_ == 0) || (x.size_ == 0))
-    Error("Vector: undefined Vector in operator !=", __FILE__, __LINE__);
+    Warning("Vector: undefined Vector in operator !=", 
+	    __FILE__, __LINE__);
 #endif
   
   for (Integer i = 0; i < size_; i++)
@@ -666,7 +721,7 @@ Vector<TYPE> Vector<TYPE>::Part(const Integer i1,const Integer i2) const
   ENTER_IFCN( "Vector::Part" );
 #ifdef CHECK_INITIALIZED
   if (size_ == 0)
-    std::cerr << "Vector: undefined Vector";
+    Warning( "Vector: undefined Vector", __FILE__, __LINE__);
 #endif
   
 #ifdef CHECK_INDEX
@@ -708,7 +763,8 @@ Double Vector<TYPE>::NormL2() const
   ENTER_IFCN( "Vector::NormL2" );
 #ifdef CHECK_INITIALIZED
 if (size_ == 0)
-  Error("Vector: undefined Vector in function norm_2()", __FILE__, __LINE__);
+  Warning("Vector: undefined Vector in function norm_2()", 
+	  __FILE__, __LINE__);
 #endif
 	
  TYPE ret = (*this)*(*this);
@@ -744,7 +800,7 @@ void  Vector<TYPE>:: AddElement (const TYPE & y, Integer pos)
   ENTER_IFCN( "Vector::AddElement" );
 #ifdef CHECK_INDEX
   if (pos < 0 || pos > size_)
-    Error("Vector::AddElemen(): Index out of bounds", __FILE__,__LINE__);
+    Error("Vector::AddElemen(): Index out of bounds", __FILE__, __LINE__);
 #endif
   
   Integer i;
@@ -770,12 +826,14 @@ void  Vector<TYPE>::InsertVector (const Vector<TYPE> & y, Integer pos)
   ENTER_IFCN( "Vector::InsertVector" );
 #ifdef CHECK_INITIALIZED
   if (size_ == 0)
-    Error("Vector: undefined Vector in function InsertVector()", __FILE__,__LINE__);
+    Warning("Vector: undefined Vector in function InsertVector()", 
+	    __FILE__, __LINE__);
 #endif
 
 #ifdef CHECK_INDEX
   if (pos < 0)
-    Error("Vector: index is smaller than zero in function InsertVector()", __FILE__,__LINE__);
+    Error("Vector: index is smaller than zero in function InsertVector()", 
+	  __FILE__, __LINE__);
 #endif
 
    Integer i;
@@ -803,7 +861,7 @@ void  Vector<TYPE>:: Cut (const Integer pos)
   ENTER_IFCN( "Vector::Cut" );
 #ifdef CHECK_INITIALIZED
   if (size_ == 0)
-    Error("Vector: undefined Vector in function Cut()", __FILE__,__LINE__);
+    Warning("Vector: undefined Vector in function Cut()", __FILE__, __LINE__);
 #endif
 
 #ifdef CHECK_INDEX
@@ -830,14 +888,15 @@ void  Vector<TYPE>:: Cut (const Integer pos1, const Integer pos2)
   ENTER_IFCN( "Vector::Cut" );
 #ifdef CHECK_INITIALIZED
   if (size_ == 0)
-    Error("Vector: undefined Vector in function Cut()", __FILE__,__LINE__);
+    Warning("Vector: undefined Vector in function Cut()", __FILE__, __LINE__);
 #endif
 
 #ifdef CHECK_INDEX
    if (pos1 < 0 || pos1 >= size_ || pos2 < 0 || pos2 >= size_) 
      Error("Invalid index for cut");
    if (pos1 > pos2)
-     Error("First index is bigger than second one in function Cut()",__FILE__,__LINE__);
+     Error("First index is bigger than second one in function Cut()",
+	   __FILE__, __LINE__);
 #endif
    Integer i;
  
@@ -916,10 +975,7 @@ template void Sort<Double>(Double * ,Integer);
 template<class S>
 std::ostream & operator << ( std::ostream & out, const Vector<S> & vc)
 {
-  ENTER_IFCN( "operator <<" );
-#ifdef CHECK_INITIALIZED
-  if (vc.GetSize() == 0) out << "vector is undefined" ;
-#endif
+  ENTER_IFCN( "operator <<(Vector)" );
 
 for (Integer i=0; i < vc.GetSize(); i++)
   out << vc[i] << " " << std::endl;

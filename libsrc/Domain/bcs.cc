@@ -17,28 +17,27 @@ namespace CoupledField
 #ifndef XMLPARAMS
   BCs :: BCs(FileType * const aInFile)
   {
-#ifdef TRACE
-    (*trace) << "entering BCs::BCs" << std::endl;
-#endif
+    ENTER_FCN( "BCs::BCs" );
+
     InFile_     = aInFile; 
 
  Integer i;
  for (i=0; i<NUMLEVELGRID; i++) { bcs_[i]=NULL; bcsEdges_[i]=NULL; bcsFaces_[0]=NULL; bcsNeighElems_[0]=NULL;}
     conf->ifgetliststr("list_nodes",levels_);
-    if (levels_.size()) 
-      bcs_[0]=new std::list<Integer>[levels_.size()];
+    if (levels_.GetSize()) 
+      bcs_[0]=new std::list<Integer>[levels_.GetSize()];
  
     conf->ifgetliststr("list_edges",color_edges_);
-    if (color_edges_.size()) 
-      bcsEdges_[0]=new std::vector<Elem*>[color_edges_.size()]; 
+    if (color_edges_.GetSize()) 
+      bcsEdges_[0]=new StdVector<Elem*>[color_edges_.GetSize()]; 
 
     conf->ifgetliststr("list_faces",color_faces_);
-    if (color_faces_.size()) 
-      bcsFaces_[0]=new std::vector<Elem*>[color_faces_.size()]; 
+    if (color_faces_.GetSize()) 
+      bcsFaces_[0]=new StdVector<Elem*>[color_faces_.GetSize()]; 
 
     conf->ifgetliststr("list_neighelems",color_neighelems_);
-    if (color_neighelems_.size())
-      bcsNeighElems_[0]=new std::vector<Elem*>[color_neighelems_.size()];
+    if (color_neighelems_.GetSize())
+      bcsNeighElems_[0]=new StdVector<Elem*>[color_neighelems_.GetSize()];
   }
 
 #else
@@ -59,9 +58,9 @@ namespace CoupledField
 
     // Get list of special node sets
     params->GetList( "name", levels_, "domain", "nodes" );
-    if( levels_.size() > 0 )
+    if( levels_.GetSize() > 0 )
       {
-	bcs_[0] = new std::list<Integer>[levels_.size()];
+	bcs_[0] = new std::list<Integer>[levels_.GetSize()];
       }
 
     //
@@ -72,42 +71,40 @@ namespace CoupledField
 #endif
 //    conf->ifgetliststr("list_edges",color_edges_);
 //    if (color_edges_.size()) 
-//      bcsEdges_[0]=new std::vector<Elem*>[color_edges_.size()]; 
+//      bcsEdges_[0]=new StdVector<Elem*>[color_edges_.size()]; 
 //
 //    conf->ifgetliststr("list_faces",color_faces_);
 //    if (color_faces_.size()) 
-//      bcsFaces_[0]=new std::vector<Elem*>[color_faces_.size()]; 
+//      bcsFaces_[0]=new StdVector<Elem*>[color_faces_.size()]; 
 //
 //    conf->ifgetliststr("list_neighelems",color_neighelems_);
 //    if (color_neighelems_.size())
-//      bcsNeighElems_[0]=new std::vector<Elem*>[color_neighelems_.size()];
+//      bcsNeighElems_[0]=new StdVector<Elem*>[color_neighelems_.size()];
   }
 #endif
 
 
 BCs :: ~BCs()
 {
-#ifdef TRACE
-  (*trace) << "entering BCs::~BCs" << std::endl;
-#endif
+  ENTER_FCN( "BCs::~BCs" );
 
  Integer i,j,k;
 
- if (levels_.size()) {
+ if (levels_.GetSize()) {
    for (i=0; i<NUMLEVELGRID; i++)   
     if (bcs_[i]) {
-      for (j=0; j<levels_.size(); j++) {
+      for (j=0; j<levels_.GetSize(); j++) {
 	bcs_[i][j].clear();
       } // loop over colors of grid( over subdomains), index j
       delete [] bcs_[i];
     } // loop over levels of grid, index i
  } // end of if
 
-  if (color_edges_.size()) {
+  if (color_edges_.GetSize()) {
    for (i=0; i<NUMLEVELGRID; i++)   
     if (bcsEdges_[i]) {
-      for (j=0; j<color_edges_.size(); j++) {
-	for (k=0; k<bcsEdges_[i][j].size(); k++) {
+      for (j=0; j<color_edges_.GetSize(); j++) {
+	for (k=0; k<bcsEdges_[i][j].GetSize(); k++) {
 	  Elem* tmpEl=bcsEdges_[i][j][k];
 	  delete tmpEl;
 	} // loop over elements of one color, index k
@@ -116,11 +113,11 @@ BCs :: ~BCs()
     } // loop over levels of grid, index i
  } // end of if
 
- if (color_faces_.size()) {
+ if (color_faces_.GetSize()) {
    for (i=0; i<NUMLEVELGRID; i++)   
     if (bcsFaces_[i]) {
-      for (j=0; j<color_faces_.size(); j++) {
-	for (k=0; k<bcsFaces_[i][j].size(); k++) {
+      for (j=0; j<color_faces_.GetSize(); j++) {
+	for (k=0; k<bcsFaces_[i][j].GetSize(); k++) {
 	  Elem* tmpEl=bcsFaces_[i][j][k];
 	  delete tmpEl;
 	} // loop over elements of one color, index k
@@ -129,11 +126,11 @@ BCs :: ~BCs()
     } // loop over levels of grid, index i
  } // end of if
 
-  if (color_neighelems_.size()) {
+  if (color_neighelems_.GetSize()) {
    for (i=0; i<NUMLEVELGRID; i++)
     if (bcsNeighElems_[i]) {
-      for (j=0; j<color_neighelems_.size(); j++) {
-        for (k=0; k<bcsNeighElems_[i][j].size(); k++) {
+      for (j=0; j<color_neighelems_.GetSize(); j++) {
+        for (k=0; k<bcsNeighElems_[i][j].GetSize(); k++) {
           Elem* tmpEl=bcsNeighElems_[i][j][k];
          delete tmpEl;
         } // loop over elements of one color, index k
@@ -146,21 +143,19 @@ BCs :: ~BCs()
 
 void BCs :: ReadBCs()
 {
-#ifdef TRACE
-  (*trace) << "entering BCs::ReadBCs" << std::endl;
-#endif
+  ENTER_FCN( "BCs::ReadBCs" );
 
- if (levels_.size())
+ if (levels_.GetSize())
    InFile_->ReadBCs(bcs_[0],levels_);
  toplevel_=0;
 
- if (color_edges_.size())
+ if (color_edges_.GetSize())
    InFile_->ReadEl1d(bcsEdges_[0],color_edges_);
 
- if (color_faces_.size())
+ if (color_faces_.GetSize())
    InFile_->ReadEl2d(bcsFaces_[0],color_faces_);
 
- if (color_neighelems_.size()) {
+ if (color_neighelems_.GetSize()) {
     if (InFile_->ReadDim()==2)
        InFile_->ReadEl2d(bcsNeighElems_[0],color_neighelems_);
      else
@@ -170,16 +165,14 @@ void BCs :: ReadBCs()
 
 std::list<Integer>&  BCs::GetNodesLevel(const std::string color, const Integer lev)
 {
-#ifdef TRACE
-  (*trace) << "entering BCs::GetNodesLevel" << std::endl;
-#endif
+  ENTER_FCN( "BCs::GetNodesLevel" );
   
   Boolean Found = FALSE;
 
   Integer level=lev;
   if (lev==-1) level=toplevel_;
   Integer i;
-  for (i=0; i<levels_.size(); i++)
+  for (i=0; i<levels_.GetSize(); i++)
     if (color==levels_[i]) 
       {
 	Found = TRUE;
@@ -195,18 +188,16 @@ std::list<Integer>&  BCs::GetNodesLevel(const std::string color, const Integer l
  return bcs_[level][i]; 
 }
 
-std::vector<Elem*>& BCs::getEdgesBC(const std::string color, const Integer lev)
+StdVector<Elem*>& BCs::getEdgesBC(const std::string color, const Integer lev)
 {
-#ifdef TRACE
-  (*trace) << "entering BCs::getEdgesBC" << std::endl;
-#endif
+  ENTER_FCN( "BCs::getEdgesBC" );
 
   Boolean Found = FALSE;
 
   Integer level=lev;
   if (lev==-1) level=toplevel_;
   Integer i;
-  for (i=0; i<color_edges_.size(); i++)
+  for (i=0; i<color_edges_.GetSize(); i++)
     if (color==color_edges_[i]) 
       {
 	Found = TRUE;
@@ -222,19 +213,18 @@ std::vector<Elem*>& BCs::getEdgesBC(const std::string color, const Integer lev)
   return bcsEdges_[level][i];
 }
 
-std::vector<Elem*>& BCs::getFacesBC(const std::string color, const Integer lev)
+StdVector<Elem*>& BCs::getFacesBC(const std::string color, const Integer lev)
 {
-#ifdef TRACE
-  (*trace) << "entering BCs::getFacesBC" << std::endl;
-#endif
+  ENTER_FCN( "BCs::getFacesBC" );
+
   Boolean Found = FALSE;
  
   Integer level=lev;
   if (lev==-1) level=toplevel_;
   Integer i;
 
- if (color_faces_.size())
-  for (i=0; i<color_faces_.size(); i++)
+ if (color_faces_.GetSize())
+  for (i=0; i<color_faces_.GetSize(); i++)
     if (color==color_faces_[i]) 
       {
 	Found = TRUE;
@@ -242,8 +232,8 @@ std::vector<Elem*>& BCs::getFacesBC(const std::string color, const Integer lev)
 	break;
       }
 
- if (color_edges_.size())
-  for (i=0; i<color_edges_.size(); i++)
+ if (color_edges_.GetSize())
+  for (i=0; i<color_edges_.GetSize(); i++)
     if (color==color_edges_[i]) 
       {
 	Found = TRUE;
@@ -263,15 +253,14 @@ std::vector<Elem*>& BCs::getFacesBC(const std::string color, const Integer lev)
 
 Integer BCs::GetNumNodesLevel(const std::string color, const Integer lev)
 {
-#ifdef TRACE
-  (*trace) << "entering BCs::GetNumNodesLevel" << std::endl;
-#endif
+  ENTER_FCN( "BCs::GetNumNodesLevel" );
+
    Boolean Found = FALSE;
 
    Integer level=lev;
    if (lev==-1) level=toplevel_; 
    Integer i;
-   for (i=0; i<levels_.size(); i++)
+   for (i=0; i<levels_.GetSize(); i++)
      if (color==levels_[i]) 
        {
 	 Found = TRUE;
@@ -291,8 +280,9 @@ Integer BCs::GetNumNodesLevel(const std::string color, const Integer lev)
 
 void BCs :: Update(Grid * ptgrid)
 {   
+  ENTER_FCN( "BCs::Update" );
     toplevel_++;
-    bcs_[toplevel_]=new std::list<Integer>[levels_.size()]; 
+    bcs_[toplevel_]=new std::list<Integer>[levels_.GetSize()]; 
     if (!bcs_[toplevel_]) Error(" Not enought memory",__FILE__,__LINE__); 
 
     ptgrid->UpdateBCs(bcs_[toplevel_]); 
@@ -300,11 +290,12 @@ void BCs :: Update(Grid * ptgrid)
 
 void BCs :: printBCs(const Integer alevel)
 {
+  ENTER_FCN( "BCs::printBCs" );
   Integer level=alevel;
   if (level==-1) level=toplevel_;  
 
   Integer i,ilevel;
-  for (i=0; i<levels_.size(); i++)
+  for (i=0; i<levels_.GetSize(); i++)
     {
       for (std::list<Integer>::const_iterator p=bcs_[ilevel][i].begin(); p!=bcs_[ilevel][i].end(); p++)
 	{ std::cout << (*p) << std::endl;} 
@@ -312,19 +303,17 @@ void BCs :: printBCs(const Integer alevel)
     } 
 }
 
-std::vector<Elem*> BCs::getNeighElemsForSurfaces(const std::string color, const Integer lev
+StdVector<Elem*> BCs::getNeighElemsForSurfaces(const std::string color, const Integer lev
 )
 {
-#ifdef TRACE
-  (*trace) << "entering BCs::getNeighElems" << std::endl;
-#endif
+  ENTER_FCN( "BCs::getNeighElems" );
 
   Boolean Found = FALSE;
 
   Integer level=lev;
   if (lev==-1) level=toplevel_;
   Integer i;
-  for (i=0; i<color_neighelems_.size(); i++)
+  for (i=0; i<color_neighelems_.GetSize(); i++)
     if (color==color_neighelems_[i]) 
       {
 	Found = TRUE;

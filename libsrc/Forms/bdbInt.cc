@@ -9,14 +9,12 @@ namespace CoupledField
 
   void BDBInt::CalcElementMatrix(Matrix<Double>& ptCoord, Matrix<Double> & elemMat)
   {
-#ifdef TRACE
-    (*trace) << "entering BDBInt::CalcElementMatrix" << std::endl;
-#endif
+    ENTER_FCN( "BDBInt::CalcElementMatrix" );
 
     const Integer nrIntPts = ptelem->GetNumIntPoints(); 
     const Integer nrNodes  = ptelem->GetNumNodes();   
     const Integer nrDofs   = getNrDofs();  
-    const std::vector<Double> & intWeights = ptelem->GetIntWeights();  
+    const Vector<Double> & intWeights = ptelem->GetIntWeights();  
     double jacDet;
 
 
@@ -53,8 +51,8 @@ namespace CoupledField
 
 	if (isaxi_)
 	  {
-	    std::vector<Double> ShpFncAtIp;
-	    std::vector<Double> CoordAtIP;
+	    Vector<Double> ShpFncAtIp;
+	    Vector<Double> CoordAtIP;
 	    ptelem->GetShFncAtIp(ShpFncAtIp,actIntPt);
 	    CoordAtIP = ptCoord * ShpFncAtIp;
             jacDet *= 2 * PI * CoordAtIP[0];
@@ -70,27 +68,20 @@ namespace CoupledField
   BDBInt::BDBInt(BaseFE * aptelem, MaterialData & matData) 
     : BaseForm(aptelem, matData), updateDMatInEveryIP_(0)
   {
-#ifdef TRACE
-    (*trace) << "entering BDBInt::BDBInt" << std::endl;
-#endif
+    ENTER_FCN( "BDBInt::BDBInt" );
   }
 
 
   BDBInt::BDBInt(MaterialData & matData) 
     : BaseForm(matData), updateDMatInEveryIP_(0)
   {
-#ifdef TRACE
-    (*trace) << "entering BDBInt::BDBInt" << std::endl;
-#endif
+    ENTER_FCN( "BDBInt::BDBInt" );
   }
 
   
   BDBInt::~BDBInt()
   {
-#ifdef TRACE
-    (*trace) << "entering BDBInt::~BDBInt" << std::endl;
-#endif
-
+    ENTER_FCN( "BDBInt::~BDBInt" );
     ;
   }
 

@@ -6,7 +6,7 @@ namespace CoupledField
   
 ScalarNodeEQN::ScalarNodeEQN(Grid * aptGrid, 
 			     BCs * aptBCs,
-			     std::vector<std::string>& asubdoms, 
+			     StdVector<std::string>& asubdoms, 
 			     Integer actlevel, 
 			     Integer dofsPerNode)
   : NodeEQN(aptGrid, aptBCs, asubdoms, actlevel, dofsPerNode)
@@ -14,6 +14,7 @@ ScalarNodeEQN::ScalarNodeEQN(Grid * aptGrid,
   ENTER_FCN( "NodeEQN::NodeEQN" );
   
   isBlockMapped_ = FALSE;
+  dofsPerEQN_ = 1;
  
 }
 
@@ -63,42 +64,45 @@ void ScalarNodeEQN::CalcMapping()
   // total number of equations, which is the total
   // number of pdenodes minus the number of hom.
   // Dirichlet nodes - the number of constraintNodes
-  pdeNode2EQN_.clear();
-  eqn2Pos_.clear();
-  pdeNode2EQN_.resize(numPDENodes_,1);
-  eqn2Pos_.resize(numPDENodes_ 
-		  - homoDirichletNodes_.size()
-		  - constraintSlaveNodes_.size()); 
+  pdeNode2EQN_.Clear();
+  eqn2Pos_.Clear();
+  pdeNode2EQN_.Resize(numPDENodes_);
+  pdeNode2EQN_.Init(1);
+  eqn2Pos_.Resize(numPDENodes_ 
+		  - homoDirichletNodes_.GetSize()
+		  - constraintSlaveNodes_.GetSize()); 
 
   // STEP 2
-  for (Integer i=0; i<homoDirichletNodes_.size(); i++)
+  for (Integer i=0; i<homoDirichletNodes_.GetSize(); i++)
     pdeNode2EQN_[mesh2PDENode_[homoDirichletNodes_[i]-1]-1] = 0;
   
   // STEP 3
-  for (Integer i=0; i<constraintSlaveNodes_.size(); i++)
+  for (Integer i=0; i<constraintSlaveNodes_.GetSize(); i++)
     pdeNode2EQN_[mesh2PDENode_[constraintSlaveNodes_[i]-1]-1] = 0;
 
  
 
   // STEP 4
-  for (Integer i=0; i<pde2MeshNode_.size(); i++)
+  for (Integer i=0; i<pde2MeshNode_.GetSize(); i++)
       if (pdeNode2EQN_[i] != 0)
 	{
 	  eqnCounter ++;
 	  pdeNode2EQN_[i] = eqnCounter;
-	  eqn2Pos_[eqnCounter-1] = pde2MeshNode_[i];
+	  eqn2Pos_[eqnCounter-1] = pde2MeshNode_[i]-1;
 	}
   
 
   // STEP 5
-  for (Integer i=0; i<constraintSlaveNodes_.size(); i++)
+  for (Integer i=0; i<constraintSlaveNodes_.GetSize(); i++)
     pdeNode2EQN_[mesh2PDENode_[constraintSlaveNodes_[i]-1]-1] =
       pdeNode2EQN_[mesh2PDENode_[constraintMasterNodes_[i]-1]-1];
   
 
   // Now object is initialized
   isInitialized_ = TRUE;
-  numEqns_ = eqn2Pos_.size();
+  numEqns_ = eqn2Pos_.GetSize();
+
+  numBuildInDirichletEQNs_ = numPDENodes_ - numEqns_;
 }
 
 void ScalarNodeEQN::Print(std::ostream & out) const
@@ -120,7 +124,7 @@ void ScalarNodeEQN::Print(std::ostream & out) const
   out << std::setfill(' ');
   
 
-  for (Integer i=0; i<pde2MeshNode_.size(); i++)
+  for (Integer i=0; i<pde2MeshNode_.GetSize(); i++)
     {
       out << std::setw(10) << i+1  << " | ";
       out << std::setw(13) << pde2MeshNode_[i] << " | ";
@@ -129,32 +133,45 @@ void ScalarNodeEQN::Print(std::ostream & out) const
 }
 
 
-void ScalarNodeEQN::EQN2SolVectorPos(const std::vector<Integer> &eqnNr, 
-				     std::vector<Integer> &pos) const
+void ScalarNodeEQN::EQN2SolVectorPos(const StdVector<Integer> &eqnNr, 
+				     StdVector<Integer> &pos) const
 {
   ENTER_FCN( "ScalarNodeEQN::EQN2SolVectorPos" );
-  Info->Error( "Not implemented" );
+  Error( "Not implemented" );
 }
 
 
-void ScalarNodeEQN::Node2EQN(const Integer nodeNr, std::vector<Integer> &eqnNr) const
+Integer ScalarNodeEQN::Node2EQN(const Integer nodeNr, 
+				const Integer dof) const
+{ 
+  ENTER_FCN( "ScalarNodeEQN::Node2EQN" );
+#ifdef CHECK_INDEX
+  if (nodeNr > mesh2PDENode_.GetSize())
+    Error("ScalarNodeEQN::Node2EQN: Index out of bounds", 
+	  __FILE__, __LINE__);
+#endif
+  return pdeNode2EQN_[mesh2PDENode_[nodeNr-1]-1];
+}
+
+
+void ScalarNodeEQN::Node2EQN(const Integer nodeNr, StdVector<Integer> &eqnNr) const
 {
   ENTER_FCN( "ScalarNodeEQN::Node2EQN" );
   
-  eqnNr.resize(dofsPerNode_);
+  eqnNr.Resize(dofsPerNode_);
 
   eqnNr[0] = pdeNode2EQN_[mesh2PDENode_[nodeNr-1]-1];
 }
   
 
-void ScalarNodeEQN::Node2EQN(const std::vector<Integer> &nodeNr,
-			     std::vector<Integer> &eqnNr) const
+void ScalarNodeEQN::Node2EQN(const StdVector<Integer> &nodeNr,
+			     StdVector<Integer> &eqnNr) const
 {
   ENTER_FCN( "ScalarNodeEQN::Node2EQN" );
   
-  eqnNr.resize(nodeNr.size());
+  eqnNr.Resize(nodeNr.GetSize());
 
-  for (Integer i=0; i<nodeNr.size(); i++)
+  for (Integer i=0; i<nodeNr.GetSize(); i++)
        eqnNr[i] =  pdeNode2EQN_[mesh2PDENode_[nodeNr[i]-1]-1];
 }
 

@@ -14,9 +14,7 @@ namespace CoupledField
 
 TriangleFE::TriangleFE()
 {
-#ifdef TRACE
-  (*trace) << "entering TriangleFE::TriangleFE" << std::endl;
-#endif
+  ENTER_FCN( "TriangleFE::TriangleFE" );
   
   Dim_ = 2;
   NumEdges_ = 3;
@@ -39,17 +37,13 @@ TriangleFE::TriangleFE()
 
 TriangleFE :: ~TriangleFE()
 {
-#ifdef TRACE
-  (*trace) << "entering TriangleFE::~TriangleFE" << std::endl;
-#endif
+  ENTER_FCN( "TriangleFE::~TriangleFE" );
 }
 
 
 void TriangleFE::SetIntPoints()
 {
-#ifdef TRACE
-  (*trace) << "entering TriangleFE::SetIntPoints" << std::endl;
-#endif
+  ENTER_FCN( "TriangleFE::SetIntPoints" );
  
  switch(IntegType)
     {
@@ -61,12 +55,12 @@ void TriangleFE::SetIntPoints()
 
       
       if ( !IntPoints_)
-	IntPoints_ = new std::vector<Double>[NumIntPoints_];
+	IntPoints_ = new Vector<Double>[NumIntPoints_];
       
-      IntWeights_.resize(NumIntPoints_);
+      IntWeights_.Resize(NumIntPoints_);
       
       for(Integer i=0; i<NumIntPoints_; i++)
-	IntPoints_[i].resize(Dim_);
+	IntPoints_[i].Resize(Dim_);
       
       IntPoints_[0][0] = 1./3;
       IntPoints_[0][1] = 1./3;
@@ -81,12 +75,12 @@ void TriangleFE::SetIntPoints()
 
       
       if ( !IntPoints_)
-	IntPoints_ = new std::vector<Double>[NumIntPoints_];
+	IntPoints_ = new Vector<Double>[NumIntPoints_];
 
-      IntWeights_.resize(NumIntPoints_);
+      IntWeights_.Resize(NumIntPoints_);
 
       for(Integer i=0; i<NumIntPoints_; i++)
-	  IntPoints_[i].resize(Dim_);
+	  IntPoints_[i].Resize(Dim_);
       
       IntPoints_[0][0] = 0.166666666666667;
       IntPoints_[1][0] = 0.666666666666667; 
@@ -108,12 +102,12 @@ void TriangleFE::SetIntPoints()
 
       
       if ( !IntPoints_)
-	IntPoints_ = new std::vector<Double>[NumIntPoints_];
+	IntPoints_ = new Vector<Double>[NumIntPoints_];
 
-      IntWeights_.resize(NumIntPoints_);
+      IntWeights_.Resize(NumIntPoints_);
 
       for(Integer i=0; i<NumIntPoints_; i++)
-	  IntPoints_[i].resize(Dim_);
+	  IntPoints_[i].Resize(Dim_);
       IntPoints_[0][0] = 1.0/3.0;
       IntPoints_[1][0] = 3.0/5.0;
       IntPoints_[2][0] = 1.0/5.0;
@@ -147,12 +141,12 @@ void TriangleFE::SetIntPoints()
 
       
       if ( !IntPoints_)
-	IntPoints_ = new std::vector<Double>[NumIntPoints_];
+	IntPoints_ = new Vector<Double>[NumIntPoints_];
 
-      IntWeights_.resize(NumIntPoints_);
+      IntWeights_.Resize(NumIntPoints_);
 
       for(Integer i=0; i<NumIntPoints_; i++)
-	  IntPoints_[i].resize(Dim_);
+	  IntPoints_[i].Resize(Dim_);
 
       IntPoints_[0][0] = 4.45948490915965e-01;
       IntPoints_[1][0] = 1.08103018168070e-01 ;
@@ -187,12 +181,12 @@ void TriangleFE::SetIntPoints()
       DegreeInteg_  = 5;
       
       if ( !IntPoints_)
-	IntPoints_ = new std::vector<Double>[NumIntPoints_];
+	IntPoints_ = new Vector<Double>[NumIntPoints_];
 
-      IntWeights_.resize(NumIntPoints_);
+      IntWeights_.Resize(NumIntPoints_);
 
       for(Integer i=0; i<NumIntPoints_; i++)
-	  IntPoints_[i].resize(Dim_);      
+	  IntPoints_[i].Resize(Dim_);      
  
       IntPoints_[0][0] = 3.333333333333333e-01;
       IntPoints_[1][0] = 4.701420641051151e-01;

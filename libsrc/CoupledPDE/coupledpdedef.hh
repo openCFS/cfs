@@ -1,11 +1,11 @@
 #ifndef FILE_PDECONF_2003
 #define FILE_PDECONF_2003
 
-#include <vector>
 #include <map>
-#include <CoupledPDE/pdecoupling.hh>
+#include "CoupledPDE/pdecoupling.hh"
 
-#include <PDE/basePDE.hh>
+#include "PDE/basePDE.hh"
+#include "Utils/StdVector.hh"
 
 
 
@@ -36,9 +36,9 @@ public:
     \param Couplings (output) vector with coupling objects
     \param UnorderedPDEs (inpu) unordered vector with PDEs for coupling
   */
-  virtual void CreateCoupling(std::vector<BasePDE*> &  OrderedPDEs, 
-			      std::vector<PDECoupling*> & Couplings,
-			      std::vector<BasePDE*> & UnorderedPDEs);
+  virtual void CreateCoupling(StdVector<BasePDE*> &  OrderedPDEs, 
+			      StdVector<PDECoupling*> & Couplings,
+			      StdVector<BasePDE*> & UnorderedPDEs);
 
 protected:
 
@@ -48,7 +48,7 @@ protected:
 
   Grid * ptGrid_;                        //!< pointer to grid
   BCs * ptBCs_;                          //!< pointer to BC object
-  std::vector<Definition*> CoupledPDEs_; //!< vector with coupling definitons
+  StdVector<Definition*> CoupledPDEs_; //!< vector with coupling definitons
 
 private:
 }; // end of class definition
@@ -88,7 +88,7 @@ public:
   /*!
     \param NamePDEs (output) vector containg names of PDEs
   */
-  virtual void GetNamePDEs(std::vector<std::string> & NamePDEs)
+  virtual void GetNamePDEs(StdVector<std::string> & NamePDEs)
   {NamePDEs = PDEs_;}
   
   //! return vector with coupling types
@@ -97,7 +97,7 @@ public:
     \param InputType (output) vector containing input coupling types of PDE
   */
   virtual void GetCouplingType(std::string  PDEName, 
-			       std::vector<CouplingInputType> & InputType) 
+			       StdVector<CouplingInputType> & InputType) 
   {InputType = InputCouplingTypes_[PDEName];}
 
   //! return vector with coupling quantities
@@ -106,7 +106,7 @@ public:
     \param InputType (output) vector containing input coupling quantities of PDE
   */
   virtual void GetCouplingQuantity(std::string  PDEName, 
-				   std::vector<std::string> & InputQuantities)
+				   StdVector<std::string> & InputQuantities)
   {InputQuantities = InputCouplingQuantities_[PDEName];}
   
 
@@ -116,15 +116,15 @@ public:
     \param InputType (output) vector containing input coupling types of PDE
   */
   virtual void GetCouplingOptionality(std::string  PDEName, 
-				      std::vector<Boolean> & optionality) 
+				      StdVector<Boolean> & optionality) 
   {optionality = optionalCoupling_[PDEName];}
   
 protected:
-  Integer NumPDEs_;                                                            //!< number of PDEs
-  std::vector< std::string> PDEs_;                                             //!< vector conatining names of PDEs 
-  std::map <std::string, std::vector<CouplingInputType> > InputCouplingTypes_; //!< mapping of PDEnames to input coupling types
-  std::map <std::string, std::vector<std::string> > InputCouplingQuantities_;  //!< mapping of PDEnames to input coupling quantities
-  std::map <std::string, std::vector<Boolean> > optionalCoupling_;                //!< mapping of PDEnames to optionality of input coupling quantities
+  Integer NumPDEs_;                                                          //!< number of PDEs
+  StdVector< std::string> PDEs_;                                             //!< vector conatining names of PDEs 
+  std::map <std::string, StdVector<CouplingInputType> > InputCouplingTypes_; //!< mapping of PDEnames to input coupling types
+  std::map <std::string, StdVector<std::string> > InputCouplingQuantities_;  //!< mapping of PDEnames to input coupling quantities
+  std::map <std::string, StdVector<Boolean> > optionalCoupling_;             //!< mapping of PDEnames to optionality of input coupling quantities
 
 };  
 } // end of namespace

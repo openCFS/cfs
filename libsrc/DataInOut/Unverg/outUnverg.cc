@@ -119,19 +119,19 @@ void  WriteResultsUnverg::Dataset780(const Integer level)
   (*output) << std::setw(6) << -1 << std::endl << std::setw(6) << 780 << std::endl;
   Integer dim=ptgrid->GetDim();
 
-  Vector<Integer> connect;
-  std::vector<Elem*> elemssd;
+  StdVector<Integer> connect;
+  StdVector<Elem*> elemssd;
   Integer elmsgrp=1;
 
-  std::vector<std::string>* subdoms;
+  StdVector<std::string>* subdoms;
   subdoms=ptgrid->GetAllSDs();
   Integer i, j, k;
   k = 0;
-  for (i=0; i<subdoms->size(); i++)
+  for (i=0; i<subdoms->GetSize(); i++)
     {
       ptgrid->GetElemSD(elemssd,(*subdoms)[i],level);
 
-      for (j=0; j < elemssd.size(); j++)
+      for (j=0; j < elemssd.GetSize(); j++)
 	{  
 	  k++; 
 	  connect=elemssd[j]->connect;
@@ -196,7 +196,12 @@ void  WriteResultsUnverg::Dataset780(const Integer level)
   (*output) << std::setw(6) << -1 << std::endl;
 }
 
-void  WriteResultsUnverg::Dataset55(const std::string & title, const StoreSol<Double> & x, const Integer step, const Double time, const Integer nrDofs)
+void  WriteResultsUnverg::Dataset55(const std::string & title, 
+				    const Vector<Double> & x, 
+				    const Integer step, 
+				    const Double time, 
+				    const Integer nrNodes,
+				    const Integer nrDofs)
 {
   //
   if (!ptgrid)
@@ -223,7 +228,7 @@ void  WriteResultsUnverg::Dataset55(const std::string & title, const StoreSol<Do
  (*output) << " " << time << std::endl;       
 
  Integer i,j,n;
- n=x.GetNumNodes();  
+ n=nrNodes;;  
  for (i=0; i<n; i++)
    {
      (*output) << std::setw(10) << i+1 << std::endl;
@@ -233,14 +238,22 @@ void  WriteResultsUnverg::Dataset55(const std::string & title, const StoreSol<Do
        (*output) << 0.0;
 
      for (j=0; j<nrDofs; j++)
-       (*output) << std::setw(14) << x(i,j);
+       {
+	 //std::cerr << "trying to write " << i << ", " << j << std::endl;
+	 (*output) << std::setw(14) << x[i*nrDofs +j];
+       }
      
      (*output) << std::endl;
    }    
  (*output) << std::setw(6) << -1 << std::endl;
 }  
 
-void  WriteResultsUnverg::Dataset56(const std::string & title, const StoreSol<Double> & x, const Integer step, const Double time, const Integer nrDofs)
+void  WriteResultsUnverg::Dataset56(const std::string & title, 
+				    const Vector<Double> & x, 
+				    const Integer step, 
+				    const Double time, 
+				    const Integer numElems,
+				    const Integer nrDofs)
 {
   
    if (!ptgrid)
@@ -266,7 +279,7 @@ void  WriteResultsUnverg::Dataset56(const std::string & title, const StoreSol<Do
   (*output) << " " << time << std::endl;       
 
   Integer i,j,n;
-  n=x.GetNumNodes();  
+  n=numElems;  
 
   // for 2-dimensional solution, the plane has to be rotated
   if (nrDofs == 2)
@@ -275,7 +288,8 @@ void  WriteResultsUnverg::Dataset56(const std::string & title, const StoreSol<Do
  	{
 	  (*output) << std::setw(10) << i+1 << std::setw(10) << 3 << std::endl;
 
-	  (*output) << std::setw(13) << 0.0 << std::setw(13) << x(i,0)  << std::setw(13) << x(i,1) << std::endl;
+	  (*output) << std::setw(13) << 0.0 << std::setw(13) << x[i*nrDofs];
+	  (*output)<< std::setw(13) << x[i*nrDofs+1] << std::endl;
 	}
     } 
   else
@@ -284,7 +298,7 @@ void  WriteResultsUnverg::Dataset56(const std::string & title, const StoreSol<Do
  	{
 	  (*output) << std::setw(10) << i+1 << std::setw(10) << 3 << std::endl;
 	  for (j=0; j<nrDofs; j++)
-	    (*output) << std::setw(14) << x(i,j);
+	    (*output) << std::setw(14) << x[i*nrDofs + j];
 	  
 	  (*output) << std::endl;
  	}
@@ -298,23 +312,34 @@ void  WriteResultsUnverg::Init(Grid * aptgrid)
  ptgrid=aptgrid;
 }
 
-void  WriteResultsUnverg::WriteNodeSolution(const StoreSol<Double> & sol, const Integer step, const Double time, const std::string title)
+void  WriteResultsUnverg::WriteNodeSolution(const NodeStoreSol<Double> & sol, 
+					    const Integer step, 
+					    const Double time, 
+					    const std::string title)
 {
 
  Integer i,j;
  Integer nrDofs = 1;
  Double help;
+ 
+ Vector<Double> globalSolution;
 
+ // Transform local nodal solution to global one
+ // WARNING: Level for refinemet is hardcoded to 1
+ sol.TransformNodeSolution(globalSolution,ptgrid,1);
+
+ Integer numNodes =  ptgrid->GetMaxnumnodes(1);
+ 
  if (NeedHistory_) 
-   for (i=0; i< nodeshist_.size(); i++)
+   for (i=0; i< nodeshist_.GetSize(); i++)
      {
       if (sol.GetDof() * sol.GetNumNodes() <= nodeshist_[i])
         Error("Please, check history-nodes in config-file.",__FILE__,__LINE__);
       if (lastsavetime[i] != time )
 	if (nrDofs > 1)	
 	  {
-	    std::vector<Double> solVec;
-	    solVec.resize(nrDofs);
+	    Vector<Double> solVec;
+	    solVec.Resize(nrDofs);
 	    for (j=0; j<nrDofs; j++)
 	      sol.Get(nodeshist_[i]-1,j,solVec[j]);
 
@@ -327,18 +352,24 @@ void  WriteResultsUnverg::WriteNodeSolution(const StoreSol<Double> & sol, const 
 	  }
      }
  else
-   Dataset55(title, sol, step, time, sol.GetDof());
+   Dataset55(title, globalSolution, step, time, numNodes ,sol.GetDof());
 }
 
 
-void  WriteResultsUnverg::WriteElemSolution(const StoreSol<Double>& data, const Integer step, const Double time, const std::string title)
+void  WriteResultsUnverg::WriteElemSolution(const ElemStoreSol<Double>& sol, const Integer step, const Double time, const std::string title)
 {
 #ifdef TRACE
   (*trace) << " entering WriteResultsUnverg::WriteElemSolution " << std::endl;
 #endif
 
+  Vector<Double> globalSolution;
+  Integer numElems =  ptgrid->GetMaxnumElem(1);
+  // Transform local nodal solution to global one
+  // WARNING: Level for refinemet is hardcoded to 1
+  sol.TransformElemSolution(globalSolution,ptgrid,1);
+  
    if (!NeedHistory_)
-     Dataset56(title, data, step, time, data.GetDof());
+     Dataset56(title, globalSolution, step, time, numElems, sol.GetDof());
 }
 
 

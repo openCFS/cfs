@@ -9,17 +9,13 @@ namespace CoupledField
   BaseForm::BaseForm(BaseFE * aptelem, MaterialData & matData)
     :ptMaterial(&matData), ptelem(aptelem), isaxi_(FALSE)
   {
-#ifdef TRACE
-    (*trace) << "entering BaseForm::BaseForm" << std::endl;
-#endif
+    ENTER_FCN( "BaseForm::BaseForm" );
   }
 
   BaseForm::BaseForm(MaterialData & matData)
     :isaxi_(FALSE)
   {
-#ifdef TRACE
-    (*trace) << "entering BaseForm::BaseForm" << std::endl;
-#endif
+    ENTER_FCN( "BaseForm::BaseForm" );
 
     ptMaterial = new MaterialData(matData);
   }
@@ -27,35 +23,27 @@ namespace CoupledField
   BaseForm::BaseForm(BaseFE * aptelem)
     :ptelem(aptelem), isaxi_(FALSE)
   {
-#ifdef TRACE
-    (*trace) << "entering BaseForm::BaseForm" << std::endl;
-#endif
+    ENTER_FCN( "BaseForm::BaseForm" );
   }
  
   BaseForm::BaseForm()
     : isaxi_(FALSE)
   {
-#ifdef TRACE
-    (*trace) << "entering BaseForm::BaseForm" << std::endl;
-#endif
+    ENTER_FCN( "BaseForm::BaseForm" );
   }
  
 
 
   BaseForm::~BaseForm()
   {
-#ifdef TRACE
-    (*trace) << "entering BaseForm::~BaseForm" << std::endl;
-#endif
+    ENTER_FCN( "BaseForm::~BaseForm" );
   }
 
 
 
   void BaseForm::CalcElementMatrix(Matrix<Double>& ptCoord, Matrix<Double>& elemMat) 
   {
-#ifdef TRACE
-    (*trace) <<  "entering BaseForm::CalcElemMatrix" << std::endl;
-#endif
+    ENTER_FCN( "BaseForm::CalcElemMatrix" );
     Error(" Function BaseForm::CalcElementMatrix is virtual. You can use it for derived classes.",__FILE__,__LINE__);
   }
 
@@ -64,9 +52,7 @@ namespace CoupledField
 
   void BaseForm::Print(std::ostream * out, const Matrix<Double> Result) const
   {
-#ifdef TRACE
-    (*trace) <<  "entering BaseForm::Print" << std::endl;
-#endif
+    ENTER_FCN( "BaseForm::Print" );
     Error(" Function BaseForm::Print is virtual. You can use it for derived classes.",__FILE__,__LINE__);
   }
 

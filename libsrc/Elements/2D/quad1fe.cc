@@ -9,25 +9,20 @@ namespace CoupledField
 
 Quad1FE :: Quad1FE() : RectangleFE()
 {
-#ifdef TRACE
-  (*trace) << "entering Quad1FE::Quad1FE" << std::endl;
-#endif
+  ENTER_FCN( "Quad1FE::Quad1FE" );
 
   Init();
 }
   
 Quad1FE :: ~Quad1FE()
 {
-#ifdef TRACE
-  (*trace) << "entering Quad1FE::~Quad1FE" << std::endl;
-#endif
+  ENTER_FCN( "Quad1FE::~Quad1FE" );
 }
 
 void Quad1FE :: Init()
 {
-#ifdef TRACE
-  (*trace) << "entering Quad1FE::Init" << std::endl;
-#endif  
+  ENTER_FCN( "Quad1FE::Init" );
+
   NumNodes_ = 4;
   SetIntPoints();
   SetCornerCoords();
@@ -37,9 +32,7 @@ void Quad1FE :: Init()
 
 void Quad1FE :: SetCornerCoords()
 {
-#ifdef TRACE
-  (*trace) << "entering Quad1FE::SetCornerCoords" << std::endl;
-#endif
+  ENTER_FCN( "Quad1FE::SetCornerCoords" );
 
   LCornerCoords_.Resize(Dim_,NumNodes_);
   
@@ -55,14 +48,12 @@ void Quad1FE :: SetCornerCoords()
 
 }
 
-void Quad1FE :: CalcShapeFnc(std::vector<Double> & Shape, 
-			     const std::vector<Double> & LCoord)
+void Quad1FE :: CalcShapeFnc(Vector<Double> & Shape, 
+			     const Vector<Double> & LCoord)
 {
-#ifdef TRACE
-  (*trace) << "entering Quad1FE::CalcShapeFnc" << std::endl;
-#endif
+  ENTER_FCN( "Quad1FE::CalcShapeFnc" );
 
-  Shape.resize(NumNodes_);
+  Shape.Resize(NumNodes_);
   
   for( Integer i=0; i<NumNodes_; i++)
     Shape[i] = 0.25 * (1 + LCornerCoords_[0][i] * LCoord[0])
@@ -72,11 +63,9 @@ void Quad1FE :: CalcShapeFnc(std::vector<Double> & Shape,
 
 
 void Quad1FE :: CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
-				       const std::vector<Double> & LCoord)
+				       const Vector<Double> & LCoord)
 {
-#ifdef TRACE
-  (*trace) << "entering Quad1FE::CalcLocalDerivShapeFnc" << std::endl;
-#endif
+  ENTER_FCN( "Quad1FE::CalcLocalDerivShapeFnc" );
 
   LDeriv.Resize(NumNodes_,Dim_);
 
@@ -91,11 +80,10 @@ void Quad1FE :: CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv,
 }
 
 
-Double Quad1FE::CalcMeanStrain(Matrix<Double> &cornerCoords, Matrix<Double> &displacements)
+Double Quad1FE::CalcMeanStrain(Matrix<Double> &cornerCoords, 
+			       Matrix<Double> &displacements)
 {
-#ifdef TRACE
-  (*trace) << "entering Quad1FE::CalcDistortion" << std::endl;
-#endif
+  ENTER_FCN( "Quad1FE::CalcDistortion" );
 
   Double factor;
   Double eps1, eps2, eps4, eps5, eps11, eps12, eps21, eps22, eps41, eps42, eps51, eps52;

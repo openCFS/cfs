@@ -6,7 +6,7 @@ namespace CoupledField
   
 BlockNodeEQN::BlockNodeEQN(Grid * aptGrid, 
 			   BCs * aptBCs,
-			   std::vector<std::string>& asubdoms, 
+			   StdVector<std::string>& asubdoms, 
 			   Integer actlevel, 
 			   Integer dofsPerNode)
   : NodeEQN(aptGrid, aptBCs, asubdoms, actlevel, dofsPerNode)
@@ -14,6 +14,7 @@ BlockNodeEQN::BlockNodeEQN(Grid * aptGrid,
   ENTER_FCN( "BlockNodeEQN::BlockNodeEQN" );
 
   isBlockMapped_ = TRUE;
+  dofsPerEQN_ = dofsPerNode;
 }
 
 BlockNodeEQN::~BlockNodeEQN()
@@ -64,38 +65,43 @@ void BlockNodeEQN::CalcMapping()
   // total number of equations, which is the total
   // number of pdenodes minus the number of hom.
   // Dirichlet nodes - the number of constraintNodes
-  pdeNode2EQN_.clear();
-  eqn2Pos_.clear();
-  pdeNode2EQN_.resize(numPDENodes_,0);
-  std::vector<Integer> eqn2Pos_Temp;
-  eqn2Pos_Temp.reserve(numPDENodes_);
+  pdeNode2EQN_.Clear();
+  eqn2Pos_.Clear();
+  pdeNode2EQN_.Resize(numPDENodes_);
+  StdVector<Integer> eqn2Pos_Temp;
+  eqn2Pos_Temp.Reserve(numPDENodes_);
 
   // STEP 2
   // Check if there exist nodes, which only have
   // hom. Dirichlet BC dof
-  std::vector<Integer> numDirichletDofsPerNode;
-  numDirichletDofsPerNode.resize(numPDENodes_,0);
-  for (Integer i=0; i<homoDirichletNodes_.size(); i++)
+  StdVector<Integer> numDirichletDofsPerNode;
+  numDirichletDofsPerNode.Resize(numPDENodes_);
+  for (Integer i=0; i<homoDirichletNodes_.GetSize(); i++)
     numDirichletDofsPerNode[mesh2PDENode_[homoDirichletNodes_[i]-1]-1]++;
+  
+  // REMOVE LATER !!!!!!!!!!!!!!!!!!!
+  //numDirichletDofsPerNode.Init(0);
 
   // STEP 3
   // Check if there are constraint slavenodes, where
   // all dofs depend on the same dofs of the same
   // master node
-  std::vector<Integer> numConstraintDofsPerNode;
-  std::vector<Integer> masterNodes;
-  numConstraintDofsPerNode.resize(numPDENodes_);
-  masterNodes.resize(numPDENodes_,0);
+  StdVector<Integer> numConstraintDofsPerNode;
+  StdVector<Integer> masterNodes;
+  numConstraintDofsPerNode.Resize(numPDENodes_);
+  masterNodes.Resize(numPDENodes_);
 
-  for (Integer i=0; i<constraintSlaveNodes_.size(); i++)
+  for (Integer i=0; i<constraintSlaveNodes_.GetSize(); i++)
     if (masterNodes[mesh2PDENode_[constraintSlaveNodes_[i]-1]-1] == 0)
       {
 	// If masternodes are still empty
 	// -> Set masternode 
 	masterNodes[mesh2PDENode_[constraintSlaveNodes_[i]-1]-1] =
 	  mesh2PDENode_[constraintMasterNodes_[i]-1];
+	
 	// increment number of constraint dofs for this node
 	numConstraintDofsPerNode[mesh2PDENode_[constraintSlaveNodes_[i]-1]-1]++;
+	
 	// set the eqn-number of this node to -masternode number
 	// NOTE: this will be overwritten in STEP 4, if not all
 	// dofs of this node depend on the same master node
@@ -108,26 +114,45 @@ void BlockNodeEQN::CalcMapping()
       // -> only increment number of constraint dofs for this node
       numConstraintDofsPerNode[mesh2PDENode_[constraintSlaveNodes_[i]-1]-1]++;
 			       
-  
+  //std::cerr << "********************************" << std::endl;
+  //std::cerr << "** CALCULATING MAPPING *********" << std::endl;
+  //std::cerr << std::endl;
+  //std::cerr << "pde2MeshNode" << std::endl << "----------" << std::endl;
+  //std::cerr << pde2MeshNode_ << std::endl;
+
   // STEP 4
-  for (Integer i=0; i<pde2MeshNode_.size(); i++)
+  for (Integer i=0; i<pde2MeshNode_.GetSize(); i++)
     if (numDirichletDofsPerNode[i] != dofsPerNode_ &&
 	numConstraintDofsPerNode[i] != dofsPerNode_)
       {
 	eqnCounter ++;
 	pdeNode2EQN_[i] = eqnCounter;
-	  eqn2Pos_Temp.push_back(pde2MeshNode_[i]);
+	//std::cerr << "Pushing back" << (pde2MeshNode_[eqnCounter-1]-1)*dofsPerNode_ << std::endl;
+	eqn2Pos_Temp.Push_back((pde2MeshNode_[i]-1)*dofsPerNode_);
       }	
   
   
+  // Now count number of dirichlet BCs, which were not 
+  // thrown out
+  numBuildInDirichletEQNs_ = 0;
+  for (Integer i=0; i<numDirichletDofsPerNode.GetSize(); i++)
+    if (numDirichletDofsPerNode[i] == dofsPerNode_)
+      numBuildInDirichletEQNs_ += dofsPerNode_;
+
+  // !!!!!!!! REMOVE !!!!!!!!!
+  //numBuildInDirichletEQNs_  = 0;
+  
+  //std::cerr << "NumBuildInDirichletEQNs = " <<numBuildInDirichletEQNs_ << std::endl; 
+  
+
   // Now object is initialized
-  numDirichletDofsPerNode.clear();
-  numConstraintDofsPerNode.clear();
-  masterNodes.clear();
+  numDirichletDofsPerNode.Clear();
+  numConstraintDofsPerNode.Clear();
+  masterNodes.Clear();
   eqn2Pos_ = eqn2Pos_Temp;
-  eqn2Pos_Temp.clear();
+  eqn2Pos_Temp.Clear();
   isInitialized_ = TRUE;
-  numEqns_ = eqn2Pos_.size();
+  numEqns_ = eqn2Pos_.GetSize();
 }
 
 void BlockNodeEQN::Print(std::ostream & out) const
@@ -149,7 +174,7 @@ void BlockNodeEQN::Print(std::ostream & out) const
   out << std::setfill(' ');
   
 
-  for (Integer i=0; i<pde2MeshNode_.size(); i++)
+  for (Integer i=0; i<pde2MeshNode_.GetSize(); i++)
     {
       out << std::setw(10) << i+1  << " | ";
       out << std::setw(13) << pde2MeshNode_[i] << " | ";
@@ -158,26 +183,41 @@ void BlockNodeEQN::Print(std::ostream & out) const
 }
 
 
-void BlockNodeEQN::EQN2SolVectorPos(const std::vector<Integer> &eqnNr, 
-				     std::vector<Integer> &pos) const
+void BlockNodeEQN::EQN2SolVectorPos(const StdVector<Integer> &eqnNr, 
+				     StdVector<Integer> &pos) const
 {
   ENTER_FCN( "BlockNodeEQN::EQN2SolVectorPos" );
-  Info->Error( "Not implemented" );
+  Error( "Not implemented",__FILE__, __LINE__ );
 }
 
-
-void BlockNodeEQN::Node2EQN(const Integer nodeNr, std::vector<Integer> &eqns) const
+Integer BlockNodeEQN::Node2EQN(const Integer nodeNr, 
+			       const Integer dof) const 
 {
   ENTER_FCN( "BlockNodeEQN::Node2EQN" );
-  Info->Error( "Not implemented" );
+#ifdef CHECK_INDEX
+  if (nodeNr > mesh2PDENode_.GetSize())
+    Error("ScalarNodeEQN::Node2EQN: Index out of bounds", 
+	  __FILE__, __LINE__);
+#endif
+  return pdeNode2EQN_[mesh2PDENode_[nodeNr-1]-1];
+}
+
+void BlockNodeEQN::Node2EQN(const Integer nodeNr, StdVector<Integer> &eqns) const
+{
+  ENTER_FCN( "BlockNodeEQN::Node2EQN" );
+  Error( "Not implemented",__FILE__,__LINE__);
 }
   
 
-void BlockNodeEQN::Node2EQN(const std::vector<Integer> &nodeNr,
-			     std::vector<Integer> &eqnNr) const
+void BlockNodeEQN::Node2EQN(const StdVector<Integer> &nodeNr,
+			     StdVector<Integer> &eqnNr) const
 {
   ENTER_FCN( "BlockNodeEQN::Node2EQN" );
-  Info->Error( "Not implemented" );
+
+  eqnNr.Resize(nodeNr.GetSize());
+
+  for (Integer i=0; i<nodeNr.GetSize(); i++)
+       eqnNr[i] =  pdeNode2EQN_[mesh2PDENode_[nodeNr[i]-1]-1];
 }
 
 } // end of namespace

@@ -55,7 +55,7 @@ private:
     std::list<Double> * valTF_; //!< val
 
     //!
-    std::vector<std::string> fnc_names_;
+    StdVector<std::string> fnc_names_;
 
     //!
     Boolean timeFncDatFiles_;

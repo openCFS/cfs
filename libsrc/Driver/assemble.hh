@@ -10,12 +10,14 @@
 /* matrices and initiates the basic analysis "stepping"                   */
 /**************************************************************************/
 
-#include <deque>
 
+#include "Utils/StdVector.hh"
 #include "Forms/baseForm.hh" 
 #include "DataInOut/timefunc.hh"
-#include "Utils/storesol.hh"
+#include "Utils/nodestoresol.hh"
+#include "Utils/elemstoresol.hh"
 #include "Domain/bcs.hh"
+#include "PDE/nodeEQN.hh"
 
 namespace CoupledField
 {
@@ -241,7 +243,7 @@ namespace CoupledField
       \param ptCoord (output) coordinates of the element nodes (nrNodes \f$\times\f$ spaceDim);
       \param level (input) index for multilevel hierarchy
     */
-    void GetElemCoords(const Vector<Integer> connect, 
+    void GetElemCoords(const StdVector<Integer> connect, 
 		       Matrix<Double> &coordMat, const Integer level); 
 
 
@@ -281,8 +283,8 @@ namespace CoupledField
     void SetGeneralParams(const std::string & pdename, 
 			  const Integer dofsPerNode,
 			  const Integer numPDENodes, 
-			  const std::vector<std::string> subdoms,
-			  const std::vector<std::string> surfdoms);
+			  const StdVector<std::string> subdoms,
+			  const StdVector<std::string> surfdoms);
     
     
 
@@ -305,6 +307,11 @@ namespace CoupledField
     /// set ptr to time function
     void SetPtr2TimeFnc(TimeFunc * aPtTimeFunc)
     {ptTimeFunc_ = aPtTimeFunc;};
+
+    // set ptr to equation data
+    void SetPtr2EQNData(NodeEQN * aPtNodeEQN)
+    {ptEQN_ = aPtNodeEQN;};
+      
   
 
     // ======================================================
@@ -392,13 +399,13 @@ namespace CoupledField
       \param MeshNodes (input) Vector of mesh node numbers
       \param Mesh2PDENode (input) Vector assigning PDE to mesh node numbers    
     */
-    void Mesh2PDENode(Vector<Integer> & PDENodes, 
-		      const Vector<Integer> & MeshNodes,
-		      const std::vector<Integer> & Mesh2PDENode);
+    void Mesh2PDENode(StdVector<Integer> & PDENodes, 
+		      const StdVector<Integer> & MeshNodes,
+		      const StdVector<Integer> & Mesh2PDENode);
     
 
 
-    void SetMesh2PDENode(std::vector<Integer> * aMesh2PDENode)
+    void SetMesh2PDENode(StdVector<Integer> * aMesh2PDENode)
     {mesh2PDENode_ = aMesh2PDENode;};
 
 
@@ -431,6 +438,7 @@ namespace CoupledField
     
     BaseSystem * algsys_;                //!< pointer to algebraic system  
     Grid * ptgrid_;                      //!< pointer to Grid
+    NodeEQN * ptEQN_;                    //!< pointer to equation data
 #ifdef USE_OLAS
     OLAS_Params * olasParams_;               //!< pointer to parameter object of OLAS
     OLAS_Report * olasReport_;               //!< pointer ro report object of OLAS
@@ -458,18 +466,18 @@ namespace CoupledField
     Integer numPDENodes_;                //!< number of nodes in pde
 
     std::string pdename_;                //!< name of calling pde
-    std::vector<Integer> * mesh2PDENode_; //!< array containing PDE (=local) node numbers
+    StdVector<Integer> * mesh2PDENode_; //!< array containing PDE (=local) node numbers
 
-    std::vector<std::string> subdoms_;  //!< subdomain-levels belongig to PDE
-    std::vector<std::string> surfdoms_; //!< surface-domain-levels belongig to PDE
+    StdVector<std::string> subdoms_;  //!< subdomain-levels belongig to PDE
+    StdVector<std::string> surfdoms_; //!< surface-domain-levels belongig to PDE
 
-    std::vector<std::string> loadDom_;  //!< load subdomains
-    std::vector<std::string> loadDof_;  //!< dofs of loads
-    std::vector<Double>      loadVals_; //!< values of the load condition
-    std::vector<std::string> fncname_loads_; //!< function names of the loads
-    std::vector<std::string> fncname_rhs_; //!< function names for RHS integrators
+    StdVector<std::string> loadDom_;  //!< load subdomains
+    StdVector<std::string> loadDof_;  //!< dofs of loads
+    StdVector<Double>      loadVals_; //!< values of the load condition
+    StdVector<std::string> fncname_loads_; //!< function names of the loads
+    StdVector<std::string> fncname_rhs_; //!< function names for RHS integrators
 
-    std::vector<Double> rhsSrcPhase_;      //!< contains the pahse values in harmonic case;
+    StdVector<Double> rhsSrcPhase_;      //!< contains the pahse values in harmonic case;
          
     TimeFunc * ptTimeFunc_;             //!< ptr to time function
     
@@ -479,16 +487,16 @@ namespace CoupledField
     
     
     /// vector of all needed integrators (every subdomain needs one "list of integrators")
-    std::vector< std::vector<IntegratorDescriptor *>* > integrators_;
+    StdVector< StdVector<IntegratorDescriptor *>* > integrators_;
 
     /// vector of all needed surface integrators (every surface needs one "list of surfaceintegrators")
-    std::vector< std::vector<IntegratorDescriptor *>* > surfintegrators_;
+    StdVector< StdVector<IntegratorDescriptor *>* > surfintegrators_;
 
     /// vector of all needed integrators (every subdomain needs one "list of integrators")
-    std::vector< std::vector<BaseIntDescriptor *>* > rhsIntegrators_;
+    StdVector< StdVector<BaseIntDescriptor *>* > rhsIntegrators_;
 
     /// vector of all needed RHS src-intergators (not every subdomain needs a "list of rhs_source_integrators")
-    std::vector< std::vector<BaseIntDescriptor *>* > rhsSrcIntegrators_;
+    StdVector< StdVector<BaseIntDescriptor *>* > rhsSrcIntegrators_;
 
     /// ptr to solution
 
@@ -499,8 +507,7 @@ namespace CoupledField
     Boolean firstTime_;
     Boolean oneIntIsNonlin_;
     Integer nrMatrices_;
-    Vector<Boolean> reassembleMat_;
-    // std::deque<bool> reassembleMat_;
+    StdVector<Boolean> reassembleMat_;
     Boolean nonLinGeo;
 
     Double actFreq_; //!< contains the frequency multiplied by 2*pi

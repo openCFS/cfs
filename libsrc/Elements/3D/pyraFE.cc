@@ -11,44 +11,38 @@
 namespace CoupledField
 {
 
-  PyraFE::PyraFE()
-  {
-#ifdef TRACE
-    (*trace) << "entering PyraFE::PyraFE" << std::endl;
-#endif
+PyraFE::PyraFE()
+{
+  ENTER_FCN( "PyraFE::PyraFE" );
 
-    Dim_      = 3;
-    NumEdges_ = 8;
-    NumFaces_ = 5;
-    //    numChilds_ = 8;
-
+  Dim_      = 3;
+  NumEdges_ = 8;
+  NumFaces_ = 5;
+  //    numChilds_ = 8;
+  
 #ifndef XMLPARAMS
-    std::string integtype = "GaussOrder2";
-    std::string IntRule;
-    if (conf->ifget("IntegRules", IntRule)==TRUE)
-      conf->ifget("pyra", integtype, "IntegRules");
+  std::string integtype = "GaussOrder2";
+  std::string IntRule;
+  if (conf->ifget("IntegRules", IntRule)==TRUE)
+    conf->ifget("pyra", integtype, "IntegRules");
 #else
-    std::string integtype;
-    params->Get( "type", integtype, "integRules", "pyra" );
+  std::string integtype;
+  params->Get( "type", integtype, "integRules", "pyra" );
 #endif
-
-    IntegType = String2EnumIntegrationType(integtype.c_str());
-
-    //  isSetAtCenter_=FALSE;
-  }
-
-  PyraFE::~PyraFE()
-  {
-#ifdef TRACE
-    (*trace) << "entering PyraFE::~PyraFE" << std::endl;
-#endif
-  }
+  
+  IntegType = String2EnumIntegrationType(integtype.c_str());
+  
+  //  isSetAtCenter_=FALSE;
+}
+  
+PyraFE::~PyraFE()
+{
+  ENTER_FCN( "PyraFE::~PyraFE" );
+}
 
 void PyraFE::SetIntPoints()
-  {
-#ifdef TRACE
-    (*trace) << "entering PyraFE::SetIntPoints" << std::endl;
-#endif
+{
+  ENTER_FCN( "PyraFE::SetIntPoints" );
 
     switch(IntegType)
       {
@@ -63,11 +57,11 @@ void PyraFE::SetIntPoints()
 	NumIntPoints_ = 8;
 	DegreeInteg_  = 3;
 
-	IntWeights_.resize(NumIntPoints_);
+	IntWeights_.Resize(NumIntPoints_);
 	// weights are different for the lower and upper integration points
-	for(Integer i=0; i<IntWeights_.size(); i++)
+	for(Integer i=0; i<IntWeights_.GetSize(); i++)
 	  {
-	    if(i<(IntWeights_.size()/2))
+	    if(i<(IntWeights_.GetSize()/2))
 	      {
 		IntWeights_[i] = 0.100785882079825;
 	      }
@@ -78,10 +72,10 @@ void PyraFE::SetIntPoints()
 	  }
 	
 	if (!IntPoints_)
-	  IntPoints_ = new std::vector<Double>[NumIntPoints_];
+	  IntPoints_ = new Vector<Double>[NumIntPoints_];
 
 	for(Integer i=0; i<NumIntPoints_; i++)
-	  IntPoints_[i].resize(Dim_);
+	  IntPoints_[i].Resize(Dim_);
 
 	IntPoints_[0][0] = -0.506616303350116;
 	IntPoints_[0][1] = -0.506616303350116;

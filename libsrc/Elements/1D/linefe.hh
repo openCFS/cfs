@@ -48,7 +48,7 @@ protected:
     \param CornerCoords (input) Coordinates of element corners
     \f[ \left( \begin{array}{ccc} x_{1} & x_{2} & \cdots \end{array} \right) \f]
   */
-  virtual Double CalcJacobianDet(const std::vector<Double> & LCoord,
+  virtual Double CalcJacobianDet(const Vector<Double> & LCoord,
 				 const Matrix<Double> & CornerCoords);
 
   //! Calculation of Jacobian determinant at integration point ip
@@ -69,7 +69,7 @@ protected:
     \f[ \left( \begin{array}{ccc} x_{1} & x_{2} & \cdots  \end{array} \right) \f] 
   */
   virtual void CalcJacobian(Matrix<Double> & J, 
-			    const std::vector<Double> & LCoord, 
+			    const Vector<Double> & LCoord, 
 			    const Matrix<Double> & CornerCoords);
   
    //! Calculates the Jacobian Matrix at integration point ip
@@ -93,7 +93,7 @@ protected:
     \f[ \left( \begin{array}{ccc} x_{1} & x_{2} & \cdots \end{array} \right) \f] 
   */
   virtual void CalcInvJacobian(Matrix<Double> & JInv,
-			       const std::vector<Double> & LCoord,
+			       const Vector<Double> & LCoord,
 			       const Matrix<Double> & CornerCoords);
   
   //! Calculates the Inverse Jacobian Matrix at integration point ip

@@ -11,9 +11,8 @@ namespace CoupledField
   // returns B - matrix for BDB
   void SmoothInt::calcBMat(Matrix<Double> & bMat, Integer ip, Matrix<Double> & ptCoord)
   {
-#ifdef TRACE
-  (*trace) << "entering SmoothInt::calcBMat " << std::endl;
-#endif
+    ENTER_FCN( "SmoothInt::calcBMat" );
+    
     const Integer nrNodes  = ptelem->GetNumNodes();
     const Integer spaceDim = ptelem->GetDim();  
     const Integer nrDofs   = getNrDofs();  
@@ -75,11 +74,12 @@ namespace CoupledField
 
   
   // calculated the D-matrix for the plain strain state
-  void smoothPlainStrainInt::calcDMat(Matrix<Double> & dMat, Integer ip, Matrix<Double> & ptCoord)
+  void smoothPlainStrainInt::calcDMat(Matrix<Double> & dMat, 
+				      Integer ip, 
+				      Matrix<Double> & ptCoord)
   {
-#ifdef TRACE
-  (*trace) << "entering smoothPlainStrainInt::calcDMat " << std::endl;
-#endif
+    ENTER_FCN( "smoothPlainStrainInt::calcDMat" );
+
     const Integer nrElems2d = getDimD();
     
     Integer rowPtrXY[] = {1,2,6,7,8};  // indices of rows and lines for xy-plane
@@ -125,10 +125,7 @@ namespace CoupledField
   // calculated the D-matrix for the axisymmetric state
   void SmoothAxiInt::calcDMat(Matrix<Double> & dMat, Integer ip, Matrix<Double> & ptCoord)
   {
-#ifdef TRACE
-  (*trace) << "entering SmoothAxiInt::calcDMat " << std::endl;
-#endif
-  
+    ENTER_FCN( "SmoothAxiInt::calcDMat" );
     
     const Integer nrElemsAxi = 4;
     
@@ -174,9 +171,8 @@ namespace CoupledField
   // calculates the D-matrix of a 3d-problem 
   void smooth3DInt::calcDMat(Matrix<Double> & dMat, Integer ip, Matrix<Double> & ptCoord)
   {
-#ifdef TRACE
-  (*trace) << "entering smooth3DInt::calcDMat " << std::endl;
-#endif
+    ENTER_FCN( "smooth3DInt::calcDMat" );
+
     const Integer nrElems3d = getDimD();
     
     Matrix<Double> * matMatrix =  ptMaterial->GetMatrix();
@@ -201,9 +197,7 @@ namespace CoupledField
   SmoothInt::SmoothInt(BaseFE * aptelem, MaterialData & matData) 
     : BDBInt(aptelem, matData), actOrientation_(xy)
   {
-#ifdef TRACE
-    (*trace) << "entering SmoothInt::SmoothInt" << std::endl;
-#endif
+    ENTER_FCN( "SmoothInt::SmoothInt" );
     updateDMatInEveryIP_ = 1;
   }
 
@@ -212,18 +206,14 @@ namespace CoupledField
   SmoothInt::SmoothInt(MaterialData & matData) 
     : BDBInt(matData), actOrientation_(xy)
   {
-#ifdef TRACE
-    (*trace) << "entering SmoothInt::SmoothInt" << std::endl;
-#endif
+    ENTER_FCN( "SmoothInt::SmoothInt" );
     updateDMatInEveryIP_ = 1;
   }
  
 
   SmoothInt::~SmoothInt()
   {
-#ifdef TRACE
-    (*trace) << "entering SmoothInt::~SmoothInt" << std::endl;
-#endif
+    ENTER_FCN( "SmoothInt::~SmoothInt" );
   }
 
 
@@ -231,9 +221,7 @@ namespace CoupledField
   smoothPlainStrainInt::smoothPlainStrainInt(BaseFE * aptelem, MaterialData & matData) 
     : SmoothInt(aptelem, matData)
   {
-#ifdef TRACE
-    (*trace) << "entering smoothPlainStrainInt::smoothPlainStrainInt" << std::endl;
-#endif
+    ENTER_FCN( "smoothPlainStrainInt::smoothPlainStrainInt" );
 
     ptelem=aptelem;
   }
@@ -242,26 +230,20 @@ namespace CoupledField
   smoothPlainStrainInt::smoothPlainStrainInt(MaterialData & matData) 
     : SmoothInt(matData)
   {
-#ifdef TRACE
-    (*trace) << "entering smoothPlainStrainInt::smoothPlainStrainInt" << std::endl;
-#endif
+    ENTER_FCN( "smoothPlainStrainInt::smoothPlainStrainInt" );
   }
  
 
   smoothPlainStrainInt::~smoothPlainStrainInt()
   {
-#ifdef TRACE
-    (*trace) << "entering smoothPlainStrainInt::~smoothPlainStrainInt" << std::endl;
-#endif
+    ENTER_FCN( "smoothPlainStrainInt::~smoothPlainStrainInt" );
   }
 
 
   SmoothAxiInt::SmoothAxiInt(BaseFE * aptelem, MaterialData & matData) 
     : SmoothInt(aptelem, matData)
   {
-#ifdef TRACE
-    (*trace) << "entering SmoothAxiInt::SmoothAxiInt" << std::endl;
-#endif
+    ENTER_FCN( "SmoothAxiInt::SmoothAxiInt" );
     isaxi_ = TRUE;
     ptelem=aptelem;
   }
@@ -270,18 +252,14 @@ namespace CoupledField
   SmoothAxiInt::SmoothAxiInt(MaterialData & matData) 
     : SmoothInt(matData)
   {
-#ifdef TRACE
-    (*trace) << "entering SmoothAxiInt::SmoothAxiInt" << std::endl;
-#endif
+    ENTER_FCN( "SmoothAxiInt::SmoothAxiInt" );
     isaxi_ = TRUE;
   }
  
 
   SmoothAxiInt::~SmoothAxiInt()
   {
-#ifdef TRACE
-    (*trace) << "entering SmoothAxiInt::~SmoothAxiInt" << std::endl;
-#endif
+    ENTER_FCN( "SmoothAxiInt::~SmoothAxiInt" );
   }
 
 
@@ -291,26 +269,20 @@ namespace CoupledField
   smooth3DInt::smooth3DInt(BaseFE * aptelem, MaterialData & matData) 
     : SmoothInt(aptelem, matData)
   {
-#ifdef TRACE
-    (*trace) << "entering smooth3DInt::smooth3DInt" << std::endl;
-#endif
+    ENTER_FCN( "smooth3DInt::smooth3DInt" );
   }
 
 
   smooth3DInt::smooth3DInt(MaterialData & matData) 
     : SmoothInt(matData)
   {
-#ifdef TRACE
-    (*trace) << "entering smooth3DInt::smooth3DInt" << std::endl;
-#endif
+    ENTER_FCN( "smooth3DInt::smooth3DInt" );
   }
  
 
   smooth3DInt::~smooth3DInt()
   {
-#ifdef TRACE
-    (*trace) << "entering smooth3DInt::~smooth3DInt" << std::endl;
-#endif
+    ENTER_FCN( "smooth3DInt::~smooth3DInt" );
   }
 
 } // end namespace CoupledField

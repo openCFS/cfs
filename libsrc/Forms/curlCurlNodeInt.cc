@@ -9,10 +9,8 @@ namespace CoupledField
   CurlCurlNode2DInt::CurlCurlNode2DInt(BaseFE * aptelem, Double aVal, Boolean axi)
     : BaseForm(aptelem),matVal_ (aVal)
   {
-#ifdef TRACE
-    (*trace) << "entering CurlCurlNode2DInt::CurlCurlNode2DInt" << std::endl;
-#endif
-
+    ENTER_FCN( "CurlCurlNode2DInt::CurlCurlNode2DInt" );
+    
     isaxi_ = axi;
   }
 
@@ -20,9 +18,7 @@ namespace CoupledField
   CurlCurlNode2DInt::CurlCurlNode2DInt(Double aVal, Boolean axi)
     : BaseForm(),matVal_ (aVal)
   {
-#ifdef TRACE
-    (*trace) << "entering CurlCurlNode2DInt::CurlCurlNode2DInt" << std::endl;
-#endif
+    ENTER_FCN( "CurlCurlNode2DInt::CurlCurlNode2DInt" );
 
     isaxi_ = axi;
   }
@@ -31,22 +27,18 @@ namespace CoupledField
  
   CurlCurlNode2DInt::~CurlCurlNode2DInt()
   {
-#ifdef TRACE
-    (*trace) << "entering CurlCurlNode2DInt::~CurlCurlNode2DInt" << std::endl;
-#endif
+    ENTER_FCN( "CurlCurlNode2DInt::~CurlCurlNode2DInt" );
   }
 
 
 
   void CurlCurlNode2DInt::CalcElementMatrix(Matrix<Double> & ptCoord, Matrix<Double> & elemMat)
   {
-#ifdef TRACE
-    (*trace) << "entering CurlCurlNode2DInt::CalcElementMatrix" << std::endl;
-#endif
+    ENTER_FCN( "CurlCurlNode2DInt::CalcElementMatrix" );
   
     const Integer nrIntPts= ptelem->GetNumIntPoints();
     const Integer nrNodes = ptelem->GetNumNodes();
-    const std::vector<Double> & intWeights = ptelem->GetIntWeights();  
+    const Vector<Double> & intWeights = ptelem->GetIntWeights();  
     Double jacDet;  
 
 
@@ -55,9 +47,9 @@ namespace CoupledField
     Matrix<Double> xiDxTransp;
     Matrix<Double> partElemMat;
     Matrix<Double> partElemMatAxi;
-    std::vector<Double> ShpFncAtIp;
-    std::vector<Double> CoordAtIP;
-    std::vector<Double> drAtIp;
+    Vector<Double> ShpFncAtIp;
+    Vector<Double> CoordAtIP;
+    Vector<Double> drAtIp;
 
 
     // set matrix to desired size and set all elements to zero
@@ -85,19 +77,13 @@ namespace CoupledField
 	elemMat += partElemMat;
       }
   
-
-#ifdef TRACE
-    (*trace) << "leaving CurlCurlNode2DInt::CalcElemMatrix" << std::endl;
-#endif
   }
 
 
 
   void CurlCurlNode2DInt::Print(std::ostream * out, const Matrix<Double> Result) const
   {
-#ifdef TRACE
-    (*trace) << "entering CurlCurlNode2DInt::Print" << std::endl;
-#endif
+    ENTER_FCN( "CurlCurlNode2DInt::Print" );
     (*out)<< "Laplace stiffness matrix:" << std::endl << Result;
   }
 

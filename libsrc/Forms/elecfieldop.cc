@@ -1,13 +1,13 @@
 #include "Forms/elecfieldop.hh"
 
-#include <Elements/basefe.hh>
 #include <string>
-#include <Domain/elem.hh>
-#include <Domain/grid.hh>
-#include <General/environment.hh>
-#include <Utils/vector.hh>
-#include <Utils/storesol.hh>
-#include <Matrix/matrix.hh>
+
+#include "Elements/basefe.hh"
+#include "Domain/elem.hh"
+#include "Domain/grid.hh"
+#include "General/environment.hh"
+#include "Utils/vector.hh"
+#include "Matrix/matrix.hh"
 
 #include <PDE/basePDE.hh>
 
@@ -16,46 +16,43 @@ namespace CoupledField
 
 ElecFieldOp::ElecFieldOp(Grid * ptGrid, 
 			 BasePDE * ptPDE,
-			 std::vector<Integer> * ptMesh2PDENode,
-			 StoreSol<Double> & EPotential,
+			 NodeEQN * ptEQN,
+			 NodeStoreSol<Double> & EPotential,
 			 const Integer level,
 			 Boolean isaxi)
-  : BaseOperator( ptGrid, ptPDE, ptMesh2PDENode, level, isaxi)
+  : BaseOperator( ptGrid, ptPDE, ptEQN, level, isaxi)
 {
-#ifdef TRACE
-  (*trace) << "entering ElecFieldOp::ElecFieldOp" << std::endl;
-#endif
+  ENTER_FCN( "ElecFieldOp::ElecFieldOp" );
   
-  EPotential.GetVectorPointer(this->EPotential_);
+  this->EPotential_ = &EPotential;
   
 }
 
 ElecFieldOp::~ElecFieldOp()
 {
-#ifdef TRACE
-  (*trace) << "entering ElecFieldOp::~ElecFieldOp" << std::endl;
-#endif
+  ENTER_FCN( "ElecFieldOp::~ElecFieldOp" );
 
 }
 
 void ElecFieldOp::CalcElemElecField(Vector<Double> & E, 
 				    const Elem * ptElement,
-				    const std::vector<Double> & LCoord)
+				    const Vector<Double> & LCoord)
 {
-#ifdef TRACE
-  (*trace) << "entering ElecFieldOp::CalcElemElecFieldOp" << std::endl;
-#endif
+  ENTER_FCN( "ElecFieldOp::CalcElemElecFieldOp" );
   
   ShortInt dim;
+  Double elecEntry;
   dim = ptElement->ptElem->GetDim();
   E.Resize(dim);
   E.Init();
 
   Integer nShFnc = 0;
   nShFnc = ptElement->ptElem->GetNumNodes();
-
+  
+  const StdVector<Integer> & connect = ptElement->connect;
+  
   Matrix<Double> CornerCoords; 
-  ptPDE_->GetElemCoords(ptElement->connect, CornerCoords, level_);
+  ptPDE_->GetElemCoords(connect, CornerCoords, level_);
 
   Matrix<Double> GlobalGradient;
 
@@ -64,28 +61,31 @@ void ElecFieldOp::CalcElemElecField(Vector<Double> & E,
   // loop over shape functions
   for( Integer i=0; i<dim; i++ )
     for( Integer j=0; j<nShFnc; j++ )
-      E[i] -= GlobalGradient[j][i] * (*EPotential_)[(*ptMesh2PDENode_) [ptElement->connect[j]-1]-1];
+      {
+	//std::cerr << "Longing for connect = " << connect[j] << std::endl;
+	EPotential_->Get(connect[j]-1,0,elecEntry);
+	//istd:cerr << "elecEntry = " << elecEntry << std::endl;
+	//E[i] -= GlobalGradient[j][i] * (*EPotential_)[(*ptMesh2PDENode_) [connect[j]-1]-1];
+	E[i] -= GlobalGradient[j][i] * elecEntry;
+      }
   
 }
 
 
 
-void ElecFieldOp::CalcSDElecField(StoreSol<Double> & E,
-				  const std::vector<std::string> & SD, 
-				  const std::vector<Double> & LCoord)
+void ElecFieldOp::CalcSDElecField(NodeStoreSol<Double> & E,
+				  const StdVector<std::string> & SD, 
+				  const Vector<Double> & LCoord)
 {
-#ifdef TRACE
-  (*trace) << "entering ElecFieldOp::CalcSDElecField" << std::endl;
-#endif
-
+  ENTER_FCN( "ElecFieldOp::CalcSDElecField" );
   
   Integer nShFnc = 0;
   ShortInt dim;
   Matrix<Double> CornerCoords;
   Matrix<Double> GlobalGradient;
   
-  std::vector<Elem *> SubDomain;
-  
+  StdVector<Elem *> SubDomain;
+  Double elecEntry;
   Integer maxelem;
   maxelem = ptGrid_->GetMaxnumElem(level_, SD);
   dim = ptGrid_->GetDim();
@@ -95,12 +95,12 @@ void ElecFieldOp::CalcSDElecField(StoreSol<Double> & E,
   E.SetNumDofs(dim);
             
   // Iterate over all subdomains
-  for( Integer iSD=0; iSD<SD.size(); iSD++)
+  for( Integer iSD=0; iSD<SD.GetSize(); iSD++)
     {
       ptGrid_->GetElemSD(SubDomain,SD[iSD],level_);
 
       // Iterate over whole SubDomain
-      for( Integer k=0; k<SubDomain.size(); k++) 
+      for( Integer k=0; k<SubDomain.GetSize(); k++) 
 	{
 	  nShFnc = SubDomain[k]->ptElem->GetNumNodes();
 	  
@@ -111,7 +111,12 @@ void ElecFieldOp::CalcSDElecField(StoreSol<Double> & E,
 	  // loop over shape functions
 	  for( Integer i=0; i<dim; i++ )
 	    for( Integer j=0; j<nShFnc; j++ )
-	      E(k,i) -= GlobalGradient[j][i] * (*EPotential_)[(*ptMesh2PDENode_) [SubDomain[k]->connect[j]-1]-1];	    
+	      {
+		// NOT WORKING YET
+		//elecEntry = (*EPotential_)(SubDomain[k]->connect[j],1);
+		///E(k,i) -= GlobalGradient[j][i] * (*EPotential_)[(*ptMesh2PDENode_) [SubDomain[k]->connect[j]-1]-1];	    
+		//E(k,i) -= GlobalGradient[j][i] * elecEntry;
+	      }
 	  
 	}
     }
@@ -121,15 +126,13 @@ void ElecFieldOp::CalcSDElecField(StoreSol<Double> & E,
 
 CurlEdgeOp::CurlEdgeOp(Grid * ptGrid, 
 		       BasePDE * ptPDE,
-		       std::vector<Integer> * ptMesh2PDENode,
-		       StoreSol<Double> & aSol,
+		       NodeEQN * ptEQN,
+		       NodeStoreSol<Double> & aSol,
 		       const Integer level,
 		       BaseSystem * algsys) 
-  : BaseOperator(ptGrid, ptPDE, ptMesh2PDENode, level), algsys_(algsys)
+  : BaseOperator(ptGrid, ptPDE, ptEQN, level), algsys_(algsys)
 {
-#ifdef TRACE
-  (*trace) << "entering CurlEdgeOp::CurlEdgeOp" << std::endl;
-#endif
+  ENTER_FCN( "CurlEdgeOp::CurlEdgeOp" );
 
   aSol.GetVectorPointer((CFSVector*)this->sol_);
 }
@@ -137,89 +140,86 @@ CurlEdgeOp::CurlEdgeOp(Grid * ptGrid,
 
 CurlEdgeOp::~CurlEdgeOp()
 {
-#ifdef TRACE
-  (*trace) << "entering CurlEdgeOp::~CurlEdgeOp" << std::endl;
-#endif
+  ENTER_FCN( "CurlEdgeOp::~CurlEdgeOp" );
 }
 
 
 void CurlEdgeOp::CalcElemCurlEdge(Vector<Double> & curlField, 
 				  const Elem * ptElement,
-				  const std::vector<Double> & LCoord)
+				  const Vector<Double> & LCoord)
 {
-#ifdef TRACE
-  (*trace) << "entering CurlEdgeOp::CalcElemCurlEdgeOp" << std::endl;
-#endif
+  ENTER_FCN( "CurlEdgeOp::CalcElemCurlEdgeOp" );
   
-  ShortInt dim = ptElement->ptElem->GetDim();
+  Error("CurlEdgeOp::CalcElemCurlEdgeOp: Not working due to EQN-class!",
+	__FILE__, __LINE__);
+ //  ShortInt dim = ptElement->ptElem->GetDim();
   
-  curlField.Resize(dim);
-  for (Integer i=0; i<dim; i++)
-    curlField[i] = 0;
+//   curlField.Resize(dim);
+//   for (Integer i=0; i<dim; i++)
+//     curlField[i] = 0;
 
-  Integer nrEdges = ptElement->ptElem->GetNumEdges();
-  Integer nrNodes = ptElement->ptElem->GetNumNodes();
+//   Integer nrEdges = ptElement->ptElem->GetNumEdges();
+//   Integer nrNodes = ptElement->ptElem->GetNumNodes();
 
-  Matrix<Double> CornerCoords; 
-  ptGrid_->GetCoordNodesElemMat(ptElement->connect, CornerCoords, level_);
-
-
-  Matrix<Double> curlOnEdges;
+//   Matrix<Double> CornerCoords; 
+//   ptGrid_->GetCoordNodesElemMat(ptElement->connect, CornerCoords, level_);
 
 
-  std::vector<Matrix<Double>* > deriv;
-  deriv.resize(nrEdges);
-  for (Integer actEdge=0; actEdge < nrEdges; actEdge++)
-    deriv[actEdge] = new Matrix<Double>;
+//   Matrix<Double> curlOnEdges;
+
+
+//   StdVector<Matrix<Double>* > deriv;
+//   deriv.Resize(nrEdges);
+//   for (Integer actEdge=0; actEdge < nrEdges; actEdge++)
+//     deriv[actEdge] = new Matrix<Double>;
   
 
-  ptElement->ptElem->GetEdgeGlobalDerivShapeFnc (deriv, LCoord, CornerCoords);
+//   ptElement->ptElem->GetEdgeGlobalDerivShapeFnc (deriv, LCoord, CornerCoords);
 
-  curlOnEdges.Resize(dim, nrEdges);
+//   curlOnEdges.Resize(dim, nrEdges);
   
-  for (Integer actEdge=0; actEdge < nrEdges; actEdge++)
-    for (Integer actDim=0; actDim < dim; actDim++)
-      curlOnEdges[actDim][actEdge] = 
-	(*deriv[actEdge])[(actDim+2)%dim][(actDim+1)%dim] -
-	(*deriv[actEdge])[(actDim+1)%dim][(actDim+2)%dim];
+//   for (Integer actEdge=0; actEdge < nrEdges; actEdge++)
+//     for (Integer actDim=0; actDim < dim; actDim++)
+//       curlOnEdges[actDim][actEdge] = 
+// 	(*deriv[actEdge])[(actDim+2)%dim][(actDim+1)%dim] -
+// 	(*deriv[actEdge])[(actDim+1)%dim][(actDim+2)%dim];
 
 
-  std::vector<Double> sol(nrEdges);
-  // global edge index
-  std::vector<Integer> epos(nrEdges);
-  std::vector<Integer> esign(nrEdges);
+//   StdVector<Double> sol(nrEdges);
+//   // global edge index
+//   StdVector<Integer> epos(nrEdges);
+//   StdVector<Integer> esign(nrEdges);
 
 
-  Vector<Integer> pos(nrNodes);
+//   StdVector<Integer> pos(nrNodes);
   
-  for (Integer i=0; i < nrNodes; i++)
-     pos[i] = (*ptMesh2PDENode_)[ptElement->connect[i]-1];
+//   for (Integer i=0; i < nrNodes; i++)
+//      pos[i] = (*ptMesh2PDENode_)[ptElement->connect[i]-1];
   
-  ptElement->ptElem->GetGlobalEdgeIndices(epos, &pos[0], algsys_);
+//   ptElement->ptElem->GetGlobalEdgeIndices(epos, &pos[0], algsys_);
 
+// #ifdef DEBUG
+//   (*debug) << "CurlOP pos \n" << pos << std::endl
+// 	   << "epos \n " << epos << std::endl;
+  
+// #endif
 
-#ifdef DEBUG
-  (*debug) << "CurlOP pos \n" << pos << std::endl
-	   << "epos \n " << epos << std::endl;
-  
-#endif
-
-  for (Integer j=0; j<nrEdges; j++)
-    {
-      esign[j] = epos[j]/abs(epos[j]);
-      epos[j]  = abs(epos[j]);
-      sol[j] = (*sol_)[epos[j]-1] * esign[j];
-    }
+//   for (Integer j=0; j<nrEdges; j++)
+//     {
+//       esign[j] = epos[j]/abs(epos[j]);
+//       epos[j]  = abs(epos[j]);
+//       sol[j] = (*sol_)[epos[j]-1] * esign[j];
+//     }
   
   
-  // loop over edge curls
-  for( Integer i=0; i<dim; i++ )
-    {
-      curlField[i]=0;
+//   // loop over edge curls
+//   for( Integer i=0; i<dim; i++ )
+//     {
+//       curlField[i]=0;
       
-      for( Integer j=0; j < nrEdges; j++ )
-	curlField[i] += curlOnEdges[i][j] * sol[j];
-    }
+//       for( Integer j=0; j < nrEdges; j++ )
+// 	curlField[i] += curlOnEdges[i][j] * sol[j];
+//     }
   
 }
 
@@ -228,62 +228,62 @@ void CurlEdgeOp::CalcElemCurlEdge(Vector<Double> & curlField,
 
 void CurlEdgeOp::CalcElemMagVec(Vector<Double> & magVecPot, 
 				const Elem * ptElement,
-				const std::vector<Double> & lCoord)
+				const Vector<Double> & lCoord)
 {
-#ifdef TRACE
-  (*trace) << "entering CurlEdgeOp::CalcElemMagVec" << std::endl;
-#endif
+  ENTER_FCN( "CurlEdgeOp::CalcElemMagVec" );
   
-  Integer nrEdges = ptElement->ptElem->GetNumEdges();
-  Integer nrNodes = ptElement->ptElem->GetNumNodes();
-  BaseFE * ptElem = ptElement->ptElem;
-  ShortInt dim = ptElem->GetDim();
+  Error( "CurlEdgeOp::CalcElemMagVec: Not working due to EQN-class",
+	 __FILE__, __LINE__);
+  // Integer nrEdges = ptElement->ptElem->GetNumEdges();
+//   Integer nrNodes = ptElement->ptElem->GetNumNodes();
+//   BaseFE * ptElem = ptElement->ptElem;
+//   ShortInt dim = ptElem->GetDim();
 
-  Matrix<Double> cornerCoords; 
-  Matrix<Double> shape;
+//   Matrix<Double> cornerCoords; 
+//   Matrix<Double> shape;
 
-  std::vector<Double> sol(nrEdges);
-  // global edge index
-  std::vector<Integer> epos(nrEdges);
-  std::vector<Integer> esign(nrEdges);
-  Vector<Integer> pos(nrNodes);
+//   StdVector<Double> sol(nrEdges);
+//   // global edge index
+//   StdVector<Integer> epos(nrEdges);
+//   StdVector<Integer> esign(nrEdges);
+//   Vector<Integer> pos(nrNodes);
 
 
 
-  magVecPot.Resize(dim);
+//   magVecPot.Resize(dim);
 
-  for (Integer i=0; i<dim; i++)
-    magVecPot[i] = 0;
+//   for (Integer i=0; i<dim; i++)
+//     magVecPot[i] = 0;
 
-  ptGrid_->GetCoordNodesElemMat(ptElement->connect, cornerCoords, level_);
+//   ptGrid_->GetCoordNodesElemMat(ptElement->connect, cornerCoords, level_);
   
-  ptElem->CalcEdgeShapeFnc(shape, lCoord, cornerCoords);
-
-  
-  for (Integer i=0; i < nrNodes; i++)
-     pos[i] = (*ptMesh2PDENode_)[ptElement->connect[i]-1];
-  
-  ptElem->GetGlobalEdgeIndices(epos, &pos[0], algsys_);
-
-
-  for (Integer j=0; j<nrEdges; j++)
-    {
-      esign[j] = epos[j]/abs(epos[j]);
-      epos[j]  = abs(epos[j]);
-      sol[j] = (*sol_)[epos[j]-1] * esign[j];
-    }
-  
+//   ptElem->CalcEdgeShapeFnc(shape, lCoord, cornerCoords);
 
   
+//   for (Integer i=0; i < nrNodes; i++)
+//      pos[i] = (*ptMesh2PDENode_)[ptElement->connect[i]-1];
   
-  // loop over edge curls
-  // magVecPot = sol * shape;
-  for( Integer j=0; j<dim; j++ )  
-    {
-      magVecPot[j]=0;
-      for( Integer i=0; i < nrEdges; i++ )
-	magVecPot[j] += shape[i][j] * sol[i];
-    }
+//   ptElem->GetGlobalEdgeIndices(epos, &pos[0], algsys_);
+
+
+//   for (Integer j=0; j<nrEdges; j++)
+//     {
+//       esign[j] = epos[j]/abs(epos[j]);
+//       epos[j]  = abs(epos[j]);
+//       sol[j] = (*sol_)[epos[j]-1] * esign[j];
+//     }
+  
+
+  
+  
+//   // loop over edge curls
+//   // magVecPot = sol * shape;
+//   for( Integer j=0; j<dim; j++ )  
+//     {
+//       magVecPot[j]=0;
+//       for( Integer i=0; i < nrEdges; i++ )
+// 	magVecPot[j] += shape[i][j] * sol[i];
+//     }
 }
 
 
@@ -291,35 +291,30 @@ void CurlEdgeOp::CalcElemMagVec(Vector<Double> & magVecPot,
 
 CurlNodeOp::CurlNodeOp(Grid * ptGrid, 
 		       BasePDE * ptPDE,
-		       std::vector<Integer> * ptMesh2PDENode,
-		       StoreSol<Double> & aSol,
+		       NodeEQN * ptEQN,
+		       NodeStoreSol<Double> & aSol,
 		       const Integer level)
-  : BaseOperator(ptGrid, ptPDE, ptMesh2PDENode, level, FALSE)
+  : BaseOperator(ptGrid, ptPDE, ptEQN, level, FALSE)
 {
-#ifdef TRACE
-  (*trace) << "entering CurlNodeOp::CurlNodeOp" << std::endl;
-#endif
+  ENTER_FCN( "CurlNodeOp::CurlNodeOp" );
 
-  aSol.GetVectorPointer(sol_);
+  sol_ = &aSol;
 }
 
 CurlNodeOp::~CurlNodeOp()
 {
-#ifdef TRACE
-  (*trace) << "entering CurlNodeOp::~CurlNodeOp" << std::endl;
-#endif
+  ENTER_FCN( "CurlNodeOp::~CurlNodeOp" );
 
 }
 
 void CurlNodeOp::CalcElemCurlNode(Vector<Double> & B, 
 				    const Elem * ptElement,
-				    const std::vector<Double> & LCoord)
+				    const Vector<Double> & LCoord)
 {
-#ifdef TRACE
-  (*trace) << "entering CurlNodeOp::CalcElemCurlNode" << std::endl;
-#endif
+  ENTER_FCN( "CurlNodeOp::CalcElemCurlNode" );
   
   ShortInt dim;
+  Double solEntry;
   dim = ptElement->ptElem->GetDim();
   if (dim ==2)
     {
@@ -338,8 +333,8 @@ void CurlNodeOp::CalcElemCurlNode(Vector<Double> & B,
       
       if (isaxi_)
 	{
-	  std::vector<Double> ShpFncAtIp;
-	  std::vector<Double> CoordAtIP;
+	  Vector<Double> ShpFncAtIp;
+	  Vector<Double> CoordAtIP;
 	  ptElement->ptElem->GetShFnc(ShpFncAtIp,LCoord);
 	  CoordAtIP = CornerCoords * ShpFncAtIp;
 	  for (Integer i=0; i<nShFnc; i++)
@@ -349,8 +344,12 @@ void CurlNodeOp::CalcElemCurlNode(Vector<Double> & B,
       // loop over shape functions
       for( Integer i=0; i<dim; i++ )
 	for( Integer j=0; j<nShFnc; j++ )
-	  B[i] += GlobalGradient[j][i] * (*sol_)[(*ptMesh2PDENode_) [ptElement->connect[j]-1]-1];
-      
+	  {
+	    sol_->Get(ptElement->connect[j]-1,0,solEntry);
+	    //const Double solEntry = (*sol_)(ptElement->connect[j],1);
+	    //B[i] += GlobalGradient[j][i] * (*sol_)[(*ptMesh2PDENode_) [ptElement->connect[j]-1]-1];
+	    B[i] += GlobalGradient[j][i] * solEntry;
+	  }
       //account, that we compute the curl!
       Double temp = B[0];
       if (isaxi_)

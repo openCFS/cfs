@@ -2,7 +2,9 @@
 #define FILE_WRITERESULTS_2002
 
 #include "Domain/grid.hh"
-#include <Utils/storesol.hh>
+#include "Utils/nodestoresol.hh"
+#include "Utils/elemstoresol.hh"
+#include "Utils/StdVector.hh"
 
 namespace CoupledField
 {
@@ -38,7 +40,7 @@ public:
     \param title name for the solution
     \param nrDofs dimension of solution
   */
-  virtual void WriteNodeSolution(const StoreSol<Double>& sol, const Integer step, const Double time, const std::string title)=0;
+  virtual void WriteNodeSolution(const NodeStoreSol<Double>& sol, const Integer step, const Double time, const std::string title)=0;
 
   //! write element solution vector
   /*!
@@ -48,7 +50,7 @@ public:
     \param title name for the data    
     \param nrDofs dimension of solution
   */
-  virtual void WriteElemSolution(const StoreSol<Double> & data, const Integer step, const Double time, const std::string title)=0;
+  virtual void WriteElemSolution(const ElemStoreSol<Double> & data, const Integer step, const Double time, const std::string title)=0;
 
   //! to open new file for printing results only for GMV
   /*!
@@ -87,7 +89,7 @@ protected:
   Boolean NeedHistory_;
 
   //! vector with nodes history
-  std::vector<Integer> nodeshist_;
+  StdVector<Integer> nodeshist_;
 
   //! pointer to ofstream with history information
   std::ofstream * historyfile;
@@ -96,7 +98,7 @@ protected:
   void AddInHistory(const Double time, const Double val, const Integer ifile);
 
   //! add new vector valued data in history file
-  void AddVecInHistory(const Double time, const std::vector<Double> val,const Integer ifile);
+  void AddVecInHistory(const Double time, const Vector<Double> val,const Integer ifile);
 
   //! last time step, for which results were printed
   Vector<Double> lastsavetime;

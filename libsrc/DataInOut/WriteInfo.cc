@@ -207,17 +207,17 @@ namespace CoupledField
 
 
   void WriteInfo:: WriteResult(std::string pdename, std::string resulttype,
-			       std::vector<std::string> subdoms,
-			       std::vector<Double> results)
+			       StdVector<std::string> subdoms,
+			       Vector<Double> results)
   {
     ENTER_FCN( "WriteInfo::WriteResult" );
 
-    if (subdoms.size() != results.size())
+    if (subdoms.GetSize() != results.GetSize())
       Error("Problem in WriteResults",__FILE__,__LINE__);
  
     *cfsInfo << std::endl << " PostProcessing Result for PDE " << pdename
 	     << ": " << resulttype << " ==========" << std::endl;
-    for (Integer i=0; i<subdoms.size(); i++)
+    for (Integer i=0; i<subdoms.GetSize(); i++)
       *cfsInfo << " === " << subdoms[i] << " : " << results[i] << " (Ws)"
 	       << std::endl << std::endl;
   }
@@ -401,7 +401,7 @@ namespace CoupledField
   
 
 
-  void WriteInfo::PrintVec(std::vector<Integer>& vec)
+  void WriteInfo::PrintVec(StdVector<Integer>& vec)
   {
     ENTER_FCN( "WriteInfo::PrintVec" );
     *cfsInfo << vec << std::endl;
@@ -409,7 +409,7 @@ namespace CoupledField
   
 
 
-  void WriteInfo::PrintVec(const char * comment, std::vector<Integer>& vec)
+  void WriteInfo::PrintVec(const char * comment, StdVector<Integer>& vec)
   {
     ENTER_FCN( "WriteInfo::PrintVec" );
     *cfsInfo << comment << myEndl << vec << myEndl << myEndl;
@@ -418,13 +418,13 @@ namespace CoupledField
 
 
   void WriteInfo::PrintVec(const char * comment,
-			   std::vector<std::string>& vec)
+			   StdVector<std::string>& vec)
   {
     ENTER_FCN( "WriteInfo::PrintVec" );
 
     *cfsInfo << comment << myEndl;
 
-    for (int i=0; i< vec.size(); i++)
+    for (int i=0; i< vec.GetSize(); i++)
       *cfsInfo << vec[i] << std::endl;
 
     *cfsInfo << std::endl;
@@ -438,21 +438,39 @@ namespace CoupledField
 
   
   // prints warning to info-file
-  void WriteInfo::Warning(const std::string & Text)
+  void WriteInfo::Warning(const std::string & Text,
+			  const Char * const filename, const Integer numline)
   {
     ENTER_FCN( "WriteInfo::Warning" );
     std::cerr << "\033[31mWARNING:\033[0m " << Text << myEndl << myEndl;
 
+    if (filename) 
+      {
+	std::cerr <<" (" << filename <<" ";
+	if (numline) 
+	  std::cerr << numline;
+	std::cerr << ")";
+	}
     *cfsInfo << myEndl << myEndl << myEndl
 	     << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
 	     << "!!!!!!!!!!!!!" << myEndl
 	     << "                          WARNING " << myEndl
 	     << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
 	     << "!!!!!!!!!!!!!" << myEndl
-	     << "WARNING: " << Text << myEndl 
-	     << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+	     << "WARNING: " << Text;
+    
+    if (filename) 
+      {
+	*cfsInfo <<" (" << filename <<" ";
+	if (numline) 
+	  *cfsInfo << numline;
+	*cfsInfo << ")";
+      }
+    
+    *cfsInfo << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
 	     << "!!!!!!!!!!!!!" << myEndl
-	     << myEndl << myEndl;
+	     << myEndl;
+      
   }
 
 
@@ -480,8 +498,7 @@ namespace CoupledField
 #endif
 
     std::cerr << std::endl << std::endl;
-   
-
+    
     *cfsInfo << myEndl << myEndl << myEndl
 	     << " !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! "
 	     << myEndl

@@ -1,16 +1,16 @@
 #ifndef FILE_BASEFE_2003
 #define FILE_BASEFE_2003
 
-#include <Matrix/matrix.hh>
-#include <vector>
-#include <General/environment.hh>
-#include <Utils/vector.hh>
+#include "Matrix/matrix.hh"
+#include "General/environment.hh"
+#include "Utils/vector.hh"
+#include "Utils/StdVector.hh"
 
 
 #ifdef USE_OLAS
-#include <olas.hh>
+#include "olas.hh"
 #else
-#include <multigrid.hh>
+#include "multigrid.hh"
 #endif
 
 namespace CoupledField
@@ -37,8 +37,8 @@ public:
     \param S (output) Vector of shape fnc values \f$ (N_{1},\cdots\,N_{NumNodes})^T \f$
     \param LCoord (input) Local coordinates of evalutation point 
   */
-  virtual void GetShFnc(std::vector<double> & S, 
-			const std::vector<Double> & LCoord);
+  virtual void GetShFnc(Vector<Double> & S, 
+			const Vector<Double> & LCoord);
 
 
   //! Get local coordinates of element corners 
@@ -56,7 +56,7 @@ public:
     \param S (output) Vector of shape fnc values \f$ (N_{1},\cdots\,N_{NumNodes})^T \f$
     \param ip (input) Integration point
   */
-  virtual void GetShFncAtIp(std::vector<double> & S, 
+  virtual void GetShFncAtIp(Vector<Double> & S, 
 			    const Integer ip);
 
   //! Get global derivatives of all shape fnc at arbitrary local point
@@ -71,7 +71,7 @@ public:
                                   \cdots & \cdots & \cdots \end{array} \right) \f]       
   */
   virtual  void GetGlobDerivShFnc(Matrix<Double> & Deriv, 
-				  const std::vector<Double> & LCoord,
+				  const Vector<Double> & LCoord,
 				  const Matrix<Double> & CornerCoords);
 
 
@@ -122,8 +122,8 @@ public:
                                   \cdots & \cdots & \cdots \end{array} \right) \f] 
   */
   virtual void CalcJacobian(Matrix<Double> & J, 
-				   const std::vector<Double> & LCoord, 
-				   const Matrix<Double> & CornerCoords);
+			    const Vector<Double> & LCoord, 
+			    const Matrix<Double> & CornerCoords);
 
   //! Calculates the Jacobian Matrix at integration point ip
   /*!
@@ -152,7 +152,7 @@ public:
                                   \cdots & \cdots & \cdots \end{array} \right) \f] 
   */
   virtual void CalcInvJacobian(Matrix<Double> & JInv,
-			       const std::vector<Double> & LCoord,
+			       const Vector<Double> & LCoord,
 			       const Matrix<Double> & CornerCoords);
   
   //! Calculates the Inverse Jacobian Matrix at integration point ip
@@ -178,7 +178,7 @@ public:
     \f[ \left( \begin{array}{ccc} x_{1} & x_{2} & \cdots \\ y_{1} & y_{2} & \cdots \\
                                   \cdots & \cdots & \cdots \end{array} \right) \f]
   */
-  virtual Double CalcJacobianDet(const std::vector<Double> & LCoord,
+  virtual Double CalcJacobianDet(const Vector<Double> & LCoord,
 				 const Matrix<Double> & CornerCoords);
 
   //! Calculation of Jacobian determinant at integration point ip
@@ -197,7 +197,7 @@ public:
     \param displacement (input) Displacement of the corner points (same ordering as CornerCoords!!)
   */
   virtual Double CalcMeanStrain(Matrix<Double> &cornerCoords,
-				Array<Double> &displacements)
+				Matrix<Double> &displacements)
   {
     Error("Not implemented",__FILE__,__LINE__);
     return 0;
@@ -208,7 +208,7 @@ public:
   ShortInt GetDim() const {return Dim_;}
  
   //! Get integration points
-  std::vector<Double> * GetIntPoints() {return IntPoints_;}
+  Vector<Double> * GetIntPoints() {return IntPoints_;}
 
   //! Return number of nodes
   ShortInt GetNumNodes() const {return NumNodes_;}
@@ -230,7 +230,7 @@ public:
 #endif
 
   /// Return weightings of integration points
-  std::vector<Double> GetIntWeights() const {return IntWeights_;};
+  Vector<Double> GetIntWeights() const {return IntWeights_;};
   
   // return number of childs in refinement
   virtual Integer getNumChilds() const { return numChilds_;}
@@ -248,8 +248,8 @@ public:
 					     \end{array}\right) \f]
     \param LCoord (input) Local coordinates of evalutation point 
   */
-  virtual void GetEdgeGlobalDerivShapeFnc(std::vector<Matrix<Double>* > & deriv, 
-					  const std::vector<Double> & LCoord,
+  virtual void GetEdgeGlobalDerivShapeFnc(StdVector<Matrix<Double>* > & deriv, 
+					  const Vector<Double> & LCoord,
 					  const Matrix<Double> & CornerCoords)
   { Error("GetEdgeGlobDerivShFnc called for non edge element! ",__FILE__,__LINE__);};
 
@@ -266,7 +266,7 @@ public:
     \f[ \left( \begin{array}{ccc} x_{1} & x_{2} & \cdots \\ y_{1} & y_{2} & \cdots \\
                                   \cdots & \cdots & \cdots \end{array} \right) \f]
   */
-  virtual void GetEdgeGlobDerivShFncAtIp(std::vector< Matrix<Double> *> & deriv, 
+  virtual void GetEdgeGlobDerivShFncAtIp(StdVector< Matrix<Double> *> & deriv, 
 					 const Integer ip,
 					 const Matrix<Double> & cornerCoords);
   
@@ -284,7 +284,7 @@ public:
     \param lCoord (input) Local coordinates of evalutation point 
   */
  virtual void CalcEdgeShapeFnc(Matrix<Double> & shape, 
-				const std::vector<Double> & LCoord, 
+				const Vector<Double> & LCoord, 
 				const Matrix<Double> & CornerCoords)
   { Error("CalcEdgeShapeFnc called for non edge element! ",__FILE__,__LINE__);};
   
@@ -320,7 +320,7 @@ public:
     \param pDENodes (input) Global index of nodes belonging to one element
     \param algsys (input) Pointer to the algebraic system
   */
-  virtual void GetGlobalEdgeIndices(std::vector<Integer>& edges, Integer * pDENodes, BaseSystem * algsys);
+  virtual void GetGlobalEdgeIndices(StdVector<Integer>& edges, Integer * pDENodes, BaseSystem * algsys);
 
 
   //! Get global coordinates based on local element coordinates
@@ -329,7 +329,7 @@ public:
     \param ip (input) Integeration point at which global coord has to be calculated
     \param cornerCoords (input) Matrix of corner coordinates
   */
-  virtual void GetGlobalEdgeIndicesAtIP( std::vector<Double> & globCoord,
+  virtual void GetGlobalEdgeIndicesAtIP( Vector<Double> & globCoord,
 					 Integer ip,
 					 const Matrix<Double> & cornerCoords);
   
@@ -359,8 +359,8 @@ protected:
     \param Shape (output) Vector of shape fnc values \f$ (N_{1},\cdots\,N_{NumNodes})^T \f$
     \param LCoord (input) Local coordinates of evalutation point 
   */
-  virtual void CalcShapeFnc(std::vector<Double> & Shape, 
-			    const std::vector<Double> & LCoord) = 0;
+  virtual void CalcShapeFnc(Vector<Double> & Shape, 
+			    const Vector<Double> & LCoord) = 0;
   
   //! Calculates the local derivatives of shape functions at an arbitrary local point
   /*!
@@ -371,7 +371,7 @@ protected:
     \param LCoord (input) Local coordinates of evalutation point 
   */
   virtual void CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
-				      const std::vector<Double> & LCoord) = 0;
+				      const Vector<Double> & LCoord) = 0;
 
  //! Set value of shape fnc at integration points
   virtual void SetShapeFncAtIp();
@@ -388,11 +388,11 @@ protected:
   ShortInt NumIntPoints_;           //!< number of integration points
   ShortInt DegreeInteg_;            //!< numerical integration order
   Matrix<Double> LCornerCoords_;    //!< Matrix of local corner coordinates (x:number, y:Dim)
-  std::vector<Double> * ShFncAtIp_; //!< Array of vectors of function values at IPs (x:local Dim, y:Number)
+  Vector<Double> * ShFncAtIp_;      //!< Array of vectors of function values at IPs (x:local Dim, y:Number)
   Matrix<Double> * ShFncDerivAtIp_; //!< Array of local derivatives in each integration point
-  std::vector<Double> * IntPoints_; //!< integration points
-  std::vector<Double> IntWeights_;  //!< integration weights
-  Integer             numChilds_;   //!< number of children for element in refinement
+  Vector<Double> * IntPoints_;      //!< integration points
+  Vector<Double> IntWeights_;       //!< integration weights
+  Integer numChilds_;               //!< number of children for element in refinement
 
   enum IntegrationType IntegType;
   

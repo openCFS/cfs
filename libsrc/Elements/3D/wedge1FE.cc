@@ -9,26 +9,19 @@ namespace CoupledField
 
 Wedge1FE::Wedge1FE():WedgeFE()
 { 
-#ifdef TRACE
-  (*trace) << "entering Wedge1FE::Wedge1FE" << std::endl;
-#endif
-   Init();
+  ENTER_FCN( "Wedge1FE::Wedge1FE" );
+  Init();
 }
 
 
 Wedge1FE::~Wedge1FE()
 {
-#ifdef TRACE
-  (*trace) << "entering Wedge1FE::~Wedge1FE" << std::endl;
-#endif
- ; 
+  ENTER_FCN( "Wedge1FE::~Wedge1FE" );
 }
 
 void Wedge1FE::Init()
 {
-#ifdef TRACE
-  (*trace) << "entering Wedge1FE::Init" << std::endl;
-#endif
+  ENTER_FCN( "Wedge1FE::Init" );
 
   NumNodes_ = 6;
   NumEdges_ = 9;
@@ -46,9 +39,7 @@ void Wedge1FE::Init()
 
 void Wedge1FE::SetCornerCoords()
 {
-#ifdef TRACE
-  (*trace) << "entering Wedge1FE::SetCornerCoords" << std::endl;
-#endif
+  ENTER_FCN( "Wedge1FE::SetCornerCoords" );
 
   LCornerCoords_.Resize(Dim_,NumNodes_);
   
@@ -90,14 +81,12 @@ void Wedge1FE::SetCornerCoords()
 // }
 
 
-void Wedge1FE :: CalcShapeFnc(std::vector<Double> & Shape, 
-			     const std::vector<Double> & LCoord)
+void Wedge1FE :: CalcShapeFnc(Vector<Double> & Shape, 
+			     const Vector<Double> & LCoord)
 {
-#ifdef TRACE
-  (*trace) << "entering Wedge1FE::CalcShapeFnc" << std::endl;
-#endif
+  ENTER_FCN( "Wedge1FE::CalcShapeFnc" );
 
-  Shape.resize(NumNodes_);
+  Shape.Resize(NumNodes_);
 
   //"Wedge Elements"
   // From Finite Element Library. www.mathsoft.cse.clrc.ac.uk/felib3/Docs/html/Level-0/wdg6/wdg6.html.
@@ -114,11 +103,9 @@ void Wedge1FE :: CalcShapeFnc(std::vector<Double> & Shape,
 
 
 void Wedge1FE :: CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
-				       const std::vector<Double> & LCoord)
+				       const Vector<Double> & LCoord)
 {
-#ifdef TRACE
-  (*trace) << "entering Wedge1FE::CalcLocalDerivShapeFnc" << std::endl;
-#endif
+  ENTER_FCN( "Wedge1FE::CalcLocalDerivShapeFnc" );
 
   LDeriv.Resize(NumNodes_,Dim_);
 

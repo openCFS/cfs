@@ -105,17 +105,17 @@ namespace CoupledField
     void CalcEnergy();
 
     //! callculates nodal forces
-    void CalcNodeForce(StoreSol<Double> & force, 
-		       std::vector<Integer> & nodes, 
-		       std::vector<Elem*> & elems,
-		       std::vector<std::vector<ShortInt> > &isBoundaryNode,
-		       std::vector<std::vector<Integer> > &elemNodeToCouplingNode);
+    void CalcNodeForce(Vector<Double> & force, 
+		       StdVector<Integer> & nodes, 
+		       StdVector<Elem*> & elems,
+		       StdVector<StdVector<ShortInt> > &isBoundaryNode,
+		       StdVector<StdVector<Integer> > &elemNodeToCouplingNode);
 
     //!
     void CalcInterfaceForces(Integer actCoupling);
 
     //! GET SOLUTION AT ALL NODES OF AN ELEMENT
-    void GetSolOfElement( Vector<Double>& elpot, Vector<Integer>& connect_PDE);
+    void GetSolOfElement( Vector<Double>& elpot, StdVector<Integer>& connect_PDE);
 
 
     // ======================================================
@@ -134,30 +134,27 @@ namespace CoupledField
 
   protected:
 
-    // Pointer to equation class
-    //NodeEQN * eqn_;
-
     /// calculated the electric field at the integration points of the couple element
     void CalcEfieldAtCoupleElemIP(Elem * actVolElem,
 				  Elem * actCoupleElem,
-				  std::vector<Double>& coordAtIP, 
-				  std::vector<Integer>& boundNodesOfVolElem,
+				  Vector<Double>& coordAtIP, 
+				  StdVector<Integer>& boundNodesOfVolElem,
 				  Vector<Double>& tempE);
   
-    StoreSol<Double> E_;  //!< conatins electric field
+    ElemStoreSol<Double> E_;  //!< conatins electric field
 
     //  Boolean nonLinGeo_;  //! switch for geometric update 
   
     // ---- Electric Force variables ---
-    StoreSol<Double> Force_;        //!< stores Electric force of each element
-    std::vector<std::vector<Elem*> > F_Interface_; //!<vector of vectors conaining Elements with acting force
-    std::vector<std::vector<std::vector<ShortInt> > > isBoundaryNode_; //!< vector containing flag array for element boundary nodes
-    std::vector<std::vector<std::vector<Integer> > > elemNodeToCouplingNode_; //!< assigns each coupling element node the according Coupling Node number
-    //  std::vector<std::vector<Integer> > numBoundaryNodes_;               //!< contains number of surface nodes per element
+    ElemStoreSol<Double> Force_;        //!< stores Electric force of each element
+    StdVector<StdVector<Elem*> > F_Interface_; //!<vector of vectors conaining Elements with acting force
+    StdVector<StdVector<StdVector<ShortInt> > > isBoundaryNode_; //!< vector containing flag array for element boundary nodes
+    StdVector<StdVector<StdVector<Integer> > > elemNodeToCouplingNode_; //!< assigns each coupling element node the according Coupling Node number
+    //  StdVector<StdVector<Integer> > numBoundaryNodes_;               //!< contains number of surface nodes per element
     
     //postprocessing
-    std::vector<std::string> calcEfield_;  //!< contains the subdomains, on which the electric field is computed
-    std::vector<std::string> calcEnergy_;  //!< contains the subdomains, on which the electric energy is computed
+    StdVector<std::string> calcEfield_;  //!< contains the subdomains, on which the electric field is computed
+    StdVector<std::string> calcEnergy_;  //!< contains the subdomains, on which the electric energy is computed
     
 
     // for check: own solver

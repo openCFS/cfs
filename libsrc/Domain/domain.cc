@@ -1,7 +1,6 @@
 #include <iostream>
 #include <fstream>
 #include <string>
-#include <vector>
 
 #include "domain.hh"
 #include "Domain/grid.hh"
@@ -139,15 +138,15 @@ namespace CoupledField {
     ENTER_FCN( "Domain::InitPDEs" );
 
     // get numbers of PDEs in domain
-    std::vector<std::string> pdes;
+    StdVector<std::string> pdes;
 #ifndef XMLPARAMS
     conf->getliststr("list_pdes",pdes);
 #else
     params->GetPDEList( pdes );
 #endif
 
-    numpde_ = pdes.size();
-    ptpde_.resize(numpde_);
+    numpde_ = pdes.GetSize();
+    ptpde_.Resize(numpde_);
 
 
     // Read dimension from mesh file and perform a consistency check
@@ -168,7 +167,7 @@ namespace CoupledField {
     // pointer to AlgSys");
 
 
-    for (int i=0;i< pdes.size();i++) {
+    for (int i=0;i< pdes.GetSize();i++) {
       if (pdes[i] == "electrostatic") 
 	ptpde_[i]=new ElecPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
 
@@ -206,6 +205,7 @@ namespace CoupledField {
 	  std::string msg=pdes[i]+" - this type of pdes is unknown";
 	  Error(msg.c_str(),__FILE__,__LINE__);
 	}     
+
     }
 
  

@@ -2,7 +2,6 @@
 #define FILE_NEWBASEMECHPDE
 
 #include "basePDE.hh"
-#include "blocknodeEQN.hh"
  
 namespace CoupledField
 {
@@ -168,17 +167,16 @@ protected:
 private:
 
   // calc rhs coupling to acoustic pde
-  // void CalcAcousticCouplingRHS(std::vector<Elem*> * couplingElems,
+  // void CalcAcousticCouplingRHS(StdVector<Elem*> * couplingElems,
   // Vector<Double>& forceOnElem);
   
   /// calc rhs coupling to acoustic pde
-  void CalcAcousticCouplingRHS(std::vector<Elem*> * couplingElems, 
-			       std::vector<Integer>& couplingNodes,
-			       std::vector<MaterialData*>* materials,
-			       //Array<Double>& forceOnElem,
-			       StoreSol<Double> & forceOnElem,
+  void CalcAcousticCouplingRHS(StdVector<Elem*> * couplingElems, 
+			       StdVector<Integer>& couplingNodes,
+			       StdVector<MaterialData*>* materials,
+			       Vector<Double> & forceOnElem,
 			       Integer couplingdof,
-			       std::vector<Elem*> * neighbours);
+			       StdVector<Elem*> * neighbours);
   
 
   /// does a line search and returns the optimal residual norm
@@ -201,12 +199,9 @@ private:
   /// defines subtype of mechanic PDE: plainStrain, 3d, ...
   std::string subType_;
 
-  /// pointer to Equationdata
-  //BlockNodeEQN * eqn_;
-  
   Integer GetNrBCDof (const std::string & dofStartString);
 
-  /// stores an algsys_ vector into a std::vector and returns that L2-norm
+  /// stores an algsys_ vector into a StdVector and returns that L2-norm
   void StoreAlgsysToVec(Vector<Double>& vec, Double * pt);
 
   /// returns that L2-norm of an algsys vector
@@ -216,7 +211,7 @@ private:
   Boolean reducedInt_;
 
   /// returns the solution matrix belonging to all nodes of the actual element
-  void GetSolOfElement( Matrix<Double>& elDisp, Vector<Integer>& connect_PDE);
+  void GetSolOfElement( Matrix<Double>& elDisp, StdVector<Integer>& connect_PDE);
   /// value of prestress
   Double preStressVal_;
 

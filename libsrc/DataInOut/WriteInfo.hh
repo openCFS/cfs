@@ -19,6 +19,7 @@ namespace CoupledField
   // Forward declarations
   class MaterialData;
   template <class TYPE> class Vector;
+  template <class TYPE> class StdVector;
 
   // Forward declaration of classes
   class Coil;
@@ -89,20 +90,20 @@ namespace CoupledField
     
 
     /// write Result values
-    void WriteResult(std::string pdename, std::string resulttype, std::vector<std::string> subdoms,
-		     std::vector<Double> reults);
+    void WriteResult(std::string pdename, std::string resulttype, StdVector<std::string> subdoms,
+		     Vector<Double> results);
 
     /// just prints a vector
     void PrintVec(Vector<Double>& vec);
 
     /// prints a standard vector
-    void PrintVec(std::vector<Integer>& vec);
+    void PrintVec(StdVector<Integer>& vec);
 
     /// prints a standard vector with a leading comment
-    void PrintVec(const char * comment, std::vector<Integer>& vec);
+    void PrintVec(const char * comment, StdVector<Integer>& vec);
 
     /// prints a standard vector of strings, each string in a new line
-    void PrintVec(const char * comment, std::vector<std::string>& vec);
+    void PrintVec(const char * comment, StdVector<std::string>& vec);
 
     /// prints a matrix with a leading commnet
     void PrintMatrix(std::string & comment, const Matrix<Double> & mat);
@@ -111,7 +112,8 @@ namespace CoupledField
     void PrintF(const std::string& pdeName, const char * formatStr ...);
 
     /// prints warning to info-file
-    void Warning(const std::string & text);
+    void Warning(const std::string & text, const Char * const filename=NULL,
+		 const Integer numline=0);
     
     /// prints error to both std::out and info-file
     void Error(const std::string & text, const Char * const filename=NULL,

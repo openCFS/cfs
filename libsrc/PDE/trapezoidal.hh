@@ -22,8 +22,7 @@ public:
     \param numnode number of nodes in PDE
     \param damp type of damping
   */
-  Trapezoidal(std::string apdename, BaseSystem * algebraicsystem, Integer dofsprenode, 
-	  Integer numnode);
+  Trapezoidal(std::string apdename, BaseSystem * algebraicsystem, NodeEQN * ptEQN);
 
    //! deconstructor
   virtual ~Trapezoidal();

@@ -187,7 +187,7 @@ void WriteResultsGMV::WriteCells(const Integer alevel)
   else
     output->write((char*)&numelem,sizeof(Integer));
 
-  Vector<Integer> connect;
+  StdVector<Integer> connect;
 
   Integer dim=ptgrid->GetDim();
   
@@ -391,7 +391,7 @@ void WriteResultsGMV::WriteGrid(const Integer level)
 
 
 
-void WriteResultsGMV::WriteNodeSolution(const StoreSol<Double>& sol, const Integer step, const Double time, const std::string title)
+void WriteResultsGMV::WriteNodeSolution(const NodeStoreSol<Double>& sol, const Integer step, const Double time, const std::string title)
 {
 #ifdef TRACE
  (*trace) << " entering WriteResultsGMV::WriteNodeSolution " << std::endl;
@@ -403,7 +403,7 @@ void WriteResultsGMV::WriteNodeSolution(const StoreSol<Double>& sol, const Integ
   Vector<Double> solhelp;
 
   if (NeedHistory_)
-    for (i=0; i<nodeshist_.size(); i++) {
+    for (i=0; i<nodeshist_.GetSize(); i++) {
       {
 	if (nodeshist_[i] > sol.GetNumNodes())
 	  Error("Nr. of history-node(s) is too high --> not in Solution! ",__FILE__,__LINE__);
@@ -497,7 +497,7 @@ void WriteResultsGMV::WriteNodeSolution(const StoreSol<Double>& sol, const Integ
 }
 
 
-void WriteResultsGMV::WriteElemSolution(const StoreSol<Double>& data, const Integer step, const Double time, const std::string title)
+void WriteResultsGMV::WriteElemSolution(const ElemStoreSol<Double>& data, const Integer step, const Double time, const std::string title)
 {
 #ifdef TRACE
   (*trace) << " entering WriteResultsGMV::WriteElemSolution " << std::endl;

@@ -32,8 +32,8 @@ protected:
     \param Shape (output) Vector of shape fnc values \f$ (N_{1},\cdots\,N_{NumNodes})^T \f$
     \param LCoord (input) Local coordinates of evalutation point 
   */
-  virtual void CalcShapeFnc(std::vector<Double> & LShape, 
-			    const std::vector<Double> & LCoord);
+  virtual void CalcShapeFnc(Vector<Double> & LShape, 
+			    const Vector<Double> & LCoord);
   
   //! calculates the local derivatives of shape functions at an arbitrary local point
   /*!
@@ -44,7 +44,7 @@ protected:
     \param LCoord (input) Local coordinates of evalutation point 
   */
   virtual void CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
-				      const std::vector<Double> & LCoord);
+				      const Vector<Double> & LCoord);
 
 private:
 };

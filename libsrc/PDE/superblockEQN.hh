@@ -15,7 +15,7 @@ public:
   //! Constructor
   SuperBlockEQN(Grid * aptGrid, 
 		BCs * aptBCs,
-		std::vector<std::string>& asubdoms, 
+		StdVector<std::string>& asubdoms, 
 		Integer actlevel, 
 		Integer dofsPerNode);
   
@@ -34,16 +34,20 @@ public:
   
   //! Map vector of equation numbers to 
   //! positions in global solution vector
-  void EQN2SolVectorPos(const std::vector<Integer> &eqnNr, 
-			std::vector<Integer> &pos) const;
+  void EQN2SolVectorPos(const StdVector<Integer> &eqnNr, 
+			StdVector<Integer> &pos) const;
+
+  //! Map node number and dof to according equation number
+  Integer Node2EQN(const Integer nodeNr, 
+		   const Integer dof) const;
   
   //! Map node number to according equation number(s)
-  void Node2EQN(const Integer nodeNr, std::vector<Integer> &eqns) const;
+  void Node2EQN(const Integer nodeNr, StdVector<Integer> &eqns) const;
   
   //! Map vector of node numbers to according
   //! vector of equiation numbers
-  void Node2EQN(const std::vector<Integer> &nodeNr,
-		std::vector<Integer> &eqnNr) const;
+  void Node2EQN(const StdVector<Integer> &nodeNr,
+		StdVector<Integer> &eqnNr) const;
 
 private:
 
@@ -55,13 +59,13 @@ private:
   //! is chosen. (numPDENodes x dofsPerNode)
 
   //! Contains the equation numbers
-  std::vector<Integer> node2EQNVal_;
+  StdVector<Integer> node2EQNVal_;
   
   //! Contains the according column numbers
-  std::vector<Integer> node2EQNcol_;
+  StdVector<Integer> node2EQNcol_;
 
   //! Contains the starting positions of each row
-  std::vector<Integer> node2EQNrow_;
+  StdVector<Integer> node2EQNrow_;
   //@}
 };
 

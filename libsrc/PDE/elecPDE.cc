@@ -13,12 +13,13 @@
 #include <Driver/assemble.hh>
 #include <General/defs.hh>
 
-#include <Utils/storesol.hh>
 #include <Matrix/matrix.hh>
 #include <Utils/vector.hh>
 #include "elecPDE.hh"
 #include <General/defs.hh>
 #include "DataInOut/ParamHandling/BaseParamHandler.hh" 
+#include <string>
+#include "Utils/StdVector.hh"
 
 namespace CoupledField {
 
@@ -63,7 +64,7 @@ namespace CoupledField {
     if ( params->HasValue( "type", "axi", "geometry" ) ) isaxi_ = TRUE;
 #endif
 
-    Reset();
+    
 
     
 
@@ -104,20 +105,16 @@ namespace CoupledField {
     ReadStoreResults();
 #endif
 
-    // TEMPORARY
-    //eqn_  = new ScalarNodeEQN(ptgrid_, ptBCs_, subdoms_, actlevel_, dofspernode_);
-    //eqn_->SetHomoDirichletBCs(bcs_hd_, homDirichDof_);
-    //eqn_->CalcMapping();
-    //eqn_->Print(std::cerr);
+    Reset();
   }
-
+  
 
 
 void ElecPDE::DefineIntegrators(const Integer level)
 {
   ENTER_FCN( "ElecPDE::DefineIntegerators" );
 
-  for (int actSD = 0; actSD < subdoms_.size(); actSD++)
+  for (int actSD = 0; actSD < subdoms_.GetSize(); actSD++)
     {
       //reads eps33 (matrix notation starts with 0)
       Double eps33 = materialData_[actSD].GetPermittivity(2,2);
@@ -204,14 +201,14 @@ void ElecPDE::PostStepStatic(const Integer kstep, const Double asteptime,
   if (flags->CalcErrorMap_)
     {
       Double         totalErr;
-      StoreSol<Double>  Sol_Mesh;
+      ElemStoreSol<Double>  Sol_Mesh;
       Vector<Double> solVec;
       
       ptError_=new SpaceErrorEstimator();
 
       ptError_->Init(this);
       
-      sol_->TransformNodeSolution(Sol_Mesh,sol_,pde2MeshNode_,ptgrid_);
+      sol_->TransformNodeSolution(Sol_Mesh,sol_,eqnData_,ptgrid_);
 
       sol_->GetCompleteVector(solVec);
 
@@ -240,51 +237,47 @@ void ElecPDE::WriteResultsInFile()
   ENTER_FCN( "ElecPDE::WriteResultsInFile" );
 
   Double time = lasttimecalc_;
-
+  
 #ifdef PARALLEL //only one thread should write output
   int commrank;
   MPI_Comm_rank(MPI_COMM_WORLD,&commrank);
   if (!commrank){
 #endif
-
-  ShortInt Dim = ptgrid_->GetDim();
-  StoreSol<Double> E_Mesh, Force_Mesh, Sol_Mesh;
+    
+    
   
   // ATTENTION:
   // The errorMap should be assigned as a StoreSolution, not as a 
   // Vector. This is only temporarely
-  StoreSol<Double> Error, Error_Mesh;
+  ElemStoreSol<Double> Error, Error_Mesh;
 
 
-  // transform solution vector for electric potential
-  sol_->TransformNodeSolution(Sol_Mesh,pde2MeshNode_,ptgrid_,actlevel_);
-
+  NodeStoreSol<Double> const & solConverted = 
+    dynamic_cast<NodeStoreSol<Double>&>(*sol_);
   
-
    
   // write results
   if (outFile_->IsGMV())
     {
       // write electric potential
       if (savesol_)
-	outFile_->WriteNodeSolution(Sol_Mesh, laststepcalc_, time, "E-Potential");
+	outFile_->WriteNodeSolution(solConverted, laststepcalc_, time, "E-Potential");
       
-      if (calcEfield_.size() !=0 )
+      if (calcEfield_.GetSize() !=0 )
 	{
-	  E_.TransformElemSolution(E_Mesh,pde2MeshElem_,ptgrid_,actlevel_);
-	  outFile_->WriteElemSolution(E_Mesh,laststepcalc_,time,"E-Field");
+	  //E_.TransformElemSolution(E_Mesh,ptgrid_,pde2MeshElem_,actlevel_);
+	  outFile_->WriteElemSolution(E_,laststepcalc_,time,"E-Field");
 	}
     }
   else
     {
       // write electric potential
       if (savesol_)
-	outFile_->WriteNodeSolution(Sol_Mesh,laststepcalc_,time,"electric potential");
+	outFile_->WriteNodeSolution(solConverted,laststepcalc_,time,"electric potential");
 
-      if (calcEfield_.size() !=0 )
+      if (calcEfield_.GetSize() !=0 )
 	{
-	  E_.TransformElemSolution(E_Mesh,pde2MeshElem_,ptgrid_,actlevel_);
-	  outFile_->WriteElemSolution(E_Mesh, laststepcalc_, time, "electric field");
+	  outFile_->WriteElemSolution(E_, laststepcalc_, time, "electric field");
 	}
     }
 
@@ -306,7 +299,7 @@ void ElecPDE::WriteResultsInFile()
 	outFile_->WriteElemSolution(Error_Mesh, laststepcalc_, time, "relERR-E-Potential"); 
       }
 
-    if (calcEnergy_.size() !=0 )
+    if (calcEnergy_.GetSize() !=0 )
       CalcEnergy();
 
 
@@ -320,31 +313,31 @@ void ElecPDE::PostProcess(const Integer level)
 {
   ENTER_FCN( "ElecPDE::PostProcess" );
 
-  StoreSol<Double> * solhelp = dynamic_cast<StoreSol<Double> *>(sol_);
+  NodeStoreSol<Double> & solhelp = dynamic_cast<NodeStoreSol<Double>&>(*sol_);
 
-  if (calcEfield_.size() !=0 )
+  if (calcEfield_.GetSize() !=0 )
     {
-      ElecFieldOp * FieldOp = new ElecFieldOp(ptgrid_, this, &mesh2PDENode_, * solhelp, level, isaxi_);
+      ElecFieldOp * FieldOp = new ElecFieldOp(ptgrid_, this, eqnData_,solhelp, level, isaxi_);
 
       // ------ Calculation of the electric field ------
 
-      std::vector<Double> LCoord;
-      LCoord.resize(dim_);
+      Vector<Double> LCoord;
+      LCoord.Resize(dim_);
       LCoord[0] = 0;
       LCoord[1] = 0;
       
-      std::vector<Elem*> elemssd;
+      StdVector<Elem*> elemssd;
       Integer counterElems=0;
       Vector<Double> TempE;
       
       // loop over all subdomains
-      for (Integer isd=0; isd<calcEfield_.size(); isd++)
+      for (Integer isd=0; isd<calcEfield_.GetSize(); isd++)
 	{
 	  // get vector of Elem of subdomain with color: subdoms[isd]
 	  ptgrid_->GetElemSD(elemssd,calcEfield_[isd],level);
 	  
 	  // loop over elements of subdomain
-	  for (Integer iel=0; iel< elemssd.size(); iel++,counterElems++)
+	  for (Integer iel=0; iel< elemssd.GetSize(); iel++,counterElems++)
 	    {
 	      FieldOp->CalcElemElecField( TempE, elemssd[iel], LCoord); 
 	      E_.SetNodalResult(mesh2PDEElem_[elemssd[iel]->elemNum - 1]-1,TempE);
@@ -355,29 +348,29 @@ void ElecPDE::PostProcess(const Integer level)
 }
 
 
-void ElecPDE::CalcNodeForce(StoreSol<Double> & force, 
-			    std::vector<Integer> & nodes, 
-			    std::vector<Elem*> & elems,
-			    std::vector<std::vector<ShortInt> > & isBoundaryNode,
-			    std::vector<std::vector<Integer> > & elemNodeToCouplingNode)
+void ElecPDE::CalcNodeForce(Vector<Double> & force, 
+			    StdVector<Integer> & nodes, 
+			    StdVector<Elem*> & elems,
+			    StdVector<StdVector<ShortInt> > & isBoundaryNode,
+			    StdVector<StdVector<Integer> > & elemNodeToCouplingNode)
 {
   ENTER_FCN( "ElecPDE::CalcNodeForce" );
 
-  StoreSol<Double> * solhelp = dynamic_cast<StoreSol<Double> *>(sol_);
+  NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double> *>(sol_);
 
   
-  ElecForceOp * ForceOp = new ElecForceOp(ptgrid_, this, &mesh2PDENode_, *solhelp, actlevel_, isaxi_);
+  ElecForceOp * ForceOp = new ElecForceOp(ptgrid_, this, eqnData_, *solhelp, actlevel_, isaxi_);
    
-  StoreSol<Double> force_temp;
+  ElemStoreSol<Double> force_temp;
   
   force.Init(0.0);
   
-  for (Integer ielem=0; ielem<elems.size(); ielem++)
+  for (Integer ielem=0; ielem<elems.GetSize(); ielem++)
     {
       // Get Material Parameter
       Double epsilon;
       
-      for (Integer i=0; i<subdoms_.size(); i++)
+      for (Integer i=0; i<subdoms_.GetSize(); i++)
 	{
 	  if (elems[ielem]->namesd == subdoms_[i]) 
 	  epsilon = materialData_[i].GetPermittivity(2,2); 
@@ -392,16 +385,17 @@ void ElecPDE::CalcNodeForce(StoreSol<Double> & force,
       // Add the element force to the according coupling node
       for (Integer ielemnode=0; ielemnode<elems[ielem]->connect.GetSize(); ielemnode++)
 	for( Integer idim=0; idim<dim_; idim++)
-	  force(elemNodeToCouplingNode[ielem][ielemnode],idim) += force_temp(ielemnode,idim);
+	  force[elemNodeToCouplingNode[ielem][ielemnode]*dim_+idim] += 
+	    force_temp(ielemnode,idim);
     }
 
 
   Vector<Double> sum;
   sum.Resize(dim_);
   
-  for (Integer i=0; i<nodes.size(); i++)
+  for (Integer i=0; i<nodes.GetSize(); i++)
     for (Integer dim=0; dim<dim_; dim++)
-      sum[dim] += force(i,dim);
+      sum[dim] += force[i*dim_+dim];
 
   delete ForceOp;
 
@@ -425,22 +419,22 @@ void ElecPDE::CalcEnergy()
   Matrix<Double> ptCoord;
   BaseFE         * ptElem;
 
-  Vector<Integer> connecth, connect_PDE, Eqns;  
+  StdVector<Integer> connecth, connect_PDE, Eqns;  
   Vector<double> help;
 
   Integer i, j;
-  std::vector<Double> energy(subdoms_.size());
+  Vector<Double> energy(subdoms_.GetSize());
 
-  for (i=0; i<subdoms_.size(); i++)
+  for (i=0; i<subdoms_.GetSize(); i++)
     {
       //reads eps33 (matrix notation starts with 0)
       Double eps33 = materialData_[i].GetPermittivity(2,2);
 
-      std::vector<Elem*> elemssd;
+      StdVector<Elem*> elemssd;
       ptgrid_->GetElemSD(elemssd,subdoms_[i],actlevel_);
 
       energy[i] = 0;
-      for (j=0; j < elemssd.size(); j++)
+      for (j=0; j < elemssd.GetSize(); j++)
 	{  
 	  ptElem=elemssd[j]->ptElem;
 	  BaseForm * bilinear_stiff = new LaplaceInt(ptElem, eps33, isaxi_);
@@ -472,15 +466,17 @@ void ElecPDE::CalcEnergy()
 
 
 
-void ElecPDE::GetSolOfElement( Vector<Double>& elpot, Vector<Integer>& connect_PDE)
+void ElecPDE::GetSolOfElement( Vector<Double>& elpot, 
+			       StdVector<Integer>& connect_PDE)
 {
   ENTER_FCN( "ElecPDE::GetSolOfElement" );
 
-  StoreSol<Double> * solhelp = dynamic_cast<StoreSol<Double> *>(sol_);
+  ElemStoreSol<Double> * solhelp = dynamic_cast<ElemStoreSol<Double> *>(sol_);
 
   elpot.Resize(connect_PDE.GetSize());
   for(Integer actNode=0; actNode<connect_PDE.GetSize(); actNode++)
-    elpot[actNode] = (*solhelp)(connect_PDE[actNode]-1,0);
+    sol_->Get(connect_PDE[actNode]-1,0,elpot[actNode]);
+    //elpot[actNode] = (*solhelp)(connect_PDE[actNode]-1,0);
 }
 
 
@@ -493,31 +489,33 @@ void ElecPDE::Reset()
 {
   ENTER_FCN( "ElecPDE::Reset" );
     
-  //just for Testing
-  //EqnData_ = new NodeEQN(ptgrid_,ptBCs_,subdoms_, bcs_hd_,actlevel_);
-  //EqnData_->Print();
-
   // Map global numeration of element and nodes to local one
   AssignPDENodeNumbers(mesh2PDENode_, pde2MeshNode_, subdoms_);  
   AssignPDEElemNumbers(mesh2PDEElem_, pde2MeshElem_, subdoms_);
-  numPDENodes_ = pde2MeshNode_.size();
-  numElems_ = pde2MeshElem_.size();
+  numPDENodes_ = pde2MeshNode_.GetSize();
+  numElems_ = pde2MeshElem_.GetSize();
 
-  
-
+ eqnData_  = new ScalarNodeEQN(ptgrid_, ptBCs_, subdoms_, actlevel_, dofspernode_);
+ eqnData_->SetHomoDirichletBCs(bcs_hd_, homDirichDof_);
+ eqnData_->CalcMapping();
+ //eqnData_->Print(std::cerr);
+ assemble_->SetPtr2EQNData(eqnData_); 
+ 
   // Initalize solution class
   sol_->SetNumSolutions(1);
   sol_->SetSolutionType(ELEC_POTENTIAL);
   sol_->SetNumNodes(numPDENodes_);
   sol_->SetNumDofs(dofspernode_);
+  sol_->SetPtrEQNData(eqnData_);
   sol_->Init(0.0);
-
   
   E_.SetNumSolutions(1);
   E_.SetSolutionType(ELEC_FIELD);
   E_.SetNumNodes(numElems_);
   E_.SetNumDofs(dim_);
   E_.Init(0.0); 
+  E_.SetElemMapping(pde2MeshElem_);
+  
 }
 
 
@@ -554,14 +552,14 @@ void ElecPDE::InitCoupling(PDECoupling * Coupling)
     //       we assume that for a mechanic PDE all regions either
     //       are linear or non-linear!
     // ==============================================================
-    std::vector<std::string> nonLinRegion;
+    StdVector<std::string> nonLinRegion;
     params->GetList( "nonLinear", nonLinRegion, pdename_, "region" );
     // Should not happen with validating parser, but beware!
-    if ( nonLinRegion.size() == 0 ) {
+    if ( nonLinRegion.GetSize() == 0 ) {
       nonLin_ = FALSE;
     }
     else {
-      for ( Integer k = 0; k <= nonLinRegion.size(); k++ ) {
+      for ( Integer k = 0; k <= nonLinRegion.GetSize(); k++ ) {
 	if ( nonLinRegion[k] != nonLinRegion[0] ) {
 	  Info->Error( "Non-linearity should be the same for all regions!",
 		       __FILE__, __LINE__ );
@@ -574,15 +572,15 @@ void ElecPDE::InitCoupling(PDECoupling * Coupling)
 
   // Initialization of coupling helper arrays
   std::string quantity;
-  std::vector<Integer> * couplingnodes;
-  std::vector<Elem*> interface_tmp;
-  std::vector<std::vector<ShortInt> > isBoundaryNode_tmp;
-  //std::vector<Integer> numBoundaryNodes_tmp;
-  std::vector<std::vector<Integer> > elemNodeToCouplingNode_tmp;
+  StdVector<Integer> * couplingnodes;
+  StdVector<Elem*> interface_tmp;
+  StdVector<StdVector<ShortInt> > isBoundaryNode_tmp;
+  //StdVector<Integer> numBoundaryNodes_tmp;
+  StdVector<StdVector<Integer> > elemNodeToCouplingNode_tmp;
 
-  F_Interface_.resize(numCouplings);
-  isBoundaryNode_.resize(numCouplings);
-  elemNodeToCouplingNode_.resize(numCouplings);
+  F_Interface_.Resize(numCouplings);
+  isBoundaryNode_.Resize(numCouplings);
+  elemNodeToCouplingNode_.Resize(numCouplings);
   
 
   for (Integer actCoupling=0; actCoupling<numCouplings; actCoupling++)
@@ -600,7 +598,7 @@ void ElecPDE::InitCoupling(PDECoupling * Coupling)
 	  else if (ptCoupling_->GetOutputQuantity(actCoupling) == "interfaceForce")
 	    {
 	      // help construction for correct assignement of predefined values ... :O(
-	      std::vector<Elem*>* interface_tmp_Ptr;
+	      StdVector<Elem*>* interface_tmp_Ptr;
 	      ptCoupling_->GetOutputNeighbourElems(actCoupling, interface_tmp_Ptr);
 	      interface_tmp = *interface_tmp_Ptr;
 	    }
@@ -611,29 +609,26 @@ void ElecPDE::InitCoupling(PDECoupling * Coupling)
 		Error(errMsg.c_str(), __FILE__,__LINE__);
 	      }
 	  
-
 	  F_Interface_[actCoupling] = interface_tmp;
 
 	  // Intialize the memory of the coupling values
-	  ptCoupling_->CreateStoreSol(actCoupling,ELEC_FORCE,isComplex_);
+	  ptCoupling_->CreateCouplingVector(actCoupling,isComplex_);
 	  
 
-	  isBoundaryNode_tmp.clear();
-	  isBoundaryNode_tmp.resize(interface_tmp.size());
-	  elemNodeToCouplingNode_tmp.clear();
-	  elemNodeToCouplingNode_tmp.resize(interface_tmp.size());
+	  isBoundaryNode_tmp.Clear();
+	  isBoundaryNode_tmp.Resize(interface_tmp.GetSize());
+	  elemNodeToCouplingNode_tmp.Clear();
+	  elemNodeToCouplingNode_tmp.Resize(interface_tmp.GetSize());
 	 
 	  
-	  for (Integer ielem=0; ielem<interface_tmp.size(); ielem++)
+	  for (Integer ielem=0; ielem<interface_tmp.GetSize(); ielem++)
 	    {
-	      isBoundaryNode_tmp[ielem].clear();
-	      isBoundaryNode_tmp[ielem].resize(interface_tmp[ielem]->connect.GetSize());
-	      elemNodeToCouplingNode_tmp[ielem].clear();
-	      elemNodeToCouplingNode_tmp[ielem].resize(interface_tmp[ielem]->connect.GetSize());
+	      isBoundaryNode_tmp[ielem].Resize(interface_tmp[ielem]->connect.GetSize());
+	      elemNodeToCouplingNode_tmp[ielem].Resize(interface_tmp[ielem]->connect.GetSize());
 
 	      // Determine Boundary Nodes
-	      for (Integer ielemnode=0; ielemnode<isBoundaryNode_tmp[ielem].size(); ielemnode++)
-		for (Integer inodes=0; inodes<(*couplingnodes).size(); inodes++)
+	      for (Integer ielemnode=0; ielemnode<isBoundaryNode_tmp[ielem].GetSize(); ielemnode++)
+		for (Integer inodes=0; inodes<(*couplingnodes).GetSize(); inodes++)
 		  if (interface_tmp[ielem]->connect[ielemnode] == (*couplingnodes)[inodes] )
 		    {
 		      isBoundaryNode_tmp[ielem][ielemnode] = 1;
@@ -660,8 +655,8 @@ void ElecPDE::CalcOutputCoupling()
   ENTER_FCN( "ElecPDE::CalcOutputCoupling" );
 
   std::string quantity;
-  std::vector<Integer> * couplingNodes     = NULL;
-  BaseStoreSol * values = 0;
+  StdVector<Integer> * couplingNodes     = NULL;
+  CFSVector * values = 0;
   Integer forcesCount = 0;
 
   // loop over all output coupling quantities
@@ -670,7 +665,7 @@ void ElecPDE::CalcOutputCoupling()
       quantity = ptCoupling_->GetOutputQuantity(actCoupling);
       ptCoupling_->GetOutputValues(actCoupling, values);
 
-      StoreSol<Double> * temp = dynamic_cast<StoreSol<Double> *>(values);
+      Vector<Double> * temp = dynamic_cast<Vector<Double> *>(values);
       
       switch(ptCoupling_->GetOutputType(actCoupling))
 	{
@@ -679,7 +674,7 @@ void ElecPDE::CalcOutputCoupling()
 	  ptCoupling_->GetOutputNodes(actCoupling, couplingNodes);
 	  
 	  if (quantity == "elecpotential")
-	    sol_->NodeSolutionToCoupling(*values, *couplingNodes,mesh2PDENode_);
+	    sol_->NodeSolutionToCoupling(*values, *couplingNodes);
 	    
 	  if (quantity == "elecforce")
 	    {
@@ -731,13 +726,13 @@ void ElecPDE::CalcInterfaceForces(Integer actCoupling)
 {
   ENTER_FCN( "ElecPDE::CalcInterfaceForces" );
 
-  std::vector<Integer> *      couplingNodes          = NULL;
-  BaseStoreSol *              elemCouplingSolsTemp   = NULL;
-  std::vector<Elem*> *        couplingElems          = NULL;
-  std::vector<Elem*> *        outerInterfaceVolElems = NULL;
-  std::vector<Elem*> *        innerInterfaceVolElems = NULL;
-  std::vector<MaterialData*>* innerCouplingMaterials = NULL;
-  std::vector<MaterialData*>* outerCouplingMaterials = NULL;
+  StdVector<Integer> *      couplingNodes          = NULL;
+  CFSVector  *              elemCouplingSolsTemp   = NULL;
+  StdVector<Elem*> *        couplingElems          = NULL;
+  StdVector<Elem*> *        outerInterfaceVolElems = NULL;
+  StdVector<Elem*> *        innerInterfaceVolElems = NULL;
+  StdVector<MaterialData*>* innerCouplingMaterials = NULL;
+  StdVector<MaterialData*>* outerCouplingMaterials = NULL;
 
   ptCoupling_->GetOutputNodes    (actCoupling, couplingNodes);
   ptCoupling_->GetOutputValues   (actCoupling, elemCouplingSolsTemp);
@@ -749,24 +744,24 @@ void ElecPDE::CalcInterfaceForces(Integer actCoupling)
  
   Integer couplingDof = ptCoupling_->GetOutputDof(actCoupling);
 
-  StoreSol<Double> * elemCouplingSols = dynamic_cast<StoreSol<Double> *>(elemCouplingSolsTemp);
+  Vector<Double> * elemCouplingSols = dynamic_cast<Vector<Double> *>(elemCouplingSolsTemp);
    
   elemCouplingSols->Init(0.0);
 
-  Vector<Double> xPosCoupleNode(couplingNodes->size());
+  Vector<Double> xPosCoupleNode(couplingNodes->GetSize());
   
 
-  for (Integer actElem=0; actElem < couplingElems->size(); actElem++)
+  for (Integer actElem=0; actElem < couplingElems->GetSize(); actElem++)
     {
       Elem * actCoupleElem     = (*couplingElems)[actElem];
       Elem * actVolElem        = (*innerInterfaceVolElems)[actElem];
       BaseFE * ptVolElem       = actVolElem->ptElem;
       BaseFE * ptCoupleElem    = actCoupleElem->ptElem;
 
-      const std::vector<Double> & intWeights = ptCoupleElem->GetIntWeights();  
+      const Vector<Double> & intWeights = ptCoupleElem->GetIntWeights();  
       
 
-      Vector<Integer> connecth = actCoupleElem->connect;
+      StdVector<Integer> connecth = actCoupleElem->connect;
       const Integer spaceDim   = 2;
       
       if (ptCoupleElem->GetDim() == 3)
@@ -774,7 +769,7 @@ void ElecPDE::CalcInterfaceForces(Integer actCoupling)
 
 
       Matrix<Double> ptCoord; 
-      Vector<Integer> connect_PDE;
+      StdVector<Integer> connect_PDE;
 
       GetElemCoords(connecth, ptCoord, actlevel_);
       Mesh2PDENode(connect_PDE, connecth, mesh2PDENode_);
@@ -793,14 +788,14 @@ void ElecPDE::CalcInterfaceForces(Integer actCoupling)
 
 
 
-      std::vector<Integer> boundNodesOfVolElem;
+      StdVector<Integer> boundNodesOfVolElem;
   
       Integer ptCount = 0;
-      for (Integer nNode=0; nNode < isBoundaryNode_[actCoupling][actElem].size(); nNode++)
+      for (Integer nNode=0; nNode < isBoundaryNode_[actCoupling][actElem].GetSize(); nNode++)
 	if (isBoundaryNode_[actCoupling][actElem][nNode] == 1)
-	  boundNodesOfVolElem.push_back(nNode);
+	  boundNodesOfVolElem.Push_back(nNode);
 
-      if (boundNodesOfVolElem.size() != 2)
+      if (boundNodesOfVolElem.GetSize() != 2)
 	Error("In CalcInterfaceForces boundary nodes != 2!", __FILE__, __LINE__);
       
 
@@ -813,8 +808,8 @@ void ElecPDE::CalcInterfaceForces(Integer actCoupling)
 
       for (Integer actIP=1; actIP <= ptCoupleElem->GetNumIntPoints(); actIP++)
 	{
-	  std::vector<Double> shapeFncAtIP;
-	  std::vector<Double> coordAtIP;
+	  Vector<Double> shapeFncAtIP;
+	  Vector<Double> coordAtIP;
 	  ptCoupleElem->GetShFncAtIp(shapeFncAtIP, actIP);
 	  coordAtIP = ptCoord * shapeFncAtIP;
 	  double jacDet = ptCoupleElem->CalcJacobianDetAtIp(actIP, ptCoord);
@@ -858,27 +853,25 @@ void ElecPDE::CalcInterfaceForces(Integer actCoupling)
 	  Integer nodePos = 0;
 	  
 	  while(connecth[actNode] != (*couplingNodes)[nodePos] && 
-		nodePos < couplingNodes->size()) 
+		nodePos < couplingNodes->GetSize()) 
 	    nodePos++;
 	  
 	  for (Integer actDof=0; actDof < couplingDof ; actDof++)
-	    (*elemCouplingSols)(nodePos,actDof)  += interfaceForceOnNodes[actNode] * n[actDof];
+	    (*elemCouplingSols)[nodePos*couplingDof+actDof]  += 
+	      interfaceForceOnNodes[actNode] * n[actDof];
 
 	  xPosCoupleNode[nodePos] = ptCoord[0][actNode];
 	}
     }
 
-  Vector<double> force;
-  elemCouplingSols-> GetCompleteVector(force);
-
   Vector<Double> sum;
   sum.Resize(dim_);
   
   Integer k = 0;
-  for (Integer i=0; i<force.GetSize(); i++)
+  for (Integer i=0; i<elemCouplingSols->GetSize(); i++)
     for (Integer dim=0; dim<dim_; dim++)
       {
-	sum[dim] += force[k];
+	sum[dim] += (*elemCouplingSols)[k];
 	k++;
       }
 
@@ -892,8 +885,8 @@ void ElecPDE::CalcInterfaceForces(Integer actCoupling)
 
 void ElecPDE::CalcEfieldAtCoupleElemIP(Elem * actVolElem,
 				       Elem * actCoupleElem,
-				       std::vector<Double>& coordAtIP, 
-				       std::vector<Integer>& boundNodesOfVolElem,
+				       Vector<Double>& coordAtIP, 
+				       StdVector<Integer>& boundNodesOfVolElem,
 				       Vector<Double>& tempE)
 {
   ENTER_FCN( "ElecPDE::CalcEfieldAtCoupleElemIP" );
@@ -917,7 +910,7 @@ void ElecPDE::CalcEfieldAtCoupleElemIP(Elem * actVolElem,
   const Double relPosIP = (coordAtIP[0] - boundElLocCoords[0][0]) / locElemLen;
   
   
-  std::vector<Double> lCoord(spaceDim); // coords, at which the e-field has to be calculated
+  Vector<Double> lCoord(spaceDim); // coords, at which the e-field has to be calculated
   
   
   Double volCoord1X = volElLocCoords[0][ boundNodesOfVolElem[0] ];
@@ -930,8 +923,8 @@ void ElecPDE::CalcEfieldAtCoupleElemIP(Elem * actVolElem,
   //y-coord
   lCoord[1] = volCoord1Y + relPosIP * (volCoord2Y - volCoord1Y);
   
-  StoreSol<Double> *solTemp = dynamic_cast<StoreSol<Double>*>(sol_);
-  ElecFieldOp elecFieldOp(ptgrid_, this, &mesh2PDENode_, *solTemp, actlevel_,
+  NodeStoreSol<Double> *solTemp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
+  ElecFieldOp elecFieldOp(ptgrid_, this, eqnData_, *solTemp, actlevel_,
 			  isaxi_);
 
   elecFieldOp.CalcElemElecField(tempE, actVolElem, lCoord);
@@ -956,13 +949,13 @@ void ElecPDE::ReadStoreResults() {
 		    "elemResults" );
 
   // If the the symbolic name is "all" compute electric field for all regions
-  if ( calcEfield_.size() == 1 && calcEfield_[0] == "all" ) {
+  if ( calcEfield_.GetSize() == 1 && calcEfield_[0] == "all" ) {
     calcEfield_ = subdoms_;
   }
 
-  if ( calcEfield_.size() > 0 ) {
+  if ( calcEfield_.GetSize() > 0 ) {
     Info->PrintF( pdename_, " Computing electric field for regions:" );
-    for ( Integer k = 0; k < calcEfield_.size(); k++ ) {
+    for ( Integer k = 0; k < calcEfield_.GetSize(); k++ ) {
       Info->PrintF( pdename_, " %s", calcEfield_[k].c_str() );
     }
   }
@@ -972,13 +965,13 @@ void ElecPDE::ReadStoreResults() {
 		    "elemResults" );
 
   // If the the symbolic name is "all" compute energy for all regions
-  if ( calcEnergy_.size() == 1 && calcEnergy_[0] == "all" ) {
+  if ( calcEnergy_.GetSize() == 1 && calcEnergy_[0] == "all" ) {
     calcEnergy_ = subdoms_;
   }
 
-  if ( calcEnergy_.size() > 0 ) {
+  if ( calcEnergy_.GetSize() > 0 ) {
     Info->PrintF( pdename_, " Computing energy for regions:" );
-    for ( Integer k = 0; k < calcEnergy_.size(); k++ ) {
+    for ( Integer k = 0; k < calcEnergy_.GetSize(); k++ ) {
       Info->PrintF( pdename_, " %s", calcEnergy_[k].c_str() );
     }
   }

@@ -1,10 +1,11 @@
 #ifndef FILE_FILETYPE_2001
 #define FILE_FILETYPE_2001
 
-#include <Utils/vector.hh>
 #include <list>
-#include <vector>
 #include <string>
+
+#include "Utils/vector.hh"
+#include "Utils/StdVector.hh"
 
 #ifdef ADAPTGRID
 #include "Element.h"  
@@ -56,14 +57,14 @@ public:
 	\param bcs  out: returned pointer to list with global number of nodes to which boundary conditions are applied. 
 	\param colors in: vector with colors of nodes, which are requested
   */
-  virtual void ReadBCs(std::list<Integer> * bcs, std::vector<std::string> colors)=0;  
+  virtual void ReadBCs(std::list<Integer> * bcs, StdVector<std::string> colors)=0;  
 
   //! read information about elements of the mesh
   /*!
 	\param elems out: pointer to vector with elements
 	\param sd vector with color of subdomains, for which elements are read
   */
-  virtual void ReadEl(std::vector<Elem*> * elems, const std::vector<std::string>
+  virtual void ReadEl(StdVector<Elem*> * elems, const StdVector<std::string>
 sd)
  { Error(" not implemented",__FILE__,__LINE__);}
 
@@ -72,7 +73,7 @@ sd)
    \param allelems out: pointer to vector with 1D-elements
    \param sd color of subdomains, for which elements are read
   */
-  virtual void ReadEl1d(std::vector<Elem*> * allelems, const std::vector<std::string> sd)
+  virtual void ReadEl1d(StdVector<Elem*> * allelems, const StdVector<std::string> sd)
  { Error(" not implemented",__FILE__,__LINE__);}  
 
  //! read 2d - elements from the mesh-file
@@ -80,7 +81,7 @@ sd)
    \param allelems out: pointer to vector with 3D-elements
    \param sd color of subdomains, for which elements are read
   */
-  virtual void ReadEl2d(std::vector<Elem*> * allelems, const std::vector<std::string> sd)
+  virtual void ReadEl2d(StdVector<Elem*> * allelems, const StdVector<std::string> sd)
  { Error(" not implemented",__FILE__,__LINE__);}  
 
 //! read 3d - elements from the mesh-file
@@ -88,35 +89,35 @@ sd)
    \param allelems out: pointer to vector with 3D-elements
    \param sd color of subdomains, for which elements are read
   */
-  virtual void ReadEl3d(std::vector<Elem*> * allelems, const std::vector<std::string> sd)
+  virtual void ReadEl3d(StdVector<Elem*> * allelems, const StdVector<std::string> sd)
  { Error(" not implemented",__FILE__,__LINE__);} 
 
   //! read 3d -elements from the mesh-file and extractes the data for the conf-file
    /*!
    \param sd color of subdomains, for which elements are read
   */
-   virtual void ReadEl3dConf(std::vector<std::string> &sd)
+   virtual void ReadEl3dConf(StdVector<std::string> &sd)
  { Error(" not implemented",__FILE__,__LINE__);} 
 
   //! read 2d -elements from the mesh-file and extractes the data for the conf-file
    /*!
    \param sd color of subdomains, for which elements are read
   */
-   virtual void ReadEl2dConf(std::vector<std::string> &sd)
+   virtual void ReadEl2dConf(StdVector<std::string> &sd)
   { Error(" not implemented",__FILE__,__LINE__);} 
 
    //! read 1d -elements from the mesh-file and extractes the data for the conf-file
    /*!
    \param sd color of subdomains, for which elements are read
   */
-   virtual void ReadEl1dConf(std::vector<std::string> &sd)
+   virtual void ReadEl1dConf(StdVector<std::string> &sd)
   { Error(" not implemented",__FILE__,__LINE__);} 
 
   //! read BCs from the mesh-file and extractes the data for the conf-file
    /*!
    \param sd color of subdomains, for which elements are read
   */
-  virtual void ReadBCsConf(std::vector<std::string> &sd)
+  virtual void ReadBCsConf(StdVector<std::string> &sd)
   { Error(" not implemented",__FILE__,__LINE__);} 
 
 #ifdef ADAPTGRID
@@ -126,7 +127,7 @@ sd)
 	\param vertex out: vector with vertices
 	\param sd in: vector with color of subdomains which is put in Grid_RG
   */
-  virtual void ReadGrid_RG(std::vector<grd::Element*> & elems, std::vector<grd::Vertex*> * vertex, const std::vector<std::string> sd)
+  virtual void ReadGrid_RG(StdVector<grd::Element*> & elems, StdVector<grd::Vertex*> * vertex, const StdVector<std::string> sd)
    { Error(" not implemented",__FILE__,__LINE__);}
 
   //! read the mesh from mesh-file for Grid_RG
@@ -135,7 +136,7 @@ sd)
         \param vertex out: vector with vertices
         \param sd in: vector with color of subdomains which is put in Grid_RG
   */
-  virtual void ReadBCs_GridRG(std::vector<Integer> & idBCs,std::vector<Integer> &colorBCs)
+  virtual void ReadBCs_GridRG(StdVector<Integer> & idBCs,StdVector<Integer> &colorBCs)
    { Error(" not implemented",__FILE__,__LINE__);}
 #endif
  
@@ -186,12 +187,12 @@ sd)
         \param saveNodes out: list with global number of nodes
         \param levels in: vector with name of nodes
   */
-  virtual void ReadSaveNodes(std::list<Integer> * saveNodes , const std::vector<std::string> levels)=0;
+  virtual void ReadSaveNodes(std::list<Integer> * saveNodes , const StdVector<std::string> levels)=0;
   //{ Error(" not implemented",__FILE__,__LINE__);};
   
   //! read only levels (names) of save nodes
   /*! \param levels out: list with names of save node levels  */
-  virtual void ReadLevelOfSaveNodes(std::vector<std::string>& levels)
+  virtual void ReadLevelOfSaveNodes(StdVector<std::string>& levels)
   { Error(" not implemented",__FILE__,__LINE__);} 
   
 

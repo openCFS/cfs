@@ -1,8 +1,9 @@
 #ifndef FILE_ITERCOUPLEDPDE_2003
 #define FILE_ITERCOUPLEDPDE_2003
 
-#include <CoupledPDE/basecoupledpde.hh>
-#include <Utils/storesol.hh>
+#include "CoupledPDE/basecoupledpde.hh"
+//#include "Utils/storesol.hh"
+//#include "Utils/elemstoresol.hh"
 
 namespace CoupledField
 {
@@ -16,8 +17,8 @@ class IterCoupledPDE : public BaseCoupledPDE
  public:
 
   //! Constructor
-  IterCoupledPDE(std::vector<BasePDE*> & PDEs,
-		 std::vector<PDECoupling*> & Couplings,
+  IterCoupledPDE(StdVector<BasePDE*> & PDEs,
+		 StdVector<PDECoupling*> & Couplings,
 		 Grid *aptgrid, 
 		 BCs *aptBCs, 
 		 FileType *aInFile, 
@@ -46,10 +47,10 @@ protected:
   void WriteCouplingInfo();
 
   //! calculates the norm of a vector
-  Double CalcNorm(NormType normtype, BaseStoreSol & val, BaseStoreSol & oldval);
+  Double CalcNorm(NormType normtype, CFSVector & val, CFSVector & oldval);
 
   Integer maxiter_;                        //!< maximum number of iterations per time step
-  std::vector<Double> norms_;              //!< norm of coupling values
+  StdVector<Double> norms_;              //!< norm of coupling values
 };
 
 } // end of namespace

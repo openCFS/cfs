@@ -20,6 +20,12 @@
 //! This file contains some global macro, class and enumeration data type
 //! definitions for CFS++.
 
+
+//! Maximal length of the trailing postfix of an auxilliary name,
+//! i.e. the length of the extension after the basename
+#define MAXPOSTFIX 15
+
+
 namespace CoupledField
 {
 

@@ -8,9 +8,9 @@
 namespace CoupledField
 {
 
-Newmark :: Newmark(std::string apdename, BaseSystem * algebraicsystem, Integer dofspernode, 
-		   Integer numnode, Boolean needDampingMatrix)
-:TimeStepping(apdename, algebraicsystem)
+Newmark :: Newmark(std::string apdename, BaseSystem * algebraicsystem, NodeEQN * ptEQN, 
+		   Boolean needDampingMatrix)
+:TimeStepping(apdename, algebraicsystem,ptEQN)
 {
   ENTER_FCN( "Newmark::Newmark" );
 
@@ -29,15 +29,18 @@ Newmark :: Newmark(std::string apdename, BaseSystem * algebraicsystem, Integer d
   Info->Warning( "Newmark: Using defaults for alpha, beta and gamma!" );
 #endif
 
+  Integer numEQNs = ptEQN_->GetNumEQNs();
+  Integer dofs = ptEQN_->GetNumDofsPerEQN();
+  
   //get the memory
-  solderiv1_.Resize(dofspernode*numnode);
+  solderiv1_.Resize(numEQNs * dofs);
   solderiv1_.Init();
-  solderiv2_.Resize(dofspernode*numnode);
+  solderiv2_.Resize(numEQNs * dofs);
   solderiv2_.Init();
 
-  solpred_.Resize(dofspernode*numnode);
+  solpred_.Resize(numEQNs * dofs);
   solpred_.Init();
-  solderiv1pred_.Resize(dofspernode*numnode);
+  solderiv1pred_.Resize(numEQNs * dofs);
   solderiv1pred_.Init();
 
 }
@@ -176,10 +179,9 @@ void Newmark :: CalcParameters(Double dt)
 
 NewmarkEffMass :: NewmarkEffMass(std::string apdename, 
 				 BaseSystem * algebraicsystem, 
-				 Integer dofspernode, 
-				 Integer numnode, 
+				 NodeEQN * ptEQN, 
 				 Boolean adamping)
-  :TimeStepping(apdename, algebraicsystem)
+  :TimeStepping(apdename, algebraicsystem,ptEQN)
 { 
   ENTER_FCN( "NewmarkEffMass::NewmarkEffMass" );
 
@@ -194,20 +196,23 @@ NewmarkEffMass :: NewmarkEffMass(std::string apdename,
   conf->ifget("beta_NM",beta_,pdename_); 
   conf->ifget("gamma_NM",gamma_,pdename_);
 
+  Integer numEQNs = ptEQN_->GetNumEQNs();
+  Integer dofs = ptEQN_->GetNumDofsPerEQN();
+
 
   //get the memory
-  sol_.Resize(dofspernode*numnode);
+  sol_.Resize(numEQNs*dofs);
   sol_.Init();
-  solpred_.Resize(dofspernode*numnode);
+  solpred_.Resize(numEQNs*dofs);
   solpred_.Init();
 
-  solderiv1_.Resize(dofspernode*numnode);
+  solderiv1_.Resize(numEQNs*dofs);
   solderiv1_.Init();
-  solderiv2_.Resize(dofspernode*numnode);
+  solderiv2_.Resize(numEQNs*dofs);
   solderiv2_.Init();
 
   
-  solderiv1pred_.Resize(dofspernode*numnode);
+  solderiv1pred_.Resize(numEQNs*dofs);
   solderiv1pred_.Init();
 }
 

@@ -1,5 +1,5 @@
-#ifndef FILE_STORESOLUTION_2004
-#define FILE_STORESOLUTION_2004
+#ifndef FILE_NODESTORESOL_2004
+#define FILE_NODESTORESOL_2004
 
 #include "basestoresol.hh"
 #include <Matrix/matrix.hh>
@@ -27,7 +27,7 @@ namespace CoupledField{
 //! afterwards follows the electric Potential of it. This repeats for each
 //! node, so this is basically the layout of the solution vector as it is
 //! delivererd by the algebraic system. <br>
-//! The defining code for the above example would look like this:
+//! The defining code for the above example ould look like this:
 //! \verbatim
 //! mySol.SetNumSolutions(2); 
 //! mySol.SetSolutionType(MECH_DISPLACEMENT,0);
@@ -42,11 +42,11 @@ namespace CoupledField{
 //! \note Although the names of some methods refer to nodes, this class 
 //! also can handle element solutions.
 template<class TYPE>
-class StoreSol : public BaseStoreSol{
+class NodeStoreSol : public BaseStoreSol{
 public:
 
   //! Default constructor
-  StoreSol();
+  NodeStoreSol();
 
 
   //! Constructor with given solution layout
@@ -57,9 +57,9 @@ public:
   */
   //! \note By calling this constructor, one gets an iniaialized
   //! object, ready to use
-  StoreSol(const Integer numNodes, 
-	   const std::vector<SolutionType> solTypes, 
-	   const std::vector<Integer> solDofs);
+  NodeStoreSol(const Integer numNodes, 
+	       const StdVector<SolutionType> solTypes, 
+	       const StdVector<Integer> solDofs);
   
 
   //! Constructor with given layout for ONE solutiontype
@@ -70,18 +70,18 @@ public:
   */
   //! \note By calling this constructor, one gets an iniaialized
   //! object, ready to use
-  StoreSol(const Integer numNodes,
-	   const SolutionType solType,
-	   const Integer numDofs);
-
+  NodeStoreSol(const Integer numNodes,
+	       const SolutionType solType,
+	       const Integer numDofs);
+  
 
   //! Copy Constructor
-  StoreSol(const StoreSol & x);
+  NodeStoreSol(const NodeStoreSol & x);
 
 
   //! Destructor
-  virtual ~StoreSol();
-
+  virtual ~NodeStoreSol();
+  
 
   //! Deletes all data and layout information
 
@@ -90,7 +90,19 @@ public:
   //! solution object is modified via SetNumSolution(), SetNumNodes(),
   //! SetNumDofs() or SetSolutionType().
   void Clear();
+ 
+  //! Set Pointer to nodal equation object
+  void SetPtrEQNData(NodeEQN * ptNodeEQN);
+  
 
+  //! Initialization of the StoreSolution-object with 0-element(REQUIRED)
+  
+  //! Initializes the object AFTER the other layout
+  //! functions have been called
+  //! \note Only after calling Init, the object can
+  //! store information
+  //! \note Only necessary when default constructor was used
+  void Init();
 
   //! Initialization of the StoreSolution-object (REQUIRED)
   
@@ -153,7 +165,7 @@ public:
   /*!
     \param solTypes (output) Vector of solution types
   */
-  void GetSolutionTypes(std::vector<SolutionType> &solTypes) const;
+  void GetSolutionTypes(StdVector<SolutionType> &solTypes) const;
 
 
   //! Access operator for nodal result of given dof
@@ -387,36 +399,25 @@ public:
   // pde to mesh solution and vice versa //
   /////////////////////////////////////////
 
+  virtual void GetElemSolution(CFSVector & elemSol,
+			       const StdVector<Integer> & connect) const;
+
 
   //!
-  void GetElemSolutionAsMatrix(CFSMatrix & elemSol, Vector<Integer> & connect) const;
+  void GetElemSolutionAsMatrix(CFSMatrix & elemSol, 
+			       const StdVector<Integer> & connect) const;
 
 
   //!
-  void TransformNodeSolution(BaseStoreSol & transformedSolution,
-			     const std::vector<Integer> & mapping,
+  void TransformNodeSolution(CFSVector & transformedSolution,
 			     Grid * ptGrid,
 			     const Integer level) const;
 
-
-  //!
-  void TransformElemSolution(BaseStoreSol & transformedSolution,
-			     const std::vector<Integer> & mapping,
-			     Grid * ptGrid,
-			     const Integer level) const;
-  
 
    //! maps the local node solution to the coupling nodes
-  void NodeSolutionToCoupling(BaseStoreSol & couplingSol,
-			      const std::vector<Integer>& nodeNumbers,
-			      const std::vector<Integer> & mapping) const;
-  
-
-  //! maps the local element solution to the coupling nodes
-  void ElemSolutionToCoupling(BaseStoreSol & couplingSol,
-			      const std::vector<Elem*>& elements,
-			      const CFSVector & elemSol) const;
-  
+  void NodeSolutionToCoupling(CFSVector & couplingSol,
+			      const StdVector<Integer>& nodeNumbers) const;
+			     
 
   ///////////////
   // Operators //
@@ -424,7 +425,7 @@ public:
   
 
   //! assignment operator
-  StoreSol & operator= (const StoreSol & x);
+  NodeStoreSol & operator= (const NodeStoreSol & x);
   
   //! assignment operator for Base-class
   BaseStoreSol & operator= (const BaseStoreSol & x);
@@ -442,9 +443,9 @@ protected:
   // ======================================================
   // EXPLICIT TEMPLATE INSTANTIATION
   // ======================================================
-  template class StoreSol<Double>;
-  template class StoreSol<Complex>;
-  template class StoreSol<Integer>;
+  template class NodeStoreSol<Double>;
+  template class NodeStoreSol<Complex>;
+  template class NodeStoreSol<Integer>;
  
 } //end of namespace
 

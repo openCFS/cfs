@@ -1,59 +1,51 @@
 #include "elecforceop.hh"
 
 #include <string>
-#include <Domain/elem.hh>
-#include <Domain/grid.hh>
-#include <Utils/vector.hh>
-#include <Utils/storesol.hh>
-#include <Matrix/matrix.hh>
-
-#include <PDE/basePDE.hh>
+#include "Domain/elem.hh"
+#include "Domain/grid.hh"
+#include "Utils/vector.hh"
+#include "Matrix/matrix.hh"
+#include "PDE/basePDE.hh"
 
 namespace CoupledField
 {
  
 ElecForceOp::ElecForceOp(Grid * ptGrid,
 			 BasePDE * ptPDE,
-			 std::vector<Integer> * ptMesh2PDENode,
-			 StoreSol<Double> & EPotential,
+			 NodeEQN * ptEQN,
+			 NodeStoreSol<Double> & EPotential,
 			 Integer level,
 			 Boolean isaxi) 
-  : BaseOperator(ptGrid, ptPDE, ptMesh2PDENode, level, isaxi)
+  : BaseOperator(ptGrid, ptPDE, ptEQN, level, isaxi)
 {
-#ifdef TRACE
-  (*trace) << "entering ElecForceOp::ElecForceOp" << std::endl;
-#endif
+  ENTER_FCN( "ElecForceOp::ElecForceOp" );
 
-  ElecFieldOp_ = new ElecFieldOp(ptGrid, ptPDE, ptMesh2PDENode, EPotential, level, isaxi);
+  ElecFieldOp_ = new ElecFieldOp(ptGrid, ptPDE, ptEQN, EPotential, level, isaxi);
 
 }
 
 ElecForceOp::~ElecForceOp()
 {
-#ifdef TRACE
-  (*trace) << "entering ElecForceOp::~ElecForceOp" << std::endl;
-#endif
+  ENTER_FCN( "ElecForceOp::~ElecForceOp" );
 
   if (ElecFieldOp_) delete ElecFieldOp_;
 }
 
 
-void ElecForceOp::CalcElemElecForce(StoreSol<Double> & F,
+void ElecForceOp::CalcElemElecForce(ElemStoreSol<Double> & F,
 				    const Elem * ptElement,
 				    Double epsilon,
-				    const std::vector<ShortInt> & IsBoundaryNode)
+				    const StdVector<ShortInt> & IsBoundaryNode)
 {
-#ifdef TRACE
-  (*trace) << "entering ElecForceOp::CalcElemElecForce" << std::endl;
-#endif
-
+  ENTER_FCN( "ElecForceOp::CalcElemElecForce" );
 
   Vector<Double> E;
-  std::vector<Double> * Ip;
-  std::vector<Double> intWeights = ptElement->ptElem->GetIntWeights();
+  Vector<Double> * Ip;
+  Vector<Double> intWeights = ptElement->ptElem->GetIntWeights();
   Matrix<Double> JInv, dJ_dr, CornerCoords,J;
   ShortInt Dim, NumNodes, NumIntPoints;
   Double DetJ, DetdJ_dr;
+  Double elecEntry;
   
   Dim = ptElement->ptElem->GetDim();
   NumNodes = ptElement->ptElem->GetNumNodes();
@@ -64,7 +56,7 @@ void ElecForceOp::CalcElemElecForce(StoreSol<Double> & F,
   ptPDE_->GetElemCoords(ptElement->connect, CornerCoords, level_);
   
   F.SetNumSolutions(1);
-  F.SetNumNodes(IsBoundaryNode.size());
+  F.SetNumNodes(IsBoundaryNode.GetSize());
   F.SetSolutionType(ELEC_FORCE);
   F.SetNumDofs(Dim);
   F.Init(0.0);
@@ -96,15 +88,15 @@ void ElecForceOp::CalcElemElecForce(StoreSol<Double> & F,
       Double factor = 1;
       if (isaxi_)
 	{
-	  std::vector<Double> shpFncAtIp;
-	  std::vector<Double> coordAtIP;
+	  Vector<Double> shpFncAtIp;
+	  Vector<Double> coordAtIP;
 	  ptElement->ptElem->GetShFncAtIp(shpFncAtIp, nIp);
 	  coordAtIP = CornerCoords * shpFncAtIp;
 	  factor = 2 * PI * coordAtIP[0];
 	}     
 
       // loop over all boundary nodes
-      for (Integer nNode=0; nNode<IsBoundaryNode.size(); nNode++)
+      for (Integer nNode=0; nNode<IsBoundaryNode.GetSize(); nNode++)
 	{
 	  // loop over all dimension
 	  for (Integer i=0; i<Dim; i++) 
@@ -248,9 +240,7 @@ void ElecForceOp::CalcElemElecForce(StoreSol<Double> & F,
 
 Double ElecForceOp::CalcDetJDr(Matrix<Double> &J, Matrix<Double> &dJ_dr, Integer dim)
 {
-#ifdef TRACE
-  (*trace) << "entering ElecForceOp::CalcDetJDr" << std::endl;
-#endif
+  ENTER_FCN( "ElecForceOp::CalcDetJDr" );
   
   Double det;
 

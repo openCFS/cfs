@@ -11,9 +11,8 @@ namespace CoupledField
   // returns B - matrix for BDB
   void linElastInt::calcBMat(Matrix<Double> & bMat, Integer ip, Matrix<Double> & ptCoord)
   {
-#ifdef TRACE
-  (*trace) << "entering linElastInt::calcBMat " << std::endl;
-#endif
+    ENTER_FCN( "linElastInt::calcBMat" );
+
     const Integer nrNodes  = ptelem->GetNumNodes();
     const Integer spaceDim = ptelem->GetDim();  
     const Integer nrDofs   = getNrDofs();  
@@ -48,8 +47,8 @@ namespace CoupledField
 	if (isaxi_)
 	  {
 	    Integer idxtheta = getDimD();
-	    std::vector<Double> ShpFncAtIp;
-	    std::vector<Double> CoordAtIP;
+	    Vector<Double> ShpFncAtIp;
+	    Vector<Double> CoordAtIP;
 
 	    ptelem->GetShFncAtIp(ShpFncAtIp,ip);
 	    CoordAtIP = ptCoord * ShpFncAtIp;
@@ -91,9 +90,7 @@ namespace CoupledField
   void linElastInt::
   CalcAxiMaterialMat(Matrix<Double> & dMat, enum orientation2D actOrientation)
   {
-#ifdef TRACE
-    (*trace) << "entering linElastInt::CalcAxiMaterialMat " << std::endl;
-#endif
+    ENTER_FCN( "linElastInt::CalcAxiMaterialMat" );
     
     const Integer nrElemsAxi = 4;
     
@@ -138,9 +135,8 @@ namespace CoupledField
   // calculated the D-matrix for the plain strain state
   void mechPlainStrainInt::calcDMat(Matrix<Double> & dMat)
   {
-#ifdef TRACE
-  (*trace) << "entering mechPlainStrainInt::calcDMat " << std::endl;
-#endif
+    ENTER_FCN( "mechPlainStrainInt::calcDMat" );
+
     const Integer nrElems2d = getDimD();
     
     Integer rowPtrXY[] = {1,2,6,7,8};  // indices of rows and lines for xy-plane
@@ -184,9 +180,7 @@ namespace CoupledField
   // calculated the D-matrix for the axisymmetric state
   void mechAxiInt::calcDMat(Matrix<Double> & dMat)
   {
-#ifdef TRACE
-  (*trace) << "entering mechAxiInt::calcDMat " << std::endl;
-#endif
+    ENTER_FCN( "mechAxiInt::calcDMat" );
   
   CalcAxiMaterialMat(dMat, actOrientation);
   
@@ -198,9 +192,8 @@ namespace CoupledField
   // calculates the D-matrix of a 3d-problem 
   void mech3DInt::calcDMat(Matrix<Double> & dMat)
   {
-#ifdef TRACE
-  (*trace) << "entering mech3DInt::calcDMat " << std::endl;
-#endif
+    ENTER_FCN( "mech3DInt::calcDMat" );
+
     const Integer nrElems3d = getDimD();
     
     Matrix<Double> * matMatrix =  ptMaterial->GetMatrix();
@@ -223,9 +216,7 @@ namespace CoupledField
   linElastInt::linElastInt(BaseFE * aptelem, MaterialData & matData) 
     : BDBInt(aptelem, matData), actOrientation(xy)
   {
-#ifdef TRACE
-    (*trace) << "entering linElastInt::linElastInt" << std::endl;
-#endif
+    ENTER_FCN( "linElastInt::linElastInt" );
   }
 
 
@@ -233,17 +224,13 @@ namespace CoupledField
   linElastInt::linElastInt(MaterialData & matData) 
     : BDBInt(matData), actOrientation(xy)
   {
-#ifdef TRACE
-    (*trace) << "entering linElastInt::linElastInt" << std::endl;
-#endif
+    ENTER_FCN( "linElastInt::linElastInt" );
   }
  
 
   linElastInt::~linElastInt()
   {
-#ifdef TRACE
-    (*trace) << "entering linElastInt::~linElastInt" << std::endl;
-#endif
+    ENTER_FCN( "linElastInt::~linElastInt" );
   }
 
 
@@ -251,9 +238,7 @@ namespace CoupledField
   mechPlainStrainInt::mechPlainStrainInt(BaseFE * aptelem, MaterialData & matData) 
     : linElastInt(aptelem, matData)
   {
-#ifdef TRACE
-    (*trace) << "entering mechPlainStrainInt::mechPlainStrainInt" << std::endl;
-#endif
+    ENTER_FCN( "mechPlainStrainInt::mechPlainStrainInt" );
 
     ptelem=aptelem;
   }
@@ -262,25 +247,21 @@ namespace CoupledField
   mechPlainStrainInt::mechPlainStrainInt(MaterialData & matData) 
     : linElastInt(matData)
   {
-#ifdef TRACE
-    (*trace) << "entering mechPlainStrainInt::mechPlainStrainInt" << std::endl;
-#endif
+    ENTER_FCN(" mechPlainStrainInt::mechPlainStrainInt" );
+
   }
  
 
   mechPlainStrainInt::~mechPlainStrainInt()
   {
-#ifdef TRACE
-    (*trace) << "entering mechPlainStrainInt::~mechPlainStrainInt" << std::endl;
-#endif
+    ENTER_FCN( "mechPlainStrainInt::~mechPlainStrainInt" );
   }
 
   mechAxiInt::mechAxiInt(BaseFE * aptelem, MaterialData & matData) 
     : linElastInt(aptelem, matData)
   {
-#ifdef TRACE
-    (*trace) << "entering mechAxiInt::mechAxiInt" << std::endl;
-#endif
+    ENTER_FCN( "mechAxiInt::mechAxiInt" );
+
     isaxi_ = TRUE;
     ptelem=aptelem;
   }
@@ -289,44 +270,38 @@ namespace CoupledField
   mechAxiInt::mechAxiInt(MaterialData & matData) 
     : linElastInt(matData)
   {
-#ifdef TRACE
-    (*trace) << "entering mechAxiInt::mechAxiInt" << std::endl;
-#endif
+    ENTER_FCN( "mechAxiInt::mechAxiInt" );
+
     isaxi_ = TRUE;
   }
  
 
   mechAxiInt::~mechAxiInt()
   {
-#ifdef TRACE
-    (*trace) << "entering mechAxiInt::~mechAxiInt" << std::endl;
-#endif
+    ENTER_FCN( "mechAxiInt::~mechAxiInt" );
   }
 
 
   mech3DInt::mech3DInt(BaseFE * aptelem, MaterialData & matData) 
     : linElastInt(aptelem, matData)
   {
-#ifdef TRACE
-    (*trace) << "entering mech3DInt::mech3DInt" << std::endl;
-#endif
+    ENTER_FCN( "mech3DInt::mech3DInt" );
+
   }
 
 
   mech3DInt::mech3DInt(MaterialData & matData) 
     : linElastInt(matData)
   {
-#ifdef TRACE
-    (*trace) << "entering mech3DInt::mech3DInt" << std::endl;
-#endif
+    ENTER_FCN( "mech3DInt::mech3DInt" );
+
   }
  
 
   mech3DInt::~mech3DInt()
   {
-#ifdef TRACE
-    (*trace) << "entering mech3DInt::~mech3DInt" << std::endl;
-#endif
+    ENTER_FCN( "mech3DInt::~mech3DInt" );
+
   }
 
 } // end namespace CoupledField

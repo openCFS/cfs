@@ -14,9 +14,8 @@ namespace CoupledField
 
 MaterialData::MaterialData():scaledMatDat(0)
 {
-#ifdef TRACE
-  if (trace) (*trace) << "Entering MaterialData::MaterialData" << std::endl;
-#endif
+  ENTER_FCN( "MaterialData::MaterialData" );
+
   const int stringLength = 100;
   name = new char[stringLength];  
 }
@@ -24,9 +23,8 @@ MaterialData::MaterialData():scaledMatDat(0)
 
 MaterialData::MaterialData(const MaterialData & mat)
 {
-#ifdef TRACE
-  if (trace) (*trace) << "Entering MaterialData::MaterialData(MaterialData)" << std::endl;
-#endif
+  ENTER_FCN( "MaterialData::MaterialData(MaterialData)" );
+
   density         = mat.density;
   compressibility = mat.compressibility ;
   damp_alfa       = mat.damp_alfa;
@@ -52,26 +50,22 @@ MaterialData::MaterialData(const MaterialData & mat)
 
 void MaterialData::SetConductivity(const double& Conductivity) 
 {
-#ifdef TRACE
-  if (trace) (*trace) << "Entering MaterialData::SetConductivity" << std::endl;
-#endif
+  ENTER_FCN( "MaterialData::SetConductivity" );
+
   conductivity = Conductivity;
 }
 
 void MaterialData::SetName(const char* Name)
 {
-#ifdef TRACE
-  if (trace) (*trace) << "Entering MaterialData::SetName" << std::endl;
-#endif
+  ENTER_FCN( "MaterialData::SetName" );
 
   strcpy(name,Name);
 }
 
 char * MaterialData::GetMaterialName()
 {
-#ifdef TRACE
-  if (trace) (*trace) << "Entering MaterialData::GetMaterialName" << std::endl;
-#endif
+  ENTER_FCN( "MaterialData::GetMaterialName" );
+
   return name;
 }
 

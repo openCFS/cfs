@@ -12,10 +12,6 @@
 #include "DataInOut/ParamHandling/PlainXMLParamHandler.hh"
 #include "DataInOut/ParamHandling/XMLParamHandler.hh"
 
-// Maximal length of the trailing postfix of an auxilliary name,
-// i.e. the length of the extension after the basename
-#define MAXPOSTFIX 15
-
 #ifdef PARALLEL
 #define MAXRANK 4
 #else
@@ -226,19 +222,19 @@ namespace CoupledField
 
 
     // save nodes may also be listed in config-command "save_nodes"
-    std::vector<std::string> historyList;
+    StdVector<std::string> historyList;
 
 #ifndef XMLPARAMS
 
     conf->ifgetliststr("save_nodes", historyList);
-    if (historyList.size())
+    if (historyList.GetSize())
       withHistory=TRUE;
 
 #else
     params->GetList( "saveNodes", historyList, "storeResults", "nodeResults" );
     // withHistory = (bool) historyList.size();
     // withHistory = (historyList.size() > 0);
-    if ( historyList.size() > 0 ) withHistory = TRUE;
+    if ( historyList.GetSize() > 0 ) withHistory = TRUE;
 
 #endif
 
