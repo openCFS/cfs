@@ -43,7 +43,7 @@ void ConfFile::get(const std::string keyword, TypeVal & val, const std::string s
 {
  std::string::size_type pos,pos1=0;
 
- if (section != "") pos1=getpos(section);
+ if (section != "") pos1=getpos(section); 
  if (subsection !="") pos1=getpos(subsection,pos1);
  if (subsubsection != "") { pos1=getpos(subsubsection,pos1);
                             infile.seekg(pos1, std::ios::beg);

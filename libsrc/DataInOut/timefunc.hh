@@ -16,7 +16,7 @@ class TimeFunc
   {
 public:
     //! Constructor
-    TimeFunc(FileType *);
+    TimeFunc(const Char * const name);
 
     //! Deconstructor
     ~TimeFunc();
@@ -33,7 +33,7 @@ public:
 private:
 
     //!
-    FileType * ptFileType;
+    std::ifstream timefncfile;
 
     //!
     Integer maxnumTimeFunc;

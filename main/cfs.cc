@@ -32,12 +32,22 @@ using namespace CoupledField;
 
 void main(int argc, char *argv[])
 {
-  std::cout << " Wellcome to sample session. " << argc << std::endl ;
-  std::cout << " \033[36mUsage\033[0m : cfs [-i] name "<< std::endl 
-	    << "\t \033[36m i \033[0m: to create info-file " << std::endl
-	    << "\t \033[36m name \033[0m: name of input file without extension" << std::endl << std::endl;
 
-  if (argc < 2) Error("Invalid running of scfe. See Usage above.");
+  if (argc < 2) 
+    {
+      std::cout << " \033[36mUsage\033[0m : cfs [-i] name "<< std::endl 
+		<< "\t \033[36m i \033[0m: to create info-file " << std::endl
+	
+		<< "\t \033[36m name \033[0m: name of input file without extension" 
+		<< std::endl << std::endl;
+      Error("Invalid running of CFS++. See Usage above.");
+     }
+  else
+    {
+      std::cout << std::endl;
+      std::cout << "   Welcome to sample session with CFS++. " 
+		<< std::endl << std::endl;
+    }
 
   if (!strcmp("-i", argv[1])) InfoPrint=TRUE;
 
@@ -52,12 +62,14 @@ void main(int argc, char *argv[])
   std::string material;
   conf->get("material_file",material);
   if (material != "non") ptMaterial=new Material(material.c_str());
-	
+
   FileType * ptInputfile=ptDefineFiles->Create_ptFileType();
 
   WriteResults * ptOut=ptDefineFiles->Create_ptWriteResults();
 
-  TimeFunc * ptTimeFunc=new TimeFunc(ptInputfile);
+  std::string tfunc;
+  conf->get("TimeFnc_file",tfunc);
+  TimeFunc * ptTimeFunc=new TimeFunc(tfunc.c_str());
 
   Domain * domain=new Domain(ptInputfile,ptOut,ptMaterial, ptTimeFunc);
 
@@ -67,21 +79,27 @@ void main(int argc, char *argv[])
   BaseDriver * ptdriver;  
   std::string analysis;
   conf->get("analysis", analysis);
-  if (analysis=="static")  ptdriver = new StaticDriver(domain);
-  else  ptdriver = new TransientDriver(domain);
+
+  if (analysis=="static")  
+    ptdriver = new StaticDriver(domain);
+  else  
+    ptdriver = new TransientDriver(domain);
+
+//  solve your problem
+//  std::string adaptTimeOn, adaptSpaceOn;
+//  conf->get("adapttime",adaptTimeOn);
+//  conf->get("adaptspace",adaptSpaceOn);
+//  if (adaptTimeOn == "yes")  ptdriver->SolveProblemAdapt();
+//  else
+//    if (adaptSpaceOn == "yes") { ptdriver->SolveProblemAdaptSpace();}
+//  else 
 
   //solve your problem
-  std::string adaptTimeOn, adaptSpaceOn;
-  conf->get("adapttime",adaptTimeOn);
-  conf->get("adaptspace",adaptSpaceOn);
-
-  if (adaptTimeOn == "yes")  ptdriver->SolveProblemAdapt();
-  else
-    if (adaptSpaceOn == "yes") { ptdriver->SolveProblemAdaptSpace();}
-    else ptdriver->SolveProblem();
+  ptdriver->SolveProblem();
     
 
-  oClockTotal.ClockCount(MyClock::end,"Total time");
+  oClockTotal.ClockCount(MyClock::end,"   Total time"); 
+  std::cout << std::endl;
 
   /// Putzen
     if (ptdriver) delete ptdriver;

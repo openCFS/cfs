@@ -8,16 +8,20 @@
 namespace CoupledField
 {
 
-TimeFunc :: TimeFunc(FileType * aptFileType)
+TimeFunc :: TimeFunc(const Char * const aname)
 {
 #ifdef TRACE
   (*trace) << "entering TimeFunc::TimeFunc" << std::endl;
 #endif
 
-  ptFileType=aptFileType;
+  //  Char * name = new Char[100];
+  //  strcpy(name,aname);
+
   std::ifstream timefile;
-  timefile.open("general.tfunc");
-  if (!timefile)  Error("Can't open general.tfunc file");
+  timefile.open(aname);
+  if (!timefile) {std::cerr << "ERROR(" << __FILE__ << " " << __LINE__ <<
+                         ") Can't open Time-Function-File:" << aname << std::endl;
+                exit(1);}
 
   std::string buffer;
   std::getline(timefile,buffer,'\n');

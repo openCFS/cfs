@@ -137,7 +137,7 @@ void Elecst2dPDE::SetupMatrices(const Integer level)
 	  elemmat*=coeffst[i];
 
 #ifdef DEBUG
-	  (*debug) << "Stiffnessmatrix, ElementNumber  " <<   i << std::endl;
+	  (*debug) << "Stiffnessmatrix, ElementNumber  " <<   j << std::endl;
 
 	  (*debug) << elemmat << std::endl;
 #endif
@@ -239,8 +239,6 @@ void Elecst2dPDE::SolveStepStatic(BCs * ptBCs, Integer level)
   // save solution
   Vector<Double> transsol(ptgrid_->GetMaxnumnodes(level), ptsol);
   sol_=transsol;
-
-  std::cout << " solution " << sol_ << std::endl;
 }
 
 void Elecst2dPDE:: WriteResultsInFile()

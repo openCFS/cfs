@@ -44,6 +44,7 @@ void StaticDriver :: SolveProblem()
   Integer level=0;
   Integer pdenumber  = 0;
 
+  ptdomain_->GetPDE(pdenumber)->SetMatrixFactors();
   ptdomain_->GetPDE(pdenumber)->SolveStepStatic(ptdomain_->GetBCs(), level);
 
   ptdomain_->PrintGrid(level);

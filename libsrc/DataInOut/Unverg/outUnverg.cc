@@ -66,7 +66,6 @@ void  WriteResultsUnverg::Dataset781(const Integer level)
 
  Integer dim=ptgrid->GetDim();
  Integer maxnumnodes=ptgrid->GetMaxnumnodes(level);
- std::cout << " maxnumnodes " << maxnumnodes << std::endl;
 
  (*output).setf(std::ios::scientific);
  (*output).precision(16);
@@ -111,8 +110,6 @@ void  WriteResultsUnverg::Dataset780(const Integer level)
  Integer dim=ptgrid->GetDim();
 
  Integer maxnumelem=ptgrid->GetMaxnumElem(level);
-
- std::cout << " maxnumelem " << maxnumelem << std::endl;
 
  Vector<Integer> connect;
 
@@ -213,7 +210,8 @@ void  WriteResultsUnverg::WriteSolution(const Vector<Double> & sol, const Intege
       if (sol.size() <= nodeshist_[i])
         Error("Please, check history-nodes in config-file.",__FILE__,__LINE__);
       if (time != lastsavetime[i])
-          AddInHistory(time,sol[nodeshist_[i]],i); 
+	// sol[node-1] since internal node starts at zero!        
+          AddInHistory(time,sol[nodeshist_[i]-1],i); 
     }
  Dataset55(title, sol, step+1, time);
 }
