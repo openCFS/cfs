@@ -219,8 +219,10 @@
     <xsd:complexContent>
       <xsd:extension base="DT_BasicCoil">
         <xsd:sequence>
-          <xsd:element name="saveFileL"  type="xsd:token"/>
-          <xsd:element name="saveFileUI" type="xsd:token"/>
+          <xsd:element name="saveFileL"  type="xsd:token" minOccurs="0"
+            default="none"/>
+          <xsd:element name="saveFileUI" type="xsd:token" minOccurs="0"
+            default="none"/>
         </xsd:sequence>
       </xsd:extension>
     </xsd:complexContent>
@@ -311,6 +313,8 @@
   <xsd:simpleType name="DT_CurrentFlow">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="xDir"/>
+      <xsd:enumeration value="yDir"/>
+      <xsd:enumeration value="zDir"/>
     </xsd:restriction>
   </xsd:simpleType>
 
