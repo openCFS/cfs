@@ -614,8 +614,8 @@ namespace CoupledField {
     // If no solver was specified use a direct one
     // Currently always use LU until LDL is available
     if ( sType == NOSOLVER ) {
-      sType = LU_SOLVER;
-      // sType = LDL_SOLVER;
+      // sType = LU_SOLVER;
+      sType = LDL_SOLVER;
     }
 
 
@@ -757,19 +757,56 @@ namespace CoupledField {
       }
     }
 
+
     // ============
     //  Reordering
     // ============
-    if ( sType == LAPACK_LU || sType == LU_SOLVER || sType == LDL_SOLVER ||
-	 pType == ILU0 || pType == ILUK || pType == ILDLK ) {
+
+    // We use the following strategy:
+    //
+    // For all direct solvers we use METIS re-ordering (if compiling with
+    // METIS support, SLOAN otherwise)
+    // For all ILU type preconditioners we use SLOAN re-ordering. However,
+    // for ILU0 we do not use re-ordering.
+
+#ifdef USE_METIS
+    if ( sType == LAPACK_LU || sType == LU_SOLVER || sType == LDL_SOLVER ) {
+      if ( rType == NOREORDERING ) {
+	Info->PrintF( pdename, "Expert: Setting re-ordering strategy to "
+		      "'METIS'\n" );
+	rType = METIS;
+      }
+      else {
+	Info->PrintF( pdename, "Expert: Re-setting re-ordering strategy "
+                      "to METIS\n" );
+	rType = METIS;
+      }
+    }
+#else
+    if ( sType == LAPACK_LU || sType == LU_SOLVER || sType == LDL_SOLVER ) {
       if ( rType == NOREORDERING ) {
 	Info->PrintF( pdename, "Expert: Setting re-ordering strategy to "
 		      "'SLOAN'\n" );
 	rType = SLOAN;
       }
       else {
-	Info->PrintF( pdename, "Expert: Using SLOAN for re-ordering\n" );
+	Info->PrintF( pdename, "Expert: Re-setting re-ordering strategy "
+                      "to SLOAN\n" );
 	rType = SLOAN;
+      }
+    }
+#endif
+
+    if ( pType == ILUK || pType == ILDLK ) {
+      if ( rType == NOREORDERING ) {
+	Info->PrintF( pdename, "Expert: Setting re-ordering strategy to "
+		      "'SLOAN'\n" );
+	rType = METIS;
+      }
+      else {
+	Info->PrintF( pdename, "Expert: Re-setting re-ordering strategy "
+                      "to SLOAN\n" );
+	rType = METIS;
       }
     }
   }
