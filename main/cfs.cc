@@ -247,6 +247,8 @@ int main(int argc, char *argv[]) {
 	ptdriver = new piezoParamIdent(domain);
 	std::cout<<"calls driver for parameter identification"<< std::endl;
       }
+      else if (analysis =="multiHarmonic")
+  	ptdriver = new MultiHarmonicDriver(domain);
       else
 	ptdriver = new HarmonicDriver(domain);
       break;

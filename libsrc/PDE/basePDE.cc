@@ -168,7 +168,7 @@ namespace CoupledField {
       laststepcalc_ = 1;
     }
 
-    else if ( analysis=="harmonic" || analysis == "paramIdent" ) {
+    else if ( analysis=="harmonic" || analysis == "paramIdent" || analysis == "multiHarmonic") {
       isComplex_ = TRUE;
       assemble_ = new HarmonicAssemble(algsys_, ptgrid_);
       analysistype_ = HARMONIC;
