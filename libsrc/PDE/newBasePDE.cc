@@ -52,7 +52,11 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile, WriteResults * a
   numeqcoarse_ = 200;
   coarsealpha_ = 0.1;
 
-  //get analysis type
+  savederiv1_ = FALSE;
+  savederiv2_ = FALSE;
+  
+
+   //get analysis type
   std::string analysis;
   conf->get("analysis", analysis);
 
@@ -249,6 +253,22 @@ void BasePDE::SolveStepTrans(const Integer kstep, const Double asteptime,
 
 }
 
+
+void BasePDE::PreStepTrans(const Integer level, const Boolean reset)
+{
+#ifdef TRACE
+  (*trace) << "entering BasePDE::PreStepTrans" << std::endl;
+#endif
+
+
+  // due to coupling-pdes, the RHS has to be initialized BEFORE 
+  // the coupling forces are assembled to the RHS
+
+  algsys_->InitRHS();
+  assemble_->AssembleSrcRHS(level,lasttimecalc_);
+}
+
+
 void BasePDE::StepTransLin(const Integer level, const Boolean reset)
 {
 #ifdef TRACE
@@ -272,16 +292,13 @@ void BasePDE::StepTransLin(const Integer level, const Boolean reset)
   //perform predictor step
   TS_alg_->Predictor(solhelp);
 
+
   if (laststepcalc_==0)
     {
       update = 0;
       job = 1;
-      //      SetupMatrices(level);
       assemble_->AssembleMatrices(level);
       algsys_->ConstructEffectiveMatrix(matrix_factor_);
-
-      algsys_->InitRHS();
-      assemble_->AssembleSrcRHS(level,lasttimecalc_);
       TS_alg_->UpdateRHS();
     }
   else if (reset)
@@ -289,28 +306,23 @@ void BasePDE::StepTransLin(const Integer level, const Boolean reset)
       update = 1;
       job    = 1;
 
-      algsys_->InitRHS();
       algsys_->InitMatrix(SYSTEM);
       algsys_->InitMatrix(STIFFNESS);
       algsys_->InitMatrix(MASS);
       if (damping_type_)
         algsys_->InitMatrix(DAMPING);
 
-      algsys_->ConstructEffectiveMatrix(matrix_factor_);
- 
-      assemble_->AssembleSrcRHS(level,lasttimecalc_);
+      algsys_->ConstructEffectiveMatrix(matrix_factor_); 
       TS_alg_->UpdateRHS();
     }
   else
     {
       update = 1;
-      job    = 3;
-      algsys_->InitRHS();
- 
-      assemble_->AssembleSrcRHS(level,lasttimecalc_);
+      job    = 3;      
  
       TS_alg_->UpdateRHS();
-    };
+    }
+
 
   SetBCs(level,update,lasttimecalc_);
   algsys_->CalcPrecond(job);
@@ -456,6 +468,9 @@ void BasePDE::ReadMaterialData()
       conf->getstr(subdoms_[i], matName, "list_subdomains");
       loadMaterial_->GetMaterial(materialData_[i], matName, pdematerialclass_);
     }
+
+  delete loadMaterial_;
+  
 #ifdef TRACE
   (*trace) << "leaving BasePDE::ReadMaterialData" << std::endl;
 #endif
@@ -645,7 +660,7 @@ void BasePDE::CalcInputCoupling()
 	  // set ptr of deltCoords to assembly-object
 	  assemble_->SetPtrDeltaCoordinates(&deltCoords_);
 
-	  for (Integer dim=0; dim<ptCoupling_->GetInputDim(i); dim++)
+	  for (Integer dof=0; dof<ptCoupling_->GetInputDof(i); dof++)
 	    for (Integer j=0; j<nodes->size(); j++)
 	      {
 		//std::cerr << "processing dim = " << dim << ", j = " << j << std::endl;
@@ -653,7 +668,7 @@ void BasePDE::CalcInputCoupling()
 		if (PDEnode==-1)
 		  Error("Node not assigned to coupling domain: see mesh- and config-file",__FILE__,__LINE__);
 
-		deltCoords_[dim][PDEnode] = (*val)[dim][j];
+		deltCoords_[dof][PDEnode] = (*val)[dof][j];
 	      }
 	      
 	  break;
@@ -662,17 +677,17 @@ void BasePDE::CalcInputCoupling()
 	  //std::cerr << "In " << pdename_ << "::CalcInputCoupling - Switch(RHS)" << std::endl;
 	  ptCoupling_->GetInputNodes(i, nodes);
 
-	  for (Integer dim=0; dim<ptCoupling_->GetInputDim(i); dim++)
+	  for (Integer dof=0; dof<ptCoupling_->GetInputDof(i); dof++)
 	    for (Integer j=0; j<nodes->size(); j++)
 	      {
 		PDEnode = Mesh2PDENode_[(*nodes)[j]-1];
 		if (PDEnode==-1)
 		  {
 		    std::cerr << "PDENODE: "  << PDEnode << "Node[" << (*nodes)[j] << "][" 
-			      << dim+1 << "]= " << (*val)[dim][j] << std::endl; 
+			      << dof+1 << "]= " << (*val)[dof][j] << std::endl; 
 		    Error("Node not assigned to coupling domain: see mesh- and config-file",__FILE__,__LINE__);
 		  }
-		algsys_->SetNodeRHS((*val)[dim][j], PDEnode, dim+1);
+		algsys_->SetNodeRHS((*val)[dof][j], PDEnode, dof+1);
 	      }
 	  
 	  break;
@@ -681,7 +696,7 @@ void BasePDE::CalcInputCoupling()
 	  //std::cerr << "In " << pdename_ << "::CalcInputCoupling - Switch(ID_BC)" << std::endl;
  	  ptCoupling_->GetInputNodes(i, nodes);
 	  //std::cerr << "found " << nodes->size() << " IDBCs input nodes" << std::endl;
-	  for (Integer dim=0; dim<ptCoupling_->GetInputDim(i); dim++)
+	  for (Integer dof=0; dof<ptCoupling_->GetInputDof(i); dof++)
 	    for (Integer j=0; j<nodes->size(); j++, couplingBCsCounter_++)
 	      {
 		PDEnode = Mesh2PDENode_[(*nodes)[j]-1];
@@ -690,14 +705,14 @@ void BasePDE::CalcInputCoupling()
 		
 		if (updateCouplingBCs_)
 		  {
-		    //		    std::cerr << "updating BC[" << dim << "][" << (*nodes)[j] << "] = " 
-		    //		      << (*val)[dim][j] << std::endl;
-		    algsys_->UpdateDirichlet(couplingBCsCounter_+1, (*val)[dim][j], SYSTEM);
+		    //		    std::cerr << "updating BC[" << dof << "][" << (*nodes)[j] << "] = " 
+		    //		      << (*val)[dof][j] << std::endl;
+		    algsys_->UpdateDirichlet(couplingBCsCounter_+1, (*val)[dof][j], SYSTEM);
 		  }
 		else
 		  {	
 		    //  std::cerr << "BC[" << dim << "][" << (*nodes)[j] << "] = " << (*val)[dim][j] << std::endl;
-		    algsys_->SetDirichlet(couplingBCsCounter_+1, PDEnode, (*val)[dim][j], dim+1, SYSTEM);
+		    algsys_->SetDirichlet(couplingBCsCounter_+1, PDEnode, (*val)[dof][j], dof+1, SYSTEM);
 		  }
 	      }
 	  break;
@@ -957,12 +972,6 @@ void BasePDE::NodeSolutionToCoupling(Array<Double>& CouplingSol,
   
   CouplingSol.reshape(dofspernode_, NodeNumbers.size());
   
-  //std::cerr << "In " << pdename_ << "-NodeSolutiontoCoupling" << std::endl;
-  //std::cerr << "CouplingSol size:" << CouplingSol.size() << ", dim: " << CouplingSol.dim() << std::endl;
-  //std::cerr << "sol size:" << sol_.size() << ", dim: " << sol_.dim() << std::endl;
-  //std::cerr << "Mesh2PDENode_.size = " << Mesh2PDENode_.size() << std::endl;
-  //std::cerr << "NumPDENodes = " << NumPDENodes_ << std::endl;
-  
   for (Integer i=0; i<CouplingSol.dim(); i++)
     for (Integer j=0; j<CouplingSol.size(); j++)
       {
@@ -984,15 +993,14 @@ void BasePDE::ElemSolutionToCoupling(Array<Double>& CouplingSol,
   (*trace) << "entering BasePDE::ElemSolutionToCoupling" << std::endl;
 #endif
   
-  CouplingSol.reshape(dofspernode_, NodeNumbers.size());
+  const Integer couplingDof = CouplingSol.dim();
   
-  for (Integer actDof=0; actDof<dofspernode_; actDof++)
-    for (Integer actNode=0; actNode<NodeNumbers.size(); actNode++)
+  for (Integer actDof=0; actDof < couplingDof; actDof++)
+    for (Integer actNode=0; actNode < NodeNumbers.size(); actNode++)
       {
 	//std::cerr << "processing dim: " << i <<", j:" << j << std::endl; 
-	CouplingSol[actDof][actNode] = elemSol[actDof + actNode*dofspernode_];
+	CouplingSol[actDof][actNode] = elemSol[actDof + actNode*couplingDof];
       }
-  
 }
 
 
@@ -1162,8 +1170,8 @@ void BasePDE::CalcLineNormalVec(Vector<Double>& n, Matrix<Double>& ptCoord)
   
   // normal of a vector: interchange x and y and take the new x as negative
 
-  n[0] = -(ptCoord[1][1] - ptCoord[0][1]);
-  n[1] =  (ptCoord[1][0] - ptCoord[0][0]);
+  n[0] = -(ptCoord[1][1] - ptCoord[1][0]);
+  n[1] =  (ptCoord[0][1] - ptCoord[0][0]);
   n /= n.normL2();
 }
 

@@ -64,7 +64,6 @@ void StaticDriver :: SolveProblem()
       ptdomain_->PrintGrid(level);
       ptdomain_->GetCoupledPDE()->WriteResultsInFile();
     }
-  
 }
 
 } // end of namespace

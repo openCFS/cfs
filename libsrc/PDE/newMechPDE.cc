@@ -14,6 +14,7 @@
 #include <DataInOut/WriteInfo.hh>
 #include <Driver/assemble.hh>
 #include "newmark.hh"
+#include <Elements/basefe.hh>
 
 #include "newMechPDE.hh" 
 
@@ -120,6 +121,7 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
   assemble_->SetMesh2PDENode(&Mesh2PDENode_);
   assemble_->SetMatrixType(RBLOCK);
   assemble_->SetNumDirichlet(GetNumRestraints(actlevel_));
+
   assemble_->SetPtrBCs(ptBCs_);
   assemble_->SetPtr2Sol(&sol_);
   assemble_->SetPtr2TimeFnc(ptTimeFunc_);
@@ -411,19 +413,16 @@ void MechPDE::InitCoupling(PDECoupling * Coupling)
   PDEisCoupled_ = TRUE;
   ptCoupling_   = Coupling;
   
-  Array<Double> * val;
   for (Integer i=0; i<ptCoupling_->GetNumOutputCouplings(); i++)
     {
       if (ptCoupling_->GetOutputQuantity(i) == "mechdisplacement")
 	{
-	  ptCoupling_->SetOutputDim(i, Dim_);
-	  ptCoupling_->GetOutputValues(i, val);
+	  // Nothing to do yet
 	}
 
       if (ptCoupling_->GetOutputQuantity(i) == "mechforce")
 	{
-	  ptCoupling_->SetOutputDim(i, Dim_);
-	  ptCoupling_->GetOutputValues(i, val);
+	  // Nothing to do yet
 	}
     }
 
@@ -440,10 +439,12 @@ void MechPDE::CalcOutputCoupling()
   (*trace) << "entering MechPDE::CalcOutputCoupling" << std::endl;
 #endif  
 
+  Integer dof;
   std::string quantity;
-  std::vector<Integer> * couplingnodes;
-  std::vector<Elem*> * couplingElems;
-  Array<Double> * values;
+  std::vector<Integer> * couplingnodes = NULL;
+  std::vector<Elem*> * couplingElems = NULL;
+  std::vector<MaterialData*> * couplingMaterials = NULL;
+  Array<Double> * values = NULL;
   
   // loop over all output coupling quantities
   for (Integer i=0; i<ptCoupling_->GetNumOutputCouplings(); i++)
@@ -465,11 +466,13 @@ void MechPDE::CalcOutputCoupling()
 
 	  if (quantity == "mechforce")
 	    {
+	      ptCoupling_->GetOutputNodes(i, couplingnodes);
 	      ptCoupling_->GetOutputElements(i, couplingElems);
+	      ptCoupling_->GetOutputValues(i, values);
+	      ptCoupling_->GetOutputMaterials(i, couplingMaterials);
+	      dof = ptCoupling_->GetOutputDof(i);
 
-	      Vector<Double> elemCouplingSol;
-	      CalcAcousticCouplingRHS(couplingElems, elemCouplingSol);
-	      ElemSolutionToCoupling(*values, *couplingElems, elemCouplingSol);
+	      CalcAcousticCouplingRHS(couplingElems, *couplingnodes, couplingMaterials, *values, dof);
 	    } 
 	  break;
 
@@ -479,22 +482,18 @@ void MechPDE::CalcOutputCoupling()
     }
 }
 
-
-
-
 void MechPDE::CalcAcousticCouplingRHS(std::vector<Elem*> * couplingElems, 
-				      Vector<Double>& elemCouplingSols)
+				      std::vector<Integer>& couplingNodes,
+				      std::vector<MaterialData*>* couplingMaterials,
+				      Array<Double>& elemCouplingSols,
+				      Integer couplingdofM)
 {
 #ifdef TRACE
   (*trace) << "entering MechPDE::CalcAcousticCouplingRHS" << std::endl;
 #endif
 
-  Double densityFluid = 1e3;
-  myCout << "Density hardcoded 1e3!!! " << myEndl;  
-  
-  // nr of nodes of first element
-  const Integer nrNodesPerEl = (*couplingElems)[0]->ptElem->GetDim();
-  elemCouplingSols.Resize(couplingElems->size() * nrNodesPerEl);
+  Double density ;  
+  Integer nrNodesperEl;
 
   for (Integer actElem=0; actElem<couplingElems->size(); actElem++)
     {
@@ -504,8 +503,9 @@ void MechPDE::CalcAcousticCouplingRHS(std::vector<Elem*> * couplingElems,
       Matrix<Double> ptCoord; 
       GetElemCoords(connecth, ptCoord, actlevel_);
       
-      
-      BaseForm * bilinear_mass = new MassInt(ptElem, densityFluid, isaxi_);
+      density = (*couplingMaterials)[actElem]->GetDensity();
+    
+      BaseForm * bilinear_mass = new MassInt(ptElem, density, isaxi_);
       Matrix<Double> elemmat;
       bilinear_mass->CalcElementMatrix(ptCoord, elemmat);
       delete bilinear_mass;	  
@@ -517,26 +517,32 @@ void MechPDE::CalcAcousticCouplingRHS(std::vector<Elem*> * couplingElems,
       Vector<Double> sol;
       GetSolVecOfElement(sol, connect_PDE);	 
 
-      Vector<Double> forceOnElem = elemmat * sol;
-
+      Vector<Double> nSol(connecth.size());   // solution in normal direction
+      nSol.Init();
+      
       Vector<Double> n;
       CalcLineNormalVec(n, ptCoord);
 
+      for (Integer actNode=0; actNode < connecth.size(); actNode++)
+	for (Integer actDof=0; actDof<dofspernode_; actDof++)
+	  nSol[actNode] += sol[actDof + actNode*dofspernode_] * n[actDof];
+
+
+      Vector<Double> forceOnElem = elemmat * nSol;
+      Integer nodePos = 0;
+      
       for (Integer actNode=0; actNode<ptCoord.size_row(); actNode++)
 	{
-	  Double actForce = 0;
+	  nodePos = 0;
 	  
-	  // calculate vec-product of vec(f) * vec(n)
-	  for (Integer actDof=0; actDof<dofspernode_; actDof++)
-	    actForce += forceOnElem[actDof + actNode*nrNodesPerEl] * n[actDof];
-
-	  elemCouplingSols[actElem*nrNodesPerEl + actNode] += actForce;  
-	}
+	  while(connecth[actNode] != couplingNodes[nodePos] && nodePos < couplingNodes.size()) 
+	    nodePos++;
+	  
+	  elemCouplingSols[0][nodePos] += forceOnElem[actNode];
+	}      
     }
 } 
- 
-  
-  
+
 
 
 
@@ -592,7 +598,6 @@ void MechPDE:: PreStepStatic(const Integer level)
       algsys_->InitRHS();
       algsys_->InitSol();
     }
-
 }
 
 

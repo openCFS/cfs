@@ -38,8 +38,8 @@ class IterCoupledPDE : public BaseCoupledPDE
   //! write results in file
   virtual void WriteResultsInFile();
 
-protected:
 
+protected:
   //!
   void WriteCouplingInfo();
 
@@ -48,7 +48,6 @@ protected:
 
   Integer maxiter_;                        //!< maximum number of iterations per time step
   std::vector<Double> norms_;              //!< norm of coupling values
-
 };
 
 } // end of namespace

@@ -188,7 +188,7 @@ public:
   //! Get integration points
   std::vector<Double> * GetIntPoints() {return IntPoints_;}
 
-  //! Return number of integration pointes
+  //! Return number of nodes
   ShortInt GetNumNodes() const {return NumNodes_;}
 
   //! Return number of edges

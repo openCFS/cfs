@@ -175,13 +175,11 @@ void AcousticPDE::InitCoupling(PDECoupling * Coupling)
   PDEisCoupled_ = TRUE;
   ptCoupling_   = Coupling;
   
-  Array<Double> * val;
   for (Integer i=0; i<ptCoupling_->GetNumOutputCouplings(); i++)
     {
       if (ptCoupling_->GetOutputQuantity(i) == "acousticforce")
 	{
-	  ptCoupling_->SetOutputDim(i, Dim_);
-	  ptCoupling_->GetOutputValues(i, val);
+	  // Nothing to do yet ;-)
 	}
     }
 
@@ -197,9 +195,12 @@ void AcousticPDE::CalcOutputCoupling()
   (*trace) << "entering AcousticPDE::CalcOutputCoupling" << std::endl;
 #endif  
 
+  Integer dof;
   std::string quantity;
-  std::vector<Elem*> * couplingElems;
-  Array<Double> * values;
+  std::vector<Elem*> * couplingElems = NULL;
+  std::vector<Integer> * couplingNodes = NULL;
+  std::vector<MaterialData*> * couplingMaterials = NULL;
+  Array<Double> * values = NULL;
   
   // loop over all output coupling quantities
   for (Integer i=0; i<ptCoupling_->GetNumOutputCouplings(); i++)
@@ -212,10 +213,12 @@ void AcousticPDE::CalcOutputCoupling()
 	  if (quantity == "acousticforce")
 	    {
 	      ptCoupling_->GetOutputElements(i, couplingElems);
-
-	      Vector<Double> elemCouplingSol;
-	      CalcMechCouplingRHS(couplingElems, elemCouplingSol);
-	      ElemSolutionToCoupling(*values, *couplingElems, elemCouplingSol);
+	      ptCoupling_->GetOutputNodes(i, couplingNodes);
+	      ptCoupling_->GetOutputMaterials(i, couplingMaterials);
+	      ptCoupling_->GetOutputValues(i, values);
+	      dof = ptCoupling_->GetOutputDof(i);
+	    
+	      CalcMechCouplingRHS(couplingElems, *couplingNodes, couplingMaterials, *values, dof);
 	    }	  
 	  break;
 
@@ -226,22 +229,17 @@ void AcousticPDE::CalcOutputCoupling()
 }
 
 void AcousticPDE::CalcMechCouplingRHS(std::vector<Elem*> * couplingElems, 
-				      Vector<Double>& elemCouplingSols)
+				      std::vector<Integer> & couplingNodes,
+				      std::vector<MaterialData*> * couplingMaterials,
+				      Array<Double>& elemCouplingSols,
+				      Integer couplingdof)
 {
 #ifdef TRACE
   (*trace) << "entering AcousticPDE::CalcMechCouplingRHS" << std::endl;
 #endif
 
-  Double densitySolid = 5e3;
-  myCout << "Density hardcoded 5e3!!! " << myEndl;
-  
-  const Integer nrNodesPerEl = (*couplingElems)[0]->ptElem->GetDim();
-  // up to now: hardcoded for 2d mechanics!!!!!!!!!!!!!!!!!!!!
-  const Integer nrDofsMech = 2;
-  
-  elemCouplingSols.Resize(couplingElems->size() * nrNodesPerEl * nrDofsMech);
-  
-
+   Double density;
+   
   for (Integer actElem=0; actElem<couplingElems->size(); actElem++)
     {
       BaseFE * ptElem = (*couplingElems)[actElem]->ptElem;
@@ -249,9 +247,10 @@ void AcousticPDE::CalcMechCouplingRHS(std::vector<Elem*> * couplingElems,
       
       Matrix<Double> ptCoord; 
       GetElemCoords(connecth, ptCoord, actlevel_);
-      
-      
-      BaseForm * bilinear_mass = new MassInt(ptElem, densitySolid, isaxi_);
+
+      density = (*couplingMaterials)[actElem]->GetDensity();
+          
+      BaseForm * bilinear_mass = new MassInt(ptElem, density, isaxi_);
       Matrix<Double> elemmat;
       bilinear_mass->CalcElementMatrix(ptCoord, elemmat);
       delete bilinear_mass;	  
@@ -268,11 +267,20 @@ void AcousticPDE::CalcMechCouplingRHS(std::vector<Elem*> * couplingElems,
       Vector<Double> n;
       CalcLineNormalVec(n, ptCoord);
 
+     Integer nodePos = 0;
+     
      for (Integer actNode=0; actNode<ptCoord.size_row(); actNode++)
-       for (Integer actDof=0; actDof<dofspernode_; actDof++)  
-	 elemCouplingSols[actDof + actElem * nrNodesPerEl * dofspernode_ + actNode*dofspernode_] 
-	   += forceOnElem[actNode]*n[actDof];
+       {
+	 nodePos = 0;
+	 
+	 while(connecth[actNode] != couplingNodes[nodePos] && nodePos < couplingNodes.size()) 
+	   nodePos++;
+	 
+	 for (Integer actDof=0; actDof < couplingdof ; actDof++)  
+	   elemCouplingSols[actDof][nodePos] += forceOnElem[actNode] * n[actDof];
+       }      
     }  
+  
 }
 
 

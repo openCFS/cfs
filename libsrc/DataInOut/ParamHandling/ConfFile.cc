@@ -440,7 +440,7 @@ std::string::size_type ConfFile::getpos(const std::string keyword,
   if (startpos == std::string::npos)
     return std::string::npos;
 
-  if (infile.eof()) infile.clear();
+  infile.clear();
   infile.seekg(startpos, std::ios::beg);
  
   while ( pos == std::string::npos && !infile.eof() )

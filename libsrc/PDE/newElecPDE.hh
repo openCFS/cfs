@@ -59,6 +59,18 @@ public:
   //!
   virtual void PostStepStatic(const Integer level);
 
+  //!
+  virtual void PreStepTrans(const Integer level)
+  {PreStepStatic(level);};
+
+  //!
+  virtual void PostStepTrans(const Integer level)
+  {PostStepStatic(level);};
+
+  //!
+  virtual void StepTransNonLin(const Integer level)
+  {StepStaticNonLin(level);};
+
 // ======================================================
 // POSTPROCESSING SECTION
 // ======================================================

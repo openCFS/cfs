@@ -34,6 +34,8 @@ class BasePDE
 {
 public:
 
+  friend class PDECoupling;
+
   //! Constructor
   /*!
     \param aptgrid pointer to grid
@@ -151,7 +153,7 @@ public:
   virtual void PostStepHarmonic(const Integer level) {;};
 
   //transient analysis
-  virtual void PreStepTrans(const Integer level, const Boolean reset) {;};
+  virtual void PreStepTrans(const Integer level, const Boolean reset);
 
   virtual void SolveStepTrans(const Integer kstep, const Double asteptime,
 			      const Integer level, const Boolean updatesysmat);

@@ -58,6 +58,35 @@ public:
   virtual void WriteResultsInFile()=0;
 
 
+  //! Init the time stepping
+  /*!
+    \param dt time step
+  */
+  virtual void InitTimeStepping(const Double dt);
+
+  /// time stepping params, provided by "TransientDriver"
+  void SetTimeSteppingParams(Integer numstep, Double  firstdt, Integer isavebegin, 
+			     Integer isaveend, Integer isaveincr);
+  
+  /// write general definitions (loads, bcs, ...) to every pde
+  virtual void WriteGeneralPDEdefines();
+
+
+  /// perform on every pde a pre step (before solving transient step
+  virtual void PreStepTrans(const Integer level, const Boolean reset);
+
+  /// perform on every pde a post step (after solving transient step
+  virtual void PostStepTrans(const Integer level);
+
+
+  // ======================================================
+  // POSTPROC SECTION
+  // ======================================================
+
+  //! Do Postprocessing as descriped in conf file
+  virtual void PostProcess(const Integer level);
+
+
 protected:
   
   // general PDE parameters
@@ -74,6 +103,13 @@ protected:
   FileType * InFile_;       //!< pointer tio input file
   WriteResults * OutFile_;  //!< pointer to output file
 
+
+  Double dt_;                //!< time step size  
+  Integer numstep_;          //!< nr. of calculated timesteps
+  Double  firstdt_;          //!< time step size
+  Integer isavebegin_;       //!< starting index of saving
+  Integer isaveend_;         //!< end index of saving
+  Integer isaveincr_;        //!< incremental step of saving
    
 };
 

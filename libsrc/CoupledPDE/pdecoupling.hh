@@ -5,10 +5,12 @@
 #include <Utils/vector.hh>
 #include <Utils/array.hh>
 #include <list>
+#include <DataInOut/MaterialData.hh>
 
 namespace CoupledField
 {
 
+// Forward declarations of classes
 class BasePDE;
 class Grid;
 class Elem;
@@ -22,17 +24,22 @@ class PDECoupling
 
   // structure for coupling terms
   struct CouplingInterface{
-    std::string region;               //!< name of coupling region
-    CouplingRegionType regionType ;   //!< type of coupling region (defined in 'environment.hh')
-    Integer level;                    //!< multigrid level
-    std::vector<Integer> nodes;       //!< vector of coupling nodes 
-    std::vector<Elem*> elements;      //!< vector of coupling elements
-    Array<Double> values;             //!< array containing coupling values
-    Array<Double> oldValues;          //!< array containing couplung values of previous iteration step
-    ShortInt dim;                     //!< dimension of coupling values
-    Integer size;                     //!< number of coupling values
-    NormType normtype;                //!< type of norm
-    Double epsilon;                   //!< maximal error tolerance from one step to another
+  public:
+    CouplingInterface();
+
+    std::string region;                    //!< name of coupling region
+    CouplingRegionType regionType;        //!< type of coupling region (defined in 'environment.hh')
+    Integer level;                        //!< multigrid level
+    std::vector<Integer> nodes;           //!< vector of coupling nodes 
+    std::vector<Elem*> elements;          //!< vector of coupling elements
+    std::vector<MaterialData*> materials; //!< vector of materials at coupling interface
+    Array<Double> values;                 //!< array containing coupling values
+    Array<Double> oldValues;              //!< array containing couplung values of previous iteration step
+    ShortInt dof;                         //!< dof of coupling values
+    Integer numNodes;                     //!< number of couplingnodes
+    Integer numElems;                     //!< number of couplingelements
+    NormType normtype;                    //!< type of norm
+    Double epsilon;                       //!< maximal error tolerance from one step to another
   };
 
 public:
@@ -68,15 +75,18 @@ public:
   //! set PDE
   virtual void SetPDE(BasePDE * aPDE);
 
-  //! set coupling output dimension
-  virtual void SetOutputDim(Integer i, ShortInt dim);
+  //! set coupling output dof
+  virtual void SetOutputDof(Integer i, ShortInt dof);
 
-  //! set coupling output size
-  virtual void SetOutputSize(Integer i, Integer size);
-    
+  //! set output coupling nodes size
+  virtual void SetOutputNumNodes(Integer i, Integer size);
+ 
+  //! set output coupling elements size
+  virtual void SetOutputNumElems(Integer i, Integer size);  
+
   //! get PDE name
   virtual std::string GetPDEName();
-
+  
   //! get number of input couplings
   virtual Integer GetNumInputCouplings();
 
@@ -106,28 +116,36 @@ public:
   { return inputInterfaces_[i]->level; }
 
  //! get input coupling region nodes
-  virtual void GetInputNodes(Integer i, std::vector<Integer>* &Nodes)
-  { Nodes  = &(inputInterfaces_[i]->nodes);}
+  virtual void GetInputNodes(Integer i, std::vector<Integer>* &nodes)
+  { nodes  = &(inputInterfaces_[i]->nodes);}
 
   //! get input coupling region elements
-  virtual void GetInputElements(Integer i, std::vector<Elem *>*  &Elements)
-  { Elements = &(inputInterfaces_[i]->elements);}
+  virtual void GetInputElements(Integer i, std::vector<Elem *>*  &elements)
+  { elements = &(inputInterfaces_[i]->elements);}
+
+   //! get input coupling region material
+  virtual void GetInputMaterials(Integer i, std::vector<MaterialData *>*  &mat)
+  { mat = &(inputInterfaces_[i]->materials);}
 
   //! get input coupling values
-  virtual void GetInputValues(Integer i, Array<Double>* &Values)
-  { Values = &(inputInterfaces_[i]->values);}
+  virtual void GetInputValues(Integer i, Array<Double>* &values)
+  { values = &(inputInterfaces_[i]->values);}
 
   //! get input coupling values
-  virtual void GetInputOldValues(Integer i, Array<Double>* &Values)
-  { Values = &(inputInterfaces_[i]->oldValues);}
+  virtual void GetInputOldValues(Integer i, Array<Double>* &values)
+  { values = &(inputInterfaces_[i]->oldValues);}
 
-  //! get input coupling values dimension
-  virtual ShortInt GetInputDim(Integer i)
-  { return inputInterfaces_[i]->dim; }
+  //! get input coupling values dof
+  virtual ShortInt GetInputDof(Integer i)
+  { return inputInterfaces_[i]->dof; }
 
-  //! get input coupling values size
-  virtual Integer GetInputSize(Integer i)
-  { return inputInterfaces_[i]->size; }
+  //! get input coupling nodes size
+  virtual Integer GetInputNumNodes(Integer i)
+  { return inputInterfaces_[i]->numNodes; }
+
+  //! get input coupling elems size
+  virtual Integer GetInputNumElems(Integer i)
+  { return inputInterfaces_[i]->numElems; }
 
   //! get input coupling norm type
   virtual NormType GetInputNormType(Integer i)
@@ -160,34 +178,42 @@ public:
   { return outputInterfaces_[i]->level; }
   
   //! get output coupling region nodes
-  virtual void GetOutputNodes(Integer i, std::vector<Integer>* &Nodes)
-  { Nodes  = &(outputInterfaces_[i]->nodes);}
+  virtual void GetOutputNodes(Integer i, std::vector<Integer>* &nodes)
+  { nodes  = &(outputInterfaces_[i]->nodes);}
 
   //! get output coupling region elements
-  virtual void GetOutputElements(Integer i, std::vector<Elem *>* &Elements)
-  { Elements = &(outputInterfaces_[i]->elements);}
+  virtual void GetOutputElements(Integer i, std::vector<Elem *>* &elements)
+  { elements = &(outputInterfaces_[i]->elements);}
+
+  //! get output coupling region materials
+  virtual void GetOutputMaterials(Integer i, std::vector<MaterialData *>* &mat)
+  { mat = &(outputInterfaces_[i]->materials);} 
 
   //! get output coupling values
-  virtual void GetOutputValues(Integer i, Array<Double>* &Values)
-  { Values = &(outputInterfaces_[i]->values);}
+  virtual void GetOutputValues(Integer i, Array<Double>* &values)
+  { values = &(outputInterfaces_[i]->values);}
 
-  //! get output coupling values
-  virtual void GetOutputOldValues(Integer i, Array<Double>* &Values)
-  { Values = &(outputInterfaces_[i]->oldValues);}
+  //! get old output coupling values
+  virtual void GetOutputOldValues(Integer i, Array<Double>* &values)
+  { values = &(outputInterfaces_[i]->oldValues);}
 
-  //! get output coupling values dimension
-  virtual ShortInt GetOutputDim(Integer i)
-  { return outputInterfaces_[i]->dim; }
+  //! get output coupling values dof
+  virtual ShortInt GetOutputDof(Integer i)
+  { return outputInterfaces_[i]->dof; }
 
-  //! get output coupling values size
-  virtual Integer GetOutputSize(Integer i)
-  { return outputInterfaces_[i]->size; }
- //! get input coupling norm type
-  
+  //! get output coupling number nodes
+  virtual Integer GetOutputNumNodes(Integer i)
+  { return outputInterfaces_[i]->numNodes; }
+
+ //! get output coupling number elems
+  virtual Integer GetOutputNumElems(Integer i)
+  { return outputInterfaces_[i]->numElems; }
+
+ //! get output coupling norm type
   virtual NormType GetOutputNormType(Integer i)
   { return outputInterfaces_[i]->normtype; }
 
- //! get input coupling epsilon
+ //! get output coupling epsilon
   virtual Double GetOutputEpsilon(Integer i)
   { return outputInterfaces_[i]->epsilon; }
   
