@@ -2,7 +2,7 @@
 #define FILE_BASEMECHPDE
 
 #include "basepde.hh"
-
+#include <General/environment.hh>
  
 namespace CoupledField
 {
@@ -70,6 +70,11 @@ public:
   virtual void SolveStepStatic(const Integer level);
 
 
+  //! prepare for correct time stepping
+  /*!
+    \param dt time step
+  */
+  virtual void InitTimeStepping(const Double dt);
   
 
   //! solve one step for transient problem 
@@ -80,10 +85,7 @@ public:
     \param updatesysmat indicator: need we to update algebraic system. it is used for adaptive procedure in space
   */
   virtual void SolveStepTrans(const Integer kstep, const Double steptime, const Integer level, 
-			      const Boolean updatesysmat)
-  { 
-    Error("Currently not available",__FILE__,__LINE__);
-  }
+			      const Boolean updatesysmat);
 
   //! calculate coupling terms
   virtual void CalcOutputCoupling();
@@ -95,7 +97,7 @@ public:
   virtual Boolean HasOutput(std::string output);
 
   //! Assemble mass part
-  void AssembleMass(BaseFE * ptEl, Vector<Integer>& connect_PDE, Matrix<Double>& ptCoord, Double density);
+  void AssembleMass(BaseFE * ptEl, Vector<Integer>& connect_PDE, Matrix<Double>& ptCoord, MaterialData& actMatData);
 
   //! Assemble stiffness part
   void AssembleStiffness(BaseFE * ptEl, Vector<Integer>& connect_PDE, Matrix<Double>& ptCoord, MaterialData& actMatData);
@@ -189,7 +191,11 @@ private:
 
   /// direction of prestress
   Directions preStressDir_;
-  
+
+  Double lasttimecalc_;  //!< Last time on which we have calculated solution
+  Integer laststepcalc_; //!< Number of last timestep on which we have calculated our solution  
+
+  DampingType damping_type_; //!< specifies the type of damping model (see environment.hh)
 
 };
 

@@ -11,6 +11,7 @@
 #include "mechPDE.hh" 
 #include <Forms/nLinElastInt.hh>
 #include <DataInOut/WriteInfo.hh>
+#include "newmark.hh"
 
 namespace CoupledField
 {
@@ -24,6 +25,8 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
   (*trace) << "entering MechPDE::MechPDE " << std::endl;
 #endif
 
+  //for static analysis; in case of transient analysis, 
+  //the factors will be overwriten by time-step object
   SetMatrixFactors();
 
   pdename_ = "mechanic";
@@ -70,6 +73,12 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 
   if (preStressVal_)
     GetDirection(preStressDir_, "preStressDir");
+
+  //damping type
+  std::string dampstr;
+  conf->ifget("damping",dampstr,pdename_);
+  if (dampstr == "rayleigh")
+      damping_type_ = RAYLEIGH;
 }
 
 
@@ -85,6 +94,14 @@ void MechPDE::DiscreteParamsPDE()
   GraphType_    = NODEGRAPH; 
   SystemMatrix_ = TRUE;
 
+  if (analysistype_==TRANSIENT)
+    {
+      StiffnessMatrix_  = TRUE;
+      MassMatrix_       = TRUE;
+      
+      if (damping_type_)
+	DampingMatrix_  = TRUE;
+    }
 }
 
 
@@ -378,7 +395,101 @@ Double MechPDE::AlgsysL2Norm(Double * pt)
   return sqrt(quadSum);
 }
   
+void MechPDE::SolveStepTrans(const Integer kstep, const Double asteptime, 
+				   const Integer level, const Boolean reset)
+{
+#ifdef TRACE
+  (*trace) << "entering MechPDE::SolveStepTrans" << std::endl;
+#endif
 
+  lasttimecalc_= asteptime;
+  Boolean Recalc=FALSE;
+
+  if (laststepcalc_==kstep && kstep!=0) 
+    Recalc=TRUE;
+  else 
+    laststepcalc_= kstep;
+
+  Double * ptsol;
+  Integer update,job;
+
+  //current problem with Array class
+  Array<Double> solhelp;
+  solhelp.reshape(1,NumPDENodes_*dofspernode_);
+  Integer k=0;
+  for (Integer i=0; i<NumPDENodes_; i++)
+    for (Integer j=0; j<dofspernode_; j++)
+      {
+	solhelp[0][k] = sol_[j][i];
+	k++;
+      }
+
+  //perform predictor step
+  TS_alg_->Predictor(solhelp);
+
+  if (kstep==0)
+    {
+      update = 0;
+      job = 1;
+      SetupMatrices(level);
+      algsys_->ConstructEffectiveMatrix(matrix_factor_);
+      algsys_->InitRHS();
+      ComputeRHS(lasttimecalc_);
+      TS_alg_->UpdateRHS();
+    }
+  else if (reset)
+    {
+      update = 1;
+      job    = 1;
+
+      algsys_->InitRHS();
+      algsys_->InitMatrix(SYSTEM);
+      algsys_->InitMatrix(STIFFNESS);
+      algsys_->InitMatrix(MASS);
+      if (DampingMatrix_)
+        algsys_->InitMatrix(DAMPING);
+
+      algsys_->ConstructEffectiveMatrix(matrix_factor_);
+      ComputeRHS(lasttimecalc_);
+      TS_alg_->UpdateRHS();
+    }
+  else
+    {
+      update = 1;
+      job    = 3;
+      algsys_->InitRHS();
+      ComputeRHS(lasttimecalc_);
+      TS_alg_->UpdateRHS();
+    };
+
+  SetBCs(level,update,lasttimecalc_);
+  algsys_->CalcPrecond(job);
+  algsys_->Solve();
+  ptsol = algsys_->GetSolutionVal();
+
+  k=0;
+  for (Integer i=0; i<NumPDENodes_; i++)
+    for (Integer dim=0; dim<dofspernode_; dim++)
+      {
+	sol_[dim][i]  = ptsol[k];
+	solhelp[0][k] = ptsol[k];
+	k++;
+      }
+
+  //perform corrector step  
+  TS_alg_->Corrector(solhelp);
+}
+
+void MechPDE :: InitTimeStepping(const Double dt)
+{
+#ifdef TRACE
+  (*trace) << "entering AcousticPDE::InitTimeStepping" << std::endl;
+#endif
+
+  TS_alg_ = new Newmark(pdename_, algsys_, 1, NumPDENodes_*dofspernode_, damping_type_);
+  TS_alg_->Init(matrix_factor_, dt);
+
+}
 
 
 
@@ -425,12 +536,10 @@ void MechPDE::WriteResultsInFile()
   (*trace) << "entering MechPDE::WriteResultsInFile" << std::endl;
 #endif
 
-  Integer laststepcalc=0;
-  Double  lasttimecalc=0;
   Array<Double> DispMesh;
  
   TransformNodeSolution(DispMesh, sol_, PDE2MeshNode_);
-  OutFile_->WriteNodeSolution(DispMesh, laststepcalc, lasttimecalc,"displacement");
+  OutFile_->WriteNodeSolution(DispMesh, laststepcalc_,lasttimecalc_,"displacement");
 }
 
 
@@ -476,11 +585,11 @@ void MechPDE::SetupMatrices(const Integer level)
 	    else
 	      AssembleStiffness(ptEl, connect_PDE, ptCoord, materialData_[i]);
 
-
 	    // =================================================================
 	    // mass matrix 
 	    // =================================================================
-	    // AssembleMass(ptEl, connect_PDE, ptCoord, materialData_[i].GetDensity());
+	    if (analysistype_ == TRANSIENT)
+	      AssembleMass(ptEl, connect_PDE, ptCoord, materialData_[i]);
 	  }
 
       if (reducedInt_)
@@ -506,11 +615,11 @@ void MechPDE::SetupMatrices(const Integer level)
 	      // =================================================================
 	      AssembleStiffness(ptEl, connect_PDE, ptCoord, lambdaMat);
 	      
-	      
 	      // =================================================================
 	      // mass matrix 
-	      // =================================================================
-	      // AssembleMass(ptEl, connect_PDE, ptCoord, materialData_[i].GetDensity());
+	      // =================================================================	      
+	      if (analysistype_ = TRANSIENT)
+		AssembleMass(ptEl, connect_PDE, ptCoord, materialData_[i]);
 	    }
 
 	  ptgrid_->SetIntTypeAllElems(origIntType);
@@ -553,8 +662,21 @@ void MechPDE::AssembleStiffness(BaseFE * ptEl, Vector<Integer>& connect_PDE,
   
   
   bilinear_stiff->CalcElementMatrix(ptCoord, elemmat);
-  algsys_->SetElementMatrix(elemmat.getinarray(), connect_PDE.get(), connect_PDE.size(), SYSTEM);
-  
+
+  if (analysistype_ == TRANSIENT)
+    {
+      algsys_->SetElementMatrix(elemmat.getinarray(), connect_PDE.get(), connect_PDE.size(), STIFFNESS);
+      //check for damping
+      if (damping_type_ == RAYLEIGH)
+	{
+	  Double beta = actMatData.GetDampingBeta();
+	  elemmat *= beta;
+	  algsys_->SetElementMatrix(elemmat.getinarray(), connect_PDE.get(), connect_PDE.size(), DAMPING);
+	}
+    }
+  else if (analysistype_ == STATIC)
+    algsys_->SetElementMatrix(elemmat.getinarray(), connect_PDE.get(), connect_PDE.size(), SYSTEM);
+
   delete bilinear_stiff;
 
 
@@ -687,14 +809,15 @@ GetSolOfElement( Matrix<Double>& elDisp, Vector<Integer>& connect_PDE)
 
 // assemble mass part of FE-equation
 void MechPDE::AssembleMass(BaseFE * ptEl, Vector<Integer>& connect_PDE, 
-			   Matrix<Double>& ptCoord, Double density)
+			   Matrix<Double>& ptCoord, MaterialData& actMatData)
 {
 #ifdef TRACE
     (*trace) << "entering MechPDE::AssembleMass" << std::endl;
 #endif
 
   Matrix<Double> elemmat;
-  BaseForm * bilinear_mass  = new MassInt(ptEl, density,isaxi_);
+  Double density = actMatData.GetDensity();
+  BaseForm * bilinear_mass  = new MassInt(ptEl, density, isaxi_);
   
   
   // mass part
@@ -703,8 +826,16 @@ void MechPDE::AssembleMass(BaseFE * ptEl, Vector<Integer>& connect_PDE,
   Matrix <Double> elemMatMultDof;
   MassMultiDof(elemMatMultDof, elemmat, dofspernode_);
   
+  (*debug) << elemMatMultDof << std::endl;
   algsys_->SetElementMatrix(elemMatMultDof.getinarray(), connect_PDE.get(), connect_PDE.size(), MASS);
 
+  //check for damping
+  if (damping_type_ == RAYLEIGH)
+    {
+      Double alpha = actMatData.GetDampingAlfa();
+      elemMatMultDof *= alpha;
+      algsys_->SetElementMatrix(elemMatMultDof.getinarray(), connect_PDE.get(), connect_PDE.size(), DAMPING);
+    }
   delete bilinear_mass;
 }
 
