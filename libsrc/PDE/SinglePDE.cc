@@ -189,6 +189,11 @@ namespace CoupledField {
       assemble_ = new TransientAssemble(algsys_, ptgrid_);
       laststepcalc_ = 1;      
     }
+    else if ( analysis=="harmonic" ) {
+      isComplex_ = TRUE;
+      assemble_ = new HarmonicAssemble(algsys_, ptgrid_);
+      analysistype_ = HARMONIC;
+    }
     else {
       Error("SinglePDE::Init: AnalysisType not supported", __FILE__, __LINE__);
     }
@@ -328,7 +333,7 @@ namespace CoupledField {
   ReadMaterialData();
 
   // =====================================================================
-  // define the integratos for PDE
+  // define the integrators for PDE
   // =====================================================================
   DefineIntegrators(actlevel_);
 
@@ -350,7 +355,9 @@ namespace CoupledField {
   // =====================================================================
   // Create time stepping algorithm
   // =====================================================================
-  InitTimeStepping();
+  if ( analysistype_ == TRANSIENT ) {
+    InitTimeStepping();
+  }
 
   PreparePDE4Computation();
 
@@ -483,7 +490,7 @@ namespace CoupledField {
 
       //get the correct time function value
       val_tfunc = 1.0;
-      if (ptTimeFunc_->GetmaxTimeFnc() > 0 ) {
+      if (ptTimeFunc_->GetmaxTimeFnc() > 0 && analysistype_ != HARMONIC) {
         val_tfunc=ptTimeFunc_->TimeFuncAtTime(time,fncnames_id_[i]);
       }
       

@@ -185,23 +185,19 @@ namespace CoupledField {
       delete memento.sol_;
 
     if ( analysistype_ == STATIC || analysistype_ == TRANSIENT ) {
+	// --- Real values --
+	// Set solution
+	memento.sol_ = new Vector<Double>;
+	dynamic_cast<Vector<Double>&>(*(memento.sol_)) =
+	  dynamic_cast<NodeStoreSol<Double>&>(*(sol_)).GetAlgSysVector();
 
-      // --- Real values --
-      // Set solution
-      memento.sol_ = new Vector<Double>;
-      dynamic_cast<Vector<Double>&>(*(memento.sol_)) =
-        dynamic_cast<NodeStoreSol<Double>&>(*(sol_)).GetAlgSysVector();
-
-      if (analysistype_ == TRANSIENT) {
-        Warning( "Currently only the first derivative is stored in the "
-                 "memento object!", __FILE__, __LINE__ );
-
-        // Set first derivative
-        memento.solDeriv1_ = getS1();   
-        
-        // Set second derivative
-        memento.solDeriv2_ = getS2();
-      }
+	if (analysistype_ == TRANSIENT) {
+	  // Set first derivative
+	  memento.solDeriv1_ = getS1();   
+	  
+	  // Set second derivative
+	  memento.solDeriv2_ = getS2();
+	}
     }
     else {
 
@@ -217,28 +213,59 @@ namespace CoupledField {
   }
 
 
-  void StdPDE::SetMemento( PDEMemento &memento ) {
+  void StdPDE::SetMemento( PDEMemento &memento, std::string transFromTo ) {
 
     ENTER_FCN( "StdPDE::SetMemento" );
   
-    // if there is no information in the menmento just leave
+    // if there is no information in the memento just leave
     if ( memento.isSet_ == FALSE ) {
       return;
     }
   
     if ( analysistype_ == STATIC || analysistype_ == TRANSIENT ) {
 
-      // --- Real values --
-      // Set solution
-      dynamic_cast<NodeStoreSol<Double>&>(*(sol_)).SetAlgSysVector
-        (dynamic_cast<Vector<Double>&>(*(memento.sol_)));
+      if ( transFromTo == "complexToReal" ) {
+	// --- transform complex values to real one --
+	Vector<Double>& sol = dynamic_cast<NodeStoreSol<Double>&>(*(sol_)).GetAlgSysVector();
+	Vector<Complex>& mementoSol = dynamic_cast<Vector<Complex>&>(*(memento.sol_));
+
+	for ( Integer i=0; i<mementoSol.GetSize(); i++ ) {
+	  sol[i] = mementoSol[i].real();
+	}
+
+	if (analysistype_ == TRANSIENT) {
+	  // Set first and second derivative
+	  memento.solDeriv1_.Resize(mementoSol.GetSize());
+	  memento.solDeriv2_.Resize(mementoSol.GetSize());
+
+	  Complex val, valD1;
+	  Complex factorD1 = (0,2*PI* actFrequency_);
+
+	  for ( Integer i=0; i<mementoSol.GetSize(); i++ ) {
+	    val   = mementoSol[i];
+	    valD1 = factorD1 * val;
+	    memento.solDeriv1_[i] = valD1.real();
+	    memento.solDeriv2_[i] = - 4 * PI * PI * actFrequency_* actFrequency_ * val.real();
+	  }
+
+	  TS_alg_->SetDeriv1(memento.solDeriv1_);
+	  TS_alg_->SetDeriv2(memento.solDeriv2_);
+	}
+      }
+      else {
+
+	// --- Real values --
+	// Set solution
+	dynamic_cast<NodeStoreSol<Double>&>(*(sol_)).SetAlgSysVector
+	  (dynamic_cast<Vector<Double>&>(*(memento.sol_)));
       
-      // if previous step was transient and the current step is also
-      // then give the time derivative to the timestepping algorithm
-      if (analysistype_ == TRANSIENT
-          && memento.analysisType_ == TRANSIENT) {
-        TS_alg_->SetDeriv1(memento.solDeriv1_);
-        TS_alg_->SetDeriv2(memento.solDeriv2_);
+	// if previous step was transient and the current step is also
+	// then give the time derivative to the timestepping algorithm
+	if (analysistype_ == TRANSIENT
+	    && memento.analysisType_ == TRANSIENT) {
+	  TS_alg_->SetDeriv1(memento.solDeriv1_);
+	  TS_alg_->SetDeriv2(memento.solDeriv2_);
+	}
       }
     }
 
@@ -290,7 +317,8 @@ namespace CoupledField {
     // Set parameters for OLAS
     std::string amExpert;
     params->Get( "override", amExpert, "expert" );
-    CFSOLASParams::SetParams( pdename_, params, olasParams_,(amExpert=="yes"));
+    CFSOLASParams::SetParams( pdename_, params, olasParams_,analysistype_,
+			      (amExpert=="yes"));
 
     // Set the graph type used for the system matrices
     assemble_->SetupMatrixGraph(eqnData_->GetNumEQNs());

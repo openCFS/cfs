@@ -70,7 +70,6 @@ namespace CoupledField {
     // outer loop over all single sequences
     for (Integer iStep=0; iStep<numSteps_; iStep++) {
       
-      
       Info->WriteMultiSequenceStep(iStep+1, 
 				   analysisPerStep_[iStep][0]);
 
@@ -120,9 +119,17 @@ namespace CoupledField {
       // After the first run, initialize this PDE
       // with the solution of the previous run
       if (iStep > 0) {
-	for (Integer i=0; i<pdesPerStep_[iStep].GetSize(); i++)
-	  if (memento[i].IsSet())
-	    ptPDEs[i]->SetMemento(memento[i]);
+	std::string transFromTo = "standard";
+	//check, if hamonic analysis is followed by transient one
+	if ( analysisPerStep_[iStep-1][0] == HARMONIC && 
+	     analysisPerStep_[iStep][0] == TRANSIENT) {
+	  transFromTo = "complexToReal";
+	}
+	for (Integer i=0; i<pdesPerStep_[iStep].GetSize(); i++) {
+	  if (memento[i].IsSet()) {
+	    ptPDEs[i]->SetMemento( memento[i], transFromTo );
+	  }
+	}
       }
       
       // Solve Problem
@@ -133,19 +140,23 @@ namespace CoupledField {
       if (iStep < numSteps_-1) {
 	memento.Resize(pdesPerStep_[iStep+1].GetSize());
 
+
 	// Iterate over all PDEs in the next step
-	for (iPDE=0; iPDE<pdesPerStep_[iStep+1].GetSize(); iPDE++) 
+	for (iPDE=0; iPDE<pdesPerStep_[iStep+1].GetSize(); iPDE++) {
 	  // Iterate over all PDEs in the current step
-	  for(kPDE=0; kPDE<pdesPerStep_[iStep].GetSize(); kPDE++)
+	  for(kPDE=0; kPDE<pdesPerStep_[iStep].GetSize(); kPDE++) {
 	    // If both match, then save the result of this step
 	    // for the next step
 	    if (pdesPerStep_[iStep+1][iPDE] == pdesPerStep_[iStep][kPDE])
 	      //dynamic_cast<const NodeStoreSol<Double>& >
 	      ptPDEs[kPDE]->GetMemento(memento[iPDE]);
+	  }
+	}
 	
 	// delete PDEs
 	ptdomain_->ResetPDEs();
       }
+
 
       // delete analysistypes
       delete actDriver;

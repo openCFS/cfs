@@ -384,12 +384,10 @@ namespace CoupledField {
   {
     ENTER_FCN( "Domain::ResetDEs" );
 
-
     // Delete single pdes_
     for (Integer iPDE=0; iPDE<numpde_; iPDE++)
       if (ptpde_[iPDE])
 	delete ptpde_[iPDE];
-
 
     if (ptcoupledpde_ != NULL)
       delete ptcoupledpde_;
