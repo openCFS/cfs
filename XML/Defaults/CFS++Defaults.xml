@@ -29,7 +29,6 @@
 
   <integRules>
     <line      />
-    <quad      />
     <rectangle />
     <triangle  />
     <hexa      />
