@@ -716,5 +716,6 @@ main/Makefile.option -text
 main/cfs.cc svneol=native#text/plain
 main/kondxy.dat -text
 main/mat.dat -text
+main/sl.dat -text
 main/wv.dat -text
 main/z10.dat -text

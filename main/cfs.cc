@@ -53,46 +53,19 @@ void main(int argc, char *argv[])
   TimeFunc * ptTimeFunc=new TimeFunc(ptInputfile);
   // DDD
 
-#ifdef TestGMRes
-  Double eps=1e-15;
-  LinSystem<Double, Matrix<Double> > * ptLS=new  LinSystem<Double, Matrix<Double> >(eps);
-  ptLS->Set();
-  if (ptLS->BiCGSTAB(100,Jacobi)) std::cout << "convergence is true";
-  ptLS->printxscreen();
-  ptLS->check();
-  // if (ptLS->GMRes_m(100, Jacobi, 100)) std::cout << "convergence is true";
-#endif
-/*
-    Grid<Point2D> * ptGridlib=new InterfaceGridlib<Point2D>(ptInputfile);
-    ptGridlib->Read();
-    std::cout << " Test " << std::endl;
-    std::cout << " max number of nodes " << std::endl;
-    std::cout << ptGridlib->GetMaxnumnodes(0) << std::endl;
-    std::cout << " max num of elements " << std::endl;
-    std::cout << ptGridlib->GetMaxnumElem(0) << std::endl;
-    std::cout << " number of nodes per element" << std::endl;
-    std::cout <<  ptGridlib->GetNumNodesPerElem(0,0) << std::endl;
-    std::cout << " connection of element " << std::endl;
-    Integer * result=new Integer[3];
+   Integer data[1];
+   ptInputfile-> ReadGeneralAnalChoice(data, FileType::numnode, FileType::endGAnal);
+  std::cout << "Number of nodes" << data[0] << std::endl;
+ 
+  Point3D * ptCoord=new Point3D[data[0]];
+  ptInputfile->ReadCoordinate(ptCoord, data[0]);
+  std::cout << "We have read coordinates" << std::endl;
+  
+  Grid<Point3D> * ptGridlib=new InterfaceGridlib<Point3D>(ptInputfile);
+  ptGridlib->Read();
 
-    ptGridlib->GetConnection(result, 0, 0, 3);
-    for (int i=0; i < 3; i++)
-     std::cout << result[i] << " ";
-    std::cout << std::endl; 
-    std::cout << "coordinates" << std::endl;  
-    Point2D * ptCoord=new Point2D[3];
-     ptGridlib->GetCoordOfNodesElem(0,0,3,ptCoord);  
-    std::cout << " coordinates of element" << std::endl;
-    for (int i=0; i<3; i++) std::cout << i <<" " << ptCoord[i].x << " " << ptCoord[i].y << std::endl;
-
-
-    ptGridlib->GetCoordOfNodesElem(1,0,3,ptCoord);
-    std::cout << " coordinates of element" << std::endl;
-    for (int i=0; i<3; i++) std::cout << i <<" " << ptCoord[i].x << " " << ptCoord[i].y << std::endl;
-*/
-
-    Driver * ptDriver=new Driver(ptInputfile,1,materialdata);
-    ptDriver->SolveNewmarkMethod(ptUnverg);
+//    Driver * ptDriver=new Driver(ptInputfile,1,materialdata);
+//    ptDriver->SolveNewmarkMethod(ptUnverg);
 /*
  //  //! choose your grid class
   Grid<Point2D> *grid =new GridInterfaceCFS<Point2D>(ptInputfile);
@@ -118,6 +91,16 @@ void main(int argc, char *argv[])
   //solve your problem
   ptdriver->SolveProblem();
 */
+
+#ifdef TestGMRes
+  Double eps=1e-15;
+  LinSystem<Double, Matrix<Double> > * ptLS=new  LinSystem<Double, Matrix<Double> >(eps);
+  ptLS->Set();
+  if (ptLS->BiCGSTAB(100,Jacobi)) std::cout << "convergence is true";
+  ptLS->printxscreen();
+  ptLS->check();
+  // if (ptLS->GMRes_m(100, Jacobi, 100)) std::cout << "convergence is true";
+#endif
 
   oClockTotal.ClockCount(MyClock::end,"Total time");
 
