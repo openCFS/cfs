@@ -1,10 +1,8 @@
-//#include <stdlib.h>
 #include <iostream>
 #include <fstream>
 #include <string>
 #include <time.h>
 #include <iomanip>
-//#include <stdio.h>
 #include <stdarg.h>
 
 #include <general_head.hh> 
@@ -41,17 +39,6 @@ void main(int argc, char *argv[])
       materialdata=new Material(argv[argc-1]);
     }
   else name=argv[argc-1];
-/*
-// DDD  dummy things
-   ifstream inf("test.dat");
-   std::string buf;
-   std::getline(inf,buf,'\n');
-   inf >> buf;
-   ofstream outf("test.out");
-   std::string ibuf="This is dummy file only for SGI";
-   outf << ibuf;
-// DDD
-*/
 
   DefineInOutFiles oDefFiles(name);
 

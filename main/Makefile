@@ -45,7 +45,7 @@ include $(LIBSRC_DIR)/makefilemach/make.mach.$(MACHINE)
 .f.o:
 	$(F77) -o $@ $(FFLAGS1) $(FFLAGS2) $<
  
-$(program):: setvar $(src:.cc=.o) $(fsrc:.f=.o) makelibs 
+$(program):: $(src:.cc=.o) $(fsrc:.f=.o) makelibs 
 	$(CC)  -o $@ $(src:.cc=.o) $(fsrc:.f=.o) -L$(LIB_DIR) -L$(LIB_GRIDLIB)  $(LINKFLAGS2) $(LINKFLAGS3) $(addprefix -l, $(mylibrary)) $(syslib) $(LIB_NAG) 
 #
 ########## Set varible MACHINE
