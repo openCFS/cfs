@@ -763,11 +763,14 @@ void DatFile:: ReadBoundRestr(Integer ** dataBRestr, Integer numberRestr,
    }
 }
 
-void DatFile:: ReadBoundRestr(std::list<NodeRestraint> & restr, const Integer numberRestr)
+void DatFile:: ReadBoundRestr(std::list<NodeRestraint> & restr, Integer & numberRestr)
 {
 #ifdef TRACE
   (*trace) << "entering DatFile::ReadBoundRestr" << std::endl;
 #endif
+
+  ReadNumNodesforDirichletBC(numberRestr);
+
   std::string::size_type pos=0;
   TakePos("restraints",pos);
   infile.seekg(pos, std::ios::beg);
@@ -775,7 +778,7 @@ void DatFile:: ReadBoundRestr(std::list<NodeRestraint> & restr, const Integer nu
   NodeRestraint A;
   for (Integer i=0; i < numberRestr; i++)
    {
-    infile >> A.nodalnum >> str >> A.numfunc >> A.factor;
+    infile >> A.nodalnum >> str ;
     A.dof=TransformInNameDf(str.c_str());
     infile.ignore(100,'\n');
     restr.push_back(A);

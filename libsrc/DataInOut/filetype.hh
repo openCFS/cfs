@@ -111,7 +111,7 @@ public:
   virtual void ReadBoundRestr(Integer ** dataBRestr, Integer numberRestr,
                       Double * factorRestr)=0;
 
-  virtual void ReadBoundRestr(std::list<NodeRestraint> & restr, const Integer numberRestr)=0;
+  virtual void ReadBoundRestr(std::list<NodeRestraint> & restr, Integer & numberRestr)=0;
 
   //! Read step data; special for TransientDriver
 //  virtual void ReadStepData(Integer & anumstep, Integer & aisavebegin, Integer & aisaveend, Integer & aisaveincr, Double & afirstdt)=0;

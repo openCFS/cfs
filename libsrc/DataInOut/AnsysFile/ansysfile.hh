@@ -57,6 +57,7 @@ public:
 
   //!
   virtual void ReadParabolicParam(Double & gamma_p)=0;
+
   //!
   virtual void ReadNumStepsAndTimeSteps(Integer &, Double &)=0;
 
@@ -91,11 +92,7 @@ public:
   virtual void ReadTransAnalTran(Integer * dataTAnalTran,
                          Double * dataTAnalTranReal)=0;
 
-  //! Read specific info about boundary condition Restrain
-  virtual void ReadBoundRestr(Integer ** dataBRestr, Integer numberRestr,
-                      Double * factorRestr)=0;
-
-  virtual void ReadBoundRestr(std::list<NodeRestraint> & restr, const Integer numberRestr)=0;
+  virtual void ReadBoundRestr(std::list<NodeRestraint> & restr, Integer & numberRestr)=0;
 
   //! Read step data; special for TransientDriver
   virtual void ReadStepData(Integer & anumstep, Integer & aisavebegin, Integer & aisaveend, Integer & aisaveincr, Double & afirstdt)=0;
@@ -106,7 +103,7 @@ protected:
   
 private:
 
- std::string::size_type pos_end;
+  std::string::size_type pos_end;
 
   // dimension of problem
   Integer dim_;
@@ -116,6 +113,12 @@ private:
 
   // take position in section
   void takePosition(const std::string seekexp, std::string::size_type & pos);
+
+  // transform string for level of boundary condition in number
+  Integer TransformInDof(const Char * el);
+
+  // read number of nodes for boundary condition
+  void ReadMaxnumnodesbc(Integer & nbc);
 
 };
 

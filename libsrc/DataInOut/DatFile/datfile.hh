@@ -172,7 +172,7 @@ public:
 		      Double * factorRestr); 
 
   //! Read specific info about boundary condition in list
-  void ReadBoundRestr(std::list<NodeRestraint> & restr, const Integer numberRestr);
+  void ReadBoundRestr(std::list<NodeRestraint> & restr, Integer & numberRestr);
  
   //! Auxialary function for reading boundary condition
   void ReadMaxRecord(Integer & maxrecord);
