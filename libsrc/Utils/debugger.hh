@@ -71,7 +71,7 @@ namespace CoupledField {
 
 
   // ========================================================================
-  // DEBUGGER CLASS
+  // FCNTRACEHANDLER CLASS
   // ========================================================================
 
   //! Central class object for fuction tracing.

@@ -1,7 +1,8 @@
 #ifndef FILE_BASESTORESOL_2004
 #define FILE_BASESTORESOL_2004
 
-#include <Utils/tools.hh>
+#include "General/environment.hh"
+#include "Utils/tools.hh"
 #include <vector>
 #include <map>
 
@@ -17,35 +18,36 @@ template<class TYPE> class Vector;
 template<class TYPE> class Array;
 
 
-//////////////////
-// Enumerations //
-//////////////////
-
-//! Describes all possible solution types in an CFS simulation
-  typedef enum{NO_SOLUTION_TYPE, MECH_DISPLACEMENT, MECH_ACCELERATION,
-		 MECH_VELOCITY, MECH_FORCE, ELEC_POTENTIAL, ELEC_FIELD,
-		 ELEC_FORCE, SMOOTH_DISPLACEMENT, ACOU_POTENTIAL,
-		 ACOU_VELOCITY, ACOU_PRESSURE, ACOU_FORCE,
-		 ACOU_POTENTIAL_DERIV1, ACOU_POTENTIAL_DERIV2,
-		 MAG_POTENTIAL, MAG_FIELD, MAG_EDDY_CURRENT, MAG_FORCE}
-  SolutionType;
-
-	       
 //! This class is the new interface for handling solutions of PDEs
 
 //! This class is the new interface for handling the 
 //! (multidimensional) solutions of PDEs (instead of 
 //! old Array-class).
-//! In principle this class is only a wrapper around 
+//! In principle this class is only a wrapper around
 //! a CFSVector class. Additionally it contains
 //! informations about the information stored in it and
-//! it can selectively be accessed, set and read.  
+//! it can selectively be accessed, set and read.
 //! A StoreSolution example for the Piezoelectric PDE would look
 //! like this:
 //! \f[ \left( \begin{array}{c} disp_x^1 \\ disp_y^1 \\  disp_z^1 \\  
 //! V_{elec}^1 \\ disp_x^2 \\ disp_y^2 \\  disp_z^2 \\ V_{elec}^2 \\ \cdots
-//! \end{array} \right) \f] 
-
+//! \end{array} \right) \f]
+//! Here the first three entries are the displacements for the first node,
+//! afterwards follows the electric Potential of it. This repeats for each
+//! node, so this is basically the layout of the solution vector as it is
+//! delivererd by the algebraic system. <br>
+//! The defining code for the above example would look like this:
+//! \verbatim 
+//! mySol.SetNumSolutions(2); 
+//! mySol.SetSolutionType(MECH_DISPLACEMENT,0);
+//! mySol.SetSolutionType(ELEC_POTENTIAL,1);
+//! mySol.SetNumDofs(dof,MECH_DISPLACEMENT);
+//! mySol.SetNumDofs(1,ELEC_POTENTIAL);
+//! mySol.SetNumNodes(numNodes);
+//! mySol.Init(0.0) 
+//! \endverbatim
+//! \note An object of the StoreSolution can only used after the Init()-
+//! routine was called, otherwise an error is reported!
 class BaseStoreSol
 {
 public:
@@ -62,22 +64,28 @@ public:
   //! by the help of type casts.
   virtual BaseStoreSol & operator= (const BaseStoreSol & x) = 0;
 
-  //! Initialization of the StoreSolution-object
-  //! \note Call Init() BEFORE using the StoreSol-object
+  //! Initialization of the StoreSolution-object (REQUIRED)
   
   //! Initializes the object AFTER the other layout
   //! functions have been called
   //! \note Only after calling Init, the object can
   //! store information
+  /*!
+    \param val (input) Value the object gets initialized with
+  */
   virtual void Init(const Double val)
   {Error("BaseStoreSol::Init() not implemented here",__FILE__,__LINE__);}
   
-  //! Set the number of different solutiontypes
+  
+  //! Set the number of different solution types
+    /*! 
+    \param nSols (input) Number of different solution types
+  */
   //! \note All entries of this object are deleted
   virtual void SetNumSolutions(const Integer nSols) = 0;
   
   //! Set the number of solution nodes
-  //! \note All entries of this object are deleted
+  //! \note By Calling this method, all entries are deleted
   virtual void SetNumNodes(const Integer nNodes) = 0;
   
   //! Set the solution types of the different solutions
@@ -239,6 +247,7 @@ public:
   // and matrices                       //
   ////////////////////////////////////////
 
+#ifndef DOXYGEN_SKIP_THIS
   
 #define DEFINE_BASESTORESOL_FCT(TYPE)							\
   virtual void Init(const TYPE val)							\
@@ -259,6 +268,9 @@ public:
   {Error("BaseStoreSol::GetDataPointer() not implemented here",__FILE__,__LINE__);}   
   
   DEFINE_BASESTORESOL_FCT(Complex);
+
+#endif //DOXYGEN_SKIP_THIS 
+
 
 protected:
 
