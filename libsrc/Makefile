@@ -57,6 +57,9 @@ unverg:
 gmv:
 	@cd $(LIBSRC_DIR)/DataInOut/GMV; $(MAKE) -f Makefile
 
+database:
+	@cd $(LIBSRC_DIR)/DataInOut/Database; $(MAKE) -f Makefile
+
 gsi:
 	@cd $(LIBSRC_DIR)/DataInOut/GSI; $(MAKE) -f Makefile
 	@cd $(LIBSRC_DIR)/DataInOut/GSI/CFSSocketComm; $(MAKE) -f Makefile.CFS

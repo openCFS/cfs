@@ -82,6 +82,7 @@ namespace CoupledField {
     ENTER_FCN( "MagPDE::ReadSpecialBCs" );
   }
   
+
   
   void MagPDE::InitNonLin()
   {
@@ -117,7 +118,8 @@ namespace CoupledField {
 
     for (int actSD = 0; actSD < subdoms_.GetSize(); actSD++)
       {
-	Double reluctivity  = materialData_[actSD].GetPermeability();
+	Double reluctivity;
+        materialData_[actSD].GetPermeability(2,2,reluctivity);
 	if ( reluctivity == 0)
 	  Error("Permeability can not be zero!");
 
@@ -158,7 +160,8 @@ namespace CoupledField {
 	    }
 	  }
 
-	Double conductivity = materialData_[actSD].GetConductivity();      
+	Double conductivity;
+	materialData_[actSD].GetConductivity(2,2,conductivity);
 	BaseForm * bilinear_mass  = new MassInt(conductivity, dofspernode_,
 						isaxi_);
 	assemble_->AddIntegrator(bilinear_mass, subdoms_[actSD], MASS, nonLin);
@@ -353,6 +356,7 @@ namespace CoupledField {
   }
 
   void MagPDE :: InitTimeStepping(const Double dt)
+  {
     ENTER_FCN( "MagPDE::InitTimeStepping" );
     
     TS_alg_ = new Trapezoidal(pdename_, algsys_, eqnData_);
@@ -568,7 +572,7 @@ namespace CoupledField {
 	analysistype_ == TRANSIENT) {
 
       // transient/static case
-      if (savesol_)
+      if (saveSol_)
 	{
 	  solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);
 	  outFile_->WriteNodeSolutionTransient(*solTransient, 
@@ -585,7 +589,7 @@ namespace CoupledField {
     } else  if (analysistype_ == HARMONIC) {
       
       // harmonic case
-      if (savesol_)
+      if (saveSol_)
 	{
 	  solHarmonic = dynamic_cast<NodeStoreSol<Complex>*>(sol_);
 	  outFile_->WriteNodeSolutionHarmonic(*solHarmonic, actFreqStep_, 
@@ -692,7 +696,7 @@ namespace CoupledField {
 	// Get the right material parameter for actual subdomain
 	for (Integer iSD=0; iSD<subdoms_.GetSize(); iSD++)
 	  if (subdoms_[iSD] == calcEddy_[actSD])
-	    conductivity = materialData_[iSD].GetConductivity(); 	  
+            materialData_[iSD].GetConductivity(2,2,conductivity);
 
 	// loop over elements of subdomain
 	for (Integer actEl=0; actEl< elemssd.GetSize(); actEl++,counterElems++) {
@@ -1028,7 +1032,9 @@ namespace CoupledField {
     for ( Integer actSD = 0; actSD < subdoms_.GetSize(); actSD++ ) {
 
       // Get reluctivity for this domain and perform consistency check
-      Double reluctivity = materialData_[actSD].GetPermeability();
+      Double reluctivity;
+      materialData_[actSD].GetPermeability(2,2,reluctivity);
+
       if ( reluctivity == 0 ) {
 	Info->Error( "Region '" + subdoms_[actSD] + "' has zero" +
 		     " permeability!", __FILE__, __LINE__ );
@@ -1068,7 +1074,8 @@ namespace CoupledField {
       }
 
       // Mass matrix
-      Double conductivity = materialData_[actSD].GetConductivity();      
+      Double conductivity;
+      materialData_[actSD].GetConductivity(2,2,conductivity);
       BaseForm *bilinear_mass = new MassInt(conductivity, dofspernode_,isaxi_);
       assemble_->AddIntegrator(bilinear_mass, subdoms_[actSD], MASS, FALSE );
 
@@ -1664,7 +1671,7 @@ namespace CoupledField {
 	// Get the right material parameter for actual subdomain
 	for (Integer iSD=0; iSD<subdoms_.GetSize(); iSD++)
 	  if (subdoms_[iSD] == calcEddy_[actSD])
-	    conductivity = materialData_[iSD].GetConductivity(); 	  
+            materialData_[iSD].GetConductivity(2,2,conductivity);
 
 	// loop over elements of subdomain
 	for ( Integer actEl=0; actEl< elemssd.GetSize();
@@ -2241,7 +2248,8 @@ void MagPDE::CalcNodeForceLorentz(Vector<Double> & force,
 	    }
 	}
 
-      Double conductivity = materialData_[SDidx].GetConductivity();      
+      Double conductivity;
+      materialData_[SDidx].GetConductivity(2,2,conductivity);      
       
       StdVector<Elem*> elemssd;
       ptgrid_->GetElemSD(elemssd, subdoms_[SDidx], actlevel_);

@@ -13,6 +13,14 @@
 #include "DataInOut/ParamHandling/PlainXMLParamHandler.hh"
 #include "DataInOut/ParamHandling/XMLParamHandler.hh"
 
+#ifdef USE_DATABASE
+#include "DataInOut/Database/outDB.hh"
+#endif
+
+// Maximal length of the trailing postfix of an auxilliary name,
+// i.e. the length of the extension after the basename
+#define MAXPOSTFIX 15
+
 #ifdef PARALLEL
 #define MAXRANK 4
 #else
@@ -222,6 +230,11 @@ namespace CoupledField
       ptWriteResults_=new WriteResultsGMV(filename_, aInFile);
     else if (outformat=="unverg")
       ptWriteResults_=new WriteResultsUnverg(filename_, aInFile);
+//      ptWriteResults_=new WriteResultsUnverg(filename_, withHistory, aInFile);
+#ifdef USE_DATABASE
+    else if (outformat=="database")
+      ptWriteResults_=new WriteResultsDatabase(filename_, aInFile);
+#endif
     else
       Error("Wrong format for writing results. Please, check your data.",
 	    __FILE__, __LINE__);
@@ -232,6 +245,11 @@ namespace CoupledField
     else if ( outformat == "unv" ) {
       ptWriteResults_= new WriteResultsUnverg(filename_, aInFile);
     }
+#ifdef USE_DATABASE
+    else if (outformat == "database") {
+      ptWriteResults_= new WriteResultsDatabase(filename_, aInFile);
+    }
+#endif
     else
       {
 	std::string errmsg = "Output format '" + outformat;

@@ -478,8 +478,8 @@ void MechPDE::CalcReducedMat(MaterialData& lambdaMat, MaterialData& mueMat, Mate
   ENTER_FCN( "MechPDE::CalcReducedMat" );
 
   Double lambda, mue;
-  mat.GetMatrixData(1,2, lambda);
-  mat.GetMatrixData(4,4, mue);
+  mat.GetPiezoMatrixData(1,2, lambda);
+  mat.GetPiezoMatrixData(4,4, mue);
   
   Matrix<Double> * lMechMat = lambdaMat.GetMatrix();
   lMechMat -> Init();

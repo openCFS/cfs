@@ -239,7 +239,6 @@ namespace CoupledField
 		      (*debug) << " --> Matrix is symmetric " << std::endl;
 		    }
 #endif
-
 		    if (actDescriptor->GetSecondaryMat() != NOTYPE)
 		      {
 			elemmat *= actDescriptor->GetSecMatFac();

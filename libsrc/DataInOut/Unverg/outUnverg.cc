@@ -17,6 +17,9 @@ WriteResultsUnverg :: WriteResultsUnverg(const Char * const filename,
   std::string name = namefile_ + ".unv";
   output = NULL;
   output=new std::ofstream(name.c_str());
+
+  // Initialize history files
+  InitHistoryFiles();
  }
 
 WriteResultsUnverg ::~WriteResultsUnverg()

@@ -310,8 +310,12 @@ namespace CoupledField
 
     for (i=0; i<subdoms_.size(); i++)
       {
-	reluctivity  = 1.0/materialData_[i].GetPermiability();
-	conductivity = materialData_[i].GetConductivity();
+        Double pemeability; 
+        materialData_[i].GetPermeability(2,2,permeability);
+        reluctivity  = 1.0/permeability;
+//	reluctivity  = 1.0/materialData_[i].GetPermiability();
+	Double conductivity; 
+        materialData_[i].GetConductivity(2,2,conductivity);
 
 	//if STATIC, set conductivity to zero
 	if (analysistype_==STATIC) conductivity = 0.0;

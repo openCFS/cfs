@@ -13,7 +13,7 @@ namespace CoupledField
  //! base class for printing results
   /*! 
     Base class for printing results. Functions of the class are virtual in order to handle the different types of output files.
-    At present {\tt gmv}-format and {\tt unverg}-format are implemented.
+    At present {\tt gmv}-format, {\tt unverg}-format and {\tt database} are implemented.
   */ 
 class WriteResults
 {
@@ -65,7 +65,7 @@ public:
     \param step step of calculation
     \param time time of calculation
   */
-  void WriteNodeHistoryTransient(const NodeStoreSol<Double>& data, 
+  virtual void WriteNodeHistoryTransient(const NodeStoreSol<Double>& data, 
 				 const Integer step, 
 				 const Double time);
   
@@ -171,9 +171,9 @@ protected:
   FileType * pt2Inputfile_;
   
 
-private:
-  //! open history-files
-  void InitHistoryFiles();
+protected:
+  //! intialize the management of history files
+  virtual void InitHistoryFiles();
 
 }; 
 

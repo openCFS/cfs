@@ -428,19 +428,19 @@ if (commsize>1) parallel = "yes";
     ENTER_FCN( "BasePDE::ReadSavings" );
 
     //set saving of solution to yes, if user has not used the nodalsave-command
-    savesol_ = TRUE;
+    saveSol_ = TRUE;
 
     //check for node saving
     StdVector<std::string> savings;
   
     //reset saving of solution, if user has used the nodalsave-command
     if (conf->ifgetliststr("nodalsave", savings, pdename_))
-      savesol_ = FALSE;
+      saveSol_ = FALSE;
 
     for (Integer i=0; i<savings.GetSize(); i++) {
-      if (savings[i] == "dof")  savesol_ = TRUE;
-      if (savings[i] == "deriv1") savederiv1_ = TRUE;
-      if (savings[i] == "deriv2") savederiv2_ = TRUE;
+      if (savings[i] == "dof")  saveSol_ = TRUE;
+      if (savings[i] == "deriv1") saveDeriv1_ = TRUE;
+      if (savings[i] == "deriv2") saveDeriv2_ = TRUE;
     }
   }
 
@@ -1158,59 +1158,105 @@ void BasePDE::ReadMaterialData()
   ENTER_FCN( "BasePDE::ReadMaterialData" );
 
 #ifndef XMLPARAMS
-
-  // read material-file name from config-file
-  std::string matFileName;
-  conf->get( "material_file", matFileName );
-  LoadMaterialData loadMaterial( matFileName.c_str() );
-
-  //read material data for each subdomain
+  // -------------------
+  // CONF-FILE
+  // -------------------
+  
+  std::string outformat="unverg";
+  conf->ifget("format_output",outformat);
   materialData_ = new MaterialData[subdoms_.GetSize()];
-
   std::string matName;
-  for (Integer i=0; i<subdoms_.GetSize(); i++)
-    {
+
+  if (outformat!="database")
+  {
+    // read material-file name from config-file
+    std::string matFileName;
+    conf->get( "material_file", matFileName );
+    LoadMaterialDataFile loadMaterialFile( matFileName.c_str() );
+  
+    //read material data for each subdomain
+      for (Integer i=0; i<subdoms_.GetSize(); i++)
+	{
       // load material data into array "materialData_"
       conf->getstr(subdoms_[i], matName, "list_subdomains");
-      loadMaterial.GetMaterial(materialData_[i], matName, pdematerialclass_);
+      loadMaterialFile.GetMaterial(materialData_[i], matName, pdematerialclass_);
     }
+  }
+  else  // outformat=="database"
+  {
+#ifdef USE_DATABASE
+    LoadMaterialDataDatabase loadMaterialDB;
+    for (Integer i=0; i<subdoms_.GetSize(); i++)
+    {
+      conf->getstr(subdoms_[i], matName, "list_subdomains");
+      loadMaterialDB.GetMaterial(materialData_[i],matName,pdematerialclass_);
+    }
+#else  // No Database
+  Error("You tried to use a database, but binary was compiled without database support.",__FILE__,__LINE__);
+#endif
+  }
 
 #else
+  // -------------------
+  // XMLPARAMS
+  // -------------------
 
-  // Query name of file with material data
+  std::string outformat="unverg";
   std::string matFileName;
-  params->Get( "file", matFileName, "materialData" );
-
-  // Generate new material reader
-  LoadMaterialData loadMaterial( matFileName.c_str() );
-
+  
   // Allocate space to hold material data for each subdomain of this PDE
   materialData_ = new MaterialData[subdoms_.GetSize()];
-
+  
   // Get list of subdomains and materials
   StdVector< std::string > subdomName;
   StdVector< std::string > subdomMaterial;
   params->GetList( "name", subdomName, "domain", "region" );
   params->GetList( "material", subdomMaterial, "domain", "region" );
+  
+  params->Get("format", outformat, "output");
 
-  // Load material data for subdomains on which this PDE lives
-  // from data file
-  for( Integer i = 0; i < subdoms_.GetSize(); i++ )
-    {
-      for( Integer k = 0; k <= subdomName.GetSize(); k++ )
-	{
-	  if( subdoms_[i] == subdomName[k] )
-	    {
-	      loadMaterial.GetMaterial( materialData_[i], subdomMaterial[k],
-					pdematerialclass_ );
-	      break;
-	    }
+  if (outformat!="database") {
+    // Query name of file with material data
+    params->Get( "file", matFileName, "materialData" );
+    
+    // Generate new material reader
+    LoadMaterialDataFile loadMaterialFile( matFileName.c_str() );
+      
+    // Load material data for subdomains on which this PDE lives
+    // from data file
+    for( Integer i = 0; i < subdoms_.GetSize(); i++ )
+      {
+	for( Integer k = 0; k <= subdomName.GetSize(); k++ ){
+	  if( subdoms_[i] == subdomName[k] ){
+	    loadMaterialFile.GetMaterial( materialData_[i], subdomMaterial[k],
+				      pdematerialclass_ );
+	    break;
+	  }
 	}
-    }
-
+      }
+  } 
+  else {
+#ifdef USE_DATABASE
+    LoadMaterialDataDatabase loadMaterialDB;
+    
+    // Load material data for subdomains on which this PDE lives
+    // from data file
+    for( Integer i = 0; i < subdoms_.GetSize(); i++ )
+      {
+	for( Integer k = 0; k <= subdomName.GetSize(); k++ ){
+	  if( subdoms_[i] == subdomName[k] ){
+	    loadMaterialDB.GetMaterial( materialData_[i], subdomMaterial[k],
+				      pdematerialclass_ );
+	    break;
+	  }
+	}
+      }
+#else  // No Database
+    Error("You tried to use a database, but binary was compiled without database support.",__FILE__,__LINE__);
 #endif
-
-}
+  }
+#endif
+ }
 
 
 Integer BasePDE::GetNumRestraints(const Integer level)
