@@ -99,6 +99,9 @@ void calcNormal2Line(std::vector<Double> & normal,Point<2> a, Point<2> b);
   //! scalar multiplication of 2 vectors
 Double ScalarMult(std::vector<Double> a, std::vector<Double> b);
 
+  /// Converts String int an char *
+char * c_string(const std::string & s);
+  
 } // end of CoupledField
 
 #endif

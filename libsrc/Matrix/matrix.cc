@@ -16,6 +16,8 @@ Matrix<TYPE>::Matrix ()
 	p = NULL;
 }
 
+
+
 template<class TYPE>
 Matrix<TYPE>::Matrix (const Integer i, const Integer j)
 {
@@ -100,6 +102,14 @@ void Matrix<TYPE> :: Resize(const Integer irow, const Integer icol)
  
   for ( k = 0; k < row*col; k++) p[0][k]=0;
 }
+
+
+template<class TYPE>
+void Matrix<TYPE> :: Resize(const Integer col)
+{
+  Resize(col,col);  
+}
+
 
 template<class TYPE>
 TYPE * Matrix<TYPE>::operator[] (const Integer i) const
@@ -518,6 +528,44 @@ if (x.size_row() != x.size_col())
  
         return a;
 }
+
+
+template<class TYPE>
+void Matrix<TYPE>::Transpose (Matrix<TYPE> &transposedMat)
+{
+  transposedMat.Resize(col, row);
+  
+  Integer i,j;
+   
+  for (i = 0; i < col; i++)
+    for (j = 0; j < row; j++)
+      transposedMat[i] [j] = p[j] [i];
+}
+
+
+template<class TYPE>
+void Matrix<TYPE>::DyadicMult(std::vector<TYPE> v1)
+{
+  DyadicMult(v1, v1);
+}
+
+
+
+
+template<class TYPE>
+void Matrix<TYPE>::DyadicMult(std::vector<TYPE> v1, std::vector<TYPE> v2)
+{
+  Integer row = v1.size();
+  Integer col = v2.size();
+  
+  this->Resize(row,col);
+
+  for(Integer actRow=0; actRow<row; actRow++)
+    for(Integer actCol=0; actCol < col; actCol++)
+      p[actRow][actCol] = v1[actRow] * v2[actCol];
+}
+
+
 
 template Integer Spur<Integer>(const Matrix<Integer> &);
 template Double Spur<Double>(const Matrix<Double> &);

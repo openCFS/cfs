@@ -57,6 +57,10 @@ public:
   virtual void GetCoordNodesElem(const Vector<Integer> connect, Point<dim> * ptCoord, const Integer level)
   { ptGridCFS->GetCoordNodesElem(connect, ptCoord, level);}
 
+  //! gets the coordinates of the element nodes
+  virtual void GetCoordNodesElemMat(const Vector<Integer> connect, Matrix<Double>& coordMat, const Integer level)
+  { ptGridCFS->GetCoordNodesElemMat(connect, coordMat, level);}  
+
      //! return vector of element-neighbors for the element with number noOfElem
   virtual  std::vector<Elem*> *  GetNeighboursOfElem(const Integer noOfElem, std::string color)
   { return ptGridCFS->GetptNeighboursOfElem(noOfElem,color);}

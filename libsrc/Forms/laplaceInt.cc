@@ -1,0 +1,82 @@
+#include <iostream>
+#include <fstream>
+
+#include "laplaceInt.hh"
+
+namespace CoupledField
+{
+
+  LaplaceInt::LaplaceInt(BaseFE * aptelem): BaseForm(aptelem)
+  {
+#ifdef TRACE
+    (*trace) << "entering LaplaceInt::LaplaceInt" << std::endl;
+#endif
+  }
+
+
+ 
+  LaplaceInt::~LaplaceInt()
+  {
+#ifdef TRACE
+    (*trace) << "entering LaplaceInt::~LaplaceInt" << std::endl;
+#endif
+  }
+
+
+
+  void LaplaceInt::CalcElementMatrix(Matrix<Double> & ptCoord, Matrix<Double> & elemMat)
+  {
+#ifdef TRACE
+    (*trace) << "entering LaplaceInt::CalcElemMatrix" << std::endl;
+#endif
+  
+    const Integer nrIntPts= ptelem->GetNumIntPoints();
+    const Integer nrNodes = ptelem->GetNumNodes();
+    const std::vector<Double> & intWeights = ptelem->GetIntWeights();  
+    double jacDet;  
+
+
+    // derivation of shape functions after global coordinates 
+    Matrix<Double> xiDx;
+    Matrix<Double> xiDxTransp;
+    Matrix<Double> partElemMat;
+  
+
+
+    // set matrix to desired size and set all elements to zero
+    //    partElemMat.Resize(nrNodes);
+    elemMat.Resize(nrNodes);
+    
+
+    for (Integer actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
+      {
+	jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord);
+
+	ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord);
+
+	xiDx.Transpose(xiDxTransp);
+
+	partElemMat = xiDx * xiDxTransp;
+	
+	partElemMat *= intWeights[actIntPt-1];
+      
+	elemMat += partElemMat;
+      }
+  
+
+#ifdef TRACE
+    (*trace) << "leaving LaplaceInt::CalcElemMatrix" << std::endl;
+#endif
+  }
+
+
+
+  void LaplaceInt::Print(std::ostream * out, const Matrix<Double> Result) const
+  {
+#ifdef TRACE
+    (*trace) << "entering LaplaceInt::Print" << std::endl;
+#endif
+    (*out)<< "Laplace stiffness matrix:" << std::endl << Result;
+  }
+
+} // end namespace CoupledField

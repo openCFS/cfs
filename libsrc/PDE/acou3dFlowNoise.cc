@@ -3,6 +3,7 @@
 #include <string>
 #include <math.h>
 #include <iomanip>
+#include <stdio.h>
 
 #include "acou3dFlowNoise.hh"
 #include <DataInOut/Unverg/outUnverg.hh>

@@ -133,13 +133,13 @@ std::string::size_type ConfFile::getpos(const std::string keyword,const std::str
 }
 
 #ifdef __GNUC__
-template void ConfFile::get(const std::string , std::string &);
-template void ConfFile::get(const std::string , Integer &);
-template void ConfFile::get(const std::string , Double &);
+template void ConfFile::get(const std::string , std::string &, const std::string, const std::string, const std::string);
+template void ConfFile::get(const std::string , Integer &, const std::string, const std::string, const std::string);
+template void ConfFile::get(const std::string , Double &,const std::string, const std::string, const std::string);
 
-template Boolean ConfFile::ifget(const std::string , std::string &);
-template Boolean ConfFile::ifget(const std::string , Integer &);
-template Boolean ConfFile::ifget(const std::string , Double &);
+template Boolean ConfFile::ifget(const std::string , std::string &, const std::string, const std::string, const std::string);
+template Boolean ConfFile::ifget(const std::string , Integer &,const std::string, const std::string, const std::string);
+template Boolean ConfFile::ifget(const std::string , Double &, const std::string, const std::string, const std::string);
 #endif
 
 void ConfFile::getsubdom(std::vector<std::string> & subdoms)

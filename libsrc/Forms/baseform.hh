@@ -1,7 +1,7 @@
 #ifndef FILE_BASEFORM_2001
 #define FILE_BASEFORM_2001
 
-#include <Elements/baseelem.hh>
+#include <Elements/basefe.hh>
 
 namespace CoupledField
 {
@@ -14,7 +14,7 @@ class BaseForm
 {
 public:
   //! Constructor
-  BaseForm(BaseElem * aptelem);
+  BaseForm(BaseFE * aptelem);
 
   //! Deconstructor
   virtual ~BaseForm();
@@ -53,7 +53,7 @@ public:
   //!Calculation of vector of RHS Quadrupole having a FlowSrc term (Lighthill's Tensor)
   /*!
     Calculation of the following term:
-    \f $ \int_{\Omega} \nabla N_k \nabla \cdot T_{ij} d\Omega$,
+    \f$ \int_{\Omega} \nabla N_k \nabla \cdot T_{ij} d\Omega\f$,
     where \f $T_{ij}$ is Lighthill's Tensor, \f $N_k$ is a shape function 
 
     \param ptCoord pointer to array with coordinates
@@ -70,7 +70,7 @@ public:
 protected:
 
   //! 
-  BaseElem  * ptelem;
+  BaseFE  * ptelem;
 
   //! Calculation of function in integration points
   Double FuncAtIP(const ShortInt iIP, RHS f);  

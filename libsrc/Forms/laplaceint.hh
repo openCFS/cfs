@@ -12,7 +12,7 @@ class LaplaceInt : public BaseForm<dim>
 {
 public:
   /// Constructor
-  LaplaceInt(BaseElem * aptelem, const ShortInt ndofs);
+  LaplaceInt(BaseFE * aptelem, const ShortInt ndofs);
 
   /// 
   virtual ~LaplaceInt();

@@ -137,24 +137,24 @@ void Domain :: InitPDE()
 
   for (int i=0;i< pdes.size();i++)
     {
-       if (pdes[i] == "acoustic2d")
- 	ptpde_[i]=new Acoustic2dPDE(ptgrid_,ptBCs_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_);
+      if (pdes[i] == "acoustic2d")
+  	ptpde_[i]=new Acoustic2dPDE(ptgrid_,ptBCs_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_);
 //       else if (pdes[i] == "electrostatic3d")
 // 	ptpde_[i]=new Elecst3dPDE(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_);
 //       else if (pdes[i] == "thermal2d")
 // 	ptpde_[i]=new Therm2dPDE(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_);	 
 //         else if (pdes[i] == "electrostatic2d") 
 //        ptpde_[i]=new Elecst2dPDE(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_); 
-       else if (pdes[i] == "acoustic3d")
-	 ptpde_[i]=new Acoustic3dPDE(ptgrid_,ptBCs_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_);
-       else if (pdes[i] == "acou2dflownoise")
-	 ptpde_[i]=new Acou2dFlowNoise(ptgrid_,ptBCs_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_);
-       else if (pdes[i] == "mechanic2d")
-	 ptpde_[i]=new Mech2dPDE(ptgrid_,ptBCs_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_);
-        else if (pdes[i] == "electric2d") 
+//        else if (pdes[i] == "acoustic3d")
+// 	 ptpde_[i]=new Acoustic3dPDE(ptgrid_,ptBCs_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_);
+//        else if (pdes[i] == "acou2dflownoise")
+// 	 ptpde_[i]=new Acou2dFlowNoise(ptgrid_,ptBCs_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_);
+//        else if (pdes[i] == "mechanic2d")
+// 	 ptpde_[i]=new Mech2dPDE(ptgrid_,ptBCs_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_);
+      else if (pdes[i] == "electric2d") 
 	 ptpde_[i]=new Elec2dPDE(ptgrid_,ptBCs_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_); 
-       else if (pdes[i] == "electric3d") 
-	 ptpde_[i]=new Elec3dPDE(ptgrid_,ptBCs_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_); 
+//        else if (pdes[i] == "electric3d") 
+// 	 ptpde_[i]=new Elec3dPDE(ptgrid_,ptBCs_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_); 
       else
 	{
 	  std::string msg=pdes[i]+" - this type of pdes is unknown";

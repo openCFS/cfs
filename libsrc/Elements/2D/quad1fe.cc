@@ -84,7 +84,7 @@ void Quad1FE :: CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv,
       LDeriv[i][0] = 0.25 * LCornerCoords_[0][i] 
                           * (1 + LCornerCoords_[1][i] * LCoord[1] );
       LDeriv[i][1] = 0.25 * (1 + LCornerCoords_[0][i] * LCoord[0] )
-                          * LCornerCoords_[i][1];
+                          * LCornerCoords_[1][i];
     }
   
 }

@@ -7,7 +7,7 @@ namespace CoupledField
 {
 
 template <Integer Dim>
-DampInt<Dim> :: DampInt(BaseElem * aptelem, const ShortInt ndofs) : BaseForm<Dim>(aptelem)
+DampInt<Dim> :: DampInt(BaseFE * aptelem, const ShortInt ndofs) : BaseForm<Dim>(aptelem)
 {
 #ifdef TRACE
   (*trace) << "entering DampInt::DampInt" << std::endl;

@@ -151,6 +151,16 @@ public:
   virtual void GetCoordNodesElem(const Vector<Integer> connect, Point<2> * ptCoord, const Integer level)
   { Error(" Not implemented",__FILE__,__LINE__);}
 
+
+  //! gets a matrix of the coordinates of the element nodes
+  /*!
+    \param connect (input) global node numbers of element
+    \param ptCoord (output) coordinates of the element nodes (nrNodes \f$\times$ spaceDim);
+    \param level (input) index for multilevel hierarchy
+  */
+  virtual void GetCoordNodesElemMat(const Vector<Integer> connect, Matrix<Double>& coordMat, const Integer level)
+  { Error(" Not implemented",__FILE__,__LINE__);}
+
   //! gets the coordinates of the element nodes
   /*!
     \param connect (input) global node numbers of element

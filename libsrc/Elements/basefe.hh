@@ -90,23 +90,27 @@ public:
 				     const Matrix<Double> & CornerCoords) = 0;
 
   //! Return number of nodes   
-  ShortInt GetDim() {return Dim_;}
+  ShortInt GetDim() const {return Dim_;}
  
   //! Return number of integration pointes
-  ShortInt GetNumNodes() {return NumNodes_;}
+  ShortInt GetNumNodes() const {return NumNodes_;}
 
   //! Return number of edges
-  ShortInt GetNumEdges() {return NumEdges_;}
+  ShortInt GetNumEdges() const {return NumEdges_;}
 
   //! Return number of faces
-  ShortInt GetNumFaces() {return NumFaces_;}
+  ShortInt GetNumFaces() const {return NumFaces_;}
 
   //! Returns number of integration points
-  ShortInt GetNumIntPoints() {return NumIntPoints_;}
+  ShortInt GetNumIntPoints() const {return NumIntPoints_;}
   
   //! Return FE-Type for LAS++
   virtual Integer feType()=0;
 
+  /// Return weightings of integration points
+  std::vector<Double> GetIntWeights() const {return IntWeights_;};
+  
+  
 protected:
   
   //! Calculates the shape functions at an arbitrary local point

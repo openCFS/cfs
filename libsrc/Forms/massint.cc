@@ -2,12 +2,14 @@
 #include <fstream>
 
 #include "massint.hh"
+#include <Elements/jacobian.hh>
+#include <Elements/basefe.hh>
 
 namespace CoupledField
 {
 
 template <Integer dim>
-MassInt<dim> :: MassInt(BaseElem * aptelem, const ShortInt ndofs) : BaseForm<dim>(aptelem)
+MassInt<dim> :: MassInt(BaseFE * aptelem, const ShortInt ndofs) : BaseForm<dim>(aptelem)
 {
 #ifdef TRACE
   (*trace) << "entering MassInt::MassInt" << std::endl;
@@ -32,7 +34,7 @@ void MassInt<dim> :: CalcElemMatrix(Point<dim> * ptCoord, Matrix<Double> & Resul
   Integer l=ptelem->GetNumIntPoints(); // l - number of integration points
   Integer n=ptelem->GetNumNodes();   // n - number of nodes
  
-  Jacobian<dim> J;
+  Jacobian<dim> Jii;
   Integer i,ii,iii;
  
   Result.Resize(n,n);
