@@ -69,14 +69,14 @@ void WriteResultsDatabase::WriteGrid (const Integer level)
   d.Set("idx","0");
   d.Set("calculation_idx",CalculationIdx_);
   ResultIdx_ = Db_.InsertAndGetIndex(d);
-  Dataset781(level);
-  Dataset780(level);
+  WriteNodeCoordinates(level);
+  WriteElementNodes(level);
 
 }
 
-long int WriteResultsDatabase::Dataset781(const Integer level)
+long int WriteResultsDatabase::WriteNodeCoordinates(const Integer level)
 {
-  ENTER_FCN("WriteResultsDatabase::Dataset781");
+  ENTER_FCN("WriteResultsDatabase::WriteNodeCoordinates");
   if (!ptgrid)
     Error("ptgrid is not initialized", __FILE__,__LINE__);
  
@@ -120,9 +120,9 @@ long int WriteResultsDatabase::Dataset781(const Integer level)
 }
 
 
-long int WriteResultsDatabase::Dataset780(const Integer level)
+long int WriteResultsDatabase::WriteElementNodes(const Integer level)
 {
-  ENTER_FCN("WriteResultsDatabase::Dataset780");
+  ENTER_FCN("WriteResultsDatabase::WriteElementNodes");
   if (!ptgrid)
     Error("ptgrid is not initialized", __FILE__,__LINE__);
 
@@ -236,14 +236,14 @@ long int WriteResultsDatabase::Dataset780(const Integer level)
 }
 
 
-void WriteResultsDatabase::Dataset55(const std::string & title, 
+void WriteResultsDatabase::WriteNodalResult(const std::string & title, 
 				     const Vector<Double> & x, 
 				     const Integer step, 
 				     const Double time, 
 			 	     const Integer nrNodes,
 				     const Integer nrDofs)
 {
-  ENTER_FCN("WriteResultsDatabase::Dataset55");
+  ENTER_FCN("WriteResultsDatabase::WriteNodalResult");
   if (!ptgrid)
      Error("ptgrid is not initialized", __FILE__,__LINE__);
 
@@ -344,7 +344,7 @@ void WriteResultsDatabase::WriteNodeSolutionTransient (const NodeStoreSol<Double
   {
     sol.GetGlobalSolVector(solTypes[iSol],globalSolution);
     title = SolutionTypeToString(solTypes[iSol]);
-    Dataset55(title, globalSolution, step, time,
+    WriteNodalResult(title, globalSolution, step, time,
 	      numNodes,sol.GetDof(solTypes[iSol]));
   }
 
@@ -411,7 +411,7 @@ void WriteResultsDatabase::WriteElemSolutionTransient (const ElemStoreSol<Double
   sol.GetSolutionTypes(solTypes);
   sol.TransformElemSolution(globalSolution,ptgrid,0);
   title = SolutionTypeToString(solTypes[0]);
-  Dataset56(title, globalSolution, step, time,numElems, sol.GetDof());
+  WriteElementResult(title, globalSolution, step, time,numElems, sol.GetDof());
 }
 
 
@@ -507,14 +507,14 @@ void WriteResultsDatabase::WriteConfFile()
   InputParamIdx_ = Db_.InsertAndGetIndex(d);
 }
 
-void WriteResultsDatabase::Dataset56(const std::string &title, 
+void WriteResultsDatabase::WriteElementResult(const std::string &title, 
 				     const Vector<Double> & x, 
 				     const Integer step, 
 				     const Double time, 
 			 	     const Integer nrElems,
 				     const Integer nrDofs)
 {
-  ENTER_FCN("WriteResultsDatabase::Dataset56");
+  ENTER_FCN("WriteResultsDatabase::WriteElementResult");
   if (!ptgrid)
      Error("ptgrid is not initialized", __FILE__,__LINE__);
 

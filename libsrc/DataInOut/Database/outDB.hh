@@ -128,13 +128,13 @@ std::string SolutionTypeToString(const SolutionType type) const;
 /*!
   param level Level of the grid
 */
-long int Dataset780(const Integer level);
+long int WriteElementNodes(const Integer level);
 
 //! Save coordinates of the used grid
 /*!
   param level Level of the grid
 */
-long int Dataset781(const Integer level);
+long int WriteNodeCoordinates(const Integer level);
 
 //! Save nodal results
 /*!
@@ -144,7 +144,7 @@ long int Dataset781(const Integer level);
   \param time Time of the calculation
   \param nrDofs Number of degrees of freedom
 */
-void Dataset55(const std::string & title, 
+void WriteNodalResult(const std::string & title, 
 	       const Vector<Double> & x, 
 	       const Integer step, 
 	       const Double time, 
@@ -159,7 +159,7 @@ void Dataset55(const std::string & title,
   \param time Time of the calculation
   \param nrDofs Number of degrees of freedom
 */
-void Dataset56(const std::string &title, 
+void WriteElementResult(const std::string &title, 
 	       const Vector<Double> & x, 
 	       const Integer step, 
 	       const Double time, 
