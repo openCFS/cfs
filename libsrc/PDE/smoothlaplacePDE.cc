@@ -111,7 +111,7 @@ void SmoothLaPlacePDE::InitCoupling(PDECoupling * Coupling)
 }
   
 
-void SmoothLaPlacePDE::SolveStepStatic(const Integer level)
+void SmoothLaPlacePDE::SolveStepStatic(const Integer level, const Double aTime)
 {
 #ifdef TRACE
   (*trace) << "entering SmoothPDE::SolveStepStatic" << std::endl;

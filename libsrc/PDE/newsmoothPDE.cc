@@ -173,7 +173,7 @@ void SmoothPDE::PreStepStatic(const Integer level)
 }
 
 
-void SmoothPDE::StepStaticNonLin(const Integer level)
+void SmoothPDE::StepStaticNonLin(const Integer level, const Double aTime)
 {
 #ifdef TRACE
   (*trace) << "entering SmoothPDE::StepStaticLin" << std::endl;

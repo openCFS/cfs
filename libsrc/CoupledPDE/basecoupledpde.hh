@@ -53,7 +53,7 @@ public:
   virtual void InitCoupling(Integer level)=0;
   
   //! Solve static step
-  virtual void SolveStepStatic(const Integer level)=0;
+  virtual void SolveStepStatic(const Integer level, const Double aTime=0)=0;
   
   //! solve transient step
   virtual void SolveStepTrans(const Integer kstep, const Double asteptime, const Integer level, 
@@ -100,6 +100,7 @@ protected:
   
   // general PDE parameters
   std::string coupledpdename_;          //!< name of coupled PDE
+  std::string couplingSectionName_;     //!< name of section in conffile, which holds params for coupling
   AnalysisType analysistype_;           //!< type of analysis
   std::vector<BasePDE *> PDEs_;         //!< list of belonging PDEs
   std::vector<PDECoupling*> Couplings_; //!< vector of coupling objects

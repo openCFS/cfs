@@ -176,7 +176,7 @@ namespace CoupledField
 	(*skelfile_) << std::endl;
       }
     else
-      Error("Dimnesion of Problem not supported",__FILE__,__LINE__);
+      Error("Dimension of Problem not supported",__FILE__,__LINE__);
   }
 
 
@@ -285,8 +285,7 @@ namespace CoupledField
     (*skelfile_) << "#\t \t loadDof = XXX non" << std::endl << myEndl;
     
 
-    (*skelfile_) << "# --\t ABSORBING BCs: (if yes, uncomment  bnd_for_absBCs and specify" << std::endl; 
-    (*skelfile_) << "\t absorbingBCs = no" << std::endl;
+    (*skelfile_) << "# --\t ABSORBING BCs: (if yes, uncomment  bnd_for_absBCs and specify subdomain)" << std::endl; 
     (*skelfile_) << "#\t bnd_for_absBCs = non " << std::endl << std::endl;
   }
 }

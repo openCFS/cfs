@@ -124,8 +124,8 @@ public:
   virtual void GetInputElements(Integer i, std::vector<Elem *>*  &elements)
   { elements = &(inputInterfaces_[i]->elements);}
 
-  //! get neighbour elements
-  virtual void GetNeighbourElems(Integer i, std::vector<Elem *>*  &elements)
+  //! get input neighbour elements
+  virtual void GetInputNeighbourElems(Integer i, std::vector<Elem *>*  &elements)
   { elements = &(inputInterfaces_[i]->neighbours);}
 
 
@@ -190,6 +190,10 @@ public:
   //! get output coupling region elements
   virtual void GetOutputElements(Integer i, std::vector<Elem *>* &elements)
   { elements = &(outputInterfaces_[i]->elements);}
+
+  //! get output neighbour elements
+  virtual void GetOutputNeighbourElems(Integer i, std::vector<Elem *>*  &elements)
+  { elements = &(outputInterfaces_[i]->neighbours);}
 
   //! get output coupling region materials
   virtual void GetOutputMaterials(Integer i, std::vector<MaterialData *>* &mat)

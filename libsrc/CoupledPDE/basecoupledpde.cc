@@ -5,6 +5,7 @@
 #include "basecoupledpde.hh"
 #include <CoupledPDE/pdecoupling.hh>
 #include <DataInOut/conffile.hh>
+
  
 namespace CoupledField
 {
@@ -30,6 +31,8 @@ BaseCoupledPDE::BaseCoupledPDE(std::vector<BasePDE*> & PDEs,
   actlevel_ = 0;
   NumPDEs_ = PDEs.size();
 
+  couplingSectionName_ = "coupling";
+  
   // get analysis type
   std::string analysis;
   conf->get("analysis", analysis);

@@ -164,7 +164,7 @@ namespace CoupledField
   }
 
 
-  void MagEdgePDE::SolveStepStatic(const Integer level)
+  void MagEdgePDE::SolveStepStatic(const Integer level, const Double aTime)
   {
 #ifdef TRACE
     (*trace) << "entering MagEdgePDE::SolveStepStatic" << std::endl;

@@ -163,8 +163,9 @@ private:
   //! solve one step for nonlinear static problem 
   /*!
     \param level level of grid
+    \param aTime sequence of different levels for RHS
   */
-  virtual void StepStaticNonLin(const Integer level);
+  virtual void StepStaticNonLin(const Integer level, const Double aTime=0);
 
   /// returns the solution matrix belonging to all nodes of the actual element
   void GetSolOfElement( Matrix<Double>& elDisp, Vector<Integer>& connect_PDE);  
