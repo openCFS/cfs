@@ -1,7 +1,4 @@
 #
-ifeq ($(ARCH),LINUX)
-	export MACHINE=LINUXg
-endif
 #
 src = cfs.cc
 #
@@ -21,6 +18,12 @@ LIB_GRIDLIB = $(C_DIR)/libgrid
 LIB_OWN = $(C_DIR)/lib
 #
 #
+############
+ifeq "$(ARCH)" "LINUX"
+syslib :=
+else
+syslib := -lGridBase -lIO  -lUtil -lMesh
+endif
 ############ General options
 #
 include $(C_DIR)/main/Makefile.option
@@ -42,9 +45,16 @@ include $(LIBSRC_DIR)/makefilemach/make.mach.$(MACHINE)
 .f.o:
 	$(F77) -o $@ $(FFLAGS1) $(FFLAGS2) $<
  
-$(program):: $(src:.cc=.o) $(fsrc:.f=.o) makelibs 
-	$(CC)  -o $@ $(src:.cc=.o) $(fsrc:.f=.o) -L$(LIB_DIR) -L$(LIB_GRIDLIB)  $(LINKFLAGS2) $(LINKFLAGS3) $(addprefix -l, $(mylibrary)) $(syslib) $(LIB_NAG)
+$(program):: setvar $(src:.cc=.o) $(fsrc:.f=.o) makelibs 
+	$(CC)  -o $@ $(src:.cc=.o) $(fsrc:.f=.o) -L$(LIB_DIR) -L$(LIB_GRIDLIB)  $(LINKFLAGS2) $(LINKFLAGS3) $(addprefix -l, $(mylibrary)) $(syslib) $(LIB_NAG) 
 #
+########## Set varible MACHINE
+setvar:
+ifeq "$(ARCH)" "SGI"
+	@echo setenv MACHINE SGI
+else
+	export MACHINE=LINUX
+endif
 ########### Go to make library
 #
 makelibs:
@@ -59,21 +69,12 @@ makelibs:
 ############### Print info about variables that should be set before work
 #
 info: 
-ifeq ($(ARCH), LINUX)
-	@echo Before run of cfs set this variable on SGI:
+ifeq "$(ARCH)" "LINUX"
+	@echo Before run of cfs set this variable on LINUX:
 	@echo export LD_LIBRARY_PATH=$(LIB_OWN)/$(MACHINE)
 else
 	@echo Before run of cfs set this variable on SGI:
 	@echo setenv LD_LIBRARYN32_PATH $(LIB_GRIDLIB):$(LIB_OWN)/$(MACHINE)
-endif
-#
-############## Set path to dynamic library
-#
-setvar:
-ifeq ($(ARCH), LINUX)
-	export LD_LIBRARY_PATH=$(LIB_OWN)/$(MACHINE)
-else
-	setenv LD_LIBRARYN32_PATH $(LIB_GRIDLIB):$(LIB_OWN)/$(MACHINE)
 endif
 #
 ######################  Clean work directory
