@@ -7,7 +7,7 @@
 
 namespace CoupledField {
 
-  SolveStepMag::SolveStepMag(BasePDE& apde) : BaseSolveStep(apde)
+  SolveStepMag::SolveStepMag(StdPDE& apde) : StdSolveStep(apde)
   {
 
     ENTER_FCN( "SolveStepMag::SolveStepMag" );
@@ -33,7 +33,8 @@ namespace CoupledField {
 
   void SolveStepMag::PostStepStatic(const Integer level) {
     ENTER_FCN( "SolveStepMag::PostStepStatic" );
-    if (pdeIsCoupled_) (*iterCoupledCounter_)++;
+    if (pdeIsCoupled_) 
+      (*iterCoupledCounter_)++;
   }
 
 
@@ -162,7 +163,7 @@ namespace CoupledField {
     Boolean performOneMoreStep;
     Integer iterationCounter=0;
 
-    Vector<Double> actSol(numPDENodes_);
+    Vector<Double> actSol;
     Vector<Double> solInc(numPDENodes_);
   
     // Cast BaseStoreSol into StoreSol<Double>,

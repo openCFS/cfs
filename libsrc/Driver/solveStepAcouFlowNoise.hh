@@ -1,20 +1,20 @@
 #ifndef FILE_SOLVESTEPACOUFLOWNOISE
 #define FILE_SOLVESTEPACOUFLOWNOISE
 
-#include "baseSolveStep.hh"
+#include "stdSolveStep.hh"
 
 namespace CoupledField
 {
 
   //! Base class for solution of a single step: Magnetics
 
-  class SolveStepAcouFlowNoise : public BaseSolveStep
+  class SolveStepAcouFlowNoise : public StdSolveStep
   {
 
   public:
 
     //! Constructor
-    SolveStepAcouFlowNoise(BasePDE& apde);
+    SolveStepAcouFlowNoise(StdPDE& apde);
 
     //! Destructor
     virtual ~SolveStepAcouFlowNoise();

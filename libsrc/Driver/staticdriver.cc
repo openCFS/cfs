@@ -4,7 +4,7 @@
 
 #include "staticdriver.hh"
 #include "DataInOut/GMV/outGMV.hh"
-#include "CoupledPDE/basecoupledpde.hh"
+#include "CoupledPDE/itercoupledpde.hh"
 #include "General/environment.hh"
 #include "PDE/basePDE.hh"
 
@@ -40,7 +40,6 @@ namespace CoupledField {
     ENTER_FCN( "StaticDriver::SolveProblem" );
 
     Integer level=0;
-    Integer pdenumber  = 0;
 
     if (PrintGridOnly) {
       ptdomain_->PrintGrid(level);
@@ -59,39 +58,20 @@ namespace CoupledField {
     Double  steptime = 0.0;
     Boolean reset = FALSE;
     
-    // Solve problem
-    if (pdes_.GetSize() <= 1) {
-
-      // branch for single PDE
-      pdes_[pdenumber]->WriteGeneralPDEdefines();
-      pdes_[pdenumber]->GetSolveStep()->SolveStepStatic(nstep, steptime, level,
-							reset);   
-
-      pdes_[pdenumber]->PostProcess(level);
-
-      // if multiSequence is performed, the ms-driver
-      // writes out the grid one time
-      if (! isPartOfSequence_)
+    ptPDE_->WriteGeneralPDEdefines();
+    ptPDE_->GetSolveStep()->PreStepStatic(nstep, steptime, level, reset);
+    ptPDE_->GetSolveStep()->SolveStepStatic(nstep, steptime, level,reset);
+    ptPDE_->GetSolveStep()->PostStepStatic(nstep, steptime, level);
+    
+    ptPDE_->PostProcess(level);
+    
+    // if multiSequence is performed, the ms-driver
+    // writes out the grid one time
+    if (! isPartOfSequence_)
 	ptdomain_->PrintGrid(level);
       
-      pdes_[pdenumber]->WriteResultsInFile(stepOffset_, timeOffset_);
-    }
-    else {
-      // branch for coupled PDEs
-      ptdomain_->GetCoupledPDE()->WriteGeneralPDEdefines();
-
-      // define which PDEs participate in solving process
-      ptdomain_->GetCoupledPDE()->DefineSolvingPDEs(pdes_);
-      ptdomain_->GetCoupledPDE()->SolveStepStatic(nstep, steptime, level,
-						  reset);
-      // if multiSe
-      // quence is performed, the ms-driver
-      // writes out the grid one time
-      if (! isPartOfSequence_)
-	ptdomain_->PrintGrid(level);
-
-      ptdomain_->GetCoupledPDE()->WriteResultsInFile(stepOffset_, timeOffset_);
-    }
+      ptPDE_->WriteResultsInFile(stepOffset_, timeOffset_);
   }
+
 
 } // end of namespace

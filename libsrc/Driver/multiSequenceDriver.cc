@@ -48,7 +48,7 @@ namespace CoupledField {
     SingleDriver * actDriver;
 
     // vector containing pointer to current set of PDEs
-    StdVector<BasePDE *> ptPDEs;
+    StdVector<StdPDE *> ptPDEs;
     
     // Vector of memento objects, which save the internal state
     // of a PDE
@@ -107,14 +107,15 @@ namespace CoupledField {
       
       // Initialize all PDEs
       ptdomain_->InitPDEs(pdesPerStep_[iStep],iStep+1, tagsPerStep_[iStep]);
+      actDriver->SetPDE(ptdomain_->GetBasePDE());
 
       // Give the according pdes to the driver
       ptPDEs.Clear();
       ptPDEs.Resize(pdesPerStep_[iStep].GetSize());
       for (iPDE=0; iPDE<pdesPerStep_[iStep].GetSize(); iPDE++)
-	ptPDEs[iPDE]=ptdomain_->GetPDE(pdesPerStep_[iStep][iPDE]);
+	ptPDEs[iPDE]=ptdomain_->GetStdPDE(pdesPerStep_[iStep][iPDE]);
 
-      actDriver->SetPDEs(ptPDEs);
+
 
       // After the first run, initialize this PDE
       // with the solution of the previous run

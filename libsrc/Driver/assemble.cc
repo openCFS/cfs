@@ -6,7 +6,7 @@
 #include "Domain/elem.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
 #include "DataInOut/WriteInfo.hh"
-#include "PDE/basePDE.hh"
+#include "PDE/StdPDE.hh"
 
 #include "olas.hh"
 
@@ -220,9 +220,9 @@ namespace CoupledField {
               algsys_->SetElementMatrix(&harmonicVec[0], connect_PDE.GetPointer(), connect_PDE.GetSize(), destMat);
             }
             else {
-              algsys_->SetElementMatrix(elemmat.GetDataPointer(), connect_PDE.GetPointer(), 
+	      algsys_->SetElementMatrix(elemmat.GetDataPointer(), connect_PDE.GetPointer(), 
                                         connect_PDE.GetSize(), destMat);
-            }
+	    }
 #ifdef DEBUG
             // output matrices
             if (destMat == STIFFNESS)

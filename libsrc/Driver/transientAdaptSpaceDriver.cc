@@ -6,7 +6,6 @@
 
 #include "DataInOut/GMV/outGMV.hh"
 #include <PDE/basepde.hh>
-#include <CoupledPDE/basecoupledpde.hh>
 
 namespace CoupledField
 {

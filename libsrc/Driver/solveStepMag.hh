@@ -1,20 +1,20 @@
 #ifndef FILE_SOLVESTEPMAG
 #define FILE_SOLVESTEPMAG
 
-#include "baseSolveStep.hh"
+#include "stdSolveStep.hh"
 
 namespace CoupledField
 {
 
   //! Base class for solution of a single step: Magnetics
 
-  class SolveStepMag : public BaseSolveStep
+  class SolveStepMag : public StdSolveStep
   {
 
   public:
 
     //! Constructor
-    SolveStepMag(BasePDE& apde);
+    SolveStepMag(StdPDE& apde);
 
     //! Destructor
     virtual ~SolveStepMag();

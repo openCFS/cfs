@@ -1,20 +1,20 @@
 #ifndef FILE_SOLVESTEPSMOOTH
 #define FILE_SOLVESTEPSMOOTH
 
-#include "baseSolveStep.hh"
+#include "stdSolveStep.hh"
 
 namespace CoupledField
 {
 
   //! Base class for solution of a single step
 
-  class SolveStepSmooth : public BaseSolveStep
+  class SolveStepSmooth : public StdSolveStep
   {
 
   public:
 
     //! Constructor
-    SolveStepSmooth(BasePDE& apde);
+    SolveStepSmooth(StdPDE& apde);
 
     //! Destructor
     virtual ~SolveStepSmooth();
