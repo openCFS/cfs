@@ -17,8 +17,9 @@
 #       | 4 | BLAS        |   yes    |     no   |      (a)    |
 #       | 5 | LAPACK      |   yes    |     no   |      (a)    |
 #       | 6 | mysql       |   yes    |    yes   |      (d)    |
+#       | 7 | tvmet       |   yes    |     no   | TVMET_ROOT  |
 #       -------------------------------------------------------
-#       | 7 | XML Schemas |         (b)         | XMLSCHEMA   |
+#       | 8 | XML Schemas |         (b)         | XMLSCHEMA   |
 #       -------------------------------------------------------
 #
 #  (a) The Basic Linear Algebra Subroutines (BLAS) and the Linear Algebra
@@ -69,6 +70,7 @@
 #
 # OLAS_ROOT
 # HYPRE_ROOT
+# TVMET_ROOT
 # XERCES_ROOT
 # XMLSCHEMA
 # -----------------------------------------------------------------------------
@@ -81,6 +83,10 @@ ifeq ("$(HYPRE_ROOT)","")
 HYPRE_ROOT = /home/data/proj/SoftwareLibraries/hypre/sequential
 endif
 
+ifeq ("$(TVMET_ROOT)","")
+TVMET_ROOT = /home/data/proj/SoftwareLibraries/tvmet
+endif
+
 ifeq ("$(XERCES_ROOT)","")
 XERCES_ROOT = /home/data/proj/SoftwareLibraries/xerces-c
 endif
@@ -90,13 +96,6 @@ XMLSCHEMA = /home/data/proj/share/CFS++XML
 endif
 
 # -----------------------------------------------------------------------------
-
-##############  Name of executable
-program = cfs
-
-##############  Name of dependency file
-Dependencies = Makefile.depend
-
 
 # Function tracing depth
 # TRACE = 0: no fct. tracing at all
@@ -113,9 +112,6 @@ LIBRARY_TYPE = static
 
 # Adaptivity = yes / no
 Adaptivity = no
-
-# PETSc solvers
-PETSc=no
 
 # MpCCI
 MpCCI=no
@@ -137,10 +133,14 @@ HYPRE = no
 # Was OLAS compiled with support for LAPACK?
 LAPACK = no
 
+# Was OLAS compiled with support for TVMET?
+TVMET = yes
+
 ##############  XML Parameter File Handling? With Xerces or without?
 #
 XMLPARAMS=yes
 XERCES=yes
+
 
 
 # =========================================================================== #
@@ -151,22 +151,16 @@ XERCES=yes
 #                                                                             #
 # =========================================================================== #
 
-############ Directories
-#
 
-Include=$(C_DIR)/include
-LIBSRC_DIR=$(C_DIR)/libsrc
-LIB_DIR=$(C_DIR)/lib/$(MACHINE)
+
+# -----------------------------------------------------------------------------
+# INTERNAL PATHS
 #
-############ Flags for makedepend
-# 
-FlagMadeDepend = $(CFLAGS2) $(CFLAGS3) $(OLAS)\
-                 $(INCL) $(INCLAdaptGrid) $(INCLMpCCI)
-#
-############
-#
-LIB_OWN = $(C_DIR)/lib
-#
+# We define some parameters for handling internal paths correctly.
+# -----------------------------------------------------------------------------
+C_DIR      = ..
+LIBSRC_DIR = $(C_DIR)/libsrc
+LIB_DIR    = $(C_DIR)/lib/$(MACHINE)
 
 
 # -----------------------------------------------------------------------------
@@ -180,6 +174,7 @@ LIB_OWN = $(C_DIR)/lib
 # - DATABASE
 # - XERCES
 # - ADAPTIVITY
+# - TVMET
 #
 # These will be combined into a COMPILE_INCDIRS parameter
 # -----------------------------------------------------------------------------
@@ -208,9 +203,16 @@ else
   INCDIR_ADAPTIVITY =
 endif
 
+# TVMET
+ifeq "$(TVMET)" "yes"
+  INCDIR_TVMET = -I$(TVMET_ROOT)/$(MACHINE)/include
+else
+  INCDIR_TVMET =
+endif
+
 # Combine everything
 COMPILE_INCDIRS = $(INCDIR_OLAS) $(INCDIR_HYPRE) $(INCDIR_XERCES) \
-	$(INCDIR_ADAPTIVITY)
+	$(INCDIR_ADAPTIVITY) $(INCDIR_TVMET)
 
 
 # -----------------------------------------------------------------------------
@@ -259,6 +261,7 @@ endif
 # BACKWARD
 MACRO_BACKWARD = -DUSE_OLAS -DXMLPARAMS
 
+# Combine everything
 COMPILE_MACROS = $(MARCO_DATABASE) $(MACRO_MPCCI) $(MACRO_ADAPTIVITY) \
 	 $(MACRO_GSI) $(MACRO_BACKWARD)
 
@@ -274,7 +277,7 @@ COMPILE_MACROS = $(MARCO_DATABASE) $(MACRO_MPCCI) $(MACRO_ADAPTIVITY) \
 #  - XERCES
 #  - DATABASE
 #
-# These will be combined into a LINK_LIBS parameter
+# These will be combined into a LINK_LIBS parameter.
 # -----------------------------------------------------------------------------
 
 # OLAS
@@ -301,20 +304,23 @@ endif
 
 # DATABASE
 ifeq ($(DATABASE),yes)
-  LIBDIR_DATABASE = -L$(MYSQL_ROOT)/mysql
-  LIB_DATABASE = -lmysqlclient
-
+   LIBDIR_DATABASE = -L$(MYSQL_ROOT)/mysql
+   LIB_DATABASE = -lmysqlclient
+else
+   LIBDIR_DATABASE =
+   LIB_DATABASE =
+endif
 
 # Combine everything
 LINK_LIBS = $(LIBDIR_OLAS) $(LIBDIR_HYPRE) $(LIBDIR_XERCES) \
 	$(LIB_OLAS) $(LIB_HYPRE) $(LIB_XERCES)
 
 # -----------------------------------------------------------------------------
-# Determine need to link against BLAS and LAPACK
+# LAPACK and BLAS
 #
-# The library names differ from vendor to vendor, so it must be assigned in
-# make.mach.<MACHINE>. We only set macros here to show the need of linking
-# against BLAS or LAPACK.
+# Determine need to link against BLAS and LAPACK. The library names differ from
+# vendor to vendor, so it must be assigned in make.mach.<MACHINE>. We only set
+# macros here to show the need of linking against BLAS or LAPACK.
 # -----------------------------------------------------------------------------
 
 ifeq "$(LAPACK)" "yes"
@@ -333,15 +339,74 @@ endif
 
 endif
 
+# -----------------------------------------------------------------------------
+# SUBLIBDIR and MYLIBRARY
+#
+# Here we determine, whether depending on the above settings, we need to
+# create extra CFS++ libraries and must look for source code in extra
+# module subdirectories. Each makefile parameter begins with a CFSLIB_ or
+# MODULE_ prefix followed by one of the following names
+#
+# - ADAPTIVITY
+# - MPCCI
+# - DATABASE
+# - GSI
+#
+# These will be combined into an EXTRA_MODULES and EXTRA_CFSLIBS parameter.
+# These two parameters will be appended in Makefile to SUBLIBDIR and mylibrary.
+# -----------------------------------------------------------------------------
+
+# ADAPTIVITY
+ifeq ($(Adaptivity),yes)
+  MODULE_ADAPTIVITY = Domain/AdaptGrid Estimator
+  CFSLIB_ADAPTIVITY = estimator toadaptgrid adaptgrid
+else
+  MODULE_ADAPTIVITY =
+  CFSLIB_ADAPTIVITY =
+endif
+
+# MPCCI
+ifeq ($(MpCCI),yes)
+  MODULE_MPCCI = MpCCIcpl
+  CFSLIB_MPCCI = mpccicpl
+else
+  MODULE_MPCCI =
+  CFSLIB_MPCCI =
+endif
+
+# DATABASE
+ifeq ($(DATABASE),yes)
+  MODULE_DATABASE = DataInOut/Database
+  CFSLIB_DATABASE = database
+else
+  MODULE_DATABASE =
+  CFSLIB_DATABASE =
+endif
+
+# GSI
+ifeq ($(GSI),yes)
+  MODULE_GSI = DataInOut/GSI
+  CFSLIB_GSI = gsi
+else
+  MODULE_GSI =
+  CFSLIB_GSI =
+endif
+
+# Combine everything
+EXTRA_MODULES = $(MODULE_ADAPTIVITY) $(MODULE_MPCCI) $(MODULE_DATABASE) \
+	$(MODULE_GSI)
+
+EXTRA_CFSLIBS = $(CFSLIB_ADAPTIVITY) $(CFSLIB_MPCCI) $(CFSLIB_DATABASE) \
+	$(CFSLIB_GSI)
+
 # =========================================================================== #
 #                                                                             #
-#    ASSEMEBLE LEVEL 2 COMPILER AND LINKER OPTION FROM THE SET PARAMETERS     #
+#      ASSEMBLE GLOBAL COMPILER AND LINKER OPTION FROM THE SET PARAMETERS     #
 #                                                                             #
 # =========================================================================== #
 
-# Note: Level 1 flags are set in the Makefile and level 3 flags are set in
-#       the make.mach.<MACHINE> file.
-#       (At least that's the way it should sensibly be)
+# Note: These are global, i.e. machine-independent compiler options. The
+#       machine-dependent options are set in the make.mach.<MACHINE> file.
 
-CFLAGS2 = $(COMPILE_MACROS) $(COMPILE_INCDIRS)
-LFLAGS2 = 
+CFLAGS_GLOBAL = $(COMPILE_MACROS) $(COMPILE_INCDIRS)
+LFLAGS_GLOBAL = $(LINK_LIBS)

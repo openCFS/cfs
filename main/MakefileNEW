@@ -1,163 +1,161 @@
-# ############ Makefile for project CFS++ ###############################
+###############################################################################
+#                                                                             #
+#                         Makefile for CFS++ project                          #
+#                                                                             #
+###############################################################################
+
+
+# -----------------------------------------------------------------------------
+# MAIN and EXECUTABLE
 #
+# Where to find the main routine and how to name the executable.
+# -----------------------------------------------------------------------------
+program = cfs
 src = cfs.cc
+
+# -----------------------------------------------------------------------------
+# MACHINE-INDEPENDENT OPTIONS
 #
-C_DIR= ..
+# We include a file with machine-independent options.
+# -----------------------------------------------------------------------------
+
+include MakefileNEW.option
+
+# -----------------------------------------------------------------------------
+# SUBDIRECTORIES
 #
-########## set OS variable
+# We generate a list of all module subdirectories. The EXTRA_MODULES variable
+# is composed in Makefile.option.
+# -----------------------------------------------------------------------------
+
+SUBLIBDIR = Driver PDE CoupledPDE \
+            Forms Elements Elements/1D Elements/2D Elements/3D \
+            Domain/GridCFS Domain \
+            DataInOut/DefineFiles \
+            DataInOut/ParamHandling \
+            DataInOut/Unverg DataInOut/GMV \
+            DataInOut/DatFile DataInOut/AnsysFile DataInOut\
+            DataInOut/Database\
+            Utils Matrix General \
+            $(EXTRA_MODULES)
+
+PATHSUBLIBDIR = $(addprefix $(LIBSRC_DIR)/, $(SUBLIBDIR))
+
+# -----------------------------------------------------------------------------
+# MYLIBRARIES
 #
-OS=$(shell uname -s)
-#
-############ General options
-#
-include $(C_DIR)/main/Makefile.option
-#
-SUBLIBDIR := Driver PDE CoupledPDE \
-             Forms Elements Elements/1D Elements/2D Elements/3D \
-             Domain/GridCFS Domain \
-             DataInOut/DefineFiles \
-             DataInOut/ParamHandling \
-             DataInOut/Unverg DataInOut/GMV \
-             DataInOut/DatFile DataInOut/AnsysFile DataInOut\
-             DataInOut/Database\
-             Utils Matrix General  
-#
-ifeq ($(Adaptivity),yes)
-SUBLIBDIR := $(SUBLIBDIR) Domain/AdaptGrid Estimator
-mylibrary := $(mylibrary) estimator toadaptgrid
-endif
-#
-ifeq ($(MpCCI),yes)
-SUBLIBDIR := $(SUBLIBDIR) MpCCIcpl
-mylibrary := $(mylibrary) mpccicpl
-endif
-#
-############ define my libraries
-#
+# We generate a list of all libraries that will be generate from the CFS++
+# source code. The EXTRA_CFSLIBS variable is composed in Makefile.option.
+# -----------------------------------------------------------------------------
+
 mylibrary = driver domain pde coupledpde forms  \
             elements3d elements2d elements1d elements \
             gridcfs gmv definefiles unverg\
 	    ansysfile datainout paramhandling \
             driver \
-            utils matrix general 
+            utils matrix general \
+            $(EXTRA_CFSLIBS)
+
+# -----------------------------------------------------------------------------
+# MACHINE-DEPENDENT OPTIONS
 #
-#
-ifeq ($(Adaptivity),yes)
-mylibrary := $(mylibrary) adaptgrid 
-endif
-#
-ifeq ($(MpCCI),yes)
-SUBLIBDIR := $(SUBLIBDIR) MpCCIcpl
-mylibrary := $(mylibrary) mpccicpl
-endif
-#
-############ Define specific flags
-#
+# We include a file with machine-dependent options. Actually MACHINE does not
+# only refer to a certain architecture, but can also refere to a different
+# compiler or a debug version.
+# -----------------------------------------------------------------------------
+
 include $(LIBSRC_DIR)/makefilemach/make.mach.$(MACHINE)
-#
-#
-############ General options
-#
-include $(C_DIR)/main/Makefile.option
-#
 
-#####DataBase
-ifeq ($(DATABASE),yes)
-  SUBLIBDIR  :=  $(SUBLIBDIR) DataInOut/Database
-  mylibrary  :=  $(mylibrary) database
-endif
-
-
-#####GSI format
-ifeq ($(GSI),yes)
-  SUBLIBDIR  :=  $(SUBLIBDIR) DataInOut/GSI
-  mylibrary  :=  $(mylibrary) gsi
-endif
-
-############ MpCCI
+# -----------------------------------------------------------------------------
+# GENERAL COMPILATION RULES
 #
-ifeq ($(MpCCI),yes)
-  CC=/opt/MpCCI/mpcci-3.0.0-sdk-linux-glibc23-gcc33/bin/cciCC
-  LINKFLAGS2 = -L/opt/MpCCI/mpcci-3.0.0-sdk-linux-glibc23-gcc33/lib -L/opt/mpich-1.2.5.2/lib $(LINKFLAGSDB)
-  sysliball = $(syslib) -lcci -lmpich $(XERCESLIB) $(syslibDB) -lg2c
-else
-  sysliball = $(syslib) $(XERCESLIB) $(OLASLIB) $(syslibDB)
-  LINKFLAGS2 = $(LINKFLAGSDB)
-endif
-
-
-#
-##########
-#
-PATHSUBLIBDIR = $(addprefix $(LIBSRC_DIR)/, $(SUBLIBDIR))
-#
-
-########### Rules
-#
+# We define a set of general compilation rules
+# -----------------------------------------------------------------------------
 
 .SUFFIXES: .f .c .cc .o
 
 .cc.o:
-	$(CC) -o $@ $(CFLAGS1) $(CFLAGS2) $(CFLAGS3) $(OLAS) $(TRACEFLAGS) $(INCL) $(INCLAdaptGrid) $(INCLMpCCI) $(INCLDATABASE) $<
+	$(CC) -o $@ -I$(LIBSRC_DIR) $(CFLAGS_GLOBAL) $(CFLAGS_MACHINE) $<
 
+# -----------------------------------------------------------------------------
+# EXECUTABLE
 #
-#
-#
-ifeq ($(PETSc)),yes)
-$(program):: $(src:.cc=.o) $(fsrc:.f=.o) $(mylibrary)
-	$(CXX_CLINKER) -o $@ $(src:.cc=.o) $(fsrc:.f=.o) $(PETSC_LIB) \
-	-L$(LIB_DIR) $(LINKFLAGS2) $(LINKFLAGS3) \
-	-L$(CVSEXTERNAL)/$(MACHINE)/lib -L$(LIB_GRIDLIB) -L$(LIB_NETGEN) \
-	-L$(LIB_CLA) $(INCL) $(addprefix -l, $(mylibrary)) $(sysliball) \
-	-Wl,-rpath,$(LIB_OWN)/$(MACHINE) 
-else
+# This is the default target and the one that will generate the CFS++
+# executable. If you wonder what the :: means, see section "4.13 Double-Colon
+# Rules" in the GNU make documentation.
+# -----------------------------------------------------------------------------
 $(program):: $(src:.cc=.o) $(mylibrary)
-	$(CC) $(CFLAG_EXE) -o $@ $(src:.cc=.o) $(fsrc:.f=.o) -L$(LIB_DIR) \
-	-L$(LIB_GRIDLIB) -L$(LIB_NETGEN) -L$(LIB_CLA) \
-	-L$(CVSEXTERNAL)/$(MACHINE)/lib \
-	$(INCL) $(LINKFLAGS2) $(LINKFLAGS3) $(INCL) \
-	$(addprefix -l, $(mylibrary)) $(sysliball) 
-#-Wl,-rpath,$(LIB_OWN)/$(MACHINE)
-endif
-#
+	$(CC) $(CFLAG_EXE) $(CFLAGS_GLOBAL) -o $@ $(src:.cc=.o) -L$(LIB_DIR) \
+	$(LFLAGS_MACHINE) \
+	$(addprefix -l, $(mylibrary)) \
+	$(LFLAGS_GLOBAL) \
+	$(syslib)
 
-########### Go to make library
+# -----------------------------------------------------------------------------
+# MODULE TARGETS
 #
-include $(LIBSRC_DIR)/Makefile
+# We define a set of targets for the individual modules/subdirectories.
+# -----------------------------------------------------------------------------
+driver:
+	@cd $(LIBSRC_DIR)/Driver; $(MAKE) -f Makefile 
+domain:
+	@cd $(LIBSRC_DIR)/Domain; $(MAKE) -f Makefile
+gridcfs:
+	@cd $(LIBSRC_DIR)/Domain/GridCFS; $(MAKE) -f Makefile
+estimator:
+	@cd $(LIBSRC_DIR)/Estimator; $(MAKE) -f Makefile
+toadaptgrid:
+	@cd $(LIBSRC_DIR)/Domain/AdaptGrid; $(MAKE) -f Makefile
+adaptgrid:
+	@cd $(AdaptGrid); $(MAKE) -f Makefile
+forms:
+	@cd $(LIBSRC_DIR)/Forms; $(MAKE) -f Makefile
+pde:
+	@cd $(LIBSRC_DIR)/PDE; $(MAKE) -f Makefile
+coupledpde:
+	@cd $(LIBSRC_DIR)/CoupledPDE; $(MAKE) -f Makefile
+elements:
+	@cd $(LIBSRC_DIR)/Elements; $(MAKE) -f Makefile
+elements1d:
+	@cd $(LIBSRC_DIR)/Elements/1D; $(MAKE) -f Makefile
+elements2d:
+	@cd $(LIBSRC_DIR)/Elements/2D; $(MAKE) -f Makefile
+elements3d:
+	@cd $(LIBSRC_DIR)/Elements/3D; $(MAKE) -f Makefile
+definefiles:
+	@cd $(LIBSRC_DIR)/DataInOut/DefineFiles; $(MAKE) -f Makefile
+datainout:
+	@cd $(LIBSRC_DIR)/DataInOut; $(MAKE) -f Makefile
+ansysfile:
+	@cd $(LIBSRC_DIR)/DataInOut/AnsysFile; $(MAKE) -f Makefile
+ansys-out:
+	@cd $(LIBSRC_DIR)/DataInOut/AnsysOut; $(MAKE) -f Makefile
+unverg:
+	@cd $(LIBSRC_DIR)/DataInOut/Unverg; $(MAKE) -f Makefile
+gmv:
+	@cd $(LIBSRC_DIR)/DataInOut/GMV; $(MAKE) -f Makefile
+database:
+	@cd $(LIBSRC_DIR)/DataInOut/Database; $(MAKE) -f Makefile
+gsi:
+	@cd $(LIBSRC_DIR)/DataInOut/GSI; $(MAKE) -f Makefile
+utils:
+	@cd $(LIBSRC_DIR)/Utils; $(MAKE) -f Makefile
+matrix:
+	@cd $(LIBSRC_DIR)/Matrix; $(MAKE) -f Makefile
+general:
+	@cd $(LIBSRC_DIR)/General; $(MAKE) -f Makefile
+mpccicpl:
+	@cd $(LIBSRC_DIR)/MpCCIcpl; $(MAKE) -f Makefile
+paramhandling:
+	@cd $(LIBSRC_DIR)/DataInOut/ParamHandling; $(MAKE) -f Makefile
+
+# -----------------------------------------------------------------------------
+# CLEANING TARGETS I
 #
-############### Print info about variables that should be set before work
-#
-info: 
-ifeq "$(OS)" "Linux"
-	@echo Before run of cfs set this variable on LINUX:
-	@echo export LD_LIBRARY_PATH=$(LIB_OWN)/$(MACHINE):$(NetGen)/lib
-else
-	@echo Before run of cfs set this variable on SGI:
-	@echo setenv LD_LIBRARYN32_PATH $(LIB_GRIDLIB):$(LIB_OWN)/$(MACHINE)
-endif
-#
-############## Make link to the source of another programm
-#
-link:
-ifeq "$(OS)" "Linux"
-	rm -rf $(LibCLA) && ln -s $(LAS)/libsrc $(LibCLA)
-else
-	rm -rf $(LibCLA) && ln -s $(LAS)/libsrc $(LibCLA)
-endif
-#        
-############## Make links in dir include
-#
-make-include:
-	@echo Creating links to header-files
-	@(rm -rf $(Include); mkdir $(Include))
-	@for n in $(PATHSUBLIBDIR); do \
-        (if cd $$n; \
-                  then $(MAKE) make-include ; \
-                   else echo "WARNING:" $$n " doesn't exist"; \
-          fi); \
-         done
-#
-######################  Clean work directory
+# We define a set of targets for cleaning individual modules/subdirectories or
+# combinations thereof.
+# -----------------------------------------------------------------------------
+
 clean-adaptgrid:
 	@cd $(AdaptGrid) && $(MAKE) clean
 clean-driver:
@@ -228,20 +226,12 @@ clean-matrix:
 clean-mpccicpl:
 	@cd $(LIBSRC_DIR)/MpCCIcpl&&\
         $(MAKE) clean
-clean-general-piles:
-	@cd $(LIBSRC_DIR)/AlgebraicSystem/CLA/general && \
-	$(MAKE) clean
-clean-multigrid-piles:
-	@cd $(LIBSRC_DIR)/AlgebraicSystem/CLA/multigrid && \
-	$(MAKE) clean
-clean-superlu-piles:
-	@cd $(LIBSRC_DIR)/AlgebraicSystem/CLA/superlu && \
-	$(MAKE) clean
-clean-newpde:
-	$(MAKE) clean-pde
-	$(MAKE) clean-driver
-	$(MAKE) clean-domain
-######################   Real clean
+
+# -----------------------------------------------------------------------------
+# CLEANING TARGETS II
+#
+# We define a set of targets for cleaning most everything.
+# -----------------------------------------------------------------------------
 
 clean: clean-library clean-prog
 	@echo clean all
@@ -256,8 +246,6 @@ clean-library:
          done 
 clean-prog:
 	-rm *.o
-#
-######################   All clean --- for distributive
 
 cleanall: cleanall-library cleanall-files
 	@echo clean all
@@ -272,59 +260,33 @@ cleanall-library:
          done 
 cleanall-files:
 	-rm *.o
-#
-######################   Clean library
-# 
+
 libclean: 
 	@echo clean library
 	@cd $(LIB_DIR) && \
 	rm *
 .PHONY: libclean
-#
-######################  Make documentation  
-doc: doxygen
 
-	@echo To see documentation run: konqueror  $(C_DIR)/doc/html/index.html 
-doxygen:
-	doxygen DoxygenConfig/doxy-config
-FlagDoc= -nd -p -u -v -b -f 
-doc++:
-	@-mkdir $(C_DIR)/doc
-	@-mkdir $(C_DIR)/doc/html
-	@-rm $(C_DIR)/doc/html/*.*
-	doc++ $(FlagDoc) -d $(C_DIR)/doc/online docfile
-.PHONY: doc doxygen doc++
+# -----------------------------------------------------------------------------
+# DOCUMENTATION
 #
-##################### Make distributive
+# Targets related to the doxygen documentation for CFS++
+# -----------------------------------------------------------------------------
+.PHONY: doc clean-doc
+doc:
+	cd $(C_DIR)/Doc; ./makedoc.sh
+clean-doc:
+	@cd $(C_DIR)/Doc; rm -rf ./html
+
+# -----------------------------------------------------------------------------
+# DEPENDENCIES
 #
-LIBSRC=$(addprefix libsrc/,$(SUBLIBDIR))
-CVS_DIR=$(addsuffix /CVS,$(LIBSRC))
-echo:
-	echo $(CVS_DIR)
-#
-distrib: clean 
-	cd $(C_DIR) && \
-	tar -czvf cfs++.tgz $(LIBSRC) main/Makefile main/Makefile.option main/cfs.cc main/control 
-#	tar --delete $(C_DIR) cfs++.tar 
-#
-##################### Make check
-#
-ControlDir = control
-ControlExtOut = unverg
-CheckFiles = channel 
-#
-check:
-	@for n in $(CheckFiles); do\
-	(cfs $$n ; \
-	if diff $$n.$(ControlExtOut) $$n.test ;\
-		then echo " $$n: Ok :) ";\
-		else echo " $$n: Error or control files are not updated.";\
-	fi);\
-	done; 
-#
-##################### Make dependencies
-#
-depend: 
+# Automatic generation of dependencies resulting from #include directives
+# with the makedepend tool
+# -----------------------------------------------------------------------------
+.Phony: depend clean-depend
+
+depend:
 	@for n in $(PATHSUBLIBDIR);do \
         (if cd $$n; \
                      then $(MAKE) $@;\
