@@ -14,7 +14,6 @@
 #include "blocknodeEQN.hh"
 #include "superblockEQN.hh"
 
-
 namespace CoupledField
 {
 
@@ -66,10 +65,9 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
   numDirichletBCs_ = 0;
   pdeIsCoupled_ = FALSE;
   updateCouplingBCs_ = FALSE;
-  updateBCs_ = 0;
   dim_ = ptgrid_->GetDim();
-  initMatrices_ = FALSE;
   geoUpdate_ = FALSE;
+  iterCoupledCounter_ = 0;
 
 
   // =====================================================================
@@ -206,19 +204,13 @@ if (commsize>1) parallel = "yes";
       }
     else if (analysisHelp == MULTI_SEQUENCE) {
 
-      //std::cerr << "BasePDE::Init: In Step for multisequence" << std::endl;
-      
       stepString = Info->GenStr(bcSequenceIndex_);
       attrVec = "", "index", "type";
       valVec = "", stepString, pdename_;
-      //std::cerr << "pdename_ = " << pdename_ << std::endl;
-      //std::cerr << "stepString = " << stepString << std::endl;
 
       keyVec = "multiSequence", "step", "pde", "analysis";
       params->Get(keyVec, attrVec, valVec, analysis);
      
-      //std::cerr << "analysis = " << analysis;
-
       String2Enum(analysis, analysistype_);
 
       if (analysistype_ == STATIC){
@@ -402,8 +394,6 @@ if (commsize>1) parallel = "yes";
     if (needsDampingMatrix_) 
       assemble_->NeedDampingMatrix();
 
-//     SetAlgSys();
-    
     // =====================================================================
     // read in material data
     // =====================================================================
@@ -422,6 +412,11 @@ if (commsize>1) parallel = "yes";
 #else
     ReadStoreResults();
 #endif
+
+    // =====================================================================
+    // Create time stepping algorithm
+    // =====================================================================
+    InitTimeStepping();
 
   }
   
@@ -557,42 +552,40 @@ void BasePDE::StepStaticLin(const Integer kstep, const Double aTime,
 {
   ENTER_FCN( "BasePDE::StepStaticLin" );
 
-  Integer job;
+  Integer job = 3;
   Double * ptsol;
   lasttimecalc_ = aTime; // for correct output in unv-file
   
 
-  if ( pdeIsCoupled_ == FALSE || iterCoupledCounter_ == 0 && firstTimeStepStatic_)
+  // If the geometry has changed or the system matrix
+  // is calculated for the first time,
+  // the matrices have to be reassembled and therfore
+  // the preconditioner has to be recalculated
+
+  if (  geoUpdate_ == TRUE
+	|| firstTimeStepStatic_ == TRUE) {
     assemble_->AssembleMatrices(level);
+    job = 1; // calc new preconditioner
+  }
 
-
-  //this has to be done each time!
+  
+  // The RHS-sources have to be reassembled each time
   assemble_->AssembleSrcRHS(level, aTime);
 
-  const Integer numElems = numPDENodes_ * dofspernode_;
 
-  if ( pdeIsCoupled_ == FALSE || iterCoupledCounter_ == 0)
+  // The inhom. Dirichlet BCs have to be set only if
+  // the system matrix is calculated for the first time or
+  // the BCs have changed due to new coupling values
+  if ( firstTimeStepStatic_ == TRUE
+       || updateCouplingBCs_ == TRUE)
     {
       //account for bcs
-      SetBCs(level, updateBCs_, aTime);
-      updateBCs_ = 0;
-
-      if (firstTimeStepStatic_)
-	job = 1; // calc new preconditioner
-      else 
-	job = 3;  // just set new BCs    
-
-#ifdef USE_OLAS
-      algsys_->BuildInDirichlet();
-      algsys_->SetupPrecond(job);
-#else
-      algsys_->CalcPrecond(job);
-#endif
-
+      SetBCs(level, aTime);
     }
-  else
-    job = 3;
 
+
+  // Incorporate Boundary conitions and
+  // recalc the prconditioner eventually
 #ifdef USE_OLAS
   algsys_->BuildInDirichlet();
   algsys_->SetupPrecond(job);
@@ -600,14 +593,12 @@ void BasePDE::StepStaticLin(const Integer kstep, const Double aTime,
   algsys_->CalcPrecond(job);
 #endif  
 
+
+  // Solve problem
   algsys_->Solve();
 
+  // Get the solution and store it
   ptsol = algsys_->GetSolutionVal();
-
-  // save solution
-  Integer k=0;
-  
-  //sol_->SetDataPointer(ptsol);
   sol_->CopyFromAlgSysDataPointer(ptsol);
 
   firstTimeStepStatic_ = FALSE;
@@ -649,8 +640,6 @@ void BasePDE::PreStepTrans(const Integer kstep, const Double asteptime,
 
   if (geoUpdate_)
     {
-      assemble_->SetNonlinGeo();
-
       algsys_->InitRHS();
       algsys_->InitSol();
       assemble_->InitMatrices();
@@ -685,13 +674,13 @@ void BasePDE::PostStepTrans(const Integer kstep, const Double asteptime, const I
 
 
 // initialize PDEs before iteration (done for each time step)
- void BasePDE::InitStepTransCoupled(Double asteptime)
-  {
-    ENTER_FCN( "BasePDE::InitStepTransCoupled" );
-    lasttimecalc_= asteptime;
-    iterCoupledCounter_ = 0;
-  }
- 
+void BasePDE::InitStepTransCoupled(Double asteptime)
+{
+  ENTER_FCN( "BasePDE::InitStepTransCoupled" );
+  lasttimecalc_= asteptime;
+  iterCoupledCounter_ = 0;
+}
+
 
 
 void BasePDE::StepTransLin(const Integer kstep, const Double asteptime,
@@ -701,7 +690,7 @@ void BasePDE::StepTransLin(const Integer kstep, const Double asteptime,
   ENTER_FCN( "BasePDE::StepTransLin" );
 
   Double * ptsol;
-  Integer update,job;
+  Integer job;
    
   //account for RHS
   assemble_->AssembleSrcRHS(level,lasttimecalc_);
@@ -718,7 +707,6 @@ void BasePDE::StepTransLin(const Integer kstep, const Double asteptime,
 
   if (laststepcalc_ == 1)
     {
-      update = 0;
       job = 3;
 
       // why is the first statement checking for 'pdeIsCoupled'?
@@ -733,7 +721,6 @@ void BasePDE::StepTransLin(const Integer kstep, const Double asteptime,
     }
   else if (reset)
     {
-      update = 1;
       job    = 1;
 
       algsys_->InitMatrix(SYSTEM);
@@ -746,7 +733,6 @@ void BasePDE::StepTransLin(const Integer kstep, const Double asteptime,
     }
   else
     {
-      update = 1;
       job    = 3; 
 
       // The following section is only an experiment up to now
@@ -773,7 +759,7 @@ void BasePDE::StepTransLin(const Integer kstep, const Double asteptime,
   TS_alg_->UpdateRHS();
 
 
-  SetBCs(level,update,lasttimecalc_);
+  SetBCs(level,lasttimecalc_);
 #ifdef USE_OLAS
   algsys_->BuildInDirichlet();
   algsys_->SetupPrecond(job);
@@ -871,7 +857,7 @@ void BasePDE::StepHarmonicLin(const Integer freqStep, const Double frequency,
   if (reset)
     {
       //account for bcs
-      SetBCs(level, updateBCs_, frequency);
+      SetBCs(level, frequency);
 
       job = 1; // calc new preconditioner
 
@@ -912,15 +898,11 @@ void BasePDE::StepHarmonicLin(const Integer freqStep, const Double frequency,
 }
 
 
-void  BasePDE::SetBCs(const Integer level, const Integer update, const Double time)
+void  BasePDE::SetBCs(const Integer level,  const Double time)
 {
 
   ENTER_FCN( "BasePDE::SetBCs" );
 
-  //std::cerr << "BasePDE::SetBCs" << std::endl;
-  //std::cerr << "===============" << std::endl;
-  
-  
   Integer node, dof;
   Double val, val_tfunc;
 
@@ -957,7 +939,6 @@ void  BasePDE::SetBCs(const Integer level, const Integer update, const Double ti
 	    {
 	      
 	      // Increment counter for BCs
-	      std::cerr << "   -> SET!" << std::endl;
 #ifdef USE_OLAS
 	      algsys_->SetDirichlet(j+1, eqnNr, val, eqnDof);
 #else
@@ -1019,13 +1000,118 @@ void  BasePDE::SetBCs(const Integer level, const Integer update, const Double ti
 }
 
 
+void BasePDE::GetMemento(PDEMemento & memento) {
+  ENTER_FCN( "BasePDE::GetMemento" );
 
-void BasePDE::SetSolution(CFSVector &sol)
-{
-  ENTER_FCN( "BasePDE::SetSolution" );
+  // first get memento of coupling object
+  if (pdeIsCoupled_) {
+    ptCoupling_->GetMemento(memento.couplingMemento_);
+  }
   
-  sol_->SetAlgSysVector(sol);
 
+  // then write own data to PDEMemento
+  memento.analysisType_ = analysistype_;
+
+  if (memento.sol_)
+    delete memento.sol_;
+
+  if (analysistype_ == STATIC ||
+      analysistype_ == TRANSIENT)
+    {
+
+      // --- Real values --
+      // Set solution
+      memento.sol_ = new Vector<Double>;
+      dynamic_cast<Vector<Double>&>(*(memento.sol_)) =
+	dynamic_cast<NodeStoreSol<Double>&>(*(sol_)).GetAlgSysVector();
+      
+
+      if (analysistype_ == TRANSIENT) {
+	Warning ("Currently only the first derivative is stored in the memento object!",
+		 __FILE__, __LINE__);
+
+	// Set first derivative
+	memento.solDeriv1_ = getS1();	
+	
+	// Set secondderivative
+	memento.solDeriv2_ = getS2();
+      }
+    } else {
+
+      // --- Complex values --      
+      // Set solution
+      memento.sol_ = new Vector<Complex>;
+      dynamic_cast<Vector<Complex>&>(*(memento.sol_)) =
+	dynamic_cast<NodeStoreSol<Complex>&>(*(sol_)).GetAlgSysVector();
+    }  
+  
+
+  // now memento is initialized
+  memento.isSet_ = TRUE;
+}
+
+
+
+void BasePDE::SetMemento(PDEMemento & memento) {
+  ENTER_FCN( "BasePDE::SetMemento" );
+  
+  // if there is no information in the menmento just leave
+  if (memento.isSet_ == FALSE)
+    return;
+  
+  if (analysistype_ == STATIC ||
+      analysistype_ == TRANSIENT)
+    {
+      // --- Real values --
+      // Set solution
+      dynamic_cast<NodeStoreSol<Double>&>(*(sol_))
+	.SetAlgSysVector
+	(dynamic_cast<Vector<Double>&>(*(memento.sol_)));
+      
+      // if previous step was transient and the current step is also
+      // then give the time derivative to the timestepping algorithm
+      if (analysistype_ == TRANSIENT
+	  && memento.analysisType_ == TRANSIENT) {
+	TS_alg_->SetDeriv1(memento.solDeriv1_);
+	TS_alg_->SetDeriv2(memento.solDeriv2_);
+      }
+    } else {
+      // --- Complex values --      
+      // Set solution
+      dynamic_cast<NodeStoreSol<Complex>&>(*(sol_)).SetAlgSysVector
+	(dynamic_cast<Vector<Complex>&>(*(memento.sol_)));
+
+    }
+
+  // If PDE is coupled, set the according coupling memento
+  if (pdeIsCoupled_) {
+    ptCoupling_->SetMemento(memento.couplingMemento_);
+  }
+}
+
+
+const Vector<Double>& BasePDE::getS1() const {
+  std::string errMsg;
+  
+  if (TS_alg_ != NULL)
+    return TS_alg_->GetDeriv1();
+  else {
+    errMsg  = pdename_;
+    errMsg += ":getS1: No timestepping defined for this PDE";
+    Error(errMsg.c_str(), __FILE__, __LINE__);
+  }
+}
+
+const Vector<Double>& BasePDE::getS2() const {
+  std::string errMsg;
+  
+  if (TS_alg_ != NULL)
+    return TS_alg_->GetDeriv2();
+  else {
+    errMsg  = pdename_;
+    errMsg += ":getS2: No timestepping defined for this PDE";
+    Error(errMsg.c_str(), __FILE__, __LINE__);
+  }
 }
 
 
@@ -1073,7 +1159,6 @@ void BasePDE::ReadBCs()
   keyVec = pdename_, "bcsAndLoads", "dirichletHom", "name";
   attrVec = "", "tag", "";
   valVec = "", bcSequenceTag_, "";
-  //std::cerr << "ReadBCs: bcSequenceTag = " << bcSequenceTag_ << std::endl;
   params->GetList(keyVec, attrVec, valVec, bcs_hd_);
 
   // Get names of node sets, values and filenames for inhomogenous
@@ -1093,15 +1178,6 @@ void BasePDE::ReadBCs()
     keyVec = pdename_, "bcsAndLoads", "dirichletInhom", "phase";
     params->GetList(keyVec, attrVec, valVec, bcs_id_phase_);
   }
-
-
-//   std::cerr << "===============================" << std::endl;
-//   std::cerr << "PDENAME : " << pdename_ << std::endl;
-//    std::cerr << "dirichletInhom = " << bcs_id_ << std::endl;
-//    std::cerr << "dirichletHom = " << bcs_hd_ << std::endl;
-//    std::cerr << "dirichletInhom-value = " << val_id_ << std::endl;
-//    std::cerr << "dirichletInhom-dynamics= " << fncnames_id_ << std::endl;
-//    std::cerr << std::endl;
 
   // Check consistency
   if ( bcs_id_.GetSize() != val_id_.GetSize() ||
@@ -1346,8 +1422,6 @@ BasePDE::~BasePDE()
 #endif
 
     //set the graph type used for the system matrices
-    //std::cerr << "BasePDE: We have " << eqnData_->GetNumEQNs();
-    //std::cerr << " Equations" << std::endl;
     assemble_->SetupMatrixGraph(eqnData_->GetNumEQNs());
 
     //allocate the necessary matrices as well as solver and preconditioner
@@ -1704,6 +1778,8 @@ void BasePDE::CalcInputCoupling()
   couplingBCsCounter_ = 0;
   
 
+Double sum = 0.0;
+
   // Outer loop over all INPUT coupling terms
   for (Integer i=0; i<ptCoupling_->GetNumInputCouplings(); i++)
     {
@@ -1722,7 +1798,11 @@ void BasePDE::CalcInputCoupling()
 	  // COORDINATE COUPLING
 	  // -------------------
 	case COORD:
-	  initMatrices_ = TRUE;
+	  
+	  // Set flag that the geometry has changed
+	  geoUpdate_ = TRUE;
+	  assemble_->SetNonlinGeo();
+
 	  ptCoupling_->GetInputNodes(i, nodes);
 
 	  // Resize + clear coordinate updates
@@ -1739,8 +1819,6 @@ void BasePDE::CalcInputCoupling()
 	  for (Integer j=0; j<nodes->GetSize(); j++)
 	    for (Integer dof=0; dof<ptCoupling_->GetInputDof(i); dof++)
 	      {
-		//std::cerr << "processing dim = " << dim << ", j = " << j << std::endl;
-		
 		pdeNode = eqnData_->Mesh2PDENode((*nodes)[j]);
 		if (pdeNode==-1) {
 		  errMsg =  pdename_;
@@ -1749,27 +1827,22 @@ void BasePDE::CalcInputCoupling()
 		  errMsg += " is not in contained in list of my subdomains!";
 		  Error(errMsg.c_str(), __FILE__, __LINE__);
 		}
+		sum += help[dof + j*dim_];
  		deltCoords_(dof,pdeNode-1) = help[dof + j*dim_];
 
-		      }
-	  //	  std::cerr << "---------------------------------" << std::endl << std::endl;
+	      }
 	  break;
 
 	  // -------------------
 	  // RHS COUPLING
 	  // -------------------
 	case RHS:
-
-	  //	  std::cerr << "****** Processing coupling " <<  i << std::endl;
-	  //std::cerr << "In " << pdename_ << "::CalcInputCoupling - Switch(RHS)" << std::endl;
 	  ptCoupling_->GetInputNodes(i, nodes);
 	  
-
 	  //for (Integer dof=0; dof<ptCoupling_->GetInputDof(i); dof++)
 	  for (Integer dof=0; dof<couplingDof; dof++)
 	    for (Integer j=0; j<nodes->GetSize(); j++)
 	      {
-		// std::cerr << "Getting input node " << (*nodes)[j] << std::endl;
 		eqnData_->Node2EQN((*nodes)[j],dof+1,eqnNr,eqnDof);
 		// This warning is disabled, in multi-dof pdes
 		// only one compomemt
@@ -1794,39 +1867,30 @@ void BasePDE::CalcInputCoupling()
 		  }
 	      }
 	  
-	  //       std::cerr << "-------------------------------------" << std::endl << std::endl;
 	  break;
 
 	  // -----------------------
 	  // InhomDirichlet COUPLING
 	  // -----------------------
 	case ID_BC:
-	  //std::cerr << "In " << pdename_ << "::CalcInputCoupling - Switch(ID_BC)" << std::endl;
+	  
+	  // Set flag that the boundary conditions have to be incorporated
+	  updateCouplingBCs_ = TRUE;
+
+
  	  ptCoupling_->GetInputNodes(i, nodes);
-	  //std::cerr << "found " << nodes->GetSize() << " IDBCs input nodes" << std::endl;
+
 	  for (Integer dof=0; dof<ptCoupling_->GetInputDof(i); dof++)
 	    for (Integer j=0; j<nodes->GetSize(); j++, couplingBCsCounter_++)
 	      {
 		eqnData_->Node2EQN((*nodes)[j],dof+1,eqnNr,eqnDof);
-// 		std::cerr << pdename_ << ":ID_BC node " << (*nodes)[j];
-// 		std::cerr << ", value " <<  help[dof+j*couplingDof] << std::endl;
 		if (eqnNr==0)
 		  Error("The specified coupling node has no equation number"
 			, __FILE__,__LINE__);
 #ifdef USE_OLAS
 		algsys_->SetDirichlet(couplingBCsCounter_+1, eqnNr, help[dof+j*couplingDof], eqnDof);
 #else
-		if (updateCouplingBCs_)
-		  {
-		    //		    std::cerr << "updating BC[" << dof << "][" << (*nodes)[j] << "] = " 
-		    //		      << (*val)[dof][j] << std::endl;
-		    algsys_->UpdateDirichlet(couplingBCsCounter_+1, help[dof+j*couplingDof], SYSTEM);
-		  }
-		else
-		  {	
-		    //  std::cerr << "BC[" << dim << "][" << (*nodes)[j] << "] = " << (*val)[dim][j] << std::endl;
-		    algsys_->SetDirichlet(couplingBCsCounter_+1, eqnNr, help[dof+j*couplingDof], eqnDof, SYSTEM);
-		  }
+		algsys_->SetDirichlet(couplingBCsCounter_+1, eqnNr, help[dof+j*couplingDof], eqnDof, SYSTEM);
 #endif
 	      }
 	  break;
@@ -1837,9 +1901,6 @@ void BasePDE::CalcInputCoupling()
 
 	}  // end switch
     } // end for
-
-  updateCouplingBCs_ = TRUE;
-
 }
 
 
@@ -1858,9 +1919,9 @@ void BasePDE::GetElemCoords(const StdVector<Integer> connect,
 
   ENTER_FCN( "BasePDE::GetElemCoords" );
   Integer pdeNode;
-
   ptgrid_->GetCoordNodesElemMat(connect, coordMat, level);
   
+
   if (deltCoords_.GetSizeRow() != 0 && geoUpdate_ == TRUE)
     {
       for (Integer i=0; i<coordMat.GetSizeRow(); i++)

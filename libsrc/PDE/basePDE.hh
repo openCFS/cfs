@@ -29,6 +29,7 @@
 #include "Driver/assemble.hh"
 #include "timestepping.hh"
 #include "nodeEQN.hh"
+#include "pdememento.hh"
 
 #ifdef USE_DATABASE
 #include "DataInOut/LoadMaterialDataDatabase.hh"
@@ -36,7 +37,7 @@
 
 namespace CoupledField
 {
- 
+
 class SpaceErrorEstimator;
 
   //! Base class for partial differential equations
@@ -48,7 +49,9 @@ class SpaceErrorEstimator;
   {
   public:
 
+    // friend class declarations
     friend class PDECoupling;
+    friend class PDEMemento;
 
     //! Constructor
     /*!
@@ -72,11 +75,6 @@ class SpaceErrorEstimator;
     virtual void Init(Integer sequenceStep = 0,
 		      std::string  bcSequenceTag = "anyTag");
     
-    //! read material data
-    virtual void ReadMaterialData();
-
-    virtual void ReadSpecialBCs(){}
-
     // The following Methods used durig parameter Identification process!!
     MaterialData * getPDEMaterialData(){return materialData_;};
     BaseNodeStoreSol * getPDESolution(){return sol_;};
@@ -96,14 +94,9 @@ class SpaceErrorEstimator;
     
     //! set boundary condition
     //! \param level             level of grid
-    //! \param update indicator: do we update boundary condition in algebraic
-    //!                          system or set new ones?
     //! \param atimestep         time step of claculation
-    virtual void SetBCs(const Integer level, const Integer update,
+    virtual void SetBCs(const Integer level, 
 			const Double atimestep);
-
-    //! define all (bilinearform) integrators needed for this pde
-    virtual void DefineIntegrators(const Integer level)=0;
 
     //! write general defines (BCs, loads, etc.) to info-file
     virtual void WriteGeneralPDEdefines();
@@ -154,10 +147,10 @@ class SpaceErrorEstimator;
     //! define algebraic system solver Parameters
     virtual void SetSolverParameters();
 
-    //! Init the time stepping
-    //! \param dt time step
-  virtual void InitTimeStepping(const Double dt)
-    {Error("InitTimeStepping not implemented",__FILE__,__LINE__);};
+    //! set time step
+    //! \params dt Current time step
+    virtual void SetTimeStep(const Double dt)
+    {TS_alg_->Init(matrix_factor_, dt);}
 
     //! deletes the algebraic system
     void DeleteAlgSys(int as_id)
@@ -282,15 +275,37 @@ class SpaceErrorEstimator;
       return FALSE;
     }
 
-    //! set solution
-    virtual void SetSolution(CFSVector & sol);
-    
-    //! return solution
-    virtual const BaseNodeStoreSol& GetSolution() {return *sol_;}
+    //! get the encapsulated state of the PDE
+
+    //! returns the current state of the PDE (solution, derivative,
+    //! coupling-objects) in an encapsulated object. This is needed to
+    //! enable full MultiSequence simulation, where from one step to 
+    //! another the solution, the derivative and perhaps coupling 
+    //! values like geometry update have to be passed. 
+    //! The PDEMemento object encapsulates this information. 
+    //! Later on the information can be given back to the PDE
+    //! with the method SetMemento();
+    //! \param memento (output) Object where the current state gets saved
+    virtual void GetMemento(PDEMemento & memento);
+
+    //! set the encapsulated state of the PDE
+
+    //! set the current state of this PDE (solution, derivative,
+    //! coupling-objects) from an encapsulated object. This is needed to
+    //! enable full MultiSequence simulation, where from one step to 
+    //! another the solution, the derivative and perhaps coupling 
+    //! values like geometry update have to be passed. 
+    //! The PDEMemento object encapsulates this information. 
+    //! With this method the previous stored information can be set
+    //! to the current PDE.
+    //! \param memento (input) Previously saved state of the PDE
+    virtual void SetMemento(PDEMemento & memento);
 
     //! return pointer to vector with first derivative of solution
-    virtual const Vector<Double> & getS1() const 
-    { Error("Not implemented",__FILE__,__LINE__);}
+    virtual const Vector<Double> & getS1() const;
+
+    //! return pointer to vector with first derivative of solution
+    virtual const Vector<Double> & getS2() const;
     
     //! return size of solution
     virtual Integer getSize() const 
@@ -325,6 +340,10 @@ class SpaceErrorEstimator;
 
 
   protected:
+
+    // ======================================================
+    // INITIALIZATION METHODS
+    // ======================================================
   
 #ifndef XMLPARAMS
     //! check for saving parameters
@@ -339,12 +358,26 @@ class SpaceErrorEstimator;
 
 #endif
 
-    //! Initialize NonLinearities
-    virtual void InitNonLin(){};
+    //! define all (bilinearform) integrators needed for this pde
+    virtual void DefineIntegrators(const Integer level)=0;
+
+    //! read material data
+    virtual void ReadMaterialData();
 
     //! read from config-file info about BCs
     void ReadBCs();
     
+    // overloaded version of ReadBCs for special
+    // boundary conditions in derived classes
+    virtual void ReadSpecialBCs(){}
+
+    //! Initialize NonLinearities
+    virtual void InitNonLin(){};
+
+    //! Init the time stepping
+    virtual void InitTimeStepping()
+      {Error("InitTimeStepping not implemented",__FILE__,__LINE__);};
+
     //! return index of dof defined by keyword (e.g. 'ux')
     virtual Integer GetBCDof(const std::string keyword);
 
@@ -495,9 +528,6 @@ class SpaceErrorEstimator;
     //! values of phases at inhomogeneous Dirichlet boundaries
     StdVector<Double> bcs_id_phase_;
 
-    //! set, if BCs already set (shouldn't this better be a bool?)
-    Integer updateBCs_;
-
     //! names of the time functions for inhomogeneous Dirichlet BCs
     StdVector<std::string> fncnames_id_;
 
@@ -640,8 +670,6 @@ class SpaceErrorEstimator;
     Vector<Double> actSol_;       //! needed in iterative coupled computation 
     Boolean isIncrFormulation_;   //! checks, if we have for the coupling a incremental solution
     
-
-    Boolean initMatrices_; //!< true, if matrix is set up each iteration step
 
     //! factors for constructing effective mass / stiffness matrix
     Double matrix_factor_[4];
