@@ -1,0 +1,46 @@
+\chapter{Structure of Config-File}
+The basic structure of the config-file for CFS++ in our XML
+syntax is as follows:
+
+\begin{verbatim}
+<?xml version="1.0"?>
+<cfsSimulation xmlns="http://www.cfs++.org">
+
+ ... Parameters ...
+
+</cfsSimulation>
+\end{verbatim}
+
+The first line gives version information for the XML parser, while the
+second line is the starting tag for the main enclosing element called
+cfsSimulation.  The last line then is the closing tag for this main
+element. All parameters must appear between the opening and the
+closing tag.
+
+Only a few tags are allowed in this main body (see table
+\ref{tab:Layer1Elements}). They will be documented in the next
+sections. These top level tags have to be used in the order shown in
+table \ref{tab:Layer1Elements}.
+
+\begin{table}[h!]
+  \centering
+  \begin{tabular}{lll}
+    \hline
+    leave name & leave type & occurence constraints \\
+    \noalign{\smallskip}\hline\noalign{\smallskip}
+    analysis     & plane   & required\\
+    geometry     & plane   & required\\
+    input        & plane   & optional\\
+    output       & plane   & optional\\
+    materialData & plane   & optional\\
+    domain       & section & required \\
+    pdeList      & section & required \\
+    transient    & section & required for transient analysis \\
+    \hline
+  \end{tabular}
+  \caption{\label{tab:Layer1Elements}Possible commands of the 1. level
+    in the config-file}  
+\end{table}
+
+
+

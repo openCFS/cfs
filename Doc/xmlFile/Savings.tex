@@ -1,0 +1,85 @@
+\chapter{Saving of Results} 
+
+\section{Node Results}
+By default, the degree of freedom is saved to the universal file. But
+sometimes one needs (additionally) the time derivative (e.g. in
+acoustics, to calculate the pressure from the acoustic velocity
+potential). Herefore, the command
+
+\begin{verbatim}
+<storeResults>
+   <nodeResults type="velocity"/>
+</storeResults>
+\end{verbatim}
+
+may be used. The value of the attribute {\bf type} is PDE dependent,
+e.g. for mechanics, the following values are allowed:
+\begin{itemize}
+\item {\bf displacement}
+\item {\bf velocity}    
+\item {\bf acceleration}
+\end{itemize}
+The allowed types are mentioned at the individual PDE sections.
+
+By default, the values on every node are stored. With the additional
+attribute {\bf region} one can restrict the saved results to one or
+more selected regions.
+To store the results of the regions "bar" and "gap", one has to write
+\begin{verbatim}
+<storeResults>
+   <nodeResults type="velocity" region="bar"/>
+   <nodeResults type="velocity" region="gap"/>
+</storeResults>
+\end{verbatim}
+
+
+\section{Element Results}
+In general, saving of element results is, beside the different keyword
+{\bf elemResults} totally similar to the procedure of saving nodal
+results:
+\begin{verbatim}
+<storeResults>
+   <elemResults type="stress"/>
+</storeResults>
+\end{verbatim}
+Again, the values of {\bf type} depend on the regarded PDE. 
+
+
+\section{Results at Special Points} 
+In many applications we are only interested in the response of the
+system at a single point. In order to reduce necessary disk space,
+it is possible to store the nodal results only at a discrete
+location. Therefore, the command {\bf nodeHistory} with the
+attribute {\bf saveNodes="nodeName"} is provided. This command
+reduces the amount of results stored tremendously, because no
+universal-file is written.
+
+In the config-file, the command is as follows
+
+\begin{verbatim}
+<storeResults>
+   <nodeHistory type="velocity" saveNodes="ptName"/>
+</storeResults>
+\end{verbatim}
+
+has to be used. The results are stored in the -- if necessary new
+created -- directory {\em history} in a file with the name {\em
+  conf-file-name.ptNr}.hist.
+
+\begin{verbatim}
+nsel,s,loc,x,len-1e-6,len+1e-6
+nsel,r,loc,y,height
+wsavnod,'ptName'
+\end{verbatim}
+
+
+\section{Results at Special Elements} 
+Again, saving results of selected elements is similar to the procedure
+of saving results on selected nodes. The commands name is {\bf
+  elemHistory}, and the necessary keyword {\bf saveElems}:
+\begin{verbatim}
+   <storeResults>
+      <elemHistory type="stress" saveElems="elName"/>
+   </storeResults>
+\end{verbatim}
+

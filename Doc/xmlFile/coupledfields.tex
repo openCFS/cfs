@@ -1,0 +1,195 @@
+\chapter{Coupled Fields}
+
+\section{General}
+According to the {\sf pdeList} we will introduce a {\sf couplingList}. Within this
+list we will differ between iterative coupling (e.g. {\sf iterElecMech}) and direct
+coupling (e.g. {\sf directPiezo}). For iterative coupling the method can be {\sf RHS} 
+(for right hand side coupling) and {\sf Matrix} for a matrix coupling algorithm.
+Then, for each involved PDE, we have
+to specify the input coupling terms, which can be {\sf nodeCoupling},
+{\sf surfaceCoupling} and {\sf regionCoupling}. At the end, we have to define
+the stopping criteria and the maximum number of iterations
+within the section {\sf nonlinear}. Therefore, the general structure 
+looks as follows
+
+
+\begin{verbatim}
+<couplingList>
+  <iterativePde1Pde2 method="RHS">
+     <Pde1>
+        <nodeCoupling type=" " name="  "/>
+     </Pde1>
+     <Pde2>
+        <interfaceCoupling type=" " name="  "/>
+     </Pde2>
+     <nonLinear logging="yes">
+       <StopCrit name=" " value="1e-3"/>
+       <maxNumIters>  200</maxNumIters>
+     </nonLinear>
+  </iterativePde1Pde2>
+
+  <iterativePde3Pde4 method="Matrix">
+     <Pde3>
+        <nodeCoupling type=" " name="  "/>
+     </Pde3>
+     <Pde4>
+        <regionCoupling type=" " name="  "/>
+     </Pde4>
+     <nonLinear logging="no">
+       <StopCrit name=" " value="1e-2"/>
+       <maxNumIters> 20 </maxNumIters>
+     </nonLinear>
+  </iterativePde3Pde4>
+</couplingList>
+\end{verbatim}
+
+\noindent
+For the stopping criteria, we have currently the following names:
+
+\begin{verbatim}
+    <StopCrit name="mechdisplacement" value="1e-2"/>
+    <StopCrit name="elecForce" value="1e-2"/>
+    <StopCrit name="magForce" value="1e-2"/>
+\end{verbatim}
+
+
+\section{Specifications within the single fields}
+Currently we have definitions for electrostatics, mechanics, magnetics and acoustics.
+
+\begin{table}[htb]
+\begin{center}
+\caption{Electrostatics}
+\bigskip
+\begin{tabular}{l|l}
+input coupling & type \\\hline \hline
+nodeCoupling & mechDisplacement \\
+regionCoupling & smoothDisplacement 
+\end{tabular}
+\end{center}
+\end{table}
+
+\begin{table}[htb]
+\begin{center}
+\caption{Mechanics}
+\bigskip
+\begin{tabular}{l|l}
+input coupling    & type \\\hline \hline
+nodeCoupling      & elecForceVWP \\
+nodeCoupling      & magForceVWP \\
+regionCoupling    & magForceLorentz \\
+interfaceCoupling & acousticForce 
+\end{tabular}
+\end{center}
+\end{table}
+
+
+\begin{table}[htb]
+\begin{center}
+\caption{Magnetics}
+\bigskip
+\begin{tabular}{l|l}
+input coupling    & type \\\hline \hline
+nodeCoupling & mechDisplacement \\
+regionCoupling & smoothDisplacement 
+\end{tabular}
+\end{center}
+\end{table}
+
+\begin{table}[htb]
+\begin{center}
+\caption{Acoustics}
+\bigskip
+\begin{tabular}{l|l}
+input coupling    & type \\\hline \hline
+nodeCoupling      & mechForec \\
+\end{tabular}
+\end{center}
+\end{table}
+
+\section{ElecMech}
+The two involved fields are the electrostatic and the mechanical field.
+Often we need a additional PDE for the smoothing of the mesh (moving/deforming 
+body problem).
+
+\bigskip
+\noindent
+{\it Example:}
+
+\begin{verbatim}
+<couplingList>
+  <iterativeElecMech method="RHS">
+     <mechanic>
+        <nodeCoupling type="elecForceVWP" name="electrode1"/>
+     </mechanic>
+     <electrostatic>
+        <regionCoupling type="smoothDisplacement" name="air1"/>
+        <regionCoupling type="smoothDisplacement" name="air2"/>
+     </electrostatic>
+     <smooth>
+        <nodeCoupling type="mechDisplacement" name="electrode1 "/>
+     </smooth>
+     <nonLinear logging="no">
+       <StopCrit name="mechdisplacement" value="1e-2"/>
+       <StopCrit name="elecForce" value="1e-2"/>
+       <maxNumIters> 20 </maxNumIters>
+     </nonLinear>
+  </iterativeAcouMech>
+</couplingList>
+\end{verbatim}
+
+\section{MagMech}
+The two involved fields are the magnetic and the mechanical field.
+Often we need a additional PDE for the smoothing of the mesh (moving/deforming 
+body problem).
+
+\bigskip
+\noindent
+{\it Example:}
+
+\begin{verbatim}
+<couplingList>
+  <iterativeMagMech method="RHS">
+     <mechanic>
+        <regionCoupling type="magForceLorentz" name="plate"/>
+     </mechanic>
+     <magnetic>
+        <regionCoupling type="smoothDisplacement" name="air1"/>
+        <regionCoupling type="smoothDisplacement" name="air2"/>
+     </magnetic>
+     <smooth>
+        <nodeCoupling type="mechDisplacement" name="surf1 "/>
+     </smooth>
+     <nonLinear logging="no">
+       <StopCrit name="mechdisplacement" value="1e-2"/>
+       <StopCrit name="magForce" value="1e-2"/>
+       <maxNumIters> 20 </maxNumIters>
+     </nonLinear>
+  </iterativeMagMech>
+</couplingList>
+\end{verbatim}
+
+
+\section{AcouMech}
+Here we differ between an indirect and a direct coupling. Currently we have just 
+implemented the iterative coupling.
+
+\bigskip
+\noindent
+{\it Example:}
+
+\begin{verbatim}
+<couplingList>
+  <iterativeAcouMech method="RHS">
+     <mechanic>
+        <nodeCoupling type="acousticForce" name="surf1 "/>
+     </mechanic>
+     <acoustic>
+        <nodeCoupling type="mechForce" name="surf1"/>
+     </acoustic>
+     <nonLinear logging="no">
+       <StopCrit name="mechdisplacement" value="1e-2"/>
+       <maxNumIters> 20 </maxNumIters>
+     </nonLinear>
+  </iterativeAcouMech>
+</couplingList>
+\end{verbatim}

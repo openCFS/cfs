@@ -1,0 +1,36 @@
+\documentclass[12pt,dvips]{book}
+\usepackage{lsemanfred,ifthen,isolatin1}
+\usepackage{subfigure}
+
+\newcounter{pdfordvi}\setcounter{pdfordvi}{0}
+\ifthenelse{\value{pdfordvi} = 0}{\usepackage{graphicx}}{\usepackage[pdftex]{graphicx}}
+\pdfoutput = \value{pdfordvi}
+
+\include{mycommands}
+
+%\includeonly{xmlintro}
+
+
+\begin{document}
+\ifthenelse{\value{pdfordvi} = 0}{\DeclareGraphicsExtensions{.eps}}{\DeclareGraphicsExtensions{.jpg,.pdf}}          
+    
+
+\thispagestyle{empty}
+\include{cover}
+\setcounter{page}{0}
+\tableofcontents
+
+\clearpage
+\pagestyle{headings}
+\pagenumbering{arabic}
+
+\include{xmlintro}
+\include{general}
+\include{basicCommands}
+\include{BCsLoads}
+\include{Savings}
+\include{singlefields}
+\include{coupledfields}
+
+\end{document}
+

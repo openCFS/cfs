@@ -1,0 +1,575 @@
+\chapter{Single Fields}
+
+\section{Electrostatics}
+\subsection{Results}
+The electric field intensity vector $\bE$ can be derived from the
+nodal degree of freedom, the electric potential $V$ by applying a
+gradient operator. This element quantity is calculated by applying
+the config-file-commands
+
+\begin{verbatim}
+<storeResults>
+   <elemResults type="efield" region="elecst2d"/>
+</storeResults>
+\end{verbatim}
+
+In the command {\bf $<$region$>$}, all areas in which the electric field has to
+be calculated, must be listed. To calculate the electric energy, one
+has to use the command 
+
+\begin{verbatim}      
+<storeResults>
+   <elemResults type="energy" region="reg2"/>
+</storeResults>
+\end{verbatim}
+in the config-file. The result is written to the info-file.
+
+
+\subsection{Example}
+
+{\footnotesize
+\begin{verbatim}
+<?xml version="1.0"?>
+
+<cfsSimulation xmlns="http://www.cfs++.org">
+
+  <analysis type="static"/>
+  <geometry type="axi"/>
+  <input format="mesh"/>
+  <output format="unv"/>
+  <materialData file="mat.dat"/>
+
+  <domain>
+    <region name="gndEl"  material="steel"/>
+    <region name="hotEl"  material="steel"/>
+    <region name="dielEl" material="silicon"/>
+    <region name="airEl"  material="air"/>
+
+    <nodes name="hot"/>
+    <nodes name="gnd"/>
+  </domain>
+
+  <pdeList>
+    <electrostatic>
+       <region name="gndEl"/>
+       <region name="hotEl"/>
+       <region name="dielEl"/>
+       <region name="airEl"/>
+
+      <bcsAndLoads>
+        <dirichletHom name="gnd"/>
+        <dirichletInhom name="hot" value="1.0"/>
+      </bcsAndLoads>
+
+      <storeResults>
+        <elemResults type="efield"/>
+        <elemResults type="energy"/>
+      </storeResults>
+
+    </electrostatic>
+  </pdeList>
+
+</cfsSimulation>
+\end{verbatim}
+}
+
+
+\newpage
+\section{Mechanics}
+\subsection{Degree of freedoms}
+In the 3D case we have {\bf ux, uy, uz} and in the 2D case
+(axisymmetric as well as plane) {\bf ux, uy}.
+
+\subsection{Subtypes}
+The type of 2D-element is in general set in the top-level command
+
+\verb!   <geometry type="plane">!
+
+\smallskip
+\noindent
+For the mechanic PDE, a specialization has to be done, which has to be
+performed as {\bf subtype}-attribute inside the tag for the PDE:{\bf
+  $<$mechanic$>$}. Plane stress models are simulated by
+
+\verb!   <mechanic subtype="planeStress">!
+
+\noindent
+and plane strain can be defined by
+
+\verb!   <mechanic subtype="planeStrain">!
+
+\bigskip
+\noindent
+{\em Notice:} Standard 2D subtype is {\sf planeStrain} and a mixture
+of element subtypes within one analysis is not allowed. 
+
+\subsection{Nodal Results}
+Possible nodal results are
+
+\begin{verbatim}
+   <nodeResults type="displacement" region="bar"/>
+   <nodeResults type="velocity" region="bar"/>
+   <nodeResults type="acceleration" region="bar"/>
+\end{verbatim}
+
+\subsection{Element Results}
+The command for calculating the mechanical stresses is
+\begin{verbatim}      
+<storeResults>
+   <elemResults type="stress" region="bar"/>
+</storeResults>
+\end{verbatim}
+
+\subsection{Example}
+
+{\footnotesize 
+\begin{verbatim}
+<?xml version="1.0"?>
+
+<cfsSimulation xmlns="http://www.cfs++.org">
+
+  <analysis type="static"/>
+  <geometry type="plane"/>
+  <input format="mesh"/>
+  <output format="unv"/>
+  <materialData file="mat.dat"/>
+
+  <domain>
+    <region name="cantilev"  material="steel"/>
+
+    <nodes name="leftN"/>
+    <nodes name="rightN"/>
+  </domain>
+
+  <pdeList>
+    <mechanic subtype="planeStrain">
+       <region name="cantilev"/>
+
+      <bcsAndLoads>
+        <dirichletHom name="leftN" dof="ux"/>
+        <dirichletHom name="leftN" dof="uy"/>
+        <dirichletHom name="rightN" dof="ux"/>
+
+        <load         name="rightN" dof="uy" value="-1.0"/>
+      </bcsAndLoads>
+
+    </mechanic>
+  </pdeList>
+
+</cfsSimulation>
+\end{verbatim}
+}
+
+
+\newpage
+\section{Acoustics}
+
+\subsection{Formulation}
+Pressure formulation ...
+
+\subsubsection{Nodal Results}
+The config-file command for storing (only) the pressure in the result
+file is
+
+\begin{verbatim}      
+<storeResults>
+   <nodeResults type="pressure" region="fluid1"/>
+</storeResults>
+\end{verbatim}
+
+%\subsubsection{Element Velocity $\{v\}$}
+
+%\begin{print}
+%  The velocity can be calculated as an element result by applying an
+%  {\em attgroup} command.
+%\end{print}
+
+%\begin{verbatim}
+%attgroup,1,calc,calc_gvp
+%\end{verbatim}
+
+
+\subsection{Absorbing Boundary Conditions (ABC)} 
+In the config file, the command
+
+\begin{verbatim}    
+<bcsAndLoads>  
+   <absorbingBCs name="abc"/>
+</bcsAndLoads>
+\end{verbatim}
+      
+is needed, which defines the boundaries at which the ABCs are working.
+It should be clear, that the dimension of the boundary elements are
+one order lower compared to the dimension of the "domain" elements.
+Therefore, the boundary elements have to be listed with the config-file
+command
+
+\begin{verbatim}
+<domain>
+   <elements name="abc"/>
+</domain>
+\end{verbatim}
+
+
+\subsubsection{Example}
+
+{\footnotesize 
+\begin{verbatim}
+<?xml version="1.0"?>
+<cfsSimulation xmlns="http://www.cfs++.org">
+
+   <analysis type="transient"/>
+   <geometry type="axi"/>
+   <materialData file="mat.dat"/>
+
+   <domain>
+      <region name="sphere" material="water"/>
+      <nodes name="rad"/>
+      <nodes name="savePt"/>
+   </domain>
+
+
+   <pdeList>
+      <acoustic>
+         <region name="sphere"/>
+         <bcsAndLoads>
+            <dirichletInhom name="rad" value="1" dynamics="sin2kHz_4Burst.dat"/>
+         </bcsAndLoads>
+      </acoustic>
+   </pdeList>
+
+   <transient> 
+      <numSteps>    100  </numSteps>   
+      <firstDt>     5e-5 </firstDt>    
+      <stepSaveBeg> 1    </stepSaveBeg>
+      <stepSaveEnd> 100  </stepSaveEnd>
+      <stepSaveInc> 1    </stepSaveInc>
+      <timeDataFile name="sin2kHz_4Burst.dat"/>  
+   </transient>
+
+</cfsSimulation>
+\end{verbatim}
+}
+
+
+\newpage
+\section{Magnetics}
+\subsubsection{Element Results}
+In the case of magnetic field calculation, many element results can be
+deduced by a postprocessing step:
+
+\begin{itemize}
+\item Magnetic induction (magnetic flux density) $\bB$
+    \newline Derived from the magnetic vector potential $\bA$ by
+    applying the curl operator.
+  
+\begin{verbatim}
+<storeResults>
+   <elemResults type="bfield" region="yoke"/>
+</storeResults>
+\end{verbatim}
+  
+\item Eddy current density $\bJ_{\rm e}$ 
+    \newline Currents induced by a magnetic field in a conductive
+    material. 
+
+\begin{verbatim}
+<storeResults>
+   <elemResults type="eddy" region="yoke"/>
+</storeResults>
+\end{verbatim}
+  
+  
+\item Magnetic energy $W$ 
+    \newline Measure for the energy stored in the magnetic assembly.
+  
+\begin{verbatim}
+<storeResults>
+   <elemResults type="energy" region="yoke"/>
+</storeResults>
+\end{verbatim}
+
+\item  Inductivity $L$ 
+
+\begin{verbatim}
+<saveFileL>   lFile.dat   </saveFileL>
+\end{verbatim}
+
+The inductivity $L$ of the magnetic assembly, as well as
+the magnetic flux $\Phi$ are calculated and stored in a file with
+the name "lFile.dat"  given in column oriented form:
+
+{\em time inductivity magFlux}.  
+  
+
+%\item Magnetic force $F_{\rm V}$, {\em calc\_fv}, $<$emag$>$-file
+%  \newline Used for calculating the magnetic force $F_{\rm V}$, due to
+%  a current loaded coil within a magnetic field (Lorentz force)..
+
+\end{itemize}
+
+\subsection{Coil Definition}
+
+The list of coils has to be defined inside the tags
+
+\begin{verbatim}
+<coils>
+
+</coils>
+\end{verbatim}
+
+\subsubsection{Coil Types}
+
+In our simulation, we distinguish different coil types:
+\begin{itemize}
+\item Measurement coils
+  \begin{itemize}
+  \item 2D: \verb! <measurementCoil2d name="coil1">!
+  \item 3D: \verb! <measurementCoil3d name="coil2">!
+  \end{itemize}
+\item Volage driven coils 
+  \begin{itemize}
+  \item 2D: \verb! <voltageCoil2d name="coil3">!
+  \item 3D: \verb! <voltageCoil3d name="coil4">!
+  \end{itemize}
+\item Current driven coils 
+  \begin{itemize}
+  \item 2D: \verb! <currentCoil2d name="coil5">!
+  \item 3D: \verb! <currentCoil3d name="coil6">!
+  \end{itemize}
+\end{itemize}
+
+
+There are several parameters which must be defined for a coil. Every
+coil needs an attribute {\bf name="xyz"}, standing nearby the
+definition of the coil:
+
+\verb! <voltageCoil2d name="coil3">!
+
+\noindent
+Further on, the cross section of a winding has to be
+specified for every coil:
+
+\verb!<windingCrossSection> 1e-6 </windingCrossSection>!
+
+\noindent
+The number of windings $N$ results from the cross section of the wire. It
+is calculated by the overall cross section of the coil $A_c$ devided
+by the cross section of a winding $A_w$
+
+\begin{equation}
+  \label{eq:N}
+  N=\frac{A_c}{A_w}
+\end{equation}
+
+\noindent
+Depending on the coil type, several additional tags are needed. They
+are described in the next sections.
+
+
+\subsubsection{Measurement Coils}
+
+\begin{itemize}
+\item Coil voltage $U$ respectively coil current $I$
+
+\begin{verbatim}
+<saveFileU>  uiFile.dat  </saveFileU>
+\end{verbatim}
+
+  With this tag the voltage respectively the current of a
+  special coil element can be calculated. It's stored in a file
+  named {\em resultFile} in the column oriented form:
+
+  {\em time voltage}.
+
+\end{itemize}
+
+\subsubsection{Current- and Voltage Driven Coils}
+In this coil type, the amplitude, phase (in case of harmonic analysis)
+and the input function (in case of dynamic analyses) of the driving
+current respectively voltage has to be given:
+
+\begin{itemize}
+\item Transient case
+\begin{verbatim}
+<value>       10           </value>
+<dynamics>    timefile.dat </dynamics>
+\end{verbatim}
+
+\item Harmonic case
+\begin{verbatim}
+<value>       10           </value>
+<phase>       90           </phase>
+\end{verbatim}
+\end{itemize}
+
+\noindent
+The name of the time function as well as the sepcification of the
+phase is optional. If it's not given, a constant current with an
+amplitude of {\bf value} is assumed.  
+Voltage driven coils additionally require the total ohmic resistance
+of the coil for solving the network equation:
+
+\verb!<resistance>  10 </resistance>!
+
+\subsubsection{2D Coils}
+For all types of 2D-coils, an identification number is
+necessary:
+
+\verb! <id>  2  <id>!
+
+\noindent
+Due to the 2D- or axisymmetric modeling, only the cross-section of the
+coil is modeled. The coil-id is
+used to identify coil cross-sections belonging together (fed by the
+same current). 
+The sign of the id also specifies the direction of the current.
+
+
+\subsubsection{3D Current Driven Coils}
+For 3D current driven coils, the direction of the current has to be
+given explicitly. In case of a straight current flow, three
+possibilities can be given:
+
+\verb!<currentFlow> direction </currentFlow>!
+
+\noindent
+with {\bf direction} standing for one of 
+\begin{itemize}
+\item xDir
+\item yDir
+\item zDir
+\end{itemize}
+   
+For rotational current flow (e.g. in 3D-modeled axisymmetric coils),
+additionally the midpoint and the direction of the rotational axis
+must be defined:
+
+\begin{verbatim}
+<rotational>
+   <midPointX> 0 </midPointX>
+   <midPointY> 0 </midPointY>
+   <midPointZ> 0 </midPointZ>
+   <rotAxisX>   1 </rotAxisX>
+   <rotAxisY>   0 </rotAxisY>
+   <rotAxisZ>   0 </rotAxisZ>
+</rotational>
+\end{verbatim}
+
+In this example, the midpoint lies at the origin, and the coil
+rotation axis is equal to the x-axis.
+
+
+
+
+
+\subsubsection{Coil Definition Examples}
+
+The full description of a voltage driven coil in 2D with a winding
+cross section of $10^{-3}\, \rm m^2$, a dynamic excitation of 10\,V with
+the dynamic behaviour saved in the file "time.dat", 
+and 10\,$\Omega$ resistance could be given as
+\begin{verbatim}
+<voltageCoil2d name="coil1">
+   <windingCrossSection> 0.001  </windingCrossSection>
+   <value>                  10  </value>
+   <dynamics>         time.dat  </dynamics>
+   <resistance>             10  </resistance>
+   <id>                      2  </id>
+</voltageCoil2d>
+\end{verbatim}
+
+A 3D rotational coil with the rotational axis parallel to the y-axis
+including the point (2,2,0) should be defined as
+
+\begin{verbatim}
+<currentCoil3d name="coil2">
+  <windingCrossSection> 1e-5 </windingCrossSection>
+  <value>                100 </value>
+  <dynamics>        time.dat </dynamics>
+  <rotational>
+    <midPointX>  2  </midPointX>
+    <midPointY>  2  </midPointY>
+    <midPointZ>  0  </midPointZ>
+    <rotAxisX>    0  </rotAxisX>
+    <rotAxisY>    1  </rotAxisY>
+    <rotAxisZ>    0  </rotAxisZ>
+  </rotational>
+</currentCoil3d>
+\end{verbatim}
+
+
+\subsection{Permanent Magnets}
+The use of permanent magnets in the simulation is very simple. In the
+magnetic section, the command
+
+\begin{verbatim}
+<magnets>
+   <magnet name="perm" orientX="0" orientY="0" orientZ="1" />
+</magnets>
+\end{verbatim}
+has to list all domains, which hold a permanent magnet. The
+orientation and strength of the permanent magnetic field is given by
+the magnetization vector $\bM$ giben in Tesla described by the three
+values {\bf orientX}, {\bf orientY} and {\bf orientZ}
+
+\begin{equation}
+  \label{eq:M}
+  \bM = \left(
+    \begin{tabular}{r}
+      orientX\\
+      orientY\\
+      orientZ
+    \end{tabular}
+\right) \; .
+\end{equation}
+
+\subsubsection{Example}
+{\footnotesize
+\begin{verbatim}
+<?xml version="1.0"?>
+<cfsSimulation xmlns="http://www.cfs++.org">
+
+   <analysis type="static"/>
+   <geometry type="plane"/>
+   <materialData file="mat.dat"/>
+
+   <domain>
+      <region name="myCoil" material="air"/>
+      <region name="iron"   material="iron"/>
+      <region name="air"    material="air"/>
+      <nodes name="bound"/>
+   </domain>
+
+   <pdeList>
+      <magnetic>
+
+         <region name="myCoil" />
+         <region name="iron"   />
+         <region name="air"    />
+
+         <bcsAndLoads>
+            <dirichletHom   name="bound"/>
+         </bcsAndLoads>
+
+         <coils>
+            <currentCoil2d name="myCoil">
+               <!-- whole coil area: 100*5 mm^2 with 20 windings -->
+               <windingCrossSection>50e-6 </windingCrossSection>
+               <value>       1            </value>
+               <dynamics>    time.dat     </dynamics>
+               <id>          1            </id>
+            </currentCoil2d>
+         </coils>
+
+         <storeResults>
+            <elemResults type="bfield" region="myCoil"/>
+            <elemResults type="bfield" region="iron"/>
+            <elemResults type="bfield" region="air"/>
+         </storeResults>
+
+      </magnetic>
+   </pdeList>
+</cfsSimulation>
+\end{verbatim}
+}
