@@ -57,8 +57,8 @@ namespace CoupledField
    sol_->SetNumNodes(numPDENodes_);
    sol_->SetSolutionType(MECH_DISPLACEMENT,0);
    sol_->SetSolutionType(ELEC_POTENTIAL,1);
-   sol_->SetDof(Dim_,MECH_DISPLACEMENT); // displacements have dof of mesh-dimension
-   sol_->SetDof(1,ELEC_POTENTIAL);  // electric potential
+   sol_->SetNumDofs(Dim_,MECH_DISPLACEMENT); // displacements have dof of mesh-dimension
+   sol_->SetNumDofs(1,ELEC_POTENTIAL);  // electric potential
    sol_->Init(0.0);
    
    //check for damping model

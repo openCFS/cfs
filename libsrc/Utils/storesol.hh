@@ -26,9 +26,6 @@ public:
   //! Copy Constructor
   StoreSol(const StoreSol & x);
 
-  //! Copy Consturctor with Vector
-  StoreSol(const Vector<TYPE> & x);
-  
   //! Destructor
   virtual ~StoreSol();
 
@@ -45,7 +42,7 @@ public:
   void SetSolutionType(const SolutionType solTypes, const Integer numSolution = 0);
 
   //!
-  void SetDof(const Integer dof, const SolutionType sol = NOSOLUTIONTYPE);
+  void SetNumDofs(const Integer dof, const SolutionType sol = NO_SOLUTION_TYPE);
 
   //!
   TYPE& operator()(Integer node, Integer dof);
@@ -165,51 +162,8 @@ public:
   //! assignment operator
   StoreSol & operator= (const StoreSol & x);
   
-  //! assignment operator with std-vector
-  //! \deprectaed Since std::vectors are only used for some kind
-  //! of numerations, this interface should not be used anmyore
-  StoreSol & operator= (const std::vector<TYPE> &x);
-
-  //! assignent operator with Vector
-  StoreSol & operator= (const Vector<TYPE> &x);
-  
-  // Overloading of +, +=
-  //!
-  StoreSol  operator+ () const;
-
-  //! 
-  StoreSol operator+ (const StoreSol & x) const;
-
-  //!
-  StoreSol& operator+= (const StoreSol & x);
-
-
-  // Overloading of -, -=
-  //!
-  StoreSol operator- () const;
-  //! 
-  StoreSol operator- (const StoreSol & x) const;
-  //! 
-  StoreSol& operator-= (const StoreSol & x);
-
-
-  //! scalar product
-  TYPE operator* (const StoreSol & x) const;
-
-
-  // Overloading of *, *=
-  //! 
-  StoreSol operator* (const TYPE x) const;
-  //!
-  StoreSol& operator*= (const TYPE x);
-  
-
-  // Overloading of /, /=
-  //!  
-  StoreSol operator/ (const TYPE x) const;
-
-  //! 
-  StoreSol& operator/= (const TYPE x);
+  //! assignment operator for Base-clas
+  BaseStoreSol & operator= (const BaseStoreSol & x);
   
 
 protected:
@@ -220,6 +174,8 @@ protected:
 };
 
  
+// Explicit template instantiation 
+// needed for linking 
 template class StoreSol<Integer>;
 template class StoreSol<Double>;
 template class StoreSol<Complex>;

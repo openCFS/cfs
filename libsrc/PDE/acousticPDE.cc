@@ -48,7 +48,7 @@ AcousticPDE::AcousticPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, Fil
   sol_->SetNumSolutions(1);
   sol_->SetSolutionType(ACOU_POTENTIAL);
   sol_->SetNumNodes(numPDENodes_);
-  sol_->SetDof(dofspernode_);
+  sol_->SetNumDofs(dofspernode_);
   sol_->Init(0.0);
 
   
@@ -82,7 +82,7 @@ AcousticPDE::AcousticPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, Fil
       solIm_.SetNumSolutions(1);
       solIm_.SetSolutionType(ACOU_POTENTIAL);
       solIm_.SetNumNodes(numPDENodes_);
-      solIm_.SetDof(dofspernode_);
+      solIm_.SetNumDofs(dofspernode_);
       solIm_.Init(0);
 
     }
@@ -116,8 +116,8 @@ AcousticPDE::AcousticPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, Fil
     {
       sol_der1Array_.SetNumSolutions(1);
       sol_der1Array_.SetNumNodes(numPDENodes_);
-      sol_der1Array_.SetSolutionType(ACOU_VELOCITY);
-      sol_der1Array_.SetDof(1);
+      sol_der1Array_.SetSolutionType(ACOU_POTENTIAL_DERIV1);
+      sol_der1Array_.SetNumDofs(1);
       sol_der1Array_.Init(0);
     }
 
@@ -125,8 +125,8 @@ AcousticPDE::AcousticPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, Fil
     {
       sol_der2Array_.SetNumSolutions(1);
       sol_der2Array_.SetNumNodes(numPDENodes_);
-      sol_der2Array_.SetSolutionType(ACOU_VELOCITY);
-      sol_der2Array_.SetDof(1);
+      sol_der2Array_.SetSolutionType(ACOU_POTENTIAL_DERIV2);
+      sol_der2Array_.SetNumDofs(1);
       sol_der2Array_.Init(0);
     }
   

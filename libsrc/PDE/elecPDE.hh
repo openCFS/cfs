@@ -96,6 +96,8 @@ public:
   virtual void PostProcess(const Integer level);
 
   //! write results in file
+  //! \todo The definition of the errorMap_ has to
+  //! be changed to a StoreSol<Double> or BaseStoreSol object
   virtual void WriteResultsInFile();
 
   //! computes the electric energy for each subdomain

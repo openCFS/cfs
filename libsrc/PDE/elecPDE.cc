@@ -248,8 +248,16 @@ void ElecPDE::WriteResultsInFile()
   ShortInt Dim = ptgrid_->GetDim();
   StoreSol<Double> E_Mesh, Force_Mesh, Sol_Mesh;
   
+  // ATTENTION:
+  // The errorMap should be assigned as a StoreSolution, not as a 
+  // Vector. This is only temporarely
+  StoreSol<Double> Error, Error_Mesh;
+
+
   // transform solution vector for electric potential
   sol_->TransformNodeSolution(Sol_Mesh,PDE2MeshNode_,ptgrid_,actlevel_);
+
+  
 
    
   // write results
@@ -278,8 +286,18 @@ void ElecPDE::WriteResultsInFile()
     }
 
     if (flags->CalcErrorMap_)
-      OutFile_->WriteElemSolution(errorMap_, laststepcalc_, time, "relERR-E-Potential"); 
-      
+      {
+	// this is only a temporar solution
+	Error.SetNumSolutions(1);
+	Error.SetNumNodes(errorMap_.GetSize());
+	Error.SetSolutionType(NO_SOLUTION_TYPE);
+	Error.SetNumDofs(dofspernode_);
+	Error.Init(0);
+	Error.SetCompleteVector(errorMap_);
+	Error.TransformElemSolution(Error_Mesh,subdoms_,ptgrid_,actlevel_);
+	//OutFile_->WriteElemSolution(errorMap_, laststepcalc_, time, "relERR-E-Potential"); 
+	OutFile_->WriteElemSolution(Error_Mesh, laststepcalc_, time, "relERR-E-Potential"); 
+      }
 
     if (calcEnergy_.size() !=0 )
       CalcEnergy();
@@ -494,7 +512,7 @@ void ElecPDE::Reset()
   sol_->SetNumSolutions(1);
   sol_->SetSolutionType(ELEC_POTENTIAL);
   sol_->SetNumNodes(numPDENodes_);
-  sol_->SetDof(dofspernode_);
+  sol_->SetNumDofs(dofspernode_);
   sol_->Init(0.0);
 
   numElems_ = ptgrid_->GetMaxnumElem(actlevel_,subdoms_);
@@ -502,7 +520,7 @@ void ElecPDE::Reset()
   E_.SetNumSolutions(1);
   E_.SetSolutionType(ELEC_FIELD);
   E_.SetNumNodes(numElems_);
-  E_.SetDof(Dim_);
+  E_.SetNumDofs(Dim_);
   E_.Init(0.0); 
 }
 

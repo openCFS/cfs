@@ -28,7 +28,9 @@ FcnObj fcn(name);
 #endif
 
 
-
+// ****************************************************************************
+//   This block deals with Type Casting
+// ****************************************************************************
 #ifdef CHECK_TYPE_CASTS
 
 #define TRY_CAST try {

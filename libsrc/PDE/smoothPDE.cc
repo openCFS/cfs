@@ -70,7 +70,7 @@ SmoothPDE::SmoothPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileTyp
   sol_->SetNumSolutions(1);
   sol_->SetSolutionType(SMOOTH_DISPLACEMENT);
   sol_->SetNumNodes(numPDENodes_);
-  sol_->SetDof(dofspernode_);
+  sol_->SetNumDofs(dofspernode_);
   sol_->Init(0.0);
     
   method_ = "mechanic";

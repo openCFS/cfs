@@ -18,7 +18,6 @@ StoreSol<TYPE>::StoreSol()
 
 }
   
-  
 template<class TYPE>
 StoreSol<TYPE>::StoreSol(Integer numNodes, 
 			 std::vector<SolutionType> solutionTypes, 
@@ -35,12 +34,7 @@ StoreSol<TYPE>::StoreSol(const StoreSol & x)
   Error("Not implemented here", __FILE__,__LINE__);
 }
 
-template<class TYPE>
-StoreSol<TYPE>::StoreSol(const Vector<TYPE> & x)
-{
-  ENTER_FCN("StoreSol::StoreSol(const Vector)");
-  Error("Not implemented here", __FILE__,__LINE__);
-}
+
 
 template<class TYPE>
 StoreSol<TYPE>::~StoreSol() 
@@ -134,13 +128,13 @@ void StoreSol<TYPE>::SetSolutionType(const SolutionType solType, const Integer n
 }
 
 template<class TYPE>
-void StoreSol<TYPE>::SetDof(const Integer dof, const SolutionType sol)
+void StoreSol<TYPE>::SetNumDofs(const Integer dof, const SolutionType sol)
 {
   ENTER_IFCN("StoreSol::SetDof");
   
   // check if only one dof was assigned
   // -> only one entry exists
-  if (numSolutions_ == 1 && sol == NOSOLUTIONTYPE)
+  if (numSolutions_ == 1 && sol == NO_SOLUTION_TYPE)
     solDofs_[(*solTypes_.begin()).first] = dof;
   else
     solDofs_[sol] = dof;
@@ -669,132 +663,13 @@ void StoreSol<TYPE>::ElemSolutionToCoupling(BaseStoreSol & couplingSol,
 template<class TYPE>
 StoreSol<TYPE> & StoreSol<TYPE>::operator= (const StoreSol & x)
 {
-  ENTER_FCN("StoreSol::operator=");
+  ENTER_FCN("StoreSol::operator=(const StoreSol &");
   Error("Not implemented here", __FILE__,__LINE__); 
 }
 
 template<class TYPE>
-StoreSol<TYPE> & StoreSol<TYPE>:: operator= (const std::vector<TYPE> & x)
+BaseStoreSol & StoreSol<TYPE>::operator= (const BaseStoreSol & x)
 {
-  ENTER_IFCN("StoreSol::operator=");
-  Error("Not implemented here", __FILE__,__LINE__);
-
-}
-
-template<class TYPE>
-StoreSol<TYPE> & StoreSol<TYPE>::operator= (const Vector<TYPE> & x)
-{
-  ENTER_IFCN("StoreSol::operator=");
-  Error("Not implemented here", __FILE__,__LINE__);
-}
-
-template<class TYPE>
-StoreSol<TYPE> StoreSol<TYPE>::operator+ () const
-{
-  ENTER_FCN("StoreSol::operator+");
-#ifdef CHECK_INITIALIZED
-  if (length_ == 0) Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
-#endif
-  Error("Not implemented here", __FILE__,__LINE__);
-}
-
-template<class TYPE>
-StoreSol<TYPE> StoreSol<TYPE>::operator+ (const StoreSol<TYPE> & x) const
-{
-  ENTER_FCN("StoreSol::operator+");
-#ifdef CHECK_INITIALIZED
-  if (length_ == 0) Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
-#endif
-  Error("Not implemented here", __FILE__,__LINE__);
-}
-
-template<class TYPE>
-StoreSol<TYPE> & StoreSol<TYPE>::operator+= (const StoreSol<TYPE> & x)
-{
-  ENTER_FCN("StoreSol::operator+=");
-#ifdef CHECK_INITIALIZED
-  if (length_ == 0) Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
-#endif
-  Error("Not implemented here", __FILE__,__LINE__);
-}
-
-template<class TYPE>
-StoreSol<TYPE> StoreSol<TYPE>::operator- () const
-{
-  ENTER_FCN("StoreSol::operator-");
-#ifdef CHECK_INITIALIZED
-  if (length_ == 0) Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
-#endif
-  Error("Not implemented here", __FILE__,__LINE__);
-}
-
-template<class TYPE>
-StoreSol<TYPE> StoreSol<TYPE>::operator- (const StoreSol & x) const
-{
-  ENTER_FCN("StoreSol::operator-");
-#ifdef CHECK_INITIALIZED
-  if (length_ == 0) Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
-#endif
-  Error("Not implemented here", __FILE__,__LINE__);
-}
-
-template<class TYPE>
-StoreSol<TYPE> &  StoreSol<TYPE>::operator-= (const StoreSol & x)
-{
-  ENTER_FCN("StoreSol::operator-=");
-#ifdef CHECK_INITIALIZED
-  if (length_ == 0) Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
-#endif
-  Error("Not implemented here", __FILE__,__LINE__);
-}
-
-template<class TYPE>
-TYPE StoreSol<TYPE>::operator* (const StoreSol & x) const
-{
-  ENTER_FCN("StoreSol::operator*");
-#ifdef CHECK_INITIALIZED
-  if (length_ == 0) Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
-#endif
-  Error("Not implemented here", __FILE__,__LINE__);
-}
-
-template<class TYPE>
-StoreSol<TYPE> StoreSol<TYPE>::operator* (const TYPE x) const
-{
-  ENTER_FCN("StoreSol::operator*");
-#ifdef CHECK_INITIALIZED
-  if (length_ == 0) Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
-#endif
-  Error("Not implemented here", __FILE__,__LINE__);
-}
-
-template<class TYPE>
-StoreSol<TYPE> & StoreSol<TYPE>::operator*= (const TYPE x)
-{
-  ENTER_FCN("StoreSol::operator*=");
-#ifdef CHECK_INITIALIZED
-  if (length_ == 0) Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
-#endif
-  Error("Not implemented here", __FILE__,__LINE__);
-}
-
-template<class TYPE>
-StoreSol<TYPE> StoreSol<TYPE>::operator/ (const TYPE x) const
-{
-  ENTER_FCN("StoreSol::operator/");
-#ifdef CHECK_INITIALIZED
-  if (length_ == 0) Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
-#endif
-  Error("Not implemented here", __FILE__,__LINE__);
-}
-
-template<class TYPE>
-StoreSol<TYPE> &  StoreSol<TYPE>::operator/= (const TYPE x)
-{
-  ENTER_FCN("StoreSol::operator/=");
-#ifdef CHECK_INITIALIZED
-  if (length_ == 0) Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
-#endif
-  Error("Not implemented here", __FILE__,__LINE__);
+  ENTER_FCN("StoreSol::operator=(const BaseStoreSol &");
 }
 } //namespace

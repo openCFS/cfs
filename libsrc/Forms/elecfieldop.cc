@@ -92,7 +92,7 @@ void ElecFieldOp::CalcSDElecField(StoreSol<Double> & E,
 
   E.SetNumSolutions(1);
   E.SetNumNodes(maxelem);
-  E.SetDof(dim);
+  E.SetNumDofs(dim);
             
   // Iterate over all subdomains
   for( Integer iSD=0; iSD<SD.size(); iSD++)

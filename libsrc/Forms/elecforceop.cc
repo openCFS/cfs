@@ -66,7 +66,7 @@ void ElecForceOp::CalcElemElecForce(StoreSol<Double> & F,
   F.SetNumSolutions(1);
   F.SetNumNodes(IsBoundaryNode.size());
   F.SetSolutionType(ELEC_FORCE);
-  F.SetDof(Dim);
+  F.SetNumDofs(Dim);
   F.Init(0.0);
   
   // TEST TEST
