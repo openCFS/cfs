@@ -3,9 +3,8 @@
 #include <string>
 //#include "staticdriver.hh"
 #include "DataInOut/GMV/outGMV.hh"
-#include "CoupledPDE/basecoupledpde.hh"
 #include "General/environment.hh"
-#include "PDE/basePDE.hh" 
+#include "PDE/SinglePDE.hh" 
 
 #include "piezoParamIdent.hh"
 #include "Forms/baseForm.hh"
@@ -56,7 +55,7 @@ namespace CoupledField
     Integer nNuMethods=0;
     Double theta, eta_acc, nu, omega;
 
-    MaterialData * ptMaterial=pdes_[0]->getPDEMaterialData();   // Pointer to MaterialData
+    MaterialData * ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
     updateMaterialData(parameter, ptMaterial);         //Writes initial guesses of parameters (read from MeasuredData.dat) to system
 
     Double normJacMat, old_res_outer, new_res_inner, old_res_inner, new_res_outer;
@@ -291,11 +290,11 @@ namespace CoupledField
     Integer nNuMethods=0;
     Double theta, eta_acc, nu, omega;
 
-    MaterialData * ptMaterial=pdes_[0]->getPDEMaterialData();   // Pointer to MaterialData
+    MaterialData * ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
     updateMaterialData(parameter, ptMaterial);         //Writes initial guesses of parameters (read from MeasuredData.dat) to system
     updateComplexMaterialData(parameterC, ptMaterial);         //Writes initial guesses of parameterC
 
-    ptBCs = pdes_[0]->getPDE_BCs();                             // Pointer to BCs
+    ptBCs = ptMyPDE_->getPDE_BCs();                             // Pointer to BCs
 
     Double normJacMat, old_res_outer, new_res_inner, old_res_inner, new_res_outer, eta;
     eta =0.9;

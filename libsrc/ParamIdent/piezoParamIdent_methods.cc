@@ -3,10 +3,8 @@
 #include <string>
 //#include "staticdriver.hh"
 #include "DataInOut/GMV/outGMV.hh"
-#include "CoupledPDE/basecoupledpde.hh"
 #include "General/environment.hh"
-// #include "PDE/basePDE.hh" 
-#include <PDE/basePDE.hh>
+#include <PDE/SinglePDE.hh>
 
 #include "piezoParamIdent.hh"
 #include "Forms/baseForm.hh"
@@ -110,10 +108,10 @@ namespace CoupledField
     //   std::cout<<"\n We are generating synthetic data, i.e. we solve the piezo-equation with exact material - parameters"<<std::endl;
     //    std::cout<<"and alienate the results by alternating +-10Percent"<<std::endl;
 
-    MaterialData * ptMaterial=pdes_[0]->getPDEMaterialData();   // Pointer to MaterialData
+    MaterialData * ptMaterial= ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
     Matrix<Double> * matMatrix =  ptMaterial->GetMatrix();
     //    std::cout<<*matMatrix<<std::endl;
-    ptBCs = pdes_[0]->getPDE_BCs();     
+    ptBCs = ptMyPDE_->getPDE_BCs();     
     
     createF(ptMaterial, ptBCs, y_hat,TRUE); // calculates only forward problems over all omegas
 
@@ -129,12 +127,12 @@ namespace CoupledField
   void piezoParamIdent::calcImpedanceCurve(){
     ENTER_FCN("PiezoParamIdent::caclImpedanceCurve");
 
-    ptMaterial=pdes_[0]->getPDEMaterialData();   // Pointer to MaterialData
-    ptBCs = pdes_[0]->getPDE_BCs();                             // Pointer to BCs
+    ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
+    ptBCs = ptMyPDE_->getPDE_BCs();                             // Pointer to BCs
     Integer level=0;
     Boolean reset = TRUE;
     Integer pdenumber = 0;
-    ptAssemble = pdes_[0]->getPDE_assemble();
+    ptAssemble = ptMyPDE_->getPDE_assemble();
 
     // ptAssemble->InitMatrices();
    
@@ -151,27 +149,25 @@ namespace CoupledField
       //  reset=TRUE;
 
       // harmonic solver for different frequency - values
-      if (pdes_.GetSize() <= 1) {
-
-	//	Info->WriteHarmonicStep(pdes_[0]->GetName(), fstep, freqs[fstep]);
-    
+      
+      //	Info->WriteHarmonicStep(ptMyPDE_->GetName(), fstep, freqs[fstep]);
+      
       ////////////////////////////////////////////////////////
       //                   SOLVES PDE                      //
       ///////////////////////////////////////////////////////  
-        pdes_[0]->GetSolveStep()->PreStepHarmonic(fstep, freqs[fstep], level, reset); 
+        ptMyPDE_->GetSolveStep()->PreStepHarmonic(fstep, freqs[fstep], level, reset); 
 
-        pdes_[0]->GetSolveStep()->SolveStepHarmonic(fstep, freqs[fstep], level, reset);
+        ptMyPDE_->GetSolveStep()->SolveStepHarmonic(fstep, freqs[fstep], level, reset);
 
-        pdes_[0]->GetSolveStep()->PostStepHarmonic(fstep, freqs[fstep], level, reset);
+        ptMyPDE_->GetSolveStep()->PostStepHarmonic(fstep, freqs[fstep], level, reset);
 
-        pdes_[0]->PostProcess(level);   
+        ptMyPDE_->PostProcess(level);   
         /////////////////////////////////////////////////////////
 
-	  pdes_[0]->WriteResultsInFile();
-      }
+	  ptMyPDE_->WriteResultsInFile();
 
         
-          Vector<Complex> chargeVec = pdes_[0]->getPDE_complexValuedCharge(); // Vector wich contains charges for each element !
+          Vector<Complex> chargeVec = ptMyPDE_->getPDE_complexValuedCharge(); // Vector wich contains charges for each element !
 
           Complex charge=Complex(0.0,0.0);
 
@@ -206,26 +202,26 @@ namespace CoupledField
     ENTER_FCN("PiezoParamIdent:createF");
     //   std::cout<<"\nF wil be created ..."<<std::endl;
 
-    ptMaterial=pdes_[0]->getPDEMaterialData();   // Pointer to MaterialData
-    ptBCs = pdes_[0]->getPDE_BCs();                             // Pointer to BCs
+    ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
+    ptBCs = ptMyPDE_->getPDE_BCs();                             // Pointer to BCs
     Grid * ptGrid =   ptdomain_->GetGrid();
-    ptAssemble = pdes_[0]->getPDE_assemble();
-    ptAlgsys = pdes_[0]->getPDE_algsys();
+    ptAssemble = ptMyPDE_->getPDE_assemble();
+    ptAlgsys = ptMyPDE_->getPDE_algsys();
 
     Integer level=0;
     Boolean reset = TRUE;
     Integer pdenumber = 0;
 
-    Integer numElems = pdes_[0]->getPDE_numElems();
-    Integer dofs=pdes_[0]->getPDE_dofspernode();  
-    Integer numNodes= pdes_[0]->getPDE_numPDENodes();  
+    Integer numElems = ptMyPDE_->getPDE_numElems();
+    Integer dofs=ptMyPDE_->getPDE_dofspernode();  
+    Integer numNodes= ptMyPDE_->getPDE_numPDENodes();  
 
     //          updateMaterialData(parameter,ptMaterial);
     // updateComplexMaterialData(parameterC,ptMaterial);
 
     Matrix<Double> * matMatrix =  ptMaterial->GetMatrix();
     //  std::cout<<*matMatrix<<std::endl;
-    //    pdes_[0]->Init();
+    //    ptMyPDE_->Init();
     //    ptAssemble->DeleteAlgSys();
     // ptAssemble->InitMatrices();
     //    ptAssemble->InitRHS();
@@ -250,33 +246,33 @@ namespace CoupledField
       //                   SOLVES PDE                      //
       ///////////////////////////////////////////////////////  
 
-      pdes_[0]->WriteGeneralPDEdefines();   // should not be used, overwrites to much!!    
+      ptMyPDE_->WriteGeneralPDEdefines();   // should not be used, overwrites to much!!    
 
       //      std::cout<<"\n piezoParam:createF PreStepHarmonic"<<std::endl;
 
       reset=TRUE;
-      pdes_[0]->GetSolveStep()->PreStepHarmonic(fstep, freqs[fstep], level, reset); 
+      ptMyPDE_->GetSolveStep()->PreStepHarmonic(fstep, freqs[fstep], level, reset); 
          
         
       //         updateMaterialData(parameter,ptMaterial);
       //updateComplexMaterialData(parameterC,ptMaterial);
 
       //  std::cout<<"\n piezoParam:createF SolveStepHarmonic"<<std::endl;
-      pdes_[0]->GetSolveStep()->SolveStepHarmonic(fstep, freqs[fstep], level, reset);
+      ptMyPDE_->GetSolveStep()->SolveStepHarmonic(fstep, freqs[fstep], level, reset);
       //std::cout<<"\n after SolveStepHarm " <<std::endl;
 
       //        std::cout<<"\n piezoParam:createF PostStepHarmonic"<<std::endl;
-      pdes_[0]->GetSolveStep()->PostStepHarmonic(fstep, freqs[fstep], level, reset);
+      ptMyPDE_->GetSolveStep()->PostStepHarmonic(fstep, freqs[fstep], level, reset);
 
       //std::cout<<"\n piezoParam:createF PostProcess at step  "<< fstep << std::endl;
-      pdes_[0]->PostProcess(level);
+      ptMyPDE_->PostProcess(level);
 
 
       //////////////////////////////////////////////////////////
       //Retrieves & stores Solution for further calculations  //
       /////////////////////////////////////////////////////////
 
-        BaseNodeStoreSol * ptSol = pdes_[0]->getPDESolution();
+        BaseNodeStoreSol * ptSol = ptMyPDE_->getPDESolution();
         NodeStoreSol<Complex> * ptNodeStoreSol;
         ptNodeStoreSol = dynamic_cast<NodeStoreSol<Complex>*>(ptSol);     
 
@@ -290,7 +286,7 @@ namespace CoupledField
           F_hat[fstep + nrMeasuredData]=meanValueMechDeformation;
         }
 
-        Vector<Complex> chargeVec =   pdes_[0]->getPDE_complexValuedCharge(); // Vector wich contains charges for each element !
+        Vector<Complex> chargeVec =   ptMyPDE_->getPDE_complexValuedCharge(); // Vector wich contains charges for each element !
 
         Complex charge=Complex(0.0,0.0);
 
@@ -302,10 +298,10 @@ namespace CoupledField
          
         calcAbsImped(charge, freqs[fstep], fstep, typeOut);   // calculates |Z| and writes results in File
      
-        pdes_[0]->WriteResultsInFile();     
+        ptMyPDE_->WriteResultsInFile();     
            
         StdVector<Elem*> elemssd;
-        subdoms = pdes_[0]->getPDE_subdoms();
+        subdoms = ptMyPDE_->getPDE_subdoms();
         //      std::cout<<"PDE_SUBDOM[0] = "<< subdoms[0]; 
         ptGrid->GetElemSD(elemssd,subdoms[0], level);
      
@@ -320,7 +316,7 @@ namespace CoupledField
           Matrix<Double> coordinateMatrix;
           //      std::cout<<elSolVec<<std::endl;
 
-          //    pdes_[0]->GetElemCoords(connecth, coordinateMatrix,0);
+          //    ptMyPDE_->GetElemCoords(connecth, coordinateMatrix,0);
           //    std::cout<<"\n coordinateMatrix:" <<std::endl;
           //    std::cout<<coordinateMatrix<<std::cout;
 
@@ -361,15 +357,15 @@ namespace CoupledField
     std::cout<<"JacobiMatrixC will be created"<<std::endl;
   
     //    Matrix<Double> * matMatrix =  ptMaterial->GetMatrix();
-    ptBCs = pdes_[0]->getPDE_BCs();                             // Pointer to BCs
-    ptAlgsys = pdes_[0]->getPDE_algsys();
+    ptBCs = ptMyPDE_->getPDE_BCs();                             // Pointer to BCs
+    ptAlgsys = ptMyPDE_->getPDE_algsys();
     Integer level=0;
     Boolean reset = TRUE;
-    ptGrid = pdes_[0]->getPDE_grid();
-    ptNodeEqn = pdes_[0]->getPDE_eqnData();
-    ptAssemble = pdes_[0]->getPDE_assemble();
+    ptGrid = ptMyPDE_->getPDE_grid();
+    ptNodeEqn = ptMyPDE_->getPDE_eqnData();
+    ptAssemble = ptMyPDE_->getPDE_assemble();
     //Integer nrMeasuredData = freqs.GetSize();
-    Integer numElems_ = pdes_[0]->getPDE_numElems();
+    Integer numElems_ = ptMyPDE_->getPDE_numElems();
     //    nrParameter=parameter.GetSize();
     Integer job;
 
@@ -377,11 +373,11 @@ namespace CoupledField
     IntegratorDescriptor *actIntDescrStiffC;
     
     
-    Integer spaceDim = pdes_[0]->getPDE_spaceDim();
+    Integer spaceDim = ptMyPDE_->getPDE_spaceDim();
     Double * ptsol;
     StdVector<Elem*> elemssd;
-    subdoms = pdes_[0]->getPDE_subdoms();
-    ptMaterial=pdes_[0]->getPDEMaterialData();   // Pointer to MaterialData
+    subdoms = ptMyPDE_->getPDE_subdoms();
+    ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
     ptGrid->GetElemSD(elemssd,subdoms[0], level); // gets element list elemssd
 
    
@@ -389,7 +385,7 @@ namespace CoupledField
     //     std::cout<<whichParToUpIndC<<std::endl;
     //     std::cout<<"\nactNrParameters: "<<actNrParameter <<std::endl;
     //     std::cout<<"\nactNrParametersC: "<<actNrParameterC <<std::endl;
-    BaseNodeStoreSol * ptSol = pdes_[0]->getPDESolution();
+    BaseNodeStoreSol * ptSol = ptMyPDE_->getPDESolution();
     NodeStoreSol<Complex> * ptNodeStoreSol;
     ptNodeStoreSol = dynamic_cast<NodeStoreSol<Complex>*>(ptSol);
    
@@ -483,7 +479,7 @@ namespace CoupledField
 
         updateComplexMaterialData(dparameterC, ptMaterial);
 
-        //      pdes_[0]->DefineIntegratorsWithMatInfo(level,ptMaterial);  
+        //      ptMyPDE_->DefineIntegratorsWithMatInfo(level,ptMaterial);  
 
 
         if(FALSE){
@@ -498,14 +494,14 @@ namespace CoupledField
 
         // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-        //       pdes_[0]->DefineIntegrators(0);
+        //       ptMyPDE_->DefineIntegrators(0);
 
         for (Integer fstep = 0; fstep < nrMeasuredData; fstep++) { // harmonic solver for different frequency - values
           reset = TRUE;
 
           ptAlgsys->InitRHS();
 
-          //   pdes_[0]-> setBCs_id_phase_(0, imag[fstep]);
+          //   ptMyPDE_-> setBCs_id_phase_(0, imag[fstep]);
         
           //loop over elements
           for (int actEl=0; actEl< elemssd.GetSize(); actEl++) {
@@ -540,7 +536,7 @@ namespace CoupledField
 
             updateMaterialData(dparameter,ptMaterial);
             updateComplexMaterialData(dparameterC,ptMaterial);
-            //      pdes_[0]->DefineIntegratorsWithMatInfo(level,ptMaterial);  
+            //      ptMyPDE_->DefineIntegratorsWithMatInfo(level,ptMaterial);  
 
 	  
 	    actIntDescrStiff = new IntegratorDescriptor(bilinearStiff, STIFFNESS);
@@ -625,19 +621,19 @@ namespace CoupledField
 	  
           updateMaterialData(parameter,ptMaterial);
           updateComplexMaterialData(parameterC,ptMaterial);
-          //      pdes_[0]->DefineIntegratorsWithMatInfo(level,ptMaterial);  
+          //      ptMyPDE_->DefineIntegratorsWithMatInfo(level,ptMaterial);  
 
           // the following lines are the content of: PreStepHarmonic:
-          // pdes_[0]->PreStepHarmonic(fstep, freqs[fstep], level, reset);
+          // ptMyPDE_->PreStepHarmonic(fstep, freqs[fstep], level, reset);
 
-          pdes_[0]->setPDE_actFrequency(freqs[fstep]);
-          pdes_[0]->setPDE_actFreqStep(fstep);
+          ptMyPDE_->setPDE_actFrequency(freqs[fstep]);
+          ptMyPDE_->setPDE_actFreqStep(fstep);
           ptAssemble->SetFrequency(freqs[fstep]);
 
 
           if (reset)
             ptAssemble->InitMatrices();
-          //      pdes_[0]->DefineIntegratorsWithMatInfo(level,ptMaterial);  
+          //      ptMyPDE_->DefineIntegratorsWithMatInfo(level,ptMaterial);  
         
           //    Cannot use SolveStepHarmonic, since it overwrites RHS ...
           //      for this, I have copied the method StepHarmonicLin to this place 
@@ -655,7 +651,7 @@ namespace CoupledField
           if (reset)
             {
               //account for bcs
-              pdes_[0]->SetBCs(level, freqs[fstep]);
+              ptMyPDE_->SetBCs(level, freqs[fstep]);
               job = 1; // calc new preconditioner
             }
           else
@@ -680,17 +676,17 @@ namespace CoupledField
             JacobiMatrix[fstep + nrMeasuredData][parIndex]=meanValueMechDeformation;    
           }
 
-          pdes_[0]->GetSolveStep()->PostStepHarmonic(fstep, freqs[fstep], level, reset);
-          pdes_[0]->PostProcess(level);
+          ptMyPDE_->GetSolveStep()->PostStepHarmonic(fstep, freqs[fstep], level, reset);
+          ptMyPDE_->PostProcess(level);
 
-          Vector<Complex> chargeVec =  pdes_[0]->getPDE_complexValuedCharge();
+          Vector<Complex> chargeVec =  ptMyPDE_->getPDE_complexValuedCharge();
 
           Complex charge=Complex(0.0,0.0);
 
           for (int i=0; i<chargeVec.GetSize();i++)
             charge=charge+chargeVec[i];
     
-          JacobiMatrix[fstep][parIndex]=sign*charge; //pdes_[0]->getPDE_complexValuedCharge();    
+          JacobiMatrix[fstep][parIndex]=sign*charge; //ptMyPDE_->getPDE_complexValuedCharge();    
      
         }               // end for over all frequencies
         if (ind_param<nrParameter)
@@ -728,26 +724,26 @@ namespace CoupledField
     std::cout<<"JacobiMatrix2 will be created"<<std::endl;
   
     //    Matrix<Double> * matMatrix =  ptMaterial->GetMatrix();
-    ptBCs = pdes_[0]->getPDE_BCs();                             // Pointer to BCs
-    ptAlgsys = pdes_[0]->getPDE_algsys();
+    ptBCs = ptMyPDE_->getPDE_BCs();                             // Pointer to BCs
+    ptAlgsys = ptMyPDE_->getPDE_algsys();
     Integer level=0;
     Boolean reset = TRUE;
-    ptGrid = pdes_[0]->getPDE_grid();
-    ptNodeEqn = pdes_[0]->getPDE_eqnData();
-    ptAssemble = pdes_[0]->getPDE_assemble();
+    ptGrid = ptMyPDE_->getPDE_grid();
+    ptNodeEqn = ptMyPDE_->getPDE_eqnData();
+    ptAssemble = ptMyPDE_->getPDE_assemble();
     //Integer nrMeasuredData = freqs.GetSize();
-    Integer numElems_ = pdes_[0]->getPDE_numElems();
+    Integer numElems_ = ptMyPDE_->getPDE_numElems();
     //    nrParameter=parameter.GetSize();
     Integer job;
     
-    Integer spaceDim = pdes_[0]->getPDE_spaceDim();
+    Integer spaceDim = ptMyPDE_->getPDE_spaceDim();
     Double * ptsol;
     StdVector<Elem*> elemssd;
-    subdoms = pdes_[0]->getPDE_subdoms();
-    ptMaterial=pdes_[0]->getPDEMaterialData();   // Pointer to MaterialData
+    subdoms = ptMyPDE_->getPDE_subdoms();
+    ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
     ptGrid->GetElemSD(elemssd,subdoms[0], level); // gets element list elemssd
 
-    BaseNodeStoreSol * ptSol = pdes_[0]->getPDESolution();
+    BaseNodeStoreSol * ptSol = ptMyPDE_->getPDESolution();
     NodeStoreSol<Complex> * ptNodeStoreSol;
     ptNodeStoreSol = dynamic_cast<NodeStoreSol<Complex>*>(ptSol);
     Vector<Complex> algSysSolVector;
@@ -763,7 +759,7 @@ namespace CoupledField
     Vector<Double> dparameter(nrParameter);
   
     StdVector<Integer> connect_PDE;                 
-    pdes_[0]->WriteGeneralPDEdefines();
+    ptMyPDE_->WriteGeneralPDEdefines();
 
     Matrix<Double> *matMat = ptMaterial->GetMatrix();
 
@@ -801,7 +797,7 @@ namespace CoupledField
 	}
 
 	updateMaterialData(dparameter, ptMaterial);  
-	// pdes_[0]->DefineIntegratorsWithMatInfo(level,ptMaterial);  
+	// ptMyPDE_->DefineIntegratorsWithMatInfo(level,ptMaterial);  
 
 	if(FALSE){
 	  std::cout<<"\n"<<std::endl;
@@ -813,7 +809,7 @@ namespace CoupledField
       
 	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-	//       pdes_[0]->DefineIntegrators(0);
+	//       ptMyPDE_->DefineIntegrators(0);
 
 	for (Integer fstep = 0; fstep < nrMeasuredData; fstep++) { // harmonic solver for different frequency - values
 	  reset = TRUE;
@@ -822,7 +818,7 @@ namespace CoupledField
 	  ptAssemble->InitMatrices();
         
 
-	  //   pdes_[0]-> setBCs_id_phase_(0, imag[fstep]);
+	  //   ptMyPDE_-> setBCs_id_phase_(0, imag[fstep]);
         
 	  //loop over elements
 	  for (int actEl=0; actEl< elemssd.GetSize(); actEl++) {
@@ -905,20 +901,20 @@ namespace CoupledField
 	  } // end for over all Elems
 
 	  updateMaterialData(parameter,ptMaterial);
-	  //          pdes_[0]->DefineIntegratorsWithMatInfo(level,ptMaterial);
+	  //          ptMyPDE_->DefineIntegratorsWithMatInfo(level,ptMaterial);
 
 	  // the following lines are the content of: PreStepHarmonic:
-	  // pdes_[0]->PreStepHarmonic(fstep, freqs[fstep], level, reset);
+	  // ptMyPDE_->PreStepHarmonic(fstep, freqs[fstep], level, reset);
 
-	  pdes_[0]->setPDE_actFrequency(freqs[fstep]);
-	  pdes_[0]->setPDE_actFreqStep(fstep);
+	  ptMyPDE_->setPDE_actFrequency(freqs[fstep]);
+	  ptMyPDE_->setPDE_actFreqStep(fstep);
 	  ptAssemble->SetFrequency(freqs[fstep]);
 	  //        updateMaterialData(parameter, ptMaterial);    // is neccessary, since otherwise we wouldd solve PDE with sparse Mat-Data
-	  //        pdes_[0]->DefineIntegratorsWithMatInfo(level,ptMaterial);
+	  //        ptMyPDE_->DefineIntegratorsWithMatInfo(level,ptMaterial);
 
 	  if (reset)
 	    ptAssemble->InitMatrices();
-	  //        pdes_[0]->DefineIntegratorsWithMatInfo(level,ptMaterial);
+	  //        ptMyPDE_->DefineIntegratorsWithMatInfo(level,ptMaterial);
         
 	  //        Cannot use SolveStepHarmonic, since it overwrites RHS ...
 	  //      for this, I have copied the method StepHarmonicLin to this place 
@@ -935,7 +931,7 @@ namespace CoupledField
 	  if (reset)
 	    {
 	      //account for bcs
-	      pdes_[0]->SetBCs(level, freqs[fstep]);
+	      ptMyPDE_->SetBCs(level, freqs[fstep]);
 	      job = 1; // calc new preconditioner
 	    }
 	  else
@@ -960,17 +956,17 @@ namespace CoupledField
 	    JacobiMatrix[fstep + nrMeasuredData][ind_param]=meanValueMechDeformation;    
 	  }
 
-	  pdes_[0]->GetSolveStep()->PostStepHarmonic(fstep, freqs[fstep], level, reset);
-	  pdes_[0]->PostProcess(level);
+	  ptMyPDE_->GetSolveStep()->PostStepHarmonic(fstep, freqs[fstep], level, reset);
+	  ptMyPDE_->PostProcess(level);
         
-	  Vector<Complex> chargeVec =  pdes_[0]->getPDE_complexValuedCharge();
+	  Vector<Complex> chargeVec =  ptMyPDE_->getPDE_complexValuedCharge();
 
 	  Complex charge=Complex(0.0,0.0);
 
 	  for (int i=0; i<chargeVec.GetSize();i++)
 	    charge=charge+chargeVec[i];
     
-	  JacobiMatrix[fstep][parIndex]=sign*charge; //pdes_[0]->getPDE_complexValuedCharge();    
+	  JacobiMatrix[fstep][parIndex]=sign*charge; //ptMyPDE_->getPDE_complexValuedCharge();    
      
 	}           // end for over all frequencies
 
@@ -1152,14 +1148,14 @@ void piezoParamIdent::testJacobiMatrix2(Vector<Complex> & F_hat, Matrix<Complex>
     ENTER_FCN("piezoParamIdent::createAndSetRHSforJacobian");
     //    std::cout<<"piezoParamIdent::createAndSetRHSforJacobian 1 "<< std::endl; 
     Integer level =0;
-    Integer spaceDim = pdes_[0]->getPDE_spaceDim();
+    Integer spaceDim = ptMyPDE_->getPDE_spaceDim();
     Double * ptsol;
     StdVector<Elem*> elemssd;
-    subdoms = pdes_[0]->getPDE_subdoms();
-    ptMaterial=pdes_[0]->getPDEMaterialData();   // Pointer to MaterialData
+    subdoms = ptMyPDE_->getPDE_subdoms();
+    ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
     ptGrid->GetElemSD(elemssd,subdoms[0], level); // gets element list elemssd
 
-    BaseNodeStoreSol * ptSol = pdes_[0]->getPDESolution();
+    BaseNodeStoreSol * ptSol = ptMyPDE_->getPDESolution();
     NodeStoreSol<Complex> * ptNodeStoreSol;
     ptNodeStoreSol = dynamic_cast<NodeStoreSol<Complex>*>(ptSol);
     Vector<Complex> algSysSolVector;
@@ -1243,15 +1239,15 @@ void piezoParamIdent::testJacobiMatrix2(Vector<Complex> & F_hat, Matrix<Complex>
     Vector<Double> IncrementedRHSMatrix;   
   
     //    Matrix<Double> * matMatrix =  ptMaterial->GetMatrix();
-    ptBCs = pdes_[0]->getPDE_BCs();                             // Pointer to BCs
-    ptAlgsys = pdes_[0]->getPDE_algsys();
+    ptBCs = ptMyPDE_->getPDE_BCs();                             // Pointer to BCs
+    ptAlgsys = ptMyPDE_->getPDE_algsys();
     Integer level=0;
     Boolean reset = TRUE;
-    ptGrid = pdes_[0]->getPDE_grid();
-    ptNodeEqn = pdes_[0]->getPDE_eqnData();
-    ptAssemble = pdes_[0]->getPDE_assemble();
+    ptGrid = ptMyPDE_->getPDE_grid();
+    ptNodeEqn = ptMyPDE_->getPDE_eqnData();
+    ptAssemble = ptMyPDE_->getPDE_assemble();
     //Integer nrMeasuredData = freqs.GetSize();
-    Integer numElems_ = pdes_[0]->getPDE_numElems();
+    Integer numElems_ = ptMyPDE_->getPDE_numElems();
     nrParameter=parameter.GetSize();
 
     Integer job;
@@ -1297,17 +1293,17 @@ void piezoParamIdent::testJacobiMatrix2(Vector<Complex> & F_hat, Matrix<Complex>
 
 
 
-      //      pdes_[0]->DefineIntegrators(0);
+      //      ptMyPDE_->DefineIntegrators(0);
 
       for (Integer fstep = 0; fstep < nrMeasuredData; fstep++) { // harmonic solver for different frequency - values
         reset = TRUE;
 
-        pdes_[0]-> setBCs_id_phase_(0, imag[fstep]);
+        ptMyPDE_-> setBCs_id_phase_(0, imag[fstep]);
 
-        //      Info->WriteHarmonicStep(pdes_[0]->GetName(), fstep, freqs[fstep]);
+        //      Info->WriteHarmonicStep(ptMyPDE_->GetName(), fstep, freqs[fstep]);
         
-        pdes_[0]->WriteGeneralPDEdefines();
-        pdes_[0]->GetSolveStep()->PreStepHarmonic(fstep, freqs[fstep], level, reset);
+        ptMyPDE_->WriteGeneralPDEdefines();
+        ptMyPDE_->GetSolveStep()->PreStepHarmonic(fstep, freqs[fstep], level, reset);
         
         //      Cannot use SolveStepHarmonic, since it overwrites RHS ...
         //      for this, I have copied the method StepHarmonicLin to this place 
@@ -1322,16 +1318,16 @@ void piezoParamIdent::testJacobiMatrix2(Vector<Complex> & F_hat, Matrix<Complex>
         ptAssemble->AssembleSrcRHS(level, freqs[fstep]);
 
         Double * ptsol;
-        BaseNodeStoreSol * ptSol = pdes_[0]->getPDESolution();
+        BaseNodeStoreSol * ptSol = ptMyPDE_->getPDESolution();
         NodeStoreSol<Complex> * ptNodeStoreSol;
         ptNodeStoreSol = dynamic_cast<NodeStoreSol<Complex>*>(ptSol);
                 
-        pdes_[0]-> setBCs_id_phase_(0, imag[fstep]);
+        ptMyPDE_-> setBCs_id_phase_(0, imag[fstep]);
 
         if (reset)
           {
             //account for bcs
-            pdes_[0]->SetBCs(level, freqs[fstep]);
+            ptMyPDE_->SetBCs(level, freqs[fstep]);
             job = 1; // calc new preconditioner
           }
         else
@@ -1358,10 +1354,10 @@ void piezoParamIdent::testJacobiMatrix2(Vector<Complex> & F_hat, Matrix<Complex>
           JacobiMatrix[fstep + nrMeasuredData][ind_param]=meanValueMechDeformation;    
         }
 
-        pdes_[0]->GetSolveStep()->PostStepHarmonic(fstep, freqs[fstep], level, reset);
-        pdes_[0]->PostProcess(level);
-        pdes_[0]->GetSolveStep()->PostStepHarmonic(fstep, freqs[fstep], level, reset);
-        Vector<Complex> chargeVec =  pdes_[0]->getPDE_complexValuedCharge();
+        ptMyPDE_->GetSolveStep()->PostStepHarmonic(fstep, freqs[fstep], level, reset);
+        ptMyPDE_->PostProcess(level);
+        ptMyPDE_->GetSolveStep()->PostStepHarmonic(fstep, freqs[fstep], level, reset);
+        Vector<Complex> chargeVec =  ptMyPDE_->getPDE_complexValuedCharge();
 
         Complex charge=Complex(0.0,0.0);
 
@@ -1374,11 +1370,11 @@ void piezoParamIdent::testJacobiMatrix2(Vector<Complex> & F_hat, Matrix<Complex>
         //      mean_value_charge = mean_value_charge/(Double(chargeVec.GetSize()));
         //      std::cout<<"\nCHARGE VEC SIZE = "<< chargeVec.GetSize()<<"mean-value-charge = " << mean_value_charge << std::endl;
 
-        JacobiMatrix[fstep][ind_param]=sign*charge; //pdes_[0]->getPDE_complexValuedCharge();    
+        JacobiMatrix[fstep][ind_param]=sign*charge; //ptMyPDE_->getPDE_complexValuedCharge();    
 
 
         //   Info->PrintPiezoMat(*ptMaterial);
-        //     pdes_[0]->WriteResultsInFile();     
+        //     ptMyPDE_->WriteResultsInFile();     
      
       }         // end for over all frequencies
       std::cout << " \nCreateJacobian Line " << ind_param  <<std::endl;
