@@ -2,7 +2,6 @@
 #define FILE_WRITERESULTS_2002
 
 #include "Domain/grid.hh"
-#include <Utils/array.hh>
 #include <Utils/storesol.hh>
 
 namespace CoupledField

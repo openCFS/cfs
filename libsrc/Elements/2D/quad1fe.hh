@@ -3,7 +3,6 @@
 
 #include <Elements/basefe.hh>
 #include <Elements/2D/rectanglefe.hh>
-#include <Utils/array.hh>
 
 namespace CoupledField
 {
@@ -53,7 +52,7 @@ protected:
     \param size (input) Absolute size of element in all dimensions
     \param displacement (input) Displacement of the corner points (same ordering as CornerCoords!!)
   */
-  virtual Double CalcMeanStrain(Matrix<Double> &cornerCoords, Array<Double> &displacements);
+  virtual Double CalcMeanStrain(Matrix<Double> &cornerCoords, Matrix<Double> &displacements);
 
 private:
 };

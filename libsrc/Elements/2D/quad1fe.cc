@@ -91,7 +91,7 @@ void Quad1FE :: CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv,
 }
 
 
-Double Quad1FE::CalcMeanStrain(Matrix<Double> &cornerCoords, Array<Double> &displacements)
+Double Quad1FE::CalcMeanStrain(Matrix<Double> &cornerCoords, Matrix<Double> &displacements)
 {
 #ifdef TRACE
   (*trace) << "entering Quad1FE::CalcDistortion" << std::endl;

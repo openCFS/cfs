@@ -61,8 +61,8 @@ gsi:
 	@cd $(LIBSRC_DIR)/DataInOut/GSI; $(MAKE) -f Makefile
 	@cd $(LIBSRC_DIR)/DataInOut/GSI/CFSSocketComm; $(MAKE) -f Makefile.CFS
 
-algsys-own:
-	@cd $(LIBSRC_DIR)/AlgebraicSystem/LinAlg; $(MAKE) -f Makefile
+#algsys-own:
+#	@cd $(LIBSRC_DIR)/AlgebraicSystem/LinAlg; $(MAKE) -f Makefile
 
 utils:
 	@cd $(LIBSRC_DIR)/Utils; $(MAKE) -f Makefile

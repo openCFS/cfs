@@ -6,7 +6,6 @@
 
 #include "matrix.hh"
 #include <Utils/vector.hh>
-#include <Utils/array.hh>
 
 namespace CoupledField
 {      

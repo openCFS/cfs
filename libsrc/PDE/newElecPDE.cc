@@ -16,7 +16,6 @@
 #include "ScalarNodeEQN.hh"
 #include <General/defs.hh>
 
-#include <Utils/array.hh>
 #include <Utils/storesol.hh>
 #include <Matrix/matrix.hh>
 #include <Utils/vector.hh>

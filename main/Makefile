@@ -19,7 +19,7 @@ SUBLIBDIR := Driver PDE CoupledPDE Estimator\
              DataInOut/ParamHandling \
              DataInOut/Unverg DataInOut/GMV DataInOut/AnsysOut \
              DataInOut/DatFile DataInOut/AnsysFile DataInOut\
-	     AlgebraicSystem/LinAlg\
+#	     AlgebraicSystem/LinAlg\
              Utils Matrix General  
 #
 ifeq ($(Adaptivity),yes)
@@ -38,7 +38,7 @@ mylibrary = driver domain pde mpccicpl coupledpde\
             gridcfs toadaptgrid \
             gmv definefiles unverg \
 	    ansys-out ansysfile datainout paramhandling \
-            algsys-own driver \
+            driver \
             utils matrix general 
 #
 ifeq "$(LASTYPE)" "OLAS"
@@ -179,9 +179,6 @@ clean-gsi:
 	$(MAKE) clean
 	@cd $(LIBSRC_DIR)/DataInOut/GSI/CFSSocketComm && \
 	make -f Makefile.CFS clean
-clean-algsys:
-	@cd $(LIBSRC_DIR)/AlgebraicSystem/LinAlg && \
-	$(MAKE) clean
 clean-domain:
 	@cd $(LIBSRC_DIR)/Domain&&\
 	$(MAKE) clean

@@ -27,7 +27,6 @@
 #include "Domain/Gridlib/interface_gridlib.hh"
 #endif
 
-#include "AlgebraicSystem/abstractAlgSys.hh"
 #include "Driver/driver_header.hh"
 #include "Domain/domain.hh"
 #include "DataInOut/SkeletonConf.hh"
