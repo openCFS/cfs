@@ -25,18 +25,20 @@ table \ref{tab:Layer1Elements}.
 \begin{table}[h!]
   \centering
   \begin{tabular}{lll}
-    \hline
+    \hline\noalign{\smallskip}
     leave name & leave type & occurence constraints \\
     \noalign{\smallskip}\hline\noalign{\smallskip}
-    analysis     & plane   & required\\
-    geometry     & plane   & required\\
-    input        & plane   & optional\\
-    output       & plane   & optional\\
-    materialData & plane   & optional\\
-    domain       & section & required \\
-    pdeList      & section & required \\
-    transient    & section & required for transient analysis \\
-    \hline
+    analysis      & plane   & required\\
+    geometry      & plane   & required\\
+    input         & plane   & optional\\
+    output        & plane   & optional\\
+    materialData  & plane   & optional\\
+    domain        & section & required \\
+    pdeList       & section & required \\
+    couplingList  & section & required for iterative or direct coupling\\
+    multiSequence & section & required for multi sequence analysis \\
+    transient     & section & required for transient analysis \\
+    \noalign{\smallskip}\hline
   \end{tabular}
   \caption{\label{tab:Layer1Elements}Possible commands of the 1. level
     in the config-file}  
