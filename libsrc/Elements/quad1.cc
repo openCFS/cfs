@@ -54,10 +54,11 @@ void Quad1:: SetIntPoints()
  
   switch(IntegType) 
     {
-    case GAUSSINT:
+    case GaussOrder2:
       NumIntPoints=4;
       DegreeInteg=2;
       IntPoints=new  Matrix<Double>(NumIntPoints, Dim);
+      IntWeights=0;
       (*IntPoints)[0][0] = -1.0/sqrt(3);
       (*IntPoints)[1][0] =  1.0/sqrt(3);
       (*IntPoints)[2][0] =  1.0/sqrt(3);
@@ -66,6 +67,25 @@ void Quad1:: SetIntPoints()
       (*IntPoints)[1][1] = -1.0/sqrt(3);
       (*IntPoints)[2][1] =  1.0/sqrt(3);
       (*IntPoints)[3][1] =  1.0/sqrt(3);
+      if (InfoPrint)
+       (*infofile) << " For numerical integration procedures we use Gaussian Quadrature with 4 nodes, degree of precision is 3 " << endl; 
+      break;
+
+    case GaussOrder5:
+      NumIntPoints=9;
+      DegreeInteg=5;
+      IntPoints=new  Matrix<Double>(NumIntPoints, Dim);
+      IntWeights=9;
+      (*IntPoints)[0][0] = -1.0/sqrt(3);
+      (*IntPoints)[1][0] =  1.0/sqrt(3);
+      (*IntPoints)[2][0] =  1.0/sqrt(3);
+      (*IntPoints)[3][0] = -1.0/sqrt(3);
+      (*IntPoints)[0][1] = -1.0/sqrt(3);
+      (*IntPoints)[1][1] = -1.0/sqrt(3);
+      (*IntPoints)[2][1] =  1.0/sqrt(3);
+      (*IntPoints)[3][1] =  1.0/sqrt(3);
+      if (InfoPrint)
+       (*infofile) << " For numerical integration procedures we use Gaussian Quadrature with 4 nodes, degree of precision is 3 " << endl;
       break;
  
     default:
@@ -189,38 +209,6 @@ void  Quad1::GetGradientShFnc(Vector<Double> & grad, const Integer i, const Inte
 
 }
 
-#ifdef CUT
-Vector<Double> *  Quad1::GetDyShFncAtIP(const Integer iShFnc) 
-{
-  switch(iShFnc)
-{ case 1:
-     return &  DyShFncAtIP1;
-  case 2:
-     return &  DyShFncAtIP2;
-  case 3:
-     return &  DyShFncAtIP3;
-  case 4:
-     return &  DyShFncAtIP4;
-}
-
-}
-
-Vector<Double> *  Quad1::GetDxShFncAtIP(const Integer iShFnc) 
-{
-  switch(iShFnc)
-    { 
-    case 1:
-      return &  DxShFncAtIP1;
-    case 2:
-      return &  DxShFncAtIP2;
-    case 3:
-      return &  DxShFncAtIP3;
-    case 4:
-      return &  DxShFncAtIP4;
-    }
-}
-#endif
- 
 Vector<Double> & Quad1::GetShFncAtIP(const Integer iShFnc) 
 {
   switch(iShFnc)

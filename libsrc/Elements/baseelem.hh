@@ -4,17 +4,24 @@
 namespace CoupledField
 {
 
+  //! Class for calculation Jacobian 
+  /*! In this class we store Jacobian of transformation element in standart, det of Jacobian and claculate inverse of Jacobian matrix */
+
 template<class Dim>
 class Jacobian
 {
   public:
-    Double          detJ;
-    Matrix<Double>  J;            // Jacobian
-    Matrix<Double>  Jinv;         // inverse Jacobian
- 
+    Double          detJ;          //!< determinant of Jacobian
+    Matrix<Double>  J;            //!< Jacobian
+    Matrix<Double>  Jinv;         //!< inverse Jacobian
+
+    //! Constructor 
     Jacobian();
     
+    //! Return colomn with derivatives respect to x in inverse Jacobian
     void GetJinvX(Vector<Double> & JinvX);
+
+    //! Return colomn with derivatives respect to y in inverse Jacobian
     void GetJinvY(Vector<Double> & JinvY);
 };
 
