@@ -44,29 +44,47 @@ protected:
   Vector<Double> TransFncAtIP1;
   Vector<Double> TransFncAtIP2;
   Vector<Double> TransFncAtIP3;
+  Vector<Double> TransFncAtIP4;
 
   Vector<Double> DxTransFncAtIP1;
   Vector<Double> DxTransFncAtIP2;
   Vector<Double> DxTransFncAtIP3;
+  Vector<Double> DxTransFncAtIP4;
 
   Vector<Double> DyTransFncAtIP1;
   Vector<Double> DyTransFncAtIP2;
   Vector<Double> DyTransFncAtIP3;
+  Vector<Double> DyTransFncAtIP4;
+
+  Vector<Double> DzTransFncAtIP1;
+  Vector<Double> DzTransFncAtIP2;
+  Vector<Double> DzTransFncAtIP3;
+  Vector<Double> DzTransFncAtIP4;
 
   Boolean IsSet;
 
 private:
 
-    Double TransFnc3(Double x,Double y) { return y; }
-  Double TransFnc2(Double x,Double y) { return x; }
-  Double TransFnc1(Double x,Double y) { return 1-x-y; }
+  Double TransFnc4(Double x,Double y, Double z) { return 1-x-y-z; }
+  Double TransFnc3(Double x,Double y, Double z) { return x; }
+  Double TransFnc2(Double x,Double y, Double z) { return y; }
+  Double TransFnc1(Double x,Double y, Double z) { return z; }
 
-  Double TransFnc3dx (Double x,Double y) { return 0.0; }
-  Double TransFnc3dy (Double x,Double y) { return 1.0; }
-  Double TransFnc2dx (Double x,Double y) { return 1.0; }
-  Double TransFnc2dy (Double x,Double y) { return 0.0; }
-  Double TransFnc1dx (Double x,Double y)  { return -1.0; }
-  Double TransFnc1dy (Double x,Double y)  { return -1.0; }
+  Double TransFnc3dx (Double x,Double y, Double z) { return 1.0; }
+  Double TransFnc3dy (Double x,Double y, Double z) { return 0.0; }
+  Double TransFnc3dz (Double x,Double y, Double z) { return 0.0; }
+
+  Double TransFnc2dx (Double x,Double y, Double z) { return 0.0; }
+  Double TransFnc2dy (Double x,Double y, Double z) { return 1.0; }
+  Double TransFnc2dz (Double x,Double y, Double z) { return 0.0; }
+
+  Double TransFnc1dx (Double x,Double y, Double z)  { return 0.0; }
+  Double TransFnc1dy (Double x,Double y, Double z)  { return 0.0; }
+  Double TransFnc1dz (Double x,Double y, Double z)  { return 1.0; }
+
+  Double TransFnc4dx (Double x,Double y, Double z)  { return -1.0; }
+  Double TransFnc4dy (Double x,Double y, Double z)  { return -1.0; }
+  Double TransFnc4dz (Double x,Double y, Double z)  { return -1.0; }
 
 };
 
