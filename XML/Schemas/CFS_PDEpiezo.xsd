@@ -46,13 +46,8 @@
             minOccurs="0"/>
 
           <!-- Poling direction of piezoelectric body (optional) -->
-          <xsd:element name="polingDirectionX" type="DT_Poling"
-            minOccurs="0"/>
-          <xsd:element name="polingDirectionY" type="DT_Poling"
-            minOccurs="0"/>
-          <xsd:element name="polingDirectionZ" type="DT_Poling"
-            minOccurs="0"/>
-
+          <xsd:element name="polingDirection" type="DT_Poling"
+            minOccurs="0" maxOccurs="1"/>
 
           <!-- Boundary Conditions & Loads (optional) -->
           <xsd:element name="bcsAndLoads" minOccurs="0" maxOccurs="unbounded">
@@ -294,7 +289,9 @@
   </xsd:simpleType>
 
   <xsd:complexType name="DT_Poling">
-    <xsd:attribute name="pol" type="DT_polingDirection" use="optional"/>
+    <xsd:attribute name="x" type="DT_polingDirection" use="optional"/>
+    <xsd:attribute name="y" type="DT_polingDirection" use="optional"/>
+    <xsd:attribute name="z" type="DT_polingDirection" use="optional"/>
   </xsd:complexType>
 
   <!-- ******************************************************************** -->
