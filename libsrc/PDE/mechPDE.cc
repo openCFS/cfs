@@ -28,7 +28,6 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
   :BasePDE(aptgrid, aptbcs, aptFileType, aptOut, aptTimeFunc), 
    lambdaMat(NULL),
    mueMat(NULL),
-   reducedInt_(FALSE),
    preStressVal_(0.0)
 
 {
@@ -110,24 +109,6 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 #else
     effectiveMass_ = params->IsSet( "effMass" );
 #endif
-
-    // *********************************
-    //  Read in Nonlinearities and
-    //  Reduced integration parameters
-    // *********************************
-
-    // Check whether reduced integration is to be performed
-#ifndef XMLPARAMS
-    reducedInt_ = conf->get_option( "reducedInt",  pdename_ );
-#else
-    reducedInt_ = params->IsSet( "reducedInt", pdename_ );
-#endif
-
-    if ( reducedInt_ == TRUE )
-      {
-	std::cout << "REDUCED INTEGRATION set !!" << std::endl << std::endl;
-	reducedInt_=TRUE;
-      }
 
     
     // *********************************
@@ -276,6 +257,16 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 	params->Get( "resStopCrit", residualStopCrit_, pdename_, "nonLinear" );
 #endif
       }
+
+    // ------------------------------------
+    //   Get information on reduced integration
+    // ------------------------------------
+    params->GetList( "reducedInt", reducedIntegration_, pdename_, "region" );
+
+    if ( nonLin_ == TRUE)
+      for (Integer i=0; i<reducedIntegration_.GetSize(); i++)
+	if (reducedIntegration_[i] == "yes")
+	  Error("Currently we do not support nonlinearity with reduced integration!");
   }
   
 
@@ -294,9 +285,48 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 
 	MaterialData actSDMat(materialData_[actSD]);
 
-	// ==============  add "standard" stiffness ===========================
-	if (!reducedInt_)  
+	if (reducedIntegration_[actSD] == "yes")  
 	  {
+	    // ==================  add reduced stiffness ==========================
+
+	    std::cout << "Do reduced int" << std::endl;
+	  
+	    lambdaMat = new MaterialData(actSDMat);
+	    mueMat = new MaterialData(actSDMat);
+	  
+	    // use a "different" material data set for reduced integration
+	    CalcReducedMat(*lambdaMat, *mueMat, actSDMat);	
+
+	    BaseForm * bilinearStiff1 = GetStiffIntegrator(*mueMat);
+	    IntegratorDescriptor * actIntDescr1 =
+	      new IntegratorDescriptor(bilinearStiff1, STIFFNESS);
+
+	    //check for damping
+	    if (dampingType_ == RAYLEIGH)    
+	      actIntDescr1->SetSecondaryMat(DAMPING, actSDMat.GetDampingBeta(),analysistype_);
+	
+	    assemble_->AddIntegrator(actIntDescr1, subdoms_[actSD]);
+
+
+	    BaseForm * bilinearStiff2 = GetStiffIntegrator(*lambdaMat);
+	    IntegratorDescriptor * actIntDescr2 =
+	      new IntegratorDescriptor(bilinearStiff2, STIFFNESS);
+
+	    //for this integrator, we need reduced integration
+	    //see Hughes, pp.219
+	    actIntDescr2->SetReducedInt();
+
+	    //check for damping
+	    if (dampingType_ == RAYLEIGH)    
+	      actIntDescr2->SetSecondaryMat(DAMPING, actSDMat.GetDampingBeta(),analysistype_);
+	
+	    assemble_->AddIntegrator(actIntDescr2, subdoms_[actSD]);
+
+	  }
+
+	else 
+	  {
+	    // ==============  add "standard" stiffness ===========================
 	    BaseForm * bilinearStiff = GetStiffIntegrator(actSDMat);
 	    IntegratorDescriptor * actIntDescr =
 	      new IntegratorDescriptor(bilinearStiff, STIFFNESS);
@@ -306,26 +336,6 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 	      actIntDescr->SetSecondaryMat(DAMPING, actSDMat.GetDampingBeta(),analysistype_);
 	
 	    assemble_->AddIntegrator(actIntDescr, subdoms_[actSD]);
-	  }
-	  
-	
-	// ==================  add reduced stiffness ==========================
-	else 
-	  {
-	  
-	    lambdaMat = new MaterialData(actSDMat);
-	    mueMat = new MaterialData(actSDMat);
-	  
-	    // use a "different" material data set for reduced integration
-	    CalcReducedMat(*lambdaMat, *mueMat, actSDMat);	
-
-	    BaseForm * bilinearStiff1 = GetStiffIntegrator(*mueMat);
-	    assemble_->AddIntegrator(bilinearStiff1, subdoms_[actSD],
-				     STIFFNESS, nonLin);
-
-	    BaseForm * bilinearStiff2 = GetStiffIntegrator(*lambdaMat);
-	    assemble_->AddIntegrator(bilinearStiff2, subdoms_[actSD],
-				     STIFFNESS, nonLin);
 	  }
 
 
@@ -498,6 +508,10 @@ void MechPDE::CalcReducedMat(MaterialData& lambdaMat, MaterialData& mueMat, Mate
 
   for(Integer actRow=3; actRow<6; actRow++)
       (*mueMechMat)[actRow][actRow] = mue;  
+
+  std::cout << "LambadMat:\n" << *lMechMat << std::endl;
+  std::cout << "MuMat:\n" << *mueMechMat << std::endl;
+
 }
 
 

@@ -398,6 +398,10 @@ class SpaceErrorEstimator;
     //! surface-domain-levels belongig to PDE
     StdVector<std::string> surfdoms_;
 
+    StdVector<std::string> pressSurf_;  //!< surface of pressure loads
+    StdVector<Double>      pressVals_;  //!< values of the pressure loads
+    StdVector<std::string> pressFnc_;   //!< function names of pressure loads
+
     //! defines subtype of mechanic PDE: plainStrain, 3d, ...
     std::string subType_;
     //@}

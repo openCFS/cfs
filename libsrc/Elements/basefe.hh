@@ -367,6 +367,11 @@ public:
   virtual IntegrationType GetIntType() {return IntegType;};
 
 
+  //! sets the element to reduced integration (cuurently: GaussOrder1)
+  void SetReducedIntegration();
+
+  //! sets the element to standard integration (cuurently: GaussOrder2)
+  void SetStandardIntegration();
 
 protected:
    //! Define variables of this class
@@ -403,6 +408,10 @@ protected:
   
   //! Set value of shape fnc derivatives at integration points
   virtual void SetShapeFncDerivAtIp();
+
+   //! Set integration points
+  virtual void SetIntPoints() 
+  { Error("Not implemented in baseFE!"); };
 
   //! Helper function for printing a coordinate matrix in a string
   std::string CoordMatrix2String(const Matrix<Double> & coordMat);

@@ -39,6 +39,12 @@ namespace CoupledField
   
     /// is the integrator nonlinear?
     Boolean IsNonLin() {return nonLin;};
+
+    /// is the integrator set to reduced integration?
+    Boolean IsReducedInt() {return reducedIntegration_;};
+
+    /// set the integrator to reduced integration
+    void SetReducedInt() {reducedIntegration_ = TRUE;};
   
     /// returns the integrator
     BaseForm * GetIntegrator(){return integrator;};
@@ -50,6 +56,9 @@ namespace CoupledField
   
     /// is the integrator a nonlinear one?
     Boolean nonLin;
+
+    //! reduced integration flag
+    Boolean reducedIntegration_;
   };
   
 
@@ -428,6 +437,13 @@ namespace CoupledField
 	//! transform element matrix to account for spezial RHS during parameter Identification process
     virtual void TransformMatrix2HarmonicRHS_for_paramIdent(Vector<Double>& harmMat,
 					  Matrix<Double> origMat) {;};
+
+    //sets all finite elements to reduced integration
+    void SetFE2ReducedInt();
+
+
+    //sets all finite elements back to standard integration
+    void SetFE2StandardInt();
 
     // ====================================================
     // DATA SECTION 

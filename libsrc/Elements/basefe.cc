@@ -361,4 +361,28 @@ std::string BaseFE::CoordMatrix2String(const Matrix<Double> & coordMat)
   return ret;
 }
 
+void BaseFE::SetReducedIntegration()
+{
+  ENTER_FCN( "BaseFE:SetReducedIntegration:" );
+
+  IntegType =  GaussOrder1;
+
+   SetIntPoints();
+   SetShapeFncAtIp();
+   SetShapeFncDerivAtIp();  
+
+}
+
+void BaseFE::SetStandardIntegration()
+{
+  ENTER_FCN( "BaseFE:SetStandardIntegration:" );
+
+  IntegType =  GaussOrder2;
+
+  SetIntPoints();
+  SetShapeFncAtIp();
+  SetShapeFncDerivAtIp();  
+
+}
+
 } // end namespace CoupledField

@@ -32,7 +32,8 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
    isAlwaysStatic_(FALSE),
    dampingType_(NONE),
    needsDampingMatrix_(FALSE),
-   isIncrFormulation_(FALSE)
+   isIncrFormulation_(FALSE),
+   TS_alg_(NULL)
 {
 
   ENTER_FCN( "BasePDE::BasePDE" );
@@ -113,7 +114,7 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
 		     std::string  bcSequenceTag)
   {
     ENTER_FCN( "BasePDE::Init()" );
-    
+
     bcSequenceIndex_ = bcSequenceIndex;
     bcSequenceTag_ = bcSequenceTag;
 
@@ -364,9 +365,14 @@ if (commsize>1) parallel = "yes";
     // =====================================================================
     assemble_->SetPtr2EQNData(eqnData_); 
     assemble_->SetPtr2TimeFnc(ptTimeFunc_);
-    //assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, subdoms_, pressSurf_);
-    assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, 
-				subdoms_, surfdoms_, bcSequenceTag_);
+
+    if (pdename_ == "piezo" || pdename_ == "mechanic")
+      assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, 
+				  subdoms_, pressSurf_, bcSequenceTag_);
+    else
+      assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, 
+				  subdoms_, surfdoms_, bcSequenceTag_);
+
     assemble_->SetGraphType(NODEGRAPH);
 #ifdef USE_OLAS
     if (isComplex_)
@@ -415,6 +421,7 @@ if (commsize>1) parallel = "yes";
 #else
     ReadStoreResults();
 #endif
+
   }
   
   // For XML parameter handling we have replaced this method by the pure
@@ -1307,6 +1314,10 @@ BasePDE::~BasePDE()
 
   if (eqnData_)
     delete eqnData_;
+
+   if ( TS_alg_)
+     delete TS_alg_;
+
 }
 
 

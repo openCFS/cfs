@@ -31,7 +31,6 @@ namespace CoupledField {
 
     // Set name of the PDE and its material class
 
-    
     pdename_ = "piezo";
     pdematerialclass_ = "piezo";
 

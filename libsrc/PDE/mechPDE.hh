@@ -208,15 +208,12 @@ private:
   /// returns that L2-norm of an algsys vector
   Double AlgsysL2Norm(Double * pt);
   
-  /// flag for reduced Integration
-  Boolean reducedInt_;
+  /// flag for reduced Integration for each subdomain
+  StdVector<std::string> reducedIntegration_;
 
   /// returns the solution matrix belonging to all nodes of the actual element
   void GetSolOfElement( Matrix<Double>& elDisp, StdVector<Integer>& connect_PDE);
 
-  StdVector<std::string> pressSurf_;  //!< surface of pressure loads
-  StdVector<Double>      pressVals_;  //!< values of the pressure loads
-  StdVector<std::string> pressFnc_;   //!< function names of pressure loads
 
   /// value of prestress
   Double preStressVal_;
