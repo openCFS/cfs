@@ -4,8 +4,9 @@
 #include <list>
 
 #include "bcs.hh"
-#include <DataInOut/conffile.hh>
-#include <DataInOut/ParamHandling/BaseParamHandler.hh>
+#include "DataInOut/ParamHandling/ConfFile.hh"
+#include "DataInOut/WriteInfo.hh"
+#include "DataInOut/ParamHandling/BaseParamHandler.hh"
 
 namespace CoupledField
 {
@@ -66,17 +67,18 @@ namespace CoupledField
     //
     // NOTE: This must still be converted !!!
     //
-    conf->ifgetliststr("list_edges",color_edges_);
-    if (color_edges_.size()) 
-      bcsEdges_[0]=new std::vector<Elem*>[color_edges_.size()]; 
-
-    conf->ifgetliststr("list_faces",color_faces_);
-    if (color_faces_.size()) 
-      bcsFaces_[0]=new std::vector<Elem*>[color_faces_.size()]; 
-
-    conf->ifgetliststr("list_neighelems",color_neighelems_);
-    if (color_neighelems_.size())
-      bcsNeighElems_[0]=new std::vector<Elem*>[color_neighelems_.size()];
+    Info->Warning( "BCs: list_edges an co. not supported by XML!?" );
+//    conf->ifgetliststr("list_edges",color_edges_);
+//    if (color_edges_.size()) 
+//      bcsEdges_[0]=new std::vector<Elem*>[color_edges_.size()]; 
+//
+//    conf->ifgetliststr("list_faces",color_faces_);
+//    if (color_faces_.size()) 
+//      bcsFaces_[0]=new std::vector<Elem*>[color_faces_.size()]; 
+//
+//    conf->ifgetliststr("list_neighelems",color_neighelems_);
+//    if (color_neighelems_.size())
+//      bcsNeighElems_[0]=new std::vector<Elem*>[color_neighelems_.size()];
   }
 #endif
 

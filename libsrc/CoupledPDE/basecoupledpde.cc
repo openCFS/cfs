@@ -4,7 +4,7 @@
 
 #include "basecoupledpde.hh"
 #include <CoupledPDE/pdecoupling.hh>
-#include <DataInOut/conffile.hh>
+#include <DataInOut/ParamHandling/ConfFile.hh>
 
  
 namespace CoupledField

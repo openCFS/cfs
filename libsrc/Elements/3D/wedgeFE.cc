@@ -2,7 +2,10 @@
 #include <fstream>
 #include <string>
 
-#include <DataInOut/conffile.hh>
+#include "DataInOut/ParamHandling/BaseParamHandler.hh"
+#include "DataInOut/ParamHandling/ConfFile.hh"
+#include "DataInOut/WriteInfo.hh"
+#include "General/environment.hh"
 #include "wedgeFE.hh"
 
 namespace CoupledField
@@ -19,11 +22,15 @@ namespace CoupledField
     NumFaces_ = 5;
     //    numChilds_ = 8;
 
+#ifndef XMLPARAMS
     std::string integtype = "GaussOrder2";
-
     std::string IntRule;
     if (conf->ifget("IntegRules", IntRule)==TRUE)
       conf->ifget("wedge", integtype, "IntegRules");
+#else
+    std::string integtype;
+    params->Get( "type", integtype, "integRules", "wedge" );
+#endif
 
     IntegType = String2EnumIntegrationType(integtype.c_str());
 

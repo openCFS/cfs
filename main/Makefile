@@ -19,7 +19,6 @@ SUBLIBDIR := Driver PDE CoupledPDE Estimator\
              DataInOut/ParamHandling \
              DataInOut/Unverg DataInOut/GMV DataInOut/AnsysOut \
              DataInOut/DatFile DataInOut/AnsysFile DataInOut\
-#	     AlgebraicSystem/LinAlg\
              Utils Matrix General  
 #
 ifeq ($(Adaptivity),yes)
@@ -159,6 +158,8 @@ clean-driver:
 	$(MAKE) clean
 clean-datainout:
 	@cd $(LIBSRC_DIR)/DataInOut&& \
+	$(MAKE) clean
+	@cd $(LIBSRC_DIR)/DataInOut/DefineFiles && \
 	$(MAKE) clean
 	@cd $(LIBSRC_DIR)/DataInOut/ParamHandling && \
 	$(MAKE) clean

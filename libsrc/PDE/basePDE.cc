@@ -3,7 +3,7 @@
 #include <string>
 
 #include <Domain/elem.hh>
-#include "DataInOut/conffile.hh"
+#include "DataInOut/ParamHandling/ConfFile.hh"
 #include "Estimator/spaceerror.hh"
 #include "DataInOut/WriteInfo.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
@@ -147,6 +147,7 @@ void BasePDE::ReadSavings()
 
   ENTER_FCN( "BasePDE::ReadSavings" );
 
+#ifndef XMLPARAMS
   //set saving of solution to yes, if user has not used the nodalsave-command
   savesol_ = TRUE;
 
@@ -164,6 +165,27 @@ void BasePDE::ReadSavings()
       if (savings[i] == "deriv1") savederiv1_ = TRUE;
       if (savings[i] == "deriv2") savederiv2_ = TRUE;
     }
+
+#else
+
+  // By default we only save the solution at nodal values
+  savesol_    = TRUE;
+  savederiv1_ = FALSE;
+  savederiv2_ = FALSE;
+
+  // Determine what solution values the user wants to be stored
+  std::vector<std::string> nodeValues;
+  params->GetList( "type", nodeValues, pdename_, "nodeHistory" );
+
+  for ( Integer i = 0;  i < nodeValues.size(); i++ )
+    {
+      if ( nodeValues[i] == "displacement" ) savesol_    = TRUE;
+      if ( nodeValues[i] == "velocity"     ) savederiv1_ = TRUE;
+      if ( nodeValues[i] == "acceleration" ) savederiv2_ = TRUE;
+    }
+
+#endif
+  
 }
 
 
@@ -727,9 +749,15 @@ void BasePDE::SetSolverParameters()
   Integer precondIntegerVal = 0;
   Integer matrixStorageTypeVal = 0;
   
+
+#ifndef XMLPARAMS
   conf->ifget("solvertype",solverIntegerVal,pdename_); // solver
   conf->ifget("precondtype", precondIntegerVal,pdename_); //preconditioner
   conf->ifget("matrixstoragetype",matrixStorageTypeVal,pdename_); // matrixStorageTypeVal
+#else
+  Info->Warning("SetSolverParameters: Using defaults! No solvers yet in XML!");
+#endif
+
 
   // Assign correct solver
   switch(solverIntegerVal) 
@@ -852,17 +880,25 @@ void BasePDE::SetSolverParameters()
       break;
     }
 #else
+#ifndef XMLPARAMS
     conf->ifget("solvertype",solvertype_,pdename_); // solver
     conf->ifget("precondtype", precondtype_,pdename_); //preconditioner
+#else
+  Info->Warning("SetSolverParameters: Using defaults! No solvers yet in XML!");
+#endif
 #endif
 
+
   //if values are defined in conf-file, take these
+#ifndef XMLPARAMS
   conf->ifget("eps",eps_,pdename_); // relative accuracy in the precond. energy
   conf->ifget("dampiter",dampiter_,pdename_); // damping parameter for Jacobi, SSOR
   conf->ifget("maxnumit",maxnumiter_,pdename_); // maximal number of iterations
   conf->ifget("numeqcoarse",numeqcoarse_,pdename_); // number of equation for coarsing
   conf->ifget("coarsealpha",coarsealpha_,pdename_); // coarsing parameter for AMG
-  
+#else
+  Info->Warning("SetSolverParameters: Using defaults! No solvers yet in XML!");
+#endif
 
 #ifdef USE_OLAS
   if (solvertype_==DIRECT && precondtype_!=ID)  precondtype_=ID;

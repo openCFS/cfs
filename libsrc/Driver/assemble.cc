@@ -4,7 +4,7 @@
 #include <math.h>
 
 #include <Domain/elem.hh>
-#include <DataInOut/conffile.hh>
+#include <DataInOut/ParamHandling/ConfFile.hh>
 #include <DataInOut/ParamHandling/BaseParamHandler.hh>
 #include <DataInOut/WriteInfo.hh>
 

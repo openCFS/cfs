@@ -10,7 +10,7 @@
 #include "DataInOut/WriteInfo.hh"
 
 #ifdef ADAPTGRID
-#include "DataInOut/conffile.hh"
+#include "DataInOut/ParamHandling/ConfFile.hh"
 #include "Triangle.h"
 #include "Tetrahedron.h"
 #include "Hexahedron.h"

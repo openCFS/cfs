@@ -2,6 +2,8 @@
 #define FILE_PLAIN_XML_PARAMHANDLER
 
 #include "General/environment.hh"
+#include <fstream>
+#include <vector>
 
 namespace CoupledField
 {
@@ -31,6 +33,9 @@ namespace CoupledField
     //! The constructor expects as input the name of the input file containing
     //! the steering parameters.
     PlainXMLParamHandler( Char *fname );
+
+    //! Deconstructor
+    ~PlainXMLParamHandler();
 
     //! Get string-value for a keyword
 
@@ -112,7 +117,8 @@ namespace CoupledField
     //!                   (optional)
     //! \param subsection Name of a subsection in which to look for keyword
     //!                   (optional)
-    void GetList( const std::string key, std::vector<Double> &list,
+    void GetList( const std::string key,
+		  std::vector<Double> &list,
 		  const std::string section = "",
 		  const std::string subsection = "" );
 
@@ -157,8 +163,92 @@ namespace CoupledField
     //! \param value      String against which to test value of parameter
     //!                   (optional)
     Boolean HasValue( const std::string key, const std::string value,
-			  const std::string section = "",
-			  const std::string subsection = "" );
+		      const std::string section = "",
+		      const std::string subsection = "" );
+
+  private:
+
+    //! Shortcut for standard type
+    typedef std::string::size_type sType;
+
+    //! XML-file with input parameters
+    std::ifstream infile;
+
+    //! Final position in file. Used instead of std::eof
+    sType pos_end_;
+
+    //! Search element tree for keyword
+
+    //! This method will search the parameter tree for the element matching the
+    //! keyword. If it is found, the position of the next line will be
+    //! returned, otherwise, std::string::npos will be returned. By default,
+    //! we start the search from the begining of the file.
+    sType getposElem( const std::string keyword,
+				       const sType
+				       startpos = 0 );
+
+    //! Auxillary method.
+
+    //! This is an auxiliary method. It extracts the name of the PDE from the
+    //! input string unpeeled and returns it in the output string peeled.
+    void peel( const std::string unpeeled, std::string & peeled);
+
+    //! This method checks, whether the buffer contains a tag
+    Boolean is_tag( const std::string buffer);
+
+    //! To find the final and the initial positions for required elements
+    //! with keys: section, subsection, etc.
+    void FindPosElems( std::vector<std::string> keys, int level,
+		       std::vector<sType> & s_elems,
+		       std::vector<sType> & e_elems,
+		       std::vector<sType> s_section,
+		       std::vector<sType> e_section);
+    
+    //! To find the final and the initial positions for required elements
+    //! with keys: section, subsection, etc., where the last key is an
+    //! attribute.
+    void FindPosAttrs( std::vector<std::string> keys, int level,
+		       std::vector<sType> & s_elems,
+		       std::vector<sType> & e_elems,
+		       std::vector<sType> s_section,
+		       std::vector<sType> e_section);
+
+    //! To find the final and initial positions of required elements with the
+    //! key
+    void getElems( const std::string key,
+		   std::vector<sType> & s_elems,
+		   std::vector<sType> & e_elems,
+		   std::vector<sType> s_section,
+		   std::vector<sType> e_section,
+		   sType start=0,
+		   const int type = 1 );
+
+    //! To find the final and initial positions of required elements with the
+    //! key
+    void getAttr(const std::string attr,
+		 const std::string element,
+		 std::vector<sType> & s_elems,
+		 std::vector<sType> & e_elems,
+		 std::vector<sType> s_section,
+		 std::vector<sType> e_section,
+		 sType start=0);
+    
+    //! Find position of the input keyword key in the file
+    sType findPos( const std::string key, sType start );
+
+    //! Read values of an element
+    void ReadValuesElem( std::vector<std::string> & list,
+			 std::vector<sType> s_elems,
+			 std::vector<sType> e_elems );
+    
+    //! Read attributes of an element
+    void ReadAttrsElem( std::vector<std::string> & list,
+			std::vector<sType> s_elems,
+			std::vector<sType> e_elems );
+
+    //! Read the position of the end of an element
+    sType findEndPosElementType2( sType start );
+
   };
 
 }

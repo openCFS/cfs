@@ -4,17 +4,22 @@
 #include <stdio.h>
 
 #include "outGMV.hh"
-#include "DataInOut/conffile.hh"
+#include "DataInOut/WriteInfo.hh"
+#include "DataInOut/ParamHandling/ConfFile.hh"
+#include "DataInOut/ParamHandling/BaseParamHandler.hh"
+#include "General/environment.hh"
 
 namespace CoupledField
 {
 
+  // ===============
+  //   Constructor
+  // ===============
 WriteResultsGMV :: WriteResultsGMV(const Char * const filename, Boolean withHistory, FileType * const aInFile)
 : WriteResults(filename,withHistory, aInFile)
 {
-#ifdef TRACE
-  (*trace) << "entering WriteResultsGMV :: WriteResultsGMV" << std::endl;
-#endif
+
+  ENTER_FCN( "WriteResultsGMV :: WriteResultsGMV" );
 
  namedir_=new Char[30];
 
@@ -35,13 +40,13 @@ WriteResultsGMV :: WriteResultsGMV(const Char * const filename, Boolean withHist
 
  ascii_=FALSE;
 
+#ifndef XMLPARAMS
  std::string typedata;
  if (conf->ifget("format_data_output",typedata)) {
    if (typedata == "binary")
      ascii_=FALSE;
    else ascii_=TRUE;
  }
- 
  std::string flag;
  if (conf->ifget("fixed_grid",flag)) 
    {
@@ -54,19 +59,31 @@ WriteResultsGMV :: WriteResultsGMV(const Char * const filename, Boolean withHist
      { 
        fixedgrid_=TRUE;
        OpenFile(-1);
-
      }
    }
+#else
+ // Output format can be either ascii (default) or binary
+ ascii_ = !params->HasValue( "type", "binary", "output" );
+
+ // Does the grid change over time, or can we use a fixed grid
+ fixedgrid_ = params->IsSet( "fixedGrid", "output" );
+ if ( fixedgrid_ == FALSE ) OpenFile(0);
+ else OpenFile(-1);
+
+#endif
+
  if (!output)
     Error(" File for output results in .gmv-format ", __FILE__, __LINE__);
 
 }
 
+
+  // ======================
+  //   Default Destructor
+  // ======================
 WriteResultsGMV ::~WriteResultsGMV()
 {
-#ifdef TRACE
-  (*trace) << "entering WriteResultsGMV::~ WriteResultsGMV" << std::endl;
-#endif
+  ENTER_FCN( "WriteResultsGMV::~WriteResultsGMV" );
 
  // write keyword
  (*output) << "endgmv  ";
@@ -77,6 +94,7 @@ WriteResultsGMV ::~WriteResultsGMV()
  delete output;
 }
 
+
 void WriteResultsGMV :: WriteHeader()
 {
   (*output) << "gmvinput";
@@ -84,6 +102,7 @@ void WriteResultsGMV :: WriteHeader()
  else (*output) << "ieeei4r8";
 
 }
+
 
 void WriteResultsGMV :: WriteNodes(const Integer alevel)
 {
@@ -594,24 +613,53 @@ void WriteResultsGMV::WriteElemSolution(const StoreSol<Double>& data, const Inte
 
 void WriteResultsGMV::OpenFile(const Integer num)
 {
-   Char * name=new Char[80];
-   Char * aux=new Char[2];
-   sprintf(aux,"%i",num);
+  std::string filename;
 
-   strcpy(name,namedir_);
-   strcat(name,"/");
-   strcat(name,namefile_);
-   if (num==-1)
-     {
-       strcat(name,"_GRID.gmv");
-     }
-   else
-     {
-       if (num/10 < 1) strcat(name,".gmv00");
-       else if (num/100 < 1) strcat(name,".gmv0");
-       else strcat(name,".gmv");
-       strcat(name,aux);
-     }
+  // Generate basename for output file
+  filename.append( namedir_ );
+  filename.append( "/" );
+  filename.append( namefile_ );
+
+  // In the case of a fixed grid we write the grid description to a
+  // separate file
+  if ( num == -1 )
+    {
+      filename.append( "_GRID.gmv" );
+    }
+
+  // Normal output file
+  else
+    {
+      filename.append( ".gmv" );
+      if ( num < 10 ) filename.append( "00" );
+      else if ( num < 100 ) filename.append( "0" );
+      else if ( num > 1000 )
+	{
+	  Info->Error( "Number of gmv file exceeds 999!", __FILE__, __LINE__ );
+	}
+      filename.append( Info->GenStr( num ) );
+    }
+
+  // Old version of filename generation
+
+//    Char * name=new Char[80];
+//    Char * aux=new Char[10];
+//    sprintf(aux,"%i",num);
+// 
+//    strcpy(name,namedir_);
+//    strcat(name,"/");
+//    strcat(name,namefile_);
+//    if (num==-1)
+//      {
+//        strcat(name,"_GRID.gmv");
+//      }
+//    else
+//      {
+//        if (num/10 < 1) strcat(name,".gmv00");
+//        else if (num/100 < 1) strcat(name,".gmv0");
+//        else strcat(name,".gmv");
+//        strcat(name,aux);
+//      }
    
    if (output) {
    if (num!=-1)
@@ -631,12 +679,12 @@ void WriteResultsGMV::OpenFile(const Integer num)
    std::string typedata;
 
    if (ascii_)
-     output=new std::ofstream(name);
+     output=new std::ofstream(filename.c_str());
    else
-     output=new std::ofstream(name,std::ofstream::binary);
+     output=new std::ofstream(filename.c_str(),std::ofstream::binary);
 
-   delete [] name;
-   delete [] aux;
+   // delete [] name;
+   // delete [] aux;
 }
 
 void WriteResultsGMV::Init(Grid * aptgrid)

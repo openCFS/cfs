@@ -2,8 +2,11 @@
 #include <fstream>
 #include <string>
 
-#include <DataInOut/conffile.hh>
-#include <Elements/basefe.hh>
+#include "DataInOut/ParamHandling/BaseParamHandler.hh"
+#include "DataInOut/ParamHandling/ConfFile.hh"
+#include "DataInOut/WriteInfo.hh"
+#include "General/environment.hh"
+#include "Elements/basefe.hh"
 #include "trianglefe.hh"
 
 namespace CoupledField
@@ -20,11 +23,15 @@ TriangleFE::TriangleFE()
   NumFaces_ = 1;
   numChilds_ = 4;
 
+#ifndef XMLPARAMS
   std::string integtype="GaussOrder2";
-
   std::string IntRule;
   if (conf->ifget("IntegRules", IntRule)==TRUE)
       conf->ifget("triangle",integtype,"IntegRules");
+#else
+  std::string integtype;
+  params->Get( "type", integtype, "integRules", "triangle" );
+#endif
 
   IntegType=String2EnumIntegrationType(integtype.c_str());
 

@@ -4,9 +4,10 @@
 #include <stdio.h>
 
 #include "writeresults.hh"
-#include "conffile.hh"
-#include <DataInOut/AnsysFile/ansysfile.hh>
-#include <DataInOut/WriteInfo.hh>
+#include "ParamHandling/ConfFile.hh"
+#include "DataInOut/AnsysFile/ansysfile.hh"
+#include "DataInOut/WriteInfo.hh"
+#include "DataInOut/ParamHandling/BaseParamHandler.hh"
 
 namespace CoupledField
 {
@@ -78,8 +79,12 @@ void WriteResults::ReadSaveNodes()
 #endif
  std::vector<std::string> historyList; 
  std::list<Integer> * histNodes;
- 
- conf->ifgetliststr("save_nodes", historyList);  
+
+#ifndef XMLPARAMS 
+ conf->ifgetliststr("save_nodes", historyList);
+#else
+ params->GetList( "saveNodes", historyList, "storeResults", "nodeResults" );
+#endif
 
  if (historyList.size())
    {
@@ -111,8 +116,13 @@ void WriteResults::InitHistoryFiles()
  
  std::vector<Integer> nodesTmp;
 
+#ifndef XMLPARAMS
  conf->getlist(nodesTmp,"history_node");
-
+#else
+ // Warning: Not meaningful! Keyword currently undefined in XML Schema!
+ // GetList also currently not implemented for Integer (no need so far)
+ // params->GetList( "historyNodes", nodesTmp, "storeResults", "nodeResults" );
+#endif
 
  for (int i=0; i < nodesTmp.size(); i++)
    // there are allready elements in nodeshist_

@@ -118,6 +118,27 @@ namespace CoupledField
     //! matches.
     virtual void GetPDEList( std::vector<std::string> &list ) = 0;
 
+    //! Obtain list of atrribute values for matches
+
+    //! This method searches the (restricted) parameter tree for all elements
+    //! for which a certain attribute has a specified value. For all matching
+    //! elements the value of a specified second attribute is returned. If
+    //! there are no matches the list will be empty.
+    //! \param attribute2 Name of second attribute
+    //! \param vals       Values of second attribute for matching elements
+    //! \param attribute1 Name of first attribute
+    //! \param keyword    Keyword against which first attribute is compared
+    //! \param section    Name of a section in which to look for keyword
+    //!                   (optional)
+    //! \param subsection Name of a subsection in which to look for keyword
+    //!                   (optional)
+    virtual void GetValsForHits( const std::string attribute2,
+				 std::vector<std::string> &vals,
+				 const std::string attribute1,
+				 const std::string keyword,
+				 const std::string section = "",
+				 const std::string subsection = "" ) = 0;
+
     //! Query the on/off status of a flag/switch
 
     //! The method will search the parameter tree for the parameter matching

@@ -4,7 +4,8 @@
 
 #include "definefiles.hh"
 #include "DataInOut/AnsysFile/ansysfile.hh"
-#include "DataInOut/conffile.hh"
+#include "DataInOut/ParamHandling/ConfFile.hh"
+#include "DataInOut/WriteInfo.hh"
 #include "DataInOut/Unverg/outUnverg.hh"
 #include "DataInOut/GMV/outGMV.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
@@ -93,10 +94,21 @@ namespace CoupledField
     data=new std::ofstream(strcat(auxfile,".data"));
     if (!data) Error("Can't open data-file");
 
+
+    // *************************
+    //   Handle Parameter File
+    // *************************
+
+#ifndef XMLPARAMS
+
     // Generate configuration file object and pass address to global pointer
     // Note: This is the old-fashioned conffile format
     conf = new ConfFile(name);
     if (!conf) Error("Can't open conf-file");
+
+#else
+
+    conf = NULL;
 
     // Generate parameter handler and pass address to global pointer
     // Note: This is the new XML-based conffile format
@@ -107,6 +119,8 @@ namespace CoupledField
     params = new XMLParamHandler( auxfile );
 #else
     params = new PlainXMLParamHandler( auxfile );
+#endif
+
 #endif
 
     // Initialise internal pointers
@@ -124,9 +138,9 @@ namespace CoupledField
   // ==============
   DefineInOutFiles ::~DefineInOutFiles()
   {
-#ifdef TRACE
-    (*trace) << "Entering DefineInOutFiles::~DefineInOutFiles" << std::endl;
-#endif
+    // Cannot trace into trace file once trace file has been deleted
+    // so ENTER_FCN cannot write a leaving message for this destructor!!!
+    // ENTER_FCN( "DefineInOutFiles::~DefineInOutFiles" );
 
 #ifdef DEBUG
     delete debug;
@@ -144,12 +158,19 @@ namespace CoupledField
     delete trace;
 #endif
 
- delete flags;
+    delete flags;
 
-}
+  }
 
+
+  // ==============================
+  //   Generate mesh file pointer
+  // ==============================
   FileType * DefineInOutFiles :: Create_ptFileType()
   {
+    ENTER_FCN( "DefineInOutFiles::Create_ptFileType" );
+
+#ifndef XMLPARAMS
     std::string informat="mesh";
     conf->ifget("format_input",informat);
 
@@ -159,16 +180,34 @@ namespace CoupledField
       }
     else
       {
-	Error("Wrong format for input file. Please, check your data.",
-	      __FILE__, __LINE__);
+	Error( "Wrong format for input file. Please, check your data!",
+	       __FILE__, __LINE__ );
       }
+#else
+    if ( params->HasValue( "format", "mesh", "input" ) )
+      {
+	infileType_ = new AnsysFile( filename_ );
+      }
+    else
+      {
+	Error( "Wrong format for input file. Please, check your data!",
+	       __FILE__, __LINE__ );
+      }
+#endif
 
     return infileType_;
   }
 
+
+  // ================================
+  //   Generate output file pointer
+  // ================================
   WriteResults*
   DefineInOutFiles::Create_ptWriteResults(FileType *const aInFile)
   {
+    ENTER_FCN( "DefineInOutFiles::Create_ptWriteResults" );
+
+#ifndef XMLPARAMS
     std::string outformat="unverg";
     conf->ifget("format_output",outformat);
     
@@ -177,14 +216,33 @@ namespace CoupledField
     if (conf->ifget("history_node",val))
       if (val!=-1) 
 	withHistory=TRUE;
-  
+#else
+    std::string outformat;
+    params->Get( "format", outformat, "output" );
+
+    // Warning: Not meaningful! Keyword currently undefined in XML Schema!
+    Boolean withHistory = params->IsSet( "historyNode" );
+#endif
+
 
     // save nodes may also be listed in config-command "save_nodes"
-    std::vector<std::string> historyList; 
+    std::vector<std::string> historyList;
+
+#ifndef XMLPARAMS
+
     conf->ifgetliststr("save_nodes", historyList);
     if (historyList.size())
       withHistory=TRUE;
 
+#else
+    params->GetList( "saveNodes", historyList, "storeResults", "nodeResults" );
+    // withHistory = (bool) historyList.size();
+    // withHistory = (historyList.size() > 0);
+    if ( historyList.size() > 0 ) withHistory = TRUE;
+
+#endif
+
+#ifndef XMLPARAMS
     if (outformat=="gmv")
       ptWriteResults_=new WriteResultsGMV(filename_,withHistory, aInFile);
     else if (outformat=="unverg")
@@ -192,7 +250,21 @@ namespace CoupledField
     else
       Error("Wrong format for writing results. Please, check your data.",
 	    __FILE__, __LINE__);
-  
+#else
+    if ( outformat == "gmv" ) {
+      ptWriteResults_= new WriteResultsGMV(filename_,withHistory, aInFile);
+    }
+    else if ( outformat == "unv" ) {
+      ptWriteResults_= new WriteResultsUnverg(filename_, withHistory, aInFile);
+    }
+    else
+      {
+	std::string errmsg = "Output format '" + outformat;
+	errmsg += "' not recognised";
+	Info->Error( errmsg, __FILE__, __LINE__ );
+      }
+#endif
+
     if (!ptWriteResults_) 
       Error("Can't open file for output results",__FILE__,__LINE__);
   

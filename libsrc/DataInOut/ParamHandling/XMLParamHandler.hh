@@ -141,6 +141,27 @@ namespace CoupledField
     //! strings.
     void GetPDEList( std::vector<std::string> &list );
 
+    //! Obtain list of atrribute values for matches
+
+    //! This method searches the (restricted) parameter tree for all elements
+    //! for which a certain attribute has a specified value. For all matching
+    //! elements the value of a specified second attribute is returned. If
+    //! there are no matches the list will be empty.
+    //! \param attribute2 Name of second attribute
+    //! \param vals       Values of second attribute for matching elements
+    //! \param attribute1 Name of first attribute
+    //! \param keyword    Keyword against which first attribute is compared
+    //! \param section    Name of a section in which to look for keyword
+    //!                   (optional)
+    //! \param subsection Name of a subsection in which to look for keyword
+    //!                   (optional)
+    void GetValsForHits( const std::string attribute2,
+			 std::vector<std::string> &vals,
+			 const std::string attribute1,
+			 const std::string keyword,
+			 const std::string section = "",
+			 const std::string subsection = "" );
+
     //! Query the on/off status of a flag/switch
 
     //! The method will search the parameter tree for the parameter matching
@@ -189,12 +210,30 @@ namespace CoupledField
     //! will be issued.
     Char* GetElementValue( xercesc::DOMElement *elem );
 
+    //! Obtain the value of an elements attribute
+
+    //! This method will determine the value of the specified attribute of a
+    //! given element as standard string. If the element does not posses an
+    //! attribute with the specified keyword, the return string is empty and
+    //! the method returns FALSE.
+    //! \param element  The element
+    //! \param keyword  Name of element's attribute
+    //! \param attrVal  Value of element's attribute
+    Boolean GetElementAttribute( xercesc::DOMElement* element,
+				 const std::string keyword,
+				 std::string &attrVal );
+
     //! Default Constructor
 
     //! The default constructor is private in order to avoid a meaningless
     //! instantiation of an object of this type, which is not associated
     //! with a parameter file and a DOM tree.
     XMLParamHandler();
+
+
+    xercesc::DOMElement*
+    XMLParamHandler::ParseFile( xercesc::XercesDOMParser **parser,
+				const char *xmlFile );
 
     // ************************************************************************
     //   Private Auxilliary Methods: Problem Handlers
@@ -389,12 +428,17 @@ namespace CoupledField
     //! \note The method requires to specify at least a section keyword. This
     //!       is taken as identifier for the element, whose attributes we are
     //!       looking for.
-    //! \param key    Keyword describing the desired attribute
-    //! \param keys   A vector of strings, containing the keywords restricting
-    //!               the search tree. The order of the keywords is section,
-    //!               subsection, ...
+    //! \param key      Keyword describing the desired attribute
+    //! \param keys     A vector of strings, containing the keywords
+    //!                 restricting the search tree. The order of the keywords
+    //!                 is section, subsection, ...
+    //! \param treeTop  Top node  of search tree.
+    //! \param elemlist Optionally we can return a vector of the elements for
+    //!                 which there have been matches.
     std::vector<xercesc::DOMAttr*>*
-    FindMatchingAttributes( std::string key, std::vector<std::string> &keys );
+    FindMatchingAttributes( std::string key, std::vector<std::string> &keys,
+			    xercesc::DOMElement *treeTop,
+			    std::vector<xercesc::DOMElement*> *elemlist=NULL );
 
     //! Search (restricted) tree for elements matching keyword 
 
@@ -407,13 +451,13 @@ namespace CoupledField
     //! \param keys       A vector of strings, containing the keywords. The
     //!                   Order of the keywords is section, subsection, ...
     //!                   up to the final keyword for the element tag.
-    //! \param treetop    Top node of the subtree that is currently searched
+    //! \param treeTop    Top node of the subtree that is currently searched
     //!                   through in the recursion.
     //! \param curdepth   Current depth of recursion. This is used to identitfy
     //!                   the current keyword.
     std::vector<xercesc::DOMElement*>*
     FindMatchingElements( std::vector<std::string> &keys,
-			  xercesc::DOMElement *treetop,
+			  xercesc::DOMElement *treeTop,
 			  unsigned int curdepth );
 
     //! Central auxilliary search method for get functions
@@ -425,27 +469,40 @@ namespace CoupledField
     //! subtrees by specifying keywords for section and subsection. The method
     //! will return an empty vector, if there is no match at all. It will issue
     //! an error message, if there are matches for both, elements and
-    //! attributes.
+    //! attributes. The final argument to the method is a pointer to a vector.
+    //! If this pointer is not the NULL pointer on input (which is the default)
+    //! then on return it will point to a vector containing the found elements.
     //! \param key        Keyword for element tag or attribute name
     //! \param list       Vector of strings (output)
     //! \param section    Name of a section in which to look for keyword
-    //!                   (optional)
     //! \param subsection Name of a subsection in which to look for keyword
-    //!                   (optional)
+    //! \param treeTop    Top node of search tree
+    //! \param elemlist   Vector containing the found elements
+    //!                   (output/optional)
     void FindAllMatches( const std::string key,
 			 std::vector<std::string> &list,
 			 const std::string section,
-			 const std::string subsection );
+			 const std::string subsection,
+			 xercesc::DOMElement *treeTop,
+			 std::vector<xercesc::DOMElement*> *elemlist=NULL );
 
     //@}
 
     //! Parser object
 
-    //! This is a pointer to the XercesDOMParser object. The parser is the
-    //! owner of the DOMDocument it generates. Thus, deleting the parser will
-    //! also delete the document, i.e. all information on the steering
-    //! parameters.
+    //! This is a pointer to the XercesDOMParser object for the XML parameter
+    //! file. The parser is the owner of the DOMDocument it generates. Thus,
+    //! deleting the parser will also delete the document, i.e. all information
+    //! on the steering parameters.
     xercesc::XercesDOMParser *parser_;
+
+    //! Parser object for defaults
+
+    //! This is a pointer to the XercesDOMParser object for the XML file
+    //! connect to specification of default values. The parser is the owner of
+    //! the DOMDocument it generates. Thus, deleting the parser will also
+    //! delete the document, i.e. all information on the steering parameters.
+    xercesc::XercesDOMParser *parserDefaults_;
 
     //! Root element of document tree
 
@@ -453,6 +510,13 @@ namespace CoupledField
     //! not the be mistaken for the root node of the document. The former is
     //! a child of the latter.
     xercesc::DOMElement *rootElem_;
+
+    //! Root element of document tree for defaults
+
+    //! This is a pointer to the root element of the DOM document tree
+    //! containing the default values. It is not the be mistaken for the root
+    //! node of the document. The former is a child of the latter.
+    xercesc::DOMElement *rootElemDefaults_;
 
     //! Turns on/off verbosity of class methods
 

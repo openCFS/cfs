@@ -2,8 +2,8 @@
 # Makefile for Parameter Handling module
 #
 C_DIR = ../../..
-src = AuldParamHandler.cc XMLParserErrorHandler.cc XMLParamHandler.cc \
-      PlainXMLParamHandler.cc
+src = PlainXMLParamHandler.cc XMLParserErrorHandler.cc XMLParamHandler.cc \
+      ConfFile.cc
 #
 lib = paramhandling
 libpath = libsrc/DataInOut/ParamHandling

@@ -2,7 +2,10 @@
 #include <fstream>
 #include <string>
 
-#include <DataInOut/conffile.hh>
+#include "DataInOut/ParamHandling/BaseParamHandler.hh"
+#include "DataInOut/ParamHandling/ConfFile.hh"
+#include "DataInOut/WriteInfo.hh"
+#include "General/environment.hh"
 #include "hexaFE.hh"
 
 namespace CoupledField
@@ -19,11 +22,15 @@ HexaFE::HexaFE()
     NumFaces_ = 6;
     numChilds_ = 8;
 
-  std::string integtype="GaussOrder2";
-
+#ifndef XMLPARAMS
+    std::string integtype="GaussOrder2";
     std::string IntRule;
     if (conf->ifget("IntegRules", IntRule)==TRUE)
       conf->ifget("hexa", integtype, "IntegRules");
+#else
+    std::string integtype;
+    params->Get( "type", integtype, "integRules", "hexa" );
+#endif
 
     IntegType=String2EnumIntegrationType(integtype.c_str());
 

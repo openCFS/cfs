@@ -51,8 +51,6 @@ libsrc/DataInOut/LoadMaterialData.hh svneol=native#text/plain
 libsrc/DataInOut/Makefile -text
 libsrc/DataInOut/MaterialData.cc svneol=native#text/plain
 libsrc/DataInOut/MaterialData.hh svneol=native#text/plain
-libsrc/DataInOut/ParamHandling/AuldParamHandler.cc svneol=native#text/plain
-libsrc/DataInOut/ParamHandling/AuldParamHandler.hh svneol=native#text/plain
 libsrc/DataInOut/ParamHandling/BaseParamHandler.hh svneol=native#text/plain
 libsrc/DataInOut/ParamHandling/ConfFile.cc svneol=native#text/plain
 libsrc/DataInOut/ParamHandling/ConfFile.hh svneol=native#text/plain
@@ -75,8 +73,6 @@ libsrc/DataInOut/WriteInfo.cc svneol=native#text/plain
 libsrc/DataInOut/WriteInfo.hh svneol=native#text/plain
 libsrc/DataInOut/XMLSkeletonConf.cc svneol=native#text/plain
 libsrc/DataInOut/XMLSkeletonConf.hh svneol=native#text/plain
-libsrc/DataInOut/conffile.cc svneol=native#text/plain
-libsrc/DataInOut/conffile.hh svneol=native#text/plain
 libsrc/DataInOut/filetype.cc svneol=native#text/plain
 libsrc/DataInOut/filetype.hh svneol=native#text/plain
 libsrc/DataInOut/timefunc.cc svneol=native#text/plain

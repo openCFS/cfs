@@ -68,8 +68,9 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 #ifndef XMLPARAMS
     conf->getsubdompde(subdoms_,pdename_);
 #else
-    params->GetList( "subdom", subdoms_, pdename_ );
+    params->GetList( "name", subdoms_, pdename_, "region" );
 #endif
+
     ReadBCs(pdename_);
   
 
@@ -84,6 +85,7 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
     sol_->SetDof(dofspernode_);
     sol_->Init(0.0);
 
+    effectiveMass_ = FALSE;
 #ifndef XMLPARAMS
     lineSearch_ = FALSE;
     if (conf->get_option("lineSearch",  pdename_ ))
@@ -112,7 +114,26 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 #ifndef XMLPARAMS
     nonLin_ = conf->get_option( "nonlin",  pdename_ );
 #else
-    nonLin_ = params->IsSet( "nonlinear", pdename_ );
+    // ==============================================================
+    // NOTE: Currently we can only treat geometric non-linearity and
+    //       we assume that for a mechanic PDE all regions either
+    //       are linear or non-linear!
+    // ==============================================================
+    std::vector<std::string> nonLinRegion;
+    params->GetList( "nonLinear", nonLinRegion, pdename_, "region" );
+    // Should not happen with validating parser, but beware!
+    if ( nonLinRegion.size() == 0 ) {
+      nonLin_ = FALSE;
+    }
+    else {
+      for ( Integer k = 1; k < nonLinRegion.size(); k++ ) {
+	if ( nonLinRegion[k] != nonLinRegion[0] ) {
+	  Info->Error( "Non-linearity should be the same for all regions!",
+		       __FILE__, __LINE__ );
+	}
+      }
+      nonLin_ = nonLinRegion[0] == "geo" ? TRUE : FALSE;
+    }
 #endif
 
     if( nonLin_ == TRUE )
@@ -125,10 +146,10 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 	conf->ifget("residualStopCrit", residualStopCrit_, pdename_);
 #else
 	// incremental stopping criterion
-	params->Get( "incStopCrit", incStopCrit_, pdename_ );
+	params->Get( "incStopCrit", incStopCrit_, pdename_, "nonLinear" );
 
 	// residual stopping criterion
-	params->Get( "residualStopCrit", incStopCrit_, pdename_ );
+	params->Get( "resStopCrit", incStopCrit_, pdename_, "nonLinear" );
 #endif
       }
 
@@ -152,7 +173,7 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
     else
       damping_type_ = NONE;
 #else
-    if( params->HasValue( "damping", "rayleigh", pdename_ ) )
+    if( params->HasValue( "type", "rayleigh", pdename_, "damping" ) )
       {
 	damping_type_ = RAYLEIGH;
       }

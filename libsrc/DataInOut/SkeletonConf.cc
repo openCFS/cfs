@@ -9,7 +9,7 @@
 #include <Utils/tools.hh>
 #include <General/environment.hh>
 #include <DataInOut/AnsysFile/ansysfile.hh>
-#include <DataInOut/conffile.hh>
+#include <DataInOut/ParamHandling/ConfFile.hh>
 #include <Domain/bcs.hh>
 #include <Domain/GridCFS/grid_cfs.hh>
 #include <Elements/elements_header.hh>

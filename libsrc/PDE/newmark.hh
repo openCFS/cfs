@@ -1,7 +1,7 @@
 #ifndef FILE_NEWMARK_2001
 #define FILE_NEWMARK_2001
 
-#include <DataInOut/conffile.hh>
+#include <DataInOut/ParamHandling/ConfFile.hh>
 #include "timestepping.hh"
 
 

@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 
-#include <DataInOut/conffile.hh>
+#include <DataInOut/ParamHandling/ConfFile.hh>
 #include "interface_adgrid.hh"
 #include <Elements/elements_header.hh>
 

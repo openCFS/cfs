@@ -2,7 +2,7 @@
 #define FILE_TRAPEZOIDAL_2004
 
 #include <General/environment.hh>
-#include <DataInOut/conffile.hh>
+#include <DataInOut/ParamHandling/ConfFile.hh>
 #include "timestepping.hh"
 
 
