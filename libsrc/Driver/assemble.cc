@@ -176,6 +176,7 @@ namespace CoupledField
 
 	    Matrix<Double> elSol;
 
+
 	    // this matrix is nonlinear and, therefore, has to be reassembled next time
 	    if ((oneIntIsNonlin_ || firstTime_ ) && analysisType_ != HARMONIC)
 	      // fetch solution at element nodes

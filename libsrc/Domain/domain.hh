@@ -45,16 +45,18 @@ public:
 
 
   //! Initialize all PDEs
+  //! \param pdes vector of pointers to pdes
   //! \param sequenceStep step index in MultiSequenceSimulation
   //! \param tags tags for each PDE 
-  void InitPDEs(Integer sequenceStep,
+  void InitPDEs(StdVector<std::string> &pdeNames,
+		Integer sequenceStep,
 		StdVector<std::string> tags);
 
   //!
   void SetSubdomains();
 
   //! get pde
-  BasePDE * GetPDE(const Integer ipde){ return ptpde_[ipde];}
+  BasePDE * GetPDE(const std::string pdeName);
 
   //! get coupled pde
   BaseCoupledPDE * GetCoupledPDE() {return ptcoupledpde_;}
@@ -100,7 +102,8 @@ private:
   
 
   //! initialize pde
-  void CreatePDEs();
+  //! \params pdeNames Vector of names of PDEs
+  void CreatePDEs(StdVector<std::string> & pdeNames);
   
   //! initialize coupled pde
   void CreateCoupledPDE();

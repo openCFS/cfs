@@ -38,12 +38,12 @@ namespace CoupledField
   params->Get( "type", analysis, "analysis" );
 #endif
 
-  if (analysis=="static") 
-    analysistype_ = STATIC;
-  else if (analysis=="transient")
-    analysistype_ = TRANSIENT;
-  else
-    Error("Analysis Type not supported",__FILE__,__LINE__);
+  //  if (analysis=="static") 
+  // analysype_ = STATIC;
+  // else if (analysis=="transient")
+  //   analysistype_ = TRANSIENT;
+  //else
+  // Error("Analysis Type not supported",__FILE__,__LINE__);
 
   coupledpdename_ = "CoupledPDE: ";
 

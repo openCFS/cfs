@@ -66,11 +66,6 @@ namespace CoupledField
     keyVec = "transient", "stepSaveInc";
     params->Get(keyVec, attrVec, valVec, isaveincr_);  
 
-//     params->Get( "numSteps"   , numstep_    );
-//     params->Get( "firstDt"    , firstdt_    );
-//     params->Get( "stepSaveBeg", isavebegin_ );
-//     params->Get( "stepSaveEnd", isaveend_   );
-//     params->Get( "stepSaveInc", isaveincr_  );
 
 #endif
 
@@ -112,22 +107,11 @@ namespace CoupledField
     Double  dt = firstdt_;
     Boolean updatesysmat=FALSE;
 
-    // if PDEs are not set explicitly, 
-    // get all from the domain
-    if (pdes_.GetSize() == 0) {
-      pdes_.Resize(ptdomain_->GetNumPDE());
-      for (Integer iPDE=0; iPDE<ptdomain_->GetNumPDE(); iPDE++)
-	pdes_[iPDE] = ptdomain_->GetPDE(iPDE);
-    }
-    
-    // initialize pdes only, if this driver
-    // is not part of multiSequence driver
-    StdVector<std::string> tags;
-    if (! isPartOfSequence_) {
-      tags.Resize(pdes_.GetSize());
-      tags.Init("anyTag");
-      ptdomain_->InitPDEs(1,tags);
-      Info->StartProgress("Starting to solve problem", FALSE);
+    // if driver is not part of multiSequence Driver, get list
+    // of pdes which have to be solved and intialize them
+    if (isPartOfSequence_ == FALSE){     
+      GetMyPDEs();
+      Info->StartProgress ("Starting to solve problem", FALSE);
     }
     
     // Solve problem

@@ -19,19 +19,12 @@ BaseDriver :: BaseDriver(Domain * adomain)
   ptdomain_ = adomain;
 
   nummeshes_=0;
-  pdes_.Clear();
  
 }
 
 BaseDriver :: ~BaseDriver()
 {
   ENTER_FCN( "BaseDriver::~BaseDriver" );
-
-}
-void BaseDriver::SetPDEs(StdVector<BasePDE*> & pdes)
-{
-  ENTER_FCN( "BaseDriver::SetPDEs" );
-  pdes_ = pdes;
 
 }
 

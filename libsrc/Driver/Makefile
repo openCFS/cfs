@@ -6,7 +6,8 @@ C_DIR=../..
 #
 
 
-src = basedriver.cc transientdriver.cc staticdriver.cc harmonicDriver.cc multiSequenceDriver.cc assemble.cc piezoParamIdent.cc
+src = basedriver.cc transientdriver.cc staticdriver.cc harmonicDriver.cc multiSequenceDriver.cc\
+      assemble.cc piezoParamIdent.cc singleDriver.cc
 
 
 #
