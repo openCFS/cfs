@@ -5,15 +5,30 @@
 
 #include <iostream>
 
+// Depending on whether we use LAS or OLAS the trace stream pointer is in
+// different namespaces
+#ifdef USE_OLAS
+namespace OutInfo {
+  extern std::ostream * trace;
+}
+#else
+namespace CoupledField {
+  extern std::ostream * trace;
+}
+#endif
+
+//! Stream to which trace information is sent
+#define TRACESTREAM (*trace)
 
 //! Macro for specifying depth of indentation in function trace log
 #define TRACE_INDENT "  "
 
-
 namespace OutInfo {
 
-  //! Function tracing is written to this file stream
-  extern std::ostream *trace;
+  // For LAS import trace from namespace
+#ifndef USE_OLAS
+  using CoupledField::trace;
+#endif
 
 
   // ========================================================================
@@ -39,9 +54,9 @@ namespace OutInfo {
     
     if (fcnDepth_<=TRACE){
 	for (int i = 0; i < fcnDepth_; i++) {
-	  (*trace) << TRACE_INDENT;
+	  TRACESTREAM << TRACE_INDENT;
 	}
-	(*trace) << "entering function " << name_ << std::endl;
+	TRACESTREAM << "entering function " << name_ << std::endl;
       }
     }
 
@@ -52,9 +67,9 @@ namespace OutInfo {
     ~FcnTraceListElem(){
       if (fcnDepth_<=TRACE){
 	for (int i = 0; i < fcnDepth_; i++ ) {
-	  (*trace) << TRACE_INDENT;
+	  TRACESTREAM << TRACE_INDENT;
 	}
-	(*trace) << "leaving function " << name_ << std::endl;
+	TRACESTREAM << "leaving function " << name_ << std::endl;
       }
       fcnDepth_ = 0;
       name_ = NULL;
