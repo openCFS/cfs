@@ -160,7 +160,7 @@ void SmoothPDE::InitCoupling(PDECoupling * coupling)
     {
       // check for output displacement
       if (ptCoupling_->GetOutputQuantity(i) == "smoothdisplacement")
-	  ptCoupling_->SetOutputDof(i, dofspernode_);
+	ptCoupling_->CreateStoreSol(i,MECH_FORCE,isComplex_); 
     }
 
   // now overwrite number of Dirichlet BCs due to coupling 
