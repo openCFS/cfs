@@ -45,8 +45,10 @@ namespace CoupledField
   
     ReadCoils();
 
-    if (analysistype_==HARMONIC)
-      conf->get("frequency", freq_, pdename_);
+    // Currently freq_ is unused
+    // if (analysistype_==HARMONIC) {
+    //  conf->get("frequency", freq_, pdename_);
+    // }
   }
 
 

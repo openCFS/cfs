@@ -86,7 +86,9 @@ namespace CoupledField {
     ReadBCs(pdename_);
 
   if (analysistype_==HARMONIC) {
-    conf->get("frequency", freq_, pdename_);
+
+    // Currently freq_ is not used anywhere
+    // conf->get("frequency", freq_, pdename_);
     solIm_.SetNumSolutions(1);
     solIm_.SetSolutionType(ACOU_POTENTIAL);
     solIm_.SetNumNodes(numPDENodes_);
