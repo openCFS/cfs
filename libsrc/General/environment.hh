@@ -4,7 +4,8 @@
 #include <typeinfo>
 #include <iostream>
 #include <vector>
-#include <math.h>
+//#include <math.h>
+#include <cmath>
 #include <complex>
 #include "General/defs.hh"
 
