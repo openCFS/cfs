@@ -228,6 +228,163 @@ namespace CoupledField {
   // SOLVING SECTION
   // ======================================================
 
+void MagPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
+			    const Integer level, const Boolean reset)
+{
+  ENTER_FCN( "MagPDE::StepTransNonLin" );
+
+  lasttimecalc_ = asteptime;
+  laststepcalc_ = kstep;
+
+
+  const Integer job = 1;
+  const Integer update = 0;  
+  
+  static Integer timeStepCounter=1;
+  Double * ptsol;
+  Boolean performOneMoreStep;
+  Integer iterationCounter=0;
+
+  Vector<Double> actSol(numPDENodes_);
+  Vector<Double> solInc(numPDENodes_);
+  
+  // Cast BaseStoreSol into StoreSol<Double>,
+  // since this function is only called
+  // in the transient case
+  StoreSol<Double> * solhelp = dynamic_cast<StoreSol<Double>*>(sol_);
+
+  //set actual solution  
+  actSol = solhelp->GetCompleteVector();
+
+  //compute predictors
+  TS_alg_->Predictor(solhelp->GetCompleteVector());
+
+  //now set up RHS: all linear source terms
+  Double RhsLinL2Norm = SetLinRHS(level); 
+
+  // inner forces due to nonlin formulation
+  assemble_->AssembleNLRHS(level, lasttimecalc_);  
+
+   //Update RHS (mass matrix on right hand side)
+  TS_alg_->UpdateRHS(solhelp->GetCompleteVector());
+  
+  timeStepCounter++;
+  do
+    {
+      iterationCounter++;
+      std::cout << std::endl << "Nonlinear Magnetics: Perform internal loop nr. " 
+		<< iterationCounter << std::endl;
+
+#ifdef DEBUG
+      *debug << std::endl << "====================================================== " << std::endl
+	     <<	"Nonlinear Magnetics: Perform internal loop nr. " << iterationCounter << std::endl;      
+#endif
+
+
+
+      // setup and solve new system (rhs is already set) =====================
+      assemble_->InitNonLinMatrices();
+      assemble_->AssembleMatrices(level);
+      algsys_->ConstructEffectiveMatrix(matrix_factor_);
+
+      SetBCs(level, update, lasttimecalc_);
+
+#ifdef USE_OLAS
+      algsys_->BuildInDirichlet();
+      algsys_->SetupPrecond(job);
+#else
+      algsys_->CalcPrecond(job);
+#endif
+
+      algsys_->Solve();
+
+      // new solution is only an increment of the full solution =============
+      StoreAlgsysToVec(solInc, algsys_->GetSolutionVal() );
+
+      Double residualL2Norm;
+      Double etaLineSearch = 0;
+      
+#ifndef XMLPARAMS
+      if (!lineSearch_)
+#else
+      if ( lineSearch_ != "no" )
+#endif
+	actSol += solInc;
+      else
+	// TRUE is for transient simulation
+	residualL2Norm = LineSearch(solInc, actSol, etaLineSearch, level, TRUE);
+
+
+      //store A_/n+1) in the solution-object sol_
+      sol_->SetCompleteVector(actSol);
+
+
+      // recalculate RHS with new values to get new residual (f^(k+1))========
+#ifndef USE_OLAS    
+      std::vector<Double>  help;
+      RhsLinVal_.ToStdVector(help);
+      algsys_->InitRHS(help);
+#endif
+
+      //Update RHS (mass matrix on right hand side)
+      TS_alg_->UpdateRHS(actSol);
+
+      assemble_->AssembleNLRHS(level, lasttimecalc_);  // inner forces due to nonlin formulation
+ 
+
+      // =====================================================================
+      // calculation of error norms
+      // =====================================================================
+
+#ifndef XMLPARAMS
+      if (!lineSearch_)
+#else
+      if ( lineSearch_ != "no" )
+#endif
+	{
+	  Vector<Double> actRHS;
+	  StoreAlgsysToVec(actRHS, algsys_->GetRHSVal() );       
+	  
+	  // calculation of residual error =======================================
+	  residualL2Norm = RhsL2Norm(actRHS); // L2Norm of  ( f_i^(k+1) - f_a )
+	}
+      
+      Double residualErr;
+      if ( RhsLinL2Norm > 1)
+	residualErr    = residualL2Norm /  RhsLinL2Norm;
+      else
+	residualErr    = residualL2Norm;
+
+      // calculate incremental error ========================================
+      Double solIncrL2Norm = solInc.NormL2();
+      Double actSolL2Norm = actSol.NormL2();
+      Double incrementalErr;
+
+      if (actSolL2Norm > 1)
+	incrementalErr = solIncrL2Norm / actSolL2Norm;
+      else
+	incrementalErr = solIncrL2Norm;
+
+      // =====================================================================
+      // output of norms and data
+      // =====================================================================
+
+
+      if ( nonLinLogging_ == TRUE ) {
+	Info->WriteNonLinIter(pdename_, iterationCounter, residualErr,
+			      incrementalErr, etaLineSearch);
+      }
+
+      // boolean variable, holds condition if another iteration step is necessary
+      performOneMoreStep = 
+	(incrementalErr > incStopCrit_)||(residualErr > residualStopCrit_);
+
+    } while(performOneMoreStep && iterationCounter < maxnumiter_);  
+
+  
+    //perform corrector step  
+  TS_alg_->Corrector(actSol);
+}
 
   void MagPDE :: InitTimeStepping(const Double dt) {
     ENTER_FCN( "MagPDE::InitTimeStepping" );
