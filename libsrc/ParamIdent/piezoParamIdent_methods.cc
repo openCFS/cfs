@@ -87,17 +87,21 @@ namespace CoupledField
 	rand[i]=Complex(randFactor*rand[i])*y_hat[i];
       std::cout<<"\n Random noise with data error delta = "<< delta<<std::endl;
       std::cout<<rand<<std::endl;
+      std::cout<<y_hat<<std::endl;
      
       for (Integer i=0;i<nrMeasuredData;i++)
 	y_hat[i]=y_hat[i]+rand[i];
+
+      std::cout<<y_hat<<std::endl;
     
       Double average_error=0.0;
       for (Integer i=0;i<nrMeasuredData;i++)
 	average_error+=std::abs((y_hat[i]-rand[i])/y_hat[i]);
       average_error/=nrMeasuredData;
-      std::cout<<"\n The average data error is about ~ " << std::abs(average_error-1)*100<<" % " << std::endl;
+      std::cout<<"\n average_error = " <<average_error<<std::endl;
+      std::cout<<"\n The average data error is about ~ " << std::abs(average_error-1.0)*100<<" % " << std::endl;
       std::cout<<"\n Press any key to continue ... " <<std::endl;
-      // getchar();
+      getchar();
     }
 
   }// end calc_measuredCharge()
@@ -140,6 +144,10 @@ namespace CoupledField
     updateComplexMaterialData(parameterC,ptMaterial);
 
     //    ptMaterial->RotateMaterialMatrix(1,0,1);
+
+    Boolean  adjustDamping = params->IsSet("adjustDamping",  "harmonic");
+    if(adjustDamping)
+      ptPDE_->getPDE_assemble()->SetStartFrequency(freqs[0]);
 
     for (Integer fstep = 0; fstep < freqs.GetSize(); fstep++) { 
 
@@ -216,11 +224,13 @@ namespace CoupledField
     Integer dofs=ptMyPDE_->getPDE_dofspernode();  
     Integer numNodes= ptMyPDE_->getPDE_numPDENodes();  
 
-    //          updateMaterialData(parameter,ptMaterial);
-    // updateComplexMaterialData(parameterC,ptMaterial);
+    updateMaterialData(parameter,ptMaterial);
+    updateComplexMaterialData(parameterC,ptMaterial);
 
-    Matrix<Double> * matMatrix =  ptMaterial->GetMatrix();
-    //  std::cout<<*matMatrix<<std::endl;
+    //Matrix<Double> * matMatrix =  ptMaterial->GetMatrix();
+
+
+    //std::cout<<*matMatrix<<std::endl;
     //    ptMyPDE_->Init();
     //    ptAssemble->DeleteAlgSys();
     // ptAssemble->InitMatrices();
@@ -238,7 +248,11 @@ namespace CoupledField
 
     Boolean aTime=TRUE;
     //  ptAssemble->setPDE_readInAnotherTime(aTime);
-
+    
+    Boolean  adjustDamping = params->IsSet("adjustDamping",  "harmonic");
+    if(adjustDamping)
+      ptPDE_->getPDE_assemble()->SetStartFrequency(freqs[0]);
+    
     for (Integer fstep = 0; fstep < nrMeasuredData; fstep++) { // harmonic solver for different frequency - values
 
     
@@ -381,10 +395,10 @@ namespace CoupledField
     ptGrid->GetElemSD(elemssd,subdoms[0], level); // gets element list elemssd
 
    
-    //     std::cout<<whichParToUpInd<<std::endl;
-    //     std::cout<<whichParToUpIndC<<std::endl;
-    //     std::cout<<"\nactNrParameters: "<<actNrParameter <<std::endl;
-    //     std::cout<<"\nactNrParametersC: "<<actNrParameterC <<std::endl;
+//     std::cout<<whichParToUpInd<<std::endl;
+//     std::cout<<whichParToUpIndC<<std::endl;
+//     std::cout<<"\nactNrParameters: "<<actNrParameter <<std::endl;
+//     std::cout<<"\nactNrParametersC: "<<actNrParameterC <<std::endl;
     BaseNodeStoreSol * ptSol = ptMyPDE_->getPDESolution();
     NodeStoreSol<Complex> * ptNodeStoreSol;
     ptNodeStoreSol = dynamic_cast<NodeStoreSol<Complex>*>(ptSol);
@@ -459,7 +473,7 @@ namespace CoupledField
           dparameter[ind_param]=relaxParameter/scaling[ind_param]*basC[parIndex].real(); // 1.0/scaling[ind_param];
         }
         else if (ind_param>=nrParameter){
-          //  std::cout<<"indParam-nrParamerer "<<ind_param-nrParameter<<std::endl;
+	  //  std::cout<<"indParam-nrParamerer "<<ind_param-nrParameter<<std::endl;
           dparameterC[ind_param-nrParameter]=100.0*relaxParameter/scalingC[ind_param-nrParameter]*basC[parIndex-actNrParameter].real(); // 1.0/scaling[ind_param];
           //      dparameterC[ind_param-nrParameter]=1.1/scalingC[ind_param-nrParameter]*basC[parIndex-actNrParameter].imag(); // 1.0/scaling[ind_param];
 
@@ -596,26 +610,6 @@ namespace CoupledField
 	    //  if (spaceDim==3){
 	                delete  bilinearStiff;
 	                delete bilinearStiffC;
-
-			if(actIntDescrStiff!=NULL){
-			  //  std::cout<<"\n Try to delete actIntDescrStiff"<<std::endl;
-			  delete actIntDescrStiff;
-			}
-
-			if (actIntDescrStiffC!=NULL){
-			  //std::cout<<"\n Try to delete actIntDescrStiff C"<<std::endl;
-			  delete actIntDescrStiffC;
-			}
-
-	    //          }
-	    //          else if (spaceDim==2){
-	    //            delete bilinearStiff;
-	    //            delete bilinearStiffC;
-	    //            delete actIntDescrStiff;
-	    //            delete actIntDescrStiffC;
-	    //          }
-
-
           } // end for over all Elems
 
 	  
@@ -782,11 +776,11 @@ namespace CoupledField
         // ~~~~~~~~~~~~~~~~~~~~~  second strategy ~~~~~~~~~~~~~~~~~~~~~~~~~
         //              dparameter[ind_param]=1.2/scaling[ind_param];
         //     dparameter[ind_param]=1.3/scaling[ind_param]*bas[ind_param]; // 1.0/scaling[ind_param];
-        if (whichNewtonCG==3)
-          dparameter[ind_param]=relaxParameter/scaling[ind_param]*bas[parIndex]; // 1.0/scaling[ind_param];
-        else 
+ 	if (whichNewtonCG==3)
+           dparameter[ind_param]=relaxParameter/scaling[ind_param]*bas[parIndex]; // 1.0/scaling[ind_param];
+         else 
           dparameter[ind_param]=relaxParameter/scaling[ind_param];
-
+	
 	//        std::cout<<whichParToUpInd<<std::endl;
 	//        std::cout<<"\n parIndex "<<parIndex<<", ind_param: "<<ind_param <<", whichParToUpInd[parIndex] " <<whichParToUpInd[parIndex] <<std::endl;
 
@@ -868,6 +862,13 @@ namespace CoupledField
 	    Matrix<Complex> elemMat;
 	    //      Double damp_beta =1.0e-9; // in future, beta will be dependent of omega_l ...
 	    Double damp_beta = ptMaterial->GetDampingBeta();
+
+	    if (params->IsSet("adjustDamping",  "harmonic"))
+		if (freqs[0] > 0 && fstep > 0 ) {
+		  damp_beta = damp_beta*freqs[0] / freqs[fstep];
+		  //		  std::cout<<"damp-beta = " << damp_beta << std::endl;
+		}
+		
 
 	    Double omega = 2.0*PI*freqs[fstep];
 	    bilinearStiff->CalcComplexElementMatrix(ptCoord,elemMat,damp_beta,omega);
@@ -1073,25 +1074,25 @@ void piezoParamIdent::testJacobiMatrix2(Vector<Complex> & F_hat, Matrix<Complex>
     for (Integer ind_param=0;ind_param<nrParameter;ind_param++){ 
       if (whichParameterToUpdate[ind_param]==1){
 
-	parameter_incr[ind_param]=1.00000001*parameter[ind_param];
+	parameter_incr[ind_param]=1.001*parameter[ind_param];
 	//	std::cout<<parameter_incr<<std::endl
 	updateMaterialData(parameter_incr,ptMaterial);
 	createF(ptMaterial,ptBCs,F_hat_incr,FALSE);
 
-	parameter_incr2[ind_param]=0.99999999*parameter[ind_param];	
+	parameter_incr2[ind_param]=0.999*parameter[ind_param];	
 	//	std::cout<<parameter_incr2<<std::endl;
 	updateMaterialData(parameter_incr2,ptMaterial);
 	createF(ptMaterial,ptBCs,F_hat_incr2,FALSE);
 
 
-	parameter_incr3[ind_param]=1.005*parameter[ind_param];
+	//	parameter_incr3[ind_param]=1.005*parameter[ind_param];
 	//	std::cout<<parameter_incr<<std::endl
-	updateMaterialData(parameter_incr3,ptMaterial);
+	//updateMaterialData(parameter_incr3,ptMaterial);
 	//	createF(ptMaterial,ptBCs,F_hat_incr3,FALSE);
 
-	parameter_incr4[ind_param]=0.995*parameter[ind_param];	
+	//	parameter_incr4[ind_param]=0.995*parameter[ind_param];	
 	//	std::cout<<parameter_incr2<<std::endl;
-	updateMaterialData(parameter_incr4,ptMaterial);
+	//	updateMaterialData(parameter_incr4,ptMaterial);
 	//	createF(ptMaterial,ptBCs,F_hat_incr4,FALSE);
 
 
@@ -1123,7 +1124,7 @@ void piezoParamIdent::testJacobiMatrix2(Vector<Complex> & F_hat, Matrix<Complex>
     //    std::cout<<approxJacobiMatrix<<std::endl;
     //    std::cout<<JacobiMatrix<<std::endl;
     // getchar();   
-    JacobiMatrix=approxJacobiMatrix;
+    // JacobiMatrix=approxJacobiMatrix;
 
   }// end testJacobiMatrix
 

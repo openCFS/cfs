@@ -161,22 +161,21 @@ namespace CoupledField
       //    std::cout<<"Before Landweber, nLandweber = " << nLandweber << ", new_res = " << new_res_outer << ", eta * old_resid_outer = " << eta*old_res_outer <<std::endl;
     
       // LANDWEBER ITERATION   s^k+1 = s^k - w F'*(F's^k - (y-F))
-       while(new_res_inner<=old_res_inner&&nLandweber<maxNumberInnerLoops){
-	       //while(nLandweber<maxNumberInnerLoops){
-
+      // while(new_res_inner<=old_res_inner&&nLandweber<maxNumberInnerLoops){
+	while(nLandweber<maxNumberInnerLoops){
 	nLandweber++;
 	//	std::cout <<"\n Here starts the Landweber Iteration - Nr " << nLandweber<< std::endl;
-	old_res_inner=new_res_inner;
-
+	//	old_res_inner=new_res_inner;
+	
 	// F' * s^k
-	JacobiMatrix.Mult(s,JacFs);
-	//       std::cout<<"\n Landweber 5"<<std::endl;
+ 	JacobiMatrix.Mult(s,JacFs);
+// 	//       std::cout<<"\n Landweber 5"<<std::endl;
 
-	// F'sk - (y_hat-F_hat)
-	for (Integer i=0;i<nrMeasuredData;i++){
-	  act_res[i]=y_hat[i]-F_hat[i];
-	  JacFs_res[i]=JacFs[i]-act_res[i];
-	}
+// 	// F'sk - (y_hat-F_hat)
+// 	for (Integer i=0;i<nrMeasuredData;i++){
+// 	  act_res[i]=y_hat[i]-F_hat[i];
+// 	  JacFs_res[i]=JacFs[i]-act_res[i];
+// 	}
 	
 	// F'*(F's^k - (y-F))
 	adjJacobiMatrix.Mult(JacFs_res,adjFF_res);
@@ -212,23 +211,46 @@ namespace CoupledField
 	// JacFs = F'*s
 	JacobiMatrix.Mult(s,JacFs);
 	//       std::cout<<"\n Landweber 6.5"<<std::endl;
-	//F'(p^k)(s^k)-(y-F(p^k))
- 	for (Integer i=0;i<nrMeasuredData;i++)
- 	  act_res[i]-=JacFs[i];
-	//       std::cout<<"\n Landweber 6.6"<<std::endl;
-	
-	//	for (Integer i=0;i<act_res.GetSize();i++)
-	// std::cout<<"act_res= "<< act_res[i]<<std::endl;
-	
-	new_res_inner=a2norm(act_res);
-	//	       std::cout<<"\n Landweber 7"<<std::endl;
 
-
-	if (new_res_inner>old_res_inner){
-	  std::cout << " \n !! New_res_inner is worse than old_res_inner!! "<< std::endl;
-	  break;
-	  //	  getchar();
+//F'(p^k)(s^k)-(y-F(p^k))
+	for (Integer i=0;i<nrMeasuredData;i++){
+	  act_res[i]=y_hat[i]-F_hat[i];
+	  JacFs_res[i]=JacFs[i]-act_res[i];
 	}
+
+	// 	for (Integer i=0;i<nrMeasuredData;i++)
+	//act_res[i]-=JacFs[i];
+	
+	new_res_inner=a2norm(JacFs_res);
+	std::cout<<"\n new_res_inner = "<< new_res_inner <<", old_res_inner = " << old_res_inner<< std::endl;
+
+	
+	if (new_res_inner>4.5*old_res_inner){
+	  std::cout << " \n !! New_res_inner is worse than old_res_inner -> break of inner Loop! "<< std::endl;
+	  std::cout<<"\n Nr of Landweber = " << nLandweber <<std::endl;
+	  //	  getchar();
+	  break;
+	}
+
+
+
+// 	//F'(p^k)(s^k)-(y-F(p^k))
+//  	for (Integer i=0;i<nrMeasuredData;i++)
+//  	  act_res[i]-=JacFs[i];
+// 	//       std::cout<<"\n Landweber 6.6"<<std::endl;
+	
+// 	//	for (Integer i=0;i<act_res.GetSize();i++)
+// 	// std::cout<<"act_res= "<< act_res[i]<<std::endl;
+	
+// 	new_res_inner=a2norm(act_res);
+// 	//	       std::cout<<"\n Landweber 7"<<std::endl;
+
+
+// 	if (new_res_inner>old_res_inner){
+// 	  std::cout << " \n !! New_res_inner is worse than old_res_inner!! "<< std::endl;
+// 	  //	  	  break;
+// 	  //	  getchar();
+// 	}
 	
 	//	std::cout<<"\n new_res_inner = " << new_res_inner << ";  old_res_outer = " << old_res_outer << "; tau*delta= " << tau*delta << std::endl;
 		  	
@@ -236,6 +258,8 @@ namespace CoupledField
       } // end while Landweber ...
 
       std::cout<<"\n Leaving Landwebers itaration ..."<<std::endl;
+
+      std::cout<<"\n Number of inner iterations = " << nLandweber<<std::endl;
 
       nLandweber=0;
 
@@ -284,7 +308,7 @@ namespace CoupledField
     new_res_outer=(a2norm(act_res));
     std::cout<<"\n new_res_outer = " << new_res_outer <<std::endl;
 
-    if(new_res_outer<=1.0000e-04)
+    if(new_res_outer<=1.0000e-08)
       getchar();
 
       if (new_res_outer>=old_res_outer){
@@ -294,6 +318,7 @@ namespace CoupledField
 	//	NewtonLandweber();
       }
       
+
     } // end while nrIterations
 
     //    delete adjFJacF;
@@ -426,11 +451,12 @@ void piezoParamIdent::NewtonLandweberC(){
       //    std::cout<<"Before Landweber, nLandweber = " << nLandweber << ", new_res = " << new_res_outer << ", eta * old_resid_outer = " << eta*old_res_outer <<std::endl;
     
       // LANDWEBER ITERATION   s^k+1 = s^k - w F'*(F's^k - (y-F))
-      while(new_res_inner<=old_res_inner&&nLandweber<maxNumberInnerLoops){
+       //      while(new_res_inner<=old_res_inner&&nLandweber<maxNumberInnerLoops){
+       while(nLandweber<maxNumberInnerLoops){
 
 	nLandweber++;
 	//	std::cout <<"\n Here starts the Landweber Iteration - Nr " << nLandweber<< std::endl;
-	old_res_inner=new_res_inner;
+	//	old_res_inner=new_res_inner;
 
 	// F' * s^k
 	JacobiMatrix.Mult(s,JacFs);
@@ -465,7 +491,7 @@ void piezoParamIdent::NewtonLandweberC(){
 	   s_old[nLandweber][i]=s[i];
        }
        
-       std::cout<<"\n omega = " << w << std::endl;
+       //       std::cout<<"\n omega = " << w << std::endl;
 
 	if (TRUE){
 	  for(Integer i=0;i<actNrParameter+actNrParameterC;i++){
@@ -485,10 +511,10 @@ void piezoParamIdent::NewtonLandweberC(){
 	//	for (Integer i=0;i<act_res.GetSize();i++)
 	// std::cout<<"act_res= "<< act_res[i]<<std::endl;
 	
-	new_res_inner=a2norm(act_res);
+	new_res_inner=a2norm(JacFs_res);
 	//       std::cout<<"\n Landweber 7"<<std::endl;
 
-	if (new_res_inner>old_res_inner){
+	if (new_res_inner>1.25*old_res_inner){
 	  std::cout << " \n !! New_res_inner is worse than old_res_inner!! "<< std::endl;
 	  break;
 	  getchar();
@@ -496,7 +522,7 @@ void piezoParamIdent::NewtonLandweberC(){
 	
 	//	std::cout<<"\n new_res_inner = " << new_res_inner << ";  old_res_outer = " << old_res_outer << "; tau*delta= " << tau*delta << std::endl;
 		  	
-	//	std::cout<<"\n end of inner Landweber Iter ..."<<std::endl;
+	std::cout<<"\n end of inner Landweber Iter ..."<<nLandweber << std::endl;
       } // end while Landweber ...
 
 
@@ -524,13 +550,13 @@ void piezoParamIdent::NewtonLandweberC(){
       scaling[9]=1.0/((*matMat)[8][8]);
 
       scalingC[0]=1.0/((*matMatC)[0][0]); 
-      scalingC[1]=1.0/((*matMatC)[2][2]);
+      scalingC[1]=0.1/((*matMatC)[2][2]);
       scalingC[2]=1.0/((*matMatC)[1][0]);
       scalingC[3]=1.0/((*matMatC)[0][2]);
       scalingC[4]=1.0/((*matMatC)[3][3]); 
       scalingC[5]=1.0/((*matMatC)[6][4]);
       scalingC[6]=std::abs(1.0/((*matMatC)[8][0]));
-      scalingC[7]=0.01/((*matMatC)[8][2]);
+      scalingC[7]=-0.001/((*matMatC)[8][2]);
       scalingC[8]=1.0/((*matMatC)[6][6]); 
       scalingC[9]=-0.01/((*matMatC)[8][8]);
 
@@ -568,7 +594,7 @@ void piezoParamIdent::NewtonLandweberC(){
     new_res_outer=(a2norm(act_res));
     std::cout<<"\n new_res_outer = " << new_res_outer <<std::endl;
 
-    if(new_res_outer<=1.0e-08)
+    if(new_res_outer<=1.0e-07)
       getchar();
 
       if (new_res_outer>=old_res_outer){
