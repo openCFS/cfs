@@ -5,7 +5,9 @@
 
 #include <general_head.hh>
 #include <utils_head.hh>
-#include "grid.hh"
+#include "grid_cfs.hh"
+#include "grid.hh" 
+#include "grid_interface_cfs.hh"
 #include "domain.hh"
 
 namespace CoupledField
@@ -19,7 +21,7 @@ Domain<Dim> :: Domain(Integer anumsubdomain, FileType * const aptFileType)
 #endif
   
  numsubdomain = anumsubdomain;
- grid=new Grid<Dim>(aptFileType);
+//  grid=new GridInterfaceCFS<Dim>(aptFileType);
  
 #ifdef DEBUG
  grid->PrintCoordinate(0,debug);
@@ -34,16 +36,6 @@ Domain<Dim> :: ~Domain()
 #endif
 
   ;
-}
-template <class Dim>
-void Domain<Dim> :: CreateGrid(Integer anumsubdomain, Integer anumnode, Integer anumelem, 
-                          Integer elemdim)
-{
-#ifdef TRACE
-  (*trace) << "entering Domain::CreateGrid" << endl;
-#endif
-
-//  grid->Create(1, anumsubdomain, anumnode, anumelem, elemdim);
 }
 
 template<class Dim>

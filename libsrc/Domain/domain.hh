@@ -18,10 +18,6 @@ public:
   virtual ~Domain();
 
   ///
-  void CreateGrid(Integer anumsubdomain, Integer anumnode, Integer anumelem, 
-       Integer elemdim);
-
-  ///
   void SetSubdomains();
 
   ///
