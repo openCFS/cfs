@@ -95,10 +95,10 @@ namespace CoupledField {
     }
 
     // Absorbing boundary conditions
-    if ( params->HasValue( "type", "absorbingBC", pdename_, "damping" )) {
-      Info->PrintF( pdename_, "Apply Absorbing Boundary Conditions\n" );
-      absorbingBCs_ = TRUE;
-    }
+    //    if ( params->HasValue( "type", "absorbingBC", pdename_, "damping" )) {
+    //      Info->PrintF( pdename_, "Apply Absorbing Boundary Conditions\n" );
+    //      absorbingBCs_ = TRUE;
+    //    }
 
 
 #endif
@@ -112,14 +112,14 @@ namespace CoupledField {
     conf->ifgetliststr("bnd_for_absBCs",absBCs_,pdename_); 
     if (absBCs_.GetSize() > 0) {
        absorbingBCs_ = TRUE;
-       Info->PrintF( pdename_, "Apply Absorbing Boundary Conditions\n" );
+       Info->PrintF( pdename_, " Apply Absorbing Boundary Conditions\n" );
     }
     
 #else
     params->GetList( "name", absBCs_, pdename_, "absorbingBCs" );
     if ( absBCs_.GetSize() > 0 && dampingType_ == NONE ) {
       absorbingBCs_ = TRUE;
-      Info->PrintF( pdename_, "Re-setting damping type to ABCDAMP" );
+      Info->PrintF( pdename_, " Apply Absorbing Boundary Conditions\n" );
     }
 #endif
     ReadBCs(pdename_);

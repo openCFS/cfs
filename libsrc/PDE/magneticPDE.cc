@@ -392,9 +392,11 @@ namespace CoupledField {
   }
 
 
-  void MagPDE:: PreStepStatic(const Integer level) {
+  void MagPDE:: PreStepStatic(const Integer kstep, const Double asteptime,
+			       const Integer level, const Boolean reset) {
     ENTER_FCN( "MagPDE::PreStepStatic" );
-    if (pdeIsCoupled_) algsys_->InitSol();
+    if (pdeIsCoupled_) 
+      algsys_->InitSol();
   }
 
 
@@ -517,8 +519,7 @@ namespace CoupledField {
     Double RhsLinL2Norm;  
 
     // to incorporate loads
-    assemble_->AssembleSrcRHS(level, lasttimecalc_);
-  
+    assemble_->AssembleSrcRHS(level, lasttimecalc_); 
 
     // stores rhs vector into extForces and returns that L2-norm
     StoreAlgsysToVec(RhsLinVal_, algsys_->GetRHSVal() );
@@ -1182,9 +1183,12 @@ namespace CoupledField {
   }
 
 
-  void MagPDE:: PreStepStatic(const Integer level) {
+  void MagPDE:: PreStepStatic(const Integer kstep, const Double asteptime,
+			       const Integer level, const Boolean reset) {
     ENTER_FCN( "MagPDE::PreStepStatic" );
-    if (pdeIsCoupled_) algsys_->InitSol();
+    if (pdeIsCoupled_) 
+      algsys_->InitSol();
+
   }
 
 
@@ -1487,8 +1491,9 @@ namespace CoupledField {
 
     Double RhsLinL2Norm;  
 
-    // Take care: assemble_->AssembleSrcRHS already called by PreStepTrans
-    // in basePDE!!
+
+   // to incorporate loads
+    assemble_->AssembleSrcRHS(level, lasttimecalc_); 
 
     // Stores rhs vector into extForces and returns that L2-norm
     StoreAlgsysToVec(RhsLinVal_, algsys_->GetRHSVal() );
@@ -1508,8 +1513,8 @@ namespace CoupledField {
   Double MagPDE::RhsL2Norm(Vector<Double>& actRHS) {
     ENTER_FCN( "MagPDE::RhsL2Norm" );
 
-    Integer node, dof, eqn;
-  
+    Integer node, dof;
+    StdVector<Integer> eqn(1);
     std::list<Integer> nodes;
   
     // Eliminate dirichlet node from RHS (due to penalty formulation)
@@ -1519,9 +1524,9 @@ namespace CoupledField {
       for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end();
 	   p++) {
 	node=*p;
-	eqn = eqnData_->Node2EQN(node,1);
-	if (eqn != 0){
-	  actRHS[(eqn-1)] = 0;
+	eqnData_->Node2EQN(node,eqn);
+	if (eqn[0] != 0){
+	  actRHS[(eqn[0]-1)] = 0;
 	}
       }
     }
@@ -2028,7 +2033,7 @@ namespace CoupledField {
 
     // If the the symbolic name is "all" compute energy for all regions
     if ( calcEddy_.GetSize() == 1 && calcEddy_[0] == "all" ) {
-      calcEnergy_ = subdoms_;
+      calcEddy_ = subdoms_;
     }
 
     // Log to info file

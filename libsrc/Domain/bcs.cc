@@ -59,15 +59,33 @@ namespace CoupledField
     // Get list of special node sets
     params->GetList( "name", levels_, "domain", "nodes" );
     if( levels_.GetSize() > 0 )
-      {
 	bcs_[0] = new std::list<Integer>[levels_.GetSize()];
-      }
 
+    //get geometric dimension
+    std::string probGeo;
+    params->Get( "type", probGeo, "geometry" );
+
+    if ( probGeo == "3d" ) {
+      //surface elements can occure
+      params->GetList( "name", color_faces_, "domain", "elements" );
+      if (color_faces_.GetSize()) 
+	bcsFaces_[0]=new StdVector<Elem*>[color_faces_.GetSize()]; 
+
+      //check for line elements
+      Integer num1DElems = InFile_->GetNum1DElems();
+      //      if (num1DElems>0)
+    }    
+    else {
+      params->GetList( "name", color_edges_, "domain", "elements" );	
+      if (color_edges_.GetSize()) 
+	bcsEdges_[0]=new StdVector<Elem*>[color_edges_.GetSize()]; 
+    }
+    
     //
     // NOTE: This must still be converted !!!
     //
 #ifdef DEBUG
-    Info->Warning( "BCs: list_edges an co. not supported by XML!?" );
+    //    Info->Warning( "BCs: list_edges an co. not supported by XML!?" );
 #endif
 //    conf->ifgetliststr("list_edges",color_edges_);
 //    if (color_edges_.size()) 

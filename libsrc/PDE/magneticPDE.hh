@@ -50,7 +50,8 @@ public:
   virtual void InitTimeStepping(const Double dt);
 
   //!
-  virtual void PreStepStatic(const Integer level);
+  virtual void PreStepStatic(const Integer kstep, const Double asteptime,
+			       const Integer level, const Boolean reset);
 
   //! nonlinear static step
   virtual void StepStaticNonLin(const Integer kstep, const Double aTime,
