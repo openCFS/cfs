@@ -296,21 +296,16 @@ int main(int argc, char *argv[]) {
 #endif
 
   // Delete objects
-  if (ptdriver) 
-    delete ptdriver;
-  if (domain)
-    delete domain;
-  if (ptTimeFunc) 
-    delete ptTimeFunc;
-  if (Info)
-    delete Info;
+  delete ptdriver;
+  delete domain;
+  delete ptTimeFunc;
+  delete Info;
 
   // ptDefineFiles must be destroyed as the last of all objects!
   // The reason is that if TRACE is defined all methods want to
   // log into (*trace) which is deleted by the destructor of the
   // DefineInOutFiles class!
-  if (ptDefineFiles) 
-    delete ptDefineFiles;
+  delete ptDefineFiles;
 
 #ifdef PARALLEL
   MPI_Finalize();
