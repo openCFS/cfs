@@ -132,14 +132,6 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
       effectiveMass_ = TRUE;
 #else
     effectiveMass_ = params->IsSet( "effMass" );
-    if ( params->HasValue( "type", "none", pdename_, "lineSearch" ) ) {
-      lineSearch_ = FALSE;
-      Info->PrintF( pdename_, " Performing no line search" );
-    }
-    else {
-      lineSearch_ = TRUE;
-      Info->PrintF( pdename_, " Will perform line search" );
-    }
 #endif
 
 
@@ -160,6 +152,7 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 #ifndef XMLPARAMS
     nonLin_ = conf->get_option( "nonlin",  pdename_ );
 #else
+
     // ==============================================================
     // NOTE: Currently we can only treat geometric non-linearity and
     //       we assume that for a mechanic PDE all regions either
@@ -180,8 +173,30 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
       }
       nonLin_ = nonLinRegion[0] == "geo" ? TRUE : FALSE;
     }
-    Info->PrintF( pdename_,  " Non-linearity in %d regions\n",
-		  nonLinRegion.size() );
+
+    // In non-linear case determine type of line search strategy
+    if ( nonLin_ == TRUE ) {
+
+      Info->PrintF( pdename_,  " Non-linearity in %d regions\n",
+		    nonLinRegion.size() );
+
+      if ( params->HasValue( "type", "none", pdename_, "lineSearch" ) ) {
+	lineSearch_ = FALSE;
+	Info->PrintF( pdename_, " Performing no line search" );
+      }
+
+      else {
+	lineSearch_ = TRUE;
+	Info->PrintF( pdename_, " Will perform line search" );
+      }
+
+    }
+
+    // If no non-linearity we do not perform line search anyhow
+    else {
+      lineSearch_ = FALSE;
+    }
+
 #endif
 
     if( nonLin_ == TRUE )
