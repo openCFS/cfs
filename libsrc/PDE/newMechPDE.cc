@@ -529,8 +529,8 @@ void MechPDE::CalcAcousticCouplingRHS(std::vector<Elem*> * couplingElems,
       nSol.Init();
       
       Vector<Double> n;
-      //CalcLineNormalVec(n, ptCoord);
-      CalcLineNormalVec(n, *(*couplingElems)[actElem], *(*neighbours)[actElem]);
+      CalcLineNormalVec(n, ptCoord);
+      //CalcLineNormalVec(n, *(*couplingElems)[actElem], *(*neighbours)[actElem]);
 
       //      myCout << "Mechanic: n: " << n << myEndl;
 
