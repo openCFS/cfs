@@ -145,7 +145,6 @@ namespace CoupledField {
       for (Integer actMat=0; actMat < nrMatrices_; actMat++)
         reassembleMat_[actMat] = FALSE;
 
-    
     for (Integer actDom=0; actDom < subdoms_.GetSize(); actDom++) {     
       StdVector<Elem*> elemssd;
 
@@ -176,7 +175,7 @@ namespace CoupledField {
 	  if ( ( actDescriptor->GetIntegrator()->IsRaylDamping() 
 		 || actDescriptor->GetSecondaryMat() != NOTYPE ) 
 	       && startFreq_ > 0 ) {
-            // get multiplicative pre factor depending on time step size
+            // get multiplicative pre factor depending on frequency
 	    if (startFreq_ > 0 && actFreq_ > 0 ) {
 	      FEMatrixType destMat = actDescriptor->GetIntegrator()->GetBaseType();
 	      if ( destMat == STIFFNESS) {
@@ -190,8 +189,6 @@ namespace CoupledField {
 	    if ( actDescriptor->GetIntegrator()->IsRaylDamping() ) {
 	      actDescriptor->GetIntegrator()->SetFactor(dampTransform);
 	    }
-	    //	    std::cout << "startF=" << startFreq_ << "  actF=" << actFreq_ << std::endl;
-	    //      std::cout << "dampTransform=" << dampTransform << std::endl;
           }
 	  
 

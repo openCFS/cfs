@@ -303,7 +303,7 @@ namespace CoupledField {
       Double beta = ptMaterial->GetDampingBeta();
       for( Integer i = 0; i < sizeofD - 2; i++ ) {
         for ( Integer j = 0; j < sizeofD - 2; j++ ) {
-          dMat[i][j] = (*matMatrix)[i][j] * beta;
+	  dMat[i][j] = (*matMatrix)[i][j] * beta * factorDamp_;
         }
       }
     }
@@ -391,7 +391,7 @@ namespace CoupledField {
       Double beta = ptMaterial->GetDampingBeta();
       for( Integer i = 0; i < sizeofD - 3; i++ ) {
         for ( Integer j = 0; j < sizeofD - 3; j++ ) {
-          dMat[i][j] = (*matMatrix)[i][j] * beta;
+          dMat[i][j] = (*matMatrix)[i][j] * beta * factorDamp_;
         }
       }
     }
