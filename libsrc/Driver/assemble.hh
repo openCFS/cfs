@@ -97,6 +97,8 @@ namespace CoupledField
     /// returns matrix type of the secondary matrix (if there is any, otherwise NOTYPE=0)
     Double GetSecMatFac() const {return secMatFac;} 
 
+    /// piezoMaterialType_ contains information wheather real
+    /// or complex valued material parameters will be considered
     piezoMaterialType piezoMaterialType_;
 
     piezoMaterialType GetPiezoMaterialType(){return piezoMaterialType_;};

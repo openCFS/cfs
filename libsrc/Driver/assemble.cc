@@ -1320,7 +1320,7 @@ namespace CoupledField {
      destinationMatrix(SYSTEM),
      secondaryMatrix(NOTYPE),
      secMatFac(0.0),
-     piezoMaterialType_(realMaterialParameter)
+     piezoMaterialType_(REALMATERIALPARAMETER)
   
   {
     ENTER_FCN( "IntegratorDescriptor::IntegratorDescriptor" );
@@ -1336,7 +1336,7 @@ namespace CoupledField {
      destinationMatrix(aDestMat),
      secondaryMatrix(NOTYPE),
      secMatFac(0.0),
-     piezoMaterialType_(realMaterialParameter) {
+     piezoMaterialType_(REALMATERIALPARAMETER) {
     ENTER_FCN( "IntegratorDescriptor::IntegratorDescriptor" );
     //   piezoMaterialType_=realMaterialParameter;
   }
@@ -1484,7 +1484,7 @@ namespace CoupledField {
 
     Integer k=0;
 
-    if (piezoMatType == realMaterialParameter) {
+    if (piezoMatType == REALMATERIALPARAMETER) {
 
       if (matrixType == STIFFNESS) {
 
@@ -1522,7 +1522,7 @@ namespace CoupledField {
         }
     } // end, if piezoMatType == real...
 
-    else if(piezoMatType == imagMaterialParameter){  // the "imaginary parts"
+    else if(piezoMatType == IMAGMATERIALPARAMETER){  // the "imaginary parts"
    
       if (matrixType == STIFFNESS)
         {

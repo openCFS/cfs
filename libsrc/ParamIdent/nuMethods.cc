@@ -66,6 +66,7 @@ namespace CoupledField
     Vector<Complex> z(nrMeasuredData);
     Matrix<Complex> z_old(maxNumberInnerLoops+2,nrMeasuredData);
     Vector<Double> stepR(actNrParameter);
+    Vector<Complex> s_old(actNrParameter);
     Vector<Complex> JacFs_res(nrMeasuredData);
     Matrix<Complex> ImgSpaceScalingMat(nrMeasuredData,nrMeasuredData);
 
@@ -76,6 +77,11 @@ namespace CoupledField
       updateMaterialData(parameter, ptMaterial);         //Writes initial guesses of parameters (read from MeasuredData.dat) to system
       createF(ptMaterial, ptBCs, F_hat,TRUE);
       act_res = y_hat-F_hat;
+      std::cout<<"act_res = " <<std::endl;
+      std::cout<<act_res<<std::endl;
+      std::cout<<y_hat<<std::endl;
+      std::cout<<F_hat<<std::endl;
+      //   getchar();
       
       // Norm ersetzt:
       //      new_res_outer=old_res_outer=a2norm(act_res);      
@@ -144,6 +150,7 @@ namespace CoupledField
       old_res_inner=old_res_outer;
 
       while(nNuMethods<maxNumberInnerLoops){
+	s_old=s;
 	
 	nNuMethods++;
 	s.Resize(actNrParameter);
@@ -213,6 +220,7 @@ namespace CoupledField
 	  std::cout << " \n !! New_res_inner is worse than old_res_inner -> break of inner Loop! "<< std::endl;
 	  std::cout<<"\n Nr of nuMethods = " << nNuMethods <<std::endl;
 	  //	  getchar();
+	  s=s_old;
 	  break;
 	}
 	
@@ -252,7 +260,7 @@ namespace CoupledField
 //     	stepR[1]=s[1].real();
 //     	stepR[6]=s[6].real();
 //     	stepR[8]=s[8].real();
-     	theta=1.3;
+     	theta=1.0;
       }
       else
 	theta=1.0;
@@ -337,6 +345,7 @@ namespace CoupledField
     Vector<Complex> z(nrMeasuredData);
     Matrix<Complex> z_old(maxNumberInnerLoops+2,nrMeasuredData);
     Vector<Double> stepR(actNrParameter);
+    Vector<Complex> s_old(actNrParameter+actNrParameterC);
     Vector<Double> stepC (actNrParameterC);
     Vector<Complex> JacFs_res(nrMeasuredData);
 
@@ -398,7 +407,7 @@ namespace CoupledField
 
     while(nNuMethods<maxNumberInnerLoops){
       //while(nnuMethods<maxNumberInnerLoops){
-
+      s_old=s;
       s.Resize(actNrParameter+actNrParameterC);
       z.Resize(nrMeasuredData);
 
@@ -461,6 +470,7 @@ namespace CoupledField
 	std::cout << " \n !! New_res_inner is worse than old_res_inner!! "<< std::endl;
 	std::cout<<"\n Nr of nuMethodsC = " << nNuMethods <<std::endl;
 	//	  getchar();
+	s=s_old;
 	break;
       }
 	
