@@ -186,6 +186,8 @@ libsrc/Forms/massInt.cc svneol=native#text/plain
 libsrc/Forms/massInt.hh svneol=native#text/plain
 libsrc/Forms/massint.cc svneol=native#text/plain
 libsrc/Forms/massint.hh svneol=native#text/plain
+libsrc/Forms/nLinElastInt.cc svneol=native#text/plain
+libsrc/Forms/nLinElastInt.hh svneol=native#text/plain
 libsrc/General/Makefile -text
 libsrc/General/environment.cc svneol=native#text/plain
 libsrc/General/environment.hh svneol=native#text/plain
