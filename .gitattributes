@@ -17,6 +17,7 @@ XML/Schemas/CFS_PDEmechanic.xsd -text
 XML/Schemas/CFS_PDEpiezo.xsd -text
 XML/Schemas/CFS_Preconds.xsd -text
 XML/Schemas/CFS_SolverPrecond.xsd -text
+XML/Schemas/CFS_Solvers.xsd -text
 /libgoal -text
 libsrc/CoupledPDE/Makefile -text
 libsrc/CoupledPDE/basecoupledpde.cc svneol=native#text/plain
