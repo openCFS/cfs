@@ -3,7 +3,7 @@
 #include <string>
 
 #include "transientdriver.hh"
-#include "acoustictimeerror.hh"
+#include "actimeerror.hh"
 
 namespace CoupledField
 {
@@ -35,7 +35,7 @@ void TransientDriver :: SetupMatricesPDE(Integer pdenumber, Integer type)
   (*trace) << "entering TransientDriver::SetUpMatricesPDE" << std::endl;
 #endif
  
-  ptdomain_->GetPDE(pdenumber)->SetupMatrices(ptdomain_->GetAlgSys(),type);
+  ptdomain_->GetPDE(pdenumber)->SetupMatrices(type);
 
 }
 
@@ -60,7 +60,7 @@ void TransientDriver :: SolveProblem()
   Integer nstep;
   for (nstep = 0; nstep<numstep_; nstep++)
     {
-      ptdomain_->GetPDE(pdenumber)->SolveStepTrans(ptdomain_->GetAlgSys(), ptdomain_->GetBCs(), nstep, steptime, level, updatesysmat);
+      ptdomain_->GetPDE(pdenumber)->SolveStepTrans(ptdomain_->GetBCs(), nstep, steptime, level, updatesysmat);
 
    // writing results in output-file
     if (nstep == stepsave && (nstep < isaveend_))
@@ -85,11 +85,13 @@ void TransientDriver :: SolveProblemAdapt()
   Double steptime=firstdt_;
   Integer stepsave=isavebegin_-1;
 
+//  TimeErrorEstimator ** ptTimeError=new TimeErrorEstimation * [pdenumber];
   TimeErrorEstimator * ptTimeError;
-  ptTimeError=new AcousticTimeErrorEstimator(ptdomain_->GetPDE(pdenumber));
+ 
+  ptTimeError=ptdomain_->GetPDE(pdenumber)->CreatePtTimeError();
 
   Double dt=firstdt_;
-  Boolean updatesysmat=FALSE;
+  Boolean resetsysmat=FALSE;
 
   ptdomain_->GetPDE(pdenumber)->CalcParameters(dt);
   ptdomain_->GetPDE(pdenumber)->SetMatrixFactors();
@@ -98,7 +100,7 @@ void TransientDriver :: SolveProblemAdapt()
   for (nstep = 0; nstep<numstep_; nstep++)
     {
 
-      ptdomain_->GetPDE(pdenumber)->SolveStepTrans(ptdomain_->GetAlgSys(), ptdomain_->GetBCs(), nstep, steptime, level, updatesysmat);
+      ptdomain_->GetPDE(pdenumber)->SolveStepTrans(ptdomain_->GetBCs(), nstep, steptime, level, resetsysmat);
 
    // writing results in output-file
     if (nstep == stepsave && (nstep < isaveend_))
@@ -107,15 +109,18 @@ void TransientDriver :: SolveProblemAdapt()
         stepsave+=isaveincr_;
       }
 
-   if (ptTimeError->TestError())
+   if (ptTimeError->TestError(dt))
       {
          ptTimeError->ChangeStep(dt);
+
          ptdomain_->GetPDE(pdenumber)->CalcParameters(dt);
-         updatesysmat=TRUE;
+         ptdomain_->GetPDE(pdenumber)->SetMatrixFactors();
+
+         resetsysmat=TRUE;
+         std::cout << "We have change step" << stepsave << " " << dt << std::endl; 
       }
 
    steptime+=dt;
    }
 }
-
 }

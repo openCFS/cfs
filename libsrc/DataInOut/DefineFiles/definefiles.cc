@@ -28,6 +28,10 @@ DefineInOutFiles :: DefineInOutFiles(const Char * name)
  debug=new std::ofstream(strcat(filename,".deb"));
  if (!debug) Error("Can't open debug-file");
 #endif
+
+ strcpy(filename, name);
+ cla=new std::ofstream(strcat(filename,".cla"));
+ if (!cla) Error("Can't open cla++-file");
  
  strcpy(filename, name);
  if (InfoPrint)
@@ -41,8 +45,8 @@ DefineInOutFiles :: DefineInOutFiles(const Char * name)
  conf=new ConfFile(name);
  if (!conf) Error("Can't open conf-file");
 
- ptWriteResults2d=NULL;
- ptWriteResults3d=NULL;
+// ptWriteResults2d=NULL;
+// ptWriteResults3d=NULL;
 
 }
  
@@ -65,6 +69,7 @@ delete debug;
 if (InfoPrint) delete infofile;
 
 if (conf) delete conf;
+if (cla) delete cla;
 }
 
 FileType * DefineInOutFiles :: Create_ptFileType(Char * atype)

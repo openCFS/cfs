@@ -60,6 +60,7 @@ std::ostream & operator << (std::ostream & out, const enum precond & type);
 extern std::ostream * trace; //name.trace
 extern std::ostream * debug; //name.deb
 extern std::ostream * infofile; //name.info
+extern std::ostream * cla; //name.cla
 
 class ConfFile;
 extern ConfFile * conf; //name.conf

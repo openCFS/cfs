@@ -31,7 +31,7 @@ void StaticDriver :: SetupMatricesPDE(Integer pdenumber, Integer type)
   (*trace) << "entering StaticDriver::SetUpMatricesPDE" << std::endl;
 #endif
  
-  ptdomain_->GetPDE(pdenumber)->SetupMatrices(ptdomain_->GetAlgSys(),type);
+  ptdomain_->GetPDE(pdenumber)->SetupMatrices(type);
 
 }
 
@@ -45,7 +45,7 @@ void StaticDriver :: SolveProblem()
   Integer matrixtype = 0;
   Integer nsys = 0;
 
-  ptdomain_->GetPDE(pdenumber)->SolveStepStatic(ptdomain_->GetAlgSys(), ptdomain_->GetBCs(), level);
+  ptdomain_->GetPDE(pdenumber)->SolveStepStatic(ptdomain_->GetBCs(), level);
 
   ptdomain_->GetPDE(pdenumber)->WriteResultsInFile();
 

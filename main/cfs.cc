@@ -5,6 +5,7 @@
 #include <iomanip>
 #include <stdarg.h>
 #include <list>
+#include <cmath>
 
 #include "myclock.hh"
 #include "definefiles.hh"
@@ -51,27 +52,7 @@ void main(int argc, char *argv[])
 
   TimeFunc * ptTimeFunc=new TimeFunc(ptInputfile);
 
-/*
-  /// Test 3D mesh
-
-  Integer data[1];
-  ptInputfile-> ReadGeneralAnalChoice(data, FileType::numnode, FileType::endGAnal);
-  std::cout << "Number of nodes" << data[0] << std::endl;
- 
-  Point3D * ptCoord=new Point3D[data[0]];
-  ptInputfile->ReadCoordinate(ptCoord, data[0]);
-  std::cout << "We have read coordinates" << std::endl;
-
-  Grid<Point3D> * ptGridlib=new InterfaceGridlib<Point3D>(ptInputfile);
-  ptGridlib->Read();
-  
-  ptOut->Create(ptGridlib,0);
-
-*/
-//    Driver<Point2D> * ptDriver=new Driver<Point2D>(ptInputfile,1,materialdata);
-//    ptDriver->SolveNewmarkMethod(ptOut);
-
-    Domain<Point2D> *domain=new Domain<Point2D>(ptInputfile,ptOut,materialdata, ptTimeFunc);
+  Domain<Point2D> *domain=new Domain<Point2D>(ptInputfile,ptOut,materialdata, ptTimeFunc);
 
   // print grid to unverg-file
   domain->PrintGrid(0);
@@ -82,23 +63,12 @@ void main(int argc, char *argv[])
   //solve your problem
   ptdriver->SolveProblemAdapt();
 
-#ifdef TestGMRes
-  Double eps=1e-15;
-  LinSystem<Double, Matrix<Double> > * ptLS=new  LinSystem<Double, Matrix<Double> >(eps);
-  ptLS->Set();
-  if (ptLS->BiCGSTAB(100,Jacobi)) std::cout << "convergence is true";
-  ptLS->printxscreen();
-  ptLS->check();
-  // if (ptLS->GMRes_m(100, Jacobi, 100)) std::cout << "convergence is true";
-#endif
-
   oClockTotal.ClockCount(MyClock::end,"Total time");
 
 /// Putzen
 
   if (ptInputfile) delete ptInputfile;
   if (ptOut) delete ptOut;
-//  if (ptGridlib) delete ptGridlib;
-//  if (ptDriver) delete ptDriver;
+  if (ptdriver) delete ptdriver;
   if (materialdata) delete materialdata;
 }

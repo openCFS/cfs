@@ -12,6 +12,7 @@ extern "C"
   //extern void extern_matrix_mult_hs(long , double *, double *);
 }
 
+#include "environment.hh"
 #include <general.hh>
 #include "multigrid.hh"
 
@@ -40,7 +41,7 @@ OutbackMatrix :: OutbackMatrix(Integer asize, Integer afsize, Integer adir, Inte
   r    = new RealVector(fsize, 1, 1);
   s    = new RealVector(fsize, 1, 1);
 
-  cout << "making the outbackmatrix" << endl;
+  (*cla) << "making the outbackmatrix" << endl;
 
   if (level == 0)
     {
@@ -108,13 +109,13 @@ void OutbackMatrix :: Mult(BaseVector & vec1, BaseVector & vec2, Double factor) 
 
   if (level == 0)
     {
-      //cout << "mult on level " << level << endl;
+      //(*cla) << "mult on level " << level << endl;
       //extern_matrix_mult_sl(hsize, p1, p2);
       //extern_matrix_mult_hs(hsize, p1, p2);
     }
   else
     {
-      //cout << "mult on level " << level << endl;
+      //(*cla) << "mult on level " << level << endl;
       s->Init();
       accu->MultHh(vec1, *r);
       //extern_matrix_mult_sl(hsize, pr, ps);
@@ -153,7 +154,7 @@ void OutbackMatrix :: Solve(BaseVector & rhs, BaseVector & sol)
   (*trace) << "entering OutbackMatrix::Solve" << endl;
 #endif
 
-  //cout << "### coarse grid solver" << endl;
+  //(*cla) << "### coarse grid solver" << endl;
 
   Integer i,j,iter;
   Integer numsolve = 100;
@@ -167,7 +168,7 @@ void OutbackMatrix :: Solve(BaseVector & rhs, BaseVector & sol)
   RealVector * d = new RealVector(size, 1, 1);
   RealVector * s = new RealVector(size, 1, 1);
 
-  //cout << "### preconditioned CG Solver" << endl;
+  //(*cla) << "### preconditioned CG Solver" << endl;
 
   DenseVector alpha(1);
   DenseVector beta(1);
@@ -210,7 +211,7 @@ void OutbackMatrix :: Solve(BaseVector & rhs, BaseVector & sol)
       loop = FALSE;
     }
 
-  //cout << 1 << " " << rel.Get(1) << " " << wra.Get(1) << endl;
+  //(*cla) << 1 << " " << rel.Get(1) << " " << wra.Get(1) << endl;
   //(*conv) << rel << endl;
 
   while (loop && (iter <= size))
@@ -240,14 +241,14 @@ void OutbackMatrix :: Solve(BaseVector & rhs, BaseVector & sol)
 
       if (wra <= -1e-32)
 	{
-	  cout << "... EXIT in PCG-SOLVER " << wra.Get(1) << endl;
+	  (*cla) << "... EXIT in PCG-SOLVER " << wra.Get(1) << endl;
 	  exit(1);
 	}
 
       rel = wra/scal;
       rel.Sqrt();
 	      
-      //cout << iter << " " << rel.Get(1) << " " << wra.Get(1) << endl;
+      //(*cla) << iter << " " << rel.Get(1) << " " << wra.Get(1) << endl;
     }
 
   delete r;
@@ -339,11 +340,11 @@ void OutbackMatrix :: Galerkin(BaseTransfer * ares, BaseTransfer * apro, BaseMat
       rsw[i] = v.GetSize();
     }
 
-  cout << "before create transfer " << endl;
+  (*cla) << "before create transfer " << endl;
 
   mat.CreateTransfer(size, rsw);
 
-  cout << "after create transfer " << size << endl;
+  (*cla) << "after create transfer " << size << endl;
 
   /// perform the matrix multiplication
 
@@ -368,7 +369,7 @@ void OutbackMatrix :: Galerkin(BaseTransfer * ares, BaseTransfer * apro, BaseMat
 
       v.Sort();
       
-      cout << "i " << i << endl;
+      (*cla) << "i " << i << endl;
 
       rs = tra.GetRowSize(i+1);
 
@@ -407,9 +408,9 @@ void OutbackMatrix :: Galerkin(BaseTransfer * ares, BaseTransfer * apro, BaseMat
 
 //   for (i=0; i<csize; i++)
 //     {
-//       cout << mat.GetDiag(i+1) << " ";
+//       (*cla) << mat.GetDiag(i+1) << " ";
 //     }
-//   cout << endl;
+//   (*cla) << endl;
 
   mat.Calculated();
 }

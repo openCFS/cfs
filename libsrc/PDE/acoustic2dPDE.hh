@@ -17,7 +17,7 @@ class Acoustic2dPDE: virtual public BasePDE
 public:
 
   //!
-  Acoustic2dPDE(Grid<Point2D> * , Material * , TimeFunc * ,FileType * , WriteResults<Point2D> * );
+  Acoustic2dPDE(AbstractAlgebraicSys * aptalgsys, Grid<Point2D> * , Material * , TimeFunc * ,FileType * , WriteResults<Point2D> * );
 
   //!
   virtual ~Acoustic2dPDE();
@@ -36,22 +36,28 @@ Double &adampiter,  Integer &amaxnumit);
   void SetMatrixFactors();
 
   //!
-  void SetupMatrices(AbstractAlgebraicSys * algsys, Integer type);
+  void SetupMatrices(Integer type);
 
     //!
-  void SetBCs(AbstractAlgebraicSys *ptalgsys, BCs * ptBCs, const Integer level, const Integer update, const Double atime);
+  void SetBCs(BCs * ptBCs, const Integer level, const Integer update, const Double atime);
 
   //!
-  void ComputeRHS(AbstractAlgebraicSys *ptalgsys);
+  void ComputeRHS();
 
   //! calculation derivates of solution 
   void CalculationDerivativesSol();
 
-  //!
-  void SolveStepStatic(AbstractAlgebraicSys *ptalgsys, BCs * ptBCs ,Integer level);
+  //! create pointer to class for time error estimation
+  virtual TimeErrorEstimator * CreatePtTimeError();  
+
+  //! Calculation of energy norm
+  Double CalcEnergyNorm();
 
   //!
-  void SolveStepTrans(AbstractAlgebraicSys *ptalgsys, BCs * ptBCs ,const Integer kstep, const Double steptime, const Integer level, const Boolean updatesysmat);
+  void SolveStepStatic(BCs * ptBCs ,Integer level);
+
+  //!
+  void SolveStepTrans(BCs * ptBCs ,const Integer kstep, const Double steptime, const Integer level, const Boolean updatesysmat);
 
   //!
    void WriteResultsInFile();
@@ -65,16 +71,17 @@ Double &adampiter,  Integer &amaxnumit);
   //!
   virtual Vector<Double> & getS2() { return sol_der2_;}
 
+  //!
+  virtual Vector<Double> & getS2old() { return sol_der2_old_;}
+
+  //!
+  virtual Integer getSize(){ return size_;}
+
+  //!
+  Double getBeta() const { return beta_;}
+  Double getGamma() const { return gamma_;}
+
 private:
-   //!
-  void SolveStepTransNewAssemble(AbstractAlgebraicSys *ptalgsys, BCs * ptBCs, const Integer level);
-
-  //!
-  void SolveStepTransContinue(AbstractAlgebraicSys *ptalgsys, BCs * ptBCs, const Integer level);
-
-  //!
-  void SolveStepTransReset(AbstractAlgebraicSys *ptalgsys, BCs * ptBCs, const Integer level);
-
   //!
   Integer dofspernode_;
 
@@ -90,26 +97,24 @@ private:
   //!
   Double a0_,a1_,a2_,a3_,a4_,a5_,a6_,a7_;
 
-  //! Intergration parameters
+  //! Integration parameters
   Double alpha_,gamma_, beta_;
 
   //! coefficient in equation
   Double coeff_;
 
   //! store solution, 1st derivative , 2nd derivative solution
-  Vector<Double> sol_, sol_der1_, sol_der2_, sol_old_;  
+  Vector<Double> sol_, sol_der1_, sol_der2_, sol_old_, sol_der2_old_;  
 
   //! Last time on which we have calculated solution
   Double lasttimecalc_;
 
   //! Number of last timestep on which we have calculated our solution
   Integer laststepcalc_;
-};
 
-inline Acoustic2dPDE::~Acoustic2dPDE()
-{
- if (ptTimeFunc_) delete ptTimeFunc_;
-}
+  //! size of solution and etc.
+  Integer size_;
+};
 
 } // end of namespace
 #endif

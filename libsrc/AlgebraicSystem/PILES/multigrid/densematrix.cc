@@ -5,6 +5,7 @@
 #include <iostream.h>
 #include <fstream.h>
 
+#include "environment.hh"
 #include <general.hh>
 #include "multigrid.hh"
 
@@ -297,9 +298,9 @@ void DenseMatrix :: Print() const
     {
       for (j=0; j<width; j++)
 	{
-	  cout << val[i*size+j] << " ";
+	  (*cla) << val[i*size+j] << " ";
 	}
-      cout << endl;
+      (*cla) << endl;
     }
 }
 }

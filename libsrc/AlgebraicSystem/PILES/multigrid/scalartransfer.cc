@@ -4,6 +4,7 @@
 #include <iostream.h>
 #include <fstream.h>
 
+#include <environment.hh>
 #include <general.hh>
 #include "multigrid.hh"
 
@@ -119,9 +120,9 @@ void RScalarTransfer :: Calc(BaseTopology * topology)
 	}
       else
 	{
-	  cout << i+1 << " " << ind << endl;
-	  cout << "error in CoupledField::RScalarTransfer::Calc" << endl;
-	  cout << "no specific grid point" << endl;
+	  (*cla) << i+1 << " " << ind << endl;
+	  (*cla) << "error in CoupledField::RScalarTransfer::Calc" << endl;
+	  (*cla) << "no specific grid point" << endl;
 	  exit(1);
 	}
     }
@@ -195,19 +196,19 @@ void RScalarTransfer :: Print() const
     {
       rs = start[i+1] - start[i];
 
-      cout << "row number " << i+1 << endl;
+      (*cla) << "row number " << i+1 << endl;
 
       for (j=0; j<rs; j++)
 	{
-	  cout << val[start[i]+j] << " ";
+	  (*cla) << val[start[i]+j] << " ";
 	}
-      cout << endl;
+      (*cla) << endl;
 
       for (j=0; j<rs; j++)
 	{
-	  cout << pos[start[i]+j] << " ";
+	  (*cla) << pos[start[i]+j] << " ";
 	}
-      cout << endl;
+      (*cla) << endl;
     }
 
 }

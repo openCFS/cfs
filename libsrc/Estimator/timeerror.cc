@@ -18,29 +18,4 @@ TimeErrorEstimator::TimeErrorEstimator(BasePDE* aptPDE)
   ptPDE_=aptPDE;
 }
 
-/*
-void TimeErrorEstimator::ChangeStep(Double & dt);
-{
-#ifdef TRACE
-  (*trace) << "entering TimeErrorEstimator::ChangeStep" << std::endl;
-#endif
- 
-  conf->get("tol",tol,"Acoustic");
-  conf->get("theta", theta, "Acoustic");
-
- dt*=sqrt(theta*tol/relativeerror); 
-   
-}
-
-Boolean TimeErrorEstimator::TestError()
-{
-#ifdef TRACE
-  (*trace) << "entering TimeErrorEstimator::TestError" << std::endl;
-#endif
-
-  
-
-}
-*/
-
 } // end of namespace

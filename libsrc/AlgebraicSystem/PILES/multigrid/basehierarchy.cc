@@ -4,6 +4,7 @@
 #include <iostream.h>
 #include <fstream.h>
 
+#include "environment.hh"
 #include <general.hh>
 #include "multigrid.hh"
 
@@ -190,7 +191,7 @@ void BaseHierarchy :: Calc(BaseMatrix & sysmat, BaseMatrix & auxmat)
   fsize_sys = sysmat.GetSize();
   fnne_sys  = sysmat.GetNNE();
 
-  cout << amglevel+1 << " " << fsize_sys << " " << fnne_sys << endl;
+  (*cla) << amglevel+1 << " " << fsize_sys << " " << fnne_sys << endl;
 
   if (fsize_sys > coarsesys)
     {
@@ -214,7 +215,7 @@ void BaseHierarchy :: Calc(BaseMatrix & sysmat, BaseMatrix & auxmat)
 
       /// setup the neighbours and the other sets and perform a splitting
 
-      /// cout << "after smoother and coarse" << endl;
+      /// (*cla) << "after smoother and coarse" << endl;
 
       node[level].coarse->SetNeighbour(alpha[level], epsmat);
       node[level].coarse->Calc(rsw);
@@ -235,7 +236,7 @@ void BaseHierarchy :: Calc(BaseMatrix & sysmat, BaseMatrix & auxmat)
       
       MakeAuxMatrix();
 
-      ///cout << "after aux matrix" << endl;
+      ///(*cla) << "after aux matrix" << endl;
 
       /// calculate the prolongation/restriction operator
 
@@ -279,7 +280,7 @@ void BaseHierarchy :: Calc(BaseMatrix & sysmat, BaseMatrix & auxmat)
 
       /// delete the memory from coarsening
 
-      /// cout << "after make vector" << endl;
+      /// (*cla) << "after make vector" << endl;
       
       DeleteAuxMemory();
 
@@ -287,13 +288,13 @@ void BaseHierarchy :: Calc(BaseMatrix & sysmat, BaseMatrix & auxmat)
 
       amglevel++;
 
-      /// cout << "before calc" << endl;
+      /// (*cla) << "before calc" << endl;
 
       Calc(*node[level-1].sysmat, *node[level-1].auxmat);
     }
   else
     {
-      ///cout << "coarse grid solver" << endl;
+      ///(*cla) << "coarse grid solver" << endl;
 
       node[level].sysmat = &sysmat;
 
@@ -303,7 +304,7 @@ void BaseHierarchy :: Calc(BaseMatrix & sysmat, BaseMatrix & auxmat)
 
       MakeVector();
 
-      cout << "### coarse grid solver CPU-time " << cputime << endl;
+      (*cla) << "### coarse grid solver CPU-time " << cputime << endl;
 
       amglevel++;
       

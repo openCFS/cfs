@@ -41,6 +41,11 @@ Domain<Dim> :: Domain(FileType * const aptFileType, WriteResults<Dim> * ptOut,  
  //read restraints information
  ptBCs_->ReadBCs();
 
+ //set pointer to Algebraic system
+ ptalgsys_ = new AlgSysPILES();
+ if (!ptalgsys_) Error("Can't allocate memory for algebraic system Piles");
+
+ // it is important this order of these functions
  InitPDE();
  InitAlgSys();
 }
@@ -89,7 +94,9 @@ void Domain<Dim> :: InitPDE()
   InFile_->ReadNumStepsAndTimeSteps(numsteps, dt0);
 
   //allocate all specific PDEs
-  ptpde_[0]=new Acoustic2dPDE(ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_);
+  if (!ptalgsys_) Error("You try to allocate object BasePDE with null pointer to AlgSys");
+
+  ptpde_[0]=new Acoustic2dPDE(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_);
   for (int i=0;i<numpde_;i++)
     {
       //      ptpde[i] = new Elec2dPDE(grid,ptmaterial,InFile,OutFile,statickey);      
@@ -107,9 +114,11 @@ void Domain<Dim> :: InitAlgSys()
   (*trace) << "entering Domain::InitAlgSys" << std::endl;
 #endif
 
+/*
   //set pointer to Algebraic system
   ptalgsys_ = new AlgSysPILES();
-
+  if (!ptalgsys_) Error("Can't allocate memory for algebraic system Piles");
+*/
 
   //check, how much systems are needed and how much matrix graphs
   numsys_   = 1;

@@ -4,6 +4,7 @@
 #include <iostream.h>
 #include <fstream.h>
 
+#include "environment.hh"
 #include <general.hh>
 #include "multigrid.hh"
 
@@ -133,9 +134,9 @@ void RBlockTransfer :: Calc(BaseTopology * topology)
 	}
       else
 	{
-	  cout << i+1 << " " << ind << endl;
-	  cout << "error in CoupledField::RBlockTransfer::Calc" << endl;
-	  cout << "no specific grid point" << endl;
+	  (*cla) << i+1 << " " << ind << endl;
+	  (*cla) << "error in CoupledField::RBlockTransfer::Calc" << endl;
+	  (*cla) << "no specific grid point" << endl;
 	  exit(1);
 	}
     }
@@ -242,19 +243,19 @@ void RBlockTransfer :: Print() const
       rs = start[i+1] - start[i];
       p  = start[i]*dof*dof;
 
-      cout << "row number " << i+1 << endl;
+      (*cla) << "row number " << i+1 << endl;
 
       for (j=0; j<rs*dof*dof; j++)
 	{
-	  cout << val[p+j] << " ";
+	  (*cla) << val[p+j] << " ";
 	}
-      cout << endl;
+      (*cla) << endl;
 
       for (j=0; j<rs; j++)
 	{
-	  cout << pos[start[i]+j] << " ";
+	  (*cla) << pos[start[i]+j] << " ";
 	}
-      cout << endl;
+      (*cla) << endl;
     }
 
 }

@@ -4,6 +4,7 @@
 #include <iostream.h>
 #include <fstream.h>
 
+#include "environment.hh"
 #include <general.hh>
 #include "multigrid.hh"
 
@@ -363,9 +364,9 @@ void RFullMatrix :: Print() const
     {
       for (j=0; j<size; j++)
 	{
-	  cout << val[i*size+j] << " ";
+	  (*cla) << val[i*size+j] << " ";
 	}
-      cout << endl;
+      (*cla) << endl;
     }
 }
 
