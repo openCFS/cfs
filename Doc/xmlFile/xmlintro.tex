@@ -22,13 +22,13 @@ In XML a single data item is enclosed by two tags:
 an \emph{opening tag} and a \emph{closing tag}. The whole assembly is called an element.
 In XML, an element can have
 
-\begin{center}  
-  \begin{tabular}{|l|l|}
-    \hline
+\begin{center}
+  \begin{tabular}{ll}
+    \hline\noalign{\smallskip}
     a value    & \verb!<node>ground</node>!\\
-    \hline 
+    \noalign{\smallskip}\hline\noalign{\smallskip} 
     attributes & \verb!<node name="ground"></node>!\\
-    \hline 
+    \noalign{\smallskip}\hline\noalign{\smallskip}
     children &  
     \begin{minipage}{10cm}
 \begin{verbatim}
@@ -38,7 +38,7 @@ In XML, an element can have
 </nodelist>
 \end{verbatim}
     \end{minipage}\\
-    \hline
+    \noalign{\smallskip}\hline
   \end{tabular}
 \end{center}
 
@@ -48,13 +48,19 @@ or a combination of the above.
 
 
 \section{XML: Empty Elements}
+%
+%
+The XML specification allows for empty elements, i.e.~elements that contain
+neither a value nor any childred. Empty, however, does not necessarily mean
+that the element does not carry any information, but its name, since an empty
+element may still possess attributes. Indeed many of the elements used in the
+CFS++ parameter file are empty with information encoded as attribute values.
+Note also that, if an element is empty,
+\begin{verbatim}
+   <problem name="demo3d"></problem>
+\end{verbatim}
+then the opening and the closing tag can, for brevity, be combined into one:
+\begin{verbatim}
+   <problem name="demo3d"/>
+\end{verbatim}
 
-
-If an element is empty, i.e.~it contains neither a value nor children,
-
-\verb!<problem name="demo3d"></problem>!
-
-\noindent
-the opening and the closing tag can be combined into one:
-
-\verb!<problem name="demo3d" />!

@@ -1,4 +1,7 @@
 \chapter{Structure of Config-File}
+\label{sec:general}
+%
+%
 The basic structure of the config-file for CFS++ in our XML
 syntax is as follows:
 
@@ -17,32 +20,33 @@ cfsSimulation.  The last line then is the closing tag for this main
 element. All parameters must appear between the opening and the
 closing tag.
 
-Only a few tags are allowed in this main body (see table
-\ref{tab:Layer1Elements}). They will be documented in the next
-sections. These top level tags have to be used in the order shown in
-table \ref{tab:Layer1Elements}.
-
-\begin{table}[h!]
-  \centering
-  \begin{tabular}{lll}
+Only a few tags are allowed in this main body. They will be documented in the
+remaining sections. These top level tags have to be used in the order shown in
+the following table
+\begin{center}
+  \begin{longtable}{lll}
     \hline\noalign{\smallskip}
     leave name & leave type & occurence constraints \\
     \noalign{\smallskip}\hline\noalign{\smallskip}
-    analysis      & plane   & required\\
-    geometry      & plane   & required\\
-    input         & plane   & optional\\
-    output        & plane   & optional\\
-    materialData  & plane   & optional\\
-    domain        & section & required \\
-    pdeList       & section & required \\
-    couplingList  & section & required for iterative or direct coupling\\
-    multiSequence & section & required for multi sequence analysis \\
-    transient     & section & required for transient analysis \\
+    analysis        & plane   & required\\
+    geometry        & plane   & required\\
+    input           & plane   & optional\\
+    output          & plane   & optional\\
+    materialData    & plane   & optional\\
+    domain          & section & required \\
+    pdeList         & section & required \\
+    couplingList    & section & required for iterative or direct coupling\\
+    harmonic        & section & required for harmonic analysis \\
+    transient       & section & required for transient analysis \\
+    multiSequence   & section & required for multi sequence analysis \\
+    bubbleDynamic   & section & optional for simulation of bubbles \\
+    bubbleDriver    & section & optional for simulation of bubbles \\
+    transient4Slice & section & ??? \\
+    amExpert        & plane   & optional (for disabling expert module)\\
+    devel           & plane   & optional (for developers only)\\
     \noalign{\smallskip}\hline
-  \end{tabular}
-  \caption{\label{tab:Layer1Elements}Possible commands of the 1. level
-    in the config-file}  
-\end{table}
+  \end{longtable}
+\end{center}
 
 
 

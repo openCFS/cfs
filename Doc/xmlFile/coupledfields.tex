@@ -1,19 +1,31 @@
+%
+% =============================================================================
+%
 \chapter{Coupled Fields}
-
+%
+% =============================================================================
+%
 \section{General}
-According to the {\sf pdeList} we will introduce a {\sf couplingList}. Within this
-list we will differ between iterative coupling ({\sf iterative}) and direct
-coupling ({\sf direct}). For iterative coupling the method can be {\sf RHS} 
-(for right hand side coupling) and {\sf Matrix} for a matrix coupling algorithm.
+The \xml{pdeList} element can be followed by a \xml{couplingList} element,
+which can be used to supply information on the coupling between different
+PDEs. Within this block we distinguish between iterative coupling
+(\xml{iterative}) and direct coupling (\xml{direct}).
+%
+% =============================================================================
+%
+\section{Iterative Coupling}
+ For iterative coupling
+the method can be \xml{RHS} (for right hand side coupling) and \xml{Matrix} for
+a matrix coupling algorithm.
 Then, for each involved pair of coupling PDEs, we have
 to specify for each PDE the coupling parameters. 
-The coupling is specified by the coupling input {\sf quantity}, the
-interface {\sf type} - which can be {\sf node}(Coupling),
-{\sf surface}(Coupling) or {\sf region}(Coupling) -  and the {\sf name} of
+The coupling is specified by the coupling input \xml{quantity}, the
+interface \xml{type} - which can be \xml{node}(Coupling),
+\xml{surface}(Coupling) or \xml{region}(Coupling) -  and the \xml{name} of
 the interface, which has to correspond with the according interface
-{\sf type}. At the end, we have to define
+\xml{type}. At the end, we have to define
 the stopping criteria and the maximum number of iterations
-within the section {\sf nonlLinear}. Therefore, the general structure 
+within the section \xml{nonlLinear}. Therefore, the general structure 
 looks as follows
 
 
@@ -70,7 +82,7 @@ is optional: The coupling is considered as converged if either {\sf
 criterias were met.
 
 
-\section{Specifications within the single fields}
+\subsection{Specifications within the single fields}
 Currently we have definitions for electrostatics, mechanics, magnetics and acoustics.
 
 \begin{table}[htb]
@@ -122,7 +134,7 @@ interfaceCoupling      & mechForce \\
 \end{center}
 \end{table}
 
-\section{ElecMech}
+\subsection{ElecMech}
 The two involved fields are the electrostatic and the mechanical field.
 Often we need a additional PDE for the smoothing of the mesh (moving/deforming 
 body problem).
@@ -155,7 +167,7 @@ body problem).
 </couplingList>
 \end{verbatim}
 
-\section{MagMech}
+\subsection{MagMech}
 The two involved fields are the magnetic and the mechanical field.
 Often we need a additional PDE for the smoothing of the mesh (moving/deforming 
 body problem).
@@ -188,10 +200,10 @@ body problem).
 \end{verbatim}
 
 
-\section{AcouMech}
+\subsection{AcouMech}
 Here we differ between an indirect and a direct coupling. Currently we have
 just implemented the iterative coupling. Note that the coupling
-between these two field can only be done via {\sf interface} coupling,
+between these two field can only be done via \xml{interface} coupling,
 as the element normals are needed for calculating the coupling forces.
 
 \bigskip
@@ -216,3 +228,10 @@ as the element normals are needed for calculating the coupling forces.
   </AcouMech>
 </couplingList>
 \end{verbatim}
+%
+% =============================================================================
+%
+\section{Direct Coupling}
+%
+% =============================================================================
+%
