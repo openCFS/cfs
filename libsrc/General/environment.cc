@@ -281,6 +281,7 @@ namespace CoupledField
   {
     std::string errMsg;
 
+    //mechanics
     if (in == "mechDisplacement")
       out = MECH_DISPLACEMENT;
     else if (in == "mechAcceleration")
@@ -293,9 +294,11 @@ namespace CoupledField
       out = MECH_STRESS;
     else if (in == "mechStrain")
       out = MECH_STRAIN;
+
+    //electrostatics
     else if (in == "elecPotential")
       out = ELEC_POTENTIAL;
-    else if (in == "elecField")
+    else if (in == "elecFieldIntensity")
       out = ELEC_FIELD;
     else if (in == "elecForceVWP")
       out = ELEC_FORCE_VWP;
@@ -305,16 +308,23 @@ namespace CoupledField
       out = ELEC_CHARGE;
     else if (in == "elecFluxDensity")
       out = ELEC_FLUX_DENSITY;
+    //energy
+
+    //smoothing PDE
     else if (in == "smoothDisplacement")
       out = SMOOTH_DISPLACEMENT;
-    else if (in == "acousticPotential")
+
+    //acoustics
+    else if (in == "acouPotential")
       out = ACOU_POTENTIAL;
-    else if (in == "acousticForce")
+    else if (in == "acouForce")
       out = ACOU_FORCE;
-    else if (in == "acousticFluidPot - 1. Deriv")
+    else if (in == "acouPotentialD1")
       out = ACOU_POTENTIAL_DERIV_1;
-    else if (in == "acousticFluidPot - 2. Deriv")
+    else if (in == "acouPotentialD2")
       out = ACOU_POTENTIAL_DERIV_2;
+
+    //magnetics
     else if (in == "magPotential")
       out = MAG_POTENTIAL;
     else if (in == "magFluxDensity")
@@ -325,6 +335,8 @@ namespace CoupledField
       out = MAG_FORCE_VWP;
     else if (in == "magForceLorentz")
       out = MAG_FORCE_LORENTZ;
+    //energy
+
     else 
       {
 	errMsg  = "'";
