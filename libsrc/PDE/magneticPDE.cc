@@ -1158,7 +1158,7 @@ namespace CoupledField {
 Double MagPDE::LineSearch(Vector<Double>& solInc, Vector<Double>& actSol, 
 			   Double& etaLineSearch, Integer level, Boolean trans)
 {
-  ENTER_FCN( "MechPDE::LineSearch" );
+  ENTER_FCN( "MagPDE::LineSearch" );
 
   //  Vector<Double> solOld(actSol);
   const Integer nrEtas = 4;
@@ -1202,12 +1202,15 @@ void MagPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
   //compute predictors
   TS_alg_->Predictor(solhelp->GetCompleteVector());
 
-  //now set up RHS: all linear terms
+  //now set up RHS: all linear source terms
   Double RhsLinL2Norm = SetLinRHS(level); 
 
   // inner forces due to nonlin formulation
   assemble_->AssembleNLRHS(level, lasttimecalc_);  
 
+   //Update RHS (mass matrix on right hand side)
+  TS_alg_->UpdateRHS(solhelp->GetCompleteVector());
+  
   timeStepCounter++;
   do
     {
@@ -1265,8 +1268,13 @@ void MagPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
       RhsLinVal_.ToStdVector(help);
       algsys_->InitRHS(help);
 #endif
+
+      //Update RHS (mass matrix on right hand side)
+      TS_alg_->UpdateRHS(actSol);
+
       assemble_->AssembleNLRHS(level, lasttimecalc_);  // inner forces due to nonlin formulation
  
+
       // =====================================================================
       // calculation of error norms
       // =====================================================================
@@ -1318,7 +1326,7 @@ void MagPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
 
   
     //perform corrector step  
-  TS_alg_->Corrector(solhelp->GetCompleteVector());
+  TS_alg_->Corrector(actSol);
 }
 
 
@@ -1329,11 +1337,7 @@ void MagPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
 
     Double RhsLinL2Norm;  
 
-    //take car:  assemble_->AssembleSrcRHS already called by PreStepTrans in basePDE!!
-
-    if (analysistype_ == TRANSIENT)
-      //perform predictor step
-      TS_alg_->UpdateRHS();
+    //take care:  assemble_->AssembleSrcRHS already called by PreStepTrans in basePDE!!
 
     // stores rhs vector into extForces and returns that L2-norm
     StoreAlgsysToVec(RhsLinVal_, algsys_->GetRHSVal() );

@@ -580,8 +580,9 @@ namespace CoupledField
     // Initialize matrices in order to get BCs correct
     algsys_->InitMatrix(SYSTEM);
 
-    if (stiffnessMatrix_ && reassembleMat_[STIFFNESS])
+    if (stiffnessMatrix_ && reassembleMat_[STIFFNESS]) 
       algsys_->InitMatrix(STIFFNESS);
+    
     
     if (dampingMatrix_ && reassembleMat_[DAMPING])
       algsys_->InitMatrix(DAMPING);
@@ -589,8 +590,9 @@ namespace CoupledField
     if (convectionMatrix_ && reassembleMat_[CONVECTION])
       algsys_->InitMatrix(CONVECTION);
     
-    if (massMatrix_ && reassembleMat_[MASS])
+    if (massMatrix_ && reassembleMat_[MASS]) 
       algsys_->InitMatrix(MASS); 
+    
   }
  
 

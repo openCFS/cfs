@@ -40,6 +40,9 @@ public:
   //! perform an update to RHS
   virtual void UpdateRHS();
 
+  //! perform an update to RHS with actual solution (for nonlin calculation)
+  virtual void UpdateRHS(Vector<Double>& actSol);
+
   //! compute parameters for multiplication
   void CalcParameters(Double dt);
 

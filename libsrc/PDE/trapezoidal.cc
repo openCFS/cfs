@@ -7,8 +7,8 @@
 namespace CoupledField
 {
 
-Trapezoidal :: Trapezoidal(std::string apdename, BaseSystem * algebraicsystem, Integer dofspernode, 
-		   Integer numnode)
+Trapezoidal :: Trapezoidal(std::string apdename, BaseSystem * algebraicsystem, 
+			   Integer dofspernode, Integer numnode)
 :TimeStepping(apdename, algebraicsystem)
 {
   ENTER_FCN( "Trapezoidal::Trapezoidal" );
@@ -68,6 +68,18 @@ void Trapezoidal::UpdateRHS()
 
   // mass part
   coeffMass = solpred_*a1_;
+  algsys_->UpdateRHS(MASS,coeffMass.GetPointer());
+}
+
+
+void Trapezoidal::UpdateRHS(Vector<Double>& actSol)
+{
+  ENTER_FCN( "Trapezoidal::UpdateRHS" );
+
+  Vector<Double> coeffMass;
+
+  // mass part
+  coeffMass = (solpred_ - actSol) *a1_;
   algsys_->UpdateRHS(MASS,coeffMass.GetPointer());
 }
 
