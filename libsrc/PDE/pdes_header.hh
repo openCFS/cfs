@@ -9,6 +9,7 @@
 #include "newAcousticPDE.hh"
 #include "newsmoothPDE.hh"
 #include "magneticPDE.hh"
+#include "piezoPDE.hh"
 
 #else // NEWBASEPDE
 
