@@ -40,14 +40,14 @@ void GridCFS<Point2D> :: Read()
 
   InFile->ReadEl(elems_,sd_);
   
-  Integer i,j;
-  for(i=0; i<elems_[0].size(); i++){
-    Integer elemsize=(elems_[0][i]->connect).size();
-    testconnect_[i]=new Integer[elemsize];
-    for (j=0; j<elemsize; j++) {
-      testconnect_[i][j]=(elems_[0][i]->connect)[j];
-    }
-  }
+//   Integer i,j;
+//   for(i=0; i<elems_[0].size(); i++){
+//     Integer elemsize=(elems_[0][i]->connect).size();
+//     testconnect_[i]=new Integer[elemsize];
+//     for (j=0; j<elemsize; j++) {
+//       testconnect_[i][j]=(elems_[0][i]->connect)[j];
+//     }
+//   }
       
 #ifdef TRACE
   (*trace) << "leaving GridCFS::Read" << std::endl;
