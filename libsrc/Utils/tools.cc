@@ -214,7 +214,7 @@ namespace CoupledField {
 
   Integer defineRefinements(const Double tolElem, const Double tolTotal,
 			    const Integer noOfChilds){
-    Double tmp=log(tolElem/tolTotal)/log(noOfChilds);
+    Double tmp = log( tolElem/tolTotal ) / log( (Double) noOfChilds );
     return (Integer)tmp + 1;
   }
 
@@ -238,4 +238,12 @@ namespace CoupledField {
     return area;
   }
 
+
+// explicit template instantiation for SGI compiler
+#ifdef __sgi
+#pragma instantiate Point<2>
+#pragma instantiate Point<3>
+#pragma instantiate void PrintPoint(Point<2>, std::ostream *)
+#pragma instantiate void PrintPoint(Point<3>, std::ostream *)
+#endif
 }// namespace CoupledField

@@ -170,8 +170,8 @@ private:
   void WriteMsg(const std::string msg);
 
 private:
-  GSIServerSocket *ss_;
-  GSIServerSocket *sock_;
+  //GSIServerSocket *ss_;
+  //GSIServerSocket *sock_;
   GSIBaseIO *io_;
   FILE* fp_;
 };

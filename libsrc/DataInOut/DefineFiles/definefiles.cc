@@ -1,6 +1,12 @@
 #include <fstream>
 #include <iostream>
+
+#ifdef __sgi
+#include <stdio.h>
+#else
 #include <cstdio>
+#endif
+
 #include <string>
 
 #include "definefiles.hh"
@@ -9,7 +15,11 @@
 #include "DataInOut/WriteInfo.hh"
 #include "DataInOut/Unverg/outUnverg.hh"
 #include "DataInOut/GMV/outGMV.hh"
+
+#ifdef GSI
 #include "DataInOut/GSI/outGSI.hh"
+#endif
+
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
 #include "DataInOut/ParamHandling/PlainXMLParamHandler.hh"
 #include "DataInOut/ParamHandling/XMLParamHandler.hh"
@@ -231,8 +241,10 @@ namespace CoupledField
       ptWriteResults_=new WriteResultsGMV(filename_, aInFile);
     else if (outformat=="unverg")
       ptWriteResults_=new WriteResultsUnverg(filename_, aInFile); 
+#ifdef GSI
     else if (outformat=="gsi")
       ptWriteResults_=new WriteResultsGSI(filename_, aInFile);
+#endif
 #ifdef USE_DATABASE
     else if (outformat=="database")
       ptWriteResults_=new WriteResultsDatabase(filename_, aInFile);
@@ -246,8 +258,10 @@ namespace CoupledField
     }
     else if ( outformat == "unv" ) 
       ptWriteResults_= new WriteResultsUnverg(filename_, aInFile); 
+#ifdef GSI
     else if ( outformat == "gsi" ) 
       ptWriteResults_= new WriteResultsGSI(filename_, aInFile);
+#endif
 #ifdef USE_DATABASE
     else if (outformat == "database") 
       ptWriteResults_= new WriteResultsDatabase(filename_, aInFile);

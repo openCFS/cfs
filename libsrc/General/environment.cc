@@ -56,10 +56,23 @@ namespace CoupledField
   // --------------------------------------------
   //  Implementation of enum conversion routines 
   // --------------------------------------------
- 
+  // General template function
+  template <class TYPE> 
+  void String2Enum(const std::string &in, TYPE &out)
+  {
+    Error("Not implemented", __FILE__, __LINE__);
+  }
+
+  template <class TYPE>
+  void Enum2String(const TYPE &in, std::string &out)
+  {
+    Error("Not implemented", __FILE__, __LINE__);
+  }
+  
+
   // AnalysisType
   template<>
-  void String2Enum(const std::string &in, AnalysisType &out)
+  void String2Enum<AnalysisType>(const std::string &in, AnalysisType &out)
   {
     std::string errMsg;
 
@@ -85,7 +98,7 @@ namespace CoupledField
   }
 
   template<> 
-  void Enum2String(const AnalysisType &in, std::string &out)
+  void Enum2String<AnalysisType>(const AnalysisType &in, std::string &out)
   {
     switch(in)
       {
@@ -112,7 +125,8 @@ namespace CoupledField
 
   // CouplingInputType
   template<>
-  void String2Enum(const std::string &in, CouplingInputType &out)
+  void String2Enum<CouplingInputType>(const std::string &in, 
+				      CouplingInputType &out)
   {
     std::string errMsg;
 
@@ -134,7 +148,8 @@ namespace CoupledField
   }
 
   template<> 
-  void Enum2String(const CouplingInputType &in, std::string &out)
+  void Enum2String<CouplingInputType>(const CouplingInputType &in, 
+				      std::string &out)
   {
     switch(in)
       {
@@ -158,7 +173,8 @@ namespace CoupledField
 
   // CouplingOutputType
   template<>
-  void String2Enum(const std::string &in, CouplingOutputType &out)
+  void String2Enum<CouplingOutputType>(const std::string &in, 
+				       CouplingOutputType &out)
   {
     std::string errMsg;
 
@@ -176,7 +192,8 @@ namespace CoupledField
   }
 
   template<> 
-  void Enum2String(const CouplingOutputType &in, std::string &out)
+  void Enum2String<CouplingOutputType>(const CouplingOutputType &in, 
+				       std::string &out)
   {
     switch(in)
       {
@@ -195,7 +212,8 @@ namespace CoupledField
   
   // CouplingRegionType
   template<>
-  void String2Enum(const std::string &in, CouplingRegionType &out)
+  void String2Enum<CouplingRegionType>(const std::string &in, 
+				       CouplingRegionType &out)
   {
     std::string errMsg;
 
@@ -216,7 +234,8 @@ namespace CoupledField
   }
 
   template<> 
-  void Enum2String(const CouplingRegionType &in, std::string &out)
+  void Enum2String<CouplingRegionType>(const CouplingRegionType &in, 
+				       std::string &out)
   {
     switch(in)
       {
@@ -237,7 +256,7 @@ namespace CoupledField
 
   // NormType
   template<>
-  void String2Enum(const std::string &in, NormType &out)
+  void String2Enum<NormType>(const std::string &in, NormType &out)
   {
     std::string errMsg;
 
@@ -258,7 +277,7 @@ namespace CoupledField
   } 
 
   template<>
-  void Enum2String(const NormType &in, std::string &out)
+  void Enum2String<NormType>(const NormType &in, std::string &out)
   {
     switch(in)
       {
@@ -279,7 +298,7 @@ namespace CoupledField
 
   // SolutinType
   template<>
-  void String2Enum(const std::string &in, SolutionType &out)
+  void String2Enum<SolutionType>(const std::string &in, SolutionType &out)
   {
     std::string errMsg;
 
@@ -354,7 +373,7 @@ namespace CoupledField
   }
 
   template<>
-  void Enum2String(const SolutionType &in, std::string &out)
+  void Enum2String<SolutionType>(const SolutionType &in, std::string &out)
   { 
 
     switch (in)
@@ -452,7 +471,7 @@ this type of solution", __FILE__, __LINE__);
 
  // EQNType
   template<>
-  void String2Enum(const std::string &in, EQNType &out)
+  void String2Enum<EQNType>(const std::string &in, EQNType &out)
   {
    std::string errMsg;
 
@@ -474,7 +493,7 @@ this type of solution", __FILE__, __LINE__);
   }
 
   template<>
-  void Enum2String(const EQNType &in, std::string &out)
+  void Enum2String<EQNType>(const EQNType &in, std::string &out)
   {
      switch(in)
       {
@@ -499,30 +518,16 @@ this type of solution", __FILE__, __LINE__);
   
   // ComplexFormat
   template<>
-  void String2Enum(const std::string &in, ComplexFormat &out)
+  void String2Enum<ComplexFormat>(const std::string &in, ComplexFormat &out)
   {
     Error("Not implemented", __FILE__, __LINE__);
   }
 
   template<>
-  void Enum2String(const ComplexFormat &in, std::string &out)
+  void Enum2String<ComplexFormat>(const ComplexFormat &in, std::string &out)
   {
     
     Error("Not implemented", __FILE__, __LINE__);
   }
-
-  // General template function
-  template <class TYPE> 
-  void String2Enum(const std::string &in, TYPE &out)
-  {
-    Error("Not implemented", __FILE__, __LINE__);
-  }
-
-  template <class TYPE>
-  void Enum2String(const TYPE &in, std::string &out)
-  {
-    Error("Not implemented", __FILE__, __LINE__);
-  }
-  
 
 }

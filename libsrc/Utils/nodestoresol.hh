@@ -434,7 +434,7 @@ protected:
   // ======================================================
   // EXPLICIT TEMPLATE INSTANTIATION
   // ======================================================
-#ifdef __GNUC__
+#if defined(__GNUC__)
   template class NodeStoreSol<Double>;
   template class NodeStoreSol<Complex>;
   //template class NodeStoreSol<Integer>;

@@ -61,7 +61,7 @@ public:
 
   //! store solution to solution array (especially for effective mass formulation)
   
-  virtual const void StoreSolution(NodeStoreSol<Double> & solArr) const
+  virtual void StoreSolution(NodeStoreSol<Double> & solArr) const
   {Error("Not implemented in base class!", __FILE__, __LINE__);};
 
   NodeEQN * getNodeEQN(){return ptEQN_;};

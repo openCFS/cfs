@@ -37,12 +37,12 @@ namespace CoupledField {
     ~Coil();
 
     //! Enumeration type for distinguishing the different types of coils
-    typedef enum Type { MEASUREMENT2D, MEASUREMENT3D,
-			VOLTAGE2D, VOLTAGE3D,
-			CURRENT2D, CURRENT3D };
+    typedef enum { MEASUREMENT2D, MEASUREMENT3D,
+		   VOLTAGE2D, VOLTAGE3D,
+		   CURRENT2D, CURRENT3D } Type;
 
     //! Enumeration type for specifying flow direction for 3D current coils
-    typedef enum FlowDir { NODIR, XDIR, YDIR, ZDIR };
+    typedef enum { NODIR, XDIR, YDIR, ZDIR } FlowDir;
 
     //! The type of coil this object describes
     Coil::Type coilType_;

@@ -51,5 +51,10 @@ void Jacobian<dim>::GetJinvZ(Vector<Double> & JinvZ)
 }
 
 }
+// explicit template instantiation for SGI compiler
+#ifdef __sgi
+#pragma instantiate Jacobian<2>
+#pragma instantiate Jacobian<3>
+#endif
 
 } // end of namespace

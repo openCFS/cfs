@@ -58,7 +58,7 @@ class Jacobian
     void GetJinv(Matrix<Double> & jInv);
 };
 
-#ifdef __GNUC__
+#if defined(__GNUC__)
 template class Jacobian<2>;
 template class Jacobian<3>;
 #endif

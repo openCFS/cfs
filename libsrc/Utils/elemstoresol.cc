@@ -439,8 +439,10 @@ void ElemStoreSol<TYPE>::Print(std::ostream& str)
     
 }
 
-
-
-
+// explicit template instantiation for SGI compiler
+#ifdef __sgi
+#pragma instantiate ElemStoreSol<Double>
+#pragma instantiate ElemStoreSol<Complex>
+#endif
 
 } //namespace

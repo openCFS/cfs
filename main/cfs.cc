@@ -5,8 +5,6 @@
 #include <iomanip>
 #include <stdarg.h>
 #include <list>
-//#include <math.h>
-#include <cmath>
 #include <vector>
 
 #ifdef PARALLEL

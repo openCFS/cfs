@@ -115,7 +115,7 @@ namespace CoupledField {
     Double p[dim];
   };
 
-#ifdef __GNUC__
+#if defined(__GNUC__) 
   template class Point<2>;
   template class Point<3>;
 #endif

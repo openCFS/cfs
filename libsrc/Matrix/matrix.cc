@@ -1004,6 +1004,11 @@ template<class TYPE> bool Matrix<TYPE>::IsSymmetric() {
 //   return amSymm;
 // }
 
-
+// explicit template instantiation for SGI compiler
+#ifdef __sgi
+#pragma instantiate Matrix<Integer>
+#pragma instantiate Matrix<Double>
+#pragma instantiate Matrix<Complex>
+#endif
 
 } // end of namespace

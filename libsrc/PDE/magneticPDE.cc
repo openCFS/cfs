@@ -643,7 +643,7 @@ namespace CoupledField {
 	for (Integer iel=0; iel< elemssd.GetSize(); iel++,counterElems++) 
 	  {
 	    pdeElem = eqnData_->Mesh2PDEElem(elemssd[iel]->elemNum);
-	    ptSurfElem->GetCoordMidPoint(LCoord);
+	    elemssd[iel]->ptElem->GetCoordMidPoint(LCoord);
 	    FieldOp->CalcElemCurlNode( TempE, elemssd[iel], LCoord); 
 	    // B_.SetNodalResult(mesh2PDEElem_[elemssd[iel]->elemNum - 1]-1, TempE);
 	    B_.SetElemResult(pdeElem-1, TempE);

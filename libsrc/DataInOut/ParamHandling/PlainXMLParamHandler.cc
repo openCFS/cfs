@@ -437,7 +437,7 @@ namespace CoupledField {
       }
 
       // read next line
-      getline(infile,buf);
+      std::getline(infile,buf);
       pos = infile.tellg();
       
     } 

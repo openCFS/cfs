@@ -96,7 +96,7 @@ inline InterfaceNetGen<Dim>::InterfaceNetGen(FileType * aptFileType)
   Init();
 }
 
-#ifdef __GNUC__
+#if defined(__GNUC__)
 template class InterfaceNetGen<Point3D>;
 template class InterfaceNetGen<Point2D>;
 #endif

@@ -3,20 +3,14 @@ C_DIR= ../..
 #
 include ../../main/Makefile.option
 
-ifeq ($(MpCCI),yes)
-  src = MpCCIexch.cc
-else
-  src = 
-endif
+src = MpCCIexch.cc
+
 #
 lib = mpccicpl
 CFLAGS3 =
 #
-include ../makefile.inc
-ifeq ($(MpCCI),yes)
-  -include $(Dependencies)
-else
-endif
+include ../makefile.inc  
+-include $(Dependencies)
 # DO NOT DELETE
 
 

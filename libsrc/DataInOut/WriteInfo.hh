@@ -10,7 +10,7 @@
 /**************************************************************************/
 
 
-
+#include <sstream>
 #include <General/environment.hh>
 #include "Matrix/matrix.hh"
 
@@ -149,10 +149,9 @@ namespace CoupledField
     //! if the << operator has been overloaded for the respective type.
     template<class T> std::string GenStr( const T &value ) {
       std::ostringstream mystream;
-//       mystream << value << std::ends;
       mystream << value;
       return mystream.str();
-    };
+    }
 
   };
 } // end namespace CoupledField

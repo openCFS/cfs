@@ -746,7 +746,7 @@ if (size_ == 0)
 #endif
 	
  TYPE ret = (*this)*(*this);
- return sqrt (ret);
+ return sqrt ((Double)ret);
 }
 
 template<>
@@ -924,32 +924,35 @@ void Swap(Vector<TYPE> & a, Vector<TYPE> & b)
  b.data_ = temp_data;
 }
 
+
+
 template<class TYPE> 
-void Swap(TYPE & a, TYPE & b)
+void Vector<TYPE>::Sort()
 {
-  ENTER_IFCN( "Vector::Swap" );
-   TYPE tmp=a;
-   a=b;
-   b=tmp;
-}
-
-template void Swap<Integer>(Integer & ,Integer &);
-template void Swap<Double>(Double & ,Double &);
-
-template<class S> void Sort(S* v, Integer n)
-{
-  ENTER_FCN( "Vector::Sort" );
-  for (Integer gap=n/2; gap >0; gap/=2)
-    for (Integer i=gap; i<n; i++)
+  ENTER_IFCN( "Vector::Sort" );
+#ifdef CHECK_INITIALIZED
+if (size_ == 0)
+  Warning("Vector::Sort: Use of uninitialized vector");
+#endif
+ TYPE temp; 
+ 
+  for (Integer gap=size_/2; gap >0; gap/=2)
+    for (Integer i=gap; i<size_; i++)
        for (Integer j=i-gap; j>=0; j-=gap)
-          if (v[j+gap]<v[j]) Swap<S>(v[j],v[j+gap]);
-
+	 if (data_[j+gap] < data_[j]) {
+	   temp = data_[j];
+	   data_[j] = data_[j+gap];
+	   data_[j+gap] = temp;
+	 }
 }
-template void Sort<Integer>(Integer * ,Integer);
-template void Sort<Double>(Double * ,Integer);
+
+template<> 
+void Vector<Complex>::Sort(){
+  Error("Vector<Complex>::Sort: Not defined for complex numbers",
+        __FILE__, __LINE__);
+}
 
 // Overloading << for Vector
-
 template<class S>
 std::ostream & operator << ( std::ostream & out, const Vector<S> & vc)
 {
@@ -960,6 +963,19 @@ for (Integer i=0; i < vc.GetSize(); i++)
  return out;
 }
 
+#ifdef __GNUC__
 template std::ostream & operator<<<Integer> (std::ostream & , const Vector<Integer> &);
 template std::ostream & operator<<<Double> (std::ostream & , const Vector<Double> &);
+#endif
+
+
+// explicit template instantiation for SGI compiler
+#ifdef __sgi
+#pragma instantiate Vector<Integer>
+#pragma instantiate Vector<Double>
+#pragma instantiate Vector<Complex>
+#pragma instantiate std::ostream & operator<<<Integer> (std::ostream & , const Vector<Integer> &)
+#pragma instantiate std::ostream & operator<<<Double> (std::ostream & , const Vector<Double> &)
+#pragma instantiate std::ostream & operator<<<Complex> (std::ostream & , const Vector<Complex> &)
+#endif
 }

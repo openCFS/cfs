@@ -197,7 +197,7 @@ void AnsysFile::ReadBCs(std::list<Integer> * bcs, const StdVector<std::string> l
 	
 	// remember current position and get the position of endline
 	pos = infile.tellg();
-	getline(infile,buf,'\n');
+	std::getline(infile,buf,'\n');
 	lineEndPos=infile.tellg();
 	infile.seekg(pos,std::ios::beg);
 	
@@ -294,7 +294,7 @@ void AnsysFile::ReadSaveNodes(StdVector<Integer> & saveNodes , const std::string
       {	
 	// remember current position and get the position of endline
 	pos = infile.tellg();
-	getline(infile,buf,'\n');
+	std::getline(infile,buf,'\n');
 	lineEndPos=infile.tellg();
 	infile.seekg(pos,std::ios::beg);
 	
@@ -707,7 +707,7 @@ void AnsysFile::ReadEl1d(StdVector<Elem*> * allelems, const StdVector<std::strin
 
 	    // remember current position and get the position of endline
 	    pos = infile.tellg();
-	    getline(infile,buf,'\n');
+	    std::getline(infile,buf,'\n');
 	    lineEndPos=infile.tellg();
 	    infile.seekg(pos,std::ios::beg);
 
@@ -794,7 +794,7 @@ void AnsysFile::ReadEl2d(StdVector<Elem*> * allelems, const StdVector<std::strin
 	   
 	    // remember current position and get the position of endline
 	    pos = infile.tellg();
-	    getline(infile,buf,'\n');
+	    std::getline(infile,buf,'\n');
 	    lineEndPos=infile.tellg();
 	    infile.seekg(pos,std::ios::beg);
 	    
@@ -883,7 +883,7 @@ void AnsysFile::ReadEl3d(StdVector<Elem*> * allelems, const StdVector<std::strin
 
 	// remember current position and get the position of endline
 	pos = infile.tellg();
-	getline(infile,buf,'\n');
+	std::getline(infile,buf,'\n');
 	lineEndPos=infile.tellg();
 	infile.seekg(pos,std::ios::beg);
 	    
@@ -1117,7 +1117,7 @@ Integer AnsysFile::GetInteger(std::string seekexp)
   infile.seekg(pos,std::ios::beg);
 
    // remember current position and get the position of endline
-  getline(infile,buf,'\n');
+  std::getline(infile,buf,'\n');
   lineEndPos=infile.tellg();
   infile.seekg(pos,std::ios::beg);
   
@@ -1146,7 +1146,7 @@ Boolean AnsysFile::IsNextLineEmpty(std::string::size_type actPos) {
   std::string buf = "------";
   
   infile.seekg(actPos,std::ios::beg);  
-  getline(infile,buf,'\n');
+  std::getline(infile,buf,'\n');
 //    std::cerr << "buf = " << buf << std::endl;
 
   if (buf == "")

@@ -22,8 +22,6 @@ public:
   friend class Matrix<TYPE>;
   friend class NodeStoreSol<TYPE>;
   friend class ElemStoreSol<TYPE>;
-  template<class S>
-  friend void Swap(Vector<S> &, Vector<S> &);
 
   //! Constructor
   Vector();
@@ -266,13 +264,9 @@ public:
   //! Return size of space memory of this vector
   Integer  Memory() const;
 
-  //!Friends
-  //! Sort of vector: v - vec.p, n - vec.size
-  template <class S> void Sort(S* v, Integer n);
+  //! Sort vector in ascending order
+  void Sort();
  
- //! Swap 2 elements in vector Ex Swap(v[i],v[j])
-  template<class T2> void Swap(T2& a, T2 & b);
-
  protected:
 
   //! Length of the vector
@@ -336,7 +330,7 @@ void Swap(Vector<TYPE> & a, Vector<TYPE> & b);
 template<class TYPE>  std::ostream& operator << ( std::ostream & , const Vector<TYPE> &);
 
 
-#ifdef __GNUC__
+#if defined(__GNUC__)
   // Template instantiation for used vectors
   template class Vector<Integer>;
   template class Vector<Double>;
