@@ -207,8 +207,13 @@
           <xsd:element name="surfaceTension"        type="DT_NonNegFloat" />
           <xsd:element name="polytrop"              type="DT_NonNegFloat" />
           <xsd:element name="viscosity"             type="DT_NonNegFloat" />
-          <xsd:element name="bubbleDriverPressure"  type="xsd:float"      />
-          <xsd:element name="bubbleDriverFrequency" type="DT_NonNegFloat" />
+
+          <!-- Optional, only required by the bubbleDriver -->
+          <xsd:element name="bubbleDriverPressure" minOccurs="0"
+            type="xsd:float"/>
+          <xsd:element name="bubbleDriverFrequency" minOccurs="0"
+            type="DT_NonNegFloat"/>
+
         </xsd:sequence>
         <xsd:attribute name="tag"  type="xsd:string" use="optional"
           default="anyTag"/> 
