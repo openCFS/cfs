@@ -45,6 +45,7 @@ namespace CoupledField {
     InFile_     = aptFileType; 
     OutFile_    = ptOut;
     ptTimeFunc_ = aptTimeFunc;
+    ptcoupledpde_ = NULL;
 
     // Integer i;
  
@@ -363,15 +364,17 @@ namespace CoupledField {
 
   void Domain::ResetPDEs()
   {
-    ENTER_FCN( "Domain::ResetPDEs" );
+    ENTER_FCN( "Domain::ResetDEs" );
 
+
+    // Delete single pdes_
     for (Integer iPDE=0; iPDE<numpde_; iPDE++)
       if (ptpde_[iPDE])
 	delete ptpde_[iPDE];
 
-//     CreatePDEs();
 
-//     CreateCoupledPDE();
+    if (ptcoupledpde_ != NULL)
+      delete ptcoupledpde_;
   }
 
 
