@@ -16,10 +16,11 @@ MaterialData::MaterialData():scaledMatDat(0)
 {
   ENTER_FCN("MaterialData::MaterialData");
   const int stringLength = 100;
-  name = new char[stringLength];  
   piezoMatrix  = NULL;
+  piezoMatrixC = NULL;
   permeaMatrix = new Matrix<Double>(3,3);
   conducMatrix = new Matrix<Double>(3,3);
+  name = new char[stringLength];  
 }
 
 
@@ -76,14 +77,10 @@ void MaterialData::GetConductivity(const Integer& i, const Integer& j, Double &v
 
 MaterialData::~MaterialData()
 {
-  if (piezoMatrix)
-   delete piezoMatrix;
-  if (piezoMatrixC)
-   delete piezoMatrixC;
-  if (permeaMatrix)
-   delete permeaMatrix;
-  if (conducMatrix)
-   delete conducMatrix;
+  delete piezoMatrix;
+  delete piezoMatrixC;
+  delete permeaMatrix;
+  delete conducMatrix;
   delete[] name;
 }
 
