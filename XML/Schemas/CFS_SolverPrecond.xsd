@@ -47,8 +47,10 @@
             <xsd:enumeration value="cg"/>
             <xsd:enumeration value="gmres"/>
             <xsd:enumeration value="minres"/>
+            <xsd:enumeration value="symmlq"/>
             <xsd:enumeration value="QMR"/>
             <xsd:enumeration value="hyprePCG"/>
+            <xsd:enumeration value="hypreAMG"/>
             <xsd:enumeration value="hypreGMRES"/>
             <xsd:enumeration value="hypreBICGSTAB"/>
             <xsd:enumeration value="lapackLU"/>
