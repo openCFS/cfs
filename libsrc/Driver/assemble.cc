@@ -709,8 +709,11 @@ namespace CoupledField
     olasParams_->SetValue( "AuxiliaryMatrix", FALSE);
 
     // For OLAS_PARAMS we set these via CFSOLASParams::SetParams()
+#ifndef XMLPARAMS
     olasParams_->SetValue( "MatrixEntryType", entryType_ );
     olasParams_->SetValue( "MatrixStorageType", storageType_ );
+#endif
+
 #endif
 
 #ifdef USE_OLAS
