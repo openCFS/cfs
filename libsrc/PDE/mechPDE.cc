@@ -168,6 +168,9 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 	pressFnc_.Push_back( "none" );
       }
 
+    //check for prestressing
+    ReadPreStressing();
+
 #endif
 }
 
@@ -336,6 +339,16 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 	      actIntDescr->SetSecondaryMat(DAMPING, actSDMat.GetDampingBeta(),analysistype_);
 	
 	    assemble_->AddIntegrator(actIntDescr, subdoms_[actSD]);
+
+
+	    //for prestressing
+// 	    Double preStressVal = 0;
+// 	    Directions stressDir = X;
+// 	    BaseForm * bilinearPreStress = new PreStressIntAxi(actSDMat, preStressVal, stressDir);
+// 	    IntegratorDescriptor * actIntDescrPre =
+// 	      new IntegratorDescriptor(bilinearPreStress, STIFFNESS);
+// 	    assemble_->AddIntegrator(actIntDescrPre, subdoms_[actSD]);
+
 	  }
 
 
@@ -1621,4 +1634,59 @@ void MechPDE::PostProcess(const Integer level) {
     }
   }
   
+  // ********************************************************
+  //   Query parameter object for information about magnets
+  // ********************************************************
+  void MechPDE::ReadPreStressing() {
+
+    ENTER_FCN( "MechPDE::ReadPreStressing" );
+
+    StdVector<std::string> keyVec;
+    StdVector<std::string> attrVec;
+    StdVector<std::string> valVec;
+
+    keyVec = pdename_, "preStressing", "preStress", "name";
+    attrVec = "", "", "tag";
+    valVec  = "", "", bcSequenceTag_;
+
+    params->GetList(keyVec, attrVec, valVec, preStressDomain_);
+
+    if ( preStressDomain_.GetSize() > 0 ) {
+
+      Info->PrintF( pdename_,
+		    " Found prestressing in the following regions:" );
+
+      Double tmpDir;
+
+      // Construct vectors for restricted search parameter
+      StdVector<std::string> keyVec;
+      StdVector<std::string> attrVec;
+      StdVector<std::string> valVec;
+      attrVec = "", "", "name";
+
+      // for each prestress domain ...
+      for ( UInt k = 0; k < preStressDomain_.GetSize(); k++ ) {
+
+	// ... read direction of magnetisation
+	valVec = "", "", preStressDomain_[k];
+
+	keyVec  = pdename_, "preStressing", "preStress", "orientX";
+	params->Get( keyVec, attrVec, valVec, tmpDir);
+	preStressOriX_.Push_back( tmpDir);
+
+	keyVec  = pdename_, "preStressing", "preStress", "orientY";
+	params->Get( keyVec, attrVec, valVec, tmpDir );
+	preStressOriY_.Push_back( tmpDir );
+
+	keyVec  = pdename_, "preStressing", "preStress", "orientZ";
+	params->Get( keyVec, attrVec, valVec, tmpDir );
+	preStressOriZ_.Push_back( tmpDir );
+
+	// ... report name to logfile
+	Info->PrintF( pdename_, "%s", preStressDomain_[k].c_str());
+      }
+    }
+  }
+
+
 } // end namespace CoupledField
