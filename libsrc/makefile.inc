@@ -9,6 +9,11 @@ endif
 
 include $(LIBSRC_DIR)/makefilemach/make.mach.$(MACHINE)
 #
+ifeq ($(MpCCI),yes)
+  CC=/opt/MpCCI/mpcci-2.0.0-linux-gcc32/bin/cciCC
+  CFLAGSMpCCI = -DMpCCI
+endif
+
 ARFLAGS = r 
 #
 ifeq "$(LIBRARY_TYPE)" "shared"
@@ -24,10 +29,10 @@ endif
 #
 .SUFFIXES: .f .cc .cpp .o
 .cc.o:
-	$(CC) $(CFLAGS1) $(CFLAGS2) $(CFLAGS3) $(CFLAGSPETS) $(INCL) $(ADAPT) $< 
+	$(CC) $(CFLAGS1) $(CFLAGS2) $(CFLAGS3) $(CFLAGSMpCCI) $(CFLAGSPETS) $(INCL) $(ADAPT) $< 
 
 .cpp.o:
-	$(CC) $(CFLAGS1) $(CFLAGS2) $(CFLAGS3) $(CFLAGSPETS) $(INCL) $<
+	$(CC) $(CFLAGS1) $(CFLAGS2) $(CFLAGS3) $(CFLAGSMpCCI) $(CFLAGSPETS) $(INCL) $<
 
 
 #

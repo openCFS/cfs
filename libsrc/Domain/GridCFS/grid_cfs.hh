@@ -2,7 +2,7 @@
 #define FILE_SCFE_GRID_CFS_2001
 
 #include "DataInOut/filetype.hh"
-#include "PDE/acoustic2dPDE.hh"
+//#include "PDE/acoustic2dPDE.hh"
 
 
 #ifdef ADAPTGRID
@@ -123,7 +123,7 @@ public:
   void FormNeighbors4NodesOfElements(const std::vector<Elem*> &elems, std::vector<std::vector<Elem*> > &nodeNeighbors, std::vector<Integer> & map);
 
 
-  //! auxialary function; to define belonging of one element to another from the list, for ex. surface element and boundary elements (min. 2 common nodes)
+  //! auxiliary function; to define belonging of one element to another from the list, for ex. surface element and boundary elements (min. 2 common nodes)
   /*!
     \param elemsSurf
     \param elems

@@ -3,8 +3,11 @@
 # 
 OPT= 
 #
-F77=g77 $(OPT)
-CC=g++ 
+#
+#F77=g77 $(OPT)
+F77=g77
+#CC=g++ 
+CC=/opt/MpCCI/mpcci-2.0.0-linux-gcc32/bin/cciCC
 CPLUSPLUS=$(CC)
 AR=ar
 LINK=$(CC)
@@ -14,13 +17,15 @@ RANLIB=ranlib
 #
 # Machine dependent flags:
 #
-CFLAGS1= -pg -g -c -DTRACE -DDEBUG -DMEMTRACE
+#CFLAGS1= -pg -g -c -DTRACE -DDEBUG -DMEMTRACE
+CFLAGS1= -pg -g -c -DTRACE -DDEBUG -DMEMTRACE -DMpCCI
 CFLAG_EXE= -pg -g
 FLAG_MKSHLIB = -g -v -shared 
 ARFLAGS = r 
 #
 UNDER  = -DFORTRANDOUBLEUNDERSCORE
 LINKFLAGS = -pg 
-
-syslib := -lm -lc 
-
+LINKFLAGS2 = -L/opt/MpCCI/mpcci-2.0.0-linux-gcc32/lib -L/opt/MPICH/mpich-1.2.5/lib
+#
+#syslib := -lm -lc 
+syslib := -lcci -lm -lmpich -lg2c

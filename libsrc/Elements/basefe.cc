@@ -140,9 +140,11 @@ void BaseFE :: CalcJacobianAtIp(Matrix<Double> & J,
   (*trace) << "entering BaseFE::CalcJacobianAtIp" << std::endl;
 #endif
 
-  //  J.Resize(Dim_,Dim_);
+  if (CornerCoords.size_row()==3 && Dim_==2) // Surface element in 3D
+    J.Resize(CornerCoords.size_row(),Dim_);
 
   J = CornerCoords * ShFncDerivAtIp_[ip-1];
+
 }
 
 
@@ -159,10 +161,6 @@ Double BaseFE :: CalcJacobianDet(const std::vector<Double> & LCoord,
   return J.Det();
 }
 
-
-
-
-
 Double BaseFE :: CalcJacobianDetAtIp(const Integer ip, 
 				     const Matrix<Double> & CornerCoords)
 {
@@ -174,8 +172,21 @@ Double BaseFE :: CalcJacobianDetAtIp(const Integer ip,
 
   CalcJacobianAtIp( J, ip, CornerCoords);
 
-  return J.Det();
+  if (CornerCoords.size_row()==3 && Dim_==2)
+    {
+      std::vector<Double> normal;
+      normal.resize(CornerCoords.size_row());  
+      normal[0]= J[1][0]* J[2][1]- J[2][0]* J[1][1];
+      normal[1]=J[2][0]*J[0][1]- J[0][0]* J[2][1];  
+      normal[2]= J[0][0]* J[1][1]- J[1][0]*J[0][1];
+
+      Double detJ = sqrt(sqr(normal[0])+sqr(normal[1])+sqr(normal[2]));
+      return detJ;
+    }
+  else
+    return J.Det();
 }
+
 
 
 void BaseFE :: CalcInvJacobian(Matrix<Double> & JInv,

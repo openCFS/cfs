@@ -21,12 +21,15 @@ public:
   //! return FE-Type for CLA++
   virtual Integer feType() { return TRIA;}
 
+
 protected:
 
 
    //! Set integration points
   virtual void SetIntPoints();
 
+
+  
 };
 
 } // end of namespace

@@ -2,7 +2,7 @@
 # Makefile for discretization
 C_DIR=../../..
 #
-src = getetrahedral.cc tetrahedral1.cc gehexahedral.cc hexahedral1.cc tetraFE.cc tetra1FE.cc
+src = tetra1FE.cc hexaFE.cc hexa1FE.cc
 #
 lib = elements3d
 libpath = libsrc/Elements/3D

@@ -8,8 +8,7 @@ namespace CoupledField
 
 //! Class with general description of tetrahedral element
 /*! This class is derived from BaseFE. 
-    It stores general procedures for each type of finite element on tetrahedral, 
-    such as calculation of Jacobian of transformation in standart and information 
+    It stores general procedures for each type of finite element based on tetrahedral, such as information 
     about integration points and integration weights
 */
 

@@ -69,3 +69,5 @@ general:
 multigrid-las:
 	@cd $(LibCLA)/multigrid; $(MAKE) -f Makefile
 
+mpccicpl:
+	@cd $(LIBSRC_DIR)/MpCCIcpl; $(MAKE) -f Makefile

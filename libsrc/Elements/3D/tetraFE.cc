@@ -39,8 +39,7 @@ namespace CoupledField
 #endif
   }
 
-
-  void TetraFE::SetIntPoints()
+void TetraFE::SetIntPoints()
   {
 #ifdef TRACE
     (*trace) << "entering TetraFE::SetIntPoints" << std::endl;

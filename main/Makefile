@@ -14,6 +14,7 @@ OS=$(shell uname -s)
 include $(C_DIR)/main/Makefile.option
 #
 
+MpCCI=no
 SUBLIBDIR := Driver PDE CoupledPDE Estimator\
              Forms Elements Elements/1D Elements/2D Elements/3D \
              Domain/GridCFS Domain \
@@ -21,25 +22,23 @@ SUBLIBDIR := Driver PDE CoupledPDE Estimator\
              DataInOut/Unverg DataInOut/GMV \
              DataInOut/DatFile DataInOut/AnsysFile DataInOut\
 	     AlgebraicSystem/LinAlg\
-             Utils Matrix General 
+             Utils Matrix General MpCCIcpl  
 
 #
 ############ define my libraries
 #
 
-ifeq "$(AdaptivLib)" "yes"
-mylibrary =  driver domain pde coupledpde\
+ifeq ($(MpCCI),yes) 
+  mylibrary = driver domain pde mpccicpl coupledpde\
             estimator forms  \
             elements3d elements2d elements1d elements \
-            gridcfs toadaptgrid\
-            gmv \
+            gridcfs gmv \
             definefiles unverg ansysfile datainout \
             algsys-own\
             utils matrix general \
-            multigrid-las \
-            adaptgrid
+            multigrid-las 
 else
-mylibrary =  driver domain pde coupledpde\
+  mylibrary = driver domain pde coupledpde\
             estimator forms  \
             elements3d elements2d elements1d elements \
             gridcfs \
@@ -47,26 +46,36 @@ mylibrary =  driver domain pde coupledpde\
             definefiles unverg ansysfile datainout \
             algsys-own\
             utils matrix general \
-            multigrid-las 
+            multigrid-las
 endif
+
+#
+ifeq ($(AdaptivLib),yes)
+mylibrary = $(mylibrary) adaptgrid
+endif
+
 
 ############ Directories for Adaptivity
 #
-ifeq "$(AdaptivLib)" "yes"
+ifeq ($AdaptivLib),yes)
 SUBLIBDIR := $(SUBLIBDIR) Domain/AdaptGrid
 endif
-
-#
-#
-############ General options
-#
-include $(C_DIR)/main/Makefile.option
 
 #
 ############ Define specific flags
 #
 include $(LIBSRC_DIR)/makefilemach/make.mach.$(MACHINE)
 #
+
+include $(C_DIR)/main/Makefile.option
+ifeq ($(MpCCI),yes)
+  CC=/opt/MpCCI/mpcci-2.0.0-linux-gcc32/bin/cciCC
+  LINKFLAGS2 = -L/opt/MpCCI/mpcci-2.0.0-linux-gcc32/lib -L/opt/MPICH/mpich-1.2.5/lib
+  sysliball = $(syslib) -lcci -lmpich -lg2c
+else
+  sysliball = $(syslib)
+endif
+
 ##########
 #
 PATHSUBLIBDIR = $(addprefix $(LIBSRC_DIR)/, $(SUBLIBDIR))
@@ -85,15 +94,15 @@ PATHSUBLIBDIR = $(addprefix $(LIBSRC_DIR)/, $(SUBLIBDIR))
 #	$(CC) $(CFLAG_EXE) -o $@ $(src:.cc=.o) $(fsrc:.f=.o) -L$(LIB_DIR) -L$(LIB_GRIDLIB)  -L$(LIB_NETGEN) -L$(LIB_CLA) $(LINKFLAGS2) $(LINKFLAGS3) $(INCL) $(addprefix -l, $(mylibrary)) $(syslib)
 #else
 
-ifeq "$(PETSc)" "yes"
+ifeq ($(PETSc)),yes)
 $(program):: $(src:.cc=.o) $(fsrc:.f=.o) $(mylibrary)
 	$(CXX_CLINKER) -o $@ $(src:.cc=.o) $(fsrc:.f=.o) $(PETSC_LIB) \
 	-L$(LIB_DIR) $(LINKFLAGS2) $(LINKFLAGS3) \
 	-L$(LIB_DIR) -L$(LIB_GRIDLIB)  -L$(LIB_NETGEN) -L$(LIB_CLA) \
-	$(INCL) $(addprefix -l, $(mylibrary)) $(syslib) -Wl,-rpath,$(LIB_OWN)/$(MACHINE)
+	$(INCL) $(addprefix -l, $(mylibrary)) $(sysliball) -Wl,-rpath,$(LIB_OWN)/$(MACHINE)
 else
 $(program):: $(src:.cc=.o) $(mylibrary)
-	$(CC) $(CFLAG_EXE) -o $@ $(src:.cc=.o) $(fsrc:.f=.o) -L$(LIB_DIR) -L$(LIB_GRIDLIB)  -L$(LIB_NETGEN) -L$(LIB_CLA) $(LINKFLAGS2) $(LINKFLAGS3) $(INCL) $(addprefix -l, $(mylibrary)) $(syslib) -Wl,-rpath,$(LIB_OWN)/$(MACHINE)
+	$(CC) $(CFLAG_EXE) -o $@ $(src:.cc=.o) $(fsrc:.f=.o) -L$(LIB_DIR) -L$(LIB_GRIDLIB)  -L$(LIB_NETGEN) -L$(LIB_CLA) $(LINKFLAGS2) $(LINKFLAGS3) $(INCL) $(addprefix -l, $(mylibrary)) $(sysliball) -Wl,-rpath,$(LIB_OWN)/$(MACHINE)
 endif
 #
 
@@ -210,6 +219,9 @@ clean-utils:
 clean-matrix:
 	@cd $(LIBSRC_DIR)/Matrix&&\
 	$(MAKE) clean
+clean-mpccicpl:
+	@cd $(LIBSRC_DIR)/MpCCIcpl&&\
+        $(MAKE) clean
 clean-general-piles:
 	@cd $(LIBSRC_DIR)/AlgebraicSystem/CLA/general && \
 	$(MAKE) clean

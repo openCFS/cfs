@@ -91,7 +91,7 @@ template<>
 void GridCFS<2>::putElemsFromGrid_RG(grd::MultilevelGrid * grid, const Integer level)
 {
 #ifdef TRACE
-  (*trace) << "entering GridCFS::putElemsFromGrid_R" << std::endl;
+  (*trace) << "entering GridCFS::putElemsFromGrid_RG" << std::endl;
 #endif
 
   typedef std::list<grd::Element*>::iterator ElmI;

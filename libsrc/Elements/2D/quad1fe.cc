@@ -43,14 +43,15 @@ void Quad1FE :: SetCornerCoords()
 
   LCornerCoords_.Resize(Dim_,NumNodes_);
   
-  LCornerCoords_[0][0] =  1;
-  LCornerCoords_[1][0] =  1;
-  LCornerCoords_[0][1] = -1;
-  LCornerCoords_[1][1] =  1;
-  LCornerCoords_[0][2] = -1;
-  LCornerCoords_[1][2] = -1;
-  LCornerCoords_[0][3] =  1;
-  LCornerCoords_[1][3] = -1;
+  LCornerCoords_[0][0] =  -1;
+  LCornerCoords_[1][0] =  -1;
+  LCornerCoords_[0][1] = 1;
+  LCornerCoords_[1][1] =  -1;
+  LCornerCoords_[0][2] = 1;
+  LCornerCoords_[1][2] = 1;
+  LCornerCoords_[0][3] = -1;
+  LCornerCoords_[1][3] = 1;
+
 
 }
 
@@ -88,6 +89,7 @@ void Quad1FE :: CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv,
     }
   
 }
+
 
 
 } // end of namespace

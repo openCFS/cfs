@@ -122,11 +122,15 @@ Double GeLineFE::CalcJacobianDetAtIp(const Integer ip,
   (*trace) << "entering GeLineFE::CalcJacobianDetAtIp" << std::endl;
 #endif
 
-  Matrix<Double> J;
+//   Matrix<Double> J;
 
-  CalcJacobianAtIp( J, ip, CornerCoords);
-  return J[0][0];
+//   CalcJacobianAtIp( J, ip, CornerCoords);
+//   return J[0][0];
 
+// Length/2 is simply the jacDet for a line
+  Double length;
+  length=dist_Mat(CornerCoords);
+  return length/2;
 }
 
 void GeLineFE:: CalcJacobian(Matrix<Double> & J, 

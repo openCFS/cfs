@@ -19,7 +19,7 @@ public:
 
   /// Calculation of vector of right hand side 
   virtual void CalcElemVector(Matrix<Double>& ptCoord, std::vector<Double> & result);
-  
+
 };
 
 
@@ -38,6 +38,8 @@ public:
   /// Calculation of vector of right hand side 
   virtual void CalcElemVector(Matrix<Double>& ptCoord, std::vector<Double> & result);
 
+
+
 private:
   /// source factor
   Double val_;
@@ -50,7 +52,6 @@ private:
   /// midpoint of coil (needed for circular coils to calculate the current dirction)
   std::vector<Double> * coilMidPt_;  
 };
-
 
 
 
@@ -87,6 +88,26 @@ private:
 
   /// displacement of all nodes of actual element
   Matrix<Double> elemDisp_;
+};
+
+/// class for calculation of right hand side for flownoise problem
+class LinearFlowNoiseInt : public LinearForm
+{
+public:
+  ///
+  LinearFlowNoiseInt(BaseFE * aptelem);
+
+  ///
+  virtual ~LinearFlowNoiseInt();
+
+  /// Calculation of vector of right hand side for the surface elements on the obstacle (dipole)
+  void CalcElemVector4Dip(Matrix<Double>& ptCoord,const Vector<Integer> & connecth, Vector<Double> & Result, const std::vector<Double> gradN_x_P);
+
+  /// Calculation of vector of right hand side given from quadrupole contribution
+  void CalcElemVector4Quad(Matrix<Double>& ptCoord,const Vector<Integer> & connecth,const Matrix<Double> & FlowData, Vector<Double> & Result);
+  
+private:
+
 };
 
 

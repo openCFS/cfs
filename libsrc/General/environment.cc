@@ -20,6 +20,7 @@ namespace CoupledField
   BaseFE * ptTet = NULL;
   BaseFE * ptL1 = NULL;
   BaseFE * ptTr1 = NULL;
+  BaseFE * ptHexa=NULL;
   
   // BaseElem * ptQ = NULL;
   // BaseElem * ptTr = NULL;

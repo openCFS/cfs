@@ -101,7 +101,7 @@ extern Boolean InfoPrint;
   /// It is used, when we read information about elements from mesh and create pointer to class with description FE element.
   //extern BaseElem * ptQ, *ptTr, *ptTet, *ptL1, *ptHexa;
 
-  extern BaseFE * ptQ, *ptL1, *ptTet, *ptTr1;
+  extern BaseFE * ptQ, *ptL1, *ptTet, *ptTr1, *ptHexa;
 
 }
 

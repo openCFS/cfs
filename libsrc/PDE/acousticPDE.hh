@@ -118,7 +118,8 @@ protected:
   Boolean with_absBCs_; //!< Indicator for absorbing boundary conditions 
   std::vector<std::string> bnd_absBCs_;   //!< list of bnds( for absorbing BCs)
 
-
+  //General dimension of problem
+  Integer dim_;
 };
 
 } // end of namespace

@@ -67,6 +67,7 @@ void RectangleFE:: SetIntPoints()
       IntPoints_[1][0] =  0.57735026919;
       IntPoints_[2][0] =  0.57735026919;
       IntPoints_[3][0] = -0.57735026919;
+
       IntPoints_[0][1] = -0.57735026919;
       IntPoints_[1][1] = -0.57735026919;
       IntPoints_[2][1] =  0.57735026919;
