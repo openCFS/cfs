@@ -339,7 +339,7 @@ namespace CoupledField
       }
   }
 
-  // SolutinType
+  // SolutionType
   template<>
   void String2Enum<SolutionType>(const std::string &in, SolutionType &out)
   {
@@ -382,6 +382,8 @@ namespace CoupledField
       out = SMOOTH_DISPLACEMENT;
 
     //acoustics
+    else if (in == "acouPressure")
+      out = ACOU_PRESSURE;
     else if (in == "acouPotential")
       out = ACOU_POTENTIAL;
     else if (in == "acouForce")
@@ -476,6 +478,9 @@ namespace CoupledField
       //acoustics
     case ACOU_POTENTIAL:
       out = "acouPotential";
+      break;
+    case ACOU_PRESSURE:
+      out = "acouPressure";
       break;
     case ACOU_FORCE:
       out = "acouForce";
