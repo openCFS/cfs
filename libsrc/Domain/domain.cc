@@ -49,7 +49,7 @@ namespace CoupledField {
 
     // read type of output results from conf-file
     std::string libmesh;
-    params->Get( "mesh_library", libmesh );
+    params->Get( "meshLibrary", libmesh, "input" );
 
     Integer dim=InFile_->ReadDim();
 
@@ -68,12 +68,12 @@ namespace CoupledField {
     // initialize pointer to grid 
     if (dim==2) {
 
-      if (libmesh =="cfsgrid") {
+      if (libmesh =="cfsGrid") {
 	ptgrid_=new GridInterfaceCFS<2>(InFile_);
       }
 
 #ifdef ADAPTGRID
-      else if (libmesh== "adaptgrid") {
+      else if (libmesh== "adaptGrid") {
 	ptgrid_=new InterfaceAdaptGrid<2>(InFile_);
       }
 #endif
@@ -86,12 +86,12 @@ namespace CoupledField {
     }
 
     if (dim==3) {
-      if (libmesh =="cfsgrid") {
+      if (libmesh =="cfsGrid") {
 	ptgrid_=new GridInterfaceCFS<3>(InFile_);
       }
 
 #ifdef ADAPTGRID
-      else if (libmesh== "adaptgrid") {
+      else if (libmesh== "adaptGrid") {
 	ptgrid_=new InterfaceAdaptGrid<3>(InFile_);
       }
 #endif
