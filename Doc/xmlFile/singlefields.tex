@@ -81,29 +81,32 @@ in the config-file. The result is written to the info-file.
 In the 3D case we have {\bf ux, uy, uz} and in the 2D case
 (axisymmetric as well as plane) {\bf ux, uy}.
 
+
 \subsection{Subtypes}
-The type of 2D-element is in general set in the top-level command
-
-\verb!   <geometry type="plane">!
-
-\smallskip
-\noindent
-For the mechanic PDE, a specialization has to be done, which has to be
-performed as {\bf subtype}-attribute inside the tag for the PDE:{\bf
-  $<$mechanic$>$}. Plane stress models are simulated by
-
-\verb!   <mechanic subtype="planeStress">!
-
-\noindent
-and plane strain can be defined by
-
-\verb!   <mechanic subtype="planeStrain">!
-
-\bigskip
-\noindent
-{\em Notice:} Standard 2D subtype is {\sf planeStrain} and a mixture
-of element subtypes within one analysis is not allowed. 
-
+%
+%
+A specification of the geometric type of the problem is done on the top-level
+via the \xml{geometry} element, which allows the values \xml{3d}, \xml{plane}
+and \xml{axi} for its \xml{type} attribute. For a mechanic PDE this definition
+must be repeated in the \xml{mechanic} element via its \xml{subtype} entry.
+\begin{verbatim}
+       <mechanic subType="stype">
+\end{verbatim}
+\noindent Here stype can currently take one of the following three values
+%
+%
+\begin{itemize}
+\item planeStrain \emph{(the default)}
+\item 3d
+\item axi
+\end{itemize}
+%
+%
+\emph{Note:} The \xml{subType} value must of course match to the \xml{type}
+value of the geometry specification and a mixture of different subTypes within
+one analysis is thus not possible.
+%
+%
 \subsection{Nodal Results}
 Possible nodal results are
 
