@@ -260,7 +260,10 @@ void BasePDE::StoreVecToSolArray(std::vector<Double>& sol)
 
   for (Integer i=0; i<NumPDENodes_; i++)   
     for (Integer dim=0; dim<dofspernode_; dim++)
-      sol_[dim][i] = sol[k++];
+      {
+	sol_[dim][i] = sol[k];
+	k++;
+      }
 }
 
 
@@ -504,13 +507,18 @@ void BasePDE::AssignPDENodeNumbers(std::vector<Integer> & Mesh2PDENode,
   std::vector<Elem*> SD;
   Integer NodeCounter = 1;
 
-//    PDE2MeshNode_.resize(ptgrid_->GetMaxnumnodes(actlevel_),-1);
-//     for (Integer i=0;i<ptgrid_->GetMaxnumnodes(actlevel_);i++)
-//       {
-//         Mesh2PDENode_[i] = i+1;
-//         PDE2MeshNode_[i] = i+1;
-//       }
+  std::cout << "NO MAPPING OF NODES!! " << std::endl << std::endl;
   
+   PDE2MeshNode_.resize(ptgrid_->GetMaxnumnodes(actlevel_),-1);
+    for (Integer i=0;i<ptgrid_->GetMaxnumnodes(actlevel_);i++)
+      {
+        Mesh2PDENode_[i] = i+1;
+        PDE2MeshNode_[i] = i+1;
+      }
+
+    return;
+    
+
   // Iterate over Subdomains
   for (Integer i=0; i<subdoms.size(); i++)
     {
