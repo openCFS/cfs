@@ -14,6 +14,14 @@ namespace CoupledField
 #endif
   }
 
+  BaseForm::BaseForm(MaterialData & matData)
+    :ptMaterial(&matData)
+  {
+#ifdef TRACE
+    (*trace) << "entering BaseForm::BaseForm" << std::endl;
+#endif
+  }
+
   BaseForm::BaseForm(BaseFE * aptelem)
     :ptelem(aptelem)
   {
@@ -22,6 +30,14 @@ namespace CoupledField
 #endif
   }
  
+  BaseForm::BaseForm()
+  {
+#ifdef TRACE
+    (*trace) << "entering BaseForm::BaseForm" << std::endl;
+#endif
+  }
+ 
+
 
   BaseForm::~BaseForm()
   {

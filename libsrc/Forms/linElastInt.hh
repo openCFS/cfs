@@ -14,7 +14,10 @@ class linElastInt : public BDBInt
 {
 public:
   /// Constructor
-linElastInt(BaseFE * aptelem, MaterialData & matData);
+  linElastInt(BaseFE * aptelem, MaterialData & matData);
+
+  /// Constructor
+  linElastInt(MaterialData & matData);
   
   /// Destructor
 virtual ~linElastInt();
@@ -42,6 +45,9 @@ class mechPlainStrainInt : public linElastInt
 public:
   /// Constructor
   mechPlainStrainInt(BaseFE * aptelem, MaterialData & matDat);
+
+  /// Constructor
+  mechPlainStrainInt(MaterialData & matDat);
   
   
   /// Deconstructor
@@ -67,6 +73,9 @@ class mech3DInt : public linElastInt
 public:
   /// Constructor
   mech3DInt(BaseFE * aptelem, MaterialData & matDat);
+
+  /// Constructor
+  mech3DInt(MaterialData & matDat);
   
   /// Deconstructor
   virtual ~mech3DInt();

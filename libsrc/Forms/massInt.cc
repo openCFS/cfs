@@ -50,7 +50,14 @@ namespace CoupledField
       
 	elemMat += partElemMat;
       }
-  
+
+    if (nrDofsPerNode_ > 1)
+      {
+	Matrix <Double> multDofMass;
+	MassMultiDof(multDofMass, elemMat, nrDofsPerNode_);
+	elemMat = multDofMass;
+      }
+    
 
 #ifdef TRACE
     (*trace) << "leaving MassInt::CalcElemMatrix" << std::endl;
@@ -72,7 +79,22 @@ namespace CoupledField
 
 
   MassInt::MassInt(BaseFE * aptelem, Double aDensity, Boolean axi)
-    : BaseForm(aptelem), density_(aDensity), isaxi_(axi)
+    : BaseForm(aptelem), 
+      density_(aDensity), 
+      isaxi_(axi),
+      nrDofsPerNode_(1)
+  {
+#ifdef TRACE
+    (*trace) << "entering MassInt::MassInt" << std::endl;
+#endif
+  }
+
+
+  MassInt::MassInt(const Double aDensity,  const Integer nrDofsPerNode, Boolean axi)
+    : BaseForm(), 
+      density_(aDensity), 
+      isaxi_(axi), 
+      nrDofsPerNode_(1)
   {
 #ifdef TRACE
     (*trace) << "entering MassInt::MassInt" << std::endl;
@@ -90,6 +112,26 @@ namespace CoupledField
 
 
 
+  void MassInt::MassMultiDof(Matrix<Double>& massMultDof, const Matrix<Double>& massMatSingleDof,  const Integer nrDofs)
+  {
+    
+#ifdef TRACE
+    (*trace) << "entering MassInt::MassMultiDof" << std::endl;
+#endif
+    
+    const Integer singleDofSize = massMatSingleDof.getSize();
+    const Integer multDofSize   = singleDofSize * nrDofs;
+    
+    Integer i, j, actDof;
+    
+    massMultDof.Resize(multDofSize);
+    massMultDof.Init();
+    
+    for (i=0; i < singleDofSize; i++)
+      for (j=0; j < singleDofSize; j++)
+	for (actDof=0; actDof < nrDofs; actDof++)
+	  massMultDof[i*nrDofs + actDof][j*nrDofs + actDof] = massMatSingleDof[i][j]; 
+}
 
 
 } // end namespace CoupledField

@@ -15,6 +15,15 @@ namespace CoupledField
   }
 
 
+  LaplaceInt::LaplaceInt(Double aVal, Boolean axi)
+    : BaseForm(),laplVal_ (aVal), isaxi_(axi)
+  {
+#ifdef TRACE
+    (*trace) << "entering LaplaceInt::LaplaceInt" << std::endl;
+#endif
+  }
+
+
  
   LaplaceInt::~LaplaceInt()
   {
