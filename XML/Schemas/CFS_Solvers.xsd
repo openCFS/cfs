@@ -308,21 +308,34 @@
 
 
   <!-- ******************************************************************** -->
-  <!-- Definition of element for DIRECT Solver -->
+  <!-- Definition of element for DIRECT Solvers -->
   <!-- ******************************************************************** -->
-  <xsd:element name="Direct" type="DT_SolverDIRECT"
+  <xsd:element name="directLU" type="DT_SolverDIRECT_LU"
+    substitutionGroup="SolverBasic"/>
+  <xsd:element name="directLDL" type="DT_SolverDIRECT_LDL"
     substitutionGroup="SolverBasic"/>
 
 
   <!-- ******************************************************************** -->
-  <!--   Definition of data type for DIRECT Solver -->
+  <!--   Definition of data types for DIRECT Solvers -->
   <!-- ******************************************************************** -->
-  <xsd:complexType name="DT_SolverDIRECT">
+  <xsd:complexType name="DT_SolverDIRECT_LU">
     <xsd:complexContent>
       <xsd:extension base="DT_SolverBasic">
         <xsd:sequence>
-          <xsd:element name="logging"     type="DT_CFSBool" minOccurs="0"/>
           <xsd:element name="saveFacFile" type="xsd:token"  minOccurs="0"/>
+          <xsd:element name="logging"     type="DT_CFSBool" minOccurs="0"/>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_SolverDIRECT_LDL">
+    <xsd:complexContent>
+      <xsd:extension base="DT_SolverBasic">
+        <xsd:sequence>
+          <xsd:element name="saveFacFile" type="xsd:token"  minOccurs="0"/>
+          <xsd:element name="logging"     type="DT_CFSBool" minOccurs="0"/>
         </xsd:sequence>
       </xsd:extension>
     </xsd:complexContent>
