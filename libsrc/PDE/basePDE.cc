@@ -359,7 +359,6 @@ void BasePDE::PreStepTrans(const Integer kstep, const Double asteptime,
   // the coupling forces are assembled to the RHS
 
   algsys_->InitRHS();
-  //  assemble_->AssembleSrcRHS(level,lasttimecalc_);
   
   
 }
@@ -406,6 +405,10 @@ void BasePDE::StepTransLin(const Integer kstep, const Double asteptime,
   Double * ptsol;
   Integer update,job;
    
+
+  //account for RHS
+  assemble_->AssembleSrcRHS(level,lasttimecalc_);
+
   Integer k=0;
   NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
 

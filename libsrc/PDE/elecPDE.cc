@@ -37,6 +37,9 @@ namespace CoupledField {
     pdename_          = "electrostatic";
     pdematerialclass_ = "piezo"; 
  
+    geoUpdate_ = FALSE;
+    nonLin_    = FALSE;
+
 #ifndef XMLPARAMS
     conf->getsubdompde(subdoms_,pdename_);
 #else
@@ -559,6 +562,8 @@ void ElecPDE::InitCoupling(PDECoupling * Coupling)
     StdVector<std::string> nonLinRegion;
     params->GetList( "nonLinear", nonLinRegion, pdename_, "region" );
     // Should not happen with validating parser, but beware!
+    std::cout << "nonlinSize: " << nonLinRegion.GetSize() << std::endl;
+    
     if ( nonLinRegion.GetSize() == 0 ) {
       nonLin_ = FALSE;
     }
