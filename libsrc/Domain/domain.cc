@@ -240,6 +240,9 @@ namespace CoupledField {
       else if (pdeNames[i] == "piezo")
 	ptpde_[i]=new PiezoPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
 
+      else if (pdeNames[i] == "mpcci")
+	ptpde_[i]=new MpcciPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
+
 //       else if (pdeNames[i] == "acouflownoise")
 //       	ptpde_[i]=new AcouFlowNoise(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
 
