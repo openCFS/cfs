@@ -20,7 +20,7 @@
 
 
   <!-- ******************************************************************** -->
-  <!--   Definition of data type for electrostatic PDEs -->
+  <!--   Definition of data type for acoustics PDEs -->
   <!-- ******************************************************************** -->
 
   <xsd:complexType name="DT_PDEAcoustic">
@@ -36,6 +36,9 @@
                 use="optional" default="no"/>
             </xsd:complexType>
           </xsd:element>
+
+          <!-- Type of damping model (optional) -->
+          <xsd:element name="damping" type="DT_AcousticDamp" minOccurs="0"/>
 
           <!-- Boundary Conditions & Loads (optional) -->
           <xsd:element name="bcsAndLoads" minOccurs="0">
@@ -65,13 +68,24 @@
             minOccurs="0" maxOccurs="1"/-->
   
         </xsd:sequence>
+
+        <!-- Type of acoustic formulation -->
+        <xsd:attribute name="formulation">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
+              <xsd:enumeration value="pressure"/>
+              <xsd:enumeration value="vPot"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
+
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
 
 
   <!-- ******************************************************************** -->
-  <!--   Definition of the boundary condition types for electrostatic -->
+  <!--   Definition of the boundary condition types for acoustics -->
   <!-- ******************************************************************** -->
 
   <!-- Element type for homogeneous Dirichlet boundary conditions -->
@@ -121,5 +135,24 @@
       <xsd:enumeration value="no"/>
     </xsd:restriction>
   </xsd:simpleType>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for damping model -->
+  <!-- ******************************************************************** -->
+  <xsd:simpleType name="DT_AcousticDampType">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="fractional"   />
+      <xsd:enumeration value="rayleigh"     />
+      <xsd:enumeration value="absorbingBC"  />
+      <xsd:enumeration value="thermoViscous"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <xsd:complexType name="DT_AcousticDamp">
+    <xsd:attribute name="type" type="DT_AcousticDampType" use="required"/>
+    <xsd:attribute name="fracMemory" type="xsd:positiveInteger"
+      use="optional" default="1"/>
+  </xsd:complexType>
 
 </xsd:schema>
