@@ -22,8 +22,14 @@ namespace CoupledField {
     std::string sTypeString;
     SolverType sType;
     cfs->Get( "type", sTypeString, pdename, "solver" );
-    if ( sTypeString == "CG" ) {
+    if ( sTypeString == "cg" ) {
       sType = CG;
+    }
+    if ( sTypeString == "gmres" ) {
+      sType = GMRES;
+    }
+    if ( sTypeString == "minres" ) {
+      sType = MINRES;
     }
     else if ( sTypeString == "hyprePCG" ) {
       sType = HYPRE_PCG;
@@ -38,8 +44,8 @@ namespace CoupledField {
       sType = LAPACK_LU;
     }
     else {
-      std::string errmsg = "Solver " + sTypeString;
-      errmsg += " not supported yet.";
+      std::string errmsg = "Solver '" + sTypeString;
+      errmsg += "' not supported yet.";
       Info->Error( errmsg, __FILE__, __LINE__ );
     }
 
@@ -75,8 +81,8 @@ namespace CoupledField {
       pType = HYPRE_AMG;
     }
     else {
-      std::string errmsg = "Preconditioner " + pTypeString;
-      errmsg += " not supported yet.";
+      std::string errmsg = "Preconditioner '" + pTypeString;
+      errmsg += "' not supported yet.";
       Info->Error( errmsg, __FILE__, __LINE__ );
     }
 
@@ -146,7 +152,7 @@ namespace CoupledField {
     CFSOLASParams::SetSolverParams( pdename, cfs, olas, sType );
     CFSOLASParams::SetPrecondParams( pdename, cfs, olas, pType );
 
-    // For debugging
+    // For debugging (please do not delete)
     // olas->ShowPool( OLAS_Params::INT_POOL     , std::cerr );
     // olas->ShowPool( OLAS_Params::DOUBLE_POOL  , std::cerr );
     // olas->ShowPool( OLAS_Params::BOOLEAN_POOL , std::cerr );
@@ -194,6 +200,40 @@ namespace CoupledField {
       cfs->GetList( "maxIter", list, pdename, "hyprePCG" );
       if( list.GetSize() == 1 ) {
 	olas->SetValue( "CG_maxIter", atoi(list[0].c_str()) );
+      }
+      break;
+
+    case GMRES:
+      cfs->GetList( "tol", list, pdename, "gmres" );
+      if( list.GetSize() == 1 ) {
+	olas->SetValue( "GMRES_epsilon", atof(list[0].c_str()) );
+      }
+      cfs->GetList( "maxIter", list, pdename, "gmres" );
+      if( list.GetSize() == 1 ) {
+	olas->SetValue( "GMRES_maxIter", atoi(list[0].c_str()) );
+      }
+      cfs->GetList( "maxKrylovDim", list, pdename, "gmres" );
+      if( list.GetSize() == 1 ) {
+	olas->SetValue( "GMRES_maxKrylovDim", atoi(list[0].c_str()) );
+      }
+      cfs->GetList( "logging", list, pdename, "gmres" );
+      if( list.GetSize() == 1 ) {
+	olas->SetValue( "GMRES_logging", (list[0] == "yes") );
+      }
+      break;
+
+    case MINRES:
+      cfs->GetList( "tol", list, pdename, "minres" );
+      if( list.GetSize() == 1 ) {
+	olas->SetValue( "MINRES_epsilon", atof(list[0].c_str()) );
+      }
+      cfs->GetList( "maxIter", list, pdename, "minres" );
+      if( list.GetSize() == 1 ) {
+	olas->SetValue( "MINRES_maxIter", atoi(list[0].c_str()) );
+      }
+      cfs->GetList( "logging", list, pdename, "minres" );
+      if( list.GetSize() == 1 ) {
+	olas->SetValue( "MINRES_logging", (list[0] == "yes") );
       }
       break;
 
@@ -286,8 +326,7 @@ namespace CoupledField {
       }
       cfs->GetList( "stats", list, pdename, "hypreILU" );
       if( list.GetSize() == 1 ) {
-	bool stats = (list[0] == "yes");
-	olas->SetValue( "EUCLID_stats", stats );
+	olas->SetValue( "EUCLID_stats", (list[0] == "yes") );
       }
       cfs->GetList( "memory", list, pdename, "hypreILU" );
       if( list.GetSize() == 1 ) {
@@ -348,9 +387,9 @@ namespace CoupledField {
   }
 
 
-  // ********************
-  //   SetPrecondParams
-  // ********************
+  // *******************
+  //   Expert's Choice
+  // *******************
   void CFSOLASParams::Expert( std::string pdename,
 			      SolverType &sType,
 			      PrecondType &pType,
