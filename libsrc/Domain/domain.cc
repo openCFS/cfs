@@ -16,6 +16,10 @@
 #include "interface_gridlib.hh"
 #endif
 
+#ifdef ADAPTGRID
+#include "interface_adgrid.hh"
+#endif
+
 #include "therm2dPDE.hh"
 #include "acoustic2dPDE.hh"
 #include "elecst3dPDE.hh"
@@ -58,6 +62,14 @@ Domain:: Domain(FileType * const aptFileType, WriteResults * ptOut,  Material * 
         else ptgrid_=new InterfaceNetGen<Point3D>(InFile_);
 }
 #endif
+#ifdef ADAPTGRID
+     else
+   if (libmesh== "adaptgrid")
+{
+   if (dim==2) ptgrid_=new InterfaceAdaptGrid<Point2D>(InFile_);
+       else ptgrid_=new InterfaceAdaptGrid<Point3D>(InFile_);
+}
+#endif
    else
      Error("Unknown type of mesh_library in conf-file",__FILE__,__LINE__);
 
@@ -76,7 +88,9 @@ Domain:: Domain(FileType * const aptFileType, WriteResults * ptOut,  Material * 
 
  // it is important this order of these functions
  InitPDE();
- InitAlgSys();
+ 
+ Integer level=0;
+ InitAlgSys(level);
 }
 
 Domain :: ~Domain()
@@ -127,7 +141,7 @@ void Domain :: InitPDE()
    }
 }
 
-void Domain :: InitAlgSys()
+void Domain :: InitAlgSys(const Integer level)
 {
 #ifdef TRACE
   (*trace) << "entering Domain::InitAlgSys" << std::endl;
@@ -158,7 +172,6 @@ void Domain :: InitAlgSys()
   std::cout << " b " << std::endl;
 
   //init the algsys-graph
-  Integer level=0;
   Integer numnode = ptgrid_->GetMaxnumnodes(level);
 
   //for each system: first diagonal blocks and then off-diagonalblocks
@@ -230,7 +243,7 @@ void Domain :: SetSubdomains()
  ;
 }
 
-void Domain:: Update(const Integer sysid)
+void Domain:: Update()
 {
 #ifdef TRACE
   (*trace) << "entering Domain::Update" << std::endl;
@@ -239,11 +252,11 @@ void Domain:: Update(const Integer sysid)
   ptBCs_->Update(ptgrid_);
   
   // Init AlgSystem
-  UpdateAlgSys(sysid);
+  UpdateAlgSys();
     
 }
 
-void Domain::UpdateAlgSys(const Integer sysid)
+void Domain::UpdateAlgSys()
 {
 #ifdef TRACE
   (*trace) << "entering Domain::UpdateAlgSys" << std::endl;
@@ -251,30 +264,13 @@ void Domain::UpdateAlgSys(const Integer sysid)
 
   Integer level=ptgrid_->GetLastLevel();
   std::cout << level << std::endl;
-  Integer numnodes=ptgrid_->GetMaxnumnodes(level);
-  Integer numelems=ptgrid_->GetMaxnumElem(level);
-  std::cout << numnodes << " " << numelems << std::endl;
 
-  ptalgsys_->InitAlgSysGraph(numnodes,sysid,sysid);
+  delete ptalgsys_;
+  ptalgsys_ = new AlgSysPILES();
+  if (!ptalgsys_) Error("Can't allocate memory for algebraic system Piles");
+
+  InitAlgSys(level);
   
-  Integer iel;
-  Vector<Integer> connect;
-  for (iel=0; iel<numelems; iel++)
-    {
-      ptgrid_->GetConnection(connect,iel,level);
-      ptalgsys_->SetAlgSysGraph(connect.get(),connect.size(),sysid,sysid);
-    }
-
-  Integer matrixtype, graphtype, numdofpernode, numdirichlets, numconstraint;
-  Integer matrixsystype[5];
-
-  ptpde_[sysid]->SpecifyMatrices(matrixtype, matrixsystype, graphtype, numdofpernode, numdirichlets, numconstraint);
-
-  ptalgsys_->CreateAlgSysMatrices(sysid, sysid, matrixsystype, matrixtype, graphtype, numdofpernode, numdirichlets, numconstraint);
-
-  Integer matrix_id=1;
-  ptalgsys_->ResetAlgSys(sysid,sysid,matrix_id);
-
 #ifdef TRACE
   (*trace) << " leaving Domain::UpdateAlgSys " << std::endl;
 #endif

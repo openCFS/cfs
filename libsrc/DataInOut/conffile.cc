@@ -49,8 +49,6 @@ void ConfFile::get(const std::string keyword, TypeVal & val, const std::string s
                             pos1=infile.tellg();
                           }
 
- std::cout << keyword << std::endl;
-
  pos=getpos(keyword,pos1);
 
  infile.seekg(pos, std::ios::beg);

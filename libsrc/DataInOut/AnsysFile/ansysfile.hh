@@ -45,6 +45,11 @@ public:
   //!
   void ReadBCs(std::list<Integer> * bcs, const std::vector<std::string> levels);
 
+  //!
+#ifdef ADAPTGRID
+   virtual void ReadElems4AdaptGrid(std::vector<grd::Element*> & elems);
+#endif
+
 protected:
   //! 
   std::ifstream infile;
@@ -73,6 +78,11 @@ void ReadEl3d(std::vector<Elem> * allelems, const std::vector<std::string> sd);
 
   // transform type of elem in pointer to base class BaseElem
   BaseElem * Type2ptElem(const Integer itype);
+
+#ifdef ADAPTGRID
+ void ReadEl4AdaptGrid2d(std::vector<grd::Element*> & elems);  
+#endif
+
 };
 
 }

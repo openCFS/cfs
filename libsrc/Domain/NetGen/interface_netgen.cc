@@ -218,10 +218,9 @@ void InterfaceNetGen<Point2D>::SetRefinementFlag(const Integer ei)
 }
 
 template<>
-void InterfaceNetGen<Point3D>::SetRefinementFlag(Vector<Integer> & ei)
+void InterfaceNetGen<Point3D>::SetRefinementFlag(const std::vector<Integer> ei)
 {
  Integer noref=0;
- sort(ei.get(),ei.size());
 
  Integer maxnumelem=mesh.GetNE(); 
  Integer i,j=0;
@@ -236,10 +235,9 @@ void InterfaceNetGen<Point3D>::SetRefinementFlag(Vector<Integer> & ei)
 }
 
 template<>
-void InterfaceNetGen<Point2D>::SetRefinementFlag(Vector<Integer> & ei)
+void InterfaceNetGen<Point2D>::SetRefinementFlag(const std::vector<Integer> ei)
 {
  Integer noref=0;
- sort(ei.get(),ei.size());
 
  Integer maxnumelem=mesh.GetNSE();
  std::cout << maxnumelem << std::endl;

@@ -1,6 +1,8 @@
 #ifndef FILE_ACOUSTICSPACEERROR_2002
 #define FILE_ACOUSTICSPACEERROR_2002
 
+#include <vector>
+
 #include "tools.hh"
 #include "acoustic2dPDE.hh"
 #include "spaceerror.hh"
@@ -30,6 +32,15 @@ public:
 private:
   //!
   Double tol_, theta_;
+
+  //!
+  Double error_, maxenergynormsol_;
+
+  //!
+  void DefineRefinedElems(const Integer level, std::vector<Integer> & elems2ref);
+
+  //!
+  Double CalcLocError(const Integer iElem);  
 
 };
 

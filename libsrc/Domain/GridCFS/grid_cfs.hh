@@ -23,9 +23,6 @@ public:
   //! Read Grid Information
   void Read();
   
-  /// Get coordinates of all nodes which belong to element
-//  void GetCoordOfNodesElem(const Integer numElem, const Integer numlevel, const Integer numnodes,  Dim * ptCoordElem); 
-
    /// Get connection of element
    void GetConnection(Vector<Integer> & connect, const Integer iElem, const Integer level);
 
@@ -40,12 +37,8 @@ public:
   Integer GetMaxnumElem(const Integer numlevel);
 
   /// Return num of nodes per element i
-  Integer GetNumNodesPerElem(const Integer iElem, const Integer level)
-{ return allelems[iElem].connect.size();}
-
-  /// return pointer to pointer to BaseElem
-//  BaseElem * GetptElem(const Integer iElem)
-// { return allelems[iElem].ptElem;}  
+//  Integer GetNumNodesPerElem(const Integer iElem, const Integer level)
+//{ return allelems[iElem].connect.size();}
 
   //!
   Integer GetDim() { return dim_;}
@@ -60,8 +53,6 @@ protected:
 private:
   //!
   FileType *InFile;
-  //
-  std::vector<Elem> allelems;
 
   // 
   std::vector<Elem> * elems_;  
@@ -70,8 +61,10 @@ private:
 
   //
   Integer maxnumnodes_;
+
   //
   Dim * ptCoordinate_;
+
   //
   Integer dim_;
 

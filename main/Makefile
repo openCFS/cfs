@@ -12,11 +12,11 @@ OS=$(shell uname -s)
 ifeq "$(OS)" "Linux"
 SUBLIBDIR := Driver Estimator PDE \
              Forms Elements Elements/2D Elements/3D \
-             Domain/GridCFS Domain/NetGen Domain \
+             Domain/GridCFS Domain/NetGen Domain/AdaptGrid Domain \
              DataInOut/DefineFiles \
              DataInOut/Unverg DataInOut/GMV \
              DataInOut/DatFile DataInOut/AnsysFile DataInOut\
-             Utils Matrix General
+             Utils Matrix General adaptgrid
 else
 SUBLIBDIR := Driver Estimator PDE AlgebraicSystem/LinAlg \
             Forms Elements Elements/2D Elements/3D \
@@ -24,7 +24,7 @@ SUBLIBDIR := Driver Estimator PDE AlgebraicSystem/LinAlg \
             DataInOut/DefineFiles \
             DataInOut/Unverg DataInOut/GMV \
             DataInOut/DatFile DataInOut\AnsysFile DataInOut\
-            Utils Matrix General
+            Utils Matrix General 
 endif
 #
 ############ define my libraries
@@ -32,7 +32,7 @@ endif
 ifeq "$(OS)" "Linux"
 mylibrary :=  driver estimator pde forms  \
             elements3d elements2d elements \
-            gridcfs tonetgen\
+            gridcfs tonetgen toadaptgrid\
             domain unverg gmv \
             definefiles datfile ansysfile datainout \
             utils matrix general \
@@ -40,7 +40,7 @@ mylibrary :=  driver estimator pde forms  \
             nginterface vis  \
             stlgeom mesh csg gprim opti \
             la gen cfsinterface tix8.1.8.3 tk8.3 tcl8.3\
-            GL GLU X11 Xi m dl pthread stdc++
+            GL GLU X11 Xi m dl pthread stdc++ adaptgrid
 else
 mylibrary :=  driver estimator pde algsys-own forms  \
             elements3d elements2d elements \
@@ -191,6 +191,9 @@ clean-utils:
 	$(MAKE) clean
 clean-matrix:
 	@cd $(LIBSRC_DIR)/Matrix&&\
+	$(MAKE) clean
+clean-adaptgrid:
+	@cd $(LIBSRC_DIR)/adaptgrid&&\
 	$(MAKE) clean
 clean-general-piles:
 	@cd $(LIBSRC_DIR)/AlgebraicSystem/CLA/general && \

@@ -55,6 +55,9 @@ public:
   virtual void SolveStepTrans(BCs * ptBCs, const Integer kstep, const Double asteptime, const Integer level, const Boolean updatesysmat)
    { Error("Not implemented",__FILE__,__LINE__);}
 
+   virtual void SolveStepTransNewMesh(BCs * ptBCs, const Integer kstep, const Double asteptime, const Integer level)
+   { Error("Not implemented",__FILE__,__LINE__);}
+
   //!
   virtual void WriteResultsInFile()=0;  
 
@@ -104,6 +107,13 @@ public:
 
   //!
   Integer GetNumRestraints(BCs * ptBCs, const Integer level);
+
+  //!
+  virtual void RestoreSol()
+  { Error("Function RestoreSol is not implemented in this class");}  
+
+  virtual  Double CalcEnergyNorm()
+   { Error("Function PDE::CalcEnergyNorm is not implemented in this class");}
 
 protected:
    //! read from .config-file info about BCs

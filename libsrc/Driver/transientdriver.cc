@@ -291,6 +291,9 @@ void TransientDriver :: SolveProblemAdaptSpace()
   Double steptime=firstdt_;
   Integer stepsave=isavebegin_-1;
 
+  Integer maxnumrepeat, numrepeat=0;
+  conf->get("maxnumrepeat",maxnumrepeat,"SpaceAdaptivity");
+
   Double dt=firstdt_;
   Boolean updatesysmat=FALSE;
 
@@ -305,12 +308,11 @@ void TransientDriver :: SolveProblemAdaptSpace()
     {
       ptdomain_->GetPDE(pdenumber)->SolveStepTrans(ptdomain_->GetBCs(), nstep, steptime, level, updatesysmat);
 
-      //     while (ptSpaceError->TestError())
-      // {
-  ptSpaceError->RefineMesh();
-  Integer sysid=ptdomain_->GetPDE(pdenumber)->GetSysId();
-  std::cout << sysid << std::endl;
-  ptdomain_->Update(sysid);
+      numrepeat=0;
+      while (ptSpaceError->TestError() && numrepeat != maxnumrepeat)
+      {
+       ptSpaceError->RefineMesh();
+       ptdomain_->Update();
 
   /*
   Char * name="testref";
@@ -320,7 +322,13 @@ void TransientDriver :: SolveProblemAdaptSpace()
   if (ptOut) delete ptOut;
   exit(1);
   */
-      // }
+
+      ptdomain_->GetPDE(pdenumber)->RestoreSol();
+  
+      ptdomain_->GetPDE(pdenumber)->SolveStepTransNewMesh(ptdomain_->GetBCs(), nstep, steptime, level);
+
+      numrepeat++;     
+       }
      
     if (nstep == stepsave && (nstep < isaveend_))
       {

@@ -1,34 +1,37 @@
-#ifndef FILE_INTERFACE_NetGen_2002
-#define FILE_INTERFACE_NetGen_2002
+#ifndef FILE_INTERFACE_AdaptGrid_2002
+#define FILE_INTERFACE_AdaptGrid_2002
 
 #include "filetype.hh"
 #include "grid.hh"
 
-// from NetGen
-#include <myadt.hpp>
-#include <linalg.hpp>
-#include <csg.hpp>
-#include <meshing.hpp>
+// from Adapt Grid
+#include "Vertex.h"
+#include "Edge.h"
+#include "Element.h"
+#include "Tetrahedron.h"
+#include "Octahedron.h"
+#include "MultilevelGrid.h"
+#include "GeometrySensor.h"
+#include "MeshReader.h"
+#include "TetrahedronMeasure.h"
+#include "MeshWriter.h"
 
 namespace CoupledField
 {
  
-/// Interface to library NetGen
+/// Interface to library Grid by Roberto G.
 template<class Dim>
-class InterfaceNetGen: public Grid
+class InterfaceAdaptGrid: public Grid
 {
 public:
   /// Constructor with parameter - pointer to FileType for reading initial grid
-  InterfaceNetGen(FileType * const aptFileType);
+  InterfaceAdaptGrid(FileType * const aptFileType);
 
   /// Deconstructor
-  virtual ~InterfaceNetGen();
+  virtual ~InterfaceAdaptGrid();
   
    /// Uniform subdivision of domain
   virtual void SubdivideUniform(const Integer level);
-
-  /// Get coordinates of all nodes which belong to element
-  virtual void GetCoordOfNodesElem(const Integer numElem, const Integer numlevel, const Integer numnodes, Dim * ptCoordElem); 
 
    /// Get coordinates of node with global number inode
    virtual void GetCoordinateNode(const Integer inode, const Integer numlevel, Dim & rfPoint);
@@ -42,17 +45,11 @@ public:
   /// Return maximum number of elements 
   virtual Integer GetMaxnumElem(const Integer numlevel);
 
-  /// Return num of nodes per element i
-  Integer GetNumNodesPerElem(const Integer iElem, const Integer level);
-
   /// Put information about initial grid in mesh
   virtual void Read();
 
   ///
-  virtual BaseElem * GetptElem(const Integer iElem);
-
-  ///
-  virtual Integer GetDim() { return dim_; } // mesh.GetDimension();}
+  virtual Integer GetDim() { return dim_; } // 
    
   //! Here we mark elements for refinement: ei - number of elem
   virtual void SetRefinementFlag(const Integer ei);
@@ -65,40 +62,33 @@ private:
   //! 
   FileType * ptFileType;
       
-  //! 
-  Mesh mesh;
+  //!
+  grd::MultilevelGrid grid_;
 
   //!
   Integer dim_;
 
-   //!
-  void Init();  
+  //!
+  std::vector<grd::Vertex*> vertex_;
+  std::vector<grd::Element*> elems_;
 
-  //! if we do subdivision, then this variable is TRUE
-  Boolean DoesGridSubdivide;
-
-  //! array of pointers to BaseElem
-  std::vector<BaseElem*> allptElem;
 };
 
 template<class Dim>
-inline InterfaceNetGen<Dim>::InterfaceNetGen(FileType * aptFileType)
+inline InterfaceAdaptGrid<Dim>::InterfaceAdaptGrid(FileType * aptFileType)
 : Grid(aptFileType)
 {
 #ifdef TRACE
- (*trace) << "Entering InterfaceNetGen<Dim>::InterfaceNetGen<Dim>" << std::endl;
+ (*trace) << "Entering InterfaceAdaptGrid<Dim>::InterfaceAdaptGrid<Dim>" << std::endl;
 #endif
 
   ptFileType=aptFileType;
-  DoesGridSubdivide=FALSE;
   lastlevel_=0; 
-
-  Init();
 }
 
 #ifdef __GNUC__
-template class InterfaceNetGen<Point3D>;
-template class InterfaceNetGen<Point2D>;
+template class InterfaceAdaptGrid<Point3D>;
+template class InterfaceAdaptGrid<Point2D>;
 #endif
 
 } // end of namespace

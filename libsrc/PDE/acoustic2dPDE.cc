@@ -172,8 +172,6 @@ void Acoustic2dPDE::SetupMatrices(const Integer level)
   // stiffness part
   bilinear_stiff->CalcElemMatrix(ptCoord, elemmat);
 
-  std::cout << coeffst[i] << " Stiffness " << std::endl;
-
   elemmat*=coeffst[i];
 
 #ifdef DEBUG
@@ -233,15 +231,14 @@ void Acoustic2dPDE::SetBCs(BCs * ptBCs, const Integer level, const Integer updat
   for (std::list<Integer>::const_iterator p=nodes_hd.begin(); p!=nodes_hd.end(); p++, j++)
   {
     node=*p;
-
-             if (update==1)
-            {
-              ptalgsys_->SetBCDirichletUpdate(j+1, node, val, dofspernode_, as_sysid_, as_sysid_, matrix_id);
-            }
-          else
-            {
-              ptalgsys_->SetBCDirichlet(j+1, node, val, dofspernode_, as_sysid_, as_sysid_, matrix_id);
-            }
+    if (update==1)
+    {
+     ptalgsys_->SetBCDirichletUpdate(j+1, node, val, dofspernode_, as_sysid_, as_sysid_, matrix_id);
+    }
+    else
+    {
+    ptalgsys_->SetBCDirichlet(j+1, node, val, dofspernode_, as_sysid_, as_sysid_, matrix_id);
+    }
   }
 }
 
@@ -288,7 +285,6 @@ void Acoustic2dPDE::SolveStepTrans(BCs * ptBCs, const Integer kstep, const Doubl
 
   lasttimecalc_= asteptime;
   Boolean Recalc=FALSE;
-  std::cout << laststepcalc_ << " " << kstep << std::endl;
 
   if (laststepcalc_==kstep && kstep!=0) Recalc=TRUE;
   else laststepcalc_= kstep;
@@ -327,6 +323,8 @@ void Acoustic2dPDE::SolveStepTrans(BCs * ptBCs, const Integer kstep, const Doubl
   ptalgsys_->SolveAlgSys(as_sysid_);
   ptsol = ptalgsys_->GetSolution(as_sysid_);
 
+  s_oldold_=sol_old_;
+  sol_old_=sol_;
     // save solution
    Integer i;
    for (i=0; i<ptgrid_->GetMaxnumnodes(level); i++)
@@ -335,8 +333,43 @@ void Acoustic2dPDE::SolveStepTrans(BCs * ptBCs, const Integer kstep, const Doubl
   std::cout << "maxnode:" <<  ptgrid_->GetMaxnumnodes(level) << " level:" << level << std::endl;
 
    // calculation of derivatives of solution
-  CalculationDerivativesSol(Recalc);
+   CalcDerSol(); 
 
+//  CalculationDerivativesSol(Recalc);
+}
+
+void Acoustic2dPDE::SolveStepTransNewMesh(BCs * ptBCs, const Integer kstep, const Double asteptime, const Integer level)
+{
+#ifdef TRACE
+  (*trace) << "entering Acoustic2dPDE::SolveStepTransNewMesh" << std::endl;
+#endif
+
+  lasttimecalc_= asteptime;
+  Boolean Recalc=TRUE;
+  std::cout << laststepcalc_ << " " << kstep << std::endl;
+
+  Double * ptsol;
+
+  Integer update,job;
+
+  update = 0;
+  job = 1;
+  SetupMatrices(level);
+  ptalgsys_->ComputeSysMatrix(as_sysid_,as_sysid_,matrix_factor_);
+  ComputeRHS();
+
+  SetBCs(ptBCs,level,update,lasttimecalc_);
+  ptalgsys_->ComputePrecond(job,as_sysid_);
+  ptalgsys_->SolveAlgSys(as_sysid_);
+  ptsol = ptalgsys_->GetSolution(as_sysid_);
+
+    // save solution
+  Integer i;
+  for (i=0; i<ptgrid_->GetMaxnumnodes(level); i++)
+   sol_[i]=ptsol[i];
+
+  // calculation of derivatives of solution
+  CalcDerSol();
 }
 
 void Acoustic2dPDE::CalcThirdDerivateFromEquation(Vector<Double> & result)
@@ -366,7 +399,6 @@ void Acoustic2dPDE::CalcThirdDerivateFromEquation(Vector<Double> & result)
 
   matrix_id = 2;
   Vector<Double> help=-sol_der1_;
-  std::cout << help << std::endl;
 
   ptalgsys_->UpdateRHS(as_sysid_,as_sysid_,matrix_id, help.get());
 
@@ -444,7 +476,17 @@ void Acoustic2dPDE :: CalculationDerivativesSol(const Boolean Recalc)
 
   if (!Recalc) { s_oldold_=sol_old_;}
   sol_old_=sol_;
+}
 
+void Acoustic2dPDE :: CalcDerSol()
+{
+  s_d2_oldold_=sol_der2_old_;
+  s_d1_oldold_=sol_der1_old_;
+  sol_der2_old_=sol_der2_;
+  sol_der1_old_=sol_der1_;
+
+  sol_der2_=(sol_ - sol_old_)*a0_ - (sol_der1_old_)*a2_ - sol_der2_old_*a3_;
+  sol_der1_=sol_der1_old_+sol_der2_old_*a6_+sol_der2_*a7_;
 }
 
 Double Acoustic2dPDE::CalcEnergyNorm()
@@ -475,6 +517,13 @@ void Acoustic2dPDE::CalcCoeff(Vector<Double> & coeffmass, Vector<Double> & coeff
     coeffmass[i]  = density*density/compress;
     coeffstiff[i] = density;
   }
+}
+
+void Acoustic2dPDE::RestoreSol()
+{
+ sol_=sol_old_;
+ sol_der1_=sol_der1_old_;
+ sol_der2_=sol_der2_old_; 
 }
 
 TimeErrorEstimator * Acoustic2dPDE::CreatePtTimeError()

@@ -232,8 +232,35 @@ void AnsysFile::ReadEl(std::vector<Elem> * allelems, const std::vector<std::stri
  ReadEl3d(allelems,sd);
  break;
 }
-
 }
+
+#ifdef ADAPTGRID
+void AnsysFile::ReadElems4AdaptGrid(std::vector<grd::Element*> & elems)
+{
+#ifdef TRACE
+ (*trace) << " entering AnsysFile::ReadElems4AdaptGrid " << std::endl;
+#endif
+
+  switch(dim_)
+{
+ case 2:
+ ReadEl4AdaptGrid2d(elems);
+ break;
+ case 3:
+ Error(" Not implemented yet");
+ break;
+} 
+}
+
+void AnsysFile::ReadEl4AdaptGrid2d(std::vector<grd::Element*> & elems)
+{
+#ifdef TRACE
+ (*trace) << " entering AnsysFile::ReadElems4AdaptGrid " << std::endl;
+#endif
+ ;
+}
+
+#endif
 
 void AnsysFile::ReadEl2d(std::vector<Elem> * allelems, const std::vector<std::string> sd)
 {
