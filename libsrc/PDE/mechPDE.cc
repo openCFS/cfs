@@ -181,7 +181,7 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 		    nonLinRegion.size() );
 
       // type of line search
-      params->Get( "lineSearch", lineSearch_, pdename_, "nonLinear" );
+      params->Get( "type", lineSearch_, pdename_, "lineSearch" );
 
       if ( lineSearch_ == "no" ) {
 	Info->PrintF( pdename_, " Performing no line search" );
