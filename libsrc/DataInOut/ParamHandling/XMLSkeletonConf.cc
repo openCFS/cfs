@@ -24,7 +24,7 @@ namespace CoupledField
 
   SkeletonConf::SkeletonConf (const Char * aname)
   {
-    ENTER_FCN("Entering SkeletonConf::SkeletonConf");
+    ENTER_FCN("SkeletonConf::SkeletonConf");
 
     name_=new Char[100];
     strcpy(name_, aname);
@@ -53,24 +53,23 @@ namespace CoupledField
     if (!skelfile_) 
       Error("Can't open conf-file",__FILE__,__LINE__);
 
-    std::cerr << std::endl << "  \033[31mCFS++\033[0m: " << std::endl;
-    std::cerr << "\t " << filename << " is currently written to disc" << std::endl;
-
+    Info->StartProgress("Reading in the mesh");
     //open the mesh-file
     strcpy(filename, aname);
     meshfile_ = new AnsysFile(filename);
     if (!meshfile_) Error("Can't open mesh-file");
+    Info->FinishProgress();
 
   }
 
 
   SkeletonConf::~SkeletonConf ()
   {
-    ENTER_FCN("Entering SkeletonConf::~SkeletonConf");
+    ENTER_FCN("SkeletonConf::~SkeletonConf");
 
     skelfile_->close();
 
-
+    std::cerr << std::endl;
     std::cerr << "\t Please complete the file before starting the simulation" << std::endl << std::endl;
 
     delete [] name_;
@@ -78,18 +77,20 @@ namespace CoupledField
 
   void SkeletonConf::WriteConf ()
   {
-    ENTER_FCN("Entering SkeletonConf::WriteConf");
+    ENTER_FCN("SkeletonConf::WriteConf");
+
+    Info->StartProgress("Writing skeleton file to disc");
 
     WriteGeneral();
     WriteSubdomains(); 
     //  WriteLists(); --> has to be done in WriteSubdomains!!
-
 
     (*skelfile_) << myendl << "   <!--  PDE SPECIFIC PARAMETERS -->" << myendl 
 		 << "   <pdeList>" << myendl << myendl;
     WritePDE();
     (*skelfile_)  << "   </pdeList>" << std::endl << myendl;
 
+    WriteCouplingList();
 
     (*skelfile_)  << "   <!--In case of transient analysis, uncomment following lines -->" << std::endl
 		  << "   <!--<transient>  -->" << std::endl
@@ -98,18 +99,20 @@ namespace CoupledField
 		  << "   <!--   <stepSaveBeg> 1    </stepSaveBeg> -->" << std::endl
 		  << "   <!--   <stepSaveEnd> 1    </stepSaveEnd> -->" << std::endl
 		  << "   <!--   <stepSaveInc> 1    </stepSaveInc> -->" << std::endl
-		  << "   <!--   <timeDataFile name=\"XXX.dat\"/>  -->" << std::endl
+		  << "   <!--   <timeDataFile name=\"XXX.dat\"/>    -->" << std::endl
 		  << "   <!--</transient>                         -->" << std::endl 
 		  << myEndl;
 
     (*skelfile_)  << "</cfsSimulation>" << myendl;
+
+    Info->FinishProgress();
   }
 
 
 
   void SkeletonConf::WriteGeneral ()
   {
-    ENTER_FCN("Entering SkeletonConf::WriteGeneral");
+    ENTER_FCN("SkeletonConf::WriteGeneral");
 
     (*skelfile_)  << "<?xml version=\"1.0\"?>" << myendl
 		  << "<cfsSimulation xmlns=\"http://www.cfs++.org\">" << myendl << myendl;    
@@ -134,7 +137,7 @@ namespace CoupledField
 
   void SkeletonConf:: WriteSubdomains()
   {
-    ENTER_FCN("Entering SkeletonConf::WriteSubdomains");
+    ENTER_FCN("SkeletonConf::WriteSubdomains");
 
     //close the skeleton-config-file
     skelfile_->close();
@@ -144,13 +147,13 @@ namespace CoupledField
     strcpy(filename, name_);
 
     // Generate parser and parse XML defaults file
-    std::string cfsDefaults = CVSEXTERNAL;
-    cfsDefaults += "/CFS++XML/Defaults/CFS++Defaults.xml";
-
+     std::string cfsDefaults = CVSEXTERNAL;
+     cfsDefaults += "/CFS++XML/Defaults/CFS++Defaults.xml";
+    
 #ifdef USE_XERCES
     params = new XMLParamHandler( cfsDefaults.c_str() );
 #else
-    params = new PlainXMLParamHandler( cfsDefaults.c_str() );
+     params = new PlainXMLParamHandler( cfsDefaults.c_str() );
 #endif
 
 
@@ -213,28 +216,33 @@ namespace CoupledField
 
   void SkeletonConf::WriteLists ()
   {
-    ENTER_FCN("Entering SkeletonConf::WriteLists");
+    ENTER_FCN("SkeletonConf::WriteLists");
 
     StdVector<std::string> sd;
     sd.Clear();
     Integer dim = meshfile_-> ReadDim();
 
-    if (dim == 3)
+    if (dim == 3){
 
       //check for 2D-interface elements
       if (meshfile_->GetNum2DElems() != 0)
 	meshfile_->ReadEl2dConf(sd);
     
-    else if (dim == 2)    
+    } else if (dim == 2) {
+    
       //check for 1D-interface elements
-      if (meshfile_->GetNum1DElems() != 0)
+      if (meshfile_->GetNum1DElems() != 0) {
 	meshfile_->ReadEl1dConf(sd);
-
-    if (sd.GetSize())
+      }
+    }
+    
+    if (sd.GetSize()) {
       (*skelfile_) << "      <!--  LIST OF FACES -->" << std::endl;
-
-    for (Integer i=0; i<sd.GetSize(); i++)
-      (*skelfile_) << "      <elements name=\"" << sd[i] << "\"/>" << myendl;
+      
+      for (Integer i=0; i<sd.GetSize(); i++)
+	(*skelfile_) << "      <elements name=\"" << sd[i] << "\"/>" << myendl;
+      (*skelfile_) << myendl;
+    }
 
 
     //check for node-list
@@ -248,6 +256,7 @@ namespace CoupledField
 	
 	for (Integer i=0; i<sd.GetSize(); i++)
 	  (*skelfile_) << "      <nodes name=\"" << sd[i] << "\"/>" << myendl;
+	(*skelfile_) << myendl;
       }
 
 
@@ -266,7 +275,7 @@ namespace CoupledField
   
   void SkeletonConf::WritePDE ()
   {
-    ENTER_FCN("Entering SkeletonConf::WritePDE");
+    ENTER_FCN("SkeletonConf::WritePDE");
 
     (*skelfile_) << "      <!-- name of pde -->" << std::endl;
     (*skelfile_) << "      <XXX>" << std::endl 
@@ -281,6 +290,56 @@ namespace CoupledField
     (*skelfile_) << "         </bcsAndLoads>" << std::endl 
 		 << myendl;       
     (*skelfile_) << "      </XXX>" << std::endl << std::endl;
+  }
+
+  void SkeletonConf::WriteCouplingList ()
+  {
+
+    ENTER_FCN("SekeltonConf::WriteCoupling" );
+    (*skelfile_) 
+      << "   <!-- For coupled simulation, uncomment the following lines -->";
+    (*skelfile_) 
+      << myendl  
+      << "   <!--<couplingList>                                  -->" 
+      << myendl
+      << "   <!--  <iterative>                                   -->" 
+      << myendl 
+      << "   <!--    <!-- pairwise coupling definition           -->" 
+      << myendl
+      << "   <!--    <XXX1XXX2 method=\"RHS\">                     -->" 
+      << myendl
+      << "   <!--      <XXX1>                                    -->" 
+      << myendl
+      << "   <!--        <coupling type=\"XXX\" quantity=\"XXX\"     -->" 
+      << myendl
+      << "   <!--                  name=\"XXX\"/>                  -->" 
+      << myendl
+      << "   <!--      </XXX1>                                   -->" 
+      << myendl
+      << "   <!--      <XXX2>                                    -->" 
+      << myendl
+      << "   <!--        <coupling type=\"XXX\" quantity=\"XXX\"     -->" 
+      << myendl
+      << "   <!--                   name=\"XXX\"/>                 -->" 
+      << myendl
+      << "   <!--      </XXX2>                                   -->" 
+      << myendl 
+      << "   <!--    </XXX1XXX2>                                 -->" 
+      << myendl << myendl
+      << "   <!--    <nonLinear logging=\"yes\">                   -->" 
+      << myendl
+      << "   <!--      <stopCrit value=\"1e-3\" quantity=\"XXX\"     -->" 
+      << myendl
+      << "   <!--                l2Norm=\"rel\"/                   -->" 
+      << myendl << myendl 
+      << "   <!--          <maxNumIters> 10 </maxNumIters>       -->" 
+      << myendl
+      << "   <!--    </nonLinear>                                -->" 
+      << myendl
+      << "   <!--  </iterative>                                  -->" 
+      << myendl
+      << "   <!--</couplingList>                                 -->" 
+      << myendl << myendl;
   }
 }
 

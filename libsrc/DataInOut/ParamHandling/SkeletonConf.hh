@@ -43,6 +43,9 @@ namespace CoupledField
     //! writes skeleton for PDE specific parameters
     void WritePDE();
 
+    //! writes skeleton for PDE coupling list
+    void WriteCouplingList();
+
   private:
 
     std::ofstream * skelfile_; //!< file pointer fo conf-file

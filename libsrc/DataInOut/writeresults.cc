@@ -31,31 +31,6 @@ namespace CoupledField {
 }
 
 
-
-
-
-// void WriteResults::AddInHistory(const Double time, const Double val,const Integer ifile)
-// { 
-//   ENTER_FCN( "WriteResults::AddInHistory" );
-//   lastsavetime[ifile]=time;
-//  historyfile[ifile] << time << "  " << val << std::endl;
-// }
-
-
-// void WriteResults::AddVecInHistory(const Double time, const Vector<Double> val,const Integer ifile)
-// { 
-//   ENTER_FCN( "WriteResults::AddVecInHistory" );
-  
-//  lastsavetime[ifile]=time;
-//  historyfile[ifile] << time;
- 
-//  for (Integer i=0; i<val.GetSize(); i++)
-//    historyfile[ifile] <<  "  " << val[i];
- 
-//  historyfile[ifile] <<  std::endl;
-// }
-
-
 WriteResults::~WriteResults()
 {
   ENTER_FCN( "WriteResults::~WriteResults" );
@@ -130,9 +105,15 @@ void WriteResults::InitHistoryFiles()
    // Add new nodes
    StdVector<Integer> tempNodes;
    pt2Inputfile_->ReadSaveNodes(tempNodes, nodeVec[iQuant]);
-   
    for (Integer i=0; i<tempNodes.GetSize(); i++)
      histNodesPerPDE_[quantityFound].Push_back(tempNodes[i]);
+
+//    std::list<Integer> tempNodes;
+//    tempNodes= ptBCs_->GetNodesLevel(nodeVec[iQuant]);
+//    for (std::list<Integer>::const_iterator p=tempNodes.begin();
+// 	p!=tempNodes.end(); p++)
+//      histNodesPerPDE_[quantityFound].Push_back(*p);
+
     } // iQuant
 
 //  std::cerr << "histQuantities_ " <<histQuantities_ << std::endl; 
