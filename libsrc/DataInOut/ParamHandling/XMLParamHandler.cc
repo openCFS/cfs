@@ -73,6 +73,7 @@ namespace CoupledField {
     beVerbose_ = false;
 #endif
 
+    beVerbose_ = true;
   }
 
 
@@ -248,50 +249,8 @@ namespace CoupledField {
 
     ENTER_FCN( "XMLParamHandler::CGetList" );
 
-    // Check if vector is empty. If not issue a warning
-    // and erase its entries, if this is desired
-    if ( list.empty() != true ) {
-      if ( beVerbose_ == true ) {
-	std::string errmsg  = "Warning input vector was not empty!\n";
-	errmsg += "Contents have been erased!";
-	Info->Warning( errmsg );
-      }
-      list.clear();
-    }
-
-    // First assemble a vector of all elements matching the keyword
-    // and their values
-    std::vector<DOMElement*> elemMatches;
-    std::vector<std::string> elemValues;
-    FindAllMatches( key, elemValues, section, subsection, rootElem_,
-		    &elemMatches );
-
-    // From the list of matching elements and their values, we select
-    // those whose attribute's value matches the specification
-    if ( applyToElem == 0 ) {
-      for ( unsigned int k = 0; k < elemMatches.size(); k++ ) {
-	if ( AttribHasValue( elemMatches[k], attribute, value ) ) {
-	  list.push_back( elemValues[k] );
-	}
-      }
-    }
-
-    // We do not use the element, but one of its ancestors
-    else {
-      DOMElement *parent1 = NULL;
-      DOMElement *parent2 = NULL;
-
-      for ( unsigned int k = 0; k < elemMatches.size(); k++ ) {
-	parent1 = Node2Elem( elemMatches[k]->getParentNode() );
-	for ( Integer i = 1; i < applyToElem; i++ ) {
-	  parent2 = Node2Elem( parent1->getParentNode() );
-	  parent1 = parent2;
-	}
-	if ( AttribHasValue( parent1, attribute, value ) ) {
-	  list.push_back( elemValues[k] );
-	}
-      }
-    }
+    CFindAllMatches( key, list, attribute, value, applyToElem, section,
+		     subsection, rootElem_ );
   }
 
 
@@ -515,7 +474,8 @@ namespace CoupledField {
 
     // If there was no match at all, call problem handler
     else if ( matches.size() == 0 ) {
-      NoMatchHandler( value, key, section, subsection );
+      NoMatchHandler( value, key, attribute, aValue, applyToElem, section,
+		      subsection );
     }
     
     // There was a unique match, so convert detected value
@@ -558,7 +518,8 @@ namespace CoupledField {
 
     // If there was no match at all, call problem handler
     else if ( matches.size() == 0 ) {
-      NoMatchHandler( value, key, section, subsection );
+      NoMatchHandler( value, key, attribute, aValue, applyToElem, section,
+		      subsection );
     }
     
     // There was a unique match, so convert detected value
@@ -570,7 +531,7 @@ namespace CoupledField {
     // Tell what we found
     if ( beVerbose_ == true ) {
 	std::string msg = "CGet: Value for parameter '" + key;
-	msg += "' is '" + matches[0] + "'";
+	msg += "' is '" + Info->GenStr(value) + "'";
 	Info->Warning( msg );
     }
   }
@@ -602,7 +563,8 @@ namespace CoupledField {
 
     // If there was no match at all, call problem handler
     else if ( matches.size() == 0 ) {
-      NoMatchHandler( value, key, section, subsection );
+      NoMatchHandler( value, key, attribute, aValue, applyToElem, section,
+		      subsection );
     }
     
     // There was a unique match, so convert detected value
@@ -614,7 +576,7 @@ namespace CoupledField {
     // Tell what we found
     if ( beVerbose_ == true ) {
 	std::string msg = "CGet: Value for parameter '" + key;
-	msg += "' is '" + matches[0] + "'";
+	msg += "' is '" + Info->GenStr(value) + "'";
 	Info->Warning( msg );
     }
   }
@@ -680,7 +642,8 @@ namespace CoupledField {
     // If there is no match, check for default
     if ( matches.size() == 0 ) {
       std::string defaultValue;
-      flagStatus = CheckForDefault( defaultValue, key, section, subsection );
+      flagStatus = CheckForDefault( defaultValue, key, section, subsection,
+				    false );
 
       // If there is a default, then test its value.
       // If it does not match, then re-set status
@@ -1087,6 +1050,80 @@ namespace CoupledField {
   }
 
 
+  // ==========================================================
+  //   Return list of strings values matching a keyword under
+  //   side-constraints on attributes of matching elements
+  // ==========================================================
+  void XMLParamHandler::CFindAllMatches( const std::string key,
+					 std::vector<std::string> &list,
+					 const std::string attribute,
+					 const std::string value,
+					 Integer applyToElem,
+					 const std::string section,
+					 const std::string subsection,
+					 DOMElement *rootElem ) {
+
+    ENTER_IFCN( "XMLParamHandler::CFindAllMatches" );
+
+    // Report
+    if ( beVerbose_ ) {
+      std::cerr << "\n CFindAllMatches:\n"
+		<< "    key         = " << key         << '\n'   
+		<< "    attribute   = " << attribute   << '\n'
+		<< "    value       = " << value       << '\n'
+		<< "    applyToElem = " << applyToElem << '\n'
+		<< "    section     = " << section     << '\n'
+		<< "    subsection  = " << subsection
+		<< std::endl;
+    }
+
+    // Check if vector is empty. If not issue a warning
+    // and erase its entries, if this is desired
+    if ( list.empty() != true ) {
+      if ( beVerbose_ == true ) {
+	std::string errmsg  = "Warning input vector was not empty!\n";
+	errmsg += "Contents have been erased!";
+	Info->Warning( errmsg );
+      }
+      list.clear();
+    }
+
+    // First assemble a vector of all elements matching the keyword
+    // and their values
+    std::vector<DOMElement*> elemMatches;
+    std::vector<std::string> elemValues;
+    FindAllMatches( key, elemValues, section, subsection, rootElem,
+		    &elemMatches );
+
+    // From the list of matching elements and their values, we select
+    // those whose attribute's value matches the specification
+    if ( applyToElem == 0 ) {
+      for ( unsigned int k = 0; k < elemMatches.size(); k++ ) {
+	if ( AttribHasValue( elemMatches[k], attribute, value ) ) {
+	  list.push_back( elemValues[k] );
+	}
+      }
+    }
+
+    // We do not use the element, but one of its ancestors
+    else {
+      DOMElement *parent1 = NULL;
+      DOMElement *parent2 = NULL;
+
+      for ( unsigned int k = 0; k < elemMatches.size(); k++ ) {
+	parent1 = Node2Elem( elemMatches[k]->getParentNode() );
+	for ( Integer i = 1; i < applyToElem; i++ ) {
+	  parent2 = Node2Elem( parent1->getParentNode() );
+	  parent1 = parent2;
+	}
+	if ( AttribHasValue( parent1, attribute, value ) ) {
+	  list.push_back( elemValues[k] );
+	}
+      }
+    }
+  }
+
+
   // **************************************************************************
   //   Private Auxilliary Methods: Treatment of errors and defaults
   // **************************************************************************
@@ -1212,6 +1249,101 @@ namespace CoupledField {
 
   }
 
+  // ===================================================
+  //   Treat case of no match for string (constrained)
+  // ===================================================
+  void XMLParamHandler::NoMatchHandler( std::string &value,
+					const std::string key,
+					const std::string attribute,
+					const std::string aValue,
+					Integer applyToElem,
+					const std::string section,
+					const std::string subsection ) {
+
+    ENTER_IFCN( "XMLParamHandler::NoMatchHandler" );
+
+    // Test, whether a default value is specified for the parameter
+    std::string defaultValue;
+    Boolean defaultExists = CheckForDefault( defaultValue, key, section,
+					     subsection, true, attribute,
+					     aValue, applyToElem );
+
+    // If default exist, return it
+    if( defaultExists == TRUE ) {
+      value = defaultValue;
+    }
+
+    // No match and no default value, so cry out!
+    else {
+      NoMatchErrorReporter( key, section, subsection );
+    }
+
+  }
+
+
+  // ====================================================
+  //   Treat case of no match for Integer (constrained)
+  // ====================================================
+  void XMLParamHandler::NoMatchHandler( Integer &value,
+					const std::string key,
+					const std::string attribute,
+					const std::string aValue,
+					Integer applyToElem,
+					const std::string section,
+					const std::string subsection ) {
+
+    ENTER_IFCN( "XMLParamHandler::NoMatchHandler" );
+
+    // Test, whether a default value is specified for the parameter
+    std::string defaultValue;
+    Boolean defaultExists = CheckForDefault( defaultValue, key, section,
+					     subsection, true, attribute,
+					     aValue, applyToElem );
+
+    // If default exist, convert it to Integer
+    if( defaultExists == TRUE ) {
+      value = String2Integer( defaultValue );
+    }
+
+    // No match and no default value, so cry out!
+    else {
+      NoMatchErrorReporter( key, section, subsection );
+    }
+
+  }
+
+
+  // ===================================================
+  //   Treat case of no match for Double (constrained)
+  // ===================================================
+  void XMLParamHandler::NoMatchHandler( Double &value,
+					const std::string key,
+					const std::string attribute,
+					const std::string aValue,
+					Integer applyToElem,
+					const std::string section,
+					const std::string subsection ) {
+
+    ENTER_IFCN( "XMLParamHandler::NoMatchHandler" );
+
+    // Test, whether a default value is specified for the parameter
+    std::string defaultValue;
+    Boolean defaultExists = CheckForDefault( defaultValue, key, section,
+					     subsection, true, attribute,
+					     aValue, applyToElem );
+
+    // If default exist, convert it to Integer
+    if( defaultExists == TRUE ) {
+      value = String2Double( defaultValue );
+    }
+
+    // No match and no default value, so cry out!
+    else {
+      NoMatchErrorReporter( key, section, subsection );
+    }
+
+  }
+
 
   // =================================
   //   Report that there is no match
@@ -1244,7 +1376,11 @@ namespace CoupledField {
   Boolean XMLParamHandler::CheckForDefault( std::string &defaultValue,
 					    const std::string key,
 					    const std::string section,
-					    const std::string subsection ) {
+					    const std::string subsection,
+					    bool constrained,
+					    const std::string attribute,
+					    const std::string aValue,
+					    Integer applyToElem ) {
 
     Boolean defaultFound = FALSE;
 
@@ -1262,13 +1398,50 @@ namespace CoupledField {
     // Find all elements/values matching keyword in (restricted) defaults
     // tree
     std::vector<std::string> matches;
-    FindAllMatches( key, matches, section, subsection, rootElemDefaults_ );
+
+    if ( constrained == false ) {
+      FindAllMatches( key, matches, section, subsection, rootElemDefaults_ );
+    }
+    else {
+
+      // NOTE: This now is a brute force attempt to fix a conceptual problem
+      //       with combining a constrained search with a default tree
+      std::string newValue;
+      if ( attribute == "name" ) {
+	newValue = "dummyRegion";
+      }
+      else {
+	newValue = aValue;
+      }
+      CFindAllMatches( key, matches, attribute, newValue, applyToElem, section,
+		       subsection, rootElemDefaults_ );
+    }
 
     // If there was no unique match, call problem handler
     if ( matches.size() > 1 ) {
-      MultipleMatchHandler( key, section, subsection, matches.size() );
+      if ( constrained == false ) {
+	MultipleMatchHandler( key, section, subsection, matches.size() );
+      }
+      else {
+	// Test if matches are different
+	bool valsAgree = true;
+	for ( UInt k = 1; k < matches.size(); k++ ) {
+	  if ( matches[k] != matches[0] ) {
+	    valsAgree = false;
+	  }
+	}
+	if ( valsAgree == false ) {
+	  MultipleMatchHandler( key, section, subsection, matches.size() );
+	}
+
+	// value agree
+	else {
+	  defaultFound = TRUE;
+	  defaultValue = matches[0];
+	}
+      }
     }
-  
+
     // Check, if a default was found
     if ( matches.size() == 1 ) {
       defaultFound = TRUE;
@@ -1297,7 +1470,7 @@ namespace CoupledField {
     }
 
     // Tell what we found
-    if ( beVerbose_ == true ) {
+    if ( beVerbose_ == true && defaultFound == TRUE ) {
       std::string msg = "CheckForDefault: Default for parameter '" + key;
       msg += "' is '" + defaultValue + "'";
       Info->Warning( msg );
@@ -1330,9 +1503,9 @@ namespace CoupledField {
 	errmsg = "GetElementValue: Encountered element without child!";
       }
       else {
-	errmsg ="GetElementValue: Encountered element with multiple ";
+	errmsg ="GetElementValue: Encountered element with multiple children!";
       }
-      errmsg += "children!\nGetElementValue: Element tag is '";
+      errmsg += "\n       GetElementValue: Element tag is '";
       errmsg += X2C(elem->getNodeName());
       errmsg += "'"; 
       Info->Error( errmsg, __FILE__, __LINE__ );
