@@ -1,4 +1,3 @@
-//#include <stdlib.h>
 #include <string>
 #include <fstream>
 #include <stdarg.h>
@@ -1060,11 +1059,11 @@ void DatFile::TakePos(const std::string seekexp, std::string::size_type & pos, c
 
 // ------ Take position in file with saving in buf previous std::string -----
  
-void DatFile::TakePos(const std::string seekexp, std::string::size_type & pos, std::string & buf_prev, const std::string reservexp="")
+void DatFile::TakePos(const std::string seekexp, std::string::size_type & pos, std::string & buf_prev, const std::string reservexp)
 {
   infile.seekg(pos, ios::beg);
   std::string buf;
-  std::string::size_type pos1;
+  std::string::size_type pos1=pos;
   pos=std::string::npos;
  
   while ( pos == std::string::npos & !infile.eof() )
@@ -1089,8 +1088,8 @@ void DatFile::TakePos(const std::string seekexp, std::string::size_type & pos, s
 
   if (pos==pos_end) {std::cerr << "ERROR: (" << __FILE__ <<" "<< __LINE__
                      << ") Cannot find string: " << seekexp ;
-                    if (reservexp!="") cerr<<" and "<<reservexp; 
-     cerr <<" in your dat file.\n\t\t Please, change your dat file."<< std::endl;
+                    if (reservexp!="") std::cerr<<" and "<<reservexp; 
+     std::cerr <<" in your dat file.\n\t\t Please, change your dat file."<< std::endl;
                       exit(1);}
 }
 
