@@ -58,6 +58,9 @@ ElecPDE::ElecPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
   assemble_->SetMesh2PDENode(&Mesh2PDENode_);
   assemble_->SetMatrixType(RSCALAR);
   assemble_->SetNumDirichlet(GetNumRestraints(actlevel_));
+  assemble_->SetPtrBCs(ptBCs_);
+  assemble_->SetPtr2Sol(&sol_);
+  assemble_->SetPtr2TimeFnc(ptTimeFunc_);
 
   ReadMaterialData();
    
