@@ -15,7 +15,6 @@
 
 #include <vector>
 #include "GbMath.hh"
-#include "GbTList.hh"
 #include "GbImages.hh"
 
 /*----------------------------------------------------------------------
@@ -81,10 +80,9 @@ public:
   void getL2Distance (float& rfMaxDistance, GbImageDouble2D& rkTransform) const;
 
   // Compute a skeleton of the image.  Pixels are trimmed from outside to
-  // inside using L1 distance.  The maximum distance from the L1 transform
-  // is returned in case the application needs this.  Connectivity and
-  // topology of the original blobs are preserved.
-  void getSkeleton (int& riMaxDistance, GbImageInt2D& rkSkeleton) const;
+  // inside using L1 distance. Connectivity and cycles of the original
+  // blobs are preserved.
+  void getSkeleton (GbImageInt2D& rkSkeleton) const;
 
 protected:
   // helper for boundary extraction
@@ -120,13 +118,19 @@ protected:
   void L2Finalize (const GbImageInt2D& rkDist, float& rfMaxDistance,
 		   GbImageDouble2D& rkTransform) const;
 
-  // helpers for thinning
-  void trimContour (int iMaxDistance, const GbImageInt2D& rkTemp) const;
-  void trimSkeleton (int iMaxDistance, const GbImageInt2D& rkTemp) const;
-  int convertToByte (int uiX, int uiY, const GbImageInt2D& rkTemp) const;
-  int pixelType4 (int uiX, int uiY, const GbImageInt2D& rkTemp) const;
-  GbBool isBranch (int uiX, int uiY, const GbImageInt2D& rkTemp) const;
-  GbBool notNeeded (int uiX, int uiY, const GbImageInt2D& rkTemp) const;
+  // helpers for skeletonization
+  typedef GbBool (*InteriorFunction)(GbImageInt2D&,int,int);
+  static GbBool interior4 (GbImageInt2D& rkImage, int iX, int iY);
+  static GbBool interior3 (GbImageInt2D& rkImage, int iX, int iY);
+  static GbBool interior2 (GbImageInt2D& rkImage, int iX, int iY);
+  static GbBool markInterior (GbImageInt2D& rkImage, int iValue,
+			      InteriorFunction oIFunction);
+
+  static GbBool isArticulation (GbImageInt2D& rkImage, int iX, int iY);
+  static GbBool clearInteriorAdjacent (GbImageInt2D& rkImage, int iValue);
+  static void trim4 (GbImageInt2D& rkImage);
+  static void trim3 (GbImageInt2D& rkImage);
+  static void trim2 (GbImageInt2D& rkImage);
 };
 
 // #ifndef OUTLINE
@@ -137,8 +141,11 @@ protected:
 /*----------------------------------------------------------------------
 |
 | $Log$
-| Revision 1.1  2002/02/22 14:47:56  elena
-| new: dir Gridlib_inc
+| Revision 1.2  2002/03/21 14:58:56  elena
+| new: changes in dat-file for reading tetrahedral (bugs in element connection)
+|
+| Revision 1.4  2001/08/16 17:05:54  prkipfer
+| improved skeleton code
 |
 | Revision 1.3  2001/06/19 16:27:16  prkipfer
 | fixed typos and Linux compiler target

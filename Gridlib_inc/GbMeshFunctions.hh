@@ -18,7 +18,12 @@
 
 struct Delete {
   void operator()(GoGeometryElement<float> *t) {
+    if (t->getParent())
+      t->getParent()->clearChildren();
     delete t;
+  }
+  void operator()(GoEdge<float> *e) {
+    delete e;
   }
   void operator()(GoVertex<float> *t) {
     delete t;
@@ -28,11 +33,22 @@ struct Delete {
 struct DeleteMarked {
   GbBool operator()(GoGeometryElement<float> *t) {
     if(t->testFlag(DELETED_G)) {
+      if (t->getParent())
+	t->getParent()->clearChildren();
       delete t;
       return true;
     }
     return false;
   }
+
+  GbBool operator()(GoEdge<float> *e) {
+    if(e->testFlag(DELETED_E)) {
+      delete e;
+      return true;
+    }
+    return false;
+  }
+
   GbBool operator()(GoVertex<float> *t) {
     if(t->testFlag(DELETED_V)) {
       delete t;
@@ -48,10 +64,38 @@ struct ComputeFaceNormal {
   }
 };
 
+struct DeleteEmptyVectors {
+  GbBool operator()(std::vector<GoGeometryElement<float>*> *vec) {
+    if (vec->empty()) {
+      delete vec;
+      return true;
+    }
+   
+    return false;
+  }
+
+  GbBool operator()(std::vector<GoEdge<float>*> *vec) {
+    if (vec->empty()) {
+      delete vec;
+      return true;
+    }
+   
+    return false;
+  }
+
+  GbBool operator()(std::vector<GoVertex<float>*> *vec) {
+    if (vec->empty()) {
+      delete vec;
+      return true;
+    }
+   
+    return false;
+  }
+};
 
 struct ComputeVertexNormal {
   void operator()(GoVertex<float> *t) {
-    std::vector<GoGeometryElement<float> *> S;
+    std::vector<GoGeometryElement<float>*> S;
 
     getNeighbourFaces(S,t);
     t->computeNormal(S);
@@ -60,7 +104,7 @@ struct ComputeVertexNormal {
 
   }
   // get a list of neighboring face objects
-  void getNeighbourFaces(std::vector<GoGeometryElement<float> *>& S, 
+  void getNeighbourFaces(std::vector<GoGeometryElement<float>*>& S, 
 			 GoVertex<float> *v) const
     {
       GoGeometryElement<float> *f2, *f1, *f;
@@ -112,7 +156,7 @@ struct ComputeVertexNormal {
 
 struct ComputeUmbrella {
   void operator()(GoVertex<float> *t) {
-    std::vector<GoVertex<float> *> S;
+    std::vector<GoVertex<float>*> S;
     GoVertex<float> *pi;
     GbVec3<float> p(0,0,0);
     float alpha = 0.5;
@@ -139,7 +183,7 @@ struct ComputeUmbrella {
 
   }
   // get a list of neighboring vertices
-  void getNeighbourVertices(std::vector<GoVertex<float> *>& S, 
+  void getNeighbourVertices(std::vector<GoVertex<float>*>& S, 
 			    GoVertex<float> *v) const
     {
       GoGeometryElement<float> *f1, *f;
@@ -188,7 +232,7 @@ struct ComputeUmbrella {
 
 struct ComputeCurvatureFlow {
   void operator()(GoVertex<float> *t) {
-    std::vector<GoVertex<float> *> S;
+    std::vector<GoVertex<float>*> S;
     GbVec3<float> p(0,0,0), pi, pj, pj_m1, pj_p1;
     float area=0;
 
@@ -209,8 +253,8 @@ struct ComputeCurvatureFlow {
       // area += 0.5 * ((pj_p1-pi).cross(pj-pi)).getNorm();
 
       
-      float cota = ((pj_p1-pi)*(pj_p1-pj)) / ((pj_p1-pi).cross(pj_p1-pj)).getNorm();
-      float cotb = ((pj_m1-pj)*(pj_m1-pi)) / ((pj_m1-pj).cross(pj_m1-pi)).getNorm();
+      float cota = ((pj_p1-pi)|(pj_p1-pj)) / ((pj_p1-pi).cross(pj_p1-pj)).getNorm();
+      float cotb = ((pj_m1-pj)|(pj_m1-pi)) / ((pj_m1-pj).cross(pj_m1-pi)).getNorm();
 
       // std::cerr << cota << " " << cotb << std::endl;
 
@@ -229,7 +273,7 @@ struct ComputeCurvatureFlow {
   }
   
   // get a list of neighboring vertices
-  void getNeighbourVertices(std::vector<GoVertex<float> *>& S, 
+  void getNeighbourVertices(std::vector<GoVertex<float>*>& S, 
 			    GoVertex<float> *v) const
     {
       GoGeometryElement<float> *f1, *f;
@@ -275,14 +319,21 @@ struct ComputeCurvatureFlow {
 
 };
 
-
-
 #endif // GBMESHFUNCTIONS_HH
 /*----------------------------------------------------------------------
 |
 | $Log$
-| Revision 1.1  2002/02/22 14:47:56  elena
-| new: dir Gridlib_inc
+| Revision 1.2  2002/03/21 14:58:56  elena
+| new: changes in dat-file for reading tetrahedral (bugs in element connection)
+|
+| Revision 1.15  2002/03/18 09:57:33  prkipfer
+| refactored element structure
+|
+| Revision 1.14  2001/09/12 11:53:01  prkipfer
+| introduced adaptive tet subdivision
+|
+| Revision 1.13  2001/08/16 16:56:11  prkipfer
+| improved type safety for template parameter
 |
 | Revision 1.12  2001/02/13 11:12:21  prkipfer
 | fixed vertex normal bug

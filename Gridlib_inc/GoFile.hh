@@ -53,7 +53,7 @@ public:
 
 protected:
   GbString filename_;
-  int contents_;
+  mutable int contents_;
 
   //! protect constructor
   GoFile(const GbString&);
@@ -71,8 +71,11 @@ protected:
 /*----------------------------------------------------------------------
 |
 | $Log$
-| Revision 1.1  2002/02/22 14:47:56  elena
-| new: dir Gridlib_inc
+| Revision 1.2  2002/03/21 14:58:57  elena
+| new: changes in dat-file for reading tetrahedral (bugs in element connection)
+|
+| Revision 1.7  2001/08/20 09:15:51  prkipfer
+| made content_ mutable for parsers that dont know the file content in advance
 |
 | Revision 1.6  2001/05/03 10:21:39  uflabsik
 | hec reading added

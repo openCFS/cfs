@@ -20,6 +20,7 @@
 #include "GbVec3.hh"
 #include "GbMemPool.hh"
 #include "GoVertex.hh"
+#include "GoEdge.hh"
 
 template <class T> class GoGeometryElement;
 
@@ -33,47 +34,24 @@ class GoPyramidElementBase
 public: 
 
   //! Constructor: all values initialized to zero, if not specified
-  GoPyramidElementBase(int i = -1, T x = 0, T y = 0, T z = 0);
+  GoPyramidElementBase();
   ~GoPyramidElementBase();
 
   //! Operations on vertices of the triangle
   INLINE void setVertex(int i, GoVertex<T> *v);
   INLINE GoVertex<T> *getVertex(int i) const;
-  int findVertex(GoVertex<T> *v) const;
-  GoVertex<T> *otherVertex(GoGeometryElement<T> *f) const;
 
-  //! Other faces related to this triangle
-  GoGeometryElement<T> *otherFace(GoVertex<T> *v) const;
-
-  //! The face normal of the triangle
-  void computeNormal();
-  INLINE void getNormal(T& xx, T& yy, T& zz) const;
-  INLINE GbVec3<T> getNormal() const;
-  INLINE void setNormal(const GbVec3<T>&);
-
-  //! Status flags of this triangle indicating semantic defined by the
-  //! object using this class
-  INLINE void setFlag(GbGeoStatusFlag f);
-  INLINE void delFlag(GbGeoStatusFlag f);
-  INLINE GbBool testFlag(GbGeoStatusFlag f) const;
-
-  //! Integer to identify the triangle
-  //! Has no meaning to this class's implementation
-  INLINE void setId(int i);
-  INLINE int getId() const;
-
-  //! modification operations on the object
-  INLINE GbBool subdivide();
-
-  //! The scene part this object belongs to in the partition
-  INLINE void setPartition(int i);
-  INLINE int getPartition() const;
+  //! Operations on edges of the quad
+  INLINE void setEdge(int i, GoEdge<T> *e);
+  INLINE GoEdge<T> *getEdge(int i) const;
 
   //! The neighboring elements
   INLINE void setNeighbour(int i, GoGeometryElement<T> *face);
-  void setNeighbour(GoGeometryElement<T> *face);
   INLINE GoGeometryElement<T> *getNeighbour(int i) const;
-  int findNeighbour(GoGeometryElement<T> *face) const;
+
+  //! The parent and the child triangles
+  INLINE GoGeometryElement<T> *getChild(int i) const;
+  INLINE void setChild(int i, GoGeometryElement<T> *face);
 
   //! Print memory pool statistics
   void poolStatistic() const;
@@ -94,10 +72,9 @@ private:
   //! This is the memory layout of this class within the memory pool
   typedef struct {
     GoVertex<T>* vertices[5];
+    GoEdge<T>* edges[8];
     GoGeometryElement<T>* neighbours[5];
-    GbGeoStatusFlag flag;
-    int id;
-    int partition;
+    GoGeometryElement<T>* children[5];
   } PyramidMem;
 
   //! The memory pool and the link to the allocated memory space
@@ -109,7 +86,7 @@ template<class T>
 std::ostream&
 operator<<(std::ostream& s, const GoPyramidElementBase<T>& v)
 {
-  s<<typeid(v).name()<<" id: "<<v.getId()<<std::endl;
+//  s<<typeid(v).name()<<" id: "<<v.getId()<<std::endl;
   return s;
 }
 

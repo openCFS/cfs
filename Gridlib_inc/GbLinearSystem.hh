@@ -5,7 +5,7 @@
 +---------------------------------------------------------------------*/
 
 #ifndef  GBLINEARSYSTEM_HH
-#define  GBLINEAESYSTEM_HH
+#define  GBLINEARSYSTEM_HH
 
 #include "GbDefines.hh"
 
@@ -27,8 +27,6 @@ template <class T>
 class GbLinearSystem
 {
 public:
-  GbLinearSystem () { /**/ }
-
   // 2x2 and 3x3 systems (avoids overhead of Gaussian elimination)
   static GbBool solve2 (const T aafA[2][2], const T afB[2], T afX[2]);
   static GbBool solve3 (const T aafA[3][3], const T afB[3], T afX[3]);
@@ -102,14 +100,14 @@ public:
   static GbBool symmetricInverse (int iSize, T** aafA, T** aafAInv);
 
   //! tolerance for 2x2 and 3x3 system solving
-  static T TOLERANCE;
+  static const T TOLERANCE;
 };
 
 
 
 #ifdef __GNUG__
 
-#include "GbLinearSystem.in"
+//#include "GbLinearSystem.in"
 #include "GbLinearSystem.T"
 
 #else
@@ -117,9 +115,9 @@ public:
 #pragma instantiate GbLinearSystem<float>
 #pragma instantiate GbLinearSystem<double>
 
-#ifndef OUTLINE
-#include "GbLinearSystem.in"
-#endif
+//#ifndef OUTLINE
+//#include "GbLinearSystem.in"
+//#endif
 
 #endif  // g++
 
@@ -127,8 +125,11 @@ public:
 /*----------------------------------------------------------------------
 |
 | $Log$
-| Revision 1.1  2002/02/22 14:47:56  elena
-| new: dir Gridlib_inc
+| Revision 1.2  2002/03/21 14:58:56  elena
+| new: changes in dat-file for reading tetrahedral (bugs in element connection)
+|
+| Revision 1.3  2001/08/16 16:53:17  prkipfer
+| improved type safety for template parameter
 |
 | Revision 1.2  2001/04/23 10:08:28  prkipfer
 | fixed typo

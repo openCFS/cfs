@@ -33,7 +33,7 @@ class GoDefaultVertexBase
 public: 
 
   //! Constructor: all values are initialized to zero, if not specified
-  GoDefaultVertexBase(int i = -1, T x = 0, T y = 0, T z = 0);
+  GoDefaultVertexBase(int i = -1, T x = 0, T y = 0, T z = 0, T nx = 0, T ny = 0, T nz = 0);
   ~GoDefaultVertexBase();
 
   //! The position in 3D space
@@ -43,7 +43,6 @@ public:
   INLINE GbVec3<T> getPosition() const;
 
   //! A normal at this vertex in 3D space
-  void computeNormal(std::vector<GoGeometryElement<T> *>& S);
   INLINE void setNormal(T x, T y, T z);
   INLINE void setNormal(const GbVec3<T>& v);
   INLINE void getNormal(T& xx, T& yy, T& zz) const;
@@ -133,8 +132,11 @@ operator<<(std::ostream& s, const GoDefaultVertexBase<T>& v)
 /*----------------------------------------------------------------------
 |
 | $Log$
-| Revision 1.1  2002/02/22 14:47:56  elena
-| new: dir Gridlib_inc
+| Revision 1.2  2002/03/21 14:58:57  elena
+| new: changes in dat-file for reading tetrahedral (bugs in element connection)
+|
+| Revision 1.3  2002/03/18 10:00:25  prkipfer
+| refactored element structure
 |
 | Revision 1.2  2001/01/02 15:16:45  prkipfer
 | changed to use new classes and GbMath

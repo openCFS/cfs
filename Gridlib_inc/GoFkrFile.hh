@@ -61,7 +61,11 @@ private:
     AddCoordinate(std::ofstream& f) : fh(f) {}
     void operator()(GoVertex<float> *t) {
       float x,y,z,d,e;
+#ifdef HAS_DYN_CAST
       GoFlowVertex *vert = dynamic_cast<GoFlowVertex*>(t);
+#else
+      GoFlowVertex *vert = static_cast<GoFlowVertex*>(t);
+#endif
       vert->getPosition(x,y,z);
       d=vert->getDensity();
       e=vert->getEnergy();
@@ -102,8 +106,11 @@ public:
 /*----------------------------------------------------------------------
 |
 | $Log$
-| Revision 1.1  2002/02/22 14:47:56  elena
-| new: dir Gridlib_inc
+| Revision 1.2  2002/03/21 14:58:57  elena
+| new: changes in dat-file for reading tetrahedral (bugs in element connection)
+|
+| Revision 1.6  2001/12/11 12:42:30  prkipfer
+| fixes for KCC compiler on new PCs
 |
 | Revision 1.5  2001/06/18 11:06:18  prkipfer
 | update binary format reading routine

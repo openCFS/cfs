@@ -4,115 +4,82 @@
 |
 +---------------------------------------------------------------------*/
 
+template<class T>
+INLINE void 
+GoHexahedronElementBase<T>::setVertex(int i, GoVertex<T> *v) 
+{ 
+  if (i<8)
+    data_.vertices[i] = v; 
+}
 
 template<class T>
 INLINE GoVertex<T> *
 GoHexahedronElementBase<T>::getVertex(int i) const 
 { 
-  return(data_.vertices[i]); 
+  if (i<8)
+    return(data_.vertices[i]); 
+  return NULL;
 }
 
 template<class T>
 INLINE void 
-GoHexahedronElementBase<T>::getNormal(T& xx, T& yy, T& zz) const 
+GoHexahedronElementBase<T>::setEdge(int i, GoEdge<T> *e) 
 { 
-}
-
-template <class T>
-INLINE GbVec3<T> 
-GoHexahedronElementBase<T>::getNormal() const 
-{ 
-  return GbVec3<T>(0,0,0); 
-}
-
-template <class T>
-INLINE void 
-GoHexahedronElementBase<T>::setNormal(const GbVec3<T>& n)
-{
+  if (i<12)
+    data_.edges[i] = e; 
 }
 
 template<class T>
-INLINE void 
-GoHexahedronElementBase<T>::setFlag(GbGeoStatusFlag f) 
+INLINE GoEdge<T> *
+GoHexahedronElementBase<T>::getEdge(int i) const 
 { 
-  data_.flag = static_cast<GbGeoStatusFlag>(data_.flag | f); 
-}
-
-template<class T>
-INLINE void 
-GoHexahedronElementBase<T>::delFlag(GbGeoStatusFlag f) 
-{ 
-  data_.flag = static_cast<GbGeoStatusFlag>(data_.flag & (~f)); 
-}
-
-template<class T>
-INLINE GbBool 
-GoHexahedronElementBase<T>::testFlag(GbGeoStatusFlag f) const 
-{ 
-  return((data_.flag & f) != 0); 
-}
-
-template<class T>
-INLINE void 
-GoHexahedronElementBase<T>::setId(int i) 
-{ 
-  data_.id = i; 
-}
-
-template <class T>
-INLINE int 
-GoHexahedronElementBase<T>::getId() const 
-{ 
-  return data_.id; 
-}
-
-template<class T>
-INLINE void 
-GoHexahedronElementBase<T>::setPartition(int i) 
-{ 
-  data_.partition = i; 
-}
-
-template <class T>
-INLINE int 
-GoHexahedronElementBase<T>::getPartition() const 
-{ 
-  return data_.partition; 
+  if (i<12)
+    return(data_.edges[i]);
+  return NULL;
 }
 
 template<class T>
 INLINE void 
 GoHexahedronElementBase<T>::setNeighbour(int i, GoGeometryElement<T> *face) 
 { 
-  data_.neighbours[i] = face; 
+  if (i<6)
+    data_.neighbours[i] = face; 
 }
 
 template<class T>
 INLINE GoGeometryElement<T> *
 GoHexahedronElementBase<T>::getNeighbour(int i) const
 { 
-  return(data_.neighbours[i]); 
+  if (i<6)
+    return(data_.neighbours[i]); 
+  return NULL;
 }
 
 template<class T>
-INLINE void 
-GoHexahedronElementBase<T>::setVertex(int i, GoVertex<T> *v) 
+INLINE GoGeometryElement<T> *
+GoHexahedronElementBase<T>::getChild(int i) const
 { 
-  data_.vertices[i] = v; 
+  if (i<8)
+    return(data_.children[i]);
+  return NULL;
 }
 
 template<class T>
-INLINE GbBool
-GoHexahedronElementBase<T>::subdivide()
-{
-  return true;
+INLINE void
+GoHexahedronElementBase<T>::setChild(int i, GoGeometryElement<T> *v)
+{ 
+  if (i<8)
+    data_.children[i] = v; 
 }
 
 /*----------------------------------------------------------------------
 |
 | $Log$
-| Revision 1.1  2002/02/22 14:47:56  elena
-| new: dir Gridlib_inc
+| Revision 1.2  2002/03/21 14:58:57  elena
+| new: changes in dat-file for reading tetrahedral (bugs in element connection)
+|
+| Revision 1.4  2002/03/18 10:00:25  prkipfer
+| refactored element structure
 |
 | Revision 1.3  2000/11/07 17:27:33  prkipfer
 | introduced external polymorphism for vertices

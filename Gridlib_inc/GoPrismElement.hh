@@ -9,8 +9,9 @@
 
 #include "GbTypes.hh"
 #include "GbVec3.hh"
-#include "GoGeometryElement.hh"
+#include "GoDefaultElement.hh"
 #include "GoVertex.hh"
+#include "GoEdge.hh"
 #include "GoPrismElementBase.hh"
 
 /*----------------------------------------------------------------------
@@ -21,139 +22,93 @@
   class GoPrismElement
  */
 class GoPrismElement 
-  : public GoGeometryElement<float>
+  : public GoDefaultElement
 {
 public: 
-  GoPrismElement() { this_ = new GoPrismElementBase<float>; }
-  GoPrismElement(GoPrismElementBase<float> *t) : this_(t) {}
+  GoPrismElement(int i=-1, int p=0, int l=0, const GbVec3<float>* n=NULL)
+    : GoDefaultElement(i,p,l,n)
+    { 
+      prism_ = new GoPrismElementBase<float>; 
+    }
+  GoPrismElement(GoDefaultElementBase<float> *t) 
+    : GoDefaultElement(t) 
+    {
+      prism_ = new GoPrismElementBase<float>; 
+    }
 
-  virtual ~GoPrismElement() { delete this_; }
+  virtual ~GoPrismElement() { delete prism_; }
 
   // Operations on vertices of the geometry object
   virtual void setVertex(int i, GoVertex<float> *v) {
-    ::setVertex<GoPrismElementBase<float>,float> (this_,i,v);
+    ::setVertex<GoPrismElementBase<float>,float> (prism_,i,v);
   }
   virtual GoVertex<float> *getVertex(int i) const {
-    return ::getVertex<GoPrismElementBase<float>,float> (this_,i);
+    return ::getVertex<GoPrismElementBase<float>,float> (prism_,i);
   }
-  virtual int findVertex(GoVertex<float> *v) const {
-    return ::findVertex<GoPrismElementBase<float>,float> (this_,v);
-  }
-  virtual GoVertex<float> *otherVertex(GoGeometryElement<float> *f) const {
-    return ::otherVertex<GoPrismElementBase<float>,float> (this_,f);
-  }
-  virtual int getNumVertices() const {
-    return 6;
-  }
-
-  // Other faces related to this object
-  virtual GoGeometryElement<float> *otherFace(GoVertex<float> *v) const {
-    return ::otherFace<GoPrismElementBase<float>,float> (this_,v);
-  }
+  virtual int getNumVertices() const { return 6; }
 
   // The face normal
   virtual void computeNormal() {
-    ::computeNormal<GoPrismElementBase<float>,float> (this_);
-  }
-  virtual GbVec3<float> getNormal() const {
-    return ::getNormal<GoPrismElementBase<float>,float> (this_);
-  }
-  virtual void setNormal(const GbVec3<float>& n) {
-    ::setNormal<GoPrismElementBase<float>,float> (this_,n);
   }
 
   // The layout of the object
-  virtual GbVec3<float> getOrigin() const {
-//    return ::getOrigin<GoPrismElementBase<float>,float> (this_);
-    return GbVec3<float>::ZERO;
+  virtual int getEdgeList(int **l) const { 
+    static int table_prism[18] = {0,1,0,3,0,5,1,5,1,2,5,4,3,4,3,2,2,4};
+    *l = table_prism;
+    return 18;
   }
-  virtual GbVec3<float> getEdge(int i) const {
-//    return ::getEdge<GoPrismElementBase<float>,float> (this_,i);
-    return GbVec3<float>::ZERO;
+  virtual void setEdge(int i, GoEdge<float> *e) {
+    ::setEdge<GoPrismElementBase<float>,float> (prism_, i, e);
   }
-
-  // Status flags indicating semantic defined by the
-  // object using this class
-  virtual void setFlag(GbGeoStatusFlag f) {
-    ::setFlag<GoPrismElementBase<float>,float> (this_,f);
+  virtual GoEdge<float> *getEdge(int i) const {
+    return ::getEdge<GoPrismElementBase<float>,float> (prism_,i);
   }
-  virtual void delFlag(GbGeoStatusFlag f) {
-    ::delFlag<GoPrismElementBase<float>,float> (this_,f);
-  }
-  virtual GbBool testFlag(GbGeoStatusFlag f) const {
-    return ::testFlag<GoPrismElementBase<float>,float> (this_,f);
-  }
-
-  // The object can be split into sub-objects
-//  virtual void setNumSplits(int s);
-//  virtual int getNumSplits() const;
-
-  // Integer to identify the object
-  // Has no meaning to this class's implementation
-  virtual void setId(int i) {
-    ::setId<GoPrismElementBase<float>,float> (this_,i);
-  }
-  virtual int getId() const {
-    return ::getId<GoPrismElementBase<float>,float> (this_);
-  }
-
-  // modification operations on the object
-  virtual GbBool subdivide(const GbOracle &op) {
-    if (op())
-      return ::subdivide<GoPrismElementBase<float>,float> (this_);
-    else
-      return false;
-  }
-
-  // The scene part this object belongs to in the partition
-  virtual void setPartition(int i) {
-    ::setPartition<GoPrismElementBase<float>,float> (this_,i);
-  }
-  virtual int getPartition() const {
-    return ::getPartition<GoPrismElementBase<float>,float> (this_);
-  }
+  virtual int getNumEdges() const { return 9; }
 
   // The neighboring face objects
   virtual void setNeighbour(int i, GoGeometryElement<float> *face) {
-    ::setNeighbour<GoPrismElementBase<float>,float> (this_,i,face);
-  }
-  virtual void setNeighbour(GoGeometryElement<float> *face) {
-    ::setNeighbour<GoPrismElementBase<float>,float> (this_,face);
+    ::setNeighbour<GoPrismElementBase<float>,float> (prism_,i,face);
   }
   virtual GoGeometryElement<float> *getNeighbour(int i) const {
-    return ::getNeighbour<GoPrismElementBase<float>,float> (this_,i);
+    return ::getNeighbour<GoPrismElementBase<float>,float> (prism_,i);
   }
-  virtual int findNeighbour(GoGeometryElement<float> *face) {
-    return ::findNeighbour<GoPrismElementBase<float>,float> (this_,face);
-  }
+  virtual int getNumNeighbours() const { return 5; }
   
   // Parents and children objects
   virtual GoGeometryElement<float> *getChild(int i) const {
-    return NULL; //::getChild<GoTriangleElementBase<float>,float> (this_,i);
+    return ::getChild<GoPrismElementBase<float>,float> (prism_,i);
   }
   virtual void setChild(int i, GoGeometryElement<float> *face) {
-    //::setChild<GoQuadElementBase<float>,float> (this_,i,face);
+    ::setChild<GoPrismElementBase<float>,float> (prism_,i,face);
   }
-  virtual GoGeometryElement<float> *getParent() const {
-    return NULL; //::getParent<GoTetrahedronElementBase<float>,float> (this_);
-  }
-  virtual void setParent(GoGeometryElement<float> *face) {
-    //::setParent<GoTertahedronElementBase<float>,float> (this_,face);
-  }
+  virtual int getNumChildren() const { return 2; }
 
   // Get memory statistics and reduce memory space needed
   virtual void statistic() const {
-    ::statistic<GoPrismElementBase<float>,float> (this_);
+    ::statistic<GoDefaultElementBase<float>,float> (this_);
+    ::statistic<GoPrismElementBase<float>,float> (prism_);
   }
   virtual void shrink() {
-    ::shrink<GoPrismElementBase<float>,float> (this_);
+    ::shrink<GoDefaultElementBase<float>,float> (this_);
+    ::shrink<GoPrismElementBase<float>,float> (prism_);
   }
 
 //  friend std::ostream& operator<<(std::ostream&, const GoPrismElement&);
 
-private:
-  GoPrismElementBase<float> *this_;
+protected:
+  GoPrismElementBase<float> *prism_;
 };
 
 #endif // GOPRISMELEMENT_HH
 
+/*----------------------------------------------------------------------
+|
+| $Log$
+| Revision 1.2  2002/03/21 14:58:57  elena
+| new: changes in dat-file for reading tetrahedral (bugs in element connection)
+|
+| Revision 1.8  2002/03/18 09:58:55  prkipfer
+| refactored element structure
+|
+|
++---------------------------------------------------------------------*/

@@ -1,3 +1,4 @@
+// -*- C++ -*- automatisch in C++mode wechseln (emacs)
 /*----------------------------------------------------------------------
 |
 | $Id$
@@ -9,11 +10,15 @@ GoMesh::addElement(GoGeometryElement<float> *e, int level)
 {
   if (level==elements_.size()) {
     elements_.push_back(new ElementVector);
+    edgeCache_.push_back(NULL);
+    faceCache_.push_back(NULL);
     debugmsg("want to subdivide ? ok - added one new level of elements");
   }
   if (level<elements_.size()) {
     //    debugmsg("adding element to level "<<level);
     elements_[level]->push_back(e);
+    deleteEdgeCache(level);
+    deleteFaceCache(level);
   }
   else
     errormsg("you are trying to add elements to non-existing subdivision level \""<<level<<"\" -> nothing added");
@@ -32,6 +37,21 @@ GoMesh::addVertex(GoVertex<float> *vert, int level)
   }
   else
     errormsg("you are trying to add vertices to non-existing subdivision level \""<<level<<"\" -> nothing added");
+}
+
+INLINE void
+GoMesh::addEdge(GoEdge<float> *edge, int level) 
+{
+  if (level==edges_.size()) {
+    edges_.push_back(new EdgeVector);
+    debugmsg("want to subdivide ? ok - added one new level of edges");
+  }
+  if (level<edges_.size()) {
+    //    debugmsg("adding edge to level "<<level);
+    edges_[level]->push_back(edge);
+  }
+  else
+    errormsg("you are trying to add edges to non-existing subdivision level \""<<level<<"\" -> nothing added");
 }
 
 INLINE int 
@@ -62,23 +82,26 @@ GoMesh::getNumVertices(int level) const
   return 0;
 }
 
+INLINE int 
+GoMesh::getNumEdges(int level) const 
+{ 
+  if (level<edges_.size())
+    return(edges_[level]->size());
+  debugmsg("edge-level "<<level<<" does not exist yet");
+  return 0;
+}
+
 INLINE GoVertex<float> *
 GoMesh::getVertex(int i, int level) const
 {
-  assert(level<vertices_.size());
-  assert(i<vertices_[level]->size());
-//  #ifdef DEBUG
-//    if (level<vertices_.size()) {
-//      if (i<vertices_[level]->size())
-//  #endif
+  if (level<vertices_.size()) {
+    if (i<vertices_[level]->size())
       return (*(vertices_[level]))[i];
-//  #ifdef DEBUG
-//      else
-//        errormsg("there is no vertex "<<i<<" on level "<<level<<" - valid vertices: [0;"<<vertices_[level]->size()-1<<"]");
-//    }
-//    errormsg("cannot get vertices from level "<<level<<" - valid levels: [0;"<<vertices_.size()-1<<"]");
-//    return NULL;
-//  #endif
+    else
+      errormsg("there is no vertex "<<i<<" on level "<<level<<" - valid vertices: [0;"<<vertices_[level]->size()-1<<"]");
+  }
+  errormsg("cannot get vertices from level "<<level<<" - valid levels: [0;"<<vertices_.size()-1<<"]");
+  return NULL;
 }
 
 INLINE GoGeometryElement<float> *
@@ -91,6 +114,47 @@ GoMesh::getElement(int i, int level) const
       errormsg("there is no element "<<i<<" on level "<<level<<" - valid elements: [0;"<<elements_[level]->size()-1<<"]");
   }
   errormsg("cannot get elements from level "<<level<<" - valid levels: [0;"<<elements_.size()-1<<"]");
+  return NULL;
+}
+
+INLINE GoEdge<float> *
+GoMesh::getEdge(int i, int level) const
+{
+  if (level<edges_.size()) {
+    if (i<edges_[level]->size())
+      return (*(edges_[level]))[i];
+    else
+      errormsg("there is no edge "<<i<<" on level "<<level<<" - valid edges: [0;"<<edges_[level]->size()-1<<"]");
+  }
+  errormsg("cannot get edges from level "<<level<<" - valid levels: [0;"<<edges_.size()-1<<"]");
+  return NULL;
+}
+
+INLINE GoEdge<float> *
+GoMesh::getEdge(GoVertex<float>* v0, GoVertex<float>* v1, int level)
+{
+  assert(v0);
+  int i0=v0->getId();
+  assert(v1);
+  int i1=v1->getId();
+  if (i0 > i1) {
+    int buffer = i0;
+    i0 = i1;
+    i1 = buffer;
+  }
+
+  assert(level<vertices_.size());
+  updateEdgeCache(level);
+
+  // edge must be originating from v0 as we sorted the indices before
+  EdgeCacheEntry *tab = edgeCache_[level][i0];
+  while (tab) {
+    GoVertex<float>* v = getVertex(tab->idx,level);
+    if (v->getId() == i1)
+      return tab->el->findEdge(v0,v1);
+    tab=tab->next;
+  }
+
   return NULL;
 }
 
@@ -114,11 +178,29 @@ GoMesh::vertexNormals() const
     forAllVerticesOnLevel((*iter),ComputeVertexNormal());
 }
 
+INLINE void
+GoMesh::initTempFlags(unsigned int num)
+{
+  if (! tempFlags_)
+    tempFlags_ = new GbBitArray(num);
+  else {
+    if ( tempFlags_ &&
+	 (tempFlags_->size()<num) ) {
+      delete tempFlags_;
+      tempFlags_ = new GbBitArray(num);
+    }
+  }
+  tempFlags_->clear();
+}
+
 /*----------------------------------------------------------------------
 |
 | $Log$
-| Revision 1.1  2002/02/22 14:47:56  elena
-| new: dir Gridlib_inc
+| Revision 1.2  2002/03/21 14:58:57  elena
+| new: changes in dat-file for reading tetrahedral (bugs in element connection)
+|
+| Revision 1.8  2001/09/12 11:53:04  prkipfer
+| introduced adaptive tet subdivision
 |
 | Revision 1.7  2001/05/03 08:05:51  uflabsik
 | functionality added

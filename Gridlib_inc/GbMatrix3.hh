@@ -49,10 +49,12 @@ public:
   //! Various Constructors
   GbMatrix3 ();
   GbMatrix3 (const T entry[3][3]);
+  GbMatrix3 (const T entry[9]);
   GbMatrix3 (const GbMatrix3<T>& m);
   GbMatrix3 (T entry00, T entry01, T entry02,
 	     T entry10, T entry11, T entry12,
 	     T entry20, T entry21, T entry22);
+  explicit GbMatrix3 (T s);
 
   //! Destructor
   ~GbMatrix3();
@@ -62,9 +64,12 @@ public:
   INLINE GbVec3<T> getColumn (int col) const;
 
   //! Assignment and comparison
-  INLINE GbMatrix3<T>& operator=  (const GbMatrix3<T>& m);
+//!!  INLINE GbMatrix3<T>& operator=  (const GbMatrix3<T>& m);
   INLINE GbBool        operator== (const GbMatrix3<T>& m) const;
   INLINE GbBool        operator!= (const GbMatrix3<T>& m) const;
+  INLINE GbMatrix3<T>& operator+= (const GbMatrix3<T>& m);
+  INLINE GbMatrix3<T>& operator-= (const GbMatrix3<T>& m);
+  INLINE GbMatrix3<T>& operator*= (const GbMatrix3<T>& m);
 
   //! Arithmetic operations
   INLINE GbMatrix3<T> operator+ (const GbMatrix3<T>& m) const;
@@ -72,18 +77,18 @@ public:
   INLINE GbMatrix3<T> operator* (const GbMatrix3<T>& m) const;
   INLINE GbMatrix3<T> operator- () const;
 
-  //! Matrix * vector [3x3 * 3x1 = 3x1]
+  //! Matrix(self) * vector [3x3 * 3x1 = 3x1]
   INLINE GbVec3<T> operator* (const GbVec3<T>& v) const;
 
   //! Vector * matrix [1x3 * 3x3 = 1x3]
   friend GbVec3<T> operator*(const GbVec3<T>& v, const GbMatrix3<T>& m);
 
   //! Matrix * scalar
-  INLINE GbMatrix3<T> operator* (T s) const;
-  INLINE GbMatrix3<T> operator* (int s) const;
+  INLINE GbMatrix3<T> operator* (const T& s) const;
+  INLINE GbMatrix3<T> operator* (const int& s) const;
 
   //! Scalar * matrix
-  friend GbMatrix3<T> operator*(T s, const GbMatrix3<T>& m);
+  friend GbMatrix3<T> operator*(const T& s, const GbMatrix3<T>& m);
 
   //! M0.transposeTimes(M1) = M0^t*M1 where M0^t is the transpose of M0
   INLINE GbMatrix3<T> transposeTimes (const GbMatrix3<T>& rkM) const;
@@ -92,11 +97,11 @@ public:
   INLINE GbMatrix3<T> timesTranspose (const GbMatrix3<T>& rkM) const;
 
   //! Utilities
-  GbMatrix3<T> transpose () const;
+  INLINE GbMatrix3<T> transpose () const;
   // tolerance max. 1e-06
   GbBool inverse (GbMatrix3<T>& inv, T tolerance = std::numeric_limits<T>::epsilon()) const;
   GbMatrix3<T> inverse (T tolerance = std::numeric_limits<T>::epsilon()) const;
-  T determinant () const;
+  INLINE T determinant () const;
 
   //! SLERP (spherical linear interpolation) without quaternions.  Computes
   //! R(t) = R0*(transpose(R0)*R1)^t.  If Q is a rotation matrix with
@@ -145,8 +150,9 @@ public:
   static const GbMatrix3<T> ZERO;
   static const GbMatrix3<T> IDENTITY;
 
-  //! This operator displays the coordinate values of the matrix
+  //! This operator displays and reads the coordinate values of the matrix
   friend std::ostream& operator<<(std::ostream&, const GbMatrix3<T>&);
+  friend std::istream& operator>>(std::istream&, GbMatrix3<T>&);
 
 private:
   //! Support for eigensolver
@@ -167,35 +173,53 @@ private:
 
 template<class T>
 GbMatrix3<T>
-operator* (T s, const GbMatrix3<T>& m)
+operator* (const T& s, const GbMatrix3<T>& m)
 {
-  GbMatrix3<T> kProd;
-  for (int iRow = 0; iRow < 3; iRow++) {
-    for (int iCol = 0; iCol < 3; iCol++)
-      kProd[iRow][iCol] = s*m.entry_[iRow][iCol];
+  T kProd[9];
+  int k=0;
+
+  for (int iRow = 0; iRow < 3; ++iRow) {
+    for (int iCol = 0; iCol < 3; ++iCol)
+      kProd[k++] = s*m.entry_[iRow][iCol];
   }
-  return kProd;
+  return GbMatrix3<T>(kProd);
 }
 
 template<class T>
 GbVec3<T> 
 operator* (const GbVec3<T>& v, const GbMatrix3<T>& m)
 {
-  GbVec3<T> kProd;
-  for (int iRow = 0; iRow < 3; iRow++) {
+  T kProd[3];
+  for (int iRow = 0; iRow < 3; ++iRow) {
     kProd[iRow] = v[0]*m[0][iRow] + v[1]*m[1][iRow] + v[2]*m[2][iRow];
   }
-  return kProd;
+  return GbVec3<T>(kProd);
 }
 
 template<class T>
 std::ostream&
 operator<<(std::ostream& s, const GbMatrix3<T>& v)
 {
-  s<<typeid(v).name()<<":";
-  s<<"\n/ "<<v[0][0]<<" "<<v[1][0]<<" "<<v[2][0]<<" \\";
-  s<<"\n| "<<v[0][1]<<" "<<v[1][1]<<" "<<v[2][1]<<" |";
-  s<<"\n\\ "<<v[0][2]<<" "<<v[1][2]<<" "<<v[2][2]<<" /"<<std::endl;
+  s<<"[("<<v[0][0]<<", "<<v[1][0]<<", "<<v[2][0]<<") ";
+  s<<"("<<v[0][1]<<", "<<v[1][1]<<", "<<v[2][1]<<") ";
+  s<<"("<<v[0][2]<<", "<<v[1][2]<<", "<<v[2][2]<<")]";
+  return s;
+}
+
+template<class T>
+std::istream&
+operator>>(std::istream& s, GbMatrix3<T>& v)
+{
+  char c;
+  char dummy[3];
+  T x,y,z;
+  
+  s>>c>>c>>x>>dummy>>y>>dummy>>z>>c>>c;
+  v[0][0]=x; v[1][0]=y; v[2][0]=z;
+  s>>c>>x>>dummy>>y>>dummy>>z>>c>>c;
+  v[0][1]=x; v[1][1]=y; v[2][1]=z;
+  s>>c>>x>>dummy>>y>>dummy>>z>>c>>c;
+  v[0][2]=x; v[1][2]=y; v[2][2]=z;
   return s;
 }
 
@@ -212,6 +236,8 @@ operator<<(std::ostream& s, const GbMatrix3<T>& v)
 #pragma instantiate GbVec3<double> operator* (const GbVec3<double>& v, const GbMatrix3<double>& m)
 #pragma instantiate std::ostream& operator<<(std::ostream&, const GbMatrix3<float>&)
 #pragma instantiate std::ostream& operator<<(std::ostream&, const GbMatrix3<double>&)
+#pragma instantiate std::istream& operator>>(std::istream&, GbMatrix3<float>&)
+#pragma instantiate std::istream& operator>>(std::istream&, GbMatrix3<double>&)
 
 #ifndef OUTLINE
 #include "GbMatrix3.in"
@@ -223,8 +249,14 @@ operator<<(std::ostream& s, const GbMatrix3<T>& v)
 /*----------------------------------------------------------------------
 |
 | $Log$
-| Revision 1.1  2002/02/22 14:47:56  elena
-| new: dir Gridlib_inc
+| Revision 1.2  2002/03/21 14:58:56  elena
+| new: changes in dat-file for reading tetrahedral (bugs in element connection)
+|
+| Revision 1.5  2001/09/12 09:14:35  prkipfer
+| made constructor explicit to avoid implicit type conversion
+|
+| Revision 1.4  2001/08/16 16:53:18  prkipfer
+| improved type safety for template parameter
 |
 | Revision 1.3  2001/06/15 08:35:10  prkipfer
 | added fast transpose multiplication and spherical interpolation without quaternions

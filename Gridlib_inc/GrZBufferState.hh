@@ -61,8 +61,8 @@ protected:
 /*----------------------------------------------------------------------
 |
 | $Log$
-| Revision 1.1  2002/02/22 14:47:57  elena
-| new: dir Gridlib_inc
+| Revision 1.2  2002/03/21 14:58:58  elena
+| new: changes in dat-file for reading tetrahedral (bugs in element connection)
 |
 | Revision 1.2  2001/06/26 12:25:45  prkipfer
 | minor fixes for clean Linux compile

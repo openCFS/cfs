@@ -14,8 +14,9 @@
 
 #include "GbTypes.hh"
 #include "GbVec3.hh"
-#include "GoGeometryElement.hh"
+#include "GoDefaultElement.hh"
 #include "GoVertex.hh"
+#include "GoEdge.hh"
 #include "GoQuadElementBase.hh"
 
 /*----------------------------------------------------------------------
@@ -26,141 +27,112 @@
   class GoQuadElement
  */
 class GoQuadElement 
-  : public GoGeometryElement<float>
+  : public GoDefaultElement
 {
 public: 
-  GoQuadElement() { this_ = new GoQuadElementBase<float>; }
-  GoQuadElement(GoQuadElementBase<float> *t) : this_(t) {}
+  GoQuadElement(int i=-1, int p=0, int l=0, const GbVec3<float>* n=NULL)
+    : GoDefaultElement(i,p,l,n)
+    { 
+      quad_ = new GoQuadElementBase<float>; 
+    }
+  GoQuadElement(GoDefaultElementBase<float> *t) 
+    : GoDefaultElement(t) 
+    {
+      quad_ = new GoQuadElementBase<float>; 
+    }
 
-  virtual ~GoQuadElement() { delete this_; }
+  virtual ~GoQuadElement() { delete quad_; }
 
   // Operations on vertices of the geometry object
   virtual void setVertex(int i, GoVertex<float> *v) {
-    ::setVertex<GoQuadElementBase<float>,float> (this_,i,v);
+    ::setVertex<GoQuadElementBase<float>,float> (quad_,i,v);
   }
   virtual GoVertex<float> *getVertex(int i) const {
-    return ::getVertex<GoQuadElementBase<float>,float> (this_,i);
+    return ::getVertex<GoQuadElementBase<float>,float> (quad_,i);
   }
-  virtual int findVertex(GoVertex<float> *v) const {
-    return ::findVertex<GoQuadElementBase<float>,float> (this_,v);
-  }
-  virtual GoVertex<float> *otherVertex(GoGeometryElement<float> *f) const {
-    return ::otherVertex<GoQuadElementBase<float>,float> (this_,f);
-  }
-  virtual int getNumVertices() const {
-    return 4;
-  }
-
-  // Other faces related to this object
-  virtual GoGeometryElement<float> *otherFace(GoVertex<float> *v) const {
-    return ::otherFace<GoQuadElementBase<float>,float> (this_,v);
-  }
+  virtual int getNumVertices() const { return 4; }
 
   // The face normal
   virtual void computeNormal() {
-    ::computeNormal<GoQuadElementBase<float>,float> (this_);
-  }
-  virtual GbVec3<float> getNormal() const {
-    return ::getNormal<GoQuadElementBase<float>,float> (this_);
-  }
-  virtual void setNormal(const GbVec3<float>& n) {
-    ::setNormal<GoQuadElementBase<float>,float> (this_,n);
+    float x0,y0,z0, x1,y1, z1, x2,y2,z2, xn,yn,zn;
+    float n;
+
+//  debugmsg("computing face normal");
+    getVertex(0)->getPosition(x0,y0,z0);
+    getVertex(1)->getPosition(x1,y1,z1);
+    getVertex(2)->getPosition(x2,y2,z2);
+  
+    xn = ((y1-y0)*(z2-z0) - (y2-y0)*(z1-z0));
+    yn = ((z1-z0)*(x2-x0) - (z2-z0)*(x1-x0));
+    zn = ((x1-x0)*(y2-y0) - (x2-x0)*(y1-y0));
+  
+    n = GbMath<float>::Sqrt(xn*xn + yn*yn + zn*zn);
+  
+    if (n != 0.0f)
+      setNormal(GbVec3<float>(xn/n,yn/n,zn/n));
+    else
+      setNormal(GbVec3<float>::ZERO);
   }
 
   // The layout of the object
-  virtual GbVec3<float> getOrigin() const {
-//    return ::getOrigin<GoQuadElementBase<float>,float> (this_);
-    return GbVec3<float>::ZERO;
+  virtual int getEdgeList(int **l) const { 
+    static int table_quad[8] = {0,1,0,3,1,2,3,2};
+    *l = table_quad;
+    return 8;
   }
-  virtual GbVec3<float> getEdge(int i) const {
-//    return ::getEdge<GoQuadElementBase<float>,float> (this_,i);
-    return GbVec3<float>::ZERO;
+  virtual void setEdge(int i, GoEdge<float> *e) {
+    ::setEdge<GoQuadElementBase<float>,float> (quad_, i, e);
   }
-
-  // Status flags indicating semantic defined by the
-  // object using this class
-  virtual void setFlag(GbGeoStatusFlag f) {
-    ::setFlag<GoQuadElementBase<float>,float> (this_,f);
+  virtual GoEdge<float> *getEdge(int i) const {
+    return ::getEdge<GoQuadElementBase<float>,float> (quad_,i);
   }
-  virtual void delFlag(GbGeoStatusFlag f) {
-    ::delFlag<GoQuadElementBase<float>,float> (this_,f);
-  }
-  virtual GbBool testFlag(GbGeoStatusFlag f) const {
-    return ::testFlag<GoQuadElementBase<float>,float> (this_,f);
-  }
-
-  // The object can be split into sub-objects
-//  virtual void setNumSplits(int s);
-//  virtual int getNumSplits() const;
-
-  // modification operations on the object
-  virtual GbBool subdivide(const GbOracle &op) {
-    if (op())
-      return ::subdivide<GoQuadElementBase<float>,float> (this_);
-    else
-      return false;
-  }
-
-  // The scene part this object belongs to in the partition
-  virtual void setPartition(int i) {
-    ::setPartition<GoQuadElementBase<float>,float> (this_,i);
-  }
-  virtual int getPartition() const {
-    return ::getPartition<GoQuadElementBase<float>,float> (this_);
-  }
-
-  // Integer to identify the object
-  // Has no meaning to this class's implementation
-  virtual void setId(int i) {
-    ::setId<GoQuadElementBase<float>,float> (this_,i);
-  }
-  virtual int getId() const {
-    return ::getId<GoQuadElementBase<float>,float> (this_);
-  }
+  virtual int getNumEdges() const { return 4; }
 
   // The neighboring face objects
   virtual void setNeighbour(int i, GoGeometryElement<float> *face) {
-    ::setNeighbour<GoQuadElementBase<float>,float> (this_,i,face);
-  }
-  virtual void setNeighbour(GoGeometryElement<float> *face) {
-    ::setNeighbour<GoQuadElementBase<float>,float> (this_,face);
+    ::setNeighbour<GoQuadElementBase<float>,float> (quad_,i,face);
   }
   virtual GoGeometryElement<float> *getNeighbour(int i) const {
-    return ::getNeighbour<GoQuadElementBase<float>,float> (this_,i);
+    return ::getNeighbour<GoQuadElementBase<float>,float> (quad_,i);
   }
-  
-  virtual int findNeighbour(GoGeometryElement<float> *face) {
-    return ::findNeighbour<GoQuadElementBase<float>,float> (this_,face);
-  }
+  virtual int getNumNeighbours() const { return 4; }
 
   // Parents and children objects
   virtual GoGeometryElement<float> *getChild(int i) const {
-    return ::getChild<GoQuadElementBase<float>,float> (this_,i);
+    return ::getChild<GoQuadElementBase<float>,float> (quad_,i);
   }
   virtual void setChild(int i, GoGeometryElement<float> *face) {
-    ::setChild<GoQuadElementBase<float>,float> (this_,i,face);
+    ::setChild<GoQuadElementBase<float>,float> (quad_,i,face);
   }
-  virtual GoGeometryElement<float> *getParent() const {
-    return ::getParent<GoQuadElementBase<float>,float> (this_);
-  }
-  virtual void setParent(GoGeometryElement<float> *face) {
-    ::setParent<GoQuadElementBase<float>,float> (this_,face);
-  }
+  virtual int getNumChildren() const { return 4; }
 
   // Get memory statistics and reduce memory space needed
   virtual void statistic() const {
-    ::statistic<GoQuadElementBase<float>,float> (this_);
+    ::statistic<GoDefaultElementBase<float>,float> (this_);
+    ::statistic<GoQuadElementBase<float>,float> (quad_);
   }
   virtual void shrink() {
-    ::shrink<GoQuadElementBase<float>,float> (this_);
+    ::shrink<GoDefaultElementBase<float>,float> (this_);
+    ::shrink<GoQuadElementBase<float>,float> (quad_);
   }
 
 
 //  friend std::ostream& operator<<(std::ostream&, const GoQuadElement&);
 
-private:
-  GoQuadElementBase<float> *this_;
+protected:
+  GoQuadElementBase<float> *quad_;
 };
 
 #endif // GOQUADELEMENT_HH
 
+/*----------------------------------------------------------------------
+|
+| $Log$
+| Revision 1.2  2002/03/21 14:58:57  elena
+| new: changes in dat-file for reading tetrahedral (bugs in element connection)
+|
+| Revision 1.8  2002/03/18 09:58:56  prkipfer
+| refactored element structure
+|
+|
++---------------------------------------------------------------------*/

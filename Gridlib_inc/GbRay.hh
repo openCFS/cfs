@@ -74,8 +74,8 @@ operator<<(std::ostream& s, const GbRay<T>& v)
 /*----------------------------------------------------------------------
 |
 | $Log$
-| Revision 1.1  2002/02/22 14:47:56  elena
-| new: dir Gridlib_inc
+| Revision 1.2  2002/03/21 14:58:57  elena
+| new: changes in dat-file for reading tetrahedral (bugs in element connection)
 |
 | Revision 1.1  2001/01/02 14:56:32  prkipfer
 | introduced new classes

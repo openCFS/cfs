@@ -4,130 +4,6 @@
 |
 +---------------------------------------------------------------------*/
 
-
-template<class T>
-INLINE GoVertex<T> *
-GoQuadElementBase<T>::getVertex(int i) const 
-{ 
-  return(data_.vertices[i]); 
-}
-
-template<class T>
-INLINE void 
-GoQuadElementBase<T>::getNormal(T& xx, T& yy, T& zz) const 
-{ 
-  xx = data_.normal[0];
-  yy = data_.normal[1];
-  zz = data_.normal[2]; 
-}
-
-template <class T>
-INLINE GbVec3<T> 
-GoQuadElementBase<T>::getNormal() const 
-{ 
-  return GbVec3<T>(data_.normal[0],data_.normal[1],data_.normal[2]); 
-}
-
-template <class T>
-INLINE void 
-GoQuadElementBase<T>::setNormal(const GbVec3<T>& n)
-{
-  data_.normal[0] = n[0];
-  data_.normal[1] = n[1];
-  data_.normal[2] = n[2];
-}
-
-template<class T>
-INLINE void 
-GoQuadElementBase<T>::setFlag(GbGeoStatusFlag f) 
-{ 
-  data_.flag = static_cast<GbGeoStatusFlag>(data_.flag | f); 
-}
-
-template<class T>
-INLINE void 
-GoQuadElementBase<T>::delFlag(GbGeoStatusFlag f) 
-{ 
-  data_.flag = static_cast<GbGeoStatusFlag>(data_.flag & (~f)); 
-}
-
-template<class T>
-INLINE GbBool 
-GoQuadElementBase<T>::testFlag(GbGeoStatusFlag f) const 
-{ 
-  return((data_.flag & f) != 0); 
-}
-
-template<class T>
-INLINE void 
-GoQuadElementBase<T>::setId(int i) 
-{ 
-  data_.id = i; 
-}
-
-template <class T>
-INLINE int 
-GoQuadElementBase<T>::getId() const 
-{ 
-  return data_.id; 
-}
-
-template<class T>
-INLINE void 
-GoQuadElementBase<T>::setPartition(int i) 
-{ 
-  data_.partition = i; 
-}
-
-template <class T>
-INLINE int 
-GoQuadElementBase<T>::getPartition() const 
-{ 
-  return data_.partition; 
-}
-
-template<class T>
-INLINE void 
-GoQuadElementBase<T>::setNeighbour(int i, GoGeometryElement<T> *face) 
-{ 
-  data_.neighbours[i] = face; 
-}
-
-template<class T>
-INLINE GoGeometryElement<T> *
-GoQuadElementBase<T>::getNeighbour(int i) const
-{ 
-  return(data_.neighbours[i]); 
-}
-
-template<class T>
-INLINE GoGeometryElement<T> *
-GoQuadElementBase<T>::getChild(int i) const
-{ 
-  return(data_.children[i]); 
-}
-
-template<class T>
-INLINE void
-GoQuadElementBase<T>::setChild(int i, GoGeometryElement<T> *v)
-{ 
-  data_.children[i] = v; 
-}
-
-template<class T>
-INLINE GoGeometryElement<T> *
-GoQuadElementBase<T>::getParent() const
-{ 
-  return(data_.parent); 
-}
-
-template<class T>
-INLINE void
-GoQuadElementBase<T>::setParent(GoGeometryElement<T> *v)
-{ 
-  data_.parent = v; 
-}
-
 template<class T>
 INLINE void 
 GoQuadElementBase<T>::setVertex(int i, GoVertex<T> *v) 
@@ -137,10 +13,62 @@ GoQuadElementBase<T>::setVertex(int i, GoVertex<T> *v)
 }
 
 template<class T>
-INLINE GbBool
-GoQuadElementBase<T>::subdivide()
-{
-  return true;
+INLINE GoVertex<T> *
+GoQuadElementBase<T>::getVertex(int i) const 
+{ 
+  if (i<4)
+    return(data_.vertices[i]); 
+  return NULL;
 }
 
+template<class T>
+INLINE void 
+GoQuadElementBase<T>::setEdge(int i, GoEdge<T> *e) 
+{ 
+  if (i<4)
+    data_.edges[i] = e; 
+}
+
+template<class T>
+INLINE GoEdge<T> *
+GoQuadElementBase<T>::getEdge(int i) const 
+{ 
+  if (i<4)
+    return(data_.edges[i]);
+  return NULL;
+}
+
+template<class T>
+INLINE void 
+GoQuadElementBase<T>::setNeighbour(int i, GoGeometryElement<T> *face) 
+{ 
+  if (i<4)
+    data_.neighbours[i] = face; 
+}
+
+template<class T>
+INLINE GoGeometryElement<T> *
+GoQuadElementBase<T>::getNeighbour(int i) const
+{ 
+  if (i<4)
+    return(data_.neighbours[i]); 
+  return NULL;
+}
+
+template<class T>
+INLINE GoGeometryElement<T> *
+GoQuadElementBase<T>::getChild(int i) const
+{ 
+  if (i<4)
+    return(data_.children[i]); 
+  return NULL;
+}
+
+template<class T>
+INLINE void
+GoQuadElementBase<T>::setChild(int i, GoGeometryElement<T> *v)
+{ 
+  if (i<4)
+    data_.children[i] = v; 
+}
 

@@ -33,6 +33,7 @@ typedef enum {
   MARK2_G       =0x00004000,
   MARKED_G      =0x00008000,
   SUBDIVIDED_G  =0x00010000,
+  MARKED_FOR_REUSE =0x00020000,
   ALL_G         =0xFFFFFFFF
 } GbGeoStatusFlag;
 
@@ -106,6 +107,7 @@ class GbOracle
 public:
   virtual ~GbOracle() {}
   virtual GbBool operator()() const = 0;
+  virtual GbBool operator()(int l, int id) const = 0;
 };
 
 // for use in STL map<GbKeyName,SomeType>
@@ -129,8 +131,11 @@ protected:
 /*----------------------------------------------------------------------
 |
 | $Log$
-| Revision 1.1  2002/02/22 14:47:56  elena
-| new: dir Gridlib_inc
+| Revision 1.2  2002/03/21 14:58:57  elena
+| new: changes in dat-file for reading tetrahedral (bugs in element connection)
+|
+| Revision 1.13  2001/09/12 09:28:40  prkipfer
+| introduced adaptive tet subdivision
 |
 | Revision 1.12  2001/06/15 08:51:06  prkipfer
 | introduced hash table key type

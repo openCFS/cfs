@@ -4,6 +4,10 @@
 |
 +---------------------------------------------------------------------*/
 
+#ifdef LINUX
+#include <cassert>
+#endif
+
 template <class T>
 INLINE 
 GbTStorage<T>::GbTStorage ()
@@ -13,7 +17,7 @@ GbTStorage<T>::GbTStorage ()
 
 template <class T>
 INLINE 
-GbTStorage<T>::GbTStorage (unsigned int uiQuantity)
+GbTStorage<T>::GbTStorage (int uiQuantity)
 {
   if ( uiQuantity > 0 )
     storage_ = new T[uiQuantity];
@@ -44,9 +48,9 @@ GbTStorage<T>::getStorage () const
 
 template <class T>
 INLINE T& 
-GbTStorage<T>::operator[] (unsigned int uiIndex) const
+GbTStorage<T>::operator[] (int uiIndex) const
 {
-//  assert( storage_ );
+  assert( storage_ );
   return storage_[uiIndex];
 }
 
@@ -54,8 +58,11 @@ GbTStorage<T>::operator[] (unsigned int uiIndex) const
 /*----------------------------------------------------------------------
 |
 | $Log$
-| Revision 1.1  2002/02/22 14:47:56  elena
-| new: dir Gridlib_inc
+| Revision 1.2  2002/03/21 14:58:57  elena
+| new: changes in dat-file for reading tetrahedral (bugs in element connection)
+|
+| Revision 1.2  2001/08/16 17:06:24  prkipfer
+| revised memory management
 |
 | Revision 1.1  2001/01/09 11:10:02  prkipfer
 | new util: TStorage and TClassStorage

@@ -3,8 +3,11 @@
 |
 |
 | $Log$
-| Revision 1.1  2002/02/22 14:47:56  elena
-| new: dir Gridlib_inc
+| Revision 1.2  2002/03/21 14:58:57  elena
+| new: changes in dat-file for reading tetrahedral (bugs in element connection)
+|
+| Revision 1.6  2001/08/16 16:53:23  prkipfer
+| improved type safety for template parameter
 |
 | Revision 1.5  2001/06/19 16:32:27  prkipfer
 | fixed typos and Linux compiler target
@@ -150,10 +153,10 @@ GoMinimize1D<T>::getMinimum (T fT0, T fF0, T fT1, T fF1, int uiLevel)
   if ( uiLevel-- == 0 )
     return;
 
-  T fTm = 0.5*(fT0+fT1);
+  T fTm = T(0.5)*(fT0+fT1);
   T fFm = minimizeFunction_(fTm,userData_);
 
-  if ( fF0 - 2.0*fFm + fF1 > 0.0 ) {
+  if ( fF0 - T(2.0)*fFm + fF1 > T(0.0) ) {
     // quadratic fit has positive second derivative at midpoint
 
     if ( fF1 > fF0 ) {
@@ -216,7 +219,7 @@ GoMinimize1D<T>::getBracketedMinimum (T fT0, T fF0,
 
     // test for convergence
     const T fEps = GoMinimize1D<T>::EPSILON, fTol = GoMinimize1D<T>::EPSILON; // max 1e-8 und 1e-4
-    if ( GbMath<T>::Abs(fT1-fT0) <= 2.0*fTol*GbMath<T>::Abs(fTm) + fEps )
+    if ( GbMath<T>::Abs(fT1-fT0) <= T(2.0)*fTol*GbMath<T>::Abs(fTm) + fEps )
       break;
 
     // compute vertex of interpolating parabola
@@ -227,7 +230,7 @@ GoMinimize1D<T>::getBracketedMinimum (T fT0, T fF0,
     if ( GbMath<T>::Abs(fDenom) < fEps )
       return;
 
-    T fTv = fTm + 0.5*(fDT1*fTmp1-fDT0*fTmp0)/fDenom;
+    T fTv = fTm + T(0.5)*(fDT1*fTmp1-fDT0*fTmp0)/fDenom;
     assert( fT0 <= fTv && fTv <= fT1 );
     T fFv = minimizeFunction_(fTv,userData_);
 

@@ -33,28 +33,12 @@ class GoBoundaryVertexBase
 public: 
 
   //! Constructor: all values are initialized to zero, if not specified
-  GoBoundaryVertexBase();
+  GoBoundaryVertexBase(GoVertex<T> *vel = NULL);
   ~GoBoundaryVertexBase();
-
-  //! The boundary face of this vertex
-//    INLINE void setElement(GoGeometryElement<T>* f);
-//    INLINE GoGeometryElement<T>* getElement() const;
 
   //! The corresponding vertex in the volume mesh
   INLINE void setVertex(GoVertex<T> *v);
   INLINE GoVertex<T> *getVertex() const;
-
-  //! A normal at this vertex in 3D space
-  //! This uses the boundary faces, not the volume objects
-//    void computeNormal(std::vector<GoGeometryElement<T> *>& S);
-//    INLINE void setNormal(T x, T y, T z);
-//    INLINE void setNormal(const GbVec3<T>& v);
-//    INLINE void getNormal(T& xx, T& yy, T& zz) const;
-//    INLINE GbVec3<T> getNormal() const;
-
-  //! The neighbor valence of the vertex on the boundary faces
-//    INLINE void setValence(int v);
-//    INLINE int getValence() const;
 
   //! Print memory pool statistics
   void poolStatistic() const;
@@ -74,10 +58,7 @@ private:
   
   //! This is the memory layout of this class within the memory pool
   typedef struct {
-//      GoGeometryElement<T>* element;
     GoVertex<T>* vertex;
-//      T normal[3];
-//      int valence;
   } BoundaryVertexMem;
 
   //! The memory pool and the link to the allocated memory space
@@ -117,8 +98,11 @@ operator<<(std::ostream& s, const GoBoundaryVertexBase<T>& v)
 /*----------------------------------------------------------------------
 |
 | $Log$
-| Revision 1.1  2002/02/22 14:47:56  elena
-| new: dir Gridlib_inc
+| Revision 1.2  2002/03/21 14:58:57  elena
+| new: changes in dat-file for reading tetrahedral (bugs in element connection)
+|
+| Revision 1.2  2002/03/18 10:00:23  prkipfer
+| refactored element structure
 |
 | Revision 1.1  2001/02/13 11:00:39  prkipfer
 | added GoBoundaryVertexBase class

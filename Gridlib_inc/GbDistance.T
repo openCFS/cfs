@@ -3,8 +3,14 @@
 |
 |
 | $Log$
-| Revision 1.1  2002/02/22 14:47:56  elena
-| new: dir Gridlib_inc
+| Revision 1.2  2002/03/21 14:58:56  elena
+| new: changes in dat-file for reading tetrahedral (bugs in element connection)
+|
+| Revision 1.6  2001/09/12 09:10:40  prkipfer
+| adapted to triangle layout
+|
+| Revision 1.5  2001/08/16 16:53:14  prkipfer
+| improved type safety for template parameter
 |
 | Revision 1.4  2001/06/19 16:32:26  prkipfer
 | fixed typos and Linux compiler target
@@ -48,7 +54,7 @@ GbDistance<T>::squareDistance (const GbVec3<T>& rkPoint, const GbBox3<T>& rkBox,
 		     kDiff.dot(rkBox.getAxis(2)));
 
   // project test point onto box
-  T fSqrDistance = 0.0;
+  T fSqrDistance = T(0.0);
   T fDelta;
 
   if ( kClosest[0] < -rkBox.getExtent(0) ) {
@@ -107,11 +113,11 @@ GbDistance<T>::squareDistance (const GbVec3<T>& rkPoint, const GoTriangleElement
 			       T* pfSParam, T* pfTParam)
 {
   GbVec3<T> kDiff = rkTri.getOrigin() - rkPoint;
-  T fA00 = rkTri.getEdge(0).getSquareNorm();
-  T fA01 = rkTri.getEdge(0).dot(rkTri.getEdge(1));
-  T fA11 = rkTri.getEdge(1).getSquareNorm();
-  T fB0 = kDiff.dot(rkTri.getEdge(0));
-  T fB1 = kDiff.dot(rkTri.getEdge(1));
+  T fA00 = rkTri.getEdgeVec(0).getSquareNorm();
+  T fA01 = rkTri.getEdgeVec(0).dot(rkTri.getEdgeVec(1));
+  T fA11 = rkTri.getEdgeVec(1).getSquareNorm();
+  T fB0 = kDiff.dot(rkTri.getEdgeVec(0));
+  T fB1 = kDiff.dot(rkTri.getEdgeVec(1));
   T fC = kDiff.getSquareNorm();
   T fDet = GbMath<T>::Abs(fA00*fA11-fA01*fA01);
   T fS = fA01*fB1-fA11*fB0;
@@ -119,13 +125,13 @@ GbDistance<T>::squareDistance (const GbVec3<T>& rkPoint, const GoTriangleElement
   T fSqrDist;
 
   if ( fS + fT <= fDet ) {
-    if ( fS < 0.0 ) {
-      if ( fT < 0.0 ) {  // region 4
-	if ( fB0 < 0.0 ) {
-	  fT = 0.0;
+    if ( fS < T(0.0) ) {
+      if ( fT < T(0.0) ) {  // region 4
+	if ( fB0 < T(0.0) ) {
+	  fT = T(0.0);
 	  if ( -fB0 >= fA00 ) {
-	    fS = 1.0;
-	    fSqrDist = fA00+2.0*fB0+fC;
+	    fS = T(1.0);
+	    fSqrDist = fA00+T(2.0)*fB0+fC;
 	  }
 	  else {
 	    fS = -fB0/fA00;
@@ -133,14 +139,14 @@ GbDistance<T>::squareDistance (const GbVec3<T>& rkPoint, const GoTriangleElement
 	  }
 	}
 	else {
-	  fS = 0.0;
-	  if ( fB1 >= 0.0 ) {
-	    fT = 0.0;
+	  fS = T(0.0);
+	  if ( fB1 >= T(0.0) ) {
+	    fT = T(0.0);
 	    fSqrDist = fC;
 	  }
 	  else if ( -fB1 >= fA11 ) {
-	    fT = 1.0;
-	    fSqrDist = fA11+2.0*fB1+fC;
+	    fT = T(1.0);
+	    fSqrDist = fA11+T(2.0)*fB1+fC;
 	  }
 	  else {
 	    fT = -fB1/fA11;
@@ -149,14 +155,14 @@ GbDistance<T>::squareDistance (const GbVec3<T>& rkPoint, const GoTriangleElement
 	}
       }
       else { // region 3
-	fS = 0.0;
-	if ( fB1 >= 0.0 ) {
-	  fT = 0.0;
+	fS = T(0.0);
+	if ( fB1 >= T(0.0) ) {
+	  fT = T(0.0);
 	  fSqrDist = fC;
 	}
 	else if ( -fB1 >= fA11 ) {
 	  fT = 1;
-	  fSqrDist = fA11+2.0*fB1+fC;
+	  fSqrDist = fA11+T(2.0)*fB1+fC;
 	}
 	else {
 	  fT = -fB1/fA11;
@@ -164,15 +170,15 @@ GbDistance<T>::squareDistance (const GbVec3<T>& rkPoint, const GoTriangleElement
 	}
       }
     }
-    else if ( fT < 0.0 ) {  // region 5
-      fT = 0.0;
-      if ( fB0 >= 0.0 ) {
-	fS = 0.0;
+    else if ( fT < T(0.0) ) {  // region 5
+      fT = T(0.0);
+      if ( fB0 >= T(0.0) ) {
+	fS = T(0.0);
 	fSqrDist = fC;
       }
       else if ( -fB0 >= fA00 ) {
-	fS = 1.0;
-	fSqrDist = fA00+2.0*fB0+fC;
+	fS = T(1.0);
+	fSqrDist = fA00+T(2.0)*fB0+fC;
       }
       else {
 	fS = -fB0/fA00;
@@ -181,44 +187,44 @@ GbDistance<T>::squareDistance (const GbVec3<T>& rkPoint, const GoTriangleElement
     }
     else {  // region 0
       // minimum at interior point
-      T fInvDet = 1.0/fDet;
+      T fInvDet = T(1.0)/fDet;
       fS *= fInvDet;
       fT *= fInvDet;
-      fSqrDist = fS*(fA00*fS+fA01*fT+2.0*fB0) +
-	         fT*(fA01*fS+fA11*fT+2.0*fB1) +
+      fSqrDist = fS*(fA00*fS+fA01*fT+T(2.0)*fB0) +
+	         fT*(fA01*fS+fA11*fT+T(2.0)*fB1) +
 	         fC;
     }
   }
   else {
     T fTmp0, fTmp1, fNumer, fDenom;
 
-    if ( fS < 0.0 ) {  // region 2
+    if ( fS < T(0.0) ) {  // region 2
       fTmp0 = fA01 + fB0;
       fTmp1 = fA11 + fB1;
       if ( fTmp1 > fTmp0 ) {
 	fNumer = fTmp1 - fTmp0;
-	fDenom = fA00-2.0*fA01+fA11;
+	fDenom = fA00-T(2.0)*fA01+fA11;
 	if ( fNumer >= fDenom ) {
-	  fS = 1.0;
-	  fT = 0.0;
-	  fSqrDist = fA00+2.0*fB0+fC;
+	  fS = T(1.0);
+	  fT = T(0.0);
+	  fSqrDist = fA00+T(2.0)*fB0+fC;
 	}
 	else {
 	  fS = fNumer/fDenom;
-	  fT = 1.0 - fS;
-	  fSqrDist = fS*(fA00*fS+fA01*fT+2.0*fB0) +
-	             fT*(fA01*fS+fA11*fT+2.0*fB1) +
+	  fT = T(1.0) - fS;
+	  fSqrDist = fS*(fA00*fS+fA01*fT+T(2.0)*fB0) +
+	             fT*(fA01*fS+fA11*fT+T(2.0)*fB1) +
 	             fC;
 	}
       }
       else {
-	fS = 0.0;
-	if ( fTmp1 <= 0.0 ) {
-	  fT = 1.0;
-	  fSqrDist = fA11+2.0*fB1+fC;
+	fS = T(0.0);
+	if ( fTmp1 <= T(0.0) ) {
+	  fT = T(1.0);
+	  fSqrDist = fA11+T(2.0)*fB1+fC;
 	}
-	else if ( fB1 >= 0.0 ) {
-	  fT = 0.0;
+	else if ( fB1 >= T(0.0) ) {
+	  fT = T(0.0);
 	  fSqrDist = fC;
 	}
 	else {
@@ -227,33 +233,33 @@ GbDistance<T>::squareDistance (const GbVec3<T>& rkPoint, const GoTriangleElement
 	}
       }
     }
-    else if ( fT < 0.0 ) {  // region 6
+    else if ( fT < T(0.0) ) {  // region 6
       fTmp0 = fA01 + fB1;
       fTmp1 = fA00 + fB0;
       if ( fTmp1 > fTmp0 ) {
 	fNumer = fTmp1 - fTmp0;
-	fDenom = fA00-2.0*fA01+fA11;
+	fDenom = fA00-T(2.0)*fA01+fA11;
 	if ( fNumer >= fDenom ) {
-	  fT = 1.0;
-	  fS = 0.0;
-	  fSqrDist = fA11+2.0*fB1+fC;
+	  fT = T(1.0);
+	  fS = T(0.0);
+	  fSqrDist = fA11+T(2.0)*fB1+fC;
 	}
 	else {
 	  fT = fNumer/fDenom;
-	  fS = 1.0 - fT;
-	  fSqrDist = fS*(fA00*fS+fA01*fT+2.0*fB0) +
-	             fT*(fA01*fS+fA11*fT+2.0*fB1) +
+	  fS = T(1.0) - fT;
+	  fSqrDist = fS*(fA00*fS+fA01*fT+T(2.0)*fB0) +
+	             fT*(fA01*fS+fA11*fT+T(2.0)*fB1) +
 	             fC;
 	}
       }
       else {
-	fT = 0.0;
-	if ( fTmp1 <= 0.0 ) {
-	  fS = 1.0;
-	  fSqrDist = fA00+2.0*fB0+fC;
+	fT = T(0.0);
+	if ( fTmp1 <= T(0.0) ) {
+	  fS = T(1.0);
+	  fSqrDist = fA00+T(2.0)*fB0+fC;
 	}
-	else if ( fB0 >= 0.0 ) {
-	  fS = 0.0;
+	else if ( fB0 >= T(0.0) ) {
+	  fS = T(0.0);
 	  fSqrDist = fC;
 	}
 	else {
@@ -264,23 +270,23 @@ GbDistance<T>::squareDistance (const GbVec3<T>& rkPoint, const GoTriangleElement
     }
     else {  // region 1
       fNumer = fA11 + fB1 - fA01 - fB0;
-      if ( fNumer <= 0.0 ) {
-	fS = 0.0;
-	fT = 1.0;
-	fSqrDist = fA11+2.0*fB1+fC;
+      if ( fNumer <= T(0.0) ) {
+	fS = T(0.0);
+	fT = T(1.0);
+	fSqrDist = fA11+T(2.0)*fB1+fC;
       }
       else {
-	fDenom = fA00-2.0*fA01+fA11;
+	fDenom = fA00-T(2.0)*fA01+fA11;
 	if ( fNumer >= fDenom ) {
-	  fS = 1.0;
-	  fT = 0.0;
-	  fSqrDist = fA00+2.0*fB0+fC;
+	  fS = T(1.0);
+	  fT = T(0.0);
+	  fSqrDist = fA00+T(2.0)*fB0+fC;
 	}
 	else {
 	  fS = fNumer/fDenom;
-	  fT = 1.0 - fS;
-	  fSqrDist = fS*(fA00*fS+fA01*fT+2.0*fB0) +
-	             fT*(fA01*fS+fA11*fT+2.0*fB1) +
+	  fT = T(1.0) - fS;
+	  fSqrDist = fS*(fA00*fS+fA01*fT+T(2.0)*fB0) +
+	             fT*(fA01*fS+fA11*fT+T(2.0)*fB1) +
 	             fC;
 	}
       }
@@ -312,13 +318,13 @@ GbDistance<T>::squareDistance (const GoTriangleElement& rkTri0, const GoTriangle
 
   // compare edges of tri0 against all of tri1
   kSeg.setOrigin(rkTri0.getOrigin());
-  kSeg.setDirection(rkTri0.getEdge(0));
+  kSeg.setDirection(rkTri0.getEdgeVec(0));
   fSqrDist = GbDistance<T>::squareDistance(kSeg,rkTri1,&fS,&fU,&fV);
-  fT = 0.0;
+  fT = T(0.0);
 
-  kSeg.setDirection(rkTri0.getEdge(1));
+  kSeg.setDirection(rkTri0.getEdgeVec(1));
   fSqrDist0 = GbDistance<T>::squareDistance(kSeg,rkTri1,&fT0,&fU0,&fV0);
-  fS0 = 0.0;
+  fS0 = T(0.0);
   if ( fSqrDist0 < fSqrDist ) {
     fSqrDist = fSqrDist0;
     fS = fS0;
@@ -327,10 +333,10 @@ GbDistance<T>::squareDistance (const GoTriangleElement& rkTri0, const GoTriangle
     fV = fV0;
   }
 
-  kSeg.setOrigin(kSeg.getOrigin() + rkTri0.getEdge(0));
-  kSeg.setDirection(kSeg.getDirection() - rkTri0.getEdge(0));
+  kSeg.setOrigin(kSeg.getOrigin() + rkTri0.getEdgeVec(0));
+  kSeg.setDirection(kSeg.getDirection() - rkTri0.getEdgeVec(0));
   fSqrDist0 = GbDistance<T>::squareDistance(kSeg,rkTri1,&fT0,&fU0,&fV0);
-  fS0 = 1.0-fT0;
+  fS0 = T(1.0)-fT0;
   if ( fSqrDist0 < fSqrDist ) {
     fSqrDist = fSqrDist0;
     fS = fS0;
@@ -341,9 +347,9 @@ GbDistance<T>::squareDistance (const GoTriangleElement& rkTri0, const GoTriangle
 
   // compare edges of tri1 against all of tri0
   kSeg.setOrigin(rkTri1.getOrigin());
-  kSeg.setDirection(rkTri1.getEdge(0));
+  kSeg.setDirection(rkTri1.getEdgeVec(0));
   fSqrDist0 = GbDistance<T>::squareDistance(kSeg,rkTri0,&fU0,&fS0,&fT0);
-  fV0 = 0.0;
+  fV0 = T(0.0);
   if ( fSqrDist0 < fSqrDist ) {
     fSqrDist = fSqrDist0;
     fS = fS0;
@@ -352,9 +358,9 @@ GbDistance<T>::squareDistance (const GoTriangleElement& rkTri0, const GoTriangle
     fV = fV0;
   }
 
-  kSeg.setDirection(rkTri1.getEdge(1));
+  kSeg.setDirection(rkTri1.getEdgeVec(1));
   fSqrDist0 = GbDistance<T>::squareDistance(kSeg,rkTri0,&fV0,&fS0,&fT0);
-  fU0 = 0.0;
+  fU0 = T(0.0);
   if ( fSqrDist0 < fSqrDist ) {
     fSqrDist = fSqrDist0;
     fS = fS0;
@@ -363,10 +369,10 @@ GbDistance<T>::squareDistance (const GoTriangleElement& rkTri0, const GoTriangle
     fV = fV0;
   }
 
-  kSeg.setOrigin(kSeg.getOrigin() + rkTri1.getEdge(0));
-  kSeg.setDirection(kSeg.getDirection() - rkTri1.getEdge(0));
+  kSeg.setOrigin(kSeg.getOrigin() + rkTri1.getEdgeVec(0));
+  kSeg.setDirection(kSeg.getDirection() - rkTri1.getEdgeVec(0));
   fSqrDist0 = GbDistance<T>::squareDistance(kSeg,rkTri0,&fV0,&fS0,&fT0);
-  fU0 = 1.0-fV0;
+  fU0 = T(1.0)-fV0;
   if ( fSqrDist0 < fSqrDist ) {
     fSqrDist = fSqrDist0;
     fS = fS0;
@@ -401,14 +407,14 @@ GbDistance<T>::squareDistance (const GbSegment<T>& rkSeg, const GoTriangleElemen
 {
   GbVec3<T> kDiff = rkTri.getOrigin() - rkSeg.getOrigin();
   T fA00 = rkSeg.getDirection().getSquareNorm();
-  T fA01 = -rkSeg.getDirection().dot(rkTri.getEdge(0));
-  T fA02 = -rkSeg.getDirection().dot(rkTri.getEdge(1));
-  T fA11 = rkTri.getEdge(0).getSquareNorm();
-  T fA12 = rkTri.getEdge(0).dot(rkTri.getEdge(1));
-  T fA22 = rkTri.getEdge(1).dot(rkTri.getEdge(1));
+  T fA01 = -rkSeg.getDirection().dot(rkTri.getEdgeVec(0));
+  T fA02 = -rkSeg.getDirection().dot(rkTri.getEdgeVec(1));
+  T fA11 = rkTri.getEdgeVec(0).getSquareNorm();
+  T fA12 = rkTri.getEdgeVec(0).dot(rkTri.getEdgeVec(1));
+  T fA22 = rkTri.getEdgeVec(1).dot(rkTri.getEdgeVec(1));
   T fB0  = -kDiff.dot(rkSeg.getDirection());
-  T fB1  = kDiff.dot(rkTri.getEdge(0));
-  T fB2  = kDiff.dot(rkTri.getEdge(1));
+  T fB1  = kDiff.dot(rkTri.getEdgeVec(0));
+  T fB2  = kDiff.dot(rkTri.getEdgeVec(1));
   T fCof00 = fA11*fA22-fA12*fA12;
   T fCof01 = fA02*fA12-fA01*fA22;
   T fCof02 = fA01*fA12-fA02*fA11;
@@ -422,7 +428,7 @@ GbDistance<T>::squareDistance (const GbSegment<T>& rkSeg, const GoTriangleElemen
     T fCof11 = fA00*fA22-fA02*fA02;
     T fCof12 = fA02*fA01-fA00*fA12;
     T fCof22 = fA00*fA11-fA01*fA01;
-    T fInvDet = 1.0/fDet;
+    T fInvDet = T(1.0)/fDet;
     T fRhs0 = -fB0*fInvDet;
     T fRhs1 = -fB1*fInvDet;
     T fRhs2 = -fB2*fInvDet;
@@ -431,19 +437,19 @@ GbDistance<T>::squareDistance (const GbSegment<T>& rkSeg, const GoTriangleElemen
     fS = fCof01*fRhs0+fCof11*fRhs1+fCof12*fRhs2;
     fT = fCof02*fRhs0+fCof12*fRhs1+fCof22*fRhs2;
 
-    if ( fR < 0.0 ) {
-      if ( fS+fT <= 1.0 ) {
-	if ( fS < 0.0 ) {
-	  if ( fT < 0.0 ) {  // region 4m
+    if ( fR < T(0.0) ) {
+      if ( fS+fT <= T(1.0) ) {
+	if ( fS < T(0.0) ) {
+	  if ( fT < T(0.0) ) {  // region 4m
 	    // min on face s=0 or t=0 or r=0
 	    kTriSeg.setOrigin(rkTri.getOrigin());
-	    kTriSeg.setDirection(rkTri.getEdge(1));
+	    kTriSeg.setDirection(rkTri.getEdgeVec(1));
 	    fSqrDist = GbDistance<T>::squareDistance(rkSeg,kTriSeg,&fR,&fT);
-	    fS = 0.0;
+	    fS = T(0.0);
 	    kTriSeg.setOrigin(rkTri.getOrigin());
-	    kTriSeg.setDirection(rkTri.getEdge(0));
+	    kTriSeg.setDirection(rkTri.getEdgeVec(0));
 	    fSqrDist0 = GbDistance<T>::squareDistance(rkSeg,kTriSeg,&fR0,&fS0);
-	    fT0 = 0.0;
+	    fT0 = T(0.0);
 	    if ( fSqrDist0 < fSqrDist ) {
 	      fSqrDist = fSqrDist0;
 	      fR = fR0;
@@ -451,7 +457,7 @@ GbDistance<T>::squareDistance (const GbSegment<T>& rkSeg, const GoTriangleElemen
 	      fT = fT0;
 	    }
 	    fSqrDist0 = GbDistance<T>::squareDistance(rkSeg.getOrigin(),rkTri,&fS0,&fT0);
-	    fR0 = 0.0;
+	    fR0 = T(0.0);
 	    if ( fSqrDist0 < fSqrDist ) {
 	      fSqrDist = fSqrDist0;
 	      fR = fR0;
@@ -462,11 +468,11 @@ GbDistance<T>::squareDistance (const GbSegment<T>& rkSeg, const GoTriangleElemen
 	  else  { // region 3m
 	    // min on face s=0 or r=0
 	    kTriSeg.setOrigin(rkTri.getOrigin());
-	    kTriSeg.setDirection(rkTri.getEdge(1));
+	    kTriSeg.setDirection(rkTri.getEdgeVec(1));
 	    fSqrDist = GbDistance<T>::squareDistance(rkSeg,kTriSeg,&fR,&fT);
-	    fS = 0.0;
+	    fS = T(0.0);
 	    fSqrDist0 = GbDistance<T>::squareDistance(rkSeg.getOrigin(),rkTri,&fS0,&fT0);
-	    fR0 = 0.0;
+	    fR0 = T(0.0);
 	    if ( fSqrDist0 < fSqrDist ) {
 	      fSqrDist = fSqrDist0;
 	      fR = fR0;
@@ -475,14 +481,14 @@ GbDistance<T>::squareDistance (const GbSegment<T>& rkSeg, const GoTriangleElemen
 	    }
 	  }
 	}
-	else if ( fT < 0.0 ) {  // region 5m
+	else if ( fT < T(0.0) ) {  // region 5m
 	  // min on face t=0 or r=0
 	  kTriSeg.setOrigin(rkTri.getOrigin());
-	  kTriSeg.setDirection(rkTri.getEdge(0));
+	  kTriSeg.setDirection(rkTri.getEdgeVec(0));
 	  fSqrDist = GbDistance<T>::squareDistance(rkSeg,kTriSeg,&fR,&fS);
-	  fT = 0.0;
+	  fT = T(0.0);
 	  fSqrDist0 = GbDistance<T>::squareDistance(rkSeg.getOrigin(),rkTri,&fS0,&fT0);
-	  fR0 = 0.0;
+	  fR0 = T(0.0);
 	  if ( fSqrDist0 < fSqrDist ) {
 	    fSqrDist = fSqrDist0;
 	    fR = fR0;
@@ -493,20 +499,20 @@ GbDistance<T>::squareDistance (const GbSegment<T>& rkSeg, const GoTriangleElemen
 	else {  // region 0m
 	  // min on face r=0
 	  fSqrDist = GbDistance<T>::squareDistance(rkSeg.getOrigin(),rkTri,&fS,&fT);
-	  fR = 0.0;
+	  fR = T(0.0);
 	}
       }
       else {
-	if ( fS < 0.0 ) {  // region 2m
+	if ( fS < T(0.0) ) {  // region 2m
 	  // min on face s=0 or s+t=1 or r=0
 	  kTriSeg.setOrigin(rkTri.getOrigin());
-	  kTriSeg.setDirection(rkTri.getEdge(1));
+	  kTriSeg.setDirection(rkTri.getEdgeVec(1));
 	  fSqrDist = GbDistance<T>::squareDistance(rkSeg,kTriSeg,&fR,&fT);
-	  fS = 0.0;
-	  kTriSeg.setOrigin(rkTri.getOrigin()+rkTri.getEdge(0));
-	  kTriSeg.setDirection(rkTri.getEdge(1)-rkTri.getEdge(0));
+	  fS = T(0.0);
+	  kTriSeg.setOrigin(rkTri.getOrigin()+rkTri.getEdgeVec(0));
+	  kTriSeg.setDirection(rkTri.getEdgeVec(2));
 	  fSqrDist0 = GbDistance<T>::squareDistance(rkSeg,kTriSeg,&fR0,&fT0);
-	  fS0 = 1.0-fT0;
+	  fS0 = T(1.0)-fT0;
 	  if ( fSqrDist0 < fSqrDist ) {
 	    fSqrDist = fSqrDist0;
 	    fR = fR0;
@@ -514,7 +520,7 @@ GbDistance<T>::squareDistance (const GbSegment<T>& rkSeg, const GoTriangleElemen
 	    fT = fT0;
 	  }
 	  fSqrDist0 = GbDistance<T>::squareDistance(rkSeg.getOrigin(),rkTri,&fS0,&fT0);
-	  fR0 = 0.0;
+	  fR0 = T(0.0);
 	  if ( fSqrDist0 < fSqrDist ) {
 	    fSqrDist = fSqrDist0;
 	    fR = fR0;
@@ -522,16 +528,16 @@ GbDistance<T>::squareDistance (const GbSegment<T>& rkSeg, const GoTriangleElemen
 	    fT = fT0;
 	  }
 	}
-	else if ( fT < 0.0 ) {  // region 6m
+	else if ( fT < T(0.0) ) {  // region 6m
 	  // min on face t=0 or s+t=1 or r=0
 	  kTriSeg.setOrigin(rkTri.getOrigin());
-	  kTriSeg.setDirection(rkTri.getEdge(0));
+	  kTriSeg.setDirection(rkTri.getEdgeVec(0));
 	  fSqrDist = GbDistance<T>::squareDistance(rkSeg,kTriSeg,&fR,&fS);
-	  fT = 0.0;
-	  kTriSeg.setOrigin(rkTri.getOrigin()+rkTri.getEdge(0));
-	  kTriSeg.setDirection(rkTri.getEdge(1)-rkTri.getEdge(0));
+	  fT = T(0.0);
+	  kTriSeg.setOrigin(rkTri.getOrigin()+rkTri.getEdgeVec(0));
+	  kTriSeg.setDirection(rkTri.getEdgeVec(2));
 	  fSqrDist0 = GbDistance<T>::squareDistance(rkSeg,kTriSeg,&fR0,&fT0);
-	  fS0 = 1.0-fT0;
+	  fS0 = T(1.0)-fT0;
 	  if ( fSqrDist0 < fSqrDist ) {
 	    fSqrDist = fSqrDist0;
 	    fR = fR0;
@@ -539,7 +545,7 @@ GbDistance<T>::squareDistance (const GbSegment<T>& rkSeg, const GoTriangleElemen
 	    fT = fT0;
 	  }
 	  fSqrDist0 = GbDistance<T>::squareDistance(rkSeg.getOrigin(),rkTri,&fS0,&fT0);
-	  fR0 = 0.0;
+	  fR0 = T(0.0);
 	  if ( fSqrDist0 < fSqrDist ) {
 	    fSqrDist = fSqrDist0;
 	    fR = fR0;
@@ -549,12 +555,12 @@ GbDistance<T>::squareDistance (const GbSegment<T>& rkSeg, const GoTriangleElemen
 	}
 	else { // region 1m
 	  // min on face s+t=1 or r=0
-	  kTriSeg.setOrigin(rkTri.getOrigin()+rkTri.getEdge(0));
-	  kTriSeg.setDirection(rkTri.getEdge(1)-rkTri.getEdge(0));
+	  kTriSeg.setOrigin(rkTri.getOrigin()+rkTri.getEdgeVec(0));
+	  kTriSeg.setDirection(rkTri.getEdgeVec(2));
 	  fSqrDist = GbDistance<T>::squareDistance(rkSeg,kTriSeg,&fR,&fT);
-	  fS = 1.0-fT;
+	  fS = T(1.0)-fT;
 	  fSqrDist0 = GbDistance<T>::squareDistance(rkSeg.getOrigin(),rkTri,&fS0,&fT0);
-	  fR0 = 0.0;
+	  fR0 = T(0.0);
 	  if ( fSqrDist0 < fSqrDist ) {
 	    fSqrDist = fSqrDist0;
 	    fR = fR0;
@@ -564,19 +570,19 @@ GbDistance<T>::squareDistance (const GbSegment<T>& rkSeg, const GoTriangleElemen
 	}
       }
     }
-    else if ( fR <= 1.0 ) {
-      if ( fS+fT <= 1.0 ) {
-	if ( fS < 0.0 ) {
-	  if ( fT < 0.0 ) {  // region 4
+    else if ( fR <= T(1.0) ) {
+      if ( fS+fT <= T(1.0) ) {
+	if ( fS < T(0.0) ) {
+	  if ( fT < T(0.0) ) {  // region 4
 	    // min on face s=0 or t=0
 	    kTriSeg.setOrigin(rkTri.getOrigin());
-	    kTriSeg.setDirection(rkTri.getEdge(1));
+	    kTriSeg.setDirection(rkTri.getEdgeVec(1));
 	    fSqrDist = GbDistance<T>::squareDistance(rkSeg,kTriSeg,&fR,&fT);
-	    fS = 0.0;
+	    fS = T(0.0);
 	    kTriSeg.setOrigin(rkTri.getOrigin());
-	    kTriSeg.setDirection(rkTri.getEdge(0));
+	    kTriSeg.setDirection(rkTri.getEdgeVec(0));
 	    fSqrDist0 = GbDistance<T>::squareDistance(rkSeg,kTriSeg,&fR0,&fS0);
-	    fT0 = 0.0;
+	    fT0 = T(0.0);
 	    if ( fSqrDist0 < fSqrDist ) {
 	      fSqrDist = fSqrDist0;
 	      fR = fR0;
@@ -587,37 +593,37 @@ GbDistance<T>::squareDistance (const GbSegment<T>& rkSeg, const GoTriangleElemen
 	  else {  // region 3
 	    // min on face s=0
 	    kTriSeg.setOrigin(rkTri.getOrigin());
-	    kTriSeg.setDirection(rkTri.getEdge(1));
+	    kTriSeg.setDirection(rkTri.getEdgeVec(1));
 	    fSqrDist = GbDistance<T>::squareDistance(rkSeg,kTriSeg,&fR,&fT);
-	    fS = 0.0;
+	    fS = T(0.0);
 	  }
 	}
-	else if ( fT < 0.0 ) {  // region 5
+	else if ( fT < T(0.0) ) {  // region 5
 	  // min on face t=0
 	  kTriSeg.setOrigin(rkTri.getOrigin());
-	  kTriSeg.setDirection(rkTri.getEdge(0));
+	  kTriSeg.setDirection(rkTri.getEdgeVec(0));
 	  fSqrDist = GbDistance<T>::squareDistance(rkSeg,kTriSeg,&fR,&fS);
-	  fT = 0.0;
+	  fT = T(0.0);
 	}
 	else {  // region 0
 	  // global minimum is interior, done
-	  fSqrDist = fR*(fA00*fR+fA01*fS+fA02*fT+2.0*fB0) +
-	             fS*(fA01*fR+fA11*fS+fA12*fT+2.0*fB1) +
-	             fT*(fA02*fR+fA12*fS+fA22*fT+2.0*fB2) +
+	  fSqrDist = fR*(fA00*fR+fA01*fS+fA02*fT+T(2.0)*fB0) +
+	             fS*(fA01*fR+fA11*fS+fA12*fT+T(2.0)*fB1) +
+	             fT*(fA02*fR+fA12*fS+fA22*fT+T(2.0)*fB2) +
 	             kDiff.getSquareNorm();
 	}
       }
       else {
-	if ( fS < 0.0 ) {  // region 2
+	if ( fS < T(0.0) ) {  // region 2
 	  // min on face s=0 or s+t=1
 	  kTriSeg.setOrigin(rkTri.getOrigin());
-	  kTriSeg.setDirection(rkTri.getEdge(1));
+	  kTriSeg.setDirection(rkTri.getEdgeVec(1));
 	  fSqrDist = GbDistance<T>::squareDistance(rkSeg,kTriSeg,&fR,&fT);
-	  fS = 0.0;
-	  kTriSeg.setOrigin(rkTri.getOrigin()+rkTri.getEdge(0));
-	  kTriSeg.setDirection(rkTri.getEdge(1)-rkTri.getEdge(0));
+	  fS = T(0.0);
+	  kTriSeg.setOrigin(rkTri.getOrigin()+rkTri.getEdgeVec(0));
+	  kTriSeg.setDirection(rkTri.getEdgeVec(2));
 	  fSqrDist0 = GbDistance<T>::squareDistance(rkSeg,kTriSeg,&fR0,&fT0);
-	  fS0 = 1.0-fT0;
+	  fS0 = T(1.0)-fT0;
 	  if ( fSqrDist0 < fSqrDist ) {
 	    fSqrDist = fSqrDist0;
 	    fR = fR0;
@@ -625,16 +631,16 @@ GbDistance<T>::squareDistance (const GbSegment<T>& rkSeg, const GoTriangleElemen
 	    fT = fT0;
 	  }
 	}
-	else if ( fT < 0.0 ) {  // region 6
+	else if ( fT < T(0.0) ) {  // region 6
 	  // min on face t=0 or s+t=1
 	  kTriSeg.setOrigin(rkTri.getOrigin());
-	  kTriSeg.setDirection(rkTri.getEdge(0));
+	  kTriSeg.setDirection(rkTri.getEdgeVec(0));
 	  fSqrDist = GbDistance<T>::squareDistance(rkSeg,kTriSeg,&fR,&fS);
-	  fT = 0.0;
-	  kTriSeg.setOrigin(rkTri.getOrigin()+rkTri.getEdge(0));
-	  kTriSeg.setDirection(rkTri.getEdge(1)-rkTri.getEdge(0));
+	  fT = T(0.0);
+	  kTriSeg.setOrigin(rkTri.getOrigin()+rkTri.getEdgeVec(0));
+	  kTriSeg.setDirection(rkTri.getEdgeVec(2));
 	  fSqrDist0 = GbDistance<T>::squareDistance(rkSeg,kTriSeg,&fR0,&fT0);
-	  fS0 = 1.0-fT0;
+	  fS0 = T(1.0)-fT0;
 	  if ( fSqrDist0 < fSqrDist ) {
 	    fSqrDist = fSqrDist0;
 	    fR = fR0;
@@ -644,26 +650,26 @@ GbDistance<T>::squareDistance (const GbSegment<T>& rkSeg, const GoTriangleElemen
 	}
 	else {  // region 1
 	  // min on face s+t=1
-	  kTriSeg.setOrigin(rkTri.getOrigin()+rkTri.getEdge(0));
-	  kTriSeg.setDirection(rkTri.getEdge(1)-rkTri.getEdge(0));
+	  kTriSeg.setOrigin(rkTri.getOrigin()+rkTri.getEdgeVec(0));
+	  kTriSeg.setDirection(rkTri.getEdgeVec(2));
 	  fSqrDist = GbDistance<T>::squareDistance(rkSeg,kTriSeg,&fR,&fT);
-	  fS = 1.0-fT;
+	  fS = T(1.0)-fT;
 	}
       }
     }
     else {  // fR > 1
-      if ( fS+fT <= 1.0 ) {
-	if ( fS < 0.0 ) {
-	  if ( fT < 0.0 ) {  // region 4p
+      if ( fS+fT <= T(1.0) ) {
+	if ( fS < T(0.0) ) {
+	  if ( fT < T(0.0) ) {  // region 4p
 	    // min on face s=0 or t=0 or r=1
 	    kTriSeg.setOrigin(rkTri.getOrigin());
-	    kTriSeg.setDirection(rkTri.getEdge(1));
+	    kTriSeg.setDirection(rkTri.getEdgeVec(1));
 	    fSqrDist = GbDistance<T>::squareDistance(rkSeg,kTriSeg,&fR,&fT);
-	    fS = 0.0;
+	    fS = T(0.0);
 	    kTriSeg.setOrigin(rkTri.getOrigin());
-	    kTriSeg.setDirection(rkTri.getEdge(0));
+	    kTriSeg.setDirection(rkTri.getEdgeVec(0));
 	    fSqrDist0 = GbDistance<T>::squareDistance(rkSeg,kTriSeg,&fR0,&fS0);
-	    fT0 = 0.0;
+	    fT0 = T(0.0);
 	    if ( fSqrDist0 < fSqrDist ) {
 	      fSqrDist = fSqrDist0;
 	      fR = fR0;
@@ -672,7 +678,7 @@ GbDistance<T>::squareDistance (const GbSegment<T>& rkSeg, const GoTriangleElemen
 	    }
 	    kPt = rkSeg.getOrigin()+rkSeg.getDirection();
 	    fSqrDist0 = GbDistance<T>::squareDistance(kPt,rkTri,&fS0,&fT0);
-	    fR0 = 1.0;
+	    fR0 = T(1.0);
 	    if ( fSqrDist0 < fSqrDist ) {
 	      fSqrDist = fSqrDist0;
 	      fR = fR0;
@@ -683,12 +689,12 @@ GbDistance<T>::squareDistance (const GbSegment<T>& rkSeg, const GoTriangleElemen
 	  else {  // region 3p
 	    // min on face s=0 or r=1
 	    kTriSeg.setOrigin(rkTri.getOrigin());
-	    kTriSeg.setDirection(rkTri.getEdge(1));
+	    kTriSeg.setDirection(rkTri.getEdgeVec(1));
 	    fSqrDist = GbDistance<T>::squareDistance(rkSeg,kTriSeg,&fR,&fT);
-	    fS = 0.0;
+	    fS = T(0.0);
 	    kPt = rkSeg.getOrigin()+rkSeg.getDirection();
 	    fSqrDist0 = GbDistance<T>::squareDistance(kPt,rkTri,&fS0,&fT0);
-	    fR0 = 1.0;
+	    fR0 = T(1.0);
 	    if ( fSqrDist0 < fSqrDist ) {
 	      fSqrDist = fSqrDist0;
 	      fR = fR0;
@@ -697,15 +703,15 @@ GbDistance<T>::squareDistance (const GbSegment<T>& rkSeg, const GoTriangleElemen
 	    }
 	  }
 	}
-	else if ( fT < 0.0 ) {  // region 5p
+	else if ( fT < T(0.0) ) {  // region 5p
 	  // min on face t=0 or r=1
 	  kTriSeg.setOrigin(rkTri.getOrigin());
-	  kTriSeg.setDirection(rkTri.getEdge(0));
+	  kTriSeg.setDirection(rkTri.getEdgeVec(0));
 	  fSqrDist = GbDistance<T>::squareDistance(rkSeg,kTriSeg,&fR,&fS);
-	  fT = 0.0;
+	  fT = T(0.0);
 	  kPt = rkSeg.getOrigin()+rkSeg.getDirection();
 	  fSqrDist0 = GbDistance<T>::squareDistance(kPt,rkTri,&fS0,&fT0);
-	  fR0 = 1.0;
+	  fR0 = T(1.0);
 	  if ( fSqrDist0 < fSqrDist ) {
 	    fSqrDist = fSqrDist0;
 	    fR = fR0;
@@ -717,20 +723,20 @@ GbDistance<T>::squareDistance (const GbSegment<T>& rkSeg, const GoTriangleElemen
 	  // min face on r=1
 	  kPt = rkSeg.getOrigin()+rkSeg.getDirection();
 	  fSqrDist = GbDistance<T>::squareDistance(kPt,rkTri,&fS,&fT);
-	  fR = 1.0;
+	  fR = T(1.0);
 	}
       }
       else {
-	if ( fS < 0.0 ) {  // region 2p
+	if ( fS < T(0.0) ) {  // region 2p
 	  // min on face s=0 or s+t=1 or r=1
 	  kTriSeg.setOrigin(rkTri.getOrigin());
-	  kTriSeg.setDirection(rkTri.getEdge(1));
+	  kTriSeg.setDirection(rkTri.getEdgeVec(1));
 	  fSqrDist = GbDistance<T>::squareDistance(rkSeg,kTriSeg,&fR,&fT);
-	  fS = 0.0;
-	  kTriSeg.setOrigin(rkTri.getOrigin()+rkTri.getEdge(0));
-	  kTriSeg.setDirection(rkTri.getEdge(1)-rkTri.getEdge(0));
+	  fS = T(0.0);
+	  kTriSeg.setOrigin(rkTri.getOrigin()+rkTri.getEdgeVec(0));
+	  kTriSeg.setDirection(rkTri.getEdgeVec(2));
 	  fSqrDist0 = GbDistance<T>::squareDistance(rkSeg,kTriSeg,&fR0,&fT0);
-	  fS0 = 1.0-fT0;
+	  fS0 = T(1.0)-fT0;
 	  if ( fSqrDist0 < fSqrDist ) {
 	    fSqrDist = fSqrDist0;
 	    fR = fR0;
@@ -739,7 +745,7 @@ GbDistance<T>::squareDistance (const GbSegment<T>& rkSeg, const GoTriangleElemen
 	  }
 	  kPt = rkSeg.getOrigin()+rkSeg.getDirection();
 	  fSqrDist0 = GbDistance<T>::squareDistance(kPt,rkTri,&fS0,&fT0);
-	  fR0 = 1.0;
+	  fR0 = T(1.0);
 	  if ( fSqrDist0 < fSqrDist ) {
 	    fSqrDist = fSqrDist0;
 	    fR = fR0;
@@ -747,16 +753,16 @@ GbDistance<T>::squareDistance (const GbSegment<T>& rkSeg, const GoTriangleElemen
 	    fT = fT0;
 	  }
 	}
-	else if ( fT < 0.0 ) {  // region 6p
+	else if ( fT < T(0.0) ) {  // region 6p
 	  // min on face t=0 or s+t=1 or r=1
 	  kTriSeg.setOrigin(rkTri.getOrigin());
-	  kTriSeg.setDirection(rkTri.getEdge(0));
+	  kTriSeg.setDirection(rkTri.getEdgeVec(0));
 	  fSqrDist = GbDistance<T>::squareDistance(rkSeg,kTriSeg,&fR,&fS);
-	  fT = 0.0;
-	  kTriSeg.setOrigin(rkTri.getOrigin()+rkTri.getEdge(0));
-	  kTriSeg.setDirection(rkTri.getEdge(1)-rkTri.getEdge(0));
+	  fT = T(0.0);
+	  kTriSeg.setOrigin(rkTri.getOrigin()+rkTri.getEdgeVec(0));
+	  kTriSeg.setDirection(rkTri.getEdgeVec(2));
 	  fSqrDist0 = GbDistance<T>::squareDistance(rkSeg,kTriSeg,&fR0,&fT0);
-	  fS0 = 1.0-fT0;
+	  fS0 = T(1.0)-fT0;
 	  if ( fSqrDist0 < fSqrDist ) {
 	    fSqrDist = fSqrDist0;
 	    fR = fR0;
@@ -765,7 +771,7 @@ GbDistance<T>::squareDistance (const GbSegment<T>& rkSeg, const GoTriangleElemen
 	  }
 	  kPt = rkSeg.getOrigin()+rkSeg.getDirection();
 	  fSqrDist0 = GbDistance<T>::squareDistance(kPt,rkTri,&fS0,&fT0);
-	  fR0 = 1.0;
+	  fR0 = T(1.0);
 	  if ( fSqrDist0 < fSqrDist ) {
 	    fSqrDist = fSqrDist0;
 	    fR = fR0;
@@ -775,13 +781,13 @@ GbDistance<T>::squareDistance (const GbSegment<T>& rkSeg, const GoTriangleElemen
 	}
 	else { // region 1p
 	  // min on face s+t=1 or r=1
-	  kTriSeg.setOrigin(rkTri.getOrigin()+rkTri.getEdge(0));
-	  kTriSeg.setDirection(rkTri.getEdge(1)-rkTri.getEdge(0));
+	  kTriSeg.setOrigin(rkTri.getOrigin()+rkTri.getEdgeVec(0));
+	  kTriSeg.setDirection(rkTri.getEdgeVec(2));
 	  fSqrDist = GbDistance<T>::squareDistance(rkSeg,kTriSeg,&fR,&fT);
-	  fS = 1.0-fT;
+	  fS = T(1.0)-fT;
 	  kPt = rkSeg.getOrigin()+rkSeg.getDirection();
 	  fSqrDist0 = GbDistance<T>::squareDistance(kPt,rkTri,&fS0,&fT0);
-	  fR0 = 1.0;
+	  fR0 = T(1.0);
 	  if ( fSqrDist0 < fSqrDist ) {
 	    fSqrDist = fSqrDist0;
 	    fR = fR0;
@@ -795,13 +801,13 @@ GbDistance<T>::squareDistance (const GbSegment<T>& rkSeg, const GoTriangleElemen
   else {
     // segment and triangle are parallel
     kTriSeg.setOrigin(rkTri.getOrigin());
-    kTriSeg.setDirection(rkTri.getEdge(0));
+    kTriSeg.setDirection(rkTri.getEdgeVec(0));
     fSqrDist = GbDistance<T>::squareDistance(rkSeg,kTriSeg,&fR,&fS);
-    fT = 0.0;
+    fT = T(0.0);
 
-    kTriSeg.setDirection(rkTri.getEdge(1));
+    kTriSeg.setDirection(rkTri.getEdgeVec(1));
     fSqrDist0 = GbDistance<T>::squareDistance(rkSeg,kTriSeg,&fR0,&fT0);
-    fS0 = 0.0;
+    fS0 = T(0.0);
     if ( fSqrDist0 < fSqrDist ) {
       fSqrDist = fSqrDist0;
       fR = fR0;
@@ -809,10 +815,10 @@ GbDistance<T>::squareDistance (const GbSegment<T>& rkSeg, const GoTriangleElemen
       fT = fT0;
     }
     
-    kTriSeg.setOrigin(rkTri.getOrigin() + rkTri.getEdge(0));
-    kTriSeg.setDirection(rkTri.getEdge(1) - rkTri.getEdge(0));
+    kTriSeg.setOrigin(rkTri.getOrigin() + rkTri.getEdgeVec(0));
+    kTriSeg.setDirection(rkTri.getEdgeVec(2));
     fSqrDist0 = GbDistance<T>::squareDistance(rkSeg,kTriSeg,&fR0,&fT0);
-    fS0 = 1.0-fT0;
+    fS0 = T(1.0)-fT0;
     if ( fSqrDist0 < fSqrDist ) {
       fSqrDist = fSqrDist0;
       fR = fR0;
@@ -821,7 +827,7 @@ GbDistance<T>::squareDistance (const GbSegment<T>& rkSeg, const GoTriangleElemen
     }
 
     fSqrDist0 = GbDistance<T>::squareDistance(rkSeg.getOrigin(),rkTri,&fS0,&fT0);
-    fR0 = 0.0;
+    fR0 = T(0.0);
     if ( fSqrDist0 < fSqrDist ) {
       fSqrDist = fSqrDist0;
       fR = fR0;
@@ -831,7 +837,7 @@ GbDistance<T>::squareDistance (const GbSegment<T>& rkSeg, const GoTriangleElemen
 
     kPt = rkSeg.getOrigin()+rkSeg.getDirection();
     fSqrDist0 = GbDistance<T>::squareDistance(kPt,rkTri,&fS0,&fT0);
-    fR0 = 1.0;
+    fR0 = T(1.0);
     if ( fSqrDist0 < fSqrDist ) {
       fSqrDist = fSqrDist0;
       fR = fR0;
@@ -877,44 +883,44 @@ GbDistance<T>::squareDistance (const GbSegment<T>& rkSeg0, const GbSegment<T>& r
     fS = fA01*fB1-fA11*fB0;
     fT = fA01*fB0-fA00*fB1;
         
-    if ( fS >= 0.0 ) {
+    if ( fS >= T(0.0) ) {
       if ( fS <= fDet ) {
-	if ( fT >= 0.0 ) {
+	if ( fT >= T(0.0) ) {
 	  if ( fT <= fDet ) { // region 0 (interior)
 	    // minimum at two interior points of 3D lines
-	    T fInvDet = 1.0/fDet;
+	    T fInvDet = T(1.0)/fDet;
 	    fS *= fInvDet;
 	    fT *= fInvDet;
-	    fSqrDist = fS*(fA00*fS+fA01*fT+2.0*fB0) +
-	               fT*(fA01*fS+fA11*fT+2.0*fB1) +
+	    fSqrDist = fS*(fA00*fS+fA01*fT+T(2.0)*fB0) +
+	               fT*(fA01*fS+fA11*fT+T(2.0)*fB1) +
 	               fC;
 	  }
 	  else { // region 3 (side)
-	    fT = 1.0;
+	    fT = T(1.0);
 	    fTmp = fA01+fB0;
-	    if ( fTmp >= 0.0 ) {
-	      fS = 0.0;
-	      fSqrDist = fA11+2.0*fB1+fC;
+	    if ( fTmp >= T(0.0) ) {
+	      fS = T(0.0);
+	      fSqrDist = fA11+T(2.0)*fB1+fC;
 	    }
 	    else if ( -fTmp >= fA00 ) {
-	      fS = 1.0;
-	      fSqrDist = fA00+fA11+fC+2.0*(fB1+fTmp);
+	      fS = T(1.0);
+	      fSqrDist = fA00+fA11+fC+T(2.0)*(fB1+fTmp);
 	    }
 	    else {
 	      fS = -fTmp/fA00;
-	      fSqrDist = fTmp*fS+fA11+2.0*fB1+fC;
+	      fSqrDist = fTmp*fS+fA11+T(2.0)*fB1+fC;
 	    }
 	  }
 	}
 	else { // region 7 (side)
-	  fT = 0.0;
-	  if ( fB0 >= 0.0 ) {
-	    fS = 0.0;
+	  fT = T(0.0);
+	  if ( fB0 >= T(0.0) ) {
+	    fS = T(0.0);
 	    fSqrDist = fC;
 	  }
 	  else if ( -fB0 >= fA00 ) {
-	    fS = 1.0;
-	    fSqrDist = fA00+2.0*fB0+fC;
+	    fS = T(1.0);
+	    fSqrDist = fA00+T(2.0)*fB0+fC;
 	  }
 	  else {
 	    fS = -fB0/fA00;
@@ -923,59 +929,59 @@ GbDistance<T>::squareDistance (const GbSegment<T>& rkSeg0, const GbSegment<T>& r
 	}
       }
       else {
-	if ( fT >= 0.0 ) {
+	if ( fT >= T(0.0) ) {
 	  if ( fT <= fDet ) { // region 1 (side)
-	    fS = 1.0;
+	    fS = T(1.0);
 	    fTmp = fA01+fB1;
-	    if ( fTmp >= 0.0 ) {
-	      fT = 0.0;
-	      fSqrDist = fA00+2.0*fB0+fC;
+	    if ( fTmp >= T(0.0) ) {
+	      fT = T(0.0);
+	      fSqrDist = fA00+T(2.0)*fB0+fC;
 	    }
 	    else if ( -fTmp >= fA11 ) {
-	      fT = 1.0;
-	      fSqrDist = fA00+fA11+fC+2.0*(fB0+fTmp);
+	      fT = T(1.0);
+	      fSqrDist = fA00+fA11+fC+T(2.0)*(fB0+fTmp);
 	    }
 	    else {
 	      fT = -fTmp/fA11;
-	      fSqrDist = fTmp*fT+fA00+2.0*fB0+fC;
+	      fSqrDist = fTmp*fT+fA00+T(2.0)*fB0+fC;
 	    }
 	  }
 	  else { // region 2 (corner)
 	    fTmp = fA01+fB0;
 	    if ( -fTmp <= fA00 ) {
-	      fT = 1.0;
-	      if ( fTmp >= 0.0 ) {
-		fS = 0.0;
-		fSqrDist = fA11+2.0*fB1+fC;
+	      fT = T(1.0);
+	      if ( fTmp >= T(0.0) ) {
+		fS = T(0.0);
+		fSqrDist = fA11+T(2.0)*fB1+fC;
 	      }
 	      else {
 		fS = -fTmp/fA00;
-		fSqrDist = fTmp*fS+fA11+2.0*fB1+fC;
+		fSqrDist = fTmp*fS+fA11+T(2.0)*fB1+fC;
 	      }
 	    }
 	    else {
-	      fS = 1.0;
+	      fS = T(1.0);
 	      fTmp = fA01+fB1;
-	      if ( fTmp >= 0.0 ) {
-		fT = 0.0;
-		fSqrDist = fA00+2.0*fB0+fC;
+	      if ( fTmp >= T(0.0) ) {
+		fT = T(0.0);
+		fSqrDist = fA00+T(2.0)*fB0+fC;
 	      }
 	      else if ( -fTmp >= fA11 ) {
-		fT = 1.0;
-		fSqrDist = fA00+fA11+fC+2.0*(fB0+fTmp);
+		fT = T(1.0);
+		fSqrDist = fA00+fA11+fC+T(2.0)*(fB0+fTmp);
 	      }
 	      else {
 		fT = -fTmp/fA11;
-		fSqrDist = fTmp*fT+fA00+2.0*fB0+fC;
+		fSqrDist = fTmp*fT+fA00+T(2.0)*fB0+fC;
 	      }
 	    }
 	  }
 	}
 	else { // region 8 (corner)
 	  if ( -fB0 < fA00 ) {
-	    fT = 0.0;
-	    if ( fB0 >= 0.0 ) {
-	      fS = 0.0;
+	    fT = T(0.0);
+	    if ( fB0 >= T(0.0) ) {
+	      fS = T(0.0);
 	      fSqrDist = fC;
 	    }
 	    else {
@@ -984,35 +990,35 @@ GbDistance<T>::squareDistance (const GbSegment<T>& rkSeg0, const GbSegment<T>& r
 	    }
 	  }
 	  else {
-	    fS = 1.0;
+	    fS = T(1.0);
 	    fTmp = fA01+fB1;
-	    if ( fTmp >= 0.0 ) {
-	      fT = 0.0;
-	      fSqrDist = fA00+2.0*fB0+fC;
+	    if ( fTmp >= T(0.0) ) {
+	      fT = T(0.0);
+	      fSqrDist = fA00+T(2.0)*fB0+fC;
 	    }
 	    else if ( -fTmp >= fA11 ) {
-	      fT = 1.0;
-	      fSqrDist = fA00+fA11+fC+2.0*(fB0+fTmp);
+	      fT = T(1.0);
+	      fSqrDist = fA00+fA11+fC+T(2.0)*(fB0+fTmp);
 	    }
 	    else {
 	      fT = -fTmp/fA11;
-	      fSqrDist = fTmp*fT+fA00+2.0*fB0+fC;
+	      fSqrDist = fTmp*fT+fA00+T(2.0)*fB0+fC;
 	    }
 	  }
 	}
       }
     }
     else {
-      if ( fT >= 0.0 ) {
+      if ( fT >= T(0.0) ) {
 	if ( fT <= fDet ) { // region 5 (side)
-	  fS = 0.0;
-	  if ( fB1 >= 0.0 ) {
-	    fT = 0.0;
+	  fS = T(0.0);
+	  if ( fB1 >= T(0.0) ) {
+	    fT = T(0.0);
 	    fSqrDist = fC;
 	  }
 	  else if ( -fB1 >= fA11 ) {
-	    fT = 1.0;
-	    fSqrDist = fA11+2.0*fB1+fC;
+	    fT = T(1.0);
+	    fSqrDist = fA11+T(2.0)*fB1+fC;
 	  }
 	  else {
 	    fT = -fB1/fA11;
@@ -1021,26 +1027,26 @@ GbDistance<T>::squareDistance (const GbSegment<T>& rkSeg0, const GbSegment<T>& r
 	}
 	else { // region 4 (corner)
 	  fTmp = fA01+fB0;
-	  if ( fTmp < 0.0 ) {
-	    fT = 1.0;
+	  if ( fTmp < T(0.0) ) {
+	    fT = T(1.0);
 	    if ( -fTmp >= fA00 ) {
-	      fS = 1.0;
-	      fSqrDist = fA00+fA11+fC+2.0*(fB1+fTmp);
+	      fS = T(1.0);
+	      fSqrDist = fA00+fA11+fC+T(2.0)*(fB1+fTmp);
 	    }
 	    else {
 	      fS = -fTmp/fA00;
-	      fSqrDist = fTmp*fS+fA11+2.0*fB1+fC;
+	      fSqrDist = fTmp*fS+fA11+T(2.0)*fB1+fC;
 	    }
 	  }
 	  else {
-	    fS = 0.0;
-	    if ( fB1 >= 0.0 ) {
-	      fT = 0.0;
+	    fS = T(0.0);
+	    if ( fB1 >= T(0.0) ) {
+	      fT = T(0.0);
 	      fSqrDist = fC;
 	    }
 	    else if ( -fB1 >= fA11 ) {
-	      fT = 1.0;
-	      fSqrDist = fA11+2.0*fB1+fC;
+	      fT = T(1.0);
+	      fSqrDist = fA11+T(2.0)*fB1+fC;
 	    }
 	    else {
 	      fT = -fB1/fA11;
@@ -1050,11 +1056,11 @@ GbDistance<T>::squareDistance (const GbSegment<T>& rkSeg0, const GbSegment<T>& r
 	}
       }
       else {  // region 6 (corner)
-	if ( fB0 < 0.0 ) {
-	  fT = 0.0;
+	if ( fB0 < T(0.0) ) {
+	  fT = T(0.0);
 	  if ( -fB0 >= fA00 ) {
-	    fS = 1.0;
-	    fSqrDist = fA00+2.0*fB0+fC;
+	    fS = T(1.0);
+	    fSqrDist = fA00+T(2.0)*fB0+fC;
 	  }
 	  else {
 	    fS = -fB0/fA00;
@@ -1062,14 +1068,14 @@ GbDistance<T>::squareDistance (const GbSegment<T>& rkSeg0, const GbSegment<T>& r
 	  }
 	}
 	else {
-	  fS = 0.0;
-	  if ( fB1 >= 0.0 ) {
-	    fT = 0.0;
+	  fS = T(0.0);
+	  if ( fB1 >= T(0.0) ) {
+	    fT = T(0.0);
 	    fSqrDist = fC;
 	  }
 	  else if ( -fB1 >= fA11 ) {
-	    fT = 1.0;
-	    fSqrDist = fA11+2.0*fB1+fC;
+	    fT = T(1.0);
+	    fSqrDist = fA11+T(2.0)*fB1+fC;
 	  }
 	  else {
 	    fT = -fB1/fA11;
@@ -1081,54 +1087,54 @@ GbDistance<T>::squareDistance (const GbSegment<T>& rkSeg0, const GbSegment<T>& r
   }
   else {
     // line segments are parallel
-    if ( fA01 > 0.0 ) {
+    if ( fA01 > T(0.0) ) {
       // direction vectors form an obtuse angle
-      if ( fB0 >= 0.0 ) {
-	fS = 0.0;
-	fT = 0.0;
+      if ( fB0 >= T(0.0) ) {
+	fS = T(0.0);
+	fT = T(0.0);
 	fSqrDist = fC;
       }
       else if ( -fB0 <= fA00 ) {
 	fS = -fB0/fA00;
-	fT = 0.0;
+	fT = T(0.0);
 	fSqrDist = fB0*fS+fC;
       }
       else {
 	fB1 = -kDiff.dot(rkSeg1.getDirection());
-	fS = 1.0;
+	fS = T(1.0);
 	fTmp = fA00+fB0;
 	if ( -fTmp >= fA01 ) {
-	  fT = 1.0;
-	  fSqrDist = fA00+fA11+fC+2.0*(fA01+fB0+fB1);
+	  fT = T(1.0);
+	  fSqrDist = fA00+fA11+fC+T(2.0)*(fA01+fB0+fB1);
 	}
 	else {
 	  fT = -fTmp/fA01;
-	  fSqrDist = fA00+2.0*fB0+fC+fT*(fA11*fT+2.0*(fA01+fB1));
+	  fSqrDist = fA00+T(2.0)*fB0+fC+fT*(fA11*fT+T(2.0)*(fA01+fB1));
 	}
       }
     }
     else {
       // direction vectors form an acute angle
       if ( -fB0 >= fA00 ) {
-	fS = 1.0;
-	fT = 0.0;
-	fSqrDist = fA00+2.0*fB0+fC;
+	fS = T(1.0);
+	fT = T(0.0);
+	fSqrDist = fA00+T(2.0)*fB0+fC;
       }
-      else if ( fB0 <= 0.0 ) {
+      else if ( fB0 <= T(0.0) ) {
 	fS = -fB0/fA00;
-	fT = 0.0;
+	fT = T(0.0);
 	fSqrDist = fB0*fS+fC;
       }
       else {
 	fB1 = -kDiff.dot(rkSeg1.getDirection());
-	fS = 0.0;
+	fS = T(0.0);
 	if ( fB0 >= -fA01 ) {
-	  fT = 1.0;
-	  fSqrDist = fA11+2.0*fB1+fC;
+	  fT = T(1.0);
+	  fSqrDist = fA11+T(2.0)*fB1+fC;
 	}
 	else {
 	  fT = -fB0/fA01;
-	  fSqrDist = fC+fT*(2.0*fB1+fA11*fT);
+	  fSqrDist = fC+fT*(T(2.0)*fB1+fA11*fT);
 	}
       }
     }
@@ -1169,20 +1175,20 @@ GbDistance<T>::squareDistance (const GbRay<T>& rkRay0, const GbRay<T>& rkRay1,
     fS = fA01*fB1-fA11*fB0;
     fT = fA01*fB0-fA00*fB1;
 
-    if ( fS >= 0.0 ) {
-      if ( fT >= 0.0 ) { // region 0 (interior)
+    if ( fS >= T(0.0) ) {
+      if ( fT >= T(0.0) ) { // region 0 (interior)
 	// minimum at two interior points of rays
-	T fInvDet = 1.0/fDet;
+	T fInvDet = T(1.0)/fDet;
 	fS *= fInvDet;
 	fT *= fInvDet;
-	fSqrDist = fS*(fA00*fS+fA01*fT+2.0*fB0) +
-	           fT*(fA01*fS+fA11*fT+2.0*fB1) +
+	fSqrDist = fS*(fA00*fS+fA01*fT+T(2.0)*fB0) +
+	           fT*(fA01*fS+fA11*fT+T(2.0)*fB1) +
 	           fC;
       }
       else { // region 3 (side)
-	fT = 0.0;
-	if ( fB0 >= 0.0 ) {
-	  fS = 0.0;
+	fT = T(0.0);
+	if ( fB0 >= T(0.0) ) {
+	  fS = T(0.0);
 	  fSqrDist = fC;
 	}
 	else {
@@ -1192,10 +1198,10 @@ GbDistance<T>::squareDistance (const GbRay<T>& rkRay0, const GbRay<T>& rkRay1,
       }
     }
     else {
-      if ( fT >= 0.0 ) { // region 1 (side)
-	fS = 0.0;
-	if ( fB1 >= 0.0 ) {
-	  fT = 0.0;
+      if ( fT >= T(0.0) ) { // region 1 (side)
+	fS = T(0.0);
+	if ( fB1 >= T(0.0) ) {
+	  fT = T(0.0);
 	  fSqrDist = fC;
 	}
 	else {
@@ -1204,15 +1210,15 @@ GbDistance<T>::squareDistance (const GbRay<T>& rkRay0, const GbRay<T>& rkRay1,
 	}
       }
       else { // region 2 (corner)
-	if ( fB0 < 0.0 ) {
+	if ( fB0 < T(0.0) ) {
 	  fS = -fB0/fA00;
-	  fT = 0.0;
+	  fT = T(0.0);
 	  fSqrDist = fB0*fS+fC;
 	}
 	else {
-	  fS = 0.0;
-	  if ( fB1 >= 0.0 ) {
-	    fT = 0.0;
+	  fS = T(0.0);
+	  if ( fB1 >= T(0.0) ) {
+	    fT = T(0.0);
 	    fSqrDist = fC;
 	  }
 	  else {
@@ -1225,11 +1231,11 @@ GbDistance<T>::squareDistance (const GbRay<T>& rkRay0, const GbRay<T>& rkRay1,
   }
   else {
     // rays are parallel
-    if ( fA01 > 0.0 ) {
+    if ( fA01 > T(0.0) ) {
       // opposite direction vectors
-      fT = 0.0;
-      if ( fB0 >= 0.0 ) {
-	fS = 0.0;
+      fT = T(0.0);
+      if ( fB0 >= T(0.0) ) {
+	fS = T(0.0);
 	fSqrDist = fC;
       }
       else {
@@ -1239,15 +1245,15 @@ GbDistance<T>::squareDistance (const GbRay<T>& rkRay0, const GbRay<T>& rkRay1,
     }
     else {
       // same direction vectors
-      if ( fB0 >= 0.0 ) {
+      if ( fB0 >= T(0.0) ) {
 	fB1 = -kDiff.dot(rkRay1.getDirection());
-	fS = 0.0;
+	fS = T(0.0);
 	fT = -fB1/fA11;
 	fSqrDist = fB1*fT+fC;
       }
       else {
 	fS = -fB0/fA00;
-	fT = 0.0;
+	fT = T(0.0);
 	fSqrDist = fB0*fS+fC;
       }
     }
@@ -1280,34 +1286,34 @@ GbDistance<T>::squareDistance (const GbRay<T>& rkRay, const GbSegment<T>& rkSeg,
     fS = fA01*fB1-fA11*fB0;
     fT = fA01*fB0-fA00*fB1;
     
-    if ( fS >= 0.0 ) {
-      if ( fT >= 0.0 ) {
+    if ( fS >= T(0.0) ) {
+      if ( fT >= T(0.0) ) {
 	if ( fT <= fDet ) { // region 0
 	  // minimum at interior points of ray and segment
-	  T fInvDet = 1.0/fDet;
+	  T fInvDet = T(1.0)/fDet;
 	  fS *= fInvDet;
 	  fT *= fInvDet;
-	  fSqrDist = fS*(fA00*fS+fA01*fT+2.0*fB0) +
-	             fT*(fA01*fS+fA11*fT+2.0*fB1) +
+	  fSqrDist = fS*(fA00*fS+fA01*fT+T(2.0)*fB0) +
+	             fT*(fA01*fS+fA11*fT+T(2.0)*fB1) +
 	             fC;
 	}
 	else { // region 1
-	  fT = 1.0;
+	  fT = T(1.0);
 	  if ( fB0 >= -fA01 ) {
-	    fS = 0.0;
-	    fSqrDist = fA11+2.0*fB1+fC;
+	    fS = T(0.0);
+	    fSqrDist = fA11+T(2.0)*fB1+fC;
 	  }
 	  else {
 	    fTmp = fA01 + fB0;
 	    fS = -fTmp/fA00;
-	    fSqrDist = fTmp*fS+fA11+2.0*fB1+fC;
+	    fSqrDist = fTmp*fS+fA11+T(2.0)*fB1+fC;
 	  }
 	}
       }
       else { // region 5
-	fT = 0.0;
-	if ( fB0 >= 0.0 ) {
-	  fS = 0.0;
+	fT = T(0.0);
+	if ( fB0 >= T(0.0) ) {
+	  fS = T(0.0);
 	  fSqrDist = fC;
 	}
 	else {
@@ -1317,21 +1323,21 @@ GbDistance<T>::squareDistance (const GbRay<T>& rkRay, const GbSegment<T>& rkSeg,
       }
     }
     else {
-      if ( fT <= 0.0 ) { // region 4
-	if ( fB0 < 0.0 ) {
+      if ( fT <= T(0.0) ) { // region 4
+	if ( fB0 < T(0.0) ) {
 	  fS = -fB0/fA00;
-	  fT = 0.0;
+	  fT = T(0.0);
 	  fSqrDist = fB0*fS+fC;
 	}
 	else {
-	  fS = 0.0;
-	  if ( fB1 >= 0.0 ) {
-	    fT = 0.0;
+	  fS = T(0.0);
+	  if ( fB1 >= T(0.0) ) {
+	    fT = T(0.0);
 	    fSqrDist = fC;
 	  }
 	  else if ( -fB1 >= fA11 ) {
-	    fT = 1.0;
-	    fSqrDist = fA11+2.0*fB1+fC;
+	    fT = T(1.0);
+	    fSqrDist = fA11+T(2.0)*fB1+fC;
 	  }
 	  else {
 	    fT = -fB1/fA11;
@@ -1340,14 +1346,14 @@ GbDistance<T>::squareDistance (const GbRay<T>& rkRay, const GbSegment<T>& rkSeg,
 	}
       }
       else if ( fT <= fDet ) { // region 3
-	fS = 0.0;
-	if ( fB1 >= 0.0 ) {
-	  fT = 0.0;
+	fS = T(0.0);
+	if ( fB1 >= T(0.0) ) {
+	  fT = T(0.0);
 	  fSqrDist = fC;
 	}
 	else if ( -fB1 >= fA11 ) {
-	  fT = 1.0;
-	  fSqrDist = fA11+2.0*fB1+fC;
+	  fT = T(1.0);
+	  fSqrDist = fA11+T(2.0)*fB1+fC;
 	}
 	else {
 	  fT = -fB1/fA11;
@@ -1356,19 +1362,19 @@ GbDistance<T>::squareDistance (const GbRay<T>& rkRay, const GbSegment<T>& rkSeg,
       }
       else { // region 2
 	fTmp = fA01+fB0;
-	if ( fTmp < 0.0 ) {
+	if ( fTmp < T(0.0) ) {
 	  fS = -fTmp/fA00;
-	  fT = 1.0;
-	  fSqrDist = fTmp*fS+fA11+2.0*fB1+fC;
+	  fT = T(1.0);
+	  fSqrDist = fTmp*fS+fA11+T(2.0)*fB1+fC;
 	}
 	else {
-	  fS = 0.0;
-	  if ( fB1 >= 0.0 ) {
-	    fT = 0.0;
+	  fS = T(0.0);
+	  if ( fB1 >= T(0.0) ) {
+	    fT = T(0.0);
 	    fSqrDist = fC;
 	  }
 	  else if ( -fB1 >= fA11 ) {
-	    fT = 1.0;
+	    fT = T(1.0);
 	    fSqrDist = fA11+2*fB1+fC;
 	  }
 	  else {
@@ -1381,11 +1387,11 @@ GbDistance<T>::squareDistance (const GbRay<T>& rkRay, const GbSegment<T>& rkSeg,
   }
   else {
     // ray and segment are parallel
-    if ( fA01 > 0.0 ) {
+    if ( fA01 > T(0.0) ) {
       // opposite direction vectors
-      fT = 0.0;
-      if ( fB0 >= 0.0 ) {
-	fS = 0.0;
+      fT = T(0.0);
+      if ( fB0 >= T(0.0) ) {
+	fS = T(0.0);
 	fSqrDist = fC;
       }
       else {
@@ -1396,15 +1402,15 @@ GbDistance<T>::squareDistance (const GbRay<T>& rkRay, const GbSegment<T>& rkSeg,
     else {
       // same direction vectors
       fB1 = -kDiff.dot(rkSeg.getDirection());
-      fT = 1.0;
+      fT = T(1.0);
       fTmp = fA01+fB0;
-      if ( fTmp >= 0.0 ) {
-	fS = 0.0;
-	fSqrDist = fA11+2.0*fB1+fC;
+      if ( fTmp >= T(0.0) ) {
+	fS = T(0.0);
+	fSqrDist = fA11+T(2.0)*fB1+fC;
       }
       else {
 	fS = -fTmp/fA00;
-	fSqrDist = fTmp*fS+fA11+2.0*fB1+fC;
+	fSqrDist = fTmp*fS+fA11+T(2.0)*fB1+fC;
       }
     }
   }
@@ -1439,14 +1445,14 @@ GbDistance<T>::squareDistance (const GbRay<T>& rkRay, const GoTriangleElement& r
 {
   GbVec3<T> kDiff = rkTri.getOrigin() - rkRay.getOrigin();
   T fA00 = rkRay.getDirection().getSquareNorm();
-  T fA01 = -rkRay.getDirection().dot(rkTri.getEdge(0));
-  T fA02 = -rkRay.getDirection().dot(rkTri.getEdge(1));
-  T fA11 = rkTri.getEdge(0).getSquareNorm();
-  T fA12 = rkTri.getEdge(0).dot(rkTri.getEdge(1));
-  T fA22 = rkTri.getEdge(1).dot(rkTri.getEdge(1));
+  T fA01 = -rkRay.getDirection().dot(rkTri.getEdgeVec(0));
+  T fA02 = -rkRay.getDirection().dot(rkTri.getEdgeVec(1));
+  T fA11 = rkTri.getEdgeVec(0).getSquareNorm();
+  T fA12 = rkTri.getEdgeVec(0).dot(rkTri.getEdgeVec(1));
+  T fA22 = rkTri.getEdgeVec(1).dot(rkTri.getEdgeVec(1));
   T fB0  = -kDiff.dot(rkRay.getDirection());
-  T fB1  = kDiff.dot(rkTri.getEdge(0));
-  T fB2  = kDiff.dot(rkTri.getEdge(1));
+  T fB1  = kDiff.dot(rkTri.getEdgeVec(0));
+  T fB2  = kDiff.dot(rkTri.getEdgeVec(1));
   T fCof00 = fA11*fA22-fA12*fA12;
   T fCof01 = fA02*fA12-fA01*fA22;
   T fCof02 = fA01*fA12-fA02*fA11;
@@ -1461,7 +1467,7 @@ GbDistance<T>::squareDistance (const GbRay<T>& rkRay, const GoTriangleElement& r
     T fCof11 = fA00*fA22-fA02*fA02;
     T fCof12 = fA02*fA01-fA00*fA12;
     T fCof22 = fA00*fA11-fA01*fA01;
-    T fInvDet = 1.0/fDet;
+    T fInvDet = T(1.0)/fDet;
     T fRhs0 = -fB0*fInvDet;
     T fRhs1 = -fB1*fInvDet;
     T fRhs2 = -fB2*fInvDet;
@@ -1470,19 +1476,19 @@ GbDistance<T>::squareDistance (const GbRay<T>& rkRay, const GoTriangleElement& r
     fS = fCof01*fRhs0+fCof11*fRhs1+fCof12*fRhs2;
     fT = fCof02*fRhs0+fCof12*fRhs1+fCof22*fRhs2;
 
-    if ( fR <= 0.0 ) {
-      if ( fS+fT <= 1.0 ) {
-	if ( fS < 0.0 ) {
-	  if ( fT < 0.0 ) { // region 4m
+    if ( fR <= T(0.0) ) {
+      if ( fS+fT <= T(1.0) ) {
+	if ( fS < T(0.0) ) {
+	  if ( fT < T(0.0) ) { // region 4m
 	    // min on face s=0 or t=0 or r=0
 	    kTriSeg.setOrigin(rkTri.getOrigin());
-	    kTriSeg.setDirection(rkTri.getEdge(1));
+	    kTriSeg.setDirection(rkTri.getEdgeVec(1));
 	    fSqrDist = GbDistance<T>::squareDistance(rkRay,kTriSeg,&fR,&fT);
-	    fS = 0.0;
+	    fS = T(0.0);
 	    kTriSeg.setOrigin(rkTri.getOrigin());
-	    kTriSeg.setDirection(rkTri.getEdge(0));
+	    kTriSeg.setDirection(rkTri.getEdgeVec(0));
 	    fSqrDist0 = GbDistance<T>::squareDistance(rkRay,kTriSeg,&fR0,&fS0);
-	    fT0 = 0.0;
+	    fT0 = T(0.0);
 	    if ( fSqrDist0 < fSqrDist ) {
 	      fSqrDist = fSqrDist0;
 	      fR = fR0;
@@ -1490,7 +1496,7 @@ GbDistance<T>::squareDistance (const GbRay<T>& rkRay, const GoTriangleElement& r
 	      fT = fT0;
 	    }
 	    fSqrDist0 = GbDistance<T>::squareDistance(rkRay.getOrigin(),rkTri,&fS0,&fT0);
-	    fR0 = 0.0;
+	    fR0 = T(0.0);
 	    if ( fSqrDist0 < fSqrDist ) {
 	      fSqrDist = fSqrDist0;
 	      fR = fR0;
@@ -1501,11 +1507,11 @@ GbDistance<T>::squareDistance (const GbRay<T>& rkRay, const GoTriangleElement& r
 	  else { // region 3m
 	    // min on face s=0 or r=0
 	    kTriSeg.setOrigin(rkTri.getOrigin());
-	    kTriSeg.setDirection(rkTri.getEdge(1));
+	    kTriSeg.setDirection(rkTri.getEdgeVec(1));
 	    fSqrDist = GbDistance<T>::squareDistance(rkRay,kTriSeg,&fR,&fT);
-	    fS = 0.0;
+	    fS = T(0.0);
 	    fSqrDist0 = GbDistance<T>::squareDistance(rkRay.getOrigin(),rkTri,&fS0,&fT0);
-	    fR0 = 0.0;
+	    fR0 = T(0.0);
 	    if ( fSqrDist0 < fSqrDist ) {
 	      fSqrDist = fSqrDist0;
 	      fR = fR0;
@@ -1514,14 +1520,14 @@ GbDistance<T>::squareDistance (const GbRay<T>& rkRay, const GoTriangleElement& r
 	    }
 	  }
 	}
-	else if ( fT < 0.0 ) { // region 5m
+	else if ( fT < T(0.0) ) { // region 5m
 	  // min on face t=0 or r=0
 	  kTriSeg.setOrigin(rkTri.getOrigin());
-	  kTriSeg.setDirection(rkTri.getEdge(0));
+	  kTriSeg.setDirection(rkTri.getEdgeVec(0));
 	  fSqrDist = GbDistance<T>::squareDistance(rkRay,kTriSeg,&fR,&fS);
-	  fT = 0.0;
+	  fT = T(0.0);
 	  fSqrDist0 = GbDistance<T>::squareDistance(rkRay.getOrigin(),rkTri,&fS0,&fT0);
-	  fR0 = 0.0;
+	  fR0 = T(0.0);
 	  if ( fSqrDist0 < fSqrDist ) {
 	    fSqrDist = fSqrDist0;
 	    fR = fR0;
@@ -1532,20 +1538,20 @@ GbDistance<T>::squareDistance (const GbRay<T>& rkRay, const GoTriangleElement& r
 	else { // region 0m
 	  // min on face r=0
 	  fSqrDist = GbDistance<T>::squareDistance(rkRay.getOrigin(),rkTri,&fS,&fT);
-	  fR = 0.0;
+	  fR = T(0.0);
 	}
       }
       else {
-	if ( fS < 0.0 ) { // region 2m
+	if ( fS < T(0.0) ) { // region 2m
 	  // min on face s=0 or s+t=1 or r=0
 	  kTriSeg.setOrigin(rkTri.getOrigin());
-	  kTriSeg.setDirection(rkTri.getEdge(1));
+	  kTriSeg.setDirection(rkTri.getEdgeVec(1));
 	  fSqrDist = GbDistance<T>::squareDistance(rkRay,kTriSeg,&fR,&fT);
-	  fS = 0.0;
-	  kTriSeg.setOrigin(rkTri.getOrigin()+rkTri.getEdge(0));
-	  kTriSeg.setDirection(rkTri.getEdge(1)-rkTri.getEdge(0));
+	  fS = T(0.0);
+	  kTriSeg.setOrigin(rkTri.getOrigin()+rkTri.getEdgeVec(0));
+	  kTriSeg.setDirection(rkTri.getEdgeVec(2));
 	  fSqrDist0 = GbDistance<T>::squareDistance(rkRay,kTriSeg,&fR0,&fT0);
-	  fS0 = 1.0-fT0;
+	  fS0 = T(1.0)-fT0;
 	  if ( fSqrDist0 < fSqrDist ) {
 	    fSqrDist = fSqrDist0;
 	    fR = fR0;
@@ -1553,7 +1559,7 @@ GbDistance<T>::squareDistance (const GbRay<T>& rkRay, const GoTriangleElement& r
 	    fT = fT0;
 	  }
 	  fSqrDist0 = GbDistance<T>::squareDistance(rkRay.getOrigin(),rkTri,&fS0,&fT0);
-	  fR0 = 0.0;
+	  fR0 = T(0.0);
 	  if ( fSqrDist0 < fSqrDist ) {
 	    fSqrDist = fSqrDist0;
 	    fR = fR0;
@@ -1561,16 +1567,16 @@ GbDistance<T>::squareDistance (const GbRay<T>& rkRay, const GoTriangleElement& r
 	    fT = fT0;
 	  }
 	}
-	else if ( fT < 0.0 ) { // region 6m
+	else if ( fT < T(0.0) ) { // region 6m
 	  // min on face t=0 or s+t=1 or r=0
 	  kTriSeg.setOrigin(rkTri.getOrigin());
-	  kTriSeg.setDirection(rkTri.getEdge(0));
+	  kTriSeg.setDirection(rkTri.getEdgeVec(0));
 	  fSqrDist = GbDistance<T>::squareDistance(rkRay,kTriSeg,&fR,&fS);
-	  fT = 0.0;
-	  kTriSeg.setOrigin(rkTri.getOrigin()+rkTri.getEdge(0));
-	  kTriSeg.setDirection(rkTri.getEdge(1)-rkTri.getEdge(0));
+	  fT = T(0.0);
+	  kTriSeg.setOrigin(rkTri.getOrigin()+rkTri.getEdgeVec(0));
+	  kTriSeg.setDirection(rkTri.getEdgeVec(2));
 	  fSqrDist0 = GbDistance<T>::squareDistance(rkRay,kTriSeg,&fR0,&fT0);
-	  fS0 = 1.0-fT0;
+	  fS0 = T(1.0)-fT0;
 	  if ( fSqrDist0 < fSqrDist ) {
 	    fSqrDist = fSqrDist0;
 	    fR = fR0;
@@ -1578,7 +1584,7 @@ GbDistance<T>::squareDistance (const GbRay<T>& rkRay, const GoTriangleElement& r
 	    fT = fT0;
 	  }
 	  fSqrDist0 = GbDistance<T>::squareDistance(rkRay.getOrigin(),rkTri,&fS0,&fT0);
-	  fR0 = 0.0;
+	  fR0 = T(0.0);
 	  if ( fSqrDist0 < fSqrDist ) {
 	    fSqrDist = fSqrDist0;
 	    fR = fR0;
@@ -1588,12 +1594,12 @@ GbDistance<T>::squareDistance (const GbRay<T>& rkRay, const GoTriangleElement& r
 	}
 	else { // region 1m
 	  // min on face s+t=1 or r=0
-	  kTriSeg.setOrigin(rkTri.getOrigin()+rkTri.getEdge(0));
-	  kTriSeg.setDirection(rkTri.getEdge(1)-rkTri.getEdge(0));
+	  kTriSeg.setOrigin(rkTri.getOrigin()+rkTri.getEdgeVec(0));
+	  kTriSeg.setDirection(rkTri.getEdgeVec(2));
 	  fSqrDist = GbDistance<T>::squareDistance(rkRay,kTriSeg,&fR,&fT);
-	  fS = 1.0-fT;
+	  fS = T(1.0)-fT;
 	  fSqrDist0 = GbDistance<T>::squareDistance(rkRay.getOrigin(),rkTri,&fS0,&fT0);
-	  fR0 = 0.0;
+	  fR0 = T(0.0);
 	  if ( fSqrDist0 < fSqrDist ) {
 	    fSqrDist = fSqrDist0;
 	    fR = fR0;
@@ -1604,18 +1610,18 @@ GbDistance<T>::squareDistance (const GbRay<T>& rkRay, const GoTriangleElement& r
       }
     }
     else { // fR > 0
-      if ( fS+fT <= 1.0 ) {
-	if ( fS < 0.0 ) {
-	  if ( fT < 0.0 ) { // region 4p
+      if ( fS+fT <= T(1.0) ) {
+	if ( fS < T(0.0) ) {
+	  if ( fT < T(0.0) ) { // region 4p
 	    // min on face s=0 or t=0
 	    kTriSeg.setOrigin(rkTri.getOrigin());
-	    kTriSeg.setDirection(rkTri.getEdge(1));
+	    kTriSeg.setDirection(rkTri.getEdgeVec(1));
 	    fSqrDist = GbDistance<T>::squareDistance(rkRay,kTriSeg,&dummyPointer,&fT);
-	    fS = 0.0;
+	    fS = T(0.0);
 	    kTriSeg.setOrigin(rkTri.getOrigin());
-	    kTriSeg.setDirection(rkTri.getEdge(0));
+	    kTriSeg.setDirection(rkTri.getEdgeVec(0));
 	    fSqrDist0 = GbDistance<T>::squareDistance(rkRay,kTriSeg,&dummyPointer,&fS0);
-	    fT0 = 0.0;
+	    fT0 = T(0.0);
 	    if ( fSqrDist0 < fSqrDist ) {
 	      fSqrDist = fSqrDist0;
 	      fS = fS0;
@@ -1625,50 +1631,50 @@ GbDistance<T>::squareDistance (const GbRay<T>& rkRay, const GoTriangleElement& r
 	  else { // region 3p
 	    // min on face s=0
 	    kTriSeg.setOrigin(rkTri.getOrigin());
-	    kTriSeg.setDirection(rkTri.getEdge(1));
+	    kTriSeg.setDirection(rkTri.getEdgeVec(1));
 	    fSqrDist = GbDistance<T>::squareDistance(rkRay,kTriSeg,&dummyPointer,&fT);
-	    fS = 0.0;
+	    fS = T(0.0);
 	  }
 	}
-	else if ( fT < 0.0 ) { // region 5p
+	else if ( fT < T(0.0) ) { // region 5p
 	  // min on face t=0
 	  kTriSeg.setOrigin(rkTri.getOrigin());
-	  kTriSeg.setDirection(rkTri.getEdge(0));
+	  kTriSeg.setDirection(rkTri.getEdgeVec(0));
 	  fSqrDist = GbDistance<T>::squareDistance(rkRay,kTriSeg,&dummyPointer,&fS);
-	  fT = 0.0;
+	  fT = T(0.0);
 	}
 	else { // region 0p
 	  // ray intersects triangle
-	  fSqrDist = 0.0;
+	  fSqrDist = T(0.0);
 	}
       }
       else {
-	if ( fS < 0.0 ) { // region 2p
+	if ( fS < T(0.0) ) { // region 2p
 	  // min on face s=0 or s+t=1
 	  kTriSeg.setOrigin(rkTri.getOrigin());
-	  kTriSeg.setDirection(rkTri.getEdge(1));
+	  kTriSeg.setDirection(rkTri.getEdgeVec(1));
 	  fSqrDist = GbDistance<T>::squareDistance(rkRay,kTriSeg,&dummyPointer,&fT);
-	  fS = 0.0;
-	  kTriSeg.setOrigin(rkTri.getOrigin()+rkTri.getEdge(0));
-	  kTriSeg.setDirection(rkTri.getEdge(1)-rkTri.getEdge(0));
+	  fS = T(0.0);
+	  kTriSeg.setOrigin(rkTri.getOrigin()+rkTri.getEdgeVec(0));
+	  kTriSeg.setDirection(rkTri.getEdgeVec(2));
 	  fSqrDist0 = GbDistance<T>::squareDistance(rkRay,kTriSeg,&dummyPointer,&fT0);
-	  fS0 = 1.0-fT0;
+	  fS0 = T(1.0)-fT0;
 	  if ( fSqrDist0 < fSqrDist ) {
 	    fSqrDist = fSqrDist0;
 	    fS = fS0;
 	    fT = fT0;
 	  }
 	}
-	else if ( fT < 0.0 ) { // region 6p
+	else if ( fT < T(0.0) ) { // region 6p
 	  // min on face t=0 or s+t=1
 	  kTriSeg.setOrigin(rkTri.getOrigin());
-	  kTriSeg.setDirection(rkTri.getEdge(0));
+	  kTriSeg.setDirection(rkTri.getEdgeVec(0));
 	  fSqrDist = GbDistance<T>::squareDistance(rkRay,kTriSeg,&dummyPointer,&fS);
-	  fT = 0.0;
-	  kTriSeg.setOrigin(rkTri.getOrigin()+rkTri.getEdge(0));
-	  kTriSeg.setDirection(rkTri.getEdge(1)-rkTri.getEdge(0));
+	  fT = T(0.0);
+	  kTriSeg.setOrigin(rkTri.getOrigin()+rkTri.getEdgeVec(0));
+	  kTriSeg.setDirection(rkTri.getEdgeVec(2));
 	  fSqrDist0 = GbDistance<T>::squareDistance(rkRay,kTriSeg,&dummyPointer,&fT0);
-	  fS0 = 1.0-fT0;
+	  fS0 = T(1.0)-fT0;
 	  if ( fSqrDist0 < fSqrDist ) {
 	    fSqrDist = fSqrDist0;
 	    fS = fS0;
@@ -1677,10 +1683,10 @@ GbDistance<T>::squareDistance (const GbRay<T>& rkRay, const GoTriangleElement& r
 	}
 	else { // region 1p
 	  // min on face s+t=1
-	  kTriSeg.setOrigin(rkTri.getOrigin()+rkTri.getEdge(0));
-	  kTriSeg.setDirection(rkTri.getEdge(1)-rkTri.getEdge(0));
+	  kTriSeg.setOrigin(rkTri.getOrigin()+rkTri.getEdgeVec(0));
+	  kTriSeg.setDirection(rkTri.getEdgeVec(2));
 	  fSqrDist = GbDistance<T>::squareDistance(rkRay,kTriSeg,&dummyPointer,&fT);
-	  fS = 1.0-fT;
+	  fS = T(1.0)-fT;
 	}
       }
     }
@@ -1688,13 +1694,13 @@ GbDistance<T>::squareDistance (const GbRay<T>& rkRay, const GoTriangleElement& r
   else {
     // ray and triangle are parallel
     kTriSeg.setOrigin(rkTri.getOrigin());
-    kTriSeg.setDirection(rkTri.getEdge(0));
+    kTriSeg.setDirection(rkTri.getEdgeVec(0));
     fSqrDist = GbDistance<T>::squareDistance(rkRay,kTriSeg,&fR,&fS);
-    fT = 0.0;
+    fT = T(0.0);
 
-    kTriSeg.setDirection(rkTri.getEdge(1));
+    kTriSeg.setDirection(rkTri.getEdgeVec(1));
     fSqrDist0 = GbDistance<T>::squareDistance(rkRay,kTriSeg,&fR0,&fT0);
-    fS0 = 0.0;
+    fS0 = T(0.0);
     if ( fSqrDist0 < fSqrDist ) {
       fSqrDist = fSqrDist0;
       fR = fR0;
@@ -1702,10 +1708,10 @@ GbDistance<T>::squareDistance (const GbRay<T>& rkRay, const GoTriangleElement& r
       fT = fT0;
     }
 
-    kTriSeg.setOrigin(rkTri.getOrigin() + rkTri.getEdge(0));
-    kTriSeg.setDirection(rkTri.getEdge(1) - rkTri.getEdge(0));
+    kTriSeg.setOrigin(rkTri.getOrigin() + rkTri.getEdgeVec(0));
+    kTriSeg.setDirection(rkTri.getEdgeVec(2));
     fSqrDist0 = GbDistance<T>::squareDistance(rkRay,kTriSeg,&fR0,&fT0);
-    fS0 = 1.0-fT0;
+    fS0 = T(1.0)-fT0;
     if ( fSqrDist0 < fSqrDist ) {
       fSqrDist = fSqrDist0;
       fR = fR0;
@@ -1714,7 +1720,7 @@ GbDistance<T>::squareDistance (const GbRay<T>& rkRay, const GoTriangleElement& r
     }
 
     fSqrDist0 = GbDistance<T>::squareDistance(rkRay.getOrigin(),rkTri,&fS0,&fT0);
-    fR0 = 0.0;
+    fR0 = T(0.0);
     if ( fSqrDist0 < fSqrDist ) {
       fSqrDist = fSqrDist0;
       fR = fR0;
@@ -1748,8 +1754,8 @@ GbDistance<T>::squareDistance (const GbVec3<T>& rkPoint, const GbRay<T>& rkRay,
   GbVec3<T> kDiff = rkPoint - rkRay.getOrigin();
   T fT = kDiff.dot(rkRay.getDirection());
 
-  if ( fT <= 0.0 ) {
-    fT = 0.0;
+  if ( fT <= T(0.0) ) {
+    fT = T(0.0);
   }
   else {
     fT /= rkRay.getDirection().getSquareNorm();
@@ -1769,13 +1775,13 @@ GbDistance<T>::squareDistance (const GbVec3<T>& rkPoint, const GbSegment<T>& rkS
   GbVec3<T> kDiff = rkPoint - rkSegment.getOrigin();
   T fT = kDiff.dot(rkSegment.getDirection());
 
-  if ( fT <= 0.0 ) {
-    fT = 0.0;
+  if ( fT <= T(0.0) ) {
+    fT = T(0.0);
   }
   else {
     T fSqrLen= rkSegment.getDirection().getSquareNorm();
     if ( fT >= fSqrLen ) {
-      fT = 1.0;
+      fT = T(1.0);
       kDiff -= rkSegment.getDirection();
     }
     else {
@@ -1826,7 +1832,7 @@ GbDistance<T>::squareDistance (const GbRay<T>& rkRay, const GbBox3<T>& rkBox,
   
   T fLP, fBP0, fBP1, fBP2;
   T fSqrDistance = GbDistance<T>::squareDistance(kLine,rkBox,&fLP,&fBP0,&fBP1,&fBP2);
-  if ( fLP >= 0.0 ) {
+  if ( fLP >= T(0.0) ) {
     if ( pfLParam ) {
       *pfLParam = fLP;
       *pfBParam0 = fBP0;
@@ -1840,7 +1846,7 @@ GbDistance<T>::squareDistance (const GbRay<T>& rkRay, const GbBox3<T>& rkBox,
     fSqrDistance = GbDistance<T>::squareDistance(rkRay.getOrigin(),rkBox,
  						 pfBParam0,pfBParam1,pfBParam2);
     
-    if ( pfLParam ) *pfLParam = 0.0;
+    if ( pfLParam ) *pfLParam = T(0.0);
     
     return fSqrDistance;
   }
@@ -1867,8 +1873,8 @@ GbDistance<T>::squareDistance (const GbSegment<T>& rkSeg, const GbBox3<T>& rkBox
   
   T fLP, fBP0, fBP1, fBP2;
   T fSqrDistance = GbDistance<T>::squareDistance(kLine,rkBox,&fLP,&fBP0,&fBP1,&fBP2);
-  if ( fLP >= 0.0 ) {
-    if ( fLP <= 1.0 ) {
+  if ( fLP >= T(0.0) ) {
+    if ( fLP <= T(1.0) ) {
       if ( pfLParam ) {
  	*pfLParam = fLP;
  	*pfBParam0 = fBP0;
@@ -1882,7 +1888,7 @@ GbDistance<T>::squareDistance (const GbSegment<T>& rkSeg, const GbBox3<T>& rkBox
       fSqrDistance = GbDistance<T>::squareDistance(rkSeg.getOrigin()+rkSeg.getDirection(),rkBox,
  						   pfBParam0,pfBParam1,pfBParam2);
       
-      if ( pfLParam ) *pfLParam = 1.0;
+      if ( pfLParam ) *pfLParam = T(1.0);
       
       return fSqrDistance;
     }
@@ -1891,7 +1897,7 @@ GbDistance<T>::squareDistance (const GbSegment<T>& rkSeg, const GbBox3<T>& rkBox
     fSqrDistance = GbDistance<T>::squareDistance(rkSeg.getOrigin(),rkBox,
  						 pfBParam0,pfBParam1,pfBParam2);
     
-    if ( pfLParam ) *pfLParam = 0.0;
+    if ( pfLParam ) *pfLParam = T(0.0);
     
     return fSqrDistance;
   }
@@ -1932,17 +1938,17 @@ GbDistance<T>::squareDistance (const GbLine<T>& rkLine0, const GbLine<T>& rkLine
   if ( fDet >= GbDistance<T>::TOLERANCE ) {
     // lines are not parallel
     fB1 = -kDiff.dot(rkLine1.getDirection());
-    T fInvDet = 1.0/fDet;
+    T fInvDet = T(1.0)/fDet;
     fS = (fA01*fB1-fA11*fB0)*fInvDet;
     fT = (fA01*fB0-fA00*fB1)*fInvDet;
-    fSqrDist = fS*(fA00*fS+fA01*fT+2.0*fB0) +
-               fT*(fA01*fS+fA11*fT+2.0*fB1) +
+    fSqrDist = fS*(fA00*fS+fA01*fT+T(2.0)*fB0) +
+               fT*(fA01*fS+fA11*fT+T(2.0)*fB1) +
                fC;
   }
   else {
     // lines are parallel, select any closest pair of points
     fS = -fB0/fA00;
-    fT = 0.0;
+    fT = T(0.0);
     fSqrDist = fB0*fS+fC;
   }
 
@@ -1971,26 +1977,26 @@ GbDistance<T>::squareDistance (const GbLine<T>& rkLine, const GbRay<T>& rkRay,
     fB1 = -kDiff.dot(rkRay.getDirection());
     fT = fA01*fB0-fA00*fB1;
 
-    if ( fT >= 0.0 ) {
+    if ( fT >= T(0.0) ) {
       // two interior points are closest, one on line and one on ray
-      T fInvDet = 1.0/fDet;
+      T fInvDet = T(1.0)/fDet;
       fS = (fA01*fB1-fA11*fB0)*fInvDet;
       fT *= fInvDet;
-      fSqrDist = fS*(fA00*fS+fA01*fT+2.0*fB0) +
-	         fT*(fA01*fS+fA11*fT+2.0*fB1) +
+      fSqrDist = fS*(fA00*fS+fA01*fT+T(2.0)*fB0) +
+	         fT*(fA01*fS+fA11*fT+T(2.0)*fB1) +
 	         fC;
     }
     else {
       // end point of ray and interior point of line are closest
       fS = -fB0/fA00;
-      fT = 0.0;
+      fT = T(0.0);
       fSqrDist = fB0*fS+fC;
     }
   }
   else {
     // lines are parallel, closest pair with one point at ray origin
     fS = -fB0/fA00;
-    fT = 0.0;
+    fT = T(0.0);
     fSqrDist = fB0*fS+fC;
   }
 
@@ -2019,35 +2025,35 @@ GbDistance<T>::squareDistance (const GbLine<T>& rkLine, const GbSegment<T>& rkSe
     fB1 = -kDiff.dot(rkSeg.getDirection());
     fT = fA01*fB0-fA00*fB1;
 
-    if ( fT >= 0.0 ) {
+    if ( fT >= T(0.0) ) {
       if ( fT <= fDet ) {
 	// two interior points are closest, one on line and one on segment
-	T fInvDet = 1.0/fDet;
+	T fInvDet = T(1.0)/fDet;
 	fS = (fA01*fB1-fA11*fB0)*fInvDet;
 	fT *= fInvDet;
-	fSqrDist = fS*(fA00*fS+fA01*fT+2.0*fB0) +
-	           fT*(fA01*fS+fA11*fT+2.0*fB1) +
+	fSqrDist = fS*(fA00*fS+fA01*fT+T(2.0)*fB0) +
+	           fT*(fA01*fS+fA11*fT+T(2.0)*fB1) +
 	           fC;
       }
       else {
 	// end point e1 of segment and interior point of line are closest
 	T fTmp = fA01+fB0;
 	fS = -fTmp/fA00;
-	fT = 1.0;
-	fSqrDist = fTmp*fS+fA11+2.0*fB1+fC;
+	fT = T(1.0);
+	fSqrDist = fTmp*fS+fA11+T(2.0)*fB1+fC;
       }
     }
     else {
       // end point e0 of segment and interior point of line are closest
       fS = -fB0/fA00;
-      fT = 0.0;
+      fT = T(0.0);
       fSqrDist = fB0*fS+fC;
     }
   }
   else {
     // lines are parallel, closest pair with one point at segment origin
     fS = -fB0/fA00;
-    fT = 0.0;
+    fT = T(0.0);
     fSqrDist = fB0*fS+fC;
   }
 
@@ -2122,7 +2128,7 @@ GbDistance<T>::face (int i0, int i1, int i2,
       // v[i1] >= -e[i1], v[i2] >= -e[i2] (distance = 0)
       if ( pfLParam ) {
 	rkPnt[i0] = rkBox.getExtent(i0);
-	fInv = 1.0/rkDir[i0];
+	fInv = T(1.0)/rkDir[i0];
 	rkPnt[i1] -= rkDir[i1]*rkPmE[i0]*fInv;
 	rkPnt[i2] -= rkDir[i2]*rkPmE[i0]*fInv;
 	*pfLParam = -rkPmE[i0]*fInv;
@@ -2133,7 +2139,7 @@ GbDistance<T>::face (int i0, int i1, int i2,
       fLSqr = rkDir[i0]*rkDir[i0] + rkDir[i2]*rkDir[i2];
       fTmp = fLSqr*kPpE[i1] - rkDir[i1]*(rkDir[i0]*rkPmE[i0] +
 					 rkDir[i2]*kPpE[i2]);
-      if ( fTmp <= 2.0*fLSqr*rkBox.getExtent(i1) ) {
+      if ( fTmp <= T(2.0)*fLSqr*rkBox.getExtent(i1) ) {
 	fT = fTmp/fLSqr;
 	fLSqr += rkDir[i1]*rkDir[i1];
 	fTmp = kPpE[i1] - fT;
@@ -2179,7 +2185,7 @@ GbDistance<T>::face (int i0, int i1, int i2,
       fLSqr = rkDir[i0]*rkDir[i0] + rkDir[i1]*rkDir[i1];
       fTmp = fLSqr*kPpE[i2] - rkDir[i2]*(rkDir[i0]*rkPmE[i0] +
 					 rkDir[i1]*kPpE[i1]);
-      if ( fTmp <= 2.0*fLSqr*rkBox.getExtent(i2) ) {
+      if ( fTmp <= T(2.0)*fLSqr*rkBox.getExtent(i2) ) {
 	fT = fTmp/fLSqr;
 	fLSqr += rkDir[i2]*rkDir[i2];
 	fTmp = kPpE[i2] - fT;
@@ -2223,9 +2229,9 @@ GbDistance<T>::face (int i0, int i1, int i2,
       fLSqr = rkDir[i0]*rkDir[i0]+rkDir[i2]*rkDir[i2];
       fTmp = fLSqr*kPpE[i1] - rkDir[i1]*(rkDir[i0]*rkPmE[i0] +
 					 rkDir[i2]*kPpE[i2]);
-      if ( fTmp >= 0.0 ) {
+      if ( fTmp >= T(0.0) ) {
 	// v[i1]-edge is closest
-	if ( fTmp <= 2.0*fLSqr*rkBox.getExtent(i1) ) {
+	if ( fTmp <= T(2.0)*fLSqr*rkBox.getExtent(i1) ) {
 	  fT = fTmp/fLSqr;
 	  fLSqr += rkDir[i1]*rkDir[i1];
 	  fTmp = kPpE[i1] - fT;
@@ -2269,9 +2275,9 @@ GbDistance<T>::face (int i0, int i1, int i2,
       fLSqr = rkDir[i0]*rkDir[i0] + rkDir[i1]*rkDir[i1];
       fTmp = fLSqr*kPpE[i2] - rkDir[i2]*(rkDir[i0]*rkPmE[i0] +
 					 rkDir[i1]*kPpE[i1]);
-      if ( fTmp >= 0.0 ) {
+      if ( fTmp >= T(0.0) ) {
 	// v[i2]-edge is closest
-	if ( fTmp <= 2.0*fLSqr*rkBox.getExtent(i2) ) {
+	if ( fTmp <= T(2.0)*fLSqr*rkBox.getExtent(i2) ) {
 	  fT = fTmp/fLSqr;
 	  fLSqr += rkDir[i2]*rkDir[i2];
 	  fTmp = kPpE[i2] - fT;
@@ -2390,8 +2396,8 @@ GbDistance<T>::case0 (int i0, int i1, int i2,
 
     T fPpE1 = rkPnt[i1] + rkBox.getExtent(i1);
     fDelta = fProd0 - rkDir[i0]*fPpE1;
-    if ( fDelta >= 0.0 ) {
-      fInvLSqr = 1.0/(rkDir[i0]*rkDir[i0] + rkDir[i1]*rkDir[i1]);
+    if ( fDelta >= T(0.0) ) {
+      fInvLSqr = T(1.0)/(rkDir[i0]*rkDir[i0] + rkDir[i1]*rkDir[i1]);
       rfSqrDistance += fDelta*fDelta*fInvLSqr;
       if ( pfLParam ) {
 	rkPnt[i1] = -rkBox.getExtent(i1);
@@ -2400,7 +2406,7 @@ GbDistance<T>::case0 (int i0, int i1, int i2,
     }
     else {
       if ( pfLParam ) {
-	fInv = 1.0/rkDir[i0];
+	fInv = T(1.0)/rkDir[i0];
 	rkPnt[i1] -= fProd0*fInv;
 	*pfLParam = -fPmE0*fInv;
       }
@@ -2412,8 +2418,8 @@ GbDistance<T>::case0 (int i0, int i1, int i2,
 
     T fPpE0 = rkPnt[i0] + rkBox.getExtent(i0);
     fDelta = fProd1 - rkDir[i1]*fPpE0;
-    if ( fDelta >= 0.0 ) {
-      fInvLSqr = 1.0/(rkDir[i0]*rkDir[i0] + rkDir[i1]*rkDir[i1]);
+    if ( fDelta >= T(0.0) ) {
+      fInvLSqr = T(1.0)/(rkDir[i0]*rkDir[i0] + rkDir[i1]*rkDir[i1]);
       rfSqrDistance += fDelta*fDelta*fInvLSqr;
       if ( pfLParam ) {
 	rkPnt[i0] = -rkBox.getExtent(i0);
@@ -2422,7 +2428,7 @@ GbDistance<T>::case0 (int i0, int i1, int i2,
     }
     else {
       if ( pfLParam ) {
-	fInv = 1.0/rkDir[i1];
+	fInv = T(1.0)/rkDir[i1];
 	rkPnt[i0] -= fProd1*fInv;
 	*pfLParam = -fPmE1*fInv;
       }
@@ -2544,7 +2550,7 @@ GbDistance<T>::squareDistance (const GbLine<T>& rkLine, const GbBox3<T>& rkBox,
   GbBool bReflect[3];
   int i;
   for (i = 0; i < 3; i++) {
-    if ( kDir[i] < 0.0 ) {
+    if ( kDir[i] < T(0.0) ) {
       kPnt[i] = -kPnt[i];
       kDir[i] = -kDir[i];
       bReflect[i] = true;
@@ -2554,11 +2560,11 @@ GbDistance<T>::squareDistance (const GbLine<T>& rkLine, const GbBox3<T>& rkBox,
     }
   }
 
-  T fSqrDistance = 0.0;
+  T fSqrDistance = T(0.0);
 
-  if ( kDir[0] > 0.0 ) {
-    if ( kDir[1] > 0.0 ) {
-      if ( kDir[2] > 0.0 ) {
+  if ( kDir[0] > T(0.0) ) {
+    if ( kDir[1] > T(0.0) ) {
+      if ( kDir[2] > T(0.0) ) {
 	// (+,+,+)
 	GbDistance<T>::caseNoZeros(kPnt,kDir,rkBox,pfLParam,fSqrDistance);
       }
@@ -2568,7 +2574,7 @@ GbDistance<T>::squareDistance (const GbLine<T>& rkLine, const GbBox3<T>& rkBox,
       }
     }
     else {
-      if ( kDir[2] > 0.0 ) {
+      if ( kDir[2] > T(0.0) ) {
 	// (+,0,+)
 	GbDistance<T>::case0(0,2,1,kPnt,kDir,rkBox,pfLParam,fSqrDistance);
       }
@@ -2579,8 +2585,8 @@ GbDistance<T>::squareDistance (const GbLine<T>& rkLine, const GbBox3<T>& rkBox,
     }
   }
   else {
-    if ( kDir[1] > 0.0 ) {
-      if ( kDir[2] > 0.0 ) {
+    if ( kDir[1] > T(0.0) ) {
+      if ( kDir[2] > T(0.0) ) {
 	// (0,+,+)
 	GbDistance<T>::case0(1,2,0,kPnt,kDir,rkBox,pfLParam,fSqrDistance);
       }
@@ -2590,14 +2596,14 @@ GbDistance<T>::squareDistance (const GbLine<T>& rkLine, const GbBox3<T>& rkBox,
       }
     }
     else {
-      if ( kDir[2] > 0.0 ) {
+      if ( kDir[2] > T(0.0) ) {
 	// (0,0,+)
 	GbDistance<T>::case00(2,0,1,kPnt,kDir,rkBox,pfLParam,fSqrDistance);
       }
       else {
 	// (0,0,0)
 	GbDistance<T>::case000(kPnt,rkBox,fSqrDistance);
-	if ( pfLParam ) *pfLParam = 0.0;
+	if ( pfLParam ) *pfLParam = T(0.0);
       }
     }
   }
@@ -2633,14 +2639,14 @@ GbDistance<T>::squareDistance (const GbLine<T>& rkLine, const GoTriangleElement&
 {
   GbVec3<T> kDiff = rkTri.getOrigin() - rkLine.getOrigin();
   T fA00 = rkLine.getDirection().getSquareNorm();
-  T fA01 = -rkLine.getDirection().dot(rkTri.getEdge(0));
-  T fA02 = -rkLine.getDirection().dot(rkTri.getEdge(1));
-  T fA11 = rkTri.getEdge(0).getSquareNorm();
-  T fA12 = rkTri.getEdge(0).dot(rkTri.getEdge(1));
-  T fA22 = rkTri.getEdge(1).dot(rkTri.getEdge(1));
+  T fA01 = -rkLine.getDirection().dot(rkTri.getEdgeVec(0));
+  T fA02 = -rkLine.getDirection().dot(rkTri.getEdgeVec(1));
+  T fA11 = rkTri.getEdgeVec(0).getSquareNorm();
+  T fA12 = rkTri.getEdgeVec(0).dot(rkTri.getEdgeVec(1));
+  T fA22 = rkTri.getEdgeVec(1).dot(rkTri.getEdgeVec(1));
   T fB0  = -kDiff.dot(rkLine.getDirection());
-  T fB1  = kDiff.dot(rkTri.getEdge(0));
-  T fB2  = kDiff.dot(rkTri.getEdge(1));
+  T fB1  = kDiff.dot(rkTri.getEdgeVec(0));
+  T fB2  = kDiff.dot(rkTri.getEdgeVec(1));
   T fCof00 = fA11*fA22-fA12*fA12;
   T fCof01 = fA02*fA12-fA01*fA22;
   T fCof02 = fA01*fA12-fA02*fA11;
@@ -2654,7 +2660,7 @@ GbDistance<T>::squareDistance (const GbLine<T>& rkLine, const GoTriangleElement&
     T fCof11 = fA00*fA22-fA02*fA02;
     T fCof12 = fA02*fA01-fA00*fA12;
     T fCof22 = fA00*fA11-fA01*fA01;
-    T fInvDet = 1.0/fDet;
+    T fInvDet = T(1.0)/fDet;
     T fRhs0 = -fB0*fInvDet;
     T fRhs1 = -fB1*fInvDet;
     T fRhs2 = -fB2*fInvDet;
@@ -2663,18 +2669,18 @@ GbDistance<T>::squareDistance (const GbLine<T>& rkLine, const GoTriangleElement&
     fS = fCof01*fRhs0+fCof11*fRhs1+fCof12*fRhs2;
     fT = fCof02*fRhs0+fCof12*fRhs1+fCof22*fRhs2;
 
-    if ( fS+fT <= 1.0 ) {
-      if ( fS < 0.0 ) {
-	if ( fT < 0.0 ) {  // region 4
+    if ( fS+fT <= T(1.0) ) {
+      if ( fS < T(0.0) ) {
+	if ( fT < T(0.0) ) {  // region 4
 	  // min on face s=0 or t=0
 	  kTriSeg.setOrigin(rkTri.getOrigin());
-	  kTriSeg.setDirection(rkTri.getEdge(1));
+	  kTriSeg.setDirection(rkTri.getEdgeVec(1));
 	  fSqrDist = GbDistance<T>::squareDistance(rkLine,kTriSeg,0,&fT);
-	  fS = 0.0;
+	  fS = T(0.0);
 	  kTriSeg.setOrigin(rkTri.getOrigin());
-	  kTriSeg.setDirection(rkTri.getEdge(0));
+	  kTriSeg.setDirection(rkTri.getEdgeVec(0));
 	  fSqrDist0 = GbDistance<T>::squareDistance(rkLine,kTriSeg,0,&fS0);
-	  fT0 = 0.0;
+	  fT0 = T(0.0);
 	  if ( fSqrDist0 < fSqrDist ) {
 	    fSqrDist = fSqrDist0;
 	    fS = fS0;
@@ -2684,50 +2690,50 @@ GbDistance<T>::squareDistance (const GbLine<T>& rkLine, const GoTriangleElement&
 	else { // region 3
 	  // min on face s=0
 	  kTriSeg.setOrigin(rkTri.getOrigin());
-	  kTriSeg.setDirection(rkTri.getEdge(1));
+	  kTriSeg.setDirection(rkTri.getEdgeVec(1));
 	  fSqrDist = GbDistance<T>::squareDistance(rkLine,kTriSeg,0,&fT);
-	  fS = 0.0;
+	  fS = T(0.0);
 	}
       }
-      else if ( fT < 0.0 ) { // region 5
+      else if ( fT < T(0.0) ) { // region 5
 	// min on face t=0
 	kTriSeg.setOrigin(rkTri.getOrigin());
-	kTriSeg.setDirection(rkTri.getEdge(0));
+	kTriSeg.setDirection(rkTri.getEdgeVec(0));
 	fSqrDist = GbDistance<T>::squareDistance(rkLine,kTriSeg,0,&fS);
-	fT = 0.0;
+	fT = T(0.0);
       }
       else { // region 0
 	// line intersects triangle
-	fSqrDist = 0.0;
+	fSqrDist = T(0.0);
       }
     }
     else {
-      if ( fS < 0.0 ) { // region 2
+      if ( fS < T(0.0) ) { // region 2
 	// min on face s=0 or s+t=1
 	kTriSeg.setOrigin(rkTri.getOrigin());
-	kTriSeg.setDirection(rkTri.getEdge(1));
+	kTriSeg.setDirection(rkTri.getEdgeVec(1));
 	fSqrDist = GbDistance<T>::squareDistance(rkLine,kTriSeg,0,&fT);
-	fS = 0.0;
-	kTriSeg.setOrigin(rkTri.getOrigin()+rkTri.getEdge(0));
-	kTriSeg.setDirection(rkTri.getEdge(1)-rkTri.getEdge(0));
+	fS = T(0.0);
+	kTriSeg.setOrigin(rkTri.getOrigin()+rkTri.getEdgeVec(0));
+	kTriSeg.setDirection(rkTri.getEdgeVec(2));
 	fSqrDist0 = GbDistance<T>::squareDistance(rkLine,kTriSeg,0,&fT0);
-	fS0 = 1.0-fT0;
+	fS0 = T(1.0)-fT0;
 	if ( fSqrDist0 < fSqrDist ) {
 	  fSqrDist = fSqrDist0;
 	  fS = fS0;
 	  fT = fT0;
 	}
       }
-      else if ( fT < 0.0 ) {  // region 6
+      else if ( fT < T(0.0) ) {  // region 6
 	// min on face t=0 or s+t=1
 	kTriSeg.setOrigin(rkTri.getOrigin());
-	kTriSeg.setDirection(rkTri.getEdge(0));
+	kTriSeg.setDirection(rkTri.getEdgeVec(0));
 	fSqrDist = GbDistance<T>::squareDistance(rkLine,kTriSeg,0,&fS);
-	fT = 0.0;
-	kTriSeg.setOrigin(rkTri.getOrigin()+rkTri.getEdge(0));
-	kTriSeg.setDirection(rkTri.getEdge(1)-rkTri.getEdge(0));
+	fT = T(0.0);
+	kTriSeg.setOrigin(rkTri.getOrigin()+rkTri.getEdgeVec(0));
+	kTriSeg.setDirection(rkTri.getEdgeVec(2));
 	fSqrDist0 = GbDistance<T>::squareDistance(rkLine,kTriSeg,0,&fT0);
-	fS0 = 1.0-fT0;
+	fS0 = T(1.0)-fT0;
 	if ( fSqrDist0 < fSqrDist ) {
 	  fSqrDist = fSqrDist0;
 	  fS = fS0;
@@ -2736,23 +2742,23 @@ GbDistance<T>::squareDistance (const GbLine<T>& rkLine, const GoTriangleElement&
       }
       else { // region 1
 	// min on face s+t=1
-	kTriSeg.setOrigin(rkTri.getOrigin()+rkTri.getEdge(0));
-	kTriSeg.setDirection(rkTri.getEdge(1)-rkTri.getEdge(0));
+	kTriSeg.setOrigin(rkTri.getOrigin()+rkTri.getEdgeVec(0));
+	kTriSeg.setDirection(rkTri.getEdgeVec(2));
 	fSqrDist = GbDistance<T>::squareDistance(rkLine,kTriSeg,0,&fT);
-	fS = 1.0-fT;
+	fS = T(1.0)-fT;
       }
     }
   }
   else {
     // line and triangle are parallel
     kTriSeg.setOrigin(rkTri.getOrigin());
-    kTriSeg.setDirection(rkTri.getEdge(0));
+    kTriSeg.setDirection(rkTri.getEdgeVec(0));
     fSqrDist = GbDistance<T>::squareDistance(rkLine,kTriSeg,&fR,&fS);
-    fT = 0.0;
+    fT = T(0.0);
 
-    kTriSeg.setDirection(rkTri.getEdge(1));
+    kTriSeg.setDirection(rkTri.getEdgeVec(1));
     fSqrDist0 = GbDistance<T>::squareDistance(rkLine,kTriSeg,&fR0,&fT0);
-    fS0 = 0.0;
+    fS0 = T(0.0);
     if ( fSqrDist0 < fSqrDist ) {
       fSqrDist = fSqrDist0;
       fR = fR0;
@@ -2760,10 +2766,10 @@ GbDistance<T>::squareDistance (const GbLine<T>& rkLine, const GoTriangleElement&
       fT = fT0;
     }
 
-    kTriSeg.setOrigin(rkTri.getOrigin() + rkTri.getEdge(0));
-    kTriSeg.setDirection(rkTri.getEdge(1) - rkTri.getEdge(0));
+    kTriSeg.setOrigin(rkTri.getOrigin() + rkTri.getEdgeVec(0));
+    kTriSeg.setDirection(rkTri.getEdgeVec(2));
     fSqrDist0 = GbDistance<T>::squareDistance(rkLine,kTriSeg,&fR0,&fT0);
-    fS0 = 1.0-fT0;
+    fS0 = T(1.0)-fT0;
     if ( fSqrDist0 < fSqrDist ) {
       fSqrDist = fSqrDist0;
       fR = fR0;
@@ -2833,7 +2839,7 @@ GbDistance<T>::squareDistance (const GbVec3<T>& rkPoint, const GbFrustum<T>& rkF
 
   // perform calculations in octant with nonnegative L and U coordinates
   GbBool bLSignChange;
-  if ( kTest[0] < 0.0 ) {
+  if ( kTest[0] < T(0.0) ) {
     bLSignChange = true;
     kTest[0] = -kTest[0];
   }
@@ -2842,7 +2848,7 @@ GbDistance<T>::squareDistance (const GbVec3<T>& rkPoint, const GbFrustum<T>& rkF
   }
 
   GbBool bUSignChange;
-  if ( kTest[1] < 0.0 ) {
+  if ( kTest[1] < T(0.0) ) {
     bUSignChange = true;
     kTest[1] = -kTest[1];
   }
@@ -2959,7 +2965,7 @@ GbDistance<T>::squareDistance (const GbVec3<T>& rkPoint, const GbFrustum<T>& rkF
       else {
 	fLUDDot = fLMin*kTest[0] + fUMin*kTest[1] + fDMin*kTest[2];
 	fLEdgeDot = fUMin*fLUDDot - fMinLUDDot*kTest[1];
-	if ( fLEdgeDot >= 0.0 ) {
+	if ( fLEdgeDot >= T(0.0) ) {
 	  fLDDot = fLMin*kTest[0] + fDMin*kTest[2];
 	  if ( fLDDot >= fMaxLDDot ) {
 	    // LF-edge
@@ -2984,7 +2990,7 @@ GbDistance<T>::squareDistance (const GbVec3<T>& rkPoint, const GbFrustum<T>& rkF
 	}
 	else {
 	  fUEdgeDot = fLMin*fLUDDot - fMinLUDDot*kTest[0];
-	  if ( fUEdgeDot >= 0.0 ) {
+	  if ( fUEdgeDot >= T(0.0) ) {
 	    fUDDot = fUMin*kTest[1] + fDMin*kTest[2];
 	    if ( fUDDot >= fMaxUDDot ) {
 	      // UF-edge
@@ -3035,8 +3041,8 @@ GbDistance<T>::squareDistance (const GbVec3<T>& rkPoint, const GbFrustum<T>& rkF
   else {
     fLDot = fDMin*kTest[0] - fLMin*kTest[2];
     fUDot = fDMin*kTest[1] - fUMin*kTest[2];
-    if ( fLDot <= 0.0 ) {
-      if ( fUDot <= 0.0 ) {
+    if ( fLDot <= T(0.0) ) {
+      if ( fUDot <= T(0.0) ) {
 	// point inside frustum
 	kClosest = kTest;
       }
@@ -3059,7 +3065,7 @@ GbDistance<T>::squareDistance (const GbVec3<T>& rkPoint, const GbFrustum<T>& rkF
       }
     }
     else {
-      if ( fUDot <= 0.0 ) {
+      if ( fUDot <= T(0.0) ) {
 	fLDDot = fLMin*kTest[0] + fDMin*kTest[2];
 	if ( fLDDot >= fMaxLDDot ) {
 	  // LF-edge
@@ -3079,7 +3085,7 @@ GbDistance<T>::squareDistance (const GbVec3<T>& rkPoint, const GbFrustum<T>& rkF
       else {
 	fLUDDot = fLMin*kTest[0] + fUMin*kTest[1] + fDMin*kTest[2];
 	fLEdgeDot = fUMin*fLUDDot - fMinLUDDot*kTest[1];
-	if ( fLEdgeDot >= 0.0 ) {
+	if ( fLEdgeDot >= T(0.0) ) {
 	  fLDDot = fLMin*kTest[0] + fDMin*kTest[2];
 	  if ( fLDDot >= fMaxLDDot ) {
 	    // LF-edge
@@ -3098,7 +3104,7 @@ GbDistance<T>::squareDistance (const GbVec3<T>& rkPoint, const GbFrustum<T>& rkF
 	}
 	else {
 	  fUEdgeDot = fLMin*fLUDDot - fMinLUDDot*kTest[0];
-	  if ( fUEdgeDot >= 0.0 ) {
+	  if ( fUEdgeDot >= T(0.0) ) {
 	    fUDDot = fUMin*kTest[1] + fDMin*kTest[2];
 	    if ( fUDDot >= fMaxUDDot ) {
 	      // UF-edge

@@ -127,8 +127,8 @@ void  OutResultUnverg<Point3D>::Dataset781(Grid<Point3D> * ptgrid, const Integer
  (*output) << std::setw(6) << -1 << std::endl;
 }
 
-template<class Dim>
-void  OutResultUnverg<Dim>::Dataset780(Grid<Dim> * ptgrid, const Integer level)
+template<>
+void  OutResultUnverg<Point2D>::Dataset780(Grid<Point2D> * ptgrid, const Integer level)
 {
  (*output) << std::setw(6) << -1 << std::endl << std::setw(6) << 780 << std::endl;
 
@@ -155,8 +155,6 @@ void  OutResultUnverg<Dim>::Dataset780(Grid<Dim> * ptgrid, const Integer level)
 
      (*output) << std::setw(10) << 2 << std::setw(10) << 2 << std::setw(10) << 1 << std::setw(10) << 1 << std::setw(10) << 1 << std::setw(10) << numnodesPerElem << std::endl;
 
-     numnodesPerElem=ptgrid->GetNumNodesPerElem(i,level);
-
      ConnectElem=new Integer[numnodesPerElem];      
      ptgrid->GetConnection(ConnectElem, level, i, numnodesPerElem);
 
@@ -168,6 +166,51 @@ void  OutResultUnverg<Dim>::Dataset780(Grid<Dim> * ptgrid, const Integer level)
 
      delete [] ConnectElem;
  
+     (*output) << std::endl;
+   }
+ (*output) << std::setw(6) << -1 << std::endl;
+}
+
+template<>
+void  OutResultUnverg<Point3D>::Dataset780(Grid<Point3D> * ptgrid, const Integer level)
+{
+ (*output) << std::setw(6) << -1 << std::endl << std::setw(6) << 780 << std::endl;
+
+ Integer maxnumnodes=ptgrid-> GetMaxnumnodes(level);
+ Integer maxnumelem=ptgrid-> GetMaxnumElem(level);
+
+ Integer * ConnectElem=NULL;
+ Integer numnodesPerElem=0;
+
+ for (Integer i=0; i<maxnumelem; i++)
+   {
+     numnodesPerElem=ptgrid->GetNumNodesPerElem(i,level);
+
+     (*output) << std::setw(10) << i+1 << std::setw(10);
+
+     switch(numnodesPerElem)
+     {
+       case 4: (*output) << 111 ; break;
+       case 6: (*output) << 112; break;
+       case 8: (*output) << 115; break;
+       case 15: (*output) << 113; break;
+       case 20: (*output) << 116; break;
+       default: Error("Please, put element type according to unverg-format for this number of nodes per element", __FILE__,__LINE__);
+     }
+
+     (*output) << std::setw(10) << 11 << std::setw(10) << 1 << std::setw(10) << 1 << std::setw(10) << 1 << std::setw(10) << 1 << std::setw(10) << numnodesPerElem << std::endl;
+
+     ConnectElem=new Integer[numnodesPerElem];
+     ptgrid->GetConnection(ConnectElem, level, i, numnodesPerElem);
+
+     for (Integer ii=0; ii < numnodesPerElem; ii++)
+       {
+         (*output).width(10);
+         (*output) << ConnectElem[ii];
+       }
+
+     delete [] ConnectElem;
+
      (*output) << std::endl;
    }
  (*output) << std::setw(6) << -1 << std::endl;

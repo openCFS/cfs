@@ -14,159 +14,130 @@
 
 #include "GbTypes.hh"
 #include "GbVec3.hh"
-#include "GoGeometryElement.hh"
+#include "GoDefaultElement.hh"
 #include "GoVertex.hh"
+#include "GoEdge.hh"
 #include "GoTriangleElementBase.hh"
 
 /*----------------------------------------------------------------------
 |       declaration
 +---------------------------------------------------------------------*/
 
-
 /*!
   class GoTriangleElement
  */
 class GoTriangleElement 
-  : public GoGeometryElement<float>
+  : public GoDefaultElement
 {
 public: 
-  GoTriangleElement() { this_ = new GoTriangleElementBase<float>; }
-  GoTriangleElement(GoTriangleElementBase<float> *t) : this_(t) {}
+  GoTriangleElement(int i=-1, int p=0, int l=0, const GbVec3<float>* n=NULL)
+    : GoDefaultElement(i,p,l,n)
+    { 
+      tri_ = new GoTriangleElementBase<float>; 
+    }
+  GoTriangleElement(GoDefaultElementBase<float> *t) 
+    : GoDefaultElement(t) 
+    {
+      tri_ = new GoTriangleElementBase<float>; 
+    }
 
-  virtual ~GoTriangleElement() { delete this_; }
+  virtual ~GoTriangleElement() { delete tri_; }
 
   // Operations on vertices of the geometry object
   virtual void setVertex(int i, GoVertex<float> *v) {
-    ::setVertex<GoTriangleElementBase<float>,float> (this_,i,v);
+    ::setVertex<GoTriangleElementBase<float>,float> (tri_,i,v);
   }
   virtual GoVertex<float> *getVertex(int i) const {
-    return ::getVertex<GoTriangleElementBase<float>,float> (this_,i);
+    return ::getVertex<GoTriangleElementBase<float>,float> (tri_,i);
   }
-  virtual int findVertex(GoVertex<float> *v) const {
-    return ::findVertex<GoTriangleElementBase<float>,float> (this_,v);
-  }
-  virtual GoVertex<float> *otherVertex(GoGeometryElement<float> *f) const {
-    return ::otherVertex<GoTriangleElementBase<float>,float> (this_,f);
-  }
-  virtual int getNumVertices() const {
-    return 3;
-  }
-
-  // Other faces related to this object
-  virtual GoGeometryElement<float> *otherFace(GoVertex<float> *v) const {
-    return ::otherFace<GoTriangleElementBase<float>,float> (this_,v);
-  }
+  virtual int getNumVertices() const { return 3; }
 
   // The face normal
   virtual void computeNormal() {
-    ::computeNormal<GoTriangleElementBase<float>,float> (this_);
-  }
-  virtual GbVec3<float> getNormal() const {
-    return ::getNormal<GoTriangleElementBase<float>,float> (this_);
-  }
-  virtual void setNormal(const GbVec3<float>& n) {
-    ::setNormal<GoTriangleElementBase<float>,float> (this_,n);
+    float x0,y0,z0, x1,y1, z1, x2,y2,z2, xn,yn,zn;
+    float n;
+
+//  debugmsg("computing face normal");
+    getVertex(0)->getPosition(x0,y0,z0);
+    getVertex(1)->getPosition(x1,y1,z1);
+    getVertex(2)->getPosition(x2,y2,z2);
+    
+    xn = ((y1-y0)*(z2-z0) - (y2-y0)*(z1-z0));
+    yn = ((z1-z0)*(x2-x0) - (z2-z0)*(x1-x0));
+    zn = ((x1-x0)*(y2-y0) - (x2-x0)*(y1-y0));
+    
+    n = GbMath<float>::Sqrt(xn*xn + yn*yn + zn*zn);
+    
+    if (n != 0.0f)
+      setNormal(GbVec3<float>(xn/n,yn/n,zn/n));
+    else
+      setNormal(GbVec3<float>::ZERO);
   }
 
   // The layout of the object
-  virtual GbVec3<float> getOrigin() const {
-    return ::getOrigin<GoTriangleElementBase<float>,float> (this_);
+  virtual int getEdgeList(int **l) const {
+    static int table_tri[6] = {0,1,0,2,1,2};
+    *l = table_tri;
+    return 6;
   }
-  virtual GbVec3<float> getEdge(int i) const {
-    return ::getEdge<GoTriangleElementBase<float>,float> (this_,i);
+  virtual void setEdge(int i, GoEdge<float> *e) {
+    ::setEdge<GoTriangleElementBase<float>,float> (tri_, i, e);
   }
-
-  // Status flags indicating semantic defined by the
-  // object using this class
-  virtual void setFlag(GbGeoStatusFlag f) {
-    ::setFlag<GoTriangleElementBase<float>,float> (this_,f);
+  virtual GoEdge<float> *getEdge(int i) const {
+    return ::getEdge<GoTriangleElementBase<float>,float> (tri_,i);
   }
-  virtual void delFlag(GbGeoStatusFlag f) {
-    ::delFlag<GoTriangleElementBase<float>,float> (this_,f);
-  }
-  virtual GbBool testFlag(GbGeoStatusFlag f) const {
-    return ::testFlag<GoTriangleElementBase<float>,float> (this_,f);
-  }
-
-  // The object can be split into sub-objects
-//  virtual void setNumSplits(int s);
-//  virtual int getNumSplits() const;
-
-  // modification operations on the object
-  virtual GbBool subdivide(const GbOracle &op) {
-    if (op())
-      return ::subdivide<GoTriangleElementBase<float>,float> (this_);
-    else
-      return false;
-  }
-
-  // The scene part this object belongs to in the partition
-  virtual void setPartition(int i) {
-    ::setPartition<GoTriangleElementBase<float>,float> (this_,i);
-  }
-  virtual int getPartition() const {
-    return ::getPartition<GoTriangleElementBase<float>,float> (this_);
-  }
-
-  // Integer to identify the object
-  // Has no meaning to this class's implementation
-  virtual void setId(int i) {
-    ::setId<GoTriangleElementBase<float>,float> (this_,i);
-  }
-  virtual int getId() const {
-    return ::getId<GoTriangleElementBase<float>,float> (this_);
-  }
+  virtual int getNumEdges() const { return 3; }
 
   // The neighboring face objects
   virtual void setNeighbour(int i, GoGeometryElement<float> *face) {
-    ::setNeighbour<GoTriangleElementBase<float>,float> (this_,i,face);
-  }
-  virtual void setNeighbour(GoGeometryElement<float> *face) {
-    ::setNeighbour<GoTriangleElementBase<float>,float> (this_,face);
+    ::setNeighbour<GoTriangleElementBase<float>,float> (tri_,i,face);
   }
   virtual GoGeometryElement<float> *getNeighbour(int i) const {
-    return ::getNeighbour<GoTriangleElementBase<float>,float> (this_,i);
+    return ::getNeighbour<GoTriangleElementBase<float>,float> (tri_,i);
   }
+  virtual int getNumNeighbours() const { return 3; }
   
-  virtual int findNeighbour(GoGeometryElement<float> *face) {
-    return ::findNeighbour<GoTriangleElementBase<float>,float> (this_,face);
-  }
-
   // Parents and children objects
   virtual GoGeometryElement<float> *getChild(int i) const {
-    return ::getChild<GoTriangleElementBase<float>,float> (this_,i);
+    return ::getChild<GoTriangleElementBase<float>,float> (tri_,i);
   }
   virtual void setChild(int i, GoGeometryElement<float> *face) {
-    ::setChild<GoTriangleElementBase<float>,float> (this_,i,face);
+    ::setChild<GoTriangleElementBase<float>,float> (tri_,i,face);
   }
-  virtual GoGeometryElement<float> *getParent() const {
-    return ::getParent<GoTriangleElementBase<float>,float> (this_);
-  }
-  virtual void setParent(GoGeometryElement<float> *face) {
-    ::setParent<GoTriangleElementBase<float>,float> (this_,face);
-  }
+  virtual int getNumChildren() const { return 4; }
 
   // Get memory statistics and reduce memory space needed
   virtual void statistic() const {
-    ::statistic<GoTriangleElementBase<float>,float> (this_);
+    ::statistic<GoDefaultElementBase<float>,float> (this_);
+    ::statistic<GoTriangleElementBase<float>,float> (tri_);
   }
   virtual void shrink() {
-    ::shrink<GoTriangleElementBase<float>,float> (this_);
+    ::shrink<GoDefaultElementBase<float>,float> (this_);
+    ::shrink<GoTriangleElementBase<float>,float> (tri_);
   }
 
 
 //  friend std::ostream& operator<<(std::ostream&, const GoTriangleElement&);
 
-private:
-  GoTriangleElementBase<float> *this_;
+protected:
+  GoTriangleElementBase<float> *tri_;
 };
 
 #endif // GOTRIANGLEELEMENT_HH
 /*----------------------------------------------------------------------
 |
 | $Log$
-| Revision 1.1  2002/02/22 14:47:57  elena
-| new: dir Gridlib_inc
+| Revision 1.2  2002/03/21 14:58:57  elena
+| new: changes in dat-file for reading tetrahedral (bugs in element connection)
+|
+| Revision 1.14  2002/03/18 09:58:56  prkipfer
+| refactored element structure
+|
+| Revision 1.13  2001/12/18 13:25:17  prkipfer
+| changed edge enumeration to be consistent throughout the lib
+|
+| Revision 1.12  2001/09/12 09:28:43  prkipfer
+| introduced adaptive tet subdivision
 |
 | Revision 1.11  2001/01/02 15:21:35  prkipfer
 | introduced cloning and support for new base classes

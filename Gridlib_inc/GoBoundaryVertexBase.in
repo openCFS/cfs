@@ -4,68 +4,6 @@
 |
 +---------------------------------------------------------------------*/
 
-//  template <class T>
-//  INLINE void 
-//  GoBoundaryVertexBase<T>::setElement(GoGeometryElement<T>* f) 
-//  { 
-//    data_.element = f; 
-//  }
-
-//  template <class T>
-//  INLINE GoGeometryElement<T>*
-//  GoBoundaryVertexBase<T>::getElement() const 
-//  { 
-//    return data_.element; 
-//  }
-
-//  template <class T>
-//  INLINE void 
-//  GoBoundaryVertexBase<T>::setNormal(T x, T y, T z) 
-//  { 
-//    data_.normal[0] = x;
-//    data_.normal[1] = y;
-//    data_.normal[2] = z; 
-//  }
-
-//  template <class T>
-//  INLINE void 
-//  GoBoundaryVertexBase<T>::setNormal(const GbVec3<T>& v) 
-//  { 
-//    data_.normal[0] = v[0];
-//    data_.normal[1] = v[1];
-//    data_.normal[2] = v[2]; 
-//  }
-
-//  template <class T>
-//  INLINE void 
-//  GoBoundaryVertexBase<T>::getNormal(T& xx, T& yy, T& zz) const 
-//  { 
-//    xx = data_.normal[0];
-//    yy = data_.normal[1];
-//    zz = data_.normal[2]; 
-//  }
-
-//  template <class T>
-//  INLINE GbVec3<T>
-//  GoBoundaryVertexBase<T>::getNormal() const 
-//  { 
-//    return GbVec3<T>(data_.normal[0],data_.normal[1],data_.normal[2]); 
-//  }
-
-//  template <class T>
-//  INLINE void 
-//  GoBoundaryVertexBase<T>::setValence(int v) 
-//  { 
-//    data_.valence = v; 
-//  }
-
-//  template <class T>
-//  INLINE int 
-//  GoBoundaryVertexBase<T>::getValence() const 
-//  { 
-//    return data_.valence; 
-//  }
-
 template<class T>
 INLINE void 
 GoBoundaryVertexBase<T>::setVertex(GoVertex<T> *v) 
@@ -83,8 +21,11 @@ GoBoundaryVertexBase<T>::getVertex() const
 /*----------------------------------------------------------------------
 |
 | $Log$
-| Revision 1.1  2002/02/22 14:47:56  elena
-| new: dir Gridlib_inc
+| Revision 1.2  2002/03/21 14:58:57  elena
+| new: changes in dat-file for reading tetrahedral (bugs in element connection)
+|
+| Revision 1.2  2002/03/18 10:00:23  prkipfer
+| refactored element structure
 |
 | Revision 1.1  2001/02/13 11:00:39  prkipfer
 | added GoBoundaryVertexBase class

@@ -3,8 +3,11 @@
 |
 |
 | $Log$
-| Revision 1.1  2002/02/22 14:47:56  elena
-| new: dir Gridlib_inc
+| Revision 1.2  2002/03/21 14:58:56  elena
+| new: changes in dat-file for reading tetrahedral (bugs in element connection)
+|
+| Revision 1.6  2001/08/16 16:53:19  prkipfer
+| improved type safety for template parameter
 |
 | Revision 1.5  2001/06/15 08:36:56  prkipfer
 | fixed range overflow bug
@@ -57,8 +60,8 @@ GbMemPool<T>::GbMemPool()
   debugmsg("             block size "<<poolIncrement_ * sizeof(T)<<" bytes");
   unsigned long a = MEMPOOLBLOCKS * poolIncrement_ * sizeof(T);
   char s[8];
-  formatNumber(&a,s);
-  debugmsg("             max linear capacity "<<MEMPOOLBLOCKS<<" blocks ("<<a<<" "<<s<<"B)");
+  float r=formatNumber(a,s);
+  debugmsg("             max linear capacity "<<MEMPOOLBLOCKS<<" blocks ("<<std::setprecision(4)<<r<<" "<<s<<"B)");
   // nothing else to do here, alloc is done in operator new
 }
 
@@ -266,13 +269,11 @@ GbMemPool<T>::getStatistic()
 
   infomsg("statistics:");
 
-  unsigned long a = b;
-  formatNumber(&a,s);
-  infomsg("elements: "<<poolSize_<<" elements x "<<sizeof(T)<<" bytes = "<<b<<" ("<<a<<" "<<s<<"B)");
+  float r=formatNumber(b,s);
+  infomsg("elements: "<<poolSize_<<" elements x "<<sizeof(T)<<" bytes = "<<b<<" ("<<std::setprecision(4)<<r<<" "<<s<<"B)");
 
-  a = c;
-  formatNumber(&a,s);
-  infomsg("memory:   "<<poolMemSize_<<" blocks x "<<poolIncrement_<<" elements = "<<c<<" ("<<a<<" "<<s<<"B)");
+  r=formatNumber(c,s);
+  infomsg("memory:   "<<poolMemSize_<<" blocks x "<<poolIncrement_<<" elements = "<<c<<" ("<<std::setprecision(4)<<r<<" "<<s<<"B)");
 
   infomsg("\t--> usage "<<std::setprecision(3)<<bd<<"%");
   if(c>0)
@@ -280,10 +281,13 @@ GbMemPool<T>::getStatistic()
 }
 
 template<class T>
-void
-GbMemPool<T>::formatNumber(unsigned long* a, char* s)
+float
+GbMemPool<T>::formatNumber(unsigned long a, char* s)
 {
-  if(*a>1024) { *a/=1024; strcpy(s,"k"); }
-  if(*a>1024) { *a/=1024; strcpy(s,"M"); }
-  if(*a>1024) { *a/=1024; strcpy(s,"G"); }
+  unsigned long result=a;
+  strcpy(s," ");
+  if(result>1024) { result/=1024; strcpy(s,"k"); }
+  if(result>1024) { result/=1024; strcpy(s,"M"); }
+  if(result>1024) { result/=1024; strcpy(s,"G"); }
+  return float(result);
 }

@@ -12,15 +12,7 @@
 |       includes
 +---------------------------------------------------------------------*/
 
-#include <vector>
-#include <iostream>
-#include <typeinfo>
-#include <algorithm>
-
-#include "GoVertex.hh"
-#include "GoGeometryElement.hh"
 #include "GoMesh.hh"
-#include "GbMeshFunctions.hh"
 
 /*----------------------------------------------------------------------
 |       declaration
@@ -40,12 +32,13 @@ public:
   virtual ~GoVolumeMesh();
 
   // Query topology
-  virtual GoVertex<float> *nextVertex(GoVertex<float> *v);
-  virtual GoGeometryElement<float>   *nextElement(GoVertex<float> *v);
+  virtual GoVertex<float> *         nextVertex(GoVertex<float> *v);
+  virtual GoGeometryElement<float> *nextElement(GoVertex<float> *v);
+  virtual GoEdge<float> *           nextEdge(GoVertex<float> *v);
 
   // Actions on the mesh
-  virtual void setupNeighbours();
   virtual void switchNormals();
+  virtual void updateNeighbourPositionsOnLevel(int l);
 
   // collapse operations
   virtual std::vector<GoGeometryElement<float> *> *halfEdgeCollapse(GoGeometryElement<float> *, int, int, int&, std::vector<GoVertex<float> *> *);
@@ -55,21 +48,11 @@ public:
   // split operations
   virtual bool vertexSplit(GoVertex<float> *start, std::vector<GoVertex<float> *> *allNeighbours, float x, float y, float z );
 
-  
-  virtual std::vector<GoGeometryElement<float> *> * getAllNeighbourElements(GoVertex<float>* vertex);
-
   // This operator pretty prints info about the mesh
 //  friend std::ostream& operator<<(std::ostream&, const GoVolumeMesh&);
 
-private:
-  struct TableEntry {
-    int i,j,k;
-    GoGeometryElement<float> *f;
-    TableEntry *next;
-  };
-  
-  void searchTable(int, int, int, GoGeometryElement<float> *, TableEntry **);
-  void searchTable(int, int, int, int, GoGeometryElement<float> *, TableEntry **);
+protected:
+  virtual void updateFaceCache(int level=0);
 };
 
 

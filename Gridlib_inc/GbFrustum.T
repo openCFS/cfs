@@ -3,8 +3,11 @@
 |
 |
 | $Log$
-| Revision 1.1  2002/02/22 14:47:56  elena
-| new: dir Gridlib_inc
+| Revision 1.2  2002/03/21 14:58:56  elena
+| new: changes in dat-file for reading tetrahedral (bugs in element connection)
+|
+| Revision 1.2  2001/08/16 16:53:15  prkipfer
+| improved type safety for template parameter
 |
 | Revision 1.1  2001/06/18 10:43:05  prkipfer
 | introduced Frustum object
@@ -20,10 +23,10 @@ GbFrustum<T>::GbFrustum ()
   , uVector_(GbVec3<T>::UNIT_Y)
   , dVector_(GbVec3<T>::UNIT_Z)
 {
-  lBound_ = 1.0;
-  uBound_ = 1.0;
-  dMin_ = 1.0;
-  dMax_ = 2.0;
+  lBound_ = T(1.0);
+  uBound_ = T(1.0);
+  dMin_ = T(1.0);
+  dMax_ = T(2.0);
 
   update();
 }
@@ -52,6 +55,6 @@ void
 GbFrustum<T>::update ()
 {
   dRatio_ = dMax_/dMin_;
-  mTwoLF_ = -2.0*lBound_*dMax_;
-  mTwoUF_ = -2.0*uBound_*dMax_;
+  mTwoLF_ = T(-2.0)*lBound_*dMax_;
+  mTwoUF_ = T(-2.0)*uBound_*dMax_;
 }

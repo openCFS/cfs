@@ -36,6 +36,10 @@ public:
     // always true -> subdivide everything
     return true;
   }
+  virtual GbBool operator()(int l, int id) const {
+    // always true -> subdivide everything
+    return true;
+  }
 };
 
 class GbSubdivideUniformFunctor
@@ -47,9 +51,17 @@ public:
 
   INLINE void operator()(GoGeometryElement<float> *t) {
     if (typeid(*t)==typeid(GoTriangleElement))
+#ifdef HAS_DYN_CAST
       subdiv(dynamic_cast<GoTriangleElement*>(t));
+#else
+      subdiv(static_cast<GoTriangleElement*>(t));
+#endif
     else if (typeid(*t)==typeid(GoQuadElement))
+#ifdef HAS_DYN_CAST
       subdiv(dynamic_cast<GoQuadElement*>(t));
+#else
+      subdiv(static_cast<GoQuadElement*>(t));
+#endif
     else
       errormsg("cannot subdivide element type "<<typeid(*t).name());
   }
@@ -100,8 +112,14 @@ private:
 /*----------------------------------------------------------------------
 |
 | $Log$
-| Revision 1.1  2002/02/22 14:47:56  elena
-| new: dir Gridlib_inc
+| Revision 1.2  2002/03/21 14:58:57  elena
+| new: changes in dat-file for reading tetrahedral (bugs in element connection)
+|
+| Revision 1.5  2001/12/11 12:44:59  prkipfer
+| fixes for KCC compiler on new PCs
+|
+| Revision 1.4  2001/09/12 11:53:02  prkipfer
+| introduced adaptive tet subdivision
 |
 | Revision 1.3  2001/01/02 14:27:56  prkipfer
 | introduced layered subdivision functors

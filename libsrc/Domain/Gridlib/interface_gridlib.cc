@@ -216,17 +216,17 @@ void InterfaceGridlib<Point3D>::Read()
           vv[Connect[i*nelemNodes]-1]->setElement(t);
           vv[Connect[i*nelemNodes]-1]->setValence(vv[Connect[i*nelemNodes]-1]->getValence()+1);
 
-          t->setVertex(1,vv[Connect[i*nelemNodes]-1]);
-          vv[Connect[i*nelemNodes]-1]->setElement(t);
-          vv[Connect[i*nelemNodes]-1]->setValence(vv[Connect[i*nelemNodes]-1]->getValence()+1);
+          t->setVertex(1,vv[Connect[i*nelemNodes+1]-1]);
+          vv[Connect[i*nelemNodes+1]-1]->setElement(t);
+          vv[Connect[i*nelemNodes+1]-1]->setValence(vv[Connect[i*nelemNodes+1]-1]->getValence()+1);
 
-          t->setVertex(2,vv[Connect[i*nelemNodes]-1]);
-          vv[Connect[i*nelemNodes]-1]->setElement(t);
-          vv[Connect[i*nelemNodes]-1]->setValence(vv[Connect[i*nelemNodes]-1]->getValence()+1);
+          t->setVertex(2,vv[Connect[i*nelemNodes+2]-1]);
+          vv[Connect[i*nelemNodes+2]-1]->setElement(t);
+          vv[Connect[i*nelemNodes+2]-1]->setValence(vv[Connect[i*nelemNodes+2]-1]->getValence()+1);
 
-          t->setVertex(3,vv[Connect[i*nelemNodes]-1]);
-          vv[Connect[i*nelemNodes]-1]->setElement(t);
-          vv[Connect[i*nelemNodes]-1]->setValence(vv[Connect[i*nelemNodes]-1]->getValence()+1);
+          t->setVertex(3,vv[Connect[i*nelemNodes+3]-1]);
+          vv[Connect[i*nelemNodes+3]-1]->setElement(t);
+          vv[Connect[i*nelemNodes+3]-1]->setValence(vv[Connect[i*nelemNodes+3]-1]->getValence()+1);
 
           break;
 
@@ -237,33 +237,33 @@ void InterfaceGridlib<Point3D>::Read()
           vv[Connect[i*nelemNodes]-1]->setElement(t);
           vv[Connect[i*nelemNodes]-1]->setValence(vv[Connect[i*nelemNodes]-1]->getValence()+1);
 
-          t->setVertex(1,vv[Connect[i*nelemNodes]-1]);
-          vv[Connect[i*nelemNodes]-1]->setElement(t);
-          vv[Connect[i*nelemNodes]-1]->setValence(vv[Connect[i*nelemNodes]-1]->getValence()+1);
+          t->setVertex(1,vv[Connect[i*nelemNodes+1]-1]);
+          vv[Connect[i*nelemNodes+1]-1]->setElement(t);
+          vv[Connect[i*nelemNodes+1]-1]->setValence(vv[Connect[i*nelemNodes+1]-1]->getValence()+1);
 
-          t->setVertex(2,vv[Connect[i*nelemNodes]-1]);
-          vv[Connect[i*nelemNodes]-1]->setElement(t);
-          vv[Connect[i*nelemNodes]-1]->setValence(vv[Connect[i*nelemNodes]-1]->getValence()+1);
+          t->setVertex(2,vv[Connect[i*nelemNodes+2]-1]);
+          vv[Connect[i*nelemNodes+2]-1]->setElement(t);
+          vv[Connect[i*nelemNodes+2]-1]->setValence(vv[Connect[i*nelemNodes+2]-1]->getValence()+1);
 
-          t->setVertex(3,vv[Connect[i*nelemNodes]-1]);
-          vv[Connect[i*nelemNodes]-1]->setElement(t);
-          vv[Connect[i*nelemNodes]-1]->setValence(vv[Connect[i*nelemNodes]-1]->getValence()+1);
+          t->setVertex(3,vv[Connect[i*nelemNodes+3]-1]);
+          vv[Connect[i*nelemNodes+3]-1]->setElement(t);
+          vv[Connect[i*nelemNodes+3]-1]->setValence(vv[Connect[i*nelemNodes+3]-1]->getValence()+1);
 
-          t->setVertex(4,vv[Connect[i*nelemNodes]-1]);
-          vv[Connect[i*nelemNodes]-1]->setElement(t);
-          vv[Connect[i*nelemNodes]-1]->setValence(vv[Connect[i*nelemNodes]-1]->getValence()+1);
+          t->setVertex(4,vv[Connect[i*nelemNodes+4]-1]);
+          vv[Connect[i*nelemNodes+4]-1]->setElement(t);
+          vv[Connect[i*nelemNodes+4]-1]->setValence(vv[Connect[i*nelemNodes+4]-1]->getValence()+1);
 
-          t->setVertex(5,vv[Connect[i*nelemNodes]-1]);
-          vv[Connect[i*nelemNodes]-1]->setElement(t);
-          vv[Connect[i*nelemNodes]-1]->setValence(vv[Connect[i*nelemNodes]-1]->getValence()+1);
+          t->setVertex(5,vv[Connect[i*nelemNodes+5]-1]);
+          vv[Connect[i*nelemNodes+5]-1]->setElement(t);
+          vv[Connect[i*nelemNodes+5]-1]->setValence(vv[Connect[i*nelemNodes+5]-1]->getValence()+1);
 
-          t->setVertex(6,vv[Connect[i*nelemNodes]-1]);
-          vv[Connect[i*nelemNodes]-1]->setElement(t);
-          vv[Connect[i*nelemNodes]-1]->setValence(vv[Connect[i*nelemNodes]-1]->getValence()+1);
+          t->setVertex(6,vv[Connect[i*nelemNodes+6]-1]);
+          vv[Connect[i*nelemNodes+6]-1]->setElement(t);
+          vv[Connect[i*nelemNodes+6]-1]->setValence(vv[Connect[i*nelemNodes+6]-1]->getValence()+1);
 
-          t->setVertex(7,vv[Connect[i*nelemNodes]-1]);
-          vv[Connect[i*nelemNodes]-1]->setElement(t);
-          vv[Connect[i*nelemNodes]-1]->setValence(vv[Connect[i*nelemNodes]-1]->getValence()+1); 
+          t->setVertex(7,vv[Connect[i*nelemNodes+7]-1]);
+          vv[Connect[i*nelemNodes+7]-1]->setElement(t);
+          vv[Connect[i*nelemNodes+7]-1]->setValence(vv[Connect[i*nelemNodes+7]-1]->getValence()+1); 
 
          break;
 

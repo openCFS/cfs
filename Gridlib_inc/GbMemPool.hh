@@ -64,7 +64,7 @@ private:
   void freePoolMem();
 
   //! for pretty printing a number
-  void formatNumber(unsigned long* a, char* s);
+  float formatNumber(unsigned long a, char* s);
 
   //! Number of elements the pool grows each time memory is allocated
   static const int poolIncrement_;
@@ -109,8 +109,11 @@ operator<<(std::ostream& s, const GbMemPool<T>& p)
 /*----------------------------------------------------------------------
 |
 | $Log$
-| Revision 1.1  2002/02/22 14:47:56  elena
-| new: dir Gridlib_inc
+| Revision 1.2  2002/03/21 14:58:56  elena
+| new: changes in dat-file for reading tetrahedral (bugs in element connection)
+|
+| Revision 1.7  2001/08/16 16:53:19  prkipfer
+| improved type safety for template parameter
 |
 | Revision 1.6  2001/06/15 08:36:56  prkipfer
 | fixed range overflow bug

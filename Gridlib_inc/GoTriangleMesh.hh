@@ -12,16 +12,7 @@
 |       includes
 +---------------------------------------------------------------------*/
 
-#include <vector>
-#include <iostream>
-#include <typeinfo>
-#include <algorithm>
-
-#include "GoVertex.hh"
-#include "GoGeometryElement.hh"
-#include "GoTriangleElement.hh"
-#include "GoMesh.hh"
-#include "GbMeshFunctions.hh"
+#include "GoSurfaceMesh.hh"
 
 /*----------------------------------------------------------------------
 |       declaration
@@ -32,7 +23,7 @@
 
  */
 class GoTriangleMesh 
-  : public GoMesh
+  : public GoSurfaceMesh
 {
 public:
   //! Constructor
@@ -40,29 +31,16 @@ public:
   virtual ~GoTriangleMesh();
 
   //! Query topology
-  virtual GoVertex<float> *nextVertex(GoVertex<float> *v);
-  virtual GoGeometryElement<float>   *nextElement(GoVertex<float> *v);
-
-  //! Actions on the mesh
-  virtual void setupNeighbours();
-  virtual void switchNormals();
+  virtual GoVertex<float> *         nextVertex(GoVertex<float> *v);
+  virtual GoGeometryElement<float> *nextElement(GoVertex<float> *v);
+//  virtual GoEdge<float> *           nextEdge(GoVertex<float> *v);
 
   //! Mesh smoothing methods
-  virtual void smoothUmbrella();
-  virtual void smoothCurvatureFlow();
-
+//  virtual void smoothUmbrella();
+//  virtual void smoothCurvatureFlow();
 
   //! This operator pretty prints info about the mesh
 //  friend std::ostream& operator<<(std::ostream&, const GoTriangleMesh&);
-
-private:
-  struct TableEntry {
-    int i;
-    GoTriangleElement *f;
-    TableEntry *next;
-  };
-  
-  void searchTable(int, int, GoTriangleElement *, TableEntry **);
 };
 
 
@@ -74,8 +52,11 @@ private:
 /*----------------------------------------------------------------------
 |
 | $Log$
-| Revision 1.1  2002/02/22 14:47:57  elena
-| new: dir Gridlib_inc
+| Revision 1.2  2002/03/21 14:58:57  elena
+| new: changes in dat-file for reading tetrahedral (bugs in element connection)
+|
+| Revision 1.11  2001/09/12 11:53:06  prkipfer
+| introduced adaptive tet subdivision
 |
 | Revision 1.10  2000/12/12 10:03:50  prkipfer
 | moved consistency check to GoMesh

@@ -3,8 +3,11 @@
 |
 |
 | $Log$
-| Revision 1.1  2002/02/22 14:47:56  elena
-| new: dir Gridlib_inc
+| Revision 1.2  2002/03/21 14:58:56  elena
+| new: changes in dat-file for reading tetrahedral (bugs in element connection)
+|
+| Revision 1.3  2001/08/16 16:53:19  prkipfer
+| improved type safety for template parameter
 |
 | Revision 1.2  2001/05/03 11:06:02  prkipfer
 | made connectivity data static, added missing type cases
@@ -69,7 +72,7 @@ template <class T>
 T
 GbMeasure<T>::surface(const GoGeometryElement<T>* el)
 {
-  T retval=0.0;
+  T retval=T(0.0);
   Point3 *p=NULL;
 
   if ( (typeid(*el) == typeid(GoTriangleElement)) ||
@@ -142,7 +145,7 @@ template <class T>
 T
 GbMeasure<T>::volume(const GoGeometryElement<T>* el)
 {
-  T retval=0.0;
+  T retval=T(0.0);
   if ( (typeid(*el) != typeid(GoTriangleElement)) &&
        (typeid(*el) != typeid(GoQuadElement)) ) {
     // its a 3D object
@@ -202,12 +205,12 @@ GbMeasure<T>::polyArea(int n, const Point3* p)
     edge0.z*edge1.x - edge0.x*edge1.z,
     edge0.x*edge1.y - edge0.y*edge1.x
   };
-  T invlen = 1.0/GbMath<T>::Sqrt(nor.x*nor.x+nor.y*nor.y+nor.z*nor.z);
+  T invlen = T(1.0)/GbMath<T>::Sqrt(nor.x*nor.x+nor.y*nor.y+nor.z*nor.z);
   nor.x *= invlen;
   nor.y *= invlen;
   nor.z *= invlen;
 
-  Point3 csum = { 0.0, 0.0, 0.0 };
+  Point3 csum = { T(0.0), T(0.0), T(0.0) };
 
   for (int i = 0, j = 1; i <= n-2; i++, j++) {
     csum.x += p[i].y*p[j].z-p[i].z*p[j].y;
@@ -218,7 +221,7 @@ GbMeasure<T>::polyArea(int n, const Point3* p)
   csum.y += p[n-1].z*p[0].x-p[n-1].x*p[0].z;
   csum.z += p[n-1].x*p[0].y-p[n-1].y*p[0].x;
 
-  return 0.5*GbMath<T>::Abs(nor.x*csum.x+nor.y*csum.y+nor.z*csum.z);
+  return T(0.5)*GbMath<T>::Abs(nor.x*csum.x+nor.y*csum.y+nor.z*csum.z);
 }
 
 // Volume of a polyhedron in space.  The polyhederon must not have triangular
@@ -237,8 +240,8 @@ template <class T>
 T
 GbMeasure<T>::polyVolume(int n, const Point3* p, int polys, const int* connectivity)
 {
-  static const T oneSixth = 1.0/6.0;
-  T sum = 0.0;
+  static const T oneSixth = T(1.0)/T(6.0);
+  T sum = T(0.0);
 
   for (int i = 0, j = 0; i < polys; i++) {
     // number of vertices for polygonal face i
@@ -257,13 +260,13 @@ GbMeasure<T>::polyVolume(int n, const Point3* p, int polys, const int* connectiv
       edge0.z*edge1.x - edge0.x*edge1.z,
       edge0.x*edge1.y - edge0.y*edge1.x
     };
-    T invlen = 1.0/GbMath<T>::Sqrt(nor.x*nor.x+nor.y*nor.y+nor.z*nor.z);
+    T invlen = T(1.0)/GbMath<T>::Sqrt(nor.x*nor.x+nor.y*nor.y+nor.z*nor.z);
     nor.x *= invlen;
     nor.y *= invlen;
     nor.z *= invlen;
 
     // compute 2*area of polygonal face
-    Point3 csum = { 0.0, 0.0, 0.0 };
+    Point3 csum = { T(0.0), T(0.0), T(0.0) };
 
     for (int k = 0, j0 = j, j1 = j+1; k <= numVerts-2; k++, j0++, j1++) {
       k0 = connectivity[j0];
@@ -323,10 +326,10 @@ GbMeasure<T>::volume(int n, Point* p, T dx, T dy, T dz, T& surfaceArea, T& volum
   const T dydz = dy*dz;
 
   // volume elements
-  T volumeX = 0.0, volumeY = 0.0, volumeZ = 0.0;
+  T volumeX = T(0.0), volumeY = T(0.0), volumeZ = T(0.0);
 
   // initialize surface area
-  surfaceArea = 0.0;
+  surfaceArea = T(0.0);
 
   // bounding box of data points
   T xmax = -std::numeric_limits<T>::max(), xmin = std::numeric_limits<T>::max();
@@ -342,7 +345,7 @@ GbMeasure<T>::volume(int n, Point* p, T dx, T dy, T dz, T& surfaceArea, T& volum
     T nz = dz*T(p[i].nz);
     T length = GbMath<T>::Sqrt(nx*nx+ny*ny+nz*nz);
     if ( length > epsilon ) {
-      T invLength = 1.0/length;
+      T invLength = T(1.0)/length;
       nx *= invLength;
       ny *= invLength;
       nz *= invLength;
@@ -396,7 +399,7 @@ GbMeasure<T>::volume(int n, Point* p, T dx, T dy, T dz, T& surfaceArea, T& volum
   T ex = xmax-xmin, ey = ymax-ymin, ez = zmax-zmin;
 
   // shape parameters
-  T invDenom = 1.0/(ex*ey+ex*ez+ey*ez);
+  T invDenom = T(1.0)/(ex*ey+ex*ez+ey*ez);
   T sx = ey*ez*invDenom;
   T sy = ex*ez*invDenom;
   T sz = ex*ey*invDenom;
@@ -404,6 +407,6 @@ GbMeasure<T>::volume(int n, Point* p, T dx, T dy, T dz, T& surfaceArea, T& volum
   volume = sx*volumeX + sy*volumeY + sz*volumeZ;
 
   // adjust for inwards pointing normals
-  if ( volume < 0.0 )
+  if ( volume < T(0.0) )
     volume = -volume;
 }

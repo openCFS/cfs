@@ -3,8 +3,11 @@
 |
 |
 | $Log$
-| Revision 1.1  2002/02/22 14:47:56  elena
-| new: dir Gridlib_inc
+| Revision 1.2  2002/03/21 14:58:57  elena
+| new: changes in dat-file for reading tetrahedral (bugs in element connection)
+|
+| Revision 1.2  2001/08/16 16:53:20  prkipfer
+| improved type safety for template parameter
 |
 | Revision 1.1  2001/01/02 14:49:48  prkipfer
 | introduced new classes
@@ -12,6 +15,21 @@
 |
 |
 +---------------------------------------------------------------------*/
+
+template <class T>
+GbQuaternion<T>::GbQuaternion()
+{
+  // no init, use constructors below in case
+}
+
+template <class T>
+GbQuaternion<T>::GbQuaternion(const T q[4])
+{
+  w_ = q[0];
+  x_ = q[1];
+  y_ = q[2];
+  z_ = q[3];
+}
 
 template <class T>
 GbQuaternion<T>::GbQuaternion(T fW, T fX, T fY, T fZ)
@@ -41,11 +59,11 @@ GbQuaternion<T>::fromRotationMatrix (const GbMatrix3<T>& kRot)
   T fTrace = kRot[0][0]+kRot[1][1]+kRot[2][2];
   T fRoot;
 
-  if ( fTrace > 0.0 ) {
+  if ( fTrace > T(0.0) ) {
     // |w| > 1/2, may as well choose w > 1/2
-    fRoot = GbMath<T>::Sqrt(fTrace + 1.0);  // 2w
-    w_ = 0.5*fRoot;
-    fRoot = 0.5/fRoot;  // 1/(4w)
+    fRoot = GbMath<T>::Sqrt(fTrace + T(1.0));  // 2w
+    w_ = T(0.5)*fRoot;
+    fRoot = T(0.5)/fRoot;  // 1/(4w)
     x_ = (kRot[2][1]-kRot[1][2])*fRoot;
     y_ = (kRot[0][2]-kRot[2][0])*fRoot;
     z_ = (kRot[1][0]-kRot[0][1])*fRoot;
@@ -61,10 +79,10 @@ GbQuaternion<T>::fromRotationMatrix (const GbMatrix3<T>& kRot)
     int j = s_iNext[i];
     int k = s_iNext[j];
 
-    fRoot = GbMath<T>::Sqrt(kRot[i][i]-kRot[j][j]-kRot[k][k] + 1.0);
+    fRoot = GbMath<T>::Sqrt(kRot[i][i]-kRot[j][j]-kRot[k][k] + T(1.0));
     T* apkQuat[3] = { &x_, &y_, &z_ };
-    *apkQuat[i] = 0.5*fRoot;
-    fRoot = 0.5/fRoot;
+    *apkQuat[i] = T(0.5)*fRoot;
+    fRoot = T(0.5)/fRoot;
     w_ = (kRot[k][j]-kRot[j][k])*fRoot;
     *apkQuat[j] = (kRot[j][i]+kRot[i][j])*fRoot;
     *apkQuat[k] = (kRot[k][i]+kRot[i][k])*fRoot;
@@ -75,9 +93,9 @@ template <class T>
 void 
 GbQuaternion<T>::toRotationMatrix (GbMatrix3<T>& kRot) const
 {
-  T fTx  = 2.0*x_;
-  T fTy  = 2.0*y_;
-  T fTz  = 2.0*z_;
+  T fTx  = T(2.0)*x_;
+  T fTy  = T(2.0)*y_;
+  T fTz  = T(2.0)*z_;
   T fTwx = fTx*w_;
   T fTwy = fTy*w_;
   T fTwz = fTz*w_;
@@ -88,15 +106,15 @@ GbQuaternion<T>::toRotationMatrix (GbMatrix3<T>& kRot) const
   T fTyz = fTz*y_;
   T fTzz = fTz*z_;
   
-  kRot[0][0] = 1.0-(fTyy+fTzz);
+  kRot[0][0] = T(1.0)-(fTyy+fTzz);
   kRot[0][1] = fTxy-fTwz;
   kRot[0][2] = fTxz+fTwy;
   kRot[1][0] = fTxy+fTwz;
-  kRot[1][1] = 1.0-(fTxx+fTzz);
+  kRot[1][1] = T(1.0)-(fTxx+fTzz);
   kRot[1][2] = fTyz-fTwx;
   kRot[2][0] = fTxz-fTwy;
   kRot[2][1] = fTyz+fTwx;
-  kRot[2][2] = 1.0-(fTxx+fTyy);
+  kRot[2][2] = T(1.0)-(fTxx+fTyy);
 }
 
 template <class T>
@@ -108,7 +126,7 @@ GbQuaternion<T>::fromAngleAxis (const T& rfAngle, const GbVec3<T>& rkAxis)
   // The quaternion representing the rotation is
   //   q = cos(A/2)+sin(A/2)*(x*i+y*j+z*k)
 
-  T fHalfAngle = 0.5*rfAngle;
+  T fHalfAngle = T(0.5)*rfAngle;
   T fSin = GbMath<T>::Sin(fHalfAngle);
   w_ = GbMath<T>::Cos(fHalfAngle);
   x_ = fSin*rkAxis[0];
@@ -124,19 +142,19 @@ GbQuaternion<T>::toAngleAxis (T& rfAngle, GbVec3<T>& rkAxis) const
   //   q = cos(A/2)+sin(A/2)*(x*i+y*j+z*k)
 
   T fSqrLength = x_*x_+y_*y_+z_*z_;
-  if ( fSqrLength > 0.0 ) {
-    rfAngle = 2.0*GbMath<T>::ACos(w_);
-    T fInvLength = 1.0/GbMath<T>::Sqrt(fSqrLength);
+  if ( fSqrLength > T(0.0) ) {
+    rfAngle = T(2.0)*GbMath<T>::ACos(w_);
+    T fInvLength = T(1.0)/GbMath<T>::Sqrt(fSqrLength);
     rkAxis[0] = x_*fInvLength;
     rkAxis[1] = y_*fInvLength;
     rkAxis[2] = z_*fInvLength;
   }
   else {
     // angle is 0 (mod 2*pi), so any axis will do
-    rfAngle = 0.0;
-    rkAxis[0] = 1.0;
-    rkAxis[1] = 0.0;
-    rkAxis[2] = 0.0;
+    rfAngle = T(0.0);
+    rkAxis[0] = T(1.0);
+    rkAxis[1] = T(0.0);
+    rkAxis[2] = T(0.0);
   }
 }
 
@@ -181,22 +199,22 @@ GbQuaternion<T>::exp () const
   T fAngle = GbMath<T>::Sqrt(x_*x_+y_*y_+z_*z_);
   T fSin = GbMath<T>::Sin(fAngle);
 
-  GbQuaternion<T> kResult;
-  kResult.w_ = GbMath<T>::Cos(fAngle);
+  T kResult[4];
+  kResult[0] = GbMath<T>::Cos(fAngle);
 
   if ( GbMath<T>::Abs(fSin) >= GbQuaternion<T>::EPSILON ) {
     T fCoeff = fSin/fAngle;
-    kResult.x_ = fCoeff*x_;
-    kResult.y_ = fCoeff*y_;
-    kResult.z_ = fCoeff*z_;
+    kResult[1] = fCoeff*x_;
+    kResult[2] = fCoeff*y_;
+    kResult[3] = fCoeff*z_;
   }
   else {
-    kResult.x_ = x_;
-    kResult.y_ = y_;
-    kResult.z_ = z_;
+    kResult[1] = x_;
+    kResult[2] = y_;
+    kResult[3] = z_;
   }
 
-  return kResult;
+  return GbQuaternion<T>(kResult);
 }
 
 template <class T>
@@ -207,26 +225,26 @@ GbQuaternion<T>::log () const
   // log(q) = A*(x*i+y*j+z*k).  If sin(A) is near zero, use log(q) =
   // sin(A)*(x*i+y*j+z*k) since sin(A)/A has limit 1.
 
-  GbQuaternion<T> kResult;
-  kResult.w_ = 0.0;
+  T kResult[4];
+  kResult[0] = T(0.0);
 
-  if ( GbMath<T>::Abs(w_) < 1.0 ) {
+  if ( GbMath<T>::Abs(w_) < T(1.0) ) {
     T fAngle = GbMath<T>::ACos(w_);
     T fSin = GbMath<T>::Sin(fAngle);
     if ( GbMath<T>::Abs(fSin) >= GbQuaternion<T>::EPSILON ) {
       T fCoeff = fAngle/fSin;
-      kResult.x_ = fCoeff*x_;
-      kResult.y_ = fCoeff*y_;
-      kResult.z_ = fCoeff*z_;
-      return kResult;
+      kResult[1] = fCoeff*x_;
+      kResult[2] = fCoeff*y_;
+      kResult[3] = fCoeff*z_;
+      return GbQuaternion<T>(kResult);
     }
   }
 
-  kResult.x_ = x_;
-  kResult.y_ = y_;
-  kResult.z_ = z_;
+  kResult[1] = x_;
+  kResult[2] = y_;
+  kResult[3] = z_;
 
-  return kResult;
+  return GbQuaternion<T>(kResult);
 }
 
 template <class T>
@@ -267,8 +285,8 @@ GbQuaternion<T>::slerp (T fT, const GbQuaternion<T>& rkP, const GbQuaternion<T>&
     return rkP;
 
   T fSin = GbMath<T>::Sin(fAngle);
-  T fInvSin = 1.0/fSin;
-  T fCoeff0 = GbMath<T>::Sin((1.0-fT)*fAngle)*fInvSin;
+  T fInvSin = T(1.0)/fSin;
+  T fCoeff0 = GbMath<T>::Sin((T(1.0)-fT)*fAngle)*fInvSin;
   T fCoeff1 = GbMath<T>::Sin(fT*fAngle)*fInvSin;
   return fCoeff0*rkP + fCoeff1*rkQ;
 }
@@ -285,8 +303,8 @@ GbQuaternion<T>::slerpExtraSpins (T fT, const GbQuaternion<T>& rkP, const GbQuat
 
   T fSin = GbMath<T>::Sin(fAngle);
   T fPhase = GbMath<T>::PI*iExtraSpins*fT;
-  T fInvSin = 1.0/fSin;
-  T fCoeff0 = GbMath<T>::Sin((1.0-fT)*fAngle - fPhase)*fInvSin;
+  T fInvSin = T(1.0)/fSin;
+  T fCoeff0 = GbMath<T>::Sin((T(1.0)-fT)*fAngle - fPhase)*fInvSin;
   T fCoeff1 = GbMath<T>::Sin(fT*fAngle + fPhase)*fInvSin;
   return fCoeff0*rkP + fCoeff1*rkQ;
 }
@@ -314,7 +332,7 @@ GbQuaternion<T>
 GbQuaternion<T>::squad (T fT, const GbQuaternion<T>& rkP, const GbQuaternion<T>& rkA,
 			const GbQuaternion<T>& rkB, const GbQuaternion<T>& rkQ)
 {
-  T fSlerpT = 2.0*fT*(1.0-fT);
+  T fSlerpT = T(2.0)*fT*(T(1.0)-fT);
   GbQuaternion<T> kSlerpP = slerp(fT,rkP,rkQ);
   GbQuaternion<T> kSlerpQ = slerp(fT,rkA,rkB);
   return slerp(fSlerpT,kSlerpP,kSlerpQ);

@@ -24,12 +24,12 @@
 /*!
    This class encapsulates numerical stuff, that should be available
    in libm.so on most platforms. However, on some platforms there are
-   subtle differences between the C++-library calls that wrap the
-   C-library functions. So, in case of doubt, implement it here.
+   subtle differences (signatures !) between the C++-library calls that 
+   wrap the C-library functions. So, in case of doubt, implement it here.
 
-   The fast math functions provided, use the trigonometric series
-   expansion. Note that for performance reasons, there is no range
-   checking on the arguments.
+   The fast math functions provided, use an approximating polynomial.
+   Note that for performance reasons, there is no range checking on 
+   the arguments.
 
    The approximation formulas are from:
    "Handbook of Mathematical Functions",
@@ -43,9 +43,10 @@
    use ATAN(t) = -PI/2 - ATAN(1/t).
 
    Speedups were measured on a Pentium II 400 Mhz with a release build of the
-   code.  Comparisons are to the calls sin, cos, tan, and atan in the standard
+   code. Comparisons are to the calls sin, cos, tan, and atan in the standard
    math library.
 */
+
 template <class T>
 class GbMath
 {
@@ -125,8 +126,11 @@ public:
 /*----------------------------------------------------------------------
 |
 | $Log$
-| Revision 1.1  2002/02/22 14:47:56  elena
-| new: dir Gridlib_inc
+| Revision 1.2  2002/03/21 14:58:56  elena
+| new: changes in dat-file for reading tetrahedral (bugs in element connection)
+|
+| Revision 1.3  2001/08/16 16:53:17  prkipfer
+| improved type safety for template parameter
 |
 | Revision 1.2  2001/06/15 08:32:25  prkipfer
 | added compiler hints

@@ -3,8 +3,11 @@
 |
 |
 | $Log$
-| Revision 1.1  2002/02/22 14:47:56  elena
-| new: dir Gridlib_inc
+| Revision 1.2  2002/03/21 14:58:57  elena
+| new: changes in dat-file for reading tetrahedral (bugs in element connection)
+|
+| Revision 1.2  2001/08/16 17:06:23  prkipfer
+| revised memory management
 |
 | Revision 1.1  2001/01/09 11:10:01  prkipfer
 | new util: TStorage and TClassStorage
@@ -15,8 +18,7 @@
 
 template <class T>
 void 
-GbTStorage<T>::resize (unsigned int uiOldQuantity,
-		       unsigned int uiNewQuantity, GbBool bCopy)
+GbTStorage<T>::resize (int uiOldQuantity, int uiNewQuantity, GbBool bCopy)
 {
   if ( uiNewQuantity != uiOldQuantity ) {
     if ( uiNewQuantity > 0 ) {
@@ -25,7 +27,7 @@ GbTStorage<T>::resize (unsigned int uiOldQuantity,
       if ( bCopy ) {
 	if ( uiNewQuantity > uiOldQuantity ) {
 	  if ( uiOldQuantity > 0 ) {
-	    unsigned int uiCopySize = uiOldQuantity*sizeof(T);
+	    int uiCopySize = uiOldQuantity*sizeof(T);
 	    memcpy(atNewStorage,storage_,uiCopySize);
 	  }
 	}
