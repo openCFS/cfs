@@ -156,6 +156,8 @@ CREATE TABLE Material_nonlin (
   material_idx bigint(20) unsigned NOT NULL default '0',
   param enum('coupling_E','coupling_S','dielec_E','conduc_T','conduc_B','perm_T','perm_B','mag_B','mech_S') NOT NULL default 'coupling_E',
   matrix_index enum('11','12','13','14','15','16','21','22','23','24','25','26','31','32','33','34','35','36','41','42','43','44','45','46','51','52','53','54','55','56','61','62','63','64','65','66') NOT NULL default '11'
+  x double NOT NULL default '0',
+  y double NOT NULL default '0',
 ) TYPE=MyISAM;
 
 --
