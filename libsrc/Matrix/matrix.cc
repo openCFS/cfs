@@ -904,6 +904,19 @@ std::vector<Double> operator+= ( std::vector<Double> & vec1,  std::vector<Double
 
 
 
+std::vector<Double> operator-= ( std::vector<Double> & vec1,  std::vector<Double> & vec2)
+{
+#ifdef TRACE
+  (*trace) << "entering operator-= (std::vector<Double> &, std::vector<Double> &)" << std::endl;
+#endif
+
+  vec1 = vec1 - vec2;
+  
+  return vec1;
+}
+
+
+
 
 std::vector<Double> operator* (Double val, std::vector<Double> & vec)
 {

@@ -312,7 +312,9 @@ namespace CoupledField
 	Double jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord);
 	partElemVec *= jacDet * intWeights[actIntPt-1];
 	
-	elemVec +=  partElemVec;
+	// the negative sign is due the fact, that this vector has to be subtracted from the RHS!! 
+	// (see Kaltenbacher  "Numerical Sim. of Mechatronic Sensors and Actuators" p. 55
+	elemVec -=  partElemVec;
       }
   }
 
