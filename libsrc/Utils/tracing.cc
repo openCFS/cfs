@@ -1,4 +1,4 @@
-#include "debugger.hh"
+#include "tracing.hh"
 
 namespace CoupledField{
 

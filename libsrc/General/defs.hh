@@ -1,7 +1,7 @@
 #ifndef FILE_DEFS_2004
 #define FILE_DEFS_2004
 
-#include "Utils/debugger.hh"
+#include "Utils/tracing.hh"
 #include <typeinfo>
 
 namespace CoupledField{
@@ -12,11 +12,11 @@ namespace CoupledField{
 
 #ifdef TRACE //normal function tracing
 #define ENTER_FCN(name)	\
-FcnTraceObjLocal fcn(name);
+OutInfo::FcnTraceObjLocal fcn(name);
 
 #if TRACE>=100 //trace absolutely everything
 #define ENTER_IFCN(name)	\
-FcnTraceObjLocal fcn(name);
+OutInfo::FcnTraceObjLocal fcn(name);
 #else //no tracing
 #define ENTER_IFCN(name)
 #endif//IFCN
@@ -24,7 +24,6 @@ FcnTraceObjLocal fcn(name);
 #define ENTER_FCN(name)	
 #define ENTER_IFCN(name)	
 #endif
-
 
 } // end of namespace
 #endif
