@@ -413,6 +413,41 @@ private:
  
 };
 
+
+
+// =============================================================================
+// electric polarization
+// =============================================================================
+
+
+/// class for calculation of right hand side due to a hysteresis model with
+/// polarization P
+class PiezoPolarizationInt : public LinearForm
+{
+public:
+  ///
+  PiezoPolarizationInt(Integer direction, Integer numdof, Boolean isaxi);
+
+  ///
+  virtual ~PiezoPolarizationInt();
+
+  /// Calculation of vector of right hand side 
+  virtual void CalcElemVector(Matrix<Double>& ptCoord, Vector<Double> & result);
+
+  ///
+  virtual void SetFactor(Double factor) {Pval_ = factor;};
+private:
+
+  //!
+  Integer comp_;
+
+  //! 
+  Integer numDofs_;
+
+  //!value of polarization
+  Double Pval_;
+};
+
 }
 
 #endif // FILE_LINEARFORM

@@ -2,7 +2,6 @@
 
 #include "DataInOut/Unverg/outUnverg.hh"
 #include "DataInOut/GMV/outGMV.hh"
-#include "Forms/forms_header.hh" 
 
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
 #include "DataInOut/WriteInfo.hh"
@@ -206,17 +205,6 @@ namespace CoupledField {
       assemble_->AddIntegrator(actIntDescrMass, subdoms_[actSD]);
 
 
-      // check for complex-valued material parameter
-//       if (piezoMaterialType_==imagMaterialParameter){
-//       	IntegratorDescriptor *actComplexIntDescrMass =  new IntegratorDescriptor(bilinearMass, MASS);
-// 	actComplexIntDescrMass->SetPiezoMaterialType(piezoMaterialType_);
-
-// 	//check for damping (mass part)
-// 	if (dampingType_ == RAYLEIGH)    
-// 	  actComplexIntDescrMass->SetSecondaryMat(DAMPING, actSDMat.GetDampingAlfa(),analysistype_);
-	
-// 	assemble_->AddIntegrator(actComplexIntDescrMass, subdoms_[actSD]);
-//       }
     } // end for actSD ...
     
 

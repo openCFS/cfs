@@ -20,7 +20,7 @@ SolveStepAcoustic::~SolveStepAcoustic() {
 // ======================================================
 
 void SolveStepAcoustic::StepTransNonLin(const Integer kstep, const Double asteptime,
-										const Integer level, const Boolean reset) {
+					const Integer level, const Boolean reset) {
 
   ENTER_FCN( "SolveStepAcoustic::StepTransNonLin" );
 
