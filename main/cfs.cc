@@ -66,7 +66,7 @@ void main(int argc, char *argv[])
   // print grid to unverg-file
   domain->PrintGrid(0);
 
-  domain->TestGrid();
+//  domain->TestGrid();
 
   //choose your driver
   BaseDriver *ptdriver = new TransientDriver(domain);
