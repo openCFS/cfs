@@ -53,12 +53,6 @@ public:
   virtual void SetIntPoints()=0;
 
   //!
-//  virtual void SetTransFncAtIntPoints()=0;
-
-  //!
-//  virtual void SetDerTransFncAtIntPoints()=0;
-
-  //!
   virtual  void GetGradientShFnc(Vector<Double> & ,const Integer i, const Integer j)=0;
 
    //! Calculation of Jacobian in 2D
@@ -100,6 +94,7 @@ protected:
   ShortInt DegreeInteg;        //!< numerical integration order
   Matrix<Double> IntPoints;  //!< integration points
   Vector<Double> * IntWeights; //!< integration weights
+  enum IntegrationType IntegType;
 
 private:
  

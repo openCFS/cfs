@@ -222,7 +222,7 @@ void Assemble<Dim,T_Matrix>::AssembleGlobal(T_Matrix & Mat) const
   Matrix<Double> elemmat;
 
   Dim * ptCoord=new Dim[numnodeelem];
-  BaseElem * ptElem=new Quad1(GaussOrder2);  /////////////////////
+  BaseElem * ptElem=new Quad1(GaussOrder5);  /////////////////////
   typeBaseForm oElemMatrix(ptElem,1);
 
   Mat.Init();

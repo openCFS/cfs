@@ -13,7 +13,7 @@ namespace CoupledField
 public:
 
   //! Constructor
-  GeTriangle(ShortInt aintegtype) { IntegType = aintegtype; }
+  GeTriangle(enum IntegrationType aintegtype) { IntegType = aintegtype; }
  
   //! Deconstructor
   virtual ~GeTriangle();
@@ -64,7 +64,7 @@ private:
   Double TransFnc1dx (Double x,Double y)  { return -1.0; }
   Double TransFnc1dy (Double x,Double y)  { return -1.0; }
 
-  ShortInt IntegType;  //!< integration rule
+//  ShortInt IntegType;  //!< integration rule
 };
  
 }

@@ -11,7 +11,7 @@
 namespace CoupledField
 {
                    
-Triangle1 :: Triangle1(ShortInt aintegtype) : GeTriangle(aintegtype)
+Triangle1 :: Triangle1(enum IntegrationType aintegtype) : GeTriangle(aintegtype)
 {
 #ifdef TRACE
   (*trace) << "entering Triangle1::Triangle1" << endl;

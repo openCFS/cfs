@@ -10,7 +10,7 @@ namespace CoupledField
 public:
 
   //! Constructor with type of integration rule
-  Quad1(ShortInt aintegtype);
+  Quad1(enum IntegrationType aintegtype);
   
   //! Deconstructor
   virtual ~Quad1();
