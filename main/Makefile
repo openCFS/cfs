@@ -38,7 +38,7 @@ SUBLIBDIR = Driver PDE CoupledPDE \
             DataInOut/Unverg DataInOut/GMV \
             DataInOut/DatFile DataInOut/AnsysFile DataInOut\
             DataInOut/Database\
-            Utils Matrix General ODESolve ODEDescr \
+            Utils Matrix General ODESolve ODEDescr ParamIdent\
             $(EXTRA_MODULES)
 
 PATHSUBLIBDIR = $(addprefix $(LIBSRC_DIR)/, $(SUBLIBDIR))
@@ -54,7 +54,7 @@ mylibrary = driver domain pde coupledpde forms  \
             elements3d elements2d elements1d elements \
             gridcfs definefiles gmv unverg \
 	    ansysfile datainout paramhandling \
-            driver \
+            driver paramIdent\
             utils matrix general odesolve odedescr \
             $(EXTRA_CFSLIBS)
 
@@ -97,7 +97,9 @@ $(program):: $(src:.cc=.o) $(mylibrary)
 # We define a set of targets for the individual modules/subdirectories.
 # -----------------------------------------------------------------------------
 driver:
-	@cd $(LIBSRC_DIR)/Driver; $(MAKE) -f Makefile 
+	@cd $(LIBSRC_DIR)/Driver; $(MAKE) -f Makefile
+paramIdent:
+	@cd $(LIBSRC_DIR)/ParamIdent; $(MAKE) -f Makefile 
 domain:
 	@cd $(LIBSRC_DIR)/Domain; $(MAKE) -f Makefile
 gridcfs:
@@ -235,6 +237,9 @@ clean-odesolve:
 	$(MAKE) clean
 clean-odedescr:
 	@cd $(LIBSRC_DIR)/ODEDescr && \
+	$(MAKE) clean
+clean-paramIdent:
+	@cd $(LIBSRC_DIR)/ParamIdent && \
 	$(MAKE) clean
 
 # -----------------------------------------------------------------------------
