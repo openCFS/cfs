@@ -60,6 +60,8 @@ void  Quad1::GetGradientShFnc(Vector<Double> & grad, const Integer i, const Inte
  case 4:
     grad[0]=DxTransFncAtIP4[ip]; grad[1]=DyTransFncAtIP4[ip];
     break;
+ default:
+    Error("Number of shape function is wrong", __FILE__, __LINE__);
 } 
 
 }
@@ -70,12 +72,18 @@ Vector<Double> & Quad1::GetShFncAtIP(const Integer iShFnc)
     { 
     case 1:
       return TransFncAtIP1;
+      break;
     case 2:
       return TransFncAtIP2;
+      break;
     case 3:
       return TransFncAtIP3;
+      break;
     case 4:
       return TransFncAtIP4;
+      break;
+    default:
+      Error("Number of shape function is wrong", __FILE__, __LINE__);
     }
 }
 }

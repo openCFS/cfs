@@ -15,7 +15,6 @@ DefineInOutFiles :: DefineInOutFiles(const Char * name)
  strcpy(filename, name);
 
 #ifdef TRACE
- mark
  strcpy(filename, name);
  trace=new std::ofstream(strcat(filename,".trace"));
  if (!trace) Error("Can't open trace-file");
@@ -58,13 +57,13 @@ FileType * DefineInOutFiles :: Create_ptFileType(Char * atype)
   if (!strcmp(atype, "-dat"))  
     {
       infiletype=new DatFile(filename);
-      return infiletype;
     }
   else 
     {
       std::cerr << "ERROR: Sorry, we can't read files with type: "<< atype << std::endl;
       exit(-1);
     }
+   return infiletype;
 }
 
 } // end of namespace

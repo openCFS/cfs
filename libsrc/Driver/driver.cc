@@ -9,7 +9,8 @@
 namespace CoupledField
 {
 
-Driver::Driver(FileType * const aptFileType, Integer anummesh, Material * aptMaterial)
+template<class Dim>
+Driver<Dim>::Driver(FileType * const aptFileType, Integer anummesh, Material * aptMaterial)
 {
 #ifdef TRACE
   (*trace) << "entering Driver::Driver" << std::endl;
@@ -20,15 +21,16 @@ Driver::Driver(FileType * const aptFileType, Integer anummesh, Material * aptMat
 //  ptFileType->ReadOutputOptions(SaveDer1, SaveDer2);
   SaveDer1=FALSE; SaveDer2=FALSE;
 
-  ptgrid=new InterfaceGridlib<Point2D>(ptFileType);
-//  ptgrid=new GridInterfaceCFS<Point2D>(ptFileType);
+  ptgrid=new InterfaceGridlib<Dim>(ptFileType);
+//  ptgrid=new GridInterfaceCFS<Dim>(ptFileType);
   ptgrid->Read();
   std::cout << " we do subdivosion " << std::endl;
 
   ptMaterial=aptMaterial;
 }
 
-void Driver::SolveNewmarkMethod(OutResultUnverg * ptUnverg)
+template<class Dim>
+void Driver<Dim>::SolveNewmarkMethod(OutResultUnverg<Dim> * ptUnverg)
 {
 #ifdef TRACE
   (*trace) << "entering Driver :: SolveNewmarkMethod" << std::endl;
@@ -62,7 +64,8 @@ void Driver::SolveNewmarkMethod(OutResultUnverg * ptUnverg)
     }
 }
 
-Driver :: ~Driver()
+template<class Dim>
+Driver<Dim> :: ~Driver()
 {
 #ifdef TRACE
   (*trace) << "entering Driver::~Driver" << std::endl;

@@ -1,4 +1,3 @@
-//#include <stdlib.h>
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -10,7 +9,7 @@ namespace CoupledField
 {
 
 template <class Dim>
-Domain<Dim> :: Domain(FileType * const aptFileType, OutResultUnverg * ptUnverg,  
+Domain<Dim> :: Domain(FileType * const aptFileType, OutResultUnverg<Dim> * ptUnverg,  
                       Material * materialdata,  Grid<Dim> * ptgrid)
 {
 #ifdef TRACE

@@ -8,20 +8,20 @@ namespace CoupledField
 {
 
 ///
-//template <class Dim>
+template <class Dim>
 class OutResultUnverg
 {
 public:
   ///
   OutResultUnverg(const Char * const filename); 
   ///
-  void Create(Grid<Point2D> * ptgrid, const Integer level);
+  void Create(Grid<Dim> * ptgrid, const Integer level);
   ///
-  void Dataset666(Grid<Point2D> * ptgrid, const Integer level);
+  void Dataset666(Grid<Dim> * ptgrid, const Integer level);
   ///
-  void Dataset781(Grid<Point2D> * ptgrid, const Integer level);   
+  void Dataset781(Grid<Dim> * ptgrid, const Integer level);   
   ///
-  void Dataset780(Grid<Point2D> * ptgrid, const Integer level);
+  void Dataset780(Grid<Dim> * ptgrid, const Integer level);
   ///
   void Dataset55(const std::string & title, const Vector<Double> & x, const Integer step, const Double time);
   void Dataset56(); 
@@ -32,9 +32,7 @@ private:
   ///
   std::ofstream * output;
   ///
-  Point2D * ptCoordinate;
-  ///
-//  string tab; 
+  Dim * ptCoordinate;
  
 };
 

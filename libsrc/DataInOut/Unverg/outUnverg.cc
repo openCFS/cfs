@@ -8,8 +8,8 @@
 namespace CoupledField
 {
 
-//template<class Point2D>
-OutResultUnverg :: OutResultUnverg(const Char * const filename)
+template<class Dim>
+OutResultUnverg<Dim> :: OutResultUnverg(const Char * const filename)
 {
 #ifdef TRACE
   (*trace) << "entering OutResultUnverg :: OutResultUnverg" << std::endl;
@@ -21,8 +21,8 @@ OutResultUnverg :: OutResultUnverg(const Char * const filename)
 
 }
 
-//template<class Point2D>
-OutResultUnverg ::~ OutResultUnverg()
+template<class Dim>
+OutResultUnverg<Dim> ::~ OutResultUnverg()
 {
 #ifdef TRACE
   (*trace) << "entering OutResultUnverg ::~ OutResultUnverg" << std::endl;
@@ -31,8 +31,8 @@ OutResultUnverg ::~ OutResultUnverg()
   delete output;
 }
 
-//template<class Point2D>
-void OutResultUnverg :: Create(Grid<Point2D> * ptgrid, const Integer level)
+template<class Dim>
+void OutResultUnverg<Dim> :: Create(Grid<Dim> * ptgrid, const Integer level)
 {
  Dataset666(ptgrid,level);
  Dataset781(ptgrid,level);
@@ -41,8 +41,8 @@ void OutResultUnverg :: Create(Grid<Point2D> * ptgrid, const Integer level)
 }
 
 
-//template<class Point2D>
-void  OutResultUnverg::Dataset666(Grid<Point2D> * ptgrid, const Integer level)
+template<class Dim>
+void  OutResultUnverg<Dim>::Dataset666(Grid<Dim> * ptgrid, const Integer level)
 {
 
  (*output)<< std::setw(6) << -1 << std::endl << std::setw(6) << -666 << std::endl ;
@@ -52,7 +52,7 @@ void  OutResultUnverg::Dataset666(Grid<Point2D> * ptgrid, const Integer level)
 
  (*output)<< std::setw(10) << 1 << std::setw(10) << 1 ;
 
-// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Pay attention that there is switch
+// !!!!!! Pay attention that there is switch
 
  if (ptCoordinate->is2D()) (*output) << std::setw(10) << 2 << std::endl; 
  else (*output) << std::setw(10) << 3 << std::endl; 
@@ -64,8 +64,8 @@ void  OutResultUnverg::Dataset666(Grid<Point2D> * ptgrid, const Integer level)
 }
 
 
-//template<class Point2D>
-void  OutResultUnverg::Dataset781(Grid<Point2D> * ptgrid, const Integer level)
+template<class Dim>
+void  OutResultUnverg<Dim>::Dataset781(Grid<Dim> * ptgrid, const Integer level)
 {
  (*output) << std::setw(6) << -1 << std::endl << std::setw(6) << 781 << std::endl;
 
@@ -82,7 +82,7 @@ void  OutResultUnverg::Dataset781(Grid<Point2D> * ptgrid, const Integer level)
 
      (*output).setf(std::ios::uppercase);
 
-     Point2D Point;
+     Dim Point;
 
      ptgrid->GetCoordinateNode(i,level,Point);
 
@@ -96,8 +96,8 @@ void  OutResultUnverg::Dataset781(Grid<Point2D> * ptgrid, const Integer level)
  (*output) << std::setw(6) << -1 << std::endl;
 }
 
-//template<class Point2D>
-void  OutResultUnverg::Dataset780(Grid<Point2D> * ptgrid, const Integer level)
+template<class Dim>
+void  OutResultUnverg<Dim>::Dataset780(Grid<Dim> * ptgrid, const Integer level)
 {
  (*output) << std::setw(6) << -1 << std::endl << std::setw(6) << 780 << std::endl;
 
@@ -142,8 +142,8 @@ void  OutResultUnverg::Dataset780(Grid<Point2D> * ptgrid, const Integer level)
  (*output) << std::setw(6) << -1 << std::endl;
 }
 
-//template<class Point2D>
-void  OutResultUnverg::Dataset55(const std::string & title, const Vector<Double> & x, const Integer step, const Double time)
+template<class Dim>
+void  OutResultUnverg<Dim>::Dataset55(const std::string & title, const Vector<Double> & x, const Integer step, const Double time)
 {
  (*output) << std::setw(6) << -1 << std::endl << std::setw(6) << 55 << std::endl;
 
@@ -168,8 +168,8 @@ void  OutResultUnverg::Dataset55(const std::string & title, const Vector<Double>
  (*output) << std::setw(6) << -1 << std::endl;
 }  
 
-//template<class Point2D>
-void  OutResultUnverg::Dataset56()
+template<class Dim>
+void  OutResultUnverg<Dim>::Dataset56()
 {
  (*output) << std::setw(6) << -1 << std::endl << std::setw(6) << 56 << std::endl;
  
