@@ -317,7 +317,7 @@ namespace CoupledField
 
 
 
-    if (!elemDisp_.size_row() || !elemDisp_.size_col()) 
+    if (!elemDisp_.GetSizeRow() || !elemDisp_.GetSizeCol()) 
       Error("Undefined displacements! ",__FILE__,__LINE__);
 
     partElemVec.resize(nrNodes * nrDofs);
@@ -469,7 +469,7 @@ void  RHSForRecoveryProcedure::CalcElemVectorRHSForSPR(Matrix<Double>& ptCoord,
     // This, as friend defined bilinearform holds the necessary differential operators
     PreStressInt preStressBiformInt(ptelem, matData_, preStressVal_, preStressDir_);
 
-    if (!elemDisp_.size_row() || !elemDisp_.size_col()) 
+    if (!elemDisp_.GetSizeRow() || !elemDisp_.GetSizeCol()) 
       Error("Undefined displacements! ",__FILE__,__LINE__);
 
     partElemVec.resize(nrNodes * nrDofs);
@@ -675,7 +675,7 @@ void LinearFlowNoiseInt::CalcElemVector4Quad(Matrix<Double>& ptCoord,const Vecto
     std::vector<Double>  Sf;
     std::vector<Double> partResult;
   
-    int dimelem=ptCoord.size_row();
+    int dimelem=ptCoord.GetSizeRow();
   
     std::vector<Double>  NodalVelAtIP;
     Matrix<Double> VelDerAtIP;
@@ -707,7 +707,7 @@ void LinearFlowNoiseInt::CalcElemVector4Quad(Matrix<Double>& ptCoord,const Vecto
 	VelDerAtIP.GetDiagInMatrix(VelDerFromDiag);	 
 	VelDerFromDiag.ConvertToVec_AppendRows(helpVect);
 	for (int k=0;k<(dimelem-1);k++)
-	  VelDerFromDiag.add_col(helpVect,1);
+	  VelDerFromDiag.AddColumn(helpVect,1);
 
 	VelDerFromDiag.ScaleDiagElems(2.0);
 
@@ -730,9 +730,9 @@ void LinearFlowNoiseInt::GetQttiesOfElement(Matrix<Double>& elVel,const Matrix<D
 #endif
 
     // displacement of element nodes
-    elVel.Resize(matrixRow, connecth.size());
+    elVel.Resize(matrixRow, connecth.GetSize());
 
-    for(Integer actNode=0; actNode<connecth.size(); actNode++)
+    for(Integer actNode=0; actNode<connecth.GetSize(); actNode++)
       for (int dim=0; dim < matrixRow; dim++)
 	elVel[dim][actNode] = FlowData[dim+1][connecth[actNode]-1]; // dim+1 because index 0 in FlowData is used for storing pressure
 }

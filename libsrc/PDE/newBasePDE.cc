@@ -4,6 +4,7 @@
 #include <iostream>
 #include <string>
 
+#include <Domain/elem.hh>
 #include "DataInOut/conffile.hh"
 #include "Estimator/spaceerror.hh"
 #include "DataInOut/WriteInfo.hh"
@@ -20,7 +21,8 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
    incStopCrit_(1e-2), 
    residualStopCrit_(1e-3),
    firstTimeStepStatic_(TRUE),
-   isaxi_(FALSE)
+   isaxi_(FALSE),
+   isComplex_(FALSE)
 {
 
   ENTER_FCN( "BasePDE::BasePDE" );
@@ -112,6 +114,13 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
 
   else
     Error("Analysis Type not supported",__FILE__,__LINE__);
+
+
+  // Determine if solution is of complex type or not
+  if (analysistype_ == HARMONIC)
+    sol_ = new StoreSol<Complex>;
+  else
+    sol_ = new StoreSol<Double>;
 
 
   //for adaptivity
@@ -288,9 +297,13 @@ void BasePDE::StepStaticLin(const Integer kstep, const Double aTime,
   // save solution
   Integer k=0;
   
-  for (Integer i=0; i<numPDENodes_; i++)
-    for (Integer dim=0; dim<dofspernode_; dim++)
-      sol_[dim][i] = ptsol[k++];
+  // --------- OLD -----------
+  // for (Integer i=0; i<numPDENodes_; i++)
+  //  for (Integer dim=0; dim<dofspernode_; dim++)
+  //    sol_[dim][i] = ptsol[k++];
+
+  //sol_->SetDataPointer(ptsol);
+  sol_->CopyFromDataPointer(ptsol);
 
   firstTimeStepStatic_ = FALSE;
 }
@@ -337,27 +350,23 @@ void BasePDE::PreStepTrans(const Integer kstep, const Double asteptime,
 
 void BasePDE::PostStepTrans(const Integer kstep, const Double asteptime, const Integer level)
 {
-
   ENTER_FCN( "BasePDE::PostStepTrans" );
 
+  TRY_CAST
+  PTRCAST(sol_,StoreSol<Double>,solhelp)
+    
   if (PDEisCoupled_)
     {
       //save solution
-      Integer k=0;
-      Array<Double> solhelp(1, numPDENodes_*dofspernode_);
+      Vector<Double> solvector= solhelp->GetCompleteVector();
 
-      for (Integer i=0; i< numPDENodes_; i++)
-	for (Integer dim=0; dim<dofspernode_; dim++)
-	  {
-	    solhelp[0][k] = sol_[dim][i];
-	    k++;
-	  }
-    
-      TS_alg_->Corrector(solhelp);  //perform corrector step
+      //perform corrector step
+      TS_alg_->Corrector(solvector); 
     }
   
   if (PDEisCoupled_)
     iterCoupledCounter_++;
+  CATCH_CAST
 }
 
 
@@ -379,24 +388,19 @@ void BasePDE::StepTransLin(const Integer kstep, const Double asteptime,
 
   Double * ptsol;
   Integer update,job;
-
-  //current problem with Array class
-  Array<Double> solhelp;
-  solhelp.reshape(1, numPDENodes_*dofspernode_);
+   
   Integer k=0;
-
+  TRY_CAST
+  PTRCAST(sol_,StoreSol<Double>,solhelp);
+  
+  
 
   if ( PDEisCoupled_ == FALSE || iterCoupledCounter_ == 0)
     {    
-      for (Integer i=0; i< numPDENodes_; i++)
-	for (Integer j=0; j<dofspernode_; j++)
-	  {
-	    solhelp[0][k] = sol_[j][i];
-	    k++;
-	  }
       
-      //perform predictor step
-      TS_alg_->Predictor(solhelp);
+      Vector<Double> solvector= solhelp->GetCompleteVector();
+      TS_alg_->Predictor(solvector);
+      
     }
   
 
@@ -445,20 +449,17 @@ void BasePDE::StepTransLin(const Integer kstep, const Double asteptime,
   algsys_->Solve();
   ptsol = algsys_->GetSolutionVal();
 
-  //save solution
-  k=0;
-  for (Integer i=0; i< numPDENodes_; i++)
-    for (Integer dim=0; dim<dofspernode_; dim++)
-      {
-	sol_[dim][i]  = ptsol[k];
-	solhelp[0][k] = ptsol[k];
-	k++;
-      }
-    
-  if (!PDEisCoupled_)
-    TS_alg_->Corrector(solhelp);  //perform corrector step
-}
+  //sol_->SetDataPointer(ptsol);
+  sol_->CopyFromDataPointer(ptsol);
+  
 
+  Vector<Double> solvector;
+  dynamic_cast<StoreSol<Double>*>(sol_)->GetCompleteVector(solvector);
+
+  if (!PDEisCoupled_)
+    TS_alg_->Corrector(solvector);
+  CATCH_CAST
+}
 
 void  BasePDE::SetBCs(const Integer level, const Integer update, const Double time)
 {
@@ -681,7 +682,12 @@ BasePDE::~BasePDE()
 
   // ATTENTION: Dummy value for as_id!!!!!!!!!!!!!!!!!!!!!!!!!!
   DeleteAlgSys(0);
+
+  if (sol_)
+    delete sol_;
 }
+
+
 
 
 
@@ -921,40 +927,6 @@ void BasePDE::CreateMatrices_Solver()
 }
 
 
-
-
-
-void BasePDE::StoreToSolArray(Double * ptSol)
-{
-
-  ENTER_FCN( " BasePDE::StoreToSolArray" );
-
-  Integer k=0;
-
-  for (Integer i=0; i<numPDENodes_; i++)   
-    for (Integer dim=0; dim<dofspernode_; dim++)
-      sol_[dim][i] = ptSol[k++];
-}
-
-
-
-void BasePDE::StoreVecToSolArray(std::vector<Double>& sol)
-{
-
-  ENTER_FCN( " BasePDE::StoreVecToSolArray" );
-
-  Integer k=0;
-
-  for (Integer i=0; i<numPDENodes_; i++)   
-    for (Integer dim=0; dim<dofspernode_; dim++)
-      {
-	sol_[dim][i] = sol[k];
-	k++;
-      }
-}
-
-
-
   // ======================================================
   // COUPLING SECTION
   // ======================================================
@@ -967,8 +939,10 @@ void BasePDE::CalcInputCoupling()
 
   std::vector<Integer> * nodes;
   std::vector<Elem*> * elements;
-  Array<Double> * val;
+  BaseStoreSol * val;
+  Double * help;
   Integer PDEnode;
+  Integer couplingDof;
   
   // Reset counter for boundary conditions
   couplingBCsCounter_ = 0;
@@ -978,48 +952,63 @@ void BasePDE::CalcInputCoupling()
 
       //    ptCoupling_ = &ptCoupling_[i];
       ptCoupling_->GetInputValues(i, val);
-
+      couplingDof = ptCoupling_->GetInputDof(i);
+    
+      // Only for testing, until a common vectorclass
+      // for CFS++ and OLAS is found
+      help=val->GetDoublePointer();
+      
       switch(ptCoupling_->GetInputType(i))
 	{
 	  
 	case COORD:
-	  //std::cerr << "In " << pdename_ << "::CalcInputCoupling - Switch(Coord)" << std::endl;
 	  InitMatrices_ = TRUE;
 	  ptCoupling_->GetInputNodes(i, nodes);
-	  deltCoords_.reshape(Dim_, numPDENodes_);
+	  // -- OLD --
+	  //deltCoords_.reshape(Dim_, numPDENodes_);
 
+	  val->GetDataPointer(help);
+	  deltCoords_.Resize(Dim_, numPDENodes_);
+	  
 	  // set ptr of deltCoords to assembly-object
 	  assemble_->SetPtrDeltaCoordinates(&deltCoords_);
-
-	  for (Integer dof=0; dof<ptCoupling_->GetInputDof(i); dof++)
-	    for (Integer j=0; j<nodes->size(); j++)
+	  
+	  
+	  for (Integer j=0; j<nodes->size(); j++)
+	    for (Integer dof=0; dof<ptCoupling_->GetInputDof(i); dof++)
 	      {
 		//std::cerr << "processing dim = " << dim << ", j = " << j << std::endl;
 		PDEnode = Mesh2PDENode_[(*nodes)[j]-1]-1;
 		if (PDEnode==-1)
 		  Error("Node not assigned to coupling domain: see mesh- and config-file",__FILE__,__LINE__);
-
-		deltCoords_[dof][PDEnode] = (*val)[dof][j];
+		
+		deltCoords_(dof,PDEnode) = help[dof + j*Dim_];
 	      }
-	      
+	  
 	  break;
 
 	case RHS:
 	  //std::cerr << "In " << pdename_ << "::CalcInputCoupling - Switch(RHS)" << std::endl;
 	  ptCoupling_->GetInputNodes(i, nodes);
+	  
+	  
 
-	  for (Integer dof=0; dof<ptCoupling_->GetInputDof(i); dof++)
+	  //for (Integer dof=0; dof<ptCoupling_->GetInputDof(i); dof++)
+	  for (Integer dof=0; dof<couplingDof; dof++)
 	    for (Integer j=0; j<nodes->size(); j++)
 	      {
 		PDEnode = Mesh2PDENode_[(*nodes)[j]-1];
 		if (PDEnode==-1)
 		  {
-		    std::cerr << "PDENODE: "  << PDEnode << "Node[" << (*nodes)[j] << "][" 
-			      << dof+1 << "]= " << (*val)[dof][j] << std::endl; 
+		    // std::cerr << "PDENODE: "  << PDEnode << "Node[" << (*nodes)[j] << "][" 
+		    //      << dof+1 << "]= " << (*val)[dof][j] << std::endl; 
 		    Error("Node not assigned to coupling domain: see mesh- and config-file"
 			  , __FILE__,__LINE__);
 		  }
-		algsys_->SetNodeRHS((*val)[dof][j], PDEnode, dof+1);
+
+		// PROBLEM !!!!
+		// SetNodeRHS erwartet Double* oder Complex*, aber Inhalt erst zu Laufzeit bekannt ...
+		algsys_->SetNodeRHS(help[dof+couplingDof*j], PDEnode, dof+1);
 	      }
 	  
 	  break;
@@ -1035,18 +1024,18 @@ void BasePDE::CalcInputCoupling()
 		if (PDEnode==-1)
 		  Error("Node not assigned to coupling domain: see mesh- and config-file",__FILE__,__LINE__);
 #ifdef USE_OLAS
-		algsys_->SetDirichlet(couplingBCsCounter_+1, PDEnode, (*val)[dof][j], dof+1);
+		algsys_->SetDirichlet(couplingBCsCounter_+1, PDEnode, help[dof+j*couplingDof], dof+1);
 #else
 		if (updateCouplingBCs_)
 		  {
 		    //		    std::cerr << "updating BC[" << dof << "][" << (*nodes)[j] << "] = " 
 		    //		      << (*val)[dof][j] << std::endl;
-		    algsys_->UpdateDirichlet(couplingBCsCounter_+1, (*val)[dof][j], SYSTEM);
+		    algsys_->UpdateDirichlet(couplingBCsCounter_+1, help[dof+j*couplingDof], SYSTEM);
 		  }
 		else
 		  {	
 		    //  std::cerr << "BC[" << dim << "][" << (*nodes)[j] << "] = " << (*val)[dim][j] << std::endl;
-		    algsys_->SetDirichlet(couplingBCsCounter_+1, PDEnode, (*val)[dof][j], dof+1, SYSTEM);
+		    algsys_->SetDirichlet(couplingBCsCounter_+1, PDEnode, help[dof+j*couplingDof], dof+1, SYSTEM);
 		  }
 #endif
 	      }
@@ -1078,9 +1067,9 @@ void BasePDE::Mesh2PDENode(Vector<Integer> & PDENodes,
 
   ENTER_FCN( "BasePDE::Mesh2PDENode " );
 
-  PDENodes.Resize(MeshNodes.size());
+  PDENodes.Resize(MeshNodes.GetSize());
   
-  for (Integer i=0; i<MeshNodes.size(); i++) 
+  for (Integer i=0; i<MeshNodes.GetSize(); i++) 
      PDENodes[i] = Mesh2PDENode[MeshNodes[i]-1];
 }
 
@@ -1094,15 +1083,15 @@ void BasePDE::PDE2MeshNode(Vector<Integer> & MeshNodes,
 
   ENTER_FCN( "BasePDE::PDE2MeshNode " );
 
-  MeshNodes.Resize(PDENodes.size());
+  MeshNodes.Resize(PDENodes.GetSize());
 
-  for (Integer i=0; i<PDENodes.size(); i++)
+  for (Integer i=0; i<PDENodes.GetSize(); i++)
     MeshNodes[i] = PDE2MeshNode[PDENodes[i]-1];
 
 #ifdef DEBUG
   (*debug) << "--------------------" << std::endl;
   (*debug) << " PDE2MeshNode()" << std::endl;
-  for (Integer i=0; i<PDENodes.size(); i++)
+  for (Integer i=0; i<PDENodes.GetSize(); i++)
     (*debug) << "in: " << PDENodes[i] << " out: " << MeshNodes[i] << std::endl;
 #endif
 }
@@ -1131,7 +1120,7 @@ void BasePDE::AssignPDENodeNumbers(std::vector<Integer> & Mesh2PDENode,
       Mesh2PDENode_[i] = i+1;
       PDE2MeshNode_[i] = i+1;
     }
-  numPDENodes_ = PDE2MeshNode_.size();
+  numPDENodes_ = PDE2MeshNode_.GetSize();
   
   return;
 #endif  
@@ -1144,7 +1133,7 @@ void BasePDE::AssignPDENodeNumbers(std::vector<Integer> & Mesh2PDENode,
       for (Integer j=0; j<SD.size(); j++)
 	{
 	  // Iterate over all element nodes
-	  for (Integer NumNodes=0; NumNodes<SD[j]->connect.size(); NumNodes++)
+	  for (Integer NumNodes=0; NumNodes<SD[j]->connect.GetSize(); NumNodes++)
 	    {
 	      // Check if node was already assigned
 	      if (Mesh2PDENode[SD[j]->connect[NumNodes] - 1] == -1)
@@ -1175,139 +1164,14 @@ void BasePDE::GetElemCoords(const Vector<Integer> connect, Matrix<Double> &coord
 
   ptgrid_->GetCoordNodesElemMat(connect, coordMat, level);
   
-  if (deltCoords_.size() != 0 && GeoUpdate_ == TRUE)
+  if (deltCoords_.GetSizeRow() != 0 && GeoUpdate_ == TRUE)
     {
-      for (Integer i=0; i<coordMat.size_row(); i++)
-	for (Integer j=0; j<coordMat.size_col(); j++) 
-	  coordMat(i,j) += deltCoords_[i][Mesh2PDENode_ [connect[j] - 1] - 1];
-    }  
-}
-
-void BasePDE::TransformNodeSolution(Array<Double> & MeshSol, 
-				    Array<Double> & PDESol, 
-				    const std::vector<Integer> & PDE2MeshNode)
-{
-
-  ENTER_FCN( "BasePDE::TransformNodeSolution" );
-
-  Integer node, idx;
-  MeshSol.reshape(PDESol.dim(), ptgrid_->GetMaxnumnodes(actlevel_));
-
-  // loop over dimensions
-  for (Integer dim=0; dim<PDESol.dim(); dim++)
-
-      // Loop over all PDE nodes
-      for (Integer i=0; i<PDE2MeshNode.size(); i++)
-
-	  MeshSol[dim][PDE2MeshNode[i]-1] = PDESol[dim][i];
-
-}
-
-
-void BasePDE::TransformElemSolution(Array<Double> & MeshSol, 
-				    Array<Double> & PDESol, 
-				    const std::vector<Elem*> & Elems)
-{
-
-  ENTER_FCN( "BasePDE::TransformElemSolution (Elem*)" );
-
-  MeshSol.reshape(PDESol.dim(), ptgrid_->GetMaxnumElem(actlevel_));
-  std::cout << "dim= " << ptgrid_->GetMaxnumElem(actlevel_) << std::endl;
-   
-  // loop over all dimensions
-  for (Integer dim=0; dim<PDESol.dim(); dim++)
-
-    // loop over all elements
-    for (Integer i=0; i<Elems.size(); i++) {
-      MeshSol[dim][i] = PDESol[dim][i];
+      for (Integer i=0; i<coordMat.GetSizeRow(); i++)
+	for (Integer j=0; j<coordMat.GetSizeCol(); j++) 
+	  coordMat(i,j) += deltCoords_(i,Mesh2PDENode_ [connect[j] - 1] - 1);
     }
-  
+
 }
-
-void BasePDE::TransformElemSolution(Array<Double> & MeshSol, 
-				    Array<Double> & PDESol, 
-				    const std::vector<std::string> & SD)
-{
-
-  ENTER_FCN( "BasePDE::TransformElemSolution (string)" );
-
-  MeshSol.reshape(PDESol.dim(), ptgrid_->GetMaxnumElem(actlevel_));
-
-  Integer elMesh=0;
-  Integer elPDE=0;
-  std::vector<std::string> AllSDs = ptgrid_->GetListSubDomains();
-
-  // loop over all SubDomains of computational domain
-  for (Integer isd=0; isd<AllSDs.size(); isd++)
-  {
-    Boolean SDbelongsToDomain = FALSE;
-    for (Integer k=0; k<SD.size(); k++)
-      if (SD[k] == AllSDs[isd]) 
-	SDbelongsToDomain = TRUE;
-
-    std::vector<Elem*> Elems;
-    ptgrid_->GetElemSD(Elems, AllSDs[isd], actlevel_);    
-    if (SDbelongsToDomain)
-      {
-	//computational subdomain belongs to PDE 
-	// loop over all elements
-	for (Integer i=0; i<Elems.size(); i++) 
-	    {
-	      // loop over dim
-	      for (Integer dim=0; dim<PDESol.dim(); dim++)
-		MeshSol[dim][elMesh] = PDESol[dim][elPDE]; 
-
-	      elPDE++; elMesh++;
-	    }
-      }
-    else
-      elMesh += Elems.size();
-    
-  }
-}
-
-
-void BasePDE::NodeSolutionToCoupling(Array<Double>& CouplingSol,
-				     const std::vector<Integer>& NodeNumbers)
-{
-
-  ENTER_FCN( "BasePDE::NodeSolutionToCoupling" );
-  
-  CouplingSol.reshape(dofspernode_, NodeNumbers.size());
-  
-  for (Integer i=0; i<CouplingSol.dim(); i++)
-    for (Integer j=0; j<CouplingSol.size(); j++)
-      {
-	//std::cerr << "processing dim: " << i <<", j:" << j << std::endl; 
-	CouplingSol[i][j] = sol_[i][Mesh2PDENode_[NodeNumbers[j]-1 ] - 1];
-      }
-}
-
-
-
-
-
-void BasePDE::ElemSolutionToCoupling(Array<Double>& CouplingSol,
-				     const std::vector<Elem*>& NodeNumbers,
-				     Vector<Double>& elemSol)
-				     
-{
-
-  ENTER_FCN( "BasePDE::ElemSolutionToCoupling" );
-  
-  const Integer couplingDof = CouplingSol.dim();
-  
-  for (Integer actDof=0; actDof < couplingDof; actDof++)
-    for (Integer actNode=0; actNode < NodeNumbers.size(); actNode++)
-      {
-	//std::cerr << "processing dim: " << i <<", j:" << j << std::endl; 
-	CouplingSol[actDof][actNode] = elemSol[actDof + actNode*couplingDof];
-      }
-}
-
-
-
-
 
 
   // ======================================================
@@ -1435,37 +1299,19 @@ void BasePDE::WriteErrorInfo(WriteResults * ptmeshes)
 }
 #endif
 
-
-
-
-void BasePDE::GetSolVecOfElement(Vector<Double>& sol, Vector<Integer>& connect_PDE)
-{
-
-  ENTER_FCN( "BasePDE::GetSolVecOfElement" );
-
-  // displacement of element nodes
-  sol.Resize(dofspernode_ * connect_PDE.size());
-  
-  for(Integer actNode=0; actNode<connect_PDE.size(); actNode++)
-    for(Integer actDof=0; actDof < dofspernode_; actDof++)
-      sol[actDof + actNode*dofspernode_] = sol_[actDof][connect_PDE[actNode]-1];
-}
-
-
-
 void BasePDE::GetDerivSolVecOfElement(Vector<Double>& sol, Vector<Integer>& connect_PDE)
 {
 
   ENTER_FCN( "BasePDE::GetDerivSolVecOfElement" );
 
   // displacement of element nodes
-  sol.Resize(dofspernode_ * connect_PDE.size());
-
-  const Array<Double>& sol_der1Array = getS1();
+  sol.Resize(dofspernode_ * connect_PDE.GetSize());
   
-  for(Integer actNode=0; actNode<connect_PDE.size(); actNode++)
+  const Vector<Double> & sol_der1 = getS1();
+
+  for(Integer actNode=0; actNode<connect_PDE.GetSize(); actNode++)
     for(Integer actDof=0; actDof < dofspernode_; actDof++)
-      sol[actDof + actNode*dofspernode_] = sol_der1Array[0][actDof + dofspernode_*(connect_PDE[actNode]-1)];
+      sol[actDof + actNode*dofspernode_] = sol_der1[actDof + dofspernode_*(connect_PDE[actNode]-1)];
 }
 
 
@@ -1478,14 +1324,14 @@ void BasePDE::GetDerivSolOfElement(Matrix<Double>& sol, Vector<Integer>& connect
   ENTER_FCN( "BasePDE::GetDerivSolOfElement" );
 
   // displacement of element nodes
-  sol.Resize(dofspernode_, connect_PDE.size());
+  sol.Resize(dofspernode_, connect_PDE.GetSize());
 
-  const Array<Double>& sol_der1Array = getS1();  
+  const Vector<Double>& sol_der1 = getS1();  
 
-  for(Integer actNode=0; actNode<connect_PDE.size(); actNode++)
+  for(Integer actNode=0; actNode<connect_PDE.GetSize(); actNode++)
     for(Integer actDof=0; actDof < dofspernode_; actDof++)
-      sol[actDof][actNode] =  sol_der1Array[0][actDof + dofspernode_*(connect_PDE[actNode]-1)];
-  //sol_der1Array[actDof][connect_PDE[actNode]-1];
+      sol[actDof][actNode] =  sol_der1[actDof + dofspernode_*(connect_PDE[actNode]-1)];
+
 }
 
 
@@ -1518,7 +1364,7 @@ ENTER_FCN( "BasePDE::CalcLineNormalVec" );
   Integer indexNode1=-1;
   Integer indexNode2=-1;
   
-  for(Integer actNode=0; actNode < connecth.size(); actNode++)
+  for(Integer actNode=0; actNode < connecth.GetSize(); actNode++)
     {
       if (connecth[actNode] == interfaceElem.connect[0])
 	indexNode1 = actNode;
@@ -1532,13 +1378,13 @@ ENTER_FCN( "BasePDE::CalcLineNormalVec" );
 
   // counterclockwise orientation of nodes (difference of node indizes is +1)
   if (indexNode2-indexNode1 == 1 || 
-      (indexNode2-indexNode1)+connecth.size() == 1 )
+      (indexNode2-indexNode1)+connecth.GetSize() == 1 )
     n *= -1;
   
   else
     // if not clockwise orientation of nodes (difference of node indizes is -1)
     if (! (indexNode2-indexNode1 == -1 || 
-	   (indexNode2-indexNode1)-connecth.size()==-1) )
+	   (indexNode2-indexNode1)-connecth.GetSize()==-1) )
       Error("Nodes of interface don't lie beneath each other in neighbouring element!", __FILE__, __LINE__);  
 }
 
@@ -1554,7 +1400,7 @@ void BasePDE::CalcLineNormalVec(Vector<Double>& n, Matrix<Double>& ptCoord)
 
   const Integer nrVecElem2d = 2;
   
-  if (ptCoord.size_row()!=nrVecElem2d)
+  if (ptCoord.GetSizeRow()!=nrVecElem2d)
     Error("Calc element normal: no line element! ", __FILE__,__LINE__);
 
   n.Resize(nrVecElem2d);
@@ -1563,7 +1409,7 @@ void BasePDE::CalcLineNormalVec(Vector<Double>& n, Matrix<Double>& ptCoord)
 
   n[0] = -(ptCoord[1][1] - ptCoord[1][0]);
   n[1] =  (ptCoord[0][1] - ptCoord[0][0]);
-  n /= n.normL2();
+  n /= n.NormL2();
 }
 
 

@@ -135,7 +135,7 @@ void WriteResultsAnsys::WriteCells(const Integer alevel)
 
      if (dim==2)
        {
-	 switch (connect.size())
+	 switch (connect.GetSize())
 	   {
 	   case 2: // line
 	     (*out_cells_) << std::setw(f) << connect[0] << 
@@ -162,7 +162,7 @@ void WriteResultsAnsys::WriteCells(const Integer alevel)
        }
      else
 {
-  switch (connect.size())
+  switch (connect.GetSize())
     {
     case 4: // tet
       for (j=0; j<2; j++)
@@ -178,7 +178,7 @@ void WriteResultsAnsys::WriteCells(const Integer alevel)
 	(*out_cells_) << std::setw(f) << connect[j]; 
 	  break;
       default:
-	std::cout << " connection size for the element is :" << connect.size() << std::endl;
+	std::cout << " connection size for the element is :" << connect.GetSize() << std::endl;
           Error("This type of element is not implemented", __FILE__, __LINE__);
       }
 }
@@ -192,7 +192,7 @@ void WriteResultsAnsys::WriteCells(const Integer alevel)
 
 void WriteResultsAnsys::WriteVariableNode(const Vector<Double> var)
 {
-  Integer size=var.size();
+  Integer size=var.GetSize();
   Integer i;
   for (i=0; i< size; i++)
     (*out_res_) << "dnsol,   " << i+1 << ",u,x,"
@@ -208,7 +208,7 @@ void WriteResultsAnsys::WriteVariableCell(const Vector<Double> var, const std::s
   (*out_res_).setf(std::ios::uppercase);
   (*out_res_).precision(7);
 
-  Integer size=var.size();
+  Integer size=var.GetSize();
   Integer i;
   for (i=0; i< size; i++)
     (*out_res_) << "desol," << std::setw(10) << i+1 << ",all,s,x,"
@@ -240,7 +240,7 @@ void WriteResultsAnsys::WriteNodeSolution(const Vector<Double> & sol, const Inte
   Integer i;
   if (NeedHistory_)
     for (i=0; i<nodeshist_.size(); i++) {
-      if (sol.size()<=nodeshist_[i])
+      if (sol.GetSize()<=nodeshist_[i])
         Error("Please, check history-nodes in config-file.",__FILE__,__LINE__);
       if (lastsavetime[i] != time )
 	AddInHistory(time,sol[nodeshist_[i]],i);

@@ -105,8 +105,8 @@ public:
   void CalcEnergy();
 
 
-  //! calculates nodal forces
-  void CalcNodeForce(Array<Double> & force, 
+  //! callculates nodal forces
+  void CalcNodeForce(StoreSol<Double> & force, 
 		     std::vector<Integer> & nodes, 
 		     std::vector<Elem*> & elems,
 		     std::vector<std::vector<ShortInt> > & isBoundaryNode,
@@ -150,12 +150,12 @@ protected:
   
   
 
-  Array<Double> E_;  //!< conatins elecric field
+  StoreSol<Double> E_;  //!< conatins electric field
 
   //  Boolean nonLinGeo_;  //! switch for geometric update 
   
   // ---- Electric Force variables ---
-  Array<Double> Force_;        //!< stores Electric force of each element
+  StoreSol<Double> Force_;        //!< stores Electric force of each element
   std::vector<std::vector<Elem*> > F_Interface_; //!<vector of vectors conaining Elements with acting force
   std::vector<std::vector<std::vector<ShortInt> > > isBoundaryNode_; //!< vector containing flag array for element boundary nodes
   std::vector<std::vector<std::vector<Integer> > > elemNodeToCouplingNode_; //!< assigns each coupling element node the according Coupling Node number

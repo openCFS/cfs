@@ -92,7 +92,7 @@ namespace CoupledField
 				     const std::vector< Matrix<Double>* >& shapeDeriv)
   {
     Integer nrEdges = shapeDeriv.size();
-    Integer dim = shapeDeriv[0]->size_row();
+    Integer dim = shapeDeriv[0]->GetSizeRow();
     
     curl.Resize(dim, nrEdges);
     

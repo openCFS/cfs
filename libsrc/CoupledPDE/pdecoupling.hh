@@ -3,7 +3,6 @@
 
 #include <General/environment.hh>
 #include <Utils/vector.hh>
-#include <Utils/array.hh>
 #include <list>
 #include <DataInOut/MaterialData.hh>
 
@@ -15,6 +14,10 @@ class BasePDE;
 class Grid;
 class Elem;
 class BCs;
+class BaseStoreSol;
+  template<class TYPE> class Vector;
+  template<class TYPE> class Array;
+  template<class TYPE> class Matrix;
 
   //! This class holds information about Coupling terms, such as coupling quantity, values coupling nodes/elements ...
   /*! This class holds information about Coupling terms, such as coupling quantity, values coupling nodes/elements ...
@@ -26,6 +29,7 @@ class PDECoupling
   struct CouplingInterface{
   public:
     CouplingInterface();
+    ~CouplingInterface();
 
     std::string region;                    //!< name of coupling region
     CouplingRegionType regionType;        //!< type of coupling region (defined in 'environment.hh')
@@ -36,8 +40,8 @@ class PDECoupling
     std::vector<Elem*> oppositePdeNeighbours;//!< vector of neighbour elements of "opposite" PDE 
     std::vector<MaterialData*> materials; //!< vector of materials at coupling interface
     std::vector<MaterialData*> oppositePdeMaterials; //!< vector of materials at coupling interface of "opposite" PDE
-    Array<Double> values;                 //!< array containing coupling values
-    Array<Double> oldValues;              //!< array containing coupling values of previous iteration step
+    BaseStoreSol * values;                //!< array containing coupling values
+    BaseStoreSol * oldValues;             //!< array containing coupling values of previous iteration step
     ShortInt dof;                         //!< dof of coupling values
     Integer numNodes;                     //!< number of couplingnodes
     Integer numElems;                     //!< number of couplingelements
@@ -136,12 +140,12 @@ public:
   { mat = &(outputInterfaces_[i]->oppositePdeMaterials);}
 
   //! get input coupling values
-  virtual void GetInputValues(Integer i, Array<Double>* &values)
-  { values = &(inputInterfaces_[i]->values);}
+  virtual void GetInputValues(Integer i, BaseStoreSol* &values)
+  { values = (inputInterfaces_[i]->values);}
 
   //! get input coupling values
-  virtual void GetInputOldValues(Integer i, Array<Double>* &values)
-  { values = &(inputInterfaces_[i]->oldValues);}
+  virtual void GetInputOldValues(Integer i, BaseStoreSol* &values)
+  { values = (inputInterfaces_[i]->oldValues);}
 
   //! get input coupling values dof
   virtual ShortInt GetInputDof(Integer i)
@@ -202,12 +206,12 @@ public:
   { mat = &(outputInterfaces_[i]->materials);} 
 
   //! get output coupling values
-  virtual void GetOutputValues(Integer i, Array<Double>* &values)
-  { values = &(outputInterfaces_[i]->values);}
+  virtual void GetOutputValues(Integer i, BaseStoreSol* &values)
+  { values = (outputInterfaces_[i]->values);}
 
   //! get old output coupling values
-  virtual void GetOutputOldValues(Integer i, Array<Double>* &values)
-  { values = &(outputInterfaces_[i]->oldValues);}
+  virtual void GetOutputOldValues(Integer i, BaseStoreSol* &values)
+  { values = (outputInterfaces_[i]->oldValues);}
 
   //! get output coupling values dof
   virtual ShortInt GetOutputDof(Integer i)

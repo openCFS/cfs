@@ -92,7 +92,7 @@ PATHSUBLIBDIR = $(addprefix $(LIBSRC_DIR)/, $(SUBLIBDIR))
 .SUFFIXES: .f .c .cc .o
 
 .cc.o:
-	$(CC) -o $@ $(CFLAGS1) $(CFLAGS2) $(CFLAGS3) $(OLAS) $(INCL) $(INCLAdaptGrid) $(INCLMpCCI) $<
+	$(CC) -o $@ $(CFLAGS1) $(CFLAGS2) $(CFLAGS3) $(OLAS) $(TRACEFLAGS) $(INCL) $(INCLAdaptGrid) $(INCLMpCCI) $<
 
 #
 #

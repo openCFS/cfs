@@ -53,7 +53,7 @@ public:
 // ======================================================
 
   //!  return pointer to vector with first derivative of solution
-  virtual const Array<Double>& getS1() const { return TS_alg_->GetDeriv1();}
+  virtual const Vector<Double>& getS1() const { return TS_alg_->GetDeriv1();}
 
   //! do PostProcessing step
   virtual void PostProcess(const Integer level);
@@ -66,7 +66,7 @@ public:
 
 
   //! callculates nodal forces
-  void CalcNodeForce(Array<Double> & force, 
+  void CalcNodeForce(StoreSol<Double> & force, 
 		     std::vector<Integer> & nodes, 
 		     std::vector<Elem*> & elems,
 		     std::vector<std::vector<ShortInt> > & isBoundaryNode,
@@ -115,11 +115,11 @@ protected:
   void WriteUI2File(Vector<Double>& uiSD);
 
 
-  Array<Double> B_;  //!< conatins magnetic field
-  Array<Double> Jeddy_;  //!< conatins eddy currents field
+  StoreSol<Double> B_;  //!< conatins magnetic field
+  StoreSol<Double> Jeddy_;  //!< conatins eddy currents field
   
   // ---- Electric Force variables ---
-  Array<Double> Force_;        //!< stores Magnetic force of each element
+  StoreSol<Double> Force_;        //!< stores Magnetic force of each element
   std::vector<std::vector<Elem*> > F_Interface_; //!<vector of vectors conaining Elements with acting force
   std::vector<std::vector<std::vector<ShortInt> > > isBoundaryNode_; //!< vector containing flag array for element boundary nodes
   std::vector<std::vector<std::vector<Integer> > > elemNodeToCouplingNode_; //!< assigns each coupling element node the according Coupling Node number

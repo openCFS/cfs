@@ -44,7 +44,7 @@ public:
   
 
   /// calculates L2-norm of RHS regarding entries due to penalty formulation
-  Double RhsL2Norm(std::vector<Double>& stdVec);
+  Double RhsL2Norm(Vector<Double>& stdVec);
 
 
   /// sets external forces and returns L2Norm of them
@@ -115,11 +115,12 @@ public:
    virtual void WriteResultsInFile();
 
   //!  return pointer to vector with first derivative of solution
-  virtual const Array<Double>& getS1() const { return TS_alg_->GetDeriv1();}
+  //virtual const Array<Double>& getS1() const { return TS_alg_->GetDeriv1();}
+  virtual const Vector<Double>& getS1() const { return TS_alg_->GetDeriv1();}
 
   //! return pointer to vector with second derivative of solution
-  virtual const Array<Double>& getS2() const { return TS_alg_->GetDeriv2();}
-
+  //virtual const Array<Double>& getS2() const { return TS_alg_->GetDeriv2();}
+  virtual const Vector<Double> & getS2() const { return TS_alg_->GetDeriv2();}
 protected:
 
   
@@ -135,13 +136,14 @@ private:
   void CalcAcousticCouplingRHS(std::vector<Elem*> * couplingElems, 
 			       std::vector<Integer>& couplingNodes,
 			       std::vector<MaterialData*>* materials,
-			       Array<Double>& forceOnElem,
+			       //Array<Double>& forceOnElem,
+			       StoreSol<Double> & forceOnElem,
 			       Integer couplingdof,
 			       std::vector<Elem*> * neighbours);
   
 
   /// does a line search and returns the optimal residual norm
-  Double LineSearch(std::vector<Double>& solIncrement, std::vector<Double>& actSol, 
+  Double LineSearch(Vector<Double>& solIncrement, Vector<Double>& actSol, 
 		    Double& etaLineSearch, Integer level, Boolean trans=FALSE);
 
 
@@ -162,7 +164,7 @@ private:
   Integer GetNrBCDof (const std::string & dofStartString);
 
   /// stores an algsys_ vector into a std::vector and returns that L2-norm
-  void StoreAlgsysToVec(std::vector<Double>& stdVec, Double * pt);
+  void StoreAlgsysToVec(Vector<Double>& vec, Double * pt);
 
 
   /// returns that L2-norm of an algsys vector
@@ -189,7 +191,7 @@ private:
   MaterialData * mueMat;
 
   /// external forces (for nonlin simulations)
-  std::vector<Double> extForces_;
+  Vector<Double> extForces_;
 
 };
 

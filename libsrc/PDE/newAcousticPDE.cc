@@ -44,9 +44,15 @@ AcousticPDE::AcousticPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, Fil
 
   size_ = numPDENodes_;
 
-  sol_.reshape(dofspernode_, numPDENodes_);
-  sol_.init();
+  // Initalize solution class
+  sol_->SetNumSolutions(1);
+  sol_->SetSolutionType(ACOU_POTENTIAL);
+  sol_->SetNumNodes(numPDENodes_);
+  sol_->SetDof(dofspernode_);
+  sol_->Init(0.0);
 
+  
+  
   with_fracdamping_=FALSE;
   std::string dampstr;
   conf->ifget("damping",dampstr,pdename_);
@@ -73,8 +79,12 @@ AcousticPDE::AcousticPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, Fil
   if (analysistype_==HARMONIC)
     {
       conf->get("frequency", freq_, pdename_);
-      solIm_.reshape(dofspernode_, numPDENodes_);
-      solIm_.init();
+      solIm_.SetNumSolutions(1);
+      solIm_.SetSolutionType(ACOU_POTENTIAL);
+      solIm_.SetNumNodes(numPDENodes_);
+      solIm_.SetDof(dofspernode_);
+      solIm_.Init(0);
+
     }
 
   // set analysis parameters
@@ -91,7 +101,7 @@ AcousticPDE::AcousticPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, Fil
 
   assemble_->SetNumDirichlet(GetNumRestraints(actlevel_));
   assemble_->SetPtrBCs(ptBCs_);
-  assemble_->SetPtr2Sol(&sol_);
+  assemble_->SetPtr2Sol(sol_);
   assemble_->SetPtr2TimeFnc(ptTimeFunc_);
 
   if (with_absBCs_ || with_fracdamping_)
@@ -101,7 +111,25 @@ AcousticPDE::AcousticPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, Fil
    
   DefineIntegrators(actlevel_);
 
-  ReadSavings();  
+  ReadSavings();
+  if (savederiv1_)
+    {
+      sol_der1Array_.SetNumSolutions(1);
+      sol_der1Array_.SetNumNodes(numPDENodes_);
+      sol_der1Array_.SetSolutionType(ACOU_VELOCITY);
+      sol_der1Array_.SetDof(1);
+      sol_der1Array_.Init(0);
+    }
+
+  if (savederiv2_)
+    {
+      sol_der2Array_.SetNumSolutions(1);
+      sol_der2Array_.SetNumNodes(numPDENodes_);
+      sol_der2Array_.SetSolutionType(ACOU_VELOCITY);
+      sol_der2Array_.SetDof(1);
+      sol_der2Array_.Init(0);
+    }
+  
 }
 
 
@@ -214,12 +242,16 @@ void AcousticPDE::CalcOutputCoupling()
   std::vector<Elem*> * interfaceVolElems = NULL;
   std::vector<Integer> * couplingNodes = NULL;
   std::vector<MaterialData*> * couplingMaterials = NULL;
-  Array<Double> * values = NULL;
+  BaseStoreSol * values = NULL;
   
+  TRY_CAST
+
   // loop over all output coupling quantities
   for (Integer i=0; i<ptCoupling_->GetNumOutputCouplings(); i++)
     {
       quantity = ptCoupling_->GetOutputQuantity(i);
+      ptCoupling_->GetOutputValues(i, values);
+      PTRCAST(values,StoreSol<Double>,temp);
 
       switch(ptCoupling_->GetOutputType(i))
 	{
@@ -228,13 +260,11 @@ void AcousticPDE::CalcOutputCoupling()
 	    {
 	      ptCoupling_->GetOutputElements(i, couplingElems);
 	      ptCoupling_->GetOutputNodes(i, couplingNodes);
-	      //	      ptCoupling_->GetInputMaterials(i, couplingMaterials);
 	      ptCoupling_->GetOwnMaterials(i, couplingMaterials);
-	      ptCoupling_->GetOutputValues(i, values);
 	      ptCoupling_->GetInputNeighbourElems(i, interfaceVolElems);
 	      dof = ptCoupling_->GetOutputDof(i);
 	    
-	      CalcMechCouplingRHS(couplingElems, *couplingNodes, couplingMaterials, *values, dof, interfaceVolElems);
+	      CalcMechCouplingRHS(couplingElems, *couplingNodes, couplingMaterials, *temp, dof, interfaceVolElems);
 
 	    }	  
 	  break;
@@ -243,12 +273,14 @@ void AcousticPDE::CalcOutputCoupling()
 	  Error("No Element coupling output", __FILE__,__LINE__);
 	}
     }
+
+  CATCH_CAST
 }
 
 void AcousticPDE::CalcMechCouplingRHS(std::vector<Elem*> * couplingElems, 
 				      std::vector<Integer> & couplingNodes,
 				      std::vector<MaterialData*> * couplingMaterials,
-				      Array<Double>& elemCouplingSols,
+				      StoreSol<Double>& elemCouplingSols,
 				      Integer couplingdof,
 				      std::vector<Elem*> * interfaceVolElems)
 {
@@ -258,7 +290,7 @@ void AcousticPDE::CalcMechCouplingRHS(std::vector<Elem*> * couplingElems,
 
   Double density=0;
    
-  elemCouplingSols.init();
+  elemCouplingSols.Init(0.0);
 
   for (Integer actElem=0; actElem<couplingElems->size(); actElem++)
     {
@@ -314,7 +346,7 @@ void AcousticPDE::CalcMechCouplingRHS(std::vector<Elem*> * couplingElems,
       CalcLineNormalVec(n, *actCoupleElem, *(*interfaceVolElems)[actElem]); // points outward own domain
 
       
-      for (Integer actNode=0; actNode<ptCoord.size_row(); actNode++)
+      for (Integer actNode=0; actNode<ptCoord.GetSizeRow(); actNode++)
 	{
 	  Integer nodePos = 0;      
 	  
@@ -322,7 +354,7 @@ void AcousticPDE::CalcMechCouplingRHS(std::vector<Elem*> * couplingElems,
 	    nodePos++;
 	  
 	  for (Integer actDof=0; actDof < couplingdof ; actDof++)  
-	    elemCouplingSols[actDof][nodePos] += forceOnElem[actNode] * n[actDof];
+	    elemCouplingSols(nodePos,actDof) += forceOnElem[actNode] * n[actDof];
 	}      
     }
 }
@@ -359,30 +391,32 @@ void AcousticPDE::WriteResultsInFile()
   if (!commrank) 
   	{
 #endif
-
-  Array<Double> sol_mesh, solder1_mesh, solder2_mesh, solIm_mesh;
-  Array<Double> sol_der1Array, sol_der2Array;
-
+  StoreSol<Double> sol_mesh, solder1_mesh, solder2_mesh, solIm_mesh;
+ 
   if (analysistype_==HARMONIC)
     {
-      TransformNodeSolution(sol_mesh,sol_,PDE2MeshNode_);
-      TransformNodeSolution(solIm_mesh,solIm_,PDE2MeshNode_);      
+      sol_->TransformNodeSolution(sol_mesh,PDE2MeshNode_,ptgrid_,actlevel_);
+      sol_->TransformNodeSolution(solIm_mesh,PDE2MeshNode_,ptgrid_,actlevel_);      
       OutFile_->WriteNodeSolution(sol_mesh,laststepcalc_,lasttimecalc_,"fluid potential, cw realpart,");
       OutFile_->WriteNodeSolution(solIm_mesh,laststepcalc_,lasttimecalc_,"fluid potential, cw imagpart, ");
     }
   else
     {  
-      sol_der1Array = getS1();
-      sol_der2Array = getS2();
 
       if (savesol_)
-	  TransformNodeSolution(sol_mesh,sol_,PDE2MeshNode_);
+	  sol_->TransformNodeSolution(sol_mesh,PDE2MeshNode_,ptgrid_,actlevel_);
 
-      if (savederiv1_)    
-	TransformNodeSolution(solder1_mesh,sol_der1Array,PDE2MeshNode_);
+      if (savederiv1_) 
+	{
+	  sol_der1Array_.SetSolVector(ACOU_VELOCITY,getS1());
+	  sol_der1Array_.TransformNodeSolution(solder1_mesh,PDE2MeshNode_,ptgrid_,actlevel_);
+	}
 
       if (savederiv2_)
-	TransformNodeSolution(solder2_mesh,sol_der2Array,PDE2MeshNode_);
+	{
+	  sol_der2Array_.SetSolVector(ACOU_VELOCITY,getS2());
+	  sol_der2Array_.TransformNodeSolution(solder2_mesh,PDE2MeshNode_,ptgrid_,actlevel_);
+	}
       
       if (OutFile_->IsGMV())
 	{

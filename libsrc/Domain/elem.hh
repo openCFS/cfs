@@ -43,7 +43,7 @@ inline Elem & Elem::operator=(const Elem& t)
 
 inline Double Elem::diameter(const Point<2> * const ptArrayOfNodes)
 {
-  if (connect.size()==1)
+  if (connect.GetSize()==1)
     Error("This function is not valid for this dimension",__FILE__,__LINE__);
   
   Point<2> a=ptArrayOfNodes[connect[1]];

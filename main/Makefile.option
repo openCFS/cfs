@@ -7,6 +7,11 @@
 program = cfs
 
 
+#Function tracing depth
+#TRACE = 0: no fct. tracing at all
+#TRACE >= 100: Trace also inline fct.
+TRACE = 10
+
 #LIBRARY_TYPE = shared / static
 LIBRARY_TYPE = static
 
@@ -108,6 +113,13 @@ LIB_OWN = $(C_DIR)/lib
 #
 ########### Flags
 #
+# Flag for function tracing
+ifneq "$(TRACE)" "0"
+TRACEFLAGS=-DTRACE=$(TRACE)
+endif
+
+# Flag for choosing LAS or OLAS with according 
+# include directories
 ifeq "$(LASTYPE)" "OLAS"
 	INCL1 = -I$(LIBSRC_DIR) \
 		-I$(OLAS_INSTALL_DIR)/include

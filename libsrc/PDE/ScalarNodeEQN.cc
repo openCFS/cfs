@@ -49,19 +49,19 @@ void ScalarNodeEQN :: InitEQN()
       for (Integer j=0; j<SD.size(); j++)
 	{
 	  // Iterate over all element nodes
-	  for (Integer NumNodes=0; NumNodes<SD[j]->connect.size(); NumNodes++)
+	  for (Integer NumNodes=0; NumNodes<SD[j]->connect.GetSize(); NumNodes++)
 	    {
 	      // Check if node was already assigned
 	      if (EQN_[SD[j]->connect[NumNodes] - 1] == 0)
 		{
 		  EQN_[SD[j]->connect[NumNodes] - 1] = 1;
-		  EQN2MeshNode_.push_back(SD[j]->connect[NumNodes]);
+		  EQN2MeshNode_.Push_back(SD[j]->connect[NumNodes]);
 		}
 	    }
 	}
     }
 
-  numPDENodes_ = EQN2MeshNode_.size();
+  numPDENodes_ = EQN2MeshNode_.GetSize();
 
 }
 
@@ -89,7 +89,7 @@ void ScalarNodeEQN :: ApplyEqnNrs()
 #endif
 
   numEqns_ = 0;
-  for (Integer i=0; i<EQN_.size(); i++)
+  for (Integer i=0; i<EQN_.GetSize(); i++)
     if (EQN_[i] > 0)
       {
 	numEqns_++;
@@ -105,9 +105,9 @@ void ScalarNodeEQN :: Mesh2Eqn(Vector<Integer>& Eqns, Vector<Integer>& nodes)
   (*trace) << "entering ScalarNodeEQN::Mesh2Eqn" << std::endl;
 #endif
 
-  Eqns.Resize(nodes.size());
+  Eqns.Resize(nodes.GetSize());
   
-  for (Integer i=0; i<Eqns.size(); i++) 
+  for (Integer i=0; i<Eqns.GetSize(); i++) 
      Eqns[i] = EQN_[nodes[i]-1];
 
 }
@@ -122,7 +122,7 @@ void ScalarNodeEQN :: Print()
 #ifdef DEBUG
   (*debug) << std::endl << "PDE-nodes: " << numPDENodes_ << std::endl;
   (*debug) << "EQN-Array:" << std::endl;
-  for (Integer i=0; i<EQN_.size(); i++)
+  for (Integer i=0; i<EQN_.GetSize(); i++)
     (*debug) << i+1 << " " << EQN_[i] << std::endl;
 
 #endif

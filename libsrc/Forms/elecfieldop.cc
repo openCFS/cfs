@@ -5,8 +5,12 @@
 #include <string>
 #include <Domain/elem.hh>
 #include <Domain/grid.hh>
-#include <Matrix/matrix.hh>
 #include <General/environment.hh>
+#include <Utils/vector.hh>
+#include <Utils/array.hh>
+#include <Utils/storesol.hh>
+#include <Matrix/matrix.hh>
+
 #ifndef NEWBASEPDE
 #include <PDE/basepde.hh>
 #else
@@ -19,7 +23,7 @@ namespace CoupledField
 ElecFieldOp::ElecFieldOp(Grid * ptGrid, 
 			 BasePDE * ptPDE,
 			 std::vector<Integer> * ptMesh2PDENode,
-			 Vector<Double> * EPotential,
+			 StoreSol<Double> & EPotential,
 			 const Integer level,
 			 Boolean isaxi)
   : BaseOperator( ptGrid, ptPDE, ptMesh2PDENode, level, isaxi)
@@ -28,8 +32,8 @@ ElecFieldOp::ElecFieldOp(Grid * ptGrid,
   (*trace) << "entering ElecFieldOp::ElecFieldOp" << std::endl;
 #endif
   
-  this->EPotential_ = EPotential;
-
+  EPotential.GetVectorPointer(this->EPotential_);
+  
 }
 
 ElecFieldOp::~ElecFieldOp()
@@ -72,7 +76,7 @@ void ElecFieldOp::CalcElemElecField(Vector<Double> & E,
 
 
 
-void ElecFieldOp::CalcSDElecField(Array<Double> & E,
+void ElecFieldOp::CalcSDElecField(StoreSol<Double> & E,
 				  const std::vector<std::string> & SD, 
 				  const std::vector<Double> & LCoord)
 {
@@ -92,8 +96,9 @@ void ElecFieldOp::CalcSDElecField(Array<Double> & E,
   maxelem = ptGrid_->GetMaxnumElem(level_, SD);
   dim = ptGrid_->GetDim();
 
-  E.reshape(dim, maxelem);
-  E.init();
+  E.SetNumSolutions(1);
+  E.SetNumNodes(maxelem);
+  E.SetDof(dim);
             
   // Iterate over all subdomains
   for( Integer iSD=0; iSD<SD.size(); iSD++)
@@ -112,7 +117,7 @@ void ElecFieldOp::CalcSDElecField(Array<Double> & E,
 	  // loop over shape functions
 	  for( Integer i=0; i<dim; i++ )
 	    for( Integer j=0; j<nShFnc; j++ )
-	      E[i][k] -= GlobalGradient[j][i] * (*EPotential_)[(*ptMesh2PDENode_) [SubDomain[k]->connect[j]-1]-1];	    
+	      E(k,i) -= GlobalGradient[j][i] * (*EPotential_)[(*ptMesh2PDENode_) [SubDomain[k]->connect[j]-1]-1];	    
 	  
 	}
     }
@@ -123,14 +128,16 @@ void ElecFieldOp::CalcSDElecField(Array<Double> & E,
 CurlEdgeOp::CurlEdgeOp(Grid * ptGrid, 
 		       BasePDE * ptPDE,
 		       std::vector<Integer> * ptMesh2PDENode,
-		       Vector<Double> * aSol,
+		       StoreSol<Double> & aSol,
 		       const Integer level,
 		       BaseSystem * algsys) 
-  : BaseOperator(ptGrid, ptPDE, ptMesh2PDENode, level), sol_(aSol), algsys_(algsys)
+  : BaseOperator(ptGrid, ptPDE, ptMesh2PDENode, level), algsys_(algsys)
 {
 #ifdef TRACE
   (*trace) << "entering CurlEdgeOp::CurlEdgeOp" << std::endl;
 #endif
+
+  aSol.GetVectorPointer((CFSVector*)this->sol_);
 }
 
 
@@ -291,15 +298,15 @@ void CurlEdgeOp::CalcElemMagVec(Vector<Double> & magVecPot,
 CurlNodeOp::CurlNodeOp(Grid * ptGrid, 
 		       BasePDE * ptPDE,
 		       std::vector<Integer> * ptMesh2PDENode,
-		       Vector<Double> * aSol,
+		       StoreSol<Double> & aSol,
 		       const Integer level)
-  : BaseOperator(ptGrid, ptPDE, ptMesh2PDENode, level, FALSE), 
-    sol_(aSol)
+  : BaseOperator(ptGrid, ptPDE, ptMesh2PDENode, level, FALSE)
 {
 #ifdef TRACE
   (*trace) << "entering CurlNodeOp::CurlNodeOp" << std::endl;
 #endif
 
+  aSol.GetVectorPointer(sol_);
 }
 
 CurlNodeOp::~CurlNodeOp()

@@ -180,7 +180,7 @@ void WriteResultsGMV::WriteCells(const Integer alevel)
 
       if (dim==2)
 	{
-	  switch (connect.size())
+	  switch (connect.GetSize())
 	    {
 // 	    case 2:
 // 	      if (ascii_)
@@ -232,7 +232,7 @@ void WriteResultsGMV::WriteCells(const Integer alevel)
 	}
       else
 	{
-	  switch (connect.size())
+	  switch (connect.GetSize())
 	    {
 	    case 4:
 	      if (ascii_)
@@ -272,7 +272,7 @@ void WriteResultsGMV::WriteCells(const Integer alevel)
 		}
 	      break;
 	    default:
-	      std::cout << connect.size() << std::endl;
+	      std::cout << connect.GetSize() << std::endl;
 	      Error("This type of element is not implemented", __FILE__, __LINE__);
 	    }
 	}
@@ -280,14 +280,14 @@ void WriteResultsGMV::WriteCells(const Integer alevel)
       if (ascii_) 
 	{
 	  Integer j;
-	  for (j=0; j< connect.size(); j++)
+	  for (j=0; j< connect.GetSize(); j++)
 	    (*output) << " " << connect[j] ;
 	  (*output) << std::endl;
 	}
       else 
 	{
-	  Integer * ptcon=connect.get();
-	  Integer len=connect.size();
+	  Integer * ptcon=connect.GetPointer();
+	  Integer len=connect.GetSize();
 	  output->write((char*)ptcon,len * sizeof(Integer));
 	}
 
@@ -314,14 +314,14 @@ void WriteResultsGMV::WriteNodeVariable(const Vector<Double> var, const std::str
   if (ascii_) 
     {
       Integer i;
-      for (i=0; i<var.size(); i++)
+      for (i=0; i<var.GetSize(); i++)
 	(*output) << var[i] << " ";
       (*output) << "\n endvars \n" ;
     }
   else 
     {
-      Double * ptvar=var.get();
-      Integer len=var.size();
+      Double * ptvar=var.GetPointer();
+      Integer len=var.GetSize();
       output->write((char*)ptvar,len * sizeof(Double));
       (*output) << "endvars ";
     }
@@ -342,7 +342,7 @@ void WriteResultsGMV::WriteVelocity(const Vector<Double> *  var, const std::stri
   if (ascii_) {
   Integer i,j;
   for (i=0; i<3; i++) {
-    for (j=0; j<var[i].size(); j++)
+    for (j=0; j<var[i].GetSize(); j++)
       (*output) << var[i][j] << " ";
     (*output) << std::endl;
   }
@@ -350,8 +350,8 @@ void WriteResultsGMV::WriteVelocity(const Vector<Double> *  var, const std::stri
   else {
     Integer i;
     for(i=0; i<3; i++) {
-     Double * ptvar=var[i].get();
-     Integer len=var[i].size();
+     Double * ptvar=var[i].GetPointer();
+     Integer len=var[i].GetSize();
      output->write((char*)ptvar,len * sizeof(Double));
     }
   }
@@ -372,33 +372,41 @@ void WriteResultsGMV::WriteGrid(const Integer level)
 
 
 
-void WriteResultsGMV::WriteNodeSolution(const Array<Double>& sol, const Integer step, const Double time, const std::string title)
+void WriteResultsGMV::WriteNodeSolution(const StoreSol<Double>& sol, const Integer step, const Double time, const std::string title)
 {
 #ifdef TRACE
  (*trace) << " entering WriteResultsGMV::WriteNodeSolution " << std::endl;
 #endif
 
   Integer i,j;
+  Double help;
+  
+  Vector<Double> solhelp;
+
   if (NeedHistory_)
     for (i=0; i<nodeshist_.size(); i++) {
       {
-	if (nodeshist_[i] > sol.size())
+	if (nodeshist_[i] > sol.GetNumNodes())
 	  Error("Nr. of history-node(s) is too high --> not in Solution! ",__FILE__,__LINE__);
 
-	if (sol.dim() * sol.size() <=nodeshist_[i])
+	if (sol.GetDof() * sol.GetNumNodes() <=nodeshist_[i])
         Error("Please, check history-nodes in config-file.",__FILE__,__LINE__);
 	//     if (lastsavetime[i] != time )
-	if (sol.dim() > 1)	
+	if (sol.GetDof() > 1)	
 	  {
 	    std::vector<Double> solVec;
-	    solVec.resize(sol.dim());
-	    for (j=0; j<sol.dim(); j++)
-	      solVec[j] = sol[j][(nodeshist_[i]-1)];
+	    solVec.resize(sol.GetDof());
+	    for (j=0; j<sol.GetDof(); j++)
+	      sol.Get(nodeshist_[i]-1,j,solVec[j]);
+	    //solVec[j] = sol[j][(nodeshist_[i]-1)];
 	    
 	    AddVecInHistory(time, solVec, i);
 	  }
 	else
-	  AddInHistory(time,sol[0][nodeshist_[i]-1],i);
+	  {
+	    sol.Get(nodeshist_[i]-1,0,help);
+	    AddInHistory(time,help,i);
+	  }
       }
       
     }
@@ -446,13 +454,14 @@ void WriteResultsGMV::WriteNodeSolution(const Array<Double>& sol, const Integer 
       }
 
 
-      for (i=0; i< sol.dim(); i++)
+      for (i=0; i< sol.GetDof(); i++)
 	{
 	  char nrStr[10];
 	  sprintf(nrStr,"%i",i+1);
 	  std::string sumString = title + nrStr;
-	  
-	  WriteNodeVariable(sol[i], sumString , type);
+	  sol.GetSolVectorSingleDof(i,solhelp);
+
+	  WriteNodeVariable(solhelp, sumString , type);
 	}
       
       
@@ -469,7 +478,7 @@ void WriteResultsGMV::WriteNodeSolution(const Array<Double>& sol, const Integer 
 }
 
 
-void WriteResultsGMV::WriteElemSolution(const Array<Double>& data, const Integer step, const Double time, const std::string title)
+void WriteResultsGMV::WriteElemSolution(const StoreSol<Double>& data, const Integer step, const Double time, const std::string title)
 {
 #ifdef TRACE
   (*trace) << " entering WriteResultsGMV::WriteElemSolution " << std::endl;
@@ -479,18 +488,20 @@ void WriteResultsGMV::WriteElemSolution(const Array<Double>& data, const Integer
                  // 1 - for node
                  // 2 - for face data
  Integer i = 0;
+ Vector<Double> solhelp;
 
    if (step!=(currstep_)) {
      Error("You should write solution of this step before printing some cell data",__FILE__,__LINE__);
    }
 
-  for (i=0; i<data.dim(); i++)
+  for (i=0; i<data.GetDof(); i++)
     {
       char nrStr[10];
       sprintf(nrStr,"%i",i+1);
       std::string sumString = title + nrStr;
+      data.GetSolVectorSingleDof(i,solhelp);
       
-      WriteNodeVariable(data[i], sumString , type);
+      WriteNodeVariable(solhelp, sumString , type);
     }
  
   if (ascii_)

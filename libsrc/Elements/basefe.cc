@@ -87,13 +87,15 @@ void BaseFE :: GetGlobDerivShFncAtIp(Matrix<Double> & Deriv,
 
   //  Deriv.Resize(NumNodes_,Dim_);
   Matrix<Double> JInv;
-
+  Double JInvDet;
+  
   CalcInvJacobianAtIp(JInv, ip, CornerCoords);
 
   Deriv = ShFncDerivAtIp_[ip-1] * JInv;
 
   // det(A) = 1 / det(A^(-1))
-  jacDet = 1.0 / JInv.Det();
+  JInv.Determinant(JInvDet);
+  jacDet = 1.0 / JInvDet;
 
   if ( jacDet < 0.0 )
     Error( "Negative Jacobian determinante ", __FILE__, __LINE__ );
@@ -144,8 +146,8 @@ void BaseFE :: CalcJacobianAtIp(Matrix<Double> & J,
   (*trace) << "entering BaseFE::CalcJacobianAtIp" << std::endl;
 #endif
 
-  if (CornerCoords.size_row()==3 && Dim_==2) // Surface element in 3D
-    J.Resize(CornerCoords.size_row(),Dim_);
+  if (CornerCoords.GetSizeRow()==3 && Dim_==2) // Surface element in 3D
+    J.Resize(CornerCoords.GetSizeRow(),Dim_);
 
   J = CornerCoords * ShFncDerivAtIp_[ip-1];
 
@@ -160,9 +162,10 @@ Double BaseFE :: CalcJacobianDet(const std::vector<Double> & LCoord,
 #endif
 
   Matrix<Double> J;
+  Double jacDet;
 
   CalcJacobian( J, LCoord, CornerCoords );
-  Double jacDet = J.Det();
+  J.Determinant(jacDet);
   if ( jacDet < 0.0 )
     Error( "Negative Jacobian determinante ", __FILE__, __LINE__ );
   return jacDet;
@@ -179,10 +182,10 @@ Double BaseFE :: CalcJacobianDetAtIp(const Integer ip,
 
   CalcJacobianAtIp( J, ip, CornerCoords);
 
-  if (CornerCoords.size_row()==3 && Dim_==2)
+  if (CornerCoords.GetSizeRow()==3 && Dim_==2)
     {
       std::vector<Double> normal;
-      normal.resize(CornerCoords.size_row());  
+      normal.resize(CornerCoords.GetSizeRow());  
       normal[0]= J[1][0]* J[2][1]- J[2][0]* J[1][1];
       normal[1]=J[2][0]*J[0][1]- J[0][0]* J[2][1];  
       normal[2]= J[0][0]* J[1][1]- J[1][0]*J[0][1];
@@ -196,10 +199,11 @@ Double BaseFE :: CalcJacobianDetAtIp(const Integer ip,
 
   else
     {
-      Double jacDet = J.Det();
+      Double jacDet ;
+      J.Determinant(jacDet);
       if ( jacDet < 0.0 )
 	Error( "Negative Jacobian determinante ", __FILE__, __LINE__ );     
-      return J.Det();
+      return jacDet;
     }  
 }
 

@@ -21,11 +21,11 @@ Trapezoidal :: Trapezoidal(std::string apdename, BaseSystem * algebraicsystem, I
   conf->ifget("gamma_P",gamma_,pdename_);
 
   //get the memory
-  solderiv1_.reshape(dofspernode, numnode);  
-  solderiv1_.init();
+  solderiv1_.Resize(dofspernode * numnode);  
+  solderiv1_.Init();
 
-  solpred_.reshape(dofspernode, numnode); 
-  solpred_.init();
+  solpred_.Resize(dofspernode * numnode); 
+  solpred_.Init();
 }
 
 Trapezoidal :: ~Trapezoidal()
@@ -53,7 +53,7 @@ void Trapezoidal::Init(Double * matrix_factors, Double dt)
 }
 
 
-void Trapezoidal::Predictor(Array<Double>& solold)
+void Trapezoidal::Predictor(Vector<Double>& solold)
 {
 #ifdef TRACE
   (*trace) << "entering Trapezoidal::Predictor" << std::endl;
@@ -73,11 +73,11 @@ void Trapezoidal::UpdateRHS()
 
   // mass part
   coeffMass = solpred_*a1_;
-  algsys_->UpdateRHS(MASS,coeffMass.get());
+  algsys_->UpdateRHS(MASS,coeffMass.GetPointer());
 }
 
 
-void Trapezoidal::Corrector(Array<Double>& solnew)
+void Trapezoidal::Corrector(Vector<Double>& solnew)
 {
 #ifdef TRACE
   (*trace) << "entering Trapezoidal::Corrector" << std::endl;

@@ -2,9 +2,7 @@
 #define FILE_ELECFIELDOP_2003
 
 #include <Forms/baseoperator.hh>
-#include <Utils/vector.hh>
-#include <Utils/array.hh>
-#include <Matrix/matrix.hh>
+#include <Utils/tools.hh>
 
 #ifdef USE_OLAS
 #include <olas.hh>
@@ -17,6 +15,9 @@ namespace CoupledField
 
   class Grid;
   class Elem;
+  template<class TYPE> class StoreSol;
+  template<class TYPE> class Vector;
+  template<class TYPE> class Matrix;
  
   //! Operator for calculating the electric field
   /*! This operator class calculates the electric field in an element
@@ -39,7 +40,7 @@ public:
   ElecFieldOp(Grid * ptGrid,
 	      BasePDE * ptPDE,
 	      std::vector<Integer> * ptMesh2PDENode,
-	      Vector<Double> * EPotential,
+	      StoreSol<Double> & EPotential,
 	      const Integer level,
 	      Boolean isaxi=FALSE);
 
@@ -66,7 +67,7 @@ public:
     \param SD (input) Name of the subdomain
     \param LCoord (input) Local coordinates of evalutation point
   */
-  virtual void CalcSDElecField(Array<Double> & E,
+  virtual void CalcSDElecField(StoreSol<Double> & E,
 			       const std::vector<std::string> & SD,
 			       const std::vector<Double> & LCoord);
 			    			       
@@ -95,7 +96,7 @@ public:
   CurlEdgeOp(Grid * ptGrid,
 	     BasePDE * ptPDE,
 	     std::vector<Integer> * ptMesh2PDENode,
-	     Vector<Double> * sol,
+	     StoreSol<Double> & sol,
 	     const Integer level,
 	     BaseSystem * algsys);
 
@@ -137,7 +138,7 @@ public:
   CurlNodeOp(Grid * ptGrid,
 	     BasePDE * ptPDE,
 	     std::vector<Integer> * ptMesh2PDENode,
-	     Vector<Double> * sol,
+	     StoreSol<Double> & sol,
 	     const Integer level);
 
   //! Destructor

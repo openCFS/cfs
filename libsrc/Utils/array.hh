@@ -3,7 +3,6 @@
 
 #include <vector>
 #include <General/environment.hh>
-#include <Utils/vector.hh>
 #include <iostream>
 
 namespace CoupledField
@@ -27,6 +26,8 @@ public:
 
   //! constructor
   Array();
+
+  
 
   //! constructor with shape
   Array(ShortInt dim, Integer size);
@@ -176,6 +177,7 @@ private:
 #ifdef __GNUC__
 template class Array<Double>;
 template class Array<Integer>;
+template class Array<Complex>;
 #endif
 
 } // end of namespace

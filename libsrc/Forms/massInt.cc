@@ -118,7 +118,7 @@ namespace CoupledField
     (*trace) << "entering MassInt::MassMultiDof" << std::endl;
 #endif
     
-    const Integer singleDofSize = massMatSingleDof.getSize();
+    const Integer singleDofSize = massMatSingleDof.GetSizeRow();
     const Integer multDofSize   = singleDofSize * nrDofs;
     
     Integer i, j, actDof;

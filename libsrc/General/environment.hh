@@ -1,9 +1,12 @@
 #ifndef FILE_SCFE_MYDEFS_2001
 #define FILE_SCFE_MYDEFS_2001
 
+#include <typeinfo>
 #include <iostream>
 #include <vector>
 #include <math.h>
+#include <complex>
+#include "General/defs.hh"
 
 #ifdef USE_OLAS
 #include <olas.hh>
@@ -19,24 +22,15 @@
 namespace CoupledField
 {
 
-  //! Temporary macro definition.
-
-  //! Temporary definition of the ENTER_FCN macro. The real code will be added
-  //! by Andreas Hauck on his branch
-#ifdef TRACE
-#define ENTER_FCN(a) (*trace) << "Entering " << a << std::endl;
-#else
-#define ENTER_FCN(a)
-#endif
-
   //! redeclaration of types
   typedef int Integer;
   typedef short ShortInt;
   typedef float Float;
   typedef double Double;
+  typedef std::complex<Double> Complex;
   typedef char Char;
   typedef int Boolean;
-  
+
 #define FALSE 0
 #define TRUE 1
 
@@ -129,7 +123,6 @@ namespace CoupledField
 
 
 #ifdef USE_OLAS
-  // Only experimental up to now
   using OutInfo::trace;
   using OutInfo::debug;
   using OutInfo::cla;

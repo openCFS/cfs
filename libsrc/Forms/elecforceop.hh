@@ -11,7 +11,10 @@ namespace CoupledField
   // Forward declaration of classes
   class Grid;
   class Elem;
- 
+  template<class TYPE> class StoreSol;
+  template<class TYPE> class Vector;
+  template<class TYPE> class Matrix;
+
   //! Operator for calculating the electric force 
   //! This operator class calculates the electric force in an element
   //! \f$ F_{p,r} = \epsilon_{0} E \cdot J^{-1} \frac{\delta J}{\delta r}
@@ -39,7 +42,7 @@ namespace CoupledField
     ElecForceOp(Grid * ptGrid, 
 		BasePDE * ptPDE,
 		std::vector<Integer> * ptMesh2PDENode,
-		Vector<Double> * EPotential,
+		StoreSol<Double> & EPotential,
 		const Integer level, Boolean isaxi);
 
     //! Destructor
@@ -53,10 +56,10 @@ namespace CoupledField
     //! \param IsBoundaryNode (input)  contains 1, if corresponding node is a
     //!                                boundary node, otherwise 0
     //! \param LCoord         (input)  Local coordinates of evaluation point
-    virtual void
-    CalcElemElecForce( Array<Double> & F, const Elem * ptElement,
-		       Double epsilon,
-		       const std::vector<ShortInt> &IsBoundaryNode );
+    virtual void CalcElemElecForce(StoreSol<Double> & F,
+				   const Elem * ptElement,
+				   Double epsilon,
+				   const std::vector<ShortInt> & IsBoundaryNode);
 
   protected:
   

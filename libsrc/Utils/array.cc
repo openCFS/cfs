@@ -1,5 +1,6 @@
 #include "array.hh"
 #include <Matrix/matrix.hh>
+#include <Utils/vector.hh>
 
 namespace CoupledField{
 
@@ -61,7 +62,7 @@ template<class TYPE>
 Array<TYPE>::Array(Vector<TYPE> & v)
 {
   dim_ = 1;
-  size_ = v.size();
+  size_ = v.GetSize();
   
   sol_ = new Vector<TYPE>[dim_];
   sol_[0] = v;
@@ -89,7 +90,7 @@ template<class TYPE>
 void Array<TYPE>::init()
 {
   for (Integer i=0; i<dim_; i++)
-    sol_[i].Init();   
+    sol_[i].Init(0);   
 }
 
 
@@ -166,7 +167,7 @@ template<class TYPE>
 void Array<TYPE>::setValuesRow(Vector<TYPE> & v, Integer pos)
 {
 
-   if (v.size() != dim_)
+   if (v.GetSize() != dim_)
     Error("Array<TYPE>setValuesRow: vector has wrong dimension",__FILE__,__LINE__);
 
    if (pos >= size_)
@@ -174,14 +175,14 @@ void Array<TYPE>::setValuesRow(Vector<TYPE> & v, Integer pos)
 
 
    for (Integer i=0; i<dim_; i++)
-     sol_[i].p[pos] = v.p[i];
+     sol_[i].data_[pos] = v.data_[i];
 }
 
 template<class TYPE>
 void Array<TYPE>::setValuesColumn(Vector<TYPE> & v, Integer pos)
 {
 
-  if (v.size() != size_)
+  if (v.GetSize() != size_)
     Error("Array<TYPE>SetValuesColumn: vector has wrong dimension",__FILE__,__LINE__);
   
   if (pos >= dim_)
@@ -199,22 +200,22 @@ void Array<TYPE>::push_back(Array & arr)
    Error("Array<TYPE>push_back: arrays of different dimensions",__FILE__,__LINE__);
 
   for (Integer i=0; i<dim_; i++)
-    sol_[i].add(arr.sol_[i],size_);
+    sol_[i].InsertVector(arr.sol_[i],size_);
  
-  size_ = sol_[0].size();
+  size_ = sol_[0].GetSize();
 }
 
 template<class TYPE>
 void Array<TYPE>::push_back(Vector<TYPE> & v)
 {
 
-  if (v.size() != dim_)
+  if (v.GetSize() != dim_)
    Error("Array<TYPE>push_back: arrays of different dimensions",__FILE__,__LINE__);
 
   for (Integer i=0; i<dim_; i++)
-    sol_[i].add(v[i],size_);
+    sol_[i].Push_back(v[i]);
  
-  size_ = sol_[0].size();
+  size_ = sol_[0].GetSize();
 }
 
 
@@ -274,7 +275,7 @@ Array<TYPE>& Array<TYPE>::operator= (const Vector<TYPE> x)
     }
   
   dim_ = 1;
-  size_ = x.size();
+  size_ = x.GetSize();
 
   sol_[0] = x;
   
@@ -450,6 +451,16 @@ Double Array<TYPE>::normL2 (Integer pos)
 
 }
 
+Double Array<Complex>::normL2 (Integer pos)
+{
+  Error("Diese dämliche Fkt. wird niemehr aufgerufen werden ....",__FILE__,__LINE__);
+}
+
+Double Array<Complex>::normL2 ()
+{
+  Error("Diese dämliche Fkt. wird niemehr aufgerufen werden ....",__FILE__,__LINE__);
+}
+
 template<class TYPE>
 Double Array<TYPE>::normL2()
 {
@@ -500,7 +511,7 @@ void Array<TYPE>::toVector(Vector<TYPE> & v, Integer dim)
   if (dim > dim_ || dim <= 0)
     Error("Array: wrong dimension",__FILE__,__LINE__);
 
-  if (!v.size())
+  if (!v.GetSize())
     v.Resize(size_);
 
    for (Integer i=0; i<size_; i++)
