@@ -1,7 +1,6 @@
 #include <iostream>
 #include <fstream>
 #include <string>
-//#include "staticdriver.hh"
 #include "DataInOut/GMV/outGMV.hh"
 #include "General/environment.hh"
 #include "PDE/SinglePDE.hh" 
@@ -58,7 +57,7 @@ namespace CoupledField
     MaterialData * ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
     updateMaterialData(parameter, ptMaterial);         //Writes initial guesses of parameters (read from MeasuredData.dat) to system
 
-    Double normJacMat, old_res_outer, new_res_inner, old_res_inner, new_res_outer;
+    Double normJacMat, old_res_outer, new_res_inner, old_res_inner, new_res_outer, maxres_inner;
     Double relax;
     relax=1.0;
 
@@ -68,6 +67,7 @@ namespace CoupledField
     Matrix<Complex> z_old(maxNumberInnerLoops+2,nrMeasuredData);
     Vector<Double> stepR(actNrParameter);
     Vector<Complex> JacFs_res(nrMeasuredData);
+    Matrix<Complex> ImgSpaceScalingMat(nrMeasuredData,nrMeasuredData);
 
 
     //  while (nrIterations<maxNumberNewtonLoops){
@@ -76,14 +76,18 @@ namespace CoupledField
       updateMaterialData(parameter, ptMaterial);         //Writes initial guesses of parameters (read from MeasuredData.dat) to system
       createF(ptMaterial, ptBCs, F_hat,TRUE);
       act_res = y_hat-F_hat;
-      new_res_outer=old_res_outer=a2norm(act_res);      
+      
+      // Norm ersetzt:
+      //      new_res_outer=old_res_outer=a2norm(act_res);      
+      norm(act_res,new_res_outer,maxres_inner,y_hat);
 
       *parLog<< new_res_outer; 
       for (Integer i=0;i<nrParameter;i++)
 	if (whichParameterToUpdate[i]==1)
 	  *parLog<<"  "<< parameter[i]/parameterIncrement[i];
+      *parLog<<"  " << newtonCounter;
       *parLog<<std::endl;
-    
+          
           
       nrIterations++;
       std::cout<<"\n Newton NuMethods ... Newton-Iteration-Nr = "<<nrIterations<<std::endl;
@@ -93,10 +97,32 @@ namespace CoupledField
       
       // Create the Matrices F, F', F*
       createF(ptMaterial, ptBCs, F_hat,FALSE);
-      //      createJacobiMatrix2(JacobiMatrix);
-      testJacobiMatrix2(F_hat, JacobiMatrix, parameter, ptBCs, ptMaterial,parameterIncrement, solElecPot, solMechDispl);
+      createJacobiMatrix2(JacobiMatrix);
+      //std::cout<<JacobiMatrix<<std::endl;
+      //   testJacobiMatrix2(F_hat, JacobiMatrix, parameter, ptBCs, ptMaterial,parameterIncrement, solElecPot, solMechDispl);
+      //std::cout<<approxJacobiMatrix<<std::endl;
+      //std::cout<<JacobiMatrix<<std::endl;
+      //std::cout<<approxJacobiMatrix<<std::endl;
+      //JacobiMatrix=approxJacobiMatrix;
+
+      for (Integer i=0;i<nrMeasuredData;i++)
+	for (Integer j=0;j<nrMeasuredData;j++)
+	  if (i==j)
+	    ImgSpaceScalingMat[i][j] = 1.0/real[i];
+      //	    ImgSpaceScalingMat[i][j] = Complex(1.0/real[i],1.0/imag[i]);
+
+      std::cout<<"\n ImgspaceScalingMat"<<std::endl;
+
+      std::cout<<ImgSpaceScalingMat<<std::endl;
+
+      std::cout<<"\n Adjoint Matrix"<<std::endl;
 
       createAdjointJacobiMatrix(JacobiMatrix,adjJacobiMatrix);
+      std::cout<<adjJacobiMatrix<<std::endl;
+      std::cout<<"\n Adjoint Matrix * ImgSpaceScalingMat"<<std::endl;
+      adjJacobiMatrix = adjJacobiMatrix*ImgSpaceScalingMat;
+      std::cout<<adjJacobiMatrix<<std::endl;
+
     
       // TEST MAT_MULT 
           
@@ -105,12 +131,13 @@ namespace CoupledField
 
       while (w>=1/(normJacMat*normJacMat))
 	w=0.9*w;
-
       // if nu-method ..
       JacobiMatrix = JacobiMatrix*Complex(w,w);
       adjJacobiMatrix = adjJacobiMatrix*Complex(w,w);
       
-      old_res_outer=a2norm(act_res);
+      //Norm ersetzt:
+      norm(act_res,old_res_outer,maxres_inner,y_hat);
+      //      old_res_outer=a2norm(act_res);
       new_res_outer = old_res_outer;
     
       new_res_inner=old_res_outer;
@@ -123,25 +150,25 @@ namespace CoupledField
 	//	std::cout <<"\n Here starts the nuMethods Iteration - Nr " << nnuMethods<< std::endl;
 	old_res_inner=new_res_inner;
 
-	// F' * s^k
-	JacobiMatrix.Mult(s,JacFs);
+// 	// F' * s^k
+// 	JacobiMatrix.Mult(s,JacFs);
 	
-	// F'sk - (y_hat-F_hat)
-	for (Integer i=0;i<nrMeasuredData;i++){
-	  act_res[i]=y_hat[i]-F_hat[i];
-	  JacFs_res[i]=JacFs[i]-act_res[i];
-	}
+// 	// F'sk - (y_hat-F_hat)
+// 	for (Integer i=0;i<nrMeasuredData;i++){
+// 	  act_res[i]=y_hat[i]-F_hat[i];
+// 	  JacFs_res[i]=JacFs[i]-act_res[i];
+// 	}
 	
-       	nu=0.45;
+       nu=1.5;
 
-// 	if (newtonCounter<=10)
-// 	  relax=5.0;
-// 	if (newtonCounter>=10)
-// 	  relax=5.0;
-// 	if (newtonCounter>=150)
-// 	  relax=5.0;
+       relax=10.0;
 
-  	relax=5.0;
+ 	if (newtonCounter>=25)
+ 	  relax=5.0;
+//  	if (newtonCounter>=30)
+//  	  relax=5.0;
+
+	relax=10.0;
 	eta_acc = ((nNuMethods-1)*(2*nNuMethods-3)*(2*nNuMethods+2*nu-1))/
 	  ((nNuMethods+2*nu-1)*(2*nNuMethods+4*nu-1)*(2*nNuMethods+2*nu-3));
 	omega = 4*((2*nNuMethods + 2*nu -1)*(nNuMethods+nu-1))/((nNuMethods+2*nu-1)*(2*nNuMethods+4*nu-1));
@@ -175,7 +202,10 @@ namespace CoupledField
 	// 	for (Integer i=0;i<nrMeasuredData;i++)
 	//act_res[i]-=JacFs[i];
 	
-	new_res_inner=a2norm(JacFs_res);
+	// Norm ersetzt:
+	//	new_res_inner=a2norm(JacFs_res);	
+	norm(JacFs_res,new_res_inner,maxres_inner,y_hat);
+
 	std::cout<<"\n new_res_inner = "<< new_res_inner <<", old_res_inner = " << old_res_inner<< std::endl;
 
 	
@@ -218,17 +248,18 @@ namespace CoupledField
 // 	scaling[8]=scaling[8]*70;
 
 
-      //  if ( newtonCounter<=20){
-//    	stepR[1]=s[1].real();
-//    	stepR[6]=s[6].real();
-//    	stepR[8]=s[8].real();
-//    	theta=1.0;
-//         }
-//        else
-	 for (Integer i=0;i<actNrParameter;i++){
-	   stepR[i]=s[i].real();
-	   theta=1.0;
-	 }
+      if (newtonCounter<=20){
+//     	stepR[1]=s[1].real();
+//     	stepR[6]=s[6].real();
+//     	stepR[8]=s[8].real();
+     	theta=1.3;
+      }
+      else
+	theta=1.0;
+      
+      for (Integer i=0;i<actNrParameter;i++)
+	stepR[i]=s[i].real();
+	      
 //        if (newtonCounter>=50)
 // 	 theta=1.0;
        //       theta=1.0;
@@ -251,7 +282,9 @@ namespace CoupledField
 
       for (Integer i=0;i<y_hat.GetSize();i++)
 	act_res[i]=y_hat[i]-F_hat[i];
-      new_res_outer=(a2norm(act_res));
+      //Norm ersetzt:
+      norm(act_res,new_res_outer,maxres_inner,y_hat);
+      //      new_res_outer=(a2norm(act_res));
       std::cout<<"\n new_res_outer = " << new_res_outer <<std::endl;
 
 //       *parLog<< new_res_outer; 
@@ -260,8 +293,8 @@ namespace CoupledField
 // 	  *parLog<<"  "<< parameter[i]/parameterIncrement[i];
 //       *parLog<<std::endl;
 
-      //    if(new_res_outer<=1.0e-4)
-      // getchar();
+      if(new_res_outer<=1.0e-5)
+ 	getchar();
 
       if (new_res_outer>=old_res_outer){
 	std::cout<<"\n Warning: residual norm gets worse!" <<std::endl;
@@ -458,10 +491,10 @@ namespace CoupledField
     scaling[9]=1.0/((*matMat)[8][8]);
 
     Double mult;
-    if (nNuMethods<5)
-      mult=1.5;
-    else
-      mult=1.0;
+//     if (nNuMethods<5)
+//       mult=1.5;
+//     else
+//       mult=1.0;
 
     scalingC[0]=1.0/((*matMatC)[0][0]); 
     scalingC[1]=1.0/((*matMatC)[2][2]);
@@ -481,7 +514,7 @@ namespace CoupledField
       stepC[i-actNrParameter]=s[i].imag();
     
     //    parameter_new=parameter;
-    theta=5.0;
+    theta=2.0;
     setNewParameterSet(parameter, parameter, scaling, theta, stepR, whichParameterToUpdate);
     setNewParameterSet(parameterC, parameterC, scalingC, theta, stepC, whichParameterToUpdateC);
 

@@ -483,15 +483,15 @@ namespace CoupledField
     Double alpha, beta, tau;
     tau = 1.1;
     Integer i,j;
-    Double theta=0.5;
-    //    delta = 0.1;
+    Double theta=1.0;
+    //delta = 0.1;
 
     t=1.0e-4;
     eta_max=0.9;
     eta=0.9;
-    //    eta_min=0.1;
+    eta_min=0.1;
     theta_min=0.1;
-    theta_max=0.5;
+    theta_max=1.0;
     gamma=0.5;
     al=1.5;
     
@@ -510,15 +510,18 @@ namespace CoupledField
     Vector<Complex> basbar_old(nrMeasuredData);
     Vector<Complex> res(nrMeasuredData);
     Vector<Complex> JMats(nrMeasuredData);
-    Vector<Complex> JacFs(nrMeasuredData);
     Vector<Complex> res0(nrMeasuredData);
     Vector<Complex> Res_outer(nrMeasuredData);
     Vector<Complex> Res_inner(nrMeasuredData);
     Vector<Complex> Res_linear(nrMeasuredData);
+    Vector<Complex> JacFs_res(nrMeasuredData);
+    Vector<Complex> JacFs(nrMeasuredData);
 
 
     Complex new_res_res0;
     Double misfit, misfit0,misfitnew, normres02, normres2, normresNEold2, normresNEold02, normresNE2;
+
+    Double new_res_inner, old_res_inner;
 
     Double aval, aval_new, alin_new, maxres_outer, maxres_inner, aval_old, alin, res_linear, res_linear_max;
 
@@ -546,6 +549,7 @@ namespace CoupledField
     norm(Res_outer,aval,maxres_outer,y_hat);
 
     std::cout<<"\n Newton Step 0: Maxres = " << maxres_outer << ", aval = "<< aval<<std::endl;
+
     aval_new=aval;
     aval_old=aval;
 
@@ -567,14 +571,26 @@ namespace CoupledField
       res0=res;
       normres02=norm2Real(res0);
       step.Resize(actNrParameter);    
-      res=y_hat-F_hat;
-
+    
       // Create the matrices ...
-      updateMaterialData(parameter,ptMaterial);
-      
-      createJacobiMatrix2(JacobiMatrix);
-      //      testJacobiMatrix(F_hat, JacobiMatrix, parameter, ptBCs, ptMaterial,parameterIncrement, solElecPot, solMechDispl);
-      // JacobiMatrix = approxJacobiMatrix;
+      updateMaterialData(parameter,ptMaterial);      
+      createF(ptMaterial, ptBCs, F_hat,TRUE);
+//     getchar();
+//     getchar();
+//     getchar();
+//     getchar();
+
+      std::cout<<parameter<<std::endl;
+      getchar();
+      //      createJacobiMatrix2(JacobiMatrix);
+      testJacobiMatrix2(F_hat, JacobiMatrix, parameter, ptBCs, ptMaterial,parameterIncrement, solElecPot, solMechDispl);
+
+      //std::cout<<JacobiMatrix<<std::endl;
+
+      std::cout<<approxJacobiMatrix<<std::endl;
+      //getchar();
+
+       JacobiMatrix = approxJacobiMatrix;
       createAdjointJacobiMatrix(JacobiMatrix,adjJacobiMatrix);
            
       for (Integer i=0;i<parameter.GetSize();i++)
@@ -593,6 +609,12 @@ namespace CoupledField
 	// std::cout<<"res_NE="<<res_NE[i]<<"; ";
       }
 
+     //  for (Integer i=0;i<res_NE_C.GetSize();i++){
+// 	res_NE[i]=res_NE_C[i].real();
+// 	res_NE_rescaled[i]=res_NE[i];
+// 	// std::cout<<"res_NE="<<res_NE[i]<<"; ";
+//       }
+
       bas = res_NE;
       
       alin_new = aval;
@@ -603,6 +625,7 @@ namespace CoupledField
 
       Res_inner = Res_outer;
 
+
       // ----- INNER LOOP --- CG-ITERATION ---
       Integer nrCGIter=0;
       //      eta=1.0;
@@ -612,6 +635,7 @@ namespace CoupledField
 	// 	std::cout<<"\n CG Iteration " << nrCGIter << std::endl;
 	nrCGIter++;
 
+	
 	JacobiMatrix.MatVecMult_CD(bas,basbar);
 	
 	//	std::cout<<"\nbasbar = F' bas:  "<<std::endl;
@@ -627,16 +651,38 @@ namespace CoupledField
 
 	alpha=normresNEold2 / norm_bas_bar;
 
-	//	std::cout<<"\n alpha = " << alpha << ",\t || normresNEold || = " << normresNEold2 << ",\t ||bas_bar|| = " << norm_bas_bar << std::endl;
+	std::cout<<"\n alpha = " << alpha << ",\t || normresNEold || = " << normresNEold2 << ",\t ||bas_bar|| = " << norm_bas_bar << std::endl;
 
+	//	getchar();
 	//	std::cout<<"\nstep = step + alpha *bas: "<<std::endl;
 	for (Integer i=0;i<actNrParameter;i++){
-	  step[i]+=2.5*Complex(alpha,alpha)*bas[i];
-	  //std::cout<<"step("<<i<<")= "<< step[i] << "; \t ";
+	  step[i]+=1.0*alpha*bas[i];
+	  //	  std::cout<<"step("<<i<<")= "<< step[i] << "; \t ";
 	}
-		  std::cout<<step<<std::endl;
-		  //	  getchar();
+	std::cout<<step<<std::endl;
 
+	JacobiMatrix.Mult(step,JacFs);
+	
+	//F'(p^k)(s^k)-(y-F(p^k))
+	for (Integer i=0;i<nrMeasuredData;i++){
+	  //res[i]=y_hat[i]-F_hat[i];
+	  JacFs_res[i]=JacFs[i]-res[i];
+	}
+
+	// 	for (Integer i=0;i<nrMeasuredData;i++)
+	//act_res[i]-=JacFs[i];
+	
+	new_res_inner=a2norm(JacFs_res); 
+	//	std::cout<<"\n new_res_inner = "<< new_res_inner <<", old_res_inner = " << old_res_inner<< std::endl;
+	std::cout<<"\n new_res_inner = "<< new_res_inner <<", normres02 = " << normres02 << std::endl;
+
+	
+	if (new_res_inner>0.10*normres02){
+	  std::cout << " \n !! New_res_inner is worse than old_res_inner -> break of inner Loop! "<< std::endl;
+	  //std::cout<<"\n Nr of CG Iterations = " << nrCGIter <<std::endl;
+	  getchar();
+	  //	  break;
+	}
 
 	//	std::cout<<"\n\nres = res - alpha*bas_bar: "<<std::endl;
 	for (Integer i=0;i<res.GetSize();i++){
@@ -721,9 +767,11 @@ namespace CoupledField
 
       for(Integer i=0;i<actNrParameter;i++)
 	stepR[i]=step[i].real();  
+      std::cout<<stepR<<std::endl;
+      //      getchar();
      
       //      parameter_new[9]=parameter[9]+(1.0/scaling[9])*step[9].real();        // eps33      
-      theta=1.0;
+      //theta=1.0;
       setNewParameterSet(parameter, parameter_new, scaling, theta, stepR, whichParameterToUpdate);
 
       //       for (Integer i=0;i<nrParameter;i++){
@@ -742,21 +790,28 @@ namespace CoupledField
       //       // 	  std::cout<<"\n parameter("<<i<<") was reset to value " << parameter[i] <<std::endl;
       //       // 	}
 
+      std::cout<<"\n Parameter directly after CG ..." <<std::endl;
+      std::cout<<parameter_new<<std::endl;
+      parameter=parameter_new;
+
       updateMaterialData(parameter_new, ptMaterial);
-      createF(ptMaterial, ptBCs, F_hat,TRUE);
+      createF(ptMaterial, ptBCs, F_hat,FALSE);
 
       for(Integer i=0;i<F_hat.GetSize();i++)
 	y_hat_F_hat[i]=y_hat[i]-F_hat[i];
 
       Res_outer = y_hat-F_hat;
 
+
       norm(Res_outer,aval_new,maxres_outer,y_hat);
+
+      std::cout<<"\n ||res|| = " << Res_outer << std::endl;
       //      maxAndWeightedResNorm(Res_outer, maxres_outer, aval_new, y_hat);
       //      maxAndEuclNorm(Res_outer, maxres_outer, aval_new);
 
       std::cout<< parameter<<std::endl;
 
-      if(maxres_outer<=1.0e-4)
+      if(maxres_outer<=1.0e-8)
 	getchar();
 
 
@@ -767,102 +822,103 @@ namespace CoupledField
       backtrackIterator=0;
 
      
-      //      while ((misfitnew>(1-t*(1-eta))*misfit) && backtrackIterator<15 && eta<eta_max || backtrackIterator<2){ // Liniensuche
-      while ((aval_new>POW((1.0-t*(1.0-eta)),2)*aval) && backtrackIterator<20 && eta<eta_max || backtrackIterator<1){ // Liniensuche
-	std::cout<<"\n backtracking ... "<< backtrackIterator<< std::endl;
-	backtrackIterator++;
+//       //      while ((misfitnew>(1-t*(1-eta))*misfit) && backtrackIterator<15 && eta<eta_max || backtrackIterator<2){ // Liniensuche
+//       while ((aval_new>POW((1.0-t*(1.0-eta)),2)*aval) && backtrackIterator<0 && eta<eta_max || backtrackIterator<0){ // Liniensuche
+// 	std::cout<<"\n backtracking ... "<< backtrackIterator<< std::endl;
+// 	backtrackIterator++;
 
-	b=0.0;
-	for(Integer i=0;i<nrMeasuredData;i++)
-	  b+= 2.0*(Res_outer[i]*(Res_inner[i]-Res_outer[i])).real();
+// 	b=0.0;
+// 	for(Integer i=0;i<nrMeasuredData;i++)
+// 	  b+= 2.0*(Res_outer[i]*(Res_inner[i]-Res_outer[i])).real();
 
 
-	// choose theta:
-	aa=aval;
-	new_res_res0=Complex(0.0,0.0);
+// 	// choose theta:
+// 	aa=aval;
+// 	new_res_res0=Complex(0.0,0.0);
 
-	//	  new_res_res0=new_res_res0+y_hat_F_hat[i]*(res[i]-y_hat_F_hat[i]);
-	//	b=2.0*new_res_res0.real();
+// 	//	  new_res_res0=new_res_res0+y_hat_F_hat[i]*(res[i]-y_hat_F_hat[i]);
+// 	//	b=2.0*new_res_res0.real();
 
-	//	std::cout<<"\n b = " << b << std::endl;
+// 	//	std::cout<<"\n b = " << b << std::endl;
 
-	//	c=misfitnew*misfitnew-b-aa;
-	c=aval_new-b-aval;
-	//	std::cout<<"\n c = "<<c<<std::endl;
+// 	//	c=misfitnew*misfitnew-b-aa;
+// 	c=aval_new-b-aval;
+// 	//	std::cout<<"\n c = "<<c<<std::endl;
 
-	if (c==0.0){
-	  if(b<=0.0)
-	    theta=theta_max;
-	  else 
-	    theta=theta_min;
-	}
-	else if (c>0.0){
-	  if (b<-2*c*theta_max)
-	    theta = theta_max;
-	  else if (b>-2*c*theta_min)
-	    theta=theta_min;
-	  else
-	    theta=-b/(2*c);
-	}
-	else{
-	  if (b<-2*c*theta_min)
-	    theta=theta_max;
-	  else if (b>-2*c*theta_max)
-	    theta=theta_min;
-	  else
-	    {
-	      if ((aa+b*theta_min+c*theta_min*theta_min)>=(aa+b*theta_max+c*theta_max*theta_max))
-		theta=theta_max;
-	      else theta=theta_min;
-	    }
-	} // end else if c>0
-	//	theta = 0.35;
+// 	if (c==0.0){
+// 	  if(b<=0.0)
+// 	    theta=theta_max;
+// 	  else 
+// 	    theta=theta_min;
+// 	}
+// 	else if (c>0.0){
+// 	  if (b<-2*c*theta_max)
+// 	    theta = theta_max;
+// 	  else if (b>-2*c*theta_min)
+// 	    theta=theta_min;
+// 	  else
+// 	    theta=-b/(2*c);
+// 	}
+// 	else{
+// 	  if (b<-2*c*theta_min)
+// 	    theta=theta_max;
+// 	  else if (b>-2*c*theta_max)
+// 	    theta=theta_min;
+// 	  else
+// 	    {
+// 	      if ((aa+b*theta_min+c*theta_min*theta_min)>=(aa+b*theta_max+c*theta_max*theta_max))
+// 		theta=theta_max;
+// 	      else theta=theta_min;
+// 	    }
+// 	} // end else if c>0
+// 	//	theta = 0.35;
 
-	std::cout<<"\n Choice of theta = " << theta<<std::endl;
-	*piezoLog<<"\t Choice of theta = " << theta<<std::endl;
+// 	std::cout<<"\n Choice of theta = " << theta<<std::endl;
+// 	*piezoLog<<"\t Choice of theta = " << theta<<std::endl;
 
-	//	std::cout<<"\n"<<std::endl;
+// 	//	std::cout<<"\n"<<std::endl;
 
-	// 	for(Integer i=0;i<actNrParameter;i++)
-	// 	  step[i]=theta*step[i]; 
+// 	// 	for(Integer i=0;i<actNrParameter;i++)
+// 	// 	  step[i]=theta*step[i]; 
 
- 	for (Integer i=0;i<actNrParameter;i++)
- 	  stepR[i]=step[i].real();
+//  	for (Integer i=0;i<actNrParameter;i++)
+//  	  stepR[i]=step[i].real();
 
-	setNewParameterSet(parameter, parameter_new, scaling, theta, stepR, whichParameterToUpdate);
+// 	setNewParameterSet(parameter, parameter_new, scaling, theta, stepR, whichParameterToUpdate);
 
-	std::cout<<"\n New parameter after backtracking ... " <<std::endl;	
+// 	std::cout<<"\n New parameter after backtracking ... " <<std::endl;	
 
 	
-	for(Integer i=0;i<nrParameter;i++)
-	  std::cout<<"paramter_new["<<i<<"]= " << parameter_new[i]<<std::endl;
+// 	for(Integer i=0;i<nrParameter;i++)
+// 	  std::cout<<"paramter_new["<<i<<"]= " << parameter_new[i] << " ~ " << 
+// 	    100-(1-parameter[i]/parameterIncrement[i])*100 << " Prozent"<<std::endl;
 	
-	//		getchar();
+// 	//		getchar();
 
-	//	b = theta*b;
-	eta = 1- theta*(1-eta);
+// 	//	b = theta*b;
+// 	eta = 1- theta*(1-eta);
 
-	updateMaterialData(parameter_new,ptMaterial);
-	createF(ptMaterial, ptBCs, F_hat,FALSE);
+// 	updateMaterialData(parameter_new,ptMaterial);
+// 	createF(ptMaterial, ptBCs, F_hat,FALSE);
 
-	//for(Integer i=0;i<F_hat.GetSize();i++)
-	//y_hat_F_hat[i]=y_hat[i].real()-F_hat[i].real();
-	//misfitnew=norm2Real(y_hat_F_hat);
+// 	//for(Integer i=0;i<F_hat.GetSize();i++)
+// 	//y_hat_F_hat[i]=y_hat[i].real()-F_hat[i].real();
+// 	//misfitnew=norm2Real(y_hat_F_hat);
 
-	Res_outer=y_hat-F_hat;
+// 	Res_outer=y_hat-F_hat;
 
-	//	maxAndWeightedResNorm(Res_outer, maxres_outer, aval_new, y_hat);
-	//		maxAndEuclNorm(Res_outer,maxres_outer,aval_new); 
-	norm(Res_outer,aval_new,maxres_outer,y_hat);
-	std::cout<<"\n || res || = " << aval_new;
-	std::cout<<"\n || max_res || = " << maxres_outer;
+// 	//	maxAndWeightedResNorm(Res_outer, maxres_outer, aval_new, y_hat);
+// 	//		maxAndEuclNorm(Res_outer,maxres_outer,aval_new); 
+// 	norm(Res_outer,aval_new,maxres_outer,y_hat);
+// 	std::cout<<"\n || res || = " << aval_new;
+// 	std::cout<<"\n || max_res || = " << maxres_outer;
 
-	*piezoLog << "\t misfit after Linesearch " << aval_new << "(e_33, eps_33 = "<<parameter[7]<<", " <<parameter_new[9]<<")"<<std::endl;
+// 	*piezoLog << "\t misfit after Linesearch " << aval_new << "(e_33, eps_33 = "<<parameter[7]<<", " <<parameter_new[9]<<")"<<std::endl;
 
-	//	std::cout<<"\n misfitnew = " << misfitnew <<std::endl;
+// 	//	std::cout<<"\n misfitnew = " << misfitnew <<std::endl;
 
 
-      }// end linesearch ...
+//       }// end linesearch ...
 
      
       //choose eta
@@ -886,8 +942,8 @@ namespace CoupledField
 
       if (eta_new>eta_max)
 	eta=eta_max;
-      //      else if (eta_new<eta_min)
-      //eta = eta_min;
+      else if (eta_new<eta_min)
+	eta = eta_min;
       else
 	eta=eta_new;
 
@@ -903,7 +959,7 @@ namespace CoupledField
       aval=aval_new;
       Res_inner = Res_outer;
 
-      std::cout<<"\n before end newtoin ..."<<std::endl;
+      //      std::cout<<"\n before end newtoin ..."<<std::endl;
 
     }// end while Newton
     //   std::cout<<"\n leaving Newton CG 2 " <<std::endl;

@@ -237,17 +237,17 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
     parameterIncrement=parameter;
 
     //Alternate Materialparameter by x percent
-    if (TRUE)
+    if (FALSE)
       for (Integer i=0;i<nrParameter;i++){
 	if(i!=2)
 	  if (i==1||i==7||i==9)
-	    parameter[i]=parameter[i]-0.05*parameter[i];
- 	  else if (i==0||i==5||i==6)
- 	    parameter[i]=parameter[i]-0.05*parameter[i];	     
-	if (i==1)
-	  parameter[i]=parameter[i]+0.1*parameter[i];
-	if (i==0)
-	  parameter[i]=parameter[i]+0.1*parameter[i];	  
+	    parameter[i]=parameter[i]-0.15*parameter[i];
+	// 	  else if (i==0||i==5||i==6)
+	//  parameter[i]=parameter[i]-0.05*parameter[i];	     
+	//	if (i==1)
+	// parameter[i]=parameter[i]+0.1*parameter[i];
+	//	if (i==0)
+	  //parameter[i]=parameter[i]+0.1*parameter[i];	  
       }
 
     if (FALSE){
@@ -462,7 +462,6 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
     Vector<Double> e33historyC(500);
     Vector<Double> eps33historyC(500);
 
-
     // if we do not wanna scale ..
     //  for (Integer i=0;i<nrParameter;i++)
     //scaling[i]=1.0;
@@ -479,7 +478,6 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
 	 e33history[nNewtonCG] = parameter[7];
 	 eps33history[nNewtonCG] = parameter[8];
 	 std::cout<<"\n Nr: "<< nNewtonCG << ", start next NewtonCG Iteration?"<<std::endl;
-	 //	getchar();
 	 //arLog <<nNewtonCG <<"  "<< c33history[nNewtonCG]<<"  " <<e33history[nNewtonCG]<<"   " <<eps33history[nNewtonCG]<<std::endl;
          NewtonCG3();
 	 nNewtonCG++;
@@ -545,7 +543,7 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
       Integer nrNuMethods=0;
       newtonCounter=0;
       while (nrNuMethods<maxNumberNewtonLoops){
-      //      while (nrNuMethods<2){
+	      //      while (nrNuMethods<2){
 	std::cout<<"\n Nr: "<< nrNuMethods << ", start next Newton NuMethod?"<<std::endl;
 // 	c33history[nrNuMethods] = parameter[1];
 // 	e33history[nrNuMethods] = parameter[7];
@@ -553,6 +551,7 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
 // 	//getchar();
 // 	*parLog <<nrNuMethods <<"  "<< c33history[nrNuMethods]<<"  " <<e33history[nrNuMethods]<<"   " <<eps33history[nrNuMethods]<<std::endl;
 	nuMethods();
+
 	nrNuMethods++;
 	newtonCounter++;
     }
