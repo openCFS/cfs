@@ -17,26 +17,28 @@ looks as follows
 <couplingList>
   <iterativePde1Pde2 method="RHS">
      <Pde1>
-        <nodeCoupling type=" " name="  "/>
+        <coupling type="..." quantity="..." name="..."/>
      </Pde1>
      <Pde2>
-        <interfaceCoupling type=" " name="  "/>
+        <coupling type="..." quantity="..." name="..."/>
+        <coupling type="..." quantity="..." name="..."/>
      </Pde2>
      <nonLinear logging="yes">
-       <StopCrit name=" " value="1e-3"/>
+       <stopCrit name="..." value="1e-3"/>
        <maxNumIters>  200</maxNumIters>
      </nonLinear>
   </iterativePde1Pde2>
 
   <iterativePde3Pde4 method="Matrix">
      <Pde3>
-        <nodeCoupling type=" " name="  "/>
+        <coupling type="..." quantity="..." name="..."/>
+        <coupling type="..." quantity="..." name="..."/>
      </Pde3>
      <Pde4>
-        <regionCoupling type=" " name="  "/>
+        <coupling type="..." quantity="..." name="..."/>
      </Pde4>
      <nonLinear logging="no">
-       <StopCrit name=" " value="1e-2"/>
+       <stopCrit name="..." value="1e-2"/>
        <maxNumIters> 20 </maxNumIters>
      </nonLinear>
   </iterativePde3Pde4>
@@ -47,9 +49,9 @@ looks as follows
 For the stopping criteria, we have currently the following names:
 
 \begin{verbatim}
-    <StopCrit name="mechdisplacement" value="1e-2"/>
-    <StopCrit name="elecForce" value="1e-2"/>
-    <StopCrit name="magForce" value="1e-2"/>
+    <stopCrit name="mechdisplacement" value="1e-2"/>
+    <stopCrit name="elecForce" value="1e-2"/>
+    <stopCrit name="magForce" value="1e-2"/>
 \end{verbatim}
 
 
@@ -119,18 +121,18 @@ body problem).
 <couplingList>
   <iterativeElecMech method="RHS">
      <mechanic>
-        <nodeCoupling type="elecForceVWP" name="electrode1"/>
+        <coupling type="node" quantity="elecForceVWP" name="electrode1"/>
      </mechanic>
      <electrostatic>
-        <regionCoupling type="smoothDisplacement" name="air1"/>
-        <regionCoupling type="smoothDisplacement" name="air2"/>
+        <coupling type="region" quantity="smoothDisplacement" name="air1"/>
+        <coupling type="region" quantity="smoothDisplacement" name="air2"/>
      </electrostatic>
      <smooth>
-        <nodeCoupling type="mechDisplacement" name="electrode1 "/>
+        <coupling type="node" quantity="mechDisplacement" name="electrode1"/>
      </smooth>
      <nonLinear logging="no">
-       <StopCrit name="mechdisplacement" value="1e-2"/>
-       <StopCrit name="elecForce" value="1e-2"/>
+       <stopCrit name="mechdisplacement" value="1e-2"/>
+       <stopCrit name="elecForce" value="1e-2"/>
        <maxNumIters> 20 </maxNumIters>
      </nonLinear>
   </iterativeAcouMech>
@@ -150,18 +152,18 @@ body problem).
 <couplingList>
   <iterativeMagMech method="RHS">
      <mechanic>
-        <regionCoupling type="magForceLorentz" name="plate"/>
+        <coupling type="region" quantity="magForceLorentz" name="plate"/>
      </mechanic>
      <magnetic>
-        <regionCoupling type="smoothDisplacement" name="air1"/>
-        <regionCoupling type="smoothDisplacement" name="air2"/>
+        <coupling type="region" quantity="smoothDisplacement" name="air1"/>
+        <coupling type="region" quantity="smoothDisplacement" name="air2"/>
      </magnetic>
      <smooth>
-        <nodeCoupling type="mechDisplacement" name="surf1 "/>
+        <coupling type="node" quantity="mechDisplacement" name="surf1 "/>
      </smooth>
      <nonLinear logging="no">
-       <StopCrit name="mechdisplacement" value="1e-2"/>
-       <StopCrit name="magForce" value="1e-2"/>
+       <stopCrit name="mechdisplacement" value="1e-2"/>
+       <stopCrit name="magForce" value="1e-2"/>
        <maxNumIters> 20 </maxNumIters>
      </nonLinear>
   </iterativeMagMech>
@@ -170,8 +172,8 @@ body problem).
 
 
 \section{AcouMech}
-Here we differ between an indirect and a direct coupling. Currently we have just 
-implemented the iterative coupling.
+Here we differ between an indirect and a direct coupling. Currently we have
+just implemented the iterative coupling.
 
 \bigskip
 \noindent
@@ -181,13 +183,13 @@ implemented the iterative coupling.
 <couplingList>
   <iterativeAcouMech method="RHS">
      <mechanic>
-        <nodeCoupling type="acousticForce" name="surf1 "/>
+        <coupling type="node" quantity="acousticForce" name="surf1 "/>
      </mechanic>
      <acoustic>
-        <nodeCoupling type="mechForce" name="surf1"/>
+        <coupling type="node" quantity="mechForce" name="surf1"/>
      </acoustic>
      <nonLinear logging="no">
-       <StopCrit name="mechdisplacement" value="1e-2"/>
+       <stopCrit name="mechdisplacement" value="1e-2"/>
        <maxNumIters> 20 </maxNumIters>
      </nonLinear>
   </iterativeAcouMech>
