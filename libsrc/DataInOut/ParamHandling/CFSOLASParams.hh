@@ -3,6 +3,7 @@
 #ifndef FILE_CFSOLASPARAMS
 #define FILE_CFSOLASPARAMS
 
+#ifdef OLAS
 namespace CoupledField
 {
 
