@@ -50,7 +50,7 @@ namespace CoupledField
 
     void updateMaterialData(Vector<Double> & parameter, MaterialData * ptMaterial);
 
-    void calcAbsImped(Complex<Double> & charge, Double & freq, Integer & fstep);
+    void calcAbsImped(Complex & charge, Double & freq, Integer & fstep);
 
     void updateRHS(Vector<Complex> & solElecPot, Vector<Complex> & mechDisplacement, Double omega);
 
