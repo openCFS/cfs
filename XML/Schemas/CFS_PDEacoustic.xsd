@@ -71,16 +71,20 @@
                </xsd:element>
                <xsd:element name="bubbleNumDensity" type="DT_NonNegFloat"/>
              </xsd:sequence>
+             <xsd:attribute name="tag" type="xsd:token" use="optional"
+               default="anyTag"/>
            </xsd:complexType>
          </xsd:element>
 
-          <!-- Section for specifying acoustic slice data (pulse-wave computation on slices) -->
+          <!-- Section for specifying acoustic slice data (pulse-wave
+               computation on slices) -->
           <xsd:element name="sliceData" minOccurs="0">
             <xsd:complexType>
 	        <xsd:sequence>
 	          <xsd:element name="dimension" type="DT_DomainDimension"/>
         	  <xsd:element name="waveLength" type="DT_PosFloat"/>
-	          <xsd:element name="elementsPerWavelength"  type="xsd:nonNegativeInteger"/>
+	          <xsd:element name="elementsPerWavelength"
+                    type="xsd:nonNegativeInteger"/>
 	          <xsd:element name="pulseTime"  type="DT_PosFloat"/>
 	          <xsd:element name="soundSpeed" type="DT_PosFloat"/>
         	</xsd:sequence>
