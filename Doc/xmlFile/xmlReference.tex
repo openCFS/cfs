@@ -1,10 +1,10 @@
 \documentclass[12pt]{report}
 %
 %
-%\usepackage{lsemanfred,ifthen,isolatin1}
 \usepackage{graphicx}
 \graphicspath{{../LaTeXStuff/}}
-
+%
+%
 \usepackage{../LaTeXStuff/lsepaper}
 \usepackage{ifthen}
 \usepackage[isolatin]{inputenc}
@@ -12,40 +12,48 @@
 \usepackage{amssymb}
 \usepackage{longtable}
 %
+% =============================================================================
+% PDF STUFF
+% =============================================================================
 %
-%\addtolength{\textwidth}{3cm}
-%\addtolength{\oddsidemargin}{-1.5cm}
+\ifx\pdfoutput\undefined
+\else
+\typeout{--> PDF: Output mode detected}
+\typeout{--> PDF: Setting general document info}
 %
+\usepackage{thumbpdf}
 %
-%\newcounter{pdfordvi}\setcounter{pdfordvi}{1}
-%\ifthenelse{\value{pdfordvi} = 0}{\usepackage{graphicx}}{\usepackage[pdftex]{graphicx}}
-%\pdfoutput = \value{pdfordvi}
-
+\usepackage[pdftex,bookmarks=true]{hyperref}
+\hypersetup{pdfpagemode=UseThumbs}
+\hypersetup{colorlinks=true}
+\hypersetup{linkcolor=red}
+\hypersetup{citecolor=blue}
+%
+\hypersetup{pdfauthor=cfs-devel}
+\hypersetup{pdftitle={CFS++ --- XML Reference Manual}}
+\hypersetup{pdfsubject={User's Guide}}
+\fi
+%
+% =============================================================================
+%
 \include{mycommands}
-
-%\includeonly{xmlintro}
-
-
+%
+% =============================================================================
 \begin{document}
-%\ifthenelse{\value{pdfordvi} = 0}{\DeclareGraphicsExtensions{.eps}}{\DeclareGraphicsExtensions{.jpg,.pdf}}          
-    
+% =============================================================================
 %
 %
 \LSETITLE{CFS++ --- XML Reference Manual}{cfs--devel}{User's Guide}
 %
 %
-%\title{CFS++ --- XML Reference Manual}
-%\author{cfs--devel}
-%\maketitle
-%\thispagestyle{empty}
-%\include{cover}
-%\setcounter{page}{0}
 \tableofcontents
-
+%
+%
 \clearpage
 \pagestyle{headings}
 \pagenumbering{arabic}
-
+%
+%
 \include{xmlintro}
 \include{general}
 \include{basicCommands}
@@ -54,6 +62,8 @@
 \include{singlefields}
 \include{coupledfields}
 \include{solverParams}
-
+%
+%
+% =============================================================================
 \end{document}
-
+% =============================================================================
