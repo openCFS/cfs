@@ -132,7 +132,7 @@ namespace CoupledField
 
     Integer i, j, actDof;
     
-    massMultDof.Resize(nrDofsPerNode_);
+    massMultDof.Resize(nrDofsPerNode_*singleDofSize);
     massMultDof.Init();
     
     for (i=0; i < singleDofSize; i++)
@@ -142,8 +142,8 @@ namespace CoupledField
 }
 
 
-  MassInt::MassInt(const Double aDensity,  const Integer nrDofsPerNode, Integer dofzero, 
-		   Boolean axi)
+  MassInt::MassInt(const Double aDensity,  const Integer nrDofsPerNode, Integer dofzero,
+                   Boolean axi)
     : BaseForm(), 
       density_(aDensity), 
       nrDofsPerNode_(nrDofsPerNode)

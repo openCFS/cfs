@@ -17,7 +17,7 @@ public:
   MassInt(const Double aDensity, const Integer nrDofsPerNode=1, Boolean axi=FALSE);
 
   /// Constructor
-  MassInt(const Double aDensity, const Integer nrDofsPerNode, Integer dofzero, Boolean axi=FALSE);
+  MassInt(const Double aDensity, const Integer nrDofsPerNode, Integer dofzero, Boolean axi);
 
   /// Destructor
   virtual ~MassInt();

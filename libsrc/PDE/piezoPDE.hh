@@ -41,7 +41,8 @@ namespace CoupledField
     virtual void DefineIntegrators(const Integer level);
 
     /// returns a stiffness integrator appropriate to the actual problem (e.g. 3D)
-    BaseForm * GetStiffIntegrator(MaterialData& actSDMat, Boolean reducedInt=FALSE);
+    BaseForm * GetStiffIntegrator(MaterialData& actSDMat, Boolean reducedInt=FALSE, 
+				  Boolean isdamping=FALSE);
 
     //! prepare for correct time stepping
     /*! \param dt time step  */
