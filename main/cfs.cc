@@ -47,7 +47,7 @@ void main(int argc, char *argv[])
 
   FileType * ptInputfile=oDefFiles.Create_ptFileType(argv[1]);
 
-  OutResultUnverg * ptUnverg=new OutResultUnverg(name); 
+  OutResultUnverg<Point3D> * ptUnverg=new OutResultUnverg<Point3D>(name); 
 
   // DDD
   TimeFunc * ptTimeFunc=new TimeFunc(ptInputfile);
@@ -63,8 +63,9 @@ void main(int argc, char *argv[])
   
   Grid<Point3D> * ptGridlib=new InterfaceGridlib<Point3D>(ptInputfile);
   ptGridlib->Read();
-
-//    Driver * ptDriver=new Driver(ptInputfile,1,materialdata);
+  
+  ptUnverg->Create(ptGridlib,0);
+//    Driver<Point2D> * ptDriver=new Driver<Point2D>(ptInputfile,1,materialdata);
 //    ptDriver->SolveNewmarkMethod(ptUnverg);
 /*
  //  //! choose your grid class

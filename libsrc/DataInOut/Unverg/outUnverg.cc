@@ -41,8 +41,8 @@ void OutResultUnverg<Dim> :: Create(Grid<Dim> * ptgrid, const Integer level)
 }
 
 
-template<class Dim>
-void  OutResultUnverg<Dim>::Dataset666(Grid<Dim> * ptgrid, const Integer level)
+template<>
+void  OutResultUnverg<Point2D>::Dataset666(Grid<Point2D> * ptgrid, const Integer level)
 {
 
  (*output)<< std::setw(6) << -1 << std::endl << std::setw(6) << -666 << std::endl ;
@@ -50,22 +50,27 @@ void  OutResultUnverg<Dim>::Dataset666(Grid<Dim> * ptgrid, const Integer level)
  Integer maxnumnodes=ptgrid-> GetMaxnumnodes(level);
  Integer maxnumelem=ptgrid-> GetMaxnumElem(level);
 
- (*output)<< std::setw(10) << 1 << std::setw(10) << 1 ;
+ (*output)<< std::setw(10) << 1 << std::setw(10) << 1 << std::setw(10) << 2 << std::endl << std::setw(10) << maxnumnodes << std::setw(10) << maxnumelem << std::endl;
 
-// !!!!!! Pay attention that there is switch
-
- if (ptCoordinate->is2D()) (*output) << std::setw(10) << 2 << std::endl; 
- else (*output) << std::setw(10) << 3 << std::endl; 
-
- (*output) << std::setw(10) << maxnumnodes;
- (*output) << std::setw(10) << maxnumelem << std::endl;
- 
  (*output) << std::setw(6) << -1 << std::endl;
 }
 
+template<>
+void  OutResultUnverg<Point3D>::Dataset666(Grid<Point3D> * ptgrid, const Integer level)
+{
 
-template<class Dim>
-void  OutResultUnverg<Dim>::Dataset781(Grid<Dim> * ptgrid, const Integer level)
+ (*output)<< std::setw(6) << -1 << std::endl << std::setw(6) << -666 << std::endl ;
+
+ Integer maxnumnodes=ptgrid-> GetMaxnumnodes(level);
+ Integer maxnumelem=ptgrid-> GetMaxnumElem(level);
+
+ (*output)<< std::setw(10) << 1 << std::setw(10) << 1 << std::setw(10) << 3 << std::endl << std::setw(10) << maxnumnodes << std::setw(10) << maxnumelem << std::endl;
+
+ (*output) << std::setw(6) << -1 << std::endl;
+}
+
+template< >
+void  OutResultUnverg<Point2D>::Dataset781(Grid<Point2D> * ptgrid, const Integer level)
 {
  (*output) << std::setw(6) << -1 << std::endl << std::setw(6) << 781 << std::endl;
 
@@ -74,15 +79,13 @@ void  OutResultUnverg<Dim>::Dataset781(Grid<Dim> * ptgrid, const Integer level)
  (*output).setf(std::ios::scientific);
  (*output).precision(16);
 
-// ptCoordinate=ptgrid->GetptCoordinate(level); 
-
  for (Integer i=0; i<maxnumnodes; i++)
    {
      (*output) << std::setw(10) << i+1 << std::setw(10) << 0 << std::setw(10) << 0 << std::setw(10) << 11 << std::endl;
 
      (*output).setf(std::ios::uppercase);
 
-     Dim Point;
+     Point2D Point;
 
      ptgrid->GetCoordinateNode(i,level,Point);
 
@@ -93,6 +96,34 @@ void  OutResultUnverg<Dim>::Dataset781(Grid<Dim> * ptgrid, const Integer level)
      (*output) << std::endl;           
    }
  
+ (*output) << std::setw(6) << -1 << std::endl;
+}
+
+template< >
+void  OutResultUnverg<Point3D>::Dataset781(Grid<Point3D> * ptgrid, const Integer level)
+{
+ (*output) << std::setw(6) << -1 << std::endl << std::setw(6) << 781 << std::endl;
+
+ Integer maxnumnodes=ptgrid-> GetMaxnumnodes(level);
+
+ (*output).setf(std::ios::scientific);
+ (*output).precision(16);
+
+ for (Integer i=0; i<maxnumnodes; i++)
+   {
+     (*output) << std::setw(10) << i+1 << std::setw(10) << 0 << std::setw(10) << 0 << std::setw(10) << 11 << std::endl;
+
+     (*output).setf(std::ios::uppercase);
+
+     Point3D Point;
+
+     ptgrid->GetCoordinateNode(i,level,Point);
+
+     PrintPoint(Point,output);
+
+     (*output) << std::endl;
+   }
+
  (*output) << std::setw(6) << -1 << std::endl;
 }
 
