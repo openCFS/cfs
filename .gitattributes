@@ -303,6 +303,9 @@ Gridlib_inc/def_capapost.h svneol=native#text/plain
 Gridlib_inc/unv.h svneol=native#text/plain
 Gridlib_inc/unv_dat.h svneol=native#text/plain
 Gridlib_inc/unv_if.h svneol=native#text/plain
+auxiliary/Makefile -text
+auxiliary/gmv2mpeg.cc svneol=native#text/plain
+auxiliary/gmv2mpeg.config -text
 libsrc/AlgebraicSystem/LinAlg/Makefile -text
 libsrc/AlgebraicSystem/LinAlg/assemble.cc svneol=native#text/plain
 libsrc/AlgebraicSystem/LinAlg/assemble.hh svneol=native#text/plain
