@@ -430,16 +430,15 @@ void AcouFlowNoise::SolveStepTrans(const Integer kstep, const Double asteptime, 
   else laststepcalc_= kstep;
 
   Double * ptsol;
-  Integer update,job;
+  Integer job = 3;
 
   //perform predictor step
   NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
   
   TS_alg_->Predictor(solhelp->GetAlgSysVector());
 
-  if (kstep==0)
+  if (kstep==1)
     {
-      update = 0;
       job = 1;
       assemble_->AssembleMatrices(level);
       algsys_->ConstructEffectiveMatrix(matrix_factor_);
@@ -452,7 +451,6 @@ void AcouFlowNoise::SolveStepTrans(const Integer kstep, const Double asteptime, 
     }
   else if (reset)
     {
-      update = 1;
       job    = 1;
 
       algsys_->InitMatrix(SYSTEM);
@@ -465,7 +463,6 @@ void AcouFlowNoise::SolveStepTrans(const Integer kstep, const Double asteptime, 
     }
   else
     {
-      update = 1;
       job    = 3;
       algsys_->InitRHS();
       assemble_->AssembleSrcRHS(level,lasttimecalc_);
@@ -473,7 +470,7 @@ void AcouFlowNoise::SolveStepTrans(const Integer kstep, const Double asteptime, 
       TS_alg_->UpdateRHS();
     };
 
-  SetBCs(level,update,lasttimecalc_);
+  SetBCs(level, lasttimecalc_);
 
 #ifdef USE_OLAS
   algsys_->SetupPrecond(job);

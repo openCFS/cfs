@@ -51,10 +51,6 @@ public:
 // SOLUTION SECTION
 // ======================================================
   
-  //! Init the time stepping
-  //! \param dt time step
-  virtual void InitTimeStepping(const Double dt);
-
   //!
   virtual void PreStepStatic(const Integer kstep, const Double asteptime,
 			       const Integer level, const Boolean reset);
@@ -74,9 +70,6 @@ public:
 // ======================================================
 // POSTPROCESSING SECTION
 // ======================================================
-
-  //!  return pointer to vector with first derivative of solution
-  virtual const Vector<Double>& getS1() const { return TS_alg_->GetDeriv1();}
 
   //! do PostProcessing step
   virtual void PostProcess(const Integer level);
@@ -131,6 +124,9 @@ protected:
 
   //! Query parameter object for information on permanent magnets
   void ReadMagnets();
+
+  //! Init the time stepping
+  virtual void InitTimeStepping();
 
   //!
   void ComputeUI(Vector<Double>& uiSD);

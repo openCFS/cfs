@@ -41,7 +41,13 @@ public:
   virtual void InitCoupling(PDECoupling * Coupling);
 
   //! initialize time stepping: nothing to do in smoother!
-  virtual void InitTimeStepping(const Double dt){;};
+  virtual void InitTimeStepping(){;};
+
+  //! set time step
+  //! \params dt Current time step
+  virtual void SetTimeStep(const Double dt){};
+  
+
 
   // ****************************+
   // Solving Section

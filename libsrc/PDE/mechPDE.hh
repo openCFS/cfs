@@ -83,11 +83,7 @@ public:
   /// do one transient step
   void StepTransNonLin(const Integer kstep, const Double asteptime,
 		       const Integer level, const Boolean reset);
-  
-  //! Init the time stepping
-  //! \param dt time step
-  virtual void InitTimeStepping(const Double dt);
-				
+  			
   //!
   virtual void PreStepStatic(const Integer kstep, const Double asteptime,
 			     const Integer level, const Boolean reset);
@@ -117,14 +113,6 @@ public:
 
   //! do PostProcessing step
   virtual void PostProcess(const Integer level);
-
-  //!  return pointer to vector with first derivative of solution
-  //virtual const Array<Double>& getS1() const { return TS_alg_->GetDeriv1();}
-  virtual const Vector<Double>& getS1() const { return TS_alg_->GetDeriv1();}
-
-  //! return pointer to vector with second derivative of solution
-  //virtual const Array<Double>& getS2() const { return TS_alg_->GetDeriv2();}
-  virtual const Vector<Double> & getS2() const { return TS_alg_->GetDeriv2();}
 
 protected:
 
@@ -169,7 +157,9 @@ protected:
     //! </table>
     void ReadStoreResults();
 #endif
-
+  
+  //! Init the time stepping
+  void InitTimeStepping();
 
 private:
 

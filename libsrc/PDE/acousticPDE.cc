@@ -178,7 +178,7 @@ namespace CoupledField {
   // SOLVING SECTION
   // ======================================================
 
-  void AcousticPDE::InitTimeStepping(const Double dt) {
+  void AcousticPDE::InitTimeStepping() {
     ENTER_FCN( "AcousticPDE::InitTimeStepping" );
     
     if ( dampingType_ == FRACTIONAL ) {
@@ -193,9 +193,6 @@ namespace CoupledField {
     else {
       TS_alg_ = new Newmark(pdename_, algsys_, eqnData_, needsDampingMatrix_);
     }
-
-    TS_alg_->Init(matrix_factor_, dt);
-
   }
 
 
@@ -223,8 +220,6 @@ namespace CoupledField {
 	actSol_.Init(0);
       }
     }
-
-    iterCoupledCounter_ = 0;
   }
 
 

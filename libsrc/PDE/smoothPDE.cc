@@ -169,10 +169,7 @@ void SmoothPDE::InitCoupling(PDECoupling * coupling)
 
   // now overwrite number of Dirichlet BCs due to coupling 
   assemble_->SetNumDirichlet(numDirichletBCs_);
-
-  iterCoupledCounter_ = 0;
 }
-  
 
 void SmoothPDE::PreStepStatic(const Integer kstep, const Double asteptime,
 			      const Integer level, const Boolean reset)
@@ -199,8 +196,7 @@ void SmoothPDE::StepStaticNonLin(const Integer kstep, const Double aTime,
   assemble_->AssembleMatrices(level);
   assemble_->AssembleSrcRHS(level);
   
-  updateBCs_ = 0;
-  SetBCs(level,updateBCs_,0);
+  SetBCs(level,0);
 
 #ifdef USE_OLAS
   algsys_->BuildInDirichlet();

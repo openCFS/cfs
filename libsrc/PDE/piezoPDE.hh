@@ -43,16 +43,6 @@ namespace CoupledField
     BaseForm * GetStiffIntegrator(MaterialData& actSDMat, Boolean reducedInt=FALSE, 
 				  Boolean isdamping=FALSE);
 
-    //! Init the time stepping
-    //! \param dt time step
-    virtual void InitTimeStepping(const Double dt);
-
-    //!  return pointer to vector with first derivative of solution
-    virtual const Vector<Double>& getS1() const { return TS_alg_->GetDeriv1();}    
-
-    //! return pointer to vector with second derivative of solution
-    virtual const Vector<Double> & getS2() const { return TS_alg_->GetDeriv2();}
-
     //! do PostProcessing step
     virtual void PostProcess(const Integer level);
 
@@ -100,6 +90,9 @@ namespace CoupledField
     //!   </tr>
     //! </table>
     void ReadStoreResults();
+
+    //! Init the time stepping
+    void InitTimeStepping();
 #endif
   private:
 

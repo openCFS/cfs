@@ -605,8 +605,7 @@ void MechPDE::InitCoupling(PDECoupling * Coupling)
 	}
     }
 
-  iterCoupledCounter_ = 0;
-}
+ }
 
 
 
@@ -802,7 +801,7 @@ void MechPDE::StepStaticNonLin(const Integer kstep, const Double aTime,
   Vector<Double> solIncrement;
   solIncrement.Resize(eqnData_->GetNumEQNs() * eqnData_->GetNumDofsPerEQN());
 
-  SetBCs(level, updateBCs_, 0);
+  SetBCs(level, 0);
 
   // setup right hand side ==============================================      
 
@@ -1033,7 +1032,7 @@ void MechPDE :: PostStepStatic(const Integer kstep, const Double asteptime,
 // ======================================================
 
 
-void MechPDE :: InitTimeStepping(const Double dt)
+void MechPDE :: InitTimeStepping()
 {
   ENTER_FCN( "MechPDE::InitTimeStepping" );
 
@@ -1041,8 +1040,6 @@ void MechPDE :: InitTimeStepping(const Double dt)
     TS_alg_ = new NewmarkEffMass(pdename_, algsys_, eqnData_, needsDampingMatrix_);
   else
     TS_alg_ = new Newmark(pdename_, algsys_, eqnData_, needsDampingMatrix_);
-
-  TS_alg_->Init(matrix_factor_, dt);
 
 }
 
@@ -1057,7 +1054,6 @@ void MechPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
   ENTER_FCN( "MechPDE::StepTransNonLin" );
 
   const Integer job = 1;
-  const Integer update = 0;  
   
   static Integer timeStepCounter=1;
   Double * ptsol;
@@ -1085,7 +1081,7 @@ void MechPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
 
   //perform predictor step
   TS_alg_->UpdateRHS(actSol);
-  SetBCs(level, update, lasttimecalc_);
+  SetBCs(level, lasttimecalc_);
 
   
   do
@@ -1107,7 +1103,7 @@ void MechPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
       algsys_->ConstructEffectiveMatrix(matrix_factor_);
 
       TS_alg_->UpdateRHS(actSol);
-      SetBCs(level, update, lasttimecalc_);
+      SetBCs(level, lasttimecalc_);
 
 #ifdef USE_OLAS
       algsys_->BuildInDirichlet();
@@ -1226,7 +1222,7 @@ Double MechPDE::SetExternalForces(const Integer level)
   Double extForcesL2Norm;  
 
   // account for bcs before first solving step =======================
-  SetBCs(level, updateBCs_, 0);
+  SetBCs(level, 0);
 
   // to incorporate loads
   assemble_->AssembleSrcRHS(level, lasttimecalc_);
