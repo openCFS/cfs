@@ -287,13 +287,19 @@ namespace CoupledField
     Double a1, a2, a3;
     a1=a2=a3=0; 
 
-    if( params->HasValue( "pol", "1", "piezo", "polingDirectionX" ) )
+    if( params->HasValue( "x", "1", "piezo", "polingDirection" ) )
       a1=1;
  
-    if( params->HasValue( "pol", "1", "piezo", "polingDirectionY" ) )
+    if( params->HasValue( "y", "1", "piezo", "polingDirection" ) ){
+      if (params->HasValue("subtype", "axi", "piezo") ){
+	std::cout<<"\n Be aware, that you are treating an axisymmetric piezoelectric body, which does not have any y-direction.";
+	std::cout<<"\n Please check your xml-file. \n Press Ctrl+C to stop calculation, any other key to continue."<<std::endl;
+	getchar();
+      }
       a2=1;
+    }
  
-    if( params->HasValue( "pol", "1", "piezo", "polingDirectionZ" ) )
+    if( params->HasValue( "z", "1", "piezo", "polingDirection" ) )
       a3=1;
  
     if (a1==0&&a2==0&&a3==0)

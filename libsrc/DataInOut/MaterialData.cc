@@ -161,7 +161,7 @@ void MaterialData::RotateMaterialMatrix(const Double& a1, const Double& a2, cons
       Q[i][j+3]=0;
       Q[i+3][j]=0;
     }
-
+  // Rotate real matrix ...
   for (Integer i=0;i<3;i++)
     for (Integer j=0;j<3;j++){
       c[i][j]=(*piezoMatrix)[i][j];
@@ -186,6 +186,34 @@ void MaterialData::RotateMaterialMatrix(const Double& a1, const Double& a2, cons
       (*piezoMatrix)[i+6][j]=e[j][i];
       (*piezoMatrix)[i+6][3+j]=e[j+3][i];
       (*piezoMatrix)[i+6][j+6]=eps[i][j];
+    }
+
+  // rotate complex Matrix
+
+  for (Integer i=0;i<3;i++)
+    for (Integer j=0;j<3;j++){
+      c[i][j]=(*piezoMatrixC)[i][j];
+      c[i+3][j+3]=(*piezoMatrixC)[i+3][j+3];
+      e[i][j]=(*piezoMatrixC)[i][6+j];
+      e[i+3][j]=(*piezoMatrixC)[i+3][6+j];
+      eps[i][j]=(*piezoMatrixC)[i+6][j+6];
+    }
+  Q.Transpose(QT);
+  R.Transpose(RT);
+
+  c=Q*c*QT;
+  e=Q*e*RT;
+  eps=R*eps*RT;
+
+  for (Integer i=0;i<3;i++)
+    for (Integer j=0;j<3;j++){
+      (*piezoMatrixC)[i][j]=c[i][j];
+      (*piezoMatrixC)[i+3][j+3]=c[i+3][j+3];
+      (*piezoMatrixC)[i][6+j]=e[i][j];
+      (*piezoMatrixC)[i+3][6+j]=e[i+3][j];
+      (*piezoMatrixC)[i+6][j]=e[j][i];
+      (*piezoMatrixC)[i+6][3+j]=e[j+3][i];
+      (*piezoMatrixC)[i+6][j+6]=eps[i][j];
     }
 
 } // end RotateMaterialMatrix
