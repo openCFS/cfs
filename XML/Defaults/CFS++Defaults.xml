@@ -13,6 +13,18 @@
   <geometry type="3d"/>
   <input/>
   <output/>
+  <database>
+    <hostName/>
+    <port/>
+    <databaseName/>
+    <materialDatabaseName/>
+    <userName/>
+    <password/>
+  </database>
+  <gmv>
+    <fixedGrid/>
+    <binaryFormat/>
+  </gmv>
   <materialData/>
 
   <domain>
