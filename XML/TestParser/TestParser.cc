@@ -20,6 +20,7 @@ int main(int argC, char* argV[])
   }
   else {
     std::cout << "\n Please specify an XML file\n\n";
+    exit(1);
   }
 
   // Parse XML file
