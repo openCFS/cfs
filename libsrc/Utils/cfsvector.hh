@@ -30,6 +30,9 @@ public:
   //! Default destructor
   virtual ~CFSVector(){};
 
+  //! Hard coded query if values are complex
+  virtual Boolean IsComplex() = 0;
+
   //! Return a Double pointer to the data of the vector.
   //! If the Vector is complex, a new array is created,
   //! where the entries are sequentilly ordered in real
@@ -136,7 +139,7 @@ public:
   //@}
   
   //@{
-  //! Scales the vector itself and adds the multiple of another one y (x = a*x + y)
+  //! Scales the vector itself and adds another one y (x = a*x + y)
   /*!
     \param a (input) Factor for scaling the vector itself
     \param y (input) Addend for the vector (gets not scaled)

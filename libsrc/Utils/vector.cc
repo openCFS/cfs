@@ -53,6 +53,19 @@ Vector<TYPE>::~Vector()
     delete[] data_;
 }
 
+
+template<class TYPE>
+Boolean Vector<TYPE>::IsComplex()
+{
+  return FALSE;
+}
+
+template<>
+Boolean Vector<Complex>::IsComplex()
+{
+  return TRUE;
+}
+
 // Two different methods for getting a double pointer to the data
 // in the vector:
 // 1.) Double-Vectors: Here simply the pointer data_ is passed

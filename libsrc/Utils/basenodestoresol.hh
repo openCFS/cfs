@@ -79,6 +79,9 @@ public:
 			     Grid *ptGrid,
 			     Integer level) = 0;
   
+  //! Hard coded query if values are complex
+  virtual Boolean IsComplex() = 0;
+
   //! Deletes all data and layout information
 
   //! Deletes all data and layout information.

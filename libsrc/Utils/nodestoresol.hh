@@ -82,8 +82,10 @@ public:
 
   //! Destructor
   virtual ~NodeStoreSol();
-  
 
+  //! Hard coded query if values are complex
+  virtual Boolean IsComplex();
+  
   //! Deletes all data and layout information
 
   //! Deletes all data and layout information.
