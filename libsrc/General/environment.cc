@@ -10,6 +10,7 @@ namespace CoupledField
   std::ostream * debug  = NULL;
   std::ostream * infofile=NULL;
   std::ostream * cla=NULL;
+  std::ostream * memtrace=NULL;
 
   ConfFile * conf=NULL;
 

@@ -56,6 +56,7 @@ extern std::ostream * trace; //name.trace
 extern std::ostream * debug; //name.deb
 extern std::ostream * infofile; //name.info
 extern std::ostream * cla; //name.cla
+extern std::ostream * memtrace; //name for name.mem 
 
 class ConfFile;
   //! pointer to class with methods for reading config-file. it is accessable from any place of the program
