@@ -7,11 +7,12 @@
 namespace CoupledField
 {
 
-class InterfaceAlgSys: public AbstractAlgSys
+template<class Dim>
+class InterfaceAlgSys: public AbstractAlgSys<Dim>
 {
 public:
   /// Constructor with parameter - pointer to Grid and tolerance
-  InterfaceAlgSys(Grid<Point2D> * aptgrid, const Integer level, const Double aeps); 
+  InterfaceAlgSys(Grid<Dim> * aptgrid, const Integer level, const Double aeps); 
 
  //! Restore solution after applying penalty method for zero boundary condition
  virtual void Restore(){ ptWork->Restore() ;} 
@@ -65,17 +66,17 @@ virtual void AssembleSysMatrix(const Double CoefLaplace, const Double CoefMass)
   { return ptWork->getSolution(); }
 
 private:
-  WorkWithSysMat<Point2D, Matrix<Double> > * ptWork;
+  WorkWithSysMat<Dim, Matrix<Double> > * ptWork;
 } ;
 
-//template<class Dim>
-inline InterfaceAlgSys::InterfaceAlgSys(Grid<Point2D> * aptgrid, const Integer level, const Double aeps)
-: AbstractAlgSys(aptgrid,level,aeps)
+template<class Dim>
+inline InterfaceAlgSys<Dim>::InterfaceAlgSys(Grid<Dim> * aptgrid, const Integer level, const Double aeps)
+: AbstractAlgSys<Dim>(aptgrid,level,aeps)
 {
 #ifdef TRACE
  (*trace) << "Entering InterfaceAlgSys::InterfaceAlgSys" << std::endl;
 #endif
-   ptWork=new WorkWithSysMat<Point2D, Matrix<Double> >(ptGrid,level,eps);
+   ptWork=new WorkWithSysMat<Dim, Matrix<Double> >(ptGrid,level,eps);
 }
 
 } // end of namespace

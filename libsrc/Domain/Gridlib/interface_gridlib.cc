@@ -177,6 +177,7 @@ void InterfaceGridlib<Point3D>::Read()
   Point3D * ptCoord=new Point3D[nnodes];
   ptFileType->ReadCoordinate(ptCoord, nnodes);
 
+  std::cout << "we have read coordinates" << std::endl;
   Integer inode;
   for (inode=0; inode<nnodes; inode++)
     {

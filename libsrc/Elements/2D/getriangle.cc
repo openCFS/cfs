@@ -244,7 +244,7 @@ if (NeedJinv)
 void GeTriangle::CalcJacobian(Jacobian<Point3D> & J, const Integer ip,
                      const Point3D * const ptCoord, const Boolean NeedJinv)
 {
- Error("Not implemented yet", __FILE__, __LINE__);
+ Error("This element is from 2D", __FILE__, __LINE__);
 }
 
 } // end of namespace

@@ -200,9 +200,82 @@ void Assemble<Dim, T_Matrix>::SetDirichletBoundaryCondRHS_PenaltyMethod(const Do
     }
 }
 
-template<class Dim, class T_Matrix>
+template<class Dim,class T_Matrix>
 template <class typeBaseForm>
 void Assemble<Dim,T_Matrix>::AssembleGlobal(T_Matrix & Mat) const
+{
+#ifdef TRACE
+   (*trace) << "entering Assemble::AssembleGlobal" << std::endl;
+#endif
+
+  Integer i,ii,iii;
+  Integer irow,icln;
+
+  Integer numnodeelem;
+  numnodeelem=ptgrid->GetNumNodesPerElem(0,level);
+
+  Integer * help=new Integer[numnodeelem];
+  Matrix<Double> elemmat;
+
+  Dim * ptCoord=new Dim[numnodeelem];
+
+  BaseElem * ptElem;
+
+//  ptElem=new Tetrahedral1(GaussOrder3);
+
+  switch(numnodeelem)
+  {
+    case 3:
+       ptElem=new  Triangle1(GaussOrder3);
+       break;
+
+    case 4:
+       ptElem=new Quad1(GaussOrder5);
+       break;
+
+    default:
+       Error("Number of nodes per element is strange",__FILE__,__LINE__);
+  }
+
+  typeBaseForm oElemMatrix(ptElem,1);
+
+  Mat.Init();
+
+  // This part we should do for every group of elements
+  //   ptgrid->GetCoordOfNodesElem(0,0,ptCoord);
+  //   oElemMatrix.CalcElemMatrix(ptCoord, elemmat);
+
+  Integer numelem=ptgrid->GetMaxnumElem(level);
+  for (i=0; i<numelem; i++)
+    {
+      ptgrid->GetConnection(help,level,i,numnodeelem);
+      ptgrid->GetCoordOfNodesElem(i,level,numnodeelem,ptCoord);
+      oElemMatrix.CalcElemMatrix(ptCoord, elemmat);
+
+      for (ii=0; ii<numnodeelem; ii++)
+        for (iii=0; iii<numnodeelem; iii++)
+          {
+            irow=help[ii]-1;
+            icln=help[iii]-1;
+            if (irow >= icln)
+              Mat.Add(irow,icln,elemmat[ii][iii]);
+          }
+    }
+  delete [] ptCoord;
+  delete [] help;
+  /// Convertion from SymMatrix to Matrix
+  if (!Mat.IsSymmetric())
+    {
+      Integer helpn=Mat.getSize();
+      for (i=0; i<helpn; i++)
+        for (ii=i+1; ii < helpn; ii++)
+          Mat(i,ii)=Mat(ii,i);
+    }
+}
+/*
+template<class T_Matrix>
+template <class typeBaseForm>
+void Assemble<Point3D,T_Matrix>::AssembleGlobal(T_Matrix & Mat) const
 {
 #ifdef TRACE
    (*trace) << "entering Assemble::AssembleGlobal" << std::endl;
@@ -217,24 +290,9 @@ void Assemble<Dim,T_Matrix>::AssembleGlobal(T_Matrix & Mat) const
   Integer * help=new Integer[numnodeelem];
   Matrix<Double> elemmat;
 
-  Dim * ptCoord=new Dim[numnodeelem];
+  Point3D * ptCoord=new Point3D[numnodeelem];
 
-  BaseElem * ptElem;
-  switch(numnodeelem)
-  {
-    case 3:
-       ptElem=new  Triangle1(GaussOrder3);
-       break;
-
-    case 4:
-       ptElem=new Quad1(GaussOrder5);  
-       break;
-
-    default:
-       Error("Number of nodes per element is strange",__FILE__,__LINE__);
-  }
-//  BaseElem * ptElem=new Quad1(GaussOrder5);  /////////////////////
-//  BaseElem * ptElem=new Triangle1(GaussOrder5);
+  BaseElem * ptElem=new Tetrahedral1(GaussOrder5);
 
   typeBaseForm oElemMatrix(ptElem,1);
 
@@ -271,6 +329,7 @@ void Assemble<Dim,T_Matrix>::AssembleGlobal(T_Matrix & Mat) const
 	  Mat(i,ii)=Mat(ii,i);
     }
 }
+*/
 
 template<class Dim, class T_Matrix>
 void Assemble<Dim, T_Matrix>::Restore() 

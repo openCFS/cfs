@@ -18,14 +18,16 @@ Driver<Dim>::Driver(FileType * const aptFileType, Integer anummesh, Material * a
   ptFileType=aptFileType;
 
   ptFileType->ReadNumStepsAndTimeSteps(numsteps, dt0);
-//  ptFileType->ReadOutputOptions(SaveDer1, SaveDer2);
+
+  ptFileType->ReadOutputOptions(SaveDer1, SaveDer2);
   SaveDer1=FALSE; SaveDer2=FALSE;
 
   ptgrid=new InterfaceGridlib<Dim>(ptFileType);
 //  ptgrid=new GridInterfaceCFS<Dim>(ptFileType);
   ptgrid->Read();
-  std::cout << " we do subdivosion " << std::endl;
-
+ 
+  numsteps=1; dt0=2.000000000000E-07;
+  std::cout << "We have read" << std::endl; 
   ptMaterial=aptMaterial;
 }
 
@@ -37,17 +39,18 @@ void Driver<Dim>::SolveNewmarkMethod(OutResultUnverg<Dim> * ptUnverg)
 #endif
  
 /// Save the grid before a uniform refinement in a separate unverg-file 
-//  OutResultUnverg * ptUnvergPreGrid=new OutResultUnverg("grid_pre"); 
-//  ptUnvergPreGrid->Create(ptgrid,0);  
-//  if (ptUnvergPreGrid) delete ptUnvergPreGrid;
+  OutResultUnverg<Dim> * ptUnvergPreGrid=new OutResultUnverg<Dim>("grid_pre"); 
+  ptUnvergPreGrid->Create(ptgrid,0);  
+  if (ptUnvergPreGrid) delete ptUnvergPreGrid;
+  ptgrid->SubdivideUniform(0);
 
-  ptUnverg->Create(ptgrid,0);
+   ptUnverg->Create(ptgrid,1);
 
 //  Double endtime=1.0;   ////////////////////////////////////////////
   Double t=0;
   
   Double epsilon=1e-25; 
-  ptAcPDE=new AcousticPDE(epsilon,dt0,ptgrid,0,ptMaterial, ptFileType);
+  ptAcPDE=new AcousticPDE<Dim>(epsilon,dt0,ptgrid,0,ptMaterial, ptFileType);
 
   Integer i;
   for (i=0; i<numsteps; i++) 
