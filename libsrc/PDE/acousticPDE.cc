@@ -22,9 +22,8 @@ namespace CoupledField {
 
     ENTER_FCN( "AcousticPDE::AcousticPDE" );
 
-    dofspernode_=1;
-
-    pdename_    ="acoustic";
+    dofspernode_      = 1;
+    pdename_          = "acoustic";
     pdematerialclass_ = "fluid";
 
 #ifndef XMLPARAMS
@@ -59,76 +58,118 @@ namespace CoupledField {
     sol_->SetNumDofs(dofspernode_);
     sol_->Init(0.0);
 
-    std::string dampstr;
 #ifndef XMLPARAMS
-    with_fracdamping_=FALSE;
+    std::string dampstr;
     conf->ifget("damping",dampstr,pdename_);
+    if (dampstr == "fractional") {
+      conf->get( "frac_memory", fracMemory_, pdename_);
+      Info->PrintF(pdename_,"\n Attenuation according to power law, number of memory is %g\n\n", fracMemory_);
+      dampingType_ = FRACTIONAL;
+    }
 #else
-    Info->Error( "Damping not implemented in XML Schema for Acoustic PDE",
-		 __FILE__, __LINE__ );
+
+    // *********************************************
+    //   Check what type of damping should be used
+    // *********************************************
+
+    // Rayleigh damping
+    if ( params->HasValue( "type", "rayleigh", pdename_, "damping" )) {
+      dampingType_ = RAYLEIGH;
+      Info->PrintF( pdename_, "Using RAYLEIGH damping" );
+    }
+
+    // Fractional damping
+    else if ( params->HasValue( "type", "fractional", pdename_, "damping" )) {
+      dampingType_ = FRACTIONAL;
+      Info->PrintF( pdename_, "Using FRACTIONAL damping" );
+      params->Get( "fracMemory", fracMemory_, pdename_, "damping" );
+      std::string msg = "\n Attenuation according to power law, number of ";
+      msg += "memory is %g\n\n";
+      Info->PrintF( pdename_, msg.c_str(), fracMemory_);
+    }
+
+    // Damping by absorbing boundary conditions
+    else if ( params->HasValue( "type", "absorbingBC", pdename_, "damping" )) {
+      Info->PrintF( pdename_, "Using ABCDAMP damping" );
+      dampingType_ = ABCDAMP;
+    }
+
+    // Thermoviscous damping
+    else if ( params->HasValue( "type", "thermoViscous", pdename_, "damping")){
+      Info->PrintF( pdename_, "Using THERMOVISCOUS damping" );
+      dampingType_ = ABCDAMP;
+    }
+
+    // No damping
+    else {
+      dampingType_ = NONE;
+    }
+
 #endif
 
+    // ***************************************************************
+    //   If no other damping type is specified and we have absorbing
+    //   boundary conditions, then use ABCDAMP
+    // ***************************************************************
 
-    if (dampstr == "fractional") {
-      Info->PrintF(pdename_,"\n Attenuation according to power law, number of memory is %g\n\n", frac_memory_);
-      with_fracdamping_ = TRUE;
-      conf->get("frac_memory",frac_memory_,pdename_);
-      damping_type_ = FRACTIONAL;
+#ifndef XMLPARAMS
+    conf->ifgetliststr("bnd_for_absBCs",absBCs_,pdename_); 
+    if (absBCs_.size() > 0) {
+      if ( dampingType_ == NONE) dampingType_ = ABCDAMP;
     }
-
-    with_absBCs_=FALSE;
-    conf->ifgetliststr("bnd_for_absBCs",bnd_absBCs_,pdename_); 
-    if (bnd_absBCs_.size() > 0) {
-      with_absBCs_ = TRUE;
-      if ( damping_type_ == NONE) damping_type_ = ABCDamp;
+#else
+    params->GetList( "name", absBCs_, pdename_, "absorbingBCs" );
+    if ( absBCs_.size() > 0 && dampingType_ == NONE ) {
+      dampingType_ = ABCDAMP;
+      Info->PrintF( pdename_, "Re-setting damping type to ABCDAMP" );
     }
-
+#endif
+    
     ReadBCs(pdename_);
 
-  if (analysistype_==HARMONIC) {
+    if (analysistype_==HARMONIC) {
 
-    // Currently freq_ is not used anywhere
-    // conf->get("frequency", freq_, pdename_);
-    solIm_.SetNumSolutions(1);
-    solIm_.SetSolutionType(ACOU_POTENTIAL);
-    solIm_.SetNumNodes(numPDENodes_);
-    solIm_.SetNumDofs(dofspernode_);
-    solIm_.Init(0);
-  }
+      // Currently freq_ is not used anywhere
+      // conf->get("frequency", freq_, pdename_);
+      solIm_.SetNumSolutions(1);
+      solIm_.SetSolutionType(ACOU_POTENTIAL);
+      solIm_.SetNumNodes(numPDENodes_);
+      solIm_.SetNumDofs(dofspernode_);
+      solIm_.Init(0);
+    }
 
-  // set analysis parameters
-  assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, subdoms_,
-			      bnd_absBCs_);
-  assemble_->SetGraphType(NODEGRAPH);
-  assemble_->SetMesh2PDENode(&mesh2PDENode_);
+    // set analysis parameters
+    assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, subdoms_,
+				absBCs_);
+    assemble_->SetGraphType(NODEGRAPH);
+    assemble_->SetMesh2PDENode(&mesh2PDENode_);
 
 #ifdef USE_OLAS
-  assemble_->SetMatrixEntryType(DOUBLE);
-  assemble_->SetMatrixStorageType(SPARSE_NONSYM);
+    assemble_->SetMatrixEntryType(DOUBLE);
+    assemble_->SetMatrixStorageType(SPARSE_NONSYM);
 #else
-  assemble_->SetMatrixType(RSCALAR);
+    assemble_->SetMatrixType(RSCALAR);
 #endif
 
-  assemble_->SetNumDirichlet(GetNumRestraints(actlevel_));
-  assemble_->SetPtrBCs(ptBCs_);
-  assemble_->SetPtr2Sol(sol_);
-  assemble_->SetPtr2TimeFnc(ptTimeFunc_);
+    assemble_->SetNumDirichlet(GetNumRestraints(actlevel_));
+    assemble_->SetPtrBCs(ptBCs_);
+    assemble_->SetPtr2Sol(sol_);
+    assemble_->SetPtr2TimeFnc(ptTimeFunc_);
 
-  if (with_absBCs_ || with_fracdamping_)
-    assemble_->NeedDampingMatrix();
+    if ( dampingType_ == ABCDAMP || dampingType_ == FRACTIONAL )
+      assemble_->NeedDampingMatrix();
 
-  ReadMaterialData();
+    ReadMaterialData();
    
-  DefineIntegrators(actlevel_);
+    DefineIntegrators(actlevel_);
 
 #ifndef XMLPARAMS
-  ReadSavings();
+    ReadSavings();
 #else
-  ReadStoreResults();
+    ReadStoreResults();
 #endif
 
-  if (savederiv1_)
-    {
+    if (savederiv1_) {
       sol_der1Array_.SetNumSolutions(1);
       sol_der1Array_.SetNumNodes(numPDENodes_);
       sol_der1Array_.SetSolutionType(ACOU_POTENTIAL_DERIV1);
@@ -136,8 +177,7 @@ namespace CoupledField {
       sol_der1Array_.Init(0);
     }
 
-  if (savederiv2_)
-    {
+    if (savederiv2_) {
       sol_der2Array_.SetNumSolutions(1);
       sol_der2Array_.SetNumNodes(numPDENodes_);
       sol_der2Array_.SetSolutionType(ACOU_POTENTIAL_DERIV2);
@@ -172,15 +212,15 @@ namespace CoupledField {
 
     //surface-integration
     // BEGIN DAMPING MATRIX PART: Absorbing boundaries
-    if (with_absBCs_ && analysistype_!=HARMONIC) {  
-      for (Integer actSD = 0; actSD < bnd_absBCs_.size(); actSD++) {
+    if ( dampingType_ == ABCDAMP  && analysistype_ != HARMONIC ) {
+      for (Integer actSD = 0; actSD < absBCs_.size(); actSD++) {
 	//currently hard-coded!!
 	Double density = materialData_[0].GetDensity();
 	Double compressibility = materialData_[0].GetCompressibility();
 	Double coeffdamp = density/((sqrt(compressibility/density)));
 	  
 	BaseForm * bilinear_damp = new MassInt(coeffdamp,dofspernode_, isaxi_);
-	assemble_->AddSurfIntegrator(bilinear_damp,  bnd_absBCs_[actSD],
+	assemble_->AddSurfIntegrator(bilinear_damp,  absBCs_[actSD],
 				     DAMPING, nonLin);
       }
     }
@@ -194,18 +234,18 @@ namespace CoupledField {
 
     ENTER_FCN( "AcousticPDE::InitTimeStepping" );
 
-    if (with_fracdamping_) {
+    if ( dampingType_ == FRACTIONAL ) {
 
       // currently the parameter y is taken from the first subdomain
       // => currently just one subdomain makes sense
       // Double y = materialData_[0].GetDampingBeta();
       // TS_alg_ = new NewmarkDamp(pdename_, algsys_, dofspernode_,
-      // numPDENodes_, damping_type_, frac_memory_,y);
+      // numPDENodes_, dampingType_, fracMemory_,y);
     }
 
     else {
       TS_alg_ = new Newmark(pdename_, algsys_, dofspernode_, numPDENodes_,
-			    damping_type_);
+			    dampingType_);
     }
 
     TS_alg_->Init(matrix_factor_, dt);
