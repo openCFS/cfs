@@ -36,6 +36,15 @@ namespace CoupledField
   IterCoupledPDE::~IterCoupledPDE()
   {
     ENTER_FCN( "IterCoupledPDE::~IterCoupledPDE" );
+
+    // 
+
+    // delete coupling objects
+    for (Integer i=0; i<Couplings_.GetSize(); i++)
+      if (Couplings_[i] != NULL)
+	delete Couplings_[i];
+
+    Couplings_.Clear();
   }
 
 
