@@ -67,7 +67,9 @@ namespace CoupledField
 	  {
 	    ptEl = elemssd[j]->ptElem;
 
-	    BaseForm * bilinear_mass  = new MassInt(ptEl, materialData_[i]);
+	    const Double density = materialData_->GetDensity();
+
+	    BaseForm * bilinear_mass  = new MassInt(ptEl, density);
 	    BaseForm * bilinear_stiff;
 	    
 	    if (subType_ == "plainStrain")
@@ -92,16 +94,16 @@ namespace CoupledField
 
 	    algsys_->SetElementMatrix(elemmat.getinarray(), connecth.get(), connecth.size(), SYSTEM);
 
-
+#ifdef DEBUG
 	    (*debug) << "Mech3d elemmat: " << std::endl << elemmat << std::endl;
+#endif
+ 	    // mass part
+ 	    bilinear_mass->CalcElementMatrix(ptCoord, elemmat);
 
-	    // 	    // mass part
-	    // 	    bilinear_mass->CalcElementMatrix(ptCoord, elemmat);
+ 	    Matrix <Double> elemMatMultDof;
+ 	    MassMultiDof(elemMatMultDof, elemmat, dofspernode_);
 
-	    // 	    Matrix <Double> elemMatMultDof;
-	    // 	    MassMultiDof(elemMatMultDof, elemmat, dofspernode_);
-
-	    // 	    algsys_->SetElementMatrix(elemMatMultDof.getinarray(), connecth.get(), connecth.size(), MASS);
+ 	    algsys_->SetElementMatrix(elemMatMultDof.getinarray(), connecth.get(), connecth.size(), MASS);
 
   
 	    delete bilinear_stiff;

@@ -6,7 +6,8 @@
 namespace CoupledField
 {
 
-  LaplaceInt::LaplaceInt(BaseFE * aptelem, MaterialData & aMat): BaseForm(aptelem, aMat)
+  LaplaceInt::LaplaceInt(BaseFE * aptelem, Double aVal)
+    : BaseForm(aptelem),laplVal_ (aVal)
   {
 #ifdef TRACE
     (*trace) << "entering LaplaceInt::LaplaceInt" << std::endl;
@@ -58,7 +59,7 @@ namespace CoupledField
 
 	partElemMat = xiDx * xiDxTransp;
 	
-	partElemMat *= intWeights[actIntPt-1]*jacDet;
+	partElemMat *= intWeights[actIntPt-1] * jacDet * laplVal_;
 
 #ifdef DEBUG 
 	(*debug) << "Partelemmat on intPt " << actIntPt << std::endl

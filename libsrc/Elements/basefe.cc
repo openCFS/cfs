@@ -88,17 +88,7 @@ void BaseFE :: GetGlobDerivShFncAtIp(Matrix<Double> & Deriv,
 
   CalcInvJacobianAtIp(JInv, ip, CornerCoords);
 
-//  (*debug) << "Local Deriv of shape func:" << std::endl
-// 	   << ShFncDerivAtIp_[ip-1] << std::endl
-// 	   << "inverse Jacobi mat" << std::endl
-// 	   << JInv << std::endl
-// 	   << "corner coords" << std::endl
-// 	   << CornerCoords << std::endl;  
-
   Deriv = ShFncDerivAtIp_[ip-1] * JInv;
-
-//   (*debug) << "Global Deriv of shape func:" << std::endl
-// 	   << Deriv << std::endl;
 
 }
 
@@ -205,11 +195,6 @@ void BaseFE :: CalcInvJacobianAtIp(Matrix<Double> & JInv,
   J = CornerCoords * ShFncDerivAtIp_[ip-1];
 
   J.Invert(JInv);
-
-//  (*debug) << "CalcInvJacobianAtIp: Jac" << std::endl
-// 	  << J << std::endl
-// 	  << "inverse Jacobi mat" << std::endl
-// 	  << JInv << std::endl;
 }
 
 

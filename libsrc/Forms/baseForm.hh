@@ -14,6 +14,9 @@ public:
   //! Constructor
   BaseForm(BaseFE * aptelem, MaterialData & matData);
 
+  //! Constructor
+  BaseForm(BaseFE * aptelem);
+
   //! Deconstructor
   virtual ~BaseForm();
 

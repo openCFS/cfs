@@ -65,8 +65,10 @@ namespace CoupledField
 	  {
 	    ptEl = elemssd[j]->ptElem;
 
-	    BaseForm * bilinear_mass  = new MassInt(ptEl, materialData_[i]);
-	    BaseForm * bilinear_stiff = new LaplaceInt(ptEl, materialData_[i]);
+	    const Double density = materialData_->GetDensity();
+    
+	    BaseForm * bilinear_mass  = new MassInt(ptEl, density);
+	    BaseForm * bilinear_stiff = new LaplaceInt(ptEl, coeffstiff);
 
 	    connecth=elemssd[j]->connect;
 
@@ -75,7 +77,6 @@ namespace CoupledField
 
 	    // stiffness part
 	    bilinear_stiff->CalcElementMatrix(ptCoord, elemmat);
-	    elemmat *= coeffstiff;
 
 #ifdef DEBUG
 	    (*debug) << "Connection array  " << std::endl;

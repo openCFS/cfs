@@ -26,6 +26,12 @@ ElecPDE::ElecPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
   sol_.Init(0);
 
   SetMatrixFactors();
+
+  pdename_    = "elec";
+  pdematerialclass_ = "piezo";
+  
+  conf->getsubdompde(subdoms_,pdename_);
+  ReadBCs(pdename_);
 }
 
 
@@ -104,6 +110,69 @@ ElecPDE::~ElecPDE()
 {
  ;
 }
+
+
+
+void ElecPDE::SetupMatrices(const Integer level)
+{
+#ifdef TRACE
+  (*trace) << "entering ElecPDE::SetupMatrices" << std::endl;
+#endif
+  
+  Matrix<Double> elemmat;  
+  Matrix<Double> ptCoord;
+
+  BaseFE * ptElem;
+
+  if (InfoPrint)
+    (*infofile) << " ------------------------- Element matrices --------------- " << std::endl;
+
+  Vector<Integer> connecth;  
+
+  //reads eps33 (matrix notation starts with 0)
+  Double eps33 = materialData_->GetPermittivity(2,2);
+
+  Integer i, j;
+
+
+  for (i=0; i<subdoms_.size(); i++)
+    {
+      std::vector<Elem*> elemssd;
+   
+      ptgrid_->GetElemSD(elemssd,subdoms_[i],level);
+
+      for (j=0; j < elemssd.size(); j++)
+	{  
+	  ptElem=elemssd[j]->ptElem;
+
+	  BaseForm * bilinear_stiff = new LaplaceInt(ptElem, eps33);
+
+	  connecth=elemssd[j]->connect;
+	  
+	  ptgrid_->GetCoordNodesElemMat(connecth, ptCoord, level);
+
+	  // stiffness part
+	  bilinear_stiff->CalcElementMatrix(ptCoord, elemmat);
+	  
+#ifdef DEBUG
+	  (*debug) << "Stiffnessmatrix, ElementNumber  " <<   i << std::endl;
+	  (*debug) << elemmat << std::endl;
+#endif
+
+	  algsys_->SetElementMatrix(elemmat.getinarray(), connecth.get(), connecth.size(), SYSTEM);
+	  
+	  delete bilinear_stiff;
+	  
+
+	}  
+      
+    }
+
+#ifdef TRACE
+  (*trace) << "Leaving ElecPDE::SetupMatrices" << std::endl;
+#endif
+}
+
 
 } // end of namespace
 

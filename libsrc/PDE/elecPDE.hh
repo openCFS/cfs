@@ -40,10 +40,9 @@ public:
   /*!
     \param level level of grid
    */
-  void SetupMatrices(const Integer level=0)
-  { 
-    Error("Not implemented in base class of Electrostatics",__FILE__,__LINE__);
-  }
+  void SetupMatrices(const Integer level=0);
+  
+
 
   //! solve one step for static problem 
   /*!
