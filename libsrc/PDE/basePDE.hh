@@ -70,6 +70,23 @@ class SpaceErrorEstimator;
     //! read material data
     virtual void ReadMaterialData();
 
+  // The following Methods used durig parameter Identification process!!
+		MaterialData * getPDEMaterialData(){return materialData_;};
+		BaseNodeStoreSol * getPDESolution(){return sol_;};
+		BCs * getPDE_BCs(){return ptBCs_;};
+		BaseSystem * getPDE_algsys(){return algsys_;};
+		Integer getPDE_numElems(){return numElems_;};
+		Integer getPDE_dofspernode(){return dofspernode_;};
+		Integer getPDE_numEQNS(){return dofspernode_;};
+		Integer getPDE_numPDENodes(){return numPDENodes_;};
+		Integer getPDE_spaceDim(){return dim_;};
+
+
+	//	StdVector< StdVector<BaseIntDescriptor *>* > * rhsSrcIntegrators_;
+
+		//StdVector< StdVector<BaseIntDescriptor *>* > * getPDE_rhsSrcIntegrators(){return rhsSrcIntegrators_;};
+		//NodeStoreSol * getPDESolution(){return sol_;};
+
     //! set boundary condition
     //! \param level             level of grid
     //! \param update indicator: do we update boundary condition in algebraic
@@ -166,6 +183,8 @@ class SpaceErrorEstimator;
 
   virtual void StepHarmonicLin(const Integer freqStep, const Double frequency, 
 			       Integer level, const Boolean reset);
+
+	void CreateIncrementedRHSMatrix(Vector<Double> & harmonicRHSVec, const Double frequency,const Integer level);
 
   virtual void StepHarmonicNonLin(const Integer freqStep, const Double frequency, 
 				  Integer level, const Boolean reset)
@@ -361,7 +380,7 @@ class SpaceErrorEstimator;
     Integer dofspernode_;  //!< number of unknowns per node
     Integer dofsperedge_;  //!< number of unknowns per edge
     Integer numPDENodes_;  //!< number of nodes in subdomains
-    Integer numElems_;     //!< number of elements in subdomains 
+    Integer numElems_;     //!< number of elements in subdomains
     Grid * ptgrid_;        //!< pointer to grid object
 
     //! subdomain-levels belonging to PDE
