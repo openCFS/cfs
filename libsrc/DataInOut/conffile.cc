@@ -32,7 +32,8 @@ ConfFile::~ConfFile()
  infile.close();
 }
 
-void ConfFile::get(const std::string keyword, std::string & val)
+template<class TypeVal>
+void ConfFile::get(const std::string keyword, TypeVal & val)
 {
   infile.seekg(0, std::ios::beg);
    std::string buf;
@@ -49,48 +50,14 @@ void ConfFile::get(const std::string keyword, std::string & val)
    infile.seekg(pos1+pos+1, std::ios::beg);
    infile >> val;
 
-  if (pos>=pos_end) error(keyword); 
-}
-
-void ConfFile::get(const std::string keyword, Double & val)
-{
-  infile.seekg(0, std::ios::beg);
-  std::string buf;
-  std::string::size_type pos=std::string::npos,pos1;
-
-  while ( pos == std::string::npos && !infile.eof() )
-  {
-    pos1=infile.tellg();
-    std::getline(infile, buf, '\n');
-    pos=buf.find(keyword);
-  }
-
-   pos=buf.find("=");
-   infile.seekg(pos1+pos+1, std::ios::beg);
-   infile >> val;
-
   if (pos>=pos_end) error(keyword);
 }
 
-void ConfFile::get(const std::string keyword, Integer & val)
-{
-  infile.seekg(0, std::ios::beg);
-  std::string buf;
-  std::string::size_type pos=std::string::npos,pos1;
-
-  while ( pos == std::string::npos && !infile.eof() )
-  {
-    pos1=infile.tellg();
-    std::getline(infile, buf, '\n');
-    pos=buf.find(keyword);
-  }
-
-   pos=buf.find("=");
-   infile.seekg(pos1+pos+1, std::ios::beg);
-   infile >> val;
-
-  if (pos>=pos_end) error(keyword);
-}
+#ifdef __GNUC__
+template void ConfFile::get(const std::string , std::string &);
+template void ConfFile::get(const std::string , Integer &);
+template void ConfFile::get(const std::string , Double &);
+#endif
 
 void ConfFile::error(const std::string keyword) const
 {
