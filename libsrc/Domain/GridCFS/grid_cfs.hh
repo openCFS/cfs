@@ -80,7 +80,6 @@ private:
   BaseElem * ptQ_, * ptTr_;
   //
   Integer ** pptelemsubdom;
-
 };
 
 
