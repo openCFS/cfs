@@ -42,7 +42,7 @@ include $(LIBSRC_DIR)/makefilemach/make.mach.$(MACHINE)
 .f.o:
 	$(F77) -o $@ $(FFLAGS1) $(FFLAGS2) $<
  
-$(program):: $(src:.cc=.o) $(fsrc:.f=.o) makelibs
+$(program):: $(src:.cc=.o) $(fsrc:.f=.o) makelibs 
 	$(CC)  -o $@ $(src:.cc=.o) $(fsrc:.f=.o) -L$(LIB_DIR) -L$(LIB_GRIDLIB)  $(LINKFLAGS2) $(LINKFLAGS3) $(addprefix -l, $(mylibrary)) $(syslib) $(LIB_NAG)
 #
 ########### Go to make library
@@ -64,7 +64,16 @@ ifeq ($(ARCH), LINUX)
 	@echo export LD_LIBRARY_PATH=$(LIB_OWN)
 else
 	@echo Before run of cfs set this variable on SGI:
-	@echo setenv LD_LIBRARYN32_PATH $(LIB_GRIDLIB):$(LIB_OWN)
+	@echo setenv LD_LIBRARYN32_PATH $(LIB_GRIDLIB):$(LIB_OWN)/$(MACHINE)
+endif
+#
+############## Set path to dynamic library
+#
+setvar:
+ifeq ($(ARCH), LINUX)
+	export LD_LIBRARY_PATH=$(LIB_OWN)/$(MACHINE)
+else
+	setenv LD_LIBRARYN32_PATH $(LIB_GRIDLIB):$(LIB_OWN)/$(MACHINE)
 endif
 #
 ######################  Clean work directory
