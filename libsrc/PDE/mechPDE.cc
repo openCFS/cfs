@@ -690,6 +690,8 @@ void MechPDE::CalcAcousticCouplingRHS(StdVector<Elem*> * couplingElems,
 	  while(connecth[actNode] != couplingNodes[nodePos] && nodePos < couplingNodes.GetSize()) 
 	    nodePos++;
 	  elemCouplingSols[nodePos] += forceOnElem[actNode];
+	  std::cout << "MechForec :\n" << forceOnElem[actNode] << std::endl;
+	  
 	}      
     }
 } 

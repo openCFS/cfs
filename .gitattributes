@@ -136,6 +136,7 @@ libsrc/Driver/multiSequenceDriver.cc svneol=native#text/plain
 libsrc/Driver/multiSequenceDriver.hh svneol=native#text/plain
 libsrc/Driver/piezoParamIdent.cc svneol=native#text/plain
 libsrc/Driver/piezoParamIdent.hh svneol=native#text/plain
+libsrc/Driver/singleDriver.cc svneol=native#text/plain
 libsrc/Driver/singleDriver.hh svneol=native#text/plain
 libsrc/Driver/staticAdaptSpaceDriver.cc svneol=native#text/plain
 libsrc/Driver/staticAdaptSpaceDriver.hh svneol=native#text/plain
