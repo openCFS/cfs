@@ -441,4 +441,5 @@ main/DoxygenConfig/header.html svneol=native#text/html
 main/Makefile -text
 main/Makefile.option -text
 main/cfs.cc svneol=native#text/plain
+main/cfshyst.cc svneol=native#text/plain
 main/toDoList.txt svneol=native#text/plain
