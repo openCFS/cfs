@@ -11,6 +11,23 @@
     </xsd:documentation>
   </xsd:annotation>
 
+  <!-- ******************************************************************** -->
+  <!--   Definition of basic data output type -->
+  <!-- ******************************************************************** -->
+
+  <!-- This is an abstract basic type so that it cannot appear in an -->
+  <!-- instance document -->
+  <xsd:complexType name="DT_OutputBasic" abstract="true"/>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of basic data output element -->
+  <!-- ******************************************************************** -->
+
+  <!-- This element is abstract in order to force substitution -->
+  <!-- by the derived specialised PDE elements -->
+  <xsd:element name="OutputBasic" type="DT_OutputBasic" abstract="true"/>
+
 
   <!-- Data type for general geometry specification -->
   <xsd:complexType name="DT_Geometry">
@@ -53,8 +70,7 @@
       </xsd:restriction>
     </xsd:complexContent>
   </xsd:complexType>
-
-
+  
   <!-- Data type for specification of output file format -->
   <xsd:complexType name="DT_Output">
     <xsd:complexContent>
@@ -64,6 +80,8 @@
             <xsd:restriction base="xsd:token">
               <xsd:enumeration value="unv"/>
               <xsd:enumeration value="gmv"/>
+              <xsd:enumeration value="gsi"/>
+              <xsd:enumeration value="database"/>
             </xsd:restriction>
           </xsd:simpleType>
         </xsd:attribute>
@@ -78,6 +96,80 @@
         <xsd:attribute name="fixedGrid" type="DT_CFSBool" use="optional"
           default="no"/>
       </xsd:restriction>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of element GMV output -->
+  <!-- ******************************************************************** -->
+  <xsd:element name="gmv" type="DT_OutputGMV"
+       substitutionGroup="OutputBasic"/>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for GMV output -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_OutputGMV">
+    <xsd:complexContent>
+      <xsd:extension base="DT_OutputBasic">
+        <xsd:sequence>
+          <xsd:element name="fixedGrid" type="DT_CFSBool" minOccurs="0"
+                       maxOccurs="1"/>
+          <xsd:element name="binaryFormat" type="DT_CFSBool" minOccurs="0"
+                       maxOccurs="1"/>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of element GSI output -->
+  <!-- ******************************************************************** -->
+  <xsd:element name="gsi" type="DT_OutputGSI"
+       substitutionGroup="OutputBasic"/>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for GSI output -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_OutputGSI">
+    <xsd:complexContent>
+      <xsd:extension base="DT_OutputBasic">
+        <xsd:sequence>
+          <xsd:element name="binaryFormat" type="DT_CFSBool" minOccurs="0"
+                       maxOccurs="1"/>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of element Database output -->
+  <!-- ******************************************************************** -->
+  <xsd:element name="database" type="DT_OutputDatabase"
+       substitutionGroup="OutputBasic"/>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for GSI output -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_OutputDatabase">
+    <xsd:complexContent>
+      <xsd:extension base="DT_OutputBasic">
+        <xsd:sequence>
+          <xsd:element name="hostName"  type="xsd:string" minOccurs="0"
+                       maxOccurs="1"/>
+          <xsd:element name="databaseName"  type="xsd:string" minOccurs="0"
+                       maxOccurs="1"/>
+          <xsd:element name="userName"  type="xsd:string" minOccurs="0"
+                       maxOccurs="1"/>
+          <xsd:element name="password"  type="xsd:string" minOccurs="0"
+                       maxOccurs="1"/>
+        </xsd:sequence>
+      </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
 
