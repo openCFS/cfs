@@ -4,6 +4,8 @@
 #include <iomanip>
 #include <fstream>
 #include <math.h>
+#include <stdio.h>
+
 //#include <limits.h>
 
 #include "MaterialData.hh"
@@ -57,7 +59,7 @@ namespace CoupledField
     FindMat(fin, charMatName, buffer);
 
     // first line of material record: matNr. matType matName (nonLin)
-    sscanf(buffer,"%*d%s", charMatType);
+    std::sscanf(buffer,"%*d%s", charMatType);
 
     /*
     if (strcmp(charMatType,"magnonlin") == 0)

@@ -109,7 +109,7 @@ void WriteResults::WriteSolMatrix(Grid * ptgrid, const Integer level, const Vect
 
   std::ofstream * matrixOut = new std::ofstream(matFileName.c_str());
   // use scientific output, formatting is much better
-  matrixOut->setf(std::ios_base::scientific, std::ios_base::floatfield);
+  matrixOut->setf(std::ios::scientific, std::ios::floatfield);
   
   if (dim==2) 
     {

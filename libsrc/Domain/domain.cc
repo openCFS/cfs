@@ -152,8 +152,13 @@ void Domain :: InitPDEs()
 //       else if (pdes[i] == "electric3d") 
       else if (pdes[i] == "mechanic")
 	ptpde_[i]=new MechPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
+
       else if (pdes[i] == "electrostatic") 
 	ptpde_[i]=new ElecPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_); 
+
+      else if (pdes[i] == "magnetic") 
+	ptpde_[i]=new MagEdgePDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_); 
+
       else
 	{
 	  std::string msg=pdes[i]+" - this type of pdes is unknown";

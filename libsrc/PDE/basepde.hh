@@ -118,8 +118,7 @@ public:
 
 
   //! Do Postprocessing as descriped in conf file
-  virtual void PostProcess(const Integer level)
-  {Error("Not implemented");}
+  virtual void PostProcess(const Integer level) {;};
   
   //! write results in file
   virtual void WriteResultsInFile()=0;  
@@ -305,6 +304,7 @@ protected:
 
   std::string pdename_; //!< type of PDE (set in the derived classes)
   Integer dofspernode_; //!< number of unknowns per node
+  Integer dofsperedge_; //!< number of unknowns per edge
   std::vector<std::string> subdoms_;  //!< subdomain-levels belongig to PDE
 
   //Material data

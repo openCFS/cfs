@@ -12,5 +12,6 @@
 #include "elec3dPDE.hh"
 #include "acou2dPDE.hh"
 #include "mech2dPDE.hh"
+#include "magEdgePDE.hh"
 
 #endif
