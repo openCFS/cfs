@@ -170,8 +170,8 @@ namespace CoupledField {
         (*io_) << "---- DS666 ----";
         (*io_) << (int) dim << (int) maxnumnodes << (int) maxnumelem;
 
-        std::cerr << "---- DS666 ---- writing dim " << dim << " maxnumnodes "
-                  <<  maxnumnodes << " maxnumelem " << maxnumelem << std::endl;
+	//        std::cerr << "---- DS666 ---- writing dim " << dim << " maxnumnodes "
+	//                  <<  maxnumnodes << " maxnumelem " << maxnumelem << std::endl;
       }
     catch (GSIIOException& e)
       {
@@ -224,8 +224,8 @@ namespace CoupledField {
           }
       
         io_->writeFloatArray(vec, maxnumnodes*3);
-        std::cerr << "---- DS781 ---- writing maxnumnodes*3 floats "
-                  << (maxnumnodes*3) << std::endl;
+	//        std::cerr << "---- DS781 ---- writing maxnumnodes*3 floats "
+	//                  << (maxnumnodes*3) << std::endl;
       }
     catch (GSIIOException& e)
       {
@@ -321,8 +321,8 @@ namespace CoupledField {
         (*io_) << indexe;
 
 
-        std::cerr << "---- DS780 ---- subdoms " << (int) subdoms->GetSize()
-                  << std::endl;
+	//        std::cerr << "---- DS780 ---- subdoms " << (int) subdoms->GetSize()
+	//                  << std::endl;
       }
     catch (GSIIOException& e) 
       {
