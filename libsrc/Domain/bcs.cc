@@ -67,7 +67,9 @@ namespace CoupledField
     //
     // NOTE: This must still be converted !!!
     //
+#ifdef DEBUG
     Info->Warning( "BCs: list_edges an co. not supported by XML!?" );
+#endif
 //    conf->ifgetliststr("list_edges",color_edges_);
 //    if (color_edges_.size()) 
 //      bcsEdges_[0]=new std::vector<Elem*>[color_edges_.size()]; 

@@ -731,7 +731,9 @@ void BasePDE::SetSolverParameters()
   conf->ifget("precondtype", precondIntegerVal,pdename_); //preconditioner
   conf->ifget("matrixstoragetype",matrixStorageTypeVal,pdename_); // matrixStorageTypeVal
 #else
+#ifdef DEBUG
   Info->Warning("SetSolverParameters: Using defaults! No solvers yet in XML!");
+#endif
 #endif
 
 
@@ -862,7 +864,9 @@ void BasePDE::SetSolverParameters()
     conf->ifget("solvertype",solvertype_,pdename_); // solver
     conf->ifget("precondtype", precondtype_,pdename_); //preconditioner
 #else
+#ifdef DEBUG
   Info->Warning("SetSolverParameters: Using defaults! No solvers yet in XML!");
+#endif
 #endif
 #endif
 
@@ -875,7 +879,9 @@ void BasePDE::SetSolverParameters()
   conf->ifget("numeqcoarse",numeqcoarse_,pdename_); // number of equation for coarsing
   conf->ifget("coarsealpha",coarsealpha_,pdename_); // coarsing parameter for AMG
 #else
+#ifdef DEBUG
   Info->Warning("SetSolverParameters: Using defaults! No solvers yet in XML!");
+#endif
 #endif
 
 #ifdef USE_OLAS
