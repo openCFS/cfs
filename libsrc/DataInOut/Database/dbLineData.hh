@@ -41,10 +41,20 @@ public:
     Integer curFLength  = strlen(fields);
     if (curFLength+fnamelength>=fieldlength)	// Allocate new memory
     {
-#ifdef DEBUG
+#ifdef DEBUG2
     (*debug)<<"dbLineData::Set : Allocate new memory"<<std::endl;
 #endif
-      char *newFields = new char[2*fieldlength];
+      char *newFields;
+      if (strlen(fieldname)<fieldlength)
+      {
+        newFields = new char[2*fieldlength];
+        fieldlength=fieldlength*2;
+      }
+      else
+      {
+        newFields = new char[fieldlength+2*strlen(fieldname)];
+        fieldlength += 2*strlen(fieldname);
+      }
       strcpy(newFields,fields);
       delete[] fields;
       fields = newFields;
@@ -59,17 +69,24 @@ public:
     (*debug)<<"dbLineData::Set : Fields="<<fields<<std::endl;
 #endif
 
-    char *valstr = new char[ELEMENTBLOCKSIZE];
-    toString(val,valstr);
+    Integer valstrlen = ELEMENTBLOCKSIZE;
+    char *valstr = new char[valstrlen];
+    toString(val,valstr,valstrlen);
     Integer vallength = strlen(valstr);
     Integer curVLength= strlen(values);
     if (curVLength+vallength>=valuelength)	// Allocate new memory
     {
       char *newValues; 
       if (strlen(valstr)<valuelength)
+      {
         newValues = new char[2*valuelength];
+        valuelength=2*valuelength;
+      }
       else
+      {
         newValues = new char[valuelength+2*strlen(valstr)];
+        valuelength += 2*strlen(valstr);
+      }
       strcpy(newValues,values);
       delete[] values;
       values = newValues;
@@ -123,11 +140,18 @@ public:
     \param val [In] Value to convert
     \param dst [Out] Where to store the string
   */
-  template<class T> void toString(const T val, char* &dst)
+  template<class T> void toString(const T val, char* &dst, int &strsize)
   {
     ENTER_IFCN("dbLineData::toString(class T, char*)");
     std::stringstream sstream;
     sstream<<val;
+    Integer len = sstream.str().length();
+    if (len>=strsize)
+    {
+      delete[] dst;
+      strsize = len+1;
+      dst = new char[strsize];
+    }
     strcpy(dst,sstream.str().c_str());
   };
 
