@@ -87,8 +87,8 @@ include $(LIBSRC_DIR)/makefilemach/make.mach.$(MACHINE)
 # Rules" in the GNU make documentation.
 # -----------------------------------------------------------------------------
 $(program):: $(src:.cc=.o) $(mylibrary)
-	$(CC) $(LFLAGS_EXE) -o $@ $(src:.cc=.o) -L$(LIB_DIR) $(LFLAGS_MACHINE)\
-	$(addprefix -l, $(mylibrary)) \
+	$(LINK) $(LFLAGS_EXE) -o $@ $(src:.cc=.o) -L$(LIB_DIR) \
+	$(LFLAGS_MACHINE) $(addprefix -l, $(mylibrary)) \
 	$(LFLAGS_GLOBAL) $(syslib)
 
 # -----------------------------------------------------------------------------
