@@ -54,16 +54,16 @@ namespace CoupledField {
     // Set number of degrees of freedom and
     // ensure that subtype fits to problem geometry
     if ( subType_ == "3d" && probGeo == "3d" ) {
-      dofspernode_ = 3;
+      dofspernode_ = 4;
       Info->PrintF("", "=== 3D PROBLEM\n");
     }
     else if ( subType_ == "axi" && probGeo == "axi" ) {
       isaxi_ = TRUE;
-      dofspernode_ = 2;
+      dofspernode_ = 3;
       Info->PrintF("", "=== AXISYSMMETRIC PROBLEM\n");
     }
     else if ( subType_ == "plainStrain" && probGeo == "plane" ) {
-	dofspernode_ = 2;
+	dofspernode_ = 3;
 	Info->PrintF("", "=== PLAIN STRAIN PROBLEM\n");
     }
     else {
