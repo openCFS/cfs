@@ -4,18 +4,18 @@
 #include <iostream>
 #include <string>
 
-#include <DataInOut/conffile.hh> 
-#include <Estimator/spaceerror.hh>
-#include <DataInOut/WriteInfo.hh>
-
+#include "DataInOut/conffile.hh"
+#include "Estimator/spaceerror.hh"
+#include "DataInOut/WriteInfo.hh"
+#include "DataInOut/ParamHandling/BaseParamHandler.hh"
 #include "newBasePDE.hh"
 
 
 namespace CoupledField
 {
 
-BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile, WriteResults * aOutFile, 
-		 TimeFunc *aptTimeFunc)
+BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
+		 WriteResults * aOutFile, TimeFunc *aptTimeFunc)
   :nonLin_(FALSE),
    incStopCrit_(1e-2), 
    residualStopCrit_(1e-3),
@@ -69,7 +69,11 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile, WriteResults * a
 
   //get analysis type
   std::string analysis;
+#ifndef XMLPARAMS
   conf->get("analysis", analysis);
+#else
+  params->Get( "type", analysis, "analysis" );
+#endif
 
   //allocate according algebraic system
   algsys_ = new StandardSystem();
@@ -113,10 +117,22 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile, WriteResults * a
 
   //for adaptivity
 
+#ifndef XMLPARAMS
   if (conf->get_option("adaptspace"))
     conf->get("tolerance_space_error", tolSpaceErr_);
   else
     tolSpaceErr_ = .0;
+#else
+  if( params->IsSet( "adaptspace" ) )
+    {
+      params->Get( "tolerance_space_error", tolSpaceErr_ );
+    }
+  else
+    {
+      tolSpaceErr_ = 0;
+    }
+#endif
+
 }
 
 
@@ -174,7 +190,8 @@ void BasePDE::WriteGeneralPDEdefines()
       else
 	dof = 1;
 
-      Info->WriteInHomBC(pdename_, bcs_id_[i], val_id_[i], fncnames_id_[i], dof);	
+      Info->WriteInHomBC( pdename_, bcs_id_[i], val_id_[i], fncnames_id_[i],
+			  dof );	
     }
 
   // Loads
@@ -191,6 +208,7 @@ void BasePDE::WriteGeneralPDEdefines()
 	dof = GetBCDof(loadDof[i]);
       else
 	dof = 1;
+
       Info->WriteLoad(pdename_, loadDom[i], loadVals[i], loadfncs[i], dof);
     }
 }
@@ -205,9 +223,7 @@ void BasePDE::WriteGeneralPDEdefines()
 void BasePDE::SolveStepStatic(const Integer kstep, const Double asteptime,
 			      const Integer level, const Boolean reset)
 {
-#ifdef TRACE
-  (*trace) << "entering BasePDE::SolveStepStatic" << std::endl;
-#endif
+  ENTER_FCN( "BasePDE::SolveStepStatic" );
 
   lasttimecalc_ = asteptime;
   laststepcalc_ = kstep;
@@ -225,9 +241,7 @@ void BasePDE::SolveStepStatic(const Integer kstep, const Double asteptime,
 void BasePDE::StepStaticLin(const Integer kstep, const Double aTime,
 			    const Integer level, const Boolean reset)
 {
-#ifdef TRACE
-  (*trace) << "entering BasePDE::StepStaticLin" << std::endl;
-#endif
+  ENTER_FCN( "BasePDE::StepStaticLin" );
 
   Integer job;
   Double * ptsol;
@@ -536,54 +550,93 @@ void  BasePDE::SetBCs(const Integer level, const Integer update, const Double ti
 
 
 
-void BasePDE::ReadBCs(const std::string eq)
+void BasePDE::ReadBCs( const std::string pde )
 {
 #ifdef TRACE
   (*trace) << " entering BasePDE::ReadBCs " << std::endl;
 #endif
 
 
-  conf->ifgetliststr("homogeneous_dirichlet",bcs_hd_,eq); 
-  conf->ifgetliststr("inhomogeneous_dirichlet",bcs_id_,eq);
-
-  Integer i;
+#ifndef XMLPARAMS
+  conf->ifgetliststr( "homogeneous_dirichlet"  , bcs_hd_, pde ); 
+  conf->ifgetliststr( "inhomogeneous_dirichlet", bcs_id_, pde );
+#else
+  params->GetList( "interface", bcs_hd_, pde, "dirichlet_hom"   );
+  params->GetList( "interface", bcs_id_, pde, "dirichlet_inhom" );
+#endif
 
   val_id_.resize(bcs_id_.size());
   fncnames_id_.resize(bcs_id_.size());
 
-  for(i=0; i<bcs_id_.size(); i++)
-    conf->get2(bcs_id_[i], val_id_[i], fncnames_id_[i], eq,"bc_conditions","inhomogeneous_dirichlet");
+  for( Integer i = 0; i < bcs_id_.size(); i++ )
+    {
+#ifndef XMLPARAMS
+      conf->get2( bcs_id_[i], val_id_[i], fncnames_id_[i], pde, "bc_conditions",
+		  "inhomogeneous_dirichlet" );
+#else
+      Info->Error( "Case of XMLPARAMS not yet implemented!", __FILE__,
+		   __LINE__ );
+#endif
+    }
 }
 
 
 
 void BasePDE::ReadMaterialData()
 {
-#ifdef TRACE
-  (*trace) << "entering  BasePDE::ReadMaterialData" << std::endl;
-#endif
+  ENTER_FCN( "BasePDE::ReadMaterialData" );
+
+#ifndef XMLPARAMS
 
   // read material-file name from config-file
   std::string matFileName;
-  conf->get("material_file", matFileName);
-  charMaterialFileName_ = c_string(matFileName);
-  loadMaterial_ = new LoadMaterialData(charMaterialFileName_);
+  conf->get( "material_file", matFileName );
+  LoadMaterialData loadMaterial( matFileName.c_str() );
 
   //read material data for each subdomain
-  materialData_  = new MaterialData[subdoms_.size()];
+  materialData_ = new MaterialData[subdoms_.size()];
 
   std::string matName;
   for (Integer i=0; i<subdoms_.size(); i++)
     {
       // load material data into array "materialData_"
       conf->getstr(subdoms_[i], matName, "list_subdomains");
-      loadMaterial_->GetMaterial(materialData_[i], matName, pdematerialclass_);
+      loadMaterial.GetMaterial(materialData_[i], matName, pdematerialclass_);
     }
 
-  delete loadMaterial_;
-  
-#ifdef TRACE
-  (*trace) << "leaving BasePDE::ReadMaterialData" << std::endl;
+#else
+
+  // Query name of file with material data
+  std::string matFileName;
+  params->Get( "file", matFileName, "material_data" );
+
+  // Generate new material reader
+  LoadMaterialData loadMaterial( matFileName.c_str() );
+
+  // Allocate space to hold material data for each subdomain of this PDE
+  materialData_ = new MaterialData[subdoms_.size()];
+
+  // Get list of subdomains and materials
+  std::vector< std::string > subdomName;
+  std::vector< std::string > subdomMaterial;
+  params->GetList( "name", subdomName, "domain", "subdom" );
+  params->GetList( "material", subdomMaterial, "domain", "subdom" );
+
+  // Load material data for subdomains on which this PDE lives
+  // from data file
+  for( Integer i = 0; i < subdoms_.size(); i++ )
+    {
+      for( Integer k = 0; k <= subdomName.size(); k++ )
+	{
+	  if( subdoms_[i] == subdomName[k] )
+	    {
+	      loadMaterial.GetMaterial( materialData_[i], subdomMaterial[k],
+					pdematerialclass_ );
+	      break;
+	    }
+	}
+    }
+
 #endif
 
 }

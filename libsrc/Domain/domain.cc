@@ -4,13 +4,15 @@
 #include <vector>
 
 #include "domain.hh"
-#include <Domain/grid.hh>
-#include <Domain/bcs.hh>
-#include <Domain/GridCFS/interface_gridcfs.hh>
-#include <AlgebraicSystem/interface_piles.hh>
-#include <DataInOut/GMV/outGMV.hh>
-#include <CoupledPDE/coupledpdedef.hh>
-#include <CoupledPDE/pdecoupling.hh>
+#include "Domain/grid.hh"
+#include "Domain/bcs.hh"
+#include "Domain/GridCFS/interface_gridcfs.hh"
+#include "AlgebraicSystem/interface_piles.hh"
+#include "DataInOut/GMV/outGMV.hh"
+#include "DataInOut/WriteInfo.hh"
+#include "DataInOut/ParamHandling/BaseParamHandler.hh"
+#include "CoupledPDE/coupledpdedef.hh"
+#include "CoupledPDE/pdecoupling.hh"
 
 #ifdef NETGEN
 #include "interface_netgen.hh"
@@ -21,21 +23,20 @@
 #endif
 
 #ifdef ADAPTGRID
-#include <Domain/AdaptGrid/interface_adgrid.hh>
+#include "omain/AdaptGrid/interface_adgrid.hh"
 #endif
 
-#include <PDE/pdes_header.hh>
-#include <CoupledPDE/coupled_pdes_header.hh>
+#include "PDE/pdes_header.hh"
+#include "CoupledPDE/coupled_pdes_header.hh"
 
-#include <Utils/vector.hh>
-#include <Utils/array.hh>
+#include "Utils/vector.hh"
+#include "Utils/array.hh"
 
 #ifndef NEWBASEPDE
-#include <PDE/basepde.hh>
+#include "PDE/basepde.hh"
 #else
-#include <PDE/newBasePDE.hh>
+#include "PDE/newBasePDE.hh"
 #endif //#ifndef NEWBASEPDE
-
 
 namespace CoupledField
 {
@@ -52,11 +53,16 @@ Domain:: Domain(FileType * const aptFileType, WriteResults * ptOut, TimeFunc * a
  OutFile_    = ptOut;
  ptTimeFunc_ = aptTimeFunc;
 
- Integer i;
+ // Integer i;
  
   // read type of output results from conf-file
+#ifndef XMLPARAMS
  std::string libmesh="cfsgrid";
  conf->ifget("mesh_library",libmesh);
+#else
+ std::string libmesh;
+ params->Get( "mesh_library", libmesh );
+#endif
 
  Integer dim=InFile_->ReadDim();
 
@@ -73,7 +79,11 @@ Domain:: Domain(FileType * const aptFileType, WriteResults * ptOut, TimeFunc * a
 #endif
 
     else
-      Error("Unknown type of mesh_library in conf-file",__FILE__,__LINE__);
+      {
+	std::string errmsg = "Type of mesh_library should be one of ";
+	errmsg += "'cfsgrid' or 'adaptgrid', but is '" + libmesh + "'";
+	Info->Error( errmsg, __FILE__, __LINE__ );
+      }
  }
  
  if (dim==3) 
@@ -135,7 +145,11 @@ void Domain :: InitPDEs()
 
   // get numbers of PDEs in domain
   std::vector<std::string> pdes;
+#ifndef XMLPARAMS
   conf->getliststr("list_pdes",pdes);
+#else
+  params->GetPDEList( pdes );
+#endif
 
   numpde_=pdes.size();
   ptpde_.resize(numpde_);

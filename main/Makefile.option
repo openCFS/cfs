@@ -1,3 +1,9 @@
+###############################################################################
+############# Machine-Indepenent Options for Compilation of CFS++ #############
+###############################################################################
+
+
+##############  Name of executable
 program = cfs
 
 
@@ -22,6 +28,20 @@ HYPRE = no
 
 #Using LAS or OLAS
 LASTYPE = LAS
+
+##############  Use the new BasePDE class?
+USE_NEWBASEPDE=yes
+
+##############  XML Parameter File Handling? With Xerces or without?
+#
+XMLPARAMS=no
+XERCES=yes
+
+##############  Path to includes and libraries for external packages
+#
+ifeq ("$(CVSEXTERNAL)","")
+   CVSEXTERNAL = /home/data/proj/SoftwareLibraries/CVSExternal
+endif
 
 ##############  AdaptGrid 
 #
@@ -58,6 +78,7 @@ ifeq "$(PETSc)" "yes"
 	CPPFLAGS = $(CFLAGS1) $(CFLAGS2) $(CFLAGS3)
 endif
 #
+
 ############## LAS / OLAS
 #
 ifeq "$(LASTYPE)" "OLAS"
@@ -110,5 +131,24 @@ else
 endif
 
 # for compiling new basePDE class
-#CFLAGS2 =
-CFLAGS2 = -DNEWBASEPDE
+ifeq ($(USE_NEWBASEPDE),yes)
+BASEPDEFLAG = -DNEWBASEPDE
+else
+BASEPDEFLAG =
+endif
+
+# XML parameter file handling? With xerces or without?
+ifeq "$(XMLPARAMS)" "yes"
+PARAMHANDLING := -DXMLPARAMS
+ifeq "$(XERCES)" "yes"
+PARAMHANDLING := $(PARAMHANDLING) -DUSE_XERCES -DCVSEXTERNAL='"$(CVSEXTERNAL)"'
+XERCESLIB = -lxerces-c
+endif
+else
+PARAMHANDLING :=
+XERCESLIB =
+endif
+
+
+# Assemble second set of compiler flags
+CFLAGS2 = $(BASEPDEFLAG) $(PARAMHANDLING) -I$(CVSEXTERNAL)/$(MACHINE)/include

@@ -4,6 +4,7 @@
 #include <math.h>
 
 #include <DataInOut/conffile.hh>
+#include <DataInOut/ParamHandling/BaseParamHandler.hh>
 #include <DataInOut/WriteInfo.hh>
 
 #ifdef USE_OLAS
@@ -27,13 +28,9 @@ namespace CoupledField
      actlevel_(0),
      integrators_(0),
      rhsIntegrators_(0),
-    rhsSrcIntegrators_(0)
+     rhsSrcIntegrators_(0)
   {
-#ifdef TRACE
-    (*trace) << "entering Assemble::Assemble " << std::endl;
-#endif
-
-
+    ENTER_FCN( "Assemble::Assemble" );
     firstTime_ = TRUE;
     oneIntIsNonlin_ = FALSE;
     nrMatrices_ = 5+1;  // 5 matrices, but index starts with 1!
@@ -54,9 +51,7 @@ namespace CoupledField
 
   Assemble::~Assemble()
   {
-#ifdef TRACE
-    (*trace) << "entering Assemble::~Assemble " << std::endl;
-#endif
+    ENTER_FCN( "Assemble::~Assemble" );
     
     for (int i=0; i<integrators_.size();i++)
       for (int j=0; j<integrators_[i]->size(); j++)
@@ -74,25 +69,23 @@ namespace CoupledField
 
   Integer Assemble::SubDomIndex(const std::string & subDomName)
   {
-#ifdef TRACE
-    (*trace) << "entering Assemble::SubDomIndex " << std::endl;
-#endif
+    ENTER_FCN( "Assemble::SubDomIndex" );
 
     for (int i=0; i < subdoms_.size();i++)
-      if (subDomName == subdoms_[i])
-	return i;
-    
+      {
+	if (subDomName == subdoms_[i]) return i;
+      }
   
     std::string errOut;
     errOut = "SubDomain " + subDomName + " not defined!";
     Info->Error(errOut, __FILE__, __LINE__);
+
+    return 0;
   }
   
   Integer Assemble::SurfDomIndex(const std::string & surfDomName)
   {
-#ifdef TRACE
-    (*trace) << "entering Assemble::SurfDomIndex " << std::endl;
-#endif
+    ENTER_FCN( "Assemble::SurfDomIndex" );
 
     for (int i=0; i < surfdoms_.size();i++)
       if (surfDomName == surfdoms_[i])
@@ -108,9 +101,7 @@ namespace CoupledField
   void Assemble::GetElemCoords(const Vector<Integer> connect, 
 			       Matrix<Double> &coordMat, const Integer level)
   {
-#ifdef TRACE
-    (*trace) << "entering Assemble:GetElemCoords:" << std::endl;
-#endif
+    ENTER_FCN( "Assemble:GetElemCoords" );
     
     ptgrid_->GetCoordNodesElemMat(connect, coordMat, level);
   
@@ -135,10 +126,9 @@ namespace CoupledField
   // do the basic assembling stuff
   void Assemble::AssembleMatrices(const Integer level)
   {
-#ifdef TRACE
-    (*trace) << "entering Assemble:AssembleMatrices" << std::endl;
-#endif
 
+    ENTER_FCN( "Assemble:AssembleMatrices" );
+    
     Matrix<Double> elemmat;
 
     // initialize reassembling "indicator" vector
@@ -147,7 +137,7 @@ namespace CoupledField
 	reassembleMat_[actMat] = FALSE;
 
     
-     for (int actDom=0; actDom < subdoms_.size(); actDom++)
+    for (int actDom=0; actDom < subdoms_.size(); actDom++)
       {	
 	std::vector<Elem*> elemssd;
 
@@ -177,11 +167,12 @@ namespace CoupledField
 	      GetSolOfElement(elSol, connect_PDE);
 	      
 	    
-	    // =========================================================================
+	    // ================================================================
 	    //                             assemble matrices
-	    // =========================================================================
+	    // ================================================================
 
-	    for(Integer actInteg=0; actInteg < integrators_[actDom]->size(); actInteg++)
+	    for(Integer actInteg=0; actInteg < integrators_[actDom]->size();
+		actInteg++)
 	      {
 		IntegratorDescriptor * actDescriptor =
 		  (*integrators_[actDom])[actInteg];
@@ -252,9 +243,9 @@ namespace CoupledField
 	      GetSolOfElement(elSol, connect_PDE);
 	      
 	    
-	    // =========================================================================
+	    // ================================================================
 	    //                             assemble matrices
-	    // =========================================================================
+	    // ================================================================
 
 	    for(Integer actInteg=0; actInteg < surfintegrators_[actDom]->size(); actInteg++)
 	      {
@@ -308,12 +299,8 @@ namespace CoupledField
   // do the basic assembling stuff
   void Assemble::AssembleSrcRHS(const Integer level, const Double time)
   {
-    
-#ifdef TRACE
-    (*trace) << "entering Assemble:AssembleSrcRHS" << std::endl;
-#endif
+    ENTER_FCN( "Assemble:AssembleSrcRHS" );
     AssembleRHSNodalSources(level, time);
-
     AssembleRHSIntegralSources(level, time);
   }
 
@@ -323,11 +310,10 @@ namespace CoupledField
 
 
   // do the basic assembling stuff
-  void Assemble::AssembleRHSIntegralSources(const Integer level, const Double time)
+  void Assemble::AssembleRHSIntegralSources(const Integer level,
+					    const Double time)
   {
-#ifdef TRACE
-    (*trace) << "entering Assemble:AssembleRHSIntegralSources" << std::endl;
-#endif    
+    ENTER_FCN( "Assemble:AssembleRHSIntegralSources" );
  
      for (Integer actDom=0; actDom <  subdoms_.size(); actDom++)
       {	
@@ -376,9 +362,7 @@ namespace CoupledField
   // do the basic assembling stuff
   void Assemble::AssembleRHSNodalSources(const Integer level, const Double time)
   {
-#ifdef TRACE
-    (*trace) << "entering Assemble:AssembleRHSNodalSources" << std::endl;
-#endif
+    ENTER_FCN( "Assemble:AssembleRHSNodalSources" );
     
     for (int actDom=0; actDom < loadDom_.size(); actDom++)
       {
@@ -417,9 +401,7 @@ namespace CoupledField
   // do the basic assembling stuff
   void Assemble::AssembleNLRHS(const Integer level, const Double time)
   {
-#ifdef TRACE
-    (*trace) << "entering Assemble:AssembleNLRHS" << std::endl;
-#endif
+    ENTER_FCN( "Assemble:AssembleNLRHS" );
 
     Matrix<Double> elemmat;
 
@@ -449,9 +431,9 @@ namespace CoupledField
 	    GetSolOfElement(elSol, connect_PDE);
 	      
 	    
-	    // =========================================================================
+	    // ================================================================
 	    //                             assemble RHS
-	    // =========================================================================
+	    // ================================================================
 
 	    for(Integer actRhsInt=0; actRhsInt < rhsIntegrators_[actDom]->size(); actRhsInt++)
 	      {
@@ -473,24 +455,22 @@ namespace CoupledField
   }
 
 
-Integer Assemble::
-GetBCDof(const std::string dofString)
-{
-#ifdef TRACE
-  (*trace) << "entering MechPDE::GetBCDof " << std::endl;
-#endif
+  Integer Assemble::
+  GetBCDof(const std::string dofString)
+  {
+    ENTER_FCN( "MechPDE::GetBCDof" );
 
-  if (dofString == "ux")
-    return 1;
-  else
-    if (dofString == "uy")
-      return 2;
+    if (dofString == "ux")
+      return 1;
     else
-      if (dofString == "uz")
-	return 3;
+      if (dofString == "uy")
+	return 2;
       else
-	Error("The direction mentioned in the config-file is not implemented! ",__FILE__,__LINE__);
-}
+	if (dofString == "uz")
+	  return 3;
+	else
+	  Error("The direction mentioned in the config-file is not implemented! ",__FILE__,__LINE__);
+  }
 
 
 
@@ -499,15 +479,11 @@ GetBCDof(const std::string dofString)
 			      const Vector<Integer> & MeshNodes,
 			      const std::vector<Integer> & Mesh2PDENode)
   {
-#ifdef TRACE
-    (*trace) << "entering Assemble::Mesh2PDENode " << std::endl;
-#endif
-    
+    ENTER_FCN( "Assemble::Mesh2PDENode" );
     PDENodes.Resize(MeshNodes.size());
-    
     for (Integer i=0; i<MeshNodes.size(); i++) 
       PDENodes[i] = Mesh2PDENode[MeshNodes[i]-1];
-  }  
+  }
 
 
 
@@ -515,6 +491,8 @@ GetBCDof(const std::string dofString)
 
   void Assemble::InitMatrices()
   {
+    ENTER_FCN( "Assemble::InitMatrices" );
+
     // Initialize matrices in order to get BCs correct
     algsys_->InitMatrix(SYSTEM);
 
@@ -535,6 +513,8 @@ GetBCDof(const std::string dofString)
 
   void Assemble::InitNonLinMatrices()
   {
+    ENTER_FCN( "Assemble::InitNonLinMatrices" );
+
     // return, if matrices are not yet assembled
     if (!reassembleMat_.size())
       {
@@ -564,6 +544,7 @@ GetBCDof(const std::string dofString)
 
   void Assemble::CreateMatrices()
   {
+    ENTER_FCN( "Assemble::CreateMatrices" );
     const Integer numconstraints = 0;  // currently not handled
     
 #ifdef USE_OLAS
@@ -615,6 +596,8 @@ GetBCDof(const std::string dofString)
 				  const std::vector<std::string> subdoms,
 				  const std::vector<std::string> surfdoms)
   {
+    ENTER_FCN( "Assemble::SetGeneralParams" );
+
     pdename_     = pdename;
     dofsPerNode_ = dofsPerNode;
     numPDENodes_ = numPDENodes;
@@ -624,20 +607,81 @@ GetBCDof(const std::string dofString)
 
 
     // read load values =========================================
+
+#ifndef XMLPARAMS
     conf->ifgetliststr("loads", loadDom_, pdename_);
     conf->ifgetliststr("loadDof", loadDof_, pdename_);
-    
+
 
     if (dofsPerNode_ != 1)
-      if (loadDom_.size() != loadDof_.size())   //check for load data
-	Error("Inconsistent definition of loads");
+
+      //check for load data
+      if (loadDom_.size() != loadDof_.size())
+	{
+	  std::string errmsg = "Inconsistent definition of loads\n";
+	  errmsg += "Dirichlet Boundary Conditions\n";
+	  errmsg += " loadDom_.size() = " + Info->GenStr(loadDom_.size());
+	  errmsg += "\n loadDof_.size() = " + Info->GenStr(loadDof_.size())
+	    + '\n';
+	  Info->Error( errmsg, __FILE__, __LINE__ );
+	}
     
     loadVals_.resize(loadDom_.size());
     fncname_loads_.resize(loadDom_.size());
 
-    for(int i=0; i < loadDom_.size(); i++)
-      conf->get2(loadDom_[i], loadVals_[i], fncname_loads_[i], pdename_, "bc_conditions","loads");
+    for( int i = 0; i < loadDom_.size(); i++ )
+      {
+	conf->get2(loadDom_[i], loadVals_[i], fncname_loads_[i], pdename_,
+		   "bc_conditions","loads");
+      }
 
+#else
+    params->GetList( "interface", loadDom_, pdename_, "load" );
+    params->GetList( "dof", loadDof_, pdename_, "load" );
+    params->GetList( "value", loadVals_, pdename_, "load" );
+    params->GetList( "dynamics", fncname_loads_, pdename_, "load" );
+
+    // Check consistency
+    if ( loadDom_.size() != loadDof_.size() ||
+	 loadDom_.size() != loadVals_.size() )
+      {
+	std::string errmsg = "Loads: ";
+	errmsg += "#interfaces = " + Info->GenStr(loadDom_.size());
+	errmsg += ", #dof = " + Info->GenStr(loadDof_.size());
+	errmsg += ", #value = " + Info->GenStr(loadVals_.size());
+	errmsg += ", #dynamics = " + fncname_loads_.size() + '\n';
+	Info->Error( errmsg, __FILE__, __LINE__ );
+      }
+
+    // We need not have as many function/filenames as loads!
+    for ( Integer k = fncname_loads_.size(); k < loadDom_.size(); k++ )
+      {
+	fncname_loads_.push_back( "none" );
+      }
+#endif
+
+#ifdef DEBUG
+    (*debug) << "Assemble::SetGeneralParams: We got " << loadDom_.size()
+	     << " interfaces with loads" << std::endl;
+    (*debug) << "Loads: #interfaces = " << loadDom_.size()
+	     << ", #dof = " << loadDof_.size()
+	     << ", #value = " << loadVals_.size()
+	     << ", #dynamics = " << fncname_loads_.size() << std::endl;
+    for ( unsigned int k = 0; k < loadDom_.size(); k++ )
+      {
+	(*debug) << "Loads: interface = " << loadDom_[k]
+		 << ", dof = " << loadDof_[k]
+		 << ", value = " << loadVals_[k];
+	if ( k < fncname_loads_.size() )
+	  {
+	    (*debug) << ", dynamics = " << fncname_loads_[k] << std::endl;
+	  }
+	else
+	  {
+	    (*debug) << ", dynamics = " << std::endl;
+	  }
+      }
+#endif
 
     // for every domain, we need an own integrator list ==========
     integrators_.resize(subdoms_.size());
@@ -661,10 +705,9 @@ GetBCDof(const std::string dofString)
   //  void Assemble::SetupMatrixGraph(Integer numeq, Integer graphType)
   void Assemble::SetupMatrixGraph(Integer numeq)
   {
-#ifdef TRACE
-    (*trace) << "entering Assemble::SetupMatrixGraph" << std::endl;
-#endif
+    ENTER_FCN( "Assemble::SetupMatrixGraph" );
     
+
   //initialize matrix graph
  
 #ifdef USE_OLAS
@@ -694,7 +737,6 @@ GetBCDof(const std::string dofString)
       for (iel=0; iel < elemssd.size(); iel++)
 	{  
 	  ptElem=elemssd[iel]->ptElem;
-	  
 	  //Map Mesh Node numbers to PDE node numbers
 	  Mesh2PDENode(connecth,elemssd[iel]->connect, *mesh2PDENode_);
 
@@ -702,22 +744,19 @@ GetBCDof(const std::string dofString)
 	  algsys_->SetElementPos(connecth.get(),connecth.size(),fe_type);
 	}
     }
-
-}
+  }
 
 
 
   Integer Assemble::GetNrBCDof(const std::string & dofStartString)
   {
-#ifdef TRACE
-    (*trace) << "entering Analysis::GetNrBCDof" << std::endl;
-#endif
+    ENTER_FCN( "Analysis::GetNrBCDof" );
     
-    Integer nrActDof;
+    Integer nrActDof = 0;
     
     if (dofStartString == "ux")
       nrActDof = 1;
-    else 
+    else
       if (dofStartString == "uy")
 	nrActDof = 2;
       else
@@ -734,48 +773,43 @@ GetBCDof(const std::string dofString)
   
 
 
-void Assemble::
-GetSolOfElement( Matrix<Double>& elDisp, Vector<Integer>& connect_PDE)
-{
-#ifdef TRACE
-    (*trace) << "entering Assemble::GetSolOfElement" << std::endl;
-#endif
+  void Assemble::
+  GetSolOfElement( Matrix<Double>& elDisp, Vector<Integer>& connect_PDE)
+  {
+    ENTER_FCN( "Assemble::GetSolOfElement" );
 
-  // displacement of element nodes
-  elDisp.Resize(dofsPerNode_, connect_PDE.size());
+    // displacement of element nodes
+    elDisp.Resize(dofsPerNode_, connect_PDE.size());
 
-  for (Integer dim=0; dim<dofsPerNode_; dim++)
-    for(Integer actNode=0; actNode<connect_PDE.size(); actNode++)
-      elDisp[dim][actNode] = (*sol_)[dim][connect_PDE[actNode]-1];
-}
+    for (Integer dim=0; dim<dofsPerNode_; dim++)
+      for(Integer actNode=0; actNode<connect_PDE.size(); actNode++)
+	elDisp[dim][actNode] = (*sol_)[dim][connect_PDE[actNode]-1];
+  }
 
 
 
 
-/// define integrators
-void Assemble::AddRhsIntegrator(BaseForm * integrator, const std::string & subDomName, 
-				const Integer nonLin)
-{
-#ifdef TRACE
-  (*trace) << "entering Assemble::AddRhsIntegrator " << std::endl;
-#endif
-
+  // define integrators
+  void Assemble::AddRhsIntegrator(BaseForm * integrator,
+				  const std::string & subDomName, 
+				  const Integer nonLin)
+  {
+    ENTER_FCN( "Assemble::AddRhsIntegrator" );
     BaseIntDescriptor * actRhsID = new  BaseIntDescriptor(integrator, nonLin);
     rhsIntegrators_[SubDomIndex(subDomName)]->push_back(actRhsID);
   }
 
 
-void Assemble::AddRhsSrcIntegrator(BaseForm * integrator, const std::string & subDomName, 
-				   const std::string fncname, const Integer nonLin)
-{
-#ifdef TRACE
-  (*trace) << "entering Assemble::AddRhsSrcIntegrator " << std::endl;
-#endif
-
-  BaseIntDescriptor * actRhsID = new  BaseIntDescriptor(integrator, nonLin);
-  rhsSrcIntegrators_[SubDomIndex(subDomName)]->push_back(actRhsID);
-  fncname_rhs_[SubDomIndex(subDomName)] = fncname;
-}
+  void Assemble::AddRhsSrcIntegrator(BaseForm * integrator,
+				     const std::string & subDomName, 
+				     const std::string fncname,
+				     const Integer nonLin)
+  {
+    ENTER_FCN( "Assemble::AddRhsSrcIntegrator" );
+    BaseIntDescriptor * actRhsID = new  BaseIntDescriptor(integrator, nonLin);
+    rhsSrcIntegrators_[SubDomIndex(subDomName)]->push_back(actRhsID);
+    fncname_rhs_[SubDomIndex(subDomName)] = fncname;
+  }
 
 
   // ==========================================================
@@ -786,6 +820,7 @@ void Assemble::AddRhsSrcIntegrator(BaseForm * integrator, const std::string & su
   StaticAssemble::StaticAssemble(BaseSystem * algsys, Grid * agrid)
     :Assemble(algsys, agrid)
   {
+    ENTER_FCN( "StaticAssemble::StaticAssemble" );
     graphType_    = NODEGRAPH; 
   }
   
@@ -818,13 +853,14 @@ void Assemble::AddRhsSrcIntegrator(BaseForm * integrator, const std::string & su
   }
 
 #else
-  /// define integrators
-  void StaticAssemble::AddIntegrator(BaseForm * integrator, const std::string & subDomName,
-					const enum MatrixType destinationMatrix, const Integer nonLin)
+  // define integrators
+  void StaticAssemble::AddIntegrator(BaseForm * integrator,
+				     const std::string & subDomName,
+				     const enum MatrixType destinationMatrix,
+				     const Integer nonLin)
   {
-#ifdef TRACE
-    (*trace) << "entering StaticAssemble::AddIntegrator " << std::endl;
-#endif
+    ENTER_FCN( "StaticAssemble::AddIntegrator" );
+
     MatrixType actMatType = destinationMatrix;
     
     if (actMatType == STIFFNESS)
@@ -833,10 +869,11 @@ void Assemble::AddRhsSrcIntegrator(BaseForm * integrator, const std::string & su
     if (actMatType !=  SYSTEM)
       return;
 
-    IntegratorDescriptor * actID = new IntegratorDescriptor(integrator, actMatType, nonLin);
+    IntegratorDescriptor * actID =
+      new IntegratorDescriptor(integrator, actMatType, nonLin);
     integrators_[SubDomIndex(subDomName)]->push_back(actID);
-
   }
+
 
 #endif
 
@@ -866,12 +903,14 @@ void Assemble::AddRhsSrcIntegrator(BaseForm * integrator, const std::string & su
   }
 #else
   /// define integrators
-  void StaticAssemble::AddSurfIntegrator(BaseForm * integrator, const std::string & subDomName,
-					const enum MatrixType destinationMatrix, const Integer nonLin)
+  void
+  StaticAssemble::AddSurfIntegrator(BaseForm * integrator,
+				    const std::string & subDomName,
+				    const enum MatrixType destinationMatrix,
+				    const Integer nonLin)
   {
-#ifdef TRACE
-    (*trace) << "entering StaticAssemble::AddSurfIntegrator " << std::endl;
-#endif
+    ENTER_FCN( "StaticAssemble::AddSurfIntegrator" );
+
     MatrixType actMatType = destinationMatrix;
     
     if (actMatType == STIFFNESS)
@@ -880,21 +919,19 @@ void Assemble::AddRhsSrcIntegrator(BaseForm * integrator, const std::string & su
     if (actMatType !=  SYSTEM)
       return;
 
-    IntegratorDescriptor * actID = new IntegratorDescriptor(integrator, actMatType, nonLin);
+    IntegratorDescriptor * actID =
+      new IntegratorDescriptor(integrator, actMatType, nonLin);
+
     surfintegrators_[SurfDomIndex(subDomName)]->push_back(actID);
   }
 #endif
 
-
-
-  /// define integrators
-  void StaticAssemble::AddIntegrator(IntegratorDescriptor * actID, const std::string & subDomName)
+  // define integrators
+  void StaticAssemble::AddIntegrator(IntegratorDescriptor * actID,
+				     const std::string & subDomName)
   {
-#ifdef TRACE
-    (*trace) << "entering StaticAssemble::AddIntegrator " << std::endl;
-#endif
-    
-    
+    ENTER_FCN( "StaticAssemble::AddIntegrator" );
+
     if (actID->DestMat() == STIFFNESS)
       actID->SetDestMat(SYSTEM);
 
@@ -914,12 +951,11 @@ void Assemble::AddRhsSrcIntegrator(BaseForm * integrator, const std::string & su
   TransientAssemble::TransientAssemble(BaseSystem * algsys, Grid * agrid)
     :Assemble(algsys, agrid)
   {
-     graphType_    = NODEGRAPH; 
-
+    ENTER_FCN( "TransientAssemble::TransientAssemble" );
+    graphType_    = NODEGRAPH; 
     stiffnessMatrix_  = TRUE;
     massMatrix_       = TRUE;
   }
-
 
 
 #ifdef USE_OLAS 
@@ -947,7 +983,8 @@ void Assemble::AddRhsSrcIntegrator(BaseForm * integrator, const std::string & su
     if (destinationMatrix == SYSTEM)
       Info->Error("In transient assembling, no SYSTEM matrix may be defined directly", __FILE__, __LINE__);
 
-    IntegratorDescriptor * actID = new IntegratorDescriptor(integrator, destinationMatrix, nonLin);
+    IntegratorDescriptor * actID =
+      new IntegratorDescriptor(integrator, destinationMatrix, nonLin);
     integrators_[SubDomIndex(subDomName)]->push_back(actID);
   }
 #endif
@@ -969,29 +1006,34 @@ void Assemble::AddRhsSrcIntegrator(BaseForm * integrator, const std::string & su
   }
 #else
 
-  /// define integrators
-  void TransientAssemble::AddSurfIntegrator(BaseForm * integrator, const std::string & subDomName,
-					const enum MatrixType destinationMatrix, const Integer nonLin)
+
+  // define integrators
+  void
+  TransientAssemble::AddSurfIntegrator(BaseForm * integrator,
+				       const std::string & subDomName,
+				       const enum MatrixType destinationMatrix,
+				       const Integer nonLin)
   {
-#ifdef TRACE
-    (*trace) << "entering TransientAssemble::AddSurfIntegrator " << std::endl;
-#endif
+    ENTER_FCN( "TransientAssemble::AddSurfIntegrator" );
+
     if (destinationMatrix == SYSTEM)
       Info->Error("In transient assembling, no SYSTEM matrix may be defined directly", __FILE__, __LINE__);
-
-    IntegratorDescriptor * actID = new IntegratorDescriptor(integrator, destinationMatrix, nonLin);
+    
+    IntegratorDescriptor * actID =
+      new IntegratorDescriptor(integrator, destinationMatrix, nonLin);
     surfintegrators_[SurfDomIndex(subDomName)]->push_back(actID);
   }
 #endif
 
 
 
-  /// define integrators
-  void TransientAssemble::AddIntegrator(IntegratorDescriptor * actID, const std::string & subDomName)
+
+  // define integrators
+  void TransientAssemble::AddIntegrator(IntegratorDescriptor * actID,
+					const std::string & subDomName)
   {
-#ifdef TRACE
-    (*trace) << "entering TransientAssemble::AddIntegrator " << std::endl;
-#endif
+    ENTER_FCN( "TransientAssemble::AddIntegrator" );
+
     if (actID->DestMat() == SYSTEM)
       Info->Error("In transient assembling, no SYSTEM matrix may be defined directly", __FILE__, __LINE__);
 
@@ -1000,41 +1042,29 @@ void Assemble::AddRhsSrcIntegrator(BaseForm * integrator, const std::string & su
 
 
 
-
   // ==========================================================
   // RHS INTEGRATOR DESCRIPTOR
   // ==========================================================
 
-BaseIntDescriptor::BaseIntDescriptor()
-  :integrator(NULL),
-   nonLin(FALSE)
-{
-#ifdef TRACE
-    (*trace) << "entering BaseIntDescriptor::BaseIntDescriptor" << std::endl;
-#endif
+  BaseIntDescriptor::BaseIntDescriptor() : integrator(NULL), nonLin(FALSE)
+  {
+    ENTER_FCN( "BaseIntDescriptor::BaseIntDescriptor" );
   }
-
 
   BaseIntDescriptor::~BaseIntDescriptor()
   {
-#ifdef TRACE
-    (*trace) << "entering BaseIntDescriptor::~BaseIntDescriptor" << std::endl;
-#endif
-
+    ENTER_FCN( "BaseIntDescriptor::~BaseIntDescriptor" );
     if (integrator)
       delete integrator;
   }
   
 
-  /// define integrators
-  BaseIntDescriptor::BaseIntDescriptor(BaseForm * aIntegrator, const Boolean aNonLin)
-    :integrator(aIntegrator),
-     nonLin(aNonLin)
+  // define integrators
+  BaseIntDescriptor::BaseIntDescriptor(BaseForm * aIntegrator,
+				       const Boolean aNonLin)
+    : integrator(aIntegrator), nonLin(aNonLin)
   {
-#ifdef TRACE
-    (*trace) << "entering BaseIntDescriptor::BaseIntDescriptor " << std::endl;
-#endif
-
+    ENTER_FCN( "BaseIntDescriptor::BaseIntDescriptor " );
   }
   
 
@@ -1044,18 +1074,15 @@ BaseIntDescriptor::BaseIntDescriptor()
   // INTEGRATOR DESCRIPTOR
   // ==========================================================
 
-
   IntegratorDescriptor::IntegratorDescriptor()
     :BaseIntDescriptor(),
      destinationMatrix(SYSTEM),
      secondaryMatrix(NOTYPE),
      secMatFac(0.0)
-{
-#ifdef TRACE
-  (*trace) << "entering IntegratorDescriptor::IntegratorDescriptor " << std::endl;
-#endif
-}
-  
+  {
+    ENTER_FCN( "IntegratorDescriptor::IntegratorDescriptor" );
+  }
+
 
 #ifdef USE_OLAS
   /// define integrators
@@ -1074,50 +1101,25 @@ BaseIntDescriptor::BaseIntDescriptor()
 #else
   /// define integrators
   IntegratorDescriptor::IntegratorDescriptor(BaseForm * aIntegrator, 
-					     const enum MatrixType aDestMat, const Boolean aNonLin)
+					     const enum MatrixType aDestMat,
+					     const Boolean aNonLin)
     :BaseIntDescriptor(aIntegrator, aNonLin),
      destinationMatrix(aDestMat),
      secondaryMatrix(NOTYPE),
      secMatFac(0.0)
-{
-#ifdef TRACE
-  (*trace) << "entering IntegratorDescriptor::IntegratorDescriptor" << std::endl;
-#endif
+  {
+    ENTER_FCN( "IntegratorDescriptor::IntegratorDescriptor" );
   }
   
 #endif
-
-
-
 
 
   IntegratorDescriptor::~IntegratorDescriptor()
   {
+    ENTER_FCN( "IntegratorDescriptor::~IntegratorDescriptor" );
     if (integrator)
       delete integrator;
   }
-  
 
 
 } // end namespace CoupledField
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -70,7 +70,8 @@ public:
     \param numlevel (input) index for multilevel hierarchy
     \param subdoms (input) contains the names of the subdomains
   */
-  virtual Integer GetMaxnumElem(const Integer numlevel, const std::vector<std::string> & subdoms);
+  Integer GetMaxnumElem( const Integer numlevel,
+			 const std::vector<std::string> &subdoms );
 
   //! return dimension of grid
   Integer GetDim() { return dim_;}
@@ -95,7 +96,8 @@ public:
     \param ptCoord (output) coordinates of the element nodes (nrNodes \f$\times$ spaceDim);
     \param level (input) index for multilevel hierarchy
   */
-  virtual void GetCoordNodesElemMat(const Vector<Integer> connect, Matrix<Double>& coordMat, const Integer level);
+  void GetCoordNodesElemMat( const Vector<Integer> connect,
+			     Matrix<Double>& coordMat, const Integer level );
   
 
 

@@ -9,6 +9,7 @@
 #include <Domain/grid.hh>
 #include <Elements/elements_header.hh>
 #include <DataInOut/conffile.hh>
+#include <DataInOut/ParamHandling/BaseParamHandler.hh>
 
 namespace CoupledField
 {
@@ -22,7 +23,12 @@ template<Integer dim>
 
   InFile = aptFileType;
 
+#ifndef XMLPARAMS
   conf->getsubdom(sd_);
+#else
+  params->GetList( "name", sd_, "domain", "subdom" );
+#endif
+
   elems_=new std::vector<Elem*>[sd_.size()];  
 
   elNeighbors_=NULL;

@@ -5,6 +5,7 @@
 #include "Elements/elements_header.hh"
 #include "grid.hh"
 #include "DataInOut/conffile.hh"
+#include "DataInOut/ParamHandling/BaseParamHandler.hh"
 
 namespace CoupledField
 {
@@ -30,7 +31,12 @@ Grid::Grid(FileType * aptFileType)
 
   lastlevel_=0;
 
+#ifndef XMLPARAMS
   conf->getsubdom(listSD_);
+#else
+  params->GetList( "name", listSD_, "domain", "subdom" );
+#endif
+
 }
 
 

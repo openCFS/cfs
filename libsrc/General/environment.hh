@@ -12,25 +12,38 @@
 #endif
 
 
+//! \file environment.hh
+//! This file contains some global macro, class and enumeration data type
+//! definitions for CFS++.
 
 namespace CoupledField
 {
 
-  //! redeclaration of types
-typedef int Integer;
-typedef short ShortInt;
-typedef float Float;
-typedef double Double;
-typedef char Char;
-typedef int Boolean;
+  //! Temporary macro definition.
 
+  //! Temporary definition of the ENTER_FCN macro. The real code will be added
+  //! by Andreas Hauck on his branch
+#ifdef TRACE
+#define ENTER_FCN(a) (*trace) << "Entering " << a << std::endl;
+#else
+#define ENTER_FCN(a)
+#endif
+
+  //! redeclaration of types
+  typedef int Integer;
+  typedef short ShortInt;
+  typedef float Float;
+  typedef double Double;
+  typedef char Char;
+  typedef int Boolean;
+  
 #define FALSE 0
 #define TRUE 1
 
 #define myEndl std::endl
 #define myCout std::cout
 
-typedef Double (*pFncWith1Var)(const Double);
+  typedef Double (*pFncWith1Var)(const Double);
 
 #define myEndl std::endl
 #define myCout std::cout
@@ -44,7 +57,7 @@ typedef Double (*pFncWith1Var)(const Double);
   const Double PI = acos(-1.0);
   const Double NORM_EPS = 1e-6;  // needed e.g. for lower bounds of norms in iteration loops
   const Double EPS = 1e-12;     // value for absolute precision (needed e.g. for lower bounds of norms in iteration loops)
-  
+
 
   //! declaration sof functions. it is used in parsing functions from conf-file
   typedef Double (*pfn1var)(const Double);
@@ -56,59 +69,55 @@ typedef Double (*pFncWith1Var)(const Double);
   //! print grid only and then exit
   extern Boolean PrintGridOnly;
 
-// #ifndef assert
-// #define assert(ex) \
-//        (void)((ex) ? 1 : \
-//              (_error("Failed assertion " #ex " at line %d of `%s'.\n", \
-//               __LINE__, __FILE__), 0))
-// #endif
 
   //! enumeration with elements types.
   enum ElementType{Line1, Triang1, Triang2, Quadrilateral1, Quadrilateral2};
+
   //! enumeration with integration types. it is used in Elements classes
-  enum IntegrationType {GaussOrder1, GaussOrder2, GaussOrder3, GaussOrder4, GaussOrder5, GaussOrder7, null};
+  enum IntegrationType {GaussOrder1, GaussOrder2, GaussOrder3, GaussOrder4,
+			GaussOrder5, GaussOrder7, null};
 
   //! enumeration precondition's types. it is used in methods of LinAlg
   enum precond { non, Jacobi, SSOR, LU}; 
-  std::ostream & operator << (std::ostream & out, const enum precond & type);
-  
+
+  std::ostream& operator << (std::ostream & out, const enum precond & type);
   std::ostream& operator << (std::ostream & outStr, std::vector<Double> xOut);
   std::ostream& operator << (std::ostream & outStr, std::vector<Integer> xOut);
 
-  // Damping type
+  //! Damping type
   enum DampingType{NONE=0, RAYLEIGH=1, FRACTIONAL=2, ABCDamp=3};
 
-  // Enumeration for Input Coupling types
-  //   COORD = Coupling via coordinate displacement
-  //   RHS   = Coupling via Right hand side
-  //   ID_BC = Coupling via inhomogenous dirichlet bc
-  //   MAT   = Coupling via material change
+  //! Enumeration for Input Coupling types
+  //! COORD = Coupling via coordinate displacement
+  //! RHS   = Coupling via Right hand side
+  //! ID_BC = Coupling via inhomogenous dirichlet bc
+  //! MAT   = Coupling via material change
   enum CouplingInputType{COORD, RHS, ID_BC, MAT};
 
-  // Enumeration for Output Coupling types
-  //   ELEM = Coupling via element quantities
-  //   NODE = Coupling via node quantities
+  //! Enumeration for Output Coupling types
+  //! ELEM = Coupling via element quantities
+  //! NODE = Coupling via node quantities
   enum CouplingOutputType{NODE, ELEM};
 
-  // Enumeration for types of coupling regions
-  //   SUBDOMAIN = Coupling region is whole Subdomain
-  //   NODES = Coupling region is specified as nodes in .conf file
-  //   ELEMS1D = Coupling region is specified as 1D-Interface
-  //   ELEMS2D = Coupling region is specified as 2D-interface
+  //! Enumeration for types of coupling regions
+  //! SUBDOMAIN = Coupling region is whole Subdomain
+  //! NODES = Coupling region is specified as nodes in .conf file
+  //! ELEMS1D = Coupling region is specified as 1D-Interface
+  //! ELEMS2D = Coupling region is specified as 2D-interface
   enum CouplingRegionType{SUBDOMAIN, NODES, ELEMS1D, ELEMS2D};
 
-  // Enumeration for types of norms
-  //   L2ABS = absolute L2-norm
-  //   L2REL = relative L2 norm: (|val| - |oldval|) / |val|
+  //! Enumeration for types of norms
+  //! L2ABS = absolute L2-norm
+  //! L2REL = relative L2 norm: (|val| - |oldval|) / |val|
   enum NormType {L2ABS, L2REL};
 
-  // Enumeration for directions
-  // direction of various fields 
-  // "Rad" means readial, following two letters indicate the stress-plane
+  //! Enumeration for directions
+  //! direction of various fields 
+  //! "Rad" means readial, following two letters indicate the stress-plane
   enum Directions {X, Y, Z, radXY, radXZ, radYZ};
 
-  /// orientation of calculation plane in 2D 
-  //  (especially important for anisotropic simulations)
+  //! orientation of calculation plane in 2D
+  //! (especially important for anisotropic simulations)
   enum orientation2D {xy, xz, yz};
 
   std::ostream & operator << (std::ostream & out, const enum precond & type);
@@ -117,6 +126,7 @@ typedef Double (*pFncWith1Var)(const Double);
 
   //NOTE: OLAS uses the namespace 'OutInfo' for writing out
   // data into the cla, trace, ... stream. They are declared in the
+
 
 #ifdef USE_OLAS
   // Only experimental up to now
@@ -134,19 +144,25 @@ typedef Double (*pFncWith1Var)(const Double);
 #endif
 
   class WriteInfo;
-  extern WriteInfo * Info; //class for log informations
+  //! Global pointer to class performing logging to info file
+  extern WriteInfo *Info;
 
-class ConfFile;
-  //! pointer to class with methods for reading config-file. it is accessable from any place of the program
-extern ConfFile * conf; //name.conf
+  class ConfFile;
+  //! pointer to class with methods for reading config-file. it is accessable
+  //! from any place of the program
+  extern ConfFile *conf; //name.conf
 
-  //class BaseElem;
+  class BaseParamHandler;
+  //! Global pointer to class performing handling of steering parameters
+  extern BaseParamHandler *params;
+
+  //! class BaseElem;
   class BaseFE;
 
-  //! pointers to derived classes of BaseElem. it is initialized in grid.hh(grid.cc). 
-  /// It is used, when we read information about elements from mesh and create pointer to class with description FE element.
-  //extern BaseElem * ptQ, *ptTr, *ptTet, *ptL1, *ptHexa;
-
+  //! Pointers to derived classes of BaseElem. Initialized in grid.hh/grid.cc.
+  //! They are used, when we read information about elements from mesh and
+  //! create a pointer to the class containing the description of the Finite
+  //! Element.
   extern BaseFE *ptQ, *ptQ2, *ptL1, *ptL2, *ptTet, *ptTr1, *ptTr2, *ptHexa, *ptPyra, *ptWedge;
 
   //! class for flags of programm
@@ -163,26 +179,26 @@ extern ConfFile * conf; //name.conf
   };
   
   extern Flags * flags;
+
+  //! parameters necessary to describe coils
+
+  enum COILTYPE {MEASUREMENT,CURRENT,VOLTAGE};
+  
+  struct coilDefStruct
+  {
+    int ID;
+    double  current;
+    double  voltage;
+    double  coilArea;
+    double  resistance;
+    double  phase;
+    std::string timefnc;
+    COILTYPE type;
+    std::string Lfile;
+    std::string UIfile;
+  };
+
 }
 
-
-//! parameters necessary to describe coils
-
-enum COILTYPE {MEASUREMENT,CURRENT,VOLTAGE};
-
-struct coilDefStruct
-{
-  int ID;
-  double  current;
-  double  voltage;
-  double  coilArea;
-  double  resistance;
-  double  phase;
-  std::string timefnc;
-  COILTYPE type;
-  std::string Lfile;
-  std::string UIfile;
-};
-  
 
 #endif // FILE_SCFE_MYDEFS

@@ -5,37 +5,81 @@
 
 #include "bcs.hh"
 #include <DataInOut/conffile.hh>
+#include <DataInOut/ParamHandling/BaseParamHandler.hh>
 
 namespace CoupledField
 {
 
-BCs :: BCs(FileType * const aInFile)
-{
+  // ***************************************************
+  //   Old constructor version using conffile approach
+  // ***************************************************
+#ifndef XMLPARAMS
+  BCs :: BCs(FileType * const aInFile)
+  {
 #ifdef TRACE
-  (*trace) << "entering BCs::BCs" << std::endl;
+    (*trace) << "entering BCs::BCs" << std::endl;
 #endif
- InFile_     = aInFile; 
+    InFile_     = aInFile; 
 
  Integer i;
  for (i=0; i<NUMLEVELGRID; i++) { bcs_[i]=NULL; bcsEdges_[i]=NULL; bcsFaces_[0]=NULL; bcsNeighElems_[0]=NULL;}
-  
- conf->ifgetliststr("list_nodes",levels_);
- if (levels_.size()) 
-   bcs_[0]=new std::list<Integer>[levels_.size()];
+    conf->ifgetliststr("list_nodes",levels_);
+    if (levels_.size()) 
+      bcs_[0]=new std::list<Integer>[levels_.size()];
  
- conf->ifgetliststr("list_edges",color_edges_);
- if (color_edges_.size()) 
-   bcsEdges_[0]=new std::vector<Elem*>[color_edges_.size()]; 
+    conf->ifgetliststr("list_edges",color_edges_);
+    if (color_edges_.size()) 
+      bcsEdges_[0]=new std::vector<Elem*>[color_edges_.size()]; 
 
- conf->ifgetliststr("list_faces",color_faces_);
- if (color_faces_.size()) 
-   bcsFaces_[0]=new std::vector<Elem*>[color_faces_.size()]; 
+    conf->ifgetliststr("list_faces",color_faces_);
+    if (color_faces_.size()) 
+      bcsFaces_[0]=new std::vector<Elem*>[color_faces_.size()]; 
 
- conf->ifgetliststr("list_neighelems",color_neighelems_);
- if (color_neighelems_.size())
-   bcsNeighElems_[0]=new std::vector<Elem*>[color_neighelems_.size()];
- 
-}
+    conf->ifgetliststr("list_neighelems",color_neighelems_);
+    if (color_neighelems_.size())
+      bcsNeighElems_[0]=new std::vector<Elem*>[color_neighelems_.size()];
+  }
+
+#else
+
+  // ********************************************************
+  //   New constructor version using XML parameter handling
+  // ********************************************************
+  BCs :: BCs(FileType * const aInFile) : InFile_(aInFile)
+  {
+    ENTER_FCN( "BCs::BCs" );
+
+    // Initialise internal pointer arrays
+    for( Integer i = 0; i < NUMLEVELGRID; i++ )
+      {
+	bcs_[i] = NULL;
+	bcsEdges_[i] = NULL;
+      }
+
+    // Get list of interfaces
+    params->GetList( "interface_name", levels_, "domain" );
+    if( levels_.size() > 0 )
+      {
+	bcs_[0] = new std::list<Integer>[levels_.size()];
+      }
+
+    //
+    // NOTE: This must still be converted !!!
+    //
+    conf->ifgetliststr("list_edges",color_edges_);
+    if (color_edges_.size()) 
+      bcsEdges_[0]=new std::vector<Elem*>[color_edges_.size()]; 
+
+    conf->ifgetliststr("list_faces",color_faces_);
+    if (color_faces_.size()) 
+      bcsFaces_[0]=new std::vector<Elem*>[color_faces_.size()]; 
+
+    conf->ifgetliststr("list_neighelems",color_neighelems_);
+    if (color_neighelems_.size())
+      bcsNeighElems_[0]=new std::vector<Elem*>[color_neighelems_.size()];
+  }
+#endif
+
 
 BCs :: ~BCs()
 {
@@ -220,23 +264,24 @@ Integer BCs::GetNumNodesLevel(const std::string color, const Integer lev)
 #endif
    Boolean Found = FALSE;
 
-  Integer level=lev;
-  if (lev==-1) level=toplevel_; 
- Integer i;
- for (i=0; i<levels_.size(); i++)
-  if (color==levels_[i]) 
-    {
-      Found = TRUE;
-      break;
-    }
+   Integer level=lev;
+   if (lev==-1) level=toplevel_; 
+   Integer i;
+   for (i=0; i<levels_.size(); i++)
+     if (color==levels_[i]) 
+       {
+	 Found = TRUE;
+	 break;
+       }
 
- if (!Found)
-    {
-      std::string ErrMsg = "Nodes for level \'" + color + "\' could not be found!";
-      Error(ErrMsg.c_str(),__FILE__,__LINE__); 
-    }
+   if (!Found)
+     {
+       std::string ErrMsg = "Nodes for level \'" + color
+	 + "\' could not be found!";
+       Error( ErrMsg.c_str(), __FILE__, __LINE__ ); 
+     }
 
- return bcs_[level][i].size();
+   return bcs_[level][i].size();
 
 }
 

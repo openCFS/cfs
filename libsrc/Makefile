@@ -78,3 +78,6 @@ multigrid-las:
 
 mpccicpl:
 	@cd $(LIBSRC_DIR)/MpCCIcpl; $(MAKE) -f Makefile
+
+paramhandling:
+	@cd $(LIBSRC_DIR)/DataInOut/ParamHandling; $(MAKE) -f Makefile

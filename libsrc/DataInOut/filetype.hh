@@ -141,27 +141,45 @@ sd)
  
   //! return dimension of the mesh
   virtual Integer ReadDim()
-  { Error(" not implemented",__FILE__,__LINE__);} 
+  {
+    Error(" not implemented",__FILE__,__LINE__);
+    return 0;
+  } 
 
   //! returns the number of 3D elements
   virtual Integer GetNum3DElems()
-  { Error(" not implemented",__FILE__,__LINE__);} 
+  {
+    Error(" not implemented",__FILE__,__LINE__);
+    return 0;
+  } 
 
   //! returns the number of 2D elements
   virtual Integer GetNum2DElems()
-  { Error(" not implemented",__FILE__,__LINE__);} 
+  {
+    Error(" not implemented",__FILE__,__LINE__);
+    return 0;
+  } 
 
   //! returns the number of 1D elements
   virtual Integer GetNum1DElems()
-  { Error(" not implemented",__FILE__,__LINE__);} 
+  {
+    Error(" not implemented",__FILE__,__LINE__);
+    return 0;
+  } 
 
   //! retuns the number of specified boundary conditions
   virtual Integer GetNumBCs()
-  { Error(" not implemented",__FILE__,__LINE__);} 
+  {
+    Error(" not implemented",__FILE__,__LINE__);
+    return 0;
+  } 
 
   //! retuns the number of specified boundary conditions
   virtual Integer GetNumSaveNodes()
-  { Error(" not implemented",__FILE__,__LINE__);} 
+  {
+    Error(" not implemented",__FILE__,__LINE__);
+    return 0;
+  } 
 
  //! read the save nodes
   /*!
