@@ -26,7 +26,7 @@ Driver::Driver(FileType * const aptFileType, Integer anummesh, Material * aptMat
   ptFileType->ReadNumStepsAndTimeSteps(numsteps, dt0);
   ptFileType->ReadOutputOptions(SaveDer1, SaveDer2);
 
-  ptgrid=new Grid<Point2D>(ptFileType);
+  ptgrid=new GridInterfaceCFS<Point2D>(ptFileType);
   ptMaterial=aptMaterial;
 }
 

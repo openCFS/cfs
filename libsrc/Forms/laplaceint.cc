@@ -33,7 +33,7 @@ LaplaceInt<Dim> :: ~LaplaceInt()
 }
 
 template <class Dim>
-void LaplaceInt<Dim> :: CalcElemMatrix(Dim * ptCoord, Matrix<Double> & Result)   
+void LaplaceInt<Dim> :: CalcElemMatrix(Dim * ptCoord, Matrix<Double> & Result)  
 {
 #ifdef TRACE
   (*trace) << "entering LaplaceInt::CalcElemMatrix" << endl;

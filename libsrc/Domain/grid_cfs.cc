@@ -6,19 +6,19 @@
 #include <utils_head.hh>
 
 #include <datainout_head.hh>
-#include "grid.hh"
+#include "grid_cfs.hh"
 
 namespace CoupledField
 {
 
 template<class Dim>
- Grid<Dim> :: Grid(FileType * const aptFileType)
+ GridCFS<Dim> :: GridCFS(FileType * const aptFileType)
 {
-  Integer i,ii;
-  
 #ifdef TRACE
-  (*trace) << "entering Grid::Grid" << endl;
+  (*trace) << "entering GridCFS::GridCFS" << endl;
 #endif
+
+  Integer i,ii;
   numlevel = 0;
 // ----------------------------- Initialize gh
   Integer dataHelp[1];
@@ -41,6 +41,7 @@ template<class Dim>
 
    gh[0].maxnumelem=data[0];
 
+//#################### V etom meste budet check na 3 tochki
    Integer NumNodeperElem=data[2];
 
    sizeConnectElem=NumNodeperElem*gh[0].maxnumelem;
@@ -81,18 +82,17 @@ template<class Dim>
   }
     counter++;
  }
- 
+
 }
 
 
 /// Deconstructor  
 template<class Dim>
- Grid<Dim>:: ~Grid()
+ GridCFS<Dim>:: ~GridCFS()
 {
 #ifdef TRACE
-  (*trace) << "entering Grid::~Grid" << endl;
+  (*trace) << "entering GridCFS::~GridCFS" << endl;
 #endif
-
   delete [] gh[0].ptCoordinate;
   delete [] gh[0].Connect;
   delete [] gh[0].Info;
@@ -101,11 +101,11 @@ template<class Dim>
 }
 
 template<class Dim>
-void Grid<Dim> :: GetCoordOfNodesElem(const Integer i, const Integer l, 
+void GridCFS<Dim> :: GetCoordOfNodesElem(const Integer i, const Integer l, 
                                       Dim * ptCoordElem)
 {
 #ifdef TRACE
-  (*trace) << "entering Grid:: GetCoordOfNodesElem" << endl;
+  (*trace) << "entering GridCFS:: GetCoordOfNodesElem" << endl;
 #endif
 
  Integer n,k; 
@@ -122,7 +122,7 @@ void Grid<Dim> :: GetCoordOfNodesElem(const Integer i, const Integer l,
 }
 
 template<class Dim>
-Integer Grid<Dim> :: GetNumNodesPerElem(const Integer i, const Integer l)
+Integer GridCFS<Dim> :: GetNumNodesPerElem(const Integer i, const Integer l)
 {
   Integer n;
   if (i==gh[l].maxnumelem-1)
@@ -133,11 +133,11 @@ Integer Grid<Dim> :: GetNumNodesPerElem(const Integer i, const Integer l)
 }
 
 template <class Dim>
-inline void Grid<Dim> :: GetConnection(Integer * p, const Integer l, const Integer i,
+inline void GridCFS<Dim> :: GetConnection(Integer * p, const Integer l, const Integer i,
                                 const Integer n)
 {
 #ifdef TRACE
-  (*trace) << "entering Grid:: GetConnection" << endl;
+  (*trace) << "entering GridCFS:: GetConnection" << endl;
 #endif
  
  Integer ii;
@@ -151,10 +151,10 @@ inline void Grid<Dim> :: GetConnection(Integer * p, const Integer l, const Integ
 }
 
 template<class Dim>
-void Grid<Dim> :: PrintCoordinate(const Integer level,ostream * out) const
+void GridCFS<Dim> :: PrintCoordinate(const Integer level,ostream * out) const
 {
 #ifdef TRACE
-  (*trace) << "entering Grid::PrintCoordinate" << endl;
+  (*trace) << "entering GridCFS::PrintCoordinate" << endl;
 #endif
 
   (*out) << "# coordinates of grid with level " << level << endl; 
@@ -168,10 +168,10 @@ void Grid<Dim> :: PrintCoordinate(const Integer level,ostream * out) const
 }
 
 template<class Dim>
-void Grid<Dim> :: PrintInfoElem(const Integer l, const Integer i, ostream * out) const
+void GridCFS<Dim> :: PrintInfoElem(const Integer l, const Integer i, ostream * out) const
 {
 #ifdef TRACE
-  (*trace) << "entering Grid::PrintInfoElem" << endl;
+  (*trace) << "entering GridCFS::PrintInfoElem" << endl;
 #endif
  
   (*out) << i+1 <<

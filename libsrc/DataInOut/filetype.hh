@@ -14,9 +14,6 @@ class FileType
 {
 
 public:
-//   T_leaftype & asLeaf()
-//  { return static_cast<T_leaftype&>(*this);}
-
   //! enum for reading boundary condition
   enum nameBound{ numdofs, numconstr, numrestr, numloads, resistors,
 		  numspring, bembdry, numflux, numrad, numpress, ncurrdens,

@@ -255,7 +255,9 @@ void DatFile :: ReadCoordinate(Point2D * const InitNodalCo,
   {
    infile >> ii >> dummy >> InitNodalCo[i].x >>  InitNodalCo[i].y ;
   }
-}// ------------------Read General Info about element -------------------------
+}
+
+// ------------------Read General Info about element -------------------------
 void DatFile :: ReadGeneralElem(Integer * dataGElem, const Integer num)
 {
 #ifdef TRACE
