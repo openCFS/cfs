@@ -160,11 +160,14 @@ namespace CoupledField {
     // Velocity at wall of bubble is written
 
 
-     Char *auxfile = new Char[strlen(name)+3];
-     strcpy( auxfile, name );
-     strcat( auxfile, ".bl" );
+    Char *auxfile = new Char[strlen(name)+4];
+    strcpy( auxfile, name );
+    strcat( auxfile, ".bl" );
 
     fp = fopen( auxfile , "w" );
+
+    delete auxfile;
+
     if ( fp == NULL ) {
 
       Error( "Could not open outputfile", __FILE__, __LINE__ );
