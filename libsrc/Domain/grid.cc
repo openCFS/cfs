@@ -4,7 +4,7 @@
 
 #include "Elements/elements_header.hh"
 #include "grid.hh"
-#include "DataInOut/conffile.hh"
+#include "DataInOut/ParamHandling/ConfFile.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
 
 namespace CoupledField

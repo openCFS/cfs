@@ -57,75 +57,13 @@ namespace CoupledField {
       Info->Error( errmsg, __FILE__, __LINE__ );
     }
 
-    // Create the parser, force validation using full schema checking with
-    // namespaces and tell it to drop irrelevant white space
-    parser_ = new XercesDOMParser();
-    parser_->setValidationScheme(XercesDOMParser::Val_Always);
-    parser_->setDoNamespaces(true);
-    parser_->setDoSchema(true);
-    parser_->setValidationSchemaFullChecking(true);
-    parser_->setIncludeIgnorableWhitespace(false);
+    // Generate parser and parse XML parameter file
+    rootElem_ = ParseFile( &parser_, fname );
 
-    // We may separate the schema file from the instance file
-    std::string cfsSchema = "http://www.cfs++.org ";
-    cfsSchema += CVSEXTERNAL;
-    cfsSchema += "/CFS++XML/CFS.xsd";
-    parser_->setExternalSchemaLocation( cfsSchema.c_str() );
-
-    // Have not yet understood what an entity reference node is, but it seems
-    // we do not need them
-    parser_->setCreateEntityReferenceNodes(false);
-
-    // Attach our own error handler to the parser
-    XMLParserErrorHandler *errHandler = new XMLParserErrorHandler();
-    parser_->setErrorHandler(errHandler);
-
-    // Parse and validate the XML file. This will generate the DOM tree. Catch
-    // all exceptions that the parser could not pass to our error handler.
-    try {
-      parser_->parse( fname );
-    }
-    catch( const XMLException &event ) {
-      errmsg  = "The following XML error was encountered during parsing:\n";
-      errmsg += X2C( event.getMessage() );
-      Info->Error( errmsg, __FILE__, __LINE__ );
-    }
-    catch( const DOMException &event ) {
-      const unsigned int maxChars = 2047;
-      XMLCh errText[maxChars + 1];
-
-      errmsg = "DOM Error during parsing! DOMException code is:\n"
-	+ Info->GenStr( event.code ) + '\n';
-
-      if( DOMImplementation::loadDOMExceptionMsg(event.code, errText,
-						 maxChars) ) {
-	errmsg += "Message is: ";
-	errmsg += X2C(errText);
-      }
-
-      Info->Error( errmsg, __FILE__, __LINE__ );
-    }
-    catch(...) {
-      errmsg  = "An unknown error occurred during parsing!\n";
-      errmsg += "All I can say is that it was neither an XMLException"; 
-      errmsg += " nor a DOMException.";
-      Info->Error( errmsg, __FILE__, __LINE__ );
-    }
-
-    // Obtain and validate root element of document tree
-    DOMDocument *doc = parser_->getDocument();
-    DOMNodeList *children = doc->getChildNodes();
-    if ( children->getLength() != 1 ) {
-      errmsg  = "Document root has more than one child!\n";
-      errmsg += "We are in real trouble here!";
-      Info->Error( errmsg, __FILE__, __LINE__ );
-    }
-    if ( children->item(0)->getNodeType() != DOMNode::ELEMENT_NODE ) {
-      errmsg  = "Root node is not of type DOMNode::ELEMENT_NODE!\n";
-      errmsg += "We are in real trouble here!";
-      Info->Error( errmsg, __FILE__, __LINE__ );
-    }
-    rootElem_ = (DOMElement *)(children->item(0)); 
+    // Generate parser and parse XML defaults file
+    std::string cfsDefaults = CVSEXTERNAL;
+    cfsDefaults += "/CFS++XML/Defaults/CFS++Defaults.xml";
+    rootElemDefaults_ = ParseFile( &parserDefaults_, cfsDefaults.c_str() );
 
     // Toggle verbosity
 #ifdef DEBUG_XMLPARAMHANDLER
@@ -144,6 +82,9 @@ namespace CoupledField {
     ENTER_FCN( "XMLParamHandler::~XMLParamHandler" );
     if ( parser_ != NULL ) {
       delete parser_;
+    }
+    if ( parserDefaults_ != NULL ) {
+      delete parserDefaults_;
     }
   }
 
@@ -287,7 +228,7 @@ namespace CoupledField {
 
     // This is easy, we just have to pass everything through to the
     // central auxilliary search method
-    FindAllMatches( key, list, section, subsection );
+    FindAllMatches( key, list, section, subsection, rootElem_ );
 
   }
 
@@ -315,7 +256,7 @@ namespace CoupledField {
 
     // First determine all matches as strings
     std::vector<std::string> matches;
-    FindAllMatches( key, matches, section, subsection );
+    FindAllMatches( key, matches, section, subsection, rootElem_ );
 
     // Now perform conversion
     for ( unsigned int i = 0; i < matches.size(); i++ ) {
@@ -372,6 +313,66 @@ namespace CoupledField {
       list.push_back( pdename );
     }
 
+  }
+
+
+  // ===============================================
+  //   Obtain list of attribute values for matches
+  // ===============================================
+  void XMLParamHandler::GetValsForHits( const std::string attribute2,
+					std::vector<std::string> &vals,
+					const std::string attribute1,
+					const std::string keyword,
+					const std::string section,
+					const std::string subsection ) {
+
+    ENTER_FCN( "XMLParamHandler::GetValsForHits" );
+
+    // Check if vector is empty. If not issue a warning
+    // and erase its entries, if this is desired
+    if ( vals.empty() != true ) {
+      if ( beVerbose_ == true ) {
+	std::string errmsg  = "Warning input vector was not empty!\n";
+	errmsg += "Contents have been erased!";
+	Info->Warning( errmsg );
+      }
+      vals.clear();
+    }
+
+    //  Find all elements with attributes of type attribute1
+    std::vector<DOMElement*> elems;
+    std::vector<std::string> attrVals1;
+    FindAllMatches( attribute1, attrVals1, section, subsection, rootElem_,
+		    &elems );
+
+    // Report
+    if( beVerbose_ ) {
+      std::string msg = "Found " + Info->GenStr( elems.size() ) + " elements ";
+      msg += "with attribute '" + attribute1 + "' in subsection '";
+      msg += subsection + "' of section '" + section + "'";
+      Info->Warning( msg );
+    }
+    
+    // Find those elements whose attribute has the correct value
+    std::vector<DOMElement*> elemvec;
+    for ( unsigned int k = 0; k < elems.size(); k++ ) {
+      if ( attrVals1[k] == keyword ) {
+	elemvec.push_back( elems[k] );
+      }
+    }
+
+    // If there is no match return an empty list
+    if ( elemvec.size() == 0 ) {
+      return;
+    }
+
+    // For each remaining element determine value of attribute2
+    std::string attrVal;
+    for ( unsigned int k = 0; k < elemvec.size(); k++ ) {
+      if ( GetElementAttribute( elemvec[k], attribute2, attrVal ) == TRUE ) {
+	vals.push_back( attrVal );
+      }
+    }
   }
 
 
@@ -594,7 +595,9 @@ namespace CoupledField {
   // ==========================================
   std::vector<DOMAttr*>*
   XMLParamHandler::FindMatchingAttributes( std::string attr_key,
-					   std::vector<std::string> &keys ) {
+					   std::vector<std::string> &keys,
+					   DOMElement *treeTop,
+					   std::vector<DOMElement*> *elemlist){
 
     ENTER_FCN( "XMLParamHandler::FindMatchingAttributes" );
 
@@ -608,9 +611,14 @@ namespace CoupledField {
     // Generate return vector
     std::vector<DOMAttr*> *attrvec = new std::vector<DOMAttr*>;
 
+    // Clear element vector
+    if ( elemlist != NULL ) {
+      elemlist->clear();
+    }
+
     // Find all matching elements
     std::vector<DOMElement *>* elements;
-    elements = FindMatchingElements( keys, rootElem_, 1 );
+    elements = FindMatchingElements( keys, treeTop, 1 );
 
     // Be verbose, if demanded
     if ( beVerbose_ == true ) {
@@ -622,6 +630,7 @@ namespace CoupledField {
     DOMNamedNodeMap *attributes = NULL;
     DOMNode* aux_node = NULL;
     DOMAttr* match_attr = NULL;
+    std::string dummy;
     for ( unsigned int i = 0; i < elements->size(); i++ ) {
 
       // Get attribute of elements
@@ -635,10 +644,14 @@ namespace CoupledField {
       else {
 	match_attr = NULL;
       }
-
+      
       // If there is a match, append attribute to result vector
+      // and also append element to element list
       if ( match_attr != NULL ) {
 	attrvec->push_back( match_attr );
+	if ( elemlist != NULL ) {
+	  elemlist->push_back( (*elements)[i] );
+	}
       }
     }
 
@@ -654,7 +667,9 @@ namespace CoupledField {
   void XMLParamHandler::FindAllMatches( const std::string key,
 					std::vector<std::string> &list,
 					const std::string section,
-					const std::string subsection ) {
+					const std::string subsection,
+					DOMElement *treeTop,
+					std::vector<DOMElement*> *elemlist ) {
 
     ENTER_FCN( "XMLParamHandler::FindAllMatches" );
 
@@ -670,6 +685,7 @@ namespace CoupledField {
     bool attr_match = false;
     std::vector<DOMElement*>* elem_matches = NULL;
     std::vector<DOMAttr*   >* attr_matches = NULL;
+    std::vector<DOMElement*> attr_elements;
     std::vector<std::string> keys;
     std::string value;
 
@@ -694,6 +710,11 @@ namespace CoupledField {
       list.clear();
     }
 
+    // Clear element vector
+    if ( elemlist != NULL ) {
+      elemlist->clear();
+    }
+
     // **************************************************
     //   Part 2: Assume main key word is an element tag
     // **************************************************
@@ -708,7 +729,7 @@ namespace CoupledField {
     keys.push_back( key );
 
     // Find matching elements
-    elem_matches = FindMatchingElements( keys, rootElem_, 1 );
+    elem_matches = FindMatchingElements( keys, treeTop, 1 );
 
     // Check if there was a match
     if ( elem_matches->size() > 0 ) {
@@ -737,7 +758,8 @@ namespace CoupledField {
       }
 
       // Find matching attributes
-      attr_matches = FindMatchingAttributes( key, keys );
+      attr_matches = FindMatchingAttributes( key, keys, treeTop,
+					     &attr_elements );
 
       // Be verbose, if demanded
       if ( beVerbose_ == true ) {
@@ -765,18 +787,26 @@ namespace CoupledField {
     }
 
     // Convert element values to strings and append to list
+    // If desired also save found elements
     else if ( elem_match == true ) {
       for ( unsigned int i = 0; i < elem_matches->size(); i++ ) {
 	value.assign( GetElementValue( (*elem_matches)[i] ) );
 	list.push_back( value );
+	if ( elemlist != NULL ) {
+	  elemlist->push_back( (*elem_matches)[i] );
+	}
       }
     }
 
     // Convert element values to strings and append to list
+    // If desired also save found elements
     else if ( attr_match == true ) {
       for ( unsigned int i = 0; i < attr_matches->size(); i++ ) {
 	value.assign( X2C( (*attr_matches)[i]->getValue() ) );
 	list.push_back( value );
+	if ( elemlist != NULL ) {
+	  elemlist->push_back( attr_elements[i] );
+	}
       }
     }
 
@@ -931,7 +961,7 @@ namespace CoupledField {
       errmsg += " within sections '" + section + "'";
     }
     if ( subsection != "" ) {
-      errmsg += " within subsections '" + subsection;
+      errmsg += " within subsections '" + subsection + "'";
       errmsg += " of sections '" + section + "'";
     }
     errmsg += '\n';
@@ -951,7 +981,7 @@ namespace CoupledField {
 
     // Check if string is empty. If not issue a warning
     // and erase it, if this is desired
-    if ( defaultValue.size() == true ) {
+    if ( defaultValue.size() != 0 ) {
       if ( beVerbose_ == true ) {
 	std::string msg = "Warning input string was not empty!\n";
 	msg += "Contents have been erased!";
@@ -960,21 +990,42 @@ namespace CoupledField {
       defaultValue.clear();
     }
 
-    // This is a dummy implementation, just to get the MechPDE to work
-    if( key == "preStressVal" ) {
-      defaultFound = TRUE;
-      defaultValue = "0";
+    // Find all elements/values matching keyword in (restricted) defaults tree
+    std::vector<std::string> matches;
+    FindAllMatches( key, matches, section, subsection, rootElemDefaults_ );
+
+    // If there was no unique match, call problem handler
+    if ( matches.size() > 1 ) {
+      MultipleMatchHandler( key, section, subsection, matches.size() );
     }
-    else if ( key == "mesh_library" ) {
+  
+    // Check, if a default was found
+    if ( matches.size() == 1 ) {
       defaultFound = TRUE;
-      defaultValue = "cfsgrid";
+      defaultValue = matches[0];
+    }
+
+    // If no default was found, test, whether this is one of the special
+    // cases not implemented so far
+    else {
+
+      if ( key == "mesh_library" ) {
+	defaultFound = TRUE;
+	defaultValue = "cfsgrid";
+      }
+
+      if( key == "preStressVal" ) {
+	defaultFound = TRUE;
+	defaultValue = "0";
+      }
+
     }
 
     // Tell what we found
     if ( beVerbose_ == true ) {
-	std::string msg = "CheckForDefault: Default for parameter '" + key;
-	msg += "' is '" + defaultValue + "'";
-	Info->Warning( msg );
+      std::string msg = "CheckForDefault: Default for parameter '" + key;
+      msg += "' is '" + defaultValue + "'";
+      Info->Warning( msg );
     }
 
     return defaultFound;
@@ -1023,6 +1074,138 @@ namespace CoupledField {
     return X2C( child->getNodeValue() );
   }
 
+
+  // =======================================
+  //   Get value of an element's attribute
+  // =======================================
+  Boolean XMLParamHandler::GetElementAttribute( DOMElement* element,
+						const std::string keyword,
+						std::string &attrVal ) {
+
+    ENTER_FCN( "XMLParamHandler::GetElementAttribute" );
+
+    bool hasAttr;
+    DOMNamedNodeMap *attributes = NULL;
+    DOMNode* aux_node = NULL;
+    DOMAttr* aux_attr = NULL;
+
+    // Get attribute of elements
+    attributes = element->getAttributes();
+
+    // Select attributes matching name and convert them
+    aux_node = attributes->getNamedItem( S2X( keyword ) );
+
+    // Check, if element has specified attribute
+    if ( aux_node != NULL ) {
+      hasAttr = true;
+    }
+    else {
+      hasAttr = false;
+    }
+
+    // If element has specified attribute obtain its value
+    if ( hasAttr ) {
+      aux_attr = Node2Attr(aux_node);
+      attrVal.assign( X2C( aux_attr->getValue() ) );
+    }
+    else {
+      attrVal = "";
+    }
+
+    // Finished
+    if ( hasAttr ) {
+      return TRUE;
+    }
+    return FALSE;
+  }
+
+
+
+  // ============================
+  //   Parse XML parameter file
+  // ============================
+  DOMElement* XMLParamHandler::ParseFile( XercesDOMParser **parser,
+					  const char *xmlFile ) {
+
+    // Root element of DOMTree built by parser
+    DOMElement *rootElem = NULL;
+
+    // String for assembling error messages
+    std::string errmsg;
+
+    // Create the parser, force validation using full schema checking with
+    // namespaces and tell it to drop irrelevant white space
+    (*parser) = new XercesDOMParser();
+    (*parser)->setValidationScheme(XercesDOMParser::Val_Always);
+    (*parser)->setDoNamespaces(true);
+    (*parser)->setDoSchema(true);
+    (*parser)->setValidationSchemaFullChecking(true);
+    (*parser)->setIncludeIgnorableWhitespace(false);
+
+    // We may separate the schema file from the instance file
+    std::string cfsSchema = "http://www.cfs++.org ";
+    cfsSchema += CVSEXTERNAL;
+    cfsSchema += "/CFS++XML/CFS.xsd";
+    (*parser)->setExternalSchemaLocation( cfsSchema.c_str() );
+
+    // Have not yet understood what an entity reference node is, but it seems
+    // we do not need them
+    (*parser)->setCreateEntityReferenceNodes(false);
+
+    // Attach our own error handler to the parser
+    XMLParserErrorHandler *errHandler = new XMLParserErrorHandler();
+    (*parser)->setErrorHandler(errHandler);
+
+    // Parse and validate the XML file. This will generate the DOM tree. Catch
+    // all exceptions that the parser could not pass to our error handler.
+    try {
+      (*parser)->parse( xmlFile );
+    }
+    catch( const XMLException &event ) {
+      errmsg  = "The following XML error was encountered during parsing:\n";
+      errmsg += X2C( event.getMessage() );
+      Info->Error( errmsg, __FILE__, __LINE__ );
+    }
+    catch( const DOMException &event ) {
+      const unsigned int maxChars = 2047;
+      XMLCh errText[maxChars + 1];
+
+      errmsg = "DOM Error during parsing! DOMException code is:\n"
+	+ Info->GenStr( event.code ) + '\n';
+
+      if( DOMImplementation::loadDOMExceptionMsg(event.code, errText,
+						 maxChars) ) {
+	errmsg += "Message is: ";
+	errmsg += X2C(errText);
+      }
+
+      Info->Error( errmsg, __FILE__, __LINE__ );
+    }
+    catch(...) {
+      errmsg  = "An unknown error occurred during parsing!\n";
+      errmsg += "All I can say is that it was neither an XMLException"; 
+      errmsg += " nor a DOMException.";
+      Info->Error( errmsg, __FILE__, __LINE__ );
+    }
+
+    // Obtain and validate root element of document tree
+    DOMDocument *doc = (*parser)->getDocument();
+    DOMNodeList *children = doc->getChildNodes();
+    if ( children->getLength() != 1 ) {
+      errmsg  = "Document root has more than one child!\n";
+      errmsg += "We are in real trouble here!";
+      Info->Error( errmsg, __FILE__, __LINE__ );
+    }
+    if ( children->item(0)->getNodeType() != DOMNode::ELEMENT_NODE ) {
+      errmsg  = "Root node is not of type DOMNode::ELEMENT_NODE!\n";
+      errmsg += "We are in real trouble here!";
+      Info->Error( errmsg, __FILE__, __LINE__ );
+    }
+    rootElem = (DOMElement *)(children->item(0)); 
+
+    // We are finished
+    return rootElem;
+  }
 
 }
 

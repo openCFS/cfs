@@ -4,7 +4,7 @@
 #include <math.h>
 
 #include "MpCCIexch.hh"
-#include <DataInOut/conffile.hh>
+#include <DataInOut/ParamHandling/ConfFile.hh>
 
  //#ifdef MpCCI
 #include <cci.h>

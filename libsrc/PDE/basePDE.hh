@@ -18,7 +18,7 @@
 #endif
 
 
-#include <DataInOut/conffile.hh>
+#include <DataInOut/ParamHandling/ConfFile.hh>
 #include <DataInOut/LoadMaterialData.hh>
 #include <DataInOut/MaterialData.hh>
 #include <CoupledPDE/pdecoupling.hh>

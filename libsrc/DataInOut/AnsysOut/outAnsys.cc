@@ -4,7 +4,7 @@
 #include <iomanip>
 
 #include "outAnsys.hh"
-#include "DataInOut/conffile.hh"
+#include "DataInOut/ParamHandling/ConfFile.hh"
 
 namespace CoupledField
 {

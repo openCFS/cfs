@@ -4,7 +4,7 @@
 
 #include "General/environment.hh"
 #include "DataInOut/WriteInfo.hh"
-#include "conffile.hh"
+#include "ConfFile.hh"
 
 namespace CoupledField
 {

@@ -7,7 +7,7 @@
 #include "DataInOut/AnsysOut/outAnsys.hh"
 #include "DataInOut/GMV/outGMV.hh"
 #include "DataInOut/Unverg/outUnverg.hh"
-#include "DataInOut/conffile.hh"
+#include "DataInOut/ParamHandling/ConfFile.hh"
 #include <DataInOut/writeresults.hh>
 namespace CoupledField
 {

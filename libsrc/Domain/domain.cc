@@ -78,7 +78,7 @@ Domain:: Domain(FileType * const aptFileType, WriteResults * ptOut, TimeFunc * a
 	Info->Error( errmsg, __FILE__, __LINE__ );
       }
  }
- 
+
  if (dim==3) 
    {
      if (libmesh =="cfsgrid") 
@@ -112,6 +112,7 @@ Domain:: Domain(FileType * const aptFileType, WriteResults * ptOut, TimeFunc * a
 
  // Initialize Coupled PDEs
  InitCoupledPDE();
+
  
  //set the algebraic systems and read material data
  for (int i=0;i< numpde_;i++)
@@ -158,9 +159,11 @@ void Domain :: InitPDEs()
       if (pdes[i] == "electrostatic") 
 	ptpde_[i]=new ElecPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
 
-      else if (pdes[i] == "mechanic")
-	ptpde_[i]=new MechPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
+      else if (pdes[i] == "mechanic") {
+	// Info->Error( "Got this far", __FILE__, __LINE__ );
 
+	ptpde_[i]=new MechPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
+      }
       else if (pdes[i] == "acoustic")
   	ptpde_[i]=new AcousticPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
 

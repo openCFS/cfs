@@ -2,6 +2,7 @@
 #include <iostream>
 #include <string>
 
+#include "DataInOut/WriteInfo.hh"
 #include "newmark.hh"
 
 namespace CoupledField
@@ -22,9 +23,13 @@ Newmark :: Newmark(std::string apdename, BaseSystem * algebraicsystem, Integer d
   gamma_ = 0.5;
 
   //check if integration parameters are defined in conf-file
+#ifndef XMLPARAMS
   conf->ifget("alpha_NM",alpha_,pdename_); 
   conf->ifget("beta_NM",beta_,pdename_); 
   conf->ifget("gamma_NM",gamma_,pdename_);
+#else
+  Info->Warning( "Newmark: Using defaults for alpha, beta and gamma!" );
+#endif
 
   //get the memory
   solderiv1_.Resize(dofspernode*numnode);

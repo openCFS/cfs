@@ -3,8 +3,9 @@
 #include <fstream>
 
 #include "timefunc.hh"
-#include "conffile.hh"
+#include "ParamHandling/ConfFile.hh"
 #include "WriteInfo.hh"
+#include "ParamHandling/BaseParamHandler.hh"
 
 namespace CoupledField
 {
@@ -21,6 +22,7 @@ TimeFunc :: TimeFunc(FileType * aptFileType)
   timeFncDatFiles_=FALSE;
   std::string nametf;
 
+#ifndef XMLPARAMS
   if (conf->ifgetliststr("time_data_files",fnc_names_))
       timeFncDatFiles_ = TRUE;
 
@@ -31,6 +33,9 @@ TimeFunc :: TimeFunc(FileType * aptFileType)
       Error("time_func-command currently not supported");
     
   if (timeFncDatFiles_) ReadTimeFuncs();
+#else
+  params->GetList( "name", fnc_names_, "transient", "timeDataFile" );
+#endif
 
 }
 

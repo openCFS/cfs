@@ -19,6 +19,7 @@
 #include <Utils/vector.hh>
 #include "elecPDE.hh"
 #include <General/defs.hh>
+#include "DataInOut/ParamHandling/BaseParamHandler.hh" 
 
 namespace CoupledField
 {
@@ -37,10 +38,16 @@ ElecPDE::ElecPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
   pdename_          = "electrostatic";
   pdematerialclass_ = "piezo"; 
  
-  conf->getsubdompde(subdoms_,pdename_);
+#ifndef XMLPARAMS
+    conf->getsubdompde(subdoms_,pdename_);
+#else
+    params->GetList( "name", subdoms_, pdename_, "region" );
+#endif
+
   ReadBCs(pdename_);
 
  //check, if problem is axisymmetric
+#ifndef XMLPARAMS
   isaxi_ = FALSE;
   std::string subtype;
   conf->ifget("subtype",subtype,pdename_);
@@ -52,6 +59,19 @@ ElecPDE::ElecPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 
   //check for electric field energy:
   conf->ifgetliststr("calc_Energy",calcEnergy_,pdename_); 
+
+#else
+
+  // Check whether problem has axial symmetry
+  if ( params->HasValue( "type", "axi", "geometry" ) ) isaxi_ = TRUE;
+
+  // Determine regions for which electric field and/or energy must be computed
+  params->GetValsForHits( "region", calcEfield_, "type", "efield", pdename_,
+			  "elemResults" );
+  params->GetValsForHits( "region", calcEnergy_, "type", "energy", pdename_,
+			  "storeResults" );
+
+#endif
 
   Reset();
   
@@ -527,6 +547,7 @@ void ElecPDE::InitCoupling(PDECoupling * Coupling)
   const Integer numCouplings = ptCoupling_->GetNumOutputCouplings();
   
 
+#ifndef XMLPARAMS
   //check, if geometric nonlinearity is switched of by the user
   GeoUpdate_ = TRUE;
   nonLin_    = TRUE;    //general nonlinear switch in basepde!
@@ -536,6 +557,30 @@ void ElecPDE::InitCoupling(PDECoupling * Coupling)
       GeoUpdate_ = FALSE;
       nonLin_    = FALSE;  
     }
+#else
+
+    // ==============================================================
+    // NOTE: Currently we can only treat geometric non-linearity and
+    //       we assume that for a mechanic PDE all regions either
+    //       are linear or non-linear!
+    // ==============================================================
+    std::vector<std::string> nonLinRegion;
+    params->GetList( "nonLinear", nonLinRegion, pdename_, "region" );
+    // Should not happen with validating parser, but beware!
+    if ( nonLinRegion.size() == 0 ) {
+      nonLin_ = FALSE;
+    }
+    else {
+      for ( Integer k = 0; k <= nonLinRegion.size(); k++ ) {
+	if ( nonLinRegion[k] != nonLinRegion[0] ) {
+	  Info->Error( "Non-linearity should be the same for all regions!",
+		       __FILE__, __LINE__ );
+	}
+      }
+      nonLin_ = nonLinRegion[0] == "geo" ? TRUE : FALSE;
+    }
+
+#endif
 
   // Initialization of coupling helper arrays
   std::string quantity;

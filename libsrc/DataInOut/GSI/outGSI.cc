@@ -4,7 +4,7 @@
 #include <stdio.h>
 
 #include "outGSI.hh"
-#include "DataInOut/conffile.hh"
+#include "DataInOut/ParamHandling/ConfFile.hh"
 #include "DataInOut/socketopts.hh"
 
 #include "CFSSocketComm/CFS_ServerSocket.h"
