@@ -137,8 +137,8 @@ namespace CoupledField
     strcpy(filename, name_);
 
     // Generate parser and parse XML defaults file
-     std::string cfsDefaults = CVSEXTERNAL;
-     cfsDefaults += "/CFS++XML/Defaults/CFS++Defaults.xml";
+     std::string cfsDefaults = XMLSCHEMA;
+     cfsDefaults_ += "/Defaults/CFS++Defaults.xml";
     
 #ifdef USE_XERCES
     params = new XMLParamHandler( cfsDefaults.c_str() );
