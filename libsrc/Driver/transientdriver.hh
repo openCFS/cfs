@@ -1,13 +1,13 @@
 #ifndef FILE_TRANSIENTDRIVER_2001
 #define FILE_TRANSIENTDRIVER_2001
 
-#include "basedriver.hh"
+#include "singleDriver.hh"
 
 namespace CoupledField
 {
 
 //! driver for transient problems.it is derived from BaseDriver;
-  class TransientDriver : virtual public BaseDriver
+  class TransientDriver : virtual public SingleDriver
 {
 public:
   //!  constructor

@@ -36,34 +36,34 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 
     pdename_          = "mechanic";
     pdematerialclass_ = "piezo";
+   
+
+
+    // ****************************
+    // DETERMINE GEOMETRY
+    // ****************************
 
 #ifndef XMLPARAMS
     conf->getstr("subtype", subType_, pdename_ );
 
-    if (subType_ == "3d")
-      {
+    if (subType_ == "3d"){
 	dofspernode_ = 3;
 	Info->PrintF("", "=== 3D PROBLEM\n");
-      }
-    else if (subType_ == "axi")
-      {
-	isaxi_ = TRUE;
-	dofspernode_ = 2;
-	Info->PrintF("", "=== AXISYSMMETRIC PROBLEM\n");
-      }
-    else if (subType_ == "planeStrain" )
-      {
-	dofspernode_ = 2;
-	Info->PrintF("", "=== PLAIN STRAIN PROBLEM\n");
-      }
-    else
-      {
-	std::string errmsg = "Subtype " + subType_ + " is not defined for";
-	errmsg += " PDEs of type " + pdename_ + '\n';
-	Info->Error( errmsg, __FILE__, __LINE__ );
-      }
+    } else if (subType_ == "axi") {
+      isaxi_ = TRUE;
+      dofspernode_ = 2;
+      Info->PrintF("", "=== AXISYSMMETRIC PROBLEM\n");
+    
+    } else if (subType_ == "planeStrain" ) {
+      dofspernode_ = 2;
+      Info->PrintF("", "=== PLAIN STRAIN PROBLEM\n");
+    } else {
+      std::string errmsg = "Subtype " + subType_ + " is not defined for";
+      errmsg += " PDEs of type " + pdename_ + '\n';
+      Info->Error( errmsg, __FILE__, __LINE__ );
+    }
 #else
-
+    
     // Get problem geometry and PDE subtype
     params->Get( "subType", subType_, pdename_ );
     std::string probGeo;
@@ -81,9 +81,9 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
       Info->PrintF("", "=== AXISYSMMETRIC PROBLEM\n");
     }
     else if ( subType_ == "planeStrain" && probGeo == "plane" ) {
-	dofspernode_ = 2;
-	Info->PrintF("", "=== PLANE STRAIN PROBLEM\n");
-      }
+      dofspernode_ = 2;
+      Info->PrintF("", "=== PLANE STRAIN PROBLEM\n");
+    }
     else
       {
 	std::string errmsg = "Subtype '" + subType_;
@@ -93,19 +93,12 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
       }
 #endif
 
-
-#ifndef XMLPARAMS
-    conf->getsubdompde(subdoms_,pdename_);
-#else
-    params->GetList( "name", subdoms_, pdename_, "region" );
-    Info->PrintF( pdename_, " MechPDE lives on regions:" );
-    for ( Integer k = 0; k < subdoms_.GetSize(); k++ ) {
-      Info->PrintF( pdename_, " %s", subdoms_[k].c_str() );
-    }
-#endif
-
-    ReadBCs(pdename_);
-  
+    // =====================================================================
+    // set solution information
+    // =====================================================================
+    solTypes_ = MECH_DISPLACEMENT;
+    solDofs_ = dofspernode_;
+    
 #ifndef XMLPARAMS
     lineSearch_ = FALSE;
     if (conf->get_option("lineSearch",  pdename_ ))
@@ -118,6 +111,10 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
     effectiveMass_ = params->IsSet( "effMass" );
 #endif
 
+    // *********************************
+    //  Read in Nonlinearities and
+    //  Reduced integration parameters
+    // *********************************
 
     // Check whether reduced integration is to be performed
 #ifndef XMLPARAMS
@@ -132,7 +129,85 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 	reducedInt_=TRUE;
       }
 
-    // Check whether we have to perform a non-linear computation
+    
+    // *********************************
+    //  Check damping model
+    // *********************************
+    
+#ifndef XMLPARAMS
+    std::string dampstr;
+    conf->ifget("damping",dampstr,pdename_);
+    if (dampstr == "rayleigh") {
+      dampingType_ = RAYLEIGH;
+      Info->PrintF(pdename_, " Using RAYLEIGH damping\n" );
+    }
+    else
+      dampingType_ = NONE;
+#else
+    if( params->HasValue( "type", "rayleigh", pdename_, "damping" ) )
+      {
+	dampingType_ = RAYLEIGH;
+	Info->PrintF(pdename_, " Using RAYLEIGH damping\n" );
+      }
+    else
+      {
+	dampingType_ = NONE;
+      }
+#endif
+
+    if (dampingType_)
+      needsDampingMatrix_ = TRUE;
+      
+    // *********************************
+    //  Check for pressure loads
+    // *********************************
+#ifndef XMLPARAMS
+#else
+
+    //check for pressure loads
+    params->GetList( "name"    , pressSurf_ , pdename_, "pressure" );
+    params->GetList( "value"   , pressVals_ , pdename_, "pressure" );
+    params->GetList( "dynamics", pressFnc_  , pdename_, "pressure" );
+    
+    // Check consistency
+    if ( pressSurf_.GetSize() != pressVals_.GetSize() )
+      {
+	std::string errmsg = "PressureLoads: ";
+	errmsg += "#name = " + Info->GenStr(pressSurf_.GetSize());
+	errmsg += ", #value = " + Info->GenStr(pressVals_.GetSize());
+	errmsg += ", #dynamics = " + pressFnc_.GetSize() + '\n';
+	Info->Error( errmsg, __FILE__, __LINE__ );
+      }
+
+    if (pressSurf_.GetSize() > 0)
+      surfdoms_ = pressSurf_;
+    // We need not have as many function/filenames as pressureloads!
+    for ( Integer k = pressFnc_.GetSize(); k < pressSurf_.GetSize(); k++ )
+      {
+	pressFnc_.Push_back( "none" );
+      }
+
+#endif
+}
+
+
+  MechPDE::~MechPDE()
+  {
+    ENTER_FCN( "MechPDE::~MechPDE" );
+
+    if  (lambdaMat)
+      delete lambdaMat;
+    
+    if  (mueMat)
+      delete mueMat;
+  }
+
+
+  
+  void MechPDE::InitNonLin()
+  {
+    ENTER_FCN( "MechPDE::InitNonLin");
+        // Check whether we have to perform a non-linear computation
 #ifndef XMLPARAMS
     nonLin_ = conf->get_option( "nonlin",  pdename_ );
 #else
@@ -201,164 +276,8 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 	params->Get( "resStopCrit", residualStopCrit_, pdename_, "nonLinear" );
 #endif
       }
-
-#ifndef XMLPARAMS
-    preStressVal_ = 0;
-    conf->ifget("preStressVal", preStressVal_, pdename_);
-#else
-    params->Get( "preStressVal", preStressVal_, pdename_ );
-#endif
-    
-    if (preStressVal_)
-      GetDirection(preStressDir_, "preStressDir");
-
-
-    // check for damping model
-#ifndef XMLPARAMS
-    std::string dampstr;
-    conf->ifget("damping",dampstr,pdename_);
-    if (dampstr == "rayleigh") {
-      dampingType_ = RAYLEIGH;
-      Info->PrintF(pdename_, " Using RAYLEIGH damping\n" );
-    }
-    else
-      dampingType_ = NONE;
-#else
-    if( params->HasValue( "type", "rayleigh", pdename_, "damping" ) )
-      {
-	dampingType_ = RAYLEIGH;
-	Info->PrintF(pdename_, " Using RAYLEIGH damping\n" );
-      }
-    else
-      {
-	dampingType_ = NONE;
-      }
-#endif
-
-    if (dampingType_)
-      assemble_->NeedDampingMatrix();
-
-#ifndef XMLPARAMS
-    conf->ifgetliststr("homogenBCDof", homDirichDof_, pdename_);  
-    conf->ifgetliststr("inhomogenBCDof", inhomDirichDof_, pdename_);
-
-    // just for consistency with old script
-    conf->ifgetliststr("homoBCDof", homDirichDof_, pdename_);
-    conf->ifgetliststr("homoBCdof", homDirichDof_, pdename_);
-    conf->ifgetliststr("inhomoBCDof", inhomDirichDof_, pdename_);
-    conf->ifgetliststr("inhomoBCdof", inhomDirichDof_, pdename_);
-#else
-    params->GetList( "dof", homDirichDof_  , pdename_, "dirichletHom" );  
-    params->GetList( "dof", inhomDirichDof_, pdename_, "dirichletInhom" );  
-
-    //check for pressure loads
-    params->GetList( "name"    , pressSurf_ , pdename_, "pressure" );
-    params->GetList( "value"   , pressVals_ , pdename_, "pressure" );
-    params->GetList( "dynamics", pressFnc_  , pdename_, "pressure" );
-
-    // Check consistency
-    if ( pressSurf_.GetSize() != pressVals_.GetSize() )
-      {
-	std::string errmsg = "PressureLoads: ";
-	errmsg += "#name = " + Info->GenStr(pressSurf_.GetSize());
-	errmsg += ", #value = " + Info->GenStr(pressVals_.GetSize());
-	errmsg += ", #dynamics = " + pressFnc_.GetSize() + '\n';
-	Info->Error( errmsg, __FILE__, __LINE__ );
-      }
-
-    // We need not have as many function/filenames as pressureloads!
-    for ( Integer k = pressFnc_.GetSize(); k < pressSurf_.GetSize(); k++ )
-      {
-	pressFnc_.Push_back( "none" );
-      }
-
-#endif
-
-    //check for b.c. input data
-    if (bcs_hd_.GetSize() != homDirichDof_.GetSize())
-      {
-	std::string errmsg = "Inconsistent definition of homogeneous ";
-	errmsg += "Dirichlet Boundary Conditions\n";
-	errmsg += " bcs_hd_.GetSize() = " + Info->GenStr( bcs_hd_.GetSize() );
-	errmsg += "\n homDirichDof_.GetSize() = "
-	  + Info->GenStr( homDirichDof_.GetSize() ) + '\n';
-	Info->Error( errmsg, __FILE__, __LINE__ );
-      }
-    if (bcs_id_.GetSize() != inhomDirichDof_.GetSize()) 
-      {
-	std::string errmsg = "Inconsistent definition of inhomogeneous ";
-	errmsg += "Dirichlet Boundary Conditions";
-	Info->Error( errmsg, __FILE__, __LINE__ );
-      }
-        
-    // initialize eqation data object
-    //eqnData_  = new BlockNodeEQN(ptgrid_, ptBCs_, subdoms_, 
-    //    				 actlevel_, dofspernode_);
-    eqnData_  = new ScalarBlockEQN(ptgrid_, ptBCs_, subdoms_, 
-    				   actlevel_, dofspernode_);
-
-    eqnData_->SetHomoDirichletBCs(bcs_hd_, homDirichDof_);
-    eqnData_->CalcMapping();
-      //   eqnData_->Print(std::cerr);
-    numPDENodes_ = eqnData_->GetNumLocalNodes();
-    numElems_ = eqnData_->GetNumLocalElems();
-    size_        = numPDENodes_ * dofspernode_;
-    
-    // Initialize solution class
-    sol_->SetNumSolutions(1);
-    sol_->SetSolutionType(MECH_DISPLACEMENT);
-    sol_->SetNumNodes(numPDENodes_);
-    sol_->SetNumDofs(dofspernode_);
-    sol_->SetPtrEQNData(eqnData_, ptgrid_, actlevel_);
-    sol_->Init(0.0); 
-
-    // set assemble parameters
-    assemble_->SetPtr2EQNData(eqnData_); 
-    //currently some hack
-    assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, subdoms_, pressSurf_);
-    //    assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, subdoms_, surfdoms_);
-    assemble_->SetGraphType(NODEGRAPH);
-
-#ifdef USE_OLAS
-  assemble_->SetMatrixEntryType(OLAS::DOUBLE);
-  assemble_->SetMatrixStorageType(OLAS::SPARSE_NONSYM);
-#else
-  if (eqnData_->IsBlockMapped())
-    assemble_->SetMatrixType(RBLOCK);
-  else
-    assemble_->SetMatrixType(RSCALAR);
-#endif 
-
-  assemble_->SetNumDirichlet(GetNumRestraints(actlevel_));
-
-  assemble_->SetPtrBCs(ptBCs_);
-  assemble_->SetPtr2Sol(sol_);
-  assemble_->SetPtr2TimeFnc(ptTimeFunc_);
-
-  ReadMaterialData();
-  DefineIntegrators(actlevel_);
-
-#ifndef XMLPARAMS
-  ReadSavings();
-#else
-  ReadStoreResults();
-#endif
-
-}
-
-
-  MechPDE::~MechPDE()
-  {
-    ENTER_FCN( "MechPDE::~MechPDE" );
-
-    if  (lambdaMat)
-      delete lambdaMat;
-    
-    if  (mueMat)
-      delete mueMat;
   }
   
-
 
   void MechPDE::DefineIntegrators(const Integer level)
   {
@@ -508,35 +427,6 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
     return bilinearStiff;
   }
 
-
-
-  Integer MechPDE::GetBCDof(const std::string dofString)
-  {
-    ENTER_FCN( "MechPDE::GetBCDof" );
-
-    Integer retVal = 0;
-
-    if (dofString == "ux") retVal = 1;
-    else if (dofString == "uy") retVal = 2;
-    else if (dofString == "uz") retVal = 3;
-    else
-      {
-#ifndef XMLPARAMS
-	std::string errmsg = "The direction '" + dofString;
-	errmsg += "' mentioned in the config-file is not implemented";
-	Info->Error( errmsg, __FILE__, __LINE__ );
-#else
-	// According to the Schema definition of the parameter file this cannot
-	// happen. Did the parser not perform validation?
-	std::string errmsg = "Direction should be one of ux, uy, uz\n";
-	  errmsg += "and not" + dofString;
-	Info->Error( errmsg, __FILE__, __LINE__ );
-#endif
-      }
-
-    return retVal;
-  }
-  
 
 
   void MechPDE::
@@ -1090,13 +980,11 @@ void MechPDE :: PostStepStatic(const Integer kstep, const Double asteptime,
 void MechPDE :: InitTimeStepping(const Double dt)
 {
   ENTER_FCN( "MechPDE::InitTimeStepping" );
-  Boolean needsDampingMatrix = FALSE;
-  if (dampingType_) needsDampingMatrix = TRUE;
 
   if (effectiveMass_)  
-    TS_alg_ = new NewmarkEffMass(pdename_, algsys_, eqnData_, needsDampingMatrix);
+    TS_alg_ = new NewmarkEffMass(pdename_, algsys_, eqnData_, needsDampingMatrix_);
   else
-    TS_alg_ = new Newmark(pdename_, algsys_, eqnData_, needsDampingMatrix);
+    TS_alg_ = new Newmark(pdename_, algsys_, eqnData_, needsDampingMatrix_);
 
   TS_alg_->Init(matrix_factor_, dt);
 

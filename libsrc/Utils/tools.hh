@@ -10,6 +10,7 @@ namespace CoupledField
 {
   template<class TYPE> class Matrix; 
   template<class TYPE> class Vector;
+  template<class TYPE> class StdVector;
 
   //! Function for working with errors. The program stops after the error-message. 
   /*!
@@ -35,9 +36,22 @@ namespace CoupledField
   */
  pfn1var FncReader(const std::string namefnc);
 
- //! Absolute value of number
-template<class T>
-T abs(T x) { return (x>0 ? x: -x); } 
+
+
+  //! Function for splitting up a comma-separated
+  //! string into a StdVector of single entries
+  //! \param list (input) single string containing multiple strings,
+  //! separated by 'delimiter'
+  //! \param strVec (output) vector of the single entries
+  //! \param delimiter (input) character used as delimiter
+  
+  void SplitStringList(std::string list, 
+		       StdVector<std::string> & strVec,
+		       Char delimiter = ',');
+  
+  //! Absolute value of number
+  template<class T>
+  T abs(T x) { return (x>0 ? x: -x); } 
 
   //! square of value
 template<class T>

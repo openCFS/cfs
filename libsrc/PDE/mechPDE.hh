@@ -33,14 +33,13 @@ public:
   //!  Deconstructor
   virtual ~MechPDE();
 
+  //! Initialize NonLinearities
+  virtual void InitNonLin();
+
 
   //! define all (bilinearform) integrators needed for this pde
   virtual void DefineIntegrators(const Integer level);
 
-
-  /// return index of dof defined by keyword (e.g. 'ux')
-  virtual Integer GetBCDof(const std::string keyword);
-  
 
   /// calculates L2-norm of RHS regarding entries due to penalty formulation
   Double RhsL2Norm(Vector<Double>& stdVec);

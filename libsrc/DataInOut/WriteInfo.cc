@@ -18,22 +18,16 @@
 namespace CoupledField
 {
 
-  WriteInfo::WriteInfo (const Char * name)
+  WriteInfo::WriteInfo ()
   {
- 
-    std::string filename(name);
-    filename += ".info";
-  
-    cfsInfo = new std::ofstream(filename.c_str());
 
+    ENTER_FCN( "WriteInfo::WriteInfo");
     warningOccured_ = FALSE;
     progressRunning_ = FALSE;
     needAck_ = FALSE;
-
-    if (!cfsInfo) 
-      Error("Can't open info-file");
+    
+    cfsInfo = NULL;
   }
-
 
 
   WriteInfo::~WriteInfo ()
@@ -44,6 +38,18 @@ namespace CoupledField
       delete cfsInfo;
   }
   
+  void WriteInfo::CreateFile(const Char * name)
+  {
+    ENTER_FCN( "WriteInfo::CreateFile" ) 
+
+    std::string filename(name);
+    filename += ".info";
+    
+    cfsInfo = new std::ofstream(filename.c_str());
+    
+    if (!cfsInfo) 
+      Error("Can't open info-file");  
+  }
 
 
   void WriteInfo::PrintHeader()
@@ -71,7 +77,9 @@ namespace CoupledField
 	   << "===========" << std::endl << std::endl;
 
     std::cout << std::endl << header.str();
-    *cfsInfo << header.str();
+
+    if (cfsInfo)
+      *cfsInfo << header.str();
   }
   
 
@@ -79,15 +87,16 @@ namespace CoupledField
   void WriteInfo::PrintPiezoMat(MaterialData& material)
   {
     ENTER_FCN( "WriteInfo::PrintPiezoMat" );
-
-    *cfsInfo  << "FULL PIEZO DATAMATRIX OF " << material.GetMaterialName()
-	      << ":" << std::endl
-	      << std::endl << *(material.GetMatrix()) << std::endl
-	      << "density = " << material.GetDensity() << std::endl
-	      << "damping coefficient alfa = " << material.GetDampingAlfa()
-	      << std::endl
-	      << "damping coefficient beta = " << material.GetDampingBeta()
-	      << std::endl <<  std::endl;
+    
+    if (cfsInfo)
+      *cfsInfo  << "FULL PIEZO DATAMATRIX OF " << material.GetMaterialName()
+		<< ":" << std::endl
+		<< std::endl << *(material.GetMatrix()) << std::endl
+		<< "density = " << material.GetDensity() << std::endl
+		<< "damping coefficient alfa = " << material.GetDampingAlfa()
+		<< std::endl
+		<< "damping coefficient beta = " << material.GetDampingBeta()
+		<< std::endl <<  std::endl;
   }
   
 
@@ -96,13 +105,14 @@ namespace CoupledField
   {
     ENTER_FCN( "WriteInfo::PrintFluidMat" );
 
-    *cfsInfo << "MATERIAL DATA OF " << material.GetMaterialName() << ":"
-	     << std::endl << "compressibility: "
-	     << material.GetCompressibility() << std::endl
-	     << "density: " << material.GetDensity() << std::endl
-	     << "alpha: " << material.GetDampingAlfa() << std::endl
-	     << "beta: " << material.GetDampingBeta() << std::endl
-	     << std::endl;
+    if (cfsInfo)
+      *cfsInfo << "MATERIAL DATA OF " << material.GetMaterialName() << ":"
+	       << std::endl << "compressibility: "
+	       << material.GetCompressibility() << std::endl
+	       << "density: " << material.GetDensity() << std::endl
+	       << "alpha: " << material.GetDampingAlfa() << std::endl
+	       << "beta: " << material.GetDampingBeta() << std::endl
+	       << std::endl;
   }
   
 
@@ -114,15 +124,16 @@ namespace CoupledField
     Double mX, mY, mZ;
     material.GetPermMag(mX, mY, mZ);
 
-    *cfsInfo << "MATERIAL DATA OF " << material.GetMaterialName()
-	     << ":" << std::endl
-	     << "conductivity:            " << material.GetConductivity()
-	     << std::endl
-	     << "permeability:            " << material.GetPermeability()
-	     << std::endl
-	     << "vector of magnetiziation: (" << mX << ", " << mY << ", "
-	     << mZ <<")" 
-	     << std::endl << std::endl;
+    if (cfsInfo)
+      *cfsInfo << "MATERIAL DATA OF " << material.GetMaterialName()
+	       << ":" << std::endl
+	       << "conductivity:            " << material.GetConductivity()
+	       << std::endl
+	       << "permeability:            " << material.GetPermeability()
+	       << std::endl
+	       << "vector of magnetiziation: (" << mX << ", " << mY << ", "
+	       << mZ <<")" 
+	       << std::endl << std::endl;
   }
   
 
@@ -139,16 +150,19 @@ namespace CoupledField
     
     pdeNameLong += "-PDE: ";
     
-    *cfsInfo << std::endl << pdeNameLong << "NONLINEAR ITERATION "
-	     << iterationCounter 
-	     << " ==========================================" << std::endl
-	     << pdeNameLong << "=== Residual error          " << residualErr
-	     << std::endl
-	     << pdeNameLong << "=== Incremental error       "
-	     << incrementalErr << std::endl;
-
-    if (etaLineSearch)
-      *cfsInfo << pdeNameLong << "=== eta (line search)       " << etaLineSearch << std::endl;
+    if (cfsInfo) 
+      {
+	*cfsInfo << std::endl << pdeNameLong << "NONLINEAR ITERATION "
+		 << iterationCounter 
+		 << " ==========================================" << std::endl
+		 << pdeNameLong << "=== Residual error          " << residualErr
+		 << std::endl
+		 << pdeNameLong << "=== Incremental error       "
+		 << incrementalErr << std::endl;
+    
+	if (etaLineSearch)
+	  *cfsInfo << pdeNameLong << "=== eta (line search)       " << etaLineSearch << std::endl;
+      }
   }
 
 
@@ -173,11 +187,13 @@ namespace CoupledField
 
     // write to info-file
     pdeNameLong += "-PDE: ";    
-    *cfsInfo << std::endl << std::endl << std::endl 
-	     << "**********************************************************"
-	     << "**********************" 
-	     << std::endl << pdeNameLong << "TIME STEP " << timeStep 
-	     << ", time: " << time << std::endl;
+    
+    if (cfsInfo)
+      *cfsInfo << std::endl << std::endl << std::endl 
+	       << "**********************************************************"
+	       << "**********************" 
+	       << std::endl << pdeNameLong << "TIME STEP " << timeStep 
+	       << ", time: " << time << std::endl;
   }
   
 
@@ -200,11 +216,12 @@ namespace CoupledField
 
     // write to info-file
     pdeNameLong += "-PDE: ";    
-    *cfsInfo << std::endl << std::endl << std::endl 
-	     << "**********************************************************"
-	     << "**********************" 
-	     << std::endl << pdeNameLong << "HARMONIC STEP " << freqStep 
-	     << ", frequency: " << frequency << std::endl;
+    if (cfsInfo)
+      *cfsInfo << std::endl << std::endl << std::endl 
+	       << "**********************************************************"
+	       << "**********************" 
+	       << std::endl << pdeNameLong << "HARMONIC STEP " << freqStep 
+	       << ", frequency: " << frequency << std::endl;
   }
 
 
@@ -217,11 +234,14 @@ namespace CoupledField
     if (subdoms.GetSize() != results.GetSize())
       Error("Problem in WriteResults",__FILE__,__LINE__);
  
-    *cfsInfo << std::endl << " PostProcessing Result for PDE " << pdename
-	     << ": " << resulttype << " ==========" << std::endl;
-    for (Integer i=0; i<subdoms.GetSize(); i++)
-      *cfsInfo << " === " << subdoms[i] << " : " << results[i] << " (Ws)"
-	       << std::endl << std::endl;
+    if (cfsInfo)
+      {
+	*cfsInfo << std::endl << " PostProcessing Result for PDE " << pdename
+		 << ": " << resulttype << " ==========" << std::endl;
+	for (Integer i=0; i<subdoms.GetSize(); i++)
+	  *cfsInfo << " === " << subdoms[i] << " : " << results[i] << " (Ws)"
+		   << std::endl << std::endl;
+      }
   }
 
 
@@ -299,6 +319,9 @@ namespace CoupledField
 
     ENTER_FCN( "WriteInfo::PrintCoil" );
 
+    if (!cfsInfo)
+      return;
+    
     *cfsInfo << "COIL DESCRIPTION ======================================= "
 	     << myEndl;
 
@@ -398,7 +421,8 @@ namespace CoupledField
   void WriteInfo::PrintVec(Vector<Double>& vec)
   {
     ENTER_FCN( "WriteInfo::PrintVec" );
-    *cfsInfo << vec << std::endl;
+    if (cfsInfo)
+      *cfsInfo << vec << std::endl;
   }
   
 
@@ -406,7 +430,8 @@ namespace CoupledField
   void WriteInfo::PrintVec(StdVector<Integer>& vec)
   {
     ENTER_FCN( "WriteInfo::PrintVec" );
-    *cfsInfo << vec << std::endl;
+    if (cfsInfo)
+      *cfsInfo << vec << std::endl;
   }
   
 
@@ -414,7 +439,8 @@ namespace CoupledField
   void WriteInfo::PrintVec(const char * comment, StdVector<Integer>& vec)
   {
     ENTER_FCN( "WriteInfo::PrintVec" );
-    *cfsInfo << comment << myEndl << vec << myEndl << myEndl;
+    if (cfsInfo)
+      *cfsInfo << comment << myEndl << vec << myEndl << myEndl;
   }
 
 
@@ -424,18 +450,23 @@ namespace CoupledField
   {
     ENTER_FCN( "WriteInfo::PrintVec" );
 
-    *cfsInfo << comment << myEndl;
-
-    for (int i=0; i< vec.GetSize(); i++)
-      *cfsInfo << vec[i] << std::endl;
-
-    *cfsInfo << std::endl;
+    if (cfsInfo)
+      {
+	*cfsInfo << comment << myEndl;
+	
+	for (int i=0; i< vec.GetSize(); i++)
+	  *cfsInfo << vec[i] << std::endl;
+	
+	*cfsInfo << std::endl;
+      }
   }
 
   void WriteInfo::PrintMatrix(std::string &comment, const Matrix<Double> &mat)
   {
     ENTER_FCN( "WriteInfo::PrintMatrix" );
-    *cfsInfo << comment << myEndl << mat << myEndl << myEndl;
+
+    if (cfsInfo)
+      *cfsInfo << comment << myEndl << mat << myEndl << myEndl;
   }
 
   
@@ -446,7 +477,7 @@ namespace CoupledField
     ENTER_FCN( "WriteInfo::Warning" );
 
     if (progressRunning_)
-      std::cerr <<  "\033[31mWARNING\033[0m " << myEndl << myEndl;
+      std::cout <<  "\033[31mWARNING\033[0m " << myEndl << myEndl;
     
     std::cerr << "\033[31mWARNING:\033[0m " << Text << myEndl << myEndl;
     
@@ -459,31 +490,33 @@ namespace CoupledField
 	  std::cerr << numline;
 	std::cerr << ")";
 	}
-    *cfsInfo << myEndl << myEndl << myEndl
-	     << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-	     << "!!!!!!!!!!!!!" << myEndl
-	     << "                          WARNING " << myEndl
-	     << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-	     << "!!!!!!!!!!!!!" << myEndl
-	     << "WARNING: " << Text;
-    
-    if (filename) 
+    if (cfsInfo)
       {
-	*cfsInfo <<" (" << filename <<" ";
-	if (numline) 
-	  *cfsInfo << numline;
-	*cfsInfo << ")";
+	*cfsInfo << myEndl << myEndl << myEndl
+		 << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+		 << "!!!!!!!!!!!!!" << myEndl
+		 << "                          WARNING " << myEndl
+		 << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+		 << "!!!!!!!!!!!!!" << myEndl
+		 << "WARNING: " << Text;
+	
+	if (filename) 
+	  {
+	    *cfsInfo <<" (" << filename <<" ";
+	    if (numline) 
+	      *cfsInfo << numline;
+	    *cfsInfo << ")";
+	  }
+    
+	*cfsInfo << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+		 << "!!!!!!!!!!!!!" << myEndl
+		 << myEndl;
       }
-    
-    *cfsInfo << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-	     << "!!!!!!!!!!!!!" << myEndl
-	     << myEndl;
-      
   }
-
-
   
-    
+  
+  
+  
   // prints error to both std::out and info-file
   void WriteInfo::Error(const std::string & Text,
 			const Char * const filename, const Integer numline)
@@ -491,7 +524,7 @@ namespace CoupledField
     ENTER_FCN( "WriteInfo::Error" );
     
     if (progressRunning_);
-    std::cerr << "\033[31mFAILED\033[0m" << std::endl << std::endl;
+    std::cout << "\033[31mFAILED\033[0m" << std::endl << std::endl;
 
     std::cerr << std::endl << "\033[31mERROR:\033[0m " << myEndl;
     std::cerr << Text;
@@ -511,23 +544,27 @@ namespace CoupledField
 
     std::cerr << std::endl << std::endl;
     
-    *cfsInfo << myEndl << myEndl << myEndl
-	     << " !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! "
-	     << myEndl
-	     << "                          ERROR " << myEndl
-	     << " !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! "
-	     << myEndl
-	     << " ERROR: " << Text;
-    
-    if (filename) 
+    if (cfsInfo)
       {
-	*cfsInfo <<" (" << filename <<" ";
-	if (numline) 
-	  *cfsInfo << numline;
-	*cfsInfo << ")";
+	*cfsInfo << myEndl << myEndl << myEndl
+		 << " !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! "
+		 << myEndl
+		 << "                          ERROR " << myEndl
+		 << " !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! "
+		 << myEndl
+		 << " ERROR: " << Text;
+	
+	if (filename) 
+	  {
+	    *cfsInfo <<" (" << filename <<" ";
+	    if (numline) 
+	      *cfsInfo << numline;
+	    *cfsInfo << ")";
+	  }
+	*cfsInfo << std::endl;  
       }
-    *cfsInfo << std::endl;  
     
+    // exit program
     exit(-1);
   }
   
@@ -537,13 +574,17 @@ namespace CoupledField
 			     const std::string& subDom, Integer dof)
   {
     ENTER_FCN( "WriteInfo::WriteHomBC" );
-
-    *cfsInfo << pdeName << "-PDE: Homogenous Dirichlet BC on \"" << subDom
-	     << "\"";
-    if (dof)
-      *cfsInfo << " with DOF number " << dof;
     
-    *cfsInfo << myEndl;
+    if (cfsInfo)
+      {
+	
+	*cfsInfo << pdeName << "-PDE: Homogenous Dirichlet BC on \"" << subDom
+		 << "\"";
+	if (dof)
+	  *cfsInfo << " with DOF number " << dof;
+	
+	*cfsInfo << myEndl;
+      }
   }
 
 
@@ -553,13 +594,16 @@ namespace CoupledField
 			       const Integer& dof)
   {
     ENTER_FCN( "WriteInfo::WriteInHomBC" );
-
-    *cfsInfo << pdeName << "-PDE: Inhomogenous Dirichlet BC on \""
-	     << subDom  << "\"";
-    if (dof)
-      *cfsInfo << " with DOF number " << dof;
-    *cfsInfo << ", value = " <<  val << ", FncName: " << fnc; 
-    *cfsInfo << myEndl;
+    
+    if (cfsInfo)
+      {
+	*cfsInfo << pdeName << "-PDE: Inhomogenous Dirichlet BC on \""
+		 << subDom  << "\"";
+	if (dof)
+	  *cfsInfo << " with DOF number " << dof;
+	*cfsInfo << ", value = " <<  val << ", FncName: " << fnc; 
+	*cfsInfo << myEndl;
+      }
   }
 
 
@@ -570,13 +614,16 @@ namespace CoupledField
   {
     ENTER_FCN( "WriteInfo::WriteLoad" );
 
-    *cfsInfo << pdeName << "-PDE: Loads on \"" << subDom << "\"";
-    
-    if (dof)
-      *cfsInfo << " with DOF number " << dof;
-
-    *cfsInfo << ", Value=" << value <<  ", FncName: " << fnc <<  myEndl
-	     << myEndl;
+    if (cfsInfo)
+      {
+	*cfsInfo << pdeName << "-PDE: Loads on \"" << subDom << "\"";
+	
+	if (dof)
+	  *cfsInfo << " with DOF number " << dof;
+	
+	*cfsInfo << ", Value=" << value <<  ", FncName: " << fnc <<  myEndl
+		 << myEndl;
+      }
   }
   
 
@@ -671,8 +718,8 @@ namespace CoupledField
 	//find() returns npos if nothing is found
       }while(foundPos != std::string::npos);
 
-    
-    *cfsInfo << formatted << std::endl << std::flush;
+    if (cfsInfo)
+      *cfsInfo << formatted << std::endl << std::flush;
     
     va_end(argList);
   }  
@@ -686,7 +733,7 @@ namespace CoupledField
 
     needAck_ = needAck;
     
-    std::cerr << "++ " << std::setw(60) << std::left << modifiedName;
+    std::cout << "++ " << std::setw(60) << std::left << modifiedName;
 
     if (needAck)
       {
@@ -694,7 +741,7 @@ namespace CoupledField
 	progressRunning_ = TRUE;
       }
     else
-      std::cerr << std::endl;
+      std::cout << std::endl;
   }
 
 
@@ -705,9 +752,9 @@ namespace CoupledField
  
     if (!warningOccured_)
       if (success)
-	std::cerr << std::setw(10) << "\033[32mOK\033[0m" << std::endl;
+	std::cout << std::setw(10) << "\033[32mOK\033[0m" << std::endl;
       else
-	std::cerr << std::setw(10) << "\033[31mFAILED\033[0m" << std::endl;
+	std::cout << std::setw(10) << "\033[31mFAILED\033[0m" << std::endl;
 
     warningOccured_ = FALSE;
     progressRunning_ = FALSE;

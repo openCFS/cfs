@@ -23,7 +23,7 @@ namespace CoupledField
   // ===============
   //   Constructor
   // ===============
-  TransientDriver :: TransientDriver(Domain * adomain) : BaseDriver(adomain)
+  TransientDriver :: TransientDriver(Domain * adomain) : SingleDriver(adomain)
   {
     ENTER_FCN( "TransientDriver::TransientDriver" );
 

@@ -64,6 +64,10 @@ public:
   //! get pointer to boundary condition
   BCs * GetBCs(){ return ptBCs_;}
 
+  //! delete pointer to PDEs and create them new
+  void ResetPDEs();
+
+
   //! update algebraic system and bcs after refinement the mesh
   /*!
     \param level index into hierarchy (multilevel methods)

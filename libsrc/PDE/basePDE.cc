@@ -9,6 +9,10 @@
 #include "Domain/elem.hh"
 #include "Estimator/spaceerror.hh"
 #include "basePDE.hh"
+#include "scalarblockEQN.hh"
+#include "scalarnodeEQN.hh"
+#include "blocknodeEQN.hh"
+#include "superblockEQN.hh"
 
 
 namespace CoupledField
@@ -24,7 +28,10 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
    isComplex_(FALSE),
    numPDENodes_(0),
    numElems_(0),
-   sol_(NULL)
+   sol_(NULL),
+   isAlwaysStatic_(FALSE),
+   dampingType_(NONE),
+   needsDampingMatrix_(FALSE)
 {
 
   ENTER_FCN( "BasePDE::BasePDE" );
@@ -35,12 +42,19 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
   incStopCrit_ = 1e-2;
   residualStopCrit_ = 1e-3;
 
+
+  // =====================================================================
+  // set file pointers
+  // =====================================================================
   inFile_     = aInFile;
   outFile_    = aOutFile;
   ptTimeFunc_ = aptTimeFunc;
   ptgrid_     = aptgrid;
   ptBCs_      = aptBCs;
 
+  // =====================================================================
+  // set analysis parameters
+  // =====================================================================
   actlevel_ = 0;
   actFrequency_ = 0;
   complexFormat_ = AMPLITUDE_PHASE;
@@ -51,18 +65,18 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
   updateBCs_ = 0;
   dim_ = ptgrid_->GetDim();
   initMatrices_ = FALSE;
+  savederiv1_ = FALSE;
+  savederiv2_ = FALSE;
 
 
-
+  // =====================================================================
+  // set solver parameters
+  // =====================================================================
   eps_         = 1.0e-8;
   dampiter_    = 1.0;
   maxnumiter_  = 500;
   numeqcoarse_ = 200;
   coarsealpha_ = 0.1;
-
-  savederiv1_ = FALSE;
-  savederiv2_ = FALSE;
-  
 
   //standard parameter for solver
 #ifdef USE_OLAS
@@ -74,99 +88,273 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
   solvertype_  = RealDirect;
 #endif
 
-  //get analysis type
-  std::string analysis;
-#ifndef XMLPARAMS
-  conf->get("analysis", analysis);
-#else
-  params->Get( "type", analysis, "analysis" );
-#endif
+ 
 
-  //allocate according algebraic system
-  algsys_ = new StandardSystem();
+}
 
 
-#ifdef USE_OLAS
-  olasParams_ = algsys_->GetOLASParams();
-  olasReport_ = algsys_->GetOLASReport();
-
-  std::string parallel = "no";
-#ifndef XMLPARAMS
-  conf->ifget("parallel",parallel);
-#else
-  Info->Warning( "Parameter 'parallel' unknown to XML" );
-#endif
-
-  if (parallel == "yes")
-    olasParams_->SetValue( "Parallel", true);
-  else
-    olasParams_->SetValue( "Parallel", false);
   
+  void BasePDE::Init(Integer bcSequenceIndex,
+		     std::string  bcSequenceTag)
+  {
+    ENTER_FCN( "BasePDE::Init()" );
+    
+    bcSequenceTag_= bcSequenceTag;
+    bcSequenceIndex_ = bcSequenceIndex;
+
+    //allocate according algebraic system
+    algsys_ = new StandardSystem();
+    
+#ifdef USE_OLAS
+    // Get parameter and report object of OLAS
+    olasParams_ = algsys_->GetOLASParams();
+    olasReport_ = algsys_->GetOLASReport();
+    
+    std::string parallel = "no";
+#ifndef XMLPARAMS
+    conf->ifget("parallel",parallel);
+#else
+    Info->Warning( "Parameter 'parallel' unknown to XML" );
+#endif
+    
+    if (parallel == "yes")
+      olasParams_->SetValue( "Parallel", true);
+    else
+      olasParams_->SetValue( "Parallel", false);
+    
+#endif
+    
+    // =====================================================================
+    // Get type of analysis
+    // =====================================================================
+    
+    // Construct vectors for restricted search parameter
+    StdVector<std::string> keyVec;
+    StdVector<std::string> attrVec;
+    StdVector<std::string> valVec;
+    std::string stepString;
+    std::string analysis;
+
+#ifndef XMLPARAMS
+    conf->get("analysis", analysis);
+#else
+    params->Get( "type", analysis, "analysis" );
 #endif
 
-
-  if (analysis=="static") 
-    {
+    AnalysisType analysisHelp;
+    StdVector<std::string> tags, analysisTypes, pdenames;
+    String2Enum(analysis,analysisHelp);
+    
+    if (analysisHelp == STATIC ||
+	isAlwaysStatic_ == TRUE) {
+      isComplex_ = FALSE;
       assemble_ = new StaticAssemble(algsys_, ptgrid_);
       analysistype_ = STATIC;
     }
-
-  else if (analysis=="transient")
-    {
+    else if (analysisHelp == TRANSIENT) {
+      isComplex_ = FALSE;
       assemble_ = new TransientAssemble(algsys_, ptgrid_);
       analysistype_ = TRANSIENT;
       laststepcalc_ = 1;
-    }
-
-  else if (analysis=="harmonic")
-    {
+    }    
+    else if (analysisHelp == HARMONIC) {
       isComplex_ = TRUE;
       assemble_ = new HarmonicAssemble(algsys_, ptgrid_);
       analysistype_ = HARMONIC;
       //overwrite defualt solver
 #ifdef USE_OLAS
-      Info->Error( "Implement this branch!", __FILE__, __LINE__ );
+	Info->Error( "Implement this branch!", __FILE__, __LINE__ );
 #else
-      solvertype_ = ComplexDirectSolver;
+	solvertype_ = ComplexDirectSolver;
 #endif
-    }
-  else
-    Error("Analysis Type not supported",__FILE__,__LINE__);
+      }
+    else if (analysisHelp == MULTI_SEQUENCE) {
 
-  // Determine if solution is of complex type or not
-  if (analysistype_ == HARMONIC)
-    sol_ = new NodeStoreSol<Complex>;
-  else
-    sol_ = new NodeStoreSol<Double>;
+      //std::cerr << "BasePDE::Init: In Step for multisequence" << std::endl;
+      
+      // HARDCODED
+      bcSequenceIndex_ = 1;
 
+      stepString = Info->GenStr(bcSequenceIndex_);
+      attrVec = "", "index", "type";
+      valVec = "", stepString, pdename_;
+      //std::cerr << "pdename_ = " << pdename_ << std::endl;
+      //std::cerr << "stepString = " << stepString << std::endl;
 
-  //for adaptivity
+      keyVec = "multiSequence", "step", "pde", "analysis";
+      params->Get(keyVec, attrVec, valVec, analysis);
+     
+      //std::cerr << "analysis = " << analysis;
 
+      String2Enum(analysis, analysistype_);
+      if (analysistype_ == STATIC){
+	assemble_ = new StaticAssemble(algsys_, ptgrid_);
+	isComplex_ = FALSE;
+      }
+      else if (analysistype_ == TRANSIENT) {
+	isComplex_ = FALSE;
+	assemble_ = new TransientAssemble(algsys_, ptgrid_);
+	laststepcalc_ = 1;	
+      }
+      else {
+	Error("BasePDE::Init: AnalysisType not supported", __FILE__, __LINE__);
+      }
+  }
+    else
+      Error("Analysis Type not supported",__FILE__,__LINE__);
+    
+    // Determine if solution is of complex type or not
+    if (analysistype_ == HARMONIC)
+      sol_ = new NodeStoreSol<Complex>;
+    else
+      sol_ = new NodeStoreSol<Double>;
+    
+    
+    // =====================================================================
+    // initialize adaptivity
+    // =====================================================================
+    
 #ifndef XMLPARAMS
-  if (conf->get_option("adaptspace"))
-    conf->get("tolerance_space_error", tolSpaceErr_);
-  else
-    tolSpaceErr_ = .0;
+    if (conf->get_option("adaptspace"))
+      conf->get("tolerance_space_error", tolSpaceErr_);
+    else
+      tolSpaceErr_ = .0;
 #else
-  if( params->IsSet( "adaptspace" ) )
-    {
-      params->Get( "tolerance_space_error", tolSpaceErr_ );
-    }
-  else
-    {
-      tolSpaceErr_ = 0;
+    if( params->IsSet( "adaptspace" ) )
+      {
+	params->Get( "tolerance_space_error", tolSpaceErr_ );
+      }
+    else
+      {
+	tolSpaceErr_ = 0;
+      }
+#endif 
+
+    // =====================================================================
+    // get regions/subdomains for PDE
+    // =====================================================================
+#ifndef XMLPARAMS
+    conf->getsubdompde(subdoms_,pdename_);
+#else
+    params->GetList( "name", subdoms_, pdename_, "region" );
+    Info->PrintF( pdename_, " %s lives on regions:", pdename_.c_str());
+    for ( Integer k = 0; k < subdoms_.GetSize(); k++ ) {
+      Info->PrintF( pdename_, " %s", subdoms_[k].c_str() );
     }
 #endif
+    
+    // =====================================================================
+    // read in boundary conditions
+    // =====================================================================
+    ReadBCs();
+    numDirichletBCs_ += GetNumRestraints(actlevel_);
+    
+    // =====================================================================
+    // read in NonLinearities
+    // =====================================================================
+    InitNonLin();
+    
+    // =====================================================================
+    // initialize EQN-object and Storeresults class
+    // =====================================================================
+    
+    // #### TEMPORARY UNTIL SCHEMA IS ADAPTED ####
+    if (dofspernode_ == 1) {
+      eqnData_  = new ScalarNodeEQN(ptgrid_, ptBCs_, subdoms_, 
+				    actlevel_, dofspernode_);
+    } else {
+      eqnData_ = new ScalarBlockEQN(ptgrid_, ptBCs_, subdoms_, 
+				      actlevel_, dofspernode_);
+//       eqnData_ = new BlockNodeEQN(ptgrid_, ptBCs_, subdoms_, 
+// 				   actlevel_, dofspernode_);
+    }
+    
+    // ONLY TEMPORARY
+    SuperBlockEQN tempEQN (ptgrid_, ptBCs_, subdoms_, actlevel_, 
+			   dofspernode_);
 
-}
+    eqnData_->SetHomoDirichletBCs(bcs_hd_, homDirichDof_);
+    eqnData_->CalcMapping();
+    // eqnData_->Print(*debug);
+    numPDENodes_ = eqnData_->GetNumLocalNodes();
+    numElems_ = eqnData_->GetNumLocalElems();
+    
+    // Initialize Storesolution class
+    sol_->SetNumSolutions(solTypes_.GetSize());
+    sol_->SetNumNodes(numPDENodes_);
+    for (Integer iSol=0; iSol<solTypes_.GetSize(); iSol++) {
+      sol_->SetSolutionType(solTypes_[iSol],iSol);
+      sol_->SetNumDofs(solDofs_[iSol], solTypes_[iSol]);
+    }
+    sol_->SetPtrEQNData(eqnData_, ptgrid_, actlevel_);
+    sol_->Init(); 
 
+    
+    
+    // =====================================================================
+    // initialize assemble object
+    // =====================================================================
+    assemble_->SetPtr2EQNData(eqnData_); 
+    //assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, subdoms_, pressSurf_);
+    assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, subdoms_, surfdoms_);
+    assemble_->SetGraphType(NODEGRAPH);
+#ifdef USE_OLAS
+    if (isComplex_)
+      assemble_->SetMatrixEntryType(OLAS::COMPLEX);
+    else
+      assemble_->SetMatrixEntryType(OLAS::DOUBLE);
+    assemble_->SetMatrixStorageType(OLAS::SPARSE_NONSYM);
+#else
+    if (eqnData_->IsBlockMapped()) {
+      if (isComplex_)
+	assemble_->SetMatrixType(CBLOCK);
+      else
+	assemble_->SetMatrixType(RBLOCK);
+    }
+    else {
+      if (isComplex_)
+	assemble_->SetMatrixType(CSCALAR);
+      else
+	assemble_->SetMatrixType(RSCALAR);
+    }
+#endif 
+    assemble_->SetNumDirichlet(numDirichletBCs_);
+    
+    assemble_->SetPtrBCs(ptBCs_);
+    assemble_->SetPtr2Sol(sol_);
+    assemble_->SetPtr2TimeFnc(ptTimeFunc_);
+    if (needsDampingMatrix_) 
+      assemble_->NeedDampingMatrix();
 
+    SetAlgSys();
+    
+    // =====================================================================
+    // read in material data
+    // =====================================================================
+    ReadMaterialData();
+    
+    // =====================================================================
+    // define the integratos for PDE
+    // =====================================================================
+    DefineIntegrators(actlevel_);
+    
+    // =====================================================================
+    // define which solution types have to be saved
+    // =====================================================================
+#ifndef XMLPARAMS
+    ReadSavings();
+#else
+    ReadStoreResults();
+#endif
+  }
+  
+  
   // For XML parameter handling we have replaced this method by the pure
   // virtual ReadStoreResults() method which must be implemented by each
   // PDE according to its demands.
-
+  
 #ifndef XMLPARAMS
-
+  
   void BasePDE::ReadSavings() {
 
     ENTER_FCN( "BasePDE::ReadSavings" );
@@ -190,6 +378,28 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
 
 #endif
   
+
+  Integer BasePDE::GetBCDof(const std::string dofStartString)
+  {
+    ENTER_FCN( "BasePDEPDE::GetBCDof" );
+
+    Integer nrActDof = 0;
+
+    if ( dofStartString == "ux" )
+      nrActDof = 1;
+    if ( dofStartString == "uy" )
+      nrActDof = 2;
+    if ( dofStartString == "uz" )
+      nrActDof = 3;
+    // HARD coded for piezo case
+    if ( dofStartString == "ep" )
+      nrActDof = dofspernode_;
+    if ( nrActDof == 0 )
+      Error("Unknown dof-type in homog. BC; substring must start with ux, uy, uz or ep!!",
+	    __FILE__, __LINE__);
+
+    return nrActDof;
+  }
 
 
 void BasePDE::WriteGeneralPDEdefines()
@@ -672,36 +882,72 @@ void  BasePDE::SetBCs(const Integer level, const Integer update, const Double ti
 
 
 
+void BasePDE::SetSolution(BaseNodeStoreSol & sol)
+{
+  ENTER_FCN( "BasePDE::SetSolution" );
 
-void BasePDE::ReadBCs( const std::string pde )
+}
+
+
+void BasePDE::ReadBCs()
 {
 
   ENTER_FCN( " entering BasePDE::ReadBCs " );
 
 
 #ifndef XMLPARAMS
-  conf->ifgetliststr( "homogeneous_dirichlet"  , bcs_hd_, pde ); 
-  conf->ifgetliststr( "inhomogeneous_dirichlet", bcs_id_, pde );
-
+  conf->ifgetliststr( "homogeneous_dirichlet"  , bcs_hd_, pdename_ ); 
+  conf->ifgetliststr( "inhomogeneous_dirichlet", bcs_id_, pdename_ );
+  
   val_id_.Resize(bcs_id_.GetSize());
   fncnames_id_.Resize(bcs_id_.GetSize());
 
   for( Integer i = 0; i < bcs_id_.GetSize(); i++ )
     {
-      conf->get2( bcs_id_[i], val_id_[i], fncnames_id_[i], pde,
+      conf->get2( bcs_id_[i], val_id_[i], fncnames_id_[i], pdename_,
 		  "bc_conditions", "inhomogeneous_dirichlet" );
     }
 
+  if (dofspernode_ > 1)
+    {
+      conf->ifgetliststr("homogenBCDof", homDirichDof_, pdename_);  
+      conf->ifgetliststr("inhomogenBCDof", inhomDirichDof_, pdename_);
+      
+      // just for consistency with old script
+      conf->ifgetliststr("homoBCDof", homDirichDof_, pdename_);
+      conf->ifgetliststr("homoBCdof", homDirichDof_, pdename_);
+      conf->ifgetliststr("inhomoBCDof", inhomDirichDof_, pdename_);
+      conf->ifgetliststr("inhomoBCdof", inhomDirichDof_, pdename_);
+    }
 #else
 
-  // Get names of node sets for homogeneous Dirichlet boundary conditions
-  params->GetList( "name", bcs_hd_, pde, "dirichletHom"   );
+  // vectors for parameter handling
+  StdVector<std::string> keyVec;
+  StdVector<std::string> attrVec;
+  StdVector<std::string> valVec;
 
-  // Get names of node sets, values and filenames for inhomogenous
-  // Dirichlet boundary conditions
-  params->GetList( "name"    , bcs_id_     , pde, "dirichletInhom" );
-  params->GetList( "value"   , val_id_     , pde, "dirichletInhom" );
-  params->GetList( "dynamics", fncnames_id_, pde, "dirichletInhom" );
+  
+  
+ //  // Get names of node sets for homogeneous Dirichlet boundary conditions
+//   params->GetList( "name", bcs_hd_, pdename_, "dirichletHom"   );
+  keyVec = pdename_, "bcsAndLoads", "dirichletHom", "name";
+  attrVec = "", "tag", "";
+  valVec = "", bcSequenceTag_, "";
+  params->GetList(keyVec, attrVec, valVec, bcs_hd_);
+
+//   // Get names of node sets, values and filenames for inhomogenous
+//   // Dirichlet boundary conditions
+//   params->GetList( "name"    , bcs_id_     , pdename_, "dirichletInhom" );
+//   params->GetList( "value"   , val_id_     , pdename_, "dirichletInhom" );
+//   params->GetList( "dynamics", fncnames_id_, pdename_, "dirichletInhom" );
+  keyVec = pdename_, "bcsAndLoads", "dirichletInhom", "name";
+  params->GetList(keyVec, attrVec, valVec, bcs_id_);
+
+  keyVec = pdename_, "bcsAndLoads", "dirichletInhom", "value";
+  params->GetList(keyVec, attrVec, valVec, val_id_);
+
+  keyVec = pdename_, "bcsAndLoads", "dirichletInhom", "dynamics";
+  params->GetList(keyVec, attrVec, valVec, fncnames_id_);
 
   // Check consistency
   if ( bcs_id_.GetSize() != val_id_.GetSize() ||
@@ -719,7 +965,44 @@ void BasePDE::ReadBCs( const std::string pde )
     {
       fncnames_id_.Push_back( "none" );
     }
+  if (dofspernode_ > 1)
+    {
+      keyVec = pdename_, "bcsAndLoads", "dirichletHom", "dof";
+      params->GetList(keyVec, attrVec, valVec, homDirichDof_);
+		      
+      keyVec = pdename_, "bcsAndLoads", "dirichletInhom", "dof";
+      params->GetList(keyVec, attrVec, valVec, inhomDirichDof_);
+//       params->GetList( "dof", homDirichDof_  , pdename_, "dirichletHom" );  
+//       params->GetList( "dof", inhomDirichDof_, pdename_, "dirichletInhom" );
+    }
 #endif
+
+  // =====================================================================
+  // if pde has more than one dof, initialize dof of boundary
+  // conditions
+  // =====================================================================
+  
+  if (dofspernode_ > 1)
+    {
+      if (bcs_hd_.GetSize() != homDirichDof_.GetSize())
+	{
+	  std::string errmsg = "Inconsistent definition of homogeneous ";
+	  errmsg += "Dirichlet Boundary Conditions\n";
+	  errmsg += " bcs_hd_.GetSize() = " + Info->GenStr( bcs_hd_.GetSize() );
+	  errmsg += "\n homDirichDof_.GetSize() = "
+	  + Info->GenStr( homDirichDof_.GetSize() ) + '\n';
+	  Info->Error( errmsg, __FILE__, __LINE__ );
+	}
+      if (bcs_id_.GetSize() != inhomDirichDof_.GetSize()) 
+	{
+	  std::string errmsg = "Inconsistent definition of inhomogeneous ";
+	  errmsg += "Dirichlet Boundary Conditions";
+	  Info->Error( errmsg, __FILE__, __LINE__ );
+	}
+    }
+  
+
+  
 
 }
 
@@ -833,7 +1116,7 @@ BasePDE::~BasePDE()
   // ALGSYS SECTION (SOLVER, ...) 
   // ======================================================
 
-  void BasePDE::SetAlgSys(int sysid)
+  void BasePDE::SetAlgSys()
   {
 
     ENTER_FCN( " Analysis::SetAlgSys" );
@@ -847,7 +1130,6 @@ BasePDE::~BasePDE()
 #endif
 
     //set the graph type used for the system matrices
-    //assemble_->SetupMatrixGraph(numPDENodes_);
     //std::cerr << "BasePDE: We have " << eqnData_->GetNumEQNs();
     //std::cerr << " Equations" << std::endl;
     assemble_->SetupMatrixGraph(eqnData_->GetNumEQNs());

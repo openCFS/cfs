@@ -43,12 +43,15 @@ namespace CoupledField
 
   public:
     /// constructor
-    WriteInfo(const Char * name);
+    WriteInfo();
 
     
     /// destructor
     virtual ~WriteInfo();
 
+
+    /// create output file
+    void CreateFile(const Char *name);
 
     /// Prints header for both info-file and standard out
     void PrintHeader();
@@ -142,7 +145,8 @@ namespace CoupledField
     //! if the << operator has been overloaded for the respective type.
     template<class T> std::string GenStr( const T &value ) {
       std::ostringstream mystream;
-      mystream << value << std::ends;
+//       mystream << value << std::ends;
+      mystream << value;
       return mystream.str();
     };
 

@@ -54,11 +54,20 @@ class SpaceErrorEstimator;
       \param aTimeFunc pointer to class TimeFunc
     */
     BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
-	    WriteResults *aOutFile, TimeFunc *aTimeFunc); 
+	    WriteResults *aOutFile, TimeFunc *aTimeFunc);
 
     //! Destructor
     virtual ~BasePDE();
 
+    //! Initializes PDE
+    //! \param bcSequenceId (input) name of the tag for current set of 
+    //! boundary condition
+    virtual void Init(Integer sequenceStep = 0,
+		      std::string  bcSequenceTag = "anyTag");
+
+    //! Initialize NonLinearities
+    virtual void InitNonLin(){};
+    
     //! read material data
     virtual void ReadMaterialData();
 
@@ -111,8 +120,7 @@ class SpaceErrorEstimator;
     // ======================================================
 
     //! define algebraic system 
-    /*! \param AS_sysid id of PDE in algebraic system  */
-    virtual void SetAlgSys(int sysid);
+    virtual void SetAlgSys();
 
     //! Create the matrices and Solver as well as Preconditioner
     virtual void CreateMatrices_Solver();
@@ -244,6 +252,10 @@ class SpaceErrorEstimator;
       return FALSE;
     }
 
+    
+    //! set solution
+    virtual void SetSolution(BaseNodeStoreSol & sol);
+    
     //! return solution
     virtual const BaseNodeStoreSol& getS() {return *sol_;}
 
@@ -304,14 +316,10 @@ class SpaceErrorEstimator;
 #endif
 
     //! read from config-file info about BCs
-    void ReadBCs(const std::string eq);
+    void ReadBCs();
     
     //! return index of dof defined by keyword (e.g. 'ux')
-    virtual Integer GetBCDof(const std::string keyword)
-    {
-      Error("GetBCDof not implemented",__FILE__,__LINE__);
-      return 0;
-    }
+    virtual Integer GetBCDof(const std::string keyword);
 
 #ifdef ADAPTGRID  
     //! ----------------- functions for adaptivity
@@ -345,6 +353,7 @@ class SpaceErrorEstimator;
 
     //@{
     //! \name Attributes related to geometry and node numbering
+    EQNType eqnType_;      //!< type of equation numbering used
     Integer dofspernode_;  //!< number of unknowns per node
     Integer dofsperedge_;  //!< number of unknowns per edge
     Integer numPDENodes_;  //!< number of nodes in subdomains
@@ -416,6 +425,16 @@ class SpaceErrorEstimator;
     //@{
     //! \name Attributes connected to the handling of boundary conditions
 
+    //! tag of current set of boundary conditions
+
+    //! tag of current set of boundary conditions. For a multiSequence-simulation
+    //! this id determines, which set of boundary conditions is applied.
+    std::string bcSequenceTag_;
+
+    //! index of current set of boundary conditions. For a multiSequence-simulation
+    //! this index determines, which set of boundary conditions is applied.
+    Integer bcSequenceIndex_;
+
     //! names of interfaces with homogeneous Dirichlet boundary conditions
     StdVector<std::string> bcs_hd_;
 
@@ -466,6 +485,12 @@ class SpaceErrorEstimator;
     //@{
     //! \name Attributes connected to storing information
     
+    //! vector containing solutiontypes of PDE
+    StdVector<SolutionType> solTypes_;
+
+    //! vector containgin dofs of solutiontypes
+    StdVector<Integer> solDofs_;
+
     //! TRUE, if solution should be written to result file
     Boolean savesol_;
 
@@ -527,6 +552,7 @@ class SpaceErrorEstimator;
 
     //! specifies the type of damping model (see environment.hh)
     DampingType dampingType_;
+    Boolean needsDampingMatrix_;
     //@}
 
     // -----------------------------------------------------------------------
@@ -559,6 +585,7 @@ class SpaceErrorEstimator;
     //@{
     //! \name Miscellaneous attributes
     AnalysisType analysistype_; //!< analysis type
+    Boolean isAlwaysStatic_;    //!< flag for static PDEs (like electrostatic)
     std::string pdename_;       //!< type of PDE (set in the derived classes)
     ShortInt dim_;              //!< space dimension of pde
     Boolean isaxi_;             //!< TRUE: axisymmetric problem

@@ -24,7 +24,13 @@ namespace CoupledField {
 
     ENTER_FCN( "PiezoPDE::PiezoPDE" );
 
+    // =====================================================================
+    // set solution information
+    // =====================================================================
+
     // Set name of the PDE and its material class
+
+    
     pdename_ = "piezo";
     pdematerialclass_ = "piezo";
 
@@ -46,7 +52,7 @@ namespace CoupledField {
       Info->PrintF("", "=== PLANE STRAIN PROBLEM\n");
     }
 
-    conf->getsubdompde(subdoms_,pdename_);
+//     conf->getsubdompde(subdoms_,pdename_);
 #else
 
     // Get problem geometry and PDE subtype
@@ -76,19 +82,14 @@ namespace CoupledField {
       Info->Error( errmsg, __FILE__, __LINE__ );
     }
 
-    // Get list of subdomains
-    params->GetList( "name", subdoms_, pdename_, "region" );
-    Info->PrintF( pdename_, " PiezoPDE lives on regions:" );
-    for ( Integer k = 0; k < subdoms_.GetSize(); k++ ) {
-      Info->PrintF( pdename_, " %s", subdoms_[k].c_str() );
-    }
-
 #endif
 
-    ReadBCs(pdename_);
+    // =====================================================================
+    // set solution information
+    // =====================================================================
+    solTypes_ = MECH_DISPLACEMENT, ELEC_POTENTIAL;
+    solDofs_ = dofspernode_-1, 1;
     
-   
-
 #ifndef XMLPARAMS
    effectiveMass_ = FALSE;
    if (conf->get_option("effMass",  pdename_ ))
@@ -106,7 +107,9 @@ namespace CoupledField {
      dampingType_ = NONE;
    
    if (dampingType_)
-     assemble_->NeedDampingMatrix();
+     {
+       needsDampingMatrix_ = TRUE;
+     }
 #else
 
    // Use effective mass approach?
@@ -122,23 +125,13 @@ namespace CoupledField {
      Info->PrintF( pdename_, " Using no damping\n" );
    }
    if( dampingType_ != NONE ) {
-     assemble_->NeedDampingMatrix();
+     needsDampingMatrix_ = TRUE;
    }
 
 #endif
 
 #ifndef XMLPARAMS
-    conf->ifgetliststr("homogenBCDof", homDirichDof_, pdename_);  
-    conf->ifgetliststr("inhomogenBCDof", inhomDirichDof_, pdename_);
-
-    // just for consistency with old script
-    conf->ifgetliststr("homoBCDof", homDirichDof_, pdename_);
-    conf->ifgetliststr("homoBCdof", homDirichDof_, pdename_);
-    conf->ifgetliststr("inhomoBCDof", inhomDirichDof_, pdename_);
-    conf->ifgetliststr("inhomoBCdof", inhomDirichDof_, pdename_);
 #else
-    params->GetList( "dof", homDirichDof_  , pdename_, "dirichletHom" );  
-    params->GetList( "dof", inhomDirichDof_, pdename_, "dirichletInhom" );  
 
     //check for pressure loads
     params->GetList( "name"    , pressSurf_ , pdename_, "pressure" );
@@ -160,91 +153,6 @@ namespace CoupledField {
       {
 	pressFnc_.Push_back( "none" );
       }
-#endif
-
-   //check for b.c. input data
-   if (bcs_hd_.GetSize() != homDirichDof_.GetSize()) 
-     Error("Inconsistent definition of homogeneous Dirichlet Boundary Conditions");
-   if (bcs_id_.GetSize() != inhomDirichDof_.GetSize()) 
-     Error("Inconsistent definition of inhomogeneous Dirichlet Boundary Conditions");
-   
-   // Two possible numberings of equations possible
-   // Simply unquote the desired line
-   // 1.) Super-blocknumbering
-   SuperBlockEQN dummy = SuperBlockEQN(ptgrid_, ptBCs_, subdoms_, actlevel_, dofspernode_);
-   //eqnData_ = new SuperBlockEQN(ptgrid_, ptBCs_, subdoms_, actlevel_, dofspernode_);
-   
-   // 2.) Normal blocknumbering
-   //   eqnData_ = new BlockNodeEQN(ptgrid_, ptBCs_, subdoms_, actlevel_, dofspernode_);
-   
-   // 3.) Scalar blocknumbering
-   eqnData_ = new ScalarBlockEQN(ptgrid_, ptBCs_, subdoms_, actlevel_, dofspernode_);
-
-   eqnData_->SetHomoDirichletBCs(bcs_hd_, homDirichDof_);
-   eqnData_->CalcMapping();
-   //eqnData_->Print(std::cerr);
-   
-   numPDENodes_ = eqnData_->GetNumLocalNodes();
-   numElems_ = eqnData_->GetNumLocalElems();
-   
-   size_        = numPDENodes_ * dofspernode_;
-   sol_->SetNumSolutions(2);
-   sol_->SetNumNodes(numPDENodes_);
-   sol_->SetSolutionType(MECH_DISPLACEMENT,0);
-   sol_->SetSolutionType(ELEC_POTENTIAL,1);
-   sol_->SetNumDofs(dim_,MECH_DISPLACEMENT); // displacements have dof of mesh-dimension
-   sol_->SetNumDofs(1,ELEC_POTENTIAL);  // electric potential
-   sol_->SetPtrEQNData(eqnData_, ptgrid_, actlevel_);
-   sol_->Init();
-
-   // set assemble parameters
-   assemble_->SetPtr2EQNData(eqnData_); 
-    //currently some hack
-    assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, subdoms_, pressSurf_);
-    //   assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, subdoms_, surfdoms_);
-
-   assemble_->SetGraphType(NODEGRAPH);
-
-
-#ifdef USE_OLAS
-    if (analysistype_==HARMONIC) {
-      assemble_->SetMatrixEntryType(OLAS::COMPLEX);
-      assemble_->SetMatrixStorageType(OLAS::SPARSE_NONSYM);
-    }
-    else {
-      assemble_->SetMatrixEntryType(OLAS::DOUBLE);
-      assemble_->SetMatrixStorageType(OLAS::SPARSE_NONSYM);
-    }
-#else
-    if (analysistype_==HARMONIC) {
-      assemble_->SetMatrixType(CSCALAR);
-      if (eqnData_->GetNumDofsPerEQN() == 1)
-	assemble_->SetMatrixType(CSCALAR);
-      else
-	Error("Complex Block Matrix in LAS not supported");
-    }
-    else {
-      if (eqnData_->GetNumDofsPerEQN() == 1)
-	assemble_->SetMatrixType(RSCALAR);	
-      else
-	assemble_->SetMatrixType(RBLOCK);
-    }
-#endif 
-   
-   assemble_->SetNumDirichlet(GetNumRestraints(actlevel_));
-   
-   assemble_->SetPtrBCs(ptBCs_);
-   assemble_->SetPtr2Sol(sol_);
-   assemble_->SetPtr2TimeFnc(ptTimeFunc_);
-   
-   ReadMaterialData();
-   
-   DefineIntegrators(actlevel_);  
-   
-#ifndef XMLPARAMS
-   ReadSavings();
-#else
-   ReadStoreResults();
 #endif
 
   }
@@ -350,9 +258,10 @@ namespace CoupledField {
     ENTER_FCN( "PiezoPDE::InitTimeStepping" );
 
     if (effectiveMass_)
-      TS_alg_ = new NewmarkEffMass(pdename_, algsys_, eqnData_, dampingType_);
+      TS_alg_ = new NewmarkEffMass(pdename_, algsys_, 
+				   eqnData_, needsDampingMatrix_);
     else
-      TS_alg_ = new Newmark(pdename_, algsys_, eqnData_, dampingType_);
+      TS_alg_ = new Newmark(pdename_, algsys_, eqnData_, needsDampingMatrix_);
 
     TS_alg_->Init(matrix_factor_, dt);
   }
@@ -399,40 +308,6 @@ namespace CoupledField {
   }
     
 
-
-  Integer PiezoPDE::GetBCDof(const std::string dofStartString)
-  {
-    ENTER_FCN( "PiezoPDE::GetBCDof" );
-
-    Integer nrActDof = 0;
-
-    if (subType_ == "3d") {    
-      if ( dofStartString == "ux" )
-	nrActDof = 1;
-      if ( dofStartString == "uy" )
-	nrActDof = 2;
-      if ( dofStartString == "uz" )
-	nrActDof = 3;
-      if ( dofStartString == "ep" )
-	nrActDof = 4;
-      if ( nrActDof == 0 )
-	Error("Unknown dof-type in homog. BC; substring must start with ux, uy, uz or ep!!",
-	      __FILE__,__LINE__);
-    }
-    else {
-      if ( dofStartString == "ux" )
-	nrActDof = 1;
-      if ( dofStartString == "uy" )
-	nrActDof = 2;
-      if ( dofStartString == "ep" )
-	nrActDof = 3;
-      if ( nrActDof == 0 )
-	Error("Unknown dof-type in homog. BC; substring must start with ux, uy, uz or ep!!",
-	      __FILE__,__LINE__);
-    }
-
-    return nrActDof;
-  }
 
 
 // ***********************************************************************

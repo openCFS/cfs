@@ -66,7 +66,9 @@ namespace CoupledField
   typedef Double (*pfn2var)(const Double, const Double);
   typedef Double (*pfn3var)(const Double, const Double, const Double);
 
-  enum AnalysisType {STATIC=1, TRANSIENT=2, HARMONIC=3, EIGENFREQUENCY=4};
+  typedef enum {STATIC, TRANSIENT, HARMONIC, EIGENFREQUENCY, MULTI_SEQUENCE}
+  AnalysisType;
+  
 
   //! print grid only and then exit
   extern Boolean PrintGridOnly;
@@ -127,6 +129,10 @@ namespace CoupledField
   //! L2ABS = absolute L2-norm
   //! L2REL = relative L2 norm: (|val| - |oldval|) / |val|
   typedef enum {NO_NORM, L2ABS, L2REL} NormType;
+
+  //! Enumeration for type of equation numbering
+  typedef enum {NODE_SCALAR, NODE_BLOCK, NODE_SCALAR_BLOCK,
+		NODE_SUPER_BLOCK} EQNType;
 
   //! Enumeration for directions
   //! direction of various fields 
@@ -233,11 +239,13 @@ namespace CoupledField
   template<class TYPE> void String2Enum(const std::string &in, TYPE &out); \
   template<class TYPE> void Enum2String(const TYPE &in, std::string &out);
 
+  DEFINE_ENUM_CONVERSION(AnalysisType);
   DEFINE_ENUM_CONVERSION(CouplingInputType);
   DEFINE_ENUM_CONVERSION(CouplingOutputType);
   DEFINE_ENUM_CONVERSION(CouplingRegionType);
   DEFINE_ENUM_CONVERSION(NormType);
   DEFINE_ENUM_CONVERSION(ComplexFormat);
+  DEFINE_ENUM_CONVERSION(EQNType);
 }
 #endif
 

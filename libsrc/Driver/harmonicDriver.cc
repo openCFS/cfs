@@ -15,7 +15,7 @@ namespace CoupledField
 {
 
 HarmonicDriver :: HarmonicDriver(Domain * adomain)
-:BaseDriver(adomain)
+:SingleDriver(adomain)
 {
   ENTER_FCN( " HarmonicDriver::HarmonicDriver" );
 

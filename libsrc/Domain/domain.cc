@@ -119,9 +119,9 @@ namespace CoupledField {
     InitCoupledPDE();
    
  
-    // Set the algebraic systems and read material data
+    // Initialize 
     for (int i=0;i< numpde_;i++)
-      ptpde_[i]->SetAlgSys(i);
+      ptpde_[i]->SetAlgSys();
 
   }
 
@@ -191,6 +191,9 @@ namespace CoupledField {
 	{
 	  if (dim == 2)
 	    ptpde_[i]=new MagPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
+	  else
+	    Error( "Magnetic field calculation currently only possible in 2D!",
+		   __FILE__, __LINE__);
 	}
 
       else if (pdes[i] == "piezo")
@@ -212,6 +215,9 @@ namespace CoupledField {
 	  std::string msg=pdes[i]+" - this type of pdes is unknown";
 	  Error(msg.c_str(),__FILE__,__LINE__);
 	}     
+
+      // Initialize current PDE
+      ptpde_[i]->Init();
       Info->FinishProgress();
 
     }
@@ -297,6 +303,26 @@ namespace CoupledField {
     Info->FinishProgress();
   }
 
+  void Domain::ResetPDEs()
+  {
+    ENTER_FCN( "Domain::ResetPDEs" );
+
+    for (Integer iPDE=0; iPDE<numpde_; iPDE++)
+      if (ptpde_[iPDE])
+	delete ptpde_[iPDE];
+
+    InitPDEs();
+
+    // Initialize Coupled PDEs
+    InitCoupledPDE();
+   
+ 
+    // Initialize 
+    for (int i=0;i< numpde_;i++)
+      ptpde_[i]->SetAlgSys();
+     
+  }
+
 
   void Domain::PrintGrid(const Integer level) {
     ENTER_FCN( "Domain::PrintGrid" );
@@ -307,6 +333,8 @@ namespace CoupledField {
 
   void Domain::SetSubdomains() {
     ENTER_FCN( "Domain::SetSubdomains" );
+    Error( "Domain:SetSubdomains: Not implemented!", 
+	   __FILE__, __LINE__);
   }
 
 
@@ -330,7 +358,7 @@ namespace CoupledField {
       {
 	ptpde_[i]->DeleteAlgSys(i);
 	ptpde_[i]->Reset();
-	ptpde_[i]->SetAlgSys(i); 
+	ptpde_[i]->SetAlgSys(); 
       }
   }
 

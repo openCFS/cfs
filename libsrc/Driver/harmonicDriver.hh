@@ -1,13 +1,13 @@
 #ifndef FILE_HARMONICDRIVER_2001
 #define FILE_HARMONICDRIVER_2001
 
-#include "basedriver.hh"
+#include "singleDriver.hh"
 
 namespace CoupledField
 {
 
 //! driver for harmonic problems. it is derived from BaseDriver
-class HarmonicDriver : public BaseDriver
+class HarmonicDriver : public SingleDriver
 {
 
 public:

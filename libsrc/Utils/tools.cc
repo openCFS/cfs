@@ -47,6 +47,47 @@ void Warning(const Char *Text, const Char * const filename,
  std::cerr << std::endl;
 }
 
+
+
+
+void SplitStringList(std::string list, 
+		     StdVector<std::string> & strVec,
+		     Char delimiter)
+
+{
+  Integer lastDelim = 0;
+  strVec.Clear();
+  Integer i=0;
+  
+  // ignore all leading spaces
+  while (i<list.length() && list[i] == ' ')
+    {
+      i++;
+      lastDelim++;
+    }
+
+  // get the n-1 entries of the list
+  std::cerr << "list = " << list << std::endl;
+  for (i=0; i<list.length(); i++)
+    if (list[i] == delimiter)
+      {
+	strVec.Push_back(std::string(list,lastDelim, i-lastDelim));
+
+	i++;
+	// ignore next spaces
+	while (i<list.length() && list[i] == ' ')
+	    i++;
+	lastDelim = i;
+      }
+
+  // get the n-th entry
+  i=lastDelim;
+  while (i<list.length() && list[i] != ' ')
+    i++;
+  strVec.Push_back(std::string(list,lastDelim, i-lastDelim));
+
+}
+
 template<Integer dim>
 Point<dim> & Point<dim>::operator+(const Point<dim>&t)
 {

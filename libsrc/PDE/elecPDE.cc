@@ -30,21 +30,18 @@ namespace CoupledField {
 
     ENTER_FCN( "ElecPDE::ElecPDE" );
 
+    // =====================================================================
+    // set solution information
+    // =====================================================================
     dofspernode_ = 1;
-
+    solTypes_ = ELEC_POTENTIAL;
+    solDofs_ = 1;
     pdename_          = "electrostatic";
     pdematerialclass_ = "piezo"; 
  
     geoUpdate_ = FALSE;
     nonLin_    = FALSE;
-
-#ifndef XMLPARAMS
-    conf->getsubdompde(subdoms_,pdename_);
-#else
-    params->GetList( "name", subdoms_, pdename_, "region" );
-#endif
-
-    ReadBCs(pdename_);
+    isAlwaysStatic_ = TRUE;
 
     //check, if problem is axisymmetric
 #ifndef XMLPARAMS
@@ -66,47 +63,8 @@ namespace CoupledField {
 #endif
 
     
-    
+    //\todo Is this variable needed?
     SolverCFS_ = FALSE;
-    
-    // only static analysis are possible =======================
-    delete assemble_;
-    assemble_ = new StaticAssemble(algsys_, ptgrid_);
-    analysistype_ = STATIC;
-
-    // Initialize EQN and NodeStoreSolution classes
-    Reset();
-    
-    // set analysis parameters
-    assemble_->SetPtr2EQNData(eqnData_); 
-    assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, subdoms_, surfdoms_);
-    assemble_->SetGraphType(NODEGRAPH);
-    
-#ifdef USE_OLAS
-    assemble_->SetMatrixEntryType(OLAS::DOUBLE);
-    assemble_->SetMatrixStorageType(OLAS::SPARSE_NONSYM);
-    //assemble_->SetMatrixStorageType(HYPRE_MATRIX);
-#else
-    assemble_->SetMatrixType(RSCALAR);
-#endif
-
-    assemble_->SetNumDirichlet(GetNumRestraints(actlevel_));
-    assemble_->SetPtrBCs(ptBCs_);
-    assemble_->SetPtr2Sol(sol_);
-    assemble_->SetPtr2TimeFnc(ptTimeFunc_);
-
-    
-    ReadMaterialData();
-   
-    DefineIntegrators(actlevel_);  
-
-#ifndef XMLPARAMS
-    ReadSavings();
-#else
-    ReadStoreResults();
-#endif
-
-    
   }
   
 
@@ -460,58 +418,6 @@ void ElecPDE::CalcEnergy()
 }
 
 
-
-// void ElecPDE::GetSolOfElement( Vector<Double>& elpot, 
-// 			       StdVector<Integer>& connecth)
-// {
-//   ENTER_FCN( "ElecPDE::GetSolOfElement" );
-
-//   ElemStoreSol<Double> * solhelp = dynamic_cast<ElemStoreSol<Double> *>(sol_);
-
-//   elpot.Resize(connect_PDE.GetSize());
-//   for(Integer actNode=0; actNode<connect_PDE.GetSize(); actNode++)
-//     sol_->Get(connecth[actNode]-1,0,elpot[actNode]);
-//     //elpot[actNode] = (*solhelp)(connect_PDE[actNode]-1,0);
-//}
-
-
-// ======================================================
-// GENERAL  SECTION
-// ======================================================
-
-
-void ElecPDE::Reset()
-{
-  ENTER_FCN( "ElecPDE::Reset" );
-  
-  // Map global numeration of element and nodes to local one
-  //AssignPDENodeNumbers(mesh2PDENode_, pde2MeshNode_, subdoms_);  
-  //AssignPDEElemNumbers(mesh2PDEElem_, pde2MeshElem_, subdoms_);
-  
-  
-  eqnData_  = new ScalarNodeEQN(ptgrid_, ptBCs_, subdoms_, actlevel_, dofspernode_);
-  eqnData_->SetHomoDirichletBCs(bcs_hd_, homDirichDof_);
-  eqnData_->CalcMapping();
-  //eqnData_->Print(std::cerr);
-  numPDENodes_ = eqnData_->GetNumLocalNodes();
-  numElems_ = eqnData_->GetNumLocalElems();
-  
-  // Initalize solution class
-  sol_->SetNumSolutions(1);
-  sol_->SetSolutionType(ELEC_POTENTIAL);
-  sol_->SetNumNodes(numPDENodes_);
-  sol_->SetNumDofs(dofspernode_);
-  sol_->SetPtrEQNData(eqnData_, ptgrid_, actlevel_);
-  sol_->Init(0.0);
-  
-  E_.SetNumSolutions(1);
-  E_.SetSolutionType(ELEC_FIELD);
-  E_.SetNumElems(numElems_);
-  E_.SetNumDofs(dim_);
-  E_.SetPtrEQNData(eqnData_, ptgrid_, actlevel_);
-  E_.Init(0.0); 
-  
-}
 
 
 // ======================================================
@@ -970,6 +876,12 @@ void ElecPDE::ReadStoreResults() {
     for ( Integer k = 0; k < calcEfield_.GetSize(); k++ ) {
       Info->PrintF( pdename_, " %s", calcEfield_[k].c_str() );
     }
+    E_.SetNumSolutions(1);
+    E_.SetSolutionType(ELEC_FIELD);
+    E_.SetNumElems(numElems_);
+    E_.SetNumDofs(dim_);
+    E_.SetPtrEQNData(eqnData_, ptgrid_, actlevel_);
+    E_.Init(); 
   }
 
   // Determine regions for which energy must be computed

@@ -179,8 +179,10 @@ public:
 #ifdef CHECK_INDEX
     if (i >= size_){
       std::string errorMsg;
-      std::stringstream errorMsgStream(errorMsg);
-      errorMsgStream << "Vector: invalid access to element " << i << "\n Length of vector: " << size_;
+      errorMsg =  "Vector: invalid access to element ";
+      errorMsg += Info->GenStr(i);
+      errorMsg += "! \n Length of vector: ";
+      errorMsg += Info->GenStr(size_);
       Error(errorMsg.c_str(),__FILE__,__LINE__);
     }
 #endif
