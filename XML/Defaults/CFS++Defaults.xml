@@ -15,8 +15,8 @@
   <pdeList>
     <mechanic>
   
-      <region name="dummy"/>
-  
+      <region name="dummyRegion"/>
+
       <nonLinear>
         <lineSearch/>
         <incStopCrit>1</incStopCrit>
@@ -25,6 +25,7 @@
       </nonLinear>
   
     </mechanic>
+
   </pdeList>
 
   <integRules>
