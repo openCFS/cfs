@@ -71,9 +71,6 @@ protected:
 
 private:
 
-  // defines subtype of mechanic PDE: plainStrain, 3d, ...
-  std::string subType_;
-  
   Integer GetNrBCDof (const std::string & dofStartString);
 
   Integer GetBCDof(const std::string dofString);

@@ -1,6 +1,6 @@
 #ifndef FILE_LINPIEZOINT
 #define FILE_LINPIEZOINT
-#endif
+
 
 #include <Elements/basefe.hh>
 #include <Forms/bdbInt.hh>
@@ -85,6 +85,13 @@ namespace CoupledField
     void calcBMat(Matrix<Double> & bMat, Integer ip,
 		  Matrix<Double> & ptCoord);
 
+    /// calculates the material data for the axisymmetric case
+    void Calc3DMaterialMat(Matrix<Double> & dMat);
+
+    //! If set to true, stiffnessmatrix is computed for damping
+    //! (just mechanical part)
+    Boolean isDamping_;
+
   };
 
 
@@ -136,10 +143,8 @@ namespace CoupledField
     //! we have three mechanical and one potential component.
     virtual Integer getNrDofs(){ return 4; };
 
-    //! If set to true, stiffnessmatrix is computed for damping
-    //! (just mechanical part)
-    Boolean isDamping_;
- 
   };
 
 }
+
+#endif

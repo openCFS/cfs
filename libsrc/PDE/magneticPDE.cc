@@ -1988,7 +1988,7 @@ namespace CoupledField {
     params->CGetList( "region", calcBfield_, "type", "bfield", 0, pdename_,
 		      "elemResults" );
 
-    // If the the symbolic name is "all" compute electric field for all regions
+    // If the symbolic name is "all" compute electric field for all regions
     if ( calcBfield_.GetSize() == 1 && calcBfield_[0] == "all" ) {
       calcBfield_ = subdoms_;
     }

@@ -10,13 +10,14 @@ namespace CoupledField
     :ptMaterial(&matData), ptelem(aptelem), isaxi_(FALSE)
   {
     ENTER_FCN( "BaseForm::BaseForm" );
+    isSetIntPoint_ = FALSE;
   }
 
   BaseForm::BaseForm(MaterialData & matData)
     :isaxi_(FALSE)
   {
     ENTER_FCN( "BaseForm::BaseForm" );
-
+    isSetIntPoint_ = FALSE;
     ptMaterial = new MaterialData(matData);
   }
 
@@ -24,12 +25,14 @@ namespace CoupledField
     :ptelem(aptelem), isaxi_(FALSE)
   {
     ENTER_FCN( "BaseForm::BaseForm" );
+    isSetIntPoint_ = FALSE;
   }
  
   BaseForm::BaseForm()
     : isaxi_(FALSE)
   {
     ENTER_FCN( "BaseForm::BaseForm" );
+    isSetIntPoint_ = FALSE;
   }
  
 

@@ -25,7 +25,10 @@ namespace CoupledField
     // local shape functions derived after global coords (format: nrNodes x spaceDim)
     Matrix<Double> xiDx;
 
-    ptelem->GetGlobDerivShFncAtIp(xiDx, ip, ptCoord);
+    if (isSetIntPoint_) 
+      ptelem->GetGlobDerivShFnc(xiDx, intPoint_, ptCoord);
+    else
+      ptelem->GetGlobDerivShFncAtIp(xiDx, ip, ptCoord);
 
 
     for(actDim=0; actDim < spaceDim; actDim++)
@@ -50,7 +53,11 @@ namespace CoupledField
 	    Vector<Double> ShpFncAtIp;
 	    Vector<Double> CoordAtIP;
 
-	    ptelem->GetShFncAtIp(ShpFncAtIp,ip);
+	    if (isSetIntPoint_) 
+	      ptelem->GetShFnc(ShpFncAtIp,intPoint_);
+	    else
+	      ptelem->GetShFncAtIp(ShpFncAtIp,ip);
+
 	    CoordAtIP = ptCoord * ShpFncAtIp;
 
 	    for (actNode = 0; actNode < nrNodes; actNode++)	     
@@ -83,9 +90,9 @@ namespace CoupledField
 	  }
 	break;
       }
-  }
-  
 
+    isSetIntPoint_ = FALSE;
+  }
 
   void linElastInt::
   CalcAxiMaterialMat(Matrix<Double> & dMat, enum orientation2D actOrientation)
@@ -121,7 +128,6 @@ namespace CoupledField
       }    
 	
     Matrix<Double> * matMatrix =  ptMaterial->GetMatrix();
-    
     dMat.Resize(nrElemsAxi);
 
     for (i=0; i<nrElemsAxi; i++)
@@ -130,12 +136,11 @@ namespace CoupledField
 
 }
 
-
-  
   // calculated the D-matrix for the plain strain state
-  void mechPlainStrainInt::calcDMat(Matrix<Double> & dMat)
+  void linElastInt::CalcPlaneStrainMaterialMat(Matrix<Double> & dMat, 
+					       enum orientation2D actOrientation)
   {
-    ENTER_FCN( "mechPlainStrainInt::calcDMat" );
+    ENTER_FCN( "linElastInt::CalcPlaneStrainMaterialMat" );
 
     const Integer nrElems2d = getDimD();
     
@@ -175,6 +180,29 @@ namespace CoupledField
 }
 
 
+  // calculates the D-matrix of a 3d-problem 
+  void linElastInt::Calc3DMaterialMat(Matrix<Double> & dMat)
+  {
+    ENTER_FCN( "llinElastInt::Calc3DMaterialMat" );
+
+    const Integer nrElems3d = getDimD();
+    
+    Matrix<Double> * matMatrix =  ptMaterial->GetMatrix();
+    
+    dMat.Resize(nrElems3d);
+
+    for (Integer i=0; i<nrElems3d; i++)
+      for (Integer j=0; j<nrElems3d; j++)
+	dMat[i][j] = (*matMatrix)[i][j];	
+  }
+
+  
+  // calculated the D-matrix for the plain strain state
+  void mechPlainStrainInt::calcDMat(Matrix<Double> & dMat)
+  {
+    ENTER_FCN( "mechPlainStrainInt::calcDMat" );
+    CalcPlaneStrainMaterialMat(dMat,actOrientation);
+  }
 
 
   // calculated the D-matrix for the axisymmetric state
@@ -186,23 +214,11 @@ namespace CoupledField
   
   }
   
-
-
-
   // calculates the D-matrix of a 3d-problem 
   void mech3DInt::calcDMat(Matrix<Double> & dMat)
   {
     ENTER_FCN( "mech3DInt::calcDMat" );
-
-    const Integer nrElems3d = getDimD();
-    
-    Matrix<Double> * matMatrix =  ptMaterial->GetMatrix();
-    
-    dMat.Resize(nrElems3d);
-
-    for (Integer i=0; i<nrElems3d; i++)
-      for (Integer j=0; j<nrElems3d; j++)
-	dMat[i][j] = (*matMatrix)[i][j];	
+    Calc3DMaterialMat(dMat);
   }
 
 

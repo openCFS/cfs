@@ -29,6 +29,11 @@ protected:
   /// calculates the material data for the axisymmetric case
   void CalcAxiMaterialMat(Matrix<Double> & dMat, enum orientation2D actOrientation);
   
+  /// calculates the material data for the axisymmetric case
+  void CalcPlaneStrainMaterialMat(Matrix<Double> & dMat, enum orientation2D actOrientation);
+
+  /// calculates the material data for the axisymmetric case
+  void Calc3DMaterialMat(Matrix<Double> & dMat);
   
   /// returns B - matrix for BDB
   virtual void calcBMat(Matrix<Double> & bMat, Integer ip, Matrix<Double> & ptCoord);

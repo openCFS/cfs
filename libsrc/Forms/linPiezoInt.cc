@@ -30,7 +30,10 @@ namespace CoupledField
     // (format: nrNodes x spaceDim)
     Matrix<Double> xiDx;
     
-    ptelem->GetGlobDerivShFncAtIp(xiDx, ip, ptCoord);
+    if (isSetIntPoint_) 
+      ptelem->GetGlobDerivShFnc(xiDx, intPoint_, ptCoord);
+    else
+      ptelem->GetGlobDerivShFncAtIp(xiDx, ip, ptCoord);
 
     // auxiliary variables
     Integer actDim, actNode;
@@ -89,28 +92,9 @@ namespace CoupledField
 
   }
 
-
-  // ========================================================================
-  // ======================== linPiezo3DInt - Part ==========================
-  // ========================================================================
-
-
-  // constructor
-  linPiezo3DInt::linPiezo3DInt(BaseFE * aptelem, MaterialData & matData) 
-    : linPiezoInt(aptelem, matData)
-  {
-    ENTER_FCN( "linPiezo3DInt::linPiezo3DInt" );
-  }
- 
-  // destructor
-  linPiezo3DInt::~linPiezo3DInt()
-  {
-    ENTER_FCN( "linPiezo3DInt::~linPiezo3DInt" );
-  }
-
   // determine the material matrix D containing the tensors of mechanical
   // modulus, electrical permittivity and piezoelectric coupling
-  void linPiezo3DInt::calcDMat(Matrix<Double> & dMat)
+  void linPiezoInt::Calc3DMaterialMat(Matrix<Double> & dMat)
   {
     ENTER_FCN( "linPiezoInt::calcDMat" );
 
@@ -153,6 +137,31 @@ namespace CoupledField
 	}
       }
     }
+  }
+
+  // ========================================================================
+  // ======================== linPiezo3DInt - Part ==========================
+  // ========================================================================
+
+
+  // constructor
+  linPiezo3DInt::linPiezo3DInt(BaseFE * aptelem, MaterialData & matData) 
+    : linPiezoInt(aptelem, matData)
+  {
+    ENTER_FCN( "linPiezo3DInt::linPiezo3DInt" );
+  }
+ 
+  // destructor
+  linPiezo3DInt::~linPiezo3DInt()
+  {
+    ENTER_FCN( "linPiezo3DInt::~linPiezo3DInt" );
+  }
+
+  // calculates the D-matrix of a 3d-problem 
+  void linPiezo3DInt::calcDMat(Matrix<Double> & dMat)
+  {
+    ENTER_FCN( "linPiezo3DInt::calcDMat" );
+    Calc3DMaterialMat(dMat);
   }
 
 

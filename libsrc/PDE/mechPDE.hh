@@ -114,6 +114,9 @@ public:
   //! write results in file
    virtual void WriteResultsInFile();
 
+  //! do PostProcessing step
+  virtual void PostProcess(const Integer level);
+
   //!  return pointer to vector with first derivative of solution
   //virtual const Array<Double>& getS1() const { return TS_alg_->GetDeriv1();}
   virtual const Vector<Double>& getS1() const { return TS_alg_->GetDeriv1();}
@@ -196,9 +199,6 @@ private:
   void CalcReducedMat(MaterialData& lambdaMat, MaterialData& mueMat,
 		      MaterialData& mat);
 
-  /// defines subtype of mechanic PDE: plainStrain, 3d, ...
-  std::string subType_;
-
   Integer GetNrBCDof (const std::string & dofStartString);
 
   /// stores an algsys_ vector into a StdVector and returns that L2-norm
@@ -226,6 +226,10 @@ private:
 
   /// external forces (for nonlin simulations)
   Vector<Double> extForces_;
+
+  //postprocessing
+  ElemStoreSol<Double> Stress_;  //!< conatins magnetic field
+  StdVector<std::string> calcStress_;  //!< contains the subdomains, on which the stress is computed
 
 };
 
