@@ -2,46 +2,51 @@
 
 \section{General}
 According to the {\sf pdeList} we will introduce a {\sf couplingList}. Within this
-list we will differ between iterative coupling (e.g. {\sf iterElecMech}) and direct
-coupling (e.g. {\sf directPiezo}). For iterative coupling the method can be {\sf RHS} 
+list we will differ between iterative coupling ({\sf iterative}) and direct
+coupling ({\sf direct}). For iterative coupling the method can be {\sf RHS} 
 (for right hand side coupling) and {\sf Matrix} for a matrix coupling algorithm.
-Then, for each involved PDE, we have
-to specify the input coupling terms, which can be {\sf nodeCoupling},
-{\sf surfaceCoupling} and {\sf regionCoupling}. At the end, we have to define
+Then, for each involved pair of coupling PDEs, we have
+to specify for each PDE the coupling parameters. 
+The coupling is specified by the coupling input {\sf quantity}, the
+interface {\sf type} - which can be {\sf node}(Coupling),
+{\sf surface}(Coupling) or {\sf region}(Coupling) -  and the {\sf name} of
+the interface, which has to correspond with the according interface
+{\sf type}. At the end, we have to define
 the stopping criteria and the maximum number of iterations
-within the section {\sf nonlinear}. Therefore, the general structure 
+within the section {\sf nonlLnear}. Therefore, the general structure 
 looks as follows
 
 
 \begin{verbatim}
 <couplingList>
-  <iterativePde1Pde2 method="RHS">
-     <Pde1>
-        <coupling type="..." quantity="..." name="..."/>
-     </Pde1>
-     <Pde2>
-        <coupling type="..." quantity="..." name="..."/>
-        <coupling type="..." quantity="..." name="..."/>
-     </Pde2>
-     <nonLinear logging="yes">
-       <stopCrit value="1e-2" name="..." l2Norm="..."/>
-       <maxNumIters>  200</maxNumIters>
-     </nonLinear>
-  </iterativePde1Pde2>
+  <iterative>
+    <Pde1Pde2 method="RHS">
+      <Pde1>
+        <coupling quantity="..." type="..." name="..."/>
+      </Pde1>
+      <Pde2>
+        <coupling quantity="..." type="..." name="..."/>
+        <coupling quantity="..." type="..." name="..."/>
+      </Pde2>
+    </Pde1Pd2>
 
-  <iterativePde3Pde4 method="Matrix">
-     <Pde3>
-        <coupling type="..." quantity="..." name="..."/>
-        <coupling type="..." quantity="..." name="..."/>
-     </Pde3>
-     <Pde4>
-        <coupling type="..." quantity="..." name="..."/>
-     </Pde4>
-     <nonLinear logging="no">
-       <stopCrit value="1e-2" name="..." l2Norm="..."/>
-       <maxNumIters> 20 </maxNumIters>
-     </nonLinear>
-  </iterativePde3Pde4>
+    <Pde3Pde4 method="Matrix">
+      <Pde3>
+        <coupling quantity="..." type="..." name="..."/>
+        <coupling quantity="..." type="..." name="..."/>
+      </Pde3>
+      <Pde4>
+        <coupling quantity="..." type="..." name="..."/>
+      </Pde4>
+    </Pde4Pde4>
+
+    <nonLinear logging="no">
+      <stopCrit value="1e-3" quantity="..." l2Norm="..."/>
+      <stopCrit value="1e-2" quantity="..." l2Norm="..."/>
+      <stopCrit value="1e-5" quantity="..." l2Norm="..."/>
+      <maxNumIters> 20 </maxNumIters>
+    </nonLinear>
+  </iterative>
 </couplingList>
 \end{verbatim}
 
@@ -49,13 +54,19 @@ looks as follows
 For the stopping criteria, we have currently the following names:
 
 \begin{verbatim}
-    <stopCrit value="1e-2" name="mechdisplacement" l2Norm="rel"/>
-    <stopCrit value="1e-2" name="elecForce" l2Norm="rel"/>
-    <stopCrit value="1e-2" name="magForce" l2Norm="rel"/>
+    <stopCrit value="1e-2" quantity="mechDisplacement" l2Norm="rel"/>
+    <stopCrit value="1e-2" quantity="smoothDisplacement" l2Norm="rel"/>
+    <stopCrit value="1e-2" quantity="elecForceVWP" l2Norm="rel"/>
+    <stopCrit value="1e-2" quantity="magForceLorentz" l2Norm="rel"/>
+    <stopCrit value="1e-2" quantity="acousticForce" l2Norm="rel"/>
+
 \end{verbatim}
 Instead of using a relative accuracy $\epsilon^{rel}$, i.e. $\|u_{k+1}-u_k\|_2 < \epsilon^{rel} \|u_{k+1}\|_2$ you can as well
 truncate the iterations by choosing an absolute accuracy $\epsilon^{abs}$, i.e. $\|u_{k+1}-u_k\|_2 < \epsilon^{abs}$ setting {\sf
-l2Norm="abs"}.
+l2Norm="abs"}. Note that the specification of the stopping criterias
+is optional: The coupling is considered as converged if either {\sf
+  maxNumIters} iterations have been performed or if {\bf all} stopping
+criterias were met.
 
 
 \section{Specifications within the single fields}
@@ -87,7 +98,6 @@ interfaceCoupling & acousticForce
 \end{center}
 \end{table}
 
-
 \begin{table}[htb]
 \begin{center}
 \caption{Magnetics}
@@ -106,7 +116,7 @@ regionCoupling & smoothDisplacement
 \bigskip
 \begin{tabular}{l|l}
 input coupling    & type \\\hline \hline
-nodeCoupling      & mechForec \\
+nodeCoupling      & mechForce \\
 \end{tabular}
 \end{center}
 \end{table}
@@ -122,23 +132,25 @@ body problem).
 
 \begin{verbatim}
 <couplingList>
-  <iterativeElecMech method="RHS">
-     <mechanic>
-        <coupling type="node" quantity="elecForceVWP" name="electrode1"/>
-     </mechanic>
-     <electrostatic>
-        <coupling type="region" quantity="smoothDisplacement" name="air1"/>
-        <coupling type="region" quantity="smoothDisplacement" name="air2"/>
-     </electrostatic>
-     <smooth>
-        <coupling type="node" quantity="mechDisplacement" name="electrode1"/>
-     </smooth>
-     <nonLinear logging="no">
-       <stopCrit value="1e-2" name="mechDisplacement" l2Norm="rel"/>
-       <stopCrit value="1e-3" name="elecForce" l2Norm="abs"/>
-       <maxNumIters> 20 </maxNumIters>
-     </nonLinear>
-  </iterativeElecMech>
+  <iterative>
+    <elecMech method="RHS">
+      <electrostatic>
+        <coupling quantity="smoothDisplacement" type="region" name="air1"/>
+        <coupling quantity="smoothDisplacement" type="region" name="air2"/>
+      </electrostatic>
+      <mechanic>
+        <coupling quantity="elecForceVWP" type="node" name="electrode1"/>
+      </mechanic>
+      <smooth>
+        <coupling quantity="mechDisplacement" type="node" name="electrode1"/>
+      </smooth>
+    </elecMech>
+    <nonLinear logging="no">
+      <stopCrit value="1e-2" quantity="mechDisplacement" l2Norm="rel"/>
+      <stopCrit value="1e-3" quantity="elecForceVWP" l2Norm="abs"/>
+      <maxNumIters> 20 </maxNumIters>
+    </nonLinear>
+  </iterative>>
 </couplingList>
 \end{verbatim}
 
@@ -153,30 +165,33 @@ body problem).
 
 \begin{verbatim}
 <couplingList>
-  <iterativeMagMech method="RHS">
-     <mechanic>
-        <coupling type="region" quantity="magForceLorentz" name="plate"/>
-     </mechanic>
-     <magnetic>
-        <coupling type="region" quantity="smoothDisplacement" name="air1"/>
-        <coupling type="region" quantity="smoothDisplacement" name="air2"/>
-     </magnetic>
-     <smooth>
-        <coupling type="node" quantity="mechDisplacement" name="surf1 "/>
-     </smooth>
-     <nonLinear logging="no">
-       <stopCrit value="1e-2" name="mechDisplacement" l2Norm="rel"/>
-       <stopCrit value="1e-3" name="magForce" l2Norm="abs"/>
-       <maxNumIters> 20 </maxNumIters>
-     </nonLinear>
-  </iterativeMagMech>
+  <iterative>
+    <magMech method="RHS">
+      <magnetic>
+        <coupling quantity="smoothDisplacement" type="region" name="air1"/>
+        <coupling quantity="smoothDisplacement" type="region" name="air2"/>
+      </magnetic>
+      <mechanic>
+        <coupling quantity="magForceLorentz" type="region" name="plate"/>
+      </mechanic>
+      <smooth>
+        <coupling quantity="mechDisplacement" type="node" name="surf1"/>
+      </smooth>
+      <nonLinear logging="no">
+        <stopCrit value="1e-2" quantity="mechDisplacement" l2Norm="rel"/>
+        <stopCrit value="1e-3" quantity="magForceLorentz" l2Norm="abs"/>
+      <maxNumIters> 20 </maxNumIters>
+    </nonLinear>
+  </iterative>
 </couplingList>
 \end{verbatim}
 
 
 \section{AcouMech}
 Here we differ between an indirect and a direct coupling. Currently we have
-just implemented the iterative coupling.
+just implemented the iterative coupling. Note that the coupling
+between these two field can only be done via {\sf interface} coupling,
+as the element normals are needed for calculating the coupling forces.
 
 \bigskip
 \noindent
@@ -184,17 +199,19 @@ just implemented the iterative coupling.
 
 \begin{verbatim}
 <couplingList>
-  <iterativeAcouMech method="RHS">
-     <mechanic>
-        <coupling type="node" quantity="acousticForce" name="surf1 "/>
-     </mechanic>
-     <acoustic>
-        <coupling type="node" quantity="mechForce" name="surf1"/>
-     </acoustic>
-     <nonLinear logging="no">
-       <stopCrit value="1e-2" name="mechDisplacement" l2Norm="rel"/>
-       <maxNumIters> 20 </maxNumIters>
-     </nonLinear>
+  <iterative>
+    <acouMech method="RHS">
+      <acoustic>
+        <coupling quantity="mechForce" type="interface" name="surf1"/>
+      </acoustic>
+      <mechanic>
+        <coupling quantity="acousticForce" type="interface" name="surf1"/>
+      </mechanic>
+    </acouMech>
+    <nonLinear logging="no">
+      <stopCrit value="1e-2" quantity="mechDisplacement" l2Norm="rel"/>
+      <maxNumIters> 20 </maxNumIters>
+    </nonLinear>
   </iterativeAcouMech>
 </couplingList>
 \end{verbatim}
