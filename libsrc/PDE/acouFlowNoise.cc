@@ -21,28 +21,35 @@
 namespace CoupledField
 {
 
-  AcouFlowNoise::AcouFlowNoise(Grid *aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, 
-                               FileType *aptFileType, WriteResults *aptOut)
+AcouFlowNoise::AcouFlowNoise(Grid *aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc,
+			     FileType *aptFileType, WriteResults *aptOut)
     :AcousticPDE(aptgrid, aptbcs, aptTimeFunc, aptFileType, 
                  aptOut)
   {
     ENTER_FCN( "AcouFlowNoise::AcouFlowNoise" );
 
-    pdename_          = "acoustic"; // this is also acoustic since no need for new name
+    // pdename_ is also acoustic for this case
+    pdename_          = "acoustic";
     pdematerialclass_ = "fluid";
     nodalSrc_ = FALSE;
-  
+    plotRHS_ = FALSE;  
 
 #ifdef MpCCI
     StdVector<Elem*> elemssd;
 
     params->GetList( "name", subdoms_, pdename_, "region" );
-    params->GetList( "name", couplSubDomName_, "MpCCI-flownoise", "coupledregion" );
+    params->GetList( "name", couplSubDomName_, "MpCCI-flownoise",
+		     "coupledregion" );
 
     //check type of flow data
     if( params->HasValue( "type", "nodalSrc", pdename_, "flowData" ) ) {
       nodalSrc_ = TRUE;
       Info->PrintF(pdename_, " Using FlowData as RHS nodal source\n" );
+    }
+  
+    if( params->IsSet( "valRHS","pdeList" ,"acoustic" ) ) {
+      plotRHS_ = TRUE;
+      Info->PrintF(pdename_, "Writing RHS as solution of problem\n" );
     }
     
     Boolean Find=FALSE;
@@ -61,7 +68,8 @@ namespace CoupledField
       }
     if (!Find) 
       {
-        std::string msg="Subdom to be coupled is not in list of PDE subdomains. Please, check .xml-file";
+        std::string msg="Subdom to be coupled is not in list of PDE subdoms.";
+	msg+="Please, check .xml-file";
         Error(msg.c_str(),__FILE__,__LINE__);
       }
 
@@ -94,7 +102,7 @@ namespace CoupledField
 
     Vector<Double> coeffMass, coeffDamp;
     Vector<Double> elemvec;
-    Vector<Double> elemvecdip;
+
     Integer i;
 
     Integer level=0;
@@ -102,20 +110,27 @@ namespace CoupledField
     // get maximum number of elements from grid
     Integer maxnumelem=ptgrid_->GetMaxnumElem(level,subdoms_);
 
+
+  double starttime, endtime;
+
     Double val;
     Matrix<Double> ptCoordNodes;
-    Matrix<Double> ptCoordNodSurf; // For ObstSurf
-    Matrix<Double> ptCoordNodBelongSE; // For set of elements corresponding to surface elements
+    // For ObstSurf
+    Matrix<Double> ptCoordNodSurf;
+    // For set of elements corresponding to surface elements
+    Matrix<Double> ptCoordNodBelongSE;
     Matrix<Double> deriv;
     StdVector<Integer> connecth;
-    StdVector<Integer> connect_PDE;       // For changing connecth to PDE
+    // For changing connecth to PDE
+    StdVector<Integer> connect_PDE; 
     Vector<Integer> connObstSurf; // For ObstSurf
     Vector<Integer> connBelongSE;
-    StdVector<Elem*> ObstSurf;  // vector of 1D-elements (ObstSurf) from mesh-file
+    // vector of 1D-elements (ObstSurf) from mesh-file
+    StdVector<Elem*> ObstSurf;
     BaseFE * ptEl;
     BaseFE * ptElSurf;
     BaseFE * ptElBelongSE;
-    //  Matrix<Double> flowdata_; // Where the nodal data is going to be stored
+ 
   
     Integer j,ii, elsize = -1;
     StdVector<Elem*> elemssd;     
@@ -129,14 +144,28 @@ namespace CoupledField
     //  std::cout<<"timestep counter in ComputeRHS: "<<timestep<<std::endl;
 
 #ifdef MpCCI
-    std::cout<<"MpCCInodes_: "<< MpCCInodes_ << " dimension: " << dim_ << std::endl;
+    std::cout<<"MpCCInodes_: "<< MpCCInodes_ << " dimension: " 
+	     << dim_ << std::endl;
     if (nodalSrc_ == TRUE)
       //we get already the integrated acoustic source term
       flowdata_.Resize(1, MpCCInodes_);
     else
       flowdata_.Resize(1+dim_, MpCCInodes_);
 
-    ptMpCCIexch_->CouplCompPhase(flowdata_, timestep);
+      starttime = CCI_Wtime();
+      
+
+
+       ptMpCCIexch_->CouplCompPhase(flowdata_, timestep);
+
+
+      endtime = CCI_Wtime();
+      
+
+      std::cout<<"Transfer of Data CouplCompPhase() for 1 time step took: "
+	       <<(endtime-starttime)<<" seconds"<<std::endl;
+
+
 #else
     // If data from fluid file call to get fluid flow data in flowdata_  
     std::string flowdata;
@@ -154,7 +183,8 @@ namespace CoupledField
 
 
     // Variables for ramping
-    Double xfmin, yfmin, xfmax, yfmax, facRampXmin, facRampYmin, facRampXmax, facRampYmax ;
+    Double xfmin, yfmin, xfmax, yfmax, facRampXmin, facRampYmin,
+      facRampXmax, facRampYmax ;
     Double bndoffsetXmin, bndoffsetYmin, bndoffsetXmax, bndoffsetYmax ;
 
     params->Get("xfmin",xfmin, "MpCCI-flownoise");
@@ -171,9 +201,11 @@ namespace CoupledField
     bndoffsetXmax=facRampXmax*xfmax;
     bndoffsetYmax=facRampYmax*yfmax;
 
-    // Correct is -1.0, if plugging in source (ddTij/dxidxj) directly in weak form then 1.0
-    //valmult=-1.0;
-
+    // Correct valmult value is -1.0, 
+    // if plugging in source (ddTij/dxidxj) directly in weak form then 1.0
+#ifdef MpCCI
+       starttime = CCI_Wtime();
+#endif 
     if (nodalSrc_ == FALSE) {
       
       valmult=-1.0;
@@ -195,45 +227,46 @@ namespace CoupledField
             
               Matrix<Double> ptCoordNodes;
               ptgrid_->GetCoordNodesElemMat(connecth,  ptCoordNodes, level);        
-              linear_load->CalcElemVector4Quad(ptCoordNodes, connecth, flowdata_, elemvec);
+              linear_load->CalcElemVector4Quad(ptCoordNodes, connecth,
+					       flowdata_, elemvec);
               elemvec*=valmult;
             
-              // Ramping before adding elemrhs to global vector to avoid spurious effect at bnd. of fluid dom.
+	      // Ramping before adding elemrhs to global vector 
+	      // to avoid spurious effect at bnd. of fluid dom.
             
-              for (ii=0; ii<elsize; ii++)
-                {
-                  if (ptCoordNodes[0][ii]<bndoffsetXmin)
-                    {
-                    
-                      elemvec[ii]-=elemvec[ii]*(ptCoordNodes[0][ii]-bndoffsetXmin)/(xfmin-bndoffsetXmin);
-                    }
+//               for (ii=0; ii<elsize; ii++)
+//                 {
+//                   if (ptCoordNodes[0][ii]<bndoffsetXmin)
+//                     {
+//                       elemvec[ii]-=elemvec[ii]*
+//                   (ptCoordNodes[0][ii]-bndoffsetXmin)/(xfmin-bndoffsetXmin);
+//                     }
                 
-                  else
-                    if (ptCoordNodes[0][ii]>bndoffsetXmax)
-                      elemvec[ii]-=elemvec[ii]*(ptCoordNodes[0][ii]-bndoffsetXmax)/(xfmax-bndoffsetXmax);
-                  if (ptCoordNodes[1][ii]<bndoffsetYmin)
-                    elemvec[ii]-=elemvec[ii]*(ptCoordNodes[1][ii]-bndoffsetYmin)/(yfmin-bndoffsetYmin);
-                  else    
-                    if (ptCoordNodes[1][ii]>bndoffsetYmax)
-                      elemvec[ii]-=elemvec[ii]*(ptCoordNodes[1][ii]-bndoffsetYmax)/(yfmax-bndoffsetYmax);
-                }
+//                   else
+//                     if (ptCoordNodes[0][ii]>bndoffsetXmax)
+//                       elemvec[ii]-=elemvec[ii]*
+//                   (ptCoordNodes[0][ii]-bndoffsetXmax)/(xfmax-bndoffsetXmax);
+//                   if (ptCoordNodes[1][ii]<bndoffsetYmin)
+//                     elemvec[ii]-=elemvec[ii]*
+//                   (ptCoordNodes[1][ii]-bndoffsetYmin)/(yfmin-bndoffsetYmin);
+//                   else    
+//                     if (ptCoordNodes[1][ii]>bndoffsetYmax)
+//                       elemvec[ii]-=elemvec[ii]*
+//                   (ptCoordNodes[1][ii]-bndoffsetYmax)/(yfmax-bndoffsetYmax);
+//                 }
             
               //end ramping
             
               // CHANGE connecth
               //Mesh2PDENode(connect_PDE,connecth,mesh2PDENode_);
               eqnData_->Node2EQN(connecth, connect_PDE);
+	      // for setting with homogeneous rhs       
+              //linear_load->CalcElemVector(ptCoordNodes, elemvec); 
             
-              //linear_load->CalcElemVector(ptCoordNodes, elemvec); // for setting with homogeneous rhs
-            
-              // if (j>100){ 
-              //  valmult=-10000.0;
-              //std::cout<<"elemvect quad: "<<elemvec<<std::endl;
-            
-              //}
-              //    std::cout<<"elemvect QUADRUPOLE: "<<elemvec<<std::endl;
+	      //    std::cout<<"elemvect QUADRUPOLE: "<<elemvec<<std::endl;
               // Quadrupole activated!!   
-              algsys_->SetElementRHS(&elemvec[0], connect_PDE.GetPointer(), connect_PDE.GetSize());
+              algsys_->SetElementRHS(&elemvec[0], connect_PDE.GetPointer(),
+				     connect_PDE.GetSize());
             
               delete linear_load;
             }
@@ -243,50 +276,72 @@ namespace CoupledField
     else {
       Integer eqnDof, eqnNr, node, dof;
       StdVector<Integer> connect(1);
-    
+ 
+      valmult=-1.0;    
+     
       eqnDof = 1;
       dof    = 1;
       for (Integer idx=0; idx<flowdata_.GetSizeCol() ; idx++) {
         Double val = flowdata_[0][idx];
         node = idx + 1;
 
-        // Ramping before adding to RHS vector
-        Matrix<Double> ptCoordNodes;
-        connecth.Resize(1);
-        connecth[0] = node;
-        ptgrid_->GetCoordNodesElemMat(connecth,  ptCoordNodes, level);      
+      // Ramping before adding to RHS vector (NOW IT MAKES ZERO THE RHS ENTRY!)
+      Matrix<Double> ptCoordNodes;
+      connecth.Resize(1);
+      connecth[0] = node;
+      ptgrid_->GetCoordNodesElemMat(connecth,  ptCoordNodes, level);	  
 
-        if (ptCoordNodes[0][0]<bndoffsetXmin)
-          val -= val*(ptCoordNodes[0][0]-bndoffsetXmin)/(xfmin-bndoffsetXmin);
-        else
-          if (ptCoordNodes[0][0]>bndoffsetXmax)
-            val -= val*(ptCoordNodes[0][0]-bndoffsetXmax)/(xfmax-bndoffsetXmax);
+      if (ptCoordNodes[0][0]<bndoffsetXmin)
+	//val -= val*(ptCoordNodes[0][0]-bndoffsetXmin)/(xfmin-bndoffsetXmin);
+	val = 0;
+      else
+	if (ptCoordNodes[0][0]>bndoffsetXmax)
+	//val -= val*(ptCoordNodes[0][0]-bndoffsetXmax)/(xfmax-bndoffsetXmax);
+          val = 0;
+      if (ptCoordNodes[1][0]<bndoffsetYmin)
+	//val -= val*(ptCoordNodes[1][0]-bndoffsetYmin)/(yfmin-bndoffsetYmin);
+        val = 0;
+      else	
+	if (ptCoordNodes[1][0]>bndoffsetYmax)
+	//val -= val*(ptCoordNodes[1][0]-bndoffsetYmax)/(yfmax-bndoffsetYmax);
+	  val = 0;
+      //end ramping
 
-        if (ptCoordNodes[1][0]<bndoffsetYmin)
-          val -= val*(ptCoordNodes[1][0]-bndoffsetYmin)/(yfmin-bndoffsetYmin);
-        else      
-          if (ptCoordNodes[1][0]>bndoffsetYmax)
-            val -= val*(ptCoordNodes[1][0]-bndoffsetYmax)/(yfmax-bndoffsetYmax);      
-        //end ramping
+      val*=valmult;
 
-        //add to RHS
+       //add to RHS
         eqnData_->Node2EQN(node,dof,eqnNr,eqnDof);
         algsys_->SetNodeRHS(val, eqnNr, eqnDof);      
       }
     
     
     }
+#ifdef MpCCI
+      endtime = CCI_Wtime();
+#endif    
   
+      if (plotRHS_){
+	///////// For plotting the RHS as solution for analysing it
+
+	rhs_.SetNumSolutions(1);
+	rhs_.SetNumNodes(numPDENodes_);
+	rhs_.SetSolutionType(ACOU_RHSVAL);
+	rhs_.SetNumDofs(1);
+	rhs_.SetPtrEQNData(eqnData_, ptgrid_, actlevel_);
+	rhs_.Init(0.0);
+	
+	Double * ptRHS = algsys_->GetRHSVal();
+	rhs_.CopyFromAlgSysDataPointer(ptRHS);
+      }
       
   
-
-  
-    //     timestep=timestep+1;
+      //     timestep=timestep+1;
 
   } 
 
 
-  void AcouFlowNoise::ReadFlowData(const Char * aname, Integer timestep, Matrix<Double> &flowdata_)
+  void AcouFlowNoise::ReadFlowData(const Char * aname, Integer timestep,
+				   Matrix<Double> &flowdata_)
   {
     ENTER_FCN( "AcouFlowNoise::ReadFlowData" );
 
@@ -325,8 +380,8 @@ namespace CoupledField
     strcat(anameloc,".dat");
     std::cout<<"name of currentfile: "<<anameloc<<std::endl;
   
-
-    //flowdatafile.open(aname, std::ios::in | std::ios::binary); /* Open as a binary file */
+    /* Open as a binary file */
+    //flowdatafile.open(aname, std::ios::in | std::ios::binary); 
 
     flowdatafile.open(anameloc,std::ios::in);
     if (!flowdatafile) 
@@ -361,7 +416,8 @@ namespace CoupledField
 
     flowdatafile.close();
 
-    //With this we can printout the pressure data in a file with the format of a unverg file.
+    // With this we can printout the pressure data in 
+    // a file with the format of a unverg file.
     /*  testflowf.open("test.flowf", std::ios::out);
         flowdatafile.seekg(pos, std::ios::beg);
         //testflowf << buffer;
@@ -373,7 +429,8 @@ namespace CoupledField
         testflowf << std::setw(10) << i+1;
         testflowf << std::endl;
         //for (j=0; j < maxnumqtts; j++)
-        testflowf << std::setiosflags(std::ios::uppercase | std::ios::scientific) << " " << flowdata_[0][i];
+        testflowf<< std::setiosflags(std::ios::uppercase | std::ios::scientific)
+	<< " " << flowdata_[0][i];
         testflowf << std::endl;
         }
         testflowf.close();*/
@@ -403,9 +460,26 @@ namespace CoupledField
         sol_der2Array.SetNumDofs(dofspernode_);
         sol_der2Array.Init(0.0);
         sol_der2Array.SetAlgSysVector(getS2());
-      
-        solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);
-        outFile_->WriteNodeSolutionTransient(*solTransient,laststepcalc_,lasttimecalc_);
+ 
+	  std::cout<<"In AcouFlowNoise. Writing solution..."<<std::endl;
+     
+
+	if (plotRHS_)
+	  {
+	  std::cout<<"In AcouFlowNoise. Writing RHS as solution..."<<std::endl;
+	         outFile_->WriteNodeSolutionTransient(rhs_,laststepcalc_,
+	  					     lasttimecalc_);
+		outFile_->WriteNodeSolutionTransient(rhs_, laststepcalc_, 
+						     lasttimecalc_);
+	  }
+	//	else
+	//  {
+	  std::cout<<"In AcouFlowNoise. Writing solution..."<<std::endl;
+	    solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);
+	    //  }
+    
+        outFile_->WriteNodeSolutionTransient(*solTransient,laststepcalc_,
+					     lasttimecalc_);
         outFile_->WriteNodeSolutionTransient(sol_der1Array,
                                              laststepcalc_,lasttimecalc_);
         outFile_->WriteNodeSolutionTransient(sol_der2Array,
