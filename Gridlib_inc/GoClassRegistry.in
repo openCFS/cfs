@@ -1,0 +1,43 @@
+/*----------------------------------------------------------------------
+|
+| $Id$
+|
++---------------------------------------------------------------------*/
+
+
+template<class CREATOR>
+INLINE GbBool
+GoClassRegistry<CREATOR>::containsCreator(const GbString& className)
+{
+//  ACE_Guard<ACE_Thread_Mutex> guard(mtx_);
+
+  ClassMap::const_iterator iter = creators_.find(className);
+  
+  if (iter != creators_.end()) {
+    return true;
+  }
+
+  return false;
+}
+
+
+template<class CREATOR>
+INLINE CREATOR
+GoClassRegistry<CREATOR>::queryCreator(const GbString& className) 
+{
+//  ACE_Guard<ACE_Thread_Mutex> guard(mtx_);
+
+  return creators_[className];
+}
+
+/*----------------------------------------------------------------------
+|
+| $Log$
+| Revision 1.1  2002/02/22 14:47:56  elena
+| new: dir Gridlib_inc
+|
+| Revision 1.1  2000/07/21 10:40:49  prkipfer
+| dropped g++ support
+|
+|
++---------------------------------------------------------------------*/

@@ -1,0 +1,64 @@
+/*----------------------------------------------------------------------
+|
+| $Id$
+|
++---------------------------------------------------------------------*/
+
+template <class T>
+INLINE GbBool 
+GbIntersection<T>::clip(T fDenom, T fNumer, T& rfT0, T& rfT1)
+{
+  // Return value is 'true' if line segment intersects the current test
+  // plane.  Otherwise 'false' is returned in which case the line segment
+  // is entirely clipped.
+
+  if ( fDenom > 0.0 ) {
+    if ( fNumer > fDenom*rfT1 ) return false;
+    if ( fNumer > fDenom*rfT0 ) rfT0 = fNumer/fDenom;
+    return true;
+  }
+  else if ( fDenom < 0.0 ) {
+    if ( fNumer > fDenom*rfT0 ) return false;
+    if ( fNumer > fDenom*rfT1 ) rfT1 = fNumer/fDenom;
+    return true;
+  }
+  else {
+    return fNumer <= 0.0;
+  }
+}
+
+template <class T>
+INLINE void
+GbIntersection<T>::projection(const GbVec3<T>& rkD, const GbVec3<T> akV[3],
+			      T& rfMin, T& rfMax)
+{
+  T afDot[3] = { rkD.dot(akV[0]), rkD.dot(akV[1]), rkD.dot(akV[2]) };
+
+  rfMin = afDot[0];
+  rfMax = rfMin;
+
+  if ( afDot[1] < rfMin )
+    rfMin = afDot[1];
+  else if ( afDot[1] > rfMax )
+    rfMax = afDot[1];
+
+  if ( afDot[2] < rfMin )
+    rfMin = afDot[2];
+  else if ( afDot[2] > rfMax )
+    rfMax = afDot[2];
+}
+
+/*----------------------------------------------------------------------
+|
+| $Log$
+| Revision 1.1  2002/02/22 14:47:56  elena
+| new: dir Gridlib_inc
+|
+| Revision 1.2  2001/06/15 08:30:33  prkipfer
+| made helper methods private
+|
+| Revision 1.1  2001/03/20 09:36:11  prkipfer
+| added tri-tri test
+|
+|
++---------------------------------------------------------------------*/

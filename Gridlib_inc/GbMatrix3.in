@@ -1,0 +1,214 @@
+/*----------------------------------------------------------------------
+|
+| $Id$
+|
++---------------------------------------------------------------------*/
+
+template <class T>
+INLINE const GbMatrix3<T>
+GbMatrix3<T>::ZERO(0,0,0,
+		   0,0,0,
+		   0,0,0);
+
+template <class T>
+INLINE const GbMatrix3<T> 
+GbMatrix3<T>::IDENTITY(1,0,0,
+		       0,1,0,
+		       0,0,1);
+
+template <class T>
+INLINE const T 
+GbMatrix3<T>::EPSILON = std::numeric_limits<T>::epsilon(); // max. 1e-06
+
+template <class T>
+INLINE const T 
+GbMatrix3<T>::svdEpsilon_ = std::numeric_limits<T>::epsilon(); // max. 1e-04
+
+template <class T>
+INLINE const int 
+GbMatrix3<T>::svdMaxIterations_ = 32;
+
+
+template <class T>
+INLINE GbMatrix3<T> 
+GbMatrix3<T>::operator* (T s) const
+{
+  GbMatrix3<T> kProd;
+  for (int iRow = 0; iRow < 3; iRow++) {
+    for (int iCol = 0; iCol < 3; iCol++)
+      kProd[iRow][iCol] = s*entry_[iRow][iCol];
+  }
+  return kProd;
+}
+
+template <class T>
+INLINE GbMatrix3<T> 
+GbMatrix3<T>::operator* (int s) const
+{
+  T ss = static_cast<T>(s);
+  GbMatrix3<T> kProd;
+  for (int iRow = 0; iRow < 3; iRow++) {
+    for (int iCol = 0; iCol < 3; iCol++)
+      kProd[iRow][iCol] = ss*entry_[iRow][iCol];
+  }
+  return kProd;
+}
+
+template <class T>
+INLINE GbVec3<T> 
+GbMatrix3<T>::operator* (const GbVec3<T>& v) const
+{
+  GbVec3<T> kProd;
+  for (int iRow = 0; iRow < 3; iRow++) {
+    kProd[iRow] = entry_[iRow][0]*v[0] + entry_[iRow][1]*v[1] + entry_[iRow][2]*v[2];
+  }
+  return kProd;
+}
+
+template <class T>
+INLINE GbMatrix3<T> 
+GbMatrix3<T>::operator- () const
+{
+  GbMatrix3<T> kNeg;
+  for (int iRow = 0; iRow < 3; iRow++) {
+    for (int iCol = 0; iCol < 3; iCol++)
+      kNeg[iRow][iCol] = -entry_[iRow][iCol];
+  }
+  return kNeg;
+}
+
+template <class T>
+INLINE GbMatrix3<T> 
+GbMatrix3<T>::operator+ (const GbMatrix3<T>& m) const
+{
+  GbMatrix3<T> kSum;
+  for (int iRow = 0; iRow < 3; iRow++) {
+    for (int iCol = 0; iCol < 3; iCol++) {
+      kSum.entry_[iRow][iCol] = entry_[iRow][iCol] + m.entry_[iRow][iCol];
+    }
+  }
+  return kSum;
+}
+
+template <class T>
+INLINE GbMatrix3<T> 
+GbMatrix3<T>::operator- (const GbMatrix3<T>& m) const
+{
+  GbMatrix3<T> kDiff;
+  for (int iRow = 0; iRow < 3; iRow++) {
+    for (int iCol = 0; iCol < 3; iCol++) {
+      kDiff.entry_[iRow][iCol] = entry_[iRow][iCol] - m.entry_[iRow][iCol];
+    }
+  }
+  return kDiff;
+}
+
+template <class T>
+INLINE GbMatrix3<T> 
+GbMatrix3<T>::operator* (const GbMatrix3<T>& m) const
+{
+  GbMatrix3<T> kProd;
+  for (int iRow = 0; iRow < 3; iRow++) {
+    for (int iCol = 0; iCol < 3; iCol++) {
+      kProd.entry_[iRow][iCol] = entry_[iRow][0]*m.entry_[0][iCol] +
+	                         entry_[iRow][1]*m.entry_[1][iCol] +
+	                         entry_[iRow][2]*m.entry_[2][iCol];
+    }
+  }
+  return kProd;
+}
+
+template <class T>
+INLINE GbMatrix3<T>& 
+GbMatrix3<T>::operator= (const GbMatrix3<T>& m)
+{
+  memcpy(entry_,m.entry_,9*sizeof(T));
+  return *this;
+}
+
+template <class T>
+INLINE GbBool 
+GbMatrix3<T>::operator== (const GbMatrix3<T>& m) const
+{
+  for (int iRow = 0; iRow < 3; iRow++) {
+    for (int iCol = 0; iCol < 3; iCol++) {
+      if ( entry_[iRow][iCol] != m.entry_[iRow][iCol] )
+	return false;
+    }
+  }
+
+  return true;
+}
+
+template <class T>
+INLINE GbBool 
+GbMatrix3<T>::operator!= (const GbMatrix3<T>& m) const
+{
+  return !operator==(m);
+}
+
+template <class T>
+INLINE T* 
+GbMatrix3<T>::operator[] (int row) const
+{
+  return (T*)&entry_[row][0];
+}
+
+template <class T>
+INLINE GbVec3<T> 
+GbMatrix3<T>::getColumn (int col) const
+{
+//  assert( 0 <= col && col < 3 );
+  return GbVec3<T>(entry_[0][col],entry_[1][col],entry_[2][col]);
+}
+
+template <class T>
+INLINE GbMatrix3<T> 
+GbMatrix3<T>::transposeTimes (const GbMatrix3<T>& rkM) const
+{
+  GbMatrix3<T> kProd;
+  for (int iRow = 0; iRow < 3; iRow++) {
+    for (int iCol = 0; iCol < 3; iCol++) {
+      kProd[iRow][iCol] = 0.0;
+      for (int iMid = 0; iMid < 3; iMid++) {
+	kProd[iRow][iCol] += entry_[iMid][iRow]*rkM.entry_[iMid][iCol];
+      }
+    }
+  }
+  return kProd;
+}
+
+template <class T>
+INLINE GbMatrix3<T> 
+GbMatrix3<T>::timesTranspose (const GbMatrix3<T>& rkM) const
+{
+  GbMatrix3<T> kProd;
+  for (int iRow = 0; iRow < 3; iRow++) {
+    for (int iCol = 0; iCol < 3; iCol++) {
+      kProd[iRow][iCol] = 0.0;
+      for (int iMid = 0; iMid < 3; iMid++) {
+	kProd[iRow][iCol] += entry_[iRow][iMid]*rkM.entry_[iCol][iMid];
+      }
+    }
+  }
+  return kProd;
+}
+
+
+/*----------------------------------------------------------------------
+|
+| $Log$
+| Revision 1.1  2002/02/22 14:47:56  elena
+| new: dir Gridlib_inc
+|
+| Revision 1.3  2001/06/15 08:35:11  prkipfer
+| added fast transpose multiplication and spherical interpolation without quaternions
+|
+| Revision 1.2  2001/02/13 10:58:39  prkipfer
+| exchanged fixed numeric tolerances by machine dependent ones
+|
+| Revision 1.1  2001/01/02 14:44:02  prkipfer
+| introduced new classes
+|
+|
++---------------------------------------------------------------------*/

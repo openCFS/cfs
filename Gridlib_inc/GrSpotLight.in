@@ -1,0 +1,45 @@
+/*----------------------------------------------------------------------
+|
+| $Id$
+|
++---------------------------------------------------------------------*/
+
+template <class T>
+INLINE typename GrLight<T>::Type 
+GrSpotLight<T>::getType () const
+{
+  return LT_SPOT;
+}
+
+template <class T>
+INLINE GbVec3<T>
+GrSpotLight<T>::direction ()
+{
+  return GbVec3<T>(direction_);
+}
+
+template <class T>
+INLINE T
+GrSpotLight<T>::getAngle () const
+{
+  return angle_;
+}
+
+template <class T>
+INLINE T
+GrSpotLight<T>::exponent ()
+{
+  return exponent_;
+}
+
+/*----------------------------------------------------------------------
+|
+| $Log$
+| Revision 1.1  2002/02/22 14:47:57  elena
+| new: dir Gridlib_inc
+|
+| Revision 1.1  2001/02/13 13:29:37  prkipfer
+| introduced basic rendering tools
+|
+|
++---------------------------------------------------------------------*/

@@ -1,0 +1,69 @@
+/*----------------------------------------------------------------------
+|
+| $Id$
+|
++---------------------------------------------------------------------*/
+
+template <class T>
+INLINE 
+GbTClassStorage<T>::GbTClassStorage ()
+{
+//    debugmsg("constructor");
+  storage_ = NULL;
+}
+
+template <class T>
+INLINE 
+GbTClassStorage<T>::GbTClassStorage (unsigned int uiQuantity)
+{
+//    debugmsg("full constructor");
+  if ( uiQuantity > 0 )
+    storage_ = new T[uiQuantity];
+  else
+    storage_ = NULL;
+}
+
+template <class T>
+INLINE 
+GbTClassStorage<T>::GbTClassStorage (T* atStorage)
+{
+//    debugmsg("pointer copy constructor");
+  storage_ = atStorage;
+}
+
+template <class T>
+INLINE 
+GbTClassStorage<T>::~GbTClassStorage ()
+{
+  delete[] storage_;
+}
+
+template <class T>
+INLINE T* 
+GbTClassStorage<T>::getStorage () const
+{
+  return storage_;
+}
+
+template <class T>
+INLINE T& 
+GbTClassStorage<T>::operator[] (unsigned int uiIndex) const
+{
+//  assert( storage_ );
+  return storage_[uiIndex];
+}
+
+/*----------------------------------------------------------------------
+|
+| $Log$
+| Revision 1.1  2002/02/22 14:47:56  elena
+| new: dir Gridlib_inc
+|
+| Revision 1.2  2001/02/13 11:07:00  prkipfer
+| added instantiations for rendering subsystem
+|
+| Revision 1.1  2001/01/09 11:10:01  prkipfer
+| new util: TStorage and TClassStorage
+|
+|
++---------------------------------------------------------------------*/

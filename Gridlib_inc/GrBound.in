@@ -1,0 +1,70 @@
+/*----------------------------------------------------------------------
+|
+| $Id$
+|
++---------------------------------------------------------------------*/
+
+template <class T>
+INLINE 
+GrBound<T>::GrBound()
+  : center_(GbVec3<T>::ZERO)
+{
+  radius_ = 0.0;
+}
+
+template <class T>
+INLINE GrBound<T>& 
+GrBound<T>::operator= (const GrBound<T>& rkBound)
+{
+  center_ = rkBound.center_;
+  radius_ = rkBound.radius_;
+  return *this;
+}
+
+template <class T>
+INLINE void
+GrBound<T>::setCenter (GbVec3<T>& c)
+{
+  center_ = c;
+}
+
+template <class T>
+INLINE void
+GrBound<T>::setRadius (T& r)
+{
+  radius_ = r;
+}
+
+template <class T>
+INLINE const GbVec3<T>
+GrBound<T>::getCenter () const
+{
+  return GbVec3<T>(center_);
+}
+
+template <class T>
+INLINE const T 
+GrBound<T>::getRadius () const
+{
+  return radius_;
+}
+
+template <class T>
+INLINE T
+GrBound<T>::operator[] (int i) const
+{
+  if (i<3) return center_[i];
+  return radius_;
+}
+
+/*----------------------------------------------------------------------
+|
+| $Log$
+| Revision 1.1  2002/02/22 14:47:57  elena
+| new: dir Gridlib_inc
+|
+| Revision 1.1  2001/02/13 13:29:27  prkipfer
+| introduced basic rendering tools
+|
+|
++---------------------------------------------------------------------*/

@@ -1,0 +1,128 @@
+/*----------------------------------------------------------------------
+|
+| $Id$
+|
++---------------------------------------------------------------------*/
+
+INLINE float 
+GrCamera::getFrustumNear () const
+{
+  return frustumNear_;
+}
+
+INLINE float 
+GrCamera::getFrustumFar () const
+{
+  return frustumFar_;
+}
+
+INLINE float 
+GrCamera::getFrustumLeft () const
+{
+  return frustumLeft_;
+}
+
+INLINE float 
+GrCamera::getFrustumRight () const
+{
+  return frustumRight_;
+}
+
+INLINE float 
+GrCamera::getFrustumTop () const
+{
+  return frustumTop_;
+}
+
+INLINE float 
+GrCamera::getFrustumBottom () const
+{
+  return frustumBottom_;
+}
+
+INLINE float 
+GrCamera::getViewPortLeft () const
+{
+  return viewportLeft_;
+}
+
+INLINE float 
+GrCamera::getViewPortRight () const
+{
+  return viewportRight_;
+}
+
+INLINE float 
+GrCamera::getViewPortTop () const
+{
+  return viewportTop_;
+}
+
+INLINE float 
+GrCamera::getViewPortBottom () const
+{
+  return viewportBottom_;
+}
+
+INLINE const GbVec3<float>& 
+GrCamera::getLocation () const
+{
+  return lookFrom_;
+}
+
+INLINE const GbVec3<float>& 
+GrCamera::getLeft () const
+{
+  return vecLeft_;
+}
+
+INLINE const GbVec3<float>& 
+GrCamera::getUp () const
+{
+  return vecUp_;
+}
+
+INLINE const GbVec3<float>& 
+GrCamera::getDirection () const
+{
+  return lookTo_;
+}
+
+INLINE void 
+GrCamera::setPlaneState (unsigned int uiPlaneState)
+{
+  planeState_ = uiPlaneState;
+}
+
+INLINE unsigned int 
+GrCamera::getPlaneState () const
+{
+  return planeState_;
+}
+
+INLINE int 
+GrCamera::getPlaneQuantity () const
+{
+  return nbrPlanes_;
+}
+
+INLINE const GbPlane<float>* 
+GrCamera::getPlanes () const
+{
+  return worldPlane_;
+}
+
+/*----------------------------------------------------------------------
+|
+| $Log$
+| Revision 1.1  2002/02/22 14:47:57  elena
+| new: dir Gridlib_inc
+|
+| Revision 1.2  2001/06/15 09:02:30  prkipfer
+| added compiler hints and removed useless signedness
+|
+| Revision 1.1  2001/02/13 13:29:28  prkipfer
+| introduced basic rendering tools
+|
+|
++---------------------------------------------------------------------*/

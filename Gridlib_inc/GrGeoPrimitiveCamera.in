@@ -1,0 +1,29 @@
+/*----------------------------------------------------------------------
+|
+| $Id$
+|
++---------------------------------------------------------------------*/
+
+INLINE float
+GrGeoPrimitiveCamera::getFarDivideNear () const
+{
+  return farDivideNear_;
+}
+
+INLINE float
+GrGeoPrimitiveCamera::getFarDivideFarMinusNear () const
+{
+  return farDivideFarMinusNear_;
+}
+
+/*----------------------------------------------------------------------
+|
+| $Log$
+| Revision 1.1  2002/02/22 14:47:57  elena
+| new: dir Gridlib_inc
+|
+| Revision 1.1  2001/02/13 13:29:31  prkipfer
+| introduced basic rendering tools
+|
+|
++---------------------------------------------------------------------*/

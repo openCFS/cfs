@@ -1,0 +1,64 @@
+/*----------------------------------------------------------------------
+|
+| $Id$
+|
++---------------------------------------------------------------------*/
+
+template <class T>
+INLINE 
+GbTStorage<T>::GbTStorage ()
+{
+  storage_ = NULL;
+}
+
+template <class T>
+INLINE 
+GbTStorage<T>::GbTStorage (unsigned int uiQuantity)
+{
+  if ( uiQuantity > 0 )
+    storage_ = new T[uiQuantity];
+  else
+    storage_ = NULL;
+}
+
+template <class T>
+INLINE
+GbTStorage<T>::GbTStorage (T* atStorage)
+{
+  storage_ = atStorage;
+}
+
+template <class T>
+INLINE
+GbTStorage<T>::~GbTStorage ()
+{
+  delete[] storage_;
+}
+
+template <class T>
+INLINE T* 
+GbTStorage<T>::getStorage () const
+{
+  return storage_;
+}
+
+template <class T>
+INLINE T& 
+GbTStorage<T>::operator[] (unsigned int uiIndex) const
+{
+//  assert( storage_ );
+  return storage_[uiIndex];
+}
+
+
+/*----------------------------------------------------------------------
+|
+| $Log$
+| Revision 1.1  2002/02/22 14:47:56  elena
+| new: dir Gridlib_inc
+|
+| Revision 1.1  2001/01/09 11:10:02  prkipfer
+| new util: TStorage and TClassStorage
+|
+|
++---------------------------------------------------------------------*/

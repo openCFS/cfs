@@ -1,0 +1,57 @@
+// -*- C++ -*- automatisch in C++mode wechseln (emacs)
+/*----------------------------------------------------------------------
+|
+|
+| $Log$
+| Revision 1.1  2002/02/22 14:47:56  elena
+| new: dir Gridlib_inc
+|
+| Revision 1.1  2001/06/18 10:43:05  prkipfer
+| introduced Frustum object
+|
+|
+|
++---------------------------------------------------------------------*/
+
+template <class T>
+GbFrustum<T>::GbFrustum ()
+  : origin_(GbVec3<T>::ZERO)
+  , lVector_(GbVec3<T>::UNIT_X)
+  , uVector_(GbVec3<T>::UNIT_Y)
+  , dVector_(GbVec3<T>::UNIT_Z)
+{
+  lBound_ = 1.0;
+  uBound_ = 1.0;
+  dMin_ = 1.0;
+  dMax_ = 2.0;
+
+  update();
+}
+
+template <class T>
+void 
+GbFrustum<T>::computeVertices (GbVec3<T> akVertex[8]) const
+{
+  GbVec3<T> kDScaled = dMin_*dVector_;
+  GbVec3<T> kLScaled = lBound_*lVector_;
+  GbVec3<T> kUScaled = uBound_*uVector_;
+
+  akVertex[0] = kDScaled - kLScaled - kUScaled;
+  akVertex[1] = kDScaled - kLScaled + kUScaled;
+  akVertex[2] = kDScaled + kLScaled + kUScaled;
+  akVertex[3] = kDScaled + kLScaled - kUScaled;
+
+  for (int i = 0, ip = 4; i < 4; i++, ip++) {
+    akVertex[ip] = origin_ + dRatio_*akVertex[i];
+    akVertex[i] += origin_;
+  }
+}
+
+template <class T>
+void 
+GbFrustum<T>::update ()
+{
+  dRatio_ = dMax_/dMin_;
+  mTwoLF_ = -2.0*lBound_*dMax_;
+  mTwoUF_ = -2.0*uBound_*dMax_;
+}

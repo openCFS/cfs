@@ -1,0 +1,36 @@
+/*----------------------------------------------------------------------
+|
+| $Id$
+|
++---------------------------------------------------------------------*/
+
+INLINE GrGeoPrimitiveCamera* 
+GrGeoPrimitiveRenderer::getCamera ()
+{
+  return dynamic_cast<GrGeoPrimitiveCamera*>(camera_);
+}
+
+INLINE GbBool 
+GrGeoPrimitiveRenderer::alphaBlendActive ()
+{
+  return currentAlphaState_->blendEnabled() || currentAlphaState_->testEnabled();
+}
+
+INLINE GbBool 
+GrGeoPrimitiveRenderer::zBufferActive ()
+{
+  return currentZBufferState_->compare() != GrZBufferState::CF_NEVER
+    && (currentZBufferState_->enabled() || currentZBufferState_->writeable());
+}
+
+/*----------------------------------------------------------------------
+|
+| $Log$
+| Revision 1.1  2002/02/22 14:47:57  elena
+| new: dir Gridlib_inc
+|
+| Revision 1.1  2001/02/13 14:06:43  prkipfer
+| introduced rendering subsystem
+|
+|
++---------------------------------------------------------------------*/

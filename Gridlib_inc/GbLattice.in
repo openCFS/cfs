@@ -1,0 +1,60 @@
+/*----------------------------------------------------------------------
+|
+| $Id$
+|
++---------------------------------------------------------------------*/
+
+
+INLINE int 
+GbLattice::getDimensions () const
+{
+  return dimensions_;
+}
+
+INLINE const int* 
+GbLattice::getBounds () const
+{
+  return iBound_;
+}
+
+INLINE int 
+GbLattice::getBound (int uiI) const
+{
+  //assert( uiI < dimensions_ );
+  return iBound_[uiI];
+}
+
+INLINE int 
+GbLattice::getQuantity () const
+{
+  return iSize_;
+}
+
+INLINE const int* 
+GbLattice::getOffsets () const
+{
+  return offset_;
+}
+
+INLINE int 
+GbLattice::getOffset (int uiI) const
+{
+  //assert( uiI < dimensions_ );
+  return offset_[uiI];
+}
+
+
+/*----------------------------------------------------------------------
+|
+| $Log$
+| Revision 1.1  2002/02/22 14:47:56  elena
+| new: dir Gridlib_inc
+|
+| Revision 1.2  2001/06/19 16:27:16  prkipfer
+| fixed typos and Linux compiler target
+|
+| Revision 1.1  2001/03/20 09:50:17  prkipfer
+| introduced image handling tool
+|
+|
++---------------------------------------------------------------------*/

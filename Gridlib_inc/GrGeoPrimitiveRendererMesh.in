@@ -1,0 +1,71 @@
+/*----------------------------------------------------------------------
+|
+| $Id$
+|
++---------------------------------------------------------------------*/
+
+INLINE GbBool 
+GrGeoPrimitiveRendererMesh::getVertexVisible (int uiV) const
+{
+  return vertexVisible_[uiV];
+}
+
+INLINE GbBool 
+GrGeoPrimitiveRendererMesh::getEdgeVisible (int uiE) const
+{
+  return edgeVisible_[uiE];
+}
+
+INLINE GbBool 
+GrGeoPrimitiveRendererMesh::getTriangleVisible (int uiT) const
+{
+  return triangleVisible_[uiT];
+}
+
+INLINE float& 
+GrGeoPrimitiveRendererMesh::depth (int uiV)
+{
+  return depth_[uiV];
+}
+
+INLINE GbVec3<float>& 
+GrGeoPrimitiveRendererMesh::modelVertex (int uiV)
+{
+  return modelVertex_[uiV];
+}
+
+INLINE std::vector<GbVec3<float> >&
+GrGeoPrimitiveRendererMesh::getModelVertices ()
+{
+  return modelVertex_;
+}
+
+INLINE GbBool 
+GrGeoPrimitiveRendererMesh::hasModelVertices () const
+{
+  return hasModelVertices_;
+}
+
+INLINE GbBool 
+GrGeoPrimitiveRendererMesh::hasLights () const
+{
+  return hasLights_;
+}
+
+/*----------------------------------------------------------------------
+|
+| $Log$
+| Revision 1.1  2002/02/22 14:47:57  elena
+| new: dir Gridlib_inc
+|
+| Revision 1.3  2001/06/19 16:29:59  prkipfer
+| fixed typos and Linux compiler target
+|
+| Revision 1.2  2001/06/18 11:31:11  prkipfer
+| adapted to GrGeoPrimitiveRenderer, using STL and culling support
+|
+| Revision 1.1  2001/02/13 14:06:44  prkipfer
+| introduced rendering subsystem
+|
+|
++---------------------------------------------------------------------*/

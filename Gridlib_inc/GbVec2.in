@@ -1,0 +1,297 @@
+/*----------------------------------------------------------------------
+|
+| $Id$
+|
++---------------------------------------------------------------------*/
+
+template <class T>
+INLINE GbVec2<T>& 
+GbVec2<T>::operator= (const GbVec2<T>& rkVector)
+{
+  xy[0] = rkVector[0];
+  xy[1] = rkVector[1];
+  return *this;
+}
+
+template <class T>
+INLINE GbBool 
+GbVec2<T>::operator== (const GbVec2<T>& rkVector) const
+{
+  return ( xy[0] == rkVector[0] && xy[1] == rkVector[1] );
+}
+
+template <class T>
+INLINE GbBool 
+GbVec2<T>::operator!= (const GbVec2<T>& rkVector) const
+{
+  return ( xy[0] != rkVector[0] || xy[1] != rkVector[1] );
+}
+
+template <class T>
+INLINE GbVec2<T> 
+GbVec2<T>::operator+ (const GbVec2<T>& rkVector) const
+{
+  return GbVec2<T>(xy[0]+rkVector[0],xy[1]+rkVector[1]);
+}
+
+template <class T>
+INLINE GbVec2<T> 
+GbVec2<T>::operator- (const GbVec2<T>& rkVector) const
+{
+  return GbVec2<T>(xy[0]-rkVector[0],xy[1]-rkVector[1]);
+}
+
+template <class T>
+INLINE GbVec2<T>  
+GbVec2<T>::operator*(int s) const
+{ 
+  return GbVec2<T>( xy[0]*static_cast<T>(s), 
+		    xy[1]*static_cast<T>(s) ); 
+}
+
+template <class T>
+INLINE GbVec2<T> 
+GbVec2<T>::operator* (T fScalar) const
+{
+  return GbVec2<T>(fScalar*xy[0],fScalar*xy[1]);
+}
+
+template <class T>
+INLINE GbVec2<T> 
+GbVec2<T>::operator- () const
+{
+  return GbVec2<T>(-xy[0],-xy[1]);
+}
+
+template <class T>
+INLINE GbVec2<T>
+GbVec2<T>::operator/(int s) const
+{ 
+  GbVec2<T> kQuot;
+  T ss = static_cast<T>(s);
+
+  if ( ss != 0.0 ) {
+    T fInvScalar = 1.0/ss;
+    kQuot[0] = fInvScalar*xy[0];
+    kQuot[1] = fInvScalar*xy[1];
+    return kQuot;
+  }
+  else {
+    return GbVec2<T>(std::numeric_limits<T>::infinity(),
+		     std::numeric_limits<T>::infinity());
+  }
+}
+
+template <class T>
+INLINE GbVec2<T> 
+GbVec2<T>::operator/ (T fScalar) const
+{
+  GbVec2<T> kQuot;
+
+  if ( fScalar != 0.0 ) {
+    T fInvScalar = 1.0/fScalar;
+    kQuot[0] = fInvScalar*xy[0];
+    kQuot[1] = fInvScalar*xy[1];
+    return kQuot;
+  }
+  else {
+    return GbVec2<T>(std::numeric_limits<T>::infinity(),std::numeric_limits<T>::infinity());
+  }
+}
+
+template <class T>
+INLINE GbVec2<T>& 
+GbVec2<T>::operator+= (const GbVec2<T>& rkVector)
+{
+  xy[0] += rkVector[0];
+  xy[1] += rkVector[1];
+  return *this;
+}
+
+template <class T>
+INLINE GbVec2<T>& 
+GbVec2<T>::operator-= (const GbVec2<T>& rkVector)
+{
+  xy[0] -= rkVector[0];
+  xy[1] -= rkVector[1];
+  return *this;
+}
+
+template <class T>
+INLINE GbVec2<T>& 
+GbVec2<T>::operator*=(int s)
+{ 
+  xy[0]*=static_cast<T>(s); xy[1]*=static_cast<T>(s);
+  return *this; 
+}
+
+template <class T>
+INLINE GbVec2<T>& 
+GbVec2<T>::operator*= (T fScalar)
+{
+  xy[0] *= fScalar;
+  xy[1] *= fScalar;
+  return *this;
+}
+
+template <class T>
+INLINE GbVec2<T>& 
+GbVec2<T>::operator/= (T fScalar)
+{
+  if ( fScalar != 0.0 ) {
+    T fInvScalar = 1.0/fScalar;
+    xy[0] *= fInvScalar;
+    xy[1] *= fInvScalar;
+  }
+  else {
+    xy[0] = std::numeric_limits<T>::infinity();
+    xy[1] = std::numeric_limits<T>::infinity();
+  }
+
+  return *this;
+}
+
+template <class T>
+INLINE T 
+GbVec2<T>::dot (const GbVec2<T>& rkVector) const
+{
+  return xy[0]*rkVector[0] + xy[1]*rkVector[1];
+}
+
+template <class T>
+INLINE T 
+GbVec2<T>::getNorm() const
+{
+  return GbMath<T>::Sqrt(xy[0]*xy[0] +xy[1]*xy[1]);
+}
+
+template <class T>
+INLINE GbVec2<T> 
+GbVec2<T>::cross () const
+{
+  return GbVec2<T>(xy[1],-xy[0]);
+}
+
+template <class T>
+INLINE GbVec2<T> 
+GbVec2<T>::unitCross () const
+{
+  GbVec2<T> kCross(xy[1],-xy[0]);
+  kCross.normalize();
+  return kCross;
+}
+
+template <class T>
+INLINE T 
+GbVec2<T>::normalize(T fTolerance)
+{
+  T fLength = getNorm();
+
+  if ( fLength > fTolerance ) {
+    T fInvLength = 1.0/fLength;
+    xy[0] *= fInvLength;
+    xy[1] *= fInvLength;
+  }
+  else {
+    fLength = 0.0;
+  }
+
+  return fLength;
+}
+
+template <class T>
+INLINE void 
+GbVec2<T>::orthonormalize (GbVec2<T> akVector[2])
+{
+  // If the input vectors are v0 and v1, then the Gram-Schmidt
+  // orthonormalization produces vectors u0 and u1 as follows,
+  //
+  //   u0 = v0/|v0|
+  //   u1 = (v1-(u0*v1)u0)/|v1-(u0*v1)u0|
+  //
+  // where |A| indicates length of vector A and A*B indicates dot
+  // product of vectors A and B.
+
+  // compute u0
+  akVector[0].normalize();
+
+  // compute u1
+  T fDot0 = akVector[0].dot(akVector[1]); 
+  akVector[1] -= fDot0*akVector[0];
+  akVector[1].normalize();
+}
+
+template <class T>
+INLINE T
+GbVec2<T>::getSquareNorm() const
+{
+  return xy[0]*xy[0] + xy[1]*xy[1];
+}
+
+template <class T>
+INLINE T &
+GbVec2<T>::operator[] (int i) 
+{ 
+  return xy[i]; 
+}
+
+template <class T>
+INLINE const T & 
+GbVec2<T>::operator[] (int i) const
+{ 
+  return xy[i]; 
+}
+
+template <class T>
+INLINE const T * 
+GbVec2<T>::getVec2() const
+{ 
+  return xy; 
+}
+
+template <class T>
+INLINE void
+GbVec2<T>::getVec2(T &x, T &y) const
+{
+  x=xy[0]; y=xy[1];
+}
+  
+template <class T>
+INLINE void
+GbVec2<T>::setX(T x)
+{ 
+  xy[0] = x; 
+}
+
+template <class T>
+INLINE void
+GbVec2<T>::setY(T y)
+{ 
+  xy[1] = y; 
+}
+
+template <class T>
+INLINE void
+GbVec2<T>::setVec2(const T f[]) 
+{ 
+  xy[0]=f[0]; xy[1]=f[1];
+}
+
+template <class T>
+INLINE void
+GbVec2<T>::setVec2(T x,T y) 
+{ 
+  xy[0]=x; xy[1]=y;
+}
+
+/*----------------------------------------------------------------------
+|
+| $Log$
+| Revision 1.1  2002/02/22 14:47:56  elena
+| new: dir Gridlib_inc
+|
+| Revision 1.1  2001/06/20 16:14:39  prkipfer
+| introduced 2D Vector class
+|
+|
++---------------------------------------------------------------------*/

@@ -1,0 +1,50 @@
+/*----------------------------------------------------------------------
+|
+| $Id$
+|
++---------------------------------------------------------------------*/
+
+INLINE int 
+GrSoftImage::getXSize () const
+{
+  return xSize_;
+}
+
+INLINE int 
+GrSoftImage::getYSize () const
+{
+  return ySize_;
+}
+
+INLINE const GrSoftColor* 
+GrSoftImage::getColors () const
+{
+  return color_;
+}
+
+INLINE int 
+GrSoftImage::getX (float fX) const
+{
+  float fValue = floatXSizeM1_*fX;
+  return int(fValue);
+}
+
+INLINE int 
+GrSoftImage::getY (float fY) const
+{
+  float fValue = floatYSizeM1_*fY;
+  return int(fValue);
+}
+
+
+/*----------------------------------------------------------------------
+|
+| $Log$
+| Revision 1.1  2002/02/22 14:47:57  elena
+| new: dir Gridlib_inc
+|
+| Revision 1.1  2001/03/23 16:55:22  prkipfer
+| added software rasterizer support
+|
+|
++---------------------------------------------------------------------*/

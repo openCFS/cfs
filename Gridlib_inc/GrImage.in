@@ -1,0 +1,62 @@
+/*----------------------------------------------------------------------
+|
+| $Id$
+|
++---------------------------------------------------------------------*/
+
+INLINE GrImage::Type 
+GrImage::getType () const
+{
+  return type_;
+}
+
+INLINE int 
+GrImage::getBytesPerPixel () const
+{
+  return bytesPerPixel_[type_];
+}
+
+INLINE int 
+GrImage::getWidth () const
+{
+  return width_;
+}
+
+INLINE int 
+GrImage::getHeight () const
+{
+  return height_;
+}
+
+INLINE int 
+GrImage::getNumPixels () const
+{
+  return wXh_;
+}
+
+INLINE unsigned char* 
+GrImage::getData () const
+{
+  return data_;
+}
+
+INLINE unsigned char* 
+GrImage::operator() (int uiIndex)
+{
+  return data_ + uiIndex*bytesPerPixel_[type_];
+}
+
+/*----------------------------------------------------------------------
+|
+| $Log$
+| Revision 1.1  2002/02/22 14:47:57  elena
+| new: dir Gridlib_inc
+|
+| Revision 1.2  2001/06/15 09:03:32  prkipfer
+| switched to STL containers and introduced image sharing
+|
+| Revision 1.1  2001/02/13 13:29:32  prkipfer
+| introduced basic rendering tools
+|
+|
++---------------------------------------------------------------------*/

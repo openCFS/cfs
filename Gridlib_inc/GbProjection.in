@@ -1,0 +1,83 @@
+/*----------------------------------------------------------------------
+|
+| $Id$
+|
++---------------------------------------------------------------------*/
+
+template <class T>
+INLINE int 
+GbProjection<T>::ConvexPolyhedron::getVertexQuantity () const
+{
+  return nbrVertices_;
+}
+
+template <class T>
+INLINE GbProjection<T>::ConvexPolyhedron::Vertex& 
+GbProjection<T>::ConvexPolyhedron::getVertex (int i)
+{
+  assert( 0 <= i && i < nbrVertices_ );
+  return vertex_[i];
+}
+
+template <class T>
+INLINE GbProjection<T>::ConvexPolyhedron::Vertex* 
+GbProjection<T>::ConvexPolyhedron::getVertices ()
+{
+  return vertex_;
+}
+
+template <class T>
+INLINE int 
+GbProjection<T>::ConvexPolyhedron::getEdgeQuantity () const
+{
+  return nbrEdges_;
+}
+
+template <class T>
+INLINE GbProjection<T>::ConvexPolyhedron::Edge& 
+GbProjection<T>::ConvexPolyhedron::getEdge (int i)
+{
+  assert( 0 <= i && i < nbrEdges_ );
+  return edge_[i];
+}
+
+template <class T>
+INLINE GbProjection<T>::ConvexPolyhedron::Edge* 
+GbProjection<T>::ConvexPolyhedron::getEdges ()
+{
+  return edge_;
+}
+
+template <class T>
+INLINE int 
+GbProjection<T>::ConvexPolyhedron::getTriangleQuantity () const
+{
+  return nbrTriangles_;
+}
+
+template <class T>
+INLINE GbProjection<T>::ConvexPolyhedron::Triangle& 
+GbProjection<T>::ConvexPolyhedron::getTriangle (int i)
+{
+  assert( 0 <= i && i < nbrTriangles_ );
+  return triangle_[i];
+}
+
+template <class T>
+INLINE GbProjection<T>::ConvexPolyhedron::Triangle* 
+GbProjection<T>::ConvexPolyhedron::getTriangles ()
+{
+  return triangle_;
+}
+
+/*----------------------------------------------------------------------
+|
+| $Log$
+| Revision 1.1  2002/02/22 14:47:56  elena
+| new: dir Gridlib_inc
+|
+| Revision 1.1  2001/06/26 08:31:24  prkipfer
+| added 2D Projections
+|
+|
++---------------------------------------------------------------------*/

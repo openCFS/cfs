@@ -1,0 +1,139 @@
+/*----------------------------------------------------------------------
+|
+| $Id$
+|
++---------------------------------------------------------------------*/
+
+template <class T>
+INLINE const GbQuaternion<T> 
+GbQuaternion<T>::ZERO(0.0,0.0,0.0,0.0);
+
+template <class T>
+INLINE const GbQuaternion<T> 
+GbQuaternion<T>::IDENTITY(1.0,0.0,0.0,0.0);
+
+template <class T>
+INLINE const T 
+GbQuaternion<T>::EPSILON = std::numeric_limits<T>::epsilon(); // max. 1e-03
+
+template <class T>
+INLINE T
+GbQuaternion<T>::W() const
+{
+  return w_;
+}
+
+template <class T>
+INLINE GbVec3<T>
+GbQuaternion<T>::XYZ() const
+{
+  return GbVec3<T>(x_,y_,z_);
+}
+
+template <class T>
+INLINE GbQuaternion<T>& 
+GbQuaternion<T>::operator= (const GbQuaternion<T>& rkQ)
+{
+  w_ = rkQ.w_;
+  x_ = rkQ.x_;
+  y_ = rkQ.y_;
+  z_ = rkQ.z_;
+  return *this;
+}
+
+template <class T>
+INLINE GbQuaternion<T> 
+GbQuaternion<T>::operator+ (const GbQuaternion<T>& rkQ) const
+{
+  return GbQuaternion<T>(w_+rkQ.w_,x_+rkQ.x_,y_+rkQ.y_,z_+rkQ.z_);
+}
+
+template <class T>
+INLINE GbQuaternion<T> 
+GbQuaternion<T>::operator- (const GbQuaternion<T>& rkQ) const
+{
+  return GbQuaternion<T>(w_-rkQ.w_,x_-rkQ.x_,y_-rkQ.y_,z_-rkQ.z_);
+}
+
+template <class T>
+INLINE GbQuaternion<T> 
+GbQuaternion<T>::operator* (const GbQuaternion<T>& rkQ) const
+{
+  // NOTE:  Multiplication is not generally commutative, so in most
+  // cases p*q != q*p.
+
+  return GbQuaternion<T>
+    (
+      w_*rkQ.w_-x_*rkQ.x_-y_*rkQ.y_-z_*rkQ.z_,
+      w_*rkQ.x_+x_*rkQ.w_+y_*rkQ.z_-z_*rkQ.y_,
+      w_*rkQ.y_+y_*rkQ.w_+z_*rkQ.x_-x_*rkQ.z_,
+      w_*rkQ.z_+z_*rkQ.w_+x_*rkQ.y_-y_*rkQ.x_
+    );
+}
+
+template <class T>
+INLINE GbQuaternion<T> 
+GbQuaternion<T>::operator* (T fScalar) const
+{
+  return GbQuaternion<T>(fScalar*w_,fScalar*x_,fScalar*y_,fScalar*z_);
+}
+
+template <class T>
+INLINE GbQuaternion<T> 
+GbQuaternion<T>::operator- () const
+{
+  return GbQuaternion<T>(-w_,-x_,-y_,-z_);
+}
+
+template <class T>
+INLINE T 
+GbQuaternion<T>::dot (const GbQuaternion<T>& rkQ) const
+{
+  return w_*rkQ.w_+x_*rkQ.x_+y_*rkQ.y_+z_*rkQ.z_;
+}
+
+template <class T>
+INLINE T 
+GbQuaternion<T>::norm () const
+{
+  return w_*w_+x_*x_+y_*y_+z_*z_;
+}
+
+template <class T>
+INLINE GbQuaternion<T> 
+GbQuaternion<T>::inverse () const
+{
+  T fNorm = norm();
+  if ( fNorm > 0.0 ) {
+    T fInvNorm = 1.0/fNorm;
+    return GbQuaternion<T>(w_*fInvNorm,-x_*fInvNorm,-y_*fInvNorm,-z_*fInvNorm);
+  }
+  else {
+    // return an invalid result to flag the error
+    return GbQuaternion<T>::ZERO;
+  }
+}
+
+template <class T>
+INLINE GbQuaternion<T> 
+GbQuaternion<T>::unitInverse () const
+{
+  // assert:  'this' is unit length
+  return GbQuaternion<T>(w_,-x_,-y_,-z_);
+}
+
+
+/*----------------------------------------------------------------------
+|
+| $Log$
+| Revision 1.1  2002/02/22 14:47:56  elena
+| new: dir Gridlib_inc
+|
+| Revision 1.2  2001/02/13 10:58:39  prkipfer
+| exchanged fixed numeric tolerances by machine dependent ones
+|
+| Revision 1.1  2001/01/02 14:49:48  prkipfer
+| introduced new classes
+|
+|
++---------------------------------------------------------------------*/
