@@ -1628,7 +1628,7 @@ void BasePDE::CalcInputCoupling()
 		  errMsg += " is not in contained in list of my subdomains!";
 		  Error(errMsg.c_str(), __FILE__, __LINE__);
 		}
-// 		deltCoords_(dof,pdeNode-1) = help[dof + j*dim_];
+ 		deltCoords_(dof,pdeNode-1) = help[dof + j*dim_];
 // 		std::cerr << pdename_ << "-Coord: Node " << (*nodes)[j];
 // 		std::cerr << ", value = " << help[dof + j*dim_] << std::endl;
 	      }
