@@ -1451,11 +1451,6 @@ namespace CoupledField {
     // cases not implemented so far
     else {
 
-      if ( keyVec[keyVec.GetSize()-1] == "mesh_library" ) {
-        defaultFound = TRUE;
-        defaultValue = "cfsgrid";
-      }
-
       if( keyVec[keyVec.GetSize()-1] == "preStressVal" ) {
 	defaultFound = TRUE;
 	defaultValue = "0";
