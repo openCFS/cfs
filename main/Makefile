@@ -191,3 +191,6 @@ depend-cleanfile:
 	@rm -rf $(Dependencies)
  
 # DO NOT DELETE THIS LINE -- make depend depends on it
+test:
+	Test
+#	export LD_LIBRARYN32_PATH=../libgrid:../lib/SGIg
