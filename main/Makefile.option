@@ -7,9 +7,11 @@
 program = cfs
 
 
-#Function tracing depth
-#TRACE = 0: no fct. tracing at all
-#TRACE >= 100: Trace also inline fct.
+# Function tracing depth
+# TRACE = 0: no fct. tracing at all
+# TRACE >= 100: Trace also inline fct.
+# Note: Tracing is activated only if compiling a debug version
+# see make.mach.LINUXg and so on.
 TRACE = 10
 
 #LIBRARY_TYPE = shared / static
@@ -108,12 +110,6 @@ LIB_DIR=$(C_DIR)/lib/$(MACHINE)
 #
 LIB_OWN = $(C_DIR)/lib
 #
-########### Flags
-#
-# Flag for function tracing
-ifneq "$(TRACE)" "0"
-TRACEFLAGS=-DTRACE=$(TRACE)
-endif
 
 # Flag for choosing LAS or OLAS with according 
 # include directories

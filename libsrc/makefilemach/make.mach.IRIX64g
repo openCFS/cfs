@@ -35,3 +35,7 @@ CFLAG_EXE=  -LANG:std -n32 -g -w
 #
 FLAG_MKSHLIB = -LANG:std -n32 -g -ptused -prelink -shared
 #
+# Flag for function tracing
+ifneq "$(TRACE)" "0"
+TRACEFLAGS=-DTRACE=$(TRACE)
+endif
