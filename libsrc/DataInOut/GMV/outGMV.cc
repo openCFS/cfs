@@ -290,10 +290,10 @@ void WriteResultsGMV::WriteCells(const Integer alevel)
 
 	    case 15:
 	      if (ascii_)
-		(*output) << "pprism15 15" << std::endl;
+		(*output) << "pprism15 16" << std::endl;
 	      else {
 		(*output) << "pprism15";
-		Integer nn=15 ;
+		Integer nn=16 ;
 		output->write((char*)&nn,sizeof(Integer));
 	      }
 
@@ -301,6 +301,7 @@ void WriteResultsGMV::WriteCells(const Integer alevel)
 	      // we have to add a 16. node for the wedge element by simply
 	      // copying the last node
 	      connect.Push_back(connect[connect.GetSize()-1]);
+	      break;
 
 	    case 8:
 	      if (ascii_)
