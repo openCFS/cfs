@@ -5,61 +5,59 @@
 
 namespace CoupledField
 {
-//! Class with general procedures for quadrilateral finite elements
-/*! This class is derived from BaseFE. It stores general procedures for each type of finite element on quadralateral, such as calculation of Jacobian of transformation in standart and information about integration points and integration weights */
+
+  //! Class with general procedures for quadrilateral finite elements
+  /*! This class is derived from BaseFE. It stores general procedures for each
+    type of finite element on quadralateral, such as calculation of Jacobian of
+    transformation in standart and information about integration points and
+    integration weights */
+  class RectangleFE : public BaseFE {
+
+  public:
+
+    //! Constructor with type of integration rule
+    RectangleFE(); 
   
-class RectangleFE : public BaseFE
-{
-public:
+    //! Deconstructor
+    virtual ~RectangleFE();
 
-  //! Constructor with type of integration rule
-  RectangleFE(); 
-  
-  //! Deconstructor
-  virtual ~RectangleFE();
+    //! return FE-Type for CLA++
+    virtual FEType feType() { return QUAD;}
 
-  //! return FE-Type for CLA++
+    //! Calculates a measure for the geometric distortion of an element
+    /*!
+      \param CornerCoords (input) Corner coordinates of the element
+      \param Displacement (input) Displacement of the corner points (same ordering as CornerCoords!!)
+    */
+    virtual Double CalcDistortion(Matrix<Double> &cornerCoords, Vector<Double> &size, Matrix<Double> &displacements);
 
-#ifdef USE_OLAS
-  virtual FEType feType() { return QUAD;}
-#else
-  virtual Integer feType() { return 2;}
-#endif
+    //! Calculates corresponding volume point of neighbouring surface
 
-  //! Calculates a measure for the geometric distortion of an element
-  /*!
-    \param CornerCoords (input) Corner coordinates of the element
-    \param Displacement (input) Displacement of the corner points (same ordering as CornerCoords!!)
-  */
-  virtual Double CalcDistortion(Matrix<Double> &cornerCoords, Vector<Double> &size, Matrix<Double> &displacements);
-
-  //! Calculates corresponding volume point of neighbouring surface
-
-  //! For a given surface element and a neighbouring volume element this
-  //! mehtod calculates the local volume-coordinates out of the given
-  //! local surface-coordinates, which have one less dimension.
-  //! This can be used to get the corrsponding volume coordinates of 
-  //! the integration points of a surface. Therefore it calculates 
-  //! on which side of the volume element the surface elemente lies
-  //! and creates the according volume point.
-  /*!
-    \param surfConnect (input) Node numbers of surface element
-    \param volConnect (input) Node numbers of colume element
-    \param surfIntPoint (input) Surface integration point, which gets mapped
-    onto the volume element
-    \param volIntPoint (output) Corresponding volume integration point
-  */
-  void GetLocalIntPoints4Surface(const StdVector<Integer> & surfConnect,
-					 const StdVector<Integer> & volConnect,
-					 const Vector<Double> & surfIntPoint,
-					 Vector<Double> & volIntPoint);
+    //! For a given surface element and a neighbouring volume element this
+    //! mehtod calculates the local volume-coordinates out of the given
+    //! local surface-coordinates, which have one less dimension.
+    //! This can be used to get the corrsponding volume coordinates of 
+    //! the integration points of a surface. Therefore it calculates 
+    //! on which side of the volume element the surface elemente lies
+    //! and creates the according volume point.
+    /*!
+      \param surfConnect (input) Node numbers of surface element
+      \param volConnect (input) Node numbers of colume element
+      \param surfIntPoint (input) Surface integration point, which gets mapped
+      onto the volume element
+      \param volIntPoint (output) Corresponding volume integration point
+    */
+    void GetLocalIntPoints4Surface(const StdVector<Integer> & surfConnect,
+				   const StdVector<Integer> & volConnect,
+				   const Vector<Double> & surfIntPoint,
+				   Vector<Double> & volIntPoint);
  
-protected:
+  protected:
 
-   //! Set integration points
-  virtual void SetIntPoints();
+    //! Set integration points
+    virtual void SetIntPoints();
 
-};
+  };
 
 } // end of namespace
 

@@ -6,55 +6,54 @@
 namespace CoupledField
 {
 
-//! Class with general description of six-node wedge element
-/*! This class is derived from BaseFE. 
-    It stores general procedures for each type of finite element based on wedge, such as information 
-    about integration points and integration weights
-*/
+  //! Class with general description of six-node wedge element
 
-class WedgeFE : public BaseFE
-{
-public:
-   //! Constructor with type of integration rule
-   WedgeFE();
+  //! This class is derived from BaseFE. It stores general procedures for each
+  //! type of finite element based on <em>wedges</em>, such as information
+  //! on integration points and integration weights
+  class WedgeFE : public BaseFE {
 
-   //! Deconstructor
-  virtual ~WedgeFE(); 
+  public:
 
-  //! return FE-Type for LAS++
+    //! Constructor with type of integration rule
+    WedgeFE();
 
-#ifdef USE_OLAS
-  virtual FEType feType() { return WED;}
-#else
-  virtual Integer feType() { return WED;}
-#endif
+    //! Destructor
+    virtual ~WedgeFE(); 
+
+    //! return FE-Type
+    virtual FEType feType() {
+      return WED;
+    }
   
-  //! Calculates corresponding volume point of neighbouring surface
+    //! Calculates corresponding volume point of neighbouring surface
   
-  //! For a given surface element and a neighbouring volume element this
-  //! mehtod calculates the local volume-coordinates out of the given
-  //! local surface-coordinates, which have one less dimension.
-  //! This can be used to get the corrsponding volume coordinates of 
-  //! the integration points of a surface. Therefore it calculates 
-  //! on which side of the volume element the surface elemente lies
-  //! and creates the according volume point.
-  /*!
-    \param surfConnect (input) Node numbers of surface element
-    \param volConnect (input) Node numbers of colume element
-    \param surfIntPoint (input) Surface integration point, which gets mapped
-    onto the volume element
-    \param volIntPoint (output) Corresponding volume integration point
-  */
-  void GetLocalIntPoints4Surface(const StdVector<Integer> & surfConnect,
-				 const StdVector<Integer> & volConnect,
-				 const Vector<Double> & surfIntPoint,
-				 Vector<Double> & volIntPoint);
+    //! For a given surface element and a neighbouring volume element this
+    //! mehtod calculates the local volume-coordinates out of the given
+    //! local surface-coordinates, which have one less dimension.
+    //! This can be used to get the corrsponding volume coordinates of 
+    //! the integration points of a surface. Therefore it calculates 
+    //! on which side of the volume element the surface elemente lies
+    //! and creates the according volume point.
+    /*!
+      \param surfConnect (input) Node numbers of surface element
+      \param volConnect (input) Node numbers of colume element
+      \param surfIntPoint (input) Surface integration point, which gets mapped
+      onto the volume element
+      \param volIntPoint (output) Corresponding volume integration point
+    */
+    void GetLocalIntPoints4Surface(const StdVector<Integer> & surfConnect,
+				   const StdVector<Integer> & volConnect,
+				   const Vector<Double> & surfIntPoint,
+				   Vector<Double> & volIntPoint);
 
-protected:
-  //! Set integration points
-  virtual void SetIntPoints();
+  protected:
 
-};
+    //! Set integration points
+    virtual void SetIntPoints();
+
+  };
 
 }
-#endif //
+
+#endif

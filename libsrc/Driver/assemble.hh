@@ -73,67 +73,26 @@ namespace CoupledField
     /// constructor
     IntegratorDescriptor();
 
-#ifdef USE_OLAS      
     /// constructor
     IntegratorDescriptor(BaseForm * aIntegrator, FEMatrixType aDestMat,
-			 const Boolean aNonLin=FALSE);
-#else
-    /// constructor
-    IntegratorDescriptor(BaseForm * aIntegrator,  enum MatrixType aDestMat,
-			 const Boolean aNonLin=FALSE);
-#endif
-
-// #ifdef USE_OLAS      
-//     /// constructor
-//     IntegratorDescriptor(BaseForm * aIntegrator, FEMatrixType aDestMat,
-// 			 const Boolean aNonLin=FALSE, const piezoMaterialType=realMaterialParameter);
-// #else
-//     /// constructor
-//     IntegratorDescriptor(BaseForm * aIntegrator,  enum MatrixType aDestMat,
-// 			 const Boolean aNonLin=FALSE, const piezoMaterialType=realMaterialParameter);
-// #endif
-
+                         const Boolean aNonLin=FALSE);
       
     /// destructor
     virtual ~IntegratorDescriptor();
       
-#ifdef USE_OLAS
     /// returns the destination matrix
     FEMatrixType DestMat() {return destinationMatrix;}; 
-#else
-    /// returns the destination matrix
-    MatrixType DestMat() {return destinationMatrix;};
-#endif
 
-
-#ifdef USE_OLAS
     /// sets the destination matrix
     void SetDestMat(FEMatrixType destMat)
     {destinationMatrix = destMat;};
-#else
-    /// sets the destination matrix
-    void SetDestMat(enum MatrixType destMat)
-    {destinationMatrix = destMat;};
-#endif
- 
-#ifdef USE_OLAS
+
     /// defines a secondary destination for the calculated element marices of an integrator      
     void SetSecondaryMat(FEMatrixType aSecMat, Double aSecMatFac,
-			 AnalysisType analysisType);
+                         AnalysisType analysisType);
 
-#else
-    /// defines a secondary destination for the calculated element marices of an integrator      
-    void SetSecondaryMat(enum MatrixType aSecMat, Double aSecMatFac,
-			 AnalysisType analysisType);
-#endif
-
-#ifdef USE_OLAS
     // returns matrix type of the secondary matrix (if there is any, otherwise NOTYPE=0)
     FEMatrixType GetSecondaryMat() const {return secondaryMatrix;} 
-#else
-    /// returns matrix type of the secondary matrix (if there is any, otherwise NOTYPE=0)
-    MatrixType GetSecondaryMat() const {return secondaryMatrix;} 
-#endif
 
     /// returns matrix type of the secondary matrix (if there is any, otherwise NOTYPE=0)
     Double GetSecMatFac() const {return secMatFac;} 
@@ -145,9 +104,6 @@ namespace CoupledField
     void SetPiezoMaterialType(piezoMaterialType &pMatType){
       piezoMaterialType_ = pMatType;};
 
-
-      
-#ifdef USE_OLAS  
     void SetOrigMatrixType(FEMatrixType matType)
     {origMatrixType_ = matType;};
 
@@ -159,24 +115,9 @@ namespace CoupledField
 
     FEMatrixType GetOrigSecMatrixType()
     {return origSecondMatrixType_;};
-
-#else
-    void SetOrigMatrixType(MatrixType matType)
-    {origMatrixType_ = matType;};
-
-    MatrixType GetOrigMatrixType()
-    {return origMatrixType_;};
-
-    void SetOrigSecMatrixType(MatrixType matType)
-    {origSecondMatrixType_ = matType;};
-
-    MatrixType GetOrigSecMatrixType()
-    {return origSecondMatrixType_;};
-#endif
       
   private:
 
-#ifdef USE_OLAS
     /// holds the destination matrix
     FEMatrixType destinationMatrix;
 
@@ -188,24 +129,10 @@ namespace CoupledField
 
     //! hold the original secondary matrix types (just used in harmonic analysis!!)
     FEMatrixType origSecondMatrixType_;
-#else
-    /// holds the destination matrix
-    enum MatrixType destinationMatrix;
-
-    /// holds the secondary destination matrix
-    enum MatrixType secondaryMatrix;
-
-    //! hold the original matrix types (just used in harmonic analysis!!)
-    MatrixType origMatrixType_;
-
-    //! hold the original secondary matrix types (just used in harmonic analysis!!)
-    MatrixType origSecondMatrixType_;
-#endif
 
     /// holds the matrix factor for secondaryMatrix
     Double secMatFac;
 
-    //    piezoMaterialType piezoMaterialType_;
   };
   
 
@@ -220,35 +147,21 @@ namespace CoupledField
     //!  Deconstructor
     virtual ~Assemble();
     
-#ifdef USE_OLAS
     /// adds integrators to the pde
     virtual void AddIntegrator(BaseForm * integrator,
-			       const std::string & subdomain,
-			       const FEMatrixType destinationMatrix,
-			       const Integer nonLin)=0;
-#else
-    /// adds integrators to the pde
-    virtual void AddIntegrator(BaseForm * integrator,
-			       const std::string & subdomain,
-			       const enum MatrixType destinationMatrix,
-			       const Integer nonLin)=0;
-#endif
+                               const std::string & subdomain,
+                               const FEMatrixType destinationMatrix,
+                               const Integer nonLin)=0;
 
     /// adds integrators to the pde
     virtual void AddIntegrator(IntegratorDescriptor * intDescr,
-			       const std::string & subdomain)=0;
+                               const std::string & subdomain)=0;
 
-#ifdef USE_OLAS
     /// adds surface integrators to the pde
     virtual void AddSurfIntegrator(BaseForm * integrator,
-				   const std::string & subdomain,
-				   const FEMatrixType destinationMatrix,
-				   const Integer nonLin)=0;
-#else
-    /// adds surface integrators to the pde
-    virtual void AddSurfIntegrator(BaseForm * integrator, const std::string & subdomain,
-				   const enum MatrixType destinationMatrix, const Integer nonLin)=0;
-#endif
+                                   const std::string & subdomain,
+                                   const FEMatrixType destinationMatrix,
+                                   const Integer nonLin)=0;
 
     //! specify type of system matrix for AlgebraicSystem
     /*! \param level (input) level of Grid     */
@@ -278,7 +191,7 @@ namespace CoupledField
       \param level (input) index for multilevel hierarchy
     */
     void GetElemCoords(const StdVector<Integer> connect, 
-		       Matrix<Double> &coordMat, const Integer level); 
+                       Matrix<Double> &coordMat, const Integer level); 
 
 
 
@@ -289,7 +202,7 @@ namespace CoupledField
       \param atimestep time step of calculation
     */
     virtual void SetBCs(const Integer level, const Integer update, 
-			const Double atimestep){};
+                        const Double atimestep){};
 
 
 
@@ -317,11 +230,11 @@ namespace CoupledField
 
     /// parameters set by PDE
     void SetGeneralParams(const std::string & pdename, 
-			  const Integer dofsPerNode,
-			  const Integer numPDENodes, 
-			  const StdVector<std::string> subdoms,
-			  const StdVector<std::string> surfdoms,
-			  const std::string bcSequenceId);
+                          const Integer dofsPerNode,
+                          const Integer numPDENodes, 
+                          const StdVector<std::string> subdoms,
+                          const StdVector<std::string> surfdoms,
+                          const std::string bcSequenceId);
     
     
 
@@ -330,25 +243,25 @@ namespace CoupledField
 
     /// define RHS integrators
     void AddRhsIntegrator(BaseForm * integrator, const std::string & subDomName, 
-			  const Integer nonLin=FALSE);
+                          const Integer nonLin=FALSE);
 
     /// define RHS integrators (static and transient case)
-    void AddRhsSrcIntegrator(BaseForm * integrator, const std::string & subDomName, 			  
-			     const std::string fncname="---not-defined--",
-			     const Integer nonLin=FALSE);
+    void AddRhsSrcIntegrator(BaseForm * integrator, const std::string & subDomName,                       
+                             const std::string fncname="---not-defined--",
+                             const Integer nonLin=FALSE);
 
     /// define RHS surface integrators (static and transient case)
     void AddRhsSrcSurfIntegrator(BaseForm * integrator, const std::string & subDomName,
-			     const std::string fncname="---not-defined--",
-			     const Integer nonLin=FALSE);
+                             const std::string fncname="---not-defined--",
+                             const Integer nonLin=FALSE);
 
     /// define RHS integrators (harmonic case)
     void AddRhsSrcIntegrator(BaseForm * integrator, const std::string & subDomName,
-			     const Double phaseval, const Integer nonLin=FALSE);
+                             const Double phaseval, const Integer nonLin=FALSE);
 
      /// define RHS surface integrators (harmonic case)
     void AddRhsSrcSurfIntegrator(BaseForm * integrator, const std::string & subDomName,
-			     const Double phaseval, const Integer nonLin=FALSE);  
+                             const Double phaseval, const Integer nonLin=FALSE);  
 
     /// set ptr to time function
     void SetPtr2TimeFnc(TimeFunc * aPtTimeFunc)
@@ -389,7 +302,6 @@ namespace CoupledField
     //! define discrete PDE
     virtual void MatrixSettings() = 0;
 
-#ifdef USE_OLAS
     //! define entry type of matrices (DOUBLE, COMPLEX)
     virtual void SetMatrixEntryType(MatrixEntryType etype)
     {entryType_ = etype;};
@@ -405,29 +317,10 @@ namespace CoupledField
     //! return storage type of the matrix
     MatrixStorageType GetMatrixStorageType()
     {return storageType_;};
-    
-#else
-    //! define matrix type
-    virtual void SetMatrixType(Integer matType)
-    {matrixType_=matType;};
 
-
-    //! return matrix type
-    Integer GetMatrixType(){return matrixType_;};
-#endif    
-
-
-
-#ifdef USE_OLAS
     //! Sets the type of the matrix graph
     void SetGraphType(GraphType aGraphType)
     {graphType_ = aGraphType;};
-#else
-    //! Sets the type of the matrix graph
-    void SetGraphType(enum GraphType aGraphType)
-    {graphType_ = aGraphType;};
-#endif
-    
 
     //! constructes the matrix graph by providing to the algebraic system the element connectivities
     //    void SetupMatrixGraph(Integer numeq, Integer graphtype);
@@ -465,9 +358,9 @@ namespace CoupledField
     //! sets the actual frequency (just needed for harmonic analysis)
     virtual void SetFrequency(Double actFreq) {;};
 
-	//! transform element matrix to account for spezial RHS during parameter Identification process
+        //! transform element matrix to account for spezial RHS during parameter Identification process
     virtual void TransformMatrix2HarmonicRHS_for_paramIdent(Vector<Double>& harmMat,
-					  Matrix<Double> origMat) {;};
+                                          Matrix<Double> origMat) {;};
 
     //sets all finite elements to reduced integration
     void SetFE2ReducedInt();
@@ -476,37 +369,30 @@ namespace CoupledField
     //sets all finite elements back to standard integration
     void SetFE2StandardInt();
 
-	//! set the PDE pointer
-	void SetPDEPointer(BasePDE * aptPDE)
-	{ptPDE_ = aptPDE;};
+        //! set the PDE pointer
+        void SetPDEPointer(BasePDE * aptPDE)
+        {ptPDE_ = aptPDE;};
 
     // ====================================================
     // DATA SECTION 
     // ====================================================
 
-	
-	BasePDE * ptPDE_;                    //!< pointer to class BasePDE
+        
+        BasePDE * ptPDE_;                    //!< pointer to class BasePDE
     
     BaseSystem * algsys_;                //!< pointer to algebraic system  
     Grid * ptgrid_;                      //!< pointer to Grid
     NodeEQN * ptEQN_;                    //!< pointer to equation data
-    Vector<Double> harmonicRHSVec;	 //! special right Hand Side Vector needed for calc
+    Vector<Double> harmonicRHSVec;       //! special right Hand Side Vector needed for calc
     Matrix<Double> elemmat;
-#ifdef USE_OLAS
     OLAS_Params * olasParams_;               //!< pointer to parameter object of OLAS
     OLAS_Report * olasReport_;               //!< pointer ro report object of OLAS
-#endif
 
     //! paramters for discrete PDE
-#ifdef USE_OLAS
     MatrixStructureType structuretype_;  //!< type of Matrix (SuperBlockMarix=SBM, Standard)
     MatrixEntryType entryType_;          //!< type of matrix entries (double, complex)
     MatrixStorageType storageType_;      //!< storage type of matrix (sparse, symmetric,..)
     GraphType graphType_;                //!< type of graph (nodal, edge,..)
-#else
-    Boolean matrixType_;                 //!< type of matrix (real, complex, etc.)
-    Boolean graphType_;                  //!< type of graph (nodal, edge,..)
-#endif
 
     Boolean systemMatrix_;               //!< need system matrix (TRUE/FALSE)
     Boolean stiffnessMatrix_;            //!< need stiffness matrix (TRUE/FALSE)
@@ -594,22 +480,15 @@ namespace CoupledField
     //! calculates the index of the surfdoman with name "surfDomName" in the surface-domain-list
     Integer SurfDomIndex(const std::string & surfDomName);
 
-#ifdef USE_OLAS
     //! transform element matrix to account for harmonic analysis
     virtual void TransformMatrix2Harmonic(Vector<Double>& harmMat,
-					  Matrix<Double> origMat,
-					  const FEMatrixType matrixType,const piezoMaterialType piezoMatType) {;};
-#else
-    //! transform element matrix to account for harmonic analysis
-    virtual void TransformMatrix2Harmonic(Vector<Double>& harmMat,
-					  Matrix<Double> origMat,
-					  const MatrixType matrixType,const piezoMaterialType piezoMatType) {;};
-#endif
+                                          Matrix<Double> origMat,
+                                          const FEMatrixType matrixType,const piezoMaterialType piezoMatType) {;};
 
     //! transform element vector to account for harmonic analysis
     virtual void TransformVector2Harmonic(Vector<Double>& harmMat,
-					  Vector<Double> origVec,
-					  const Double valPhase) {;};
+                                          Vector<Double> origVec,
+                                          const Double valPhase) {;};
 
 
 
@@ -640,27 +519,15 @@ namespace CoupledField
     //! set information for algebraic system about PDE. set matrix factors
     virtual void SetMatrixFactors(){};
 
-#ifdef USE_OLAS
     virtual void AddIntegrator(BaseForm * integrator, const std::string & subdomain,
-			       const FEMatrixType destinationMatrix, const Integer nonLin);
-#else
-    virtual void AddIntegrator(BaseForm * integrator, const std::string & subdomain,
-			       const enum MatrixType destinationMatrix, const Integer nonLin);
-#endif
+                               const FEMatrixType destinationMatrix, const Integer nonLin);
 
     /// adds integrators to the pde
     virtual void AddIntegrator(IntegratorDescriptor * intDescr, const std::string & subdomain);
 
-#ifdef USE_OLAS
     /// adds surface integrators to the pde
     virtual void AddSurfIntegrator(BaseForm * integrator, const std::string & subdomain,
-				   const FEMatrixType destinationMatrix, const Integer nonLin);
-#else
-    /// adds surface integrators to the pde
-    virtual void AddSurfIntegrator(BaseForm * integrator, const std::string & subdomain,
-				   const enum MatrixType destinationMatrix, const Integer nonLin);
-#endif
-
+                                   const FEMatrixType destinationMatrix, const Integer nonLin);
 
   };
 
@@ -681,28 +548,16 @@ namespace CoupledField
     //! set information for algebraic system about PDE. set matrix factors
     virtual void SetMatrixFactors(){};  
     
-#ifdef USE_OLAS
     /// adds integrators to the pde
     virtual void AddIntegrator(BaseForm * integrator, const std::string & subdomain,
-			       const FEMatrixType destinationMatrix, const Integer nonLin);
-#else
-    /// adds integrators to the pde
-    virtual void AddIntegrator(BaseForm * integrator, const std::string & subdomain,
-			       const enum MatrixType destinationMatrix, const Integer nonLin);
-#endif
+                               const FEMatrixType destinationMatrix, const Integer nonLin);
 
     /// adds integrators to the pde
     virtual void AddIntegrator(IntegratorDescriptor * intDescr, const std::string & subdomain);
 
-#ifdef USE_OLAS
     /// adds surface integrators to the pde
     virtual void AddSurfIntegrator(BaseForm * integrator, const std::string & subdomain,
-				   const FEMatrixType destinationMatrix, const Integer nonLin);
-#else
-    /// adds surface integrators to the pde
-    virtual void AddSurfIntegrator(BaseForm * integrator, const std::string & subdomain,
-				   const enum MatrixType destinationMatrix, const Integer nonLin);
-#endif
+                                   const FEMatrixType destinationMatrix, const Integer nonLin);
 
   };
 
@@ -723,47 +578,30 @@ namespace CoupledField
     //!
     virtual void SetFrequency(Double actFreq);
 
-#ifdef USE_OLAS
     //! transform element matrix to account for harmonic analysis
     virtual void TransformMatrix2Harmonic(Vector<Double>& harmMat,
-					  Matrix<Double> origMat,
-					  const FEMatrixType matrixType,const piezoMaterialType piezoMatType);
-#else
-    //! transform element matrix to account for harmonic analysis
-    virtual void TransformMatrix2Harmonic(Vector<Double>& harmMat,
-					  Matrix<Double> origMat,
-					  const MatrixType matrixType,const piezoMaterialType piezoMatType);
-#endif
+                                          Matrix<Double> origMat,
+                                          const FEMatrixType matrixType,const piezoMaterialType piezoMatType);
 
     //! transform element vector to account for harmonic analysis
     virtual void TransformVector2Harmonic(Vector<Double>& harmMat, 
-					  Vector<Double> origVec,
-					  const Double valPhase);
+                                          Vector<Double> origVec,
+                                          const Double valPhase);
 
-#ifdef USE_OLAS
     virtual void AddIntegrator(BaseForm * integrator, const std::string & subdomain,
-			       const FEMatrixType destinationMatrix, const Integer nonLin);
-#else
-    virtual void AddIntegrator(BaseForm * integrator, const std::string & subdomain,
-			       const enum MatrixType destinationMatrix, const Integer nonLin);
-#endif
+                               const FEMatrixType destinationMatrix, const Integer nonLin);
 
     /// adds integrators to the pde
     virtual void AddIntegrator(IntegratorDescriptor * intDescr, const std::string & subdomain);
 
-#ifdef USE_OLAS
     /// adds surface integrators to the pde
     virtual void AddSurfIntegrator(BaseForm * integrator, const std::string & subdomain,
-				   const FEMatrixType destinationMatrix, const Integer nonLin);
-#else
-    /// adds surface integrators to the pde
-    virtual void AddSurfIntegrator(BaseForm * integrator, const std::string & subdomain,
-				   const enum MatrixType destinationMatrix, const Integer nonLin);
-#endif
+                                   const FEMatrixType destinationMatrix, const Integer nonLin);
 
 
   };
 
 
 } // end of namespace
+
 #endif

@@ -14,11 +14,7 @@
 #include "DataInOut/writeresults.hh"
 #include "Matrix/matrix.hh"
 
-#ifdef USE_OLAS
-#include <olas.hh>
-#else
-#include <multigrid.hh>
-#endif 
+#include "olas.hh"
 
 
 #include "DataInOut/LoadMaterialData.hh"

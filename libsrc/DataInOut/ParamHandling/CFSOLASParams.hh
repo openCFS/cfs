@@ -1,5 +1,3 @@
-#ifdef USE_OLAS
-
 #ifndef FILE_CFSOLASPARAMS
 #define FILE_CFSOLASPARAMS
 
@@ -16,7 +14,7 @@ namespace CoupledField
   public:
     //! Document me!!!
     static void SetParams( std::string pdename, BaseParamHandler *cfs,
-			   OLAS_Params *olas, bool overrideExpert = false );
+                           OLAS_Params *olas, bool overrideExpert = false );
 
   private:
 
@@ -35,7 +33,7 @@ namespace CoupledField
     //!       occur, if a non-validating parser is used, since the Schema
     //!       definitions require the parameters to be unique.
     static void SetSolverParams( std::string pdename, BaseParamHandler *cfs,
-				 OLAS_Params *olas, SolverType sType );
+                                 OLAS_Params *olas, SolverType sType );
 
     //! Set parameters for preconditioner for linear system
 
@@ -52,18 +50,16 @@ namespace CoupledField
     //!       occur, if a non-validating parser is used, since the Schema
     //!       definitions require the parameters to be unique.
     static void SetPrecondParams( std::string pdename, BaseParamHandler *cfs,
-				  OLAS_Params *olas, PrecondType pType );
+                                  OLAS_Params *olas, PrecondType pType );
 
     //! Expert routine for correcting parameter inconsistencies
     static void Expert( BaseParamHandler *cfs,
-			std::string pdename, SolverType &sType,
-			PrecondType &pType, MatrixStorageType &mType,
-			MatrixEntryType &eType, ReorderingType &rType );
+                        std::string pdename, SolverType &sType,
+                        PrecondType &pType, MatrixStorageType &mType,
+                        MatrixEntryType &eType, ReorderingType &rType );
 
   };
 
 }
-
-#endif
 
 #endif
