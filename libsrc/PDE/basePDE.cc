@@ -552,7 +552,7 @@ void BasePDE::StepStaticLin(const Integer kstep, const Double aTime,
 {
   ENTER_FCN( "BasePDE::StepStaticLin" );
 
-  Integer job = 3;
+  Integer job = 3; // only update BCs
   Double * ptsol;
   lasttimecalc_ = aTime; // for correct output in unv-file
   
@@ -573,17 +573,8 @@ void BasePDE::StepStaticLin(const Integer kstep, const Double aTime,
   assemble_->AssembleSrcRHS(level, aTime);
 
 
-  // The inhom. Dirichlet BCs have to be set only if
-  // the system matrix is calculated for the first time or
-  // the BCs have changed due to new coupling values
-  if ( firstTimeStepStatic_ == TRUE
-       || updateCouplingBCs_ == TRUE)
-    {
-      //account for bcs
-      SetBCs(level, aTime);
-    }
-
-
+  SetBCs(level, aTime);
+  
   // Incorporate Boundary conitions and
   // recalc the prconditioner eventually
 #ifdef USE_OLAS
