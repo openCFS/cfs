@@ -65,6 +65,11 @@ PDECoupling::CouplingInterface::CouplingInterface()
     inputInterfaces_.push_back(0);
   }
 
+
+
+
+
+
   void PDECoupling::AddInput(std::string quantity, 
 			     std::string region, 
 			     CouplingRegionType regionType,
@@ -147,7 +152,7 @@ PDECoupling::CouplingInterface::CouplingInterface()
 	// 1. Step: get the neighbouring elements 
       
 	std::vector<Elem*> * interfaceElems = &(myInterface->elements);
-	std::vector<Elem*>  actSubdomain, possibleNeighbours, neighbours;
+	std::vector<Elem*>  actSubdomain, possibleNeighbours;
   
 
 	     
@@ -158,19 +163,20 @@ PDECoupling::CouplingInterface::CouplingInterface()
 	      possibleNeighbours.push_back(actSubdomain[j]);
 	  }
   
-	ptGrid_->DefineBelonging4Elems(*interfaceElems, possibleNeighbours, neighbours);
+	ptGrid_->DefineBelonging4Elems(*interfaceElems, possibleNeighbours, myInterface->neighbours);
+
 
 
 	// 2. Step: For each interface element, set the
 	//          material parameter according to its neighbour
 
-	for (Integer i=0; i<neighbours.size(); i++)
+	for (Integer i=0; i<myInterface->neighbours.size(); i++)
 	  {
 	    Boolean subdomFound = FALSE;
 	    Integer subDomNr = 0;
 
 	    for (subDomNr=0; subDomNr<myPDE_->subdoms_.size(); subDomNr++)
-	      if (myPDE_->subdoms_[subDomNr] == neighbours[i]->namesd)
+	      if (myPDE_->subdoms_[subDomNr] == myInterface->neighbours[i]->namesd)
 		{
 		  subdomFound = TRUE;
 		  break;

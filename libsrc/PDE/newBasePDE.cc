@@ -1229,7 +1229,7 @@ void BasePDE::GetDerivSolOfElement(Matrix<Double>& sol, Vector<Integer>& connect
 
 
 
-void BasePDE::CalcLineNormalVec(Vector<Double>& n, Elem& interfaceElem)
+void BasePDE::CalcLineNormalVec(Vector<Double>& n, Elem& interfaceElem, Elem& neighbour)
 {
 #ifdef TRACE
   (*trace) << "entering BasePDE::CalcLineNormalVec" << std::endl;
@@ -1249,28 +1249,25 @@ void BasePDE::CalcLineNormalVec(Vector<Double>& n, Elem& interfaceElem)
                                   // of the vector from node 1 to node 2 in ptCoord
 
 
-  // search for neighbouring 2D element in same domain =====================
-  std::vector<Elem*> interfaceElems;
-  interfaceElems.push_back(&interfaceElem);
+//   // search for neighbouring 2D element in same domain =====================
+//   std::vector<Elem*> interfaceElems;
+//   interfaceElems.push_back(&interfaceElem);
 
-  std::vector<Elem*>  possibleNeighbours;   //possible neighbours are all elems of subdomain
-  std::vector<Elem*>  neighbours;           // is just one neighbour, but has to be defined as vector
-  std::vector<Elem*>  actSubdomain;
+//   std::vector<Elem*>  possibleNeighbours;   //possible neighbours are all elems of subdomain
+//   std::vector<Elem*>  neighbours;           // is just one neighbour, but has to be defined as vector
+//   std::vector<Elem*>  actSubdomain;
 
-  for (Integer iSd=0; iSd < subdoms_.size(); iSd++)
-    {
-      ptgrid_->GetElemSD(actSubdomain, subdoms_[iSd], actlevel_);
-      for (Integer j=0; j<actSubdomain.size(); j++)
-	possibleNeighbours.push_back(actSubdomain[j]);
-    }
+//   for (Integer iSd=0; iSd < subdoms_.size(); iSd++)
+//     {
+//       ptgrid_->GetElemSD(actSubdomain, subdoms_[iSd], actlevel_);
+//       for (Integer j=0; j<actSubdomain.size(); j++)
+// 	possibleNeighbours.push_back(actSubdomain[j]);
+//     }
 
-  ptgrid_->DefineBelonging4Elems(interfaceElems, possibleNeighbours, neighbours);
+//   ptgrid_->DefineBelonging4Elems(interfaceElems, possibleNeighbours, neighbours);
 
-  if (neighbours.size()!=1)
-    Error("Neighbouring element not found!", __FILE__, __LINE__);
 
-  Elem * neighbour = neighbours[0];
-  connecth = neighbour->connect;
+  connecth = neighbour.connect;
   
   Integer indexNode1=-1;
   Integer indexNode2=-1;

@@ -32,6 +32,7 @@ class PDECoupling
     Integer level;                        //!< multigrid level
     std::vector<Integer> nodes;           //!< vector of coupling nodes 
     std::vector<Elem*> elements;          //!< vector of coupling elements
+    std::vector<Elem*> neighbours;        //!< vector of neighbour elements
     std::vector<MaterialData*> materials; //!< vector of materials at coupling interface
     Array<Double> values;                 //!< array containing coupling values
     Array<Double> oldValues;              //!< array containing coupling values of previous iteration step
@@ -122,6 +123,11 @@ public:
   //! get input coupling region elements
   virtual void GetInputElements(Integer i, std::vector<Elem *>*  &elements)
   { elements = &(inputInterfaces_[i]->elements);}
+
+  //! get neighbour elements
+  virtual void GetNeighbourElems(Integer i, std::vector<Elem *>*  &elements)
+  { elements = &(inputInterfaces_[i]->neighbours);}
+
 
    //! get input coupling region material
   virtual void GetInputMaterials(Integer i, std::vector<MaterialData *>*  &mat)

@@ -829,8 +829,13 @@ void GridCFS<dim>::FormNeighbors4NodesOfElements(const std::vector<Elem*>& elems
 
 } // end of function FormNeighbors4NodesOfElements
 
+
+
+
 template<Integer dim>
-void GridCFS<dim>::DefineBelonging4Elems(const std::vector<Elem*>& elemsSurf, const std::vector<Elem*>&elems, std::vector<Elem*> & belongingSE)
+void GridCFS<dim>::DefineBelonging4Elems(const std::vector<Elem*>& elemsSurf, 
+					 const std::vector<Elem*>&elems, 
+					 std::vector<Elem*> & belongingSE)
 {
 #ifdef TRACE
   (*trace) << " entering  GridCFS<Dim>:DefineBelonging4Elems " << std::endl;
@@ -839,10 +844,6 @@ void GridCFS<dim>::DefineBelonging4Elems(const std::vector<Elem*>& elemsSurf, co
   Integer noOfSurfElems=elemsSurf.size();
   belongingSE.resize(noOfSurfElems);
 
-  // TEST Routine for checking elements
-  // std::cerr << "elems.size() = " << elems.size() << std::endl;
-  // for (Integer i=0; i<elems.size(); i++)
-  //   std::cerr << "elems[" << i <<"].connect = " << elems[i]->connect << std::endl;
 
   // form list with neighbors for each nodes in patch of boundary elements
   std::vector<Integer> map;
@@ -850,55 +851,55 @@ void GridCFS<dim>::DefineBelonging4Elems(const std::vector<Elem*>& elemsSurf, co
   FormNeighbors4NodesOfElements(elems,listNeighbors,map);
 
   Integer ise,je;
-  for (ise=0; ise<noOfSurfElems; ise++) { // loop over surface elements
-
-    Boolean FoundNd=FALSE;
-    Elem * ptAuxElem;
-
-    Vector<Integer> &connectSE=elemsSurf[ise]->connect;
-
-    // get list of neighbors for first node of the surface element
-    Integer imp;   // get local number for this node
-    for (imp=0; imp<map.size(); imp++) 
-      {
+  for (ise=0; ise<noOfSurfElems; ise++) 
+    { // loop over surface elements
+      
+      Boolean FoundNd=FALSE;
+      Elem * ptAuxElem;
+      
+      Vector<Integer> &connectSE=elemsSurf[ise]->connect;
+      
+      // get list of neighbors for first node of the surface element
+      Integer imp;   // get local number for this node
+      for (imp=0; imp<map.size(); imp++)
 	if (connectSE[0]==map[imp]) 
 	  break;
-      }
+      
     
-    std::vector<Elem*> &listNeigh4Elem=listNeighbors[imp];
-       
-    // loop over list of neighbors
-    Integer ine;
-    for (ine=0;ine<listNeigh4Elem.size();ine++) {
-      ptAuxElem=listNeigh4Elem[ine];
-
-      // check is there other vertices of element
-      // loop over other nodes of surf element
-      for (je=1;je<connectSE.size();je++) {
-	Integer verSE=connectSE[je];
-
-	//loop over vertices of the element
-	FoundNd=FALSE;
-	Vector<Integer> &vertices=ptAuxElem->connect;
-	Integer ivt;
-	for(ivt=0;ivt<vertices.size();ivt++) {
-	  if (verSE==vertices[ivt]) {
-	    FoundNd=TRUE;
+      std::vector<Elem*> &listNeigh4Elem=listNeighbors[imp];
+      
+      // loop over list of neighbors
+      Integer ine;
+      for (ine=0;ine<listNeigh4Elem.size();ine++)
+	{
+	  ptAuxElem=listNeigh4Elem[ine];
+	  
+	  // check is there other vertices of element
+	  // loop over other nodes of surf element
+	  for (je=1;je<connectSE.size();je++) {
+	    Integer verSE=connectSE[je];
+	    
+	    //loop over vertices of the element
+	    FoundNd=FALSE;
+	    Vector<Integer> &vertices=ptAuxElem->connect;
+	    Integer ivt;
+	    for(ivt=0;ivt<vertices.size();ivt++) {
+	      if (verSE==vertices[ivt]) {
+		FoundNd=TRUE;
+		break;
+	      }
+	    } // end of loop over vertices of neigh-element
+	    
+	    if (!FoundNd) break;
+	  } // end of loop over nodes of surf element
+	  
+	  if (FoundNd) {
+	    belongingSE[ise]=ptAuxElem;
 	    break;
 	  }
-	} // end of loop over vertices of neigh-element
-	
-	if (!FoundNd) break;
-      } // end of loop over nodes of surf element
-
-      if (FoundNd) {
-	belongingSE[ise]=ptAuxElem;
-	break;
-      }
-    } // end loop over neighbors 
-
-  } // loop over Surf element
-	     
+	} // end loop over neighbors 
+      
+    } // loop over Surf element 
 }
 
 

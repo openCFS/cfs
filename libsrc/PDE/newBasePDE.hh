@@ -377,8 +377,8 @@ protected:
   void CalcLineNormalVec(Vector<Double>& n, Matrix<Double>& ptCoord);
   
   /// calc the normal vector of an interface element (outwards of the pde subdobmain
-  void CalcLineNormalVec(Vector<Double>& n, Elem& interfaceElem);
-  
+  void CalcLineNormalVec(Vector<Double>& n, Elem& interfaceElem, Elem& neighbour);
+
 
 
   // ======================================================
