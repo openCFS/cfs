@@ -108,7 +108,7 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 
 
   // set assemble parameters
-  assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, subdoms_);
+  assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, subdoms_, surfdoms_);
   assemble_->SetGraphType(NODEGRAPH);
   assemble_->SetMesh2PDENode(&Mesh2PDENode_);
   assemble_->SetMatrixType(RBLOCK);

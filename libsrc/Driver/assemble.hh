@@ -115,6 +115,9 @@ class IntegratorDescriptor : public BaseIntDescriptor
     virtual void AddIntegrator(IntegratorDescriptor * intDescr, const std::string & subdomain)=0;
 
 
+    /// adds surface integrators to the pde
+    virtual void AddSurfIntegrator(BaseForm * integrator, const std::string & subdomain,
+			       const enum MatrixType destinationMatrix, const Integer nonLin)=0;
 
     //! specify type of system matrix for AlgebraicSystem
     /*! \param level (input) level of Grid     */
@@ -175,7 +178,8 @@ class IntegratorDescriptor : public BaseIntDescriptor
     void SetGeneralParams(const std::string & pdename, 
 			  const Integer dofsPerNode,
 			  const Integer numPDENodes, 
-			  const std::vector<std::string> subdoms);
+			  const std::vector<std::string> subdoms,
+			  const std::vector<std::string> surfdoms);
     
     
 
@@ -318,6 +322,7 @@ class IntegratorDescriptor : public BaseIntDescriptor
     std::vector<Integer> * mesh2PDENode_; //!< array containing PDE (=local) node numbers
 
     std::vector<std::string> subdoms_;  //!< subdomain-levels belongig to PDE
+    std::vector<std::string> surfdoms_; //!< surface-domain-levels belongig to PDE
     std::vector<std::string> loadDom_;  //!< load subdomains
     std::vector<std::string> loadDof_;  //!< dofs of loads
     std::vector<Double>      loadVals_; //!< values of the load condition
@@ -331,6 +336,8 @@ class IntegratorDescriptor : public BaseIntDescriptor
     /// vector of all needed integrators (every subdomain needs one "list of integrators")
     std::vector< std::vector<IntegratorDescriptor *>* > integrators_;
 
+    /// vector of all needed surface integrators (every surface needs one "list of surfaceintegrators")
+    std::vector< std::vector<IntegratorDescriptor *>* > surfintegrators_;
 
     /// vector of all needed integrators (every subdomain needs one "list of integrators")
     std::vector< std::vector<BaseIntDescriptor *>* > rhsIntegrators_;
@@ -351,6 +358,9 @@ class IntegratorDescriptor : public BaseIntDescriptor
     //! calculates the index of the subdoman with name "subDomName" in the subdomain-list
     Integer SubDomIndex(const std::string & subDomName);
 
+    //! calculates the index of the surfdoman with name "surfDomName" in the surface-domain-list
+    Integer SurfDomIndex(const std::string & surfDomName);
+
   private:
 
     //! returns the index of the named dof
@@ -360,8 +370,6 @@ class IntegratorDescriptor : public BaseIntDescriptor
   };
     
       
-
-
 
 
 
@@ -384,6 +392,10 @@ class IntegratorDescriptor : public BaseIntDescriptor
     /// adds integrators to the pde
     virtual void AddIntegrator(IntegratorDescriptor * intDescr, const std::string & subdomain);
 
+    /// adds surface integrators to the pde
+    virtual void AddSurfIntegrator(BaseForm * integrator, const std::string & subdomain,
+			       const enum MatrixType destinationMatrix, const Integer nonLin);
+
   };
 
 
@@ -405,10 +417,14 @@ class IntegratorDescriptor : public BaseIntDescriptor
 
     /// adds integrators to the pde
      virtual void AddIntegrator(BaseForm * integrator, const std::string & subdomain,
-		       const enum MatrixType destinationMatrix, const Integer nonLin);
+				const enum MatrixType destinationMatrix, const Integer nonLin);
 
     /// adds integrators to the pde
     virtual void AddIntegrator(IntegratorDescriptor * intDescr, const std::string & subdomain);
+
+    /// adds surface integrators to the pde
+    virtual void AddSurfIntegrator(BaseForm * integrator, const std::string & subdomain,
+				   const enum MatrixType destinationMatrix, const Integer nonLin);
 
   };
 

@@ -339,6 +339,7 @@ protected:
   Integer dofspernode_; //!< number of unknowns per node
   Integer dofsperedge_; //!< number of unknowns per edge
   std::vector<std::string> subdoms_;  //!< subdomain-levels belongig to PDE
+  std::vector<std::string> surfdoms_; //!< surface-domain-levels belongig to PDE
 
   //Material data
   Char * charMaterialFileName_;    //!< name of material file
