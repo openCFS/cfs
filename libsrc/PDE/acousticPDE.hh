@@ -65,6 +65,9 @@ public:
   virtual void SolveStepTrans(const Integer kstep, const Double steptime, const Integer level, 
 			      const Boolean updatesysmat);
 
+  /// solve one harmonic step
+  virtual void SolveStepHarmonic(const Integer level);
+
   //! prepare for correct time stepping
   /*!
     \param dt time step
@@ -85,6 +88,9 @@ public:
   { return size_;}
 
 protected:
+
+  Double freq_;   //!< excitation frequency for harmonic analysis
+  Array<Double> solIm_; //!< stores the imaginary part in case of harmonic analysis
 
   Double lasttimecalc_;  //!< Last time on which we have calculated solution
   Integer laststepcalc_; //!< Number of last timestep on which we have calculated our solution

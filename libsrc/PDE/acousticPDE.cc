@@ -60,6 +60,12 @@ AcousticPDE::AcousticPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, Fil
 
   ReadBCs(pdename_);
 
+  if (analysistype_==HARMONIC)
+    {
+      conf->get("frequency", freq_, pdename_);
+      solIm_.reshape(dofspernode_, NumPDENodes_);
+      solIm_.init();
+    }
 }
 
 
@@ -72,12 +78,17 @@ void AcousticPDE::DiscreteParamsPDE()
   MatrixType_ = RSCALAR;
   GraphType_  = NODEGRAPH; 
 
-  SystemMatrix_     = TRUE;
-  StiffnessMatrix_  = TRUE;
-  MassMatrix_       = TRUE;
-
-  if (with_absBCs_ || with_fracdamping_)
-    DampingMatrix_  = TRUE;
+  if (analysistype_==HARMONIC)
+    SystemMatrix_     = TRUE;
+  else
+    {
+      SystemMatrix_     = TRUE;
+      StiffnessMatrix_  = TRUE;
+      MassMatrix_       = TRUE;
+      
+      if (with_absBCs_ || with_fracdamping_)
+	DampingMatrix_  = TRUE;
+    }
 }
 
 
@@ -154,36 +165,81 @@ void AcousticPDE::SolveStepTrans(const Integer kstep, const Double asteptime,
   TS_alg_->Corrector(sol_);
 }
 
+void AcousticPDE::SolveStepHarmonic(const Integer level)
+{
+#ifdef TRACE
+  (*trace) << "entering MagEdgePDE::SolveStepHarmonic" << std::endl;
+#endif
+
+  Integer update = 0;
+  Integer job = 4;
+  
+  Double * ptsol;
+
+  //compute and assemble element matrices
+  SetupMatrices(level);
+  
+  // calculate source term
+  //  SetupRHS(level);
+  
+  //account for bcs
+  SetBCs(level,update,0);
+
+  algsys_->CalcPrecond();    
+  algsys_->Solve();
+  
+  ptsol = algsys_->GetSolutionVal();
+
+  // save solution
+  for (Integer i=0; i<NumPDENodes_; i++)
+    for (Integer dim=0; dim<dofspernode_; dim++)
+      {
+	sol_[dim][i] = ptsol[2*i];
+	solIm_[dim][i] = ptsol[2*i+1];
+      }
+  
+}
+
+
 void AcousticPDE::WriteResultsInFile()
 {
 #ifdef TRACE
   (*trace) << "entering AcousticPDE::WriteResultsInFile" << std::endl;
 #endif
 
-  Array<Double> sol_mesh, solder1_mesh, solder2_mesh;
+  Array<Double> sol_mesh, solder1_mesh, solder2_mesh, solIm_mesh;
   Array<Double> sol_der1Array, sol_der2Array;
-  
-  sol_der1Array = getS1();
-  sol_der2Array = getS2();
 
-  
-  TransformNodeSolution(sol_mesh,sol_,PDE2MeshNode_);
-  TransformNodeSolution(solder1_mesh,sol_der1Array,PDE2MeshNode_);
-  TransformNodeSolution(solder2_mesh,sol_der2Array,PDE2MeshNode_);
-
-  if (OutFile_->IsGMV())
+  if (analysistype_==HARMONIC)
     {
-      OutFile_->WriteNodeSolution(sol_mesh,laststepcalc_,lasttimecalc_,"vp");
-      //       OutFile_->WriteNodeSolution(solder1_mesh,laststepcalc_,lasttimecalc_,"vp_1der");
-      //       OutFile_->WriteNodeSolution(solder2_mesh,laststepcalc_,lasttimecalc_,"vp_2der");
+      TransformNodeSolution(sol_mesh,sol_,PDE2MeshNode_);
+      TransformNodeSolution(solIm_mesh,solIm_,PDE2MeshNode_);      
+      OutFile_->WriteNodeSolution(sol_mesh,laststepcalc_,lasttimecalc_,"fluid potential, cw realpart,");
+      OutFile_->WriteNodeSolution(solIm_mesh,laststepcalc_,lasttimecalc_,"fluid potential, cw imagpart, ");
     }
   else
-    {
-      OutFile_->WriteNodeSolution(sol_mesh,laststepcalc_,lasttimecalc_,"fluid potential");
-      OutFile_->WriteNodeSolution(solder1_mesh,laststepcalc_,lasttimecalc_,"fluid potential, 1st deriv., ");
-      //      OutFile_->WriteNodeSolution(solder2_mesh,laststepcalc_,lasttimecalc_,"fluid potential, 2nd deriv., ");
-    }
+    {  
+      sol_der1Array = getS1();
+      sol_der2Array = getS2();
 
+      
+      TransformNodeSolution(sol_mesh,sol_,PDE2MeshNode_);
+      TransformNodeSolution(solder1_mesh,sol_der1Array,PDE2MeshNode_);
+      TransformNodeSolution(solder2_mesh,sol_der2Array,PDE2MeshNode_);
+      
+      if (OutFile_->IsGMV())
+	{
+	  OutFile_->WriteNodeSolution(sol_mesh,laststepcalc_,lasttimecalc_,"vp");
+	  //       OutFile_->WriteNodeSolution(solder1_mesh,laststepcalc_,lasttimecalc_,"vp_1der");
+	  //       OutFile_->WriteNodeSolution(solder2_mesh,laststepcalc_,lasttimecalc_,"vp_2der");
+	}
+      else
+	{
+	  OutFile_->WriteNodeSolution(sol_mesh,laststepcalc_,lasttimecalc_,"fluid potential");
+	  OutFile_->WriteNodeSolution(solder1_mesh,laststepcalc_,lasttimecalc_,"fluid potential, 1st deriv., ");
+	  //      OutFile_->WriteNodeSolution(solder2_mesh,laststepcalc_,lasttimecalc_,"fluid potential, 2nd deriv., ");
+	}
+    }
 }
 
 void AcousticPDE :: InitTimeStepping(const Double dt)
@@ -223,6 +279,9 @@ void AcousticPDE::SetupMatrices(const Integer level)
   Vector<Integer> connecth, connect_PDE;
   std::vector<Elem*> elemssd;
 
+  //for harmonic case
+  std::vector<Double> harmVec;
+
   Integer i, j;
  
   for (i=0; i<subdoms_.size(); i++)
@@ -236,7 +295,6 @@ void AcousticPDE::SetupMatrices(const Integer level)
       coeffmass  = density*density/compressibility;
       coeffstiff = density;
       coeffdamp  = 2*density*alpha0*sqrt(density/compressibility)/sin((y-1)*PI/2);
-
 
       ptgrid_->GetElemSD(elemssd,subdoms_[i],level);
 
@@ -262,8 +320,21 @@ void AcousticPDE::SetupMatrices(const Integer level)
 	  (*debug) << "Stiffnessmatrix, ElementNumber  " <<   i << std::endl;
 	  (*debug) << elemmat << std::endl;
 #endif     
-	  
-	  algsys_->SetElementMatrix(elemmat.getinarray(), connect_PDE.get(), connect_PDE.size(), STIFFNESS);
+	  // store stiffness matrix to special vector needed by algebraic system
+	  // for harmonic analysis
+	  Integer k=0;
+	  if(analysistype_==HARMONIC)
+	    {
+	      harmVec.resize(2*connecth.size()*connecth.size());
+	      for(Integer iii=0; iii<elemmat.size_row(); iii++)
+		for(Integer jjj=0; jjj < elemmat.size_row(); jjj++)
+		  {    
+		    harmVec[k] = elemmat[iii][jjj];
+		    k++;
+		  }
+	    }
+	  else
+	    algsys_->SetElementMatrix(elemmat.getinarray(), connect_PDE.get(), connect_PDE.size(), STIFFNESS);
 
 	  // mass part
 	  bilinear_mass->CalcElementMatrix(ptCoord, elemmat);
@@ -273,10 +344,25 @@ void AcousticPDE::SetupMatrices(const Integer level)
 	  (*debug) << elemmat << std::endl;
 #endif
 
-	  algsys_->SetElementMatrix(elemmat.getinarray(), connect_PDE.get(), connect_PDE.size(), MASS);
+	  if(analysistype_==HARMONIC)
+	    {
+	      if (k!=elemmat.size_row()*elemmat.size_col())
+		Error("k is wrong!!!!!!!!!!!!!!!!!!!!!",__FILE__,__LINE__);
+
+	      for(Integer iii=0; iii<elemmat.size_row(); iii++)
+		for(Integer jjj=0; jjj < elemmat.size_row(); jjj++)
+		  {    
+		    harmVec[k] =  -4*PI*PI*freq_*freq_*elemmat[iii][jjj];
+		    // k initially  set in for loop above!!
+		    k++;
+		  }
+	      algsys_->SetElementMatrix(&harmVec[0], connect_PDE.get(), connect_PDE.size(),SYSTEM);
+	    }
+	  else
+	    algsys_->SetElementMatrix(elemmat.getinarray(), connect_PDE.get(), connect_PDE.size(), MASS);
 
 	  //Damping part
-	  if (with_fracdamping_)
+	  if (with_fracdamping_ && analysistype_!=HARMONIC)
 	    {
 	      BaseForm * bilinear_damp  = new MassInt(ptEl, coeffdamp);
 	      bilinear_damp->CalcElementMatrix(ptCoord, elemmat);
@@ -298,7 +384,7 @@ void AcousticPDE::SetupMatrices(const Integer level)
 
 
   // BEGIN DAMPING MATRIX PART: Absorbing boundaries
-  if (with_absBCs_) {
+  if (with_absBCs_ && analysistype_!=HARMONIC) {
     std::vector<Elem*>  DomainBnd;
     Double coeffdamp;
  
