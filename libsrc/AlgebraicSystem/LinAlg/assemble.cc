@@ -8,8 +8,9 @@
 #include <datainout_head.hh>
 #include <elements_head.hh>
 #include <forms_head.hh>
-#include <linalg_head.hh>
 #include <domain_head.hh>
+#include "systemmatrix.hh"
+#include "assemble.hh"
 
 namespace CoupledField
 {

@@ -18,8 +18,10 @@ namespace CoupledField
 #ifdef TRACE
   (*trace) << "entering TimeFunc::TimeFunc" << std::endl;
 #endif
+
    ptFileType=aptFileType;
    ptFileType->ReadNumTimeFunc(maxnumTimeFunc);
+
    maxvalTimeFunc = new Integer [maxnumTimeFunc];
  
    ptFileType->ReadInfoTimeFunc(maxvalTimeFunc, maxnumTimeFunc);
@@ -32,7 +34,7 @@ namespace CoupledField
         valTimeFunc[i] = new Double[maxvalTimeFunc[i]];
   for (i=0; i < maxnumTimeFunc; i++)
   ptFileType->ReadTimeFunc(timeTimeFunc[i],valTimeFunc[i],i+1);
- 
+  
 }
 
 Double TimeFunc::TimeFuncAtTime(const Double time, const Integer num)
@@ -41,11 +43,11 @@ Double TimeFunc::TimeFuncAtTime(const Double time, const Integer num)
  Integer i,n;
  
  n=maxvalTimeFunc[num];
- 
- if ( time<timeTimeFunc[num][0] )
+
+ if ( time < timeTimeFunc[num][0] )
     Error("Wrong time in TimeFuncAtTime",__FILE__,__LINE__);
  
- if (time>timeTimeFunc[num][n-1]) return 0;
+ if (time > timeTimeFunc[num][n-1]) return 0;
  
  for (i=0; i<n; i++)
  {

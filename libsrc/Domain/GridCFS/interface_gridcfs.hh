@@ -62,8 +62,10 @@ inline GridInterfaceCFS<Dim>::GridInterfaceCFS(FileType * aptFileType)
    ptGridCFS=new GridCFS<Dim>(ptFileType); 
 }
 
+#ifdef __GNUC__
 template class GridInterfaceCFS<Point3D>;
 template class GridInterfaceCFS<Point2D>;
+#endif
 
 } // end of namespace
 #endif // FILE_GRID

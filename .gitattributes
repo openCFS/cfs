@@ -310,6 +310,7 @@ libgrid/libUtil.so -text svneol=unset#unset
 libsrc/AlgebraicSystem/LinAlg/Makefile -text
 libsrc/AlgebraicSystem/LinAlg/assemble.cc svneol=native#text/plain
 libsrc/AlgebraicSystem/LinAlg/assemble.hh svneol=native#text/plain
+libsrc/AlgebraicSystem/LinAlg/interface_linalg.hh svneol=native#text/plain
 libsrc/AlgebraicSystem/LinAlg/linalg_head.hh svneol=native#text/plain
 libsrc/AlgebraicSystem/LinAlg/linsystem.cc svneol=native#text/plain
 libsrc/AlgebraicSystem/LinAlg/linsystem.hh svneol=native#text/plain
@@ -317,6 +318,7 @@ libsrc/AlgebraicSystem/LinAlg/systemmatrix.cc svneol=native#text/plain
 libsrc/AlgebraicSystem/LinAlg/systemmatrix.hh svneol=native#text/plain
 libsrc/AlgebraicSystem/LinAlg/work.hh svneol=native#text/plain
 libsrc/AlgebraicSystem/abstractAS.hh svneol=native#text/plain
+libsrc/AlgebraicSystem/linalg_head.hh svneol=native#text/plain
 libsrc/DataInOut/DatFile/Makefile -text
 libsrc/DataInOut/DatFile/datfile.cc svneol=native#text/plain
 libsrc/DataInOut/DatFile/datfile.hh svneol=native#text/plain

@@ -136,9 +136,6 @@ template <class Dim>
 inline void GridCFS<Dim> :: GetConnection(Integer * p, const Integer l, const Integer i,
                                 const Integer n)
 {
-#ifdef TRACE
-  (*trace) << "entering GridCFS:: GetConnection" << std::endl;
-#endif
  
  Integer ii;
 // Integer stpos=gh[l].Info[gh[l].fp[i]+2];
