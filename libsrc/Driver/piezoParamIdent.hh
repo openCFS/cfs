@@ -29,6 +29,7 @@ namespace CoupledField
 
     std::ifstream allMeasuredData;
     std::ofstream * impedCurve;
+    std::ofstream * piezoLog;
     //  std::ofstream impedCurve("impedCurve.dat");
     //  std::ofstream impedCurve("impedCurve.dat");
 
@@ -154,7 +155,7 @@ namespace CoupledField
     Vector<Complex> F_hat;
     Vector<Complex> y_hat;
     Vector<Complex> s_0;    
-    Vector<Complex> bas;
+    Vector<Double> bas;
     Vector<Complex> res_NE, res_NE_new, lin_res;
     Vector<Complex> res;
     Vector<Complex> bas_bar;

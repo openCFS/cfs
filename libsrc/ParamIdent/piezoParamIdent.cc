@@ -78,7 +78,7 @@ namespace CoupledField
     else
       std::cerr <<"File measuredData is opened to be read" << std::endl;
 
-    std::cout<<"\n Opens impedCurve.dat ... "<<std::endl;
+    std::cout<<"\n Opens impedCurve.dat and piezoLog.dat ... "<<std::endl;
     std::string filename= "imped.dat";
     impedCurve = new std::ofstream(filename.c_str(),std::basic_ios<char>::out);
 
@@ -86,6 +86,16 @@ namespace CoupledField
       {
 	std::cerr << "ImpedanceCurve.dat could not be initialized" << std::endl;
       }
+
+    std::string filenameLog= "piezoLog.dat";
+    piezoLog = new std::ofstream(filenameLog.c_str(),std::basic_ios<char>::out);
+
+    if (!piezoLog)
+      {
+	std::cerr << "piezoLog.dat could not be initialized" << std::endl;
+      }
+
+
 
   } // end of constructor
 
@@ -206,7 +216,7 @@ namespace CoupledField
     }
 
     // <<<<<<<<<<<<<< for a hopefully nice imped curve <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-//      Integer nrfreq=50;
+    //  Integer nrfreq=100;
 //      freqs.Resize(nrfreq);
 //      Double startfreq=2.0e+06;
 //      Double stopfreq=6.0e+06;
@@ -225,8 +235,8 @@ namespace CoupledField
 
     // Which data for the right had side of F(p)=y_hat should be taken? ... either .. or ... !!!!
     
-    //  calc_measuredCharge(freqs, real, imag, y_hat); // out of measurements, values are taken from measuredData.dat
-     calcSyntheticData(y_hat); // Generates synthetic data, i.e. one forward simulation will be performed.
+      calc_measuredCharge(freqs, real, imag, y_hat); // out of measurements, values are taken from measuredData.dat
+      // calcSyntheticData(y_hat); // Generates synthetic data, i.e. one forward simulation will be performed.
 
     std::cout<<"\n"<<std::endl;
     for(int i=0;i<y_hat.GetSize();i++)
@@ -309,16 +319,16 @@ namespace CoupledField
 //     scaling[8]=1.0e+8; scaling[9]=1.0e+9;
 
     // if we do not wanna scale ..
-    //    for (Integer i=0;i<nrParameter;i++)
-    // scaling[i]=1.0;
+    //  for (Integer i=0;i<nrParameter;i++)
+    //scaling[i]=1.0;
   
 
     // xxxxxxxxxxxxxxxxxxxxxxx Choose different regularizing solvers here xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx //
     
     //  NewtonCG();
     //         NewtonCG2();
-         NewtonCG3();
-	 tichonov();
+      NewtonCG3();
+    //      tichonov();
     //   NewtonLandweber();
     //  createF(ptMaterial, ptBCs, F_hat); // calculates only forward problems over all omegas
 

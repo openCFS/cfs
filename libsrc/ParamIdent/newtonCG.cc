@@ -93,7 +93,8 @@ namespace CoupledField
     Vector<Double> res_NE(nrParameter);
     Vector<Double> res_NE_rescaled(nrParameter);
     Vector<Complex> res_NE_C(nrParameter);
-    Vector<Double> bas(nrParameter);
+    //    Vector<Double> bas(nrParameter);
+    bas.Resize(nrParameter);
     Vector<Complex> basbar(nrMeasuredData);
     Vector<Complex> basbar_old(nrMeasuredData);
     // Vector<Complex> res_old(nrMeasuredData);
@@ -110,8 +111,10 @@ namespace CoupledField
 //       scaling[5]=0.1;     scaling[6]=1.0;     scaling[7]=0.1;
 //       scaling[8]=1.0e+8; scaling[9]=1.0e+9;
 
-//    for (Integer i=0;i<parameter.GetSize();i++)
-//    parameter[i]=scaling[i]*parameter[i];
+// NO scaling in NewtonCG!! 
+    for (Integer i=0;i<parameter.GetSize();i++)
+      scaling[i]=1.0;
+    //    parameter[i]=scaling[i]*parameter[i];
 
      parstart=parameter;
 
@@ -123,174 +126,158 @@ namespace CoupledField
     for (i=0; i<nrMeasuredData;i++)
       y_hat_F_hat[i]=y_hat[i]-F_hat[i];
 
+    for (i=0;i<nrParameter;i++)
+      bas[i]=1.0;
+
+    
+
     res=y_hat-F_hat;
       
-    misfit=sqrt(realA2norm(y_hat_F_hat)); 
+    misfit=norm2Real(y_hat_F_hat); 
     misfit0=misfit;
 
     std::cout << "\n misfit = |y-F| =  " <<  misfit <<std::endl;
 
-    while((misfit>tau*delta||nrNewtonIterations<25)&&nrNewtonIterations<25){ // Newton
+    *piezoLog << "\n Initial misfit ||y-F|| = "<<misfit<<std::endl;
+
+    nrNewtonIterations=0;
+
+    // NEWTON ITERATION -- outer Loop!!
+    while((misfit>tau*delta||nrNewtonIterations<5)&&nrNewtonIterations<25){ // Newton
+      *piezoLog << "\n Newton-Iteration: " << nrNewtonIterations <<std::endl;
+      *piezoLog <<"------------------------"<<std::endl;
+      nrNewtonIterations++;
+
       res0=res;
       normres02=norm2Real(res0);
 
-      nrNewtonIterations++;
       std::cout<<"\n Newton-Iteration "<< nrNewtonIterations <<std::endl;
       step.Resize(nrParameter);
+    
+      res=y_hat-F_hat;
 
+      // Create the matrices ...
       createJacobiMatrix2(JacobiMatrix);
       createAdjointJacobiMatrix(JacobiMatrix,adjJacobiMatrix);
       // testJacobiMatrix(F_hat, JacobiMatrix, parameter, ptBCs, ptMaterial,parameterIncrement, solElecPot, solMechDispl);
 
-      //  JacobiMatrix.MatVecMult_CD(step,JMats);
+    for (Integer i=0;i<parameter.GetSize();i++)
+      scaling[i]=1.0;
 
+      //  JacobiMatrix.MatVecMult_CD(step,JMats); // is not neccessary, since we start with s_i=0;
       //res = res0-JMats;
       
-	std::cout<<"\n res = res0 - JMats"<<std::endl;
-
+	std::cout<<"\n \nres = res0 - JMats: "<<std::endl;
 	for (Integer i=0;i<basbar.GetSize();i++){
-	  std::cout<<"res="<<res[i]<<"; "<<std::endl;
+	  std::cout<<"res="<<res[i]<<"; ";
 	  //  std::cout<<"JMats="<<JMats[i]<<"; "<<std::endl;
 	}
-
 	std::cout<<"\n  " <<std::endl;	  
 
       normres2 = norm2Real(res);
 
       adjJacobiMatrix.Mult(res, res_NE_C);
 
+      std::cout<<"\nbas = res NE = (F* res).real(): "<<std::endl;
       for (Integer i=0;i<res_NE_C.GetSize();i++){
 	res_NE[i]=(1.0/scaling[i]*scaling[i])*res_NE_C[i].real();
-	//res_NE_rescaled[i]=res_NE[i]*scaling[i];
+	res_NE_rescaled[i]=scaling[i]*res_NE[i];
+	 std::cout<<"res_NE="<<res_NE[i]<<"; ";
       }
 
       bas = res_NE;
+      
+      std::cout<<"\n  " <<std::endl;	  
 
-      std::cout<<"\n bas = res NE = F* res"<<std::endl;
-      for (Integer i=0;i<basbar.GetSize();i++)
-	 std::cout<<"res_NE_C="<<res_NE_C[i]<<"; ";
-	std::cout<<"\n  " <<std::endl;	  
-
-
-      normresNEold2 = POW(a2norm(res_NE),2);
+      normresNEold2 = POW(a2norm(res_NE_rescaled),2);
 
       basbar_old.Resize(nrParameter);
 
+
+      // ----- INNER LOOP --- CG-ITERATION ---
       Integer nrCGIter=0;
+      while((normres2>eta*eta*normres02)&&(nrCGIter<10)){ // CG
+	std::cout<<"\n CG Iteration " << nrCGIter << std::endl;
+	nrCGIter++;
 
-//       while((normres2>eta*eta*normres02)&&(nrCGIter<10)){ // CG
-
-// 	std::cout<<"\n CG Iteration " << nrCGIter << std::endl;
-// 	nrCGIter++;
-
-// 	JacobiMatrix.MatVecMult_CD(bas,basbar);
-// 	std::cout<<"\n CG 1 " <<std::endl;
+	JacobiMatrix.MatVecMult_CD(bas,basbar);
 	
-// 	for (Integer i=0;i<basbar.GetSize();i++){
-// 	  basbar[i]=basbar[i].real();
-// 	  std::cout<<"basbar="<<basbar[i]<<"; ";
-// 	}
+	std::cout<<"\nbasbar = F' bas:  "<<std::endl;
+	for (Integer i=0;i<basbar.GetSize();i++){
+	  basbar[i]=basbar[i].real();
+	  std::cout<<"basbar="<<basbar[i]<<"; ";
+	}
+	std::cout<<"\n "<<std::endl;	  
 
-// 	basbar_old=basbar;
+	basbar_old=basbar;
 
-// 	std::cout<<"\n CG 2 " <<std::endl;	  
+	Double norm_bas_bar = POW(a2norm(basbar),2);
 
-// 	std::cout<<"\n"<<std::endl;
+	alpha=normresNEold2 / norm_bas_bar;
 
-// 	Double norm_bas_bar = POW(a2norm(basbar),2);
+	std::cout<<"\n alpha = " << alpha << ",\t || normresNEold || = " << normresNEold2 << ",\t ||bas_bar|| = " << norm_bas_bar << std::endl;
 
-// 	alpha=normresNEold2 / norm_bas_bar;
-
-// 	std::cout<<"\n alpha = " << alpha << ",\t || normresNEold || = " << normresNEold2 << ",\t ||bas_bar|| = " << norm_bas_bar << std::endl;
-
-// 	std::cout<<"\n step = step + alpha *bas: "<<std::endl;
-
-// 	for (Integer i=0;i<nrParameter;i++){
-// 	  step[i]+=alpha*bas[i];
-// 	  std::cout<<"step("<<i<<")= "<< step[i] << "; \t ";
-// 	}
-// 	std::cout<<"\n res = res - alpha*bas_bar "<<std::endl;
-
-// 	for (Integer i=0;i<res.GetSize();i++){
-// 	  res[i]=res[i]-alpha*basbar[i];
-// 	  res[i]=res[i].real();
-// 	  std::cout<<"res = "<<res[i]<<"; ";
-// 	}
-// 	std::cout<<"\n"<<std::endl;
-
-// 	//	std::cout<<"\n res.GetSize() " << res.GetSize() << "; res_NE_NEW_COMP.GetSize()= "<< res_NE_new_compl.GetSize()<<std::endl;
-
-// 	adjJacobiMatrix.Mult(res,res_NE_C);
-
-// 	for(Integer i=0;i<res_NE_new.GetSize();i++){
-// 	  res_NE[i]=(1.0/(scaling[i]*scaling[i]))*res_NE_C[i].real();
-// 	  // res_NE_rescaled[i]=res_NE[i]*scaling[i];
-// 	//	  res_NE_new[i]=1.0/(scaling[i]*scaling[i])*res_NE_new_compl[i].real();
-// 	}
-
-// 	normresNE2=POW(a2norm(res_NE),2);
-
-// 	std::cout<<"\n normresNE2 =  " << normresNE2<<std::endl; 
-
-// 	beta = normresNE2/normresNEold2;
+	std::cout<<"\nstep = step + alpha *bas: "<<std::endl;
+	for (Integer i=0;i<nrParameter;i++){
+	  step[i]+=alpha*bas[i];
+	  std::cout<<"step("<<i<<")= "<< step[i] << "; \t ";
+	}
 	
-// 	normresNEold2 = normresNE2;
 
-// 	std::cout<<"\n beta = " << beta <<std::endl; 
+	std::cout<<"\n\nres = res - alpha*bas_bar: "<<std::endl;
+	for (Integer i=0;i<res.GetSize();i++){
+	  res[i]=res[i]-alpha*basbar[i];
+	  res[i]=res[i].real();
+	  std::cout<<"res = "<<res[i]<<"; ";
+	}
+	std::cout<<"\n"<<std::endl;
 
-// 	std::cout<<"\n bas = res + beta * bas"<<std::endl;	
+	//	std::cout<<"\n res.GetSize() " << res.GetSize() << "; res_NE_NEW_COMP.GetSize()= "<< res_NE_new_compl.GetSize()<<std::endl;
 
-// 	for(Integer i=0;i<nrParameter;i++){
-// 	  bas[i]= res_NE[i]+beta*bas[i];
-// 	  std::cout<<"bas = "<<bas[i]<<"; ";
-// 	}
+	adjJacobiMatrix.Mult(res,res_NE_C);
 
-// 	normres2=norm2Real(res);
+	std::cout<<"\nres_NE = (F*' res).real():"<<std::endl;
+	for(Integer i=0;i<res_NE_new.GetSize();i++){
+	  res_NE[i]=(1.0/(scaling[i]*scaling[i]))*res_NE_C[i].real();
+	   res_NE_rescaled[i]=res_NE[i]*scaling[i];
+	//	  res_NE_new[i]=1.0/(scaling[i]*scaling[i])*res_NE_new_compl[i].real();
+	  std::cout<<"resNE = " << res_NE[i];
+	}
 
-//       }// end while CG
+	normresNE2=POW(a2norm(res_NE_rescaled),2);
 
+	std::cout<<"\n\n normresNE2 =  " << normresNE2<<std::endl; 
+
+	beta = normresNE2/normresNEold2;
+	
+	std::cout<<"\n beta = " << beta << " = " << normresNE2 << " / " << normresNEold2<< std::endl; 
+
+	normresNEold2 = normresNE2;
+
+	std::cout<<"\nbas = resNE + beta * bas: "<<std::endl;	
+	for(Integer i=0;i<nrParameter;i++){
+	  bas[i]= res_NE[i]+beta*bas[i];
+	  std::cout<<"bas = "<<bas[i]<<"; ";
+	}
+
+	normres2=norm2Real(res);
+
+      }// end while CG
+	*piezoLog << "\t Number of CG - Iterations performed " << nrCGIter <<std::endl;
+
+      parameter_new=parameter; // no update for other parameters
+
+      Matrix<Double> *matMat = ptMaterial->GetMatrix();
+
+      scaling[1]=1.0/((*matMat)[2][2]);
+      scaling[7]=1.0/((*matMat)[8][2]);
+      scaling[9]=1.0/((*matMat)[8][8]);
       
-      Matrix<Complex> JacobiMatrixNE(JacobiMatrix.GetSizeCol(), JacobiMatrix.GetSizeCol());
-      Vector<Complex> y_hat_F_hatNE(JacobiMatrix.GetSizeCol());
-
-       adjJacobiMatrix.Mult(JacobiMatrix,JacobiMatrixNE);
-       adjJacobiMatrix.Mult(y_hat_F_hat, y_hat_F_hatNE);
-
-
-       std::cout<<"\n"<<std::endl;
-       for (Integer i=0;i<JacobiMatrixNE.GetSizeRow();i++)
-	 for (Integer j=0;j<JacobiMatrixNE.GetSizeCol();j++){
-	   JacobiMatrixNE[i][j]=JacobiMatrixNE[i][j].real();
-	   // std::cout << std::setprecision(15);
-	   std::cout<<JacobiMatrixNE[i][j].real()<<" ";
-	   if(j==JacobiMatrix.GetSizeCol()-1)
-	     std::cout<<"; \n";
-	 }
-
-       std::cout<<"\n"<<std::endl;
-
-       for (Integer j=0;j<y_hat_F_hatNE.GetSize();j++){
-	   y_hat_F_hatNE[j]=y_hat_F_hatNE[j].real();
-	   std::cout<<y_hat_F_hatNE[j].real()<<" ";
-       }
-
-
-       JacobiMatrixNE.DirectSolve(step,y_hat_F_hatNE);
-      
-        std::cout<< "\n s determined with direct solver ...\n " <<std::endl;
-              for (int i=0;i<parameter.GetSize();i++){ 
-        	std::cout<<"s("<<i<<")="<<step[i]<<"; \t";
-		parameter_new[i]=parameter[i]; //+(1.0/scaling[i])*step[i].real();        
-		//		parameter_new=parameter;
-		//	std::cout<<"parameter("<<i<<")="<<parameter[i]<<"; \t";
-              }
-	     
-
-	parameter_new[9]=parameter[9]+(1.0/scaling[9])*step[9].real();        // eps33
+     	parameter_new[9]=parameter[9]+(1.0/scaling[9])*step[9].real();        // eps33
 	parameter_new[1]=parameter[1]+(1.0/scaling[1])*step[1].real(); // c33
-	parameter_new[6]=parameter[6]+(1.0/scaling[6])*step[6].real(); //e33
+	parameter_new[7]=parameter[7]+(1.0/scaling[7])*step[7].real(); //e33
 	      
-              std::cout<<"\n"<<std::endl;
+        std::cout<<"\n"<<std::endl;
 
 
       std::cout<<"\n"<<std::endl;
@@ -320,10 +307,12 @@ namespace CoupledField
 
 
       //	backtracking(eta, theta, s, a, a_lin_new);
-      misfitnew=std::sqrt(realA2norm(y_hat_F_hat));
+      misfitnew=norm2Real(y_hat_F_hat);
+      *piezoLog << "\t misfit before Linesearch " << misfitnew <<std::endl;
+
       backtrackIterator=0;
 
-      while ((misfitnew>(1-t*(1-eta))*misfit) && backtrackIterator<20 && eta<eta_max || backtrackIterator<5){ // Liniensuche
+      while ((misfitnew>(1-t*(1-eta))*misfit) && backtrackIterator<15 && eta<eta_max || backtrackIterator<2){ // Liniensuche
 	std::cout<<"\n backtracking ... "<< backtrackIterator<< std::endl;
 	backtrackIterator++;
 
@@ -364,15 +353,18 @@ namespace CoupledField
 	      else theta=theta_min;
 	    }
 	} // end else if c>0
+	//	theta = 0.35;
 
 	std::cout<<"\n Choice of theta = " << theta<<std::endl;
+	*piezoLog<<"\t Choice of theta = " << theta<<std::endl;
+
 	std::cout<<"\n"<<std::endl;
 
 	std::cout<<"\n Parameter after backtracking ... " <<std::endl;
 	
 	parameter_new[9]=parameter[9]+(1.0/scaling[9])*theta*step[9].real();        // eps33
 	parameter_new[1]=parameter[1]+(1.0/scaling[1])*theta*step[1].real(); // c33
-	parameter_new[6]=parameter[6]+(1.0/scaling[6])*theta*step[6].real(); //e33
+	parameter_new[7]=parameter[7]+(1.0/scaling[7])*theta*step[7].real(); //e33
 	
 	for(Integer i=0;i<nrParameter;i++){
 	  step[i]=theta*step[i]; 
@@ -389,7 +381,8 @@ namespace CoupledField
 
 	for(Integer i=0;i<F_hat.GetSize();i++)
 	  y_hat_F_hat[i]=y_hat[i].real()-F_hat[i].real();
-	misfitnew=a2norm(y_hat_F_hat);
+	misfitnew=norm2Real(y_hat_F_hat);
+	*piezoLog << "\t misfit after Linesearch " << misfitnew <<std::endl;
 
 	std::cout<<"\n misfitnew = " << misfitnew <<std::endl;
 	
@@ -412,10 +405,12 @@ namespace CoupledField
 	eta_new=0.8*(tau*delta)/misfitnew;
       //end choose eta
       eta=eta_new;
+
       if (eta>=eta_max)
 	eta=eta_max;
 
       std::cout<< "\n\n *** Choice of eta = " << eta<<std::endl; 
+      *piezoLog<<"\t Choice of eta = " << eta<<std::endl;
 
       // end choose eta
       parameter=parameter_new;
@@ -424,9 +419,12 @@ namespace CoupledField
     }// end while Newton
     std::cout<<"\n leaving Newton CG 2 " <<std::endl;
     std::cout<<"\n\n *** FINALLY CALCULATED PARAMETERS *** ... here they are:"<<std::endl;
+    *piezoLog<<"\n\n *** FINALLY CALCULATED PARAMETERS *** ... here they are:"<<std::endl;
 
-    for (Integer  i=0;i<parameter.GetSize();i++)
+    for (Integer  i=0;i<parameter.GetSize();i++){
       std::cout<<"par[" << i<<"]="<< parameter[i]<<";\n";
+      *piezoLog<<"parameter["<<i<<"] = "<< parameter[i]<<std::endl;
+    }
 
   }// end NewtonCG 3
 
@@ -842,7 +840,7 @@ namespace CoupledField
       }
       ///	parameter[i]=parameter[i]+s[i].real();
       	
-					       updateMaterialData(parameter,ptMaterial);
+      updateMaterialData(parameter,ptMaterial);
 
     } // end while-Newton
 
