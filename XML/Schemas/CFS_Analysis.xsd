@@ -23,7 +23,7 @@
               <xsd:enumeration value="transient"/>
               <xsd:enumeration value="paramIdent"/>
               <xsd:enumeration value="multiSequence"/>
-              <xsd:enumeration value="bubbledynamic"/>
+              <xsd:enumeration value="bubbleDynamic"/>
             </xsd:restriction>
           </xsd:simpleType>
         </xsd:attribute>
