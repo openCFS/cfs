@@ -30,7 +30,7 @@ Adaptivity = no
 PETSc=no
 
 # MpCCI
-MpCCI=no
+MpCCI=yes
 
 # Use of GSI output format
 # NOTE: On the SGI IRIX the signal handling used in the GSI writer
@@ -55,8 +55,8 @@ LINK_LAPACK = no
 
 ##############  XML Parameter File Handling? With Xerces or without?
 #
-XMLPARAMS=yes
-XERCES=yes
+XMLPARAMS=no
+XERCES=no
 
 
 ##############  Path to includes and libraries for external packages

@@ -52,6 +52,11 @@ ifeq ($(Adaptivity),yes)
 mylibrary := $(mylibrary) adaptgrid 
 endif
 #
+ifeq ($(MpCCI),yes)
+SUBLIBDIR := $(SUBLIBDIR) MpCCIcpl
+mylibrary := $(mylibrary) mpccicpl
+endif
+#
 ############ Define specific flags
 #
 include $(LIBSRC_DIR)/makefilemach/make.mach.$(MACHINE)
@@ -80,8 +85,8 @@ endif
 ############ MpCCI
 #
 ifeq ($(MpCCI),yes)
-  CC=/opt/MpCCI/mpcci-2.0.0-linux-gcc32/bin/cciCC
-  LINKFLAGS2 = -L/opt/MpCCI/mpcci-2.0.0-linux-gcc32/lib -L/opt/MPICH/mpich-1.2.5/lib $(LINKFLAGSDB)
+  CC=/opt/MpCCI/mpcci-3.0.0-sdk-linux-glibc23-gcc33/bin/cciCC
+  LINKFLAGS2 = -L/opt/MpCCI/mpcci-3.0.0-sdk-linux-glibc23-gcc33/lib -L/opt/mpich-1.2.5.2/lib $(LINKFLAGSDB)
   sysliball = $(syslib) -lcci -lmpich $(XERCESLIB) $(syslibDB) -lg2c
 else
   sysliball = $(syslib) $(XERCESLIB) $(OLASLIB) $(syslibDB)

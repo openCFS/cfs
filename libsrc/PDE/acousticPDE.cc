@@ -104,6 +104,7 @@ namespace CoupledField {
     if (absBCs_.GetSize() > 0) {
        absorbingBCs_ = TRUE;
        Info->PrintF( pdename_, " Apply Absorbing Boundary Conditions\n" );
+      surfdoms_ = absBCs_;
     }
     
 #else
