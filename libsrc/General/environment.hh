@@ -72,9 +72,9 @@ namespace CoupledField
 			GaussOrder5, GaussOrder7, null};
 
   //! enumeration precondition's types. it is used in methods of LinAlg
-  enum precond { non, Jacobi, SSOR, LU}; 
+  //enum precond { non, Jacobi, SSOR, LU}; 
 
-  std::ostream& operator << (std::ostream & out, const enum precond & type);
+  //std::ostream& operator << (std::ostream & out, const enum precond & type);
   std::ostream& operator << (std::ostream & outStr, std::vector<Double> xOut);
   std::ostream& operator << (std::ostream & outStr, std::vector<Integer> xOut);
 
@@ -82,23 +82,33 @@ namespace CoupledField
   enum DampingType{NONE=0, RAYLEIGH=1, FRACTIONAL=2, ABCDAMP=3,
 		   THERMOVISCOUS=4};
 
-  //! Enumeration for Input Coupling types
-  //! COORD = Coupling via coordinate displacement
-  //! RHS   = Coupling via Right hand side
-  //! ID_BC = Coupling via inhomogenous dirichlet bc
-  //! MAT   = Coupling via material change
+  //! Describes all possible solution types in an CFS simulation
+  typedef enum{NO_SOLUTION_TYPE, 
+		 MECH_DISPLACEMENT, MECH_ACCELERATION,
+		 MECH_VELOCITY, MECH_FORCE, 
+		 ELEC_POTENTIAL, ELEC_FIELD, ELEC_FORCE, SMOOTH_DISPLACEMENT, 
+		 ACOU_POTENTIAL, ACOU_VELOCITY, ACOU_PRESSURE, ACOU_FORCE,
+		 ACOU_POTENTIAL_DERIV1, ACOU_POTENTIAL_DERIV2,
+		 MAG_POTENTIAL, MAG_FIELD, MAG_EDDY_CURRENT, MAG_FORCE}
+  SolutionType;
+
+  //! Enumeration for Input Coupling types \n
+  //! COORD = Coupling via coordinate displacement\n
+  //! RHS   = Coupling via Right hand side\n
+  //! ID_BC = Coupling via inhomogenous dirichlet bc\n
+  //! MAT   = Coupling via material change\n
   enum CouplingInputType{COORD, RHS, ID_BC, MAT};
 
-  //! Enumeration for Output Coupling types
-  //! ELEM = Coupling via element quantities
-  //! NODE = Coupling via node quantities
+  //! Enumeration for Output Coupling types\n
+  //! ELEM = Coupling via element quantities\n
+  //! NODE = Coupling via node quantities\n
   enum CouplingOutputType{NODE, ELEM};
 
-  //! Enumeration for types of coupling regions
-  //! SUBDOMAIN = Coupling region is whole Subdomain
-  //! NODES = Coupling region is specified as nodes in .conf file
-  //! ELEMS1D = Coupling region is specified as 1D-Interface
-  //! ELEMS2D = Coupling region is specified as 2D-interface
+  //! Enumeration for types of coupling regions\n
+  //! SUBDOMAIN = Coupling region is whole Subdomain\n
+  //! NODES = Coupling region is specified as nodes in .conf file\n
+  //! ELEMS1D = Coupling region is specified as 1D-Interface\n
+  //! ELEMS2D = Coupling region is specified as 2D-interface\n
   enum CouplingRegionType{SUBDOMAIN, NODES, ELEMS1D, ELEMS2D};
 
   //! Enumeration for types of norms
@@ -115,14 +125,11 @@ namespace CoupledField
   //! (especially important for anisotropic simulations)
   enum orientation2D {xy, xz, yz};
 
-  std::ostream & operator << (std::ostream & out, const enum precond & type);
-
   //------------------------ Files for debug, trace and information ---------
 
-  //NOTE: OLAS uses the namespace 'OutInfo' for writing out
-  // data into the cla, trace, ... stream. They are declared in the
-
-
+  // NOTE: OLAS uses the namespace 'OutInfo' for writing out
+  // data into the cla, trace, ... stream. Therefore they explicitely have to
+  // be imported into namespace CoupledField.
 #ifdef USE_OLAS
   using OutInfo::trace;
   using OutInfo::debug;
