@@ -44,7 +44,8 @@ namespace CoupledField {
     }
 #endif
 
-    laststepcalc_=0;
+    laststepcalc_ = 0;
+    dampingType_  = NONE;
 
 #ifndef XMLPARAMS
     std::string dampstr;
@@ -65,8 +66,6 @@ namespace CoupledField {
     //   Check what type of damping should be used
     // *********************************************
 
-    dampingType_ = NONE;
-    
     // Rayleigh damping
     if ( params->HasValue( "type", "rayleigh", pdename_, "damping" )) {
       dampingType_ = RAYLEIGH;
@@ -94,13 +93,6 @@ namespace CoupledField {
       dampingType_ = NONE;
     }
 
-    // Absorbing boundary conditions
-    //    if ( params->HasValue( "type", "absorbingBC", pdename_, "damping" )) {
-    //      Info->PrintF( pdename_, "Apply Absorbing Boundary Conditions\n" );
-    //      absorbingBCs_ = TRUE;
-    //    }
-
-
 #endif
 
     // ***************************************************************
@@ -117,7 +109,7 @@ namespace CoupledField {
     
 #else
     params->GetList( "name", absBCs_, pdename_, "absorbingBCs" );
-    if ( absBCs_.GetSize() > 0 && dampingType_ == NONE ) {
+    if ( absBCs_.GetSize() ) {
       absorbingBCs_ = TRUE;
       Info->PrintF( pdename_, " Apply Absorbing Boundary Conditions\n" );
     }
@@ -165,7 +157,7 @@ namespace CoupledField {
     assemble_->SetPtr2TimeFnc(ptTimeFunc_);
 
     needsDampingMatrix_ = FALSE;
-    if ( absorbingBCs_ == TRUE || dampingType_ == FRACTIONAL ) {
+    if ( absorbingBCs_ == TRUE || dampingType_ != NONE ) {
       assemble_->NeedDampingMatrix();
       needsDampingMatrix_ = TRUE;
     }
