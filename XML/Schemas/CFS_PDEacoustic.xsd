@@ -58,7 +58,7 @@
 
           <!-- Time Stepping Formulation (optional)-->
           <xsd:element name="timeSteppingFormulation"
-           type="DT_AcousticTimeStep" minOccurs="0" default="effStiffMatrix"/>
+          type="DT_AcousticTimeStep" minOccurs="0" default="effStiffMatrix"/>
 
           <!-- Information for simulation including bubbles (optional) -->
           <xsd:element name="bubbles" minOccurs="0">
