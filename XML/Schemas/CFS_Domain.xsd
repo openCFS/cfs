@@ -11,23 +11,35 @@
     </xsd:documentation>
   </xsd:annotation>
 
+
+  <!-- ******************************************************************** -->
   <!-- Data type for specification of a region in the mesh file -->
+  <!-- ******************************************************************** -->
   <xsd:complexType name="DT_DomainRegion">
     <xsd:attribute name="name" type="xsd:token" use="required"/>
     <xsd:attribute name="material" type="xsd:token" use="required"/>
   </xsd:complexType>
 
+
+  <!-- ******************************************************************** -->
   <!-- Data type for specifying of a set of special nodes in the mesh file -->
+  <!-- ******************************************************************** -->
   <xsd:complexType name="DT_DomainNodes">
     <xsd:attribute name="name" type="xsd:token" use="required"/>
   </xsd:complexType>
 
+
+  <!-- ******************************************************************** -->
   <!-- Data type for specifying of a set of special elements in mesh file -->
+  <!-- ******************************************************************** -->
   <xsd:complexType name="DT_DomainElems">
     <xsd:attribute name="name" type="xsd:token" use="required"/>
   </xsd:complexType>
 
-  <!-- Data type for domain section -->
+
+  <!-- ******************************************************************** -->
+  <!--   Data type for domain section -->
+  <!-- ******************************************************************** -->
   <xsd:complexType name="DT_Domain">
     <xsd:sequence>
       <xsd:element name="region" type="DT_DomainRegion" minOccurs="1"
