@@ -71,73 +71,74 @@ AcousticPDE::AcousticPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc,
   Boolean sorted = TRUE;
   if ( strVec.IsEmpty() )
 	Info->PrintF( pdename_, "No information specifying damping detected!\n" );
-  else
-	dampingList_.Resize(strVec.GetSize());
-
-  for ( Integer k = 0; k < strVec.GetSize(); k++) {
-
-	if (strVec[k] == "rayleigh") {
-	  dampingList_[k] = RAYLEIGH;
-	  Info->PrintF( pdename_, "      * RAYLEIGH damping for region: %d\n", k );
-	}
-	else if (strVec[k] == "thermoViscous") {
-	  dampingList_[k] = THERMOVISCOUS;
-	  Info->PrintF( pdename_, "      * THERMOVISCOUS damping for region: %d\n", k );
-	}
-	else if (strVec[k] == "fractional") {
-	  dampingList_[k] = FRACTIONAL;
-	  Info->PrintF( pdename_, "      * FRACTIONAL damping for region: %d\n", k );
-	}
-	else if (strVec[k] == "no") {
-	  dampingList_[k] = NONE;
-	  Info->PrintF( pdename_, "      * NO damping at all for region: %d\n", k );
-	}
-	if ( k > 1 )
-	  if ( dampingList_[k] != dampingList_[k-1] )
-		sorted = FALSE;
-  }
-  if ( sorted == FALSE )
-	Error("Specify same type of damping for all regions!",__FILE__,__LINE__);
   else {
-	dampingType_ = dampingList_[0];
+    dampingList_.Resize(strVec.GetSize());
+    
+    for ( Integer k = 0; k < strVec.GetSize(); k++) {
+      
+      if (strVec[k] == "rayleigh") {
+	dampingList_[k] = RAYLEIGH;
+	Info->PrintF( pdename_, "      * RAYLEIGH damping for region: %d\n", k );
+      }
+      else if (strVec[k] == "thermoViscous") {
+	dampingList_[k] = THERMOVISCOUS;
+	Info->PrintF( pdename_, "      * THERMOVISCOUS damping for region: %d\n", k );
+      }
+      else if (strVec[k] == "fractional") {
+	dampingList_[k] = FRACTIONAL;
+	Info->PrintF( pdename_, "      * FRACTIONAL damping for region: %d\n", k );
+      }
+      else if (strVec[k] == "no") {
+	dampingList_[k] = NONE;
+	Info->PrintF( pdename_, "      * NO damping at all for region: %d\n", k );
+      }
+      if ( k > 1 )
+	if ( dampingList_[k] != dampingList_[k-1] )
+	  sorted = FALSE;
+    }
+    if ( sorted == FALSE )
+      Error("Specify same type of damping for all regions!",__FILE__,__LINE__);
+    else {
+      dampingType_ = dampingList_[0];
+      
+      // get additional information for fractional damping model
+      if ( dampingType_ == FRACTIONAL ) {
 	
-	// get additional information for fractional damping model
-	if ( dampingType_ == FRACTIONAL ) {
-
-	  StdVector<std::string> fracAlgList_;
-	  params->GetList( "fracAlg", fracAlgList_, pdename_, "damping" );
-	  StdVector<Integer> fracMemoryList_;
-	  params->GetList( "fracMemory", fracMemoryList_, pdename_, "damping" );
-	  StdVector<std::string> interpolationList_;
-	  params->GetList( "interpolation", interpolationList_, pdename_, "damping" );
+	StdVector<std::string> fracAlgList_;
+	params->GetList( "fracAlg", fracAlgList_, pdename_, "damping" );
+	StdVector<Integer> fracMemoryList_;
+	params->GetList( "fracMemory", fracMemoryList_, pdename_, "damping" );
+	StdVector<std::string> interpolationList_;
+	params->GetList( "interpolation", interpolationList_, pdename_, "damping" );
+	
+	if( fracAlgList_.IsEmpty()||fracMemoryList_.IsEmpty()||interpolationList_.IsEmpty() )
+	  Error("Specify attributes fracAlg, fracMemory and interpolation!",__FILE__,__LINE__);
+	// up to now take values from first subdomain
+	else {
+	  if ( fracAlgList_[0] == "gl" )
+	    Info->PrintF( pdename_, "         with Gruenwald-Letnikov algorithm,\n");
+	  else if (fracAlgList_[0] == "blank")
+	    Info->PrintF( pdename_, "         with Blanks algorithm,\n");
 	  
-	  if( fracAlgList_.IsEmpty()||fracMemoryList_.IsEmpty()||interpolationList_.IsEmpty() )
-		Error("Specify attributes fracAlg, fracMemory and interpolation!",__FILE__,__LINE__);
-	  // up to now take values from first subdomain
-	  else {
-		if ( fracAlgList_[0] == "gl" )
-		  Info->PrintF( pdename_, "         with Gruenwald-Letnikov algorithm,\n");
-		else if (fracAlgList_[0] == "blank")
-		  Info->PrintF( pdename_, "         with Blanks algorithm,\n");
-		
-		fracMemory_ = fracMemoryList_[0];
-		Info->PrintF( pdename_, "         memory size is: %d,\n", fracMemory_);
-		
-		if ( interpolationList_[0] == "lin1pt")
-		  inType_ = LIN1PT;
-		else
-		inType_ = NOTUSED;
-		Info->PrintF( pdename_, "         %s interpolation of past values\n\n"
-					  , interpolationList_[0].c_str() );
-	  }
-	  // modify dampingList, so that fracAlg is included
-	  for ( Integer k = 0; k < strVec.GetSize(); k++) {
-		if ( fracAlgList_[k] == "gl" )
-		  dampingList_[k] = FRACTIONAL_GL;
-		else if (fracAlgList_[k] == "blank")
-		  dampingList_[k] = FRACTIONAL_BLANK;
-	  }
+	  fracMemory_ = fracMemoryList_[0];
+	  Info->PrintF( pdename_, "         memory size is: %d,\n", fracMemory_);
+	  
+	  if ( interpolationList_[0] == "lin1pt")
+	    inType_ = LIN1PT;
+	  else
+	    inType_ = NOTUSED;
+	  Info->PrintF( pdename_, "         %s interpolation of past values\n\n"
+			, interpolationList_[0].c_str() );
 	}
+	// modify dampingList, so that fracAlg is included
+	for ( Integer k = 0; k < strVec.GetSize(); k++) {
+	  if ( fracAlgList_[k] == "gl" )
+	    dampingList_[k] = FRACTIONAL_GL;
+	  else if (fracAlgList_[k] == "blank")
+	    dampingList_[k] = FRACTIONAL_BLANK;
+	}
+      }
+    }
   }
   // *************************************************************
   //   Check what type of nonlinear PDE formulation should be used
