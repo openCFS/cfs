@@ -9,8 +9,8 @@
 namespace CoupledField
 {
 
-WriteResultsGMV :: WriteResultsGMV(const Char * const filename, Boolean withHistory)
-: WriteResults(filename,withHistory)
+WriteResultsGMV :: WriteResultsGMV(const Char * const filename, Boolean withHistory, FileType * const aInFile)
+: WriteResults(filename,withHistory, aInFile)
 {
 #ifdef TRACE
   (*trace) << "entering WriteResultsGMV :: WriteResultsGMV" << std::endl;

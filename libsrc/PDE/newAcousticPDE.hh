@@ -78,6 +78,9 @@ protected:
 
   //General dimension of problem
   Integer dim_;
+
+  Boolean saveDeriv_;       //!< Save derivative of vel. potential
+  
 };
 
 } // end of namespace

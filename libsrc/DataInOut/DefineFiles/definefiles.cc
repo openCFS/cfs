@@ -97,7 +97,7 @@ FileType * DefineInOutFiles :: Create_ptFileType()
    return infiletype;
 }
 
-WriteResults * DefineInOutFiles :: Create_ptWriteResults()
+WriteResults * DefineInOutFiles :: Create_ptWriteResults(FileType * const aInFile)
 {
   std::string outformat="unverg";
   conf->ifget("format_output",outformat);
@@ -105,12 +105,21 @@ WriteResults * DefineInOutFiles :: Create_ptWriteResults()
   Boolean withHistory=FALSE;
   Integer val;
   if (conf->ifget("history_node",val))
-	if (val!=-1) withHistory=TRUE;
+    if (val!=-1) 
+      withHistory=TRUE;
+  
+
+  // save nodes may also be listed in config-command "save_nodes"
+  std::vector<std::string> historyList; 
+  conf->ifgetliststr("save_nodes", historyList);
+  if (historyList.size())
+      withHistory=TRUE;
+  
 
   if (outformat=="gmv")
     ptWriteResults=new WriteResultsGMV(filename,withHistory);
   else if (outformat=="unverg")
-    ptWriteResults=new WriteResultsUnverg(filename,withHistory);
+    ptWriteResults=new WriteResultsUnverg(filename, withHistory, aInFile);
   else
     Error("Wrong format for writing results. Please, check your data.",__FILE__,__LINE__);
   

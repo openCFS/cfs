@@ -159,6 +159,24 @@ sd)
   virtual Integer GetNumBCs()
   { Error(" not implemented",__FILE__,__LINE__);} 
 
+  //! retuns the number of specified boundary conditions
+  virtual Integer GetNumSaveNodes()
+  { Error(" not implemented",__FILE__,__LINE__);} 
+
+ //! read the save nodes
+  /*!
+        \param saveNodes out: list with global number of nodes
+        \param levels in: vector with name of nodes
+  */
+  virtual void ReadSaveNodes(std::list<Integer> * saveNodes , const std::vector<std::string> levels)=0;
+  //{ Error(" not implemented",__FILE__,__LINE__);};
+  
+  //! read only levels (names) of save nodes
+  /*! \param levels out: list with names of save node levels  */
+  virtual void ReadLevelOfSaveNodes(std::vector<std::string>& levels)
+  { Error(" not implemented",__FILE__,__LINE__);} 
+  
+
 protected:
 
   //! name of input file

@@ -6,6 +6,7 @@
 namespace CoupledField
 {
 
+
 FileType :: FileType(const Char * const afilename)
 {
 #ifdef TRACE
@@ -24,5 +25,6 @@ FileType :: ~FileType()
 
  delete [] filename ;
 }
+
 
 }

@@ -161,7 +161,46 @@ namespace CoupledField
   
 
 
+  void WriteInfo::PrintVec(std::vector<Integer>& vec)
+  {
+#ifdef TRACE
+    (*trace) << "Entering WriteInfo::PrintVec" << std::endl;
+#endif
+
+    *cfsInfo << vec << std::endl;
+  }
   
+
+
+  void WriteInfo::PrintVec(const char * comment, std::vector<Integer>& vec)
+  {
+#ifdef TRACE
+    (*trace) << "Entering WriteInfo::PrintVec" << std::endl;
+#endif
+
+    *cfsInfo << comment << myEndl << vec << myEndl << myEndl;
+  }
+
+
+
+  void WriteInfo::PrintVec(const char * comment, std::vector<std::string>& vec)
+  {
+#ifdef TRACE
+    (*trace) << "Entering WriteInfo::PrintVec" << std::endl;
+#endif
+
+    *cfsInfo << comment << myEndl;
+
+    for (int i=0; i< vec.size(); i++)
+      *cfsInfo << vec[i] << std::endl;
+
+    *cfsInfo << std::endl;
+  }
+
+
+
+
+
   
   // prints warning to info-file
   void WriteInfo::Warning(const std::string & Text)
@@ -172,10 +211,12 @@ namespace CoupledField
     std::cerr << "\033[31mWARNING:\033[0m " << Text << myEndl << myEndl;
 
     *cfsInfo << myEndl << myEndl << myEndl
-	     << " !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! " << myEndl
+	     << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! " << myEndl
 	     << "                          WARNING " << myEndl
-	     << " !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! " << myEndl
-	     << " WARNING: " << Text << myEndl << myEndl;
+	     << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! " << myEndl
+	     << "WARNING: " << Text << myEndl 
+	     << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! " << myEndl
+	     << myEndl << myEndl;
   }
 
 
@@ -287,11 +328,6 @@ namespace CoupledField
 	  {
 	    int wsPos = formatStr.find_first_of(" \t",foundPos);
 	    std::string subFormatStr = formatStr.substr(foundPos, wsPos-foundPos);
-	    std::cout << "foundPos " << foundPos << std::endl;
-	    std::cout << "wsPos " << wsPos << std::endl
-		      << "subFormatStr " << subFormatStr << myEndl;
-	    
-	    
 	    
 	    //	    char formatChar = (formatStr.substr(foundPos+1,foundPos+2)).c_str()[0];
 	    char formatChar = subFormatStr[subFormatStr.length()-1];
@@ -346,7 +382,7 @@ namespace CoupledField
       }while(foundPos != std::string::npos);
 
     
-    *cfsInfo << formatted << std::endl << std::endl << std::flush;
+    *cfsInfo << formatted << std::endl << std::flush;
     
     va_end(argList);
   }  

@@ -193,7 +193,8 @@ void BasePDE::StepTransLin(const Integer level, const Boolean reset)
       algsys_->ConstructEffectiveMatrix(matrix_factor_);
 
       algsys_->InitRHS();
-      assemble_->AssembleRHS(level,laststepcalc_);      
+       //???????????????????????????????       assemble_->AssembleRHS(level,laststepcalc_);
+      assemble_->AssembleRHS(level,lasttimecalc_);
       TS_alg_->UpdateRHS();
     }
   else if (reset)
@@ -209,7 +210,9 @@ void BasePDE::StepTransLin(const Integer level, const Boolean reset)
         algsys_->InitMatrix(DAMPING);
 
       algsys_->ConstructEffectiveMatrix(matrix_factor_);
-      assemble_->AssembleRHS(level,laststepcalc_);     
+ 
+       //???????????????????????????????       assemble_->AssembleRHS(level,laststepcalc_);
+      assemble_->AssembleRHS(level,lasttimecalc_);
       TS_alg_->UpdateRHS();
     }
   else
@@ -217,7 +220,9 @@ void BasePDE::StepTransLin(const Integer level, const Boolean reset)
       update = 1;
       job    = 3;
       algsys_->InitRHS();
-      assemble_->AssembleRHS(level,laststepcalc_);     
+       //???????????????????????????????       assemble_->AssembleRHS(level,laststepcalc_);
+      assemble_->AssembleRHS(level,lasttimecalc_);
+ 
       TS_alg_->UpdateRHS();
     };
 
