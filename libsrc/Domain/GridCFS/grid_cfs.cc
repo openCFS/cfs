@@ -571,21 +571,33 @@ namespace CoupledField
 				   const Integer iElem, 
 				   const Integer level)
   {
-    Integer i,j;
+    Integer i,j,k;
     Integer sum=0,sum1;
 
-    for (i=0; i<sd_.GetSize(); i++) {
-      sum1=sum;
-      sum+=elems_[i].GetSize();
-      if (iElem < sum) {
-	Integer elemsize=(elems_[i][iElem-sum1]->connect).GetSize();
-	connection.Resize(elemsize);
-	for ( j=0; j < elemsize; j++) {
-	  connection[j]=(elems_[i][iElem-sum1]->connect)[j];
-	} 
-	break;
-      }
-    }
+//     for (i=0; i<sd_.GetSize(); i++) {
+//       sum1=sum;
+//       sum+=elems_[i].GetSize();
+//       if (iElem < sum) {
+// 	Integer elemsize=(elems_[i][iElem-sum1]->connect).GetSize();
+// 	connection.Resize(elemsize);
+// 	for ( j=0; j < elemsize; j++) {
+// 	  connection[j]=(elems_[i][iElem-sum1]->connect)[j];
+// 	} 
+// 	break;
+//       }
+//     }
+
+    for (i=0; i<sd_.GetSize(); i++)
+      for (j=0; j<elems_[i].GetSize(); j++)
+	if (elems_[i][j]->elemNum == iElem){
+	  Integer elemsize=(elems_[i][j]->connect).GetSize();
+	  connection.Resize(elemsize);
+	  for (k=0; k<(elems_[i][j]->connect).GetSize(); k++)
+	    connection[k] = (elems_[i][j]->connect)[k];
+	  break;
+	}
+	   
+      
   }
 
 
