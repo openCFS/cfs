@@ -24,7 +24,7 @@
 #include "CoupledPDE/pdecoupling.hh"
 #include "Driver/assemble.hh"
 #include "timestepping.hh"
-#include "BaseEQN.hh"
+#include "baseEQN.hh"
 
 namespace CoupledField
 {

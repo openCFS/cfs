@@ -10,7 +10,7 @@
 #include "Estimator/spaceerror.hh"
 #include "DataInOut/WriteInfo.hh"
 #include "Driver/assemble.hh"
-#include "ScalarNodeEQN.hh"
+#include "nodeEQN.hh"
 #include "trapezoidal.hh"
 #include "Utils/Coil.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
