@@ -46,6 +46,7 @@ namespace CoupledField
   BaseFE * ptHexa2  = NULL;
   BaseFE * ptPyra1  = NULL;
   BaseFE * ptWedge1 = NULL;
+  BaseFE * ptWedge2 = NULL;
 
   WriteInfo * Info = NULL;
   ConfFile * conf           = NULL;
