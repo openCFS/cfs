@@ -13,7 +13,7 @@
 #include "interface_gridlib.hh"
 #include "driver.hh"
 #include <abstractAlgSys.hh>
-#include <interface_piles.hh>
+//#include <interface_piles.hh>
 #include <basedriver.hh>
 
 using namespace CoupledField;
@@ -62,7 +62,9 @@ void main(int argc, char *argv[])
   ptLS->check();
   // if (ptLS->GMRes_m(100, Jacobi, 100)) std::cout << "convergence is true";
 #endif
+/*
     Grid<Point2D> * ptGridlib=new InterfaceGridlib<Point2D>(ptInputfile);
+    ptGridlib->Read();
     std::cout << " Test " << std::endl;
     std::cout << " max number of nodes " << std::endl;
     std::cout << ptGridlib->GetMaxnumnodes(0) << std::endl;
@@ -87,11 +89,11 @@ void main(int argc, char *argv[])
     ptGridlib->GetCoordOfNodesElem(1,0,3,ptCoord);
     std::cout << " coordinates of element" << std::endl;
     for (int i=0; i<3; i++) std::cout << i <<" " << ptCoord[i].x << " " << ptCoord[i].y << std::endl;
+*/
 
-    //    Driver * ptDriver=new Driver(ptInputfile,1,materialdata);
-    //    ptDriver->SolveNewmarkMethod(ptUnverg);
-
-/*   
+    Driver * ptDriver=new Driver(ptInputfile,1,materialdata);
+    ptDriver->SolveNewmarkMethod(ptUnverg);
+/*
  //  //! choose your grid class
   Grid<Point2D> *grid =new GridInterfaceCFS<Point2D>(ptInputfile);
   

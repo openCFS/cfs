@@ -60,10 +60,9 @@ public:
   virtual void PrintCoordinate(const Integer level, std::ostream * out) const
   { Error("Not implemented yet  PrintCoordinate");}
 
+  /// Put information about grid
+  void Read();
 private:
-
-  //! Put information about grid
-  void read();
 
   //! 
   FileType * ptFileType;
@@ -82,8 +81,6 @@ inline InterfaceGridlib<Dim>::InterfaceGridlib(FileType * aptFileType)
                 << std::endl;
 #endif
   ptFileType=aptFileType;
-  
-  read();
 }
 
 #ifdef __GNUC__

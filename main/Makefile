@@ -7,6 +7,14 @@ C_DIR= ..
 #
 LIBDIR = $(C_DIR)/libsrc
 #
+#SUBLIBDIR = Driver PDE AlgebraicSystem/LinAlg \
+#            AlgebraicSystem/PILES/general \
+#            AlgebraicSystem/PILES/multigrid \
+#            AlgebraicSystem/PILES/superlu \
+#            Forms Elements Domain/GridCFS Domain/Gridlib Domain \
+#            DataInOut/DefineFiles \
+#            DataInOut/Unverg DataInOut/DatFile DataInOut\
+#            Utils Matrix General
 SUBLIBDIR = Driver PDE AlgebraicSystem/LinAlg \
             AlgebraicSystem/PILES/general \
             AlgebraicSystem/PILES/multigrid \
@@ -15,10 +23,11 @@ SUBLIBDIR = Driver PDE AlgebraicSystem/LinAlg \
             DataInOut/DefineFiles \
             DataInOut/Unverg DataInOut/DatFile DataInOut\
             Utils Matrix General
+#
 PATHSUBLIBDIR = $(addprefix $(LIBDIR)/, $(SUBLIBDIR))
 #
 LIB_GRIDLIB = $(C_DIR)/libgrid
-LIB_OWN = $(C_DIR)/lib
+#LIB_OWN = $(C_DIR)/lib
 #
 #
 ############
