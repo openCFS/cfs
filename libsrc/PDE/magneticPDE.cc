@@ -243,10 +243,8 @@ void MagPDE::PostProcess(const Integer level)
 {
   ENTER_FCN( "MagPDE::PostProcess" );
 
-  TRY_CAST
-  PTRCAST(sol_,StoreSol<Double>,solhelp);
-  CATCH_CAST
-
+  StoreSol<Double> * solhelp = dynamic_cast<StoreSol<Double>*>(sol_);
+  
   if (calcEnergy_.size() !=0 )
     CalcEnergy();
 
@@ -532,9 +530,8 @@ void MagPDE::WriteUI2File(Vector<Double>& uiSD)
 void MagPDE::GetSolOfElement( Vector<Double>& magvecpot, Vector<Integer>& connect_PDE)
 {
   ENTER_FCN( "GetSolOfElement" );
-  TRY_CAST
-  PTRCAST(sol_,StoreSol<Double>,solhelp)
-  CATCH_CAST
+
+  StoreSol<Double> * solhelp = dynamic_cast<StoreSol<Double>*>(sol_);
 
   // displacement of element nodes
   magvecpot.Resize(connect_PDE.GetSize());

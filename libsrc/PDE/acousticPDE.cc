@@ -251,7 +251,7 @@ namespace CoupledField {
     for (Integer i=0; i<ptCoupling_->GetNumOutputCouplings(); i++) {
       quantity = ptCoupling_->GetOutputQuantity(i);
       ptCoupling_->GetOutputValues(i, values);
-      PTRCAST(values,StoreSol<Double>,temp);
+      StoreSol<Double> * temp = dynamic_cast<StoreSol<Double>*>(values);
 
       switch(ptCoupling_->GetOutputType(i)) {
 

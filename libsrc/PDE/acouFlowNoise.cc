@@ -432,9 +432,7 @@ void AcouFlowNoise::SolveStepTrans(const Integer kstep, const Double asteptime, 
   Integer update,job;
 
   //perform predictor step
-  TRY_CAST
-  PTRCAST(sol_,StoreSol<Double>,solhelp)
-  CATCH_CAST
+  StoreSol<Double> * solhelp = dynamic_cast<StoreSol<Double>*>(sol_);
   
   TS_alg_->Predictor(solhelp->GetCompleteVector());
 

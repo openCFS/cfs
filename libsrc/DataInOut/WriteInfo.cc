@@ -4,7 +4,7 @@
 #include <iomanip>
 #include <fstream>
 #include <stdio.h>
-#include <Utils/tools.hh>
+#include "Utils/tools.hh"
 #include <cstdarg>
 #include "WriteInfo.hh"
 
@@ -327,6 +327,11 @@ namespace CoupledField
     ENTER_FCN( "WriteInfo::Error" );
     
     std::cerr << std::endl << "\033[31mERROR:\033[0m " << Text;
+
+#ifdef TRACE
+    FcnTraceHandler::Dump();
+#endif
+
     if (filename) 
       {
 	std::cerr <<" (" << filename <<" ";

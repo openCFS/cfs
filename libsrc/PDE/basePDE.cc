@@ -301,12 +301,7 @@ void BasePDE::StepStaticLin(const Integer kstep, const Double aTime,
   // save solution
   Integer k=0;
   
-  // --------- OLD -----------
-  // for (Integer i=0; i<numPDENodes_; i++)
-  //  for (Integer dim=0; dim<dofspernode_; dim++)
-  //    sol_[dim][i] = ptsol[k++];
-
-  //sol_->SetDataPointer(ptsol);
+   //sol_->SetDataPointer(ptsol);
   sol_->CopyFromDataPointer(ptsol);
 
   firstTimeStepStatic_ = FALSE;
@@ -356,8 +351,7 @@ void BasePDE::PostStepTrans(const Integer kstep, const Double asteptime, const I
 {
   ENTER_FCN( "BasePDE::PostStepTrans" );
 
-  TRY_CAST
-  PTRCAST(sol_,StoreSol<Double>,solhelp)
+  StoreSol<Double> * solhelp = dynamic_cast<StoreSol<Double>*>(sol_);
     
   if (pdeIsCoupled_)
     {
@@ -370,7 +364,7 @@ void BasePDE::PostStepTrans(const Integer kstep, const Double asteptime, const I
   
   if (pdeIsCoupled_)
     iterCoupledCounter_++;
-  CATCH_CAST
+  
 }
 
 
@@ -394,10 +388,7 @@ void BasePDE::StepTransLin(const Integer kstep, const Double asteptime,
   Integer update,job;
    
   Integer k=0;
-  TRY_CAST
-  PTRCAST(sol_,StoreSol<Double>,solhelp);
-  
-  
+  StoreSol<Double> * solhelp = dynamic_cast<StoreSol<Double>*>(sol_);
 
   if ( pdeIsCoupled_ == FALSE || iterCoupledCounter_ == 0)
     {    
@@ -457,18 +448,17 @@ void BasePDE::StepTransLin(const Integer kstep, const Double asteptime,
   sol_->CopyFromDataPointer(ptsol);
   
 
-  Vector<Double> solvector;
-  dynamic_cast<StoreSol<Double>*>(sol_)->GetCompleteVector(solvector);
+  Vector<Double> & solvector =\
+    dynamic_cast<StoreSol<Double>*>(sol_)->GetCompleteVector();
 
   if (!pdeIsCoupled_)
     TS_alg_->Corrector(solvector);
-  CATCH_CAST
 }
 
 void  BasePDE::SetBCs(const Integer level, const Integer update, const Double time)
 {
 
-  ENTER_FCN( " BasePDE::SetBCs" );
+  ENTER_FCN( "BasePDE::SetBCs" );
 
   Integer node, dof;
   Double val, val_tfunc;
