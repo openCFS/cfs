@@ -17,7 +17,7 @@ class Elecst3dPDE: virtual public BasePDE
 public:
 
   //!
-  Elecst3dPDE(AbstractAlgebraicSys * aptalgsys, Grid<Point3D> * , Material * , TimeFunc * ,FileType * , WriteResults<Point3D> * );
+  Elecst3dPDE(AbstractAlgebraicSys * aptalgsys, Grid * , Material * , TimeFunc * ,FileType * , WriteResults * );
 
   //!
   virtual ~Elecst3dPDE();
@@ -67,7 +67,7 @@ private:
   void CalcCoeff(Double & coeff, const Integer numsubdom);
 
   //!
-  Grid<Point3D> * ptgrid_;
+  Grid * ptgrid_;
 
   //! store solution, 1st derivative , 2nd derivative solution
   Vector<Double> sol_;  

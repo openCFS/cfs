@@ -10,7 +10,7 @@
 namespace CoupledField
 {
 
-Therm2dPDE::Therm2dPDE(AbstractAlgebraicSys * ptalgsys, Grid<Point2D> * agrid, Material * aMatFile, TimeFunc * aptTimeFunc, FileType * aInFile, WriteResults<Point2D> * aptOut)
+Therm2dPDE::Therm2dPDE(AbstractAlgebraicSys * ptalgsys, Grid * agrid, Material * aMatFile, TimeFunc * aptTimeFunc, FileType * aInFile, WriteResults * aptOut)
 :BasePDE(ptalgsys, aMatFile, aInFile, aptOut, aptTimeFunc)
 {
 #ifdef TRACE

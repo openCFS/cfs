@@ -9,7 +9,7 @@ class AbstractAlgSys
 {
 public:
   //! Constructor with parameter - pointer to Grid and tolerancy for alg. system
- AbstractAlgSys(Grid<Dim> * aptgrid, const Integer alevel, const Double aeps) { ptGrid=aptgrid; level=alevel; eps=aeps;}
+ AbstractAlgSys(Grid * aptgrid, const Integer alevel, const Double aeps) { ptGrid=aptgrid; level=alevel; eps=aeps;}
 
  //! Restore solution after applying penalty method for zero boundary condition
  virtual void Restore()=0 ; 
@@ -55,7 +55,7 @@ virtual void AssembleSysMatrix(const Double CoefLaplace, const Double CoefMass)=
 
 protected:
   
-  Grid<Dim> * ptGrid;
+  Grid * ptGrid;
   Integer level;
   Double eps;
 } ;

@@ -55,26 +55,26 @@ DefineInOutFiles ::~DefineInOutFiles()
 #ifdef TRACE
  (*trace) << "Entering DefineInOutFiles::~DefineInOutFiles" << std::endl;
 #endif
- 
-delete filename;
+
+delete [] filename;
  
 #ifdef TRACE
 delete trace;
 #endif
  
 #ifdef DEBUG
-delete debug;
+//delete debug;
 #endif
  
-if (InfoPrint) delete infofile;
+//if (InfoPrint) delete infofile;
 
-if (conf) delete conf;
-if (cla) delete cla;
+//if (conf) delete conf;
+//if (cla) delete cla;
 
-if (ptWriteResults2d) delete ptWriteResults2d;
-if (ptWriteResults3d) delete ptWriteResults3d;
+//if (ptWriteResults2d) delete ptWriteResults2d;
+//if (ptWriteResults3d) delete ptWriteResults3d;
 
-if (infiletype) delete infiletype;
+//if (infiletype) delete infiletype;
 
 cout << " end of deconstructor" << endl;
 }
@@ -93,7 +93,7 @@ FileType * DefineInOutFiles :: Create_ptFileType(Char * atype)
    return infiletype;
 }
 
-WriteResults<Point2D> * DefineInOutFiles :: Create_ptWriteResults2d()
+WriteResults * DefineInOutFiles :: Create_ptWriteResults2d()
 {
   std::string outformat;
   conf->get("format_output",outformat);
@@ -110,7 +110,7 @@ WriteResults<Point2D> * DefineInOutFiles :: Create_ptWriteResults2d()
   return ptWriteResults2d;
 }
 
-WriteResults<Point3D> * DefineInOutFiles :: Create_ptWriteResults3d()
+WriteResults * DefineInOutFiles :: Create_ptWriteResults3d()
 {
   std::string outformat;
   conf->get("format_output",outformat);

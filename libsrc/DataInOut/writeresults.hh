@@ -6,7 +6,6 @@
 namespace CoupledField
 {
 
-template<class Dim>
 class WriteResults
 {
 public:
@@ -17,7 +16,7 @@ public:
    enum nameSol{fluid, temperature};
 
    /// initialization with grid
-  virtual void Init(Grid<Dim> * aptgrid)=0;
+  virtual void Init(Grid * aptgrid)=0;
 
    /// deconstructor
    virtual ~WriteResults();
@@ -32,7 +31,7 @@ protected:
   ///
   std::ofstream * output;
   ///
-  Grid<Dim> * ptgrid;
+  Grid * ptgrid;
   ///
   Boolean NeedHistory_;
   ///
@@ -43,23 +42,6 @@ protected:
   void AddInHistory(const Double time, const Double val);
 
 }; 
-
-template<class Dim>
-WriteResults<Dim>::~WriteResults()
-{
-#ifdef TRACE
-  (*trace) << "entering WriteResults::~WriteResults" << std::endl;
-#endif
-
- if (!output) delete output;
- if (NeedHistory_) historyfile.close();
-
-}
-
-#ifdef __GNUC__
-template class WriteResults<Point2D>;
-template class WriteResults<Point3D>;
-#endif
 
 } // end of namespace
 #endif

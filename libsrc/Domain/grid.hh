@@ -8,7 +8,6 @@ namespace CoupledField
 {
  
 /// Class for working with grid
-template<class Dim> 
 class Grid
 {
 public:
@@ -25,14 +24,19 @@ public:
   virtual void SubdivideUniform(const Integer level)=0;
 
   /// Get coordinates of all nodes which belong to element
-  virtual void GetCoordOfNodesElem(const Integer numElem, const Integer numlevelGrid, const Integer numnodes, Dim * ptCoordElem)=0;  
+  virtual void GetCoordOfNodesElem(const Integer numElem, const Integer numlevelGrid, const Integer numnodes, Point2D * ptCoordElem)
+{ Error("Not implemented");}  
+  virtual void GetCoordOfNodesElem(const Integer numElem, const Integer numlevelGrid, const Integer numnodes, Point3D * ptCoordElem)
+{ Error(" Not implemented");}
 
    /// Get connection of element
   virtual void GetConnection(Integer * result, const Integer levelGrid, 
            const Integer numElem, const Integer numnodesPerElem)=0;
 
    /// Get coordinates of node with global number inode
-   virtual void GetCoordinateNode(const Integer inode, const Integer numlevel, Dim & rfPoint)=0;
+
+   virtual void GetCoordinateNode(const Integer inode, const Integer numlevel, Point2D & rfPoint){ Error(" Not implemented");}
+   virtual void GetCoordinateNode(const Integer inode, const Integer numlevel, Point3D & rfPoint){ Error(" Not implemented");}
 
   /// Return maximum number of nodes
   virtual Integer GetMaxnumnodes(const Integer numlevel)=0;
@@ -68,9 +72,5 @@ private:
   ///
 };
 
-#ifdef __GNUC__
-template class Grid<Point3D>;
-template class Grid<Point2D>;
-#endif
 } // end of namespace
 #endif // FILE_GRID

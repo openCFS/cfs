@@ -10,7 +10,7 @@ namespace CoupledField
 {
 
 template<class Dim>
-AcousticPDE<Dim>::AcousticPDE(const Double dt0, Grid<Dim> * ptgrid, const Integer level,Material * aptMaterial, FileType * aptFileType)
+AcousticPDE<Dim>::AcousticPDE(const Double dt0, Grid * ptgrid, const Integer level,Material * aptMaterial, FileType * aptFileType)
 :PDE(aptFileType,aptMaterial)
 {
 #ifdef TRACE

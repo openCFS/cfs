@@ -9,7 +9,7 @@ namespace CoupledField
 
 //! This class provides an interface for writing files in gmv-format
 template<class Dim>
-class WriteResultsGMV: virtual public WriteResults<Dim>
+class WriteResultsGMV: virtual public WriteResults
 {
 public:
 
@@ -20,7 +20,7 @@ public:
   virtual ~WriteResultsGMV();
   
   //! initialization with grid
-  virtual void Init(Grid<Dim> * aptgrid);
+  virtual void Init(Grid * aptgrid);
 
   //! write information about grid with level in file
   virtual void WriteGrid(const Integer level);
@@ -40,7 +40,7 @@ private:
   Integer currstep_;
 
   //!
-  Grid<Dim> * ptgrid;
+  Grid * ptgrid;
 
   //!
   std::ostream * output;

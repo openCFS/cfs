@@ -10,7 +10,7 @@ namespace CoupledField
 //! Class for writing information about grid and results in unverg-format file
 
 template<class Dim>
-class WriteResultsUnverg: virtual public WriteResults<Dim>
+class WriteResultsUnverg: virtual public WriteResults
 {
 
 public:
@@ -21,7 +21,7 @@ public:
   virtual ~WriteResultsUnverg();
   
    /// initialization with grid
-  virtual void Init(Grid<Dim> * aptgrid);
+  virtual void Init(Grid * aptgrid);
 
   /// write information about grid on level i in file
   virtual void WriteGrid(const Integer level);

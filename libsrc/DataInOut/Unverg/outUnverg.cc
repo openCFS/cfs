@@ -10,7 +10,7 @@ namespace CoupledField
 
 template<class Dim>
 WriteResultsUnverg<Dim> :: WriteResultsUnverg(const Char * const filename)
-:WriteResults<Dim>()
+:WriteResults()
 {
 #ifdef TRACE
   (*trace) << "entering WriteResultsUnverg :: WriteResultsUnverg" << std::endl;
@@ -279,7 +279,7 @@ void  WriteResultsUnverg<Dim>::Dataset56()
 }
 
 template<class Dim>
-void  WriteResultsUnverg<Dim>::Init(Grid<Dim> * aptgrid)
+void  WriteResultsUnverg<Dim>::Init(Grid * aptgrid)
 {
  ptgrid=aptgrid;
 }

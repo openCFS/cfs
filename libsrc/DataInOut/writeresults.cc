@@ -8,11 +8,10 @@
 namespace CoupledField
 {
 
-template<class Dim>
-WriteResults<Dim>::WriteResults()
+WriteResults::WriteResults()
 {
 #ifdef TRACE
- if (trace) (*trace)<< "entering WriteResults<Dim>::WriteResults()" << std::endl;
+ if (trace) (*trace)<< "entering WriteResults::WriteResults()" << std::endl;
 #endif
 
   NeedHistory_=TRUE;
@@ -32,10 +31,20 @@ WriteResults<Dim>::WriteResults()
    }
 }
 
-template<class Dim>
-void WriteResults<Dim>::AddInHistory(const Double time, const Double val)
+void WriteResults::AddInHistory(const Double time, const Double val)
 {
  historyfile << time << "  " << val << std::endl;
+}
+
+WriteResults::~WriteResults()
+{
+#ifdef TRACE
+  (*trace) << "entering WriteResults::~WriteResults" << std::endl;
+#endif
+
+ if (!output) delete output;
+ if (NeedHistory_) historyfile.close();
+
 }
 
 } // end of namespace

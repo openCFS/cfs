@@ -10,7 +10,7 @@ namespace CoupledField
 
 template<class Dim>
 WriteResultsGMV<Dim> :: WriteResultsGMV(const Char * filename)
-: WriteResults<Dim>()
+: WriteResults()
 {
 #ifdef TRACE
   (*trace) << "entering WriteResultsGMV :: WriteResultsGMV" << std::endl;
@@ -369,7 +369,7 @@ void WriteResultsGMV<Dim>::OpenFile(const Integer num)
 }
 
 template<class Dim>
-void WriteResultsGMV<Dim>::Init(Grid<Dim> * aptgrid)
+void WriteResultsGMV<Dim>::Init(Grid * aptgrid)
 {
 ptgrid=aptgrid;
 }

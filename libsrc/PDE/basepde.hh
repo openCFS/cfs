@@ -23,9 +23,7 @@ class BasePDE
 public:
 
   //! Constructor( read integration parameters, define class Material)
-  BasePDE(AbstractAlgebraicSys * aptalgsys, Material * aMatFile, FileType * aInFile, WriteResults<Point2D> * aOutFile, TimeFunc * aptTimeFunc); 
-
-  BasePDE(AbstractAlgebraicSys * aptalgsys, Material * aMatFile, FileType * aInFile, WriteResults<Point3D> * aOutFile, TimeFunc * aptTimeFunc);
+  BasePDE(AbstractAlgebraicSys * aptalgsys, Material * aMatFile, FileType * aInFile, WriteResults * aOutFile, TimeFunc * aptTimeFunc); 
 
   //! Deconstructor
   virtual ~BasePDE(){;}
@@ -58,9 +56,6 @@ public:
 
   //!
   virtual void WriteResultsInFile()=0;  
-
-  //! Calculation of integration parameteres 
-//  void CalcIntegrationParam(const Double dt);
 
   //! Calculation parameters in Newmark method
   virtual void CalcParameters(const Double adt)  
@@ -112,8 +107,7 @@ protected:
   FileType * InFile_;
 
   //!
-  WriteResults<Point2D> * OutFile_;
-  WriteResults<Point3D> * OutFile3d_;
+  WriteResults * OutFile_;
 
   //!
   TimeFunc * ptTimeFunc_;

@@ -19,13 +19,13 @@ namespace CoupledField
     ///
     Driver(FileType * const aptFileType, Integer anummesh, Material * ptMaterial);
     ///
-    void SolveNewmarkMethod(WriteResults<Dim> * aptUnverg);
+    void SolveNewmarkMethod(WriteResults * aptUnverg);
     ///
     virtual ~Driver();
   
   protected:
     ///
-    Grid<Dim> * ptgrid;
+    Grid * ptgrid;
     ///
     AcousticPDE<Dim> * ptAcPDE;
     ///

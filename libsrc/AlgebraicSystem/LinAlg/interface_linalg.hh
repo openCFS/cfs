@@ -12,7 +12,7 @@ class InterfaceAlgSys: public AbstractAlgSys<Dim>
 {
 public:
   /// Constructor with parameter - pointer to Grid and tolerance
-  InterfaceAlgSys(Grid<Dim> * aptgrid, const Integer level, const Double aeps); 
+  InterfaceAlgSys(Grid * aptgrid, const Integer level, const Double aeps); 
 
  //! Restore solution after applying penalty method for zero boundary condition
  virtual void Restore(){ ptWork->Restore() ;} 
@@ -70,7 +70,7 @@ private:
 } ;
 
 template<class Dim>
-inline InterfaceAlgSys<Dim>::InterfaceAlgSys(Grid<Dim> * aptgrid, const Integer level, const Double aeps)
+inline InterfaceAlgSys<Dim>::InterfaceAlgSys(Grid * aptgrid, const Integer level, const Double aeps)
 : AbstractAlgSys<Dim>(aptgrid,level,aeps)
 {
 #ifdef TRACE
