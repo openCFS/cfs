@@ -617,6 +617,7 @@ libsrc/AlgebraicSystem/PILES/superlu/ztrsv.c svneol=native#text/plain
 libsrc/AlgebraicSystem/PILES/superlu/zutil.c svneol=native#text/plain
 libsrc/AlgebraicSystem/abstractAS.hh svneol=native#text/plain
 libsrc/AlgebraicSystem/abstractAlgSys.hh svneol=native#text/plain
+libsrc/AlgebraicSystem/interface_piles.hh svneol=native#text/plain
 libsrc/DataInOut/DatFile/Makefile -text
 libsrc/DataInOut/DatFile/datfile.cc svneol=native#text/plain
 libsrc/DataInOut/DatFile/datfile.hh svneol=native#text/plain
@@ -746,6 +747,8 @@ libsrc/PDE/elec2dPDE.cc svneol=native#text/plain
 libsrc/PDE/elec2dPDE.hh svneol=native#text/plain
 libsrc/PDE/pde.cc svneol=native#text/plain
 libsrc/PDE/pde.hh svneol=native#text/plain
+libsrc/PDE/therm2dPDE.cc svneol=native#text/plain
+libsrc/PDE/therm2dPDE.hh svneol=native#text/plain
 libsrc/ParamIdent/Makefile -text
 libsrc/Utils/Makefile -text
 libsrc/Utils/myclock.cc svneol=native#text/plain
