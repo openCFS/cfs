@@ -1,0 +1,68 @@
+\chapter{Parameter Identification} \label{paramIdent}
+%
+%
+Here are some notes about parameter identification in piezoelectricity using cfs. 
+There is a new section in the xml - file which looks like this
+
+
+\begin{center}
+\begin{minipage}{0.6\textwidth}
+\begin{tabbing}
+\quad\=\\ \kill
+\verb!<paramIdent>!\\
+\> \verb!<calcImpedanceCurve>! yes/no \verb!</calcImpedanceCurve>!\\
+\> \verb!<numFreq>! positive integer \verb!</numFreq>! \\
+\> \verb!<startFreq>! positive integer \verb!</startFreq>! \\
+\> \verb!<stopFreq>! positive integer \verb!</stopFreq>! \\
+\> \verb!<maxNumberInnerIterations>! positive integer \verb!</maxNumberInnerIterations>! \\
+\> \verb!<maxNrOuterIterations>! positive integer \verb!</maxNrOuterIterations>! \\
+\> \verb!<artDataNoise>! positive double \verb!</artDataNoise>! \\
+\verb!</paramIdent>!\\
+\end{tabbing}
+\end{minipage}
+\end{center}
+
+\noindent How to interpret the different elements?\\
+The best way to check your parameters is of course a comparison of your simulated impedance curve with a measured one (measurements are usually dony by Mr. Leder). Setting \\ \verb!<calcImpedanceCurve>! yes \verb!</calcImpedanceCurve>! leads to a calculation of this curve in the declared intervall $[startFreq,stopFreq]$ with {\em numFreq} evaluation points. The output will be a file called {\em imped.dat} which can be evaluated by MATLAB/GNUPlot ... .The file {\em imped.dat} contains the following values {\it frequency, log(impedance), phase, real(impedance), imag(impedance)} and the simulated {\it charge} at the surface of the piezo.  The calculation will be done before and after the parameter identification process, so you can see if your calculation was successfull or not. Setting \verb!<maxNrOuterIterations>! 0 \verb!</maxNrOuterIterations>! simply computes the impedance curve. Note, parameter values are not taken from {\em mat.dat}. You have to set them in the file {\em measuredData.dat}, see the following subsection.
+\\
+\\
+\noindent Performing an effective adaption of the piezoelectric parameters needs as well the additional file {\em measuredData.dat}. In the xml-file the following settings are neccessary:\\
+\noindent \verb!<maxNrOuterIterations>! 100 - 200 \verb!</maxNrOuterIterations>! For a good approximation empirically $100-200$ Newton - steps (the outer iteration!) need to be performed. During each Newton-step we approximately solve a linearized algebraic problem. So called $\nu$ - mehtods with an appropriate stopping criterion are a good compromise between approximation and regularization of the problem. Since they belong to the class of iterative methods a finite number of iteration steps \verb!<maxNumberInnerIterations>! 30-100 \verb!</maxNumberInnerIterations>! should be given, even though an inner termination criterion works quite well.\\ \noindent The last parameter (arbitrary data noise) \verb!<artDataNoise>! 0.01-1.0 \verb!</artDataNoise>! is only relevant for theoretical investingations of the algorithm. For real parameter identification it should be set to zero. Another output file {\em parLog.dat} documents the development of the weighted norm of the residual and of the single parameters.
+\\
+\subsection{The file  {\em measuredData.dat} ...}
+\noindent ... could $\&$ should look like this:\\ \\
+\verb! #  comment line !\\
+\verb! 1) 1.0E+06, 2.0E+06, 3.0E+06,/ ! \\
+\verb! 2) 30.4564, 20.0388, 13.7411,/! \\
+\verb! 3) 90.4037, 90.7692, 91.4565,/! \\
+
+\noindent Numbers after $1)$ document the frequencies at which we have taken the measurements of amplitudes of $Z$, listed after $2)$ and phases of $Z$ listed after $3)$. The maximal number of measurements is open. Therefore, the end of the data rows need to be closed with the $'/'$-tag which is a kind of eoi (end of input). Do not forget to set a comma after each value. Further entries in the file will be 
+\\ \\
+\verb! 4) 1.32000E+11, 1.150000E+11, 7.10000E+10, 7.30000E+10,  ... 5.84000E-09,/ ! \\
+\verb! i) 0.069500E+11,0.08940E+11, -0.08080E+11,-0.08960E+11,  ... 0.0830E-08,/!\\
+\verb! P) 1,  1,  1,  1,  1,  1,   1,  1,  1,   1,/ !\\
+\verb! Q) 0,  1,  0,  0,  0,  0,  0 ,  1,  0,   1,/!\\
+
+\noindent The row $4)$ represent initial guesses for the real-valued material parameters\\ $(c_{11}, c_{33}, c_{12}, c_{13}, c_{44}, e_{15}, e_{31}, e_{33}, \epsilon_{11}, \epsilon_{33})$  followed by $i)$ the corresponding imaginary parts. These parameters will be the one used for the calculation of the impedance curve!!
+The values after $P)$ and $Q)$ denote booleans which decide wheather the parameter should be updated during the Newton - method or not. Here, all real parts get fitted, from the imaginary parts only the three values $c_{33},e_{33}$ and $\epsilon_{33}$. \\ \\
+\verb! M) 7! \\
+\noindent
+The choice of $M)$ is responsable which 'inexact - Newton - Methos' will be performed, see Table \ref{TableNewtonMethods} for possible options.
+
+\begin{table}
+\begin{center}
+\begin{tabular}{|c|c|}
+\hline \hline {\bf M} & {\bf Method} \\ 
+\hline 3 & Newton-CG \\ 
+\hline 4 & Newton-CG (for complex material parameter) \\ 
+\hline 5 & Newton-Landweber \\ 
+\hline 6 & Newton-Landweber (for complex material parameter) \\ 
+\hline 7 & Newton-$\nu$-Methods  \\ 
+\hline 8 & Newton-$\nu$-Methods  (for complex material parameter)\\ 
+\hline 
+\end{tabular} 
+\label{TableNewtonMethods}
+\caption{Running truncated Newton methods and their corresponding number in the file {\em measured.data}.}
+\end{center}
+\end{table}
+
