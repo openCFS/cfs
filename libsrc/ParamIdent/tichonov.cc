@@ -73,9 +73,9 @@ namespace CoupledField
     Vector<Complex> JacFS(nrMeasuredData);
     Vector<Complex> linres(nrMeasuredData);
     Vector<Complex> basC;
-    bas.Resize(nrParameter);
-    basC.Resize(nrParameter);
-    Vector<Double> stepR(nrParameter);
+    bas.Resize(actNrParameter);
+    basC.Resize(actNrParameter);
+    Vector<Double> stepR(actNrParameter);
 
     Matrix<Double> testA(3,3);
     Vector<Double> eigen(3);
@@ -98,10 +98,10 @@ namespace CoupledField
 
 
 
-    for(Integer i=0;i<nrParameter;i++)
+    for(Integer i=0;i<actNrParameter;i++)
       bas[i]=1.0;
 
-    Vector<Complex> step(nrParameter);
+    Vector<Complex> step(actNrParameter);
 
     createF(ptMaterial, ptBCs, F_hat,TRUE);
 
@@ -124,17 +124,21 @@ namespace CoupledField
       createF(ptMaterial, ptBCs, y_hat,FALSE);
 
       createJacobiMatrix2(JacobiMatrix);
+      std::cout<<"\n Tichonov 1"<<std::endl;
 
       createAdjointJacobiMatrix(JacobiMatrix,adjJacobiMatrix);
 
+      std::cout<<"\n Tichonov 2"<<std::endl;
       //      adjJacobiMatrix.Mult(y_hat_F_hat,basC);
       basC = y_hat_F_hat*adjJacobiMatrix;
 
+      std::cout<<"\n Tichonov 3"<<std::endl;
       
       std::cout<<"\n update bas"<<std::endl;
-      for(Integer i=0;i<nrParameter;i++)
+      for(Integer i=0;i<actNrParameter;i++)
 	bas[i]=basC[i].real();
 
+      std::cout<<"\n Tichonov 4"<<std::endl;
       // Choice of regularisation parameter alpha!
       Integer innerIter=0;
 

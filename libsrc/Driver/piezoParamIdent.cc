@@ -97,6 +97,14 @@ namespace CoupledField
 	std::cerr << "\n piezoLog.dat could not be initialized" << std::endl;
       }
 
+    std::string filenameParLog= "parLog.dat";
+    parLog = new std::ofstream(filenameParLog.c_str(),std::basic_ios<char>::out);
+
+    if (!parLog)
+      {
+	std::cerr << "\n piezoLog.dat could not be initialized" << std::endl;
+      }
+
   } // end of constructor
 
   // destructor
@@ -106,6 +114,7 @@ namespace CoupledField
     allMeasuredData->close();
     impedCurve->close();
     piezoLog->close();
+    parLog->close();
   }
 
   void piezoParamIdent :: SolveProblem() {
@@ -120,7 +129,7 @@ namespace CoupledField
 
      whichParameterToUpdateC.Resize(nrParameter);
 
-     whichParameterToUpdateRC.Resize(nrParameter);
+     whichParameterToUpdateRC.Resize(1);
 
      parameterIncrement.Resize(nrParameter);
      parameterIncrement = parameter;
@@ -138,6 +147,11 @@ namespace CoupledField
     // the following passage reads Data from file measuredData.dat
     // The rows are containing the values of the given frequencies, such as phase and amplitude!
     readMeasuredData(freqs, real, imag, parameter, voltage, nrMeasuredData, thickness, radius, delta);
+
+    // std::cout<<whichParameterToUpdate<<std::endl;
+
+    // std::cout<<"\n oben wichParToUp ... unten whichParToUpC"<<std::endl;
+    //std::cout<<whichParameterToUpdateC<<std::endl;
     // real - entspricht |Z|, Betrag der Impedanz
     // imag - entspricht \phi, gemessener Phasenwinkel
 
@@ -146,9 +160,8 @@ namespace CoupledField
     //for (int i=0; i<freqs.GetSize();i++)
     // freqs[i]=2*pi*freqs[i];
 
-    std::cout<<"\n Size of piezoElectric Body:"<< thickness << " x " << radius <<std::endl;
-    std::cout<<"\n Number of measure points: " << nrMeasuredData << " with DataError: " << delta <<  std::endl;
-
+    //    std::cout<<"\n Size of piezoElectric Body:"<< thickness << " x " << radius <<std::endl;
+    //    std::cout<<"\n Number of measure points: " << nrMeasuredData << " with DataError: " << delta <<  std::endl;
 
     //Settings for harmonic PDE - Driver
     Integer level=0;
@@ -175,40 +188,37 @@ namespace CoupledField
       if (whichParameterToUpdate[i]==1)
 	actNrParameter++;
 
-//     for (Integer i=0;i<whichParameterToUpdateC.GetSize();i++)
-//       if (whichParameterToUpdateC[i]==1)
-// 	actNrParameterC++;
+     for (Integer i=0;i<whichParameterToUpdateC.GetSize();i++)
+       if (whichParameterToUpdateC[i]==1)
+ 	actNrParameterC++;
    
     whichParToUpInd.Resize(actNrParameter);
+    if (whichNewtonCG==4)
+      whichParToUpIndC.Resize(actNrParameterC);
 
     Integer intTemp=0;
 
-    for (Integer i=0;i<whichParameterToUpdate.GetSize()-1;i++)
+    for (Integer i=0;i<whichParameterToUpdate.GetSize();i++)
       if (whichParameterToUpdate[i]==1){	
 	  whichParToUpInd[intTemp]=i;
 	  intTemp++;
       }
 
-//     std::cout<<whichParToUpInd<<std::endl;
+    //     std::cout<<whichParToUpInd<<std::endl;
 //     std::cout<<"test1 " <<std::endl;
 
-//     intTemp=0;
-//     for (Integer i=0;i<whichParameterToUpdateC.GetSize()-1;i++)
-//       if (whichParameterToUpdateC[i]==1) {
-// 	  whichParToUpIndC[intTemp]=i;
-// 	  intTemp++;
-//       }
-//     std::cout<<whichParToUpIndC<<std::endl;
-//     std::cout<<"test2 " <<std::endl;
+    intTemp=0;
+    for (Integer i=0;i<whichParameterToUpdateC.GetSize();i++)
+      if (whichParameterToUpdateC[i]==1) {
+	  whichParToUpIndC[intTemp]=i;
+	  intTemp++;
+      }
 
+    whichParameterToUpdateRC=whichParameterToUpdate;
+    whichParameterToUpdateRC.InsertVector(whichParameterToUpdateC,10);
 
-//     std::cout<<"\n WhichparToUpRC"<<std::endl;
-
-//     whichParameterToUpdateRC.InsertVector(whichParameterToUpdate,0);
-//     whichParameterToUpdateRC.InsertVector(whichParameterToUpdateC,10);
-
-//     std::cout<<whichParameterToUpdateRC<< std::endl;
-
+    //     std::cout<<"\n WhichparToUpRC"<<std::endl;
+    //std::cout<<whichParameterToUpdateRC<< std::endl;
 
 
 //    Boolean setComplMatData = FALSE;
@@ -217,7 +227,7 @@ namespace CoupledField
 
     
 
-      std::cout<<"Here begins communication with base PDE" << std::endl;
+    //      std::cout<<"Here begins communication with base PDE" << std::endl;
 
     // ************************************************************************
     // Communication with BasePDE ... gets i.G. pointers to objects involved  *
@@ -228,10 +238,9 @@ namespace CoupledField
 
     MaterialData * ptMaterial=pdes_[0]->getPDEMaterialData();   // Pointer to MaterialData
 
-    std::cout<<"\n Der materialpointer: in piezoParamIdent:" << ptMaterial <<std::endl;
-
     Matrix<Double> *matMat = ptMaterial->GetMatrix();
     Matrix<Double> *matMatC = ptMaterial->GetMatrixC();
+
     //    std::cout<<*matMat<<std::endl;
     //getchar();
 
@@ -259,14 +268,14 @@ namespace CoupledField
     amplitude_phase.Part(0,nrMeasuredData);
  
     y_hat.Resize(2*nrMeasuredData);
-    s_0.Resize(actNrParameter);    
+    s_0.Resize(actNrParameter+actNrParameterC);    
     //    bas.Resize(nrParameter);
-    res_NE_new.Resize(actNrParameter);
-    res_NE.Resize(actNrParameter);
+    res_NE_new.Resize(actNrParameter+actNrParameterC);
+    res_NE.Resize(actNrParameter+actNrParameterC);
     lin_res.Resize(2*nrMeasuredData);
     res.Resize(2*nrMeasuredData);
     bas_bar.Resize(2*nrMeasuredData);
-    s.Resize(actNrParameter);
+    s.Resize(actNrParameter+actNrParameterC);
     scaling.Resize(nrParameter);
     scalingC.Resize(nrParameter);
     F_hat.Resize(2*nrMeasuredData);
@@ -277,8 +286,8 @@ namespace CoupledField
     // parameterC[i]=0.0;
     //    parameterC[7]=1.0;
 
-    updateMaterialData(parameter, ptMaterial);
-    updateComplexMaterialData(parameterC, ptMaterial);
+//     updateMaterialData(parameter, ptMaterial);
+//     updateComplexMaterialData(parameterC, ptMaterial);
 
     //	pdes_[0]->DefineIntegratorsWithMatInfo(level,ptMaterial); // deletes all Integrators and creates new ones with Material in ptMaterial
 
@@ -301,7 +310,7 @@ namespace CoupledField
       scaling.Resize(nrParameter);
       F_hat.Resize(nrMeasuredData);
       overall_res0.Resize(nrMeasuredData);      //    nrMeasuredData=1.0/2.0*nrMeasuredData;
-      std::cout<<"\n NRMEASURED DATA = " <<nrMeasuredData<<std::endl;
+      //      std::cout<<"\n NRMEASURED DATA = " <<nrMeasuredData<<std::endl;
     }
 
     // <<<<<<<<<<<<<< for a hopefully nice imped curve <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
@@ -311,10 +320,12 @@ namespace CoupledField
     if (CalcImpedanceCurve == 1){
       Vector<Double> freqsTemp = freqs;
       freqs.Resize(nrfreq);
+      Double startFreqTemp;
+      startFreqTemp=startfreq;
       Double freqincr=(stopfreq-startfreq)/nrfreq;
       for(Integer i=0;i<nrfreq;i++){
-	startfreq+=freqincr;
-	freqs[i]=startfreq;
+	startFreqTemp+=freqincr;
+	freqs[i]=startFreqTemp;
       }
       calcImpedanceCurve();
       freqs = freqsTemp;
@@ -332,10 +343,10 @@ namespace CoupledField
       calc_measuredCharge(freqs, real, imag, y_hat); // out of measurements, values are taken from measuredData.dat
       // calcSyntheticData(y_hat); // Generates synthetic data, i.e. one forward simulation will be performed.
 
-    std::cout<<"\n Measured Data - Set: "<<std::endl;
-    for(int i=0;i<y_hat.GetSize();i++)
-      std::cout<<"y("<<i<<")= "<< y_hat[i]<<"; ";
-    std::cout<<"\n"<<std::endl;
+//     std::cout<<"\n Measured Data - Set: "<<std::endl;
+//     for(int i=0;i<y_hat.GetSize();i++)
+//       std::cout<<"y("<<i<<")= "<< y_hat[i]<<"; ";
+//     std::cout<<"\n"<<std::endl;
 
     // some values for typical mechanical displacements:
     if (considerMechDeformation==TRUE){
@@ -391,8 +402,8 @@ namespace CoupledField
     matMat = ptMaterial->GetMatrix();
     matMatC = ptMaterial->GetMatrixC();
 
-    std::cout<<"We start the calculation with the following material!"<<std::endl;
-    std::cout<<*matMat<<std::endl;
+//     std::cout<<"We start the calculation with the following material!"<<std::endl;
+//     std::cout<<*matMat<<std::endl;
     //    std::cout<<matMatC<<std::endl;
 
     scaling[0]=1.0/((*matMat)[0][0]); 
@@ -405,6 +416,9 @@ namespace CoupledField
     scaling[7]=1.0/((*matMat)[8][2]);
     scaling[8]=1.0/((*matMat)[6][6]); 
     scaling[9]=1.0/((*matMat)[8][8]);
+    Vector<Double> c33history(151);
+    Vector<Double> e33history(151);
+    Vector<Double> eps33history(151);
 
 
     // if we do not wanna scale ..
@@ -416,10 +430,48 @@ namespace CoupledField
     
     //  NewtonCG();
     //         NewtonCG2();
-    if (whichNewtonCG==3)
+    if (whichNewtonCG==3){
+      Integer nNewtonCG =0;
+      while (nNewtonCG<50){
          NewtonCG3();
-    else if (whichNewtonCG==4)
-      NewtonCG4(); // Complex material parameter
+	 nNewtonCG++;
+	 c33history[nNewtonCG] = parameter[1];
+	 e33history[nNewtonCG] = parameter[7];
+	 eps33history[nNewtonCG] = parameter[9];
+	 std::cout<<"\n Nr: "<< nNewtonCG << ", start next NewtonCG Iteration?"<<std::endl;
+	 //	getchar();
+	 *parLog <<nNewtonCG <<"  "<< c33history[nNewtonCG]<<"  " <<e33history[nNewtonCG]<<"   " <<eps33history[nNewtonCG]<<std::endl;
+      }
+    }
+    else if (whichNewtonCG==4){
+      Integer nNewtonCG =0;
+      while (nNewtonCG<10){
+	 c33history[nNewtonCG] = parameterC[1];
+	 e33history[nNewtonCG] = parameterC[7];
+	 eps33history[nNewtonCG] = parameterC[9];
+	 std::cout<<"\n Nr: "<< nNewtonCG << ", start next NewtonCG Iteration?"<<std::endl;
+	//	getchar();
+	 *parLog <<nNewtonCG <<"  "<< c33history[nNewtonCG]<<"  " <<e33history[nNewtonCG]<<"   " <<eps33history[nNewtonCG]<<"  " << finalnorm<<std::endl;
+         NewtonCG4();
+	 nNewtonCG++;
+      }
+    }
+    else if (whichNewtonCG==5){
+      Integer nrNewtonLandweber=0;
+      while (nrNewtonLandweber<=10){
+	NewtonLandweber();
+	nrNewtonLandweber++;
+	std::cout<<"\n Nr: "<< nrNewtonLandweber << ", start next Newton Landweber?"<<std::endl;
+	c33history[nrNewtonLandweber] = parameter[1];
+	e33history[nrNewtonLandweber] = parameter[7];
+	eps33history[nrNewtonLandweber] = parameter[9];
+	//getchar();
+	*parLog <<nrNewtonLandweber <<"  "<< c33history[nrNewtonLandweber]<<"  " <<e33history[nrNewtonLandweber]<<"   " <<eps33history[nrNewtonLandweber]<<std::endl;
+    }
+  }
+
+    else if (whichNewtonCG==6)
+      tichonov();
     else
       std::cout<<"\n There was no valid NewtonCG method specified - see in your measuredData.dat -file "<<std::endl;
     //    tichonov();
@@ -441,7 +493,8 @@ namespace CoupledField
 // <<<<<<<<<<<<<< for a hopefully nice imped curve after identification !! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
      
-if (CalcImpedanceCurve == 1){
+    if (CalcImpedanceCurve == 1){
+      getchar();
       Vector<Double> freqsTemp = freqs;
       freqs.Resize(nrfreq);
       Double freqincr=(stopfreq-startfreq)/nrfreq;
@@ -451,9 +504,8 @@ if (CalcImpedanceCurve == 1){
       }
       calcImpedanceCurve();
       freqs = freqsTemp;
-      getchar();
     }
-   
+    
   }// End solveProblem
 
 
@@ -580,15 +632,18 @@ if (CalcImpedanceCurve == 1){
     for (Integer i=0;i<vec.GetSize();i++){
       maxNormTemp=std::abs(vec[i]);
       Denominator = std::abs(q_meas[i])*std::abs(q_meas[i]);
-      if (whichNorm==2)
-	wNorm = wNorm+((1.0/Denominator)*vec[i]*vec[i]).real();
+      if (whichNorm==2){
+	//	wNorm = wNorm+((1.0/Denominator)*vec[i]*vec[i]).real(); // this is a good running version!
+	wNorm = wNorm+((1.0/Denominator)*std::abs(vec[i])*std::abs(vec[i]));
+	//        std::cout<<"\n WeightedResNorm = " << std::abs(vec[i])*std::abs(vec[i])<< std::endl;
+      }
       else if (whichNorm==5)
 	wNorm = wNorm+((1.0/Denominator)*std::abs(vec[i])*std::abs(vec[i]));
 
       if (maxNormTemp>maxNorm)
 	maxNorm=maxNormTemp;
     }
-    //    std::cout<<"\n WeightedResNorm = " << wNorm<< std::endl;
+
     //wNorm=std::sqrt(wNorm);
   } // end maxAndWeightedNorm
 
@@ -1022,6 +1077,10 @@ if (CalcImpedanceCurve == 1){
     // std::cout<<"updateMaterialData"<<std::endl;
       // std::cout<<parameter<<std::endl;
 
+    for(Integer i=0;i<9;i++)
+       for(Integer j=0;j<9;j++)
+	 ptMaterial->SetPiezoMatrixData(i,j,0.0);
+
     ptMaterial->SetPiezoMatrixData(0,0, parameter[0]);
     ptMaterial->SetPiezoMatrixData(1,1, parameter[0]);
     ptMaterial->SetPiezoMatrixData(2,2, parameter[1]);
@@ -1052,8 +1111,27 @@ if (CalcImpedanceCurve == 1){
     ptAssemble = pdes_[0]->getPDE_assemble();
     ptAssemble->SetAlternatingMaterial(TRUE);
     ptAssemble->SetMaterialPointer(ptMaterial);
+    //   std::cout<< parameter <<std::endl;
 
-    //std::cout<<"\n Material in piezoParamIdent::updateMaterialData: " << ptMaterial<< std::endl;
+    // Consider poling of piezoelectric body
+    Double a1, a2, a3;
+    a1=a2=a3=0;
+
+    if( params->HasValue( "pol", "1", "piezo", "polingDirectionX" ) )
+      a1=1;
+    
+    if( params->HasValue( "pol", "1", "piezo", "polingDirectionY" ) )
+      a2=1;
+    
+    if( params->HasValue( "pol", "1", "piezo", "polingDirectionZ" ) )
+      a3=1;
+    
+    if (a1==0&&a2==0&&a3==0)
+      a3=1.0;    // if no poling direction is specified, the z-direction is chosen by default 
+    
+    ptMaterial->RotateMaterialMatrix(a1,a2,a3);
+   
+    std::cout<<"\n Material in piezoParamIdent::updateMaterialData: " << ptMaterial<< std::endl;
 
    
   } // end updateMaterialData
@@ -1088,24 +1166,19 @@ if (CalcImpedanceCurve == 1){
     ptMaterial->SetPiezoMatrixDataC(7,7, parameterC[8]);
     ptMaterial->SetPiezoMatrixDataC(8,8, parameterC[9]);
 
-    //    Boolean setComplMatData = TRUE;
-    //pdes_[0]->setPDE_complexMaterialData(setComplMatData);
-    //pdes_[0]->BooleanComplexMaterialData_=TRUE;
-    //    ptAssemble = pdes_[0]->getPDE_assemble();
-
-    //    piezoMaterialType pMatType = imagMaterialParameter;
-    //intDescript->SetPiezoMaterialType(pMatType);
-
-    //  std::cout<<"\n From now on we calculate with complex material Data " << std::endl;
+    ptAssemble = pdes_[0]->getPDE_assemble();
+    ptAssemble->SetAlternatingMaterial(TRUE);
+    ptAssemble->SetMaterialPointer(ptMaterial);
 
   } // end updateMaterialData
 
   void piezoParamIdent::setNewParameterSet(Vector<Double> & par,Vector<Double> &  par_new,Vector<Double> & scaling,Double & theta,Vector<Double> & uStep, Vector<Integer> & whichParameterToUpdate){
     Integer helpInd=0;
     for (Integer i=0;i<nrParameter;i++){
-      std::cout<<whichParameterToUpdate[i]<<", ";
+      //      std::cout<<"\n setNewParameterSet " << whichParameterToUpdate[i]<<", ";
       if (whichParameterToUpdate[i]==1){
 	par_new[i]=par[i]+(1.0/scaling[i])*theta*uStep[helpInd];
+	//	std::cout<<"\n parNew = " << par_new[i]<<", step = " << uStep[helpInd] << std::endl;
 	helpInd++;
       }
     }

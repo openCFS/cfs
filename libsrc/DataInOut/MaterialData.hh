@@ -145,6 +145,13 @@ public:
   /// return a pointer to the data-matrix
   Matrix<Double> * GetMatrix(){return piezoMatrix;};
 
+  /// Rotates piezo Material Matrix. Input are the three solid angels (radian measure)
+
+  //! Rotates the piezoelectric material matrix. Input are the three solid angels (radian measure).
+  //! Special case: The choice of 1 for one of the angels, rotates piezo matrix in that way
+  //! that it is polarized in the given direction. The choice of 0 does not performs any rotation
+  //! Poling in z - direction (a3=1) is given by default.
+  void RotateMaterialMatrix(const Double& a1, const Double& a2, const Double& a3);
 
   //! set one value of the permeability-matrix on position (i,j)
   void SetPermeability(const Integer& i, const Integer& j, const Double& value);
