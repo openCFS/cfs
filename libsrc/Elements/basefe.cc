@@ -52,7 +52,7 @@ void BaseFE :: GetShFncAtIp(std::vector<Double> & S,
 #endif
 
   S.resize(NumNodes_);
-  
+
   S = ShFncAtIp_[ip-1];
   
 }

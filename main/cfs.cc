@@ -75,14 +75,22 @@ Integer main(int argc, char *argv[])
   adaptspace=conf->get_option("adaptspace");
 
   if (analysis=="static") 
-    if (adaptspace)   ptdriver = new StaticAdaptSpaceDriver(domain);
-    else              ptdriver = new StaticDriver(domain);
+#ifdef ADAPTGRID
+    if (adaptspace)   
+      ptdriver = new StaticAdaptSpaceDriver(domain);
+#else
+    if (adaptspace)  
+      Error("Executable not compiled with Adaptivity",__FILE__,__LINE__);
+#endif
+    else              
+      ptdriver = new StaticDriver(domain);
+
   else if (analysis=="transient") 
-    //   if (adaptspace)   ptdriver = new TransientAdaptSpaceDriver(domain);
-    // else              ptdriver = new TransientDriver(domain);
     ptdriver = new TransientDriver(domain);
+
   else if (analysis=="harmonic")
     ptdriver = new HarmonicDriver(domain);
+
   else
     Error("Driver not supported",__FILE__,__LINE__);
 
@@ -97,7 +105,7 @@ Integer main(int argc, char *argv[])
   //delete objects
   if (ptdriver) delete ptdriver;
   if (ptTimeFunc) delete ptTimeFunc;
-  //  if (domain) delete domain;
+  //if (domain) delete domain;
   if (ptDefineFiles) delete ptDefineFiles; // it should be deleted the last
 
   return 1;

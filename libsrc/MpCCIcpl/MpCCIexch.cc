@@ -34,6 +34,7 @@ MpCCIexch::MpCCIexch(Grid *aptgrid)
 
 MpCCIexch::~MpCCIexch()
 {
+if (nodeIds_)  delete [] nodeIds_;
 }
 
 void MpCCIexch::PutExchangeGrid2MpCCI(std::vector<std::string> subdoms)
@@ -153,6 +154,12 @@ void MpCCIexch::PutExchangeGrid2MpCCI(std::vector<std::string> subdoms)
   MpCCIprocess_ = 1;
   CCI_Close_setup(MpCCIprocess_);
 
+if (NODEDATA)  delete [] NODEDATA;
+if (TOPOLOGYDATA)  delete [] TOPOLOGYDATA; 
+
+if (elemIds_)  delete [] elemIds_;
+if ( nNodesPerElem_)  delete [] nNodesPerElem_;
+if (elemTypes_)  delete [] elemTypes_;
 
 }
 
@@ -228,16 +235,19 @@ void MpCCIexch::CouplCompPhase(Matrix<Double> & flowdata, Integer timestep)
 	k = k+3;
       }
 
-    if (timestep==4)
+    if (timestep==3)
       {
 	myConvergence=CCI_STOP;
       }
 
     //check covergence: do another time step or not!
-    CCI_Check_convergence(myConvergence,&globalConvergence,comm);
+    CCI_Check_convergence(myConvergence,&globalConvergence,CCI_ANY_CODE);
 
     //     }
 
+if (quantityIds)  delete [] quantityIds;
+if (value_Press)  delete [] value_Press;
+if (value_VxVy)  delete []  value_VxVy;
     std::cout<<"Leaving CplCompPhase"<<std::endl;
 }
       

@@ -1,10 +1,12 @@
 #
 C_DIR= ../..
 #
+include ../../main/Makefile.option
+
 ifeq ($(MpCCI),yes)
-src = MpCCIexch.cc
+  src = MpCCIexch.cc
 else
-src = 
+  src = 
 endif
 #
 lib = mpccicpl

@@ -160,7 +160,7 @@ public:
   void add_row(const Vector<TYPE> & x, const Integer pos );
 
   //! Add a colomn to Matrix at position i
-  void add_col(const Vector<TYPE> & x, const Integer pos ); 
+  void add_col(const std::vector<TYPE> & x, const Integer pos ); 
 
   //! Precondition: Implemented Jacobi, SSOR(omega=1.2), LU
   void precond(Vector<TYPE> &, const Vector<TYPE>, enum precond type);
@@ -191,6 +191,15 @@ public:
   //
   void CholerskyDecomposition();
   
+  void ConvertToVec_RowsFirst(std::vector<TYPE>& vec) const;
+
+  /// scales the diagonal elements of a  matrix by a factor
+  void ScaleDiagElems(TYPE factor);
+
+  /// gets the diagonal elements of a  matrix in a one column matrix
+  void GetDiagInMatrix(Matrix<TYPE>& columnMat);
+  //Matrix<TYPE> GetDiagInMatrix();
+
 private:
   /// calculates the adjunct of the matrix at position (i,j)
   Double Adjunct (Integer i, Integer j) const;

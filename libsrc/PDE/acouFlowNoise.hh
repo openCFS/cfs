@@ -47,7 +47,6 @@ private:
 
   Boolean SetRHSFnc; //!< Indicator: is there RHS function
   Boolean SetRHSFlowSrc; //!< Indicator: is there RHS flow source
-  MpCCIexch * ptMpCCIexch_;
   
   //Flow Data
   Matrix<Double> flowdata_;
@@ -55,6 +54,9 @@ private:
 
 
   //!MpCCI
+#ifdef MpCCI
+  MpCCIexch * ptMpCCIexch_;
+#endif
   Integer MpCCInodes_; //<! number of FE-nodes for MpCCI-domain
   Integer MpCCI_; //<! if TRUE: coupling via MpCCI to low simulator
   Integer meshId_;

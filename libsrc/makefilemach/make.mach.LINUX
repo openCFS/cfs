@@ -16,7 +16,7 @@ RANLIB=ranlib
 #
 # Machine dependent flags:
 #
-CFLAGS1=  -c $(OPT) -DMEMTRACE 
+CFLAGS1=  -c $(OPT) -DMEMTRACE
 
 CFLAG_EXE= 
 FLAG_MKSHLIB = -g -v -shared 

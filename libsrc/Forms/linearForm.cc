@@ -45,6 +45,9 @@ namespace CoupledField
   }
 
 
+
+
+
   LinearEdgeInt ::~LinearEdgeInt()
   {
 #ifdef TRACE
@@ -396,7 +399,7 @@ LinearFlowNoiseInt::~LinearFlowNoiseInt()
 #endif
   }
 
-void LinearFlowNoiseInt::CalcElemVector4Dip(Matrix<Double>& ptCoord,const Vector<Integer> & connecth, Vector<Double> & Result, const std::vector<Double> gradN_x_P)
+void LinearFlowNoiseInt::CalcElemVector4Dip(Matrix<Double>& ptCoord,const Vector<Integer> & connecth, std::vector<Double> & Result, const std::vector<Double> gradN_x_P)
   {
 #ifdef TRACE
     (*trace) << "entering LinearForm::CalcElemVector4FlowSrc" << std::endl;
@@ -405,36 +408,40 @@ void LinearFlowNoiseInt::CalcElemVector4Dip(Matrix<Double>& ptCoord,const Vector
     Integer l=ptelem->GetNumIntPoints();
     Integer n=ptelem->GetNumNodes();
 
-
-       
     Integer i,ii;
 
     Double jacDet;    
 //     Double density=1.0;
-    Result.Resize(n);
-    std::vector<double>  Sf;
+    Result.resize(n);
+    for (i=0;i<n;i++)
+      Result[i]=0.0;
+    
+    std::vector<Double>  Sf;
     Double multiplier;
     // Dipole Source Term: (w,deltp)onbnd
     std::vector<Double> normal;
-    normal.resize(gradN_x_P.size());	
 
+    normal.resize(gradN_x_P.size());
+
+    normal*=0;
+    
     switch(normal.size())
-      {
+       {
       case 2:
 	{
 	  calcNormal2Line_Mat(normal,ptCoord);
-	  std::cout<<"normal :"<<normal[0]<<"  "<<normal[1]<<std::endl; 
 	  break;
 	}
       case 3:
 	{
 	  calcNormal2Surface_Mat(normal,ptCoord);
-	  std::cout<<"normal :"<<normal[0]<<"  "<<normal[1]<<"  "<<normal[2]<<std::endl;
 	  break;
 	}
       default:
-	std::string errMsg = "Incorrect dimension of normal. ";
-	Error(errMsg.c_str(),__FILE__,__LINE__);
+	{
+	  std::string errMsg = "Incorrect dimension of normal. ";
+	  Error(errMsg.c_str(),__FILE__,__LINE__);
+	}
       }
 
     for (i=0; i<l; i++)
@@ -446,108 +453,97 @@ void LinearFlowNoiseInt::CalcElemVector4Dip(Matrix<Double>& ptCoord,const Vector
 	for (ii=0; ii < n; ii++)
 	  {
 	    multiplier=ScalarMult(normal,gradN_x_P); // n * gradShFnc
-	    // Result[ii]+= -length/2.0*multiplier*Sf[ii][i];
-	    // 	  std::cout<<"multiplier :"<<multiplier<<std::endl; 
-	    // 	  std::cout<<"jacdet :"<<jacDet<<std::endl; 
-	    // 	  std::cout<<"Sf[ii] :"<<Sf[ii]<<std::endl; 
-
+	    std::cout<<"multiplier: "<<multiplier<<std::endl;
+	    std::cout<<"jacDet: "<<jacDet<<std::endl;	
+	    std::cout<<"Sf["<<i<<"]: "<<Sf[i]<<std::endl;    
 	    Result[ii]+= -jacDet*multiplier*Sf[ii];
-	    // 	  std::cout<<"Result["<<ii<<"]="<< Result[ii]<<std::endl; 
 	  }
+      std::cout<<"Result: "<<Result<<std::endl; 
+      }
+    
+  } // end of method
 
+
+void LinearFlowNoiseInt::CalcElemVector4Quad(Matrix<Double>& ptCoord,const Vector<Integer> & connecth,const Matrix<Double> & FlowData, std::vector<Double> & Result)
+  {
+#ifdef TRACE
+    (*trace) << "entering LinearFlowNoiseInt::CalcElemVector4Quad" << std::endl;
+#endif
+
+    Integer l=ptelem->GetNumIntPoints();
+    Integer n=ptelem->GetNumNodes();
+    Matrix<Double> xiDx;      
+    Matrix<Double> elVel;    
+    Double jacDet;
+    Integer actInt;
+    Double density=1.0;
+    Result.resize(n);
+    for (int i=0;i<n;i++)
+      Result[i]=0.0;
+    std::vector<Double>  Sf;
+    std::vector<Double> partResult;
+  
+    int dimelem=ptCoord.size_row();
+  
+    std::vector<Double>  NodalVelAtIP;
+    Matrix<Double> VelDerAtIP;
+    Matrix<Double> VelDerFromDiag;
+    std::vector<Double> dTij_di;
+    NodalVelAtIP.resize(dimelem);
+    VelDerAtIP.Resize(dimelem);  
+    dTij_di.resize(dimelem);
+    std::vector<Double> helpVect;
+
+    GetQttiesOfElement(elVel, FlowData, connecth, dimelem);
+  
+    for (actInt=1; actInt<=l; actInt++)
+      {
+	ptelem->GetShFncAtIp(Sf, actInt);
+	ptelem->GetGlobDerivShFncAtIp(xiDx, actInt, ptCoord, jacDet);
+      
+	// This work only for quad1 and trilinear hexahedrals elements since we have values
+	// of the flow quantities only at the corners!
+	// Here we compute the derivatives of the Lighthill's tensor needed in the quadrupole term
+	// at the ith integration point
+     
+	//Implementation 26.09.03
+	  
+	NodalVelAtIP=elVel*Sf;
+
+	VelDerAtIP=(elVel*xiDx);
+	VelDerAtIP*=jacDet; 
+	VelDerAtIP.GetDiagInMatrix(VelDerFromDiag);	 
+	VelDerFromDiag.ConvertToVec_AppendRows(helpVect);
+	for (int k=0;k<(dimelem-1);k++)
+	  VelDerFromDiag.add_col(helpVect,1);
+
+	VelDerFromDiag.ScaleDiagElems(2.0);
+
+	dTij_di=(VelDerFromDiag*NodalVelAtIP);
+	dTij_di*=density;
+
+	partResult=xiDx*dTij_di;
+	partResult*=jacDet;
+
+	Result+=partResult;
       }
 
   } // end of method
 
-  //Doing it for acoustic RHS (quadrupole)
 
-void LinearFlowNoiseInt::CalcElemVector4Quad(Matrix<Double>& ptCoord,const Vector<Integer> & connecth,const Matrix<Double> & FlowData, Vector<Double> & Result)
+void LinearFlowNoiseInt::GetQttiesOfElement(Matrix<Double>& elVel,const Matrix<Double>& FlowData,const Vector<Integer>& connecth, Integer matrixRow)
 {
 #ifdef TRACE
-  (*trace) << "entering LinearFlowNoiseInt::CalcElemVector4Quad" << std::endl;
+    (*trace) << "entering LinearFlowNoiseInt::GetVecOfElement" << std::endl;
 #endif
 
-  Integer l=ptelem->GetNumIntPoints();
-  Integer n=ptelem->GetNumNodes();
-  //   Vector<Double> * help=new Vector<Double>[n];
-  Matrix<Double> xiDx;       
-  Double jacDet;
-  Integer actInt,ii;
-  //   Vector<Double> JinvX, JinvY, JinvZ;
-  //   Jacobian<dim> J;
-  Double density=1.0;
-  Result.Resize(n);
-  //   Vector<Double> * Sf=new Vector<Double> [n];
-  std::vector<double>  Sf;
+    // displacement of element nodes
+    elVel.Resize(matrixRow, connecth.size());
 
-  Double dTxxdx1part,dTxxdx2part,dTxydx1part,dTxydx2part;
-  Double dTyxdy1part,dTyxdy2part,dTyydy1part,dTyydy2part;
-
-
-  
-  //   for (i=0; i < n; i++)
-  //     Sf[i]=ptelem->GetShFncAtIP(i+1);
-
-
-  for (actInt=1; actInt<=l; actInt++)
-    {
-
-      ptelem->GetShFncAtIp(Sf, actInt);
-
-      //          ptelem->CalcJacobian(J,i,ptCoord);
-      //           J.GetJinvX(JinvX);
-      //           J.GetJinvY(JinvY);
-      // Resetting derivatives of tensor
-      dTxxdx1part=0;
-      dTxxdx2part=0;
-      dTxydx1part=0;
-      dTxydx2part=0;
-      dTyxdy1part=0;
-      dTyxdy2part=0;
-      dTyydy1part=0;
-      dTyydy2part=0;
-      // This work only for quad1 elements since we have values
-      // for ux and uy only at the corners!
-      // Here we compute the derivatives of the Lighthill's tensor needed in the quadrupole term
-      // at the ith integration point
-
-
-      ptelem->GetGlobDerivShFncAtIp(xiDx, actInt, ptCoord, jacDet);
-
-      for (ii=0; ii<n; ii++)
-	{
-	  //               ptelem->GetGradientShFnc(help[ii],ii+1,i);
-	      
-	  //dTxxdx1part+=(FlowData[1][connecth[ii]-1]*Sf[ii][i]); 
-	  //dTxxdx2part+=(help[ii]*JinvX)*FlowData[1][connecth[ii]-1];
-	  dTxxdx1part+=(FlowData[1][connecth[ii]-1]*Sf[ii]); 
-	  dTxxdx2part+=xiDx[ii][0]*FlowData[1][connecth[ii]-1];
-
-	  //dTxydx1part+=(FlowData[2][connecth[ii]-1]*Sf[ii][i]);
-	  //dTxydx2part+=(help[ii]*JinvX)*FlowData[1][connecth[ii]-1];
-	  dTxydx1part+=(FlowData[2][connecth[ii]-1]*Sf[ii]);
-	  dTxydx2part+=xiDx[ii][0]*FlowData[1][connecth[ii]-1];
-
-	  //dTyxdy1part+=(FlowData[1][connecth[ii]-1]*Sf[ii][i]);
-	  //dTyxdy2part+=(help[ii]*JinvY)*FlowData[2][connecth[ii]-1];
-	  dTyxdy1part+=(FlowData[1][connecth[ii]-1]*Sf[ii]);
-	  dTyxdy2part+=xiDx[ii][1]*FlowData[2][connecth[ii]-1];
-
-	  //dTyydy1part+=(FlowData[2][connecth[ii]-1]*Sf[ii][i]);
-	  //dTyydy2part+=(help[ii]*JinvY)*FlowData[2][connecth[ii]-1];
-	  dTyydy1part+=(FlowData[2][connecth[ii]-1]*Sf[ii]);
-	  dTyydy2part+=xiDx[ii][1]*FlowData[2][connecth[ii]-1];
-	}
-
-
-      // Setting up the RHS (dw/di,dTij/di) part
-      // 	  for (ii=0; ii < n; ii++) Result[ii]+= density*((help[ii]*JinvX)*(2.*dTxxdx1part*dTxxdx2part+dTxydx1part*dTxydx2part)+(help[ii]*JinvY)*(dTyxdy1part*dTyxdy2part+2.*dTyydy1part*dTyydy2part))*J.detJ;
-
-      for (ii=0; ii < n; ii++) Result[ii]+= density*(xiDx[ii][0]*(2.*dTxxdx1part*dTxxdx2part+dTxydx1part*dTxydx2part)+
-						     xiDx[ii][1]*(dTyxdy1part*dTyxdy2part+2.*dTyydy1part*dTyydy2part))*jacDet;
-    }
-
-} // end of method
+    for(Integer actNode=0; actNode<connecth.size(); actNode++)
+      for (int dim=0; dim < matrixRow; dim++)
+	elVel[dim][actNode] = FlowData[dim+1][connecth[actNode]-1]; // dim+1 because index 0 in FlowData is used for storing pressure
+}
 
 
 } // end of namespace
