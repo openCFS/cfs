@@ -3,12 +3,12 @@
 #include <string>
 #include <math.h>
 
-#include "grid.hh"
+#include "Domain/grid.hh"
 #include "spaceerror.hh"
  
-#include "interface_piles.hh"
-#include "forms_header.hh"
-#include "linsystem.hh"
+#include "AlgebraicSystem/interface_piles.hh"
+#include "Forms/forms_header.hh"
+#include "AlgebraicSystem/LinAlg/linsystem.hh"
 
 namespace CoupledField
 {

@@ -5,10 +5,10 @@
 #include <math.h>
 
 #include "transientdriver.hh"
-#include "actimeerror.hh"
-#include "vector.hh"
+#include "Estimator/actimeerror.hh"
+#include "Utils/vector.hh"
 
-#include "outGMV.hh"
+#include "GMV/outGMV.hh"
 
 namespace CoupledField
 {

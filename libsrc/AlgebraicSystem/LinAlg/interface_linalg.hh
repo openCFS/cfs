@@ -2,7 +2,7 @@
 #define FILE_INTERFACE_LINALG_2002
 
 #include "work.hh"
-#include "abstractAS.hh"
+#include "AlgebraicSystem/abstractAS.hh"
  
 namespace CoupledField
 {

@@ -5,8 +5,8 @@
 #include <vector>
 
 #include "ansysfile.hh"
-#include "bcs.hh"
-#include "grid_cfs.hh"
+#include "Domain/bcs.hh"
+#include "Domain/GridCFS/grid_cfs.hh"
 
 #ifdef ADAPTGRID
 #include "Triangle.h"

@@ -1,8 +1,8 @@
 #ifndef FILE_OUTRESULTUNVERG_2001
 #define FILE_OUTRESULTUNVERG_2001
 
-#include "grid.hh"
-#include "writeresults.hh"
+#include "Domain/grid.hh"
+#include "DataInOut/writeresults.hh"
 
 namespace CoupledField
 {

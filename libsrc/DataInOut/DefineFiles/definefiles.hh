@@ -1,8 +1,8 @@
 #ifndef DEFINEFILES_2001
 #define DEFINEFILES_2001
 
-#include "filetype.hh"
-#include "writeresults.hh"
+#include "DataInOut/filetype.hh"
+#include "DataInOut/writeresults.hh"
 
 namespace CoupledField
 { 

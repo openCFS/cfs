@@ -1,8 +1,8 @@
 #ifndef FILE_OUTGMV_2002
 #define FILE_OUTGMV_2002
 
-#include "grid.hh"
-#include "writeresults.hh"
+#include "Domain/grid.hh"
+#include "DataInOut/writeresults.hh"
 
 namespace CoupledField
 {

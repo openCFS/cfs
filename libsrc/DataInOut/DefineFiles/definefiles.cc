@@ -3,11 +3,10 @@
 #include <string>
 
 #include "definefiles.hh"
-#include "datfile.hh"
-#include "ansysfile.hh"
-#include "conffile.hh"
-#include "outUnverg.hh"
-#include "outGMV.hh"
+#include "DataInOut/AnsysFile/ansysfile.hh"
+#include "DataInOut/conffile.hh"
+#include "DataInOut/Unverg/outUnverg.hh"
+#include "DataInOut/GMV/outGMV.hh"
 
 namespace CoupledField
 {

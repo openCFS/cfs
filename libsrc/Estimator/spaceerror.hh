@@ -1,8 +1,8 @@
 #ifndef FILE_SPACEERROR_2002
 #define FILE_SPACEERROR_2002
 
-#include "tools.hh"
-#include "basepde.hh"
+#include "Utils/tools.hh"
+#include "PDE/basepde.hh"
 
 #ifdef ADAPTGRID
 #include "Vertex.h"
