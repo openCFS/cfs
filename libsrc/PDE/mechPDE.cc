@@ -330,7 +330,7 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 	else 
 	  {
 	    // ==============  add "standard" stiffness ===========================
-	    BaseForm * bilinearStiff = GetStiffIntegrator(actSDMat);
+ 	    BaseForm * bilinearStiff = GetStiffIntegrator(actSDMat);
 	    IntegratorDescriptor * actIntDescr =
 	      new IntegratorDescriptor(bilinearStiff, STIFFNESS);
 
@@ -1455,6 +1455,25 @@ void MechPDE::ReadStoreResults() {
     }
   }
 
+  // --- Mechanic Energy ---
+  Enum2String(MECH_ENERGY, quantity);
+  valVec  = "", "", quantity;
+  params->GetList( keyVec, attrVec, valVec, calcEnergy_ );
+
+  // If the symbolic name is "all" compute electric field for all regions
+  if ( calcEnergy_.GetSize() == 1 && calcEnergy_[0] == "all" ) {
+    calcEnergy_ = subdoms_;
+  }
+
+  // Log to info file
+  if ( calcEnergy_.GetSize() > 0 ) {
+    Info->PrintF( pdename_,
+		  " Computing mechanical Energy for regions:");
+    for ( Integer k = 0; k < calcEnergy_.GetSize(); k++ ) {
+      Info->PrintF( pdename_, " %s", calcEnergy_[k].c_str() );
+    }
+  }
+
   // *****************************
   // Determine nodal history
   // *****************************
@@ -1549,6 +1568,10 @@ void MechPDE::PostProcess(const Integer level) {
   ENTER_FCN( "MechPDE::PostProcess" );
 
   NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
+
+  //check for mechanical energy calculation
+  if (calcEnergy_.GetSize() !=0 ) 
+    CalcEnergy();
   
   if (calcStress_.GetSize() !=0 ) {
 
@@ -1704,5 +1727,50 @@ void MechPDE::PostProcess(const Integer level) {
     }
   }
 
+void MechPDE::CalcEnergy()
+{
+  ENTER_FCN( "MechPDE::CalcEnergy" );
+
+  Matrix<Double> elemmat;  
+  Matrix<Double> ptCoord;
+  BaseFE         * ptElem;
+
+  StdVector<Integer> connecth;
+  Vector<double> help;
+
+  Integer i, j;
+  Vector<Double> energy(subdoms_.GetSize());
+
+  for (i=0; i<subdoms_.GetSize(); i++) {
+    
+    StdVector<Elem*> elemssd;
+    ptgrid_->GetElemSD(elemssd,subdoms_[i],actlevel_);
+
+    //get material
+    MaterialData actSDMat(materialData_[i]);
+    
+    energy[i] = 0;
+    for (j=0; j < elemssd.GetSize(); j++) {  
+      ptElem=elemssd[j]->ptElem;
+      BaseForm * bilinear_stiff = GetStiffIntegrator(actSDMat);
+
+      connecth=elemssd[j]->connect;
+      GetElemCoords(connecth, ptCoord, actlevel_);
+      bilinear_stiff->SetElemPtr(ptElem);
+      bilinear_stiff->CalcElementMatrix(ptCoord, elemmat);
+
+      Vector<Double> eldisp;
+      sol_->GetElemSolution(eldisp, connecth);
+      help = elemmat * eldisp;
+      energy[i] += help * eldisp;
+
+      delete bilinear_stiff;	  
+
+    }  
+  }
+
+  std::string resulttype = "Mechanic Deformation Energy";
+  Info->WriteResult(pdename_,  resulttype, subdoms_ , energy);
+}
 
 } // end namespace CoupledField

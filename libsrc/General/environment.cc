@@ -295,6 +295,8 @@ namespace CoupledField
       out = MECH_STRESS;
     else if (in == "mechStrain")
       out = MECH_STRAIN;
+    else if (in == "mechEnergy")
+      out = MECH_ENERGY;
 
     //electrostatics
     else if (in == "elecPotential")
@@ -374,6 +376,10 @@ namespace CoupledField
       break;
     case MECH_STRAIN:
       out = "mechStrain";
+      break;
+
+    case MECH_ENERGY:
+      out = "mechEnergy";
       break;
 
       //electrostatics
