@@ -62,8 +62,8 @@ namespace CoupledField {
     rootElem_ = ParseFile( &parser_, fname );
 
     // Generate parser and parse XML defaults file
-    std::string cfsDefaults = CVSEXTERNAL;
-    cfsDefaults += "/CFS++XML/Defaults/CFS++Defaults.xml";
+    std::string cfsDefaults = XMLSCHEMA;
+    cfsDefaults += "/Defaults/CFS++Defaults.xml";
     rootElemDefaults_ = ParseFile( &parserDefaults_, cfsDefaults.c_str() );
 
     // Toggle verbosity
