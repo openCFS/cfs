@@ -71,7 +71,7 @@ public:
   virtual void CalculationDerivativesSol(const Boolean Recalc);
   //! old stuff. not used.
   virtual void CalcDerSol();
-  
+
   //! create pointer to class for time error estimation
   virtual TimeErrorEstimator * CreatePtTimeError();  
 
@@ -120,19 +120,19 @@ public:
   virtual void RefineMesh();
  
   //! return pointer to vector with solution
-  virtual const Vector<Double> & getS() const { return sol_;}
+  virtual const Array<Double>& getS() const { return sol_;}
 
   //!  return pointer to vector with first derivative of solution
-  virtual const Vector<Double> & getS1() const { return sol_der1_;}
+  virtual const Array<Double> & getS1() const { return sol_der1_;}
 
   //!  return pointer to vector with first derivative of solution, calculated on previous step
-  virtual const Vector<Double> & getS1old() const { return sol_der1_old_;}
+  virtual const Array<Double> & getS1old() const { return sol_der1_old_;}
 
   //! return pointer to vector with second derivative of solution
-  virtual const Vector<Double> & getS2() const { return sol_der2_;}
+  virtual const Array<Double> & getS2() const { return sol_der2_;}
 
   //! return pointer to vector with second derivative of solution, calculated on previous step
-  virtual const Vector<Double> & getS2old() const { return sol_der2_old_;}
+  virtual const Array<Double>& getS2old() const { return sol_der2_old_;}
 
   //! return size of solution
   virtual Integer getSize() const { return size_;}
@@ -188,9 +188,9 @@ protected:
   Double alpha_,gamma_, beta_;
 
   //! store solution, 1st derivative , 2nd derivative solution
-  Vector<Double> sol_, sol_der1_, sol_der2_, sol_old_, sol_der1_old_, sol_der2_old_;  
+  Array<Double> sol_, sol_der1_, sol_der2_, sol_old_, sol_der1_old_, sol_der2_old_;  
 
-  Vector<Double> s_oldold_, s_d1_oldold_, s_d2_oldold_;
+  Array<Double> s_oldold_, s_d1_oldold_, s_d2_oldold_;
 
   //! Last time on which we have calculated solution
   Double lasttimecalc_;

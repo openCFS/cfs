@@ -473,20 +473,21 @@ namespace CoupledField
 	if (!ptL1)
 	  Error(" Pointers to BaseElem is not initialized",__FILE__,__LINE__);
 
-	Integer i, ii, j, ibuf, itype, innodes;
+	Integer i, ii, j, inum, itype, innodes;
 	std::string namesd;
 
 	for (i=0; i<maxnelems; i++)
 	  {
 	    Elem * el=new Elem();
-	    infile >> ibuf >> itype >> innodes >> namesd;
+	    infile >> inum >> itype >> innodes >> namesd;
 	    infile.ignore(100,'\n');
 
-	    (*el).ptElem=Type2ptElem(itype);
-	
-	    (*el).connect.Resize(innodes);
+	    el->ElemNum=inum;
+	    el->ptElem=Type2ptElem(itype);
+	   	
+	    el->connect.Resize(innodes);
 	    for (ii=0; ii<innodes; ii++)
-	      infile >> (*el).connect[ii];
+	      infile >> el->connect[ii];
 
 	    infile.ignore(100,'\n');
 
@@ -524,19 +525,21 @@ namespace CoupledField
 	if (!ptQ || !ptTr1)
 	  Error(" Pointers to BaseElem is not initialized",__FILE__,__LINE__);
 
-	Integer i, ii, j, ibuf, itype, innodes;
+	Integer i, ii, j, inum, itype, innodes;
 	std::string namesd;
 
 	for (i=0; i<maxnelems; i++)
 	  {
 	    Elem * el=new Elem();
-	    infile >> ibuf >> itype >> innodes >> namesd;
+	    infile >> inum >> itype >> innodes >> namesd;
 	    infile.ignore(100,'\n');
+	    
+	    el->ElemNum=inum;
+	    el->ptElem=Type2ptElem(itype);
+	    el->connect.Resize(innodes);
 
-	    (*el).ptElem=Type2ptElem(itype);
-	    (*el).connect.Resize(innodes);
 	    for (ii=0; ii<innodes; ii++)
-	      infile >> (*el).connect[ii];
+	      infile >> el->connect[ii];
 
 	    infile.ignore(100,'\n');
 
@@ -570,19 +573,20 @@ namespace CoupledField
     if (!ptTet)
       Error(" Pointers to BaseElem is not initialized",__FILE__,__LINE__);
 
-    Integer i, ii, j, ibuf, itype, innodes;
+    Integer i, ii, j, inum, itype, innodes;
     std::string namesd;
 
     for (i=0; i<maxnelems; i++)
       {
 	Elem * el=new Elem();
-	infile >> ibuf >> itype >> innodes >> namesd;
+	infile >> inum >> itype >> innodes >> namesd;
 	infile.ignore(100,'\n');
 
+	el->ElemNum=inum;
 	el->ptElem=Type2ptElem(itype);
 	el->connect.Resize(innodes);
 	for (ii=0; ii<innodes; ii++)
-	  infile >> (*el).connect[ii];
+	  infile >> el->connect[ii];
 
 	infile.ignore(100,'\n');
 

@@ -88,7 +88,8 @@ void WriteResultsGMV :: WriteNodes(const Integer alevel)
  //get and write coodinates of nodes
  Integer i;
 
-if (dim==2) {
+if (dim==2) 
+  {
     Point<2> point;
 
  // write x,y,z-coordinate
@@ -111,19 +112,19 @@ else {
     Point<3> point;
 
  // write x,y,z-coordinate
-  for (i=0; i<numnodes; i++)
-    {
-      ptgrid->GetCoordinateNode(i,level,point);
-
-      if (ascii_)
-      (*output) << " " << point[0] << " " << point[1] << " " << point[2] << std::endl;
-      else {
-        output->write((char*)&point[0],sizeof(Double));
-        output->write((char*)&point[1],sizeof(Double));
-        output->write((char*)&point[2],sizeof(Double));
+    for (i=0; i<numnodes; i++)
+      {
+	ptgrid->GetCoordinateNode(i,level,point);
+	
+	if (ascii_)
+	  (*output) << " " << point[0] << " " << point[1] << " " << point[2] << std::endl;
+	else {
+	  output->write((char*)&point[0],sizeof(Double));
+	  output->write((char*)&point[1],sizeof(Double));
+	  output->write((char*)&point[2],sizeof(Double));
+	}
+	
       }
-
-    }
 }
 }
 
@@ -135,19 +136,19 @@ void WriteResultsGMV::WriteCells(const Integer alevel)
 
   Integer level=alevel;
 
-// write keyword
-    (*output) << "cells   ";
+  // write keyword
+  (*output) << "cells   ";
 
- //
- if (!ptgrid)
+  //
+  if (!ptgrid)
     Error("ptgrid is not initialized", __FILE__,__LINE__);
 
-// read information about number of elements 
+  // read information about number of elements 
   Integer numelem; 
   numelem=ptgrid->GetMaxnumElem(level);
 
   if (ascii_)
-  (*output) << numelem << std::endl;
+    (*output) << numelem << std::endl;
   else
     output->write((char*)&numelem,sizeof(Integer));
 
@@ -157,92 +158,92 @@ void WriteResultsGMV::WriteCells(const Integer alevel)
 
   Integer i;
   for (i=0; i<numelem; i++)
-   {
+    {
 
-     ptgrid->GetConnection(connect, i, level);
+      ptgrid->GetConnection(connect, i, level);
 
-   if (dim==2)
-{
-     switch (connect.size())
-      {
-      case 2:
-	if (ascii_)
-	(*output) << "line 2" << std::endl;
-	else {
-	  (*output) << "line    ";
-	   Integer nn=2;
-	   output->write((char*)&nn,sizeof(Integer));
-	}
-      case 3: 
-	if (ascii_)
-	(*output) << "tri 3" << std::endl;
-	else {
-	  (*output) << "tri     ";
-	  Integer nn=3;
-	  output->write((char*)&nn,sizeof(Integer));
-	}
-	break;
-      case 4:
-	if (ascii_)
-	(*output) << "quad 4" << std::endl;
-	 else {
-                  (*output) << "quad    ";
-                  Integer nn=4;
-                  output->write((char*)&nn,sizeof(Integer));
-                }
-	break;
-      default:
-	Error("This type of element is not implemented", __FILE__, __LINE__);
-      }
-}
-   else
-{
-     switch (connect.size())
-      {
-        case 4:
-	  if (ascii_)
-	    (*output) << "tet 4" << std::endl;
-	  else {
-	    (*output) << "tet     ";
-	    Integer nn=4;
-	    output->write((char*)&nn,sizeof(Integer));
-	  }
-	  break;
-        case 8:
-	  if (ascii_)
-	    (*output) << "hex 8" << std::endl;
-	  else 
+      if (dim==2)
+	{
+	  switch (connect.size())
 	    {
-	      (*output) << "hex     ";
-	      Integer nn=8;
-	      output->write((char*)&nn,sizeof(Integer));
+	    case 2:
+	      if (ascii_)
+		(*output) << "line 2" << std::endl;
+	      else {
+		(*output) << "line    ";
+		Integer nn=2;
+		output->write((char*)&nn,sizeof(Integer));
+	      }
+	    case 3: 
+	      if (ascii_)
+		(*output) << "tri 3" << std::endl;
+	      else {
+		(*output) << "tri     ";
+		Integer nn=3;
+		output->write((char*)&nn,sizeof(Integer));
+	      }
+	      break;
+	    case 4:
+	      if (ascii_)
+		(*output) << "quad 4" << std::endl;
+	      else {
+		(*output) << "quad    ";
+		Integer nn=4;
+		output->write((char*)&nn,sizeof(Integer));
+	      }
+	      break;
+	    default:
+	      Error("This type of element is not implemented", __FILE__, __LINE__);
 	    }
-	  break;
-      default:
-	std::cout << connect.size() << std::endl;
-          Error("This type of element is not implemented", __FILE__, __LINE__);
-      }
-}
+	}
+      else
+	{
+	  switch (connect.size())
+	    {
+	    case 4:
+	      if (ascii_)
+		(*output) << "tet 4" << std::endl;
+	      else {
+		(*output) << "tet     ";
+		Integer nn=4;
+		output->write((char*)&nn,sizeof(Integer));
+	      }
+	      break;
+	    case 8:
+	      if (ascii_)
+		(*output) << "hex 8" << std::endl;
+	      else 
+		{
+		  (*output) << "hex     ";
+		  Integer nn=8;
+		  output->write((char*)&nn,sizeof(Integer));
+		}
+	      break;
+	    default:
+	      std::cout << connect.size() << std::endl;
+	      Error("This type of element is not implemented", __FILE__, __LINE__);
+	    }
+	}
 
-if (ascii_) 
-{
-  Integer j;
-  for (j=0; j< connect.size(); j++)
-    (*output) << " " << connect[j] ;
+      if (ascii_) 
+	{
+	  Integer j;
+	  for (j=0; j< connect.size(); j++)
+	    (*output) << " " << connect[j] ;
   
-  (*output) << std::endl;
-}
-else 
-{
-  Integer * ptcon=connect.get();
-  Integer len=connect.size();
-  output->write((char*)ptcon,len * sizeof(Integer));
+	  (*output) << std::endl;
+	}
+      else 
+	{
+	  Integer * ptcon=connect.get();
+	  Integer len=connect.size();
+	  output->write((char*)ptcon,len * sizeof(Integer));
+	}
+
+    }
 }
 
-   }
-}
-
-void WriteResultsGMV::WriteVariable(const Vector<Double> var, const std::string name, const Integer dataType)
+void WriteResultsGMV::WriteNodeVariable(const Vector<Double> var, const std::string name, const Integer dataType)
 {
   (*output) << "variable";
   if (ascii_) (*output) << std::endl;
@@ -259,7 +260,6 @@ void WriteResultsGMV::WriteVariable(const Vector<Double> var, const std::string 
       delete [] str;
     }
   
-
   if (ascii_) 
     {
       Integer i;
@@ -278,7 +278,7 @@ void WriteResultsGMV::WriteVariable(const Vector<Double> var, const std::string 
 }
 
   // only for 3D
-void WriteResultsGMV::WriteVelocity(const Vector<Double>* var, const std::string name, const Integer dataType)
+void WriteResultsGMV::WriteVelocity(const Vector<Double> *  var, const std::string name, const Integer dataType)
 {
 
   (*output) << "velocity";
@@ -314,30 +314,30 @@ void WriteResultsGMV::WriteGrid(const Integer level)
 }
 
 
-void WriteResultsGMV::WriteSolution(const Vector<Double> & sol, const Integer step, const Double time, const std::string title, const Integer nrDofs)
+void WriteResultsGMV::WriteNodeSolution(const Array<Double>& sol, const Integer step, const Double time, const std::string title)
 {
 #ifdef TRACE
- (*trace) << " entering WriteResultsGMV::WriteSolution " << std::endl;
+ (*trace) << " entering WriteResultsGMV::WriteNodeSolution " << std::endl;
 #endif
 
   Integer i,j;
   if (NeedHistory_)
     for (i=0; i<nodeshist_.size(); i++) {
       {
-	if (sol.size()<=nodeshist_[i])
+	if (sol.dim() * sol.size() <=nodeshist_[i])
         Error("Please, check history-nodes in config-file.",__FILE__,__LINE__);
 	//     if (lastsavetime[i] != time )
-	if (nrDofs > 1)	
+	if (sol.dim() > 1)	
 	  {
 	    std::vector<Double> solVec;
-	    solVec.resize(nrDofs);
-	    for (j=0; j<nrDofs; j++)
-	      solVec[j] = sol[(nodeshist_[i]-1) * nrDofs + j];
+	    solVec.resize(sol.dim());
+	    for (j=0; j<sol.dim(); j++)
+	      solVec[j] = sol[j][(nodeshist_[i]-1)];
 	    
 	    AddVecInHistory(time, solVec, i);
 	  }
 	else
-	  AddInHistory(time,sol[nodeshist_[i]-1],i);
+	  AddInHistory(time,sol[0][nodeshist_[i]-1],i);
       }
       
     }
@@ -352,27 +352,13 @@ void WriteResultsGMV::WriteSolution(const Vector<Double> & sol, const Integer st
     WriteGrid(ptgrid->GetLastLevel());
   }
 
-  Integer nrResults = sol.size()/nrDofs;
-  
-  Vector<Double> * disp = new Vector<Double>[nrDofs];
-  
-  for (Integer actDof =0; actDof < nrDofs; actDof++)
-    {      
-      disp[actDof].Resize(nrResults);
-      
-      for (i=0; i<nrResults; i++)
-	disp[actDof][i] = sol[i*nrDofs+actDof];
-    }
-
-
-  
-  for (i=0; i< nrDofs; i++)
+  for (i=0; i< sol.dim(); i++)
     {
       char nrStr[10];
       sprintf(nrStr,"%i",i+1);
       std::string sumString = title + nrStr;
       
-      WriteVariable(disp[i], sumString , type);
+      WriteNodeVariable(sol[i], sumString , type);
     }
   
 
@@ -386,39 +372,31 @@ void WriteResultsGMV::WriteSolution(const Vector<Double> & sol, const Integer st
   currstep_=step;
 }
 
-void WriteResultsGMV::WriteDataOnCell(const Vector<Double>&sol,const Integer step, const Double time, const std::string title)
+
+void WriteResultsGMV::WriteElemSolution(const Array<Double>& data, const Integer step, const Double time, const std::string title)
 {
-  Integer type=0; // 0 - for cell 
-                  // 1 - for node
-                  // 2 - for face data
+#ifdef TRACE
+  (*trace) << " entering WriteResultsGMV::WriteElemSolution " << std::endl;
+#endif  
 
-  if (step!=currstep_) {
-    Error("You should write solution of this step before printing some cell data",__FILE__,__LINE__);
-  }
+ Integer type=0; // 0 - for cell 
+                 // 1 - for node
+                 // 2 - for face data
+ Integer i = 0;
 
-  WriteVariable(sol,title,type);
+ if (step!=currstep_) {
+   Error("You should write solution of this step before printing some cell data",__FILE__,__LINE__);
+ }
 
-  if (ascii_)
-    (*output) << "probtime " << time << std::endl;
-  else {
-    (*output) << "probtime";
-    output->write((char*)&time,sizeof(Double));
-  }
-
-}
-
-void WriteResultsGMV::WriteVecDataOnCell(const Vector<Double>*vec,const Integer step, const Double time, const std::string title)
-{
-  Integer type=0; // 0 - for cell-centered 
-                  // 1 - for node-centered
-                  // 2 - for face-centered data
-
-  if (step!=currstep_) {
-    Error("You should write solution of this step before printing some cell data",__FILE__,__LINE__);
-  }
-
-  WriteVelocity(vec,title,type);
-
+  for (i=0; i<data.dim(); i++)
+    {
+      char nrStr[10];
+      sprintf(nrStr,"%i",i+1);
+      std::string sumString = title + nrStr;
+      
+      WriteNodeVariable(data[i], sumString , type);
+    }
+ 
   if (ascii_)
     (*output) << "probtime " << time << std::endl;
   else {
@@ -427,6 +405,50 @@ void WriteResultsGMV::WriteVecDataOnCell(const Vector<Double>*vec,const Integer 
   }
   
 }
+
+// 
+
+// void WriteResultsGMV::WriteDataOnCell(const Vector<Double>&sol,const Integer step, const Double time, const std::string title)
+// {
+//   Integer type=0; // 0 - for cell 
+//                   // 1 - for node
+//                   // 2 - for face data
+
+//   if (step!=currstep_) {
+//     Error("You should write solution of this step before printing some cell data",__FILE__,__LINE__);
+//   }
+
+//   WriteVariable(sol,title,type);
+
+//   if (ascii_)
+//     (*output) << "probtime " << time << std::endl;
+//   else {
+//     (*output) << "probtime";
+//     output->write((char*)&time,sizeof(Double));
+//   }
+
+// }
+
+// void WriteResultsGMV::WriteVecDataOnCell(const Vector<Double>*vec,const Integer step, const Double time, const std::string title)
+// {
+//   Integer type=0; // 0 - for cell-centered 
+//                   // 1 - for node-centered
+//                   // 2 - for face-centered data
+
+//   if (step!=currstep_) {
+//     Error("You should write solution of this step before printing some cell data",__FILE__,__LINE__);
+//   }
+
+//   WriteVelocity(vec,title,type);
+
+//   if (ascii_)
+//     (*output) << "probtime " << time << std::endl;
+//   else {
+//     (*output) << "probtime";
+//     output->write((char*)&time,sizeof(Double));
+//   }
+  
+// }
 
 void WriteResultsGMV::OpenFile(const Integer num)
 {

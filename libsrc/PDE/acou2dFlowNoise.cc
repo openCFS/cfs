@@ -414,18 +414,19 @@ void Acou2dFlowNoise::WriteResultsInFile()
 #ifdef TRACE
   (*trace) << "entering Acou2dFlowNoise::WriteResultsInFile" << std::endl;
 #endif
+  Integer Dim = 2;
 
   if (OutFile_->IsGMV())
     {
-      OutFile_->WriteSolution(sol_,laststepcalc_,lasttimecalc_,"vp");
-      OutFile_->WriteSolution(sol_der1_,laststepcalc_,lasttimecalc_,"vp_1der");
-      OutFile_->WriteSolution(sol_der2_,laststepcalc_,lasttimecalc_,"vp_2der");
+      OutFile_->WriteNodeSolution(sol_,laststepcalc_,lasttimecalc_,"vp",1);
+      OutFile_->WriteNodeSolution(sol_der1_,laststepcalc_,lasttimecalc_,"vp_1der",1);
+      OutFile_->WriteNodeSolution(sol_der2_,laststepcalc_,lasttimecalc_,"vp_2der",1);
     }
   else
     {
-      OutFile_->WriteSolution(sol_,laststepcalc_,lasttimecalc_,"fluid potential");
-      //OutFile_->WriteSolution(sol_der1_,laststepcalc_,lasttimecalc_,"fluid potential, 1st deriv., ");
-      //OutFile_->WriteSolution(sol_der2_,laststepcalc_,lasttimecalc_,"fluid potential, 2nd deriv., ");
+      OutFile_->WriteNodeSolution(sol_,laststepcalc_,lasttimecalc_,"fluid potential",1);
+      //OutFile_->WriteNodeSolution(sol_der1_,laststepcalc_,lasttimecalc_,"fluid potential, 1st deriv., ",1);
+      //OutFile_->WriteNodeSolution(sol_der2_,laststepcalc_,lasttimecalc_,"fluid potential, 2nd deriv., ",1);
     }
 }
 

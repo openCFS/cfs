@@ -380,18 +380,18 @@ void Elecst3dPDE::WriteResultsInFile()
 
   // write results
   if (OutFile_->IsGMV())
-    OutFile_->WriteSolution(sol_,step,time,"electric_potential");
+    OutFile_->WriteNodeSolution(sol_,step,time,"electric_potential");
   else
-    OutFile_->WriteSolution(sol_,step,time,"electric potential");
+    OutFile_->WriteNodeSolution(sol_,step,time,"electric potential");
 
   // write error map
    if (WriteErrorMap_) {   
-     OutFile_->WriteDataOnCell(errorMap_,step,time,"error_ep"); 
+     OutFile_->WriteElemSolution(errorMap_,step,time,"error_ep"); 
   }
 
    // write electric field
    if (calcElecField_) 
-       OutFile_->WriteVecDataOnCell(elecFieldAtCenterElem_,step,time,"elec_field");
+       OutFile_->WriteElemSolution(elecFieldAtCenterElem_,step,time,"elec_field",3);
 
 }
 
@@ -747,8 +747,8 @@ void Elecst3dPDE::RefineMesh()
 void Elecst3dPDE::PrintMeshesInfo(WriteResults * ptMeshes)
 {
    
-  ptMeshes->WriteDataOnCell(relativeErrorMap_,0,0,"relative_error");
-  ptMeshes->WriteDataOnCell(markingElems_,0,0,"marked_elems");
+  ptMeshes->WriteElemSolution(relativeErrorMap_,0,0,"relative_error");
+  ptMeshes->WriteElemSolution(markingElems_,0,0,"marked_elems");
  
 }
 

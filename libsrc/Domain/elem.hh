@@ -11,6 +11,9 @@ namespace CoupledField
 struct Elem
 {
 public:
+  //! global element number
+  Integer ElemNum;
+  
   //! pointer to BaseElem. FE-characteristics of element
   BaseFE * ptElem;
   //! connection array

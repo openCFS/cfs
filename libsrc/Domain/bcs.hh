@@ -35,21 +35,22 @@ public:
     \param level name of boundary type
     \param lev index for hierarchy in multilevel method
   */
-  std::list<Integer> GetNodesLevel(const std::string level, const Integer lev=-1);  
+  std::list<Integer>& GetNodesLevel(const std::string color, const Integer lev=-1);  
 
   //! returns all 1D elements belonging to the requested interface
   /*!
     \param color name of interface
     \param lev index for hierarchy in multilevel method
   */
-  std::vector<Elem*> BCs::getEdgesBC(const std::string color, const Integer lev=-1);
+  std::vector<Elem*>& BCs::getEdgesBC(const std::string color, const Integer lev=-1);
 
-//! returns all 2D elements belonging to the requested interface
+
+  //! returns all 2D elements belonging to the requested interface
   /*!
     \param color name of interface
     \param lev index for hierarchy in multilevel method
   */
-  std::vector<Elem*> BCs::getFacesBC(const std::string color, const Integer lev=-1);
+  std::vector<Elem*>& BCs::getFacesBC(const std::string color, const Integer lev=-1);
 
   //! get number of nodes belonging to specified level and hierarchy index
   /*!

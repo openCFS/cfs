@@ -30,46 +30,13 @@ public:
   */
   virtual void WriteGrid(const Integer level);
 
-  //! write information about the solution
-  /*!
-    \param sol solution
-    \param step number of step of the calculation
-    \param time time of the calculation
-     \param title name for the solution
-  */
-  virtual void WriteSolution(const Vector<Double> & sol, const Integer step, const Double time, const std::string titlee, const Integer nrDofs=1);
-
- //! write cell data
- /*!
-    \param data vector with data (ex. value of an error for the cell)
-    \param step step of calculation
-    \param time time of calculation
-    \param title name for the data
-  */
-  virtual void WriteDataOnCell(const Vector<Double> & data, const Integer step, const Double time, const std::string title);
-
-  //! write vectors-data on cells
-  /*!
-    \param vec pointer to vector with data
-     \param step step of calculation
-    \param time time of calculation
-    \param title name for the data
-  */
-  void WriteResultsGMV::WriteVecDataOnCell(const Vector<Double>*vec,const Integer step, const Double time, const std::string title);
-
-
    //! write vectorial cell data
-  /*!
-    \param data matrix with data 
-    \param step step of calculation
-    \param time time of calculation
-    \param title name for the data
-  */
-  virtual void WriteDataOnCell(const Matrix<Double> & data, const Integer step, const Double time, const std::string title)
-  { Error("Not implemented",__FILE__,__LINE__);};
+  virtual void WriteNodeSolution(const Array<Double>& sol, const Integer step, const Double time, const std::string title);
+  
+  //!
+  virtual void WriteElemSolution(const Array<Double>& data, const Integer step, const Double time, const std::string title);
 
-
- //! write comments
+  //! write comments
   /*!
     \param comments string with comments
   */
@@ -112,7 +79,7 @@ private:
      \param var vector with data
      \param name name of output-data
   */
-  void WriteVariable(const Vector<Double> var, const std::string name, const Integer dataType);
+  void WriteNodeVariable(const Vector<Double> var, const std::string name, const Integer dataType);
   
    //! write vector-variable information
   /*!

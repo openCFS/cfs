@@ -92,7 +92,7 @@ Double &adampiter,  Integer &amaxnumit, Integer &numeqcoarse, Double &coarsealph
    void WriteResultsInFile();
 
   //! return pointer to vector with solution
-  virtual const Vector<Double> & getS() const { return sol_;}
+  virtual const Vector<Vector<Double> > & getS() const { return sol_;}
 
   //! return size of solution
   virtual Integer getSize() const { return size_;}
@@ -129,7 +129,7 @@ private:
   Grid * ptgrid_;
 
   //! store solution, 1st derivative , 2nd derivative solution
-  Vector<Double> sol_;  
+  Vector<Vector<Double> > sol_;  
 
   //! size of solution and etc.
   Integer size_;

@@ -28,35 +28,25 @@ public:
   */
   virtual void WriteGrid(const Integer level);
 
-  //! write information about the solution
- /*!
-    \param sol vector with solution
-    \param step step of calculation
-    \param time time of calculation
-    \param title name for the solution
-  */
-  virtual void WriteSolution(const Vector<Double> & sol, const Integer step, const Double time, const std::string title, const Integer nrDofs=1);
-
-   //! write cell data
+  //! write element solution vector
   /*!
     \param data vector with data (ex. value of an error for the cell)
     \param step step of calculation
     \param time time of calculation
-    \param title name for the data
+    \param title name for the data    
+    \param nrDofs dimension of solution
   */
-  virtual void WriteDataOnCell(const Vector<Double> & data, const Integer step, const Double time, const std::string title);
+  virtual void WriteNodeSolution(const Array<Double>& sol, const Integer step, const Double time, const std::string title);
 
-
-
-   //! write vectorial cell data
+ //! write element solution vector
   /*!
-    \param data matrix with data 
+    \param data vector with data (ex. value of an error for the cell)
     \param step step of calculation
     \param time time of calculation
-    \param title name for the data
+    \param title name for the data    
+    \param nrDofs dimension of solution
   */
-  virtual void WriteDataOnCell(const Matrix<Double> & data, const Integer step, const Double time, const std::string title);
-
+  virtual void WriteElemSolution(const Array<Double>& data, const Integer step, const Double time, const std::string title);
   
   //!  check, is it the gmv-output file
   virtual Boolean IsGMV() { return FALSE;}
@@ -86,40 +76,21 @@ private:
   //! for printing nodal results of simulation
   /*!
     \param title title of the results.
-    \param x vector with nodal results
+    \param x array with nodal results
     \param step number of the step of the calculation
     \param time time of the calculation
   */
-  void Dataset55(const std::string & title, const Vector<Double> & x, const Integer step, const Double time, const Integer nrDofs=1);
+  void Dataset55(const std::string & title, const Array<Double> & x, const Integer step, const Double time, const Integer nrDofs=1);
 
   //! for printing cell results of simulation
    /*!
     \param title title of the results.
-    \param x vector with cell results
+    \param x array with cell results
     \param step number of the step of the calculation
     \param time time of the calculation
   */
-  void Dataset56(const std::string & title, const Vector<Double> & x, const Integer step, const Double time);
+  void Dataset56(const std::string & title, const Array<Double> & x, const Integer step, const Double time, const Integer nrDofs=1);
 
-
-  //! for printing vectorial cell results of simulation
-   /*!
-    \param title title of the results.
-    \param x matrix with cell results
-    \param step number of the step of the calculation
-    \param time time of the calculation
-  */
-  void Dataset56(const std::string & title, const Matrix<Double> & x, const Integer step, const Double time);
-
-
-
-  //! writes the header for a 56 element dataset
-   /*!
-    \param title title of the results.
-    \param step number of the step of the calculation
-    \param time time of the calculation
-  */
-  void  Write56Header(const std::string & title, const Integer step, const Double time);
 };
 
 } // end of namespace

@@ -3,12 +3,14 @@
 namespace CoupledField
 {
 
-BaseOperator::BaseOperator(Grid * ptGrid, std::vector<Integer> *ptMesh2PDENode, const Integer level)
+BaseOperator::BaseOperator(Grid * ptGrid, BasePDE * ptPDE, std::vector<Integer> *ptMesh2PDENode, const Integer level)
 {
 #ifdef TRACE
   (*trace) << "entering BaseOperator::BaseOperator" << std::endl;
 #endif
+
   this->ptGrid_ = ptGrid;
+  this->ptPDE_ = ptPDE;
   this->level_ = level;
   this->ptMesh2PDENode_ = ptMesh2PDENode;
 }

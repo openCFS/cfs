@@ -2,6 +2,7 @@
 #define FILE_WRITERESULTS_2002
 
 #include "Domain/grid.hh"
+#include <Utils/array.hh>
 
 namespace CoupledField
 {
@@ -29,46 +30,25 @@ public:
   */
   virtual void WriteGrid(const Integer level)=0;
 
-  //! write information about the solution
+  //! write nodal soltion vector
   /*!
-    \param sol vector with solution
+    \param sol array with solution
     \param step step of calculation
     \param time time of calculation
     \param title name for the solution
+    \param nrDofs dimension of solution
   */
-  virtual void WriteSolution(const Vector<Double> & sol, const Integer step, const Double time, const std::string title, const Integer nrDofs=1)=0;
+  virtual void WriteNodeSolution(const Array<Double>& sol, const Integer step, const Double time, const std::string title)=0;
 
-  //! write cell data
+  //! write element solution vector
   /*!
-    \param data vector with data (ex. value of an error for the cell)
+    \param data array with data (ex. value of an error for the cell)
     \param step step of calculation
     \param time time of calculation
-    \param title name for the data
+    \param title name for the data    
+    \param nrDofs dimension of solution
   */
-  virtual void WriteDataOnCell(const Vector<Double> & data, const Integer step, const Double time, const std::string title)=0;
-
-   //! write cell vector-data
-  /*!
-    \param data pointer to vector with data
-     \param step step of calculation
-    \param time time of calculation
-    \param title name for the data
-  */
-  virtual void WriteVecDataOnCell(const Vector<Double> * data, const Integer step, const Double time, const std::string title)
-  { Error("Not implemented",__FILE__,__LINE__);}
-
-
-   //! write vectorial cell data
-  /*!
-    \param data matrix with data 
-    \param step step of calculation
-    \param time time of calculation
-    \param title name for the data
-  */
-  virtual void WriteDataOnCell(const Matrix<Double> & data, const Integer step, const Double time, const std::string title)
-  { Error("Not implemented",__FILE__,__LINE__);};
-
-
+  virtual void WriteElemSolution(const Array<Double> & data, const Integer step, const Double time, const std::string title)=0;
 
   //! to open new file for printing results only for GMV
   /*!

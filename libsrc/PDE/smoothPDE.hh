@@ -1,5 +1,5 @@
-#ifndef FILE_BASEMECHPDE
-#define FILE_BASEMECHPDE
+#ifndef FILE_SMOOTHPDE
+#define FILE_SMOOTHPDE
 
 #include "basepde.hh"
 
@@ -13,7 +13,7 @@ namespace CoupledField
     It is used for solving mechanic equation on one time step.  
   */
 
-class MechPDE: public BasePDE
+class SmoothPDE: public BasePDE
 {
 
 public:
@@ -26,10 +26,10 @@ public:
     \param aOutFile  pointer to class WriteResults. output data.
     \param aTimeFunc pointer to class TimeFunc
   */
-  MechPDE(Grid *aGrid, BCs *aBCs, TimeFunc *aTimeFunc, FileType *aInFile, WriteResults *aOutFile );
+  SmoothPDE(Grid *aGrid, BCs *aBCs, TimeFunc *aTimeFunc, FileType *aInFile, WriteResults *aOutFile );
 
   //!  Deconstructor
-  virtual ~MechPDE() {;};
+  virtual ~SmoothPDE() {;};
 
   //! define discrete PDE
   virtual void DiscreteParamsPDE();
@@ -37,10 +37,10 @@ public:
   //! set information for algebraic system about PDE. set matrix factors
   virtual void SetMatrixFactors();
 
- //! initalize PDE coupling
+  //! initalize PDE coupling
   virtual void InitCoupling(PDECoupling * Coupling);
   
-  //! specify type of system matrix for AlgebraicSystem
+   //! specify type of system matrix for AlgebraicSystem
   /*!
     \param level (input) level of Grid
   */
@@ -77,25 +77,25 @@ public:
   { 
     Error("Currently not available",__FILE__,__LINE__);
   }
-
+ 
   //! calculate coupling terms
   virtual void CalcOutputCoupling();
   
   //! write results in file
    virtual void WriteResultsInFile();
 
-  //! returns if PDE can compute the quantity
+   //! returns if PDE can compute the quantity
   virtual bool HasOutput(std::string output);
+  
 protected:
-  
-  
-  Integer size_;        //!< total number of unknowns (equations)
 
+  Integer size_;        //!< total number of unknowns (equations)
+  Double smooth_factor_;//!< factor for tuning the amount of smoothing
 
 private:
   // defines subtype of mechanic PDE: plainStrain, 3d, ...
   std::string subType_;
-
+  
   Integer GetNrBCDof (const std::string & dofStartString);
   
 };

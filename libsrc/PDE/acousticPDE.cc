@@ -31,29 +31,49 @@ AcousticPDE::AcousticPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, Fil
 
   laststepcalc_=0;
 
-  AssignPDENodeNumbers();
+  AssignPDENodeNumbers(Mesh2PDENode_, PDE2MeshNode_, subdoms_);  
+  NumPDENodes_ = PDE2MeshNode_.size();
   size_ = NumPDENodes_;
 
-  sol_.Resize(size_);
-  sol_.Init(0);
+  sol_.reshape(dofspernode_, NumPDENodes_);
+  sol_.init();
 
-  sol_der1_.Resize(size_);
-  sol_der1_.Init(0);
+  sol_der1_.reshape(dofspernode_, NumPDENodes_);
+  sol_der1_.init();
+  
+  sol_der1_old_.reshape(dofspernode_, NumPDENodes_);
+  sol_der1_old_.init();
+  
+  sol_der1_.reshape(dofspernode_, NumPDENodes_);
+  sol_der1_.init();
+  
+  sol_der2_.reshape(dofspernode_, NumPDENodes_);
+  sol_der2_.init();
 
-  sol_der1_old_.Resize(size_);
-  sol_der1_old_.Init(0);
+  sol_old_.reshape(dofspernode_, NumPDENodes_);
+  sol_old_.init();
+  
+  sol_der2_old_.reshape(dofspernode_, NumPDENodes_);
+  sol_der2_old_.init();
+   
 
-  sol_der1_.Resize(size_);
-  sol_der1_.Init(0);
+ //  sol_der1_[0].Resize(size_);
+//   sol_der1_[0].Init(0);
 
-  sol_der2_.Resize(size_);
-  sol_der2_.Init(0);
+//   sol_der1_old_[0].Resize(size_);
+//   sol_der1_old_[0].Init(0);
 
-  sol_old_.Resize(size_);
-  sol_old_.Init(0);
+//   sol_der1_.Resize(size_);
+//   sol_der1_.Init(0);
 
-  sol_der2_old_.Resize(size_);
-  sol_der2_old_.Init(0);
+//   sol_der2_.Resize(size_);
+//   sol_der2_.Init(0);
+
+//   sol_old_.Resize(size_);
+//   sol_old_.Init(0);
+
+//   sol_der2_old_.Resize(size_);
+//   sol_der2_old_.Init(0);
 
   alpha_ = 0.0;
   beta_  = 0.25;
@@ -126,21 +146,28 @@ void AcousticPDE::ComputeRHS(const Double atime)
 
   Vector<Double> coeffMass, coeffDamp;
   Vector<Double> elemvec;
+  Array<Double> temp;
   std::list<Integer> nodes_hd;
   Integer i;
 
-  coeffMass = sol_old_*a0_+sol_der1_old_*a2_+sol_der2_old_*a3_;
+  coeffMass = (sol_old_*a0_+sol_der1_old_*a2_+sol_der2_old_*a3_);
+  //temp.toVector(coeffMass);
+  
   algsys_->UpdateRHS(MASS,coeffMass.get());
 
   // damping matrix part
   if (with_absBCs_) 
     {
       coeffDamp = -sol_der1_old_-sol_der2_old_*a6_;   
+      //temp.toVector(coeffDamp);
+
       algsys_->UpdateRHS(DAMPING,coeffDamp.get());
 
       coeffDamp = sol_old_*a1_+sol_der1_old_*a2_*a7_+sol_der2_old_*a7_*a3_;  
+      //temp.toVector(coeffDamp);
+      
       algsys_->UpdateRHS(DAMPING,coeffDamp.get());
-    }
+   }
    
 }
 
@@ -193,9 +220,11 @@ void AcousticPDE::SolveStepTrans(const Integer kstep, const Double asteptime,
   algsys_->Solve();
 
   // save solution
-  ptsol = algsys_->GetSolutionVal();
-  Vector<Double> transsol(NumPDENodes_, ptsol);
-  sol_=transsol;
+  Integer k=0;
+  
+  for (Integer i=0; i<NumPDENodes_; i++)
+    for (Integer dim=0; dim<dofspernode_; dim++)
+      sol_[dim][i] = ptsol[k++];
 
   if (InfoPrint)
     (*infofile) << "maxnode:" <<  ptgrid_->GetMaxnumnodes(level) << std::endl;
@@ -210,20 +239,20 @@ void AcousticPDE::WriteResultsInFile()
   (*trace) << "entering AcousticPDE::WriteResultsInFile" << std::endl;
 #endif
 
-  Vector<Double> sol_mesh, solder1_mesh, solder2_mesh;  
-  TransformNodeSolution(sol_mesh,sol_);
-  TransformNodeSolution(solder1_mesh,sol_der1_);
-  TransformNodeSolution(solder2_mesh,sol_der2_);
+  Array<Double> sol_mesh, solder1_mesh, solder2_mesh;  
+  TransformNodeSolution(sol_mesh,sol_,PDE2MeshNode_);
+  TransformNodeSolution(solder1_mesh,sol_der1_,PDE2MeshNode_);
+  TransformNodeSolution(solder2_mesh,sol_der2_,PDE2MeshNode_);
 
   if (OutFile_->IsGMV())
     {
-      OutFile_->WriteSolution(sol_mesh,laststepcalc_,lasttimecalc_,"vp");
-      OutFile_->WriteSolution(solder1_mesh,laststepcalc_,lasttimecalc_,"vp_1der");
-      OutFile_->WriteSolution(solder2_mesh,laststepcalc_,lasttimecalc_,"vp_2der");
+      OutFile_->WriteNodeSolution(sol_mesh,laststepcalc_,lasttimecalc_,"vp");
+      OutFile_->WriteNodeSolution(solder1_mesh,laststepcalc_,lasttimecalc_,"vp_1der");
+      OutFile_->WriteNodeSolution(solder2_mesh,laststepcalc_,lasttimecalc_,"vp_2der");
     }
   else
     {
-      OutFile_->WriteSolution(sol_mesh,laststepcalc_,lasttimecalc_,"fluid potential");
+      OutFile_->WriteNodeSolution(sol_mesh,laststepcalc_,lasttimecalc_,"fluid potential");
       //      OutFile_->WriteSolution(solder1_mesh,laststepcalc_,lasttimecalc_,"fluid potential, 1st deriv., ");
       //      OutFile_->WriteSolution(solder2_mesh,laststepcalc_,lasttimecalc_,"fluid potential, 2nd deriv., ");
     }
@@ -252,8 +281,8 @@ void AcousticPDE :: CalcDerSol()
   (*trace) << " entering  AcousticPDE :: CalcDerSol() " << std::endl;
 #endif
 
-  sol_der2_=(sol_ - sol_old_)*a0_ - (sol_der1_old_)*a2_ - sol_der2_old_*a3_;
-  sol_der1_=sol_der1_old_+sol_der2_old_*a6_+sol_der2_*a7_;
+   sol_der2_=(sol_ - sol_old_)*a0_ - (sol_der1_old_)*a2_ - sol_der2_old_*a3_;
+   sol_der1_=sol_der1_old_+sol_der2_old_*a6_+sol_der2_*a7_;
 }
 
 void AcousticPDE::SaveSolAsPrevStep()
@@ -306,10 +335,10 @@ void AcousticPDE::SetupMatrices(const Integer level)
 	  BaseForm * bilinear_stiff = new LaplaceInt(ptEl, coeffstiff);
 
 	  connecth=elemssd[j]->connect;
-	  ptgrid_->GetCoordNodesElemMat(connecth, ptCoord, level); 
+	  GetElemCoords(connecth, ptCoord, level); 
 
 	  // CHANGE connecth
-	  Mesh2PDENode(connect_PDE,connecth);
+	  Mesh2PDENode(connect_PDE,connecth,Mesh2PDENode_);
 
 	  // stiffness part
 	  bilinear_stiff->CalcElementMatrix(ptCoord, elemmat);

@@ -12,6 +12,17 @@ libsrc/AlgebraicSystem/LinAlg/systemmatrix.hh svneol=native#text/plain
 libsrc/AlgebraicSystem/LinAlg/work.hh svneol=native#text/plain
 libsrc/AlgebraicSystem/abstractAlgSys.hh svneol=native#text/plain
 libsrc/AlgebraicSystem/interface_piles.hh svneol=native#text/plain
+libsrc/CoupledPDE/Makefile -text
+libsrc/CoupledPDE/basecoupledpde.cc svneol=native#text/plain
+libsrc/CoupledPDE/basecoupledpde.hh svneol=native#text/plain
+libsrc/CoupledPDE/coupledPDE.conf -text
+libsrc/CoupledPDE/coupled_pdes_header.hh svneol=native#text/plain
+libsrc/CoupledPDE/coupledpdedef.cc svneol=native#text/plain
+libsrc/CoupledPDE/coupledpdedef.hh svneol=native#text/plain
+libsrc/CoupledPDE/itercoupledpde.cc svneol=native#text/plain
+libsrc/CoupledPDE/itercoupledpde.hh svneol=native#text/plain
+libsrc/CoupledPDE/pdecoupling.cc svneol=native#text/plain
+libsrc/CoupledPDE/pdecoupling.hh svneol=native#text/plain
 libsrc/DataInOut/AnsysFile/Makefile -text
 libsrc/DataInOut/AnsysFile/ansysfile.cc svneol=native#text/plain
 libsrc/DataInOut/AnsysFile/ansysfile.hh svneol=native#text/plain
@@ -148,7 +159,6 @@ libsrc/Forms/baseoperator.cc svneol=native#text/plain
 libsrc/Forms/baseoperator.cc~ -text
 libsrc/Forms/baseoperator.hh svneol=native#text/plain
 libsrc/Forms/baseoperator.hh~ -text
-libsrc/Forms/baseoperator.o -text svneol=unset#unset
 libsrc/Forms/bdbInt.cc svneol=native#text/plain
 libsrc/Forms/bdbInt.hh svneol=native#text/plain
 libsrc/Forms/curlCurlEdgeInt.cc svneol=native#text/plain
@@ -229,10 +239,14 @@ libsrc/PDE/mech2dPDE.hh svneol=native#text/plain
 libsrc/PDE/mechPDE.cc svneol=native#text/plain
 libsrc/PDE/mechPDE.hh svneol=native#text/plain
 libsrc/PDE/pdes_header.hh svneol=native#text/plain
+libsrc/PDE/smoothPDE.cc svneol=native#text/plain
+libsrc/PDE/smoothPDE.hh svneol=native#text/plain
 libsrc/PDE/therm2dPDE.cc svneol=native#text/plain
 libsrc/PDE/therm2dPDE.hh svneol=native#text/plain
 libsrc/ParamIdent/Makefile -text
 libsrc/Utils/Makefile -text
+libsrc/Utils/array.cc svneol=native#text/plain
+libsrc/Utils/array.hh svneol=native#text/plain
 libsrc/Utils/myclock.cc svneol=native#text/plain
 libsrc/Utils/myclock.hh svneol=native#text/plain
 libsrc/Utils/tools.cc svneol=native#text/plain

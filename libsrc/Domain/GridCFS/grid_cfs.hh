@@ -133,11 +133,14 @@ public:
 
   //! procedure for forming list with interface-elements neighbours
   /*!
-    \param Interface (input) Elements defining the interface between two domains
+    \param Interface (input) Nodes defining the interface between two domains
     \param Next2Surf (input) Subdomain adjacent to interface
     \param neighbours (output) Elements neighbouring (= have min. 1 node in common) to interface
   */
-  void GetInterfaceNeighbours(std::vector<Elem*> & Interface, std::vector<Elem*> & Next2Surf, std::vector<Elem*> & Neighbours);
+  void GetInterfaceNeighbours(std::vector<Integer> & interfaceNodes, 
+			      std::vector<std::string> & subdoms, 
+			      std::vector<Elem*> & neighbours,
+			      Integer level);
 
   //! in this function we calculate area of element
   /*!

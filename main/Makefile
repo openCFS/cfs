@@ -14,7 +14,7 @@ OS=$(shell uname -s)
 include $(C_DIR)/main/Makefile.option
 #
 
-SUBLIBDIR := Driver PDE Estimator\
+SUBLIBDIR := Driver PDE CoupledPDE Estimator\
              Forms Elements Elements/1D Elements/2D Elements/3D \
              Domain/GridCFS Domain \
              DataInOut/DefineFiles \
@@ -28,7 +28,7 @@ SUBLIBDIR := Driver PDE Estimator\
 #
 
 ifeq "$(AdaptivLib)" "yes"
-mylibrary =  driver domain pde \
+mylibrary =  driver domain pde coupledpde\
             estimator forms  \
             elements3d elements2d elements1d elements \
             gridcfs toadaptgrid\
@@ -39,7 +39,7 @@ mylibrary =  driver domain pde \
             multigrid-las \
             adaptgrid
 else
-mylibrary =  driver domain pde \
+mylibrary =  driver domain pde coupledpde\
             estimator forms  \
             elements3d elements2d elements1d elements \
             gridcfs \

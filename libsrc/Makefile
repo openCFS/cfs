@@ -27,6 +27,9 @@ forms:
 pde:
 	@cd $(LIBSRC_DIR)/PDE; $(MAKE) -f Makefile
 
+coupledpde:
+	@cd $(LIBSRC_DIR)/CoupledPDE; $(MAKE) -f Makefile
+
 elements:
 	@cd $(LIBSRC_DIR)/Elements; $(MAKE) -f Makefile
 
@@ -65,3 +68,4 @@ general:
 
 multigrid-las:
 	@cd $(LibCLA)/multigrid; $(MAKE) -f Makefile
+

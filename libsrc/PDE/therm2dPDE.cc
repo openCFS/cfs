@@ -431,7 +431,7 @@ void Therm2dPDE:: WriteResultsInFile()
   (*trace) << "entering Acoustic2dPDE::WriteResultsInFile" << std::endl;
 #endif
 
-  //  OutFile_->WriteSolution(sol_, laststepcalc_, lasttimecalc_," temperature"); 
+  //  OutFile_->WriteNodeSolution(sol_, laststepcalc_, lasttimecalc_," temperature"); 
 }
 
 } // end of namespace

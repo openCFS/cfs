@@ -547,15 +547,15 @@ void Acou3dFlowNoise::WriteResultsInFile()
 
   if (OutFile_->IsGMV())
     {
-      OutFile_->WriteSolution(sol_,laststepcalc_,lasttimecalc_,"vp");
-      OutFile_->WriteSolution(sol_der1_,laststepcalc_,lasttimecalc_,"vp_1der");
-      OutFile_->WriteSolution(sol_der2_,laststepcalc_,lasttimecalc_,"vp_2der");
+      OutFile_->WriteNodeSolution(sol_,laststepcalc_,lasttimecalc_,"vp");
+      OutFile_->WriteNodeSolution(sol_der1_,laststepcalc_,lasttimecalc_,"vp_1der");
+      OutFile_->WriteNodeSolution(sol_der2_,laststepcalc_,lasttimecalc_,"vp_2der");
     }
   else
     {
-            OutFile_->WriteSolution(sol_,laststepcalc_,lasttimecalc_,"fluid potential");
-	    //OutFile_->WriteSolution(sol_der1_,laststepcalc_,lasttimecalc_,"fluid potential, 1st deriv., ");
-      //      OutFile_->WriteSolution(sol_der2_,laststepcalc_,lasttimecalc_,"fluid potential, 2nd deriv., ");
+            OutFile_->WriteNodeSolution(sol_,laststepcalc_,lasttimecalc_,"fluid potential");
+	    //OutFile_->WriteNodeSolution(sol_der1_,laststepcalc_,lasttimecalc_,"fluid potential, 1st deriv., ");
+      //      OutFile_->WriteNodeSolution(sol_der2_,laststepcalc_,lasttimecalc_,"fluid potential, 2nd deriv., ");
     }
 }
 

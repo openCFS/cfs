@@ -32,6 +32,7 @@ public:
     \param level (input) Multigrid level
   */
   ElecForceOp(Grid * ptGrid, 
+	      BasePDE * ptPDE,
 	      std::vector<Integer> * ptMesh2PDENode,
 	      Vector<Double> * EPotential,
 	      const Integer level);
@@ -48,9 +49,9 @@ public:
     \param LCoord (input) Local coordinates of evaluation point
   */
   virtual void CalcElemElecForce(Vector<Double> & F,
-				     const Elem * ptElement,
-				     Double epsilon,
-				     const std::vector<ShortInt> & IsBoundaryNode);
+				 const Elem * ptElement,
+				 Double epsilon,
+				 const std::vector<ShortInt> & IsBoundaryNode);
   
 
 			    			       

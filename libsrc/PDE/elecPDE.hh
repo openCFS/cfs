@@ -11,7 +11,7 @@ namespace CoupledField
     This class is derived from class BasePDE. It is used for solving electrostatic equation in 3D. 
   */
 
-class ElecPDE: public BasePDE
+class ElecPDE : public BasePDE
 {
 public:
 
@@ -36,7 +36,10 @@ public:
   //! set information for algebraic system about PDE. set matrix factors.
   void SetMatrixFactors();
 
-  //! setup element matrices for AlgebraicSystem for assembling procedure
+  //! initalize PDE coupling
+  virtual void InitCoupling(PDECoupling * Coupling);
+  
+   //! setup element matrices for AlgebraicSystem for assembling procedure
   /*!
     \param level level of grid
    */
@@ -56,27 +59,43 @@ public:
   { 
     Error("Makes no sense for Electrostatics to perform transient step",__FILE__,__LINE__);
   }
+  
+  //! calculate coupling terms
+  virtual void CalcOutputCoupling();
 
   //! do PostProcessing step
   virtual void PostProcess(const Integer level);
 
+  //! calculate element coupling terms
+  //virtual void CalcElemCoupling(Vector<Double> & ElemSol);
+  
+  //! calculate node coupling terms
+  //virtual void CalcNodeCoupling(Vector<Double> & NodeSol);
+
   //! write results in file
   virtual void WriteResultsInFile();
 
-  //! return pointer to vector with solution
-  virtual const Vector<Double> & getS() const { return sol_;}
+   //! return size of solution
+  virtual Integer getSize() const { return NumPDENodes_*dofspernode_;}
 
-  //! return size of solution
-  virtual Integer getSize() const { return size_;}
-
+  //! returns if PDE can compute the quantity
+  virtual bool HasOutput(std::string output);
+  
 protected:
 
-  Vector<Double> sol_;  //!< store solution,
-  Vector<Double> * E_;   //!< store Electric Field of each element
-  Vector<Double> * Force_;  //!< stores Electric pressure force of each element
-  Integer size_;        //!< size of solution (number of equations)
-  Integer nElements_;
+  void CalcNodeForce(Array<Double> & force, 
+		     std::vector<Integer> & nodes, 
+		     std::vector<Elem*> elems,
+		     std::vector<std::vector<ShortInt> > & isBoundaryNode);
 
+  Array<Double> E_;  //!< conatins elecric field
+  
+  // ---- Electric Force varables ---
+  Array<Double> Force_;        //!< stores Electric force of each element
+  std::vector<std::vector<Elem*> > F_Interface_; //!<vector of vectors conaining Elements with acting force
+  std::vector<std::vector<std::vector<ShortInt> > > isBoundaryNode_; //!< vector containing flag array for
+
+ 
 };
 
 } // end of namespace

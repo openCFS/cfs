@@ -9,23 +9,24 @@
 #include <Forms/forms_header.hh>
 #include <Estimator/spaceerror.hh>
 
-#include "mechPDE.hh" 
+#include "smoothPDE.hh" 
 
 namespace CoupledField
 {
 
-MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *aptFileType, 
+SmoothPDE::SmoothPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *aptFileType, 
 		 WriteResults *aptOut)
 :BasePDE(aptgrid, aptbcs, aptFileType, aptOut, aptTimeFunc)
 {
 #ifdef TRACE
-  (*trace) << "entering MechPDE::MechPDE " << std::endl;
+  (*trace) << "entering SmoothPDE::SmoothPDE " << std::endl;
 #endif
 
   SetMatrixFactors();
 
-  pdename_ = "mechanic";
+  pdename_ = "smooth";
   pdematerialclass_ = "piezo";
+  
   
   conf->getstr("subtype", subType_, pdename_ );
   
@@ -41,14 +42,18 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
   NumPDENodes_ = PDE2MeshNode_.size();
   size_ = NumPDENodes_*dofspernode_;
 
-  sol_.reshape(dofspernode_,NumPDENodes_);
+  sol_.reshape(dofspernode_, NumPDENodes_);
+  sol_.init();
   
+  smooth_factor_ = 1.0;
+  conf->get("smooth_factor", smooth_factor_, pdename_ );
 }
 
-void MechPDE::DiscreteParamsPDE()
+
+void SmoothPDE::DiscreteParamsPDE()
 {
 #ifdef TRACE
-  (*trace) << "entering MechPDE ::DiscreteParamsPDE" << std::endl;
+  (*trace) << "entering SmoothPDE ::DiscreteParamsPDE" << std::endl;
 #endif
 
   MatrixType_   = RBLOCK;
@@ -58,10 +63,10 @@ void MechPDE::DiscreteParamsPDE()
 }
 
 
-void MechPDE::SetMatrixFactors()
+void SmoothPDE::SetMatrixFactors()
 {
 #ifdef TRACE
-  (*trace) << "entering MechPDE::SetMatrixFactors" << std::endl;
+  (*trace) << "entering SmoothPDE::SetMatrixFactors" << std::endl;
 #endif
 
   matrix_factor_[0] = 0.0;  // factor for stiffness matrix
@@ -71,32 +76,25 @@ void MechPDE::SetMatrixFactors()
 }
 
 
-void MechPDE::InitCoupling(PDECoupling * Coupling)
+void SmoothPDE::InitCoupling(PDECoupling * Coupling)
 {
 #ifdef TRACE
-  (*trace) << "entering MechPDE::InitCoupling" << std::endl;
+  (*trace) << "entering SmoothPDE::InitCoupling" << std::endl;
 #endif
-  
-  ptCoupling_ = Coupling;
-  
-  Array<Double> * val;
-  for (Integer i=0; i<ptCoupling_->GetNumOutputCouplings(); i++)
-    {
-      if (ptCoupling_->GetOutputQuantity(i) == "mechdisplacement")
-	{
-	  std::cerr << "MechPDE::InitCoupling" << std::endl;
-	  ptCoupling_->SetOutputDim(i, Dim_);
-	  ptCoupling_->GetOutputValues(i, val);
-	  std::cerr << "mechdisplacement size = " << (*val).size() << " dim = " << val->dim() << std::endl;
-	}
-    }
-}
 
+  ptCoupling_ = Coupling; 
+
+
+  for (Integer i=0; i<ptCoupling_->GetNumOutputCouplings(); i++)
+    if (ptCoupling_->GetOutputQuantity(i) == "smoothdisplacement")
+      ptCoupling_->SetOutputDim(i, Dim_);
+}
   
-void MechPDE::SolveStepStatic(const Integer level)
+
+void SmoothPDE::SolveStepStatic(const Integer level)
 {
 #ifdef TRACE
-  (*trace) << "entering MechPDE::SolveStepStatic" << std::endl;
+  (*trace) << "entering SmoothPDE::SolveStepStatic" << std::endl;
 #endif
 
   Integer update = 0;
@@ -117,23 +115,24 @@ void MechPDE::SolveStepStatic(const Integer level)
 
   // save solution
   Integer k=0;
-
-  for (Integer i=0; i<NumPDENodes_; i++)   
+  
+  for (Integer i=0; i<NumPDENodes_; i++)  
     for (Integer dim=0; dim<dofspernode_; dim++)
-      sol_[dim][i] = ptsol[k++];
+       sol_[dim][i] = ptsol[k++];
   
 }
 
-void MechPDE::CalcOutputCoupling()
+
+void SmoothPDE::CalcOutputCoupling()
 {
 #ifdef TRACE
-  (*trace) << "entering MechPDE::CalcOutputCoupling" << std::endl;
+  (*trace) << "entering SmoothPDE::CalcOutputCoupling" << std::endl;
 #endif  
 
   std::string quantity;
   std::vector<Integer> * couplingnodes;
   Array<Double> * values;
-  
+
   // loop over all output coupling quantities
   for (Integer i=0; i<ptCoupling_->GetNumOutputCouplings(); i++)
     {
@@ -147,7 +146,7 @@ void MechPDE::CalcOutputCoupling()
 	  ptCoupling_->GetOutputNodes(i, couplingnodes);
 	  ptCoupling_->GetOutputValues(i, values);
 
-	  if (quantity == "mechdisplacement")
+	  if (quantity == "smoothdisplacement")
 	    {
 	      NodeSolutionToCoupling(*values, *couplingnodes);
 	    }
@@ -159,14 +158,12 @@ void MechPDE::CalcOutputCoupling()
 	}
 
     }
-
 }
 
-
-void MechPDE::WriteResultsInFile()
+void SmoothPDE::WriteResultsInFile()
 {
 #ifdef TRACE
-  (*trace) << "entering MechPDE::WriteResultsInFile" << std::endl;
+  (*trace) << "entering SmoothPDE::WriteResultsInFile" << std::endl;
 #endif
 
   Integer laststepcalc=0;
@@ -174,14 +171,14 @@ void MechPDE::WriteResultsInFile()
   Array<Double> DispMesh;
  
   TransformNodeSolution(DispMesh, sol_, PDE2MeshNode_);
-   OutFile_->WriteNodeSolution(DispMesh, laststepcalc, lasttimecalc,"displacement");
+  OutFile_->WriteNodeSolution(DispMesh, laststepcalc, lasttimecalc,"displacement");
 }
 
 
-  void MechPDE::SetupMatrices(const Integer level)
+  void SmoothPDE::SetupMatrices(const Integer level)
   {
 #ifdef TRACE
-    (*trace) << "entering MechPDE::SetupMatrices" << std::endl;
+    (*trace) << "entering SmoothPDE::SetupMatrices" << std::endl;
 #endif
 
     Matrix<Double> elemmat;
@@ -212,7 +209,7 @@ void MechPDE::WriteResultsInFile()
 	    else 
 	      {
 		std::string errMessg;
-		errMessg = "Unknown subtype \"" + subType_ + "\" in mech PDE!";		
+		errMessg = "Unknown subtype \"" + subType_ + "\" in SmoothPDE!";		
 		Error(errMessg.c_str(),__FILE__,__LINE__);
 	      }
 
@@ -225,13 +222,19 @@ void MechPDE::WriteResultsInFile()
 	    // map connect to PDE node numbers
 	    Mesh2PDENode(connect_PDE,connecth,Mesh2PDENode_);
 
+	    std::vector<Double> LCoord(dofspernode_,0.0);
+	    Double JDet;
 	    // stiffness part
 	    bilinear_stiff->CalcElementMatrix(ptCoord, elemmat);
+
+	    // Divide elemmat by JDet
+	    JDet = ptEl->CalcJacobianDet(LCoord,ptCoord);
+	    elemmat = elemmat * (smooth_factor_ * 1.0 / JDet);
 
 	    algsys_->SetElementMatrix(elemmat.getinarray(), connect_PDE.get(), connecth.size(), SYSTEM);
 
 #ifdef DEBUG
-	    (*debug) << "Mech3d elemmat: " << std::endl << elemmat << std::endl;
+	    (*debug) << "Smooth3d elemmat: " << std::endl << elemmat << std::endl;
 #endif
 
  	    // mass part
@@ -254,15 +257,15 @@ void MechPDE::WriteResultsInFile()
     
     
 #ifdef TRACE
-    (*trace) << "Leaving MechPDE::SetupMatrices" << std::endl;
+    (*trace) << "Leaving SmoothPDE::SetupMatrices" << std::endl;
 #endif
   }
 
 
-  void MechPDE::SetBCs(const Integer level, const Integer update, const Double atime)
+  void SmoothPDE::SetBCs(const Integer level, const Integer update, const Double atime)
   {
 #ifdef TRACE
-    (*trace) << "entering MechPDE::SetBCs" << std::endl;
+    (*trace) << "entering SmoothPDE::SetBCs" << std::endl;
 #endif
     
     Integer node,dof;
@@ -284,7 +287,7 @@ void MechPDE::WriteResultsInFile()
       {
 	std::string doftype = bcs_hd_[i]; 
 	dof = GetNrBCDof (doftype.substr(0,2));
-      
+
 #ifdef DEBUG
 	(*debug) << " Homog. Dirichlet BC" << std::endl;
 #endif
@@ -293,7 +296,7 @@ void MechPDE::WriteResultsInFile()
 	for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end(); p++, j++)
 	  {
 	    node=*p;
-
+	    
 #ifdef DEBUG
 	    (*debug) << " node: " << Mesh2PDENode_[node-1] << " dof:" << dof << " val: " << val << std::endl;
 #endif
@@ -303,7 +306,7 @@ void MechPDE::WriteResultsInFile()
 	      algsys_->SetDirichlet(j+1, Mesh2PDENode_[node-1], val, dof, SYSTEM);
 	  }  
       }
-
+    
     //inhomogeneous boundary conditions
     for (i=0; i<bcs_id_.size(); i++)
       {
@@ -324,11 +327,15 @@ void MechPDE::WriteResultsInFile()
 #ifdef DEBUG
 	    (*debug) << " node: " << node << " dof:" << dof << " val: " << val << std::endl;
 #endif
-	  
+	    std::cerr << "Smooth: Setting ID_BCs .... " << std::endl;
+
 	    if (update==1)
 	      algsys_->UpdateDirichlet(j+1, val, SYSTEM);
-	    else	    
+	    else	  
+	      {
+		std::cerr << "Smooth: Setting ID_BC[" << dof << "][" << node << "] = " << val << std::endl;
 	      algsys_->SetDirichlet(j+1, Mesh2PDENode_[node-1], val, dof, SYSTEM);
+	      }
 	  }
       }
 
@@ -362,21 +369,21 @@ void MechPDE::WriteResultsInFile()
 	  }
       }    
 #ifdef TRACE
-    (*trace) << "leaving MechPDE::SetBCs" << std::endl;
+    (*trace) << "leaving SmoothPDE::SetBCs" << std::endl;
 #endif
   }
 
 
 
-Integer MechPDE::GetNrBCDof(const std::string & dofStartString)
+Integer SmoothPDE::GetNrBCDof(const std::string & dofStartString)
   {
 #ifdef TRACE
-    (*trace) << "leaving MechPDE::GetNrBCDof" << std::endl;
+    (*trace) << "entering SmoothPDE::GetNrBCDof" << std::endl;
 #endif
 
-    Integer nrActDof;
-    
-    if (dofStartString == "ux")
+   Integer nrActDof;
+   
+   if (dofStartString == "ux")
       nrActDof = 1;
     else 
       if (dofStartString == "uy")
@@ -386,20 +393,26 @@ Integer MechPDE::GetNrBCDof(const std::string & dofStartString)
 	  if (dofStartString == "uz")
 	    nrActDof = 3;
 	  else
+	    {
 	    Error("Unknown dof-type in homog. BC; substring must start with ux, uy or uz!!",__FILE__,__LINE__);
+	    std::cerr << dofStartString << std::endl;
+	    }
 	else
-	  Error("Unknown dof-type in homog. BC; substring must start with ux or uy!!",__FILE__,__LINE__);
+	  {
+	    std::cerr << dofStartString << std::endl;
+	    Error("Unknown dof-type in homog. BC; substring must start with ux or uy!!",__FILE__,__LINE__);
+	  }
     
     return nrActDof;
   }
 
-bool MechPDE::HasOutput(std::string output)
+bool SmoothPDE::HasOutput(std::string output)
 {
 #ifdef TRACE
-  (*trace) << "entering MechPDE::HasOutput" << std::endl;
+  (*trace) << "entering SmoothPDE::HasOutput" << std::endl;
 #endif
-
-  if (output == "mechdisplacement")
+  
+  if (output == "smoothdisplacement")
     return true;
 }
 

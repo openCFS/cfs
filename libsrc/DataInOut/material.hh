@@ -1,6 +1,7 @@
 #ifndef FILE_READMATERIAL_2001
 #define FILE_READMATERIAL_2001
 
+#include <fstream>
 #include "Utils/tools.hh"
  
 namespace CoupledField

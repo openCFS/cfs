@@ -120,48 +120,83 @@ void BCs :: ReadBCs()
    }
 }
 
-std::list<Integer> BCs::GetNodesLevel(const std::string color, const Integer lev)
+std::list<Integer>&  BCs::GetNodesLevel(const std::string color, const Integer lev)
 {
 #ifdef TRACE
   (*trace) << "entering BCs::GetNodesLevel" << std::endl;
 #endif
- 
+  
+  Boolean Found = FALSE;
+
   Integer level=lev;
- if (lev==-1) level=toplevel_;
- Integer i;
- for (i=0; i<levels_.size(); i++)
-  if (color==levels_[i]) break;
+  if (lev==-1) level=toplevel_;
+  Integer i;
+  for (i=0; i<levels_.size(); i++)
+    if (color==levels_[i]) 
+      {
+	Found = TRUE;
+	break;
+      }
+
+  if (!Found)
+    {
+      std::string ErrMsg = "Nodes for level \'" + color + "\' could not be found!";
+      Error(ErrMsg.c_str(),__FILE__,__LINE__); 
+    }
 
  return bcs_[level][i]; 
 }
 
-std::vector<Elem*> BCs::getEdgesBC(const std::string color, const Integer lev)
+std::vector<Elem*>& BCs::getEdgesBC(const std::string color, const Integer lev)
 {
 #ifdef TRACE
   (*trace) << "entering BCs::getEdgesBC" << std::endl;
 #endif
 
+  Boolean Found = FALSE;
+
   Integer level=lev;
   if (lev==-1) level=toplevel_;
   Integer i;
   for (i=0; i<color_edges_.size(); i++)
-    if (color==color_edges_[i]) break;
+    if (color==color_edges_[i]) 
+      {
+	Found = TRUE;
+	break;
+      }
+
+  if (!Found)
+    {
+      std::string ErrMsg = "Edges for level \'" + color + "\' could not be found!";
+      Error(ErrMsg.c_str(),__FILE__,__LINE__); 
+    }
 
   return bcsEdges_[level][i];
 }
 
-std::vector<Elem*> BCs::getFacesBC(const std::string color, const Integer lev)
+std::vector<Elem*>& BCs::getFacesBC(const std::string color, const Integer lev)
 {
 #ifdef TRACE
   (*trace) << "entering BCs::getFacesBC" << std::endl;
 #endif
-
+  Boolean Found = FALSE;
+ 
   Integer level=lev;
   if (lev==-1) level=toplevel_;
   Integer i;
   for (i=0; i<color_faces_.size(); i++)
-    if (color==color_faces_[i]) break;
+    if (color==color_faces_[i]) 
+      {
+	Found = TRUE;
+	break;
+      }
 
+   if (!Found)
+    {
+      std::string ErrMsg = "Faces for level \'" + color + "\' could not be found!";
+      Error(ErrMsg.c_str(),__FILE__,__LINE__); 
+    }
+   
   return bcsFaces_[level][i];
 }
 
@@ -170,12 +205,23 @@ Integer BCs::GetNumNodesLevel(const std::string color, const Integer lev)
 #ifdef TRACE
   (*trace) << "entering BCs::GetNumNodesLevel" << std::endl;
 #endif
+   Boolean Found = FALSE;
 
   Integer level=lev;
   if (lev==-1) level=toplevel_; 
  Integer i;
  for (i=0; i<levels_.size(); i++)
-  if (color==levels_[i]) break;
+  if (color==levels_[i]) 
+    {
+      Found = TRUE;
+      break;
+    }
+
+ if (!Found)
+    {
+      std::string ErrMsg = "Nodes for level \'" + color + "\' could not be found!";
+      Error(ErrMsg.c_str(),__FILE__,__LINE__); 
+    }
 
  return bcs_[level][i].size();
 
@@ -211,11 +257,23 @@ std::vector<Elem*> BCs::getNeighElemsForSurfaces(const std::string color, const 
   (*trace) << "entering BCs::getNeighElems" << std::endl;
 #endif
 
+  Boolean Found = FALSE;
+
   Integer level=lev;
   if (lev==-1) level=toplevel_;
   Integer i;
   for (i=0; i<color_neighelems_.size(); i++)
-    if (color==color_neighelems_[i]) break;
+    if (color==color_neighelems_[i]) 
+      {
+	Found = TRUE;
+	break;
+      }
+
+  if (!Found)
+    {
+      std::string ErrMsg = "Surface Elements for level \'" + color + "\' could not be found!";
+      Error(ErrMsg.c_str(),__FILE__,__LINE__); 
+    }
 
   return bcsNeighElems_[level][i];
 }

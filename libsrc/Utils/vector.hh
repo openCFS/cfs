@@ -9,7 +9,6 @@ namespace CoupledField
 {          
 
   template<class TYPE> class Vector;
-
   //! Function for swap  number a and b (Integer, Double)
   template <class S> void swap(S &, S &);
 
@@ -26,6 +25,7 @@ namespace CoupledField
   template<class TYPE> class BandMatrix;
   template<class TYPE> class SymMatrix;
   template<class TYPE> class Matrix;
+  template<class TYPE> class Array;
 
   //! Overloading << for class vector
   template<class TYPE>  std::ostream& operator << ( std::ostream & , const Vector<TYPE> &);
@@ -51,6 +51,7 @@ public:
   friend class SymBandMatrix<TYPE>;
   friend class SymMatrix<TYPE>;
   friend class Matrix<TYPE>;
+  friend class Array<TYPE>;
 
 //   template<class T>
 //   friend void swap(Vector<T> &, Vector<T> &);
@@ -95,8 +96,21 @@ public:
   //! Overloading of operation =
   Vector	&operator=	(const Vector &);
 
+  //! Overloading of operation = for Arrays
+  
+  Vector        &operator=      (const Array<TYPE> &);
+
   //! Element can be referred to as v[i]
-  TYPE	&operator[]	(const Integer) const;
+  inline TYPE	&operator[]	(const Integer i) const
+  {	
+    if (!p)
+      Error("Vector: undefined Vector in operator[]",__FILE__,__LINE__);
+
+    if (i < 0 || i >= n)
+      Error("Vector: invalid index in operator[]",__FILE__,__LINE__);
+    
+    return  p[i];
+}
 
   //! Return dimension of Vector
   Integer	size () const { return n;}

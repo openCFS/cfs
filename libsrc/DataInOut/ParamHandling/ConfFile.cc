@@ -37,16 +37,25 @@ template<class TypeVal>
 void ConfFile::get(const std::string keyword, TypeVal & val, const std::string section, const std::string subsection, const std::string subsubsection)
 {
  std::string::size_type pos,pos1=0;
-
- if (section != "") pos1=getpos(section); 
- if (subsection !="") pos1=getpos(subsection,pos1);
+ Boolean inSection = FALSE;
+ Boolean inSubSection = FALSE;
+ if (section != "") 
+   { 
+     pos1=getsectionpos(section); 
+     inSection=TRUE;
+   }
+ if (subsection !="") 
+   {
+     pos1=getsubsectionpos(subsection,pos1);
+     inSubSection = TRUE;
+   }
  if (subsubsection != "") { pos1=getpos(subsubsection,pos1);
                             infile.seekg(pos1, std::ios::beg);
                             infile.ignore(100,'\n');                      
                             pos1=infile.tellg();
                           }
 
- pos=getpos(keyword,pos1);
+ pos=getpos(keyword,pos1,inSection,inSubSection);
 
  infile.seekg(pos, std::ios::beg);
  infile >> val;
@@ -56,16 +65,27 @@ template<class TypeVal>
 Boolean ConfFile::ifget(const std::string keyword, TypeVal & val, const std::string section, const std::string subsection, const std::string subsubsection)
 {
  std::string::size_type pos,pos1=0;
+ Boolean inSection = FALSE;
+ Boolean inSubSection = FALSE;
 
- if (section != "") pos1=getpos(section);
- if (subsection !="") pos1=getpos(subsection,pos1);
+ if (section != "") 
+   { 
+     pos1=getsectionpos(section); 
+     inSection=TRUE;
+   }
+ if (subsection !="") 
+   {
+     pos1=getsubsectionpos(subsection,pos1);
+     inSubSection = TRUE;
+   }
+
  if (subsubsection != "") { pos1=getpos(subsubsection,pos1);
                             infile.seekg(pos1, std::ios::beg);
                             infile.ignore(100,'\n');                      
                             pos1=infile.tellg();
                           }
 
- pos=getpos(keyword,pos1,FALSE);
+ pos=getpos(keyword,pos1,inSection,inSubSection,FALSE);
 
  if (pos==std::string::npos) return FALSE;
 
@@ -82,16 +102,28 @@ Boolean ConfFile::get_option(const std::string keyword, const std::string sectio
 #endif
 
  std::string::size_type pos,pos1=0;
+ Boolean inSection = FALSE;
+ Boolean inSubSection = FALSE;
 
- if (section != "") pos1=getpos(section);
- if (subsection !="") pos1=getpos(subsection,pos1);
+ if (section != "") 
+   { 
+     pos1=getsectionpos(section); 
+     inSection=TRUE;
+   }
+ if (subsection !="") 
+   {
+     pos1=getsubsectionpos(subsection,pos1);
+     inSubSection = TRUE;
+   }
+
+
  if (subsubsection != "") { pos1=getpos(subsubsection,pos1);
                             infile.seekg(pos1, std::ios::beg);
                             infile.ignore(100,'\n');                      
                             pos1=infile.tellg();
                           }
 
- pos=getpos(keyword,pos1,FALSE);
+ pos=getpos(keyword,pos1,inSection,inSubSection,FALSE);
 
  Boolean val=FALSE;
 
@@ -106,31 +138,122 @@ Boolean ConfFile::get_option(const std::string keyword, const std::string sectio
  return FALSE;
 }
 
-std::string::size_type ConfFile::getpos(const std::string keyword,const std::string::size_type startpos,Boolean writeErr)
+std::string::size_type ConfFile::getpos(const std::string keyword,
+					const std::string::size_type startpos,
+					Boolean inSection,
+					Boolean inSubSection,
+					Boolean writeErr)
 {
   std::string::size_type help,pos=std::string::npos;
   std::string buf;
+  bool nextSectionReached = FALSE;
 
   if (infile.eof()) infile.clear();
   infile.seekg(startpos, std::ios::beg);
  
+     while ( pos == std::string::npos && !infile.eof() )
+  {
+    help=infile.tellg();
+    std::getline(infile, buf, '\n');
+
+    if (buf[0]!='#' && buf.size() != 0) 
+      {
+	if ((buf[0] != '\t' && inSection) && buf[0] != '\n' && buf[0] != ' ')
+	  {
+	    nextSectionReached = TRUE;
+	    break;
+	  }
+	if (buf[0] != '\t' && buf[1] != '\t' && inSubSection && buf[0] != '\n' && buf[0] != ' ')
+	  {
+	    nextSectionReached = TRUE;
+	    break;
+	  }
+	pos=buf.find(keyword);
+      }
+    
+  }
+   
+   if (pos>=pos_end || nextSectionReached)  {
+     if (writeErr) error(keyword);
+     return std::string::npos;
+   }
+   
+   pos=buf.find("=");
+   return pos+help+1;
+      
+}
+
+std::string::size_type ConfFile::getsectionpos(const std::string keyword, const std::string::size_type startpos, Boolean writeErr)
+{
+  std::string::size_type help,pos=std::string::npos;
+  std::string buf;
+  std::string::size_type pos_helper;
+
+  if (infile.eof()) infile.clear();
+  infile.seekg(startpos, std::ios::beg);
     
    while ( pos == std::string::npos && !infile.eof() )
   {
     help=infile.tellg();
     std::getline(infile, buf, '\n');
-    if (buf[0]!='#') pos=buf.find(keyword);
+ 
+    if (buf[0]!='#') 
+      {
+	pos_helper=buf.find(keyword);
+	if (buf.find(":") < 100)
+	  pos = pos_helper;
+      }
   }
-
+   
    if (pos>=pos_end)  {
-	if (writeErr) error(keyword);
+     if (writeErr) error(keyword);
         return std::string::npos;
    }
 
-  pos=buf.find("=");
-  return pos+help+1;
+  return infile.tellg();
 
 }
+
+std::string::size_type ConfFile::getsubsectionpos(const std::string keyword, const std::string::size_type startpos, Boolean writeErr)
+{
+  std::string::size_type help,pos=std::string::npos;
+  std::string buf;
+  std::string::size_type pos_helper;
+  bool nextSectionReached = FALSE;
+
+  if (infile.eof()) infile.clear();
+  infile.seekg(startpos, std::ios::beg);
+    
+   while ( pos == std::string::npos && !infile.eof() )
+  {
+    help=infile.tellg();
+    std::getline(infile, buf, '\n');
+ 
+    if (buf[0]!='#' && buf.size() != 0) 
+      {
+	if (buf[0] != '\t' && buf[0] != '\n' && buf[0] != ' ')
+	  {
+	    nextSectionReached = TRUE;
+	    break;
+	  }
+	
+	pos_helper=buf.find(keyword);
+	if (buf.find(":") < 100)
+	  pos = pos_helper;
+      }
+  }
+   
+   if (pos>=pos_end && nextSectionReached)  {
+     if (writeErr) error(keyword);
+        return std::string::npos;
+   }
+
+  
+   //return pos+help+1;
+   return infile.tellg();
+
+}
+
 
 #ifdef __GNUC__
 template void ConfFile::get(const std::string , std::string &, const std::string, const std::string, const std::string);
@@ -168,7 +291,7 @@ void ConfFile::getsubdompde(std::vector<std::string> & subdoms, const std::strin
 {
   std::string::size_type pos=0;
 
-  pos=getpos(section,pos);
+  pos=getsectionpos(section,pos);
   pos=getpos("subdomains",pos);
   infile.seekg(pos,std::ios::beg);
   
@@ -205,8 +328,19 @@ void ConfFile::getlist( const std::string seekexp, std::vector<Double> & hist,
 {
  std::string::size_type pos=0;
 
- if (section != "") pos=getpos(section);
- if (subsection !="") pos=getpos(subsection,pos);
+ Boolean inSection = FALSE;
+ Boolean inSubSection = FALSE;
+
+ if (section != "")
+   {
+     pos=getsectionpos(section);
+     inSection = TRUE;
+   }
+ if (subsection !="") 
+   {   
+     pos=getsubsectionpos(subsection,pos);
+     inSubSection = TRUE;
+   }
 
  pos=getpos(seekexp,pos);
  infile.seekg(pos,std::ios::beg);
@@ -230,10 +364,21 @@ void ConfFile::getliststr( const std::string seekexp, std::vector<std::string> &
 {
  std::string::size_type pos=0;
 
- if (section != "") pos=getpos(section);
- if (subsection !="") pos=getpos(subsection,pos);
+ Boolean inSection = FALSE;
+ Boolean inSubSection = FALSE;
 
- pos=getpos(seekexp,pos);
+ if (section != "")
+   {
+     pos=getsectionpos(section);
+     inSection = TRUE;
+   }
+ if (subsection !="") 
+   {   
+     pos=getsubsectionpos(subsection,pos);
+     inSubSection = TRUE;
+   }
+
+ pos=getpos(seekexp,pos,inSection,inSubSection);
 
  infile.seekg(pos,std::ios::beg);
 
@@ -249,11 +394,21 @@ void ConfFile::getliststr( const std::string seekexp, std::vector<std::string> &
 void ConfFile::getstr( const std::string seekexp, std::string &str, const std::string section, const std::string subsection)
 {
  std::string::size_type pos=0;
+ Boolean inSection = FALSE;
+ Boolean inSubSection = FALSE;
 
- if (section != "") pos=getpos(section);
- if (subsection !="") pos=getpos(subsection,pos);
+ if (section != "")
+   {
+     pos=getsectionpos(section);
+     inSection = TRUE;
+   }
+ if (subsection !="") 
+   {   
+     pos=getsubsectionpos(subsection,pos);
+     inSubSection = TRUE;
+   }
 
- pos=getpos(seekexp,pos);
+ pos=getpos(seekexp,pos,inSection,inSubSection);
 
  infile.seekg(pos,std::ios::beg);
 
@@ -265,11 +420,21 @@ void ConfFile::getstr( const std::string seekexp, std::string &str, const std::s
 Boolean ConfFile::ifgetliststr( const std::string seekexp, std::vector<std::string> & stlist, const std::string section, const std::string subsection)
 {
  std::string::size_type pos=0;
+ Boolean inSection = FALSE;
+ Boolean inSubSection = FALSE;
 
- if (section != "") pos=getpos(section);
- if (subsection !="") pos=getpos(subsection,pos);
+ if (section != "")
+   {
+     pos=getsectionpos(section);
+     inSection = TRUE;
+   }
+ if (subsection !="") 
+   {   
+     pos=getsubsectionpos(subsection,pos,FALSE);
+     inSubSection = TRUE;
+   }
 
- pos=getpos(seekexp,pos,FALSE);
+ pos=getpos(seekexp,pos,inSection,inSubSection,FALSE);
 
  if (pos==std::string::npos) return FALSE;
 

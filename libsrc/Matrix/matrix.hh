@@ -2,6 +2,7 @@
 #define FILE_MATRIX_2001
 
 #include "Utils/vector.hh"
+#include "Utils/array.hh"
 #include "absmatrix.hh"
  
 namespace CoupledField
@@ -9,8 +10,7 @@ namespace CoupledField
 
   //! Overloading << for class Matrix
   template<class TYPE>  std::ostream& operator << ( std::ostream & , const Matrix<TYPE> &);
-
-
+  
   //! Calculate Spur of Matrix
   template <class T> T Spur(const Matrix<T> &);
 
@@ -39,6 +39,8 @@ public:
   friend class SymBandMatrix<TYPE>;
   friend class SymMatrix<TYPE>;
   friend class Vector<TYPE>;
+  friend class Array<TYPE>;
+  
 
   //! Constructor row=0,col=0,p=NULL
   Matrix	();
@@ -127,6 +129,9 @@ public:
   //!
   std::vector<TYPE> operator*(const std::vector<TYPE> &x) const;
   
+
+  //! 
+  Array<TYPE>   operator*       (const Array<TYPE> &) const;
 
   //!
   Matrix	operator*	(const Matrix &) const;
