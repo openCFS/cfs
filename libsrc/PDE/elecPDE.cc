@@ -29,9 +29,8 @@ ElecPDE::ElecPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 		 WriteResults *aptOut)
 :BasePDE(aptgrid, aptbcs, aptFileType, aptOut, aptTimeFunc)
 {
-#ifdef TRACE
-  (*trace) << "entering NewElecPDE::ElecPDE " << std::endl;
-#endif
+
+  ENTER_FCN( "ElecPDE::ElecPDE" );
 
   dofspernode_ = 1;  
 
@@ -114,9 +113,7 @@ ElecPDE::ElecPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 
 void ElecPDE::DefineIntegrators(const Integer level)
 {
-#ifdef TRACE
-  (*trace) << "entering ElecPDE::DefineIntegerators" << std::endl;
-#endif
+  ENTER_FCN( "ElecPDE::DefineIntegerators" );
 
   for (int actSD = 0; actSD < subdoms_.size(); actSD++)
     {
@@ -141,9 +138,7 @@ void ElecPDE::DefineIntegrators(const Integer level)
 void ElecPDE:: PreStepStatic(const Integer kstep, const Double asteptime,
 			     const Integer level, const Boolean reset)
 {
-#ifdef TRACE
-  (*trace) << "entering ElecPDE:: PreStepStatic" << std::endl;
-#endif
+  ENTER_FCN( "ElecPDE::PreStepStatic" );
 
   if (PDEisCoupled_ )
       algsys_->InitSol();
@@ -166,9 +161,7 @@ void ElecPDE:: PreStepStatic(const Integer kstep, const Double asteptime,
 void ElecPDE::StepStaticNonLin(const Integer kstep, const Double aTime,
 			       const Integer level, const Boolean reset)
 {
-#ifdef TRACE
-  (*trace) << "entering ElecPDE::StepStaticNonLin" << std::endl;
-#endif
+  ENTER_FCN( "ElecPDE::StepStaticNonLin" );
 
   Integer job = 1;
   Double * ptsol;
@@ -199,9 +192,7 @@ void ElecPDE::StepStaticNonLin(const Integer kstep, const Double aTime,
 void ElecPDE::PostStepStatic(const Integer kstep, const Double asteptime,
 			     const Integer level)
 {
-#ifdef TRACE
-  (*trace) << "entering ElecPDE::PostStepStatic" << std::endl;
-#endif
+  ENTER_FCN( "ElecPDE::PostStepStatic" );
 
   if (PDEisCoupled_)
     iterCoupledCounter_++;
@@ -244,9 +235,7 @@ void ElecPDE::PostStepStatic(const Integer kstep, const Double asteptime,
 
 void ElecPDE::WriteResultsInFile()
 {
-#ifdef TRACE
-  (*trace) << "entering ElecPDE::WriteResultsInFile" << std::endl;
-#endif
+  ENTER_FCN( "ElecPDE::WriteResultsInFile" );
 
   Double time = lasttimecalc_;
 
@@ -304,14 +293,10 @@ void ElecPDE::WriteResultsInFile()
 
 void ElecPDE::PostProcess(const Integer level)
 {
-  
-#ifdef TRACE
-  (*trace) << "entering ElecPDE::PostProcess" << std::endl;
-#endif  
+  ENTER_FCN( "ElecPDE::PostProcess" );
 
   TRY_CAST
     PTRCAST(sol_,StoreSol<Double>,solhelp);
-  CATCH_CAST
 
   if (calcEfield_.size() !=0 )
     {
@@ -343,6 +328,7 @@ void ElecPDE::PostProcess(const Integer level)
 	}
       delete FieldOp;
     }
+  CATCH_CAST
   
 }
 
@@ -353,9 +339,7 @@ void ElecPDE::CalcNodeForce(StoreSol<Double> & force,
 			    std::vector<std::vector<ShortInt> > & isBoundaryNode,
 			    std::vector<std::vector<Integer> > & elemNodeToCouplingNode)
 {
-#ifdef TRACE
-  (*trace) << "entering ElecPDE::CalcNodeForce" << std::endl;
-#endif  
+  ENTER_FCN( "ElecPDE::CalcNodeForce" );
 
   TRY_CAST
   PTRCAST(sol_,StoreSol<Double>,solhelp);
@@ -421,9 +405,7 @@ void ElecPDE::CalcNodeForce(StoreSol<Double> & force,
 
 void ElecPDE::CalcEnergy()
 {
-#ifdef TRACE
-  (*trace) << "entering ElecPDE::CalcEnergy" << std::endl;
-#endif
+  ENTER_FCN( "ElecPDE::CalcEnergy" );
 
   Matrix<Double> elemmat;  
   Matrix<Double> ptCoord;
@@ -478,16 +460,16 @@ void ElecPDE::CalcEnergy()
 
 void ElecPDE::GetSolOfElement( Vector<Double>& elpot, Vector<Integer>& connect_PDE)
 {
-#ifdef TRACE
-    (*trace) << "entering ElecPDE::GetSolOfElement" << std::endl;
-#endif
+  ENTER_FCN( "ElecPDE::GetSolOfElement" );
+
   TRY_CAST
     PTRCAST(sol_,StoreSol<Double>,solhelp);
-  CATCH_CAST  
 
   elpot.Resize(connect_PDE.GetSize());
   for(Integer actNode=0; actNode<connect_PDE.GetSize(); actNode++)
     elpot[actNode] = (*solhelp)(connect_PDE[actNode]-1,0);
+
+  CATCH_CAST  
 }
 
 
@@ -498,9 +480,7 @@ void ElecPDE::GetSolOfElement( Vector<Double>& elpot, Vector<Integer>& connect_P
 
 void ElecPDE::Reset()
 {
-#ifdef TRACE
-  (*trace) << "entering ElecPDE::Reset" << std::endl;
-#endif
+  ENTER_FCN( "ElecPDE::Reset" );
     
   //just for Testing
   EqnData_ = new ScalarNodeEQN(ptgrid_,ptBCs_,subdoms_, bcs_hd_,actlevel_);
@@ -523,10 +503,9 @@ void ElecPDE::Reset()
   E_.SetSolutionType(ELEC_FIELD);
   E_.SetNumNodes(numElems_);
   E_.SetDof(Dim_);
-  E_.Init(0.0);
-  
-  
+  E_.Init(0.0); 
 }
+
 
 // ======================================================
 // COUPLING SECTION
@@ -536,10 +515,7 @@ void ElecPDE::Reset()
 
 void ElecPDE::InitCoupling(PDECoupling * Coupling)
 {
-#ifdef TRACE
-  (*trace) << "entering ElecPDE::InitCoupling" << std::endl;
-#endif
-
+  ENTER_FCN( "ElecPDE::InitCoupling" );
   
   PDEisCoupled_ = TRUE;
   ptCoupling_   = Coupling;
@@ -667,9 +643,7 @@ void ElecPDE::InitCoupling(PDECoupling * Coupling)
 
 void ElecPDE::CalcOutputCoupling()
 {
-#ifdef TRACE
-  (*trace) << "entering ElecPDE::CalcOutputCoupling" << std::endl;
-#endif
+  ENTER_FCN( "ElecPDE::CalcOutputCoupling" );
 
   std::string quantity;
   std::vector<Integer> * couplingNodes     = NULL;
@@ -723,9 +697,7 @@ void ElecPDE::CalcOutputCoupling()
 
 Boolean ElecPDE::HasOutput(std::string output)
 {
-#ifdef TRACE
-  (*trace) << "entering ElecPDE::HasOutput" << std::endl;
-#endif
+  ENTER_FCN( "ElecPDE::HasOutput" );
   
   if (output == "elecforce")
     return TRUE;
@@ -747,9 +719,7 @@ Boolean ElecPDE::HasOutput(std::string output)
 
 void ElecPDE::CalcInterfaceForces(Integer actCoupling)
 {
-#ifdef TRACE
-  (*trace) << "entering ElecPDE::CalcInterfaceForces" << std::endl;
-#endif
+  ENTER_FCN( "ElecPDE::CalcInterfaceForces" );
 
   std::vector<Integer> *      couplingNodes          = NULL;
   BaseStoreSol *              elemCouplingSolsTemp   = NULL;
@@ -902,9 +872,7 @@ void ElecPDE::CalcEfieldAtCoupleElemIP(Elem * actVolElem,
 				       std::vector<Integer>& boundNodesOfVolElem,
 				       Vector<Double>& tempE)
 {
-#ifdef TRACE
-  (*trace) << "entering ElecPDE::CalcEfieldAtCoupleElemIP" << std::endl;
-#endif
+  ENTER_FCN( "ElecPDE::CalcEfieldAtCoupleElemIP" );
 
   BaseFE * ptVolElem    = actVolElem->ptElem;
   BaseFE * ptCoupleElem = actCoupleElem->ptElem;
@@ -945,14 +913,6 @@ void ElecPDE::CalcEfieldAtCoupleElemIP(Elem * actVolElem,
   elecFieldOp.CalcElemElecField(tempE, actVolElem, lCoord);
   CATCH_CAST
 }
-
-
-
-
-
-
-
-
 
 
 } // end of namespace
