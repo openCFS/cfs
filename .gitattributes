@@ -45,6 +45,7 @@ auxiliary/mysql/getdataset55.sql -text
 auxiliary/mysql/getdataset56.sql -text
 auxiliary/mysql/getdataset780.sql -text
 auxiliary/mysql/getdataset781.sql -text
+auxiliary/mysql/getresultidx.sql -text
 /libgoal -text
 libsrc/AlgebraicSystem/README -text
 libsrc/CoupledPDE/Makefile -text
