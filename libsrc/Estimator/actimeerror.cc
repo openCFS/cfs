@@ -73,6 +73,7 @@ void AcousticTimeErrorEstimator::ChangeStep(Double & dt)
   Double help1=theta_*tol_/relativeerror_;
   Double help=exp(0.333333333*log(help1));
   dt*=help;
+
 }
 
 Boolean AcousticTimeErrorEstimator::TestError(const Double dt)
@@ -87,11 +88,14 @@ Boolean AcousticTimeErrorEstimator::TestError(const Double dt)
 
  if (relativeerror_<=beta_*tol_)
    {  counter_++;
+     if (infofile)
+      (*infofile) << counter_ << "counter" << std::endl;
       if ( counter_== numrepeat_ )
        { counter_=0; return TRUE;}
+      else return FALSE;
    }   
  else if (relativeerror_<= tol_)
-       { counter_=0; return FALSE; }
+       { counter_=0; return FALSE;}
       else { counter_=0; return TRUE;}
 }
 

@@ -61,6 +61,14 @@ public:
   //! Return pointer to integration weights
   Vector<Double> * GetIntWeights(){ return IntWeights;}
 
+///////////////////////////////////////////////////////////////////////
+virtual Vector<Double> *  GetDxShFncAtIP(const Integer iShFnc)
+ { Error("Not implemented") ;}
+virtual Vector<Double> *  GetDyShFncAtIP(const Integer iShFnc) 
+ { Error("Not implemented") ;}
+virtual Vector<Double> *  GetDzShFncAtIP(const Integer iShFnc) 
+ { Error("Not implemented") ;}
+
 protected:
 
   ShortInt Dim;                //!< space dimension

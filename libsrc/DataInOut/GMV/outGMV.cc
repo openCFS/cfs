@@ -323,6 +323,7 @@ void WriteResultsGMV<Dim>::WriteSolution(const Vector<Double> & sol, const Integ
  (*trace) << " entering WriteResultsGMV<Dim>::WriteSolution " << std::endl;
 #endif
 
+  if (sol.size()<=history_node_) Error("Please, check history-nodes in config-file.",__FILE__,__LINE__);
   if (NeedHistory_) AddInHistory(time,sol[history_node_]);
 
   Integer type=1; // 0 - for cell 

@@ -286,7 +286,9 @@ void  WriteResultsUnverg<Dim>::Init(Grid<Dim> * aptgrid)
 template<class Dim>
 void  WriteResultsUnverg<Dim>::WriteSolution(const Vector<Double> & sol, const Integer step, const Double time, const std::string title)
 {
- if (NeedHistory_ && title=="fluid potential") AddInHistory(time,sol[history_node_]);
+ if (sol.size()<=history_node_) Error("Please, check history-nodes in config-file.",__FILE__,__LINE__);
+
+ if (NeedHistory_ && title == "fluid potential")  AddInHistory(time,sol[history_node_]); 
 
  Dataset55(title, sol, step+1, time);
 }

@@ -270,10 +270,8 @@ void Acoustic2dPDE::SolveStepStatic(BCs * ptBCs, Integer level)
 
   SetupMatrices(type);
   SetBCs(ptBCs,level,update,0);
-  std::cout << " before compute precond " << std::endl;
   ptalgsys_->ComputePrecond(job,AS_sysid_);
   ptalgsys_->SolveAlgSys(AS_sysid_);
-  std::cout << " after solving " << std::endl;
 }
 
 void Acoustic2dPDE::SolveStepTrans(BCs * ptBCs, const Integer kstep, const Double asteptime, const Integer level, const Boolean reset)
@@ -316,10 +314,8 @@ void Acoustic2dPDE::SolveStepTrans(BCs * ptBCs, const Integer kstep, const Doubl
         };
 
   SetBCs(ptBCs,level,update,lasttimecalc_);
-  std::cout << " before compute precond " << std::endl;
   ptalgsys_->ComputePrecond(job,AS_sysid_);
   ptalgsys_->SolveAlgSys(AS_sysid_);
-  std::cout << " after solving " << std::endl;
   ptsol = ptalgsys_->GetSolution(AS_sysid_);
 
     // save solution

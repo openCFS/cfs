@@ -82,7 +82,7 @@ void TransientDriver :: SolveProblemAdapt()
   Integer level=0;
   Integer pdenumber  = 0;
   Integer nsys = 0;
-  Double steptime=0;
+  Double steptime=firstdt_;
 
   // calculation of end-time
   Double endtime=numstep_*firstdt_;
@@ -103,33 +103,21 @@ void TransientDriver :: SolveProblemAdapt()
   if (InfoPrint)
    (*infofile) << "# step   " << " timestep " << std::endl << 0 << "  " << dt << std::endl;
   
-  Double steptime_prev;  
-
-  Integer nstep=0;
-  for (; steptime < endtime ; nstep++)
-    {
-      steptime_prev=steptime;
-
-      steptime+=dt;
-
-      if (steptime > endtime)
-   {
-      std::cout << steptime << std::endl;
-      dt=endtime-steptime_prev;
-      ptdomain_->GetPDE(pdenumber)->CalcParameters(dt);
-      ptdomain_->GetPDE(pdenumber)->SetMatrixFactors();
-
-      steptime=endtime;
-   }
-
+Integer nstep=0;
+do
+  {
       ptdomain_->GetPDE(pdenumber)->SolveStepTrans(ptdomain_->GetBCs(), nstep, steptime, level, resetsysmat);
 
    // writing results in output-file
       ptdomain_->GetPDE(pdenumber)->WriteResultsInFile();
 
+      nstep++;
+      steptime+=dt; 
+
   // test error
    if (ptTimeError->TestError(dt))
       {
+         Double prev_dt=dt;
          ptTimeError->ChangeStep(dt);
 
          ptdomain_->GetPDE(pdenumber)->CalcParameters(dt);
@@ -139,15 +127,25 @@ void TransientDriver :: SolveProblemAdapt()
 
        // print info in file.info
          if (InfoPrint)
-          (*infofile) <<  nstep+1 << "  " << steptime << "     change " << std::endl;
+         { 
+            (*infofile) << " steps" << prev_dt << " " << dt << std::endl;
+
+        if (prev_dt < dt)
+          (*infofile) <<  nstep+1 << "  " << steptime << "     change    coarse" << std::endl;
+            else
+           (*infofile) <<  nstep+1 << "  " << steptime << "     change    refine" << std::endl;
+         }
 
       }
-   else 
+   else
      {
        // print info in file.info
          if (InfoPrint)
           (*infofile) << nstep << "  " << steptime << std::endl;
      }
-   }
+   } while (steptime <= endtime);
+
+  std::cout << " number of steps " << nstep << std::endl;
 }
-}
+
+} // end of namespace

@@ -198,7 +198,6 @@ void GeTetrahedral::SetTransformFncAtIntPoints()
       TransFncAtIP3[i]=TransFnc3(IntPoints[i][0],IntPoints[i][1],IntPoints[i][2]);
       TransFncAtIP4[i]=TransFnc4(IntPoints[i][0],IntPoints[i][1],IntPoints[i][2]);
     }
-
 }
 
 void GeTetrahedral::SetDerTransformFncAtIntPoints()
@@ -297,9 +296,9 @@ if (NeedJinv)
 
  J.Jinv[0][0] = J.J[1][1]*J.J[2][2]-J.J[1][2]*J.J[2][1];
 
- J.Jinv[0][1] = J.J[0][2]*J.J[2][1]- J.Jinv[0][1]*J.J[2][2];
+ J.Jinv[0][1] = J.J[0][2]*J.J[2][1]- J.J[0][1]*J.J[2][2];
 
- J.Jinv[0][2] = J.J[0][1]*J.J[1][2]- J.Jinv[1][1]*J.J[0][2];
+ J.Jinv[0][2] = J.J[0][1]*J.J[1][2]- J.J[1][1]*J.J[0][2];
 
  J.Jinv[1][0] = J.J[1][2]*J.J[2][0]-J.J[1][0]*J.J[2][2];
 
@@ -315,12 +314,57 @@ if (NeedJinv)
 
  J.Jinv*=aux;
 }
+
 }
 
 void GeTetrahedral::CalcJacobian(Jacobian<Point2D> & J, const Integer ip,
                      const Point2D * const ptCoord, const Boolean NeedJinv)
 {
  Error("This element is from 3D", __FILE__, __LINE__);
+}
+
+///////////////////////////////////////////////////////////////////////////
+
+Vector<Double> *  GeTetrahedral::GetDxShFncAtIP(const Integer iShFnc)
+{
+  switch(iShFnc)
+{ case 1:
+     return &  DxTransFncAtIP1;
+  case 2:
+     return &  DxTransFncAtIP2;
+  case 3:
+     return &  DxTransFncAtIP3;
+  case 4:
+     return &  DxTransFncAtIP4;
+}
+}
+
+Vector<Double> *  GeTetrahedral::GetDyShFncAtIP(const Integer iShFnc)
+{
+  switch(iShFnc)
+{ case 1:
+     return &  DyTransFncAtIP1;
+  case 2:
+     return &  DyTransFncAtIP2;
+  case 3:
+     return &  DyTransFncAtIP3;
+  case 4:
+     return &  DyTransFncAtIP4;
+}
+}
+
+Vector<Double> *  GeTetrahedral::GetDzShFncAtIP(const Integer iShFnc)
+{
+  switch(iShFnc)
+{ case 1:
+     return &  DzTransFncAtIP1;
+  case 2:
+     return &  DzTransFncAtIP2;
+  case 3:
+     return &  DzTransFncAtIP3;
+  case 4:
+     return &  DzTransFncAtIP4;
+}
 }
 
 } // end of namespace
