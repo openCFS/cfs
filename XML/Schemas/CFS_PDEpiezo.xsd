@@ -45,6 +45,15 @@
           <xsd:element name="materialDataType" type="DT_matData"
             minOccurs="0"/>
 
+          <!-- Poling direction of piezoelectric body (optional) -->
+          <xsd:element name="polingDirectionX" type="DT_Poling"
+            minOccurs="0"/>
+          <xsd:element name="polingDirectionY" type="DT_Poling"
+            minOccurs="0"/>
+          <xsd:element name="polingDirectionZ" type="DT_Poling"
+            minOccurs="0"/>
+
+
           <!-- Boundary Conditions & Loads (optional) -->
           <xsd:element name="bcsAndLoads" minOccurs="0" maxOccurs="unbounded">
             <xsd:complexType>
@@ -255,6 +264,12 @@
     <xsd:attribute name="type" type="DT_PiezoDampType" use="required"/>
   </xsd:complexType>
 
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of material data type (real or complex) -->
+  <!-- ******************************************************************** -->
+
+
   <xsd:simpleType name="DT_matDataType">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="imagMaterialParameter"/>
@@ -266,6 +281,21 @@
     <xsd:attribute name="type" type="DT_matDataType" use="required"/>
   </xsd:complexType>
 
+  <!-- ******************************************************************** -->
+  <!--   Definition of poling direction -->
+  <!-- ******************************************************************** -->
+
+
+  <xsd:simpleType name="DT_polingDirection">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="0"/>
+      <xsd:enumeration value="1"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <xsd:complexType name="DT_Poling">
+    <xsd:attribute name="pol" type="DT_polingDirection" use="optional"/>
+  </xsd:complexType>
 
   <!-- ******************************************************************** -->
   <!--   Definition of data type for non-linearity in piezoelectric PDEs -->
