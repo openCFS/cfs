@@ -116,6 +116,10 @@ protected:
 
 private:
 
+  /// calc rhs coupling to acoustic pde
+  void CalcAcousticCouplingRHS(std::vector<Elem*> * couplingElems, Vector<Double>& forceOnElem);
+  
+
   /// does a line search and returns the optimal residual norm
   Double LineSearch(std::vector<Double>& solIncrement, std::vector<Double>& actSol, Integer level);
 
@@ -154,9 +158,9 @@ private:
   */
   virtual void StepStaticNonLin(const Integer level);
 
-  /// returns the solution vector belonging to all nodes of the actual element
+  /// returns the solution matrix belonging to all nodes of the actual element
   void GetSolOfElement( Matrix<Double>& elDisp, Vector<Integer>& connect_PDE);
-
+  
   /// value of prestress
   Double preStressVal_;
 

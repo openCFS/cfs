@@ -27,8 +27,6 @@ RectangleFE::RectangleFE()
   if (conf->ifget("IntegRules", IntRule)==TRUE)
       conf->ifget("rectangle",integtype,"IntegRules");
 
-  myCout << "SEAS " <<integtype << myEndl;
-  
   IntegType=String2EnumIntegrationType(integtype.c_str());
 
 }
