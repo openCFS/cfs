@@ -61,6 +61,7 @@ libsrc/Domain/boundcond.cc svneol=native#text/plain
 libsrc/Domain/boundcond.hh svneol=native#text/plain
 libsrc/Domain/domain.cc svneol=native#text/plain
 libsrc/Domain/domain.hh svneol=native#text/plain
+libsrc/Domain/elem.hh svneol=native#text/plain
 libsrc/Domain/grid.cc svneol=native#text/plain
 libsrc/Domain/grid.hh svneol=native#text/plain
 libsrc/Driver/Makefile -text
@@ -82,8 +83,12 @@ libsrc/Elements/2D/rectangle.hh svneol=native#text/plain
 libsrc/Elements/2D/triangle1.cc svneol=native#text/plain
 libsrc/Elements/2D/triangle1.hh svneol=native#text/plain
 libsrc/Elements/3D/Makefile -text
+libsrc/Elements/3D/gehexahedral.cc svneol=native#text/plain
+libsrc/Elements/3D/gehexahedral.hh svneol=native#text/plain
 libsrc/Elements/3D/getetrahedral.cc svneol=native#text/plain
 libsrc/Elements/3D/getetrahedral.hh svneol=native#text/plain
+libsrc/Elements/3D/hexahedral1.cc svneol=native#text/plain
+libsrc/Elements/3D/hexahedral1.hh svneol=native#text/plain
 libsrc/Elements/3D/tetrahedral1.cc svneol=native#text/plain
 libsrc/Elements/3D/tetrahedral1.hh svneol=native#text/plain
 libsrc/Elements/Makefile -text
@@ -101,6 +106,7 @@ libsrc/Estimator/actimeerror.cc svneol=native#text/plain
 libsrc/Estimator/actimeerror.hh svneol=native#text/plain
 libsrc/Estimator/elecst2dErr.cc svneol=native#text/plain
 libsrc/Estimator/elecst2dErr.hh svneol=native#text/plain
+libsrc/Estimator/spaceerror.cc svneol=native#text/plain
 libsrc/Estimator/spaceerror.hh svneol=native#text/plain
 libsrc/Estimator/timeerror.cc svneol=native#text/plain
 libsrc/Estimator/timeerror.hh svneol=native#text/plain
@@ -137,6 +143,8 @@ libsrc/Matrix/symsparsematrixCRS.hh svneol=native#text/plain
 libsrc/PDE/Makefile -text
 libsrc/PDE/acoustic2dPDE.cc svneol=native#text/plain
 libsrc/PDE/acoustic2dPDE.hh svneol=native#text/plain
+libsrc/PDE/acoustic3dPDE.cc svneol=native#text/plain
+libsrc/PDE/acoustic3dPDE.hh svneol=native#text/plain
 libsrc/PDE/basepde.cc svneol=native#text/plain
 libsrc/PDE/basepde.hh svneol=native#text/plain
 libsrc/PDE/elec2dPDE.cc svneol=native#text/plain
@@ -145,6 +153,7 @@ libsrc/PDE/elecst2dPDE.cc svneol=native#text/plain
 libsrc/PDE/elecst2dPDE.hh svneol=native#text/plain
 libsrc/PDE/elecst3dPDE.cc svneol=native#text/plain
 libsrc/PDE/elecst3dPDE.hh svneol=native#text/plain
+libsrc/PDE/pdes_header.hh svneol=native#text/plain
 libsrc/PDE/therm2dPDE.cc svneol=native#text/plain
 libsrc/PDE/therm2dPDE.hh svneol=native#text/plain
 libsrc/ParamIdent/Makefile -text
