@@ -71,6 +71,8 @@ namespace CoupledField
       out = EIGENFREQUENCY;
     else if(in == "multiSequence")
       out = MULTI_SEQUENCE;
+    else if (in == "paramIdent")
+      out = HARMONIC;  // since the parameter identification process lives in freqeuncy domain
     else
      {
 	errMsg  = "'";
