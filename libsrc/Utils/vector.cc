@@ -55,6 +55,17 @@ Vector<TYPE>::~Vector()
 
 
 template<class TYPE>
+void Vector<TYPE>::Clear()
+{
+  ENTER_IFCN( "Vector::Clear()" );
+  
+  size_ = 0;
+  if (data_)
+    delete[] data_;
+  data_ = NULL;
+}
+
+template<class TYPE>
 Boolean Vector<TYPE>::IsComplex()
 {
   return FALSE;
@@ -730,7 +741,7 @@ Double Vector<TYPE>::NormL2() const
   ENTER_IFCN( "Vector::NormL2" );
 #ifdef CHECK_INITIALIZED
 if (size_ == 0)
-  Warning("Vector: undefined Vector in function norm_2()", 
+  Warning("Vector: undefined Vector in function norm_2()",  
 	  __FILE__, __LINE__);
 #endif
 	
