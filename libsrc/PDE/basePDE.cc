@@ -1586,10 +1586,13 @@ void BasePDE::CalcInputCoupling()
   Double * help;
   Integer pdeNode, eqnNr,eqnDof, helpnode;
   Integer couplingDof;
-  
+  Boolean clearCoords = TRUE;
+
   // Reset counter for boundary conditions
   couplingBCsCounter_ = 0;
   
+
+  // Outer loop over all INPUT coupling terms
   for (Integer i=0; i<ptCoupling_->GetNumInputCouplings(); i++)
     {
 
@@ -1603,14 +1606,20 @@ void BasePDE::CalcInputCoupling()
 
       switch(ptCoupling_->GetInputType(i))
 	{
-	  
+	  // -------------------
+	  // COORDINATE COUPLING
+	  // -------------------
 	case COORD:
 	  initMatrices_ = TRUE;
 	  ptCoupling_->GetInputNodes(i, nodes);
-	  // -- OLD --
-	  //deltCoords_.reshape(Dim_, numPDENodes_);
 
-	  deltCoords_.Resize(dim_, numPDENodes_);
+	  // Resize + clear coordinate updates
+	  // only the first time
+	  if (clearCoords == TRUE)
+	    {
+	      deltCoords_.Resize(dim_, numPDENodes_);
+	      clearCoords = FALSE;
+	    }
 	  
 	  // set ptr of deltCoords to assembly-object
 	  assemble_->SetPtrDeltaCoordinates(&deltCoords_);
@@ -1629,12 +1638,14 @@ void BasePDE::CalcInputCoupling()
 		  Error(errMsg.c_str(), __FILE__, __LINE__);
 		}
  		deltCoords_(dof,pdeNode-1) = help[dof + j*dim_];
-// 		std::cerr << pdename_ << "-Coord: Node " << (*nodes)[j];
-// 		std::cerr << ", value = " << help[dof + j*dim_] << std::endl;
-	      }
-	  
+
+		      }
+	  std::cerr << "---------------------------------" << std::endl << std::endl;
 	  break;
 
+	  // -------------------
+	  // RHS COUPLING
+	  // -------------------
 	case RHS:
 	  //std::cerr << "In " << pdename_ << "::CalcInputCoupling - Switch(RHS)" << std::endl;
 	  ptCoupling_->GetInputNodes(i, nodes);
@@ -1672,6 +1683,9 @@ void BasePDE::CalcInputCoupling()
 	  
 	  break;
 
+	  // -----------------------
+	  // InhomDirichlet COUPLING
+	  // -----------------------
 	case ID_BC:
 	  //std::cerr << "In " << pdename_ << "::CalcInputCoupling - Switch(ID_BC)" << std::endl;
  	  ptCoupling_->GetInputNodes(i, nodes);
