@@ -428,92 +428,9 @@ void WriteResultsUnverg::NodeElemDataHarmonic(const Integer dataSetNr,
   
 }
 
-// void  WriteResultsUnverg::Dataset56_Transient(const std::string & title, 
-// 					      const Vector<Double> & x, 
-// 					      const Integer step, 
-// 					      const Double time, 
-// 					      const Integer numElems,
-// 					      const Integer nrDofs)
-// {
-  
-//    if (!ptgrid)
-//       Error("ptgrid is not initialized", __FILE__,__LINE__);
-
-//   (*output) << std::setw(6) << -1 << std::endl << std::setw(6) << 56 << std::endl;
-
-//   (*output).setf(std::ios::scientific);
-//   (*output).precision(6);
-//   (*output).setf(std::ios::uppercase);
-
-//   Integer valsPerNode = nrDofs;
-//   if (nrDofs ==2)
-//     valsPerNode = 3;
-
-//   //just for stresses
-//   Integer stress1 =2;
-//   Integer stress2 = 0;
-//   if (nrDofs==6) {
-//     stress1 = 4;
-//     stress2 = 2;
-//   }
-
-//   (*output) << " " << title << ", step" << std::setw(6) << step <<
-//               " time   " << time << std::endl;  
-//   (*output) << std::endl << std::endl << std::endl << std::endl;
-//   (*output) << std::setw(10) << 1 << std::setw(10) << 4 << std::setw(10) << stress1 << std::setw(10) << stress2
-//             << std::setw(10) << 2 << std::setw(10) << valsPerNode << std::endl;
-//   (*output) << std::setw(10) << 2 << std::setw(10) << 1 << std::setw(10) << 1 << std::setw(10) <<
-//                step << std::endl;
-//   (*output) << " " << time << std::endl;       
-
-//   Integer i,j,n;
-//   n=numElems;  
-
-//   // for 2-dimensional solution, the plane has to be rotated
-//   if (nrDofs == 2)
-//     {
-//     for (i=0; i<n; i++)
-//  	{
-// 	  (*output) << std::setw(10) << i+1 << std::setw(10) << 3 << std::endl;
-
-// 	  (*output) << std::setw(13) << 0.0 << std::setw(13) << x[i*nrDofs];
-// 	  (*output)<< std::setw(13) << x[i*nrDofs+1] << std::endl;
-// 	}
-//     } 
-//   else
-//     {
-//       for (i=0; i<n; i++)
-//  	{
-// 	  (*output) << std::setw(10) << i+1 << std::setw(10) <<  nrDofs << std::endl;
-// 	  for (j=0; j<nrDofs; j++)
-// 	    (*output) << std::setw(14) << x[i*nrDofs + j];
-	  
-// 	  (*output) << std::endl;
-//  	}
-//     }
-
-//  (*output) << std::setw(6) << -1 << std::endl;
-// }  
-
-
-// void WriteResultsUnverg::Dataset56_Harmonic(const std::string & title, 
-// 					    const Vector<Complex> & x, 
-// 					    const Integer step,
-// 					    const Double frequency, 
-// 					    const ComplexFormat format, 
-// 					    const Integer numElems,
-// 					    const Integer nrDofs)
-// {
-
-//   Error("WriteResultsUnverg::Dataset56_Harmonic: Not implemented yet",
-// 	__FILE__, __LINE__);
-// }
-
-
-void  WriteResultsUnverg::Init(Grid * aptgrid, BCs * aptbcs)
+void  WriteResultsUnverg::Init(Grid * aptgrid)
 {
   ptgrid=aptgrid;
-  ptBCs_ = aptbcs;
 }
 
 void  WriteResultsUnverg::WriteNodeSolutionTransient(const NodeStoreSol<Double> & sol, 

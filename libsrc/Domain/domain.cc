@@ -385,7 +385,7 @@ namespace CoupledField {
 
   void Domain::PrintGrid(const Integer level) {
     ENTER_FCN( "Domain::PrintGrid" );
-    OutFile_->Init(ptgrid_, ptBCs_);
+    OutFile_->Init(ptgrid_);
     OutFile_->WriteGrid(level);
   }
 

@@ -23,8 +23,7 @@ public:
 
   //! initialization with grid
   //! \param ptgrid pointer to grid object
-  //! \param aptbcs pointer to BCs object
-  virtual void Init(Grid * aptgrid, BCs * aptbcs)=0;
+  virtual void Init(Grid * aptgrid)=0;
 
    //! deconstructor
    virtual ~WriteResults();
@@ -119,9 +118,6 @@ public:
   virtual void OpenFile(const Integer number)
   { Error("Not implemented",__FILE__,__LINE__);}
 
-  //! check, is it the gmv-output file
-  virtual Boolean IsGMV()=0;
-
 
   /// writes a matrix of the form ptCoordX ptCoorY ptCoordZ SolDof1 SolDof2 ...
   /*!
@@ -142,9 +138,6 @@ protected:
 
   //! pointer to Grid
   Grid * ptgrid;
-
-  //! pointer to BCs
-  BCs * ptBCs_;
 
   // ************************************
   //  Section dealing with history files 

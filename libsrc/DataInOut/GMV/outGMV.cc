@@ -970,10 +970,9 @@ void WriteResultsGMV::OpenFile(const Integer num)
   
 }
 
-void WriteResultsGMV::Init(Grid * aptgrid, BCs * aptbcs)
+void WriteResultsGMV::Init(Grid * aptgrid)
 {
   ptgrid=aptgrid;
-  ptBCs_ = aptbcs;
 }
 
 void WriteResultsGMV::to8Char(const std::string name, char * result)
