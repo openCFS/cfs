@@ -5,14 +5,8 @@
 #include <fstream>
 #include <math.h>
 
-// Temporary hack for avoiding namespace conflict for old C-functions and old SGI compiler
-#ifdef __sgi
-#include <stdio.h>
-#define SSCANF sscanf
-#else
 #include <cstdio>
 #define SSCANF std::sscanf
-#endif
 
 //#include <limits.h>
 
@@ -26,130 +20,128 @@
 namespace CoupledField
 {
 
-  LoadMaterialDataFile::LoadMaterialDataFile (const char * aFilename)
-    :filename(aFilename),scaleMatDat(0)
-  {
-    ENTER_FCN("LoadMaterialDataFile::LoadMaterialDataFile");
+
+  // ***************
+  //   Constructor
+  // ***************
+  LoadMaterialDataFile::LoadMaterialDataFile( const char * aFilename )
+    : filename(aFilename), scaleMatDat(0) {
+    ENTER_FCN( "LoadMaterialDataFile::LoadMaterialDataFile" );
   }
 
 
-  // load material information from file "filename"
-  void LoadMaterialDataFile::GetMaterial( MaterialData& material, const std::string matName, const std::string matType)
-  {
-    ENTER_FCN("LoadMaterialDataFile::GetMaterial");
-    char buffer[bufLength];  
-    
-    // 
-    char * charFileName = c_string(filename);
-    char * charMatName = c_string(matName);
-    char * charMatType = c_string(matType);    
-    
-    std::ifstream fin(charFileName);
-    Boolean matC=FALSE;
+  // ************************
+  //   LoadMaterialDataFile
+  // ************************
 
-    if (!fin.good())
-      {
-	std::cerr << "File " << filename << " does not exist!" << std::endl;
-	exit(1);
-      }
+  // method for loading  material information from file "filename"
+
+  void LoadMaterialDataFile::GetMaterial( MaterialData& material,
+                                          const std::string matName,
+                                          const std::string matType ) {
+
+    ENTER_FCN( "LoadMaterialDataFile::GetMaterial" );
+
+    char buffer[bufLength];
+
+    // Open data file and check for errors
+    std::ifstream fin( filename );
+    Boolean matC = FALSE;
+
+    if ( !fin.good() ) {
+      std::cerr << "File " << filename << " does not exist!" << std::endl;
+      exit(1);
+    }
 
 #ifdef DEBUG
     (*debug) << std::endl << "*** Load material data of " << matName 
-	     << " from type " << matType << " from file " << filename << std::endl;
+	     << " from type " << matType << " from file " << filename
+             << std::endl;
 #endif
 
-    
-    FindMat(fin, charMatName, buffer, charMatType);
+    FindMat( fin, matName.c_str(), buffer, matType.c_str() );
 
     // first line of material record: matNr. matType matName (nonLin)
-    SSCANF(buffer,"%*d%s", charMatType);
+    // SSCANF(buffer,"%*d%s", charMatType );
+    SSCANF(buffer,"%*d%*s" );
+   
+    if ( matType == "piezo" ) {
 
-	/*
-	  if (strcmp(charMatType,"magnonlin") == 0)
-	  {
-	  material = new MaterialData;
-	  ReadMagNonLin(fin, material);
-	  }
-	*/
+      // read real parts of piezo Material
+      ReadPiezo( fin, &material, matC );
 
-    
-	if (strcmp(charMatType,"piezo") == 0 )
-	  {
-	    ReadPiezo(fin,&material,matC);	// reads real parts of piezo Material
+      if( params->HasValue( "type", "imagMaterialParameter", "piezo",
+                            "materialDataType" ) ) {
 
-	    if( params->HasValue( "type", "imagMaterialParameter", "piezo", "materialDataType" ) ) {
+        matC = TRUE;
+        std::string matNameImag = matName + "-imag";
 
-	      matC=TRUE;
+        // std::strcat( charMatName, "-imag" );
 
-	      std::strcat(charMatName,"-imag");
+        FindMat( fin, matNameImag.c_str(), buffer, matType.c_str() );
 
-	      FindMat(fin, charMatName, buffer, charMatType);
+        // SSCANF( buffer, "%*d%s", charMatType );
+        SSCANF( buffer, "%*d%*s" );
 
-	      SSCANF(buffer,"%*d%s", charMatType);
+        // Read imaginary parts of piezo Material
+        ReadPiezo( fin, &material, matC );
+      }
 
-	      ReadPiezo(fin, &material,matC);   // reads imaginary parts of piezo Material
-	    } 
-	
-	    /*
-	      if (eulerAngles.size())
-	      {
-	      EulerAnglesRotate(&material, eulerAngles[i]);
-	    
-	      std::cout << "after EULER ROTATION : " << std::endl
-	      << "LoadMaterialDataFile::LoadMaterial: gesamte Piezo-Datenmatrix von " << matName
-	      << ":" << std::endl << *material.GetMatrix() << std::endl << std::endl
-	      << "density = " << material.GetDensity() << std::endl
-	      << "damping coefficient alfa = " << material.GetDampingAlfa() << std::endl
-	      << "damping coefficient beta = " << material.GetDampingBeta() << std::endl;
+    }
 
-	      if (scaleMatDat)
-	      std::cout << std::endl << "!!!!!! SCALING with Diag(1e-5, 1e-5, 1e-5, 1e-5, 1e-5, 1e-5, "
-	      << "1e5, 1e5, 1e5) IS ON !!!!! " << std::endl << std::endl;	   
-	      }
-	    */
-	  } // end if strcmp()...
-    
-	else if (strcmp(charMatType,"fluid") == 0)
-	  ReadFluid(fin, &material);
-    
-	else if (strcmp(charMatType,"magnetic") == 0 )
-	  ReadMagnetic(fin, &material);
-    
-	else 
-	  {
-	    std::cerr << "Warning: materialtype " << charMatType << " in File " << filename << " unknown!" << std::endl;
-	    exit(EXIT_FAILURE);
-	  }
-    
+    else if ( matType == "fluid" ) {
+      ReadFluid(fin, &material);
+    }
+
+    else if ( matType == "magnetic" ) {
+      ReadMagnetic(fin, &material);
+    }
+
+    else {
+      (*error) << "Warning: material type " << matType << " in File "
+               << filename << " unknown!";
+      Error( __FILE__, __LINE__ );
+    }
+
+    // Close data file
     fin.close();
+
   }
 
 
-  // read next line - ignor lines with char # in it
-  void LoadMaterialDataFile::ReadLine(std::ifstream & fin, char* buffer)
-  {
-    ENTER_FCN("LoadMaterialDataFile::ReadLine");
+  // ************
+  //   ReadLine
+  // ************
+
+  // read next line - ignore lines with char # in it
+  void LoadMaterialDataFile::ReadLine( std::ifstream & fin, char* buffer ) {
+
+    ENTER_FCN( "LoadMaterialDataFile::ReadLine" );
+
     Integer found = 0;
 
-    while (!found && !fin.eof())
-      {
-	fin.getline(buffer,bufLength,'\n');
-	if ( strchr(buffer,'#') == NULL )
-	  found = 1;
-	if (fin.eof())
-	  {
-	    buffer = NULL;
-	    //std::cout << std::endl << " ReadLine: Unexpected end of file! " << std::endl;
-	    //exit(EXIT_FAILURE);
-	  }
+    while ( !found && !fin.eof() ) {
+      fin.getline( buffer, bufLength, '\n' );
+      if ( strchr(buffer,'#') == NULL ) {
+        found = 1;
+	if ( fin.eof() ) {
+          buffer = NULL;
+          //std::cout << std::endl << " ReadLine: Unexpected end of file! "
+          // << std::endl;
+          //exit(EXIT_FAILURE);
+        }
       }
+    }
   }
 
 
+  // ***********
+  //   FindMat
+  // ***********
+  void LoadMaterialDataFile::FindMat( std::ifstream &fin, const char* matName,
+                                      char* buffer, const char* matType ) {
 
-  void LoadMaterialDataFile :: FindMat(std::ifstream & fin, const char* matName, char* buffer, char* matType)
-  {
-    ENTER_FCN("LoadMaterialDataFile::FindMat");
+    ENTER_FCN( "LoadMaterialDataFile::FindMat" );
 
     std::string errMsg;
 
@@ -161,36 +153,37 @@ namespace CoupledField
     // set reading position to the beginning of the file
     fin.seekg(0, std::ios::beg);
 
-    while (!found && !fin.eof() )
-      {
-	pos = fin.tellg();
-	ReadLine(fin, buffer);
-	SSCANF(buffer,"%*d%s",tempMatType);
-	SSCANF(buffer,"%*d%*s%s",tempMatName);
+    while (!found && !fin.eof() ) {
 
-	if ( strcmp(matName,tempMatName) == 0 &&  
-	     strcmp(matType, tempMatType) == 0)
-	  {
-	    found = 1;
-	    fin.seekg(pos, std::ios::beg);
-	  }
+      pos = fin.tellg();
+      ReadLine(fin, buffer);
+      SSCANF(buffer,"%*d%s",tempMatType);
+      SSCANF(buffer,"%*d%*s%s",tempMatName);
+
+      if ( strcmp(matName,tempMatName) == 0 &&
+           strcmp(matType,tempMatType) == 0 ) {
+        found = 1;
+        fin.seekg(pos, std::ios::beg);
       }
+    }
 
-    if (!found)
-      {	
-	errMsg  = "FindMat: Material '";
-	errMsg += matName;
-	errMsg += "' not found in file '";
-	errMsg += filename;
-	errMsg += "'!";
-	Error(errMsg.c_str(), __FILE__, __LINE__);
-      }       
+    if (!found) {	
+      errMsg  = "FindMat: Material '";
+      errMsg += matName;
+      errMsg += "' not found in file '";
+      errMsg += filename;
+      errMsg += "'!";
+      Error(errMsg.c_str(), __FILE__, __LINE__);
+    }       
   }
 
 
-  void LoadMaterialDataFile :: ReadPiezo(std::ifstream & fin, MaterialData * material, Boolean & matC)
-  {
-    ENTER_FCN("LoadMaterialDataFile::ReadPiezo");
+  void LoadMaterialDataFile::ReadPiezo(std::ifstream &fin,
+                                       MaterialData *material,
+                                       Boolean &matC ) {
+
+    ENTER_FCN( "LoadMaterialDataFile::ReadPiezo" );
+
     Integer i,j;
     Double helpval;
     Double alfa,beta;
@@ -208,55 +201,53 @@ namespace CoupledField
     material -> SetName(materialName);
 
     // read stiffness matrix
-    for (i=1; i<=6; i++)
-      {
-	ReadLine(fin,buffer);
-	strPtr = new std::istringstream(buffer);
+    for (i=1; i<=6; i++) {
+      ReadLine(fin,buffer);
+      strPtr = new std::istringstream(buffer);
       
-	for (j=1 ; j<=6; j++)
-	  {
-	    *strPtr >> helpval;
-	    if (strPtr->fail())
-	      std::cout << "*** The materialfile is corrupt! ***  Material: " << materialName << std::endl;
+      for (j=1 ; j<=6; j++) {
+        *strPtr >> helpval;
+        if (strPtr->fail())
+          std::cout << "*** The materialfile is corrupt! ***  Material: "
+                    << materialName << std::endl;
 
-	    //	    material -> SetPiezoMatrixData(i,j, helpval);
+        // material -> SetPiezoMatrixData(i,j, helpval);
 
-	    if (matC==FALSE)
-	      material -> SetPiezoMatrixData(i-1, j-1, helpval);
-	    else if (matC==TRUE)
-	      material -> SetPiezoMatrixDataC(i-1, j-1, helpval);
-	  }
-	delete strPtr;	
+        if (matC==FALSE)
+          material -> SetPiezoMatrixData(i-1, j-1, helpval);
+        else if (matC==TRUE)
+          material -> SetPiezoMatrixDataC(i-1, j-1, helpval);
       }
-    
-    
+      delete strPtr;	
+    }
 
     // read piezoelectric coupling terms
-    for (i=1; i<=3; i++)
-      {
-	ReadLine(fin,buffer);
-	strPtr = new std::istringstream(buffer);
+    for ( i = 1; i <= 3; i++ ) {
+      ReadLine(fin,buffer);
+      strPtr = new std::istringstream(buffer);
       
-	for (j=1 ; j<=6; j++)
-	  {
-	    *strPtr >> helpval;
-	    if (strPtr->fail())
-	      std::cout << "*** The materialfile is corrupt! ***  Material: " << materialName << std::endl;
+      for ( j = 1; j <= 6; j++ ) {
+        *strPtr >> helpval;
+        if (strPtr->fail())
+          std::cout << "*** The materialfile is corrupt! ***  Material: "
+                    << materialName << std::endl;
 
-	    if (matC==FALSE){
-	      material -> SetPiezoMatrixData(i+6-1,j-1, helpval);
-	      material -> SetPiezoMatrixData(j-1,i+6-1, helpval);     // writes transposed coupling terms
-	    //	    material -> SetPiezoMatrixData(i+6,j, helpval);
-	    //	    material -> SetPiezoMatrixData(j,i+6, helpval);     // writes transposed coupling terms
-	    }
-	    else if (matC==TRUE){
-	      material -> SetPiezoMatrixDataC(i+6-1,j-1, helpval);
-	      material -> SetPiezoMatrixDataC(j-1,i+6-1, helpval);     // writes transposed coupling terms
-	    }
-	  }
-	delete strPtr;	
+        if ( matC == FALSE ) {
+          material -> SetPiezoMatrixData(i+6-1,j-1, helpval);
+          // write transposed coupling terms
+          material -> SetPiezoMatrixData(j-1,i+6-1, helpval);
+          // material -> SetPiezoMatrixData(i+6,j, helpval);
+          // write transposed coupling terms
+          // material -> SetPiezoMatrixData(j,i+6, helpval);
+        }
+        else if (matC==TRUE){
+          material -> SetPiezoMatrixDataC(i+6-1,j-1, helpval);
+          // write transposed coupling terms
+          material -> SetPiezoMatrixDataC(j-1,i+6-1, helpval);
+        }
       }
-
+      delete strPtr;	
+    }
 
     // read dielectric terms
     for (i=1; i<=3; i++)
@@ -268,7 +259,8 @@ namespace CoupledField
 	  {
 	    *strPtr >> helpval;
 	    if (strPtr->fail())
-	      std::cout << "*** The materialfile is corrupt! ***  Material: " << materialName << std::endl;
+	      std::cout << "*** The materialfile is corrupt! ***  Material: "
+                        << materialName << std::endl;
 
 	    if (matC==FALSE){
 	    //	    material -> SetPiezoMatrixData(i+6-1,j+6-1, helpval);
@@ -292,30 +284,38 @@ namespace CoupledField
  
     if( params->HasValue( "y", "1", "piezo", "polingDirection" ) ){
       if (params->HasValue("subtype", "axi", "piezo") ){
-	std::cout<<"\n Be aware, that you are treating an axisymmetric piezoelectric body, which does not have any y-direction.";
-	std::cout<<"\n Please check your xml-file. \n Press Ctrl+C to stop calculation, any other key to continue."<<std::endl;
+	std::cout<< "\n Be aware, that you are treating an axisymmetric "
+                 << "piezoelectric body, which does not have any y-direction."
+                 << "\n Please check your xml-file. \n Press Ctrl+C to stop "
+                 << "calculation, any other key to continue."
+                 << std::endl;
 	getchar();
       }
-      a2=1;
+      a2 = 1;
     }
  
-    if( params->HasValue( "z", "1", "piezo", "polingDirection" ) )
-      a3=1;
+    if( params->HasValue( "z", "1", "piezo", "polingDirection" ) ) {
+      a3 = 1;
+    }
  
-    if (a1==0&&a2==0&&a3==0)
-      a3=1.0;    // if no poling direction is specified, the z-direction is chosen by default 
+    // if no poling direction is specified,
+    // the z-direction is chosen as default
+    if ( a1 == 0 && a2 == 0 && a3 == 0 ) {
+      a3 = 1.0;
+    }
 
     material->RotateMaterialMatrix(a1,a2,a3);
-    
+
     ReadLine(fin,buffer);
     strPtr = new std::istringstream(buffer);
     *strPtr >>  density >> alfa >> beta;
-    if (strPtr->fail())
-      std::cout << "*** The materialfile is corrupt! ***  Material: " << materialName << std::endl;
-
+    if (strPtr->fail()) {
+      std::cout << "*** The materialfile is corrupt! ***  Material: "
+                << materialName << std::endl;
+    }
     delete strPtr;	
 
-    // ================ SCALING OF PIEZOELECTRIC MATRICES =====================================
+    // ================ SCALING OF PIEZOELECTRIC MATRICES =====================
     /*
     // bring order of all data elems to 1 ==>
     //            | 1e-5  0 |   | c  e^T |   | 1e-5  0 |
@@ -364,14 +364,16 @@ namespace CoupledField
     Info->PrintPiezoMat(*material);
     
 
-    if (scaleMatDat)
-      Info->PrintF("","\n!!!!!! SCALING with Diag(1e-5, 1e-5, 1e-5, 1e-5, 1e-5, 1e-5,1e5, 1e5, 1e5) IS ON !!!!!\n\n ");
-    
+    if (scaleMatDat) {
+      Info->PrintF( "", "\n!!!!!! SCALING with Diag(1e-5, 1e-5, 1e-5, 1e-5,"
+                    "1e-5, 1e-5,1e5, 1e5, 1e5) IS ON !!!!!\n\n ");
+    }
   }
 
 
-  void LoadMaterialDataFile :: ReadFluid(std::ifstream & fin, MaterialData * material)
-  {
+  void LoadMaterialDataFile::ReadFluid( std::ifstream &fin,
+                                        MaterialData *material ) {
+
     ENTER_FCN("LoadMaterialDataFile::ReadFluid");
     Double alfa,beta;
     Double density, compress;   
@@ -391,10 +393,11 @@ namespace CoupledField
     *strPtr >> density >> compress >> alfa >> beta >> BoverA;
     if (strPtr->fail())
       std::cout << "*** The materialfile is corrupt! ***  Material: " 
-				<< materialName << std::endl
-				<< "Please specify density, compression module, alfa, beta and BoverA."
-				<< std::endl;
-	
+                << materialName << std::endl
+                << "Please specify density, compression module, alfa, beta "
+                << "and BoverA."
+                << std::endl;
+
     delete strPtr;
     
     material->SetCompressibility(compress);
@@ -454,22 +457,6 @@ namespace CoupledField
 
 
 } // end namespace CoupledField
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
   /*
