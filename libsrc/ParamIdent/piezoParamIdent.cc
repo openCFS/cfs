@@ -11,17 +11,29 @@
 #include "Forms/baseForm.hh"
 #include "Utils/vector.hh"
 #include "Utils/nodestoresol.hh"
+#include "Utils/elemstoresol.hh"
 #include "DataInOut/MaterialData.hh"
 #include "PDE/timestepping.hh"
 #include "Utils/baseelemstoresol.hh"
 #include "singleDriver.hh"
+#include "PDE/nodeEQN.hh"
+
+#include <stdlib.h>
+#include <Domain/elem.hh>
+
+#include <sstream>
+#include <iomanip>
+
+#include <stdio.h>
+#include <cstdarg>
+#include "Utils/tools.hh"
+#include <PDE/pdes_header.hh>
+
+
+
 //#include "/../OLAS/algsys/basesystem.hh"
 //#include "DataInOut/piezoParameterData.hh"
 
-
-#include <fstream>
-#include <iostream>
-#include <string>
 
 
 namespace CoupledField
@@ -41,8 +53,8 @@ namespace CoupledField
 		  driverTag, isPartOfSequence){
 
     ENTER_FCN( "piezoParamIdent::piezoParamIdent" );
-
-    Char* measuredData="measuredData.dat";
+ 
+    //Char* measuredData="measuredData.dat";
     allMeasuredData.open("measuredData.dat");
 
     if (!allMeasuredData.good())
@@ -52,6 +64,27 @@ namespace CoupledField
       }
     else
       std::cerr <<"File measuredData is opened to be read" << std::endl;
+
+    std::cout<<"Opens impedCurve.dat ... "<<std::endl;
+    std::string filename= "imped.dat";
+    impedCurve = new std::ofstream(filename.c_str(),std::basic_ios<char>::out);
+
+    //      Char* char_impedCurve="impedCurve.dat";
+    //      impedCurve.open('impedCurve.dat', basic_ios::out);
+    //      std::ofstream impedCurve = new std::ofstream("impedCurve.dat",std::basic_ios::out);
+    //    std::string filename= "impedCurve.dat";
+
+    //       impedCurve = new std::ofstream(filename.c_str());
+    //    impedCurve.open(char_impedCurve,std::out);
+    //      std::ofstream impedCurve('impedCurve.dat', basic_ios::out);
+
+    if (!impedCurve)
+      {
+	std::cerr << "ImpedanceCurve.dat could not be initialized" << std::endl;
+      }
+    std::cout<<"Opend impedCurve.dat ... "<<std::endl;
+
+
   } // end of constructor
 
 
@@ -65,37 +98,76 @@ namespace CoupledField
 
   void piezoParamIdent :: SolveProblem() {
     ENTER_FCN( "piezoParamIdent::SolveProblem" );
-    std::cout<<"\n Calc parameter() in piezoParamIdent ... \n";
+
+    Integer highestAssumableNrOfMeasData=20;
 
     parameter.Resize(10);
     parameterIncrement.Resize(10);
     parameterIncrement = parameter;
-    omegas.Resize(15);
-    freqs.Resize(15);
-    real.Resize(15);
-    imag.Resize(15);
-    amplitude_phase.Resize(15);
-    F_hat.Resize(15);
+    omegas.Resize(highestAssumableNrOfMeasData);
+    freqs.Resize(highestAssumableNrOfMeasData);
+    real.Resize(highestAssumableNrOfMeasData);
+    imag.Resize(highestAssumableNrOfMeasData);
+    amplitude_phase.Resize(highestAssumableNrOfMeasData);
+    F_hat.Resize(highestAssumableNrOfMeasData);
+    nrParameter = 10;
+    Double pi = 3.14159265358979;
+    Double tau=1.0;
+   
 
     // the following passage reads Data from file measuredData.dat
     // The rows are containing the values of the given frequencies, such as phase and amplitude!
     readMeasuredData(freqs, real, imag, parameter, voltage, nrMeasuredData, thickness, radius, delta);
-    std::cout<<"Size of piezoElectric Body:"<< thickness << " x " << radius <<std::endl;
-    tau=1.0;
+    // real - entspricht |Z|, Betrag der Impedanz
+    // imag - entspricht \phi, gemessener Phasenwinkel
 
-    Vector<Complex> y_hat(nrMeasuredData);
-    Vector<Complex> PHI_p(nrMeasuredData);		// /Phi(p^k)
-    Vector<Complex> res(2*nrMeasuredData);
+
+    //Kreisfrequenz oder nicht?!   
+    //for (int i=0; i<freqs.GetSize();i++)
+    // freqs[i]=2*pi*freqs[i];
+
+    std::cout<<"Size of piezoElectric Body:"<< thickness << " x " << radius <<std::endl;
     std::cout<<"Number of measure points: " << nrMeasuredData << " with DataError: " << delta <<  std::endl;
+    std::cout<<"Number of parameters: " << nrParameter<< std::endl;
 
     freqs.Part(0,nrMeasuredData);
     real.Part(0,nrMeasuredData);
     imag.Part(0,nrMeasuredData);
     amplitude_phase.Part(0,nrMeasuredData);
+    y_hat.Resize(2*nrMeasuredData);
 
+    calc_measuredCharge(freqs, real, imag, y_hat);
+
+    for(int i=0;i<nrMeasuredData;i++)
+      std::cout<<"; q("<<i<<")= "<< y_hat[i];
+
+    //Ladungen mit exakten Parametern berechnet:
+    //   y_hat[0]=(-8.16274e-08,2.91866e-06); // (-6.98873e-08,2.49888e-06); 
+    //     y_hat[1]=(-1.07233e-07,2.91787e-06); // (-9.181e-08,2.4982e-06);
+    //     y_hat[2]=(-1.94767e-07,2.91337e-06); //(-1.66754e-07,2.49434e-06);
+    //     y_hat[3]=(-2.66432e-06,-1.19465e-06); //(-2.28111e-06,-1.02283e-06);
+    //     y_hat[4]=(-3.54947e-07,-2.89826e-06); // (-3.03895e-07,-2.4814e-06); 
+    //     y_hat[5]=(-1.20177e-06,2.66115e-06); // (-1.02892e-06,2.27839e-06); 
+    //     y_hat[6]=(-1.06335e-07,2.918e-06); // (-9.10406e-08,2.4983e-06); 
+    //     y_hat[7]=(-7.99403e-08,2.91885e-06); // (-6.84422e-08,2.49902e-06); 
+    //     y_hat[8]=(1.03852e-09,0); 
+    y_hat[9]=(8.24177e-10,0); 
+    y_hat[10]=(6.6726e-10,0); 
+    y_hat[11]=(5.51238e-10,0); 
+    y_hat[12]=(4.63042e-10,0); 
+    y_hat[13]=(3.94437e-10,0); 
+    y_hat[14]=(3.40021e-10,0); 
+    y_hat[15]=(2.96137e-10,0);
+
+    /* for (int i=0; i<nrMeasuredData;i++){
+       y_hat[i]=std::polar(-real[i], imag[i]);
+       y_hat[i]=voltage*y_hat[i];
+       //y_hat[i+nrMeasuredData]=       
+       std::cout <<"Phase&Amplitude (polar): " <<  y_hat[i].real() <<" + "<< y_hat[i].imag() << "i" <<std::endl;
+       }*/
 
     // Settings for Newton-CG - routine
-    int nrIterations=0, nrCGIterations=0;
+    Integer nrIterations=0;
     Double tol=0.001, tolCG=0.001, err=1.0, res_norm;
 
     //Settings for harmonic PDE - Driver
@@ -108,7 +180,7 @@ namespace CoupledField
     if (PrintGridOnly)
       exit(0);
 
-    std::cout<<"Here begins communication with base PDE" << std::endl;
+    //    std::cout<<"Here begins communication with base PDE" << std::endl;
 
     // ************************************************************************
     // Communication with BasePDE ... gets i.G. pointers to objects involved  *
@@ -126,225 +198,241 @@ namespace CoupledField
     // since this driver normally will not be used in a coupled 
     // field simulation, we simply can access the first PDE,
     // as it will be the single one
-
  
-    std::cout<<" WriteGeneralPDEdefines() ... "<<std::endl;
     pdes_[0]->WriteGeneralPDEdefines(); 
  
     MaterialData * ptMaterial=pdes_[0]->getPDEMaterialData();   // Pointer to MaterialData
     Matrix<Double> * matMatrix =  ptMaterial->GetMatrix();
- 
+
+    updateMaterialData(parameter, ptMaterial);         //Writes initial guesses of parameters (read from MeasuredData.dat) to system
+
     ptBCs = pdes_[0]->getPDE_BCs();                             // Pointer to BCs
- 
-     ptAlgsys = pdes_[0]->getPDE_algsys();                       //Pointer to AlgebraicSystem
-   
- 
+    ptAlgsys = pdes_[0]->getPDE_algsys();                       //Pointer to AlgebraicSystem
     Integer numElems = pdes_[0]->getPDE_numElems();
- 
     dofs=pdes_[0]->getPDE_dofspernode();
-   
     numNodes= pdes_[0]->getPDE_numPDENodes();
- 
-   std::cout<<"TEStMark:4"<<std::endl;
    
-    while (nrIterations<2){
+
+    y_hat.Resize(2*nrMeasuredData);
+    s_0.Resize(nrParameter);    
+    bas.Resize(nrParameter);
+    res_NE_new.Resize(nrParameter);
+    res_NE.Resize(nrParameter);
+    res.Resize(2*nrMeasuredData);
+    bas_bar.Resize(2*nrMeasuredData);
+    s.Resize(nrParameter);
+    res.Resize(2*nrMeasuredData);
+    scaling.Resize(nrParameter);
+    F_hat.Resize(2*nrMeasuredData);
+    overall_res0.Resize(2*nrMeasuredData);
+
+    Complex misfit;
+
+    alpha_m; 
+     scaling[0]=1.0e-11;    scaling[1]=1.0e-11;    scaling[2]=1.0e-11;    scaling[3]=1.0e-11;    scaling[4]=1.0e-11;
+   scaling[5]=0.1;     scaling[6]=0.1;     scaling[7]=0.1;
+   scaling[8]=1.0e+8; scaling[9]=1.0e+8;
+   // for(int i=0;i<scaling.GetSize();i++)
+   //  scaling[i]=1.0;
+
+    //here begins the Newton-Routine:   
+
+   // we do a bit of scaling here ...
+   //   for(int i=0;i<scaling.GetSize();i++)
+   //    parameter[i]=parameter[i]*scaling[i];
+
+   // we do a bit of rescaling here ...
+   //  for(int i=0;i<scaling.GetSize();i++)
+   //    parameter[i]=parameter[i]/scaling[i];
+
+
+    while (nrIterations<3) {
       nrIterations++;
       std::cout<<"\n NewtonCG ... Newton-Iteration-Nr = "<<nrIterations<<std::endl;
-      calcNorm2Resid(res,anorm,nrMeasuredData);
-      std::cout<<"A-Norm:" << anorm << std::endl;
 
+      // Create the Matrices F, F', F*
       createF(ptMaterial, ptBCs, F_hat);
-       createJacobiMatrix(ptMaterial, ptBCs, F_hat, parameterIncrement,JacobiMatrix, solElecPot, solMechDispl);
-       createAdjointJacobiMatrix(parameterIncrement, parameter, JacobiMatrix,solElecPot,solMechDispl,freqs,adjJacobiMatrix);
-      updateMaterialData(parameter, ptMaterial);         //member function of piezoParamIdent
+      std::cout<<"Parameter-to-solution-map Matrix is built up!"<<std::endl;
+      createJacobiMatrix(ptMaterial, ptBCs, F_hat, parameterIncrement,JacobiMatrix, solElecPot, solMechDispl);
+      std::cout<<"JacobiMatrix was created ..."<<std::endl;
+      createAdjointJacobiMatrix(parameterIncrement, parameter, JacobiMatrix,solElecPot,solMechDispl,freqs,adjJacobiMatrix);
+      std::cout<<"Adjoint JacMatrix was created ..."<<std::endl;
 
-      while(nrCGIterations<5&&res_norm>tolCG){ // CG
-	nrCGIterations++;
+      Double real_misfit, real_misfit_new,eta_max, eta_new, t, a,b,c, theta, theta_min, theta_max, gamma, al;
+      Complex misfit;
+      Vector<Complex> y_hat_F_hat=y_hat-F_hat;
 
-      } // end while - CG
+      real_misfit=a2norm(y_hat_F_hat);
+      std::cout<<"\n Vor CG real(misfit) = real(y_hat-F_hat) = "<< real_misfit;
+
+ // we do a bit of scaling here ...
+     for(int i=0;i<scaling.GetSize();i++)
+       parameter[i]=parameter[i]*scaling[i];
+
+      CG(); // calls CG Routine ... uses F, F', F'*    
+
+      y_hat_F_hat=y_hat-F_hat;
+      real_misfit=a2norm(y_hat_F_hat);
+  
+      //here begins attempt to implement the backtracking Algo .... ;-)
+
+      t=1.0e-4;
+      eta_max=0.9;
+      eta=0.8;
+      theta_min=0.1;
+      theta_max=0.5;
+      gamma=0.5;
+      al=1.5;
+      std::cout<<"\n NACH CG real(misfit) = real(y_hat-F_hat) = "<< real_misfit;
+      int backtrackIterator=0;
+  
+      while((real_misfit>(1-t*(1-eta))*real_misfit)&&(eta<eta_max)){
+	std::cout<<"backtracking ... "<< backtrackIterator<< std::endl;
+	backtrackIterator++;
+
+	// choose theta:
+	a=real_misfit*real_misfit;
+	b=2*real_misfit;
+	c=real_misfit*real_misfit-b-a;
+	std::cout<<"c"<<c<<std::endl;
+	if (c==0.0){
+	  if(b<=0)
+	    theta=theta_max;
+	  else 
+	    theta=theta_min;
+	}
+	else if (c>0){
+	  if (b<-2*c*theta_max)
+	    theta = theta_max;
+	  else if (b>-2*c*theta_min)
+	    theta=theta_min;
+	  else
+	    theta=-b/(2*c);
+	}
+	else{
+	  if (b<-2*c*theta_min)
+	    theta=theta_max;
+	  else if (b>-2*c*theta_max)
+	    theta=theta_min;
+	  else
+	    {
+	      if ((a+b*theta_min+c*theta_min*theta_min)>=(a+b*theta_max+c*theta_max*theta_max))
+		theta=theta_max;
+	      else theta=theta_min;
+	    }
+	} // end else if c>0
+
+	std::cout<<"Choice of theta = " << theta;
+	//end choose theta
+	for (int i=0;i<s.GetSize();i++){
+	 s[i]=theta*s[i];
+	// std::cout<<"; s= "<< s[i];
+	}
+	eta=1-theta*(1-eta);
+
+	for (int i=0;i<parameter.GetSize();i++)
+	  parameter[i]=parameter[i]+s[i].real();
+
+	createF(ptMaterial, ptBCs, F_hat);       
+	y_hat_F_hat=y_hat-F_hat;
+	real_misfit=a2norm(y_hat_F_hat);
+	//	real_misfit_new=misfit.real();
+	//	std::cout<<"\n real_misfit_new = "<<real_misfit_new;
+
+      } //end while, end backtracking
+
+      //choose eta
+      eta_new=gamma*std::pow((real_misfit_new/real_misfit),al);
+      if (gamma*std::pow(eta,al)>0.1)
+        eta_new=std::max(eta_new,gamma*std::pow(eta,al));
+      if (eta_new>eta_max)
+        eta_new=eta_max;
+      if(eta_new<=2*(tau*delta)/real_misfit_new)
+	eta_new=0.8*(tau*delta)/real_misfit_new;
+      //end choose eta
+      std::cout<<"Choice of eta ..." << eta_new; 
+      eta=eta_new;
+      
+      for (int i=0;i<parameter.GetSize();i++){
+	parameter[i]=parameter[i]+s[i].real();
+	std::cout<<"par[" << i<<"]="<< parameter[i]<<"; ";
+      }
+
+   // we do a bit of rescaling here ...
+     for(int i=0;i<scaling.GetSize();i++)
+       parameter[i]=parameter[i]/scaling[i];
+
+      updateMaterialData(parameter,ptMaterial);
 
     } // end while-Newton
 
+    std::cout<<"\n\n *** FINALLY CALCULATED PARAMETERS *** ... here they are:"<<std::endl;
+    for (int i=0;i<parameter.GetSize();i++)
+      std::cout<<"par[" << i<<"]="<< parameter[i]<<"; ";
+
   }// End solveProblem
+
+  // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXxx - now some methods are following ...
+
+  void piezoParamIdent::calcAbsImped(Complex<Double> & charge, Double & freq, Integer & fstep){
+    Double imped;
+
+    if (!impedCurve)
+      std::cerr<<"Error opening 'ImpedCurve.dat' "<<std::endl;
+    Complex temp=Complex(0.0,1);
+    imped = std::abs(voltage/charge*freq*temp);
+    std::cout <<"Betrag der Impedanz:"<< imped << std::endl;
+    *impedCurve <<"\n" << imped << "   " << freq<< std::endl;
+
+  }  // end calcAbsImped 
+
 
   void piezoParamIdent::calcNorm2Resid(Vector<Complex> &res, Double & anorm, Integer nrMeasuredData){
     anorm=0.0;
     for (int i=0;i<2*nrMeasuredData;i++){
-      anorm+=abs(res[i])*abs(res[i]);
+      anorm+=std::abs(res[i])*std::abs(res[i]);
       anorm=sqrt(anorm);
     }
-  }
+  } // end calcNorm2Resid
 
-  void piezoParamIdent::createF(MaterialData * ptMaterial, BCs * ptBCs, Vector<Complex> & F_hat){
-    ENTER_FCN("PiezoParamIdent:createF");
-    std::cout<<"creates F ..."<<std::endl;
-
-    ptMaterial=pdes_[0]->getPDEMaterialData();   // Pointer to MaterialData
-    Matrix<Double> * matMatrix =  ptMaterial->GetMatrix();
-    ptBCs = pdes_[0]->getPDE_BCs();                             // Pointer to BCs
-    ptAlgsys = pdes_[0]->getPDE_algsys();
-
-    Integer level=0;
-    Boolean reset = TRUE;
-    Integer pdenumber = 0;
-
-    Integer numElems = pdes_[0]->getPDE_numElems();
-
-    Integer dofs=pdes_[0]->getPDE_dofspernode();
-    std::cout<<"Create F, 2"<<std::endl;
-
-    Integer numNodes= pdes_[0]->getPDE_numPDENodes();
-    std::cout<<"Create F, 3"<<std::endl;
-
-    Integer spaceDim = pdes_[0]->getPDE_spaceDim();
-    std::cout<<"Create F, 4"<<std::endl;
-
-    tau=1.0;
-    Matrix<Double> couplingMatrix; // \bf e
-    Matrix<Double> dielectricMatrix; // \eps^S
-    couplingMatrix.Resize(spaceDim, 2*spaceDim);
-    dielectricMatrix.Resize(spaceDim, spaceDim);
-    Integer numElems_ = pdes_[0]->getPDE_numElems();
-
-
-    createMaterialTensorMatrices(parameter, couplingMatrix, dielectricMatrix, spaceDim);
-    // std::cout<<"Create F,3"<<std::endl;
-
-
-    for (Integer fstep = 0; fstep < nrMeasuredData; fstep++) { // harmonic solver for different frequency - values
-
-      Info->WriteHarmonicStep(pdes_[0]->GetName(), fstep, freqs[fstep]);
-
-
-      Info->WriteHarmonicStep(pdes_[0]->GetName(), fstep, freqs[fstep]);
-      std::cout<<"Create F, 5"<<std::endl;
-
-      pdes_[0]->SolveStepHarmonic(fstep, freqs[fstep], level, reset);
-
-      BaseNodeStoreSol * ptSol = pdes_[0]->getPDESolution();
-
-      NodeStoreSol<Complex> * ptNodeStoreSol;
-      ptNodeStoreSol = dynamic_cast<NodeStoreSol<Complex>*>(ptSol);
-      std::cout<<"Create F, 7"<<std::endl;
-
-      ptNodeStoreSol->GetGlobalSolVector(ELEC_POTENTIAL, solElecPot);
-      ptNodeStoreSol->GetGlobalSolVector(MECH_DISPLACEMENT, solMechDispl);
-      // Now we have \hat{d_k} and {\phi_k} for each omega ...
-      //ptElem->GetGlobalDerivShFnc();
-
-      // typeOutSolutionOnScreen(solElecPot, solMechDispl);              //member function of piezoParamIdent
-      measureMechDeformationInZ_Direction(solMechDispl,radius,meanValueMechDeformation,dofs); // Braucht üÜberarbeitung!!
-
-
-
-      pdes_[0]->PostStepHarmonic(fstep, freqs[fstep], level, reset);
-      std::cout<<"Create F, 9"<<std::endl;
-      //      actPDE->PostProcess(level);
-      pdes_[0]->PostProcess(level);
-      // pdes_[0]->PostStepHarmonic(fstep, freqs[fstep], level, reset);
-
-      std::cout<<"Create F, 10"<<std::endl;
-      Info->PrintPiezoMat(*ptMaterial);
-
-      pdes_[0]->WriteResultsInFile();     
-      std::cout<<"Finished to create F ..."<<std::endl;
-
-    } // end of loop over all frequencies
-  } // end createF
-
-
-
-  void piezoParamIdent::createJacobiMatrix(MaterialData * ptMaterial, BCs * ptBCs, Vector<Complex> & F_hat, Vector<Double> & parameterIncrement,Matrix<Complex> & JacobiMatrix, Vector<Complex> & solElecPot,Vector<Complex> & solMechDispl){
-    ENTER_FCN("piezoParamIdent::createJacobiMatrix");
-    std::cout<<"JacobiMatrix will be created"<<std::endl;
-    Vector<Double> IncrementedRHSMatrix;
+  /*  Double piezoParamIdent::a2norm(Vector<Complex> &vec){
+      ENTER_FCN("piezoParamIdent::a2norm");
+      Complex result=Complex(0.0,0.0);
+      Double real_result;
+      for(int i=0;i<vec.GetSize();i++)
+      result+=vec[i]*vec[i];
+      result=sqrt(result);
+      real_result=result.real();
+      ///    real_result=sqrt(real_result);
+      std::cout<<" \n real_result"<<real_result<<std::endl;
+      return real_result;
+      }*/
    
-    //    pdes_[0]->WriteGeneralPDEdefines();
+  /*Double piezoParamIdent::a2norm(Vector<Complex> &vec){
+    ENTER_FCN("piezoParamIdent::a2norm");
+    Complex result=Complex(0.0,0.0);
+    Double real_result;
+    for(int i=0;i<vec.GetSize();i++)
+      real_result+=std::abs(vec[i].real())+std::abs(vec[i].imag());
+    //    real_result=sqrt(real_result);
+    //    real_result=result.real();
+    ///    real_result=sqrt(real_result);
+	//std::cout<<" \n real_result"<<real_result<<std::endl;
+	return real_result;
+	}*/
 
-    Matrix<Double> * matMatrix =  ptMaterial->GetMatrix();
-    ptBCs = pdes_[0]->getPDE_BCs();                             // Pointer to BCs
-    ptAlgsys = pdes_[0]->getPDE_algsys();
-    Integer level=0;
-    Boolean reset = TRUE;
-    //Integer nrMeasuredData = freqs.GetSize();
-    Integer numElems_ = pdes_[0]->getPDE_numElems();
-    JacobiMatrix.Resize(2*nrMeasuredData);
-    Integer pdenumber = 0;
-    
-
-    //     for(int i=0;i<parameter.GetSize();i++){
-    //       parameter[i]=1; // noch reelle Parameterwerte !!
-    //       parameter[i-1]-=1;
-    //for (int i=0;i<parameter.GetSize();i++)
-    // parameter[i]+=parameterIncrement[i];  //parameterIncrement noch ohne Inhalt!!
-    //   } // should include the following lines!!! Closes after building up entries of F'(p^k) ....
-
-    // updateMaterialData(parameter, ptMaterial);         //member function of piezoParamIdent
-
-    for (Integer fstep = 0; fstep < nrMeasuredData; fstep++) { // harmonic solver for different frequency - values
-
-      pdes_[0]->CreateIncrementedRHSMatrix(IncrementedRHSMatrix, freqs[fstep], level);
-
-      // Now we calculate the MatVecProduct in the Right Hand Site, only real parts!!:
-      BaseNodeStoreSol * ptSol = pdes_[0]->getPDESolution();
-
-      NodeStoreSol<Complex> * ptNodeStoreSol;
-      ptNodeStoreSol = dynamic_cast<NodeStoreSol<Complex>*>(ptSol);
-
-      Vector<Complex> algSysSolVector;
-      algSysSolVector=ptNodeStoreSol->GetAlgSysVector();
-
-
-      Complex sum=0.0;
-      Vector<Complex> RHSsol(algSysSolVector.GetSize());
-      Integer j=0;
-      Integer k=0;
-      for(int i=0;i<IncrementedRHSMatrix.GetSize()/2; i++){
-	sum=sum+IncrementedRHSMatrix[i]*algSysSolVector[k];
-	k++;
-	if ((i%algSysSolVector.GetSize())==0){
-	  RHSsol[j]=sum;
-          sum=0.0;
-          j++;
- 	  k=0;
-	}
+  Double piezoParamIdent::a2norm(Vector<Complex> &vec){
+      ENTER_FCN("piezoParamIdent::a2norm");
+      Complex result=Complex(0.0,0.0);
+      Double real_result;
+      for(int i=0;i<vec.GetSize();i++)
+      result+=vec[i]*vec[i];
+      //result=sqrt(result);
+      real_result=result.real();
+      // real_result=sqrt(real_result);
+       std::cout<<" \n real_result"<<real_result<<std::endl;
+       return real_result;
       }
-      updateRHS(RHSsol);	//member function of piezoParamIdent
-      Info->WriteHarmonicStep(pdes_[0]->GetName(), fstep, freqs[fstep]);
-      pdes_[0]->PreStepHarmonic(fstep, freqs[fstep], level, reset);
-      pdes_[0]->SolveStepHarmonic(fstep, freqs[fstep], level, reset);
-      // ptNodeStoreSol->GetGlobalSolVector(ELEC_POTENTIAL, solElecPot);
-      //ptNodeStoreSol->GetGlobalSolVector(MECH_DISPLACEMENT, solMechDispl);
-      
-
-      /*  for(int i=0; i<algSysSolVector.GetSize();i++){
-	  std::cout<<"Algsysvector("<<i<<") " << algSysSolVector[i].real() << "+" << algSysSolVector[i].imag()<< std::endl;
-	  std::cout<<"RHS(" <<i<<") " << IncrementedRHSMatrix[i] << std::endl;
-	  }*/
-
-      //  pdes_[0]->PostStepHarmonic(fstep, freqs[fstep], level, reset);
-
-      pdes_[0]->PostProcess(level);
-
-      Info->PrintPiezoMat(*ptMaterial);
-      pdes_[0]->WriteResultsInFile();
-     
-     
-    }		// end for over all frequencies
-  }            //end CreateJacobiMatrix
-
-
-  void piezoParamIdent::createAdjointJacobiMatrix(Vector<Double> & parameterIncrement,Vector<Double> &  parameter, Matrix<Complex> & JacobiMatrix, Vector<Complex> & solElecPot,Vector<Complex> & solMechDispl, Vector<Double> & freqs, Matrix<Complex> & adjJacobiMatrix){
-    ENTER_FCN("piezoParamIdent::createAdjointJacobiMatrix");
-    std::cout<<"Jacobi Matrix will be created"<<std::endl;
-    Integer size = JacobiMatrix.GetSizeRow();
-    //std::<<"SIZE OF JACOBIMATRIX"<<size<<std::endl;
-    adjJacobiMatrix.Resize(size,size);
-    for (int i=0;i<JacobiMatrix.GetSizeRow();i++)
-      for (int j=0;j<JacobiMatrix.GetSizeCol();j++)
-	adjJacobiMatrix[j][i] = std::conj(JacobiMatrix[i][j]);
-  } // end createAdjointJacobiMatrix
-
 
   void piezoParamIdent::updateRHS(Vector<Complex> & solElecPot, Vector<Complex> & solMechDispl, Double omega){
     ENTER_FCN (" piezoParamIdent::updateRHS");
@@ -354,6 +442,7 @@ namespace CoupledField
       new_RHS[i]=solElecPot[i].real();
       for(int j=0;j<dofs-1;j++){	
 	new_RHS[(j+1)*numNodes+i]=solMechDispl[j*numNodes+i].real();
+	//	std::cout<<new_RHS[(j+1)*numNodes+i]<<"; ";
 	// matVecRHS(IncrementedRHSMatrix,solMechDispl, solElecPot,newRHS);	
       }
     }
@@ -365,22 +454,26 @@ namespace CoupledField
   void piezoParamIdent::updateRHS(Vector<Complex> & RHSsol){
     Vector<Double> temp;
     temp.Resize(RHSsol.GetSize());
-    for(int i=0;i<RHSsol.GetSize();i++)
+    for(int i=0;i<RHSsol.GetSize();i++){
       temp[i]=RHSsol[i].real();
+      std::cout<<RHSsol[i]<<"; ";
+    }
     ENTER_FCN("piezoParamIdent::updateRHS2");
     ptAlgsys->InitRHS();
     ptAlgsys->UpdateRHS(1,temp.GetPointer());
     std::cout<<"RHS was updated"<< std::endl;
+
   }
 
 
-
-  void piezoParamIdent::measureMechDeformationInZ_Direction(Vector<Complex> & mechDisplacement, Double & Radius, Double meanValueMechDeformation, int dof){
+  void piezoParamIdent::measureMechDeformationInZ_Direction(Vector<Complex> & mechDisplacement, Double & Radius, Double & meanValueMechDeformation, int dof){
     meanValueMechDeformation=0.0;
     for (int i=dof-2;i<mechDisplacement.GetSize();i+=(dof-1)) // only in Z-Direction
-      meanValueMechDeformation+=abs(mechDisplacement[i]);
+      meanValueMechDeformation+=std::abs(mechDisplacement[i]);
+    // std::cout<<"meanValueMechDef: "<< meanValueMechDeformation <<std::endl;
     meanValueMechDeformation=meanValueMechDeformation/(PI*Radius*Radius*mechDisplacement.GetSize()*(dof-1));
-    std::cout <<"MeanValue of MechDeformation: " << meanValueMechDeformation<< std::endl;
+    //    std::cout <<"\nMeanValue of MechDeformation: " << meanValueMechDeformation<< std::endl;
+    // std::cout<<"AREA "<< PI*Radius*Radius*mechDisplacement.GetSize()*(dof-1) <<std::endl;
   }
 
 
@@ -453,7 +546,7 @@ namespace CoupledField
 	    }
 	  }
 	  nrMeasuredData = j;
-	  std::cout<<"Nr_of_measured_Data in readMeasuredData = "<< nrMeasuredData<<std::endl;
+	  //	  std::cout<<"Nr_of_measured_Data in readMeasuredData = "<< nrMeasuredData<<std::endl;
 	}
       else if (mDataRow[0]=='2'){
 	i=2;j=0;k=0;
@@ -560,6 +653,7 @@ namespace CoupledField
 
   void piezoParamIdent::updateMaterialData(Vector<Double> & parameter, MaterialData * ptMaterial){
     ENTER_FCN("piezoParamIdent::updateMaterialData");    //std::cout<<"updateMaterialData"<<std::endl;
+
     ptMaterial->SetPiezoMatrixData(0,0, parameter[0]);
     ptMaterial->SetPiezoMatrixData(2,2, parameter[1]);
     ptMaterial->SetPiezoMatrixData(0,1, parameter[2]);
@@ -579,6 +673,7 @@ namespace CoupledField
     ptMaterial->SetPiezoMatrixData(6,6, parameter[8]);
     ptMaterial->SetPiezoMatrixData(7,7, parameter[8]);
     ptMaterial->SetPiezoMatrixData(8,8, parameter[9]);
+
   } // end updateMaterialData
 
 
@@ -591,11 +686,7 @@ namespace CoupledField
 	std::cout <<"Phase&Amplitude (polar): " <<  amplitude_phase[i].real() <<" + "<< amplitude_phase[i].imag() << "i"    <<std::endl; }
 
 
-	for (int i=0; i<nrMeasuredData;i++){
-	y_hat[i]=std::polar(-real[i], imag[i]);
-	y_hat[i]=voltage*y_hat[i];
-	std::cout <<"Phase&Amplitude (polar): " <<  y_hat[i].real() <<" + "<< y_hat[i].imag() << "i" <<std::endl;
-	}
+
 
 
 	std::cout << " SizeOf amplitude_phase" <<amplitude_phase.GetSize()<< std::endl;

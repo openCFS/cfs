@@ -7,13 +7,13 @@ C_DIR=../..
 
 
 src = basedriver.cc transientdriver.cc staticdriver.cc harmonicDriver.cc multiSequenceDriver.cc\
-      assemble.cc piezoParamIdent.cc singleDriver.cc
+      assemble.cc piezoParamIdent.cc singleDriver.cc piezoParamIdent_methods.cc
 
 
 #
 ifeq ($(Adaptivity),yes)
 
-  src = basedriver.cc transientdriver.cc staticdriver.cc multiSequenceDriver.cc harmonicDriver.cc harmonicAdapt.cc staticAdaptSpaceDriver.cc piezoParamIdent.cc
+  src = basedriver.cc transientdriver.cc staticdriver.cc multiSequenceDriver.cc harmonicDriver.cc harmonicAdapt.cc staticAdaptSpaceDriver.cc piezoParamIdent.cc singleDriver.cc piezoParamIdent_methods.cc
 
 
 endif

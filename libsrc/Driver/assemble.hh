@@ -274,6 +274,8 @@ namespace CoupledField
     void SetPtrDeltaCoordinates(Matrix<Double> * deltCoords)
     {deltaCoords_ = deltCoords;};
 
+    Matrix<Double> * GetPtrDeltaCoordinates(){return deltaCoords_;}
+
     void SetNonlinGeo()
     { nonLinGeo = TRUE;};
 
@@ -355,7 +357,7 @@ namespace CoupledField
     /// establish matrices
     void CreateMatrices();
 
-		Matrix<Double> GetElemMat(){return elemmat;};
+   Matrix<Double> GetElemMat(){return elemmat;};
     
 
 
@@ -452,8 +454,8 @@ namespace CoupledField
     BaseSystem * algsys_;                //!< pointer to algebraic system  
     Grid * ptgrid_;                      //!< pointer to Grid
     NodeEQN * ptEQN_;                    //!< pointer to equation data
-		Vector<Double> harmonicRHSVec;			//! special right Hand Side Vector needed for calc
-		Matrix<Double> elemmat;
+    Vector<Double> harmonicRHSVec;	 //! special right Hand Side Vector needed for calc
+    Matrix<Double> elemmat;
 #ifdef USE_OLAS
     OLAS_Params * olasParams_;               //!< pointer to parameter object of OLAS
     OLAS_Report * olasReport_;               //!< pointer ro report object of OLAS
