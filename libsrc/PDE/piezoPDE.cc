@@ -10,6 +10,7 @@
 #include "newmark.hh"
 #include "Elements/basefe.hh"
 #include "blocknodeEQN.hh"
+#include "scalarblockEQN.hh"
 
 #include "piezoPDE.hh" 
 
@@ -143,10 +144,11 @@ namespace CoupledField {
    if (bcs_id_.GetSize() != inhomDirichDof_.GetSize()) 
      Error("Inconsistent definition of inhomogeneous Dirichlet Boundary Conditions");
    
+//    eqnData_ = new BlockNodeEQN(ptgrid_, ptBCs_, subdoms_, actlevel_, dofspernode_);
    eqnData_ = new BlockNodeEQN(ptgrid_, ptBCs_, subdoms_, actlevel_, dofspernode_);
    eqnData_->SetHomoDirichletBCs(bcs_hd_, homDirichDof_);
    eqnData_->CalcMapping();
-   //eqnData_->Print(std::cerr);
+   eqnData_->Print(std::cerr);
    
    numPDENodes_ = eqnData_->GetNumLocalNodes();
    numElems_ = eqnData_->GetNumLocalElems();

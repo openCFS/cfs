@@ -92,7 +92,7 @@ namespace CoupledField {
     conf->ifgetliststr("calc_Eddy",calcEddy_,pdename_); 
 
     // initialize eqation data object
-    eqnData_  = new ScalarNodeEQN(ptgrid_, ptBCs_, subdoms_, actlevel_, dofspernode_);
+    eqnData_  = new ScalarNodeEQN(ptgrid_, ptBCs_, subdoms_, actlevel_, dofspernode_);    
     eqnData_->SetHomoDirichletBCs(bcs_hd_, homDirichDof_);
     eqnData_->CalcMapping();
     //eqnData_->Print(std::cerr);
@@ -536,7 +536,8 @@ namespace CoupledField {
   {
     ENTER_FCN( "MagPDE::RhsL2Norm" );
 
-    Integer node, eqn;
+    Integer node, eqnNr, eqnDof;
+
   
     std::list<Integer> nodes;
   
@@ -548,9 +549,9 @@ namespace CoupledField {
 	for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end(); p++)
 	  {
 	    node=*p;
-	    eqn = eqnData_->Node2EQN(node);
-	    if (eqn != 0){
-	      actRHS[(eqn-1)] = 0;
+	    eqnData_->Node2EQN(node,1,eqnNr,eqnDof);
+	    if (eqnNr != 0){
+	      actRHS[(eqnNr-1)] = 0;
 	    }
 	  }
       }

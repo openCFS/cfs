@@ -8,6 +8,7 @@
 #include "Forms/forms_header.hh"
 #include "Estimator/spaceerror.hh"
 #include "blocknodeEQN.hh"
+#include "scalarblockEQN.hh"
 
 #include <Forms/nLinElastInt.hh>
 #include <DataInOut/WriteInfo.hh>
@@ -105,14 +106,6 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 
     ReadBCs(pdename_);
   
-
-    // // Map global numeration of element and nodes to local one
-//     AssignPDENodeNumbers(mesh2PDENode_, pde2MeshNode_, subdoms_);  
-//     AssignPDEElemNumbers(mesh2PDEElem_, pde2MeshElem_, subdoms_);
-   
-   
-    
-    
 #ifndef XMLPARAMS
     lineSearch_ = FALSE;
     if (conf->get_option("lineSearch",  pdename_ ))
@@ -279,7 +272,10 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 
     
     // initialize eqation data object
-    eqnData_  = new BlockNodeEQN(ptgrid_, ptBCs_, subdoms_, actlevel_, dofspernode_);
+    eqnData_  = new BlockNodeEQN(ptgrid_, ptBCs_, subdoms_, 
+				 actlevel_, dofspernode_);
+    //eqnData_  = new ScalarBlockEQN(ptgrid_, ptBCs_, subdoms_, 
+    //actlevel_, dofspernode_);
     eqnData_->SetHomoDirichletBCs(bcs_hd_, homDirichDof_);
     eqnData_->CalcMapping();
     //eqnData_->Print(std::cerr);
@@ -306,7 +302,10 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
   assemble_->SetMatrixEntryType(OLAS::DOUBLE);
   assemble_->SetMatrixStorageType(OLAS::SPARSE_NONSYM);
 #else
-  assemble_->SetMatrixType(RBLOCK);
+  if (eqnData_->IsBlockMapped())
+    assemble_->SetMatrixType(RBLOCK);
+  else
+    assemble_->SetMatrixType(RSCALAR);
 #endif 
 
   assemble_->SetNumDirichlet(GetNumRestraints(actlevel_));
@@ -769,28 +768,6 @@ void MechPDE::CalcAcousticCouplingRHS(StdVector<Elem*> * couplingElems,
 
 
 
-
-
-void MechPDE::GetSolOfElement( Matrix<Double>& sol, StdVector<Integer>& connect_PDE)
-{
-  ENTER_FCN( "MechPDE::GetSolOfElement" );
-
-  Error("This function should never be reached ... ", __FILE__, __LINE__);
-  // displacement of element nodes
-  sol.Resize(dofspernode_, connect_PDE.GetSize());
-  
-  for(Integer actNode=0; actNode<connect_PDE.GetSize(); actNode++)
-    for(Integer actDof=0; actDof < dofspernode_; actDof++)
-      // sol[actDof][actNode] = sol_[actDof][connect_PDE[actNode]-1];
-      sol_->Get(connect_PDE[actNode]-1,actDof,sol[actDof][actNode]);
-}
-
-
-
-
-
-
-
 Boolean MechPDE::HasOutput(std::string output)
 {
   ENTER_FCN( "MechPDE::HasOutput" );
@@ -837,7 +814,7 @@ void MechPDE::StepStaticNonLin(const Integer kstep, const Double aTime,
   Vector<Double>  actSol = solHelp.GetCompleteVector();
 
   Vector<Double> solIncrement;
-  solIncrement.Resize(eqnData_->GetNumEQNs() * dofspernode_);
+  solIncrement.Resize(eqnData_->GetNumEQNs() * eqnData_->GetNumDofsPerEQN());
 
   SetBCs(level, updateBCs_, 0);
 
@@ -891,11 +868,11 @@ void MechPDE::StepStaticNonLin(const Integer kstep, const Double aTime,
 	// TRUE is for transient simulation
 	residualL2Norm = LineSearch(solIncrement, actSol, etaLineSearch, level);
       
-      //StoreVecToSolArray(actSol);
+      //StoreVecToSolArray(actSol); sol_->SetCompleteVector(actSol);
       sol_->SetCompleteVector(actSol);
 
-
       // recalculate RHS with new values to get new residual (f^(k+1))========
+
 #ifndef USE_OLAS    
       algsys_->InitRHS(extForces_.GetPointer());
 #endif
@@ -1103,8 +1080,8 @@ void MechPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
   Boolean performOneMoreStep;
   Integer iterationCounter=0;
 
-  Vector<Double> actSol(numPDENodes_ * dofspernode_);
-  Vector<Double> solIncrement(numPDENodes_ * dofspernode_);
+  Vector<Double> actSol;
+  Vector<Double> solIncrement;
   
   algsys_->InitRHS();
 
@@ -1294,10 +1271,12 @@ Double MechPDE::RhsL2Norm(Vector<Double>& actRHS)
 {
   ENTER_FCN( "MechPDE::RhsL2Norm" );
 
-  Integer node, dof, eqn;
+  Integer node, dof, eqnNr, eqnDof, dofsperEQN;
   
   std::list<Integer> nodes;
   
+  Integer dofsPerEQN = eqnData_->GetNumDofsPerEQN();
+
   // Eliminate dirichlet node from RHS (due to penalty formulation)
   for (Integer i=0; i< bcs_hd_.GetSize(); i++)
     {
@@ -1307,9 +1286,9 @@ Double MechPDE::RhsL2Norm(Vector<Double>& actRHS)
       for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end(); p++)
 	{
 	    node=*p;
-	    eqn = eqnData_->Node2EQN(node,dof);
-	    if (eqn != 0){
-	      actRHS[(eqn-1)*dofspernode_ + dof-1] = 0;
+	    eqnData_->Node2EQN(node,dof,eqnNr,eqnDof);
+	    if (eqnNr != 0){
+	      actRHS[(eqnNr-1)*dofsPerEQN + eqnDof-1] = 0;
 	    }
 	}
     }
@@ -1325,8 +1304,7 @@ void MechPDE::StoreAlgsysToVec(Vector<Double>& vec, Double * pt)
   ENTER_FCN( "MechPDE::StoreAlgsysToVec" );
 
   //const Integer numElems = numPDENodes_ * dofspernode_;
-  Integer numElems = eqnData_->GetNumEQNs() * dofspernode_;
-
+  Integer numElems = eqnData_->GetNumEQNs() * eqnData_->GetNumDofsPerEQN();
   vec.Resize(numElems);
 
   for (Integer i=0; i<numElems; i++)   
@@ -1342,7 +1320,7 @@ Double MechPDE::AlgsysL2Norm(Double * pt)
   ENTER_FCN( "MechPDE::AlgsysL2Norm" );
 
   //const Integer numElems = numPDENodes_ * dofspernode_;
-  Integer numElems = eqnData_->GetNumEQNs() * dofspernode_;
+  Integer numElems = eqnData_->GetNumEQNs() * eqnData_->GetNumDofsPerEQN();
   Double quadSum = 0;
   
   for (Integer i=0; i<numElems; i++)   

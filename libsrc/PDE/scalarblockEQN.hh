@@ -39,8 +39,10 @@ public:
 			StdVector<Integer> &pos) const;
   
   //! Map node number and dof to according equation number
-  Integer Node2EQN(const Integer nodeNr, 
-		   const Integer dof) const;
+  void Node2EQN(const Integer nodeNr, 
+		const Integer dof,
+		Integer & eqnNr,
+		Integer & eqnDof) const;
   
   //! Map node number to according equation number(s)
   void Node2EQN(const Integer nodeNr, StdVector<Integer> &eqns) const;
@@ -60,13 +62,7 @@ private:
   //! is chosen. (numPDENodes x dofsPerNode)
 
   //! Contains the equation numbers
-  StdVector<Integer> node2EQNVal_;
-  
-  //! Contains the according column numbers
-  StdVector<Integer> node2EQNcol_;
-
-  //! Contains the starting positions of each row
-  StdVector<Integer> node2EQNrow_;
+  Matrix<Integer> pdeNode2EQN_;
   //@}
 };
 

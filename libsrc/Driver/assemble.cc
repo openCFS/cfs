@@ -110,6 +110,7 @@ namespace CoupledField
     std::string errOut;
     errOut = "Surface-Domain " + surfDomName + " not defined!";
     Info->Error(errOut, __FILE__, __LINE__);
+    return -1;
   }
 
 
@@ -221,8 +222,14 @@ namespace CoupledField
 						  connect_PDE.GetSize(), destMat);
 		      }
 		    else
+		      {
+			//std::cerr << "Setting Element matrix " << std::endl << elemmat << std::endl;
+			//std::cerr << "Connect" << connect_PDE << std::endl;
+			//std::cerr << destMat << std::cerr;
+
 		      algsys_->SetElementMatrix(elemmat.GetDataPointer(), connect_PDE.GetPointer(), 
-					      connect_PDE.GetSize(), destMat);
+						connect_PDE.GetSize(), destMat);
+		      }
 #ifdef DEBUG
 		    (*debug) << "ElementMatrix of Element " << actEl << std::endl;
 		    (*debug) << elemmat << std::endl;
@@ -428,7 +435,7 @@ namespace CoupledField
   {
     ENTER_FCN( "Assemble:AssembleRHSNodalSources" );
     
-    Integer loadEQN;
+    Integer eqnNr, eqnDof;
     
     for (int actDom=0; actDom < loadDom_.GetSize(); actDom++)
       {
@@ -454,8 +461,8 @@ namespace CoupledField
 	    
 	    val = loadVals_[actDom] * val_tfunc;
 	   
-	    loadEQN = ptEQN_->Node2EQN(node,dof);
-	    algsys_->SetNodeRHS(val, loadEQN, dof);	
+	    ptEQN_->Node2EQN(node,dof,eqnNr,eqnDof);
+	    algsys_->SetNodeRHS(val, eqnNr, eqnDof);	
 	  }
       }
   }
@@ -607,6 +614,8 @@ namespace CoupledField
     ENTER_FCN( "Assemble::CreateMatrices" );
     const Integer numconstraints = 0;  // currently not handled
     
+    const Integer dofsPerEQN = ptEQN_->GetNumDofsPerEQN();
+
 #ifdef USE_OLAS
     FEMatrixType matrixsystype[5];
     matrixsystype[0] = OLAS::NOTYPE;
@@ -640,7 +649,7 @@ namespace CoupledField
     olasParams_->SetValue( "FEMatrixType3", matrixsystype[2] );
     olasParams_->SetValue( "FEMatrixType4", matrixsystype[3] );
     olasParams_->SetValue( "FEMatrixType5", matrixsystype[4] );
-    olasParams_->SetValue( "NumDof", dofsPerNode_ );
+    olasParams_->SetValue( "NumDof", dofsPerEQN);
     olasParams_->SetValue( "NumDirichletBCs", numDir);
     olasParams_->SetValue( "NumConstraints", numconstraints );
     olasParams_->SetValue( "AuxiliaryMatrix", FALSE);
@@ -657,7 +666,7 @@ namespace CoupledField
       numDir *=2;
 
     algsys_->CreateMatrix(matrixsystype, matrixType_, graphType_, 
-			  dofsPerNode_,numDir, numconstraints);
+			  dofsPerEQN,numDir, numconstraints);
 #endif
     
   }

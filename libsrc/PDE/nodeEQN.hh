@@ -43,7 +43,9 @@ public:
 
   //! Map equation number to position in 
   //! global solution vector
-  inline void EQN2SolVectorPos(const Integer eqnNr, Integer &pos) const;
+  inline void EQN2SolVectorPos(const Integer eqnNr, 
+			       const Integer eqnDof,
+			       Integer &pos) const;
 
   //! Map vector of equation numbers to 
   //! positions in global solution vector
@@ -51,8 +53,10 @@ public:
 				StdVector<Integer> &pos) const = 0;
   
   //! Map node number and dof to according equation number
-  virtual Integer Node2EQN(const Integer nodeNr, 
-			   const Integer dof = 1) const = 0;
+  virtual void Node2EQN(const Integer nodeNr, 
+			const Integer dof,
+			Integer & eqnNr,
+			Integer & eqnDof) const = 0;
   
   //! Map node number to according equation number(s)
   virtual void Node2EQN(const Integer nodeNr, StdVector<Integer> &eqns) const = 0;
@@ -113,7 +117,9 @@ protected:
   // Inline function definition
   // -----------------------------------------------------------------------
   
-  void NodeEQN::EQN2SolVectorPos(const Integer eqnNr, Integer &pos) const
+  void NodeEQN::EQN2SolVectorPos(const Integer eqnNr, 
+				 const Integer eqnDof,
+				 Integer &pos) const
   {
     
     ENTER_IFCN( "NodeEQN::EQN2SolVectorPos(Integer)" );
@@ -125,8 +131,8 @@ protected:
 #ifdef CHECK_INDEX
     if (eqnNr -1 > numEqns_)
       Error("Index out of bounds", __FILE__, __LINE__);
-#endif
-    pos = eqn2Pos_[eqnNr-1];
+#endif 
+    pos = eqn2Pos_[(eqnNr-1)*dofsPerEQN_ + eqnDof-1];
   }
   
   Integer NodeEQN::Mesh2PDENode(const Integer meshNode) const

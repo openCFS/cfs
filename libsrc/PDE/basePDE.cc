@@ -589,7 +589,7 @@ void  BasePDE::SetBCs(const Integer level, const Integer update, const Double ti
 
   Integer i;
   Integer j;
-  Integer eqn;
+  Integer eqnNr, eqnDof;
 
   if (pdeIsCoupled_)
     j = couplingBCsCounter_;
@@ -610,24 +610,24 @@ void  BasePDE::SetBCs(const Integer level, const Integer update, const Double ti
       for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end(); p++)
 	{
 	  node=*p;
-	  eqn = eqnData_->Node2EQN(node,dof);
+	  eqnData_->Node2EQN(node, dof, eqnNr, eqnDof);
 	  //std::cerr << "EQN for Homo-Dirichlet node " << node << " = " << eqn << std::endl;
-	  if (eqn > 0)
+	  if (eqnNr > 0)
 	    {
 	      
 	      // Increment counter for BCs
 	      //	      std::cerr << "   -> SET!" << std::endl;
 #ifdef USE_OLAS
-	      algsys_->SetDirichlet(j+1, eqn,val, dof);
+	      algsys_->SetDirichlet(j+1, eqnNr, val, eqnDof);
 #else
 	      if (analysistype_ == HARMONIC) 
 		{
-		  algsys_->SetDirichlet(j*2+1, eqn, val, dof,SYSTEM);
+		  algsys_->SetDirichlet(j*2+1, eqnNr, val, eqnDof,SYSTEM);
 		  // set imag part 
-		  algsys_->SetDirichlet(j*2+2, eqn, val, dof+1, SYSTEM);
+		  algsys_->SetDirichlet(j*2+2, eqnNr, val, eqnDof+1, SYSTEM);
 		}
 	      else
-		algsys_->SetDirichlet(j+1, eqn ,val, dof, SYSTEM);
+		algsys_->SetDirichlet(j+1, eqnNr ,val, eqnDof, SYSTEM);
 #endif
 	      j++;
 	    }
@@ -655,20 +655,20 @@ void  BasePDE::SetBCs(const Integer level, const Integer update, const Double ti
       for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end(); p++, j++)
 	{
 	  node=*p;
-	  eqn = eqnData_->Node2EQN(node,dof);
+	  eqnData_->Node2EQN(node, dof, eqnNr, eqnDof);
 	  //std::cerr << "EQN for InHomo-Dirichlet node " << node << " = " << eqn << std::endl; 
 	  
 #ifdef USE_OLAS
-	  algsys_->SetDirichlet(j+1, eqn, val, dof);
+	  algsys_->SetDirichlet(j+1, eqnNr, val, eqnDof);
 #else
 	  if (analysistype_ == HARMONIC) 
 	    {
-	      algsys_->SetDirichlet(j*2+1, eqn, val, dof,SYSTEM);
+	      algsys_->SetDirichlet(j*2+1, eqnNr, val, eqnDof, SYSTEM);
 	      // set imag part 
-	      algsys_->SetDirichlet(j*2+2, eqn, 0.0, dof+1, SYSTEM);
+	      algsys_->SetDirichlet(j*2+2, eqnNr, 0.0, eqnDof+1, SYSTEM);
 	    }
 	  else
-	    algsys_->SetDirichlet(j+1, eqn, val, dof, SYSTEM);
+	    algsys_->SetDirichlet(j+1, eqnNr, val, eqnDof, SYSTEM);
 #endif
 	}
     }
@@ -1126,7 +1126,7 @@ void BasePDE::CalcInputCoupling()
   StdVector<Elem*> * elements;
   CFSVector * val;
   Double * help;
-  Integer pdeNode, pdeEQN, helpnode;
+  Integer pdeNode, eqnNr,eqnDof, helpnode;
   Integer couplingDof;
   
   // Reset counter for boundary conditions
@@ -1182,25 +1182,27 @@ void BasePDE::CalcInputCoupling()
 	  for (Integer dof=0; dof<couplingDof; dof++)
 	    for (Integer j=0; j<nodes->GetSize(); j++)
 	      {
-		pdeEQN = eqnData_->Node2EQN((*nodes)[j],dof);
-		if (pdeEQN==0)
-		  {
-		    // std::cerr << "PDENODE: "  << PDEnode << "Node[" << (*nodes)[j] << "][" 
-		    //      << dof+1 << "]= " << (*val)[dof][j] << std::endl; 
-		    std::string msg = pdename_;
-		    helpnode = (*nodes)[j];
-		    msg += ": A node with node nr ";
-		    //msg+= helpnode;
-		    msg+= " for Right hand side coupling is a homogenous Dirichlet node.";
-		    msg+= "Check your config/mesh file!";
-		    Warning(msg.c_str()  , __FILE__,__LINE__);
-		  }
-		else {
+		eqnData_->Node2EQN((*nodes)[j],dof+1,eqnNr,eqnDof);
+		// This warning is disabled, in multi-dof pdes
+		// only one compomemt
+		// if (eqnNr==0)
+// 		  {
+// 		    // std::cerr << "PDENODE: "  << PDEnode << "Node[" << (*nodes)[j] << "][" 
+// 		    //      << dof+1 << "]= " << (*val)[dof][j] << std::endl; 
+// 		    std::string msg = pdename_;
+// 		    helpnode = (*nodes)[j];
+// 		    msg += ": A node with node nr ";
+// 		    //msg+= helpnode;
+// 		    msg+= " for Right hand side coupling is a homogenous Dirichlet node.";
+// 		    msg+= "Check your config/mesh file!";
+// 		    Warning(msg.c_str()  , __FILE__,__LINE__);
+// 		  }
+// 		else {
 		  //std::cerr << "RHS: Setting EQN " << pdeEQN << " value " << help[dof+couplingDof*j] << std::endl;
 		  // PROBLEM !!!!
 		  // SetNodeRHS erwartet Double* oder Complex*, aber Inhalt erst zu Laufzeit bekannt ...
-		  algsys_->SetNodeRHS(help[dof+couplingDof*j], pdeEQN, dof+1);
-		}
+		if (eqnNr != 0) 
+		  algsys_->SetNodeRHS(help[dof+couplingDof*j], eqnNr, eqnDof);
 	      }
 	  
 	  break;
@@ -1212,12 +1214,12 @@ void BasePDE::CalcInputCoupling()
 	  for (Integer dof=0; dof<ptCoupling_->GetInputDof(i); dof++)
 	    for (Integer j=0; j<nodes->GetSize(); j++, couplingBCsCounter_++)
 	      {
-		pdeNode = eqnData_->Node2EQN((*nodes)[j],dof);
+		eqnData_->Node2EQN((*nodes)[j],dof+1,eqnNr,eqnDof);
 		if (pdeNode==0)
 		  Error("The specified coupling node has no equation number"
 			, __FILE__,__LINE__);
 #ifdef USE_OLAS
-		algsys_->SetDirichlet(couplingBCsCounter_+1, pdeNode, help[dof+j*couplingDof], dof+1);
+		algsys_->SetDirichlet(couplingBCsCounter_+1, eqnNr, help[dof+j*couplingDof], eqnDof);
 #else
 		if (updateCouplingBCs_)
 		  {
@@ -1228,7 +1230,7 @@ void BasePDE::CalcInputCoupling()
 		else
 		  {	
 		    //  std::cerr << "BC[" << dim << "][" << (*nodes)[j] << "] = " << (*val)[dim][j] << std::endl;
-		    algsys_->SetDirichlet(couplingBCsCounter_+1, pdeNode, help[dof+j*couplingDof], dof+1, SYSTEM);
+		    algsys_->SetDirichlet(couplingBCsCounter_+1, eqnNr, help[dof+j*couplingDof], eqnDof, SYSTEM);
 		  }
 #endif
 	      }
@@ -1408,18 +1410,18 @@ void BasePDE::GetDerivSolVecOfElement(Vector<Double>& sol, StdVector<Integer>& c
 
   // displacement of element nodes
   sol.Resize(dofspernode_ * connecth.GetSize());
-  Integer eqn;
+  Integer eqnNr, eqnDof;
   Integer dofsPerEQN = eqnData_->GetNumDofsPerEQN();
   
   const Vector<Double> & sol_der1 = getS1();
 
   for(Integer actNode=0; actNode<connecth.GetSize(); actNode++)
-    for(Integer actDof=0; actDof < dofsPerEQN; actDof++)
+    for(Integer actDof=0; actDof < dofspernode_; actDof++)
       {
-	eqn = eqnData_->Node2EQN(connecth[actNode],actDof+1);
-	if (eqn!= 0)
+	eqnData_->Node2EQN(connecth[actNode],actDof+1,eqnNr,eqnDof);
+	if (eqnNr!= 0)
 	  //sol[actDof + actNode*dofspernode_] = sol_der1[actDof + dofspernode_*(connect_PDE[actNode]-1)];
-	  sol[actDof + actNode*dofspernode_] = sol_der1[actDof + dofsPerEQN*(abs(eqn-1))];
+	  sol[actDof + actNode*dofspernode_] = sol_der1[eqnDof-1 + dofsPerEQN*(abs(eqnNr-1))];
 	else
 	  sol[actDof + actNode*dofspernode_] = 0.0;
       }
