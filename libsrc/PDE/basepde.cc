@@ -40,6 +40,8 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile, WriteResults * a
     analysistype_ = STATIC;
   else if (analysis=="transient")
     analysistype_ = TRANSIENT;
+  else if (analysis=="harmonic")
+    analysistype_ = HARMONIC;
   else
     Error("Analysis Type not supported",__FILE__,__LINE__);
 }
@@ -363,12 +365,12 @@ void BasePDE::AssignPDENodeNumbers()
   std::vector<Elem*> SD;
   Integer NodeCounter = 1;
 
-//  PDE2MeshNode_.resize(ptgrid_->GetMaxnumnodes(actlevel_),-1);
-//   for (Integer i=0;i<ptgrid_->GetMaxnumnodes(actlevel_);i++)
-//     {
-//       Mesh2PDENode_[i] = i+1;
-//       PDE2MeshNode_[i] = i+1;
-//     }
+//   PDE2MeshNode_.resize(ptgrid_->GetMaxnumnodes(actlevel_),-1);
+//    for (Integer i=0;i<ptgrid_->GetMaxnumnodes(actlevel_);i++)
+//      {
+//        Mesh2PDENode_[i] = i+1;
+//        PDE2MeshNode_[i] = i+1;
+//      }
   
   // Iterate over Subdomains
   for (Integer i=0; i<subdoms_.size(); i++)

@@ -244,7 +244,6 @@ void Tetra1FE :: GetEdgeGlobalDerivShapeFnc(std::vector< Matrix<Double>* > & sha
       for (Integer dim1=0; dim1<Dim_; dim1++)
 	for (Integer dim2=0; dim2<Dim_; dim2++)
 	  (*shapeDeriv[actEdge]) [dim2][dim1] = 
-	    //	  (*shapeDeriv[actEdge]) [dim1][dim2] = 
 	    xDxi[node1][dim1] * xDxi[node2][dim2] -
 	    xDxi[node1][dim2] * xDxi[node2][dim1];
     }

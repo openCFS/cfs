@@ -106,6 +106,15 @@ public:
   virtual void SolveStepStatic(const Integer level)=0;
 
 
+  /// solve one harmonic step
+  /*!
+    \param level level of grid
+  */
+  virtual void SolveStepHarmonic(const Integer level)
+  {Error("Harmonic step not implemented!",__FILE__,__LINE__);};
+  
+
+
   /*!
     \param kstep number of calculating step
     \param asteptime time of calculation

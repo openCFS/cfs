@@ -69,6 +69,8 @@ libsrc/Domain/grid.hh svneol=native#text/plain
 libsrc/Driver/Makefile -text
 libsrc/Driver/basedriver.cc svneol=native#text/plain
 libsrc/Driver/basedriver.hh svneol=native#text/plain
+libsrc/Driver/harmonicDriver.cc svneol=native#text/plain
+libsrc/Driver/harmonicDriver.hh svneol=native#text/plain
 libsrc/Driver/staticdriver.cc svneol=native#text/plain
 libsrc/Driver/staticdriver.hh svneol=native#text/plain
 libsrc/Driver/transientdriver.cc svneol=native#text/plain

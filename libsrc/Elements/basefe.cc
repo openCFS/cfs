@@ -4,6 +4,7 @@
 
 #include "basefe.hh"
 #include <Utils/tools.hh> 
+#include <Matrix/matrix.hh>
  
 namespace CoupledField
 {
@@ -266,6 +267,19 @@ enum IntegrationType BaseFE::String2EnumIntegrationType(const Char * inttype)
 
  return result;
 }
+
+
+
+void BaseFE::GetGlobalEdgeIndicesAtIP( std::vector<Double> & globCoord, Integer ip,
+				       const Matrix<Double> & cornerCoords)
+{
+  // cornerCoords: nrCorners x dim
+
+  globCoord.resize(Dim_);
+  
+  globCoord =  cornerCoords * ShFncAtIp_[ip-1];
+}
+
 
 
 
