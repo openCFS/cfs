@@ -35,7 +35,8 @@ public:
   virtual void DiscreteParamsPDE();
 
   //! set information for algebraic system about PDE. set matrix factors
-  virtual void SetMatrixFactors();
+   virtual void SetMatrixFactors()
+  {Error("Not implemented in AcousticPDE; uses TimeStepping-Class",__FILE__,__LINE__);}
 
   //! specify type of system matrix for AlgebraicSystem
   /*!
@@ -64,51 +65,26 @@ public:
   virtual void SolveStepTrans(const Integer kstep, const Double steptime, const Integer level, 
 			      const Boolean updatesysmat);
 
-  //! save received solution as solution on the previous step
-  virtual void SaveSolAsPrevStep();
+  //! prepare for correct time stepping
+  /*!
+    \param dt time step
+  */
+  virtual void InitTimeStepping(const Double dt);
 
   //! write results in file
    virtual void WriteResultsInFile();
 
   //!  return pointer to vector with first derivative of solution
-  virtual const Array<Double>& getS1() const { return sol_der1_;}
-
-  //!  return pointer to vector with first derivative of solution, calculated on previous step
-  virtual const Array<Double>& getS1old() const { return sol_der1_old_;}
+  virtual const Array<Double>& getS1() const { return TS_alg->GetDeriv1();}
 
   //! return pointer to vector with second derivative of solution
-  virtual const Array<Double>& getS2() const { return sol_der2_;}
-
-  //! return pointer to vector with second derivative of solution, calculated on previous step
-  virtual const Array<Double>& getS2old() const { return sol_der2_old_;}
+  virtual const Array<Double>& getS2() const { return TS_alg->GetDeriv2();}
 
   //! return size of solution
   virtual Integer getSize() const 
   { return size_;}
 
-  //! return parameter beta from Newmark method
-  Double getBeta() const 
-  { return beta_;}
-
-  //! return parameter gamma from Newmark method
-  Double getGamma() const {return gamma_;}
-
-  //! 
-  virtual void CalcDerSol();
-
 protected:
-
-   //! Calculation parameters for Newmark method
-  virtual void CalcParameters(const Double dt);
-
-  //! coefficients from Newmark method
-  Double a0_,a1_,a2_,a3_,a4_,a5_,a6_,a7_;
-
-  //! Integration parameters
-  Double alpha_,gamma_, beta_;
-
-  //! store solution, 1st derivative , 2nd derivative solution
-  Array<Double>  sol_der1_, sol_der2_, sol_old_, sol_der1_old_, sol_der2_old_;  
 
   Double lasttimecalc_;  //!< Last time on which we have calculated solution
   Integer laststepcalc_; //!< Number of last timestep on which we have calculated our solution

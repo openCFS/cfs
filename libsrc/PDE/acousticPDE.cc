@@ -9,6 +9,7 @@
 #include <DataInOut/GMV/outGMV.hh>
 #include <Forms/forms_header.hh>
 #include <Estimator/spaceerror.hh>
+#include "newmark.hh"
 
 namespace CoupledField
 {
@@ -38,43 +39,12 @@ AcousticPDE::AcousticPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, Fil
   sol_.reshape(dofspernode_, NumPDENodes_);
   sol_.init();
 
-  sol_der1_.reshape(dofspernode_, NumPDENodes_);
-  sol_der1_.init();
-  
-  sol_der1_old_.reshape(dofspernode_, NumPDENodes_);
-  sol_der1_old_.init();
-  
-  sol_der1_.reshape(dofspernode_, NumPDENodes_);
-  sol_der1_.init();
-  
-  sol_der2_.reshape(dofspernode_, NumPDENodes_);
-  sol_der2_.init();
-
-  sol_old_.reshape(dofspernode_, NumPDENodes_);
-  sol_old_.init();
-  
-  sol_der2_old_.reshape(dofspernode_, NumPDENodes_);
-  sol_der2_old_.init();
-   
-  alpha_ = 0.0;
-  beta_  = 0.25;
-  gamma_ = 0.5;
-
-  //check if integration parameters are defined in conf-file
-  conf->ifget("alpha_NM",alpha_,pdename_); 
-  conf->ifget("beta_NM",beta_,pdename_); 
-  conf->ifget("gamma_NM",gamma_,pdename_);
-
   with_absBCs_=FALSE;
   std::string absBCs="no";
   conf->ifget("absorbingBCs",absBCs,pdename_);
   if (absBCs == "yes")
-    {
       with_absBCs_ = TRUE;
-      //Error("Currently no absorbing BCs supported",__FILE__,__LINE__);
-    }
 
-  SetMatrixFactors();
   ReadBCs(pdename_);
 
 }
@@ -98,54 +68,12 @@ void AcousticPDE::DiscreteParamsPDE()
 }
 
 
-void AcousticPDE::SetMatrixFactors()
-{
-#ifdef TRACE
-  (*trace) << "entering AcousticPDE::SetMatrixFactors" << std::endl;
-#endif
- 
-  matrix_factor_[0] = 1.0;       // factor for stiffness matrix
-
-  matrix_factor_[1] = 0.0; 
-  if (with_absBCs_)
-    matrix_factor_[1] = 1.0*a1_; // factor for damping matrix
-
-  matrix_factor_[2] = 0.0;       // factor for convection matrix
-  matrix_factor_[3] = 1.0*a0_;   // factor for mass matrix
-}
-
-
 void AcousticPDE::ComputeRHS(const Double atime)
 {
 #ifdef TRACE
   (*trace) << "entering Acoustic3dPDE::ComputeRHS" << std::endl;
 #endif
 
-  Integer n;
-  Integer node;
-
-  Vector<Double> coeffMass, coeffDamp;
-  Vector<Double> elemvec;
-  Array<Double> temp;
-  std::list<Integer> nodes_hd;
-  Integer i;
-
-  coeffMass = (sol_old_*a0_+sol_der1_old_*a2_+sol_der2_old_*a3_);
-   
-  algsys_->UpdateRHS(MASS,coeffMass.get());
-
-  // damping matrix part
-  if (with_absBCs_) 
-    {
-      coeffDamp = -sol_der1_old_-sol_der2_old_*a6_;   
- 
-      algsys_->UpdateRHS(DAMPING,coeffDamp.get());
-
-      coeffDamp = sol_old_*a1_+sol_der1_old_*a2_*a7_+sol_der2_old_*a7_*a3_;  
-       
-      algsys_->UpdateRHS(DAMPING,coeffDamp.get());
-   }
-   
 }
 
 void AcousticPDE::SolveStepTrans(const Integer kstep, const Double asteptime, 
@@ -162,8 +90,10 @@ void AcousticPDE::SolveStepTrans(const Integer kstep, const Double asteptime,
   else laststepcalc_= kstep;
 
   Double * ptsol;
-
   Integer update,job;
+
+  //perform predictor step
+  TS_alg->Predictor(sol_);
 
   if (kstep==0)
     {
@@ -173,6 +103,7 @@ void AcousticPDE::SolveStepTrans(const Integer kstep, const Double asteptime,
       algsys_->ConstructEffectiveMatrix(matrix_factor_);
       algsys_->InitRHS();
       ComputeRHS(lasttimecalc_);
+      TS_alg->UpdateRHS();
     }
   else if (reset)
     {
@@ -183,6 +114,7 @@ void AcousticPDE::SolveStepTrans(const Integer kstep, const Double asteptime,
       algsys_->InitMatrix(SYSTEM);
       algsys_->ConstructEffectiveMatrix(matrix_factor_);
       ComputeRHS(lasttimecalc_);
+      TS_alg->UpdateRHS();
     }
   else
     {
@@ -190,6 +122,7 @@ void AcousticPDE::SolveStepTrans(const Integer kstep, const Double asteptime,
       job    = 3;
       algsys_->InitRHS();
       ComputeRHS(lasttimecalc_);
+      TS_alg->UpdateRHS();
     };
 
   SetBCs(level,update,lasttimecalc_);
@@ -203,12 +136,14 @@ void AcousticPDE::SolveStepTrans(const Integer kstep, const Double asteptime,
   for (Integer i=0; i<NumPDENodes_; i++)
     for (Integer dim=0; dim<dofspernode_; dim++)
       sol_[dim][i] = ptsol[k++];
-  
+
+  //perform corrector step  
+  TS_alg->Corrector(sol_);
+
+
   if (InfoPrint)
     (*infofile) << "maxnode:" <<  ptgrid_->GetMaxnumnodes(level) << std::endl;
 
-  // calculation of derivatives of solution
-  CalcDerSol(); 
 }
 
 void AcousticPDE::WriteResultsInFile()
@@ -221,64 +156,38 @@ void AcousticPDE::WriteResultsInFile()
   Array<Double> solArray_, sol_der1Array_, sol_der2Array_;
   
   solArray_ = sol_;
-  sol_der1Array_ = sol_der1_;
-  sol_der2Array_ = sol_der2_;
+  sol_der1Array_ = getS1();
+  sol_der2Array_ = getS2();
 
   
   TransformNodeSolution(sol_mesh,sol_,PDE2MeshNode_);
-  TransformNodeSolution(solder1_mesh,sol_der1_,PDE2MeshNode_);
-  TransformNodeSolution(solder2_mesh,sol_der2_,PDE2MeshNode_);
+  TransformNodeSolution(solder1_mesh,sol_der1Array_,PDE2MeshNode_);
+  TransformNodeSolution(solder2_mesh,sol_der2Array_,PDE2MeshNode_);
 
   if (OutFile_->IsGMV())
     {
       OutFile_->WriteNodeSolution(sol_mesh,laststepcalc_,lasttimecalc_,"vp");
-//       OutFile_->WriteNodeSolution(solder1_mesh,laststepcalc_,lasttimecalc_,"vp_1der");
-//       OutFile_->WriteNodeSolution(solder2_mesh,laststepcalc_,lasttimecalc_,"vp_2der");
+      //       OutFile_->WriteNodeSolution(solder1_mesh,laststepcalc_,lasttimecalc_,"vp_1der");
+      //       OutFile_->WriteNodeSolution(solder2_mesh,laststepcalc_,lasttimecalc_,"vp_2der");
     }
   else
     {
       OutFile_->WriteNodeSolution(sol_mesh,laststepcalc_,lasttimecalc_,"fluid potential");
-//       OutFile_->WriteNodeSolution(solder1_mesh,laststepcalc_,lasttimecalc_,"fluid potential, 1st deriv., ");
-//       OutFile_->WriteNodeSolution(solder2_mesh,laststepcalc_,lasttimecalc_,"fluid potential, 2nd deriv., ");
+      OutFile_->WriteNodeSolution(solder1_mesh,laststepcalc_,lasttimecalc_,"fluid potential, 1st deriv., ");
+      //      OutFile_->WriteNodeSolution(solder2_mesh,laststepcalc_,lasttimecalc_,"fluid potential, 2nd deriv., ");
     }
 
 }
 
-void AcousticPDE :: CalcParameters(const Double dt)
+void AcousticPDE :: InitTimeStepping(const Double dt)
 {
 #ifdef TRACE
-  (*trace) << "entering AcousticPDE::CalcParameters" << std::endl;
+  (*trace) << "entering AcousticPDE::InitTimeStepping" << std::endl;
 #endif
 
-  a2_=1.0/(beta_*dt);
-  a0_=a2_*(1/dt);
-  a1_=gamma_*a2_;
-  a3_=0.5/(beta_)-1.0;
-  a4_=gamma_/beta_-1.0;
-  a5_=0.5*dt*(a4_-1.0);
-  a6_=dt*(1-gamma_);
-  a7_=gamma_*dt;
-}
+  TS_alg = new Newmark(pdename_, algsys_, dofspernode_, NumPDENodes_, DampingMatrix_);
+  TS_alg->Init(matrix_factor_, dt);
 
-void AcousticPDE :: CalcDerSol()
-{
-#ifdef TRACE
-  (*trace) << " entering  AcousticPDE :: CalcDerSol() " << std::endl;
-#endif
-
-   sol_der2_=(sol_ - sol_old_)*a0_ - (sol_der1_old_)*a2_ - sol_der2_old_*a3_;
-   sol_der1_=sol_der1_old_+sol_der2_old_*a6_+sol_der2_*a7_;
-}
-
-void AcousticPDE::SaveSolAsPrevStep()
-{
-#ifdef TRACE
-  (*trace) << " entering  AcousticPDE::SaveSolAsPrevStep() " << std::endl;
-#endif
-
-  sol_old_=sol_;
-  sol_der1_old_=sol_der1_;
-  sol_der2_old_=sol_der2_;  
 }
 
 
