@@ -140,7 +140,6 @@ libsrc/DataInOut/ParamHandling/ConfFile.hh svneol=native#text/plain
 libsrc/DataInOut/ParamHandling/Makefile -text
 libsrc/DataInOut/ParamHandling/PlainXMLParamHandler.cc svneol=native#text/plain
 libsrc/DataInOut/ParamHandling/PlainXMLParamHandler.hh svneol=native#text/plain
-libsrc/DataInOut/ParamHandling/SkeletonConf.cc svneol=native#text/plain
 libsrc/DataInOut/ParamHandling/SkeletonConf.hh svneol=native#text/plain
 libsrc/DataInOut/ParamHandling/XMLParamHandler.cc svneol=native#text/plain
 libsrc/DataInOut/ParamHandling/XMLParamHandler.hh svneol=native#text/plain
