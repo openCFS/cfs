@@ -1,6 +1,7 @@
 #include "storesol.hh"
-#include <Domain/elem.hh>
-#include <Domain/grid.hh>
+#include "Domain/elem.hh"
+#include "Domain/grid.hh"
+#include "DataInOut/WriteInfo.hh"
 
 namespace CoupledField{
 
@@ -24,14 +25,14 @@ StoreSol<TYPE>::StoreSol(Integer numNodes,
 			 std::vector<Integer> solutionDofs)
 {
   ENTER_FCN("StoreSol::StoreSol(numNodes, solutiontypes,solutionDofs");
-  Error("Not implemented here", __FILE__,__LINE__);
+  Info->Error("Not implemented here", __FILE__,__LINE__);
 }
 
 template<class TYPE>
 StoreSol<TYPE>::StoreSol(const StoreSol & x) 
 {
   ENTER_FCN("StoreSol::StoreSol(const StoreSol)");
-  Error("Not implemented here", __FILE__,__LINE__);
+  Info->Error("Not implemented here", __FILE__,__LINE__);
 }
 
 
@@ -53,7 +54,7 @@ void StoreSol<TYPE>::Init(const TYPE val)
   if (numSolutions_ == 0 || numNodes_ == 0 \
      || solTypes_.size() == 0 || solDofs_.size() == 0) 
     {
-      std::cerr << "Error in StoreSl::Init():" << std::endl;
+      std::cerr << "Info->Error in StoreSl::Init():" << std::endl;
       std::cerr << "NumSolutions: " << numSolutions_ << std::endl;
       std::cerr << "NumNodes: " << numNodes_ << std::endl;
       std::cerr << "TotalDofs: " << totalDofs_ << std::endl;
@@ -61,7 +62,7 @@ void StoreSol<TYPE>::Init(const TYPE val)
       std::cerr << "Size of solDofs: " << solDofs_.size() << std::endl;
       std::cerr << "Size of solTypes: " << solTypes_.size() << std::endl;
       std::cerr << "Size of offsets: " << solOffset_.size() << std::endl;
-      Error("StoreSol::Init(): Before calling Init(), the number of solutions,\
+      Info->Error("StoreSol::Init(): Before calling Init(), the number of solutions,\
            nodes, types and dofs has to be set to NONZERO value!",__FILE__,__LINE__);
     }
   
@@ -71,7 +72,7 @@ void StoreSol<TYPE>::Init(const TYPE val)
   if (length_ == 0)
     {
       if (solDofs_.size() != numSolutions_ || solTypes_.size() != numSolutions_)
-	Error("Inconsistent definition of Storesolution class",__FILE__,__LINE__);
+	Info->Error("Inconsistent definition of Storesolution class",__FILE__,__LINE__);
       
       totalDofs_ = 0;
       
@@ -121,7 +122,7 @@ void StoreSol<TYPE>::SetSolutionType(const SolutionType solType, const Integer n
   ENTER_IFCN("StoreSol::SetSolutionType");
 
 #ifdef CHECK_INDEX
-  if (numSolution >= numSolutions_) Error("StoreSol: Index out of Bounds",__FILE__,__LINE__);
+  if (numSolution >= numSolutions_) Info->Error("StoreSol: Index out of Bounds",__FILE__,__LINE__);
 #endif
 
   solTypes_[solType] = numSolution;
@@ -146,12 +147,12 @@ TYPE& StoreSol<TYPE>:: operator()(Integer node, Integer dof)
   ENTER_IFCN("StoreSol::operator()");
   
 #ifdef CHECK_INITIALIZED
-  if (length_ == 0) Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
+  if (length_ == 0) Info->Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
 #endif
 
 #ifdef CHECK_INDEX
   if (numSolutions_ > 1) 
-    Error("StoreSol:operator(): Only defined objects with one type of solution!",__FILE__,__LINE__);
+    Info->Error("StoreSol:operator(): Only defined objects with one type of solution!",__FILE__,__LINE__);
 #endif
   return data_[node*totalDofs_ + dof];
 }
@@ -162,12 +163,12 @@ TYPE  StoreSol<TYPE>:: operator()(Integer node, Integer dof) const
   ENTER_IFCN("StoreSol::operator()");
   
 #ifdef CHECK_INITIALIZED
-  if (length_ == 0) Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
+  if (length_ == 0) Info->Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
 #endif
 
 #ifdef CHECK_INDEX
   if (numSolutions_ > 1) 
-    Error("StoreSol:operator(): Only defined objects with one type of solution!",__FILE__,__LINE__);
+    Info->Error("StoreSol:operator(): Only defined objects with one type of solution!",__FILE__,__LINE__);
 #endif
   return data_[node*totalDofs_ + dof];
 }
@@ -178,7 +179,7 @@ void StoreSol<TYPE>::GetSolVector(const SolutionType type, CFSVector & val) cons
 {
   ENTER_FCN("StoreSol::GetSolVector");
 #ifdef CHECK_INITIALIZED
-  if (length_ == 0) Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
+  if (length_ == 0) Info->Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
 #endif
 
   Integer offset = (*solOffset_.find(type)).second;
@@ -199,12 +200,12 @@ void StoreSol<TYPE>::SetSolVector(const SolutionType type, const CFSVector & val
 {
   ENTER_FCN("StoreSol::SetSolVector");
 #ifdef CHECK_INITIALIZED
-  if (length_ == 0) Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
+  if (length_ == 0) Info->Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
 #endif 
   
 #ifdef CHECK_INDEX
   if (val.GetSize() != data_.GetSize())
-    Error("StoreSik:SetSolVector(): Incompatible dimensions",__FILE__,__LINE__);
+    Info->Error("StoreSik:SetSolVector(): Incompatible dimensions",__FILE__,__LINE__);
 #endif
 
   TRY_CAST
@@ -222,7 +223,7 @@ void StoreSol<TYPE>::GetSolution(const SolutionType type, BaseStoreSol & val) co
 {
   ENTER_FCN("StoreSol::GetSolution");
 #ifdef CHECK_INITIALIZED
-  if (length_ == 0) Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
+  if (length_ == 0) Info->Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
 #endif
   Integer offset = (*solOffset_.find(type)).second;
   Integer dof = (*solDofs_.find(type)).second;
@@ -256,14 +257,14 @@ void StoreSol<TYPE>::SetNodalResult(const Integer nodeNr, const CFSVector &val)
 {
   ENTER_FCN("StoreSol::SetNodalResult");
 #ifdef CHECK_INITIALIZED
-  if (length_ == 0) Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
+  if (length_ == 0) Info->Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
 #endif
   
 #ifdef CHECK_INDEX
   if (nodeNr >= numNodes_) 
-    Error("StoreSol::SetNodalResult(): index out of bounds",__FILE__,__LINE__);
+    Info->Error("StoreSol::SetNodalResult(): index out of bounds",__FILE__,__LINE__);
   if (val.GetSize() != totalDofs_)
-    Error("StoreSol::SetNodalResult(): vector of incompatible dimension",__FILE__,__LINE__);
+    Info->Error("StoreSol::SetNodalResult(): vector of incompatible dimension",__FILE__,__LINE__);
 #endif
 
   TRY_CAST
@@ -279,9 +280,9 @@ void StoreSol<TYPE>::GetNodalResult(const Integer nodeNr, CFSVector &val) const
 {
   ENTER_FCN("StoreSol::GetNodalResult");
 #ifdef CHECK_INITIALIZED
-  if (length_ == 0) Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
+  if (length_ == 0) Info->Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
 #endif
-  Error("Not implemented here", __FILE__,__LINE__);
+  Info->Error("Not implemented here", __FILE__,__LINE__);
 }
 
 template<class TYPE>
@@ -289,9 +290,9 @@ void StoreSol<TYPE>::GetSolVectorSingleDof(const SolutionType type, const Intege
 {
   ENTER_FCN("StoreSol::GetSolVectorSingleDof");
 #ifdef CHECK_INITIALIZED
-  if (length_ == 0) Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
+  if (length_ == 0) Info->Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
 #endif
-  Error("Not implemented here", __FILE__,__LINE__);
+  Info->Error("Not implemented here", __FILE__,__LINE__);
 }
 
 template<class TYPE>
@@ -299,9 +300,9 @@ void StoreSol<TYPE>::GetSolVectorSingleDof(const Integer dof, CFSVector & val) c
 {
   ENTER_FCN("StoreSol::GetSolVectorSingleDof");
 #ifdef CHECK_INITIALIZED
-  if (length_ == 0) Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
+  if (length_ == 0) Info->Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
 #endif
-  Error("Not implemented here", __FILE__,__LINE__);
+  Info->Error("Not implemented here", __FILE__,__LINE__);
 }
 
 
@@ -310,14 +311,14 @@ void StoreSol<TYPE>::Get(const Integer nodeNr, const Integer dof, TYPE & ret) co
 {
   ENTER_FCN("StoreSol::Get");
 #ifdef CHECK_INITIALIZED
-  if (length_ == 0) Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
+  if (length_ == 0) Info->Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
 #endif
 
 #ifdef CHECK_INDEX
   if (numSolutions_ > 1)
-    Error("StoreSol::Get(): Only used for single solution objects!",__FILE__,__LINE__);
+    Info->Error("StoreSol::Get(): Only used for single solution objects!",__FILE__,__LINE__);
   if (nodeNr > numNodes_)
-    Error("StoreSol::Get(): Index out of bounds",__FILE__,__LINE__);
+    Info->Error("StoreSol::Get(): Index out of bounds",__FILE__,__LINE__);
 #endif
 
   ret = data_[totalDofs_*nodeNr + dof];
@@ -328,7 +329,7 @@ void StoreSol<TYPE>::Get(const SolutionType type, const Integer nodeNr, const In
 {
   ENTER_FCN("StoreSol::Get");
 #ifdef CHECK_INITIALIZED
-  if (length_ == 0) Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
+  if (length_ == 0) Info->Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
 #endif
   Integer offset = (*solOffset_.find(type)).second;
 
@@ -340,9 +341,9 @@ void StoreSol<TYPE>::Set(const SolutionType type, const Integer nodeNr, const In
 {
   ENTER_FCN("StoreSol::Set");
 #ifdef CHECK_INITIALIZED
-  if (length_ == 0) Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
+  if (length_ == 0) Info->Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
 #endif
-  Error("Not implemented here", __FILE__,__LINE__);
+  Info->Error("Not implemented here", __FILE__,__LINE__);
 }
 
 template<class TYPE>
@@ -350,9 +351,9 @@ void StoreSol<TYPE>::Add(const SolutionType type, const Integer nodeNr, const In
 {
   ENTER_FCN("StoreSol::Set");
 #ifdef CHECK_INITIALIZED
-  if (length_ == 0) Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
+  if (length_ == 0) Info->Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
 #endif
-  Error("Not implemented here", __FILE__,__LINE__);
+  Info->Error("Not implemented here", __FILE__,__LINE__);
 }
 
 template<class TYPE>
@@ -360,11 +361,11 @@ void StoreSol<TYPE>::SetCompleteVector(const CFSVector & val)
 {
   ENTER_FCN("StoreSol::SetCompleteVector");
 #ifdef CHECK_INITIALIZED
-   if (length_ == 0) Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
+   if (length_ == 0) Info->Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
 #endif
 #ifdef CHECK_INDEX
    if (val.GetSize() !=  length_)
-     Error("StoreSol::SetCompleteVector(): Vector has wrong size!",__FILE__,__LINE__);
+     Info->Error("StoreSol::SetCompleteVector(): Vector has wrong size!",__FILE__,__LINE__);
 #endif
 
    TRY_CAST
@@ -380,7 +381,7 @@ void StoreSol<TYPE>::GetCompleteVector(CFSVector & val) const
 {
  ENTER_FCN("StoreSol::SetCompleteVector");
 #ifdef CHECK_INITIALIZED
-  if (length_ == 0) Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
+  if (length_ == 0) Info->Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
 #endif
    TRY_CAST
    REFCAST(val,Vector<TYPE>,temp);
@@ -396,7 +397,7 @@ void StoreSol<TYPE>::GetVectorPointer(CFSVector* &ptrToVec)
 {
   ENTER_FCN("StoreSol::GetVectorPointer");
 #ifdef CHECK_INITIALIZED
-  if (length_ == 0) Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
+  if (length_ == 0) Info->Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
 #endif
 
   ptrToVec = (CFSVector*) &data_;
@@ -407,7 +408,7 @@ void StoreSol<TYPE>::GetVectorPointer(Vector<TYPE>* &ptrToVec)
 {
   ENTER_FCN("StoreSol::GetVectorPointer");
 #ifdef CHECK_INITIALIZED
-  if (length_ == 0) Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
+  if (length_ == 0) Info->Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
 #endif
 
   ptrToVec =  &data_;
@@ -418,7 +419,7 @@ void StoreSol<TYPE>::CopyFromDataPointer(TYPE * ptr)
 {
   ENTER_FCN("StoreSol::CopyFromDataPointer");
 #ifdef CHECK_INITIALIZED
-  if (length_ == 0) Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
+  if (length_ == 0) Info->Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
 #endif
   for (Integer i=0; i<length_; i++)
     data_[i] = ptr[i];
@@ -430,7 +431,7 @@ void StoreSol<TYPE>::SetDataPointer(TYPE * ptr)
 {
   ENTER_FCN("StoreSol::SetDataPointer");
 #ifdef CHECK_INITIALIZED
-  if (length_ == 0) Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
+  if (length_ == 0) Info->Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
 #endif
   
   // Unsicher ...
@@ -446,32 +447,33 @@ void StoreSol<TYPE>::GetDataPointer(TYPE* &ptr)
 {
   ENTER_FCN("StoreSol::GetDataPointer");
 #ifdef CHECK_INITIALIZED
-  if (length_ == 0) Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
+  if (length_ == 0) Info->Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
 #endif
  
   ptr =  data_.data_;
 }
 
 
-
+template<>
 Double* StoreSol<Double>::GetDoublePointer()
 {
   ENTER_FCN("StoreSol::GetDoublePointer");
 #ifdef CHECK_INITIALIZED
-  if (length_ == 0) Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
+  if (length_ == 0) Info->Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
 #endif
   return data_.data_;
 }
+
 
 template<class TYPE>
 Double* StoreSol<TYPE>::GetDoublePointer()
 {
   ENTER_FCN("StoreSol::GetDoublePointer");
 #ifdef CHECK_INITIALIZED
-  if (length_ == 0) Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
+  if (length_ == 0) Info->Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
 #endif
 
-  Error("Not implemented here",__FILE__,__LINE__);
+  Info->Error("Not implemented here",__FILE__,__LINE__);
 }
 
 
@@ -482,7 +484,7 @@ void StoreSol<TYPE>::GetElemSolutionAsMatrix(CFSMatrix & elemSol, Vector<Integer
 {
   ENTER_FCN("StoreSol::GetElemSolutionAsMatrix");
 #ifdef CHECK_INITIALIZED
-  if (length_ == 0) Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
+  if (length_ == 0) Info->Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
 #endif
   TRY_CAST
   REFCAST(elemSol,Matrix<TYPE>,temp)
@@ -503,7 +505,7 @@ void StoreSol<TYPE>::TransformNodeSolution(BaseStoreSol & transformedSolution,
 {
   ENTER_FCN("StoreSol::TransformNodeSolution");
 #ifdef CHECK_INITIALIZED
-  if (length_ == 0) Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
+  if (length_ == 0) Info->Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
 #endif
   TRY_CAST
   REFCAST(transformedSolution,StoreSol<TYPE>,temp);
@@ -542,9 +544,9 @@ void StoreSol<TYPE>::TransformElemSolution(BaseStoreSol & transformedSolution,
 {
   ENTER_FCN("StoreSol::TransformElemSolution");
 #ifdef CHECK_INITIALIZED
-  if (length_ == 0) Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
+  if (length_ == 0) Info->Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
 #endif
- Error("Not implemented here", __FILE__,__LINE__);
+ Info->Error("Not implemented here", __FILE__,__LINE__);
 }
 
 template<class TYPE>
@@ -555,7 +557,7 @@ void StoreSol<TYPE>::TransformElemSolution(BaseStoreSol & MeshSol,
 {
   ENTER_FCN("StoreSol::TransformElemSolution");
 #ifdef CHECK_INITIALIZED
-  if (length_ == 0) Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
+  if (length_ == 0) Info->Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
 #endif  
   TRY_CAST
   REFCAST(MeshSol,StoreSol<TYPE>,temp);
@@ -613,7 +615,7 @@ void StoreSol<TYPE>::NodeSolutionToCoupling(BaseStoreSol & couplingSol,
 {
   ENTER_FCN("StoreSol:::NodeSolutionToCoupling");
 #ifdef CHECK_INITIALIZED
-  if (length_ == 0) Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
+  if (length_ == 0) Info->Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
 #endif
   
 // CouplingSol.reshape(dofspernode_, NodeNumbers.size());
@@ -652,9 +654,9 @@ void StoreSol<TYPE>::ElemSolutionToCoupling(BaseStoreSol & couplingSol,
 {
   ENTER_FCN("StoreSol::ElemSolutionToCoupling");
 #ifdef CHECK_INITIALIZED
-  if (length_ == 0) Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
+  if (length_ == 0) Info->Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
 #endif
-  Error("Not implemented here", __FILE__,__LINE__); 
+  Info->Error("Not implemented here", __FILE__,__LINE__); 
 
 }
   
@@ -664,7 +666,7 @@ template<class TYPE>
 StoreSol<TYPE> & StoreSol<TYPE>::operator= (const StoreSol & x)
 {
   ENTER_FCN("StoreSol::operator=(const StoreSol &");
-  Error("Not implemented here", __FILE__,__LINE__); 
+  Info->Error("Not implemented here", __FILE__,__LINE__); 
 }
 
 template<class TYPE>
@@ -672,4 +674,5 @@ BaseStoreSol & StoreSol<TYPE>::operator= (const BaseStoreSol & x)
 {
   ENTER_FCN("StoreSol::operator=(const BaseStoreSol &");
 }
+
 } //namespace
