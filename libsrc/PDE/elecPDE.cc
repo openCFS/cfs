@@ -21,21 +21,21 @@
 #include <General/defs.hh>
 #include "DataInOut/ParamHandling/BaseParamHandler.hh" 
 
-namespace CoupledField
-{
+namespace CoupledField {
 
+  // ***************
+  //   Constructor
+  // ***************
+  ElecPDE::ElecPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc,
+		   FileType *aptFileType, WriteResults *aptOut)
+    :BasePDE(aptgrid, aptbcs, aptFileType, aptOut, aptTimeFunc) {
 
-ElecPDE::ElecPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *aptFileType, 
-		 WriteResults *aptOut)
-:BasePDE(aptgrid, aptbcs, aptFileType, aptOut, aptTimeFunc)
-{
+    ENTER_FCN( "ElecPDE::ElecPDE" );
 
-  ENTER_FCN( "ElecPDE::ElecPDE" );
+    dofspernode_ = 1;
 
-  dofspernode_ = 1;  
-
-  pdename_          = "electrostatic";
-  pdematerialclass_ = "piezo"; 
+    pdename_          = "electrostatic";
+    pdematerialclass_ = "piezo"; 
  
 #ifndef XMLPARAMS
     conf->getsubdompde(subdoms_,pdename_);
@@ -43,45 +43,36 @@ ElecPDE::ElecPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
     params->GetList( "name", subdoms_, pdename_, "region" );
 #endif
 
-  ReadBCs(pdename_);
+    ReadBCs(pdename_);
 
- //check, if problem is axisymmetric
+    //check, if problem is axisymmetric
 #ifndef XMLPARAMS
-  isaxi_ = FALSE;
-  std::string subtype;
-  conf->ifget("subtype",subtype,pdename_);
-  if (subtype == "axi")
-    isaxi_ = TRUE;
+    isaxi_ = FALSE;
+    std::string subtype;
+    conf->ifget("subtype",subtype,pdename_);
+    if (subtype == "axi")
+      isaxi_ = TRUE;
 
-  //check for electric field:
-  conf->ifgetliststr("calc_EField",calcEfield_,pdename_); 
+    //check for electric field:
+    conf->ifgetliststr("calc_EField",calcEfield_,pdename_); 
 
-  //check for electric field energy:
-  conf->ifgetliststr("calc_Energy",calcEnergy_,pdename_); 
-
+    //check for electric field energy:
+    conf->ifgetliststr("calc_Energy",calcEnergy_,pdename_); 
 #else
 
-  // Check whether problem has axial symmetry
-  if ( params->HasValue( "type", "axi", "geometry" ) ) isaxi_ = TRUE;
-
-  // Determine regions for which electric field and/or energy must be computed
-  params->GetValsForHits( "region", calcEfield_, "type", "efield", pdename_,
-			  "elemResults" );
-  params->GetValsForHits( "region", calcEnergy_, "type", "energy", pdename_,
-			  "storeResults" );
+    // Check whether problem has axial symmetry
+    if ( params->HasValue( "type", "axi", "geometry" ) ) isaxi_ = TRUE;
 
 #endif
 
-  Reset();
+    Reset();
   
-  SolverCFS_ = FALSE;
+    SolverCFS_ = FALSE;
 
-
-  // only static analysis are possible =======================
-  delete assemble_;
-  assemble_ = new StaticAssemble(algsys_, ptgrid_);
-  analysistype_ = STATIC;
-
+    // only static analysis are possible =======================
+    delete assemble_;
+    assemble_ = new StaticAssemble(algsys_, ptgrid_);
+    analysistype_ = STATIC;
 
   // set analysis parameters
   assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, subdoms_, surfdoms_);
@@ -89,25 +80,28 @@ ElecPDE::ElecPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
   assemble_->SetMesh2PDENode(&mesh2PDENode_);
 
 #ifdef USE_OLAS
-  assemble_->SetMatrixEntryType(DOUBLE);
-  assemble_->SetMatrixStorageType(SPARSE_NONSYM);
-  //assemble_->SetMatrixStorageType(HYPRE_MATRIX);
+    assemble_->SetMatrixEntryType(DOUBLE);
+    assemble_->SetMatrixStorageType(SPARSE_NONSYM);
+    //assemble_->SetMatrixStorageType(HYPRE_MATRIX);
 #else
-  assemble_->SetMatrixType(RSCALAR);
+    assemble_->SetMatrixType(RSCALAR);
 #endif
 
+    assemble_->SetNumDirichlet(GetNumRestraints(actlevel_));
+    assemble_->SetPtrBCs(ptBCs_);
+    assemble_->SetPtr2Sol(sol_);
+    assemble_->SetPtr2TimeFnc(ptTimeFunc_);
 
-  assemble_->SetNumDirichlet(GetNumRestraints(actlevel_));
-  assemble_->SetPtrBCs(ptBCs_);
-  assemble_->SetPtr2Sol(sol_);
-  assemble_->SetPtr2TimeFnc(ptTimeFunc_);
-
-  ReadMaterialData();
+    ReadMaterialData();
    
-  DefineIntegrators(actlevel_);  
+    DefineIntegrators(actlevel_);  
 
-  ReadSavings();
-}
+#ifndef XMLPARAMS
+    ReadSavings();
+#else
+    ReadStoreResults();
+#endif
+  }
 
 
 
@@ -933,12 +927,32 @@ void ElecPDE::CalcEfieldAtCoupleElemIP(Elem * actVolElem,
   //y-coord
   lCoord[1] = volCoord1Y + relPosIP * (volCoord2Y - volCoord1Y);
   
-  TRY_CAST
-    PTRCAST(sol_,StoreSol<Double>,solTemp);
-  ElecFieldOp elecFieldOp(ptgrid_, this, &mesh2PDENode_, *solTemp, actlevel_, isaxi_);
+  StoreSol<Double> *solTemp = dynamic_cast<StoreSol<Double>*>(sol_);
+  ElecFieldOp elecFieldOp(ptgrid_, this, &mesh2PDENode_, *solTemp, actlevel_,
+			  isaxi_);
 
   elecFieldOp.CalcElemElecField(tempE, actVolElem, lCoord);
-  CATCH_CAST
+}
+
+
+// ***********************************************************************
+//   Obtain information on desired output quantities from parameter file
+// ***********************************************************************
+void ElecPDE::ReadStoreResults() {
+
+  ENTER_FCN( "ElecPDE::ReadStoreResults" );
+
+  // By default we only save the solution at nodal values
+  savesol_    = TRUE;
+  savederiv1_ = FALSE;
+  savederiv2_ = FALSE;
+
+  // Determine regions for which electric field and/or energy must be computed
+  params->GetValsForHits( "region", calcEfield_, "type", "efield", pdename_,
+			  "elemResults" );
+  params->GetValsForHits( "region", calcEnergy_, "type", "energy", pdename_,
+			  "storeResults" );
+
 }
 
 

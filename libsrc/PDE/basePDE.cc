@@ -2,11 +2,11 @@
 #include <iostream>
 #include <string>
 
-#include <Domain/elem.hh>
-#include "DataInOut/ParamHandling/ConfFile.hh"
-#include "Estimator/spaceerror.hh"
-#include "DataInOut/WriteInfo.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
+#include "DataInOut/ParamHandling/ConfFile.hh"
+#include "DataInOut/WriteInfo.hh"
+#include "Domain/elem.hh"
+#include "Estimator/spaceerror.hh"
 #include "basePDE.hh"
 
 
@@ -142,51 +142,35 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
 }
 
 
-void BasePDE::ReadSavings()
-{
-
-  ENTER_FCN( "BasePDE::ReadSavings" );
+  // For XML parameter handling we have replaced this method by the pure
+  // virtual ReadStoreResults() method which must be implemented by each
+  // PDE according to its demands.
 
 #ifndef XMLPARAMS
-  //set saving of solution to yes, if user has not used the nodalsave-command
-  savesol_ = TRUE;
 
-  //check for node saving
-  std::vector<std::string> savings;
+  void BasePDE::ReadSavings() {
+
+    ENTER_FCN( "BasePDE::ReadSavings" );
+
+    //set saving of solution to yes, if user has not used the nodalsave-command
+    savesol_ = TRUE;
+
+    //check for node saving
+    std::vector<std::string> savings;
   
+    //reset saving of solution, if user has used the nodalsave-command
+    if (conf->ifgetliststr("nodalsave", savings, pdename_))
+      savesol_ = FALSE;
 
-  //reset saving of solution, if user has used the nodalsave-command
-  if (conf->ifgetliststr("nodalsave", savings, pdename_))
-    savesol_ = FALSE;
-
-  for (Integer i=0; i<savings.size(); i++)
-    {
+    for (Integer i=0; i<savings.size(); i++) {
       if (savings[i] == "dof")  savesol_ = TRUE;
       if (savings[i] == "deriv1") savederiv1_ = TRUE;
       if (savings[i] == "deriv2") savederiv2_ = TRUE;
     }
-
-#else
-
-  // By default we only save the solution at nodal values
-  savesol_    = TRUE;
-  savederiv1_ = FALSE;
-  savederiv2_ = FALSE;
-
-  // Determine what solution values the user wants to be stored
-  std::vector<std::string> nodeValues;
-  params->GetList( "type", nodeValues, pdename_, "nodeHistory" );
-
-  for ( Integer i = 0;  i < nodeValues.size(); i++ )
-    {
-      if ( nodeValues[i] == "displacement" ) savesol_    = TRUE;
-      if ( nodeValues[i] == "velocity"     ) savederiv1_ = TRUE;
-      if ( nodeValues[i] == "acceleration" ) savederiv2_ = TRUE;
-    }
+  }
 
 #endif
   
-}
 
 
 void BasePDE::WriteGeneralPDEdefines()

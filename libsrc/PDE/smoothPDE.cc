@@ -102,7 +102,11 @@ SmoothPDE::SmoothPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileTyp
    
   DefineIntegrators(actlevel_);  
 
+#ifndef XMLPARAMS
   ReadSavings();
+#else
+  ReadStoreResults();
+#endif
 
   //is a nonlinear PDE, since in each iteration, we have to setup the matrices new!
   nonLin_ = TRUE;

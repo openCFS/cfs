@@ -18,11 +18,11 @@
 #endif
 
 
-#include <DataInOut/ParamHandling/ConfFile.hh>
-#include <DataInOut/LoadMaterialData.hh>
-#include <DataInOut/MaterialData.hh>
-#include <CoupledPDE/pdecoupling.hh>
-#include <Driver/assemble.hh>
+#include "DataInOut/ParamHandling/ConfFile.hh"
+#include "DataInOut/LoadMaterialData.hh"
+#include "DataInOut/MaterialData.hh"
+#include "CoupledPDE/pdecoupling.hh"
+#include "Driver/assemble.hh"
 #include "timestepping.hh"
 #include "BaseEQN.hh"
 
@@ -69,9 +69,6 @@ class SpaceErrorEstimator;
 
     //! define all (bilinearform) integrators needed for this pde
     virtual void DefineIntegrators(const Integer level)=0;
-  
-    //! check for saving parameters
-    virtual void ReadSavings();
 
     //! write general defines (BCs, loads, etc.) to info-file
     virtual void WriteGeneralPDEdefines();
@@ -301,6 +298,24 @@ class SpaceErrorEstimator;
 
 
   protected:
+  
+#ifndef XMLPARAMS
+    //! check for saving parameters
+    virtual void ReadSavings();
+#else
+    //! Obtain information on desired output quantities from parameter file
+
+    //! This method is used to query the parameter handling object for the
+    //! desired output quantities and translate their literal description into
+    //! the internal format by setting the corresponding class attributes.
+    //! Currently we define a simple dummy implementation here in basePDE,
+    //! but in the long-run this should become a pure virtual method.
+    virtual void ReadStoreResults() {
+      savesol_ = TRUE;
+      savederiv1_ = TRUE;
+      savederiv2_ = TRUE;
+    };
+#endif
 
     //! read from config-file info about BCs
     void ReadBCs(const std::string eq);
