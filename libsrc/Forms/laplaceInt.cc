@@ -34,7 +34,7 @@ namespace CoupledField
     const Integer nrIntPts= ptelem->GetNumIntPoints();
     const Integer nrNodes = ptelem->GetNumNodes();
     const std::vector<Double> & intWeights = ptelem->GetIntWeights();  
-    double jacDet;  
+    Double jacDet;  
 
 
     // derivation of shape functions after global coordinates 
@@ -51,9 +51,9 @@ namespace CoupledField
 
     for (Integer actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
       {
-	jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord);
-
-	ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord);
+	jacDet = 0;
+	
+	ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord, jacDet);
 
 	xiDx.Transpose(xiDxTransp);
 
@@ -66,8 +66,9 @@ namespace CoupledField
 		 << partElemMat << std::endl
 		 << "xiDx \n" << xiDx
 		 << "\n xiDxTransp \n " << xiDxTransp 
-		 << "\n intWeights " << intWeights[actIntPt-1] << std::endl;
-	
+		 << "\n intWeights " << intWeights[actIntPt-1]
+		 << "\n jacDet " << jacDet << std::endl
+		 << "\n jacDetOrig " << ptelem->CalcJacobianDetAtIp(actIntPt,ptCoord) << std::endl;
 #endif
 
 	elemMat += partElemMat;
