@@ -33,11 +33,11 @@ void main(int argc, char *argv[])
   if (!strcmp("-i", argv[2])) InfoPrint=TRUE;
 
   Char * name=NULL;
-  Material * materialdata=NULL;
+  Material * ptMaterial=NULL;
   if (!strcmp("-m", argv[argc-2])) 
     { 
       name=argv[argc-3];
-      materialdata=new Material(argv[argc-1]);
+      ptMaterial=new Material(argv[argc-1]);
     }
   else name=argv[argc-1];
 
@@ -51,7 +51,7 @@ void main(int argc, char *argv[])
 
   TimeFunc * ptTimeFunc=new TimeFunc(ptInputfile);
 
-  Domain<Point2D> *domain=new Domain<Point2D>(ptInputfile,ptOut,materialdata, ptTimeFunc);
+  Domain<Point2D> *domain=new Domain<Point2D>(ptInputfile,ptOut,ptMaterial, ptTimeFunc);
 
   // print grid to unverg-file
   domain->PrintGrid(0);
@@ -72,5 +72,5 @@ void main(int argc, char *argv[])
   if (ptInputfile) delete ptInputfile;
   if (ptOut) delete ptOut;
   if (ptdriver) delete ptdriver;
-  if (materialdata) delete materialdata;
+  if (ptMaterial) delete ptMaterial;
 }
