@@ -1266,7 +1266,8 @@ Double MechPDE::AlgsysL2Norm(Double * pt)
 // ======================================================
 
 
-void MechPDE::WriteResultsInFile()
+void MechPDE::WriteResultsInFile(Integer stepOffset,
+				 Double timeOffset)
 {
   ENTER_FCN( "MechPDE::WriteResultsInFile" );
 
@@ -1274,7 +1275,8 @@ void MechPDE::WriteResultsInFile()
   NodeStoreSol<Double> * solTransient;
   NodeStoreSol<Complex> * solHarmonic;
   
-
+  Double actTime = lasttimecalc_ + timeOffset;
+  Integer actStep = laststepcalc_ + stepOffset;
  
   if (analysistype_ == STATIC ||
       analysistype_ == TRANSIENT)
@@ -1282,7 +1284,7 @@ void MechPDE::WriteResultsInFile()
       if (savesol_ == TRUE )
 	{
 	  solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);
-	  outFile_->WriteNodeSolutionTransient(*solTransient, laststepcalc_, lasttimecalc_);
+	  outFile_->WriteNodeSolutionTransient(*solTransient, actStep, actTime);
 	}
       
       if (analysistype_== TRANSIENT)
@@ -1296,7 +1298,7 @@ void MechPDE::WriteResultsInFile()
 	      sol_der1Array.SetNumDofs(dim_);
 	      sol_der1Array.Init(0);
 	      sol_der1Array.SetAlgSysVector(getS1());
-	      outFile_->WriteNodeSolutionTransient(sol_der1Array,laststepcalc_,lasttimecalc_);
+	      outFile_->WriteNodeSolutionTransient(sol_der1Array, actStep, actTime);
 	    }
 	  
 	  if (savederiv2_ == TRUE)
@@ -1307,13 +1309,13 @@ void MechPDE::WriteResultsInFile()
 	      sol_der2Array.SetNumDofs(dim_);
 	      sol_der2Array.Init(0);
 	  sol_der2Array.SetAlgSysVector(getS2());
-	  outFile_->WriteNodeSolutionTransient(sol_der2Array,laststepcalc_,lasttimecalc_);
+	  outFile_->WriteNodeSolutionTransient(sol_der2Array, actStep, actTime);
 	    }
 	}
 
       //element results
       if (calcStress_.GetSize() !=0 ) {
-	outFile_->WriteElemSolutionTransient(Stress_, laststepcalc_, lasttimecalc_);
+	outFile_->WriteElemSolutionTransient(Stress_, actStep, actTime);
       }
     }
   else if (analysistype_ == HARMONIC)

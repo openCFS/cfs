@@ -346,8 +346,9 @@ namespace CoupledField {
     TS_alg_->Corrector(actSol);
   }
 
-  void MagPDE :: InitTimeStepping(const Double dt) {
+  void MagPDE :: InitTimeStepping(const Double dt)
     ENTER_FCN( "MagPDE::InitTimeStepping" );
+    
     TS_alg_ = new Trapezoidal(pdename_, algsys_, eqnData_);
     TS_alg_->Init(matrix_factor_, dt);
   }
@@ -569,12 +570,16 @@ namespace CoupledField {
   // POSTPROCESSING SECTION
   // ======================================================
 
-  void MagPDE::WriteResultsInFile() {
+  void MagPDE::WriteResultsInFile(Integer stepOffset,
+				  Double timeOffset) {
 
     ENTER_FCN( "MagPDE::WriteResultsInFile" );
 
     NodeStoreSol<Double> * solTransient;
     NodeStoreSol<Complex> * solHarmonic;
+
+    Double actTime = lasttimecalc_ + timeOffset;
+    Integer actStep = laststepcalc_ + stepOffset;
 
     if (analysistype_ == STATIC ||
 	analysistype_ == TRANSIENT) {
@@ -584,15 +589,15 @@ namespace CoupledField {
 	{
 	  solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);
 	  outFile_->WriteNodeSolutionTransient(*solTransient, 
-					       laststepcalc_, lasttimecalc_);
+					       actStep, actTime);
 	}
       
       if (calcBfield_.GetSize() !=0 ) {
-	outFile_->WriteElemSolutionTransient(B_, laststepcalc_, lasttimecalc_);
+	outFile_->WriteElemSolutionTransient(B_, actStep, actTime);
       }
       
       if (calcEddy_.GetSize() !=0 ) {
-	outFile_->WriteElemSolutionTransient(Jeddy_, laststepcalc_, lasttimecalc_);
+	outFile_->WriteElemSolutionTransient(Jeddy_, actStep, actTime);
       }
     } else  if (analysistype_ == HARMONIC) {
       
@@ -1093,6 +1098,7 @@ namespace CoupledField {
 
   void MagPDE :: InitTimeStepping(const Double dt) {
     ENTER_FCN( "MagPDE::InitTimeStepping" );
+    
     TS_alg_ = new Trapezoidal(pdename_, algsys_, eqnData_);
     TS_alg_->Init(matrix_factor_, dt);
   }
@@ -1488,13 +1494,18 @@ namespace CoupledField {
   // POSTPROCESSING SECTION
   // ======================================================
 
-  void MagPDE::WriteResultsInFile() {
+  void MagPDE::WriteResultsInFile(Integer stepOffset,
+				  Double timeOffset) {
 
     ENTER_FCN( "MagPDE::WriteResultsInFile" );
 
     NodeStoreSol<Double> * solTransient;
     NodeStoreSol<Complex> * solHarmonic;
 
+    Double actTime = lasttimecalc_ + timeOffset;
+    Integer actStep = laststepcalc_ + stepOffset;
+    
+    
     if (analysistype_ == STATIC ||
 	analysistype_ == TRANSIENT) {
 
@@ -1503,15 +1514,15 @@ namespace CoupledField {
 	{
 	  solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);
 	  outFile_->WriteNodeSolutionTransient(*solTransient, 
-					       laststepcalc_, lasttimecalc_);
+					       actStep, actTime);
 	}
       
       if (calcBfield_.GetSize() !=0 ) {
-	outFile_->WriteElemSolutionTransient(B_, laststepcalc_, lasttimecalc_);
+	outFile_->WriteElemSolutionTransient(B_, actStep, actTime);
       }
       
       if (calcEddy_.GetSize() !=0 ) {
-	outFile_->WriteElemSolutionTransient(Jeddy_, laststepcalc_, lasttimecalc_);
+	outFile_->WriteElemSolutionTransient(Jeddy_, actStep, actTime);
       }
     } else  if (analysistype_ == HARMONIC) {
       

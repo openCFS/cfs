@@ -99,10 +99,24 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
   {
     ENTER_FCN( "BasePDE::Init()" );
     
-    bcSequenceTag_= bcSequenceTag;
-    bcSequenceIndex_ = bcSequenceIndex;
 
-    //allocate according algebraic system
+    bcSequenceIndex_ = bcSequenceIndex;
+    bcSequenceTag_ = bcSequenceTag;
+
+    // =====================================================================
+    // get regions/subdomains for PDE
+    // =====================================================================
+#ifndef XMLPARAMS
+    conf->getsubdompde(subdoms_,pdename_);
+#else
+    params->GetList( "name", subdoms_, pdename_, "region" );
+    Info->PrintF( pdename_, " %s lives on regions:", pdename_.c_str());
+    for ( Integer k = 0; k < subdoms_.GetSize(); k++ ) {
+      Info->PrintF( pdename_, " %s", subdoms_[k].c_str() );
+    }
+#endif
+
+ //    //allocate according algebraic system
     algsys_ = new StandardSystem();
     
 #ifdef USE_OLAS
@@ -172,9 +186,7 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
 
       //std::cerr << "BasePDE::Init: In Step for multisequence" << std::endl;
       
-      // HARDCODED
-      bcSequenceIndex_ = 1;
-
+    
       stepString = Info->GenStr(bcSequenceIndex_);
       attrVec = "", "index", "type";
       valVec = "", stepString, pdename_;
@@ -187,6 +199,7 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
       //std::cerr << "analysis = " << analysis;
 
       String2Enum(analysis, analysistype_);
+
       if (analysistype_ == STATIC){
 	assemble_ = new StaticAssemble(algsys_, ptgrid_);
 	isComplex_ = FALSE;
@@ -204,6 +217,7 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
       Error("Analysis Type not supported",__FILE__,__LINE__);
     
     // Determine if solution is of complex type or not
+    
     if (analysistype_ == HARMONIC)
       sol_ = new NodeStoreSol<Complex>;
     else
@@ -229,19 +243,22 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
 	tolSpaceErr_ = 0;
       }
 #endif 
+// <<<<<<< basePDE.cc
+// =======
 
-    // =====================================================================
-    // get regions/subdomains for PDE
-    // =====================================================================
-#ifndef XMLPARAMS
-    conf->getsubdompde(subdoms_,pdename_);
-#else
-    params->GetList( "name", subdoms_, pdename_, "region" );
-    Info->PrintF( pdename_, "%s lives on regions:", pdename_.c_str());
-    for ( Integer k = 0; k < subdoms_.GetSize(); k++ ) {
-      Info->PrintF( pdename_, "%s", subdoms_[k].c_str() );
-    }
-#endif
+//     // =====================================================================
+//     // get regions/subdomains for PDE
+//     // =====================================================================
+// #ifndef XMLPARAMS
+//     conf->getsubdompde(subdoms_,pdename_);
+// #else
+//     params->GetList( "name", subdoms_, pdename_, "region" );
+//     Info->PrintF( pdename_, "%s lives on regions:", pdename_.c_str());
+//     for ( Integer k = 0; k < subdoms_.GetSize(); k++ ) {
+//       Info->PrintF( pdename_, "%s", subdoms_[k].c_str() );
+//     }
+// #endif
+// >>>>>>> 1.30
     
     // =====================================================================
     // read in boundary conditions
@@ -257,6 +274,7 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
     // =====================================================================
     // initialize EQN-object and Storeresults class
     // =====================================================================
+
 
 #ifdef XMLPARAMS
     // What type of equation numbering does the user want?
@@ -341,8 +359,10 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
     // initialize assemble object
     // =====================================================================
     assemble_->SetPtr2EQNData(eqnData_); 
+    assemble_->SetPtr2TimeFnc(ptTimeFunc_);
     //assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, subdoms_, pressSurf_);
-    assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, subdoms_, surfdoms_);
+    assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, 
+				subdoms_, surfdoms_, bcSequenceTag_);
     assemble_->SetGraphType(NODEGRAPH);
 #ifdef USE_OLAS
     if (isComplex_)
@@ -368,7 +388,6 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
     
     assemble_->SetPtrBCs(ptBCs_);
     assemble_->SetPtr2Sol(sol_);
-    assemble_->SetPtr2TimeFnc(ptTimeFunc_);
     if (needsDampingMatrix_) 
       assemble_->NeedDampingMatrix();
 
@@ -393,7 +412,6 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
     ReadStoreResults();
 #endif
   }
-  
   
   // For XML parameter handling we have replaced this method by the pure
   // virtual ReadStoreResults() method which must be implemented by each
@@ -928,9 +946,11 @@ void  BasePDE::SetBCs(const Integer level, const Integer update, const Double ti
 
 
 
-void BasePDE::SetSolution(BaseNodeStoreSol & sol)
+void BasePDE::SetSolution(CFSVector &sol)
 {
   ENTER_FCN( "BasePDE::SetSolution" );
+  
+  sol_->SetAlgSysVector(sol);
 
 }
 
@@ -974,18 +994,16 @@ void BasePDE::ReadBCs()
 
   
   
- //  // Get names of node sets for homogeneous Dirichlet boundary conditions
-//   params->GetList( "name", bcs_hd_, pdename_, "dirichletHom"   );
+   // Get names of node sets for homogeneous Dirichlet boundary conditions
+  //   params->GetList( "name", bcs_hd_, pdename_, "dirichletHom"   );
   keyVec = pdename_, "bcsAndLoads", "dirichletHom", "name";
   attrVec = "", "tag", "";
   valVec = "", bcSequenceTag_, "";
+  //std::cerr << "ReadBCs: bcSequenceTag = " << bcSequenceTag_ << std::endl;
   params->GetList(keyVec, attrVec, valVec, bcs_hd_);
 
-//   // Get names of node sets, values and filenames for inhomogenous
-//   // Dirichlet boundary conditions
-//   params->GetList( "name"    , bcs_id_     , pdename_, "dirichletInhom" );
-//   params->GetList( "value"   , val_id_     , pdename_, "dirichletInhom" );
-//   params->GetList( "dynamics", fncnames_id_, pdename_, "dirichletInhom" );
+  // Get names of node sets, values and filenames for inhomogenous
+  // Dirichlet boundary conditions
   keyVec = pdename_, "bcsAndLoads", "dirichletInhom", "name";
   params->GetList(keyVec, attrVec, valVec, bcs_id_);
 
@@ -994,6 +1012,11 @@ void BasePDE::ReadBCs()
 
   keyVec = pdename_, "bcsAndLoads", "dirichletInhom", "dynamics";
   params->GetList(keyVec, attrVec, valVec, fncnames_id_);
+
+//    std::cerr << "dirichletInhom = " << bcs_id_ << std::endl;
+//    std::cerr << "dirichletHom = " << bcs_hd_ << std::endl;
+//    std::cerr << "dirichletInhom-value = " << val_id_ << std::endl;
+//    std::cerr << "dirichletInhom-dynamics= " << fncnames_id_ << std::endl;
 
   // Check consistency
   if ( bcs_id_.GetSize() != val_id_.GetSize() ||
@@ -1145,12 +1168,22 @@ BasePDE::~BasePDE()
 {
 
   ENTER_FCN( " entering BasePDE::~BasePDE" );
-
   // ATTENTION: Dummy value for as_id!!!!!!!!!!!!!!!!!!!!!!!!!!
   DeleteAlgSys(0);
+  
+  if (assemble_)
+    delete assemble_;
+  
+  // ATTENTION: Dummy value for as_id!!!!!!!!!!!!!!!!!!!!!!!!!!
+  
 
   if (sol_)
     delete sol_;
+
+  
+
+  if (eqnData_)
+    delete eqnData_;
 }
 
 

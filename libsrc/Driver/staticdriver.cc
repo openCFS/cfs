@@ -13,8 +13,15 @@ namespace CoupledField {
   // ***************
   //   Constructor
   // ***************
-  StaticDriver::StaticDriver(Domain * adomain) : SingleDriver(adomain) {
+  StaticDriver::StaticDriver(Domain * adomain, 
+			     Integer stepOffset,
+			     Double timeOffset,
+			     std::string driverTag,
+			     Boolean isPartOfSequence) 
+    : SingleDriver(adomain, stepOffset, timeOffset, 
+		   driverTag, isPartOfSequence) {
     ENTER_FCN( "StaticDriver::StaticDriver" );
+
   }
 
 
@@ -39,25 +46,62 @@ namespace CoupledField {
       ptdomain_->PrintGrid(level);
       exit(0);
     }
+    
+    // if PDEs are not set explicitly, 
+    // get all from the domain
+    if (pdes_.GetSize() == 0) {
+      pdes_.Resize(ptdomain_->GetNumPDE());
+      for (Integer iPDE=0; iPDE<ptdomain_->GetNumPDE(); iPDE++)
+	pdes_[iPDE] = ptdomain_->GetPDE(iPDE);
+    }
+    
+    // initialize pdes only, if this driver
+    // is not part of multiSequence driver
+    StdVector<std::string> tags;
+    if (! isPartOfSequence_) {
+      tags.Resize(pdes_.GetSize());
+      tags.Init("anyTag");
+      ptdomain_->InitPDEs(1,tags);
+      Info->StartProgress ("Starting to solve problem", FALSE);
+    }
+    
 
+    // Initialize 'TimeStepping'
     const Integer nstep = 1;
-    Double  steptime = 0;
+    Double  steptime = 0.0;
     Boolean reset = FALSE;
-  
-    if (ptdomain_->GetNumPDE() <= 1) {
-      ptdomain_->GetPDE(pdenumber)->WriteGeneralPDEdefines();
-      ptdomain_->GetPDE(pdenumber)->SolveStepStatic(nstep, steptime, level,
+    
+    // Solve problem
+    if (pdes_.GetSize() <= 1) {
+
+      // branch for single PDE
+      pdes_[pdenumber]->WriteGeneralPDEdefines();
+      pdes_[pdenumber]->SolveStepStatic(nstep, steptime, level,
 						    reset);   
-      ptdomain_->GetPDE(pdenumber)->PostProcess(level);
-      ptdomain_->PrintGrid(level);
-      ptdomain_->GetPDE(pdenumber)->WriteResultsInFile();
+      pdes_[pdenumber]->PostProcess(level);
+
+      // if multiSequence is performed, the ms-driver
+      // writes out the grid one time
+      if (! isPartOfSequence_)
+	ptdomain_->PrintGrid(level);
+      
+      pdes_[pdenumber]->WriteResultsInFile(stepOffset_, timeOffset_);
     }
     else {
+      // branch for coupled PDEs
       ptdomain_->GetCoupledPDE()->WriteGeneralPDEdefines();
+
+      // define which PDEs participate in solving process
+      ptdomain_->GetCoupledPDE()->DefineSolvingPDEs(pdes_);
       ptdomain_->GetCoupledPDE()->SolveStepStatic(nstep, steptime, level,
 						  reset);
-      ptdomain_->PrintGrid(level);
-      ptdomain_->GetCoupledPDE()->WriteResultsInFile();
+      // if multiSe
+      // quence is performed, the ms-driver
+      // writes out the grid one time
+      if (! isPartOfSequence_)
+	ptdomain_->PrintGrid(level);
+
+      ptdomain_->GetCoupledPDE()->WriteResultsInFile(stepOffset_, timeOffset_);
     }
   }
 

@@ -9,10 +9,17 @@ namespace CoupledField {
   class StaticDriver : public SingleDriver {
 
   public:
-    //! Constructor
-
+    //! constructor
     //! \param adomain pointer to class Domain
-    StaticDriver(Domain * adomain);
+    //! \param stepOffset offset for starting (time)step
+    //! \param timeOffset offset for starting time
+    //! \param driverTag tag for current driver section
+    //! \param true, if driver is part of  multiSequence
+    StaticDriver(Domain * adomain,
+		 Integer stepOffset = 0,
+		 Double timeOffset = 0.0,
+		 std::string driverTag = "anyTag",
+		 Boolean isPartOfSequence = FALSE);
 
     //! Destructor 
     ~StaticDriver();

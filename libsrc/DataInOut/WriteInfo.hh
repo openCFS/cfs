@@ -81,7 +81,11 @@ namespace CoupledField
     void WriteNonLinIter(const std::string& pdeName, const Integer iterationCounter,    
 			 const Double residualErr, const Double incrementalErr, double etaLineSearch=0);
 
-    /// prints the process of a nonlinear iteration
+    /// prints the process of a mulitSequence Analysis
+    void WriteMultiSequenceStep(const Integer sequenceStep, 
+				const AnalysisType analysis);
+
+    /// prints the process of a transient analysis
     void WriteTimeStep(const std::string& pdeName, const Integer timeStep,    
 		       const Double time);
 

@@ -22,6 +22,7 @@ using namespace xercesc;
 
 // we want to use classical C IO-routines
 #include <stdio.h>
+#include <fstream>
 
 // includes from CFS++ itself
 #include "General/environment.hh"
@@ -29,6 +30,7 @@ using namespace xercesc;
 #include "BaseParamHandler.hh"
 #include "XMLParamHandler.hh"
 #include "XMLParserErrorHandler.hh"
+#include "Utils/tools.hh"
 
 // For internal debugging
 #define LOGTOINFO false
@@ -68,6 +70,18 @@ namespace CoupledField {
 #endif
 
     Info->StartProgress("Reading in .xml file");
+
+    // Check if file exists
+    std::ifstream inFile;
+    inFile.open(fname);
+    if (!inFile) {
+      errmsg  = "The file '";
+      errmsg += fname;
+      errmsg += "' could not be opened!";
+      Error(errmsg.c_str(), __FILE__, __LINE__);
+    }
+    inFile.close();
+
     // Generate parser and parse XML parameter file
     rootElem_ = ParseFile( &parser_, fname );
 
@@ -1628,6 +1642,8 @@ namespace CoupledField {
     DOMNode* attrib = NULL;
     attrib = attributes->getNamedItem( S2X( attribute ) );
 
+    StdVector<std::string> attribs;
+
     // Test, if element has an attribute with specified name
     if ( attrib == NULL ) {
       if ( failIfNoAttrib == true ) {
@@ -1639,7 +1655,7 @@ namespace CoupledField {
 	retVal = false;
       }
     }
-
+    
     // Test, if attribute's value matches specification
     else {
 
@@ -1656,10 +1672,10 @@ namespace CoupledField {
 	retVal = X2S( Node2Attr(attrib)->getValue() ) == value ? true : false;
       }
     }
-
+    
     return retVal;
   }
-
+  
 
   // ===============================
   //   Check if refTag matches tag

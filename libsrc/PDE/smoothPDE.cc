@@ -346,16 +346,20 @@ void SmoothPDE::CalcOutputCoupling()
     }
 }
 
-void SmoothPDE::WriteResultsInFile()
+void SmoothPDE::WriteResultsInFile(Integer stepOffset,
+				   Double timeOffset)
 {
   ENTER_FCN( "SmoothPDE::WriteResultsInFile" );
   
   NodeStoreSol<Double> * solTransient;
   
+  Integer actStep = laststepcalc_ + stepOffset;
+  Double actTime = lasttimecalc_ + timeOffset;
+
   if (analysistype_ == STATIC ||
       analysistype_ == HARMONIC) {
     solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);
-    outFile_->WriteNodeSolutionTransient(*solTransient, laststepcalc_, lasttimecalc_);
+    outFile_->WriteNodeSolutionTransient(*solTransient, actStep, actTime);
   }
   else
     Error("SmoothPDE: Only static and transient results can be written out",

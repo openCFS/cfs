@@ -19,6 +19,9 @@ public:
 
    //! deconstructor
   virtual ~BaseDriver();
+
+  //! set the pdes, which have to be solved
+  void SetPDEs(StdVector<BasePDE*> & pdes);
   
   //! main method, where time-stepping is implemented. it is for transient and static problem
   virtual void SolveProblem()=0;
@@ -35,6 +38,9 @@ public:
   //! pointer to class Domain
   Domain * ptdomain_;
 
+  //! vector of PDEs to solve
+  StdVector<BasePDE*> pdes_; 
+
   //! --------------------- stuff for computation with adaptivity
   //! for printing a sequence of files in dir meshes in gmv-format
   WriteResults * ptMeshes_;
@@ -49,7 +55,7 @@ public:
   Boolean printMeshesOrNot();
   
 private:
-   
+  
 };
 
 }

@@ -27,9 +27,17 @@ class IterCoupledPDE : public BaseCoupledPDE
   //! Destructor
   ~IterCoupledPDE();
 
-   //! calculates coupling interfaces
+  //! calculates coupling interfaces
   virtual void InitCoupling(Integer level);
   
+  //! Defines, which of the coupled PDEs are currently solved
+  //! and which are neglected. This method is mainly needed
+  //! for multiSequenceAnalysis, where in different steps
+  //! only a subset of all coupled PDEs is solved.
+  //! \param pdes (input) Unsorted list of PDEs which
+  //! are currently solved 
+  virtual void DefineSolvingPDEs(StdVector<BasePDE*> & pdes);
+
   //! Solve static step
   virtual void SolveStepStatic(const Integer kstep, const Double asteptime, const Integer level, 
 			      const Boolean updatesysmat);
@@ -39,7 +47,8 @@ class IterCoupledPDE : public BaseCoupledPDE
 			      const Boolean updatesysmat);
   
   //! write results in file
-  virtual void WriteResultsInFile();
+  virtual void WriteResultsInFile(Integer stepOffset = 0,
+				  Double timeOffset = 0.0);
 
 
 protected:

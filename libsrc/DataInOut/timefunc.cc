@@ -137,8 +137,11 @@ Double TimeFunc::TimeFuncAtTime(const Double time,  const std::string fncname)
 
  if (numfnc == -1)
    {
-     std::string fncstring = "Time Function " + fncname + " not defined within time_data_files-command";
-     Error(c_string(fncstring));
+     std::string fncstring = "Time Function '";
+     fncstring += fncname;
+     fncstring += "' is not defined within 'timeDataFile' ";
+     fncstring += "element in section 'Transient'!";
+     Error(fncstring.c_str(), __FILE__, __LINE__);
    }
 
  if (time < *timeTF_[numfnc].begin() )

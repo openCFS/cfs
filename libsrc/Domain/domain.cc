@@ -113,16 +113,11 @@ namespace CoupledField {
     //read restraints information
     ptBCs_->ReadBCs();
 
-    InitPDEs();
+    // Create PDEs
+    CreatePDEs();
 
-    // Initialize Coupled PDEs
-    InitCoupledPDE();
-   
- 
-    // Initialize 
-    for (int i=0;i< numpde_;i++)
-      ptpde_[i]->SetAlgSys();
-
+    // Create Coupled PDE
+    CreateCoupledPDE();
   }
 
 
@@ -135,13 +130,46 @@ namespace CoupledField {
     if (ptBCs_) delete ptBCs_;
   }
 
+  // **************************
+  //   Initialization of PDEs
+  // **************************
+
+  void Domain::InitPDEs(Integer sequenceStep,
+			StdVector<std::string> tags)
+  {
+    ENTER_FCN( "Domain::InitPDEs") ;
+
+    
+
+    // Initialize single PDE
+    for (Integer i=0; i<numpde_; i++) {
+      Info->StartProgress( "Initializing PDE " + ptpde_[i]->GetName());
+      ptpde_[i]->Init(sequenceStep,tags[i]);
+      Info->FinishProgress();
+    }
+
+    // initialize coupledPDE
+    if (numpde_ > 1)
+      {
+	Info->StartProgress("Initializing Coupling");
+	ptcoupledpde_->InitCoupling(numlevel_);
+	Info->FinishProgress();
+      }
+   
+ 
+    // Initialize algebraic system of 
+    // each PDE
+    // for (int i=0;i< numpde_;i++)
+//       ptpde_[i]->SetAlgSys();
+
+  }
 
   // **************************
-  //   Initialisation of PDEs
+  //   Creation of PDEs
   // **************************
-  void Domain::InitPDEs() {
+  void Domain::CreatePDEs() {
 
-    ENTER_FCN( "Domain::InitPDEs" );
+    ENTER_FCN( "Domain::CreatePDEs" );
 
     // get numbers of PDEs in domain
     StdVector<std::string> pdes;
@@ -174,7 +202,7 @@ namespace CoupledField {
 
 
     for (int i=0;i< pdes.GetSize();i++) {
-      Info->StartProgress("Initializing PDE '" + pdes[i] + "'");
+      Info->StartProgress("Creating PDE '" + pdes[i] + "'");
       if (pdes[i] == "electrostatic") 
 	ptpde_[i]=new ElecPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
 
@@ -217,7 +245,8 @@ namespace CoupledField {
 	}     
 
       // Initialize current PDE
-      ptpde_[i]->Init();
+      // -> This step has now moved to method InitPDEs
+      //ptpde_[i]->Init();
       Info->FinishProgress();
 
     }
@@ -227,7 +256,7 @@ namespace CoupledField {
 } // end of InitPDE()
 
 
-  void Domain::InitCoupledPDE() {
+  void Domain::CreateCoupledPDE() {
     ENTER_FCN( "Domain::InitCoupledPDE" );
   
     std::string errMsg;
@@ -238,7 +267,7 @@ namespace CoupledField {
       return;
     }
 
-    Info->StartProgress("Initializing coupling");
+    Info->StartProgress("Creating coupling");
 
 #ifndef XMLPARAMS
     std::string errMsg;
@@ -287,9 +316,6 @@ namespace CoupledField {
     ptcoupledpde_ = new IterCoupledPDE(orderedpdes_,couplings_,
 				       ptgrid_, ptBCs_,InFile_,OutFile_);
     
-    // initialize coupledPDE
-    ptcoupledpde_->InitCoupling(numlevel_);
-    
     delete CouplingDef;	
 #endif
 
@@ -311,16 +337,9 @@ namespace CoupledField {
       if (ptpde_[iPDE])
 	delete ptpde_[iPDE];
 
-    InitPDEs();
+    CreatePDEs();
 
-    // Initialize Coupled PDEs
-    InitCoupledPDE();
-   
- 
-    // Initialize 
-    for (int i=0;i< numpde_;i++)
-      ptpde_[i]->SetAlgSys();
-     
+    CreateCoupledPDE();
   }
 
 

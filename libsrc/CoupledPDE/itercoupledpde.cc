@@ -19,7 +19,11 @@ namespace CoupledField
 
     maxiter_ = 100;
     nonLinLogging_ = TRUE;
-       
+    
+    // Per default all PDEs are solved
+    solvePDE_.Resize(PDEs_.GetSize());
+    solvePDE_.Init(TRUE);
+   
     //if values are defined in conf-file, take these
     params->Get("maxNumIters", maxiter_, "iterative", "nonLinear");
     nonLinLogging_ = params->IsSet("logging", "iterative", "nonLinear");
@@ -205,6 +209,33 @@ namespace CoupledField
   }
 
 
+  void IterCoupledPDE::DefineSolvingPDEs(StdVector<BasePDE*> & pdes)
+  {
+    ENTER_FCN( "IterCoupledPDE::DefineSolvingPDEs" );
+
+    solvePDE_.Init(FALSE);
+    Boolean nameFound;
+    std::string errMsg;
+
+    for (Integer i=0; i<pdes.GetSize(); i++){
+      nameFound = FALSE;
+      for (Integer j=0; j<PDEs_.GetSize(); j++)
+	if (pdes[i]->GetName() == PDEs_[j]->GetName()) {
+	  nameFound = TRUE;
+	  solvePDE_[j] = TRUE;
+	  break;}
+
+      if (! nameFound){
+	errMsg  = "IterCoupledPDE:DefineSolvingPDEs: The PDE with name'";
+	errMsg += pdes[i]->GetName();
+	errMsg += "' is not defined in current set of coupling!";
+	Error(errMsg.c_str(), __FILE__, __LINE__);
+      }
+    }
+  }
+
+
+
   void IterCoupledPDE::SolveStepStatic(const Integer kstep, const Double aTime,
 				       const Integer level,
 				       const Boolean updatesysmat ) {
@@ -236,34 +267,38 @@ namespace CoupledField
 	    Info->PrintF(coupledpdename_, " Processing PDE %s", 
 			 (PDEs_[i]->GetName()).c_str());
 
-	    PDEs_[i]->PreStepStatic(kstep,aTime,actlevel_,updatesysmat);
-	    PDEs_[i]->CalcInputCoupling();
-	    PDEs_[i]->SolveStepStatic(kstep,aTime,actlevel_,updatesysmat);
-	    PDEs_[i]->PostStepStatic(kstep,aTime,actlevel_);
-	    PDEs_[i]->CalcOutputCoupling();
+	    // Only solve current PDE, if the corresponding
+	    // flag in 'solvePDE_' is set to TRUE
+	    if (solvePDE_[i] == TRUE) {
+	      PDEs_[i]->PreStepStatic(kstep,aTime,actlevel_,updatesysmat);
+	      PDEs_[i]->CalcInputCoupling();
+	      PDEs_[i]->SolveStepStatic(kstep,aTime,actlevel_,updatesysmat);
+	      PDEs_[i]->PostStepStatic(kstep,aTime,actlevel_);
+	      PDEs_[i]->CalcOutputCoupling();
+	      
+	      // Calculate Norms
+	      for (Integer k=0; k<Couplings_[i]->GetNumOutputCouplings(); k++)
+		{
+		  Couplings_[i]->GetOutputValues(k, val);
+		  Couplings_[i]->GetOutputOldValues(k, oldVal);
+		  norms_[counter] = CalcNorm(Couplings_[i]->GetOutputNormType(k), *val, *oldVal);
 
-	    // Calculate Norms
-	    for (Integer k=0; k<Couplings_[i]->GetNumOutputCouplings(); k++)
-	      {
-		Couplings_[i]->GetOutputValues(k, val);
-		Couplings_[i]->GetOutputOldValues(k, oldVal);
-		norms_[counter] = CalcNorm(Couplings_[i]->GetOutputNormType(k), *val, *oldVal);
+		  if (nonLinLogging_)
+		    {
+		      Enum2String(Couplings_[i]->GetOutputQuantity(k), quantityConv);
+		      Info->PrintF(coupledpdename_, " %s : Norm of %s = %g", 
+				   (Couplings_[i]->GetPDEName()).c_str(),
+				   quantityConv.c_str(), norms_[counter]);
+		    }
+		  
+		  if (norms_[counter] > Couplings_[i]->GetOutputEpsilon(k) && 
+		      Couplings_[i]->GetOutputNormType(k) != NO_NORM)
+		    normsReached = FALSE;
+		
+		  //copy values of new solution to old one
+		  *oldVal = *val;
 
-		if (nonLinLogging_)
-		  {
-		    Enum2String(Couplings_[i]->GetOutputQuantity(k), quantityConv);
-		    Info->PrintF(coupledpdename_, " %s : Norm of %s = %g", 
-			       (Couplings_[i]->GetPDEName()).c_str(),
-				 quantityConv.c_str(), norms_[counter]);
-		  }
-		
-		if (norms_[counter] > Couplings_[i]->GetOutputEpsilon(k) && 
-		    Couplings_[i]->GetOutputNormType(k) != NO_NORM)
-		  normsReached = FALSE;
-		
-		//copy values of new solution to old one
-		*oldVal = *val;
-	
+		} // end of if 
 		counter++;	      
 	      }
 	  }
@@ -314,33 +349,37 @@ namespace CoupledField
 	      Info->PrintF(coupledpdename_, " Processing PDE %s", 
 			   (PDEs_[i]->GetName()).c_str());
 
-	    PDEs_[i]->PreStepTrans(kstep, steptime, level, updatesysmat);
-	    PDEs_[i]->CalcInputCoupling();
-	    PDEs_[i]->SolveStepTrans(kstep, steptime, level, updatesysmat);
-	    PDEs_[i]->PostStepTrans(kstep, steptime, level);
-	    PDEs_[i]->CalcOutputCoupling();
-
-	    // Calculate Norms
-	    for (Integer k=0; k<Couplings_[i]->GetNumOutputCouplings(); k++)
-	      {
-		CFSVector *val, *oldVal;
-		Couplings_[i]->GetOutputValues(k, val);
-		Couplings_[i]->GetOutputOldValues(k, oldVal);
-		norms_[counter] = CalcNorm(Couplings_[i]->GetOutputNormType(k), *val, *oldVal);
-
-		if (nonLinLogging_)
-		  {
-		    Enum2String(Couplings_[i]->GetOutputQuantity(k), quantityConv);
-		    Info->PrintF(coupledpdename_, " %s : Norm of %s = %g", 
-				 (Couplings_[i]->GetPDEName()).c_str(),
-				 quantityConv.c_str(), norms_[counter]);
-		  }
-		if (norms_[counter] > Couplings_[i]->GetOutputEpsilon(k))
-		  normsReached = FALSE;
-		
-		*oldVal = *val;
-		
-		counter++;	      
+	    // Only solve current PDE, if the corresponding
+	    // flag in 'solvePDE_' is set to TRUE
+	    if (solvePDE_[i] == TRUE) {
+	      
+	      PDEs_[i]->PreStepTrans(kstep, steptime, level, updatesysmat);
+	      PDEs_[i]->CalcInputCoupling();
+	      PDEs_[i]->SolveStepTrans(kstep, steptime, level, updatesysmat);
+	      PDEs_[i]->PostStepTrans(kstep, steptime, level);
+	      PDEs_[i]->CalcOutputCoupling();
+	      
+	      // Calculate Norms
+	      for (Integer k=0; k<Couplings_[i]->GetNumOutputCouplings(); k++)
+		{
+		  CFSVector *val, *oldVal;
+		  Couplings_[i]->GetOutputValues(k, val);
+		  Couplings_[i]->GetOutputOldValues(k, oldVal);
+		  norms_[counter] = CalcNorm(Couplings_[i]->GetOutputNormType(k), *val, *oldVal);
+		  
+		  if (nonLinLogging_)
+		    {
+		      Enum2String(Couplings_[i]->GetOutputQuantity(k), quantityConv);
+		      Info->PrintF(coupledpdename_, " %s : Norm of %s = %g", 
+				   (Couplings_[i]->GetPDEName()).c_str(),
+				   quantityConv.c_str(), norms_[counter]);
+		    }
+		  if (norms_[counter] > Couplings_[i]->GetOutputEpsilon(k))
+		    normsReached = FALSE;
+		  
+		  *oldVal = *val;
+		} // end if
+	      counter++;	      
 	      }
 	  }
 
@@ -352,12 +391,13 @@ namespace CoupledField
 
   
 
-void IterCoupledPDE::WriteResultsInFile()
+void IterCoupledPDE::WriteResultsInFile(Integer stepOffset,
+					Double timeOffset)
 {
   ENTER_FCN( "IterCoupledPDE::WriteResultsInFile" );
 
   for (Integer i=0; i<PDEs_.GetSize(); i++)
-    PDEs_[i]->WriteResultsInFile();
+    PDEs_[i]->WriteResultsInFile(stepOffset, timeOffset);
 }
 
 

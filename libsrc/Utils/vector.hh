@@ -2,7 +2,7 @@
 #define FILE_VECTOR_2004
 
 #include "cfsvector.hh"
-
+#include "DataInOut/WriteInfo.hh"
 namespace CoupledField {
 
 
@@ -158,11 +158,14 @@ public:
   inline TYPE	&operator[]	(const Integer i) const
   {	
 #ifdef CHECK_INDEX
-    std::string errorMsg;
-    std::stringstream errorMsgStream(errorMsg);
-    errorMsgStream << "Vector: invalid access to element " << i << "\n Length of vector: " << size_;
-    if (i >= size_)
+     if (i >= size_){
+      std::string errorMsg;
+      errorMsg =  "Vector: invalid access to element ";
+      errorMsg += Info->GenStr(i+1);
+      errorMsg += "! \n Length of vector: ";
+      errorMsg += Info->GenStr(size_);
       Error(errorMsg.c_str(),__FILE__,__LINE__);
+    }
 #endif
     return  data_[i];
   }

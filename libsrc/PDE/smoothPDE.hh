@@ -58,11 +58,13 @@ public:
 
   //! calculate coupling terms
   virtual void CalcOutputCoupling();
-  
-  //! write results in file
-   virtual void WriteResultsInFile();
 
-   //! returns if PDE can compute the quantity
+  //! write results in file
+  //! \param stepOffset offset for starting (time)step
+  //! \param timeOffset offset for starting time  
+  virtual void WriteResultsInFile(Integer stepOffset = 0,
+				  Double timeOffset = 0.0);
+  //! returns if PDE can compute the quantity
   virtual Boolean HasOutput(SolutionType output);
   
 protected:

@@ -284,7 +284,8 @@ namespace CoupledField
 			  const Integer dofsPerNode,
 			  const Integer numPDENodes, 
 			  const StdVector<std::string> subdoms,
-			  const StdVector<std::string> surfdoms);
+			  const StdVector<std::string> surfdoms,
+			  const std::string bcSequenceId);
     
     
 
@@ -456,6 +457,7 @@ namespace CoupledField
     Integer numPDENodes_;                //!< number of nodes in pde
 
     std::string pdename_;                //!< name of calling pde
+    std::string bcSequenceTag_;          //!< name of tag for loads/boundary condition
   
     StdVector<std::string> subdoms_;  //!< subdomain-levels belongig to PDE
     StdVector<std::string> surfdoms_; //!< surface-domain-levels belongig to PDE

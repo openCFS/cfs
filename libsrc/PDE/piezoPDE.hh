@@ -43,17 +43,19 @@ namespace CoupledField
     BaseForm * GetStiffIntegrator(MaterialData& actSDMat, Boolean reducedInt=FALSE, 
 				  Boolean isdamping=FALSE);
 
-    //! prepare for correct time stepping
-    /*! \param dt time step  */
+    //! Init the time stepping
+    //! \param dt time step
     virtual void InitTimeStepping(const Double dt);
-
+    
     //! do PostProcessing step
     virtual void PostProcess(const Integer level);
 
     //! write results in file
-    virtual void WriteResultsInFile();
-  
-
+    //! \param stepOffset offset for starting (time)step
+    //! \param timeOffset offset for starting time  
+    virtual void WriteResultsInFile(Integer stepOffset = 0,
+				    Double timeOffset = 0.0);
+    
   protected:
   
     Integer size_;        //!< total number of unknowns (equations)

@@ -11,11 +11,18 @@ class HarmonicDriver : public SingleDriver
 {
 
 public:
+
   //! constructor
-  /*!
-    \param adomain pointer to class Domain
-  */
-  HarmonicDriver(Domain * adomain);
+  //! \param adomain pointer to class Domain
+  //! \param stepOffset offset for starting (time)step
+  //! \param timeOffset offset for starting time
+  //! \param driverTag tag for current driver
+  //! \param isPartOfSequence true, if driver is part of  multiSequence
+  HarmonicDriver(Domain * adomain,
+		 Integer stepOffset = 0,
+		 Double timeOffset = 0.0,
+		 std::string driverTag = "anyTag",
+		 Boolean isPartOfSequence = FALSE);
 
    //! deconstructor 
   virtual ~HarmonicDriver();
