@@ -374,7 +374,8 @@ public:
   void calcBMat(Matrix<Double> & bMat, Integer ip, Matrix<Double> & ptCoord);
 
   //!
-  void convertStressVecToTensor(Matrix<Double>& stressTensor, Vector<Double>& piolaStress);
+  void convertStressVecToTensor(Matrix<Double>& stressTensor, Vector<Double>& piolaStress)
+  {Error("convertStressVecToTensor not implemented");}
 
 protected:
   /// calculates pre-stresses (vector notation)
@@ -413,6 +414,9 @@ public:
   /// Destructor
   virtual ~PreStressInt3D();  
 
+  //!
+  void convertStressVecToTensor(Matrix<Double>& stressTensor, Vector<Double>& piolaStress);
+
 protected:
   /// returns the size of the full piola d-matrix
   virtual Integer getFullPiolaDMatSize(){return 9;};
@@ -441,6 +445,9 @@ public:
   
   /// Destructor
   virtual ~PreStressIntPlaneStrain();  
+
+  //!
+  void convertStressVecToTensor(Matrix<Double>& stressTensor, Vector<Double>& piolaStress);
 
 protected:
   /// returns the size of the full piola d-matrix

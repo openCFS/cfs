@@ -546,7 +546,7 @@ namespace CoupledField
     
     Vector<Double> preStrainVec(dimD);
     preStressVec.Resize(dimD);
-    preStressVec *= 0;
+    preStressVec.Init(0);
 
     Matrix<Double> matData;
     if (isaxi_) {
@@ -569,10 +569,7 @@ namespace CoupledField
       preStrainVec[1]= preStressVal_[1] / matData[1][1];
     }
    
-
-    // calc "distributed" stress 
     preStressVec = matData * preStrainVec;
-	    
   }
 
 
@@ -646,25 +643,6 @@ namespace CoupledField
       }
   }
 
-  /// conversion of stress vector to stress tensor
-  void PreStressInt::
-  convertStressVecToTensor(Matrix<Double>& stressTensor, Vector<Double>& piolaStress)
-  {
-    ENTER_FCN( "PreStressInt3D::convertStressVecToTensor" );
-
-    Integer indexRow[] = {1, 2, 3, 2, 1, 1}; // first index of tensor notation
-    Integer indexCol[] = {1, 2, 3, 3, 3, 2}; // second index of tensor notation
-
-    stressTensor.Resize( getNrDofs() );
-    
-    // build symmetrical tensor
-    for (Integer i=0; i<piolaStress.GetSize(); i++)
-      {
-	stressTensor[ indexRow[i] -1 ][ indexCol[i] -1 ] = piolaStress[i];	
-	stressTensor[ indexCol[i] -1 ][ indexRow[i] -1 ] = piolaStress[i];	
-      }
-
-  }
 
   // class for regarding 3d prestress
   PreStressInt3D::PreStressInt3D(BaseFE * aptelem, MaterialData & matData, Vector<Double> aPreStressVal)
@@ -685,6 +663,24 @@ namespace CoupledField
   {
     ENTER_FCN( "PreStressInt3D::~PreStressInt3D" );
 
+  }
+
+  /// conversion of stress vector to stress tensor in 3D
+  void PreStressInt3D::
+  convertStressVecToTensor(Matrix<Double>& stressTensor, Vector<Double>& piolaStress)
+  {
+    ENTER_FCN( "PreStressInt3D::convertStressVecToTensor" );
+
+    Integer indexRow[] = {1, 2, 3, 2, 1, 1}; // first index of tensor notation
+    Integer indexCol[] = {1, 2, 3, 3, 3, 2}; // second index of tensor notation
+
+    stressTensor.Resize( getNrDofs() );
+    // build symmetrical tensor
+    for (Integer i=0; i<piolaStress.GetSize(); i++)
+      {
+	stressTensor[ indexRow[i] -1 ][ indexCol[i] -1 ] = piolaStress[i];	
+	stressTensor[ indexCol[i] -1 ][ indexRow[i] -1 ] = piolaStress[i];	
+      }
   }
 
 
@@ -709,6 +705,25 @@ namespace CoupledField
   {
     ENTER_FCN( "PreStressIntPlaneStrain::~PreStressIntPlaneStrain" );
 
+  }
+
+  /// conversion of stress vector to stress tensor
+  void PreStressIntPlaneStrain::
+  convertStressVecToTensor(Matrix<Double>& stressTensor, Vector<Double>& piolaStress)
+  {
+    ENTER_FCN( "mechMechPlanseStrainInt_PiolaStress::convertStressVecToTensor" );
+
+    Integer indexRow[] = {1, 2, 1}; // first index of tensor notation
+    Integer indexCol[] = {1, 2, 2}; // second index of tensor notation
+
+    stressTensor.Resize( getNrDofs() );
+    
+    // build symmetrical tensor
+    for (Integer i=0; i<piolaStress.GetSize(); i++)
+      {
+	stressTensor[ indexRow[i] -1 ][ indexCol[i] -1 ] = piolaStress[i];	
+	stressTensor[ indexCol[i] -1 ][ indexRow[i] -1 ] = piolaStress[i];	
+      }
   }
 
 
