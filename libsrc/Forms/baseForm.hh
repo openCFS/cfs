@@ -13,6 +13,7 @@ namespace CoupledField
 class BaseForm 
 {
 public:
+
   //! Constructor
   BaseForm(BaseFE * aptelem, MaterialData & matData);
 
@@ -21,7 +22,6 @@ public:
 
   //! Constructor
   BaseForm(BaseFE * aptelem);
-
 
   //! Constructor
   BaseForm();
