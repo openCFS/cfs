@@ -105,8 +105,8 @@ namespace CoupledField
 		  << std::endl << std::endl;
     (*skelfile_)  << "# -- ANALYSIS (static, transient, harmonic)" << std::endl
 		  << "analysis = XXX" << std::endl << std::endl;
-    (*skelfile_)  << "# -- TIME DATA FILE (used for transient analysis)" << std::endl
-		  << "time_data_file = XXX" << std::endl << std::endl;
+    (*skelfile_)  << "# -- TIME DATA FILE (if transient analysis, uncomment following line)" << std::endl
+		  << "#time_data_file = XXX" << std::endl << std::endl;
 
   }
 
