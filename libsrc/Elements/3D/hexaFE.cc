@@ -167,7 +167,7 @@ void HexaFE::GetLocalIntPoints4Surface(const StdVector<Integer> & surfConnect,
 	  commonIndex[found++] = iVol+1;
 	}
 
-  std::cerr << std::endl << std::endl;
+  // std::cerr << std::endl << std::endl;
   //std::cerr << "commonIndex = " << std::endl << commonIndex << std::endl << std::endl;
   indexProduct =  commonIndex[0] * commonIndex[1];
   indexProduct *= commonIndex[2] * commonIndex[3];
