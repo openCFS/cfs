@@ -39,20 +39,20 @@
       <coils>
 
         <measurementCoil2d name="dummyRegion">
-          <area>1</area>
+          <windingCrossSection>1</windingCrossSection>
           <saveFileL/>
-          <saveFileUI/>
+          <saveFileU/>
           <id>1</id>
         </measurementCoil2d>
 
         <measurementCoil3d name="dummyRegion">
-          <area>1</area>
+          <windingCrossSection>1</windingCrossSection>
           <saveFileL/>
-          <saveFileUI/>
+          <saveFileU/>
         </measurementCoil3d>
 
         <currentCoil2d name="dummyRegion">
-          <area>  1 </area>
+          <windingCrossSection>  1 </windingCrossSection>
           <value> 1 </value>
           <dynamics/>
           <phase/>
@@ -60,7 +60,7 @@
         </currentCoil2d>
 
         <currentCoil3d name="dummyRegion">
-          <area>  1 </area>
+          <windingCrossSection>  1 </windingCrossSection>
           <value> 1 </value>
           <dynamics/>
           <phase/>
@@ -68,7 +68,7 @@
         </currentCoil3d>
 
         <voltageCoil2d name="dummyRegion">
-          <area>  1 </area>
+          <windingCrossSection>  1 </windingCrossSection>
           <value> 1 </value>
           <dynamics/>
           <phase/>
@@ -77,7 +77,7 @@
         </voltageCoil2d>
 
         <voltageCoil3d name="dummyRegion">
-          <area>  1 </area>
+          <windingCrossSection>  1 </windingCrossSection>
           <value> 1 </value>
           <dynamics/>
           <phase/>
