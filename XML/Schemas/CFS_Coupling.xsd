@@ -133,7 +133,7 @@
               <xsd:enumeration value="elecForceVWP"/>
               <xsd:enumeration value="magForceVWP"/>
               <xsd:enumeration value="magForceLorentz"/>
-              <xsd:enumeration value="acousticForce"/>
+              <xsd:enumeration value="acouForce"/>
             </xsd:restriction>
           </xsd:simpleType>
         </xsd:attribute>
@@ -225,7 +225,7 @@
           <xsd:simpleType>
             <xsd:restriction base="xsd:token">
                 <xsd:enumeration value="mechForce"/>
-                <xsd:enumeration value="acousticForce"/>
+                <xsd:enumeration value="acouForce"/>
        	        <xsd:enumeration value="elecForceVWP"/> 
                 <xsd:enumeration value="mechDisplacement"/>
                 <xsd:enumeration value="smoothDisplacement"/>

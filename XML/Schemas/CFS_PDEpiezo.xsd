@@ -160,43 +160,39 @@
   <!-- What data can a single node have in a piezoelectric PDE -->
   <xsd:simpleType name="DT_NodeDataPiezo">
     <xsd:restriction base="xsd:token">
-      <xsd:enumeration value="displacement"/>
-      <xsd:enumeration value="velocity"/>
-      <xsd:enumeration value="acceleration"/>
-      <xsd:enumeration value="potential"/>
+      <xsd:enumeration value="mechDisplacement"/>
+      <xsd:enumeration value="mechVelocity"/>
+      <xsd:enumeration value="mechAcceleration"/>
+      <xsd:enumeration value="elecPotential"/>
     </xsd:restriction>
   </xsd:simpleType>
 
   <!-- What data can a single element have in a piezoelectric PDE -->
   <xsd:simpleType name="DT_ElemDataPiezo">
     <xsd:restriction base="xsd:token">
-      <xsd:enumeration value="strain"/>
-      <xsd:enumeration value="stress"/>
-      <xsd:enumeration value="efield"/>
-      <xsd:enumeration value="energy"/>
+      <xsd:enumeration value="mechStrain"/>
+      <xsd:enumeration value="mechStress"/>
+      <xsd:enumeration value="elecFieldIntensity"/>
+      <xsd:enumeration value="elecEnergy"/>
     </xsd:restriction>
   </xsd:simpleType>
 
   <!-- Data type for describing final node values to be stored -->
   <xsd:complexType name="DT_NodeResultsPiezo">
-    <xsd:attribute name="type" type="DT_NodeDataPiezo" use="optional"
-      default="displacement"/>
+    <xsd:attribute name="type" type="DT_NodeDataPiezo" use="required"/>
     <xsd:attribute name="region" type="xsd:token" use="optional"
       default="all"/>
   </xsd:complexType>
 
   <!-- Data type for describing history of node values to be stored -->
   <xsd:complexType name="DT_NodeHistoryPiezo">
-    <xsd:attribute name="type" type="DT_NodeDataPiezo" use="optional"
-      default="displacement"/>
-    <xsd:attribute name="saveNodes" type="xsd:token" use="optional"
-      default="none"/>
+    <xsd:attribute name="type" type="DT_NodeDataPiezo" use="required"/>
+    <xsd:attribute name="saveNodes" type="xsd:token" use="required"/>
   </xsd:complexType>
 
   <!-- Data type for describing final element values to be stored -->
   <xsd:complexType name="DT_ElemResultsPiezo">
-    <xsd:attribute name="type" type="DT_ElemDataPiezo" use="optional"
-      default="stress"/>
+    <xsd:attribute name="type" type="DT_ElemDataPiezo" use="required"/>
     <xsd:attribute name="region" type="xsd:token" use="optional"
       default="all"/>
   </xsd:complexType>
@@ -204,10 +200,8 @@
 
   <!-- Data type for describing history of element values to be stored -->
   <xsd:complexType name="DT_ElemHistoryPiezo">
-    <xsd:attribute name="type" type="DT_ElemDataPiezo" use="optional"
-      default="stress"/>
-    <xsd:attribute name="saveElems" type="xsd:token" use="optional"
-      default="none"/>
+    <xsd:attribute name="type" type="DT_ElemDataPiezo" use="required"/>
+    <xsd:attribute name="saveElems" type="xsd:token" use="required"/>
   </xsd:complexType>
 
   <!-- Element type for computing of electric charges -->
@@ -234,7 +228,7 @@
         maxOccurs="unbounded"/>
       <xsd:element name="charge" type="DT_ChargePiezo" minOccurs="0"
         maxOccurs="unbounded"/>
-    </xsd:sequence>
+      </xsd:sequence>
   </xsd:complexType>
 
 

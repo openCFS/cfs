@@ -121,48 +121,43 @@
   <!-- What data can a single node have in an electrostatic PDE -->
   <xsd:simpleType name="DT_NodeDataElec">
     <xsd:restriction base="xsd:token">
-      <xsd:enumeration value="voltage"/>
+      <xsd:enumeration value="elecPotential"/>
     </xsd:restriction>
   </xsd:simpleType>
 
   <!-- What data can a single element have in a electrostatic PDE -->
   <xsd:simpleType name="DT_ElemDataElec">
     <xsd:restriction base="xsd:token">
-      <xsd:enumeration value="efield"/>
-      <xsd:enumeration value="energy"/>
+      <xsd:enumeration value="elecFieldIntensity"/>
+      <xsd:enumeration value="elecEnergy"/>
+      <xsd:enumeration value="elecCharge"/>
     </xsd:restriction>
   </xsd:simpleType>
 
   <!-- Data type for describing final node values to be stored -->
   <xsd:complexType name="DT_NodeResultsElec">
-    <xsd:attribute name="type" type="DT_NodeDataElec" use="optional"
-      default="voltage"/>
+    <xsd:attribute name="type" type="DT_NodeDataElec" use="required"/>
     <xsd:attribute name="region" type="xsd:token" use="optional"
       default="all"/>
   </xsd:complexType>
 
   <!-- Data type for describing history of node values to be stored -->
   <xsd:complexType name="DT_NodeHistoryElec">
-    <xsd:attribute name="type" type="DT_NodeDataElec" use="optional"
-      default="voltage"/>
-    <xsd:attribute name="saveNodes" type="xsd:token" use="optional"
-      default="none"/>
+    <xsd:attribute name="type" type="DT_NodeDataElec" use="required"/>
+    <xsd:attribute name="saveNodes" type="xsd:token" use="required"/>
   </xsd:complexType>
 
   <!-- Data type for describing final element values to be stored -->
   <xsd:complexType name="DT_ElemResultsElec">
-    <xsd:attribute name="type" type="DT_ElemDataElec" use="optional"
-      default="efield"/>
+    <xsd:attribute name="type" type="DT_ElemDataElec" use="required"/>
     <xsd:attribute name="region" type="xsd:token" use="optional"
       default="all"/>
   </xsd:complexType>
 
   <!-- Data type for describing history of element values to be stored -->
   <xsd:complexType name="DT_ElemHistoryElec">
-    <xsd:attribute name="type" type="DT_ElemDataElec" use="optional"
-      default="efield"/>
-    <xsd:attribute name="saveElems" type="xsd:token" use="optional"
-      default="none"/>
+    <xsd:attribute name="type" type="DT_ElemDataElec" use="required"/>
+    <xsd:attribute name="saveElems" type="xsd:token" use="required"/>
   </xsd:complexType>
 
   <!-- Global type for specifying desired electrostatic output quantities -->

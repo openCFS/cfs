@@ -159,50 +159,44 @@
   <!-- What data can a single node have in a mechanic PDE -->
   <xsd:simpleType name="DT_NodeDataMech">
     <xsd:restriction base="xsd:token">
-      <xsd:enumeration value="displacement"/>
-      <xsd:enumeration value="velocity"/>
-      <xsd:enumeration value="acceleration"/>
+      <xsd:enumeration value="mechDisplacement"/>
+      <xsd:enumeration value="mechVelocity"/>
+      <xsd:enumeration value="mechAcceleration"/>
     </xsd:restriction>
   </xsd:simpleType>
 
   <!-- What data can a single element have in a mechanic PDE -->
   <xsd:simpleType name="DT_ElemDataMech">
     <xsd:restriction base="xsd:token">
-      <xsd:enumeration value="strain"/>
-      <xsd:enumeration value="stress"/>
+      <xsd:enumeration value="mechStrain"/>
+      <xsd:enumeration value="mechStress"/>
     </xsd:restriction>
   </xsd:simpleType>
 
   <!-- Data type for describing final node values to be stored -->
   <xsd:complexType name="DT_NodeResultsMech">
-    <xsd:attribute name="type" type="DT_NodeDataMech" use="optional"
-      default="displacement"/>
+    <xsd:attribute name="type" type="DT_NodeDataMech" use="required"/>
     <xsd:attribute name="region" type="xsd:token" use="optional"
       default="all"/>
   </xsd:complexType>
 
   <!-- Data type for describing history of node values to be stored -->
   <xsd:complexType name="DT_NodeHistoryMech">
-    <xsd:attribute name="type" type="DT_NodeDataMech" use="optional"
-      default="displacement"/>
-    <xsd:attribute name="saveNodes" type="xsd:token" use="optional"
-      default="none"/>
+    <xsd:attribute name="type" type="DT_NodeDataMech" use="required"/>
+    <xsd:attribute name="saveNodes" type="xsd:token" use="required"/>
   </xsd:complexType>
 
   <!-- Data type for describing final element values to be stored -->
   <xsd:complexType name="DT_ElemResultsMech">
-    <xsd:attribute name="type" type="DT_ElemDataMech" use="optional"
-      default="stress"/>
+    <xsd:attribute name="type" type="DT_ElemDataMech" use="required"/>
     <xsd:attribute name="region" type="xsd:token" use="optional"
       default="all"/>
   </xsd:complexType>
 
   <!-- Data type for describing history of element values to be stored -->
   <xsd:complexType name="DT_ElemHistoryMech">
-    <xsd:attribute name="type" type="DT_ElemDataMech" use="optional"
-      default="stress"/>
-    <xsd:attribute name="saveElems" type="xsd:token" use="optional"
-      default="none"/>
+    <xsd:attribute name="type" type="DT_ElemDataMech" use="required"/>
+    <xsd:attribute name="saveElems" type="xsd:token" use="required"/>
   </xsd:complexType>
 
   <!-- Global type for specifying the desired mechanical output quantities -->

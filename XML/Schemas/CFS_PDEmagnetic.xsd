@@ -176,13 +176,33 @@
   <!-- ******************************************************************** -->
 
   <!-- What data can a single node have in an magnetic PDE -->
-  <xsd:simpleType name="DT_MagneticElementData">
+  <xsd:simpleType name="DT_MagneticNodeData">
     <xsd:restriction base="xsd:token">
-      <xsd:enumeration value="bfield"/>
-      <xsd:enumeration value="energy"/>
-      <xsd:enumeration value="eddy"/>
+      <xsd:enumeration value="magPotential"/>
     </xsd:restriction>
   </xsd:simpleType>
+
+  <!-- What data can a single element have in an magnetic PDE -->
+  <xsd:simpleType name="DT_MagneticElementData">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="magFluxDensity"/>
+      <xsd:enumeration value="magEnergy"/>
+      <xsd:enumeration value="magEddyCurrent"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <!-- Data type for describing final node values to be stored -->
+  <xsd:complexType name="DT_MagneticNodeResults">
+    <xsd:attribute name="type" type="DT_MagneticNodeData" use="required"/>
+    <xsd:attribute name="region" type="xsd:token" use="optional"
+      default="all"/>
+  </xsd:complexType>
+
+  <!-- Data type for describing history of node values to be stored -->
+  <xsd:complexType name="DT_MagneticNodeHistory">
+    <xsd:attribute name="type" type="DT_MagneticNodeData" use="required"/>
+    <xsd:attribute name="saveNodes" type="xsd:token" use="required"/>
+  </xsd:complexType>
 
   <!-- Data type for describing final element values to be stored -->
   <xsd:complexType name="DT_MagneticElementResults">
@@ -191,16 +211,19 @@
       default="all"/>
   </xsd:complexType>
 
-  <!-- Data type for describing history of node values to be stored -->
+  <!-- Data type for describing history of element values to be stored -->
   <xsd:complexType name="DT_MagneticElementHistory">
     <xsd:attribute name="type" type="DT_MagneticElementData" use="required"/>
-    <xsd:attribute name="saveNodes" type="xsd:token" use="optional"
-      default="none"/>
+    <xsd:attribute name="saveNodes" type="xsd:token" use="required"/>
   </xsd:complexType>
 
   <!-- Data type for specifying the desired mechanical output quantities -->
   <xsd:complexType name="DT_MagneticStoreResults">
     <xsd:sequence>
+      <xsd:element name="nodeResults" type="DT_MagneticNodeResults"
+        minOccurs="0" maxOccurs="unbounded"/>
+      <xsd:element name="nodeHistory" type="DT_MagneticNodeHistory"
+        minOccurs="0" maxOccurs="unbounded"/>
       <xsd:element name="elemResults" type="DT_MagneticElementResults"
         minOccurs="0" maxOccurs="unbounded"/>
       <xsd:element name="elemHistory" type="DT_MagneticElementHistory"
