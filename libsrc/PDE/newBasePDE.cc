@@ -45,13 +45,11 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile, WriteResults * a
   Dim_ = ptgrid_->GetDim();
   InitMatrices_ = FALSE;
 
-  //standard parameter for solver
+
+
   eps_         = 1.0e-8;
   dampiter_    = 1.0;
-  maxnumiter_  = 100;
-    solvertype_  = RealDirect;
-    //solvertype_  = RealCG;
-  precondtype_ = ID;
+  maxnumiter_  = 500;
   numeqcoarse_ = 200;
   coarsealpha_ = 0.1;
 
@@ -59,12 +57,39 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile, WriteResults * a
   savederiv2_ = FALSE;
   
 
-   //get analysis type
+  //standard parameter for solver
+#ifdef USE_OLAS
+  
+  precondtype_ = JACOBI;
+  solvertype_  = CG;
+#else
+  precondtype_ = ID;
+  solvertype_  = RealDirect;
+#endif
+
+  //get analysis type
   std::string analysis;
   conf->get("analysis", analysis);
 
   //allocate according algebraic system
   algsys_ = new StandardSystem();
+
+
+#ifdef USE_OLAS
+  olasParams_ = algsys_->GetOLASParams();
+  olasReport_ = algsys_->GetOLASReport();
+  
+  std::string parallel = "no";
+  conf->ifget("parallel",parallel);
+  
+  if (parallel == "yes")
+    olasParams_->SetValue( "Parallel", true);
+  else
+    olasParams_->SetValue( "Parallel", false);
+  
+#endif
+
+  
 
 
   if (analysis=="static") 
@@ -226,12 +251,24 @@ void BasePDE::StepStaticLin(const Integer kstep, const Double aTime,
 	job = 1; // calc new preconditioner
       else 
 	job = 3;  // just set new BCs    
+
+#ifdef USE_OLAS
+      algsys_->BuildInDirichlet();
+      algsys_->SetupPrecond(job);
+#else
+      algsys_->CalcPrecond(job);
+#endif
+
     }
   else
     job = 3;
 
+#ifdef USE_OLAS
+  algsys_->BuildInDirichlet();
+  algsys_->SetupPrecond(job);
+#else
   algsys_->CalcPrecond(job);
-  
+#endif  
 
   algsys_->Solve();
 
@@ -394,7 +431,13 @@ void BasePDE::StepTransLin(const Integer kstep, const Double asteptime,
   TS_alg_->UpdateRHS();
 
   SetBCs(level,update,lasttimecalc_);
+#ifdef USE_OLAS
+  algsys_->BuildInDirichlet();
+  algsys_->SetupPrecond(job);
+#else
   algsys_->CalcPrecond(job);
+#endif
+
   algsys_->Solve();
   ptsol = algsys_->GetSolutionVal();
 
@@ -445,7 +488,11 @@ void  BasePDE::SetBCs(const Integer level, const Integer update, const Double ti
       for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end(); p++, j++)
 	{
 	  node=*p;
+#ifdef USE_OLAS
+	  algsys_->SetDirichlet(j+1, Mesh2PDENode_[node-1],val, dof);
+#else
 	  algsys_->SetDirichlet(j+1, Mesh2PDENode_[node-1],val, dof, SYSTEM);
+#endif
 	}
     }
 
@@ -471,8 +518,13 @@ void  BasePDE::SetBCs(const Integer level, const Integer update, const Double ti
 	{
 	  node=*p;
 	  // Mesh node numbers are mapped to PDE node numbers
+#ifdef USE_OLAS
+	  algsys_->SetDirichlet(j+1, Mesh2PDENode_[node-1],
+				val, dof);
+#else
 	  algsys_->SetDirichlet(j+1, Mesh2PDENode_[node-1],
 				val, dof, SYSTEM);
+#endif
 	}
     }
   
@@ -590,6 +642,7 @@ BasePDE::~BasePDE()
     //set solver parameters  
     SetSolverParameters();
 
+
     //ask the PDE matrix settings
     //    assemble_->MatrixSettings();
 
@@ -609,18 +662,171 @@ void BasePDE::SetSolverParameters()
   (*trace) << "entering  BasePDE::SetSolverParameters" << std::endl;
 #endif
 
+  // Get Solver and Precond parameters
+#ifdef USE_OLAS
+  
+  Integer solverIntegerVal = 0;
+  Integer precondIntegerVal = 0;
+  Integer matrixStorageTypeVal = 0;
+  
+  conf->ifget("solvertype",solverIntegerVal,pdename_); // solver
+  conf->ifget("precondtype", precondIntegerVal,pdename_); //preconditioner
+  conf->ifget("matrixstoragetype",matrixStorageTypeVal,pdename_); // matrixStorageTypeVal
+
+  // Assign correct solver
+  switch(solverIntegerVal) 
+    {
+    case 0:
+      // nothing specified in conf-file  
+      // use default value set in the according specialized PDE
+      break;
+    case 1:
+      solvertype_ = OLAS::RICHARDSON;
+      break;
+    case 2:
+      solvertype_ = OLAS::RICHARDSON;
+      break;
+    case 3:
+      solvertype_ = OLAS::CG;
+      break;
+    case 4:
+      solvertype_ = OLAS::CG;
+      break;
+    case 5:
+      solvertype_ = OLAS::LANCZOS;
+      break;
+    case 6:
+      solvertype_ = OLAS::QMR;
+      break;
+    case 7:
+      solvertype_ = OLAS::QMR;
+      break;
+    case 8:
+      solvertype_ = OLAS::DIRECT;
+      break;
+    case 9:
+       Error("The specified solver in the config file is not implemented in OLAS",__FILE__,__LINE__);
+      break;
+    case 10:
+      Error("The specified solver in the config file is not implemented in OLAS",__FILE__,__LINE__);
+      break;
+    case 12:
+      Error("The specified solver in the config file is not implemented in OLAS",__FILE__,__LINE__);
+      break;
+    case 13:
+      solvertype_ = OLAS::HYPRE_PCG;
+      break;
+    case 14:
+      solvertype_ = OLAS::LAPACK_LU;
+      break;
+    default:
+      Error("The specified solver in the config file is not known",__FILE__,__LINE__);
+      break;
+ }
+
+
+ // Assign correct preconditioner
+  switch(precondIntegerVal) 
+    {
+    case 0:
+      // nothing specified in conf-file  
+      // use default value set in the according specialized PDE
+      break;
+    case 1:
+      precondtype_ = OLAS::ID;
+      break;
+    case 2:
+      precondtype_ = OLAS::MG;
+      break;
+    case 3:
+      precondtype_ = OLAS::JACOBI;
+      break;
+    case 4:
+      precondtype_ = OLAS::HYPRE_ILU;
+	break;
+    case 5:
+      precondtype_ = OLAS::SSOR;
+      break;
+    case 6:
+      precondtype_ = OLAS::HYPRE_JACOBI;
+      break;
+    case 7:
+      precondtype_ = OLAS::HYPRE_AMG;
+      break;
+    case 8:
+      precondtype_ = OLAS::HYPRE_SPAI;
+      break;
+    default:
+      Error("The specified preconditioner in the config file is not known",__FILE__,__LINE__);
+      break;
+    }
+
+  // Assign matrixStorageType
+  switch(matrixStorageTypeVal)
+    {
+    case 0:
+      // nothing specified in conf-file.
+      // use default value set in the according specialized PDE
+      break;
+    case 1:
+      assemble_->SetMatrixStorageType(OLAS::SPARSE_SYM);      
+      break;
+    case 2:
+      assemble_->SetMatrixStorageType(OLAS::SPARSE_NONSYM);      
+      break;
+    case 3:
+      assemble_->SetMatrixStorageType(OLAS::SKYLINE_SYM);      
+      break;
+    case 4:
+      assemble_->SetMatrixStorageType(OLAS::SKYLINE_NONSYM);      
+      break;
+    case 5:
+      assemble_->SetMatrixStorageType(OLAS::HYPRE_MATRIX);      
+      break;
+    case 6:
+      assemble_->SetMatrixStorageType(OLAS::LAPACK_GBMATRIX);      
+      break;
+    case 7:
+      assemble_->SetMatrixStorageType(OLAS::LAPACK_PBMATRIX);      
+      break;
+    default:
+      Error("The specified matrix storage format in the config file is not known",__FILE__,__LINE__);
+      break;
+    }
+#else
+    conf->ifget("solvertype",solvertype_,pdename_); // solver
+    conf->ifget("precondtype", precondtype_,pdename_); //preconditioner
+#endif
+
   //if values are defined in conf-file, take these
   conf->ifget("eps",eps_,pdename_); // relative accuracy in the precond. energy
   conf->ifget("dampiter",dampiter_,pdename_); // damping parameter for Jacobi, SSOR
   conf->ifget("maxnumit",maxnumiter_,pdename_); // maximal number of iterations
-  conf->ifget("solvertype",solvertype_,pdename_); // solver
-  conf->ifget("precondtype", precondtype_,pdename_); //preconditioner
   conf->ifget("numeqcoarse",numeqcoarse_,pdename_); // number of equation for coarsing
   conf->ifget("coarsealpha",coarsealpha_,pdename_); // coarsing parameter for AMG
   
+
+#ifdef USE_OLAS
+  if (solvertype_==DIRECT && precondtype_!=ID)  precondtype_=ID;
+#else
   if (solvertype_==RealDirect && precondtype_!=ID)  precondtype_=ID;
+#endif
 
   //communicate with algebraic system
+
+#ifdef USE_OLAS
+  olasParams_->SetValue( "eps", eps_ );
+  olasParams_->SetValue( "MaxIter", maxnumiter_);
+  olasParams_->SetValue( "epsmach", 1e-30 );
+  olasParams_->SetValue( "Solver", solvertype_ );
+  olasParams_->SetValue( "Precond", precondtype_);
+ 
+ // The following parameters are not passed yet
+  // -> Contact Uwe regarding multrigrid parameters
+  // olasParams_->SetValue( "dampiter", dampiter_);
+  // olasParams_->SetValue( "numeqcoarse", numeqcoarse_);
+  // olasParams_->SetValue( "coarseAlpha", coarsealpha_);
+#else
   algsys_->CreateParameter();
   algsys_->SetAccuracy(eps_);
   algsys_->SetMaxNumIter(maxnumiter_);
@@ -629,6 +835,8 @@ void BasePDE::SetSolverParameters()
   algsys_->SetDampIter(dampiter_);
   algsys_->SetCoarseSystem(numeqcoarse_);
   algsys_->SetAlpha(coarsealpha_);
+#endif
+
 
 } 
 
@@ -646,7 +854,12 @@ void BasePDE::CreateMatrices_Solver()
 
   //create solver and preconditioner
   algsys_->CreateSolver();
+
+#ifdef USE_OLAS
+  algsys_->CreatePrecond();
+#else
   algsys_->CreatePrecond(assemble_->GetMatrixType());
+#endif
 
   //now reset AlgebraicSystem 
   algsys_->InitRHS();
@@ -762,7 +975,9 @@ void BasePDE::CalcInputCoupling()
 		PDEnode = Mesh2PDENode_[(*nodes)[j]-1];
 		if (PDEnode==-1)
 		  Error("Node not assigned to coupling domain: see mesh- and config-file",__FILE__,__LINE__);
-		
+#ifdef USE_OLAS
+		algsys_->SetDirichlet(couplingBCsCounter_+1, PDEnode, (*val)[dof][j], dof+1);
+#else
 		if (updateCouplingBCs_)
 		  {
 		    //		    std::cerr << "updating BC[" << dof << "][" << (*nodes)[j] << "] = " 
@@ -774,6 +989,7 @@ void BasePDE::CalcInputCoupling()
 		    //  std::cerr << "BC[" << dim << "][" << (*nodes)[j] << "] = " << (*val)[dim][j] << std::endl;
 		    algsys_->SetDirichlet(couplingBCsCounter_+1, PDEnode, (*val)[dof][j], dof+1, SYSTEM);
 		  }
+#endif
 	      }
 	  break;
 	  

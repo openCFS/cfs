@@ -8,6 +8,10 @@
 #include <math.h>
 #include <vector>
 
+#ifdef PARALLEL
+#include <mpi.h>
+#endif
+
 #include <Utils/myclock.hh>
 #include <DataInOut/DefineFiles/definefiles.hh>
 #include <DataInOut/timefunc.hh>
@@ -36,6 +40,12 @@
 
 using namespace CoupledField;
 
+#ifdef PARALLEL
+#define STDOUT if (!commrank) std::cout
+#else
+#define STDOUT std::cout
+#endif
+
 Integer main(int argc, char *argv[])
 {
 
@@ -57,10 +67,23 @@ Integer main(int argc, char *argv[])
 	  }
       }
   
+#ifdef PARALLEL //initialize MPI
+  int commrank,commsize;
+  	
+  MPI_Comm comm = MPI_COMM_WORLD;
+
+	MPI_Init(&argc,&argv);
+          
+    MPI_Comm_size(comm, &commsize);
+    MPI_Comm_rank(comm, &commrank);
+#endif //parallel
+
+//  OutInfo::trace = new std::ofstream("trace.data");
+  
   if (argc < numargs) 
     {
-      std::cout << std::endl;
-      std::cout << " \033[36mUsage\033[0m : cfs [-options] name "<< std::endl 
+      STDOUT << std::endl;
+      STDOUT << " \033[36mUsage\033[0m : cfs [-options] name "<< std::endl 
 		<< "\t \033[36m name    \033[0m: name of input file without extension" 
 		<< std::endl 
 		<< "\t \033[36m options \033[0m: -skel for writing a skeleton of a config-file" << std::endl 
@@ -69,8 +92,12 @@ Integer main(int argc, char *argv[])
       Error("Invalid running of cfs. See Usage above.");
     }
   
-  Char * name=argv[argc-1];
-  Char * filename=new Char[100];
+  
+  
+  
+  char *name = argv[1];
+  
+  Char * filename=new char[100];
 
   //for writing a skeleton of a config file by using the information from the mesh-file
   if (SkeletonPrint==TRUE)
@@ -105,7 +132,7 @@ Integer main(int argc, char *argv[])
 
 
   if (PrintGridOnly)
-    std::cout << "Printing grid to file " << name << ".unv" << myEndl << myEndl;
+    STDOUT << "Printing grid to file " << name << ".unv" << myEndl << myEndl;
 
   MyClock oClockTotal;
   oClockTotal.ClockCount(MyClock::beg);
@@ -164,5 +191,10 @@ Integer main(int argc, char *argv[])
   if (Info)
     delete Info;
 
+#ifdef PARALLEL
+MPI_Finalize();
+#endif
+
   return 0;
+
 }

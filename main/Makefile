@@ -38,8 +38,13 @@ mylibrary = driver domain pde mpccicpl coupledpde\
             gmv definefiles unverg \
 	    ansys-out ansysfile datainout \
             algsys-own driver \
-            utils matrix general \
-            multigrid-las 
+            utils matrix general 
+#
+ifeq "$(LASTYPE)" "OLAS"
+
+else
+mylibrary += multigrid-las
+endif
 #
 ifeq ($(GSI), yes)
 SUBLIBDIR := $(SUBLIBDIR) DataInOut/GSI DataInOut/GSI/CFSSocketComm
@@ -85,7 +90,7 @@ PATHSUBLIBDIR = $(addprefix $(LIBSRC_DIR)/, $(SUBLIBDIR))
 .SUFFIXES: .f .c .cc .o
 
 .cc.o:
-	$(CC) -o $@ $(CFLAGS1) $(CFLAGS2) $(CFLAGS3) $(INCL) $(INCLAdaptGrid) $(INCLMpCCI) $<
+	$(CC) -o $@ $(CFLAGS1) $(CFLAGS2) $(CFLAGS3) $(OLAS) $(INCL) $(INCLAdaptGrid) $(INCLMpCCI) $<
 
 #
 #
@@ -93,12 +98,12 @@ PATHSUBLIBDIR = $(addprefix $(LIBSRC_DIR)/, $(SUBLIBDIR))
 ifeq ($(PETSc)),yes)
 $(program):: $(src:.cc=.o) $(fsrc:.f=.o) $(mylibrary)
 	$(CXX_CLINKER) -o $@ $(src:.cc=.o) $(fsrc:.f=.o) $(PETSC_LIB) \
-	-L$(LIB_DIR) $(LINKFLAGS2) $(LINKFLAGS3) \
+	-L$(LIB_DIR) $(LINKFLAGS2) $(LINKFLAGS3)\
 	-L$(LIB_DIR) -L$(LIB_GRIDLIB)  -L$(LIB_NETGEN) -L$(LIB_CLA) \
-	$(INCL) $(addprefix -l, $(mylibrary)) $(sysliball) -Wl,-rpath,$(LIB_OWN)/$(MACHINE) 
+	$(INCL) $(addprefix -l, $(mylibrary)) $(OLAS_INCL) $(sysliball) -Wl,-rpath,$(LIB_OWN)/$(MACHINE) 
 else
 $(program):: $(src:.cc=.o) $(mylibrary)
-	$(CC) $(CFLAG_EXE) -o $@ $(src:.cc=.o) $(fsrc:.f=.o) -L$(LIB_DIR) -L$(LIB_GRIDLIB)  -L$(LIB_NETGEN) -L$(LIB_CLA) $(LINKFLAGS2) $(LINKFLAGS3) $(INCL) $(addprefix -l, $(mylibrary)) $(sysliball) 
+	$(CC) $(CFLAG_EXE) -o $@ $(src:.cc=.o) $(fsrc:.f=.o) -L$(LIB_DIR) -L$(LIB_GRIDLIB)  -L$(LIB_NETGEN) -L$(LIB_CLA) $(LINKFLAGS2) $(LINKFLAGS3) $(INCL) $(addprefix -l, $(mylibrary)) $(OLAS_INCL) $(sysliball) 
 #-Wl,-rpath,$(LIB_OWN)/$(MACHINE)
 endif
 #

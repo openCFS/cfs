@@ -22,7 +22,11 @@ public:
   virtual ~TetraFE(); 
 
   //! return FE-Type for LAS++
-  virtual Integer feType() { return TET;}
+#ifdef USE_OLAS
+  virtual FEType feType() { return TET;}
+#else
+  virtual Integer feType() { return 3;}
+#endif
   
 
 protected:

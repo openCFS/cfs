@@ -21,7 +21,11 @@ public:
   virtual ~HexaFE(); 
 
   //! return FE-Type for LAS++
-  virtual Integer feType() { return HEX;}
+#ifdef USE_OLAS
+  virtual FEType feType() { return HEX;}
+#else
+  virtual Integer feType() { return 4;}
+#endif
 
 ///////////////////////////////////////////////////////////////////////
 

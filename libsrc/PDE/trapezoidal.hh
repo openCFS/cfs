@@ -4,9 +4,13 @@
 #include <General/environment.hh>
 #include <DataInOut/conffile.hh>
 #include "timestepping.hh"
-#include <multigrid.hh>
 #include <Utils/array.hh>
-#include <General/environment.hh>
+
+#ifdef USE_OLAS
+#include <olas.hh>
+#else
+#include <multigrid.hh>
+#endif
 
 namespace CoupledField
 {

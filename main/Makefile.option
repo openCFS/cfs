@@ -16,11 +16,22 @@ MpCCI=no
 #General Socket Interface
 GSI = no
 
+#Hypre solvers
+# NOTE: Only used in OLAS
+HYPRE = no
+
+#Using LAS or OLAS
+LASTYPE = LAS
+
 ##############  AdaptGrid 
 #
 AdaptGrid=$(HOME)/Work/221003/Grid_RG_upd
 #
+ifeq "$(LASTYPE)" "OLAS"
+LAS=$(OLAS_INSTALL_DIR)
+else
 LAS=$(LASHOME)
+endif
 #
 #
 ############### Gridlib
@@ -47,11 +58,21 @@ ifeq "$(PETSc)" "yes"
 	CPPFLAGS = $(CFLAGS1) $(CFLAGS2) $(CFLAGS3)
 endif
 #
+############## LAS / OLAS
+#
+ifeq "$(LASTYPE)" "OLAS"
+	OLAS =-DUSE_OLAS
+	OLAS_INCL = -lolas
+	LIB_CLA=$(OLAS_INSTALL_DIR)/lib/$(MACHINE)
+else
+	LIB_CLA=$(LAS)/lib/$(MACHINE)
+endif
+
 #--------DO NOT CHANGE ------------------------------------------------------------
 #
 ############ Directories
 #
-LIB_CLA=$(LAS)/lib/$(MACHINE)
+
 LibCLA=$(C_DIR)/libsrc/AlgebraicSystem/LAS
 
 Include=$(C_DIR)/include
@@ -66,8 +87,13 @@ LIB_OWN = $(C_DIR)/lib
 #
 ########### Flags
 #
+ifeq "$(LASTYPE)" "OLAS"
+	INCL1 = -I$(LIBSRC_DIR) \
+		-I$(OLAS_INSTALL_DIR)/include
+else
+	INCL1 = -I$(LIBSRC_DIR)	 -I$(LIBSRC_DIR)/AlgebraicSystem/LAS/multigrid
+endif
 
-INCL1 = -I$(LIBSRC_DIR)  -I$(LIBSRC_DIR)/AlgebraicSystem/LAS/multigrid 
 
 ifeq ($(Adaptivity),yes)
    INCL = $(INCL1) -I$(AdaptGrid)

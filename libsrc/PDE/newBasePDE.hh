@@ -6,11 +6,17 @@
 #include <list>
 #include <General/environment.hh>
 #include <AlgebraicSystem/abstractAlgSys.hh>
-#include <multigrid.hh>
 #include <Domain/bcs.hh>
 #include <DataInOut/timefunc.hh>
 #include <DataInOut/filetype.hh>
 #include <DataInOut/writeresults.hh>
+
+#ifdef USE_OLAS
+#include <olas.hh>
+#else
+#include <multigrid.hh>
+#endif
+
 
 #include <DataInOut/conffile.hh>
 #include <DataInOut/LoadMaterialData.hh>
@@ -419,13 +425,17 @@ protected:
   Integer numElems_;      //!< number of elements in subdomains 
 
   // pointers to objects
-  Grid * ptgrid_;           //!< pointer to Grid
-  BCs *ptBCs_;              //!< pointer to Boundary Condition  Object
-  BaseSystem * algsys_;     //!< pointer to algebraic system
-  FileType * InFile_;       //!< pointer tio input file
-  WriteResults * OutFile_;  //!< pointer to output file
-  TimeFunc * ptTimeFunc_;   //!< pointer to time functions
-  PDECoupling * ptCoupling_;//!< pointer to Coupling Object
+  Grid * ptgrid_;            //!< pointer to Grid
+  BCs *ptBCs_;               //!< pointer to Boundary Condition  Object
+  BaseSystem * algsys_;      //!< pointer to algebraic system
+#ifdef USE_OLAS
+  OLAS_Params * olasParams_; //!< pointer to parameter object of OLAS
+  OLAS_Report * olasReport_; //!< pointer ro report object of OLAS
+#endif
+  FileType * InFile_;        //!< pointer tio input file
+  WriteResults * OutFile_;   //!< pointer to output file
+  TimeFunc * ptTimeFunc_;    //!< pointer to time functions
+  PDECoupling * ptCoupling_; //!< pointer to Coupling Object
 
   //Equation handling
   BaseEQN * EqnData_;
@@ -492,8 +502,13 @@ protected:
 
   //!solver parameters
   Integer maxnumiter_;    //!< maximum of iterations (for iterative solver)
+#ifdef USE_OLAS
+  SolverType solvertype_;    //!< type of solver (see environment.hh)
+  PrecondType precondtype_;   //!< type of preconditioner (see environment.hh)
+#else
   Integer solvertype_;    //!< type of solver (see las_environment.hh)
   Integer precondtype_;   //!< type of preconditioner (see las_environment.hh)
+#endif
   Integer numeqcoarse_;   //!< numbver of unknowns on coarse level (just for AMG)
   Double  eps_;           //!< accuracy
   Double dampiter_;       //!< damping parameter within iterative solution

@@ -8,6 +8,10 @@
 #include "DataInOut/Unverg/outUnverg.hh"
 #include "DataInOut/GMV/outGMV.hh"
 
+#ifdef PARALLEL
+#include <mpi.h>
+#endif
+
 namespace CoupledField
 {
 
@@ -19,28 +23,50 @@ namespace CoupledField
 DefineInOutFiles :: DefineInOutFiles(const Char * name)
 {
 
+ #ifdef PARALLEL
+ // find out who I am and write to seperate files:
+ int commrank;
+ MPI_Comm comm = MPI_COMM_WORLD;
+ MPI_Comm_rank(comm,&commrank);
+ char *rank = new char[5];
+ sprintf(rank,"_%d",commrank);
+ #endif
+
  filename=new Char[100];
- strcpy(filename, name);
+
+
 
 #ifdef TRACE
  strcpy(filename, name);
+ #ifdef PARALLEL
+ strcat(filename, rank);
+ #endif
  trace=new std::ofstream(strcat(filename,".trace"));
  if (!trace) Error("Can't open trace-file");
 #endif
  
 #ifdef DEBUG
  strcpy(filename, name);
+ #ifdef PARALLEL
+ strcat(filename, rank);
+ #endif
  debug=new std::ofstream(strcat(filename,".deb"));
  if (!debug) Error("Can't open debug-file");
 #endif
 
 #ifdef MEMTRACE
+ #ifdef PARALLEL
+ strcat(filename, rank);
+ #endif
  strcpy(filename, name);
  CoupledField::memtrace=new std::ofstream(strcat(filename,".mem"));
  if (!memtrace) Error("Can't open memtrace-file");
 #endif
 
  strcpy(filename, name);
+  #ifdef PARALLEL
+ strcat(filename, rank);
+ #endif
  cla=new std::ofstream(strcat(filename,".las")); 
  if (!cla) Error("Can't open LAS++-file");
 

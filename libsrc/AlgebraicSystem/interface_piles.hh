@@ -1,6 +1,8 @@
 #ifndef FILE_INTERFACE_PILES_2002
 #define FILE_INTERFACE_PILES_2002
 
+#ifndef USE_OLAS
+
 #include "abstractAlgSys.hh"
 
 #ifdef GRIDLIB
@@ -207,5 +209,8 @@ private:
 } ;
 
 } // end of namespace
+
+#endif  
+
 
 #endif

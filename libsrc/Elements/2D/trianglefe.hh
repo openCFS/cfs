@@ -19,7 +19,11 @@ public:
   virtual ~TriangleFE();
 
   //! return FE-Type for CLA++
-  virtual Integer feType() { return TRIA;}
+#ifdef USE_OLAS
+  virtual FEType feType() { return TRIA;}
+#else
+  virtual Integer feType() { return 1;}
+#endif
 
 protected:
 

@@ -19,7 +19,12 @@ public:
   virtual ~RectangleFE();
 
   //! return FE-Type for CLA++
-  virtual Integer feType() { return QUAD;}
+
+#ifdef USE_OLAS
+  virtual FEType feType() { return QUAD;}
+#else
+  virtual Integer feType() { return 2;}
+#endif
 
   //! Calculates the size of an element
   /*!

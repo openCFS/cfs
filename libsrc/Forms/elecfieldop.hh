@@ -5,7 +5,12 @@
 #include <Utils/vector.hh>
 #include <Utils/array.hh>
 #include <Matrix/matrix.hh>
+
+#ifdef USE_OLAS
+#include <olas.hh>
+#else
 #include <multigrid.hh>
+#endif
 
 namespace CoupledField
 {

@@ -92,7 +92,13 @@ namespace CoupledField
   assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, subdoms_, surfdoms_);
   assemble_->SetGraphType(NODEGRAPH);
   assemble_->SetMesh2PDENode(&Mesh2PDENode_);
+#ifdef USE_OLAS
+  assemble_->SetMatrixEntryType(DOUBLE);
+  assemble_->SetMatrixStorageType(SPARSE_NONSYM);
+#else
   assemble_->SetMatrixType(RBLOCK);
+#endif 
+
   assemble_->SetNumDirichlet(GetNumRestraints(actlevel_));
 
   assemble_->SetPtrBCs(ptBCs_);

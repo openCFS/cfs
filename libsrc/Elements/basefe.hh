@@ -3,7 +3,13 @@
 
 #include <vector>
 #include <Matrix/matrix.hh>
+
+
+#ifdef USE_OLAS
+#include <olas.hh>
+#else
 #include <multigrid.hh>
+#endif
 
 namespace CoupledField
 {
@@ -201,7 +207,11 @@ public:
   ShortInt GetNumIntPoints() const {return NumIntPoints_;}
   
   //! Return FE-Type for LAS++
+#ifdef USE_OLAS
+  virtual FEType feType()=0;
+#else
   virtual Integer feType()=0;
+#endif
 
   /// Return weightings of integration points
   std::vector<Double> GetIntWeights() const {return IntWeights_;};

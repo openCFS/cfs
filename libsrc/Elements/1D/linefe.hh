@@ -21,7 +21,13 @@ public:
   virtual ~LineFE();
 
   //! return FE-Type for CLA++
+#ifdef USE_OLAS
+  virtual FEType feType() { return LINE;};
+#else	
+  // This return value is not correct, since
+  // 1 corresponds to a triangle!!!
   virtual Integer feType() { return 1;}
+#endif
 
 
 protected:
