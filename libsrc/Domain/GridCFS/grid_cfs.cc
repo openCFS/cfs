@@ -603,9 +603,21 @@ namespace CoupledField
     ENTER_FCN( "GridCFS::GetElemSD" );
 
     Integer i;
+    Boolean sdFound = FALSE;
+    
     for (i=0; i<sd_.GetSize(); i++)
-      if (sd_[i]==sd) els=elems_[i];
-
+      if (sd_[i]==sd) 
+	{
+	  els=elems_[i];
+	  sdFound = TRUE;
+	}      
+    
+    if (sdFound == FALSE)
+      {
+	std::string errMsg = "The region with name '" + sd +"' was not found! ";
+	errMsg += "Check you Config/XML-file.";
+	Error(errMsg.c_str(), __FILE__, __LINE__);
+      }
   }
 
   template<Integer dim>

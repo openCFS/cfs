@@ -153,10 +153,10 @@ namespace CoupledField {
    //eqnData_ = new SuperBlockEQN(ptgrid_, ptBCs_, subdoms_, actlevel_, dofspernode_);
    
    // 2.) Normal blocknumbering
-   eqnData_ = new BlockNodeEQN(ptgrid_, ptBCs_, subdoms_, actlevel_, dofspernode_);
+   //eqnData_ = new BlockNodeEQN(ptgrid_, ptBCs_, subdoms_, actlevel_, dofspernode_);
    
    // 3.) Scalar blocknumbering
-   //eqnData_ = new ScalarBlockEQN(ptgrid_, ptBCs_, subdoms_, actlevel_, dofspernode_);
+   eqnData_ = new ScalarBlockEQN(ptgrid_, ptBCs_, subdoms_, actlevel_, dofspernode_);
 
    eqnData_->SetHomoDirichletBCs(bcs_hd_, homDirichDof_);
    eqnData_->CalcMapping();

@@ -172,6 +172,12 @@ private:
   //! dimension of problem
   Integer dim_;
 
+  //! number of elems
+  Integer maxNumElems_;
+
+  //! number of nodes
+  Integer maxNumNodes_;
+
   //! get position after line with seekexp and comments lines
   void getPosLine(const std::string seekexp, std::string::size_type & pos);
 

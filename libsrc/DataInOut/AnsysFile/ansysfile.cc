@@ -24,6 +24,9 @@ AnsysFile::AnsysFile(const Char * const afilename)
 {
   ENTER_FCN( "AnsysFile::AnsysFile" );
 
+  maxNumElems_ = 0;
+  maxNumNodes_ = 0;
+
     infile.open(strcat(filename,".mesh"));
     if (!infile.good()) {std::cerr << "ERROR(" << __FILE__ << " " << __LINE__ <<
 			   ") Can't open " << filename << std::endl;
@@ -168,6 +171,7 @@ void AnsysFile::ReadMaxnumnodes(Integer & nnodes)
     infile.seekg(pos,std::ios::beg);
 
     infile >> nnodes;
+    maxNumNodes_ = nnodes;
 }
 
 void AnsysFile::ReadMaxnumelem(Integer & nelem,const std::string keyword)
@@ -179,6 +183,7 @@ void AnsysFile::ReadMaxnumelem(Integer & nelem,const std::string keyword)
   infile.seekg(pos,std::ios::beg);
   
   infile >> nelem;
+  maxNumElems_ += nelem;
 }
 
 void AnsysFile::ReadMaxnumnodesbc(Integer & nbc)
@@ -665,6 +670,13 @@ void AnsysFile::ReadEl1d(StdVector<Elem*> * allelems, const StdVector<std::strin
 	    infile.ignore(100,'\n');
 
 	    el->elemNum=inum;
+	    if (inum > maxNumElems_) 
+	      {
+		std::string errMsg = "The current element number is higher than the ";
+		errMsg += "maximum number of elements in your .mesh-file. Something might ";
+		errMsg += "have gone wrong in the meshing process.";
+		Error(errMsg.c_str(), __FILE__, __LINE__);
+	      }
 	    el->ptElem=Type2ptElem(itype);
 	    el->namesd = namesd;
 	   	
@@ -715,6 +727,13 @@ void AnsysFile::ReadEl2d(StdVector<Elem*> * allelems, const StdVector<std::strin
 	    infile.ignore(100,'\n');
 	    
 	    el->elemNum=inum;
+	    if (inum > maxNumElems_) 
+	      {
+		std::string errMsg = "The current element number is higher than the ";
+		errMsg += "maximum number of elements in your .mesh-file. Something might ";
+		errMsg += "have gone wrong in the meshing process.";
+		Error(errMsg.c_str(), __FILE__, __LINE__);
+	      }
 	    el->ptElem=Type2ptElem(itype);
 	    el->namesd=namesd;
 	    el->connect.Resize(innodes);
@@ -766,6 +785,13 @@ void AnsysFile::ReadEl3d(StdVector<Elem*> * allelems, const StdVector<std::strin
 	infile.ignore(100,'\n');
 
 	el->elemNum=inum;
+	if (inum > maxNumElems_) 
+	  {
+	    std::string errMsg = "The current element number is higher than the ";
+	    errMsg += "maximum number of elements in your .mesh-file. Something might ";
+	    errMsg += "have gone wrong in the meshing process.";
+	    Error(errMsg.c_str(), __FILE__, __LINE__);
+	  }
 	el->ptElem=Type2ptElem(itype);
 	el->namesd = namesd;
 	el->connect.Resize(innodes);
@@ -810,6 +836,13 @@ void AnsysFile::ReadEl3dConf(StdVector<std::string> &sd)
 	infile.ignore(100,'\n');
 
 	el->elemNum=inum;
+	if (inum > maxNumElems_) 
+	  {
+	    std::string errMsg = "The current element number is higher than the ";
+	    errMsg += "maximum number of elements in your .mesh-file. Something might ";
+	    errMsg += "have gone wrong in the meshing process.";
+	    Error(errMsg.c_str(), __FILE__, __LINE__);
+	  }
 	el->ptElem=Type2ptElem(itype);
 	el->namesd = namesd;
 	el->connect.Resize(innodes);
@@ -857,6 +890,13 @@ void AnsysFile::ReadEl2dConf(StdVector<std::string> &sd)
 	infile.ignore(100,'\n');
 
 	el->elemNum=inum;
+	if (inum > maxNumElems_) 
+	  {
+	    std::string errMsg = "The current element number is higher than the ";
+	    errMsg += "maximum number of elements in your .mesh-file. Something might ";
+	    errMsg += "have gone wrong in the meshing process.";
+	    Error(errMsg.c_str(), __FILE__, __LINE__);
+	  }
 	el->ptElem=Type2ptElem(itype);
 	el->namesd = namesd;
 	el->connect.Resize(innodes);
@@ -904,6 +944,13 @@ void AnsysFile::ReadEl1dConf(StdVector<std::string> &sd)
 	infile.ignore(100,'\n');
 
 	el->elemNum=inum;
+	if (inum > maxNumElems_) 
+	  {
+	    std::string errMsg = "The current element number is higher than the ";
+	    errMsg += "maximum number of elements in your .mesh-file. Something might ";
+	    errMsg += "have gone wrong in the meshing process.";
+	    Error(errMsg.c_str(), __FILE__, __LINE__);
+	  }
 	el->ptElem=Type2ptElem(itype);
 	el->namesd = namesd;
 	el->connect.Resize(innodes);
