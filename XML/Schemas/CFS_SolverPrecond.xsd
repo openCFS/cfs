@@ -35,10 +35,10 @@
             <xsd:enumeration value="Direct"/>
             <xsd:enumeration value="Richardson"/>
             <xsd:enumeration value="CG"/>
-            <xsd:enumeration value="Lanczos"/>
             <xsd:enumeration value="QMR"/>
             <xsd:enumeration value="hyprePCG"/>
             <xsd:enumeration value="hypreGMRES"/>
+            <xsd:enumeration value="hypreBICGSTAB"/>
             <xsd:enumeration value="lapackLU"/>
           </xsd:restriction>
         </xsd:simpleType>
