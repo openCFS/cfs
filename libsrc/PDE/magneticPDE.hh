@@ -55,6 +55,11 @@ public:
   //! nonlinear static step
   virtual void StepStaticNonLin(const Integer kstep, const Double aTime,
 				const Integer level, const Boolean reset);
+
+  /// do one transient step
+  void StepTransNonLin(const Integer kstep, const Double asteptime,
+		       const Integer level, const Boolean reset);
+
   //!
   virtual void PostStepStatic(const Integer level);
 
@@ -136,6 +141,10 @@ protected:
 
   /// calculates L2-norm of RHS regarding entries due to penalty formulation
   Double RhsL2Norm(Vector<Double>& stdVec);
+
+  /// does a line search and returns the optimal residual norm
+  Double LineSearch(Vector<Double>& solIncrement, Vector<Double>& actSol, 
+		    Double& etaLineSearch, Integer level, Boolean trans=FALSE);
 
   Vector<Double> RhsLinVal_;
 

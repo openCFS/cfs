@@ -846,7 +846,8 @@ namespace CoupledField {
     // ------------------------------------
     nonLin_ = FALSE;
     params->GetList( "nonLinear", nonLinType_, pdename_, "region" );
-    for ( Integer k = 0; k <= nonLinType_.size(); k++ ) {
+    
+    for ( Integer k = 0; k < nonLinType_.size(); k++ ) {
       if ( nonLinType_[k] != "no" ) {
 	nonLin_ = TRUE;
 	break;
@@ -970,9 +971,6 @@ namespace CoupledField {
       
       reluctivity = 1/reluctivity;
  
-
-      BaseForm * curlcurl2D;
-      
       if ( nonLinType_[actSD] != "no" ) {
 
 	//read in the BH-curve data and compute the approximation
@@ -981,18 +979,19 @@ namespace CoupledField {
 	nlinFnc->CalcBestParameter();
 	nlinFnc->CalcApproximation();
 
-	curlcurl2D = new nLinCurlCurlNode2DInt(nlinFnc,reluctivity, isaxi_);
+	BaseForm *curlcurl2D = new nLinCurlCurlNode2DInt(nlinFnc,reluctivity, isaxi_);
+	curlcurl2D->SetNonLinMethod(nonLinMethod_);      
 	assemble_->AddIntegrator(curlcurl2D, subdoms_[actSD], STIFFNESS, TRUE);
 
-	// do RHS!!
+	// nonlinear RHS linearform!!
 	BaseForm * rhsSource = new nLinMagNode2D_linFormInt(nlinFnc, reluctivity, isaxi_);
 	assemble_->AddRhsIntegrator(rhsSource, subdoms_[actSD], TRUE);
       }
       else {
-	curlcurl2D = new CurlCurlNode2DInt(reluctivity, isaxi_);
+	BaseForm *curlcurl2D = new CurlCurlNode2DInt(reluctivity, isaxi_);
 	assemble_->AddIntegrator(curlcurl2D, subdoms_[actSD], STIFFNESS,FALSE);
 	if (nonLin_==TRUE) {
-	  // do RHS!!
+	  // for nonlinear RHS linearform we need linear and nonlinear subdomains
 	  BaseForm * rhsSource = new nLinMagNode2D_linFormInt(reluctivity, isaxi_);
 	  assemble_->AddRhsIntegrator(rhsSource, subdoms_[actSD], TRUE);
 	}
@@ -1008,7 +1007,7 @@ namespace CoupledField {
 	if ( subdoms_[actSD] == coilName_[coil] ) {
 	  Double factor = coilDef_[coil]->value_ /
 	    coilDef_[coil]->windingCrossSection_;
-	  BaseForm *coilSource = new VolumeSrcInt( factor, isaxi_ );
+	  BaseForm *coilSource = new VolumeSrcInt( factor, isaxi_ );	  
 	  assemble_->AddRhsSrcIntegrator( coilSource,
 					  subdoms_[actSD],
 					  coilDef_[coil]->dynamicsFile_,
@@ -1156,6 +1155,172 @@ namespace CoupledField {
 
   }
 
+Double MagPDE::LineSearch(Vector<Double>& solInc, Vector<Double>& actSol, 
+			   Double& etaLineSearch, Integer level, Boolean trans)
+{
+  ENTER_FCN( "MechPDE::LineSearch" );
+
+  //  Vector<Double> solOld(actSol);
+  const Integer nrEtas = 4;
+  const Double eta[nrEtas] = {1, 0.5, 0.25, 0.125};
+  Double etaOpt;
+  Double residualL2NormOpt = 1e15;
+  
+  actSol += solInc;
+  
+}
+  
+
+void MagPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
+			    const Integer level, const Boolean reset)
+{
+  ENTER_FCN( "MagPDE::StepTransNonLin" );
+
+  lasttimecalc_ = asteptime;
+  laststepcalc_ = kstep;
+
+
+  const Integer job = 1;
+  const Integer update = 0;  
+  
+  static Integer timeStepCounter=1;
+  Double * ptsol;
+  Boolean performOneMoreStep;
+  Integer iterationCounter=0;
+
+  Vector<Double> actSol(numPDENodes_);
+  Vector<Double> solInc(numPDENodes_);
+  
+  // Cast BaseStoreSol into StoreSol<Double>,
+  // since this function is only called
+  // in the transient case
+  StoreSol<Double> * solhelp = dynamic_cast<StoreSol<Double>*>(sol_);
+
+  //set actual solution  
+  actSol = solhelp->GetCompleteVector();
+
+  //compute predictors
+  TS_alg_->Predictor(solhelp->GetCompleteVector());
+
+  //now set up RHS: all linear terms
+  Double RhsLinL2Norm = SetLinRHS(level); 
+
+  // inner forces due to nonlin formulation
+  assemble_->AssembleNLRHS(level, lasttimecalc_);  
+
+  timeStepCounter++;
+  do
+    {
+      iterationCounter++;
+      std::cout << std::endl << "Nonlinear Magnetics: Perform internal loop nr. " 
+		<< iterationCounter << std::endl;
+
+#ifdef DEBUG
+      *debug << std::endl << "====================================================== " << std::endl
+	     <<	"Nonlinear Magnetics: Perform internal loop nr. " << iterationCounter << std::endl;      
+#endif
+
+
+
+      // setup and solve new system (rhs is already set) =====================
+      assemble_->InitNonLinMatrices();
+      assemble_->AssembleMatrices(level);
+      algsys_->ConstructEffectiveMatrix(matrix_factor_);
+
+      SetBCs(level, update, lasttimecalc_);
+
+#ifdef USE_OLAS
+      algsys_->BuildInDirichlet();
+      algsys_->SetupPrecond(job);
+#else
+      algsys_->CalcPrecond(job);
+#endif
+
+      algsys_->Solve();
+
+      // new solution is only an increment of the full solution =============
+      StoreAlgsysToVec(solInc, algsys_->GetSolutionVal() );
+
+      Double residualL2Norm;
+      Double etaLineSearch = 0;
+      
+#ifndef XMLPARAMS
+      if (!lineSearch_)
+#else
+      if ( lineSearch_ != "no" )
+#endif
+	actSol += solInc;
+      else
+	// TRUE is for transient simulation
+	residualL2Norm = LineSearch(solInc, actSol, etaLineSearch, level, TRUE);
+
+
+      //store A_/n+1) in the solution-object sol_
+      sol_->SetCompleteVector(actSol);
+
+
+      // recalculate RHS with new values to get new residual (f^(k+1))========
+#ifndef USE_OLAS    
+      std::vector<Double>  help;
+      RhsLinVal_.ToStdVector(help);
+      algsys_->InitRHS(help);
+#endif
+      assemble_->AssembleNLRHS(level, lasttimecalc_);  // inner forces due to nonlin formulation
+ 
+      // =====================================================================
+      // calculation of error norms
+      // =====================================================================
+
+#ifndef XMLPARAMS
+      if (!lineSearch_)
+#else
+      if ( lineSearch_ != "no" )
+#endif
+	{
+	  Vector<Double> actRHS;
+	  StoreAlgsysToVec(actRHS, algsys_->GetRHSVal() );       
+	  
+	  // calculation of residual error =======================================
+	  residualL2Norm = RhsL2Norm(actRHS); // L2Norm of  ( f_i^(k+1) - f_a )
+	}
+      
+      Double residualErr;
+      if ( RhsLinL2Norm > 1)
+	residualErr    = residualL2Norm /  RhsLinL2Norm;
+      else
+	residualErr    = residualL2Norm;
+
+      // calculate incremental error ========================================
+      Double solIncrL2Norm = solInc.NormL2();
+      Double actSolL2Norm = actSol.NormL2();
+      Double incrementalErr;
+
+      if (actSolL2Norm > 1)
+	incrementalErr = solIncrL2Norm / actSolL2Norm;
+      else
+	incrementalErr = solIncrL2Norm;
+
+      // =====================================================================
+      // output of norms and data
+      // =====================================================================
+
+
+      if ( nonLinLogging_ == TRUE ) {
+	Info->WriteNonLinIter(pdename_, iterationCounter, residualErr,
+			      incrementalErr, etaLineSearch);
+      }
+
+      // boolean variable, holds condition if another iteration step is necessary
+      performOneMoreStep = 
+	(incrementalErr > incStopCrit_)||(residualErr > residualStopCrit_);
+
+    } while(performOneMoreStep && iterationCounter < maxnumiter_);  
+
+  
+    //perform corrector step  
+  TS_alg_->Corrector(solhelp->GetCompleteVector());
+}
+
 
   // sets excitation coil and returns L2Norm of them
   Double MagPDE::SetLinRHS(const Integer level)
@@ -1164,9 +1329,11 @@ namespace CoupledField {
 
     Double RhsLinL2Norm;  
 
-    // to incorporate loads
-    assemble_->AssembleSrcRHS(level, lasttimecalc_);
-  
+    //take car:  assemble_->AssembleSrcRHS already called by PreStepTrans in basePDE!!
+
+    if (analysistype_ == TRANSIENT)
+      //perform predictor step
+      TS_alg_->UpdateRHS();
 
     // stores rhs vector into extForces and returns that L2-norm
     StoreAlgsysToVec(RhsLinVal_, algsys_->GetRHSVal() );
@@ -1182,7 +1349,7 @@ namespace CoupledField {
 
 
   // calculates L2-norm of RHS regarding dirichlet entries due
-  // to penalty formulation by setting them 0
+  // to penalty formulation by setting them to zero
   Double MagPDE::RhsL2Norm(Vector<Double>& actRHS) {
     ENTER_FCN( "MagPDE::RhsL2Norm" );
 

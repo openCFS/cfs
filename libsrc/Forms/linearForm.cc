@@ -300,7 +300,9 @@ namespace CoupledField
     else {
       //define the nonlinear element matrix
       curlcurl2D = new nLinCurlCurlNode2DInt(nlinFnc_, startmatVal_, isaxi_);
-
+      //important to set method to FixPoint, since we compute the RHS!!
+      curlcurl2D->SetNonLinMethod("fixPoint");
+      
       //set the element solution vector to the bilinearform
       curlcurl2D->SetActElemSol(magPotinMatrix_);
     }

@@ -127,7 +127,11 @@ namespace CoupledField
   //! (especially important for anisotropic simulations)
   enum orientation2D {xy, xz, yz};
 
-  //------------------------ Files for debug, trace and information ---------
+  //! nonlinear method definition 
+  enum NonLinMethod {FIXEDPOINT=1, NEWTON=2};
+  
+
+//------------------------ Files for debug, trace and information ---------
 
   // NOTE: OLAS uses the namespace 'OutInfo' for writing out
   // data into the cla, trace, ... stream. Therefore they explicitely have to

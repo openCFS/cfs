@@ -16,7 +16,11 @@ Trapezoidal :: Trapezoidal(std::string apdename, BaseSystem * algebraicsystem, I
   gamma_ = 1;
 
   //check if integration parameters are defined in conf-file
+#ifndef XMLPARAMS
   conf->ifget("gamma_P",gamma_,pdename_);
+#else
+  Info->Warning( "Trapezoidal: Using defaults for gamma!" );
+#endif  
 
   //get the memory
   solderiv1_.Resize(dofspernode * numnode);  
