@@ -136,6 +136,9 @@ here is
 
 protected:
 
+  //! get value and function name
+  void getVal_Fnc( const std::string::size_type startpos, Double &val, std::string & name);
+
   //! name of file
   Char * filename;
 

@@ -48,6 +48,15 @@ namespace CoupledField
 
 	jacDet = ptelem->CalcJacobianDetAtIp(actIntPt,ptCoord);
 
+	if (isaxi_)
+	  {
+	    std::vector<Double> ShpFncAtIp;
+	    std::vector<Double> CoordAtIP;
+	    ptelem->GetShFncAtIp(ShpFncAtIp,actIntPt);
+	    CoordAtIP = ptCoord * ShpFncAtIp;
+            jacDet *= 2 * PI * CoordAtIP[0];
+	  }
+
 	elemMat += partElemMat * jacDet * intWeights[actIntPt-1] ;
       }
   }

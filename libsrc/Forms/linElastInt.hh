@@ -32,6 +32,7 @@ protected:
   enum orientation2D {xy, xz, yz};
 
   orientation2D actOrientation;
+
 };
   
   
@@ -61,6 +62,34 @@ protected:
 
   /// returns dimension of D matrix
   virtual Integer getDimD(){return 3;};
+  
+  /// returns nr. of degrees of freedom
+  virtual Integer getNrDofs(){return 2;};
+};
+
+
+  /// class for calculation of mechanical axisymmetric state
+class mechAxiInt : public linElastInt
+{  
+public:
+  /// Constructor
+  mechAxiInt(BaseFE * aptelem, MaterialData & matDat);
+
+  /// Constructor
+  mechAxiInt(MaterialData & matDat);
+  
+  
+  /// Deconstructor
+  virtual ~mechAxiInt();
+  
+  
+protected:
+  
+ /// calculate the data-matrix for 2D axi
+  virtual void calcDMat(Matrix<Double> & dMat);
+
+  /// returns dimension of D matrix
+  virtual Integer getDimD(){return 4;};
   
   /// returns nr. of degrees of freedom
   virtual Integer getNrDofs(){return 2;};

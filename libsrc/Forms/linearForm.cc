@@ -218,8 +218,7 @@ namespace CoupledField
 	    factor *=  2 * PI * CoordAtIP[0];
 	  }
 
-	// minus just becuase in assemble.cc we do: -rhs!!!!!!
-	shapeFnc *= -factor;
+	shapeFnc *= factor;
 	elemVec += shapeFnc;
       }
 

@@ -248,6 +248,8 @@ MechPDE::GetStiffIntegrator(MaterialData& actSDMat, Boolean reducedInt)
 
   if (subType_ == "plainStrain")
     bilinearStiff = new mechPlainStrainInt(actSDMat);
+  else if (subType_ == "axi")
+    bilinearStiff = new mechAxiInt(actSDMat);
   else if (subType_ == "3d")
     bilinearStiff = new mech3DInt(actSDMat);
   else 

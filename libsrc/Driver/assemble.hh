@@ -195,7 +195,12 @@ class IntegratorDescriptor : public BaseIntDescriptor
     /// define RHS integrators
     void AddRhsIntegrator(BaseForm * integrator, const std::string & subDomName, 
 			  const Integer nonLin=FALSE);
-    
+
+     /// define RHS integrators
+    void AddRhsSrcIntegrator(BaseForm * integrator, const std::string & subDomName, 			  
+			     const std::string fncname="---not-defined--",
+			     const Integer nonLin=FALSE);
+   
     /// set ptr to time function
     void SetPtr2TimeFnc(TimeFunc * aPtTimeFunc)
     {ptTimeFunc_ = aPtTimeFunc;};
@@ -289,21 +294,6 @@ class IntegratorDescriptor : public BaseIntDescriptor
     /// return index to dof
     Integer GetBCDof(const std::string dofString);
     
-//     /// sets the pointer to the loads
-//     void SetPtrLoads(std::vector<std::string> * aLoadDom)
-//     {loadDom_ = aLoadDom;}      
-
-
-//     /// sets the pointer to the loads
-//     void SetPtrLoadDof(std::vector<std::string> * aLoadDof)
-//     {loadDof_ = aLoadDof;}      
-
-
-//     /// sets the pointer to the loads
-//     void SetPtrLoadVals(std::vector<std::string> * aLoadDof)
-//     {loadDof_ = aLoadDof;}      
-
-
 
     // ====================================================
     // DATA SECTION 
@@ -330,10 +320,12 @@ class IntegratorDescriptor : public BaseIntDescriptor
 
     std::vector<std::string> subdoms_;  //!< subdomain-levels belongig to PDE
     std::vector<std::string> surfdoms_; //!< surface-domain-levels belongig to PDE
+
     std::vector<std::string> loadDom_;  //!< load subdomains
     std::vector<std::string> loadDof_;  //!< dofs of loads
     std::vector<Double>      loadVals_; //!< values of the load condition
     std::vector<std::string> fncname_loads_; //!< function names of the loads
+    std::vector<std::string> fncname_rhs_; //!< function names for RHS integrators
 
     TimeFunc * ptTimeFunc_;             //!< ptr to time function
     
@@ -351,6 +343,8 @@ class IntegratorDescriptor : public BaseIntDescriptor
     /// vector of all needed integrators (every subdomain needs one "list of integrators")
     std::vector< std::vector<BaseIntDescriptor *>* > rhsIntegrators_;
 
+    /// vector of all needed RHS src-intergators (not every subdomain needs a "list of rhs_source_integrators")
+    std::vector< std::vector<BaseIntDescriptor *>* > rhsSrcIntegrators_;
 
     /// ptr to solution
     Array<Double> * sol_;

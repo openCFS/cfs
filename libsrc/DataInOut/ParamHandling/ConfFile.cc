@@ -139,13 +139,13 @@ void ConfFile::getCoilData(coilDefStruct& acoil, const std::string section, cons
 
  std::string keyword;
  acoil.type = MEASUREMENT;
+ acoil.timefnc = "---not-defined--";
 
  keyword = "current";
  pos=getpos(keyword,pos1,inSection,inSubSection,FALSE);
  if (pos!=std::string::npos) 
    {
-     infile.seekg(pos, std::ios::beg);
-     infile >> acoil.current;
+     getVal_Fnc(pos, acoil.current, acoil.timefnc);
      acoil.type = CURRENT;
    }
  else 
@@ -155,8 +155,7 @@ void ConfFile::getCoilData(coilDefStruct& acoil, const std::string section, cons
  pos=getpos(keyword,pos1,inSection,inSubSection,FALSE);
  if (pos!=std::string::npos) 
    {
-     infile.seekg(pos, std::ios::beg);
-     infile >> acoil.voltage;
+     getVal_Fnc(pos, acoil.voltage, acoil.timefnc);
      acoil.type = VOLTAGE;
      Error("Currently voltage loaded coil not supported");
    }
@@ -674,4 +673,39 @@ void ConfFile::check(const std::string value, const std::vector<std::string> dat
 
 }
 
+void ConfFile::getVal_Fnc(const std::string::size_type startpos, Double &val, std::string& fncname)
+{
+  //file position is already set
+
+  infile.seekg(startpos, std::ios::beg);
+  std::string dummy;
+  std::string comma = ","; 
+  Boolean fnc_file = FALSE;
+  
+  getline(infile,dummy);
+  Integer idx;
+  for (Integer i=0; i<dummy.size(); i++)
+    if (dummy[i] == comma[0])  
+      {
+	fnc_file = TRUE;
+	idx = i;
+      }
+  
+  if (fnc_file)
+    {
+      std::string empty = " ";
+      idx++;
+      while (dummy[idx] == empty[0])
+	idx++;
+    }
+  
+  infile.seekg(startpos, std::ios::beg);
+  infile >> val;
+  
+  if (fnc_file)
+    fncname = dummy.substr(idx,dummy.size()-idx);
+  else
+    fncname = "---not-defined--";
+  
+}
 } // end of namespace
