@@ -10,7 +10,8 @@
 /* matrices and initiates the basic analysis "stepping"                   */
 /**************************************************************************/
 
-#include <Forms/baseForm.hh>
+#include <deque>
+#include "Forms/baseForm.hh"
  
 namespace CoupledField
 {
@@ -452,8 +453,9 @@ class IntegratorDescriptor : public BaseIntDescriptor
     //! nonlinear parameters;
     Boolean firstTime_;
     Boolean oneIntIsNonlin_;
-    Integer nrMatrices_;  
-    Vector<Boolean> reassembleMat_;
+    Integer nrMatrices_;
+    // Vector<Boolean> reassembleMat_;
+    std::deque<bool> reassembleMat_;
     Boolean nonLinGeo;
 
     void SetReassemble()
