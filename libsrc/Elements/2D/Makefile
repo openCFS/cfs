@@ -2,7 +2,7 @@
 # Makefile for discretization
 C_DIR=../../..
 #
-src =  rectangle.cc quad1.cc quad2.cc getriangle.cc triangle1.cc triangle2.cc
+src =  rectangle.cc quad1.cc quad2.cc getriangle.cc triangle1.cc triangle2.cc rectanglefe.cc quad1fe.cc
 #
 lib = elements2d
 libpath = libsrc/Elements/2D
