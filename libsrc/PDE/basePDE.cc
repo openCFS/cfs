@@ -237,9 +237,9 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
     conf->getsubdompde(subdoms_,pdename_);
 #else
     params->GetList( "name", subdoms_, pdename_, "region" );
-    Info->PrintF( pdename_, " %s lives on regions:", pdename_.c_str());
+    Info->PrintF( pdename_, "%s lives on regions:", pdename_.c_str());
     for ( Integer k = 0; k < subdoms_.GetSize(); k++ ) {
-      Info->PrintF( pdename_, " %s", subdoms_[k].c_str() );
+      Info->PrintF( pdename_, "%s", subdoms_[k].c_str() );
     }
 #endif
     
@@ -274,6 +274,7 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
 	eqnData_ = new ScalarBlockEQN( ptgrid_, ptBCs_, subdoms_, actlevel_,
 				       dofspernode_ );
       }
+      Info->PrintF( pdename_, "Using scalar equation numbering" );
     }
 
     // Treat all dofs of a node together and assemble a system matrix with
@@ -287,6 +288,7 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
       else {
 	eqnData_ = new BlockNodeEQN( ptgrid_, ptBCs_, subdoms_, actlevel_,
 				     dofspernode_ );
+	Info->PrintF( pdename_, "Using block equation numbering" );
       }
     }
 
@@ -298,28 +300,24 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
 	       __FILE__, __LINE__ );
       }
       else {
-	Error( "Ask Andi how this must be implemented!", __FILE__, __LINE__ );
+	eqnData_ = new SuperBlockEQN( ptgrid_, ptBCs_, subdoms_, actlevel_,
+				      dofspernode_);
+	Info->PrintF( pdename_, "Using super-block equation numbering" );
       }
     }
 
 #else
 	
-    // #### TEMPORARY UNTIL SCHEMA IS ADAPTED ####
+    // For conf-file always use scalar entries in system matrix
     if (dofspernode_ == 1) {
       eqnData_  = new ScalarNodeEQN(ptgrid_, ptBCs_, subdoms_, 
 				    actlevel_, dofspernode_);
     } else {
       eqnData_ = new ScalarBlockEQN(ptgrid_, ptBCs_, subdoms_, 
 				      actlevel_, dofspernode_);
-      // eqnData_ = new BlockNodeEQN( ptgrid_, ptBCs_, subdoms_, actlevel_,
-      //                              dofspernode_ );
     }
 
 #endif
-
-    // ONLY TEMPORARY
-    SuperBlockEQN tempEQN (ptgrid_, ptBCs_, subdoms_, actlevel_, 
-			   dofspernode_);
 
     eqnData_->SetHomoDirichletBCs(bcs_hd_, homDirichDof_);
     eqnData_->CalcMapping();
