@@ -59,7 +59,7 @@ public:
     \param esign integer array containing the edge signs
   */
   void GetEdgeNumber(Integer *nodes, std::vector<Integer>& epos, 
-		     std::vector<Integer>& esign);
+		     std::vector<Integer>& esign, BaseFE * ptElem);
 
   //! setup element matrices for AlgebraicSystem for assembling procedure
   /*!
@@ -105,15 +105,38 @@ public:
 protected:
   /// setup source term
   void SetupRHS(const Integer level);
+
+  /// reads all data in the config-file belonging to coils
+  void MagEdgePDE::ReadCoils();
+  
+  /// correct the sign in the element matrix due to orientation of edges
+  /*!
+    \param elemmat Element matrix
+    \param esign   Vector of edge orientations
+  */
+  void CorrectEdgeDir(Matrix<Double> & elemmat, std::vector<Integer>& esign);
   
 
 
-  Vector<Double> sol_;  //!< store solution,
-  Integer size_;        //!< size of solution (number of edges)
-  Integer NumElems_;    //!< number of elements belonging to PDE
-  Integer * EdgeDir_;   //!< stores the Dirichlet-edges
-  Integer numEdgedir_;  //!< number of Dirichlet edges
-  Vector<Double>* bField_; //!< vector of magnetic field induction
+  Vector<Double> sol_;        //!< store solution,
+  Integer size_;              //!< size of solution (number of edges)
+  Integer NumElems_;          //!< number of elements belonging to PDE
+  Integer * EdgeDir_;         //!< stores the Dirichlet-edges
+  Integer numEdgedir_;        //!< number of Dirichlet edges
+  Vector<Double>* bField_;    //!< vector of magnetic field induction
+  Vector<Double>* magVecPot_; //!< vector of magnetic magnetic vector potential
+  std::vector <std::string> coilDomain_;  //!< name of all subdomains containing coils
+  
+  /// parameters necessary to describe coils
+  struct coilDefStruct
+  {
+    Integer iDir;
+    Double  current;
+    Double  coilArea;
+  };
+  
+
+  std::vector<struct coilDefStruct> coilDef_; //!< vector of paramters describing coils
   
 };
 

@@ -104,6 +104,10 @@ public:
 				const std::vector<Double> & LCoord);
   
 
+  void CalcElemMagVec(Vector<Double> & magVecPot, 
+		      const Elem * ptElement,
+		      const std::vector<Double> & LCoord);
+  
 protected:
   
   Vector<Double> * sol_;

@@ -82,18 +82,32 @@ namespace CoupledField
     std::vector<Double> currentVec(dim, 0);
     
     // define direction of current
-    currentVec[direction_-1] = val_;	
+    switch(direction_)
+      {	
+      case 1:
+      case 2:
+      case 3:
+	// if current direction goes parallel to a coordinate axis
+	currentVec[direction_-1] = val_;
+	break;
+
+      default:
+	std::string errMsg = "Selected current direction with number ";
+	errMsg += direction_ + " not supported!";
+	Error(errMsg.c_str(),__FILE__,__LINE__);
+      }
+    
 
     for (Integer actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
       {
 	ptelem->CalcEdgeShapeFncAtIp(shapeEdge, actIntPt, ptCoord);
 
 	partElemVec = shapeEdge * currentVec;
-	
+
 	jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord);
 
 	for(Integer i=0; i<partElemVec.size(); i++)
-	  elemVec[i] += partElemVec[i] * intWeights[actIntPt-1] * jacDet;
+	  elemVec[i] += partElemVec[i] * intWeights[actIntPt-1] * jacDet;	
       }
   
 
@@ -109,8 +123,6 @@ namespace CoupledField
 #endif
 
   }
-  
-
 
 
   } // end of namespace

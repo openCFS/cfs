@@ -30,7 +30,8 @@ DefineInOutFiles :: DefineInOutFiles(const Char * name)
 #endif
 
  strcpy(filename, name);
- cla=new std::ofstream(strcat(filename,".las"));
+
+ cla=new std::ofstream(strcat(filename,".las")); 
  if (!cla) Error("Can't open LAS++-file");
  
  strcpy(filename, name);

@@ -159,10 +159,6 @@ void Tetra1FE :: CalcShapeFnc(std::vector<Double> & Shape,
   for( Integer i=1; i<NumNodes_; i++)
     Shape[i] = LCoord[i-1];
 
-#ifdef DEBUG
-  *debug << "LCoord \n " << LCoord << std::endl;
-  *debug << "Shape \n " << Shape << std::endl;
-#endif
 }
 
 
@@ -182,10 +178,6 @@ void Tetra1FE :: CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv,
 
   for( Integer i=1; i < NumNodes_; i++)
     LDeriv[i][i-1] = 1.0;
-
-#ifdef DEBUG
-  (*debug) << "LDeriv \n " << LDeriv << std::endl;
-#endif
 }
   
 
@@ -241,11 +233,6 @@ void Tetra1FE :: GetEdgeGlobalDerivShapeFnc(std::vector< Matrix<Double>* > & sha
   Matrix<Double> xDxi;  
   GetGlobDerivShFnc(xDxi, lCoord, cornerCoords);
   
-#ifdef DEBUG 
-	(*debug) << "In GetEdgeBlobalDerivShapeFnc =======" << std::endl
-		 << "xDxi \n" << xDxi
-		 << "edgeVertices_ \n " << edgeVertices_ << std::endl;
-#endif
   
   for (Integer actEdge=0; actEdge<NumEdges_; actEdge++)
     {
@@ -256,7 +243,8 @@ void Tetra1FE :: GetEdgeGlobalDerivShapeFnc(std::vector< Matrix<Double>* > & sha
 
       for (Integer dim1=0; dim1<Dim_; dim1++)
 	for (Integer dim2=0; dim2<Dim_; dim2++)
-	  (*shapeDeriv[actEdge]) [dim1][dim2] = 
+	  (*shapeDeriv[actEdge]) [dim2][dim1] = 
+	    //	  (*shapeDeriv[actEdge]) [dim1][dim2] = 
 	    xDxi[node1][dim1] * xDxi[node2][dim2] -
 	    xDxi[node1][dim2] * xDxi[node2][dim1];
     }
