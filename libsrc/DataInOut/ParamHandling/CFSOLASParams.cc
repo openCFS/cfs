@@ -581,7 +581,8 @@ namespace CoupledField {
       Info->PrintF( pdename, "Expert: Using SPARSE_NONSYM as storage type\n" );
     }
 
-    // In case of a harmonic analysis and parameter identification, we expect complex matrix entries
+    // In case of a harmonic analysis or parameter identification
+    // we assume complex matrix entries by default
     std::string analysis;
     cfs->Get( "type", analysis, "analysis" );
     if ( analysis == "harmonic"
@@ -590,7 +591,6 @@ namespace CoupledField {
       Info->PrintF( pdename, "Expert: Using COMPLEX as matrix entry type "
 		    "for HARMONIC analysis\n" );
     }
-
 
     if ( analysis == "paramIdent" && eType != COMPLEX ) {
       eType = COMPLEX;

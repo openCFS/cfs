@@ -9,10 +9,26 @@ namespace CoupledField
   class OLAS_Params;
 
   //! Class for passing steering parameters from CFS++ to OLAS
+
+  //! This class constitutes the interface between CFS++ and OLAS with respect
+  //! to setting parameters for the solution of the linear system. For clarity
+  //! it offers a single public method which will handle the setting of
+  //! parameters in the OLAS parameter object depending on the parameters
+  //! obtained from CFS++.
   class CFSOLASParams {
 
   public:
-    //! Document me!!!
+
+    //! Central method for passing steering parameters to OLAS
+
+    //! This method can be used to pass steering parameters from CFS++ to OLAS.
+    //! The method queries the parameter handler for the parameters related to
+    //! the matrix, solver and preconditioner types, converts them to the
+    //! respective OLAS settings and inserts them into the OLAS parameter
+    //! object. By default the Expert() module is called to check the
+    //! consisteny and sensibility of the parameters and adapt them, if
+    //! necessary. This behaviour can be disabled by setting overrideExpert
+    //! to no.
     static void SetParams( std::string pdename, BaseParamHandler *cfs,
                            OLAS_Params *olas, bool overrideExpert = false );
 
