@@ -1,7 +1,7 @@
 #
 C_DIR=../..
 #
-src = myclock.cc storesol.cc tools.cc vector.cc debugger.cc 
+src = myclock.cc storesol.cc tools.cc vector.cc debugger.cc Coil.cc
 #
 lib = utils
 libpath = libsrc/Utils
