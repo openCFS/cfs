@@ -20,7 +20,9 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile, WriteResults * a
    incStopCrit_(1e-2), 
    residualStopCrit_(1e-3),
    firstTimeStepStatic_(TRUE),
-   isaxi_(FALSE)
+   isaxi_(FALSE),
+   lineSearch_(FALSE),
+   effectiveMass_(FALSE)
 {
 #ifdef TRACE
   (*trace) << "entering BasePDE::BasePDE" << std::endl;
@@ -407,7 +409,12 @@ void BasePDE::StepTransLin(const Integer level, const Boolean reset)
   
   if (!PDEisCoupled_)
     TS_alg_->Corrector(solhelp);  //perform corrector step
+
+
+  if (effectiveMass_)
+    TS_alg_->StoreSol(sol_);  // displacement-solution has to be stored, since accel. is computed as solution vector
 }
+
 
 
 void  BasePDE::SetBCs(const Integer level, const Integer update, const Double time)

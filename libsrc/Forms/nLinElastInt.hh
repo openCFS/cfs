@@ -61,6 +61,9 @@ protected:
 
   /// displacement of all nodes of actual element
   Matrix<Double> elemDisp_;
+
+
+  char * className;
 };
   
   
@@ -95,7 +98,7 @@ protected:
   virtual Integer getDimD(){return 6;};
   
   /// returns nr. of degrees of freedom
-  virtual Integer getNrDofs(){return 3;};  
+  virtual Integer getNrDofs(){return 3;};
 };
 
 
@@ -161,7 +164,6 @@ private:
   
   /// dimension of d-matrix (has to be changed for some dirty implementation features ... )
   Integer piolaDimD_;
-  
 };
   
 
@@ -226,12 +228,11 @@ protected:
   /// returns material D-matrix for 3d mechanics
   virtual void calcMaterialDMat(Matrix<Double> & dMat);
 
-protected:
   /// returns the size of the material d-matrix
   virtual Integer getMaterialDMatSize(){return 3;};
 
   /// returns the size of the full piola d-matrix
-  virtual Integer getFullPiolaDMatSize(){return 6;};  
+  virtual Integer getFullPiolaDMatSize(){return 4;};
 };
   
 

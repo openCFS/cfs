@@ -503,6 +503,11 @@ protected:
 
   Boolean firstTimeStepStatic_; //!< needed for coupled, iterative methods
 
+  /// switch for lineSearch
+  Boolean lineSearch_;
+
+  /// use effective mass formulation for transient analysis
+  Boolean effectiveMass_;
 };
 
 } // end of namespace
