@@ -408,6 +408,10 @@ namespace CoupledField
       out = MAG_ENERGY;
     //energy
 
+    //mpcci
+    else if (in == "fluidForce")
+      out = FLUID_FORCE;
+
     else 
       {
 	errMsg  = "'";
@@ -511,6 +515,11 @@ namespace CoupledField
     case MAG_ENERGY:
       out = "magEnergy";
       break;
+    //mpcci PDE  
+    case FLUID_FORCE:
+      out = "fluidForce";
+      break;
+      
     default:
       Error( "Wrong type of solution or 'SolutionType2String' not implemented for\
 this type of solution", __FILE__, __LINE__);

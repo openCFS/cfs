@@ -109,7 +109,8 @@ namespace CoupledField
 		  ACOU_POTENTIAL, ACOU_PRESSURE, ACOU_FORCE, 
 		  ACOU_POTENTIAL_DERIV_1, ACOU_POTENTIAL_DERIV_2,
 		  MAG_POTENTIAL, MAG_FLUX_DENSITY, MAG_EDDY_CURRENT, 
-		  MAG_FORCE_VWP, MAG_FORCE_LORENTZ, MAG_ENERGY} SolutionType;
+		  MAG_FORCE_VWP, MAG_FORCE_LORENTZ, MAG_ENERGY,
+		  MPCCI, FLUID_FORCE} SolutionType;
 
   //! Enumberation for coupling method\n
   //! NO_COUPLING          = No coupling at all
