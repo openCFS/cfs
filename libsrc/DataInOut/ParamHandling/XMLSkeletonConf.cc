@@ -157,6 +157,7 @@ namespace CoupledField
     ptHexa2 = new Hexa2FE();
     ptPyra1 = new Pyra1FE();
     ptWedge1 = new Wedge1FE();
+    ptWedge2 = new Wedge2FE();
     // now we can delete conf-object already
     delete params;
 
