@@ -1735,6 +1735,8 @@ void MechPDE::CalcEnergy()
   StdVector<Integer> connecth;
   Vector<double> help;
 
+  Double totalE = 0;
+
   Integer i, j;
   Vector<Double> energy(subdoms_.GetSize());
 
@@ -1764,10 +1766,19 @@ void MechPDE::CalcEnergy()
       delete bilinear_stiff;	  
 
     }  
+
+    totalE += energy[i];
+
   }
 
   std::string resulttype = "Mechanic Deformation Energy";
   Info->WriteResult(pdename_,  resulttype, subdoms_ , energy);
+
+  StdVector<std::string> suball(1);
+  Vector<Double> tmp(1);
+  suball[0] = "Summe";
+  tmp[0] = totalE;
+  Info->WriteResult(pdename_,  resulttype, suball , tmp);
 }
 
 } // end namespace CoupledField
