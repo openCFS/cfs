@@ -254,7 +254,7 @@ namespace CoupledField {
 // ======================================================
 
 
-  void PiezoPDE::InitTimeStepping( const Double dt ) {
+  void PiezoPDE::InitTimeStepping() {
     ENTER_FCN( "PiezoPDE::InitTimeStepping" );
 
     if (effectiveMass_)
@@ -262,8 +262,6 @@ namespace CoupledField {
 				   eqnData_, needsDampingMatrix_);
     else
       TS_alg_ = new Newmark(pdename_, algsys_, eqnData_, needsDampingMatrix_);
-
-    TS_alg_->Init(matrix_factor_, dt);
   }
 
 

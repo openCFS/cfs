@@ -217,8 +217,7 @@ namespace CoupledField {
 
 
     const Integer job = 1;
-    const Integer update = 0;  
-  
+    
     static Integer timeStepCounter=1;
     Double * ptsol;
     Boolean performOneMoreStep;
@@ -266,7 +265,7 @@ namespace CoupledField {
 	assemble_->AssembleMatrices(level);
 	algsys_->ConstructEffectiveMatrix(matrix_factor_);
 
-	SetBCs(level, update, lasttimecalc_);
+	SetBCs(level, lasttimecalc_);
 
 #ifdef USE_OLAS
 	algsys_->BuildInDirichlet();
@@ -355,12 +354,10 @@ namespace CoupledField {
     TS_alg_->Corrector(actSol);
   }
 
-  void MagPDE :: InitTimeStepping(const Double dt)
-  {
+  void MagPDE :: InitTimeStepping() {
     ENTER_FCN( "MagPDE::InitTimeStepping" );
     
     TS_alg_ = new Trapezoidal(pdename_, algsys_, eqnData_);
-    TS_alg_->Init(matrix_factor_, dt);
   }
 
 
@@ -386,7 +383,7 @@ namespace CoupledField {
 
     sol_->GetAlgSysVector(actSol);
 
-    SetBCs(level, updateBCs_, 0);
+    SetBCs(level, 0);
 
     // setup right hand side ==============================================      
     Double RhsLinL2Norm = SetLinRHS(level); 
@@ -1128,11 +1125,10 @@ namespace CoupledField {
   // SOLVING SECTION
   // ======================================================
 
-  void MagPDE :: InitTimeStepping(const Double dt) {
+  void MagPDE :: InitTimeStepping() {
     ENTER_FCN( "MagPDE::InitTimeStepping" );
     
     TS_alg_ = new Trapezoidal(pdename_, algsys_, eqnData_);
-    TS_alg_->Init(matrix_factor_, dt);
   }
 
 
@@ -1165,7 +1161,7 @@ namespace CoupledField {
 
     sol_->GetAlgSysVector(actSol);
 
-    SetBCs(level, updateBCs_, 0);
+    SetBCs(level, 0);
 
     // setup right hand side ==============================================
     Double RhsLinL2Norm = SetLinRHS(level); 
@@ -1293,7 +1289,6 @@ namespace CoupledField {
 
 
     const Integer job = 1;
-    const Integer update = 0;  
   
     static Integer timeStepCounter=1;
     Double * ptsol;
@@ -1343,7 +1338,7 @@ namespace CoupledField {
       assemble_->AssembleMatrices(level);
       algsys_->ConstructEffectiveMatrix(matrix_factor_);
 
-      SetBCs(level, update, lasttimecalc_);
+      SetBCs(level, lasttimecalc_);
 
 #ifdef USE_OLAS
       algsys_->BuildInDirichlet();
@@ -2099,11 +2094,8 @@ void MagPDE::InitCoupling(PDECoupling * Coupling)
   pdeIsCoupled_ = TRUE;
   ptCoupling_   = Coupling;
 
-  // allow update of geomtry
-  geoUpdate_ = TRUE;
 
   // Enable update of geometry
-
   const Integer numCouplings = ptCoupling_->GetNumOutputCouplings();  
 
   StdVector<StdVector<Integer> > elemNodeToCouplingNode_tmp;
@@ -2172,8 +2164,6 @@ void MagPDE::InitCoupling(PDECoupling * Coupling)
 	  elemNodeToCouplingNode_[actCoupling]  = elemNodeToCouplingNode_tmp;
 	}
     }
-
-  iterCoupledCounter_ = 0;
 }
 
 void MagPDE::CalcOutputCoupling()

@@ -34,22 +34,12 @@ public:
 
   //! define all (bilinearform) integrators needed for this pde
   virtual void DefineIntegrators(const Integer level);
-
-  //! Init the time stepping
-  //! \param dt time step
-  virtual void InitTimeStepping(const Double dt);
 				
   //! write results in file
   //! \param stepOffset offset for starting (time)step
   //! \param timeOffset offset for starting time  
   virtual void WriteResultsInFile(Integer stepOffset = 0,
 				  Double timeOffset = 0.0);
-
-  //!  return pointer to vector with first derivative of solution
-  virtual const Vector<Double>& getS1() const { return TS_alg_->GetDeriv1();}
-
-  //! return pointer to vector with second derivative of solution
-  virtual const Vector<Double>& getS2() const { return TS_alg_->GetDeriv2();}
 
   //! return size of solution
   virtual Integer getSize() const 
@@ -85,6 +75,9 @@ public:
 
 
 protected:
+
+  //! Init the time stepping
+  void InitTimeStepping();
 
   // Double freq_;   //!< excitation frequency for harmonic analysis
   NodeStoreSol<Double> sol_der1Array_, sol_der2Array_;
