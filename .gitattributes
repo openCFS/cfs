@@ -191,6 +191,8 @@ libsrc/Elements/2D/trianglefe.hh svneol=native#text/plain
 libsrc/Elements/3D/Makefile -text
 libsrc/Elements/3D/hexa1FE.cc svneol=native#text/plain
 libsrc/Elements/3D/hexa1FE.hh svneol=native#text/plain
+libsrc/Elements/3D/hexa2FE.cc svneol=native#text/plain
+libsrc/Elements/3D/hexa2FE.hh svneol=native#text/plain
 libsrc/Elements/3D/hexaFE.cc svneol=native#text/plain
 libsrc/Elements/3D/hexaFE.hh svneol=native#text/plain
 libsrc/Elements/3D/pyra1FE.cc svneol=native#text/plain
