@@ -70,6 +70,7 @@ void ScalarNodeEQN::CalcMapping()
   // Dirichlet nodes - the number of constraintNodes
   std::string warnMsg, errMsg;
   Integer notIncludedBCs = 0;
+  Integer multipleBCs = 0;
   pdeNode2EQN_.Clear();
   eqn2Pos_.Clear();
   pdeNode2EQN_.Resize(numPDENodes_);
@@ -91,10 +92,11 @@ void ScalarNodeEQN::CalcMapping()
       else if (countNodes[mesh2PDENode_[homoDirichletNodes_[i]-1]-1] != 0) {
 	errMsg  = "ScalarNodeEQN::CalcMapping: HomDirihchletNode Nr. ";
 	errMsg += Info->GenStr(homoDirichletNodes_[i]);
-	errMsg += "\n occured already at least one time in the list of boundary nodes ";
+	errMsg += "\n occured already at least two times in the list of boundary nodes ";
 	errMsg += "for this PDE!\n Please check, if this node is defined in";
 	errMsg += " more than one level of boundary nodes!";
-	Error(errMsg.c_str(), __FILE__, __LINE__);
+	Warning(errMsg.c_str(), __FILE__, __LINE__);
+	multipleBCs++;
       }
       else {
 	pdeNode2EQN_[mesh2PDENode_[homoDirichletNodes_[i]-1]-1] = 0;
@@ -112,7 +114,7 @@ void ScalarNodeEQN::CalcMapping()
   eqn2Pos_.Resize(numPDENodes_ 
 		  - homoDirichletNodes_.GetSize()
 		  - constraintSlaveNodes_.GetSize()
-		  + notIncludedBCs); 
+		  + notIncludedBCs + multipleBCs); 
 
 
 //   std::cerr << "after step3" << std::endl;
@@ -138,7 +140,8 @@ void ScalarNodeEQN::CalcMapping()
   isInitialized_ = TRUE;
   numEqns_ = eqn2Pos_.GetSize();
 
-  numBuildInDirichletEQNs_ = numPDENodes_ - numEqns_;
+  numBuildInDirichletEQNs_ = numPDENodes_ - numEqns_ 
+                             + multipleBCs;
 }
 
 void ScalarNodeEQN::Print(std::ostream & out) const
