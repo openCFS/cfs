@@ -189,7 +189,7 @@ void LoadMaterialDataDatabase::ReadCouplingLinear (MaterialData &matData,
   wherecoupling<<"material_idx="<<matidx;
   std::string fields;
   fields = "v11,v12,v13,v14,v15,v16,v21,v22,v23,v24,v25,v26,v31,v32,v33,v34,v35,v36";
-  Db_.SelectFrom(fields,"Material_coupling_lin",wherecoupling.str());
+  Db_.SelectFrom(fields,"Material_piezocoupling_lin",wherecoupling.str());
   dbMatrix couplingmatrix;
   if (!Db_.FetchFields(couplingmatrix))
     Error("LoadMaterialDataDatabase::ReadCouplingLinear FetchFields(couplingmatrix");
