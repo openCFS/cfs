@@ -183,7 +183,7 @@ namespace CoupledField
   // calculates the D-matrix of a 3d-problem 
   void linElastInt::Calc3DMaterialMat(Matrix<Double> & dMat)
   {
-    ENTER_FCN( "llinElastInt::Calc3DMaterialMat" );
+    ENTER_FCN( "linElastInt::Calc3DMaterialMat" );
 
     const Integer nrElems3d = getDimD();
     

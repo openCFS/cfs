@@ -32,7 +32,7 @@ namespace CoupledField
   public:
 
     //!
-    linPiezoInt(): BDBInt(), actOrientation(yz),isDamping_(FALSE){;}
+    linPiezoInt(): BDBInt(), actOrientation(yz),isDamping_(FALSE), factorDamp_(1.0) {;}
     
 
     //! Constructor
@@ -40,7 +40,8 @@ namespace CoupledField
       : BDBInt(aptelem, matData), actOrientation(yz)
     {
       ENTER_FCN( "linPiezoInt::linPiezoInt" );
-      isDamping_ = FALSE;
+      isDamping_  = FALSE;
+      factorDamp_ = 1.0;
       }
   
     //! Constructor
@@ -48,7 +49,8 @@ namespace CoupledField
       : BDBInt(matData), actOrientation(yz)
     {
       ENTER_FCN( "linPiezoInt::linPiezoInt" );
-      isDamping_ = FALSE;
+      isDamping_  = FALSE;
+      factorDamp_ = 1.0;
     }
   
     //! Destructor
@@ -79,7 +81,17 @@ namespace CoupledField
       else
 	elemSol_ = new Matrix<Double> (dynamic_cast<Matrix<Double>&>(disp));
       //     Matrix<Double> & elemSol_ = dynamic_cast <Matrix<Double>&> (disp);
-};
+
+
+    };
+
+    //! set multiplicative factor for matrix
+    virtual void SetFactor(Double factor) 
+    { if (factor <= 0) {
+	Error("Additional damping factor cannot be zero");
+      }
+      factorDamp_ = factor;
+    };
 
   protected:
 
@@ -139,6 +151,7 @@ namespace CoupledField
     //    Matrix<Double> elemSol_;
     //    Matrix<Complex> elemSolComplex_;
 
+    Double factorDamp_;
   };
 
 

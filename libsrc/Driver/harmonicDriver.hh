@@ -37,6 +37,7 @@ public:
   Double  stopFreq_;
   Integer numFreq_;
   Integer saveType_;
+  Boolean adjustDamping_;
 };
 
 }

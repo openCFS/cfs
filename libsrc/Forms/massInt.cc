@@ -15,6 +15,7 @@ namespace CoupledField {
     factor_ = 1.0;
     isaxi_ = axi;
     dofzero_ = 0;
+    baseType_ = MASS;
   }
 
   MassInt::MassInt(const Double aDensity,  const Integer nrDofsPerNode, Boolean axi)
@@ -27,6 +28,7 @@ namespace CoupledField {
     factor_ = 1.0;
     isaxi_ = axi;
     dofzero_ = 0;
+    baseType_ = MASS;
   }
 
   MassInt::MassInt(const Double aDensity,  const Integer nrDofsPerNode, Integer dofzero,
@@ -40,6 +42,7 @@ namespace CoupledField {
     factor_ = 1.0;
     isaxi_ = axi;
     dofzero_ = dofzero;
+    baseType_ = MASS;
   }
  
   MassInt::~MassInt()

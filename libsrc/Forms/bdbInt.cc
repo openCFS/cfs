@@ -141,12 +141,18 @@ namespace CoupledField
   }
 
 
+  BDBInt::BDBInt()
+  {
+    ENTER_FCN( "BDBInt::BDBInt" );
+    baseType_ = STIFFNESS;
+  }
 
 
   BDBInt::BDBInt(BaseFE * aptelem, MaterialData & matData) 
     : BaseForm(aptelem, matData), updateDMatInEveryIP_(0)
   {
     ENTER_FCN( "BDBInt::BDBInt" );
+    baseType_ = STIFFNESS;
   }
 
 
@@ -154,6 +160,7 @@ namespace CoupledField
     : BaseForm(matData), updateDMatInEveryIP_(0)
   {
     ENTER_FCN( "BDBInt::BDBInt" );
+    baseType_ = STIFFNESS;
   }
 
   
