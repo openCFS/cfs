@@ -72,6 +72,7 @@
             <xsd:enumeration value="lapackLL"/>
             <xsd:enumeration value="directLU"/>
             <xsd:enumeration value="directLDL"/>
+            <xsd:enumeration value="pardiso"/>
           </xsd:restriction>
         </xsd:simpleType>
      </xsd:attribute>
