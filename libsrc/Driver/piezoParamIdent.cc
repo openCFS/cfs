@@ -67,10 +67,10 @@ namespace CoupledField
     ENTER_FCN( "piezoParamIdent::piezoParamIdent" );
  
     //Char* measuredData="measuredData.dat";
-    allMeasuredData.open("measuredData.dat");
+    allMeasuredData->open("measuredData.dat");
     ptDomain = adomain;
 
-    if (!allMeasuredData.good())
+    if (!allMeasuredData->good())
       {
 	std::cerr << "File measuredData.dat does not exist!" << std::endl;
 	exit(1);
@@ -104,7 +104,7 @@ namespace CoupledField
   piezoParamIdent :: ~piezoParamIdent()
   {
     ENTER_FCN( "piezoParamIdent::~piezoParamIdent" );
-    allMeasuredData.close();
+    allMeasuredData->close();
     std::cout<<"File measuredData.dat is closed" << std::endl;
   }
 
@@ -590,7 +590,7 @@ namespace CoupledField
     ENTER_FCN( "piezoParamIdent::readMeasuredData" );
     char mDataRow[256], helpChar[64];
     Integer i=0, j=0, k=0;
-    while(allMeasuredData.getline(mDataRow, 265)){
+    while(allMeasuredData->getline(mDataRow, 265)){
       if (mDataRow[0]=='1')
 	{i=2;
 	while(mDataRow){
