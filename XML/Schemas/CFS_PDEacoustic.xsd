@@ -40,6 +40,9 @@
             </xsd:complexType>
           </xsd:element>
 
+          <xsd:element name="valRHS" type="DT_CFSBool" minOccurs="0"
+                       maxOccurs="1" default="no"/>
+
           <!-- Type of FlowData (optional) -->
           <xsd:element name="flowData" minOccurs="0">
             <xsd:complexType>
@@ -271,6 +274,7 @@
       <xsd:enumeration value="acouPotential"/>
       <xsd:enumeration value="acouPotentialD1"/>
       <xsd:enumeration value="acouPotentialD2"/>
+      <xsd:enumeration value="acouRHSval"/>
     </xsd:restriction>
   </xsd:simpleType>
 
