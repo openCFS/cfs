@@ -181,6 +181,10 @@ private:
   //! get a sinlge integer in a save way
   Integer GetInteger(std::string seekexp);
 
+  //! tests the next line for emptyness
+  //! \para actPos last position of file pointer before next line
+  Boolean IsNextLineEmpty(std::string::size_type actPos);
+  
   //! get position after line with seekexp and comments lines
   void getPosLine(const std::string seekexp, std::string::size_type & pos);
 
@@ -192,8 +196,6 @@ private:
 
   //!  read maximum number of elements from INFO section of the mesh-file
   void ReadMaxnumelem(Integer & , const std::string keyword);
-
-
 
   //! transform type of elem in pointer to base class BaseFE
   BaseFE * Type2ptElem(const Integer itype);

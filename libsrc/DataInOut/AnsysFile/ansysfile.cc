@@ -256,6 +256,16 @@ void AnsysFile::ReadBCs(std::list<Integer> * bcs, const StdVector<std::string> l
 	    bcs[j].push_back(nodalnum);
 	  }
       } 
+
+    if (! IsNextLineEmpty(pos)) {
+      std::string warnMsg = "AnsysFile::ReadBCs: The line after the last BC node Nr. ";
+      warnMsg += Info->GenStr(nodalnum);
+      warnMsg += " in level '";
+      warnMsg += str;
+      warnMsg += "' seems to contain nodes too.\n Please check if the number of BC nodes ";
+      warnMsg += "specified in the header of the mesh file matches the real number of BC nodes!";
+      Warning(warnMsg.c_str(), __FILE__, __LINE__);
+    }
 }
 
 
@@ -310,6 +320,16 @@ void AnsysFile::ReadSaveNodes(StdVector<Integer> & saveNodes , const std::string
       msg += "is not mentioned in the .mesh file.\n";
       msg += "History nodes are written with the command 'wsavnod'.";
       Error(msg.c_str());
+    }
+
+    if (! IsNextLineEmpty(pos)) {
+      std::string warnMsg = "AnsysFile::ReadSaveNodes: The line after the last saveNode Nr. ";
+      warnMsg += Info->GenStr(nodalnum);
+      warnMsg += " in level '";
+      warnMsg += str;
+      warnMsg += "' seems to contain nodes too.\n Please check if the number of save nodes ";
+      warnMsg += "specified in the header of the mesh file matches the real number of save nodes!";
+      Warning(warnMsg.c_str(), __FILE__, __LINE__);
     }
 }
 
@@ -664,9 +684,11 @@ void AnsysFile::ReadEl1d(StdVector<Elem*> * allelems, const StdVector<std::strin
 {
   ENTER_FCN( "AnsysFile::ReadEl1D" );
     
-    Integer maxnelems;
-    ReadMaxnumelem(maxnelems,"Num1DElements");
-    
+  Integer i, ii, j, inum, itype, innodes;
+  std::string namesd;
+  Integer maxnelems;
+  ReadMaxnumelem(maxnelems,"Num1DElements");
+  
     if (maxnelems)
       {
 	std::string::size_type pos=0;
@@ -678,9 +700,6 @@ void AnsysFile::ReadEl1d(StdVector<Elem*> * allelems, const StdVector<std::strin
 
 	if (!ptL1 || !ptL2)
 	  Error(" Pointers to BaseElem is not initialized",__FILE__,__LINE__);
-
-	Integer i, ii, j, inum, itype, innodes;
-	std::string namesd;
 
 	for (i=0; i<maxnelems; i++)
 	  {
@@ -722,7 +741,7 @@ void AnsysFile::ReadEl1d(StdVector<Elem*> * allelems, const StdVector<std::strin
 	      infile >> el->connect[ii];
 
 	    infile.ignore(100,'\n');
-
+	    pos = infile.tellg();
 	    Boolean Find=FALSE;
 	    for (j=0; j<sd.GetSize(); j++)
 	      if (namesd == sd[j]) { allelems[j].Push_back(el);
@@ -732,8 +751,16 @@ void AnsysFile::ReadEl1d(StdVector<Elem*> * allelems, const StdVector<std::strin
 	    Error(msg.c_str(),__FILE__,__LINE__);
 	    }
 	  }
+	if (! IsNextLineEmpty(pos)) {
+	  std::string warnMsg = "AnsysFile::ReadEl1D: The line after the last 1D elem  Nr. ";
+	  warnMsg += Info->GenStr(inum);
+	  warnMsg += " in region '";
+	  warnMsg += namesd;
+	  warnMsg += "' seems to contain elements too.\n Please check if the number of 1D elements ";
+	  warnMsg += "specified in the header of the mesh-file matches the real number of 1D elements!";
+	  Warning(warnMsg.c_str(), __FILE__, __LINE__);
+	}
       }
-
  
   }
 
@@ -800,7 +827,8 @@ void AnsysFile::ReadEl2d(StdVector<Elem*> * allelems, const StdVector<std::strin
 	      infile >> el->connect[ii];
 
 	    infile.ignore(100,'\n');
-
+	    pos = infile.tellg();
+	    
 	    Boolean Find=FALSE;
 	    for (j=0; j<sd.GetSize(); j++)
 	      if (namesd == sd[j]) 
@@ -815,8 +843,18 @@ void AnsysFile::ReadEl2d(StdVector<Elem*> * allelems, const StdVector<std::strin
 		Error(msg.c_str(),__FILE__,__LINE__);
 	      }
 	  }
+	
+	if (! IsNextLineEmpty(pos)) {
+	  std::string warnMsg = "AnsysFile::ReadEl2D: The line after the last 2D elem  Nr. ";
+	  warnMsg += Info->GenStr(inum);
+	  warnMsg += " in region '";
+	  warnMsg += namesd;
+	  warnMsg += "' seems to contain elements too.\n Please check if the number of 2D elements ";
+	  warnMsg += "specified in the header of the mesh-file matches the real number of 2D elements!";
+	  Warning(warnMsg.c_str(), __FILE__, __LINE__);
+	}
       }
-  }
+}
 
 
 void AnsysFile::ReadEl3d(StdVector<Elem*> * allelems, const StdVector<std::string> sd)
@@ -878,7 +916,8 @@ void AnsysFile::ReadEl3d(StdVector<Elem*> * allelems, const StdVector<std::strin
 	  infile >> el->connect[ii];
 
 	infile.ignore(100,'\n');
-
+	pos = infile.tellg();
+	
 	Boolean Find=FALSE;
 	for (j=0; j<sd.GetSize(); j++)
 	  if (namesd == sd[j]) { allelems[j].Push_back(el);
@@ -887,8 +926,17 @@ void AnsysFile::ReadEl3d(StdVector<Elem*> * allelems, const StdVector<std::strin
 	if (!Find) { std::string msg=namesd + "- this level of element is not mentioned in .xml-file. Please, check .xml-file";
 	Error(msg.c_str(),__FILE__,__LINE__);
 	}
+	
       }
-
+	if (! IsNextLineEmpty(pos)) {
+	  std::string warnMsg = "AnsysFile::ReadEl3D: The line after the last 3D elem  Nr. ";
+	  warnMsg += Info->GenStr(inum);
+	  warnMsg += " in region '";
+	  warnMsg += namesd;
+	  warnMsg += "' seems to contain elements too.\n Please check if the number of 3D elements ";
+	  warnMsg += "specified in the header of the mesh-file matches the real number of 3D elements!";
+	  Warning(warnMsg.c_str(), __FILE__, __LINE__);
+	}
   }
 
 void AnsysFile::ReadEl3dConf(StdVector<std::string> &sd)
@@ -1088,6 +1136,22 @@ Integer AnsysFile::GetInteger(std::string seekexp)
 //   std::cerr << "Seek for " << seekexp << " was " << val << std::endl;
   return val;
   
+}
+
+Boolean AnsysFile::IsNextLineEmpty(std::string::size_type actPos) {
+  ENTER_IFCN( "AnsysFile::IsNextLineEmpty" );
+
+  std::string buf = "------";
+  
+  infile.seekg(actPos,std::ios::beg);  
+  getline(infile,buf,'\n');
+   std::cerr << "buf = " << buf << std::endl;
+
+  if (buf == "")
+    return TRUE;
+  else
+    return FALSE;
+
 }
 
 //!
