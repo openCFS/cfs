@@ -211,6 +211,7 @@ namespace CoupledField
 	    if (analysisType_ == HARMONIC) {
 	      TransformMatrix2Harmonic(harmonicVec,elemmat,
 				       actDescriptor->GetOrigMatrixType());
+	 
 	      algsys_->SetElementMatrix(&harmonicVec[0], connect_PDE.GetPointer(),
 					connect_PDE.GetSize(), destMat);
 	    }
@@ -1627,25 +1628,6 @@ namespace CoupledField
     }
 
 
-
-    void  HarmonicAssemble::TransformMatrix2HarmonicRHS_for_paramIdent(Vector<Double>& harmMat,
-						     Matrix<Double> origMat) {
-
-      ENTER_FCN( "HarmonicAssemble::TransformMatrix2HarmonicRHS_for_paramIdent" );
-
-      Integer numRow = origMat.GetSizeRow();
-      Integer numCol = origMat.GetSizeCol();
-      harmMat.Resize(2*numRow*numCol);
-      Double factor = actFreq_;
-      Integer k=0;
-       for (Integer row=0; row<numRow; row++)
-	    for (Integer col=0; col<numCol; col++) {
-	      harmMat[k] = origMat[row][col];
-	      harmMat[numRow*numCol+k]=factor*origMat[row][col];
-	      k++;
-	    }
-
-}
 
     void  HarmonicAssemble::TransformVector2Harmonic(Vector<Double>& harmVec,
 						     Vector<Double> origVec,
