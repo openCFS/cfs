@@ -106,12 +106,15 @@ namespace CoupledField
     //postprocessing
     StdVector<std::string> calcEfield_;  //!< contains the subdomains, on which the electric field is computed
     ElemStoreSol<Double> Efield_;  //!< conatins electric field
+    ElemStoreSol<Complex> EfieldComplex_;
 
 
     StdVector<std::string> calcStress_;  //!< contains the subdomains, on which the stress is computed
     ElemStoreSol<Double> stress_;  //!< conatins mechanical stresses
+    ElemStoreSol<Complex> stressComplex_;  //!< conatins mechanical stresses
 
     ElemStoreSol<Double> charges_;
+    ElemStoreSol<Complex> chargesComplex_;
     StdVector<std::string> chargeNeighborRegion_;
     StdVector<std::string> calcCharge_;
 
@@ -121,14 +124,23 @@ namespace CoupledField
     //! contains mechanic acceleration
     NodeStoreSol<Double> solDeriv2_;
     
-    //! calculate stresses
+    //! calculate Electric field
     void CalcEfield();
+
+    //! calculate complex valued Electric field
+    void CalcComplexValuedEfield();
     
     //! calculate stresses
     void CalcStress();
 
-    //! calculate stresses
+    //! calculate complex valued stresses
+    void CalcComplexValuedStress();
+
+    //! calculate Charges
     void CalcCharges();
+
+    //! calculate comlex valued Charges
+    void CalcComplexValuedCharges();
     
     StdVector<std::string> pressSurf_;  //!< surface of pressure loads
     StdVector<Double>      pressVals_;  //!< values of the pressure loads

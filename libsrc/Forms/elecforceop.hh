@@ -70,7 +70,7 @@ namespace CoupledField
     Double CalcDetJDr(Matrix<Double> &J, Matrix<Double> &Jdr, Integer dim);
 
     //! I'm a class attribute (please add documentation for me)
-    GradientFieldOp * gradFieldOp_;
+    GradientFieldOp<Double> * gradFieldOp_;
 
   };
 

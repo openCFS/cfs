@@ -223,7 +223,7 @@ TYPE  ElemStoreSol<TYPE>:: operator()(Integer node, Integer dof) const
 template<class TYPE>
 void ElemStoreSol<TYPE>::SetElemResult(const Integer elemNr, const CFSVector &val)
 {
-  ENTER_FCN("ElemStoreSol::SetElemResult");
+    ENTER_FCN("ElemStoreSol::SetElemResult");
 #ifdef CHECK_INITIALIZED
   if (length_ == 0) Error("ElemStoreSol: Use of uninitialized object!",__FILE__,__LINE__);
 #endif
@@ -236,8 +236,10 @@ void ElemStoreSol<TYPE>::SetElemResult(const Integer elemNr, const CFSVector &va
 #endif
 
   const Vector<TYPE> & temp = dynamic_cast<const Vector<TYPE>&>(val);
-  for (Integer i=0; i<temp.GetSize(); i++)
+  for (Integer i=0; i<temp.GetSize(); i++){
     data_[elemNr*totalDofs_ + i] = temp[i];
+    // std::cout<<"data_"<< data_[elemNr*totalDofs_ + i] << std::endl;
+     }
 }
 
 template<class TYPE>

@@ -69,7 +69,7 @@ public:
   */
   virtual void SetEntry(const Integer i, const Double &s)
   {Error("CFSVector::SetEntry(): Not implemented here",__FILE__,__LINE__);}
-  
+
   //! Get the entry i of the vector on the given value (ret = x[i])
   /*!
     \param i (input) Index of entry s

@@ -6,7 +6,7 @@
 
 namespace CoupledField 
 {
-
+  //! Driver class for an inverse problem: The identification of material parameters in a piezoelectric body.
 class piezoParamIdent : public SingleDriver
 {
 
@@ -32,12 +32,16 @@ public:
     void SolveProblem();
 
 protected:
+  //! Calculates the parameter to soution map F(p^k) at Newton iteration step k
     void createF(MaterialData * ptMaterial, BCs * ptBCs, Vector<Complex> & F_hat);
 
+  //! Calculates an approximation of the Jacobi Matrix of parameter to solution operator F 
     void createJacobiMatrix(MaterialData * ptMaterial, BCs * ptBCs, Vector<Complex> & F_ha, Vector<Double> & parameterIncrement, Matrix<Complex> & JacobiMatrix, Vector<Complex> & solElecPot,Vector<Complex> & solMechDispl);
 
-		    void createAdjointJacobiMatrix(Vector<Double> & parameterIncrement,Vector<Double> &  parameter, Matrix<Complex> & JacobiMatrix, Vector<Complex> & solElecPot,Vector<Complex> & solMechDispl, Vector<Double> & freqs, Matrix<Complex> & adjJacobiMatrix);
+  //! Calculates explicitely the Adjoint operator of F'
+    void createAdjointJacobiMatrix(Vector<Double> & parameterIncrement,Vector<Double> &  parameter, Matrix<Complex> & JacobiMatrix, Vector<Complex> & solElecPot,Vector<Complex> & solMechDispl, Vector<Double> & freqs, Matrix<Complex> & adjJacobiMatrix);
 
+  //! Method which reads Data from file measuredData.dat. The file contains measurements of amplitude, frequency, further according information concerning the piezhoelectric body (radius, thickness, ...)
      void readMeasuredData(Vector<Double> & freqs, Vector<Double> & real, Vector<Double> & imag ,Vector<Double> & parameter, Double & voltage, Integer & nrMeasuredData, Double & thickness, Double & radius, Double & delta);
 
     void updateMaterialData(Vector<Double> & parameter, MaterialData * ptMaterial);
@@ -64,7 +68,6 @@ protected:
     Vector<Complex> solElecPot;
     Vector<Complex> solMechDispl;
     Vector<Complex> algSysSolVector;
-    BasePDE * actPDE;
     MaterialData * ptMaterial;
 
     Vector<Double> parameter;

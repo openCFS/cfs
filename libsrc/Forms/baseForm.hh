@@ -74,6 +74,11 @@ public:
   virtual void SetActElemSol(Matrix<Double>& disp)
   {Error("SetActElemSol not implemented!",__FILE__,__LINE__);};
 
+  //! sets actual element solution
+  virtual void SetActElemSol(CFSMatrix & disp)
+  {Error("SetActElemSol not implemented!",__FILE__,__LINE__);};
+
+
   //! reads the values y(x) out of the file with name fncName  
   void ReadNlinFunc(std::string fncName, Vector<double> &xval, Vector<Double> &yval)
   {Error("ReadNlinFunc not implemented!");}

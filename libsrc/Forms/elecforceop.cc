@@ -19,7 +19,7 @@ ElecForceOp::ElecForceOp(Grid * ptGrid,
 {
   ENTER_FCN( "ElecForceOp::ElecForceOp" );
 
-  gradFieldOp_ = new GradientFieldOp(ptGrid, ptPDE, ptEQN, 
+  gradFieldOp_ = new GradientFieldOp<Double>(ptGrid, ptPDE, ptEQN, 
 				     EPotential, ELEC_POTENTIAL, level, isaxi);
 
 }

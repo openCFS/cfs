@@ -56,11 +56,15 @@ endif
 #
 ifeq ("$(XMLPARAMS)","yes")
 ifeq ("$(XMLSCHEMA)","")
-   XMLSCHEMA = $(CVSEXTERNAL)/CFS++XML
+
+# XMLSCHEMA = $(CVSEXTERNAL)/CFS++XML
+
+XMLSCHEMA = /home/lse10/lse/tlahmer/CFS/CFS++XML/
+
 endif
 endif
 
-##############  AdaptGrid 
+##############  AdaptGrid
 #
 AdaptGrid=$(HOME)/Work/221003/Grid_RG_upd
 #

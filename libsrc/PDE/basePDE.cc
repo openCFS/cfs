@@ -58,7 +58,7 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
   // =====================================================================
   actlevel_ = 0;
   actFrequency_ = 0;
-  complexFormat_ = AMPLITUDE_PHASE;
+  complexFormat_ = AMPLITUDE_PHASE; // or REAL_IMAG
   couplingBCsCounter_ = 0;
   numDirichletBCs_ = 0;
   pdeIsCoupled_ = FALSE;
@@ -79,6 +79,9 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
   coarsealpha_ = 0.1;
 
 
+  //  savederiv1_ = FALSE;
+  // savederiv2_ = FALSE;
+
   // =====================================================================
   // set postprocessing parameters
   // =====================================================================
@@ -89,10 +92,9 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
   saveDeriv1Hist_ = FALSE;
   saveDeriv2Hist_ = FALSE;
 
-  
-  //standard parameter for solver
+    //standard parameter for solver
 #ifdef USE_OLAS
-  
+
   precondtype_ = JACOBI;
   solvertype_  = CG;
 #else
@@ -185,12 +187,14 @@ if (commsize>1) parallel = "yes";
       assemble_ = new TransientAssemble(algsys_, ptgrid_);
       analysistype_ = TRANSIENT;
       laststepcalc_ = 1;
-    }    
-    else if (analysisHelp == HARMONIC) {
+    }
+
+  else if (analysis=="harmonic" || analysis == "paramIdent")
+    {
       isComplex_ = TRUE;
       assemble_ = new HarmonicAssemble(algsys_, ptgrid_);
       analysistype_ = HARMONIC;
-      //overwrite defualt solver
+      //overwrite default solver
 #ifdef USE_OLAS
 	Info->Error( "Implement this branch!", __FILE__, __LINE__ );
 #else
@@ -201,7 +205,6 @@ if (commsize>1) parallel = "yes";
 
       //std::cerr << "BasePDE::Init: In Step for multisequence" << std::endl;
       
-    
       stepString = Info->GenStr(bcSequenceIndex_);
       attrVec = "", "index", "type";
       valVec = "", stepString, pdename_;
@@ -733,7 +736,7 @@ void BasePDE::StepTransLin(const Integer kstep, const Double asteptime,
       if (dampingType_)
         algsys_->InitMatrix(DAMPING);
 
-      algsys_->ConstructEffectiveMatrix(matrix_factor_); 
+      algsys_->ConstructEffectiveMatrix(matrix_factor_);
     }
   else
     {
@@ -746,6 +749,7 @@ void BasePDE::StepTransLin(const Integer kstep, const Double asteptime,
 	assemble_->AssembleMatrices(level);
 	algsys_->ConstructEffectiveMatrix(matrix_factor_);	
       }
+
     }
 
 
@@ -774,25 +778,23 @@ void BasePDE::StepTransLin(const Integer kstep, const Double asteptime,
 }
 
 
-void BasePDE::PreStepHarmonic(const Integer freqStep, const Double frequency,  
+void BasePDE::PreStepHarmonic(const Integer freqStep, const Double frequency,
 				const Integer level, const Boolean reset)
 {
-
   ENTER_FCN( "BasePDE::PreStepHarmonic" );
 
   actFrequency_ = frequency;
   actFreqStep_  = freqStep;
-
   assemble_->SetFrequency(frequency);
-
   algsys_->InitRHS();
 
   if (reset)
-      assemble_->InitMatrices();  
+      assemble_->InitMatrices();
+
 }
 
 
-void BasePDE::SolveStepHarmonic(const Integer freqStep, const Double frequency,  
+void BasePDE::SolveStepHarmonic(const Integer freqStep, const Double frequency,
 				const Integer level, const Boolean reset)
 {
   ENTER_FCN( "BasePDE::SolveStepHarmonic" );
@@ -804,8 +806,16 @@ void BasePDE::SolveStepHarmonic(const Integer freqStep, const Double frequency,
 
 }
 
+void BasePDE::CreateIncrementedRHSMatrix(Vector<Double> & harmonicRHSVec, const Double frequency,const Integer level){
+    ENTER_FCN("BasePDE::CreateIncrementedRHSMatrix");
+		assemble_->AssembleMatrices(level);
+		const Integer numElems = numPDENodes_ * dofspernode_;
+		Matrix<Double> elemmat = assemble_->GetElemMat();
+		assemble_->TransformMatrix2HarmonicRHS_for_paramIdent(harmonicRHSVec,elemmat);
+}
 
-void BasePDE::StepHarmonicLin(const Integer freqStep, const Double frequency, 
+
+void BasePDE::StepHarmonicLin(const Integer freqStep, const Double frequency,
 			      const Integer level, const Boolean reset)
 {
   ENTER_FCN( "BasePDE::StepHarmonicLin" );
@@ -826,7 +836,7 @@ void BasePDE::StepHarmonicLin(const Integer freqStep, const Double frequency,
     {
       //account for bcs
       SetBCs(level, updateBCs_, frequency);
-    
+
       job = 1; // calc new preconditioner
 
     }
@@ -838,7 +848,7 @@ void BasePDE::StepHarmonicLin(const Integer freqStep, const Double frequency,
   algsys_->SetupPrecond(job);
 #else
   algsys_->CalcPrecond(job);
-#endif  
+#endif
 
   algsys_->Solve();
 
@@ -1677,7 +1687,7 @@ void BasePDE::CalcInputCoupling()
 		eqnData_->Node2EQN((*nodes)[j],dof+1,eqnNr,eqnDof);
 		// This warning is disabled, in multi-dof pdes
 		// only one compomemt
-		// if (eqnNr==0)
+		// if (eqnNr==0)cal node solution to the coupling nodes
 // 		  {
 // 		    // std::cerr << "PDENODE: "  << PDEnode << "Node[" << (*nodes)[j] << "][" 
 // 		    //      << dof+1 << "]= " << (*val)[dof][j] << std::endl; 
@@ -1968,7 +1978,7 @@ ENTER_FCN( "BasePDE::CalcLineNormalVec" );
   GetElemCoords(connecth, ptCoord, actlevel_);
 
   // calculates normal to element ==========================================
-  CalcLineNormalVec(n, ptCoord);  // normal vector is a rotation of 90° in pos. math. direction
+  CalcLineNormalVec(n, ptCoord);  // normal vector is a rotation of 90? in pos. math. direction
                                   // of the vector from node 1 to node 2 in ptCoord
 
 
@@ -2027,6 +2037,43 @@ void BasePDE::CalcLineNormalVec(Vector<Double>& n, Matrix<Double>& ptCoord)
 
 
 void BasePDE::sortStresses(Vector<Double>& unsorted, Vector<Double>& sorted){
+  ENTER_FCN( "PiezoPDE::SortStresses" );
+
+  //soring according to capa (unv) notation
+  //our notation is Voit: Txx Tyy Tzz Tyz Txz Txy
+
+  if (subType_ == "3d") {
+    //Txx Txy Tyy Txz Tyz Tzz
+    sorted[0] = unsorted[0];
+    sorted[1] = unsorted[5];
+    sorted[2] = unsorted[1];
+    sorted[3] = unsorted[4];
+    sorted[4] = unsorted[3];
+    sorted[5] = unsorted[2];
+  }
+  else if (subType_ == "axi") {
+
+    //Tphiphi 0 Trr 0 Trz Tzz
+    sorted[0] = unsorted[3];
+    sorted[1] = 0.0;
+    sorted[2] = unsorted[0];
+    sorted[3] = 0.0;
+    sorted[4] = unsorted[2];
+    sorted[5] = unsorted[1];
+  }
+  else {
+     //0 0 Tyy 0 Tyz Tzz
+    sorted[0] = 0.0;
+    sorted[1] = 0.0;
+    sorted[2] = unsorted[0];
+    sorted[3] = 0.0;
+    sorted[4] = unsorted[2];
+    sorted[5] = unsorted[1];
+  }
+
+}
+
+void BasePDE::sortStresses(Vector<Complex>& unsorted, Vector<Complex>& sorted){
   ENTER_FCN( "PiezoPDE::SortStresses" );
 
   //soring according to capa (unv) notation

@@ -96,13 +96,13 @@ namespace CoupledField
   // modulus, electrical permittivity and piezoelectric coupling
   // for the 2D plane strain case
   void linPiezoInt::CalcPlaneStrainMaterialMat(Matrix<Double> & dMat)
-    {
-      ENTER_FCN( "linPiezoInt::CalcPlaneStrainMaterialMat" );
+  {
+    ENTER_FCN( "linPiezoInt::CalcPlaneStrainMaterialMat" );
 
-      Integer rowPtrXY[]={2,3,5,8,9};
-      Integer rowPtrYZ[]={2,3,4,8,9};
-      Integer rowPtrXZ[]={1,3,5,7,9};
-      Integer * rowPtr;
+    Integer rowPtrXY[]={2,3,5,8,9};
+    Integer rowPtrYZ[]={2,3,4,8,9};
+    Integer rowPtrXZ[]={1,3,5,7,9};
+    Integer * rowPtr;
 
     switch(actOrientation)
       {
@@ -185,26 +185,26 @@ namespace CoupledField
 
     switch(actOrientation) {
 
-      case xy:
-	{
-	  rowPtr = rowPtrXY;
-	  break;
-	}
-      case yz:
-	{
-	  rowPtr = rowPtrYZ;
-	  break;
-	}
-      case xz:
-	{
-	  rowPtr = rowPtrXZ;
-	  break;
-	}
-      default:	//if no orientation was specified
-	{
-	  rowPtr = rowPtrYZ;
-	  break;
-	}
+    case xy:
+      {
+	rowPtr = rowPtrXY;
+	break;
+      }
+    case yz:
+      {
+	rowPtr = rowPtrYZ;
+	break;
+      }
+    case xz:
+      {
+	rowPtr = rowPtrXZ;
+	break;
+      }
+    default:	//if no orientation was specified
+      {
+	rowPtr = rowPtrYZ;
+	break;
+      }
     }
 
     // Set the material matrix
@@ -309,14 +309,14 @@ namespace CoupledField
 				   Matrix<Double> & ptCoord ) {
 
     ENTER_FCN( "linPiezoInt::CalcStressVec" );
-
+      
     Matrix<Double> dMat;
     calcDMat(dMat);
  
     // convert displacement of all elem nodes into one vector: 
     // (uNode1X, uNode1Y, VNode1, uNode2X, uNode2Y,VNode2,  ...)
     Vector<Double> solVec;
-    elemSol_.ConvertToVec_AppendCols(solVec);
+    elemSol_->ConvertToVec_AppendCols(solVec);
 
     // linear differential operator B_lin
     Matrix<Double> linBMat;    
@@ -330,6 +330,39 @@ namespace CoupledField
     stressElecVec = dMat * linStrainElec;
 
   }
+
+  void linPiezoInt::CalcStressVec( Vector<Complex>& stressElecVec, Integer ip, 
+				   Matrix<Double> & ptCoord ) {
+
+    ENTER_FCN( "linPiezoInt::CalcStressVec" );
+     
+    Matrix<Double> dMat;
+    calcDMat(dMat);
+ 
+    // convert displacement of all elem nodes into one vector: 
+    // (uNode1X, uNode1Y, VNode1, uNode2X, uNode2Y,VNode2,  ...)
+    Vector<Complex> solVec;
+    elemSol_->ConvertToVec_AppendCols(solVec);
+  
+
+    // linear differential operator B_lin
+    Matrix<Double> linBMat;    
+    calcBMat( linBMat, ip, ptCoord);
+
+    Vector<Complex> linStrainElec; // (linBMat * solVec );
+    linStrainElec.Resize(linBMat.GetSizeRow());
+
+    linBMat.MatVecMult_DC(solVec,linStrainElec);
+
+    // | c Bmech u - e^T Belec V |
+    // | e Bmech u + eps Belec V |
+   
+    stressElecVec.Resize(dMat.GetSizeRow());
+    dMat.MatVecMult_DC(linStrainElec, stressElecVec);
+
+  }
+
+  
 
 
   // ========================================================================
@@ -379,14 +412,14 @@ namespace CoupledField
 	bMat[actDim][actNode * (spaceDim+1) + actDim] = xiDx[actNode][actDim];
 
     for (actNode = 0; actNode<nrNodes;actNode++){
-      	bMat[2][actNode*offset] = xiDx[actNode][1];
-      	bMat[2][actNode*offset+1] = xiDx[actNode][0];
-	bMat[3][actNode*offset] = ShpFncAtIp[actNode]/CoordAtIp[0];
+      bMat[2][actNode*offset] = xiDx[actNode][1];
+      bMat[2][actNode*offset+1] = xiDx[actNode][0];
+      bMat[3][actNode*offset] = ShpFncAtIp[actNode]/CoordAtIp[0];
     }
 
     // treat electrical part
-     for( actDim = 0; actDim < spaceDim; actDim++ )
-       for( actNode = 0; actNode < nrNodes; actNode++ )
+    for( actDim = 0; actDim < spaceDim; actDim++ )
+      for( actNode = 0; actNode < nrNodes; actNode++ )
  	bMat[2*spaceDim+actDim][(actNode+1)*offset-1] = xiDx[actNode][actDim];
 
 #ifdef DEBUG
@@ -457,7 +490,7 @@ namespace CoupledField
 	bMat[spaceDim][actNode * offset + 0] = xiDx[actNode][1];
       }
 
-     // treat electrical part
+    // treat electrical part
     for( actDim = 0; actDim < spaceDim; actDim++ ) {
       for( actNode = 0; actNode < nrNodes; actNode++ ) {
 	bMat[2*spaceDim+actDim-1][(actNode+1)*offset-1] =

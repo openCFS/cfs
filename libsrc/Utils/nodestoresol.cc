@@ -274,7 +274,7 @@ TYPE  NodeStoreSol<TYPE>:: operator()(Integer node, Integer dof) const
 
 
 template<class TYPE>
-void NodeStoreSol<TYPE>::GetGlobalSolVector(const SolutionType type, 
+void NodeStoreSol<TYPE>::GetGlobalSolVector(const SolutionType type,
 					    CFSVector & val) const
 {
   ENTER_FCN("NodeStoreSol::GetGlobalSolVector");
@@ -283,25 +283,27 @@ void NodeStoreSol<TYPE>::GetGlobalSolVector(const SolutionType type,
     Error("NodeStoreSol: Use of uninitialized object!",__FILE__,__LINE__);
 #endif
 
-  
+
   Integer offset = (*solOffset_.find(type)).second;
   Integer dof = (*solDofs_.find(type)).second;
-    
+
   Vector<TYPE> & temp = dynamic_cast<Vector<TYPE>&>(val);
- 
+
+
   Integer globalPos, eqnDofs, dofsPerEQN, eqnDof;
   Integer numElecEQNs, numMechEQNs, remainder;
-  
+
+
   temp.Resize(ptGrid_->GetMaxnumnodes(level_)*dof);
   eqnDofs = ptEQN_->GetNumDofs();
   dofsPerEQN = ptEQN_->GetNumDofsPerEQN();
- 
+
   //std::cerr << "temp has size " << temp.GetSize() << std::endl;
   //std::cerr << "data_ has size " << data_.GetSize() << std::endl;
   //std::cerr << "totalDofs = " << totalDofs_ << std::endl;
   SuperBlockEQN * tempEQN;
-  
-  
+
+
   if (typeid(*ptEQN_) == typeid(SuperBlockEQN))
     {
       tempEQN = dynamic_cast<SuperBlockEQN * >(ptEQN_);
@@ -321,7 +323,7 @@ void NodeStoreSol<TYPE>::GetGlobalSolVector(const SolutionType type,
 	    }
 	}
       else
-	{
+	{std::cout<<"NodeStoreSolution 6"<<std::endl;
 	  //std::cerr << "im Block für MechDisp" << std::endl;
 	  for (Integer iEQN=0; iEQN<numMechEQNs; iEQN++)
 	    {
@@ -350,14 +352,14 @@ void NodeStoreSol<TYPE>::GetGlobalSolVector(const SolutionType type,
 		//std::cerr << "SolVectorPos for EQN " << iEQN+1 << " is " << globalPos << std::endl;
 
 		// Correct global position for EQNs with more than one solutiontype
-		globalPos =(Integer) (globalPos-iDof-offset)/eqnDofs * dof + iDof;    
+		globalPos =(Integer) (globalPos-iDof-offset)/eqnDofs * dof + iDof;
 		//std::cerr << "Corrected position is " << globalPos << std::endl;
 		temp[globalPos] = data_[iEQN*totalDofs_ +iDof + offset];
 	      }
-	} 
-      else 
+	}
+      else
 	{
-	  // In this case each eqn has only one dof 
+	  // In this case each eqn has only one dof
 	  // and only one for loop is needed
 	  //std::cerr << "Number of equations = " << ptEQN_->GetNumEQNs() << std::endl;
 	  //std::cerr << "We are longing for dof " << dof << std::endl;
@@ -369,7 +371,7 @@ void NodeStoreSol<TYPE>::GetGlobalSolVector(const SolutionType type,
 	      // ONLY TEMPORARY, until superblocknumbering
 	      // for piezoPDE works ;-)
 	      //std::cerr << "Corrected Position is " << (Integer) globalPos/ *totalDofs_ << std::endl;
-	      
+
 	      //std::cerr << "position is " << globalPos << std::endl;
 	      for (Integer iDof=dof+offset-1; iDof>=offset; iDof--)
 		{
@@ -386,10 +388,10 @@ void NodeStoreSol<TYPE>::GetGlobalSolVector(const SolutionType type,
 		    }
 		}
 	    }
-	  
+
 	}
-    }  
-  
+    }
+
 }
 
 template<class TYPE>
@@ -813,18 +815,22 @@ void NodeStoreSol<TYPE>::GetElemSolutionAsMatrix(CFSMatrix & elemSol,
   if (length_ == 0) Error("NodeStoreSol: Use of uninitialized object!",__FILE__,__LINE__);
 #endif
   
-  Integer eqnNr, eqnDof;
+ Integer eqnNr, eqnDof;
+ Matrix<TYPE> & temp = dynamic_cast<Matrix<TYPE>&>(elemSol);
 
-  Matrix<TYPE> & temp = dynamic_cast<Matrix<TYPE>&>(elemSol);
-  
+// Matrix<Double> & temp = dynamic_cast<Matrix<Double&>(elemSol);
+
   temp.Resize(totalDofs_,connect.GetSize());
+  //  std::cout<<"NodeStoreSol::GetElemSolAsMatrix"<<std::endl;
 
   for (Integer iDof=0; iDof<totalDofs_; iDof++)
     for (Integer iNode=0; iNode<connect.GetSize(); iNode++)
       {
 	ptEQN_->Node2EQN(connect[iNode],iDof+1,eqnNr,eqnDof);
-	if (eqnNr != 0)
+	if (eqnNr != 0){
 	  temp[iDof][iNode] = data_[abs(eqnNr-1)*eqnDofs_ + eqnDof-1];
+	  //	  std::cout<<data_[abs(eqnNr-1)*eqnDofs_+eqnDof-1]<<"; ";
+	}
 	else
 	  temp[iDof][iNode] = TYPE();
       }

@@ -14,28 +14,31 @@
 namespace CoupledField
 {
 
-GradientFieldOp::GradientFieldOp(Grid * ptGrid, 
+template<class TYPE>
+GradientFieldOp<TYPE>::GradientFieldOp(Grid * ptGrid, 
 				 BasePDE * ptPDE,
 				 NodeEQN * ptEQN,
-				 NodeStoreSol<Double> & potential,
+				 NodeStoreSol<TYPE> & potential,
 				 const SolutionType solType,
 				 const Integer level,
 				 Boolean isaxi)
-  : BaseOperator( ptGrid, ptPDE, ptEQN, level, isaxi)
+  : BaseOperator(ptGrid, ptPDE, ptEQN, level, isaxi)
 {
-  ENTER_FCN( "GradientFieldOp::GradientFieldOp" );
-  
+  ENTER_FCN( "GradientFieldOp::GradientFieldOp" );  
   this->potential_ = &potential;
   solType_ = solType;
+ 
 }
 
-GradientFieldOp::~GradientFieldOp()
+template<class TYPE>
+GradientFieldOp<TYPE>::~GradientFieldOp()
 {
   ENTER_FCN( "GradientFieldOp::~GradientFieldOp" );
 
 }
 
-void GradientFieldOp::CalcElemGradField(Vector<Double> & elemField,
+template <class TYPE>
+void GradientFieldOp<TYPE>::CalcElemGradField(CFSVector & elemField,
 					const Elem * ptElement,
 					const Vector<Double> & lCoord,
 					const Double factor)
@@ -43,39 +46,46 @@ void GradientFieldOp::CalcElemGradField(Vector<Double> & elemField,
   ENTER_FCN( "GradientFieldOp::CalcElemGradField" );
   
   ShortInt dim;
-  Double potEntry;
+  Vector<TYPE> potEntry(1);
   dim = ptElement->ptElem->GetDim();
-  elemField.Resize(dim);
-  elemField.Init();
+ 
+   Vector<TYPE> & helpElemField = dynamic_cast<Vector<TYPE>&> (elemField);   
 
-  Integer nShFnc = 0;
+   helpElemField.Resize(dim);
+   helpElemField.Init(0.0);
+   
+   Integer nShFnc = 0;
   nShFnc = ptElement->ptElem->GetNumNodes();
-  
+ 
   const StdVector<Integer> & connect = ptElement->connect;
   
   Matrix<Double> CornerCoords; 
   ptPDE_->GetElemCoords(connect, CornerCoords, level_);
 
-  Matrix<Double> GlobalGradient;
+   Matrix<Double> GlobalGradient;
 
   ptElement->ptElem->GetGlobDerivShFnc(GlobalGradient, lCoord, CornerCoords);
 
-  // loop over shape functions
+   // loop over shape functions
   for( Integer i=0; i<dim; i++ )
     for( Integer j=0; j<nShFnc; j++ )
       {
 	//std::cerr << "Longing for connect = " << connect[j] << std::endl;
-	potential_->Get(solType_, connect[j]-1,0,potEntry);
+
+         potential_->Get(solType_, connect[j]-1,0, potEntry[0]);
+
 	//istd:cerr << "elecEntry = " << elecEntry << std::endl;
 	//E[i] -= GlobalGradient[j][i] * (*EPotential_)[(*ptMesh2PDENode_) [connect[j]-1]-1];
-	elemField[i] -= GlobalGradient[j][i] * potEntry * factor;
+
+	helpElemField.AddEntry(i,-GlobalGradient[i][j]*potEntry[0]*factor);
+
       }
   
 }
 
 
-
-void GradientFieldOp::CalcSDGradField(Vector<Double> & elemField,
+template<class TYPE>
+void GradientFieldOp<TYPE>::CalcSDGradField(CFSVector & elemField,
 				      const StdVector<std::string> & SD, 
 				      const Vector<Double> & lCoord,
 				      const Vector<Double> & factors)

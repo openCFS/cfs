@@ -27,6 +27,7 @@ namespace CoupledField
   //! field or electric flux density at arbitrary points for a given
   //! potential field
 
+template<class TYPE>
 class GradientFieldOp : public BaseOperator
 {
 
@@ -46,11 +47,11 @@ public:
   GradientFieldOp(Grid * ptGrid,
 		  BasePDE * ptPDE,
 		  NodeEQN * ptEQN,
-		  NodeStoreSol<Double> & potential,
+		  NodeStoreSol<TYPE> & potential,
 		  const SolutionType solType,
 		  const Integer level,
 		  Boolean isaxi=FALSE);
-  
+ 
   //! Destructor
   virtual ~GradientFieldOp();
   
@@ -61,7 +62,7 @@ public:
     \param LCoord (input) Local coordinates of evaluation point
     \param factor (input) Scaling factor (e.g. permittivity for E-Field)
    */
-  virtual void CalcElemGradField(Vector<Double> & elemField,
+  virtual void CalcElemGradField(CFSVector & elemField,
 				 const Elem * ptElement,
 				 const Vector<Double> & LCoord,
 				 const Double factor);
@@ -76,7 +77,7 @@ public:
     \param SD (input) Name of the subdomain
     \param LCoord (input) Local coordinates of evalutation point
   */
-  virtual void CalcSDGradField(Vector<Double> & elemField,
+  virtual void CalcSDGradField(CFSVector & elemField,
 			       const StdVector<std::string> & SD,
 			       const Vector<Double> & lCoord,
 			       const Vector<Double> & factors);
@@ -85,11 +86,18 @@ public:
 protected:
   
   //! StoreSolution containing potentialfield
-  NodeStoreSol<Double> * potential_;
+  NodeStoreSol<TYPE> * potential_;
 
   //! Soltution type of the potential field
   SolutionType solType_;
 };
+
+#ifdef __GNUC__
+  // Template instantiation for used vectors
+  template class GradientFieldOp<Double>;
+  template class GradientFieldOp<Complex>;
+#endif
+
 
 } // end of namespace
 
