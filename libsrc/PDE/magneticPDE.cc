@@ -906,6 +906,17 @@ void MagPDE::StoreAlgsysToVec(Vector<Double>& vec, Double * pt)
   }
 
 
+  // *************
+  //  Destructor
+  // ************
+  MagPDE::~MagPDE() {
+    ENTER_FCN( "MagPDE::~MagPDE" );
+    for ( UInt k = 0; k < coilDef_.size(); k++ ) {
+      delete coilDef_[k];
+    }
+  }
+
+
   // *****************************
   //   Definition of Integrators
   // *****************************
@@ -921,7 +932,7 @@ void MagPDE::StoreAlgsysToVec(Vector<Double>& vec, Double * pt)
       // Get reluctivity for this domain and perform consistency check
       Double reluctivity = materialData_[actSD].GetPermiability();
       if ( reluctivity == 0 ) {
-	Info->Error( "Regionomain '" + subdoms_[actSD] + "' has zero" +
+	Info->Error( "Region '" + subdoms_[actSD] + "' has zero" +
 		     " permeability!", __FILE__, __LINE__ );
 	reluctivity = 1/reluctivity;
       }
@@ -936,7 +947,8 @@ void MagPDE::StoreAlgsysToVec(Vector<Double>& vec, Double * pt)
       // If this subdomain is a coil we have to do special things
       for ( Integer coil = 0; coil < coilDef_.size(); coil++ ) {
 	if ( subdoms_[actSD] == coilName_[coil] ) {
-	  Double factor = coilDef_[coil]->value_ / coilDef_[coil]->windingCrossSection_;
+	  Double factor = coilDef_[coil]->value_ /
+	    coilDef_[coil]->windingCrossSection_;
 	  BaseForm *coilSource = new VolumeSrcInt( factor, isaxi_ );
 	  assemble_->AddRhsSrcIntegrator( coilSource,
 					  subdoms_[actSD],
@@ -1351,6 +1363,7 @@ void MagPDE::StoreAlgsysToVec(Vector<Double>& vec, Double * pt)
     UInt nrCoils = coilName_.size();
     if ( nrCoils > 0 ) {
       Info->PrintF( pdename_, " Using the following coils:\n" );
+      coilDef_.reserve( nrCoils );
       for ( UInt k = 0; k < nrCoils; k++ ) {
 	coilDef_.push_back( new Coil( coilName_[k], pdename_ ) );
 	Info->PrintCoil( (*coilDef_[k]), analysistype_ );

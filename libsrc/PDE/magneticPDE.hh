@@ -22,9 +22,16 @@ public:
   MagPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc,
 	 FileType *aptFileType, WriteResults *aptOut);
 
-  //! Deconstructor
+#ifndef XMLPARAMS
+  //! Destructor
   virtual ~MagPDE(){};
+#else
+  //! Default Destructor
 
+  //! The default destructor is responsible for freeing the Coil objects
+  //! the ReadCoils() method brought into being.
+  ~MagPDE();
+#endif
 
 
   //! define all (bilinearform) integrators needed for this pde
