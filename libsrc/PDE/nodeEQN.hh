@@ -92,7 +92,7 @@ protected:
   //! Mapping Local -> Global node numbering
   StdVector<Integer> pde2MeshNode_;
 
-  //! Mappuing Global -> Local node numbering
+  //! Mapping Global -> Local node numbering
   StdVector<Integer> mesh2PDENode_;
  
   //! Element mapping from local->global
