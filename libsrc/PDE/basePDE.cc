@@ -126,9 +126,9 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
    
 #else
     params->GetList( "name", subdoms_, pdename_, "region" );
-    Info->PrintF( pdename_, " %s lives on regions:", pdename_.c_str());
+    Info->PrintF( pdename_, " %s lives on regions:\n", pdename_.c_str());
     for ( Integer k = 0; k < subdoms_.GetSize(); k++ ) {
-      Info->PrintF( pdename_, " %s", subdoms_[k].c_str() );
+      Info->PrintF( pdename_, " %s\n", subdoms_[k].c_str() );
     }
 #endif
 
@@ -292,7 +292,7 @@ if (commsize>1) parallel = "yes";
 	eqnData_ = new ScalarBlockEQN( ptgrid_, ptBCs_, subdoms_, actlevel_,
 				       dofspernode_ );
       }
-      Info->PrintF( pdename_, "Using scalar equation numbering" );
+      Info->PrintF( pdename_, "Using scalar equation numbering\n" );
     }
 
     // Treat all dofs of a node together and assemble a system matrix with
@@ -306,7 +306,7 @@ if (commsize>1) parallel = "yes";
       else {
 	eqnData_ = new BlockNodeEQN( ptgrid_, ptBCs_, subdoms_, actlevel_,
 				     dofspernode_ );
-	Info->PrintF( pdename_, "Using block equation numbering" );
+	Info->PrintF( pdename_, "Using block equation numbering\n" );
       }
     }
 
@@ -320,7 +320,7 @@ if (commsize>1) parallel = "yes";
       else {
 	eqnData_ = new SuperBlockEQN( ptgrid_, ptBCs_, subdoms_, actlevel_,
 				      dofspernode_);
-	Info->PrintF( pdename_, "Using super-block equation numbering" );
+	Info->PrintF( pdename_, "Using super-block equation numbering\n" );
       }
     }
 
