@@ -373,12 +373,11 @@ Double IterCoupledPDE::CalcNorm(NormType normtype, BaseStoreSol & val, BaseStore
  
   Double norm, valNorm2;
   
-  TRY_CAST
-  REFCAST(val,StoreSol<Double>, val_help);
-  REFCAST(oldval,StoreSol<Double>, oldval_help);
 
-  const Vector<Double> & val_vec = val_help.GetCompleteVector();
-  const Vector<Double> & oldval_vec = oldval_help.GetCompleteVector();
+  const Vector<Double> & val_vec =\
+    dynamic_cast<StoreSol<Double>& >(val).GetCompleteVector();
+  const Vector<Double> & oldval_vec =\
+    dynamic_cast<StoreSol<Double>& >(oldval).GetCompleteVector();
   
   delta = val_vec - oldval_vec;
   
@@ -398,7 +397,6 @@ Double IterCoupledPDE::CalcNorm(NormType normtype, BaseStoreSol & val, BaseStore
       break;
     }
 
-  CATCH_CAST
   return norm;
 }
 

@@ -3,8 +3,6 @@
 
 #include "Utils/debugger.hh"
 #include <typeinfo>
-#include <exception>
-#include <new>
 
 namespace CoupledField{
 
@@ -27,36 +25,6 @@ FcnTraceObjLocal fcn(name);
 #define ENTER_IFCN(name)	
 #endif
 
-
-// ****************************************************************************
-//   This block deals with Type Casting
-// ****************************************************************************
-#ifdef CHECK_TYPE_CASTS
-
-#define TRY_CAST try {
-#define CATCH_CAST }catch(std::bad_alloc e)\
-{Error( WRONG_CAST_MSG, __FILE__, __LINE__ );}
-
-#define PTRCAST(NAME,TYPE,TARGET)		\
-TYPE* TARGET = dynamic_cast<TYPE*>(NAME);	\
-if (TARGET==NULL) Error( WRONG_CAST_MSG, __FILE__, __LINE__ );
-
-#else
-#define TRY_CAST
-#define CATCH_CAST
-
-#define PTRCAST(NAME,TYPE,TARGET)\
-TYPE* TARGET = dynamic_cast<TYPE*>(NAME);	
-
-#endif
-
-#define REFCAST(NAME,TYPE,TARGET)\
-TYPE& TARGET = dynamic_cast<TYPE&>(NAME);	
-#define CONSTREFCAST(NAME,TYPE,TARGET)\
-const TYPE& TARGET = dynamic_cast<const TYPE&>(NAME);	
-
-//! Error message signaling a dynamic miscast.
-#define WRONG_CAST_MSG " Invalid cast attempt! "
 
 } // end of namespace
 #endif

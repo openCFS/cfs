@@ -312,8 +312,7 @@ void ElecPDE::PostProcess(const Integer level)
 {
   ENTER_FCN( "ElecPDE::PostProcess" );
 
-  TRY_CAST
-    PTRCAST(sol_,StoreSol<Double>,solhelp);
+  StoreSol<Double> * solhelp = dynamic_cast<StoreSol<Double> *>(sol_);
 
   if (calcEfield_.size() !=0 )
     {
@@ -345,8 +344,6 @@ void ElecPDE::PostProcess(const Integer level)
 	}
       delete FieldOp;
     }
-  CATCH_CAST
-  
 }
 
 
@@ -358,9 +355,8 @@ void ElecPDE::CalcNodeForce(StoreSol<Double> & force,
 {
   ENTER_FCN( "ElecPDE::CalcNodeForce" );
 
-  TRY_CAST
-  PTRCAST(sol_,StoreSol<Double>,solhelp);
-  
+  StoreSol<Double> * solhelp = dynamic_cast<StoreSol<Double> *>(sol_);
+
   
   ElecForceOp * ForceOp = new ElecForceOp(ptgrid_, this, &mesh2PDENode_, *solhelp, actlevel_, isaxi_);
    
@@ -413,7 +409,6 @@ void ElecPDE::CalcNodeForce(StoreSol<Double> & force,
   // write information in .info-file
   //  Info->PrintF(pdename_, "Sum of electrostatic force:");
   //  Info->PrintVec(sum);
-  CATCH_CAST
 }
 
 
@@ -479,14 +474,11 @@ void ElecPDE::GetSolOfElement( Vector<Double>& elpot, Vector<Integer>& connect_P
 {
   ENTER_FCN( "ElecPDE::GetSolOfElement" );
 
-  TRY_CAST
-    PTRCAST(sol_,StoreSol<Double>,solhelp);
+  StoreSol<Double> * solhelp = dynamic_cast<StoreSol<Double> *>(sol_);
 
   elpot.Resize(connect_PDE.GetSize());
   for(Integer actNode=0; actNode<connect_PDE.GetSize(); actNode++)
     elpot[actNode] = (*solhelp)(connect_PDE[actNode]-1,0);
-
-  CATCH_CAST  
 }
 
 
@@ -675,9 +667,9 @@ void ElecPDE::CalcOutputCoupling()
     {
       quantity = ptCoupling_->GetOutputQuantity(actCoupling);
       ptCoupling_->GetOutputValues(actCoupling, values);
-      TRY_CAST
-	PTRCAST(values,StoreSol<Double>,temp);
 
+      StoreSol<Double> * temp = dynamic_cast<StoreSol<Double> *>(values);
+      
       switch(ptCoupling_->GetOutputType(actCoupling))
 	{
 	  
@@ -707,11 +699,7 @@ void ElecPDE::CalcOutputCoupling()
 	case ELEM:
 	  Error("No Element coupling output", __FILE__,__LINE__);
 	}
-
-      CATCH_CAST
-
     }
-
 }
 
 
@@ -759,9 +747,7 @@ void ElecPDE::CalcInterfaceForces(Integer actCoupling)
  
   Integer couplingDof = ptCoupling_->GetOutputDof(actCoupling);
 
-  TRY_CAST
-    PTRCAST(elemCouplingSolsTemp,StoreSol<Double>,elemCouplingSols);
-
+  StoreSol<Double> * elemCouplingSols = dynamic_cast<StoreSol<Double> *>(elemCouplingSolsTemp);
    
   elemCouplingSols->Init(0.0);
   
@@ -880,7 +866,6 @@ void ElecPDE::CalcInterfaceForces(Integer actCoupling)
 // 	  (*elemCouplingSols)[actDof][actNode] += interfaceForceOnNodes[actNode] * n[actDof];
     }
   //*debug << "elem Force: " << myendl << *elemCouplingSols << myendl;
-  CATCH_CAST
 }
 
 

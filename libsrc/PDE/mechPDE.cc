@@ -603,15 +603,14 @@ void MechPDE::CalcOutputCoupling()
 {
   ENTER_FCN( "MechPDE::CalcOutputCoupling" );
 
-  Integer dof;
+  Integer dof = 0;
   std::string quantity;
   std::vector<Integer> * couplingnodes = NULL;
   std::vector<Elem*> * couplingElems = NULL;
   std::vector<Elem*> * neighbours = NULL;
   std::vector<MaterialData*> * couplingMaterials = NULL;
   BaseStoreSol * values = NULL;
-  
-  TRY_CAST
+  StoreSol<Double> * temp;
   
 
   // loop over all output coupling quantities
@@ -620,7 +619,7 @@ void MechPDE::CalcOutputCoupling()
       quantity = ptCoupling_->GetOutputQuantity(i);
       ptCoupling_->GetOutputValues(i, values);
 
-      PTRCAST(values,StoreSol<Double>,temp);
+      temp = dynamic_cast<StoreSol<Double>*>(values);
 	
       switch(ptCoupling_->GetOutputType(i))
 	{
@@ -661,8 +660,6 @@ void MechPDE::CalcOutputCoupling()
 	  Error("No Element coupling output", __FILE__,__LINE__);
 	}
     }
-
-  CATCH_CAST
 }
 
 
@@ -1076,8 +1073,7 @@ void MechPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
   // Cast BaseStoreSol into StoreSol<Double>,
   // since this function is only called
   // in the transient case
- TRY_CAST
-  PTRCAST(sol_,StoreSol<Double>,solhelp)
+  StoreSol<Double> * solhelp = dynamic_cast<StoreSol<Double>*>(sol_);
   
 
   actSol = solhelp->GetCompleteVector();
@@ -1206,7 +1202,6 @@ void MechPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
   
     //perform corrector step  
   TS_alg_->Corrector(solhelp->GetCompleteVector());
-  CATCH_CAST
 }
 
 

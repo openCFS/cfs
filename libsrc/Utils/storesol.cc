@@ -186,13 +186,10 @@ void StoreSol<TYPE>::GetSolVector(const SolutionType type, CFSVector & val) cons
   Integer dof = (*solDofs_.find(type)).second;
   val.Resize(dof*numNodes_);
 
-  TRY_CAST
-  REFCAST(val,Vector<TYPE>,ret);
+  Vector<TYPE> & ret = dynamic_cast<Vector<TYPE>&>(val);
   for (Integer iNode=0; iNode<numNodes_; iNode++)
     for (Integer iDof=0; iDof<dof; iDof++)
       ret[iNode*dof+iDof] = data_[iNode*totalDofs_+iDof+offset];
-
-  CATCH_CAST
 }
 
 template<class TYPE>
@@ -208,14 +205,9 @@ void StoreSol<TYPE>::SetSolVector(const SolutionType type, const CFSVector & val
     Info->Error("StoreSik:SetSolVector(): Incompatible dimensions",__FILE__,__LINE__);
 #endif
 
-  TRY_CAST
-  CONSTREFCAST(val,Vector<TYPE>,temp);
+  const Vector<TYPE> & temp = dynamic_cast<const Vector<TYPE>&>(val);
   for (Integer i=0; i<temp.GetSize(); i++)
     data_[i] = temp[i];
-
-
-  CATCH_CAST
-
 }
 
 template<class TYPE>
@@ -228,8 +220,7 @@ void StoreSol<TYPE>::GetSolution(const SolutionType type, BaseStoreSol & val) co
   Integer offset = (*solOffset_.find(type)).second;
   Integer dof = (*solDofs_.find(type)).second;
     
-  TRY_CAST
-  REFCAST(val,StoreSol<TYPE>,temp);
+  StoreSol<TYPE> & temp = dynamic_cast<StoreSol<TYPE>&>(val);
 
   // delete old map
   temp.solDofs_.clear();
@@ -248,8 +239,6 @@ void StoreSol<TYPE>::GetSolution(const SolutionType type, BaseStoreSol & val) co
   for (Integer iNode=0; iNode<numNodes_; iNode++)
     for (Integer iDof=0; iDof<dof; iDof++)
       temp.data_[iNode*dof+iDof] = data_[iNode*totalDofs_+iDof+offset];
-
-  CATCH_CAST
 }
 
 template<class TYPE>
@@ -267,12 +256,9 @@ void StoreSol<TYPE>::SetNodalResult(const Integer nodeNr, const CFSVector &val)
     Info->Error("StoreSol::SetNodalResult(): vector of incompatible dimension",__FILE__,__LINE__);
 #endif
 
-  TRY_CAST
-  CONSTREFCAST(val,Vector<TYPE>,temp);
+  const Vector<TYPE> & temp = dynamic_cast<const Vector<TYPE>&>(val);
   for (Integer i=0; i<temp.GetSize(); i++)
     data_[nodeNr*totalDofs_ + i] = temp[i];
-
-  CATCH_CAST
 }
 
 template<class TYPE>
@@ -368,12 +354,8 @@ void StoreSol<TYPE>::SetCompleteVector(const CFSVector & val)
      Info->Error("StoreSol::SetCompleteVector(): Vector has wrong size!",__FILE__,__LINE__);
 #endif
 
-   TRY_CAST
-   CONSTREFCAST(val,Vector<TYPE>,temp);
-
+   const  Vector<TYPE> & temp = dynamic_cast<const Vector<TYPE>&>(val);
    data_ = temp;
-
-   CATCH_CAST
 }
   
 template<class TYPE> 
@@ -383,13 +365,9 @@ void StoreSol<TYPE>::GetCompleteVector(CFSVector & val) const
 #ifdef CHECK_INITIALIZED
   if (length_ == 0) Info->Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
 #endif
-   TRY_CAST
-   REFCAST(val,Vector<TYPE>,temp);
-
-   temp = data_;
-
-   CATCH_CAST 
-
+  
+  Vector<TYPE> & temp = dynamic_cast<Vector<TYPE>&>(val);
+  temp = data_;
 }
 
 template<class TYPE>
@@ -486,15 +464,12 @@ void StoreSol<TYPE>::GetElemSolutionAsMatrix(CFSMatrix & elemSol, Vector<Integer
 #ifdef CHECK_INITIALIZED
   if (length_ == 0) Info->Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
 #endif
-  TRY_CAST
-  REFCAST(elemSol,Matrix<TYPE>,temp)
-
+  
+  Matrix<TYPE> & temp = dynamic_cast<Matrix<TYPE>&>(elemSol);
   temp.Resize(totalDofs_,connect.GetSize());
   for (Integer iDof=0; iDof<totalDofs_; iDof++)
     for (Integer iNode=0; iNode<connect.GetSize(); iNode++)
       temp[iDof][iNode] = data_[totalDofs_*(connect[iNode]-1) + iDof];
-  
-  CATCH_CAST
 }
 
 template<class TYPE>
@@ -505,10 +480,10 @@ void StoreSol<TYPE>::TransformNodeSolution(BaseStoreSol & transformedSolution,
 {
   ENTER_FCN("StoreSol::TransformNodeSolution");
 #ifdef CHECK_INITIALIZED
-  if (length_ == 0) Info->Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
+  if (length_ == 0) 
+    Info->Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
 #endif
-  TRY_CAST
-  REFCAST(transformedSolution,StoreSol<TYPE>,temp);
+  StoreSol<TYPE> & temp = dynamic_cast<StoreSol<TYPE>&>(transformedSolution);
  
   // initialize the return basesolution
   //std::cerr << "numNodes: " << numNodes_ << std::endl;
@@ -532,8 +507,6 @@ void StoreSol<TYPE>::TransformNodeSolution(BaseStoreSol & transformedSolution,
     // loop over dimensions
      for (Integer iDof=0; iDof<totalDofs_; iDof++)
        temp.data_[(mapping[iNode]-1)*totalDofs_ + iDof] = data_[iNode*totalDofs_ + iDof];
- 
-  CATCH_CAST
 }  
 
 template<class TYPE>
@@ -546,9 +519,8 @@ void StoreSol<TYPE>::TransformElemSolution(BaseStoreSol & transformedSolution,
 #ifdef CHECK_INITIALIZED
   if (length_ == 0) Info->Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
 #endif
-  TRY_CAST
-  REFCAST(transformedSolution,StoreSol<TYPE>,temp);
- 
+  
+  StoreSol<TYPE> & temp = dynamic_cast<StoreSol<TYPE>&>(transformedSolution);
   temp.numNodes_ = ptGrid->GetMaxnumElem(level);
   temp.solDofs_ = solDofs_;
   temp.solTypes_ = solTypes_;
@@ -563,68 +535,7 @@ void StoreSol<TYPE>::TransformElemSolution(BaseStoreSol & transformedSolution,
     // Loop over all dimensions
     for (Integer iDof=0; iDof<totalDofs_; iDof++)
       temp.data_[(mapping[iElem]-1)*totalDofs_ + iDof] = data_[iElem*totalDofs_ + iDof];
-  
- CATCH_CAST
 }
-
-// template<class TYPE>
-// void StoreSol<TYPE>::TransformElemSolution(BaseStoreSol & MeshSol, 
-// 					   const std::vector<std::string> & SD,
-// 					   Grid * ptGrid,
-// 					   const Integer level) const
-// {
-//   ENTER_FCN("StoreSol::TransformElemSolution");
-// #ifdef CHECK_INITIALIZED
-//   if (length_ == 0) Info->Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
-// #endif  
-//   TRY_CAST
-//   REFCAST(MeshSol,StoreSol<TYPE>,temp);
- 
-  
-//   temp.numNodes_ = ptGrid->GetMaxnumElem(level,SD);
-//   temp.solDofs_ = solDofs_;
-//   temp.solTypes_ = solTypes_;
-//   temp.solOffset_ = solOffset_;
-//   temp.numSolutions_ = numSolutions_;
-//   temp.totalDofs_ = totalDofs_;
-//   temp.length_ = temp.numNodes_ * totalDofs_;
-//   temp.data_.Resize(temp.length_);
-
-//   Integer elMesh=0;
-//   Integer elPDE=0;
-//   std::vector<std::string> AllSDs = ptGrid->GetListSubDomains();
-
-//   // loop over all SubDomains of computational domain
-//   for (Integer isd=0; isd<AllSDs.size(); isd++)
-//    {
-//      Boolean SDbelongsToDomain = FALSE;
-//      for (Integer k=0; k<SD.size(); k++)
-//        if (SD[k] == AllSDs[isd]) 
-//  	SDbelongsToDomain = TRUE;
-
-//      std::vector<Elem*> Elems;
-//      ptGrid->GetElemSD(Elems, AllSDs[isd], level);    
-//      if (SDbelongsToDomain)
-//        {
-//  	//computational subdomain belongs to PDE 
-//  	// loop over all elements
-//  	for (Integer i=0; i<Elems.size(); i++) 
-//  	    {
-//  	      // loop over dof
-//  	      for (Integer iDof=0; iDof<totalDofs_; iDof++)
-//  		temp.data_[elMesh*totalDofs_ + iDof] = data_[elPDE*totalDofs_+ iDof]; 
-
-//  	      elPDE++; elMesh++;
-// 	    }
-//        }
-//      else
-//        elMesh += Elems.size();
-//    }
-//   CATCH_CAST 
-
-//}
-
-
 
 template<class TYPE>
 void StoreSol<TYPE>::NodeSolutionToCoupling(BaseStoreSol & couplingSol,
@@ -635,19 +546,9 @@ void StoreSol<TYPE>::NodeSolutionToCoupling(BaseStoreSol & couplingSol,
 #ifdef CHECK_INITIALIZED
   if (length_ == 0) Info->Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
 #endif
-  
-// CouplingSol.reshape(dofspernode_, NodeNumbers.size());
-  
-//   for (Integer i=0; i<CouplingSol.dim(); i++)
-//     for (Integer j=0; j<CouplingSol.size(); j++)
-//       {
-// 	//std::cerr << "processing dim: " << i <<", j:" << j << std::endl; 
-// 	CouplingSol[i][j] = sol_[i][Mesh2PDENode_[NodeNumbers[j]-1 ] - 1];
-//       }
 
-  TRY_CAST
-  REFCAST(couplingSol,StoreSol<TYPE>,temp);
-
+  StoreSol<TYPE> & temp = dynamic_cast<StoreSol<TYPE>&>(couplingSol);
+  
   temp.numNodes_ = nodeNumbers.size();
   temp.solDofs_ = solDofs_;
   temp.solTypes_ = solTypes_;
@@ -660,9 +561,6 @@ void StoreSol<TYPE>::NodeSolutionToCoupling(BaseStoreSol & couplingSol,
   for (Integer iDof=0; iDof<temp.totalDofs_; iDof++)
      for (Integer iNode=0; iNode<nodeNumbers.size(); iNode++)
        temp.data_[iNode*totalDofs_ + iDof] = data_[(mapping[nodeNumbers[iNode]-1 ] - 1)*totalDofs_ + iDof];
-
-  CATCH_CAST
-
 }
 
 template<class TYPE> 
@@ -671,9 +569,11 @@ void StoreSol<TYPE>::ElemSolutionToCoupling(BaseStoreSol & couplingSol,
 					    const CFSVector & elemSol) const
 {
   ENTER_FCN("StoreSol::ElemSolutionToCoupling");
+
 #ifdef CHECK_INITIALIZED
   if (length_ == 0) Info->Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
 #endif
+
   Info->Error("Not implemented here", __FILE__,__LINE__); 
 
 }

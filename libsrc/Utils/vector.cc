@@ -29,11 +29,6 @@ Vector<TYPE>::Vector(Integer size)
   size_ = size;
   data_ = new TYPE [size];
 
-#ifdef CHECK_MEMORY
-  if (!data_)
-    Error("Vector: out of memory",__FILE__,__LINE__);
-#endif
-
   for (Integer i = 0; i < size; i++)
     data_ [i] = 0;
 }
@@ -42,13 +37,9 @@ template<class TYPE>
 Vector<TYPE>::Vector(const Vector<TYPE> &vec)
 {
   ENTER_IFCN("Vector::Vector");    
+
   size_ = vec.size_;
   data_ = new TYPE [vec.size_];
-
-#ifdef CHECK_MEMORY
-  if (!data_)
-    Error("Vector: out of memory",__FILE__,__LINE__);
-#endif
   
   for (Integer i = 0; i < size_; i++)
     data_ [i] =  vec.data_[i];
@@ -76,6 +67,7 @@ Vector<TYPE>::~Vector()
 // 2.) Complex-Vectors: A new array is created, which holds the 
 //                      complex values as a serial sequence of
 //                      Double values.
+template<>
 Double* Vector<Double>::GetDoublePointer()
 {
   ENTER_IFCN("Vector::GetDoublePointer");
@@ -83,6 +75,7 @@ Double* Vector<Double>::GetDoublePointer()
   return data_;
 }
 
+template<>
 Double* Vector<Integer>::GetDoublePointer()
 {
   ENTER_IFCN("Vector::GetDoublePointer");
@@ -97,10 +90,6 @@ Double* Vector<Complex>::GetDoublePointer()
 
   Double * help = new Double[size_ * 2];
 
-#ifdef CHECK_MEMORY  
-  if (help == NULL) Error("out of memory",__FILE__,__LINE__); 
-#endif
-  
   for (Integer i=0; i<size_; i++)
     {
      help[2*i]   = data_[i].real();
@@ -114,6 +103,7 @@ template<class TYPE>
 void Vector<TYPE>::Init(const TYPE entry)
 {
   ENTER_IFCN("Vector::Init");
+
 #ifdef CHECK_INITIALIZED
   if (size_ == 0) Error("Don't use Init() to undefined vector", __FILE__, __LINE__);
 #endif
@@ -127,6 +117,7 @@ template<class TYPE>
 void Vector<TYPE>::Resize(const Integer size)
 {
   ENTER_IFCN("Vector::Resize");
+
 #ifdef CHECK_INDEX
   if (size <= 0) Error("invalid dimension for Resize", __FILE__, __LINE__);
 #endif  
@@ -137,9 +128,6 @@ void Vector<TYPE>::Resize(const Integer size)
       
       size_=size;
       data_ = new TYPE[size_];
-#ifdef CHECK_MEMORY     
-      if (!data_) Error("Out of memory in vector.Resize()");
-#endif
     }
   
   for (Integer i = 0; i < size_; i++)
@@ -151,6 +139,7 @@ template<class TYPE>
 void Vector<TYPE>::SetEntry(const Integer i, const TYPE &s)
 {
   ENTER_IFCN("Vector::SetEntry");
+
 #ifdef CHECK_INDEX
     std::string errorMsg;
     std::stringstream errorMsgStream(errorMsg);
@@ -165,6 +154,7 @@ template<class TYPE>
 void Vector<TYPE>::GetEntry(const Integer i, TYPE &ret) const
 {
   ENTER_IFCN("Vector::GetEntry");  
+
 #ifdef CHECK_INDEX
     std::string errorMsg;
     std::stringstream errorMsgStream(errorMsg);
@@ -179,6 +169,7 @@ template<class TYPE>
 void Vector<TYPE>::AddEntry(const Integer i, const TYPE &s)
 {
   ENTER_IFCN("Vector::AddEntry");
+
 #ifdef CHECK_INDEX
     std::string errorMsg;
     std::stringstream errorMsgStream(errorMsg);
@@ -186,6 +177,7 @@ void Vector<TYPE>::AddEntry(const Integer i, const TYPE &s)
     if (i >= size_)
       Error(errorMsg.c_str(),__FILE__,__LINE__);
 #endif
+
     data_[i]+=s;
 }
 
@@ -193,6 +185,7 @@ template<class TYPE>
 void Vector<TYPE>::MultEntry(const Integer i, const TYPE &s)
 {
   ENTER_IFCN("Vector::MultEntry");
+
 #ifdef CHECK_INDEX
     std::string errorMsg;
     std::stringstream errorMsgStream(errorMsg);
@@ -201,6 +194,7 @@ void Vector<TYPE>::MultEntry(const Integer i, const TYPE &s)
     if (i >= size_)
       Error(errorMsg.c_str(),__FILE__,__LINE__);
 #endif
+
     data_[i]+=s;
 }
 
@@ -208,6 +202,7 @@ template<class TYPE>
 void Vector<TYPE>::MultAddEntry(const Integer i, const TYPE &a, const TYPE &s)
 {
   ENTER_IFCN("Vector::MuldAddEntry");
+
 #ifdef CHECK_INDEX
     std::string errorMsg;
     std::stringstream errorMsgStream(errorMsg);
@@ -216,6 +211,7 @@ void Vector<TYPE>::MultAddEntry(const Integer i, const TYPE &a, const TYPE &s)
     if (i >= size_)
       Error(errorMsg.c_str(),__FILE__,__LINE__);
 #endif
+
     data_[i]=a*data_[i] + s;
 }
 
@@ -223,17 +219,16 @@ template<class TYPE>
 void Vector<TYPE>::Add(const CFSVector& y)
 {
   ENTER_IFCN("Vector::Add");
-  TRY_CAST
 
-  CONSTREFCAST(y,Vector<TYPE>,vec);
+  const Vector<TYPE> & vec = dynamic_cast<const Vector<TYPE>& >(y);
+
 #ifdef CHECK_INDEX
   if (size_ != vec.size_)
     Error("Vector: incompatible dimension for operator Add(Basevector)",__FILE__,__LINE__);
 #endif
+
   for (Integer i=0; i<size_; i++)
     data_[i]+=vec.data_[i];
-
-  CATCH_CAST
 }
 
 template<class TYPE> 
@@ -241,16 +236,16 @@ void Vector<TYPE>::Add(const TYPE a, const CFSVector &y)
 {
   ENTER_IFCN("Vector::Add"); 
 
-  TRY_CAST
-  CONSTREFCAST(y,Vector<TYPE>,vec);
+  const Vector<TYPE> & vec = dynamic_cast<const Vector<TYPE>&>(y);
+
 #ifdef CHECK_INDEX
   if (size_ != vec.size_)
     Error("Vector: incompatible dimension for operator Add(TYPE,Basevector)",__FILE__,__LINE__);
 #endif
+
   for (Integer i=0; i<size_; i++)
     data_[i]+=a*vec.data_[i];
 
-  CATCH_CAST
 }
 
 template<class TYPE> 
@@ -259,33 +254,31 @@ void Vector<TYPE>::Add( const TYPE a, const CFSVector& y,
 {
   ENTER_IFCN("Vector::Add");  
 
-  TRY_CAST
-  CONSTREFCAST(y,Vector<TYPE>,vec);
+  const Vector<TYPE> & vec = dynamic_cast<const Vector<TYPE>&>(y);
+
 #ifdef CHECK_INDEX
   if (size_ != vec.size_)
     Error("Vector: incompatible dimension for operator Add(T,Basevector,T,Basevector)",__FILE__,__LINE__);
 #endif
+
   for (Integer i=0; i<size_; i++)
     data_[i] = a*data_[i]+ b*vec.data_[i];
-
-  CATCH_CAST
 }
 
 template<class TYPE> 
 void Vector<TYPE>::Axpy(const TYPE a, const CFSVector &y)
 {
   ENTER_IFCN("Vector::Axpy"); 
-  
-  TRY_CAST
-  CONSTREFCAST(y,Vector<TYPE>,vec);
+    
+  const Vector<TYPE> & vec = dynamic_cast<const Vector<TYPE>&>(y);
+
 #ifdef CHECK_INDEX
   if (size_ != vec.size_)
     Error("Vector: incompatible dimension for operator Add(TYPE,Basevector)",__FILE__,__LINE__);
 #endif
+
   for (Integer i=0; i<size_; i++)
     data_[i] = a*data_[i]+ vec.data_[i];
-
-  CATCH_CAST
 }
  
 template<class TYPE> 
@@ -293,17 +286,15 @@ void Vector<TYPE>::Inner(const CFSVector &y, TYPE &result) const
 {
   ENTER_IFCN("Vector::Inner");
 
-  TRY_CAST
-  CONSTREFCAST(y,Vector<TYPE>,vec);
+  const Vector<TYPE> & vec = dynamic_cast<const Vector<TYPE>& >(y);
 #ifdef CHECK_INDEX
   if (size_ != vec.size_)
     Error("Vector: incompatible dimension for operator Add(T,Basevector)",__FILE__,__LINE__);
 #endif
+
   result = 0;
   for (Integer i=0; i<size_; i++)
     result += data_[i] * vec.data_[i];
-
-  CATCH_CAST
 }
 
 
@@ -333,6 +324,13 @@ void Vector<TYPE>::ToStdVector(std::vector<TYPE> &vec) const
 template<class TYPE>
 Vector<TYPE> &Vector<TYPE>::operator=(const Vector<TYPE> &x)
 {
+  ENTER_IFCN( "Vector::operator=(const Vector)");
+
+#ifdef CHECK_INITIALIZED
+  if (x.size_== 0)
+    Error("Vector: undefined Vector in operator=(const Vector)",__FILE__,__LINE__);
+#endif
+
   
   if (this == &x)
     return *this;
@@ -344,10 +342,6 @@ Vector<TYPE> &Vector<TYPE>::operator=(const Vector<TYPE> &x)
       
       size_ = x.size_;
       data_ = new TYPE [size_];
-#ifdef CHECK_MEMORY
-      if (!data_)
-	std::cerr << "Vector: out of memory";
-#endif
     }
   
   for (Integer i = 0; i < size_; i++)
@@ -359,7 +353,8 @@ Vector<TYPE> &Vector<TYPE>::operator=(const Vector<TYPE> &x)
 template<class TYPE>
 Vector<TYPE> &Vector<TYPE>::operator=(const std::vector<TYPE> &x)
 {
-  
+  ENTER_IFCN( "Vector::operator=(const std::vector)" );
+
   if (size_ != x.size())
     {	
       if (data_)
@@ -367,10 +362,6 @@ Vector<TYPE> &Vector<TYPE>::operator=(const std::vector<TYPE> &x)
       
       size_ = x.size();
       data_ = new TYPE [size_];
-#ifdef CHECK_MEMORY
-      if (!data_)
-	Error("Vector: out of memory",__FILE__,__LINE__);
-#endif
     }
   
   for (Integer i = 0; i < size_; i++)
@@ -385,6 +376,8 @@ Vector<TYPE> &Vector<TYPE>::operator=(const std::vector<TYPE> &x)
 template<class TYPE>
 Vector<TYPE> Vector<TYPE>::operator+(const Vector<TYPE> &x) const
 {	
+  ENTER_IFCN( "Vector::operator+" );
+
 #ifdef CHECK_INITIALIZED
   if ((size_ == 0) || (x.size_ == 0))
     Error("Vector: undefined Vector in operator +(vector)",__FILE__,__LINE__);
@@ -407,6 +400,7 @@ Vector<TYPE> Vector<TYPE>::operator+(const Vector<TYPE> &x) const
 template<class TYPE>
 Vector<TYPE> &Vector<TYPE>::operator+=(const Vector<TYPE> &x)
 {
+  ENTER_IFCN( "Vector::operator+" );
 #ifdef CHECK_INITIALIZED
   if ((size_ == 0) || (x.size_ == 0))
     Error("Vector: undefined Vector in operator +=(vector)",__FILE__,__LINE__);
@@ -426,6 +420,7 @@ Vector<TYPE> &Vector<TYPE>::operator+=(const Vector<TYPE> &x)
 template<class TYPE>
 Vector<TYPE> Vector<TYPE>::operator- () const
 {
+  ENTER_IFCN( "Vector::operator-" );
 #ifdef CHECK_INITIALIZED
   if (size_ == 0)
     Error("Vector: undefined Vector in oprator -()",__FILE__,__LINE__); 
@@ -442,6 +437,7 @@ Vector<TYPE> Vector<TYPE>::operator- () const
 template<class TYPE>
 Vector<TYPE> Vector<TYPE>::operator-(const Vector<TYPE> &x) const
 {
+  ENTER_IFCN( "Vector::operator-" );
 #ifdef CHECK_INITIALIZED
   if ((size_ == 0) || (x.size_ == 0))
     Error("Vector: undefined Vector in operator -(vector)",__FILE__,__LINE__);
@@ -462,6 +458,7 @@ Vector<TYPE> Vector<TYPE>::operator-(const Vector<TYPE> &x) const
 template<class TYPE>
 Vector<TYPE> &Vector<TYPE>::operator-=(const Vector<TYPE> &x)
 {
+  ENTER_IFCN( "Vector::operator-=" );
 #ifdef CHECK_INITIALIZED
   if ((size_ == 0) || (x.size_ == 0))
     Error("Vector: undefined Vector in operator -=(vector)",__FILE__,__LINE__);
@@ -481,7 +478,8 @@ Vector<TYPE> &Vector<TYPE>::operator-=(const Vector<TYPE> &x)
 
 template<class TYPE>
 Vector<TYPE> Vector<TYPE>::operator* (const TYPE &x) const
-{	
+{
+  ENTER_IFCN( "Vector::operator*" );
 #ifdef CHECK_INITIALIZED
   if (size_ == 0)
     Error("Vector: undefined Vector in operator *(number)",__FILE__,__LINE__); 
@@ -497,7 +495,8 @@ Vector<TYPE> Vector<TYPE>::operator* (const TYPE &x) const
 
 template<class TYPE>
 Vector<TYPE> Vector<TYPE>::operator/ (const TYPE &x) const
-{       
+{
+  ENTER_IFCN( "Vector::operator/" );
 #ifdef CHECK_INITIALIZED
   if (size_ == 0)
     Error("Vector: undefined Vector in operator /(number)",__FILE__,__LINE__); 
@@ -513,7 +512,8 @@ Vector<TYPE> Vector<TYPE>::operator/ (const TYPE &x) const
 
 template<class TYPE>
 Vector<TYPE> &Vector<TYPE>::operator/= (const TYPE &x)
-{	
+{
+  ENTER_IFCN( "Vector::operator/=" );
 #ifdef CHECK_INITIALIZED
   if (size_ == 0)
     Error("Vector: undefined Vector in operator /=(number)",__FILE__,__LINE__); 
@@ -529,7 +529,8 @@ Vector<TYPE> &Vector<TYPE>::operator/= (const TYPE &x)
 
 template<class TYPE>
 TYPE Vector<TYPE>::operator* (const Vector<TYPE> &x) const
-{	
+{
+  ENTER_IFCN( "Vector::operator*" );
 #ifdef CHECK_INITIALIZED
   if ((size_ == 0) || (x.size_ == 0))
     Error("Vector: undefined Vector in operator *(vector)",__FILE__,__LINE__);
@@ -552,6 +553,7 @@ TYPE Vector<TYPE>::operator* (const Vector<TYPE> &x) const
 template<class TYPE>
 Vector<TYPE> Vector<TYPE>::operator*(const Matrix<TYPE> &x) const
 {
+  ENTER_IFCN( "Vector::operator*" );
 #ifdef CHECK_INITIALIZED
   if (size_ == 0)
     Error("Vector: undefined Vector in operator *(Matrix)",__FILE__,__LINE__);
@@ -581,6 +583,7 @@ Vector<TYPE> Vector<TYPE>::operator*(const Matrix<TYPE> &x) const
 template<class TYPE>
 Vector<TYPE> Vector<TYPE>::operator=(const Matrix<TYPE> &x) const
 {	
+  ENTER_IFCN( "Vector::operator=(const Matrix)" );
 #ifdef CHECK_INITIALIZED
   if (size_ == 0)
     Error( "undefined Vector in operator =", __FILE__,__LINE__);
@@ -605,7 +608,8 @@ Vector<TYPE> Vector<TYPE>::operator=(const Matrix<TYPE> &x) const
 
 template<class TYPE>
 Vector<TYPE> &Vector<TYPE>::operator*= (const TYPE &x)
-{	
+{
+  ENTER_IFCN( "Vector::operator*=" );	
 #ifdef CHECK_INITIALIZED
   if (size_ == 0)
     Error("Vector: undefined Vector in operator*=",__FILE__,__LINE__); 
@@ -623,6 +627,7 @@ template<class TYPE>
 
 Vector<TYPE> &Vector<TYPE>::operator*=(const Matrix<TYPE> &x)
 {	
+  ENTER_IFCN( "Vector::operator*=" );
   *this = *this * x;
   
   return *this;
@@ -645,7 +650,8 @@ Integer Vector<TYPE>::operator== (const Vector<TYPE> &x) const
 
 template<class TYPE>
 Integer Vector<TYPE>::operator!= (const Vector<TYPE> &x) const
-{	
+{
+  ENTER_IFCN( "Vector::operator!=" );
 #ifdef CHECK_INITIALIZED
   if ((size_ == 0) || (x.size_ == 0))
     Error("Vector: undefined Vector in operator !=", __FILE__, __LINE__);
@@ -661,6 +667,7 @@ Integer Vector<TYPE>::operator!= (const Vector<TYPE> &x) const
 template<class TYPE>
 Vector<TYPE> Vector<TYPE>::Part(const Integer i1,const Integer i2) const
 {
+  ENTER_IFCN( "Vector::Part" );
 #ifdef CHECK_INITIALIZED
   if (size_ == 0)
     std::cerr << "Vector: undefined Vector";
@@ -682,6 +689,7 @@ Vector<TYPE> Vector<TYPE>::Part(const Integer i1,const Integer i2) const
 template<class TYPE>
 Vector<TYPE> Vector<TYPE>::Unit (const Integer n,const Integer i)
 {
+  ENTER_IFCN( "Vector::Unit" );
 #ifdef CHECK_INDEX	
   if (n <= 0)
     std::cerr << "Vector::unit() invalid dimension";
@@ -700,7 +708,8 @@ Vector<TYPE> Vector<TYPE>::Unit (const Integer n,const Integer i)
 
 template<class TYPE>
 Double Vector<TYPE>::NormL2() const
-{	
+{
+  ENTER_IFCN( "Vector::NormL2" );
 #ifdef CHECK_INITIALIZED
 if (size_ == 0)
   Error("Vector: undefined Vector in function norm_2()", __FILE__, __LINE__);
@@ -710,6 +719,7 @@ if (size_ == 0)
  return sqrt (ret);
 }
 
+template<>
 Double Vector<Complex>::NormL2() const
 {
   Complex temp = (*this)*(*this);
@@ -725,6 +735,7 @@ Double Vector<Complex>::NormL2() const
 template<class TYPE>
 void Vector<TYPE>::Push_back(const TYPE & y)
 {
+  ENTER_IFCN( "Vector::Push_back" );
   // add y at the end of the vector (size_=length of vec)
   AddElement(y,size_);
 }
@@ -734,6 +745,7 @@ void Vector<TYPE>::Push_back(const TYPE & y)
 template<class TYPE>
 void  Vector<TYPE>:: AddElement (const TYPE & y, Integer pos)
 {
+  ENTER_IFCN( "Vector::AddElement" );
 #ifdef CHECK_INDEX
   if (pos < 0 || pos > size_)
     Error("Vector::AddElemen(): Index out of bounds", __FILE__,__LINE__);
@@ -759,6 +771,7 @@ void  Vector<TYPE>:: AddElement (const TYPE & y, Integer pos)
 template<class TYPE>
 void  Vector<TYPE>::InsertVector (const Vector<TYPE> & y, Integer pos)
 {
+  ENTER_IFCN( "Vector::InsertVector" );
 #ifdef CHECK_INITIALIZED
   if (size_ == 0)
     Error("Vector: undefined Vector in function InsertVector()", __FILE__,__LINE__);
@@ -791,6 +804,7 @@ void  Vector<TYPE>::InsertVector (const Vector<TYPE> & y, Integer pos)
 template<class TYPE>
 void  Vector<TYPE>:: Cut (const Integer pos)
 {
+  ENTER_IFCN( "Vector::Cut" );
 #ifdef CHECK_INITIALIZED
   if (size_ == 0)
     Error("Vector: undefined Vector in function Cut()", __FILE__,__LINE__);
@@ -817,6 +831,7 @@ void  Vector<TYPE>:: Cut (const Integer pos)
 template<class TYPE>
 void  Vector<TYPE>:: Cut (const Integer pos1, const Integer pos2)
 {
+  ENTER_IFCN( "Vector::Cut" );
 #ifdef CHECK_INITIALIZED
   if (size_ == 0)
     Error("Vector: undefined Vector in function Cut()", __FILE__,__LINE__);
@@ -844,26 +859,25 @@ void  Vector<TYPE>:: Cut (const Integer pos1, const Integer pos2)
 }
 
 template<class TYPE>
-Integer  Vector<TYPE>:: Memory() const
+Integer  Vector<TYPE>::Memory() const
 {
+  ENTER_IFCN( "Vector::Memory" );
  return size_*sizeof(TYPE);
 }
 
 template<class TYPE>
 void  Vector<TYPE>::TransformInVector(const Integer nsize, TYPE * ptdata) 
 {
-  size_ = nsize;
-#ifdef CHECK_MEMORY
-  if (ptdata == 0)
-    Error("Pointer to data is undefined in function TransformInVector()",__FILE__,__LINE__);
-#endif
+  ENTER_IFCN( "Vector::TransformInVector" );
 
+  size_ = nsize;
   data_ = ptdata;
 }
 
 template<class TYPE>
 void Swap(Vector<TYPE> & a, Vector<TYPE> & b) 
 {
+  ENTER_IFCN( "Swap" );
  Integer tmp_size;
 
  tmp_size = a.size_;
@@ -880,6 +894,7 @@ void Swap(Vector<TYPE> & a, Vector<TYPE> & b)
 template<class TYPE> 
 void Swap(TYPE & a, TYPE & b)
 {
+  ENTER_IFCN( "Vector::Swap" );
    TYPE tmp=a;
    a=b;
    b=tmp;
@@ -890,6 +905,7 @@ template void Swap<Double>(Double & ,Double &);
 
 template<class S> void Sort(S* v, Integer n)
 {
+  ENTER_FCN( "Vector::Sort" );
   for (Integer gap=n/2; gap >0; gap/=2)
     for (Integer i=gap; i<n; i++)
        for (Integer j=i-gap; j>=0; j-=gap)
@@ -904,8 +920,9 @@ template void Sort<Double>(Double * ,Integer);
 template<class S>
 std::ostream & operator << ( std::ostream & out, const Vector<S> & vc)
 {
-#ifdef CHECK_MEMORY
-  if (vc.GetSize()==0) out << "vector is undefined" ;
+  ENTER_IFCN( "operator <<" );
+#ifdef CHECK_INITIALIZED
+  if (vc.GetSize() == 0) out << "vector is undefined" ;
 #endif
 
 for (Integer i=0; i < vc.GetSize(); i++)

@@ -32,15 +32,7 @@ Matrix<TYPE>::Matrix (const Integer nRows, const Integer nCols)
   size_col_ = nCols;
   data_ = new TYPE* [size_row_];
 
-#ifdef CHECK_MEMORY  
-  if (data_ == NULL) Error("out of memory",__FILE__,__LINE__); 
-#endif
-
   data_[0]=new TYPE[size_col_*size_row_];
-
-#ifdef CHECK_MEMORY 
-  if (data_[0] == NULL) Error("out of memory",__FILE__,__LINE__); 
-#endif 
 
   for (Integer k=1; k < size_row_; k++) 
     data_[k]=data_[k-1]+size_col_;
@@ -64,10 +56,6 @@ Matrix<TYPE>::Matrix (const Integer nRows,const Vector<TYPE> * const x)
 
   data_ = new TYPE *[size_row_];
 
-#ifdef CHECK_MEMORY
-  if (data_ == NULL) Error("out of memory",__FILE__,__LINE__); 
-#endif
-  
   Integer k,kk;
 #ifdef CHECK_INDEX
   for (k=1; k < size_row_; k++)
@@ -89,22 +77,17 @@ Matrix<TYPE>::Matrix (const Matrix<TYPE> &x)
 #ifdef CHECK_INITIALIZED
  if (x.size_row_ == 0 || x.size_col_ == 0)  Error("undefined Matrix",__FILE__,__LINE__);
 #endif
- 
- size_row_ = x.size_row_;
- size_col_ = x.size_col_;
 
- data_ = new TYPE * [size_row_];
-
-#ifdef CHECK_MEMORY
- if (data_ == NULL) Error("out of memory", __FILE__, __LINE__);
-#endif
+ // check if dimensions are the same
+ if (size_row_ != x.size_row_ || size_col_ != x.size_col_)
+   {
+     size_row_ = x.size_row_;
+     size_col_ = x.size_col_;
+     
+     data_ = new TYPE * [size_row_];
+     data_[0]=new TYPE[size_row_ * size_col_];
+   }
  
- data_[0]=new TYPE[size_row_ * size_col_];
- 
-#ifdef CHECK_MEMORY 
- if (data_[0] == NULL) Error("out of memory", __FILE__, __LINE__);
-#endif
-
  Integer k;
  
  for (k=0; k < size_row_*size_col_; k++)  
@@ -143,16 +126,7 @@ void Matrix<TYPE> :: Resize(const Integer nRows, const Integer nCols)
       size_col_ = nCols;
       
       data_ = new TYPE* [size_row_];
-      
-#ifdef CHECK_MEMORY
-      if (data_ == NULL) Error("out of memory", __FILE__, __LINE__);
-#endif
-      
       data_[0]=new TYPE[size_row_*size_col_];
-      
-#ifdef CHECK_MEMORY
-      if (data_[0] == NULL) Error("out of memory", __FILE__, __LINE__);
-#endif
       
       for (k=1; k < size_row_; k++) 
 	data_[k]=data_[k-1]+size_col_;
@@ -200,16 +174,7 @@ Matrix<TYPE> &Matrix<TYPE>::operator=(const Matrix<TYPE> &x)
       size_col_ = x.size_col_; 
       
       data_ = new TYPE* [size_row_];
-
-#ifdef CHECK_MEMORY
-      if (data_ == NULL) Error("out of memory", __FILE__, __LINE__);
-#endif
-      
       data_[0]=new TYPE[size_row_*size_col_];
-      
-#ifdef CHECK_MEMORY
-      if (data_[0] == NULL) Error("out of memory", __FILE__, __LINE__);
-#endif
   
       for (k=1; k < size_row_; k++) 
 	data_[k]=data_[k-1]+size_col_;
@@ -572,16 +537,7 @@ void Matrix<TYPE>::AddRow (const Vector<TYPE> &x, const Integer pos)
 
 
   TYPE ** help=new TYPE*[size_row_+1];
-
-#ifdef CHECK_MEMORY  
-  if (help == NULL) Error("out of memory",__FILE__,__LINE__); 
-#endif
-
   help[0]=new TYPE[size_col_ * (size_row_+1)];
-
-#ifdef CHECK_MEMORY  
-  if (help[0] == NULL) Error("out of memory",__FILE__,__LINE__); 
-#endif
 
   Integer k;
   for (k=1; k < size_row_+1; k++) 
@@ -947,24 +903,19 @@ Double* Matrix<Integer>::GetDoublePointer()
   Error("Matrix<Integer>::GetDoublePointer: Function not implemented!",__FILE__,__LINE__);
 }
 
-
+template<>
 Double* Matrix<Double>::GetDoublePointer()
 {
   ENTER_IFCN("Matrix::GetDoublePointer");
   return data_[0];
 }
 
+template<>
 Double* Matrix<Complex>::GetDoublePointer()
 {
   ENTER_IFCN("Matrix::GetDoublePointer");
-
-
   Double * help = new Double[size_col_ * size_row_ * 2];
 
-#ifdef CHECK_MEMORY  
-  if (help == NULL) Error("out of memory",__FILE__,__LINE__); 
-#endif
-  
   for (Integer i=0; i < size_row_*size_col_; i++)
     {
       help[2*i]   = data_[0][i].real();
