@@ -65,7 +65,8 @@ public:
     \param LCoord (input) Local coordinates of evalutation point 
   */
   virtual void CalcEdgeShapeFnc(Matrix<Double> & shape, 
-				const std::vector<Double> & LCoord);
+				const std::vector<Double> & LCoord, 
+				const Matrix<Double> & CornerCoords);
   
   
 

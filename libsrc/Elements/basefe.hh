@@ -246,8 +246,9 @@ public:
 	  \end{array}\right) \f]
     \param lCoord (input) Local coordinates of evalutation point 
   */
-  virtual void CalcEdgeShapeFnc(Matrix<Double> & shape, 
-				const std::vector<Double> & lCoord)
+ virtual void CalcEdgeShapeFnc(Matrix<Double> & shape, 
+				const std::vector<Double> & LCoord, 
+				const Matrix<Double> & CornerCoords)
   { Error("CalcEdgeShapeFnc called for non edge element! ",__FILE__,__LINE__);};
   
   

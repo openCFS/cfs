@@ -65,7 +65,7 @@ void BaseFE :: GetGlobDerivShFnc(Matrix<Double> & Deriv,
 #endif
 
 
-  //  Deriv.Resize(NumNodes_,Dim_);
+  Deriv.Resize(NumNodes_,Dim_);
   Matrix<Double> LDeriv, JInv;
 
   CalcLocalDerivShapeFnc(LDeriv, LCoord);
@@ -298,7 +298,7 @@ void BaseFE::CalcEdgeShapeFncAtIp(Matrix<Double> & shape,
   for (Integer i=0; i<Dim_; i++)
     lCoord[i] = IntPoints_[ip-1][i];
   
-  CalcEdgeShapeFnc(shape, lCoord);
+  CalcEdgeShapeFnc(shape, lCoord, cornerCoords);
 }
 
 

@@ -52,23 +52,42 @@ void EdgeTetra1FE :: SetEdgeVertices()
   
   edgeVertices_.Resize(NumEdges_, nrNodesPerEdge);
 
-  edgeVertices_[0][0] = 0;
-  edgeVertices_[0][1] = 1;
+ //  edgeVertices_[0][0] = 0;
+//   edgeVertices_[0][1] = 1;
 
-  edgeVertices_[1][0] = 0;
-  edgeVertices_[1][1] = 2;
+//   edgeVertices_[1][0] = 0;
+//   edgeVertices_[1][1] = 2;
 
-  edgeVertices_[2][0] = 0;
-  edgeVertices_[2][1] = 3;
+//   edgeVertices_[2][0] = 0;
+//   edgeVertices_[2][1] = 3;
 
-  edgeVertices_[3][0] = 1;
-  edgeVertices_[3][1] = 2;
+//   edgeVertices_[3][0] = 1;
+//   edgeVertices_[3][1] = 2;
 
-  edgeVertices_[4][0] = 3;
-  edgeVertices_[4][1] = 1;
+//   edgeVertices_[4][0] = 1;
+//   edgeVertices_[4][1] = 3;
 
-  edgeVertices_[5][0] = 2;
-  edgeVertices_[5][1] = 3;
+//   edgeVertices_[5][0] = 2;
+//   edgeVertices_[5][1] = 3;
+
+
+  edgeVertices_[0][0] = 3;
+  edgeVertices_[0][1] = 0;
+
+  edgeVertices_[1][0] = 3;
+  edgeVertices_[1][1] = 1;
+
+  edgeVertices_[2][0] = 3;
+  edgeVertices_[2][1] = 2;
+
+  edgeVertices_[3][0] = 0;
+  edgeVertices_[3][1] = 1;
+
+  edgeVertices_[4][0] = 0;
+  edgeVertices_[4][1] = 2;
+
+  edgeVertices_[5][0] = 1;
+  edgeVertices_[5][1] = 2;
 }
 
 
@@ -87,12 +106,13 @@ void EdgeTetra1FE :: CalcEdgeShapeFnc(Matrix<Double> & edgeShape,
 
   // nodal shape functions of a tet
   std::vector<Double> nodeShape;
+  std::vector<Double> localcoord;
   CalcShapeFnc(nodeShape, LCoord);
 
 
   // local derivates of nodal tet, dimension: nrNodes x Dim_
   Matrix<Double> xDxi;  
-  CalcLocalDerivShapeFnc(xDxi, LCoord);
+  GetGlobDerivShFnc(xDxi, localcoord, LCoord);
   
   
 

@@ -148,7 +148,9 @@ void CurlEdgeOp::CalcElemCurlEdge(Vector<Double> & curlField,
   ShortInt dim = ptElement->ptElem->GetDim();
   
   curlField.Resize(dim);
-  
+  for (Integer i=0; i<dim; i++)
+    curlField[i] = 0;
+
   Integer nrEdges = ptElement->ptElem->GetNumEdges();
   Integer nrNodes = ptElement->ptElem->GetNumNodes();
 
@@ -202,7 +204,7 @@ void CurlEdgeOp::CalcElemCurlEdge(Vector<Double> & curlField,
   for (Integer j=0; j<nrEdges; j++)
     {
       epos[j]  = abs(epos[j]);
-      sol[j] = (*sol_)[epos[j]-1] * (Double)(epos[j]/abs(epos[j]));
+      sol[j] = (*sol_)[epos[j]-1] ; //* (Double)(epos[j]/abs(epos[j]));
     }
   
   

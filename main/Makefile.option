@@ -14,8 +14,8 @@ PETSc=no
 AdaptGrid=$(C_DIR)/Grid_RG
 #
 ############### LAS++: Algebraic System
-#LAS=/home/lse10/lse/manfred/CFS/LAS
-LAS=$(HOME)/CFS++/LAS
+LAS=/home/lse10/lse/manfred/CFS/LAS
+#LAS=$(HOME)/CFS++_actual/LAS
 #
 #
 ############### Gridlib

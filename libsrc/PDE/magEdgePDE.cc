@@ -218,6 +218,7 @@ void MagEdgePDE::SetupMatrices(const Integer level)
     {
       reluctivity  = 1.0/materialData_[i].GetPermiability();
       conductivity = materialData_[i].GetConductivity();
+      conductivity = reluctivity*1e-6;
 
 #ifdef DEBUG
       (*debug) << " Material-Data for Subdomain: " << i+1 << std::endl;
@@ -234,6 +235,7 @@ void MagEdgePDE::SetupMatrices(const Integer level)
 	  ptElem=elemssd[j]->ptElem;
 
 	  BaseForm * bilinear_stiff = new CurlCurlEdgeInt(ptElem, reluctivity);
+	  BaseForm * bilinear_mass  = new MassEdgeInt(ptElem, conductivity);
 	  BaseForm * lapl           = new LaplaceInt(ptElem, reluctivity);
 
 	  connecth=elemssd[j]->connect;
@@ -246,6 +248,11 @@ void MagEdgePDE::SetupMatrices(const Integer level)
 	  //get the edge numbers and their signs
 	  GetEdgeNumber(connect_PDE.get(), epos, esign);
 
+#ifdef DEBUG
+	  (*cla) << "Edge Nr. and signs: Element  " <<   j+1 << std::endl;
+	  (*cla) << epos << std::endl;
+	  (*cla) << esign << std::endl;
+#endif
 	  // stiffness part
 	  bilinear_stiff->CalcElementMatrix(ptCoord, elemmat);
 	  
@@ -256,14 +263,36 @@ void MagEdgePDE::SetupMatrices(const Integer level)
 	  
 	      
 #ifdef DEBUG
-	  (*debug) << "Stiffnessmatrix, ElementNumber  " <<   i << std::endl;
-	  (*debug) << elemmat << std::endl;
+	  (*cla) << "Stiffnessmatrix, ElementNumber  " <<   j+1 << std::endl;
+	  (*cla) << elemmat << std::endl;
 #endif
 
 
 	  algsys_->SetElementMatrix(elemmat.getinarray(), &epos[0], epos.size(),SYSTEM);
 
+	  // mass part
+	  bilinear_mass->CalcElementMatrix(ptCoord, elemmat);
+	  
+	  // correct sign of entries in elemmat due to orientation of edge
+	  for(Integer ii=0; ii<elemmat.getSize(); ii++)
+	    for(Integer jj=0; jj<elemmat.getSize(); jj++)
+	      elemmat[ii][jj] *= esign[ii] * esign[jj];
+
+#ifdef DEBUG
+	  (*cla) << "Mass, ElementNumber  " <<   j+1 << std::endl;
+	  (*cla) << elemmat << std::endl;
+#endif
+
+	  algsys_->SetElementMatrix(elemmat.getinarray(), &epos[0], epos.size(),SYSTEM);
+
+	  //auxilary matrix
 	  lapl->CalcElementMatrix(ptCoord, elemmat_aux);
+
+#ifdef DEBUG
+	  (*cla) << "Auxilarymatrix, ElementNumber  " <<   j+1 << std::endl;
+	  (*cla) << elemmat_aux << std::endl;
+#endif
+
 	  algsys_->SetAuxElementMatrix(elemmat_aux.getinarray(), 
 				       connect_PDE.get(), connecth.size());
 	  
@@ -380,6 +409,10 @@ void MagEdgePDE::SetupEdgeGraph()
 	      epos[j] = abs(epos[j]);
 
 	  algsys_->SetElementPosEdge(epos,elemsize_edge,fe_type);
+#ifdef DEBUG
+	  (*cla) << "Edge Nr.to Algsys, Element: " <<   iel+1 << std::endl;
+	  (*cla) << epos << std::endl;
+#endif
 	}
     }
 
@@ -409,53 +442,58 @@ void MagEdgePDE::EvalNumDirichlet()
 
   if (conf->ifgetliststr("SurfeDirichlet", surfDirichlet, "magnetic"))
     
-      if (surfDirichlet.size())
+    if (surfDirichlet.size())
+      {
 	SurfD = ptBCs_->getFacesBC(surfDirichlet[0],actlevel_);
-      else
-	Error("No Surfaces specified as Dirichlet Boundaries",__FILE__,__LINE__);
-  else
-    Error("No Surfaces specified as Dirichlet Boundaries",__FILE__,__LINE__);
+  //    else
+  //	Error("No Surfaces specified as Dirichlet Boundaries",__FILE__,__LINE__);
+  //  else
+  //    Error("No Surfaces specified as Dirichlet Boundaries",__FILE__,__LINE__);
 
   //hard coded: surface elements of tets are triangles
-  Integer surfelemdim = 3;
-  Vector<Integer> connecth;
-  Integer * pos;
 
-  for (Integer iel=0; iel< SurfD.size(); iel++)
-    {
-      ptElem=SurfD[iel]->ptElem;
+	Integer surfelemdim = 3;
+	Vector<Integer> connecth;
+	Integer * pos;
+	
+	for (Integer iel=0; iel< SurfD.size(); iel++)
+	  {
+	    ptElem=SurfD[iel]->ptElem;
+	    
+	    //Map Mesh Node numbers to PDE node numbers
+	    Mesh2PDENode(connecth,SurfD[iel]->connect);
+	    pos = connecth.get();
+	    
+	    epos[0] = algsys_->GetNode2Edge(pos[1], pos[0]);
+	    epos[1] = algsys_->GetNode2Edge(pos[2], pos[0]);
+	    epos[2] = algsys_->GetNode2Edge(pos[2], pos[1]);
 
-      //Map Mesh Node numbers to PDE node numbers
-      Mesh2PDENode(connecth,SurfD[iel]->connect);
-      pos = connecth.get();
-
-      epos[0] = algsys_->GetNode2Edge(pos[1], pos[0]);
-      epos[1] = algsys_->GetNode2Edge(pos[2], pos[0]);
-      epos[2] = algsys_->GetNode2Edge(pos[2], pos[1]);
-
-      for (j=0; j<surfelemdim; j++)
-	dnode[abs(epos[j])-1] = abs(epos[j]);
-
-    }
-
-  numEdgedir_=0;
-  for (i=0; i<size_; i++)
-    {
-      if (dnode[i] != 0)
-	  numEdgedir_++;
-    }
-
-  EdgeDir_ = new Integer[numEdgedir_];
-
-  k=0;
-  for (i=0; i<size_; i++)
-    {
-      if (dnode[i])
-	{
-	  EdgeDir_[k] = dnode[i];
-	  k++;
-	}
-    }
+	    for (j=0; j<surfelemdim; j++)
+	      dnode[abs(epos[j])-1] = abs(epos[j]);
+	    
+	  }
+	
+	numEdgedir_=0;
+	for (i=0; i<size_; i++)
+	  {
+	    if (dnode[i] != 0)
+	      numEdgedir_++;
+	  }
+	
+	EdgeDir_ = new Integer[numEdgedir_];
+	
+	k=0;
+	for (i=0; i<size_; i++)
+	  {
+	    if (dnode[i])
+	      {
+		EdgeDir_[k] = dnode[i];
+		k++;
+	      }
+	  }
+      }
+    else
+      numEdgedir_=0;
 
 #ifdef DEBUG
   (*debug) << "MagEdge: dirichlet edges " << numEdgedir_ << std::endl;
@@ -579,9 +617,11 @@ void MagEdgePDE::SetupRHS(const Integer level)
 	  
 	      
 #ifdef DEBUG
-	  (*debug) << "RHS, ElementNumber  " << j << std::endl;
-
-	  (*debug) << elemVec << std::endl;
+	  (*cla) << "Edge Nr. and signs: Element  " <<   j+1 << std::endl;
+	  (*cla) << epos << std::endl;
+	  (*cla) << esign << std::endl;
+	  (*cla) << "RHS, ElementNumber  " << j+1 << std::endl;
+	  (*cla) << elemVec << std::endl;
 #endif
 
 	  algsys_->SetElementRHS(&elemVec[0], &epos[0], epos.size());
@@ -631,7 +671,7 @@ void MagEdgePDE::PostProcess(const Integer level)
  	  magField->CalcElemCurlEdge(elemMagField, elemssd[iel], lCoord);
 
 #ifdef DEBUG
-	  (*debug) << "PostProc elem " << iel << std::endl 
+	  (*debug) << "PostProc elem " << iel+1 << std::endl 
 		   << "MagField: \n " << elemMagField << std::endl;
 #endif
 
