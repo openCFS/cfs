@@ -106,6 +106,12 @@ protected:
   //! reads all data in the config-file belonging to coils
   void ReadCoils();
 
+  //!
+  void ComputeUI(Vector<Double>& uiSD);
+  
+  void WriteUI2File(Vector<Double>& uiSD);
+
+
   Array<Double> B_;  //!< conatins magnetic field
   Array<Double> Jeddy_;  //!< conatins eddy currents field
   
@@ -127,6 +133,10 @@ protected:
   std::vector<std::string> calcBfield_;  //!< contains the subdomains, on which the magnetic field is computed
   std::vector<std::string> calcEnergy_;  //!< contains the subdomains, on which the magnetic energy is computed
   std::vector<std::string> calcEddy_;  //!< contains the subdomains, on which the eddy currents are computed
+
+  std::ofstream * UIfile_; //!< file for informational output
+  std::string UIfilename_;      //!< name of file for saving current/voltage values
+   
 };
 
 } // end of namespace

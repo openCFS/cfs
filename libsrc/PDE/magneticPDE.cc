@@ -47,6 +47,19 @@ MagPDE::MagPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *apt
   //check for coils
   ReadCoils();
 
+  conf->ifget("calc_UI",UIfilename_,pdename_);
+  if (UIfilename_.size() > 0)
+    {    
+      std::string ui_info = "File name for saving voltages/currents is: " + UIfilename_ + "\n";
+      Info->PrintF(pdename_,"%s",ui_info.c_str());
+      UIfile_ = new std::ofstream(UIfilename_.c_str());
+
+    if (!UIfile_) 
+      Error("Can't open UI-file");
+
+    }
+  
+
   //check for permanent magnets
   conf->ifgetliststr("list_magnets", magnetsDomain_, pdename_);
 
@@ -317,6 +330,14 @@ void MagPDE::PostProcess(const Integer level)
 	    }
 	}
     }
+
+  if (UIfilename_.size() > 0 && analysistype_ == TRANSIENT)
+    {
+      Vector<Double> uiSD;
+      ComputeUI(uiSD);
+      WriteUI2File(uiSD);
+    }
+  
 }
 
 
@@ -376,6 +397,128 @@ void MagPDE::CalcEnergy()
 }
 
 
+void MagPDE::ComputeUI(Vector<Double>& uiSD)
+{
+#ifdef TRACE
+  (*trace) << "entering MagPDE::ComputeUI" << std::endl;
+#endif
+
+  uiSD.Resize(coilDef_.size());
+  
+  // loop over all subdomains
+  for (Integer actSD=0; actSD<subdoms_.size(); actSD++)
+    {
+      for (Integer dom=0; dom<coilDef_.size(); dom++)
+	if (subdoms_[actSD] == coilDomain_[dom]) 
+	  {
+	   
+	    std::vector<Elem*> elemssd;		
+	    // get vector of Elem of subdomain with color: subdoms[isd]
+	    ptgrid_->GetElemSD(elemssd,subdoms_[actSD],actlevel_);
+	    
+
+	    // loop over elements of subdomain	    
+	    for (Integer actEl=0; actEl< elemssd.size(); actEl++)
+	      {
+		BaseFE * ptEl = elemssd[actEl]->ptElem;
+		
+		const Integer nrIntPts= ptEl->GetNumIntPoints();
+		const Integer nrNodes = ptEl->GetNumNodes();
+		const std::vector<Double> & intWeights = ptEl->GetIntWeights();  
+		Double jacDet;
+		
+		
+		Vector<Integer> connect, connect_PDE;
+		connect = elemssd[actEl]->connect;
+
+		Matrix<Double> ptCoord;
+		GetElemCoords(connect, ptCoord, actlevel_);
+
+		// Mape Mesh to PDE node numbers
+		Mesh2PDENode(connect_PDE,connect,Mesh2PDENode_);
+		
+		
+		Vector<Double> magVecDeriv1Elem;
+		GetSolDerivOfElement(magVecDeriv1Elem,connect_PDE);
+		
+		Double uiElem=0;
+		
+		for (Integer actIntPt=1; actIntPt<=nrIntPts;  actIntPt++)
+		  {
+		    std::vector<Double> shapeFnc;
+		    jacDet = ptEl->CalcJacobianDetAtIp(actIntPt, ptCoord);	
+		    ptEl -> GetShFncAtIp(shapeFnc, actIntPt);
+
+		    uiElem += shapeFnc * magVecDeriv1Elem;
+		    
+		    if (isaxi_)
+		      {
+			std::vector<Double> coordAtIP = ptCoord * shapeFnc;
+			uiElem += shapeFnc * magVecDeriv1Elem * 2 * PI * coordAtIP[0] * intWeights[actIntPt-1];
+		      }
+		    else
+		      uiElem += shapeFnc * magVecDeriv1Elem * intWeights[actIntPt-1];
+		  }
+
+		uiSD[dom] += uiElem;
+	      }	    
+	  }
+    }
+}
+
+
+
+void MagPDE::WriteUI2File(Vector<Double>& uiSD)
+{
+#ifdef TRACE
+  (*trace) << "entering MagPDE::WriteUI2File" << std::endl;
+#endif
+
+
+  Vector<Integer> coilIDs;   // just positive ids
+  coilIDs.push_back(abs(coilDef_[0].ID));
+
+  Integer maxID = coilDef_[0].ID;
+
+  for (Integer dom=1; dom < coilDef_.size(); dom++)
+    {
+      Boolean isInVec = FALSE;
+      
+      for (Integer dom2=0; dom2 < coilIDs.size(); dom2++)	
+	if (abs(coilDef_[dom].ID) == coilIDs[dom2])
+	  isInVec = TRUE;
+      
+      if (!isInVec)
+	coilIDs.push_back(abs(coilDef_[dom].ID));
+      
+      if (abs(coilDef_[dom].ID) > maxID)
+	maxID = coilDef_[dom].ID;
+    }
+
+  Vector<Double> uiID(maxID);
+  uiID.Init();
+
+
+  for (Integer dom=0; dom < coilDef_.size(); dom++)
+    {
+      Integer actCoilID = coilDef_[dom].ID;
+      uiID[abs(actCoilID)-1] += uiSD[dom] * actCoilID/abs(actCoilID);
+    }
+
+
+  *UIfile_ << lasttimecalc_ << " \t";
+  for (Integer actID=0; actID < coilIDs.size(); actID++)
+    {
+      if ( coilDef_[coilIDs[actID]-1].type == MEASUREMENT)   
+	*UIfile_ << uiID[coilIDs[actID]-1] *  coilDef_[coilIDs[actID]-1].coilArea << " \t";
+    }
+  
+  *UIfile_ << myEndl;
+  
+  
+}
+
+
 
 void MagPDE::GetSolOfElement( Vector<Double>& magvecpot, Vector<Integer>& connect_PDE)
 {
@@ -393,11 +536,9 @@ void MagPDE::GetSolOfElement( Vector<Double>& magvecpot, Vector<Integer>& connec
 void MagPDE::GetSolDerivOfElement( Vector<Double>& magvecpot_deriv1, Vector<Integer>& connect_PDE)
 {
 #ifdef TRACE
-    (*trace) << "entering MagPDE::GetSolDerivOfElement" << std::endl;
+  (*trace) << "entering MagPDE::GetSolDerivOfElement" << std::endl;
 #endif
-    if (!savederiv1_)
-      Error("Derivative of solution not evailable!", __FILE__, __LINE__);
-
+  
   // displacement of element nodes
   magvecpot_deriv1.Resize(connect_PDE.size());
   Array<Double> sol_der1 = getS1();

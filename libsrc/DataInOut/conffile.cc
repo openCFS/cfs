@@ -267,19 +267,20 @@ void ConfFile::getCoilData(coilDefStruct& acoil, const std::string section, cons
  else 
    acoil.Lfile = "--not--defined";
 
- keyword = "calc_UI";
- pos=getpos(keyword,pos1,inSection,inSubSection,FALSE);
- if (pos!=std::string::npos) 
-   {
-     infile.seekg(pos, std::ios::beg);
-     infile >> acoil.UIfile;
-   }
- else 
-   acoil.UIfile = "--not--defined";
+//  keyword = "calc_UI";
+//  pos=getpos(keyword,pos1,inSection,inSubSection,FALSE);
+//  if (pos!=std::string::npos) 
+//    {
+//      infile.seekg(pos, std::ios::beg);
+//      infile >> acoil.UIfile;
+//    }
+//  else 
+//    acoil.UIfile = "--not--defined";
 
- if (acoil.UIfile != "--not--defined" && acoil.Lfile !=  "--not--defined")
-   if (acoil.UIfile == acoil.Lfile)
-     Error("Coil_UI-file and Coil_L-file must have different names!");
+//  if (acoil.UIfile != "--not--defined" && acoil.Lfile !=  "--not--defined")
+//    if (acoil.UIfile == acoil.Lfile)
+//      Error("Coil_UI-file and Coil_L-file must have different names!");
+
 }
 
 

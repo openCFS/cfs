@@ -817,6 +817,25 @@ Double operator* (std::vector<Double> & vec1, std::vector<Double> & vec2)
 
 
 
+Double operator* (std::vector<Double> & vec1, Vector<Double> & vec2)
+{
+#ifdef TRACE
+  (*trace) << "entering operator* (std::vector<Double> &, Vector<Double> &)" << std::endl;
+#endif
+
+  if (vec1.size() != vec2.size())
+    Error("Wrong dimensions while multiplying two vectors!",__FILE__,__LINE__);
+
+  Double mult = 0;
+  
+  for (Integer i=0; i < vec1.size(); i++)
+    mult += vec1[i]*vec2[i];
+
+  return mult;  
+}
+
+
+
 std::vector<Double> operator*= (std::vector<Double> & vec, Double val)
 {
 #ifdef TRACE
@@ -934,6 +953,7 @@ std::vector<Double> operator* (Double val, std::vector<Double> & vec)
 
   return result;
 }
+
 
 
 
