@@ -182,7 +182,7 @@ class SpaceErrorEstimator;
   
     //static analysis
   
-    virtual void PreStepStatic(const Integer kstep, const Double asteptime,
+  virtual void PreStepStatic(const Integer kstep, const Double asteptime,
 			       const Integer level, const Boolean reset) {;};
 
   virtual void SolveStepStatic(const Integer kstep, const Double asteptime,
@@ -207,8 +207,6 @@ class SpaceErrorEstimator;
 
  virtual void StepHarmonicLin(const Integer freqStep, const Double frequency, 
 				 Integer level, const Boolean reset);
-    
-    void CreateIncrementedRHSMatrix(Vector<Double> & harmonicRHSVec, const Double frequency,const Integer level);
 
   virtual void StepHarmonicNonLin(const Integer freqStep, const Double frequency, 
 				  Integer level, const Boolean reset)
