@@ -180,9 +180,11 @@ is default(optional)
 \end{itemize}
 and the following attributes
 \begin{itemize}
-\item \xml{formulation} i.e. acoustic pressure or acoustic potential PDE 
-formulation
-\item \xml{subType} for flownoise
+\item \xml{formulation} used to choose between an acoustic pressure or
+      acoustic potential PDE formulation, specified by either choosing
+      either \xml{acouPressure} or \xml{acouPotential} as value.
+      \emph{ Not yet fully supported in CFS++ }.
+\item \xml{subType} for flownoise computations set this to \xml{flowNoise}.
 \end{itemize}
 
 \subsection{Damping and nonlinear acoustic simulation}
@@ -191,10 +193,10 @@ region individually. Damping is a child element of \xml{region},
 type is either no damping, rayleigh damping (which is not physical), 
 thermoviscous damping and fractional damping according to a 
 frequency power law.
-\xml{nonLinear} comes as attribute to region. It can take the value 'no', 
-'westervelt', or 'kuznetsov'.
+\xml{nonLinear} comes as attribute to region. It can take the value \xml{no},
+\xml{westervelt}, or \xml{kuznetsov}.
 
-\subsubsection{Nodal Results}
+\subsection{Nodal Results}
 The config-file command for storing (only) the acoustic potential in the result
 file is
 
@@ -244,7 +246,7 @@ other PDEs, acoustic potential is obligatory. Westervelt's nonlinear PDE is
 in pressure, Kuznetsov's nonlinear PDE is in acoustic potential.
 
 
-\subsubsection{Example}
+\subsection{Example}
 
 {\footnotesize 
 \begin{verbatim}
