@@ -8,7 +8,7 @@ potential). Herefore, the command
 
 \begin{verbatim}
 <storeResults>
-   <nodeResults type="velocity"/>
+   <nodeResults type="mechVelocity"/>
 </storeResults>
 \end{verbatim}
 
@@ -27,8 +27,8 @@ more selected regions.
 To store the results of the regions "bar" and "gap", one has to write
 \begin{verbatim}
 <storeResults>
-   <nodeResults type="velocity" region="bar"/>
-   <nodeResults type="velocity" region="gap"/>
+   <nodeResults type="mechVelocity" region="bar"/>
+   <nodeResults type="mechVelocity" region="gap"/>
 </storeResults>
 \end{verbatim}
 
@@ -39,7 +39,7 @@ In general, saving of element results is, beside the different keyword
 results:
 \begin{verbatim}
 <storeResults>
-   <elemResults type="stress"/>
+   <elemResults type="mechStress"/>
 </storeResults>
 \end{verbatim}
 Again, the values of {\bf type} depend on the regarded PDE. 
@@ -58,13 +58,13 @@ In the config-file, the command is as follows
 
 \begin{verbatim}
 <storeResults>
-   <nodeHistory type="velocity" saveNodes="ptName"/>
+   <nodeHistory type="mechVelocity" saveNodes="ptName"/>
 </storeResults>
 \end{verbatim}
 
 has to be used. The results are stored in the -- if necessary new
 created -- directory {\em history} in a file with the name {\em
-  conf-file-name.ptNr}.hist.
+  'xml-file-name'-'quantity'-'nodeNr'}.hist.
 
 \begin{verbatim}
 nsel,s,loc,x,len-1e-6,len+1e-6
@@ -79,7 +79,7 @@ of saving results on selected nodes. The commands name is {\bf
   elemHistory}, and the necessary keyword {\bf saveElems}:
 \begin{verbatim}
    <storeResults>
-      <elemHistory type="stress" saveElems="elName"/>
+      <elemHistory type="mechStress" saveElems="elName"/>
    </storeResults>
 \end{verbatim}
 

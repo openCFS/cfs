@@ -58,7 +58,7 @@ For the stopping criteria, we have currently the following names:
     <stopCrit value="1e-2" quantity="smoothDisplacement" l2Norm="rel"/>
     <stopCrit value="1e-2" quantity="elecForceVWP" l2Norm="rel"/>
     <stopCrit value="1e-2" quantity="magForceLorentz" l2Norm="rel"/>
-    <stopCrit value="1e-2" quantity="acousticForce" l2Norm="rel"/>
+    <stopCrit value="1e-2" quantity="acouForce" l2Norm="rel"/>
 
 \end{verbatim}
 Instead of using a relative accuracy $\epsilon^{rel}$, i.e. $\|u_{k+1}-u_k\|_2 < \epsilon^{rel} \|u_{k+1}\|_2$ you can as well
@@ -93,7 +93,7 @@ input coupling    & type \\\hline \hline
 nodeCoupling      & elecForceVWP \\
 nodeCoupling      & magForceVWP \\
 regionCoupling    & magForceLorentz \\
-interfaceCoupling & acousticForce 
+interfaceCoupling & acouForce 
 \end{tabular}
 \end{center}
 \end{table}
@@ -205,7 +205,7 @@ as the element normals are needed for calculating the coupling forces.
         <coupling quantity="mechForce" type="interface" name="surf1"/>
       </acoustic>
       <mechanic>
-        <coupling quantity="acousticForce" type="interface" name="surf1"/>
+        <coupling quantity="acouForce" type="interface" name="surf1"/>
       </mechanic>
     </acouMech>
     <nonLinear logging="no">
