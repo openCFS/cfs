@@ -3,6 +3,7 @@
 
 #include "baseForm.hh"
 #include <Forms/nLinElastInt.hh>
+#include "Utils/ApproxData.hh"
 
 namespace CoupledField
 {
@@ -82,6 +83,44 @@ public:
 private:
   /// source factor
   Double val_;
+};
+
+
+// =============================================================================
+// nonlinear magnetics
+// =============================================================================
+
+/// class for calculation of right-hand-side of nonlinear magnetics
+class nLinMagNode2D_linFormInt : public LinearForm
+{
+public:
+  /// constructor
+   nLinMagNode2D_linFormInt(BaseFE * aptelem, MaterialData & matData, Boolean axi=FALSE);
+
+  /// constructor
+   nLinMagNode2D_linFormInt(ApproxData *nlinFnc, Double startVal, Boolean axi=FALSE);
+
+  /// constructor for linear subdomain
+   nLinMagNode2D_linFormInt(Double startVal, Boolean axi=FALSE);
+
+  /// destructor
+  virtual ~ nLinMagNode2D_linFormInt();
+
+  /// Calculation of vector of right hand side 
+  virtual void CalcElemVector(Matrix<Double>& ptCoord, std::vector<Double> & result);
+
+ /// in nonlinear calculations, the actual magnetic vector potential of the element is needed
+  virtual void SetActElemSol(Matrix<Double>& magPot) 
+  { magPotinMatrix_ = magPot; magPot.ConvertToVec_AppendRows(magPot_);};
+  
+protected:
+  /// material data
+  MaterialData matData_;
+
+  Double startmatVal_;
+  ApproxData *nlinFnc_;
+  std::vector<Double> magPot_;
+  Matrix<Double> magPotinMatrix_;
 };
 
 

@@ -45,6 +45,9 @@ public:
   //!
   virtual void PreStepStatic(const Integer level);
 
+  //! nonlinear static step
+  virtual void StepStaticNonLin(const Integer kstep, const Double aTime,
+				const Integer level, const Boolean reset);
   //!
   virtual void PostStepStatic(const Integer level);
 
@@ -118,6 +121,16 @@ protected:
   
   void WriteUI2File(Vector<Double>& uiSD);
 
+  //computes linear part of RHS
+  Double SetLinRHS(const Integer level);
+
+  //
+  void StoreAlgsysToVec(Vector<Double>& vec, Double * pt);
+
+  /// calculates L2-norm of RHS regarding entries due to penalty formulation
+  Double RhsL2Norm(Vector<Double>& stdVec);
+
+  Vector<Double> RhsLinVal_;
 
   StoreSol<Double> B_;  //!< conatins magnetic field
   StoreSol<Double> Jeddy_;  //!< conatins eddy currents field

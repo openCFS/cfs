@@ -55,14 +55,17 @@ public:
   void SetElemPtr(BaseFE * elemPtr){ptelem = elemPtr;};
 
 
-  //! sets pointer to actual element
+  //! sets pointer to actual material
   void SetMaterial(MaterialData * matPtr){ptMaterial = matPtr;};
 
 
   //! sets actual element solution
   virtual void SetActElemSol(Matrix<Double>& disp)
   {Error("SetActElemSol not implemented!",__FILE__,__LINE__);};
-  
+
+  //! reads the values y(x) out of the file with name fncName  
+  void ReadNlinFunc(std::string fncName, std::vector<double> &xval, std::vector<Double> &yval);
+
 
 protected:
 

@@ -409,8 +409,8 @@ void ElecPDE::CalcNodeForce(StoreSol<Double> & force,
   //std::cerr << "Sum of E-Force:" << std::endl << sum << std::endl;
   
   // write information in .info-file
-  //  Info->PrintF(pdename_, "Sum of electrostatic force:");
-  //  Info->PrintVec(sum);
+  Info->PrintF(pdename_, "Sum of electrostatic force (VWM):");
+  Info->PrintVec(sum);
 }
 
 
@@ -868,10 +868,23 @@ void ElecPDE::CalcInterfaceForces(Integer actCoupling)
 	}
     }
 
-  Vector<double> res;
-  elemCouplingSols-> GetCompleteVector(res);
-  *cla << "elem Force: " << myendl << res << myendl;
-  *cla << "according x-coords of elem Force: " << myendl << xPosCoupleNode << myendl;
+  Vector<double> force;
+  elemCouplingSols-> GetCompleteVector(force);
+
+  Vector<Double> sum;
+  sum.Resize(dim_);
+  
+  Integer k = 0;
+  for (Integer i=0; i<force.GetSize(); i++)
+    for (Integer dim=0; dim<dim_; dim++)
+      {
+	sum[dim] += force[k];
+	k++;
+      }
+
+  Info->PrintF(pdename_, "Sum of electrostatic force (Interface):");
+  Info->PrintVec(sum); 
+
 }
 
 

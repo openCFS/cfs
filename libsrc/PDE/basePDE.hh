@@ -594,6 +594,7 @@ class SpaceErrorEstimator;
     Double incStopCrit_;       //!< stopping criterion for incremental error
     Double residualStopCrit_;  //!< stopping criterion for residual error
     Boolean lineSearch_;       //!< switch for lineSearch
+    Integer nonLinMaxIter_;    //!< maximal number of NL-iterations
 
     //@}
 

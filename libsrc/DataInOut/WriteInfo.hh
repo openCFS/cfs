@@ -12,6 +12,7 @@
 
 
 #include <General/environment.hh>
+#include "Matrix/matrix.hh"
 
 namespace CoupledField
 {
@@ -102,6 +103,9 @@ namespace CoupledField
 
     /// prints a standard vector of strings, each string in a new line
     void PrintVec(const char * comment, std::vector<std::string>& vec);
+
+    /// prints a matrix with a leading commnet
+    void PrintMatrix(std::string & comment, const Matrix<Double> & mat);
 
     /// does a formatted print leaded by the PDE name, equal to std::printf(...)
     void PrintF(const std::string& pdeName, const char * formatStr ...);

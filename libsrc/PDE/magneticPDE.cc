@@ -14,7 +14,7 @@
 #include "trapezoidal.hh"
 #include "Utils/Coil.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
-
+#include "Utils/SmoothSpline.hh"
 #include "magneticPDE.hh"
 
 namespace CoupledField {
@@ -65,6 +65,37 @@ namespace CoupledField {
 
     //check for permanent magnets
     conf->ifgetliststr("list_magnets", magnetsDomain_, pdename_);
+
+
+    //check for nonlinearity
+    nonLin_ = FALSE;
+    nonLin_ = conf->get_option( "nonlin",  pdename_ );
+
+    if( nonLin_ == TRUE )
+      {
+#ifndef XMLPARAMS
+	// incremental stopping criterion
+	incStopCrit_ = 1e-3;
+	conf->ifget("incStopCrit", incStopCrit_, pdename_);
+
+	// residual stopping criterion
+	residualStopCrit_ = 1e-3;
+	conf->ifget("residualStopCrit", residualStopCrit_, pdename_);
+
+	// maximal number of NL-iterations
+	nonLinMaxIter_ = 100;
+	conf->ifget("nonlinMaxIter", nonLinMaxIter_, pdename_);
+#else
+	// incremental stopping criterion
+	params->Get( "incStopCrit", incStopCrit_, pdename_, "nonLinear" );
+
+	// residual stopping criterion
+	params->Get( "resStopCrit", residualStopCrit_, pdename_, "nonLinear" );
+
+	// maximal number of NL-iterations
+	//	params->Get("nonlinMaxIter", nonLinMaxIter_, pdename_, "nonLinear");
+#endif
+      }
 
     //check for postprocessing
     conf->ifgetliststr("calc_BField",calcBfield_,pdename_); 
@@ -129,15 +160,49 @@ namespace CoupledField {
 	  Error("Permeability can not be zero!");
 
 	reluctivity = 1/reluctivity;
-	BaseForm * curlcurl2D = new CurlCurlNode2DInt(reluctivity, isaxi_);
-	assemble_->AddIntegrator(curlcurl2D, subdoms_[actSD], STIFFNESS,
-				 nonLin);
+
+	nonLin = FALSE;
+
+	BaseForm * curlcurl2D;
+
+	if (actSD == 1 && nonLin_==TRUE)
+	  {
+	    //just for testing
+
+	    //read in the BH-curve data and compute the approximation
+	    std::string nlfnc = "bh1.fnc";
+	    ApproxData *nlinFnc = new SmoothSpline(nlfnc);
+	    nlinFnc->CalcBestParameter();
+	    nlinFnc->CalcApproximation();
+
+	    curlcurl2D = new nLinCurlCurlNode2DInt(nlinFnc,reluctivity, isaxi_);
+	    nonLin = TRUE;
+	    assemble_->AddIntegrator(curlcurl2D, subdoms_[actSD], STIFFNESS,
+				     nonLin);
+
+	    // do RHS!!
+	    BaseForm * rhsSource = new nLinMagNode2D_linFormInt(nlinFnc, reluctivity, isaxi_);
+	    assemble_->AddRhsIntegrator(rhsSource, subdoms_[actSD], nonLin_);
+	  }
+	else
+	  {
+	    curlcurl2D = new CurlCurlNode2DInt(reluctivity, isaxi_);
+	    assemble_->AddIntegrator(curlcurl2D, subdoms_[actSD], STIFFNESS,
+				     nonLin);
+	    if (nonLin_==TRUE) {
+	      // do RHS!!
+	      BaseForm * rhsSource = new nLinMagNode2D_linFormInt(reluctivity, isaxi_);
+	      assemble_->AddRhsIntegrator(rhsSource, subdoms_[actSD], nonLin_);
+	    }
+	  }
 
 	Double conductivity = materialData_[actSD].GetConductivity();      
 	BaseForm * bilinear_mass  = new MassInt(conductivity, dofspernode_,
 						isaxi_);
 	assemble_->AddIntegrator(bilinear_mass, subdoms_[actSD], MASS, nonLin);
 
+
+	//=========================== RHS ==============================================
 	iscoil = FALSE;
 	for (Integer dom=0; dom<coilDef_.size(); dom++)
 	  if (subdoms_[actSD] == coilName_[dom]) 
@@ -177,10 +242,186 @@ namespace CoupledField {
   }
 
 
+void MagPDE::StepStaticNonLin(const Integer kstep, const Double aTime,
+			      const Integer level, const Boolean reset)
+{
+  ENTER_FCN( "MagPDE::SolveStepStaticNonLin" );
+
+  const Integer job = 1;
+  Boolean performOneMoreStep;
+  Integer iterationCounter=0;
+  
+  Vector<Double> solInc(numPDENodes_);
+  Vector<Double> actSol(numPDENodes_);
+
+  sol_->GetCompleteVector(actSol);
+
+  SetBCs(level, updateBCs_, 0);
+
+  // setup right hand side ==============================================      
+  Double RhsLinL2Norm = SetLinRHS(level); 
+
+  //add nonlinear part to RHS 
+  assemble_->AssembleNLRHS(level);
+
+  do
+    {
+      iterationCounter++;
+
+      std::cout << std::endl << "Nonlinear Magnetics: Perform internal loop nr. " 
+		<< iterationCounter << std::endl;      
+
+#ifdef DEBUG
+      *debug << std::endl << "====================================================== " << std::endl
+	     <<	"Nonlinear Mechanics: Perform internal loop nr. " << iterationCounter << std::endl;      
+#endif
+
+      // setup and solve new system (rhs is already set) =====================
+      assemble_->InitNonLinMatrices();
+      assemble_->AssembleMatrices(level);
+      
+#ifdef USE_OLAS
+      algsys_->BuildInDirichlet();
+      algsys_->SetupPrecond(job);
+#else
+      algsys_->CalcPrecond(job);
+#endif
+
+      algsys_->Solve();
+
+      // new solution is only an increment of the full solution =============
+      StoreAlgsysToVec(solInc, algsys_->GetSolutionVal() );
+      
+      actSol += solInc;
+      sol_->SetCompleteVector(actSol);
+
+
+      // recalculate RHS with new values to get new residual (f^(k+1))========
+#ifndef USE_OLAS    
+      std::vector<Double>  help;
+      RhsLinVal_.ToStdVector(help);
+      algsys_->InitRHS(help);
+#endif
+
+      assemble_->AssembleNLRHS(level);  // nonlinear part of RHS
+
+
+      // calculation of residual error (takes care for Dirichlet BCs========
+      Vector<Double> actRHS;
+      StoreAlgsysToVec(actRHS, algsys_->GetRHSVal() );       
+	  
+      Double residualL2Norm;
+      residualL2Norm = RhsL2Norm(actRHS); // L2Norm of  ( f_i^(k+1) - f_a )
+
+
+      // calculation of residual error =======================================
+      Double residualErr;
+      if (RhsLinL2Norm > 1.0)
+	 residualErr = residualL2Norm / RhsLinL2Norm;
+      else
+	residualErr = residualL2Norm;
+
+
+      // calculate incremental error ========================================
+      Double solIncrL2Norm = solInc.NormL2();
+      Double actSolL2Norm  = actSol.NormL2();
+      
+      Double incrementalErr;      
+      if (actSolL2Norm > 1.0)
+	incrementalErr = solIncrL2Norm / actSolL2Norm;
+      else
+	incrementalErr = solIncrL2Norm;
+
+      // =====================================================================
+      // output of norms and data
+      // =====================================================================
+      Double etaLineSearch = 1;
+      Info->WriteNonLinIter(pdename_, iterationCounter, residualErr, incrementalErr, etaLineSearch);
+
+
+      // boolean variable, holds condition if another iteration step is necessary
+      performOneMoreStep = 
+	(incrementalErr > incStopCrit_) || (residualErr > residualStopCrit_);      
+      
+      
+      if (!(performOneMoreStep && iterationCounter < maxnumiter_))
+	mycout << "incrementalErr " << incrementalErr << myendl 
+	       << "incStopCrit_ " << incStopCrit_ << myendl
+	       << "residualErr " << residualErr  << myendl
+	       << "residualStopCrit_ " << residualStopCrit_ << myendl;
+
+    }while(performOneMoreStep && iterationCounter < nonLinMaxIter_);  
+
+}
+
+
+// sets excitation coil and returns L2Norm of them
+Double MagPDE::SetLinRHS(const Integer level)
+{
+  ENTER_FCN( "MagPDE::SetCoilExcitations" );
+
+  Double RhsLinL2Norm;  
+
+  // to incorporate loads
+  assemble_->AssembleSrcRHS(level, lasttimecalc_);
+  
+
+  // stores rhs vector into extForces and returns that L2-norm
+  StoreAlgsysToVec(RhsLinVal_, algsys_->GetRHSVal() );
+
+  RhsLinL2Norm = RhsLinVal_.NormL2();
+ 
+  //  if extForcesL2Norm is 0, no residual norm can be calculated
+  if (!RhsLinL2Norm)
+    Warning("Zero external force vector!! ", __FILE__,__LINE__);
+  
+  return RhsLinL2Norm;
+}
+
+
+// calculates L2-norm of RHS regarding dirichlet entries due to penalty formulation by setting them 0
+Double MagPDE::RhsL2Norm(Vector<Double>& actRHS)
+{
+  ENTER_FCN( "MagPDE::RhsL2Norm" );
+
+  Integer node;
+  
+  std::list<Integer> nodes;
+
+  // Eliminate dirichlet node from RHS (due to penalty formulation)
+  for (Integer i=0; i< bcs_hd_.size(); i++)
+    {
+      nodes=ptBCs_->GetNodesLevel(bcs_hd_[i]);
+      
+      for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end(); p++)
+	{
+	  node=*p;
+	  actRHS[mesh2PDENode_[node-1]-1] = 0;
+	}
+    }
+
+  return actRHS.NormL2();
+}
+
   void MagPDE::PostStepStatic(const Integer level) {
     ENTER_FCN( "MagPDE::PostStepStatic" );
     if (pdeIsCoupled_) iterCoupledCounter_++;
   }
+
+
+
+// stores an algsys_ vector into a std::vector and returns that L2-norm
+void MagPDE::StoreAlgsysToVec(Vector<Double>& vec, Double * pt)
+{
+  ENTER_FCN( "MagPDE::StoreAlgsysToVec" );
+
+  const Integer numElems = numPDENodes_ * dofspernode_;
+  
+  vec.Resize(numElems);
+
+  for (Integer i=0; i<numElems; i++)   
+    vec[i] = pt[i];
+}
 
 
   // ======================================================
