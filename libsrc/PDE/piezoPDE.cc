@@ -98,7 +98,7 @@ namespace CoupledField {
     }
     else {
       dampingType_ = NONE;
-      Info->PrintF( pdename_, " Using no damping\n" );
+      Info->PrintF( pdename_, "Using no damping\n" );
     }
     if( dampingType_ != NONE ) {
       needsDampingMatrix_ = TRUE;
@@ -433,29 +433,6 @@ void PiezoPDE::ReadStoreResults() {
   StdVector<std::string> elemResults;
   keyVec  = pdename_, "storeResults", "elemResults", "region";
 
-
-  // --- Mechanic Stress ---
-  Enum2String(MECH_STRESS, quantity);
-  valVec  = "", "", quantity;
-  params->GetList( keyVec, attrVec, valVec, calcStress_ );
-
-
-  // If the symbolic name is "all" compute electric field for all regions
-  if ( calcStress_.GetSize() == 1 && calcStress_[0] == "all" ) {
-    calcStress_ = subdoms_;
-  }
-
-  // Log to info file
-  if ( calcStress_.GetSize() > 0 ) {
- 	hasOutput_ = TRUE;
-    Info->PrintF( pdename_,
-		  "Computing mechanical stress for regions:\n" );
-    for ( Integer k = 0; k < calcStress_.GetSize(); k++ ) {
-      Info->PrintF( pdename_, "%s\n", calcStress_[k].c_str() );
-    }
-  }
-
-
   // --- Electric Field Intensity ---
   Enum2String(ELEC_FIELD_INTENSITY, quantity);
   valVec  = "", "", quantity;
@@ -468,11 +445,12 @@ void PiezoPDE::ReadStoreResults() {
 
   if ( calcEfield_.GetSize() > 0 ) {
     hasOutput_ = TRUE;
-    Info->PrintF( pdename_, " Computing electric field for regions:" );
+    Info->PrintF( pdename_, "Computing electric field for regions:\n" );
 
     for ( Integer k = 0; k < calcEfield_.GetSize(); k++ ) {
       Info->PrintF( pdename_, "%s\n", calcEfield_[k].c_str() );
     }
+    Info->PrintF( "", "\n" );
 
     if ( analysistype_ == HARMONIC ) {
       EfieldComplex_.SetNumSolutions(1);
@@ -504,29 +482,35 @@ void PiezoPDE::ReadStoreResults() {
 
   // Log to info file
   if ( calcStress_.GetSize() > 0 ) {
-  	hasOutput_ = TRUE;
+    hasOutput_ = TRUE;
     Info->PrintF( pdename_,
 		  "Computing mechanical stress for regions:\n" );
     for ( Integer k = 0; k < calcStress_.GetSize(); k++ ) {
       Info->PrintF( pdename_, "%s\n", calcStress_[k].c_str() );
     }
-    if(analysistype_ == HARMONIC){
+    Info->PrintF( "", "\n" );
+
+    if( analysistype_ == HARMONIC ) {
+
       // Resize solution arrays
       stressComplex_.SetNumSolutions(1);
       stressComplex_.SetSolutionType(MECH_STRESS);
       stressComplex_.SetNumElems(numElems_);
-      //we always store for six components (unverg-file-format as capa does
+
+      // We always store for six components (unverg-file-format as capa does
       stressComplex_.SetNumDofs(6);
       stressComplex_.SetPtrEQNData(eqnData_, ptgrid_, actlevel_);
       stressComplex_.Init(0);
     }
-    else{
+
+    else {
 
       // Resize solution arrays
       stress_.SetNumSolutions(1);
       stress_.SetSolutionType(MECH_STRESS);
       stress_.SetNumElems(numElems_);
-      //we always store for six components (unverg-file-format as capa does
+
+      // We always store for six components (unverg-file-format as capa does
       stress_.SetNumDofs(6);
       stress_.SetPtrEQNData(eqnData_, ptgrid_, actlevel_);
       stress_.Init(0);
@@ -539,34 +523,33 @@ void PiezoPDE::ReadStoreResults() {
   params->GetList( "region", chargeNeighborRegion_, pdename_, "charge" );
   params->GetList( "element", calcCharge_, pdename_, "charge" );
 
-  if (calcCharge_.GetSize() > 0)
-    {
-      hasOutput_ = TRUE;
-      Info->PrintF( pdename_,
-		    "Computing electric charges for regions:\n" );
-      for ( Integer k = 0; k < calcCharge_.GetSize(); k++ ) {
-	Info->PrintF( pdename_, "%s", calcCharge_[k].c_str() );
-      } 
-      // Resize solution arrays
-      if(analysistype_==HARMONIC)
-	{
-	  chargesComplex_.SetNumSolutions(1);
-	  chargesComplex_.SetSolutionType(ELEC_CHARGE);
-	  chargesComplex_.SetNumElems(numElems_);
-	  chargesComplex_.SetNumDofs(1);
-	  chargesComplex_.SetPtrEQNData(eqnData_, ptgrid_, actlevel_);
-	  chargesComplex_.Init();
-	}
-      else
-       {
-	charges_.SetNumSolutions(1);
-	charges_.SetSolutionType(ELEC_CHARGE);
-	charges_.SetNumElems(numElems_);
-	charges_.SetNumDofs(1);
-	charges_.SetPtrEQNData(eqnData_, ptgrid_, actlevel_);
-	charges_.Init();
-      }
-    } 
+  if ( calcCharge_.GetSize() > 0 ) {
+
+    hasOutput_ = TRUE;
+    Info->PrintF( pdename_, "Computing electric charges for regions:\n" );
+    for ( Integer k = 0; k < calcCharge_.GetSize(); k++ ) {
+      Info->PrintF( pdename_, "%s\n", calcCharge_[k].c_str() );
+    }
+    Info->PrintF( "", "\n" );
+
+    // Resize solution arrays
+    if( analysistype_ == HARMONIC ) {
+      chargesComplex_.SetNumSolutions(1);
+      chargesComplex_.SetSolutionType(ELEC_CHARGE);
+      chargesComplex_.SetNumElems(numElems_);
+      chargesComplex_.SetNumDofs(1);
+      chargesComplex_.SetPtrEQNData(eqnData_, ptgrid_, actlevel_);
+      chargesComplex_.Init();
+    }
+    else {
+      charges_.SetNumSolutions(1);
+      charges_.SetSolutionType(ELEC_CHARGE);
+      charges_.SetNumElems(numElems_);
+      charges_.SetNumDofs(1);
+      charges_.SetPtrEQNData(eqnData_, ptgrid_, actlevel_);
+      charges_.Init();
+    }
+  } 
   
   // *****************************
   // Determine nodal history
