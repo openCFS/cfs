@@ -262,6 +262,8 @@ void ElecPDE::WriteResultsInFile(Integer stepOffset,
 		*data << std::endl;
 		
 	      }
+	    break;
+
 	  case ELEM:
 	    Error( "Element input coupling not implemented for elecPDE",
 		   __FILE__, __LINE__ );
