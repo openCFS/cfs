@@ -31,7 +31,8 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
    sol_(NULL),
    isAlwaysStatic_(FALSE),
    dampingType_(NONE),
-   needsDampingMatrix_(FALSE)
+   needsDampingMatrix_(FALSE),
+   isIncrFormulation_(FALSE)
 {
 
   ENTER_FCN( "BasePDE::BasePDE" );
@@ -694,7 +695,6 @@ void BasePDE::StepTransLin(const Integer kstep, const Double asteptime,
   Double * ptsol;
   Integer update,job;
    
-
   //account for RHS
   assemble_->AssembleSrcRHS(level,lasttimecalc_);
 
@@ -702,11 +702,9 @@ void BasePDE::StepTransLin(const Integer kstep, const Double asteptime,
   NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
 
   if ( pdeIsCoupled_ == FALSE || iterCoupledCounter_ == 0)
-    {    
-      
+    {        
       Vector<Double> solvector= solhelp->GetAlgSysVector();
       TS_alg_->Predictor(solvector);
-      
     }
   
 
@@ -745,6 +743,9 @@ void BasePDE::StepTransLin(const Integer kstep, const Double asteptime,
 
       // The following section is only an experiment up to now
       if (geoUpdate_ == TRUE && pdeIsCoupled_ == TRUE){
+	if (isIncrFormulation_) 
+	  Error("Incremental Formulation and geoUpdate currently not working together");
+	
 	job = 1;
 	assemble_->AssembleMatrices(level);
 	algsys_->ConstructEffectiveMatrix(matrix_factor_);	
@@ -753,7 +754,16 @@ void BasePDE::StepTransLin(const Integer kstep, const Double asteptime,
     }
 
 
+  if (isIncrFormulation_) {
+    Vector<Double> & solvector = \
+      dynamic_cast<NodeStoreSol<Double>*>(sol_)->GetAlgSysVector();
+
+    solvector *= -1;
+    algsys_->UpdateRHS(SYSTEM,solvector.GetPointer());
+  }
+
   TS_alg_->UpdateRHS();
+
 
   SetBCs(level,update,lasttimecalc_);
 #ifdef USE_OLAS
@@ -766,8 +776,26 @@ void BasePDE::StepTransLin(const Integer kstep, const Double asteptime,
   algsys_->Solve();
   ptsol = algsys_->GetSolutionVal();
 
-  //sol_->SetDataPointer(ptsol);
-  sol_->CopyFromAlgSysDataPointer(ptsol);
+  if (isIncrFormulation_) {
+
+    //what a heuristic!!!!!
+    Double relaxVal = 0.5;
+    
+    if (iterCoupledCounter_ == 0)
+      relaxVal = 0.1;
+    if (iterCoupledCounter_ == 1)
+      relaxVal = 0.25;
+
+    StoreAlgsysToVec(solIncr_, ptsol);
+    if (iterCoupledCounter_ == 0)
+      actSol_ = solIncr_*relaxVal;
+    else 
+      actSol_ += solIncr_*relaxVal;
+
+    sol_->SetAlgSysVector(actSol_);
+  }
+  else
+    sol_->CopyFromAlgSysDataPointer(ptsol);
   
 
   Vector<Double> & solvector =\
@@ -2110,6 +2138,18 @@ void BasePDE::sortStresses(Vector<Complex>& unsorted, Vector<Complex>& sorted){
 
 }
 
+
+//stores an algsys_ vector into a StdVector and returns that L2-norm
+void BasePDE::StoreAlgsysToVec(Vector<Double>& vec, Double * pt)
+{
+  ENTER_FCN( "BasePDE::StoreAlgsysToVec" );
+
+  //const Integer numElems = numPDENodes_ * dofspernode_;
+  Integer numElems = eqnData_->GetNumEQNs() * eqnData_->GetNumDofsPerEQN();
+
+  for (Integer i=0; i<numElems; i++)   
+    vec[i] = pt[i];
+}
 
 } // end of namespace
 

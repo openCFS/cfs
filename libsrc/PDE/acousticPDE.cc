@@ -214,6 +214,13 @@ namespace CoupledField {
     for (Integer i=0; i<ptCoupling_->GetNumOutputCouplings(); i++) {
       if (ptCoupling_->GetOutputQuantity(i) == ACOU_FORCE)	{
 	ptCoupling_->CreateCouplingVector(i,isComplex_);
+
+	//now since we need a incremental formulation, initialize some necessary vectors
+	isIncrFormulation_ = TRUE;
+	solIncr_.Resize(eqnData_->GetNumEQNs() * eqnData_->GetNumDofsPerEQN());
+	actSol_.Resize(eqnData_->GetNumEQNs() * eqnData_->GetNumDofsPerEQN());
+	solIncr_.Init(0);
+	actSol_.Init(0);
       }
     }
 
