@@ -14,7 +14,7 @@ RANLIB=ranlib
 #
 # Machine dependent flags:
 #
-CFLAGS1=-c -DDEBUG -DTRACE $(INCL)
+CFLAGS1=-c -DDEBUG -DTRACE -DGRIDLIB $(INCL)
 FLAG_MKSHLIB = -v -shared 
 #
 #CFLAGS1 = 

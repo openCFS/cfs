@@ -1,8 +1,9 @@
 #ifndef FILE_DOMAIN_2001
 #define FILE_DOMAIN_2001
 
-#include "interface_gridcfs.hh"
-#include "interface_netgen.hh"
+//#include "interface_gridcfs.hh"
+//#include "interface_netgen.hh"
+#include "grid.hh"
 #include "basepde.hh"
 
 namespace CoupledField

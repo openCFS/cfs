@@ -2,9 +2,12 @@
 #define FILE_INTERFACE_PILES_2002
 
 #include <abstractAlgSys.hh>
+
+#ifdef GRIDLIB
+using namespace std;
 #include <general.hh>
 #include <multigrid.hh>
-
+#endif
  
 namespace CoupledField
 {

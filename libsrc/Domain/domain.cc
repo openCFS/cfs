@@ -4,6 +4,12 @@
 
 #include "domain.hh"
 #include "interface_piles.hh"
+#include "interface_gridcfs.hh"
+
+#ifdef GRIDLIB
+#include "interface_gridlib.hh"
+#endif
+
 #include "elec2dPDE.hh"
 #include "therm2dPDE.hh"
 #include "acoustic2dPDE.hh"
@@ -28,11 +34,15 @@ Domain<Dim> :: Domain(FileType * const aptFileType, WriteResults<Dim> * ptOut,  
   conf->get("mesh_library",libmesh);
 
  // initialize pointer to grid 
- //  if (libmesh =="gridlib") ptgrid=new InterfaceGridlib<Dim>(InFile);
-//  else
+#ifdef GRIDLIB
+   if (libmesh =="gridlib") ptgrid_=new InterfaceGridlib<Dim>(InFile_);
+  else
+#endif
   if (libmesh =="cfsgrid") ptgrid_=new GridInterfaceCFS<Dim>(InFile_);
+#ifdef NETGEN
     else 
   if (libmesh == "netgen") ptgrid_=new InterfaceNetGen<Dim>(InFile_);
+#endif
    else
      Error("Unknown type of mesh_library in conf-file",__FILE__,__LINE__);
 

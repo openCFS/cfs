@@ -48,8 +48,10 @@ clean:
 #
 ########## Make link to include
 #
-link-include: 
-	@echo DDD 
+make-include: $(src:.cc=.hh) $(src_h) 
+	@for n in $(src:.cc=.hh); do \
+        (ln -sf $$n $(Include)/$$n) ;\
+        done
 #
 ######### Make depend 
 #

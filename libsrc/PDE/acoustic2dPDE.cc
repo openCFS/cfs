@@ -208,7 +208,7 @@ void Acoustic2dPDE::SetBCs(BCs * ptBCs, const Integer level, const Integer updat
     val=ptTimeFunc_->TimeFuncAtTime(atime,level);    
 
     Integer i=0;
-    for (list<NodeRestraint>::const_iterator p=restr.begin(); p!=restr.end(); p++, i++)
+    for (std::list<NodeRestraint>::const_iterator p=restr.begin(); p!=restr.end(); p++, i++)
    {
           Integer node=p->nodalnum;
           if (p->dof==doftype_)

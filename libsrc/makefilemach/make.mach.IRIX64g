@@ -24,8 +24,8 @@ UNDER  =
 #
 #CFLAGS2 = -n32 -D TRACE -D DEBUG -w -I. -I/usr/include/X11 -I/usr/include/CC -I/usr/include
 #
-CFLAGS1 = -LANG:std -n32 -g -prelink -ptused -D TRACE -D DEBUG 
-CFLAG_EXE=  -LANG:std -n32 -g
+CFLAGS1 = -LANG:std -n32 -g -prelink -ptused -w -D TRACE -D DEBUG -D GRIDLIB
+CFLAG_EXE=  -LANG:std -n32 -g -w
 #
 #ifeq "$(TYPEOFLIB)" "SHARED"
 #LINKFLAGS2=-shared 

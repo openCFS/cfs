@@ -55,7 +55,7 @@ public:
 
   /// Print coordinates of grid in out
   virtual void PrintCoordinate(const Integer level, std::ostream * out) const
-  { Error("Not implemented yet  PrintCoordinate");}
+  { Error("Not implemented yet  PrintCoordinate"); }
 
   /// Put information about grid
   void Read();
@@ -65,11 +65,16 @@ public:
 
   //! Get number of subdomains
   virtual Integer GetNumSubdomains() const
-  { Error("Not implemented");}
+  { Error("Not implemented"); return 0;}
 
   //! Get pointer to array with nodes, that belongs to subdomain number num
   virtual Integer * GetElemSubdomain(const Integer num, const Integer level) const
-   { Error("Not implemented");}
+   { Error("Not implemented"); return NULL;}
+
+  //! Get pointer to array 
+   virtual BaseElem ** getptArrayElem() const 
+    { Error("Not implemented"); return NULL;}
+   
 
 private:
 

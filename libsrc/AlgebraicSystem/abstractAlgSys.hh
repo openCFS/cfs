@@ -73,7 +73,7 @@ public:
     \param nsys system id
     \param matrix_id type of matrix (mass, stif,..)
   */
-  virtual void ResetAlgSys(Integer nsys, Integer nsys, Integer matrix_id)=0;
+  virtual void ResetAlgSys(Integer nsys, Integer nsys2, Integer matrix_id)=0;
 
   //! Set RHS-vector of system matrix_row to zero
   virtual void ResetRHS(Integer matrix_row)=0;
