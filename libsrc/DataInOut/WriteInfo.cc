@@ -20,8 +20,7 @@ namespace CoupledField
 
   WriteInfo::WriteInfo (const Char * name)
   {
-    ENTER_FCN( "WriteInfo::WriteInfo" );
-
+ 
     std::string filename(name);
     filename += ".info";
   
@@ -49,8 +48,7 @@ namespace CoupledField
 
   void WriteInfo::PrintHeader()
   {
-    ENTER_FCN( "WriteInfo::PrintHeader" );
-
+   
     std::stringstream header;
     std::string compileDate = __DATE__;
   

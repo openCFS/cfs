@@ -290,9 +290,7 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 	errmsg += "Dirichlet Boundary Conditions";
 	Info->Error( errmsg, __FILE__, __LINE__ );
       }
-    
-
-    
+        
     // initialize eqation data object
     //eqnData_  = new BlockNodeEQN(ptgrid_, ptBCs_, subdoms_, 
     //    				 actlevel_, dofspernode_);
@@ -301,11 +299,10 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 
     eqnData_->SetHomoDirichletBCs(bcs_hd_, homDirichDof_);
     eqnData_->CalcMapping();
-    //   eqnData_->Print(std::cerr);
+      //   eqnData_->Print(std::cerr);
     numPDENodes_ = eqnData_->GetNumLocalNodes();
     numElems_ = eqnData_->GetNumLocalElems();
     size_        = numPDENodes_ * dofspernode_;
-    
     
     // Initialize solution class
     sol_->SetNumSolutions(1);
@@ -339,7 +336,6 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
   assemble_->SetPtr2TimeFnc(ptTimeFunc_);
 
   ReadMaterialData();
-    
   DefineIntegrators(actlevel_);
 
 #ifndef XMLPARAMS

@@ -132,7 +132,9 @@ namespace CoupledField
   void LoadMaterialData :: FindMat(std::ifstream & fin, const char* matName, char* buffer, char* matType)
   {
     ENTER_FCN( "LoadMaterialData::FindMat" );
-
+    
+    std::string errMsg;
+    
     Integer found = 0;
     Integer pos;
     char tempMatName[bufLength];
@@ -148,7 +150,8 @@ namespace CoupledField
 	sscanf(buffer,"%*d%s",tempMatType);
 	sscanf(buffer,"%*d%*s%s",tempMatName);
 
-	if ( strcmp(matName,tempMatName) == 0 &&  strcmp(matType, tempMatType) == 0)
+	if ( strcmp(matName,tempMatName) == 0 &&  
+	     strcmp(matType, tempMatType) == 0)
 	  {
 	    found = 1;
 	    fin.seekg(pos, std::ios::beg);
@@ -157,8 +160,12 @@ namespace CoupledField
 
     if (!found)
       {
-	std::cout << std::endl << " FindMat: Material " << matName << " not found! " << std::endl;
-	exit(EXIT_FAILURE);
+	errMsg  = "FindMat: Material '";
+	errMsg += matName;
+	errMsg += "' not found in file '";
+	errMsg += filename;
+	errMsg += "'!";
+	Error(errMsg.c_str(), __FILE__, __LINE__);
       }       
   }
 

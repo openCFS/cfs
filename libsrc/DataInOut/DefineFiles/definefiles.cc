@@ -62,6 +62,38 @@ namespace CoupledField
     strcat( basename, rank );
 #endif
 
+    // *************************
+    //   Handle Parameter File
+    // *************************
+
+#ifndef XMLPARAMS
+
+    // Generate configuration file object and pass address to global pointer
+    // Note: This is the old-fashioned conffile format
+    Info->StartProgress("Reading in .conf-file");
+    conf = new ConfFile(name);
+    if (!conf) Error("Can't open conf-file");
+    Info->FinishProgress();
+
+#else
+
+    conf = NULL;
+
+    // Generate parameter handler and pass address to global pointer
+    // Note: This is the new XML-based conffile format
+    strcpy( auxfile, name );
+    strcat( auxfile, ".xml" );
+
+#ifdef USE_XERCES
+    params = new XMLParamHandler( auxfile );
+#else
+    params = new PlainXMLParamHandler( auxfile );
+#endif
+
+#endif
+    
+    Info->StartProgress("Creating additional output files");
+
 #ifdef TRACE
     strcpy(auxfile, basename);
     trace = new std::ofstream(strcat(auxfile,".trace"));
@@ -91,40 +123,14 @@ namespace CoupledField
     if (!data) Error("Can't open data-file");
 
 
-    // *************************
-    //   Handle Parameter File
-    // *************************
-
-#ifndef XMLPARAMS
-
-    // Generate configuration file object and pass address to global pointer
-    // Note: This is the old-fashioned conffile format
-    conf = new ConfFile(name);
-    if (!conf) Error("Can't open conf-file");
-
-#else
-
-    conf = NULL;
-
-    // Generate parameter handler and pass address to global pointer
-    // Note: This is the new XML-based conffile format
-    strcpy( auxfile, name );
-    strcat( auxfile, ".xml" );
-
-#ifdef USE_XERCES
-    params = new XMLParamHandler( auxfile );
-#else
-    params = new PlainXMLParamHandler( auxfile );
-#endif
-
-#endif
-
     // Initialise internal pointers
     ptWriteResults_ = NULL;
     infileType_ = NULL;
 
     // ???
     flags = new Flags();
+
+    Info->FinishProgress();
 
   }
  
