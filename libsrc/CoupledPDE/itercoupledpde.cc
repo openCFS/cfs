@@ -66,37 +66,67 @@ namespace CoupledField
 
 		// Read in node coupling terms
 		if (conf->ifgetliststr(CouplingTerms[j], NodeCouplings, PDEs_[i]->GetName(), "node_coupling"))
+		  {
 		  for (Integer k=0; k<NodeCouplings.size(); k++)
 		    {
 		      Couplings_[i]->AddInput(CouplingTerms[j], NodeCouplings[k], NODES, actlevel_, Couplings_);
 		      norms_.push_back(1.0);
 		    }
-		else
-		  // Read in subdomain coupling terms
-		  if (conf->ifgetliststr(CouplingTerms[j], SubdomainCouplings, PDEs_[i]->GetName(), "subdomain_coupling"))
-		    for (Integer k=0; k<SubdomainCouplings.size(); k++)
-		      {
-			Couplings_[i]->AddInput(CouplingTerms[j], SubdomainCouplings[k], SUBDOMAIN, actlevel_, Couplings_);
-			norms_.push_back(1.0);
-		      }
-		  else
-		    // Read in elem1D coupling terms
-		    if (conf->ifgetliststr(CouplingTerms[j], Elem1DCouplings, PDEs_[i]->GetName(), "elem1d_coupling"))
-		      for (Integer k=0; k<Elem1DCouplings.size(); k++)
+		  }
+		
+		else if (conf->ifgetliststr(CouplingTerms[j], SubdomainCouplings, PDEs_[i]->GetName(), 
+					    "subdomain_coupling"))
+		  {
+		    // Read in subdomain coupling terms
+		    if (conf->ifgetliststr(CouplingTerms[j], SubdomainCouplings, PDEs_[i]->GetName(), 
+					 "subdomain_coupling"))
+		      for (Integer k=0; k<SubdomainCouplings.size(); k++)
 			{
-			  Couplings_[i]->AddInput(CouplingTerms[j], Elem1DCouplings[k], ELEMS1D, actlevel_, Couplings_);
+			  Couplings_[i]->AddInput(CouplingTerms[j], SubdomainCouplings[k], SUBDOMAIN, actlevel_, 
+						  Couplings_);
 			  norms_.push_back(1.0);
 			}
-		    else
-		      // Read in elem2D coupling terms
-		      if (conf->ifgetliststr(CouplingTerms[j], Elem2DCouplings, PDEs_[i]->GetName(), "elem2d_coupling"))
-			for (Integer k=0; k<Elem2DCouplings.size(); k++)
-			  {
-			    Couplings_[i]->AddInput(CouplingTerms[j], Elem2DCouplings[k], ELEMS2D, actlevel_, Couplings_);
-			    norms_.push_back(1.0);
-			  }
+		  }
+		
+		else if (conf->ifgetliststr(CouplingTerms[j], Elem1DCouplings, PDEs_[i]->GetName(), 
+					    "elem1d_coupling"))
+		  {
+		    // Read in elem1D coupling terms
+		    for (Integer k=0; k<Elem1DCouplings.size(); k++)
+		      {
+			Couplings_[i]->AddInput(CouplingTerms[j], Elem1DCouplings[k], ELEMS1D, actlevel_, 
+						Couplings_);
+			norms_.push_back(1.0);
+		      }
+		  }
+		
+		else if (conf->ifgetliststr(CouplingTerms[j], Elem2DCouplings, PDEs_[i]->GetName(), 
+					     "elem2d_coupling"))
+		  {
+		    // Read in elem2D coupling terms
+		    for (Integer k=0; k<Elem2DCouplings.size(); k++)
+		      {
+			Couplings_[i]->AddInput(CouplingTerms[j], Elem2DCouplings[k], ELEMS2D, actlevel_, 
+						Couplings_);
+			norms_.push_back(1.0);
+		      }
+		  }
+		
+		else
+		  {
+		    std::string message = "No specification for input_coupling_term defined for PDE: " 
+		                          + PDEs_[i]->GetName();
+		    Error(message.c_str());
+		  }    
+
 	      }
 	  }
+	else
+	  {
+	    std::string message = "No input_coupling_terms defined for PDE: " + PDEs_[i]->GetName();
+	    Error(message.c_str());
+	  }
+	
       }
   
     // Initialize each PDEs coupling terms

@@ -83,6 +83,16 @@ public:
    */
    Boolean get_option(const std::string keyword, const std::string section="", const std::string subsection = "", const std::string subsubsection = "");
 
+  //! use only in cases when value of keyword is yes/no. if the keyword is absent in file, then return FALSE; if value of keyword is no, return TRUE
+  /*!
+        \param keyword keyword for the value in config-file
+        \param section name of a section in which keyword there is
+        \param subsection name of a subsection of the section in which keyword there is
+        \param subsubsection etc.
+   */
+   Boolean get_optionNo(const std::string keyword, const std::string section="", const std::string subsection = "", const std::string subsubsection = "");
+
+
    //! get list of subdomains
   void getsubdom(std::vector<std::string> & subdoms);
 

@@ -169,7 +169,7 @@ void  WriteResultsUnverg::Dataset780(const Integer level)
 			<< connect.size() << std::endl;
 	    }
 
-	  if (connect.size() == 6 || connect.size() == 8)
+	  if (dim == 2 && (connect.size() == 6 || connect.size() == 8))
 	    {
 	      //quadratic elements
 	      Integer offset = Integer(connect.size()/2);
@@ -230,7 +230,7 @@ void  WriteResultsUnverg::Dataset55(const std::string & title, const Array<Doubl
  for (i=0; i<n; i++)
    {
      (*output) << std::setw(10) << i+1 << std::endl;
-
+     
      // in the universal file eihter one or three results datas must exist
      if (nrDofs == 2)
        (*output) << 0.0;

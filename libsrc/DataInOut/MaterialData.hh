@@ -32,6 +32,8 @@ private:
   Double damp_beta;
   Double eModule;
   Double nu;
+  Double LameLambda;
+  Double LameMu;
   Double permeability;
   Double conductivity;
   Double permMx, permMy, permMz;   // permanent magnetization
@@ -75,6 +77,12 @@ public:
 
   /// set density of the material
   void SetDensity(const Double& Density){density = Density;};
+
+  /// set Lame-Paramter lambda
+  void SetLambda(const Double& lambda){LameLambda = lambda;};
+
+  /// set Lame-Paramter mu
+  void SetMu(const Double& mu){LameMu = mu;};
 
   /// set permeability of the material
   void SetPermeability(const Double& aPerm){permeability = aPerm;}
@@ -138,6 +146,12 @@ public:
 
   /// get density
   Double GetDensity() const {return density;};
+
+  /// get LameLambda
+  Double GetLameLambda() const {return LameLambda;}
+  
+  /// get LameMu
+  Double GetLameMu() const {return LameMu;}
 
   /// get permittivity
   Double GetPermittivity(Integer i, Integer j) const {return (*piezoMatrix)[i+6][j+6];};

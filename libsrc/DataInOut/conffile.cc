@@ -429,6 +429,48 @@ Boolean ConfFile::get_option(const std::string keyword, const std::string sectio
 }
 
 
+Boolean ConfFile::get_optionNo(const std::string keyword, const std::string section, const std::string subsection, const std::string subsubsection)
+{
+#ifdef TRACE
+  (*trace) << " entering ConfFile::get_optionNo " << std::endl;
+#endif
+
+ std::string::size_type pos,pos1=0;
+ Boolean inSection = FALSE;
+ Boolean inSubSection = FALSE;
+
+ if (section != "") 
+   { 
+     pos1=getsectionpos(section); 
+     inSection=TRUE;
+   }
+ if (subsection !="") 
+   {
+     pos1=getsubsectionpos(subsection,pos1);
+     inSubSection = TRUE;
+   }
+
+
+ if (subsubsection != "") { pos1=getpos(subsubsection,pos1);
+                            infile.seekg(pos1, std::ios::beg);
+                            infile.ignore(100,'\n');                      
+                            pos1=infile.tellg();
+                          }
+
+ pos=getpos(keyword,pos1,inSection,inSubSection,FALSE);
+
+ Boolean val=FALSE;
+
+ if (pos==std::string::npos) return FALSE;
+
+ infile.seekg(pos, std::ios::beg);
+ std::string option;
+ infile >> option;
+ 
+ if (option == "no") return TRUE;
+
+ return FALSE;
+}
 
 
 std::string::size_type ConfFile::getpos(const std::string keyword,

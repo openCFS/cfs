@@ -428,6 +428,7 @@ void MechPDE::InitCoupling(PDECoupling * Coupling)
     {
       if (ptCoupling_->GetOutputQuantity(i) == "mechdisplacement")
 	{
+	  ptCoupling_->SetOutputDof(i, dofspernode_);
 	  // Nothing to do yet
 	}
 
@@ -1172,7 +1173,7 @@ void MechPDE::WriteResultsInFile()
 
   Array<Double> sol_mesh, solder1_mesh, solder2_mesh;
   Array<Double> sol_der1Array, sol_der2Array;
-
+  
   if (savesol_ == TRUE && (analysistype_== STATIC || analysistype_== TRANSIENT))
     {
       TransformNodeSolution(sol_mesh, sol_, PDE2MeshNode_);

@@ -498,6 +498,8 @@ protected:
 
   // nonlinear stuff
   Boolean nonLin_; //!<  flag for nonlinear calculations
+  Boolean GeoUpdate_; //!< flag for geometric update
+  
   Double incStopCrit_; //!< stopping criterion for incremental error
   Double residualStopCrit_;  //!< stopping criterion for residual error
 

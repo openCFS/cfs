@@ -349,7 +349,7 @@ void AcousticPDE::WriteResultsInFile()
       sol_der2Array = getS2();
 
       if (savesol_)
-	TransformNodeSolution(sol_mesh,sol_,PDE2MeshNode_);
+	  TransformNodeSolution(sol_mesh,sol_,PDE2MeshNode_);
 
       if (savederiv1_)    
 	TransformNodeSolution(solder1_mesh,sol_der1Array,PDE2MeshNode_);
@@ -370,6 +370,7 @@ void AcousticPDE::WriteResultsInFile()
 	{
 	  if (savesol_)
 	    OutFile_->WriteNodeSolution(sol_mesh,laststepcalc_,lasttimecalc_,"fluid potential");
+	  
 
 	  if (savederiv1_)
 	    OutFile_->WriteNodeSolution(solder1_mesh,laststepcalc_,lasttimecalc_,"fluid potential, 1st deriv.");

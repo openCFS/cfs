@@ -61,7 +61,10 @@ public:
     \param atime time of calculation
   */
   virtual void ComputeRHS(const Double atime) {;};
-  
+
+   //! initialize time stepping: nothing to do in smoother!
+  virtual void InitTimeStepping(const Double dt){;};
+ 
   virtual void SolveStepStatic(const Integer level, const Double aTime=0);
   
 
