@@ -1,6 +1,7 @@
 #ifndef CLOCK_2001
 #define CLOCK_2001
- 
+
+using namespace std;
 namespace CoupledField 
 {
 

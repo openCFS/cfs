@@ -1,5 +1,5 @@
 #
-	export MACHINE=LINUXg
+#export MACHINE=LINUXg
 #
 src = cfs.cc
 #
@@ -25,7 +25,7 @@ mylibrary=  driver general algsys-own domain pde forms \
             elements algsys-own matrix utils datainout unverg \
             datfile datainout
 #
-syslib = -lm 
+syslib = -lm -lC  -lglut -lIO  -lMesh  -lGridBase -lUtil -lRender -lRenderBase 
 #
 ########### Rules
 #
@@ -41,7 +41,7 @@ syslib = -lm
 	$(F77) -o $@ $(FFLAGS1) $(FFLAGS2) $<
  
 $(program):: $(src:.cc=.o) $(fsrc:.f=.o) makelibs
-	$(CC) -o $@ $(src:.cc=.o) $(fsrc:.f=.o) -L$(LIB_DIR) $(syslib) $(LINKFLAGS2) $(LINKFLAGS3) $(addprefix -l, $(mylibrary)) $(LIB_NAG)
+	$(CC) -static -o $@ $(src:.cc=.o) $(fsrc:.f=.o) -L$(LIB_DIR) -L. -L/usr/freeware/lib32 $(LINKFLAGS2) $(LINKFLAGS3) $(addprefix -l, $(mylibrary)) $(syslib) $(LIB_NAG)
 #
 ########### Go to make library
 #

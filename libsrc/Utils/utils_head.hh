@@ -7,8 +7,8 @@
 #include <time.h>
 
 #include "clock.hh"
-#include "vector.hh"
 #include "tools.hh"
+#include "vector.hh"
 #include "matrix_head.hh"
 
 #endif 
