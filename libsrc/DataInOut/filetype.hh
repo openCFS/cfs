@@ -39,6 +39,12 @@ public:
   virtual ~FileType();
 
   //!
+  virtual void ReadMaxnumnodes(Integer & maxnumnodes)=0;  
+
+  //!
+  virtual void ReadMaxnumelem(Integer & maxnumelem)=0;
+
+  //!
   virtual void ReadGeneralAnalChoice(Integer * dataGAnalCh,
 				      enum nameGAn first ...)=0;
 
@@ -108,7 +114,7 @@ public:
   virtual void ReadBoundRestr(std::list<NodeRestraint> & restr, const Integer numberRestr)=0;
 
   //! Read step data; special for TransientDriver
-  virtual void ReadStepData(Integer & anumstep, Integer & aisavebegin, Integer & aisaveend, Integer & aisaveincr, Double & afirstdt)=0;
+//  virtual void ReadStepData(Integer & anumstep, Integer & aisavebegin, Integer & aisaveend, Integer & aisaveincr, Double & afirstdt)=0;
 
 protected:
 

@@ -16,9 +16,14 @@ TransientDriver :: TransientDriver(Domain * adomain)
 #ifdef TRACE
   (*trace) << "entering TransientDriver::TransientDriver" << std::endl;
 #endif
-  // read step data from input file
-  ptdomain_->GetInFile()->ReadStepData(numstep_,isavebegin_,isaveend_,isaveincr_,firstdt_);
 
+  // get time steps information from conf-file
+
+  conf->get("numsteps",numstep_);
+  conf->get("firstdt", firstdt_);
+  conf->get("stepsavebeg",isavebegin_);
+  conf->get("stepsaveend",isaveend_);
+  conf->get("stepsaveincr",isaveincr_);
 }
 
 TransientDriver :: ~TransientDriver()

@@ -35,12 +35,7 @@ void GridCFS<Point2D> :: Read()
   maxnumsubdomain=dataHelp[0];
   pptelemsubdom=new Integer*[maxnumsubdomain];
 
-  InFile->ReadGeneralAnalChoice(dataHelp,FileType::numnode,
-                                  FileType::endGAnal);
-
-  gh[0].maxnumnode=dataHelp[0];
-
-  std::cout << gh[0].maxnumnode << " " << maxnumsubdomain << " maxnumnode " << std::endl;
+  InFile->ReadMaxnumnodes(gh[0].maxnumnode);
 
   gh[0].ptCoordinate=new Point2D[gh[0].maxnumnode];
   InFile->ReadCoordinate(gh[0].ptCoordinate, gh[0].maxnumnode);
@@ -54,9 +49,7 @@ void GridCFS<Point2D> :: Read()
 
    gh[0].maxnumelem=data[0];
 
-//  pptelemsubdom[0]=new Integer[gh[0].maxnumelem+1];
-
-//  pptelemsubdom[0][gh[0].maxnumelem]=-1;
+   InFile->ReadMaxnumelem(gh[0].maxnumelem);
 
 //#################### V etom meste budet check na 3 tochki
    Integer NumNodeperElem=data[2];
@@ -161,6 +154,8 @@ void GridCFS<Point3D> :: Read()
                    FileType::endGElem);
 
    gh[0].maxnumelem=data[0];
+
+   InFile->ReadMaxnumelem(gh[0].maxnumelem);
 
 //  pptelemsubdom[0]=new Integer[gh[0].maxnumelem+1];
 

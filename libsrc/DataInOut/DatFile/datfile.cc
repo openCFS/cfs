@@ -39,6 +39,29 @@ DatFile :: ~DatFile()
 infile.close();
 
 }
+
+void DatFile :: ReadMaxnumnodes(Integer & maxnumnodes)
+{
+#ifdef TRACE
+  (*trace) << "entering DatFile::ReadMaxnumnodes" << std::endl;
+#endif
+
+  Integer data[1];
+  ReadGeneralAnalChoice(data,DatFile::numnode,DatFile::endGAnal);
+  maxnumnodes=data[0];
+}
+
+void DatFile :: ReadMaxnumelem(Integer & maxnumelem)
+{
+#ifdef TRACE
+  (*trace) << "entering DatFile::ReadMaxnumelem" << std::endl;
+#endif
+
+  Integer data[1];
+  ReadGeneralElemChoice(0,data,DatFile::numelem,DatFile::endGElem);
+  maxnumelem=data[0];
+}
+
 // -------------------------ReadTitle---------------------------------------
 
 Boolean DatFile :: ReadTitle(std::string& title)

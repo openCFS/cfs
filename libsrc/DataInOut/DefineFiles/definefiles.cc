@@ -4,6 +4,7 @@
 
 #include "definefiles.hh"
 #include "datfile.hh"
+#include "ansysfile.hh"
 #include "conffile.hh"
 #include "outUnverg.hh"
 #include "outGMV.hh"
@@ -82,9 +83,10 @@ cout << " end of deconstructor" << endl;
 FileType * DefineInOutFiles :: Create_ptFileType(Char * atype)
 {
   if (!strcmp(atype, "-dat"))  
-    {
       infiletype=new DatFile(filename);
-    }
+  else
+  if  (!strcmp(atype, "-mesh")) ;
+//      infiletype=new AnsysFile(filename);
   else 
     {
       std::cerr << "ERROR: Sorry, we can't read files with type: "<< atype << std::endl;

@@ -30,9 +30,10 @@ void InterfaceNetGen<Point2D>::Read()
 #endif
 
   Integer data[1];
-  ptFileType-> ReadGeneralAnalChoice(data, FileType::numnode, FileType::endGAnal);
+//  ptFileType-> ReadGeneralAnalChoice(data, FileType::numnode, FileType::endGAnal);
  
-  Integer nnodes=data[0]; 
+  Integer nnodes;
+  ptFileType->ReadMaxnumnodes(nnodes); 
 
   ptFileType->ReadGeneralAnalChoice(data,FileType::numgroup,FileType::endGAnal);  maxnumsubdomain_=data[0];
   pptelemsubdom_=new Integer*[maxnumsubdomain_];
@@ -58,7 +59,9 @@ void InterfaceNetGen<Point2D>::Read()
 
   Integer data1[2];
   ptFileType->ReadGeneralElemChoice(0,data1, FileType::numelem, FileType::maxnode, FileType::endGElem);
-  Integer nelems=data1[0];
+  Integer nelems;
+  ptFileType->ReadMaxnumelem(nelems);
+
   Integer nelemNodes=data1[1];
 
   Integer * Connect=new Integer[nelems*nelemNodes];
@@ -141,9 +144,10 @@ void InterfaceNetGen<Point3D>::Read()
 #endif
 
   Integer data[1];
-  ptFileType-> ReadGeneralAnalChoice(data, FileType::numnode, FileType::endGAnal);
+//  ptFileType-> ReadGeneralAnalChoice(data, FileType::numnode, FileType::endGAnal);
 
-  Integer nnodes=data[0];
+  Integer nnodes;
+  ptFileType->ReadMaxnumnodes(nnodes);
 
   ptFileType->ReadGeneralAnalChoice(data,FileType::numgroup,FileType::endGAnal);
   maxnumsubdomain_=data[0];
@@ -171,7 +175,9 @@ void InterfaceNetGen<Point3D>::Read()
   Integer data1[2];
   ptFileType->ReadGeneralElemChoice(0,data1, FileType::numelem, FileType::maxnode,
 FileType::endGElem);
-  Integer nelems=data1[0];
+  Integer nelems;
+  ptFileType->ReadMaxnumelem(nelems);
+
   Integer nelemNodes=data1[1];
 
   Integer * Connect=new Integer[nelems*nelemNodes];
