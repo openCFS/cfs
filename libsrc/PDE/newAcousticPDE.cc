@@ -54,7 +54,7 @@ AcousticPDE::AcousticPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, Fil
     }
 
   with_absBCs_=FALSE;
-  conf->getliststr("bnd_for_absBCs",bnd_absBCs_,pdename_); 
+  conf->ifgetliststr("bnd_for_absBCs",bnd_absBCs_,pdename_); 
   if (bnd_absBCs_.size() > 0)
     {
       with_absBCs_ = TRUE;
