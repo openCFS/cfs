@@ -151,7 +151,7 @@
   <!-- What data can a single node have in a mechanic PDE -->
   <xsd:simpleType name="DT_NodeDataSmooth">
     <xsd:restriction base="xsd:token">
-      <xsd:enumeration value="displacement"/>
+      <xsd:enumeration value="smoothDisplacement"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -164,34 +164,28 @@
 
   <!-- Data type for describing final node values to be stored -->
   <xsd:complexType name="DT_NodeResultsSmooth">
-    <xsd:attribute name="type" type="DT_NodeDataSmooth" use="optional"
-      default="displacement"/>
+    <xsd:attribute name="type" type="DT_NodeDataSmooth" use="required"/>
     <xsd:attribute name="region" type="xsd:token" use="optional"
       default="all"/>
   </xsd:complexType>
 
   <!-- Data type for describing history of node values to be stored -->
   <xsd:complexType name="DT_NodeHistorySmooth">
-    <xsd:attribute name="type" type="DT_NodeDataSmooth" use="optional"
-      default="displacement"/>
-    <xsd:attribute name="saveNodes" type="xsd:token" use="optional"
-      default="none"/>
+    <xsd:attribute name="type" type="DT_NodeDataSmooth" use="required"/>
+    <xsd:attribute name="saveNodes" type="xsd:token" use="required"/>
   </xsd:complexType>
 
   <!-- Data type for describing final element values to be stored -->
   <xsd:complexType name="DT_ElemResultsSmooth">
-    <xsd:attribute name="type" type="DT_ElemDataSmooth" use="optional"
-      default="stress"/>
+    <xsd:attribute name="type" type="DT_ElemDataSmooth" use="required"/>
     <xsd:attribute name="region" type="xsd:token" use="optional"
       default="all"/>
   </xsd:complexType>
 
   <!-- Data type for describing history of element values to be stored -->
   <xsd:complexType name="DT_ElemHistorySmooth">
-    <xsd:attribute name="type" type="DT_ElemDataSmooth" use="optional"
-      default="stress"/>
-    <xsd:attribute name="saveElems" type="xsd:token" use="optional"
-      default="none"/>
+    <xsd:attribute name="type" type="DT_ElemDataSmooth" use="required"/>
+    <xsd:attribute name="saveElems" type="xsd:token" use="required"/>
   </xsd:complexType>
 
   <!-- Global type for specifying the desired mechanical output quantities -->
