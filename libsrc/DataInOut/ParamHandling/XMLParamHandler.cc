@@ -242,6 +242,7 @@ namespace CoupledField {
 				  std::vector<std::string> &list,
 				  const std::string attribute,
 				  const std::string value,
+				  Integer applyToElem,
 				  const std::string section,
 				  const std::string subsection ) {
 
@@ -267,9 +268,28 @@ namespace CoupledField {
 
     // From the list of matching elements and their values, we select
     // those whose attribute's value matches the specification
-    for ( unsigned int k = 0; k < elemMatches.size(); k++ ) {
-      if ( AttribHasValue( elemMatches[k], attribute, value ) ) {
-	list.push_back( elemValues[k] );
+    if ( applyToElem == 0 ) {
+      for ( unsigned int k = 0; k < elemMatches.size(); k++ ) {
+	if ( AttribHasValue( elemMatches[k], attribute, value ) ) {
+	  list.push_back( elemValues[k] );
+	}
+      }
+    }
+
+    // We do not use the element, but one of its ancestors
+    else {
+      DOMElement *parent1 = NULL;
+      DOMElement *parent2 = NULL;
+
+      for ( unsigned int k = 0; k < elemMatches.size(); k++ ) {
+	parent1 = Node2Elem( elemMatches[k]->getParentNode() );
+	for ( Integer i = 1; i < applyToElem; i++ ) {
+	  parent2 = Node2Elem( parent1->getParentNode() );
+	  parent1 = parent2;
+	}
+	if ( AttribHasValue( parent1, attribute, value ) ) {
+	  list.push_back( elemValues[k] );
+	}
       }
     }
   }
@@ -383,68 +403,88 @@ namespace CoupledField {
       list.clear();
     }
 
-    // Determine root node for pde section or single pde
+    // Assemble keywords for attribute search
     std::vector<std::string> keys;
     keys.push_back( "pdeList" );
     if ( pde != "" ) {
       keys.push_back( pde );
     }
+    keys.push_back( "coils" );
+    keys.push_back( "*" );
 
-    std::vector<DOMElement *>* roots = NULL;
-    roots = FindMatchingElements( keys, rootElem_, 1 );
+    // Find coil names
+    std::vector<DOMAttr*> *attrs =
+      FindMatchingAttributes( "name", keys, rootElem_ );
 
-    if ( roots->size() > 1 ) {
-      if ( pde == "" ) {
-	Info->Error( "Found multiple pdeList entries in parameter file!",
-		     __FILE__, __LINE__ );
-      }
-      else {
-	Info->Error( "Found multiple '" + pde +
-		     "' entries in pdeList of parameter file!", __FILE__,
-		     __LINE__ );
-      }
-    }
-    else if ( roots->size() == 0 ) {
-      if ( pde == "" ) {
-	Info->Error( "Found no pdeList entry in parameter file!", __FILE__,
-		     __LINE__ );
-      }
-      else {
-	Info->Error( "Found no '" + pde +
-		     "' entry in pdeList of parameter file!", __FILE__,
-		     __LINE__ );
-      }
+    std::string value;
+    for ( unsigned int i = 0; i < attrs->size(); i++ ) {
+      value.assign( X2C( (*attrs)[i]->getValue() ) );
+      list.push_back( value );
     }
 
-    // The names of the coils are the tags of the child elements of the
-    // coils element, so get hold of them and make sure, there is
-    // at least one child/coil
-    DOMElement *coilRoot = (*roots)[0];
-    DOMNodeList *coilList = coilRoot->getChildNodes();
-    if ( coilList->getLength() == 0 ) {
-      if ( pde == "" ) {
-	Info->Error( "Cannot find a single coil in parameter file!", __FILE__,
-		     __LINE__ );
-      }
-      else {
-	Info->Error( "Cannot find a single coil in '" + pde +
-		     "' pde of parameter file!", __FILE__, __LINE__ );
+    // Cleanup
+    delete attrs;
+
+  }
+
+
+  // =====================================
+  //   Return the type of a certain coil
+  // =====================================
+  void XMLParamHandler::GetCoilType( std::string &coilType,
+				     const std::string coilName,
+				     const std::string pde ) {
+
+    ENTER_FCN( "XMLParamHandler::GetCoilType" );
+
+    // First generate a vector of all coils
+    std::vector<DOMElement*> *coilSec = NULL;
+    std::vector<std::string> keys;
+    keys.push_back( "pdeList" );
+    if ( pde != "" ) {
+      keys.push_back( pde );
+    }
+    keys.push_back( "coils" );
+    coilSec = FindMatchingElements( keys, rootElem_, 1 );
+    if ( coilSec->size() == 0 ) {
+      Info->Error( "Cannot find a 'coils' section", __FILE__, __LINE__ );
+    }
+    else if ( coilSec->size() > 1 ) {
+      Info->Error( "Cannot more than one 'coils' section", __FILE__, __LINE__);
+    }
+    DOMNodeList *coils = (*coilSec)[0]->getChildNodes();
+
+    // Now search for coil with matching name attribute
+    // and determine the element's tag, which encodes the
+    // type of coil
+    unsigned int foundCoils = 0;
+    DOMElement *elem = NULL;
+
+    for ( unsigned int k = 0; k < coils->getLength(); k++ ) {
+
+      elem = Node2Elem( coils->item(k) );
+
+      // coilType = X2S( elem->getTagName() );
+      // std::cerr << " coilType = " << coilType << std::endl;
+
+      if ( AttribHasValue( elem, "name", coilName ) ) {
+	coilType = X2S( elem->getTagName() );
+	foundCoils++;
       }
     }
 
-    // Now get hold of tags, convert them to strings and assemble vector
-    std::string coilName;
-    for ( unsigned int i = 0; i < coilList->getLength(); i++ ) {
-
-      // Only treat element children and not comments!
-      if ( coilList->item(i)->getNodeType() == DOMNode::ELEMENT_NODE ) {
-	coilName.assign( X2C( Node2Elem( coilList->item(i) )->getNodeName() ));
-	list.push_back( coilName );
-      }
+    // Check for errors
+    if ( foundCoils == 0 ) {
+      Info->Error( "Found no coil with name '" + coilName + "'", __FILE__,
+		   __LINE__ );
+    }
+    else if ( foundCoils > 1 ) {
+      Info->Error( "Found " + Info->GenStr( foundCoils ) + " coils with name '"
+		   + coilName + "'", __FILE__, __LINE__ );
     }
 
-    // Clean-up
-    delete roots;
+    // Cleanup
+    delete coilSec;
 
   }
 
@@ -457,6 +497,7 @@ namespace CoupledField {
 			      std::string &value,
 			      const std::string attribute,
 			      const std::string aValue,
+			      Integer applyToElem,
 			      const std::string section,
 			      const std::string subsection ) {
 
@@ -464,7 +505,8 @@ namespace CoupledField {
 
     // Find all elements/values matching keyword in (restricted) tree
     std::vector<std::string> matches;
-    CGetList( key, matches, attribute, aValue, section, subsection );
+    CGetList( key, matches, attribute, aValue, applyToElem, section,
+	      subsection );
 
     // If there was no unique match, call problem handler
     if ( matches.size() > 1 ) {
@@ -498,6 +540,7 @@ namespace CoupledField {
 			      Double &value,
 			      const std::string attribute,
 			      const std::string aValue,
+			      Integer applyToElem,
 			      const std::string section,
 			      const std::string subsection ) {
 
@@ -505,7 +548,8 @@ namespace CoupledField {
 
     // Find all elements/values matching keyword in (restricted) tree
     std::vector<std::string> matches;
-    CGetList( key, matches, attribute, aValue, section, subsection );
+    CGetList( key, matches, attribute, aValue, applyToElem, section,
+	      subsection );
 
     // If there was no unique match, call problem handler
     if ( matches.size() > 1 ) {
@@ -540,6 +584,7 @@ namespace CoupledField {
 			      Integer &value,
 			      const std::string attribute,
 			      const std::string aValue,
+			      Integer applyToElem,
 			      const std::string section,
 			      const std::string subsection ) {
 
@@ -547,7 +592,8 @@ namespace CoupledField {
 
     // Find all elements/values matching keyword in (restricted) tree
     std::vector<std::string> matches;
-    CGetList( key, matches, attribute, aValue, section, subsection );
+    CGetList( key, matches, attribute, aValue, applyToElem, section,
+	      subsection );
 
     // If there was no unique match, call problem handler
     if ( matches.size() > 1 ) {
@@ -1178,7 +1224,7 @@ namespace CoupledField {
 
     std::string errmsg;
 
-    errmsg += "Error: No match and no default found for keyword '" + key
+    errmsg += "No match and no default found for keyword '" + key
       + "'";
     if ( section != "" && subsection == "" ) {
       errmsg += " within sections '" + section + "'";
@@ -1288,7 +1334,7 @@ namespace CoupledField {
       }
       errmsg += "children!\nGetElementValue: Element tag is '";
       errmsg += X2C(elem->getNodeName());
-      errmsg += "'";
+      errmsg += "'"; 
       Info->Error( errmsg, __FILE__, __LINE__ );
     }
 
@@ -1458,7 +1504,7 @@ namespace CoupledField {
 
     // Test, if element has an attribute with specified name
     if ( attrib == NULL ) {
-      Info->Error( "ElemAttribHasValue: Element '" + X2S(elem->getTagName()) +
+      Info->Error( "AttribHasValue: Element '" + X2S(elem->getTagName()) +
 		   "' has no attribute '" + attribute + "'",
 		   __FILE__, __LINE__ );
     }
