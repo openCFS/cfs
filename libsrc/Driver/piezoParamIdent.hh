@@ -40,23 +40,23 @@ namespace CoupledField
     void createF(MaterialData * ptMaterial, BCs * ptBCs, Vector<Complex> & F_hat);
 
     //! Calculates an approximation of the Jacobi Matrix of parameter to solution operator F 
-    void createJacobiMatrix(MaterialData * ptMaterial, BCs * ptBCs, Vector<Complex> & F_ha, Vector<Double> & parameterIncrement, 
-			    Matrix<Complex> & JacobiMatrix, Vector<Complex> & solElecPot,Vector<Complex> & solMechDispl);
+    void createJacobiMatrix(MaterialData * ptMaterial, BCs * ptBCs, Vector<Complex> & F_ha, Vector<Double> & parameterIncrement, Matrix<Complex> & JacobiMatrix, Vector<Complex> & solElecPot,Vector<Complex> & solMechDispl);
 
     //! Calculates explicitely the Adjoint operator of F'
-    void createAdjointJacobiMatrix(Vector<Double> & parameterIncrement,Vector<Double> &  parameter, Matrix<Complex> & JacobiMatrix, 
-				   Vector<Complex> & solElecPot,Vector<Complex> & solMechDispl, Vector<Double> & freqs, Matrix<Complex> & adjJacobiMatrix);
+    void createAdjointJacobiMatrix(Vector<Double> & parameterIncrement,Vector<Double> &  parameter, Matrix<Complex> & JacobiMatrix, Vector<Complex> & solElecPot,Vector<Complex> & solMechDispl, Vector<Double> & freqs, Matrix<Complex> & adjJacobiMatrix);
 
     //! Method which reads Data from file measuredData.dat. The file contains measurements of amplitude, frequency, further according information concerning the piezhoelectric body (radius, thickness, ...)
     void readMeasuredData(Vector<Double> & freqs, Vector<Double> & real, Vector<Double> & imag ,Vector<Double> & parameter, Double & voltage, Integer & nrMeasuredData, Double & thickness, Double & radius, Double & delta);
 
     void updateMaterialData(Vector<Double> & parameter, MaterialData * ptMaterial);
 
-    void calcAbsImped(Complex & charge, Double & freq, Integer & fstep);
+    void calcAbsImped(Complex<Double> & charge, Double & freq, Integer & fstep);
 
     void updateRHS(Vector<Complex> & solElecPot, Vector<Complex> & mechDisplacement, Double omega);
 
     void updateRHS(Vector<Complex> & RHSsol);
+
+    void updateRHS2(Vector<Complex> & RHSsol);
 
     void typeOutSolutionOnScreen(Vector<Complex> & solElecPot,Vector<Complex> & solMechDispl);
 
@@ -67,6 +67,8 @@ namespace CoupledField
     void calcNorm2Resid(Vector<Complex> &res, Double & anorm, Integer nrMeasuredData);
 
     void CG();
+
+    void createAndSetRHSforJacobian(Integer & fstep);
 
     void calc_measuredCharge(Vector<Double> freqs, Vector<Double> & absZ, Vector<Double> & phi, Vector<Complex> & y_hat);
     

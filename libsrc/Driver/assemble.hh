@@ -694,12 +694,6 @@ namespace CoupledField
 					  const MatrixType matrixType);
 #endif
 
-
-    //! transform element matrix to account for harmonic analysis
-    virtual void TransformMatrix2HarmonicRHS_for_paramIdent(Vector<Double>& harmMat,
-					  Matrix<Double> origMat);
-
-
     //! transform element vector to account for harmonic analysis
     virtual void TransformVector2Harmonic(Vector<Double>& harmMat, 
 					  Vector<Double> origVec,

@@ -154,15 +154,15 @@ namespace CoupledField
       std::cout<<"; q("<<i<<")= "<< y_hat[i];
 
     //Ladungen mit exakten Parametern berechnet:
-    //   y_hat[0]=(-8.16274e-08,2.91866e-06); // (-6.98873e-08,2.49888e-06); 
-    //     y_hat[1]=(-1.07233e-07,2.91787e-06); // (-9.181e-08,2.4982e-06);
-    //     y_hat[2]=(-1.94767e-07,2.91337e-06); //(-1.66754e-07,2.49434e-06);
-    //     y_hat[3]=(-2.66432e-06,-1.19465e-06); //(-2.28111e-06,-1.02283e-06);
-    //     y_hat[4]=(-3.54947e-07,-2.89826e-06); // (-3.03895e-07,-2.4814e-06); 
-    //     y_hat[5]=(-1.20177e-06,2.66115e-06); // (-1.02892e-06,2.27839e-06); 
-    //     y_hat[6]=(-1.06335e-07,2.918e-06); // (-9.10406e-08,2.4983e-06); 
-    //     y_hat[7]=(-7.99403e-08,2.91885e-06); // (-6.84422e-08,2.49902e-06); 
-    //     y_hat[8]=(1.03852e-09,0); 
+    //     y_hat[0]=Complex(-8.16274e-08,2.91866e-06); // (-6.98873e-08,2.49888e-06); 
+    //     y_hat[1]=Complex(-1.07233e-07,2.91787e-06); // (-9.181e-08,2.4982e-06);
+    //     y_hat[2]=Complex(-1.94767e-07,2.91337e-06); //(-1.66754e-07,2.49434e-06);
+    //     y_hat[3]=Complex(-2.66432e-06,-1.19465e-06); //(-2.28111e-06,-1.02283e-06);
+    //     y_hat[4]=Complex(-3.54947e-07,-2.89826e-06); // (-3.03895e-07,-2.4814e-06); 
+    //     y_hat[5]=Complex(-1.20177e-06,2.66115e-06); // (-1.02892e-06,2.27839e-06); 
+    //     y_hat[6]=Complex(-1.06335e-07,2.918e-06); // (-9.10406e-08,2.4983e-06); 
+    //     y_hat[7]=Complex(-7.99403e-08,2.91885e-06); // (-6.84422e-08,2.49902e-06); 
+    //     y_hat[8]=Complex(1.03852e-09,0); 
     y_hat[9]=(8.24177e-10,0); 
     y_hat[10]=(6.6726e-10,0); 
     y_hat[11]=(5.51238e-10,0); 
@@ -170,6 +170,7 @@ namespace CoupledField
     y_hat[13]=(3.94437e-10,0); 
     y_hat[14]=(3.40021e-10,0); 
     y_hat[15]=(2.96137e-10,0);
+    std::cout<<"\n\n yhat_0"<<y_hat[0];
 
     /* for (int i=0; i<nrMeasuredData;i++){
        y_hat[i]=std::polar(-real[i], imag[i]);
@@ -258,7 +259,7 @@ namespace CoupledField
    //    parameter[i]=parameter[i]/scaling[i];
 
 
-    while (nrIterations<3) {
+    while (nrIterations<4) {
       nrIterations++;
       std::cout<<"\n NewtonCG ... Newton-Iteration-Nr = "<<nrIterations<<std::endl;
 
@@ -275,7 +276,7 @@ namespace CoupledField
       Vector<Complex> y_hat_F_hat=y_hat-F_hat;
 
       real_misfit=a2norm(y_hat_F_hat);
-      std::cout<<"\n Vor CG real(misfit) = real(y_hat-F_hat) = "<< real_misfit;
+      std::cout<<"\n Vor CG real(misfit) = real(y_hat-F_hat) = "<< real_misfit<<std::endl;
 
  // we do a bit of scaling here ...
      for(int i=0;i<scaling.GetSize();i++)
@@ -295,6 +296,8 @@ namespace CoupledField
       theta_max=0.5;
       gamma=0.5;
       al=1.5;
+      tau=0.3;
+
       std::cout<<"\n NACH CG real(misfit) = real(y_hat-F_hat) = "<< real_misfit;
       int backtrackIterator=0;
   
@@ -348,22 +351,22 @@ namespace CoupledField
 	createF(ptMaterial, ptBCs, F_hat);       
 	y_hat_F_hat=y_hat-F_hat;
 	real_misfit=a2norm(y_hat_F_hat);
-	//	real_misfit_new=misfit.real();
+	real_misfit_new=misfit.real();
 	//	std::cout<<"\n real_misfit_new = "<<real_misfit_new;
 
       } //end while, end backtracking
 
       //choose eta
-      eta_new=gamma*POW((real_misfit_new/real_misfit),al);
-      if (gamma*POW(eta,al) > 0.1)
-        eta_new=std::max(eta_new,gamma*POW(eta,al));
-      if (eta_new>eta_max)
-        eta_new=eta_max;
-      if(eta_new<=2*(tau*delta)/real_misfit_new)
-	eta_new=0.8*(tau*delta)/real_misfit_new;
-      //end choose eta
-      std::cout<<"Choice of eta ..." << eta_new; 
-      eta=eta_new;
+       eta_new=gamma*POW((real_misfit_new/real_misfit),al);
+       if (gamma*POW(eta,al) > 0.1)
+         eta_new=std::max(eta_new,gamma*POW(eta,al));
+       if (eta_new>eta_max)
+         eta_new=eta_max;
+       if(eta_new<=2*(tau*delta)/real_misfit_new)
+ 	eta_new=0.8*(tau*delta)/real_misfit_new;
+       //end choose eta
+       std::cout<<"Choice of eta ..." << eta_new; 
+       eta=eta_new;
       
       for (int i=0;i<parameter.GetSize();i++){
 	parameter[i]=parameter[i]+s[i].real();
@@ -402,7 +405,7 @@ namespace CoupledField
   void piezoParamIdent::calcNorm2Resid(Vector<Complex> &res, Double & anorm, Integer nrMeasuredData){
     anorm=0.0;
     for (int i=0;i<2*nrMeasuredData;i++){
-      anorm+=std::abs(res[i])*std::abs(res[i]);
+      anorm+=res[i].real()*res[i].real()+ res[i].imag()*res[i].imag();
       anorm=sqrt(anorm);
     }
   } // end calcNorm2Resid
@@ -435,47 +438,63 @@ namespace CoupledField
 
   Double piezoParamIdent::a2norm(Vector<Complex> &vec){
       ENTER_FCN("piezoParamIdent::a2norm");
-      Complex result=Complex(0.0,0.0);
-      Double real_result;
+      Double result=0.0; //Complex(0.0,0.0);
+      //      Double real_result;
       for(int i=0;i<vec.GetSize();i++)
-      result+=vec[i]*vec[i];
+        result+=std::abs(vec[i])*std::abs(vec[i]);
       //result=sqrt(result);
-      real_result=result.real();
+      //real_result=result.real();
       // real_result=sqrt(real_result);
-       std::cout<<" \n real_result"<<real_result<<std::endl;
-       return real_result;
+      //std::cout<<" \n real_result"<<real_result<<std::endl;
+      //return real_result;
+      //  result=sqrt(result);
+      return result;
       }
 
-  void piezoParamIdent::updateRHS(Vector<Complex> & solElecPot, Vector<Complex> & solMechDispl, Double omega){
-    ENTER_FCN (" piezoParamIdent::updateRHS");
-    Vector<Double> new_RHS;
-    new_RHS.Resize(numNodes * dofs);
-    for(int i=0;i<numNodes;i++){
-      new_RHS[i]=solElecPot[i].real();
-      for(int j=0;j<dofs-1;j++){	
-	new_RHS[(j+1)*numNodes+i]=solMechDispl[j*numNodes+i].real();
-	//	std::cout<<new_RHS[(j+1)*numNodes+i]<<"; ";
-	// matVecRHS(IncrementedRHSMatrix,solMechDispl, solElecPot,newRHS);	
-      }
-    }
+//   void piezoParamIdent::updateRHS(Vector<Complex> & solElecPot, Vector<Complex> & solMechDispl, Double omega){
+//     ENTER_FCN (" piezoParamIdent::updateRHS");
+//     Vector<Double> new_RHS;
+//     new_RHS.Resize(numNodes * dofs);
+//     for(int i=0;i<numNodes;i++){
+//       new_RHS[i]=solElecPot[i].real();
+//       for(int j=0;j<dofs-1;j++){	
+// 	new_RHS[(j+1)*numNodes+i]=solMechDispl[j*numNodes+i].real();
+// 	//	std::cout<<new_RHS[(j+1)*numNodes+i]<<"; ";
+// 	// matVecRHS(IncrementedRHSMatrix,solMechDispl, solElecPot,newRHS);	
+//       }
+//     }
 
-    ptAlgsys->UpdateRHS(1,new_RHS.GetPointer());
-    std::cout<<"RHS was updated"<< std::endl;
-  } // end update RHS
+//     ptAlgsys->UpdateRHS(1,new_RHS.GetPointer());
+//     std::cout<<"RHS was updated"<< std::endl;
+//   } // end update RHS
 
-  void piezoParamIdent::updateRHS(Vector<Complex> & RHSsol){
-    Vector<Double> temp;
-    temp.Resize(RHSsol.GetSize());
-    for(int i=0;i<RHSsol.GetSize();i++){
-      temp[i]=RHSsol[i].real();
-      std::cout<<RHSsol[i]<<"; ";
-    }
-    ENTER_FCN("piezoParamIdent::updateRHS2");
-    ptAlgsys->InitRHS();
-    ptAlgsys->UpdateRHS(1,temp.GetPointer());
-    std::cout<<"RHS was updated"<< std::endl;
+//   void piezoParamIdent::updateRHS(Vector<Complex> & RHSsol){
+//     ENTER_FCN("piezoParamIdent::updateRHS");
+//     Vector<Double> temp;
+//     temp.Resize(RHSsol.GetSize());
+//     for(int i=0;i<RHSsol.GetSize();i++){
+//       temp[i]=RHSsol[i].real();
+//       std::cout<<RHSsol[i]<<"; ";
+//     }
+//     //    ptAlgsys->InitRHS();
+//     ptAlgsys->UpdateRHS(1,temp.GetPointer());
+//     std::cout<<"RHS was updated"<< std::endl;
 
-  }
+//   }
+
+//   void piezoParamIdent::updateRHS2(Vector<Complex> & RHSsol){
+//     ENTER_FCN("piezoParamIdent::updateRHS2");
+//     Vector<Double> temp;
+//     temp.Resize(RHSsol.GetSize());
+//     for(int i=0;i<RHSsol.GetSize();i++){
+//       temp[i]=RHSsol[i].real();
+//       std::cout<<RHSsol[i]<<"; ";
+//     }
+//     //    ptAlgsys->InitRHS();
+//     ptAlgsys->UpdateRHS(1,temp.GetPointer());
+//     std::cout<<"RHS2 was updated"<< std::endl;
+
+//   }
 
 
   void piezoParamIdent::measureMechDeformationInZ_Direction(Vector<Complex> & mechDisplacement, Double & Radius, Double & meanValueMechDeformation, int dof){
