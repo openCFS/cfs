@@ -8,7 +8,7 @@ namespace CoupledField
 {
 
 Newmark :: Newmark(std::string apdename, BaseSystem * algebraicsystem, Integer dofspernode, 
-		   Integer numnode, Integer adamping)
+		   Integer numnode, DampingType adamping)
 :TimeStepping(apdename, algebraicsystem)
 {
 #ifdef TRACE

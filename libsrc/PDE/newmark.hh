@@ -6,6 +6,7 @@
 #include "timestepping.hh"
 #include <multigrid.hh>
 #include <Utils/array.hh>
+#include <General/environment.hh>
 
 namespace CoupledField
 {
@@ -19,9 +20,12 @@ public:
   /*!
     \param apdename name of PDE
     \param algebraicsystem pointer to algebraic system used by PDE
+    \param dofspernode number of degree of freedom per node
+    \param numnode number of nodes in PDE
+    \param damp type of damping
   */
   Newmark(std::string apdename, BaseSystem * algebraicsystem, Integer dofsprenode, 
-	  Integer numnode, Integer adamping);
+	  Integer numnode, DampingType damp);
 
    //! deconstructor
   virtual ~Newmark();
@@ -51,7 +55,7 @@ private:
   Double alpha_, gamma_, beta_;  //<! integration parameters
   Double a0_,a1_,a2_,a3_,a4_,a5_,a6_,a7_; //<! coefficients from Newmark method
 
-  Integer damping_;
+  DampingType damping_;
 
   Array<Double> solpred_, solderiv1pred_;
 };

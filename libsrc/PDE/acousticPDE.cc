@@ -54,15 +54,14 @@ AcousticPDE::AcousticPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, Fil
       with_absBCs_ = TRUE;
 
   with_fracdamping_=FALSE;
-  std::string frac_damping ="no";
-  conf->ifget("frac_damping",frac_damping,pdename_);
+  std::string dampstr;
+  conf->ifget("damping",dampstr,pdename_);
 
-  if (frac_damping == "yes")
+  if (dampstr == "fractional")
     {
        with_fracdamping_ = TRUE;
        conf->get("frac_memory",frac_memory_,pdename_);
-      (*infofile) << "\n Attenuation according to power law, number of memory is " << frac_memory_ 
-		  << std::endl << std::endl;
+       damping_type_ = FRACTIONAL;
     }
 
   ReadBCs(pdename_);
@@ -265,7 +264,7 @@ void AcousticPDE :: InitTimeStepping(const Double dt)
 			      frac_memory_,y);
     }
   else
-    TS_alg_ = new Newmark(pdename_, algsys_, dofspernode_, NumPDENodes_, DampingMatrix_);
+    TS_alg_ = new Newmark(pdename_, algsys_, dofspernode_, NumPDENodes_, damping_type_);
 
   TS_alg_->Init(matrix_factor_, dt);
 
