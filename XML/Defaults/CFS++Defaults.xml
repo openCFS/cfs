@@ -25,6 +25,10 @@
         <resStopCrit>1</resStopCrit>
         <maxNumIters>1</maxNumIters>
       </nonLinear>
+
+      <solver>
+        <matrix/>
+      </solver>
   
     </mechanic>
 
@@ -39,6 +43,10 @@
         <resStopCrit>1</resStopCrit>
         <maxNumIters>1</maxNumIters>
       </nonLinear>
+
+      <solver>
+        <matrix/>
+      </solver>
 
     </piezo>
 
