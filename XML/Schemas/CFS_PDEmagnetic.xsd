@@ -54,6 +54,16 @@
             </xsd:complexType>
           </xsd:element>
 
+          <!-- Section for specifying the coils (optional) -->
+          <xsd:element name="coils" minOccurs="0">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element ref="BasicCoil" minOccurs="1"
+                  maxOccurs="unbounded"/>
+              </xsd:sequence>
+            </xsd:complexType>
+          </xsd:element>
+
           <!-- Section for specifying non-linear parameters (optional) -->
           <xsd:element name="nonLinear" type="DT_NonLinParams" minOccurs="0"/>
 
@@ -274,5 +284,21 @@
       <xsd:attribute name="orientY"   type="xsd:float"/>
       <xsd:attribute name="orientZ"   type="xsd:float"/>
   </xsd:complexType>
- 
+
+  <!-- This element is abstract in order to force substitution -->
+  <!-- by the derived specialised elements in the coils list -->
+  <xsd:element name="BasicCoil" type="xsd:anyType" abstract="true"/>
+
+  <!-- Elements for specifying the different coils -->
+  <xsd:element name="measurementCoil" type="DT_MeasurementCoil"
+    substitutionGroup="BasicCoil"/>
+  <xsd:element name="voltageCoil2d" type="DT_VoltageCoil2D"
+    substitutionGroup="BasicCoil"/>
+  <xsd:element name="voltageCoil3d" type="DT_VoltageCoil3D"
+    substitutionGroup="BasicCoil"/>
+  <xsd:element name="currentCoil2d" type="DT_CurrentCoil2D"
+    substitutionGroup="BasicCoil"/>
+  <xsd:element name="currentCoil3d" type="DT_CurrentCoil3D"
+    substitutionGroup="BasicCoil"/>
+
 </xsd:schema>
