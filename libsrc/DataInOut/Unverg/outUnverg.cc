@@ -15,7 +15,7 @@ WriteResultsUnverg :: WriteResultsUnverg(const Char * const filename, Boolean wi
   (*trace) << "entering WriteResultsUnverg :: WriteResultsUnverg" << std::endl;
 #endif
 
-  output=new std::ofstream(strcat(namefile_,".unverg"));
+  output=new std::ofstream(strcat(namefile_,".unv"));
 }
 
 WriteResultsUnverg ::~WriteResultsUnverg()

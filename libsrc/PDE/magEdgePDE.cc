@@ -183,7 +183,18 @@ namespace CoupledField
     SetBCs(level,update,0);
 
     algsys_->CalcPrecond(job);
+
+    Double preCondTime = cpuClock.GetTime ();
+    (*cla) << std::endl << "TIME for PRECONDITIONER SETUP: " << preCondTime - startTime << std::endl;
+    std::cout << "TIME for PRECONDITIONER SETUP: " << preCondTime - startTime << std::endl;
+    
     algsys_->Solve();
+
+    Double solveTime = cpuClock.GetTime ();
+    (*cla) << std::endl << "TIME for SOLUTION: " << solveTime - preCondTime << std::endl;
+    std::cout << "TIME for SOLUTION: " << solveTime - preCondTime << std::endl;
+
+    algsys_->CalcComplexity();
 
     ptsol = algsys_->GetSolutionVal();
 
@@ -299,12 +310,11 @@ namespace CoupledField
 	//if STATIC, set conductivity to zero
 	if (analysistype_==STATIC) conductivity = 0.0;
 
-	// set conductivity, if in material no conductivity is given
 	// small conductivity is needed for regularization
 	if (conductivity <= 0 || analysistype_==STATIC)
 	  {
-	    Double relaxFac;
-	    conf->get("relaxFac", relaxFac, pdename_);
+	    Double relaxFac = 1.0e-7;
+	    conf->ifget("relaxFac", relaxFac, pdename_);
 	    conductivity = reluctivity * relaxFac;
 	  }
 	
@@ -468,13 +478,12 @@ namespace CoupledField
 		// write just real part of "eddy current" 
 		outMat[i][j] = - 2 * PI * freq_ * magVecPotIm_[i][j];	  
 	  
-	    OutFile_->WriteDataOnCell(outMat, step+1, time, fieldname);
+	    //    OutFile_->WriteDataOnCell(outMat, step+1, time, fieldname);
 	  }
 	else
 	  {
 	    for (Integer i=0; i<ptgrid_->GetDim(); i++) 
 	      for (Integer j=0; j < NumElems_; j++)
-		//	  outMat[i][j] = magVecPotRe_[i][j];	  
 		outMat[i][j] = bFieldRe_[i][j];	  
 
 	    OutFile_->WriteDataOnCell(outMat, step, time, fieldname);
@@ -486,7 +495,7 @@ namespace CoupledField
 	      for (Integer j=0; j < NumElems_; j++)
 		outMat[i][j] = magVecPotRe_[i][j];	  
 
-	    OutFile_->WriteDataOnCell(outMat, step+1, time, fieldname);
+	    //    OutFile_->WriteDataOnCell(outMat, step+1, time, fieldname);
 	  }
   
       }
