@@ -78,6 +78,7 @@ libsrc/Domain/grid.hh svneol=native#text/plain
 libsrc/Domain/grid_cfs.cc svneol=native#text/plain
 libsrc/Domain/grid_cfs.hh svneol=native#text/plain
 libsrc/Domain/grid_interface_cfs.hh svneol=native#text/plain
+libsrc/Domain/grid_interface_gridlib.hh svneol=native#text/plain
 libsrc/Driver/Makefile -text
 libsrc/Driver/driver.cc svneol=native#text/plain
 libsrc/Driver/driver.hh svneol=native#text/plain

@@ -1,6 +1,7 @@
 #include <fstream.h>
 #include <iostream.h>
 #include <string>
+#include <math.h>
 
 #include <general_head.hh> 
 #include <utils_head.hh>

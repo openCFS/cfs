@@ -16,7 +16,7 @@
 #include <pde_head.hh> 
 #include <driver_head.hh>
 
-
+using namespace std;
 using namespace CoupledField;
 
 void main(int argc, char *argv[])
@@ -40,6 +40,15 @@ void main(int argc, char *argv[])
       materialdata=new Material(argv[argc-1]);
     }
   else name=argv[argc-1];
+// DDD  dummy things
+   ifstream inf("test.dat");
+   string buf;
+   getline(inf,buf,'\n');
+   inf >> buf;
+   ofstream outf("test.out");
+   string ibuf="This is dummy file only for SGI";
+   outf << ibuf;
+// DDD
 
   DefineInOutFiles oDefFiles(name);
 

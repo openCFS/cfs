@@ -9,6 +9,8 @@ LIBSRC_DIR=$(C_DIR)/libsrc
 #
 LIB_DIR=$(C_DIR)/lib/$(MACHINE)
 #
+#LIB_GRIDLIB=
+#
 ########### Flags
 #
 INCL =  -I$(LIBSRC_DIR)/General -I$(LIBSRC_DIR)/DataInOut -I$(LIBSRC_DIR)/DataInOut/DatFile \
