@@ -222,8 +222,21 @@ namespace CoupledField
     //account for bcs
     SetBCs(level,update,0);
 
+
+    CPUClock cpuClock;
+    Double startTime = cpuClock.GetTime ();
+    
     algsys_->CalcPrecond();
+    Double preCondTime = cpuClock.GetTime ();
+    (*cla) << std::endl << "TIME for PRECONDITIONER SETUP: " << preCondTime - startTime << std::endl;
+    std::cout << "TIME for PRECONDITIONER SETUP: " << preCondTime - startTime << std::endl;
+    
     algsys_->Solve();
+    Double solveTime = cpuClock.GetTime ();
+    (*cla) << std::endl << "TIME for SOLUTION: " << solveTime - preCondTime << std::endl;
+    std::cout << "TIME for SOLUTION: " << solveTime - preCondTime << std::endl;
+
+    algsys_->CalcComplexity();
 
     ptsol = algsys_->GetSolutionVal();
 
@@ -234,7 +247,6 @@ namespace CoupledField
 	solIm_[i] = ptsol[i*2+1];
       }
   
-
 
 #ifdef DEBUG
     (*debug) << "SolveStepHarmonic: \n solution real part \n";
@@ -859,26 +871,44 @@ namespace CoupledField
     if (nrCoils)
       {
 	coilDef_.resize(nrCoils);
+	
+	if (InfoPrint)
+	  (*infofile) <<  nrCoils << " coil domain(s) defined " << std::endl;
+	
   
 	for (Integer i=0; i < nrCoils; i++)
 	  {
-	    conf->get("iDir", coilDef_[i].iDir, coilDomain_[i], "magnetic");
-	    conf->get("current", coilDef_[i].current, coilDomain_[i], "magnetic");
-	    conf->get("coilArea", coilDef_[i].coilArea, coilDomain_[i], "magnetic");
+	    conf->get("iDir_"+coilDomain_[i], coilDef_[i].iDir,pdename_);
+	    conf->get("current_"+coilDomain_[i] ,coilDef_[i].current, pdename_);
+
+	    conf->get("coilArea_"+coilDomain_[i], coilDef_[i].coilArea, pdename_);
 	    // if a vector is given for the flow direction of the current
 	    if (coilDef_[i].iDir > 3)
-	      conf->getlist("coilMidPoint", coilDef_[i].coilMidPt, coilDomain_[i], "magnetic");
+	      conf->getlist("coilMidPoint_"+coilDomain_[i], coilDef_[i].coilMidPt, pdename_);
 	    if (analysistype_==HARMONIC)
 	      {
-		conf->get("currentPhase", coilDef_[i].currentPhase, coilDomain_[i], "magnetic");
+		conf->get("currentPhase_"+coilDomain_[i], coilDef_[i].currentPhase, pdename_);
 		coilDef_[i].currentPhase *= PI / 180;
 	      }
+
+
+// 	    conf->get("iDir", coilDef_[i].iDir, coilDomain_[i], pdename_);
+// 	    conf->get("current", coilDef_[i].current, coilDomain_[i], pdename_);
+// 	    conf->get("coilArea", coilDef_[i].coilArea, coilDomain_[i], pdename_);
+// 	    // if a vector is given for the flow direction of the current
+// 	    if (coilDef_[i].iDir > 3)
+// 	      conf->getlist("coilMidPoint", coilDef_[i].coilMidPt, coilDomain_[i], pdename_);
+// 	    if (analysistype_==HARMONIC)
+// 	      {
+// 		conf->get("currentPhase", coilDef_[i].currentPhase, coilDomain_[i], pdename_);
+// 		coilDef_[i].currentPhase *= PI / 180;
+// 	      }
 	  
 
 	    if (InfoPrint)
 	      {
-		(*infofile) <<  "Reading coil domain:  " << coilDomain_[i] << std::endl
-			    <<  "Coil parameters: iDir       = " << coilDef_[i].iDir << std::endl
+		(*infofile) <<  "Coil domain " << coilDomain_[i] << std::endl
+			    <<  "     parameters: iDir       = " << coilDef_[i].iDir << std::endl
 			    <<  "                 current    = " << coilDef_[i].current << std::endl
 			    <<  "                 coilArea   = " << coilDef_[i].coilArea << std::endl;
 
@@ -886,6 +916,8 @@ namespace CoupledField
 		  (*infofile)<< "                 coilMidPt  = " << coilDef_[i].coilMidPt << std::endl;
 		if (analysistype_==HARMONIC)
 		  (*infofile)<< "                 current phase = " << coilDef_[i].currentPhase << std::endl;
+
+		(*infofile) << std::endl;
 	      }
 	  }
       }  

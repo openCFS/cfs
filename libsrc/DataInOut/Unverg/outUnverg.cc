@@ -120,7 +120,6 @@ void  WriteResultsUnverg::Dataset780(const Integer level)
   k = 0;
   for (i=0; i<subdoms->size(); i++)
     {
-      std::cout << (*subdoms)[i] << std::endl;
       ptgrid->GetElemSD(elemssd,(*subdoms)[i],level);
 
       for (j=0; j < elemssd.size(); j++)
