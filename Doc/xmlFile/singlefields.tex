@@ -165,11 +165,37 @@ The command for calculating the mechanical stresses is
 \newpage
 \section{Acoustics}
 
-\subsection{Formulation}
-Pressure formulation ...
+\subsection{General Setup}
+The \xml{acoustic} element is appended by the following child elements
+\begin{itemize}
+\item \xml{region}
+\item \xml{timeSteppingFormulation} to date effective stiffness formulation 
+is default(optional)
+\item \xml{bcsAndLoads} (optional)
+\item \xml{nonLinear}\footnote{Other Nonlinearities than nonlinear acoustic
+ PDE, which can be chosen by an attribute of \xml{region} element. This is
+ currently not implemented.}
+\item \xml{storeResults} (optional)
+\item \xml{solver}(optional)
+\end{itemize}
+and the following attributes
+\begin{itemize}
+\item \xml{formulation} i.e. acoustic pressure or acoustic potential PDE 
+formulation
+\item \xml{subType} for flownoise
+\end{itemize}
+
+\subsection{Damping and nonlinear acoustic simulation}
+Damping and nonlinear acoustic PDE formulations can be chosen for each 
+region individually. Damping is a child element of \xml{region},
+type is either no damping, rayleigh damping (which is not physical), 
+thermoviscous damping and fractional damping according to a 
+frequency power law.
+\xml{nonLinear} comes as attribute to region. It can take the value 'no', 
+'westervelt', or 'kuznetsov'.
 
 \subsubsection{Nodal Results}
-The config-file command for storing (only) the pressure in the result
+The config-file command for storing (only) the acoustic potential in the result
 file is
 
 \begin{verbatim}      
@@ -211,43 +237,48 @@ command
 </domain>
 \end{verbatim}
 
+\subsection{Formulation}
+For linear acoustics, the PDE in pressure and acoustic potential has the same 
+form. Allthough default is acoustic potential. If acoustics is coupled to 
+other PDEs, acoustic potential is obligatory. Westervelt's nonlinear PDE is 
+in pressure, Kuznetsov's nonlinear PDE is in acoustic potential.
+
 
 \subsubsection{Example}
 
 {\footnotesize 
 \begin{verbatim}
-<?xml version="1.0"?>
+<?xml version="1.0" encoding="ISO-8859-1"?>
 <cfsSimulation xmlns="http://www.cfs++.org">
-
-   <analysis type="transient"/>
-   <geometry type="axi"/>
-   <materialData file="mat.dat"/>
-
-   <domain>
-      <region name="sphere" material="water"/>
-      <nodes name="rad"/>
-      <nodes name="savePt"/>
-   </domain>
-
-
-   <pdeList>
-      <acoustic>
-         <region name="sphere"/>
-         <bcsAndLoads>
-            <dirichletInhom name="rad" value="1" dynamics="sin2kHz_4Burst.dat"/>
-         </bcsAndLoads>
-      </acoustic>
-   </pdeList>
-
-   <transient> 
-      <numSteps>    100  </numSteps>   
-      <firstDt>     5e-5 </firstDt>    
-      <stepSaveBeg> 1    </stepSaveBeg>
-      <stepSaveEnd> 100  </stepSaveEnd>
-      <stepSaveInc> 1    </stepSaveInc>
-      <timeDataFile name="sin2kHz_4Burst.dat"/>  
-   </transient>
-
+  <analysis type="transient"/>
+  <geometry type="plane"/>
+  <domain>
+    <region material="softTissue" name="reg1"/>
+    <region material="bone" name="reg2"/>
+    <nodes name="vp-restr"/>
+  </domain>
+  <pdeList>
+    <acoustic formulation="acouPotential">
+      <region name="reg1" nonLinear="no">
+        <damping type="no"/>
+      </region>
+      <region name="reg2" nonLinear="no"/>
+      <bcsAndLoads>
+        <dirichletInhom dynamics="sin1M40cos.dat" name="vp-restr" value="1.0"/>
+      </bcsAndLoads>
+      <storeResults>
+        <nodeHistory saveNodes="historyPoints" type="acouPotential"/>
+      </storeResults>
+    </acoustic>
+  </pdeList>
+  <transient>
+    <numSteps>    600     </numSteps>
+    <firstDt>     2.5e-08 </firstDt>
+    <stepSaveBeg>   1     </stepSaveBeg>
+    <stepSaveEnd> 600     </stepSaveEnd>
+    <stepSaveInc>   1     </stepSaveInc>
+    <timeDataFile name="sin1M40cos.dat"/>
+  </transient>
 </cfsSimulation>
 \end{verbatim}
 }
