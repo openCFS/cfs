@@ -3,8 +3,8 @@
 |
 |
 | $Log$
-| Revision 1.2  2002/03/21 14:58:57  elena
-| new: changes in dat-file for reading tetrahedral (bugs in element connection)
+| Revision 1.3  2002/04/03 11:17:08  elena
+| new: changes in CFS++ on SGI and new function for gridlib
 |
 | Revision 1.5  2002/03/18 10:00:25  prkipfer
 | refactored element structure

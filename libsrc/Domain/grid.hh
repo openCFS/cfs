@@ -42,11 +42,16 @@ public:
   /// Return num of nodes per element i
   virtual Integer GetNumNodesPerElem(const Integer iElem, const Integer level)=0;
 
+  //! Get array of nodes for boundary condition 
+  virtual void GetNodesBoundaryCondition(Vector<Integer> & nodesDirBC, const Integer level)=0;
+
   /// Print coordinates of grid in out
 //  virtual void PrintCoordinate(const Integer level, ostream * out) const=0;
 
 protected:
+
   FileType * ptFileType;
+
 private:
   ///
 };

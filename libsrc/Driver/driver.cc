@@ -2,7 +2,7 @@
 #include <iostream>
 #include <string>
 
-//#include "interface_gridlib.hh"
+#include "interface_gridlib.hh"
 #include "acousticPDE.hh"
 #include "driver.hh"
 
@@ -17,13 +17,14 @@ Driver<Dim>::Driver(FileType * const aptFileType, Integer anummesh, Material * a
 #endif
   ptFileType=aptFileType;
 
-  ptFileType->ReadNumStepsAndTimeSteps(numsteps, dt0);
+//  ptFileType->ReadNumStepsAndTimeSteps(numsteps, dt0);
+  numsteps=30; dt0=2.000000000000E-07;
 
   ptFileType->ReadOutputOptions(SaveDer1, SaveDer2);
   SaveDer1=FALSE; SaveDer2=FALSE;
 
-//  ptgrid=new InterfaceGridlib<Dim>(ptFileType);
-  ptgrid=new GridInterfaceCFS<Dim>(ptFileType);
+  ptgrid=new InterfaceGridlib<Dim>(ptFileType);
+//  ptgrid=new GridInterfaceCFS<Dim>(ptFileType);
   ptgrid->Read();
  
   ptMaterial=aptMaterial;
@@ -37,12 +38,12 @@ void Driver<Dim>::SolveNewmarkMethod(OutResultUnverg<Dim> * ptUnverg)
 #endif
  
 /// Save the grid before a uniform refinement in a separate unverg-file 
-//  OutResultUnverg<Dim> * ptUnvergPreGrid=new OutResultUnverg<Dim>("grid_pre"); 
-//  ptUnvergPreGrid->Create(ptgrid,0);  
-//  if (ptUnvergPreGrid) delete ptUnvergPreGrid;
-//  ptgrid->SubdivideUniform(0);
+  OutResultUnverg<Dim> * ptUnvergPreGrid=new OutResultUnverg<Dim>("grid_pre"); 
+  ptUnvergPreGrid->Create(ptgrid,0);  
+  if (ptUnvergPreGrid) delete ptUnvergPreGrid;
+  ptgrid->SubdivideUniform(0);
 
-   ptUnverg->Create(ptgrid,0);
+   ptUnverg->Create(ptgrid,1);
 
 //  Double endtime=1.0;   ////////////////////////////////////////////
   Double t=0;

@@ -84,8 +84,8 @@
 /*----------------------------------------------------------------------
 |
 | $Log$
-| Revision 1.2  2002/03/21 14:58:56  elena
-| new: changes in dat-file for reading tetrahedral (bugs in element connection)
+| Revision 1.3  2002/04/03 11:17:07  elena
+| new: changes in CFS++ on SGI and new function for gridlib
 |
 | Revision 1.10  2001/12/11 12:41:05  prkipfer
 | fixes for KCC compiler on new PCs

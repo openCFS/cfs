@@ -86,8 +86,8 @@ protected:
 /*----------------------------------------------------------------------
 |
 | $Log$
-| Revision 1.2  2002/03/21 14:58:56  elena
-| new: changes in dat-file for reading tetrahedral (bugs in element connection)
+| Revision 1.3  2002/04/03 11:17:07  elena
+| new: changes in CFS++ on SGI and new function for gridlib
 |
 | Revision 1.3  2001/06/15 09:26:30  prkipfer
 | removed useless signedness

@@ -60,7 +60,7 @@ public:
   virtual Integer GetNumNodesPerElem(const Integer iElem, const Integer level)
   { 
     return ptGoMesh->getElement(iElem, level)->getNumVertices();
-}
+  }
 
   /// Print coordinates of grid in out
   virtual void PrintCoordinate(const Integer level, std::ostream * out) const
@@ -68,6 +68,10 @@ public:
 
   /// Put information about grid
   void Read();
+
+  //! Put global numbers of nodes with boundary condition in Vector
+  void GetNodesBoundaryCondition(Vector<Integer> & nodesDirBC, const Integer level);
+
 private:
 
   //! 

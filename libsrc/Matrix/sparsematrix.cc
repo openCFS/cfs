@@ -219,6 +219,8 @@ SparseMatrix<TYPE> & SparseMatrix<TYPE>::operator=(const SparseMatrix<TYPE> & x)
   for (i=0; i<numrows; i++) ptRow[i]=0;
 
   Copy(x);
+
+  return *this;
 }
 
 template<class TYPE>
@@ -257,6 +259,9 @@ SparseMatrix<TYPE>  & SparseMatrix<TYPE>::operator+= (const SparseMatrix<TYPE> &
 	      (*this)(irow,ptElemX->column)+=ptElemX->value;
 	}
     }
+
+  return *this;
+
 }     
 
 template<class TYPE>
@@ -343,6 +348,8 @@ SparseMatrix<TYPE> & SparseMatrix<TYPE>::operator*= (const TYPE &x)
         for (; ptElem!=0; ptElem=ptElem->next)
 	  ptElem->value*=x;
     }
+
+ return *this;
 }
 
 template<class TYPE>
