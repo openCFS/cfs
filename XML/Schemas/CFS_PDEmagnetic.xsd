@@ -1,0 +1,274 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org"
+  xmlns:cfs="http://www.cfs++.org"
+  elementFormDefault="qualified">
+
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Coupled Field Solver project CFS++
+      Schema for PDE description for a magnetic PDE
+    </xsd:documentation>
+  </xsd:annotation>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of element for magnetics PDEs -->
+  <!-- ******************************************************************** -->
+  <xsd:element name="magnetic" type="DT_PDEMagnetic"
+       substitutionGroup="PDEBasic"/>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for magnetics PDEs -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_PDEMagnetic">
+    <xsd:complexContent>
+      <xsd:extension base="DT_PDEBasic">
+        <xsd:sequence>
+
+          <!-- Regions the PDE lives on -->
+          <xsd:element name="region" minOccurs="1" maxOccurs="unbounded">
+            <xsd:complexType>
+              <xsd:attribute name="name" type="xsd:token" use="required"/>
+              <xsd:attribute name="nonLinear" type="DT_MagneticNonLin"
+                use="optional" default="no"/>
+            </xsd:complexType>
+          </xsd:element>
+
+          <!-- Type of damping model (optional) -->
+          <xsd:element name="damping" type="DT_MagneticDamp" minOccurs="0"/>
+
+          <!-- Boundary Conditions & Loads (optional) -->
+          <xsd:element name="bcsAndLoads" minOccurs="0">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="dirichletHom" type="DT_MagneticHD"
+                             minOccurs="0" maxOccurs="unbounded"/>
+                <xsd:element name="dirichletInhom" type="DT_MagneticID"
+                             minOccurs="0" maxOccurs="unbounded"/>
+                <xsd:element name="neumannInhom" type="DT_MagneticIN"
+                             minOccurs="0" maxOccurs="unbounded"/>
+                <xsd:element name="absorbingBCs" type="DT_AbsorbingBC"
+                             minOccurs="0" maxOccurs="unbounded"/>
+              </xsd:sequence>
+
+            </xsd:complexType>
+          </xsd:element>
+
+          <!-- Section for specifying non-linear parameters (optional) -->
+          <xsd:element name="nonLinear" type="DT_NonLinParams" minOccurs="0"/>
+
+          <!-- Desired solution values (optional) -->
+          <!-- Currently this is not supported, since it is difficult
+               to define in the magnetics case since it depends on the
+               boundary conditions -->
+          <xsd:element name="storeResults" type="DT_MagneticStoreResults"
+            minOccurs="0" maxOccurs="1"/>
+  
+        </xsd:sequence>
+
+        <!-- Type of magnetic formulation -->
+        <xsd:attribute name="formulation">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
+              <xsd:enumeration value="pressure"/>
+              <xsd:enumeration value="vPot"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
+
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of the boundary condition types for magnetics -->
+  <!-- ******************************************************************** -->
+
+  <!-- Element type for homogeneous Dirichlet boundary conditions -->
+  <!-- We derive it by extending the base type -->
+  <xsd:complexType name="DT_MagneticHD">
+    <xsd:complexContent>
+      <xsd:extension base="DT_BCBasic">
+        <xsd:attribute name="name" type="xsd:token" use="required"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- Element type for inhomogeneous Dirichlet boundary conditions -->
+  <!-- We derive it by extending the homogeneous case -->
+  <xsd:complexType name="DT_MagneticID">
+    <xsd:complexContent>
+      <xsd:extension base="DT_MagneticHD">
+        <xsd:attribute name="value" type="xsd:double" use="required"/>
+        <xsd:attribute name="dynamics" type="xsd:token" use="optional"
+          default="none"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- Element type for specifying inhomogeneous neumann conditions -->
+  <!-- Identical to that of inhomogeneous Dirichlet case -->
+  <xsd:complexType name="DT_MagneticIN">
+    <xsd:complexContent>
+      <xsd:extension base="DT_MagneticID"/>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- Element type for specifying absorbing boundary conditions -->
+  <!-- Identical to that of homogeneous Dirichlet case -->
+  <xsd:complexType name="DT_AbsorbingBC">
+    <xsd:complexContent>
+      <xsd:extension base="DT_MagneticHD"/>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for non-linearity in mechanic PDEs -->
+  <!-- ******************************************************************** -->
+  <xsd:simpleType name="DT_MagneticNonLin">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="no"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for damping model -->
+  <!-- ******************************************************************** -->
+  <xsd:simpleType name="DT_MagneticDampType">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="fractional"   />
+      <xsd:enumeration value="rayleigh"     />
+      <xsd:enumeration value="absorbingBC"  />
+      <xsd:enumeration value="thermoViscous"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <xsd:complexType name="DT_MagneticDamp">
+    <xsd:attribute name="type" type="DT_MagneticDampType" use="required"/>
+    <xsd:attribute name="fracMemory" type="xsd:positiveInteger"
+      use="optional" default="1"/>
+  </xsd:complexType>
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of syntax for specifying output quantities of CFS -->
+  <!-- ******************************************************************** -->
+
+  <!-- What data can a single node have in an magnetic PDE -->
+  <xsd:simpleType name="DT_MagneticNodeData">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="pressure"/>
+      <xsd:enumeration value="vPot"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <!-- Data type for describing final node values to be stored -->
+  <xsd:complexType name="DT_MagneticNodeResults">
+    <xsd:attribute name="type" type="DT_MagneticNodeData" use="optional"
+      default="pressure"/>
+    <xsd:attribute name="region" type="xsd:token" use="optional"
+      default="all"/>
+  </xsd:complexType>
+
+  <!-- Data type for describing history of node values to be stored -->
+  <xsd:complexType name="DT_MagneticNodeHistory">
+    <xsd:attribute name="type" type="DT_MagneticNodeData" use="optional"
+      default="pressure"/>
+    <xsd:attribute name="saveNodes" type="xsd:token" use="optional"
+      default="none"/>
+  </xsd:complexType>
+
+  <!-- Data type for specifying the desired mechanical output quantities -->
+  <xsd:complexType name="DT_MagneticStoreResults">
+    <xsd:sequence>
+      <xsd:element name="nodeResults" type="DT_MagneticNodeResults"
+        minOccurs="0" maxOccurs="unbounded"/>
+      <xsd:element name="nodeHistory" type="DT_MagneticNodeHistory"
+        minOccurs="0" maxOccurs="unbounded"/>
+    </xsd:sequence>
+  </xsd:complexType>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of syntax for specifying coils -->
+  <!-- ******************************************************************** -->
+
+  <!-- Data type for measurement coils -->
+  <xsd:complexType name="DT_MeasurementCoil">
+    <xsd:sequence>
+      <xsd:element name="area" type="DT_PosFloat"/>
+    </xsd:sequence>
+    <xsd:attribute name="name" type="xsd:token" use="required"/>
+  </xsd:complexType>
+
+  <!-- Data type for 3D voltage coils -->
+  <xsd:complexType name="DT_VoltageCoil3D">
+    <xsd:extension base="DT_MeasurementCoil">
+      <xsd:sequence>
+        <xsd:element name="value"      type="DT_PosFloat"/>
+        <xsd:element name="dynamics"   type="xsd:token"/>
+        <xsd:element name="phase"      type="DT_PosFloat"/>
+        <xsd:element name="resistance" type="DT_DegAngle"/>
+      </xsd:sequence>
+    </xsd:extension>
+  </xsd:complexType>
+
+  <!-- Data type for 2D voltage coils -->
+  <xsd:complexType name="DT_VoltageCoil2D">
+    <xsd:extension base="DT_VoltageCoil3D">
+      <xsd:attribute name="id" type="xsd:token" use="required"/>
+    </xsd:extension>
+  </xsd:complexType>
+
+  <!-- Data type for 2D current coils -->
+  <xsd:complexType name="DT_CurrentCoil2D">
+    <xsd:extension base="DT_MeasurementCoil">
+      <xsd:sequence>
+        <xsd:element name="value"      type="DT_PosFloat"/>
+        <xsd:element name="dynamics"   type="xsd:token"/>
+        <xsd:element name="phase"      type="DT_PosFloat"/>
+      </xsd:sequence>
+      <xsd:attribute name="id" type="xsd:token" use="required"/>
+    </xsd:extension>
+  </xsd:complexType>
+
+  <!-- Data type for 3D current coils -->
+  <xsd:complexType name="DT_CurrentCoil2D">
+    <xsd:extension base="DT_MeasurementCoil">
+      <xsd:sequence>
+        <xsd:element name="value"      type="DT_PosFloat"/>
+        <xsd:element name="dynamics"   type="xsd:token"/>
+        <xsd:element name="phase"      type="DT_PosFloat"/>
+        <xsd:element ref="FlowDirection"/>
+      </xsd:sequence>
+    </xsd:extension>
+  </xsd:complexType>
+
+  <!-- Element for specifying flow direction (directly) -->
+  <xsd:element name="currentFlow" substitutionGroup="FlowDirection">
+    <xsd:simpleType>
+      <xsd:restriction base="xsd:token">
+        <xsd:enumeration value="xDir"/>
+        <xsd:enumeration value="yDir"/>
+        <xsd:enumeration value="zDir"/>
+      </xsd:restriction>
+    </xsd:simpleType>
+  </xsd:element>
+
+  <!-- Element for specifying flow direction (rotational) -->
+  <xsd:element name="rotational" substitutionGroup="FlowDirection">
+    <xsd:complexType>
+      <xsd:attribute name="midPointX" type="xsd:float">
+      <xsd:attribute name="midPointY" type="xsd:float">
+      <xsd:attribute name="midPointZ" type="xsd:float">
+      <xsd:attribute name="orientX"   type="xsd:float">
+      <xsd:attribute name="orientY"   type="xsd:float">
+      <xsd:attribute name="orientZ"   type="xsd:float">
+    </xsd:complexType>
+  </xsd:element>
+ 
+</xsd:schema>
