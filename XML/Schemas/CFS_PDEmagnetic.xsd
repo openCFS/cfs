@@ -219,10 +219,8 @@
     <xsd:complexContent>
       <xsd:extension base="DT_BasicCoil">
         <xsd:sequence>
-          <xsd:element name="saveFileL"  type="xsd:token" minOccurs="0"
-            default="none"/>
-          <xsd:element name="saveFileUI" type="xsd:token" minOccurs="0"
-            default="none"/>
+          <xsd:element name="saveFileL"  type="xsd:token"/>
+          <xsd:element name="saveFileUI" type="xsd:token"/>
         </xsd:sequence>
       </xsd:extension>
     </xsd:complexContent>
