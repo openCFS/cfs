@@ -45,6 +45,8 @@ void TimeFunc :: ReadTimeFuncs()
   valTF_    =  new std::list<Double>[maxnumTF_];
   timeTF_     =  new std::list<Double>[maxnumTF_]; 
 
+
+
   // loop over time-fncs
   for (Integer i=0; i< maxnumTF_; i++)
     {
@@ -71,7 +73,9 @@ void TimeFunc :: ReadTimeFuncs()
 	  if (buf[0] != '#' || buf[0] != '%' || buf[0] != '!') 
 	    {
 	      timefile.seekg(- buf.size() - 1,std::ios::cur); // rewind
-	      
+
+	      timefile >> timeT >> valT ;		     
+ 
 	      valTF_[i].push_back(valT);
 	      timeTF_[i].push_back(timeT);
 	      timefile.ignore(100,'\n');

@@ -269,12 +269,14 @@ void BasePDE::SolveStepTrans(const Integer kstep, const Double asteptime,
 }
 
 
-void BasePDE::PreStepTrans(const Integer level, const Boolean reset)
+void BasePDE::PreStepTrans(const Integer kstep, const Double asteptime,
+			   const Integer level, const Boolean reset)
 {
 #ifdef TRACE
   (*trace) << "entering BasePDE::PreStepTrans" << std::endl;
 #endif
 
+  lasttimecalc_= asteptime;
 
   // due to coupling-pdes, the RHS has to be initialized BEFORE 
   // the coupling forces are assembled to the RHS
@@ -939,13 +941,13 @@ void BasePDE::TransformElemSolution(Array<Double> & MeshSol,
 #endif
 
    MeshSol.reshape(PDESol.dim(), ptgrid_->GetMaxnumElem(actlevel_));
-  
+   std::cout << "dim= " << ptgrid_->GetMaxnumElem(actlevel_) << std::endl;
+   
   // loop over all dimensions
   for (Integer dim=0; dim<PDESol.dim(); dim++)
 
     // loop over all elements
     for (Integer i=0; i<Elems.size(); i++) {
-  
       MeshSol[dim][i] = PDESol[dim][i];
     }
   
@@ -959,27 +961,40 @@ void BasePDE::TransformElemSolution(Array<Double> & MeshSol,
   (*trace) << "entering BasePDE::TransformElemSolution string" << std::endl;
 #endif
 
-  std::vector<Elem*> Elems;
-
-  MeshSol.reshape(PDESol.dim(), ptgrid_->GetMaxnumElem(actlevel_));
+  MeshSol.reshape(PDESol.dim(), ptgrid_->GetMaxnumElem(actlevel_,SD));
 
 
-  // loop over all SubDomains
-  for (Integer isd=0; isd<SD.size(); isd++)
+  Integer elMesh=0;
+  Integer elPDE=0;
+  std::vector<std::string> AllSDs = ptgrid_->GetListSubDomains();
+
+  // loop over all SubDomains of computational domain
+  for (Integer isd=0; isd<AllSDs.size(); isd++)
   {
-    ptgrid_->GetElemSD(Elems, SD[isd], actlevel_);
-    
-    // loop over all dims
-    for (Integer dim=0; dim<PDESol.dim(); dim++)
+    Boolean SDbelongsToDomain = FALSE;
+    for (Integer k=0; k<SD.size(); k++)
+      if (SD[k] == AllSDs[isd]) 
+	SDbelongsToDomain = TRUE;
 
+    std::vector<Elem*> Elems;
+    ptgrid_->GetElemSD(Elems, AllSDs[isd], actlevel_);    
+    if (SDbelongsToDomain)
+      {
+	//computational subdomain belongs to PDE 
 	// loop over all elements
-      for (Integer i=0; i<Elems.size(); i++) {
+	for (Integer i=0; i<Elems.size(); i++) 
+	    {
+	      // loop over dim
+	      for (Integer dim=0; dim<PDESol.dim(); dim++)
+		MeshSol[dim][elMesh] = PDESol[dim][elPDE]; 
 
-   	  MeshSol[dim][i] = PDESol[dim][i];
+	      elPDE++; elMesh++;
+	    }
       }
-	
+    else
+      elMesh += Elems.size();
+    
   }
-
 }
 
 
