@@ -94,7 +94,7 @@ void Domain :: InitPDE()
 #endif
 
   // get numbers of PDEs in domain
- conf->get("maxnumsd",numpde_);
+ conf->get("maxpde",numpde_);
 
   //allocate all specific PDEs
   if (!ptalgsys_) Error("You try to allocate object BasePDE with null pointer to AlgSys");

@@ -10,11 +10,9 @@ namespace CoupledField
 //! struct for Element
 struct Elem
 {
-  Integer elemType; //!< elements type as it is in ansys
-  Integer nnodeselem;
-  enum MatType mattype; 
-  
+  BaseElem * ptElem;
   Vector<Integer> connect;
+  std::string namesd;
 };
 
  
