@@ -575,7 +575,8 @@ void  WriteResultsUnverg::WriteElemSolutionHarmonic(const ElemStoreSol<Complex>&
   ENTER_FCN( "WriteResultsUnverg::WriteElemSolutionHarmonic" );
  Vector<Complex> globalSolution;
   StdVector<SolutionType> solTypes;
-  Integer numNodes =  ptgrid->GetMaxnumnodes(1);
+  Integer numElems =  ptgrid->GetMaxnumElem(0);  
+
   std::string title;
 
   sol.GetSolutionTypes(solTypes);
@@ -583,7 +584,7 @@ void  WriteResultsUnverg::WriteElemSolutionHarmonic(const ElemStoreSol<Complex>&
   title = SolutionTypeToString(solTypes[0]);  
 
   NodeElemDataHarmonic(55, title, globalSolution, step, frequency, 
-			   format, numNodes ,sol.GetDof(solTypes[0]));
+			   format, numElems ,sol.GetDof(solTypes[0]));
 }
 
 std::string WriteResultsUnverg::SolutionTypeToString(const SolutionType type) const
