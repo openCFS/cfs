@@ -29,17 +29,17 @@ namespace CoupledField
     polytrop_   = polytrop;
     viscosity_  = viscosity;
 
-    n_ = 7;
+    n_ = 7.0;
 
     // There are different method to obtain the constants A and B;
     // it is not yet cleared which one is to be used 
-    //A_ = 3.001e8;                                    // Philipp and Dähnke
+    A_ = 3.001e8;                                    // Philipp and Dähnke
     //A_ = sonicVel_ * sonicVel_ * density_ / ( n * pStatic_); // Sapozhnikov
-    A_ = sonicVel_ * sonicVel_ * density_ / n_;          // meine Vermutung
+    //A_ = sonicVel_ * sonicVel_ * density_ / n_;          // meine Vermutung
  
-    // B_ = 3e8;                                        // Philipp and Dähnke
-    B_ = A_ - pStatic_;                                // Sapozhnikov   
-    B_ = A_ -1;                                         // Church
+    B_ = 3e8;                                        // Philipp and Dähnke
+    //B_ = A_ - pStatic_;                                // Sapozhnikov   
+    //B_ = A_ -1;                                         // Church
 
 
     // log to screen 
@@ -52,7 +52,7 @@ namespace CoupledField
     // std::cerr << "surfacTen_"  << surfacTen_  << " \n";
     // std::cerr << "polytrop_"   << polytrop_   << " \n";
     // std::cerr << "viscosity_"  << viscosity_  << " \n";
-    // std::cerr << "A_"          << A        _  << " \n";
+    // std::cerr << "A_"          << A _         << " \n";
     // std::cerr << "B_"          << B_          << " \n";
     // std::cerr << "n_"          << n_          << " \n";
 
@@ -77,18 +77,18 @@ namespace CoupledField
 
     temp1  -=  2.0 * surfacTen_ / y[0];
 
-    temp1  -=  4.0 * viscosity_ * y[1] / y[0] + B_;
+    temp1  -=  4.0 * viscosity_ * y[1] / y[0] - B_;
 
-    H_      = std::pow( temp1 , (( n_ - 1 ) / n_ ));
+    H_      = std::pow( temp1 , (( n_ - 1.0 ) / n_ ));
 
-    temp2   =  std::pow( ( pStatic_ + p_ + B_ ) ,(( n_ - 1 ) / n_ ));
+    temp2   =  std::pow( ( pStatic_ + p_ + B_ ) ,(( n_ - 1.0 ) / n_ ));
 
     H_     -=  temp2;
   
-    H_  *=  n_ / ( n_ - 1 ) / density_ * std::pow( A_ , ( 1 / n_ ));
+    H_  *=  n_ / ( n_ - 1.0 ) / density_ * std::pow( A_ , ( 1.0 / n_ ));
 
 
-    sonicVelMix_ = sqrt ( sonicVel_ * sonicVel_ + ( n_ - 1 ) * H_ );
+    sonicVelMix_ = sqrt ( sonicVel_ * sonicVel_ + ( n_ - 1.0 ) * H_ );
 
 
     dydt[0]  = y[1];
@@ -99,25 +99,25 @@ namespace CoupledField
 
     temp3   += 2.0 * surfacTen_ / ( y[0] * y[0] ) * y[1];
 
-    temp3   += 4.0 * viscosity_ *  y[1] * y[1]  / y[0];
+    temp3   += 4.0 * viscosity_ *  y[1] * y[1]  / ( y[0] * y[0] );
 
-    temp3   *= std::pow( temp1 , (- 1 / n_ ));
+    temp3   *= std::pow( temp1 , ((- 1.0) / n_ ));
 
-    temp4    = std::pow( ( pStatic_ + p_ + B_ ) ,( - 1 / n_ )) + dpdt_;
+    temp4    = std::pow( ( pStatic_ + p_ + B_ ) ,( (- 1.0) / n_ )) * dpdt_;
 
-    dydt[1]  = ( temp3 - temp4 ) * std::pow( A_ , ( 1 / n_ )) / density_;
+    dydt[1]  = ( temp3 - temp4 ) * std::pow( A_ , ( 1.0 / n_ )) / density_;
 
-    dydt[1] *= ( 1.0 - y[1] / sonicVelMix_ ) * y[0] /sonicVelMix_;
+    dydt[1] *= ( 1.0 - (y[1] / sonicVelMix_) ) * y[0] /sonicVelMix_;
 
-    dydt[1] -= 3.0 / 2.0 * y[1] * y[1] * ( 1.0 - y[1] 
-					   / ( 3.0 * sonicVelMix_ ));
+    dydt[1] -= 3.0 / 2.0 * y[1] * y[1] * ( 1.0 - (y[1] 
+					   / ( 3.0 * sonicVelMix_ )));
 
     dydt[1] += ( 1.0 + y[1] / sonicVelMix_ ) * H_;
 
-    dydt[1] = dydt[1] / (( 1.0 - ( y[1] / sonicVel_ )) * y[0] 
-			 * ( 1.0 + 4.0 * viscosity_ / ( sonicVelMix_ * y[1])
-    			     * std::pow( temp1 , (- 1 / n_ )) 
-    			     * std::pow( A_ , ( 1 / n_ )) / density_));
+    dydt[1] = dydt[1] / (( 1.0 - ( y[1] / sonicVelMix_ )) * y[0] 
+			 * ( 1.0 + (4.0 * viscosity_ / ( sonicVelMix_ * y[0])
+				    * std::pow( temp1 , ((- 1.0) / n_ )) 
+				    * std::pow( A_ , ( 1.0 / n_ )) / density_)));
 
 
 
