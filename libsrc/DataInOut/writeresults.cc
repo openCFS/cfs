@@ -291,7 +291,7 @@ namespace CoupledField {
    
       actDof = data.GetDof(solTypes[iSol]);
     
-      // Find the according quantitiy
+      // Find the related quantity
       iQuant = -1;
       for (Integer i=0; i<histQuantities_.GetSize(); i++) {
 
@@ -301,27 +301,35 @@ namespace CoupledField {
 	}
       }
       
-      if (iQuant == -1){
-	Enum2String(solTypes[iSol], quantity);
-	std::string errMsg = "Quantity '";
-	errMsg += quantity;
-	errMsg += "' for history not found!";
-	Error(errMsg.c_str(), __FILE__, __LINE__);
+      if ( iQuant == -1 ){
+
+	// Report what quantities we have
+	std::cerr << "Found the following quantities:\n";
+	for ( Integer i = 0; i < histQuantities_.GetSize(); i++ ) {
+	  std::cerr << " " << histQuantities_[i] << "\n";
+	}
+
+	Enum2String( solTypes[iSol], quantity );
+	(*error) << "Quantity '" << quantity << "' for history not found!";
+	Error( __FILE__, __LINE__ );
       }
     
       // Iterate over all history nodes
-      for (Integer iNode=0; iNode<histNodesPerQuant_[iQuant].GetSize(); iNode++){
+      for ( Integer iNode = 0; iNode < histNodesPerQuant_[iQuant].GetSize();
+	    iNode++ ) {
 	myHist = historyFiles_[iQuant][iNode];
 	(*myHist) << time;
       
 	// Iterate over all dofs
-	for (Integer iDof=0; iDof<actDof; iDof++) {
-	  data.Get(solTypes[iSol],histNodesPerQuant_[iQuant][iNode]-1, iDof,val);
+	for ( Integer iDof = 0; iDof < actDof; iDof++ ) {
+	  data.Get( solTypes[iSol], histNodesPerQuant_[iQuant][iNode]-1,
+		    iDof, val );
+
 	  (*myHist) << "  " << val;
-	} // iDof
+	}
 	(*myHist) << std::endl;
-      }  // iNode
-    } // iSol
+      }
+    }
   }
 
 
