@@ -72,29 +72,27 @@ void WedgeFE::SetIntPoints()
 
 	IntPoints_[0][0] =  1.0;
 	IntPoints_[0][1] =  0.0;
-	IntPoints_[0][2] =  -1.0;
+	IntPoints_[0][2] =  1.0;
 	
 	IntPoints_[1][0] = -0.5;
 	IntPoints_[1][1] = -0.5*1.732050808;
-	IntPoints_[1][2] = -1.0;
+	IntPoints_[1][2] = 1.0;
 
 	IntPoints_[2][0] = -0.5;
 	IntPoints_[2][1] =  0.5*1.732050808;
-	IntPoints_[2][2] = -1.0;
+	IntPoints_[2][2] = 1.0;
 	
 	IntPoints_[3][0] =  1.0;
 	IntPoints_[3][1] =  0.0;
-	IntPoints_[3][2] =  1.0;
+	IntPoints_[3][2] =  -1.0;
 	
 	IntPoints_[4][0] = -0.5;
 	IntPoints_[4][1] = -0.5*1.732050808;
-	IntPoints_[4][2] =  1.0;
+	IntPoints_[4][2] =  -1.0;
 
 	IntPoints_[5][0] = -0.5;
 	IntPoints_[5][1] =  0.5*1.732050808;
-	IntPoints_[5][2] =  1.0;
-
-
+	IntPoints_[5][2] =  -1.0;
 
 
 	break;
