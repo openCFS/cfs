@@ -49,7 +49,7 @@ namespace CoupledField {
     phase_               = 0;
     resistance_          = 0;
     id_                  = 0;
-    dynamicsFile_        = "undefined";
+    dynamicsFile_        = "none";
     isRotational_        = false;
     flowDir_             = NODIR;
     saveFileL_           = "none";

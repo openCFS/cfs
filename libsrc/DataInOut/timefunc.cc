@@ -110,7 +110,7 @@ Double TimeFunc::TimeFuncAtTime(const Double time,  const std::string fncname)
  
  //if name of time function not defined, than a constant time function with value
  //1.0 is assumed 
- if (fncname == "---not-defined--")
+ if (fncname == "none")
    return 1.0;
 
  //get correct time function
