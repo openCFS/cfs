@@ -19,7 +19,7 @@ IterCoupledPDE::IterCoupledPDE(std::vector<BasePDE*> & PDEs,
   maxiter_ = 5;
    
   //if values are defined in conf-file, take these
-  conf->ifget("maxiter",maxiter_,coupledpdename_); // maximal number of iterations
+  conf->ifget("maxiter", maxiter_, coupledpdename_); // maximal number of iterations
 
 } 
 
@@ -132,7 +132,7 @@ void IterCoupledPDE::SolveStepStatic(const Integer level)
 
   while (iter < maxiter_ &&  (! normsReached))
     {
-      Info->PrintF("COUPLED ITERATION %i", iter+1);
+      Info->PrintF(coupledpdename_, "COUPLED ITERATION %i", iter+1);
 	
 
       counter = 0;
@@ -140,7 +140,7 @@ void IterCoupledPDE::SolveStepStatic(const Integer level)
       
       for (Integer i=0; i<PDEs_.size(); i++)
 	{
-	  Info->PrintF("Processing PDE %s", (PDEs_[i]->GetName()).c_str());
+	  Info->PrintF(coupledpdename_, "Processing PDE %s", (PDEs_[i]->GetName()).c_str());
 
 	  PDEs_[i]->CalcInputCoupling();
 	  PDEs_[i]->SolveStepStatic(actlevel_);
@@ -154,7 +154,7 @@ void IterCoupledPDE::SolveStepStatic(const Integer level)
 	      Couplings_[i]->GetOutputOldValues(k, oldVal);
 	      norms_[counter] = CalcNorm(Couplings_[i]->GetOutputNormType(k), *val, *oldVal);
 
-	      Info->PrintF("Norm of %s = %g", (Couplings_[i]->GetOutputQuantity(k)).c_str(), norms_[counter]);
+	      Info->PrintF(coupledpdename_, "Norm of %s = %g", (Couplings_[i]->GetOutputQuantity(k)).c_str(), norms_[counter]);
 	      
 	      if (norms_[counter] > Couplings_[i]->GetOutputEpsilon(k))
 		normsReached = FALSE;

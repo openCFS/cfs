@@ -246,9 +246,8 @@ void MechPDE::SolveStepStaticNonLin(const Integer level)
       *cla << "     Incremental error       " << incrementalErr << std::endl;
 
       
-      Info->WriteNonLinIter(iterationCounter, residualErr, incrementalErr);
+      Info->WriteNonLinIter(pdename_, iterationCounter, residualErr, incrementalErr);
       
-
 
       // boolean variable, holds condition if another iteration step is necessary
       performOneMoreStep = 

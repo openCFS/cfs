@@ -47,14 +47,22 @@ namespace CoupledField
     void PrintCoil(std::string& coilDomain, struct MagEdgePDE::coilDefStruct& coilDef,  AnalysisType& analysistype_);
 
     /// prints the process of a nonlinear iteration
-    void WriteNonLinIter(Integer iterationCounter, 
-			 Double residualErr, Double incrementalErr);
+    void WriteNonLinIter(const std::string& pdeName, const Integer iterationCounter,    
+			 const Double residualErr, const Double incrementalErr);
 
     /// just prints a vector
     void PrintVec(Vector<Double>& vec);
     
-    /// does a formatted print, equal to std::printf(...)
-    void PrintF(char * formatStr ...);
+    /// does a formatted print leaded by the PDE name, equal to std::printf(...)
+    void PrintF(const std::string& pdeName, char * formatStr ...);
+    
+    /// prints warning to info-file
+    void Warning(const std::string & text);
+    
+    /// prints error to both std::out and info-file
+    void Error(const std::string & text, const Char * const filename=NULL,
+               const Integer numline=0);
+
     
   };
 } // end namespace CoupledField
