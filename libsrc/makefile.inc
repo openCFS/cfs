@@ -46,6 +46,11 @@ $(LIB_DIR) :
 clean:
 	-rm *.o
 #
+########## Make link to include
+#
+link-include: 
+	@echo DDD 
+#
 ######### Make depend 
 #
 depend: 

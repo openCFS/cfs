@@ -29,12 +29,6 @@ public:
   /// write information about the solution
   virtual void WriteSolution(const Vector<Double> & sol, const Integer step, const Double time, const std::string title);
 
-  /// write information about first derivatives of the solution
-  virtual void WriteFirstDerSolution(const Vector<Double> & sol, const Integer step, const Double time);
-
-  /// write information about second derivatives of the solution
-   virtual void WriteSecondDerSolution(const Vector<Double> & sol, const Integer step, const Double time);
-
 private:
 
   ///

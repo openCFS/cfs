@@ -101,6 +101,18 @@ link:
 #        rm -rf $(IncGridlib) && ln -s $(Gridlib) $(IncGridlib) && \
 #        
 #
+############## Make links in dir include
+#
+link-include:
+	@echo Creating links to header-files
+	@(rm -rf $(Include); mkdir Include)
+	@for n in $(PATHSUBLIBDIR); do \
+        (if cd $$n; \
+                  then $(MAKE) link-include; \
+                   else echo "WARNING:" $$n " doesn't exist"; \
+          fi); \
+         done
+#
 ######################  Clean work directory
 clean-driver:
 	@cd $(LIBSRC_DIR)/Driver && \

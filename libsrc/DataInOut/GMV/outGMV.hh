@@ -28,12 +28,6 @@ public:
   /// write information about the solution
   virtual void WriteSolution(const Vector<Double> & sol, const Integer step, const Double time, const std::string title);
 
-  /// write information about first derivatives of the solution
-  virtual void WriteFirstDerSolution(const Vector<Double> & sol, const Integer step, const Double time);
-
-  /// write information about second derivatives of the solution
-  virtual void WriteSecondDerSolution(const Vector<Double> & sol, const Integer step, const Double time);
-
 private:
   
   //!
@@ -50,6 +44,12 @@ private:
 
   //! write cell description 
   void WriteCells(const Integer level); 
+
+  //! write variable information
+  void WriteVariable(const Vector<Double> var, const std::string name, const Integer type);
+
+  //! 
+  Integer variablemode_;  
 
 };
 
