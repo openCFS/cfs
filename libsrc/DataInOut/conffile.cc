@@ -79,7 +79,7 @@ template void ConfFile::get(const std::string , Double &);
 void ConfFile::getmatnum(Integer & matnum, const Integer numsubdom)
 {
  std::string::size_type pos;
- pos=getpos("equation");
+ pos=getpos(equation);
  infile.seekg(pos,std::ios::beg);
  infile.ignore(100,'\n');
 

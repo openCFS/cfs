@@ -236,7 +236,8 @@ void Elecst3dPDE::CalcCoeff(Double & coeff, const Integer numsubdom)
 {
  // get material number for subdomain with number numsubdom from config-file
  Integer matnum;
- conf->getmatnum(matnum,numsubdom);
+// conf->getmatnum(matnum,"elecst3d");
+ conf->get("elecst3d",matnum);
 
  // read density and compress with material number matnum
  Double dielectr;

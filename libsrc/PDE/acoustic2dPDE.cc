@@ -429,7 +429,8 @@ void Acoustic2dPDE::CalcCoeff(Double & coeffmass, Double & coeffstiff, const Int
 {
  // get material number for subdomain with number numsubdom from config-file
  Integer matnum;
- conf->getmatnum(matnum,numsubdom);
+// conf->getmatnum(matnum,numsubdom);
+ conf->get("acoustic2d",matnum);
 
  // read density and compress with material number matnum
  Double density, compress;
