@@ -59,6 +59,9 @@ public:
   //! are currently solved 
   virtual void DefineSolvingPDEs(StdVector<BasePDE*> & pdes) = 0;
   
+ //! set current time step
+  virtual void SetTimeStep(const Double dt);
+
   //! Solve static step
   virtual void SolveStepStatic(const Integer kstep, const Double asteptime, const Integer level, 
 			      const Boolean updatesysmat)=0;
@@ -71,17 +74,6 @@ public:
   virtual void WriteResultsInFile(Integer stepOffset = 0,
 				  Double timeOffset = 0.0)=0;
 
-
-  //! Init the time stepping
-  /*!
-    \param dt time step
-  */
-  virtual void InitTimeStepping(const Double dt);
-
-  /// time stepping params, provided by "TransientDriver"
-  void SetTimeSteppingParams(Integer numstep, Double  firstdt, Integer isavebegin, 
-			     Integer isaveend, Integer isaveincr);
-  
   /// write general definitions (loads, bcs, ...) to every pde
   virtual void WriteGeneralPDEdefines();
 
@@ -129,13 +121,6 @@ protected:
   FileType * InFile_;       //!< pointer tio input file
   WriteResults * OutFile_;  //!< pointer to output file
 
-
-  Double dt_;                //!< time step size  
-  Integer numstep_;          //!< nr. of calculated timesteps
-  Double  firstdt_;          //!< time step size
-  Integer isavebegin_;       //!< starting index of saving
-  Integer isaveend_;         //!< end index of saving
-  Integer isaveincr_;        //!< incremental step of saving
 };
 
 } // end of namespace
