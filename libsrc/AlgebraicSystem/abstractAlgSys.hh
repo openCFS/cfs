@@ -155,8 +155,8 @@ public:
     \param sys_id ID for system in block matrix
   */
 
-  //! Add value addval to rhs-vector at position pos
-  virtual void AddRHS(Double addval, Integer pos, Integer sys_id)=0;
+  //! Add element vector to rhs-vector at position pos
+  virtual void PutElemRHS(Double * elemrhs, Integer *pos, Integer size, Integer sys_id)=0;
 
   virtual void ComputePrecond(Integer job, Integer nsys)=0;
 
