@@ -43,6 +43,16 @@
           <!-- Type of damping model (optional) -->
           <xsd:element name="damping" type="DT_MechDamp" minOccurs="0"/>
 
+          <!-- Section for specifying pprestressing (optional) -->
+          <xsd:element name="preStressing" minOccurs="0">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="preStress" type="DT_PreStress" minOccurs="1"
+                  maxOccurs="unbounded"/>
+              </xsd:sequence>
+            </xsd:complexType>
+          </xsd:element>
+
           <!-- Boundary Conditions & Loads (optional) -->
           <xsd:element name="bcsAndLoads" minOccurs="0" maxOccurs="unbounded">
             <xsd:complexType>
@@ -239,5 +249,18 @@
       <xsd:enumeration value="geo"/>
     </xsd:restriction>
   </xsd:simpleType>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for prestressing -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_PreStress">
+    <xsd:attribute name="name"    type="xsd:token"/>
+    <xsd:attribute name="orientX" type="xsd:float"/>
+    <xsd:attribute name="orientY" type="xsd:float"/>
+    <xsd:attribute name="orientZ" type="xsd:float"/>
+    <xsd:attribute name="tag" type="xsd:token" use="optional"
+      default="anyTag"/>
+  </xsd:complexType>
 
 </xsd:schema>
