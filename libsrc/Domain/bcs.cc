@@ -127,23 +127,29 @@ void BCs :: ReadBCs()
 {
   ENTER_FCN( "BCs::ReadBCs" );
 
+
+  // Create a dummy vector, since we do not need
+  // an vector with pointers to the elements, sorted
+  // by element numbers
+  StdVector<Elem*> temp;
+
  if (levels_.GetSize())
    InFile_->ReadBCs(bcs_[0],levels_);
  toplevel_=0;
 
  if (color_edges_.GetSize())
-   InFile_->ReadEl1d(bcsEdges_[0],color_edges_);
+   InFile_->ReadEl1d(bcsEdges_[0],temp,color_edges_);
 
  if (color_faces_.GetSize())
    {
-     InFile_->ReadEl2d(bcsFaces_[0],color_faces_);
+     InFile_->ReadEl2d(bcsFaces_[0],temp,color_faces_);
    }
 
  if (color_neighelems_.GetSize()) {
     if (InFile_->ReadDim()==2)
-       InFile_->ReadEl2d(bcsNeighElems_[0],color_neighelems_);
+       InFile_->ReadEl2d(bcsNeighElems_[0],temp,color_neighelems_);
      else
-       InFile_->ReadEl3d(bcsNeighElems_[0],color_neighelems_);   
+       InFile_->ReadEl3d(bcsNeighElems_[0],temp,color_neighelems_);   
    }
 }
 

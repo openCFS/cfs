@@ -51,34 +51,50 @@ public:
   virtual void ReadCoordinate(Point<2> * const coordinates_node,
 			      const Integer maxnumnodes);
 
-  //! read information about elements of the mesh
+# //! read information about elements of the mesh
   /*!
-	\param elems out: pointer to vector with elements
-	\param sd vector with color of subdomains, for which elements are read
+    \param elems out: pointer to vector with elements for each subdomain
+    \param orderedElems out: vector with pointers to elements, ordered
+    by element numbers
+    \param sd vector with color of subdomains, for which elements are read
   */
-  void ReadEl(StdVector<Elem*> * elems, const StdVector<std::string> sd); 
-
+  void ReadEl(StdVector<Elem*> * elems, 
+	      StdVector<Elem*> & orderedElems,
+	      const StdVector<std::string> sd); 
+  
   //! read 1D-elements. we cause it directly when we set BCs
   /*!
    \param allelems out: pointer to vector with 1D-elements
+   \param orderedElems out: vector with pointers to elements, ordered
+    by element numbers
    \param sd color of subdomains, for which elements are read
   */
-  void ReadEl1d(StdVector<Elem*> * allelems, const StdVector<std::string> sd);
+  void ReadEl1d(StdVector<Elem*> * allelems, 
+		StdVector<Elem*> & orderedElems,
+		const StdVector<std::string> sd);
 
   //! read 2d - elements from the mesh-file
     /*!
    \param allelems out: pointer to vector with 2D-elements
+   \param orderedElems out: vector with pointers to elements, ordered
+    by element numbers
    \param sd color of subdomains, for which elements are read
   */
-  void ReadEl2d(StdVector<Elem*> * allelems, const StdVector<std::string> sd);
+  void ReadEl2d(StdVector<Elem*> * allelems, 
+		StdVector<Elem*> & orderedElems,
+		const StdVector<std::string> sd);
 
   //! read 3d -elements from the mesh-file
    /*!
    \param allelems out: pointer to vector with 3D-elements
+   \param orderedElems out: vector with pointers to elements, ordered
+   by element numbers
    \param sd color of subdomains, for which elements are read
   */
-  void ReadEl3d(StdVector<Elem*> * allelems, const StdVector<std::string> sd);
-
+  void ReadEl3d(StdVector<Elem*> * allelems, 
+		StdVector<Elem*> & orderedElems,
+		const StdVector<std::string> sd);
+  
   //! read 3d -elements from the mesh-file and extractes the data for the conf-file
    /*!
    \param sd color of subdomains, for which elements are read
@@ -174,6 +190,9 @@ private:
 
   //! number of elems
   Integer maxNumElems_;
+
+  //! maximum number of elements read in so far
+  Integer actMaxElemNum_;
 
   //! number of nodes
   Integer maxNumNodes_;
