@@ -79,6 +79,7 @@
   <!-- Make sure that for every boundary condition of the PDE section   -->
   <!-- a corresponding set of nodes reps. elements has been designated  -->
   <!-- in the domain section                                            -->
+  <!--
   <xsd:keyref name="interfaceExists" refer="uniq_interfacenames">
     <xsd:selector xpath="cfs:PDE_list/cfs:PDE_descr/cfs:BoundaryConds/*"/>
     <xsd:field xpath="@interface"/>
