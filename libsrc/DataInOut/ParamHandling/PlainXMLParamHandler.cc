@@ -20,7 +20,7 @@ namespace CoupledField {
   // ===============
   //   Constructor
   // ===============
-  PlainXMLParamHandler::PlainXMLParamHandler( char *fname ) {
+  PlainXMLParamHandler::PlainXMLParamHandler(const char *fname ) {
 
     ENTER_FCN( "PlainParamHandler::PlainParamHandler" );
     
@@ -132,7 +132,42 @@ namespace CoupledField {
     value = atof(list[0].c_str());
   }
 
+  void PlainXMLParamHandler::CGet( const std::string key,
+				   std::string &value,
+				   const std::string attribute,
+				   const std::string aValue,
+				   Integer applyToElem,
+				   const std::string section,
+				   const std::string subsection )
+  {
+    ENTER_FCN( "PlainParamHandler::CGet (std::string)" );
+    exit(-1);
+  }
 
+  void  PlainXMLParamHandler::CGet( const std::string key,
+				    Double &value,
+				    const std::string attribute,
+				    const std::string aValue,
+				    Integer applyToElem,
+				    const std::string section,
+				    const std::string subsection )
+  {
+    ENTER_FCN( "PlainParamHandler::CGet (double)" );
+    exit(-1);
+  }
+
+  void  PlainXMLParamHandler::CGet( const std::string key,
+				    Integer &value,
+				    const std::string attribute,
+				    const std::string aValue,
+				    Integer applyToElem,
+				    const std::string section,
+				    const std::string subsection )
+  {
+    ENTER_FCN( "PlainParamHandler::CGet (Integer)" );
+    exit(-1);
+  }
+  
   // ====================================================
   //   Return list of strings values matching a keyword
   // ====================================================
@@ -319,7 +354,39 @@ namespace CoupledField {
     }
   }
 
+  void  PlainXMLParamHandler::CGetList( const std::string key,
+					StdVector<std::string> &list,
+					const std::string attribute,
+					const std::string value,
+					Integer applyToElem,
+					const std::string section,
+					const std::string subsection )
+  {
+    
+    ENTER_FCN( "PlainParamHandler::CGetList" );
+    exit(-1);
+    
+  }
 
+  void  PlainXMLParamHandler::GetCoilList( StdVector<std::string> &list,
+					   const std::string pde)
+  {
+    
+    ENTER_FCN( "PlainParamHandler::GetCoilList" );
+    exit(-1);
+    
+  }
+
+  void  PlainXMLParamHandler::GetCoilType( std::string &coilType,
+					   const std::string coilName,
+					   const std::string pde )
+  {
+    
+    ENTER_FCN( "PlainParamHandler::GetCoilType" );
+    exit(-1);
+    
+  }
+  
   // =====================================
   //   Return a list of the defined PDEs
   // =====================================
@@ -517,8 +584,7 @@ namespace CoupledField {
 					  StdVector<sType> e_section)
   {
     ENTER_FCN( "PlainXMLParamHandler::FindPosElems" );
-    
-   
+       
     if (level == 0 || level>keys.GetSize()) 
       Info->Error("The level is strange, check data",__FILE__,__LINE__);
     
@@ -560,7 +626,7 @@ namespace CoupledField {
     getElems(keys[level-1], s_elems, e_elems, s_section, e_section);
   
     // do recursion for the section,subsection,etc.
-    if ( (level+2) != keys.GetSize())
+    if ( (level+1) != keys.GetSize())
       {
 	s_section = s_elems;
 	e_section = e_elems;
@@ -571,7 +637,7 @@ namespace CoupledField {
 	FindPosAttrs(keys,level+1,s_elems,e_elems, s_section, e_section);
       }
     else // last keyword is attribute, so we use fnc getAttr
-      if ( (level+2) == keys.GetSize()) {
+      if ( (level+1) == keys.GetSize()) {
 
 	s_section = s_elems;
 	e_section = s_elems;
@@ -579,7 +645,7 @@ namespace CoupledField {
 	s_elems.Clear();
 	e_elems.Clear();
 
-	getAttr(keys[level+1],keys[level],s_elems,e_elems, s_section,
+	getAttr(keys[level],keys[level-1],s_elems,e_elems, s_section,
 		e_section);
       }
 	
@@ -599,6 +665,8 @@ namespace CoupledField {
   {
     ENTER_FCN( "PlainXMLParamHandler::getElems" );
     
+    bool testt=false;
+
     // have begun a search from the position startpos
     infile.clear();
     infile.seekg(0,std::ios::beg);
@@ -622,20 +690,27 @@ namespace CoupledField {
 	  if ((pos < s_section[i]) || (pos > e_section[i]))
 	    put = false;
 	
-	if (put)
-	  s_elems.Push_back(pos);
-	    
 	// find the end position
 	posE = findPos('/'+key,pos);
 	
 	if (posE == std::string::npos)
-	  Info->Error("We can't find the end-tag for key '" + key + "'\n",
-		      __FILE__,__LINE__);
+	  {
+	    pos = posE;
+	    put = false;
+	    testt=true;
+	  }
+
+	if (put)
+	  s_elems.Push_back(pos);
+
+	  //	  Info->Error("We can't find the end-tag for key '" + key + "'\n",
+	  //		      __FILE__,__LINE__);
 	
 	if (put)
 	  e_elems.Push_back(posE);
-	
-	getElems(key,s_elems,e_elems,s_section,e_section,posE+key.size());
+
+	if (!testt)
+	  getElems(key,s_elems,e_elems,s_section,e_section,posE+key.size());
       }
 
   }
@@ -653,7 +728,7 @@ namespace CoupledField {
 				     StdVector<sType> e_section,
 				     sType start)
   {
-    ENTER_FCN( "PlainXMLParamHandler::getElems" );
+    ENTER_FCN( "PlainXMLParamHandler::getAttr" );
     
     // have begun a search from the position startpos
     infile.clear();
@@ -726,8 +801,7 @@ namespace CoupledField {
     infile.clear();
     infile.seekg(start,std::ios::beg);
     
-    sType       help,
-      pos=std::string::npos;
+    sType       help,  pos=std::string::npos;
     std::string                  buf;
 
     // read a line from the file and check, whether it contains the key
