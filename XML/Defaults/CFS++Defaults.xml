@@ -28,6 +28,21 @@
   
     </mechanic>
 
+    <!-- Template for piezo PDE -->
+    <mechanic>
+  
+      <region name="dummyRegion"/>
+
+      <nonLinear>
+        <lineSearch/>
+        <incStopCrit>1</incStopCrit>
+        <resStopCrit>1</resStopCrit>
+        <maxNumIters>1</maxNumIters>
+      </nonLinear>
+
+    </mechanic>
+
+
     <!-- Template for magnetics PDE -->
     <magnetic>
       <region name="dummyRegion"/>
