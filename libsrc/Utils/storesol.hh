@@ -128,23 +128,11 @@ public:
   
   //!
   void TransformElemSolution(BaseStoreSol & transformedSolution,
-			     const std::vector<Elem*> & elems,
+			     const std::vector<Integer> & mapping,
 			     Grid * ptGrid,
 			     const Integer level) const;
   
-  //! maps the local element solution to the global mesh solution
-  /*!
-    \param MeshSol (output) Solution vector referring to mesh node numbers    
-    \param PDESol (input) Solution vector
-    \param Elems (input) Vector of subdomains to which PDESol belongs to
-     */
-  void TransformElemSolution(BaseStoreSol & MeshSol, 
-			     const std::vector<std::string> & SD,
-			     Grid * ptGrid,
-			     const Integer level) const;
-  
-  
-  //! maps the local node solution to the coupling nodes
+   //! maps the local node solution to the coupling nodes
   void NodeSolutionToCoupling(BaseStoreSol & couplingSol,
 			      const std::vector<Integer>& nodeNumbers,
 			      const std::vector<Integer> & mapping) const;

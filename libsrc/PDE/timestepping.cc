@@ -9,9 +9,7 @@ namespace CoupledField
 
 TimeStepping :: TimeStepping(std::string apdename, BaseSystem * algebraicsystem)
 {
-#ifdef TRACE
-  (*trace) << "entering TimeStepping::TimeStepping" << std::endl;
-#endif
+  ENTER_FCN( "TimeStepping::TimeStepping" );
 
   pdename_ = apdename;
   algsys_  = algebraicsystem;
@@ -20,9 +18,7 @@ TimeStepping :: TimeStepping(std::string apdename, BaseSystem * algebraicsystem)
 
 TimeStepping :: ~TimeStepping()
 {
-#ifdef TRACE
-  (*trace) << "entering TimeStepping::~TimeStepping" << std::endl;
-#endif
+  ENTER_FCN( "TimeStepping::~TimeStepping" )
 
 }
 

@@ -17,9 +17,7 @@ SmoothPDE::SmoothPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileTyp
 		 WriteResults *aptOut)
 :BasePDE(aptgrid, aptbcs, aptFileType, aptOut, aptTimeFunc)
 {
-#ifdef TRACE
-  (*trace) << "entering SmoothPDE::SmoothPDE " << std::endl;
-#endif
+  ENTER_FCN( "SmoothPDE::SmoothPDE" );
 
   firstTurn_ = TRUE;
 
@@ -61,9 +59,12 @@ SmoothPDE::SmoothPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileTyp
   if (bcs_id_.size() != inhomDirichDof_.size()) 
      Error("Inconsistent definition of inhomogeneous Dirichlet Boundary Conditions");
 
-  AssignPDENodeNumbers(Mesh2PDENode_, PDE2MeshNode_, subdoms_);
-  numPDENodes_ = PDE2MeshNode_.size();
-  numElems_    = ptgrid_->GetMaxnumElem(actlevel_, subdoms_);
+  // Map global numeration of element and nodes to local one
+  AssignPDENodeNumbers(mesh2PDENode_, pde2MeshNode_, subdoms_);  
+  AssignPDEElemNumbers(mesh2PDEElem_, pde2MeshElem_, subdoms_);
+  numPDENodes_ = pde2MeshNode_.size();
+  numElems_ = pde2MeshElem_.size();
+
   size_ = numPDENodes_*dofspernode_;
 
   // Initalize solution class
@@ -83,7 +84,7 @@ SmoothPDE::SmoothPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileTyp
   // set assemble parameters
   assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, subdoms_, surfdoms_);
   assemble_->SetGraphType(NODEGRAPH);
-  assemble_->SetMesh2PDENode(&Mesh2PDENode_);
+  assemble_->SetMesh2PDENode(&mesh2PDENode_);
 
 #ifdef USE_OLAS
   assemble_->SetMatrixEntryType(DOUBLE);
@@ -110,9 +111,7 @@ SmoothPDE::SmoothPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileTyp
 
 void SmoothPDE::DefineIntegrators(const Integer level)
 {
-#ifdef TRACE
-  (*trace) << "entering SmoothPDE::DefineIntegerators" << std::endl;
-#endif
+  ENTER_FCN( "SmoothPDE::DefineIntegerators" );
 
   Boolean nonLin = FALSE;
 
@@ -140,11 +139,9 @@ void SmoothPDE::DefineIntegrators(const Integer level)
 
 void SmoothPDE::InitCoupling(PDECoupling * coupling)
 {
-#ifdef TRACE
-  (*trace) << "entering SmoothPDE::Initcoupling" << std::endl;
-#endif
+  ENTER_FCN( "SmoothPDE::Initcoupling" );
 
-  PDEisCoupled_ = TRUE;
+  pdeIsCoupled_ = TRUE;
   ptCoupling_   = coupling; 
 
   // input couplings
@@ -173,9 +170,7 @@ void SmoothPDE::InitCoupling(PDECoupling * coupling)
 void SmoothPDE::PreStepStatic(const Integer kstep, const Double asteptime,
 			      const Integer level, const Boolean reset)
 {
-#ifdef TRACE
-  (*trace) << "entering SmoothPDE::PreStepStatic" << std::endl;
-#endif
+  ENTER_FCN( "SmoothPDE::PreStepStatic" );
 
   algsys_->InitRHS();
   algsys_->InitSol();
@@ -189,9 +184,7 @@ void SmoothPDE::PreStepStatic(const Integer kstep, const Double asteptime,
 void SmoothPDE::StepStaticNonLin(const Integer kstep, const Double aTime,
 				const Integer level, const Boolean reset)
 {
-#ifdef TRACE
-  (*trace) << "entering SmoothPDE::StepStaticLin" << std::endl;
-#endif
+  ENTER_FCN( "SmoothPDE::StepStaticLin" );
 
   Integer job = 1;
   Double * ptsol;
@@ -221,9 +214,7 @@ void SmoothPDE::StepStaticNonLin(const Integer kstep, const Double aTime,
 void SmoothPDE:: PostStepStatic(const Integer kstep, const Double asteptime,
 				const Integer level)
 {
-#ifdef TRACE
-  (*trace) << "entering SmoothPDE::PostStepStatic" << std::endl;
-#endif
+  ENTER_FCN( "SmoothPDE::PostStepStatic" );
   
   iterCoupledCounter_++;
 }
@@ -233,9 +224,7 @@ void SmoothPDE:: PostStepStatic(const Integer kstep, const Double asteptime,
 
 void SmoothPDE::CalcOutputCoupling()
 {
-#ifdef TRACE
-  (*trace) << "entering SmoothPDE::CalcOutputCoupling" << std::endl;
-#endif  
+  ENTER_FCN( "SmoothPDE::CalcOutputCoupling" );
 
   std::string quantity;
   std::vector<Integer> * couplingnodes;
@@ -256,7 +245,7 @@ void SmoothPDE::CalcOutputCoupling()
 
 	  if (quantity == "smoothdisplacement")
 	    {
-	      sol_->NodeSolutionToCoupling(*values,*couplingnodes,Mesh2PDENode_);
+	      sol_->NodeSolutionToCoupling(*values,*couplingnodes,mesh2PDENode_);
 	    }
 	  
 	  break;
@@ -270,55 +259,49 @@ void SmoothPDE::CalcOutputCoupling()
 
 void SmoothPDE::WriteResultsInFile()
 {
-#ifdef TRACE
-  (*trace) << "entering SmoothPDE::WriteResultsInFile" << std::endl;
-#endif
+  ENTER_FCN( "SmoothPDE::WriteResultsInFile" );
 
   StoreSol<Double> DispMesh;
  
-  sol_->TransformNodeSolution(DispMesh,  PDE2MeshNode_,ptgrid_,actlevel_);
-  OutFile_->WriteNodeSolution(DispMesh, laststepcalc_, lasttimecalc_,"displacement");
+  sol_->TransformNodeSolution(DispMesh, pde2MeshNode_,ptgrid_,actlevel_);
+  outFile_->WriteNodeSolution(DispMesh, laststepcalc_, lasttimecalc_,"displacement");
 }
 
 
 
 Integer SmoothPDE::GetNrBCDof(const std::string & dofStartString)
-  {
-#ifdef TRACE
-    (*trace) << "entering SmoothPDE::GetNrBCDof" << std::endl;
-#endif
+{
+  ENTER_FCN( "SmoothPDE::GetNrBCDof" );
 
-   Integer nrActDof;
-   
-   if (dofStartString == "ux")
-      nrActDof = 1;
-    else 
-      if (dofStartString == "uy")
-	nrActDof = 2;
-      else
-	if (dofspernode_ == 3)
-	  if (dofStartString == "uz")
-	    nrActDof = 3;
-	  else
-	    {
-	    Error("Unknown dof-type in homog. BC; substring must start with ux, uy or uz!!",__FILE__,__LINE__);
-	    std::cerr << dofStartString << std::endl;
-	    }
+  Integer nrActDof;
+  
+  if (dofStartString == "ux")
+    nrActDof = 1;
+  else 
+    if (dofStartString == "uy")
+      nrActDof = 2;
+    else
+      if (dofspernode_ == 3)
+	if (dofStartString == "uz")
+	  nrActDof = 3;
 	else
 	  {
+	    Error("Unknown dof-type in homog. BC; substring must start with ux, uy or uz!!",__FILE__,__LINE__);
 	    std::cerr << dofStartString << std::endl;
-	    Error("Unknown dof-type in homog. BC; substring must start with ux or uy!!",__FILE__,__LINE__);
 	  }
-    
-    return nrActDof;
-  }
+      else
+	{
+	  std::cerr << dofStartString << std::endl;
+	  Error("Unknown dof-type in homog. BC; substring must start with ux or uy!!",__FILE__,__LINE__);
+	}
+  
+  return nrActDof;
+}
 
 
 Integer SmoothPDE::GetBCDof(const std::string dofString)
 {
-#ifdef TRACE
-  (*trace) << "entering SmoothPDE::GetBCDof " << std::endl;
-#endif
+  ENTER_FCN( "SmoothPDE::GetBCDof" );
 
   if (dofString == "ux")
     return 1;
@@ -335,9 +318,7 @@ Integer SmoothPDE::GetBCDof(const std::string dofString)
 
 Boolean SmoothPDE::HasOutput(std::string output)
 {
-#ifdef TRACE
-  (*trace) << "entering SmoothPDE::HasOutput" << std::endl;
-#endif
+  ENTER_FCN( "SmoothPDE::HasOutput" );
   
   if (output == "smoothdisplacement")
     return TRUE;

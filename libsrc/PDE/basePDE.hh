@@ -256,10 +256,10 @@ class SpaceErrorEstimator;
     Integer GetNumRestraints(const Integer level=-1);
 
     //! return assignment array Mesh2PDENode
-    std::vector<Integer> & GetMesh2PDENode() {return Mesh2PDENode_;}
+    inline std::vector<Integer> & GetMesh2PDENode() {return mesh2PDENode_;}
 
     //! return assignment array PDE2MeshNode
-    std::vector<Integer> & GetPDE2MeshNode() {return PDE2MeshNode_;}
+    inline std::vector<Integer> & GetPDE2MeshNode() {return pde2MeshNode_;}
     
     //! computes the coordinates of an element including the delta
     //! \param connect (input) global node numbers of element
@@ -313,16 +313,29 @@ class SpaceErrorEstimator;
     }
 
 
-    //! assign local PDE node numbers to subdomains
+    //! assign local PDE node numbers to own subdomains
     /*!
-      \param Mesh2PDENode (output) Vector assigning mesh to PDE node numbers
-      \param PDE2MeshNode (output) Vector assigning PDE to mesh node numbers
+      \param mesh2PDENode (output) Vector assigning mesh to PDE node numbers
+      \param pde2MeshNode (output) Vector assigning PDE to mesh node numbers
       \param subdoms (input) Vector of subdomains which are to be mapped
     */
-    virtual void AssignPDENodeNumbers(std::vector<Integer> & Mesh2PDENode,
-				      std::vector<Integer> & PDE2MeshNode,
-				      const std::vector<std::string> &subdoms);
+    virtual void AssignPDENodeNumbers(std::vector<Integer> & mesh2PDENode,
+				      std::vector<Integer> & pde2MeshNode,
+				      const std::vector<std::string> & subdoms);
+
+
+    //! assign local PDE element numbers to own subdomains
+    /*!
+      \param mesh2PDENode (output) Vector assigning mesh to PDE element numbers
+      \param pde2MeshNode (output) Vector assigning PDE to mesh element numbers
+      \param subdoms (input) Vector of subdomains which are to be mapped
+    */
+    //! \todo Elena: Is there a Mapping of Elements in adapted grids?
+    virtual void AssignPDEElemNumbers(std::vector<Integer> & mesh2PDEElem,
+				      std::vector<Integer> & pde2MeshElem,
+				      const std::vector<std::string> & subdoms);
     
+
 #ifdef ADAPTGRID  
     //! ----------------- functions for adaptivity
     //! in this fnc we delete old pointer to Error-object & create new one
@@ -370,11 +383,17 @@ class SpaceErrorEstimator;
     // starts with 0 so correct transformation reads as follows:
     // PDENode = Mesh2PDENode[PDENode - 1]
 
-    //! array containing PDE (=local) node numbers
-    std::vector<Integer> Mesh2PDENode_;
+    //! vector containing PDE (=local) node numbers
+    std::vector<Integer> mesh2PDENode_;
 
-    //! array containing Mesh (=global) node numbers
-    std::vector<Integer> PDE2MeshNode_;
+    //! vector containing Mesh (=global) node numbers
+    std::vector<Integer> pde2MeshNode_;
+   
+    //! vector containing PDE (=local) element numbers
+    std::vector<Integer> mesh2PDEElem_;
+
+    //! vector containing Mesh (=global) element numbers
+    std::vector<Integer> pde2MeshElem_;
     //@}
 
     // -----------------------------------------------------------------------
@@ -395,7 +414,7 @@ class SpaceErrorEstimator;
 
     //@{
     //! \name Attributes connected to handling PDE coupling
-    Boolean PDEisCoupled_;        //!< PDE couples with others
+    Boolean pdeIsCoupled_;        //!< PDE couples with others
     Matrix<Double> deltCoords_;    //!< offset to grid coordinates
     Vector<Double> matParam_;      //!< change to material parameter
     Boolean updateCouplingBCs_ ;  //!< flag if coupling BC were already set
@@ -404,10 +423,10 @@ class SpaceErrorEstimator;
     PDECoupling *ptCoupling_;     //!< pointer to coupling object
 
     //! nodes at which coupling terms are calculated
-    std::list<Integer> CouplingNodes;    
+    std::list<Integer> couplingNodes;    
 
     //! elements at which coupling terms are calculated
-    std::vector<Elem*> CouplingElements;
+    std::vector<Elem*> couplingElements;
 
     //! iteration counter for coupled PDE solution process
     Integer iterCoupledCounter_;
@@ -419,7 +438,7 @@ class SpaceErrorEstimator;
 
     //@{
     //! \name Attributes connected to time stepping
-    Double StepTime_;             //!< time step;
+    Double stepTime_;             //!< time step;
     TimeStepping * TS_alg_;       //!< handles the time stepping
     Boolean effectiveMass_;       //!< use effective mass formulation for transient analysis
     Boolean firstTimeStepStatic_; //!< needed for coupled, iterative methods
@@ -491,7 +510,7 @@ class SpaceErrorEstimator;
     //! TRUE, if second derivative of solution should be written to result file
     Boolean savederiv2_;
 
-    WriteResults * OutFile_;  //!< pointer to output file
+    WriteResults * outFile_;  //!< pointer to output file
     //@}
 
     // -----------------------------------------------------------------------
@@ -509,7 +528,7 @@ class SpaceErrorEstimator;
 
     Vector<Double> errorMap_;  //!< array with error map
     Double tolSpaceErr_;       //!< tolerance
-    Boolean Recalc_;           //!< ???
+    Boolean recalc_;           //!< ???
     //@}
 
     // -----------------------------------------------------------------------
@@ -546,7 +565,7 @@ class SpaceErrorEstimator;
     //@{
     //! \name Attributes connected to nonlinearity
     Boolean nonLin_;           //!<  flag for nonlinear calculations
-    Boolean GeoUpdate_;        //!< flag for geometric update
+    Boolean geoUpdate_;        //!< flag for geometric update
     Double incStopCrit_;       //!< stopping criterion for incremental error
     Double residualStopCrit_;  //!< stopping criterion for residual error
     Boolean lineSearch_;       //!< switch for lineSearch
@@ -561,14 +580,14 @@ class SpaceErrorEstimator;
     //! \name Miscellaneous attributes
     AnalysisType analysistype_; //!< analysis type
     std::string pdename_;       //!< type of PDE (set in the derived classes)
-    ShortInt Dim_;              //!< space dimension of pde
+    ShortInt dim_;              //!< space dimension of pde
     Boolean isaxi_;             //!< TRUE: axisymmetric problem
     Boolean isComplex_;         //!< true, if some part of PDE is complex (Material, solution)
     BaseEQN * EqnData_;         //!< equation handling
 
       BaseStoreSol * sol_;      //!< solution
 
-    Boolean InitMatrices_; //!< true, if matrix is set up each iteration step
+    Boolean initMatrices_; //!< true, if matrix is set up each iteration step
 
     //! factors for constructing effective mass / stiffness matrix
     Double matrix_factor_[4];
@@ -582,7 +601,7 @@ class SpaceErrorEstimator;
     //! Pointer to object of analysis (Static, Trans, Harm or Eig)
     Assemble * assemble_;
     BaseSystem * algsys_;     //!< pointer to algebraic system
-    FileType * InFile_;       //!< pointer to input file
+    FileType * inFile_;       //!< pointer to input file
     TimeFunc * ptTimeFunc_;   //!< pointer to time functions
     //@}
 

@@ -20,9 +20,7 @@ AcousticPDE::AcousticPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, Fil
 			 WriteResults *aptOut)
 :BasePDE(aptgrid,aptbcs,aptFileType,aptOut,aptTimeFunc)
 {
-#ifdef TRACE
-  (*trace) << "entering AcousticPDE::AcousticPDE " << std::endl;
-#endif
+  ENTER_FCN( "AcousticPDE::AcousticPDE" );
 
   dofspernode_=1;
 
@@ -39,8 +37,10 @@ AcousticPDE::AcousticPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, Fil
 
   conf->getsubdompde(subdoms_,pdename_);
 
-  AssignPDENodeNumbers(Mesh2PDENode_, PDE2MeshNode_, subdoms_);  
-  numPDENodes_ = PDE2MeshNode_.size();
+  AssignPDENodeNumbers(mesh2PDENode_, pde2MeshNode_, subdoms_);  
+  AssignPDEElemNumbers(mesh2PDEElem_, pde2MeshElem_, subdoms_);
+  numPDENodes_ = pde2MeshNode_.size();
+  numElems_ = pde2MeshElem_.size();
 
   size_ = numPDENodes_;
 
@@ -90,7 +90,7 @@ AcousticPDE::AcousticPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, Fil
   // set analysis parameters
   assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, subdoms_, bnd_absBCs_);
   assemble_->SetGraphType(NODEGRAPH);
-  assemble_->SetMesh2PDENode(&Mesh2PDENode_);
+  assemble_->SetMesh2PDENode(&mesh2PDENode_);
 
 #ifdef USE_OLAS
   assemble_->SetMatrixEntryType(DOUBLE);
@@ -133,11 +133,9 @@ AcousticPDE::AcousticPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, Fil
 }
 
 
-  void AcousticPDE::DefineIntegrators(const Integer level)
-  {
-#ifdef TRACE
-  (*trace) << "entering AcousticPDE::DefineIntegerators" << std::endl;
-#endif
+void AcousticPDE::DefineIntegrators(const Integer level)
+{
+  ENTER_FCN( "AcousticPDE::DefineIntegerators" );
 
   Boolean nonLin = FALSE;
 
@@ -180,9 +178,7 @@ AcousticPDE::AcousticPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, Fil
 
 void AcousticPDE :: InitTimeStepping(const Double dt)
 {
-#ifdef TRACE
-  (*trace) << "entering AcousticPDE::InitTimeStepping" << std::endl;
-#endif
+  ENTER_FCN( "AcousticPDE::InitTimeStepping" );
 
   if (with_fracdamping_)
     {
@@ -209,11 +205,9 @@ void AcousticPDE :: InitTimeStepping(const Double dt)
 
 void AcousticPDE::InitCoupling(PDECoupling * Coupling)
 {
-#ifdef TRACE
-  (*trace) << "entering AcousticPDE::InitCoupling" << std::endl;
-#endif
+  ENTER_FCN( "AcousticPDE::InitCoupling" );
   
-  PDEisCoupled_ = TRUE;
+  pdeIsCoupled_ = TRUE;
   ptCoupling_   = Coupling;
   
   for (Integer i=0; i<ptCoupling_->GetNumOutputCouplings(); i++)
@@ -233,9 +227,7 @@ void AcousticPDE::InitCoupling(PDECoupling * Coupling)
 
 void AcousticPDE::CalcOutputCoupling()
 {
-#ifdef TRACE
-  (*trace) << "entering AcousticPDE::CalcOutputCoupling" << std::endl;
-#endif  
+  ENTER_FCN( "AcousticPDE::CalcOutputCoupling" );
 
   Integer dof;
   std::string quantity;
@@ -285,9 +277,7 @@ void AcousticPDE::CalcMechCouplingRHS(std::vector<Elem*> * couplingElems,
 				      Integer couplingdof,
 				      std::vector<Elem*> * interfaceVolElems)
 {
-#ifdef TRACE
-  (*trace) << "entering AcousticPDE::CalcMechCouplingRHS" << std::endl;
-#endif
+  ENTER_FCN( "AcousticPDE::CalcMechCouplingRHS" );
 
   Double density=0;
    
@@ -331,7 +321,7 @@ void AcousticPDE::CalcMechCouplingRHS(std::vector<Elem*> * couplingElems,
 
 
       Vector<Integer> connect_PDE;
-      Mesh2PDENode(connect_PDE, connecth, Mesh2PDENode_);
+      Mesh2PDENode(connect_PDE, connecth, mesh2PDENode_);
       
       Vector<Double> sol;
       GetDerivSolVecOfElement(sol, connect_PDE);
@@ -365,9 +355,7 @@ void AcousticPDE::CalcMechCouplingRHS(std::vector<Elem*> * couplingElems,
 
 Boolean AcousticPDE::HasOutput(std::string output)
 {
-#ifdef TRACE
-  (*trace) << "entering AcousticPDE::HasOutput" << std::endl;
-#endif
+  ENTER_FCN( "AcousticPDE::HasOutput" );
 
   if (output == "acousticforce")
     return TRUE;
@@ -383,9 +371,8 @@ Boolean AcousticPDE::HasOutput(std::string output)
 
 void AcousticPDE::WriteResultsInFile()
 {
-#ifdef TRACE
-  (*trace) << "entering AcousticPDE::WriteResultsInFile" << std::endl;
-#endif
+  ENTER_FCN( "AcousticPDE::WriteResultsInFile" );
+
 #ifdef PARALLEL //only one thread should write the output
   int commrank;
   MPI_Comm_rank(MPI_COMM_WORLD,&commrank);
@@ -396,48 +383,48 @@ void AcousticPDE::WriteResultsInFile()
  
   if (analysistype_==HARMONIC)
     {
-      sol_->TransformNodeSolution(sol_mesh,PDE2MeshNode_,ptgrid_,actlevel_);
-      sol_->TransformNodeSolution(solIm_mesh,PDE2MeshNode_,ptgrid_,actlevel_);      
-      OutFile_->WriteNodeSolution(sol_mesh,laststepcalc_,lasttimecalc_,"fluid potential, cw realpart,");
-      OutFile_->WriteNodeSolution(solIm_mesh,laststepcalc_,lasttimecalc_,"fluid potential, cw imagpart, ");
+      sol_->TransformNodeSolution(sol_mesh,pde2MeshNode_,ptgrid_,actlevel_);
+      sol_->TransformNodeSolution(solIm_mesh,pde2MeshNode_,ptgrid_,actlevel_);      
+      outFile_->WriteNodeSolution(sol_mesh,laststepcalc_,lasttimecalc_,"fluid potential, cw realpart,");
+      outFile_->WriteNodeSolution(solIm_mesh,laststepcalc_,lasttimecalc_,"fluid potential, cw imagpart, ");
     }
   else
     {  
 
       if (savesol_)
-	  sol_->TransformNodeSolution(sol_mesh,PDE2MeshNode_,ptgrid_,actlevel_);
+	  sol_->TransformNodeSolution(sol_mesh,pde2MeshNode_,ptgrid_,actlevel_);
 
       if (savederiv1_) 
 	{
 	  sol_der1Array_.SetSolVector(ACOU_VELOCITY,getS1());
-	  sol_der1Array_.TransformNodeSolution(solder1_mesh,PDE2MeshNode_,ptgrid_,actlevel_);
+	  sol_der1Array_.TransformNodeSolution(solder1_mesh,pde2MeshNode_,ptgrid_,actlevel_);
 	}
 
       if (savederiv2_)
 	{
 	  sol_der2Array_.SetSolVector(ACOU_VELOCITY,getS2());
-	  sol_der2Array_.TransformNodeSolution(solder2_mesh,PDE2MeshNode_,ptgrid_,actlevel_);
+	  sol_der2Array_.TransformNodeSolution(solder2_mesh,pde2MeshNode_,ptgrid_,actlevel_);
 	}
       
-      if (OutFile_->IsGMV())
+      if (outFile_->IsGMV())
 	{
 	  if (savesol_)
-	    OutFile_->WriteNodeSolution(sol_mesh,laststepcalc_,lasttimecalc_,"vp");
+	    outFile_->WriteNodeSolution(sol_mesh,laststepcalc_,lasttimecalc_,"vp");
 	  if (savederiv1_)
-	    OutFile_->WriteNodeSolution(solder1_mesh,laststepcalc_,lasttimecalc_,"vp_1der");
+	    outFile_->WriteNodeSolution(solder1_mesh,laststepcalc_,lasttimecalc_,"vp_1der");
 	  if (savederiv2_)
-	    OutFile_->WriteNodeSolution(solder2_mesh,laststepcalc_,lasttimecalc_,"vp_2der");
+	    outFile_->WriteNodeSolution(solder2_mesh,laststepcalc_,lasttimecalc_,"vp_2der");
 	}
       else
 	{
 	  if (savesol_)
-	    OutFile_->WriteNodeSolution(sol_mesh,laststepcalc_,lasttimecalc_,"fluid potential");
+	    outFile_->WriteNodeSolution(sol_mesh,laststepcalc_,lasttimecalc_,"fluid potential");
 	  
 
 	  if (savederiv1_)
-	    OutFile_->WriteNodeSolution(solder1_mesh,laststepcalc_,lasttimecalc_,"fluid potential, 1st deriv.");
+	    outFile_->WriteNodeSolution(solder1_mesh,laststepcalc_,lasttimecalc_,"fluid potential, 1st deriv.");
 	  if (savederiv2_)
-	    OutFile_->WriteNodeSolution(solder2_mesh,laststepcalc_,lasttimecalc_,"fluid potential, 2nd deriv.");
+	    outFile_->WriteNodeSolution(solder2_mesh,laststepcalc_,lasttimecalc_,"fluid potential, 2nd deriv.");
 	}
     }
     #ifdef PARALLEL

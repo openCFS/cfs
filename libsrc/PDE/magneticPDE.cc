@@ -22,9 +22,7 @@ MagPDE::MagPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *apt
 		 WriteResults *aptOut)
 :BasePDE(aptgrid, aptbcs, aptFileType, aptOut, aptTimeFunc)
 {
-#ifdef TRACE
-  (*trace) << "entering NewMagPDE::MagPDE " << std::endl;
-#endif
+  ENTER_FCN( "MagPDE::MagPDE" );
 
   dofspernode_ = 1;
   
@@ -66,10 +64,13 @@ MagPDE::MagPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *apt
   conf->ifgetliststr("calc_Eddy",calcEddy_,pdename_); 
 
 
-  AssignPDENodeNumbers(Mesh2PDENode_,PDE2MeshNode_,subdoms_);
-  numPDENodes_=PDE2MeshNode_.size();
+  // Map global numeration of element and nodes to local one
+  AssignPDENodeNumbers(mesh2PDENode_, pde2MeshNode_, subdoms_);  
+  AssignPDEElemNumbers(mesh2PDEElem_, pde2MeshElem_, subdoms_);
+  numPDENodes_ = pde2MeshNode_.size();
+  numElems_ = pde2MeshElem_.size();
 
-  deltCoords_.Resize(Dim_,numPDENodes_);
+  deltCoords_.Resize(dim_,numPDENodes_);
 
   // Initalize solution class
   sol_->SetNumSolutions(1);
@@ -86,7 +87,7 @@ MagPDE::MagPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *apt
   // set analysis parameters
   assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, subdoms_, surfdoms_);
   assemble_->SetGraphType(NODEGRAPH);
-  assemble_->SetMesh2PDENode(&Mesh2PDENode_);
+  assemble_->SetMesh2PDENode(&mesh2PDENode_);
 
 #ifdef USE_OLAS
   assemble_->SetMatrixEntryType(DOUBLE);
@@ -111,9 +112,7 @@ MagPDE::MagPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *apt
 
 void MagPDE::DefineIntegrators(const Integer level)
 {
-#ifdef TRACE
-  (*trace) << "entering MagPDE::DefineIntegerators" << std::endl;
-#endif
+  ENTER_FCN( "MagPDE::DefineIntegerators" );
 
   Boolean nonLin = FALSE;
   Boolean iscoil;
@@ -159,9 +158,7 @@ void MagPDE::DefineIntegrators(const Integer level)
 
 void MagPDE :: InitTimeStepping(const Double dt)
 {
-#ifdef TRACE
-  (*trace) << "entering MagPDE::InitTimeStepping" << std::endl;
-#endif
+  ENTER_FCN( "MagPDE::InitTimeStepping" );
 
   TS_alg_ = new Trapezoidal(pdename_, algsys_, 1, numPDENodes_*dofspernode_);
   TS_alg_->Init(matrix_factor_, dt);
@@ -171,11 +168,9 @@ void MagPDE :: InitTimeStepping(const Double dt)
 
 void MagPDE:: PreStepStatic(const Integer level)
 {
-#ifdef TRACE
-  (*trace) << "entering MagPDE:: PreStepStatic" << std::endl;
-#endif
+  ENTER_FCN( "MagPDE::PreStepStatic" );
 
-  if (PDEisCoupled_)
+  if (pdeIsCoupled_)
       algsys_->InitSol();
 
 }
@@ -183,11 +178,9 @@ void MagPDE:: PreStepStatic(const Integer level)
 
 void MagPDE::PostStepStatic(const Integer level)
 {
-#ifdef TRACE
-  (*trace) << "entering MagPDE::PostStepStatic" << std::endl;
-#endif
+  ENTER_FCN( "MagPDE::PostStepStatic" );
 
-  if (PDEisCoupled_)
+  if (pdeIsCoupled_)
     iterCoupledCounter_++;
 
 }
@@ -199,49 +192,47 @@ void MagPDE::PostStepStatic(const Integer level)
 
 void MagPDE::WriteResultsInFile()
 {
-#ifdef TRACE
-  (*trace) << "entering MagPDE::WriteResultsInFile" << std::endl;
-#endif
+  ENTER_FCN( "MagPDE::WriteResultsInFile" );
 
   ShortInt Dim = ptgrid_->GetDim();
 
   StoreSol<Double> B_Mesh, Jeddy_Mesh, Force_Mesh, Sol_Mesh;
 
   // transform solution vector for electric potential
-  sol_->TransformNodeSolution(Sol_Mesh,PDE2MeshNode_,ptgrid_,actlevel_);
+  sol_->TransformNodeSolution(Sol_Mesh,pde2MeshNode_,ptgrid_,actlevel_);
 
   // CHANGE F_Interface_
   // TransformElemSolution(Force_Mesh,Force_,F_Interface_[0]);
    
   // write results
-  if (OutFile_->IsGMV())
+  if (outFile_->IsGMV())
     {
       // write magnetic potential
-      OutFile_->WriteNodeSolution(Sol_Mesh,laststepcalc_,lasttimecalc_,"Mag-Potential");
+      outFile_->WriteNodeSolution(Sol_Mesh,laststepcalc_,lasttimecalc_,"Mag-Potential");
       
       if (calcBfield_.size() !=0 )
 	{
-	  B_.TransformElemSolution(B_Mesh,subdoms_,ptgrid_,actlevel_);
-	  OutFile_->WriteElemSolution(B_Mesh,laststepcalc_,lasttimecalc_,"B-Field");
-	  //OutFile_->WriteElemSolution(Force_Mesh,step,time,"E-Force");
+	  B_.TransformElemSolution(B_Mesh,pde2MeshElem_,ptgrid_,actlevel_);
+	  outFile_->WriteElemSolution(B_Mesh,laststepcalc_,lasttimecalc_,"B-Field");
+	  //outFile_->WriteElemSolution(Force_Mesh,step,time,"E-Force");
 	}
 
     }
   else
     {
       // write magnetic potential
-      OutFile_->WriteNodeSolution(Sol_Mesh,laststepcalc_,lasttimecalc_,"mag. vector potential");
+      outFile_->WriteNodeSolution(Sol_Mesh,laststepcalc_,lasttimecalc_,"mag. vector potential");
 
       if (calcBfield_.size() !=0 )
 	{
-	  B_.TransformElemSolution(B_Mesh,subdoms_,ptgrid_,actlevel_);
-	  OutFile_->WriteElemSolution(B_Mesh,laststepcalc_,lasttimecalc_,"mag. flux density");
+	  B_.TransformElemSolution(B_Mesh,pde2MeshElem_,ptgrid_,actlevel_);
+	  outFile_->WriteElemSolution(B_Mesh,laststepcalc_,lasttimecalc_,"mag. flux density");
 	}
 
       if (calcEddy_.size() !=0 )
 	{
-	  Jeddy_.TransformElemSolution(Jeddy_Mesh,subdoms_,ptgrid_,actlevel_);
-	  OutFile_->WriteElemSolution(Jeddy_Mesh,laststepcalc_,lasttimecalc_,"eddy current");
+	  Jeddy_.TransformElemSolution(Jeddy_Mesh,pde2MeshElem_,ptgrid_,actlevel_);
+	  outFile_->WriteElemSolution(Jeddy_Mesh,laststepcalc_,lasttimecalc_,"eddy current");
 	}
     }
 
@@ -250,10 +241,7 @@ void MagPDE::WriteResultsInFile()
 
 void MagPDE::PostProcess(const Integer level)
 {
-  
-#ifdef TRACE
-  (*trace) << "entering MagPDE::PostProcess" << std::endl;
-#endif  
+  ENTER_FCN( "MagPDE::PostProcess" );
 
   TRY_CAST
   PTRCAST(sol_,StoreSol<Double>,solhelp);
@@ -264,13 +252,13 @@ void MagPDE::PostProcess(const Integer level)
 
   if (calcBfield_.size() !=0 )
     {
-      CurlNodeOp * FieldOp = new CurlNodeOp(ptgrid_, this, &Mesh2PDENode_, *solhelp, level);
+      CurlNodeOp * FieldOp = new CurlNodeOp(ptgrid_, this, &mesh2PDENode_, *solhelp, level);
       FieldOp->Set2DType(isaxi_);
  
       // ------ Calculation of the electric field ------
 
       std::vector<Double> LCoord;
-      LCoord.resize(Dim_);
+      LCoord.resize(dim_);
       LCoord[0] = 0;
       LCoord[1] = 0;
       
@@ -282,7 +270,7 @@ void MagPDE::PostProcess(const Integer level)
       B_.SetNumSolutions(1);
       B_.SetSolutionType(MAG_FIELD);
       B_.SetNumNodes(numElems_);
-      B_.SetNumDofs(Dim_);
+      B_.SetNumDofs(dim_);
       B_.Init(0);
       
       // loop over all subdomains
@@ -295,7 +283,7 @@ void MagPDE::PostProcess(const Integer level)
 	  for (Integer iel=0; iel< elemssd.size(); iel++,counterElems++)
 	    {
 	      FieldOp->CalcElemCurlNode( TempE, elemssd[iel], LCoord); 
-	      B_.SetNodalResult(elemssd[iel]->ElemNum-1, TempE);
+	      B_.SetNodalResult(mesh2PDEElem_[elemssd[iel]->elemNum - 1]-1, TempE);
 	    }
 	}
       delete FieldOp;
@@ -304,7 +292,7 @@ void MagPDE::PostProcess(const Integer level)
   if (calcEddy_.size() !=0 )
     {
       std::vector<Double> LCoord;
-      LCoord.resize(Dim_);
+      LCoord.resize(dim_);
       LCoord[0] = 0;
       LCoord[1] = 0;
       
@@ -343,13 +331,13 @@ void MagPDE::PostProcess(const Integer level)
 
 	      connect = elemssd[actEl]->connect;
 	      // Mape Mesh to PDE node numbers
-	      Mesh2PDENode(connect_PDE,connect,Mesh2PDENode_);
+	      Mesh2PDENode(connect_PDE,connect,mesh2PDENode_);
 
 	      GetSolDerivOfElement(magVecDeriv1Elem,connect_PDE);
 	      magVecDeriv1Elem.ToStdVector(tmp);
 	      JeddyElem[0] = tmp * ShpFnc;
 	      JeddyElem[0] *= -conductivity;
-	      Jeddy_.SetNodalResult(elemssd[actEl]->ElemNum-1,JeddyElem);
+	      Jeddy_.SetNodalResult(mesh2PDEElem_[elemssd[actEl]->elemNum - 1]-1,JeddyElem);
 	    }
 	}
     }
@@ -366,9 +354,7 @@ void MagPDE::PostProcess(const Integer level)
 
 void MagPDE::CalcEnergy()
 {
-#ifdef TRACE
-  (*trace) << "entering MagPDE::CalcEnergy" << std::endl;
-#endif
+  ENTER_FCN( "MagPDE::CalcEnergy" );
 
   Matrix<Double> elemmat;  
   Matrix<Double> ptCoord;
@@ -399,7 +385,7 @@ void MagPDE::CalcEnergy()
 	  bilinear_stiff->CalcElementMatrix(ptCoord, elemmat);
 
 	  // Mape Mesh to PDE node numbers
-	  Mesh2PDENode(connect_PDE,connecth,Mesh2PDENode_);
+	  Mesh2PDENode(connect_PDE,connecth,mesh2PDENode_);
 
 // 	  EqnData_->Mesh2Eqn(Eqns,connecth);
 // 	  (*debug) << "Nodes:" << connecth << std::endl;
@@ -422,9 +408,7 @@ void MagPDE::CalcEnergy()
 
 void MagPDE::ComputeUI(Vector<Double>& uiSD)
 {
-#ifdef TRACE
-  (*trace) << "entering MagPDE::ComputeUI" << std::endl;
-#endif
+  ENTER_FCN( "MagPDE::ComputeUI" );
 
   uiSD.Resize(coilDef_.size());
   
@@ -458,7 +442,7 @@ void MagPDE::ComputeUI(Vector<Double>& uiSD)
 		GetElemCoords(connect, ptCoord, actlevel_);
 
 		// Mape Mesh to PDE node numbers
-		Mesh2PDENode(connect_PDE,connect,Mesh2PDENode_);
+		Mesh2PDENode(connect_PDE,connect,mesh2PDENode_);
 		
 		
 		Vector<Double> magVecDeriv1Elem;
@@ -493,10 +477,7 @@ void MagPDE::ComputeUI(Vector<Double>& uiSD)
 
 void MagPDE::WriteUI2File(Vector<Double>& uiSD)
 {
-#ifdef TRACE
-  (*trace) << "entering MagPDE::WriteUI2File" << std::endl;
-#endif
-
+  ENTER_FCN( "MagPDE::WriteUI2File" );
 
   Vector<Integer> coilIDs;   // just positive ids
   coilIDs.Push_back(abs(coilDef_[0].ID));
@@ -545,9 +526,7 @@ void MagPDE::WriteUI2File(Vector<Double>& uiSD)
 
 void MagPDE::GetSolOfElement( Vector<Double>& magvecpot, Vector<Integer>& connect_PDE)
 {
-#ifdef TRACE
-    (*trace) << "entering MagPDE::GetSolOfElement" << std::endl;
-#endif
+  ENTER_FCN( "GetSolOfElement" );
   TRY_CAST
   PTRCAST(sol_,StoreSol<Double>,solhelp)
   CATCH_CAST
@@ -561,9 +540,7 @@ void MagPDE::GetSolOfElement( Vector<Double>& magvecpot, Vector<Integer>& connec
 
 void MagPDE::GetSolDerivOfElement( Vector<Double>& magvecpot_deriv1, Vector<Integer>& connect_PDE)
 {
-#ifdef TRACE
-  (*trace) << "entering MagPDE::GetSolDerivOfElement" << std::endl;
-#endif
+  ENTER_FCN( "MagPDE::GetSolDerivOfElement" );
   
   // displacement of element nodes
   magvecpot_deriv1.Resize(connect_PDE.GetSize());
@@ -577,9 +554,7 @@ void MagPDE::GetSolDerivOfElement( Vector<Double>& magvecpot_deriv1, Vector<Inte
 // reads all information in the config file concerning coils 
 void MagPDE::ReadCoils()
 {
-#ifdef TRACE
-  (*trace) << "entering MagEdgePDE::ReadCoils" << std::endl;
-#endif  
+  ENTER_FCN( "MagEdgePDE::ReadCoils" );
     
   conf->ifgetliststr("list_coils", coilDomain_, pdename_);
 

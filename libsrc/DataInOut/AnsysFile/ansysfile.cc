@@ -698,7 +698,7 @@ void AnsysFile::ReadEl1d(std::vector<Elem*> * allelems, const std::vector<std::s
 	    infile >> inum >> itype >> innodes >> namesd;
 	    infile.ignore(100,'\n');
 
-	    el->ElemNum=inum;
+	    el->elemNum=inum;
 	    el->ptElem=Type2ptElem(itype);
 	    el->namesd = namesd;
 	   	
@@ -750,7 +750,7 @@ void AnsysFile::ReadEl2d(std::vector<Elem*> * allelems, const std::vector<std::s
 	    infile >> inum >> itype >> innodes >> namesd;
 	    infile.ignore(100,'\n');
 	    
-	    el->ElemNum=inum;
+	    el->elemNum=inum;
 	    el->ptElem=Type2ptElem(itype);
 	    el->namesd=namesd;
 	    el->connect.Resize(innodes);
@@ -803,7 +803,7 @@ void AnsysFile::ReadEl3d(std::vector<Elem*> * allelems, const std::vector<std::s
 	infile >> inum >> itype >> innodes >> namesd;
 	infile.ignore(100,'\n');
 
-	el->ElemNum=inum;
+	el->elemNum=inum;
 	el->ptElem=Type2ptElem(itype);
 	el->namesd = namesd;
 	el->connect.Resize(innodes);
@@ -849,7 +849,7 @@ void AnsysFile::ReadEl3d(std::vector<Elem*> * allelems, const std::vector<std::s
 	infile >> inum >> itype >> innodes >> namesd;
 	infile.ignore(100,'\n');
 
-	el->ElemNum=inum;
+	el->elemNum=inum;
 	el->ptElem=Type2ptElem(itype);
 	el->namesd = namesd;
 	el->connect.Resize(innodes);
@@ -898,7 +898,7 @@ void AnsysFile::ReadEl3d(std::vector<Elem*> * allelems, const std::vector<std::s
 	infile >> inum >> itype >> innodes >> namesd;
 	infile.ignore(100,'\n');
 
-	el->ElemNum=inum;
+	el->elemNum=inum;
 	el->ptElem=Type2ptElem(itype);
 	el->namesd = namesd;
 	el->connect.Resize(innodes);
@@ -947,7 +947,7 @@ void AnsysFile::ReadEl3d(std::vector<Elem*> * allelems, const std::vector<std::s
 	infile >> inum >> itype >> innodes >> namesd;
 	infile.ignore(100,'\n');
 
-	el->ElemNum=inum;
+	el->elemNum=inum;
 	el->ptElem=Type2ptElem(itype);
 	el->namesd = namesd;
 	el->connect.Resize(innodes);

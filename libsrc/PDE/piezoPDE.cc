@@ -18,9 +18,7 @@ namespace CoupledField
     BasePDE( aptgrid, aptbcs, aptFileType, aptOut, aptTimeFunc )
   {
 
-#ifdef TRACE
-    (*trace) << "entering PiezoPDE::PiezoPDE " << std::endl;
-#endif
+    ENTER_FCN( "PiezoPDE::PiezoPDE" );
 
     // Set name of the PDE and its material class
     pdename_ = "piezo";
@@ -48,16 +46,20 @@ namespace CoupledField
 
    conf->getsubdompde(subdoms_,pdename_);
    ReadBCs(pdename_);
-  
-   AssignPDENodeNumbers(Mesh2PDENode_, PDE2MeshNode_, subdoms_);
-   numPDENodes_ = PDE2MeshNode_.size();
+   
+   // Map global numeration of element and nodes to local one
+   AssignPDENodeNumbers(mesh2PDENode_, pde2MeshNode_, subdoms_);  
+   AssignPDEElemNumbers(mesh2PDEElem_, pde2MeshElem_, subdoms_);
+   numPDENodes_ = pde2MeshNode_.size();
+   numElems_ = pde2MeshElem_.size(); 
+   
    size_        = numPDENodes_ * dofspernode_;
 
    sol_->SetNumSolutions(2);
    sol_->SetNumNodes(numPDENodes_);
    sol_->SetSolutionType(MECH_DISPLACEMENT,0);
    sol_->SetSolutionType(ELEC_POTENTIAL,1);
-   sol_->SetNumDofs(Dim_,MECH_DISPLACEMENT); // displacements have dof of mesh-dimension
+   sol_->SetNumDofs(dim_,MECH_DISPLACEMENT); // displacements have dof of mesh-dimension
    sol_->SetNumDofs(1,ELEC_POTENTIAL);  // electric potential
    sol_->Init(0.0);
    
@@ -95,7 +97,7 @@ namespace CoupledField
   // set assemble parameters
   assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, subdoms_, surfdoms_);
   assemble_->SetGraphType(NODEGRAPH);
-  assemble_->SetMesh2PDENode(&Mesh2PDENode_);
+  assemble_->SetMesh2PDENode(&mesh2PDENode_);
 #ifdef USE_OLAS
   assemble_->SetMatrixEntryType(DOUBLE);
   assemble_->SetMatrixStorageType(SPARSE_NONSYM);
@@ -120,9 +122,7 @@ namespace CoupledField
 
   void PiezoPDE::DefineIntegrators(const Integer level)
   {
-#ifdef TRACE
-  (*trace) << "entering PiezoPDE::DefineIntegerators" << std::endl;
-#endif
+    ENTER_FCN( "PiezoPDE::DefineIntegerators" );
 
   Boolean nonLin = FALSE;
 
@@ -164,9 +164,7 @@ namespace CoupledField
   BaseForm *
   PiezoPDE::GetStiffIntegrator(MaterialData& actSDMat, Boolean reducedInt)
   {
-#ifdef TRACE
-    (*trace) << "entering PiezoPDE::GetStiffIntegrator " << std::endl;
-#endif
+    ENTER_FCN( "PiezoPDE::GetStiffIntegrator" );
   
     BaseForm * bilinearStiff;
     
@@ -188,9 +186,7 @@ namespace CoupledField
 
   void PiezoPDE::WriteResultsInFile()
   {
-#ifdef TRACE
-    (*trace) << "entering PiezoPDE::WriteResultsInFile" << std::endl;
-#endif
+    ENTER_FCN( "PiezoPDE::WriteResultsInFile" );
 
     Integer laststepcalc=0;
     Double  lasttimecalc=0;
@@ -201,12 +197,12 @@ namespace CoupledField
     sol_->GetSolution(MECH_DISPLACEMENT,DispPDE);
     sol_->GetSolution(ELEC_POTENTIAL,PotentialPDE);
 
-    DispPDE.TransformNodeSolution( DispMesh,PDE2MeshNode_,ptgrid_,actlevel_);
-    PotentialPDE.TransformNodeSolution( PotentialMesh,PDE2MeshNode_,ptgrid_,actlevel_);
+    DispPDE.TransformNodeSolution( DispMesh,pde2MeshNode_,ptgrid_,actlevel_);
+    PotentialPDE.TransformNodeSolution( PotentialMesh,pde2MeshNode_,ptgrid_,actlevel_);
 
-    OutFile_->WriteNodeSolution(DispMesh, laststepcalc, lasttimecalc,
+    outFile_->WriteNodeSolution(DispMesh, laststepcalc, lasttimecalc,
 				"displacement");
-    OutFile_->WriteNodeSolution(PotentialMesh, laststepcalc, lasttimecalc,
+    outFile_->WriteNodeSolution(PotentialMesh, laststepcalc, lasttimecalc,
 				"E-Potential");
   }
   
@@ -214,9 +210,7 @@ namespace CoupledField
 
   Integer PiezoPDE::GetBCDof(const std::string dofStartString)
   {
-#ifdef TRACE
-    (*trace) << "entering PiezoPDE::GetBCDof" << std::endl;
-#endif
+    ENTER_FCN( "PiezoPDE::GetBCDof" );
 
     Integer nrActDof = 0;
     

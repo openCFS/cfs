@@ -34,9 +34,11 @@ namespace CoupledField
     conf->getsubdompde(subdoms_,pdename_);
     ReadBCs(pdename_);
 
-    AssignPDENodeNumbers(Mesh2PDENode_, PDE2MeshNode_, subdoms_);
-    NumPDENodes_ = PDE2MeshNode_.size();
-    NumElems_ = ptgrid_->GetMaxnumElem(actlevel_, subdoms_); 
+    // Map global numeration of element and nodes to local one
+    AssignPDENodeNumbers(mesh2PDENode_, pde2MeshNode_, subdoms_);  
+    AssignPDEElemNumbers(mesh2PDEElem_, pde2MeshElem_, subdoms_);
+    numPDENodes_ = pde2MeshNode_.size();
+    numElems_ = pde2MeshElem_.size();
 
     bFieldRe_ = NULL;
     magVecPotRe_ = NULL;
@@ -342,7 +344,7 @@ namespace CoupledField
 	    GetElemCoords(connecth, ptCoord, level);
 
 	    // CHANGE connecth
-	    Mesh2PDENode(connect_PDE, connecth, Mesh2PDENode_);
+	    Mesh2PDENode(connect_PDE, connecth, mesh2PDENode_);
 
 	    //get the edge numbers and their signs
 	    GetEdgeNumber(connect_PDE.get(), epos, esign, ptElem);
@@ -551,7 +553,7 @@ namespace CoupledField
 	    ptElem=elemssd[iel]->ptElem;
 	  
 	    //Map Mesh Node numbers to PDE node numbers
-	    Mesh2PDENode(connecth,elemssd[iel]->connect,Mesh2PDENode_);
+	    Mesh2PDENode(connecth,elemssd[iel]->connect,mesh2PDENode_);
 	    fe_type = ptElem->feType();
 	    if (fe_type != TET)	
 	      Error("Currently just TETs supported for MagEdgePDE",__FILE__,__LINE__);
@@ -613,7 +615,7 @@ namespace CoupledField
 	      ptElem=SurfD[iel]->ptElem;
 	    
 	      //Map Mesh Node numbers to PDE node numbers
-	      Mesh2PDENode(connecth,SurfD[iel]->connect,Mesh2PDENode_);
+	      Mesh2PDENode(connecth,SurfD[iel]->connect,mesh2PDENode_);
 	      pos = connecth.get();
 	    
 	      epos[0] = algsys_->GetNode2Edge(pos[1], pos[0]);
@@ -761,7 +763,7 @@ namespace CoupledField
 		GetElemCoords(connecth, ptCoord, level);
 	      
 		// CHANGE connecth
-		Mesh2PDENode(connect_PDE,connecth,Mesh2PDENode_);
+		Mesh2PDENode(connect_PDE,connecth,mesh2PDENode_);
 	      
 		//get the edge numbers and their signs
 		GetEdgeNumber(connect_PDE.get(), epos, esign, ptElem);
@@ -800,7 +802,7 @@ namespace CoupledField
 #endif
 
     ShortInt dim = ptgrid_->GetDim();
-    CurlEdgeOp * magFieldRe = new CurlEdgeOp(ptgrid_, this, &Mesh2PDENode_, &solRe_, level, algsys_); 
+    CurlEdgeOp * magFieldRe = new CurlEdgeOp(ptgrid_, this, &mesh2PDENode_, &solRe_, level, algsys_); 
     CurlEdgeOp * magFieldIm;
 
     std::vector<Double> lCoord(dim, 1./4);
@@ -823,7 +825,7 @@ namespace CoupledField
 
     if (analysistype_==HARMONIC)
       {  
-	magFieldIm = new CurlEdgeOp(ptgrid_, this, &Mesh2PDENode_, &solIm_, level, algsys_); 
+	magFieldIm = new CurlEdgeOp(ptgrid_, this, &mesh2PDENode_, &solIm_, level, algsys_); 
 
 	bFieldIm_ = new Vector<Double>[dim];
 	// Resize solution arrays

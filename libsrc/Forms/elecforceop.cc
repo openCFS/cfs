@@ -181,7 +181,7 @@ void ElecForceOp::CalcElemElecForce(StoreSol<Double> & F,
 //       //std::cerr << "Ip[" << nIp <<"] = " << Ip[nIp][0] << "," << Ip[nIp][1] << std::endl;
 //       ElecFieldOp_->CalcElemElecField(E, ptElement, Ip[nIp-1]);
       
-//       //std::cerr << "Element [" << ptElement->ElemNum << "] E = " << E[0] << ", " << E[1] << std::endl; 
+//       //std::cerr << "Element [" << ptElement->elemNum << "] E = " << E[0] << ", " << E[1] << std::endl; 
 //       //std::cerr << "CornerCoords:" << std::endl << CornerCoords << std::endl;
       
 //       // Calculate J 

@@ -12,7 +12,7 @@ struct Elem
 {
 public:
  
-  Integer ElemNum; //!< global element number
+  Integer elemNum; //!< global element number
   
   //! pointer to BaseElem. FE-characteristics of element
   BaseFE * ptElem;

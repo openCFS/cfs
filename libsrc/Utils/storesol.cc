@@ -538,7 +538,7 @@ void StoreSol<TYPE>::TransformNodeSolution(BaseStoreSol & transformedSolution,
 
 template<class TYPE>
 void StoreSol<TYPE>::TransformElemSolution(BaseStoreSol & transformedSolution,
-					   const std::vector<Elem*> & elems,
+					   const std::vector<Integer> & mapping,
 					   Grid * ptGrid,
 					   const Integer level) const
 {
@@ -546,65 +546,83 @@ void StoreSol<TYPE>::TransformElemSolution(BaseStoreSol & transformedSolution,
 #ifdef CHECK_INITIALIZED
   if (length_ == 0) Info->Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
 #endif
- Info->Error("Not implemented here", __FILE__,__LINE__);
-}
-
-template<class TYPE>
-void StoreSol<TYPE>::TransformElemSolution(BaseStoreSol & MeshSol, 
-					   const std::vector<std::string> & SD,
-					   Grid * ptGrid,
-					   const Integer level) const
-{
-  ENTER_FCN("StoreSol::TransformElemSolution");
-#ifdef CHECK_INITIALIZED
-  if (length_ == 0) Info->Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
-#endif  
   TRY_CAST
-  REFCAST(MeshSol,StoreSol<TYPE>,temp);
+  REFCAST(transformedSolution,StoreSol<TYPE>,temp);
  
-  
-  temp.numNodes_ = ptGrid->GetMaxnumElem(level,SD);
+  temp.numNodes_ = ptGrid->GetMaxnumElem(level);
   temp.solDofs_ = solDofs_;
   temp.solTypes_ = solTypes_;
   temp.solOffset_ = solOffset_;
   temp.numSolutions_ = numSolutions_;
   temp.totalDofs_ = totalDofs_;
   temp.length_ = temp.numNodes_ * totalDofs_;
-  temp.data_.Resize(temp.length_);
+  temp.data_.Resize(temp.length_); 
 
-  Integer elMesh=0;
-  Integer elPDE=0;
-  std::vector<std::string> AllSDs = ptGrid->GetListSubDomains();
-
-  // loop over all SubDomains of computational domain
-  for (Integer isd=0; isd<AllSDs.size(); isd++)
-   {
-     Boolean SDbelongsToDomain = FALSE;
-     for (Integer k=0; k<SD.size(); k++)
-       if (SD[k] == AllSDs[isd]) 
- 	SDbelongsToDomain = TRUE;
-
-     std::vector<Elem*> Elems;
-     ptGrid->GetElemSD(Elems, AllSDs[isd], level);    
-     if (SDbelongsToDomain)
-       {
- 	//computational subdomain belongs to PDE 
- 	// loop over all elements
- 	for (Integer i=0; i<Elems.size(); i++) 
- 	    {
- 	      // loop over dof
- 	      for (Integer iDof=0; iDof<totalDofs_; iDof++)
- 		temp.data_[elMesh*totalDofs_ + iDof] = data_[elPDE*totalDofs_+ iDof]; 
-
- 	      elPDE++; elMesh++;
-	    }
-       }
-     else
-       elMesh += Elems.size();
-   }
-  CATCH_CAST 
-
+  // Loop over all PDE elements
+  for (Integer iElem=0; iElem<mapping.size(); iElem++)
+    // Loop over all dimensions
+    for (Integer iDof=0; iDof<totalDofs_; iDof++)
+      temp.data_[(mapping[iElem]-1)*totalDofs_ + iDof] = data_[iElem*totalDofs_ + iDof];
+  
+ CATCH_CAST
 }
+
+// template<class TYPE>
+// void StoreSol<TYPE>::TransformElemSolution(BaseStoreSol & MeshSol, 
+// 					   const std::vector<std::string> & SD,
+// 					   Grid * ptGrid,
+// 					   const Integer level) const
+// {
+//   ENTER_FCN("StoreSol::TransformElemSolution");
+// #ifdef CHECK_INITIALIZED
+//   if (length_ == 0) Info->Error("StoreSol: Use of uninitialized object!",__FILE__,__LINE__);
+// #endif  
+//   TRY_CAST
+//   REFCAST(MeshSol,StoreSol<TYPE>,temp);
+ 
+  
+//   temp.numNodes_ = ptGrid->GetMaxnumElem(level,SD);
+//   temp.solDofs_ = solDofs_;
+//   temp.solTypes_ = solTypes_;
+//   temp.solOffset_ = solOffset_;
+//   temp.numSolutions_ = numSolutions_;
+//   temp.totalDofs_ = totalDofs_;
+//   temp.length_ = temp.numNodes_ * totalDofs_;
+//   temp.data_.Resize(temp.length_);
+
+//   Integer elMesh=0;
+//   Integer elPDE=0;
+//   std::vector<std::string> AllSDs = ptGrid->GetListSubDomains();
+
+//   // loop over all SubDomains of computational domain
+//   for (Integer isd=0; isd<AllSDs.size(); isd++)
+//    {
+//      Boolean SDbelongsToDomain = FALSE;
+//      for (Integer k=0; k<SD.size(); k++)
+//        if (SD[k] == AllSDs[isd]) 
+//  	SDbelongsToDomain = TRUE;
+
+//      std::vector<Elem*> Elems;
+//      ptGrid->GetElemSD(Elems, AllSDs[isd], level);    
+//      if (SDbelongsToDomain)
+//        {
+//  	//computational subdomain belongs to PDE 
+//  	// loop over all elements
+//  	for (Integer i=0; i<Elems.size(); i++) 
+//  	    {
+//  	      // loop over dof
+//  	      for (Integer iDof=0; iDof<totalDofs_; iDof++)
+//  		temp.data_[elMesh*totalDofs_ + iDof] = data_[elPDE*totalDofs_+ iDof]; 
+
+//  	      elPDE++; elMesh++;
+// 	    }
+//        }
+//      else
+//        elMesh += Elems.size();
+//    }
+//   CATCH_CAST 
+
+//}
 
 
 
