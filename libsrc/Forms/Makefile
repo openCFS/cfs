@@ -7,8 +7,7 @@ src = baseForm.cc laplaceInt.cc bdbInt.cc linElastInt.cc nLinElastInt.cc \
       linearForm.cc curlfieldop.cc\
       smoothInt.cc curlCurlNodeInt.cc linPiezoInt.cc nLincurlCurlNodeInt.cc\
       mechStressStrain.cc\
-      elecchargeop.cc magforceop.cc \
-      nLinAcoustic1.cc nLinAcoustic2.cc
+      elecchargeop.cc magforceop.cc
 #
 lib = forms
 libpath = libsrc/Forms

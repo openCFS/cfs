@@ -36,6 +36,7 @@ namespace CoupledField {
     nonLinMaxIter_    = PDE_.nonLinMaxIter_;
     nonLinMethod_     = PDE_.nonLinMethod_;
     nonLinLogging_    = PDE_.nonLinLogging_ ;
+	nonLinPDEName_    = PDE_.nonLinPDEName_;
 
 
     pdeIsCoupled_       = PDE_.pdeIsCoupled_;

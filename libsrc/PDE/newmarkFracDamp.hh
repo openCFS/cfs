@@ -29,7 +29,7 @@ public:
   NewmarkFracDamp (std::string apdename, BaseSystem * algebraicsystem, NodeEQN * ptEQN, 
 				   Grid * aptgrid, BasePDE * aptBasePDE, 
 				   StdVector<std::string> asubdomainList,
-				   StdVector<std::string> adampingList,
+				   StdVector<DampingType> adampingList,
 				   Integer afracMemory, InterpolType ainType, Boolean isaxi);
 
   //! deconstructor
@@ -83,7 +83,7 @@ private:
   Integer calclimit_;     //!< number of timesteps with which frac deriv is calculated
 
   //DampingType dampType_; //!< describes used damping model for whole domain
-  StdVector<std::string> dampingList_; //!< damping type strings for all regions
+  StdVector<DampingType> dampingList_; //!< damping type for all regions
   StdVector<std::string> subdoms_;     //!< all names of subdomains
 
   // For fractional damping model

@@ -85,8 +85,7 @@ protected:
   Integer size_;                         //!< total number of unknowns (equations)
   SolutionType formulation_;             //!< variable in which PDE is formulated
 
-  StdVector<std::string> dampingList_;   //!< list of damping types for all regions
-  StdVector<std::string> nonLinPDEType_; //!< list of regions with nonlinear PDE
+  StdVector<DampingType> dampingList_;   //!< list of damping types for all regions
 
   StdVector<std::string> absBCs_;        //!< list of boundaries( for absorbing BCs)
   Boolean absorbingBCs_;                 //!< switch for absorbing boundary conditions

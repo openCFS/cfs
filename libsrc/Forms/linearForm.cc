@@ -981,7 +981,7 @@ void nLinKuznetsovRHSInt::CalcElemVector(Matrix<Double>& ptCoord, Vector<Double>
   elemVec.Resize(nrNodes);
   elemVec.Init(0.0);
 
-  Double factor;
+  Double totalfactor;
   for (Integer actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {  
 
 	jacDet = 0;
@@ -1006,21 +1006,74 @@ void nLinKuznetsovRHSInt::CalcElemVector(Matrix<Double>& ptCoord, Vector<Double>
 	solDeriv1AtIp = solderiv1_*ShpFncAtIp;
 	solDeriv2AtIp = solderiv2_*ShpFncAtIp;
 	
-	Double factor=0;
+	totalfactor=0;
 	for (Integer j=0; j<xiDx.GetSizeCol(); j++)
-	  factor += solGradAtIp[j]*solDeriv1GradAtIp[j];
-	factor *= factorN2_;
+	  totalfactor += solGradAtIp[j]*solDeriv1GradAtIp[j];
+	totalfactor *= factorN2_;
 	
-	factor += factorN1_ * solDeriv1AtIp * solDeriv2AtIp;
+	totalfactor += factorN1_ * solDeriv1AtIp * solDeriv2AtIp;
 	
-	factor *= jacDet;
+	totalfactor *= jacDet;
 	for (Integer i=0; i< nrNodes; i++)
-	  elemVec[i] += ShpFncAtIp[i] * factor;
+	  elemVec[i] += ShpFncAtIp[i] * totalfactor;
 	
   }
   
   //  std::cerr << "RHS in linearForm:\n" << elemVec << std::endl;
 }
 
+nLinWesterveltRHSInt::nLinWesterveltRHSInt(Double aVal, Boolean isaxi)
+  : LinearForm(), val_(aVal)
+{
+  ENTER_FCN( "nLinWesterveltRHSInt::nLinWesterveltRHSInt" );
+  isaxi_ = isaxi;
+}
+
+
+nLinWesterveltRHSInt::~nLinWesterveltRHSInt()
+{
+  ENTER_FCN( "nLinWesterveltRHSInt::~nLinWesterveltRHSInt" );
+}
+
+
+void nLinWesterveltRHSInt::CalcElemVector(Matrix<Double>& ptCoord, Vector<Double> & elemVec)
+{
+  ENTER_FCN( "nLinWesterveltRHSInt::CalcElemVector" );
+
+  const Integer nrIntPts = ptelem->GetNumIntPoints();
+  const Integer nrNodes  = ptelem->GetNumNodes();
+  const Vector<Double> & intWeights = ptelem->GetIntWeights();  
+
+  Vector<Double> ShpFncAtIp;
+  Vector<Double> CoordAtIp;
+  Double solAtIp, solDeriv1AtIp, solDeriv2AtIp;
+
+  Double jacDet;
+  
+  elemVec.Resize(nrNodes);
+  elemVec.Init(0.0);
+
+  Double totalfactor;
+  for (Integer actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {  
+
+	jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord);
+	ptelem->GetShFncAtIp(ShpFncAtIp,actIntPt);
+	
+	if (isaxi_) {
+	  CoordAtIp = ptCoord * ShpFncAtIp;
+	  jacDet *= 2 * PI * CoordAtIp[0];
+	}
+	
+	//get solution and derivatives at integration point
+	solAtIp = sol_*ShpFncAtIp;
+	solDeriv1AtIp = solderiv1_*ShpFncAtIp;
+	solDeriv2AtIp = solderiv2_*ShpFncAtIp;
+	
+	totalfactor = jacDet*factor_*2.0*(solDeriv1AtIp * solDeriv1AtIp + solAtIp*solDeriv2AtIp);
+	
+	for (Integer i=0; i< nrNodes; i++)
+	  elemVec[i] += ShpFncAtIp[i] * totalfactor;
+  }
+}
 
 } // end of namespace

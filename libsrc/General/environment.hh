@@ -99,6 +99,9 @@ namespace CoupledField
   //! Interpolation type used in fractional damping model
   enum InterpolType{NOTUSED=0, TRUEVAL=1, LIN1PT=2};
 
+  //! Identifier, if there are different PDE formulations for one field e.g. acoustics
+  enum NonLinPDE{WESTERVELT=0, KUZNETSOV=1};
+
   //! Describes all possible solution types in a CFS simulation
   typedef enum{ NO_SOLUTION_TYPE, MECH_DISPLACEMENT, MECH_ACCELERATION,
                   MECH_VELOCITY, MECH_FORCE, MECH_STRESS, MECH_STRAIN,

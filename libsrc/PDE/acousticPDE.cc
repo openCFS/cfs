@@ -37,18 +37,18 @@ AcousticPDE::AcousticPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc,
   coarsealpha_ = 0.01; // solver parameter, see basePDE.cc
 
   // PDE formulation either in acoustic potential or pressure
-  std::string s_;
-  params->Get( "formulation", s_, "pdeList", pdename_ );
-  String2Enum( s_, formulation_ );
-  s_ = "Using * " + s_ + " as state variable in formulation of PDE\n";
-  Info->PrintF( pdename_, s_.c_str() );
+  std::string str;
+  params->Get( "formulation", str, "pdeList", pdename_ );
+  String2Enum( str, formulation_ );
+  str = "Using * " + str + " as state variable in formulation of PDE\n";
+  Info->PrintF( pdename_, str.c_str() );
 
   // class NodeStoreSol will be initialized with acoustic potential
   solTypes_ = ACOU_POTENTIAL;
 
   // timestepping formulation
-  params->Get( "timeSteppingFormulation", s_, "pdeList", pdename_ );
-  if ( s_ == "effMassMatrix" ) {
+  params->Get( "timeSteppingFormulation", str, "pdeList", pdename_ );
+  if ( str == "effMassMatrix" ) {
 	effectiveMass_ = TRUE;
 	Info->PrintF( pdename_, "      * effective mass matrix timestepping\n");
   } 
@@ -64,94 +64,109 @@ AcousticPDE::AcousticPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc,
   //   Check what type of damping should be used
   // *********************************************
 
+  StdVector<std::string> strVec;
+  params->GetList( "type", strVec, pdename_, "damping");
+
   dampingType_ = NONE;
-  params->GetList( "type", dampingList_, pdename_, "damping");
+  Boolean sorted = TRUE;
+  if ( strVec.IsEmpty() )
+	Info->PrintF( pdename_, "No information specifying damping detected!\n" );
+  else
+	dampingList_.Resize(strVec.GetSize());
 
-  if ( dampingList_.GetSize() == 0 )
-	Info->PrintF( pdename_, "No Damping information detected!\n" );
+  for ( Integer k = 0; k < strVec.GetSize(); k++) {
 
-  Boolean sorted_ = TRUE;
-  for ( Integer k = 0; k < dampingList_.GetSize(); k++) {
-	if (dampingList_[k] == "rayleigh") {
-	  dampingType_ = RAYLEIGH;
+	if (strVec[k] == "rayleigh") {
+	  dampingList_[k] = RAYLEIGH;
 	  Info->PrintF( pdename_, "      * RAYLEIGH damping for region: %d\n", k );
 	}
-	else if (dampingList_[k] == "thermoViscous") {
-	  dampingType_ = THERMOVISCOUS;
+	else if (strVec[k] == "thermoViscous") {
+	  dampingList_[k] = THERMOVISCOUS;
 	  Info->PrintF( pdename_, "      * THERMOVISCOUS damping for region: %d\n", k );
 	}
-	else if (dampingList_[k] == "fractional") {
-	  dampingType_ = FRACTIONAL;
+	else if (strVec[k] == "fractional") {
+	  dampingList_[k] = FRACTIONAL;
 	  Info->PrintF( pdename_, "      * FRACTIONAL damping for region: %d\n", k );
 	}
-	else if (dampingList_[k] == "no") {
-	  dampingType_ = NONE;
+	else if (strVec[k] == "no") {
+	  dampingList_[k] = NONE;
 	  Info->PrintF( pdename_, "      * NO damping at all for region: %d\n", k );
 	}
 	if ( k > 1 )
 	  if ( dampingList_[k] != dampingList_[k-1] )
-		sorted_ = FALSE;
+		sorted = FALSE;
   }
-  if ( sorted_ == FALSE )
+  if ( sorted == FALSE )
 	Error("Specify same type of damping for all regions!",__FILE__,__LINE__);
+  else {
+	dampingType_ = dampingList_[0];
+	
+	// get additional information for fractional damping model
+	if ( dampingType_ == FRACTIONAL ) {
 
-  // get additional information for fractional damping model
-  if ( dampingType_ == FRACTIONAL ) {
-
-	StdVector<std::string> fracAlgList_;
-	params->GetList( "fracAlg", fracAlgList_, pdename_, "damping" );
-	StdVector<Integer> fracMemoryList_;
-	params->GetList( "fracMemory", fracMemoryList_, pdename_, "damping" );
-	StdVector<std::string> interpolationList_;
-	params->GetList( "interpolation", interpolationList_, pdename_, "damping" );
-
-	if( fracAlgList_.GetSize() == 0 || fracMemoryList_.GetSize() == 0
-		|| interpolationList_.GetSize() == 0 )
-	  Error("Specify attributes fracAlg, fracMemory and interpolation!",__FILE__,__LINE__);
-	// up to now take values from first subdomain
-	else {
-	  if ( fracAlgList_[0] == "gl" )
-		Info->PrintF( pdename_, "         with Gruenwald-Letnikov algorithm,\n");
-	  else if (fracAlgList_[0] == "blank")
-		Info->PrintF( pdename_, "         with Blanks algorithm,\n");
-
-	  fracMemory_ = fracMemoryList_[0];
-	  Info->PrintF( pdename_, "         memory size is: %d,\n", fracMemory_);
-
-	  if ( interpolationList_[0] == "lin1pt")
-		inType_ = LIN1PT;
-	  else
+	  StdVector<std::string> fracAlgList_;
+	  params->GetList( "fracAlg", fracAlgList_, pdename_, "damping" );
+	  StdVector<Integer> fracMemoryList_;
+	  params->GetList( "fracMemory", fracMemoryList_, pdename_, "damping" );
+	  StdVector<std::string> interpolationList_;
+	  params->GetList( "interpolation", interpolationList_, pdename_, "damping" );
+	  
+	  if( fracAlgList_.IsEmpty()||fracMemoryList_.IsEmpty()||interpolationList_.IsEmpty() )
+		Error("Specify attributes fracAlg, fracMemory and interpolation!",__FILE__,__LINE__);
+	  // up to now take values from first subdomain
+	  else {
+		if ( fracAlgList_[0] == "gl" )
+		  Info->PrintF( pdename_, "         with Gruenwald-Letnikov algorithm,\n");
+		else if (fracAlgList_[0] == "blank")
+		  Info->PrintF( pdename_, "         with Blanks algorithm,\n");
+		
+		fracMemory_ = fracMemoryList_[0];
+		Info->PrintF( pdename_, "         memory size is: %d,\n", fracMemory_);
+		
+		if ( interpolationList_[0] == "lin1pt")
+		  inType_ = LIN1PT;
+		else
 		inType_ = NOTUSED;
-	  Info->PrintF( pdename_, "         %s interpolation of past values\n\n"
-					, interpolationList_[0].c_str() );
-	}
-	// modify dampingList, so that fracAlg is included
-	for ( Integer k = 0; k < dampingList_.GetSize(); k++) {
-	  if ( fracAlgList_[k] == "gl" )
-		dampingList_[k] = "fractional_gl";
-	  else if (fracAlgList_[k] == "blank")
-		dampingList_[k] = "fractional_blank";
+		Info->PrintF( pdename_, "         %s interpolation of past values\n\n"
+					  , interpolationList_[0].c_str() );
+	  }
+	  // modify dampingList, so that fracAlg is included
+	  for ( Integer k = 0; k < strVec.GetSize(); k++) {
+		if ( fracAlgList_[k] == "gl" )
+		  dampingList_[k] = FRACTIONAL_GL;
+		else if (fracAlgList_[k] == "blank")
+		  dampingList_[k] = FRACTIONAL_BLANK;
+	  }
 	}
   }
-
   // *************************************************************
   //   Check what type of nonlinear PDE formulation should be used
   // *************************************************************
 
   nonLin_ = FALSE; //declaration in basePDE.hh
-  params->GetList( "nonLinear", nonLinPDEType_, pdename_, "region" );
+  params->GetList( "nonLinear", strVec, pdename_, "region" );
+  nonLinPDEName_.Resize(strVec.GetSize());
 
-  for ( Integer k = 0; k < nonLinPDEType_.GetSize(); k++ ) {
-	if ( nonLinPDEType_[k] != "no" )
+  for ( Integer k = 0; k < strVec.GetSize(); k++ ) {
+
+	if ( strVec[k] == "no" )
+	  ;
+	else if ( strVec[k] == "westervelt" ) {
 	  nonLin_ = TRUE;
-
-	if ( nonLinPDEType_[k] != "kuznetsov" && solTypes_ == ACOU_PRESSURE )
-	  Error("Acoustic pressure formulation not supported for Kuznetsov equation!"
-			,__FILE__,__LINE__);
-
-	if ( nonLinPDEType_[k] != "westervelt" && solTypes_ == ACOU_POTENTIAL )
-	  Error("Acoustic potential formulation not supported for Westervelt equation!"
-			,__FILE__,__LINE__);
+	  nonLinPDEName_[k] = WESTERVELT;
+	  Info->PrintF( pdename_, "      * Westervelt equation for region: %d\n", k );
+	  if ( solTypes_ == ACOU_POTENTIAL )
+		Error("Acoustic potential formulation not supported for Westervelt equation!"
+			  ,__FILE__,__LINE__);
+	}
+	else if ( strVec[k] == "kuznetsov" ) {
+	  nonLin_ = TRUE;
+	  nonLinPDEName_[k] = KUZNETSOV;
+	  Info->PrintF( pdename_, "      * Kuznetsov equation for region: %d\n", k );
+	  if ( solTypes_ == ACOU_PRESSURE )
+		Error("Acoustic pressure formulation not supported for Kuznetsov equation!"
+			  ,__FILE__,__LINE__);
+	}
   }
   if( nonLin_ ) {
 	// solution method
@@ -229,20 +244,18 @@ void AcousticPDE::DefineIntegrators(const Integer level) {
 
 	if ( !dampingList_.IsEmpty() ) {
 
-	  if (dampingList_[actSD] == "rayleigh") {
+	  if (dampingList_[actSD] == RAYLEIGH) {
 		// This works even after assemble_->AddIntegrator() is executed
 		//   because of the pointers...
-		// stiffness part
-		std::cout << "beta=" << beta << std::endl;
 
+		// stiffness part
 		stiffIntDescr->SetSecondaryMat(DAMPING, beta, analysistype_);
                 
 		// mass part
-		std::cout << "alpha=" << alpha << std::endl;
 		massIntDescr->SetSecondaryMat(DAMPING, alpha, analysistype_);
 	  }
           
-	  else if ( dampingList_[actSD] == "thermoViscous" ) {
+	  else if ( dampingList_[actSD] == THERMOVISCOUS ) {
 		coeffdamp  =  density * 2.0 * alpha * c0;
 		BaseForm * bilinearStiff  = new LaplaceInt(coeffdamp, isaxi_);  
 		IntegratorDescriptor * dampIntDescr = new IntegratorDescriptor(bilinearStiff, DAMPING);
@@ -250,7 +263,7 @@ void AcousticPDE::DefineIntegrators(const Integer level) {
 		assemble_->AddIntegrator(dampIntDescr, subdoms_[actSD]);
 	  }
 
-	  else if ( dampingList_[actSD] == "fractional_gl" ) {
+	  else if ( dampingList_[actSD] == FRACTIONAL_GL ) {
 		coeffdamp = - density * 2.0 * alpha / c0 / sin((beta-1.0)*PI/2.0);
 		BaseForm * bilinearDamp  = new MassInt(coeffdamp, dofspernode_, isaxi_);
 		bilinearDamp->SetFracDamping();
@@ -264,7 +277,7 @@ void AcousticPDE::DefineIntegrators(const Integer level) {
 		assemble_->AddIntegrator(dampIntDescr, subdoms_[actSD]);
 	  }
 
-	  else if  ( dampingList_[actSD] == "fractional_blank" ) {
+	  else if  ( dampingList_[actSD] == FRACTIONAL_BLANK ) {
 		coeffdamp =  - density * 2.0 * alpha / c0 / sin((beta-1.0)*PI/2.0);
 		coeffdamp *= exp(-gammaln(1.0- (beta- 1.0)) ); // prefactor of blank alg
 		coeffdamp *= 1.0/(1.0- (beta- 1.0));           // weight factor of index 0
@@ -280,20 +293,6 @@ void AcousticPDE::DefineIntegrators(const Integer level) {
 		assemble_->AddIntegrator(dampIntDescr, subdoms_[actSD]);
 	  }
 	}
-
-	//      if ( nonLinPDEType_[actSD] == "kuznetsov" ) {
-	//        Double coeffN1 = density * BoverA / pow(c0,4);
-	//        BaseForm * N1 = new nLinAcoustic1(coeffN1, isaxi_);
-	//        assemble_->AddRhsIntegrator(N1, subdoms_[actSD], nonLin_);
-	//        Double coeffN2 = density * 2 / (c0*c0);
-	//        BaseForm * N2 = new nLinAcoustic2(coeffN2, isaxi_);
-	//        assemble_->AddRhsIntegrator(N2, subdoms_[actSD], nonLin_);
-	//      }
-	//      else if ( nonLinPDEType_[actSD] == "westervelt" ) {
-	//        Double coeffN1 = (1.0+0.5*BoverA) / pow(c0,4);
-	//        BaseForm * N1 = new nLinAcoustic1(coeffN1, isaxi_);
-	//        assemble_->AddRhsIntegrator(N1, subdoms_[actSD], nonLin_);  
-	//      }
 
   }
 
@@ -341,16 +340,15 @@ void AcousticPDE::InitTimeStepping() {
 	  TS_alg_ = new NewmarkEffMass(pdename_, algsys_, eqnData_, needsDampingMatrix_);
 	}
   }
-    
-  if ( dampingType_ == FRACTIONAL ) {
+  else {
 	if ( effectiveMass_ == FALSE )
 	  TS_alg_ = new NewmarkFracDamp(pdename_, algsys_, eqnData_, ptgrid_, this,
 									subdoms_, dampingList_, 
 									fracMemory_, inType_, isaxi_);
 	else
-	  ; // needs to be implemented
+	  Error("This needs to be implemented!",__FILE__,__LINE__);
   }
-
+  
   // Needed for fractional damping model, see Assemble::AssembleMatrices
   assemble_->SetPDEPointer(this);
 
@@ -665,6 +663,11 @@ node results in acoustic potential.", __FILE__,__LINE__);
 	valVec = "", "", quantity;
 	params->GetList( keyVec, attrVec, valVec, nodeValues);
 	if (nodeValues.GetSize() > 0) {
+	  std::string warnMsg;
+      warnMsg = "Due to the restrictions in the .unv file format, the ";
+      warnMsg += "acoustic pressure is written as acoustic (fluid) potential!";
+      Warning(warnMsg.c_str(), __FILE__, __LINE__);
+
 	  sol_->SetSolutionType(ACOU_PRESSURE);
 	  sol_->SetNumDofs(1);
 	  sol_->Init();
