@@ -84,9 +84,7 @@ void StoreSol<TYPE>::Init(const TYPE val)
       // set offset of current solution
       // w.r.t. to starting position
 	  solOffset_[(*it).first] = totalDofs_;
-	  totalDofs_ += (*it).second;
-	  
-	  
+	  totalDofs_ += (*it).second;	  
 	}
       
       length_ = totalDofs_ * numNodes_;
