@@ -68,7 +68,7 @@ void ScalarNodeEQN::CalcMapping()
   // total number of equations, which is the total
   // number of pdenodes minus the number of hom.
   // Dirichlet nodes - the number of constraintNodes
-  std::string warnMsg;
+  std::string warnMsg, errMsg;
   Integer notIncludedBCs = 0;
   pdeNode2EQN_.Clear();
   eqn2Pos_.Clear();
@@ -77,19 +77,32 @@ void ScalarNodeEQN::CalcMapping()
  
 
   // STEP 2
+  StdVector<Integer> countNodes;
+  countNodes.Resize(numPDENodes_);
   for (Integer i=0; i<homoDirichletNodes_.GetSize(); i++)
     {
-      if (mesh2PDENode_[homoDirichletNodes_[i]-1]-1 < 0)
-	{
-	  warnMsg  = "Homogen. Dirichlet node nr. ";
+      if (mesh2PDENode_[homoDirichletNodes_[i]-1]-1 < 0) {
+	  warnMsg  = "ScalarNodeEQN::CalcMapping: Homogen. Dirichlet node nr. ";
 	  warnMsg += Info->GenStr(homoDirichletNodes_[i]);
 	  warnMsg += " is not contained in any of the regions for this PDE";
 	  Info->Warning(warnMsg, __FILE__, __LINE__);
 	  notIncludedBCs++;
 	} 
-      else
+      else if (countNodes[mesh2PDENode_[homoDirichletNodes_[i]-1]-1] != 0) {
+	errMsg  = "ScalarNodeEQN::CalcMapping: HomDirihchletNode Nr. ";
+	errMsg += Info->GenStr(homoDirichletNodes_[i]);
+	errMsg += "\n occured already at least one time in the list of boundary nodes ";
+	errMsg += "for this PDE!\n Please check, if this node is defined in";
+	errMsg += " more than one level of boundary nodes!";
+	Error(errMsg.c_str(), __FILE__, __LINE__);
+      }
+      else {
 	pdeNode2EQN_[mesh2PDENode_[homoDirichletNodes_[i]-1]-1] = 0;
+        countNodes[mesh2PDENode_[homoDirichletNodes_[i]-1]-1]++;
+      }
     }
+  
+//   std::cerr << "after step2 " << std::endl;
   
   // STEP 3
   for (Integer i=0; i<constraintSlaveNodes_.GetSize(); i++)
@@ -101,6 +114,9 @@ void ScalarNodeEQN::CalcMapping()
 		  - constraintSlaveNodes_.GetSize()
 		  + notIncludedBCs); 
 
+
+//   std::cerr << "after step3" << std::endl;
+  
   // STEP 4
   for (Integer i=0; i<pde2MeshNode_.GetSize(); i++)
       if (pdeNode2EQN_[i] != 0)
@@ -110,13 +126,14 @@ void ScalarNodeEQN::CalcMapping()
 	  eqn2Pos_[eqnCounter-1] = pde2MeshNode_[i]-1;
 	}
   
+//   std::cerr << "after step4" << std::endl;
 
   // STEP 5
   for (Integer i=0; i<constraintSlaveNodes_.GetSize(); i++)
     pdeNode2EQN_[mesh2PDENode_[constraintSlaveNodes_[i]-1]-1] =
       pdeNode2EQN_[mesh2PDENode_[constraintMasterNodes_[i]-1]-1];
   
-
+//   std::cerr << "after step5" << std::endl;
   // Now object is initialized
   isInitialized_ = TRUE;
   numEqns_ = eqn2Pos_.GetSize();
