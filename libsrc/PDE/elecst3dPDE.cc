@@ -221,7 +221,11 @@ void Elecst3dPDE:: WriteResultsInFile()
 
   Integer step=0;
   Double time=0;
+if (OutFile_->IsGMV())
+ OutFile_->WriteSolution(sol_,step,time,"electric_potential");
+else
   OutFile_->WriteSolution(sol_,step,time,"electric potential");
+
 }
 
 Double Elecst3dPDE::CalcEnergyNorm()

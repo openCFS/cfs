@@ -379,9 +379,18 @@ void Acoustic2dPDE:: WriteResultsInFile()
   (*trace) << "entering Acoustic2dPDE::WriteResultsInFile" << std::endl;
 #endif
 
+  if (OutFile_->IsGMV())
+{
+  OutFile_->WriteSolution(sol_,laststepcalc_,lasttimecalc_,"fluid_potential");
+  OutFile_->WriteSolution(sol_der1_,laststepcalc_,lasttimecalc_,"fluid_potential, 1st deriv., ");
+  OutFile_->WriteSolution(sol_der2_,laststepcalc_,lasttimecalc_,"fluid_potential, 2nd deriv., ");
+}
+  else
+{
   OutFile_->WriteSolution(sol_,laststepcalc_,lasttimecalc_,"fluid potential");
   OutFile_->WriteSolution(sol_der1_,laststepcalc_,lasttimecalc_,"fluid potential, 1st deriv., ");
   OutFile_->WriteSolution(sol_der2_,laststepcalc_,lasttimecalc_,"fluid potential, 2nd deriv., ");
+}
 }
 
 void Acoustic2dPDE :: CalcParameters(const Double dt)
