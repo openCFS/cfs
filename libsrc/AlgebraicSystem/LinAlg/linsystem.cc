@@ -3,14 +3,6 @@
 #include <string>
 #include <algorithm>
 
-//#include <general_head.hh>
-//#include <utils_head.hh>
-//#include <datainout_head.hh>
-//#include <elements_head.hh>
-//#include <forms_head.hh>
-//#include <linalg_head.hh>
-//#include <domain_head.hh>
-
 #include "linsystem.hh"
 
 namespace CoupledField
@@ -122,7 +114,7 @@ Boolean LinSystem<T, T_Matrix>::CG(const Integer maxIter,  enum precond typePrec
 
 if (InfoPrint)
  (*infofile) << "--------------  Conjugate Gradiate Method --------------" <<
-  std::endl << "Number of max iteration is " << maxIter << endl 
+  std::endl << "Number of max iteration is " << maxIter << std::endl 
        << "Number of iterations is " << iter << std::endl
        << "Precondition is " << typePrecond << std::endl
   << " ----------------------------------------------------- " << std::endl;
@@ -200,7 +192,7 @@ Boolean LinSystem<T, T_Matrix>::GMRes_m(const Integer maxIter, enum precond type
 
     for (k=0; k<m && iter <=maxIter; k++, iter++)
     {
-      std::cout << std::endl <<  "NEW ITERATION " << k << endl;
+      std::cout << std::endl <<  "NEW ITERATION " << k << std::endl;
       A.precond(w,A*v[k],typePrecond);
       std::cout << w << "w" << std::endl;  /// VVVV
       std::cout << v[0] << "v[0]" << std::endl;

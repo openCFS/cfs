@@ -5,11 +5,8 @@
 #include <time.h>
 #include <string>
 
-//#include "general_head.hh"
-//#include "tools.hh"
 #include "vector.hh"
-#include "matrix_head.hh"
-
+#include "matrix.hh"
 namespace CoupledField
 { 
 

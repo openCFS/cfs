@@ -2,9 +2,6 @@
 #include <iostream>
 #include <fstream>
 
-//#include <general_head.hh> 
-//#include "tools.hh"
-
 #include "material.hh"
 
 namespace CoupledField

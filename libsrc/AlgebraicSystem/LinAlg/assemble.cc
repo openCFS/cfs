@@ -1,15 +1,6 @@
-//#include <stdlib.h>
 #include <fstream>
 #include <iostream>
 #include <string>
-
-//#include <general_head.hh>
-//#include <utils_head.hh>
-//#include <datainout_head.hh>
-//#include <elements_head.hh>
-//#include <forms_head.hh>
-//#include <domain_head.hh>
-//#include "systemmatrix.hh"
 
 #include "clock.hh"
 #include "assemble.hh"
