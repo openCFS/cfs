@@ -302,7 +302,12 @@ namespace CoupledField
 	// set conductivity, if in material no conductivity is given
 	// small conductivity is needed for regularization
 	if (conductivity <= 0 || analysistype_==STATIC)
-	  conductivity = reluctivity*1e-6;
+	  {
+	    Double relaxFac;
+	    conf->get("relaxFac", relaxFac, pdename_);
+	    conductivity = reluctivity * relaxFac;
+	  }
+	
 
 	std::vector<Elem*> elemssd;
    

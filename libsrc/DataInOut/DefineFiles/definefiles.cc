@@ -11,26 +11,36 @@
 namespace CoupledField
 {
 
+#ifdef MEMTRACE
+ Double sumdmem;
+ Double sumimem;
+#endif
+
 DefineInOutFiles :: DefineInOutFiles(const Char * name)
 {
 
  filename=new Char[100];
  strcpy(filename, name);
 
- //#ifdef TRACE
+#ifdef TRACE
  strcpy(filename, name);
  trace=new std::ofstream(strcat(filename,".trace"));
  if (!trace) Error("Can't open trace-file");
- //#endif
+#endif
  
- //#ifdef DEBUG
+#ifdef DEBUG
  strcpy(filename, name);
  debug=new std::ofstream(strcat(filename,".deb"));
  if (!debug) Error("Can't open debug-file");
- //#endif
+#endif
+
+#ifdef MEMTRACE
+ strcpy(filename, name);
+ CoupledField::memtrace=new std::ofstream(strcat(filename,".mem"));
+ if (!memtrace) Error("Can't open memtrace-file");
+#endif
 
  strcpy(filename, name);
-
  cla=new std::ofstream(strcat(filename,".las")); 
  if (!cla) Error("Can't open LAS++-file");
  

@@ -1,7 +1,7 @@
 #
 # Machine dependent make include file for LINUX - optimized version
 # 
-OPT=-O3 -mcpu=i486
+OPT=-O3 -mcpu=pentium
 #
 F77=g77 $(OPT)
 CC=g++ 
@@ -14,7 +14,7 @@ RANLIB=ranlib
 #
 # Machine dependent flags:
 #
-CFLAGS1=  -c $(OPT)
+CFLAGS1=  -c $(OPT) -DMEMTRACE
 CFLAG_EXE= 
 FLAG_MKSHLIB = -g -v -shared 
 ARFLAGS = r 
