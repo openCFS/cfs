@@ -8,5 +8,9 @@
 #include "laplaceInt.hh"
 #include "linElastInt.hh"
 #include "massInt.hh"
+#include "baseoperator.hh"
+#include "elecfieldop.hh"
+#include "elecforceop.hh"
+
 
 #endif

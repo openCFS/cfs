@@ -747,6 +747,11 @@ void GridCFS<dim>::DefineBelonging4Elems(const std::vector<Elem*>& elemsSurf, co
   Integer noOfSurfElems=elemsSurf.size();
   belongingSE.resize(noOfSurfElems);
 
+  // TEST Routine for checking elements
+  // std::cerr << "elems.size() = " << elems.size() << std::endl;
+  // for (Integer i=0; i<elems.size(); i++)
+  //   std::cerr << "elems[" << i <<"].connect = " << elems[i]->connect << std::endl;
+
   // form list with neighbors for each nodes in patch of boundary elements
   std::vector<Integer> map;
   std::vector<std::vector<Elem*> > listNeighbors;
@@ -804,11 +809,12 @@ void GridCFS<dim>::DefineBelonging4Elems(const std::vector<Elem*>& elemsSurf, co
 	     
 }
 
+
 template<Integer dim>
 void GridCFS<dim>::CalcNumberOfNodesInPatch(const std::vector<Elem*> & patch, std::vector<Integer> & map)
 {
 #ifdef TRACE
-  (*trace) << "entering Elecst2dPDE::CalcNumberOfNodesInPatch" << std::endl;
+  (*trace) << "entering GridCFS<Dim>::CalcNumberOfNodesInPatch" << std::endl;
 #endif
 
   Integer iels,ivc,imp;
@@ -839,11 +845,51 @@ void GridCFS<dim>::CalcNumberOfNodesInPatch(const std::vector<Elem*> & patch, st
     } // end of loop over elements in patch   
 }
 
+template<Integer dim>
+void GridCFS<dim>::GetInterfaceNeighbours(std::vector<Elem*> & Interface, std::vector<Elem*> & Next2Surf, std::vector<Elem*> & Neighbours)
+{
+#ifdef TRACE
+  (*trace) << "entering GridCFS<Dim>::GetInterfaceNeighbours" << std::endl;
+#endif
+  
+  Integer NumSurfaceElements = Interface.size();
+  Boolean Belongs2Interface;
+  std::vector<Integer> map;
+  
+  CalcNumberOfNodesInPatch(Interface, map);
+  
+  // loop over all elements in Next2Surf
+  for (Integer iNS=0; iNS < Next2Surf.size(); iNS++)
+    {
+      Elem *aux = Next2Surf[iNS];
+      Vector<Integer>  aux_connect = aux->connect;
+      
+      Belongs2Interface = false;
+      
+      // check if any node is common in Interface
+      for (Integer iNode=0; iNode<aux_connect.size(); iNode++) {
+	for (Integer imap=0; imap<map.size(); imap++) {
+	  if (map[imap] == aux_connect[iNode]) {
+	    Belongs2Interface = true;
+	    break;
+	  }
+	}
+      }
+      
+      if (Belongs2Interface)
+	Neighbours.push_back(Next2Surf[iNS]);
+      
+    }
+}
+  
+  
+
+
 template<>
 Double GridCFS<2>::CalcAreaElem(const Elem* elem)
 {
 #ifdef TRACE
-  (*trace) << "entering Elecst2dPDE::CalcAreaElem" << std::endl;
+  (*trace) << "entering GridCFS<Dim>::CalcAreaElem" << std::endl;
 #endif
 
   Double res;

@@ -87,70 +87,6 @@ public:
 				      const Integer ip,
 				      const Matrix<Double> & CornerCoords);
 
-
-  //! Calculation of Jacobian determinant at arbitrary local point
-  /*! 
-    \param LCoord (input) Local Coordinates of evaluation point
-    \param CornerCoords (input) Coordinates of element corners
-    \f[ \left( \begin{array}{ccc} x_{1} & x_{2} & \cdots \\ y_{1} & y_{2} & \cdots \\
-                                  \cdots & \cdots & \cdots \end{array} \right) \f]
-  */
-  virtual Double CalcJacobianDet(const std::vector<Double> & LCoord,
-				 const Matrix<Double> & CornerCoords);
-
-  //! Calculation of Jacobian determinant at integration point ip
-  /*! 
-    \param ip (input) Integration point
-    \param CornerCoords (input)
-    \f[ \left( \begin{array}{ccc} x_{1} & x_{2} & \cdots \\ y_{1} & y_{2} & \cdots \\
-                                  \cdots & \cdots & \cdots \end{array} \right) \f]
-  */
-  virtual Double CalcJacobianDetAtIp(const Integer ip, 
-				     const Matrix<Double> & CornerCoords);
-
-  //! Return number of nodes   
-  ShortInt GetDim() const {return Dim_;}
- 
-  //! Return number of integration pointes
-  ShortInt GetNumNodes() const {return NumNodes_;}
-
-  //! Return number of edges
-  ShortInt GetNumEdges() const {return NumEdges_;}
-
-  //! Return number of faces
-  ShortInt GetNumFaces() const {return NumFaces_;}
-
-  //! Returns number of integration points
-  ShortInt GetNumIntPoints() const {return NumIntPoints_;}
-  
-  //! Return FE-Type for LAS++
-  virtual Integer feType()=0;
-
-  /// Return weightings of integration points
-  std::vector<Double> GetIntWeights() const {return IntWeights_;};
-  
-  
-protected:
-  
-  //! Calculates the shape functions at an arbitrary local point
-  /*!
-    \param Shape (output) Vector of shape fnc values \f$ (N_{1},\cdots\,N_{NumNodes})^T \f$
-    \param LCoord (input) Local coordinates of evalutation point 
-  */
-  virtual void CalcShapeFnc(std::vector<Double> & Shape, 
-			    const std::vector<Double> & LCoord) = 0;
-  
-  //! Calculates the local derivatives of shape functions at an arbitrary local point
-  /*!
-    \param LDeriv (output) Matrix with local derivatives of all shape functions
-    \f[ \left( \begin{array}{ccc} N_{1,d\xi} & N_{1,d\eta} & \cdots \\
-                                  N_{2,d\xi} & N_{2,d\eta} & \cdots \\
-                                  \cdots     & \cdots      & \cdots \end{array}\right) \f]
-    \param LCoord (input) Local coordinates of evalutation point 
-  */
-  virtual void CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
-				      const std::vector<Double> & LCoord) = 0;
-
   //! Calculates the Jacobian Matrix at an arbitrary local point
   /*!
     \param J (output) Jacobian Matrix
@@ -211,6 +147,72 @@ protected:
 				   const Integer ip,
 				   const Matrix<Double> & CornerCoords);
 
+
+  //! Calculation of Jacobian determinant at arbitrary local point
+  /*! 
+    \param LCoord (input) Local Coordinates of evaluation point
+    \param CornerCoords (input) Coordinates of element corners
+    \f[ \left( \begin{array}{ccc} x_{1} & x_{2} & \cdots \\ y_{1} & y_{2} & \cdots \\
+                                  \cdots & \cdots & \cdots \end{array} \right) \f]
+  */
+  virtual Double CalcJacobianDet(const std::vector<Double> & LCoord,
+				 const Matrix<Double> & CornerCoords);
+
+  //! Calculation of Jacobian determinant at integration point ip
+  /*! 
+    \param ip (input) Integration point
+    \param CornerCoords (input)
+    \f[ \left( \begin{array}{ccc} x_{1} & x_{2} & \cdots \\ y_{1} & y_{2} & \cdots \\
+                                  \cdots & \cdots & \cdots \end{array} \right) \f]
+  */
+  virtual Double CalcJacobianDetAtIp(const Integer ip, 
+				     const Matrix<Double> & CornerCoords);
+
+  //! Return number of nodes   
+  ShortInt GetDim() const {return Dim_;}
+ 
+  //! Get integration points
+  std::vector<Double> * GetIntPoints() {return IntPoints_;}
+
+  //! Return number of integration pointes
+  ShortInt GetNumNodes() const {return NumNodes_;}
+
+  //! Return number of edges
+  ShortInt GetNumEdges() const {return NumEdges_;}
+
+  //! Return number of faces
+  ShortInt GetNumFaces() const {return NumFaces_;}
+
+  //! Returns number of integration points
+  ShortInt GetNumIntPoints() const {return NumIntPoints_;}
+  
+  //! Return FE-Type for LAS++
+  virtual Integer feType()=0;
+
+  /// Return weightings of integration points
+  std::vector<Double> GetIntWeights() const {return IntWeights_;};
+  
+  
+protected:
+  
+  //! Calculates the shape functions at an arbitrary local point
+  /*!
+    \param Shape (output) Vector of shape fnc values \f$ (N_{1},\cdots\,N_{NumNodes})^T \f$
+    \param LCoord (input) Local coordinates of evalutation point 
+  */
+  virtual void CalcShapeFnc(std::vector<Double> & Shape, 
+			    const std::vector<Double> & LCoord) = 0;
+  
+  //! Calculates the local derivatives of shape functions at an arbitrary local point
+  /*!
+    \param LDeriv (output) Matrix with local derivatives of all shape functions
+    \f[ \left( \begin{array}{ccc} N_{1,d\xi} & N_{1,d\eta} & \cdots \\
+                                  N_{2,d\xi} & N_{2,d\eta} & \cdots \\
+                                  \cdots     & \cdots      & \cdots \end{array}\right) \f]
+    \param LCoord (input) Local coordinates of evalutation point 
+  */
+  virtual void CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
+				      const std::vector<Double> & LCoord) = 0;
 
  //! Set value of shape fnc at integration points
   virtual void SetShapeFncAtIp();

@@ -3,7 +3,6 @@
 #include <fstream>
 
 #include "Elements/elements_header.hh"
-//#include "Elements/1D/line.hh"
 #include "grid.hh"
 #include "DataInOut/conffile.hh"
 
@@ -19,6 +18,7 @@ Grid::Grid(FileType * aptFileType)
   ptFileType = aptFileType;
   ptQ   = new Quad1FE();
   ptTet = new Tetra1FE();
+  ptL1=new Line1FE();
 
 //   ptTr=new Triangle1();
 //   ptL1=new Line();
@@ -31,8 +31,10 @@ Grid::Grid(FileType * aptFileType)
 
 Grid::~Grid()
 {
+
  if (ptQ)   delete ptQ;
  if (ptTet) delete ptTet;
+ if (ptL1) delete ptL1;
 
 //  if (ptTr) delete ptTr;
 //  if (ptL1) delete ptL1;

@@ -74,8 +74,12 @@ libsrc/Driver/staticdriver.hh svneol=native#text/plain
 libsrc/Driver/transientdriver.cc svneol=native#text/plain
 libsrc/Driver/transientdriver.hh svneol=native#text/plain
 libsrc/Elements/1D/Makefile -text
+libsrc/Elements/1D/gelinefe.cc svneol=native#text/plain
+libsrc/Elements/1D/gelinefe.hh svneol=native#text/plain
 libsrc/Elements/1D/line.cc svneol=native#text/plain
 libsrc/Elements/1D/line.hh svneol=native#text/plain
+libsrc/Elements/1D/line1fe.cc svneol=native#text/plain
+libsrc/Elements/1D/line1fe.hh svneol=native#text/plain
 libsrc/Elements/2D/Makefile -text
 libsrc/Elements/2D/getriangle.cc svneol=native#text/plain
 libsrc/Elements/2D/getriangle.hh svneol=native#text/plain
@@ -132,10 +136,19 @@ libsrc/Forms/baseForm.cc svneol=native#text/plain
 libsrc/Forms/baseForm.hh svneol=native#text/plain
 libsrc/Forms/baseform.cc svneol=native#text/plain
 libsrc/Forms/baseform.hh svneol=native#text/plain
+libsrc/Forms/baseoperator.cc svneol=native#text/plain
+libsrc/Forms/baseoperator.cc~ -text
+libsrc/Forms/baseoperator.hh svneol=native#text/plain
+libsrc/Forms/baseoperator.hh~ -text
+libsrc/Forms/baseoperator.o -text svneol=unset#unset
 libsrc/Forms/bdbInt.cc svneol=native#text/plain
 libsrc/Forms/bdbInt.hh svneol=native#text/plain
 libsrc/Forms/dampint.cc svneol=native#text/plain
 libsrc/Forms/dampint.hh svneol=native#text/plain
+libsrc/Forms/elecfieldop.cc svneol=native#text/plain
+libsrc/Forms/elecfieldop.hh svneol=native#text/plain
+libsrc/Forms/elecforceop.cc svneol=native#text/plain
+libsrc/Forms/elecforceop.hh svneol=native#text/plain
 libsrc/Forms/forms_header.hh svneol=native#text/plain
 libsrc/Forms/laplaceInt.cc svneol=native#text/plain
 libsrc/Forms/laplaceInt.hh svneol=native#text/plain

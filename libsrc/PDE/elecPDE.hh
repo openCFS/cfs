@@ -57,6 +57,9 @@ public:
     Error("Makes no sense for Electrostatics to perform transient step",__FILE__,__LINE__);
   }
 
+  //! do PostProcessing step
+  virtual void PostProcess(const Integer level);
+
   //! write results in file
   virtual void WriteResultsInFile();
 
@@ -69,7 +72,10 @@ public:
 protected:
 
   Vector<Double> sol_;  //!< store solution,
-  Integer size_;        //! size of solution (number of equations)
+  Vector<Double> * E_;   //!< store Electric Field of each element
+  Vector<Double> * Force_;  //!< stores Electric pressure force of each element
+  Integer size_;        //!< size of solution (number of equations)
+  Integer nElements_;
 
 };
 

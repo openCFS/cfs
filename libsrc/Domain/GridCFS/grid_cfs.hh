@@ -114,7 +114,16 @@ public:
   */
   void GetNeighboursOfNode(const Integer noOfNode, std::vector<Elem*> * neighbours);
 
-  //! auxialary function; to define belonging of one element to another from the list, for ex. surface element and boundary elements
+  //! procedure for forming list with element-neighbors for nodes of patch of element
+  /*!
+    \param elems (input)
+    \param nodeNeighbors (output)
+    \param map (input)
+  */
+  void FormNeighbors4NodesOfElements(const std::vector<Elem*> &elems, std::vector<std::vector<Elem*> > &nodeNeighbors, std::vector<Integer> & map);
+
+
+  //! auxialary function; to define belonging of one element to another from the list, for ex. surface element and boundary elements (min. 2 common nodes)
   /*!
     \param elemsSurf
     \param elems
@@ -122,11 +131,27 @@ public:
   */
   void DefineBelonging4Elems(const std::vector<Elem*>& elemsSurf, const std::vector<Elem*>&elems, std::vector<Elem*> & belongingSE);
 
+  //! procedure for forming list with interface-elements neighbours
+  /*!
+    \param Interface (input) Elements defining the interface between two domains
+    \param Next2Surf (input) Subdomain adjacent to interface
+    \param neighbours (output) Elements neighbouring (= have min. 1 node in common) to interface
+  */
+  void GetInterfaceNeighbours(std::vector<Elem*> & Interface, std::vector<Elem*> & Next2Surf, std::vector<Elem*> & Neighbours);
+
   //! in this function we calculate area of element
   /*!
     \param elem (input) element object
   */
   Double CalcAreaElem(const Elem* elem);
+
+  //! calculate number of nodes in patch of elements
+  /*!
+    \param patch (input)
+    \param map (output)
+  */
+  void CalcNumberOfNodesInPatch(const std::vector<Elem*> & patch, std::vector<Integer>& map);
+
 
 #ifdef ADAPTGRID
   void putNodesFromGrid_RG(grd::MultilevelGrid * grid, const Integer level);
@@ -160,21 +185,6 @@ private:
 
   //! procedure for forming list with neighbors
   void FormNeighborsLists();
-
-  //! procedure for forming list with element-neighbors for nodes of patch of element
-  /*!
-    \param elems (input)
-    \param nodeNeighbors (output)
-    \param map (input)
-  */
-  void FormNeighbors4NodesOfElements(const std::vector<Elem*> &elems, std::vector<std::vector<Elem*> > &nodeNeighbors, std::vector<Integer> & map);
-
-  //! calculate number of nodes in patch of elements
-  /*!
-    \param patch (input)
-    \param map (output)
-  */
-  void CalcNumberOfNodesInPatch(const std::vector<Elem*> & patch, std::vector<Integer>& map);
 
   //! list with neighbors for element
   std::vector<std::vector<Elem*> >** elNeighbors_;
