@@ -53,53 +53,6 @@ namespace CoupledField
     infile.close() ;
   }
 
-  Integer AnsysFile::ReadDim()
-  {
-    ENTER_FCN( "AnsysFile::ReadDim" );
-  
-    return GetInteger("Dimension");
-  }
-
-  Integer AnsysFile::GetNum3DElems()
-  {
-    ENTER_FCN( "AnsysFile::GetNum3DElems" );
-  
-    return GetInteger("Num3DElements");
-  }
-
-  Integer AnsysFile::GetNum2DElems()
-  {
-    ENTER_FCN( "AnsysFile::GetNum2DElems" );
-  
-    return GetInteger("Num2DElements");
-  }
-
-  Integer AnsysFile::GetNum1DElems()
-  {
-    ENTER_FCN( "AnsysFile::GetNum1DElems" );
- 
-    return GetInteger("Num1DElements");
-    
-  }
-
-  Integer AnsysFile::GetNumBCs()
-  {
-    ENTER_FCN( "AnsysFile::GetNumBCs" );
- 
-    return  GetInteger("NumNodeBC");
-  }
-
-
-
-  Integer AnsysFile::GetNumSaveNodes()
-  {
-    ENTER_FCN( "AnsysFile::GetNumSaveNodes" );
-
-    Integer nrSaveNodes;
-    ReadNumSaveNodes(nrSaveNodes);
-    return nrSaveNodes;
-  }
-
 
 
   void AnsysFile::ReadCoordinate(Point<2> * const NodesCoord, const Integer maxnumnodes)
@@ -136,37 +89,6 @@ namespace CoupledField
         infile.ignore(100,'\n');
       }
   
-  }
-
-  void AnsysFile::ReadMaxnumnodes(Integer & nnodes)
-  {
-    ENTER_FCN( "Ansys::ReadMaxnumnodes" );
-
-
-    maxNumNodes_ = GetInteger("NumNodes");
-    nnodes = maxNumNodes_;
-  }
-
-  void AnsysFile::ReadMaxnumelem(Integer & nelem,const std::string keyword)
-  {
-    ENTER_FCN( "AnsysFile::ReadMaxnumelem" );
-
-    nelem = GetInteger(keyword);
-    actMaxElemNum_ += nelem;
-  }
-
-  void AnsysFile::ReadMaxnumnodesbc(Integer & nbc)
-  {
-    ENTER_FCN( "AnsysFile::ReadMaxnumnodesbc" );
-    nbc = GetInteger("NumNodeBC");
-  }
-
-
-  void AnsysFile::ReadNumSaveNodes(Integer & nrSaveNodes)
-  {
-    ENTER_FCN( "AnsysFile::ReadNumSaveNodes" );
-
-    nrSaveNodes = GetInteger("NumSaveNodes" );
   }
 
 
