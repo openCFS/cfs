@@ -131,9 +131,9 @@ namespace CoupledField {
 
     // Tell what we found
     if ( beVerbose_ == true ) {
-	std::string msg = "Get: Value for parameter '" + key;
-	msg += "' is '" + value + "'";
-	Info->Warning( msg );
+      std::string msg = "Get: Value for parameter '" + key;
+      msg += "' is '" + value + "'";
+      Info->Warning( msg );
     }
 
   }
@@ -234,6 +234,47 @@ namespace CoupledField {
   }
 
 
+  // ==========================================================
+  //   Return list of strings values matching a keyword under
+  //   side-constraints on attributes of matching elements
+  // ==========================================================
+  void XMLParamHandler::CGetList( const std::string key,
+				  std::vector<std::string> &list,
+				  const std::string attribute,
+				  const std::string value,
+				  const std::string section,
+				  const std::string subsection ) {
+
+    ENTER_FCN( "XMLParamHandler::CGetList" );
+
+    // Check if vector is empty. If not issue a warning
+    // and erase its entries, if this is desired
+    if ( list.empty() != true ) {
+      if ( beVerbose_ == true ) {
+	std::string errmsg  = "Warning input vector was not empty!\n";
+	errmsg += "Contents have been erased!";
+	Info->Warning( errmsg );
+      }
+      list.clear();
+    }
+
+    // First assemble a vector of all elements matching the keyword
+    // and their values
+    std::vector<DOMElement*> elemMatches;
+    std::vector<std::string> elemValues;
+    FindAllMatches( key, elemValues, section, subsection, rootElem_,
+		    &elemMatches );
+
+    // From the list of matching elements and their values, we select
+    // those whose attribute's value matches the specification
+    for ( unsigned int k = 0; k < elemMatches.size(); k++ ) {
+      if ( AttribHasValue( elemMatches[k], attribute, value ) ) {
+	list.push_back( elemValues[k] );
+      }
+    }
+  }
+
+
   // ===================================================
   //   Return list of Double values matching a keyword
   // ===================================================
@@ -320,64 +361,133 @@ namespace CoupledField {
   }
 
 
-  // ===============================================
-  //   Obtain list of attribute values for matches
-  // ===============================================
-  void XMLParamHandler::GetValsForHits( const std::string attribute2,
-					std::vector<std::string> &vals,
-					const std::string attribute1,
-					const std::string keyword,
-					const std::string section,
-					const std::string subsection ) {
+  // ======================================
+  //   Return a list of the defined coils
+  // ======================================
+  void XMLParamHandler::GetCoilList( std::vector<std::string> &list,
+				     const std::string pde ) {
 
-    ENTER_FCN( "XMLParamHandler::GetValsForHits" );
+    ENTER_FCN( "XMLParamHandler::GetCoilList" );
+
+    // string for assembling error messages
+    std::string errmsg;
 
     // Check if vector is empty. If not issue a warning
     // and erase its entries, if this is desired
-    if ( vals.empty() != true ) {
+    if ( list.empty() != true ) {
       if ( beVerbose_ == true ) {
-	std::string errmsg  = "Warning input vector was not empty!\n";
+	errmsg  = "Warning input vector was not empty!\n";
 	errmsg += "Contents have been erased!";
 	Info->Warning( errmsg );
       }
-      vals.clear();
+      list.clear();
     }
 
-    //  Find all elements with attributes of type attribute1
-    std::vector<DOMElement*> elems;
-    std::vector<std::string> attrVals1;
-    FindAllMatches( attribute1, attrVals1, section, subsection, rootElem_,
-		    &elems );
+    // Determine root node for pde section or single pde
+    std::vector<std::string> keys;
+    keys.push_back( "pdeList" );
+    if ( pde != "" ) {
+      keys.push_back( pde );
+    }
 
-    // Report
-    if( beVerbose_ ) {
-      std::string msg = "Found " + Info->GenStr( elems.size() )
-	+ " elements ";
-      msg += "with attribute '" + attribute1 + "' in subsection '";
-      msg += subsection + "' of section '" + section + "'";
-      Info->Warning( msg );
+    std::vector<DOMElement *>* roots = NULL;
+    roots = FindMatchingElements( keys, rootElem_, 1 );
+
+    if ( roots->size() > 1 ) {
+      if ( pde == "" ) {
+	Info->Error( "Found multiple pdeList entries in parameter file!",
+		     __FILE__, __LINE__ );
+      }
+      else {
+	Info->Error( "Found multiple '" + pde +
+		     "' entries in pdeList of parameter file!", __FILE__,
+		     __LINE__ );
+      }
+    }
+    else if ( roots->size() == 0 ) {
+      if ( pde == "" ) {
+	Info->Error( "Found no pdeList entry in parameter file!", __FILE__,
+		     __LINE__ );
+      }
+      else {
+	Info->Error( "Found no '" + pde +
+		     "' entry in pdeList of parameter file!", __FILE__,
+		     __LINE__ );
+      }
+    }
+
+    // The names of the coils are the tags of the child elements of the
+    // coils element, so get hold of them and make sure, there is
+    // at least one child/coil
+    DOMElement *coilRoot = (*roots)[0];
+    DOMNodeList *coilList = coilRoot->getChildNodes();
+    if ( coilList->getLength() == 0 ) {
+      if ( pde == "" ) {
+	Info->Error( "Cannot find a single coil in parameter file!", __FILE__,
+		     __LINE__ );
+      }
+      else {
+	Info->Error( "Cannot find a single coil in '" + pde +
+		     "' pde of parameter file!", __FILE__, __LINE__ );
+      }
+    }
+
+    // Now get hold of tags, convert them to strings and assemble vector
+    std::string coilName;
+    for ( unsigned int i = 0; i < coilList->getLength(); i++ ) {
+
+      // Only treat element children and not comments!
+      if ( coilList->item(i)->getNodeType() == DOMNode::ELEMENT_NODE ) {
+	coilName.assign( X2C( Node2Elem( coilList->item(i) )->getNodeName() ));
+	list.push_back( coilName );
+      }
+    }
+
+    // Clean-up
+    delete roots;
+
+  }
+
+
+  // ================================================================
+  //   Return as string the value of a parameter matching a keyword
+  //   under side-constraints on attributes of matching elements
+  // ================================================================
+  void XMLParamHandler::CGet( const std::string key,
+			      std::string &value,
+			      const std::string attribute,
+			      const std::string aValue,
+			      const std::string section,
+			      const std::string subsection ) {
+
+    ENTER_FCN( "XMLParamHandler::CGet" );
+
+    // Find all elements/values matching keyword in (restricted) tree
+    std::vector<std::string> matches;
+    CGetList( key, matches, attribute, aValue, section, subsection );
+
+    // If there was no unique match, call problem handler
+    if ( matches.size() > 1 ) {
+      MultipleMatchHandler( key, section, subsection, matches.size() );
+    }
+
+    // If there was no match at all, call problem handler
+    else if ( matches.size() == 0 ) {
+      NoMatchHandler( value, key, section, subsection );
     }
     
-    // Find those elements whose attribute has the correct value
-    std::vector<DOMElement*> elemvec;
-    for ( unsigned int k = 0; k < elems.size(); k++ ) {
-      if ( attrVals1[k] == keyword ) {
-	elemvec.push_back( elems[k] );
-      }
+    // There was a unique match, so convert detected value
+    else {
+      value = matches[0];
     }
 
-    // If there is no match return an empty list
-    if ( elemvec.size() == 0 ) {
-      return;
+    // Tell what we found
+    if ( beVerbose_ == true ) {
+	std::string msg = "CGet: Value for parameter '" + key;
+	msg += "' is '" + value + "'";
+	Info->Warning( msg );
     }
 
-    // For each remaining element determine value of attribute2
-    std::string attrVal;
-    for ( unsigned int k = 0; k < elemvec.size(); k++ ) {
-      if ( GetElementAttribute( elemvec[k], attribute2, attrVal ) == TRUE ) {
-	vals.push_back( attrVal );
-      }
-    }
   }
 
 
@@ -481,7 +591,7 @@ namespace CoupledField {
   //   Convert a DOMNode to a DOMElement
   // =====================================
   DOMElement* XMLParamHandler::Node2Elem( DOMNode *node ) {
-    ENTER_FCN( "XMLParamHandler::Node2Elem" );
+    ENTER_IFCN( "XMLParamHandler::Node2Elem" );
     if ( node->getNodeType() != DOMNode::ELEMENT_NODE ) {
       std::string errmsg = "Invalid conversion attempt from DOMNode to ";
       errmsg += "DOMElement!";
@@ -495,7 +605,7 @@ namespace CoupledField {
   //   Convert a DOMNode to a DOMAttr
   // ==================================
   DOMAttr* XMLParamHandler::Node2Attr( DOMNode *node ) {
-    ENTER_FCN( "XMLParamHandler::Node2Attr" );
+    ENTER_IFCN( "XMLParamHandler::Node2Attr" );
     if ( node->getNodeType() != DOMNode::ATTRIBUTE_NODE ) {
       std::string errmsg = "Invalid conversion attempt from DOMNode to";
       errmsg += " DOMAttr!";
@@ -509,7 +619,7 @@ namespace CoupledField {
   //   Convert a DOMNode to a string
   // =================================
   void XMLParamHandler::Node2String( DOMNode *textnode, std::string &value ){
-    ENTER_FCN( "XMLParamHandler::Node2String" );
+    ENTER_IFCN( "XMLParamHandler::Node2String" );
     if ( textnode->getNodeType() != DOMNode::TEXT_NODE ) {
       std::string errmsg;
       errmsg  = "Invalid conversion attempt from DOMNode to string!";
@@ -537,7 +647,7 @@ namespace CoupledField {
 					 DOMElement *treetop,
 					 unsigned int curdepth ) {
 
-    ENTER_FCN( "XMLParamHandler::FindMatchingElements" );
+    ENTER_IFCN( "XMLParamHandler::FindMatchingElements" );
 
     // Perform consistency checks
     if ( keys.size() == 0 ) {
@@ -614,7 +724,7 @@ namespace CoupledField {
 					   DOMElement *treeTop,
 					   std::vector<DOMElement*> *elemlist){
 
-    ENTER_FCN( "XMLParamHandler::FindMatchingAttributes" );
+    ENTER_IFCN( "XMLParamHandler::FindMatchingAttributes" );
 
     // Perform consistency check
     if ( keys.size() == 0 ) {
@@ -686,7 +796,7 @@ namespace CoupledField {
 					DOMElement *treeTop,
 					std::vector<DOMElement*> *elemlist ){
 
-    ENTER_FCN( "XMLParamHandler::FindAllMatches" );
+    ENTER_IFCN( "XMLParamHandler::FindAllMatches" );
 
     // Report, what we are looking for
     if ( beVerbose_ == true ) {
@@ -861,7 +971,7 @@ namespace CoupledField {
 					      const std::string subsection,
 					      const unsigned int nmatches ) {
 
-    ENTER_FCN( "XMLParamHandler::MultipleMatchHandler" );
+    ENTER_IFCN( "XMLParamHandler::MultipleMatchHandler" );
 
     std::string errmsg;
 
@@ -899,7 +1009,7 @@ namespace CoupledField {
 					const std::string section,
 					const std::string subsection ) {
 
-    ENTER_FCN( "XMLParamHandler::NoMatchHandler" );
+    ENTER_IFCN( "XMLParamHandler::NoMatchHandler" );
 
     // Test, whether a default value is specified for the parameter
     std::string defaultValue;
@@ -927,7 +1037,7 @@ namespace CoupledField {
 					const std::string section,
 					const std::string subsection ) {
 
-    ENTER_FCN( "XMLParamHandler::NoMatchHandler" );
+    ENTER_IFCN( "XMLParamHandler::NoMatchHandler" );
 
     // Test, whether a default value is specified for the parameter
     std::string defaultValue;
@@ -954,7 +1064,7 @@ namespace CoupledField {
 					const std::string section,
 					const std::string subsection ) {
 
-    ENTER_FCN( "XMLParamHandler::NoMatchHandler" );
+    ENTER_IFCN( "XMLParamHandler::NoMatchHandler" );
 
     // Test, whether a default value is specified for the parameter
     std::string defaultValue;
@@ -981,7 +1091,7 @@ namespace CoupledField {
 					      const std::string section,
 					      const std::string subsection ){
 
-    ENTER_FCN( "XMLParamHandler::NoMatchErrorReporter" );
+    ENTER_IFCN( "XMLParamHandler::NoMatchErrorReporter" );
 
     std::string errmsg;
 
@@ -1079,7 +1189,7 @@ namespace CoupledField {
   // ===========================
   char* XMLParamHandler::GetElementValue( DOMElement *elem ) {
 
-    ENTER_FCN( "XMLParamHandler::GetElementValue" );
+    ENTER_IFCN( "XMLParamHandler::GetElementValue" );
 
     // Obtain child nodes of this element
     DOMNodeList *children = elem->getChildNodes();
@@ -1118,7 +1228,7 @@ namespace CoupledField {
 						const std::string keyword,
 						std::string &attrVal ) {
 
-    ENTER_FCN( "XMLParamHandler::GetElementAttribute" );
+    ENTER_IFCN( "XMLParamHandler::GetElementAttribute" );
 
     bool hasAttr;
     DOMNamedNodeMap *attributes = NULL;
@@ -1242,6 +1352,39 @@ namespace CoupledField {
 
     // We are finished
     return rootElem;
+  }
+
+
+
+  // =====================================================
+  //   Check if element has attribute with certain value
+  // =====================================================
+  bool XMLParamHandler::AttribHasValue( DOMElement* elem,
+					const std::string attribute,
+					const std::string value ) {
+
+    ENTER_IFCN( "XMLParamHandler::AttribHasValue" );
+
+    // Get element's attributes
+    DOMNamedNodeMap *attributes = NULL;
+    attributes = elem->getAttributes();
+
+    // Select attribute matching name
+    DOMNode* attrib = NULL;
+    attrib = attributes->getNamedItem( S2X( attribute ) );
+
+    // Test, if element has an attribute with specified name
+    if ( attrib == NULL ) {
+      Info->Error( "ElemAttribHasValue: Element '" + X2S(elem->getTagName()) +
+		   "' has no attribute '" + attribute + "'",
+		   __FILE__, __LINE__ );
+    }
+
+    // Test, if attribute's value matches specification
+    bool retVal = ( X2S(Node2Attr( attrib )->getValue()) == value ) ?
+      true : false;
+
+    return retVal;
   }
 
 }

@@ -34,6 +34,13 @@ namespace CoupledField
   //!
   //! The class specifies several methods for accessing the values of steering
   //! parameters. These hide the underlying XML/DOM structure.
+  //! \todo Fix the small memory leaks introduced by the string conersion
+  //! routines. Probably we also must free all results from
+  //! getElementsByTagName() and the like.
+  //! \note With respect to function tracing the policy of this class is the
+  //! following. All public methods use ENTER_FCN, while all other methods,
+  //! besides those defined in the header itself, use ENTER_IFCN. The latter
+  //! do not appear in the trace log at all.
   class XMLParamHandler : public BaseParamHandler
   {
   public:
@@ -95,6 +102,27 @@ namespace CoupledField
     void Get( const std::string key, Double &value,
 	      const std::string section="", const std::string subsection="" );
 
+    //! Get string-value for a element with certain attribute
+
+    //! The method will try to find the specified keyword in the parameter tree
+    //! returning the found value as a string, if the corresponding element
+    //! has an attribute of the specified name which has the specified value.
+    //! The search can be restricted to a certain section and subsection.
+    //! \param key        Keyword
+    //! \param value      String (output)
+    //! \param attribute  Name of attribute of element
+    //! \param aValue     Value to test attribute's value against
+    //! \param section    Name of a section in which to look for keyword
+    //!                   (optional)
+    //! \param subsection Name of a subsection in which to look for keyword
+    //!                   (optional)
+    void XMLParamHandler::CGet( const std::string key,
+				std::string &value,
+				const std::string attribute,
+				const std::string aValue,
+				const std::string section,
+				const std::string subsection );
+
     //! Get a list of strings matching a keyword
 
     //! The method will try to find the specified keyword in the parameter
@@ -134,6 +162,33 @@ namespace CoupledField
 		  const std::string section = "",
 		  const std::string subsection = "" );
 
+    //! Get a list of strings for keyword and elements with certain attribute
+
+    //! The method will try to find the specified keyword in the parameter
+    //! tree. Once found, it tests, whether the corresponding elements have
+    //! a specified value for a specified attribute. For these elements it
+    //! will return the values of the respective elements or of the attributes
+    //! matching the keyword. The search can be restricted to certain subtrees
+    //! by specifying keywords for section and subsection.
+    //! The method will return an empty vector, if there is no match at all.
+    //! It will issue an error message, if there are matches for both, elements
+    //! and attributes, or if one of the found elements does not have an
+    //! attribute of the specified type.
+    //! \param key        Keyword
+    //! \param list       Vector of strings (output)
+    //! \param attribute  Name of attribute of element
+    //! \param value      Value to test attribute's value against
+    //! \param section    Name of a section in which to look for keyword
+    //!                   (optional)
+    //! \param subsection Name of a subsection in which to look for keyword
+    //!                   (optional)
+    void CGetList( const std::string key,
+		   std::vector<std::string> &list,
+		   const std::string attribute,
+		   const std::string value,
+		   const std::string section,
+		   const std::string subsection );
+
     //! Obtain list of PDEs defined in parameter file
 
     //! This method queries the parameter object for a list of all PDEs defined
@@ -141,26 +196,15 @@ namespace CoupledField
     //! strings.
     void GetPDEList( std::vector<std::string> &list );
 
-    //! Obtain list of atrribute values for matches
+    //! Obtain list of coils defined in parameter file
 
-    //! This method searches the (restricted) parameter tree for all elements
-    //! for which a certain attribute has a specified value. For all matching
-    //! elements the value of a specified second attribute is returned. If
-    //! there are no matches the list will be empty.
-    //! \param attribute2 Name of second attribute
-    //! \param vals       Values of second attribute for matching elements
-    //! \param attribute1 Name of first attribute
-    //! \param keyword    Keyword against which first attribute is compared
-    //! \param section    Name of a section in which to look for keyword
-    //!                   (optional)
-    //! \param subsection Name of a subsection in which to look for keyword
-    //!                   (optional)
-    void GetValsForHits( const std::string attribute2,
-			 std::vector<std::string> &vals,
-			 const std::string attribute1,
-			 const std::string keyword,
-			 const std::string section = "",
-			 const std::string subsection = "" );
+    //! This method queries the parameter object for a list of all coils
+    //! defined in the parameter file. The list is returned as a vector of
+    //! standard strings. The method will return an empty vector, if there are
+    //! no matches. By specifying the optional pde input parameter the search
+    //! can be restricted to a certain PDE entry in the pdeList section.
+    void GetCoilList( std::vector<std::string> &list,
+		      const std::string pde = "" );
 
     //! Query the on/off status of a flag/switch
 
@@ -202,27 +246,6 @@ namespace CoupledField
 			      const std::string subsection = "" );
 
   private:
-
-    //! Obtain the value of an element
-
-    //! This method will return the value of an element as character array.
-    //! Note that the method will only succeed if the element possesses
-    //! one child, which is a text node. If this is not the case, an error
-    //! will be issued.
-    Char* GetElementValue( xercesc::DOMElement *elem );
-
-    //! Obtain the value of an elements attribute
-
-    //! This method will determine the value of the specified attribute of a
-    //! given element as standard string. If the element does not posses an
-    //! attribute with the specified keyword, the return string is empty and
-    //! the method returns FALSE.
-    //! \param element  The element
-    //! \param keyword  Name of element's attribute
-    //! \param attrVal  Value of element's attribute
-    Boolean GetElementAttribute( xercesc::DOMElement* element,
-				 const std::string keyword,
-				 std::string &attrVal );
 
     //! Default Constructor
 
@@ -350,7 +373,9 @@ namespace CoupledField
 
     //! The C++ DOM of xerces uses the plain, null-terminated (XMLCh *) utf-16
     //! strings as the String type. This method converts such a string into a
-    //! standard STL string.
+    //! standard STL string. The returned string is dynamically allocated and
+    //! it is the responsibility of the caller to delete it when not longer
+    //! needed.
     std::string& X2S( const XMLCh *const toTranscode ) {
       std::string *stlstring = new std::string( X2C( toTranscode ) );
       return *stlstring;
@@ -494,6 +519,50 @@ namespace CoupledField
 			 std::vector<xercesc::DOMElement*> *elemlist=NULL );
 
     //@}
+
+
+    // ************************************************************************
+    //   Private Auxilliary Methods: Obtain / Test values
+    // ************************************************************************
+
+    //@{
+    //! \name Routines to obtain/test the value of an element or attribute
+
+    //! Obtain the value of an element that is a text node
+
+    //! This method will return the value of an element as character array.
+    //! Note that the method will only succeed if the element possesses
+    //! one child, which is a text node. If this is not the case, an error
+    //! will be issued.
+    Char* GetElementValue( xercesc::DOMElement *elem );
+
+    //! Obtain the value of an elements attribute
+
+    //! This method will determine the value of the specified attribute of a
+    //! given element as standard string. If the element does not posses an
+    //! attribute with the specified keyword, the return string is empty and
+    //! the method returns FALSE.
+    //! \param element  The element
+    //! \param keyword  Name of element's attribute
+    //! \param attrVal  Value of element's attribute
+    Boolean GetElementAttribute( xercesc::DOMElement* element,
+				 const std::string keyword,
+				 std::string &attrVal );
+
+    //! Test value of an attribute
+
+    //! This method can be used to test, if the attribute of a certain element
+    //! has a specified value. If the element does not have an attribute with
+    //! the specified name, an error will be reported.
+    //! \param elem      Element whose attribute is to be tested
+    //! \param attribute Name of the attribute of interest
+    //! \param value     Value to compare atrribute's value against
+    bool AttribHasValue( xercesc::DOMElement* elem,
+			 const std::string attribute,
+			 const std::string value );
+
+    //@}
+
 
     //! Parser object
 
