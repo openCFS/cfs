@@ -52,6 +52,11 @@ namespace CoupledField
   }
 
 
+  void BaseForm::CalcComplexElementMatrix(Matrix<Double>& ptCoord, Matrix<Complex>& elemMat, Double & beta, Double & omega) 
+  {
+    ENTER_FCN( "BaseForm::CalcComplexElemMatrix" );
+    Error(" Function BaseForm::CalcComplexElementMatrix is virtual. You can use it for derived classes.",__FILE__,__LINE__);
+  }
 
 
   void BaseForm::Print(std::ostream * out, const Matrix<Double> Result) const

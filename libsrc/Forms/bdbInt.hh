@@ -24,6 +24,8 @@ namespace CoupledField {
     //! Function for calculation bdb matrix 
     virtual void CalcElementMatrix(Matrix<Double> &ptCoord, Matrix<Double> & );
 
+    virtual void CalcComplexElementMatrix(Matrix<Double>& ptCoord, Matrix<Complex> & elemMat,Double & beta, Double & omega);
+
   protected:
 
     //! returns B - matrix for BDB
@@ -35,6 +37,13 @@ namespace CoupledField {
       Error( "BDBInt::calcDMat(Matrix<Double>&) not correctly overwritten!",
 	     __FILE__, __LINE__);
     };
+
+    //! returns D - matrix for BDB
+    virtual void calcDMaterialMatWithComplexDamping(Matrix<Complex> &dMat,Double &beta,Double &omega){
+      Error( "BDBInt::calcDMaterialMatWithComplexDamping(Matrix<Complex> &dMat, Double &beta, Double &omega) not correctly overwritten!",
+	     __FILE__, __LINE__);
+    };
+
 
     //! returns D - matrix for BDB, changes in every integration point
     virtual void calcDMat( Matrix<Double> &dMat, Integer ip,
