@@ -3,16 +3,15 @@
 
 #include "basedriver.hh"
 
-namespace CoupledField
-{
+namespace CoupledField {
 
 
-//! Abstract base class for sinlge driver (static, transient, harmonic)
-  class SingleDriver : public BaseDriver
-{
-public:
+  //! Abstract base class for sinlge driver (static, transient, harmonic)
+  class SingleDriver : public BaseDriver {
+
+  public:
   
-  //! constructor
+  //! Constructor
   //! \param adomain pointer to class Domain
   //! \param stepOffset offset for starting (time)step
   //! \param timeOffset offset for starting time
@@ -24,47 +23,48 @@ public:
 	       std::string driverTag ="anyTag",
 	       Boolean isPartOfSequence = FALSE);
 
-   //! deconstructor
-  virtual ~SingleDriver();
+    //! Default destructor
+    virtual ~SingleDriver();
   
-  //! set the pdes, which have to be solved
-  void SetPDEs(StdVector<BasePDE *> & pdes)
-  {pdes_ = pdes;}
-    
+    //! set the pdes, which have to be solved
+    void SetPDEs(StdVector<BasePDE *> & pdes) {
+      pdes_ = pdes;
+    }
 
-  //! main method, where time-stepping is implemented. it is for transient and static problem
+    //! main method, where time-stepping is implemented. it is for transient and static problem
   virtual void SolveProblem()=0;
 
-  //! to setup matrices of PDE. we call according method of class PDE for setup matrices of PDE in assembling procedure.
-  /*!
-    \param pdenumber number of PDE
-    \param matrixtype type of matrix
-  */
-  virtual void SetupMatricesPDE(Integer pdenumber, const Integer matrixtype)
-  { Error("SetupMatricesPDE not implemented in base class!",__FILE__,__LINE__); };
+    //! to setup matrices of PDE. we call according method of class PDE for setup matrices of PDE in assembling procedure.
+    //! \param pdenumber number of PDE
+    //! \param matrixtype type of matrix
+    virtual void SetupMatricesPDE(Integer pdenumber, const Integer matrixtype){
+      Error( "SetupMatricesPDE must be implemented by derived class!",
+	     __FILE__, __LINE__ );
+    };
   
-protected:
+  protected:
   
-  //! intialize all PDEs
-  void GetMyPDEs();
+    //! intialize all PDEs
 
-   //! vector of PDEs to solve
-  StdVector<BasePDE*> pdes_; 
+    //! intialize all PDEs: A more detailed description what and how the PDEs
+    //! are initialized would be much appreciated!
+    void GetMyPDEs();
 
-  //! true, if driver is part of  multiSequence
-  Boolean isPartOfSequence_;
+    //! vector of PDEs to solve
+    StdVector<BasePDE*> pdes_; 
 
-  //! tag for driver section
-  std::string driverTag_;
+    //! true, if driver is part of a multiSequence
+    Boolean isPartOfSequence_;
 
-  //! offset for first timestep
-  Integer stepOffset_;
+    //! tag for driver section
+    std::string driverTag_;
 
-  //! offset for first time
-  Double timeOffset_;
+    //! offset for first timestep
+    Integer stepOffset_;
 
-private:
-   
+    //! offset for first time
+    Double timeOffset_;
+
   };
 
 }
