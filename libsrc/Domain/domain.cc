@@ -160,6 +160,7 @@ namespace CoupledField {
       errMsg += pdeName;
       errMsg += "' was not found/created!.";
       Error(errMsg.c_str(), __FILE__, __LINE__);
+      return NULL;
     }
   }
 

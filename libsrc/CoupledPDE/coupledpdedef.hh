@@ -65,7 +65,7 @@ public:
   Definition();
   
   //! destructor
-  ~Definition();
+  virtual ~Definition();
   
   //! adds a PDE to definition
   virtual void AddPDE(std::string);

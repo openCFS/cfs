@@ -44,7 +44,7 @@ PDECoupling::CouplingInterface::operator= (const CouplingInterface & x)
   elements = x.elements;
   neighbours = x.neighbours;
   neighInputRegions = x.neighInputRegions;
-  oppositePdeNeighbours;
+  oppositePdeNeighbours = x.oppositePdeNeighbours;
   materials = x.materials;
   oppositePdeMaterials = x.oppositePdeMaterials;
 

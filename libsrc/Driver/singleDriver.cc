@@ -10,14 +10,16 @@ SingleDriver::SingleDriver(Domain * adomain,
 			   Double timeOffset, 
 			   std::string driverTag,
 			   Boolean isPartOfSequence)
-  :   BaseDriver(adomain), 
-      driverTag_(driverTag),
-      stepOffset_(stepOffset), 
-      timeOffset_(timeOffset),
-      isPartOfSequence_(isPartOfSequence)  
+  : BaseDriver(adomain)
+      
 {
   
   ENTER_FCN( "SingleDriver::SingleDriver" );
+
+  stepOffset_ = stepOffset;
+  timeOffset_ = timeOffset_;
+  driverTag_ = driverTag;
+  isPartOfSequence_ = isPartOfSequence;
 }
   
 

@@ -1291,7 +1291,6 @@ namespace CoupledField {
     const Integer job = 1;
   
     static Integer timeStepCounter=1;
-    Double * ptsol;
     Boolean performOneMoreStep;
     Integer iterationCounter=0;
 
@@ -1461,7 +1460,7 @@ namespace CoupledField {
   Double MagPDE::RhsL2Norm(Vector<Double>& actRHS) {
     ENTER_FCN( "MagPDE::RhsL2Norm" );
 
-    Integer node, dof;
+    Integer node;
     StdVector<Integer> eqn(1);
     std::list<Integer> nodes;
   
@@ -1774,7 +1773,6 @@ namespace CoupledField {
 	    BaseFE * ptEl = elemssd[actEl]->ptElem;
 		
 	    const Integer nrIntPts= ptEl->GetNumIntPoints();
-	    const Integer nrNodes = ptEl->GetNumNodes();
 	    const Vector<Double> & intWeights = ptEl->GetIntWeights();  
 	    Double jacDet;
 		

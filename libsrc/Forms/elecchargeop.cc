@@ -103,8 +103,8 @@ namespace CoupledField
     Integer nrIntPts, nrNodes;
   
   
-    charge = (0.0,0.0);
-    chargeAux = (0.0,0.0);
+    charge = Complex(0.0, 0.0);
+    chargeAux = Complex(0.0,0.0);
     jacDet =0;
     nrIntPts= ptElemFE->GetNumIntPoints();
     nrNodes = ptElemFE->GetNumNodes();

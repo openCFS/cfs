@@ -66,7 +66,6 @@ void HarmonicDriver :: SolveProblem()
 
   Integer level=0;
   Boolean reset = TRUE;
-  Integer pdenumber  = 0;
   
   if (! isPartOfSequence_)
   ptdomain_->PrintGrid(level);

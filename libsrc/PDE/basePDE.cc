@@ -686,7 +686,6 @@ void BasePDE::StepTransLin(const Integer kstep, const Double asteptime,
   //account for RHS
   assemble_->AssembleSrcRHS(level,lasttimecalc_);
 
-  Integer k=0;
   NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
 
   if ( pdeIsCoupled_ == FALSE || iterCoupledCounter_ == 0)
@@ -822,7 +821,6 @@ void BasePDE::SolveStepHarmonic(const Integer freqStep, const Double frequency,
 void BasePDE::CreateIncrementedRHSMatrix(Vector<Double> & harmonicRHSVec, const Double frequency,const Integer level){
     ENTER_FCN("BasePDE::CreateIncrementedRHSMatrix");
 		assemble_->AssembleMatrices(level);
-		const Integer numElems = numPDENodes_ * dofspernode_;
 		Matrix<Double> elemmat = assemble_->GetElemMat();
 		assemble_->TransformMatrix2HarmonicRHS_for_paramIdent(harmonicRHSVec,elemmat);
 }
@@ -842,8 +840,6 @@ void BasePDE::StepHarmonicLin(const Integer freqStep, const Double frequency,
 
   //this has to be done each time!
   assemble_->AssembleSrcRHS(level, frequency);
-
-  const Integer numElems = numPDENodes_ * dofspernode_;
 
   if (reset)
     {
@@ -1758,19 +1754,14 @@ void BasePDE::CalcInputCoupling()
 
   std::string errMsg;
   StdVector<Integer> * nodes;
-  StdVector<Elem*> * elements;
   CFSVector * val;
-  Double * help;
-  Integer pdeNode, eqnNr,eqnDof, helpnode;
+  Integer pdeNode, eqnNr,eqnDof;
   Integer couplingDof;
   Boolean clearCoords = TRUE;
 
   // Reset counter for boundary conditions
   couplingBCsCounter_ = 0;
   
-
-Double sum = 0.0;
-
   // Outer loop over all INPUT coupling terms
   for (Integer i=0; i<ptCoupling_->GetNumInputCouplings(); i++)
     {
@@ -1818,7 +1809,6 @@ Double sum = 0.0;
 		  errMsg += " is not in contained in list of my subdomains!";
 		  Error(errMsg.c_str(), __FILE__, __LINE__);
 		}
-		sum += help[dof + j*dim_];
  		deltCoords_(dof,pdeNode-1) = help[dof + j*dim_];
 
 	      }
