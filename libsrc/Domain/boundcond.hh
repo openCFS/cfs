@@ -6,8 +6,6 @@
 namespace CoupledField
 {
 
-/// contains information about calculation domain and according to different meshes create different grids
-
 //! struct for Restraints:
 struct Restraints
 {
@@ -16,6 +14,8 @@ struct Restraints
   Double * val;
 };
 
+
+//! class for handling different boundary conditions
 class BCs
 {
 public:

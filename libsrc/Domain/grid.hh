@@ -7,35 +7,65 @@
 namespace CoupledField
 {
 
-/// Class for working with grid
+//! Class for working with grid
 class Grid
 {
 public:
-  /// Constructor with parameter - pointer to FileType for reading initial grid
+  //! Constructor 
+  /*!
+    \param aptFileType pointer to FileType for reading initial grid
+  */
   Grid(FileType * aptFileType); 
 
-  /// Deconstructor
+  //! Deconstructor
   virtual ~Grid();
 
-  //!
+  //! reads the grid from input file
   virtual void Read()=0;
 
-   /// Get connection of element
+   //! Get connection of element
+  /*!
+    \param connect (output) contains global node numbers
+    \param iElem (input) element level
+    \param level (input) index for multilevel hierarchy
+  */
    virtual void GetConnection(Vector<Integer> & connect, const Integer iElem, const Integer level)=0;
 
-   /// Get coordinates of node with global number inode
+   //! Get coordinates of node with global number inode
+  /*!
+    \param inode (input) node number
+    \param numlevel (input) index for multilevel hierarchy
+    \param rfPoint (output) coordinates of point 2D
+  */
    virtual void GetCoordinateNode(const Integer inode, const Integer numlevel, Point<2> & rfPoint)
   { Error(" Not implemented",__FILE__,__LINE__);}
 
+  //! gets coordinate of specified node
+  /*!
+    \param inode (input) node number
+    \param numlevel (input) index for multilevel hierarchy
+    \param rfPoint (output) coordinates of point 3D
+  */
   virtual void GetCoordinateNode(const Integer inode, const Integer numlevel, Point<3> & rfPoint)
   { Error(" Not implemented",__FILE__,__LINE__);}
 
-  /// Return maximum number of nodes
+  //! Return maximum number of nodes
+  /*!
+    \param numlevel (input) index for multilevel hierarchy
+  */
   virtual Integer GetMaxnumnodes(const Integer numlevel)=0;
 
-  /// Return maximum number of elements 
+  //! Return maximum number of elements 
+  /*!
+    \param numlevel (input) index for multilevel hierarchy
+  */
   virtual Integer GetMaxnumElem(const Integer numlevel)=0;
+
   //! Return maximum number of elements, which belong to subdoms
+  /*!
+    \param numlevel (input) index for multilevel hierarchy
+    \param subdoms (input) contains the names of the subdomains
+  */
   virtual Integer GetMaxnumElem(const Integer numlevel, const std::vector<std::string> & subdoms)
    { Error(" Not implemented",__FILE__,__LINE__);}  
 
@@ -46,18 +76,35 @@ public:
   virtual Integer GetDim()=0;
   
  //! prolongation of solution
+  /*!
+    \param sol_coarse (input) solution on coarse grid
+    \param sol (output) contains the solution on the new grid (fine grid)
+    \param alevel (input) index in multilevel hierarchy
+  */
   virtual void ProlongSol(const Vector<Double> sol_coarse, Vector<Double> &sol, const Integer alevel)
   { Error(" Not implemented",__FILE__,__LINE__);}
 
   //! update nodes for boundary conditions
+  /*!
+    \param bcs list of boundary nodes
+  */
   virtual void UpdateBCs(std::list<Integer> * bcs)
   { Error(" Not implemented",__FILE__,__LINE__);}
 
-    //! return vector of element-neighbors for the element with number noOfElem
+  //! return vector of element-neighbors for the element with number noOfElem
+  /*!
+    \param noOfElem (input) element level
+    \param color (input) subdomain
+  */ 
   virtual  std::vector<Elem*> *GetNeighboursOfElem(const Integer noOfElem, std::string color)
   { Error(" Not implemented",__FILE__,__LINE__);}
 
   //! return vector of element-neighbors for the node with number noOfNode
+  /*!
+    \param elemsSurf
+    \param elems
+    \param belongingSE
+  */
   virtual void GetNeighboursOfNode(const Integer noOfNode, std::vector<Elem*> * neighbours)
   { Error(" Not implemented",__FILE__,__LINE__);}
 
@@ -74,32 +121,48 @@ public:
   { Error(" Not implemented",__FILE__,__LINE__);}
 
   //!
- virtual void GetElemSD(std::vector<Elem*> &, const std::string sd, const Integer level)
+  /*!
+    \param els (output)
+    \param sd (input) contains the name of the subdomain
+    \param level (input) index for multilevel hierarchy
+  */
+  virtual void GetElemSD(std::vector<Elem*> & els, const std::string sd, const Integer level)
    { Error(" Not implemented",__FILE__,__LINE__);}
 
   //!
   virtual std::vector<std::string>* GetAllSDs()
   { Error("Not implemented",__FILE__,__LINE__);}
 
-  //!
+  //! gets the coordinates of the element nodes
+  /*!
+    \param connect (input) global node numbers of element
+    \param ptCoord (output) coordinates of the element nodes
+    \param level (input) index for multilevel hierarchy
+  */
   virtual void GetCoordNodesElem(const Vector<Integer> connect, Point<2> * ptCoord, const Integer level)
   { Error(" Not implemented",__FILE__,__LINE__);}
 
-  //!
+  //! gets the coordinates of the element nodes
+  /*!
+    \param connect (input) global node numbers of element
+    \param ptCoord (output) coordinates of the element nodes
+    \param level (input) index for multilevel hierarchy
+  */
   virtual void GetCoordNodesElem(const Vector<Integer> connect, Point<3> * ptCoord, const Integer level)
   { Error(" Not implemented",__FILE__,__LINE__);}
 
   //! in this function we calculate area of element
+  /*!
+    \param elem (input) element object
+  */
   virtual Double CalcAreaElem(const Elem* elem)
     { Error(" Not implemented",__FILE__,__LINE__);}
   
 protected:
 
-  FileType * ptFileType;
-
-  Integer lastlevel_;
-
-  std::vector<std::string> listSD_;
+  FileType * ptFileType;   //!< pointer to input file
+  Integer lastlevel_;      //!< last level in multilevel hierarchy
+  std::vector<std::string> listSD_; //!< list of names of subdomains
 
 private:
   ///
