@@ -1,0 +1,52 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org"
+  xmlns:cfs="http://www.cfs++.org"
+  elementFormDefault="qualified">
+
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Coupled Field Solver project CFS++
+      Schema description for all things related to the type of analysis
+    </xsd:documentation>
+  </xsd:annotation>
+
+  <!-- Data type for specifying type of analysis to be performed -->
+  <xsd:complexType name="DT_Analysis">
+    <xsd:complexContent>
+      <xsd:restriction base="xsd:anyType">
+        <xsd:attribute name="type" use="required">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
+              <xsd:enumeration value="static"/>
+              <xsd:enumeration value="harmonic"/>
+              <xsd:enumeration value="transient"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
+      </xsd:restriction>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- Data type for transient section, i.e. parameters required for
+       performing a transient analysis -->
+  <xsd:complexType name="DT_Transient">
+    <xsd:sequence>
+      <xsd:element name="numsteps" type="xsd:int"/>
+      <xsd:element name="firstdt" type="xsd:double"/>
+      <xsd:element name="stepsavebeg" type="xsd:int"/>
+      <xsd:element name="stepsaveend" type="xsd:int"/>
+      <xsd:element name="stepsaveinc" type="xsd:int"/>
+      <xsd:element name="timeDataFile" minOccurs="1" maxOccurs="unbounded">
+        <xsd:complexType>
+          <xsd:complexContent>
+            <xsd:restriction base="xsd:anyType">
+              <xsd:attribute name="name" type="xsd:string" use="required"/>
+            </xsd:restriction>
+          </xsd:complexContent>
+        </xsd:complexType>
+      </xsd:element>
+    </xsd:sequence>
+  </xsd:complexType>
+
+</xsd:schema>
