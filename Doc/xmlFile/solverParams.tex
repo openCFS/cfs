@@ -422,6 +422,110 @@ refineSol  & yes, no & if set to yes, we let LAPACK perform some steps of
 \section{Parameters for special preconditioners}
 %
 %
+\subsection{MG}
+%
+%
+\begin{center}
+\begin{longtable}{lcp{0.5\textwidth}}
+\hline\noalign{\smallskip}
+element & range of values & meaning \endhead
+\noalign{\smallskip}\hline\noalign{\smallskip}
+%
+%
+maxCoarseDepend & $\mathbb{N}$ &
+The maximal number of coarse neighbours, an F-point can get due to their
+strong influence on that point. This does not mean, that this will be the
+number of C-neighbours, that will maximally surround an F-point, but the number
+of C-neighbours, that will cause an F-point to be judged as
+\emph{well interpolated}. Thus, a further neighbour will not be made a
+C-point due to its dependency to the named point, but it could still get
+C-point because of other reasons.\\
+%
+%
+\noalign{\smallskip}\hline\noalign{\smallskip}
+%
+%
+minSystemSize & $\mathbb{N}$ &
+The minimal size for the coarsest system. If the coarsening process yields a
+number of C-points for the next coarser system that falls below this limit, the
+coarsening result is rejected and the corresponding hierarchy level is not
+created. The present level gets the coarsest.\\
+%
+%
+\noalign{\smallskip}\hline\noalign{\smallskip}
+%
+%
+numPreSmooth & $\mathbb{N}_0$ &
+Number of pre-smoothing steps in the AMG solution cycle\\
+%
+%
+\noalign{\smallskip}\hline\noalign{\smallskip}
+%
+%
+numPostSmooth & $\mathbb{N}_0$ &
+Number of post-smoothing steps in the AMG solution cycle\\
+%
+%
+\noalign{\smallskip}\hline\noalign{\smallskip}
+%
+%
+cycleParameter & $\mathbb{N}$ &
+Solution phase. The recursion parameter for the solution cycle, which is the
+number of coarse corrections, applied \emph{on each level except the top
+and the bottom level}. A value of 1 for example causes a common V-cycle, 2 a
+common W-cycle. Note that excluding the top level from this multiple coarse
+grid corrections causes the parameter value 2 to generate a real W-cycle, not
+a WW-cycle.\\
+%
+%
+\noalign{\smallskip}\hline\noalign{\smallskip}
+%
+%
+alpha & $[0,1]$ &
+The ``alpha'' in the classical Ruge-St\"{u}ben setup phase. It controls the
+decision whether a dependency is strong or weak:
+$(i,j) \in S \Leftrightarrow d(i,j) \ge \alpha$, with the dependency strength
+of point $i$ from point $j$
+$\displaystyle d(i,j) := \frac{|a_{ij}|}{\max\{|a_{ik}| : k \ne i\}}$ and
+matrix entries $a_{ij}$.\\
+%
+%
+\noalign{\smallskip}\hline\noalign{\smallskip}
+%
+%
+strongDiagRatio & $[0,1]$ &
+Additional necessary condition for a dependency to be judged as strong. The
+alpha is related to the size of an off-diagonal entry compared to the other
+off-diagonal entries. But it must be also be large in comparison with the
+corresponding diagonal entry. strongDiagRatio represents this ratio:
+$(i,j) \in S \Rightarrow \mbox{strongDiagRatio} \cdot a_{ii}) \le |a_{ij}|$.\\
+%
+%
+\noalign{\smallskip}\hline\noalign{\smallskip}
+%
+%
+forceFineRatio & $> 0$ &
+If a row of the system matrix is strongly diagonal dominant, it can be forced
+to get an F-point. AMG\_\-Force\-Fine\-Ratio is the limit value for the ratio
+$ \frac{\sum_j |a_{ij}|}{a_{ii}} $. If this ratio falls below forceFineRatio,
+the point is forced immediately to get an F-point. This is in particular useful
+ for example in systems arrising from a PDE discretization in which Dirichlet
+boundary conditions are treated using penalty terms. In this case all Dirichlet
+points are forced to get F-points.\\
+%
+%
+\noalign{\smallskip}\hline\noalign{\smallskip}
+%
+%
+directSolver & noSolver $|$ lapackLU &
+Selects the direct solver that will be used to solve the system on the coarsest
+level. In the case that \xml{noSolver} is chosen the smoother will be used to
+solve the problem.\\
+\noalign{\smallskip}\hline
+\end{longtable}
+\end{center}
+%
+%
 \subsection{hypreAMG}
 %
 %
