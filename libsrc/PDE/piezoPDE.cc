@@ -300,7 +300,6 @@ namespace CoupledField {
 	actIntDescrMass->SetSecondaryMat(DAMPING, actSDMat.GetDampingAlfa(),
 					 analysistype_);
       assemble_->AddIntegrator(actIntDescrMass, subdoms_[actSD]);
-
     }
 
     //surface integrators
@@ -313,7 +312,6 @@ namespace CoupledField {
 					 pressFnc_[actSF],nonlin);
     }
 
-    
   }
 
 
