@@ -748,10 +748,10 @@ namespace CoupledField {
     }
 
     if ( analysis == "multiSequence" ) {
-      if ( analysisType == HARMONIC  && eType != COMPLEX ) {
+      if ( analysisType == HARMONIC && eType != COMPLEX ) {
 	eType = COMPLEX;
-	Info->PrintF( pdename, "Expert: Using COMPLEX as matrix entry type "
-		      "for parameter identification\n" );
+	Info->PrintF( pdename, "Expert: Using COMPLEX as matrix entry type, "
+		      "harmonic part of multi-sequence analysis\n" );
       }
     }
 
