@@ -11,7 +11,6 @@
 #include <Estimator/spaceerror.hh>
 #include <DataInOut/WriteInfo.hh> 
 #include <Driver/assemble.hh>
-#include "nodeEQN.hh"
 #include <General/defs.hh>
 
 #include <Utils/storesol.hh>
@@ -65,6 +64,9 @@ namespace CoupledField {
 #endif
 
     Reset();
+
+    
+
   
     SolverCFS_ = FALSE;
 
@@ -91,6 +93,7 @@ namespace CoupledField {
     assemble_->SetPtr2Sol(sol_);
     assemble_->SetPtr2TimeFnc(ptTimeFunc_);
 
+    
     ReadMaterialData();
    
     DefineIntegrators(actlevel_);  
@@ -100,6 +103,12 @@ namespace CoupledField {
 #else
     ReadStoreResults();
 #endif
+
+    // TEMPORARY
+    //eqn_  = new ScalarNodeEQN(ptgrid_, ptBCs_, subdoms_, actlevel_, dofspernode_);
+    //eqn_->SetHomoDirichletBCs(bcs_hd_, homDirichDof_);
+    //eqn_->CalcMapping();
+    //eqn_->Print(std::cerr);
   }
 
 

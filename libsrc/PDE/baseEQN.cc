@@ -1,18 +1,21 @@
 #include "baseEQN.hh"
+#include <list>
 #include "Domain/grid.hh"
 #include "DataInOut/WriteInfo.hh"
 
 namespace CoupledField
 {
 
-  BaseEQN :: BaseEQN(Grid * aptgrid, 
+  BaseEQN :: BaseEQN(Grid * aptGrid, 
+		     BCs * aptBCs,
 		     std::vector<std::string>& asubdoms, 
 		     Integer actlevel, 
 		     Integer dofsPerNode)
 {
   ENTER_FCN( "BaseEQN::BaseEQN" );
 
-  ptgrid_   = aptgrid;
+  ptGrid_   = aptGrid;
+  ptBCs_    = aptBCs;
   subdoms_  = asubdoms;
   actlevel_ = actlevel;
   dofsPerNode_ = dofsPerNode;
@@ -29,29 +32,63 @@ BaseEQN :: ~BaseEQN()
 
 
 
-void BaseEQN::SetHomDirichletBCs(const std::vector<Integer> &nodeNrs,
-			const std::vector<std::string> &dofs)
+void BaseEQN::SetHomoDirichletBCs(const std::vector<std::string> &nodeLevel,
+				  const std::vector<std::string> &dofs)
 {
-  ENTER_FCN( "BaseEQN::SetHomDirichletBCs" );
+  ENTER_FCN( "BaseEQN::SetHomoDirichletBCs" );
 
-  dirichletNodes_ = nodeNrs;
+  std::list<Integer> tempNodeList;
+  homoDirichletNodes_.clear();
+  Integer oldSize = 0;
+  Integer counter = 0;
 
-  if (dofsPerNode_ > 1)
+  //std::cerr << "nodeLevel.size=" << nodeLevel.size() << std::endl;
+
+  for (Integer i=0; i<nodeLevel.size(); i++)
     {
-      dirichletDofs_.resize(dofs.size());
+      tempNodeList = ptBCs_->GetNodesLevel(nodeLevel[i]);
       
-      for (Integer i=0; i<dofs.size(); i++)
+      oldSize = homoDirichletNodes_.size();
+      homoDirichletNodes_.resize(oldSize + tempNodeList.size());
+      //std::cerr << "oldsize: " << oldSize << "tempNodeList.size= " << tempNodeList.size() << std::endl;
+
+      std::list<Integer>::iterator it;
+      
+      for (it=tempNodeList.begin(); it != tempNodeList.end(); it++)
+	homoDirichletNodes_[counter++] = (*it);
+      
+      if (dofsPerNode_ > 1)
 	{
-	  dirichletDofs_[i] = GetBCDof(dofs[i]);
+	  homoDirichletDofs_.insert(homoDirichletDofs_.end(),
+				    GetBCDof(dofs[i]),
+				    tempNodeList.size());
 	}
-    }			   
+	
+    }
+  
+  // Debug
+  //for (Integer i=0; i<homoDirichletNodes_.size(); i++)
+    //   std::cerr << homoDirichletNodes_[i] << std::endl;
+
 }
 
-void BaseEQN::SetConstraints(const std::vector<Integer> &nodeNrs,
+
+void BaseEQN::SetConstraints(const std::vector<Integer> &slaveNodeNrs,
+			     const std::vector<Integer> &masterNodeNrs,
 			     const std::vector<std::string> &dofs)
 {
   ENTER_FCN( "BaseEQN::SetConstraints" );
-  Info->Error( "Not implemented yet" );
+
+  constraintSlaveNodes_ = slaveNodeNrs;
+  constraintMasterNodes_ = masterNodeNrs;
+
+  if (dofsPerNode_ > 1)
+    {
+      constraintDofs_.resize(dofs.size());
+      
+      for (Integer i=0; i<dofs.size(); i++)
+	constraintDofs_[i] = GetBCDof(dofs[i]);
+    }
 }
 
 

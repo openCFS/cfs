@@ -3,8 +3,6 @@
 
 #include "nodeEQN.hh"
 
-#include <map>
-
 namespace CoupledField
 {
 
@@ -15,13 +13,14 @@ class ScalarBlockEQN : public NodeEQN
 public:
   
   //! Constructor
-  ScalarBlockEQN(Grid * aptgrid, 
-	  std::vector<std::string>& asubdoms, 
-	  Integer actlevel, 
-	  Integer dofsPerNode);
+  ScalarBlockEQN(Grid * aptGrid, 
+		 BCs * aptBCs,
+		 std::vector<std::string>& asubdoms, 
+		 Integer actlevel, 
+		 Integer dofsPerNode);
   
   //! Destructor
-  ~ScalarBlockEQN();
+  virtual ~ScalarBlockEQN();
   
   //! Calculate the mapping after Dirichlet and
   //! constraint nodes were set
@@ -37,15 +36,15 @@ public:
   //! Map vector of equation numbers to 
   //! positions in global solution vector
   void EQN2SolVectorPos(const std::vector<Integer> &eqnNr, 
-			std::vector<Integer> &pos);
+			std::vector<Integer> &pos) const;
   
   //! Map node number to according equation number(s)
-  void Node2EQN(const Integer nodeNr, std::vector<Integer> &eqns);
+  void Node2EQN(const Integer nodeNr, std::vector<Integer> &eqns) const;
   
   //! Map vector of node numbers to according
   //! vector of equiation numbers
   void Node2EQN(const std::vector<Integer> &nodeNr,
-		std::vector<Integer> &eqnNr);
+		std::vector<Integer> &eqnNr) const;
 
 private:
 

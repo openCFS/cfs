@@ -3,12 +3,11 @@
 
 #include "nodeEQN.hh"
 
-#include <map>
-
 namespace CoupledField
 {
 
-//! a base class for quation data handling
+//! Equation handling class for PDEs with number
+//! of degrees of freedom > 1
 
 class BlockNodeEQN : public NodeEQN
 {
@@ -16,12 +15,13 @@ public:
   
   //! Constructor
   BlockNodeEQN(Grid * aptgrid, 
-	  std::vector<std::string>& asubdoms, 
-	  Integer actlevel, 
-	  Integer dofsPerNode);
+	       BCs * aptBCs,
+	       std::vector<std::string>& asubdoms, 
+	       Integer actlevel, 
+	       Integer dofsPerNode);
   
   //! Destructor
-  ~BlockNodeEQN();
+  virtual ~BlockNodeEQN();
   
   //! Calculate the mapping after Dirichlet and
   //! constraint nodes were set
@@ -37,25 +37,24 @@ public:
    //! Map vector of equation numbers to 
   //! positions in global solution vector
   void EQN2SolVectorPos(const std::vector<Integer> &eqnNr, 
-			std::vector<Integer> &pos);
+			std::vector<Integer> &pos) const;
   
   //! Map node number to according equation number(s)
-  void Node2EQN(const Integer nodeNr, std::vector<Integer> &eqns);
+  void Node2EQN(const Integer nodeNr, std::vector<Integer> &eqns) const;
   
   //! Map vector of node numbers to according
   //! vector of equiation numbers
   void Node2EQN(const std::vector<Integer> &nodeNr,
-		std::vector<Integer> &eqnNr);
+		std::vector<Integer> &eqnNr) const;
 
 private:
 
   //! Mapping global node number->EQN
   std::vector<Integer> pdeNode2EQN_;
   
-  
 };
   
   
 }  // end of namespace
 
-#endif // FILE_SCALARNODEEQN
+#endif // FILE_BLOCKNODEEQN

@@ -2,10 +2,12 @@
 #define FILE_NEWBASEMECHPDE
 
 #include "basePDE.hh"
-
+#include "blocknodeEQN.hh"
  
 namespace CoupledField
 {
+
+
 
   //! Class for mechanic equation (no adaptivity)
   /*! 
@@ -196,9 +198,12 @@ private:
   void CalcReducedMat(MaterialData& lambdaMat, MaterialData& mueMat,
 		      MaterialData& mat);
 
-  // defines subtype of mechanic PDE: plainStrain, 3d, ...
+  /// defines subtype of mechanic PDE: plainStrain, 3d, ...
   std::string subType_;
 
+  /// pointer to Equationdata
+  //BlockNodeEQN * eqn_;
+  
   Integer GetNrBCDof (const std::string & dofStartString);
 
   /// stores an algsys_ vector into a std::vector and returns that L2-norm
