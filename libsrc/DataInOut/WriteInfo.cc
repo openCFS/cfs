@@ -113,12 +113,13 @@ namespace CoupledField
 
     if (cfsInfo)
       *cfsInfo << "MATERIAL DATA OF " << material.GetMaterialName() << ":"
-	       << std::endl << "compressibility: "
-	       << material.GetCompressibility() << std::endl
-	       << "density: " << material.GetDensity() << std::endl
-	       << "alpha: " << material.GetDampingAlfa() << std::endl
-	       << "beta: " << material.GetDampingBeta() << std::endl
-	       << std::endl;
+			   << std::endl << "compressibility: "
+			   << material.GetCompressibility() << std::endl
+			   << "density: " << material.GetDensity() << std::endl
+			   << "alpha: " << material.GetDampingAlfa() << std::endl
+			   << "beta: " << material.GetDampingBeta() << std::endl
+			   << "BoverA: " << material.GetBoverA() << std::endl
+			   << std::endl;
   }
   
 

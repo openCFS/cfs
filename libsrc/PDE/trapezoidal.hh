@@ -45,13 +45,8 @@ public:
   //! compute parameters for multiplication
   void CalcParameters(Double dt);
 
-  //! set the time step
-  void SetTimeStep(Double dt) 
-  { dt_ = dt;};
-
 private:
    
-  Double dt_; //<! time step
   Double gamma_;  //<! integration parameter
   Double a0_,a1_,a2_,a3_,a4_,a5_,a6_,a7_; //<! coefficients from Trapezoidal method
 

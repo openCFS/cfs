@@ -11,8 +11,7 @@
 #include <multigrid.hh>
 #endif
 
-namespace CoupledField
-{
+namespace CoupledField {
 
 //! a base class for time stepping
 
@@ -24,7 +23,8 @@ public:
     \param apdename name of PDE
     \param algebraicsystem pointer to algebraic system used by PDE
   */
-  TimeStepping(std::string apdename, BaseSystem * algebraicsystem, NodeEQN * ptEQN);
+  TimeStepping(std::string apdename, BaseSystem * algebraicsystem,
+			   NodeEQN * ptEQN);
 
    //! deconstructor
   virtual ~TimeStepping();
@@ -60,11 +60,22 @@ public:
   virtual const Vector<Double>& GetDeriv2() const { return solderiv2_;}
 
   //! store solution to solution array (especially for effective mass formulation)
-  
   virtual void StoreSolution(NodeStoreSol<Double> & solArr) const
   {Error("Not implemented in base class!", __FILE__, __LINE__);};
 
   NodeEQN * getNodeEQN(){return ptEQN_;};
+
+  //! set the time step
+  void SetTimeStep(Double dt) 
+  { dt_ = dt;};
+
+  //! get the time step size
+  Double GetTimeStep() 
+  { return dt_;};
+
+  //! get beta coefficient from Newmark time stepping scheme
+  virtual Double GetNewmarkBeta()
+  {;};
 
 
 protected:
@@ -72,6 +83,8 @@ protected:
   std::string pdename_;  //<! name of PDE
   BaseSystem * algsys_;  //<! pointer to algebraic system
   NodeEQN * ptEQN_;      //<! pointer to eqn-object
+
+  Double dt_;            //<! time step size
 
   Vector<Double> solderiv1_, solderiv2_;
 
@@ -81,6 +94,6 @@ private:
 
 };
 
-}
+} // end of namespace
 
 #endif // FILE_TIMESTEPPING

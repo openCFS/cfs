@@ -38,7 +38,8 @@
 namespace CoupledField
 {
 
-class SpaceErrorEstimator;
+
+  class SpaceErrorEstimator;
 
   //! Base class for partial differential equations
 
@@ -130,7 +131,7 @@ class SpaceErrorEstimator;
     //! write general defines (BCs, loads, etc.) to info-file
     virtual void WriteGeneralPDEdefines();
 
-    //! retruns the load names
+    //! returns the load names
     StdVector<std::string>& GetLoadDom()
     {return assemble_->loadDom_;};
 
@@ -365,6 +366,12 @@ class SpaceErrorEstimator;
     virtual void Reset()
     { Error("Fnc Reset is not implemented",__FILE__,__LINE__);}
 
+	//! Get number of time step
+	virtual Integer GetTimeStepCounter()
+	{ return laststepcalc_; }
+
+	//! Get coefficient for damping matrix in fractional damping model
+	virtual Double GetFracDampMatrixCoeff(Integer actSD);
 
   protected:
 

@@ -20,7 +20,7 @@ src =   basePDE.cc\
 	pdememento.cc\
 	acouFlowNoise.cc\
 	piezoPDE.cc \
-	newmarkdamp.cc 
+	newmarkFracDamp.cc 
 #
 lib = pde
 CFLAGS3 =

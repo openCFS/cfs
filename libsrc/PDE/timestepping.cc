@@ -4,28 +4,23 @@
 
 #include "timestepping.hh"
 
-namespace CoupledField
+namespace CoupledField {
+
+TimeStepping::TimeStepping(std::string apdename, BaseSystem * algebraicsystem, 
+						   NodeEQN * ptEQN)
 {
 
-TimeStepping :: TimeStepping(std::string apdename, 
-			     BaseSystem * algebraicsystem, 
-			     NodeEQN * ptEQN)
-{
   ENTER_FCN( "TimeStepping::TimeStepping" );
 
   pdename_ = apdename;
   algsys_  = algebraicsystem;
   ptEQN_ = ptEQN;
-
 }
 
-TimeStepping :: ~TimeStepping()
-{
+TimeStepping::~TimeStepping() {
+
   ENTER_FCN( "TimeStepping::~TimeStepping" )
-
 }
-
-
 
 
 } // end of namespace

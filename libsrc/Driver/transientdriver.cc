@@ -16,177 +16,172 @@
 
 #include <PDE/basePDE.hh>
 
-namespace CoupledField
+namespace CoupledField {
+
+
+// ===============
+//   Constructor
+// ===============
+TransientDriver::TransientDriver(Domain * adomain, 
+								 Integer stepOffset,
+								 Double timeOffset, 
+								 std::string driverTag,
+								 Boolean isPartOfSequence) 
+  : SingleDriver(adomain, stepOffset, timeOffset, 
+				 driverTag, isPartOfSequence)
 {
-
-
-  // ===============
-  //   Constructor
-  // ===============
-  TransientDriver :: TransientDriver(Domain * adomain, 
-				     Integer stepOffset,
-				     Double timeOffset, 
-				     std::string driverTag,
-				     Boolean isPartOfSequence) 
-    : SingleDriver(adomain, stepOffset, timeOffset, 
-		   driverTag, isPartOfSequence)
-  {
-    ENTER_FCN( "TransientDriver::TransientDriver" );
-
+  ENTER_FCN( "TransientDriver::TransientDriver" );
+  
 #ifndef XMLPARAMS
-    // get time steps information from conf-file
-    conf->get("numsteps",numstep_);
-    conf->get("firstdt", firstdt_);
-    conf->get("stepsavebeg",isavebegin_);
-    conf->get("stepsaveend",isaveend_);
-    conf->get("stepsaveincr",isaveincr_);
+  // get time steps information from conf-file
+  conf->get("numsteps",numstep_);
+  conf->get("firstdt", firstdt_);
+  conf->get("stepsavebeg",isavebegin_);
+  conf->get("stepsaveend",isaveend_);
+  conf->get("stepsaveincr",isaveincr_);
 
 #else
+  
+  // vecotrs for accessing parameters
+  StdVector<std::string> keyVec, attrVec, valVec;
 
-    // vecotrs for accessing parameters
-    StdVector<std::string> keyVec, attrVec, valVec;
-
-    attrVec = "tag";
-    valVec = driverTag_;
+  attrVec = "tag";
+  valVec = driverTag_;
    
 
-    // Get time stepping information from parameter object
-    keyVec = "transient", "numSteps";
-    params->Get(keyVec, attrVec, valVec, numstep_);
-    
-    keyVec = "transient", "firstDt";
-    params->Get(keyVec, attrVec, valVec, firstdt_);
+  // Get time stepping information from parameter object
+  keyVec = "transient", "numSteps";
+  params->Get(keyVec, attrVec, valVec, numstep_);
+  
+  keyVec = "transient", "firstDt";
+  params->Get(keyVec, attrVec, valVec, firstdt_);
+  
+  keyVec = "transient", "stepSaveBeg";
+  params->Get(keyVec, attrVec, valVec, isavebegin_);
 
-    keyVec = "transient", "stepSaveBeg";
-    params->Get(keyVec, attrVec, valVec, isavebegin_);
+  keyVec = "transient", "stepSaveEnd";
+  params->Get(keyVec, attrVec, valVec, isaveend_);
 
-    keyVec = "transient", "stepSaveEnd";
-    params->Get(keyVec, attrVec, valVec, isaveend_);
-
-    keyVec = "transient", "stepSaveInc";
-    params->Get(keyVec, attrVec, valVec, isaveincr_);  
-
+  keyVec = "transient", "stepSaveInc";
+  params->Get(keyVec, attrVec, valVec, isaveincr_);  
+  
 
 #endif
 
-    // Make consistency check. In fact in the XML case the Schema should catch
-    // this error. But one can never be sure.
-    if(isavebegin_ <= 0)
-      {
+  // Make consistency check. In fact in the XML case the Schema should catch
+  // this error. But one can never be sure.
+  if(isavebegin_ <= 0) 	{
 	Error( "Value of stepsavebegin must be positive and nonzero!",
 	       __FILE__, __LINE__ );
-      }
-   
-    ptMeshes_ = NULL;
-
   }
-
-
-  // ==============
-  //   Destructor
-  // ==============
-  TransientDriver :: ~TransientDriver()
-  {
-    ENTER_FCN( "TransientDriver::~TransientDriver" );
-  }
-
-
-  // =================
-  //   Solve Problem
-  // =================
-  void TransientDriver :: SolveProblem()
-  {
-    ENTER_FCN( "TransientDriver::SolveProblem" );
   
-    Integer level     = 0;
-    Double  steptime  = firstdt_;
-    Integer stepsave  = isavebegin_;
+  ptMeshes_ = NULL;
+  
+}
 
-    Double  dt = firstdt_;
-    Boolean updatesysmat=FALSE;
+// ==============
+//   Destructor
+// ==============
+TransientDriver::~TransientDriver()
+{
+  ENTER_FCN( "TransientDriver::~TransientDriver" );
+}
 
-    // if driver is not part of multiSequence Driver, get list
-    // of pdes which have to be solved and intialize them
-    if (isPartOfSequence_ == FALSE){     
-      GetMyPDEs();
-      Info->StartProgress ("Starting to solve problem", FALSE);
-    }
+
+// =================
+//   Solve Problem
+// =================
+void TransientDriver::SolveProblem()
+{
+  ENTER_FCN( "TransientDriver::SolveProblem" );
+
+  Integer level     = 0;
+  Double  steptime  = firstdt_;
+  Integer stepsave  = isavebegin_;
+
+  Double  dt = firstdt_;
+  Boolean updatesysmat=FALSE;
+
+  // if driver is not part of multiSequence Driver, get list
+  // of pdes which have to be solved and intialize them
+  if (isPartOfSequence_ == FALSE) {     
+	GetMyPDEs();
+	Info->StartProgress ("Starting to solve problem", FALSE);
+  }
     
-    // Solve problem
-    if (pdes_.GetSize() <= 1) 
-      {
+  // Solve problem
+  if (pdes_.GetSize() <= 1) {
 	
 	// branch for single PDE
 	pdes_[0]->SetTimeStep(dt);
 
 	// if multiSequence is performed, the ms-driver
-      // writes out the grid one time
+	// writes out the grid one time
 	if (! isPartOfSequence_)
 	  ptdomain_->PrintGrid(level);
-
-	if (PrintGridOnly) exit(0);
-      
+	
+	if (PrintGridOnly) 
+	  exit(0);
+	
 	pdes_[0]->WriteGeneralPDEdefines();
       
 	Integer nstep;
-	for (nstep = 1; nstep <= numstep_; nstep++)
-	  {
-	    Info->WriteTimeStep(pdes_[0]->GetName(), nstep+stepOffset_, 
-				steptime+timeOffset_);
+	for (nstep = 1; nstep <= numstep_; nstep++) {
 
-	    pdes_[0]->PreStepTrans(nstep, steptime, level, updatesysmat);
-	    pdes_[0]->SolveStepTrans(nstep, steptime, level, updatesysmat);
-	    pdes_[0]->PostStepTrans(nstep,steptime,level);
+	  if ( numstep_ < 50 )
+		Info->WriteTimeStep(pdes_[0]->GetName(), nstep+stepOffset_, 
+							steptime+timeOffset_);
+
+	  pdes_[0]->PreStepTrans(nstep, steptime, level, updatesysmat);
+	  pdes_[0]->SolveStepTrans(nstep, steptime, level, updatesysmat);
+	  pdes_[0]->PostStepTrans(nstep,steptime,level);
 	  
-	    // writing results in output-file
-	    if (nstep == stepsave && (nstep <= isaveend_))
-	      { 
+	  // writing results in output-file
+	  if (nstep == stepsave && (nstep <= isaveend_)) { 
 		pdes_[0]->PostProcess(level);
 		pdes_[0]->WriteResultsInFile(stepOffset_, timeOffset_);
 		stepsave+=isaveincr_;
-	      }
-	  
-	    steptime+=dt;	 
 	  }
-      }
-    else
-      {
+	  
+	  steptime+=dt;	 
+	}
+  }
+  else {
 	BaseCoupledPDE * actCoupledPDE = ptdomain_->GetCoupledPDE();
 	
 	actCoupledPDE->SetTimeStep(firstdt_);
-
+	
 	// if multiSequence is performed, the ms-driver
 	// writes out the grid one time
 	if (! isPartOfSequence_)
 	  ptdomain_->PrintGrid(level);
-      
-	if (PrintGridOnly) exit(0);
+	
+	if (PrintGridOnly) 
+	  exit(0);
       
 	actCoupledPDE -> WriteGeneralPDEdefines();
-
+	
 	// define which PDEs participate in solving process
 	ptdomain_->GetCoupledPDE()->DefineSolvingPDEs(pdes_);
 
-	for (Integer nstep = 1; nstep <= numstep_; nstep++)
-	  {
-	    Info->WriteTimeStep(actCoupledPDE->GetName(), nstep, steptime);
+	for (Integer nstep = 1; nstep <= numstep_; nstep++) {
+	  Info->WriteTimeStep(actCoupledPDE->GetName(), nstep, steptime);
 
-	    actCoupledPDE->InitStepTransCoupled(steptime);
+	  actCoupledPDE->InitStepTransCoupled(steptime);
 	  
-	    // actCoupledPDE->PreStepTrans(nstep,steptime,level,updatesysmat);
-	    actCoupledPDE->SolveStepTrans(nstep, steptime, level,updatesysmat);
-	    // actCoupledPDE->PostStepTrans(level);
+	  // actCoupledPDE->PreStepTrans(nstep,steptime,level,updatesysmat);
+	  actCoupledPDE->SolveStepTrans(nstep, steptime, level,updatesysmat);
+	  // actCoupledPDE->PostStepTrans(level);
 	    
-	    // writing results in output-file
-	    if (nstep == stepsave && (nstep <= isaveend_))
-	      { 
+	  // writing results in output-file
+	  if (nstep == stepsave && (nstep <= isaveend_)) { 
 		actCoupledPDE->PostProcess(level);
 		actCoupledPDE->WriteResultsInFile(stepOffset_, timeOffset_);
 		stepsave+=isaveincr_;
-	      }
-	    steptime+=dt;
 	  }
-      }
+	  steptime+=dt;
+	}
   }
+}
 
 } // end of namespace

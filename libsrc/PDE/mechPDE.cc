@@ -1327,7 +1327,7 @@ void MechPDE::WriteResultsInFile(Integer stepOffset,
     solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);
     
     if (saveSol_ == TRUE ) 
-//        outFile_->WriteNodeSolutionTransient(*solTransient, actStep, actTime);
+	  outFile_->WriteNodeSolutionTransient(*solTransient, actStep, actTime);
     
     if (saveSolHist_ == TRUE)
       outFile_->WriteNodeHistoryTransient(*solTransient, actStep, actTime);

@@ -98,6 +98,13 @@ void Newmark::UpdateRHS()
   coeffMass = solpred_*a2_;
   algsys_->UpdateRHS(MASS,coeffMass.GetPointer());
 
+//   // additional term for thermoviscous damping model
+//   if ( dampType_ == THERMOVISCOUS ) {
+
+// 	coeffDamp = -solderiv1pred_ + solpred_*a4_; // damping part
+// 	algsys_->UpdateRHS(DAMPING,coeffDamp.GetPointer());
+//   }
+
   // damping part
   if (damping_) 
     {
