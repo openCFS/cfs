@@ -2,7 +2,7 @@
 \usepackage{lsemanfred,ifthen,isolatin1}
 \usepackage{subfigure}
 
-\newcounter{pdfordvi}\setcounter{pdfordvi}{0}
+\newcounter{pdfordvi}\setcounter{pdfordvi}{1}
 \ifthenelse{\value{pdfordvi} = 0}{\usepackage{graphicx}}{\usepackage[pdftex]{graphicx}}
 \pdfoutput = \value{pdfordvi}
 
@@ -14,10 +14,12 @@
 \begin{document}
 \ifthenelse{\value{pdfordvi} = 0}{\DeclareGraphicsExtensions{.eps}}{\DeclareGraphicsExtensions{.jpg,.pdf}}          
     
-
-\thispagestyle{empty}
-\include{cover}
-\setcounter{page}{0}
+\title{CFS++ --- XML Reference Manual}
+\author{cfs--devel}
+\maketitle
+%\thispagestyle{empty}
+%\include{cover}
+%\setcounter{page}{0}
 \tableofcontents
 
 \clearpage
