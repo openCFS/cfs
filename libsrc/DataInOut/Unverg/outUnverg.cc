@@ -159,6 +159,7 @@ void  WriteResultsUnverg::Dataset780(const Integer level)
 
 void  WriteResultsUnverg::Dataset55(const std::string & title, const Vector<Double> & x, const Integer step, const Double time, const Integer nrDofs)
 {
+  const Integer nrBlankLinesIn55 = 8;
   
   //
   if (!ptgrid)
@@ -177,7 +178,9 @@ void  WriteResultsUnverg::Dataset55(const std::string & title, const Vector<Doub
 
  (*output) << " " << title << " step" << std::setw(6) << step <<
              " time   " << time << std::endl;  
- (*output) << std::endl << std::endl << std::endl << std::endl;
+ for(Integer i=0; i<nrBlankLinesIn55; i++)
+   (*output) << std::endl;
+ 
  (*output) << std::setw(10) << 1 << std::setw(10) << 4 << std::setw(10) << 1 << std::setw(10) << 0
            << std::setw(10) << 2 << std::setw(10) << valsPerNode << std::endl;
  (*output) << std::setw(10) << 2 << std::setw(10) << 1 << std::setw(10) << 1 << std::setw(10) <<
@@ -191,6 +194,10 @@ void  WriteResultsUnverg::Dataset55(const std::string & title, const Vector<Doub
      (*output) << std::setw(10) << i+1 << std::endl << " ";
 
      // in the universal file eihter one or three results datas must exist
+     if (nrDofs == 1)
+       (*output) << 0.0 << " " << 0.0;
+
+     // in the universal file eihter one or three results datas must exist
      if (nrDofs == 2)
        (*output) << 0.0;
 
@@ -202,8 +209,11 @@ void  WriteResultsUnverg::Dataset55(const std::string & title, const Vector<Doub
  (*output) << std::setw(6) << -1 << std::endl;
 }  
 
-void  WriteResultsUnverg::Dataset56(const std::string & title, const Vector<Double> & x, const Integer step, const Double time)
+
+
+void  WriteResultsUnverg::Write56Header(const std::string & title, const Integer step, const Double time)
 {
+  const Integer nrBlankLinesIn56 = 8;
   //
   if (!ptgrid)
      Error("ptgrid is not initialized", __FILE__,__LINE__);
@@ -216,20 +226,53 @@ void  WriteResultsUnverg::Dataset56(const std::string & title, const Vector<Doub
 
  (*output) << " " << title << ", step" << std::setw(6) << step <<
              " time   " << time << std::endl;  
- (*output) << std::endl << std::endl << std::endl << std::endl;
+
+ for(Integer i=0; i<nrBlankLinesIn56; i++)
+   (*output) << std::endl;
+
  (*output) << std::setw(10) << 1 << std::setw(10) << 4 << std::setw(10) << 1 << std::setw(10) << 0
            << std::setw(10) << 2 << std::setw(10) << 3 << std::endl;
  (*output) << std::setw(10) << 2 << std::setw(10) << 1 << std::setw(10) << 1 << std::setw(10) <<
               step << std::endl;
- (*output) << " " << time << std::endl;       
+ (*output) << " " << time << std::endl;     
+}
 
- Integer i,n;
- n=x.size();  
- for (i=0; i<n; i++)
-   (*output) << std::setw(10) << i+1 << std::setw(10) << 3 << std::endl << "   " << 0.0 << "    " << 0.0 << "   " << x[i] << std::endl;
-     
- (*output) << std::setw(6) << -1 << std::endl;
+
+
+// writes the header of a 56 element dataset
+void  WriteResultsUnverg::Dataset56(const std::string & title, const Vector<Double> & x, const Integer step, const Double time)
+{
+  Write56Header(title, step+1, time);
+  
+
+  Integer i,n;
+  n=x.size();  
+  for (i=0; i<n; i++)
+    (*output) << std::setw(10) << i+1 << std::setw(10) << 3 << std::endl << "   " << 0.0 << "    " << 0.0 << "   " << x[i] << std::endl;
+  
+  (*output) << std::setw(6) << -1 << std::endl;
 }  
+
+
+
+
+// writes the header of a 56 element dataset
+void  WriteResultsUnverg::Dataset56(const std::string & title, const Matrix<Double> & x, const Integer step, const Double time)
+{
+  Write56Header(title, step+1, time);
+
+  const Integer  nrRows = x.size_row();  
+  for (Integer i=0; i<nrRows; i++)
+    (*output) << std::setw(10) << i+1 << std::setw(10) << 3 << std::endl 
+	      << "   " << x[i][0] << "    " << x[i][1] << "   " << x[i][2] << std::endl;
+  
+  (*output) << std::setw(6) << -1 << std::endl;
+}  
+
+
+
+
+
 
 void  WriteResultsUnverg::Init(Grid * aptgrid)
 {
@@ -269,9 +312,22 @@ void  WriteResultsUnverg::WriteDataOnCell(const Vector<Double> & sol, const Inte
   if (title == "elecfield") {
     aux="electric field";
     Dataset56(aux, sol, step+1, time);
-  }
+  } else
+    if (title == "magnetic field density") 
+      Dataset56(title, sol, step+1, time);
+
   else 
     Warning("This cell-data is not printed, since this type is not supported by Capapost",__FILE__,__LINE__);
+}
+
+
+
+void  WriteResultsUnverg::WriteDataOnCell(const Matrix<Double> & sol, const Integer step, const Double time, const std::string title)
+{
+  if (title == "magnetic field density") 
+    Dataset56(title, sol, step+1, time);
+  else 
+    Warning("This cell-data is not printed, since this type is not supported!",__FILE__,__LINE__);
 }
 
 } // end of namespace

@@ -306,6 +306,26 @@ Vector<TYPE> Matrix<TYPE>::operator*(const Vector<TYPE> &x) const
         return z;
 }
 
+
+template<class TYPE>
+std::vector<TYPE> Matrix<TYPE>::operator*(const std::vector<TYPE> &x) const
+{
+  if (!row || !col) Error("undefined Matrix",__FILE__,__LINE__);
+ 
+  if (!x.size()) Error("undefined Vector",__FILE__,__LINE__);
+ 
+  if (col != x.size()) Error("incompatible dimension",__FILE__,__LINE__);
+ 
+  std::vector<TYPE> z(row);
+ 
+  Integer k,kk;
+  for ( k = 0; k < row; k++)
+    for ( kk = 0; kk < col; kk++)
+      z[k] += p[k][kk]*x[kk];
+  
+  return z;
+}
+
 template<class TYPE>
 Matrix<TYPE> Matrix<TYPE>::operator*(const Matrix<TYPE> &x) const
 {

@@ -4,7 +4,7 @@
 #include <Forms/baseoperator.hh>
 #include <Utils/vector.hh>
 #include <Matrix/matrix.hh>
-
+#include <multigrid.hh>
 
 namespace CoupledField
 {
@@ -67,6 +67,47 @@ protected:
   
   Vector<Double> * EPotential_;
 
+};
+
+
+
+
+
+class CurlEdgeOp : public BaseOperator
+{  
+public:
+
+  //! Constructor
+  /*!
+    \param ptGrid (input) Pointer to grid
+    \param EPotential (input) Pointer to vector containing the electric potential for all nodes of domain
+    \param level (input) Multigrid level
+    \param algsys (input) pointer to algebraic system
+  */
+  CurlEdgeOp(Grid * ptGrid,
+	     std::vector<Integer> * ptMesh2PDENode,
+	     Vector<Double> * sol,
+	     const Integer level,
+	     BaseSystem * algsys);
+
+  //! Destructor
+  virtual ~CurlEdgeOp();
+  
+  //! Calculate element electric field
+  /*!
+    \param E (output) Element vector of electric field components
+    \param ptElem (input) Pointer to element
+    \param LCoord (input) Local coordinates of evaluation point
+   */
+  virtual void CalcElemCurlEdge(Vector<Double> & E,
+				const Elem * ptElement,
+				const std::vector<Double> & LCoord);
+  
+
+protected:
+  
+  Vector<Double> * sol_;
+  BaseSystem * algsys_;
 };
 
 } // end of namespace

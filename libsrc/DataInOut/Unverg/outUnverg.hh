@@ -45,6 +45,18 @@ public:
     \param title name for the data
   */
   virtual void WriteDataOnCell(const Vector<Double> & data, const Integer step, const Double time, const std::string title);
+
+
+
+   //! write vectorial cell data
+  /*!
+    \param data matrix with data 
+    \param step step of calculation
+    \param time time of calculation
+    \param title name for the data
+  */
+  virtual void WriteDataOnCell(const Matrix<Double> & data, const Integer step, const Double time, const std::string title);
+
   
   //!  check, is it the gmv-output file
   virtual Boolean IsGMV() { return FALSE;}
@@ -89,6 +101,25 @@ private:
   */
   void Dataset56(const std::string & title, const Vector<Double> & x, const Integer step, const Double time);
 
+
+  //! for printing vectorial cell results of simulation
+   /*!
+    \param title title of the results.
+    \param x matrix with cell results
+    \param step number of the step of the calculation
+    \param time time of the calculation
+  */
+  void Dataset56(const std::string & title, const Matrix<Double> & x, const Integer step, const Double time);
+
+
+
+  //! writes the header for a 56 element dataset
+   /*!
+    \param title title of the results.
+    \param step number of the step of the calculation
+    \param time time of the calculation
+  */
+  void  Write56Header(const std::string & title, const Integer step, const Double time);
 };
 
 } // end of namespace

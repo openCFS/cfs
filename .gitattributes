@@ -102,6 +102,8 @@ libsrc/Elements/2D/triangle2.hh svneol=native#text/plain
 libsrc/Elements/2D/trianglefe.cc svneol=native#text/plain
 libsrc/Elements/2D/trianglefe.hh svneol=native#text/plain
 libsrc/Elements/3D/Makefile -text
+libsrc/Elements/3D/edgeTetra1FE.cc svneol=native#text/plain
+libsrc/Elements/3D/edgeTetra1FE.hh svneol=native#text/plain
 libsrc/Elements/3D/gehexahedral.cc svneol=native#text/plain
 libsrc/Elements/3D/gehexahedral.hh svneol=native#text/plain
 libsrc/Elements/3D/getetrahedral.cc svneol=native#text/plain
@@ -147,6 +149,8 @@ libsrc/Forms/baseoperator.hh~ -text
 libsrc/Forms/baseoperator.o -text svneol=unset#unset
 libsrc/Forms/bdbInt.cc svneol=native#text/plain
 libsrc/Forms/bdbInt.hh svneol=native#text/plain
+libsrc/Forms/curlCurlEdgeInt.cc svneol=native#text/plain
+libsrc/Forms/curlCurlEdgeInt.hh svneol=native#text/plain
 libsrc/Forms/dampint.cc svneol=native#text/plain
 libsrc/Forms/dampint.hh svneol=native#text/plain
 libsrc/Forms/elecfieldop.cc svneol=native#text/plain
@@ -160,6 +164,8 @@ libsrc/Forms/laplaceint.cc svneol=native#text/plain
 libsrc/Forms/laplaceint.hh svneol=native#text/plain
 libsrc/Forms/linElastInt.cc svneol=native#text/plain
 libsrc/Forms/linElastInt.hh svneol=native#text/plain
+libsrc/Forms/linearForm.cc svneol=native#text/plain
+libsrc/Forms/linearForm.hh svneol=native#text/plain
 libsrc/Forms/linearform.cc svneol=native#text/plain
 libsrc/Forms/linearform.hh svneol=native#text/plain
 libsrc/Forms/massInt.cc svneol=native#text/plain

@@ -57,6 +57,18 @@ public:
   */
   void WriteResultsGMV::WriteVecDataOnCell(const Vector<Double>*vec,const Integer step, const Double time, const std::string title);
 
+
+   //! write vectorial cell data
+  /*!
+    \param data matrix with data 
+    \param step step of calculation
+    \param time time of calculation
+    \param title name for the data
+  */
+  virtual void WriteDataOnCell(const Matrix<Double> & data, const Integer step, const Double time, const std::string title)
+  { Error("Not implemented",__FILE__,__LINE__);};
+
+
  //! write comments
   /*!
     \param comments string with comments
