@@ -49,23 +49,6 @@ namespace CoupledField
    
 
  
-  /// define integrators
-  void Assemble::AddIntegrator(BaseForm * integrator, const std::string & subDomName,
-			       const enum MatrixType destinationMatrix, const Integer nonLin)
-  {
-#ifdef TRACE
-    (*trace) << "entering Assemble::AddIntegrator " << std::endl;
-#endif
-
-    struct integratorDescriptor * actID = new struct integratorDescriptor;
-    
-    actID->integrator = integrator;
-    actID->destinationMatrix = destinationMatrix;
-    actID->nonLin = nonLin;
-
-    integrators_[SubDomIndex(subDomName)]->push_back(actID);
-  }
-  
 
 
 
@@ -153,7 +136,7 @@ namespace CoupledField
 
 	    for(int actInteg=0; actInteg < integrators_[actDom]->size(); actInteg++)
 	      {
-		struct integratorDescriptor * actDescriptor =
+		struct IntegratorDescriptor * actDescriptor =
 		  (*integrators_[actDom])[actInteg];
 
 
@@ -201,8 +184,6 @@ namespace CoupledField
 	    val = val_loads_[actDom];
 	    algsys_->SetNodeRHS(val, (*mesh2PDENode_)[node-1], dof);	
 	  }
-
-
     }
   }
   
@@ -229,19 +210,6 @@ namespace CoupledField
 
   void Assemble::InitMatrices()
   {
-// //  //Initialize matrices in order to get BCs correct
-//   std::vector<Integer> matrixsystype(5,0);    
-//   if (systemMatrix_     == 1) matrixsystype[0] = SYSTEM;      // memory for the system matrix
-//   if (stiffnessMatrix_  == 1) matrixsystype[1] = STIFFNESS;   // memory for the stiffness matrix
-//   if (dampingMatrix_    == 1) matrixsystype[2] = DAMPING;     // memory for the damping matrix
-//   if (convectionMatrix_ == 1) matrixsystype[3] = CONVECTION;  // memory for the convection matrix
-//   if (massMatrix_       == 1) matrixsystype[4] = MASS;        // memory for the mass matrix
-  
-
-//   for (Integer i=0;i<5;i++)
-//     if (matrixsystype[i] !=0)
-//       algsys_->InitMatrix(i+1);
-
     // Initialize matrices in order to get BCs correct
     algsys_->InitMatrix(SYSTEM);
 
@@ -293,8 +261,7 @@ namespace CoupledField
     // for every domain, we need an own integrator list
     integrators_.resize(subdoms_.size());
     for (int i=0; i<subdoms_.size();i++)
-      integrators_[i] = new std::vector<integratorDescriptor *>;
-      //      integrators_[i] = new Vector<integratorDescriptor *>;
+      integrators_[i] = new std::vector<IntegratorDescriptor *>;
     
   }
   
@@ -345,13 +312,32 @@ namespace CoupledField
 }
 
 
+  /// define integrators
+  struct Assemble::IntegratorDescriptor * 
+  Assemble::BuildIntDescriptor(BaseForm * integrator, const std::string & subDomName,
+			       const enum MatrixType destinationMatrix, const Integer nonLin)
+  {
+#ifdef TRACE
+    (*trace) << "entering Assemble::BuildIntDescriptor " << std::endl;
+#endif
 
-Integer Assemble::GetNrBCDof(const std::string & dofStartString)
+    struct IntegratorDescriptor * actID = new struct IntegratorDescriptor;
+    
+    actID->integrator = integrator;
+    actID->destinationMatrix = destinationMatrix;
+    actID->nonLin = nonLin;
+  }
+  
+
+
+
+
+  Integer Assemble::GetNrBCDof(const std::string & dofStartString)
   {
 #ifdef TRACE
     (*trace) << "entering Analysis::GetNrBCDof" << std::endl;
 #endif
-
+    
     Integer nrActDof;
     
     if (dofStartString == "ux")
@@ -370,7 +356,7 @@ Integer Assemble::GetNrBCDof(const std::string & dofStartString)
     
     return nrActDof;
   }
-
+  
 
 
   // ==========================================================
@@ -387,6 +373,27 @@ Integer Assemble::GetNrBCDof(const std::string & dofStartString)
   
 
 
+  /// define integrators
+  void StaticAssemble::AddIntegrator(BaseForm * integrator, const std::string & subDomName,
+					const enum MatrixType destinationMatrix, const Integer nonLin)
+  {
+#ifdef TRACE
+    (*trace) << "entering StaticAssemble::AddIntegrator " << std::endl;
+#endif
+    MatrixType actMatType = destinationMatrix;
+    
+    if (actMatType == STIFFNESS)
+      actMatType = SYSTEM;
+
+    if (actMatType !=  SYSTEM)
+      return;
+
+    IntegratorDescriptor * actID = BuildIntDescriptor(integrator, subDomName, actMatType, nonLin);
+    
+    integrators_[SubDomIndex(subDomName)]->push_back(actID);
+  }
+    
+
 
   // ==========================================================
   // TRANSIENT ANALYSIS
@@ -402,7 +409,24 @@ Integer Assemble::GetNrBCDof(const std::string & dofStartString)
     stiffnessMatrix_  = TRUE;
     massMatrix_       = TRUE;
   }
-  
+
+
+
+  /// define integrators
+  void TransientAssemble::AddIntegrator(BaseForm * integrator, const std::string & subDomName,
+					const enum MatrixType destinationMatrix, const Integer nonLin)
+  {
+#ifdef TRACE
+    (*trace) << "entering TransientAssemble::AddIntegrator " << std::endl;
+#endif
+    if (destinationMatrix == SYSTEM)
+      Info->Error("In transient assembling, no SYSTEM matrix my be defined directly", __FILE__, __LINE__);
+
+    IntegratorDescriptor * actID = BuildIntDescriptor(integrator, subDomName, destinationMatrix, nonLin);
+    
+    integrators_[SubDomIndex(subDomName)]->push_back(actID);
+  }
 
 
 } // end namespace CoupledField
+
