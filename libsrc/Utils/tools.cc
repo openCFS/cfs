@@ -3,6 +3,7 @@
 #include <math.h>
 
 #include "tools.hh"
+#include <Matrix/matrix.hh>
 
 namespace CoupledField {
 
@@ -97,6 +98,18 @@ Double dist(Point<dim> a,Point<dim> b)
  return sqrt(preSqrt);
 }
 
+
+Double dist_Mat(Matrix<Double> a)
+{
+  Double preSqrt=0;
+  Integer i;
+  Integer k=a.getSize();
+  // std::cout<<"tools.cc:size of matrix: "<<k<<std::endl;
+  for (i=0; i<k; i++)
+    preSqrt+=sqr(a[i][0]-a[i][1]);
+ return sqrt(preSqrt);
+}
+
 #ifdef __GNUC__
 template Double dist(Point<2>,Point<2>);
 template Double dist(Point<3>,Point<3>);
@@ -109,6 +122,16 @@ void calcNormal2Line(std::vector<Double> & normal,Point<2> a,Point<2> b)
   Double distance=dist(a,b);
   normal[0]=(b[1]-a[1])/distance;
   normal[1]=(a[0]-b[0])/distance;
+}
+
+/// a-->b
+void calcNormal2Line_Mat(std::vector<Double> & normal,Matrix<Double> a)
+{
+  Double distance=dist_Mat(a);
+  // std::cout<<"distance :"<<distance<<std::endl;
+  
+  normal[0]=(a[1][1]-a[1][0])/distance;
+  normal[1]=(a[0][1]-a[0][0])/distance;
 }
 
 Double ScalarMult(std::vector<Double> a, std::vector<Double> b)
@@ -140,7 +163,29 @@ void calcNormal2Surface(std::vector<Double> & normal,Point<3> a,Point<3> b, Poin
   normal[2]=normal[2]/L2_normal;  
 }
 
+/// a-->b-->c. no fix orientation.
+void calcNormal2Surface_Mat(std::vector<Double> & normal,Matrix<Double> ptCoord)
+{
+  Point<3> t,s,a,b,c;
 
+  for (Integer i=0;i<3;i++)
+    {
+      a[i]=ptCoord[i][0];
+      b[i]=ptCoord[i][1];      
+      c[i]=ptCoord[i][2];
+    }
+  
+  Double L2_normal; 
+  s=(a-b);
+  t=(c-b);
+  normal[0]=t[1]*s[2]-t[2]*s[1];
+  normal[1]=t[2]*s[0]-t[0]*s[2];  
+  normal[2]=t[0]*s[1]-t[1]*s[0];
+  L2_normal=sqrt(sqr(normal[0])+sqr(normal[1])+sqr(normal[2]));
+  normal[0]=normal[0]/L2_normal;
+  normal[1]=normal[1]/L2_normal;
+  normal[2]=normal[2]/L2_normal;  
+}
 
 char * c_string(const std::string & s)
 {

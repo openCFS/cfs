@@ -171,8 +171,6 @@ public:
   virtual Double CalcJacobianDetAtIp(const Integer ip, 
 				     const Matrix<Double> & CornerCoords);
 
-
-
   //! Return number of nodes   
   ShortInt GetDim() const {return Dim_;}
  

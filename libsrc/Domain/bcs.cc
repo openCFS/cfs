@@ -184,20 +184,32 @@ std::vector<Elem*>& BCs::getFacesBC(const std::string color, const Integer lev)
   Integer level=lev;
   if (lev==-1) level=toplevel_;
   Integer i;
+
+ if (color_faces_.size())
   for (i=0; i<color_faces_.size(); i++)
     if (color==color_faces_[i]) 
       {
 	Found = TRUE;
+	return bcsFaces_[level][i];
+	break;
+      }
+
+ if (color_edges_.size())
+  for (i=0; i<color_edges_.size(); i++)
+    if (color==color_edges_[i]) 
+      {
+	Found = TRUE;
+	return bcsEdges_[level][i];
 	break;
       }
 
    if (!Found)
     {
-      std::string ErrMsg = "Faces for level \'" + color + "\' could not be found!";
+      std::string ErrMsg = "Faces nor Edges for level \'" + color + "\' could not be found!";
       Error(ErrMsg.c_str(),__FILE__,__LINE__); 
     }
    
-  return bcsFaces_[level][i];
+
 }
 
 Integer BCs::GetNumNodesLevel(const std::string color, const Integer lev)
@@ -271,7 +283,7 @@ std::vector<Elem*> BCs::getNeighElemsForSurfaces(const std::string color, const 
 
   if (!Found)
     {
-      std::string ErrMsg = "Surface Elements for level \'" + color + "\' could not be found!";
+      std::string ErrMsg = "Neighbor to surface Elements for level \'" + color + "\' could not be found!";
       Error(ErrMsg.c_str(),__FILE__,__LINE__); 
     }
 

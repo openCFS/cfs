@@ -1,31 +1,28 @@
-#ifndef FILE_TRIANGLE1FE_2003
-#define FILE_TRIANGLE1FE_2003
+#ifndef FILE_HEXA1FE_2003
+#define FILE_HEXA1FE_2003
 
-#include <Elements/basefe.hh>
-#include <Elements/2D/trianglefe.hh>
+#include "hexaFE.hh"
 
 namespace CoupledField
 {
-  //!  Triangle finite element with three nodes (linear interpolation function)
-  
-class Triangle1FE : public TriangleFE
+
+//! Class with  description of hexahedral element
+
+class Hexa1FE : public HexaFE
 {
 public:
+   //! Constructor with type of integration rule
+   Hexa1FE();
 
-  //! Constructor with type of integration rule
-  Triangle1FE();
-  
-  //! Destructor
-  virtual ~Triangle1FE();
-  
+   //! Deconstructor
+   virtual ~Hexa1FE();
 
-protected:
-
-  //! Initialize Trianglerilateral element
-  virtual void Init();
+   //! Define variables of this class
+   virtual void Init();
 
   //! Set local corner coordinates
   virtual void SetCornerCoords();
+
 
   //! calculates the shape functions at an arbitrary local point
   /*!
@@ -34,6 +31,8 @@ protected:
   */
   virtual void CalcShapeFnc(std::vector<Double> & LShape, 
 			    const std::vector<Double> & LCoord);
+
+
   
   //! calculates the local derivatives of shape functions at an arbitrary local point
   /*!
@@ -46,9 +45,10 @@ protected:
   virtual void CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
 				      const std::vector<Double> & LCoord);
 
+
 private:
+   
 };
 
-} // end of namespace
-
-#endif // FILE_TRIANGLE1FE_2003
+}
+#endif //

@@ -49,7 +49,7 @@ inline Double Elem::diameter(const Point<2> * const ptArrayOfNodes)
   Point<2> a=ptArrayOfNodes[connect[1]];
   Point<2> b=ptArrayOfNodes[connect[2]];
   Point<2> c=ptArrayOfNodes[connect[3]];
-    
+
   return std::max(dist(a,b),dist(b,c));
 }
 

@@ -74,7 +74,8 @@ void Line1FE :: CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv,
 
   for( Integer i=0; i<NumNodes_; i++)
     {
-      LDeriv[i][0] = 0.5;
+      LDeriv[i][0] = 0.5*LCornerCoords_[0][i];
+
     }
   
 }

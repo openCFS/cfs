@@ -1,13 +1,17 @@
 #ifndef TOOLS_2001
 #define TOOLS_2001
 
+
 #include "General/environment.hh"
+//#include <Matrix/matrix.hh>
 #include <string>
 #include <vector>
 #include <iostream>
+//#include <Matrix/matrix.hh>
 
 namespace CoupledField
 {
+  template<class TYPE> class Matrix; 
 
   //! Function for working with errors. The program stops after the error-message. 
   /*!
@@ -83,10 +87,13 @@ private:
 template class Point<2>;
 template class Point<3>;
 #endif
-
-  //! calculate distance between two pointes
+  //! calculate distance between two points
 template<Integer dim>
 Double dist(Point<dim> a, Point<dim> b);
+
+  //! calculate distance between two points embedded in matrix
+
+Double dist_Mat(Matrix<Double> a);
 
   //! print point in ofstream
   /*!
@@ -103,12 +110,29 @@ void PrintPoint(Point<dim> point, std::ostream * out);
   */
 void calcNormal2Line(std::vector<Double> & normal,Point<2> a, Point<2> b);
 
-  //! calculate normal to element
+//! calculate the normal to line with following orientation: a-->b
+  /*!
+    \param normal normal
+    \param a,b points embedded in Matrix
+  */
+void calcNormal2Line_Mat(std::vector<Double> & normal,Matrix<Double> a);
+
+  //! calculate normal to surface element
   /*!
     \param normal normal
     \param a,b,c vertices of element
   */
-  void calcNormal2Surface(std::vector<Double> & normal,Point<3> a,Point<3> b, Point<3> c);
+void calcNormal2Surface(std::vector<Double> & normal,Point<3> a,Point<3> b, Point<3> c);
+
+
+  //! calculate normal to surface element using matrix parameter
+  /*!
+    \param normal normal
+    \param ptCoord matrix containing vertices of surface element
+  */
+void calcNormal2Surface_Mat(std::vector<Double> & normal,Matrix<Double> ptCoord);
+
+
   //! scalar multiplication of 2 vectors
 Double ScalarMult(std::vector<Double> a, std::vector<Double> b);
 

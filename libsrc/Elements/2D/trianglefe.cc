@@ -48,7 +48,7 @@ void TriangleFE:: SetIntPoints()
 
     case GaussOrder2:
 
-      NumIntPoints_=4;
+      NumIntPoints_=3;
       DegreeInteg_=2;
 
       

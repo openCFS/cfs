@@ -13,6 +13,10 @@
 #include <DataInOut/material.hh>
 #include <DataInOut/timefunc.hh>
 
+#ifdef MpCCI
+#include <cci.h>
+#endif
+
 #ifdef GRIDLIB
 #include <Domain/Gridlib/interface_gridlib.hh>
 #endif
@@ -47,7 +51,11 @@ Integer main(int argc, char *argv[])
   if (!strcmp("-i", argv[1])) InfoPrint=TRUE;
 
   Char * name=argv[argc-1];
-  
+
+#ifdef MpCCI
+  CCI_Init(&argc, &argv);  
+#endif  
+
   DefineInOutFiles * ptDefineFiles=new DefineInOutFiles(name);
 
   MyClock oClockTotal;
@@ -95,6 +103,11 @@ Integer main(int argc, char *argv[])
       ptdriver->SolveProblem();
 
   oClockTotal.ClockCount(MyClock::end,"Total time");
+
+#ifdef MpCCI
+    CCI_Finalize();
+#endif
+
   //delete objects
   if (ptdriver) delete ptdriver;
   if (ptTimeFunc) delete ptTimeFunc;

@@ -21,6 +21,7 @@ Grid::Grid(FileType * aptFileType)
   ptTet = new Tetra1FE();
   ptL1  = new Line1FE();
   ptTr1 = new Triangle1FE();
+  ptHexa = new Hexa1FE();
 
 //   ptTr=new Triangle1();
 //   ptL1=new Line();
@@ -41,7 +42,7 @@ Grid::~Grid()
 
 //  if (ptTr) delete ptTr;
 //  if (ptL1) delete ptL1;
-//  if (ptHexa) delete ptHexa;
+ if (ptHexa) delete ptHexa;
 }
 
 }
