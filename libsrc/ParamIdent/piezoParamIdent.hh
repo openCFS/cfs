@@ -1,7 +1,7 @@
 #ifndef FILE_PIEZO_PARAM_IDENT
 #define FILE_PIEZO_PARAM_IDENT
 
-#include "singleDriver.hh"
+#include "Driver/singleDriver.hh"
 
 
 namespace CoupledField 
@@ -96,6 +96,9 @@ namespace CoupledField
     //! see SFBReport F013 for details ;-)
     void NewtonCG();
 
+    //! The version from 10.12.04 ...
+    void NewtonCG1();
+
     //! see SFBReport F013 for details ;-)
     void NewtonCG2();
 
@@ -116,6 +119,9 @@ namespace CoupledField
 
     // ! nu - methods, semiiterative methods with optimal rate of convergence
     void nuMethods();
+
+    // ! nu - methods, semiiterative method, complex version
+    void nuMethodsC();
 
     //! saves sysmat of forward problem, multiplication with \omega*\beta*j ...
     void createAndSetRHSforJacobian(Integer & fstep);
@@ -151,6 +157,8 @@ namespace CoupledField
     //! Tests, if JacobiMatrix is more or less approximated by F(p)-F(p+delta)/delta
     void testJacobiMatrix(Vector<Complex> & F_hat, Matrix<Complex> & JacobiMatrix, Vector<Double> & parameter,BCs * ptBCs,MaterialData * ptMaterial, Vector<Double> & parameterIncrement, Vector<Complex>& solElecPot,Vector<Complex> &solMechDispl);
 
+    void testJacobiMatrix2(Vector<Complex> & F_hat, Matrix<Complex> & JacobiMatrix, Vector<Double> & parameter,BCs * ptBCs,MaterialData * ptMaterial, Vector<Double> & parameterIncrement, Vector<Complex>& solElecPot,Vector<Complex> &solMechDispl);
+
     // ! The following methods serve for the determination of eigenvalues ...
 
  //    void sort_array(Integer ndim, Integer l_sort, Vector<Double> & d);
@@ -185,6 +193,7 @@ namespace CoupledField
     Double stopfreq;
     Integer nrfreq;
     Double finalnorm;
+    Integer newtonCounter;
 
     Vector<Complex> solElecPot;
     Vector<Complex> solMechDispl;

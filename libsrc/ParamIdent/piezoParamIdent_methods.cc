@@ -1,7 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
-#include "staticdriver.hh"
+//#include "staticdriver.hh"
 #include "DataInOut/GMV/outGMV.hh"
 #include "CoupledPDE/basecoupledpde.hh"
 #include "General/environment.hh"
@@ -16,7 +16,7 @@
 #include "DataInOut/MaterialData.hh"
 #include "PDE/timestepping.hh"
 #include "Utils/baseelemstoresol.hh"
-#include "singleDriver.hh"
+#include "Driver/singleDriver.hh"
 #include "PDE/nodeEQN.hh"
 #include <Domain/elem.hh>
 #include "Forms/forms_header.hh"
@@ -141,8 +141,8 @@ namespace CoupledField
 
     // ptAssemble->InitMatrices();
    
-    // updateMaterialData(parameter,ptMaterial);
-    // updateComplexMaterialData(parameterC,ptMaterial);
+    updateMaterialData(parameter,ptMaterial);
+    updateComplexMaterialData(parameterC,ptMaterial);
 
     //    ptMaterial->RotateMaterialMatrix(1,0,1);
 
@@ -207,7 +207,7 @@ namespace CoupledField
 
   void piezoParamIdent::createF(MaterialData * ptMaterial, BCs * ptBCs, Vector<Complex> & F_hat, Boolean typeOut){
     ENTER_FCN("PiezoParamIdent:createF");
-    std::cout<<"\nF wil be created ..."<<std::endl;
+    //   std::cout<<"\nF wil be created ..."<<std::endl;
 
     ptMaterial=pdes_[0]->getPDEMaterialData();   // Pointer to MaterialData
     ptBCs = pdes_[0]->getPDE_BCs();                             // Pointer to BCs
@@ -239,8 +239,8 @@ namespace CoupledField
     ptAssemble->InitMatrices();
     ptAlgsys->InitRHS();
       
-      updateMaterialData(parameter,ptMaterial);
-      updateComplexMaterialData(parameterC,ptMaterial);
+    // updateMaterialData(parameter,ptMaterial);
+//     updateComplexMaterialData(parameterC,ptMaterial);
 
 
     Boolean aTime=TRUE;
@@ -375,6 +375,9 @@ namespace CoupledField
     Integer numElems_ = pdes_[0]->getPDE_numElems();
     //    nrParameter=parameter.GetSize();
     Integer job;
+
+    IntegratorDescriptor *actIntDescrStiff;
+    IntegratorDescriptor *actIntDescrStiffC;
     
     
     Integer spaceDim = pdes_[0]->getPDE_spaceDim();
@@ -464,7 +467,7 @@ namespace CoupledField
         }
         else if (ind_param>=nrParameter){
           //  std::cout<<"indParam-nrParamerer "<<ind_param-nrParameter<<std::endl;
-          dparameterC[ind_param-nrParameter]=relaxParameter/scaling[ind_param-nrParameter]*basC[parIndex-actNrParameter].real(); // 1.0/scaling[ind_param];
+          dparameterC[ind_param-nrParameter]=100.0*relaxParameter/scalingC[ind_param-nrParameter]*basC[parIndex-actNrParameter].real(); // 1.0/scaling[ind_param];
           //      dparameterC[ind_param-nrParameter]=1.1/scalingC[ind_param-nrParameter]*basC[parIndex-actNrParameter].imag(); // 1.0/scaling[ind_param];
 
         }
@@ -542,8 +545,10 @@ namespace CoupledField
             updateComplexMaterialData(dparameterC,ptMaterial);
             //      pdes_[0]->DefineIntegratorsWithMatInfo(level,ptMaterial);  
 
-            IntegratorDescriptor *actIntDescrStiff = new IntegratorDescriptor(bilinearStiff, STIFFNESS);
-            IntegratorDescriptor *actIntDescrStiffC = new IntegratorDescriptor(bilinearStiffC, STIFFNESS);
+	  
+	    actIntDescrStiff = new IntegratorDescriptor(bilinearStiff, STIFFNESS);
+	    actIntDescrStiffC = new IntegratorDescriptor(bilinearStiffC, STIFFNESS);
+
 
             bilinearStiff->SetPiezoMaterialType(realMatPar);
             actIntDescrStiff->SetPiezoMaterialType(realMatPar);
@@ -553,6 +558,7 @@ namespace CoupledField
 
             bilinearStiff->SetElemPtr(ptEl);
             bilinearStiffC->SetElemPtr(ptEl);
+
             Matrix<Complex> elemMat;
             Matrix<Complex>elemMatC;
             //      Double damp_beta =1.0e-9; // in future, beta will be dependent of omega_l ...
@@ -594,12 +600,20 @@ namespace CoupledField
             ptAlgsys->SetElementRHS(&tempHarm[0], connect_PDE.GetPointer(), 
                                     connect_PDE.GetSize());
 
-
 	    //  if (spaceDim==3){
-	    //            delete  bilinearStiff;
-	    //            delete bilinearStiffC;
-	    //            delete actIntDescrStiff;
-	    //            delete actIntDescrStiffC;
+	                delete  bilinearStiff;
+	                delete bilinearStiffC;
+
+			if(actIntDescrStiff!=NULL){
+			  //  std::cout<<"\n Try to delete actIntDescrStiff"<<std::endl;
+			  delete actIntDescrStiff;
+			}
+
+			if (actIntDescrStiffC!=NULL){
+			  //std::cout<<"\n Try to delete actIntDescrStiff C"<<std::endl;
+			  delete actIntDescrStiffC;
+			}
+
 	    //          }
 	    //          else if (spaceDim==2){
 	    //            delete bilinearStiff;
@@ -611,6 +625,7 @@ namespace CoupledField
 
           } // end for over all Elems
 
+	  
           updateMaterialData(parameter,ptMaterial);
           updateComplexMaterialData(parameterC,ptMaterial);
           //      pdes_[0]->DefineIntegratorsWithMatInfo(level,ptMaterial);  
@@ -701,7 +716,7 @@ namespace CoupledField
     //       }
 
     //     std::cout<<JacobiMatrix<<std::endl;
-    //     std::cout<<"\n end CreateJacobiMatrix 2"<<std::endl;
+        std::cout<<"\n end CreateJacobiMatrix C"<<std::endl;
 
   }            //end CreateJacobiMatrix 2
 
@@ -888,6 +903,7 @@ namespace CoupledField
         
 	    ptAlgsys->SetElementRHS(&tempHarm[0], connect_PDE.GetPointer(), 
 				    connect_PDE.GetSize());
+	    delete bilinearStiff;  
 
 	  } // end for over all Elems
 
@@ -1038,6 +1054,83 @@ namespace CoupledField
     std::cout<<approxJacobiMatrix<<std::endl;
     std::cout<<JacobiMatrix<<std::endl;
     // getchar();   
+
+  }// end testJacobiMatrix
+
+void piezoParamIdent::testJacobiMatrix2(Vector<Complex> & F_hat, Matrix<Complex> & JacobiMatrix, Vector<Double> & parameter,BCs * ptBCs,MaterialData * ptMaterial,Vector<Double> & parameterIncrement, Vector<Complex>& solElecPot,Vector<Complex> &solMechDispl){
+    ENTER_FCN("piezoParamIdent::testJacobiMatrix");
+
+    Vector<Complex> F_hat_incr(F_hat.GetSize());
+    Vector<Complex> F_hat_incr2(F_hat.GetSize());
+    Vector<Complex> F_hat_incr3(F_hat.GetSize());
+    Vector<Complex> F_hat_incr4(F_hat.GetSize());
+    approxJacobiMatrix.Resize(nrMeasuredData,actNrParameter);
+    Vector<Double> parameter_incr(nrParameter);
+    Vector<Double> parameter_incr2(nrParameter);
+    Vector<Double> parameter_incr3(nrParameter);
+    Vector<Double> parameter_incr4(nrParameter);
+
+    parameter_incr=parameter;
+    parameter_incr2=parameter;
+    Integer parInd=0;
+
+    updateMaterialData(parameter, ptMaterial);
+    createF(ptMaterial, ptBCs, F_hat, FALSE);
+
+    for (Integer ind_param=0;ind_param<nrParameter;ind_param++){ 
+      if (whichParameterToUpdate[ind_param]==1){
+
+	parameter_incr[ind_param]=1.00000001*parameter[ind_param];
+	//	std::cout<<parameter_incr<<std::endl
+	updateMaterialData(parameter_incr,ptMaterial);
+	createF(ptMaterial,ptBCs,F_hat_incr,FALSE);
+
+	parameter_incr2[ind_param]=0.99999999*parameter[ind_param];	
+	//	std::cout<<parameter_incr2<<std::endl;
+	updateMaterialData(parameter_incr2,ptMaterial);
+	createF(ptMaterial,ptBCs,F_hat_incr2,FALSE);
+
+
+	parameter_incr3[ind_param]=1.005*parameter[ind_param];
+	//	std::cout<<parameter_incr<<std::endl
+	updateMaterialData(parameter_incr3,ptMaterial);
+	//	createF(ptMaterial,ptBCs,F_hat_incr3,FALSE);
+
+	parameter_incr4[ind_param]=0.995*parameter[ind_param];	
+	//	std::cout<<parameter_incr2<<std::endl;
+	updateMaterialData(parameter_incr4,ptMaterial);
+	//	createF(ptMaterial,ptBCs,F_hat_incr4,FALSE);
+
+
+
+      // First order approximation
+//       for (Integer j=0;j<nrMeasuredData;j++)
+//         approxJacobiMatrix[j][ind_param]=-(F_hat[j]-F_hat_incr[j])/((parameter_incr[ind_param]-parameter[ind_param])*scaling[ind_param]);
+
+      // second order FD approximation
+  	for (Integer j=0;j<nrMeasuredData;j++)
+  	  approxJacobiMatrix[j][parInd]=0.5*(F_hat_incr[j]-F_hat_incr2[j])/((parameter_incr[ind_param]-parameter[ind_param])*scaling[ind_param]);
+
+
+      // forth order FD approximation
+//  	for (Integer j=0;j<nrMeasuredData;j++)
+//  	  approxJacobiMatrix[j][parInd]=1.0/6.0*(8.0*F_hat_incr3[j]-8.0*F_hat_incr4[j]-F_hat_incr[j]+F_hat_incr2[j])/((parameter_incr[ind_param]-parameter[ind_param])*scaling[ind_param]);
+
+
+	    parInd++;
+	    //	std::cout<<"\n Performed second order FD Approx of Jacobian"<<std::endl;
+	parameter_incr[ind_param]=parameter[ind_param];
+	parameter_incr2[ind_param]=parameter[ind_param];
+	parameter_incr3[ind_param]=parameter[ind_param];
+	parameter_incr4[ind_param]=parameter[ind_param];
+
+      }
+    }
+    //    std::cout<<"\n Here we see the approx. Jacobian and the created Jacobian Matrix:"<<std::endl;
+    //    std::cout<<approxJacobiMatrix<<std::endl;
+    //    std::cout<<JacobiMatrix<<std::endl;
+    // getchar();   
+    JacobiMatrix=approxJacobiMatrix;
 
   }// end testJacobiMatrix
 
