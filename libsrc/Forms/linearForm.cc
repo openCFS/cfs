@@ -632,8 +632,6 @@ void PressureLinForm::CalcElemVector(Matrix<Double>& ptCoord,
 	  }
 	}
     }
-
-
 } // end of method
 
 
