@@ -8,14 +8,13 @@
 namespace CoupledField
 {
 
-BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, Material *aMatFile, FileType *aInFile, WriteResults * aOutFile, 
+BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile, WriteResults * aOutFile, 
 		 TimeFunc *aptTimeFunc)
 {
 #ifdef TRACE
   (*trace) << "entering BasePDE::BasePDE" << std::endl;
 #endif
 
-  MatFile_    = aMatFile;
   InFile_     = aInFile;
   OutFile_    = aOutFile;
   ptTimeFunc_ = aptTimeFunc;
@@ -32,7 +31,66 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, Material *aMatFile, FileType *aInFi
   precondtype_ = ID;
   numeqcoarse_ = 200;
   coarsealpha_ = 0.1;
- 
+
+  //get analysis type
+  std::string analysis;
+  conf->get("analysis", analysis);
+
+  if (analysis=="static") 
+    analysistype_ = STATIC;
+  else if (analysis=="transient")
+    analysistype_ = TRANSIENT;
+  else
+    Error("Analysis Type not supported",__FILE__,__LINE__);
+
+}
+
+
+void BasePDE::SetAlgSys(const Integer as_sysid)
+{
+#ifdef TRACE
+  (*trace) << "entering  BasePDE::SetAlgSys" << std::endl;
+#endif
+
+  as_sysid_ = as_sysid;
+
+  //allocate according algebraic system
+  algsys_ = new StandardSystem();
+
+  //set solver parameters  
+  SetSolverParameters();
+
+  //set the graph type used for the system matrices
+  Integer numnode = ptgrid_->GetMaxnumnodes(actlevel_);
+  SetupMatrixGraph(numnode,NODEGRAPH);
+
+  //allocate the necessary matrices as well as solver and preconditioner
+  CreateMatrices_Solver();
+}
+
+
+void BasePDE::ReadMaterialData()
+{
+#ifdef TRACE
+  (*trace) << "entering  BasePDE::ReadMaterialData" << std::endl;
+#endif
+
+  // read material-file name from config-file
+  std::string matFileName;
+  conf->get("material_file", matFileName);
+  charMaterialFileName_ = c_string(matFileName);
+  loadMaterial_ = new LoadMaterialData(charMaterialFileName_);
+
+  //read material data for each subdomain
+  materialData_  = new MaterialData[subdoms_.size()];
+
+  for (Integer i=0; i<subdoms_.size(); i++)
+    {
+      // load material data into array "matData"
+      std::vector<std::string> matName;
+      conf->getliststr(subdoms_[i], matName, "list_subdomains");	
+      loadMaterial_->GetMaterial(materialData_[i], matName[i], pdematerialclass_);
+    }
 }
 
 
@@ -108,8 +166,25 @@ void BasePDE::CreateMatrices_Solver()
   Integer numdirichlets;
   Integer numconstraints;
 
-  //ask the PDE about matrices
-  SpecifyMatrices(matrixclass, matrixsystype, graphtype, numdofpernode,numdirichlets, numconstraints);
+  //ask the PDE discrete form
+  DiscreteParamsPDE();
+
+  numdofpernode  = dofspernode_; 
+  numdirichlets  = GetNumRestraints(actlevel_);
+  numconstraints = 0;  // currently not handled
+  matrixclass    = MatrixType_;
+  graphtype      = GraphType_;
+
+  if (SystemMatrix_    != 1)
+    Error("One needs at least a system matrix!",__FILE__,__LINE__);
+
+  if (SystemMatrix_     == 1) matrixsystype[0] = SYSTEM;      // memory for the system matrix
+  if (StiffnessMatrix_  == 1) matrixsystype[1] = STIFFNESS;   // memory for the stiffness matrix
+  if (DampingMatrix_    == 1) matrixsystype[2] = DAMPING;     // memory for the damping matrix
+  if (ConvectionMatrix_ == 1) matrixsystype[3] = CONVECTION;  // memory for the convection matrix
+  if (MassMatrix_       == 1) matrixsystype[4] = MASS;        // memory for the mass matrix
+
+   //  SpecifyMatrices(matrixclass, matrixsystype, graphtype, numdofpernode,numdirichlets, numconstraints);
 
   //put to algebraic system
   algsys_->CreateMatrix(matrixsystype, matrixclass, graphtype, numdofpernode,  numdirichlets,

@@ -19,9 +19,11 @@ RectangleFE::RectangleFE()
   NumEdges_ = 4;
   NumFaces_ = 1;
 
-
   std::string integtype="GaussOrder2";
-  conf->ifget("rectangle",integtype,"IntegRules");
+
+  std::string IntRule;
+  if (conf->ifget("IntegRules", IntRule)==TRUE)
+      conf->ifget("rectangle",integtype,"IntegRules");
 
   IntegType=String2EnumIntegrationType(integtype.c_str());
 

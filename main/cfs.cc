@@ -31,13 +31,17 @@ using namespace CoupledField;
 
 Integer main(int argc, char *argv[])
 {
-  std::cout << " Welcome to sample session. " << argc << std::endl ;
-  std::cout << " \033[36mUsage\033[0m : cfs [-i] name "<< std::endl 
-	    << "\t \033[36m i \033[0m: to create info-file " << std::endl
-	    << "\t \033[36m name \033[0m: name of input file without extension" 
-	    << std::endl << std::endl;
-
-  if (argc < 2) Error("Invalid running of cfs. See Usage above.");
+  std::cout << std::endl;
+  std::cout << " Welcome to CFS++ session. " << std::endl << std::endl;
+ 
+  if (argc < 2) 
+    {
+      std::cout << " \033[36mUsage\033[0m : cfs [-i] name "<< std::endl 
+		<< "\t \033[36m i \033[0m: to create info-file " << std::endl
+		<< "\t \033[36m name \033[0m: name of input file without extension" 
+		<< std::endl << std::endl;
+      Error("Invalid running of cfs. See Usage above.");
+    }
 
   if (!strcmp("-i", argv[1])) InfoPrint=TRUE;
 
@@ -48,13 +52,6 @@ Integer main(int argc, char *argv[])
   MyClock oClockTotal;
   oClockTotal.ClockCount(MyClock::beg);
 
-
-  Material * ptMaterial=NULL;
-  std::string material;
-  conf->get("material_file",material);
-  if (material != "non") ptMaterial=new Material(material.c_str());
-
-
   FileType * ptInputfile=ptDefineFiles->Create_ptFileType();
 
   WriteResults * ptOut=ptDefineFiles->Create_ptWriteResults();
@@ -62,9 +59,8 @@ Integer main(int argc, char *argv[])
   //	TimeFunc * ptTimeFunc=NULL;
   TimeFunc * ptTimeFunc = new TimeFunc(ptInputfile);
 
-  Domain * domain=new Domain(ptInputfile,ptOut,ptMaterial, ptTimeFunc);
+  Domain * domain=new Domain(ptInputfile, ptOut, ptTimeFunc);
 
-  //	domain->PrintGrid(0);
   //choose your driver
   BaseDriver * ptdriver;  
   std::string analysis;
@@ -98,7 +94,6 @@ Integer main(int argc, char *argv[])
 
   /// Putzen
     if (ptdriver) delete ptdriver;
-    if (ptMaterial) delete ptMaterial;
     if (ptTimeFunc) delete ptTimeFunc;
     if (domain) delete domain;
     if (ptDefineFiles) delete ptDefineFiles; // it should be deleted the last

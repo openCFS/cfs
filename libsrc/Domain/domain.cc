@@ -25,7 +25,7 @@
 namespace CoupledField
 {
 
-Domain:: Domain(FileType * const aptFileType, WriteResults * ptOut,  Material * materialdata, TimeFunc * aptTimeFunc) 
+Domain:: Domain(FileType * const aptFileType, WriteResults * ptOut, TimeFunc * aptTimeFunc) 
 {
 #ifdef TRACE
   (*trace) << "entering Domain::Domain" << std::endl;
@@ -35,7 +35,6 @@ Domain:: Domain(FileType * const aptFileType, WriteResults * ptOut,  Material * 
 
  InFile_     = aptFileType; 
  OutFile_    = ptOut;
- ptmaterial_ = materialdata;
  ptTimeFunc_ = aptTimeFunc;
 
  Integer i;
@@ -101,7 +100,7 @@ Domain:: Domain(FileType * const aptFileType, WriteResults * ptOut,  Material * 
  //read restraints information
  ptBCs_->ReadBCs();
 
- InitPDE();
+ InitPDEs();
  
 }
 
@@ -120,10 +119,10 @@ Domain :: ~Domain()
     if (ptpde_[i]) delete ptpde_[i];
 }
 
-void Domain :: InitPDE()
+void Domain :: InitPDEs()
 {
 #ifdef TRACE
-  (*trace) << "entering Domain::InitPDE" << std::endl;
+  (*trace) << "entering Domain::InitPDEs" << std::endl;
 #endif
 
   // get numbers of PDEs in domain
@@ -138,23 +137,23 @@ void Domain :: InitPDE()
   for (int i=0;i< pdes.size();i++)
     {
       if (pdes[i] == "acoustic2d")
-  	ptpde_[i]=new Acoustic2dPDE(ptgrid_,ptBCs_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_);
+  	ptpde_[i]=new Acoustic2dPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
 //       else if (pdes[i] == "electrostatic3d")
-// 	ptpde_[i]=new Elecst3dPDE(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_);
+// 	ptpde_[i]=new Elecst3dPDE(ptalgsys_,ptgrid_,ptTimeFunc_,InFile_,OutFile_);
 //       else if (pdes[i] == "thermal2d")
-// 	ptpde_[i]=new Therm2dPDE(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_);	 
+// 	ptpde_[i]=new Therm2dPDE(ptalgsys_,ptgrid_,ptTimeFunc_,InFile_,OutFile_);	 
 //         else if (pdes[i] == "electrostatic2d") 
-//        ptpde_[i]=new Elecst2dPDE(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_); 
+//        ptpde_[i]=new Elecst2dPDE(ptalgsys_,ptgrid_,ptTimeFunc_,InFile_,OutFile_); 
 //        else if (pdes[i] == "acoustic3d")
-// 	 ptpde_[i]=new Acoustic3dPDE(ptgrid_,ptBCs_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_);
+// 	 ptpde_[i]=new Acoustic3dPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
 //        else if (pdes[i] == "acou2dflownoise")
-// 	 ptpde_[i]=new Acou2dFlowNoise(ptgrid_,ptBCs_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_);
+// 	 ptpde_[i]=new Acou2dFlowNoise(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
       else if (pdes[i] == "plainStrain")
-	ptpde_[i]=new PlainStrainPDE(ptgrid_,ptBCs_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_);
+	ptpde_[i]=new PlainStrainPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
       else if (pdes[i] == "electric2d") 
-	 ptpde_[i]=new Elec2dPDE(ptgrid_,ptBCs_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_); 
+	 ptpde_[i]=new Elec2dPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_); 
 //        else if (pdes[i] == "electric3d") 
-// 	 ptpde_[i]=new Elec3dPDE(ptgrid_,ptBCs_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_); 
+// 	 ptpde_[i]=new Elec3dPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_); 
       else
 	{
 	  std::string msg=pdes[i]+" - this type of pdes is unknown";
@@ -162,10 +161,11 @@ void Domain :: InitPDE()
 	}     
     }
 
-  //set the algebraic systems
+  //set the algebraic systems and read material data
   for (int i=0;i< pdes.size();i++)
     {
-       ptpde_[i]->SetAlgSys(i);
+      ptpde_[i]->SetAlgSys(i); 
+      ptpde_[i]->ReadMaterialData();
      }
 
 } // end of InitPDE()

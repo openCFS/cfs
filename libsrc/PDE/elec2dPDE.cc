@@ -13,16 +13,17 @@
 namespace CoupledField
 {
 
-Elec2dPDE::Elec2dPDE(Grid *aptgrid, BCs *aptbcs, Material *ptMaterial, TimeFunc *aptTimeFunc, 
-		     FileType *aptFileType, WriteResults *aptOut)
-:ElecPDE(aptgrid, aptbcs, ptMaterial, aptTimeFunc, aptFileType, aptOut)
+Elec2dPDE::Elec2dPDE(Grid *aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *aptFileType, 
+		     WriteResults *aptOut)
+:ElecPDE(aptgrid, aptbcs, aptTimeFunc, aptFileType, aptOut)
 
 {
 #ifdef TRACE
   (*trace) << "entering Elec2dPDE::Elec2dPDE " << std::endl;
 #endif
 
-  pdename_    = "Electric2d";
+  pdename_    = "electric2d";
+  pdematerialclass_ = "piezo";
 
   conf->getsubdompde(subdoms_,pdename_);
   ReadBCs(pdename_);
@@ -43,10 +44,10 @@ void Elec2dPDE::SetupMatrices(const Integer level)
   if (InfoPrint)
     (*infofile) << " ------------------------- Element matrices --------------- " << std::endl;
 
-  Vector<Double> coeffst;
   Vector<Integer> connecth;  
-  
-  CalcCoeff(coeffst);  
+
+  //waiting for fully implemented material class!  
+  Double eps0 = 8.854e-12;
 
   Integer i, j;
 
@@ -69,7 +70,7 @@ void Elec2dPDE::SetupMatrices(const Integer level)
 
 	  // stiffness part
 	  bilinear_stiff->CalcElementMatrix(ptCoord, elemmat);
-	  elemmat *= coeffst[i];
+	  elemmat *= eps0;
 	  
 #ifdef DEBUG
 	  (*debug) << "Stiffnessmatrix, ElementNumber  " <<   i << std::endl;

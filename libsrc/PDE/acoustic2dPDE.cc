@@ -14,15 +14,16 @@
 namespace CoupledField
 {
 
-  Acoustic2dPDE::Acoustic2dPDE(Grid * aptgrid, BCs *aptbcs, Material *ptMaterial, TimeFunc *aptTimeFunc, 
-			       FileType *aptFileType, WriteResults *aptOut)
-    :AcousticPDE(aptgrid,aptbcs,ptMaterial,aptTimeFunc,aptFileType,aptOut)
+  Acoustic2dPDE::Acoustic2dPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *aptFileType, 
+			       WriteResults *aptOut)
+    :AcousticPDE(aptgrid,aptbcs,aptTimeFunc,aptFileType,aptOut)
   {
 #ifdef TRACE
     (*trace) << "entering Acoustic2dPDE::Acoustic2dPDE " << std::endl;
 #endif
 
-    pdename_    ="Acoustic2d";
+    pdename_    ="acoustic2d";
+    pdematerialclass_ = "fluid";
 
     conf->getsubdompde(subdoms_,pdename_);
     ReadBCs(pdename_);
@@ -44,8 +45,13 @@ namespace CoupledField
 
     BaseFE * ptEl;
 
-    Vector<Double> coeffm, coeffst, coeffdamp;
-    CalcCoeff(coeffm, coeffst, coeffdamp);
+    //waiting for material class to be ready
+    Double coeffstiff = 1e3;
+    Double coeffmass  = 1e3*1e3/2.25e9;
+
+  //  coeffmass[i]  = density*density/compress;
+  //  coeffstiff[i] = density;
+  //  Double coeffdamp  = density/((sqrt(compress/density)));
 
     Vector<Integer> connecth;
     std::vector<Elem*> elemssd;
@@ -69,7 +75,7 @@ namespace CoupledField
 
 	    // stiffness part
 	    bilinear_stiff->CalcElementMatrix(ptCoord, elemmat);
-	    elemmat *= coeffst[i];
+	    elemmat *= coeffstiff;
 
 #ifdef DEBUG
 	    (*debug) << "Connection array  " << std::endl;
@@ -82,7 +88,7 @@ namespace CoupledField
 
 	    // mass part
 	    bilinear_mass->CalcElementMatrix(ptCoord, elemmat);
-	    elemmat *= coeffm[i];
+	    elemmat *= coeffmass;
 
 #ifdef DEBUG
 	    (*debug) << "Massmatrix, ElementNumber  " << i << std::endl;

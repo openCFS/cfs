@@ -25,6 +25,8 @@ typedef int Boolean;
   typedef Double (*pfn2var)(const Double, const Double);
   typedef Double (*pfn3var)(const Double, const Double, const Double);
 
+  enum AnalysisType {STATIC=1, TRANSIENT=2, HARMONIC=3, EIGENFREQUENCY=4};
+
 // #ifndef assert
 // #define assert(ex) \
 //        (void)((ex) ? 1 : \
