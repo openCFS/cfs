@@ -224,13 +224,12 @@ CREATE TABLE NodeHistoryValue (
 --
 
 CREATE TABLE Node_coordinates (
-  idx bigint(11) unsigned NOT NULL auto_increment,
   node_idx int(10) unsigned NOT NULL default '0',
   node_label int(11) unsigned NOT NULL default '0',
   x_coord float NOT NULL default '0',
   y_coord float NOT NULL default '0',
   z_coord float NOT NULL default '0',
-  PRIMARY KEY  (idx)
+  PRIMARY KEY  (node_idx,node_label)
 ) TYPE=MyISAM;
 
 --
