@@ -145,7 +145,7 @@ void Assemble<Dim, T_Matrix>::SetDirichletBoundaryCondSysMat_PenaltyMethod()
   Integer aux; 
   for (i=0; i<n; i++) 
     {
-      aux=nodesDirBC[i]-1;
+      aux=nodesDirBC[i];
       A(aux,aux)+=BigConst;
     }
 }
@@ -163,7 +163,7 @@ void Assemble<Dim, T_Matrix>::SetDirichletBoundaryCondZero_Cut()
   Integer i,aux;
   for (i=0; i<n; i++)
     {     
-      aux=nodesDirBC[i]-1;
+      aux=nodesDirBC[i];
       A.cut(aux-i,aux-i);
       b.cut(aux-i);
     }
@@ -196,7 +196,7 @@ void Assemble<Dim, T_Matrix>::SetDirichletBoundaryCondRHS_PenaltyMethod(const Do
   Integer n=nodesDirBC.size();
   for (i=0; i<n; i++)
     {
-      aux=nodesDirBC[i]-1;
+      aux=nodesDirBC[i];
       b[aux]+=BigConst*val_tf;
     }
 }
@@ -342,7 +342,7 @@ void Assemble<Dim, T_Matrix>::Restore()
   Integer i,aux;
   for (i=0; i<nodesDirBC.size(); i++)
     {
-      aux=nodesDirBC[i]-1;
+      aux=nodesDirBC[i];
       x.add(0,aux);
     }
 }

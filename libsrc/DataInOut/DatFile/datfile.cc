@@ -601,6 +601,7 @@ void DatFile::ReadDirichletBC(Integer * nodes)
     {
          infile >> nodes[i];
          infile.ignore(100,'\n');
+         nodes[i]--;
     }
 }
 
@@ -623,14 +624,12 @@ void DatFile::ReadDirichletBC(Vector<Integer> & nodes)
   TakePos("restraints",pos);
   infile.seekg(pos, std::ios::beg);
 
-//  std::string buf;
-//  std::getline(infile, buf, '\n');
- 
   Integer i;
   for (i=0; i <n; i++)
     {
          infile >> nodes[i];
          infile.ignore(100,'\n');
+         nodes[i]--;
     }
 }
 

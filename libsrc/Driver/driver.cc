@@ -17,8 +17,8 @@ Driver<Dim>::Driver(FileType * const aptFileType, Integer anummesh, Material * a
 #endif
   ptFileType=aptFileType;
 
-//  ptFileType->ReadNumStepsAndTimeSteps(numsteps, dt0);
-  numsteps=30; dt0=2.000000000000E-07;
+  ptFileType->ReadNumStepsAndTimeSteps(numsteps, dt0);
+//  numsteps=30; dt0=2.000000000000E-07;
 
   ptFileType->ReadOutputOptions(SaveDer1, SaveDer2);
   SaveDer1=FALSE; SaveDer2=FALSE;
@@ -38,12 +38,13 @@ void Driver<Dim>::SolveNewmarkMethod(OutResultUnverg<Dim> * ptUnverg)
 #endif
  
 /// Save the grid before a uniform refinement in a separate unverg-file 
+/*
   OutResultUnverg<Dim> * ptUnvergPreGrid=new OutResultUnverg<Dim>("grid_pre"); 
   ptUnvergPreGrid->Create(ptgrid,0);  
   if (ptUnvergPreGrid) delete ptUnvergPreGrid;
   ptgrid->SubdivideUniform(0);
-
-   ptUnverg->Create(ptgrid,1);
+*/
+   ptUnverg->Create(ptgrid,0);
 
 //  Double endtime=1.0;   ////////////////////////////////////////////
   Double t=0;
