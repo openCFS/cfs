@@ -116,7 +116,7 @@
   <!-- ******************************************************************** -->
   <!--   Definition of data type for non-linearity in mechanic PDEs -->
   <!-- ******************************************************************** -->
-  <xsd:simpleType name="DT_ElecNonLin">
+  <xsd:simpleType name="DT_AcousticNonLin">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="no"/>
     </xsd:restriction>
