@@ -167,12 +167,11 @@ namespace CoupledField {
   // **************************
   //   Initialization of PDEs
   // **************************
+  void Domain::InitPDEs( StdVector<std::string> & pdeNames,
+			 Integer sequenceStep,
+			 StdVector<std::string> tags ) {
 
-  void Domain::InitPDEs(StdVector<std::string> & pdeNames,
-			Integer sequenceStep,
-			StdVector<std::string> tags)
-  {
-    ENTER_FCN( "Domain::InitPDEs") ;
+    ENTER_FCN( "Domain::InitPDEs" );
 
     CreatePDEs(pdeNames);    
 
@@ -182,19 +181,17 @@ namespace CoupledField {
 
     CreateCoupledPDE(tags);
 
-    // initialize coupledPDE
-    if (numpde_ > 1)
-      {
-	Info->StartProgress("Initializing Coupling");
-	ptcoupledpde_->InitCoupling(numlevel_);
-	Info->FinishProgress();
-      }
-   
- 
-    // Initialize algebraic system of 
-    // each PDE
-     for (int i=0;i<numpde_;i++)
-       ptpde_[i]->SetAlgSys();
+    // Initialize coupledPDE
+    if (numpde_ > 1) {
+      Info->StartProgress("Initializing Coupling");
+      ptcoupledpde_->InitCoupling(numlevel_);
+      Info->FinishProgress();
+    }
+
+    // Initialize algebraic system of each PDE
+    for (int i = 0; i < numpde_; i++ ) {
+      ptpde_[i]->SetAlgSys();
+    }
 
   }
 
