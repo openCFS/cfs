@@ -133,6 +133,7 @@ namespace CoupledField
     ENTER_FCN( "Assemble:AssembleMatrices" );
     
     Matrix<Double> elemmat;
+    Vector<Double> harmonicVec;
 
     // initialize reassembling "indicator" vector
     if (firstTime_)
@@ -165,9 +166,8 @@ namespace CoupledField
 	    Matrix<Double> elSol;
 
 	    // this matrix is nonlinear and, therefore, has to be reassembled next time
-	    if (oneIntIsNonlin_ || firstTime_)
+	    if ((oneIntIsNonlin_ || firstTime_ ) && analysisType_ != HARMONIC)
 	      // fetch solution at element nodes
-	      //GetSolOfElement(elSol, connect_PDE);
 	      sol_->GetElemSolutionAsMatrix(elSol, connect_PDE);
 	      
 	    
@@ -202,7 +202,15 @@ namespace CoupledField
 		      }
 
 		    actDescriptor->GetIntegrator()->CalcElementMatrix(ptCoord, elemmat);
-		    algsys_->SetElementMatrix(elemmat.GetDataPointer(), connect_PDE.GetPointer(), 
+		    if (analysisType_ ==HARMONIC)
+		      {
+			TransformMatrix2Harmonic(harmonicVec,elemmat,
+						 actDescriptor->GetOrigMatrixType());
+			algsys_->SetElementMatrix(&harmonicVec[0], connect_PDE.GetPointer(), 
+						  connect_PDE.GetSize(), destMat);
+		      }
+		    else
+		      algsys_->SetElementMatrix(elemmat.GetDataPointer(), connect_PDE.GetPointer(), 
 					      connect_PDE.GetSize(), destMat);
 #ifdef DEBUG
 		    (*debug) << "ElementMatrix of Element " << actEl << std::endl;
@@ -212,8 +220,16 @@ namespace CoupledField
 		    if (actDescriptor->GetSecondaryMat() != NOTYPE)
 		      {
 			elemmat *= actDescriptor->GetSecMatFac();
-			algsys_->SetElementMatrix(elemmat.GetDataPointer(), connect_PDE.GetPointer(), 
-						  connect_PDE.GetSize(), actDescriptor->GetSecondaryMat()); 
+			if (analysisType_ == HARMONIC)
+			  {
+			    TransformMatrix2Harmonic(harmonicVec,elemmat,
+						     actDescriptor->GetOrigSecMatrixType());
+			    algsys_->SetElementMatrix(&harmonicVec[0], connect_PDE.GetPointer(), 
+						      connect_PDE.GetSize(), destMat);
+			  }
+			else
+			  algsys_->SetElementMatrix(elemmat.GetDataPointer(), connect_PDE.GetPointer(), 
+						    connect_PDE.GetSize(), actDescriptor->GetSecondaryMat()); 
 		      }
 		    
 		  }		
@@ -276,22 +292,34 @@ namespace CoupledField
 		      {
 			oneIntIsNonlin_ = TRUE;
 			reassembleMat_[actDescriptor->DestMat()] = TRUE;
-		
-			// ?????????????????????????????????????????
-			// was commented out before (18.3.04)
 			actDescriptor->GetIntegrator()->SetActElemSol(elSol);
 		      }
 
 		    actDescriptor->GetIntegrator()->CalcElementMatrix(ptCoord, elemmat);
-		   std::cout << "dmat:" << elemmat << std::endl; 
-		    algsys_->SetElementMatrix(elemmat.GetDataPointer(), connect_PDE.GetPointer(), 
-					      connect_PDE.GetSize(), destMat); 
+		    if (analysisType_ ==HARMONIC)
+		      {
+			TransformMatrix2Harmonic(harmonicVec,elemmat,
+						 actDescriptor->GetOrigMatrixType());
+			algsys_->SetElementMatrix(&harmonicVec[0], connect_PDE.GetPointer(), 
+						  connect_PDE.GetSize(), destMat);
+		      }
+		    else
+		      algsys_->SetElementMatrix(elemmat.GetDataPointer(), connect_PDE.GetPointer(), 
+					      connect_PDE.GetSize(), destMat);
 
 		    if (actDescriptor->GetSecondaryMat()  != NOTYPE )
 		      {
 			elemmat *= actDescriptor->GetSecMatFac();
-			algsys_->SetElementMatrix(elemmat.GetDataPointer(), connect_PDE.GetPointer(), 
-						  connect_PDE.GetSize(), actDescriptor->GetSecondaryMat()); 
+			if (analysisType_ == HARMONIC)
+			  {
+			    TransformMatrix2Harmonic(harmonicVec,elemmat,
+						     actDescriptor->GetOrigSecMatrixType());
+			    algsys_->SetElementMatrix(&harmonicVec[0], connect_PDE.GetPointer(), 
+						      connect_PDE.GetSize(), destMat);
+			  }
+			else
+			  algsys_->SetElementMatrix(elemmat.GetDataPointer(), connect_PDE.GetPointer(), 
+						    connect_PDE.GetSize(), actDescriptor->GetSecondaryMat()); 
 		      }
 		  }		
 	      }
@@ -322,7 +350,9 @@ namespace CoupledField
 					    const Double time)
   {
     ENTER_FCN( "Assemble:AssembleRHSIntegralSources" );
- 
+
+    Vector<Double> harmVec;
+
      for (Integer actDom=0; actDom <  subdoms_.size(); actDom++)
       {	
 	if (rhsSrcIntegrators_[actDom]->size())
@@ -331,8 +361,13 @@ namespace CoupledField
 	    ptgrid_->GetElemSD(elemssd, subdoms_[actDom], level);
 	    
 	    Double val_tfunc = 1.0;
-	    if (ptTimeFunc_->GetmaxTimeFnc() > 0 )
+	    Double valPhase = 0.0;
+	    if (analysisType_ == HARMONIC) 
+	      valPhase = rhsSrcPhase_[actDom];
+	    else {
+	      if (ptTimeFunc_->GetmaxTimeFnc() > 0 )
 		val_tfunc=ptTimeFunc_->TimeFuncAtTime(time,fncname_rhs_[actDom]);
+	    }
 
 	    for (Integer actEl=0; actEl< elemssd.size(); actEl++)
 	      {	       
@@ -355,10 +390,16 @@ namespace CoupledField
 		    std::vector<Double> elemVec;
 		    actRhsID->GetIntegrator()->CalcElemVector(ptCoord, elemVec);
 		    
-		    if (val_tfunc != 1.0)
-		      elemVec *= val_tfunc;
-		    
-		    algsys_->SetElementRHS(&elemVec[0], connect_PDE.GetPointer(), connect_PDE.GetSize());
+		    if (analysisType_ == HARMONIC) {
+		      TransformVector2Harmonic(harmVec,elemVec,valPhase);
+		      algsys_->SetElementRHS(&harmVec[0], connect_PDE.GetPointer(), 
+					     connect_PDE.GetSize());
+		      }
+		    else {
+		      if (val_tfunc != 1.0)
+			elemVec *= val_tfunc;
+		      algsys_->SetElementRHS(&elemVec[0], connect_PDE.GetPointer(), connect_PDE.GetSize());
+		    }
 		  }
 	      }
 	  }
@@ -502,6 +543,9 @@ namespace CoupledField
   {
     ENTER_FCN( "Assemble::InitMatrices" );
 
+    //set firstTime_ to TRUE, so that assembling of element matrices will be preformed
+    firstTime_ = TRUE;
+
     // Initialize matrices in order to get BCs correct
     algsys_->InitMatrix(SYSTEM);
 
@@ -590,8 +634,12 @@ namespace CoupledField
     
     algsys_->CreateLinSys();
 #else
+    Integer numDir = numDirichletBCs_;
+    if (analysisType_ == HARMONIC)
+      numDir *=2;
+
     algsys_->CreateMatrix(matrixsystype, matrixType_, graphType_, 
-			  dofsPerNode_,numDirichletBCs_, numconstraints);
+			  dofsPerNode_,numDir, numconstraints);
 #endif
     
   }
@@ -791,6 +839,7 @@ namespace CoupledField
   }
 
 
+  //needed for static and transient analysis
   void Assemble::AddRhsSrcIntegrator(BaseForm * integrator,
 				     const std::string & subDomName, 
 				     const std::string fncname,
@@ -802,6 +851,17 @@ namespace CoupledField
     fncname_rhs_[SubDomIndex(subDomName)] = fncname;
   }
 
+  //needed for harmonic analysis
+  void Assemble::AddRhsSrcIntegrator(BaseForm * integrator,
+				     const std::string & subDomName, 
+				     const Double phaseval,
+				     const Integer nonLin)
+  {
+    ENTER_FCN( "Assemble::AddRhsSrcIntegrator" );
+    BaseIntDescriptor * actRhsID = new  BaseIntDescriptor(integrator, nonLin);
+    rhsSrcIntegrators_[SubDomIndex(subDomName)]->push_back(actRhsID);
+    rhsSrcPhase_[SubDomIndex(subDomName)] = phaseval;
+  }
 
   // ==========================================================
   // STATIC ANALYSIS
@@ -813,6 +873,7 @@ namespace CoupledField
   {
     ENTER_FCN( "StaticAssemble::StaticAssemble" );
     graphType_    = NODEGRAPH; 
+    SetAnalysisType(STATIC);
   }
   
 
@@ -944,6 +1005,8 @@ namespace CoupledField
   {
     ENTER_FCN( "TransientAssemble::TransientAssemble" );
     graphType_    = NODEGRAPH; 
+    SetAnalysisType(TRANSIENT);
+
     stiffnessMatrix_  = TRUE;
     massMatrix_       = TRUE;
   }
@@ -1104,6 +1167,57 @@ namespace CoupledField
   
 #endif
 
+#ifdef USE_OLAS
+      /// defines a secondary destination for the calculated element marices of an integrator      
+      void IntegratorDescriptor::SetSecondaryMat(FEMatrixType aSecMat, Double aSecMatFac,
+						 AnalysisType analysisType)
+      {
+	ENTER_FCN( "IntegratorDescriptor::SetSecondaryMat" );
+	FEMatrixType MatType = aSecMat;
+
+	if (analysisType == HARMONIC) {
+	  if (aSecMat == STIFFNESS || aSecMat == MASS || aSecMat == DAMPING )
+	    MatType = SYSTEM;
+	  else
+	    {
+	      std::string error_msg = "Matrix type ";
+	      error_msg += aSecMat + " not supported in harmonic analysis";
+	      Error(error_msg.c_str());
+	    }
+
+	  SetOrigSecMatrixType(aSecMat);
+	}
+
+	secondaryMatrix = MatType;
+	secMatFac = aSecMatFac;
+      }
+
+#else
+      /// defines a secondary destination for the calculated element marices of an integrator      
+      void IntegratorDescriptor::SetSecondaryMat(enum MatrixType aSecMat, Double aSecMatFac, 
+						 AnalysisType analysisType)
+      {
+	ENTER_FCN( "IntegratorDescriptor::SetSecondaryMat" );
+	MatrixType MatType = aSecMat;
+
+	if (analysisType == HARMONIC) {
+	  if (aSecMat == STIFFNESS || aSecMat == MASS || aSecMat == DAMPING )
+	    MatType = SYSTEM;
+	  else
+	    {
+	      std::string error_msg = "Matrix type ";
+	      error_msg += aSecMat + " not supported in harmonic analysis";
+	      Error(error_msg.c_str());
+	    }
+
+	  SetOrigSecMatrixType(aSecMat);
+	}
+
+	secondaryMatrix = MatType;
+	secMatFac = aSecMatFac;
+      };
+#endif
+
 
   IntegratorDescriptor::~IntegratorDescriptor()
   {
@@ -1112,5 +1226,240 @@ namespace CoupledField
       delete integrator;
   }
 
+
+  // ==========================================================
+  // HARMONIC ANALYSIS
+  // ==========================================================
+
+
+  HarmonicAssemble::HarmonicAssemble(BaseSystem * algsys, Grid * agrid)
+    :Assemble(algsys, agrid)
+  {
+    ENTER_FCN( "HarmonicAssemble::HarmonicAssemble" );
+    graphType_    = NODEGRAPH; 
+    SetAnalysisType(HARMONIC);
+  }
+
+   /// set actual frequency (already multipolied by 2*pi)
+  void HarmonicAssemble::SetFrequency(Double frequency)
+  {
+#ifdef TRACE
+    (*trace) << "entering HarmonicAssemble::SetFrequency " << std::endl;
+#endif
+
+    actFreq_ = 2*PI*frequency;
+  } 
+
+
+#ifdef USE_OLAS 
+  /// define integrators
+  void HarmonicAssemble::AddIntegrator(BaseForm * integrator, const std::string & subDomName,
+					const FEMatrixType destinationMatrix, const Integer nonLin)
+  {
+#ifdef TRACE
+    (*trace) << "entering HarmonicAssemble::AddIntegrator " << std::endl;
+#endif
+
+    FEMatrixType actMatType = destinationMatrix;
+    FEMatrixType matType;  
+    
+    if (actMatType == STIFFNESS || actMatType == MASS || actMatType == DAMPING )
+      MatType = SYSTEM;
+    else
+      {
+	std::string error_msg = "Matrix type " + actMatType + " not supported in harmonic analysis";
+	Error(error_msg.c_str());
+      }
+
+    IntegratorDescriptor * actID = new IntegratorDescriptor(integrator, MatType, nonLin);
+    actID->SetOrigMatrixType(actMatType);
+
+    integrators_[SubDomIndex(subDomName)]->push_back(actID);
+
+  }
+
+#else
+  // define integrators
+  void HarmonicAssemble::AddIntegrator(BaseForm * integrator,
+				     const std::string & subDomName,
+				     const enum MatrixType destinationMatrix,
+				     const Integer nonLin)
+  {
+    ENTER_FCN( "HarmonicAssemble::AddIntegrator" );
+
+    MatrixType actMatType = destinationMatrix;
+    MatrixType matType;   
+
+    if (actMatType == STIFFNESS || actMatType == MASS || actMatType == DAMPING )
+      matType = SYSTEM;
+    else
+      {
+	std::string error_msg = "Matrix type ";
+	error_msg += actMatType + " not supported in harmonic analysis";
+	Error(error_msg.c_str());
+      }
+
+    IntegratorDescriptor * actID =
+      new IntegratorDescriptor(integrator, matType, nonLin);
+    actID->SetOrigMatrixType(actMatType);
+    
+    integrators_[SubDomIndex(subDomName)]->push_back(actID);
+  }
+
+
+#endif
+
+#ifdef USE_OLAS 
+  /// define integrators
+  void HarmonicAssemble::AddSurfIntegrator(BaseForm * integrator, const std::string & subDomName,
+					const FEMatrixType destinationMatrix, const Integer nonLin)
+  {
+#ifdef TRACE
+    (*trace) << "entering HarmonicAssemble::AddSurfIntegrator " << std::endl;
+#endif
+   
+    FEMatrixType actMatType = destinationMatrix;
+    FEMatrixType matType;
+    
+    if (actMatType == STIFFNESS || actMatType == MASS || actMatType == DAMPING )
+      matType = SYSTEM;
+    else
+      {
+	std::string error_msg = "Matrix type " + actMatType + " not supported in harmonic analysis";
+	Error(error_msg.c_str());
+      }
+
+    IntegratorDescriptor * actID = new IntegratorDescriptor(integrator, matType, nonLin);
+    actID->SetOrigMatrixType(actMatType);
+
+    surfintegrators_[SurfDomIndex(subDomName)]->push_back(actID);
+  }
+#else
+  /// define integrators
+  void
+  HarmonicAssemble::AddSurfIntegrator(BaseForm * integrator,
+				    const std::string & subDomName,
+				    const enum MatrixType destinationMatrix,
+				    const Integer nonLin)
+  {
+    ENTER_FCN( "HarmonicAssemble::AddSurfIntegrator" );
+
+    MatrixType actMatType = destinationMatrix;
+    MatrixType matType;
+    
+     if (actMatType == STIFFNESS || actMatType == MASS || actMatType == DAMPING )
+	matType = SYSTEM;
+     else
+       {
+	 std::string error_msg = "Matrix type ";
+	 error_msg += actMatType + " not supported in harmonic analysis";
+	 Error(error_msg.c_str());
+       }
+
+    IntegratorDescriptor * actID =
+      new IntegratorDescriptor(integrator, matType, nonLin);
+    actID->SetOrigMatrixType(actMatType);
+
+    surfintegrators_[SurfDomIndex(subDomName)]->push_back(actID);
+
+  }
+#endif
+
+  // define integrators
+  void HarmonicAssemble::AddIntegrator(IntegratorDescriptor * actID,
+				       const std::string & subDomName)
+  {
+    ENTER_FCN( "HarmonicAssemble::AddIntegrator" );
+
+    actID->SetOrigMatrixType(actID->DestMat());
+    if (actID->DestMat() == STIFFNESS || actID->DestMat() == MASS || actID->DestMat() == DAMPING )
+      actID->SetDestMat(SYSTEM);
+    else
+       {
+	 std::string error_msg = "Matrix type ";
+	 error_msg += actID->DestMat() + " not supported in harmonic analysis";
+	 Error(error_msg.c_str());
+       }
+
+    integrators_[SubDomIndex(subDomName)]->push_back(actID);
+  }
+
+
+#ifdef USE_OLAS
+    void  HarmonicAssemble::TransformMatrix2Harmonic(Vector<Double>& harmMat, 
+						     Matrix<Double> origMat,
+						     const FEMatrixType matrixType)
+#else
+    void  HarmonicAssemble::TransformMatrix2Harmonic(Vector<Double>& harmMat, 
+						     Matrix<Double> origMat,
+						     const MatrixType matrixType)
+#endif
+
+    {
+      ENTER_FCN( "HarmonicAssemble::TransformMatrix2Harmonic" );
+
+      Integer numRow = origMat.GetSizeRow();
+      Integer numCol = origMat.GetSizeCol();
+      harmMat.Resize(2*numRow*numCol);
+
+      Integer k=0;
+      if (matrixType == STIFFNESS) 
+	{
+	  for (Integer row=0; row<numRow; row++)
+	    for (Integer col=0; col<numCol; col++) {
+	      harmMat[k] = origMat[row][col];
+	      k++;
+	    }
+	}
+
+      else if (matrixType == MASS) 
+	{
+	  Double factor = -actFreq_*actFreq_;
+	  for (Integer row=0; row<numRow; row++)
+	    for (Integer col=0; col<numCol; col++) {
+	      harmMat[k] = factor*origMat[row][col];
+	      k++;
+	    }
+	}
+
+      else if (matrixType == DAMPING) 
+	{
+	  Double factor = actFreq_;
+	  
+	  k=numRow*numCol;
+	  for (Integer row=0; row<numRow; row++)
+	    for (Integer col=0; col<numCol; col++) {
+	      harmMat[k] = factor*origMat[row][col];
+	      k++;
+	    }
+	}
+    }
+
+    void  HarmonicAssemble::TransformVector2Harmonic(Vector<Double>& harmVec, 
+						     Vector<Double> origVec,
+						     const Double valPhase)
+    {
+      ENTER_FCN( "HarmonicAssemble::TransformVector2Harmonic" );
+
+      Integer size = origVec.GetSize();
+      harmVec.Resize(2*size);
+
+      Double valReal = cos(valPhase);
+      Double valImag = sin(valPhase);
+
+      Integer k=0;
+      //real part
+      for (Integer i=0; i<size; i++) {
+	harmVec[k] = origVec[i]*valReal;
+	k++;
+      }
+
+      //imaginary part
+      for (Integer i=0; i<size; i++) {
+	harmVec[k] = origVec[i]*valImag;
+	k++;
+      }
+
+    }
 
 } // end namespace CoupledField

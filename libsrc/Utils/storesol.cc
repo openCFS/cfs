@@ -59,7 +59,6 @@ template<class TYPE>
 void StoreSol<TYPE>::Clear()
 {
   ENTER_FCN( "StoreSol::Clear()" );
-
 }
 
 
@@ -111,7 +110,7 @@ void StoreSol<TYPE>::Init(const TYPE val)
       length_ = totalDofs_ * numNodes_;
       data_.Resize(length_);
     }
-  
+
   data_.Init(val);
 }
 

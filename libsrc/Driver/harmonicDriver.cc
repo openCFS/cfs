@@ -5,6 +5,8 @@
 #include "harmonicDriver.hh"
 
 #include "DataInOut/GMV/outGMV.hh"
+#include "DataInOut/WriteInfo.hh"
+#include "DataInOut/ParamHandling/BaseParamHandler.hh"
 
 #include <PDE/basePDE.hh>
 
@@ -15,45 +17,63 @@ namespace CoupledField
 HarmonicDriver :: HarmonicDriver(Domain * adomain)
 :BaseDriver(adomain)
 {
-#ifdef TRACE
-  (*trace) << "entering HarmonicDriver::HarmonicDriver" << std::endl;
+  ENTER_FCN( " HarmonicDriver::HarmonicDriver" );
+
+#ifndef XMLPARAMS
+  // get time steps information from conf-file
+
+  conf->get("startFreq",startFreq_);
+  conf->get("stopFreq",stopFreq_);
+  conf->get("numFreq", numFreq_);
+
+  saveType_ = 1;
+  conf->ifget("saveType",saveType_);
+  
+#else
+  Error("Frequency analysis in xml currently not supported");
 #endif
 
 }
 
 HarmonicDriver :: ~HarmonicDriver()
 {
-#ifdef TRACE
-  (*trace) << "entering HarmonicDriver::~HarmonicDriver" << std::endl;
-#endif
+  ENTER_FCN( " HarmonicDriver::~HarmonicDriver" );
 
-}
-
-void HarmonicDriver :: SetupMatricesPDE(const Integer pdenumber, const Integer type)
-{
-#ifdef TRACE
-  (*trace) << "entering HarmonicDriver::SetUpMatricesPDE" << std::endl;
-#endif
-
-  // ATTENTION !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  // Commented out for testing purposes!!!!!!!!!!!!!
-  //  ptdomain_->GetPDE(pdenumber)->SetupMatrices(type);
 }
 
 void HarmonicDriver :: SolveProblem()
 {
-#ifdef TRACE
-  (*trace) << "entering HarmonicDriver::SolveProblem" << std::endl;
-#endif
+  ENTER_FCN( " HarmonicDriver::SolveProblem" );
+
   Integer level=0;
+  Boolean reset = TRUE;
   Integer pdenumber  = 0;
   ptdomain_->PrintGrid(level);
+
   if (PrintGridOnly)
       exit(0);
 
-  ptdomain_->GetPDE(pdenumber)->SolveStepHarmonic(level);
-  ptdomain_->GetPDE(pdenumber)->PostProcess(level);
-  ptdomain_->GetPDE(pdenumber)->WriteResultsInFile();
+  BasePDE * actPDE = ptdomain_->GetPDE(pdenumber);
+  actPDE->WriteGeneralPDEdefines();
+      
+  Integer fstep;
+  Double actFreq  = startFreq_;
+  Double freqIncr = (stopFreq_ - startFreq_) / numFreq_;
+
+  for (fstep = 1; fstep <= numFreq_; fstep++) {
+    Info->WriteHarmonicStep(actPDE->GetName(), fstep, actFreq);
+
+    actPDE->PreStepHarmonic(fstep, actFreq, level, reset);
+    actPDE->SolveStepHarmonic(fstep, actFreq, level, reset);
+    actPDE->PostStepHarmonic(fstep, actFreq, level, reset);
+
+    // writing results in output-file
+    actPDE->PostProcess(level);
+    actPDE->WriteResultsInFile();
+    
+    actFreq += freqIncr;
+  }
+
 
 }
 

@@ -176,6 +176,32 @@ namespace CoupledField
   }
   
 
+  void WriteInfo::WriteHarmonicStep(const std::string& pdeName,
+				    const Integer freqStep, const Double frequency)
+  {
+    ENTER_FCN( "WriteInfo::WriteHarmonicStep" );
+
+    std::string pdeNameLong(pdeName);
+
+    // write std::out info    
+    std::cout << myEndl << pdeName << ": Harmonic step " 
+	      << freqStep <<" ======================= " << std::endl;      
+
+
+    *cla << myEndl << pdeName << ": Harmonic step " 
+	 << freqStep <<" ********************************************"
+	 << std::endl;
+
+
+    // write to info-file
+    pdeNameLong += "-PDE: ";    
+    *cfsInfo << std::endl << std::endl << std::endl 
+	     << "**********************************************************"
+	     << "**********************" 
+	     << std::endl << pdeNameLong << "HARMONIC STEP " << freqStep 
+	     << ", frequency: " << frequency << std::endl;
+  }
+
 
   void WriteInfo:: WriteResult(std::string pdename, std::string resulttype,
 			       std::vector<std::string> subdoms,

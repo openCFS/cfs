@@ -87,18 +87,11 @@ class IntegratorDescriptor : public BaseIntDescriptor
  
 #ifdef USE_OLAS
       /// defines a secondary destination for the calculated element marices of an integrator      
-      void SetSecondaryMat(FEMatrixType aSecMat, Double aSecMatFac)
-      {
-	secondaryMatrix = aSecMat;
-	secMatFac = aSecMatFac;
-      };
+      void SetSecondaryMat(FEMatrixType aSecMat, Double aSecMatFac, AnalysisType analysisType);
+
 #else
       /// defines a secondary destination for the calculated element marices of an integrator      
-      void SetSecondaryMat(enum MatrixType aSecMat, Double aSecMatFac)
-      {
-	secondaryMatrix = aSecMat;
-	secMatFac = aSecMatFac;
-      };
+      void SetSecondaryMat(enum MatrixType aSecMat, Double aSecMatFac, AnalysisType analysisType);
 #endif
 
 #ifdef USE_OLAS
@@ -112,8 +105,32 @@ class IntegratorDescriptor : public BaseIntDescriptor
       /// returns matrix type of the secondary matrix (if there is any, otherwise NOTYPE=0)
       Double GetSecMatFac() const {return secMatFac;} 
       
-      
-      
+#ifdef USE_OLAS  
+      void SetOrigMatrixType(FEMatrixType matType)
+      {origMatrixType_ = matType;};
+
+      FEMatrixType GetOrigMatrixType()
+      {return origMatrixType_;};
+
+      void SetOrigSecMatrixType(FEMatrixType matType)
+      {origSeccondMatrixType_ = matType;};
+
+      FEMatrixType GetOrigSecMatrixType()
+      {return origSecondMatrixType_;};
+
+#else
+      void SetOrigMatrixType(MatrixType matType)
+      {origMatrixType_ = matType;};
+
+      MatrixType GetOrigMatrixType()
+      {return origMatrixType_;};
+
+      void SetOrigSecMatrixType(MatrixType matType)
+      {origSecondMatrixType_ = matType;};
+
+      MatrixType GetOrigSecMatrixType()
+      {return origSecondMatrixType_;};
+#endif
       
     private:
 
@@ -123,12 +140,24 @@ class IntegratorDescriptor : public BaseIntDescriptor
 
       /// holds the secondary destination matrix
       FEMatrixType secondaryMatrix;
+
+      //! hold the original matrix types (just used in harmonic analysis!!)
+      FEMatrixType origMatrixType_;
+
+      //! hold the original secondary matrix types (just used in harmonic analysis!!)
+      FEMatrixType origSecondMatrixType_;
 #else
       /// holds the destination matrix
       enum MatrixType destinationMatrix;
 
       /// holds the secondary destination matrix
       enum MatrixType secondaryMatrix;
+
+      //! hold the original matrix types (just used in harmonic analysis!!)
+      MatrixType origMatrixType_;
+
+      //! hold the original secondary matrix types (just used in harmonic analysis!!)
+      MatrixType origSecondMatrixType_;
 #endif
 
       /// holds the matrix factor for secondaryMatrix
@@ -257,10 +286,14 @@ class IntegratorDescriptor : public BaseIntDescriptor
     void AddRhsIntegrator(BaseForm * integrator, const std::string & subDomName, 
 			  const Integer nonLin=FALSE);
 
-     /// define RHS integrators
+     /// define RHS integrators (static and transient case)
     void AddRhsSrcIntegrator(BaseForm * integrator, const std::string & subDomName, 			  
 			     const std::string fncname="---not-defined--",
 			     const Integer nonLin=FALSE);
+
+     /// define RHS integrators (harmonic case)
+    void AddRhsSrcIntegrator(BaseForm * integrator, const std::string & subDomName,
+			     const Double phaseval, const Integer nonLin=FALSE);
    
     /// set ptr to time function
     void SetPtr2TimeFnc(TimeFunc * aPtTimeFunc)
@@ -382,6 +415,9 @@ class IntegratorDescriptor : public BaseIntDescriptor
     Integer GetBCDof(const std::string dofString);
     
 
+    //! sets the actual frequency (just needed for harmonic analysis)
+    virtual void SetFrequency(Double actFreq) {;};
+
     // ====================================================
     // DATA SECTION 
     // ====================================================
@@ -426,6 +462,8 @@ class IntegratorDescriptor : public BaseIntDescriptor
     std::vector<std::string> fncname_loads_; //!< function names of the loads
     std::vector<std::string> fncname_rhs_; //!< function names for RHS integrators
 
+    std::vector<Double> rhsSrcPhase_;      //!< contains the pahse values in harmonic case;
+         
     TimeFunc * ptTimeFunc_;             //!< ptr to time function
     
     BCs *ptBCs_;                       //!< pointer to Boundary Condition  Object
@@ -458,8 +496,13 @@ class IntegratorDescriptor : public BaseIntDescriptor
     // std::deque<bool> reassembleMat_;
     Boolean nonLinGeo;
 
+    Double actFreq_; //!< contains the frequency multiplied by 2*pi
+
     void SetReassemble()
     {firstTime_ = TRUE;};
+
+    void SetAnalysisType(AnalysisType analysis)
+    {analysisType_ = analysis;};
 
     // ==============================================
     // AUXILIARY METHODS
@@ -474,12 +517,31 @@ class IntegratorDescriptor : public BaseIntDescriptor
     //! calculates the index of the surfdoman with name "surfDomName" in the surface-domain-list
     Integer SurfDomIndex(const std::string & surfDomName);
 
+#ifdef USE_OLAS
+    //! transform element matrix to account for harmonic analysis
+    virtual void TransformMatrix2Harmonic(Vector<Double>& harmMat, 
+					  Matrix<Double> origMat,
+					  const FEMatrixType matrixType) {;};
+#else
+    //! transform element matrix to account for harmonic analysis
+    virtual void TransformMatrix2Harmonic(Vector<Double>& harmMat, 
+					  Matrix<Double> origMat,
+					  const MatrixType matrixType) {;};
+#endif
+
+    //! transform element vector to account for harmonic analysis
+    virtual void TransformVector2Harmonic(Vector<Double>& harmMat, 
+					  Vector<Double> origVec,
+					  const Double valPhase) {;};
+
+
   private:
 
     //! returns the index of the named dof
     Integer GetNrBCDof (const std::string & dofStartString);
 
-
+    //! set analysis type
+    AnalysisType analysisType_;
   };
     
       
@@ -564,6 +626,65 @@ class IntegratorDescriptor : public BaseIntDescriptor
 #endif
 
   };
+
+
+  class HarmonicAssemble : public Assemble
+  {
+  public:
+    HarmonicAssemble(BaseSystem * algsys, Grid * agrid);
+    
+    virtual ~HarmonicAssemble(){};
+
+    //! define discrete PDE
+    virtual void MatrixSettings(){};
+
+    //! set information for algebraic system about PDE. set matrix factors
+    virtual void SetMatrixFactors(){};
+
+    //!
+    virtual void SetFrequency(Double actFreq);
+
+#ifdef USE_OLAS
+    //! transform element matrix to account for harmonic analysis
+    virtual void TransformMatrix2Harmonic(Vector<Double>& harmMat, 
+					  Matrix<Double> origMat,
+					  const FEMatrixType matrixType);
+#else
+    //! transform element matrix to account for harmonic analysis
+    virtual void TransformMatrix2Harmonic(Vector<Double>& harmMat, 
+					  Matrix<Double> origMat,
+					  const MatrixType matrixType);
+#endif
+
+    //! transform element vector to account for harmonic analysis
+    virtual void TransformVector2Harmonic(Vector<Double>& harmMat, 
+					  Vector<Double> origVec,
+					  const Double valPhase);
+
+#ifdef USE_OLAS
+    virtual void AddIntegrator(BaseForm * integrator, const std::string & subdomain,
+			       const FEMatrixType destinationMatrix, const Integer nonLin);
+#else
+    virtual void AddIntegrator(BaseForm * integrator, const std::string & subdomain,
+			       const enum MatrixType destinationMatrix, const Integer nonLin);
+#endif
+
+    /// adds integrators to the pde
+    virtual void AddIntegrator(IntegratorDescriptor * intDescr, const std::string & subdomain);
+
+#ifdef USE_OLAS
+    /// adds surface integrators to the pde
+    virtual void AddSurfIntegrator(BaseForm * integrator, const std::string & subdomain,
+				   const FEMatrixType destinationMatrix, const Integer nonLin);
+#else
+    /// adds surface integrators to the pde
+    virtual void AddSurfIntegrator(BaseForm * integrator, const std::string & subdomain,
+				   const enum MatrixType destinationMatrix, const Integer nonLin);
+#endif
+
+
+  };
+
 
 } // end of namespace
 #endif
