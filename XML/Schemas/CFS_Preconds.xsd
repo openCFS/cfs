@@ -234,4 +234,93 @@
     </xsd:complexContent>
   </xsd:complexType>
 
+
+  <!-- ==================================================================== -->
+  <!-- ==                                                                == -->
+  <!-- ==                      OLAS_ILDL preconditioners                 == -->
+  <!-- ==                                                                == -->
+  <!-- ==================================================================== -->
+
+
+  <!-- ******************************************************************** -->
+  <!-- Definition of elements for OLAS_ILDL Preconditioners -->
+  <!-- ******************************************************************** -->
+  <xsd:element name="ILDLK" type="DT_PrecondILDLK"
+    substitutionGroup="PrecondBasic"/>
+  <xsd:element name="ILDLTP" type="DT_PrecondILDLTP"
+    substitutionGroup="PrecondBasic"/>
+  <xsd:element name="ILDLCN" type="DT_PrecondILDLCN"
+    substitutionGroup="PrecondBasic"/>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of data types for OLAS_ILDL Preconditioners -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_PrecondILDLK">
+    <xsd:complexContent>
+      <xsd:extension base="DT_PrecondBasic">
+        <xsd:sequence>
+          <xsd:element name="level"           type="xsd:nonNegativeInteger"
+                                                                minOccurs="0"/>
+          <xsd:element name="saveFacFile"     type="xsd:token"  minOccurs="0"/>
+          <xsd:element name="savePatternOnly" type="DT_CFSBool" minOccurs="0"/>
+          <xsd:element name="logging"                           minOccurs="0">
+            <xsd:simpleType>
+              <xsd:restriction base="xsd:integer">
+                <xsd:enumeration value="0"/>
+                <xsd:enumeration value="1"/>
+                <xsd:enumeration value="2"/>
+              </xsd:restriction>
+            </xsd:simpleType>
+          </xsd:element>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_PrecondILDLTP">
+    <xsd:complexContent>
+      <xsd:extension base="DT_PrecondBasic">
+        <xsd:sequence>
+          <xsd:element name="threshold"       type="DT_FloatUnitInterval"
+                                                                minOccurs="0"/>
+          <xsd:element name="fillVal"         type="xsd:nonNegativeInteger"
+                                                                minOccurs="0"/>
+          <xsd:element name="saveFacFile"     type="xsd:token"  minOccurs="0"/>
+          <xsd:element name="savePatternOnly" type="DT_CFSBool" minOccurs="0"/>
+          <xsd:element name="logging"                           minOccurs="0">
+            <xsd:simpleType>
+              <xsd:restriction base="xsd:integer">
+                <xsd:enumeration value="0"/>
+                <xsd:enumeration value="1"/>
+                <xsd:enumeration value="2"/>
+              </xsd:restriction>
+            </xsd:simpleType>
+          </xsd:element>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_PrecondILDLCN">
+    <xsd:complexContent>
+      <xsd:extension base="DT_PrecondBasic">
+        <xsd:sequence>
+          <xsd:element name="threshold"       type="xsd:float"  minOccurs="0"/>
+          <xsd:element name="saveFacFile"     type="xsd:token"  minOccurs="0"/>
+          <xsd:element name="savePatternOnly" type="DT_CFSBool" minOccurs="0"/>
+          <xsd:element name="logging"                           minOccurs="0">
+            <xsd:simpleType>
+              <xsd:restriction base="xsd:integer">
+                <xsd:enumeration value="0"/>
+                <xsd:enumeration value="1"/>
+                <xsd:enumeration value="2"/>
+              </xsd:restriction>
+            </xsd:simpleType>
+          </xsd:element>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
 </xsd:schema>
