@@ -166,6 +166,26 @@ this routine that will determine a storage type for the system matrix, if
 \xml{storage} attribute.
 %
 %
+\section{Exporting the Linear System}
+%
+%
+In some situations one is interested in obtaining the system matrix of the
+linear system for post-processing. We may e.g.~want to plot the sparsity
+pattern or compute some eigenvalues using matlab. Thus, OLAS offers the
+possibility to export the system matrix to an ascii file in a format conforming
+to the MatrixMarket specifications. For details see
+\url{math.nist.gov/MatrixMarket}. The right-hand side vector is exported
+together with the matrix, but in a separate ascii file. The first line of this
+file contains the dimension of the vector. This is followed by the vector
+entries.
+
+In order to trigger the export one must specify an \xml{exportLinSys} element.
+This is a child of the \xml{solver} element. It expects as \xml{baseName}
+attribute the basename for the two output files. For the MatrixMarket file a
+trailing '.mtx' will be appended to this basename, while for the right-hand
+side a '.vec' postfix is used. See Sec.~\ref{sec:Examples} for an example.
+%
+%
 \section{Parameters for special solvers}
 \subsection{CG}
 Setting \xml{type} to \xml{CG} selects the native preconditioned conjugate
@@ -417,7 +437,8 @@ This is a simple Jacobi preconditioner. Thus, it does not require or allow the
 specification of any parameters.
 %
 %
-\section{Example}
+\section{Examples}
+\label{sec:Examples}
 %
 %
 In this example we tell CFS++ to use the Bi-CGStab solver from the hypre
@@ -442,3 +463,16 @@ library together with an SPAI preconditioner:
   </hypreSPAI>
 </solver>
 \end{verbatim}
+%
+%
+The following example specifies the native CG solver implemented in OLAS in
+conjunction with a block numbering of the equations/unknowns. The system matrix
+will be exported to the file ``piezo5.mtx'' and the right-hand side vector to 
+he file ``piezo5.vec'':
+\begin{verbatim}
+<solver type="CG">
+  <matrix eqnNumbering="block"/>
+  <exportLinSys baseName="piezo5"/>
+</solver>
+\end{verbatim}
+
