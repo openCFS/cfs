@@ -632,27 +632,16 @@ void PiezoPDE::CalcCharges(){
   // loop over all subdomains
   for (Integer iSD=0; iSD<calcCharge_.GetSize(); iSD++){
     
-    //std::cout << "Calc charge for:" << calcCharge_[iSD] << std::endl;
-    
     // get surface and acoording volume elements
     if (dim_ == 3)
       surfElems = ptBCs_->getFacesBC(calcCharge_[iSD], actlevel_);
     else if (dim_ == 2)
       surfElems = ptBCs_->getEdgesBC(calcCharge_[iSD], actlevel_);
     
-    //std::cerr << "size of surfElems = " << surfElems.GetSize() << std::endl;
-    //std::cerr << "surfElems = " << std::endl;
-    //for (Integer i=0; i<surfElems.GetSize(); i++)
-    //  std::cerr << surfElems[i]->elemNum << std::endl;
-    
     // get neighbouring volume elements of
     // surface elements
     ptgrid_->GetVolNeighboursForSurf(surfElems,chargeNeighborRegion_,
 				     volElems, actlevel_);
-    //std::cerr << "size of volElems = " << volElems.GetSize() << std::endl;
-    //std::cerr << "volElems = " << std::endl;
-    //for (Integer i=0; i<volElems.GetSize(); i++)
-    // std::cerr << volElems[i]->elemNum << std::endl;
     
     // loop over all surface elements
     for (Integer iElem=0; iElem<surfElems.GetSize(); iElem++)
@@ -677,23 +666,18 @@ void PiezoPDE::CalcCharges(){
 	      permittivity  = materialData_[iSD].GetPermittivity(2,2);
 	  }
 	
-	// std::cerr << "local normal vector = " << lCoordVol << std::endl;
- 	//std::cerr << "permittivity = " << permittivity << std::endl;
-
 	// Calc electric flux density
 	dFieldOp->CalcElemGradField(elemDField, volElems[iElem], 
 				    lCoordVol, permittivity);
 	
-	//std::cerr << "elemDField = " << std::endl;
-	//std::cerr << elemDField << std::endl << std::endl;
 	elemNormalD = lCoordVol * elemDField;
-	
 	chargeOp->CalcElemCharge(charge, surfElems[iElem], 
 				 lCoordSurf, elemNormalD);
 
 	pdeElemNum = eqnData_->Mesh2PDEElem(volElems[iElem]->elemNum);
 	
-	//std::cerr << std::endl << "Charge = " << charge << std::endl;
+	// Create temporar vector, since SetElemResult only
+	// can handle these
 	Vector<Double> chargeVec(1);
 	chargeVec[0] = charge;
 	charges_.SetElemResult(pdeElemNum-1, chargeVec);
