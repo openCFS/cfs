@@ -11,6 +11,7 @@
 #include <errno.h>
 
 #define SIZEOFPARAMBLOCK 4096    // 4kB
+#define MAXTUPLEPERSTATEMENT 100
 
 namespace CoupledField
 {
@@ -48,6 +49,22 @@ public:
 
   //! Is connected to database?
   Boolean IsConnected;
+
+  //! Use INSERT-Statement with multiple Tuple (MySQL only). After final statement the number is set to 1 automatically
+  /*!
+    \param n Number of tupel per statement
+  */ 
+  void SetMultipleTuple( Integer n);
+
+  //! Lock table. ATTENTION: Nobody else can use table until unlock() is used
+  /*!
+    \param tablename Table to lock
+  */
+  Boolean Lock (std::string tablename);
+
+  //! Unlock all tables after use of lock()
+  Boolean Unlock ();
+
 
   //! Insert data in specified table
   /*!
@@ -93,14 +110,6 @@ public:
     \param matrix [Out] Matrix to store the table
   */
   Boolean FetchFields(dbMatrix &matrix);
-
-  //! Update selected fields
-  /*!
-    \param table Table name
-    \param d New data
-    \param wherestr WHERE-string, selection within table
-  */
-//  Boolean Update (dbLineData &d, dbLineData &where);
 
   //! Update selected fields
   /*!
@@ -151,6 +160,25 @@ protected:
 
   //! Free memory used for results
   void FreeResult();
+
+  //! No of tupel per INSERT statement
+  Integer TupleNo_;
+
+  //! No of pending tuples after next INSERT statement
+  Integer PendTupleNo_;
+
+  //! Just used intern as block counter for tuples per INSERT statement
+  void ResetMultipleTuple();
+  Integer CurTuple;
+
+  //! Prepared insert string for next INSERT-query
+  std::string InsertField_;
+
+  //! Prepared values for next INSERT-query
+  std::stringstream InsertValues_;
+
+  //! Table name for next INSERT query
+  std::string InsertTableName_;
 
 }; // End of class Database
 

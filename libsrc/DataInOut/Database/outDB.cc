@@ -88,6 +88,8 @@ long int WriteResultsDatabase::Dataset781(const Integer level)
   d.Set("result_idx",ResultIdx_);
   long int idx = Db_.InsertAndGetIndex(d);
 
+  Db_.Lock("Node_coordinates");
+  Db_.SetMultipleTuple(maxnumnodes);
   for (Integer i=0; i<maxnumnodes; i++)
   {
     d.Clear();
@@ -114,6 +116,7 @@ long int WriteResultsDatabase::Dataset781(const Integer level)
     }
     Db_.Insert(d);
   }
+  Db_.Unlock();
 }
 
 
@@ -190,10 +193,12 @@ long int WriteResultsDatabase::Dataset780(const Integer level)
       d.Set("result_idx",ResultIdx_); 
       unsigned long int idx = Db_.InsertAndGetIndex(d);
 
+      Db_.Lock("Element_nodes");
       if (dim == 2 && (connect.GetSize() == 6 || connect.GetSize() == 8))
       {
       //quadratic elements
         Integer offset = Integer(connect.GetSize()/2);
+        Db_.SetMultipleTuple(2*offset);
         for (Integer ii=0; ii < offset; ii++)
         {
           d.Clear(); d.SetTableName("Element_nodes");
@@ -211,6 +216,7 @@ long int WriteResultsDatabase::Dataset780(const Integer level)
       }
       else
       {
+        Db_.SetMultipleTuple(connect.GetSize());
         for (Integer ii=0; ii < connect.GetSize(); ii++) 
         { 
           d.Clear(); d.SetTableName("Element_nodes"); 
@@ -220,6 +226,7 @@ long int WriteResultsDatabase::Dataset780(const Integer level)
           Db_.Insert(d);
         }
       }
+      Db_.Unlock();
 
     } // over elements of group
       elmsgrp++;
@@ -274,6 +281,8 @@ void WriteResultsDatabase::Dataset55(const std::string & title,
 
   Integer i,j,n;
   n = nrNodes;
+  Db_.Lock("Nodal_result_value");
+  Db_.SetMultipleTuple(n*nrDofs);
   for (i=0; i<n;i++)
   {
 
@@ -283,10 +292,11 @@ void WriteResultsDatabase::Dataset55(const std::string & title,
         d.Set("nodal_result_idx", Idx);
         d.Set("result", x[i*nrDofs+j]);
         d.Set("node_no", (i+1));
-        d.Set("node_idx", (j+1));
+        d.Set("dof", (j+1));
         Db_.Insert(d);
     }
   }
+  Db_.Unlock();
 }
 
 void WriteResultsDatabase::WriteNodeSolutionTransient (const NodeStoreSol<Double>&sol, 
@@ -507,7 +517,7 @@ void WriteResultsDatabase::Dataset56(const std::string &title,
 				     const Vector<Double> & x, 
 				     const Integer step, 
 				     const Double time, 
-			 	     const Integer nrNodes,
+			 	     const Integer nrElems,
 				     const Integer nrDofs)
 {
   ENTER_FCN("WriteResultsDatabase::Dataset56");
@@ -551,7 +561,9 @@ void WriteResultsDatabase::Dataset56(const std::string &title,
   Idx = Db_.InsertAndGetIndex(d);
 
   Integer i,j,n;
-  n = nrNodes;
+  n = nrElems;
+  Db_.Lock("Element_result_value");
+  Db_.SetMultipleTuple(n*nrDofs);
   for (i=0; i<n;i++)
   {
     d.SetTableName("Element_result_value");
@@ -560,11 +572,12 @@ void WriteResultsDatabase::Dataset56(const std::string &title,
       d.Clear();
       d.Set("element_result_idx",Idx);
       d.Set("result", x[i*nrDofs+j]);
-      d.Set("node_no", (i+1));
-      d.Set("node_idx", (j+1));
+      d.Set("elem_no", (i+1));
+      d.Set("dof", (j+1));
       Db_.Insert(d);
     }
   }
+  Db_.Unlock();
 }
 
 

@@ -103,9 +103,9 @@ CREATE TABLE Element_result_trans (
 CREATE TABLE Element_result_value (
   element_result_idx int(11) NOT NULL default '0',
   result double NOT NULL default '0',
-  node_no int(11) NOT NULL default '0',
-  node_idx int(11) NOT NULL default '0',
-  PRIMARY KEY  (element_result_idx,node_no,node_idx)
+  elem_no int(11) NOT NULL default '0',
+  dof int(11) NOT NULL default '0',
+  PRIMARY KEY  (element_result_idx,elem_no,dof)
 ) TYPE=MyISAM;
 
 --
@@ -163,10 +163,10 @@ CREATE TABLE Nodal_result_norm (
 ) TYPE=MyISAM;
 
 --
--- Table structure for table `Nodal_result_transient`
+-- Table structure for table `Nodal_result_trans`
 --
 
-CREATE TABLE Nodal_result_transient (
+CREATE TABLE Nodal_result_trans (
   idx bigint(10) unsigned NOT NULL auto_increment,
   result_type varchar(100) NOT NULL default '',
   time_step int(11) NOT NULL default '0',
@@ -182,8 +182,8 @@ CREATE TABLE Nodal_result_value (
   nodal_result_idx int(11) unsigned NOT NULL default '0',
   result float NOT NULL default '0',
   node_no mediumint(11) unsigned NOT NULL default '0',
-  node_idx smallint(11) unsigned NOT NULL default '0',
-  PRIMARY KEY  (nodal_result_idx,node_no,node_idx)
+  dof smallint(11) unsigned NOT NULL default '0',
+  PRIMARY KEY  (nodal_result_idx,node_no,dof)
 ) TYPE=MyISAM;
 
 --

@@ -182,9 +182,9 @@ unsigned long int CalculationIdx_;
 
 //void AddVecInHistory(const Double time, const std::vector<Double> val, const int nodeidx);
 
-std::vector<unsigned long int> nodehistoryindex;
+//std::vector<unsigned long int> nodehistoryindex;
 
-std::vector<unsigned long int> elementhistoryindex;
+//std::vector<unsigned long int> elementhistoryindex;
 
 }; // End class WriteResultsDatabase
 

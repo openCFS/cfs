@@ -8,15 +8,14 @@ Database::Database()
   ENTER_FCN("Database::Database");
   Conn_ = mysql_init(NULL);
   if (Conn_==NULL)
-  {
-#ifdef DEBUG
-  (*debug) << "Database::Database() mysql_init failed" << std::endl;
-#endif
-  }
+    Error("Database::Database() mysql_init failed",__FILE__,__LINE__);
   IsConnected = FALSE;
   Port_ = 0;
   ResultStored_ = FALSE;
   FieldsStored_ = FALSE;
+  TupleNo_	= 1;
+  CurTuple	= 0;
+  PendTupleNo_  = 0;
 }
 
 int Database::Connect (std::string hostname, 
@@ -38,7 +37,6 @@ int Database::Connect (std::string hostname,
 int Database::Connect ()
 {
   ENTER_FCN("Database::Connect()");
-  (*debug)<<"DB:"<<Db_<<" on "<<Hostname_<<std::endl;
   if (mysql_real_connect(Conn_, Hostname_.c_str(), User_.c_str(), Passwd_.c_str(), Db_.c_str(), Port_, NULL, 0)==NULL)
   {
     std::string err("Can't establish connection to");
@@ -46,12 +44,14 @@ int Database::Connect ()
     Error(err.c_str(), __FILE__, __LINE__);
     return (-1);
   }
-#ifdef DEBUG
+#ifdef DEBUG2
+  (*debug) << std::endl;
   (*debug) << "Connected to database " << Db_ << std::endl;	
-  (*debug) << "hostName = " << Hostname_ << std::endl;
-  (*debug) << "port = " << Port_ << std::endl;
+  (*debug) << "hostName     = " << Hostname_ << std::endl;
+  (*debug) << "port         = " << Port_ << std::endl;
   (*debug) << "databaseName = " << Db_ << std::endl;
-  (*debug) << "userName = " << User_ << std::endl;
+  (*debug) << "userName     = " << User_ << std::endl;
+  (*debug) << std::endl;
 #endif
   IsConnected = TRUE;
   return (0);
@@ -80,6 +80,25 @@ int Database::Query (std::string statement)
   }
   ResultStored_=FALSE;
   return (0);
+}
+
+
+Boolean Database::Lock (std::string tablename)
+{
+#ifdef DEBUG2
+  (*debug)<<"Database::Lock : Lock table "<<tablename<<std::endl;
+#endif
+  std::stringstream qstream;
+  qstream<<"LOCK TABLE "<<tablename<<" WRITE";
+  Query(qstream.str());
+}
+
+Boolean Database::Unlock ()
+{
+#ifdef DEBUG2
+  (*debug)<<"Database::Unlock : Unlock table "<<std::endl;
+#endif
+  Query("UNLOCK TABLES");
 }
 
 
@@ -116,9 +135,6 @@ Boolean Database::FetchFields(dbMatrix &matrix)
   if (!StoreResults())
     return FALSE;
   unsigned int numfields = GetNoOfResultFields();
-#ifdef DEBUG
-//    (*debug)<<"numfields = "<<numfields<<std::endl;
-#endif 
   MYSQL_FIELD *fields;
   fields = mysql_fetch_fields(Result_);
   for (int i=0; i<numfields; i++)
@@ -141,7 +157,7 @@ Boolean Database::FetchFields(dbMatrix &matrix)
         matrix.appendStringColumn(std::string(fields[i].name));
         break;
       default:
-#ifdef DEBUG        
+#ifdef DEBUG2        
         (*debug)<< "Try to add column of unknown type. Append it as std::string instead"<<std::endl;
 #endif
         matrix.appendStringColumn(std::string(fields[i].name));
@@ -178,28 +194,54 @@ Boolean Database::FetchFields(dbMatrix &matrix)
 int Database::Insert (dbLineData &d) 
 {
  ENTER_FCN("Database::Insert");
-// int size = d.Size();
+
+#ifdef DEBUG2
+ (*debug)<<"Table	     = "<<d.tablename<<std::endl;
+ (*debug)<<"InsertTableName_ = "<<InsertTableName_<<std::endl;
+ (*debug)<<"InsertField_     = "<<InsertField_<<std::endl;
+ (*debug)<<"InsertValues_    = "<<InsertValues_.str()<<std::endl;
+ (*debug)<<"CurTuple         = "<<CurTuple<<std::endl;
+ (*debug)<<"TupleNo_         = "<<TupleNo_<<std::endl;
+ (*debug)<<"PendTupleNo_     = "<<PendTupleNo_<<std::endl;
+ (*debug)<<std::endl;
+#endif
+
+ if (CurTuple==0)
+ {
+   InsertField_ = d.GetFieldNames();
+   InsertTableName_ = d.tablename;
+ }
+ else
+ {
+   if (InsertField_!=d.GetFieldNames())
+     Error("Try to use multiple tupel for INSERT, but uses different InsertField_.",__FILE__,__LINE__);
+   if (InsertTableName_!=d.tablename)
+     Error("Try to use multiple tuple for INSERT, but uses different tables.",__FILE__,__LINE__);
+ }
+
+ InsertValues_<<"(";
+ InsertValues_<<d.GetValues();
+ InsertValues_<<")";
+
+ CurTuple++;
+
+ if (CurTuple<TupleNo_)
+ {
+   InsertValues_<<",";
+   return (0);
+ }
+
  std::stringstream querystr;
  querystr<<"INSERT INTO "<<d.tablename<<" (";
-/* int i;
- for (i=0; i<size; i++)
- {
-   querystr<<d.GetFieldName(i);
-   if (i!=size-1)
-     querystr<<",";
- }*/
- querystr<<d.GetFieldNames();
- querystr<<") values (";
-/* for (i=0; i<size; i++)
- {
-   querystr<<d.GetValue(i);
-   if (i!=size-1)
-     querystr<<","; 
- }
- querystr<<")";*/
- querystr<<d.GetValues();
- querystr<<")";
- return Query(querystr.str());
+ querystr<<InsertField_;
+ querystr<<") VALUES ";
+ querystr<<InsertValues_.str();
+ Integer qresult=Query(querystr.str());
+ CurTuple=0;
+ InsertField_="";
+ ResetMultipleTuple();
+ InsertValues_.str("");
+ return qresult;
 }  
 
 std::string Database::EscapeString(std::string source)
@@ -257,40 +299,6 @@ Boolean Database::Update (std::string table,
   return TRUE;
 }
 
-/*Boolean Database::Update (dbLineData &d, dbLineData &where)
-{
-  int size = d.Size();
-  std::stringstream querystr;
-#ifdef DEBUG
-  if (d.tablename!=where.tablename)
-    (*debug)<<"Database::Update : Table names differ!!"<<std::endl;
-#endif
-  querystr<<"UPDATE "<<d.tablename<<" SET ";
-
-  char *pStr = */
-
-/*  for (int i=0; i<size; i++)
-  {
-    querystr<<d.GetFieldName(i)<<"="<<d.GetValue(i);
-    if (i!=size-1)
-      querystr<<",";
-  }
-  int wsize = where.Size();
-  if (wsize>0)
-  {
-    querystr<<" WHERE ";
-    for (int i=0; i<wsize; i++)
-    {
-      querystr<<where.GetFieldName(i)<<"="<<where.GetValue(i);
-      if (i!=wsize-1)
-        querystr<<" AND ";
-    }
-  }*/
-/*  if (Query(querystr.str())==-1)
-    return FALSE;*/
-/*  return TRUE;
-}*/
-
 int Database::InsertAndGetIndex (dbLineData &d) //std::string table, std::vector<std::string> field, std::vector<std::string> value)
 {
   ENTER_FCN("Database::InsertAndGetIndex");
@@ -309,9 +317,6 @@ Boolean Database::StoreResults()
   Result_ = mysql_store_result(Conn_);
   if (Result_==(MYSQL_RES*)NULL)
   {
-#ifdef DEBUG
-  (*debug)<<"Error store the result"<<std::endl;
-#endif
     Warning ("mysql_store_result-error",__FILE__,__LINE__);
     return FALSE;
   }
@@ -336,6 +341,42 @@ void Database::FreeResult()
   ENTER_FCN("Database::FreeResult");
   if (ResultStored_)
     mysql_free_result(Result_);
+}
+
+void Database::SetMultipleTuple(Integer n)
+{
+  ENTER_FCN("Database::SetMultipleTuple");
+//  TupleNo_ = 1;                         // DELETE IT AFTERWARDS
+  if (n>MAXTUPLEPERSTATEMENT)
+  {
+    TupleNo_ 	= MAXTUPLEPERSTATEMENT;
+    PendTupleNo_= n-MAXTUPLEPERSTATEMENT;
+  }
+  else
+  {
+    TupleNo_ 	= n;
+    PendTupleNo_= 0;
+  }
+}
+
+void Database::ResetMultipleTuple()
+{
+  ENTER_FCN("Database::ResetMultipleTuple");
+  TupleNo_ = 1;                         // DELETE IT AFTERWARDS
+  if (PendTupleNo_==0)
+  {
+    TupleNo_ = 1;
+  }
+  else if (PendTupleNo_<MAXTUPLEPERSTATEMENT)
+  {
+    TupleNo_     = PendTupleNo_;
+    PendTupleNo_ = 0;
+  }
+  else
+  {
+    TupleNo_	= MAXTUPLEPERSTATEMENT;
+    PendTupleNo_= PendTupleNo_ - MAXTUPLEPERSTATEMENT;
+  }
 }
 
 Database::~Database()
