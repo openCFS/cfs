@@ -3,12 +3,12 @@
 #include <string>
 #include <math.h>
 
-#include "mech2d.hh"
-#include "actimeerror.hh"
-#include "outUnverg.hh"
-#include "outGMV.hh"
-#include "forms_header.hh"
-#include "spaceerror.hh" 
+#include "mech2dPDE.hh"
+#include <Estimator/actimeerror.hh>
+#include <DataInOut/Unverg/outUnverg.hh>
+#include <DataInOut/GMV/outGMV.hh>
+#include <Forms/forms_header.hh>
+#include <Estimator/spaceerror.hh>
 
 
 
