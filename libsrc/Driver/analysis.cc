@@ -44,18 +44,6 @@ namespace CoupledField
   }
 
 
-
-
-   
-
- 
-
-
-
-
-
-
-
   Integer Assemble::SubDomIndex(const std::string & subDomName)
   {
 #ifdef TRACE
@@ -72,11 +60,6 @@ namespace CoupledField
     Info->Error(errOut, __FILE__, __LINE__);
   }
   
-
-
-
-
-
 
   void Assemble::GetElemCoords(const Vector<Integer> connect, 
 			       Matrix<Double> &coordMat, const Integer level)
@@ -95,13 +78,6 @@ namespace CoupledField
     //      }
   }
 
-
-
-
-
-
-
-  
   
   // do the basic assembling stuff
   void Assemble::AssembleMatrices(const Integer level)
@@ -112,8 +88,7 @@ namespace CoupledField
     static int setupMatricesCount = 1;
     Matrix<Double> elemmat;
 
-
-    for (int actDom=0; actDom < subdoms_.size(); actDom++)
+     for (int actDom=0; actDom < subdoms_.size(); actDom++)
       {	
 	std::vector<Elem*> elemssd;
 
@@ -133,8 +108,7 @@ namespace CoupledField
 	    Vector<Integer> connect_PDE;
 	    Mesh2PDENode(connect_PDE, connecth, *mesh2PDENode_);
 
-
-	    for(int actInteg=0; actInteg < integrators_[actDom]->size(); actInteg++)
+	    for(Integer actInteg=0; actInteg < integrators_[actDom]->size(); actInteg++)
 	      {
 		struct IntegratorDescriptor * actDescriptor =
 		  (*integrators_[actDom])[actInteg];
@@ -157,9 +131,6 @@ namespace CoupledField
   }
 
 
-
-
-  
   // do the basic assembling stuff
   void Assemble::AssembleRHS(const Integer level)
   {
@@ -234,7 +205,6 @@ namespace CoupledField
     
     Integer matrixsystype[5];
     
-
     matrixsystype[0] = SYSTEM;      // memory for the system matrix
     if (stiffnessMatrix_  == 1) matrixsystype[1] = STIFFNESS;   // memory for the stiffness matrix
     if (dampingMatrix_    == 1) matrixsystype[2] = DAMPING;     // memory for the damping matrix
@@ -246,7 +216,6 @@ namespace CoupledField
 			  dofsPerNode_,numDirichletBCs_, numconstraints);
   }
   
-
 
   void Assemble::SetGeneralParams(const std::string & pdename, 
 				  const Integer dofsPerNode,
@@ -266,17 +235,6 @@ namespace CoupledField
   }
   
 
-
-
-
-
-
-
-
-
-
-
-
   //  void Assemble::SetupMatrixGraph(Integer numeq, Integer graphType)
   void Assemble::SetupMatrixGraph(Integer numeq)
   {
@@ -285,7 +243,8 @@ namespace CoupledField
 #endif
     
   //initialize matrix graph
-  algsys_->CreateGraph(numeq, graphType_);
+  Integer estimated_maxneighbors=20;
+  algsys_->CreateGraph(numeq, graphType_,estimated_maxneighbors);
 
   // set the graph - connectivity matrix
   BaseFE * ptElem; 
@@ -326,6 +285,7 @@ namespace CoupledField
     actID->integrator = integrator;
     actID->destinationMatrix = destinationMatrix;
     actID->nonLin = nonLin;
+    return actID;
   }
   
 
@@ -367,7 +327,6 @@ namespace CoupledField
   StaticAssemble::StaticAssemble(BaseSystem * algsys, Grid * agrid)
     :Assemble(algsys, agrid)
   {
-    //    matrixType_   = RBLOCK;
     graphType_    = NODEGRAPH; 
   }
   
@@ -389,8 +348,8 @@ namespace CoupledField
       return;
 
     IntegratorDescriptor * actID = BuildIntDescriptor(integrator, subDomName, actMatType, nonLin);
-    
     integrators_[SubDomIndex(subDomName)]->push_back(actID);
+
   }
     
 
@@ -403,8 +362,7 @@ namespace CoupledField
   TransientAssemble::TransientAssemble(BaseSystem * algsys, Grid * agrid)
     :Assemble(algsys, agrid)
   {
-    //    matrixType_   = RBLOCK;
-    graphType_    = NODEGRAPH; 
+     graphType_    = NODEGRAPH; 
 
     stiffnessMatrix_  = TRUE;
     massMatrix_       = TRUE;
@@ -420,11 +378,11 @@ namespace CoupledField
     (*trace) << "entering TransientAssemble::AddIntegrator " << std::endl;
 #endif
     if (destinationMatrix == SYSTEM)
-      Info->Error("In transient assembling, no SYSTEM matrix my be defined directly", __FILE__, __LINE__);
+      Info->Error("In transient assembling, no SYSTEM matrix may be defined directly", __FILE__, __LINE__);
 
     IntegratorDescriptor * actID = BuildIntDescriptor(integrator, subDomName, destinationMatrix, nonLin);
-    
     integrators_[SubDomIndex(subDomName)]->push_back(actID);
+    struct IntegratorDescriptor * actDescriptor =  (*integrators_[0])[0];
   }
 
 

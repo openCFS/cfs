@@ -105,7 +105,6 @@ Domain:: Domain(FileType * const aptFileType, WriteResults * ptOut, TimeFunc * a
  //read restraints information
  ptBCs_->ReadBCs();
 
- // Initialize PDEs
  InitPDEs();
 
  // Initialize Coupled PDEs
@@ -117,6 +116,7 @@ Domain:: Domain(FileType * const aptFileType, WriteResults * ptOut, TimeFunc * a
       ptpde_[i]->SetAlgSys(i);
       //      ptpde_[i]->ReadMaterialData();
      } 
+
 }
 
 Domain :: ~Domain()
