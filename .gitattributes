@@ -235,6 +235,8 @@ libsrc/PDE/smoothlaplacePDE.cc svneol=native#text/plain
 libsrc/PDE/smoothlaplacePDE.hh svneol=native#text/plain
 libsrc/PDE/timestepping.cc svneol=native#text/plain
 libsrc/PDE/timestepping.hh svneol=native#text/plain
+libsrc/PDE/trapezoidal.cc svneol=native#text/plain
+libsrc/PDE/trapezoidal.hh svneol=native#text/plain
 libsrc/ParamIdent/Makefile -text
 libsrc/Utils/Makefile -text
 libsrc/Utils/array.cc svneol=native#text/plain
