@@ -26,4 +26,5 @@ ARFLAGS = r
 UNDER  = -DFORTRANDOUBLEUNDERSCORE
 LINKFLAGS = 
 LINKFLAGS2 = 
-syslib = -lm -lc 
+BLASLAPACK = -lblas -llapack -lg2c
+syslib = -lm -lc $(BLASLAPACK)
