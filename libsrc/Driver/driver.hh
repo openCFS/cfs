@@ -41,10 +41,6 @@ namespace CoupledField
     Boolean SaveDer1;
     Boolean SaveDer2;
 
-  //! Output results(solution, first, second derivatives of solution on current step) in .unverg format
-
-   void WriteResultsInFile(WriteResults<Dim> *, PDE * , const Integer, const Double );
-
   };
 
 #ifdef __GNUC__

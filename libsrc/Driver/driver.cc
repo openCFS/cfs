@@ -67,7 +67,7 @@ void Driver<Dim>::SolveNewmarkMethod(WriteResults<Dim> * ptOutput)
 */
 //  Double endtime=1.0;   ////////////////////////////////////////////
   Double t=0;
-  
+/*  
   Double epsilon=1e-25; 
   ptAcPDE=new AcousticPDE<Dim>(dt0,ptgrid,0,ptMaterial, ptFileType);
 
@@ -78,8 +78,9 @@ void Driver<Dim>::SolveNewmarkMethod(WriteResults<Dim> * ptOutput)
 
       ptAcPDE->SolveNewmarkMethodStatic(t);
 
-      WriteResultsInFile(ptOutput, ptAcPDE,i,t);  
+      ptAcPDE->WriteResultsInFile();
     }
+*/
 }
 
 template<class Dim>
@@ -91,13 +92,5 @@ Driver<Dim> :: ~Driver()
   if (ptgrid) delete ptgrid;
   if (ptAcPDE) delete ptAcPDE;
 }
-
-template<class Dim>
-void Driver<Dim> :: WriteResultsInFile(WriteResults<Dim> * ptOutput, PDE * ptPDE, const Integer step, const Double t)
-{
-  ptOutput->WriteSolution(ptPDE->getS(),step,t);
-  ptOutput->WriteFirstDerSolution(ptPDE->getS1(),step,t);
-  ptOutput->WriteSecondDerSolution(ptPDE->getS2(),step,t);
-} 
 
 } // end of namespace

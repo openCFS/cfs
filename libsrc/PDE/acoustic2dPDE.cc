@@ -49,7 +49,7 @@ Acoustic2dPDE::Acoustic2dPDE(AbstractAlgebraicSys * ptalgsys, Grid<Point2D> * ap
 
 }
 
-void Acoustic2dPDE::SpecifySolver(Integer &solvertype, Integer &precondtype, Double &eps, Double &dampiter, Integer &maxnumit)
+void Acoustic2dPDE::SpecifySolver(Integer &solvertype, Integer &precondtype, Double &eps, Double &dampiter, Integer &maxnumit, Integer &numeqcoarse)
 {
 #ifdef TRACE
   (*trace) << "entering Acoustic2dPDE::SpecifySolver" << std::endl;
@@ -60,9 +60,10 @@ void Acoustic2dPDE::SpecifySolver(Integer &solvertype, Integer &precondtype, Dou
   conf->get("maxnumit",maxnumit,"Acoustic"); // max number of iterations
   conf->get("solvertype",solvertype,"Acoustic"); // Richardson or CG
   conf->get("precondtype", precondtype, "Acoustic"); //ID or MG
+  conf->get("numeqcoarse",numeqcoarse,"Acoustic"); // number of equation for coarsing
 }
 
-void Acoustic2dPDE::SetAlgSys_id(Integer as_sysid)
+void Acoustic2dPDE::SetAlgSys_id(const Integer as_sysid)
 {
  AS_sysid_ = as_sysid;
 }
@@ -116,18 +117,15 @@ Integer &numconstraints)
                  // VOLUME = 4
 
   numdofpernode  = 1;
+  numdirichlets = 1;
   numconstraints = 0;
 }
 
-void Acoustic2dPDE::SetupMatrices(Integer type)
+void Acoustic2dPDE::SetupMatrices(const Integer type)
 {
 #ifdef TRACE
   (*trace) << "entering Acoustic2dPDE::SetupMatrices" << std::endl;
 #endif
-
-  Integer k,l;
-  Integer i,iii;
-  Integer irow,icln;
 
   Integer numnodeelem=ptgrid_->GetNumNodesPerElem(0,0);
   Integer * help=new Integer[numnodeelem];
@@ -143,7 +141,8 @@ void Acoustic2dPDE::SetupMatrices(Integer type)
 
   Integer matrix_stiff=2;
   Integer matrix_mass=5;
-  
+ 
+  Integer i; 
   for (i=0; i<numelem; i++ )
     {
       ptElem=ptArrayElem[i];
@@ -299,16 +298,16 @@ void Acoustic2dPDE:: WriteResultsInFile()
   (*trace) << "entering Acoustic2dPDE::WriteResultsInFile" << std::endl;
 #endif
 
-  std::cout << laststepcalc_ << " " << lasttimecalc_ << std::endl;
-  OutFile_->WriteSolution(sol_, laststepcalc_, lasttimecalc_); /// !!!!!!!!!!
-  OutFile_->WriteFirstDerSolution(sol_der1_, laststepcalc_,lasttimecalc_);
-  OutFile_->WriteSecondDerSolution(sol_der2_,laststepcalc_,lasttimecalc_);
+  OutFile_->WriteSolution(sol_,laststepcalc_,lasttimecalc_,"fluid potential"); 
+  OutFile_->WriteSolution(sol_der1_,laststepcalc_,lasttimecalc_,"fluid potential, 1st deriv., ");
+  OutFile_->WriteSolution(sol_der2_,laststepcalc_,lasttimecalc_,"fluid potential, 2nd deriv., ");
+
 }
 
 void Acoustic2dPDE :: CalcParameters(const Double dt)
 {
 #ifdef TRACE
-  (*trace) << "entering Acoustic2dPDE::CalcParamForNewmarkMethod" << std::endl;
+  (*trace) << "entering Acoustic2dPDE::CalcParameters" << std::endl;
 #endif
 
  a2_=1.0/(beta_*dt);
@@ -350,7 +349,6 @@ TimeErrorEstimator * Acoustic2dPDE::CreatePtTimeError()
 
 Acoustic2dPDE::~Acoustic2dPDE()
 {
- if (ptTimeFunc_) delete ptTimeFunc_;
  if (ptTimeError_) delete ptTimeError_;
 }
 

@@ -22,7 +22,6 @@ using namespace CoupledField;
 
 void main(int argc, char *argv[])
 {
-
   std::cout << " Wellcome to sample session. " << argc << std::endl ;
   std::cout << " \033[36mUsage\033[0m : cfs -ext [-i] name [-m materialfile]"<< std::endl 
        << "\t \033[36m ext \033[0m: format of input file( implemented: dat ) " << std::endl

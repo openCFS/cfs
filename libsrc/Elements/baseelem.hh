@@ -18,6 +18,8 @@ public:
 
   //! constructor (does nothing)
   BaseElem();
+
+  void test(){ std::cout << "test" << std::endl;}
  
   //! deconstructor 
   virtual ~BaseElem();

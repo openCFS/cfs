@@ -1,8 +1,10 @@
 #
-# Machine dependent make include file for LINUX: debugger version
+# Machine dependent make include file for LINUX - optimized version
 # 
-F77=g77 -g
-CC=g++ -g
+OPT=-O3 -m486 
+#
+F77=g77 $(OPT)
+CC=g++ 
 CPLUSPLUS=$(CC)
 AR=ar
 LINK=$(CC)
@@ -12,10 +14,12 @@ RANLIB=ranlib
 #
 # Machine dependent flags:
 #
-UNDER  = -DFORTRANDOUBLEUNDERSCORE
-CFLAGS1 = -ansi -DDEBUG -DTRACE 
-#CFLAGS2 = -DTRACE
+CFLAGS1= -g -c -DDEBUG -DTRACE $(INCL)
+CFLAG_EXE= -g
+FLAG_MKSHLIB = -g -v -shared 
 #
-#CPLUSPLUSFLAGS2 = $(UNDER) -pg -g -I/usr/local/qt/include  
-#-I/usr/local/GL/include
-#LINKFLAGS2 = -pg -L/usr/openwin/lib -L/usr/X11R6/lib
+#CFLAGS1 = 
+UNDER  = -DFORTRANDOUBLEUNDERSCORE
+#CFLAGS2 = $(ABI) $(OPT) $(LNO) $(UNDER) -w 
+CPLUSPLUSFLAGS2 = $(UNDER) -pg  -fnonnull-objects -I/usr/local/qt/include  -I/usr/local/GL/include
+LINKFLAGS2 = -pg -L/usr/openwin/lib -L/usr/X11R6/lib

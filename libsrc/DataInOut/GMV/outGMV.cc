@@ -287,7 +287,7 @@ void WriteResultsGMV<Dim>::WriteGrid(const Integer level)
 }
 
 template<class Dim>
-void WriteResultsGMV<Dim>::WriteSolution(const Vector<Double> & sol, const Integer step, const Double time)
+void WriteResultsGMV<Dim>::WriteSolution(const Vector<Double> & sol, const Integer step, const Double time, const std::string title)
 {
 ;
 }

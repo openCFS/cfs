@@ -59,6 +59,8 @@ public:
   virtual void ReadIntegrationParam(Double &, Double &, Double &)=0;
 
   //!
+  virtual void ReadParabolicParam(Double & gamma_p)=0;
+  //!
   virtual void ReadNumStepsAndTimeSteps(Integer &, Double &)=0;
 
   //!

@@ -28,9 +28,10 @@ public:
     \param maxnumit maximum number of iterations
     \param solvertype type of solver:  1.. RICHARDSON; 2..CG
     \param precondtype type of preconditioner: ID .. 1; MG..2
+    \param numeqcoarse number of equations for coarse algebraic system (when using AMG)
   */
   virtual void SetSolverParameter(Integer nsys, Double eps, Double dampiter, Integer maxnumit,
-                                  Integer solvertype, Integer precondtype)=0;
+                                  Integer solvertype, Integer precondtype, Integer numeqcoarse)=0;
 
   //! Initialize the graph of the nodal (edge) mesh
   /*!
