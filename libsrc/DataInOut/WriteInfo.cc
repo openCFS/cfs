@@ -512,7 +512,7 @@ namespace CoupledField
     ENTER_FCN( "WriteInfo::Warning" );
 
     if (progressRunning_) {
-      std::cout <<  "\033[31mWARNING\033[0m " << myEndl << myEndl;
+      std::cerr <<  "\033[31mWARNING\033[0m " << myEndl << myEndl;
     }
 
     std::cerr << "\033[31mWARNING:\033[0m " << Text << myEndl << myEndl;
@@ -525,7 +525,9 @@ namespace CoupledField
 	std::cerr << numline;
       }
       std::cerr << ")" << std::endl;
-    }
+    }else
+      std::cerr << std::endl;
+
     if (cfsInfo) {
       *cfsInfo << myEndl << myEndl << myEndl
 	       << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
@@ -556,7 +558,7 @@ namespace CoupledField
     ENTER_FCN( "WriteInfo::Error" );
     
     if (progressRunning_);
-    std::cout << "\033[31mFAILED\033[0m" << std::endl << std::endl;
+    std::cerr << "\033[31mFAILED\033[0m" << std::endl << std::endl;
 
     std::cerr << std::endl << "\033[31mERROR:\033[0m " << myEndl;
     std::cerr << Text;
@@ -768,7 +770,7 @@ namespace CoupledField
 
     needAck_ = needAck;
     
-    std::cout << "++ " << std::setw(60) << std::left << modifiedName;
+    std::cerr << "++ " << std::setw(60) << std::left << modifiedName;
 
     if (needAck)
       {
@@ -776,7 +778,7 @@ namespace CoupledField
 	progressRunning_ = TRUE;
       }
     else
-      std::cout << std::endl;
+      std::cerr << std::endl;
   }
 
 
@@ -787,9 +789,9 @@ namespace CoupledField
  
     if (!warningOccured_)
       if (success)
-	std::cout << std::setw(10) << "\033[32mOK\033[0m" << std::endl;
+	std::cerr << std::setw(10) << "\033[32mOK\033[0m" << std::endl;
       else
-	std::cout << std::setw(10) << "\033[31mFAILED\033[0m" << std::endl;
+	std::cerr << std::setw(10) << "\033[31mFAILED\033[0m" << std::endl;
 
     warningOccured_ = FALSE;
     progressRunning_ = FALSE;

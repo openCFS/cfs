@@ -297,7 +297,7 @@ void AnsysFile::ReadSaveNodes(StdVector<Integer> & saveNodes , const std::string
     std::string str;
 
     Integer nodalnum;
-    Integer i,j;
+    Integer i;
     for (i=0; i < nrSaveNodes; i++)
       {
 	infile >> nodalnum >> str;
@@ -314,9 +314,6 @@ void AnsysFile::ReadSaveNodes(StdVector<Integer> & saveNodes , const std::string
       Error(msg.c_str());
     }
 }
-
-
-
 
 void AnsysFile::ReadLevelOfSaveNodes(StdVector<std::string>& levels)
 {
