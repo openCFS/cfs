@@ -13,7 +13,6 @@
 #include "blocknodeEQN.hh"
 #include "superblockEQN.hh"
 #include "newmarkFracDamp.hh"
-#include "Utils/mathfunctions.hh"
 
 
 namespace CoupledField {
@@ -122,9 +121,9 @@ void BasePDE::Init(Integer bcSequenceIndex,
   // get regions/subdomains for PDE
   // =====================================================================
   params->GetList( "name", subdoms_, pdename_, "region" );
-  Info->PrintF( pdename_, " %s lives on regions:\n", pdename_.c_str());
+  Info->PrintF( pdename_, "%s lives on regions:\n", pdename_.c_str());
   for ( Integer k = 0; k < subdoms_.GetSize(); k++ ) {
-	Info->PrintF( pdename_, " %s\n", subdoms_[k].c_str() );
+	Info->PrintF( pdename_, "  %s, index %d\n", subdoms_[k].c_str(), k );
   }
 
   //allocate according algebraic system
@@ -1855,31 +1854,16 @@ Double BasePDE::GetFracDampMatrixCoeff(Integer actSD) {
 
   Double coeff;
 
-  // pre factor of damping term in PDE
-  Double density         = materialData_[actSD].GetDensity();
-  Double compressibility = materialData_[actSD].GetCompressibility();
-  Double c0 = sqrt(compressibility/density);
-
-
-  Double alpha0 = materialData_[actSD].GetDampingAlfa();
-  Double y      = materialData_[actSD].GetDampingBeta();
-  coeff = density * 2 * alpha0 / c0 / sin((y-1)*PI/2);
-
   // pre factor of fractional derivative (same for all algorithms)
+  Double y  = materialData_[actSD].GetDampingBeta();
   Double dt = TS_alg_->GetTimeStep();
-  coeff *= exp(-(y-1.0)*log(dt));
 
-  // Determine weight factor for index 0
-  std::string fracAlg;
-  params->Get( "fracAlg", fracAlg, "damping", subdoms_[actSD] );
-  if ( fracAlg == "gl" )
-	coeff *= 1.0;
-  else if ( fracAlg == "blank" )
-	coeff *=  exp(-gammaln(1.0- (y- 1.0)) ) / (1.0- (y- 1.0));
+//   // needed for formulation with only MASS and STIFFNESS matrix
+//   // pre factor of Newmark time stepping scheme
+//   Double beta = TS_alg_->GetNewmarkBeta();
+//   coeff *= 1.0 / (beta*dt*dt);
 
-  // pre factor of Newmark time stepping scheme
-  Double beta = TS_alg_->GetNewmarkBeta();
-  coeff *= 1.0 / (beta*dt*dt);
+  coeff = exp(-(y-1.0)*log(dt));
 
   return coeff;
 }

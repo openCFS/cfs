@@ -1,7 +1,7 @@
 #include <fstream>
 #include <iostream>
 #include <string>
-#include <math.h>
+#include <cmath>
 
 #include "Forms/forms_header.hh"
 #include "newmarkFracDamp.hh"
@@ -16,7 +16,7 @@ namespace CoupledField {
 NewmarkFracDamp::NewmarkFracDamp(std::string apdename, BaseSystem * algebraicsystem,
 								 NodeEQN * ptEQN, Grid * aptgrid,
 								 BasePDE * aptBasePDE,
-								 StdVector<std::string> subdomainList,
+								 StdVector<std::string> asubdomainList,
 								 StdVector<std::string> adampingList, 
 								 Integer afracMemory, 
 								 InterpolType ainType, Boolean isaxi)
@@ -28,8 +28,8 @@ NewmarkFracDamp::NewmarkFracDamp(std::string apdename, BaseSystem * algebraicsys
   ptgrid_      = aptgrid;
   ptBasePDE_   = aptBasePDE;
 
+  subdoms_     = asubdomainList;
   dampingList_ = adampingList;
-  subdoms_     = subdomainList;
   fracMemory_  = afracMemory;
   inType_      = ainType;
   isaxi_       = isaxi;
@@ -38,11 +38,11 @@ NewmarkFracDamp::NewmarkFracDamp(std::string apdename, BaseSystem * algebraicsys
   beta_  = 0.25;
   gamma_ = 0.5;
 
-  //check if integration parameters are defined in conf-file
+  //check if integration parameters are defined
   std::string analysis;
   params->Get( "type", analysis, "analysis" );
   if(analysis != "paramIdent")
-    Info->PrintF( pdename_,"Newmark: Using defaults for alpha, beta and gamma!" );
+    Info->PrintF( pdename_,"Newmark: Using defaults for alpha, beta and gamma!\n" );
 
 
   Integer numEQNs = ptEQN_->GetNumEQNs();
@@ -60,7 +60,7 @@ NewmarkFracDamp::NewmarkFracDamp(std::string apdename, BaseSystem * algebraicsys
   solderiv1pred_.Resize(numEQNs * dofs); 
   solderiv1pred_.Init();
   
-  if ( fracMemory_ < 2 )
+  if ( fracMemory_ <= 1 )
     Error("Attenuation model needs frac_memory larger than 1",__FILE__,__LINE__);
   else {
 	// create vector decribing storing of values when using interpolation
@@ -92,7 +92,8 @@ void NewmarkFracDamp::Init(Double * matrix_factors, Double dt)
   CalcParameters(dt_);
 
   matrix_factors[0] = 1.0;       // factor for stiffness matrix
-  matrix_factors[1] = 0.0;       // factor for damping matrix
+  //  matrix_factors[1] = 0.0;       // factor for damping matrix
+  matrix_factors[1] = 1.0*a2_;
   matrix_factors[2] = 0.0;       // factor for convection matrix
   matrix_factors[3] = 1.0*a2_;   // factor for mass matrix
 
@@ -108,14 +109,10 @@ void NewmarkFracDamp::Predictor(Vector<Double>& solold)
   // determine number of terms over which BDF is calculated
   if (laststepcalc_ == 1)  // assumes first nstep = 1 (see transientdriver.cc)!
 	calclimit_ = 0;        // no stored values, no BDF has to be computed!
-
-  else if ( laststepcalc_>1 && laststepcalc_<=solMemoryVal_.size() ) {
-	calclimit_ = laststepcalc_;
-  }
-  else {
+  else if ( laststepcalc_>1 && laststepcalc_<=solMemoryVal_.size() )
+	calclimit_ = laststepcalc_ - 1;
+  else
 	calclimit_ = solMemoryVal_.size(); 
-	Info->PrintF(pdename_, "solMemoryVal_ size is: %d",  calclimit_);
-  }
 
   solpred_ = solold + solderiv1_*dt_ + solderiv2_*a0_;
   solderiv1pred_ = solderiv1_ + solderiv2_*a1_;
@@ -133,43 +130,46 @@ void NewmarkFracDamp::UpdateRHS()
   algsys_->UpdateRHS(MASS,coeffMass.GetPointer());
 
   // additional term for fractional damping part
-  //  if ( dampType_ == FRACTIONAL ) {
-
-  Matrix<Double> elemmat;  
+  Matrix<Double> elemmat;         // element matrix
   Matrix<Double> ptCoord;
   BaseFE         * ptElem;
   StdVector<Integer> connecth;
-  Vector<Double> rhsvec;
-  Vector<Double> elemsol;
+  Vector<Double> rhsAssemble, rhsvec, elemsol; 
   
-  Integer level = 0, no_int;
+  Integer level = 0, noInt;
   
-  Double density, compressibility, c0, factor;
+  Double density, compressibility, c0, alpha0, y, factor;
 
   MaterialData *mymaterialData;
   mymaterialData = ptBasePDE_->getPDEMaterialData();
-  
+
+  if ( dampingList_.GetSize() != subdoms_.GetSize() )
+  	Error("Mismatch between dampingList_ and subdoms_!", __FILE__, __LINE__);  
   for ( Integer actSD=0; actSD < subdoms_.GetSize(); actSD++ ) {
 
 	density         = mymaterialData[actSD].GetDensity();
 	compressibility = mymaterialData[actSD].GetCompressibility();
 	c0 = sqrt(compressibility/density);
+	alpha0 = mymaterialData[actSD].GetDampingAlfa();
+	y      = mymaterialData[actSD].GetDampingBeta();
 
-	alpha0_ = mymaterialData[actSD].GetDampingAlfa();
-	y_      = mymaterialData[actSD].GetDampingBeta();
-
-	// factor: pre factor for in Newmark timestepping scheme
+	// factor: pre factor in Newmark timestepping scheme
 	// coeff_: weight factors in BDF
 	if ( dampingList_[actSD] == "fractional_gl" ) {
-	  factor = a2_ * density * 2.0 * alpha0_ / c0 / sin((y_-1.0)*PI/2.0)
-		       * exp(-(y_-1.0)*log(dt_));
-	  GLWeights(calclimit_, y_);
+	  factor =  a2_ * density * 2.0 * alpha0 / c0 / sin((y-1.0)*PI/2.0);
+	  factor *= exp(-(y-1.0)*log(dt_));
+	  GLWeights(calclimit_, y);
 	}
 	else if ( dampingList_[actSD] == "fractional_blank" ) {
-	  factor = a2_ * density * 2.0 * alpha0_ / c0 / sin((y_-1.0)*PI/2.0)
-		       * exp(-(y_-1.0)*log(dt_)) * exp(-gammaln(1.0- (y_- 1.0)) );
-	  BlankWeights(calclimit_, y_, TRUE);
+	  factor =  a2_ * density * 2.0 * alpha0 / c0 / sin((y-1.0)*PI/2.0);
+	  factor *= exp(-(y-1.0)*log(dt_)) * exp(-gammaln(1.0- (y- 1.0)) );
+	  BlankWeights(calclimit_, y, TRUE);
 	}
+
+// 	// output coeff_
+// 	std::cerr << "Weight factors of BDF are:" << std::endl;
+// 	for (Integer k=0; k<coeff_.size(); k++)
+// 	  std::cerr << "          w(" << k << ") = " << coeff_[k] << std::endl;
 
 	// get elements belonging to actual subdomain	
 	StdVector<Elem*> elemssd;
@@ -188,44 +188,43 @@ void NewmarkFracDamp::UpdateRHS()
 	  // map connect to PDE node numbers
 	  StdVector<Integer> connect_PDE;
 	  ptEQN_->Node2EQN(connecth, connect_PDE);
-	 
+
+// 	  std::cerr << "Mass Matrix, damping part RHS:" << std::endl << elemmat;
+// 	  std::cerr << "Connect" << connect_PDE << std::endl;
+
 	  // compute BDF
 	  GetElemSolution(solpred_, elemsol, connect_PDE);
 	  rhsvec = -elemsol * coeff_[0];
-
-	  no_int = 0; 
+	  noInt = 0; // counts how many values have allready been interpolated
 	  for (Integer i=1; i<=calclimit_; i++) {
 
-		switch (solMemoryVal_[i-1]) {
-		case TRUEVAL:
+		if ( solMemoryVal_[i-1] == TRUEVAL ) {
 		  GetElemSolution(solMemory_[i-1], elemsol, connect_PDE);
 		  rhsvec += elemsol * coeff_[i];
-		  break;
-		case LIN1PT:
-		  no_int++;
-		  GetElemSolution(solMemory_[i-1-no_int], elemsol, connect_PDE);
-		  rhsvec +=  solMemory_[i-1-no_int] * 0.5 * coeff_[i];
-		  GetElemSolution(solMemory_[i-1-no_int+1], elemsol, connect_PDE);
-		  rhsvec += solMemory_[i-1-no_int+1] * 0.5 * coeff_[i];
-		  break;
-		default:
-		  break;
 		}
+		else if ( solMemoryVal_[i-1] == LIN1PT ) {
+		  noInt++;
+		  GetElemSolution(solMemory_[i-1-noInt], elemsol, connect_PDE);
+		  rhsvec +=  solMemory_[i-1-noInt] * 0.5 * coeff_[i];
+		  GetElemSolution(solMemory_[i-1-noInt+1], elemsol, connect_PDE);
+		  rhsvec += solMemory_[i-1-noInt+1] * 0.5 * coeff_[i];
+		}
+		else
+		  Error("Something went wrong in calculation of BDF!",__FILE__,__LINE__);
 	  }
 
-	  rhsvec = elemmat * elemsol;
+	  rhsAssemble = elemmat * rhsvec;
 	  
 	  //assemble to RHS
-	  algsys_->SetElementRHS(&rhsvec[0], connect_PDE.GetPointer(),
+	  algsys_->SetElementRHS(&rhsAssemble[0], connect_PDE.GetPointer(),
 							 connect_PDE.GetSize());
 	  
 	  delete bilinear_mass;	  
 	}
-
-	PrintSolMemoryVal(actSD);
+	Info->PrintF(pdename_, "timestep: %d, BDF over %d calculated\n"
+				 , laststepcalc_, calclimit_ );
+	PrintSolMemoryVal();
   }
-  //  }
-
 }
 
 
@@ -238,19 +237,16 @@ void NewmarkFracDamp::Corrector(Vector<Double>& solnew)
 
   // store function values, reverse storing!!!!
   // solMemory_[0]=p_n, solMemory_[1]=p_(n-1)...solMemory_[fracMemory_ - 1]=p_(n-fracMemory_+1)
-  //  if ( dampType_ == FRACTIONAL ) {
-
-  solMemory_[0] = solnew - solpred_;
-
+  // no interpolation
   if (inType_ == NOTUSED) {
 	for ( Integer i=fracMemory_-1; i>=1; i-- ) {
 	  solMemory_[i] = solMemory_[i-1];
 	  solMemoryVal_[i] = solMemoryVal_[i-1];
 	}
+	solMemory_[0] = solnew - solpred_;
 	solMemoryVal_[0] = TRUEVAL;
   }
-
-  // Linear interpolation of one solution value	
+  // linear interpolation of one solution value	
   else if (inType_ == LIN1PT) {
 
 	if (laststepcalc_ <= fracMemory_) {
@@ -266,7 +262,7 @@ void NewmarkFracDamp::Corrector(Vector<Double>& solnew)
 		
 	  solMemoryVal_[0] = TRUEVAL;
 	  solMemoryVal_.insert( (solMemoryVal_.begin()+2*fracMemory_-laststepcalc_-1),LIN1PT);
-	  Info->PrintF(pdename_, "Middle section, timestep: ",laststepcalc_ );
+	  Info->PrintF(pdename_, "Middle section, timestep: %d\n",laststepcalc_ );
 	}
 	else if (laststepcalc_ >= 2*fracMemory_ ) {
 	  if ( (laststepcalc_%2)==1 ) {
@@ -280,9 +276,8 @@ void NewmarkFracDamp::Corrector(Vector<Double>& solnew)
 	  else if ( (laststepcalc_%2)==0 )
 		solMemoryVal_.insert( (solMemoryVal_.begin()+1), LIN1PT);
 	}
+	solMemory_[0] = solnew - solpred_;
   }
-  //  }
-
 }
 
 void NewmarkFracDamp::CalcParameters(Double dt)
@@ -311,7 +306,6 @@ void NewmarkFracDamp::GetElemSolution ( const Vector<Double>& sol,
   elemsol.Resize(connectPDE.GetSize());
   for (Integer eqn=0; eqn<connectPDE.GetSize(); eqn++) 
     elemsol[eqn] = sol[connectPDE[eqn]-1];
-      
 }
 
 void NewmarkFracDamp::GLWeights(Integer memory, Double y )
@@ -323,9 +317,8 @@ void NewmarkFracDamp::GLWeights(Integer memory, Double y )
    
   coeff_[0] = 1.0; // Index 0
 
-  for (Integer i=1; i <= memory; i++)
-    coeff_[i] = coeff_[i-1] * ((i-1) - (y_-1))/i;
-
+  for (Integer i=1; i <= memory; i++) // Index 1 .. memory
+    coeff_[i] = coeff_[i-1] * ((i-1) - (y-1))/i;
 }
 
 
@@ -346,37 +339,31 @@ void NewmarkFracDamp::BlankWeights(Integer memory, Double y, Boolean full)
 	  coeff_[i]= ( exp(pot* log(i-1))- 2* exp(pot* log(i))+ exp(pot* log(i+1)) )
 		/ pot;
 	// Index memory
-	coeff_[memory]= exp(-(y_-1.0)*log(fracMemory_))+ 
+	coeff_[memory]= exp(-(y-1.0)*log(fracMemory_))+ 
 	  ( exp(pot* log(fracMemory_ -1))- exp(pot* log(fracMemory_)) ) / pot;
   }
   else {
-	for (Integer i=1; i<=memory; i++)    // Index 1 .. memory
+	for (Integer i=1; i<=memory; i++) // Index 1 .. memory
 	  coeff_[i]= ( exp(pot* log(i-1))- 2* exp(pot* log(i))+ exp(pot* log(i+1)) )
 		/ pot;
   }
 }
 
-void NewmarkFracDamp::PrintSolMemoryVal(Integer actSD)
+void NewmarkFracDamp::PrintSolMemoryVal()
 {
   ENTER_FCN( "NewmarkFracDamp::PrintSolMemoryVal" );
 
-  Info->PrintF(pdename_, "Region %d, solMemory_ of timestep %d is:", actSD, laststepcalc_ );
-  std::string msg;
+  std::string msg="solMemory_ is:";
   for (Integer i=0; i<solMemoryVal_.size(); i++) {
-	switch (solMemoryVal_[i]) {
-	case NOTUSED:
+	if ( solMemoryVal_[i] == NOTUSED )
 	  msg += " N";
-	  break;
-	case TRUEVAL:
+	else if ( solMemoryVal_[i] == TRUEVAL )
 	  msg += " T";
-	  break;
-	case LIN1PT:
+	else if ( solMemoryVal_[i] ==  LIN1PT )
 	  msg += " L";
-	  break;
-	}
   }
+  msg += "\n";
   Info->PrintF(pdename_, msg.c_str() );
-
 }
 
 } // end of namespace

@@ -17,12 +17,20 @@ public:
   /*!
     \param apdename name of PDE
     \param algebraicsystem pointer to algebraic system used by PDE
+	\param ptEQN
+	\param aptgrid
+	\param aptBasePDE pointer of class from which NewmarkFracDamp is initiated
+	\param asubdomainList list of subdomains
+	\param adampingList list damping description for subdomains
+	\param afracMemory number of stored function values
+	\param ainType descriptor for interpolation of past function values
+	\param isaxi axisymmetric setup
   */
   NewmarkFracDamp (std::string apdename, BaseSystem * algebraicsystem, NodeEQN * ptEQN, 
 				   Grid * aptgrid, BasePDE * aptBasePDE, 
-				   StdVector<std::string> subdomainList,
+				   StdVector<std::string> asubdomainList,
 				   StdVector<std::string> adampingList,
-				   Integer afrac_memory, InterpolType ainType, Boolean isaxi);
+				   Integer afracMemory, InterpolType ainType, Boolean isaxi);
 
   //! deconstructor
   virtual ~NewmarkFracDamp();
@@ -60,7 +68,7 @@ private:
   void BlankWeights(Integer memory, Double y, Boolean full);
 
   //! print solMemoryVal_ in .info file
-  void PrintSolMemoryVal(Integer actSD);
+  void PrintSolMemoryVal();
 
   std::string pdename_;
 
@@ -79,7 +87,6 @@ private:
   StdVector<std::string> subdoms_;     //!< all names of subdomains
 
   // For fractional damping model
-  Double alpha0_, y_;         //!< parameter of damping model
   std::vector<Double> coeff_; //!< weights of BDF formula
   Integer fracMemory_;        //!< number of stored solution values
   Vector<Double> *solMemory_; //!< storing of solution values

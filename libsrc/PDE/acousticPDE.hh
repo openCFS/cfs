@@ -91,12 +91,15 @@ protected:
 
   Integer size_; //!< total number of unknowns (equations)
 
-  StdVector<std::string> absBCs_;        //!< list of boundaries( for absorbing BCs)
-  Boolean absorbingBCs_;                 //!< switch for absorbing boundary conditions
-  Integer fracMemory_;                   //!< number of old time steps to be saved
   StdVector<std::string> dampingList_;   //!< list of damping types for all regions
   StdVector<std::string> nonLinPDEType_; //!< list of regions with nonlinear PDE
-  InterpolType inType_;                  //!< type of interpolation used for fractional damp.
+
+  StdVector<std::string> absBCs_;        //!< list of boundaries( for absorbing BCs)
+  Boolean absorbingBCs_;                 //!< switch for absorbing boundary conditions
+
+  // for fractional damping model
+  Integer fracMemory_;                   //!< number of old time steps to be saved
+  InterpolType inType_;                  //!< type of interpolation
 
   // Postprocessing results
 

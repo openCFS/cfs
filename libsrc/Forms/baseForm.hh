@@ -64,10 +64,13 @@ public:
   //
   virtual void SetNonLinMethod(std::string atype) {;};
 
-  //
+  //! needed for fractional damping model
   virtual void SetFracDamping() {;};
 
-  //
+  //! needed for fractional damping model
+  virtual void UnsetFracDamping() {;};
+
+  //! needed for fractional damping model
   virtual Boolean IsFracDamping()
   {return isFracDamping_;}
 
@@ -106,22 +109,18 @@ public:
  
 protected:
 
-  //! Ptr to base element
-  BaseFE  * ptelem;
 
-  /// Ptr to material
-  MaterialData * ptMaterial ;
+  BaseFE  * ptelem;   //!< pointer to base element
+  MaterialData * ptMaterial ;   //!< pointer to material data
+  Boolean isaxi_;  //!< true for axisymmetric setup
 
-  Boolean isaxi_;
   //
   Vector<Double> intPoint_;
   //
   Boolean isSetIntPoint_;
 
-  //
-  Boolean isFracDamping_;
-
-  Integer dofzero_; //for multidof-handling, where one dof is zero (e.g. piezoelectric PDE)
+  Boolean isFracDamping_;   //!< if true Assemble::AssembleMatrices will retrieve an additional multiplicative factor
+  Integer dofzero_;   //!< for multidof-handling, where one dof is zero (e.g. piezoelectric PDE)
 
 };
 
