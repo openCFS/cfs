@@ -24,8 +24,11 @@ Newmark :: Newmark(std::string apdename, BaseSystem * algebraicsystem, NodeEQN *
   //check if integration parameters are defined in conf-file
   std::string analysis;
   params->Get( "type", analysis, "analysis" );
-  if(analysis != "paramIdent")
-    Info->Warning( "Newmark: Using defaults for alpha, beta and gamma!" );
+
+// Commented out the warning, since defaults are not bad at all and the 
+// average student user gets not disturbed by any warnings
+//  if(analysis != "paramIdent")
+//    Info->Warning( "Newmark: Using defaults for alpha, beta and gamma!" );
 
   Integer numEQNs = ptEQN_->GetNumEQNs();
   Integer dofs = ptEQN_->GetNumDofsPerEQN();

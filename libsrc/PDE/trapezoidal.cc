@@ -14,8 +14,10 @@ namespace CoupledField
 
   gamma_ = 1;
 
+  // Commented out the warning, since defaults are not bad at all and the 
+  // average student user gets not disturbed by any warnings
   //check if integration parameters are defined in conf-file
-  Info->Warning( "Trapezoidal: Using defaults for gamma!" );
+  //Info->Warning( "Trapezoidal: Using defaults for gamma!" );
 
   Integer numEQNs = ptEQN_->GetNumEQNs();
   Integer dofs = ptEQN_->GetNumDofsPerEQN();
