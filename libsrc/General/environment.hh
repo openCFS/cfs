@@ -60,7 +60,7 @@ typedef Double (*pFncWith1Var)(const Double);
   std::ostream& operator << (std::ostream & outStr, std::vector<Integer> xOut);
 
   // Damping type
-  enum DampingType{NONE=0, RAYLEIGH=1, FRACTIONAL=2};
+  enum DampingType{NONE=0, RAYLEIGH=1, FRACTIONAL=2, ABCDamp=3};
 
   // Enumeration for Input Coupling types
   //   COORD = Coupling via coordinate displacement

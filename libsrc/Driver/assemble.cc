@@ -42,6 +42,10 @@ namespace CoupledField
       for (int j=0; j<integrators_[i]->size(); j++)
 	delete (*integrators_[i])[j];
 
+    for (int i=0; i<surfintegrators_.size();i++)
+      for (int j=0; j<surfintegrators_[i]->size(); j++)
+	delete (*surfintegrators_[i])[j];
+
     for (int i=0; i<rhsIntegrators_.size();i++)
       for (int j=0; j<rhsIntegrators_[i]->size(); j++)
 	delete (*rhsIntegrators_[i])[j];
@@ -64,6 +68,22 @@ namespace CoupledField
     Info->Error(errOut, __FILE__, __LINE__);
   }
   
+  Integer Assemble::SurfDomIndex(const std::string & surfDomName)
+  {
+#ifdef TRACE
+    (*trace) << "entering Assemble::SurfDomIndex " << std::endl;
+#endif
+
+    for (int i=0; i < surfdoms_.size();i++)
+      if (surfDomName == surfdoms_[i])
+	return i;
+    
+  
+    std::string errOut;
+    errOut = "Surface-Domain " + surfDomName + " not defined!";
+    Info->Error(errOut, __FILE__, __LINE__);
+  }
+
 
   void Assemble::GetElemCoords(const Vector<Integer> connect, 
 			       Matrix<Double> &coordMat, const Integer level)
@@ -191,6 +211,69 @@ namespace CoupledField
 	      }
 	    
 
+	  }
+      }
+
+     //assemble matrices for surface integrators
+     for (Integer actDom=0; actDom < surfdoms_.size(); actDom++)
+      {	
+	std::vector<Elem*> elemssd;
+	elemssd=ptBCs_->getFacesBC(surfdoms_[actDom],level);
+
+	for (int actEl=0; actEl< elemssd.size(); actEl++)
+	  {
+	    BaseFE * ptEl = elemssd[actEl]->ptElem;
+	    Vector<Integer> connecth = elemssd[actEl]->connect;
+
+
+	    Matrix<Double> ptCoord;
+	    GetElemCoords(connecth, ptCoord, level);
+
+
+	    // map connect to PDE node numbers
+	    Vector<Integer> connect_PDE;
+	    Mesh2PDENode(connect_PDE, connecth, *mesh2PDENode_);
+
+
+	    Matrix<Double> elSol;
+
+	    // this matrix is nonlinear and, therefore, has to be reassembled next time
+	    if (oneIntIsNonlin || firstTime)
+	      // fetch solution at element nodes
+	      GetSolOfElement(elSol, connect_PDE);
+	      
+	    
+	    // =========================================================================
+	    //                             assemble matrices
+	    // =========================================================================
+
+	    for(Integer actInteg=0; actInteg < surfintegrators_[actDom]->size(); actInteg++)
+	      {
+		IntegratorDescriptor * actDescriptor =
+		  (*surfintegrators_[actDom])[actInteg];
+
+
+		// assemble only if nonlinear or first time
+		if (reassembleMat[actDescriptor->DestMat()] || firstTime)
+		  {
+		    actDescriptor->GetIntegrator()->SetElemPtr(ptEl);
+		    enum MatrixType destMat = actDescriptor->DestMat();
+
+		    // this matrix is nonlinear and, therefore, has to be reassembled next time
+		    if (actDescriptor->IsNonLin())
+		      {
+			oneIntIsNonlin = TRUE;
+			reassembleMat[actDescriptor->DestMat()] = TRUE;
+		
+			actDescriptor->GetIntegrator()->SetActElemSol(elSol);
+		      }
+
+		    actDescriptor->GetIntegrator()->CalcElementMatrix(ptCoord, elemmat);
+		    
+		    algsys_->SetElementMatrix(elemmat.getinarray(), connect_PDE.get(), 
+					      connect_PDE.size(), destMat); 
+		  }		
+	      }
 	  }
       }
 
@@ -347,12 +430,14 @@ GetBCDof(const std::string dofString)
   void Assemble::SetGeneralParams(const std::string & pdename, 
 				  const Integer dofsPerNode,
 				  const Integer numPDENodes, 
-				  const std::vector<std::string> subdoms)
+				  const std::vector<std::string> subdoms,
+				  const std::vector<std::string> surfdoms)
   {
     pdename_     = pdename;
     dofsPerNode_ = dofsPerNode;
     numPDENodes_ = numPDENodes;
     subdoms_     = subdoms;
+    surfdoms_    = surfdoms;
 
 
 
@@ -374,10 +459,12 @@ GetBCDof(const std::string dofString)
 
     // for every domain, we need an own integrator list ==========
     integrators_.resize(subdoms_.size());
+    surfintegrators_.resize(surfdoms_.size());
     rhsIntegrators_.resize(subdoms_.size());
     for (int i=0; i<subdoms_.size();i++)
       {
 	integrators_[i] = new std::vector<IntegratorDescriptor *>;
+	surfintegrators_[i] = new std::vector<IntegratorDescriptor *>;
 	rhsIntegrators_[i] = new std::vector<BaseIntDescriptor *>;
       }
   }
@@ -511,6 +598,24 @@ void Assemble::AddRhsIntegrator(BaseForm * integrator, const std::string & subDo
     integrators_[SubDomIndex(subDomName)]->push_back(actID);
   }
 
+  /// define integrators
+  void StaticAssemble::AddSurfIntegrator(BaseForm * integrator, const std::string & subDomName,
+					const enum MatrixType destinationMatrix, const Integer nonLin)
+  {
+#ifdef TRACE
+    (*trace) << "entering StaticAssemble::AddSurfIntegrator " << std::endl;
+#endif
+    MatrixType actMatType = destinationMatrix;
+    
+    if (actMatType == STIFFNESS)
+      actMatType = SYSTEM;
+
+    if (actMatType !=  SYSTEM)
+      return;
+
+    IntegratorDescriptor * actID = new IntegratorDescriptor(integrator, actMatType, nonLin);
+    surfintegrators_[SurfDomIndex(subDomName)]->push_back(actID);
+  }
 
 
 
@@ -564,7 +669,19 @@ void Assemble::AddRhsIntegrator(BaseForm * integrator, const std::string & subDo
     integrators_[SubDomIndex(subDomName)]->push_back(actID);
   }
 
+  /// define integrators
+  void TransientAssemble::AddSurfIntegrator(BaseForm * integrator, const std::string & subDomName,
+					const enum MatrixType destinationMatrix, const Integer nonLin)
+  {
+#ifdef TRACE
+    (*trace) << "entering TransientAssemble::AddSurfIntegrator " << std::endl;
+#endif
+    if (destinationMatrix == SYSTEM)
+      Info->Error("In transient assembling, no SYSTEM matrix may be defined directly", __FILE__, __LINE__);
 
+    IntegratorDescriptor * actID = new IntegratorDescriptor(integrator, destinationMatrix, nonLin);
+    surfintegrators_[SurfDomIndex(subDomName)]->push_back(actID);
+  }
 
   /// define integrators
   void TransientAssemble::AddIntegrator(IntegratorDescriptor * actID, const std::string & subDomName)

@@ -41,12 +41,6 @@ AcousticPDE::AcousticPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, Fil
   sol_.reshape(dofspernode_, numPDENodes_);
   sol_.init();
 
-  with_absBCs_=FALSE;
-  std::string absBCs="no";
-  conf->ifget("absorbingBCs",absBCs,pdename_);
-  if (absBCs == "yes")
-      with_absBCs_ = TRUE;
-
   with_fracdamping_=FALSE;
   std::string dampstr;
   conf->ifget("damping",dampstr,pdename_);
@@ -59,7 +53,16 @@ AcousticPDE::AcousticPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, Fil
        damping_type_ = FRACTIONAL;
     }
 
+  with_absBCs_=FALSE;
+  conf->getliststr("bnd_for_absBCs",bnd_absBCs_,pdename_); 
+  if (bnd_absBCs_.size() > 0)
+    {
+      with_absBCs_ = TRUE;
+      if ( damping_type_ == NONE) damping_type_ = ABCDamp;
+    }
+
   ReadBCs(pdename_);
+
 
   if (analysistype_==HARMONIC)
     {
@@ -73,7 +76,7 @@ AcousticPDE::AcousticPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, Fil
   
 
   // set analysis parameters
-  assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, subdoms_);
+  assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, subdoms_, bnd_absBCs_);
   assemble_->SetGraphType(NODEGRAPH);
   assemble_->SetMesh2PDENode(&Mesh2PDENode_);
   assemble_->SetMatrixType(RSCALAR);
@@ -112,6 +115,23 @@ AcousticPDE::AcousticPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, Fil
       Double coeffmass  = density*density/compressibility;
       BaseForm * bilinear_mass  = new MassInt(coeffmass, dofspernode_, isaxi_);
       assemble_->AddIntegrator(bilinear_mass, subdoms_[actSD], MASS, nonLin);
+    }
+
+  //surface-integration
+  // BEGIN DAMPING MATRIX PART: Absorbing boundaries
+  if (with_absBCs_ && analysistype_!=HARMONIC) 
+    {  
+      for (Integer actSD = 0; actSD < bnd_absBCs_.size(); actSD++)
+	{
+	  //currently hard-coded!!
+	  Double density = materialData_[0].GetDensity();
+	  Double compressibility = materialData_[0].GetCompressibility();
+	  Double coeffdamp = density/((sqrt(compressibility/density)));
+
+	  BaseForm * bilinear_damp = new MassInt(coeffdamp,dofspernode_, isaxi_);
+	  assemble_->AddSurfIntegrator(bilinear_damp,  bnd_absBCs_[actSD], DAMPING, nonLin);
+	}
+	
     }
   
   }
