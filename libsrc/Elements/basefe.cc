@@ -73,6 +73,8 @@ void BaseFE :: GetGlobDerivShFncAtIp(Matrix<Double> & Deriv,
 {
   ENTER_FCN( "BaseFE::GetGlobDerivShFncAtIp" );
 
+  std::string warnMsg;
+
   //  Deriv.Resize(NumNodes_,Dim_);
   Matrix<Double> JInv;
   Double JInvDet;
@@ -85,12 +87,12 @@ void BaseFE :: GetGlobDerivShFncAtIp(Matrix<Double> & Deriv,
   JInv.Determinant(JInvDet);
   jacDet = 1.0 / JInvDet;
 
-  if ( jacDet < 0.0 ) {
-    std::string msg = "Coordinates: ";
-    Info->PrintMatrix(msg, CornerCoords);
-    std::cout << "Jdet = " << jacDet << std::endl;
-    Error( "Negative Jacobian determinante ", __FILE__, __LINE__ );
-  }
+ if ( jacDet < 0.0 ){
+      warnMsg = "BaseFE:GetGlobDerivShFncAtIp: Negative Jacobian Determinant!\n";
+      warnMsg += "The coordinates of the element are:\n";
+      warnMsg += CoordMatrix2String(CornerCoords);
+      Warning(warnMsg.c_str(), __FILE__, __LINE__ );     
+    }
 
 }
 
@@ -144,13 +146,19 @@ Double BaseFE :: CalcJacobianDet(const Vector<Double> & LCoord,
 {
   ENTER_FCN( "BaseFE::CalcJacobianDet" );
 
+  std::string warnMsg;
   Matrix<Double> J;
   Double jacDet;
 
   CalcJacobian( J, LCoord, CornerCoords );
   J.Determinant(jacDet);
-  if ( jacDet < 0.0 )
-    Error( "Negative Jacobian determinante ", __FILE__, __LINE__ );
+
+  if ( jacDet < 0.0 ){
+      warnMsg = "BaseFE:CalcJacobianDet: Negative Jacobian Determinant!\n";
+      warnMsg += "The coordinates of the element are:\n";
+      warnMsg += CoordMatrix2String(CornerCoords);
+      Warning(warnMsg.c_str(), __FILE__, __LINE__ );     
+    }
   return jacDet;
 }
 
@@ -160,6 +168,7 @@ Double BaseFE :: CalcJacobianDetAtIp(const Integer ip,
   ENTER_FCN( "BaseFE::CalcJacobianDetAtIp" );
 
   Matrix<Double> J;
+  std::string warnMsg;
 
   CalcJacobianAtIp( J, ip, CornerCoords);
 
@@ -172,17 +181,25 @@ Double BaseFE :: CalcJacobianDetAtIp(const Integer ip,
       normal[2]= J[0][0]* J[1][1]- J[1][0]*J[0][1];
 
       Double detJ = sqrt(sqr(normal[0])+sqr(normal[1])+sqr(normal[2]));
-      if ( detJ < 0.0 )
-	Error( "Negative Jacobian determinante ", __FILE__, __LINE__ );
 
+      if ( detJ < 0.0 ){
+	warnMsg = "BaseFE:CalcJacobianDet: Negative Jacobian Determinant!\n";
+	warnMsg += "The coordinates of the element are:\n";
+	warnMsg += CoordMatrix2String(CornerCoords);
+	Warning(warnMsg.c_str(), __FILE__, __LINE__ );     
+      }
       return detJ;
     }
 
   else  {
     Double jacDet ;
     J.Determinant(jacDet);
-    if ( jacDet < 0.0 )
-      Error( "Negative Jacobian determinante ", __FILE__, __LINE__ );     
+    if ( jacDet < 0.0 ){
+      warnMsg = "BaseFE:CalcJacobianDetAtIp: Negative Jacobian Determinant!\n";
+      warnMsg += "The coordinates of the element are:\n";
+      warnMsg += CoordMatrix2String(CornerCoords);
+      Warning(warnMsg.c_str(), __FILE__, __LINE__ );     
+    }
     return jacDet;
   }  
 }
@@ -329,5 +346,19 @@ void BaseFE::GetGlobalEdgeIndices(StdVector<Integer> & globEdgeIndex,
 			   pDENodes[ edgeVertices_[actEdge][1]]);
 }
 
+std::string BaseFE::CoordMatrix2String(const Matrix<Double> & coordMat)
+{
+  std::string ret;
+  for (Integer j=0; j<coordMat.GetSizeCol(); j++) {
+    ret += "(";
+    for (Integer i=0; i<coordMat.GetSizeRow()-1; i++) {
+      ret += Info->GenStr(coordMat[i][j]);
+      ret += ", ";
+    }
+    ret += Info->GenStr(coordMat[coordMat.GetSizeRow()-1][j]);
+    ret +=")\n";
+      }
+  return ret;
+}
 
 } // end namespace CoupledField
