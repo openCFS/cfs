@@ -408,8 +408,14 @@ void PiezoPDE::ReadStoreResults() {
       Info->PrintF( pdename_, " %s", calcStress_[k].c_str() );
     }
   }
+  
 
-}
+    //check for charge computation
+    params->GetList( "region", chargeNeighborRegion_, pdename_, "charge" );
+    params->GetList( "element", calcCharge_, pdename_, "charge" );
+
+  }
+
 #endif
 
 // ************************************************************
@@ -425,27 +431,32 @@ void PiezoPDE::PostProcess(const Integer level) {
   if (calcStress_.GetSize() !=0 ) {
 
     //get the correct bilinearform
-    ShortInt stressDim;
+    ShortInt stressElecDim, stressDim, elecDim;
     Vector<Double> intPoint;
 
 #ifndef XMLPARAMS 
-      if (subType_ == "plainStrain") {
+      if (subType_ == "plainStrain") 
 #else
-      if (subType_ == "planeStrain") {
+      if (subType_ == "planeStrain") 
 #endif
-	stressDim = 3;
-	intPoint.Resize(2); 
-	intPoint.Init(0);
-      }
+	{
+	  
+	  stressDim = 3;
+	  elecDim   = 2;
+	  intPoint.Resize(2); 
+	  intPoint.Init(0);
+	}
 
       else if (subType_ == "axi") {
 	stressDim = 4;
+	elecDim   = 2;
 	intPoint.Resize(2); 
 	intPoint.Init(0);
       }
 
       else if (subType_ == "3d") {
 	stressDim = 6;
+	elecDim   = 3;
 	intPoint.Resize(3); 
 	intPoint.Init(0);
       }
@@ -462,8 +473,10 @@ void PiezoPDE::PostProcess(const Integer level) {
       Stress_.SetPtrEQNData(eqnData_, ptgrid_, actlevel_);
       Stress_.Init(0);
       
-      Vector<Double> elemStress;
+      Vector<Double> elemElecStress, elemStress;
+      elemElecStress.Resize(stressDim+elecDim);
       elemStress.Resize(stressDim);
+      elemElecStress.Init(0);
       elemStress.Init(0);
       
       // loop over all subdomains
@@ -512,12 +525,20 @@ void PiezoPDE::PostProcess(const Integer level) {
 	  stress->SetIntPoint(intPoint);
 
 	  //calculates the stress
-	  stress->CalcStressVec(elemStress,1,ptCoord);
-	  
+	  stress->CalcStressVec(elemElecStress,1,ptCoord);
+	  elemStress = elemElecStress.Part(0,stressDim-1);
 	  Stress_.SetElemResult(pdeElem-1, elemStress);
 	}
       }
-    }
+  }
+
+  //calc charges
+  if (calcCharge_.GetSize() !=0 ) {
+    for (Integer i=0; i<calcCharge_.GetSize(); i++)
+      std::cout << "Calc charge for:" << calcCharge_[i] << std::endl;
+  }
+  
+
           
   }
 

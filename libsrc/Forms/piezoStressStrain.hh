@@ -90,60 +90,60 @@ protected:
 
 
 
-// // linear plane strain stress
-// class PiezoStressStrainPlaneStrain : public PiezoStressStrain
-// {
-// public:
-//   /// Constructor
-//   PiezoStressStrainPlaneStrain(BaseFE * aptelem, MaterialData & matData);
+//linear plane strain stress
+class PiezoStressStrainPlaneStrain : public PiezoStressStrain
+{
+public:
+  /// Constructor
+  PiezoStressStrainPlaneStrain(BaseFE * aptelem, MaterialData & matData);
 
-//   /// Constructor
-//   PiezoStressStrainPlaneStrain(MaterialData & matData);
+  /// Constructor
+  PiezoStressStrainPlaneStrain(MaterialData & matData);
   
-//   /// Destructor
-//   virtual ~PiezoStressStrainPlaneStrain();  
+  /// Destructor
+  virtual ~PiezoStressStrainPlaneStrain();  
   
-// protected:  
-//   /// returns D - matrix (material matrix)
-//   virtual void calcDMat(Matrix<Double> & dMat);
+protected:  
+  /// returns D - matrix (material matrix)
+  virtual void calcDMat(Matrix<Double> & dMat);
 
-//   /// returns nr. of degrees of freedom
-//   virtual Integer getNrDofs(){return 3;};  
+  /// returns nr. of degrees of freedom
+  virtual Integer getNrDofs(){return 3;};  
 
-//   /// returns the size of the material d-matrix
-//   virtual Integer getDimD(){return 5;};
+  /// returns the size of the material d-matrix
+  virtual Integer getDimD(){return 5;};
 
-//  /// returns nr. of stress components
-//  virtual Integer getStressComp() { return 3;};  
-// };
+ /// returns nr. of stress components
+ virtual Integer getStressComp() { return 3;};  
+};
   
 
-// // linear stress for axisymmetric case
-// class PiezoStressStrainAxi : public PiezoStressStrain
-// {
-// public:
-//   /// Constructor
-//   PiezoStressStrainAxi(BaseFE * aptelem, MaterialData & matData);
+//linear stress for axisymmetric case
+class PiezoStressStrainAxi : public PiezoStressStrain
+{
+public:
+  /// Constructor
+  PiezoStressStrainAxi(BaseFE * aptelem, MaterialData & matData);
 
-//   /// Constructor
-//   PiezoStressStrainAxi(MaterialData & matData);
+  /// Constructor
+  PiezoStressStrainAxi(MaterialData & matData);
   
-//   /// Destructor
-//   virtual ~PiezoStressStrainAxi();  
+  /// Destructor
+  virtual ~PiezoStressStrainAxi();  
   
-// protected:  
-//   /// returns D - matrix (material matrix)
-//   virtual void calcDMat(Matrix<Double> & dMat);
+protected:  
+  /// returns D - matrix (material matrix)
+  virtual void calcDMat(Matrix<Double> & dMat);
 
-//   /// returns nr. of degrees of freedom
-//   virtual Integer getNrDofs(){return 3;};  
+  /// returns nr. of degrees of freedom
+  virtual Integer getNrDofs(){return 3;};  
 
-//   /// returns the size of the material d-matrix
-//   virtual Integer getDimD(){return 6;};
+  /// returns the size of the material d-matrix
+  virtual Integer getDimD(){return 6;};
 
-//  /// returns nr. of stress components
-//  virtual Integer getStressComp() { return 4;};  
-// };
+ /// returns nr. of stress components
+ virtual Integer getStressComp() { return 4;};  
+};
   
 
 } //end namespace

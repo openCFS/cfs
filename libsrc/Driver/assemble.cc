@@ -49,9 +49,6 @@ namespace CoupledField
   }
 
 
-
-
-
   Assemble::~Assemble()
   {
     ENTER_FCN( "Assemble::~Assemble" );
@@ -264,91 +261,94 @@ namespace CoupledField
      //assemble matrices for surface integrators
      for (Integer actDom=0; actDom < surfdoms_.GetSize(); actDom++)
       {	
-	StdVector<Elem*> elemssd;
-	elemssd=ptBCs_->getFacesBC(surfdoms_[actDom],level);
-
-	for (int actEl=0; actEl< elemssd.GetSize(); actEl++)
-	  {
-	    BaseFE * ptEl = elemssd[actEl]->ptElem;
-	    StdVector<Integer> connecth = elemssd[actEl]->connect;
-
-
-	    Matrix<Double> ptCoord;
-	    GetElemCoords(connecth, ptCoord, level);
-
-
-	    // map connect to PDE node numbers
-	    StdVector<Integer> connect_PDE;
-	    ptEQN_->Node2EQN(connecth, connect_PDE);
-
-	    Matrix<Double> elSol;
-
-	    // this matrix is nonlinear and, therefore, has to be reassembled next time
-	    if (oneIntIsNonlin_ || firstTime_)
-	      // fetch solution at element nodes
-	      //GetSolOfElement(elSol, connect_PDE);
-	      sol_->GetElemSolutionAsMatrix(elSol, connecth);
+	//check is necessary, because the surface-integrator could also be a RHS-Src integrator
+	if (surfintegrators_[actDom]->GetSize()) {	
+	  StdVector<Elem*> elemssd;
+	  elemssd=ptBCs_->getFacesBC(surfdoms_[actDom],level);
+	  
+	  for (int actEl=0; actEl< elemssd.GetSize(); actEl++)
+	    {
+	      BaseFE * ptEl = elemssd[actEl]->ptElem;
+	      StdVector<Integer> connecth = elemssd[actEl]->connect;
 	      
-	    
-	    // ================================================================
-	    //                             assemble matrices
-	    // ================================================================
-
-	    for(Integer actInteg=0; actInteg < surfintegrators_[actDom]->GetSize(); actInteg++)
-	      {
-		IntegratorDescriptor * actDescriptor =
-		  (*surfintegrators_[actDom])[actInteg];
-
-
-		// assemble only if nonlinear or first time
-		if (reassembleMat_[actDescriptor->DestMat()] || firstTime_)
-		  {
-		    actDescriptor->GetIntegrator()->SetElemPtr(ptEl);
+	      
+	      Matrix<Double> ptCoord;
+	      GetElemCoords(connecth, ptCoord, level);
+	      
+	      
+	      // map connect to PDE node numbers
+	      StdVector<Integer> connect_PDE;
+	      ptEQN_->Node2EQN(connecth, connect_PDE);
+	      
+	      Matrix<Double> elSol;
+	      
+	      // this matrix is nonlinear and, therefore, has to be reassembled next time
+	      if (oneIntIsNonlin_ || firstTime_)
+		// fetch solution at element nodes
+		//GetSolOfElement(elSol, connect_PDE);
+		sol_->GetElemSolutionAsMatrix(elSol, connecth);
+	      
+	      
+	      // ================================================================
+	      //                             assemble matrices
+	      // ================================================================
+	      
+	      for(Integer actInteg=0; actInteg < surfintegrators_[actDom]->GetSize(); actInteg++)
+		{
+		  IntegratorDescriptor * actDescriptor =
+		    (*surfintegrators_[actDom])[actInteg];
+		  
+		  
+		  // assemble only if nonlinear or first time
+		  if (reassembleMat_[actDescriptor->DestMat()] || firstTime_)
+		    {
+		      actDescriptor->GetIntegrator()->SetElemPtr(ptEl);
 #ifdef USE_OLAS
-		    FEMatrixType destMat = actDescriptor->DestMat();
+		      FEMatrixType destMat = actDescriptor->DestMat();
 #else
-		    enum MatrixType destMat = actDescriptor->DestMat();
+		      enum MatrixType destMat = actDescriptor->DestMat();
 #endif
-
-		    // this matrix is nonlinear and, therefore, has to be reassembled next time
-		    if (actDescriptor->IsNonLin())
-		      {
-			oneIntIsNonlin_ = TRUE;
-			reassembleMat_[actDescriptor->DestMat()] = TRUE;
-			actDescriptor->GetIntegrator()->SetActElemSol(elSol);
-		      }
-
-		    actDescriptor->GetIntegrator()->CalcElementMatrix(ptCoord, elemmat);
-		    if (analysisType_ ==HARMONIC)
-		      {
-			TransformMatrix2Harmonic(harmonicVec,elemmat,
-						 actDescriptor->GetOrigMatrixType());
-			algsys_->SetElementMatrix(&harmonicVec[0], connect_PDE.GetPointer(), 
+		      
+		      // this matrix is nonlinear and, therefore, has to be reassembled next time
+		      if (actDescriptor->IsNonLin())
+			{
+			  oneIntIsNonlin_ = TRUE;
+			  reassembleMat_[actDescriptor->DestMat()] = TRUE;
+			  actDescriptor->GetIntegrator()->SetActElemSol(elSol);
+			}
+		      
+		      actDescriptor->GetIntegrator()->CalcElementMatrix(ptCoord, elemmat);
+		      if (analysisType_ ==HARMONIC)
+			{
+			  TransformMatrix2Harmonic(harmonicVec,elemmat,
+						   actDescriptor->GetOrigMatrixType());
+			  algsys_->SetElementMatrix(&harmonicVec[0], connect_PDE.GetPointer(), 
+						    connect_PDE.GetSize(), destMat);
+			}
+		      else
+			algsys_->SetElementMatrix(elemmat.GetDataPointer(), connect_PDE.GetPointer(), 
 						  connect_PDE.GetSize(), destMat);
-		      }
-		    else
-		      algsys_->SetElementMatrix(elemmat.GetDataPointer(), connect_PDE.GetPointer(), 
-					      connect_PDE.GetSize(), destMat);
-
-		    if (actDescriptor->GetSecondaryMat()  != NOTYPE )
-		      {
-			elemmat *= actDescriptor->GetSecMatFac();
-			if (analysisType_ == HARMONIC)
-			  {
-			    TransformMatrix2Harmonic(harmonicVec,elemmat,
-						     actDescriptor->GetOrigSecMatrixType());
-			    algsys_->SetElementMatrix(&harmonicVec[0], connect_PDE.GetPointer(), 
-						      connect_PDE.GetSize(), destMat);
-			  }
-			else
-			  algsys_->SetElementMatrix(elemmat.GetDataPointer(), connect_PDE.GetPointer(), 
-						    connect_PDE.GetSize(), actDescriptor->GetSecondaryMat()); 
-		      }
-		  }		
-	      }
-	  }
+		      
+		      if (actDescriptor->GetSecondaryMat()  != NOTYPE )
+			{
+			  elemmat *= actDescriptor->GetSecMatFac();
+			  if (analysisType_ == HARMONIC)
+			    {
+			      TransformMatrix2Harmonic(harmonicVec,elemmat,
+						       actDescriptor->GetOrigSecMatrixType());
+			      algsys_->SetElementMatrix(&harmonicVec[0], connect_PDE.GetPointer(), 
+							connect_PDE.GetSize(), destMat);
+			    }
+			  else
+			    algsys_->SetElementMatrix(elemmat.GetDataPointer(), connect_PDE.GetPointer(), 
+						      connect_PDE.GetSize(), actDescriptor->GetSecondaryMat()); 
+			}
+		    }		
+		}
+	    }
+	}
       }
-
+     
      firstTime_ = FALSE;
   }
 
@@ -376,7 +376,8 @@ namespace CoupledField
 
     Vector<Double> harmVec;
 
-     for (Integer actDom=0; actDom <  subdoms_.GetSize(); actDom++)
+    //add the volume sources
+    for (Integer actDom=0; actDom <  subdoms_.GetSize(); actDom++)
       {	
 	if (rhsSrcIntegrators_[actDom]->GetSize())
 	  {
@@ -426,6 +427,59 @@ namespace CoupledField
 	      }
 	  }
       }
+
+    //add the surface sources
+    for (Integer actSurf=0; actSurf <  surfdoms_.GetSize(); actSurf++)
+      {	
+	if (rhsSrcSurfIntegrators_[actSurf]->GetSize())
+	  {
+	    StdVector<Elem*> elemssd;
+	    elemssd=ptBCs_->getFacesBC(surfdoms_[actSurf],level);
+	    
+	    Double val_tfunc = 1.0;
+	    Double valPhase = 0.0;
+	    if (analysisType_ == HARMONIC) 
+	      valPhase = rhsSrcSurfPhase_[actSurf];
+	    else {
+	      if (ptTimeFunc_->GetmaxTimeFnc() > 0 )
+		val_tfunc=ptTimeFunc_->TimeFuncAtTime(time,fncname_rhsSurf_[actSurf]);
+	    }
+
+	    for (Integer actEl=0; actEl< elemssd.GetSize(); actEl++)
+	      {	       
+		BaseFE * ptEl = elemssd[actEl]->ptElem;
+		StdVector<Integer> connecth = elemssd[actEl]->connect;
+		
+		Matrix<Double> ptCoord;
+		GetElemCoords(connecth, ptCoord, level);
+	    
+		// map connect to PDE node numbers
+		StdVector<Integer> connect_PDE;
+		ptEQN_->Node2EQN(connecth, connect_PDE);
+		for(Integer actRhsInt=0; actRhsInt < rhsSrcSurfIntegrators_[actSurf]->GetSize(); actRhsInt++)
+		  {
+		    BaseIntDescriptor * actRhsID = (*rhsSrcSurfIntegrators_[actSurf])[actRhsInt];
+		    
+		    actRhsID->GetIntegrator()->SetElemPtr(ptEl);
+		    
+		    Vector<Double> elemVec;
+		    actRhsID->GetIntegrator()->CalcElemVector(ptCoord, elemVec);
+		    
+		    if (analysisType_ == HARMONIC) {
+		      TransformVector2Harmonic(harmVec,elemVec,valPhase);
+		      algsys_->SetElementRHS(&harmVec[0], connect_PDE.GetPointer(), 
+					     connect_PDE.GetSize());
+		      }
+		    else {
+		      if (val_tfunc != 1.0)
+			elemVec *= val_tfunc;
+		      algsys_->SetElementRHS(&elemVec[0], connect_PDE.GetPointer(), connect_PDE.GetSize());
+		    }
+		  }
+	      }
+	  }
+      }
+
   }
 
 
@@ -770,18 +824,21 @@ namespace CoupledField
     integrators_.Resize(subdoms_.GetSize());
     rhsSrcIntegrators_.Resize(subdoms_.GetSize());
     fncname_rhs_.Resize(subdoms_.GetSize());
+    rhsIntegrators_.Resize(subdoms_.GetSize());
+    for (int i=0; i<subdoms_.GetSize();i++) {
+      integrators_[i]      = new StdVector<IntegratorDescriptor *>;
+      rhsSrcIntegrators_[i]     = new StdVector<BaseIntDescriptor *>;
+      rhsIntegrators_[i]        = new StdVector<BaseIntDescriptor *>;
+    }
 
     surfintegrators_.Resize(surfdoms_.GetSize());
-    rhsIntegrators_.Resize(subdoms_.GetSize());
-    for (int i=0; i<subdoms_.GetSize();i++)
-      {
-	integrators_[i] = new StdVector<IntegratorDescriptor *>;
-	rhsSrcIntegrators_[i] = new StdVector<BaseIntDescriptor *>;
-	rhsIntegrators_[i] = new StdVector<BaseIntDescriptor *>;
-      }
-
-    for (int i=0; i<surfdoms_.GetSize();i++)
-      surfintegrators_[i] = new StdVector<IntegratorDescriptor *>;
+    rhsSrcSurfIntegrators_.Resize(surfdoms_.GetSize());
+    fncname_rhsSurf_.Resize(surfdoms_.GetSize());
+    for (int i=0; i<surfdoms_.GetSize();i++) {
+      surfintegrators_[i]       = new StdVector<IntegratorDescriptor *>;
+      rhsSrcSurfIntegrators_[i] = new StdVector<BaseIntDescriptor *>;
+    }
+    
   }
   
 
@@ -894,6 +951,33 @@ namespace CoupledField
     rhsSrcIntegrators_[SubDomIndex(subDomName)]->Push_back(actRhsID);
     rhsSrcPhase_[SubDomIndex(subDomName)] = phaseval;
   }
+
+
+  //needed for static and transient analysis
+  void Assemble::AddRhsSrcSurfIntegrator(BaseForm * integrator,
+				     const std::string & subDomName, 
+				     const std::string fncname,
+				     const Integer nonLin)
+  {
+    ENTER_FCN( "Assemble::AddRhsSrcSurfIntegrator" );
+    
+    BaseIntDescriptor * actRhsID = new  BaseIntDescriptor(integrator, nonLin);
+    rhsSrcSurfIntegrators_[SurfDomIndex(subDomName)]->Push_back(actRhsID);
+    fncname_rhsSurf_[SurfDomIndex(subDomName)] = fncname;
+  }
+
+  //needed for harmonic analysis
+  void Assemble::AddRhsSrcSurfIntegrator(BaseForm * integrator,
+				     const std::string & subDomName, 
+				     const Double phaseval,
+				     const Integer nonLin)
+  {
+    ENTER_FCN( "Assemble::AddRhsSrcSurfIntegrator" );
+    BaseIntDescriptor * actRhsID = new  BaseIntDescriptor(integrator, nonLin);
+    rhsSrcSurfIntegrators_[SurfDomIndex(subDomName)]->Push_back(actRhsID);
+    rhsSrcSurfPhase_[SurfDomIndex(subDomName)] = phaseval;
+  }
+
 
   // ==========================================================
   // STATIC ANALYSIS

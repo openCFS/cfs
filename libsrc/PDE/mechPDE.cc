@@ -250,6 +250,28 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 #else
     params->GetList( "dof", homDirichDof_  , pdename_, "dirichletHom" );  
     params->GetList( "dof", inhomDirichDof_, pdename_, "dirichletInhom" );  
+
+    //check for pressure loads
+    params->GetList( "name"    , pressSurf_ , pdename_, "pressure" );
+    params->GetList( "value"   , pressVals_ , pdename_, "pressure" );
+    params->GetList( "dynamics", pressFnc_  , pdename_, "pressure" );
+
+    // Check consistency
+    if ( pressSurf_.GetSize() != pressVals_.GetSize() )
+      {
+	std::string errmsg = "PressureLoads: ";
+	errmsg += "#name = " + Info->GenStr(pressSurf_.GetSize());
+	errmsg += ", #value = " + Info->GenStr(pressVals_.GetSize());
+	errmsg += ", #dynamics = " + pressFnc_.GetSize() + '\n';
+	Info->Error( errmsg, __FILE__, __LINE__ );
+      }
+
+    // We need not have as many function/filenames as pressureloads!
+    for ( Integer k = pressFnc_.GetSize(); k < pressSurf_.GetSize(); k++ )
+      {
+	pressFnc_.Push_back( "none" );
+      }
+
 #endif
 
     //check for b.c. input data
@@ -272,10 +294,10 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 
     
     // initialize eqation data object
-    eqnData_  = new BlockNodeEQN(ptgrid_, ptBCs_, subdoms_, 
-				 actlevel_, dofspernode_);
-    //eqnData_  = new ScalarBlockEQN(ptgrid_, ptBCs_, subdoms_, 
-    //		   actlevel_, dofspernode_);
+    //    eqnData_  = new BlockNodeEQN(ptgrid_, ptBCs_, subdoms_, 
+    //				 actlevel_, dofspernode_);
+    eqnData_  = new ScalarBlockEQN(ptgrid_, ptBCs_, subdoms_, 
+				   actlevel_, dofspernode_);
 
     eqnData_->SetHomoDirichletBCs(bcs_hd_, homDirichDof_);
     eqnData_->CalcMapping();
@@ -295,7 +317,9 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 
     // set assemble parameters
     assemble_->SetPtr2EQNData(eqnData_); 
-    assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, subdoms_, surfdoms_);
+    //currently some hack
+    assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, subdoms_, pressSurf_);
+    //    assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, subdoms_, surfdoms_);
     assemble_->SetGraphType(NODEGRAPH);
 
 #ifdef USE_OLAS
@@ -347,6 +371,7 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
     Boolean nonLin = FALSE;
 
 
+    //voulme integrators
     for (int actSD = 0; actSD < subdoms_.GetSize(); actSD++)
       {
 
@@ -450,6 +475,16 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 	    assemble_->AddRhsIntegrator(rhsSource, subdoms_[actSD], nonLin_);
 	  }      
       }
+
+    //surface integrators
+    //RHS-part
+    Integer nonlin = 0;
+    for (Integer actSF = 0; actSF < pressSurf_.GetSize(); actSF++) {
+      BaseForm * rhsSrcSurf = new PressureLinForm(pressVals_[actSF], isaxi_);
+      assemble_->AddRhsSrcSurfIntegrator(rhsSrcSurf, pressSurf_[actSF], pressFnc_[actSF],
+				     nonlin);
+    }
+    
   }
 
 

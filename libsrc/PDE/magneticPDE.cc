@@ -1050,7 +1050,7 @@ namespace CoupledField {
     // ---------------------------
     //   Set analysis parameters
     // ---------------------------
-    assemble_->SetPtr2EQNData(eqnData_, ptgrid_, actlevel_); 
+    assemble_->SetPtr2EQNData(eqnData_); 
     assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, subdoms_,
 				surfdoms_);
     assemble_->SetGraphType(NODEGRAPH);
@@ -1571,47 +1571,45 @@ namespace CoupledField {
   // ======================================================
   // POSTPROCESSING SECTION
   // ======================================================
+
   void MagPDE::WriteResultsInFile() {
 
     ENTER_FCN( "MagPDE::WriteResultsInFile" );
 
-    ShortInt Dim = ptgrid_->GetDim();
+    NodeStoreSol<Double> * solTransient;
+    NodeStoreSol<Complex> * solHarmonic;
 
-    //ElemStoreSol<Double> B_Mesh, Jeddysh, Force_Mesh;
-    
-    NodeStoreSol<Double> const & solConverted = 
-      dynamic_cast<NodeStoreSol<Double>&>(*sol_);
-   
-    // write results
-    if (outFile_->IsGMV()) {
+    if (analysistype_ == STATIC ||
+	analysistype_ == TRANSIENT) {
 
-      // write magnetic potential
-      outFile_->WriteNodeSolution(solConverted,laststepcalc_,lasttimecalc_,
-				  "Mag-Potential");
+      // transient/static case
+      if (savesol_)
+	{
+	  solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);
+	  outFile_->WriteNodeSolutionTransient(*solTransient, 
+					       laststepcalc_, lasttimecalc_);
+	}
       
       if (calcBfield_.GetSize() !=0 ) {
-	outFile_->WriteElemSolution(B_,laststepcalc_,lasttimecalc_,
-				    "B-Field");
-	//outFile_->WriteElemSolution(Force_Mesh,step,time,"E-Force");
+	outFile_->WriteElemSolutionTransient(B_, laststepcalc_, lasttimecalc_);
       }
-
-    }
-    else {
-
-      // write magnetic potential
-      outFile_->WriteNodeSolution(solConverted, laststepcalc_, lasttimecalc_,
-				  "mag. vector potential");
-
-      if (calcBfield_.GetSize() !=0 ) {
-	outFile_->WriteElemSolution(B_, laststepcalc_, lasttimecalc_,
-				    "mag. flux density");
-      }
-
+      
       if (calcEddy_.GetSize() !=0 ) {
-	outFile_->WriteElemSolution(Jeddy_, laststepcalc_, lasttimecalc_,
-				    "eddy current");
+	outFile_->WriteElemSolutionTransient(Jeddy_, laststepcalc_, lasttimecalc_);
       }
+    } else  if (analysistype_ == HARMONIC) {
+      
+      // harmonic case
+      if (savesol_)
+	{
+	  solHarmonic = dynamic_cast<NodeStoreSol<Complex>*>(sol_);
+	  outFile_->WriteNodeSolutionHarmonic(*solHarmonic, actFreqStep_, 
+					      actFrequency_, complexFormat_);
+	}
     }
+    else
+      Error("MagPDE: Only static, transient and harmonic results can be written",
+	    __FILE__, __LINE__);
   }
 
 
@@ -1665,7 +1663,7 @@ namespace CoupledField {
 	  FieldOp->CalcElemCurlNode( TempE, elemssd[iel], LCoord); 
 	  // B_.SetNodalResult(mesh2PDEElem_[elemssd[iel]->elemNum - 1]-1,
 	  // TempE);
-	  B_.SetelemResult(pdeElem-1, TempE);
+	  B_.SetElemResult(pdeElem-1, TempE);
 	}
       }
       delete FieldOp;

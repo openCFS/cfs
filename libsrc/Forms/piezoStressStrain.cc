@@ -39,13 +39,12 @@ namespace CoupledField
   // E = Belec V
   // see Habil. M. Kaltenbacher 
   void PiezoStressStrain::
-  CalcStressVec(Vector<Double>& stressVec, Integer ip, Matrix<Double> & ptCoord)
+  CalcStressVec(Vector<Double>& stressElecVec, Integer ip, Matrix<Double> & ptCoord)
   {
-    ENTER_FCN( "PiezoStressStrain::calcPiolaStressTensor" );
+    ENTER_FCN( "PiezoStressStrain::CalcStressVec" );
 
     Matrix<Double> dMat;
     calcDMat(dMat);
-    //std::cout << "dMat:\n" << dMat << std::endl;  
  
     // convert displacement of all elem nodes into one vector: 
     // (uNode1X, uNode1Y, VNode1, uNode2X, uNode2Y,VNode2,  ...)
@@ -60,11 +59,12 @@ namespace CoupledField
 
     // | c Bmech u - e^T Belec V |
     // | e Bmech u + eps Belec V |
-    Vector<Double> stressElecVec = dMat * linStrainElec;
+    //    Vector<Double> stressElecVec = dMat * linStrainElec;
+    stressElecVec = dMat * linStrainElec;
 
     //get out the stresses!
-    for (Integer comp=0; comp < getStressComp(); comp++)
-      stressVec[comp] = stressElecVec[comp];
+    //    for (Integer comp=0; comp < getStressComp(); comp++)
+    //      stressVec[comp] = stressElecVec[comp];
   }
 
 
@@ -104,72 +104,72 @@ namespace CoupledField
 
   void PiezoStressStrain3D::calcDMat(Matrix<Double> & dMat)
   {
-    ENTER_FCN( "PiezoStressStrain3D::calcMaterialDMat" );
+    ENTER_FCN( "PiezoStressStrain3D::calcDMat" );
 
     linPiezoInt::Calc3DMaterialMat(dMat);
   }
 
 
-//   // =============================================================================
-//   // 2D axi case
-//   // =============================================================================
+  // =============================================================================
+  // 2D axi case
+  // =============================================================================
 
-//   PiezoStressStrainAxi::PiezoStressStrainAxi(BaseFE * aptelem, MaterialData & matData) 
-//     : PiezoStressStrain(aptelem, matData)
-//   {
-//     ENTER_FCN( "PiezoStressStrainAxi::PiezoStressStrainAxi" );
+  PiezoStressStrainAxi::PiezoStressStrainAxi(BaseFE * aptelem, MaterialData & matData) 
+    : PiezoStressStrain(aptelem, matData)
+  {
+    ENTER_FCN( "PiezoStressStrainAxi::PiezoStressStrainAxi" );
 
-//     isaxi_ = TRUE;
-//   }
+    isaxi_ = TRUE;
+  }
 
-//   PiezoStressStrainAxi::PiezoStressStrainAxi(MaterialData & matData) 
-//     : PiezoStressStrain(matData)
-//   {
-//     ENTER_FCN( "PiezoStressStrainAxi::PiezoStressStrainAxi" );
-//     isaxi_ = TRUE;
-//   }
+  PiezoStressStrainAxi::PiezoStressStrainAxi(MaterialData & matData) 
+    : PiezoStressStrain(matData)
+  {
+    ENTER_FCN( "PiezoStressStrainAxi::PiezoStressStrainAxi" );
+    isaxi_ = TRUE;
+  }
 
-//   PiezoStressStrainAxi::~PiezoStressStrainAxi()
-//   {
-//     ENTER_FCN( "PiezoStressStrainAxi::~PiezoStressStrainAxi" );
-//   }
+  PiezoStressStrainAxi::~PiezoStressStrainAxi()
+  {
+    ENTER_FCN( "PiezoStressStrainAxi::~PiezoStressStrainAxi" );
+  }
 
-//   void PiezoStressStrainAxi::calcDMat(Matrix<Double> & dMat)
-//   {
-//     ENTER_FCN( "PiezoStressStrainAxi::calcMaterialDMat" );
+  void PiezoStressStrainAxi::calcDMat(Matrix<Double> & dMat)
+  {
+    ENTER_FCN( "PiezoStressStrainAxi::calcMaterialDMat" );
 
-//     linPiezoInt::CalcAxiMaterialMat(dMat,actOrientation);
-//   }
-
-
-//   // ===================================================================================
-//   // plane strain case
-//   // ===================================================================================
-
-//   PiezoStressStrainPlaneStrain::PiezoStressStrainPlaneStrain(BaseFE * aptelem, MaterialData & matData) 
-//     : PiezoStressStrain(aptelem, matData)
-//   {
-//     ENTER_FCN( "PiezoStressStrainPlaneStrain::PiezoStressStrainPlaneStrain" );
-//   }
+    //   linPiezoInt::CalcAxiMaterialMat(dMat);
+  }
 
 
-//   PiezoStressStrainPlaneStrain::PiezoStressStrainPlaneStrain(MaterialData & matData) 
-//     : PiezoStressStrain(matData)
-//   {
-//     ENTER_FCN( "PiezoStressStrainPlaneStrain::PiezoStressStrainPlaneStrain" );
-//   }
+  // ===================================================================================
+  // plane strain case
+  // ===================================================================================
+
+  PiezoStressStrainPlaneStrain::PiezoStressStrainPlaneStrain(BaseFE * aptelem, MaterialData & matData) 
+    : PiezoStressStrain(aptelem, matData)
+  {
+    ENTER_FCN( "PiezoStressStrainPlaneStrain::PiezoStressStrainPlaneStrain" );
+  }
+
+
+  PiezoStressStrainPlaneStrain::PiezoStressStrainPlaneStrain(MaterialData & matData) 
+    : PiezoStressStrain(matData)
+  {
+    ENTER_FCN( "PiezoStressStrainPlaneStrain::PiezoStressStrainPlaneStrain" );
+  }
  
-//   PiezoStressStrainPlaneStrain::~PiezoStressStrainPlaneStrain()
-//   {
-//     ENTER_FCN( "PiezoStressStrainPlaneStrain::~PiezoStressStrainPlaneStrain" );
-//   }
+  PiezoStressStrainPlaneStrain::~PiezoStressStrainPlaneStrain()
+  {
+    ENTER_FCN( "PiezoStressStrainPlaneStrain::~PiezoStressStrainPlaneStrain" );
+  }
 
-//   void PiezoStressStrainPlaneStrain::calcDMat(Matrix<Double> & dMat)
-//   {
-//     ENTER_FCN( "PiezoStressStrainPlaneStrain::calcMaterialDMat" );
+  void PiezoStressStrainPlaneStrain::calcDMat(Matrix<Double> & dMat)
+  {
+    ENTER_FCN( "PiezoStressStrainPlaneStrain::calcMaterialDMat" );
 
-//     linPiezoInt::CalcPlaneStrainMaterialMat(dMat,actOrientation);
-//   }
+    //    linPiezoInt::CalcPlaneStrainMaterialMat(dMat);
+  }
 
 
 } // end namespace CoupledField

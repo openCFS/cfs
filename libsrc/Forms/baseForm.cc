@@ -19,6 +19,7 @@ namespace CoupledField
     ENTER_FCN( "BaseForm::BaseForm" );
     isSetIntPoint_ = FALSE;
     ptMaterial = new MaterialData(matData);
+    
   }
 
   BaseForm::BaseForm(BaseFE * aptelem)

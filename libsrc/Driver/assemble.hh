@@ -300,10 +300,19 @@ namespace CoupledField
 			     const std::string fncname="---not-defined--",
 			     const Integer nonLin=FALSE);
 
+    /// define RHS surface integrators (static and transient case)
+    void AddRhsSrcSurfIntegrator(BaseForm * integrator, const std::string & subDomName,
+			     const std::string fncname="---not-defined--",
+			     const Integer nonLin=FALSE);
+
     /// define RHS integrators (harmonic case)
     void AddRhsSrcIntegrator(BaseForm * integrator, const std::string & subDomName,
 			     const Double phaseval, const Integer nonLin=FALSE);
-   
+
+     /// define RHS surface integrators (harmonic case)
+    void AddRhsSrcSurfIntegrator(BaseForm * integrator, const std::string & subDomName,
+			     const Double phaseval, const Integer nonLin=FALSE);  
+
     /// set ptr to time function
     void SetPtr2TimeFnc(TimeFunc * aPtTimeFunc)
     {ptTimeFunc_ = aPtTimeFunc;};
@@ -456,8 +465,10 @@ namespace CoupledField
     StdVector<Double>      loadVals_; //!< values of the load condition
     StdVector<std::string> fncname_loads_; //!< function names of the loads
     StdVector<std::string> fncname_rhs_; //!< function names for RHS integrators
+    StdVector<std::string> fncname_rhsSurf_; //!< function names for RHS surface integrators
 
-    StdVector<Double> rhsSrcPhase_;      //!< contains the pahse values in harmonic case;
+    StdVector<Double> rhsSrcPhase_;      //!< contains the phase values in harmonic case;
+    StdVector<Double> rhsSrcSurfPhase_;  //!< contains the phase values in harmonic case;
          
     TimeFunc * ptTimeFunc_;             //!< ptr to time function
     
@@ -477,6 +488,9 @@ namespace CoupledField
 
     /// vector of all needed RHS src-intergators (not every subdomain needs a "list of rhs_source_integrators")
     StdVector< StdVector<BaseIntDescriptor *>* > rhsSrcIntegrators_;
+
+    /// vector of all needed RHS src-surfaceintergators (not every subdomain needs a "list of rhs_source_integrators")
+    StdVector< StdVector<BaseIntDescriptor *>* > rhsSrcSurfIntegrators_;
 
     /// ptr to solution
 
