@@ -9,20 +9,21 @@
 # NOTE: Depending on the compilation settings in Makefile.option CFS++ may
 #       depend on some external libraries. These are:
 #
-#       -------------------------------------------------------
-#       | # |   name      | library  | headers  | path        |
-#       |   |             | required | required | variable    |
-#       -------------------------------------------------------
-#       | 1 | OLAS        |   yes    |    yes   | OLAS_ROOT   |
-#       | 2 | hypre       |   yes    |     no   | HYPRE_ROOT  | (c)
-#       | 3 | xerces-c    |   yes    |    yes   | XERCES_ROOT |
-#       | 4 | BLAS        |   yes    |     no   |      (a)    |
-#       | 5 | LAPACK      |   yes    |     no   |      (a)    |
-#       | 6 | mysql       |   yes    |    yes   |      (d)    |
-#       | 7 | tvmet       |    no    |    yes   | TVMET_ROOT  |
-#       -------------------------------------------------------
-#       | 8 | XML Schemas |         (b)         | SCHEMA_ROOT |
-#       -------------------------------------------------------
+#       ---------------------------------------------------------
+#       | # |   name      | library  | headers  | path          |
+#       |   |             | required | required | variable      |
+#       ---------------------------------------------------------
+#       | 1 | OLAS        |   yes    |    yes   | OLAS_ROOT     |
+#       | 2 | hypre       |   yes    |     no   | HYPRE_ROOT    | (c)
+#       | 3 | xerces-c    |   yes    |    yes   | XERCES_ROOT   |
+#       | 4 | BLAS        |   yes    |     no   |      (a)      |
+#       | 5 | LAPACK      |   yes    |     no   |      (a)      |
+#       | 6 | mysql       |   yes    |    yes   |      (d)      |
+#       | 7 | tvmet       |    no    |    yes   | TVMET_ROOT    |
+#       | 8 | Pardiso     |   yes    |     no   | PARDISO_ROOT  | (e)
+#       ---------------------------------------------------------
+#       | 9 | XML Schemas |         (b)         | SCHEMA_ROOT   |
+#       ---------------------------------------------------------
 #
 #  (a) The Basic Linear Algebra Subroutines (BLAS) and the Linear Algebra
 #      Package (LAPACK) are standard libraries routinely used in Scientific
@@ -43,6 +44,12 @@
 #  (d) On a SuSE system mysql headers and libraries should be found in the
 #      directories searched by default. So no extra path variable at the
 #      moment.
+#
+#  (e) Due to the pardiso licensing policy an academic user must obtain a
+#      personal license for each machine on which she wants to use pardiso.
+#      Thus, there can never be a general default setting for PARDISO_ROOT.
+#      The value must be specified as environment variable or on the command
+#      line of the make invocation.
 #
 # The corresponding path variable should be set to point to the respective
 # installation directory, i.e. the base of the respective install tree. We
@@ -87,7 +94,8 @@
 # -----------------------------------------------------------------------------
 
 ifeq ("$(OLAS_ROOT)","")
-OLAS_ROOT = /home/data/proj/SoftwareLibraries/OLAS_STABLE_1
+# OLAS_ROOT = /home/data/proj/SoftwareLibraries/OLAS_STABLE_1
+OLAS_ROOT = /home/lse10/lse/mmohr/local/olasOPT
 endif
 
 ifeq ("$(HYPRE_ROOT)","")
@@ -166,6 +174,10 @@ LAPACK = yes
 
 # Was OLAS compiled with support for TVMET?
 TVMET = yes
+
+# Was OLAS compiled with support for Pardiso?
+PARDISO = yes
+
 
 # -----------------------------------------------------------------------------
 # LIBRARY TYPE
@@ -380,6 +392,21 @@ LINK_BLAS = no
 LINK_LAPACK = no
 endif
 
+endif
+
+# -----------------------------------------------------------------------------
+# PARDISO
+#
+# Determine need to link against Pardiso. The library names differ for
+# different architectur and compiler, so they must be assigned in the
+# make.mach.<MACHINE> file. We only set a macro here to show the need of
+# linking against Pardis.
+# -----------------------------------------------------------------------------
+
+ifeq "$(PARDISO)" "yes"
+LINK_PARDISO = yes
+else
+LINK_PARDISO = no
 endif
 
 # -----------------------------------------------------------------------------
