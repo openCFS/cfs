@@ -71,7 +71,7 @@ namespace CoupledField
       //      y_hat[i]=voltage/(Z*freqs[i]*j);
       std::cout<<i<<") = " << phi[i] << ",\t "<< freqs[i] <<",\t q = y_hat = " << y_hat[i]<<",\t Z= " << Z << std::endl;
     }
-  }// end calc_measuresCharge()
+  }// end calc_measuredCharge()
 
 
   void piezoParamIdent::calcSyntheticData(Vector<Complex> & y_hat){
@@ -95,108 +95,109 @@ namespace CoupledField
   }// end calcSyntheticData
 
 
-  void piezoParamIdent::CG(){
-    ENTER_FCN("piezoParamIdent::CG");
-    std::cout<<"\nHERE STARTS CG ..."<<std::endl;
-    Complex Jfs=Complex(0,0);
-    Integer nrCGIt=0;
-    s.Resize(nrParameter);    //sets all s_i to zero
-    bas.Resize(nrParameter); 
+ void piezoParamIdent::CG(){
+     ENTER_FCN("piezoParamIdent::CG");
+ }
+//     std::cout<<"\nHERE STARTS CG ..."<<std::endl;
+//     Complex Jfs=Complex(0,0);
+//     Integer nrCGIt=0;
+//     s.Resize(nrParameter);    //sets all s_i to zero
+//     bas.Resize(nrParameter); 
 
-    // res = y_hat-F_hat-JacobiMatrix*s_0
-    for (int i=0; i< res.GetSize();i++){
-      for (int j=0;j<s_0.GetSize();j++)
-	Jfs+=JacobiMatrix[i][j]*s[j];
-      res[i]=y_hat[i]-F_hat[i]-Jfs;
-      overall_res0[i]=y_hat[i]-F_hat[i];
-      Jfs=Complex(0.0,0.0);
-    }
-    //   std::cout<<"res = y_hat-F_hat-JacobiMatrix*s_0"<<std::endl;
+//     // res = y_hat-F_hat-JacobiMatrix*s_0
+//     for (int i=0; i< res.GetSize();i++){
+//       for (int j=0;j<s_0.GetSize();j++)
+// 	Jfs+=JacobiMatrix[i][j]*s[j];
+//       res[i]=y_hat[i]-F_hat[i]-Jfs;
+//       overall_res0[i]=y_hat[i]-F_hat[i];
+//       Jfs=Complex(0.0,0.0);
+//     }
+//     //   std::cout<<"res = y_hat-F_hat-JacobiMatrix*s_0"<<std::endl;
 
-    // bas = res_NE = adjJacMat*res
-    for (int i=0; i< bas.GetSize();i++){
-      for (int j=0;j<res.GetSize();j++)
-	Jfs+=adjJacobiMatrix[i][j]*res[j];
-      bas[i]=res_NE[i]=Jfs;
-      bas[i]=res_NE[i]=1.0/(scaling[i]*scaling[i])*Jfs;
-      //      bas[i]=res_NE[i]=Jfs/(scaling[i]*scaling[i]);
-      //	std::cout<<" bas["<<i<<"]="<<bas[i];
-      Jfs=Complex(0,0);
-    }
+//     // bas = res_NE = adjJacMat*res
+//     for (int i=0; i< bas.GetSize();i++){
+//       for (int j=0;j<res.GetSize();j++)
+// 	Jfs+=adjJacobiMatrix[i][j]*res[j];
+//       bas[i]=res_NE[i]=Jfs;
+//       bas[i]=res_NE[i]=1.0/(scaling[i]*scaling[i])*Jfs;
+//       //      bas[i]=res_NE[i]=Jfs/(scaling[i]*scaling[i]);
+//       //	std::cout<<" bas["<<i<<"]="<<bas[i];
+//       Jfs=Complex(0,0);
+//     }
 
-    //    Vector<Complex> res_temp(y_hat.GetSize());
-    //  overall_res0=y_hat-F_hat;
-    norm_res=a2norm(res);
-    overall_res=a2norm(overall_res0);
-    //    std::cout<<"\nOVERALL_RES: " << overall_res << "; norm_res" << norm_res;
+//     //    Vector<Complex> res_temp(y_hat.GetSize());
+//     //  overall_res0=y_hat-F_hat;
+//     norm_res=a2norm(res);
+//     overall_res=a2norm(overall_res0);
+//     //    std::cout<<"\nOVERALL_RES: " << overall_res << "; norm_res" << norm_res;
 
-    while((nrCGIt<10&&norm_res<=eta*eta*overall_res)||nrCGIt<3){ // CG
-      nrCGIt++;
-      std::cout<<"\nCG-Iteration -Nr: "<< nrCGIt << std::endl;
-      std::cout<< "\n norm_res = " << norm_res << "; overall_res = "<< overall_res << "; eta^2*overall-norm= "<< eta*eta*overall_res-norm_res << std::endl;
+//     while((nrCGIt<10&&norm_res<=eta*eta*overall_res)||nrCGIt<3){ // CG
+//       nrCGIt++;
+//       std::cout<<"\nCG-Iteration -Nr: "<< nrCGIt << std::endl;
+//       std::cout<< "\n norm_res = " << norm_res << "; overall_res = "<< overall_res << "; eta^2*overall-norm= "<< eta*eta*overall_res-norm_res << std::endl;
 
-      //bas_bar=JacMatr*bas
-      JacobiMatrix.Mult(bas,bas_bar);
+//       //bas_bar=JacMatr*bas
+//       JacobiMatrix.Mult(bas,bas_bar);
 
-      //scaling
-      for(int i=0; i<res_NE.GetSize(); i++){
-	res_NE[i]=res_NE[i]*scaling[i];
-	//	bas_bar[i]=bas_bar[i]*scaling[i];
-	//	bas[i]=bas[i]*scaling[i];
-	//	std::cout<<" res_NE["<<i<<"]="<<res_NE[i];
-	//std::cout<<" bas_bar["<<i<<"]="<<bas_bar[i];
-      }
+//       //scaling
+//       for(int i=0; i<res_NE.GetSize(); i++){
+// 	res_NE[i]=res_NE[i]*scaling[i];
+// 	//	bas_bar[i]=bas_bar[i]*scaling[i];
+// 	//	bas[i]=bas[i]*scaling[i];
+// 	//	std::cout<<" res_NE["<<i<<"]="<<res_NE[i];
+// 	//std::cout<<" bas_bar["<<i<<"]="<<bas_bar[i];
+//       }
 
-      //alpha_m=POW(a2norm(res_NE),2)/POW(a2norm(bas_bar),2);
-      alpha_m=POW(a2norm(res_NE),2)/(POW(a2norm(bas_bar),2));
+//       //alpha_m=POW(a2norm(res_NE),2)/POW(a2norm(bas_bar),2);
+//       alpha_m=POW(a2norm(res_NE),2)/(POW(a2norm(bas_bar),2));
 
-      std::cout<<"\n alpha = " <<alpha_m<<std::endl;
+//       std::cout<<"\n alpha = " <<alpha_m<<std::endl;
 
-      // s_m = s_{m-1} + \alpha*bas
-      for(int i=0; i< s.GetSize();i++){
-	s[i]=s[i]+alpha_m*bas[i];
-	std::cout<<"s("<<i<<")="<<s[i]<<"; \t";
-      }
-      //res=res-alpha_m*bas_bar
-      for(int i=0; i<res.GetSize();i++)
-	res[i]=res[i]-alpha_m*bas_bar[i];
+//       // s_m = s_{m-1} + \alpha*bas
+//       for(int i=0; i< s.GetSize();i++){
+// 	s[i]=s[i]+alpha_m*bas[i];
+// 	std::cout<<"s("<<i<<")="<<s[i]<<"; \t";
+//       }
+//       //res=res-alpha_m*bas_bar
+//       for(int i=0; i<res.GetSize();i++)
+// 	res[i]=res[i]-alpha_m*bas_bar[i];
     
-      //res_NE = adjJacDet*res
-      for (int i=0; i< res_NE.GetSize();i++){
-	for (int j=0;j<res.GetSize();j++)
-	  Jfs+=adjJacobiMatrix[i][j]*res[j];
-	res_NE_new[i]=1.0/(scaling[i]*scaling[i])*Jfs;
-       	//res_NE_new[i]=1.0/(scaling[i])*Jfs;
-	res_NE_new[i]=Jfs;
-	Jfs=Complex(0,0);
-      }
+//       //res_NE = adjJacDet*res
+//       for (int i=0; i< res_NE.GetSize();i++){
+// 	for (int j=0;j<res.GetSize();j++)
+// 	  Jfs+=adjJacobiMatrix[i][j]*res[j];
+// 	res_NE_new[i]=1.0/(scaling[i]*scaling[i])*Jfs;
+//        	//res_NE_new[i]=1.0/(scaling[i])*Jfs;
+// 	res_NE_new[i]=Jfs;
+// 	Jfs=Complex(0,0);
+//       }
 
-      // scaling again:
-      for(int i=0;i<res_NE.GetSize();i++){
-	//	res_NE_new[i]=res_NE_new[i]*scaling[i];
-	res_NE[i]=res_NE[i]*scaling[i];
-      }
+//       // scaling again:
+//       for(int i=0;i<res_NE.GetSize();i++){
+// 	//	res_NE_new[i]=res_NE_new[i]*scaling[i];
+// 	res_NE[i]=res_NE[i]*scaling[i];
+//       }
 
-      beta_m=POW(a2norm(res_NE_new),2)/POW(a2norm(res_NE),2);
-      //beta_m=a2norm(res_NE_new)/a2norm(res_NE);
-      res_NE=res_NE_new;
-      std::cout<<"\n beta_m= "<< beta_m<<std::endl;
+//       beta_m=POW(a2norm(res_NE_new),2)/POW(a2norm(res_NE),2);
+//       //beta_m=a2norm(res_NE_new)/a2norm(res_NE);
+//       res_NE=res_NE_new;
+//       std::cout<<"\n beta_m= "<< beta_m<<std::endl;
 
-      //bas=res_NE+beta_m*bas
-      for (int i=0;i<bas.GetSize();i++)
-	bas[i]=res_NE[i]+beta_m*bas[i];
+//       //bas=res_NE+beta_m*bas
+//       for (int i=0;i<bas.GetSize();i++)
+// 	bas[i]=res_NE[i]+beta_m*bas[i];
 
-      for (int i=0; i< res.GetSize();i++){
-	for (int j=0;j<s.GetSize();j++)
-	  Jfs+=JacobiMatrix[i][j]*s[j];
-	lin_res[i]=y_hat[i]-F_hat[i]-Jfs;
-	Jfs=Complex(0,0);
-      }
-      norm_res=a2norm(lin_res);
+//       for (int i=0; i< res.GetSize();i++){
+// 	for (int j=0;j<s.GetSize();j++)
+// 	  Jfs+=JacobiMatrix[i][j]*s[j];
+// 	lin_res[i]=y_hat[i]-F_hat[i]-Jfs;
+// 	Jfs=Complex(0,0);
+//       }
+//       norm_res=a2norm(lin_res);
      
-    } // end while - CG
+//     } // end while - CG
 
-  }// end CG
+//   }// end CG
 
   void piezoParamIdent::backtracking(Double & eta, Double & theta, Vector<Complex> & s, Double & norm_res, Double & norm_res_new){
     ENTER_FCN("piezoParamIdent::backtracking");
@@ -724,26 +725,43 @@ namespace CoupledField
     Vector<Double> tempHarm;
     StdVector<Integer> connect_PDE;	   	    
 
+    Matrix<Double> *matMat = ptMaterial->GetMatrix();
+
+    scaling[0]=1.0/((*matMat)[0][0]); 
+    scaling[1]=1.0/((*matMat)[2][2]);
+    scaling[2]=1.0/((*matMat)[1][0]);
+    scaling[3]=1.0/((*matMat)[0][2]);
+    scaling[4]=1.0/((*matMat)[3][3]); 
+    scaling[5]=1.0/((*matMat)[6][4]);
+    scaling[6]=std::abs(1.0/((*matMat)[8][0]));
+    scaling[7]=1.0/((*matMat)[8][2]);
+    scaling[8]=1.0/((*matMat)[6][6]); 
+    scaling[9]=1.0/((*matMat)[8][8]);
+
     for(int ind_param=0; ind_param<nrParameter;ind_param++){ // loop over different parameter increments
       
 
       // ~~~~~~~~~~~~~~~~~~~~~  second strategy ~~~~~~~~~~~~~~~~~~~~~~~~~
-      dparameter[ind_param]=1.0/scaling[ind_param];
-      if (ind_param>0)
-	dparameter[ind_param-1]=0.0; 
+      //              dparameter[ind_param]=1.2/scaling[ind_param];
+      
+     dparameter[ind_param]=1.2/scaling[ind_param]*bas[ind_param]; // 1.0/scaling[ind_param];
+      
+     if (ind_param>0)
+      	dparameter[ind_param-1]=0.0; 
 
       updateMaterialData(dparameter, ptMaterial);    
+
+      //       std::cout<<"\n"<<std::endl;
+      // for(Integer i=0;i<parameter.GetSize();i++)
+      //	std::cout<<dparameter[i]<<"; ";
+      //  std::cout<<"\n"<<std::endl;
+
 
       if (ind_param==nrParameter-1)
 	dparameter[ind_param-1]=0.0; 
 
-      //       std::cout<<"\n"<<std::endl;
-      //for(Integer i=0;i<parameter.GetSize();i++)
-      //	std::cout<<dparameter[i]<<"; ";
-
+      
       // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-
 
       //       pdes_[0]->DefineIntegrators(0);
 
@@ -758,6 +776,14 @@ namespace CoupledField
 	//Info->WriteHarmonicStep(pdes_[0]->GetName(), fstep, freqs[fstep]);
 	
 	//  	pdes_[0]->WriteGeneralPDEdefines();
+              //! returns the load values
+	//      StdVector<Double> loads = pdes_[0]->GetLoadVals();
+	//std::cout<<"loads - size="<<loads.GetSize()<<std::endl;
+
+	//      for (Integer j=0;j<loads.GetSize();j++)
+	//std::cout<<"loads="<<loads[j]<<"; ";
+
+
   	
 	//loop over elements
 	for (int actEl=0; actEl< elemssd.GetSize(); actEl++) {
