@@ -164,14 +164,31 @@ void  WriteResultsUnverg::Dataset780(const Integer level)
 		default: Error("Please, put element type according to unverg-format for this number of nodes per element", __FILE__,__LINE__);
 		}
 
-	      (*output) << std::setw(10) << 11 << std::setw(10) << 1 << std::setw(10) <<
-		1 << std::setw(10) << 1 << std::setw(10) << elmsgrp << std::setw(10) << connect.size() << std::endl;
+	      (*output) << std::setw(10) << 11 << std::setw(10) << 1 << std::setw(10) << 1
+			<< std::setw(10) << 1 << std::setw(10) << elmsgrp << std::setw(10) 
+			<< connect.size() << std::endl;
 	    }
 
-	  for (Integer ii=0; ii < connect.size(); ii++) 
-	    { 
-	      (*output).width(10);
-	      (*output) << connect[ii];
+	  if (connect.size() == 6 || connect.size() == 8)
+	    {
+	      //quadratic elements
+	      Integer offset = Integer(connect.size()/2);
+	      for (Integer ii=0; ii < offset; ii++)
+		{
+		 (*output).width(10);
+		 (*output) << connect[ii];
+		 (*output).width(10);
+		 (*output) << connect[ii+offset]; 
+		}
+
+	    }
+	  else
+	    {
+	      for (Integer ii=0; ii < connect.size(); ii++) 
+		{ 
+		  (*output).width(10);
+		  (*output) << connect[ii];
+		}
 	    }
 
 	  (*output) << std::endl;

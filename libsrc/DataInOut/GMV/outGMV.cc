@@ -640,7 +640,7 @@ void WriteResultsGMV::to8Char(const std::string name, char * result)
  
   if (name.size()!= 8) {
       aux="        ";
-      for (i=0; i<8; i++)
+      for (i=0; i<name.size(); i++)
 	aux[i]=name[i];
   }
   else aux=name;

@@ -224,7 +224,10 @@ public:
   /// resets the integration type of all known elements
   void SetIntTypeAllElems(IntegrationType aIntType);
   
-
+  std::vector<std::string>& GetListSubDomains()
+  { return listSD_;}
+  
+  
 protected:
 
   FileType * ptFileType;   //!< pointer to input file
