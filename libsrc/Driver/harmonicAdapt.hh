@@ -22,12 +22,6 @@ public:
   //!  main method, where time-stepping is implemented. it is for transient and static problem
   virtual void SolveProblem();
 
-  //!  to setup matrices of PDE. we call according method of class PDE for setup matrices of PDE in assembling procedure.
-  /*!
-    \param pdenumber number of PDE
-    \param matrixtype type of matrix
-  */
-  virtual void SetupMatricesPDE(const Integer pdenumber, const Integer matrixtype);
 };
 
 }

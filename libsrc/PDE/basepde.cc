@@ -395,7 +395,7 @@ void  BasePDE::SetBCs(const Integer level, const Integer update, const Double ti
   Double val, val_tfunc;
 
   val_tfunc = 1.0;
-  if (ptTimeFunc_->GetmaxTimeFnc()!=0)
+  if (ptTimeFunc_->GetmaxTimeFnc()!=0 && analysistype_!=HARMONIC)
       val_tfunc=ptTimeFunc_->TimeFuncAtTime(time,level);
 
   std::list<Integer> nodes;
@@ -434,7 +434,7 @@ void  BasePDE::SetBCs(const Integer level, const Integer update, const Double ti
 	  (*debug) << " node: " << node << " val: " << val 
 		   << " number: " << j << "PDEnode: " <<  Mesh2PDENode_[node-1] <<  std::endl;
 #endif      
-	      
+
 	  // Mesh node numbers are mapped to PDE node numbers
 	  algsys_->SetDirichlet(j+1, Mesh2PDENode_[node-1],
 				val, dofspernode_, SYSTEM);

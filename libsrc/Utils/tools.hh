@@ -155,6 +155,9 @@ void SetSubVector(std::vector<Double>& mainVec,
 /// prints formatted header including name, version, date
 void PrintCFSHeader(std::ostream & out);
 
+Double Sin(const Double x);
+Double Cos(const Double x);
+
 // // std::vector output
 //   template<class TYPE> std::ostream& operator<< ( std::ostream & outStr, std::vector<TYPE> xOut);
 

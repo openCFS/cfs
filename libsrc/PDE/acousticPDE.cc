@@ -97,7 +97,7 @@ void AcousticPDE::ComputeRHS(const Double atime)
 #ifdef TRACE
   (*trace) << "entering Acoustic3dPDE::ComputeRHS" << std::endl;
 #endif
-
+  
 }
 
 void AcousticPDE::SolveStepTrans(const Integer kstep, const Double asteptime, 
@@ -194,8 +194,9 @@ void AcousticPDE::SolveStepHarmonic(const Integer level)
   for (Integer i=0; i<NumPDENodes_; i++)
     for (Integer dim=0; dim<dofspernode_; dim++)
       {
-	sol_[dim][i] = ptsol[2*i];
-	solIm_[dim][i] = ptsol[2*i+1];
+	sol_[dim][i] = ptsol[i];
+	//sol_[dim][i] = ptsol[2*i];
+	//	solIm_[dim][i] = ptsol[2*i+1];
       }
   
 }
@@ -324,15 +325,16 @@ void AcousticPDE::SetupMatrices(const Integer level)
 	  // for harmonic analysis
 	  Integer k=0;
 	  if(analysistype_==HARMONIC)
-	    {
-	      harmVec.resize(2*connecth.size()*connecth.size());
-	      for(Integer iii=0; iii<elemmat.size_row(); iii++)
-		for(Integer jjj=0; jjj < elemmat.size_row(); jjj++)
-		  {    
-		    harmVec[k] = elemmat[iii][jjj];
-		    k++;
-		  }
-	    }
+	    algsys_->SetElementMatrix(elemmat.getinarray(), connect_PDE.get(), connect_PDE.size(), SYSTEM);
+// 	    {
+// 	      harmVec.resize(2*connecth.size()*connecth.size());
+// 	      for(Integer iii=0; iii<elemmat.size_row(); iii++)
+// 		for(Integer jjj=0; jjj < elemmat.size_row(); jjj++)
+// 		  {    
+// 		    harmVec[k] = elemmat[iii][jjj];
+// 		    k++;
+// 		  }
+// 	    }
 	  else
 	    algsys_->SetElementMatrix(elemmat.getinarray(), connect_PDE.get(), connect_PDE.size(), STIFFNESS);
 
@@ -346,18 +348,23 @@ void AcousticPDE::SetupMatrices(const Integer level)
 
 	  if(analysistype_==HARMONIC)
 	    {
-	      if (k!=elemmat.size_row()*elemmat.size_col())
-		Error("k is wrong!!!!!!!!!!!!!!!!!!!!!",__FILE__,__LINE__);
-
-	      for(Integer iii=0; iii<elemmat.size_row(); iii++)
-		for(Integer jjj=0; jjj < elemmat.size_row(); jjj++)
-		  {    
-		    harmVec[k] =  -4*PI*PI*freq_*freq_*elemmat[iii][jjj];
-		    // k initially  set in for loop above!!
-		    k++;
-		  }
-	      algsys_->SetElementMatrix(&harmVec[0], connect_PDE.get(), connect_PDE.size(),SYSTEM);
+	      elemmat *= -4*PI*PI*freq_*freq_;
+	      *data << elemmat << std::endl;
+	      algsys_->SetElementMatrix(elemmat.getinarray(), connect_PDE.get(), connect_PDE.size(), SYSTEM);
 	    }
+// 	    {
+// 	      if (k!=elemmat.size_row()*elemmat.size_col())
+// 		Error("k is wrong!!!!!!!!!!!!!!!!!!!!!",__FILE__,__LINE__);
+
+// 	      for(Integer iii=0; iii<elemmat.size_row(); iii++)
+// 		for(Integer jjj=0; jjj < elemmat.size_row(); jjj++)
+// 		  {    
+// 		    harmVec[k] =  -4*PI*PI*freq_*freq_*elemmat[iii][jjj];
+// 		    // k initially  set in for loop above!!
+// 		    k++;
+// 		  }
+// 	      algsys_->SetElementMatrix(&harmVec[0], connect_PDE.get(), connect_PDE.size(),SYSTEM);
+// 	    }
 	  else
 	    algsys_->SetElementMatrix(elemmat.getinarray(), connect_PDE.get(), connect_PDE.size(), MASS);
 

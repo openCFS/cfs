@@ -22,6 +22,7 @@ typedef int Boolean;
 #define myEndl std::endl
 #define myCout std::cout
 
+typedef Double (*pFncWith1Var)(const Double);
 
   //! useful trick for testing problem
 #define mark std::cout<<__FILE__<<__LINE__<<std::endl;
