@@ -570,6 +570,8 @@ namespace CoupledField {
     StdVector<std::string> attrVec;
     StdVector<std::string> valVec;
     keyVec.Push_back( "pdeList" );
+    attrVec.Push_back( "" );
+    valVec.Push_back( "" );
     if ( pde != "" ) {
       keyVec.Push_back( pde );
       attrVec.Push_back( "" );
