@@ -31,7 +31,7 @@ namespace CoupledField
     //! \todo eps0 violates the ISO C++ standard. Only integral types
     //!       can be static and const!
     //static const Double  eps0 = 8.854187817e-12;
-
+    
     //! Constructor
 
     //! \param ptGrid     (input) Pointer to grid
@@ -39,7 +39,7 @@ namespace CoupledField
     //!                           potential for all nodes of domain
     //! \param level      (input) Multigrid level
     ElecForceOp(Grid * ptGrid, 
-		BasePDE * ptPDE,
+		StdPDE * ptPDE,
 		NodeEQN * ptEQN,
 		NodeStoreSol<Double> & EPotential,
 		const Integer level, Boolean isaxi);

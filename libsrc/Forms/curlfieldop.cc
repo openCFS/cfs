@@ -9,13 +9,13 @@
 #include "Utils/vector.hh"
 #include "Matrix/matrix.hh"
 
-#include <PDE/basePDE.hh>
+#include <PDE/StdPDE.hh>
 
 namespace CoupledField
 {
 
 CurlEdgeOp::CurlEdgeOp(Grid * ptGrid, 
-		       BasePDE * ptPDE,
+		       StdPDE * ptPDE,
 		       NodeEQN * ptEQN,
 		       NodeStoreSol<Double> & aSol,
 		       const Integer level,
@@ -180,7 +180,7 @@ void CurlEdgeOp::CalcElemMagVec(Vector<Double> & magVecPot,
 //=========================== CurlNodeOperator-Class=======================================
 
 CurlNodeOp::CurlNodeOp(Grid * ptGrid, 
-		       BasePDE * ptPDE,
+		       StdPDE * ptPDE,
 		       NodeEQN * ptEQN,
 		       NodeStoreSol<Double> & aSol,
 		       const Integer level)

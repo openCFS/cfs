@@ -1,7 +1,7 @@
 #include "elecchargeop.hh"
 #include "Domain/grid.hh"
 #include "Elements/basefe.hh"
-#include "PDE/basePDE.hh"
+#include "PDE/StdPDE.hh"
 #include "Domain/elem.hh"
 
 namespace CoupledField
@@ -9,7 +9,7 @@ namespace CoupledField
 
 
   ElecChargeOp::ElecChargeOp(Grid * ptGrid,
-			     BasePDE * ptPDE,
+			     StdPDE * ptPDE,
 			     NodeEQN * ptEQN,
 			     const Integer level,
 			     Boolean isaxi)

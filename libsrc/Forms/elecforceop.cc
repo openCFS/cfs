@@ -4,13 +4,13 @@
 #include "Domain/grid.hh"
 #include "Utils/vector.hh"
 #include "Matrix/matrix.hh"
-#include "PDE/basePDE.hh"
+#include "PDE/StdPDE.hh"
 
 namespace CoupledField
 {
  
 ElecForceOp::ElecForceOp(Grid * ptGrid,
-			 BasePDE * ptPDE,
+			 StdPDE * ptPDE,
 			 NodeEQN * ptEQN,
 			 NodeStoreSol<Double> & EPotential,
 			 Integer level,

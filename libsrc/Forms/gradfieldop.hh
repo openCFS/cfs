@@ -40,7 +40,7 @@ namespace CoupledField
       \param isaxi (input) Flag for axi-symmetric geomtetry
     */
     GradientFieldOp(Grid * ptGrid,
-		    BasePDE * ptPDE,
+		    StdPDE * ptPDE,
 		    NodeEQN * ptEQN,
 		    NodeStoreSol<TYPE> & potential,
 		    const SolutionType solType,

@@ -9,14 +9,14 @@
 #include "Utils/vector.hh"
 #include "Matrix/matrix.hh"
 
-#include <PDE/basePDE.hh>
+#include <PDE/StdPDE.hh>
 
 namespace CoupledField
 {
 
 template<class TYPE>
 GradientFieldOp<TYPE>::GradientFieldOp(Grid * ptGrid, 
-				 BasePDE * ptPDE,
+				 StdPDE * ptPDE,
 				 NodeEQN * ptEQN,
 				 NodeStoreSol<TYPE> & potential,
 				 const SolutionType solType,
