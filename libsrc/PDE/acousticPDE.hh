@@ -93,12 +93,10 @@ protected:
 
   Integer size_; //!< total number of unknowns (equations)
 
-  Boolean with_absBCs_; //!< Indicator for absorbing boundary conditions 
-  std::vector<std::string> bnd_absBCs_;   //!< list of bnds( for absorbing BCs)
+  std::vector<std::string> absBCs_;   //!< list of boundaries( for absorbing BCs)
 
-  DampingType damping_type_; //!< specifies the type of damping model (see environment.hh)
-  Boolean with_fracdamping_; //!< attenuation according to power law
-  Integer frac_memory_;      //!< number of old time steps to be saved
+  DampingType dampingType_; //!< specifies the type of damping model (see environment.hh)
+  Integer fracMemory_;      //!< number of old time steps to be saved
 
   //General dimension of problem
   Integer dim_;
