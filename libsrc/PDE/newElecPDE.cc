@@ -122,8 +122,8 @@ void ElecPDE:: PreStepStatic(const Integer level)
 
       assemble_->SetReassemble();   
     }
-
 }
+
 
 
 void ElecPDE::StepStaticNonLin(const Integer level)
@@ -189,8 +189,9 @@ void ElecPDE::PostStepStatic(const Integer level)
       *data << errorMap_ << std::endl;
     }
 #endif
-
 }
+
+
 
 
 // ======================================================
@@ -501,7 +502,7 @@ void ElecPDE::InitCoupling(PDECoupling * Coupling)
 	  F_Interface_.push_back(interface_tmp);
 
 	  // Intialize the memory
-	  ptCoupling_->SetOutputDim(i, Dim_);
+	  ptCoupling_->SetOutputDof(i, Dim_);
 	 
 	  // Assign arrays for element boundary nodes
 	  isBoundaryNode_tmp.clear();

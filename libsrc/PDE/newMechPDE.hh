@@ -117,7 +117,14 @@ protected:
 private:
 
   /// calc rhs coupling to acoustic pde
-  void CalcAcousticCouplingRHS(std::vector<Elem*> * couplingElems, Vector<Double>& forceOnElem);
+  //void CalcAcousticCouplingRHS(std::vector<Elem*> * couplingElems, Vector<Double>& forceOnElem);
+  
+  /// calc rhs coupling to acoustic pde
+  void CalcAcousticCouplingRHS(std::vector<Elem*> * couplingElems, 
+			       std::vector<Integer>& couplingNodes,
+			       std::vector<MaterialData*>* materials,
+			       Array<Double>& forceOnElem,
+			       Integer couplingdof);
   
 
   /// does a line search and returns the optimal residual norm

@@ -75,7 +75,10 @@ public:
   
   //! calculate the vector of coupling forces to the mechanical PDE
   void CalcMechCouplingRHS(std::vector<Elem*> * couplingElems, 
-			   Vector<Double>& elemCouplingSol);
+			   std::vector<Integer> & couplingNodes,
+			   std::vector<MaterialData*> * couplingMaterials,
+			   Array<Double>& elemCouplingSols,
+			   Integer couplingdof);
   
 
 protected:

@@ -117,7 +117,7 @@ WriteResults * DefineInOutFiles :: Create_ptWriteResults(FileType * const aInFil
   
 
   if (outformat=="gmv")
-    ptWriteResults=new WriteResultsGMV(filename,withHistory);
+    ptWriteResults=new WriteResultsGMV(filename,withHistory, aInFile);
   else if (outformat=="unverg")
     ptWriteResults=new WriteResultsUnverg(filename, withHistory, aInFile);
   else

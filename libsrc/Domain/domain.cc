@@ -110,14 +110,12 @@ Domain:: Domain(FileType * const aptFileType, WriteResults * ptOut, TimeFunc * a
  // Initialize Coupled PDEs
  InitCoupledPDE();
  
-//set the algebraic systems and read material data
-  for (int i=0;i< numpde_;i++)
-    {
-      ptpde_[i]->SetAlgSys(i);
-      //      ptpde_[i]->ReadMaterialData();
-     } 
-
+ //set the algebraic systems and read material data
+ for (int i=0;i< numpde_;i++)
+   ptpde_[i]->SetAlgSys(i);
 }
+
+
 
 Domain :: ~Domain()
 {
@@ -127,8 +125,6 @@ Domain :: ~Domain()
 
   if (ptgrid_) delete ptgrid_;
   if (ptBCs_) delete ptBCs_;
-  //  if (ptalgsys_) delete ptalgsys_;
-
 }
 
 void Domain :: InitPDEs()

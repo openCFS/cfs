@@ -164,7 +164,7 @@ std::vector<Elem*>& BCs::getEdgesBC(const std::string color, const Integer lev)
 	Found = TRUE;
 	break;
       }
-
+  
   if (!Found)
     {
       std::string ErrMsg = "Edges for level \'" + color + "\' could not be found!";

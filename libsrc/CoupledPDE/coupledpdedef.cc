@@ -16,6 +16,9 @@ CoupledPDEDef::CoupledPDEDef(Grid * aptGrid, BCs * aptBCs)
   ptBCs_ = aptBCs;
 
   // Define Ordering of PDEs
+  // Here the hardcoded information from coupledPDE.conf is
+  // read in and the possible couplings of the different PDEs
+  // are defined.
   DefineOrdering();
 }
   
@@ -43,24 +46,19 @@ void CoupledPDEDef::CreateCoupling(std::vector<BasePDE*> & OrderedPDEs,
    std::vector<std::string> PDENames;
    OrderedPDEs.clear();
 
-   // iterate over all coupling PDEs
-   //std::cerr << "CoupledPDEs_.size() = " << CoupledPDEs_.size() << std::endl;
-   //std::cerr << "UnorderedPDEs.size() = " << UnorderedPDEs.size() << std::endl;
-
+   // iterate over all coupling PDEs to find the 
+   // corresponding coupling definition for current set of PDEs
    for (Integer i=0; i<CoupledPDEs_.size(); i++)
      {
        
       // check if number of PDEs in coupling matches
       if (CoupledPDEs_[i]->GetNumPDEs() == UnorderedPDEs.size())
 	{
-	  //std::cerr << "CoupledPDEs[" << i << ".NumPDE == UnorderedPDEs.size()" << std::endl;
 	  CoupledPDEs_[i]->GetNamePDEs(PDENames);
 	
-	  //std::cerr << "PDENames.size() = " << PDENames.size() << std::endl;
 	  // iterate over all PDEnames in ordered direction
 	  for (Integer j=0; j<PDENames.size(); j++)
 	    {
-	      //std::cerr << "PDENames[" << j << "] = " << PDENames[j] << std::endl;
 	      // iterate over all PDEnames in the vector of unordered PDEs
 	      for (Integer k=0; k<UnorderedPDEs.size(); k++)
 		if (PDENames[j] == UnorderedPDEs[k]->GetName())
@@ -105,12 +103,10 @@ void CoupledPDEDef::CreateCoupling(std::vector<BasePDE*> & OrderedPDEs,
       // add all coupling terms of PDE
       for (Integer j=0; j<InputType.size(); j++)
 	{
-	  //std::cerr << "Adding to " << OrderedPDEs[i]->GetName() << " " << InputQuantity[j] << std::endl;
 	    Couplings[i]->RegisterInput(InputType[j], InputQuantity[j]);  
 	}
     }
   
-  //std::cerr << "Finished Create Coupling" << std::endl;
 
 }
 

@@ -181,7 +181,6 @@ void MagPDE::WriteResultsInFile()
   ShortInt Dim = ptgrid_->GetDim();
 
   Array<Double> B_Mesh, Jeddy_Mesh, Force_Mesh, Sol_Mesh;
-  Array<Double> sol_der1 = getS1();
 
   // transform solution vector for electric potential
   TransformNodeSolution(Sol_Mesh,sol_,PDE2MeshNode_);
@@ -396,6 +395,8 @@ void MagPDE::GetSolDerivOfElement( Vector<Double>& magvecpot_deriv1, Vector<Inte
 #ifdef TRACE
     (*trace) << "entering MagPDE::GetSolDerivOfElement" << std::endl;
 #endif
+    if (!savederiv1_)
+      Error("Derivative of solution not evailable!", __FILE__, __LINE__);
 
   // displacement of element nodes
   magvecpot_deriv1.Resize(connect_PDE.size());

@@ -140,7 +140,7 @@ void SmoothPDE::InitCoupling(PDECoupling * coupling)
     {
       // check for input mechanic displacement
       if (ptCoupling_->GetInputQuantity(i) == "mechdisplacement")
-	numDirichletBCs_ += (dofspernode_ * ptCoupling_->GetInputSize(i));
+	numDirichletBCs_ += (dofspernode_ * ptCoupling_->GetInputNumNodes(i));
     }
 
   // output couplings
@@ -148,7 +148,7 @@ void SmoothPDE::InitCoupling(PDECoupling * coupling)
     {
       // check for output displacement
       if (ptCoupling_->GetOutputQuantity(i) == "smoothdisplacement")
-	  ptCoupling_->SetOutputDim(i, dofspernode_);
+	  ptCoupling_->SetOutputDof(i, dofspernode_);
     }
 
   // now overwrite number of Dirichlet BCs due to coupling 

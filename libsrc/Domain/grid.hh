@@ -155,7 +155,7 @@ public:
   //! gets a matrix of the coordinates of the element nodes
   /*!
     \param connect (input) global node numbers of element
-    \param ptCoord (output) coordinates of the element nodes (nrNodes \f$\times\f$ spaceDim);
+    \param ptCoord (output) coordinates of the element nodes (spaceDim \f$\times\f$ nrNodes);
     \param level (input) index for multilevel hierarchy
   */
   virtual void GetCoordNodesElemMat(const Vector<Integer> connect, Matrix<Double>& coordMat, const Integer level)
@@ -180,7 +180,7 @@ public:
     return Ddummy;
   }
 
-   //! procedure for forming list with element-neighbors for nodes of patch of element
+   //! Auxiliary function: procedure for forming list with element-neighbors for nodes of patch of element
   /*!
     \param elems (input)
     \param nodeNeighbors (output)
@@ -189,16 +189,20 @@ public:
   virtual void FormNeighbors4NodesOfElements(const std::vector<Elem*> &elems, std::vector<std::vector<Elem*> > &nodeNeighbors, std::vector<Integer> & map) = 0;
 
 
-   //! auxialary function; to define belonging of one element to another from the list, for ex. surface element and boundary elements
+  //! Determines to a given list of elements (e.g. surface elements) the neighbouring elements 
+  //! NOTE: an element is considered as neighbour, if ALL NODES of a surface element
+  //! are common with the neighbour
   /*!
-    \param elemsSurf
-    \param elems
-    \param belongingSE
+    \param elemsSurf (input) Surface-Elements 
+    \param elems (input) List of all possible neighbouring elements (e.g. whole subdomain)
+    \param belongingSE (output) Elements neighbouring surface Elements
   */
   virtual void DefineBelonging4Elems(const std::vector<Elem*>& elemsSurf, const std::vector<Elem*>&elems, std::vector<Elem*> & belongingSE)=0;
 
 
   //! form list with interface-elements neighbours
+  //! NOTE: an element is considered as neighbour, if both have 
+  //! AT LEAST one common node
   /*!
     \param Interface (input) Elements defining the interface between two domains
     \param Next2Surf (input) Subdomain adjacent to interface

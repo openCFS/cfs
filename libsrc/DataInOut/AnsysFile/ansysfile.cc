@@ -761,14 +761,18 @@ void AnsysFile::ReadBCs_GridRG(std::vector<Integer> & idBCs,std::vector<Integer>
 
 	    infile.ignore(100,'\n');
 
-	    Boolean Find;
+	    Boolean Find=FALSE;
 	    for (j=0; j<sd.size(); j++)
-	      if (namesd == sd[j]) { allelems[j].push_back(el);
-	      Find=TRUE;
+	      if (namesd == sd[j]) 
+		{ 
+		  allelems[j].push_back(el);
+		  Find=TRUE;
+		}
+	    if (!Find) 
+	      { 
+		std::string msg=namesd + "- this level of element is not mentioned in .conf-file. Please, check .config-file";
+		Error(msg.c_str(),__FILE__,__LINE__);
 	      }
-	    if (!Find) { std::string msg=namesd + "- this level of element is not mentioned in .conf-file. Please, check .config-file";
-	    Error(msg.c_str(),__FILE__,__LINE__);
-	    }
 	  }
       }
   }
