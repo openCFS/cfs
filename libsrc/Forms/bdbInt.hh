@@ -9,7 +9,9 @@ namespace CoupledField {
   class BDBInt : public BaseForm {
 
   public:
-
+    //! Constructor with pointer to BaseElem
+    BDBInt();
+    
     //! Constructor with pointer to BaseElem
     BDBInt(BaseFE *aptelem, MaterialData &matData);
 

@@ -289,6 +289,45 @@ namespace CoupledField
   }
 
 
+
+  /// calculates of stresses T (vector notation)
+  // T = c . S - e^T E with c tensor of mechanical moduli and e the piezoelectric tensor
+  // S = Bmech * u 
+  // E = Belec V
+  // see Habil. M. Kaltenbacher 
+  void linPiezoInt::CalcStressVec(Vector<Double>& stressElecVec, Integer ip, 
+				  Matrix<Double> & ptCoord)
+  {
+    ENTER_FCN( "linPiezoInt::CalcStressVec" );
+
+    Matrix<Double> dMat;
+    calcDMat(dMat);
+ 
+    // convert displacement of all elem nodes into one vector: 
+    // (uNode1X, uNode1Y, VNode1, uNode2X, uNode2Y,VNode2,  ...)
+    Vector<Double> solVec;
+    elemSol_.ConvertToVec_AppendCols(solVec);
+ 
+//   std::cout << "elemSol:\n" << elemSol_ << std::endl;
+    
+
+    // linear differential operator B_lin
+    Matrix<Double> linBMat;    
+    calcBMat( linBMat, ip, ptCoord);
+
+    Vector<Double> linStrainElec(linBMat * solVec );
+
+    // | c Bmech u - e^T Belec V |
+    // | e Bmech u + eps Belec V |
+    //    Vector<Double> stressElecVec = dMat * linStrainElec;
+    stressElecVec = dMat * linStrainElec;
+
+//    std::cout << "stressvec:\n" << stressElecVec << std::endl;
+    
+
+  }
+
+
   // ========================================================================
   // ======================== linPiezoAxiInt - Part ==========================
   // ========================================================================
@@ -299,6 +338,8 @@ namespace CoupledField
   {
     ENTER_FCN( "piezoAxiInt::calcBMat" );
 
+//    std::cout << "actInt: " << intPoint_ << std::endl;
+ 
     // obtain info on problem sizes
     const Integer nrNodes  = ptelem->GetNumNodes();
     const Integer spaceDim = ptelem->GetDim();
@@ -313,14 +354,21 @@ namespace CoupledField
     // (format: nrNodes x spaceDim)
     Matrix<Double> xiDx;
 
-    ptelem->GetGlobDerivShFncAtIp(xiDx, ip, ptCoord);
+    if (isSetIntPoint_) 
+      ptelem->GetGlobDerivShFnc(xiDx, intPoint_, ptCoord);
+    else
+      ptelem->GetGlobDerivShFncAtIp(xiDx, ip, ptCoord);
 
     // auxiliary variables
     Integer actDim, actNode, idxtheta = getDimD();
     Vector<Double> ShpFncAtIp;
     Vector<Double> CoordAtIp;
 
-    ptelem->GetShFncAtIp(ShpFncAtIp, ip);
+    if (isSetIntPoint_) 
+      ptelem->GetShFnc(ShpFncAtIp,intPoint_);
+    else
+      ptelem->GetShFncAtIp(ShpFncAtIp,ip);
+
     CoordAtIp = ptCoord * ShpFncAtIp;
 
     // treat mechanical part (same as in linElastInt)
@@ -387,7 +435,10 @@ namespace CoupledField
 
     Matrix<Double> xiDx;
 
-    ptelem->GetGlobDerivShFncAtIp(xiDx, ip, ptCoord);
+    if (isSetIntPoint_) 
+      ptelem->GetGlobDerivShFnc(xiDx, intPoint_, ptCoord);
+    else
+      ptelem->GetGlobDerivShFncAtIp(xiDx, ip, ptCoord);
 
     // auxiliary variables
     Integer actDim, actNode;
@@ -444,6 +495,7 @@ namespace CoupledField
     ENTER_FCN( "linPiezo3DInt::calcDMat" );
     Calc3DMaterialMat(dMat);
   }
+
 
 
 } // end namespace CoupledField

@@ -340,6 +340,10 @@ namespace CoupledField {
       }
       
       //element results
+      if (calcEfield_.GetSize() !=0 ) {
+	outFile_->WriteElemSolutionTransient(Efield_, laststepcalc_, lasttimecalc_);
+      }
+
       if (calcStress_.GetSize() !=0 ) {
 	outFile_->WriteElemSolutionTransient(stress_, laststepcalc_, lasttimecalc_);
       }
@@ -470,16 +474,8 @@ void PiezoPDE::ReadStoreResults() {
     stress_.SetNumSolutions(1);
     stress_.SetSolutionType(MECH_STRESS);
     stress_.SetNumElems(numElems_);
-#ifndef XMLPARAMS 
-    if (subType_ == "plainStrain") 
-#else
-    if (subType_ == "planeStrain") 
-#endif
-	stress_.SetNumDofs(3);
-    else if (subType_ == "axi")
-      stress_.SetNumDofs(3);
-    else if (subType_ == "3d")
-      stress_.SetNumDofs(6);
+    //we always store for six components (unverg-file-format as capa does
+    stress_.SetNumDofs(6);
     stress_.SetPtrEQNData(eqnData_, ptgrid_, actlevel_);
     stress_.Init(0);
   }
@@ -618,27 +614,27 @@ void PiezoPDE::CalcStress(){
       Info->Error("StressOp: Unknown subtype in mech PDE! ",__FILE__,__LINE__);  
   
   
-  Vector<Double> elemElecStress, elemStress;
+  Vector<Double> elemElecStress, elemStress, sortedStress;
   elemElecStress.Resize(stressDim+elecDim);
   elemStress.Resize(stressDim);
   elemElecStress.Init(0);
   elemStress.Init(0);
-  
+  sortedStress.Resize(6);
+
   // loop over all subdomains
   for (Integer isd=0; isd<subdoms_.GetSize(); isd++) {
     
     MaterialData actSDMat(materialData_[isd]);
-    PiezoStressStrain *stress;
+    linPiezoInt * stress;
+
+    if (subType_ == "planeStrain")
+      stress = new piezoPlainStrainInt(actSDMat);
+
+    else if (subType_ == "axi")      
+      stress = new piezoAxiInt(actSDMat);
     
-    if (subType_ == "planeStrain") 
-      stress = new PiezoStressStrainPlaneStrain(actSDMat);
-    
-    else if (subType_ == "axi") 
-      stress = new PiezoStressStrainAxi(actSDMat);
-    
-    else if (subType_ == "3d") 
-      stress = new PiezoStressStrain3D(actSDMat);
-    
+    else if (subType_ == "3d")
+      stress = new linPiezo3DInt(actSDMat);
     
     // get vector of Elements of subdomains
     StdVector<Elem*> elemssd;     
@@ -670,7 +666,8 @@ void PiezoPDE::CalcStress(){
       //calculates the stress
       stress->CalcStressVec(elemElecStress,1,ptCoord);
       elemStress = elemElecStress.Part(0,stressDim-1);
-      stress_.SetElemResult(pdeElem-1, elemStress);
+      sortStresses(elemStress,sortedStress);
+      stress_.SetElemResult(pdeElem-1, sortedStress);
     }
   }
 }
@@ -761,6 +758,42 @@ can not draw them", __FILE__, __LINE__);
 }
 
 
+void PiezoPDE::sortStresses(Vector<Double>& unsorted, Vector<Double>& sorted){
+  ENTER_FCN( "PiezoPDE::SortStresses" );
+  
+  //soring according to capa (unv) notation
+  //our notation is Voit: Txx Tyy Tzz Tyz Txz Txy
 
+  if (subType_ == "3d") {
+    //Txx Txy Tyy Txz Tyz Tzz
+    sorted[0] = unsorted[0];
+    sorted[1] = unsorted[5];
+    sorted[2] = unsorted[1];
+    sorted[3] = unsorted[4];
+    sorted[4] = unsorted[3];
+    sorted[5] = unsorted[2];
+  }
+  else if (subType_ == "axi") {
+    //Tphiphi 0 Trr 0 Trz Tzz
+    sorted[0] = unsorted[3];
+    sorted[1] = 0.0;
+    sorted[2] = unsorted[0];
+    sorted[3] = 0.0;
+    sorted[4] = unsorted[2];
+    sorted[5] = unsorted[1];
+  
+  }
+  else {
+     //0 0 Tyy 0 Tyz Tzz
+    sorted[0] = 0.0;
+    sorted[1] = 0.0;
+    sorted[2] = unsorted[0];
+    sorted[3] = 0.0;
+    sorted[4] = unsorted[2];
+    sorted[5] = unsorted[1];
+  }
+
+}
+  
 
 } // end of namespace

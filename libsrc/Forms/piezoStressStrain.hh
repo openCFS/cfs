@@ -44,7 +44,7 @@ protected:
   //  virtual void calcDMat(Matrix<Double> & dMat);
   
   /// returns B 
-  virtual void calcBMat(Matrix<Double> & bMat, Integer ip, Matrix<Double> & ptCoord);
+  virtual void calcBMat(Matrix<Double> & bMat, Integer ip, Matrix<Double> & ptCoord)=0;
 
   /// returns nr. of degrees of freedom
   virtual Integer getNrDofs()=0;  
@@ -75,6 +75,9 @@ public:
 protected:  
   /// returns D - matrix (material matrix)
   virtual void calcDMat(Matrix<Double> & dMat);
+
+  /// returns B 
+  virtual void calcBMat(Matrix<Double> & bMat, Integer ip, Matrix<Double> & ptCoord);
 
   /// returns nr. of degrees of freedom
   virtual Integer getNrDofs(){return 4;};
@@ -107,6 +110,9 @@ protected:
   /// returns D - matrix (material matrix)
   virtual void calcDMat(Matrix<Double> & dMat);
 
+  /// returns B 
+  virtual void calcBMat(Matrix<Double> & bMat, Integer ip, Matrix<Double> & ptCoord);
+
   /// returns nr. of degrees of freedom
   virtual Integer getNrDofs(){return 3;};  
 
@@ -134,6 +140,9 @@ public:
 protected:  
   /// returns D - matrix (material matrix)
   virtual void calcDMat(Matrix<Double> & dMat);
+
+  /// returns B 
+  virtual void calcBMat(Matrix<Double> & bMat, Integer ip, Matrix<Double> & ptCoord);
 
   /// returns nr. of degrees of freedom
   virtual Integer getNrDofs(){return 3;};  
