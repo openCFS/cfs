@@ -26,7 +26,7 @@ namespace CoupledField {
   void Warning( const Char *Text, const Char * const filename,
 		const Integer numline ) {
     Info->Warning( Text, filename, numline );
-    std::cerr << "\033[31mWARNING:\033[0m " << Text;
+    //std::cerr << "\033[31mWARNING:\033[0m " << Text;
   }
 
   // =========================================
