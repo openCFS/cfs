@@ -732,7 +732,7 @@ namespace CoupledField {
         return "fluid potential, 1st deriv.";
         break;
       case ACOU_POTENTIAL_DERIV_2:
-        return "fluid potential, 1st deriv.";
+        return "fluid potential, 2nd deriv.";
         break;
       case MAG_POTENTIAL:
         return "mag. vector potential";
