@@ -61,9 +61,9 @@ void MyClock::ClockCount(enum status n, const std::string title)
 	}
       else 
 	{  
-	  std::cout << title << "::\t" << "Wall time: " <<
+	  std::cout << " " << title << "::\t" << "Wall time: " <<
 	    difftime(tm_tmp, tm) << " c." << "\t" << "CPU time: " <<
-	    Double(ck_tmp - ck)/CLOCKS_PER_SEC << std::endl;
+	    Double(ck_tmp - ck)/CLOCKS_PER_SEC << std::endl << std::endl;
  
 	  tm=tm_tmp;
 	  ck=ck_tmp; 

@@ -47,9 +47,10 @@ namespace CoupledField
 	exit(1);
       }
 
-    std::cout << std::endl << "*** Load material data of " << matName 
-	      << " from type " << matType << " from file " << filename << std::endl;
-  
+#ifdef DEBUG
+    (*debug) << std::endl << "*** Load material data of " << matName 
+	     << " from type " << matType << " from file " << filename << std::endl;
+#endif
 
     
 

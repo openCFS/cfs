@@ -22,12 +22,11 @@ public:
   /*!
     \param aGrid pointer to grid
     \param aBCs pointer to Boundary condition object
-    \param aMatFile pointer to class Material. material data.
     \param aInFile pointer to class FileType. input data.
     \param aOutFile  pointer to class WriteResults. output data.
     \param aTimeFunc pointer to class TimeFunc
   */
-  PlainStrainPDE(Grid *aGrid, BCs *aBCs, Material *aMatFile, TimeFunc *aTimeFunc, FileType *aInFile, 
+  PlainStrainPDE(Grid *aGrid, BCs *aBCs, TimeFunc *aTimeFunc, FileType *aInFile, 
 	    WriteResults *aOutFile );
 
   //!  Deconstructor
@@ -39,12 +38,6 @@ public:
   */
   virtual void SetupMatrices(const Integer level);
 
-  //! compute rhs
-  /*!
-    \param atime time of calculation
-  */
-  virtual void ComputeRHS(const Double atime);
-
     //! set boundary condition
   /*!
     \param level level of grid
@@ -54,16 +47,7 @@ public:
   virtual void SetBCs(const Integer level, const Integer update, const Double atimestep);
 
 protected:
-  //! some preliminary actions for calculation of RHS. they are the same for all steps. 
-  virtual void preComputeRHS();
 
-  //! function for RHS
-  Integer arg_rhs_;
-  pfn1var ptRHSFnc_;
-  std::vector<Double> directionFnc_;
-
-  Boolean SetRHSFnc; //!< Indicator: is there RHS function
-  std::vector<std::string> rhs_surfaces_; //!< list of surfaces, on which we have force
 };
 
 } // end of namespace

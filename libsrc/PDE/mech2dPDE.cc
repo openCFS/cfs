@@ -17,23 +17,26 @@
 namespace CoupledField
 {
 
-  // ============================
-  // ptMaterial NOT USED !!!!!!!!
-  // ============================
-  PlainStrainPDE::PlainStrainPDE(Grid * aptgrid, BCs *aptbcs, Material *ptMaterial, TimeFunc *aptTimeFunc, 
-			       FileType *aptFileType, WriteResults *aptOut)
-    :MechPDE(aptgrid,aptbcs,ptMaterial,aptTimeFunc,aptFileType,aptOut)
+  PlainStrainPDE::PlainStrainPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *aptFileType, 
+				 WriteResults *aptOut)
+    :MechPDE(aptgrid,aptbcs,aptTimeFunc,aptFileType,aptOut)
   {
 #ifdef TRACE
     (*trace) << "entering PlainStrainPDE::PlainStrainPDE " << std::endl;
 #endif
 
-    pdename_ = "PlainStrain";
+    pdename_ = "plainStrain";
+    pdematerialclass_ = "piezo";
+
+    dofspernode_ = 2;
+
+    size_=ptgrid_->GetMaxnumnodes(0)*dofspernode_;
+    disp_.Resize(size_);
+    disp_.Init(0);
 
     conf->getsubdompde(subdoms_,pdename_);
     ReadBCs(pdename_);
 
-    preComputeRHS();
   }
 
 
@@ -47,13 +50,9 @@ namespace CoupledField
     // This is a smaller matrix since it is just for linear 1D elements.
     Matrix<Double> elemmatbnd;
     BaseFE * ptEl;
-    Vector<Double> coeffm, coeffst, coeffdamp;
     Vector<Integer> connecth;
     std::vector<Elem*> elemssd;
     Integer i, j;
-
-
-    //    CalcCoeff(coeffm, coeffst, coeffdamp);
 
     // read materialfile name from configfile
     std::string matFileName;
@@ -89,7 +88,7 @@ namespace CoupledField
 
 	    // stiffness part
 	    bilinear_stiff->CalcElementMatrix(ptCoord, elemmat);
-	    elemmat *= coeffst[i];
+	    //	    elemmat *= coeffst[i];
 
 #ifdef DEBUG
 	    (*debug) << "Connection array  " << std::endl;
@@ -102,7 +101,7 @@ namespace CoupledField
 
 	    // mass part
 	    bilinear_mass->CalcElementMatrix(ptCoord, elemmat);
-	    elemmat *= coeffm[i];
+	    //	    elemmat *= coeffm[i];
 
 #ifdef DEBUG
 	    (*debug) << "Massmatrix, ElementNumber  " << i << std::endl;
@@ -119,51 +118,6 @@ namespace CoupledField
 #ifdef TRACE
     (*trace) << "Leaving PlainStrainPDE::SetupMatrices" << std::endl;
 #endif
-  }
-
-
-  void PlainStrainPDE::preComputeRHS()
-  {
-#ifdef TRACE
-    (*trace) << "entering PlainStrainPDE::preComputeRHS" << std::endl;
-#endif
-
-    SetRHSFnc = FALSE;
-
-    std::string isthererhs="no";
-    conf->ifget("load_force",isthererhs,pdename_);
-
-    if (isthererhs=="yes" ) {
-      conf->getliststr("rhs_surfaces",rhs_surfaces_,pdename_);
-      std::string rhs;
-      conf->get("rhs_fnc",rhs,pdename_);
-      ptRHSFnc_=FncReader(rhs);
-      conf->get("rhs_arg_fnc",arg_rhs_,pdename_);
-      SetRHSFnc=TRUE;
-      directionFnc_.resize(2);
-      conf->get("direction_rhs_x",directionFnc_[0],pdename_);
-      conf->get("direction_rhs_y",directionFnc_[1],pdename_);
-    }    
- 
-  }
-
-  void PlainStrainPDE::ComputeRHS(const Double atime)
-  {
-#ifdef TRACE
-    (*trace) << "entering PlainStrainPDE::ComputeRHS" << std::endl;
-#endif
-    Integer n;
-    Integer node;
-    Integer matrix_id;
-    Vector<Double> coeffMass;
-    Vector<Double> coeffDamp;
-    std::list<Integer> nodes_hd;
-    Integer i;
-
-    coeffMass = sol_old_*a0_+sol_der1_old_*a2_+sol_der2_old_*a3_;
-
-    algsys_->UpdateRHS(MASS,coeffMass.get());
-
   }
 
 

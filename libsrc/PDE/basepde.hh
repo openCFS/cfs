@@ -9,7 +9,8 @@
 #include <DataInOut/writeresults.hh>
 #include <DataInOut/material.hh>
 #include <DataInOut/conffile.hh>
-
+#include <DataInOut/LoadMaterialData.hh>
+#include <DataInOut/MaterialData.hh>
 
 namespace CoupledField
 {
@@ -31,16 +32,24 @@ public:
   /*!
     \param aptgrid pointer to grid
     \param aptBCs pointer to boundary condition object
-    \param aMatFile pointer to class Material. material data.
     \param aInFile pointer to class FileType. input data.
     \param aOutFile  pointer to class WriteResults. output data.
     \param aTimeFunc pointer to class TimeFunc
   */
-  BasePDE(Grid *aptgrid, BCs *aptBCs, Material *aMatFile, FileType *aInFile, WriteResults *aOutFile, 
+  BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile, WriteResults *aOutFile, 
 	  TimeFunc *aTimeFunc); 
 
   //! Deconstructor
   virtual ~BasePDE();
+
+  //! define algebraic system 
+  /*!
+    \param AS_sysid id of PDE in algebraic system
+   */
+  virtual void SetAlgSys(const Integer AS_sysid);
+
+  //! read material data
+  virtual void ReadMaterialData();
 
   //! set matrix factors for construction of effective mass / stiffness matrix
   virtual void SetMatrixFactors()=0;
@@ -51,11 +60,8 @@ public:
    */
   virtual void SetAlgSys_id(const Integer AS_sysid);
 
-  //! define algebraic system 
-  /*!
-    \param AS_sysid id of PDE in algebraic system
-   */
-  virtual void SetAlgSys(const Integer AS_sysid) {;};
+  //! define the discrete PDE
+  virtual void DiscreteParamsPDE()=0;
 
   //! define algebraic system solver Parameters
   virtual void SetSolverParameters();
@@ -82,7 +88,7 @@ public:
     \param numconstraints out: number of nodes for constraints conditions
   */
   virtual void SpecifyMatrices(Integer &matrixclass, Integer *matrixtype, Integer &graphtype, 
-                               Integer &numdofpernode, Integer &numdirichlets, Integer &numconstraints)=0;
+                               Integer &numdofpernode, Integer &numdirichlets, Integer &numconstraints){;};
 
   //! set boundary condition
   /*!
@@ -106,10 +112,8 @@ public:
     \param level level of grid
     \param updatesysmat indicator: need we to update algebraic system. it is used for adaptive procedure in space
   */
-  virtual void SolveStepTrans(const Integer kstep, const Double asteptime, const Integer level, const Boolean updatesysmat)=0;
-//   { 
-//     Error("Not implemented",__FILE__,__LINE__);
-//   }
+  virtual void SolveStepTrans(const Integer kstep, const Double asteptime, const Integer level, 
+			      const Boolean updatesysmat)=0;
 
   //! write results in file
   virtual void WriteResultsInFile()=0;  
@@ -244,15 +248,32 @@ protected:
    //! read from .config-file info about BCs
    void ReadBCs(const std::string eq);
 
+  //! analysis type
+  AnalysisType analysistype_;
+
+  //! paramters for discrete PDE
+  Integer MatrixType_;          //!< type of matrix (real, complex, etc.)
+  Integer GraphType_;           //!< type of graph (nodal, edge,..)
+  Integer SystemMatrix_;        //!< need system matrix (TRUE/FALSE)
+  Integer StiffnessMatrix_;     //!< need stiffness matrix (TRUE/FALSE)
+  Integer DampingMatrix_;       //!< need damping matrix (TRUE/FALSE)
+  Integer MassMatrix_;          //!< need mass matrix (TRUE/FALSE)
+  Integer ConvectionMatrix_;    //!< need convective matrix (TRUE/FALSE)
+
   std::string pdename_; //!< type of PDE (set in the derived classes
   Integer dofspernode_; //!< number of unknowns per node
   std::vector<std::string> subdoms_;  //!< subdomain-levels belongig to PDE
+
+  //Material data
+  Char * charMaterialFileName_;    //!< name of material file
+  LoadMaterialData *loadMaterial_; //!< material reader
+  MaterialData *materialData_;     //!< material data structure
+  std::string pdematerialclass_;    //!< material class
 
   // pointers to objects
   Grid * ptgrid_;           //!< pointer to Grid
   BCs *ptBCs_;              //!< pointer to Boundary Condition  Object
   BaseSystem * algsys_;     //!< pointer to algebraic system
-  Material * MatFile_;      //!< pointer to class Material
   FileType * InFile_;       //!< pointer tio input file
   WriteResults * OutFile_;  //!< pointer to output file
   TimeFunc * ptTimeFunc_;   //!< pointer to time functions

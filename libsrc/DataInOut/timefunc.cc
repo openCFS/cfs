@@ -31,12 +31,8 @@ TimeFunc :: TimeFunc(FileType * aptFileType)
       conf->get ("time_interval_fnc_a",intervalTF_a);
       conf->get ("time_interval_fnc_b",intervalTF_b);
     }             
-  //  else 
-  //    Error("There is no information about time function in conf-file");
-	       
     
   if (timeFncDatFile_) ReadTimeFunc(nametf); 
-  std::cout << " boolean: " << timeFncDatFile_ << std::endl;
 }
 
 void TimeFunc :: ReadTimeFunc(const std::string nametf)

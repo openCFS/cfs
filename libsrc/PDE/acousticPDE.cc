@@ -13,9 +13,9 @@
 namespace CoupledField
 {
 
-AcousticPDE::AcousticPDE(Grid * aptgrid, BCs *aptbcs, Material *ptMaterial, TimeFunc *aptTimeFunc, 
-		     FileType *aptFileType, WriteResults *aptOut)
-:BasePDE(aptgrid,aptbcs,ptMaterial,aptFileType,aptOut,aptTimeFunc)
+AcousticPDE::AcousticPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *aptFileType, 
+			 WriteResults *aptOut)
+:BasePDE(aptgrid,aptbcs,aptFileType,aptOut,aptTimeFunc)
 {
 #ifdef TRACE
   (*trace) << "entering AcousticPDE::AcousticPDE " << std::endl;
@@ -23,8 +23,6 @@ AcousticPDE::AcousticPDE(Grid * aptgrid, BCs *aptbcs, Material *ptMaterial, Time
 
   dofspernode_=1;
 
-  if (!MatFile_) Error("You didn't specified material file. Check your config-file.");
- 
   laststepcalc_=0;
   size_=ptgrid_->GetMaxnumnodes(0);
 
@@ -67,6 +65,25 @@ AcousticPDE::AcousticPDE(Grid * aptgrid, BCs *aptbcs, Material *ptMaterial, Time
   SetMatrixFactors();
 }
 
+
+void AcousticPDE::DiscreteParamsPDE()
+{
+#ifdef TRACE
+  (*trace) << "entering AcousticPDE ::DiscreteParamsPDE" << std::endl;
+#endif
+
+  MatrixType_ = RSCALAR;
+  GraphType_  = NODEGRAPH; 
+
+  SystemMatrix_     = TRUE;
+  StiffnessMatrix_  = TRUE;
+  MassMatrix_       = TRUE;
+
+  if (with_absBCs_)
+    DampingMatrix_  = TRUE;
+}
+
+
 void AcousticPDE::SetMatrixFactors()
 {
 #ifdef TRACE
@@ -81,55 +98,6 @@ void AcousticPDE::SetMatrixFactors()
 
   matrix_factor_[2] = 0.0;       // factor for convection matrix
   matrix_factor_[3] = 1.0*a0_;   // factor for mass matrix
-}
-
-void AcousticPDE::SpecifyMatrices(Integer &matrixtype, Integer * matrixsystype, Integer &graphtype, 
-				    Integer &numdofpernode, Integer &numdirichlets, Integer &numconstraints)
-{
-#ifdef TRACE
-  (*trace) << "entering AcousticPDE::SpecifyMatrices" << std::endl;
-#endif
-
-  matrixtype = RSCALAR; 
-  graphtype  = NODEGRAPH; 
-
-  matrixsystype[0] = SYSTEM;      // memory for the system matrix
-  matrixsystype[1] = STIFFNESS;   // memory for the stiffness matrix
-
-  matrixsystype[2] = 0;
-  if (with_absBCs_)
-    matrixsystype[2] = DAMPING;   // memory for the damping matrix
-
-  matrixsystype[3] = 0;           // memory for the convection matrix
-  matrixsystype[4] = MASS;        // memory for the mass matrix
-
-
-  numdofpernode  = dofspernode_;
-  numdirichlets  = GetNumRestraints(actlevel_);
-  numconstraints = 0;
-}
-
-
-void AcousticPDE::SetAlgSys(const Integer as_sysid)
-{
-#ifdef TRACE
-  (*trace) << "entering AcousticPDE::SetAlgSys" << std::endl;
-#endif
-
-  as_sysid_ = as_sysid;
-
-  //allocate according algebraic system
-  algsys_ = new StandardSystem();
-
-  //set solver parameters  
-  SetSolverParameters();
-
-  //set the graph type used for the system matrices
-  Integer numnode = ptgrid_->GetMaxnumnodes(actlevel_);
-  SetupMatrixGraph(numnode,NODEGRAPH);
-
-  //allocate the necessary matrices as well as solver and preconditioner
-  CreateMatrices_Solver();
 }
 
 
@@ -279,31 +247,6 @@ void AcousticPDE::SaveSolAsPrevStep()
   sol_old_=sol_;
   sol_der1_old_=sol_der1_;
   sol_der2_old_=sol_der2_;  
-}
-
-
-void AcousticPDE ::CalcCoeff(Vector<Double> & coeffmass, Vector<Double> & coeffstiff, Vector<Double> & coeffdamp)
-{
-  if (!MatFile_) Error("You didn't specialize material file. Check your config-file.");
-
-  coeffmass.Resize(subdoms_.size());
-  coeffstiff.Resize(subdoms_.size());
-  if (with_absBCs_) coeffdamp.Resize(subdoms_.size());
-
-  Integer i,matnum;
-  for (i=0; i<subdoms_.size(); i++)
-    {
-      conf->get(subdoms_[i],matnum,"list_subdomains");
-
-      // read density and compress with material number matnum
-      Double density, compress;
-      MatFile_->ReadDensityAndCompressity(density,compress,matnum,"fluid");
-
-      coeffmass[i]  = density*density/compress;
-      coeffstiff[i] = density;
-      if (with_absBCs_)
-      coeffdamp[i]  = density/((sqrt(compress/density)));
-    }
 }
 
 }

@@ -19,10 +19,9 @@ public:
   /*!
     \param aptFileType (input) input file (mesh-data)
     \param ptOut (input) output file
-    \param materialdata (input) material data base
     \param aptTimeFunc (input) time function data base
   */
-  Domain(FileType * const aptFileType, WriteResults * ptOut, Material * materialdata,  TimeFunc * aptTimeFunc);
+  Domain(FileType * const aptFileType, WriteResults * ptOut, TimeFunc * aptTimeFunc);
 
   //!
   virtual ~Domain();
@@ -67,7 +66,7 @@ private:
   Integer newlevel;
 
    //! initialize pde
-   void InitPDE();
+   void InitPDEs();
 
    //! initialization of alg.sys.
   /*!
@@ -90,7 +89,6 @@ private:
   Grid * ptgrid_; //!< pointer to grid object
   BCs * ptBCs_;   //!< pointer to object storing boundary conditions
   AbstractAlgebraicSys * ptalgsys_; //!< pointer to algebraic system
-  Material * ptmaterial_; //!< pointer to object handling material data
   TimeFunc * ptTimeFunc_; //!< pointer to object handling time functions
   FileType *InFile_;      //!< pointer to object handling input file (mesh data)
   WriteResults * OutFile_; //!<  pointer to object handling output file 

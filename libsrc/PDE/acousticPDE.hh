@@ -21,31 +21,18 @@ public:
   /*!
     \param aGrid pointer to grid
     \param aBCs pointer to Boundary condition object
-    \param aMatFile pointer to class Material. material data.
     \param aInFile pointer to class FileType. input data.
     \param aOutFile  pointer to class WriteResults. output data.
     \param aTimeFunc pointer to class TimeFunc
   */
-  AcousticPDE(Grid *aGrid, BCs *aBCs, Material *aMatFile, TimeFunc *aTimeFunc, FileType *aInFile, 
-	    WriteResults *aOutFile );
+  AcousticPDE(Grid *aGrid, BCs *aBCs, TimeFunc *aTimeFunc, FileType *aInFile, 
+	      WriteResults *aOutFile );
 
   //!  Deconstructor
   virtual ~AcousticPDE() {;};
 
-  //! Set algebraic system
-  void SetAlgSys(const Integer as_sysid);
-
-  //! specify type of system matrix for AlgebraicSystem
-  /*!
-    \param matrixclass out: class of matrix (e.g real scalar, complex scalar, etc.)
-    \param matrixsystype out: defines needed matrices (Mass, Stiffness, etc.)
-    \param graphtype out: type of graph
-    \param numdofpernode out: number of dof per node
-    \param numdirichlets out:number of nodes for dirichlets conditions
-    \param numconstraints out:number of nodes for constraints conditions
-  */
-  virtual void SpecifyMatrices(Integer &matrixtype, Integer *matrixsystype, Integer &graphtype, Integer &numdofpernode, 
-			       Integer &numdirichlets, Integer &numconstraints);
+  //! define discrete PDE
+  virtual void DiscreteParamsPDE();
 
   //! set information for algebraic system about PDE. set matrix factors
   virtual void SetMatrixFactors();
@@ -117,13 +104,6 @@ protected:
 
   //! Calculation parameters for Newmark method
   virtual void CalcParameters(const Double dt);
-
-  //!  calculation of coefficient.
-  /*!
-    \param coeffmass coefficient before mass matrix
-    \param coeffstiff coefficient before stiffness matrix
-  */
-  void CalcCoeff(Vector<Double> & coeffmass, Vector<Double> & coeffstiff, Vector<Double> & coeffdamp);
 
   //! coefficients from Newmark method
   Double a0_,a1_,a2_,a3_,a4_,a5_,a6_,a7_;

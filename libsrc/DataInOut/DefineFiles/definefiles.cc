@@ -90,7 +90,7 @@ FileType * DefineInOutFiles :: Create_ptFileType()
 
 WriteResults * DefineInOutFiles :: Create_ptWriteResults()
 {
-  std::string outformat="gmv";
+  std::string outformat="unverg";
   conf->ifget("format_output",outformat);
 
   Boolean withHistory=FALSE;

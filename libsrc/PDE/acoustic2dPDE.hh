@@ -21,13 +21,11 @@ public:
   /*!
     \param aGrid pointer to grid
     \param aBCs pointer to Boundary condition object
-    \param aMatFile pointer to class Material. material data.
     \param aInFile pointer to class FileType. input data.
     \param aOutFile  pointer to class WriteResults. output data.
     \param aTimeFunc pointer to class TimeFunc
   */
-  Acoustic2dPDE(Grid *aGrid, BCs *aBCs, Material *aMatFile, TimeFunc *aTimeFunc, FileType *aInFile, 
-	    WriteResults *aOutFile );
+  Acoustic2dPDE(Grid *aGrid, BCs *aBCs, TimeFunc *aTimeFunc, FileType *aInFile, WriteResults *aOutFile );
 
   //!  Deconstructor
   virtual ~Acoustic2dPDE() {;};
