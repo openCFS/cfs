@@ -37,11 +37,12 @@
       <xsd:element name="stepSaveBeg" type="xsd:nonNegativeInteger"/>
       <xsd:element name="stepSaveEnd" type="xsd:nonNegativeInteger"/>
       <xsd:element name="stepSaveInc" type="xsd:nonNegativeInteger"/>
-      <xsd:element name="timeDataFile" minOccurs="1" maxOccurs="unbounded">
+      <xsd:element name="timeDataFile" minOccurs="0" maxOccurs="unbounded">
         <xsd:complexType>
           <xsd:complexContent>
             <xsd:restriction base="xsd:anyType">
-              <xsd:attribute name="name" type="xsd:string" use="required"/>
+              <xsd:attribute name="name" type="xsd:string" use="optional"
+                default="none"/>
             </xsd:restriction>
           </xsd:complexContent>
         </xsd:complexType>
