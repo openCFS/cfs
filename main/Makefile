@@ -37,7 +37,7 @@ include $(LIBSRC_DIR)/makefilemach/make.mach.$(MACHINE)
 .SUFFIXES: .f .c .cc .o
 #
 .cc.o:
-	$(CC) -o $@ $(CFLAGS1) $(CFLAGS2) $(CFLAGS3) $<
+	$(CC) $(CFLAG_EXE) -o $@ $(CFLAGS1) $(CFLAGS2) $(CFLAGS3) $<
  
 .c.o:
 	$(CC) -o $@ $(CFLAGS1) $(CFLAGS2) $(CFLAGS3) $<

@@ -66,7 +66,7 @@ Vector<TYPE>::Vector (const Integer i, const TYPE *const x)
 	n = i;
 	p = new TYPE [n];
 	if (!p)
-		cerr << "Vector: out of memory";
+		std::cerr << "Vector: out of memory";
 
 	for (Integer j = 0; j < n; j++)
 		p [j] = x [j];
@@ -117,7 +117,7 @@ Vector<TYPE> &Vector<TYPE>::operator=(const Vector<TYPE> &x)
 		n = x.n;
 		p = new TYPE [n];
 		if (!p)
-		cerr << "Vector: out of memory";
+		std::cerr << "Vector: out of memory";
 	}
 
 	for (Integer i = 0; i < n; i++)
@@ -332,10 +332,10 @@ Integer Vector<TYPE>::operator!= (const Vector<TYPE> &x) const
 template<class TYPE>
 Vector<TYPE> Vector<TYPE>::part (const Integer i1,const Integer i2) const
 {	if (!n)
-		cerr << "Vector: undefined Vector";
+		std::cerr << "Vector: undefined Vector";
 
 	if (i1 < 0 || i1 > i2 || i2 >= n)
-		cerr << "Vector: invalid index";
+		std::cerr << "Vector: invalid index";
 
 	Vector	z (i2 - i1 + 1);
 
@@ -348,10 +348,10 @@ Vector<TYPE> Vector<TYPE>::part (const Integer i1,const Integer i2) const
 template<class TYPE>
 Vector<TYPE> Vector<TYPE>::unit (const Integer n,const Integer i)
 {	if (n <= 0)
-		cerr << "Vector: invalid dimension";
+		std::cerr << "Vector: invalid dimension";
 
 	if (i < 0 || i >= n)
-		cerr << "Vector: invalid index";
+		std::cerr << "Vector: invalid index";
 
 	Vector<TYPE>	z (n);
 
@@ -365,7 +365,7 @@ Vector<TYPE> Vector<TYPE>::unit (const Integer n,const Integer i)
 //template<class TYPE>
 //Vector<TYPE> operator* (const TYPE &x,const Vector<TYPE> &y)
 //{	if (!y.size())
-//		cerr << "Vector: undefined Vector";
+//		std::cerr << "Vector: undefined Vector";
 //
 //	Vector<TYPE>	z (y.size());
 //
