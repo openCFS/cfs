@@ -1,5 +1,5 @@
-#ifndef FILE_BASESTORESOL_2004
-#define FILE_BASESTORESOL_2004
+#ifndef FILE_BASENODESTORESOL_2004
+#define FILE_BASENODESTORESOL_2004
 
 #include <iostream>
 #include <map>
@@ -22,7 +22,6 @@ class CFSVector;
 class CFSMatrix;
 template<class TYPE> class Matrix;
 template<class TYPE> class Vector;
-template<class TYPE> class Array;
 
 
 //! This class is the new interface for handling solutions of PDEs
@@ -59,29 +58,27 @@ template<class TYPE> class Array;
 //! routine was called, otherwise an error is reported!
 //! \note Although the names of some methods refer to nodes, this class 
 //! also can handle element solutions.
-class BaseStoreSol
+class BaseNodeStoreSol
 {
 public:
   
-  //! Default Constructor
-  //BaseStoreSol(NodeEQN * ptNodeEQN) {ptNodeEQN_ = ptNodeEQN;}
-
   //! Default destructor
   
   //! Since this is a base class used for inheritance we give it a virtual
   //! destructor.
-  virtual ~BaseStoreSol() {};
+  virtual ~BaseNodeStoreSol() {};
   
   //! Assignment operator
 
   //! Assignment operator has to be reimplemented in derived classes
   //! by the help of type casts.
-  virtual BaseStoreSol & operator= (const BaseStoreSol & x) = 0;
+  virtual BaseNodeStoreSol & operator= (const BaseNodeStoreSol & x) = 0;
 
   //! Set Pointer to nodal equation object
-  virtual void SetPtrEQNData(NodeEQN * ptNodeEQN)
-  {Error( "Not implemented here", __FILE__, __LINE__);}
- 
+  virtual void SetPtrEQNData(NodeEQN * ptNodeEQN,
+			     Grid *ptGrid,
+			     Integer level) = 0;
+  
   //! Deletes all data and layout information
 
   //! Deletes all data and layout information.
@@ -96,8 +93,7 @@ public:
   //! functions have been called with a given value
   //! \note Only after calling Init(), the object can
   //! store information
-  virtual void Init()
-  {Error("BaseStoreSol::Init() not implemented here", __FILE__, __LINE__);}  
+  virtual void Init() = 0;
   
   //! Initialization of the StoreSolution-object (REQUIRED)
   
@@ -109,10 +105,10 @@ public:
     \param val (input) Value the object gets initialized with
   */
   virtual void Init(const Double val)
-  {Error("BaseStoreSol::Init() not implemented here", __FILE__, __LINE__);}
+  {Error("BaseNodeStoreSol::Init() not implemented here", __FILE__, __LINE__);}
   
   //  virtual void Init(const Complex val)
-  //  {Error("BaseStoreSol::Init() not implemented here", __FILE__, __LINE__);}
+  //  {Error("BaseNodeStoreSol::Init() not implemented here", __FILE__, __LINE__);}
 
   //! Set the number of different solution types
   /*! 
@@ -121,6 +117,7 @@ public:
   //! \note All entries of this object are deleted afterwards
   virtual void SetNumSolutions(const Integer nSols) = 0;
   
+
   //! Set the number of solution nodes/elems
   /*!
     \param nNodes (input) Number of solution nodes/elems
@@ -196,25 +193,16 @@ public:
   inline Integer GetNumSolutions() const;
 
   
-  //! Get vector with one solutiontype for all nodes/elems
+  //! Get vectot with one type of solution. The length
+  //! of the vector will be (numer of nodes in mesh *
+  //! degree of freedoms)
+  //! 
   /*!
     \param (input) Solution type (ref. enum SolutionType)
     \param (output) Vector with given solution type)
   */
-  virtual void GetSolVector(const SolutionType solType, 
-			    CFSVector & val) const = 0;
-
-  
-  //! Set vector with one solution type for all nodes/elems
-  /*!
-    \param (input) Solution type (ref. enum SolutionType)
-    \param (input) Vector with given solution type)
-  */
-  //! \note The val-vector must match the internal layout
-  //! prescribed by the SetDof() and SetSolutionType() methods!
-  virtual void SetSolVector(const SolutionType type,
-			    const CFSVector & val) = 0;
-
+  virtual void GetGlobalSolVector(const SolutionType solType, 
+				  CFSVector & val) const = 0;
   
   //! Set all solution types for one node/elem
   /*!
@@ -240,10 +228,11 @@ public:
     \param dof (input)  Dof of solType
     \param val (output) Vector containing rsults
    */
-  virtual void GetSolVectorSingleDof(const SolutionType solType,
-				     const Integer dof,
-				     CFSVector & val) const = 0;
-
+  virtual void GetGlobalSolVectorSingleDof(const SolutionType solType,
+					   const Integer dof,
+					   CFSVector & val) const = 0;
+					 
+  
   
   //! Get solution vector for all nodes/elems  of one given dof
   /*!
@@ -252,17 +241,8 @@ public:
    */
   //! \note This method may only be called if object contains only
   //! one type of solution.
-  virtual void GetSolVectorSingleDof(const Integer dof,
-				     CFSVector & val) const = 0;
-
-
-  //! Get given type of solution in new BaseStoreSol-object
-  /*!
-    \param solType (input) Solution type (ref. enum SolutionType)
-    \param val (output) BaseStoreSol object conataining results
-  */
-  virtual void GetSolution(const SolutionType solType,
-			   BaseStoreSol & val) const = 0;
+  virtual void GetGlobalSolVectorSingleDof(const Integer dof,
+					   CFSVector & val) const = 0;
 
 
   //! Get single result of given node/elem for given dof
@@ -276,7 +256,7 @@ public:
   virtual void Get(const Integer nodeNr, 
 		   const Integer dof,
 		   Double & val) const
-  {Error("BaseStoreSol::Get() not implemented here", __FILE__, __LINE__);} 
+  {Error("BaseNodeStoreSol::Get() not implemented here", __FILE__, __LINE__);} 
 
   
   //! Get single result of given solution type, node/elem and dof
@@ -290,7 +270,7 @@ public:
 		   const Integer nodeNr,
 		   const Integer dof, 
 		   Double & val) const
-  {Error("BaseStoreSol::Get() not implemented here", __FILE__, __LINE__);}
+  {Error("BaseNodeStoreSol::Get() not implemented here", __FILE__, __LINE__);}
 
   
   //! Set a single entry of a given solution type and a given dof
@@ -304,7 +284,7 @@ public:
 		   const Integer nodeNr,
 		   const Integer dof, 
 		   const Double val)
-  {Error("BaseStoreSol::Set() not implemented here", __FILE__, __LINE__);}
+  {Error("BaseNodeStoreSol::Set() not implemented here", __FILE__, __LINE__);}
   
 
   //! Add value to a single entry of a given solution type and a given dof
@@ -318,7 +298,7 @@ public:
 		   const Integer nodeNr,
 		   const Integer dof, 
 		   const Double val) const
-  {Error("BaseStoreSol::Add() not implemented here", __FILE__, __LINE__);} 
+  {Error("BaseNodeStoreSol::Add() not implemented here", __FILE__, __LINE__);} 
 
   
   //! Set the complete solution vector inside this object
@@ -328,21 +308,21 @@ public:
   //! \note The layout of the val-vector must match the layout
   //! of the solution prescribed by SetNumSolutions(), SetNumDofs() and
   //! SetSolutionType()!
-  virtual void SetCompleteVector(const CFSVector & val) = 0;
+  virtual void SetAlgSysVector(const CFSVector & val) = 0;
 
 
   //! Get the complete solution vector inside this object
   /*!
     \param val (output) Vector containing complete solution
   */
-  virtual void GetCompleteVector(CFSVector & val) const = 0;
+  virtual void GetAlgSysVector(CFSVector & val) const = 0;
   
   
   //! Get the pointer to the CFSVector inside this object
   /*!
    \param ptrToVec (output) Pointer to vector inside this object
   */
-  virtual void GetVectorPointer(CFSVector* &ptrToVec) = 0;
+  virtual void GetAlgSysVectorPointer(CFSVector* &ptrToVec) = 0;
 
 
   //! Copies the data from the given pointer
@@ -353,8 +333,8 @@ public:
   //! when one can ensure, that the internal layout of the solution
   //! matches to the one of the given array. This is the case e.g. for
   //! the solution of the algebraic system.
-  virtual void CopyFromDataPointer(Double * ptr)
-  {Error("BaseStoreSol::CopyFromDataPointer() not implemented here", __FILE__,
+  virtual void CopyFromAlgSysDataPointer(Double * ptr)
+  {Error("BaseNodeStoreSol::CopyFromDataPointer() not implemented here", __FILE__,
 	 __LINE__);}  
   
 
@@ -370,19 +350,11 @@ public:
   //! when one can ensure, that the internal layout of the solution
   //! matches to the one of the given array. This is the case e.g. for
   //! the solution of the algebraic system.
-  virtual void SetDataPointer(Double * ptr) 
-  {Error("BaseStoreSol::SetDataPointer() not implemented here", __FILE__,
+  virtual void SetAlgSysDataPointer(Double * ptr) 
+  {Error("BaseNodeStoreSol::SetDataPointer() not implemented here", __FILE__,
 	  __LINE__);}
   
-  //! Get data pointer for the complete solution
-  /*!
-   \param ptr (output) Pointer to raw solution data
-  */  
-  virtual void GetDataPointer(Double* &ptr)
-  {Error("BaseStoreSol::GetDataPointer() not implemented here", __FILE__,
-	  __LINE__);}
-
-
+ 
   //! Get pointer to data in double* - format
 
   //! Get pointer to data in double* - format.
@@ -392,7 +364,7 @@ public:
   //! to a double* array and return the pointer.
   //! The converted array will contain first all real-valued parts of the
   //! the solution and then the complex part.
-  virtual Double* GetDoublePointer() = 0;
+  virtual Double* GetAlgSysDoublePointer() = 0;
 
 
   //! Output function
@@ -404,83 +376,62 @@ public:
   /////////////////////////////////////////
 
   virtual void GetElemSolution(CFSVector & elemSol,
-			       const StdVector<Integer> & connect) const
-  {Error ("Not implemented here", __FILE__, __LINE__);}
+			       const StdVector<Integer> & connect) const = 0;
 
   //! 
   virtual void GetElemSolutionAsMatrix(CFSMatrix & elemSol,
-				       const StdVector<Integer> & connect) const
-  {Error ("Not implemented here", __FILE__, __LINE__);}
+				       const StdVector<Integer> & connect) const = 0;
   
   //!
   virtual void TransformNodeSolution(CFSVector & transformedSolution,
 				     Grid * ptGrid,
-				     const Integer level) const
-  {Error ("Not implemented here", __FILE__, __LINE__);}
-  
-  //!
-  virtual void TransformElemSolution(CFSVector & transformedSolution,
-				     Grid * ptGrid,
-				     StdVector<Integer> & mapping,
-				     const Integer level) const
-  {Error ("Not implemented here", __FILE__, __LINE__);}
+				     const Integer level) const = 0;
   
   //! maps the local node solution to the coupling nodes
   virtual
   void NodeSolutionToCoupling(CFSVector & couplingSol,
-			      const StdVector<Integer>& nodeNumbers) const
-  {Error ("Not implemented here", __FILE__, __LINE__);}
-  
-  //! maps the local element solution to the coupling nodes
-  virtual void ElemSolutionToCoupling(CFSVector & couplingSol,
-				      const StdVector<Elem*>& elements,
-				      const CFSVector & elemSol) const
-  {Error ("Not implemented here", __FILE__, __LINE__);}  
-    
+			      const StdVector<Integer>& nodeNumbers) const = 0;
 
   // ==========================================================
   // DECLARATION OF INTERFACES FOR NON-DOUBLE STORESOL-CLASSES
   // ==========================================================
 #ifndef DOXYGEN_SKIP_THIS
   
-#define DEFINE_BASESTORESOL_FCT(TYPE)						\
+#define DEFINE_BASENODESTORESOL_FCT(TYPE)						\
   virtual void Init(const TYPE val)						\
-  {Error("BaseStoreSol::Init() not implemented here", __FILE__, __LINE__);}	\
+  {Error("BaseNodeStoreSol::Init() not implemented here", __FILE__, __LINE__);}	\
   virtual void Get(const Integer nodeNr,					\
 		   TYPE & ret) const						\
-  {Error("BaseStoreSol::Get() not implemented here", __FILE__, __LINE__);}	\
+  {Error("BaseNodeStoreSol::Get() not implemented here", __FILE__, __LINE__);}	\
   virtual void Get(const SolutionType type,					\
 		   const Integer nodeNr,					\
 		   const Integer dof,						\
 		   TYPE & ret) const						\
-  {Error("BaseStoreSol::Get not implemented here", __FILE__, __LINE__);}	\
+  {Error("BaseNodeStoreSol::Get not implemented here", __FILE__, __LINE__);}	\
   virtual void Set(const SolutionType type,					\
 		   const Integer nodeNr,					\
 		   const Integer dof,						\
 		   const TYPE val) const					\
-  {Error("BaseStoreSol::Set not implemented here", __FILE__, __LINE__);}	\
+  {Error("BaseNodeStoreSol::Set not implemented here", __FILE__, __LINE__);}	\
   virtual void Add(const SolutionType type,					\
 		   const Integer nodeNr,					\
 		   const Integer dof,						\
 		   const TYPE val) const					\
-  {Error("BaseStoreSol::Add() not implemented here", __FILE__, __LINE__);}	\
-   virtual void CopyFromDataPointer(TYPE * ptr)					\
-  {Error("BaseStoreSol::CopyFromDataPointer() not implemented here",		\
-	 __FILE__, __LINE__);}							\
-  virtual void SetDataPointer(TYPE * ptr)					\
-  {Error("BaseStoreSol::SetDataPointer() not implemented here", 		\
-	 __FILE__, __LINE__);}							\
-   virtual void GetDataPointer(TYPE* &ptr)					\
-  {Error("BaseStoreSol::GetDataPointer() not implemented here",			\
-	 __FILE__, __LINE__);}
-  
-  DEFINE_BASESTORESOL_FCT(Complex);
+  {Error("BaseNodeStoreSol::Add() not implemented here", __FILE__, __LINE__);}	\
+   
+  DEFINE_BASENODESTORESOL_FCT(Complex);
 
 #endif //DOXYGEN_SKIP_THIS 
 
 
 protected:
   
+  //! Pointer to grid class
+  Grid * ptGrid_;
+
+  //! Hierarchy level
+  Integer level_;
+
   //! Pointer to equation class
   NodeEQN * ptEQN_;
   
@@ -544,36 +495,36 @@ protected:
   // INLINE FUNCTIONS
   // ======================================================
 
-  inline Integer BaseStoreSol::GetTotalNumDofs() const
+  inline Integer BaseNodeStoreSol::GetTotalNumDofs() const
   { 
-    ENTER_IFCN( "BaseStoreSol::GetTotalNumDofs" );
+    ENTER_IFCN( "BaseNodeStoreSol::GetTotalNumDofs" );
     return totalDofs_; 
   }
 
-  inline Integer BaseStoreSol::GetDof(const SolutionType solType) const
+  inline Integer BaseNodeStoreSol::GetDof(const SolutionType solType) const
   {
-    ENTER_IFCN( "BaseStoreSol::GetDof" );
+    ENTER_IFCN( "BaseNodeStoreSol::GetDof" );
     if (numSolutions_ == 1 && solType == NO_SOLUTION_TYPE)
       return (*solDofs_.begin()).second;
     else
       return (*solDofs_.find(solType)).second;
   }
   
-  inline Integer BaseStoreSol::GetNumNodes() const
+  inline Integer BaseNodeStoreSol::GetNumNodes() const
   {
-    ENTER_IFCN( "BaseStoreSol::GetNumNodes" );
+    ENTER_IFCN( "BaseNodeStoreSol::GetNumNodes" );
     return numNodes_;
   }
   
-  inline Integer BaseStoreSol::GetSize() const 
+  inline Integer BaseNodeStoreSol::GetSize() const 
   {
-    ENTER_IFCN( "BaseStoreSol::GetSize()" );
+    ENTER_IFCN( "BaseNodeStoreSol::GetSize()" );
     return length_;
   }
   
-  inline Integer BaseStoreSol::GetNumSolutions() const 
+  inline Integer BaseNodeStoreSol::GetNumSolutions() const 
   {
-    ENTER_IFCN( "BaseStoreSol::GetNumSolutions()" );
+    ENTER_IFCN( "BaseNodeStoreSol::GetNumSolutions()" );
     return numSolutions_;
   }
 
