@@ -1,3 +1,4 @@
+#ifndef NEWBASEPDE
 #ifndef FILE_BASEPDE_2001
 #define FILE_BASEPDE_2001
 
@@ -477,3 +478,5 @@ protected:
 } // end of namespace
 
 #endif
+
+#endif // #ifndef NEWBASEPDE

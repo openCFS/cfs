@@ -444,6 +444,7 @@ void AcousticPDE::SetupMatrices(const Integer level)
 #endif
   }
 
+#ifdef ADAPTGRID
 Boolean AcousticPDE :: TestError(const Integer level)
 {
 #ifdef TRACE
@@ -484,6 +485,7 @@ Boolean AcousticPDE :: TestError(const Integer level)
   else return FALSE;
   
 }
+#endif //#ifdef ADAPTGRID
 
 }
 

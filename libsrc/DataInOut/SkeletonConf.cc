@@ -52,8 +52,8 @@ namespace CoupledField
       Error("Can't open conf-file",__FILE__,__LINE__);
 
     std::cerr << std::endl << "  \033[31mCFS++\033[0m: " << std::endl;
-    strcat(filename, ".conf");
-    std::cerr << "\t " << filename << " is currently writen to disc" << std::endl;
+    //    strcat(filename, ".conf");
+    std::cerr << "\t " << filename << " is currently written to disc" << std::endl;
 
     //open the mesh-file
     strcpy(filename, aname);
@@ -96,15 +96,17 @@ namespace CoupledField
 #endif
 
     (*skelfile_)  << "#" << std::endl 
-		  << "#-- SKELETON-CONF-FILE: PLEASE FILL OUT!" << std::endl
+		  << "# -- SKELETON-CONF-FILE: PLEASE REPLACE ALL \"XXX\" AND FILL OUT!" << std::endl
 		  << "#" << std::endl << std::endl;
 
-    (*skelfile_)  << "#-- NAME OF MATERIAL FILE" << std::endl
+    (*skelfile_)  << "# -- NAME OF MATERIAL FILE" << std::endl
 		  << "material_file = mat.dat" << std::endl << std::endl;
-    (*skelfile_)  << "#-- SPECIFY TIME FUNCTION FILE OR TIME FUNCTION (if necessary)" << std::endl
+    (*skelfile_)  << "# -- SPECIFY TIME FUNCTION FILE OR TIME FUNCTION (if necessary)" << std::endl
 		  << std::endl << std::endl;
-    (*skelfile_)  << "#-- ANALYSIS (static, transient, harmonic)" << std::endl
+    (*skelfile_)  << "# -- ANALYSIS (static, transient, harmonic)" << std::endl
 		  << "analysis = XXX" << std::endl << std::endl;
+    (*skelfile_)  << "# -- TIME DATA FILE (used for transient analysis)" << std::endl
+		  << "time_data_file = XXX" << std::endl << std::endl;
 
   }
 
@@ -142,10 +144,10 @@ namespace CoupledField
 	  Error("3D-Problem specified, but no 3D-Elements in mesh-File",__FILE__,__LINE__);
 
 	meshfile_->ReadEl3dConf(sd);
-	(*skelfile_) << "#-- SUBDOMAINS" 
+	(*skelfile_) << "# -- SUBDOMAINS" 
 		     << std::endl << "subdomains = " << sd.size() << std::endl << std::endl;
 
-	(*skelfile_) << "#-- LIST OF SUBDOMAINS (SPECIFY FOR EACH SUBDOMAIN THE MATERIAL NAME)" 
+	(*skelfile_) << "# -- LIST OF SUBDOMAINS (for each subdomain, specify the material name)" 
 		     << std::endl;
 	(*skelfile_) << "list_subdomains: " << std::endl;
 	for (Integer i=0; i<sd.size(); i++)
@@ -161,10 +163,10 @@ namespace CoupledField
 	  Error("2D-Problem specified, but no 2D-Elements in mesh-File",__FILE__,__LINE__);
 
 	meshfile_->ReadEl2dConf(sd);
-	(*skelfile_) << "#-- SUBDOMAINS" 
+	(*skelfile_) << "# -- SUBDOMAINS" 
 		     << std::endl << "subdomains = " << sd.size() << std::endl << std::endl;
 
-	(*skelfile_) << "#-- LIST OF SUBDOMAINS (SPECIFY FOR EACH SUBDOMAIN THE MATERIAL NAME)" 
+	(*skelfile_) << "# -- LIST OF SUBDOMAINS (SPECIFY FOR EACH SUBDOMAIN THE MATERIAL NAME)" 
 		     << std::endl;
 	(*skelfile_) << "list_subdomains: " << std::endl;
 	for (Integer i=0; i<sd.size(); i++)
@@ -190,7 +192,7 @@ namespace CoupledField
 	  {
 	    sd.clear();
 	    meshfile_->ReadEl2dConf(sd);
-	    (*skelfile_) << "#-- LIST OF FACES" 
+	    (*skelfile_) << "# -- LIST OF FACES" 
 			 << std::endl << "list_faces = " ;
 	    for (Integer i=0; i<sd.size(); i++)
 	      (*skelfile_) << sd[i] << " ";
@@ -218,7 +220,7 @@ namespace CoupledField
       {
 	sd.clear();
 	meshfile_->ReadBCsConf(sd);
-	(*skelfile_) << "# -- LIST OF NODES" 
+	(*skelfile_) << "# -- LIST OF NODES (has to be finished by \"non\") " 
 		     << std::endl << "list_nodes = " ;
 	for (Integer i=0; i<sd.size(); i++)
 	  (*skelfile_) << sd[i] << " ";
@@ -226,7 +228,7 @@ namespace CoupledField
       }
 
     //history nodes
-    (*skelfile_) << "# -- SPECIFY HISTORY NODES" << std::endl;
+    (*skelfile_) << "# -- SPECIFY HISTORY NODES (finish list with \"-1\") " << std::endl;
     (*skelfile_) << "history_node = -1" << std::endl << std::endl;
   }
 
@@ -241,7 +243,8 @@ namespace CoupledField
     (*skelfile_) << "list_pdes = XXX non" << std::endl << std::endl;
 
     (*skelfile_) << "# -- PDE SPECIFIC PARAMETERS" << std::endl;
-    (*skelfile_) << "PDE-XXX:" << std::endl << std::endl;
+    (*skelfile_) << "# -- name of pde:" << std::endl;
+    (*skelfile_) << "XXX:" << std::endl << std::endl;
 
     (*skelfile_) << "\t subdomains = XXX non" << std::endl << std::endl;
 
@@ -249,7 +252,9 @@ namespace CoupledField
     (*skelfile_) << "\t \t homogeneous_dirichlet = XXX non" << std::endl; 
     (*skelfile_) << "\t \t inhomogeneous_dirichlet = XXX non" << std::endl << std::endl; 
 
-    (*skelfile_) << "#--\t ABSORBING BCs: (if yes, uncomment  bnd_for_absBCs and specify" << std::endl; 
+    (*skelfile_) << "\t loads = XXX non" << std::endl << std::endl; 
+
+    (*skelfile_) << "# --\t ABSORBING BCs: (if yes, uncomment  bnd_for_absBCs and specify" << std::endl; 
     (*skelfile_) << "\t absorbingBCs = no" << std::endl;
     (*skelfile_) << "#\t bnd_for_absBCs = non " << std::endl << std::endl;
   }

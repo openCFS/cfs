@@ -9,7 +9,6 @@
 #include <Domain/GridCFS/interface_gridcfs.hh>
 #include <AlgebraicSystem/interface_piles.hh>
 #include <DataInOut/GMV/outGMV.hh>
-#include <PDE/basepde.hh>
 #include <CoupledPDE/coupledpdedef.hh>
 #include <CoupledPDE/pdecoupling.hh>
 
@@ -30,6 +29,13 @@
 
 #include <Utils/vector.hh>
 #include <Utils/array.hh>
+
+#ifndef NEWBASEPDE
+#include <PDE/basepde.hh>
+#else
+#include <PDE/newBasePDE.hh>
+#endif //#ifndef NEWBASEPDE
+
 
 namespace CoupledField
 {
@@ -86,6 +92,12 @@ Domain:: Domain(FileType * const aptFileType, WriteResults * ptOut, TimeFunc * a
 
  //read in the mesh information
  ptgrid_->Read();
+ 
+ if (PrintGridOnly)
+   {
+     PrintGrid(0);
+     exit(0);
+   }
 
  // allocate an object with an information about boundary condition
  ptBCs_=new BCs(InFile_);
@@ -138,7 +150,11 @@ void Domain :: InitPDEs()
 
   for (int i=0;i< pdes.size();i++)
     {
-      if (pdes[i] == "acoustic")
+      if (pdes[i] == "electrostatic") 
+	ptpde_[i]=new ElecPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
+
+#ifndef NEWBASEPDE
+      else if (pdes[i] == "acoustic")
   	ptpde_[i]=new AcousticPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
 
       else if (pdes[i] == "acouflownoise")
@@ -153,11 +169,11 @@ void Domain :: InitPDEs()
       else if (pdes[i] == "smoothlaplace") 
 	ptpde_[i]=new SmoothLaPlacePDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_); 
 
-      else if (pdes[i] == "electrostatic") 
-	ptpde_[i]=new ElecPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_); 
 
       else if (pdes[i] == "magnetic") 
 	ptpde_[i]=new MagEdgePDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_); 
+#endif // NEWBASEPDE
+
 
       else
 	{

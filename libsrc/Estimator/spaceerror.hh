@@ -2,7 +2,12 @@
 #define FILE_SPACEERROR_2002
 
 #include "Utils/tools.hh"
+
+#ifdef NEWBASEPDE
+#include "PDE/newBasePDE.hh"
+#else
 #include "PDE/basepde.hh"
+#endif
 
 #ifdef ADAPTGRID
 #include "Vertex.h"

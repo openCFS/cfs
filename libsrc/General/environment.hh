@@ -131,4 +131,5 @@ extern ConfFile * conf; //name.conf
   extern Flags * flags;
 }
 
+
 #endif // FILE_SCFE_MYDEFS

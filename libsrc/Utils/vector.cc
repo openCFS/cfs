@@ -428,6 +428,16 @@ Double Vector<TYPE> :: normL2 ()
 	return sqrt (z);
 }
 
+
+template<class TYPE>
+void Vector<TYPE>::push_back(const TYPE & y)
+{
+  // add y at the end of the vector (n=length of vec)
+  add(y,n);
+}
+
+
+
 template<class TYPE>
 void  Vector<TYPE>:: add (const TYPE & y, Integer pos)
 {

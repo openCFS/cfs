@@ -1,9 +1,10 @@
+#ifndef NEWBASEPDE
+
 #include <fstream>
 #include <iostream>
 #include <sstream>
 #include <math.h>
 
-#include "elecPDE.hh"
 #include <DataInOut/Unverg/outUnverg.hh>
 #include <Forms/forms_header.hh>
 #include <Forms/elecfieldop.hh>
@@ -12,6 +13,8 @@
 #include <DataInOut/WriteInfo.hh>
  
 #include <AlgebraicSystem/LinAlg/linsystem.hh>
+
+#include "elecPDE.hh"
 
 namespace CoupledField
 {
@@ -557,3 +560,5 @@ ElecPDE::~ElecPDE()
 } // end of namespace
 
 
+//#ifdef NEWBASEPDE
+#endif 

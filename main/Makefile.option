@@ -1,5 +1,6 @@
 program = cfs
 
+
 #LIBRARY_TYPE = shared / static
 LIBRARY_TYPE = static
 
@@ -82,5 +83,6 @@ else
    INCLMpCCI =
 endif
 
-
-
+# for compiling new basePDE class
+CFLAGS2 =
+#CFLAGS2 = -DNEWBASEPDE

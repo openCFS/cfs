@@ -105,6 +105,11 @@ here is
 	*/
   void getsubdompde(std::vector<std::string> & subdoms, const std::string nameSection);
 
+
+  /// return  name of all subdomains
+  std::vector<std::string> & GetAllSubDomains() {return allSubDomains_;};
+  
+
 protected:
 
   //! name of file
@@ -129,6 +134,8 @@ protected:
   //! get poistion of subsection in conf-file
   std::string::size_type getsubsectionpos(const std::string keyword, const std::string::size_type startpos=0, Boolean writeErr=TRUE);
   
+
+
 private:
 
   //! final position on file

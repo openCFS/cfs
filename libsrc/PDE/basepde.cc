@@ -1,3 +1,5 @@
+#ifndef NEWBASEPDE
+
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -895,3 +897,5 @@ void BasePDE::WriteErrorInfo(WriteResults * ptmeshes)
 #endif
 
 } // end of namespace
+
+#endif //#ifndef NEWBASEPDE
