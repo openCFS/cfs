@@ -58,7 +58,14 @@ namespace CoupledField {
     sol_->SetSolutionType(ACOU_POTENTIAL);
     sol_->SetNumNodes(numPDENodes_);
     sol_->SetNumDofs(dofspernode_);
+
+  if (analysistype_ == HARMONIC) {
+    Complex setnull = 0;
+    sol_->Init(setnull);
+  }
+  else
     sol_->Init(0.0);
+
 
 #ifndef XMLPARAMS
     std::string dampstr;
@@ -68,6 +75,11 @@ namespace CoupledField {
       Info->PrintF(pdename_,"\n Attenuation according to power law, number of memory is %g\n\n", fracMemory_);
       dampingType_ = FRACTIONAL;
     }
+    else if (dampstr == "rayleigh") {
+      dampingType_ = RAYLEIGH;
+      Info->PrintF(pdename_, " Using RAYLEIGH damping\n" );
+    }
+
 #else
 
     // *********************************************
@@ -134,17 +146,6 @@ namespace CoupledField {
     
     ReadBCs(pdename_);
 
-    if (analysistype_==HARMONIC) {
-
-      // Currently freq_ is not used anywhere
-      // conf->get("frequency", freq_, pdename_);
-      solIm_.SetNumSolutions(1);
-      solIm_.SetSolutionType(ACOU_POTENTIAL);
-      solIm_.SetNumNodes(numPDENodes_);
-      solIm_.SetNumDofs(dofspernode_);
-      solIm_.Init(0);
-    }
-
     // set analysis parameters
     assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, subdoms_,
 				absBCs_);
@@ -152,11 +153,23 @@ namespace CoupledField {
     assemble_->SetMesh2PDENode(&mesh2PDENode_);
 
 #ifdef USE_OLAS
-    assemble_->SetMatrixEntryType(OLAS::DOUBLE);
-    assemble_->SetMatrixStorageType(OLAS::SPARSE_NONSYM);
+    if (analysistype_==HARMONIC) {
+      assemble_->SetMatrixEntryType(OLAS::COMPLEX);
+      assemble_->SetMatrixStorageType(OLAS::SPARSE_NONSYM);
+    }
+    else {
+      assemble_->SetMatrixEntryType(OLAS::DOUBLE);
+      assemble_->SetMatrixStorageType(OLAS::SPARSE_NONSYM);
+    }
+
+
 #else
-    assemble_->SetMatrixType(RSCALAR);
+    if (analysistype_==HARMONIC) 
+      assemble_->SetMatrixType(CSCALAR);
+    else
+      assemble_->SetMatrixType(RSCALAR);
 #endif
+
 
     assemble_->SetNumDirichlet(GetNumRestraints(actlevel_));
     assemble_->SetPtrBCs(ptBCs_);
@@ -211,19 +224,31 @@ namespace CoupledField {
 
       //stiffness integrator
       BaseForm * bilinearStiff = new LaplaceInt(density,isaxi_);	  
-      assemble_->AddIntegrator(bilinearStiff, subdoms_[actSD], STIFFNESS,
-			       nonLin);
+      IntegratorDescriptor * stiffIntDescr = new IntegratorDescriptor(bilinearStiff, STIFFNESS);
+
+      //check for damping (mass part)
+      if (dampingType_ == RAYLEIGH)    
+      	stiffIntDescr->SetSecondaryMat(DAMPING, materialData_[actSD].GetDampingBeta(), analysistype_);
+
+      assemble_->AddIntegrator(stiffIntDescr, subdoms_[actSD]);
+
 
       //mass integrator
       Double coeffmass  = density*density/compressibility;
-      BaseForm * bilinear_mass  = new MassInt(coeffmass, dofspernode_, isaxi_);
-      assemble_->AddIntegrator(bilinear_mass, subdoms_[actSD], MASS, nonLin);
+      BaseForm * bilinearMass  = new MassInt(coeffmass, dofspernode_, isaxi_);
+
+      IntegratorDescriptor * massIntDescr = new IntegratorDescriptor(bilinearMass, MASS);
+
+      //check for damping (mass part)
+      if (dampingType_ == RAYLEIGH)    
+      	massIntDescr->SetSecondaryMat(DAMPING, materialData_[actSD].GetDampingAlfa(), analysistype_);
+
+      assemble_->AddIntegrator(massIntDescr, subdoms_[actSD]);
     }
 
     //surface-integration
     // BEGIN DAMPING MATRIX PART: Absorbing boundaries
     if ( absorbingBCs_ == TRUE && analysistype_ != HARMONIC ) {
-std::cout << "num abbs: " << absBCs_.size() << std::endl;
       for (Integer actSD = 0; actSD < absBCs_.size(); actSD++) {
 	//currently hard-coded!!
 	Double density = materialData_[0].GetDensity();
@@ -429,10 +454,15 @@ std::cout << "num abbs: " << absBCs_.size() << std::endl;
       StoreSol<Double> sol_mesh, solder1_mesh, solder2_mesh, solIm_mesh;
  
       if (analysistype_==HARMONIC) {
-	sol_->TransformNodeSolution(sol_mesh,pde2MeshNode_,ptgrid_,actlevel_);
-	sol_->TransformNodeSolution(solIm_mesh,pde2MeshNode_,ptgrid_,actlevel_);      
-	outFile_->WriteNodeSolution(sol_mesh,laststepcalc_,lasttimecalc_,"fluid potential, cw realpart,");
-	outFile_->WriteNodeSolution(solIm_mesh,laststepcalc_,lasttimecalc_,"fluid potential, cw imagpart, ");
+	StoreSol<Complex> solmesh;
+	sol_->TransformNodeSolution(solmesh,pde2MeshNode_,ptgrid_,actlevel_);
+	Vector<Complex> solution;
+	solmesh.GetCompleteVector(solution);
+	for (Integer k=0; k<solution.GetSize(); k++)
+	  std::cout << "node: " << k+1 << ":  " << solution[k] << std::endl;
+
+	//	outFile_->WriteNodeSolution(sol_mesh,laststepcalc_,lasttimecalc_,"fluid potential, cw realpart,");
+	//	outFile_->WriteNodeSolution(solIm_mesh,laststepcalc_,lasttimecalc_,"fluid potential, cw imagpart, ");
       }
       else {  
 

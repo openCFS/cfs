@@ -86,14 +86,13 @@ public:
 protected:
 
   // Double freq_;   //!< excitation frequency for harmonic analysis
-  StoreSol<Double> solIm_; //!< stores the imaginary part in case of harmonic analysis
   StoreSol<Double> sol_der1Array_, sol_der2Array_;
 
   Integer size_; //!< total number of unknowns (equations)
 
   std::vector<std::string> absBCs_;   //!< list of boundaries( for absorbing BCs)
   Boolean absorbingBCs_;               //!< switch for absorbing boundary conditions
-  DampingType dampingType_; //!< specifies the type of damping model (see environment.hh)
+  //DampingType dampingType_; //!< specifies the type of damping model (see environment.hh)
   Boolean needsDampingMatrix_;  //!< TRUE, if we need a dampoin gmatrix (absorb. BC or any damping switched on)
   Integer fracMemory_;      //!< number of old time steps to be saved
 

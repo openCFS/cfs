@@ -92,6 +92,8 @@ public:
   virtual void Init(const Double val)
   {Error("BaseStoreSol::Init() not implemented here", __FILE__, __LINE__);}
   
+  //  virtual void Init(const Complex val)
+  //  {Error("BaseStoreSol::Init() not implemented here", __FILE__, __LINE__);}
 
   //! Set the number of different solution types
   /*! 
@@ -445,7 +447,7 @@ public:
   {Error("BaseStoreSol::GetDataPointer() not implemented here",			\
 	 __FILE__, __LINE__);}
   
-DEFINE_BASESTORESOL_FCT(Complex);
+  DEFINE_BASESTORESOL_FCT(Complex);
 
 #endif //DOXYGEN_SKIP_THIS 
 

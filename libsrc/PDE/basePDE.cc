@@ -106,12 +106,14 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
     }
 
   else if (analysis=="harmonic")
-    analysistype_ = HARMONIC;
-
+    {
+      assemble_ = new HarmonicAssemble(algsys_, ptgrid_);
+      analysistype_ = HARMONIC;
+      //overwrite defualt solver
+      solvertype_ = ComplexDirectSolver;
+    }
   else
     Error("Analysis Type not supported",__FILE__,__LINE__);
-
-std::cout << "Analaysis: " << analysistype_ << std::endl;
 
   // Determine if solution is of complex type or not
   if (analysistype_ == HARMONIC)
@@ -420,7 +422,7 @@ void BasePDE::StepTransLin(const Integer kstep, const Double asteptime,
       algsys_->InitMatrix(SYSTEM);
       algsys_->InitMatrix(STIFFNESS);
       algsys_->InitMatrix(MASS);
-      if (damping_type_)
+      if (dampingType_)
         algsys_->InitMatrix(DAMPING);
 
       algsys_->ConstructEffectiveMatrix(matrix_factor_); 
@@ -456,6 +458,105 @@ void BasePDE::StepTransLin(const Integer kstep, const Double asteptime,
     TS_alg_->Corrector(solvector);
 }
 
+
+void BasePDE::PreStepHarmonic(const Integer freqStep, const Double frequency,  
+				const Integer level, const Boolean reset)
+{
+
+  ENTER_FCN( "BasePDE::PreStepHarmonic" );
+
+  actFrequency_ = frequency;
+  actFreqStep_  = freqStep;
+
+  assemble_->SetFrequency(frequency);
+
+  algsys_->InitRHS();
+
+  if (reset)
+      assemble_->InitMatrices();  
+}
+
+
+void BasePDE::SolveStepHarmonic(const Integer freqStep, const Double frequency,  
+				const Integer level, const Boolean reset)
+{
+  ENTER_FCN( "BasePDE::SolveStepHarmonic" );
+
+  if (nonLin_)
+    StepHarmonicNonLin(freqStep, frequency,level,reset);
+  else
+    StepHarmonicLin(freqStep, frequency,level,reset);
+
+}
+
+
+void BasePDE::StepHarmonicLin(const Integer freqStep, const Double frequency, 
+			      const Integer level, const Boolean reset)
+{
+  ENTER_FCN( "BasePDE::StepHarmonicLin" );
+
+  Integer job;
+  Double * ptsol;
+
+  if (reset)
+    assemble_->AssembleMatrices(level);
+
+
+  //this has to be done each time!
+  assemble_->AssembleSrcRHS(level, frequency);
+
+  const Integer numElems = numPDENodes_ * dofspernode_;
+
+  if (reset)
+    {
+      //account for bcs
+      SetBCs(level, updateBCs_, frequency);
+    
+      job = 1; // calc new preconditioner
+
+#ifdef USE_OLAS
+      algsys_->BuildInDirichlet();
+      algsys_->SetupPrecond(job);
+#else
+      algsys_->CalcPrecond(job);
+#endif
+
+    }
+  else
+    job = 3;
+
+#ifdef USE_OLAS
+  algsys_->BuildInDirichlet();
+  algsys_->SetupPrecond(job);
+#else
+  algsys_->CalcPrecond(job);
+#endif  
+
+  algsys_->Solve();
+
+  ptsol = algsys_->GetSolutionVal();
+
+  // save solution
+  Vector<Complex> tmp(numPDENodes_*dofspernode_);
+
+  if (dofspernode_ > 1)
+    Error("Currenrly just dofpernode=1 supported in StepHarmonicLin");
+
+  Integer k=0;
+  for (Integer node=0; node<numPDENodes_*dofspernode_; node++)
+    {
+      Complex val(ptsol[k],ptsol[k+1]);
+      tmp[node] = val;
+      k+=2;
+    }
+
+  sol_->SetCompleteVector(tmp);
+
+  //  sol_->CopyFromDataPointer(ptsol);
+
+}
+
+
 void  BasePDE::SetBCs(const Integer level, const Integer update, const Double time)
 {
 
@@ -490,7 +591,14 @@ void  BasePDE::SetBCs(const Integer level, const Integer update, const Double ti
 #ifdef USE_OLAS
 	  algsys_->SetDirichlet(j+1, mesh2PDENode_[node-1],val, dof);
 #else
-	  algsys_->SetDirichlet(j+1, mesh2PDENode_[node-1],val, dof, SYSTEM);
+	  if (analysistype_ == HARMONIC) 
+	    {
+	      algsys_->SetDirichlet(j*2+1, mesh2PDENode_[node-1], val, dof,SYSTEM);
+	      // set imag part 
+	      algsys_->SetDirichlet(j*2+2, mesh2PDENode_[node-1], val, dof+1, SYSTEM);
+	    }
+	  else
+	    algsys_->SetDirichlet(j+1, mesh2PDENode_[node-1],val, dof, SYSTEM);
 #endif
 	}
     }
@@ -521,8 +629,15 @@ void  BasePDE::SetBCs(const Integer level, const Integer update, const Double ti
 	  algsys_->SetDirichlet(j+1, mesh2PDENode_[node-1],
 				val, dof);
 #else
-	  algsys_->SetDirichlet(j+1, mesh2PDENode_[node-1],
-				val, dof, SYSTEM);
+	  if (analysistype_ == HARMONIC) 
+	    {
+	      algsys_->SetDirichlet(j*2+1, mesh2PDENode_[node-1], val, dof,SYSTEM);
+	      // set imag part 
+	      algsys_->SetDirichlet(j*2+2, mesh2PDENode_[node-1], 0.0, dof+1, SYSTEM);
+	    }
+	  else
+	    algsys_->SetDirichlet(j+1, mesh2PDENode_[node-1],
+				  val, dof, SYSTEM);
 #endif
 	}
     }
@@ -699,12 +814,8 @@ BasePDE::~BasePDE()
     //set solver parameters  
     SetSolverParameters();
 
-    //ask the PDE matrix settings
-    //    assemble_->MatrixSettings();
-
     //set the graph type used for the system matrices
     assemble_->SetupMatrixGraph(numPDENodes_);
-    //    assemble_->SetupMatrixGraph(numPDENodes_, NODEGRAPH);
 
     //allocate the necessary matrices as well as solver and preconditioner
     CreateMatrices_Solver();
@@ -893,7 +1004,7 @@ void BasePDE::SetSolverParameters()
  
 
 #ifdef USE_OLAS
-    olasParams_->SetValue( "eps", eps_ );
+  olasParams_->SetValue( "eps", eps_ );
   olasParams_->SetValue( "MaxIter", maxnumiter_);
   olasParams_->SetValue( "epsmach", 1e-30 );
   olasParams_->SetValue( "Solver", solvertype_ );

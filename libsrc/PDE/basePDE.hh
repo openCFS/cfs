@@ -142,20 +142,24 @@ class SpaceErrorEstimator;
   {Error("StepStaticNonLin not implemented!",__FILE__,__LINE__);};
 
   virtual void PostStepStatic(const Integer kstep, const Double asteptime,
-			    const Integer level) {;};
+			      const Integer level) {;};
 
   //harmonic analysis
+  virtual void PreStepHarmonic(const Integer freqStep, const Double frequency, 
+			       Integer level, const Boolean reset);
 
-  virtual void PreStepHarmonic(const Integer level) {;};
+  virtual void SolveStepHarmonic(const Integer freqStep, const Double frequency, 
+				 Integer level, const Boolean reset);
 
-  virtual void SolveStepHarmonic(const Integer level)
-  {Error("Harmonic step not implemented!",__FILE__,__LINE__);};
-  virtual void StepHarmonicLin(const Integer level)
-  {Error("Harmonic step not implemented!",__FILE__,__LINE__);};
-  virtual void StepHarmonicNonLIn(const Integer level)
+  virtual void StepHarmonicLin(const Integer freqStep, const Double frequency, 
+			       Integer level, const Boolean reset);
+
+  virtual void StepHarmonicNonLin(const Integer freqStep, const Double frequency, 
+				  Integer level, const Boolean reset)
   {Error("Harmonic step not implemented!",__FILE__,__LINE__);};
 
-  virtual void PostStepHarmonic(const Integer level) {;};
+  virtual void PostStepHarmonic(const Integer freqStep, const Double frequency, 
+				Integer level, const Boolean reset) {;};
 
   //transient analysis
   virtual void PreStepTrans(const Integer kstep, const Double asteptime,
@@ -571,8 +575,11 @@ class SpaceErrorEstimator;
     //! Number of last timestep on which we have calculated our solution
     Integer laststepcalc_;
 
+    Double  actFrequency_; //!< current frequency for harmonic analysis
+    Integer actFreqStep_;  //!< current frequency step for harmonic analysis
+
     //! specifies the type of damping model (see environment.hh)
-    DampingType damping_type_;
+    DampingType dampingType_;
     //@}
 
     // -----------------------------------------------------------------------

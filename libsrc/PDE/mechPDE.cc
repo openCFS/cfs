@@ -214,22 +214,25 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 #ifndef XMLPARAMS
     std::string dampstr;
     conf->ifget("damping",dampstr,pdename_);
-    if (dampstr == "rayleigh")
-      damping_type_ = RAYLEIGH;
+    if (dampstr == "rayleigh") {
+      dampingType_ = RAYLEIGH;
+      Info->PrintF(pdename_, " Using RAYLEIGH damping\n" );
+    }
     else
-      damping_type_ = NONE;
+      dampingType_ = NONE;
 #else
     if( params->HasValue( "type", "rayleigh", pdename_, "damping" ) )
       {
-	damping_type_ = RAYLEIGH;
+	dampingType_ = RAYLEIGH;
+	Info->PrintF(pdename_, " Using RAYLEIGH damping\n" );
       }
     else
       {
-	damping_type_ = NONE;
+	dampingType_ = NONE;
       }
 #endif
 
-    if (damping_type_)
+    if (dampingType_)
       assemble_->NeedDampingMatrix();
 
 #ifndef XMLPARAMS
@@ -330,8 +333,8 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 	      new IntegratorDescriptor(bilinearStiff, STIFFNESS);
 
 	    //check for damping
-	    if (damping_type_ == RAYLEIGH)    
-	      actIntDescr->SetSecondaryMat(DAMPING, actSDMat.GetDampingBeta());
+	    if (dampingType_ == RAYLEIGH)    
+	      actIntDescr->SetSecondaryMat(DAMPING, actSDMat.GetDampingBeta(),analysistype_);
 	
 	    assemble_->AddIntegrator(actIntDescr, subdoms_[actSD]);
 	  }
@@ -401,8 +404,8 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 	  new IntegratorDescriptor(bilinearMass, MASS);
 
 	//check for damping (mass part)
-	if (damping_type_ == RAYLEIGH)    
-	  actIntDescr->SetSecondaryMat(DAMPING, actSDMat.GetDampingAlfa());
+	if (dampingType_ == RAYLEIGH)    
+	  actIntDescr->SetSecondaryMat(DAMPING, actSDMat.GetDampingAlfa(),analysistype_);
 
 	assemble_->AddIntegrator(actIntDescr, subdoms_[actSD]);
 
@@ -1040,7 +1043,7 @@ void MechPDE :: InitTimeStepping(const Double dt)
 {
   ENTER_FCN( "MechPDE::InitTimeStepping" );
   Boolean needsDampingMatrix = FALSE;
-  if (damping_type_) needsDampingMatrix = TRUE;
+  if (dampingType_) needsDampingMatrix = TRUE;
 
   if (effectiveMass_)  
     TS_alg_ = new NewmarkEffMass(pdename_, algsys_, 1, numPDENodes_*dofspernode_, needsDampingMatrix);

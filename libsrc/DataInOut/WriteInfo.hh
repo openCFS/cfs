@@ -68,6 +68,10 @@ namespace CoupledField
     void WriteTimeStep(const std::string& pdeName, const Integer timeStep,    
 		       const Double time);
 
+    /// prints the process of a harmonic analysis
+    void WriteHarmonicStep(const std::string& pdeName, const Integer freqStep,    
+			   const Double frequency);
+
     /// writes domain and dof of homogenous boundary conditions
     void WriteHomBC(const std::string& pdeName, 
 		    const std::string& subDom, Integer dof=0);

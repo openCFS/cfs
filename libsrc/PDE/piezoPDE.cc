@@ -74,12 +74,12 @@ namespace CoupledField
    if (dampstr == "rayleigh")
      {
        //       Error("Currenrly Rayleigh damping not woirking for PiezoPDE",__FILE__,__LINE__);       
-       damping_type_ = RAYLEIGH;
+       dampingType_ = RAYLEIGH;
      }
    else
-     damping_type_ = NONE;
+     dampingType_ = NONE;
    
-   if (damping_type_)
+   if (dampingType_)
      assemble_->NeedDampingMatrix();
 
 
@@ -149,7 +149,7 @@ namespace CoupledField
       assemble_->AddIntegrator(actIntDescrStiff, subdoms_[actSD]);
       
       //check for damping
-      if (damping_type_ == RAYLEIGH)    
+      if (dampingType_ == RAYLEIGH)    
 	{
 	  Boolean isdamping = TRUE;
 	  Boolean reducedIntegration = FALSE; //is currently not supported
@@ -169,8 +169,8 @@ namespace CoupledField
       IntegratorDescriptor * actIntDescrMass = new IntegratorDescriptor(bilinearMass, MASS);
 
       //check for damping (mass part)
-      if (damping_type_ == RAYLEIGH)    
-	actIntDescrMass->SetSecondaryMat(DAMPING, actSDMat.GetDampingAlfa());
+      if (dampingType_ == RAYLEIGH)    
+	actIntDescrMass->SetSecondaryMat(DAMPING, actSDMat.GetDampingAlfa(),analysistype_);
 
       assemble_->AddIntegrator(actIntDescrMass, subdoms_[actSD]);
 
@@ -210,9 +210,9 @@ void PiezoPDE :: InitTimeStepping(const Double dt)
   ENTER_FCN( "PiezoPDE::InitTimeStepping" );
 
   if (effectiveMass_)  
-    TS_alg_ = new NewmarkEffMass(pdename_, algsys_, 1, numPDENodes_*dofspernode_, damping_type_);
+    TS_alg_ = new NewmarkEffMass(pdename_, algsys_, 1, numPDENodes_*dofspernode_, dampingType_);
   else
-    TS_alg_ = new Newmark(pdename_, algsys_, 1, numPDENodes_*dofspernode_, damping_type_);
+    TS_alg_ = new Newmark(pdename_, algsys_, 1, numPDENodes_*dofspernode_, dampingType_);
 
   TS_alg_->Init(matrix_factor_, dt);
 
