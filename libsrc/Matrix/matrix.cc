@@ -1055,13 +1055,42 @@ ENTER_IFCN("Matrix::operator*");
 }
 
 
+template<class TYPE> bool Matrix<TYPE>::IsSymmetric() {
+  ENTER_FCN( "Matrix::IsSymmetric" );
+  bool amSymm = true;
+  for ( Integer i = 1; i < size_row_; i++ ) {
+    for ( Integer j = i+1; j < size_col_; j++ ) {
+	 if ( data_[i][j] != data_[j][i] ) {
+	   amSymm = false;
+	   break;
+	 }
+    }
+  }
+  return amSymm;
+}
+
+
+// Alternate version of symmetry checker, that will report
+// asymmetries to standard output
+
+// template<class TYPE> bool Matrix<TYPE>::IsSymmetric() {
+//   ENTER_FCN( "Matrix::IsSymmetric" );
+//   bool amSymm = true;
+//   for ( Integer i = 1; i < size_row_; i++ ) {
+//     for ( Integer j = i+1; j < size_col_; j++ ) {
+//       if ( data_[i][j] != data_[j][i] ) {
+// 	amSymm = false;
+// 	(*debug) << " (" << i << "," << j << "): " << data_[i][j] << " <--> "
+// 		 << data_[j][i] << "(abs.diff= " << (data_[i][j]-data_[j][i])
+// 		 << ") "
+// 		 << "(rel.diff= "
+// 		 << (data_[i][j]-data_[j][i])/data_[i][j] << ")\n";
+//       }
+//     }
+//   }
+//   return amSymm;
+// }
 
 
 
 } // end of namespace
-
-
-
-
-
-

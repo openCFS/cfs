@@ -188,6 +188,9 @@ public:
   //! Perform a matrix-vector multiplication rvec -= this*mvec
    void MultSub(const CFSVector & mvec, CFSVector & rvec) const {;};
 
+  //! Check if the matrix is symmetric
+  bool IsSymmetric();
+
   //////////////////////////////////////
   // Functions for working with other //
   // Matrix<Type> and Vector<TYPE>    //
