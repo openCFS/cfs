@@ -13,13 +13,15 @@ namespace CoupledField
 {
 
 
-Acou2dFlowNoise::Acou2dFlowNoise(AbstractAlgebraicSys * ptalgsys, Grid * aptgrid, Material * ptMaterial, TimeFunc * aptTimeFunc, FileType * aptFileType, WriteResults * aptOut):Acoustic2dPDE(ptalgsys, aptgrid, ptMaterial, aptTimeFunc, aptFileType, aptOut)   
+Acou2dFlowNoise::Acou2dFlowNoise(AbstractAlgebraicSys * ptalgsys, Grid * aptgrid, Material * ptMaterial, 
+				 TimeFunc * aptTimeFunc, FileType * aptFileType, WriteResults * aptOut)
+:Acoustic2dPDE(ptalgsys, aptgrid, ptMaterial, aptTimeFunc, aptFileType, aptOut)   
   {
 #ifdef TRACE
   (*trace) << "entering Acou2dFlowNoise::Acou2dFlowNoise " << std::endl;
 #endif
 
- ReadBCs("Acoustic");
+ ReadBCs("Acoustic2d");
  preComputeRHS();
 }
 
@@ -120,10 +122,10 @@ void Acou2dFlowNoise::preComputeRHS()
   SetRHSFlowSrc = FALSE;
    //  if (conf->is_there("rhs_surfaces")) {
    std::string isthererhs;
-   conf->ifget("load_force",isthererhs,"Acoustic");
+   conf->ifget("load_force",isthererhs,"Acoustic2d");
 
    if (isthererhs=="FlowSrc" ) {
-		conf->getliststr("rhs_surfaces",rhs_surfaces_,"Acoustic");
+		conf->getliststr("rhs_surfaces",rhs_surfaces_,"Acoustic2d");
     SetRHSFlowSrc=TRUE;
   }
 }
@@ -179,7 +181,7 @@ void Acou2dFlowNoise::ComputeRHS(const Double atime, BCs * ptBCs)
   static float * NODEDATA=new float[3*size_];
   static int * TOPOLOGYDATA=new int[4*maxnumelem];
   std::vector<Elem*> elemssd;     
-  static Integer timestep=1;
+  static Integer timestep=0;
   static int auxtime=0;
   Double coeffRHS;
   Integer matnum;
@@ -261,8 +263,8 @@ void Acou2dFlowNoise::ComputeRHS(const Double atime, BCs * ptBCs)
   ptgrid_->DefineBelonging4Elems(ObstSurf,Next2Surf,belongSE);
 
   Double valmult;
-  valmult = sin(atime*10000*2*3.1416); // value of 10kHz multiplier at the timestep
-  //valmult = 1.2*coeffRHS; // 1.2 is to give units to the fluid data and coeffRHS is from inhom. wave eq.
+  //  valmult = sin(atime*10000*2*3.1416); // value of 10kHz multiplier at the timestep
+  valmult = 1.2*coeffRHS; // 1.2 is to give units to the fluid data and coeffRHS is from inhom. wave eq.
   ///std::cout << "Time: "<< atime << std::endl; 
 
 
@@ -270,8 +272,8 @@ void Acou2dFlowNoise::ComputeRHS(const Double atime, BCs * ptBCs)
 
     // PATCH TO NODE 80182 IN THE CHANNEL WITH SQR. OBST. WHICH HAD A NULL VALUE FROM LSTM.
 
-//     for (i=0;i<3;i++)
-//       nodedata[i][80182-1]=(nodedata[i][80183-1] + nodedata[i][80181-1])/2;
+    for (i=0;i<3;i++)
+      nodedata[i][80182-1]=(nodedata[i][80183-1] + nodedata[i][80181-1])/2;
 
     // END OF PATCH
 
@@ -368,14 +370,14 @@ void Acou2dFlowNoise::ComputeRHS(const Double atime, BCs * ptBCs)
     // Variables for ramping
 	   Double xfmin, yfmin, xfmax, yfmax, facRampXmin, facRampYmin, facRampXmax, facRampYmax ;
 	   Double bndoffsetXmin, bndoffsetYmin, bndoffsetXmax, bndoffsetYmax ;
-	   conf->get("xfmin",xfmin,"Acoustic"); // minimum x coord. of fluid domain
-	   conf->get("yfmin",yfmin,"Acoustic"); // minimum y coord. of fluid domain	   
-	   conf->get("xfmax",xfmax,"Acoustic"); // maximum x coord. of fluid domain
-	   conf->get("yfmax",yfmax,"Acoustic"); // maximum y coord. of fluid domain
-	   conf->get("facrampXmin",facRampXmin,"Acoustic"); // factor for starting ramping
-	   conf->get("facrampYmin",facRampYmin,"Acoustic"); // factor for starting ramping
-	   conf->get("facrampXmax",facRampXmax,"Acoustic"); // factor for starting ramping
-	   conf->get("facrampYmax",facRampYmax,"Acoustic"); // factor for starting ramping
+	   conf->get("xfmin",xfmin,"Acoustic2d"); // minimum x coord. of fluid domain
+	   conf->get("yfmin",yfmin,"Acoustic2d"); // minimum y coord. of fluid domain	   
+	   conf->get("xfmax",xfmax,"Acoustic2d"); // maximum x coord. of fluid domain
+	   conf->get("yfmax",yfmax,"Acoustic2d"); // maximum y coord. of fluid domain
+	   conf->get("facrampXmin",facRampXmin,"Acoustic2d"); // factor for starting ramping
+	   conf->get("facrampYmin",facRampYmin,"Acoustic2d"); // factor for starting ramping
+	   conf->get("facrampXmax",facRampXmax,"Acoustic2d"); // factor for starting ramping
+	   conf->get("facrampYmax",facRampYmax,"Acoustic2d"); // factor for starting ramping
 	   bndoffsetXmin=facRampXmin*xfmin;
 	   bndoffsetYmin=facRampYmin*yfmin; 
 	   bndoffsetXmax=facRampXmax*xfmax;
@@ -402,7 +404,7 @@ void Acou2dFlowNoise::ComputeRHS(const Double atime, BCs * ptBCs)
 
 	      ptCoordNodes=new Point<2>[connecth.size()];
 	      ptgrid_->GetCoordNodesElem(connecth,ptCoordNodes,level);
-	   std::cout<<"Aqui"<<std::endl;
+
 
 	      linear_load->CalcElemVector4FlowSrcQuad(ptCoordNodes, connecth, nodedata, elemvec);
            elemvec*=valmult;
@@ -436,13 +438,13 @@ void Acou2dFlowNoise::ComputeRHS(const Double atime, BCs * ptBCs)
 	      delete [] ptCoordNodes;
 	    }
 	}
-
-    //        auxtime++;
-    //        if (auxtime==9)
-    //  	{
-    //  	  auxtime=0;
-    timestep=timestep+1;
-    //  	}
+ timestep=timestep+20;
+           auxtime++;
+             if (auxtime==6)
+       	{
+       	  auxtime=0;
+    timestep=0;
+       	}
       
      
 
@@ -462,9 +464,18 @@ void Acou2dFlowNoise::ReadFlowData(const Char * aname,const Integer timestep, Ma
   std::ofstream testflowf;
   Char * aux=new Char[2];
   Char * anameloc=new Char[30];
-  
 
-  sprintf(aux,"%i",timestep);
+  if ((timestep==0)||(timestep==100))
+    {
+      
+  if (timestep==0)
+    sprintf(aux,"00");
+  else
+    sprintf(aux,"99");
+    }
+  else
+    sprintf(aux,"%i",timestep);
+  
   strcpy(anameloc,aname);
   strcat(anameloc,aux);
   strcat(anameloc,".dat");
