@@ -81,7 +81,14 @@ AcousticPDE::AcousticPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, Fil
   assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, subdoms_, bnd_absBCs_);
   assemble_->SetGraphType(NODEGRAPH);
   assemble_->SetMesh2PDENode(&Mesh2PDENode_);
+
+#ifdef USE_OLAS
+  assemble_->SetMatrixEntryType(DOUBLE);
+  assemble_->SetMatrixStorageType(SPARSE_NONSYM);
+#else
   assemble_->SetMatrixType(RSCALAR);
+#endif
+
   assemble_->SetNumDirichlet(GetNumRestraints(actlevel_));
   assemble_->SetPtrBCs(ptBCs_);
   assemble_->SetPtr2Sol(&sol_);
@@ -345,6 +352,12 @@ void AcousticPDE::WriteResultsInFile()
 #ifdef TRACE
   (*trace) << "entering AcousticPDE::WriteResultsInFile" << std::endl;
 #endif
+#ifdef PARALLEL //only one thread should write the output
+  int commrank;
+  MPI_Comm_rank(MPI_COMM_WORLD,&commrank);
+  if (!commrank) 
+  	{
+#endif
 
   Array<Double> sol_mesh, solder1_mesh, solder2_mesh, solIm_mesh;
   Array<Double> sol_der1Array, sol_der2Array;
@@ -391,6 +404,9 @@ void AcousticPDE::WriteResultsInFile()
 	    OutFile_->WriteNodeSolution(solder2_mesh,laststepcalc_,lasttimecalc_,"fluid potential, 2nd deriv.");
 	}
     }
+    #ifdef PARALLEL
+    }//!commrank
+    #endif
 }
 
 

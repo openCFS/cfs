@@ -2,8 +2,13 @@
 #define FILE_TIMESTEPPING_2001
 
 #include <General/environment.hh>
-#include <multigrid.hh>
 #include <Utils/array.hh>
+
+#ifdef USE_OLAS
+#include <olas.hh>
+#else
+#include <multigrid.hh>
+#endif
 
 namespace CoupledField
 {

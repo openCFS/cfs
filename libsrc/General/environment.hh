@@ -2,9 +2,16 @@
 #define FILE_SCFE_MYDEFS_2001
 
 #include <iostream>
-#include <las_environment.hh>
 #include <vector>
 #include <math.h>
+
+#ifdef USE_OLAS
+#include <olas.hh>
+#else
+#include <las_environment.hh>
+#endif
+
+
 
 namespace CoupledField
 {
@@ -60,9 +67,9 @@ typedef Double (*pFncWith1Var)(const Double);
   enum ElementType{Line1, Triang1, Triang2, Quadrilateral1, Quadrilateral2};
   //! enumeration with integration types. it is used in Elements classes
   enum IntegrationType {GaussOrder1, GaussOrder2, GaussOrder3, GaussOrder4, GaussOrder5, GaussOrder7, null};
+
   //! enumeration precondition's types. it is used in methods of LinAlg
   enum precond { non, Jacobi, SSOR, LU}; 
-
   std::ostream & operator << (std::ostream & out, const enum precond & type);
   
   std::ostream& operator << (std::ostream & outStr, std::vector<Double> xOut);
@@ -106,13 +113,25 @@ typedef Double (*pFncWith1Var)(const Double);
 
   std::ostream & operator << (std::ostream & out, const enum precond & type);
 
+  //------------------------ Files for debug, trace and information ---------
 
-// ------------------------ Files for debug, trace and information ---------
-extern std::ostream * trace; //name.trace
-extern std::ostream * debug; //name.deb
-extern std::ostream * cla; //name.cla
-extern std::ostream * memtrace; //name for name.mem 
-extern std::ostream * data; //name.data
+  //NOTE: OLAS uses the namespace 'OutInfo' for writing out
+  // data into the cla, trace, ... stream. They are declared in the
+
+#ifdef USE_OLAS
+  // Only experimental up to now
+  using OutInfo::trace;
+  using OutInfo::debug;
+  using OutInfo::cla;
+  using OutInfo::memtrace;
+  using OutInfo::data;
+#else
+  extern std::ostream * trace; //name.trace
+  extern std::ostream * debug; //name.deb
+  extern std::ostream * cla; //name.cla
+  extern std::ostream * memtrace; //name for name.mem 
+  extern std::ostream * data; //name.data
+#endif
 
   class WriteInfo;
   extern WriteInfo * Info; //class for log informations

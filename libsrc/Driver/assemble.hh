@@ -53,31 +53,60 @@ class IntegratorDescriptor : public BaseIntDescriptor
     public:
       /// constructor
       IntegratorDescriptor();
-      
+
+#ifdef USE_OLAS      
+      /// constructor
+      IntegratorDescriptor(BaseForm * aIntegrator, FEMatrixType aDestMat, const Boolean aNonLin=FALSE);
+#else
       /// constructor
       IntegratorDescriptor(BaseForm * aIntegrator,  enum MatrixType aDestMat, const Boolean aNonLin=FALSE);
-
+#endif
+      
       /// destructor
       virtual ~IntegratorDescriptor();
       
-
+#ifdef USE_OLAS
+      /// returns the destination matrix
+      FEMatrixType DestMat() {return destinationMatrix;}; 
+#else
       /// returns the destination matrix
       MatrixType DestMat() {return destinationMatrix;};
+#endif
 
+
+#ifdef USE_OLAS
+      /// sets the destination matrix
+      void SetDestMat(FEMatrixType destMat)
+      {destinationMatrix = destMat;};
+#else
       /// sets the destination matrix
       void SetDestMat(enum MatrixType destMat)
       {destinationMatrix = destMat;};
-      
-
+#endif
+ 
+#ifdef USE_OLAS
+      /// defines a secondary destination for the calculated element marices of an integrator      
+      void SetSecondaryMat(FEMatrixType aSecMat, Double aSecMatFac)
+      {
+	secondaryMatrix = aSecMat;
+	secMatFac = aSecMatFac;
+      };
+#else
       /// defines a secondary destination for the calculated element marices of an integrator      
       void SetSecondaryMat(enum MatrixType aSecMat, Double aSecMatFac)
       {
 	secondaryMatrix = aSecMat;
 	secMatFac = aSecMatFac;
       };
+#endif
 
+#ifdef USE_OLAS
+      // returns matrix type of the secondary matrix (if there is any, otherwise NOTYPE=0)
+      FEMatrixType GetSecondaryMat() const {return secondaryMatrix;} 
+#else
       /// returns matrix type of the secondary matrix (if there is any, otherwise NOTYPE=0)
       MatrixType GetSecondaryMat() const {return secondaryMatrix;} 
+#endif
 
       /// returns matrix type of the secondary matrix (if there is any, otherwise NOTYPE=0)
       Double GetSecMatFac() const {return secMatFac;} 
@@ -86,11 +115,20 @@ class IntegratorDescriptor : public BaseIntDescriptor
       
       
     private:
+
+#ifdef USE_OLAS      
+      /// holds the destination matrix
+      FEMatrixType destinationMatrix;
+
+      /// holds the secondary destination matrix
+      FEMatrixType secondaryMatrix;
+#else
       /// holds the destination matrix
       enum MatrixType destinationMatrix;
 
-      /// holds the secondary desination matrix
+      /// holds the secondary destination matrix
       enum MatrixType secondaryMatrix;
+#endif
 
       /// holds the matrix factor for secondaryMatrix
       Double secMatFac;
@@ -113,18 +151,28 @@ class IntegratorDescriptor : public BaseIntDescriptor
     //!  Deconstructor
     virtual ~Assemble();
     
-    
+#ifdef USE_OLAS
+    /// adds integrators to the pde
+    virtual void AddIntegrator(BaseForm * integrator, const std::string & subdomain,
+			       const FEMatrixType destinationMatrix, const Integer nonLin)=0;
+#else    
     /// adds integrators to the pde
     virtual void AddIntegrator(BaseForm * integrator, const std::string & subdomain,
 			       const enum MatrixType destinationMatrix, const Integer nonLin)=0;
+#endif
 
     /// adds integrators to the pde
     virtual void AddIntegrator(IntegratorDescriptor * intDescr, const std::string & subdomain)=0;
 
-
+#ifdef USE_OLAS
+    /// adds surface integrators to the pde
+    virtual void AddSurfIntegrator(BaseForm * integrator, const std::string & subdomain,
+			       const FEMatrixType destinationMatrix, const Integer nonLin)=0;
+#else
     /// adds surface integrators to the pde
     virtual void AddSurfIntegrator(BaseForm * integrator, const std::string & subdomain,
 			       const enum MatrixType destinationMatrix, const Integer nonLin)=0;
+#endif
 
     //! specify type of system matrix for AlgebraicSystem
     /*! \param level (input) level of Grid     */
@@ -246,7 +294,24 @@ class IntegratorDescriptor : public BaseIntDescriptor
     //! define discrete PDE
     virtual void MatrixSettings() = 0;
 
+#ifdef USE_OLAS
+    //! define entry type of matrices (DOUBLE, COMPLEX)
+    virtual void SetMatrixEntryType(MatrixEntryType etype)
+    {entryType_ = etype;};
+    
+    //! return entry type of the matrix
+    MatrixEntryType GetMatrixEntryType()
+    {return entryType_;};
+    
+    //! define storage type of matrices (SPARSE_SYM, SPARSE_NONSYM, ...)
+    virtual void SetMatrixStorageType(MatrixStorageType stype)
+    {storageType_ = stype;};
 
+    //! return storage type of the matrix
+    MatrixStorageType GetMatrixStorageType()
+    {return storageType_;};
+    
+#else
     //! define matrix type
     virtual void SetMatrixType(Integer matType)
     {matrixType_=matType;};
@@ -254,11 +319,19 @@ class IntegratorDescriptor : public BaseIntDescriptor
 
     //! return matrix type
     Integer GetMatrixType(){return matrixType_;};
-    
+#endif    
 
+
+
+#ifdef USE_OLAS
+    //! Sets the type of the matrix graph
+    void SetGraphType(GraphType aGraphType)
+    {graphType_ = aGraphType;};
+#else
     //! Sets the type of the matrix graph
     void SetGraphType(enum GraphType aGraphType)
     {graphType_ = aGraphType;};
+#endif
     
 
     //! constructes the matrix graph by providing to the algebraic system the element connectivities
@@ -314,23 +387,35 @@ class IntegratorDescriptor : public BaseIntDescriptor
     // DATA SECTION 
     // ====================================================
     
-    BaseSystem * algsys_;         //!< pointer to algebraic system  
-    Grid * ptgrid_;               //!< pointer to Grid
+    BaseSystem * algsys_;                //!< pointer to algebraic system  
+    Grid * ptgrid_;                      //!< pointer to Grid
+#ifdef USE_OLAS
+    OLAS_Params * olasParams_;               //!< pointer to parameter object of OLAS
+    OLAS_Report * olasReport_;               //!< pointer ro report object of OLAS
+#endif
 
     //! paramters for discrete PDE
-    Boolean matrixType_;          //!< type of matrix (real, complex, etc.)
-    Boolean graphType_;           //!< type of graph (nodal, edge,..)
-    Boolean systemMatrix_;        //!< need system matrix (TRUE/FALSE)
-    Boolean stiffnessMatrix_;     //!< need stiffness matrix (TRUE/FALSE)
-    Boolean dampingMatrix_;       //!< need damping matrix (TRUE/FALSE)
-    Boolean massMatrix_;          //!< need mass matrix (TRUE/FALSE)
-    Boolean convectionMatrix_;    //!< need convective matrix (TRUE/FALSE)
+#ifdef USE_OLAS
+    MatrixStructureType structuretype_;  //!< type of Matrix (SuperBlockMarix=SBM, Standard)
+    MatrixEntryType entryType_;          //!< type of matrix entries (double, complex)
+    MatrixStorageType storageType_;      //!< storage type of matrix (sparse, symmetric,..)
+    GraphType graphType_;                //!< type of graph (nodal, edge,..)
+#else
+    Boolean matrixType_;                 //!< type of matrix (real, complex, etc.)
+    Boolean graphType_;                  //!< type of graph (nodal, edge,..)
+#endif
 
-    Integer dofsPerNode_;         //!< number of unknowns per node
-    Integer numDirichletBCs_;     //!< number of dirichlet boundary conditions
-    Integer numPDENodes_;         //!< number of nodes in pde
+    Boolean systemMatrix_;               //!< need system matrix (TRUE/FALSE)
+    Boolean stiffnessMatrix_;            //!< need stiffness matrix (TRUE/FALSE)
+    Boolean dampingMatrix_;              //!< need damping matrix (TRUE/FALSE)
+    Boolean massMatrix_;                 //!< need mass matrix (TRUE/FALSE)
+    Boolean convectionMatrix_;           //!< need convective matrix (TRUE/FALSE)
 
-    std::string pdename_;         //!< name of calling pde
+    Integer dofsPerNode_;                //!< number of unknowns per node
+    Integer numDirichletBCs_;            //!< number of dirichlet boundary conditions
+    Integer numPDENodes_;                //!< number of nodes in pde
+
+    std::string pdename_;                //!< name of calling pde
     std::vector<Integer> * mesh2PDENode_; //!< array containing PDE (=local) node numbers
 
     std::vector<std::string> subdoms_;  //!< subdomain-levels belongig to PDE
@@ -413,15 +498,27 @@ class IntegratorDescriptor : public BaseIntDescriptor
      //! set information for algebraic system about PDE. set matrix factors
      virtual void SetMatrixFactors(){};
 
+#ifdef USE_OLAS
     virtual void AddIntegrator(BaseForm * integrator, const std::string & subdomain,
-			const enum MatrixType destinationMatrix, const Integer nonLin);
+			       const FEMatrixType destinationMatrix, const Integer nonLin);
+#else
+    virtual void AddIntegrator(BaseForm * integrator, const std::string & subdomain,
+			       const enum MatrixType destinationMatrix, const Integer nonLin);
+#endif
 
     /// adds integrators to the pde
     virtual void AddIntegrator(IntegratorDescriptor * intDescr, const std::string & subdomain);
 
+#ifdef USE_OLAS
     /// adds surface integrators to the pde
     virtual void AddSurfIntegrator(BaseForm * integrator, const std::string & subdomain,
-			       const enum MatrixType destinationMatrix, const Integer nonLin);
+				   const FEMatrixType destinationMatrix, const Integer nonLin);
+#else
+    /// adds surface integrators to the pde
+    virtual void AddSurfIntegrator(BaseForm * integrator, const std::string & subdomain,
+				   const enum MatrixType destinationMatrix, const Integer nonLin);
+#endif
+
 
   };
 
@@ -439,19 +536,31 @@ class IntegratorDescriptor : public BaseIntDescriptor
     //! define discrete PDE
     virtual void MatrixSettings(){};
 
-     //! set information for algebraic system about PDE. set matrix factors
-     virtual void SetMatrixFactors(){};  
-
+    //! set information for algebraic system about PDE. set matrix factors
+    virtual void SetMatrixFactors(){};  
+    
+#ifdef USE_OLAS
     /// adds integrators to the pde
-     virtual void AddIntegrator(BaseForm * integrator, const std::string & subdomain,
-				const enum MatrixType destinationMatrix, const Integer nonLin);
+    virtual void AddIntegrator(BaseForm * integrator, const std::string & subdomain,
+			       const FEMatrixType destinationMatrix, const Integer nonLin);
+#else
+    /// adds integrators to the pde
+    virtual void AddIntegrator(BaseForm * integrator, const std::string & subdomain,
+			       const enum MatrixType destinationMatrix, const Integer nonLin);
+#endif
 
     /// adds integrators to the pde
     virtual void AddIntegrator(IntegratorDescriptor * intDescr, const std::string & subdomain);
 
+#ifdef USE_OLAS
+    /// adds surface integrators to the pde
+    virtual void AddSurfIntegrator(BaseForm * integrator, const std::string & subdomain,
+				   const FEMatrixType destinationMatrix, const Integer nonLin);
+#else
     /// adds surface integrators to the pde
     virtual void AddSurfIntegrator(BaseForm * integrator, const std::string & subdomain,
 				   const enum MatrixType destinationMatrix, const Integer nonLin);
+#endif
 
   };
 

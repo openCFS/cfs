@@ -478,7 +478,13 @@ void AcouFlowNoise::SolveStepTrans(const Integer kstep, const Double asteptime, 
     };
 
   SetBCs(level,update,lasttimecalc_);
+
+#ifdef USE_OLAS
+  algsys_->SetupPrecond(job);
+#else
   algsys_->CalcPrecond(job);
+#endif
+
   algsys_->Solve();
   ptsol = algsys_->GetSolutionVal();
 

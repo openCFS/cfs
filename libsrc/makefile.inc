@@ -29,10 +29,10 @@ endif
 #
 .SUFFIXES: .f .cc .cpp .o
 .cc.o:
-	$(CC) $(CFLAGS1) $(CFLAGS2) $(CFLAGS3) $(CFLAGSMpCCI) $(CFLAGSPETS) $(INCL) $(INCLAdaptGrid) $(INCLMpCCI) $< 
+	$(CC) $(CFLAGS1) $(CFLAGS2) $(CFLAGS3) $(CFLAGSMpCCI) $(CFLAGSPETS) $(OLAS) $(INCL) $(INCLAdaptGrid) $(INCLMpCCI) $< 
 
 .cpp.o:
-	$(CC) $(CFLAGS1) $(CFLAGS2) $(CFLAGS3) $(CFLAGSMpCCI) $(CFLAGSPETS) $(INCL) $(INCLAdaptGrid) $(INCLMpCCI) $<
+	$(CC) $(CFLAGS1) $(CFLAGS2) $(CFLAGS3) $(CFLAGSMpCCI) $(CFLAGSPETS) $(OLAS) $(INCL) $(INCLAdaptGrid) $(INCLMpCCI) $<
 
 
 #

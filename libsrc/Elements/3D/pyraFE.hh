@@ -22,7 +22,11 @@ public:
   virtual ~PyraFE(); 
 
   //! return FE-Type for LAS++
-  virtual Integer feType() { return PYR;}
+#ifdef USE_OLAS
+  virtual FEType feType() { return PYR;}
+#else
+  virtual Integer feType() { return 5;}
+#endif
   
 
 protected:

@@ -65,7 +65,16 @@ ElecPDE::ElecPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
   assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, subdoms_, surfdoms_);
   assemble_->SetGraphType(NODEGRAPH);
   assemble_->SetMesh2PDENode(&Mesh2PDENode_);
+
+#ifdef USE_OLAS
+  assemble_->SetMatrixEntryType(DOUBLE);
+  assemble_->SetMatrixStorageType(SPARSE_NONSYM);
+  //assemble_->SetMatrixStorageType(HYPRE_MATRIX);
+#else
   assemble_->SetMatrixType(RSCALAR);
+#endif
+
+
   assemble_->SetNumDirichlet(GetNumRestraints(actlevel_));
   assemble_->SetPtrBCs(ptBCs_);
   assemble_->SetPtr2Sol(&sol_);
@@ -145,8 +154,15 @@ void ElecPDE::StepStaticNonLin(const Integer kstep, const Double aTime,
   assemble_->AssembleSrcRHS(level);
   
   updateBCs_ = 0;
+
   SetBCs(level,updateBCs_,aTime);
+
+#ifdef USE_OLAS
+  algsys_->BuildInDirichlet();
+  algsys_->SetupPrecond(job);
+#else
   algsys_->CalcPrecond(job);
+#endif
 
   algsys_->Solve();
 
@@ -215,6 +231,13 @@ void ElecPDE::WriteResultsInFile()
 #endif
 
   Double time = lasttimecalc_;
+
+#ifdef PARALLEL //only one thread should write output
+  int commrank;
+  MPI_Comm_rank(MPI_COMM_WORLD,&commrank);
+  if (!commrank){
+#endif
+
   ShortInt Dim = ptgrid_->GetDim();
 
   Array<Double> E_Mesh, Force_Mesh, Sol_Mesh;
@@ -254,6 +277,12 @@ void ElecPDE::WriteResultsInFile()
 
     if (calcEnergy_.size() !=0 )
       CalcEnergy();
+
+
+#ifdef PARALLEL
+  }//!commrank
+#endif
+
 }
 
 void ElecPDE::PostProcess(const Integer level)

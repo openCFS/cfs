@@ -135,7 +135,14 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
   assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, subdoms_, surfdoms_);
   assemble_->SetGraphType(NODEGRAPH);
   assemble_->SetMesh2PDENode(&Mesh2PDENode_);
+
+#ifdef USE_OLAS
+  assemble_->SetMatrixEntryType(DOUBLE);
+  assemble_->SetMatrixStorageType(SPARSE_NONSYM);
+#else
   assemble_->SetMatrixType(RBLOCK);
+#endif 
+
   assemble_->SetNumDirichlet(GetNumRestraints(actlevel_));
 
   assemble_->SetPtrBCs(ptBCs_);
@@ -691,7 +698,13 @@ void MechPDE::StepStaticNonLin(const Integer kstep, const Double aTime,
       assemble_->InitNonLinMatrices();
       assemble_->AssembleMatrices(level);
       
+#ifdef USE_OLAS
+      algsys_->BuildInDirichlet();
+      algsys_->SetupPrecond(job);
+#else
       algsys_->CalcPrecond(job);
+#endif
+
       algsys_->Solve();
 
       
@@ -712,7 +725,10 @@ void MechPDE::StepStaticNonLin(const Integer kstep, const Double aTime,
 
 
       // recalculate RHS with new values to get new residual (f^(k+1))========
+#ifndef USE_OLAS      
       algsys_->InitRHS(extForces_);
+#endif
+
       assemble_->AssembleNLRHS(level);  // inner forces due to nonlin formulation
 
 
@@ -800,7 +816,9 @@ Double MechPDE::LineSearch(std::vector<Double>& solIncrement, std::vector<Double
       StoreVecToSolArray(actSol);
 
       // recalculate RHS with new values to get new residual (f^(k+1))========
+#ifndef USE_OLAS      
       algsys_->InitRHS(extForces_);
+#endif
 
       if(trans)
 	{
@@ -968,8 +986,16 @@ void MechPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
       assemble_->AssembleMatrices(level);
       algsys_->ConstructEffectiveMatrix(matrix_factor_);
 
+      TS_alg_->UpdateRHS(actSol);
+      SetBCs(level, update, lasttimecalc_);
 
+#ifdef USE_OLAS
+      algsys_->BuildInDirichlet();
+      algsys_->SetupPrecond(job);
+#else
       algsys_->CalcPrecond(job);
+#endif
+
       algsys_->Solve();
 
       // new solution is only an increment of the full solution =============

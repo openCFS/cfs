@@ -4,14 +4,32 @@
 
 #include "environment.hh"
 
-namespace CoupledField
-{
+
+// Since OLAS uses a separate namespace for 
+// writing out data, two different declarations
+// have to be done
+#ifdef USE_OLAS
+namespace OutInfo{
   std::ostream * trace = NULL ;
   std::ostream * debug  = NULL;
   std::ostream * cla=NULL;
   std::ostream * memtrace=NULL;
   std::ostream * data = NULL;
+}
+#else
+namespace CoupledField{
+ std::ostream * trace = NULL ;
+  std::ostream * debug  = NULL;
+  std::ostream * cla=NULL;
+  std::ostream * memtrace=NULL;
+  std::ostream * data = NULL;
+}
+#endif
 
+
+
+namespace CoupledField
+{
   Boolean PrintGridOnly = FALSE;
 
   Flags * flags=NULL;
@@ -29,7 +47,7 @@ namespace CoupledField
   BaseFE * ptWedge=NULL;
 
    WriteInfo * Info = NULL;
-  
+ 
   std::ostream & operator << (std::ostream & out, const enum precond & type)
   {
     switch (type)

@@ -81,7 +81,14 @@ SmoothPDE::SmoothPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileTyp
   assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, subdoms_, surfdoms_);
   assemble_->SetGraphType(NODEGRAPH);
   assemble_->SetMesh2PDENode(&Mesh2PDENode_);
+
+#ifdef USE_OLAS
+  assemble_->SetMatrixEntryType(DOUBLE);
+  assemble_->SetMatrixStorageType(SPARSE_NONSYM);
+#else
   assemble_->SetMatrixType(RBLOCK);
+#endif
+
   assemble_->SetNumDirichlet(numDirichletBCs_);
   assemble_->SetPtrBCs(ptBCs_);
   assemble_->SetPtr2Sol(&sol_);
@@ -191,7 +198,13 @@ void SmoothPDE::StepStaticNonLin(const Integer kstep, const Double aTime,
   
   updateBCs_ = 0;
   SetBCs(level,updateBCs_,0);
+
+#ifdef USE_OLAS
+  algsys_->BuildInDirichlet();
+  algsys_->SetupPrecond(job);
+#else
   algsys_->CalcPrecond(job);
+#endif
 
   algsys_->Solve();
 

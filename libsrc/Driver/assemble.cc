@@ -5,7 +5,12 @@
 
 #include <DataInOut/conffile.hh>
 #include <DataInOut/WriteInfo.hh>
+
+#ifdef USE_OLAS
+#include <olas.hh>
+#else
 #include <multigrid.hh>
+#endif
 
 #include "assemble.hh" 
 
@@ -35,6 +40,12 @@ namespace CoupledField
     reassembleMat_.Resize(nrMatrices_);
     nonLinGeo = FALSE;
     deltaCoords_ = NULL;
+
+#ifdef USE_OLAS
+    olasParams_ = algsys_->GetOLASParams();
+    olasReport_ = algsys_->GetOLASReport(); 
+#endif
+
   }
 
 
@@ -180,7 +191,11 @@ namespace CoupledField
 		if (reassembleMat_[actDescriptor->DestMat()] || firstTime_)
 		  {
 		    actDescriptor->GetIntegrator()->SetElemPtr(ptEl);
+#ifdef USE_OLAS
+		    FEMatrixType destMat = actDescriptor->DestMat();
+#else
 		    enum MatrixType destMat = actDescriptor->DestMat();
+#endif
 			    
 		    // this matrix is nonlinear and, therefore, has to be reassembled next time
 		    if (actDescriptor->IsNonLin())
@@ -251,7 +266,11 @@ namespace CoupledField
 		if (reassembleMat_[actDescriptor->DestMat()] || firstTime_)
 		  {
 		    actDescriptor->GetIntegrator()->SetElemPtr(ptEl);
+#ifdef USE_OLAS
+		    FEMatrixType destMat = actDescriptor->DestMat();
+#else
 		    enum MatrixType destMat = actDescriptor->DestMat();
+#endif
 
 		    // this matrix is nonlinear and, therefore, has to be reassembled next time
 		    if (actDescriptor->IsNonLin())
@@ -547,7 +566,16 @@ GetBCDof(const std::string dofString)
   {
     const Integer numconstraints = 0;  // currently not handled
     
+#ifdef USE_OLAS
+    FEMatrixType matrixsystype[5];
+    matrixsystype[0] = NOTYPE;
+    matrixsystype[1] = NOTYPE;
+    matrixsystype[2] = NOTYPE;
+    matrixsystype[3] = NOTYPE;
+    matrixsystype[4] = NOTYPE;
+#else
     Integer matrixsystype[5];
+#endif
     
     matrixsystype[0] = SYSTEM;      // memory for the system matrix
     if (stiffnessMatrix_  == 1) matrixsystype[1] = STIFFNESS;   // memory for the stiffness matrix
@@ -556,8 +584,28 @@ GetBCDof(const std::string dofString)
     if (massMatrix_       == 1) matrixsystype[4] = MASS;        // memory for the mass matrix
     
     //put to algebraic system
+
+#ifdef USE_OLAS
+    
+    
+    olasParams_->SetValue( "FEMatrixType1", matrixsystype[0] );
+    olasParams_->SetValue( "FEMatrixType2", matrixsystype[1] );
+    olasParams_->SetValue( "FEMatrixType3", matrixsystype[2] );
+    olasParams_->SetValue( "FEMatrixType4", matrixsystype[3] );
+    olasParams_->SetValue( "FEMatrixType5", matrixsystype[4] );
+    olasParams_->SetValue( "MatrixEntryType", entryType_ );
+    olasParams_->SetValue( "MatrixStorageType", storageType_ );
+    olasParams_->SetValue( "NumDof", dofsPerNode_ );
+    olasParams_->SetValue( "NumDirichletBCs", numDirichletBCs_ );
+    olasParams_->SetValue( "NumConstraints", numconstraints );
+    olasParams_->SetValue( "AuxiliaryMatrix", FALSE);
+    
+    algsys_->CreateLinSys();
+#else
     algsys_->CreateMatrix(matrixsystype, matrixType_, graphType_, 
 			  dofsPerNode_,numDirichletBCs_, numconstraints);
+#endif
+    
   }
   
 
@@ -618,12 +666,24 @@ GetBCDof(const std::string dofString)
 #endif
     
   //initialize matrix graph
+ 
+#ifdef USE_OLAS
+  algsys_->CreateGraph(numeq, graphType_);
+#else
   Integer estimated_maxneighbors=20;
   algsys_->CreateGraph(numeq, graphType_,estimated_maxneighbors);
+#endif
 
   // set the graph - connectivity matrix
   BaseFE * ptElem; 
-  Integer nsub, iel, fe_type;
+  Integer nsub, iel;
+
+#ifdef USE_OLAS
+  FEType fe_type;
+#else
+  Integer fe_type;
+#endif
+  
   Vector<Integer> connecth;
 
   for (nsub=0; nsub<subdoms_.size(); nsub++)
@@ -730,7 +790,34 @@ void Assemble::AddRhsSrcIntegrator(BaseForm * integrator, const std::string & su
   }
   
 
+#ifdef USE_OLAS 
+  /// define integrators
+  void StaticAssemble::AddIntegrator(BaseForm * integrator, const std::string & subDomName,
+					const FEMatrixType destinationMatrix, const Integer nonLin)
+  {
+#ifdef TRACE
+    (*trace) << "entering StaticAssemble::AddIntegrator " << std::endl;
+#endif
 
+#ifdef USE_OLAS
+    FEMatrixType actMatType = destinationMatrix;
+#else
+    MatrixType actMatType = destinationMatrix;
+#endif
+
+    
+    if (actMatType == STIFFNESS)
+      actMatType = SYSTEM;
+
+    if (actMatType !=  SYSTEM)
+      return;
+
+    IntegratorDescriptor * actID = new IntegratorDescriptor(integrator, actMatType, nonLin);
+    integrators_[SubDomIndex(subDomName)]->push_back(actID);
+
+  }
+
+#else
   /// define integrators
   void StaticAssemble::AddIntegrator(BaseForm * integrator, const std::string & subDomName,
 					const enum MatrixType destinationMatrix, const Integer nonLin)
@@ -751,6 +838,33 @@ void Assemble::AddRhsSrcIntegrator(BaseForm * integrator, const std::string & su
 
   }
 
+#endif
+
+#ifdef USE_OLAS 
+  /// define integrators
+  void StaticAssemble::AddSurfIntegrator(BaseForm * integrator, const std::string & subDomName,
+					const FEMatrixType destinationMatrix, const Integer nonLin)
+  {
+#ifdef TRACE
+    (*trace) << "entering StaticAssemble::AddSurfIntegrator " << std::endl;
+#endif
+   
+#ifdef USE_OLAS
+    FEMatrixType actMatType = destinationMatrix;
+#else
+    MatrixType actMatType = destinationMatrix;
+#endif
+    
+    if (actMatType == STIFFNESS)
+      actMatType = SYSTEM;
+
+    if (actMatType !=  SYSTEM)
+      return;
+
+    IntegratorDescriptor * actID = new IntegratorDescriptor(integrator, actMatType, nonLin);
+    surfintegrators_[SurfDomIndex(subDomName)]->push_back(actID);
+  }
+#else
   /// define integrators
   void StaticAssemble::AddSurfIntegrator(BaseForm * integrator, const std::string & subDomName,
 					const enum MatrixType destinationMatrix, const Integer nonLin)
@@ -769,7 +883,7 @@ void Assemble::AddRhsSrcIntegrator(BaseForm * integrator, const std::string & su
     IntegratorDescriptor * actID = new IntegratorDescriptor(integrator, actMatType, nonLin);
     surfintegrators_[SurfDomIndex(subDomName)]->push_back(actID);
   }
-
+#endif
 
 
 
@@ -808,6 +922,21 @@ void Assemble::AddRhsSrcIntegrator(BaseForm * integrator, const std::string & su
 
 
 
+#ifdef USE_OLAS 
+  /// define integrators
+  void TransientAssemble::AddIntegrator(BaseForm * integrator, const std::string & subDomName,
+					const FEMatrixType destinationMatrix, const Integer nonLin)
+  {
+#ifdef TRACE
+    (*trace) << "entering TransientAssemble::AddIntegrator " << std::endl;
+#endif
+    if (destinationMatrix == SYSTEM)
+      Info->Error("In transient assembling, no SYSTEM matrix may be defined directly", __FILE__, __LINE__);
+
+    IntegratorDescriptor * actID = new IntegratorDescriptor(integrator, destinationMatrix, nonLin);
+    integrators_[SubDomIndex(subDomName)]->push_back(actID);
+  }
+#else
   /// define integrators
   void TransientAssemble::AddIntegrator(BaseForm * integrator, const std::string & subDomName,
 					const enum MatrixType destinationMatrix, const Integer nonLin)
@@ -821,8 +950,24 @@ void Assemble::AddRhsSrcIntegrator(BaseForm * integrator, const std::string & su
     IntegratorDescriptor * actID = new IntegratorDescriptor(integrator, destinationMatrix, nonLin);
     integrators_[SubDomIndex(subDomName)]->push_back(actID);
   }
+#endif
 
 
+#ifdef USE_OLAS
+  /// define integrators
+  void TransientAssemble::AddSurfIntegrator(BaseForm * integrator, const std::string & subDomName,
+					const FEMatrixType destinationMatrix, const Integer nonLin)
+  {
+#ifdef TRACE
+    (*trace) << "entering TransientAssemble::AddSurfIntegrator " << std::endl;
+#endif
+    if (destinationMatrix == SYSTEM)
+      Info->Error("In transient assembling, no SYSTEM matrix may be defined directly", __FILE__, __LINE__);
+
+    IntegratorDescriptor * actID = new IntegratorDescriptor(integrator, destinationMatrix, nonLin);
+    surfintegrators_[SurfDomIndex(subDomName)]->push_back(actID);
+  }
+#else
 
   /// define integrators
   void TransientAssemble::AddSurfIntegrator(BaseForm * integrator, const std::string & subDomName,
@@ -837,6 +982,9 @@ void Assemble::AddRhsSrcIntegrator(BaseForm * integrator, const std::string & su
     IntegratorDescriptor * actID = new IntegratorDescriptor(integrator, destinationMatrix, nonLin);
     surfintegrators_[SurfDomIndex(subDomName)]->push_back(actID);
   }
+#endif
+
+
 
   /// define integrators
   void TransientAssemble::AddIntegrator(IntegratorDescriptor * actID, const std::string & subDomName)
@@ -909,6 +1057,21 @@ BaseIntDescriptor::BaseIntDescriptor()
 }
   
 
+#ifdef USE_OLAS
+  /// define integrators
+  IntegratorDescriptor::IntegratorDescriptor(BaseForm * aIntegrator, 
+					     const enum FEMatrixType aDestMat, const Boolean aNonLin)
+    :BaseIntDescriptor(aIntegrator, aNonLin),
+     destinationMatrix(aDestMat),
+     secondaryMatrix(NOTYPE),
+     secMatFac(0.0)
+{
+#ifdef TRACE
+  (*trace) << "entering IntegratorDescriptor::IntegratorDescriptor" << std::endl;
+#endif
+  }
+  
+#else
   /// define integrators
   IntegratorDescriptor::IntegratorDescriptor(BaseForm * aIntegrator, 
 					     const enum MatrixType aDestMat, const Boolean aNonLin)
@@ -922,6 +1085,7 @@ BaseIntDescriptor::BaseIntDescriptor()
 #endif
   }
   
+#endif
 
 
 

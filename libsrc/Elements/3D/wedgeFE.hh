@@ -22,7 +22,12 @@ public:
   virtual ~WedgeFE(); 
 
   //! return FE-Type for LAS++
+
+#ifdef USE_OLAS
+  virtual FEType feType() { return WED;}
+#else
   virtual Integer feType() { return WED;}
+#endif
   
 
 protected:
