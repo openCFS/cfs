@@ -479,6 +479,7 @@ main/kondxy.dat -text
 main/mat.dat -text
 main/sl.dat -text
 main/tet3d.dat -text
+main/tria.mesh -text
 main/wv.dat -text
 main/z10.dat -text
 main/z10.mesh -text
