@@ -27,6 +27,8 @@ typedef int Boolean;
 #define TRIANGLE2 2
 #define QUADRILATERAL1 3
 #define QUADRILATERAL2 4
+#define TETRAHEDRAL1 11
+#define TETRAHEDRAL2 12
 
 //#define TETRAHEDRA1 10
 //#define TETRAHEDRA2 11
