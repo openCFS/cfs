@@ -104,23 +104,18 @@ public:
 
 
   //! initalize PDE coupling
-  virtual void InitCoupling(PDECoupling * Coupling)
-  {Error("InitCoupling not implemented",__FILE__,__LINE__);}
-  
+  virtual void InitCoupling(PDECoupling * Coupling);
   
   //! calculate coupling terms
-  virtual void CalcOutputCoupling()
-  {Error("CalcOutputCoupling not implemented",__FILE__,__LINE__);}
+  virtual void CalcOutputCoupling();
 
   //! returns if PDE can compute the quantity
-  virtual Boolean HasOutput(SolutionType output)
-  {
-    Error("HasOutput not implemented",__FILE__,__LINE__);
-    return FALSE;
-  }
+  virtual Boolean HasOutput(SolutionType output);
 
-
-
+  //! computation of Lorentz force
+  void CalcNodeForceLorentz(Vector<Double> & force, 
+			    StdVector<StdVector<Integer> > & elemNodeToCouplingNode,
+			    Integer actCoupling, Integer numCouplingNodes);
 
 protected:
 
@@ -148,6 +143,10 @@ protected:
   Double LineSearch(Vector<Double>& solIncrement, Vector<Double>& actSol, 
 		    Double& etaLineSearch, Integer level, Boolean trans=FALSE);
 
+  //! contains first derivative of magnetic vector potential
+  NodeStoreSol<Double> solDeriv1_;
+
+  //!
   Vector<Double> RhsLinVal_;
 
   ElemStoreSol<Double> B_;  //!< conatins magnetic field

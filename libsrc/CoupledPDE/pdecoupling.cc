@@ -280,7 +280,8 @@ PDECoupling::CouplingInterface* PDECoupling::AddOutput(CouplingOutputType output
   if (myPDE_->HasOutput(quantity) == FALSE)
     return 0;
   
-  //std::cerr << "found output " << Quantity << " in PDE " << myPDE_->GetName() << std::endl;
+  //  std::cerr << "\n found output " << quantity << " in PDE " << myPDE_->GetName() << std::endl;
+  //  std::cerr << "Type: " << regionType << std::endl;
 
   // create new Coupling Output
   outputTypes_.Push_back(outputType);
@@ -303,7 +304,7 @@ PDECoupling::CouplingInterface* PDECoupling::AddOutput(CouplingOutputType output
   switch (regionType)
     {
     case REGION:
-      
+
       for (Integer iSD=0; iSD<regions.GetSize(); iSD++)
 	{
 	  ptGrid_->GetElemSD(auxElems, regions[iSD], level);

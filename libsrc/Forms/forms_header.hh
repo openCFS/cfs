@@ -18,4 +18,5 @@
 #include "linPiezoInt.hh"
 #include "nLincurlCurlNodeInt.hh"
 #include "mechStressStrain.hh"
+#include "magforceop.hh"
 #endif

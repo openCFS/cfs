@@ -89,6 +89,33 @@ private:
 
 
 // =============================================================================
+// permanent magnets in 2D
+// =============================================================================
+
+
+/// class for calculation of right hand side of a permanent magnet
+class MagPerm2DInt : public LinearForm
+{
+public:
+  ///
+  MagPerm2DInt(Vector<Double> val, Double rel, Boolean isaxi);
+
+  ///
+  virtual ~MagPerm2DInt();
+
+  /// Calculation of vector of right hand side 
+  virtual void CalcElemVector(Matrix<Double>& ptCoord, Vector<Double> & result);
+
+private:
+  //! magnetization
+  Vector<Double> perm_;
+
+  //!reluctivity
+  Double reluctivity_;
+};
+
+
+// =============================================================================
 // nonlinear magnetics
 // =============================================================================
 
