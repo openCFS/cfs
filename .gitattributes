@@ -303,10 +303,6 @@ Gridlib_inc/def_capapost.h svneol=native#text/plain
 Gridlib_inc/unv.h svneol=native#text/plain
 Gridlib_inc/unv_dat.h svneol=native#text/plain
 Gridlib_inc/unv_if.h svneol=native#text/plain
-libgrid/libGridBase.so -text svneol=unset#unset
-libgrid/libIO.so -text svneol=unset#unset
-libgrid/libMesh.so -text svneol=unset#unset
-libgrid/libUtil.so -text svneol=unset#unset
 libsrc/AlgebraicSystem/LinAlg/Makefile -text
 libsrc/AlgebraicSystem/LinAlg/assemble.cc svneol=native#text/plain
 libsrc/AlgebraicSystem/LinAlg/assemble.hh svneol=native#text/plain
