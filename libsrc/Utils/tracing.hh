@@ -126,6 +126,7 @@ namespace OutInfo {
 	}
       }
     }
+
     //! Handle termination of a function.
 
     //! This method performs all things needed for tracing when a function
@@ -146,8 +147,9 @@ namespace OutInfo {
     }
 
     //! Set maximum tracing depths
-    static void SetMaxTraceDepth(unsigned int limit)
-    {fcnTraceDepthLimit_ = limit;}
+    static void SetMaxTraceDepth(unsigned int limit) {
+      fcnTraceDepthLimit_ = limit;
+    }
 
   private:
     static FcnTraceListElem *foo_;
