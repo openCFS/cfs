@@ -1,17 +1,17 @@
 #ifndef FILE_MAGEDGEPDE_2002
 #define FILE_MAGEDGEPDE_2002
 
-#include "basePDE.hh" 
+#include "SinglePDE.hh" 
 
 namespace CoupledField
 {
 
   //! Class for electrostatic equation in 3D (no adaptivity)
   /*! 
-    This class is derived from class BasePDE. It is used for solving electrostatic equation in 3D. 
+    This class is derived from class SinglePDE. It is used for solving electrostatic equation in 3D. 
   */
 
-class MagEdgePDE: public BasePDE
+class MagEdgePDE: public SinglePDE
 {
 public:
 

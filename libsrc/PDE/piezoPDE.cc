@@ -20,7 +20,7 @@ namespace CoupledField {
 
   PiezoPDE::PiezoPDE( Grid *aptgrid, BCs *aptbcs,  TimeFunc *aptTimeFunc,
 		      FileType *aptFileType, WriteResults *aptOut ) :
-    BasePDE( aptgrid, aptbcs, aptFileType, aptOut, aptTimeFunc ) {
+    SinglePDE( aptgrid, aptbcs, aptFileType, aptOut, aptTimeFunc ) {
 
     ENTER_FCN( "PiezoPDE::PiezoPDE" );
 
@@ -39,11 +39,11 @@ namespace CoupledField {
     keyVec = pdename_, "solver", "matrix", "eqnNumbering";
     std::string typeOfNumbering;
     params->Get( keyVec, typeOfNumbering );
-    if (typeOfNumbering == "block" ||
-	typeOfNumbering == "supBlock") {
-      Error("PiezoPDE only working with 'scalar'-numbering",
-	    __FILE__, __LINE__);
-    }
+    //if (typeOfNumbering == "block" ||
+    //	typeOfNumbering == "supBlock") {
+    //  Error("PiezoPDE only working with 'scalar'-numbering",
+    //    __FILE__, __LINE__);
+    //}
 
     if( params->HasValue( "type", "imagMaterialParameter", pdename_,
 			  "materialDataType" ) ) {
@@ -262,7 +262,7 @@ namespace CoupledField {
     ENTER_FCN( "PiezoPDE::DefineSolveStep" );
     
   
-    solveStep_ = new BaseSolveStep(*this);
+    solveStep_ = new StdSolveStep(*this);
   }
 
 

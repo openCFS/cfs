@@ -34,7 +34,7 @@ namespace CoupledField {
   // ***************
   MpcciPDE::MpcciPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc,
 		   FileType *aptFileType, WriteResults *aptOut)
-    :BasePDE(aptgrid, aptbcs, aptFileType, aptOut, aptTimeFunc) 
+    :SinglePDE(aptgrid, aptbcs, aptFileType, aptOut, aptTimeFunc) 
 {
 
     ENTER_FCN( "MpcciPDE::MpcciPDE" );

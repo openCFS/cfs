@@ -1,18 +1,18 @@
 #ifndef FILE_ACOUSTICPDE_2001
 #define FILE_ACOUSTICPDE_2001
 
-#include "basePDE.hh"
+#include "SinglePDE.hh"
 
  
 namespace CoupledField {
 
   //! Class for acoustic equation (no adaptivity)
   /*! 
-    This class is derived from class BasePDE.
+    This class is derived from class SinglePDE.
 	It is used for solving acoustic equation on one time step.  
   */
 
-class AcousticPDE: public BasePDE
+class AcousticPDE: public SinglePDE
 {
 
 public:
@@ -37,6 +37,9 @@ public:
   
   //! define the SoltionStep-Driver
   virtual void DefineSolveStep();
+
+  //! perform postprocessing on data
+  void PostProcess(Integer level) {;};
 
   //! write results in file
   //! \param stepOffset offset for starting (time)step

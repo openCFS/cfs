@@ -3,6 +3,8 @@ C_DIR= ../..
 include ../../main/Makefile.option
 #
 src =   basePDE.cc\
+	StdPDE.cc\
+	SinglePDE.cc\
 	elecPDE.cc\
 	mechPDE.cc\
 	acousticPDE.cc\

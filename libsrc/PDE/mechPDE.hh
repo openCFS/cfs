@@ -1,7 +1,7 @@
 #ifndef FILE_NEWBASEMECHPDE
 #define FILE_NEWBASEMECHPDE
 
-#include "basePDE.hh"
+#include "SinglePDE.hh"
  
 namespace CoupledField
 {
@@ -14,7 +14,7 @@ namespace CoupledField
     It is used for solving mechanic equation on one time step.  
   */
 
-class MechPDE: public BasePDE
+class MechPDE: public SinglePDE
 {
 
 public:

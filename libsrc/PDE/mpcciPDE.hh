@@ -2,7 +2,8 @@
 #define FILE_MPCCIPDE_NEW
 
 #include "scalarnodeEQN.hh"
-#include "basePDE.hh" 
+#include "SinglePDE.hh" 
+
 #ifdef MpCCI
 #include <MpCCIcpl/MpCCIexch.hh>
 #endif
@@ -15,7 +16,7 @@ namespace CoupledField
     This class is derived from class BasePDE. It is used for coupling CFS++ via MpCCI
   */
 
-  class MpcciPDE : public BasePDE {
+  class MpcciPDE : public SinglePDE {
 
   public:
 
