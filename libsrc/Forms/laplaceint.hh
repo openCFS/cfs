@@ -1,0 +1,34 @@
+#ifndef FILE_LAPLACEINT
+#define FILE_LAPLACEINT
+
+namespace CoupledField
+{
+
+/// Class for calculation  element stiffness matrix
+template<class Dim>
+class LaplaceInt : public BaseForm<Dim>
+{
+public:
+  /// Constructor
+  LaplaceInt(BaseElem * aptelem, const ShortInt ndofs);
+
+  /// 
+  virtual ~LaplaceInt();
+
+  /// Calculation of stiffmess matrix
+  void CalcElemMatrix(Dim * ptCoord, Matrix<Double> & StiffMat);
+
+  virtual void Print(ostream * out, const Matrix<Double> Result) const;
+
+protected:
+
+ 
+private:
+  ShortInt DofsPerNode;
+};
+
+template class LaplaceInt<Point2D>;
+template class LaplaceInt<Point3D>;
+}
+
+#endif // FILE_LAPLACEINT

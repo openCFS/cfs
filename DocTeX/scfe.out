@@ -1,0 +1,16 @@
+\BOOKMARK [1][]{section.1}{Introduction.}{}
+\BOOKMARK [1][]{section.2}{ Design criteria .}{}
+\BOOKMARK [1][]{section.3}{ Structure of code.}{}
+\BOOKMARK [1][]{section.5}{ Description of classes. }{}
+\BOOKMARK [2][]{subsection.6}{ Classes for input and output data}{section.5}
+\BOOKMARK [2][]{subsection.7}{ Classes for handling grids on calculation domain}{section.5}
+\BOOKMARK [2][]{subsection.8}{ Classes for defining finite element spaces }{section.5}
+\BOOKMARK [2][]{subsection.10}{ Classes for calculation the element matrices}{section.5}
+\BOOKMARK [2][]{subsection.11}{ Classes for assembling and solving system matrix }{section.5}
+\BOOKMARK [2][]{subsection.12}{ Specific classes for regarding problem }{section.5}
+\BOOKMARK [2][]{subsection.13}{ Useful tools }{section.5}
+\BOOKMARK [1][]{section.14}{ Some excerptes from code }{}
+\BOOKMARK [2][]{subsection.15}{ Structure of the class Driver }{section.14}
+\BOOKMARK [2][]{subsection.16}{ Details of implementation of class AcousticPDE}{section.14}
+\BOOKMARK [2][]{subsection.17}{ Details of implementation of class WorkWithSysMatrix }{section.14}
+\BOOKMARK [2][]{subsection.18}{ Details of implementation of class Matrix }{section.14}
