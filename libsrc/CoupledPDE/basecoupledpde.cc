@@ -82,14 +82,15 @@ BaseCoupledPDE::~BaseCoupledPDE()
 
 
 // perform on every pde a pre step (before solving transient step
-void BaseCoupledPDE::PreStepTrans(const Integer level, const Boolean reset) 
+void BaseCoupledPDE::PreStepTrans(const Integer kstep, const Double asteptime,
+				  const Integer level, const Boolean reset) 
 {
 #ifdef TRACE
   (*trace) << "entering BaseCoupledPDE::PreStepTrans" << std::endl;
 #endif
 
     for (Integer i=0; i<PDEs_.size(); i++)
-      PDEs_[i]->PreStepTrans(level, reset);
+      PDEs_[i]->PreStepTrans(kstep, asteptime, level, reset);
 };
 
 

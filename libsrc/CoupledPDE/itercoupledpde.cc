@@ -206,7 +206,7 @@ namespace CoupledField
 	    Info->PrintF(coupledpdename_, " Processing PDE %s", 
 			 (PDEs_[i]->GetName()).c_str());
 
-	    PDEs_[i]->PreStepTrans(level, updatesysmat);
+	    PDEs_[i]->PreStepTrans(kstep, steptime, level, updatesysmat);
 	    PDEs_[i]->CalcInputCoupling();
 	    PDEs_[i]->SolveStepTrans(kstep, steptime, level, updatesysmat);
 	    PDEs_[i]->PostStepTrans(level);

@@ -99,7 +99,7 @@ namespace CoupledField
   
 
   void WriteInfo::WriteNonLinIter(const std::string& pdeName, const Integer iterationCounter, 
-				  const Double residualErr, const Double incrementalErr)
+				  const Double residualErr, const Double incrementalErr, double etaLineSearch)
   {
     std::string pdeNameLong(pdeName);
     
@@ -109,6 +109,9 @@ namespace CoupledField
 	     << " ==========================================" << std::endl
 	     << pdeNameLong << "=== Residual error          " << residualErr << std::endl
 	     << pdeNameLong << "=== Incremental error       " << incrementalErr << std::endl;
+
+    if (etaLineSearch)
+      *cfsInfo << pdeNameLong << "=== eta (line search)       " << etaLineSearch << std::endl;
   }
 
 

@@ -57,7 +57,7 @@ namespace CoupledField
 
     /// prints the process of a nonlinear iteration
     void WriteNonLinIter(const std::string& pdeName, const Integer iterationCounter,    
-			 const Double residualErr, const Double incrementalErr);
+			 const Double residualErr, const Double incrementalErr, double etaLineSearch=0);
 
     /// prints the process of a nonlinear iteration
     void WriteTimeStep(const std::string& pdeName, const Integer timeStep,    
