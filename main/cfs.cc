@@ -123,22 +123,27 @@ int main(int argc, char *argv[])
   CCI_Init(&argc, &argv);  
 #endif  
 
+  
+
   DefineInOutFiles * ptDefineFiles=new DefineInOutFiles(name);
   // class writing log-information
   Info = new WriteInfo(name);
   Info->PrintHeader();
 
-
-  if (PrintGridOnly)
+   if (PrintGridOnly)
     STDOUT << "Printing grid to file " << name << ".unv" << myEndl << myEndl;
 
   MyClock oClockTotal;
   oClockTotal.ClockCount(MyClock::beg);
 
+  Info->StartProgress("Creating file pointers");
+
   FileType * ptInputfile=ptDefineFiles->Create_ptFileType();
 
   WriteResults * ptOut=ptDefineFiles->Create_ptWriteResults(ptInputfile);
   
+  Info->FinishProgress();
+
 
   // TimeFunc * ptTimeFunc=NULL;
   TimeFunc * ptTimeFunc = new TimeFunc(ptInputfile);
@@ -159,6 +164,7 @@ int main(int argc, char *argv[])
   adaptspace = params->IsSet( "adaptspace" );
 #endif
 
+  Info->StartProgress("Creating driver");
   if (analysis=="static") 
     if (adaptspace)
       {
@@ -182,10 +188,17 @@ int main(int argc, char *argv[])
   else
     Info->Error( "Driver not supported", __FILE__, __LINE__ );
 
-  ptdriver->SolveProblem();
-  
-  oClockTotal.ClockCount(MyClock::end,"Total time");
+  Info->FinishProgress();
 
+  Info->StartProgress("Starting to solve problem",FALSE);
+  ptdriver->SolveProblem();
+
+  std::cerr << std::endl;
+  Info->StartProgress("Finished solving the problem");
+  Info->FinishProgress();
+  std::cerr << std::endl;
+  oClockTotal.ClockCount(MyClock::end,"Total time");
+ 
 #ifdef MpCCI
   CCI_Finalize();
 #endif

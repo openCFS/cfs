@@ -31,6 +31,16 @@ namespace CoupledField
     // file for informational output
     std::ofstream * cfsInfo;
 
+    // indicates, if a warning occured already
+    Boolean warningOccured_;
+
+    // indicates, if there`s a progress running
+    Boolean progressRunning_;
+
+    //! flag for acknowledge message for progress
+    //! printouts
+    Boolean needAck_;
+
   public:
     /// constructor
     WriteInfo(const Char * name);
@@ -119,8 +129,15 @@ namespace CoupledField
     void Error(const std::string & text, const Char * const filename=NULL,
                const Integer numline=0);
 
-    //! Convert anything to a standard string
 
+    /// generates a message, that a certain action has started
+    void StartProgress(const std::string &name, Boolean needAck = TRUE);
+
+    
+    /// generates a message, that the last action has finished
+    void FinishProgress(const Boolean success = TRUE);
+
+    //! Convert anything to a standard string
     //! This auxilliary method can convert any data type to a standard string,
     //! if the << operator has been overloaded for the respective type.
     template<class T> std::string GenStr( const T &value ) {

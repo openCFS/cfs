@@ -47,12 +47,10 @@ void NodeEQN::CalcLocalGlobalMapping(StdVector<Integer> & mesh2PDENode,
   mesh2PDENode.Resize(ptGrid_->GetMaxnumnodes(actlevel_));
   mesh2PDENode.Init(-1);
   pde2MeshNode.Clear();
-  //std::cerr << "Number of global elems " << ptGrid_->GetMaxnumElem(actlevel_);
+
   mesh2PDEElem.Resize(ptGrid_->GetMaxnumElem(actlevel_));
-  //std::cerr << "number of local elems " <<ptGrid_->GetMaxnumElem(actlevel_,subdoms_); 
   mesh2PDEElem.Init(-1);
   pde2MeshElem.Resize(ptGrid_->GetMaxnumElem(actlevel_,subdoms_));
-  //std::cerr << "Size of pde2MeshElem" << pde2MeshElem.GetSize() << std::endl;
   pde2MeshElem.Init(-1);
   //std::cerr << "After init of pde2MeshElem" << std::endl;
   //std::cerr << "Size of pde2MeshEl
@@ -70,19 +68,22 @@ void NodeEQN::CalcLocalGlobalMapping(StdVector<Integer> & mesh2PDENode,
       // iterate over all elems in subdomain
       for (Integer iElem=0; iElem<subdom.GetSize(); iElem++)
 	{
+	  //std::cerr << "before mapping of elements" << std::endl;
 	  // *** Mapping of Elements ***
 	  mesh2PDEElem[subdom[iElem]->elemNum - 1 ] = elemCounter;
 	  pde2MeshElem[elemCounter-1] = subdom[iElem]->elemNum;
 	  elemCounter++;
+	  //std::cerr << "after mapping of elements" << std::endl;
 
 	  
 	  // *** Mapping of Nodes ***
-	  
 	  // iterate over all nodes in elem
 	  for (Integer iNode=0; iNode<subdom[iElem]->connect.GetSize(); iNode++)
 	    // Check if node was already assigned
 	    if (mesh2PDENode[subdom[iElem]->connect[iNode]-1] == -1)
 	      {
+		// std::cerr << "mesh2PDENode[" << subdom[iElem]->connect[iNode]-1 << "] = ";
+// 		std::cerr << nodeCounter +1 << std::endl;
 		mesh2PDENode[subdom[iElem]->connect[iNode]-1] = ++nodeCounter;
 		pde2MeshNode.Push_back(subdom[iElem]->connect[iNode]);
 	      }

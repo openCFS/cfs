@@ -107,7 +107,7 @@ public:
   {Error("CalcOutputCoupling not implemented",__FILE__,__LINE__);}
 
   //! returns if PDE can compute the quantity
-  virtual Boolean HasOutput(std::string output)
+  virtual Boolean HasOutput(SolutionType output)
   {
     Error("HasOutput not implemented",__FILE__,__LINE__);
     return FALSE;

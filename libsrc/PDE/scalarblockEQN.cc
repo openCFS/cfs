@@ -39,7 +39,7 @@ void ScalarBlockEQN::CalcMapping()
  
 
   Integer eqnCounter = 0;
-
+  std::string warnMsg;
 //  std::cerr << "Content of homoDirichletNodes: " << std::endl;
 //   std::cerr << "-------------------------------" << std::endl;
 //   std::cerr << homoDirichletNodes_ << std::endl;
@@ -56,41 +56,65 @@ void ScalarBlockEQN::CalcMapping()
 //   std::cerr << "pdeNode2EQN.ColSize = " << numPDENodes_ << std::endl;
 
   // STEP 1
-
+  Integer notIncludedBCs = 0;
   pdeNode2EQN_.Resize(numPDENodes_,dofsPerNode_);
   pdeNode2EQN_.Init(1);
-  eqn2Pos_.Resize(numPDENodes_ * dofsPerNode_
-		  - homoDirichletNodes_.GetSize()
-		  - constraintSlaveNodes_.GetSize());
+ 
 
+  
 //   std::cerr << "eqn2Pos has size " << eqn2Pos_.GetSize() << std::endl;
-
+//   std::cerr << "size of mesh2PDENode_" << mesh2PDENode_.GetSize() << std::endl;
+//   std::cerr << "size of pdeNode2EQN_" << pdeNode2EQN_.GetSizeRow() << std::endl;
   
   // STEP 2
   for (Integer i=0; i<homoDirichletNodes_.GetSize(); i++)
     {
-    pdeNode2EQN_[mesh2PDENode_[homoDirichletNodes_[i]-1]-1]
+//       std::cerr << "homoDirichletNodes_[i]-1 = " << homoDirichletNodes_[i]-1 << std::endl;
+//       std::cerr << "mesh2PDENode_[homoDirichletNodes_[i]-1]-1 = " << mesh2PDENode_[homoDirichletNodes_[i]-1]-1 << std::endl;
+      // Check if homDirichletNode belongs to one of my 
+      // subdomains
+      if (mesh2PDENode_[homoDirichletNodes_[i]-1]-1 < 0)
+	{
+	  warnMsg  = "Homogen. Dirichlet node nr. ";
+	  warnMsg += Info->GenStr(homoDirichletNodes_[i]);
+	  warnMsg += " is not contained in any of the regions for this PDE";
+	  Info->Warning(warnMsg, __FILE__, __LINE__);
+	  notIncludedBCs++;
+	} 
+    else
+      pdeNode2EQN_[mesh2PDENode_[homoDirichletNodes_[i]-1]-1]
       [homoDirichletDofs_[i]-1] = 0;
     }
 
-  //   std::cerr << "after step2" << std::endl;
+  eqn2Pos_.Resize(numPDENodes_ * dofsPerNode_
+		  - homoDirichletNodes_.GetSize()
+		  - constraintSlaveNodes_.GetSize()
+		  + notIncludedBCs);
+//   std::cerr << "after step2" << std::endl;
   
   // STEP 3
   for (Integer i=0; i<constraintSlaveNodes_.GetSize(); i++)
     pdeNode2EQN_[mesh2PDENode_[constraintSlaveNodes_[i]-1]-1]
       [constraintDofs_[i]-1] = 0;
   
+//   std::cerr << "after step3" << std::endl;
     // STEP 4
   for (Integer iNode=0; iNode<pde2MeshNode_.GetSize(); iNode++)
     for (Integer iDof=0; iDof<dofsPerNode_; iDof++)
       if (pdeNode2EQN_[iNode][iDof] != 0)
 	{
+	  std::cerr << std::endl;
 	  eqnCounter++;
+// 	  std::cerr << "size of pdeNode2EQN = " << pdeNode2EQN_.GetSizeRow() << std::endl;
+// 	  std::cerr << "size of eqn2Pos_ = " << eqn2Pos_.GetSize() << std::endl;
+// 	  std::cerr << "pdeNode2EQN_[" << iNode << "][" << iDof << "] = " << eqnCounter << std::endl;
+// 	  std::cerr << "eqn2Pos_[" << eqnCounter-1 << "] = " << (pde2MeshNode_[iNode]-1)*dofsPerNode_ + iDof << std::endl;
 	  pdeNode2EQN_[iNode][iDof] = eqnCounter;
 	  eqn2Pos_[eqnCounter-1] = 
 	    (pde2MeshNode_[iNode]-1)*dofsPerNode_ + iDof;
 
 	}
+//   std::cerr << "after step4" << std::endl;
       
   // STEP 5
   for (Integer i=0; i<constraintSlaveNodes_.GetSize(); i++)

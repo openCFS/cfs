@@ -294,10 +294,10 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 
     
     // initialize eqation data object
-        eqnData_  = new BlockNodeEQN(ptgrid_, ptBCs_, subdoms_, 
-				     actlevel_, dofspernode_);
+    eqnData_  = new BlockNodeEQN(ptgrid_, ptBCs_, subdoms_, 
+				 actlevel_, dofspernode_);
     //eqnData_  = new ScalarBlockEQN(ptgrid_, ptBCs_, subdoms_, 
-    //		   actlevel_, dofspernode_);
+    //	   actlevel_, dofspernode_);
 
     eqnData_->SetHomoDirichletBCs(bcs_hd_, homDirichDof_);
     eqnData_->CalcMapping();
@@ -656,13 +656,13 @@ void MechPDE::InitCoupling(PDECoupling * Coupling)
   
   for (Integer i=0; i<ptCoupling_->GetNumOutputCouplings(); i++)
     {
-      if (ptCoupling_->GetOutputQuantity(i) == "mechdisplacement")
+      if (ptCoupling_->GetOutputQuantity(i) == MECH_DISPLACEMENT)
 	{
 	  // Intialize the memory of the coupling values
 	  ptCoupling_->CreateCouplingVector(i,isComplex_);
 	}
 
-      if (ptCoupling_->GetOutputQuantity(i) == "mechforce")
+      if (ptCoupling_->GetOutputQuantity(i) == MECH_FORCE)
 	{
 	  // Intialize the memory of the coupling values
 	  ptCoupling_->CreateCouplingVector(i,isComplex_); 
@@ -681,13 +681,14 @@ void MechPDE::CalcOutputCoupling()
   ENTER_FCN( "MechPDE::CalcOutputCoupling" );
 
   Integer dof = 0;
-  std::string quantity;
+  SolutionType quantity;
   StdVector<Integer> * couplingnodes = NULL;
   StdVector<Elem*> * couplingElems = NULL;
   StdVector<Elem*> * neighbours = NULL;
   StdVector<MaterialData*> * couplingMaterials = NULL;
   CFSVector * temp_values = NULL;
   Vector<Double> * values;
+  StdVector<std::string> outputRegions;
   
 
   // loop over all output coupling quantities
@@ -702,7 +703,7 @@ void MechPDE::CalcOutputCoupling()
 	{
 	case NODE:
 	  
-	  if (quantity == "mechdisplacement")
+	  if (quantity == MECH_DISPLACEMENT)
 	    {
 	      ptCoupling_->GetOutputNodes(i, couplingnodes);
 	    	      
@@ -710,7 +711,7 @@ void MechPDE::CalcOutputCoupling()
 	    }
 	  
 
-	  if (quantity == "mechforce")
+	  if (quantity == MECH_FORCE)
 	    {
 	      ptCoupling_->GetOutputNodes(i, couplingnodes);
 	      ptCoupling_->GetOutputElements(i, couplingElems);
@@ -723,7 +724,13 @@ void MechPDE::CalcOutputCoupling()
 		{
 		  std::string errMsg = "In mechanic PDE: No neighbour elements ";
 		  errMsg += "for acoustic-coupling at output interface ";
-		  errMsg += ptCoupling_->GetOutputRegion(i);
+		  ptCoupling_->GetOutputRegions(i, outputRegions);
+		  for (Integer i=0; i<outputRegions.GetSize()-1; i++)
+		    {
+		      errMsg += outputRegions[i];
+		      errMsg += ", ";
+		    }
+		  errMsg += outputRegions[outputRegions.GetSize()-1];
 		  Error(errMsg.c_str(),  __FILE__,__LINE__);  
 		}
 	  
@@ -803,11 +810,11 @@ void MechPDE::CalcAcousticCouplingRHS(StdVector<Elem*> * couplingElems,
 
 
 
-Boolean MechPDE::HasOutput(std::string output)
+Boolean MechPDE::HasOutput(SolutionType output)
 {
   ENTER_FCN( "MechPDE::HasOutput" );
 
-  if (output == "mechdisplacement" || output == "mechforce")
+  if (output == MECH_DISPLACEMENT || output == MECH_FORCE)
     return TRUE;
 
   return FALSE;

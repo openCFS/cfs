@@ -307,7 +307,7 @@ template<class TYPE>
 void StdVector<TYPE>::Erase(const Integer pos1, const Integer pos2)
 {
   ENTER_IFCN( "StdVector::Erase" );
- #ifdef CHECK_INITIALIZED
+#ifdef CHECK_INITIALIZED
   if (size_ == 0)
     Warning("Vector: undefined Vector in function Erase()", __FILE__, __LINE__);
 #endif
@@ -334,6 +334,18 @@ void StdVector<TYPE>::Erase(const Integer pos1, const Integer pos2)
    size_ = size_ - l; 
 }
 
+template<class TYPE>
+Integer StdVector<TYPE>::Find(const TYPE &x) const
+{
+  ENTER_IFCN( "StdVector::Find" );
+
+  Integer pos = -1;
+
+  for (Integer i=0; i<size_; i++)
+    if (data_[i] == x)
+      pos = i;
+  return pos;
+}
 
 template<class TYPE>
 Boolean StdVector<TYPE>::operator== (const StdVector<TYPE> & vec) const

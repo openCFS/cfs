@@ -10,12 +10,12 @@
 namespace CoupledField
 {
 
-BaseCoupledPDE::BaseCoupledPDE(StdVector<BasePDE*> & PDEs,
-			       StdVector<PDECoupling*> & Couplings,
-			       Grid *aptgrid, 
-			       BCs *aptBCs, 
-			       FileType *aInFile, 
-			       WriteResults * aOutFile)
+  BaseCoupledPDE::BaseCoupledPDE(StdVector<BasePDE*> & PDEs,
+				 StdVector<PDECoupling*> & Couplings,
+				 Grid *aptgrid, 
+				 BCs *aptBCs, 
+				 FileType *aInFile, 
+				 WriteResults * aOutFile)
 {
   ENTER_FCN( "BaseCoupledPDE::BaseCoupledPDE" );
 
@@ -29,12 +29,14 @@ BaseCoupledPDE::BaseCoupledPDE(StdVector<BasePDE*> & PDEs,
   actlevel_ = 0;
   NumPDEs_ = PDEs.GetSize();
 
-  couplingSectionName_ = "coupling";
   
   // get analysis type
   std::string analysis;
+#ifndef XMLPARAMS
   conf->get("analysis", analysis);
-
+#else
+  params->Get( "type", analysis, "analysis" );
+#endif
 
   if (analysis=="static") 
     analysistype_ = STATIC;

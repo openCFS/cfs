@@ -68,6 +68,7 @@ void BlockNodeEQN::CalcMapping()
   // total number of equations, which is the total
   // number of pdenodes minus the number of hom.
   // Dirichlet nodes - the number of constraintNodes
+  std::string warnMsg;
   pdeNode2EQN_.Clear();
   eqn2Pos_.Clear();
   pdeNode2EQN_.Resize(numPDENodes_);
@@ -80,8 +81,18 @@ void BlockNodeEQN::CalcMapping()
   StdVector<Integer> numDirichletDofsPerNode;
   numDirichletDofsPerNode.Resize(numPDENodes_);
   for (Integer i=0; i<homoDirichletNodes_.GetSize(); i++)
-    numDirichletDofsPerNode[mesh2PDENode_[homoDirichletNodes_[i]-1]-1]++;
-  
+    {
+      if (mesh2PDENode_[homoDirichletNodes_[i]-1]-1 < 0)
+	{
+	  warnMsg  = "Homogen. Dirichlet node nr. ";
+	  warnMsg += Info->GenStr(homoDirichletNodes_[i]);
+	  warnMsg += " is not contained in any of the regions for this PDE";
+	  Info->Warning(warnMsg, __FILE__, __LINE__);
+	}
+      else
+      numDirichletDofsPerNode[mesh2PDENode_[homoDirichletNodes_[i]-1]-1]++;
+    }
+
   // REMOVE LATER !!!!!!!!!!!!!!!!!!!
   //numDirichletDofsPerNode.Init(0);
 

@@ -78,7 +78,7 @@ public:
   */
   virtual void AddInputCoupling(std::string PDEName, 
 				CouplingInputType InType, 
-				std::string Quantity,
+				SolutionType Quantity,
 				Boolean optional=FALSE);
   
   //! return number of pdes
@@ -106,7 +106,7 @@ public:
     \param InputType (output) vector containing input coupling quantities of PDE
   */
   virtual void GetCouplingQuantity(std::string  PDEName, 
-				   StdVector<std::string> & InputQuantities)
+				   StdVector<SolutionType> & InputQuantities)
   {InputQuantities = InputCouplingQuantities_[PDEName];}
   
 
@@ -120,11 +120,20 @@ public:
   {optionality = optionalCoupling_[PDEName];}
   
 protected:
-  Integer NumPDEs_;                                                          //!< number of PDEs
-  StdVector< std::string> PDEs_;                                             //!< vector conatining names of PDEs 
-  std::map <std::string, StdVector<CouplingInputType> > InputCouplingTypes_; //!< mapping of PDEnames to input coupling types
-  std::map <std::string, StdVector<std::string> > InputCouplingQuantities_;  //!< mapping of PDEnames to input coupling quantities
-  std::map <std::string, StdVector<Boolean> > optionalCoupling_;             //!< mapping of PDEnames to optionality of input coupling quantities
+  //!< number of PDEs
+  Integer NumPDEs_;
+  
+  //!< vector conatining names of PDEs 
+  StdVector< std::string> PDEs_;                                             
+  
+  //!< mapping of PDEnames to input coupling types
+  std::map <std::string, StdVector<CouplingInputType> > InputCouplingTypes_;
+  
+  //!< mapping of PDEnames to input coupling quantities
+  std::map <std::string, StdVector<SolutionType> > InputCouplingQuantities_;  
+  
+  //!< mapping of PDEnames to optionality of input coupling quantities
+  std::map <std::string, StdVector<Boolean> > optionalCoupling_;             
 
 };  
 } // end of namespace

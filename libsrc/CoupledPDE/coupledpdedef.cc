@@ -1,6 +1,8 @@
 #include "coupledpdedef.hh"
 #include "Domain/grid.hh"
 #include "Domain/bcs.hh"
+#include "General/environment.hh"
+#include "DataInOut/ParamHandling/BaseParamHandler.hh"
 
 namespace CoupledField
 {
@@ -35,16 +37,19 @@ void CoupledPDEDef::CreateCoupling(StdVector<BasePDE*> & OrderedPDEs,
 {
   ENTER_FCN( "CoupledPDEDef::OrderPDEs" );
 
+
    bool found = false;
    Integer CoupledPDENumber;
    StdVector<std::string> PDENames;
    OrderedPDEs.Clear();
 
+//    for (Integer i=0; i<UnorderedPDEs.GetSize(); i++)
+//      std::cerr << "Unorderered PDEs = " << UnorderedPDEs[i]->GetName() << std::endl;
+
    // iterate over all coupling PDEs to find the 
    // corresponding coupling definition for current set of PDEs
    for (Integer i=0; i<CoupledPDEs_.GetSize(); i++)
      {
-       
       // check if number of PDEs in coupling matches
       if (CoupledPDEs_[i]->GetNumPDEs() == UnorderedPDEs.GetSize())
 	{
@@ -82,11 +87,13 @@ void CoupledPDEDef::CreateCoupling(StdVector<BasePDE*> & OrderedPDEs,
   Couplings.Clear();
   Definition * MyCoupledPDE = CoupledPDEs_[CoupledPDENumber];					   
   StdVector<CouplingInputType>  InputType;
-  StdVector<std::string> InputQuantity;
+  StdVector<SolutionType> InputQuantity;
+  StdVector<SolutionType> couplingTermsConv;
   StdVector<Boolean> inputOptionality;
   Couplings.Resize(MyCoupledPDE->GetNumPDEs());
 
   StdVector<std::string> couplingTerms;
+
 
   // iterate over all PDEs specified CoupledPDE
   for (Integer i=0; i<MyCoupledPDE->GetNumPDEs(); i++)
@@ -100,15 +107,20 @@ void CoupledPDEDef::CreateCoupling(StdVector<BasePDE*> & OrderedPDEs,
       // add all coupling terms of PDE
       for (Integer j=0; j<InputType.GetSize(); j++)
 
-	// if this coupling type is not needed every coupled simulation
+	// if this coupling type is not needed in every coupled simulation
 	if (inputOptionality[j])
 	  {
-	    conf->getliststr("input_coupling_terms", couplingTerms, OrderedPDEs[i]->GetName());
-	    
+	    params->GetList( "quantity", couplingTerms, "couplingList", "coupling");
+
+	    couplingTermsConv.Clear();
+	    couplingTermsConv.Resize(couplingTerms.GetSize());
+	    for (Integer k=0; k<couplingTerms.GetSize(); k++)
+		 String2Enum(couplingTerms[k],couplingTermsConv[i]);
+
 	    Boolean found = FALSE;
 	    
-	    for (Integer k=0; k<couplingTerms.GetSize(); k++)
-	      if (couplingTerms[k] == InputQuantity[j])
+	    for (Integer k=0; k<couplingTermsConv.GetSize(); k++)
+	      if (couplingTermsConv[k] == InputQuantity[j])
 		found = TRUE;
 
 	    if (found)
@@ -149,7 +161,7 @@ void Definition::AddPDE(std::string PDEName)
 
 void Definition::AddInputCoupling(std::string PDEName, 
 				  CouplingInputType InType, 
-				  std::string Quantity,
+				  SolutionType Quantity,
 				  Boolean optionalCoupling) //"optionalCoupling" is by default FALSE
 {
   ENTER_FCN( "Definition::AddCoupling" );

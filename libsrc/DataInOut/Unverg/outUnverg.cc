@@ -632,6 +632,7 @@ std::string WriteResultsUnverg::SolutionTypeToString(const SolutionType type) co
       return "stress";
       break;
     case MECH_STRAIN:
+      Error("Not implemented", __FILE__, __LINE__);
       break;
     case ELEC_POTENTIAL:
       return "electric potential";
@@ -639,11 +640,18 @@ std::string WriteResultsUnverg::SolutionTypeToString(const SolutionType type) co
     case ELEC_FIELD:
       return "electric field";
       break;
-    case ELEC_FORCE: 
+    case ELEC_FORCE_VWP: 
+      Error("Not implemented", __FILE__, __LINE__);
       break;
+    case ELEC_INTERFACE_FORCE:
+      Error("Not implemented", __FILE__, __LINE__);
+      break; 
     case ELEC_CHARGE:
       return "electric charge";
       break;
+    case ELEC_FLUX_DENSITY:
+      Error("Not implemented", __FILE__, __LINE__);
+      break; 
     case SMOOTH_DISPLACEMENT:
       return "displacement";
       break;
@@ -651,6 +659,7 @@ std::string WriteResultsUnverg::SolutionTypeToString(const SolutionType type) co
       return "fluid potential";
       break;
     case ACOU_FORCE:
+      Error("Not implemented", __FILE__, __LINE__);
       break;
     case ACOU_POTENTIAL_DERIV_1:
       return "fluid potential, 1st deriv.";
@@ -667,8 +676,12 @@ std::string WriteResultsUnverg::SolutionTypeToString(const SolutionType type) co
     case MAG_EDDY_CURRENT:
       return "eddy current";
       break;
-    case MAG_FORCE:
+    case MAG_FORCE_VWP:
       break;
+      Error("Not implemented", __FILE__, __LINE__);
+    case MAG_FORCE_LORENTZ:
+      break;
+      Error("Not implemented", __FILE__, __LINE__);
     default:
       Error( "Wrong type of solution or 'SolutionType2String' not implemented for\
 this type of solution", __FILE__, __LINE__);

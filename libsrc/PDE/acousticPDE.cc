@@ -293,7 +293,7 @@ namespace CoupledField {
   
     // Intialize the memory of the coupling values
     for (Integer i=0; i<ptCoupling_->GetNumOutputCouplings(); i++) {
-      if (ptCoupling_->GetOutputQuantity(i) == "acousticforce")	{
+      if (ptCoupling_->GetOutputQuantity(i) == ACOU_FORCE)	{
 	ptCoupling_->CreateCouplingVector(i,isComplex_);
       }
     }
@@ -307,7 +307,7 @@ namespace CoupledField {
     ENTER_FCN( "AcousticPDE::CalcOutputCoupling" );
 
     Integer dof;
-    std::string quantity;
+    SolutionType quantity;
     StdVector<Elem*> * couplingElems = NULL;
     StdVector<Elem*> * interfaceVolElems = NULL;
     StdVector<Integer> * couplingNodes = NULL;
@@ -324,7 +324,7 @@ namespace CoupledField {
       switch(ptCoupling_->GetOutputType(i)) {
 
 	case NODE:
-	  if (quantity == "acousticforce") {
+	  if (quantity == ACOU_FORCE) {
 	    ptCoupling_->GetOutputElements(i, couplingElems);
 	    ptCoupling_->GetOutputNodes(i, couplingNodes);
 	    ptCoupling_->GetOwnMaterials(i, couplingMaterials);
@@ -420,9 +420,9 @@ namespace CoupledField {
   }
 
 
-  Boolean AcousticPDE::HasOutput(std::string output) {
+  Boolean AcousticPDE::HasOutput(SolutionType output) {
     ENTER_FCN( "AcousticPDE::HasOutput" );
-    if (output == "acousticforce") {
+    if (output == ACOU_FORCE) {
       return TRUE;
     }
     return FALSE;

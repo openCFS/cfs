@@ -1176,7 +1176,7 @@ void BasePDE::CalcInputCoupling()
 	  for (Integer dof=0; dof<couplingDof; dof++)
 	    for (Integer j=0; j<nodes->GetSize(); j++)
 	      {
-		std::cerr << "Getting input node " << (*nodes)[j] << std::endl;
+		// std::cerr << "Getting input node " << (*nodes)[j] << std::endl;
 		eqnData_->Node2EQN((*nodes)[j],dof+1,eqnNr,eqnDof);
 		// This warning is disabled, in multi-dof pdes
 		// only one compomemt
@@ -1198,8 +1198,6 @@ void BasePDE::CalcInputCoupling()
 		  // SetNodeRHS erwartet Double* oder Complex*, aber Inhalt erst zu Laufzeit bekannt ...
 		if (eqnNr != 0) 
 		  {
-		    std::cerr << "Setting node rhs to " << help[dof+couplingDof*j] << std::endl;
-		    std::cerr << "enqDof = " << eqnDof << " eqnNr = " << eqnNr << std::endl;
 		  algsys_->SetNodeRHS(help[dof+couplingDof*j], eqnNr, eqnDof);
 		  }
 	      }

@@ -361,7 +361,6 @@ void ElecPDE::CalcNodeForce(Vector<Double> & force,
   
   for (Integer ielem=0; ielem<elems.GetSize(); ielem++)
     {
-      std::cerr << "Calculating force for elem " <<elems[ielem]->elemNum << std::endl;
       // Get Material Parameter
       Double epsilon;
       
@@ -549,23 +548,27 @@ void ElecPDE::InitCoupling(PDECoupling * Coupling)
     //       are linear or non-linear!
     // ==============================================================
     StdVector<std::string> nonLinRegion;
-    params->GetList( "nonLinear", nonLinRegion, pdename_, "region" );
-    // Should not happen with validating parser, but beware!
-    std::cout << "nonlinSize: " << nonLinRegion.GetSize() << std::endl;
-    
-    if ( nonLinRegion.GetSize() == 0 ) {
-      nonLin_ = FALSE;
-    }
-    else {
-      for ( Integer k = 0; k <= nonLinRegion.GetSize(); k++ ) {
-	if ( nonLinRegion[k] != nonLinRegion[0] ) {
-	  Info->Error( "Non-linearity should be the same for all regions!",
-		       __FILE__, __LINE__ );
-	}
-      }
-      nonLin_ = nonLinRegion[0] == "geo" ? TRUE : FALSE;
-    }
+    nonLin_ = FALSE;
+    geoUpdate_ = TRUE;
 
+    
+//     params->GetList( "nonLinear", nonLinRegion, pdename_, "region" );
+//     // Should not happen with validating parser, but beware!
+//     std::cout << "nonlinSize: " << nonLinRegion.GetSize() << std::endl;
+    
+//     if ( nonLinRegion.GetSize() == 0 ) {
+//       nonLin_ = FALSE;
+//     }
+//     else {
+//       for ( Integer k = 0; k <= nonLinRegion.GetSize(); k++ ) {
+// 	if ( nonLinRegion[k] != nonLinRegion[0] ) {
+// 	  Info->Error( "Non-linearity should be the same for all regions!",
+// 		       __FILE__, __LINE__ );
+// 	}
+//       }
+//       nonLin_ = nonLinRegion[0] == "geo" ? TRUE : FALSE;
+//    }
+    
 #endif
 
   // Initialization of coupling helper arrays
@@ -579,21 +582,20 @@ void ElecPDE::InitCoupling(PDECoupling * Coupling)
   F_Interface_.Resize(numCouplings);
   isBoundaryNode_.Resize(numCouplings);
   elemNodeToCouplingNode_.Resize(numCouplings);
-  
 
   for (Integer actCoupling=0; actCoupling<numCouplings; actCoupling++)
     {
       // Initialize arrays for coupling surface elements
-      if (ptCoupling_->GetOutputQuantity(actCoupling) == "elecforce" 
-	  || ptCoupling_->GetOutputQuantity(actCoupling) == "interfaceForce")
+      if (ptCoupling_->GetOutputQuantity(actCoupling) == ELEC_FORCE_VWP
+	  || ptCoupling_->GetOutputQuantity(actCoupling) == ELEC_INTERFACE_FORCE)
 	{
 	  ptCoupling_->GetOutputNodes(actCoupling, couplingnodes);
 	  if (couplingnodes == 0)
 	    std::cerr << "Couplingnodes = 0!!!!" << std::endl;
 	  
-	  if (ptCoupling_->GetOutputQuantity(actCoupling) == "elecforce")
+	  if (ptCoupling_->GetOutputQuantity(actCoupling) == ELEC_FORCE_VWP)
 	    ptgrid_->GetInterfaceNeighbours(*couplingnodes, subdoms_, interface_tmp, actlevel_);
-	  else if (ptCoupling_->GetOutputQuantity(actCoupling) == "interfaceForce")
+	  else if (ptCoupling_->GetOutputQuantity(actCoupling) == ELEC_INTERFACE_FORCE)
 	    {
 	      // help construction for correct assignement of predefined values ... :O(
 	      StdVector<Elem*>* interface_tmp_Ptr;
@@ -602,8 +604,8 @@ void ElecPDE::InitCoupling(PDECoupling * Coupling)
 	    }
 	    else 
 	      {
-		std::string errMsg = "Coupling " + ptCoupling_->GetOutputQuantity(actCoupling) + 
-		  " not known! ";	  
+		Enum2String(ptCoupling_->GetOutputQuantity(actCoupling), quantity);
+		std::string errMsg = "Coupling " + quantity +  " not known! ";	  
 		Error(errMsg.c_str(), __FILE__,__LINE__);
 	      }
 	  
@@ -652,7 +654,7 @@ void ElecPDE::CalcOutputCoupling()
 {
   ENTER_FCN( "ElecPDE::CalcOutputCoupling" );
 
-  std::string quantity;
+  SolutionType quantity;
   StdVector<Integer> * couplingNodes     = NULL;
   CFSVector * values = 0;
   Integer forcesCount = 0;
@@ -671,10 +673,10 @@ void ElecPDE::CalcOutputCoupling()
 	case NODE:	  
 	  ptCoupling_->GetOutputNodes(actCoupling, couplingNodes);
 	  
-	  if (quantity == "elecpotential")
+	  if (quantity == ELEC_POTENTIAL)
 	    sol_->NodeSolutionToCoupling(*values, *couplingNodes);
 	    
-	  if (quantity == "elecforce")
+	  if (quantity == ELEC_FORCE_VWP)
 	    {
 	      CalcNodeForce(*temp, 
 			    *couplingNodes, 
@@ -686,7 +688,7 @@ void ElecPDE::CalcOutputCoupling()
 	    }
 
 
-	  if (quantity == "interfaceForce")
+	  if (quantity == ELEC_INTERFACE_FORCE)
 	    CalcInterfaceForces(actCoupling);
 	    	  
 	  break;
@@ -698,24 +700,29 @@ void ElecPDE::CalcOutputCoupling()
 }
 
 
-Boolean ElecPDE::HasOutput(std::string output)
+Boolean ElecPDE::HasOutput(SolutionType output)
 {
   ENTER_FCN( "ElecPDE::HasOutput" );
   
-  if (output == "elecforce")
-    return TRUE;
-
-  if (output == "elecpotential")
-    return TRUE;
-
-  if (output == "elecfield")
-    return TRUE;
-
-  if (output == "interfaceForce")
-    return TRUE;
-   
+  switch (output)
+    {
+    case ELEC_FORCE_VWP:
+      return TRUE;
+      break;
+    case ELEC_POTENTIAL:
+      return TRUE;
+      break;
+    case ELEC_FIELD:
+      return TRUE;
+      break;
+    case ELEC_INTERFACE_FORCE:
+      return TRUE;
+      break;
+    default:
+      return FALSE;
+      break;
+    }
   return FALSE;
-
 }
 
 

@@ -58,7 +58,7 @@ void ElecForceOp::CalcElemElecForce(ElemStoreSol<Double> & F,
   
   F.SetNumSolutions(1);
   F.SetNumElems(IsBoundaryNode.GetSize());
-  F.SetSolutionType(ELEC_FORCE);
+  F.SetSolutionType(ELEC_FORCE_VWP);
   F.SetNumDofs(Dim);
   F.Init(0.0);
   

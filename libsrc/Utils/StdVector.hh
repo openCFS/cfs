@@ -8,6 +8,9 @@
 namespace CoupledField {
 
 
+// forward class declaration
+template <class TYPE> class StdVectorListInitializer;
+
 //! General template class for storing elements of same type
 //! in sequential order. In contrast to the CFS-Vector, this class
 //! requires no arithmetic functionality for its elements.
@@ -66,7 +69,14 @@ public:
   //! Overloading of operation =
   StdVector	&operator=	(const StdVector &);
 
-  //! build vector from std::vector
+  //! Overloading for operator=
+
+  //! This method is needed to intialize a StdVector like this
+  //! \verb StdVector<Integer> A;
+  //! \verb A = 1,2,5,10
+  inline StdVectorListInitializer<TYPE> operator=(const TYPE x);
+
+  //! Build vector from std::vector
   StdVector & operator= (const std::vector<TYPE> & vec);
   
   //! General access operator
@@ -93,6 +103,13 @@ public:
 
   //! Delete elements from position pos1 to pos2, on pos1, pos2 too
   void Erase (const Integer pos1, const Integer pos2);
+
+
+  //! Return the position number of element x in the vector
+
+  //! Finds the element x in the vector and returns the 
+  //! position. If no element was found, it returns -1.
+  Integer Find(const TYPE &x) const;
 
   //! Overloading of operation equal for Vector
   Boolean operator== (const StdVector &) const;
@@ -123,6 +140,33 @@ public:
   Integer capacity_;
 
 };
+
+  // ******************************************************
+  // HELPER CLASS FOR INITALIZING StdVector
+  // (ref. 'Techniques for Scientific C++' 
+  // by Todd Veldhuizen, page. 43ff
+  // ******************************************************
+  template <class TYPE>
+  class StdVectorListInitializer
+  {
+  public:
+
+    //! Constructor
+    StdVectorListInitializer(StdVector<TYPE> * vec)
+      :vec_(vec) {};
+    
+    //! Overloading of comma operator
+    StdVectorListInitializer<TYPE> operator, (const TYPE x)
+    {
+      vec_->Push_back(x);
+      return StdVectorListInitializer<TYPE>(vec_);
+    }
+
+  private:
+    //! pointer to vector
+    StdVector<TYPE> * vec_;
+  };
+
 
   // ******************************************************
   // INLINE FUNCTION DECLARATION
@@ -157,6 +201,15 @@ public:
     return  data_[i];
   }
   
+
+  //! 
+  template<class TYPE>
+  StdVectorListInitializer<TYPE> StdVector<TYPE>::operator= (const TYPE x)
+  {
+    Clear();
+    Push_back(x);
+    return StdVectorListInitializer<TYPE>(this);
+  }
 
   //! Return pointer p to array 
   template<class TYPE>

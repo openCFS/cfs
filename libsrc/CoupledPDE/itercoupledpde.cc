@@ -1,6 +1,7 @@
 #include "itercoupledpde.hh"
 #include "DataInOut/WriteInfo.hh"
 #include "Utils/vector.hh"
+#include "Utils/StdVector.hh"
 
 namespace CoupledField
 {
@@ -11,14 +12,17 @@ namespace CoupledField
 				 BCs *aptBCs, 
 				 FileType *aInFile, 
 				 WriteResults *aOutFile) 
-    : BaseCoupledPDE(PDEs, Couplings, aptgrid, aptBCs, aInFile, aOutFile)
+    : BaseCoupledPDE(PDEs, Couplings, 
+		     aptgrid, aptBCs, aInFile, aOutFile)
   {
     ENTER_FCN( "IterCoupledPDE::IterCoupledPDE" );
 
     maxiter_ = 100;
-   
+    nonLinLogging_ = TRUE;
+       
     //if values are defined in conf-file, take these
-    conf->ifget("maxiter", maxiter_, couplingSectionName_); // maximal number of iterations
+    params->Get("maxNumIters", maxiter_, "iterative", "nonLinear");
+    nonLinLogging_ = params->IsSet("logging", "iterative", "nonLinear");
   } 
 
 
@@ -37,99 +41,165 @@ namespace CoupledField
   {
     ENTER_FCN ("IterCoupledPDE::InitCoupling" );
   
-    StdVector<std::string> CouplingTerms;
-    StdVector<std::string> NodeCouplings;
-    StdVector<std::string> SubdomainCouplings;
-    StdVector<std::string> Elem1DCouplings;
-    StdVector<std::string> Elem2DCouplings;
+    StdVector<std::string> quantities;
+    StdVector<std::string> interfaceTypes;
+    StdVector<std::string> interfaceNames;
+    StdVector<std::string> stopCritQuantities;
+    std::string normtype;
+    std::string errMsg;
+    Double epsilon;
+    
+    // vectors containing each quantity only one
+    // time
+    StdVector<std::string> quantitiesSorted;
+    StdVector<std::string> interfaceTypesSorted;
+    StdVector<StdVector<std::string> > interfaceNamesSorted;
+    StdVector<std::string> nameVectorAux;
+
+    
+    // Get list for all quantities, which are listed
+    // in section "nonLinear" and have a stopping
+    // criterion
+    params->GetList("name", stopCritQuantities, "nonLinear", "stopCrit");
 
     // Iterate over all PDEs
-    for (Integer i=0; i<PDEs_.GetSize(); i++)
+    for (Integer iPDE=0; iPDE<PDEs_.GetSize(); iPDE++)
       {
-	CouplingTerms.Clear();
+	quantities.Clear();
+	interfaceTypes.Clear();
+	interfaceNames.Clear();
+	quantitiesSorted.Clear();
+	interfaceTypesSorted.Clear();
+	interfaceNamesSorted.Clear();
+	
+	// Check for coupling quantities for current PDE
+	params->GetList("quantity", quantities, 
+			PDEs_[iPDE]->GetName(), "coupling");
 
-	// read in "input_coupling_terms"
-	if (conf->ifgetliststr("input_coupling_terms", CouplingTerms, PDEs_[i]->GetName()))
+	params->GetList("type", interfaceTypes, 
+			PDEs_[iPDE]->GetName(),	"coupling");
+
+	params->GetList("name", interfaceNames,
+			PDEs_[iPDE]->GetName(), "coupling");
+
+	// Check if definition is consistent
+	if (quantities.GetSize() != interfaceTypes.GetSize() ||
+	    quantities.GetSize() != interfaceNames.GetSize() ||
+	    interfaceNames.GetSize() != interfaceTypes.GetSize())
 	  {
-	    for (Integer j=0; j<CouplingTerms.GetSize(); j++)
-	      {
-
-		NodeCouplings.Clear();
-		SubdomainCouplings.Clear();
-		Elem1DCouplings.Clear();
-		Elem2DCouplings.Clear();
-
-		// Read in node coupling terms
-		if (conf->ifgetliststr(CouplingTerms[j], NodeCouplings, PDEs_[i]->GetName(), "node_coupling"))
-		  {
-		  for (Integer k=0; k<NodeCouplings.GetSize(); k++)
-		    {
-		      Couplings_[i]->AddInput(CouplingTerms[j], NodeCouplings[k], NODES, actlevel_, Couplings_);
-		      norms_.Push_back(1.0);
-		    }
-		  }
-		
-		else if (conf->ifgetliststr(CouplingTerms[j], SubdomainCouplings, PDEs_[i]->GetName(), 
-					    "subdomain_coupling"))
-		  {
-		    // Read in subdomain coupling terms
-		    if (conf->ifgetliststr(CouplingTerms[j], SubdomainCouplings, PDEs_[i]->GetName(), 
-					 "subdomain_coupling"))
-		      for (Integer k=0; k<SubdomainCouplings.GetSize(); k++)
-			{
-			  Couplings_[i]->AddInput(CouplingTerms[j], SubdomainCouplings[k], SUBDOMAIN, actlevel_, 
-						  Couplings_);
-			  norms_.Push_back(1.0);
-			}
-		  }
-		
-		else if (conf->ifgetliststr(CouplingTerms[j], Elem1DCouplings, PDEs_[i]->GetName(), 
-					    "elem1d_coupling"))
-		  {
-		    // Read in elem1D coupling terms
-		    for (Integer k=0; k<Elem1DCouplings.GetSize(); k++)
-		      {
-			Couplings_[i]->AddInput(CouplingTerms[j], Elem1DCouplings[k], ELEMS1D, actlevel_, 
-						Couplings_);
-			norms_.Push_back(1.0);
-		      }
-		  }
-		
-		else if (conf->ifgetliststr(CouplingTerms[j], Elem2DCouplings, PDEs_[i]->GetName(), 
-					     "elem2d_coupling"))
-		  {
-		    // Read in elem2D coupling terms
-		    for (Integer k=0; k<Elem2DCouplings.GetSize(); k++)
-		      {
-			Couplings_[i]->AddInput(CouplingTerms[j], Elem2DCouplings[k], ELEMS2D, actlevel_, 
-						Couplings_);
-			norms_.Push_back(1.0);
-		      }
-		  }
-		
-		else
-		  {
-		    std::string message = "No specification for input_coupling_term defined for PDE: " 
-		                          + PDEs_[i]->GetName();
-		    Error(message.c_str());
-		  }    
-
-	      }
-	  }
-	else
-	  {
-	    std::string message = "No input_coupling_terms defined for PDE: " + PDEs_[i]->GetName();
-	    Error(message.c_str());
+	    errMsg  = "IterCoupledPDE::InitCoupling: Inconsistent definition ";
+	    errMsg += "of Coupling interfaces for PDE '";
+	    errMsg += PDEs_[iPDE]->GetName();
+	    errMsg += "'. Check your parameter file!";
+	    Error(errMsg.c_str(), __FILE__, __LINE__);
 	  }
 	
+	std::string typeAux;
+	std::string quantityTemp;
+	std::string nameAux;
+
+	// Check if for one quantity different kinds of 
+	// interfaces were specified
+	for (Integer i=0; i<quantities.GetSize(); i++)
+	  {
+	    typeAux = interfaceTypes[i];
+	    quantityTemp = quantities[i];
+	    for (Integer j=0; j<quantities.GetSize(); j++)
+	      if (quantityTemp == quantities[j])
+		if (typeAux != interfaceTypes[j])
+		  {
+		    errMsg  = "IterCoupledPDE::InitCoupling:";
+		    errMsg += "Per coupling quantity only one type (node, region";
+		    errMsg += ", surface) of interface is allowed. \n You specified ";
+		    errMsg += "for quantity '";
+		    errMsg += quantityTemp;
+		    errMsg += "' as interface '";
+		    errMsg += typeAux;
+		    errMsg +="' and '";
+		    errMsg += interfaceTypes[j];
+		    errMsg += "'. Please correct the parameter file!";
+		    Error(errMsg.c_str(), __FILE__, __LINE__);
+		  }
+	  }
+	
+	// Now merge for each coupling quantity all interface names
+	// of the same type (node, interface, region)
+	Boolean found = FALSE;
+	for (Integer iQuant=0; iQuant<quantities.GetSize(); iQuant++)
+	  {
+	    typeAux = interfaceTypes[iQuant];
+	    quantityTemp = quantities[iQuant];
+	    nameAux = interfaceNames[iQuant];
+	    found = FALSE;
+	    for (Integer iSorted=0; iSorted<quantitiesSorted.GetSize(); iSorted++)
+	      if(quantityTemp == quantitiesSorted[iSorted])
+		{
+		  interfaceNamesSorted[iSorted].Push_back(nameAux);
+		  found = TRUE;
+		}
+	    if (!found)
+	      {
+		quantitiesSorted.Push_back(quantityTemp);
+		interfaceTypesSorted.Push_back(typeAux);
+		nameVectorAux.Clear();
+		nameVectorAux.Push_back(nameAux);
+		interfaceNamesSorted.Push_back(nameVectorAux);
+	      }
+		
+	  }
+
+
+	NormType normTypeAux;
+        CouplingRegionType regionTypeAux;
+	SolutionType quantityAux;
+
+	// Get for each quantity the according stopping Criteria and normtype
+	for (Integer iQuant=0; iQuant<quantitiesSorted.GetSize(); iQuant++)
+	  {
+	    epsilon = 0.0;
+	    normtype.clear();
+	   
+	    if (stopCritQuantities.Find(quantitiesSorted[iQuant]) != -1)
+	      {
+		params->CGet("value", epsilon, "name", quantitiesSorted[iQuant], 0,
+			     "nonLinear", "stopCrit");
+		params->CGet("l2Norm", normtype, "name", quantitiesSorted[iQuant], 0,
+			     "nonLinear", "stopCrit");
+	      }
+	    else
+	      {
+		epsilon = -1.0;
+		normtype = "no";
+	      }
+	      
+	    
+	    String2Enum(normtype, normTypeAux);
+	    String2Enum(interfaceTypesSorted[iQuant], regionTypeAux);
+	    String2Enum(quantitiesSorted[iQuant], quantityAux);
+
+	    // register the interface at the according coupling-object
+	    Couplings_[iPDE]->AddInput(quantityAux, 
+				       interfaceNamesSorted[iQuant],
+				       regionTypeAux, level, epsilon,
+				       normTypeAux, Couplings_);
+	    norms_.Push_back(1.0);
+	  }
       }
-  
+    
+    
+    
+      
+   
+    
     // Initialize each PDEs coupling terms
     for (Integer i=0; i<PDEs_.GetSize(); i++)
       PDEs_[i]->InitCoupling(Couplings_[i]); 
   
     // write coupling data in .info-file
-    WriteCouplingInfo();
+    WriteCouplingInfo(*debug);
+    
+    
+
   }
 
 
@@ -142,20 +212,24 @@ namespace CoupledField
     Integer iter = 0;
     Integer counter = 0;
     Boolean normsReached = FALSE;
+    std::string quantityConv;
 
 
     while (iter < maxiter_ &&  (! normsReached))
       {
+	if (nonLinLogging_)
+	  {
 	Info->PrintF(coupledpdename_,""); 
 	Info->PrintF(coupledpdename_, " COUPLED ITERATION %i =================================", 
 		     iter+1);
+	  }
 	
-
 	counter = 0;
 	normsReached = TRUE;
       
 	for (Integer i=0; i<PDEs_.GetSize(); i++)
 	  {
+	    if (nonLinLogging_)
 	    Info->PrintF(coupledpdename_, " Processing PDE %s", 
 			 (PDEs_[i]->GetName()).c_str());
 
@@ -172,11 +246,16 @@ namespace CoupledField
 		Couplings_[i]->GetOutputOldValues(k, oldVal);
 		norms_[counter] = CalcNorm(Couplings_[i]->GetOutputNormType(k), *val, *oldVal);
 
-		Info->PrintF(coupledpdename_, " %s : Norm of %s = %g", 
-			     (Couplings_[i]->GetPDEName()).c_str(),
-			     (Couplings_[i]->GetOutputQuantity(k)).c_str(), norms_[counter]);
-	      
-		if (norms_[counter] > Couplings_[i]->GetOutputEpsilon(k))
+		if (nonLinLogging_)
+		  {
+		    Enum2String(Couplings_[i]->GetOutputQuantity(k), quantityConv);
+		    Info->PrintF(coupledpdename_, " %s : Norm of %s = %g", 
+			       (Couplings_[i]->GetPDEName()).c_str(),
+				 quantityConv.c_str(), norms_[counter]);
+		  }
+		
+		if (norms_[counter] > Couplings_[i]->GetOutputEpsilon(k) && 
+		    Couplings_[i]->GetOutputNormType(k) != NO_NORM)
 		  normsReached = FALSE;
 		
 		//copy values of new solution to old one
@@ -187,6 +266,8 @@ namespace CoupledField
 	  }
 
 	iter++;
+	
+	if(nonLinLogging_)
 	Info->PrintF(coupledpdename_, "\n"); 
       }
 
@@ -210,20 +291,25 @@ namespace CoupledField
 
     Integer iter = 0;
     Boolean normsReached = FALSE;
+    std::string quantityConv;
 
     while (iter < maxiter_ &&  (! normsReached))
       {
-	Info->PrintF(coupledpdename_,""); 
-	Info->PrintF(coupledpdename_, " COUPLED ITERATION %i =================================", 
-		     iter+1);
+	if (nonLinLogging_)
+	  {
+	    Info->PrintF(coupledpdename_,""); 
+	    Info->PrintF(coupledpdename_, " COUPLED ITERATION %i =================================", 
+			 iter+1);
+	  }
 
 	Integer counter = 0;
 	normsReached = TRUE;
       
 	for (Integer i=0; i<PDEs_.GetSize(); i++)
 	  {
-	    Info->PrintF(coupledpdename_, " Processing PDE %s", 
-			 (PDEs_[i]->GetName()).c_str());
+	    if (nonLinLogging_)
+	      Info->PrintF(coupledpdename_, " Processing PDE %s", 
+			   (PDEs_[i]->GetName()).c_str());
 
 	    PDEs_[i]->PreStepTrans(kstep, steptime, level, updatesysmat);
 	    PDEs_[i]->CalcInputCoupling();
@@ -239,13 +325,16 @@ namespace CoupledField
 		Couplings_[i]->GetOutputOldValues(k, oldVal);
 		norms_[counter] = CalcNorm(Couplings_[i]->GetOutputNormType(k), *val, *oldVal);
 
-		Info->PrintF(coupledpdename_, " %s : Norm of %s = %g", 
-			     (Couplings_[i]->GetPDEName()).c_str(),
-			     (Couplings_[i]->GetOutputQuantity(k)).c_str(), norms_[counter]);
-	      
+		if (nonLinLogging_)
+		  {
+		    Enum2String(Couplings_[i]->GetOutputQuantity(k), quantityConv);
+		    Info->PrintF(coupledpdename_, " %s : Norm of %s = %g", 
+				 (Couplings_[i]->GetPDEName()).c_str(),
+				 quantityConv.c_str(), norms_[counter]);
+		  }
 		if (norms_[counter] > Couplings_[i]->GetOutputEpsilon(k))
 		  normsReached = FALSE;
-
+		
 		*oldVal = *val;
 		
 		counter++;	      
@@ -253,7 +342,8 @@ namespace CoupledField
 	  }
 
 	iter++;
-	Info->PrintF(coupledpdename_, "\n"); 
+	if (nonLinLogging_)
+	  Info->PrintF(coupledpdename_, "\n"); 
       }
   }
 
@@ -268,27 +358,29 @@ void IterCoupledPDE::WriteResultsInFile()
 }
 
 
-void IterCoupledPDE::WriteCouplingInfo()
+void IterCoupledPDE::WriteCouplingInfo(std::ostream &out)
 {
   ENTER_FCN( "IterCoupledPDE::WriteCouplingInfo" );
 
   CFSVector *val;
   StdVector<Integer> * nodes;
+  StdVector<std::string> couplingRegions;
+  std::string couplingTypeAux, quantityAux, regionTypeAux, normTypeAux;
 
   if (!debug)
     return;
 
   // write information in .debug-file
-  (*debug) << "=======================" << std::endl;
-  (*debug) << " COUPLING INFORMATION  " << std::endl;
-  (*debug) << "=======================" << std::endl;
-  (*debug) << std::endl;
+  out << "=======================" << std::endl;
+  out << " COUPLING INFORMATION  " << std::endl;
+  out << "=======================" << std::endl;
+  out << std::endl;
 
   for (Integer ipde=0; ipde<PDEs_.GetSize(); ipde++)
     {
       
-      (*debug) << "Entering " << Couplings_[ipde]->GetPDEName() << ".InitCoupling" << std::endl;
-      (*debug) << "=====================================" << std::endl;
+      out << "Entering " << Couplings_[ipde]->GetPDEName() << ".InitCoupling" << std::endl;
+      out << "=====================================" << std::endl;
       
       
       // Show InputCouplings
@@ -296,46 +388,74 @@ void IterCoupledPDE::WriteCouplingInfo()
 	{
 	  Couplings_[ipde]->GetInputNodes(i, nodes);
 	  Couplings_[ipde]->GetInputValues(i,val);
-	  (*debug) << std::endl;
-	  (*debug) << "Input Coupling " << i+1 << ":" << std::endl;
-	  (*debug) << "---------------------" << std::endl;
-	  (*debug) << "Coupling Type: " << Couplings_[ipde]->GetInputType(i) << std::endl;
-	  (*debug) << "InputQuantity: " << Couplings_[ipde]->GetInputQuantity(i) << std::endl;
-	  (*debug) << "Region: " << Couplings_[ipde]->GetInputRegion(i) << std::endl;
-	  (*debug) << "RegionType: " << Couplings_[ipde]->GetInputRegionType(i) << std::endl;
-	  (*debug) << "Number of Input coupling values: " << val->GetSize() << std::endl;
-	  (*debug) << "Dof of Input Values: " << Couplings_[ipde]->GetInputDof(i) << std::endl;
-	  (*debug) << "Number of Input Nodes: " << Couplings_[ipde]->GetInputNumNodes(i) << std::endl;
-	  (*debug) << "Number of Input Elems: " << Couplings_[ipde]->GetInputNumElems(i) << std::endl;
-	  (*debug) << "NormType: " << Couplings_[ipde]->GetInputNormType(i) << std::endl;
-	  (*debug) << "Tolerance: " << Couplings_[ipde]->GetInputEpsilon(i) << std::endl;
+
+	  // Convert enum-types in strings
+	  Enum2String(Couplings_[ipde]->GetInputType(i), couplingTypeAux);
+	  Enum2String(Couplings_[ipde]->GetInputQuantity(i), quantityAux);
+	  Enum2String(Couplings_[ipde]->GetInputRegionType(i), regionTypeAux);
+	  Enum2String(Couplings_[ipde]->GetInputNormType(i), normTypeAux);
+
+	  out << std::endl;
+	  out << "Input Coupling " << i+1 << ":" << std::endl;
+	  out << "---------------------" << std::endl;
+	  out << "Coupling Type: " << couplingTypeAux << std::endl;
+	  out << "InputQuantity: " << quantityAux<< std::endl;
+	  Couplings_[ipde]->GetInputRegions(i, couplingRegions);
+	  out << "RegionNames: ";
+	  for (Integer j=0; j<couplingRegions.GetSize()-1; j++)
+	    out << couplingRegions[j] << ", ";
+	  out << couplingRegions[couplingRegions.GetSize() -1];
+	  out << std::endl;
+	  out << "RegionType: " << regionTypeAux << std::endl;
+	  out << "Number of Input coupling values: " << val->GetSize() << std::endl;
+	  out << "Dof of Input Values: " << Couplings_[ipde]->GetInputDof(i) << std::endl;
+	  out << "Number of Input Nodes: " << Couplings_[ipde]->GetInputNumNodes(i) << std::endl;
+	  out << "Number of Input Elems: " << Couplings_[ipde]->GetInputNumElems(i) << std::endl;
+	  out << "NormType: " << normTypeAux << std::endl;
+	  out << "Tolerance: " << Couplings_[ipde]->GetInputEpsilon(i) << std::endl;
 	  
 	
 	}
-      (*debug) << std::endl;
+      out << std::endl;
       
+      couplingRegions.Clear();
       // Show OutputCouplings
       nodes = 0;
       for (Integer i=0; i<Couplings_[ipde]->GetNumOutputCouplings(); i++)
 	{
 	  Couplings_[ipde]->GetOutputNodes(i, nodes);
 	  Couplings_[ipde]->GetOutputValues(i,val);
-	  (*debug) << std::endl;
-	  (*debug) << "Output Coupling " << i+1 << ":" << std::endl;
-	  (*debug) << "---------------------" << std::endl;
-	  (*debug) << "Coupling Type: " << Couplings_[ipde]->GetOutputType(i) << std::endl;
-	  (*debug) << "OutputQuantity: " << Couplings_[ipde]->GetOutputQuantity(i) << std::endl;
-	  (*debug) << "Region: " << Couplings_[ipde]->GetOutputRegion(i) << std::endl;
-	  (*debug) << "RegionType: " << Couplings_[ipde]->GetOutputRegionType(i) << std::endl;
-	  (*debug) << "Number of Output coupling Values: " << val->GetSize() << std::endl;
-	  (*debug) << "Dof of Output Values: " << Couplings_[ipde]->GetOutputDof(i) << std::endl;
- 	  (*debug) << "Number of Output Nodes: " << Couplings_[ipde]->GetOutputNumNodes(i) << std::endl;
-	  (*debug) << "Number of Output elems: " << Couplings_[ipde]->GetOutputNumElems(i) << std::endl;
-	  (*debug) << "NormType: " << Couplings_[ipde]->GetOutputNormType(i) << std::endl;
-	  (*debug) << "Tolerance: " << Couplings_[ipde]->GetOutputEpsilon(i) << std::endl;
+
+	  // Convert enum-types in strings
+	  Enum2String(Couplings_[ipde]->GetOutputType(i), couplingTypeAux);
+	  Enum2String(Couplings_[ipde]->GetOutputQuantity(i), quantityAux);
+	  Enum2String(Couplings_[ipde]->GetOutputRegionType(i), regionTypeAux);
+	  Enum2String(Couplings_[ipde]->GetOutputNormType(i), normTypeAux);
+
+	  out << std::endl;
+	  out << "Output Coupling " << i+1 << ":" << std::endl;
+	  out << "---------------------" << std::endl;
+	  out << "Coupling Type: " << couplingTypeAux << std::endl;
+	  out << "OutputQuantity: " << quantityAux << std::endl;
+	  out << "RegionNames: ";
+	  Couplings_[ipde]->GetOutputRegions(i, couplingRegions);
+	  if (couplingRegions.GetSize() > 0)
+	    {
+	      for (Integer j=0; j<couplingRegions.GetSize()-1; j++)
+		out << couplingRegions[j] << ", ";
+	      out << couplingRegions[couplingRegions.GetSize() -1];
+	      out << std::endl;   
+	    }
+	  out << "RegionType: " << regionTypeAux << std::endl;
+	  out << "Number of Output coupling Values: " << val->GetSize() << std::endl;
+	  out << "Dof of Output Values: " << Couplings_[ipde]->GetOutputDof(i) << std::endl;
+ 	  out << "Number of Output Nodes: " << Couplings_[ipde]->GetOutputNumNodes(i) << std::endl;
+	  out << "Number of Output elems: " << Couplings_[ipde]->GetOutputNumElems(i) << std::endl;
+	  out << "NormType: " << normTypeAux << std::endl;
+	  out << "Tolerance: " << Couplings_[ipde]->GetOutputEpsilon(i) << std::endl;
 	  
 	}
-      (*debug) << std::endl;
+      out << std::endl;
       
     }
 
@@ -365,6 +485,10 @@ Double IterCoupledPDE::CalcNorm(NormType normtype, CFSVector & val, CFSVector & 
 
   switch (normtype)
     {
+    case NO_NORM:
+      return 0;
+      break;
+      
     case L2ABS:
       norm = delta.NormL2();
       break;

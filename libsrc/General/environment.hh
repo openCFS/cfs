@@ -87,41 +87,51 @@ namespace CoupledField
   typedef enum{NO_SOLUTION_TYPE, 
 		 MECH_DISPLACEMENT, MECH_ACCELERATION,
 		 MECH_VELOCITY, MECH_FORCE, MECH_STRESS, MECH_STRAIN,
-		 ELEC_POTENTIAL, ELEC_FIELD, ELEC_FORCE, ELEC_CHARGE,
+		 ELEC_POTENTIAL, ELEC_FIELD, ELEC_FORCE_VWP, 
+		 ELEC_INTERFACE_FORCE, ELEC_CHARGE,  ELEC_FLUX_DENSITY,
 		 SMOOTH_DISPLACEMENT, 
 		 ACOU_POTENTIAL, ACOU_FORCE, 
 		 ACOU_POTENTIAL_DERIV_1, ACOU_POTENTIAL_DERIV_2,
-		 MAG_POTENTIAL, MAG_FIELD, MAG_EDDY_CURRENT, MAG_FORCE}
+		 MAG_POTENTIAL, MAG_FIELD, MAG_EDDY_CURRENT, 
+		 MAG_FORCE_VWP, MAG_FORCE_LORENTZ}
   SolutionType;
+
+  //! Enumberation for coupling method\n
+  //! NO_COUPLING          = No coupling at all
+  //! DIRECT_COUPLING      = Direct Coupling via matrix\n
+  //! ITER_RHS_COUPLING    = Iterative via RHS\n
+  //! ITER_MATRIX_COUPLING = Iterative via matrix
+  typedef enum{NO_COUPLING, DIRECT_COUPLING, 
+		 ITER_RHS_COUPLING, ITER_MATRIX_COUPLING}
+  CouplingMethod;
 
   //! Enumeration for Input Coupling types \n
   //! COORD = Coupling via coordinate displacement\n
   //! RHS   = Coupling via Right hand side\n
   //! ID_BC = Coupling via inhomogenous dirichlet bc\n
   //! MAT   = Coupling via material change\n
-  enum CouplingInputType{COORD, RHS, ID_BC, MAT};
+  typedef enum {COORD, RHS, ID_BC, MAT} CouplingInputType;
 
   //! Enumeration for Output Coupling types\n
   //! ELEM = Coupling via element quantities\n
   //! NODE = Coupling via node quantities\n
-  enum CouplingOutputType{NODE, ELEM};
+  typedef enum {NODE, ELEM} CouplingOutputType;
 
   //! Enumeration for types of coupling regions\n
-  //! SUBDOMAIN = Coupling region is whole Subdomain\n
+  //! REGION = Coupling region is whole Subdomain\n
   //! NODES = Coupling region is specified as nodes in .conf file\n
-  //! ELEMS1D = Coupling region is specified as 1D-Interface\n
-  //! ELEMS2D = Coupling region is specified as 2D-interface\n
-  enum CouplingRegionType{SUBDOMAIN, NODES, ELEMS1D, ELEMS2D};
+  //! SURFACE = Coupling region is specified as 1D/2D surface elements
+  typedef enum {REGION, NODES, SURFACE} CouplingRegionType;
 
   //! Enumeration for types of norms
   //! L2ABS = absolute L2-norm
   //! L2REL = relative L2 norm: (|val| - |oldval|) / |val|
-  enum NormType {L2ABS, L2REL};
+  typedef enum {NO_NORM, L2ABS, L2REL} NormType;
 
   //! Enumeration for directions
   //! direction of various fields 
   //! "Rad" means readial, following two letters indicate the stress-plane
-  enum Directions {X, Y, Z, radXY, radXZ, radYZ};
+  enum  Directions {X, Y, Z, radXY, radXZ, radYZ};
 
   //! orientation of calculation plane in 2D
   //! (especially important for anisotropic simulations)
@@ -208,7 +218,29 @@ namespace CoupledField
     std::string UIfile;
   };
 
+
+  //! conversion from strings to enum types
+  template <class TYPE>
+  void String2Enum(const std::string &in, TYPE &out);
+
+  //! conversion from enum types to strings
+  template<class TYPE>
+  void Enum2String(const TYPE &in, std::string &out);
+
+  // Instantiation for all known enum types;
+#ifdef __GNUC__
+#define DEFINE_ENUM_CONVERSION(TYPE)                                  \
+  template<class TYPE> void String2Enum(const std::string &in, TYPE &out); \
+  template<class TYPE> void Enum2String(const TYPE &in, std::string &out);
+
+  DEFINE_ENUM_CONVERSION(CouplingInputType);
+  DEFINE_ENUM_CONVERSION(CouplingOutputType);
+  DEFINE_ENUM_CONVERSION(CouplingRegionType);
+  DEFINE_ENUM_CONVERSION(NormType);
+  DEFINE_ENUM_CONVERSION(ComplexFormat);
 }
+#endif
+
 
 
 #endif // FILE_SCFE_MYDEFS
