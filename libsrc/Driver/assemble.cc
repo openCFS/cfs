@@ -554,11 +554,11 @@ namespace CoupledField
     
 #ifdef USE_OLAS
     FEMatrixType matrixsystype[5];
-    matrixsystype[0] = NOTYPE;
-    matrixsystype[1] = NOTYPE;
-    matrixsystype[2] = NOTYPE;
-    matrixsystype[3] = NOTYPE;
-    matrixsystype[4] = NOTYPE;
+    matrixsystype[0] = OLAS::NOTYPE;
+    matrixsystype[1] = OLAS::NOTYPE;
+    matrixsystype[2] = OLAS::NOTYPE;
+    matrixsystype[3] = OLAS::NOTYPE;
+    matrixsystype[4] = OLAS::NOTYPE;
 #else
     Integer matrixsystype[5];
 #endif
@@ -572,8 +572,6 @@ namespace CoupledField
     //put to algebraic system
 
 #ifdef USE_OLAS
-    
-    
     olasParams_->SetValue( "FEMatrixType1", matrixsystype[0] );
     olasParams_->SetValue( "FEMatrixType2", matrixsystype[1] );
     olasParams_->SetValue( "FEMatrixType3", matrixsystype[2] );
