@@ -42,7 +42,7 @@ public:
     \param iElem (input) element level
     \param level (input) index for multilevel hierarchy
   */
-  void GetConnection(StdVector<Integer> & connect, const Integer iElem, const Integer level);
+  inline void GetConnection(StdVector<Integer> & connect, const Integer iElem, const Integer level);
 
   //! Get coordinates of node with number inode
   /*!
@@ -198,6 +198,10 @@ private:
 
   //<! list of subdomains
   StdVector<std::string> sd_;
+  
+  //<! list of pointers to Elem-objects, ordered
+  //<! accordgin to the element number
+  StdVector<Elem*> orderedElems_;
 
   //<! maximum number of nodes
   Integer maxnumnodes_;
@@ -229,6 +233,18 @@ private:
   void SetRefinementFlag();
 
 };
+
+  // -------------------------------------
+  // Inline function implementation
+  // -------------------------------------
+  
+  template<Integer dim>
+  void GridCFS<dim>::GetConnection(StdVector<Integer> & connection, 
+				   const Integer iElem, 
+				   const Integer level)
+  {
+    connection = orderedElems_[iElem-1]->connect;
+  }
 
 #ifdef __GNUC__
 template class GridCFS<3>;

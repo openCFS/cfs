@@ -26,16 +26,24 @@ AnsysFile::AnsysFile(const Char * const afilename)
 
   maxNumElems_ = 0;
   maxNumNodes_ = 0;
+  actMaxElemNum_ =0;
 
     infile.open(strcat(filename,".mesh"));
-    if (!infile.good()) {std::cerr << "ERROR(" << __FILE__ << " " << __LINE__ <<
-			   ") Can't open " << filename << std::endl;
-    exit(1);}
-
+    
+    if (!infile.good()) {
+      std::cerr << "ERROR(" << __FILE__ << " " << __LINE__ <<
+	") Can't open " << filename << std::endl;
+      exit(1);
+    }
+    
     infile.seekg(0, std::ios::end);
     pos_end=infile.tellg();
-
+    
     dim_=ReadDim();
+
+    maxNumElems_ += GetNum1DElems();
+    maxNumElems_ += GetNum2DElems();
+    maxNumElems_ += GetNum3DElems();
 }
   
 AnsysFile::~AnsysFile()
@@ -143,20 +151,13 @@ void AnsysFile::ReadMaxnumelem(Integer & nelem,const std::string keyword)
 {
   ENTER_FCN( "AnsysFile::ReadMaxnumelem" );
 
-
-//   infile >> nelem;
   nelem = GetInteger(keyword);
-  maxNumElems_ += nelem;
+  actMaxElemNum_ += nelem;
 }
 
 void AnsysFile::ReadMaxnumnodesbc(Integer & nbc)
 {
   ENTER_FCN( "AnsysFile::ReadMaxnumnodesbc" );
-//   std::string::size_type pos=0;
-//   getPosition("NumNodeBC", pos);
-//   infile.seekg(pos,std::ios::beg);
-  
-//   infile >> nbc;
   nbc = GetInteger("NumNodeBC");
 }
 
@@ -457,17 +458,20 @@ void AnsysFile::getPosition(const std::string seekexp, std::string::size_type & 
 }
 
 
-void AnsysFile::ReadEl(StdVector<Elem*> * allelems, const StdVector<std::string> sd)
+void AnsysFile::ReadEl(StdVector<Elem*> * allelems, 
+		       StdVector<Elem*> & orderedElems,
+		       const StdVector<std::string> sd)
 {
   ENTER_FCN( "AnsysFile::ReadEl" );
   
+
     switch(dim_)
       {
       case 2:
-	ReadEl2d(allelems,sd);
+	ReadEl2d(allelems,orderedElems,sd);
 	break;
       case 3:
-	ReadEl3d(allelems,sd);
+	ReadEl3d(allelems,orderedElems,sd);
 	break;
       }
   }
@@ -680,15 +684,21 @@ void AnsysFile::SetNumSD(grd::Element * ptEl, const std::string namesd, const St
 
 #endif
 
-void AnsysFile::ReadEl1d(StdVector<Elem*> * allelems, const StdVector<std::string> sd) 
+void AnsysFile::ReadEl1d(StdVector<Elem*> * allelems, 
+			 StdVector<Elem*> & orderedElems,
+			 const StdVector<std::string> sd) 
 {
   ENTER_FCN( "AnsysFile::ReadEl1D" );
     
   Integer i, ii, j, inum, itype, innodes;
   std::string namesd;
   Integer maxnelems;
+
   ReadMaxnumelem(maxnelems,"Num1DElements");
-  
+
+  if (orderedElems.GetSize() == 0)
+    orderedElems.Resize(maxNumElems_);
+
     if (maxnelems)
       {
 	std::string::size_type pos=0;
@@ -726,7 +736,7 @@ void AnsysFile::ReadEl1d(StdVector<Elem*> * allelems, const StdVector<std::strin
 	    
 
 	    el->elemNum=inum;
-	    if (inum > maxNumElems_) 
+	    if (inum > actMaxElemNum_) 
 	      {
 		std::string errMsg = "The current element number is higher than the ";
 		errMsg += "maximum number of elements in your .mesh-file. Something might ";
@@ -742,6 +752,9 @@ void AnsysFile::ReadEl1d(StdVector<Elem*> * allelems, const StdVector<std::strin
 
 	    infile.ignore(100,'\n');
 	    pos = infile.tellg();
+	    
+	    orderedElems[inum-1] = el;
+	    
 	    Boolean Find=FALSE;
 	    for (j=0; j<sd.GetSize(); j++)
 	      if (namesd == sd[j]) { allelems[j].Push_back(el);
@@ -764,7 +777,9 @@ void AnsysFile::ReadEl1d(StdVector<Elem*> * allelems, const StdVector<std::strin
  
   }
 
-void AnsysFile::ReadEl2d(StdVector<Elem*> * allelems, const StdVector<std::string> sd)
+void AnsysFile::ReadEl2d(StdVector<Elem*> * allelems, 
+			 StdVector<Elem*> & orderedElems,
+			 const StdVector<std::string> sd)
 {
   ENTER_FCN( "AnsysFile::ReadEl2D" );
 
@@ -772,7 +787,10 @@ void AnsysFile::ReadEl2d(StdVector<Elem*> * allelems, const StdVector<std::strin
     Integer maxnelems;
 
     ReadMaxnumelem(maxnelems,"Num2DElements");
-    
+
+    if (orderedElems.GetSize() == 0)
+      orderedElems.Resize(maxNumElems_);
+
     if (maxnelems)
       {
 	std::string::size_type pos=0;
@@ -791,7 +809,7 @@ void AnsysFile::ReadEl2d(StdVector<Elem*> * allelems, const StdVector<std::strin
 	for (i=0; i<maxnelems; i++)
 	  {
 	    Elem * el=new Elem();
-	   
+	    
 	    // remember current position and get the position of endline
 	    pos = infile.tellg();
 	    std::getline(infile,buf,'\n');
@@ -801,7 +819,7 @@ void AnsysFile::ReadEl2d(StdVector<Elem*> * allelems, const StdVector<std::strin
 	    // try to read data
 	    infile >> inum >> itype >> innodes >> namesd;	    
 	    
-	    // if read in was successfull, enline position and current
+	    // if read in was successfull, endline position and current
 	    // position are the same
 	    infile.ignore(100,'\n');
 	    pos = infile.tellg();
@@ -812,7 +830,7 @@ void AnsysFile::ReadEl2d(StdVector<Elem*> * allelems, const StdVector<std::strin
 	    }
 
 	    el->elemNum=inum;
-	    if (inum > maxNumElems_) 
+	    if (inum > actMaxElemNum_) 
 	      {
 		std::string errMsg = "The current element number is higher than the ";
 		errMsg += "maximum number of elements in your .mesh-file.\n  Something might ";
@@ -828,6 +846,8 @@ void AnsysFile::ReadEl2d(StdVector<Elem*> * allelems, const StdVector<std::strin
 
 	    infile.ignore(100,'\n');
 	    pos = infile.tellg();
+
+	    orderedElems[inum-1] = el;
 	    
 	    Boolean Find=FALSE;
 	    for (j=0; j<sd.GetSize(); j++)
@@ -857,13 +877,18 @@ void AnsysFile::ReadEl2d(StdVector<Elem*> * allelems, const StdVector<std::strin
 }
 
 
-void AnsysFile::ReadEl3d(StdVector<Elem*> * allelems, const StdVector<std::string> sd)
+void AnsysFile::ReadEl3d(StdVector<Elem*> * allelems, 
+			 StdVector<Elem*> & orderedElems,
+			 const StdVector<std::string> sd)
   {
     ENTER_FCN( "AnsysFile::ReadEl3d" );
 
     Integer maxnelems;
     ReadMaxnumelem(maxnelems,"Num3DElements");
 
+    if (orderedElems.GetSize() == 0)
+      orderedElems.Resize(maxNumElems_);
+    
     std::string::size_type pos=0;
     std::string::size_type lineEndPos=0;
     std::string errMsg, buf;
@@ -904,7 +929,7 @@ void AnsysFile::ReadEl3d(StdVector<Elem*> * allelems, const StdVector<std::strin
 	}
 	
 	el->elemNum=inum;
-	if (inum > maxNumElems_) 
+	if (inum > actMaxElemNum_) 
 	  {
 	    std::string errMsg = "The current element number is higher than the ";
 	    errMsg += "maximum number of elements in your .mesh-file. Something might ";
@@ -919,6 +944,8 @@ void AnsysFile::ReadEl3d(StdVector<Elem*> * allelems, const StdVector<std::strin
 
 	infile.ignore(100,'\n');
 	pos = infile.tellg();
+
+	orderedElems[inum-1] = el;
 	
 	Boolean Find=FALSE;
 	for (j=0; j<sd.GetSize(); j++)
@@ -966,7 +993,7 @@ void AnsysFile::ReadEl3dConf(StdVector<std::string> &sd)
 	infile.ignore(100,'\n');
 
 	el->elemNum=inum;
-	if (inum > maxNumElems_) 
+	if (inum > actMaxElemNum_) 
 	  {
 	    std::string errMsg = "The current element number is higher than the ";
 	    errMsg += "maximum number of elements in your .mesh-file. Something might ";
@@ -1021,7 +1048,7 @@ void AnsysFile::ReadEl2dConf(StdVector<std::string> &sd)
 	infile.ignore(100,'\n');
 
 	el->elemNum=inum;
-	if (inum > maxNumElems_) 
+	if (inum > actMaxElemNum_) 
 	  {
 	    std::string errMsg = "The current element number is higher than the ";
 	    errMsg += "maximum number of elements in your .mesh-file. Something might ";
@@ -1076,7 +1103,7 @@ void AnsysFile::ReadEl1dConf(StdVector<std::string> &sd)
 	infile.ignore(100,'\n');
 
 	el->elemNum=inum;
-	if (inum > maxNumElems_) 
+	if (inum > actMaxElemNum_) 
 	  {
 	    std::string errMsg = "The current element number is higher than the ";
 	    errMsg += "maximum number of elements in your .mesh-file. Something might ";

@@ -61,44 +61,59 @@ public:
 
   //! read information about elements of the mesh
   /*!
-	\param elems out: pointer to vector with elements
+	\param elems out: pointer to vector with elements for each subdomain
+	\param orderedElems out: vector with pointers to elements, ordered
+	by element numbers
 	\param sd vector with color of subdomains, for which elements are read
   */
-  virtual void ReadEl(StdVector<Elem*> * elems, const StdVector<std::string>
-sd)
- { Error(" not implemented",__FILE__,__LINE__);}
-
+  virtual void ReadEl(StdVector<Elem*> * elems, 
+		      StdVector<Elem*> & orderedElems,
+		      const StdVector<std::string> sd)
+  { Error(" not implemented",__FILE__,__LINE__);}
+  
   //! read 1D element. we call it directly when we set BCs
   /*!
-   \param allelems out: pointer to vector with 1D-elements
-   \param sd color of subdomains, for which elements are read
+    \param allelems out: pointer to vector with 1D-elements
+    \param orderedElems out: vector with pointers to elements, ordered
+    by element numbers
+    \param sd color of subdomains, for which elements are read
   */
-  virtual void ReadEl1d(StdVector<Elem*> * allelems, const StdVector<std::string> sd)
- { Error(" not implemented",__FILE__,__LINE__);}  
-
+  virtual void ReadEl1d(StdVector<Elem*> * allelems,
+			StdVector<Elem*> & orderedElems,
+			const StdVector<std::string> sd)
+  { Error(" not implemented",__FILE__,__LINE__);}  
+  
  //! read 2d - elements from the mesh-file
     /*!
    \param allelems out: pointer to vector with 3D-elements
+   \param orderedElems out: vector with pointers to elements, ordered
+   by element numbers
    \param sd color of subdomains, for which elements are read
   */
-  virtual void ReadEl2d(StdVector<Elem*> * allelems, const StdVector<std::string> sd)
- { Error(" not implemented",__FILE__,__LINE__);}  
-
-//! read 3d - elements from the mesh-file
-    /*!
-   \param allelems out: pointer to vector with 3D-elements
-   \param sd color of subdomains, for which elements are read
+  virtual void ReadEl2d(StdVector<Elem*> * allelems, 
+			StdVector<Elem*> & orderedElems,
+			const StdVector<std::string> sd)
+  { Error(" not implemented",__FILE__,__LINE__);}  
+  
+  //! read 3d - elements from the mesh-file
+  /*!
+    \param allelems out: pointer to vector with 3D-elements
+    \param orderedElems out: vector with pointers to elements, ordered
+    by element numbers
+    \param sd color of subdomains, for which elements are read
   */
-  virtual void ReadEl3d(StdVector<Elem*> * allelems, const StdVector<std::string> sd)
- { Error(" not implemented",__FILE__,__LINE__);} 
-
+  virtual void ReadEl3d(StdVector<Elem*> * allelems, 
+			StdVector<Elem*> & orderedElems,
+			const StdVector<std::string> sd)
+  { Error(" not implemented",__FILE__,__LINE__);} 
+  
   //! read 3d -elements from the mesh-file and extractes the data for the conf-file
-   /*!
-   \param sd color of subdomains, for which elements are read
+  /*!
+    \param sd color of subdomains, for which elements are read
   */
-   virtual void ReadEl3dConf(StdVector<std::string> &sd)
- { Error(" not implemented",__FILE__,__LINE__);} 
-
+  virtual void ReadEl3dConf(StdVector<std::string> &sd)
+  { Error(" not implemented",__FILE__,__LINE__);} 
+  
   //! read 2d -elements from the mesh-file and extractes the data for the conf-file
    /*!
    \param sd color of subdomains, for which elements are read
