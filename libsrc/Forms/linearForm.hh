@@ -15,6 +15,9 @@ public:
   LinearForm(BaseFE * aptelem);
 
   ///
+  LinearForm();
+
+  ///
   virtual ~LinearForm();
 
   /// Calculation of vector of right hand side 
@@ -63,6 +66,9 @@ public:
   /// constructor
   nLinMech_linFormInt(BaseFE * aptelem, MaterialData & matData);
 
+  /// constructor
+  nLinMech_linFormInt(MaterialData & matData);
+
   /// destructor
   virtual ~nLinMech_linFormInt();
 
@@ -79,6 +85,16 @@ public:
   */
   void setActElemDispl(Matrix<Double>& disp) {elemDisp_ = disp;};  
 
+
+  /// in nonlinear calculations, the actual displacement of the element is needed
+  /*!
+  \param disp (input) Matrix with displacement d of all nodes of actual element
+  \f[ \left( \begin{array}{ccc} 
+             d_{x1} &  d_{x2} &  d_{x3} \\
+             d_{y1} &  d_{y2} &  d_{y3} \\
+	     \end{array}\right) \f]	    
+  */
+  virtual void SetActElemSol(Matrix<Double>& disp) {elemDisp_ = disp;};
 
   
 protected:

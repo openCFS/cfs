@@ -74,7 +74,6 @@ namespace CoupledField
 #ifdef TRACE
     (*trace) << "entering MassInt::Print" << std::endl;
 #endif
-    (*out)<< "Mass matrix:" << std::endl << Result;
   }
 
 
@@ -90,11 +89,12 @@ namespace CoupledField
   }
 
 
+
   MassInt::MassInt(const Double aDensity,  const Integer nrDofsPerNode, Boolean axi)
     : BaseForm(), 
       density_(aDensity), 
       isaxi_(axi), 
-      nrDofsPerNode_(1)
+      nrDofsPerNode_(nrDofsPerNode)
   {
 #ifdef TRACE
     (*trace) << "entering MassInt::MassInt" << std::endl;
@@ -112,7 +112,8 @@ namespace CoupledField
 
 
 
-  void MassInt::MassMultiDof(Matrix<Double>& massMultDof, const Matrix<Double>& massMatSingleDof,  const Integer nrDofs)
+  void MassInt::MassMultiDof(Matrix<Double>& massMultDof, 
+			     const Matrix<Double>& massMatSingleDof,  const Integer nrDofs)
   {
     
 #ifdef TRACE

@@ -158,7 +158,6 @@ void BasePDE::ReadBCs(const std::string eq)
 
   conf->ifgetliststr("homogeneous_dirichlet",bcs_hd_,eq); 
   conf->ifgetliststr("inhomogeneous_dirichlet",bcs_id_,eq);
-  conf->ifgetliststr("loads",bcs_loads_,eq);
 
   Integer i;
 
@@ -166,11 +165,6 @@ void BasePDE::ReadBCs(const std::string eq)
 
   for(i=0; i<bcs_id_.size(); i++)
     conf->get(bcs_id_[i],val_id_[i],eq,"bc_conditions","inhomogeneous_dirichlet");
-
-  val_loads_.resize(bcs_loads_.size());
-  for(i=0; i<bcs_loads_.size(); i++)
-    conf->get(bcs_loads_[i],val_loads_[i],eq,"bc_conditions","loads");
-
 }
 
 

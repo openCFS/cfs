@@ -18,3 +18,6 @@ SOLVED   DATE        PROBLEM
 			2003-11-26  Config-File: keyword bc_conditions is not needed!!
 
 			2003-11-27  Material data: material is written for every subdomain again, even if the material is the same
+
+			2003-12-09  History: Writes only first dof, even in a multi-dof pde
+			2003-12-09  Timefile: get rid of "header": line with nr. of timefunction and nr. of entries

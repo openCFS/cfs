@@ -12,7 +12,7 @@
 #include <Estimator/spaceerror.hh>
 #include <DataInOut/WriteInfo.hh> 
 #include <AlgebraicSystem/LinAlg/linsystem.hh>
-#include <Driver/analysis.hh>
+#include <Driver/assemble.hh>
 
 #include "newElecPDE.hh"
 

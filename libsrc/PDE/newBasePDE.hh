@@ -17,7 +17,7 @@
 #include <DataInOut/MaterialData.hh>
 #include <CoupledPDE/pdecoupling.hh>
 #include <Utils/array.hh>
-#include <Driver/analysis.hh>
+#include <Driver/assemble.hh>
 #include "timestepping.hh"
 
 namespace CoupledField
@@ -371,10 +371,8 @@ protected:
   std::vector<std::string> bcs_ni_;  //!< inhomogeneous Neumann BC levels
   std::vector<std::string> bcs_rh_;  //!< homogeneous Robin BC levels
   std::vector<std::string> bcs_ri_;  //!< inhomogeneous Robin BC levels
-  std::vector<std::string> bcs_loads_;//!< load BC levels
 
   std::vector<Double> val_id_;      //!< values of the inhomogeneous Dirichlet BC
-  std::vector<Double> val_loads_;   //!< values of the load BC
   Integer updateBCs_;               //!< set, if BCs already set
   
 
