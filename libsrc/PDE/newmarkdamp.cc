@@ -12,9 +12,7 @@ NewmarkDamp :: NewmarkDamp(std::string apdename, BaseSystem * algebraicsystem, N
 		   Integer adamping, Integer afrac_memory, Double damp)
 :TimeStepping(apdename, algebraicsystem, ptEQN)
 {
-#ifdef TRACE
-  (*trace) << "entering NewmarkDamp::NewmarkDamp" << std::endl;
-#endif
+  ENTER_FCN( "NewmarkDamp::NewmarkDamp" );
 
   damping_ = adamping;
   frac_memory_ = afrac_memory;
@@ -58,17 +56,14 @@ NewmarkDamp :: NewmarkDamp(std::string apdename, BaseSystem * algebraicsystem, N
 
 NewmarkDamp :: ~NewmarkDamp()
 {
-#ifdef TRACE
-  (*trace) << "entering NewmarkDamp::~NewmarkDamp" << std::endl;
-#endif
+  ENTER_FCN( "NewmarkDamp::~NewmarkDamp" );
 
 }
 
 void NewmarkDamp::Init(Double * matrix_factors, Double dt)
 {
-#ifdef TRACE
-  (*trace) << "entering NewmarkDamp::Init" << std::endl;
-#endif
+  ENTER_FCN( "NewmarkDamp::Init" );
+
   dt_ = dt;
   CalcParameters(dt_);
 
@@ -86,9 +81,7 @@ void NewmarkDamp::Init(Double * matrix_factors, Double dt)
 
 void NewmarkDamp::Predictor(Vector<Double>& solold)
 {
-#ifdef TRACE
-  (*trace) << "entering NewmarkDamp::Predictor" << std::endl;
-#endif
+  ENTER_FCN( "NewmarkDamp::Predictor" );
 
   solpred_ = solold + solderiv1_*dt_ + solderiv2_*a0_;
   solderiv1pred_ = solderiv1_ + solderiv2_*a1_;
@@ -97,9 +90,7 @@ void NewmarkDamp::Predictor(Vector<Double>& solold)
 
 void NewmarkDamp::UpdateRHS()
 {
-#ifdef TRACE
-  (*trace) << "entering NewmarkDamp::UpdateRHS" << std::endl;
-#endif
+  ENTER_FCN( "NewmarkDamp::UpdateRHS" );
 
   Vector<Double> coeffMass, coeffDamp;
 
@@ -122,9 +113,7 @@ void NewmarkDamp::UpdateRHS()
 
 void NewmarkDamp::Corrector(Vector<Double>& solnew)
 {
-#ifdef TRACE
-  (*trace) << "entering NewmarkDamp::Corrector" << std::endl;
-#endif
+  ENTER_FCN( "NewmarkDamp::Corrector" );
 
   solderiv2_ = (solnew - solpred_) * a2_;
   solderiv1_ = solderiv1pred_ + solderiv2_*a3_;
@@ -138,9 +127,7 @@ void NewmarkDamp::Corrector(Vector<Double>& solnew)
 
 void NewmarkDamp :: CalcParameters(Double dt)
 {
-#ifdef TRACE
-  (*trace) << "entering NewmarkDamp::CalcParameters" << std::endl;
-#endif
+  ENTER_FCN( "NewmarkDamp::CalcParameters" );
 
   //for predictors
   a0_ = 0.5*(1-2.0*beta_)*dt_*dt_;

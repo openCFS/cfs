@@ -102,22 +102,23 @@ namespace CoupledField {
     conf->ifgetliststr("calc_Energy",calcEnergy_,pdename_); 
     conf->ifgetliststr("calc_Eddy",calcEddy_,pdename_); 
 
-    // Map global numeration of element and nodes to local one
-    AssignPDENodeNumbers(mesh2PDENode_, pde2MeshNode_, subdoms_);  
-    AssignPDEElemNumbers(mesh2PDEElem_, pde2MeshElem_, subdoms_);
-    numPDENodes_ = pde2MeshNode_.GetSize();
-    numElems_ = pde2MeshElem_.GetSize();
+    // initialize eqation data object
+    eqnData_  = new ScalarNodeEQN(ptgrid_, ptBCs_, subdoms_, actlevel_, dofspernode_);
+    eqnData_->SetHomoDirichletBCs(bcs_hd_, homDirichDof_);
+    eqnData_->CalcMapping();
+    //eqnData_->Print(std::cerr);
+    
+    numPDENodes_ = eqnData_->GetNumLocalNodes();
+    numElems_ = eqnData_->GetNumLocalElems();
 
     deltCoords_.Resize(dim_,numPDENodes_);
 
-   
-  
   
     // set analysis parameters
+    assemble_->SetPtr2EQNData(eqnData_);
     assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, subdoms_,
 				surfdoms_);
     assemble_->SetGraphType(NODEGRAPH);
-    assemble_->SetMesh2PDENode(&mesh2PDENode_);
 
 #ifdef USE_OLAS
     assemble_->SetMatrixEntryType(OLAS::DOUBLE);
@@ -131,12 +132,7 @@ namespace CoupledField {
     assemble_->SetPtr2Sol(sol_);
     assemble_->SetPtr2TimeFnc(ptTimeFunc_);
 
-    // initialize eqation data object
-    eqnData_  = new ScalarNodeEQN(ptgrid_, ptBCs_, subdoms_, actlevel_, dofspernode_);
-    eqnData_->SetHomoDirichletBCs(bcs_hd_, homDirichDof_);
-    eqnData_->CalcMapping();
-    //eqnData_->Print(std::cerr);
-    assemble_->SetPtr2EQNData(eqnData_); 
+    
 
     // Initalize solution class
     sol_->SetNumSolutions(1);
@@ -698,6 +694,7 @@ Double MagPDE::RhsL2Norm(Vector<Double>& actRHS)
       StdVector<Elem*> elemssd;
       Integer counterElems=0;
       Vector<Double> TempE;
+      Integer pdeElem;
       
       // Resize solution arrays
       B_.SetNumSolutions(1);
@@ -714,10 +711,12 @@ Double MagPDE::RhsL2Norm(Vector<Double>& actRHS)
 	ptgrid_->GetElemSD(elemssd,calcBfield_[isd],level);
 	  
 	// loop over elements of subdomain
-	for (Integer iel=0; iel< elemssd.GetSize(); iel++,counterElems++) {
-
+	for (Integer iel=0; iel< elemssd.GetSize(); iel++,counterElems++) 
+	  {
+	    pdeElem = eqnData_->Mesh2PDEElem(elemssd[iel]->elemNum);
 	  FieldOp->CalcElemCurlNode( TempE, elemssd[iel], LCoord); 
-	  B_.SetNodalResult(mesh2PDEElem_[elemssd[iel]->elemNum - 1]-1, TempE);
+	  // B_.SetNodalResult(mesh2PDEElem_[elemssd[iel]->elemNum - 1]-1, TempE);
+	  B_.SetNodalResult(pdeElem-1, TempE);
 	}
       }
       delete FieldOp;
@@ -737,6 +736,7 @@ Double MagPDE::RhsL2Norm(Vector<Double>& actRHS)
       Double conductivity = 0.0;
 
       Integer counterElems=0;
+      Integer pdeElem;
 
       // dimension hard coded for .unv file!
       Vector<Double> JeddyElem(3);
@@ -767,14 +767,16 @@ Double MagPDE::RhsL2Norm(Vector<Double>& actRHS)
 	for (Integer actEl=0; actEl< elemssd.GetSize(); actEl++,counterElems++) {
 	  BaseFE * ptEl = elemssd[actEl]->ptElem;
 	  ptEl->GetShFnc(ShpFnc,LCoord);
+	  pdeElem = eqnData_->Mesh2PDEElem(elemssd[actEl]->elemNum);
 
 	  connect = elemssd[actEl]->connect;
 	  
 	  GetDerivSolVecOfElement(magVecDeriv1Elem,connect);
 	  JeddyElem[0] = magVecDeriv1Elem * ShpFnc;
 	  JeddyElem[0] *= -conductivity;
-	  Jeddy_.SetNodalResult(mesh2PDEElem_[elemssd[actEl]->elemNum - 1]-1,
-				JeddyElem);
+// 	  Jeddy_.SetNodalResult(mesh2PDEElem_[elemssd[actEl]->elemNum - 1]-1,
+// 				JeddyElem);
+	  Jeddy_.SetNodalResult(pdeElem-1, JeddyElem);
 	}
       }
     }

@@ -42,7 +42,7 @@ HexaFE::~HexaFE()
 
 void HexaFE::SetIntPoints()
 {
-  ENTER_FCN( "HexaFE::SetIntPoints" );
+  ENTER_IFCN( "HexaFE::SetIntPoints" );
  
   switch(IntegType) 
     {

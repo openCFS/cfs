@@ -17,9 +17,7 @@ BaseCoupledPDE::BaseCoupledPDE(StdVector<BasePDE*> & PDEs,
 			       FileType *aInFile, 
 			       WriteResults * aOutFile)
 {
-#ifdef TRACE
-  (*trace) << "entering BaseCoupledPDE::BaseCoupledPDE" << std::endl;
-#endif
+  ENTER_FCN( "BaseCoupledPDE::BaseCoupledPDE" );
 
   InFile_     = aInFile;
   OutFile_    = aOutFile;
@@ -55,9 +53,7 @@ BaseCoupledPDE::BaseCoupledPDE(StdVector<BasePDE*> & PDEs,
 
 BaseCoupledPDE::~BaseCoupledPDE()
 {
-#ifdef TRACE
-  (*trace) << " entering BaseCoupledPDE::~BaseCoupledPDE() " << std::endl;
-#endif
+  ENTER_FCN( "BaseCoupledPDE::~BaseCoupledPDE()" );
 
 }
 
@@ -68,9 +64,8 @@ BaseCoupledPDE::~BaseCoupledPDE()
   void BaseCoupledPDE::SetTimeSteppingParams(Integer numstep, Double firstdt, Integer isavebegin, 
 					     Integer isaveend, Integer isaveincr)
   {
-#ifdef TRACE
-    (*trace) << "entering BaseCoupledPDE::SetTimeSteppingParams" << std::endl;
-#endif
+    ENTER_FCN( "BaseCoupledPDE::SetTimeSteppingParams" );
+
     numstep_    =  numstep; 
     firstdt_    =  firstdt;    
     isavebegin_ =  isavebegin; 
@@ -85,9 +80,7 @@ BaseCoupledPDE::~BaseCoupledPDE()
 void BaseCoupledPDE::PreStepTrans(const Integer kstep, const Double asteptime,
 				  const Integer level, const Boolean reset) 
 {
-#ifdef TRACE
-  (*trace) << "entering BaseCoupledPDE::PreStepTrans" << std::endl;
-#endif
+  ENTER_FCN( "BaseCoupledPDE::PreStepTrans" );
 
     for (Integer i=0; i<PDEs_.GetSize(); i++)
       PDEs_[i]->PreStepTrans(kstep, asteptime, level, reset);
@@ -100,9 +93,7 @@ void BaseCoupledPDE::PreStepTrans(const Integer kstep, const Double asteptime,
 void BaseCoupledPDE::PostStepTrans(const Integer kstep, const Double asteptime, 
 				   const Integer level) 
 {
-#ifdef TRACE
-  (*trace) << "entering BaseCoupledPDE::PostStepTrans" << std::endl;
-#endif
+  ENTER_FCN( "BaseCoupledPDE::PostStepTrans" );
 
     for (Integer i=0; i<PDEs_.GetSize(); i++)
       PDEs_[i]->PostStepTrans(kstep,asteptime,level);
@@ -112,9 +103,7 @@ void BaseCoupledPDE::PostStepTrans(const Integer kstep, const Double asteptime,
 
 void BaseCoupledPDE::InitStepTransCoupled(Double stepTime) 
 {
-#ifdef TRACE
-  (*trace) << "entering BaseCoupledPDE::InitStepTransCoupled" << std::endl;
-#endif
+  ENTER_FCN( "BaseCoupledPDE::InitStepTransCoupled" );
 
     for (Integer i=0; i<PDEs_.GetSize(); i++)
       PDEs_[i]->InitStepTransCoupled(stepTime);
@@ -124,9 +113,7 @@ void BaseCoupledPDE::InitStepTransCoupled(Double stepTime)
 
 void BaseCoupledPDE::InitTimeStepping(const Double dt)
 {
-#ifdef TRACE
-  (*trace) << "entering BaseCoupledPDE::InitTimeStepping" << std::endl;
-#endif
+  ENTER_FCN( "BaseCoupledPDE::InitTimeStepping" );
 
     for (Integer i=0; i<PDEs_.GetSize(); i++)
       PDEs_[i]->InitTimeStepping(dt);
@@ -135,9 +122,7 @@ void BaseCoupledPDE::InitTimeStepping(const Double dt)
 
 void BaseCoupledPDE::WriteGeneralPDEdefines()
 {
-#ifdef TRACE
-  (*trace) << "entering BaseCoupledPDE::WriteGeneralPDEdefines" << std::endl;
-#endif
+  ENTER_FCN( "BaseCoupledPDE::WriteGeneralPDEdefines" );
 
     for (Integer i=0; i<PDEs_.GetSize(); i++)
       PDEs_[i]->WriteGeneralPDEdefines();
@@ -151,9 +136,7 @@ void BaseCoupledPDE::WriteGeneralPDEdefines()
 // Do Postprocessing as descriped in conf file
 void BaseCoupledPDE::PostProcess(const Integer level) 
 {
-#ifdef TRACE
-  (*trace) << "entering BaseCoupledPDE::PostProcess" << std::endl;
-#endif
+  ENTER_FCN( "BaseCoupledPDE::PostProcess" );
 
     for (Integer i=0; i<PDEs_.GetSize(); i++)
       PDEs_[i]->PostProcess(level);

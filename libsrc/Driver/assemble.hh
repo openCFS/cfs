@@ -309,9 +309,7 @@ namespace CoupledField
     {ptTimeFunc_ = aPtTimeFunc;};
 
     // set ptr to equation data
-    void SetPtr2EQNData(NodeEQN * aPtNodeEQN)
-    {ptEQN_ = aPtNodeEQN;};
-      
+    void SetPtr2EQNData(NodeEQN * aPtNodeEQN);
   
 
     // ======================================================
@@ -392,23 +390,6 @@ namespace CoupledField
     virtual void SetMatrixFactors()=0;
 
 
-
-    //! returns the local PDE number of an array of nodes
-    /*!
-      \param PDENodes (output) Vector of PDE node numbers
-      \param MeshNodes (input) Vector of mesh node numbers
-      \param Mesh2PDENode (input) Vector assigning PDE to mesh node numbers    
-    */
-    void Mesh2PDENode(StdVector<Integer> & PDENodes, 
-		      const StdVector<Integer> & MeshNodes,
-		      const StdVector<Integer> & Mesh2PDENode);
-    
-
-
-    void SetMesh2PDENode(StdVector<Integer> * aMesh2PDENode)
-    {mesh2PDENode_ = aMesh2PDENode;};
-
-
     /// set actual calculation level
     void SetLevel(Integer alevel){actlevel_ = alevel;};
     
@@ -466,8 +447,7 @@ namespace CoupledField
     Integer numPDENodes_;                //!< number of nodes in pde
 
     std::string pdename_;                //!< name of calling pde
-    StdVector<Integer> * mesh2PDENode_; //!< array containing PDE (=local) node numbers
-
+  
     StdVector<std::string> subdoms_;  //!< subdomain-levels belongig to PDE
     StdVector<std::string> surfdoms_; //!< surface-domain-levels belongig to PDE
 

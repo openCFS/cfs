@@ -69,6 +69,18 @@ namespace CoupledField
 	delete (*rhsIntegrators_[i])[j];
   }
 
+  void Assemble::SetPtr2EQNData(NodeEQN * aPtNodeEQN)
+  {
+    ENTER_FCN( "Assemble::SetPtr2EQNData" );
+    if (aPtNodeEQN == NULL)
+      Error( "The NodeEQN object is not created yet" , __FILE__, __LINE__);
+    
+    if (! aPtNodeEQN->IsInitialized())
+      Error( "The NodeEQN object has to be initialized before assigning it to\
+              an assemble object by calling 'CalcMapping()'", __FILE__, __LINE__);
+    ptEQN_ = aPtNodeEQN;
+  }
+
 
   Integer Assemble::SubDomIndex(const std::string & subDomName)
   {
@@ -114,7 +126,6 @@ namespace CoupledField
 	  Error("ElecPDE: set input_coupling_terms = smoothdisplacement or nonlin = no");
 
 	StdVector<Integer> connect_PDE;
-	//Mesh2PDENode(connect_PDE, connect, *mesh2PDENode_);
 	ptEQN_->Mesh2PDENode(connect_PDE, connect);
 	Double val;
 	for (Integer i=0; i<coordMat.GetSizeRow(); i++)
@@ -162,7 +173,6 @@ namespace CoupledField
 	    // map connect to PDE node numbers
 	    StdVector<Integer> connect_PDE;
 	    
-	    //Mesh2PDENode(connect_PDE, connecth, *mesh2PDENode_);
 	    ptEQN_->Node2EQN(connecth, connect_PDE);
 
 	    Matrix<Double> elSol;
@@ -262,7 +272,6 @@ namespace CoupledField
 
 	    // map connect to PDE node numbers
 	    StdVector<Integer> connect_PDE;
-	    //Mesh2PDENode(connect_PDE, connecth, *mesh2PDENode_);
 	    ptEQN_->Node2EQN(connecth, connect_PDE);
 
 	    Matrix<Double> elSol;
@@ -386,7 +395,6 @@ namespace CoupledField
 	    
 		// map connect to PDE node numbers
 		StdVector<Integer> connect_PDE;
-		//Mesh2PDENode(connect_PDE, connecth, *mesh2PDENode_);
 		ptEQN_->Node2EQN(connecth, connect_PDE);
 		for(Integer actRhsInt=0; actRhsInt < rhsSrcIntegrators_[actDom]->GetSize(); actRhsInt++)
 		  {
@@ -485,7 +493,6 @@ namespace CoupledField
 
 		// map connect to PDE node numbers
 		StdVector<Integer> connect_PDE;
-		//Mesh2PDENode(connect_PDE, connecth, *mesh2PDENode_);
 		ptEQN_->Node2EQN(connecth, connect_PDE);
 		
 		Matrix<Double> elSol;
@@ -533,21 +540,6 @@ namespace CoupledField
 	else
 	  Error("The direction mentioned in the config-file is not implemented! ",__FILE__,__LINE__);
   }
-
-
-
-
-  void Assemble::Mesh2PDENode(StdVector<Integer> & PDENodes, 
-			      const StdVector<Integer> & MeshNodes,
-			      const StdVector<Integer> & Mesh2PDENode)
-  {
-    ENTER_FCN( "Assemble::Mesh2PDENode" );
-    PDENodes.Resize(MeshNodes.GetSize());
-    
-    for (Integer i=0; i<MeshNodes.GetSize(); i++) 
-      PDENodes[i] = Mesh2PDENode[MeshNodes[i]-1];
-  }
-
 
 
 

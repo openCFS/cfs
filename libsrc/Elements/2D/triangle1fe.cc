@@ -31,7 +31,7 @@ void Triangle1FE :: Init()
 
 void Triangle1FE :: SetCornerCoords()
 {
-  ENTER_FCN( "Triangle1FE::SetCornerCoords" );
+  ENTER_IFCN( "Triangle1FE::SetCornerCoords" );
 
   LCornerCoords_.Resize(Dim_,NumNodes_);
   
@@ -47,7 +47,7 @@ void Triangle1FE :: SetCornerCoords()
 void Triangle1FE :: CalcShapeFnc(Vector<Double> & Shape, 
 				 const Vector<Double> & LCoord)
 {
-  ENTER_FCN( "Triangle1FE::CalcShapeFnc" );
+  ENTER_IFCN( "Triangle1FE::CalcShapeFnc" );
 
   Shape.Resize(NumNodes_);
 
@@ -70,7 +70,7 @@ void Triangle1FE :: CalcShapeFnc(Vector<Double> & Shape,
 void Triangle1FE :: CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
 				       const Vector<Double> & LCoord)
 {
-  ENTER_FCN( "Triangle1FE::CalcLocalDerivShapeFnc" );
+  ENTER_IFCN( "Triangle1FE::CalcLocalDerivShapeFnc" );
 
   LDeriv.Resize(NumNodes_,Dim_);
 

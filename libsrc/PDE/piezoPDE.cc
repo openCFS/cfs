@@ -83,14 +83,8 @@ namespace CoupledField {
 #endif
 
     ReadBCs(pdename_);
+    
    
-   // Map global numeration of element and nodes to local one
-   AssignPDENodeNumbers(mesh2PDENode_, pde2MeshNode_, subdoms_);  
-   AssignPDEElemNumbers(mesh2PDEElem_, pde2MeshElem_, subdoms_);
-   numPDENodes_ = pde2MeshNode_.GetSize();
-   numElems_ = pde2MeshElem_.GetSize(); 
-   
-   size_        = numPDENodes_ * dofspernode_;
 
 #ifndef XMLPARAMS
    effectiveMass_ = FALSE;
@@ -153,8 +147,11 @@ namespace CoupledField {
    eqnData_->SetHomoDirichletBCs(bcs_hd_, homDirichDof_);
    eqnData_->CalcMapping();
    //eqnData_->Print(std::cerr);
-   assemble_->SetPtr2EQNData(eqnData_); 
    
+   numPDENodes_ = eqnData_->GetNumLocalNodes();
+   numElems_ = eqnData_->GetNumLocalElems();
+   
+   size_        = numPDENodes_ * dofspernode_;
    sol_->SetNumSolutions(2);
    sol_->SetNumNodes(numPDENodes_);
    sol_->SetSolutionType(MECH_DISPLACEMENT,0);
@@ -165,30 +162,31 @@ namespace CoupledField {
    sol_->Init(0.0);
 
    // set assemble parameters
-  assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, subdoms_, surfdoms_);
-  assemble_->SetGraphType(NODEGRAPH);
-  assemble_->SetMesh2PDENode(&mesh2PDENode_);
+   assemble_->SetPtr2EQNData(eqnData_); 
+   assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, subdoms_, surfdoms_);
+   assemble_->SetGraphType(NODEGRAPH);
+
 #ifdef USE_OLAS
-  assemble_->SetMatrixEntryType(OLAS::DOUBLE);
-  assemble_->SetMatrixStorageType(OLAS::SPARSE_NONSYM);
+   assemble_->SetMatrixEntryType(OLAS::DOUBLE);
+   assemble_->SetMatrixStorageType(OLAS::SPARSE_NONSYM);
 #else
-  assemble_->SetMatrixType(RBLOCK);
+   assemble_->SetMatrixType(RBLOCK);
 #endif 
-
-  assemble_->SetNumDirichlet(GetNumRestraints(actlevel_));
-
-  assemble_->SetPtrBCs(ptBCs_);
-  assemble_->SetPtr2Sol(sol_);
-  assemble_->SetPtr2TimeFnc(ptTimeFunc_);
-  
-  ReadMaterialData();
    
-  DefineIntegrators(actlevel_);  
-
+   assemble_->SetNumDirichlet(GetNumRestraints(actlevel_));
+   
+   assemble_->SetPtrBCs(ptBCs_);
+   assemble_->SetPtr2Sol(sol_);
+   assemble_->SetPtr2TimeFnc(ptTimeFunc_);
+   
+   ReadMaterialData();
+   
+   DefineIntegrators(actlevel_);  
+   
 #ifndef XMLPARAMS
-  ReadSavings();
+   ReadSavings();
 #else
-  ReadStoreResults();
+   ReadStoreResults();
 #endif
 
   }

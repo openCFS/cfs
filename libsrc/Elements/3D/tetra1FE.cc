@@ -23,7 +23,7 @@ Tetra1FE::~Tetra1FE()
 
 void Tetra1FE::Init()
 {
-  ENTER_FCN( "Tetra1FE::Init" );
+  ENTER_IFCN( "Tetra1FE::Init" );
   
   Dim_ = 3;
   NumNodes_ = 4;
@@ -42,7 +42,7 @@ void Tetra1FE::Init()
 
 void Tetra1FE::SetCornerCoords()
 {
-  ENTER_FCN( "Tetra1FE::SetCornerCoords" );
+  ENTER_IFCN( "Tetra1FE::SetCornerCoords" );
 
   LCornerCoords_.Resize(Dim_,NumNodes_);
   
@@ -82,7 +82,7 @@ void Tetra1FE::SetCornerCoords()
 /// defines the connection between nodes with "their" edge 
 void Tetra1FE :: SetEdgeVertices()
 {
-  ENTER_FCN( "SetEdgeVertices" );
+  ENTER_IFCN( "SetEdgeVertices" );
   const Integer nrNodesPerEdge = 2;
   
   edgeVertices_.Resize(NumEdges_, nrNodesPerEdge);
@@ -137,7 +137,7 @@ void Tetra1FE :: SetEdgeVertices()
 void Tetra1FE :: CalcShapeFnc(Vector<Double> & Shape, 
 			     const Vector<Double> & LCoord)
 {
-  ENTER_FCN( "Tetra1FE::CalcShapeFnc" );
+  ENTER_IFCN( "Tetra1FE::CalcShapeFnc" );
 
 
   Shape.Resize(NumNodes_);
@@ -158,7 +158,7 @@ void Tetra1FE :: CalcShapeFnc(Vector<Double> & Shape,
 void Tetra1FE :: CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
 				       const Vector<Double> & LCoord)
 {
-  ENTER_FCN( "Tetra1FE::CalcLocalDerivShapeFnc" );
+  ENTER_IFCN( "Tetra1FE::CalcLocalDerivShapeFnc" );
 
   LDeriv.Resize(NumNodes_,Dim_);
 
@@ -178,7 +178,7 @@ void Tetra1FE :: CalcEdgeShapeFnc(Matrix<Double> & edgeShape,
 				  const Vector<Double> & LCoord, 
 				  const Matrix<Double> & cornernodes)
 {
-  ENTER_FCN( "Tetra1FE::CalcShapeFnc" );
+  ENTER_IFCN( "Tetra1FE::CalcShapeFnc" );
 
   edgeShape.Resize(NumEdges_, Dim_);
   edgeShape.Init();
@@ -212,7 +212,7 @@ void Tetra1FE :: GetEdgeGlobalDerivShapeFnc(Vector< Matrix<Double>* > & shapeDer
 					    const Vector<Double> & lCoord,
 					    const Matrix<Double> & cornerCoords)
 {
-  ENTER_FCN( "Tetra1FE::GetEdgeGlobalDerivShapeFnc" );
+  ENTER_IFCN( "Tetra1FE::GetEdgeGlobalDerivShapeFnc" );
 
   shapeDeriv.Resize(NumEdges_);
 

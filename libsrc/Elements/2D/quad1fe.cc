@@ -21,7 +21,7 @@ Quad1FE :: ~Quad1FE()
 
 void Quad1FE :: Init()
 {
-  ENTER_FCN( "Quad1FE::Init" );
+  ENTER_IFCN( "Quad1FE::Init" );
 
   NumNodes_ = 4;
   SetIntPoints();
@@ -32,7 +32,7 @@ void Quad1FE :: Init()
 
 void Quad1FE :: SetCornerCoords()
 {
-  ENTER_FCN( "Quad1FE::SetCornerCoords" );
+  ENTER_IFCN( "Quad1FE::SetCornerCoords" );
 
   LCornerCoords_.Resize(Dim_,NumNodes_);
   
@@ -51,7 +51,7 @@ void Quad1FE :: SetCornerCoords()
 void Quad1FE :: CalcShapeFnc(Vector<Double> & Shape, 
 			     const Vector<Double> & LCoord)
 {
-  ENTER_FCN( "Quad1FE::CalcShapeFnc" );
+  ENTER_IFCN( "Quad1FE::CalcShapeFnc" );
 
   Shape.Resize(NumNodes_);
   
@@ -65,7 +65,7 @@ void Quad1FE :: CalcShapeFnc(Vector<Double> & Shape,
 void Quad1FE :: CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
 				       const Vector<Double> & LCoord)
 {
-  ENTER_FCN( "Quad1FE::CalcLocalDerivShapeFnc" );
+  ENTER_IFCN( "Quad1FE::CalcLocalDerivShapeFnc" );
 
   LDeriv.Resize(NumNodes_,Dim_);
 
@@ -83,7 +83,7 @@ void Quad1FE :: CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv,
 Double Quad1FE::CalcMeanStrain(Matrix<Double> &cornerCoords, 
 			       Matrix<Double> &displacements)
 {
-  ENTER_FCN( "Quad1FE::CalcDistortion" );
+  ENTER_IFCN( "Quad1FE::CalcDistortion" );
 
   Double factor;
   Double eps1, eps2, eps4, eps5, eps11, eps12, eps21, eps22, eps41, eps42, eps51, eps52;

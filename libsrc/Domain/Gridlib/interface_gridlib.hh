@@ -92,11 +92,7 @@ template<class Dim>
 inline InterfaceGridlib<Dim>::InterfaceGridlib(FileType * aptFileType)
 : Grid(aptFileType)
 {
-#ifdef TRACE
- (*trace) <<
-             "Entering InterfaceGridlib<Dim>::InterfaceCFS<Dim>" 
-                << std::endl;
-#endif
+  ENTER_FCN( "InterfaceGridlib<Dim>::InterfaceCFS<Dim>" )
   ptFileType=aptFileType;
   DoesGridSubdivide=FALSE;
   lastlevel_=0;

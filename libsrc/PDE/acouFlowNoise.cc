@@ -299,7 +299,8 @@ void AcouFlowNoise::ComputeRHS(const Double atime)
 	  //end ramping
 
 	  // CHANGE connecth
-	  Mesh2PDENode(connect_PDE,connecth,mesh2PDENode_);
+	  //Mesh2PDENode(connect_PDE,connecth,mesh2PDENode_);
+	  eqnData_->Node2EQN(connecth, connect_PDE);
 
 	  //linear_load->CalcElemVector(ptCoordNodes, elemvec); // for setting with homogeneous rhs
 	  

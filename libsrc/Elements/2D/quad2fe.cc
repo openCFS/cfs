@@ -21,7 +21,7 @@ Quad2FE :: ~Quad2FE()
 
 void Quad2FE :: Init()
 {
-  ENTER_FCN( "Quad2FE::Init" );
+  ENTER_IFCN( "Quad2FE::Init" );
 
   NumNodes_ = 8;
   SetIntPoints();
@@ -32,7 +32,7 @@ void Quad2FE :: Init()
 // Should be called SetNodalCoords!!
 void Quad2FE :: SetCornerCoords()
 {
-  ENTER_FCN( "Quad2FE::SetCornerCoords" );
+  ENTER_IFCN( "Quad2FE::SetCornerCoords" );
 
   LCornerCoords_.Resize(Dim_,NumNodes_);
   
@@ -59,7 +59,7 @@ void Quad2FE :: SetCornerCoords()
 void Quad2FE :: CalcShapeFnc(Vector<Double> & Shape, 
 			     const Vector<Double> & LCoord)
 {
-  ENTER_FCN( "Quad2FE::CalcShapeFnc" );
+  ENTER_IFCN( "Quad2FE::CalcShapeFnc" );
 
   Shape.Resize(NumNodes_);
    // From Zienkiewicz, The Finite Element Method. Vol 1, page 122.
@@ -83,7 +83,7 @@ void Quad2FE :: CalcShapeFnc(Vector<Double> & Shape,
 void Quad2FE :: CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
 				       const Vector<Double> & LCoord)
 {
-  ENTER_FCN( "Quad2FE::CalcLocalDerivShapeFnc" );
+  ENTER_IFCN( "Quad2FE::CalcLocalDerivShapeFnc" );
 
   LDeriv.Resize(NumNodes_,Dim_);
 
@@ -122,7 +122,7 @@ void Quad2FE :: CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv,
 
 Double Quad2FE::CalcMeanStrain(Matrix<Double> &cornerCoords, Matrix<Double> &displacements)
 {
-  ENTER_FCN( "Quad2FE::CalcDistortion" );
+  ENTER_IFCN( "Quad2FE::CalcDistortion" );
 
  std::cout << "Quad2FE::CalcDistortion. This function has not yet been implemented in quadratic quadrilaterals" << std::endl;
 

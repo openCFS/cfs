@@ -11,9 +11,7 @@ namespace CoupledField
 
 Grid::Grid(FileType * aptFileType)
 {
-#ifdef TRACE
-  (*trace) << " entering Grid::Grid " << std::endl;
-#endif
+  ENTER_FCN( "Grid::Grid" );
 
   ptFileType = aptFileType;
 
@@ -43,9 +41,7 @@ Grid::Grid(FileType * aptFileType)
   
 void Grid::SetIntTypeAllElems(IntegrationType aIntType)
 {
-#ifdef TRACE
-  (*trace) << " entering Grid::SetIntTypeAllElems " << std::endl;
-#endif
+  ENTER_FCN( "Grid::SetIntTypeAllElems" );
 
   ptQ   -> SetIntegrationType(aIntType);
   ptQ2   -> SetIntegrationType(aIntType);
@@ -76,18 +72,18 @@ void Grid::SetIntTypeAllElems(IntegrationType aIntType)
 
 Grid::~Grid()
 {
-
- if (ptQ)   delete ptQ;
- if (ptQ2)   delete ptQ2;
- if (ptTet) delete ptTet;
- if (ptL1)  delete ptL1;
- if (ptL2)  delete ptL2;
- if (ptTr1)  delete ptTr1;
- if (ptTr2)  delete ptTr2;
- if (ptHexa) delete ptHexa;
- if (ptPyra) delete ptPyra;
- if (ptWedge) delete ptWedge;
-
+  ENTER_FCN( "Grid::~Grid" );
+  if (ptQ)   delete ptQ;
+  if (ptQ2)   delete ptQ2;
+  if (ptTet) delete ptTet;
+  if (ptL1)  delete ptL1;
+  if (ptL2)  delete ptL2;
+  if (ptTr1)  delete ptTr1;
+  if (ptTr2)  delete ptTr2;
+  if (ptHexa) delete ptHexa;
+  if (ptPyra) delete ptPyra;
+  if (ptWedge) delete ptWedge;
+  
 }
 
 }

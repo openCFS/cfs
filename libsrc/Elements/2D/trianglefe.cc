@@ -43,7 +43,7 @@ TriangleFE :: ~TriangleFE()
 
 void TriangleFE::SetIntPoints()
 {
-  ENTER_FCN( "TriangleFE::SetIntPoints" );
+  ENTER_IFCN( "TriangleFE::SetIntPoints" );
  
  switch(IntegType)
     {

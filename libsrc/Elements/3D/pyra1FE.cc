@@ -22,7 +22,7 @@ Pyra1FE::~Pyra1FE()
 
 void Pyra1FE::Init()
 {
-  ENTER_FCN( "Pyra1FE::Init" );
+  ENTER_IFCN( "Pyra1FE::Init" );
   
   Dim_ = 3;
   NumNodes_ = 5;
@@ -41,7 +41,7 @@ void Pyra1FE::Init()
 
 void Pyra1FE::SetCornerCoords()
 {
-  ENTER_FCN( "Pyra1FE::SetCornerCoords" );
+  ENTER_IFCN( "Pyra1FE::SetCornerCoords" );
 
   LCornerCoords_.Resize(Dim_,NumNodes_);
   
@@ -81,7 +81,7 @@ void Pyra1FE::SetCornerCoords()
 void Pyra1FE :: CalcShapeFnc(Vector<Double> & Shape, 
 			     const Vector<Double> & LCoord)
 {
-  ENTER_FCN( "Pyra1FE::CalcShapeFnc" );
+  ENTER_IFCN( "Pyra1FE::CalcShapeFnc" );
 
   Shape.Resize(NumNodes_);
 
@@ -121,7 +121,7 @@ void Pyra1FE :: CalcShapeFnc(Vector<Double> & Shape,
 void Pyra1FE :: CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
 				       const Vector<Double> & LCoord)
 {
-  ENTER_FCN( "Pyra1FE::CalcLocalDerivShapeFnc" );
+  ENTER_IFCN( "Pyra1FE::CalcLocalDerivShapeFnc" );
 
   LDeriv.Resize(NumNodes_,Dim_);
 

@@ -11,9 +11,7 @@ namespace CoupledField
 
 ConfFile::ConfFile(const Char* const afilename)
 {
-#ifdef TRACE
-  (*trace) << "entering ConfFile::ConfFile" << std::endl;
-#endif
+  ENTER_FCN( "ConfFile::ConfFile" );
 
  filename = new Char[100];
  strcpy(filename,afilename);
@@ -26,9 +24,7 @@ ConfFile::ConfFile(const Char* const afilename)
 
 ConfFile::~ConfFile()
 {
-#ifdef TRACE
-  (*trace) << " entering ConfFile::~ConfFile " << std::endl;
-#endif
+  ENTER_FCN( "ConfFile::~ConfFile" );
 
   delete [] filename;
 
@@ -42,6 +38,7 @@ void ConfFile::get(const std::string keyword,
 		   const std::string subsection, 
 		   const std::string subsubsection)
 {
+  ENTER_IFCN( "ConfFile::get" );
  std::string::size_type pos,pos1=0;
  Boolean inSection = FALSE;
  Boolean inSubSection = FALSE;
@@ -73,6 +70,7 @@ void ConfFile::get(const std::string keyword,
 		   const std::string subsection, 
 		   const std::string subsubsection)
 {
+  ENTER_IFCN( "ConfFile::get" );
  std::string::size_type pos,pos1=0;
  Boolean inSection = FALSE;
  Boolean inSubSection = FALSE;
@@ -105,6 +103,7 @@ void ConfFile::get(const std::string keyword,
 		   const std::string subsection, 
 		   const std::string subsubsection)
 {
+  ENTER_IFCN( "ConfFile::get" );
  std::string::size_type pos,pos1=0;
  Boolean inSection = FALSE;
  Boolean inSubSection = FALSE;
@@ -134,6 +133,7 @@ void ConfFile::get2(const std::string keyword, Double & val, std::string & fncna
 		    const std::string section, const std::string subsection, 
 		    const std::string subsubsection)
 {
+  ENTER_IFCN( "ConfFile::get2" );
  std::string::size_type pos,pos1=0;
  Boolean inSection = FALSE;
  Boolean inSubSection = FALSE;
@@ -194,6 +194,7 @@ void ConfFile::getCoilData(coilDefStruct& acoil,
 			   const std::string section, 
 			   const std::string subsection)
 {
+  ENTER_FCN( "ConfFile::getCoilData" );
  std::string::size_type pos,pos1=0;
  Boolean inSection = FALSE;
  Boolean inSubSection = FALSE;
@@ -307,6 +308,7 @@ Boolean ConfFile::ifget(const std::string keyword,
 			const std::string subsection, 
 			const std::string subsubsection)
 {
+  ENTER_IFCN( "ConFile::ifget" );
  std::string::size_type pos,pos1=0;
  Boolean inSection = FALSE;
  Boolean inSubSection = FALSE;
@@ -344,6 +346,7 @@ Boolean ConfFile::ifget(const std::string keyword,
 			const std::string subsection, 
 			const std::string subsubsection)
 {
+  ENTER_IFCN( "ConfFile::ifget" );
  std::string::size_type pos,pos1=0;
  Boolean inSection = FALSE;
  Boolean inSubSection = FALSE;
@@ -381,6 +384,7 @@ Boolean ConfFile::ifget(const std::string keyword,
 			const std::string subsection, 
 			const std::string subsubsection)
 {
+  ENTER_IFCN( "ConfFile::ifget" );
  std::string::size_type pos,pos1=0;
  Boolean inSection = FALSE;
  Boolean inSubSection = FALSE;
@@ -417,9 +421,7 @@ Boolean ConfFile::get_option(const std::string keyword,
 			     const std::string subsection, 
 			     const std::string subsubsection)
 {
-#ifdef TRACE
-  (*trace) << " entering ConfFile::get_option " << std::endl;
-#endif
+  ENTER_IFCN( "ConfFile::get_option" );
 
  std::string::size_type pos,pos1=0;
  Boolean inSection = FALSE;
@@ -463,9 +465,7 @@ Boolean ConfFile::get_optionNo(const std::string keyword,
 			       const std::string subsection, 
 			       const std::string subsubsection)
 {
-#ifdef TRACE
-  (*trace) << " entering ConfFile::get_optionNo " << std::endl;
-#endif
+  ENTER_IFCN( "ConfFile::get_optionNo" );
 
  std::string::size_type pos,pos1=0;
  Boolean inSection = FALSE;
@@ -510,6 +510,7 @@ std::string::size_type ConfFile::getpos(const std::string keyword,
 					Boolean inSubSection,
 					Boolean writeErr)
 {
+  ENTER_IFCN( "ConfFile::getpos" );
   std::string::size_type help,pos=std::string::npos;
   std::string buf;
   bool nextSectionReached = FALSE;
@@ -558,6 +559,7 @@ std::string::size_type ConfFile::getsectionpos(const std::string keyword,
 					       const std::string::size_type 
 					       startpos, Boolean writeErr)
 {
+  ENTER_IFCN( "ConfFile::getsectionpos" );
   std::string::size_type help,pos=std::string::npos;
   std::string buf;
   std::string::size_type pos_helper;
@@ -594,6 +596,7 @@ std::string::size_type ConfFile::getsubsectionpos(const std::string keyword,
 						  const std::string::size_type 
 						  startpos, Boolean writeErr)
 {
+  ENTER_IFCN( "ConfFile::getsubsectionpos" );
   std::string::size_type help,pos=std::string::npos;
   std::string buf;
   std::string::size_type pos_helper;
@@ -648,6 +651,7 @@ std::string::size_type ConfFile::getsubsectionpos(const std::string keyword,
 
 void ConfFile::getsubdom(StdVector<std::string> & subdoms)
 {
+  ENTER_IFCN( "ConfFile::getsubdom" );
  std::string::size_type pos;
 
  Integer nsubds;
@@ -672,6 +676,7 @@ void ConfFile::getsubdom(StdVector<std::string> & subdoms)
 void ConfFile::getsubdompde(StdVector<std::string> & subdoms, 
 			    const std::string section)
 {
+  ENTER_IFCN( "ConfFile::getsubdompde" );
   std::string::size_type pos=0;
 
   pos=getsectionpos(section,pos);
@@ -692,6 +697,7 @@ void ConfFile::getsubdompde(StdVector<std::string> & subdoms,
 void ConfFile::getlist(StdVector<Integer> & hist, 
 		       const std::string seekexp)
 {
+  ENTER_IFCN( "ConfFile::getlist" );
  std::string::size_type pos;
  pos=getpos(seekexp);
  infile.seekg(pos,std::ios::beg);
@@ -712,6 +718,7 @@ void ConfFile::getlist( const std::string seekexp,
 			const std::string section, 
 			const std::string subsection)
 {
+  ENTER_IFCN( "ConfFile::getlist" );
  std::string::size_type pos=0;
 
  Boolean inSection = FALSE;
@@ -751,6 +758,7 @@ void ConfFile::getliststr( const std::string seekexp,
 			   const std::string section, 
 			   const std::string subsection)
 {
+  ENTER_IFCN( "ConfFile::getliststr" );
  std::string::size_type pos=0;
 
  Boolean inSection = FALSE;
@@ -785,6 +793,7 @@ void ConfFile::getstr( const std::string seekexp,
 		       const std::string section, 
 		       const std::string subsection)
 {
+  ENTER_IFCN( "ConfFile::getstr" );
  std::string::size_type pos=0;
  Boolean inSection = FALSE;
  Boolean inSubSection = FALSE;
@@ -814,6 +823,7 @@ Boolean ConfFile::ifgetliststr( const std::string seekexp,
 				const std::string section, 
 				const std::string subsection)
 {
+  ENTER_IFCN( "ConfFile::ifgetliststr" );
  std::string::size_type pos=0;
  Boolean inSection = FALSE;
  Boolean inSubSection = FALSE;
@@ -886,6 +896,7 @@ void ConfFile::error(const std::string keyword, Integer line ) const
 
 void ConfFile::check(const std::string value, const StdVector<std::string> data)
 {
+  ENTER_IFCN( "ConfFile::check" );
   Boolean Find=FALSE;
   Integer id;
   for (id=0; id<data.GetSize();id++) {
@@ -907,6 +918,7 @@ void ConfFile::check(const std::string value, const StdVector<std::string> data)
 void ConfFile::getVal_Fnc(const std::string::size_type startpos, 
 			  Double &val, std::string& fncname)
 {
+  ENTER_IFCN( "ConfFile::getVal_Fnc" );
   //file position is already set
 
   infile.seekg(startpos, std::ios::beg);

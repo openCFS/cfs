@@ -106,14 +106,10 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
     ReadBCs(pdename_);
   
 
-    // Map global numeration of element and nodes to local one
-    AssignPDENodeNumbers(mesh2PDENode_, pde2MeshNode_, subdoms_);  
-    AssignPDEElemNumbers(mesh2PDEElem_, pde2MeshElem_, subdoms_);
-    numPDENodes_ = pde2MeshNode_.GetSize();
-    numElems_ = pde2MeshElem_.GetSize();
-
-    size_        = numPDENodes_ * dofspernode_;
-
+    // // Map global numeration of element and nodes to local one
+//     AssignPDENodeNumbers(mesh2PDENode_, pde2MeshNode_, subdoms_);  
+//     AssignPDEElemNumbers(mesh2PDEElem_, pde2MeshElem_, subdoms_);
+   
    
     
     
@@ -280,12 +276,18 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 	Info->Error( errmsg, __FILE__, __LINE__ );
       }
     
+
+    
     // initialize eqation data object
     eqnData_  = new BlockNodeEQN(ptgrid_, ptBCs_, subdoms_, actlevel_, dofspernode_);
     eqnData_->SetHomoDirichletBCs(bcs_hd_, homDirichDof_);
     eqnData_->CalcMapping();
     //eqnData_->Print(std::cerr);
-    assemble_->SetPtr2EQNData(eqnData_); 
+    
+    numPDENodes_ = eqnData_->GetNumLocalNodes();
+    numElems_ = eqnData_->GetNumLocalElems();
+    size_        = numPDENodes_ * dofspernode_;
+    
     
     // Initialize solution class
     sol_->SetNumSolutions(1);
@@ -296,9 +298,9 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
     sol_->Init(0.0); 
 
     // set assemble parameters
+    assemble_->SetPtr2EQNData(eqnData_); 
     assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, subdoms_, surfdoms_);
     assemble_->SetGraphType(NODEGRAPH);
-    assemble_->SetMesh2PDENode(&mesh2PDENode_);
 
 #ifdef USE_OLAS
   assemble_->SetMatrixEntryType(OLAS::DOUBLE);
@@ -734,10 +736,6 @@ void MechPDE::CalcAcousticCouplingRHS(StdVector<Elem*> * couplingElems,
       bilinear_mass->CalcElementMatrix(ptCoord, elemmat);
       delete bilinear_mass;	  
 
-
-      //StdVector<Integer> connect_PDE;
-      //Mesh2PDENode(connect_PDE, connecth, mesh2PDENode_);
-      
       Vector<Double> sol;
       GetDerivSolVecOfElement(sol, connecth);	 
 

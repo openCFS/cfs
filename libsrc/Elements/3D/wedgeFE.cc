@@ -42,7 +42,7 @@ WedgeFE::~WedgeFE()
 
 void WedgeFE::SetIntPoints()
 {
-  ENTER_FCN( "WedgeFE::SetIntPoints" );
+  ENTER_IFCN( "WedgeFE::SetIntPoints" );
 
     switch(IntegType)
       {

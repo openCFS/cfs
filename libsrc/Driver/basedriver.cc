@@ -14,9 +14,8 @@ namespace CoupledField
 
 BaseDriver :: BaseDriver(Domain * adomain)
 {
-#ifdef TRACE
-  (*trace) << "entering BaseDriver::BaseDriver" << std::endl;
-#endif
+  ENTER_FCN( "BaseDriver::BaseDriver" );
+
   ptdomain_ = adomain;
 
   nummeshes_=0;
@@ -25,18 +24,14 @@ BaseDriver :: BaseDriver(Domain * adomain)
 
 BaseDriver :: ~BaseDriver()
 {
-#ifdef TRACE
-  (*trace) << "entering BaseDriver::~BaseDriver" << std::endl;
-#endif
+  ENTER_FCN( "BaseDriver::~BaseDriver" );
 
 }
 
 // for computation with adaptivity
 Boolean BaseDriver::printMeshesOrNot()
 {
-#ifdef TRACE
-  (*trace) << " entering BaseDriver :: DefinePrintMeshesOrNot \n";
-#endif
+  ENTER_FCN( "BaseDriver::DefinePrintMeshesOrNot" );
   
   Boolean meshesInfo=FALSE;
   std::string typeForMeshesInfo;
@@ -67,9 +62,7 @@ Boolean BaseDriver::printMeshesOrNot()
 
 void BaseDriver :: PrintSeqMeshes()
 {
-#ifdef TRACE
-  (*trace) << "entering BaseDriver :: PrintSeqMeshes" << std::endl;
-#endif
+  ENTER_FCN( "BaseDriver::PrintSeqMeshes" );
 
    if (nummeshes_) {
      ptMeshes_->OpenFile(nummeshes_);

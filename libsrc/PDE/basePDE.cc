@@ -21,7 +21,10 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
    residualStopCrit_(1e-3),
    firstTimeStepStatic_(TRUE),
    isaxi_(FALSE),
-   isComplex_(FALSE)
+   isComplex_(FALSE),
+   numPDENodes_(0),
+   numElems_(0),
+   sol_(NULL)
 {
 
   ENTER_FCN( "BasePDE::BasePDE" );
@@ -798,7 +801,7 @@ Integer BasePDE::GetNumRestraints(const Integer level)
       res+=ptBCs_->GetNumNodesLevel(bcs_hd_[i]);
     }
 
-  for (i=0; i<bcs_id_.GetSize(); i++)
+   for (i=0; i<bcs_id_.GetSize(); i++)
     {
       res+=ptBCs_->GetNumNodesLevel(bcs_id_[i]);
     }
@@ -1179,7 +1182,6 @@ void BasePDE::CalcInputCoupling()
 	  for (Integer dof=0; dof<couplingDof; dof++)
 	    for (Integer j=0; j<nodes->GetSize(); j++)
 	      {
-		//PDEnode = mesh2PDENode_[(*nodes)[j]-1];
 		pdeEQN = eqnData_->Node2EQN((*nodes)[j],dof);
 		if (pdeEQN==0)
 		  {
@@ -1210,7 +1212,6 @@ void BasePDE::CalcInputCoupling()
 	  for (Integer dof=0; dof<ptCoupling_->GetInputDof(i); dof++)
 	    for (Integer j=0; j<nodes->GetSize(); j++, couplingBCsCounter_++)
 	      {
-		//PDEnode = mesh2PDENode_[(*nodes)[j]-1];
 		pdeNode = eqnData_->Node2EQN((*nodes)[j],dof);
 		if (pdeNode==0)
 		  Error("The specified coupling node has no equation number"
@@ -1252,141 +1253,6 @@ void BasePDE::CalcInputCoupling()
   // ======================================================
 
 
-void BasePDE::Mesh2PDENode(StdVector<Integer> & PDENodes, 
-			   const StdVector<Integer> & MeshNodes,
-			   const StdVector<Integer> & Mesh2PDENode)
-{
-
-  ENTER_FCN( "BasePDE::Mesh2PDENode " );
-
-  PDENodes.Resize(MeshNodes.GetSize());
-  
-  for (Integer i=0; i<MeshNodes.GetSize(); i++) 
-     PDENodes[i] = Mesh2PDENode[MeshNodes[i]-1];
-}
-
-
-
-
-void BasePDE::PDE2MeshNode(StdVector<Integer> & meshNodes, 
-			   const StdVector<Integer> & pdeNodes,
-			   const StdVector<Integer> & pde2MeshNode)
-{
-
-  ENTER_FCN( "BasePDE::PDE2MeshNode " );
-
-  meshNodes.Resize(pdeNodes.GetSize());
-
-  for (Integer i=0; i<pdeNodes.GetSize(); i++)
-    meshNodes[i] = pde2MeshNode[pdeNodes[i]-1];
-
-#ifdef DEBUG
-  (*debug) << "--------------------" << std::endl;
-  (*debug) << " PDE2MeshNode()" << std::endl;
-  for (Integer i=0; i<pdeNodes.GetSize(); i++)
-    (*debug) << "in: " << pdeNodes[i] << " out: " << meshNodes[i] << std::endl;
-#endif
-}
-
-
-
-
-void BasePDE::AssignPDENodeNumbers(StdVector<Integer> & mesh2PDENode,
-			  StdVector<Integer> & pde2MeshNode,
-			  const StdVector<std::string> & subdoms)
-{
-
-  ENTER_FCN( "BasePDE:AssignPDENodeNumbers:" );
-
-  // Initialize Mesh2PDENode and PDE2MeshNode
-  mesh2PDENode.Resize(ptgrid_->GetMaxnumnodes(actlevel_));
-  mesh2PDENode.Init(-1);
-  StdVector<Elem*> SD;
-  Integer nodecounter = 1;
-
-#ifdef ADAPTGRID
-  std::cout << "NO MAPPING OF NODES!! " << std::endl << std::endl;
-  
-  PDEMeshNode_.Resize(ptgrid_->GetMaxnumnodes(actlevel_),-1);
-  for (Integer i=0;i<ptgrid_->GetMaxnumnodes(actlevel_);i++)
-    {
-      mesh2PDENode_[i] = i+1;
-      pde2MeshNode_[i] = i+1;
-    }
-  numPDENodes_ = pde2MeshNode_.GetSize();
-  
-  return;
-#endif  
-
-  // Iterate over Subdomains
-  for (Integer i=0; i<subdoms.GetSize(); i++)
-    {
-      ptgrid_->GetElemSD(SD,subdoms[i],actlevel_);
-      // Iterate over all elements in subdomain
-      for (Integer j=0; j<SD.GetSize(); j++)
-	{
-	  // Iterate over all element nodes
-	  for (Integer numNodes=0; numNodes<SD[j]->connect.GetSize(); numNodes++)
-	    {
-	      // Check if node was already assigned
-	      if (mesh2PDENode[SD[j]->connect[numNodes] - 1] == -1)
-		{
-		  mesh2PDENode[SD[j]->connect[numNodes] - 1] = nodecounter;
-		  pde2MeshNode.Push_back(SD[j]->connect[numNodes]);
-		  nodecounter++;
-		}
-	    }
-	}
-    }
-
-  numPDENodes_ = pde2MeshNode_.GetSize();
-  
-}
-
-void BasePDE::AssignPDEElemNumbers(StdVector<Integer> & mesh2PDEElem,
-				   StdVector<Integer> & pde2MeshElem,
-				   const StdVector<std::string> & subdoms)
-{
-
-  ENTER_FCN( "BasePDE::AssignPDEElemNumbers" );
-
-  // Resize mesh2PDEElem and pde2MeshElem to correct size
-  // and initialize with -1 = not assigned to PDE
-  mesh2PDEElem.Resize(ptgrid_->GetMaxnumElem(actlevel_));
-  mesh2PDEElem.Init(-1);
-  pde2MeshElem.Resize(ptgrid_->GetMaxnumElem(actlevel_,subdoms));
-  pde2MeshElem.Init(-1);
-
-  //std::cerr << "mesh2PDEElem.size = " << mesh2PDEElem.GetSize() << std::endl;
-  //std::cerr << "PDE2meshElem.size = " << pde2MeshElem.GetSize() << std::endl;
-  StdVector<Elem*> SD;
-  Integer elemCounter = 1;
-
-
-  // Iterate over Subdomains
-  for (Integer iSD=0; iSD<subdoms.GetSize(); iSD++)
-    {
-      ptgrid_->GetElemSD(SD,subdoms[iSD],actlevel_);
-
-      // Iterate over all elements in subdomain
-      for (Integer iElem=0; iElem<SD.GetSize(); iElem++)
-	{
-	  //std::cerr << "assigning mesh2PDEElem[SD[iElem]->elemNum - 1 ] = elemCounter: ";
-	  //std::cerr << SD[iElem]->elemNum - 1 << "=" << elemCounter << std::endl;
-	  //std::cerr << "assigning pde2MeshElem[elemCounter-1] = SD[iElem]->elemNum: ";
-	  //std::cerr << elemCounter-1 << " = " << SD[iElem]->elemNum << std::endl;
-	  mesh2PDEElem[SD[iElem]->elemNum - 1 ] = elemCounter;
-	  pde2MeshElem[elemCounter-1] = SD[iElem]->elemNum;
-	  elemCounter++;
-	}
-      
-    }
-  
-  numElems_ = mesh2PDEElem.GetSize();
-  
-				  
-}
-     
 
 void BasePDE::GetElemCoords(const StdVector<Integer> connect, 
 			    Matrix<Double> &coordMat, 
@@ -1394,16 +1260,19 @@ void BasePDE::GetElemCoords(const StdVector<Integer> connect,
 {
 
   ENTER_FCN( "BasePDE::GetElemCoords" );
+  Integer pdeNode;
 
   ptgrid_->GetCoordNodesElemMat(connect, coordMat, level);
   
   if (deltCoords_.GetSizeRow() != 0 && geoUpdate_ == TRUE)
     {
       for (Integer i=0; i<coordMat.GetSizeRow(); i++)
-	for (Integer j=0; j<coordMat.GetSizeCol(); j++) 
-	  coordMat(i,j) += deltCoords_(i,mesh2PDENode_ [connect[j] - 1] - 1);
+	for (Integer j=0; j<coordMat.GetSizeCol(); j++) {
+	  pdeNode = eqnData_->Mesh2PDENode(connect[j]);
+	  //coordMat(i,j) += deltCoords_(i,mesh2PDENode_ [connect[j] - 1] - 1);
+	  coordMat(i,j) += deltCoords_(i, pdeNode - 1);
+	}
     }
-
 }
 
 
