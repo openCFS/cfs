@@ -1,0 +1,153 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org"
+  xmlns:cfs="http://www.cfs++.org"
+  elementFormDefault="qualified">
+
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Coupled Field Solver project CFS++
+      Schema description for Preconditioner parameters
+    </xsd:documentation>
+  </xsd:annotation>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of basic Preconditioner data type -->
+  <!-- ******************************************************************** -->
+
+  <!-- This is an abstract basic type so that it cannot appear in an -->
+  <!-- instance document -->
+  <xsd:complexType name="DT_PrecondBasic" abstract="true"/>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of basic Preconditioner element -->
+  <!-- ******************************************************************** -->
+
+  <!-- This element is abstract in order to force substitution -->
+  <!-- by the derived specialised Preconditioner elements -->
+  <xsd:element name="PrecondBasic" type="DT_PrecondBasic" abstract="true"/>
+
+
+  <!-- ==================================================================== -->
+  <!-- ==                                                                == -->
+  <!-- ==               HYPRE_ILU / Euclid Preconditioner                == -->
+  <!-- ==                                                                == -->
+  <!-- ==================================================================== -->
+
+
+  <!-- ******************************************************************** -->
+  <!-- Definition of element for HYPRE_ILU Preconditioner -->
+  <!-- ******************************************************************** -->
+  <xsd:element name="hypreILU" type="DT_PrecondEuclid"
+    substitutionGroup="PrecondBasic"/>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for HYPRE_ILU Preconditioner -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_PrecondEuclid">
+    <xsd:complexContent>
+      <xsd:extension base="DT_PrecondBasic">
+        <xsd:sequence>
+          <xsd:element name="level"  type="xsd:positiveInteger" minOccurs="0"/>
+          <xsd:element name="stats"  type="DT_CFSBool" minOccurs="0"/>
+          <xsd:element name="memory" type="DT_CFSBool" minOccurs="0"/>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+
+  <!-- ==================================================================== -->
+  <!-- ==                                                                == -->
+  <!-- ==              HYPRE_SPAI / ParaSails Preconditioner             == -->
+  <!-- ==                                                                == -->
+  <!-- ==================================================================== -->
+
+
+  <!-- ******************************************************************** -->
+  <!-- Definition of element for HYPRE_ILU Preconditioner -->
+  <!-- ******************************************************************** -->
+  <xsd:element name="hypreSPAI" type="DT_PrecondParaSails"
+    substitutionGroup="PrecondBasic"/>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for HYPRE_ILU Preconditioner -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_PrecondParaSails">
+    <xsd:complexContent>
+      <xsd:extension base="DT_PrecondBasic">
+        <xsd:sequence>
+          <xsd:element name="thresh" type="DT_PrecondSPAIInterval"
+            minOccurs="0"/>
+          <xsd:element name="levels" type="xsd:positiveInteger" minOccurs="0"/>
+          <xsd:element name="filter" type="DT_PrecondSPAIInterval"
+            minOccurs="0"/>
+          <xsd:element name="symmetry" minOccurs="0">
+            <xsd:simpleType>
+              <xsd:restriction base="xsd:integer">
+                <xsd:enumeration value="0"/>
+                <xsd:enumeration value="1"/>
+                <xsd:enumeration value="2"/>
+              </xsd:restriction>
+            </xsd:simpleType>
+          </xsd:element>
+          <xsd:element name="loadBalance" type="DT_CFSBool" minOccurs="0"/>
+          <xsd:element name="reuse" type="DT_CFSBool" minOccurs="0"/>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- Data type for specifying value in the interval [-1,1] -->
+  <xsd:simpleType name="DT_PrecondSPAIInterval">
+    <xsd:restriction base="xsd:float">
+      <xsd:minInclusive value="-1"/>
+      <xsd:maxInclusive value="1"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+
+  <!-- ==================================================================== -->
+  <!-- ==                                                                == -->
+  <!-- ==               HYPRE_AMG / BoomerAMG Preconditioner             == -->
+  <!-- ==                                                                == -->
+  <!-- ==================================================================== -->
+
+
+  <!-- ******************************************************************** -->
+  <!-- Definition of element for HYPRE_AMG Preconditioner -->
+  <!-- ******************************************************************** -->
+  <xsd:element name="hypreAMG" type="DT_PrecondBoomerAMG"
+    substitutionGroup="PrecondBasic"/>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for HYPRE_ILU Preconditioner -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_PrecondBoomerAMG">
+    <xsd:complexContent>
+      <xsd:extension base="DT_PrecondBasic">
+        <xsd:sequence>
+          <xsd:element name="maxLevels" type="xsd:positiveInteger"
+            minOccurs="0"/>
+          <xsd:element name="alpha" type="DT_FloatUnitInterval" minOccurs="0"/>
+          <xsd:element name="numSweeps" type="xsd:positiveInteger"
+            minOccurs="0"/>
+          <xsd:element name="cycleType" minOccurs="0">
+            <xsd:simpleType>
+              <xsd:restriction base="xsd:integer">
+                <xsd:enumeration value="1"/>
+                <xsd:enumeration value="2"/>
+              </xsd:restriction>
+            </xsd:simpleType>
+          </xsd:element>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+</xsd:schema>
