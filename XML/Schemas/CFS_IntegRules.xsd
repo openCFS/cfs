@@ -46,7 +46,6 @@
   <xsd:complexType name="DT_IntegRules">
     <xsd:sequence>
       <xsd:element name="line"      type="DT_IntegElemRule" minOccurs="0" />
-      <xsd:element name="quad"      type="DT_IntegElemRule" minOccurs="0" />
       <xsd:element name="rectangle" type="DT_IntegElemRule" minOccurs="0" />
       <xsd:element name="triangle"  type="DT_IntegElemRule" minOccurs="0" />
       <xsd:element name="hexa"      type="DT_IntegElemRule" minOccurs="0" />
