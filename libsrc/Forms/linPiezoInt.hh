@@ -191,7 +191,7 @@ namespace CoupledField
     //! we have three mechanical and one potential component.
     virtual Integer getNrDofs(){ return 4; };
 
-    //! Damps DMat with the factor $(1+j*\omega*\beta)$
+    //! Damps DMat with the factor \f$(1+j*\omega*\beta)\f$
     void calcDMaterialMatWithComplexDamping(Matrix<Complex> &dMat, Double &beta, Double &omega);
 
   };
@@ -284,7 +284,7 @@ namespace CoupledField
     //!
     virtual Integer getNrDofs(){ return 3; };
     
-    //! Damps DMat with the factor $(1+j*\omega*\beta)$
+    //! Damps DMat with the factor \f$(1+j*\omega*\beta)\f$
     void calcDMaterialMatWithComplexDamping(Matrix<Complex> & dMat, Double & beta, Double & omega);
 
   };
@@ -360,7 +360,7 @@ namespace CoupledField
     //! we have two mechanical and one potential component.
     virtual Integer getNrDofs(){ return 3; };  
 
-    //! Damps DMat with the factor $(1+j*\omega*\beta)$
+    //! Damps DMat with the factor \f$(1+j*\omega*\beta)\f$
     void calcDMaterialMatWithComplexDamping(Matrix<Complex> &dMat, Double &beta, Double &omega);
 
   };
