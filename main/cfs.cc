@@ -14,6 +14,7 @@
 #endif
 
 #include "Utils/myclock.hh"
+#include "Utils/tracing.hh"
 #include "DataInOut/DefineFiles/definefiles.hh"
 #include "DataInOut/timefunc.hh"
 #include "DataInOut/WriteInfo.hh"
@@ -64,6 +65,15 @@ int main(int argc, char *argv[])
 	    PrintGridOnly = TRUE;
 	    numargs++;
 	  }
+#ifdef TRACE
+	else if (!strcmp("-notrace", argv[i])) 
+	  {
+
+	    OutInfo::FcnTraceHandler::SetMaxTraceDepth(0);
+	    numargs++;
+	  }
+#endif
+	
       }
   
 #ifdef PARALLEL //initialize MPI
@@ -87,6 +97,9 @@ int main(int argc, char *argv[])
 	     << std::endl 
 	     << "\t \033[36m options \033[0m: -skel for writing a skeleton of a config-file" << std::endl 
 	     << "\t            -grid for writing just the grid to result-file" << std::endl 
+#ifdef DEBUG
+	     << "\t            -notrace prevent writing a trace file" << std::endl 
+#endif
 	     << std::endl ;
       std::cerr << std::endl << "\033[31mERROR:\033[0m " << "Invalid Running of CFS" << std::endl;
       exit(1);
