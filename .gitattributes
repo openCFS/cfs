@@ -249,9 +249,13 @@ libsrc/PDE/timestepping.hh svneol=native#text/plain
 libsrc/PDE/trapezoidal.cc svneol=native#text/plain
 libsrc/PDE/trapezoidal.hh svneol=native#text/plain
 libsrc/ParamIdent/Makefile -text
+libsrc/Utils/ApproxData.cc svneol=native#text/plain
+libsrc/Utils/ApproxData.hh svneol=native#text/plain
 libsrc/Utils/Coil.cc svneol=native#text/plain
 libsrc/Utils/Coil.hh svneol=native#text/plain
 libsrc/Utils/Makefile -text
+libsrc/Utils/SmoothSpline.cc svneol=native#text/plain
+libsrc/Utils/SmoothSpline.hh svneol=native#text/plain
 libsrc/Utils/basestoresol.hh svneol=native#text/plain
 libsrc/Utils/cfsvector.hh svneol=native#text/plain
 libsrc/Utils/debugger.cc svneol=native#text/plain

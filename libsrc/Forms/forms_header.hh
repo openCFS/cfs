@@ -14,4 +14,5 @@
 #include "smoothInt.hh"
 #include "curlCurlNodeInt.hh"
 #include "linPiezoInt.hh"
+#include "nLincurlCurlNodeInt.hh"
 #endif

@@ -5,6 +5,7 @@
 #include "basefe.hh"
 #include <Utils/tools.hh> 
 #include <Matrix/matrix.hh>
+#include <DataInOut/WriteInfo.hh> 
  
 namespace CoupledField
 {
@@ -84,8 +85,12 @@ void BaseFE :: GetGlobDerivShFncAtIp(Matrix<Double> & Deriv,
   JInv.Determinant(JInvDet);
   jacDet = 1.0 / JInvDet;
 
-  if ( jacDet < 0.0 )
+  if ( jacDet < 0.0 ) {
+    std::string msg = "Coordinates: ";
+    Info->PrintMatrix(msg, CornerCoords);
+    std::cout << "Jdet = " << jacDet << std::endl;
     Error( "Negative Jacobian determinante ", __FILE__, __LINE__ );
+  }
 
 }
 

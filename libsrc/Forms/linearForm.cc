@@ -2,8 +2,7 @@
 #include <fstream>
 #include <math.h>
 
-#include "linearForm.hh"
-
+#include "forms_header.hh"
 
 namespace CoupledField
 {
@@ -245,6 +244,77 @@ namespace CoupledField
 #endif
 
   }
+
+
+  // ==================================================================
+  // nLinMagnetics
+  // ==================================================================
+
+
+  nLinMagNode2D_linFormInt::nLinMagNode2D_linFormInt(BaseFE * aptelem, MaterialData & matData, 
+						     Boolean isaxi) 
+    : LinearForm(aptelem), matData_(matData)
+  {
+    ENTER_FCN( "nLinMagNode2D_linFormInt::nLinMagNode2D_linFormInt" );
+    isaxi_ = isaxi;
+  }
+
+
+  nLinMagNode2D_linFormInt::nLinMagNode2D_linFormInt(ApproxData *nlinFnc, Double startVal, 
+						     Boolean axi)
+    : LinearForm()
+  {
+    ENTER_FCN( "nLinMagNode2D_linFormInt::nLinMagNode2D_linFormInt" );
+
+    isaxi_       = axi;
+    startmatVal_ = startVal;
+    nlinFnc_     = nlinFnc;
+  }
+  
+  nLinMagNode2D_linFormInt::nLinMagNode2D_linFormInt(Double startVal, Boolean axi)
+    : LinearForm()
+  {
+    ENTER_FCN( "nLinMagNode2D_linFormInt::nLinMagNode2D_linFormInt" );
+
+    isaxi_       = axi;
+    startmatVal_ = startVal;
+    nlinFnc_     = NULL;   //since this is a linear subdomain
+  }
+
+  nLinMagNode2D_linFormInt ::~ nLinMagNode2D_linFormInt()
+  {
+    ENTER_FCN( "nLinMagNode2D_linFormInt ::~nLinMagNode2D_linFormInt" );
+
+  }
+
+  void nLinMagNode2D_linFormInt::CalcElemVector(Matrix<Double>& ptCoord, std::vector<Double> & elemVec)
+  {
+    ENTER_FCN("nLinMagNode2D_linFormInt :: ~CalcElemVector" );
+
+    const Integer nrNodes  = ptelem->GetNumNodes();
+
+    BaseForm * curlcurl2D;
+    if (nlinFnc_== NULL) 
+      //define the linear element matrix
+      curlcurl2D = new CurlCurlNode2DInt(startmatVal_, isaxi_);
+    else {
+      //define the nonlinear element matrix
+      curlcurl2D = new nLinCurlCurlNode2DInt(nlinFnc_, startmatVal_, isaxi_);
+
+      //set the element solution vector to the bilinearform
+      curlcurl2D->SetActElemSol(magPotinMatrix_);
+    }
+
+    //set the element-pointer
+    curlcurl2D->SetElemPtr(ptelem);
+
+    Matrix<Double> elemmat;
+    curlcurl2D->CalcElementMatrix(ptCoord, elemmat);
+    
+    elemVec.resize(nrNodes);
+    elemVec = -elemmat * magPot_;
+  }
+
 
 
 

@@ -429,6 +429,11 @@ namespace CoupledField
     *cfsInfo << std::endl;
   }
 
+  void WriteInfo::PrintMatrix(std::string &comment, const Matrix<Double> &mat)
+  {
+    ENTER_FCN( "WriteInfo::PrintMatrix" );
+    *cfsInfo << comment << myEndl << mat << myEndl << myEndl;
+  }
 
   
   // prints warning to info-file

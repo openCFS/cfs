@@ -456,53 +456,55 @@ namespace CoupledField
 
     for (int actDom=0; actDom < subdoms_.size(); actDom++)
       {	
-	std::vector<Elem*> elemssd;
-	ptgrid_->GetElemSD(elemssd, subdoms_[actDom], level);
-
-
-	for (int actEl=0; actEl< elemssd.size(); actEl++)
+	if (rhsIntegrators_[actDom]->size())
 	  {
-	    BaseFE * ptEl = elemssd[actEl]->ptElem;
-	    Vector<Integer> connecth = elemssd[actEl]->connect;
-
-
-	    Matrix<Double> ptCoord;
-	    GetElemCoords(connecth, ptCoord, level);
-
-
-	    // map connect to PDE node numbers
-	    Vector<Integer> connect_PDE;
-	    Mesh2PDENode(connect_PDE, connecth, *mesh2PDENode_);
-
-
-	    Matrix<Double> elSol;
-
-	    sol_->GetElemSolutionAsMatrix(elSol, connect_PDE);
-	      
+	    std::vector<Elem*> elemssd;
+	    ptgrid_->GetElemSD(elemssd, subdoms_[actDom], level);
 	    
-	    // ================================================================
-	    //                             assemble RHS
-	    // ================================================================
-
-	    for(Integer actRhsInt=0; actRhsInt < rhsIntegrators_[actDom]->size(); actRhsInt++)
+	    for (int actEl=0; actEl< elemssd.size(); actEl++)
 	      {
-		BaseIntDescriptor * actRhsID = (*rhsIntegrators_[actDom])[actRhsInt];
-
-		actRhsID->GetIntegrator()->SetElemPtr(ptEl);
-
-		if (actRhsID->IsNonLin())
-		  actRhsID->GetIntegrator()->SetActElemSol(elSol);
-
+		BaseFE * ptEl = elemssd[actEl]->ptElem;
+		Vector<Integer> connecth = elemssd[actEl]->connect;
 		
-		std::vector<Double> elemVec;
-		actRhsID->GetIntegrator()->CalcElemVector(ptCoord, elemVec);
 		
-		algsys_->SetElementRHS(&elemVec[0], connect_PDE.GetPointer(), connect_PDE.GetSize());
+		Matrix<Double> ptCoord;
+		GetElemCoords(connecth, ptCoord, level);
+		
+		
+		// map connect to PDE node numbers
+		Vector<Integer> connect_PDE;
+		Mesh2PDENode(connect_PDE, connecth, *mesh2PDENode_);
+		
+		
+		Matrix<Double> elSol;
+		
+		sol_->GetElemSolutionAsMatrix(elSol, connect_PDE);
+		
+		
+		// ================================================================
+		//                             assemble RHS
+		// ================================================================
+		
+		for(Integer actRhsInt=0; actRhsInt < rhsIntegrators_[actDom]->size(); actRhsInt++)
+		  {
+		    BaseIntDescriptor * actRhsID = (*rhsIntegrators_[actDom])[actRhsInt];
+		    
+		    actRhsID->GetIntegrator()->SetElemPtr(ptEl);
+		    
+		    if (actRhsID->IsNonLin())
+		      actRhsID->GetIntegrator()->SetActElemSol(elSol);
+		    
+		    
+		    std::vector<Double> elemVec;
+		    actRhsID->GetIntegrator()->CalcElemVector(ptCoord, elemVec);
+		    
+		    algsys_->SetElementRHS(&elemVec[0], connect_PDE.GetPointer(), connect_PDE.GetSize());
+		  }
 	      }
 	  }
       }
   }
-
+  
 
   Integer Assemble::
   GetBCDof(const std::string dofString)

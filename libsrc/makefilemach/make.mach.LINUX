@@ -3,7 +3,7 @@
 # 
 
 OPT=-O3 -mcpu=pentium
-STANDARD=-ansi -Wall -pedantic -Wno-long-long
+STANDARD=-ansi -pedantic -Wno-long-long
 #
 F77=g77 $(OPT)
 CC=g++ 
