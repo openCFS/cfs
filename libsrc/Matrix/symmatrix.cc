@@ -429,6 +429,46 @@ default:
 
 }
 
+template<>
+void SymMatrix<Double>::CholerskyDecomposition()
+{
+#ifdef TRACE
+  (*trace) << " entering CholerskyDecomposition\n";
+#endif
+
+  // CholerskyDecomposition A=BB^T.
+  // We store B matrix as lower triangular matrix in memory of A. It means that A is destroyed (:.
+
+  p[0][0]=std::sqrt(p[0][0]);
+  
+  Integer i,j,k;
+  for (i=1; i<size; i++) 
+    {
+      Double sum=0;
+
+      for (j=0; j<i; j++)
+	{
+	  sum=0;
+	  for (k=0; k<j; k++)
+	    sum+=p[i][k]*p[j][k];
+
+	  p[i][j]=(p[i][j]-sum)/p[j][j];
+	}
+
+      sum=0;
+       for (j=0; j<i; j++)
+	sum+=sqr(p[i][j]);
+	
+      p[i][i]=std::sqrt(p[i][i]-sum);
+    } 
+}
+
+template<>
+void SymMatrix<Integer>::CholerskyDecomposition()
+{
+  Error("For Integer matrix is not implemented");
+}
+
 template<class S>
 std::ostream & operator << (std::ostream & out, const SymMatrix<S> & mat)
 {

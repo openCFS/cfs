@@ -45,6 +45,9 @@ public:
   //! Get coordinate of all nodes that belong to elem ie
   virtual void GetCoordNodesElem(const Vector<Integer> connect, Point<dim> * ptCoord, const Integer level);
 
+  //! 
+  virtual void GetCoordNodesElemMat(const Vector<Integer> connect, Matrix<Double>& coordMat, const Integer level);
+
   //! Get connection of element
   virtual void GetConnection(Vector<Integer> & connect, const Integer iElem, const Integer level);
 
@@ -78,17 +81,15 @@ public:
   virtual std::vector<std::string> *GetAllSDs();
 
  //! restore initial coarse mesh
-  virtual void RestoreInitialMesh();
+  virtual void ResetToCoarseGrid();
 
   //! in this function we calculate area of element
   virtual Double CalcAreaElem(const Elem* elem)
   { return ptgridcfs_->CalcAreaElem(elem);}
 
   //! Do refinement of elements, which we mark through function SetRefinementFlag
-  virtual void Refine();
+  virtual void Refine(const Integer numLoops = 1);
   virtual void RefineUniform();
-  virtual void TestRefine();
-  virtual void TestCoarse();
 
   void FormNeighbors4NodesOfElements(const std::vector<Elem*> &elems, std::vector<std::vector<Elem*> > &nodeNeighbors, std::vector<Integer> & map)
   { ptgridcfs_->FormNeighbors4NodesOfElements(elems, nodeNeighbors,  map);}
@@ -98,22 +99,17 @@ public:
   { ptgridcfs_->DefineBelonging4Elems(elemsSurf,elems,belongingSE);}
 
     //!
-  virtual void GetInterfaceNeighbours(std::vector<Elem*> & Interface, std::vector<Elem*> & Next2Surf, std::vector<Elem*> & Neighbours)
-  {  ptgridcfs_->GetInterfaceNeighbours(Interface, Next2Surf, Neighbours);}
+  virtual void GetInterfaceNeighbours(std::vector<Integer> & Interface, 
+				      std::vector<std::string> & subdoms, 
+				      std::vector<Elem*> & Neighbours,
+				      Integer level)
+  {  ptgridcfs_->GetInterfaceNeighbours(Interface, subdoms, Neighbours, level);}
 
   //!
-   virtual void CalcNumberOfNodesInPatch(const std::vector<Elem*> & patch, std::vector<Integer> & map)
+   virtual void CalcNumberOfNodesInPatch(const std::vector<Elem*> & patch,
+					 std::vector<Integer> & map)
   { ptgridcfs_->CalcNumberOfNodesInPatch(patch,map);}
 
-  //!
-  void forEachElemSd(SetRefFlag & f,const std::string subdomain);
-  void forEachElemSd(SetRefFlagTest & f,const std::string subdomain);
-
-  //   virtual void forEachElemSd(PutElemMatInAlgSys & f,const std::string subdomain);
-  //   virtual void forEachElemSd(PutElemMatAlgSysElst3d & f,const std::string subdomain);
-
- 
-  
 private:
 
   BCs * ptBCs;
@@ -129,8 +125,8 @@ private:
 
 #ifdef ADAPTGRID
   //!
-  std::vector<grd::Vertex*> vertex_;
-  std::vector<grd::Element*> elems_;
+  std::vector<grd::Vertex*> vertices_;
+  std::vector<grd::Element*> elements_;
 
   //!
   grd::MultilevelGrid grid_;

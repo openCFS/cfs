@@ -9,6 +9,7 @@
 #include "Domain/GridCFS/grid_cfs.hh"
 
 #ifdef ADAPTGRID
+#include "DataInOut/conffile.hh"
 #include "Triangle.h"
 #include "Tetrahedron.h"
 #include "Hexahedron.h"
@@ -17,9 +18,9 @@
 namespace CoupledField
 {
 
-  AnsysFile :: AnsysFile(const Char * const afilename)
-    :FileType(afilename)
-  {
+AnsysFile::AnsysFile(const Char * const afilename)
+:FileType(afilename)
+{
 #ifdef TRACE
     (*trace) << "entering AnsysFile::AnsysFile" << std::endl;
 #endif
@@ -33,77 +34,77 @@ namespace CoupledField
     pos_end=infile.tellg();
 
     dim_=ReadDim();
-  }
+}
   
-  AnsysFile :: ~AnsysFile()
-  {
+AnsysFile::~AnsysFile()
+{
 #ifdef TRACE
-    (*trace) << "entering AnsysFile::~AnsysFile" << std::endl;
+  (*trace) << "entering AnsysFile::~AnsysFile" << std::endl;
 #endif
+  
+  infile.close() ;
+}
 
-    infile.close() ;
-  }
-
-  Integer AnsysFile::ReadDim()
-  {
+Integer AnsysFile::ReadDim()
+{
 #ifdef TRACE
-    (*trace) << "entering AnsysFile::ReadDim" << std::endl;
+  (*trace) << "entering AnsysFile::ReadDim" << std::endl;
 #endif
-
+  
     Integer dim;
-
+    
     std::string::size_type pos=0;
     getPosition("Dimension", pos);
     infile.seekg(pos,std::ios::beg);
-
+    
     // std::string auxname;
     infile >> dim;
-
+    
     return dim;
-  }
+}
 
-  void AnsysFile::ReadCoordinate(Point<2> * const NodesCoord, const Integer maxnumnodes)
-  {
+void AnsysFile::ReadCoordinate(Point<2> * const NodesCoord, const Integer maxnumnodes)
+{
 #ifdef TRACE
-    (*trace) << "entering Ansys::ReadCoordinate 2D" << std::endl;
+  (*trace) << "entering Ansys::ReadCoordinate 2D" << std::endl;
 #endif
 
-    Integer i;
-    std::string::size_type pos=0;
-    getPosLine("[Nodes]", pos);
-    infile.seekg(pos,std::ios::beg);
-
-    Integer ibuf;
-
+  Integer i;
+  std::string::size_type pos=0;
+  getPosLine("[Nodes]", pos);
+  infile.seekg(pos,std::ios::beg);
+  
+  Integer ibuf;
+  
     for (i=0; i < maxnumnodes; i++)
       {
 	infile >> ibuf >> NodesCoord[i][0] >> NodesCoord[i][1] ;
 	infile.ignore(100,'\n');
       }
-  }
+}
 
-  void AnsysFile::ReadCoordinate(Point<3> * const NodesCoord, const Integer maxnumnodes)
-  {
+void AnsysFile::ReadCoordinate(Point<3> * const NodesCoord, const Integer maxnumnodes)
+{
 #ifdef TRACE
-    (*trace) << "entering Ansys::ReadCoordinate 3D" << std::endl;
+  (*trace) << "entering Ansys::ReadCoordinate 3D" << std::endl;
 #endif
-
-    Integer i;
-    std::string::size_type pos=0;
-    getPosLine("[Nodes]", pos);
-    infile.seekg(pos,std::ios::beg);
-
-    Integer ibuf;
-    for (i=0; i < maxnumnodes; i++)
+  
+  Integer i;
+  std::string::size_type pos=0;
+  getPosLine("[Nodes]", pos);
+  infile.seekg(pos,std::ios::beg);
+  
+  Integer ibuf;
+  for (i=0; i < maxnumnodes; i++)
       {
 	infile >> ibuf >> NodesCoord[i][0] >> NodesCoord[i][1] >>  NodesCoord[i][2];
 	infile.ignore(100,'\n');
       }
+  
+}
 
-  }
-
-  void AnsysFile::ReadMaxnumnodes(Integer & nnodes)
-  {
+void AnsysFile::ReadMaxnumnodes(Integer & nnodes)
+{
 #ifdef TRACE
     (*trace) << "entering Ansys::ReadMaxnumnodes" << std::endl;
 #endif
@@ -113,39 +114,39 @@ namespace CoupledField
     infile.seekg(pos,std::ios::beg);
 
     infile >> nnodes;
-  }
+}
 
-  void AnsysFile::ReadMaxnumelem(Integer & nelem,const std::string keyword)
-  {
-    std::string::size_type pos=0;
+void AnsysFile::ReadMaxnumelem(Integer & nelem,const std::string keyword)
+{
+  std::string::size_type pos=0;
     getPosition(keyword,pos);
     infile.seekg(pos,std::ios::beg);
-
+    
     infile >> nelem;
-  }
+}
 
-  void AnsysFile::ReadMaxnumnodesbc(Integer & nbc)
-  {
+void AnsysFile::ReadMaxnumnodesbc(Integer & nbc)
+{
     std::string::size_type pos=0;
     getPosition("NumNodeBC", pos);
     infile.seekg(pos,std::ios::beg);
 
     infile >> nbc;
-  }
+}
 
-  void AnsysFile::ReadBCs(std::list<Integer> * bcs, const std::vector<std::string> levels)
-  {
+void AnsysFile::ReadBCs(std::list<Integer> * bcs, const std::vector<std::string> levels)
+{
 #ifdef TRACE
     (*trace) << "entering Ansys::ReadBCs" << std::endl;
 #endif
- 
+    
     Integer numbc;
     ReadMaxnumnodesbc(numbc);
 
     std::string::size_type pos=0;
     getPosLine("Node BC", pos);
     infile.seekg(pos,std::ios::beg);
- 
+    
     std::string str;
 
     Integer nodalnum;
@@ -154,7 +155,7 @@ namespace CoupledField
       {
 	infile >> nodalnum >> str;
 	infile.ignore(100,'\n');
-
+	
 	Boolean Find=FALSE;
 	for (j=0; j<levels.size(); j++)
 	  { if (str==levels[j]) { Find=TRUE; break;}
@@ -165,16 +166,16 @@ namespace CoupledField
 
 	bcs[j].push_back(nodalnum);
       } 
-  }
+}
 
-  void AnsysFile::getPosLine(const std::string seekexp, std::string::size_type & pos)
-  {
+void AnsysFile::getPosLine(const std::string seekexp, std::string::size_type & pos)
+{
     infile.seekg(pos, std::ios::beg);
     std::string buf;
     pos=std::string::npos;
-
+    
     std::string::size_type hpos;
-
+    
     while (pos == std::string::npos && !infile.eof())
       {
 	hpos=infile.tellg();
@@ -197,14 +198,14 @@ namespace CoupledField
       }
     while (buf[0] == '#'); 
 
-  }
+}
 
-  void AnsysFile::getPosition(const std::string seekexp, std::string::size_type & pos)
-  {
+void AnsysFile::getPosition(const std::string seekexp, std::string::size_type & pos)
+{
     infile.seekg(pos, std::ios::beg);
     std::string buf;
     pos=std::string::npos;
-
+    
     std::string::size_type hpos;
 
     while (pos == std::string::npos && !infile.eof())
@@ -219,15 +220,15 @@ namespace CoupledField
 				 << ") Cannot find string: " << seekexp ;
     std::cerr << " in your dat file.\n\t\t Please, change your dat file."<< std::endl;
     exit(1);}
-  }
+}
 
 
-  void AnsysFile::ReadEl(std::vector<Elem*> * allelems, const std::vector<std::string> sd)
-  {
+void AnsysFile::ReadEl(std::vector<Elem*> * allelems, const std::vector<std::string> sd)
+{
 #ifdef TRACE
-    (*trace) << " entering AnsysFile::ReadEl " << std::endl;
+  (*trace) << " entering AnsysFile::ReadEl " << std::endl;
 #endif
-
+  
     switch(dim_)
       {
       case 2:
@@ -241,44 +242,44 @@ namespace CoupledField
   }
 
 #ifdef ADAPTGRID
-  void AnsysFile::ReadBCs_GridRG(std::vector<Integer> & idBCs,std::vector<Integer> &colorBCs)
-  {
+void AnsysFile::ReadBCs_GridRG(std::vector<Integer> & idBCs,std::vector<Integer> &colorBCs)
+{
 #ifdef TRACE
-    (*trace) << " entering AnsysFile::ReadGrid_RG " << std::endl;
+  (*trace) << " entering AnsysFile::ReadGrid_RG " << std::endl;
 #endif
   
-    std::vector<std::string> levels;
-    conf->getliststr("list_nodes",levels);
+  std::vector<std::string> levels;
+  conf->getliststr("list_nodes",levels);
+    
+  Integer numbc;
+  ReadMaxnumnodesbc(numbc);
 
-    Integer numbc;
-    ReadMaxnumnodesbc(numbc);
-
-    std::string::size_type pos=0;
-    getPosLine("Node BC", pos);
-    infile.seekg(pos,std::ios::beg);
- 
-    std::string str;
- 
-    Integer nodalnum;
-    Integer i,j;
-    for (i=0; i < numbc; i++)
+  std::string::size_type pos=0;
+  getPosLine("Node BC", pos);
+  infile.seekg(pos,std::ios::beg);
+    
+  std::string str;
+  
+  Integer nodalnum;
+  Integer i,j;
+  for (i=0; i < numbc; i++)
       {
 	infile >> nodalnum >> str;
 	infile.ignore(100,'\n');
-
+	
 	Boolean Find=FALSE;
 	for (j=0; j<levels.size(); j++)
 	  { if (str==levels[j]) { Find=TRUE; break;}
 	  }         
-
+	
 	std::string msg=str+"-this level of BCs from .mesh file is not mentioned in .config file. Please, check .config-file";
 	if (!Find) Error(msg.c_str(),__FILE__,__LINE__);
-
+	
 	idBCs.push_back(nodalnum);
 	colorBCs.push_back(j);
       } 
   
-  }
+}
 
   void AnsysFile::ReadGrid_RG(std::vector<grd::Element*> & elems, std::vector<grd::Vertex*> * vertex, const std::vector<std::string> sd)
   {
@@ -522,7 +523,6 @@ namespace CoupledField
 	getPosLine("2D Elements", pos);
 	infile.seekg(pos,std::ios::beg);
 
-	//	if (!ptTr || !ptQ || !ptTet)
 	if (!ptQ || !ptTr1)
 	  Error(" Pointers to BaseElem is not initialized",__FILE__,__LINE__);
 
@@ -558,7 +558,7 @@ namespace CoupledField
   }
 
 
-  void AnsysFile::ReadEl3d(std::vector<Elem*> * allelems, const std::vector<std::string> sd)
+void AnsysFile::ReadEl3d(std::vector<Elem*> * allelems, const std::vector<std::string> sd)
   {
 #ifdef TRACE
     (*trace) << " entering AnsysFile::ReadEl3d " << std::endl;

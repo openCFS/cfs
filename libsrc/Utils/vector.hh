@@ -110,7 +110,7 @@ public:
 
     if (i < 0 || i >= n)
       Error("Vector: invalid index in operator[]",__FILE__,__LINE__);
-    
+
     return  p[i];
 }
 

@@ -16,7 +16,7 @@ namespace CoupledField
 {
 
   //  LoadMaterialData::LoadMaterialData (const std::string aFilename)
-  LoadMaterialData::LoadMaterialData (const char * aFilename)
+LoadMaterialData::LoadMaterialData (const char * aFilename)
     :filename(aFilename),scaleMatDat(0)
   {
 #ifdef TRACE
@@ -26,7 +26,7 @@ namespace CoupledField
 
 
   // load material information from file "filename"
-  void LoadMaterialData :: GetMaterial( MaterialData& material, const std::string matName, const std::string matType)
+void LoadMaterialData::GetMaterial( MaterialData& material, const std::string matName, const std::string matType)
   {
 #ifdef TRACE
   if (trace) (*trace) << "Entering  LoadMaterialData::GetMaterial " << std::endl;
@@ -112,7 +112,7 @@ namespace CoupledField
 
 
   // read next line - ignor lines with char # in it
-  void LoadMaterialData :: ReadLine(std::ifstream & fin, char* buffer)
+void LoadMaterialData::ReadLine(std::ifstream & fin, char* buffer)
   {
 #ifdef TRACE
   if (trace) (*trace) << "Entering  LoadMaterialData::ReadLine " << std::endl;

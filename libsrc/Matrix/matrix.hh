@@ -188,6 +188,8 @@ public:
   /// converts a matrix into a vector, by appending successively all columns
   void ConvertToVec_AppendCols(std::vector<TYPE>& vec) const;
 
+  //
+  void CholerskyDecomposition();
   
 private:
   /// calculates the adjunct of the matrix at position (i,j)

@@ -9,7 +9,7 @@
 #include <DataInOut/timefunc.hh>
 #include <DataInOut/filetype.hh>
 #include <DataInOut/writeresults.hh>
-//#include <DataInOut/material.hh>
+
 #include <DataInOut/conffile.hh>
 #include <DataInOut/LoadMaterialData.hh>
 #include <DataInOut/MaterialData.hh>
@@ -19,18 +19,13 @@
 
 namespace CoupledField
 {
-
-
  
-class TimeErrorEstimator;
-
-
-template<Integer dim>
 class SpaceErrorEstimator;
 
  //! Base class for partial differential equation
   /*! Class BasePDE is base class, from which different type of PDEs are derived. 
    */
+
 class BasePDE
 {
 public:
@@ -129,8 +124,6 @@ public:
   virtual void SolveStepStaticNonLin(const Integer level)
   {Error("SolveStepStaticNonLin not implemented!",__FILE__,__LINE__);};
   
-
-
   /// solve one harmonic step
   /*!
     \param level level of grid
@@ -147,7 +140,8 @@ public:
     \param updatesysmat indicator: need we to update algebraic system. it is used for adaptive procedure in space
   */
 
-  virtual void SolveStepTrans(const Integer kstep, const Double asteptime, const Integer level, 
+  virtual void SolveStepTrans(const Integer kstep, const Double asteptime,
+			      const Integer level, 
 			      const Boolean updatesysmat)=0;
 
 
@@ -169,7 +163,16 @@ public:
   virtual void WriteResultsInFile()=0;  
 
 
-  //------------------------ get functions--------------------------------------------------------
+  //------------------------ functions for adaptivity process ---------------------
+
+  //! test error of calculation. return TRUE, if it is more then tolerance
+  virtual Boolean TestError(const Integer level);
+ 
+   //! refine mesh
+  virtual void RefineMesh(const Integer level=0);
+
+
+  //------------------------ get functions----------------------------------------
 
   //! return name of pde
   virtual std::string GetName() {return pdename_;}
@@ -247,56 +250,7 @@ public:
 
   //! return assignment array PDE2MeshNode
   std::vector<Integer> & GetPDE2MeshNode() {return PDE2MeshNode_;}
-  
-
-
-  //---------------------- part for adaptivity---------------------------------------
-
-  //! restore solution from previous step. it is used in time adaptive procedure
-  virtual void RestoreSol()
-  { Error("Function RestoreSol is not implemented in this class");}  
-
-  //! calculate energy norm
-  virtual  Double CalcEnergyNorm()
-  { 
-    Error("Function PDE::CalcEnergyNorm is not implemented in this class");
-    return Dval;
-  }
-  
-  //! refine mesh
-  virtual void RefineMesh()
-  { Error("Function BasePDE::RefineMesh is not implemented in this class");} 
-
-  //! test space error
-  virtual Boolean TestError()
-  { 
-    Error("Function BasePDE::TestError is not implemented in this class");
-    return Dbool;
-  }  
-
-  //! write additional info (marked elements, relative error) to files with mesh
-  virtual void PrintMeshesInfo(WriteResults * ptMehes)
-  { Error("Function BasePDE::PrintMeshesInfo is not implemented in this class");}
-
-  //! Create pointer to according class of time error estimation
-  virtual TimeErrorEstimator * CreatePtTimeError()
-  { 
-    Error("Function CreatePtTimeError is not overloaded in this class");
-    return DtimeErrorEst;
-  }  
-
-  //! solve one step for transient problem on new mesh. it is used in adaptive procedures for space
-  /*!
-    \param kstep number of calculating step
-    \param asteptime time of calculation
-    \param level level of grid
-  */
-  virtual void SolveStepTransNewMesh(const Integer kstep, const Double asteptime, const Integer level)
-  { 
-    Error("Not implemented",__FILE__,__LINE__);
-  }
-
-  
+    
   //! computes the coordinates of an element including the delta
   /*!
     \param connect (input) global node numbers of element
@@ -324,6 +278,16 @@ public:
   virtual void PDE2MeshNode(Vector<Integer> & MeshNodes, 
 			    const Vector<Integer> & PDENodes,
 			    const std::vector<Integer> & PDE2MeshNode);
+  
+  //! write information about relative error of calculation
+  void WriteErrorInfo(WriteResults * ptmeshes);
+
+  //!
+  void DeleteAlgSys(const Integer algsys_id);
+
+  //!
+  virtual void Reset()
+  { Error("Fnc is not implemented",__FILE__,__LINE__);}
   
 
 protected:
@@ -395,6 +359,9 @@ protected:
   /// Stores result vector in the multidimensional solution array sol_q
   void StoreVecToSolArray(std::vector<Double>& sol);
   
+  //! ----------------- functions for adaptivity
+  //! in this fnc we delete old pointer to Error-object & create new one
+  void ConstructorError();
 
   //! analysis type
   AnalysisType analysistype_;
@@ -467,7 +434,6 @@ protected:
   TimeStepping * TS_alg_;  //<! handels the time stepping
 
   Integer actlevel_; //! actual level
-  TimeErrorEstimator * ptTimeError_; //!< pointer to extimator
 
   Integer as_sysid_;
 
@@ -485,12 +451,19 @@ protected:
   std::vector<Double> val_loads_; //<! values of the load BC
   Integer updateBCs_;                 //!< set, if BCs already set
   
+
+  //! data for adaptivity
+  SpaceErrorEstimator * ptError_; //!<  object with methods for error estimation
+  Vector<Double> errorMap_; //!< array with error map
+  Vector<Double> markingElems_; //!< array where  store number of refinement for the element
+  Double tolSpaceErr_; //!< tolerance
+
   //Dummies, just for SUN compiler
   Array<Double> DVec;
   Double Dval;
   Integer Ival;
   Boolean Dbool;
-  TimeErrorEstimator *DtimeErrorEst;
+
 };
 
 } // end of namespace

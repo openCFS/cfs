@@ -2,7 +2,14 @@
 # Makefile for discretization
 #
 C_DIR=../../..
-src = interface_adgrid.cc 
+#
+include ../../../main/Makefile.option
+
+ifeq ($(Adaptivity),yes)
+   src = interface_adgrid.cc 
+else
+   src = 
+endif
 #
 lib = toadaptgrid
 libpath = libsrc/Domain/AdaptGrid

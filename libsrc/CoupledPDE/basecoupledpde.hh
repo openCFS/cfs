@@ -10,13 +10,8 @@
 
 namespace CoupledField
 {
-
  
-class TimeErrorEstimator;
 class PDECoupling;
-
-template<Integer dim>
-class SpaceErrorEstimator;
 
  //! Base class for coupling between different PDEs
   /*! Class BaseCoupledPDE is base class for coupled PDE problems

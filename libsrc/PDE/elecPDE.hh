@@ -45,8 +45,6 @@ public:
    */
   void SetupMatrices(const Integer level=0);
   
-
-
   //! solve one step for static problem 
   /*!
     \param ptBCs pointer to class with data about boundary condition
@@ -66,14 +64,11 @@ public:
   //! do PostProcessing step
   virtual void PostProcess(const Integer level);
 
-  //! calculate element coupling terms
-  //virtual void CalcElemCoupling(Vector<Double> & ElemSol);
-  
-  //! calculate node coupling terms
-  //virtual void CalcNodeCoupling(Vector<Double> & NodeSol);
-
   //! write results in file
   virtual void WriteResultsInFile();
+
+  //! reset 
+  virtual void Reset();
 
    //! return size of solution
   virtual Integer getSize() const { return NumPDENodes_*dofspernode_;}
@@ -98,6 +93,12 @@ protected:
   std::vector<std::vector<std::vector<ShortInt> > > isBoundaryNode_; //!< vector containing flag array for element boundary nodes
   std::vector<std::vector<std::vector<Integer> > > elemNodeToCouplingNode_; //!< assigns each coupling element node the according Coupling Node number
   std::vector<std::vector<Integer> > numBoundaryNodes_;               //!< contains number of surface nodes per element
+
+
+ // for check: own solver
+  Boolean SolverCFS_; //<! parameter indicator: TRUE, if you want to use Solver CFS. reading from config-file
+  Matrix<Double> sysmat_;
+  Vector<Double> vecrhs_;
  
 };
 

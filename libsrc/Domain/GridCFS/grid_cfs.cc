@@ -58,7 +58,7 @@ void GridCFS<dim>::putNodesFromGrid_RG(grd::MultilevelGrid * grid, const Integer
   (*trace) << "entering GridCFS::putNodesFromGrid_R" << std::endl;
 #endif
 
- Integer maxnumnodes= (*grid).getNoOfVertices();
+ Integer maxnumnodes = (*grid).getNoOfVertices();
  maxnumnodes_=maxnumnodes;
  ptCoordinate_=new Point<dim>[maxnumnodes];
 
@@ -66,7 +66,11 @@ void GridCFS<dim>::putNodesFromGrid_RG(grd::MultilevelGrid * grid, const Integer
   
   Double * ps;
   Integer ilev, i=0;
-  std::cout << " Total no. of vertices " << (*grid).getNoOfVertices() << std::endl;
+  std::cout << "\t\033[32m no. of vertices: \033[0m " << (*grid).getNoOfVertices() << std::endl;
+
+  if (InfoPrint)
+    (*infofile) <<  " total no. of vertices: " << (*grid).getNoOfVertices() << std::endl;
+
   Integer topLevel = grid->getTopLevel();
   for (ilev=0; ilev<=topLevel; ilev++) {
     std::list<grd::Vertex*> *le=(*grid).getGridLevel(ilev)->getVertexList();
@@ -74,14 +78,14 @@ void GridCFS<dim>::putNodesFromGrid_RG(grd::MultilevelGrid * grid, const Integer
       Integer index = (*p)->getId();
       index--;
       if (index >= maxnumnodes) {
-	std::cerr << " ERROR: catastrophic error, index overflow\n "
-	          << " The index: " << index << "  the maxnumnodes: " << maxnumnodes << '\n';
+   std::cerr << " ERROR: catastrophic error, index overflow\n "
+             << " The index: " << index << "  the maxnumnodes: " << maxnumnodes << '\n';
       }
       ps=(*p)->getPosition();
       ptCoordinate_[index][0]=ps[0];
       ptCoordinate_[index][1]=ps[1];
-	if (dim==3)
-	ptCoordinate_[index][2]=ps[2];
+   if (dim==3)
+   ptCoordinate_[index][2]=ps[2];
       i++;
     }
   }
@@ -103,15 +107,14 @@ void GridCFS<2>::putElemsFromGrid_RG(grd::MultilevelGrid * grid, const Integer l
  std::list<grd::Element*> ** lt;
 
  // Element Map
- if (!elemMap.empty()) {
-   for (i = 0; i < elemMap.size(); i++) {
-     ElementMap* tmp = elemMap[i];
+ if (!elemMap_.empty()) {
+   for (i = 0; i < elemMap_.size(); i++) {
+     ElementMap* tmp = elemMap_[i];
      delete tmp;
    }
-   elemMap.clear();
+   elemMap_.clear();
  } 
  
-
  Integer noOfLevels=grid->getNoOfLevels();
  for (j=0; j< noOfLevels; j++)
  {
@@ -119,108 +122,115 @@ void GridCFS<2>::putElemsFromGrid_RG(grd::MultilevelGrid * grid, const Integer l
    type=0;
 
    while(lt[type]) {
-     for ( p=lt[type]->begin() ; p!= lt[type]->end(); ++p) {
-          if ((*p)->isRegular()) {
-        Elem * el=new Elem();
-	// Element maping
-	ElementMap* tmpMap = new ElementMap;
-	 
-       Integer nnodes=(*p)->getNoOfVertices();
-       Integer etype = (*p)->type();
+     for ( p=lt[type]->begin() ; p!= lt[type]->end(); ++p)
+       {
+	 if ((*p)->isRegular())
+	   {
+	     Elem * el=new Elem();
+	     // Element maping
+	     ElementMap* tmpMap = new ElementMap;
+	     
+	     Integer nnodes=(*p)->getNoOfVertices();
+	     Integer etype = (*p)->type();
+	     
+	     switch(etype)
+	       {
+	       case GRD_TRIANGLE:
+		 el->ptElem=ptTr1;
+		 break;
+	       case GRD_QUADRANGLE:
+		 el->ptElem=ptQ;
+		 break;
+	       default:
+		 Error("Unknown type of element in GridRG", __FILE__,__LINE__);
+		 break;
+	       }
+	     
+	     (*el).connect.Resize(nnodes);
+	     
+	     for (i=0; i<nnodes; i++)
+	       {   
+		 (*el).connect[i]=((*p)->getVertex(i))->getId();    
+	       }
+	     
+	     Integer sd=(*p)->getValue();
+	     if (sd >= sd_.size()) Error(" Value in element from Grid_RG is incorrect",__FILE__,__LINE__);
+	     
+	     (*el).namesd=sd_[sd];
 
-       switch(etype) {
-       case GRD_TRIANGLE:
-        el->ptElem=ptTr;
-        break;
-       case GRD_QUADRANGLE:
-        el->ptElem=ptQ;
-        break;
-       default:
-	 Error("Unknown type of element in GridRG", __FILE__,__LINE__);
-	 break;
-       }
+	     elems_[sd].push_back(el);
+	     
+	     // put info in elemMap
+	     Integer position = elems_[sd].size()-1;
+	     tmpMap->map.resize(1);
+	     tmpMap->map[0] = position;
+	     tmpMap->sd = sd;
+	     elemMap_.push_back(tmpMap);
+	     
+	   } // if isRegular
+	 else if ((*p)->isIrregular()) {
+	   ElementMap* tmpMap = new ElementMap;
+	   tmpMap->sd = (*p)->getValue();
+	   grd::ConformingClosure closure;
+	   typedef grd::ConformingClosure::triangleIterator TriI;
+	   typedef grd::ConformingClosure::quadrangleIterator QuadI;
+	   (*p)->close(closure);
+	   
+	   // Process closing triangles
+	   for (TriI tri = closure.beginTriangle(); tri != closure.endTriangle(); ++tri) {
+	     Elem * el=new Elem();
+	     Integer nnodes=(*tri)->getNoOfVertices();
+	     el->ptElem=ptTr1;
+	     (*el).connect.Resize(nnodes);
+	     for (i=0; i<nnodes; i++)
+	       {
+		 (*el).connect[i]=((*tri)->getVertex(i))->getId();
+	       }
+	     Integer sd=(*tri)->getValue();
+	     if (sd >= sd_.size()) Error(" Value in element from Grid_RG is incorrect",__FILE__,__LINE__);
+	     
+	     (*el).namesd=sd_[sd];
+	     elems_[sd].push_back(el);
+	     
+	     // maping
+	     Integer position = elems_[sd].size()-1;
+	     tmpMap->map.push_back(position);
+	   } // for tri
+	   
+	   // Process now the quads
+	   for (QuadI quad = closure.beginQuadrangle(); quad != closure.endQuadrangle(); ++quad) {
+	     Elem * el=new Elem();
+	     Integer nnodes=(*quad)->getNoOfVertices();
+	     el->ptElem=ptQ;
+	     (*el).connect.Resize(nnodes);
+	     for (i=0; i<nnodes; i++)
+	       {
+		 (*el).connect[i]=((*quad)->getVertex(i))->getId();
+	       }
+	     Integer sd=(*quad)->getValue();
+	     if (sd >= sd_.size()) Error(" Value in element from Grid_RG is incorrect",__FILE__,__LINE__);
+	     
+	     (*el).namesd=sd_[sd];
+	     elems_[sd].push_back(el);
 
-       (*el).connect.Resize(nnodes);
- 
-       for (i=0; i<nnodes; i++)
-       {	
-         (*el).connect[i]=((*p)->getVertex(i))->getId();	 
-       }
- 
-       Integer sd=(*p)->getValue();
-       if (sd >= sd_.size()) Error(" Value in element from Grid_RG is incorrect",__FILE__,__LINE__);
-
-       (*el).namesd=sd_[sd];
-
-       elems_[sd].push_back(el);
-
-       // put info in elemMap
-       Integer position = elems_[sd].size()-1;
-       tmpMap->map.resize(1);
-       tmpMap->map[0] = position;
-       tmpMap->sd = sd;
-       elemMap.push_back(tmpMap);
-
-     } // if isRegular
-     else if ((*p)->isIrregular()) {
-	ElementMap* tmpMap = new ElementMap;
-	tmpMap->sd = (*p)->getValue();
-       grd::ConformingClosure closure;
-       typedef grd::ConformingClosure::triangleIterator TriI;
-       typedef grd::ConformingClosure::quadrangleIterator QuadI;
-       (*p)->close(closure);
-       
-       // Process closing triangles
-       for (TriI tri = closure.beginTriangle(); tri != closure.endTriangle(); ++tri) {
-	 Elem * el=new Elem();
-         Integer nnodes=(*tri)->getNoOfVertices();
-         el->ptElem=ptTr;
-         (*el).connect.Resize(nnodes);
-         for (i=0; i<nnodes; i++) {
-	   (*el).connect[i]=((*tri)->getVertex(i))->getId();
-	 }
-	 Integer sd=(*tri)->getValue();
-	 if (sd >= sd_.size()) Error(" Value in element from Grid_RG is incorrect",__FILE__,__LINE__);
-
-	 (*el).namesd=sd_[sd];
-	 elems_[sd].push_back(el);
-
-	 // maping
-	 Integer position = elems_[sd].size()-1;
-	 tmpMap->map.push_back(position);
-       } // for tri
-       // Process now the quads
-       for (QuadI quad = closure.beginQuadrangle(); quad != closure.endQuadrangle(); ++quad) {
-	 Elem * el=new Elem();
-         Integer nnodes=(*quad)->getNoOfVertices();
-         el->ptElem=ptQ;
-         (*el).connect.Resize(nnodes);
-         for (i=0; i<nnodes; i++) {
-	   (*el).connect[i]=((*quad)->getVertex(i))->getId();
-	 }
-	 Integer sd=(*quad)->getValue();
-	 if (sd >= sd_.size()) Error(" Value in element from Grid_RG is incorrect",__FILE__,__LINE__);
-
-	 (*el).namesd=sd_[sd];
-	 elems_[sd].push_back(el);
-
-	 // maping
-	 Integer position = elems_[sd].size() - 1;
-	 tmpMap->map.push_back(position);
-       } // for quad
-       // update element map list
-       elemMap.push_back(tmpMap);
-     } // else if isIrregular
-   } // for element
-   type++;
+	     // maping
+	     Integer position = elems_[sd].size() - 1;
+	     tmpMap->map.push_back(position);
+	   } // for quad
+	   // update element map list
+	   elemMap_.push_back(tmpMap);
+	 } // else if isIrregular
+       } // for element
+     type++;
    } // end while(); list of elements types
  } // for level
-
- std::string SpaceAdapt;
- conf->get("adaptspace",SpaceAdapt);
- if (SpaceAdapt=="yes") FormNeighborsLists();
- FormNeighborsLists();
-
+ 
+ if (InfoPrint)
+   (*infofile) << " total number of elements (only for first subdomains): " << elems_[0].size() << std::endl;
+     std::cerr << "\t\033[32m no. of elements: \033[0m " << elems_[0].size() << std::endl;
+     
+     FormNeighborsLists();
+     
 } // end of function 
 
 template<>
@@ -233,119 +243,173 @@ void GridCFS<3>::putElemsFromGrid_RG(grd::MultilevelGrid * grid, const Integer l
   typedef std::list<grd::Element*>::iterator ElmI;
   ElmI p;
 
+  std::vector<grd::Element*> tets;
+
   Integer i, j, nnodes,type;
 
   std::list<grd::Element*> * le;
   std::list<grd::Element*> ** lt;
 
+  // Init Tets buffer
+  tets.resize(4);
+  for (i = 0; i < 4; i++)
+    {
+      tets[i] = new grd::Tetrahedron;
+    }
+
  // Element Map
- if (!elemMap.empty()) {
-   for (i = 0; i < elemMap.size(); i++) {
-     ElementMap* tmp = elemMap[i];
+ if (!elemMap_.empty()) {
+   for (i = 0; i < elemMap_.size(); i++) {
+     ElementMap* tmp = elemMap_[i];
      delete tmp;
    }
-   elemMap.clear();
+   elemMap_.clear();
  } 
  
+ Integer i1,i2,lev;
  Integer noOfLevels=grid->getNoOfLevels();
- for (j=0; j< noOfLevels; j++)
- {
-   lt=grid->getGridLevel(j)->getElementList();
-   type=0;
+  for (j=0; j< noOfLevels; j++)
+  {
+    lt=grid->getGridLevel(j)->getElementList();
+    type=2; // take only volume elementes
 
-   while(lt[type]) {
-     for ( p=lt[type]->begin() ; p!= lt[type]->end(); ++p) {
-          if ((*p)->isRegular()) {
-        Elem * el=new Elem();
-	// Element maping
-	ElementMap* tmpMap = new ElementMap;
-	 
-       Integer nnodes=(*p)->getNoOfVertices();
-       Integer etype = (*p)->type();
+    while(lt[type])
+    {
+      for ( p=lt[type]->begin() ; p!= lt[type]->end(); ++p)
+      {
+        if ((*p)->isRegular())
+        {
+          Elem * el=new Elem();
+          // Element maping
+          ElementMap* tmpMap = new ElementMap;
 
-       Boolean Elem2D=FALSE;
-       switch(etype) {
-       case GRD_TRIANGLE:
-	 Elem2D=TRUE;
-	 break;
-       case GRD_QUADRANGLE:
-	 Elem2D=TRUE;
-	 break;
-       case GRD_TETRAHEDRON:
-        el->ptElem=ptTet;
-        break;
-       case GRD_HEXAHEDRON:
-        el->ptElem=ptHexa;
-        break;
-       default:
-	 //  Error("Unknown type of element in GridRG", __FILE__,__LINE__);
-	 break;
-       }
+          Integer nnodes=(*p)->getNoOfVertices();
+          Integer etype = (*p)->type();
 
-       if (!Elem2D) {
-       (*el).connect.Resize(nnodes);
- 
-       for (i=0; i<nnodes; i++)
-       {	
-         (*el).connect[i]=((*p)->getVertex(i))->getId();	 
-       }
- 
-       Integer sd=(*p)->getValue();
-       if (sd >= sd_.size()) Error(" Value in element from Grid_RG is incorrect",__FILE__,__LINE__);
+          Integer sd,position,nnds;
 
-       (*el).namesd=sd_[sd];
+          switch(etype)
+          {
+            case GRD_TRIANGLE:
+              break;
+            case GRD_QUADRANGLE:
+              break;
+            case GRD_TETRAHEDRON:
+              el->ptElem=ptTet;
+              (*el).connect.Resize(nnodes);
 
-       elems_[sd].push_back(el);
+              for (i=0; i<nnodes; i++) {
+                (*el).connect[i]=((*p)->getVertex(i))->getId();
+              }
 
+              sd=(*p)->getValue();
 
-       // put info in elemMap
-       Integer position = elems_[sd].size()-1;
-       tmpMap->map.resize(1);
-       tmpMap->map[0] = position;
-       tmpMap->sd = sd;
-       elemMap.push_back(tmpMap);
-       }
+              if (sd >= sd_.size())
+                Error(" Value in element from Grid_RG is incorrect",__FILE__,__LINE__);
 
-     } // if isRegular
-     else if ((*p)->isIrregular()) {
-	ElementMap* tmpMap = new ElementMap;
-	tmpMap->sd = (*p)->getValue();
-       grd::ConformingClosure closure;
-       typedef grd::ConformingClosure::tetrahedronIterator TetI;
-       (*p)->close(closure);
+              (*el).namesd=sd_[sd];
+
+              elems_[sd].push_back(el);
+
+              // put info in elemMap
+              position = elems_[sd].size()-1;
+              tmpMap->map.resize(1);
+              tmpMap->map[0] = position;
+              tmpMap->sd = sd;
+
+              elemMap_.push_back(tmpMap);
+              break;
+            case GRD_OCTAHEDRON:
+              (*p)->getTetras(tets);
+              Elem * elT[4];
+
+              Integer it;
+              nnds=4;
+
+              // loop over tetrahedrals of octahedron
+              for (it=0; it<4; it++)
+              {
+                elT[it]=new Elem();
+                elT[it]->ptElem=ptTet;
+                elT[it]->connect.Resize(nnds);
+                // copy of connection array
+                for (i=0; i<nnds; i++)
+                {
+                  elT[it]->connect[i]=(tets[it]->getVertex(i))->getId();
+                }
+
+                sd=(*p)->getValue();
+
+                if (sd >= sd_.size()) Error(" Value in element from Grid_RG is incorrect",__FILE__,__LINE__);
+                elT[it]->namesd=sd_[sd];
+
+                elems_[sd].push_back(elT[it]);
+                // mapping
+                Integer position = elems_[sd].size()-1;
+                tmpMap->map.push_back(position);
+		tmpMap->sd=sd;
+              } // end: loop over tetrahedrals of octahedron
+
+              // update element map list
+              elemMap_.push_back(tmpMap);
+              break;
+            case GRD_HEXAHEDRON:
+           el->ptElem=ptHexa;
+           break;
+         default:
+           Error("Unknown type of element in GridRG", __FILE__,__LINE__);
+           break;
+         } // end of switch
+          }
+        else if ((*p)->isIrregular()) {
+          ElementMap* tmpMap = new ElementMap;
+         tmpMap->sd = (*p)->getValue();
+         grd::ConformingClosure closure;
+         typedef grd::ConformingClosure::tetrahedronIterator TetI;
+         (*p)->close(closure);
        
-       // Process closing triangles
-       for (TetI tet = closure.beginTetrahedron(); tet != closure.endTetrahedron(); ++tet) {
-	 Elem * el=new Elem();
-         Integer nnodes=(*tet)->getNoOfVertices();
-         el->ptElem=ptTet;
-         (*el).connect.Resize(nnodes);
-         for (i=0; i<nnodes; i++) {
-	   (*el).connect[i]=((*tet)->getVertex(i))->getId();
-	 }
-	 Integer sd=(*tet)->getValue();
-	 if (sd >= sd_.size()) Error(" Value in element from Grid_RG is incorrect",__FILE__,__LINE__);
+         // Process closing tetrahedrons
+         for (TetI tet = closure.beginTetrahedron(); tet != closure.endTetrahedron(); ++tet)
+           {
+             Elem * el=new Elem();
+             Integer nnodes=(*tet)->getNoOfVertices();
+             el->ptElem=ptTet;
+             (*el).connect.Resize(nnodes);
+             for (i=0; i<nnodes; i++)
+          {
+            (*el).connect[i]=((*tet)->getVertex(i))->getId();
+          }
+             Integer sd=(*tet)->getValue();
+             if (sd >= sd_.size()) Error(" Value in element from Grid_RG is incorrect",__FILE__,__LINE__);
+             (*el).namesd=sd_[sd];
+             elems_[sd].push_back(el);
 
-	 (*el).namesd=sd_[sd];
-	 elems_[sd].push_back(el);
+             // maping
+             Integer position = elems_[sd].size()-1;
+             tmpMap->map.push_back(position);
+           } // for tet
+         // update element map list
+         elemMap_.push_back(tmpMap);
+       } // else if isIrregular
+          } // for element
+        type++;
+      } // end while(); list of elements types
+       } // for level
 
-	 // maping
-	 Integer position = elems_[sd].size()-1;
-	 tmpMap->map.push_back(position);
-       } // for tri
-       // update element map list
-       elemMap.push_back(tmpMap);
-     } // else if isIrregular
-   } // for element
-   type++;
-   } // end while(); list of elements types
- } // for level
+     // clean buffer of tets
+     if (!tets.empty()) 
+       {
+    for (i = 0; i < 4; i++)
+      {
+        delete tets[i];
+      }
+    tets.clear();
+       }
 
- std::string SpaceAdapt;
- conf->get("adaptspace",SpaceAdapt);
- if (SpaceAdapt=="yes") FormNeighborsLists();
- FormNeighborsLists();
-  ;
+     if (InfoPrint)
+       (*infofile) << " total number of elements: " << elems_[0].size() << std::endl;
+     std::cerr << "\t\033[32m no. of elements: \033[0m " << elems_[0].size() << std::endl;
+     FormNeighborsLists();
 }
 
 template<Integer dim>
@@ -355,102 +419,134 @@ void GridCFS<dim>::Refine(grd::MultilevelGrid& grid)
   (*trace) << " entering  GridCFS<Dim>::Refine " << std::endl;
 #endif
 
- Integer i,j;
- Integer counter = 0;
+    Integer i,j;
+     Integer counter = 0;
 
- // Mesh refinement
- Integer noOfLevels = grid.getNoOfLevels();
- typedef std::list<grd::Element*>::iterator ElmI;
- typedef grd::ConformingClosure::triangleIterator  TriI;
- for (Integer j = 0; j < noOfLevels; j++) {
-   grd::GridLevel* gridlv = grid.getGridLevel(j);
-   list<grd::Element*>** lt = gridlv->getElementList();
-   Integer type = 0;
-   while (lt[type]) {
-     for (ElmI p = lt[type]->begin(); p != lt[type]->end(); ++p) {
-       if (!(*p)->isRefined()) {
-	 Integer  sde = (*p)->getValue();
-	 bool flag = false;
-	 ElementMap* map = elemMap[counter];
-	 
-	 Integer sdm = map->sd;
-	 if (sde != sdm)
-	   Error("Wrong number of subdomain",__FILE__,__LINE__);
-	 
-	 for (i = 0; i < map->map.size(); i++) {
-	   Integer elmId = map->map[i];
-	   flag = elems_[sdm][elmId]->refinementFlag;
-	 }
-	 
-	 if (flag) {
-	   (*p)->markForRefinement();
-	 }
-	 // update counter
-	 counter++;
-       }
-     } // for loop elems
-     // next element type
-     type++;
-   } // type loop
- } // level loop
+     // Mesh refinement
+     Integer noOfLevels = grid.getNoOfLevels();
+     typedef std::list<grd::Element*>::iterator ElmI;
 
- std::list<int> vtId;
- grid.refine(vtId);
+     Integer k;
+     for (Integer j = 0; j < noOfLevels; j++)
+       {
+	 grd::GridLevel* gridlv = grid.getGridLevel(j);
+	 list<grd::Element*>** lt = gridlv->getElementList();
+	 Integer type;
+	 if (dim==3) type=2;
+	 else type=0;
+	 while (lt[type])
+	   {
+	     for (ElmI p = lt[type]->begin(); p != lt[type]->end(); ++p)
+	       {
+		 if (!(*p)->isRefined())
+		   {
+		     Integer  sde = (*p)->getValue();
+		     Integer flag = 0;
+		     ElementMap* map = elemMap_[counter];
+		     
+		     Integer sdm = map->sd;
+		     if (sde != sdm) 
+		       Error("Wrong number of subdomain",__FILE__,__LINE__);
+		     
+		     for (i = 0; i < map->map.size(); i++)
+		       {
+			 Integer elmId = map->map[i];
+			 flag = elems_[sdm][elmId]->refinementFlag;
+			 Integer numRefs=elems_[sdm][elmId]->refinementNumber;
+			 if (flag == 1) 
+			   {
+			    
+			     (*p)->markForRefinement(numRefs-1);
+		    
+			     break;
+			   }
+
+			 if (flag == -1)
+			   {
+			     (*p)->markForCoarsening();
+			     break;
+			   }
+			 
+		       }
+		     
+		     // update counter
+		     counter++;
+		   }
+	       } // for loop elems
+	     // next element type
+	     type++;
+	   } // type loop
+       } // level loop
+
+     grid.refine();      
 }
 
-template<>
-void GridCFS<2>::RefineUniform(grd::MultilevelGrid& grid)
+template<Integer dim>
+void GridCFS<dim>::ReRefine(grd::MultilevelGrid& grid)
 {
- Integer i,j;
- Integer counter = 0;
+#ifdef TRACE
+     (*trace) << " entering  GridCFS<Dim>::ReRefine " << std::endl;
+#endif
+    
+     Integer i,j;
+     Integer counter = 0;
 
- // Mesh refinement
- Integer noOfLevels = grid.getNoOfLevels();
- typedef std::list<grd::Element*>::iterator ElmI;
- typedef grd::ConformingClosure::triangleIterator  TriI;
- for (Integer j = 0; j < noOfLevels; j++) {
-   grd::GridLevel* gridlv = grid.getGridLevel(j);
-   list<grd::Element*>** lt = gridlv->getElementList();
-   Integer type = 0;
-   while (lt[type]) {
-     for (ElmI p = lt[type]->begin(); p != lt[type]->end(); ++p) {
-	   (*p)->markForRefinement();
-     } // for loop elems
-     // next element type
-     type++;
-   } // type loop
- } // level loop
+     // Mesh refinement
+     Integer topLevel = grid.getTopLevel();
+     typedef std::list<grd::Element*>::iterator ElmI;
 
- std::list<int> vtId;
- grid.refine(vtId);
+     Integer k;
+     grd::GridLevel* gridlv = grid.getGridLevel(topLevel);
+     list<grd::Element*>** lt = gridlv->getElementList();
+     Integer type;
+     if (dim==3) type=2;
+     else type=0;
+     while (lt[type])
+       {
+	 for (ElmI p = lt[type]->begin(); p != lt[type]->end(); ++p)
+	   {
+	     if (!(*p)->isRefined())
+	       {
+		 Integer  sde = (*p)->getValue();
+		 grd::Element *parent = (*p)->getParent();
+		 
+		 Integer numRefs = parent->getNumOfRefinements(); 
+		 if (numRefs)
+		   (*p)->markForRefinement(numRefs-1);
+	       } 
+	   } // for loop elems
+	     // next element type
+	 type++;
+       } // type loop
+     grid.refine();     
 }
 
-template<>
-void GridCFS<3>::RefineUniform(grd::MultilevelGrid& grid)
+template<Integer dim>
+void GridCFS<dim>::RefineUniform(grd::MultilevelGrid& grid)
 {
  Integer i,j;
- Integer counter = 0;
 
  // Mesh refinement
  Integer noOfLevels = grid.getNoOfLevels();
  typedef std::list<grd::Element*>::iterator ElmI;
- typedef grd::ConformingClosure::tetrahedronIterator  TetI;
+
  for (Integer j = 0; j < noOfLevels; j++) {
    grd::GridLevel* gridlv = grid.getGridLevel(j);
    list<grd::Element*>** lt = gridlv->getElementList();
    Integer type = 0;
- 
+   if (dim == 3)
+     type = 2;
    while (lt[type]) {
      for (ElmI p = lt[type]->begin(); p != lt[type]->end(); ++p) {
-	   (*p)->markForRefinement();
+       if (!(*p)->isRefined())
+	 (*p)->markForRefinement();
      } // for loop elems
      // next element type
      type++;
    } // type loop
  } // level loop
 
- std::list<int> vtId;
- grid.refine(vtId);
+ grid.refine();
 }
 
 template<Integer dim>
@@ -535,6 +631,7 @@ void  GridCFS<dim> :: GetCoordNodesElemMat(const Vector<Integer> connect, Matrix
   for (k=0; k < connect.size(); k++)    
     for (int actDim=0; actDim < dim; actDim++)
       coordMat[actDim][k] = ptCoordinate_[connect[k]-1][actDim];
+  
 }
 
 
@@ -565,12 +662,12 @@ if (ptCoordinate_) delete [] ptCoordinate_;
  }
 
  // deconstructor for elemMap
- if (elemMap.size() > 0) {
-   for (i = 0; i < elemMap.size(); i++) {
-     ElementMap* tmp = elemMap[i];
+ if (elemMap_.size() > 0) {
+   for (i = 0; i < elemMap_.size(); i++) {
+     ElementMap* tmp = elemMap_[i];
      delete tmp;
    }
-   elemMap.clear();
+   elemMap_.clear();
  }
 }
 

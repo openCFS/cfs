@@ -21,10 +21,8 @@
 #endif
 
 #include <AlgebraicSystem/abstractAlgSys.hh>
-#include <Driver/transientdriver.hh>
-#include <Driver/staticdriver.hh>
-#include <Driver/harmonicDriver.hh>
-
+#include <Driver/driver_header.hh>
+#include <Domain/domain.hh>
 #include <Domain/GridCFS/interface_gridcfs.hh>
 
 #ifdef NETGEN
@@ -70,41 +68,30 @@ Integer main(int argc, char *argv[])
   Domain * domain=new Domain(ptInputfile, ptOut, ptTimeFunc);
 
   //choose your driver
-  BaseDriver * ptdriver;  
-  std::string analysis;
+  BaseDriver       * ptdriver;  
+  std::string      analysis;
+  Boolean          adaptspace;
   conf->get("analysis", analysis);
+  adaptspace=conf->get_option("adaptspace");
 
   if (analysis=="static") 
-    ptdriver = new StaticDriver(domain);
+    if (adaptspace)   ptdriver = new StaticAdaptSpaceDriver(domain);
+    else              ptdriver = new StaticDriver(domain);
   else if (analysis=="transient") 
+    //   if (adaptspace)   ptdriver = new TransientAdaptSpaceDriver(domain);
+    // else              ptdriver = new TransientDriver(domain);
     ptdriver = new TransientDriver(domain);
-  else if (analysis=="harmonic")
-    ptdriver = new HarmonicDriver(domain);
   else if (analysis=="harmonic")
     ptdriver = new HarmonicDriver(domain);
   else
     Error("Driver not supported",__FILE__,__LINE__);
 
-  //solve your problem
-  std::string adaptTimeOn, adaptSpaceOn;
-
-  adaptSpaceOn =  "no";
-  conf->ifget("adapttime",adaptTimeOn);
-  adaptTimeOn = "no";
-  conf->ifget("adaptspace",adaptSpaceOn);
-
-  if (adaptTimeOn == "yes")  
-    ptdriver->SolveProblemAdapt();
-  else
-    if 
-      (adaptSpaceOn == "yes") ptdriver->SolveProblemAdaptSpace();
-    else 
-      ptdriver->SolveProblem();
-
+  ptdriver->SolveProblem();
+  
   oClockTotal.ClockCount(MyClock::end,"Total time");
 
 #ifdef MpCCI
-    CCI_Finalize();
+  CCI_Finalize();
 #endif
 
   //delete objects
@@ -113,5 +100,5 @@ Integer main(int argc, char *argv[])
   //  if (domain) delete domain;
   if (ptDefineFiles) delete ptDefineFiles; // it should be deleted the last
 
-  return 0;
+  return 1;
 }

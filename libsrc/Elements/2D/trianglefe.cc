@@ -18,6 +18,7 @@ TriangleFE::TriangleFE()
   Dim_ = 2;
   NumEdges_ = 3;
   NumFaces_ = 1;
+  numChilds_ = 4;
 
   std::string integtype="GaussOrder2";
 
@@ -37,7 +38,7 @@ TriangleFE :: ~TriangleFE()
 }
 
 
-void TriangleFE:: SetIntPoints()
+void TriangleFE::SetIntPoints()
 {
 #ifdef TRACE
   (*trace) << "entering TriangleFE::SetIntPoints" << std::endl;
@@ -115,6 +116,12 @@ void TriangleFE:: SetIntPoints()
       IntPoints_[2][1] = 3.0/5.0;
       IntPoints_[3][1] = 1.0/5.0;
       
+     
+      IntWeights_[0]=-2.8125e-01;
+      IntWeights_[1]=2.60416666666667e-01;
+      IntWeights_[2]=2.60416666666667e-01;
+      IntWeights_[3]=2.60416666666667e-01;
+
       IntWeights_[0]=-0.5625;
       IntWeights_[1]=0.520833333333333;
       IntWeights_[2]=0.520833333333333;

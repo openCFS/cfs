@@ -41,14 +41,10 @@ namespace CoupledField
     Matrix<Double> xiDx;
     Matrix<Double> xiDxTransp;
     Matrix<Double> partElemMat;
-  
-
 
     // set matrix to desired size and set all elements to zero
-    //    partElemMat.Resize(nrNodes);
     elemMat.Resize(nrNodes); elemMat.Init();
     
-
     for (Integer actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
       {
 	jacDet = 0;

@@ -79,7 +79,8 @@ public:
   //! access operator
   inline Vector<TYPE>& operator[] (Integer dim) const 
   {
-    if (dim >= dim_)
+
+    if (dim > dim_)
       Error("Array: index out of bounds",__FILE__,__LINE__);
 
     return sol_[dim];

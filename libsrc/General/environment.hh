@@ -90,6 +90,7 @@ extern std::ostream * debug; //name.deb
 extern std::ostream * infofile; //name.info
 extern std::ostream * cla; //name.cla
 extern std::ostream * memtrace; //name for name.mem 
+extern std::ostream * data; //name.data
 
 class ConfFile;
   //! pointer to class with methods for reading config-file. it is accessable from any place of the program
@@ -107,6 +108,20 @@ extern Boolean InfoPrint;
 
   extern BaseFE * ptQ, *ptL1, *ptTet, *ptTr1, *ptHexa;
 
+  //! class for flags of programm
+  class Flags
+  {
+  public:
+    Flags()
+    { CalcErrorMap_=FALSE;
+    adaptSpace_ = FALSE;
+    }
+ 
+    Boolean CalcErrorMap_;
+    Boolean adaptSpace_;
+  };
+  
+  extern Flags * flags;
 }
 
 #endif // FILE_SCFE_MYDEFS

@@ -7,10 +7,8 @@
 #include <General/environment.hh>
 #include <Domain/grid.hh>
 #include <Domain/bcs.hh>
-//#include <CoupledPDE/pdecoupling.hh>
-//#include <CoupledPDE/coupledpdedef.hh>
 #include <PDE/basepde.hh>
-//#include <CoupledPDE/basecoupledpde.hh>
+
 
 namespace CoupledField
 {
@@ -54,7 +52,7 @@ public:
   BaseCoupledPDE * GetCoupledPDE() {return ptcoupledpde_;}
 
   //! get algebraic system
-  AbstractAlgebraicSys * GetAlgSys(){ return ptalgsys_;}
+  // AbstractAlgebraicSys * GetAlgSys(){ return ptalgsys_;}
 
   //! get pointer to input-file
   FileType * GetInFile(){ return InFile_;}
@@ -71,21 +69,23 @@ public:
   */
   void Update(const Integer level);
 
+  //! update alg. sys. in case of new mesh
+  /*!
+    \param level index into hierarchy (multilevel methods)
+  */
+  void UpdateAlgSys(const Integer level);
+
   //!
   Grid * GetGrid(){ return ptgrid_;}
 
   //! get number of pdes
   Integer GetNumPDE() {return numpde_;}
 
-
-
 protected:
 
 private:
   
-  void ArrayTest();
-
-  Integer newlevel;
+  
 
   //! initialize pde
   void InitPDEs();
@@ -99,12 +99,7 @@ private:
   */
    void InitAlgSys(const Integer level);
 
-  //! update alg. sys. in case of new mesh
-  /*!
-    \param level index into hierarchy (multilevel methods)
-  */
-  void UpdateAlgSys(const Integer level);
-
+  Integer numlevel_; //!< number of levels
   Integer numsubdomain_;  //!< number of subdomains
   Integer numsys_;        //!< number of systems (matrix dimension for algebraic system)
   Integer numpde_;        //!< number of PDEs
@@ -117,7 +112,7 @@ private:
   std::vector<PDECoupling*> couplings_; //!<pointer to coupling objects
   Grid * ptgrid_; //!< pointer to grid object
   BCs * ptBCs_;   //!< pointer to object storing boundary conditions
-  AbstractAlgebraicSys * ptalgsys_; //!< pointer to algebraic system
+  // AbstractAlgebraicSys * ptalgsys_; //!< pointer to algebraic system
   TimeFunc * ptTimeFunc_; //!< pointer to object handling time functions
   FileType *InFile_;      //!< pointer to object handling input file (mesh data)
   WriteResults * OutFile_; //!<  pointer to object handling output file 

@@ -7,8 +7,6 @@
 #include "interface_adgrid.hh"
 #include <Elements/elements_header.hh>
 
-#include <PDE/acoustic2dPDE.hh>
-
 namespace CoupledField
 {
 
@@ -26,8 +24,6 @@ InterfaceAdaptGrid<Dim>::InterfaceAdaptGrid(FileType * aptFileType)
 
  ptgridcfs_=NULL;
 
- ptBCs=new BCs(aptFileType);
- ptBCs->ReadBCs();
 }
 
 template<Integer dim>
@@ -53,7 +49,7 @@ void InterfaceAdaptGrid<dim>::Read()
   // read vertices  
   Integer inode;
   Integer ibnd=0;
-  vertex_.resize(nnodes);  
+  vertices_.resize(nnodes);  
   for (inode=0; inode<nnodes; inode++)
     {
       Double pos[3];
@@ -67,6 +63,7 @@ void InterfaceAdaptGrid<dim>::Read()
       grd::Vertex* tmpVt = new grd::Vertex(pos);
       tmpVt->setId(inode+1);
 
+      //check is that vertice boundary or not
       std::vector<Integer>::const_iterator p;
       ibnd = 0;
       for ( p=idBCs.begin(); p!=idBCs.end(); p++,ibnd++) {
@@ -75,22 +72,34 @@ void InterfaceAdaptGrid<dim>::Read()
 	  tmpVt->setColorBndNode(colorBCs[ibnd]);
 	}
       }
-      vertex_[inode]= tmpVt;
+      vertices_[inode]= tmpVt;
     }
 
   if (ptCoord) delete [] ptCoord;
 
   // read elements
-  ptFileType->ReadGrid_RG(elems_,&vertex_,listSD_);
+  ptFileType->ReadGrid_RG(elements_,&vertices_,listSD_);
 
-  grid_.buildCoarseMesh(vertex_,elems_);
-  // set nodes at level 0 as processed
+  grid_.buildCoarseMesh(vertices_,elements_);
+
+  // set nodes at level 0 as processed: 
+  // needed for transient problem in restoring solution
   std::list<grd::Vertex*>* lt = (grid_.getGridLevel(0))->getVertexList();
   std::list<grd::Vertex*>::iterator p;
   for (p = lt->begin(); p != lt->end(); ++p) {
     (*p)->setProcessed();
   }
-   
+  
+  // set anisotropic refinement. only for Quadrangle
+  typedef std::list<grd::Element*>::iterator Eit;
+  std::list<grd::Element*>* elt = (grid_.getGridLevel(0))->getQuadrangleList();
+  for (Eit p = elt->begin(); p != elt->end(); ++p) {
+    const double dir[3] = {0.0,1.0,0.0};
+    (*p)->setAnisotropy(dir);
+  }
+  
+  // transfer this grid to GridCFS, since we do computation only with GridCFS 
+ 
  Trans2CFSGrid();
 
 #ifdef TRACE
@@ -99,15 +108,21 @@ void InterfaceAdaptGrid<dim>::Read()
 }
 
 template<Integer dim>
-void InterfaceAdaptGrid<dim>::Refine()
+void InterfaceAdaptGrid<dim>::Refine(const Integer numLoops)
 {
 #ifdef TRACE
   (*trace) << " entering InterfaceAdaptGrid<Dim>::Refine() " << std::endl;
 #endif
 
  ptgridcfs_->Refine(grid_);
- SetVertexNumbers();
- Trans2CFSGrid();
+  
+  Integer i;
+  for(i=0; i<numLoops-1; i++)
+    ptgridcfs_->ReRefine(grid_);
+
+  SetVertexNumbers();
+  Trans2CFSGrid();
+
 }
 
 template<Integer dim>
@@ -123,56 +138,33 @@ void InterfaceAdaptGrid<dim>::RefineUniform()
 }
 
 template<Integer dim>
-void InterfaceAdaptGrid<dim>::TestRefine()
-{
-#ifdef TRACE
-  (*trace) << " entering InterfaceAdaptGrid<dim>::TestRefine() " << std::endl;
-#endif
-
- std::list<int> vtId;
- SetRefFlagTest f;
- forEachElemSd(f,listSD_[0]);
- grid_.refine(vtId);
- std::cout << "--------------- Level: " << grid_.getTopLevel() << std::endl;
- SetVertexNumbers();
-
- Trans2CFSGrid();
-
-}
-
-template<Integer dim>
-void InterfaceAdaptGrid<dim>::TestCoarse()
-{
-#ifdef TRACE
-  (*trace) << " entering InterfaceAdaptGrid<Dim>::Refine() " << std::endl;
-#endif
-
-  ;
-
-}
-
-template<Integer dim>
 void InterfaceAdaptGrid<dim>::UpdateBCs(std::list<Integer> * bcs)
 {
 #ifdef TRACE
   (*trace) << " entering InterfaceAdaptGrid<Dim>::UpdateBCs " << std::endl;
 #endif
 
-  Integer level;
+ Integer level;
   Integer noOfLevels = grid_.getNoOfLevels();
 
   std::list<grd::Vertex*> * lv;
   typedef std::list<grd::Vertex*>::iterator VerI;
   VerI p;
 
-  for (level=0; level<noOfLevels; level++) {
-    lv=(grid_.getGridLevel(level))->getVertexList();
-    for (p=lv->begin(); p!=lv->end(); ++p) {
-      if ((*p)->isBoundaryNode()) { 
-	bcs[(*p)->getColorBndNode()].push_back((*p)->getId());
-      }
+  for (level=0; level<noOfLevels; level++)
+    {
+      lv=(grid_.getGridLevel(level))->getVertexList();
+      for (p=lv->begin(); p!=lv->end(); ++p)
+	{
+	  if ((*p)->isBoundaryNode())
+	    { 
+	      bcs[(*p)->getColorBndNode()].push_back((*p)->getId());
+	    }
+	}
     }
-  }	
+
+  std::cout << " size of BCs: " << (*bcs).size() << std::endl;
+
 }
 
 // regular and unregular elements
@@ -192,6 +184,18 @@ template<Integer dim>
 void  InterfaceAdaptGrid<dim>::GetCoordNodesElem(const Vector<Integer> connect, Point<dim> * ptCoord, const Integer level)
 {
   ptgridcfs_->GetCoordNodesElem(connect,ptCoord,level);
+}
+
+template<Integer dim>
+void  InterfaceAdaptGrid<dim> :: GetCoordNodesElemMat(const Vector<Integer> connect,
+ Matrix<Double>& coordMat, const Integer level)
+{
+#ifdef TRACE
+  (*trace) << "entering InterfaceAdaptGrid :: GetCoordinateNodesElemMat" << std::endl;
+#endif
+
+  ptgridcfs_->GetCoordNodesElemMat(connect, coordMat, level);
+
 }
 
 template<Integer dim>
@@ -230,95 +234,6 @@ InterfaceAdaptGrid<dim>::~InterfaceAdaptGrid()
   delete ptBCs;
  if (ptgridcfs_) delete ptgridcfs_;
 }
-
-template<Integer dim>
-void InterfaceAdaptGrid<dim>::forEachElemSd(SetRefFlag & f,const std::string subdomain)
-{
-#ifdef TRACE
- (*trace) << " entering InterfaceAdaptGrid<Dim>::forEachElemSd Refinement " << std::endl;
-#endif
- 
- // uniform refinement - testing
-
- Integer numsd;
- Integer i;
- for (i=0; i<listSD_.size(); i++)
- {
-   if (listSD_[i]==subdomain) numsd=i;
- }
-
- Integer toplevel=grid_.getTopLevel();
- grd::GridLevel * gridlv;
- grd::ConformingClosure * closure=grid_.getClosure();
-
- Integer counter=0;
- typedef std::list<grd::Element*>::iterator ElmI;
- typedef grd::ConformingClosure::triangleIterator  TriI;
- for (int j = 0; j <= toplevel; j++)
- {
-    gridlv=grid_.getGridLevel(j);
-    list<grd::Element*>** lt = gridlv->getElementList();
-    int type = 0;
-    while (lt[type]) {
-      for (ElmI p = lt[type]->begin(); p != lt[type]->end(); ++p, counter++)
-      {
-        if ((*p)->getValue() == numsd) {
-	  if (!(*p)->isRefined()) {
-	    f(*p);
-	  } 
-	} // check that from the subdomain
-      } // loop elems
-      // next element type
-      type++;
-    } // type loop
- } // level loop
-}
-
-template<Integer dim>
-void InterfaceAdaptGrid<dim>::forEachElemSd(SetRefFlagTest & f,const std::string subdomain)
-{
-#ifdef TRACE
- (*trace) << " entering InterfaceAdaptGrid<Dim>::forEachElemSd Refinement " << std::endl;
-#endif
- 
- Integer numsd;
- Integer i;
- for (i=0; i<listSD_.size(); i++)
- {
-   if (listSD_[i]==subdomain) numsd=i;
- }
-
- Integer toplevel=grid_.getTopLevel();
- grd::GridLevel * gridlv;
- grd::ConformingClosure * closure=grid_.getClosure();
-
-  Integer type=0;
-  Integer topLevel = grid_.getTopLevel();
-  typedef std::list<grd::Element*>::iterator ElmI;
-  for (int j = 0; j <= toplevel; j++)
-  {
-    Integer counter=0;
-    gridlv=grid_.getGridLevel(j);
-    list<grd::Element*>** lt = gridlv->getElementList();
-    type = 0;
-    while(lt[type]) {
-      for (ElmI p = lt[type]->begin(); p != lt[type]->end(); ++p) {
-	if ((*p)->getValue() == numsd) {
-	  if (!(*p)->isRefined()) {
-	    { 
-	      f(*p); 	      
-	      counter++; 	     
-	    }
-	  }
-	} // sub domain
-	
-      } // for element
-      type++;
-    }
-    
-  } // for j topLevel
- 
-} // end of functions
 
 template<Integer dim>
 void  InterfaceAdaptGrid<dim>::SetVertexNumbers()
@@ -366,24 +281,28 @@ void InterfaceAdaptGrid<dim>::Trans2CFSGrid(const Integer alevel)
 
   Integer level=alevel;
   if (level==-1) level=grid_.getTopLevel();
+  ptgridcfs_->SetDim(dim_);
   ptgridcfs_->putNodesFromGrid_RG(&grid_,level); 
   ptgridcfs_->putElemsFromGrid_RG(&grid_,level);
+
 }
 
 template<Integer dim>
-void InterfaceAdaptGrid<dim>::RestoreInitialMesh()
+void InterfaceAdaptGrid<dim>::ResetToCoarseGrid()
 {
 #ifdef TRACE
-  (*trace) << " entering InterfaceAdaptGrid<Dim>::RestoreInitialMesh()" << std::endl;
+  (*trace) << " entering InterfaceAdaptGrid<Dim>::ResetToCoarseGrid()" << std::endl;
 #endif
 
   if (ptgridcfs_) { delete ptgridcfs_;} 
+  ptgridcfs_=NULL;
+  
+  grid_.reset();
 
-  ptgridcfs_=new GridCFS<dim>(ptFileType);
+  Read();
 
-  Integer level=0;
-  ptgridcfs_->putNodesFromGrid_RG(&grid_,level); 
-  ptgridcfs_->putElemsFromGrid_RG(&grid_,level);
+  std::cout << " no. of elements: " << grid_.getNoOfTriangles() << " level: " << grid_.getTopLevel() << std::endl;
+  std::cout <<  " no. of nodes: " << grid_.getNoOfVertices() << " level: " << grid_.getTopLevel() << std::endl;
 }
 
 template<Integer dim>
@@ -399,8 +318,6 @@ void InterfaceAdaptGrid<dim>::ProlongSol(const Vector<Double> sol_coarse, Vector
   for (i=0; i < sol_coarse.size(); i++) {
     sol[i]=sol_coarse[i];
   }    
-
-  //std::cout << " solution in Prolongation \n" << sol << std::endl;
 
   Integer level;
   Integer noOfLevels = grid_.getNoOfLevels();
@@ -425,8 +342,7 @@ void InterfaceAdaptGrid<dim>::ProlongSol(const Vector<Double> sol_coarse, Vector
 
 	  
 	  sol[id-1]=(sol[id0-1]+sol[id1-1])/2; // compute new function values
-	  std::cout << " id: " << id-1 << " sol: " << sol[id-1] << endl;
-  
+	    
 	  // set nodes as processed
 	  v->setProcessed();
         } // if isProcessed 
@@ -489,100 +405,3 @@ template <Integer dim>
 }
 
 } // end of namespace
-
-//   std::list<grd::Element *> ** pe=pgl->getElementList();
-//     typedef std::list<grd::Element*>::iterator EllI;
-
-//    Integer counter=0,type=0;
-//    while(pe[type])
-//      { for (EllI p=(*pe[type]).begin(); p!=(*pe[type]).end(); ++p)
-//        {
-// 	 std::cout << counter << " " << (*p)->getNoOfVertices() << std::endl;
-//          counter++;
-//          grd::Vertex * h;
-//          std::cout << " connect ";
-//          for (Integer k=0; k<(*p)->getNoOfVertices(); k++)
-//        {
-//          h=(*p)->getVertex(k);
-// 	 std::cout << h->getId() <<" "; 
-// 	     }
-// 	 std::cout << std::endl;
-//        } 
-//      type++; 
-//      }
-
-// template<class Dim>
-// void InterfaceAdaptGrid<Dim>::forEachElemSd(PutElemMatInAlgSys & f,const std::string subdomain)
-// {
-// #ifdef TRACE
-//   (*trace) << " entering InterfaceAdaptGrid<Dim>::forEachElemSd " << std::endl;
-// #endif
-
-//   Integer numsd;
-
-//  Integer i;
-//  for (i=0; i<listSD_.size(); i++)
-//  {
-//    if (listSD_[i]==subdomain) numsd=i;
-//  }
- 
-//  Elem t;
-
-//  Integer toplevel=grid_.getTopLevel();
-//  grd::GridLevel * gridlv;
-//  grd::ConformingClosure * closure=grid_.getClosure();
-
-//  typedef std::list<grd::Element*>::iterator ElmI;
-//  typedef grd::ConformingClosure::triangleIterator  TriI;
-//   for (int j = 0; j <= toplevel; j++)
-//  {
-//     gridlv=grid_.getGridLevel(j);
-//     list<grd::Element*>** lt = gridlv->getElementList();
-//     int type = 0;
-//     while (lt[type]) {
-//       for (ElmI p = lt[type]->begin(); p != lt[type]->end(); ++p)
-//       {
-//         if ((*p)->getValue() == numsd)
-// 	  {
-//         if ((*p)->isRegular()) {
-//           Integer tp=(*p)->type();
-// 	  if (tp == GRD_TRIANGLE) t.ptElem=ptTr;
-//           else
-//       Error("this type of elements is not implemented yet",__FILE__,__LINE__);
-
-//           Integer j;
-//           Integer nnodes=(*p)->getNoOfVertices();
-//           t.connect.Resize(nnodes);
-//           for(j=0; j<nnodes; j++)
-// 	    t.connect[j]=(*p)->getVertex(j)->getId();
-
-//           f(t);
-//         }
-
-// 	//        else if ((*p)->isIrregular()) {
-//         //  (*p)->close(*closure);
-//         //  for (TriI tri =(*closure).beginTriangle(); tri != (*closure).endTriangle(); ++tri)
-//         //    f(*tri);
-       
-// 	  } // check that from the subdomain
-//       } // loop elems
-//       // next element type
-//       type++;
-//  } // type loop
-// } // level loop
-// }
-
-// template<class Dim>
-// void InterfaceAdaptGrid<Dim>::forEachElemSd(PutElemMatAlgSysElst3d & f,const std::string subdomain)
-// {
-//  Integer numsd;
-
-//  Integer i;
-//  for (i=0; i<listSD_.size(); i++)
-//  {
-//    if (listSD_[i]==subdomain) numsd=i;
-//  }
-
-//  Error("Not implemented yet", __FILE__, __LINE__);
-
-// }

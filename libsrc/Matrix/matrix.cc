@@ -473,28 +473,45 @@ for (k=1; k < row; k++) p[k]=p[k-1]+col;
 for (i=0; i<n; i++) p[0][i]=help.p[0][i];
 }
  
+template<>
+void Matrix<Double>::CholerskyDecomposition()
+{
+#ifdef TRACE
+  (*trace) << " entering CholerskyDecomposition\n";
+#endif
 
-// does not work in this way, because z is allocated INSIDE the method, and, thererfore, "dies" 
-// a horrible death outside !!!!!!
-//
-// template<class TYPE>
-// Matrix<TYPE> Matrix<TYPE>::part (const Integer i1,const Integer i2, const Integer j1,
-//                                  const Integer j2) const
-// {
-//          if (!col || !row ) Error("undefined Matrix",__FILE__,__LINE__); 
- 
-//         if (i1 < 0 || i1 > i2 || i2 >= row)
-//                       Error("invalid index",__FILE__,__LINE__); 
-//         if (j1 < 0 || j1 > j2 || j2 >= col)
-//                     Error("invalid index",__FILE__,__LINE__);   
-//         Matrix  z (i2 - i1 + 1, j2 - j1 + 1);
- 
-//         for (Integer i = 0; i < z.row; i++)
-//                 for (Integer j = 0; j < z.col; j++)
-//                         z [i] [j] = p [i1 + i] [j1 + j];
- 
-//         return z;
-// }
+  // CholerskyDecomposition A=BB^T.
+  // We store B matrix as lower triangular matrix in memory of A. It means that A is destroyed (:.
+
+  p[0][0]=std::sqrt(p[0][0]);
+  
+  Integer i,j,k;
+  for (i=1; i<row; i++) 
+    {
+      Double sum=0;
+
+      for (j=0; j<i; j++)
+	{
+	  sum=0;
+	  for (k=0; k<j; k++)
+	    sum+=p[i][k]*p[j][k];
+
+	  p[i][j]=(p[i][j]-sum)/p[j][j];
+	}
+
+      sum=0;
+       for (j=0; j<i; j++)
+	sum+=sqr(p[i][j]);
+	
+      p[i][i]=std::sqrt(p[i][i]-sum);
+    } 
+}
+
+template<>
+void Matrix<Integer>::CholerskyDecomposition()
+{
+  Error("For Integer matrix is not implemented");
+}
 
 template< class TYPE>
 void Matrix<TYPE>::precond(Vector<TYPE> & e, const Vector<TYPE> r, enum precond type)

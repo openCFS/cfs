@@ -10,6 +10,8 @@
 #include <Forms/elecforceop.hh>
 #include <Estimator/spaceerror.hh>
  
+#include <AlgebraicSystem/LinAlg/linsystem.hh>
+
 namespace CoupledField
 {
 
@@ -31,20 +33,27 @@ ElecPDE::ElecPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
   conf->getsubdompde(subdoms_,pdename_);
   ReadBCs(pdename_);
 
-  AssignPDENodeNumbers(Mesh2PDENode_, PDE2MeshNode_, subdoms_);
-  NumPDENodes_ = PDE2MeshNode_.size();
+  Reset();
   
-  // initialize array with coordinates displacement
-  deltCoords_.reshape(Dim_, NumPDENodes_);
-
-  sol_.reshape(dofspernode_,NumPDENodes_);
-  sol_.init();
-  
-  NumElems_ = ptgrid_->GetMaxnumElem(actlevel_, subdoms_); 
-
-  
+  SolverCFS_ = FALSE;
 }
 
+void ElecPDE::Reset()
+{
+#ifdef TRACE
+  (*trace) << "entering ElecPDE::SetMatrixFactors" << std::endl;
+#endif
+    
+  AssignPDENodeNumbers(Mesh2PDENode_,PDE2MeshNode_,subdoms_);
+  NumPDENodes_=PDE2MeshNode_.size();
+
+  deltCoords_.reshape(Dim_,NumPDENodes_);
+  sol_.reshape(dofspernode_,NumPDENodes_);
+  sol_.init();
+
+  NumElems_=ptgrid_->GetMaxnumElem(actlevel_,subdoms_);
+
+}
 
 void ElecPDE::SetMatrixFactors()
 {
@@ -176,7 +185,7 @@ void ElecPDE::SolveStepStatic(const Integer level)
   //account for bcs
   SetBCs(level,updateBCs_,0);
 
-  updateBCs_ = 1;
+  updateBCs_ = 0;
   
   algsys_->CalcPrecond(job);
   algsys_->Solve();
@@ -209,8 +218,7 @@ void ElecPDE::SolveStepStatic(const Integer level)
       if (DampingMatrix_    == 1) matrixsystype[2] = DAMPING;     // memory for the damping matrix
       if (ConvectionMatrix_ == 1) matrixsystype[3] = CONVECTION;  // memory for the convection matrix
       if (MassMatrix_       == 1) matrixsystype[4] = MASS;        // memory for the mass matrix
-      
-      
+          
       for (Integer i=0;i<5;i++)
 	{
 	  if (matrixsystype[i] !=0)
@@ -218,11 +226,30 @@ void ElecPDE::SolveStepStatic(const Integer level)
 	}
     }
 
+  if (flags->CalcErrorMap_)
+    {
+      Double         totalErr;
+      Array<Double>  Sol_Mesh;
+      Vector<Double> solVec;
+      
+      ptError_=new SpaceErrorEstimator();
 
-#ifdef DEBUG
-  //  std::string matFileName = "solMat";
-  //  OutFile_->WriteSolMatrix(ptgrid_, level, sol_, matFileName);
-#endif
+      ptError_->Init(this);
+      
+      TransformNodeSolution(Sol_Mesh,sol_,PDE2MeshNode_);
+
+      solVec.Resize(sol_.size());
+      int i;
+      for (i=0; i<sol_.size(); i++)
+	solVec[i]=sol_[0][i];
+      //      sol_.toVector(solVec,1);
+
+      ptError_->CalcErrorMap(solVec,subdoms_,ptgrid_,errorMap_,totalErr,level);
+      
+      *infofile << " total error of calculation:: " << totalErr << std::endl;
+      *data << errorMap_ << std::endl;
+    }
+
 }
 
 
@@ -386,8 +413,6 @@ void ElecPDE::CalcNodeForce(Array<Double> & force,
 
 }
 
-
-
 void ElecPDE::SetupMatrices(const Integer level)
 {
 #ifdef TRACE
@@ -430,10 +455,24 @@ void ElecPDE::SetupMatrices(const Integer level)
 	  bilinear_stiff->CalcElementMatrix(ptCoord, elemmat);
 	  
 #ifdef DEBUG
-	  (*debug) << "Stiffnessmatrix, ElementNumber  " <<   i << std::endl;
+	  (*debug) << "Stiffnessmatrix, ElementNumber  " << j << std::endl;
 	  (*debug) << elemmat << std::endl;
 #endif
 
+	  if (SolverCFS_)
+	    {
+	      Integer elsize=connecth.size();
+	      Integer irow,icln;
+	      Integer ii, iii;
+	      for (ii=0; ii<elsize; ii++)
+		for (iii=0; iii<elsize; iii++)
+		  {
+		    irow=connecth[ii]-1;
+		    icln=connecth[iii]-1;
+		    sysmat_.Add(irow,icln,elemmat[ii][iii]);
+		  } 
+	    }
+	  
 	  algsys_->SetElementMatrix(elemmat.getinarray(), connect_PDE.get(), connecth.size(), SYSTEM);
 	  
 	  delete bilinear_stiff;	  
@@ -463,10 +502,8 @@ void ElecPDE::WriteResultsInFile()
   TransformElemSolution(E_Mesh,E_,subdoms_);
 
   // CHANGE F_Interface_
-  TransformElemSolution(Force_Mesh,Force_,F_Interface_[0]);
+  // TransformElemSolution(Force_Mesh,Force_,F_Interface_[0]);
    
-  //std::cerr << "ElecPDE::WriteResultsinfile" << std::endl;
-
   // write results
   if (OutFile_->IsGMV())
     {
@@ -486,8 +523,11 @@ void ElecPDE::WriteResultsInFile()
        OutFile_->WriteElemSolution(E_Mesh,step,time,"electric field");
       //OutFile_->WriteElemSolution(Force_Mesh,step,time,"mag. volume force");
     }
-  
 
+    if (flags->CalcErrorMap_)
+    {   
+      OutFile_->WriteElemSolution(errorMap_,step,time,"relERR-E-Potential"); 
+    }
 }
 
 Boolean ElecPDE::HasOutput(std::string output)

@@ -1,12 +1,15 @@
 #
-# Makefile for physical system
-C_DIR=../..
+C_DIR= ../..
 #
-#src = timeerror.cc actimeerror.cc spaceerror.cc
-src = 
+include ../../main/Makefile.option
+
+ifeq ($(Adaptivity),yes)
+  src = spaceerror.cc
+else
+   src = 
+endif
 #
 lib = estimator
-libpath = libsrc/Estimator
 CFLAGS3 =
 #
 include ../makefile.inc

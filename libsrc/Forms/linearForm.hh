@@ -38,8 +38,6 @@ public:
   /// Calculation of vector of right hand side 
   virtual void CalcElemVector(Matrix<Double>& ptCoord, std::vector<Double> & result);
 
-
-
 private:
   /// source factor
   Double val_;
@@ -120,14 +118,6 @@ private:
   Directions preStressDir_;
 };
 
-
-
-
-
-
-
-
-
 /// class for calculation of right hand side for flownoise problem
 class LinearFlowNoiseInt : public LinearForm
 {
@@ -149,7 +139,34 @@ private:
 };
 
 
+/// class for calculation of right hand side for recovery procedure
+class RHSForRecoveryProcedure : public LinearForm
+{
+public:
+  ///
+  RHSForRecoveryProcedure(BaseFE * aptelem);
 
+  ///
+  virtual ~RHSForRecoveryProcedure();
+
+  // Calculation of vector of right hand side
+  /*
+    /\f[
+    \int \phi \frac{\partial u^{FEM}}{\partial x_i}
+    \f]
+    \param ptCoord (input) Matrix with coordinates of the element
+    \param fncNodesElem (input) value of solution at nodes of element
+    \param aComponent (input) number of the gradient's component 
+    \param elemVec (output) vector with result
+  */
+  void CalcElemVectorRHSForSPR(Matrix<Double>& ptCoord,
+			  Vector<Double> & fncNodesElem,
+			  const Integer aComponent,
+			  Vector<Double> & elemVec);
+
+private:
+ 
+};
 
 }
 

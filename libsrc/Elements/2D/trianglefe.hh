@@ -21,7 +21,6 @@ public:
   //! return FE-Type for CLA++
   virtual Integer feType() { return TRIA;}
 
-
 protected:
 
 

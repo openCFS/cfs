@@ -34,73 +34,13 @@
 namespace CoupledField
 {
 
-void Domain::ArrayTest()
-{
-
-  Array<Double> A1(3,6);
-  Vector<Double> V1, V2, V3;
-  std::vector<Double> v1, v2;
-
-  std::cerr << "Array 1:" << A1 << std::endl;
-
-  V1.Resize(3);
-  V1[0] = 3.33;
-  V1[1] = 4.5;
-  V1[2] = -6.4;
-
-  V2.Resize(3);
-  V2[0] = 1;
-  V2[1] = 2;
-  V2[2] = 3;
-
-  Array<Double> A2(V2);
-  
-  
-  A1 = V1;
-
-  std::cerr << "A1:" << std::endl << A1 << std::endl;
-  std::cerr << "A2:" << std::endl << A2 << std::endl;
- 
-  Array<Double> A3;
-
-
-  V3 = A1;
-  std::cerr << "V3 = " << std::endl << V3 << std::endl;
-
-  A3 = A1 + A2;
-  
-  std::cerr << "A1 + A2" << std::endl << A3 << std::endl;
-  
-  A3 = A1 - A2;
-
-  std::cerr << "A1 - A2" << std::endl << A3 << std::endl;
-
-  A3 = A1 * 2;
-  
-  std::cerr << "A1 * 2 = "<< std::endl << A3 << std::endl;
-
-  A3 = A1 / 2;
-  
-  std::cerr << "A1 / 2 = " << std::endl << A3 << std::endl;
-
-  std::cerr << "A1 * A2" << A1*A2 << std::endl;
-
-  
-  
- 
-}
-
 Domain:: Domain(FileType * const aptFileType, WriteResults * ptOut, TimeFunc * aptTimeFunc) 
 {
 #ifdef TRACE
   (*trace) << "entering Domain::Domain" << std::endl;
 #endif
   
-  //rayTest();
-  //ror("End of Arraytest!");
-
-  
-  newlevel = 0;
+  numlevel_ = 0;
 
  InFile_     = aptFileType; 
  OutFile_    = ptOut;
@@ -116,46 +56,33 @@ Domain:: Domain(FileType * const aptFileType, WriteResults * ptOut, TimeFunc * a
 
  // initialize pointer to grid 
  if (dim==2) {
-#ifdef GRIDLIB
-   if (libmesh =="gridlib") ptgrid_=new InterfaceGridlib<2>(InFile_);
-  else
-#endif
+
   if (libmesh =="cfsgrid") 
       ptgrid_=new GridInterfaceCFS<2>(InFile_);
-#ifdef NETGEN
-    else 
-  if (libmesh == "netgen")
-    ptgrid_=new InterfaceNetGen<2>(InFile_);
-#endif
+
 #ifdef ADAPTGRID
-     else
-   if (libmesh== "adaptgrid")
-    ptgrid_=new InterfaceAdaptGrid<2>(InFile_);
+  else
+    if (libmesh== "adaptgrid")
+      ptgrid_=new InterfaceAdaptGrid<2>(InFile_);
 #endif
-   else
-     Error("Unknown type of mesh_library in conf-file",__FILE__,__LINE__);
+
+    else
+      Error("Unknown type of mesh_library in conf-file",__FILE__,__LINE__);
  }
  
- if (dim==3) {
-#ifdef GRIDLIB
-   if (libmesh =="gridlib") ptgrid_=new InterfaceGridlib<3>(InFile_);
-  else
-#endif
-  if (libmesh =="cfsgrid") 
-      ptgrid_=new GridInterfaceCFS<3>(InFile_);
-#ifdef NETGEN
-    else 
-  if (libmesh == "netgen")
-    ptgrid_=new InterfaceNetGen<3>(InFile_);
-#endif
+ if (dim==3) 
+   {
+     if (libmesh =="cfsgrid") 
+       ptgrid_=new GridInterfaceCFS<3>(InFile_);
+
 #ifdef ADAPTGRID
      else
-   if (libmesh== "adaptgrid")
-    ptgrid_=new InterfaceAdaptGrid<3>(InFile_);
+       if (libmesh== "adaptgrid")
+	 ptgrid_=new InterfaceAdaptGrid<3>(InFile_);
 #endif
-   else
-     Error("Unknown type of mesh_library in conf-file",__FILE__,__LINE__);
- }
+       else
+	 Error("Unknown type of mesh_library in conf-file",__FILE__,__LINE__);
+   }
 
  //read in the mesh information
  ptgrid_->Read();
@@ -188,10 +115,8 @@ Domain :: ~Domain()
 
   if (ptgrid_) delete ptgrid_;
   if (ptBCs_) delete ptBCs_;
-  if (ptalgsys_) delete ptalgsys_;
+  //  if (ptalgsys_) delete ptalgsys_;
 
-  Integer i; 
- 
 }
 
 void Domain :: InitPDEs()
@@ -215,18 +140,10 @@ void Domain :: InitPDEs()
     {
       if (pdes[i] == "acoustic")
   	ptpde_[i]=new AcousticPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
-//       else if (pdes[i] == "electrostatic3d")
-// 	ptpde_[i]=new Elecst3dPDE(ptalgsys_,ptgrid_,ptTimeFunc_,InFile_,OutFile_);
-//       else if (pdes[i] == "thermal2d")
-// 	ptpde_[i]=new Therm2dPDE(ptalgsys_,ptgrid_,ptTimeFunc_,InFile_,OutFile_);	 
-//         else if (pdes[i] == "electrostatic2d") 
-//        ptpde_[i]=new Elecst2dPDE(ptalgsys_,ptgrid_,ptTimeFunc_,InFile_,OutFile_); 
-//        else if (pdes[i] == "acoustic3d")
-// 	 ptpde_[i]=new Acoustic3dPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
-//        else if (pdes[i] == "acouflownoise")
-// 	 ptpde_[i]=new AcouFlowNoise(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
-// 	ptpde_[i]=new Elec2dPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_); 
-//       else if (pdes[i] == "electric3d") 
+
+      else if (pdes[i] == "acouflownoise")
+ 	 ptpde_[i]=new AcouFlowNoise(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
+
       else if (pdes[i] == "mechanic")
 	ptpde_[i]=new MechPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
 
@@ -274,7 +191,7 @@ void Domain::InitCoupledPDE()
   
   // create new Coupled PDE
   ptcoupledpde_ = new IterCoupledPDE(orderedpdes_,couplings_,ptgrid_, ptBCs_,InFile_,OutFile_);
-  ptcoupledpde_->InitCoupling(newlevel);
+  ptcoupledpde_->InitCoupling(numlevel_);
 
   delete CouplingDef;
 
@@ -309,32 +226,30 @@ void Domain::Update(const Integer level)
   ptBCs_->Update(ptgrid_);
 
   // Init AlgSystem
-  //  UpdateAlgSys(level);
+  UpdateAlgSys(level);
    
 }
 
-// void Domain::UpdateAlgSys(const Integer level)
-// {
-// #ifdef TRACE
-//   (*trace) << "entering Domain::UpdateAlgSys" << std::endl;
-// #endif
+void Domain::UpdateAlgSys(const Integer level)
+{
+#ifdef TRACE
+  (*trace) << "entering Domain::UpdateAlgSys" << std::endl;
+#endif
 
-//   newlevel ++;
-//   delete ptalgsys_;
-
-//   ptalgsys_=new AlgSysPILES();
-//   if (!ptalgsys_) Error("Can't allocate memory for algebraic system Piles");
-
-//   for (int i=0;i< numpde_;i++) {
-//     ptpde_[i]->InitPtAlgSys(ptalgsys_);
-//   }
+  numlevel_ ++;
  
-//   InitAlgSys(level);
+  //set the algebraic systems and read material data
+  for (int i=0;i< numpde_;i++)
+    {
+      ptpde_[i]->DeleteAlgSys(i);
+      ptpde_[i]->Reset();
+      ptpde_[i]->SetAlgSys(i); 
+    } 
   
-// #ifdef TRACE
-//   (*trace) << " leaving Domain::UpdateAlgSys " << std::endl;
-// #endif
-//}
+#ifdef TRACE
+  (*trace) << " leaving Domain::UpdateAlgSys " << std::endl;
+#endif
+}
 
 
 }

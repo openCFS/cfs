@@ -3,11 +3,10 @@
 
 
 #include "General/environment.hh"
-//#include <Matrix/matrix.hh>
 #include <string>
 #include <vector>
 #include <iostream>
-//#include <Matrix/matrix.hh>
+
 
 namespace CoupledField
 {
@@ -103,6 +102,15 @@ Double dist_Mat(Matrix<Double> a);
 template<Integer dim>
 void PrintPoint(Point<dim> point, std::ostream * out); 
 
+// calculation area or volume of element
+struct Elem;
+class Grid;
+Double CalcArea(Elem * ptElem, Grid * ptgrid, const Integer level);
+
+// define number of refinement for the element
+Integer defineRefinements(const Double tolElem, const Double tolTotal,
+			  const Integer noOfChilds);
+
 //! calculate the normal to line with following orientation: a-->b
   /*!
     \param normal normal
@@ -138,14 +146,6 @@ Double ScalarMult(std::vector<Double> a, std::vector<Double> b);
 
 
 char * c_string(const std::string & s);
-
-
-// // std::vector output
-//   template<class TYPE> std::ostream& operator<< ( std::ostream & outStr, std::vector<TYPE> xOut);
-
-// // std::vector output
-// std::ostream & operator<< (std::ostream & outStr, std::vector<Double> & xOut);
-
   
 } // end of CoupledField
 

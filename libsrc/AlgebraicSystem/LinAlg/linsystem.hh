@@ -45,6 +45,9 @@ public:
   //! BiCGSTAB method, can be used for all types of matrix
   Boolean BiCGSTAB(const Integer maxIter, enum precond typePrecond);
 
+  //! Direct solver
+  void CholerskyMethod();
+
   //!
   void printsol(){ std::cout << x << std::endl;}
 private:
@@ -56,8 +59,6 @@ private:
 #ifdef __GNUC__
 template class LinSystem<Double, Matrix<Double> >;
 template class LinSystem<Double, SymMatrix<Double> >; 
-template class LinSystem<Double, SparseMatrix<Double> >;
-//template class LinSystem<Double, SymBandMatrix<Double> >;
 #endif
 
 }

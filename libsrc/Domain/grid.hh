@@ -111,11 +111,12 @@ public:
     \param neighbours (output) list with neighbors
     \param subdomains (input) list of subdomains, on which neighbors are searched
   */
-  virtual void GetNeighboursOfNode(const Integer noOfNode, std::vector<Elem*> * neighbours)
+  virtual void GetNeighboursOfNode(const Integer noOfNode,
+				   std::vector<Elem*> * neighbours)
   { Error(" Not implemented",__FILE__,__LINE__);}
 
   //! Do refinement of elements, which we mark through function SetRefinementFlag
-  virtual void Refine()
+  virtual void Refine(const Integer numLoops = 1)
   { Error(" This fnc is valid only for adaptgrid. Change your config-file",__FILE__,__LINE__);}
 
   //! Do uniform refinement of elements, which we mark through function SetRefinementFlag
@@ -123,7 +124,7 @@ public:
   { Error(" Not implemented",__FILE__,__LINE__);}
 
   //! restore initial coarse mesh
-  virtual void RestoreInitialMesh()
+  virtual void ResetToCoarseGrid()
   { Error(" Not implemented",__FILE__,__LINE__);}
 
   //!
@@ -150,7 +151,6 @@ public:
   */
   virtual void GetCoordNodesElem(const Vector<Integer> connect, Point<2> * ptCoord, const Integer level)
   { Error(" Not implemented",__FILE__,__LINE__);}
-
 
   //! gets a matrix of the coordinates of the element nodes
   /*!
