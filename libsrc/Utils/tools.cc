@@ -2,7 +2,6 @@
 #include <fstream>
 #include <iostream>
 
-//#include "general_head.hh"
 #include "tools.hh"
 
 namespace CoupledField {

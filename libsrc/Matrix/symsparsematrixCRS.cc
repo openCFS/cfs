@@ -1,10 +1,5 @@
 #include <iostream>
 #include <fstream>
-//#include <time.h>
-//#include <string>
-
-//#include <general_head.hh> 
-//#include <utils_head.hh>
 
 #include "symsparsematrixCRS.hh"
 

@@ -5,16 +5,12 @@
 #include <iomanip>
 #include <stdarg.h>
 
-#include <general_head.hh> 
-#include <utils_head.hh>
-#include <datainout_head.hh>
-#include <elements_head.hh>
-#include <forms_head.hh>
-#include <linalg_head.hh>   
-#include <domain_head.hh>
-#include <pde_head.hh> 
-#include <driver_head.hh>
-
+#include "clock.hh"
+#include "definefiles.hh"
+#include "material.hh"
+#include "timefunc.hh"
+#include "acousticPDE.hh"
+#include "driver.hh"
 
 using namespace CoupledField;
 
@@ -25,7 +21,7 @@ void main(int argc, char *argv[])
   std::cout << " \033[36mUsage\033[0m : cfs -ext [-i] name [-m materialfile]"<< std::endl 
        << "\t \033[36m ext \033[0m: format of input file( implemented: dat ) " << std::endl
        << "\t \033[36m i \033[0m: to create info-file " << std::endl
-       << "\t \033[36m name \033[0m: name of input file without extension" << std::endl << endl;
+       << "\t \033[36m name \033[0m: name of input file without extension" << std::endl << std::endl;
 
   if (argc < 3) Error("Invalid running of scfe. See Usage above.");
 

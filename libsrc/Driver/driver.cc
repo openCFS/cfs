@@ -2,15 +2,6 @@
 #include <iostream>
 #include <string>
 
-//#include <general_head.hh>
-//#include <utils_head.hh>
-//#include <datainout_head.hh>
-//#include <elements_head.hh>
-//#include <forms_head.hh>
-//#include <linalg_head.hh>
-//#include <domain_head.hh>
-//#include <pde_head.hh>
-
 #include "acousticPDE.hh"
 #include "driver.hh"
 

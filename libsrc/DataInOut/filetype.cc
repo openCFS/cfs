@@ -1,10 +1,6 @@
-//#include <string>
 #include <fstream>
 #include <iostream>
 #include <stdarg.h>
-
-//#include <general_head.hh>
-//#include <utils_head.hh>
 
 #include "filetype.hh"
 

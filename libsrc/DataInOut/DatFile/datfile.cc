@@ -4,9 +4,6 @@
 #include <iostream>
 #include <iomanip>
 
-//#include <general_head.hh>
-//#include <utils_head.hh>
-//#include "filetype.hh"
 #include "datfile.hh"
 
 namespace CoupledField

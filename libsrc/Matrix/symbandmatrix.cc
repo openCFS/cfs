@@ -4,9 +4,6 @@
 #include <string>
 #include <iomanip>
  
-//#include <general_head.hh>
-//#include <utils_head.hh>
-
 #include "symbandmatrix.hh"
 
 namespace CoupledField

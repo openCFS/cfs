@@ -2,8 +2,6 @@
 #include <iostream>
 #include <string>
 
-//#include <general_head.hh>
-//#include <utils_head.hh>
 #include "systemmatrix.hh"
 
 namespace CoupledField

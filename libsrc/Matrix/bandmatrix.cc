@@ -3,9 +3,6 @@
 #include <time.h>
 #include <string>
 
-//#include <general_head.hh>
-//#include <utils_head.hh>
-
 #include "bandmatrix.hh"
 
 namespace CoupledField
