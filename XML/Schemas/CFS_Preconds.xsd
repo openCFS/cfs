@@ -68,14 +68,14 @@
 
 
   <!-- ******************************************************************** -->
-  <!-- Definition of element for HYPRE_ILU Preconditioner -->
+  <!-- Definition of element for HYPRE_SPAI Preconditioner -->
   <!-- ******************************************************************** -->
   <xsd:element name="hypreSPAI" type="DT_PrecondParaSails"
     substitutionGroup="PrecondBasic"/>
 
 
   <!-- ******************************************************************** -->
-  <!--   Definition of data type for HYPRE_ILU Preconditioner -->
+  <!--   Definition of data type for HYPRE_SPAI Preconditioner -->
   <!-- ******************************************************************** -->
   <xsd:complexType name="DT_PrecondParaSails">
     <xsd:complexContent>
@@ -126,7 +126,7 @@
 
 
   <!-- ******************************************************************** -->
-  <!--   Definition of data type for HYPRE_ILU Preconditioner -->
+  <!--   Definition of data type for HYPRE_AMG Preconditioner -->
   <!-- ******************************************************************** -->
   <xsd:complexType name="DT_PrecondBoomerAMG">
     <xsd:complexContent>
