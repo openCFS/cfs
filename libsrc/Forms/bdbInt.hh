@@ -14,6 +14,9 @@ public:
   /// Constructor with pointer to BaseElem
   BDBInt(BaseFE * aptelem, MaterialData & matData);
 
+  /// Constructor with pointer to BaseElem
+  BDBInt(MaterialData & matData);
+
 
   /// Destructor
   virtual ~BDBInt();

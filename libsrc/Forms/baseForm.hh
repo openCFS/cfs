@@ -15,7 +15,13 @@ public:
   BaseForm(BaseFE * aptelem, MaterialData & matData);
 
   //! Constructor
+  BaseForm(MaterialData & matData);
+
+  //! Constructor
   BaseForm(BaseFE * aptelem);
+
+  //! Constructor
+  BaseForm();
 
   //! Deconstructor
   virtual ~BaseForm();
@@ -44,6 +50,10 @@ public:
   //! Prints the bilinear form
   virtual void Print(std::ostream * out, const Matrix<Double> Result) const;
 
+  //! sets pointer to actual element
+  void SetElemPtr(BaseFE * elemPtr)
+  {ptelem = elemPtr;};
+  
 
 protected:
 

@@ -7,7 +7,11 @@
 #include <Domain/grid.hh>
 #include <Matrix/matrix.hh>
 #include <General/environment.hh>
+#ifndef NEWBASEPDE
 #include <PDE/basepde.hh>
+#else
+#include <PDE/newBasePDE.hh>
+#endif //#ifndef NEWBASEPDE
 
 namespace CoupledField
 {

@@ -151,6 +151,16 @@ namespace CoupledField
     (*trace) << "entering linElastInt::linElastInt" << std::endl;
 #endif
   }
+
+
+  // calculate (for 2D problems) by default in the xy-plane
+  linElastInt::linElastInt(MaterialData & matData) 
+    : BDBInt(matData), actOrientation(xy)
+  {
+#ifdef TRACE
+    (*trace) << "entering linElastInt::linElastInt" << std::endl;
+#endif
+  }
  
 
   linElastInt::~linElastInt()
@@ -171,6 +181,15 @@ namespace CoupledField
 
     ptelem=aptelem;
   }
+
+
+  mechPlainStrainInt::mechPlainStrainInt(MaterialData & matData) 
+    : linElastInt(matData)
+  {
+#ifdef TRACE
+    (*trace) << "entering mechPlainStrainInt::mechPlainStrainInt" << std::endl;
+#endif
+  }
  
 
   mechPlainStrainInt::~mechPlainStrainInt()
@@ -189,6 +208,15 @@ namespace CoupledField
     (*trace) << "entering mech3DInt::mech3DInt" << std::endl;
 #endif
   }
+
+
+  mech3DInt::mech3DInt(MaterialData & matData) 
+    : linElastInt(matData)
+  {
+#ifdef TRACE
+    (*trace) << "entering mech3DInt::mech3DInt" << std::endl;
+#endif
+  }
  
 
   mech3DInt::~mech3DInt()
@@ -199,5 +227,3 @@ namespace CoupledField
   }
 
 } // end namespace CoupledField
-
-

@@ -63,6 +63,15 @@ namespace CoupledField
 #endif
   }
 
+
+  BDBInt::BDBInt(MaterialData & matData) 
+    : BaseForm(matData), updateDMatInEveryIP_(0)
+  {
+#ifdef TRACE
+    (*trace) << "entering BDBInt::BDBInt" << std::endl;
+#endif
+  }
+
   
   BDBInt::~BDBInt()
   {
