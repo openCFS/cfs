@@ -307,9 +307,6 @@ namespace CoupledField
     // (uNode1X, uNode1Y, VNode1, uNode2X, uNode2Y,VNode2,  ...)
     Vector<Double> solVec;
     elemSol_.ConvertToVec_AppendCols(solVec);
- 
-//   std::cout << "elemSol:\n" << elemSol_ << std::endl;
-    
 
     // linear differential operator B_lin
     Matrix<Double> linBMat;    
@@ -321,9 +318,6 @@ namespace CoupledField
     // | e Bmech u + eps Belec V |
     //    Vector<Double> stressElecVec = dMat * linStrainElec;
     stressElecVec = dMat * linStrainElec;
-
-//    std::cout << "stressvec:\n" << stressElecVec << std::endl;
-    
 
   }
 

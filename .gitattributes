@@ -222,8 +222,6 @@ libsrc/Forms/nLinElastInt.cc svneol=native#text/plain
 libsrc/Forms/nLinElastInt.hh svneol=native#text/plain
 libsrc/Forms/nLincurlCurlNodeInt.cc svneol=native#text/plain
 libsrc/Forms/nLincurlCurlNodeInt.hh svneol=native#text/plain
-libsrc/Forms/piezoStressStrain.cc svneol=native#text/plain
-libsrc/Forms/piezoStressStrain.hh svneol=native#text/plain
 libsrc/Forms/smoothInt.cc svneol=native#text/plain
 libsrc/Forms/smoothInt.hh svneol=native#text/plain
 libsrc/General/Makefile -text

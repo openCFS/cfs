@@ -758,42 +758,7 @@ can not draw them", __FILE__, __LINE__);
 }
 
 
-void PiezoPDE::sortStresses(Vector<Double>& unsorted, Vector<Double>& sorted){
-  ENTER_FCN( "PiezoPDE::SortStresses" );
   
-  //soring according to capa (unv) notation
-  //our notation is Voit: Txx Tyy Tzz Tyz Txz Txy
-
-  if (subType_ == "3d") {
-    //Txx Txy Tyy Txz Tyz Tzz
-    sorted[0] = unsorted[0];
-    sorted[1] = unsorted[5];
-    sorted[2] = unsorted[1];
-    sorted[3] = unsorted[4];
-    sorted[4] = unsorted[3];
-    sorted[5] = unsorted[2];
-  }
-  else if (subType_ == "axi") {
-    //Tphiphi 0 Trr 0 Trz Tzz
-    sorted[0] = unsorted[3];
-    sorted[1] = 0.0;
-    sorted[2] = unsorted[0];
-    sorted[3] = 0.0;
-    sorted[4] = unsorted[2];
-    sorted[5] = unsorted[1];
-  
-  }
-  else {
-     //0 0 Tyy 0 Tyz Tzz
-    sorted[0] = 0.0;
-    sorted[1] = 0.0;
-    sorted[2] = unsorted[0];
-    sorted[3] = 0.0;
-    sorted[4] = unsorted[2];
-    sorted[5] = unsorted[1];
-  }
-
-}
   
 
 } // end of namespace

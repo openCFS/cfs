@@ -119,8 +119,6 @@ namespace CoupledField
     //! calculate stresses
     void CalcCharges();
     
-    //!
-    void sortStresses(Vector<Double>& unsorted, Vector<Double>& sorted);
     
   };
 }
