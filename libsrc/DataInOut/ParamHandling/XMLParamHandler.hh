@@ -380,6 +380,45 @@ namespace CoupledField
 			 const std::string section,
 			 const std::string subsection );
 
+    //! Error handler in case we have no match at all
+
+    //! This method is called by the CGet routine, which expects to obtain a
+    //! unqiue match, if no match is found and we are looking for a string
+    //! value.
+    void XMLParamHandler::NoMatchHandler( std::string &value,
+					  const std::string key,
+					  const std::string attribute,
+					  const std::string aValue,
+					  Integer applyToElem,
+					  const std::string section,
+					  const std::string subsection );
+
+    //! Error handler in case we have no match at all
+
+    //! This method is called by the CGet routine, which expects to obtain a
+    //! unqiue match, if no match is found and we are looking for an Integer
+    //! value.
+    void XMLParamHandler::NoMatchHandler( Integer &value,
+					  const std::string key,
+					  const std::string attribute,
+					  const std::string aValue,
+					  Integer applyToElem,
+					  const std::string section,
+					  const std::string subsection );
+
+    //! Error handler in case we have no match at all
+
+    //! This method is called by the CGet routine, which expects to obtain a
+    //! unqiue match, if no match is found and we are looking for a Double
+    //! value.
+    void XMLParamHandler::NoMatchHandler( Double &value,
+					  const std::string key,
+					  const std::string attribute,
+					  const std::string aValue,
+					  Integer applyToElem,
+					  const std::string section,
+					  const std::string subsection );
+
     //! Error reporter for the case that we have no match at all
 
     //! This method is called by the methods handling the no match case, if
@@ -404,9 +443,20 @@ namespace CoupledField
     //!                              keyword (optional)
     //! \param subsection   (input)  Name of a subsection in which to look for
     //!                              keyword (optional)
+    //! \param constrained  (input)  Shall we perform a search with side
+    //!                              constraints.
+    //! \param attribute    (input)  Name of attribute for constraint
+    //! \param aValue       (input)  Value of attribute for constraint
+    //! \param applyToElem  (input)  Level of element for attribute/value test
+    //!                              in tree above actual element
+    //! \param rootElem     (input)  root element for search tree
     Boolean CheckForDefault( std::string &defaultValue, const std::string key,
 			     const std::string section,
-			     const std::string subsection );
+			     const std::string subsection,
+			     bool constrained = false,
+			     const std::string attribute = "",
+			     const std::string aValue = "",
+			     Integer applyToElem = 0 );
 
     //@}
 
@@ -587,6 +637,38 @@ namespace CoupledField
 			 const std::string subsection,
 			 xercesc::DOMElement *treeTop,
 			 std::vector<xercesc::DOMElement*> *elemlist=NULL );
+
+    //! Get a list of strings for keyword and elements with certain attribute
+
+    //! The method will try to find the specified keyword in the parameter
+    //! tree. Once found, it tests, whether the corresponding elements have
+    //! a specified value for a specified attribute. For these elements it
+    //! will return the values of the respective elements or of the attributes
+    //! matching the keyword. The search can be restricted to certain subtrees
+    //! by specifying keywords for section and subsection.
+    //! The method will return an empty vector, if there is no match at all.
+    //! It will issue an error message, if there are matches for both, elements
+    //! and attributes, or if one of the found elements does not have an
+    //! attribute of the specified type. If the applyToElem input argument is
+    //! set to false, then the attribute/value test is applied not to the
+    //! element itself, but to its parent.
+    //! \param key          Keyword
+    //! \param list         Vector of strings (output)
+    //! \param attribute    Name of attribute of element
+    //! \param value        Value to test attribute's value against
+    //! \param applyToElem  Specifies which element to test
+    //! \param section      Name of a section in which to look for keyword
+    //!                     (optional)
+    //! \param subsection   Name of a subsection in which to look for keyword
+    //!                     (optional)
+    void CFindAllMatches( const std::string key,
+			  std::vector<std::string> &list,
+			  const std::string attribute,
+			  const std::string value,
+			  Integer applyToElem,
+			  const std::string section,
+			  const std::string subsection,
+			  xercesc::DOMElement *rootElem );
 
     //@}
 
