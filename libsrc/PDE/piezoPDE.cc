@@ -178,10 +178,12 @@ namespace CoupledField {
 	Boolean isdamping = TRUE;
 	Boolean reducedIntegration = FALSE; //is currently not supported
 	BaseForm * dampStiff = GetStiffIntegrator( actSDMat,reducedIntegration,
-						   isdamping );
+					   isdamping );
+	dampStiff->SetRaylDamping();
 	IntegratorDescriptor *actIntDescrDamp = new IntegratorDescriptor(dampStiff, DAMPING);
 	dampStiff->SetPiezoMaterialType(realMatParameter);
 	actIntDescrDamp->SetPiezoMaterialType(realMatParameter);
+	
 	assemble_->AddIntegrator(actIntDescrDamp, subdoms_[actSD]);
 
 	// check for complex-valued material parameter

@@ -243,9 +243,9 @@ namespace CoupledField
               new IntegratorDescriptor(bilinearStiff1, STIFFNESS);
 
             //check for damping
-            if (dampingType_ == RAYLEIGH)    
+            if (dampingType_ == RAYLEIGH) {
               actIntDescr1->SetSecondaryMat(DAMPING, actSDMat.GetDampingBeta(),analysistype_);
-        
+	    }
             assemble_->AddIntegrator(actIntDescr1, subdoms_[actSD]);
 
 
@@ -258,9 +258,9 @@ namespace CoupledField
             actIntDescr2->SetReducedInt();
 
             //check for damping
-            if (dampingType_ == RAYLEIGH)    
+            if (dampingType_ == RAYLEIGH) {
               actIntDescr2->SetSecondaryMat(DAMPING, actSDMat.GetDampingBeta(),analysistype_);
-        
+	    }
             assemble_->AddIntegrator(actIntDescr2, subdoms_[actSD]);
 
           }
@@ -273,9 +273,9 @@ namespace CoupledField
               new IntegratorDescriptor(bilinearStiff, STIFFNESS);
 
             //check for damping
-            if (dampingType_ == RAYLEIGH)    
+            if (dampingType_ == RAYLEIGH) {
               actIntDescr->SetSecondaryMat(DAMPING, actSDMat.GetDampingBeta(),analysistype_);
-        
+	    }
             assemble_->AddIntegrator(actIntDescr, subdoms_[actSD]);
 
 
@@ -351,8 +351,9 @@ namespace CoupledField
           new IntegratorDescriptor(bilinearMass, MASS);
 
         //check for damping (mass part)
-        if (dampingType_ == RAYLEIGH)    
+        if (dampingType_ == RAYLEIGH) {
           actIntDescr->SetSecondaryMat(DAMPING, actSDMat.GetDampingAlfa(),analysistype_);
+	}
 
         assemble_->AddIntegrator(actIntDescr, subdoms_[actSD]);
 

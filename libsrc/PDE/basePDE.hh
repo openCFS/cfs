@@ -9,6 +9,7 @@
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
 #include "pdememento.hh"
 #include "Driver/baseSolveStep.hh"
+#include "Driver/assemble.hh"
 
 #ifdef USE_DATABASE
 #include "DataInOut/LoadMaterialDataDatabase.hh"
@@ -51,6 +52,9 @@ namespace CoupledField
 
     //! write general defines (BCs, loads, etc.) to info-file
     virtual void WriteGeneralPDEdefines() = 0;
+
+    //!
+    virtual Assemble * getPDE_assemble() = 0;
 
     //! Return pointer to the SolveStep object
     BaseSolveStep * GetSolveStep()

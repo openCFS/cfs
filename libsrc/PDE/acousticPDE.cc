@@ -251,7 +251,7 @@ void AcousticPDE::DefineIntegrators(const Integer level) {
 
 		// stiffness part
 		stiffIntDescr->SetSecondaryMat(DAMPING, beta, analysistype_);
-                
+	
 		// mass part
 		massIntDescr->SetSecondaryMat(DAMPING, alpha, analysistype_);
 	  }

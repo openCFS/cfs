@@ -40,6 +40,15 @@ HarmonicDriver :: HarmonicDriver(Domain * adomain,
   keyVec = "harmonic", "numFreq";
   params->Get(keyVec, attrVec, valVec, numFreq_);
     
+  adjustDamping_ = FALSE;
+  std::string damp;
+  keyVec = "harmonic", "adjustDamping";
+  //   adjustDamping_ =  params->IsSet(keyVec, attrVec, valVec, adjustDamping_);
+  adjustDamping_ = params->IsSet("adjustDamping",  "harmonic");
+  //  if (damp == "yes" ) {
+  //    adjustDamping_ = TRUE;
+  //  }
+
 }
 
 HarmonicDriver :: ~HarmonicDriver()
@@ -72,10 +81,20 @@ void HarmonicDriver :: SolveProblem()
       
   Integer fstep;
   Double actFreq  = startFreq_;
-  Double freqIncr = (stopFreq_ - startFreq_) / numFreq_;
+  Double freqIncr;
+  if (numFreq_ > 1) {
+    freqIncr = (stopFreq_ - startFreq_) / (numFreq_-1);
+  }
+  else {
+    freqIncr = stopFreq_ - startFreq_ ;
+  }
+
   std::string errMsg;
   
- 
+  if ( adjustDamping_ ) {
+    ptPDE_->getPDE_assemble()->SetStartFrequency(startFreq_);
+  }
+
   for (fstep = 1; fstep <= numFreq_; fstep++) {
     Info->WriteHarmonicStep(ptPDE_->GetName(), fstep, actFreq);
     

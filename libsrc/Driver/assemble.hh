@@ -469,12 +469,19 @@ namespace CoupledField
     Boolean alternateMaterialData_;
 
     Double actFreq_; //!< contains the frequency multiplied by 2*pi
+    Double startFreq_; //!< contains the starting frequency multiplied by 2*pi within a harmonic analysis
 
+    //!
     void SetReassemble()
     {firstTime_ = TRUE;};
 
+    //!
     void SetAnalysisType(AnalysisType analysis)
     {analysisType_ = analysis;};
+
+    //!
+    void SetStartFrequency(Double freq)
+    {startFreq_ = 2*PI*freq;};
 
     // ==============================================
     // AUXILIARY METHODS

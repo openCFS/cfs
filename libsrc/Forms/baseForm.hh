@@ -77,6 +77,15 @@ public:
   virtual Boolean IsFracDamping()
   {return isFracDamping_;};
 
+  //! needed for fractional damping model
+  virtual void SetRaylDamping() 
+  { isRaylDamping_ = TRUE; };
+
+
+  //! needed for fractional damping model
+  virtual Boolean IsRaylDamping()
+  {return isRaylDamping_;};
+
   //! set additional multiplicative factor for matrix
   virtual void SetFactor(Double factor) {;};
 
@@ -90,6 +99,10 @@ public:
   void SetMaterial(MaterialData * matPtr){ptMaterial = matPtr;};
 
   MaterialData * GetMaterial(){return ptMaterial;};
+
+  //! get base type of biliearform: STIFFNESS, DAMPING, MASS
+  virtual FEMatrixType GetBaseType() 
+  { return baseType_; };
 
   //! sets actual element solution
   virtual void SetActElemSol(Matrix<Double>& disp)
@@ -145,7 +158,10 @@ protected:
   piezoMaterialType piezoMatType_;     //! default = realMaterialParamter, piezoMatType_ = imagMaterialParamter if we consider complex-valued material Paramter;
 
   Boolean isFracDamping_;   //!< if true Assemble::AssembleMatrices will retrieve an additional multiplicative factor
+  Boolean isRaylDamping_;   //!< if true Assemble::AssembleMatrices will retrieve an additional multiplicative factor
   Integer dofzero_;   //!< for multidof-handling, where one dof is zero (e.g. piezoelectric PDE)
+
+  FEMatrixType baseType_;  // base type: STIFFNESS, DAMPING, MASS
 
 };
 

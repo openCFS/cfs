@@ -7,40 +7,46 @@ namespace CoupledField
 {
 
   BaseForm::BaseForm(BaseFE * aptelem, MaterialData & matData)
-    :ptMaterial(&matData), ptelem(aptelem), isaxi_(FALSE), dofzero_(0), isFracDamping_(FALSE)
+    :ptMaterial(&matData), ptelem(aptelem), isaxi_(FALSE), dofzero_(0), 
+     isFracDamping_(FALSE), isRaylDamping_(FALSE)
   {
     ENTER_FCN( "BaseForm::BaseForm" );
     isSetIntPoint_ = FALSE;
     piezoMatType_ = realMaterialParameter;
     ptMaterial = new MaterialData(matData);
+    baseType_ = NOTYPE;
   }
 
   BaseForm::BaseForm(MaterialData & matData)
-    :isaxi_(FALSE), dofzero_(0), isFracDamping_(FALSE)
+    :isaxi_(FALSE), dofzero_(0), isFracDamping_(FALSE), isRaylDamping_(FALSE)
   {
     ENTER_FCN( "BaseForm::BaseForm" );
     isSetIntPoint_ = FALSE;
     ptMaterial = new MaterialData(matData);
     piezoMatType_ = realMaterialParameter;
+    baseType_ = NOTYPE;
     
   }
 
   BaseForm::BaseForm(BaseFE * aptelem)
-    :ptelem(aptelem), isaxi_(FALSE),  dofzero_(0), isFracDamping_(FALSE)
+    :ptelem(aptelem), isaxi_(FALSE),  dofzero_(0), isFracDamping_(FALSE), 
+     isRaylDamping_(FALSE)
   {
     ENTER_FCN( "BaseForm::BaseForm" );
     isSetIntPoint_ = FALSE;
     piezoMatType_ = realMaterialParameter;
     ptMaterial = NULL;
+    baseType_ = NOTYPE;
   }
  
   BaseForm::BaseForm()
-    : isaxi_(FALSE),  dofzero_(0), isFracDamping_(FALSE)
+    : isaxi_(FALSE),  dofzero_(0), isFracDamping_(FALSE), isRaylDamping_(FALSE)
   {
     ENTER_FCN( "BaseForm::BaseForm" );
     isSetIntPoint_ = FALSE;
     piezoMatType_ = realMaterialParameter;
     ptMaterial = NULL;
+    baseType_ = NOTYPE;
   }
  
 

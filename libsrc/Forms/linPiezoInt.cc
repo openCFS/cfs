@@ -183,7 +183,7 @@ namespace CoupledField {
 
       for( Integer i = 0; i < sizeofD - 2; i++ ) {
         for ( Integer j = 0; j < sizeofD - 2; j++ ) {
-          dMat[i][j] = (*matMatrix)[i][j] * beta;
+          dMat[i][j] = (*matMatrix)[i][j] * beta * factorDamp_;
         }
       }
     }

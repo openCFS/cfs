@@ -39,6 +39,8 @@ namespace CoupledField {
     olasParams_ = algsys_->GetOLASParams();
     olasReport_ = algsys_->GetOLASReport(); 
 
+    startFreq_ = 0.0;
+
   }
 
 
@@ -136,6 +138,7 @@ namespace CoupledField {
     ENTER_FCN( "Assemble:AssembleMatrices" );
     
     Vector<Double> harmonicVec;
+    Double dampTransform = 1.0;
 
     // initialize reassembling "indicator" vector
     if (firstTime_)
@@ -170,6 +173,30 @@ namespace CoupledField {
             damp = ptPDE_->GetFracDampMatrixCoeff(actDom);
             actDescriptor->GetIntegrator()->SetFactor(damp);
           }
+
+	  dampTransform = 1.0;
+	  if ( ( actDescriptor->GetIntegrator()->IsRaylDamping() 
+		 || actDescriptor->GetSecondaryMat() != NOTYPE ) 
+	       && startFreq_ > 0 ) {
+            // get multiplicative pre factor depending on time step size
+	    if (startFreq_ > 0 && actFreq_ > 0 ) {
+	      FEMatrixType destMat = actDescriptor->GetIntegrator()->GetBaseType();
+	      if ( destMat == STIFFNESS) {
+		dampTransform = startFreq_ / actFreq_;
+	      }
+	      else if ( destMat == MASS ) {
+		dampTransform = actFreq_ / startFreq_;
+	      }
+	    }
+	    
+	    if ( actDescriptor->GetIntegrator()->IsRaylDamping() ) {
+	      actDescriptor->GetIntegrator()->SetFactor(dampTransform);
+	    }
+	    std::cout << "startF=" << startFreq_ << "  actF=" << actFreq_ << std::endl;
+	    std::cout << "dampTransform=" << dampTransform << std::endl;
+          }
+	  
+
           
           for (Integer actEl=0; actEl< elemssd.GetSize(); actEl++) {
             BaseFE * ptEl = elemssd[actEl]->ptElem;
@@ -240,7 +267,8 @@ namespace CoupledField {
             }
 #endif
             if (actDescriptor->GetSecondaryMat() != NOTYPE) {
-              elemmat *= actDescriptor->GetSecMatFac();
+	      Double damp = dampTransform * actDescriptor->GetSecMatFac();
+              elemmat *= damp;
               if (analysisType_ == HARMONIC) {
                 TransformMatrix2Harmonic(harmonicVec,elemmat,actDescriptor->GetOrigSecMatrixType(),
                                          actDescriptor->GetPiezoMaterialType());
@@ -339,8 +367,9 @@ namespace CoupledField {
       } // check for surface integrator
     } // subdomains
      
-    firstTime_ = FALSE;
-  }
+  firstTime_ = FALSE;
+
+}
 
 
   // do the basic assembling stuff
@@ -495,7 +524,7 @@ namespace CoupledField {
             Integer node = *p;
             
             val = loadVals_[actDom] * val_tfunc;
-           
+
             ptEQN_->Node2EQN(node,dof,eqnNr,eqnDof);
             algsys_->SetNodeRHS(val, eqnNr, eqnDof);    
           }

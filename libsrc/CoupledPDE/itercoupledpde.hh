@@ -34,6 +34,9 @@ namespace CoupledField
   
   //! write general defines (BCs, loads, etc.) to info-file
   void WriteGeneralPDEdefines();
+
+  Assemble * getPDE_assemble()
+  {Error("Get Assemble-Object makes noi sense for itercoupledPDE"); };
   
   //! Defines, which of the coupled PDEs are currently solved
   //! and which are neglected. This method is mainly needed
