@@ -51,7 +51,7 @@
                 <xsd:element name="pressure" type="DT_SmoothPressure"
                              minOccurs="0" maxOccurs="unbounded"/>
               </xsd:sequence>
-              <xsd:attribute name="tag" type="xsd:string" use="optional"
+              <xsd:attribute name="tag" type="xsd:token" use="optional"
                 default="anyTag"/>
             </xsd:complexType>
           </xsd:element>
