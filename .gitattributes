@@ -341,6 +341,7 @@ libsrc/DataInOut/material.cc svneol=native#text/plain
 libsrc/DataInOut/material.hh svneol=native#text/plain
 libsrc/DataInOut/timefunc.cc svneol=native#text/plain
 libsrc/DataInOut/timefunc.hh svneol=native#text/plain
+libsrc/DataInOut/writeresults.cc svneol=native#text/plain
 libsrc/DataInOut/writeresults.hh svneol=native#text/plain
 libsrc/Domain/GridCFS/Makefile -text
 libsrc/Domain/GridCFS/grid_cfs.cc svneol=native#text/plain
