@@ -55,6 +55,8 @@ void MpCCIexch::PutExchangeGrid2MpCCI(std::vector<std::string> subdoms)
 
   //  Integer maxnumelem=ptgrid_->GetMaxnumElem(actlevel_,subdoms_);
 
+  std::cout << "Subdoms: " << subdoms_[0] << std::endl;
+  
 
   Matrix<Double> ptCoordNodes;
   Vector<Integer> connecth;
@@ -69,13 +71,13 @@ void MpCCIexch::PutExchangeGrid2MpCCI(std::vector<std::string> subdoms)
   int ** TOPOLOGYDATA;
   TOPOLOGYDATA=new int*[subdoms_.size()];
   std::vector<Elem*> elemssd;     
-   std::cout<<"subdomains: "<<subdoms_[1]<<std::endl;
+  //   std::cout<<"subdomains: "<<subdoms_[1]<<std::endl;
 
    for (i=(subdoms_.size())-1; i<(subdoms_.size()); i++)
      {
       ptgrid_->GetElemSD(elemssd,subdoms_[i],actlevel_);
 
-      elsize=(elemssd[0]->connect).size();
+      elsize=(elemssd[0]->connect).GetSize();
       TOPOLOGYDATA[i]=new int[elsize*elemssd.size()];	  
       int k=0;
       for (j=0; j< elemssd.size(); j++)
@@ -122,7 +124,7 @@ void MpCCIexch::PutExchangeGrid2MpCCI(std::vector<std::string> subdoms)
       nElemTypes_ = 1;
       nNodesPerElem_ = new Integer[nElemSD];
       elemTypes_ = new Integer[nElemSD];
-      elsize=(elemssd[0]->connect).size();// each subdomain must have only one elementtype
+      elsize=(elemssd[0]->connect).GetSize();// each subdomain must have only one elementtype
       switch(elsize)
 	{
 	case 3:

@@ -36,8 +36,8 @@ LASTYPE = LAS
 
 ##############  XML Parameter File Handling? With Xerces or without?
 #
-XMLPARAMS=yes
-XERCES=yes
+XMLPARAMS=no
+XERCES=no
 
 ##############  Path to includes and libraries for external packages
 #

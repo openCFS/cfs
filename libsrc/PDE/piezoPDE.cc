@@ -62,7 +62,12 @@ namespace CoupledField
    sol_->SetNumDofs(dim_,MECH_DISPLACEMENT); // displacements have dof of mesh-dimension
    sol_->SetNumDofs(1,ELEC_POTENTIAL);  // electric potential
    sol_->Init(0.0);
-   
+
+   effectiveMass_ = FALSE;
+   if (conf->get_option("effMass",  pdename_ ))
+     effectiveMass_ = TRUE;
+
+
    //check for damping model
    std::string dampstr;
    conf->ifget("damping",dampstr,pdename_);
@@ -150,8 +155,10 @@ namespace CoupledField
 
 	  
       // ==============  add mass ================================================
-      double density = actSDMat.GetDensity();
-      BaseForm * bilinearMass  = new MassInt(density, dofspernode_, isaxi_);
+      Double density = actSDMat.GetDensity();
+      Integer electricPot = 4;
+      
+      BaseForm * bilinearMass  = new MassInt(density, dofspernode_, electricPot, isaxi_);
 
       IntegratorDescriptor * actIntDescrMass = new IntegratorDescriptor(bilinearMass, MASS);
 
@@ -186,6 +193,24 @@ namespace CoupledField
     return bilinearStiff;
   }
 
+
+// ======================================================
+// TRANSIENT SOLVING SECTION
+// ======================================================
+
+
+void PiezoPDE :: InitTimeStepping(const Double dt)
+{
+  ENTER_FCN( "PiezoPDE::InitTimeStepping" );
+
+  if (effectiveMass_)  
+    TS_alg_ = new NewmarkEffMass(pdename_, algsys_, 1, numPDENodes_*dofspernode_, damping_type_);
+  else
+    TS_alg_ = new Newmark(pdename_, algsys_, 1, numPDENodes_*dofspernode_, damping_type_);
+
+  TS_alg_->Init(matrix_factor_, dt);
+
+}
 
 
   void PiezoPDE::WriteResultsInFile()

@@ -49,10 +49,17 @@ namespace CoupledField
 	elemMat += partElemMat;
       }
 
-    if (nrDofsPerNode_ > 1)
+    if (nrDofsPerNode_ > 1 && dofzero_ > 0 )
+      {
+	Matrix <Double> multDofMassZero;
+	MassMultiDofZero(multDofMassZero, elemMat);
+	elemMat = multDofMassZero;
+      }
+    
+    else if (nrDofsPerNode_ > 1 && dofzero_ == 0 )
       {
 	Matrix <Double> multDofMass;
-	MassMultiDof(multDofMass, elemMat, nrDofsPerNode_);
+	MassMultiDof(multDofMass, elemMat, nrDofsPerNode_);	
 	elemMat = multDofMass;
       }
     
@@ -84,6 +91,7 @@ namespace CoupledField
     (*trace) << "entering MassInt::MassInt" << std::endl;
 #endif
     isaxi_ = axi;
+    dofzero_ = 0;
   }
 
 
@@ -97,6 +105,8 @@ namespace CoupledField
     (*trace) << "entering MassInt::MassInt" << std::endl;
 #endif
     isaxi_ = axi;
+    dofzero_ = 0;
+    
   }
 
 
@@ -119,11 +129,10 @@ namespace CoupledField
 #endif
     
     const Integer singleDofSize = massMatSingleDof.GetSizeRow();
-    const Integer multDofSize   = singleDofSize * nrDofs;
-    
+
     Integer i, j, actDof;
     
-    massMultDof.Resize(multDofSize);
+    massMultDof.Resize(nrDofsPerNode_);
     massMultDof.Init();
     
     for (i=0; i < singleDofSize; i++)
@@ -132,6 +141,43 @@ namespace CoupledField
 	  massMultDof[i*nrDofs + actDof][j*nrDofs + actDof] = massMatSingleDof[i][j]; 
 }
 
+
+  MassInt::MassInt(const Double aDensity,  const Integer nrDofsPerNode, Integer dofzero, 
+		   Boolean axi)
+    : BaseForm(), 
+      density_(aDensity), 
+      nrDofsPerNode_(nrDofsPerNode)
+  {
+#ifdef TRACE
+    (*trace) << "entering MassInt::MassInt" << std::endl;
+#endif
+    isaxi_ = axi;
+    dofzero_ = dofzero;
+  }
+
+  void MassInt::MassMultiDofZero(Matrix<Double>& massMultDofZero, const Matrix<Double>& massMatSingleDof)
+  {
+#ifdef TRACE
+    (*trace) << "entering MassInt::MassMultiDofZero" << std::endl;
+#endif
+    
+    Integer nrDofs = nrDofsPerNode_ -1;
+    const Integer singleDofSize = massMatSingleDof.GetSizeRow();
+    
+    Integer i, j, actDof;
+    
+    massMultDofZero.Resize(nrDofsPerNode_*singleDofSize);
+    massMultDofZero.Init();
+    
+    for (i=0; i < singleDofSize; i++)
+      for (j=0; j < singleDofSize; j++)
+	for (actDof=0; actDof < nrDofsPerNode_ ; actDof++)
+	  {
+	    if (actDof+1 != dofzero_)
+	      massMultDofZero[i*nrDofsPerNode_ + actDof][j*nrDofsPerNode_ + actDof] = 
+		massMatSingleDof[i][j]; 
+	  }
+}
 
 } // end namespace CoupledField
 

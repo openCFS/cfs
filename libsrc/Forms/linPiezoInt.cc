@@ -25,10 +25,11 @@ namespace CoupledField
 
     // set correct size of matrix B
     bMat.Resize( getDimD(), nrNodes * nrDofs );
-
+    
     // derivatives of local shape functions with respect to global coords
     // (format: nrNodes x spaceDim)
     Matrix<Double> xiDx;
+    
     ptelem->GetGlobDerivShFncAtIp(xiDx, ip, ptCoord);
 
     // auxiliary variables
@@ -81,9 +82,9 @@ namespace CoupledField
 	  xiDx[actNode][actDim];
 
 #ifdef DEBUG
-    (*debug) << std::endl << " Matrix bMat is " << bMat.GetSizeRow()
-	     << " x " << bMat.GetSizeCol() << std::endl;
-    (*debug) << bMat << std::endl;
+    //    (*debug) << std::endl << " Matrix bMat is " << bMat.GetSizeRow()
+    //	     << " x " << bMat.GetSizeCol() << std::endl;
+    //    (*debug) << bMat << std::endl;
 #endif
 
   }
@@ -116,6 +117,8 @@ namespace CoupledField
     // get size of D and resize matrix object
     const Integer sizeofD = getDimD();
     dMat.Resize(sizeofD);
+    dMat.Init(0);
+    
     
     // Copy entries from material matrix object into D matrix
     Matrix<Double> * matMatrix = ptMaterial->GetMatrix();

@@ -203,7 +203,18 @@ namespace CoupledField
 		    actDescriptor->GetIntegrator()->CalcElementMatrix(ptCoord, elemmat);
 		    algsys_->SetElementMatrix(elemmat.GetDataPointer(), connect_PDE.GetPointer(), 
 					      connect_PDE.GetSize(), destMat);
+#ifdef DEBUG
+		    (*debug) << "ElementMatrix of Element " << actEl << std::endl;
+		    for (Integer kk=0; kk<32; kk++)
+		      {
+			for (Integer  ii=0; ii<32; ii++)
+			  (*debug) << elemmat[kk][ii] << " " ;
+			
+		      }
+		    (*debug) << std::endl;
 		    
+			//debug) << elemmat << std::endl;
+#endif		    
 
 		    if (actDescriptor->GetSecondaryMat() != NOTYPE)
 		      {
