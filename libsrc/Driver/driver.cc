@@ -20,6 +20,7 @@ Driver::Driver(FileType * const aptFileType, Integer anummesh, Material * aptMat
   SaveDer1=FALSE; SaveDer2=FALSE;
 
   ptgrid=new GridInterfaceCFS<Point2D>(ptFileType);
+  ptgrid->Read();
   ptMaterial=aptMaterial;
 }
 

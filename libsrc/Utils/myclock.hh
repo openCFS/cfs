@@ -11,12 +11,12 @@ namespace CoupledField
     This class provides tools for timing program
   */
 
-class Clock
+class MyClock
 {
 public:
 
   //! Constructor
-  Clock(char * atitle=NULL);
+  MyClock(char * atitle=NULL);
 
   //!
   enum status{beg, end};
@@ -25,7 +25,7 @@ public:
    void ClockCount(enum status, const std::string astring="");
  
   //! Deconstructor(close file for output time).
-   ~Clock();
+   ~MyClock();
  
 private:
   time_t tm, tm_tmp;

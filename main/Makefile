@@ -8,6 +8,9 @@ C_DIR= ..
 LIBDIR = $(C_DIR)/libsrc
 #
 SUBLIBDIR = Driver PDE AlgebraicSystem/LinAlg \
+            AlgebraicSystem/PILES/general \
+            AlgebraicSystem/PILES/multigrid \
+            AlgebraicSystem/PILES/superlu \
             Forms Elements Domain/GridCFS Domain \
             DataInOut/DefineFiles \
             DataInOut/Unverg DataInOut/DatFile DataInOut\
@@ -37,7 +40,7 @@ include $(LIBSRC_DIR)/makefilemach/make.mach.$(MACHINE)
 .SUFFIXES: .f .c .cc .o
 #
 .cc.o:
-	$(CC) $(CFLAG_EXE) -o $@ $(CFLAGS1) $(CFLAGS2) $(CFLAGS3) $<
+	$(CC) -o $@ $(CFLAGS1) $(CFLAGS2) $(CFLAGS3) $<
  
 .c.o:
 	$(CC) -o $@ $(CFLAGS1) $(CFLAGS2) $(CFLAGS3) $<
@@ -118,7 +121,15 @@ clean-utils:
 clean-matrix:
 	@cd $(LIBSRC_DIR)/Matrix&&\\
 	$(MAKE) clean
-
+clean-general-piles:
+	@cd $(LIBSRC_DIR)/AlgebraicSystem/PILES/general && \
+	$(MAKE) clean
+clean-multigrid-piles:
+	@cd $(LIBSRC_DIR)/AlgebraicSystem/PILES/multigrid && \
+	$(MAKE) clean
+clean-superlu-piles:
+	@cd $(LIBSRC_DIR)/AlgebraicSystem/PILES/superlu && \
+	$(MAKE) clean
 ######################   Real clean
 
 clean: clean-library clean-prog

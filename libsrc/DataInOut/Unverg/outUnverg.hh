@@ -2,7 +2,7 @@
 #define FILE_OUTRESULTUNVERG_2001
 
 #include "tools.hh" 
-#include "domain.hh"
+#include "grid.hh"
 
 namespace CoupledField
 {

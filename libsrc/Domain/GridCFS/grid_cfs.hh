@@ -6,8 +6,6 @@
 namespace CoupledField
 {
  
-class FileType;
-
 /// Class for working with grid
 template<class Dim> 
 class GridCFS
@@ -18,6 +16,9 @@ public:
 
   /// Deconstructor
   ~GridCFS();
+
+  //! Read Grid Information
+  void Read();
   
   /// Print coordinates of grid in out
   void PrintCoordinate(const Integer level, std::ostream * out) const;
@@ -48,6 +49,8 @@ public:
 
 protected:
 private:
+  //!
+  FileType *InFile;
   ///
   Integer maxnumsubdomain;
   ///

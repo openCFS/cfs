@@ -3,7 +3,7 @@
 
 #include "systemmatrix.hh"
 
-#include "clock.hh"
+#include "myclock.hh"
  
 namespace CoupledField
 {

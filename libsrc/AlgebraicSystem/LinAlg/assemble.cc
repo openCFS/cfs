@@ -2,7 +2,7 @@
 #include <iostream>
 #include <string>
 
-#include "clock.hh"
+#include "myclock.hh"
 #include "assemble.hh"
 
 namespace CoupledField
@@ -63,8 +63,8 @@ void Assemble<Dim,T_Matrix>::AssembleSysMatrix(const Double CoefL, const Double 
 #ifdef TRACE
   (*trace) << "entering Assemble::AssembleSysMatrix" << std::endl;
 #endif
-  Clock oClock;    
-  oClock.ClockCount(Clock::beg);
+  MyClock oClock;    
+  oClock.ClockCount(MyClock::beg);
 
   if (!IsCalcS) 
     { 
@@ -92,7 +92,7 @@ void Assemble<Dim,T_Matrix>::AssembleSysMatrix(const Double CoefL, const Double 
     A+=S*CoefL;
   else A+=S;
 
-  oClock.ClockCount(Clock::end, "Assemble matrix");
+  oClock.ClockCount(MyClock::end, "Assemble matrix");
 
 #ifdef DEBUG
   (*debug) << "----- System Matrix --------" << std::endl;
