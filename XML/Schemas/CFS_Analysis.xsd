@@ -187,7 +187,7 @@
   </xsd:complexType>
 
   <!-- ******************************************************************** -->
-  <!--   Definition of element AnalysisBubbleDynamic -->
+  <!--   Definition of element bubbleDynamic -->
   <!-- ******************************************************************** -->
   <xsd:element name="bubbleDynamic" type="DT_AnalysisBubbleDynamic"
     substitutionGroup="AnalysisBasic"/>
@@ -207,18 +207,36 @@
           <xsd:element name="surfaceTension"        type="DT_NonNegFloat" />
           <xsd:element name="polytrop"              type="DT_NonNegFloat" />
           <xsd:element name="viscosity"             type="DT_NonNegFloat" />
-
-          <!-- Optional, only required by the bubbleDriver -->
-          <xsd:element name="bubbleDriverPressure" minOccurs="0"
-            type="xsd:float"/>
-          <xsd:element name="bubbleDriverFrequency" minOccurs="0"
-            type="DT_NonNegFloat"/>
-
         </xsd:sequence>
-        <xsd:attribute name="tag"  type="xsd:string" use="optional"
-          default="anyTag"/> 
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType> 
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of element bubbleDriver -->
+  <!-- ******************************************************************** -->
+  <xsd:element name="bubbleDriver" type="DT_AnalysisBubbleDriver"
+    substitutionGroup="AnalysisBasic"/>
+
+  <!-- Data type for bubbleDriver section, i.e. parameters required for
+       performing a bubbleDriver analysis -->
+  <xsd:complexType name="DT_AnalysisBubbleDriver">
+    <xsd:complexContent>
+      <xsd:extension base="DT_AnalysisBasic">
+        <xsd:sequence>
+          <xsd:element name="bubbleType">
+            <xsd:simpleType>
+              <xsd:restriction base="xsd:token">
+                <xsd:enumeration value="Gilmore"/>
+                <xsd:enumeration value="KellerMiksis"/>
+              </xsd:restriction>
+            </xsd:simpleType>
+          </xsd:element>
+          <xsd:element name="pressure" type="xsd:float"/>
+          <xsd:element name="frequency" type="DT_NonNegFloat"/>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
 
 </xsd:schema>
