@@ -1,0 +1,671 @@
+#include "outDB.hh"
+#include "DataInOut/ParamHandling/BaseParamHandler.hh"
+
+namespace CoupledField
+{
+
+WriteResultsDatabase::WriteResultsDatabase(const Char * const filename, FileType * const aInFile)
+:WriteResults(filename, aInFile)
+{
+  ENTER_FCN("WriteResultsDatabase::WriteResultsDatabase");
+}
+
+WriteResultsDatabase::~WriteResultsDatabase()
+{
+  ENTER_FCN("WriteResultsDatabase::~WriteResultsDatabase");
+  Db_.Close();
+}
+
+void WriteResultsDatabase::Init (Grid *aptgrid, BCs * aptbcs)
+{
+  ENTER_FCN("WriteResultsDatabase::Init");
+  std::string hostName, userName, passwd, databaseName;
+  Integer port;
+
+  ptgrid = aptgrid;
+
+  // get connection parameters
+  params->Get("hostName", hostName, "database");
+  params->Get("port", port, "database");
+  params->Get("databaseName", databaseName, "database");
+  params->Get("userName", userName, "database");
+  params->Get("password", passwd, "database");
+
+  Db_.Connect (hostName, port, userName,
+	       passwd, databaseName);
+
+  WriteBasisData();
+}
+
+void WriteResultsDatabase::WriteBasisData()
+{
+  ENTER_FCN("WriteResultsDatabase::WriteBasisData");
+  WriteConfFile();		// save .conf-file in database
+
+  if (!ptgrid)
+    Error("ptgrid is not initialized", __FILE__,__LINE__);
+
+  Integer dim         = ptgrid->GetDim();
+
+  dbLineData d("Calculation");
+  d.Set("idx","0");
+  d.SetUnquoted("stamp","NULL");
+  d.Set("inputparam_idx",InputParamIdx_);
+  d.Set("solution_type","1");
+  d.Set("analysis_type","1");
+  d.Set("model_dimension",dim);
+  CalculationIdx_ = Db_.InsertAndGetIndex(d);
+}
+
+void WriteResultsDatabase::WriteGrid (const Integer level)
+{
+  ENTER_FCN("WriteResultsDatabase::WriteGrid");
+
+  if (!Db_.IsConnected)
+    Error(" Database is not initialized",__FILE__,__LINE__);
+  
+  dbLineData d("Result");
+  d.Set("idx","0");
+  d.Set("calculation_idx",CalculationIdx_);
+  ResultIdx_ = Db_.InsertAndGetIndex(d);
+  Dataset781(level);
+  Dataset780(level);
+
+}
+
+long int WriteResultsDatabase::Dataset781(const Integer level)
+{
+  ENTER_FCN("WriteResultsDatabase::Dataset781");
+  if (!ptgrid)
+    Error("ptgrid is not initialized", __FILE__,__LINE__);
+ 
+  Integer dim     = ptgrid->GetDim();
+  Integer maxnumnodes = ptgrid->GetMaxnumnodes(level);	
+
+  dbLineData d("Dataset781");
+  d.Set("idx","0");
+  d.Set("result_idx",ResultIdx_);
+  long int idx = Db_.InsertAndGetIndex(d);
+
+  for (Integer i=0; i<maxnumnodes; i++)
+  {
+    d.Clear();
+    d.SetTableName("Dataset781_node");
+    d.Set("idx",0);
+    d.Set("node_label",(i+1));
+    if (dim==2)
+    {
+      Point<2> Point;
+      ptgrid->GetCoordinateNode(i,level,Point);
+      d.Set("x_coord","0");
+      d.Set("y_coord",Point[0]);
+      d.Set("z_coord",Point[1]);
+      d.Set("dataset781_idx",idx);
+    }
+    if (dim==3)
+    {
+      Point<3> Point;
+      ptgrid->GetCoordinateNode(i,level,Point);
+      d.Set("x_coord",Point[0]);
+      d.Set("y_coord",Point[1]);
+      d.Set("z_coord",Point[2]);
+      d.Set("dataset781_idx",idx);
+    }
+    Db_.Insert(d);
+  }
+}
+
+
+long int WriteResultsDatabase::Dataset780(const Integer level)
+{
+  ENTER_FCN("WriteResultsDatabase::Dataset780");
+  if (!ptgrid)
+    Error("ptgrid is not initialized", __FILE__,__LINE__);
+
+  Integer dim = ptgrid->GetDim();
+
+  StdVector<Integer> connect;
+  StdVector<Elem*> elemssd;
+  Integer elmsgrp=1;
+
+  StdVector<std::string>* subdoms;
+  subdoms=ptgrid->GetAllSDs();
+  Integer i, j, k;
+  k = 0;
+  Integer elemlabel, elemtypegeo, elemtypephys, subtype, elemgrpno, nofnodes;
+  for (i=0; i<subdoms->GetSize(); i++)
+  {
+    ptgrid->GetElemSD(elemssd,(*subdoms)[i],level);
+
+    for (j=0; j < elemssd.GetSize(); j++)
+    {  
+      k++; 
+      connect=elemssd[j]->connect;
+
+      elemlabel = elemssd[j]->elemNum;
+
+      if (dim==2)
+      {     
+        switch(connect.GetSize())
+	{
+          case 3: elemtypegeo = 91; break;
+          case 4: elemtypegeo = 94; break;
+          case 6: elemtypegeo = 92; break;
+          case 8: elemtypegeo = 95; break;
+	  default: Error("Please, put element type according to unverg-format for this number of nodes per element", __FILE__,__LINE__);
+	}
+
+        elemtypephys = 2;
+        subtype      = 2;
+        elemgrpno    = elmsgrp;
+        nofnodes     = connect.GetSize();
+      }
+
+      else
+      {
+        switch(connect.GetSize())
+	{
+          case 4: elemtypegeo = 111; break;
+          case 6: elemtypegeo = 112; break;
+          case 8: elemtypegeo = 115; break;
+          case 15: elemtypegeo = 113; break;
+          case 20: elemtypegeo = 116; break;
+          default: Error("Please, put element type according to unverg-format for this number of nodes per element", __FILE__,__LINE__);
+        }
+              
+        elemtypephys = 11;
+        subtype      = 1;
+        elemgrpno    = elmsgrp;
+        nofnodes     = connect.GetSize();
+
+      }
+
+      dbLineData d("Dataset780");
+      d.Set("idx","0");
+      d.Set("elem_label",elemlabel);
+      d.Set("elem_type_geo",elemtypegeo);
+      d.Set("subtype",subtype);
+      d.Set("elem_grp_no",elemgrpno);
+      d.Set("result_idx",ResultIdx_); 
+      unsigned long int idx = Db_.InsertAndGetIndex(d);
+
+      if (dim == 2 && (connect.GetSize() == 6 || connect.GetSize() == 8))
+      {
+      //quadratic elements
+        Integer offset = Integer(connect.GetSize()/2);
+        for (Integer ii=0; ii < offset; ii++)
+        {
+          d.Clear(); d.SetTableName("Dataset780_node");
+          d.Set("dataset780_idx",idx);
+          d.Set("node",connect[ii]);
+          d.Set("localidx",ii*2);
+          Db_.Insert(d);
+          d.Clear(); d.SetTableName("Dataset780_node");
+          d.Set("dataset780_idx",idx);
+          d.Set("node",connect[ii+offset]);
+          d.Set("localidx",ii*2+1);
+          Db_.Insert(d);
+	}
+
+      }
+      else
+      {
+        for (Integer ii=0; ii < connect.GetSize(); ii++) 
+        { 
+          d.Clear(); d.SetTableName("Dataset780_node"); 
+          d.Set("dataset780_idx",idx);
+          d.Set("node",connect[ii]);
+          d.Set("localidx",ii);
+          Db_.Insert(d);
+        }
+      }
+
+    } // over elements of group
+      elmsgrp++;
+  } // over groups
+  
+  
+}
+
+
+void WriteResultsDatabase::Dataset55(const std::string & title, 
+				     const Vector<Double> & x, 
+				     const Integer step, 
+				     const Double time, 
+			 	     const Integer nrNodes,
+				     const Integer nrDofs)
+{
+  ENTER_FCN("WriteResultsDatabase::Dataset55");
+  if (!ptgrid)
+     Error("ptgrid is not initialized", __FILE__,__LINE__);
+
+  Integer valsPerNode = 1;
+  if (nrDofs > 1)
+    valsPerNode = 3;
+
+  dbLineData d("");
+  Integer transProbIdx=0,normProbIdx=0,freqProbIdx=0, transParamIdx=0,normParamIdx=0,freqParamIdx=0, Idx=0;
+  if (1)		// Transient analysis
+  {
+    d.SetTableName("Dataset55_trans_prob");
+    d.Set("idx","0"); 
+    d.Set("result_type",title); 
+    d.Set("time_step",step); 
+    d.Set("time_value",time);
+    transProbIdx = Db_.InsertAndGetIndex(d);
+
+    d.Clear(); d.SetTableName("Dataset55_trans_param");
+    d.Set("idx","0"); d.Set("time_step",step); d.Set("time",time);
+    transParamIdx = Db_.InsertAndGetIndex(d);
+  }
+
+  d.Clear(); d.SetTableName("Dataset55");
+  d.Set("idx","0"); d.Set("analysis_type", 4);
+  d.Set("dataset55_trans_prob_idx",transProbIdx);
+  d.Set("dataset55_norm_prob_idx", normProbIdx);
+  d.Set("dataset55_freq_prob_idx", freqProbIdx);
+  if (valsPerNode==1)
+    d.Set("data_characteristic",1); // data characteristics = scalar
+  else if ((valsPerNode>1)&&(valsPerNode<=3))
+    d.Set("data_characteristic",2);  // data characteristics = vector with 3 components
+  else
+    d.Set("data_characteristic",3); // data  characteristics = vector with 6 components
+  d.Set("data_type",2);
+  d.Set("values_per_node",valsPerNode);
+  d.Set("dataset55_trans_param_idx", transParamIdx);
+  d.Set("dataset55_norm_param_idx", normParamIdx);
+  d.Set("dataset55_freq_param_idx", freqParamIdx);
+  d.Set("result_idx",ResultIdx_);
+  Idx = Db_.InsertAndGetIndex(d);
+
+  Integer i,j,n;
+  n = nrNodes;
+  for (i=0; i<n;i++)
+  {
+
+    for (j=0; j<nrDofs; j++)
+    {
+        d.Clear(); d.SetTableName("Dataset55_result");
+        d.Set("dataset55_idx", Idx);
+        d.Set("result", x[i*nrDofs+j]);
+        d.Set("node_no", (i+1));
+        d.Set("node_idx", (j+1));
+        Db_.Insert(d);
+    }
+  }
+}
+
+void WriteResultsDatabase::WriteNodeSolutionTransient (const NodeStoreSol<Double>&sol, 
+						       const Integer step, 
+						       const Double time)
+{
+  ENTER_FCN("WriteResultsDatabase::WriteNodeSolutionTransient");
+
+/* Integer i,j;
+ Integer nrDofs = 1;
+ Double help; */
+
+/* if (NeedHistory_) 
+ {
+   for (i=0; i< nodeshist_.size(); i++)
+   {
+     if (sol.GetDof() * sol.GetNumNodes() <= nodeshist_[i])
+        Error("Please, check history-nodes.",__FILE__,__LINE__);
+     if (lastsavetime[i] != time )
+     {
+       if (nrDofs > 1)	
+       {
+         std::vector<Double> solVec;
+         solVec.resize(nrDofs);
+         for (j=0; j<nrDofs; j++)
+           sol.Get(nodeshist_[i]-1,j,solVec[j]);
+         AddVecInHistory(time, solVec, i);
+       }
+       else
+       {
+         sol.Get(nodeshist_[i]-1,0,help);
+	    AddInHistory(time,help,i);
+       }
+     }
+   }
+ }
+ else*/  
+  Vector<Double> globalSolution;
+  StdVector<SolutionType> solTypes;
+  sol.GetSolutionTypes(solTypes);
+  std::string title;
+  Integer numNodes =  ptgrid->GetMaxnumnodes(1);
+
+  for (Integer iSol=0; iSol<solTypes.GetSize(); iSol++)
+  {
+    sol.GetGlobalSolVector(solTypes[iSol],globalSolution);
+    title = SolutionTypeToString(solTypes[iSol]);
+    Dataset55(title, globalSolution, step, time,
+	      numNodes,sol.GetDof(solTypes[iSol]));
+  }
+
+}
+
+/*void WriteResultsDatabase::AddInHistory(const Double time, 
+					const Double val, 
+					int nodeidx)
+{
+  ENTER_FCN("WriteResultsDatabase::AddInHistory");
+  if (nodeidx>=nodehistoryindex.size())
+  {
+    dbLineData d("NodeHistory");
+    d.Set("idx","0");
+    d.Set("node_no",nodeshist_[nodeidx]);
+    d.Set("result_idx",ResultIdx_);
+    int idx = Db_.InsertAndGetIndex(d);
+    nodehistoryindex.push_back(idx);
+  }
+  lastsavetime[nodeidx] = time;
+  dbLineData v("NodeHistoryValue");
+  v.Set("nodehistory_idx",nodehistoryindex[nodeidx]);
+  v.Set("dof",0);
+  v.Set("time",time);
+  v.Set("value",val);
+  Db_.Insert(v);
+}*/
+
+/*void WriteResultsDatabase::AddVecInHistory(const Double time, const std::vector<double> val, const int nodeidx)
+{
+  ENTER_FCN("WriteResultsDatabase::AddVecInHistory");
+  if (nodeidx>=nodehistoryindex.size())
+  {
+    dbLineData d("NodeHistory");
+    d.Set("idx","0");
+    d.Set("node_no",nodeshist_[nodeidx]);
+    int idx = Db_.InsertAndGetIndex(d);
+    nodehistoryindex.push_back(idx);
+  }
+  lastsavetime[nodeidx] = time;
+  dbLineData v("NodeHistoryValue");
+  for (int i=0; i<val.size(); i++)
+  {
+    v.Clear();
+    v.SetTableName("NodeHistoryValue");
+    v.Set("nodehistory_idx",nodehistoryindex[nodeidx]);
+    v.Set("dof",i);
+    v.Set("time",time);
+    v.Set("value",val[i]);
+    Db_.Insert(v);
+  }
+}*/
+
+void WriteResultsDatabase::WriteElemSolutionTransient (const ElemStoreSol<Double>&sol, 
+						       const Integer step, 
+						       const Double time)
+{
+  ENTER_FCN("WriteResultsDatabase::WriteElemSolution");
+  Vector<Double> globalSolution;
+  StdVector<SolutionType> solTypes;
+  std::string title;
+  Integer numElems =  ptgrid->GetMaxnumElem(0);  
+  
+  sol.GetSolutionTypes(solTypes);
+  sol.TransformElemSolution(globalSolution,ptgrid,0);
+  title = SolutionTypeToString(solTypes[0]);
+  Dataset56(title, globalSolution, step, time,numElems, sol.GetDof());
+}
+
+Boolean WriteResultsDatabase::IsGMV()
+{
+  ENTER_FCN("WriteResultsDatabase::IsGMV");
+  return false;
+}
+
+
+void WriteResultsDatabase::WriteConfFile()
+{
+  ENTER_FCN("WriteResultsDatabase::WriteConfFile");
+
+#ifdef XMLPARAMS
+  std::string filename = namefile_ + ".xml";
+#else
+  std::string filename = namefile_ + ".conf";
+#endif
+
+  std::ifstream istr;
+  istr.open(filename.c_str(),std::ios_base::in);
+  if (!istr)
+  {
+    Warning ("Cannot open ConfigFile for reading",__FILE__,__LINE__);
+    return;
+  }  
+  std::stringstream configstream;
+  char ch;
+  while (!istr.eof())
+  {
+    istr.get(ch);
+    configstream << ch;
+  }
+  istr.close();
+
+  struct stat fileinfo;
+  unsigned long int seconds;
+  if (stat(filename.c_str(),&fileinfo)==0)
+  {
+    seconds = (unsigned long int) fileinfo.st_mtime;
+  }
+  else
+  {
+    time_t tm;
+    time (&tm);
+    seconds = (unsigned long int) tm;
+  }
+
+  // Check if file is already in database
+  std::stringstream wherestr;
+  wherestr<<"(filename='"<<filename<<"') AND (date_modified=FROM_UNIXTIME("<<seconds<<"))";
+  Db_.SelectFrom("idx,filename,date_modified,no_references","InputParam",wherestr.str());
+  dbMatrix mat;
+  Db_.FetchFields(mat);
+  if (mat.getNoOfRow()==1)
+  {
+#ifdef DEBUG
+    (*debug)<<"Conf-file already exists in database. Use existing file."<<std::endl;
+#endif
+    int ref; 
+    dbColumn *nOfRef;
+    nOfRef = mat["no_references"];
+    nOfRef->get(ref,0);
+    dbLineData set("InputParam");
+    set.Set("no_references",(ref+1));
+    int idx;
+    dbColumn *pIdx;
+    pIdx = mat["idx"];
+    pIdx->get(idx,0);
+    dbLineData where("InputParam");
+    where.Set("idx",idx);
+    Db_.Update(set,where);
+    InputParamIdx_ = idx;
+    return;
+  }
+  else if (mat.getNoOfRow()>1)
+    Warning("Input file exists more than once in database...");
+  
+
+  std::string configstring;
+  configstring = Db_.EscapeString(configstream.str());
+  dbLineData d("InputParam");
+  d.Set("idx","0");
+  d.Set("filename",filename);
+  std::stringstream moddatestr;
+  moddatestr<<"FROM_UNIXTIME("<<seconds<<")";
+  d.SetUnquoted("date_modified", moddatestr.str());
+#ifdef DEBUG
+  (*debug)<<"moddate: "<<moddatestr.str()<<std::endl;
+#endif
+  d.Set("file",configstring);
+  InputParamIdx_ = Db_.InsertAndGetIndex(d);
+}
+
+void WriteResultsDatabase::Dataset56(const std::string &title, 
+				     const Vector<Double> & x, 
+				     const Integer step, 
+				     const Double time, 
+			 	     const Integer nrNodes,
+				     const Integer nrDofs)
+{
+  ENTER_FCN("WriteResultsDatabase::Dataset56");
+  if (!ptgrid)
+     Error("ptgrid is not initialized", __FILE__,__LINE__);
+
+  Integer valsPerNode = 1;
+  if (nrDofs > 1)
+    valsPerNode = 3;
+
+  dbLineData d("");
+  Integer transProbIdx=0,normProbIdx=0,freqProbIdx=0, transParamIdx=0,normParamIdx=0,freqParamIdx=0, Idx=0;
+  if (1)		// Transient analysis
+  {
+    d.Clear(); 
+    d.SetTableName("Dataset56_trans_prob");
+    d.Set("idx","0"); 
+    d.Set("result_type",title); 
+    d.Set("time_step", time); 
+    d.Set("time_value",time);
+    transProbIdx = Db_.InsertAndGetIndex(d);
+
+    d.Clear(); 
+    d.SetTableName("Dataset56_trans_param");
+    d.Set("idx","0"); 
+    d.Set("time_step",step); 
+    d.Set("time",time);
+    transParamIdx = Db_.InsertAndGetIndex(d);
+  }
+
+  d.Clear(); 
+  d.SetTableName("Dataset56");
+  d.Set("idx","0");
+  d.Set("analysis_type",4);
+  d.Set("dataset56_trans_prob_idx", transProbIdx);
+  d.Set("dataset56_norm_prob_idx", normProbIdx);
+  d.Set("dataset56_freq_prob_idx", freqProbIdx);
+
+  if (valsPerNode==1)
+    d.Set("data_characteristic",1);
+  else if ((valsPerNode>1)&&(valsPerNode<=3))
+    d.Set("data_characteristic",2);
+  else
+    d.Set("data_characteristic",3);
+  d.Set("data_type",2);
+  d.Set("values_per_node", valsPerNode);
+  d.Set("dataset56_trans_param_idx",transParamIdx);
+  d.Set("dataset56_norm_param_idx", normParamIdx);
+  d.Set("dataset56_freq_param_idx", freqParamIdx);
+  d.Set("result_idx",ResultIdx_);
+  Idx = Db_.InsertAndGetIndex(d);
+
+  Integer i,j,n;
+  n = nrNodes;
+  for (i=0; i<n;i++)
+  {
+    d.SetTableName("Dataset56_result");
+    for (j=0; j<nrDofs; j++)
+    {
+      d.Clear();
+      d.Set("dataset56_idx",Idx);
+      d.Set("result", x[i*nrDofs+j]);
+      d.Set("node_no", (i+1));
+      d.Set("node_idx", (j+1));
+      Db_.Insert(d);
+    }
+  }
+}
+
+
+void WriteResultsDatabase::InitHistoryFiles()
+{
+  ENTER_FCN( "WriteResultsDatabase::InitHistoryFiles" );
+
+  // --- writing a history is not implemented in this version --
+}
+
+
+std::string WriteResultsDatabase::SolutionTypeToString(const SolutionType type) const
+{
+  ENTER_FCN( "WriteResultsDatabase::SolutionTypeToString" );
+
+  switch (type)
+    {
+    case MECH_DISPLACEMENT:
+      return "displacement";
+      break;
+    case MECH_ACCELERATION:
+      return "acceleration";
+      break;
+    case MECH_VELOCITY:
+      return "velocity";
+      break;
+    case MECH_FORCE:
+      break;
+    case MECH_STRESS:
+      return "stress";
+      break;
+    case MECH_STRAIN:
+      Error("Not implemented", __FILE__, __LINE__);
+      break;
+    case ELEC_POTENTIAL:
+      return "electric potential";
+      break;
+    case ELEC_FIELD_INTENSITY:
+      return "electric field";
+      break;
+    case ELEC_FORCE_VWP: 
+      Error("Not implemented", __FILE__, __LINE__);
+      break;
+    case ELEC_INTERFACE_FORCE:
+      Error("Not implemented", __FILE__, __LINE__);
+      break; 
+    case ELEC_CHARGE:
+      return "electric charge";
+      break;
+    case ELEC_FLUX_DENSITY:
+      Error("Not implemented", __FILE__, __LINE__);
+      break; 
+    case ELEC_ENERGY:
+      Error("Not implemented", __FILE__, __LINE__);
+    case SMOOTH_DISPLACEMENT:
+      return "displacement";
+      break;
+    case ACOU_POTENTIAL:
+      return "fluid potential";
+      break;
+    case ACOU_FORCE:
+      Error("Not implemented", __FILE__, __LINE__);
+      break;
+    case ACOU_POTENTIAL_DERIV_1:
+      return "fluid potential, 1st deriv.";
+      break;
+    case ACOU_POTENTIAL_DERIV_2:
+      return "fluid potential, 1st deriv.";
+      break;
+    case MAG_POTENTIAL:
+      return "mag. vector potential";
+      break;
+    case MAG_FLUX_DENSITY:
+      return "mag. flux density";
+      break;
+    case MAG_EDDY_CURRENT:
+      return "eddy current";
+      break;
+    case MAG_FORCE_VWP:
+      Error("Not implemented", __FILE__, __LINE__);
+      break;
+    case MAG_FORCE_LORENTZ:
+      Error("Not implemented", __FILE__, __LINE__);
+      break;
+    case MAG_ENERGY:
+      Error("Not implemented", __FILE__, __LINE__);
+      break;
+    default:
+      Error( "Wrong type of solution or 'SolutionType2String' not implemented for\
+this type of solution", __FILE__, __LINE__);
+    }
+
+}
+
+} // End of namespace
