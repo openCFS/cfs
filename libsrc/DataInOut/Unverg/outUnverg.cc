@@ -280,22 +280,9 @@ void  WriteResultsUnverg<Dim>::Init(Grid<Dim> * aptgrid)
 }
 
 template<class Dim>
-void  WriteResultsUnverg<Dim>::WriteSolution(const Vector<Double> & sol, const Integer step, const Double time)
+void  WriteResultsUnverg<Dim>::WriteSolution(const Vector<Double> & sol, const Integer step, const Double time, const std::string title)
 {
- Dataset55(" fluid potential", sol, step+1, time);
-
-/*  switch(typesol)
- {
-  case fluid:
-   Dataset55(" fluid potential", sol, step+1, time);
-   break;
-  case temperature:
-   Dataset55(" temperature", sol, step+1, time);
-   break;
-  default:
-   Error("Unknown type of results", __FILE__,__LINE__);
- }
-*/
+ Dataset55(title, sol, step+1, time);
 
 }
 

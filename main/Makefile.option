@@ -12,10 +12,12 @@ LIB_DIR=$(C_DIR)/lib/$(MACHINE)
 Gridlib =$(C_DIR)/../GridlibCut/Gridlib
 IncGridlib=$(C_DIR)/Gridlib_inc 
 #
-#NetGen =/home_lse10/lse/manfred/Programming/NETGEN/netgen
-NetGen=~/Software/NetGen/netgen
+NetGen =/home_lse10/lse/manfred/Programming/NETGEN/netgen
+#NetGen=~/Software/NetGen/netgen
 IncNetGen =$(C_DIR)/NetGen
 LibNetGen=$(C_DIR)/libnetgen
+CLA=~/Software/CLA++
+LibCLA=$(C_DIR)/libsrc/AlgebraicSystem/CLA
 #
 ############ Define library
 #
@@ -23,9 +25,21 @@ mylibrary=  driver estimator pde algsys-own forms  \
             multigrid-piles general-piles superlu-piles \
             elements3d elements2d elements \
             gridcfs \
+            tonetgen \
             domain unverg gmv \
             definefiles datfile datainout \
             utils matrix general \
+            nginterface vis  \
+            stlgeom mesh csg gprim opti \
+            la gen cfsinterface tix8.1.8.3 tk8.3 tcl8.3\
+            GL GLU X11 Xi m dl pthread stdc++
+#mylibrary=  driver estimator pde algsys-own forms  \
+#            multigrid-piles general-piles superlu-piles \
+#            elements3d elements2d elements \
+#            gridcfs \
+#            domain unverg gmv \
+#            definefiles datfile datainout \
+#            utils matrix general \
 #            Xext Xmu \
 #            nginterface vis csg \
 #            stlgeom mesh gprim opti \
@@ -46,10 +60,10 @@ INCL =  -I$(IncGridlib) -I$(IncNetGen) \
      -I$(LIBSRC_DIR)/Elements/2D -I$(LIBSRC_DIR)/Elements/3D \
     -I$(LIBSRC_DIR)/Driver -I$(LIBSRC_DIR)/Elements -I$(LIBSRC_DIR)/Forms \
           -I$(LIBSRC_DIR)/PDE -I$(LIBSRC_DIR)/Utils -I$(LIBSRC_DIR)/Matrix \
-           -I$(LIBSRC_DIR)/AlgebraicSystem/PILES \
-          -I$(LIBSRC_DIR)/AlgebraicSystem/PILES/multigrid \
-             -I$(LIBSRC_DIR)/AlgebraicSystem/PILES/general \
-         -I$(LIBSRC_DIR)/AlgebraicSystem/PILES/superlu \
+           -I$(LIBSRC_DIR)/AlgebraicSystem/CLA\
+          -I$(LIBSRC_DIR)/AlgebraicSystem/CLA/multigrid \
+             -I$(LIBSRC_DIR)/AlgebraicSystem/CLA/general \
+         -I$(LIBSRC_DIR)/AlgebraicSystem/CLA/superlu \
          -I$(LIBSRC_DIR)/Estimator
 #
 CFLAGS2 = -c $(INCL) 

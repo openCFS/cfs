@@ -21,7 +21,7 @@ public:
 
   //!
   virtual void SetSolverParameter(Integer nsys, Double eps, Double dampiter, Integer maxnumit,
-                                  Integer solvertype, Integer precondtype)
+                                  Integer solvertype, Integer precondtype, Integer numeqcoarse)
   {  
     nsys++;
     algsys->CreateParameter();
@@ -30,6 +30,7 @@ public:
     algsys->SetPrecond(precondtype,nsys);
     algsys->SetSolver(solvertype,nsys);
     algsys->SetDampIter(dampiter,nsys);
+    algsys-> SetCoarseSystem(numeqcoarse,nsys);
   }
 
   virtual void InitAlgSysGraph(Integer numnode, Integer matrix_row, Integer matrix_col)

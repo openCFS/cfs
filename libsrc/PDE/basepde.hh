@@ -32,23 +32,23 @@ public:
   virtual void SetMatrixFactors()=0;
 
   //! define algebraic system identifictaion
-  virtual void SetAlgSys_id(Integer AS_sysid)=0;
+  virtual void SetAlgSys_id(const Integer AS_sysid)=0;
 
   //!
-  virtual void SetupMatrices(Integer type)=0;
+  virtual void SetupMatrices(const Integer type)=0;
 
   //!
   virtual void SpecifyMatrices(Integer &matrixtype, Integer *matrixsystype, Integer &graphtype, 
                                Integer &numdofpernode, Integer &numdirichlets, Integer &numconstraints)=0;
 
   //!
-  virtual void SpecifySolver(Integer &asolvertype, Integer &aprecondtype, Double &aeps, Double &adampiter, Integer &amaxnumit)=0;
+  virtual void SpecifySolver(Integer &asolvertype, Integer &aprecondtype, Double &aeps, Double &adampiter, Integer &amaxnumit, Integer &numeqcoarse)=0;
 
   //!
   virtual void SetBCs(BCs * ptBCs, const Integer level, const Integer update, const Double atimestep)=0;
 
   //!
-  virtual void SolveStepStatic(BCs * ptBCs, Integer level)=0;
+  virtual void SolveStepStatic(BCs * ptBCs, const Integer level)=0;
 
   //!
   virtual void SolveStepTrans(BCs * ptBCs, const Integer kstep, const Double asteptime, const Integer level, const Boolean updatesysmat)=0;
@@ -63,29 +63,30 @@ public:
   virtual void CalcParameters(const Double adt)=0;  
 
   //! Create pointer to according class of time error estimation
-  virtual TimeErrorEstimator * CreatePtTimeError()=0;  
+  virtual TimeErrorEstimator * CreatePtTimeError(){ Error("Function CreatePtTimeError is not overloaded in this class");}  
 
   //!
-  virtual Vector<Double> & getS()=0;
+  virtual const Vector<Double> & getS() const =0;
 
   //!
-  virtual Vector<Double> & getS1()=0;
+  virtual const Vector<Double> & getS1() const =0;
 
   //!
-  virtual Vector<Double> & getS2()=0;
+  virtual const Vector<Double> & getS2() const { Error("Function getS2 is not overloaded in this class");}
 
  //!
-  virtual Vector<Double> & getS2old()=0;
+  virtual const Vector<Double> & getS2old() const { Error("Function getS2old is not overloaded in this class");}
 
   //!
-  virtual Double getBeta() const=0;
-  virtual Double getGamma() const=0;
+  virtual Double getBeta() const { Error("Function getBeta is not overloaded in this class");};
+
+  virtual Double getGamma() const { Error("Function getGamma is not overloaded in this class");}
 
   //!
-  virtual Integer getSize()=0;  
+  virtual Integer getSize() const { Error("Function getSize is not overloaded in this class");}  
 
   //!
-  virtual AbstractAlgebraicSys * getAlgSys(){ return ptalgsys_;}
+  virtual AbstractAlgebraicSys * getAlgSys() const { return ptalgsys_;}
  
 protected:
 
@@ -108,10 +109,10 @@ protected:
   Double matrix_factor_[4];
 
  //!
- TimeErrorEstimator * ptTimeError_;
+  TimeErrorEstimator * ptTimeError_;
 
  //!
- AbstractAlgebraicSys * ptalgsys_;
+  AbstractAlgebraicSys * ptalgsys_;
 
 };
 

@@ -8,9 +8,6 @@ C_DIR= ..
 LIBDIR = $(C_DIR)/libsrc
 #
 SUBLIBDIR = Driver Estimator PDE AlgebraicSystem/LinAlg \
-            AlgebraicSystem/PILES/general \
-            AlgebraicSystem/PILES/multigrid \
-            AlgebraicSystem/PILES/superlu \
             Forms Elements Elements/2D Elements/3D \
             Domain/GridCFS Domain/NetGen Domain \
             DataInOut/DefineFiles \
@@ -32,6 +29,7 @@ PATHSUBLIBDIR = $(addprefix $(LIBDIR)/, $(SUBLIBDIR))
 LIB_GRIDLIB = $(C_DIR)/libgrid
 LIB_OWN = $(C_DIR)/lib
 LIB_NETGEN = $(C_DIR)/libnetgen/LINUX
+LIB_CLA=$(CLA)/lib/$(MACHINE)
 #
 #
 ############
@@ -96,9 +94,12 @@ endif
 ############## Make link to the source of another programm
 #
 link:
-	-ln -s $(Gridlib) $(IncGridlib) && \
-        -ln -s $(NetGen)/libsrc/include $(IncNetGen) && \
-        -ln -s $(NetGen)/lib $(LibNetGen)
+	echo $(CLA)
+	rm -rf $(IncNetGen) &&  ln -s $(NetGen)/libsrc/include $(IncNetGen) && \
+        rm -rf $(LibNetGen) && ln -s $(NetGen)/lib $(LibNetGen) &&\
+        rm -rf $(LibCLA) && ln -s $(CLA)/libsrc $(LibCLA)
+#        rm -rf $(IncGridlib) && ln -s $(Gridlib) $(IncGridlib) && \
+#        
 #
 ######################  Clean work directory
 clean-driver:
@@ -152,13 +153,13 @@ clean-matrix:
 	@cd $(LIBSRC_DIR)/Matrix&&\
 	$(MAKE) clean
 clean-general-piles:
-	@cd $(LIBSRC_DIR)/AlgebraicSystem/PILES/general && \
+	@cd $(LIBSRC_DIR)/AlgebraicSystem/CLA/general && \
 	$(MAKE) clean
 clean-multigrid-piles:
-	@cd $(LIBSRC_DIR)/AlgebraicSystem/PILES/multigrid && \
+	@cd $(LIBSRC_DIR)/AlgebraicSystem/CLA/multigrid && \
 	$(MAKE) clean
 clean-superlu-piles:
-	@cd $(LIBSRC_DIR)/AlgebraicSystem/PILES/superlu && \
+	@cd $(LIBSRC_DIR)/AlgebraicSystem/CLA/superlu && \
 	$(MAKE) clean
 ######################   Real clean
 

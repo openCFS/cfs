@@ -95,6 +95,9 @@ public:
   //! Read integration parameters for Newmark method
   void ReadIntegrationParam(Double & alpha, Double & beta, Double & gamma);
 
+  //! Read gamma_parabolic
+  void ReadParabolicParam(Double & gamma_p);
+
   //! Read first time step
   void ReadNumStepsAndTimeSteps(Integer & numsteps, Double & dt);
   

@@ -5,6 +5,7 @@
 #include "domain.hh"
 #include "interface_piles.hh"
 #include "elec2dPDE.hh"
+#include "therm2dPDE.hh"
 #include "acoustic2dPDE.hh"
 
 namespace CoupledField
@@ -16,6 +17,9 @@ Domain<Dim> :: Domain(FileType * const aptFileType, WriteResults<Dim> * ptOut,  
 #ifdef TRACE
   (*trace) << "entering Domain::Domain" << std::endl;
 #endif
+
+ std::cout << " test1 " << std::endl;
+
  InFile_     = aptFileType; 
  OutFile_    = ptOut;
  ptmaterial_ = materialdata;
@@ -96,6 +100,8 @@ void Domain<Dim> :: InitPDE()
   //allocate all specific PDEs
   if (!ptalgsys_) Error("You try to allocate object BasePDE with null pointer to AlgSys");
 
+//  ptpde_[0]=new Therm2dPDE(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_);
+
   ptpde_[0]=new Acoustic2dPDE(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_);
   for (int i=0;i<numpde_;i++)
     {
@@ -131,12 +137,14 @@ void Domain<Dim> :: InitAlgSys()
   Integer solvertype;
   Integer precondtype;
   Integer insys;
+  Integer numeqcoarse;
 
   for (insys=0;insys<numsys_;insys++)
     {
       ptpde_[insys]->SetAlgSys_id(insys);
-      ptpde_[insys]->SpecifySolver(solvertype,precondtype,eps,dampiter,maxnumit);
-      ptalgsys_->SetSolverParameter(insys,eps,dampiter,maxnumit,solvertype,precondtype);
+      ptpde_[insys]->SpecifySolver(solvertype,precondtype,eps,dampiter,maxnumit,numeqcoarse);
+      ptalgsys_->SetSolverParameter(insys,eps,dampiter,maxnumit,solvertype,precondtype,
+				    numeqcoarse);
     }
 
   //init the algsys-graph

@@ -8,25 +8,23 @@ kondesator
 # masstype  damptype nooptimiz
          2         0         0
 # formsave nsavenode  savemax
-         1         1         0
+         1         9         0
 # save nodal degrees of freedom
    ep
 # save first deriv. of nodal degrees of freedom
 
 # save secnd. deriv. of nodal degrees of freedom
 
-#  nodeno.   savedis   savevel   saveacc
-         9         0         0         0
 #  nodal coordinate data
          1  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
          2  0.000000000000E+00  0.500000000000E+00  0.000000000000E+00
          3  0.000000000000E+00  0.100000000000E+01  0.000000000000E+00
-         4  0.000000000000E+00  0.000000000000E+00  0.500000000000E-01
-         5  0.000000000000E+00  0.500000000000E+00  0.500000000000E-01
-         6  0.000000000000E+00  0.100000000000E+01  0.500000000000E-01
-         7  0.000000000000E+00  0.000000000000E+00  0.100000000000E+00
-         8  0.000000000000E+00  0.500000000000E+00  0.100000000000E+00
-         9  0.000000000000E+00  0.100000000000E+01  0.100000000000E+00
+         4  0.000000000000E+00  0.000000000000E+00  0.500000000000E+00
+         5  0.000000000000E+00  0.500000000000E+00  0.500000000000E+00
+         6  0.000000000000E+00  0.100000000000E+01  0.500000000000E+00
+         7  0.000000000000E+00  0.000000000000E+00  0.100000000000E+01
+         8  0.000000000000E+00  0.500000000000E+00  0.100000000000E+01
+         9  0.000000000000E+00  0.100000000000E+01  0.100000000000E+01
 # group definition for electric2d elements
 #  numelem  ielemtyp  isubtype ielemsave   maxnode nonlinear     form1     form2
          4        25         1         0         4         0         0         0
@@ -66,18 +64,16 @@ kondesator
 #              alpha                beta             gamma_h             gamma_p
   0.000000000000E+00  0.100000000000E+01  0.100000000000E+01  0.100000000000E+01
 #  numdofs numconstr  numrestr  numloads resistors numspring   bembdry   numflux
-         3         2         0         1         0         0         0         0
+         0         0         6         0         0         0         0         0
 #   numrad
          0
-# dof-settings
-         1   ep
-         2   ep
-         3   ep
-# constraints
-         7   ep         9   ep  0.100000000000E+01
-         8   ep         9   ep  0.100000000000E+01
-# loads
-         9   ep         1  0.100000000000E-08
+# restraints
+         1   ep         1  0.000000000000E+00
+         2   ep         1  0.000000000000E+00
+         3   ep         1  0.000000000000E+00
+         7   ep         1  0.100000000000E+01
+         8   ep         1  0.100000000000E+01
+         9   ep         1  0.100000000000E+01
 # numpress ncurrdens
          0         0
 #      regler_offset          regler_tol regl_itmx reglr_use

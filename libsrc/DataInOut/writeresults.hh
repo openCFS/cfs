@@ -23,7 +23,7 @@ public:
   virtual void WriteGrid(const Integer level)=0;
 
   /// write information about the solution
-  virtual void WriteSolution(const Vector<Double> & sol, const Integer step, const Double time)=0;
+  virtual void WriteSolution(const Vector<Double> & sol, const Integer step, const Double time, const std::string title)=0;
 
   /// write information about first derivatives of the solution
   virtual void WriteFirstDerSolution(const Vector<Double> & sol, const Integer step, const Double time)=0;

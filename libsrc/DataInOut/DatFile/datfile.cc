@@ -1014,6 +1014,20 @@ void DatFile::ReadIntegrationParam(Double & alpha, Double & beta, Double & gamma
   infile >> alpha >> beta >> gamma;
 }
 
+void DatFile::ReadParabolicParam(Double & gamma_p)
+{
+#ifdef TRACE
+ (*trace)<<" entering DatFile::ReadParabolicParam" << std::endl;
+#endif
+
+  std::string::size_type pos=0;
+  TakePos("gamma_p",pos);
+  infile.seekg(pos, std::ios::beg);
+
+  Double dummy;
+  infile >> dummy >> dummy >> dummy >> gamma_p;
+}
+
 void DatFile :: ReadNumStepsAndTimeSteps(Integer & numsteps, Double & dt)
 {
 #ifdef TRACE 

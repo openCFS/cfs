@@ -23,11 +23,11 @@ public:
   virtual ~Acoustic2dPDE();
 
   //!
-  void SetAlgSys_id(Integer as_sysid);
+  void SetAlgSys_id(const Integer as_sysid);
 
   //!
   void SpecifySolver(Integer &asolvertype, Integer &aprecondtype, Double &aeps,
-Double &adampiter,  Integer &amaxnumit);
+Double &adampiter,  Integer &amaxnumit, Integer &numeqcoarse);
 
   //!
   void SpecifyMatrices(Integer &matrixtype, Integer *matrixsystype, Integer &graphtype, Integer &numdofpernode, Integer &numdirichlets, Integer &numconstraints);
@@ -36,7 +36,7 @@ Double &adampiter,  Integer &amaxnumit);
   void SetMatrixFactors();
 
   //!
-  void SetupMatrices(Integer type);
+  void SetupMatrices(const Integer type);
 
     //!
   void SetBCs(BCs * ptBCs, const Integer level, const Integer update, const Double atime);
@@ -54,7 +54,7 @@ Double &adampiter,  Integer &amaxnumit);
   Double CalcEnergyNorm();
 
   //!
-  void SolveStepStatic(BCs * ptBCs ,Integer level);
+  void SolveStepStatic(BCs * ptBCs ,const Integer level);
 
   //!
   void SolveStepTrans(BCs * ptBCs ,const Integer kstep, const Double steptime, const Integer level, const Boolean updatesysmat);
@@ -63,19 +63,19 @@ Double &adampiter,  Integer &amaxnumit);
    void WriteResultsInFile();
 
   //!
-  virtual Vector<Double> & getS() { return sol_;}
+  virtual const Vector<Double> & getS() const { return sol_;}
 
   //!
-  virtual Vector<Double> & getS1() { return sol_der1_;}
+  virtual const Vector<Double> & getS1() const { return sol_der1_;}
 
   //!
-  virtual Vector<Double> & getS2() { return sol_der2_;}
+  virtual const Vector<Double> & getS2() const { return sol_der2_;}
 
   //!
-  virtual Vector<Double> & getS2old() { return sol_der2_old_;}
+  virtual const Vector<Double> & getS2old() const { return sol_der2_old_;}
 
   //!
-  virtual Integer getSize(){ return size_;}
+  virtual Integer getSize() const { return size_;}
 
   //!
   Double getBeta() const { return beta_;}
