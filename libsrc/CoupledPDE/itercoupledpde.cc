@@ -13,10 +13,8 @@ namespace CoupledField
 				 WriteResults *aOutFile) 
     : BaseCoupledPDE(PDEs, Couplings, aptgrid, aptBCs, aInFile, aOutFile)
   {
-#ifdef TRACE
-    (*trace) << "entering IterCoupledPDE::IterCoupledPDE" << std::endl;
-#endif
- 
+    ENTER_FCN( "IterCoupledPDE::IterCoupledPDE" );
+
     maxiter_ = 100;
    
     //if values are defined in conf-file, take these
@@ -29,9 +27,7 @@ namespace CoupledField
   
   IterCoupledPDE::~IterCoupledPDE()
   {
-#ifdef TRACE
-    (*trace) << "entering IterCoupledPDE::~IterCoupledPDE" << std::endl;
-#endif
+    ENTER_FCN( "IterCoupledPDE::~IterCoupledPDE" );
   }
 
 
@@ -39,9 +35,7 @@ namespace CoupledField
 
   void IterCoupledPDE::InitCoupling(Integer level)
   {
-#ifdef TRACE
-    (*trace) << "entering  IterCoupledPDE::InitCoupling" << std::endl;
-#endif
+    ENTER_FCN ("IterCoupledPDE::InitCoupling" );
   
     std::vector<std::string> CouplingTerms;
     std::vector<std::string> NodeCouplings;
@@ -142,9 +136,7 @@ namespace CoupledField
   void IterCoupledPDE::SolveStepStatic(const Integer kstep, const Double aTime, 
 				       const Integer level, const Boolean updatesysmat)
   {
-#ifdef TRACE
-    (*trace) << "entering  IterCoupledPDE::SolveStepStatic" << std::endl;
-#endif
+    ENTER_FCN ( "entering  IterCoupledPDE::SolveStepStatic" );
   
     BaseStoreSol *val, *oldVal;
     Integer iter = 0;
@@ -214,9 +206,7 @@ namespace CoupledField
   void IterCoupledPDE::SolveStepTrans(const Integer kstep, const Double asteptime, const Integer level, 
 				      const Boolean updatesysmat)
   {
-#ifdef TRACE
-    (*trace) << "entering  IterCoupledPDE::SolveStepTrans" << std::endl;
-#endif
+    ENTER_FCN( "IterCoupledPDE::SolveStepTrans" );
 
     Double  steptime  = asteptime;
 
@@ -273,9 +263,7 @@ namespace CoupledField
 
 void IterCoupledPDE::WriteResultsInFile()
 {
-#ifdef TRACE
-  (*trace) << "entering  IterCoupledPDE::WriteResultsInFile" << std::endl;
-#endif
+  ENTER_FCN( "IterCoupledPDE::WriteResultsInFile" );
 
   for (Integer i=0; i<PDEs_.size(); i++)
     PDEs_[i]->WriteResultsInFile();
@@ -284,10 +272,7 @@ void IterCoupledPDE::WriteResultsInFile()
 
 void IterCoupledPDE::WriteCouplingInfo()
 {
-
-#ifdef TRACE
-  (*trace) << "entering  IterCoupledPDE::WriteCouplingInfo" << std::endl;
-#endif 
+  ENTER_FCN( "IterCoupledPDE::WriteCouplingInfo" );
 
   BaseStoreSol *val;
   std::vector<Integer> * nodes;
@@ -360,10 +345,7 @@ void IterCoupledPDE::WriteCouplingInfo()
 
 Double IterCoupledPDE::CalcNorm(NormType normtype, BaseStoreSol & val, BaseStoreSol & oldval)
 {
-#ifdef TRACE
-  (*trace) << "entering  IterCoupledPDE::CalcNorm" << std::endl;
-#endif
-
+  ENTER_FCN( "IterCoupledPDE::CalcNorm" );
 
   // ATTENTION: Currently only working with Double-values
   // will be changed as soon as dynamic type information
