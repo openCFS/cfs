@@ -317,7 +317,7 @@ namespace CoupledField
 	    Double val_tfunc = 1.0;
 	    if (ptTimeFunc_->GetmaxTimeFnc() > 0 )
 		val_tfunc=ptTimeFunc_->TimeFuncAtTime(time,fncname_rhs_[actDom]);
-	
+
 	    for (Integer actEl=0; actEl< elemssd.size(); actEl++)
 	      {	       
 		BaseFE * ptEl = elemssd[actEl]->ptElem;

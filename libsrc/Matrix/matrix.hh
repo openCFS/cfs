@@ -296,6 +296,8 @@ inline Double Matrix<TYPE>::Det () const
 // std::vector<Double> operator* (std::vector<Double> & vec, const Matrix<Double> & mat);
 
 
+Double operator* (std::vector<Double> & vec1, Vector<Double> & vec2);
+
 Double operator* (std::vector<Double> & vec1, std::vector<Double> & vec2);
 
 Double L2Norm(std::vector<Double> & vec);
