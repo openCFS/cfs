@@ -32,7 +32,7 @@
         <nodeResults type="mechDisplacement"/>
       </storeResults>
 
-      <! == PARDISO == -->
+      <!-- == PARDISO == -->
       <!--solver type="pardiso">
         <matrix eqnNumbering="scalar" entry="double" storage="sparseSym"
          reordering="noReordering"/>
@@ -45,12 +45,12 @@
         </pardiso>
       </solver-->
 
-      <! == DIRECT LU == -->
+      <!-- == DIRECT LU == -->
       <!--solver type="directLU">
         <matrix eqnNumbering="scalar" entry="double" storage="sparseNonSym"/>
       </solver-->
 
-      <! == DIRECT LDL == -->
+      <!-- == DIRECT LDL == -->
       <solver type="directLDL" precond="Id">
         <matrix eqnNumbering="scalar" entry="double" storage="sparseSym"/>
       </solver>
