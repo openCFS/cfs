@@ -30,6 +30,9 @@ namespace CoupledField {
     //! Calculate the mapping after Dirichlet and
     //! constraint nodes were set
     void CalcMapping();
+
+    // Calculate only the Mapping from global to local node numbers
+    void CalcMpcciMapping();
   
     //! Print the mapping nodes <-> EQNs
     void Print(std::ostream & out) const;
