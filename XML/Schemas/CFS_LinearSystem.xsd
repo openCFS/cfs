@@ -18,43 +18,48 @@
 
   <xsd:element name="solver">
     <xsd:complexType>
+
       <xsd:sequence>
+        <!-- Parameters for solver (optional) -->
+        <!--xsd:element ref="SolverParams" minOccurs="0"/-->
 
-        <!-- List of available solvers to chose from --> 
-        <xsd:element name="SolverType">
-          <xsd:simpleType>
-            <xsd:restriction base="xsd:token">
-              <xsd:enumeration value="Direct"/>
-              <xsd:enumeration value="Richardson"/>
-              <xsd:enumeration value="CG"/>
-              <xsd:enumeration value="Lanczos"/>
-              <xsd:enumeration value="QMR"/>
-              <xsd:enumeration value="HYPRE_PGC"/>
-              <xsd:enumeration value="LAPACK_LU"/>
-            </xsd:restriction>
-          </xsd:simpleType>
-       </xsd:element>
-
-       <!-- Desired Preconditioner (if any) -->
-       <xsd:element name="PrecondType" minOccurs="0" maxOccurs="1">
-         <xsd:simpleType>
-           <xsd:restriction base="xsd:token">
-             <xsd:enumeration value="Id"/>
-             <xsd:enumeration value="MG"/>
-             <xsd:enumeration value="Jacobi"/>
-             <xsd:enumeration value="SSOR"/>
-             <xsd:enumeration value="Hypre_Jacobi"/>
-             <xsd:enumeration value="Hypre_AMG"/>
-             <xsd:enumeration value="Hypre_ILU"/>
-             <xsd:enumeration value="Hypre_SPAI"/>
-           </xsd:restriction>
-         </xsd:simpleType>
-       </xsd:element>
-
-       <!-- Stopping tolerance (optional) -->
-       <xsd:element name="tol" type="DT_PosFloat" minOccurs="0" maxOccurs="1"/>
+        <!-- Parameters for preconditioner (optional) -->
+        <xsd:element ref="PrecondBasic" minOccurs="0"/>
 
       </xsd:sequence>
+
+      <!-- List of available solvers to chose from --> 
+      <xsd:attribute name="type" use="optional" default="Direct">
+        <xsd:simpleType>
+          <xsd:restriction base="xsd:token">
+            <xsd:enumeration value="Direct"/>
+            <xsd:enumeration value="Richardson"/>
+            <xsd:enumeration value="CG"/>
+            <xsd:enumeration value="Lanczos"/>
+            <xsd:enumeration value="QMR"/>
+            <xsd:enumeration value="hyprePCG"/>
+            <xsd:enumeration value="hypreGMRES"/>
+            <xsd:enumeration value="lapackLU"/>
+          </xsd:restriction>
+        </xsd:simpleType>
+     </xsd:attribute>
+
+     <!-- Desired Preconditioner (if any) -->
+     <xsd:attribute name="precond" use="optional" default="Id">
+       <xsd:simpleType>
+         <xsd:restriction base="xsd:token">
+           <xsd:enumeration value="Id"/>
+           <xsd:enumeration value="MG"/>
+           <xsd:enumeration value="Jacobi"/>
+           <xsd:enumeration value="SSOR"/>
+           <xsd:enumeration value="hypreJacobi"/>
+           <xsd:enumeration value="hypreAMG"/>
+           <xsd:enumeration value="hypreILU"/>
+           <xsd:enumeration value="hypreSPAI"/>
+         </xsd:restriction>
+       </xsd:simpleType>
+     </xsd:attribute>
+
     </xsd:complexType>
   </xsd:element>
 
