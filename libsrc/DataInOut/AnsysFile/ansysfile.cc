@@ -51,12 +51,11 @@ Integer AnsysFile::ReadDim()
 
  Integer dim;
 
- Integer i;
  std::string::size_type pos=0;
  getPosition("Dimension", pos);
  infile.seekg(pos,std::ios::beg);
 
- std::string auxname;
+ // std::string auxname;
  infile >> dim;
 
  return dim;

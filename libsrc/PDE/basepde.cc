@@ -40,7 +40,9 @@ void BasePDE::ReadBCs(const std::string eq)
   val_id_.resize(bcs_id_.size());
 
   for(i=0; i<bcs_id_.size(); i++)
-    conf->get(bcs_id_[i],val_id_[i],eq,"bc_conditions","inhomogeneous_dirichlet"); 
+    {
+    conf->get(bcs_id_[i],val_id_[i],eq,"bc_conditions","inhomogeneous_dirichlet");
+    }
 }
 
 Integer BasePDE::GetNumRestraints(BCs* ptBCs, const Integer level)

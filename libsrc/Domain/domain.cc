@@ -95,7 +95,7 @@ Domain:: Domain(FileType * const aptFileType, WriteResults * ptOut,  Material * 
 
  // it is important this order of these functions
  InitPDE();
- 
+
  Integer level=0;
  InitAlgSys(level);
 
@@ -179,8 +179,7 @@ void Domain :: InitAlgSys(const Integer level)
 
   //init the algsys-graph
   Integer numnode = ptgrid_->GetMaxnumnodes(level);
-  cout << "numnode:" << numnode << endl;
-
+ 
   Integer matrix_graphtype = NODEGRAPH; //nodal graph
 
   //for each system: first diagonal blocks and then off-diagonalblocks
@@ -191,7 +190,7 @@ void Domain :: InitAlgSys(const Integer level)
 
  // get the graph - connectivity matrix
   Integer nel, numelem;
-  Integer fe_type = QUAD;
+  Integer fe_type;
   Vector<Integer> connect;
 
   numelem = ptgrid_->GetMaxnumElem(level);
@@ -201,6 +200,10 @@ void Domain :: InitAlgSys(const Integer level)
       for (nel=0; nel<numelem; nel++)
 	{
           ptgrid_->GetConnection(connect, nel, level);
+	  if (connect.size()==3) 
+	    fe_type = TRIA;
+	  else
+	    fe_type = QUAD;
 	  ptalgsys_->SetAlgSysGraph(connect.get(),connect.size(),fe_type,insys,insys);
 	}
     }

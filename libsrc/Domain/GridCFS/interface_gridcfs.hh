@@ -43,7 +43,7 @@ public:
   { return ptGridCFS->GetMaxnumElem(numlevel);}
 
   /// return dimension of mesh
-  virtual Integer GetDim(){ ptGridCFS->GetDim();}
+  virtual Integer GetDim(){ return ptGridCFS->GetDim();}
 
   //!
   void GetElemSD(std::vector<Elem*> & els, const std::string sd, const Integer level)

@@ -15,7 +15,7 @@ namespace CoupledField
 template<class Dim>
  GridCFS<Dim> :: GridCFS(FileType * const aptFileType)
 {
-#ifdef TRACE
+#ifdef TRACES
   (*trace) << "entering GridCFS::GridCFS" << std::endl;
 #endif
 
@@ -23,6 +23,7 @@ template<class Dim>
 
   conf->getsubdom(sd_);
   elems_=new std::vector<Elem*>[sd_.size()];  
+  dim_ = 0;
 }
 
 template<>
@@ -37,9 +38,7 @@ void GridCFS<Point2D> :: Read()
   InFile->ReadMaxnumnodes(maxnumnodes_);
   ptCoordinate_=new Point2D[maxnumnodes_];
   InFile->ReadCoordinate(ptCoordinate_, maxnumnodes_);
-
   InFile->ReadEl(elems_,sd_);
-  
 //   Integer i,j;
 //   for(i=0; i<elems_[0].size(); i++){
 //     Integer elemsize=(elems_[0][i]->connect).size();

@@ -177,7 +177,7 @@ void Acoustic2dPDE::SetupMatrices(const Integer level)
 	  (*debug) << "Connection array  " << std::endl;
 	  (*debug)  << connecth  << std::endl;
 
-	  (*debug) << "Stiffnessmatrix, ElementNumber  " <<   i << std::endl;
+	  (*debug) << "Stiffnessmatrix, ElementNumber  " <<   j << std::endl;
 	  (*debug) << elemmat << std::endl;
 
 
@@ -191,7 +191,7 @@ void Acoustic2dPDE::SetupMatrices(const Integer level)
 	  elemmat*=coeffm[i];
 
 #ifdef DEBUG
-	  (*debug) << "Massmatrix, ElementNumber  " << i << std::endl;
+	  (*debug) << "Massmatrix, ElementNumber  " << j << std::endl;
 
 	  (*debug) << elemmat << std::endl;
 #endif
@@ -216,35 +216,59 @@ void Acoustic2dPDE::SetBCs(BCs * ptBCs, const Integer level, const Integer updat
 #endif
 
   Integer node;
-  Double val, valueTF;
+  Double val, valTF;
 
   //system matrix: id = 1
   Integer matrix_id = 1;
 
-  val=ptTimeFunc_->TimeFuncAtTime(atime,level);
-
   // set dirichlet boundary conditions
   Integer i,j=0;
-  std::list<Integer> nodes_hd;
+  Double val_hd = 0.0;
+  std::list<Integer> nodes;
   Integer sizebc=bcs_hd_.size();
+
+  //! homogeneous dirichlet BCs
   for (i=0; i< bcs_hd_.size(); i++)
     {
-      nodes_hd=ptBCs->GetNodesLevel(bcs_hd_[i]);
+      nodes=ptBCs->GetNodesLevel(bcs_hd_[i],level);
    
-      for (std::list<Integer>::const_iterator p=nodes_hd.begin(); p!=nodes_hd.end(); p++, j++)
+      for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end(); p++, j++)
 	{
 	  node=*p;
 	  if (update==1)
 	    {
-	      ptalgsys_->SetBCDirichletUpdate(j+1, node, val, dofspernode_, as_sysid_, as_sysid_, matrix_id);
+	      ptalgsys_->SetBCDirichletUpdate(j+1, node, val_hd, dofspernode_, as_sysid_, as_sysid_, matrix_id);
 	    }
 	  else
 	    {
     
-	      ptalgsys_->SetBCDirichlet(j+1, node, val, dofspernode_, as_sysid_, as_sysid_, matrix_id);
+	      ptalgsys_->SetBCDirichlet(j+1, node, val_hd, dofspernode_, as_sysid_, as_sysid_, matrix_id);
 	    }
 	}  
     }
+
+  //! inhomogeneous dirichlet BCs
+  valTF=ptTimeFunc_->TimeFuncAtTime(atime,level);
+  for (i=0; i<bcs_id_.size(); i++)
+    {
+      nodes=ptBCs->GetNodesLevel(bcs_id_[i], level);
+
+      val=val_id_[i]*valTF;
+
+      for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end(); p++, j++)
+	{
+	  node=*p;
+          if (update==1)
+            {
+              ptalgsys_->SetBCDirichletUpdate(j+1, node, val, dofspernode_, as_sysid_, as_sysid_, matrix_id);
+            }
+          else
+            {
+              ptalgsys_->SetBCDirichlet(j+1, node, val, dofspernode_, as_sysid_,as_sysid_, matrix_id);
+            }
+	}
+    }
+
 
 #ifdef TRACE
   (*trace) << "leaving Acoustic2dPDE::SetBCs" << std::endl;
@@ -351,8 +375,6 @@ void Acoustic2dPDE::SolveStepTrans(BCs * ptBCs, const Integer kstep, const Doubl
   Integer i;
   for (i=0; i<ptgrid_->GetMaxnumnodes(level); i++)
     sol_[i]=ptsol[i];
-
-  std::cout << "maxnode:" <<  ptgrid_->GetMaxnumnodes(level) << " level:" << level << std::endl;
 
   // calculation of derivatives of solution
   CalcDerSol(); 

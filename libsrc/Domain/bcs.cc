@@ -94,8 +94,6 @@ void BCs :: printBCs(const Integer alevel)
   Integer i,ilevel;
   for (i=0; i<levels_.size(); i++)
     {
-      std::cout << levels_[i] << std::endl;
-
       for (std::list<Integer>::const_iterator p=bcs_[ilevel][i].begin(); p!=bcs_[ilevel][i].end(); p++)
 	{ std::cout << (*p) << std::endl;} 
       

@@ -51,10 +51,10 @@ public:
 
    /// Get coordinates of node with global number inode
    virtual void GetCoordinateNode(const Integer inode, const Integer numlevel, Point2D & rfPoint)
-  { Error(" Not implemented",__FILE__,__LINE__);}
+   { Error(" Not implemented",__FILE__,__LINE__);}
 
    virtual void GetCoordinateNode(const Integer inode, const Integer numlevel, Point3D & rfPoint)
-  { Error(" Not implemented",__FILE__,__LINE__);}
+   { Error(" Not implemented",__FILE__,__LINE__);}
 
   /// Return maximum number of nodes
   virtual Integer GetMaxnumnodes(const Integer numlevel)=0;
