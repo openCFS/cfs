@@ -451,6 +451,38 @@ Matrix<TYPE> &Matrix<TYPE>::operator*= (const TYPE &x)
   return *this;
 }
 
+  // Perform a matrix-vector multiplication rvec = this*mvec
+template<class TYPE>
+void Matrix<TYPE>::Mult(CFSVector & mvec, CFSVector & rvec)
+{
+  ENTER_IFCN("Matrix::Mult");
+  Vector<TYPE> & mvec1 = dynamic_cast<Vector<TYPE>& >(mvec);
+  Vector<TYPE> & rvec1 = dynamic_cast<Vector<TYPE>& >(rvec);
+  
+  Integer size_mvec = mvec1.GetSize();
+  Integer size_rvec = rvec1.GetSize();
+ 
+#ifdef CHECK_INITIALIZED
+  if (size_row_ == 0 || size_col_ == 0) 
+    Error("undefined Matrix",__FILE__,__LINE__);
+  if (size_mvec == 0) 
+    Error("undefined Vector",__FILE__,__LINE__);
+  if (size_rvec == 0) 
+    Error("undefined Vector",__FILE__,__LINE__);
+#endif
+
+#ifdef CHECK_INDEX
+  if (size_col_ != size_mvec) Error("incompatible dimension",__FILE__,__LINE__);
+  if (size_row_ != size_rvec) Error("incompatible dimension",__FILE__,__LINE__);
+#endif
+   
+  Integer k,kk;
+  for ( k = 0; k < size_row_; k++)
+    for ( kk = 0; kk < size_col_; kk++)
+        rvec1[k] += data_[k][kk]*mvec1[kk];
+
+}
+
 
 
 
@@ -781,15 +813,19 @@ void Matrix<TYPE>::ConvertToVec_AppendRows(CFSVector & v) const
 
 /// converts a matrix into a vector, by appending successively all colums
 template<class TYPE>
-void Matrix<TYPE>::ConvertToVec_AppendCols(CFSVector & v) const
+void Matrix<TYPE>::ConvertToVec_AppendCols(CFSVector &v) const
 {
   ENTER_FCN("Matrix::ConvertToVec_AppendCols");
+
   Vector<TYPE> & vec = dynamic_cast<Vector<TYPE>&>(v);
+
   vec.Resize(size_row_ * size_col_);
   
   for(int actCol=0; actCol < size_col_; actCol++)
     for(int actRow=0; actRow < size_row_; actRow++)
-      vec[actCol*size_row_ + actRow] = (*this)[actRow][actCol];
+      {
+	vec[actCol*size_row_ + actRow] = data_[actRow][actCol];
+      }
 }
 
 

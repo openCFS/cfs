@@ -175,7 +175,8 @@ public:
   {Error("CFSMatrix::Add(): Not implemented here",__FILE__,__LINE__);} 
   
   //! Perform a matrix-vector multiplication rvec = this*mvec
-  virtual void Mult(const CFSVector & mvec, CFSVector & rvec) const = 0;
+  virtual void Mult(CFSVector & mvec, CFSVector & rvec) const
+  {Error("CFSMatrix:Mult(): Not implemented here",__FILE__,__LINE__);}
 
   //! Perform a matrix-vector multiplication rvec = transpose(this)*mvec
   virtual void MultT(const CFSVector & mvec, CFSVector & rvec) const = 0;
