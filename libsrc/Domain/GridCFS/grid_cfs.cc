@@ -41,7 +41,6 @@ void GridCFS<Point2D> :: Read()
   InFile->ReadCoordinate(gh[0].ptCoordinate, gh[0].maxnumnode);
 
 //  !!!!!!! just for check
-
   InFile->ReadMaxnumelem(gh[0].maxnumelem);
 
   Integer NumNodeperElem;

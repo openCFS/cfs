@@ -57,11 +57,14 @@ private:
   //!
   void ReadDim();
 
-  // take position in section
-  void takePosition(const std::string seekexp, std::string::size_type & pos);
+  // get position after line with seekexp and comments lines
+  void getPosLine(const std::string seekexp, std::string::size_type & pos);
+
+  // get position in line
+void getPosition(const std::string seekexp, std::string::size_type & pos);
 
   // transform string for level of boundary condition in number
-  Integer TransformInDof(const Char * el);
+  Integer TransformInDof(const std::string type_bc);
 
   // read number of nodes for boundary condition
   void ReadMaxnumnodesbc(Integer & nbc);

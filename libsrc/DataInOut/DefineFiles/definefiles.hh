@@ -24,7 +24,7 @@ public:
    ~DefineInOutFiles();
 
    //!
-   FileType * Create_ptFileType(Char * atype);
+   FileType * Create_ptFileType();
 
    //!
    WriteResults * Create_ptWriteResults2d();

@@ -31,14 +31,13 @@ using namespace CoupledField;
 void main(int argc, char *argv[])
 {
   std::cout << " Wellcome to sample session. " << argc << std::endl ;
-  std::cout << " \033[36mUsage\033[0m : cfs -ext [-i] name [-m materialfile]"<< std::endl 
-       << "\t \033[36m ext \033[0m: format of input file( implemented: dat ) " << std::endl
+  std::cout << " \033[36mUsage\033[0m : cfs [-i] name [-m materialfile]"<< std::endl 
        << "\t \033[36m i \033[0m: to create info-file " << std::endl
        << "\t \033[36m name \033[0m: name of input file without extension" << std::endl << std::endl;
 
-  if (argc < 3) Error("Invalid running of scfe. See Usage above.");
+  if (argc < 2) Error("Invalid running of scfe. See Usage above.");
 
-  if (!strcmp("-i", argv[2])) InfoPrint=TRUE;
+  if (!strcmp("-i", argv[1])) InfoPrint=TRUE;
 
   Char * name=NULL;
   Material * ptMaterial=NULL;
@@ -54,7 +53,7 @@ void main(int argc, char *argv[])
   MyClock oClockTotal;
   oClockTotal.ClockCount(MyClock::beg);
 
-  FileType * ptInputfile=ptDefineFiles->Create_ptFileType(argv[1]);
+  FileType * ptInputfile=ptDefineFiles->Create_ptFileType();
 
   WriteResults * ptOut=ptDefineFiles->Create_ptWriteResults2d();
 

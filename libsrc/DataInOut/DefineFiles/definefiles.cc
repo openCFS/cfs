@@ -80,18 +80,19 @@ delete debug;
 cout << " end of deconstructor" << endl;
 }
 
-FileType * DefineInOutFiles :: Create_ptFileType(Char * atype)
+FileType * DefineInOutFiles :: Create_ptFileType()
 {
-  if (!strcmp(atype, "-dat"))  
+  std::string informat;
+  conf->get("format_input",informat);
+
+  if (informat=="dat")  
       infiletype=new DatFile(filename);
   else
-  if  (!strcmp(atype, "-mesh")) 
+  if  (informat=="mesh") 
       infiletype=new AnsysFile(filename);
   else 
-    {
-      std::cerr << "ERROR: Sorry, we can't read files with type: "<< atype << std::endl;
-      exit(-1);
-    }
+        Error("Wrong format for input file. Please, check your data.",__FILE__,__LINE__);
+
    return infiletype;
 }
 
