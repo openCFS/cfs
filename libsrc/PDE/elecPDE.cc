@@ -227,6 +227,11 @@ void ElecPDE::WriteResultsInFile(Integer stepOffset,
 	  outFile_->WriteElemSolutionTransient(E_, actStep, actTime);
 	}
       
+      if (calcCharges_.GetSize() !=0 )
+	{
+	  outFile_->WriteElemSolutionTransient(charges_, actStep, actTime);
+	}
+      
       if (flags->CalcErrorMap_)
 	{
 	  // this is only a temporar solution
@@ -265,44 +270,147 @@ void ElecPDE::PostProcess(const Integer level)
 {
   ENTER_FCN( "ElecPDE::PostProcess" );
 
-  NodeStoreSol<Double> & solhelp = dynamic_cast<NodeStoreSol<Double>&>(*sol_);
 
-  if (calcEfield_.GetSize() !=0 )
-    {
-      GradientFieldOp * FieldOp = new GradientFieldOp(ptgrid_, this, eqnData_,
-						      solhelp, ELEC_POTENTIAL,
-						      level, isaxi_);
-
-      // ------ Calculation of the electric field ------
-
-      Vector<Double> LCoord;
-      LCoord.Resize(dim_);
-      LCoord[0] = 0;
-      LCoord[1] = 0;
-      
-      StdVector<Elem*> elemssd;
-      Integer counterElems=0;
-      Vector<Double> TempE;
-      Integer pdeElem;
-
-      // loop over all subdomains
-      for (Integer isd=0; isd<calcEfield_.GetSize(); isd++)
-	{
-	  // get vector of Elem of subdomain with color: subdoms[isd]
-	  ptgrid_->GetElemSD(elemssd,calcEfield_[isd],level);
-	  
-	  // loop over elements of subdomain
-	  for (Integer iel=0; iel< elemssd.GetSize(); iel++,counterElems++)
-	    {
-	      FieldOp->CalcElemGradField( TempE, elemssd[iel], LCoord, 1); 
-	      pdeElem = eqnData_->Mesh2PDEElem(elemssd[iel]->elemNum);
-// 	      E_.SetNodalResult(mesh2PDEElem_[elemssd[iel]->elemNum - 1]-1,TempE);
- 	      E_.SetElemResult(pdeElem-1,TempE);
-	    }
-	}
-      delete FieldOp;
-    }
+  // *** Electric Field Intensity ***
+  if (calcEfield_.GetSize() !=0 ){
+    CalcElectricField();
+  }
+  
+  // *** Electric Charges ***
+  if (calcCharges_.GetSize() !=0 ) {
+    CalcCharges();
+  }
 }
+
+void ElecPDE::CalcElectricField()
+{
+  ENTER_FCN( "ElecPDE::PostProcess" );
+  
+  NodeStoreSol<Double> & solhelp = dynamic_cast<NodeStoreSol<Double>&>(*sol_);
+  GradientFieldOp * FieldOp = new GradientFieldOp(ptgrid_, this, eqnData_,
+						  solhelp, ELEC_POTENTIAL,
+						  actlevel_, isaxi_);
+  
+  Vector<Double> LCoord;
+  LCoord.Resize(dim_);
+  LCoord[0] = 0;
+  LCoord[1] = 0;
+  
+  StdVector<Elem*> elemssd;
+  Integer counterElems=0;
+  Vector<Double> TempE;
+  Integer pdeElem;
+  
+  // loop over all subdomains
+  for (Integer isd=0; isd<calcEfield_.GetSize(); isd++)
+    {
+      // get vector of Elem of subdomain with color: subdoms[isd]
+      ptgrid_->GetElemSD(elemssd,calcEfield_[isd],actlevel_);
+      
+      // loop over elements of subdomain
+      for (Integer iel=0; iel< elemssd.GetSize(); iel++,counterElems++)
+	{
+	  FieldOp->CalcElemGradField( TempE, elemssd[iel], LCoord, 1); 
+	  pdeElem = eqnData_->Mesh2PDEElem(elemssd[iel]->elemNum);
+	  // 	      E_.SetNodalResult(mesh2PDEElem_[elemssd[iel]->elemNum - 1]-1,TempE);
+	  E_.SetElemResult(pdeElem-1,TempE);
+	}
+    }
+  delete FieldOp;
+}
+
+void ElecPDE::CalcCharges()
+{
+  ENTER_FCN( "ElecPDE::CalcCharges" );
+
+  NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
+  StdVector<Elem*> surfElems, volElems;
+  Vector<Double> lCoordSurf, lCoordVol, elemDField;
+  GradientFieldOp * dFieldOp;
+  ElecChargeOp * chargeOp;
+  BaseFE * ptSurfElem, * ptVolElem;
+  Double permittivity = 0.0;
+  Double elemNormalD = 0.0;
+  Double charge = 0.0;
+  Double sumOfCharges = 0.0;
+  Integer pdeElemNum = 0;
+
+  
+  // Create vector with interpolation coordinate.
+  // For simplicity we only evaluate the integral
+  // in coordinate origin
+  lCoordSurf.Resize(dim_-1);
+  lCoordSurf.Init(0);
+  
+  // Create operator for electric flux density and charge calculation
+  dFieldOp = new GradientFieldOp(ptgrid_, this, eqnData_, *solhelp,
+				 ELEC_POTENTIAL, actlevel_, isaxi_);
+  chargeOp = new ElecChargeOp(ptgrid_, this, eqnData_, actlevel_, isaxi_);
+  
+  // loop over all subdomains
+  for (Integer iSD=0; iSD<calcCharges_.GetSize(); iSD++){
+    
+    // get surface and acoording volume elements
+    if (dim_ == 3)
+      surfElems = ptBCs_->getFacesBC(calcCharges_[iSD], actlevel_);
+    else if (dim_ == 2)
+      surfElems = ptBCs_->getEdgesBC(calcCharges_[iSD], actlevel_);
+    
+    // get neighbouring volume elements of
+    // surface elements
+    ptgrid_->GetVolNeighboursForSurf(surfElems,chargeNeighborRegion_,
+				     volElems, actlevel_);
+    
+    // loop over all surface elements
+    for (Integer iElem=0; iElem<surfElems.GetSize(); iElem++)
+      {
+	
+	ptSurfElem = surfElems[iElem]->ptElem;
+	ptVolElem = volElems[iElem]->ptElem;
+	const StdVector<Integer> & surfConnect = surfElems[iElem]->connect;
+	const StdVector<Integer> & volConnect = volElems[iElem]->connect;
+	
+	// calculate volume integration coordinates from
+	// surfe integration coordinat for evalauting the 
+	// electric flux density on the surface of the volume
+	// element
+	ptVolElem->GetLocalIntPoints4Surface(surfConnect, volConnect,
+					     lCoordSurf, lCoordVol);
+
+	// Get the right material parameter for actual volume element
+	for (Integer i=0; i<subdoms_.GetSize(); i++)
+	  {
+	    if (subdoms_[i] == volElems[iElem]->namesd)
+	      permittivity  = materialData_[iSD].GetPermittivity(2,2);
+	  }
+	
+	// Calc electric flux density
+	dFieldOp->CalcElemGradField(elemDField, volElems[iElem], 
+				    lCoordVol, permittivity);
+	
+	// Calc normal component
+	elemNormalD = lCoordVol * elemDField;
+	chargeOp->CalcElemCharge(charge, surfElems[iElem], 
+				 lCoordSurf, elemNormalD);
+
+	pdeElemNum = eqnData_->Mesh2PDEElem(volElems[iElem]->elemNum);
+	
+	// Create temporar vector, since SetElemResult only
+	// can handle these
+	Vector<Double> chargeVec(1);
+	chargeVec[0] = charge;
+	sumOfCharges +=charge;
+	charges_.SetElemResult(pdeElemNum-1, chargeVec);
+	
+      }
+  }
+  std::string outstring = "Sum of electric charges: ";
+  outstring += Info->GenStr(sumOfCharges);
+  Info->PrintF(pdename_, outstring.c_str());
+  
+}
+
+  
 
 
 void ElecPDE::CalcNodeForce(Vector<Double> & force, 
@@ -925,6 +1033,27 @@ void ElecPDE::ReadStoreResults() {
     }
   }
 
+  // --- Electric Charges ---
+  //check for charge computation
+  params->GetList( "region", chargeNeighborRegion_, pdename_, "charge" );
+  params->GetList( "element", calcCharges_, pdename_, "charge" );
+
+  if (calcCharges_.GetSize() > 0)
+    {
+     Info->PrintF( pdename_,
+		   " Computing electric charges for regions:");
+     for ( Integer k = 0; k < calcCharges_.GetSize(); k++ ) {
+       Info->PrintF( pdename_, " %s", calcCharges_[k].c_str() );
+    } 
+    // Resize solution arrays
+    charges_.SetNumSolutions(1);
+    charges_.SetSolutionType(ELEC_CHARGE);
+    charges_.SetNumElems(numElems_);
+    charges_.SetNumDofs(1);
+    charges_.SetPtrEQNData(eqnData_, ptgrid_, actlevel_);
+    charges_.Init(0);
+    } 
+  
   // *****************************
   // Determine nodal history
   // *****************************
