@@ -158,8 +158,8 @@ namespace CoupledField {
     //! for which a history file is written
     StdVector<SolutionType> histQuantities_;
   
-    //! history nodes per PDE
-    StdVector<StdVector<Integer> > histNodesPerPDE_;
+    //! history nodes per output quantity
+    StdVector<StdVector<Integer> > histNodesPerQuant_;
 
     //! pointer to ofstream with history information
     StdVector<StdVector<std::ofstream*> >  historyFiles_;
@@ -169,8 +169,6 @@ namespace CoupledField {
 
     //! Ptr to input file, needed for reading the save nodes
     FileType * pt2Inputfile_;
-
-  protected:
 
     //! intialize the management of history files
     virtual void InitHistoryFiles();

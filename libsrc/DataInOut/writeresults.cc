@@ -89,25 +89,34 @@ namespace CoupledField {
       return;
     }
 
-    // ***********************************************
-    //   Generate vectors holding information on the
-    //   output quantities and nodes for which the
-    //   user wants to see the history
+    // *****************************************************************
+    //   Generate vectors holding information on the output quantities
+    //   and nodes for which the user wants to see the history
     //
-    //   histQuantities_ .... holds all quantities
-    //   histNodesPerPDE_ ... number of history nodes
-    //                        for each PDE
-    // ***********************************************
+    //   histQuantities_ ....... holds identifiers for all quantities
+    //   histNodesPerQuant_ .... node numbers of the history nodes for
+    //                           each of the output quantities
+    //
+    // *****************************************************************
 
     // Make a sanity check
-    if ( histQuantities_.GetSize() != 0 || histNodesPerPDE_.GetSize() != 0 ) {
-      Warning( "Repeated call to WriteResults::InitHistoryFiles ?!?!",
-	       __FILE__, __LINE__ );
+    if ( histQuantities_.GetSize() != 0 || histNodesPerQuant_.GetSize() != 0 ){
+      Error( "Repeated call to WriteResults::InitHistoryFiles ?!?!",
+	     __FILE__, __LINE__ );
     }
 
     // Define some loop counters and auxilliary variables
     Integer iQuant, i, j;
     Integer quantityFound;
+
+    // Local data structure for combining identifiers of history nodes
+    // with the respective node numbers.
+    // For each output quantity we store a StdVector that stores triples
+    // containing
+    //  a) index of identifier in nodeVec
+    //  b) start index of node numbers for identifier in histNodesPerQuant_
+    //  c) stop index of node numbers for identifier in histNodesPerQuant_
+    StdVector< StdVector<Integer> > histNodeNumIdentCoup;
 
     // In the vector of quantities there may be duplicates
     // these must be eliminated!
@@ -131,24 +140,30 @@ namespace CoupledField {
       if ( quantityFound == -1 ) {
 	String2Enum( quantVec[iQuant], solType );
 	histQuantities_.Push_back(solType);
-	histNodesPerPDE_.Push_back(StdVector<Integer>());
-	quantityFound = histNodesPerPDE_.GetSize() - 1;
+	histNodesPerQuant_.Push_back(StdVector<Integer>());
+	histNodeNumIdentCoup.Push_back(StdVector<Integer>());
+	quantityFound = histNodesPerQuant_.GetSize() - 1;
       }
 
       // Whenever an output quantity appears in quantVec it is
-      // related to a saveNodes specifier. Add the corresponding
-      // nodes to the histNodesPerPDE_ vector
+      // related to a saveNodes identifier. Add the corresponding
+      // nodes to the histNodesPerQuant_ vector and the indices of
+      // the identifier and node numbers to histNodeNumIdentCoup
       StdVector<Integer> tempNodes;
       pt2Inputfile_->ReadSaveNodes( tempNodes, nodeVec[iQuant] );
+      histNodeNumIdentCoup[quantityFound].Push_back(iQuant);
+      histNodeNumIdentCoup[quantityFound].
+	Push_back(histNodesPerQuant_[quantityFound].GetSize());
       for ( i = 0; i < tempNodes.GetSize(); i++ ) {
-	histNodesPerPDE_[quantityFound].Push_back(tempNodes[i]);
+	histNodesPerQuant_[quantityFound].Push_back(tempNodes[i]);
       }
+      histNodeNumIdentCoup[quantityFound].
+	Push_back(histNodesPerQuant_[quantityFound].GetSize()-1);
     }
 
-
-    // ***********************
-    //   Prepare file output
-    // ***********************
+    // ************************
+    //   Prepare output files
+    // ************************
 
     // Create history directory
     std::string S="mkdir -p history";
@@ -161,32 +176,49 @@ namespace CoupledField {
     // Resize number of history files
     historyFiles_.Resize(histQuantities_.GetSize());
 
-    // Iterate over all quantities
+    // Iterate over all output quantities
     std::string quantityName;
     for ( iQuant = 0; iQuant < histQuantities_.GetSize(); iQuant++ ) {
 
+      // Log information on this output quantity to info file.
+      // This will also tell the user the relation between the
+      // node numbers and the identifiers
       // std::string comment = "Identifiers for history nodes of quantity '";
-      std::string comment = "Node numbers of history nodes for quantity '";
       Enum2String( histQuantities_[iQuant], quantityName );
-      comment +=  quantityName + "'";
-      Info->PrintVec(comment.c_str(), histNodesPerPDE_[iQuant]);
 
-      historyFiles_[iQuant].Resize(histNodesPerPDE_[iQuant].GetSize());
-      for (Integer iNode=0; iNode<histNodesPerPDE_[iQuant].GetSize(); iNode++){
+      Info->PrintF( "", "\nHistory nodes for quantity '%s':\n",
+		    quantityName.c_str() );
+      for ( i = 0; i < histNodeNumIdentCoup[iQuant].GetSize() / 3; i++ ) {
 
-	// Create total filename
+	Info->PrintF( "", " identifier = %s, node(s) =", 
+		      nodeVec[histNodeNumIdentCoup[iQuant][i*3]].c_str() );
+
+	for ( j  = histNodeNumIdentCoup[iQuant][i*3+1];
+	      j <= histNodeNumIdentCoup[iQuant][i*3+2]; j++ ) {
+	  Info->PrintF( "", " %d", histNodesPerQuant_[iQuant][j] );
+	}
+	Info->PrintF( "", "\n" );
+      }
+
+      // For each node there will be one history file
+      historyFiles_[iQuant].Resize(histNodesPerQuant_[iQuant].GetSize());
+
+      for ( Integer iNode = 0; iNode < histNodesPerQuant_[iQuant].GetSize();
+	    iNode++ ) {
+
+	// Create complete filename
 	std::string quantString;
 	Enum2String(histQuantities_[iQuant], quantString);
 	totalName = namePrefix + quantString;
 	totalName += "-node-";
-	totalName += Info->GenStr(histNodesPerPDE_[iQuant][iNode]);
+	totalName += Info->GenStr(histNodesPerQuant_[iQuant][iNode]);
 	totalName += namePostfix;
 
+	// Open output file
 	historyFiles_[iQuant][iNode] = NULL;
 	historyFiles_[iQuant][iNode] = new std::ofstream(totalName.c_str());
-     
-	if (!historyFiles_[iQuant][iNode]) {
-	  std::string errMsg = "InitHistory: Can not open history file '";
+	if ( !historyFiles_[iQuant][iNode] ) {
+	  std::string errMsg = "InitHistory: Cannot open history file '";
 	  errMsg += totalName + "'";
 	  Error (errMsg.c_str(), __FILE__, __LINE__);
 	}
@@ -285,13 +317,13 @@ namespace CoupledField {
       }
     
       // Iterate over all history nodes
-      for (Integer iNode=0; iNode<histNodesPerPDE_[iQuant].GetSize(); iNode++){
+      for (Integer iNode=0; iNode<histNodesPerQuant_[iQuant].GetSize(); iNode++){
 	myHist = historyFiles_[iQuant][iNode];
 	(*myHist) << time;
       
 	// Iterate over all dofs
 	for (Integer iDof=0; iDof<actDof; iDof++) {
-	  data.Get(solTypes[iSol],histNodesPerPDE_[iQuant][iNode]-1, iDof,val);
+	  data.Get(solTypes[iSol],histNodesPerQuant_[iQuant][iNode]-1, iDof,val);
 	  (*myHist) << "  " << val;
 	} // iDof
 	(*myHist) << std::endl;
