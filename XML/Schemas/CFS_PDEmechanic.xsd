@@ -29,9 +29,14 @@
 
         <xsd:sequence>
 
-          <!-- Subdomains the PDE lives on -->
-          <xsd:element name="subdom" type="xsd:token" minOccurs="1"
-                       maxOccurs="unbounded"/>
+          <!-- Regions the PDE lives on -->
+          <xsd:element name="region" minOccurs="1" maxOccurs="unbounded">
+            <xsd:complexType>
+              <xsd:attribute name="name" type="xsd:token" use="required"/>
+              <xsd:attribute name="nonLinear" type="DT_MechNonLin"
+                use="optional" default="no"/>
+            </xsd:complexType>
+          </xsd:element>
     
           <!-- Type of damping model (optional) -->
           <xsd:element name="damping" type="DT_MechDamp" minOccurs="0"/>
@@ -52,6 +57,9 @@
 
             </xsd:complexType>
           </xsd:element>
+
+          <!-- Section for specifying non-linear parameters (optional) -->
+          <xsd:element name="nonLinear" type="DT_NonLinParams" minOccurs="0"/>
 
           <!-- Desired solution values (optional) -->
           <xsd:element name="storeResults" type="DT_MechStoreResults"
@@ -208,5 +216,16 @@
   <xsd:complexType name="DT_MechDamp">
     <xsd:attribute name="type" type="DT_MechDampType" use="required"/>
   </xsd:complexType>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for non-linearity in mechanic PDEs -->
+  <!-- ******************************************************************** -->
+  <xsd:simpleType name="DT_MechNonLin">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="no"/>
+      <xsd:enumeration value="geo"/>
+    </xsd:restriction>
+  </xsd:simpleType>
 
 </xsd:schema>
