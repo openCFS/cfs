@@ -50,8 +50,10 @@ private:
   //! current time
   Double actTime_;
   
-  //! stores for each step the participating pdes
-  StdVector<StdVector<BasePDE*> > pdesPerStep_;
+  //! stores for each step the participating pdes as name
+  StdVector<StdVector<std::string> > pdesPerStep_;
+
+  //! stores for each step the participating pdes as pointer
 
   //! stores for each step the tags of each pde
   StdVector<StdVector<std::string> > tagsPerStep_;

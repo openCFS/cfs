@@ -59,6 +59,19 @@ namespace CoupledField {
 
     Integer dim=InFile_->ReadDim();
 
+#ifdef XMLPARAMS
+    std::string probGeo;
+
+    // Check consistency of mesh and geometry type specified
+    // in the param file
+    params->Get( "type", probGeo, "geometry" );
+    if ( !(probGeo == "3d"    && dim == 3 ||
+	   probGeo == "axi"   && dim == 2 ||
+	   probGeo == "plane" && dim == 2 ) ) {
+      Info->Error( "Dimensions in parameter file and geometry file do not fit",
+		   __FILE__, __LINE__ );
+    }
+#endif
     // initialize pointer to grid 
     if (dim==2) {
 
@@ -114,10 +127,10 @@ namespace CoupledField {
     ptBCs_->ReadBCs();
 
     // Create PDEs
-    CreatePDEs();
+    //CreatePDEs();
 
     // Create Coupled PDE
-    CreateCoupledPDE();
+    //CreateCoupledPDE();
   }
 
 
@@ -130,23 +143,51 @@ namespace CoupledField {
     if (ptBCs_) delete ptBCs_;
   }
 
+  // **********************
+  //   Getter function
+  // **********************
+  BasePDE * Domain::GetPDE(const std::string pdeName)
+  {
+    ENTER_IFCN( "Domain::GetDPE" );
+
+    Boolean pdeFound = FALSE;
+    Integer i;
+    std::string errMsg;
+
+    for (i=0; i<numpde_; i++)
+      if (ptpde_[i]->GetName() == pdeName) {
+	pdeFound = TRUE;
+	break;
+      }
+    if (pdeFound == TRUE)
+      return ptpde_[i];
+    else {
+      errMsg = "Domain:GetPDE: PDE with name '";
+      errMsg += pdeName;
+      errMsg += "' was not found/created!.";
+      Error(errMsg.c_str(), __FILE__, __LINE__);
+    }
+  }
+
   // **************************
   //   Initialization of PDEs
   // **************************
 
-  void Domain::InitPDEs(Integer sequenceStep,
+  void Domain::InitPDEs(StdVector<std::string> & pdeNames,
+			Integer sequenceStep,
 			StdVector<std::string> tags)
   {
     ENTER_FCN( "Domain::InitPDEs") ;
 
-    
-
-    // Initialize single PDE
+    CreatePDEs(pdeNames);    
     for (Integer i=0; i<numpde_; i++) {
-      Info->StartProgress( "Initializing PDE '" + ptpde_[i]->GetName() + "'");
+      //Info->StartProgress( "Initializing PDE '" + pdes[i]->GetName() + "'");
       ptpde_[i]->Init(sequenceStep,tags[i]);
-      Info->FinishProgress();
-    }
+      //Info->FinishProgress();
+     }
+
+
+    CreateCoupledPDE();
 
     // initialize coupledPDE
     if (numpde_ > 1)
@@ -159,7 +200,7 @@ namespace CoupledField {
  
     // Initialize algebraic system of 
     // each PDE
-     for (int i=0;i< numpde_;i++)
+     for (int i=0;i<numpde_;i++)
        ptpde_[i]->SetAlgSys();
 
   }
@@ -167,55 +208,40 @@ namespace CoupledField {
   // **************************
   //   Creation of PDEs
   // **************************
-  void Domain::CreatePDEs() {
+  void Domain::CreatePDEs(StdVector<std::string> & pdeNames) {
 
     ENTER_FCN( "Domain::CreatePDEs" );
 
-    // get numbers of PDEs in domain
-    StdVector<std::string> pdes;
-#ifndef XMLPARAMS
-    conf->getliststr("list_pdes",pdes);
-#else
-    params->GetPDEList( pdes );
-#endif
+//     // get numbers of PDEs in domain
+//     StdVector<std::string> pdes;
+// #ifndef XMLPARAMS
+//     conf->getliststr("list_pdes",pdes);
+// #else
+//     params->GetPDEList( pdes );
+// #endif
 
-    numpde_ = pdes.GetSize();
+    numpde_ = pdeNames.GetSize();
     ptpde_.Resize(numpde_);
 
 
     // Read dimension from mesh file and perform a consistency check
     Integer dim = InFile_->ReadDim();
-#ifdef XMLPARAMS
-    std::string probGeo;
-    params->Get( "type", probGeo, "geometry" );
-    if ( !(probGeo == "3d"    && dim == 3 ||
-	   probGeo == "axi"   && dim == 2 ||
-	   probGeo == "plane" && dim == 2 ) ) {
-      Info->Error( "Dimensions in parameter file and geometry file do not fit",
-		   __FILE__, __LINE__ );
-    }
-#endif
-    
-    // Allocate all specific PDEs
-    // if (!ptalgsys_) Error("You try to allocate object BasePDE with null
-    // pointer to AlgSys");
 
-
-    for (int i=0;i< pdes.GetSize();i++) {
-      Info->StartProgress("Creating PDE '" + pdes[i] + "'");
-      if (pdes[i] == "electrostatic") 
+    for (int i=0;i< pdeNames.GetSize();i++) {
+      Info->StartProgress("Creating PDE '" + pdeNames[i] + "'");
+      if (pdeNames[i] == "electrostatic") 
 	ptpde_[i]=new ElecPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
 
-      else if (pdes[i] == "mechanic")
+      else if (pdeNames[i] == "mechanic")
 	ptpde_[i]=new MechPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
 
-      else if (pdes[i] == "acoustic")
+      else if (pdeNames[i] == "acoustic")
   	ptpde_[i]=new AcousticPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
 
-      else if (pdes[i] == "smooth")
+      else if (pdeNames[i] == "smooth")
 	ptpde_[i]=new SmoothPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
 
-      else if (pdes[i] == "magnetic") 
+      else if (pdeNames[i] == "magnetic") 
 	{
 	  if (dim == 2)
 	    ptpde_[i]=new MagPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
@@ -224,23 +250,23 @@ namespace CoupledField {
 		   __FILE__, __LINE__);
 	}
 
-      else if (pdes[i] == "piezo")
+      else if (pdeNames[i] == "piezo")
 	ptpde_[i]=new PiezoPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
 
-      else if (pdes[i] == "acouflownoise")
+      else if (pdeNames[i] == "acouflownoise")
       	ptpde_[i]=new AcouFlowNoise(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
 
-      //      else if (pdes[i] == "smoothlaplace") 
+      //      else if (pdeNames[i] == "smoothlaplace") 
       //	ptpde_[i]=new SmoothLaPlacePDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_); 
 
 
-      //      else if (pdes[i] == "magnetic") 
+      //      else if (pdeNames[i] == "magnetic") 
       //	if (dim == 3
       //	ptpde_[i]=new MagEdgePDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_); 
 
       else
 	{
-	  std::string msg=pdes[i]+" - this type of pdes is unknown";
+	  std::string msg=pdeNames[i]+" - this type of pdes is unknown";
 	  Error(msg.c_str(),__FILE__,__LINE__);
 	}     
 
@@ -337,9 +363,9 @@ namespace CoupledField {
       if (ptpde_[iPDE])
 	delete ptpde_[iPDE];
 
-    CreatePDEs();
+//     CreatePDEs();
 
-    CreateCoupledPDE();
+//     CreateCoupledPDE();
   }
 
 

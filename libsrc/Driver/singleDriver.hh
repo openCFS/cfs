@@ -22,17 +22,16 @@ public:
 	       Integer stepOffset, 
 	       Double timeOffset, 
 	       std::string driverTag,
-	       Boolean isPartOfSequence) :
-    BaseDriver(adomain), 
-    driverTag_(driverTag),
-    stepOffset_(stepOffset), 
-    timeOffset_(timeOffset),
-    isPartOfSequence_(isPartOfSequence)
-    {};
+	       Boolean isPartOfSequence);
 
    //! deconstructor
-  virtual ~SingleDriver(){};
+  virtual ~SingleDriver();
   
+  //! set the pdes, which have to be solved
+  void SetPDEs(StdVector<BasePDE *> & pdes)
+  {pdes_ = pdes;}
+    
+
   //! main method, where time-stepping is implemented. it is for transient and static problem
   virtual void SolveProblem()=0;
 
@@ -46,6 +45,12 @@ public:
   
 protected:
   
+  //! intialize all PDEs
+  void GetMyPDEs();
+
+   //! vector of PDEs to solve
+  StdVector<BasePDE*> pdes_; 
+
   //! true, if driver is part of  multiSequence
   Boolean isPartOfSequence_;
 

@@ -109,26 +109,19 @@ namespace CoupledField
     // ************************************************************************
     // Communication with BasePDE ... gets i.G. pointers to objects involved  *
     // ************************************************************************
-    BasePDE * actPDE = ptdomain_->GetPDE(pdenumber);
 
-    // if PDEs are not set explicitly, 
-    // get all from the domain
-    if (pdes_.GetSize() == 0) {
-      pdes_.Resize(ptdomain_->GetNumPDE());
-      for (Integer iPDE=0; iPDE<ptdomain_->GetNumPDE(); iPDE++)
-	pdes_[iPDE] = ptdomain_->GetPDE(iPDE);
-    }
 
-    // initialize pdes only, if this driver
-    // is not part of multiSequence driver
-    StdVector<std::string> tags;
-    if (! isPartOfSequence_) {
-      tags.Resize(pdes_.GetSize());
-      tags.Init("anyTag");
-      ptdomain_->InitPDEs(1,tags); 
+    // if driver is not part of multiSequence Driver, get list
+    // of pdes which have to be solved and intialize them
+    if (isPartOfSequence_ == FALSE){     
+      GetMyPDEs();
       Info->StartProgress ("Starting to solve problem", FALSE);
     }
 
+    // since this driver normally will not be used in a coupled 
+    // field simulation, we simply can access the first PDE,
+    // as it will be the single one
+    BasePDE * actPDE = pdes_[0];
     actPDE->WriteGeneralPDEdefines();
  
     MaterialData * ptMaterial=actPDE->getPDEMaterialData();   // Pointer to MaterialData

@@ -36,8 +36,6 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
 
   ENTER_FCN( "BasePDE::BasePDE" );
 
-  eqnData_ = NULL;
-
   nonLin_ = FALSE;
   incStopCrit_ = 1e-2;
   residualStopCrit_ = 1e-3;
@@ -51,6 +49,9 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
   ptTimeFunc_ = aptTimeFunc;
   ptgrid_     = aptgrid;
   ptBCs_      = aptBCs;
+  assemble_   = NULL;
+  algsys_     = NULL;
+  eqnData_    = NULL;
 
   // =====================================================================
   // set analysis parameters
@@ -65,6 +66,7 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
   updateBCs_ = 0;
   dim_ = ptgrid_->GetDim();
   initMatrices_ = FALSE;
+  geoUpdate_ = FALSE;
 
 
   // =====================================================================
@@ -626,8 +628,18 @@ void BasePDE::PreStepTrans(const Integer kstep, const Double asteptime,
 
   // due to coupling-pdes, the RHS has to be initialized BEFORE 
   // the coupling forces are assembled to the RHS
-
   algsys_->InitRHS();
+
+  if (geoUpdate_)
+    {
+      assemble_->SetNonlinGeo();
+
+      algsys_->InitRHS();
+      algsys_->InitSol();
+      assemble_->InitMatrices();
+
+      assemble_->SetReassemble();   
+    }
   
   
 }
@@ -695,7 +707,10 @@ void BasePDE::StepTransLin(const Integer kstep, const Double asteptime,
       update = 0;
       job = 3;
 
-      if ( pdeIsCoupled_ == FALSE || iterCoupledCounter_ == 0)
+      // why is the first statement checking for 'pdeIsCoupled'?
+      if ( pdeIsCoupled_ == FALSE 
+	   || iterCoupledCounter_ == 0 
+	   || geoUpdate_ == TRUE)
 	{
 	  job = 1;
 	  assemble_->AssembleMatrices(level);
@@ -719,6 +734,13 @@ void BasePDE::StepTransLin(const Integer kstep, const Double asteptime,
     {
       update = 1;
       job    = 3; 
+
+      // The following section is only an experiment up to now
+      if (geoUpdate_ == TRUE && pdeIsCoupled_ == TRUE){
+	job = 1;
+	assemble_->AssembleMatrices(level);
+	algsys_->ConstructEffectiveMatrix(matrix_factor_);	
+      }
     }
 
 
@@ -1196,7 +1218,9 @@ BasePDE::~BasePDE()
 
     ENTER_FCN( " Analysis::SetAlgSys" );
 
-    // Se parameter for solver and preconditioner
+    // Set parameter for solver and preconditioner
+
+    (*cla) <<  "--- PDE: " << pdename_ << " ---" << std::endl;
 
 #if defined(USE_OLAS) && defined(XMLPARAMS)
     CFSOLASParams::SetParams( pdename_, params, olasParams_ );

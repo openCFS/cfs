@@ -47,6 +47,9 @@ namespace CoupledField {
     // current driver
     SingleDriver * actDriver;
 
+    // vector containing pointer to current set of PDEs
+    StdVector<BasePDE *> ptPDEs;
+    
     // Vector of solutions
     StdVector<Vector<Double> > sols;
     Integer level = 0;
@@ -54,6 +57,9 @@ namespace CoupledField {
     Double nextTime = 0.0;
     Integer actNumSteps, actDt;
   
+    // helper variables
+    Integer iPDE, kPDE;
+
     // Print out the grid
     ptdomain_->PrintGrid(level);
 
@@ -65,10 +71,6 @@ namespace CoupledField {
       
       Info->WriteMultiSequenceStep(iStep+1, 
 				   analysisPerStep_[iStep][0]);
-      // The first time the PDEs are already
-      // initialized
-      if (iStep > 0)
-	ptdomain_->ResetPDEs();
 
       // Since per time step only one type of 
       // analysis is allowed, we simple access
@@ -81,9 +83,9 @@ namespace CoupledField {
       else if (analysisPerStep_[iStep][0] == TRANSIENT) {      
 	actDriver = new TransientDriver(ptdomain_, actStep_, actTime_, 
 					tagsPerStep_[iStep][0],TRUE);
-	// here the time step and time 
-	// have to be imcremented
 
+	// the time step and the current time have to adapted 
+	// after solving the first multiSequence step
 	attrVec = "tag";
 	valVec = tagsPerStep_[iStep][0];
 
@@ -102,39 +104,49 @@ namespace CoupledField {
       }
       
       // Initialize all PDEs
-      ptdomain_->InitPDEs(iStep+1, tagsPerStep_[iStep]);
+      ptdomain_->InitPDEs(pdesPerStep_[iStep],iStep+1, tagsPerStep_[iStep]);
 
       // Give the according pdes to the driver
-      actDriver->SetPDEs(pdesPerStep_[iStep]);
+      ptPDEs.Clear();
+      ptPDEs.Resize(pdesPerStep_[iStep].GetSize());
+      for (iPDE=0; iPDE<pdesPerStep_[iStep].GetSize(); iPDE++)
+	ptPDEs[iPDE]=ptdomain_->GetPDE(pdesPerStep_[iStep][iPDE]);
+
+      actDriver->SetPDEs(ptPDEs);
 
       // After the first run, initialize this PDE
       // with the solution of the previous run
       if (iStep > 0) {
 	for (Integer i=0; i<pdesPerStep_[iStep].GetSize(); i++)
-	  pdesPerStep_[iStep][i]->SetSolution(sols[i]);
+	  if (sols[i].GetSize() != 0)
+	    ptPDEs[i]->SetSolution(sols[i]);
       }
       
       // Solve Problem
       actDriver->SolveProblem();
-      
       // Get solution for next step and delete
       // all PDEs
-      Integer iPDE, kPDE;
       if (iStep < numSteps_-1) {
 	sols.Resize(pdesPerStep_[iStep+1].GetSize());
+
+	// Initialize solution vectors
+	for (Integer i=0; i<sols.GetSize(); i++)
+	  sols[i].Init();
 	
 	// Iterate over all PDEs in the next step
-	for (iPDE=0; iPDE<pdesPerStep_[iStep+1].GetSize(); iPDE++)
+	for (iPDE=0; iPDE<pdesPerStep_[iStep+1].GetSize(); iPDE++) 
 	  // Iterate over all PDEs in the current step
 	  for(kPDE=0; kPDE<pdesPerStep_[iStep].GetSize(); kPDE++)
 	    // If both match, then save the result of this step
 	    // for the next step
-	    if (pdesPerStep_[iStep+1][iPDE]->GetName() ==
-		pdesPerStep_[iStep][kPDE]->GetName())
+	    if (pdesPerStep_[iStep+1][iPDE] == pdesPerStep_[iStep][kPDE])
 	      //dynamic_cast<const NodeStoreSol<Double>& >
-	      pdesPerStep_[iStep][kPDE]->GetSolution().GetAlgSysVector(sols[iPDE]);
+	      ptPDEs[iPDE]->GetSolution().GetAlgSysVector(sols[iPDE]);
+	
+	// delete PDEs
+	ptdomain_->ResetPDEs();
       }
-      
+
       // delete analysistypes
       delete actDriver;
       
@@ -229,23 +241,19 @@ namespace CoupledField {
 
       // Add pdes, tags, and analysistypes of the current step
       // in the same order as defined by Domain
-      for (Integer l=0; l<ptdomain_->GetNumPDE(); l++) 
-	for (Integer iPDE=0; iPDE<pdesAux.GetSize(); iPDE++) {
-	  if (ptdomain_->GetPDE(l)->GetName() == pdesAux[iPDE]) {
-	    pdesPerStep_[iStep].Push_back(ptdomain_->GetPDE(l));
-	    String2Enum(analysisAux[iPDE], analysisType);
-	      
-	    tagsPerStep_[iStep].Push_back(tagsAux[iPDE]);
-	    analysisPerStep_[iStep].Push_back(analysisType);
-// 	    std::cerr << "--> true " << std::endl;
-	    break;
-	  } 
-	}
+      for (Integer iPDE=0; iPDE<pdesAux.GetSize(); iPDE++) {
+	pdesPerStep_[iStep].Push_back(pdesAux[iPDE]);
+	String2Enum(analysisAux[iPDE], analysisType);
+	
+	tagsPerStep_[iStep].Push_back(tagsAux[iPDE]);
+	analysisPerStep_[iStep].Push_back(analysisType);
+      }
+      
     }
     
-    
-    
-    // 5.) Perform final consistency checks
+      
+      
+      // 5.) Perform final consistency checks
     
     // iterate over all steps
     Boolean pdeFound = FALSE;
@@ -269,16 +277,20 @@ namespace CoupledField {
 	// defined in the 'pdeList' and 
 	// occur only one time
 	// ********************************
-
+	StdVector<std::string> pdeNames;
+#ifndef XMLPARAMS
+	conf->getliststr("list_pdes",pdeNames);
+#else
+	params->GetPDEList( pdeNames );
+#endif
 	pdeFound = FALSE;
-	for (Integer kPDE=0; kPDE<ptdomain_->GetNumPDE(); kPDE++)
-	  if (pdesPerStep_[iStep][iPDE]->GetName() == 
-	      ptdomain_->GetPDE(kPDE)->GetName())
+	for (Integer kPDE=0; kPDE<pdeNames.GetSize(); kPDE++)
+	  if (pdesPerStep_[iStep][iPDE] == pdeNames[kPDE])
 	    pdeFound = TRUE;
 
 	if (!pdeFound) {
 	  errMsg = "MultiSequenceDriver::Init(): The PDE '";
-	  errMsg += pdesPerStep_[iStep][iPDE]->GetName();
+	  errMsg += pdesPerStep_[iStep][iPDE];
 	  errMsg += "' is not mentioned in the 'pdeList'!";
 	  Error(errMsg.c_str(), __FILE__, __LINE__);
 	}
@@ -289,7 +301,7 @@ namespace CoupledField {
 	// ************************************************
 
 	//get tags for current pde
-	keyVec = "pdeList", pdesPerStep_[iStep][iPDE]->GetName(), "bcsAndLoads", "tag";
+	keyVec = "pdeList", pdesPerStep_[iStep][iPDE], "bcsAndLoads", "tag";
 	attrVec = "", "", "";
 	valVec = "", "", "";
 // 	std::cerr << "pdesPerStep_[iStep][iPDE] = " << pdesPerStep_[iStep][iPDE]->GetName() << std::endl;
@@ -317,7 +329,7 @@ namespace CoupledField {
 	  errMsg  = "MultiSequenceDriver::Init(): The tag '";
 	  errMsg += tagsPerStep_[iStep][iPDE];
 	  errMsg += "' was not found in PDE '";
-	  errMsg += pdesPerStep_[iStep][iPDE]->GetName();
+	  errMsg += pdesPerStep_[iStep][iPDE];
 	  errMsg += "'!";
 	  Error(errMsg.c_str(), __FILE__, __LINE__);
 	}
@@ -328,10 +340,9 @@ namespace CoupledField {
 	// only one type of analysistype occured
 	// ************************************************
 	for (Integer kPDE=iPDE+1; kPDE<pdesPerStep_[iStep].GetSize(); kPDE++) {
-	  if (pdesPerStep_[iStep][iPDE]->GetName() == 
-	      pdesPerStep_[iStep][kPDE]->GetName()) {
+	  if (pdesPerStep_[iStep][iPDE] == pdesPerStep_[iStep][kPDE]) {
 	    errMsg  = "MultiSequenceDriver::Init(): The PDE '";
-	    errMsg += pdesPerStep_[iStep][kPDE]->GetName();
+	    errMsg += pdesPerStep_[iStep][kPDE];
 	    errMsg += "' occured more than one time in step ";
 	    errMsg += Info->GenStr(iStep+1);
 	    Error(errMsg.c_str(), __FILE__, __LINE__); 

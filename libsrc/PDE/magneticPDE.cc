@@ -2058,6 +2058,11 @@ void MagPDE::InitCoupling(PDECoupling * Coupling)
   pdeIsCoupled_ = TRUE;
   ptCoupling_   = Coupling;
 
+  // allow update of geomtry
+  geoUpdate_ = TRUE;
+
+  // Enable update of geometry
+
   const Integer numCouplings = ptCoupling_->GetNumOutputCouplings();  
 
   StdVector<StdVector<Integer> > elemNodeToCouplingNode_tmp;
@@ -2136,7 +2141,7 @@ void MagPDE::CalcOutputCoupling()
 
   SolutionType quantity;
   StdVector<Integer> * couplingNodes     = NULL;
-  CFSVector * values = 0;
+  CFSVector * values = NULL;
   Integer forcesCount = 0;
 
   // loop over all output coupling quantities
@@ -2145,7 +2150,7 @@ void MagPDE::CalcOutputCoupling()
       quantity = ptCoupling_->GetOutputQuantity(actCoupling);
       ptCoupling_->GetOutputValues(actCoupling, values);
 
-      Vector<Double> * temp = dynamic_cast<Vector<Double> *>(values);
+      Vector<Double> *  temp = dynamic_cast<Vector<Double> *>(values);
       
       switch(ptCoupling_->GetOutputType(actCoupling))
 	{

@@ -154,7 +154,9 @@ class SpaceErrorEstimator;
 
     //! deletes the algebraic system
     void DeleteAlgSys(int as_id)
-    {assemble_->DeleteAlgSys();};
+    {if (algsys_)
+      assemble_->DeleteAlgSys();
+    };
   
     //static analysis
   
