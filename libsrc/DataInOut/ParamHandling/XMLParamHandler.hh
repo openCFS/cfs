@@ -507,7 +507,7 @@ namespace CoupledField
     //! \param attrib   Vector of attributes used as side-constraints
     //! \param aValue   Vector of attributes' values used as side-constraints
     //! \param list     Vector containing the found values
-    //! \param treetop  Root node of the subtree in which to search
+    //! \param treeTop  Root node of the subtree in which to search
     void FindAllMatches( const StdVector<std::string> &key,
 			 const StdVector<std::string> &attrib,
 			 const StdVector<std::string> &aValue,
