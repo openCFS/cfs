@@ -464,7 +464,6 @@ namespace CoupledField
 		    
 		    Vector<Double> elemVec;
 		    actRhsID->GetIntegrator()->CalcElemVector(ptCoord, elemVec);
-		    
 		    if (analysisType_ == HARMONIC) {
 		      TransformVector2Harmonic(harmVec,elemVec,valPhase);
 		      algsys_->SetElementRHS(&harmVec[0], connect_PDE.GetPointer(), 

@@ -7,14 +7,14 @@ namespace CoupledField
 {
 
   BaseForm::BaseForm(BaseFE * aptelem, MaterialData & matData)
-    :ptMaterial(&matData), ptelem(aptelem), isaxi_(FALSE)
+    :ptMaterial(&matData), ptelem(aptelem), isaxi_(FALSE), dofzero_(0)
   {
     ENTER_FCN( "BaseForm::BaseForm" );
     isSetIntPoint_ = FALSE;
   }
 
   BaseForm::BaseForm(MaterialData & matData)
-    :isaxi_(FALSE)
+    :isaxi_(FALSE), dofzero_(0)
   {
     ENTER_FCN( "BaseForm::BaseForm" );
     isSetIntPoint_ = FALSE;
@@ -23,14 +23,14 @@ namespace CoupledField
   }
 
   BaseForm::BaseForm(BaseFE * aptelem)
-    :ptelem(aptelem), isaxi_(FALSE)
+    :ptelem(aptelem), isaxi_(FALSE),  dofzero_(0)
   {
     ENTER_FCN( "BaseForm::BaseForm" );
     isSetIntPoint_ = FALSE;
   }
  
   BaseForm::BaseForm()
-    : isaxi_(FALSE)
+    : isaxi_(FALSE),  dofzero_(0)
   {
     ENTER_FCN( "BaseForm::BaseForm" );
     isSetIntPoint_ = FALSE;

@@ -593,7 +593,15 @@ void PressureLinForm::CalcElemVector(Matrix<Double>& ptCoord,
       normalVec /= length;
     }
 
-  elemVec.Resize(nrNodes*dim);
+  Integer zerodim = 0;
+  if (dofzero_ >0) {
+    //now ndDofs = dim + 1 for electric potential
+    elemVec.Resize(nrNodes*(dim+1));
+    zerodim = 1;
+  }
+  else
+    elemVec.Resize(nrNodes*dim);
+
   elemVec.Init(0);    // set elems to 0
 
   for (Integer actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
@@ -612,15 +620,19 @@ void PressureLinForm::CalcElemVector(Matrix<Double>& ptCoord,
       shapeFnc *= factor;      
      
       Vector<Double> helpVec;
+      Integer idx;
       for (Integer i=0; i<dim; i++) 
 	{
 	  //multiply with corresponding component of normal vector
 	  //to get the x-,y-,z-component
 	  helpVec = shapeFnc * normalVec[i];
-	  for (Integer j=0; j<helpVec.GetSize(); j++)
-	    elemVec[j*nrNodes+i] -= helpVec[j];
+	  for (Integer j=0; j<helpVec.GetSize(); j++) {
+	    idx = j*(dim+zerodim) +i;
+	    elemVec[idx] -= helpVec[j];
+	  }
 	}
     }
+
 
 } // end of method
 

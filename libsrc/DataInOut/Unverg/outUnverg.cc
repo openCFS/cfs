@@ -413,10 +413,18 @@ void  WriteResultsUnverg::Dataset56_Transient(const std::string & title,
   if (nrDofs ==2)
     valsPerNode = 3;
 
+  //just for stresses
+  Integer stress1 =2;
+  Integer stress2 = 0;
+  if (nrDofs==6) {
+    stress1 = 4;
+    stress2 = 2;
+  }
+
   (*output) << " " << title << ", step" << std::setw(6) << step <<
               " time   " << time << std::endl;  
   (*output) << std::endl << std::endl << std::endl << std::endl;
-  (*output) << std::setw(10) << 1 << std::setw(10) << 4 << std::setw(10) << 2 << std::setw(10) << 0
+  (*output) << std::setw(10) << 1 << std::setw(10) << 4 << std::setw(10) << stress1 << std::setw(10) << stress2
             << std::setw(10) << 2 << std::setw(10) << valsPerNode << std::endl;
   (*output) << std::setw(10) << 2 << std::setw(10) << 1 << std::setw(10) << 1 << std::setw(10) <<
                step << std::endl;
