@@ -260,14 +260,49 @@ namespace CoupledField {
       break;
 
     case LU_SOLVER:
-      cfs->GetList( "logging", list, pdename, "Direct" );
+      cfs->GetList( "logging", list, pdename, "directLU" );
       if( list.GetSize() == 1 ) {
 	olas->SetValue( "LUSOLVER_logging", (list[0] == "yes") );
       }
-      cfs->GetList( "saveFacFile", list, pdename, "Direct" );
+      cfs->GetList( "saveFacFile", list, pdename, "directLU" );
       if( list.GetSize() == 1 ) {
 	olas->SetValue( "CROUT_saveFacToFile", true );
 	olas->SetValue( "CROUT_facFileName", list[0] );
+      }
+      break;
+
+    case LDL_SOLVER:
+      cfs->GetList( "logging", list, pdename, "directLDL" );
+      if( list.GetSize() == 1 ) {
+	olas->SetValue( "LDLSOLVER_logging", (list[0] == "yes") );
+      }
+      cfs->GetList( "saveFacFile", list, pdename, "directLDL" );
+      if( list.GetSize() == 1 ) {
+	olas->SetValue( "CROUT_saveFacToFile", true );
+	olas->SetValue( "CROUT_facFileName", list[0] );
+      }
+      break;
+
+    case PARDISO:
+      cfs->GetList( "posDef", list, pdename, "pardiso" );
+      if( list.GetSize() == 1 ) {
+	olas->SetValue( "PARDISO_posDef", (list[0] == "yes") );
+      }
+      cfs->GetList( "hermitean", list, pdename, "pardiso" );
+      if( list.GetSize() == 1 ) {
+	olas->SetValue( "PARDISO_hermitean", (list[0] == "yes") );
+      }
+      cfs->GetList( "symStruct", list, pdename, "pardiso" );
+      if( list.GetSize() == 1 ) {
+	olas->SetValue( "PARDISO_symStructure", (list[0] == "yes") );
+      }
+      cfs->GetList( "ndOrdering", list, pdename, "pardiso" );
+      if( list.GetSize() == 1 ) {
+	olas->SetValue( "PARDISO_ndOdering", (list[0] == "yes") );
+      }
+      cfs->GetList( "logging", list, pdename, "pardiso" );
+      if( list.GetSize() == 1 ) {
+	olas->SetValue( "PARDISO_logging", (list[0] == "yes") );
       }
       break;
 
@@ -428,6 +463,21 @@ namespace CoupledField {
       }
       break;
 
+    case ILUK:
+      cfs->GetList( "level", list, pdename, "ILUK" );
+      if( list.GetSize() == 1 ) {
+	olas->SetValue( "ILUK_level", atoi(list[0].c_str()) );
+      }
+      cfs->GetList( "logging", list, pdename, "ILUK" );
+      if( list.GetSize() == 1 ) {
+	olas->SetValue( "ILUK_logging", (list[0] == "yes") );
+      }
+      cfs->GetList( "saveFacFile", list, pdename, "ILUK" );
+      if( list.GetSize() == 1 ) {
+	olas->SetValue( "CROUT_saveFacToFile", true );
+	olas->SetValue( "CROUT_facFileName", list[0] );
+      }
+      break;
 
       // If this point is reached, it indicates that something is broken.
       // Probably not all preconditioners that SetParams allows are yet
@@ -577,7 +627,7 @@ namespace CoupledField {
     //  Reordering
     // ============
     if ( sType == LAPACK_LU || sType == LU_SOLVER || sType == LDL_SOLVER ||
-	 pType == ILU0 ) {
+	 pType == ILU0 || pType == ILUK ) {
       if ( rType == NOREORDERING ) {
 	Info->PrintF( pdename, "Expert: Setting re-ordering strategy to "
 		      "'SLOAN'" );
