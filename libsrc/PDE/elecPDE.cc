@@ -425,7 +425,7 @@ void ElecPDE::CalcCharges()
 	
       }
   }
-  std::string outstring = "Sum of electric charges: ";
+  std::string outstring = "Sum of electric charges:\n";
   outstring += Info->GenStr(sumOfCharges);
   Info->PrintF(pdename_, outstring.c_str());
 
@@ -475,7 +475,6 @@ void ElecPDE::CalcNodeForce(Vector<Double> & force,
 	for( Integer idim=0; idim<dim_; idim++) {
 	  force[elemNodeToCouplingNode[ielem][ielemnode]*dim_+idim] += 
 	    force_temp(ielemnode,idim);
-
 	}
     }
 
@@ -493,7 +492,7 @@ void ElecPDE::CalcNodeForce(Vector<Double> & force,
   //std::cerr << "Sum of E-Force:" << std::endl << sum << std::endl;
   
   // write information in .info-file
-  Info->PrintF(pdename_, "Sum of electrostatic force (VWM):");
+  Info->PrintF(pdename_, "Sum of electrostatic force (VWM):\n");
   Info->PrintVec(sum);
       
 }
@@ -905,7 +904,7 @@ void ElecPDE::CalcInterfaceForces(Integer actCoupling)
 	k++;
       }
 
-  Info->PrintF(pdename_, "Sum of electrostatic force (Interface):");
+  Info->PrintF(pdename_, "Sum of electrostatic force (Interface):\n");
   Info->PrintVec(sum); 
 
 }
