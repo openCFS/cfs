@@ -6,7 +6,7 @@ special elements to be specified. These are
 %
 %
 \begin{itemize}
-\item \xml{amExpert}
+\item \xml{expert}
 \item \xml{devel}
 \end{itemize}
 %
@@ -14,9 +14,10 @@ special elements to be specified. These are
 These are first level elements coming at the end of the parameter file, see
 Sect.~\ref{sec:general}.
 
-The \xml{amExpert} is just an empty element without attributes. Specifying
-\xml{amExpert} in the parameter file turns of the Expert() module of the
-CFS++ --- OLAS interface. This expert module normally tries to set certain
+The \xml{expert} element is an empty element with one attribute called
+\xml{override}. Specifying \verb+<expert override="yes">+ in the parameter file
+turns of the Expert() module of the CFS++ --- OLAS interface. This expert
+module normally tries to set certain
 parameters to sensible values depending on the values of other parameters or
 to fix inconsistencies in the input parameters. E.g.~the expert module will
 turn off preconditioning, if a direct solver is specified, or change the
@@ -24,9 +25,8 @@ matrix type to \xml{hypreMatrix}, if one of the solvers of the hypre library
 is specified. There may be situations, however, where this behaviour is not
 desired, e.g.~one may want to test the performance of an ILU preconditioner
 without the \xml{Sloan} matrix re-ordering the expert would trigger by default.
-Note that turning off the expert module by specifying \xml{amExpert} may lead
-to run-time aborts in OLAS due to inconsistent settings. So be sure to really
-be an expert, if you do this.
+Note that turning off the expert module may lead to run-time aborts in OLAS due
+to inconsistent settings. So be sure to really be an expert, if you do this.
 
 The \xml{devel} element can have arbitrary content, but no children or
 attributes. It is solely there for the sake of the developer who wants to
