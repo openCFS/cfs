@@ -27,7 +27,7 @@ namespace CoupledField {
   //   Default Destructor
   // ======================
   ScalarNodeEQN::~ScalarNodeEQN() {
-    ENTER_FCN( "NodeEQN::NodeEQN" );
+    ENTER_FCN( "ScalarNodeEQN::~ScalarNodeEQN" );
   }
 
 
