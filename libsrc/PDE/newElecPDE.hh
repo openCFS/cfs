@@ -105,12 +105,16 @@ public:
   void CalcEnergy();
 
 
-  //! callculates nodal forces
+  //! calculates nodal forces
   void CalcNodeForce(Array<Double> & force, 
 		     std::vector<Integer> & nodes, 
 		     std::vector<Elem*> & elems,
 		     std::vector<std::vector<ShortInt> > & isBoundaryNode,
 		     std::vector<std::vector<Integer> > & elemNodeToCouplingNode);
+
+
+  void CalcInterfaceForces(Integer actCoupling);
+  
 
 
   //! GET SOLUTION AT ALL NODES OF AN ELEMENT
@@ -146,7 +150,7 @@ protected:
   std::vector<std::vector<Elem*> > F_Interface_; //!<vector of vectors conaining Elements with acting force
   std::vector<std::vector<std::vector<ShortInt> > > isBoundaryNode_; //!< vector containing flag array for element boundary nodes
   std::vector<std::vector<std::vector<Integer> > > elemNodeToCouplingNode_; //!< assigns each coupling element node the according Coupling Node number
-  std::vector<std::vector<Integer> > numBoundaryNodes_;               //!< contains number of surface nodes per element
+  //  std::vector<std::vector<Integer> > numBoundaryNodes_;               //!< contains number of surface nodes per element
 
   //postprocessing
   std::vector<std::string> calcEfield_;  //!< contains the subdomains, on which the electric field is computed

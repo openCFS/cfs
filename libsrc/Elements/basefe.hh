@@ -35,8 +35,18 @@ public:
     \param S (output) Vector of shape fnc values \f$ (N_{1},\cdots\,N_{NumNodes})^T \f$
     \param LCoord (input) Local coordinates of evalutation point 
   */
- virtual void GetShFnc(std::vector<double> & S, 
+  virtual void GetShFnc(std::vector<double> & S, 
 			const std::vector<Double> & LCoord);
+
+
+  //! Get local coordinates of element corners 
+  /*! 
+    \param lCornerCoords (output) local coordinates of element corners
+  */
+  virtual void GetLocalCornerCoords(Matrix<Double>& lCornerCoords)
+  { lCornerCoords = LCornerCoords_;};
+  
+  
 
   
   //! Get value of all shape fnc at integration point ip

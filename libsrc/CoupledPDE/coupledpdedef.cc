@@ -97,18 +97,15 @@ void CoupledPDEDef::CreateCoupling(std::vector<BasePDE*> & OrderedPDEs,
       MyCoupledPDE->GetCouplingType(OrderedPDEs[i]->GetName(), InputType);
       MyCoupledPDE->GetCouplingQuantity(OrderedPDEs[i]->GetName(), InputQuantity);
       Couplings[i] = new PDECoupling(ptGrid_, ptBCs_);
-      //std::cerr << "OrderedPDEs[i]->Name() = " << OrderedPDEs[i]->GetName() << std::endl;
       Couplings[i]->SetPDE(OrderedPDEs[i]);
 
       // add all coupling terms of PDE
       for (Integer j=0; j<InputType.size(); j++)
-	{
-	    Couplings[i]->RegisterInput(InputType[j], InputQuantity[j]);  
-	}
+	Couplings[i]->RegisterInput(InputType[j], InputQuantity[j]);
     }
-  
-
 }
+
+
 
 
 void CoupledPDEDef::DefineOrdering()
