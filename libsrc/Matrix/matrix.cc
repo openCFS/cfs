@@ -522,21 +522,21 @@ if (x.size_row() != x.size_col())
 template Integer Spur<Integer>(const Matrix<Integer> &);
 template Double Spur<Double>(const Matrix<Double> &);
 
-template<class TYPE>
-Matrix<TYPE> Trans (const Matrix<TYPE> &x)
-{       if (!x.size_row() || !x.size_col())
-            Error("undefined Matrix",__FILE__,__LINE__);
+// template<class TYPE>
+// Matrix<TYPE> Trans (const Matrix<TYPE> &x)
+// {       if (!x.size_row() || !x.size_col())
+//             Error("undefined Matrix",__FILE__,__LINE__);
  
-        Matrix<TYPE>    z (x.size_col(), x.size_row());
+//         Matrix<TYPE>    z (x.size_col(), x.size_row());
  
-        Integer i,j;
-        for (i = 0; i < x.size_col(); i++)
-                for (j = 0; j < x.size_row(); j++)
-                        z[i] [j] = x [j] [i];
-        return z;
-}
+//         Integer i,j;
+//         for (i = 0; i < x.size_col(); i++)
+//                 for (j = 0; j < x.size_row(); j++)
+//                         z[i] [j] = x [j] [i];
+//         return z;
+// }
  
-template Matrix<Integer> Trans<Integer>(const Matrix<Integer> &);
-template Matrix<Double> Trans<Double>(const Matrix<Double> &);
+// template Matrix<Integer> Trans<Integer>(const Matrix<Integer> &);
+// template Matrix<Double> Trans<Double>(const Matrix<Double> &);
 
 } // end of namespace

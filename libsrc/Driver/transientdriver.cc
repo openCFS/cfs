@@ -8,6 +8,8 @@
 #include "vector.hh"
 #include "spaceerror.hh"
 
+#include "outGMV.hh"
+
 namespace CoupledField
 {
 
@@ -43,7 +45,6 @@ void TransientDriver :: SetupMatricesPDE(const Integer pdenumber,const Integer t
 #endif
 
   ptdomain_->GetPDE(pdenumber)->SetupMatrices(type);
-
 }
 
 void TransientDriver :: SolveProblem()
@@ -68,8 +69,9 @@ void TransientDriver :: SolveProblem()
   for (nstep = 0; nstep<numstep_; nstep++)
     {
       ptdomain_->GetPDE(pdenumber)->SolveStepTrans(ptdomain_->GetBCs(), nstep, steptime, level, updatesysmat);
+      ptdomain_->GetPDE(pdenumber)->SaveSolAsPrevStep();
 
-    // writing results in output-file
+      // writing results in output-file
     if (nstep == stepsave && (nstep < isaveend_))
       { 
         ptdomain_->GetPDE(pdenumber)->WriteResultsInFile();
@@ -288,14 +290,14 @@ void TransientDriver :: SolveProblemAdaptSpace()
   Integer level=0;
   Integer pdenumber = 0;
   Integer nsys = 0;
-  Double steptime=firstdt_;
-  Integer stepsave=isavebegin_-1;
+  Double steptime = firstdt_;
+  Integer stepsave = isavebegin_-1;
 
-  Integer maxnumrepeat, numrepeat=0;
+  Integer maxnumrepeat, numrepeat = 0;
   conf->get("maxnumrepeat",maxnumrepeat,"SpaceAdaptivity");
 
-  Double dt=firstdt_;
-  Boolean updatesysmat=FALSE;
+  Double dt = firstdt_;
+  Boolean updatesysmat = FALSE;
 
   SpaceErrorEstimator * ptSpaceError;
   ptSpaceError=ptdomain_->GetPDE(pdenumber)->CreatePtSpaceError();
@@ -304,35 +306,39 @@ void TransientDriver :: SolveProblemAdaptSpace()
   ptdomain_->GetPDE(pdenumber)->SetMatrixFactors();
 
   Integer nstep;
-  for (nstep = 0; nstep<numstep_; nstep++)
+  for (nstep = 0; nstep<numstep_; nstep++ )
     {
       ptdomain_->GetPDE(pdenumber)->SolveStepTrans(ptdomain_->GetBCs(), nstep, steptime, level, updatesysmat);
+      std::cerr << " step " << nstep << " steptime " << steptime << " level " << level << std::endl;
 
       numrepeat=0;
-      while (ptSpaceError->TestError() && numrepeat != maxnumrepeat)
+      maxnumrepeat=1;
+      while (ptSpaceError->TestError() && numrepeat != maxnumrepeat )
       {
-       ptSpaceError->RefineMesh();
-       ptdomain_->Update(); // update BCs and AlgSys
-
-  /*
+	ptSpaceError->RefineMesh();	
+	ptdomain_->Update(level); // update BCs and AlgSys
+	
   Char * name="testref";
-  WriteResults * ptOut=new WriteResultsUnverg(name);
+  WriteResults * ptOut=new WriteResultsGMV(name);
   ptOut->Init(ptdomain_->GetGrid());
-  ptOut->WriteGrid(1);
-  if (ptOut) delete ptOut;
-  exit(1);
-  */
+  ptOut->WriteGrid(0);
+  if (ptOut) delete ptOut; 
 
-      ptdomain_->GetPDE(pdenumber)->RestoreSol();
+   ptdomain_->GetPDE(pdenumber)->RestoreSol();
+
+   ptdomain_->GetPDE(pdenumber)->SolveStepTransNewMesh(ptdomain_->GetBCs(), nstep, steptime, level);
   
-      ptdomain_->GetPDE(pdenumber)->SolveStepTransNewMesh(ptdomain_->GetBCs(), nstep, steptime, level);
+    std::cerr << " step " << nstep << " steptime " << steptime << " level " << level << std::endl;
+  std::cerr << " we solve on new mesh " << std::endl;
 
-      numrepeat++;     
-       }
+  numrepeat++; 
+      }
      
+  ptdomain_->GetPDE(pdenumber)->SaveSolAsPrevStep();
+
     if (nstep == stepsave && (nstep < isaveend_))
       {
-        ptdomain_->GetPDE(pdenumber)->WriteResultsInFile();
+	 ptdomain_->GetPDE(pdenumber)->WriteResultsInFile();
         stepsave+=isaveincr_;
       }
    steptime+=dt;

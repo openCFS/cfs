@@ -53,11 +53,13 @@ std::list<Integer> BCs::GetNodesLevel(const std::string color, const Integer lev
   (*trace) << "entering BCs::GetNodesLevel" << std::endl;
 #endif
  
+  Integer level=lev;
+ if (lev==-1) level=toplevel_;
  Integer i;
  for (i=0; i<levels_.size(); i++)
   if (color==levels_[i]) break;
 
- return bcs_[lev][i];
+ return bcs_[level][i];
  
 }
 
@@ -67,36 +69,38 @@ Integer BCs::GetNumNodesLevel(const std::string color, const Integer lev)
   (*trace) << "entering BCs::GetNumNodesLevel" << std::endl;
 #endif
 
+  Integer level=lev;
+  if (lev==-1) level=toplevel_; 
  Integer i;
  for (i=0; i<levels_.size(); i++)
   if (color==levels_[i]) break;
 
- return bcs_[lev][i].size();
+ return bcs_[level][i].size();
 
 }
 
 void BCs :: Update(Grid * ptgrid)
 {   
-    bcs_[toplevel_+1]=new std::list<Integer>[levels_.size()]; 
-    if (bcs_[toplevel_+1]) Error(" Not enought memory",__FILE__,__LINE__); 
+    toplevel_++;
+    bcs_[toplevel_]=new std::list<Integer>[levels_.size()]; 
+    if (!bcs_[toplevel_]) Error(" Not enought memory",__FILE__,__LINE__); 
 
-    ptgrid->UpdateBCs(bcs_[toplevel_],bcs_[toplevel_+1],levels_);
-    toplevel_++;  
+    ptgrid->UpdateBCs(bcs_[toplevel_]); 
 }
 
 void BCs :: printBCs(const Integer alevel)
 {
   Integer level=alevel;
-  if (level==-1) level=toplevel_;
+  if (level==-1) level=toplevel_;  
 
-  
-
-  Integer i;
+  Integer i,ilevel;
   for (i=0; i<levels_.size(); i++)
     {
       std::cout << levels_[i] << std::endl;
-      for (std::list<Integer>::const_iterator p=bcs_[level][i].begin(); p!=bcs_[level][i].end(); p++)
+
+      for (std::list<Integer>::const_iterator p=bcs_[ilevel][i].begin(); p!=bcs_[ilevel][i].end(); p++)
 	{ std::cout << (*p) << std::endl;} 
+      
     } 
 }
 

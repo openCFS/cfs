@@ -60,16 +60,16 @@ DefineInOutFiles ::~DefineInOutFiles()
 delete debug;
 #endif
  
+if (ptWriteResults) delete ptWriteResults;
+
 if (infofile) delete infofile;
 
 if (conf) delete conf;
 if (cla) delete cla;
 
-if (ptWriteResults) delete ptWriteResults;
-
 if (infiletype) delete infiletype;
 
- delete [] filename;
+delete [] filename;
 
 #ifdef TRACE
  delete trace;

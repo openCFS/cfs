@@ -1,6 +1,8 @@
 #ifndef FILE_DOMAIN_2001
 #define FILE_DOMAIN_2001
 
+#define MAXNUMPDE 20
+
 #include "grid.hh"
 #include "bcs.hh"
 #include "basepde.hh"
@@ -20,7 +22,7 @@ public:
   virtual ~Domain();
 
   //!
-  void PrintGrid(Integer level);
+  void PrintGrid(const Integer level);
 
   //!
   void SetSubdomains();
@@ -41,7 +43,7 @@ public:
   BCs * GetBCs(){ return ptBCs_;}
 
   //! update algebraic system and bcs after refinement the mesh
-  void Update();
+  void Update(const Integer level);
 
   //!
   Grid * GetGrid(){ return ptgrid_;}
@@ -50,6 +52,8 @@ public:
 protected:
 
 private:
+  Integer newlevel;
+
    //! initialize pde
    void InitPDE();
 
@@ -57,16 +61,16 @@ private:
    void InitAlgSys(const Integer level);
 
   //! update alg. sys. in case of new mesh
-  void UpdateAlgSys();
+  void UpdateAlgSys(const Integer level);
 
   //!
   Integer numsubdomain_;
 
   //!
-  Integer numpde_;
+  Integer numsys_;
 
   //!
-  Integer numsys_;
+  Integer numpde_;
 
   //!
   Integer numgraph_;
@@ -75,7 +79,7 @@ private:
   Integer ** syscoupling_;
 
   //!
-  BasePDE * ptpde_[20];
+  BasePDE * ptpde_[MAXNUMPDE];
 
   //!
   Grid * ptgrid_;

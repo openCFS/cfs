@@ -29,9 +29,6 @@ public:
 
   virtual Boolean IsGMV()=0;
 protected:
-  ///
-  std::ofstream * output;
-
   //! name of file for output results
   Char * namefile_;
 

@@ -15,7 +15,6 @@ namespace CoupledField
 class BaseElem
 {
 public:
-  virtual void test(){;} 
 
   //! constructor (does nothing)
   BaseElem();
@@ -68,6 +67,8 @@ virtual Vector<Double> *  GetDyShFncAtIP(const Integer iShFnc)
  { Error("Not implemented") ;}
 virtual Vector<Double> *  GetDzShFncAtIP(const Integer iShFnc) 
  { Error("Not implemented") ;}
+
+  virtual void test(){std::cout << " ok from BaseElem" << std::endl;}
 
 protected:
 

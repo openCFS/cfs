@@ -62,14 +62,14 @@ WriteResults::~WriteResults()
 #ifdef TRACE
   (*trace) << "entering WriteResults::~WriteResults" << std::endl;
 #endif
+  
+  if (historyfile) {
   Integer i;
   for (i=0; i<nodeshist_.size(); i++)
      historyfile[i].close();
-
+  }
   if (historyfile) delete [] historyfile;
   delete [] namefile_; 
-
-  delete output;
 }
 
 } // end of namespace

@@ -1,6 +1,4 @@
 program = cfs
-appl =
-applpath = main
 Dependencies = dependencies.make
 #
 ############ Directories
@@ -36,13 +34,11 @@ LIB_NETGEN = $(C_DIR)/libnetgen/LINUX
 AdaptGrid=$(C_DIR)/Grid_RG
 #
 ############### CLA++
-CLA=/home_lse10/lse/manfred/Programming/CLA++
-#CLA=~/CLA++
+CLA=/home_lse10/lse/manfred/Programming/CLA++/
+#CLA=$(C_DIR)/libsrc/AlgebraicSystem/CLA++
 #
-LibCLA=$(C_DIR)/libsrc/AlgebraicSystem/CLA
-#
+#CLA=/home/lse/elena/CLA++
 LIB_CLA=$(CLA)/lib/$(MACHINE)
-#LIB_CLA=$(CLA)/lib/SGI
 #
 Include=$(C_DIR)/include
 #

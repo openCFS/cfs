@@ -45,12 +45,15 @@ public:
   virtual void ReadBCs(std::list<Integer> * bcs, std::vector<std::string> levels)=0;  
 
   //!
-  virtual void ReadEl(std::vector<Elem> * elems, const std::vector<std::string>
+  virtual void ReadEl(std::vector<Elem*> * elems, const std::vector<std::string>
 sd)
  { Error(" not implemented",__FILE__,__LINE__);}
 
 #ifdef ADAPTGRID
   virtual void ReadGrid_RG(std::vector<grd::Element*> & elems, std::vector<grd::Vertex*> * vertex, const std::vector<std::string> sd)
+   { Error(" not implemented",__FILE__,__LINE__);}
+
+  virtual void ReadBCs_GridRG(std::vector<Integer> & idBCs,std::vector<Integer> &colorBCs)
    { Error(" not implemented",__FILE__,__LINE__);}
 #endif
  

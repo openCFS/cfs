@@ -33,10 +33,16 @@ Domain:: Domain(FileType * const aptFileType, WriteResults * ptOut,  Material * 
   (*trace) << "entering Domain::Domain" << std::endl;
 #endif
 
+  newlevel = 0;
+
  InFile_     = aptFileType; 
  OutFile_    = ptOut;
  ptmaterial_ = materialdata;
  ptTimeFunc_ = aptTimeFunc;
+
+ Integer i;
+ for (i=0; i< MAXNUMPDE; i++)
+   ptpde_[i]=NULL;
 
   // read type of output results from conf-file
  std::string libmesh;
@@ -104,13 +110,9 @@ Domain :: ~Domain()
   if (ptBCs_) delete ptBCs_;
   if (ptalgsys_) delete ptalgsys_;
 
-  Integer i;
-  if (ptpde_) 
-     {
-      for (i=0; i<numpde_; i++)
-        if (ptpde_[i]) delete ptpde_[i];
-      delete [] ptpde_;
-     } 
+  Integer i; 
+  for (i=0; i<MAXNUMPDE; i++)
+    if (ptpde_[i]) delete ptpde_[i];
 }
 
 void Domain :: InitPDE()
@@ -122,6 +124,8 @@ void Domain :: InitPDE()
   // get numbers of PDEs in domain
   std::vector<std::string> pdes;
   conf->getliststr("list_pdes",pdes);
+
+  numpde_=pdes.size();
 
   //allocate all specific PDEs
   if (!ptalgsys_) Error("You try to allocate object BasePDE with null pointer to AlgSys");
@@ -147,6 +151,7 @@ void Domain :: InitAlgSys(const Integer level)
 #ifdef TRACE
   (*trace) << "entering Domain::InitAlgSys" << std::endl;
 #endif
+  
 
   //check, how much systems are needed and how much matrix graphs
   numsys_   = 1;
@@ -170,6 +175,7 @@ void Domain :: InitAlgSys(const Integer level)
 
   //init the algsys-graph
   Integer numnode = ptgrid_->GetMaxnumnodes(level);
+  cout << "numnode:" << numnode << endl;
 
   //for each system: first diagonal blocks and then off-diagonalblocks
   for (insys=0;insys<numsys_;insys++)
@@ -183,8 +189,6 @@ void Domain :: InitAlgSys(const Integer level)
 
   numelem = ptgrid_->GetMaxnumElem(level);
 
-  std::cout << numelem << std::endl;
-
   for (insys=0;insys<numsys_;insys++)
     {
       for (nel=0; nel<numelem; nel++)
@@ -192,6 +196,14 @@ void Domain :: InitAlgSys(const Integer level)
           ptgrid_->GetConnection(connect, nel, level);
 	  ptalgsys_->SetAlgSysGraph(connect.get(),connect.size(),insys,insys);
 	}
+    }
+
+  for (insys=0;insys<numsys_;insys++)
+    {
+      for (nel=0; nel<numelem; nel++)
+	{
+          ptgrid_->GetConnection(connect, nel, level);
+		}
     }
 
   //now we can create all the necessary matrices
@@ -205,9 +217,19 @@ void Domain :: InitAlgSys(const Integer level)
   for (insys=0;insys<numsys_;insys++)
     {
       ptpde_[insys]->SpecifyMatrices(matrixtype, matrixsystype, graphtype, numdofpernode,  numdirichlets, numconstraints);
-      numdirichlets = ptpde_[insys]->GetNumRestraints(ptBCs_, level);
+      numdirichlets = ptpde_[insys]->GetNumRestraints(ptBCs_);
 
       ptalgsys_->CreateAlgSysMatrices(insys,insys,matrixsystype,matrixtype,graphtype, numdofpernode,  numdirichlets, numconstraints);
+    }
+
+  ptgrid_->GetConnection(connect,14,0);
+
+  for (insys=0;insys<numsys_;insys++)
+    {
+      for (nel=0; nel<numelem; nel++)
+	{
+          ptgrid_->GetConnection(connect, nel, level);
+		}
     }
 
   //now reset AlgebraicSystem 
@@ -217,12 +239,21 @@ void Domain :: InitAlgSys(const Integer level)
     {
       ptalgsys_->ResetAlgSys(insys,insys,matrix_id);
     }
+
+  for (insys=0;insys<numsys_;insys++)
+    {
+      for (nel=0; nel<numelem; nel++)
+	{
+          ptgrid_->GetConnection(connect, nel, level);
+		}
+    }
+
 #ifdef TRACE
   (*trace) << "leaving Domain::IniAlgSys" << std::endl;
 #endif
 }
 
-void Domain :: PrintGrid(Integer level)
+void Domain :: PrintGrid(const Integer level)
 {
 #ifdef TRACE
   (*trace) << "entering Domain::PrintGrid" << std::endl;
@@ -240,41 +271,47 @@ void Domain :: SetSubdomains()
  ;
 }
 
-void Domain:: Update()
+void Domain::Update(const Integer level)
 {
 #ifdef TRACE
   (*trace) << "entering Domain::Update" << std::endl;
 #endif
  
   ptBCs_->Update(ptgrid_);
-  
+
   // Init AlgSystem
-  UpdateAlgSys();
-    
+  UpdateAlgSys(level);
+   
 }
 
-void Domain::UpdateAlgSys()
+void Domain::UpdateAlgSys(const Integer level)
 {
 #ifdef TRACE
   (*trace) << "entering Domain::UpdateAlgSys" << std::endl;
 #endif
 
-  Integer level=ptgrid_->GetLastLevel();
-  std::cout << level << std::endl;
-
+  newlevel ++;
   delete ptalgsys_;
-  ptalgsys_ = new AlgSysPILES();
-  if (!ptalgsys_) Error("Can't allocate memory for algebraic system Piles");
 
+  AbstractAlgebraicSys * ptAS[1000];
+  ptAS[newlevel] = new AlgSysPILES();
+  cerr << "ALGSYS_AD:" << ptalgsys_ << endl;
+  ptalgsys_=ptAS[newlevel]; 
+  //ptalgsys_=new AlgSysPILES();
+ if (!ptalgsys_) Error("Can't allocate memory for algebraic system Piles");
+
+  for (int i=0;i< numpde_;i++) {
+    ptpde_[i]->InitPtAlgSys(ptalgsys_);
+  }
+ 
   InitAlgSys(level);
   
 #ifdef TRACE
   (*trace) << " leaving Domain::UpdateAlgSys " << std::endl;
 #endif
-
 }
 
-void Domain :: TestGrid()
+void Domain::TestGrid()
 {
   InterfaceNetGen<Point2D> * ptGrid=new InterfaceNetGen<Point2D>(InFile_); 
   ptGrid->Read();
@@ -286,13 +323,10 @@ void Domain :: TestGrid()
   ei[0]=0;
   ei[1]=1;
   ei[2]=2;
-  std::cout << " ok " << std::endl;
  
  Integer e=5; 
   ptGrid->SetRefinementFlag(e);
-  std::cout << " we set refinement flags " << std::endl;
   ptGrid->Refine();
-  std::cout << " we do refinement " << std::endl;
 
   ptInFile->Init(ptGrid);
   ptInFile->WriteGrid(0);  

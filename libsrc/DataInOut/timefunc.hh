@@ -27,6 +27,9 @@ public:
     //! 
     Double TimeFuncAtTime(const Double, const Integer num);
 
+    //!
+    Double TimeFuncWaveSt(const Double time);
+
 private:
 
     //!
@@ -43,6 +46,9 @@ private:
 
     //!
     Double ** valTimeFunc;
+
+    //!
+    ofstream testtf;
 };
 } // end of namespace
 #endif

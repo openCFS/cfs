@@ -31,8 +31,8 @@ void main(int argc, char *argv[])
 {
   std::cout << " Wellcome to sample session. " << argc << std::endl ;
   std::cout << " \033[36mUsage\033[0m : cfs [-i] name [-m materialfile]"<< std::endl 
-       << "\t \033[36m i \033[0m: to create info-file " << std::endl
-       << "\t \033[36m name \033[0m: name of input file without extension" << std::endl << std::endl;
+	    << "\t \033[36m i \033[0m: to create info-file " << std::endl
+	    << "\t \033[36m name \033[0m: name of input file without extension" << std::endl << std::endl;
 
   if (argc < 2) Error("Invalid running of scfe. See Usage above.");
 
@@ -63,30 +63,33 @@ void main(int argc, char *argv[])
   // print grid to unverg-file
   domain->PrintGrid(0);
 
-//  domain->TestGrid();
+  //  domain->TestGrid();
 
   //choose your driver
-//   BaseDriver * ptdriver;  
-//   std::string analysis;
-//   conf->get("analysis", analysis);
-//   if (analysis=="static")  ptdriver = new StaticDriver(domain);
-//   else  ptdriver = new TransientDriver(domain);
+  BaseDriver * ptdriver;  
+  std::string analysis;
+  conf->get("analysis", analysis);
+  if (analysis=="static")  ptdriver = new StaticDriver(domain);
+  else  ptdriver = new TransientDriver(domain);
 
-//   //solve your problem
-//   std::string adaptTimeOn, adaptSpaceOn;
-//   conf->get("adapttime",adaptTimeOn,"Acoustic");
-//   conf->get("adaptspace",adaptSpaceOn,"Acoustic");
+  //solve your problem
+  std::string adaptTimeOn, adaptSpaceOn;
+  conf->get("adapttime",adaptTimeOn);
+  conf->get("adaptspace",adaptSpaceOn);
 
-//   if (adaptTimeOn == "yes")  ptdriver->SolveProblemAdapt();
-//   else
-//     if (adaptSpaceOn == "yes") { ptdriver->SolveProblemAdaptSpace();}
-//        else ptdriver->SolveProblem();
+  if (adaptTimeOn == "yes")  ptdriver->SolveProblemAdapt();
+  else
+    if (adaptSpaceOn == "yes") { ptdriver->SolveProblemAdaptSpace();}
+    else ptdriver->SolveProblem();
     
 
   oClockTotal.ClockCount(MyClock::end,"Total time");
 
-/// Putzen
-//   if (ptdriver) delete ptdriver;
-//   if (ptMaterial) delete ptMaterial;
-  if (ptDefineFiles) delete ptDefineFiles; // it should be deleted the last
+  /// Putzen
+    if (ptdriver) delete ptdriver;
+    if (ptMaterial) delete ptMaterial;
+    if (ptTimeFunc) delete ptTimeFunc;
+    if (domain) delete domain;
+    if (ptDefineFiles) delete ptDefineFiles; // it should be deleted the last
+    if (name) delete [] name;
 }

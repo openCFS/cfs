@@ -10,32 +10,24 @@ ARFLAGS = r
 LIBB = $(LIB_DIR)/lib$(lib).so
 #
 .SUFFIXES: .f .cc .o
-
 .cc.o:
 	$(CC) $(CFLAGS1) $(CFLAGS2) $(CFLAGS3) $< 
 #
 libgoal: $(LIB_DIR) $(LIBB)
 #
-# compile each file seperately
-#	
-#LIBB = $(LIB_DIR)/lib$(lib).so
-#
-#ifeq "$(TYPEOFLIB)" "STATIC"
+#################### to make static library
 #
 #$(LIBB): $(LIBB).a
 #
 #$(LIBB).a: $(src:.cc=.o)
 #	$(AR) $(ARFLAGS) $@ $(?:.cc=.o) 
-#	i$(RANLIB) $@ 
+#	$(RANLIB) $@ 
 #
-#else
-
-#$(LIBB): $(LIBB).so
-
+#################### to make share library
+#
 $(LIBB): $(src:.cc=.o)
 	$(CC) $(FLAG_MKSHLIB) -o $@ $(?:.cc=.o) 
-
-#endif
+#
 #
 $(LIB_DIR) :
 	-@mkdir $(C_DIR)/lib
@@ -44,7 +36,9 @@ $(LIB_DIR) :
 ########## Make clean for each directory
 #
 clean:
-	-rm *.o
+	-rm *.o;
+allclean:
+	-rm *.o && -rm *~; 
 #
 ########## Make link to include
 #

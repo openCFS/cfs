@@ -19,6 +19,8 @@ Grid::Grid(FileType * aptFileType)
   ptQ=new Quad1();
   ptTr=new Triangle1();
   ptTet=new Tetrahedral1();
+  
+  lastlevel_=0;
 
   conf->getsubdom(listSD_);
 

@@ -1,6 +1,7 @@
 #include <iostream>
 #include <string>
 #include <fstream>
+#include <math.h>
 
 #include "timefunc.hh"
 
@@ -41,10 +42,23 @@ TimeFunc :: TimeFunc(FileType * aptFileType)
      timefile >> timeTimeFunc[i][j] >> valTimeFunc[i][j];
 
   timefile.close();
+
+  testtf.open("test.tf");
+}
+
+Double TimeFunc::TimeFuncWaveSt(const Double time)
+{
+  Double valtf=sin(2*3.1416*50000*time);
+  testtf << time << "    " << valtf << std::endl;
+  return valtf;
 }
 
 Double TimeFunc::TimeFuncAtTime(const Double time, const Integer num)
 {
+#ifdef TRACE
+  (*trace) << " entering TimeFunc::TimeFuncAtTime " << std::endl;
+#endif
+
  Double help,help1,help2;
  Integer i,n;
  
@@ -53,6 +67,7 @@ Double TimeFunc::TimeFuncAtTime(const Double time, const Integer num)
  if ( time < timeTimeFunc[num][0] )
     Error("Wrong time in TimeFuncAtTime",__FILE__,__LINE__);
  
+ std::cout << " time " << time << " func time: " << timeTimeFunc[num][n-1] << std::endl;
  if (time > timeTimeFunc[num][n-1]) return 0;
  
  for (i=0; i<n; i++)
@@ -66,6 +81,7 @@ Double TimeFunc::TimeFuncAtTime(const Double time, const Integer num)
   help1=help-timeTimeFunc[num][i-1];
   help2=((help-time)/help1)*valTimeFunc[num][i-1]+
         ((time-timeTimeFunc[num][i-1])/help1)*valTimeFunc[num][i];
+  cout << " HELP2 " << help2 << endl;
   return help2;
 }
  
@@ -86,6 +102,8 @@ TimeFunc :: ~TimeFunc()
                      delete [] valTimeFunc;
                    }
  if (maxvalTimeFunc) delete [] maxvalTimeFunc;
+
+ testtf.close();
 }
 
 // -------------- Print TimeFunc -------------------------------------------

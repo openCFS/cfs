@@ -54,10 +54,13 @@ public:
   Integer GetDim() { return dim_;}
 
   //!
-  void GetElemSD(std::vector<Elem> & els, const std::string sd, const Integer level);
+  void GetElemSD(std::vector<Elem*> & els, const std::string sd, const Integer level);
 
   //!
-  void GetCoordNodesElem(const Vector<Integer> connect, Dim * ptCoord, const Integer level);  
+  void GetCoordNodesElem(const Vector<Integer> connect, Dim * ptCoord, const Integer level); 
+
+
+  std::vector<Integer*> * GetPtTestConnection(){ return &testconnect_;}
 
 #ifdef ADAPTGRID
   void putNodesFromGrid_RG(grd::MultilevelGrid * grid, const Integer level);
@@ -76,9 +79,11 @@ private:
   FileType *InFile;
 
   // 
-  std::vector<Elem> * elems_;  
+  std::vector<Elem*> * elems_;  
 
   std::vector<std::string> sd_;
+
+  std::vector<Integer*> testconnect_;
 
   //
   Integer maxnumnodes_;

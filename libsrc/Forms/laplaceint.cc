@@ -51,7 +51,6 @@ void LaplaceInt<Point2D> :: CalcElemMatrix(Point2D * ptCoord, Matrix<Double> & R
   for (i=0; i<l; i++)
     {
 
-      ptelem->test(); 
       ptelem->CalcJacobian(J,i,ptCoord);
 
       J.GetJinvX(JinvX);

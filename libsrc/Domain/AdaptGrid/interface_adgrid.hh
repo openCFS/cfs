@@ -60,15 +60,16 @@ public:
   virtual void Read();
 
   // update nodes for boundary conditions
-  virtual void UpdateBCs(std::list<Integer> * data, std::list<Integer> * result, std::vector<std::string> );
+  virtual void UpdateBCs(std::list<Integer> * bcs);
 
   // prolongation of solution
-  void ProlongSol(Vector<Double>& sol,const Integer alevel);
+  virtual void ProlongSol(const Vector<Double> sol_coarse, Vector<Double> &sol, const Integer alevel);
+
   ///
   virtual Integer GetDim() { return dim_; } // 
   
   ///
-  virtual void GetElemSD(std::vector<Elem> &, const std::string sd, const Integer level);
+  virtual void GetElemSD(std::vector<Elem*> &, const std::string sd, const Integer level);
 
   //! Here we mark elements for refinement: ei - number of elem
   virtual void SetRefinementFlag(const Integer ei);
