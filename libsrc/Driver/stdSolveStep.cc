@@ -262,12 +262,21 @@ namespace CoupledField {
       if (PDE_.iterCoupledCounter_ == 1)
         relaxVal = 0.25;
 
+      //we do not want to have iterations!!
+      if (PDE_.incStopCrit_ > 1.0 ) {
+        relaxVal = 1.0;
+        if (PDE_.iterCoupledCounter_ == 1) {
+          Error("Mechanic-Acoustic-Coupling with Norm > 1 should have just a \
+forward coupling from Mechanic to Acoustic",__FILE__,__LINE__);
+        }
+      }
+
       PDE_.StoreAlgsysToVec(PDE_.solIncr_, ptsol);
       if (PDE_.iterCoupledCounter_ == 0)
         PDE_.actSol_ = PDE_.solIncr_*relaxVal;
-      else 
+      else
         PDE_.actSol_ += PDE_.solIncr_*relaxVal;
-
+	  
       PDE_.sol_->SetAlgSysVector(PDE_.actSol_);
     }
     else
