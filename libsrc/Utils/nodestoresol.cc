@@ -96,10 +96,10 @@ template<class TYPE>
 void NodeStoreSol<TYPE>::Init(const TYPE val)  
 {
   ENTER_FCN( "NodeStoreSol::Init" );
-
+  
 #ifdef CHECK_INITIALIZED
   if (numSolutions_ == 0 || numNodes_ == 0 \
-     || solTypes_.size() == 0 || solDofs_.size() == 0) 
+      || solTypes_.size() == 0 || solDofs_.size() == 0) 
     {
       std::cerr << "Error in StoreSl::Init():" << std::endl;
       std::cerr << "NumSolutions: " << numSolutions_ << std::endl;
@@ -118,11 +118,11 @@ void NodeStoreSol<TYPE>::Init(const TYPE val)
   // only the first time the struct gets initialized
   if (length_ == 0)
     {
- 
+      
       if (solDofs_.size() != numSolutions_ || solTypes_.size() != numSolutions_)
 	Error("Inconsistent definition of Storesolution class.\
                      Eventually you have to call 'Clear()' before using a modified data layout!",
-		    __FILE__, __LINE__);
+	      __FILE__, __LINE__);
       
       totalDofs_ = 0;
       
@@ -131,14 +131,21 @@ void NodeStoreSol<TYPE>::Init(const TYPE val)
       std::map<SolutionType,Integer>::iterator it;
       for (it = solDofs_.begin(); it!=solDofs_.end(); it++)
 	{
-      // set offset of current solution
-      // w.r.t. to starting position
+	  // set offset of current solution
+	  // w.r.t. to starting position
 	  solOffset_[(*it).first] = totalDofs_;
 	  totalDofs_ += (*it).second;	  
 	}
       
       length_ = totalDofs_ * numNodes_;
-
+      
+      // Check for NULL-Pointer
+      if (ptEQN_ == NULL)
+	{
+	  Error("NodeStoreSol::Init: Pointer to EQN is NULL!",
+		__FILE__, __LINE__);
+	}
+      
       // Determine the 'real' length of
       // the solution vector, which depends on the 
       // type of equation mapping
@@ -151,11 +158,12 @@ void NodeStoreSol<TYPE>::Init(const TYPE val)
 	lengthVector_ = ptEQN_->GetNumEQNs();
 	eqnDofs_ = 1;
       }
-   
+      
       data_.Resize(lengthVector_);
+      
+      
+      data_.Init(val);
     }
-
-  data_.Init(val);
 }
 
 template<class TYPE>
@@ -576,8 +584,6 @@ void NodeStoreSol<TYPE>::Get(const Integer nodeNr,
 #ifdef CHECK_INDEX
   if (numSolutions_ > 1)
     Error("NodeStoreSol::Get(): Only used for single solution objects!",__FILE__,__LINE__);
-  if (nodeNr > numNodes_)
-    Error("NodeStoreSol::Get(): Index out of bounds",__FILE__,__LINE__);
 #endif
 
   Integer eqnNr, eqnDof;

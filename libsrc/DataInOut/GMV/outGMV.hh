@@ -13,17 +13,17 @@ class WriteResultsGMV: virtual public WriteResults
 public:
 
   //! Constructor
-  WriteResultsGMV(const Char * const filename,Boolean withHistory=FALSE, FileType * const aInFile=NULL);
+  WriteResultsGMV(const Char * const filename,
+		  FileType * const aInFile=NULL);
   
   //! Deconstructor
   virtual ~WriteResultsGMV();
   
   //! initialization with grid
-  /*!
-    \param aptgrid pointer to class Grid
-  */
-  virtual void Init(Grid * aptgrid);
-
+  //! \param ptgrid pointer to grid object
+  //! \param aptbcs pointer to BCs object
+  virtual void Init(Grid * aptgrid, BCs *aptbcs);
+  
   //! write information about grid with level in file
   /*!
     \param level level of the grid

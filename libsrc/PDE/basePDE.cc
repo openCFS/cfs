@@ -65,8 +65,6 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
   updateBCs_ = 0;
   dim_ = ptgrid_->GetDim();
   initMatrices_ = FALSE;
-  savederiv1_ = FALSE;
-  savederiv2_ = FALSE;
 
 
   // =====================================================================
@@ -78,6 +76,18 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
   numeqcoarse_ = 200;
   coarsealpha_ = 0.1;
 
+
+  // =====================================================================
+  // set postprocessing parameters
+  // =====================================================================
+  saveSol_        = TRUE;
+  saveDeriv1_     = FALSE;
+  saveDeriv2_     = FALSE;
+  saveSolHist_    = FALSE;
+  saveDeriv1Hist_ = FALSE;
+  saveDeriv2Hist_ = FALSE;
+
+  
   //standard parameter for solver
 #ifdef USE_OLAS
   
@@ -99,7 +109,6 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
   {
     ENTER_FCN( "BasePDE::Init()" );
     
-
     bcSequenceIndex_ = bcSequenceIndex;
     bcSequenceTag_ = bcSequenceTag;
 
@@ -243,22 +252,6 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
 	tolSpaceErr_ = 0;
       }
 #endif 
-// <<<<<<< basePDE.cc
-// =======
-
-//     // =====================================================================
-//     // get regions/subdomains for PDE
-//     // =====================================================================
-// #ifndef XMLPARAMS
-//     conf->getsubdompde(subdoms_,pdename_);
-// #else
-//     params->GetList( "name", subdoms_, pdename_, "region" );
-//     Info->PrintF( pdename_, "%s lives on regions:", pdename_.c_str());
-//     for ( Integer k = 0; k < subdoms_.GetSize(); k++ ) {
-//       Info->PrintF( pdename_, "%s", subdoms_[k].c_str() );
-//     }
-// #endif
-// >>>>>>> 1.30
     
     // =====================================================================
     // read in boundary conditions
@@ -391,7 +384,7 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
     if (needsDampingMatrix_) 
       assemble_->NeedDampingMatrix();
 
-    SetAlgSys();
+//     SetAlgSys();
     
     // =====================================================================
     // read in material data
@@ -1013,10 +1006,13 @@ void BasePDE::ReadBCs()
   keyVec = pdename_, "bcsAndLoads", "dirichletInhom", "dynamics";
   params->GetList(keyVec, attrVec, valVec, fncnames_id_);
 
+//   std::cerr << "===============================" << std::endl;
+//   std::cerr << "PDENAME : " << pdename_ << std::endl;
 //    std::cerr << "dirichletInhom = " << bcs_id_ << std::endl;
 //    std::cerr << "dirichletHom = " << bcs_hd_ << std::endl;
 //    std::cerr << "dirichletInhom-value = " << val_id_ << std::endl;
 //    std::cerr << "dirichletInhom-dynamics= " << fncnames_id_ << std::endl;
+//    std::cerr << std::endl;
 
   // Check consistency
   if ( bcs_id_.GetSize() != val_id_.GetSize() ||

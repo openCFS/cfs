@@ -131,10 +131,10 @@ public:
 
  //! read the save nodes
   /*!
-        \param saveNodes out: list with global number of nodes
-        \param levels in: vector with name of nodes
+        \param saveNodes out: vector with global number of nodes
+        \param level in: name of nodes
   */
-  virtual void ReadSaveNodes(std::list<Integer> * saveNodes , const StdVector<std::string> levels);
+  virtual void ReadSaveNodes(StdVector<Integer> & saveNodes , const std::string level);
   
   //! read only levels (names) of save nodes
   /*! \param levels out: list with names of save node levels  */

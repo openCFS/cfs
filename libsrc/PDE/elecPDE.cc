@@ -216,8 +216,11 @@ void ElecPDE::WriteResultsInFile(Integer stepOffset,
       
       
       // write electric potential
-      if (savesol_)
+      if (saveSol_)
 	outFile_->WriteNodeSolutionTransient(*solConverted, actStep, actTime);
+      
+      if (saveSolHist_)
+	outFile_->WriteNodeHistoryTransient(*solConverted, actStep, actTime);
       
       if (calcEfield_.GetSize() !=0 )
 	{
@@ -620,7 +623,7 @@ Boolean ElecPDE::HasOutput(SolutionType output)
     case ELEC_POTENTIAL:
       return TRUE;
       break;
-    case ELEC_FIELD:
+    case ELEC_FIELD_INTENSITY:
       return TRUE;
       break;
     case ELEC_INTERFACE_FORCE:
@@ -852,20 +855,27 @@ void ElecPDE::ReadStoreResults() {
 
   ENTER_FCN( "ElecPDE::ReadStoreResults" );
 
-  // By default we only save the solution at nodal values
-  savesol_    = TRUE;
-  savederiv1_ = FALSE;
-  savederiv2_ = FALSE;
-
   // Construct vectors for restricted parameter search
   StdVector<std::string> keyVec;
   StdVector<std::string> attrVec;
   StdVector<std::string> valVec;
-  keyVec  = "electrostatic", "storeResults", "elemResults", "region";
+  std::string quantity;
+
+  // *****************************
+  // Determine nodal results
+  // *****************************
+
+  // -- nothing to do here --
+  
+  // *****************************
+  // Determine element results
+  // *****************************
+  keyVec  = pdename_, "storeResults", "elemResults", "region";
   attrVec = "", "", "type";
 
-  // Determine regions for which electric field must be computed
-  valVec  = "", "", "efield";
+  // --- Electric Field Intensity ---
+  Enum2String(ELEC_FIELD_INTENSITY, quantity);
+  valVec  = "", "", quantity;
   params->GetList( keyVec, attrVec, valVec, calcEfield_ );
 
   // If the the symbolic name is "all" compute electric field for all regions
@@ -879,15 +889,16 @@ void ElecPDE::ReadStoreResults() {
       Info->PrintF( pdename_, " %s", calcEfield_[k].c_str() );
     }
     E_.SetNumSolutions(1);
-    E_.SetSolutionType(ELEC_FIELD);
+    E_.SetSolutionType(ELEC_FIELD_INTENSITY);
     E_.SetNumElems(numElems_);
     E_.SetNumDofs(dim_);
     E_.SetPtrEQNData(eqnData_, ptgrid_, actlevel_);
     E_.Init(); 
   }
 
-  // Determine regions for which energy must be computed
-  valVec  = "", "", "energy";
+  // --- Electric Energy ---
+  Enum2String(ELEC_ENERGY, quantity);
+  valVec  = "", "", quantity;
   params->GetList( keyVec, attrVec, valVec, calcEnergy_ );
 
   // If the the symbolic name is "all" compute energy for all regions
@@ -902,6 +913,42 @@ void ElecPDE::ReadStoreResults() {
     }
   }
 
+  // *****************************
+  // Determine nodal history
+  // *****************************
+  StdVector<std::string> saveNodeHist;
+  keyVec  = pdename_, "storeResults", "nodeHistory", "saveNodes";
+  attrVec = "", "", "type";
+
+  // --- Electric Potential ---
+  Enum2String(ELEC_POTENTIAL, quantity);
+  valVec  = "", "", quantity;
+  params->GetList( keyVec, attrVec, valVec, saveNodeHist );
+  
+  if (saveNodeHist.GetSize() > 0) {
+    saveSolHist_ = TRUE;
+    Info->PrintF( pdename_, " Saving ElecPotential for Nodes:" );
+    for ( Integer k = 0; k < saveNodeHist.GetSize(); k++ ) {
+      Info->PrintF( pdename_, " %s", saveNodeHist[k].c_str() );
+    }
+  }
+  
+  // *****************************
+  // Determine element history
+  // *****************************
+  StdVector<std::string> saveElemHist;
+  keyVec  = pdename_, "storeResults", "elemHistory", "saveElems";
+  attrVec = "", "", "";
+  valVec = "", "", "";
+  params->GetList(keyVec, attrVec, valVec, saveElemHist);
+  
+  if (saveElemHist.GetSize() < 0) {
+    std::string errMsg = pdename_;
+    errMsg += ": Saving history elements is not implemented yet!\n";
+    errMsg += "Meanwhile you can use 'unvtool' to extract element data.";
+    Error( errMsg.c_str(), __FILE__, __LINE__);
+  }
+  
 }
 #endif
 

@@ -1060,7 +1060,11 @@ namespace CoupledField
 	  {
 	    ptAuxElem=listNeigh4Elem[ine];
 	    
-	    // check is there other vertices of element
+	    if (surfElems[ise]->elemNum == 2763){
+	      std::cerr << "Checking volume element " << ptAuxElem->elemNum << std::endl;
+	      std::cerr << "it's connect is " << std::endl << ptAuxElem->connect << std::endl;
+	    }
+	    // check are there other vertices of element
 	    // loop over other nodes of surf element
 	    for (je=1;je<connectSE.GetSize();je++) {
 	      Integer verSE=connectSE[je];
@@ -1083,19 +1087,26 @@ namespace CoupledField
 	      volElems[ise]=ptAuxElem;
 	      break;
 	    }
-	    else
-	      {
-		errMsg  = "GridCFS::GetVolNeighboursForSurf: For ne or more ";
-		errMsg += "surface elementes there was not found an according ";
-		errMsg += "volume element. \n Please make sure, that for each ";
-		errMsg += "surface element there is exactly ONE volume element ";
-		errMsg += "in the speciefied neighbouring region";
-		
-		Error(errMsg.c_str(), __FILE__, __LINE__);
-	      }
-	  } // end loop over neighbors 
+	  } // end loop over all elements in neighbouring region
+	if (!FoundNd)
+	  {
+	    errMsg  = "GridCFS::GetVolNeighboursForSurf: For the surface element with Nr. ";
+	    errMsg += Info->GenStr(surfElems[ise]->elemNum);
+	    errMsg += " an according volume element was not ";
+	    errMsg += "found in the regions '";
+	    for (Integer j=0; j<neighRegions.GetSize()-1; j++) 
+	      errMsg += neighRegions[j] + "', '";
+	    errMsg += neighRegions[neighRegions.GetSize()-1] + "'.\n";
+	    errMsg += "Please make sure, that for each ";
+	    errMsg += "surface element there is exactly ONE volume element ";
+	    errMsg += "in the speciefied neighbouring region.";
+	    
+	    
+	    Error(errMsg.c_str(), __FILE__, __LINE__);
+	  }
 	
-      } // loop over Surf element 
+	
+      } // loop over all Surface elements 
   }
   
   

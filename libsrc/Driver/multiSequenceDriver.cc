@@ -40,18 +40,25 @@ namespace CoupledField {
   void MultiSequenceDriver::SolveProblem() {
     ENTER_FCN( "MultiSequenceDriver::SolveProblem" );
 
+    // helper function for getting 
+    // transient and harmonic parameters
+    StdVector<std::string> keyVec, attrVec, valVec;
+    
     // current driver
     SingleDriver * actDriver;
 
     // Vector of solutions
     StdVector<Vector<Double> > sols;
     Integer level = 0;
-    Integer nextStep;
+    Integer nextStep = 0;
+    Double nextTime = 0.0;
+    Integer actNumSteps, actDt;
   
     // Print out the grid
     ptdomain_->PrintGrid(level);
 
     Info->StartProgress("Starting to solve problem",FALSE);
+
     // outer loop over all single sequences
     for (Integer iStep=0; iStep<numSteps_; iStep++) {
       
@@ -69,14 +76,25 @@ namespace CoupledField {
       if (analysisPerStep_[iStep][0] == STATIC) {
 	actDriver = new StaticDriver(ptdomain_, actStep_, actTime_,
 				     tagsPerStep_[iStep][0], TRUE);
-	nextStep = actStep_ + 1;;
+	nextStep = actStep_ + 1;
       }
       else if (analysisPerStep_[iStep][0] == TRANSIENT) {      
 	actDriver = new TransientDriver(ptdomain_, actStep_, actTime_, 
 					tagsPerStep_[iStep][0],TRUE);
 	// here the time step and time 
 	// have to be imcremented
-	
+
+	attrVec = "tag";
+	valVec = tagsPerStep_[iStep][0];
+
+	keyVec = "transient", "numSteps"; 
+	params->Get(keyVec, attrVec, valVec, actNumSteps);
+	  
+	keyVec = "transient", "firstDt"; 
+	params->Get(keyVec, attrVec, valVec, actDt);
+	  
+	nextStep = actStep_ + actNumSteps;
+	nextTime = actTime_ + actNumSteps * actDt;
       }
       else if (analysisPerStep_[iStep][0] == HARMONIC) {
 	actDriver = new HarmonicDriver(ptdomain_, actStep_, actTime_,
@@ -84,7 +102,7 @@ namespace CoupledField {
       }
       
       // Initialize all PDEs
-      ptdomain_->InitPDEs(actStep_+1, tagsPerStep_[iStep]);
+      ptdomain_->InitPDEs(iStep+1, tagsPerStep_[iStep]);
 
       // Give the according pdes to the driver
       actDriver->SetPDEs(pdesPerStep_[iStep]);
@@ -232,7 +250,7 @@ namespace CoupledField {
     // iterate over all steps
     Boolean pdeFound = FALSE;
     Boolean tagFound = FALSE;
-    std::string tagString;
+    StdVector<std::string> tagStrings;
     StdVector<std::string> tagsLocal;
 
     // ********************************
@@ -288,8 +306,8 @@ namespace CoupledField {
 	  
 	  // Iterate over all tags in one special 'bcsAndLoads' occurence
 	  for (Integer iTagLocal=0; iTagLocal<tagsLocal.GetSize(); iTagLocal++)
-	    if (tagsPerStep_[iStep][iPDE] == tagsLocal[iTagLocal]
-		|| tagsLocal[iTagLocal] == "anyTag" ) {
+	    if (tagsPerStep_[iStep][iPDE] == tagsLocal[iTagLocal]) {
+// 		|| tagsLocal[iTagLocal] == "anyTag" ) {
 	    tagFound = TRUE;
 	    break;
 	    }
@@ -343,18 +361,19 @@ namespace CoupledField {
 	  keyVec = analysis, "tag";
 	  attrVec = "";
 	  valVec = "";
-	  params->Get(keyVec, attrVec, valVec, tagString);
-	  
-	  SplitStringList(tagString, tagsAux);
+	  params->GetList(keyVec, attrVec, valVec, tagStrings);
 
-	  tagFound = FALSE;
-	  for (Integer iTag=0; iTag<tagsAux.GetSize(); iTag++) 
-	    if (tagsAux[iTag] == "anyTag" ||
-		tagsAux[iTag] == tagsPerStep_[iStep][iPDE]) {
-	      tagFound = TRUE;
-	      break;
-	    }
-	  
+	  tagFound = FALSE;	  
+	  for (Integer l=0; l<tagStrings.GetSize(); l++) {
+	    SplitStringList(tagStrings[l], tagsAux);
+	    for (Integer iTag=0; iTag<tagsAux.GetSize(); iTag++) 
+	      // 	    if (tagsAux[iTag] == "anyTag" ||
+	      // 		tagsAux[iTag] == tagsPerStep_[iStep][iPDE]) {
+	      if (tagsAux[iTag] == tagsPerStep_[iStep][iPDE]) {
+		tagFound = TRUE;
+		break;
+	      }
+	  }
 	  
 	  if (! tagFound) {
 	    errMsg  = "MultiSequenceDriver::Init(): The section for ";

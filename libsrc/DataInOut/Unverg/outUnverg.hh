@@ -14,13 +14,16 @@ class WriteResultsUnverg: virtual public WriteResults
 
 public:
   //! constructor with name of a file for results
-  WriteResultsUnverg(const Char * const filename,Boolean withHistory=FALSE, FileType * const aInFile=NULL); 
+  WriteResultsUnverg(const Char * const filename, 
+		     FileType * const aInFile=NULL); 
 
   //! deconstructor
   virtual ~WriteResultsUnverg();
-  
-   //! initialization with grid
-  virtual void Init(Grid * aptgrid);
+
+  //! initialization with grid
+  //! \param ptgrid pointer to grid object
+  //! \param aptbcs pointer to BCs object
+  virtual void Init(Grid * aptgrid, BCs * aptbcs);
 
   //! write information about grid on level i in file
    /*!

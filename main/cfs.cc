@@ -204,8 +204,6 @@ int main(int argc, char *argv[])
       Info->Error( errMsg.c_str(),  __FILE__, __LINE__ );
     }
   Info->FinishProgress();
-
-  Info->StartProgress("Starting to solve problem",FALSE);
   ptdriver->SolveProblem();
   std::cout << std::endl;
   Info->StartProgress("Finished solving the problem");

@@ -13,7 +13,7 @@ class WriteResultsAnsys: virtual public WriteResults
 public:
 
   //! Constructor
-  WriteResultsAnsys(const Char * const filename,Boolean withHistory=FALSE);
+  WriteResultsAnsys(const Char * const filename);
   
   //! Deconstructor
   virtual ~WriteResultsAnsys();

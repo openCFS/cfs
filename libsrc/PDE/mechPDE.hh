@@ -237,6 +237,12 @@ private:
   ElemStoreSol<Double> Stress_;  //!< conatins magnetic field
   StdVector<std::string> calcStress_;  //!< contains the subdomains, on which the stress is computed
 
+  //! contains mechanic velocity
+  NodeStoreSol<Double> solDeriv1_;
+  
+  //! contains mechanic acceleration
+  NodeStoreSol<Double> solDeriv2_;
+
 };
 
 } // end of namespace

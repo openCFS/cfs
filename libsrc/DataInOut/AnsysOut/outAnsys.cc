@@ -9,8 +9,8 @@
 namespace CoupledField
 {
 
-WriteResultsAnsys :: WriteResultsAnsys(const Char * const filename, Boolean withHistory)
-: WriteResults(filename,withHistory)
+WriteResultsAnsys :: WriteResultsAnsys(const Char * const filename)
+  : WriteResults(filename)
 {
   ENTER_FCN( "WriteResultsAnsys::WriteResultsAnsys" );
 
@@ -230,13 +230,14 @@ void WriteResultsAnsys::WriteNodeSolution(const Vector<Double> & sol, const Inte
  // diese funktion ist nicht verarbeitet
 
   Integer i;
-  if (NeedHistory_)
-    for (i=0; i<nodeshist_.GetSize(); i++) {
-      if (sol.GetSize()<=nodeshist_[i])
-        Error("Please, check history-nodes in config-file.",__FILE__,__LINE__);
-      if (lastsavetime[i] != time )
-	AddInHistory(time,sol[nodeshist_[i]],i);
-    }
+if (NeedHistory_)
+  Error("History is not supported for AnsysFile anymore" ,__FILE__, __LINE__);
+//     for (i=0; i<nodeshist_.GetSize(); i++) {
+//       if (sol.GetSize()<=nodeshist_[i])
+//         Error("Please, check history-nodes in config-file.",__FILE__,__LINE__);
+//       if (lastsavetime[i] != time )
+// 	AddInHistory(time,sol[nodeshist_[i]],i);
+//      }
 
   //  Integer type=1; // 0 - for cell 
                       // 1 - for node
@@ -278,7 +279,7 @@ void WriteResultsAnsys::OpenFile(const Integer num)
 
    strcpy(name,namedir_);
    strcat(name,"/");
-   strcat(name,namefile_);
+   strcat(name,namefile_.c_str());
 
    Char * nameElmFile=new Char[30];
    strcpy(nameElmFile,name);
@@ -314,7 +315,7 @@ void WriteResultsAnsys::OpenFileRes(const std::string title)
 
    strcpy(name,namedir_);
    strcat(name,"/");
-   strcat(name,namefile_);
+   strcat(name,namefile_.c_str());
 
    Char * nameFile=new Char[30];
    strcpy(nameFile,name);

@@ -299,7 +299,7 @@ namespace CoupledField
     else if (in == "elecPotential")
       out = ELEC_POTENTIAL;
     else if (in == "elecFieldIntensity")
-      out = ELEC_FIELD;
+      out = ELEC_FIELD_INTENSITY;
     else if (in == "elecForceVWP")
       out = ELEC_FORCE_VWP;
     else if (in == "elecInterfaceForce")
@@ -308,7 +308,8 @@ namespace CoupledField
       out = ELEC_CHARGE;
     else if (in == "elecFluxDensity")
       out = ELEC_FLUX_DENSITY;
-    //energy
+    else if (in == "elecEnergy")
+      out = ELEC_ENERGY;
 
     //smoothing PDE
     else if (in == "smoothDisplacement")
@@ -328,20 +329,22 @@ namespace CoupledField
     else if (in == "magPotential")
       out = MAG_POTENTIAL;
     else if (in == "magFluxDensity")
-      out = MAG_FIELD;
+      out = MAG_FLUX_DENSITY;
     else if (in == "magEddyCurrent")
       out = MAG_EDDY_CURRENT;
     else if (in == "magForceVWP")
       out = MAG_FORCE_VWP;
     else if (in == "magForceLorentz")
       out = MAG_FORCE_LORENTZ;
+    else if (in == "magEnergy")
+      out = MAG_ENERGY;
     //energy
 
     else 
       {
 	errMsg  = "'";
 	errMsg += in;
-	errMsg += "' can not be converted into item of 'NormType'!";
+	errMsg += "' can not be converted into item of 'SolutionType'!";
 	Error(errMsg.c_str(), __FILE__, __LINE__);
       }
   }
@@ -352,6 +355,7 @@ namespace CoupledField
 
     switch (in)
     {
+      //mechanics
     case MECH_DISPLACEMENT:
       out = "mechDisplacement";
       break;
@@ -370,11 +374,13 @@ namespace CoupledField
     case MECH_STRAIN:
       out = "mechStrain";
       break;
+
+      //electrostatics
     case ELEC_POTENTIAL:
       out = "elecPotential";
       break;
-    case ELEC_FIELD:
-      out = "elecField";
+    case ELEC_FIELD_INTENSITY:
+      out = "elecFieldIntensity";
       break;
     case ELEC_FORCE_VWP: 
       out = "elecForceVWP";
@@ -388,25 +394,34 @@ namespace CoupledField
     case ELEC_FLUX_DENSITY:
       out = "elecFluxDensity";
       break; 
+    case ELEC_ENERGY:
+      out = "elecEnergy";
+      break;
+      
+    //smoothing PDE  
     case SMOOTH_DISPLACEMENT:
       out = "smoothDisplacement";
       break;
+      
+      //acoustics
     case ACOU_POTENTIAL:
-      out = "acousticPotential";
+      out = "acouPotential";
       break;
     case ACOU_FORCE:
-      out = "acousticForce";
+      out = "acouForce";
       break;
     case ACOU_POTENTIAL_DERIV_1:
-      out = "acousticFluidPot - 1. Deriv";
+      out = "acouPotentialD1";
       break;
     case ACOU_POTENTIAL_DERIV_2:
-      out = "acousticFluidPot - 2. Deriv";
+      out = "acouPotentialD2";
       break;
+
+      //magnetics  
     case MAG_POTENTIAL:
       out = "magPotential";
       break;
-    case MAG_FIELD:
+    case MAG_FLUX_DENSITY:
       out = "magFluxDensity";
       break;
     case MAG_EDDY_CURRENT:
@@ -417,6 +432,9 @@ namespace CoupledField
       break;
     case MAG_FORCE_LORENTZ:
       out = "magForceLorentz";
+      break;
+    case MAG_ENERGY:
+      out = "magEnergy";
       break;
     default:
       Error( "Wrong type of solution or 'SolutionType2String' not implemented for\

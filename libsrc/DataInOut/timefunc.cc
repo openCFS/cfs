@@ -39,7 +39,7 @@ TimeFunc :: TimeFunc(FileType * aptFileType)
   //read in the time functions
   if (timeFncDatFiles_)  
     {
-      Info->StartProgress("Reading time data functions");
+      Info->StartProgress("Reading in time data function(s)");
       ReadTimeFuncs();
       Info->FinishProgress();
 

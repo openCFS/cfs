@@ -143,7 +143,7 @@ namespace CoupledField {
 
     // Initialize single PDE
     for (Integer i=0; i<numpde_; i++) {
-      Info->StartProgress( "Initializing PDE " + ptpde_[i]->GetName());
+      Info->StartProgress( "Initializing PDE '" + ptpde_[i]->GetName() + "'");
       ptpde_[i]->Init(sequenceStep,tags[i]);
       Info->FinishProgress();
     }
@@ -159,8 +159,8 @@ namespace CoupledField {
  
     // Initialize algebraic system of 
     // each PDE
-    // for (int i=0;i< numpde_;i++)
-//       ptpde_[i]->SetAlgSys();
+     for (int i=0;i< numpde_;i++)
+       ptpde_[i]->SetAlgSys();
 
   }
 
@@ -345,7 +345,7 @@ namespace CoupledField {
 
   void Domain::PrintGrid(const Integer level) {
     ENTER_FCN( "Domain::PrintGrid" );
-    OutFile_->Init(ptgrid_);
+    OutFile_->Init(ptgrid_, ptBCs_);
     OutFile_->WriteGrid(level);
   }
 

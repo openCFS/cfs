@@ -425,5 +425,10 @@ Boolean SmoothPDE::HasOutput(SolutionType output)
   return FALSE;
 }
 
+void SmoothPDE::ReadStoreResults()
+{
+  ENTER_FCN( "SmoothPDE::ReadStoreRestuls");
+}
+
 
 } // end namespace CoupledField

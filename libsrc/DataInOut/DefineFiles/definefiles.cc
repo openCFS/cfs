@@ -92,8 +92,6 @@ namespace CoupledField
 
 #endif
     
-    Info->StartProgress("Creating additional output files");
-
 #ifdef TRACE
     strcpy(auxfile, basename);
     trace = new std::ofstream(strcat(auxfile,".trace"));
@@ -129,8 +127,6 @@ namespace CoupledField
 
     // ???
     flags = new Flags();
-
-    Info->FinishProgress();
 
   }
  
@@ -213,51 +209,25 @@ namespace CoupledField
     std::string outformat="unverg";
     conf->ifget("format_output",outformat);
     
-    Boolean withHistory=FALSE;
-    Integer val;
-    if (conf->ifget("history_node",val))
-      if (val!=-1) 
-	withHistory=TRUE;
 #else
     std::string outformat;
     params->Get( "format", outformat, "output" );
-
-    // Warning: Not meaningful! Keyword currently undefined in XML Schema!
-    Boolean withHistory = params->IsSet( "historyNode" );
-#endif
-
-
-    // save nodes may also be listed in config-command "save_nodes"
-    StdVector<std::string> historyList;
-
-#ifndef XMLPARAMS
-
-    conf->ifgetliststr("save_nodes", historyList);
-    if (historyList.GetSize())
-      withHistory=TRUE;
-
-#else
-    params->GetList( "saveNodes", historyList, "storeResults", "nodeResults" );
-    // withHistory = (bool) historyList.size();
-    // withHistory = (historyList.size() > 0);
-    if ( historyList.GetSize() > 0 ) withHistory = TRUE;
-
 #endif
 
 #ifndef XMLPARAMS
     if (outformat=="gmv")
-      ptWriteResults_=new WriteResultsGMV(filename_,withHistory, aInFile);
+      ptWriteResults_=new WriteResultsGMV(filename_, aInFile);
     else if (outformat=="unverg")
-      ptWriteResults_=new WriteResultsUnverg(filename_, withHistory, aInFile);
+      ptWriteResults_=new WriteResultsUnverg(filename_, aInFile);
     else
       Error("Wrong format for writing results. Please, check your data.",
 	    __FILE__, __LINE__);
 #else
     if ( outformat == "gmv" ) {
-      ptWriteResults_= new WriteResultsGMV(filename_,withHistory, aInFile);
+      ptWriteResults_= new WriteResultsGMV(filename_, aInFile);
     }
     else if ( outformat == "unv" ) {
-      ptWriteResults_= new WriteResultsUnverg(filename_, withHistory, aInFile);
+      ptWriteResults_= new WriteResultsUnverg(filename_, aInFile);
     }
     else
       {

@@ -1279,58 +1279,53 @@ void MechPDE::WriteResultsInFile(Integer stepOffset,
   Integer actStep = laststepcalc_ + stepOffset;
  
   if (analysistype_ == STATIC ||
-      analysistype_ == TRANSIENT)
-    {
-      if (savesol_ == TRUE )
+      analysistype_ == TRANSIENT) {
+    solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);
+    
+    if (saveSol_ == TRUE ) 
+      outFile_->WriteNodeSolutionTransient(*solTransient, actStep, actTime);
+    
+    if (saveSolHist_ == TRUE)
+      outFile_->WriteNodeHistoryTransient(*solTransient, actStep, actTime);
+    
+    if (analysistype_== TRANSIENT) {
+      if (saveDeriv1_ == TRUE)
 	{
-	  solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);
-	  outFile_->WriteNodeSolutionTransient(*solTransient, actStep, actTime);
+	  solDeriv1_.SetAlgSysVector(getS1());
+	  outFile_->WriteNodeSolutionTransient(solDeriv1_, actStep, actTime);
+	  
+	  if (saveDeriv1Hist_ == TRUE)
+	    outFile_->WriteNodeHistoryTransient(solDeriv1_, actStep, actTime);
 	}
       
-      if (analysistype_== TRANSIENT)
+      if (saveDeriv2_ == TRUE)
 	{
-	  if (savederiv1_ == TRUE)
-	    
-	    {
-	      sol_der1Array.SetNumSolutions(1);
-	      sol_der1Array.SetNumNodes(numPDENodes_);
-	      sol_der1Array.SetSolutionType(MECH_VELOCITY);
-	      sol_der1Array.SetNumDofs(dim_);
-	      sol_der1Array.Init(0);
-	      sol_der1Array.SetAlgSysVector(getS1());
-	      outFile_->WriteNodeSolutionTransient(sol_der1Array, actStep, actTime);
-	    }
-	  
-	  if (savederiv2_ == TRUE)
-	    {
-	      sol_der2Array.SetNumSolutions(1);
-	      sol_der2Array.SetNumNodes(numPDENodes_);
-	      sol_der2Array.SetSolutionType(MECH_ACCELERATION);
-	      sol_der2Array.SetNumDofs(dim_);
-	      sol_der2Array.Init(0);
-	  sol_der2Array.SetAlgSysVector(getS2());
-	  outFile_->WriteNodeSolutionTransient(sol_der2Array, actStep, actTime);
-	    }
+	  solDeriv2_.SetAlgSysVector(getS2());
+	  outFile_->WriteNodeSolutionTransient(solDeriv2_, actStep, actTime);
 	}
+      if (saveDeriv2Hist_ == TRUE)
+	outFile_->WriteNodeHistoryTransient(solDeriv2_, actStep, actTime);
+    }
+    
+    //element results
+    if (calcStress_.GetSize() !=0 ) {
+      outFile_->WriteElemSolutionTransient(Stress_, actStep, actTime);
+    }
+  }
+  else if (analysistype_ == HARMONIC) {
+    solHarmonic = dynamic_cast<NodeStoreSol<Complex>*>(sol_);
 
-      //element results
-      if (calcStress_.GetSize() !=0 ) {
-	outFile_->WriteElemSolutionTransient(Stress_, actStep, actTime);
-      }
-    }
-  else if (analysistype_ == HARMONIC)
-    {
-      if (savesol_ == TRUE )
-	{
-	  solHarmonic = dynamic_cast<NodeStoreSol<Complex>*>(sol_);
-	  outFile_->WriteNodeSolutionHarmonic(*solHarmonic,  actFreqStep_, 
-					      actFrequency_, complexFormat_);
-	}
-    }
-  else
+    if (saveSol_ == TRUE )
+      outFile_->WriteNodeSolutionHarmonic(*solHarmonic,  actFreqStep_, 
+					  actFrequency_, complexFormat_);
+    if (saveSolHist_ == TRUE)
+      outFile_->WriteNodeHistoryHarmonic(*solHarmonic,  actFreqStep_, 
+					 actFrequency_, complexFormat_);
+    
+  } else
     Error("MechPDE: Only static, transient and harmonic results cna be written",
 	  __FILE__, __LINE__);
-
+  
 }
 
 // ***********************************************************************
@@ -1341,34 +1336,61 @@ void MechPDE::ReadStoreResults() {
 
   ENTER_FCN( "MechPDE::ReadStoreResults" );
 
-  // By default we only save the solution at nodal values
-  savesol_    = TRUE;
-  savederiv1_ = FALSE;
-  savederiv2_ = FALSE;
-
-  // Determine what solution values the user wants to be stored
-  StdVector<std::string> nodeValues;
-  params->GetList( "type", nodeValues, pdename_, "nodeHistory" );
-
-  for ( Integer i = 0;  i < nodeValues.GetSize(); i++ ) {
-    if ( nodeValues[i] == "displacement" ) savesol_    = TRUE;
-    if ( nodeValues[i] == "velocity"     ) savederiv1_ = TRUE;
-    if ( nodeValues[i] == "acceleration" ) savederiv2_ = TRUE;
-  }
-
-  // Construct vectors for restricted search parameter
+  // Construct vectors for restricted parameter search
   StdVector<std::string> keyVec;
   StdVector<std::string> attrVec;
   StdVector<std::string> valVec;
-  keyVec  = "mechanic", "storeResults", "elemResults", "region";
-  attrVec = "", "", "type";
+  std::string quantity;
+  
+  // *****************************
+  // Determine nodal results
+  // ***************************** 
+  StdVector<std::string> nodeValues;
+  keyVec  = pdename_, "storeResults", "nodeResults", "region";
+  attrVec = "", "", "type";  
 
-  // -----------
-  //   Stress
-  // -----------
+  // --- Mechanic Velocity ---
+  Enum2String(MECH_VELOCITY, quantity);
+  valVec = "", "", quantity;
+  params->GetList( keyVec, attrVec, valVec, nodeValues);
+  if (nodeValues.GetSize() > 0) {
+    saveDeriv1_ = TRUE;
+    
+    // intialize corresponding storesolution object
+    solDeriv1_.SetNumSolutions(1);
+    solDeriv1_.SetNumNodes(numPDENodes_);
+    solDeriv1_.SetSolutionType(MECH_VELOCITY);
+    solDeriv1_.SetNumDofs(dim_);
+    solDeriv1_.SetPtrEQNData(eqnData_, ptgrid_, actlevel_); 
+    solDeriv1_.Init();
+  }
 
-  // Determine regions for which stress must be computed
-  valVec  = "", "", "stress";
+  // --- Mechanic Acceleration ---
+  Enum2String(MECH_ACCELERATION, quantity);
+  valVec = "", "", quantity;
+  params->GetList( keyVec, attrVec, valVec, nodeValues);
+  if (nodeValues.GetSize() > 0) {
+    saveDeriv2_ = TRUE;
+      
+    // intialize corresponding storesolution object
+    solDeriv2_.SetNumSolutions(1);
+    solDeriv2_.SetNumNodes(numPDENodes_);
+    solDeriv2_.SetSolutionType(MECH_ACCELERATION);
+    solDeriv2_.SetNumDofs(dim_);
+    solDeriv2_.SetPtrEQNData(eqnData_, ptgrid_, actlevel_);
+    solDeriv2_.Init();
+  }
+
+  // *****************************
+  // Determine element results
+  // *****************************
+  StdVector<std::string> elemResults;
+  keyVec  = pdename_, "storeResults", "elemResults", "region";
+  attrVec = "", "", "type";  
+
+  // --- Mechanic Stress ---
+  Enum2String(MECH_STRESS, quantity);
+  valVec  = "", "", quantity;
   params->GetList( keyVec, attrVec, valVec, calcStress_ );
 
   // If the symbolic name is "all" compute electric field for all regions
@@ -1385,6 +1407,88 @@ void MechPDE::ReadStoreResults() {
     }
   }
 
+  // *****************************
+  // Determine nodal history
+  // *****************************
+  StdVector<std::string> saveNodeHist; 
+  keyVec  = pdename_, "storeResults", "nodeHistory", "saveNodes";
+  attrVec = "", "", "type";
+
+  // --- mechDisplacement ---
+  Enum2String(MECH_VELOCITY, quantity);
+  valVec  = "", "", quantity;
+  params->GetList( keyVec, attrVec, valVec, saveNodeHist );
+  
+  if (saveNodeHist.GetSize() > 0) {
+    if (saveSol_ == FALSE) {
+      std::string errMsg = pdename_;
+      errMsg += ": History of ";
+      errMsg += quantity + " can only be written, if it is activated ";
+      errMsg += "in section 'nodalResults', too.";
+      Error(errMsg.c_str(), __FILE__, __LINE__);
+      }
+    saveSolHist_ = TRUE;
+    Info->PrintF( pdename_, " Saving mechDisplacement for Nodes:" );
+    for ( Integer k = 0; k < saveNodeHist.GetSize(); k++ ) {
+      Info->PrintF( pdename_, " %s", saveNodeHist[k].c_str() );
+    }
+  }
+  
+  // --- mechVelocity ---
+  Enum2String(MECH_VELOCITY, quantity);
+  valVec  = "", "", quantity;
+  params->GetList( keyVec, attrVec, valVec, saveNodeHist );
+  
+  if (saveNodeHist.GetSize() > 0) {
+    if (saveDeriv1_ == FALSE) {
+      std::string errMsg = pdename_;
+      errMsg += ": History of ";
+      errMsg += quantity + " can only be written, if it is activated ";
+      errMsg += "in section 'nodalResults', too.";
+      Error(errMsg.c_str(), __FILE__, __LINE__);
+      }
+    saveDeriv1Hist_ = TRUE;
+    Info->PrintF( pdename_, " Saving mechVelocity for Nodes:" );
+    for ( Integer k = 0; k < saveNodeHist.GetSize(); k++ ) {
+      Info->PrintF( pdename_, " %s", saveNodeHist[k].c_str() );
+    }
+  }
+
+  // --- mechAcceleration ---
+  Enum2String(MECH_ACCELERATION, quantity);
+  valVec  = "", "", quantity;
+  params->GetList( keyVec, attrVec, valVec, saveNodeHist );
+  
+  if (saveNodeHist.GetSize() > 0) {
+    if (saveDeriv2_ == FALSE) {
+      std::string errMsg = pdename_;
+      errMsg += ": History of ";
+      errMsg += quantity + " can only be written, if it is activated ";
+      errMsg += "in section 'nodalResults', too.";
+      Error(errMsg.c_str(), __FILE__, __LINE__);
+      }
+    saveDeriv1Hist_ = TRUE;
+    Info->PrintF( pdename_, " Saving mechAcceleration for Nodes:" );
+    for ( Integer k = 0; k < saveNodeHist.GetSize(); k++ ) {
+      Info->PrintF( pdename_, " %s", saveNodeHist[k].c_str() );
+    }
+  }
+  
+  // *****************************
+  // Determine element history
+  // *****************************
+  StdVector<std::string> saveElemHist;
+  keyVec  = pdename_, "storeResults", "elemHistory", "saveElems";
+  attrVec = "", "", "";
+  valVec = "", "", "";
+  params->GetList(keyVec, attrVec, valVec, saveElemHist);
+
+  if (saveElemHist.GetSize() < 0) {
+    std::string errMsg = pdename_;
+    errMsg += ": Saving history elements is not implemented yet!\n";
+    errMsg += "Meanwhile you can use 'unvtool' to extract element data.";
+    Error( errMsg.c_str(), __FILE__, __LINE__);
+    }
 }
 #endif
 

@@ -2,6 +2,7 @@
 #define FILE_WRITERESULTS_2002
 
 #include "Domain/grid.hh"
+#include "Domain/bcs.hh"
 #include "Utils/nodestoresol.hh"
 #include "Utils/elemstoresol.hh"
 #include "Utils/StdVector.hh"
@@ -18,10 +19,12 @@ class WriteResults
 {
 public:
    //! constructor
-   WriteResults(const Char * const filename,Boolean withHistory, FileType * const aInFile=NULL);
+   WriteResults(const Char * const filename, FileType * const aInFile=NULL);
 
-   //! initialization with grid
-  virtual void Init(Grid * aptgrid)=0;
+  //! initialization with grid
+  //! \param ptgrid pointer to grid object
+  //! \param aptbcs pointer to BCs object
+  virtual void Init(Grid * aptgrid, BCs * aptbcs)=0;
 
    //! deconstructor
    virtual ~WriteResults();
@@ -32,6 +35,10 @@ public:
   */
   virtual void WriteGrid(const Integer level)=0;
  
+  // *************************
+  //     TRANSIENT SECTION
+  // *************************
+  
   //! write element solution vector (transient/static)
   /*!
     \param data vector with data (ex. value of an error for the cell)
@@ -49,10 +56,24 @@ public:
     \param time time of calculation
   */
   virtual void WriteElemSolutionTransient(const ElemStoreSol<Double>& data, 
-
 					  const Integer step, 
 					  const Double time) = 0;
- 
+
+  //! write node history vector (transient/static)
+  /*!
+    \param data vector with data (ex. value of an error for the cell)
+    \param step step of calculation
+    \param time time of calculation
+  */
+  void WriteNodeHistoryTransient(const NodeStoreSol<Double>& data, 
+				 const Integer step, 
+				 const Double time);
+  
+
+  // *************************
+  //     HARMONIC SECTION
+  // *************************
+
   //! write element solution vector (harmonic)
   /*!
     \param data vector with data (ex. value of an error for the cell)
@@ -78,6 +99,19 @@ public:
 					 const Double frequency,
 					 const ComplexFormat format) = 0;
 
+  //! write nodal history vector (harmonic)
+  /*!
+    \param data vector with data (ex. value of an error for the cell)
+    \param step step of calculation
+    \param frequency frequency of exciting function
+    \param frequencyStep step of calculation
+    \param format format for writing complex solution (real-imag/amplitude-phase)
+  */
+  void WriteNodeHistoryHarmonic(const NodeStoreSol<Complex>& data, 
+				const Integer step,
+				const Double frequency,
+				const ComplexFormat format);
+
   //! to open new file for printing results only for GMV
   /*!
     \number number number for output-file (ex. result.gmv001)
@@ -98,40 +132,39 @@ public:
 		      const std::string matFileName, const Integer nrDofs=1);
 
 
-  /// read list of history nodes by name
-  void ReadSaveNodes();
-
-
 protected:
   //! Convertes enum SolutionType to string
   virtual std::string SolutionTypeToString(const SolutionType type) const
   {Error(" Not implemented here", __FILE__, __LINE__);}
 
   //! name of file for output results
-  Char * namefile_;
+  std::string namefile_;
 
   //! pointer to Grid
   Grid * ptgrid;
 
+  //! pointer to BCs
+  BCs * ptBCs_;
+
+  // ************************************
+  //  Section dealing with history files 
+  // ************************************
+
   //! indicator: print history file or not
   Boolean NeedHistory_;
 
-  //! vector with nodes history
-  StdVector<Integer> nodeshist_;
+  //! vector with type of output values
+  //! for which a history file is written
+  StdVector<SolutionType> histQuantities_;
+  
+  //! history nodes per PDE
+  StdVector<StdVector<Integer> > histNodesPerPDE_;
+  
 
   //! pointer to ofstream with history information
-  std::ofstream * historyfile;
+  StdVector<StdVector<std::ofstream*> >  historyFiles_;
 
-  //! add new data in history file
-  void AddInHistory(const Double time, const Double val, const Integer ifile);
-
-  //! add new vector valued data in history file
-  void AddVecInHistory(const Double time, const Vector<Double> val,const Integer ifile);
-
-  //! last time step, for which results were printed
-  Vector<Double> lastsavetime;
-
-  //! indicator: format of output: ascii or binary
+   //! indicator: format of output: ascii or binary
   Boolean ascii_;
 
   //! Ptr to input file, needed for reading the save nodes

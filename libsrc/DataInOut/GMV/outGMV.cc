@@ -16,8 +16,9 @@ namespace CoupledField
   // ===============
   //   Constructor
   // ===============
-WriteResultsGMV :: WriteResultsGMV(const Char * const filename, Boolean withHistory, FileType * const aInFile)
-: WriteResults(filename,withHistory, aInFile)
+WriteResultsGMV :: WriteResultsGMV(const Char * const filename, 
+				   FileType * const aInFile)
+: WriteResults(filename,aInFile)
 {
 
   ENTER_FCN( "WriteResultsGMV :: WriteResultsGMV" );
@@ -404,33 +405,6 @@ void WriteResultsGMV::WriteNodeSolutionTransient(const NodeStoreSol<Double> & so
   // WARNING: Level for refinemet is hardcoded to 1
   //sol.TransformNodeSolution(globalSolution,ptgrid,1);
   
-  if (NeedHistory_)
-    for (i=0; i<nodeshist_.GetSize(); i++) {
-      {
-	if (nodeshist_[i] > sol.GetNumNodes())
-	  Error("Nr. of history-node(s) is too high --> not in Solution! ",__FILE__,__LINE__);
-
-	if (sol.GetDof() * sol.GetNumNodes() <=nodeshist_[i])
-        Error("Please, check history-nodes in config-file.",__FILE__,__LINE__);
-	//     if (lastsavetime[i] != time )
-	if (sol.GetDof() > 1)	
-	  {
-	    Vector<Double> solVec;
-	    solVec.Resize(sol.GetDof());
-	    for (j=0; j<sol.GetDof(); j++)
-	      sol.Get(nodeshist_[i]-1,j,solVec[j]);
-	    //solVec[j] = sol[j][(nodeshist_[i]-1)];
-	    
-	    AddVecInHistory(time, solVec, i);
-	  }
-	else
-	  {
-	    sol.Get(nodeshist_[i]-1,0,help);
-	    AddInHistory(time,help,i);
-	  }
-      }
-      
-    }
 
   Integer type=1; // 0 - for cell 
                   // 1 - for node
@@ -453,10 +427,7 @@ void WriteResultsGMV::WriteNodeSolutionTransient(const NodeStoreSol<Double> & so
 	{
 	  WriteHeader();
 	  
-	  Char * name=new Char[80];
-	  strcpy(name,"");
-	  strcat(name,namefile_);
-	  strcat(name,"_GRID.gmv");
+	  std::string name = namefile_ + "_GRID.gmv";
 	  
 	  if (ascii_)
 	    (*output) << "nodev fromfile \"" << name <<"\""<< std::endl;
@@ -469,7 +440,6 @@ void WriteResultsGMV::WriteNodeSolutionTransient(const NodeStoreSol<Double> & so
 	  else 
 	    (*output) << "cells   fromfile\"" << name <<"\"";
 	  
-	  delete [] name; 
 	} 
       else 
 	{
@@ -729,9 +699,10 @@ void WriteResultsGMV::OpenFile(const Integer num)
    // delete [] aux;
 }
 
-void WriteResultsGMV::Init(Grid * aptgrid)
+void WriteResultsGMV::Init(Grid * aptgrid, BCs * aptbcs)
 {
-ptgrid=aptgrid;
+  ptgrid=aptgrid;
+  ptBCs_ = aptbcs;
 }
 
 void WriteResultsGMV::to8Char(const std::string name, char * result)
@@ -778,7 +749,7 @@ std::string WriteResultsGMV::SolutionTypeToString(const SolutionType type) const
     case ELEC_POTENTIAL:
       return "E-Potential";
       break;
-    case ELEC_FIELD:
+    case ELEC_FIELD_INTENSITY:
       return "E-Field";
       break;
     case ELEC_FORCE_VWP:
@@ -792,6 +763,9 @@ std::string WriteResultsGMV::SolutionTypeToString(const SolutionType type) const
       break;
     case ELEC_FLUX_DENSITY:
       return "E-Flux Density";
+      break;
+    case ELEC_ENERGY:
+      return "elec Energy";
       break;
     case SMOOTH_DISPLACEMENT:
       return "displacement";
@@ -811,7 +785,7 @@ std::string WriteResultsGMV::SolutionTypeToString(const SolutionType type) const
     case MAG_POTENTIAL:
       return "Mag-Potential";
       break;
-    case MAG_FIELD: 
+    case MAG_FLUX_DENSITY:
       return "B-Field";
       break;
     case MAG_EDDY_CURRENT:
@@ -821,7 +795,11 @@ std::string WriteResultsGMV::SolutionTypeToString(const SolutionType type) const
       return "mag force (VWP)";
       break;
     case MAG_FORCE_LORENTZ:
-      return "maf force (Lorentz)";
+      return "mag force (Lorentz)";
+      break;
+    case MAG_ENERGY:
+      return  "mag Energy";
+      break;
     default:
       Error( "Wrong type of solution or 'SolutionType2String' not implemented for\
 this type of solution", __FILE__, __LINE__);

@@ -2,6 +2,7 @@
 #include <fstream>
 #include <iostream>
 #include <stdio.h>
+#include <list>
 
 #include "writeresults.hh"
 #include "ParamHandling/ConfFile.hh"
@@ -9,98 +10,62 @@
 #include "DataInOut/WriteInfo.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
 
+
 namespace CoupledField {
 
-  WriteResults::WriteResults(const Char * const filename, Boolean withHistory,
+  WriteResults::WriteResults(const Char * const filename,
 			     FileType * const aInFile)
-    : NeedHistory_(withHistory) {
+  {
 
     ENTER_FCN( "WriteResults::WriteResults" );
 
-    namefile_ = new Char[strlen(filename)+1+MAXPOSTFIX];
-    strcpy(namefile_,filename);
+    namefile_ = filename;
+   //  namefile_ = new Char[strlen(filename)+1+MAXPOSTFIX];
+//     strcpy(namefile_,filename);
 
   ascii_=TRUE;
 
-  historyfile=NULL;
-
   pt2Inputfile_ = aInFile;
 
-  if (withHistory) 
-    InitHistoryFiles();
+  InitHistoryFiles();
 }
 
 
 
 
 
-void WriteResults::AddInHistory(const Double time, const Double val,const Integer ifile)
-{ 
-  ENTER_FCN( "WriteResults::AddInHistory" );
-  lastsavetime[ifile]=time;
- historyfile[ifile] << time << "  " << val << std::endl;
-}
+// void WriteResults::AddInHistory(const Double time, const Double val,const Integer ifile)
+// { 
+//   ENTER_FCN( "WriteResults::AddInHistory" );
+//   lastsavetime[ifile]=time;
+//  historyfile[ifile] << time << "  " << val << std::endl;
+// }
 
 
-void WriteResults::AddVecInHistory(const Double time, const Vector<Double> val,const Integer ifile)
-{ 
-  ENTER_FCN( "WriteResults::AddVecInHistory" );
+// void WriteResults::AddVecInHistory(const Double time, const Vector<Double> val,const Integer ifile)
+// { 
+//   ENTER_FCN( "WriteResults::AddVecInHistory" );
   
- lastsavetime[ifile]=time;
- historyfile[ifile] << time;
+//  lastsavetime[ifile]=time;
+//  historyfile[ifile] << time;
  
- for (Integer i=0; i<val.GetSize(); i++)
-   historyfile[ifile] <<  "  " << val[i];
+//  for (Integer i=0; i<val.GetSize(); i++)
+//    historyfile[ifile] <<  "  " << val[i];
  
- historyfile[ifile] <<  std::endl;
-}
+//  historyfile[ifile] <<  std::endl;
+// }
 
 
 WriteResults::~WriteResults()
 {
   ENTER_FCN( "WriteResults::~WriteResults" );
   
-  if (historyfile) {
-  Integer i;
-  for (i=0; i<nodeshist_.GetSize(); i++)
-     historyfile[i].close();
-  }
-  if (historyfile) delete [] historyfile;
-  delete [] namefile_; 
+  for (Integer i=0; i<historyFiles_.GetSize(); i++)
+    for (Integer j=0; j<historyFiles_[i].GetSize(); j++)
+      if (historyFiles_[i][j])
+	delete historyFiles_[i][j];
+  
 }
-
-
-
-
-void WriteResults::ReadSaveNodes()
-{
-  ENTER_FCN( "WriteResults::ReadSaveNodes" );
-
- StdVector<std::string> historyList; 
- std::list<Integer> * histNodes;
-
-#ifndef XMLPARAMS 
- conf->ifgetliststr("save_nodes", historyList);
-#else
- params->GetList( "saveNodes", historyList, "storeResults", "nodeResults" );
-#endif
-
- if (historyList.GetSize())
-   {
-     histNodes = new std::list<Integer>[historyList.GetSize()];
-     
-     pt2Inputfile_->ReadSaveNodes(histNodes, historyList);
-
-     Info->PrintVec("Area names, in which save nodes are stored:", historyList);
-     
-     for(int i=0; i<historyList.GetSize(); i++)
-       for (std::list<Integer>::const_iterator p=histNodes[i].begin(); p!=histNodes[i].end(); p++)
-	 nodeshist_.Push_back(*p);
-   }
-}
-
-
-
 
 
 
@@ -108,58 +73,114 @@ void WriteResults::InitHistoryFiles()
 {
   ENTER_FCN( "WriteResults::InitHistoryFiles" );
 
- // read nodes "by name" from the config-file command "save_nodes"
- ReadSaveNodes();
  
  StdVector<Integer> nodesTmp;
 
 #ifndef XMLPARAMS
  conf->getlist(nodesTmp,"history_node");
+ Error("History files are not supported anymore for .conf-file format!");
 #else
- // Warning: Not meaningful! Keyword currently undefined in XML Schema!
- // GetList also currently not implemented for Integer (no need so far)
- // params->GetList( "historyNodes", nodesTmp, "storeResults", "nodeResults" );
-#endif
+ 
+ StdVector<std::string> keyVec, attrVec, valVec;
+ StdVector<std::string> nodeVec, quantVec;
+ SolutionType solType;
+ 
+ attrVec = "", "";
+ valVec = "", "";
 
- for (int i=0; i < nodesTmp.GetSize(); i++)
-   // there are allready elements in nodeshist_
-   nodeshist_.Push_back(nodesTmp[i]);
+ keyVec = "storeResults", "nodeHistory", "saveNodes";
+ params->GetList(keyVec, attrVec, valVec, nodeVec);
+
+ keyVec = "storeResults", "nodeHistory", "type";
+ params->GetList(keyVec, attrVec, valVec, quantVec);
+
+//  std::cerr << "nodeVec = " << std::endl << nodeVec << std::endl;
+//  std::cerr << "quantVec = " << std::endl << quantVec << std::endl;
 
 
- if (nodeshist_.IsEmpty()) 
-   NeedHistory_=FALSE;
- else
-   {
-     std::string S="mkdir -p history";
-     system(S.c_str());
+ NeedHistory_ = FALSE;
+ if (nodeVec.GetSize() > 0)
+   NeedHistory_ = TRUE;
 
-     Char * name=new Char[30];     
+ if (NeedHistory_ == FALSE)
+   return;
 
-     std::string namedir="history/";
+ // Loop over all read in quantities and nodes
+ for (Integer iQuant=0; iQuant<quantVec.GetSize(); iQuant++) {
    
-     Integer nnodhist=nodeshist_.GetSize(); 
-     historyfile=new std::ofstream[nnodhist];
+   Integer quantityFound = -1;
 
-
-     // write save nodes to info file
-     Info->PrintVec("List of node numbers, in which results have to be saved:", nodeshist_);     
-
-     for (Integer i=0; i<nodeshist_.GetSize(); i++) 
-       {
-
-	 sprintf(name,"%s%s.%i.hist",namedir.c_str(),namefile_,nodeshist_[i]);
-	 
-	 historyfile[i].open(name);
-	 
-	 if (!historyfile[i]) 
-	   Error("Can't open history file",__FILE__,__LINE__);
-       }
-     
-     lastsavetime.Resize(nnodhist);
-     lastsavetime[0]=-1;
-     
-     delete [] name;
+   // Look in all histQuantites, if quantity was already read in
+   for (Integer j=0; j<histQuantities_.GetSize(); j++) {
+     String2Enum(quantVec[iQuant], solType);
+     if (histQuantities_[j] == solType) {
+       quantityFound = j;
+       break;
+     }
    }
+  
+   
+   if (quantityFound == -1) {
+     String2Enum(quantVec[iQuant], solType);
+     histQuantities_.Push_back(solType);
+     histNodesPerPDE_.Push_back(StdVector<Integer>());
+     quantityFound = histNodesPerPDE_.GetSize() -1;
+   }
+   
+   // Add new nodes
+   StdVector<Integer> tempNodes;
+   pt2Inputfile_->ReadSaveNodes(tempNodes, nodeVec[iQuant]);
+   
+   for (Integer i=0; i<tempNodes.GetSize(); i++)
+     histNodesPerPDE_[quantityFound].Push_back(tempNodes[i]);
+    } // iQuant
+
+//  std::cerr << "histQuantities_ " <<histQuantities_ << std::endl; 
+//  std::cerr << "length of nodes" <<  histNodesPerPDE_.GetSize() << std::endl;
+//  std::cerr << "nodes[0] = " << histNodesPerPDE_[0] << std::endl;
+ // Create history directory
+ std::string S="mkdir -p history";
+ system(S.c_str());
+ 
+ std::string namePrefix="history/" + namefile_ + "-";
+ std::string namePostfix = ".hist";
+ std::string totalName;
+ 
+ // Resize number of history files
+ historyFiles_.Resize(histQuantities_.GetSize());
+ 
+ // Iterate over all quantities
+ for (Integer iQuant=0; iQuant<histQuantities_.GetSize(); iQuant++) {
+   
+   std::string comment = "Nodehistory for quantity '";
+   comment += histQuantities_[iQuant] + "'";
+   Info->PrintVec(comment.c_str(), histNodesPerPDE_[iQuant]);
+
+   historyFiles_[iQuant].Resize(histNodesPerPDE_[iQuant].GetSize());
+   for (Integer iNode=0; iNode<histNodesPerPDE_[iQuant].GetSize(); iNode++) {
+
+     // Create total filename
+     std::string quantString;
+     Enum2String(histQuantities_[iQuant], quantString);
+     totalName = namePrefix + quantString;
+     totalName += "-node-";
+     totalName += Info->GenStr(histNodesPerPDE_[iQuant][iNode]);
+     totalName += namePostfix;
+
+     historyFiles_[iQuant][iNode] = NULL;
+//      std::cerr << "creating hist-file" << totalName << std::endl;
+     historyFiles_[iQuant][iNode] = new std::ofstream(totalName.c_str());
+     
+     if (!historyFiles_[iQuant][iNode]) {
+       std::string errMsg = "InitHistory: Can not open history file '";
+       errMsg += totalName + "'";
+       Error (errMsg.c_str(), __FILE__, __LINE__);
+     }
+     
+   }
+ }
+ 
+#endif
 }
 
 void WriteResults::WriteSolMatrix(Grid * ptgrid, const Integer level, const Vector<Double> sol, 
@@ -206,6 +227,74 @@ void WriteResults::WriteSolMatrix(Grid * ptgrid, const Integer level, const Vect
 	  (*matrixOut) << std::endl;
 	} 
     }
+}
+
+void WriteResults::WriteNodeHistoryTransient(const NodeStoreSol<Double>& data, 
+					     const Integer step, 
+					     const Double time)
+{
+  ENTER_FCN( "WriteResults::WriteNodeHistoryTransien" );
+
+  std::ofstream * myHist;
+  SolutionType actSolType;
+  StdVector<SolutionType> solTypes;
+  Integer iQuant, actDof;
+  std::string quantity;
+  Double val;
+
+
+  data.GetSolutionTypes(solTypes);
+  
+  // Iterate over all solutiontypes
+  for (Integer iSol=0; iSol<solTypes.GetSize(); iSol++) {
+   
+    actDof = data.GetDof(solTypes[iSol]);
+    
+    // Find the according quantitiy
+    iQuant = -1;
+    for (Integer i=0; i<histQuantities_.GetSize(); i++) {
+     
+//       std::cerr << "Quantity = " << histQuantities_[i] << std::endl;
+      if (histQuantities_[i] == solTypes[iSol]){
+	iQuant = i;
+	break;
+      }
+    }
+    
+
+    if (iQuant == -1){
+      Enum2String(solTypes[iSol], quantity);
+      std::string errMsg = "Quantity '";
+      errMsg += quantity;
+      errMsg += "' for history not found!";
+      Error(errMsg.c_str(), __FILE__, __LINE__);
+    }
+    
+    // Iterate over all history nodes
+    for (Integer iNode=0; 
+	 iNode<histNodesPerPDE_[iQuant].GetSize(); 
+	 iNode++) {
+      myHist = historyFiles_[iQuant][iNode];
+      (*myHist) << time;
+      
+      // Iterate over all dofs
+      for (Integer iDof=0; iDof<actDof; iDof++) {
+// 	std::cerr << "Writing out Sol " << iSol << ", Node " << histNodesPerPDE_[iQuant][iNode];
+// 	std::cerr << ", and dof " << iDof << std::endl;
+	data.Get(histNodesPerPDE_[iQuant][iNode]-1, iDof, val);
+	(*myHist) << "  " << val;
+      } // iDof
+      (*myHist) << std::endl;
+    }  // iNode
+  } // iSol
+}
+
+void WriteResults::WriteNodeHistoryHarmonic(const NodeStoreSol<Complex>& data, 
+					    const Integer step,
+					    const Double frequency,
+					    const ComplexFormat format)
+{
+  ENTER_FCN( "WriteResults::WriteNodeHistoryHarmonic" );
 }
 
 } // end of namespace
