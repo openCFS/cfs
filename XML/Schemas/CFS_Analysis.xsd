@@ -50,6 +50,16 @@
     </xsd:sequence>
   </xsd:complexType>
 
+  <!-- Data type for harmonic section, i.e. parameters required for
+       performing a harmonic analysis -->
+  <xsd:complexType name="DT_Harmonic">
+    <xsd:sequence>
+      <xsd:element name="numFreq" type="xsd:nonNegativeInteger"/>
+      <xsd:element name="startFreq" type="DT_PosFloat"/>
+      <xsd:element name="stopFreq" type="DT_PosFloat"/>
+    </xsd:sequence>
+  </xsd:complexType>
+
   <!-- ******************************************************************** -->
   <!--   Definition of data type for global non-linear parameters -->
   <!-- ******************************************************************** -->
