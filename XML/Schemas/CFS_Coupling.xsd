@@ -179,7 +179,7 @@
   <xsd:complexType name="DT_Nonlinear">
     <xsd:complexContent>
       <xsd:restriction base="xsd:anyType">
-        <xsd:attribute name="name" use="required">
+        <xsd:attribute name="quantity" use="required">
           <xsd:simpleType>
             <xsd:restriction base="xsd:token">
                 <xsd:enumeration value="mechForce"/>
