@@ -34,7 +34,7 @@ namespace CoupledField {
 
   //! This function can be used to issue an error message and terminate
   //! execution of the program. In fact this method is only a shortcut for
-  //! calling the Error() method of the WriteInfo class.
+  //! calling the Warning() method of the WriteInfo class.
   //! \param Text     text of the warning message
   //! \param filename another text string. This is intended to contain the
   //!                 name of the module/file in which the problem occured. The
