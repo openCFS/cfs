@@ -51,7 +51,12 @@
       <xsd:element name="materialData" type="DT_MatFile" minOccurs="0"/>
 
       <!-- Description of problem domain (required) -->
-      <xsd:element name="domain" type="DT_Domain"/>
+      <xsd:element name="domain" type="DT_Domain">
+        <xsd:key name="KEY_Regions">
+          <xsd:selector xpath="cfs:region"/>
+          <xsd:field xpath="@name"/>
+        </xsd:key>
+      </xsd:element>
    
       <!-- List of PDEs (required) -->
       <xsd:element name="pdeList">
@@ -72,9 +77,8 @@
   </xsd:complexType>
 
   <!-- Make sure that for every boundary condition of the PDE section   -->
-  <!-- a corresponding interface/surface has been designated in the     -->
-  <!-- domain part                                                      -->
-  <!--
+  <!-- a corresponding set of nodes reps. elements has been designated  -->
+  <!-- in the domain section                                            -->
   <xsd:keyref name="interfaceExists" refer="uniq_interfacenames">
     <xsd:selector xpath="cfs:PDE_list/cfs:PDE_descr/cfs:BoundaryConds/*"/>
     <xsd:field xpath="@interface"/>
