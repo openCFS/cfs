@@ -62,25 +62,7 @@ BaseCoupledPDE::~BaseCoupledPDE()
 }
 
 
-
-
-  // time stepping params, provided by "TransientDriver"
-  void BaseCoupledPDE::SetTimeSteppingParams(Integer numstep, Double firstdt, Integer isavebegin, 
-					     Integer isaveend, Integer isaveincr)
-  {
-    ENTER_FCN( "BaseCoupledPDE::SetTimeSteppingParams" );
-
-    numstep_    =  numstep; 
-    firstdt_    =  firstdt;    
-    isavebegin_ =  isavebegin; 
-    isaveend_   =  isaveend;   
-    isaveincr_  =  isaveincr;  
-  }
-
-
-
-
-// perform on every pde a pre step (before solving transient step
+// perform on every pdInie a pre step (before solving transient step
 void BaseCoupledPDE::PreStepTrans(const Integer kstep, const Double asteptime,
 				  const Integer level, const Boolean reset) 
 {
@@ -113,14 +95,12 @@ void BaseCoupledPDE::InitStepTransCoupled(Double stepTime)
       PDEs_[i]->InitStepTransCoupled(stepTime);
 }
 
-
-
-void BaseCoupledPDE::InitTimeStepping(const Double dt)
+void BaseCoupledPDE::SetTimeStep(const Double dt)
 {
-  ENTER_FCN( "BaseCoupledPDE::InitTimeStepping" );
+  ENTER_FCN( "BaseCoupledPDE::SetTimeStep" );
 
     for (Integer i=0; i<PDEs_.GetSize(); i++)
-      PDEs_[i]->InitTimeStepping(dt);
+      PDEs_[i]->SetTimeStep(dt);
 };
 
 
