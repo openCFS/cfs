@@ -64,11 +64,10 @@ void AnsysFile::ReadCoordinate(Point2D * const NodesCoord, const Integer maxnumn
   infile.seekg(pos,std::ios::beg);
 
   Integer ibuf;
-  Double dbuf;
 
   for (i=0; i < maxnumnodes; i++)
   {
-    infile >> ibuf >> dbuf >> NodesCoord[i].x >> NodesCoord[i].y ;
+    infile >> ibuf >> NodesCoord[i].x >> NodesCoord[i].y ;
     infile.ignore(100,'\n');
   }
 }
@@ -147,30 +146,28 @@ void AnsysFile::ReadBoundRestr(std::list<NodeRestraint> & restr, Integer & numbe
 #ifdef TRACE
   (*trace) << "entering Ansys::ReadBoundRestr" << std::endl;
 #endif
-  
+
  Integer numbc;
  ReadMaxnumnodesbc(numbc);
- std::cout << numbc << std::endl;
 
  std::string::size_type pos=0;
  getPosLine("Node BC", pos);
  infile.seekg(pos,std::ios::beg);
 
  Integer nrestr=0;
- std::string str; 
+ std::string str;
 
  NodeRestraint A;
  Integer i;
  for (i=0; i < numbc; i++)
    {
     infile >> A.nodalnum >> str;
-    std::cout << str << std::endl;
-
-    A.dof=TransformInDof(str);
     infile.ignore(100,'\n');
 
-    if (A.dof==5)
-    { restr.push_back(A); nrestr++;}
+    A.dof=TransformInDof(str);
+
+    restr.push_back(A);
+    nrestr++;
    }
   numberRestr=nrestr;
 }
@@ -195,6 +192,11 @@ void AnsysFile::getPosLine(const std::string seekexp, std::string::size_type & p
 
  pos=infile.tellg();
 
+ if (pos>=pos_end) {std::cerr << "ERROR: (" << __FILE__ <<" "<< __LINE__
+               << ") Cannot find string: " << seekexp ;
+          std::cerr << " in your dat file.\n\t\t Please, change your dat file."<< std::endl;
+                      exit(1);}
+
 // check, if there are comments lines
  do
 {
@@ -203,11 +205,6 @@ void AnsysFile::getPosLine(const std::string seekexp, std::string::size_type & p
   std::cout << buf << std::endl;
 }
  while (buf[0] != '#'); 
-
- if (pos>=pos_end) {std::cerr << "ERROR: (" << __FILE__ <<" "<< __LINE__
-               << ") Cannot find string: " << seekexp ;
-          std::cerr << " in your dat file.\n\t\t Please, change your dat file."<< std::endl;
-                      exit(1);}
 }
 
 void AnsysFile::getPosition(const std::string seekexp, std::string::size_type & pos)
@@ -235,14 +232,13 @@ void AnsysFile::getPosition(const std::string seekexp, std::string::size_type & 
                       exit(1);}
 }
 
-Integer AnsysFile::TransformInDof(const std::string type_bc)
+enum TypeBCs AnsysFile::TransformInDof(const std::string type_bc)
 {
-  Integer result;
-  std::cout << " tb " << type_bc << std::endl;
+  enum TypeBCs result;
 
-  if (type_bc=="vp-restrataint") result=5;
+  if (type_bc=="vp-restr") result=vp_restraint;
   else
-  if (type_bc=="ep-restrataint") result=4;
+  if (type_bc=="ep-restr") result=ep_restraint;
   else Error(" This type of level for boundary condition in mesh-file (section [Node BC]) is unknown");
 
   return result;
@@ -261,7 +257,7 @@ void AnsysFile::ReadNumberNodesPerElem(Integer & nnodesperelem)
  infile >> ibuf >> ibuf >> nnodesperelem;  
 }
 
-  //!
+//!
 void AnsysFile::ReadElemConnectionGH(const Integer maxelem, Integer * connect, const Integer maxnode, const Integer numelemgr, const Integer startposinarrayconn)
 {
  std::string::size_type pos=0;

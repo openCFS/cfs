@@ -11,7 +11,6 @@ Triangle1 :: Triangle1() : GeTriangle()
 #ifdef TRACE
   (*trace) << "entering Triangle1::Triangle1" << std::endl;
 #endif
-   ElemType  = TRIANGLE1;   
    Init();
 }
   

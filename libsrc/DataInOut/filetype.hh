@@ -9,7 +9,7 @@ namespace CoupledField
 
   //! base class for reading initial data
   /*! 
-    Base class for reading input data. Its function is virtual due to handle the different types of input files and to hide their features from developer of code.
+    Base class for reading input data. Their functions are virtual due to handle the different types of input files and to hide their features from developer of code.
   */
 
 struct NodeRestraint;
@@ -18,19 +18,6 @@ class FileType
 {
 
 public:
-
-  //! enum for reading boundary condition
-  enum nameBound{ numdofs, numconstr, numrestr, numloads, resistors,
-		  numspring, bembdry, numflux, numrad, numpress, ncurrdens,
-		  regl_itmx, reglr_use, endBound}; // 13   
-
-  //! enum for reading data about general analisys
-  enum nameGAn{soltype, analtype, numnode, numgroup, restart, inactdofs,
-	       circuit, deactDf, masstype, damptype, nooptimiz, endGAnal}; //11
-
-  //! enum for redaing general info about element
-  enum nameGElem {numelem, ielemtyp, isubtype, ielemsave, maxnode,
-		  nonlinear, form1, form2, endGElem}; // 8 
 
   //!
   FileType(const Char * const afilename);
@@ -64,6 +51,7 @@ protected:
 
   //! name of input file
   Char * filename;
+
 };
 
 }

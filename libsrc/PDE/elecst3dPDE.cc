@@ -17,7 +17,8 @@ Elecst3dPDE::Elecst3dPDE(AbstractAlgebraicSys * ptalgsys, Grid * aptgrid, Materi
   (*trace) << "entering Elecst3dPDE::Electst3dPDE " << std::endl;
 #endif
 
-  doftype_=4;
+//  doftype_=4;
+  doftype_=ep_restraint;
   dofspernode_=1;
   ptgrid_=aptgrid;
 

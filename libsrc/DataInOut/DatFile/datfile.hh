@@ -14,6 +14,19 @@ namespace CoupledField
 class DatFile : virtual public FileType
 {
 public:
+  //! enum for reading boundary condition
+  enum nameBound{ numdofs, numconstr, numrestr, numloads, resistors,
+                numspring, bembdry, numflux, numrad, numpress, ncurrdens,
+                regl_itmx, reglr_use, endBound}; // 13
+
+  //! enum for reading data about general analisys
+  enum nameGAn{soltype, analtype, numnode, numgroup, restart, inactdofs,
+             circuit, deactDf, masstype, damptype, nooptimiz, endGAnal}; //11
+
+  //! enum for redaing general info about element
+  enum nameGElem {numelem, ielemtyp, isubtype, ielemsave, maxnode,
+                nonlinear, form1, form2, endGElem}; // 8
+
   //! Constructor
   DatFile(const Char * const afilename);
 
@@ -268,7 +281,11 @@ public:
   Integer Encode(const Integer x);
 
   std::string::size_type pos_end; 
- 
+
+private:
+  //!
+  enum TypeBCs TransformInTypeBCs(const std::string str); 
+
 };
 }
 

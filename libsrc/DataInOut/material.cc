@@ -37,7 +37,7 @@ void Material::ReadDensityAndCompressity(Double & density, Double & compress, co
  // transfer matnum in string
   Char s[20];
   sprintf(s,"%i",matnum);
- 
+
  while ( (pos == std::string::npos || pos1== std::string::npos) & !infile.eof() )
   { std::getline(infile, buf, '\n');
     pos=buf.find(keyword);
@@ -54,7 +54,6 @@ void Material::ReadDensityAndCompressity(Double & density, Double & compress, co
   if (infile.eof()) Error("Can't find data in material dat-file. Check your dat-file",__FILE__,__LINE__);
 
   infile >> density >> compress;
-
 }
 
 void Material::ReadDielectricTerms(Double & dielectr,const Integer matnum)

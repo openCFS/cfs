@@ -11,7 +11,6 @@ Quad1 :: Quad1() : Rectangle()
 #ifdef TRACE
   (*trace) << "entering Quad1::Quad1" << std::endl;
 #endif
-  ElemType  = QUADRILATERAL1;  
   Init();
 }
   

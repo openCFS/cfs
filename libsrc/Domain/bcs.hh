@@ -5,15 +5,13 @@
 
 namespace CoupledField
 {
-
-/// contains information about calculation domain and according to different meshes create different grids
+/// class BCs contains information about calculation domain and according to different meshes create different grids
 
 //! struct for Restraints:
-
 struct NodeRestraint
 {
   Integer nodalnum;
-  Integer dof;
+  enum TypeBCs dof;
 
  int operator<(const NodeRestraint & t);
 };
@@ -37,7 +35,7 @@ public:
   //!
   void GetRestraints(std::list<NodeRestraint> & arestr, const Integer level)
   { arestr=restr_[level]; }
- 
+
 protected:
 
 private:

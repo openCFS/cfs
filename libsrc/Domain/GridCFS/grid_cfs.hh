@@ -6,6 +6,17 @@
 
 namespace CoupledField
 {
+
+//! struct for Element
+struct Elem
+{
+  Integer elemType; //!< elements type as it is in ansys
+  Integer nnodeselem;
+  enum MatType mattype; 
+  
+  Vector<Integer> connect;
+};
+
  
 /// Class for working with grid
 template<class Dim> 

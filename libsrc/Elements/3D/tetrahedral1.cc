@@ -11,7 +11,6 @@ Tetrahedral1::Tetrahedral1():GeTetrahedral()
 #ifdef TRACE
   (*trace) << "entering Tetrahedral1::Tetrahedral1" << std::endl;
 #endif
-   ElemType = TETRAHEDRAL1;
    Init();
 }
 

@@ -64,7 +64,7 @@ private:
 void getPosition(const std::string seekexp, std::string::size_type & pos);
 
   // transform string for level of boundary condition in number
-  Integer TransformInDof(const std::string type_bc);
+ enum TypeBCs TransformInDof(const std::string type_bc);
 
   // read number of nodes for boundary condition
   void ReadMaxnumnodesbc(Integer & nbc);
