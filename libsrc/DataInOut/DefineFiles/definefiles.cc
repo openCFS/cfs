@@ -69,11 +69,11 @@ if (ptWriteResults) delete ptWriteResults;
 
 if (infiletype) delete infiletype;
 
-#ifdef TRACE
-// delete trace;
-#endif
+ delete [] filename;
 
-delete [] filename;
+#ifdef TRACE
+ delete trace;
+#endif
 }
 
 FileType * DefineInOutFiles :: Create_ptFileType()

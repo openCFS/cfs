@@ -69,6 +69,7 @@ WriteResults::~WriteResults()
   if (historyfile) delete [] historyfile;
   delete [] namefile_; 
 
+  delete output;
 }
 
 } // end of namespace

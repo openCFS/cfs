@@ -43,7 +43,6 @@ WriteResultsGMV ::~WriteResultsGMV()
  // write keyword
  (*output) << "endgmv " << std::endl;
 
- delete output; 
  delete [] namedir_;
 }
 

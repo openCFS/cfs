@@ -24,7 +24,7 @@ WriteResultsUnverg ::~WriteResultsUnverg()
  (*trace) << "entering WriteResultsUnverg ::~ WriteResultsUnverg" << std::endl;
 #endif
   
-  if (output) delete output;
+  ;
 }
 
 void WriteResultsUnverg :: WriteGrid(const Integer level)
