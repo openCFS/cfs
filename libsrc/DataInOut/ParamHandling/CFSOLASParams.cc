@@ -161,6 +161,9 @@ namespace CoupledField {
       olas->SetValue( "exportLinSys", true );
       olas->SetValue( "exportLinSysBaseName", doExport[0] );
     }
+    else {
+      olas->SetValue( "exportLinSys", false );
+    }
 
   }
 
