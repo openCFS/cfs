@@ -1,7 +1,6 @@
 #make the libs
-
 driver:
-	@cd $(LIBSRC_DIR)/Driver; $(MAKE) -f Makefile
+	@cd $(LIBSRC_DIR)/Driver; $(MAKE) -f Makefile 
 
 domain:
 	@cd $(LIBSRC_DIR)/Domain; $(MAKE) -f Makefile

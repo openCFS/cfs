@@ -1,8 +1,8 @@
 #ifndef FILE_ANSYSFILE_2002
 #define FILE_ANSYSFILE_2002
 
-#include "filetype.hh"
-#include "grid.hh"
+#include "DataInOut/filetype.hh"
+#include "Domain/grid.hh"
 
 namespace CoupledField
 {

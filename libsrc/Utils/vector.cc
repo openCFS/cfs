@@ -6,7 +6,7 @@
 #include <string>
 
 #include "vector.hh"
-#include "matrix.hh"
+#include "Matrix/matrix.hh"
 namespace CoupledField
 { 
 

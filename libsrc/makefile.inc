@@ -37,9 +37,9 @@ $(LIBB): $(src:.cc=.o)
 	$(CC) $(FLAG_MKSHLIB) -o $@ $(?:.cc=.o) 
 else
 $(LIBB): $(src:.cc=.o)
-	$(AR) $(ARFLAGS) $@ $(?:.cc=.o); 
+	@$(AR) $(ARFLAGS) $@ $(?:.cc=.o); 
 #	-@rm $(?:.cc=.o);  
-	$(RANLIB) $@
+	-@$(RANLIB) $@
 endif
 #
 $(LIB_DIR) :

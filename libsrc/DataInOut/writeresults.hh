@@ -1,7 +1,7 @@
 #ifndef FILE_WRITERESULTS_2002
 #define FILE_WRITERESULTS_2002
 
-#include "grid.hh"
+#include "Domain/grid.hh"
 
 namespace CoupledField
 {

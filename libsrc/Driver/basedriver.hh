@@ -1,7 +1,7 @@
 #ifndef FILE_BASEDRIVER_2001
 #define FILE_BASEDRIVER_2001
 
-#include "domain.hh"
+#include "Domain/domain.hh"
 
 namespace CoupledField
 {

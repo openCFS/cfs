@@ -1,7 +1,7 @@
 #ifndef FILE_SYSTEMMATRIX_2001
 #define FILE_SYSTEMMATRIX_2001
 
-#include "matrix_header.hh"
+#include "Matrix/matrix_header.hh"
 
 namespace CoupledField
 {

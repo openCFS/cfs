@@ -4,7 +4,7 @@
 
 #include "staticdriver.hh"
 
-#include "outGMV.hh"
+#include "DataInOut/GMV/outGMV.hh"
 
 namespace CoupledField
 {
