@@ -16,6 +16,7 @@ class BasePDE;
 class Grid;
 class Elem;
 class BCs;
+class CouplingMemento;
 template<class TYPE> class Vector;
 template<class TYPE> class Matrix;
 
@@ -25,11 +26,24 @@ template<class TYPE> class Matrix;
 class PDECoupling
 {
 
+  // friend declaration
+  friend class CouplingMemento;
+
   // structure for coupling terms
   struct CouplingInterface{
   public:
+    
+    //! constructor
     CouplingInterface();
+    
+    //! copy constructor
+    CouplingInterface(const CouplingInterface & x);
+
+    //! destructor
     ~CouplingInterface();
+
+    //! assignement operator
+    CouplingInterface & operator=(const CouplingInterface & x);
 
     //! name of coupling region
     StdVector<std::string> regions;       
@@ -294,7 +308,29 @@ public:
   virtual Double GetOutputEpsilon(Integer i)
   { return outputInterfaces_[i]->epsilon; }
 
+  // ------------- memento operations  -----------
 
+  //! get the encapsulated state of the Coupling object
+  
+  //! returns the current state of the Coupling object.
+  //! This is needed to
+  //! enable full MultiSequence simulation, where from one step to 
+  //! another the coupling values have to be passed.
+  //! The CouplingMemento object encapsulates this information. 
+  //! Later on the information can be given back to the Coupling object
+  //! with the method SetMemento();
+  //! \param memento (output) Object where the current state gets saved
+  virtual void GetMemento(CouplingMemento & memento);
+  
+  //! set the encapsulated state of the Coupling object
+  
+  //! Set the saved state of the Coupling obejct, which was previously
+  //! stored in a CouplingMemento object. This is needed to
+  //! enable full MultiSequence simulation, where from one step to 
+  //! another the coupling values have to be passed.
+  //! The CouplingMemento object encapsulates this information. 
+  //! \param memento (input) Previously saved state of the coupling object
+  virtual void SetMemento(CouplingMemento & memento); 
 
 protected:
   
