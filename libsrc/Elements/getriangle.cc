@@ -213,7 +213,6 @@ void GeTriangle::CalcJacobian(Jacobian<Point2D> & J, const Integer ip,
  IsSet=TRUE;
  }
 
- Integer i;
  Double aux=0;
 
 J.J[0][0] = DxTransFncAtIP1[ip]*ptCoord[0].x + DxTransFncAtIP2[ip]*ptCoord[1].x

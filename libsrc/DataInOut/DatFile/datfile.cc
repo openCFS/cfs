@@ -208,7 +208,6 @@ void DatFile:: ReadGeneralAnalChoice(Integer * dataGAnalCh,
 #endif
   std::string buf;
   std::string::size_type pos=0;
-  Integer n;
   TakePos(seekStr,pos);
   infile.seekg(pos, ios::beg);
   Char c=' ';
@@ -948,9 +947,9 @@ void DatFile:: ReadElemConnect(Integer elemnum, Integer * connect,
 
 void DatFile::ReadMaxRecord(Integer & maxrecord)
 {
-#ifdef CHECK_DAT
+#ifdef TRACE 
  (*trace)<<" entering DatFile::ReadMaxRecord" << std::endl;
-#endif CHECK_DAT
+#endif  
   std::string::size_type pos=0;
   TakePos("dof-settings",pos);
   infile.seekg(pos, ios::beg);
@@ -963,9 +962,9 @@ void DatFile::ReadMaxRecord(Integer & maxrecord)
 // ------------------ For driver.cc --------------------------------
 void DatFile::ReadIntegrationParam(Double & alpha, Double & beta, Double & gamma)
 {
-#ifdef CHECK_DAT
+#ifdef TRACE 
  (*trace)<<" entering DatFile::ReadIntegrationParam" << std::endl;
-#endif CHECK_DAT
+#endif 
 
   std::string::size_type pos=0;
   TakePos("alpha",pos);
@@ -976,10 +975,9 @@ void DatFile::ReadIntegrationParam(Double & alpha, Double & beta, Double & gamma
 
 void DatFile :: ReadNumStepsAndTimeSteps(Integer & numsteps, Double & dt)
 {
-#ifdef CHECK_DAT
+#ifdef TRACE 
  (*trace)<<" entering DatFile::ReadTimeSteps" << std::endl;
-#endif CHECK_DAT
- 
+#endif 
   std::string::size_type pos=0;
   TakePos("delta-t",pos);
   infile.seekg(pos, ios::beg);

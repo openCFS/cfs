@@ -141,7 +141,7 @@ inline void GridCFS<Dim> :: GetConnection(Integer * p, const Integer l, const In
 #endif
  
  Integer ii;
- Integer stpos=gh[l].Info[gh[l].fp[i]+2];
+// Integer stpos=gh[l].Info[gh[l].fp[i]+2];
  
  Integer fpConnect=gh[l].Info[gh[l].fp[i]+2];
 
