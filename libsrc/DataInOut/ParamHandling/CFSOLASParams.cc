@@ -156,7 +156,7 @@ namespace CoupledField {
 
     // Output Matrix
     StdVector<std::string> doExport;
-    cfs->GetList( "file", doExport, pdename, "exportLinSys" );
+    cfs->GetList( "baseName", doExport, pdename, "exportLinSys" );
     if ( doExport.GetSize() == 1 ) {
       olas->SetValue( "exportLinSys", true );
       olas->SetValue( "exportLinSysBaseName", doExport[0] );
