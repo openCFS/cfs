@@ -119,6 +119,7 @@ void BaseFE :: GetGlobDerivShFncAtIp(Matrix<Double> & Deriv,
 
 
 
+
 void BaseFE :: CalcJacobian(Matrix<Double> & J, 
 			    const std::vector<Double> & LCoord, 
 			    const Matrix<Double> & CornerCoords)

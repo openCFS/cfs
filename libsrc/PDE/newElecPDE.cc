@@ -356,7 +356,7 @@ void ElecPDE::CalcNodeForce(Array<Double> & force,
       
       for (Integer i=0; i<subdoms_.size(); i++)
 	{
-	  if (elems[i]->namesd == subdoms_[i]) 
+	  if (elems[ielem]->namesd == subdoms_[i]) 
 	  epsilon = materialData_[i].GetPermittivity(2,2); 
 	}
       
@@ -396,6 +396,9 @@ void ElecPDE::CalcNodeForce(Array<Double> & force,
   //  Info->PrintVec(sum);
 
 }
+
+
+
 
 
 void ElecPDE::CalcEnergy()
@@ -506,8 +509,12 @@ void ElecPDE::InitCoupling(PDECoupling * Coupling)
   (*trace) << "entering ElecPDE::InitCoupling" << std::endl;
 #endif
 
+  
   PDEisCoupled_ = TRUE;
   ptCoupling_   = Coupling;
+
+  const Integer numCouplings = ptCoupling_->GetNumOutputCouplings();
+  
 
   //check, if geometric nonlinearity is switched of by the user
   GeoUpdate_ = TRUE;
@@ -528,29 +535,33 @@ void ElecPDE::InitCoupling(PDECoupling * Coupling)
   std::vector<std::vector<Integer> > elemNodeToCouplingNode_tmp;
   Array<Double> * values;
 
-  for (Integer i=0; i<ptCoupling_->GetNumOutputCouplings(); i++)
+  F_Interface_.resize(numCouplings);
+  isBoundaryNode_.resize(numCouplings);
+  elemNodeToCouplingNode_.resize(numCouplings);
+  
+
+  for (Integer actCoupling=0; actCoupling<numCouplings; actCoupling++)
     {
       // Initialize arrays for coupling surface elements
-      if (ptCoupling_->GetOutputQuantity(i) == "elecforce")
+      if (ptCoupling_->GetOutputQuantity(actCoupling) == "elecforce" 
+	  || ptCoupling_->GetOutputQuantity(actCoupling) == "interfaceForce")
 	{
-	  ptCoupling_->GetOutputNodes(i, couplingnodes);
+	  ptCoupling_->GetOutputNodes(actCoupling, couplingnodes);
 	  if (couplingnodes == 0)
 	    std::cerr << "Couplingnodes = 0!!!!" << std::endl;
 	  
 	  ptgrid_->GetInterfaceNeighbours(*couplingnodes, subdoms_, interface_tmp, actlevel_);
 	  
-	  F_Interface_.push_back(interface_tmp);
+	  F_Interface_[actCoupling] = interface_tmp;
 
 	  // Intialize the memory
-	  ptCoupling_->SetOutputDof(i, Dim_);
+	  ptCoupling_->SetOutputDof(actCoupling, Dim_);
 	 
 	  // Assign arrays for element boundary nodes
 	  isBoundaryNode_tmp.clear();
 	  isBoundaryNode_tmp.resize(interface_tmp.size());
 	  elemNodeToCouplingNode_tmp.clear();
 	  elemNodeToCouplingNode_tmp.resize(interface_tmp.size());
-	  //numBoundaryNodes_tmp.clear();
-	  //numBoundaryNodes_tmp.resize(interface_tmp.size());
 	 
 	  
 	  for (Integer ielem=0; ielem<interface_tmp.size(); ielem++)
@@ -564,26 +575,21 @@ void ElecPDE::InitCoupling(PDECoupling * Coupling)
 
 	      // Determine Boundary Nodes
 	      for (Integer ielemnode=0; ielemnode<isBoundaryNode_tmp[ielem].size(); ielemnode++)
-		{
-		  for (Integer inodes=0; inodes<(*couplingnodes).size(); inodes++)
+		for (Integer inodes=0; inodes<(*couplingnodes).size(); inodes++)
+		  if (interface_tmp[ielem]->connect[ielemnode] == (*couplingnodes)[inodes] )
 		    {
-		      if (interface_tmp[ielem]->connect[ielemnode] == (*couplingnodes)[inodes] )
-			{
-			  isBoundaryNode_tmp[ielem][ielemnode] = 1;
-			  elemNodeToCouplingNode_tmp[ielem][ielemnode] = inodes;
-			  //numBoundaryNodes_tmp[ielem] +=1;
-			  break;
-			} // end if
-		    } // end for (inodes)
-		} // end for (ielemnodes)
+		      isBoundaryNode_tmp[ielem][ielemnode] = 1;
+		      elemNodeToCouplingNode_tmp[ielem][ielemnode] = inodes;
+		      break;
+		    } // end if
+
 	    } // end for (ielems)
 
-	  isBoundaryNode_.push_back(isBoundaryNode_tmp);
-	  elemNodeToCouplingNode_.push_back(elemNodeToCouplingNode_tmp);
-	  //numBoundaryNodes_.push_back(numBoundaryNodes_tmp);	    
+	  isBoundaryNode_[actCoupling] = isBoundaryNode_tmp;
+	  elemNodeToCouplingNode_[actCoupling]  = elemNodeToCouplingNode_tmp;
 	} // end if
             
-    } // end for (i)
+    } // end for (actNode)
 
 
   iterCoupledCounter_ = 0;
@@ -598,39 +604,44 @@ void ElecPDE::CalcOutputCoupling()
 #endif
 
   std::string quantity;
-  std::vector<Integer> * couplingnodes;
-  Array<Double> * values;
+  std::vector<Integer> * couplingNodes     = NULL;
+  Array<Double> * values = NULL;
   Integer forcesCount = 0;
 
   // loop over all output coupling quantities
-  for (Integer i=0; i<ptCoupling_->GetNumOutputCouplings(); i++)
+  for (Integer actCoupling=0; actCoupling<ptCoupling_->GetNumOutputCouplings(); actCoupling++)
     {
-      quantity = ptCoupling_->GetOutputQuantity(i);
+      quantity = ptCoupling_->GetOutputQuantity(actCoupling);
       
-      switch(ptCoupling_->GetOutputType(i))
+      switch(ptCoupling_->GetOutputType(actCoupling))
 	{
 	  
 	case NODE:
 	  
-	  ptCoupling_->GetOutputNodes(i, couplingnodes);
-	  ptCoupling_->GetOutputValues(i, values);
+	  ptCoupling_->GetOutputNodes(actCoupling, couplingNodes);
+	  ptCoupling_->GetOutputValues(actCoupling, values);
 	  
 	  if (quantity == "elecpotential")
-	    NodeSolutionToCoupling(*values, *couplingnodes);
+	    NodeSolutionToCoupling(*values, *couplingNodes);
+
 	    
 	  if (quantity == "elecforce")
 	    {
 	      CalcNodeForce(*values, 
-			    *couplingnodes, 
+			    *couplingNodes, 
 			    F_Interface_[forcesCount], 
 			    isBoundaryNode_[forcesCount], 
 			    elemNodeToCouplingNode_ [forcesCount]);
 	      
 	      forcesCount++;
 	    }
-	  
-	  break;
 
+
+	  if (quantity == "interfaceForce")
+	    CalcInterfaceForces(actCoupling);
+	    	  
+	  break;
+	  
 	case ELEM:
 	  Error("No Element coupling output", __FILE__,__LINE__);
 	}
@@ -655,9 +666,166 @@ Boolean ElecPDE::HasOutput(std::string output)
   if (output == "elecfield")
     return TRUE;
 
+  if (output == "interfaceForce")
+    return TRUE;
+   
   return FALSE;
 
 }
+
+
+
+void ElecPDE::CalcInterfaceForces(Integer actCoupling)
+{
+#ifdef TRACE
+  (*trace) << "entering ElecPDE::CalcInterfaceForces" << std::endl;
+#endif
+
+  std::vector<Integer> *      couplingNodes     = NULL;
+  Array<Double> *             elemCouplingSols  = NULL;
+  std::vector<Elem*> *        couplingElems     = NULL;
+  std::vector<Elem*> *        interfaceVolElems = NULL;
+  std::vector<MaterialData*>* couplingMaterials = NULL;
+
+  ptCoupling_->GetOutputNodes    (actCoupling, couplingNodes);
+  ptCoupling_->GetOutputValues   (actCoupling, elemCouplingSols);
+  ptCoupling_->GetOutputElements (actCoupling, couplingElems);
+  ptCoupling_->GetOutputMaterials(actCoupling, couplingMaterials);
+  ptCoupling_->GetOutputNeighbourElems(actCoupling, interfaceVolElems);
+ 
+  Integer couplingDof = ptCoupling_->GetOutputDof(actCoupling);
+  
+
+   
+  elemCouplingSols->init();
+
+  for (Integer actElem=0; actElem < couplingElems->size(); actElem++)
+    {
+      Elem * actCoupleElem     = (*couplingElems)[actElem];
+      Elem * actVolElem        = (*interfaceVolElems)[actElem];
+      BaseFE * ptVolElem       = actVolElem->ptElem;
+      BaseFE * ptCoupleElem    = actCoupleElem->ptElem;
+      
+      Vector<Integer> connecth = actCoupleElem->connect;
+      const Integer spaceDim   = 2;
+      
+      if (ptCoupleElem->GetDim() == 3)
+	Error("CalcInterfaceForces only implemented for 2D!", __FILE__, __LINE__);
+
+
+      Matrix<Double> ptCoord; 
+      Vector<Integer> connect_PDE;
+
+      GetElemCoords(connecth, ptCoord, actlevel_);
+      Mesh2PDENode(connect_PDE, connecth, Mesh2PDENode_);
+
+
+
+      // get correct permittivity belonging to the neighbouring element of the interface
+      Double permittivity = (*couplingMaterials)[actElem]->GetPermittivity(2,2);
+      mycout << "Permittivity of interface = " << permittivity << myendl;
+
+//       F_Interface_;
+//       elemNodeToCouplingNode_; 
+
+
+
+      
+
+      std::vector<Integer> boundNodesOfVolElem;
+      
+      Integer ptCount = 0;
+      for (Integer nNode=0; nNode < isBoundaryNode_[actCoupling][actElem].size(); nNode++)
+	if (isBoundaryNode_[actCoupling][actElem][nNode] == 1)
+	  boundNodesOfVolElem.push_back(nNode);
+      
+      
+      if (boundNodesOfVolElem.size() != 2)
+	Error("In CalcInterfaceForces boundary nodes != 2!", __FILE__, __LINE__);
+
+
+      // the normal vector points outwards of the MECHANICAL domain
+      // (see. Kaltenbacher, "Num. Sim. of Mechatr. Act. & Sens." chapter 8.2)
+      Vector<Double> n;
+      CalcLineNormalVec(n, *actCoupleElem, *(*interfaceVolElems)[actElem]); // points outward own domain
+
+
+      ElecFieldOp elecFieldOp(ptgrid_, this, &Mesh2PDENode_, &sol_[0], actlevel_, isaxi_);
+
+
+
+      for (Integer actIP=1; actIP <= ptCoupleElem->GetNumIntPoints(); actIP++)
+	{
+	  std::vector<Double> shpFncAtIp;
+	  std::vector<Double> coordAtIP;
+	  ptCoupleElem->GetShFncAtIp(shpFncAtIp, actIP);
+	  coordAtIP = ptCoord * shpFncAtIp;
+	  
+	  Matrix<Double> boundElLocCoords;
+	  ptCoupleElem->GetLocalCornerCoords(boundElLocCoords);  //coords: x:number, y:Dim
+
+	  mycout << "local coords of interface elem" << myendl << boundElLocCoords << myendl;
+	  
+	  Matrix<Double> volElLocCoords;
+	  ptVolElem->GetLocalCornerCoords(volElLocCoords); //coords: x:number, y:Dim
+	  
+
+	  std::vector<Double> lCoord(spaceDim); // coords, at which the e-field has to be calculated
+	  Vector<Double> tempE;       // value of a field at lCoord
+
+	  // relPosIP = normed distance in the range of 0..1 between IP 1 and coord 1 of 1D element
+	  const Double locElemLen = boundElLocCoords[0][1] - boundElLocCoords[0][0];
+	  const Double relPosIP = (coordAtIP[0] - boundElLocCoords[0][0]) / locElemLen;
+	  
+	  
+	  // local x-coord of integration point of boundary element
+	  Integer coordIndex = 0;  // x-coord	   
+	  lCoord[coordIndex] = volElLocCoords [coordIndex][ boundNodesOfVolElem[0] ] + 
+	    relPosIP * (volElLocCoords[coordIndex] [boundNodesOfVolElem[0] ]- volElLocCoords[coordIndex] [boundNodesOfVolElem[1] ]);
+
+	  coordIndex = 1;  //y-coord
+	  lCoord[coordIndex] = volElLocCoords[coordIndex][boundNodesOfVolElem[0] ] + 
+	    relPosIP * (volElLocCoords[coordIndex][boundNodesOfVolElem[0] ] - volElLocCoords[coordIndex][boundNodesOfVolElem[1] ]);
+
+	  mycout << "Pos of local coord: " << lCoord << myendl;
+	  
+	  elecFieldOp.CalcElemElecField(tempE, actCoupleElem, lCoord);
+
+      
+
+
+// 	  if (isaxi_)
+// 	  {
+// 	    std::vector<Double> shpFncAtIp;
+// 	    std::vector<Double> coordAtIP;
+// 	    ptCoupleElem->GetShFncAtIp(shpFncAtIp, actIP);
+// 	    coordAtIP = ptCoord * ShpFncAtIp;
+//             jacDet *= 2 * PI * CoordAtIP[0];
+// 	  }
+
+	}
+
+      
+
+
+//       // copy result into final solution vector
+//       for (Integer actNode=0; actNode < ptCoord.size_row(); actNode++)
+// 	{
+// 	  Integer nodePos = 0;      
+	  
+// 	  while(connecth[actNode] != (*couplingNodes)[nodePos] && 
+// 		nodePos < couplingNodes->size()) 
+// 	    nodePos++;
+	  
+// 	  for (Integer actDof=0; actDof < couplingDof ; actDof++)  
+// 	    (*elemCouplingSols)[actDof][nodePos] += tempE[actNode] * n[actDof];
+// 	}      
+    }
+}
+
+
+
+
 
 
 
