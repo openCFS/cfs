@@ -132,6 +132,28 @@
 
     </magnetic>
 
+    <!-- Template for acoustic PDE -->
+    <acoustic>
+  
+      <region name="dummyRegion"/>
+
+      <solver>
+        <matrix/>
+      </solver>
+
+    </acoustic> 
+
+    <!-- Template for acoustic PDE -->
+    <smooth>
+  
+      <region name="dummyRegion"/>
+
+      <solver>
+        <matrix/>
+      </solver>
+
+    </smooth>
+
   </pdeList>
 
   <transient>
