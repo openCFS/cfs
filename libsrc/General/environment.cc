@@ -21,8 +21,7 @@ case Jacobi: out << " Jacobi "; break;
 case SSOR: out << " SSOR "; break;
 case LU: out << " LU "; break;
 case non: out << " non "; break;
-
-return out;
 }
+return out;
 } // end of ostream
 }
