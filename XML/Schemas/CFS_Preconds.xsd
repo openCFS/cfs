@@ -139,9 +139,9 @@
             minOccurs="0"/>
           <xsd:element name="cycleType" minOccurs="0">
             <xsd:simpleType>
-              <xsd:restriction base="xsd:integer">
-                <xsd:enumeration value="1"/>
-                <xsd:enumeration value="2"/>
+              <xsd:restriction base="xsd:token">
+                <xsd:enumeration value="V-cycle"/>
+                <xsd:enumeration value="W-cycle"/>
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:element>
