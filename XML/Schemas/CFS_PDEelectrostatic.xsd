@@ -182,6 +182,7 @@
   <xsd:simpleType name="DT_ElecNonLin">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="no"/>
+      <xsd:enumeration value="geo"/>
     </xsd:restriction>
   </xsd:simpleType>
 
