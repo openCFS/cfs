@@ -5,6 +5,19 @@
 #include "acoustic2dPDE.hh"
 //#include "baseelem.hh"
 
+#ifdef ADAPTGRID
+#include "Vertex.h"
+#include "Edge.h"
+#include "Element.h"
+#include "Tetrahedron.h"
+#include "Octahedron.h"
+#include "MultilevelGrid.h"
+#include "GeometrySensor.h"
+#include "MeshReader.h"
+#include "TetrahedronMeasure.h"
+#include "MeshWriter.h"
+#endif
+
 namespace CoupledField
 {
 
@@ -46,10 +59,16 @@ public:
   //!
   void GetCoordNodesElem(const Vector<Integer> connect, Dim * ptCoord, const Integer level);  
 
+#ifdef ADAPTGRID
+  void putNodesFromGrid_RG(grd::MultilevelGrid * grid, const Integer level);
+
+ void putElemsFromGrid_RG(grd::MultilevelGrid * grid, const Integer level);
+#endif
+
   //! Iterators
   // template<class T> void forEachElemSd(T & f,const std::string subdomain);
-  void forEachElemSd(PutElemMatInAlgSys & f,const std::string subdomain);
-  void forEachElemSd(PutElemMatAlgSysElst3d & f,const std::string subdomain);
+  //  void forEachElemSd(PutElemMatInAlgSys & f,const std::string subdomain);
+  // void forEachElemSd(PutElemMatAlgSysElst3d & f,const std::string subdomain);
 
 protected:
 private:

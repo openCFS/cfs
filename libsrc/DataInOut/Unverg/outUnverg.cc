@@ -29,6 +29,9 @@ WriteResultsUnverg ::~WriteResultsUnverg()
 
 void WriteResultsUnverg :: WriteGrid(const Integer level)
 {
+#ifdef TRACE
+  (*trace) << " entering WriteResultsUnverg :: WriteGrid " << std::endl;
+#endif
  if (!output) Error(" File for output results is not initialized");
  Dataset666(level);
  Dataset781(level);
@@ -62,7 +65,8 @@ void  WriteResultsUnverg::Dataset781(const Integer level)
  (*output) << std::setw(6) << -1 << std::endl << std::setw(6) << 781 << std::endl;
 
  Integer dim=ptgrid->GetDim();
- Integer maxnumnodes=ptgrid-> GetMaxnumnodes(level);
+ Integer maxnumnodes=ptgrid->GetMaxnumnodes(level);
+ std::cout << " maxnumnodes " << maxnumnodes << std::endl;
 
  (*output).setf(std::ios::scientific);
  (*output).precision(16);
@@ -106,9 +110,9 @@ void  WriteResultsUnverg::Dataset780(const Integer level)
  (*output) << std::setw(6) << -1 << std::endl << std::setw(6) << 780 << std::endl;
  Integer dim=ptgrid->GetDim();
 
- Integer maxnumnodes=ptgrid-> GetMaxnumnodes(level);
+ Integer maxnumelem=ptgrid->GetMaxnumElem(level);
 
- Integer maxnumelem=ptgrid-> GetMaxnumElem(level);
+ std::cout << " maxnumelem " << maxnumelem << std::endl;
 
  Vector<Integer> connect;
 

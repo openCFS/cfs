@@ -22,10 +22,10 @@ Acoustic2dPDE::Acoustic2dPDE(AbstractAlgebraicSys * ptalgsys, Grid * aptgrid, Ma
   dofspernode_=1;
   ptgrid_=aptgrid;
 
-  Char * name="result";
-  ptOutput=new WriteResultsUnverg(name);
-  ptOutput->Init(ptgrid_);
-  ptOutput->WriteGrid(0);  
+//   Char * name="result";
+//   ptOutput=new WriteResultsUnverg(name);
+//   ptOutput->Init(ptgrid_);
+//   ptOutput->WriteGrid(0);  
 
   laststepcalc_=0;
   size_=ptgrid_->GetMaxnumnodes(0);
@@ -136,19 +136,75 @@ void Acoustic2dPDE::SetupMatrices(const Integer level)
 #ifdef TRACE
   (*trace) << "entering Acoustic2dPDE::SetupMatrices" << std::endl;
 #endif
- 
+
+  Matrix<Double> elemmat;
+  Point2D * ptCoord; 
+
+  BaseElem * ptEl;
+
+  Integer matrix_stiff=2;
+  Integer matrix_mass=5;
+
   Vector<Double> coeffm, coeffst;
   CalcCoeff(coeffm, coeffst);
 
- Integer i;
+ Vector<Integer> connecth;
+ std::vector<Elem> elemssd;
+
+ Integer i, j;
  for (i=0; i<subdoms_.size(); i++)
 {
-  PutElemMatInAlgSys putelmatalgsys(ptalgsys_,ptgrid_,coeffm[i],coeffst[i],as_sysid_,level);
+ ptgrid_->GetElemSD(elemssd,subdoms_[i],level);
 
-  ptgrid_->forEachElemSd(putelmatalgsys,subdoms_[i]);
+ for (j=0; j< elemssd.size(); j++)
+{
+  ptEl=elemssd[j].ptElem;
 
-}
+  BaseForm<Point2D> * bilinear_stiff = new LaplaceInt<Point2D>(ptEl,1);
+  BaseForm<Point2D> * bilinear_mass  = new MassInt<Point2D>(ptEl,1);
 
+  connecth=elemssd[j].connect;
+  
+  ptCoord=new Point2D[connecth.size()];
+//  ptgrid_->GetCoordOfNodesElem(i,level,connecth.size(),ptCoord);
+  ptgrid_->GetCoordNodesElem(connecth,ptCoord,level); 
+
+  // stiffness part
+  bilinear_stiff->CalcElemMatrix(ptCoord, elemmat);
+
+  elemmat*=coeffst[i];
+
+#ifdef DEBUG
+      (*debug) << "Stiffnessmatrix, ElementNumber  " <<   i << std::endl;
+
+      (*debug) << elemmat << std::endl;
+#endif     
+
+  ptalgsys_->PutElemMatAlgSys(elemmat.getinarray(), connecth.get(), connecth.size(), as_sysid_, as_sysid_, matrix_stiff);
+
+      // mass part
+  bilinear_mass->CalcElemMatrix(ptCoord, elemmat);
+
+  elemmat*=coeffm[i];
+
+#ifdef DEBUG
+      (*debug) << "Massmatrix, ElementNumber  " << i << std::endl;
+
+      (*debug) << elemmat << std::endl;
+#endif
+      
+  ptalgsys_->PutElemMatAlgSys(elemmat.getinarray(), connecth.get(), connecth.size(), as_sysid_, as_sysid_,matrix_mass);
+
+  
+  delete bilinear_stiff;
+  delete bilinear_mass;
+  delete [] ptCoord;
+
+  }
+ }
+#ifdef TRACE
+  (*trace) << "Leaving Acoustic2dPDE::SetupMatrices" << std::endl;
+#endif
 }
 
 void Acoustic2dPDE::SetBCs(BCs * ptBCs, const Integer level, const Integer update, const Double atime)
@@ -347,6 +403,7 @@ void Acoustic2dPDE::CalcThirdDerivateFromEquation(Vector<Double> & result)
   ptalgsys_->UpdateRHS(as_sysid_,as_sysid_,matrix_id, help.get());
 
   update=1; // use boundary condition at this time step
+
 //  SetBCs(ptBCs,level,update,lasttimecalc_);
   ptalgsys_->ComputePrecond(job,as_sysid_);
   ptalgsys_->SolveAlgSys(as_sysid_);
@@ -486,6 +543,27 @@ Acoustic2dPDE::~Acoustic2dPDE()
  if (ptSpaceError_) delete ptSpaceError_;
 }
 
+} // end of namespace
+
+// void Acoustic2dPDE::SetupMatrices(const Integer level)
+// {
+// #ifdef TRACE
+//   (*trace) << "entering Acoustic2dPDE::SetupMatrices" << std::endl;
+// #endif
+ 
+//   Vector<Double> coeffm, coeffst;
+//   CalcCoeff(coeffm, coeffst);
+
+//  Integer i;
+//  for (i=0; i<subdoms_.size(); i++)
+// {
+//   PutElemMatInAlgSys putelmatalgsys(ptalgsys_,ptgrid_,coeffm[i],coeffst[i],as_sysid_,level);
+
+//   ptgrid_->forEachElemSd(putelmatalgsys,subdoms_[i]);
+// }
+// }
+
+/*
 void PutElemMatInAlgSys::operator()(Elem t)
 {
   Matrix<Double> elemmat;
@@ -525,84 +603,5 @@ void PutElemMatInAlgSys::operator()(Elem t)
   delete bilinear_stiff;
   delete bilinear_mass;
   delete [] ptCoord;
-}
-
-} // end of namespace
-
-/*
-void Acoustic2dPDE::SetupMatrices(const Integer level)
-{
-#ifdef TRACE
-  (*trace) << "entering Acoustic2dPDE::SetupMatrices" << std::endl;
-#endif
-
-  Matrix<Double> elemmat;
-  Point2D * ptCoord; 
-
-  BaseElem * ptEl;
-
-  Integer matrix_stiff=2;
-  Integer matrix_mass=5;
-
-  Vector<Double> coeffm, coeffst;
-  CalcCoeff(coeffm, coeffst);
-
- Vector<Integer> connecth;
- std::vector<Elem> elemssd;
-
- Integer i, j;
- for (i=0; i<subdoms_.size(); i++)
-{
- ptgrid_->GetElemSD(elemssd,subdoms_[i],level);
-
- for (j=0; j< elemssd.size(); j++)
-{
-  ptEl=elemssd[j].ptElem;
-
-  BaseForm<Point2D> * bilinear_stiff = new LaplaceInt<Point2D>(ptEl,1);
-  BaseForm<Point2D> * bilinear_mass  = new MassInt<Point2D>(ptEl,1);
-
-  connecth=elemssd[j].connect;
-  
-  ptCoord=new Point2D[connecth.size()];
-//  ptgrid_->GetCoordOfNodesElem(i,level,connecth.size(),ptCoord);
-  ptgrid_->GetCoordNodesElem(connecth,ptCoord,level);  
-
-  // stiffness part
-  bilinear_stiff->CalcElemMatrix(ptCoord, elemmat);
-
-  elemmat*=coeffst[i];
-
-#ifdef DEBUG
-      (*debug) << "Stiffnessmatrix, ElementNumber  " <<   i << std::endl;
-
-      (*debug) << elemmat << std::endl;
-#endif     
-
-  ptalgsys_->PutElemMatAlgSys(elemmat.getinarray(), connecth.get(), connecth.size(), as_sysid_, as_sysid_, matrix_stiff);
-
-      // mass part
-  bilinear_mass->CalcElemMatrix(ptCoord, elemmat);
-
-  elemmat*=coeffm[i];
-
-#ifdef DEBUG
-      (*debug) << "Massmatrix, ElementNumber  " << i << std::endl;
-
-      (*debug) << elemmat << std::endl;
-#endif
-      
-  ptalgsys_->PutElemMatAlgSys(elemmat.getinarray(), connecth.get(), connecth.size(), as_sysid_, as_sysid_,matrix_mass);
-
-  
-  delete bilinear_stiff;
-  delete bilinear_mass;
-  delete [] ptCoord;
-
-  }
- }
-#ifdef TRACE
-  (*trace) << "Leaving Acoustic2dPDE::SetupMatrices" << std::endl;
-#endif
 }
 */

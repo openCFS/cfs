@@ -66,27 +66,27 @@ void main(int argc, char *argv[])
 //  domain->TestGrid();
 
   //choose your driver
-  BaseDriver * ptdriver;  
-  std::string analysis;
-  conf->get("analysis", analysis);
-  if (analysis=="static")  ptdriver = new StaticDriver(domain);
-  else  ptdriver = new TransientDriver(domain);
+//   BaseDriver * ptdriver;  
+//   std::string analysis;
+//   conf->get("analysis", analysis);
+//   if (analysis=="static")  ptdriver = new StaticDriver(domain);
+//   else  ptdriver = new TransientDriver(domain);
 
-  //solve your problem
-  std::string adaptTimeOn, adaptSpaceOn;
-  conf->get("adapttime",adaptTimeOn,"Acoustic");
-  conf->get("adaptspace",adaptSpaceOn,"Acoustic");
+//   //solve your problem
+//   std::string adaptTimeOn, adaptSpaceOn;
+//   conf->get("adapttime",adaptTimeOn,"Acoustic");
+//   conf->get("adaptspace",adaptSpaceOn,"Acoustic");
 
-  if (adaptTimeOn == "yes")  ptdriver->SolveProblemAdapt();
-  else
-    if (adaptSpaceOn == "yes") { ptdriver->SolveProblemAdaptSpace();}
-       else ptdriver->SolveProblem();
+//   if (adaptTimeOn == "yes")  ptdriver->SolveProblemAdapt();
+//   else
+//     if (adaptSpaceOn == "yes") { ptdriver->SolveProblemAdaptSpace();}
+//        else ptdriver->SolveProblem();
     
 
   oClockTotal.ClockCount(MyClock::end,"Total time");
 
 /// Putzen
-  if (ptdriver) delete ptdriver;
-  if (ptMaterial) delete ptMaterial;
+//   if (ptdriver) delete ptdriver;
+//   if (ptMaterial) delete ptMaterial;
   if (ptDefineFiles) delete ptDefineFiles; // it should be deleted the last
 }

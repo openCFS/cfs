@@ -29,6 +29,9 @@ public:
   //!
   void RefineMesh();
 
+  //!
+  Boolean TestLocError(grd::Element * t);
+
 private:
   //!
   Double tol_, theta_;
@@ -51,6 +54,20 @@ inline AcousticSpaceErrorEstimator::~AcousticSpaceErrorEstimator()
 #endif 
 ;
 }
+
+// class SetRefFlagAcoustic
+// {
+// public:
+
+//   SetRefFlag(AcousticSpaceErrorEstimator * aptASEE){ ptSpaceError_=apASEE;}
+//   ~SetRefFlag(){;}
+
+//  void operator() (grd::Element * t)
+//  {
+//   t->markForRefinement();
+//  }
+
+// };
 
 } // end of namespace
 

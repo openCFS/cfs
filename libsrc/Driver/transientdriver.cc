@@ -312,7 +312,7 @@ void TransientDriver :: SolveProblemAdaptSpace()
       while (ptSpaceError->TestError() && numrepeat != maxnumrepeat)
       {
        ptSpaceError->RefineMesh();
-       ptdomain_->Update();
+       ptdomain_->Update(); // update BCs and AlgSys
 
   /*
   Char * name="testref";

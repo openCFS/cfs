@@ -4,6 +4,12 @@
 #include "tools.hh"
 #include "spaceerror.hh"
 
+#ifdef ADAPTGRID
+#include "Vertex.h"
+#include "Edge.h"
+#include "Element.h"
+#endif
+
 namespace CoupledField
 {
 
@@ -25,6 +31,9 @@ public:
 
   //!
   virtual void RefineMesh()=0;
+
+  //!
+  virtual Boolean TestLocError(grd::Element * t)=0;
 
 protected:
   //!

@@ -30,6 +30,9 @@ public:
   //!
   Integer GetNumNodesLevel(const std::string level, const Integer lev);
 
+  //!
+  void BCs :: printBCs(const Integer alevel=-1);
+
 protected:
 
 private:
@@ -40,6 +43,9 @@ private:
 
   //!
    FileType* InFile_;
+
+  //!
+  Integer toplevel_;
 };
 
 }

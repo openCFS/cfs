@@ -7,7 +7,6 @@
 namespace CoupledField
 {
 
-
 struct Elem
 {
   BaseElem * ptElem;
@@ -16,8 +15,7 @@ struct Elem
 };
 
 
-class PutElemMatInAlgSys;
-class PutElemMatAlgSysElst3d;
+  class SetRefFlag;
 
 /// Class for working with grid
 class Grid
@@ -58,6 +56,10 @@ public:
   //! return dimension of mesh
   virtual Integer GetDim()=0;
 
+  //! update nodes for boundary conditions
+  virtual void UpdateBCs(std::list<Integer> * data, std::list<Integer> * result, std::vector<std::string> )
+  { Error(" Not implemented",__FILE__,__LINE__);}
+
     //! Here we mark elements for refinement: ei - number of elem
   virtual void SetRefinementFlag(const Integer ei)
   { Error(" Not implemented",__FILE__,__LINE__);}
@@ -80,11 +82,15 @@ public:
   virtual void GetCoordNodesElem(const Vector<Integer> connect, Point3D * ptCoord, const Integer level)
   { Error(" Not implemented",__FILE__,__LINE__);}
 
-  virtual void forEachElemSd(PutElemMatInAlgSys & f,const std::string subdomain)
-{ Error(" Not implemented",__FILE__,__LINE__);}
 
- virtual void forEachElemSd(PutElemMatAlgSysElst3d & f,const std::string subdomain)
-{ Error(" Not implemented",__FILE__,__LINE__);}
+  virtual void forEachElemSd(SetRefFlag & f,const std::string subdomain)
+   { Error(" Not implemented",__FILE__,__LINE__);}
+
+ //  virtual void forEachElemSd(PutElemMatInAlgSys & f,const std::string subdomain)
+// { Error(" Not implemented",__FILE__,__LINE__);}
+
+//  virtual void forEachElemSd(PutElemMatAlgSysElst3d & f,const std::string subdomain)
+// { Error(" Not implemented",__FILE__,__LINE__);}
 
 protected:
 

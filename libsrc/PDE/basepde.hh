@@ -71,6 +71,8 @@ public:
   //! Create pointer to according class of space error estimation
   virtual SpaceErrorEstimator * CreatePtSpaceError(){ Error("Function CreatePtSpaceError is not overloaded in this class");}
 
+  virtual std::vector<std::string> * getSDsPDE(){ return &subdoms_;}
+
   //!
   virtual const Vector<Double> & getS() const =0;
 
