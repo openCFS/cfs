@@ -19,9 +19,15 @@ AcousticTimeErrorEstimator::AcousticTimeErrorEstimator(BasePDE * aptPDE)
   thirddersol_.Resize(size);
   thirddersol_.Init();
 
+  counter_=0;
+
   // read tolerance for relative error
   conf->get("tolrelerr",tol_,"Acoustic");
+  conf->get("theta", theta_, "Acoustic");
 
+  // read parameters for coarsing strategy
+  conf->get("coarsbeta",beta_,"Acoustic");
+  conf->get("numrepeat", numrepeat_,"Acoustic");
 }
 
 void AcousticTimeErrorEstimator::CalcError(const Double dt)
@@ -66,10 +72,7 @@ void AcousticTimeErrorEstimator::ChangeStep(Double & dt)
   (*trace) << "entering AcousticTimeErrorEstimator::ChangeStep" << std::endl;
 #endif
 
-  Double theta; 
-  conf->get("theta", theta, "Acoustic");
-
-  Double help1=theta*tol_/relativeerror_;
+  Double help1=theta_*tol_/relativeerror_;
   Double help=std::exp(0.333333333*std::log(help1));
   dt*=help;
 }
@@ -84,9 +87,14 @@ Boolean AcousticTimeErrorEstimator::TestError(const Double dt)
 
  std::cout << "relativeerror" << relativeerror_ << " tolerance " << tol_ << std::endl;
 
- if (relativeerror_<=tol_) return FALSE;
- else return TRUE;
-
+ if (relativeerror_<=beta_*tol_)
+   {  counter_++;
+      if ( counter_== numrepeat_ )
+       { counter_=0; return TRUE;}
+   }   
+ else if (relativeerror_<= tol_)
+       { counter_=0; return FALSE; }
+      else { counter_=0; return TRUE;}
 }
 
 } // end of namespace
