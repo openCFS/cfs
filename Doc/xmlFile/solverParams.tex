@@ -1,0 +1,232 @@
+%
+% Specifying solver parameters via XML parameter file
+%
+\chapter{Solver Parameters}
+%
+%
+\section{Interface between CFS++ and OLAS}
+%
+%
+This section deals with specifying solvers and preconditioners for the linear
+systems associated with the solution of the different PDEs. It is important to
+note at this point that these parameters are of no importance in CFS++ itself,
+but will only be passed on to the underlying linear algebra system OLAS. The
+necessary interface in CFS++ is proviede by the CFSOLASParams class.
+
+Note that all parameters that can be specified for the individual solvers and
+preconditioners are optional. Contrary to the policy in other cases,
+default values for missing parameters are currently not specified via the XML
+Schema definition and the XMLParamHandler class, but are prescribed in the
+SetDefaultParams() methods of the OLAS\_Params class, which constitutes the
+method for shuffling parameters from CFS++ to OLAS. See this file or the
+doxygen documentation of OLAS for the defaults.
+%
+%
+%
+%
+\section{Basic specification}
+%
+%
+The PDE section may contain a \xml{solver} element. The element is optional
+and can be used to choose a solution algorithm for the linear system
+associated to the PDE and in the case of iterative solvers also a
+preconditioning method. The two choices are specified as the \xml{type}
+and \xml{precond} attributes of the \xml{solver} element. The following two
+tables give an overview on the currently available choices for solver and
+preconditioner:
+%
+%
+\begin{center}
+\begin{tabular}{lp{0.65\textwidth}}
+\hline\noalign{\smallskip}
+\multicolumn{2}{c}{Currently available choices for type attribute of solver
+element}\\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+Attribute value & solver\\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+Direct        & direct solution (only supported for LAS)\\
+Richardson    & richardson iteration\\
+CG	      & conjugate gradient algorithm\\
+QMR	      & quasi-minimal residual method\\
+hyprePCG      & hypre's version of the classical conjugate gradient algorithm\\
+hypreGMRES    & hypre's version of the generalised minimal residual method\\
+hypreBICGSTAB & hypre's version of the stabilised bi-conjuigate gradient
+                method\\
+lapackLU      & direct solution via LAPACK\\
+\noalign{\smallskip}\hline
+\end{tabular}
+\end{center}
+%
+%
+\begin{center}
+\begin{tabular}{lp{0.65\textwidth}}
+\hline\noalign{\smallskip}
+\multicolumn{2}{c}{Currently available choices for precond attribute of solver
+element}\\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+Attribute value & preconditioner\\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+noPrecond   & no preconditioning (for direct solvers)\\
+Id	    & preconditioning with identity matrix, i.e. no preconditioning
+              (for iterative solvers)\\
+MG	    & proprietory algebraic multigrid method of OLAS\\
+Jacobi	    & plain Jacobi preconditioning\\
+SSOR	    & symmetric successive over-relaxation\\
+ILU	    & incomplete LU decomposition using ILU(0)\\
+hypreJacobi & plain Jacobi in hypre\\
+hypreAMG    & hypre's algebraic multigrid method\\
+hypreILU    & hypre's ILU preconditioner Euclid, ILU(k) currently\\
+hypreSPAI   & hypre's SPAI preconditioner ParaSails \\
+\noalign{\smallskip}\hline
+\end{tabular}
+\end{center}
+%
+%
+The default values for \xml{type} and \xml{precond} are \xml{Direct} and
+\xml{noPrecond}.
+%
+%
+\section{Parameters for special solvers}
+\subsection{CG}
+Setting \xml{type} to \xml{CG} selects the native preconditioned conjugate
+gradient method implemented of OLAS.
+%
+%
+\begin{center}
+\begin{tabular}{lcp{0.5\textwidth}}
+\hline\noalign{\smallskip}
+element & range of values & meaning \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+tol     & $> 0$        & threshold for stopping criterion\\
+maxIter & $\mathbb{N}$ & maximal number of iterations\\
+\noalign{\smallskip}\hline
+\end{tabular}
+\end{center}
+%
+%
+\subsection{hypreGMRES}
+\subsection{hypreBICGSTAB}
+\subsection{hyprePCG}
+\subsection{lapackLU}
+%
+%
+\begin{center}
+\begin{tabular}{lcp{0.5\textwidth}}
+\hline\noalign{\smallskip}
+element & range of values & meaning \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+tryScaling & yes, no & if set to yes, we let LAPACK try to improve the
+                       condition number of the linear system by scaling the
+                       rows and columns of the matrix before computing the
+                       decomposition\\
+refineSol  & yes, no & if set to yes, we let LAPACK perform some steps of
+                       iterative refinement after the foward/backward
+                       substitution\\
+\noalign{\smallskip}\hline
+\end{tabular}
+\end{center}
+%
+%
+\section{Parameters for special preconditioners}
+%
+%
+\subsection{hypreAMG}
+%
+%
+Setting \xml{precond} to \xml{hypreAMG} selects the BoomerAMG preconditioner
+from the hypre library. BoomerAMG is an algebraic multigrid method. The
+following table lists the parameters currently supported by the OLAS--hypre
+interface. For a detailed description of BoomerAMG see the hypre documentation.
+\begin{center}
+\begin{tabular}{lcp{0.5\textwidth}}
+\hline\noalign{\smallskip}
+element & range of values & meaning \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+maxLevels & $k\in\mathbb{N}$ & maximal number of levels in multigrid
+                               hierarchy\\
+alpha     & [0,1]            & central threshold parameter for judging strength
+                               of node couplings\\
+numSweeps & $k\in\mathbb{N}$ & number of multigrid cycles to perform in each
+                               preconditioning step\\
+cycleType & V-cycle, W-cycle & specifies the cycling strategy\\
+\noalign{\smallskip}\hline
+\end{tabular}
+\end{center}
+%
+%
+\subsection{hypreILU}
+Setting \xml{precond} to \xml{hypreILU} selects the Euclid preconditioner
+from the hypre library. Euclid is an incomplete LU decomposition
+preconditioner. Currently it only officially supports ILU(k) preconditioning.
+\begin{center}
+\begin{tabular}{lcp{0.5\textwidth}}
+\hline\noalign{\smallskip}
+element & range of values & meaning \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+level  & $k\in\mathbb{N}$ & generation level of allowed fill-in for ILU(k)
+                            approach\\
+stats  & yes, no          & print some statistics to standard output\\
+memory & yes, no          & print memory some statistics to standard output\\
+\noalign{\smallskip}\hline
+\end{tabular}
+\end{center}
+%
+%
+\subsection{hypreSPAI}
+%
+%
+Setting \xml{precond} to \xml{hypreSPAI} selects the ParaSails preconditioner
+from the hypre library. ParaSails can be used as a SPAI or in the symmetric
+positive definite case also as FSAI preconditioner. It uses a pre-selected
+sparsity pattern for the approximate inverse, which it derives by a powers of
+sparsified matrix (PSM) approach.
+%
+%
+\begin{center}
+\begin{tabular}{lcp{0.5\textwidth}}
+\hline\noalign{\smallskip}
+element & range of values & meaning \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+thresh & $[-1,1]$ & threshold for determining strong connections in the
+                    PSM approach\\
+levels & positive integer & number of levels for the PSM approach\\
+symmetry & 0, 1, 2 & chooses between SPAI and FSAI\\
+loadBalance & yes, no & only important in parallel context\\
+reuse & yes, no & do we want to re-use a sparsity pattern\\
+\noalign{\smallskip}\hline
+\end{tabular}
+\end{center}
+%
+%
+\subsection{hypreJacobi}
+%
+%
+This is a simple Jacobi preconditioner. Thus, it does not require or allow the
+specification of any parameters.
+%
+%
+\section{Example}
+%
+%
+In this example we tell CFS++ to use the Bi-CGStab solver from the hypre
+library together with an SPAI preconditioner:
+%
+%
+\begin{verbatim}
+<solver type="hypreBICGSTAB" precond="hypreSPAI">
+  <matrix structure="standard" entry="double" storage="sparseNonSym"/>
+  <hypreBICGSTAB>
+    <tol>     1e-8 </tol>
+    <maxIter> 1000 </maxIter>
+    <logging>    2 </logging>
+    <printLevel> 2 </printLevel>
+  </hypreBICGSTAB>
+  <hypreSPAI>
+    <thresh> -0.4 </thresh>
+    <levels>    6 </levels>
+    <filter> -0.8 </filter>
+    <symmetry>  0 </symmetry>
+    <reuse>   yes </reuse>
+  </hypreSPAI>
+</solver>
+\end{verbatim}
