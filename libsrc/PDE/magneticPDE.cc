@@ -77,6 +77,12 @@ namespace CoupledField {
   }
 
 
+  void MagPDE::ReadSpecialBCs()
+  {
+    ENTER_FCN( "MagPDE::ReadSpecialBCs" );
+  }
+  
+  
   void MagPDE::InitNonLin()
   {
     ENTER_FCN( "MagPDE::InitNonLin" );
@@ -93,7 +99,7 @@ namespace CoupledField {
       // residual stopping criterion
       residualStopCrit_ = 1e-3;
       conf->ifget("residualStopCrit", residualStopCrit_, pdename_);
-
+      
       // maximal number of NL-iterations
       nonLinMaxIter_ = 100;
       conf->ifget("nonlinMaxIter", nonLinMaxIter_, pdename_);
@@ -926,22 +932,14 @@ namespace CoupledField {
       == TRUE ? TRUE : FALSE;
 
 
-    // --------------------------------------------------------------------
-    //   Get information about coils and open files for measurement coils
-    // --------------------------------------------------------------------
-    ReadCoils();
-
-    // -----------------------------
-    // Check for permanent magnets
-    // -----------------------------
-    ReadMagnets();
-
- 
+   
+    
+    
     // ---------------------------
     //   Set coupling parameters
     // ---------------------------
     deltCoords_.Resize( dim_, numPDENodes_ );
-
+    
   }
 
 
@@ -949,11 +947,32 @@ namespace CoupledField {
   //  Destructor
   // *************
   MagPDE::~MagPDE() {
-    ENTER_FCN( "MagPDE::~MagPDE" );
-    for ( UInt k = 0; k < coilDef_.GetSize(); k++ ) {
-      delete coilDef_[k];
-    }
+  ENTER_FCN( "MagPDE::~MagPDE" );
+  for ( UInt k = 0; k < coilDef_.GetSize(); k++ ) {
+    delete coilDef_[k];
   }
+}
+
+
+  // *********************************
+  //  Read special boundary conitions
+  // *********************************
+
+  void MagPDE::ReadSpecialBCs()
+  {
+    ENTER_FCN( "MagPDE::ReadSpecialBCs" );
+
+    // --------------------------------------------------------------------
+    //   Get information about coils and open files for measurement coils
+    // --------------------------------------------------------------------
+    ReadCoils();
+    
+    // -----------------------------
+    // Check for permanent magnets
+    // -----------------------------
+    ReadMagnets();
+  }
+  
 
   // ****************************
   //  Initialize Nonlinearities
@@ -1849,9 +1868,27 @@ namespace CoupledField {
 
     ENTER_FCN( "MagEdgePDE::ReadCoils" );
 
-    // Get list of coils for magnetic PDE
-    params->GetCoilList( coilName_, pdename_ );
+    StdVector<std::string> coilNamesAux, helper;
+    StdVector<std::string> keyVec;
+    StdVector<std::string> attrVec;
+    StdVector<std::string> valVec;
 
+    // Get list of coils for magnetic PDE
+    params->GetCoilList( coilName_, pdename_, bcSequenceTag_);
+
+//     keyVec = pdename_, "coils", "name";
+//     attrVec= "", "tag";
+//     valVec = "", bcSequenceTag_;
+//     params->GetList(keyVec, attrVec, valVec, helper);
+
+//     std::cerr << "helper = " << helper << std::endl;
+//     for (Integer i=0; i<coilNamesAux.GetSize(); i++) {
+//       for (Integer j=0; j<helper.GetSize(); j++)
+// 	if (helper[j] == coilNamesAux[i])
+// 	  coilName_.Push_back(coilNamesAux[i]);
+//     }
+
+//     std::cerr << "coilName_ = " << coilName_ << std::endl;
     // Read parameters for individual coils and log to info file
     UInt nrCoils = coilName_.GetSize();
     if ( nrCoils > 0 ) {
@@ -1880,8 +1917,8 @@ namespace CoupledField {
     StdVector<std::string> valVec;
 
     keyVec = pdename_, "magnets", "magnet", "name";
-    attrVec = "", "", "";
-    valVec  = "", "", "";
+    attrVec = "", "", "tag";
+    valVec  = "", "", bcSequenceTag_;
 
     params->GetList(keyVec, attrVec, valVec, magnetsDomain_);
 

@@ -259,6 +259,7 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
     // read in boundary conditions
     // =====================================================================
     ReadBCs();
+    ReadSpecialBCs();
     numDirichletBCs_ += GetNumRestraints(actlevel_);
     
     // =====================================================================
@@ -1650,7 +1651,7 @@ void BasePDE::CalcInputCoupling()
 // 		    Warning(msg.c_str()  , __FILE__,__LINE__);
 // 		  }
 // 		else {
-		  //std::cerr << "RHS: Setting EQN " << pdeEQN << " value " << help[dof+couplingDof*j] << std::endl;
+// 		std::cerr << "RHS: Setting EQN " << pd << " value " << help[dof+couplingDof*j] << std::endl;
 		  // PROBLEM !!!!
 		  // SetNodeRHS erwartet Double* oder Complex*, aber Inhalt erst zu Laufzeit bekannt ...
 		if (eqnNr != 0) 

@@ -70,23 +70,26 @@ class SpaceErrorEstimator;
     //! read material data
     virtual void ReadMaterialData();
 
-  // The following Methods used durig parameter Identification process!!
-		MaterialData * getPDEMaterialData(){return materialData_;};
-		BaseNodeStoreSol * getPDESolution(){return sol_;};
-		BCs * getPDE_BCs(){return ptBCs_;};
-		BaseSystem * getPDE_algsys(){return algsys_;};
-		Integer getPDE_numElems(){return numElems_;};
-		Integer getPDE_dofspernode(){return dofspernode_;};
-		Integer getPDE_numEQNS(){return dofspernode_;};
-		Integer getPDE_numPDENodes(){return numPDENodes_;};
-		Integer getPDE_spaceDim(){return dim_;};
+    //! read pde-specific boundary conditions/loads
+    virtual void ReadSpecialBCs(){}
 
-
-	//	StdVector< StdVector<BaseIntDescriptor *>* > * rhsSrcIntegrators_;
-
-		//StdVector< StdVector<BaseIntDescriptor *>* > * getPDE_rhsSrcIntegrators(){return rhsSrcIntegrators_;};
-		//NodeStoreSol * getPDESolution(){return sol_;};
-
+    // The following Methods used durig parameter Identification process!!
+    MaterialData * getPDEMaterialData(){return materialData_;};
+    BaseNodeStoreSol * getPDESolution(){return sol_;};
+    BCs * getPDE_BCs(){return ptBCs_;};
+    BaseSystem * getPDE_algsys(){return algsys_;};
+    Integer getPDE_numElems(){return numElems_;};
+    Integer getPDE_dofspernode(){return dofspernode_;};
+    Integer getPDE_numEQNS(){return dofspernode_;};
+    Integer getPDE_numPDENodes(){return numPDENodes_;};
+    Integer getPDE_spaceDim(){return dim_;};
+    
+    
+    //	StdVector< StdVector<BaseIntDescriptor *>* > * rhsSrcIntegrators_;
+    
+    //StdVector< StdVector<BaseIntDescriptor *>* > * getPDE_rhsSrcIntegrators(){return rhsSrcIntegrators_;};
+    //NodeStoreSol * getPDESolution(){return sol_;};
+    
     //! set boundary condition
     //! \param level             level of grid
     //! \param update indicator: do we update boundary condition in algebraic
