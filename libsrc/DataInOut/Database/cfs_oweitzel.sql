@@ -11,7 +11,7 @@
 CREATE TABLE Calculation (
   idx bigint(20) unsigned NOT NULL auto_increment,
   stamp timestamp(14) NOT NULL,
-  inputparam_idx bigint(20) NOT NULL default '0',
+  inputparam_idx int(20) unsigned NOT NULL default '0',
   solution_type int(11) NOT NULL default '0',
   analysis_type int(11) NOT NULL default '0',
   model_dimension int(11) NOT NULL default '0',
@@ -28,7 +28,7 @@ CREATE TABLE Element (
   elem_type_geo tinyint(11) unsigned NOT NULL default '0',
   subtype tinyint(11) unsigned NOT NULL default '0',
   elem_grp_no mediumint(11) unsigned NOT NULL default '0',
-  result_idx bigint(20) NOT NULL default '0',
+  result_idx int(20) unsigned NOT NULL default '0',
   PRIMARY KEY  (idx)
 ) TYPE=MyISAM;
 
@@ -37,10 +37,10 @@ CREATE TABLE Element (
 --
 
 CREATE TABLE Element_nodes (
-  localidx mediumint(9) NOT NULL default '0',
-  element_idx int(11) unsigned NOT NULL default '0',
+  localidx mediumint(9) unsigned NOT NULL default '0',
+  element_idx bigint(11) unsigned NOT NULL default '0',
   node int(11) unsigned NOT NULL default '0',
-  PRIMARY KEY  (element_idx,node)
+  PRIMARY KEY  (element_idx,localidx)
 ) TYPE=MyISAM;
 
 --
@@ -48,15 +48,15 @@ CREATE TABLE Element_nodes (
 --
 
 CREATE TABLE Element_result (
-  idx bigint(10) unsigned NOT NULL auto_increment,
-  result_idx int(11) NOT NULL default '0',
+  idx int(10) unsigned NOT NULL auto_increment,
+  result_idx int(11) unsigned NOT NULL default '0',
   analysis_type int(11) NOT NULL default '0',
   data_characteristic int(11) NOT NULL default '0',
   data_type int(11) NOT NULL default '0',
-  values_per_node int(11) NOT NULL default '0',
-  element_result_norm_idx int(11) NOT NULL default '0',
-  element_result_trans_idx int(11) NOT NULL default '0',
-  element_result_freq_idx int(11) NOT NULL default '0',
+  values_per_node int(11) unsigned NOT NULL default '0',
+  element_result_norm_idx int(11) unsigned NOT NULL default '0',
+  element_result_trans_idx int(11) unsigned NOT NULL default '0',
+  element_result_freq_idx int(11) unsigned NOT NULL default '0',
   PRIMARY KEY  (idx)
 ) TYPE=MyISAM;
 
@@ -65,7 +65,7 @@ CREATE TABLE Element_result (
 --
 
 CREATE TABLE Element_result_freq (
-  idx bigint(10) unsigned NOT NULL auto_increment,
+  idx int(10) unsigned NOT NULL auto_increment,
   result_type varchar(100) NOT NULL default '',
   freq_step int(11) NOT NULL default '0',
   freq_value double NOT NULL default '0',
@@ -77,7 +77,7 @@ CREATE TABLE Element_result_freq (
 --
 
 CREATE TABLE Element_result_norm (
-  idx bigint(10) unsigned NOT NULL auto_increment,
+  idx int(10) unsigned NOT NULL auto_increment,
   result_type char(100) NOT NULL default '',
   mode_no int(11) NOT NULL default '0',
   freq_value double NOT NULL default '0',
@@ -89,10 +89,10 @@ CREATE TABLE Element_result_norm (
 --
 
 CREATE TABLE Element_result_trans (
-  idx bigint(10) unsigned NOT NULL auto_increment,
+  idx int(10) unsigned NOT NULL auto_increment,
   result_type varchar(100) NOT NULL default '',
-  time_step int(11) NOT NULL default '0',
-  time_value double NOT NULL default '0',
+  time_step int(11) unsigned NOT NULL default '0',
+  time_value double unsigned NOT NULL default '0',
   PRIMARY KEY  (idx)
 ) TYPE=MyISAM;
 
@@ -101,10 +101,10 @@ CREATE TABLE Element_result_trans (
 --
 
 CREATE TABLE Element_result_value (
-  element_result_idx int(11) NOT NULL default '0',
+  element_result_idx int(11) unsigned NOT NULL default '0',
+  elem_no int(11) unsigned NOT NULL default '0',
+  dof tinyint(11) unsigned NOT NULL default '0',
   result double NOT NULL default '0',
-  elem_no int(11) NOT NULL default '0',
-  dof int(11) NOT NULL default '0',
   PRIMARY KEY  (element_result_idx,elem_no,dof)
 ) TYPE=MyISAM;
 
@@ -113,7 +113,7 @@ CREATE TABLE Element_result_value (
 --
 
 CREATE TABLE InputParam (
-  idx bigint(20) unsigned NOT NULL auto_increment,
+  idx int(20) unsigned NOT NULL auto_increment,
   filename text NOT NULL,
   date_modified datetime NOT NULL default '0000-00-00 00:00:00',
   file longtext NOT NULL,
@@ -143,7 +143,7 @@ CREATE TABLE Nodal_result (
 --
 
 CREATE TABLE Nodal_result_freq (
-  idx bigint(10) unsigned NOT NULL auto_increment,
+  idx int(10) unsigned NOT NULL auto_increment,
   result_type varchar(100) NOT NULL default '',
   freq_step int(11) NOT NULL default '0',
   freq_value double NOT NULL default '0',
@@ -155,7 +155,7 @@ CREATE TABLE Nodal_result_freq (
 --
 
 CREATE TABLE Nodal_result_norm (
-  idx bigint(10) unsigned NOT NULL auto_increment,
+  idx int(10) unsigned NOT NULL auto_increment,
   result_type char(100) NOT NULL default '',
   mode_no int(11) NOT NULL default '0',
   freq_value double NOT NULL default '0',
@@ -167,10 +167,10 @@ CREATE TABLE Nodal_result_norm (
 --
 
 CREATE TABLE Nodal_result_trans (
-  idx bigint(10) unsigned NOT NULL auto_increment,
+  idx int(10) unsigned NOT NULL auto_increment,
   result_type varchar(100) NOT NULL default '',
-  time_step int(11) NOT NULL default '0',
-  time_value double NOT NULL default '0',
+  time_step int(11) unsigned NOT NULL default '0',
+  time_value double unsigned NOT NULL default '0',
   PRIMARY KEY  (idx)
 ) TYPE=MyISAM;
 
@@ -180,9 +180,9 @@ CREATE TABLE Nodal_result_trans (
 
 CREATE TABLE Nodal_result_value (
   nodal_result_idx int(11) unsigned NOT NULL default '0',
-  result float NOT NULL default '0',
-  node_no mediumint(11) unsigned NOT NULL default '0',
-  dof smallint(11) unsigned NOT NULL default '0',
+  node_no int(11) unsigned NOT NULL default '0',
+  dof tinyint(11) unsigned NOT NULL default '0',
+  result double NOT NULL default '0',
   PRIMARY KEY  (nodal_result_idx,node_no,dof)
 ) TYPE=MyISAM;
 
@@ -191,8 +191,8 @@ CREATE TABLE Nodal_result_value (
 --
 
 CREATE TABLE Node (
-  idx bigint(20) unsigned NOT NULL auto_increment,
-  result_idx bigint(10) unsigned NOT NULL default '0',
+  idx int(20) unsigned NOT NULL auto_increment,
+  result_idx int(10) unsigned NOT NULL default '0',
   PRIMARY KEY  (idx)
 ) TYPE=MyISAM;
 
@@ -202,8 +202,8 @@ CREATE TABLE Node (
 
 CREATE TABLE NodeHistory (
   idx bigint(20) unsigned NOT NULL auto_increment,
-  node_no int(11) NOT NULL default '0',
-  result_idx bigint(20) NOT NULL default '0',
+  node_no int(11) unsigned NOT NULL default '0',
+  result_idx int(20) unsigned NOT NULL default '0',
   PRIMARY KEY  (idx)
 ) TYPE=MyISAM;
 
@@ -213,9 +213,10 @@ CREATE TABLE NodeHistory (
 
 CREATE TABLE NodeHistoryValue (
   nodehistory_idx bigint(20) unsigned NOT NULL default '0',
-  dof mediumint(9) NOT NULL default '0',
-  time double NOT NULL default '0',
-  value double NOT NULL default '0'
+  dof mediumint(9) unsigned NOT NULL default '0',
+  time double unsigned NOT NULL default '0',
+  value double NOT NULL default '0',
+  PRIMARY KEY  (nodehistory_idx,dof,time)
 ) TYPE=MyISAM;
 
 --
@@ -225,7 +226,7 @@ CREATE TABLE NodeHistoryValue (
 CREATE TABLE Node_coordinates (
   idx bigint(11) unsigned NOT NULL auto_increment,
   node_idx int(10) unsigned NOT NULL default '0',
-  node_label mediumint(11) unsigned NOT NULL default '0',
+  node_label int(11) unsigned NOT NULL default '0',
   x_coord float NOT NULL default '0',
   y_coord float NOT NULL default '0',
   z_coord float NOT NULL default '0',
@@ -237,8 +238,8 @@ CREATE TABLE Node_coordinates (
 --
 
 CREATE TABLE Result (
-  idx bigint(10) unsigned NOT NULL auto_increment,
-  calculation_idx bigint(20) NOT NULL default '0',
+  idx int(10) unsigned NOT NULL auto_increment,
+  calculation_idx int(20) unsigned NOT NULL default '0',
   PRIMARY KEY  (idx)
 ) TYPE=MyISAM;
 
