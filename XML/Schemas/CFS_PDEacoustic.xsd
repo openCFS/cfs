@@ -272,6 +272,8 @@
   <!-- Global type for specifying the desired mechanical output quantities -->
   <xsd:complexType name="DT_AcousticStoreResults">
     <xsd:sequence>
+      <xsd:element name="saveUnv" type="DT_CFSBool" minOccurs="0" 
+       maxOccurs="1" default="yes"/>
       <xsd:element name="nodeResults" type="DT_AcousticNodeResults"
         minOccurs="0" maxOccurs="unbounded"/>
       <xsd:element name="nodeHistory" type="DT_AcousticNodeHistory"
