@@ -10,7 +10,6 @@
 
 #include <Utils/myclock.hh>
 #include <DataInOut/DefineFiles/definefiles.hh>
-#include <DataInOut/material.hh>
 #include <DataInOut/timefunc.hh>
 
 #ifdef MpCCI
