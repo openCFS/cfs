@@ -31,6 +31,19 @@ void WriteResults::AddInHistory(const Double time, const Double val,const Intege
  historyfile[ifile] << time << "  " << val << std::endl;
 }
 
+
+void WriteResults::AddVecInHistory(const Double time, const std::vector<Double> val,const Integer ifile)
+{ 
+ lastsavetime[ifile]=time;
+ historyfile[ifile] << time;
+ 
+ for (Integer i=0; i<val.size(); i++)
+   historyfile[ifile] <<  "  " << val[i];
+ 
+ historyfile[ifile] <<  std::endl;
+}
+
+
 WriteResults::~WriteResults()
 {
 #ifdef TRACE

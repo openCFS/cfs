@@ -39,12 +39,6 @@ namespace CoupledField
       {
 	calcBMat(bMat, actIntPt, ptCoord);  
 
-#ifdef DEBUG
-	*debug << std::endl << "B-Matrix of BDB integrator: at intPt " << actIntPt << std::endl 
-	       << "coords: " << ptCoord << std::endl
-	       << bMat << std::endl;
-#endif
-
 	dB = dMat * bMat;
 
 	bMat.Transpose(bTrans);
@@ -53,13 +47,6 @@ namespace CoupledField
 	
 	jacDet = ptelem->CalcJacobianDetAtIp(actIntPt,ptCoord);
 
-#ifdef DEBUG
-	*debug << std::endl << "BDBInt::CalcElementMatrix: partelemmat at intPt " << actIntPt << std::endl 
-	       << partElemMat << std::endl
-	       << "jacDet " << jacDet << std::endl
-	       << "intWeights[actIntPt]: " << intWeights[actIntPt-1] << std::endl;
-#endif
-	
 	elemMat += partElemMat * jacDet * intWeights[actIntPt-1] ;
       }
   }

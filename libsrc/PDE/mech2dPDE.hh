@@ -13,7 +13,7 @@ namespace CoupledField
     It is used for solving mechanic equation on one time step in 2D.  
   */
 
-class PlainStrainPDE : public MechPDE
+class Mech2dPDE : public MechPDE
 {
 
 public:
@@ -26,11 +26,11 @@ public:
     \param aOutFile  pointer to class WriteResults. output data.
     \param aTimeFunc pointer to class TimeFunc
   */
-  PlainStrainPDE(Grid *aGrid, BCs *aBCs, TimeFunc *aTimeFunc, FileType *aInFile, 
+  Mech2dPDE(Grid *aGrid, BCs *aBCs, TimeFunc *aTimeFunc, FileType *aInFile, 
 	    WriteResults *aOutFile );
 
   //!  Deconstructor
-  virtual ~PlainStrainPDE() {;};
+  virtual ~Mech2dPDE() {;};
 
   //! specify type of system matrix for AlgebraicSystem
   /*!

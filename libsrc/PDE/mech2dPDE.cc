@@ -18,15 +18,15 @@
 namespace CoupledField
 {
 
-  PlainStrainPDE::PlainStrainPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *aptFileType, 
+  Mech2dPDE::Mech2dPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *aptFileType, 
 				 WriteResults *aptOut)
     :MechPDE(aptgrid,aptbcs,aptTimeFunc,aptFileType,aptOut)
   {
 #ifdef TRACE
-    (*trace) << "entering PlainStrainPDE::PlainStrainPDEXX " << std::endl;
+    (*trace) << "entering Mech2dPDE::Mech2dPDE " << std::endl;
 #endif
 
-    pdename_ = "plainStrain";
+    pdename_ = "mech2d";
     pdematerialclass_ = "piezo";
 
     dofspernode_ = 2;
@@ -41,10 +41,10 @@ namespace CoupledField
   }
 
 
-  void PlainStrainPDE::SetupMatrices(const Integer level)
+  void Mech2dPDE::SetupMatrices(const Integer level)
   {
 #ifdef TRACE
-    (*trace) << "entering PlainStrainPDE::SetupMatrices" << std::endl;
+    (*trace) << "entering Mech2dPDE::SetupMatrices" << std::endl;
 #endif
 
     const Integer nrDofs = 2;
@@ -66,7 +66,22 @@ namespace CoupledField
 	    ptEl = elemssd[j]->ptElem;
 
 	    BaseForm * bilinear_mass  = new MassInt(ptEl, materialData_[i]);
-	    BaseForm * bilinear_stiff = new mechPlainStrainInt(ptEl, materialData_[i]);
+	    
+	    std::string subType;
+	    conf->getstr("subtype", subType, pdename_ );
+
+	    BaseForm * bilinear_stiff;
+	    
+	    if (subType == "plainStrain")
+	      bilinear_stiff = new mechPlainStrainInt(ptEl, materialData_[i]);
+	    else 
+	      {
+		std::string errMessg;
+		errMessg = "Unknown subtype \"" + subType + "\" in mech2d PDE!";		
+		Error(errMessg.c_str(),__FILE__,__LINE__);
+	      }
+	    
+
 
 	    connecth=elemssd[j]->connect;
 
@@ -76,14 +91,7 @@ namespace CoupledField
 	    // stiffness part
 	    bilinear_stiff->CalcElementMatrix(ptCoord, elemmat);
 
-#ifdef DEBUG
-	    (*debug) << "Connection array  " << std::endl;
-	    (*debug)  << connecth  << std::endl;
-	    (*debug) << "Stiffnessmatrix, ElementNumber  " <<   i << std::endl;
-	    (*debug) << elemmat << std::endl;
-#endif     
-
-	    algsys_->SetElementMatrix(elemmat.getinarray(), connecth.get(), connecth.size(), STIFFNESS);
+	    algsys_->SetElementMatrix(elemmat.getinarray(), connecth.get(), connecth.size(), SYSTEM);
 
 	    // mass part
 	    bilinear_mass->CalcElementMatrix(ptCoord, elemmat);
@@ -92,25 +100,25 @@ namespace CoupledField
 	    MassMultiDof(elemMatMultDof, elemmat, nrDofs);
 	    
 
-#ifdef DEBUG
-	    (*debug) << "Massmatrix, ElementNumber  " << i << std::endl;
-	    (*debug) << elemMatMultDof << std::endl;
-#endif
-      
-	    algsys_->SetElementMatrix(elemMatMultDof.getinarray(), connecth.get(), connecth.size(), MASS);
+	    // algsys_->SetElementMatrix(elemMatMultDof.getinarray(), connecth.get(), connecth.size(), MASS);
   
 	    delete bilinear_stiff;
 	    delete bilinear_mass;
 	  }
       }
 
+#ifdef DEBUG
+    algsys_->Print(SYSTEM);
+#endif
+    
+    
 #ifdef TRACE
-    (*trace) << "Leaving PlainStrainPDE::SetupMatrices" << std::endl;
+    (*trace) << "Leaving Mech2dPDE::SetupMatrices" << std::endl;
 #endif
   }
 
 
-  void PlainStrainPDE::SetBCs(const Integer level, const Integer update, const Double atime)
+  void Mech2dPDE::SetBCs(const Integer level, const Integer update, const Double atime)
 {
 #ifdef TRACE
   (*trace) << "entering Mech2dPDE::SetBCs" << std::endl;

@@ -31,9 +31,6 @@ namespace CoupledField
       for(actNode=0; actNode < nrNodes; actNode++)
 	bMat[actDim][actNode * spaceDim + actDim] = xiDx[actNode][actDim];
 
-    std::cout << "xiDx : " << std::endl << xiDx << std::endl;    
-
-    
     switch(spaceDim)
       {
       case 2:

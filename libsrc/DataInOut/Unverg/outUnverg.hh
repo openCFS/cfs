@@ -35,7 +35,7 @@ public:
     \param time time of calculation
     \param title name for the solution
   */
-  virtual void WriteSolution(const Vector<Double> & sol, const Integer step, const Double time, const std::string title);
+  virtual void WriteSolution(const Vector<Double> & sol, const Integer step, const Double time, const std::string title, const Integer nrDofs=1);
 
    //! write cell data
   /*!
@@ -78,7 +78,7 @@ private:
     \param step number of the step of the calculation
     \param time time of the calculation
   */
-  void Dataset55(const std::string & title, const Vector<Double> & x, const Integer step, const Double time);
+  void Dataset55(const std::string & title, const Vector<Double> & x, const Integer step, const Double time, const Integer nrDofs=1);
 
   //! for printing cell results of simulation
    /*!
