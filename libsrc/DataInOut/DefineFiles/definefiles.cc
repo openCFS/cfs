@@ -138,9 +138,9 @@ namespace CoupledField
     if (!cla) Error("Can't open LAS++-file");
 
 
-    strcpy(auxfile, basename);
-    data=new std::ofstream(strcat(auxfile,".data"));
-    if (!data) Error("Can't open data-file");
+    // strcpy(auxfile, basename);
+    // data=new std::ofstream(strcat(auxfile,".data"));
+    // if (!data) Error("Can't open data-file");
 
 
     // Initialise internal pointers
