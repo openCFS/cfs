@@ -105,6 +105,15 @@ namespace CoupledField {
     else if ( mMatString == "lapackPBMatrix" ) {
       mType = LAPACK_PBMATRIX;
     }
+    else if ( mMatString == "expertsChoice" ) {
+      if ( overrideExpert ) {
+	std::string errmsg = "You cannot specify expertsChoice as storage ";
+	errmsg += "'type and set overrideExpert! This would leave the storage";
+	errmsg += " type undefined!";
+	Info->Error( errmsg, __FILE__, __LINE__ );
+      }
+      mType = NOSTORAGETYPE;
+    }
     else {
       std::string errmsg = "Matrix storage type '" + mMatString;
       errmsg += "' not supported yet.";
@@ -146,7 +155,12 @@ namespace CoupledField {
     // olas->ShowPool( OLAS_Params::ENUM_POOL    , std::cerr );
 
     // Output Matrix
-    olas->SetValue( "exportMatrix", true );
+    StdVector<std::string> doExport;
+    cfs->GetList( "file", doExport, pdename, "exportLinSys" );
+    if ( doExport.GetSize() == 1 ) {
+      olas->SetValue( "exportLinSys", true );
+      olas->SetValue( "exportLinSysBaseName", doExport[0] );
+    }
 
   }
 
@@ -367,8 +381,10 @@ namespace CoupledField {
     // Lapack solvers want their own matrix format
     if ( sType == LAPACK_LU ) {
       if ( mType != LAPACK_GBMATRIX ) {
-	warn = "Expert: Re-setting matrix storage type to 'LAPACK_GBMATRIX'";
-	Info->Warning( warn );
+	if ( mType != NOSTORAGETYPE ) {
+	  warn = "Expert: Re-setting matrix storage type to 'LAPACK_GBMATRIX'";
+	  Info->Warning( warn );
+	}
 	mType = LAPACK_GBMATRIX;
       }
 
@@ -405,8 +421,10 @@ namespace CoupledField {
     if ( sType == HYPRE_PCG || sType == HYPRE_GMRES ||
 	 sType == HYPRE_BICGSTAB ) {
       if ( mType != HYPRE_MATRIX ) {
-	warn = "Expert: Re-setting matrix storage type to 'HYPRE_MATRIX'";
-	Info->Warning( warn );
+	if ( mType != NOSTORAGETYPE ) {
+	  warn = "Expert: Re-setting matrix storage type to 'HYPRE_MATRIX'";
+	  Info->Warning( warn );
+	}
 	mType = HYPRE_MATRIX;
       }
       if ( eType != DOUBLE ) {
@@ -415,6 +433,12 @@ namespace CoupledField {
 	eType = DOUBLE;
       }
     }
+
+    // If no storage type was yet assigned use plain CRS
+    if ( mType == NOSTORAGETYPE ) {
+      mType = SPARSE_NONSYM;
+    }
+
   }
 }
 #endif
