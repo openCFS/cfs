@@ -18,6 +18,7 @@ class FileType
 {
 
 public:
+
   //! enum for reading boundary condition
   enum nameBound{ numdofs, numconstr, numrestr, numloads, resistors,
 		  numspring, bembdry, numflux, numrad, numpress, ncurrdens,
@@ -38,8 +39,11 @@ public:
   virtual ~FileType();
 
   //!
-  virtual  void ReadGeneralAnalChoice(Integer * dataGAnalCh,
+  virtual void ReadGeneralAnalChoice(Integer * dataGAnalCh,
 				      enum nameGAn first ...)=0;
+
+  //!
+  virtual void ReadGeneralAnal(Integer * dataGAnal)=0;
 
   //! num - number of group element 
   virtual void ReadGeneralElemChoice(const Integer num, Integer * dataGElemCh,

@@ -14,12 +14,14 @@ class GeTetrahedral : public BaseElem
 {
 public:
    //! Constructor with type of integration rule
-   GeTetrahedral(enum IntegrationType aintegtype) { IntegType=aintegtype;}
+   GeTetrahedral();
 
    //! Deconstructor
    virtual ~GeTetrahedral() { ;}
 
 protected:
+
+   void test(){ std::cout << " tetrahedral " << std::endl;}
 
    //! Define integration points for this type of integration
   virtual void SetIntPoints();

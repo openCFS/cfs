@@ -13,7 +13,7 @@ namespace CoupledField
 public:
 
   //! Constructor with type of integration rule
-  Triangle1(enum IntegrationType aintegtype);
+  Triangle1();
  
   //! Deconstructor
   virtual ~Triangle1();

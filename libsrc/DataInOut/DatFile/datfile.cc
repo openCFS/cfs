@@ -233,6 +233,10 @@ void DatFile :: ReadCoordinate(Point3D * const InitNodalCo,                     
   {
    infile >> ii >>InitNodalCo[i].x >>  InitNodalCo[i].y >>  InitNodalCo[i].z; 
   }
+#ifdef TRACE
+  (*trace) << "leaving DatFile::ReadCoordinate 3D" << std::endl;
+#endif
+
 }
 
 // ------------------------ Read Nodal Coordinates 2D------------------------
@@ -388,6 +392,10 @@ void DatFile :: preReadTransAnal(Integer & soltype, Integer & statickey)
   infile.seekg(pos, std::ios::beg);
 
   infile >> statickey;
+
+#ifdef TRACE
+  (*trace) << "leaving DatFile::preReadTransAnal" << std::endl;
+#endif
 }
 
 // ------------------- Read transient analysis data for direct solver ---------

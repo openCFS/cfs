@@ -229,11 +229,11 @@ void Assemble<Dim,T_Matrix>::AssembleGlobal(T_Matrix & Mat) const
   switch(numnodeelem)
   {
     case 3:
-       ptElem=new  Triangle1(GaussOrder3);
+       ptElem=new  Triangle1();
        break;
 
     case 4:
-       ptElem=new Quad1(GaussOrder5);
+       ptElem=new Quad1();
        break;
 
     default:

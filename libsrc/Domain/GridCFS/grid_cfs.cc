@@ -16,27 +16,33 @@ template<class Dim>
 
   numlevel = 0;
   InFile = aptFileType;
+
+  ptTr_=NULL;
+  ptTet_=NULL;
+  ptQ_=NULL;
+
 }
 
-template<class Dim>
-void GridCFS<Dim> :: Read()
+template<>
+void GridCFS<Point2D> :: Read()
 {
 #ifdef TRACE
-  (*trace) << "entering GridCFS::GridCFSRead" << std::endl;
+  (*trace) << "entering GridCFS::Read" << std::endl;
 #endif
 
   Integer dataHelp[1];
-  InFile->ReadGeneralAnalChoice(dataHelp,FileType::numgroup,FileType::endGAnal);  maxnumsubdomain=dataHelp[0];
+  InFile->ReadGeneralAnalChoice(dataHelp,FileType::numgroup,FileType::endGAnal);
+  maxnumsubdomain=dataHelp[0];
   pptelemsubdom=new Integer*[maxnumsubdomain];
 
-// ----------------------------- Initialize gh
-  Integer i;
   InFile->ReadGeneralAnalChoice(dataHelp,FileType::numnode,
                                   FileType::endGAnal);
 
   gh[0].maxnumnode=dataHelp[0];
 
-  gh[0].ptCoordinate=new Dim[gh[0].maxnumnode];
+  std::cout << gh[0].maxnumnode << " " << maxnumsubdomain << " maxnumnode " << std::endl;
+
+  gh[0].ptCoordinate=new Point2D[gh[0].maxnumnode];
   InFile->ReadCoordinate(gh[0].ptCoordinate, gh[0].maxnumnode);
 
 //  !!!!!!! just for check
@@ -56,9 +62,10 @@ void GridCFS<Dim> :: Read()
    Integer NumNodeperElem=data[2];
    ptArrayElem_=new BaseElem*[gh[0].maxnumelem+1];   
    
-   ptQ_=new Quad1(GaussOrder2);
-   ptTr_=new Triangle1(GaussOrder3);
+   ptQ_=new Quad1();
+   ptTr_=new Triangle1();
 
+   Integer i;
    for (i=0; i<gh[0].maxnumelem; i++) 
    { 
        switch(NumNodeperElem)
@@ -119,8 +126,114 @@ for (j=0; j<maxnumsubdomain; j++)
     numelemothergr+=maxnumelemgr+1;
     startposarrayconn+=maxnumelemgr;
 }
+
+#ifdef TRACE
+  (*trace) << "leaving GridCFS::Read" << std::endl;
+#endif
 }
 
+template<>
+void GridCFS<Point3D> :: Read()
+{
+#ifdef TRACE
+  (*trace) << "entering GridCFS::Read" << std::endl;
+#endif
+
+  Integer dataHelp[1];
+  InFile->ReadGeneralAnalChoice(dataHelp,FileType::numgroup,FileType::endGAnal);  maxnumsubdomain=dataHelp[0];
+  pptelemsubdom=new Integer*[maxnumsubdomain];
+
+  InFile->ReadGeneralAnalChoice(dataHelp,FileType::numnode,
+                                  FileType::endGAnal);
+
+  gh[0].maxnumnode=dataHelp[0];
+
+  std::cout << gh[0].maxnumnode << " " << maxnumsubdomain << " maxnumnode " << std::endl;
+
+  gh[0].ptCoordinate=new Point3D[gh[0].maxnumnode];
+  InFile->ReadCoordinate(gh[0].ptCoordinate, gh[0].maxnumnode);
+
+//  !!!!!!! just for check
+
+  Integer data[3];
+  InFile->ReadGeneralElemChoice(0,data, FileType::numelem,
+                   FileType::ielemtyp, FileType::maxnode,
+                   FileType::endGElem);
+
+   gh[0].maxnumelem=data[0];
+
+//  pptelemsubdom[0]=new Integer[gh[0].maxnumelem+1];
+
+//  pptelemsubdom[0][gh[0].maxnumelem]=-1;
+
+//#################### V etom meste budet check na 3 tochki
+   Integer NumNodeperElem=data[2];
+   ptArrayElem_=new BaseElem*[gh[0].maxnumelem+1];
+
+   ptTet_=new Tetrahedral1();
+
+   Integer i;
+   for (i=0; i<gh[0].maxnumelem; i++)
+   {
+       switch(NumNodeperElem)
+     {
+        case 4:
+          ptArrayElem_[i]=ptTet_;
+          break;
+
+        default:
+           Error("Number of nodes per element is strange",__FILE__,__LINE__);
+     }
+   }
+   ptArrayElem_[gh[0].maxnumelem]=NULL;
+
+   sizeConnectElem=NumNodeperElem*gh[0].maxnumelem;
+   gh[0].Connect=new Integer[sizeConnectElem];
+
+   Integer sizeFullInfoElem=4*gh[0].maxnumelem;
+   gh[0].Info=new Integer[sizeFullInfoElem];
+
+   gh[0].fp=new Integer[gh[0].maxnumelem];
+
+   Integer start=0;
+   Integer * help=new Integer[20];
+   Integer ihelp=0;
+
+   Integer maxnumelemgr;
+   Integer numelemothergr=0;
+   Integer startposarrayconn=0;
+   Integer j;
+for (j=0; j<maxnumsubdomain; j++)
+{
+
+   InFile->ReadMaxnumelemGroup(maxnumelemgr,j);
+// InFile->ReadElemConnectionGH(gh[0].maxnumelem, gh[0].Connect, NumNodeperElem, 0);
+   std::cout << maxnumelemgr << std::endl;
+
+   pptelemsubdom[j]=new Integer[maxnumelemgr+1];
+
+   InFile->ReadElemConnectionGH(maxnumelemgr,gh[0].Connect,NumNodeperElem,j,startposarrayconn);
+   for (i=0; i<gh[0].maxnumelem; i++)
+   {
+      gh[0].Info[start+0]=i;  // global element number
+      gh[0].Info[start+1]=0; // element level of last touch
+      gh[0].Info[start+2]=ihelp;// start position of connection
+      gh[0].Info[start+3]=999; // address of pointer to Element
+      pptelemsubdom[j][i]=i+numelemothergr;
+
+      ihelp+=NumNodeperElem;
+      gh[0].fp[i]=start;
+      start+=4;
+   }
+    pptelemsubdom[j][maxnumelemgr]=-1;
+    numelemothergr+=maxnumelemgr+1;
+    startposarrayconn+=maxnumelemgr;
+}
+
+#ifdef TRACE
+  (*trace) << "leaving GridCFS::Read" << std::endl;
+#endif
+}
 
 /// Deconstructor  
 template<class Dim>

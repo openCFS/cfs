@@ -1,10 +1,26 @@
 #include <iostream>
 #include <fstream>
+#include <string>
 
+#include "conffile.hh"
 #include "rectangle.hh"
 
 namespace CoupledField
 {
+
+Rectangle::Rectangle()
+{
+#ifdef TRACE
+  (*trace) << "entering Rectangle::Rectangle" << std::endl;
+#endif
+
+  std::string integtype;
+  conf->get("rectangle",integtype,"IntegRules");
+
+  IntegType=String2EnumIntegrationType(integtype.c_str());
+
+  IsSet=FALSE;
+}
 
 Rectangle :: ~Rectangle()
 {

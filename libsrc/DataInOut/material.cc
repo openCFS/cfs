@@ -32,16 +32,16 @@ void Material::ReadDensityAndCompressity(Double & density, Double & compress, co
 
   infile.seekg(0, std::ios::beg);  
   std::string buf;
-  std::string::size_type pos=std::string::npos;
+  std::string::size_type pos=std::string::npos, pos1=std::string::npos;
 
  // transfer matnum in string
   Char s[20];
   sprintf(s,"%i",matnum);
  
-   while ( pos == std::string::npos & !infile.eof() )
+ while ( (pos == std::string::npos || pos1== std::string::npos) & !infile.eof() )
   { std::getline(infile, buf, '\n');
     pos=buf.find(keyword);
-    pos=buf.find(s);
+    pos1=buf.find(s);
   }
   
   pos=std::string::npos; 
@@ -65,16 +65,16 @@ void Material::ReadDielectricTerms(Double & dielectr,const Integer matnum)
 
   infile.seekg(0, std::ios::beg);
   std::string buf;
-  std::string::size_type pos=std::string::npos;
+  std::string::size_type pos=std::string::npos, pos1=std::string::npos;
 
  // transfer matnum in string
   Char s[20];
   sprintf(s,"%i",matnum);
 
-   while ( pos == std::string::npos & !infile.eof() )
+  while ( (pos == std::string::npos || pos1 == std::string::npos) & !infile.eof())
   { std::getline(infile, buf, '\n');
     pos=buf.find("piezo");
-    pos=buf.find(s);
+    pos1=buf.find(s);
   }
 
   pos=std::string::npos;

@@ -1,11 +1,25 @@
 #include <iostream>
 #include <fstream>
+#include <string>
 
+#include "conffile.hh"
 #include "getriangle.hh"
 
 namespace CoupledField
 {
-                   
+
+GeTriangle::GeTriangle()
+{
+#ifdef TRACE
+  (*trace) << "entering GeTriangle::GeTriangle" << std::endl;
+#endif
+ 
+  std::string integtype;
+  conf->get("triangle",integtype,"IntegRules");
+
+  IntegType=String2EnumIntegrationType(integtype.c_str());
+}
+
 GeTriangle :: ~GeTriangle()
 {
 #ifdef TRACE

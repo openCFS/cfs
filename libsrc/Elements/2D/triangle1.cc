@@ -6,7 +6,7 @@
 namespace CoupledField
 {
                    
-Triangle1 :: Triangle1(enum IntegrationType aintegtype) : GeTriangle(aintegtype)
+Triangle1 :: Triangle1() : GeTriangle()
 {
 #ifdef TRACE
   (*trace) << "entering Triangle1::Triangle1" << std::endl;

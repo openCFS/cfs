@@ -5,9 +5,7 @@
 # inactiv.   circuit
          3         0
 # globally deactivated degrees of freedom
-     dx
-     dy
-     dz
+     dx dy dz
 # masstype  damptype    noopti
          2         1         0
 # formsave nsavenode   savemax

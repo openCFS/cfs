@@ -16,7 +16,7 @@ namespace CoupledField
 public:
 
   //! Constructor
-  GeTriangle(enum IntegrationType aintegtype) { IntegType = aintegtype; }
+  GeTriangle() ; 
  
   //! Deconstructor
   virtual ~GeTriangle();

@@ -6,7 +6,7 @@
 namespace CoupledField
 {
 
-Tetrahedral1::Tetrahedral1(enum IntegrationType aintegtype):GeTetrahedral(aintegtype)
+Tetrahedral1::Tetrahedral1():GeTetrahedral()
 { 
 #ifdef TRACE
   (*trace) << "entering Tetrahedral1::Tetrahedral1" << std::endl;
@@ -54,7 +54,6 @@ Vector<Double> & Tetrahedral1::GetShFncAtIP(const Integer iShFnc)
       return TransFncAtIP4;
     default:
     Error("Shape function does not exist with this number", __FILE__,__LINE__);
-
     }
 }
 
