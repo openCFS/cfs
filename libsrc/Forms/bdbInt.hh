@@ -1,5 +1,5 @@
-#ifndef FILE_BASEFORMINT_1
-#define FILE_BASEFORMINT_1
+#ifndef FILE_BDBINT
+#define FILE_BDBINT
 
 #include "baseForm.hh" 
 
@@ -12,7 +12,7 @@ class BDBInt : public BaseForm
 
 public:
   /// Constructor with pointer to BaseElem
-  BDBInt(BaseFE * aptelem);
+  BDBInt(BaseFE * aptelem, MaterialData & matData);
 
 
   /// Destructor
@@ -20,8 +20,7 @@ public:
 
 
   /// Function for calculation bdb matrix 
-  virtual void CalcElementMatrix(Matrix<Double>& ptCoord, Matrix<Double> & );
-
+  virtual void CalcElementMatrix(Matrix<Double>& ptCoord, Matrix<Double> &);
 
 protected:
   /// returns B - matrix for BDB

@@ -65,8 +65,8 @@ namespace CoupledField
 	  {
 	    ptEl = elemssd[j]->ptElem;
 
-	    BaseForm * bilinear_mass  = new MassInt(ptEl);
-	    BaseForm * bilinear_stiff = new LaplaceInt(ptEl);
+	    BaseForm * bilinear_mass  = new MassInt(ptEl, materialData_[i]);
+	    BaseForm * bilinear_stiff = new LaplaceInt(ptEl, materialData_[i]);
 
 	    connecth=elemssd[j]->connect;
 
@@ -88,7 +88,6 @@ namespace CoupledField
 
 	    // mass part
 	    bilinear_mass->CalcElementMatrix(ptCoord, elemmat);
-	    elemmat *= coeffmass;
 
 #ifdef DEBUG
 	    (*debug) << "Massmatrix, ElementNumber  " << i << std::endl;

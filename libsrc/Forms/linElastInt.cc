@@ -6,12 +6,12 @@
 namespace CoupledField
 {
 
-
-
-
   // returns B - matrix for BDB
   void linElastInt::calcBMat(Matrix<Double> & bMat, Integer ip, Matrix<Double> & ptCoord)
   {
+#ifdef TRACE
+  (*trace) << "entering linElastInt::calcBMat " << std::endl;
+#endif
     const Integer nrNodes  = ptelem->GetNumNodes();
     const Integer spaceDim = ptelem->GetDim();  
     const Integer nrDofs   = getNrDofs();  
@@ -26,28 +26,59 @@ namespace CoupledField
 
     ptelem->GetGlobDerivShFncAtIp(xiDx, ip, ptCoord);
 
+
     for(actDim=0; actDim < spaceDim; actDim++)
       for(actNode=0; actNode < nrNodes; actNode++)
-	bMat[actDim][actNode + (nrNodes * actDim)] = xiDx[actNode][actDim];
+	bMat[actDim][actNode * spaceDim + actDim] = xiDx[actNode][actDim];
 
+    std::cout << "xiDx : " << std::endl << xiDx << std::endl;    
 
     
-    Integer dimAdd = spaceDim;
-    for (j = 1; j < spaceDim; j++)
-      for (k = 0; k < j; k++)
-	{
-	  for (actNode = 0; actNode < nrNodes; actNode++)
-	    {
-	      bMat[dimAdd][j * nrNodes + actNode] = xiDx[actNode][k];
-	      bMat[dimAdd][k * nrNodes + actNode] = xiDx[actNode][j];
-	    }
-	  dimAdd++;
-	}
+    switch(spaceDim)
+      {
+      case 2:
+	j = 1;
+	k = 0;
+	
+	for (actNode = 0; actNode < nrNodes; actNode++)
+	  {
+	    bMat[spaceDim][actNode * spaceDim + 1] = xiDx[actNode][0];
+	    bMat[spaceDim][actNode * spaceDim]     = xiDx[actNode][1];
+	  }
+	break;
+
+
+      case 3:
+	Integer actDim=spaceDim;
+	for (actNode = 0; actNode < nrNodes; actNode++)
+	  {
+	    bMat[actDim][actNode * spaceDim + 1] = xiDx[actNode][2];
+	    bMat[actDim][actNode * spaceDim + 2] = xiDx[actNode][1];
+	  }
+
+	actDim++;
+	for (actNode = 0; actNode < nrNodes; actNode++)
+	  {
+	    bMat[actDim][actNode * spaceDim]     = xiDx[actNode][2];
+	    bMat[actDim][actNode * spaceDim + 2] = xiDx[actNode][0];
+	  }
+
+	actDim++;
+	for (actNode = 0; actNode < nrNodes; actNode++)
+	  {
+	    bMat[actDim][actNode * spaceDim]     = xiDx[actNode][1];
+	    bMat[actDim][actNode * spaceDim + 1] = xiDx[actNode][0];
+	  }
+	break;
+      }
   }
   
   
   void mechPlainStrainInt::calcDMat(Matrix<Double> & dMat)
   {
+#ifdef TRACE
+  (*trace) << "entering linElastInt::calcDMat " << std::endl;
+#endif
     CalcPlainStrainMat(dMat);
   }
   
@@ -83,7 +114,7 @@ namespace CoupledField
 	}
       }    
 	
-    Matrix<Double> * matMatrix =  matData->GetMatrix();
+    Matrix<Double> * matMatrix =  ptMaterial->GetMatrix();
     
     matDat.Resize(nrElems2d);
 
@@ -100,8 +131,8 @@ namespace CoupledField
   // ===================================================================================
 
 
-  linElastInt::linElastInt(BaseFE * aptelem, MaterialData * data) 
-    : BDBInt(aptelem), matData(data)
+  linElastInt::linElastInt(BaseFE * aptelem, MaterialData & matData) 
+    : BDBInt(aptelem, matData)
   {
 #ifdef TRACE
     (*trace) << "entering linElastInt::linElastInt" << std::endl;
@@ -120,8 +151,8 @@ namespace CoupledField
 
 
 
-  mechPlainStrainInt::mechPlainStrainInt(BaseFE * aptelem, MaterialData * data) 
-    : linElastInt(aptelem, data), actOrientation(xy)
+  mechPlainStrainInt::mechPlainStrainInt(BaseFE * aptelem, MaterialData & matData) 
+    : linElastInt(aptelem, matData), actOrientation(xy)
   {
 #ifdef TRACE
     (*trace) << "entering mechPlainStrainInt::mechPlainStrainInt" << std::endl;

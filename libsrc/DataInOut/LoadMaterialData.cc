@@ -70,21 +70,7 @@ namespace CoupledField
     
     if (strcmp(charMatType,"piezo") == 0 )
       {
-	ReadPiezo(fin, &material);
-	
-	 if (InfoPrint)
-	   {
-	     *infofile << "LoadMaterialData::LoadMaterial: gesamte Piezo-Datenmatrix von " << matName 
-		       << ":" << std::endl << *material.GetMatrix() << std::endl << std::endl
-		       << "density = " << material.GetDensity() << std::endl
-		       << "damping coefficient alfa = " << material.GetDampingAlfa() << std::endl
- 		       << "damping coefficient beta = " << material.GetDampingBeta() << std::endl;
-	     
-	     if (scaleMatDat)
-	       *infofile << std::endl << "!!!!!! SCALING with Diag(1e-5, 1e-5, 1e-5, 1e-5, 1e-5, 1e-5, "
-			 << "1e5, 1e5, 1e5) IS ON !!!!! " << std::endl << std::endl;
-	   }
-	 
+	ReadPiezo(fin, &material);	 
 	
 	/*
 	if (eulerAngles.size())
@@ -116,6 +102,7 @@ namespace CoupledField
 	std::cerr << "Warning: materialtype " << charMatType << " in File " << filename << " unknown!" << std::endl;
     	exit(EXIT_FAILURE);
       }    
+    fin.close();
   }
 
 
@@ -300,18 +287,90 @@ namespace CoupledField
 
     material -> SetDensity(density);
     material -> SetDampingCoeffs(alfa,beta);
+
+
+    if (InfoPrint)
+      *infofile << "LoadMaterialData::LoadMaterial: gesamte Piezo-Datenmatrix von " << material->GetMaterialName()
+		<< ":" << std::endl << *material->GetMatrix() << std::endl << std::endl
+		<< "density = " << material->GetDensity() << std::endl
+		<< "damping coefficient alfa = " << material->GetDampingAlfa() << std::endl
+		<< "damping coefficient beta = " << material->GetDampingBeta() << std::endl <<  std::endl;
+
+    if (InfoPrint && scaleMatDat)
+      *infofile << std::endl << "!!!!!! SCALING with Diag(1e-5, 1e-5, 1e-5, 1e-5, 1e-5, 1e-5, "
+		<< "1e5, 1e5, 1e5) IS ON !!!!! " << std::endl << std::endl;
+    
   }
 
 
   void LoadMaterialData :: ReadFluid(std::ifstream & fin, MaterialData * material)
   {
-    std::cout << "Fluids are not supported yet!!" << std::endl;
+    Double alfa,beta;
+    Double density, compress;
+    std::istringstream * strPtr;
+    char buffer[bufLength];
+    char materialName[bufLength];
+
+    ReadLine(fin,buffer);
+    sscanf(buffer,"%*d%*s%s", materialName);  
+
+    material -> SetName(materialName);
+
+    ReadLine(fin,buffer);
+    strPtr = new std::istringstream(buffer);
+      
+    *strPtr >> compress >> density >> alfa >> beta;
+    if (strPtr->fail())
+      std::cout << "*** The materialfile is corrupt! ***  Material: " << materialName << std::endl;
+	
+    delete strPtr;
+    
+    material->SetCompressibility(compress);
+    material->SetDensity(density);
+    material->SetDampingCoeffs(alfa,beta);
+
+    if (InfoPrint)
+      *infofile << "LoadMaterialData::LoadMaterial: Daten von " << material->GetMaterialName() << ":" << std::endl
+		<< "Kompressibilität: " << material->GetCompressibility() << std::endl
+		<< "Dichte: " << material->GetDensity() << std::endl
+		<< "Alfa: " << material->GetDampingAlfa() << std::endl
+		<< "Beta: " << material->GetDampingBeta() << std::endl << std::endl;
   }
 
 
   void LoadMaterialData :: ReadMagnetic(std::ifstream & fin, MaterialData * material)
   {
-    std::cout << "lin. Magnetic is not implemented yet!!" << std::endl;
+    Double mX, mY, mZ;
+    Double conductivity, permeability;
+
+    std::istringstream * strPtr;
+    char buffer[bufLength];
+    char materialName[bufLength];
+
+    ReadLine(fin,buffer);
+    sscanf(buffer,"%*d%*s%s", materialName);  
+
+    material -> SetName(materialName);
+
+    ReadLine(fin,buffer);
+    strPtr = new std::istringstream(buffer);
+      
+    *strPtr >> conductivity >> permeability >> mX >> mY >> mZ;
+    if (strPtr->fail())
+      std::cout << "*** The materialfile is corrupt! ***  Material: " << materialName << std::endl;
+	
+    delete strPtr;
+    
+    material->SetPermeability(permeability);
+    material->SetConductivity(conductivity);
+    material->SetPermMag(mX, mY, mZ);
+
+    if (InfoPrint)
+      *infofile << "LoadMaterialData::LoadMaterial: Daten von " << materialName << ":" << std::endl
+		<< "Leitwert: " << conductivity << std::endl
+		<< "Permeabilität: " << permeability << std::endl
+		<< "Magnetizierungsvektor: (" << mX << ", " << mY << ", " << mZ <<")" 
+		<< std::endl << std::endl;
   }
 
 

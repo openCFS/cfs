@@ -245,6 +245,9 @@ public:
 
 
 protected:
+  /// generates a multi-dof-matrix with similar entries for all dofs
+  virtual void MassMultiDof(Matrix<Double>& massMultDof, const Matrix<Double>& massMatSingleDof,  const Integer nrDofs);
+
    //! read from .config-file info about BCs
    void ReadBCs(const std::string eq);
 
@@ -260,7 +263,7 @@ protected:
   Integer MassMatrix_;          //!< need mass matrix (TRUE/FALSE)
   Integer ConvectionMatrix_;    //!< need convective matrix (TRUE/FALSE)
 
-  std::string pdename_; //!< type of PDE (set in the derived classes
+  std::string pdename_; //!< type of PDE (set in the derived classes)
   Integer dofspernode_; //!< number of unknowns per node
   std::vector<std::string> subdoms_;  //!< subdomain-levels belongig to PDE
 
@@ -305,8 +308,10 @@ protected:
   std::vector<std::string> bcs_ni_;  //!< inhomogeneous Neumann BC levels
   std::vector<std::string> bcs_rh_;  //!< homogeneous Robin BC levels
   std::vector<std::string> bcs_ri_;  //!< inhomogeneous Robin BC levels
+  std::vector<std::string> bcs_loads_;  //!< load BC levels
 
-  std::vector<Double> val_id_; //<! values of the  inhomogeneous Dirichlet BC
+  std::vector<Double> val_id_;   //<! values of the inhomogeneous Dirichlet BC
+  std::vector<Double> val_loads_; //<! values of the load BC
 
   //Dummies, just for SUN compiler
   Vector<Double> DVec;

@@ -46,8 +46,8 @@ void Elec2dPDE::SetupMatrices(const Integer level)
 
   Vector<Integer> connecth;  
 
-  //waiting for fully implemented material class!  
-  Double eps0 = 8.854e-12;
+  //reads eps33 (matrix notation starts with 0)
+  Double eps0 = materialData_->GetPermittivity(2,2);
 
   Integer i, j;
 
@@ -62,7 +62,7 @@ void Elec2dPDE::SetupMatrices(const Integer level)
 	{  
 	  ptElem=elemssd[j]->ptElem;
 
-	  BaseForm * bilinear_stiff = new LaplaceInt(ptElem);
+	  BaseForm * bilinear_stiff = new LaplaceInt(ptElem, materialData_[i]);
 
 	  connecth=elemssd[j]->connect;
 	  

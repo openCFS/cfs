@@ -6,7 +6,7 @@
 namespace CoupledField
 {
 
-  LaplaceInt::LaplaceInt(BaseFE * aptelem): BaseForm(aptelem)
+  LaplaceInt::LaplaceInt(BaseFE * aptelem, MaterialData & aMat): BaseForm(aptelem, aMat)
   {
 #ifdef TRACE
     (*trace) << "entering LaplaceInt::LaplaceInt" << std::endl;

@@ -11,7 +11,7 @@ class LaplaceInt : public BaseForm
 {
 public:
   /// Constructor
-  LaplaceInt(BaseFE * aptelem);
+  LaplaceInt(BaseFE * aptelem, MaterialData & matDat);
 
   /// 
   virtual ~LaplaceInt();

@@ -41,8 +41,8 @@ public:
     //! set boundary condition
   /*!
     \param level level of grid
-    \param update indicator: do we update boundary condition in algebraic system ot set new
-    \param atimestep time step of claculation
+    \param update indicator: do we update boundary condition in algebraic system or set new
+    \param atimestep time step of calculation
   */
   virtual void SetBCs(const Integer level, const Integer update, const Double atimestep);
 

@@ -11,13 +11,14 @@ class MassInt : public BaseForm
 {
 public:
   /// Constructor
-  MassInt(BaseFE * aptelem);
+  MassInt(BaseFE * aptelemt, MaterialData & aMat);
 
-  /// 
+  /// Destructor
   virtual ~MassInt();
 
   /// Calculation of stiffmess matrix
-  void CalcElementMatrix(Matrix<Double> & ptCoord, Matrix<Double> & elemMat);
+  void CalcElementMatrix(Matrix<Double> & ptCoord, Matrix<Double> & elemMa);
+
 
   virtual void Print(std::ostream * out, const Matrix<Double> Result) const;
 };

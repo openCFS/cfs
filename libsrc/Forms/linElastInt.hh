@@ -14,7 +14,7 @@ class linElastInt : public BDBInt
 {
 public:
   /// Constructor
-linElastInt(BaseFE * aptelem, MaterialData * data);
+linElastInt(BaseFE * aptelem, MaterialData & matData);
   
   /// Destructor
 virtual ~linElastInt();
@@ -23,8 +23,6 @@ protected:
   
   /// returns B - matrix for BDB
   virtual void calcBMat(Matrix<Double> & bMat, Integer ip, Matrix<Double> & ptCoord);
-
-  MaterialData * matData;
 };
   
   
@@ -34,11 +32,10 @@ protected:
 
   /// class for calculation of mechanical plain strain state
 class mechPlainStrainInt : public linElastInt
-{
-  
+{  
 public:
   /// Constructor
-  mechPlainStrainInt(BaseFE * aptelem, MaterialData * data);
+  mechPlainStrainInt(BaseFE * aptelem, MaterialData & matDat);
   
   
   /// Deconstructor
@@ -46,6 +43,7 @@ public:
   
   
 protected:
+
   
   /// returns D - matrix for BDB
   virtual void calcDMat(Matrix<Double> & dMat);

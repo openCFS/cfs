@@ -30,9 +30,20 @@ namespace CoupledField
  
     calcDMat(dMat);
 
+#ifdef DEBUG
+    *debug << std::endl << "d-Matrix of BDB integrator: " << std::endl 
+	   << dMat << std::endl;
+#endif
+
     for (Integer actIntPt=1; actIntPt<=nrIntPts; actIntPt++)
       {
 	calcBMat(bMat, actIntPt, ptCoord);  
+
+#ifdef DEBUG
+	*debug << std::endl << "B-Matrix of BDB integrator: at intPt " << actIntPt << std::endl 
+	       << "coords: " << ptCoord << std::endl
+	       << bMat << std::endl;
+#endif
 
 	dB = dMat * bMat;
 
@@ -41,15 +52,22 @@ namespace CoupledField
 	partElemMat = bTrans * dB;
 	
 	jacDet = ptelem->CalcJacobianDetAtIp(actIntPt,ptCoord);
+
+#ifdef DEBUG
+	*debug << std::endl << "BDBInt::CalcElementMatrix: partelemmat at intPt " << actIntPt << std::endl 
+	       << partElemMat << std::endl
+	       << "jacDet " << jacDet << std::endl
+	       << "intWeights[actIntPt]: " << intWeights[actIntPt-1] << std::endl;
+#endif
 	
-	elemMat += partElemMat * jacDet * intWeights[actIntPt] ;
+	elemMat += partElemMat * jacDet * intWeights[actIntPt-1] ;
       }
   }
 
 
 
 
-  BDBInt::BDBInt(BaseFE * aptelem) : BaseForm(aptelem)
+  BDBInt::BDBInt(BaseFE * aptelem, MaterialData & matData) : BaseForm(aptelem, matData)
   {
 #ifdef TRACE
     (*trace) << "entering BDBInt::BDBInt" << std::endl;
