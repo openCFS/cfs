@@ -41,6 +41,9 @@
           <!-- Type of damping model (optional) -->
           <xsd:element name="damping" type="DT_PiezoDamp" minOccurs="0"/>
 
+          <!-- Type of materialDataType (real / complex)   (optional) -->
+          <xsd:element name="materialDataType" type="DT_matData" minOccurs="0"/>
+
           <!-- Boundary Conditions & Loads (optional) -->
           <xsd:element name="bcsAndLoads" minOccurs="0" maxOccurs="unbounded">
             <xsd:complexType>
@@ -245,6 +248,17 @@
 
   <xsd:complexType name="DT_PiezoDamp">
     <xsd:attribute name="type" type="DT_PiezoDampType" use="required"/>
+  </xsd:complexType>
+
+  <xsd:simpleType name="DT_matDataType">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="imagMaterialParameter"/>
+      <xsd:enumeration value="realMaterialParameter"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <xsd:complexType name="DT_matData">
+    <xsd:attribute name="type" type="DT_matDataType" use="required"/>
   </xsd:complexType>
 
 
