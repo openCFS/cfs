@@ -51,10 +51,11 @@
     <xsd:complexContent>
       <xsd:extension base="DT_PrecondBasic">
         <xsd:sequence>
-          <xsd:element name="level"  type="xsd:nonNegativeInteger"
+          <xsd:element name="level"       type="xsd:nonNegativeInteger"
             minOccurs="0"/>
-          <xsd:element name="stats"  type="DT_CFSBool" minOccurs="0"/>
-          <xsd:element name="memory" type="DT_CFSBool" minOccurs="0"/>
+          <xsd:element name="stats"       type="DT_CFSBool" minOccurs="0"/>
+          <xsd:element name="memory"      type="DT_CFSBool" minOccurs="0"/>
+          <xsd:element name="saveFacFile" type="xsd:token"  minOccurs="0"/>
         </xsd:sequence>
       </xsd:extension>
     </xsd:complexContent>

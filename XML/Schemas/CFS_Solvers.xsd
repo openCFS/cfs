@@ -130,7 +130,7 @@
 
   <!-- ==================================================================== -->
   <!-- ==                                                                == -->
-  <!-- ==                           HYPRE_PCG Solver                     == -->
+  <!-- ==                        HYPRE_PCG Solver                        == -->
   <!-- ==                                                                == -->
   <!-- ==================================================================== -->
 
@@ -232,6 +232,37 @@
           <xsd:element name="tryScaling" type="DT_CFSBool" minOccurs="0"/>
           <xsd:element name="refineSol" type="DT_CFSBool" minOccurs="0"/>
           <xsd:element name="logging" type="DT_CFSBool" minOccurs="0"/>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+
+  <!-- ==================================================================== -->
+  <!-- ==                                                                == -->
+  <!-- ==                        SPARSE DIRECT Solver                    == -->
+  <!-- ==                                                                == -->
+  <!-- ==                     (LU_SOLVER or LDL_SOLVER)                  == -->
+  <!-- ==                                                                == -->
+  <!-- ==================================================================== -->
+
+
+  <!-- ******************************************************************** -->
+  <!-- Definition of element for DIRECT Solver -->
+  <!-- ******************************************************************** -->
+  <xsd:element name="Direct" type="DT_SolverDIRECT"
+    substitutionGroup="SolverBasic"/>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for DIRECT Solver -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_SolverDIRECT">
+    <xsd:complexContent>
+      <xsd:extension base="DT_SolverBasic">
+        <xsd:sequence>
+          <xsd:element name="logging"     type="DT_CFSBool" minOccurs="0"/>
+          <xsd:element name="saveFacFile" type="xsd:token"  minOccurs="0"/>
         </xsd:sequence>
       </xsd:extension>
     </xsd:complexContent>
