@@ -32,9 +32,11 @@ public:
   { ptGridCFS->GetCoordOfNodesElem(numElem, numlevel, numnodes,ptCoordElem);}
 
    /// Get connection of element
-  virtual void GetConnection(Integer * result, const Integer level, 
-           const Integer numElem, const Integer numnodesPerElem)
-  { ptGridCFS->GetConnection(result, level, numElem, numnodesPerElem);}
+//  virtual void GetConnection(Integer * result, const Integer level, 
+//           const Integer numElem, const Integer numnodesPerElem)
+//  { ptGridCFS->GetConnection(result, level, numElem, numnodesPerElem);}
+   virtual void GetConnection(Vector<Integer> & connect, const Integer iElem, const Integer level)
+    { ptGridCFS->GetConnection(connect,iElem, level);}
 
    /// Get coordinates of node with global number inode
   virtual void GetCoordinateNode(const Integer inode, const Integer numlevel, Dim & rfPoint) {ptGridCFS->GetCoordinateNode(inode,numlevel,rfPoint);}
@@ -51,24 +53,9 @@ public:
   virtual Integer GetNumNodesPerElem(const Integer iElem, const Integer level)
   { return ptGridCFS->GetNumNodesPerElem(iElem, level);}
 
-  /// Print coordinates of grid in out
-  virtual void PrintCoordinate(const Integer level, std::ostream * out) const
-  { ptGridCFS->PrintCoordinate(level, out);}
-
-  //! Get array of nodes for boundary condition
-//    virtual void GetNodesBoundaryCondition(Vector<Integer> & nodesDirBC, const Integer level);
-
-  //! Get array of pointers to element type
-    virtual BaseElem ** getptArrayElem() const 
-  { return ptGridCFS->getptArrayElem();}
-
-  //! Get number of subdomains
-  virtual Integer GetNumSubdomains() const
-  { return ptGridCFS->getnumsubdomains();}
- 
-  //! Get pointer to array with nodes, that belongs to subdomain number num
-  virtual Integer * GetElemSubdomain(const Integer num, const Integer level) const
-   { return ptGridCFS->getelemsubdomain(num,level);}
+  /// return pointer to BaseElem
+    BaseElem * GetptElem(const Integer iElem)
+ { return ptGridCFS->GetptElem(iElem);}
 
 protected:
 private:

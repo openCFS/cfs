@@ -106,8 +106,8 @@ void Domain :: InitPDE()
        if (eq == "acoustic2d")  ptpde_[i]=new Acoustic2dPDE(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_);
 //       else
 //       if (eq == "electrostatic3d")  ptpde_[i]=new Elecst3dPDE(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_);
-       else
-       if (eq == "thermal2d") ptpde_[i]=new Therm2dPDE(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_);
+//       else
+//       if (eq == "thermal2d") ptpde_[i]=new Therm2dPDE(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_);
    }
 
 }
@@ -149,7 +149,8 @@ void Domain :: InitAlgSys()
    }
 
  // get the graph - connectivity matrix
-  Integer nel, numelem, elemsize, pos[30];
+  Integer nel, numelem;
+  Vector<Integer> connect;
 
   numelem = ptgrid_->GetMaxnumElem(level);
 
@@ -157,9 +158,8 @@ void Domain :: InitAlgSys()
     {
       for (nel=0; nel<numelem; nel++)
 	{
-	  elemsize = ptgrid_->GetNumNodesPerElem(nel,level);
-          ptgrid_->GetConnection(pos, level, nel, elemsize); // global node numbers! pos[0],...,pos[elemsize-1]
-	  ptalgsys_->SetAlgSysGraph(pos,elemsize,insys,insys);
+          ptgrid_->GetConnection(connect, nel, level);
+	  ptalgsys_->SetAlgSysGraph(connect.get(),connect.size(),insys,insys);
 	}
     }
 

@@ -39,6 +39,8 @@ void ConfFile::get(const std::string keyword, TypeVal & val, const std::string s
 
  if (section != "") pos1=getpos(section);
 
+ std::cout << " keyword " << keyword << std::endl;
+
  pos=getpos(keyword,pos1);
 
  infile.seekg(pos, std::ios::beg);

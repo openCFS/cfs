@@ -152,16 +152,15 @@ void  WriteResultsUnverg<Point2D>::Dataset780(const Integer level)
 
  Integer maxnumelem=ptgrid-> GetMaxnumElem(level);
 
- Integer * ConnectElem=NULL;
- Integer numnodesPerElem=0;
+ Vector<Integer> connect;
 
  for (Integer i=0; i<maxnumelem; i++)
    {
-     numnodesPerElem=ptgrid->GetNumNodesPerElem(i,level); 
-
      (*output) << std::setw(10) << i+1 << std::setw(10);
 
-     switch(numnodesPerElem)
+     ptgrid->GetConnection(connect, i, level);
+
+     switch(connect.size())
      {
        case 3: (*output) << 91 ; break;
        case 4: (*output) << 94 ; break;
@@ -170,19 +169,14 @@ void  WriteResultsUnverg<Point2D>::Dataset780(const Integer level)
        default: Error("Please, put element type according to unverg-format for this number of nodes per element", __FILE__,__LINE__);
      }
 
-     (*output) << std::setw(10) << 2 << std::setw(10) << 2 << std::setw(10) << 1 << std::setw(10) << 1 << std::setw(10) << 1 << std::setw(10) << numnodesPerElem << std::endl;
+     (*output) << std::setw(10) << 2 << std::setw(10) << 2 << std::setw(10) << 1 << std::setw(10) << 1 << std::setw(10) << 1 << std::setw(10) << connect.size() << std::endl;
 
-     ConnectElem=new Integer[numnodesPerElem];      
-     ptgrid->GetConnection(ConnectElem, level, i, numnodesPerElem);
-
-     for (Integer ii=0; ii < numnodesPerElem; ii++) 
+     for (Integer ii=0; ii < connect.size(); ii++) 
        { 
 	 (*output).width(10);
-	 (*output) << ConnectElem[ii];
+	 (*output) << connect[ii];
        }
 
-     delete [] ConnectElem;
- 
      (*output) << std::endl;
    }
  (*output) << std::setw(6) << -1 << std::endl;
@@ -201,18 +195,15 @@ void  WriteResultsUnverg<Point3D>::Dataset780(const Integer level)
 
  Integer maxnumelem=ptgrid-> GetMaxnumElem(level);
 
- std::cout << maxnumelem << " " << maxnumnodes << std::endl;
-
- Integer * ConnectElem=NULL;
- Integer numnodesPerElem=0;
+ Vector<Integer> connect;
 
  for (Integer i=0; i<maxnumelem; i++)
    {
-     numnodesPerElem=ptgrid->GetNumNodesPerElem(i,level);
-
      (*output) << std::setw(10) << i+1 << std::setw(10);
 
-     switch(numnodesPerElem)
+     ptgrid->GetConnection(connect, i, level);
+
+     switch(connect.size())
      {
        case 4: (*output) << 111 ; break;
        case 6: (*output) << 112; break;
@@ -222,18 +213,13 @@ void  WriteResultsUnverg<Point3D>::Dataset780(const Integer level)
        default: Error("Please, put element type according to unverg-format for this number of nodes per element", __FILE__,__LINE__);
      }
 
-     (*output) << std::setw(10) << 11 << std::setw(10) << 1 << std::setw(10) << 1 << std::setw(10) << 1 << std::setw(10) << 1 << std::setw(10) << numnodesPerElem << std::endl;
+     (*output) << std::setw(10) << 11 << std::setw(10) << 1 << std::setw(10) << 1 << std::setw(10) << 1 << std::setw(10) << 1 << std::setw(10) << connect.size() << std::endl;
 
-     ConnectElem=new Integer[numnodesPerElem];
-     ptgrid->GetConnection(ConnectElem, level, i, numnodesPerElem);
-
-     for (Integer ii=0; ii < numnodesPerElem; ii++)
+     for (Integer ii=0; ii < connect.size(); ii++)
        {
          (*output).width(10);
-         (*output) << ConnectElem[ii];
+         (*output) << connect[ii];
        }
-
-     delete [] ConnectElem;
 
      (*output) << std::endl;
    }

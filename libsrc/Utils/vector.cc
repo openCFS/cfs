@@ -32,6 +32,7 @@ Error("Vector: invalid dimension in constructor",__FILE__,__LINE__);
 
 template<class TYPE> void Vector<TYPE>::Allocate(const Integer i)
 {
+   std::cout << " We are here " << std::endl;
    if (p)
    Error("use .Resize to defined Vector for changing size",__FILE__,__LINE__);
 
@@ -73,8 +74,8 @@ template
 <class TYPE>
 Vector<TYPE>::Vector (const Vector<TYPE> &x)
 {  
-    if (!x.n)
-        Error("Vector: undefined Vector in copy-constructor",__FILE__,__LINE__);
+//    if (!x.n)
+//        Error("Vector: undefined Vector in copy-constructor",__FILE__,__LINE__);
 
 	n = x.n;
 	p = new TYPE [n];

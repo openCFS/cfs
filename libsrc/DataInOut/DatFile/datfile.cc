@@ -3,9 +3,11 @@
 #include <stdarg.h>
 #include <iostream>
 #include <iomanip>
+#include <vector>
 
 #include "datfile.hh"
 #include "bcs.hh"
+#include "grid_cfs.hh"
 
 namespace CoupledField
 {
@@ -1319,16 +1321,68 @@ Boolean DatFile::IsThere(const std::string seekexp)
    return count;
 }
 
-void DatFile::ReadNumberNodesPerElem(Integer & numnodesperelem)
+void DatFile::ReadElems(std::vector<Elem> & allelems)
 {
+#ifdef TRACE
+ (*trace) << " entering DatFile::ReadElems " << std::endl;
+#endif
+  Integer i,j;
+  std::string buf;
 
- Integer data[3];
+  Integer maxelem;
+  ReadMaxnumelem(maxelem);
 
- ReadGeneralElemChoice(0,data, DatFile::numelem,
-                   DatFile::ielemtyp, DatFile::maxnode,
-                   DatFile::endGElem);
+  allelems.resize(maxelem);
 
- numnodesperelem=data[2];     
+  Integer group=0; // !!!! Attention !!!
+  Integer maxnode;
+  ReadMaxnode(maxnode,group);  
+
+  Integer maxrecords;
+  if (maxnode<9) {maxrecords=1;}
+  else if (maxnode < 17) {maxrecords=2;}
+  else {maxrecords=3;}
+
+  std::string::size_type pos=0;
+  TakePos("element definition", pos);
+  infile.seekg(pos, std::ios::beg);
+  
+  std::getline(infile, buf, '\n');
+  for (j=0; j<maxelem; j++)
+{
+  allelems[j].ptElem=ptQ; // !!!! Attention !!!
+  allelems[j].namesd="fluid"; // !!! Attention !!!
+  allelems[j].connect.Resize(maxnode);
+  switch(maxrecords)
+  {
+  case 1: for (i=0; i<maxnode; i++) infile >> allelems[j].connect[i];
+          break;
+  case 2: for (i=0; i<8; i++) infile >> allelems[j].connect[i];
+          infile.ignore(100,'\n');
+          for (i=8; i<maxnode; i++) infile >> allelems[j].connect[i];
+          break;
+  case 3: for (i=0; i<8; i++) infile >> allelems[j].connect[i];
+          infile.ignore(100,'\n');
+          for (i=8; i<16; i++) infile >> allelems[j].connect[i];
+          infile.ignore(100,'\n');
+          for (i=16; i<maxnode; i++) infile >> allelems[j].connect[i];
+          break;
+  }
+  infile.ignore(100,'\n');
+  std::getline(infile, buf, '\n');
+}
+}
+
+void DatFile::ReadMaxnode(Integer & maxnode, const Integer igr)
+{
+  std::string::size_type pos=0;
+
+  Integer i, ibuf;
+  for (i=0; i<=igr; i++)
+  TakePos("maxnode", pos);
+
+  infile.seekg(pos, std::ios::beg);
+  infile >> ibuf >> ibuf >> ibuf >> ibuf >> maxnode; 
 }
 
 }

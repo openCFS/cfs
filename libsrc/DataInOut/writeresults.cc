@@ -17,11 +17,8 @@ WriteResults::WriteResults()
   NeedHistory_=TRUE;
   history_node_=-1;
   conf->get("history_node",history_node_);
-  std::cout << history_node_ << std::endl;
 
   if (history_node_==-1) NeedHistory_=FALSE; 
-
-  std::cout << " ok " << std::endl;
 
   if (NeedHistory_)
    { historyfile.open("history.hist");

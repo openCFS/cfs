@@ -37,17 +37,9 @@ protected:
   //! Auxialary Variables  
   std::ifstream infile;
 
-  //! usefull enums
-  //! enum for reading data about general analisys
-//  enum nameGAn{soltype, analtype, numnode, numgroup, restart, inactdofs,
-//               circuit, deactDf, masstype, damptype, nooptimiz, endGAnal}; //11
-
-  //! enum for redaing general info about element
-//  enum nameGElem {numelem, ielemtyp, isubtype, ielemsave, maxnode,
-//                  nonlinear, form1, form2, endGElem}; // 8
 public:
   //!
-  virtual void ReadNumberNodesPerElem(Integer & numnodes);
+  virtual void ReadElems(std::vector<Elem> & allelems);
 
   //! Read maximum number of nodes
   virtual void ReadMaxnumnodes(Integer & maxnumnodes);
@@ -282,10 +274,12 @@ public:
 
   std::string::size_type pos_end; 
 
+  //! read max nodes in group
+  void ReadMaxnode(Integer & maxnode, const Integer igr);
+
 private:
   //!
   enum TypeBCs TransformInTypeBCs(const std::string str); 
-
 };
 }
 

@@ -7,6 +7,8 @@
 #include <list>
 #include <math.h>
 
+#include <vector>
+
 #include "myclock.hh"
 #include "definefiles.hh"
 #include "material.hh"
