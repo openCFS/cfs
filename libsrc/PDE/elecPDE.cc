@@ -191,11 +191,13 @@ void ElecPDE::PostStepStatic(const Integer kstep, const Double asteptime,
 // POSTPROCESSING SECTION
 // ======================================================
 
-void ElecPDE::WriteResultsInFile()
+void ElecPDE::WriteResultsInFile(Integer stepOffset,
+				 Double timeOffset)
 {
   ENTER_FCN( "ElecPDE::WriteResultsInFile" );
 
-  Double time = lasttimecalc_;
+  Integer actStep = laststepcalc_ + stepOffset;
+  Double actTime = lasttimecalc_ + timeOffset;
   
 #ifdef PARALLEL //only one thread should write output
   int commrank;
@@ -215,11 +217,11 @@ void ElecPDE::WriteResultsInFile()
       
       // write electric potential
       if (savesol_)
-	outFile_->WriteNodeSolutionTransient(*solConverted, laststepcalc_, time);
+	outFile_->WriteNodeSolutionTransient(*solConverted, actStep, actTime);
       
       if (calcEfield_.GetSize() !=0 )
 	{
-	  outFile_->WriteElemSolutionTransient(E_,laststepcalc_,time);
+	  outFile_->WriteElemSolutionTransient(E_, actStep, actTime);
 	}
       
       if (flags->CalcErrorMap_)
@@ -240,7 +242,7 @@ void ElecPDE::WriteResultsInFile()
 	  // since the calculation of the error is done on the global element numeration
 	  //Error.TransformElemSolution(Error_Mesh,subdoms_,ptgrid_,actlevel_);
 	  //OutFile_->WriteElemSolution(errorMap_, laststepcalc_, time, "relERR-E-Potential"); 
-	  outFile_->WriteElemSolutionTransient(error_Mesh, laststepcalc_, time); 
+	  outFile_->WriteElemSolutionTransient(error_Mesh, actStep, actTime); 
 	}
       
       if (calcEnergy_.GetSize() !=0 )

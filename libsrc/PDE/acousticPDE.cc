@@ -179,9 +179,8 @@ namespace CoupledField {
   // ======================================================
 
   void AcousticPDE::InitTimeStepping(const Double dt) {
-
     ENTER_FCN( "AcousticPDE::InitTimeStepping" );
-
+    
     if ( dampingType_ == FRACTIONAL ) {
 
       // currently the parameter y is taken from the first subdomain
@@ -353,7 +352,8 @@ namespace CoupledField {
   // POSTPROCESSING SECTION
   // ======================================================
 
-  void AcousticPDE::WriteResultsInFile() {
+  void AcousticPDE::WriteResultsInFile(Integer stepOffset,
+				       Double timeOffset) {
     ENTER_FCN( "AcousticPDE::WriteResultsInFile" );
 
 #ifdef PARALLEL //only one thread should write the output
@@ -365,6 +365,9 @@ namespace CoupledField {
       NodeStoreSol<Double> * solTransient;
       NodeStoreSol<Complex> * solHarmonic;
        
+      Double actTime = lasttimecalc_ + timeOffset;
+      Integer actStep = laststepcalc_ + stepOffset;
+      
       if (analysistype_==HARMONIC) {
 	if (savesol_){
 	  solHarmonic = dynamic_cast<NodeStoreSol<Complex>*>(sol_);
@@ -376,16 +379,16 @@ namespace CoupledField {
 	
 	if (savesol_){
 	  solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);
-	  outFile_->WriteNodeSolutionTransient(*solTransient, laststepcalc_, lasttimecalc_);
+	  outFile_->WriteNodeSolutionTransient(*solTransient, actStep, actTime);
 	}
 	if (savederiv1_) {
 	  sol_der1Array_.SetAlgSysVector(getS1()); 
-	  outFile_->WriteNodeSolutionTransient(sol_der1Array_, laststepcalc_, lasttimecalc_);
+	  outFile_->WriteNodeSolutionTransient(sol_der1Array_, actStep, actTime);
 	}
 
 	if (savederiv2_) {
 	  sol_der2Array_.SetAlgSysVector(getS2());
-	  outFile_->WriteNodeSolutionTransient(sol_der2Array_, laststepcalc_, lasttimecalc_);
+	  outFile_->WriteNodeSolutionTransient(sol_der2Array_, actStep, actTime);
 	}
       }
 #ifdef PARALLEL

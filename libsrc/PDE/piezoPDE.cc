@@ -267,33 +267,37 @@ namespace CoupledField {
   }
 
 
-  void PiezoPDE::WriteResultsInFile()
+  void PiezoPDE::WriteResultsInFile(Integer stepOffset,
+				    Double timeOffset)
   {
     ENTER_FCN( "PiezoPDE::WriteResultsInFile" );
 
     NodeStoreSol<Double> * solTransient;
     NodeStoreSol<Complex> * solHarmonic;
 
+    Double actTime = lasttimecalc_ + timeOffset;
+    Integer actStep = laststepcalc_ + stepOffset;
+ 
     if (analysistype_ == STATIC ||
 	analysistype_ == TRANSIENT) {
       
       if (savesol_) {
 	solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);
-	outFile_->WriteNodeSolutionTransient(*solTransient, laststepcalc_, lasttimecalc_);
+	outFile_->WriteNodeSolutionTransient(*solTransient, actStep, actTime);
       }
       
       //element results
       if (calcEfield_.GetSize() !=0 ) {
-	outFile_->WriteElemSolutionTransient(Efield_, laststepcalc_, lasttimecalc_);
+	outFile_->WriteElemSolutionTransient(Efield_, actStep, actTime);
       }
 
       if (calcStress_.GetSize() !=0 ) {
-	outFile_->WriteElemSolutionTransient(stress_, laststepcalc_, lasttimecalc_);
+	outFile_->WriteElemSolutionTransient(stress_, actStep, actTime);
       }
 
       //element results
       if (calcCharge_.GetSize() !=0 ) {
-	outFile_->WriteElemSolutionTransient(charges_, laststepcalc_, lasttimecalc_);
+	outFile_->WriteElemSolutionTransient(charges_, actStep, actTime);
       } 
       
     } else if (analysistype_ == HARMONIC) {

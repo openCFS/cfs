@@ -35,14 +35,15 @@ public:
   //! define all (bilinearform) integrators needed for this pde
   virtual void DefineIntegrators(const Integer level);
 
-  //! prepare for correct time stepping
-  /*!
-    \param dt time step
-  */
+  //! Init the time stepping
+  //! \param dt time step
   virtual void InitTimeStepping(const Double dt);
-
+				
   //! write results in file
-   virtual void WriteResultsInFile();
+  //! \param stepOffset offset for starting (time)step
+  //! \param timeOffset offset for starting time  
+  virtual void WriteResultsInFile(Integer stepOffset = 0,
+				  Double timeOffset = 0.0);
 
   //!  return pointer to vector with first derivative of solution
   virtual const Vector<Double>& getS1() const { return TS_alg_->GetDeriv1();}

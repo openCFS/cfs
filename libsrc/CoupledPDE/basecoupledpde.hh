@@ -49,6 +49,14 @@ public:
   //! calculates coupling interfaces
   virtual void InitCoupling(Integer level)=0;
   
+  //! Defines, which of the coupled PDEs are currently solved
+  //! and which are neglected. This method is mainly needed
+  //! for multiSequenceAnalysis, where in different steps
+  //! only a subset of all coupled PDEs is solved.
+  //! \param pdes (input) Unsorted list of PDEs which
+  //! are currently solved 
+  virtual void DefineSolvingPDEs(StdVector<BasePDE*> & pdes) = 0;
+  
   //! Solve static step
   virtual void SolveStepStatic(const Integer kstep, const Double asteptime, const Integer level, 
 			      const Boolean updatesysmat)=0;
@@ -58,7 +66,8 @@ public:
 			      const Boolean updatesysmat)=0;
   
   //! write results in file
-  virtual void WriteResultsInFile()=0;
+  virtual void WriteResultsInFile(Integer stepOffset = 0,
+				  Double timeOffset = 0.0)=0;
 
 
   //! Init the time stepping
@@ -105,6 +114,11 @@ protected:
   StdVector<PDECoupling*> Couplings_; //!< vector of coupling objects
   Integer NumPDEs_;                     //!< number of PDEs 
   Integer actlevel_;                    //!< current level (for multigrid)
+  
+  //! vector of flags indicating if specified
+  //! PDE gets solved. The ordering corresponds
+  //! to that of PDEs_ in the base class.
+  StdVector<Boolean> solvePDE_;
 
   // pointers to objects
   Grid * ptgrid_;           //!< pointer to Grid

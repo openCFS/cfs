@@ -84,15 +84,14 @@ public:
   void StepTransNonLin(const Integer kstep, const Double asteptime,
 		       const Integer level, const Boolean reset);
   
-
-  //! prepare for correct time stepping
-  /*! \param dt time step  */
+  //! Init the time stepping
+  //! \param dt time step
   virtual void InitTimeStepping(const Double dt);
-
+				
   //!
   virtual void PreStepStatic(const Integer kstep, const Double asteptime,
 			     const Integer level, const Boolean reset);
-
+  
   //! solve one step for nonlinear static problem 
   /*!
     \param level level of grid
@@ -111,7 +110,10 @@ public:
   // ======================================================
 
   //! write results in file
-   virtual void WriteResultsInFile();
+  //! \param stepOffset offset for starting (time)step
+  //! \param timeOffset offset for starting time  
+  virtual void WriteResultsInFile(Integer stepOffset = 0,
+				  Double timeOffset = 0.0);
 
   //! do PostProcessing step
   virtual void PostProcess(const Integer level);

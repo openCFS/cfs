@@ -67,7 +67,7 @@ namespace CoupledField
 	   << "|                     (Coupled Field Simulation ++)                   |" << std::endl
 	   << "|                                                                     |" << std::endl
 	   << "|                                                                     |" << std::endl
-	   << "|  Version: 0.092                                                     |" << std::endl
+	   << "|  Version: 0.093                                                     |" << std::endl
 	   << "|  Date:    " << compileDate
 	   << "                                               |\n"
 	   << "|                                                                     |" << std::endl
@@ -166,6 +166,41 @@ namespace CoupledField
   }
 
 
+  void WriteInfo::WriteMultiSequenceStep(const Integer sequenceStep, 
+					 const AnalysisType analysis)
+  {
+    std::string analysisString;
+
+    Enum2String(analysis, analysisString);
+
+    ENTER_FCN( "WriteInfo::WriteMultiSequenceStep" );
+ 
+    // write std::out info 
+    std::cout << myEndl 
+	      << " ***************************** " << myEndl
+	      << " MultiSequenceStep: " << sequenceStep << myEndl
+	      << " AnalysisType:      " << analysisString << myEndl
+	      << " ***************************** " << myEndl << myEndl;
+
+
+
+    *cla <<  myEndl 
+	 << " ***************************** " << myEndl
+	 << " MultiSequenceStep: " << sequenceStep << myEndl
+	 << " AnalysisType:      " << analysisString << myEndl
+	 << " ***************************** " << myEndl << myEndl;
+    
+
+
+    
+    if (cfsInfo)
+      *cfsInfo << myEndl 
+	       << myEndl<< " ***************************** " << myEndl
+	       << " MultiSequenceStep: " << sequenceStep << myEndl
+	       << " AnalysisType:      " << analysisString << myEndl
+	       << " ***************************** " << myEndl << myEndl;
+  }
+  
 
 
   void WriteInfo::WriteTimeStep(const std::string& pdeName,

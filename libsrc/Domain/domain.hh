@@ -43,6 +43,13 @@ public:
   */
   void PrintGrid(const Integer level);
 
+
+  //! Initialize all PDEs
+  //! \param sequenceStep step index in MultiSequenceSimulation
+  //! \param tags tags for each PDE 
+  void InitPDEs(Integer sequenceStep,
+		StdVector<std::string> tags);
+
   //!
   void SetSubdomains();
 
@@ -93,10 +100,10 @@ private:
   
 
   //! initialize pde
-  void InitPDEs();
+  void CreatePDEs();
   
   //! initialize coupled pde
-  void InitCoupledPDE();
+  void CreateCoupledPDE();
 
    //! initialization of alg.sys.
   /*!

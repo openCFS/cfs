@@ -59,14 +59,13 @@ class SpaceErrorEstimator;
     //! Destructor
     virtual ~BasePDE();
 
-    //! Initializes PDE
+    //! Initializes PDE 
+
+    //! Initializes the PDE. This function is only called one time.
     //! \param bcSequenceId (input) name of the tag for current set of 
     //! boundary condition
     virtual void Init(Integer sequenceStep = 0,
 		      std::string  bcSequenceTag = "anyTag");
-
-    //! Initialize NonLinearities
-    virtual void InitNonLin(){};
     
     //! read material data
     virtual void ReadMaterialData();
@@ -112,7 +111,10 @@ class SpaceErrorEstimator;
     virtual void PostProcess(const Integer level) {;};
 
     //! write results in file
-    virtual void WriteResultsInFile()=0;  
+    //! \param stepOffset offset for starting (time)step
+    //! \param timeOffset offset for starting time  
+    virtual void WriteResultsInFile(Integer stepOffset = 0,
+				    Double timeOffset = 0.0) = 0; 
     //@}
 
     // ======================================================
@@ -130,7 +132,7 @@ class SpaceErrorEstimator;
 
     //! Init the time stepping
     //! \param dt time step
-    virtual void InitTimeStepping(const Double dt)
+  virtual void InitTimeStepping(const Double dt)
     {Error("InitTimeStepping not implemented",__FILE__,__LINE__);};
 
     //! deletes the algebraic system
@@ -138,7 +140,7 @@ class SpaceErrorEstimator;
     {assemble_->DeleteAlgSys();};
   
     //static analysis
-
+  
     virtual void PreStepStatic(const Integer kstep, const Double asteptime,
 			       const Integer level, const Boolean reset) {;};
 
@@ -252,12 +254,11 @@ class SpaceErrorEstimator;
       return FALSE;
     }
 
-    
     //! set solution
-    virtual void SetSolution(BaseNodeStoreSol & sol);
+    virtual void SetSolution(CFSVector & sol);
     
     //! return solution
-    virtual const BaseNodeStoreSol& getS() {return *sol_;}
+    virtual const BaseNodeStoreSol& GetSolution() {return *sol_;}
 
     //! return pointer to vector with first derivative of solution
     virtual const Vector<Double> & getS1() const 
@@ -314,6 +315,9 @@ class SpaceErrorEstimator;
       savederiv2_ = TRUE;
     };
 #endif
+
+    //! Initialize NonLinearities
+    virtual void InitNonLin(){};
 
     //! read from config-file info about BCs
     void ReadBCs();
@@ -412,11 +416,17 @@ class SpaceErrorEstimator;
 
     //@{
     //! \name Attributes connected to time stepping
-    Double stepTime_;             //!< time step;
     TimeStepping * TS_alg_;       //!< handles the time stepping
     Boolean effectiveMass_;       //!< use effective mass formulation for transient analysis
     Boolean firstTimeStepStatic_; //!< needed for coupled, iterative methods
-    //@}
+    Double lasttimecalc_;    //!< Last time on which we have calculated solution
+    
+    //! Number of last timestep on which we have calculated our solution
+    Integer laststepcalc_;
+    
+    Double  actFrequency_; //!< current frequency for harmonic analysis
+    Integer actFreqStep_;  //!< current frequency step for harmonic analysis
+  //@}
 
     // -----------------------------------------------------------------------
     // Boundary conditions
@@ -541,13 +551,7 @@ class SpaceErrorEstimator;
     Double  eps_;            //!< accuracy
     Double dampiter_;        //!< damping parameter within iterative solution
     Double coarsealpha_;     //!< coarsening factor (just for AMG)
-    Double lasttimecalc_;    //!< Last time on which we have calculated solution
-
-    //! Number of last timestep on which we have calculated our solution
-    Integer laststepcalc_;
-
-    Double  actFrequency_; //!< current frequency for harmonic analysis
-    Integer actFreqStep_;  //!< current frequency step for harmonic analysis
+   
     ComplexFormat complexFormat_;  //!< outputFormat for complex numbers
 
     //! specifies the type of damping model (see environment.hh)

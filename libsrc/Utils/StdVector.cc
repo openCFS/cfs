@@ -1,7 +1,6 @@
 #ifndef FILE_STDVECTOR_IMPLEMENTATION_2004
 #define FILE_STDVECTOR_IMPLEMENTATION_2004
 
-
 namespace CoupledField {
 
 template<class TYPE>

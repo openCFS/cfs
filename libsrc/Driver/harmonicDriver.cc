@@ -14,8 +14,13 @@
 namespace CoupledField
 {
 
-HarmonicDriver :: HarmonicDriver(Domain * adomain)
-:SingleDriver(adomain)
+HarmonicDriver :: HarmonicDriver(Domain * adomain, 
+				 Integer stepOffset,
+				 Double timeOffset,
+				 std::string driverTag,
+				 Boolean isPartOfSequence)
+:SingleDriver(adomain, stepOffset, timeOffset, 
+	      driverTag, isPartOfSequence)
 {
   ENTER_FCN( " HarmonicDriver::HarmonicDriver" );
 
@@ -30,13 +35,23 @@ HarmonicDriver :: HarmonicDriver(Domain * adomain)
   conf->ifget("saveType",saveType_);
   
 #else
-
-    // Get time stepping information from parameter object
-    params->Get( "startFreq" , startFreq_    );
-    params->Get( "stopFreq"  , stopFreq_    );
-    params->Get( "numFreq"   , numFreq_ );
+  // vectors for accessing parameters
+  StdVector<std::string> keyVec, attrVec, valVec;
+  
+  attrVec = "tag";
+  valVec = driverTag_;
+  
+  // Get time stepping information from parameter object
+  keyVec = "harmonic", "startFreq";
+  params->Get(keyVec, attrVec, valVec, startFreq_);
+  
+  keyVec = "harmonic", "stopFreq";
+  params->Get(keyVec, attrVec, valVec, stopFreq_);
+  
+  keyVec = "harmonic", "numFreq";
+  params->Get(keyVec, attrVec, valVec, numFreq_);
 #endif
-
+    
 }
 
 HarmonicDriver :: ~HarmonicDriver()
@@ -52,32 +67,60 @@ void HarmonicDriver :: SolveProblem()
   Integer level=0;
   Boolean reset = TRUE;
   Integer pdenumber  = 0;
+  
+  if (! isPartOfSequence_)
   ptdomain_->PrintGrid(level);
 
   if (PrintGridOnly)
       exit(0);
 
-  BasePDE * actPDE = ptdomain_->GetPDE(pdenumber);
-  actPDE->WriteGeneralPDEdefines();
+  // if PDEs are not set explicitly, 
+  // get all from the domain
+  if (pdes_.GetSize() == 0) {
+    pdes_.Resize(ptdomain_->GetNumPDE());
+    for (Integer iPDE=0; iPDE<ptdomain_->GetNumPDE(); iPDE++)
+      pdes_[iPDE] = ptdomain_->GetPDE(iPDE);
+  }
+
+  // initialize pdes only, if this driver
+  // is not part of multiSequence driver
+  StdVector<std::string> tags;
+  if (! isPartOfSequence_) {
+    tags.Resize(pdes_.GetSize());
+    tags.Init("anyTag");
+    ptdomain_->InitPDEs(1,tags); 
+    Info->StartProgress ("Starting to solve problem", FALSE);
+  }
+
+  pdes_[0]->WriteGeneralPDEdefines();
       
   Integer fstep;
   Double actFreq  = startFreq_;
   Double freqIncr = (stopFreq_ - startFreq_) / numFreq_;
+  std::string errMsg;
+  
+  if (pdes_.GetSize() <= 1) {
 
-  for (fstep = 1; fstep <= numFreq_; fstep++) {
-    Info->WriteHarmonicStep(actPDE->GetName(), fstep, actFreq);
-
-    actPDE->PreStepHarmonic(fstep, actFreq, level, reset);
-    actPDE->SolveStepHarmonic(fstep, actFreq, level, reset);
-    actPDE->PostStepHarmonic(fstep, actFreq, level, reset);
-
-    // writing results in output-file
-    actPDE->PostProcess(level);
-    actPDE->WriteResultsInFile();
-    
-    actFreq += freqIncr;
+    // branch for single PDE
+    for (fstep = 1; fstep <= numFreq_; fstep++) {
+      Info->WriteHarmonicStep(pdes_[0]->GetName(), fstep, actFreq);
+      
+      pdes_[0]->PreStepHarmonic(fstep, actFreq, level, reset);
+      pdes_[0]->SolveStepHarmonic(fstep, actFreq, level, reset);
+      pdes_[0]->PostStepHarmonic(fstep, actFreq, level, reset);
+      
+      // writing results in output-file
+      pdes_[0]->PostProcess(level);
+      pdes_[0]->WriteResultsInFile();
+      
+      actFreq += freqIncr;
+    }
+  } 
+  else {
+    errMsg  = "HarmonicDriver::Solve: Harmonic simulation is ";
+    errMsg += "not yet implemented for coupled PDEs, sorry!";
+    Error(errMsg.c_str(), __FILE__, __LINE__);
   }
-
 
 }
 

@@ -733,16 +733,18 @@ namespace CoupledField
 				  const Integer dofsPerNode,
 				  const Integer numPDENodes, 
 				  const StdVector<std::string> subdoms,
-				  const StdVector<std::string> surfdoms)
+				  const StdVector<std::string> surfdoms,
+				  const std::string bcSequenceTag)
   {
     ENTER_FCN( "Assemble::SetGeneralParams" );
 
-    pdename_     = pdename;
-    dofsPerNode_ = dofsPerNode;
-    numPDENodes_ = numPDENodes;
-    subdoms_     = subdoms;
-    surfdoms_    = surfdoms;
-
+    pdename_       = pdename;
+    dofsPerNode_   = dofsPerNode;
+    numPDENodes_   = numPDENodes;
+    subdoms_       = subdoms;
+    surfdoms_      = surfdoms;
+    bcSequenceTag_ = bcSequenceTag;
+ 
 
 
     // read load values =========================================
@@ -775,10 +777,49 @@ namespace CoupledField
       }
 
 #else
-    params->GetList( "name"    , loadDom_      , pdename_, "load" );
-    params->GetList( "dof"     , loadDof_      , pdename_, "load" );
-    params->GetList( "value"   , loadVals_     , pdename_, "load" );
-    params->GetList( "dynamics", fncname_loads_, pdename_, "load" );
+    StdVector<std::string> keyVec, attrVec, valVec;
+
+    attrVec = "", "tag", "";
+    valVec = "", bcSequenceTag_, "";
+
+    loadDom_.Clear();
+    loadDof_.Clear();
+    loadVals_.Clear();
+    fncname_loads_.Clear();
+
+    keyVec = pdename_, "bcsAndLoads", "load", "name";
+    params->GetList(keyVec, attrVec, valVec, loadDom_);
+
+    keyVec = pdename_, "bcsAndLoads", "load", "dof";
+    params->GetList(keyVec, attrVec, valVec, loadDof_);
+
+    keyVec = pdename_, "bcsAndLoads", "load", "value";
+    params->GetList(keyVec, attrVec, valVec, loadVals_);
+
+    keyVec = pdename_, "bcsAndLoads", "load", "dynamics";
+    params->GetList(keyVec, attrVec, valVec, fncname_loads_);
+
+
+    // check if a fncname was given, although
+    // in section transient there is non mentioned
+    if (fncname_loads_.GetSize() > 0)
+      {
+	if (ptTimeFunc_->GetmaxTimeFnc() == 0  &&
+	    fncname_loads_[0] != "none") {
+	  std::string errmsg = "Loads: There was no time data file ";
+	  errmsg += "specified in the section 'transient', so 'dynamics' ";
+	  errmsg += "for PDE '";
+	  errmsg += pdename;
+	  errmsg += "' makes no sense!";
+	  Error(errmsg.c_str(), __FILE__, __LINE__);
+	}
+      }
+    
+
+//     std::cerr << "load names = " <<  loadDom_ << std::endl;
+//     std::cerr << "load dofs = " <<  loadDof_ << std::endl;
+//     std::cerr << "load values = " <<  loadVals_ << std::endl;
+//     std::cerr << "load dynamics = " <<  fncname_loads_ << std::endl;
 
     // Check consistency
     if ( loadDom_.GetSize() != loadDof_.GetSize() ||
@@ -1217,7 +1258,7 @@ namespace CoupledField
   BaseIntDescriptor::~BaseIntDescriptor()
   {
     ENTER_FCN( "BaseIntDescriptor::~BaseIntDescriptor" );
-    if (integrator)
+    if (integrator != NULL)
       delete integrator;
   }
   
@@ -1329,8 +1370,8 @@ namespace CoupledField
   IntegratorDescriptor::~IntegratorDescriptor()
   {
     ENTER_FCN( "IntegratorDescriptor::~IntegratorDescriptor" );
-    if (integrator)
-      delete integrator;
+    // if (integrator)
+//       delete integrator;
   }
 
 

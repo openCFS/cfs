@@ -57,8 +57,9 @@ namespace CoupledField
     virtual void PostStepStatic(const Integer kstep, const Double asteptime,
 				const Integer level);
 
-    //! initialize time stepping: nothing to do in electrostatics!
-    virtual void InitTimeStepping(const Double dt){;};
+    //! initialize time stepping: 
+    //! nothing to do in electrostatics!
+    virtual void InitTimeStepping(const Double dt){};
 
     //!
     virtual void SolveStepTrans(const Integer kstep, const Double asteptime,
@@ -94,10 +95,11 @@ namespace CoupledField
     virtual void PostProcess(const Integer level);
 
     //! write results in file
-    //! \todo The definition of the errorMap_ has to
-    //! be changed to a NodeStoreSol<Double> or BaseNodeStoreSol object
-    virtual void WriteResultsInFile();
-
+    //! \param stepOffset offset for starting (time)step
+    //! \param timeOffset offset for starting time  
+    virtual void WriteResultsInFile(Integer stepOffset = 0,
+				    Double timeOffset = 0.0);
+    
     //! computes the electric energy for each subdomain
     void CalcEnergy();
 

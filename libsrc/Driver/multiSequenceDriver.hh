@@ -7,6 +7,9 @@
 namespace CoupledField
 {
 
+// forward class declaration
+class BasePDE;
+
 //! Driver class for multi sequence simulations
 
 //! Driver class for multi sequence simulations.
@@ -41,8 +44,14 @@ private:
   //! number of sequence steps
   Integer numSteps_;
 
+  //! current time step
+  Integer actStep_;
+  
+  //! current time
+  Double actTime_;
+  
   //! stores for each step the participating pdes
-  StdVector<StdVector<std::string> > pdesPerStep_;
+  StdVector<StdVector<BasePDE*> > pdesPerStep_;
 
   //! stores for each step the tags of each pde
   StdVector<StdVector<std::string> > tagsPerStep_;
