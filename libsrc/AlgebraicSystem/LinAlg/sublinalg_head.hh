@@ -5,7 +5,6 @@
 #include "linsystem.hh"
 #include "assemble.hh"
 #include "work.hh"
-
-#include "../abstractAS.hh"
+#include "interface_linalg.hh"
 
 #endif // 

@@ -311,9 +311,9 @@ libsrc/AlgebraicSystem/LinAlg/Makefile -text
 libsrc/AlgebraicSystem/LinAlg/assemble.cc svneol=native#text/plain
 libsrc/AlgebraicSystem/LinAlg/assemble.hh svneol=native#text/plain
 libsrc/AlgebraicSystem/LinAlg/interface_linalg.hh svneol=native#text/plain
-libsrc/AlgebraicSystem/LinAlg/linalg_head.hh svneol=native#text/plain
 libsrc/AlgebraicSystem/LinAlg/linsystem.cc svneol=native#text/plain
 libsrc/AlgebraicSystem/LinAlg/linsystem.hh svneol=native#text/plain
+libsrc/AlgebraicSystem/LinAlg/sublinalg_head.hh svneol=native#text/plain
 libsrc/AlgebraicSystem/LinAlg/systemmatrix.cc svneol=native#text/plain
 libsrc/AlgebraicSystem/LinAlg/systemmatrix.hh svneol=native#text/plain
 libsrc/AlgebraicSystem/LinAlg/work.hh svneol=native#text/plain
