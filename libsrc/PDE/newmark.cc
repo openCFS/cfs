@@ -85,7 +85,7 @@ void Newmark::UpdateRHS()
   (*trace) << "entering Newmark::UpdateRHS" << std::endl;
 #endif
 
-  Vector<Double> coeffMass, coeffDamp;
+  Vector<Double> coeffMass;
 
   // mass part
   coeffMass = solpred_*a2_;
@@ -94,13 +94,14 @@ void Newmark::UpdateRHS()
   // damping part
   if (damping_) 
     {
+      Vector<Double> coeffDamp;
+
       coeffDamp = -solderiv1pred_;
       algsys_->UpdateRHS(DAMPING,coeffDamp.get());
 
       coeffDamp = solpred_*a4_;
       algsys_->UpdateRHS(DAMPING,coeffDamp.get());
    }
-   
 }
 
 
@@ -113,15 +114,17 @@ void Newmark::UpdateRHS(std::vector<Double>& actSol)
   (*trace) << "entering Newmark::UpdateRHS" << std::endl;
 #endif
 
-  Vector<Double> coeffMass, coeffDamp;
-
   // mass part
-  coeffMass = (solpred_-actSol) * a2_;
-  algsys_->UpdateRHS(MASS,coeffMass.get());
+  Vector<Double> coeffMass;
+  coeffMass = (solpred_ - actSol) * a2_;
+  algsys_->UpdateRHS(MASS, coeffMass.get());
+
 
   // damping part
   if (damping_) 
     {
+      Vector<Double> coeffDamp;
+
       coeffDamp = -solderiv1pred_;
       algsys_->UpdateRHS(DAMPING,coeffDamp.get());
 

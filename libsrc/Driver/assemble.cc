@@ -105,7 +105,7 @@ namespace CoupledField
   
     if (nonLinGeo)
       {
-	if (deltaCoords_ ==NULL)
+	if (deltaCoords_ == NULL)
 	  Error("ElecPDE: set input_coupling_terms = smoothdisplacement or nonlin = no");
 
 	Vector<Integer> connect_PDE;
@@ -818,6 +818,8 @@ void Assemble::AddRhsSrcIntegrator(BaseForm * integrator, const std::string & su
     IntegratorDescriptor * actID = new IntegratorDescriptor(integrator, destinationMatrix, nonLin);
     integrators_[SubDomIndex(subDomName)]->push_back(actID);
   }
+
+
 
   /// define integrators
   void TransientAssemble::AddSurfIntegrator(BaseForm * integrator, const std::string & subDomName,

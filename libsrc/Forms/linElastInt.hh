@@ -23,6 +23,7 @@ public:
   /// Destructor
 virtual ~linElastInt();
   
+
 protected:    
 
   /// calculates the material data for the axisymmetric case

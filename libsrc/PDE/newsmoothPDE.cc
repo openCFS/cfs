@@ -118,6 +118,8 @@ void SmoothPDE::DefineIntegrators(const Integer level)
 	bilinearStiff = new smoothPlainStrainInt(actSDMat);
       else if (subType_ == "3d")
 	bilinearStiff = new smooth3DInt(actSDMat);
+      else if (subType_ == "axi")
+	bilinearStiff = new SmoothAxiInt(actSDMat);
       else 
 	Error("Unknown subtype in smooth PDE! ",__FILE__,__LINE__);
 

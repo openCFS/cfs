@@ -71,6 +71,12 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
       reducedInt_=TRUE;
     }
 
+
+  lineSearch_ = FALSE;
+  if (conf->get_option("lineSearch",  pdename_ ))
+    lineSearch_ = TRUE;
+  
+
   nonLin_ = FALSE;
   if (conf->get_option("nonlin",  pdename_ ))
     {
@@ -604,7 +610,7 @@ Boolean MechPDE::HasOutput(std::string output)
 
 
 // ======================================================
-// SOLVING SECTION
+// STATIC SOLVING SECTION
 // ======================================================
 
 void MechPDE:: PreStepStatic(const Integer level)
@@ -723,7 +729,8 @@ void MechPDE::StepStaticNonLin(const Integer level, const Double aTime)
 
 
 
-Double MechPDE::LineSearch(std::vector<Double>& solIncrement, std::vector<Double>& actSol, Integer level)
+Double MechPDE::LineSearch(std::vector<Double>& solIncrement, std::vector<Double>& actSol, 
+			   Integer level, Boolean trans)
 {
 #ifdef TRACE
   (*trace) << "entering MechPDE::LineSearch" << std::endl;
@@ -732,7 +739,6 @@ Double MechPDE::LineSearch(std::vector<Double>& solIncrement, std::vector<Double
   std::vector<Double> solOld(actSol);
   const Integer nrEtas = 4;
   const Double eta[nrEtas] = {1, 0.5, 0.25, 0.125};
-  //  const Double eta[nrEtas] = {1};
   Double etaOpt;
   Double residualL2NormOpt = 1e15;
   
@@ -747,7 +753,9 @@ Double MechPDE::LineSearch(std::vector<Double>& solIncrement, std::vector<Double
       algsys_->InitRHS();
       assemble_->AssembleSrcRHS(level);
       assemble_->AssembleNLRHS(level);
-
+      if(trans)
+	TS_alg_->UpdateRHS(actSol);
+      
 
       // =====================================================================
       // calculation of error norms
@@ -769,7 +777,7 @@ Double MechPDE::LineSearch(std::vector<Double>& solIncrement, std::vector<Double
   
   actSol = etaOpt * solIncrement;
   actSol += solOld;
-  
+
   return residualL2NormOpt;
 }
 
@@ -811,6 +819,11 @@ void MechPDE :: PostStepStatic(const Integer level)
 }
 
 
+// ======================================================
+// TRANSIENT SOLVING SECTION
+// ======================================================
+
+
 void MechPDE :: InitTimeStepping(const Double dt)
 {
 #ifdef TRACE
@@ -825,6 +838,8 @@ void MechPDE :: InitTimeStepping(const Double dt)
 
 
 
+
+
 void MechPDE::StepTransNonLin(const Integer level, const Boolean reset)
 {
 #ifdef TRACE
@@ -833,6 +848,7 @@ void MechPDE::StepTransNonLin(const Integer level, const Boolean reset)
 
   const Integer job = 1;
   const Integer update = 0;  
+  
   static Integer timeStepCounter=1;
   Double * ptsol;
   Boolean performOneMoreStep;
@@ -867,6 +883,9 @@ void MechPDE::StepTransNonLin(const Integer level, const Boolean reset)
 
   timeStepCounter++;
 
+  TS_alg_->UpdateRHS(actSol);
+  SetBCs(level, update, lasttimecalc_);
+
   
   do
     {
@@ -887,21 +906,26 @@ void MechPDE::StepTransNonLin(const Integer level, const Boolean reset)
       algsys_->ConstructEffectiveMatrix(matrix_factor_);
 
 
-      TS_alg_->UpdateRHS(actSol);
-      SetBCs(level, update, lasttimecalc_);
-
       algsys_->CalcPrecond(job);
       algsys_->Solve();
 
       // new solution is only an increment of the full solution =============
       StoreAlgsysToVec(solIncrement, algsys_->GetSolutionVal() );
-      actSol += solIncrement;
+
+      Double residualL2Norm;
+      
+      if (!lineSearch_)
+	actSol += solIncrement;
+      else
+	// TRUE is for transient simulation
+	residualL2Norm = LineSearch(solIncrement, actSol, level, TRUE);
+
+
       StoreVecToSolArray(actSol);
 
 
       // recalculate RHS with new values to get new residual (f^(k+1))========
       algsys_->InitRHS();
-      SetBCs(level, updateBCs_, 0);
       assemble_->AssembleSrcRHS(level,lasttimecalc_); 
       assemble_->AssembleNLRHS(level, lasttimecalc_);  // inner forces due to nonlin formulation
       TS_alg_->UpdateRHS(actSol);
@@ -913,19 +937,22 @@ void MechPDE::StepTransNonLin(const Integer level, const Boolean reset)
       // calculation of error norms
       // =====================================================================
 
-      std::vector<Double> actRHS;
-      StoreAlgsysToVec(actRHS, algsys_->GetRHSVal() );
-
-
-      // calculation of residual error =======================================
-      Double residualL2Norm = RhsL2Norm(actRHS); // L2Norm of  ( f_i^(k+1) - f_a )
+      if (!lineSearch_)
+	{
+	  std::vector<Double> actRHS;
+	  StoreAlgsysToVec(actRHS, algsys_->GetRHSVal() );       
+	  
+	  // calculation of residual error =======================================
+	  residualL2Norm = RhsL2Norm(actRHS); // L2Norm of  ( f_i^(k+1) - f_a )
+	}
+      
       Double residualErr    = residualL2Norm / extForcesL2Norm;
+      
+      if (extForcesL2Norm < NORM_EPS)
+	residualErr = residualL2Norm;  // take the absolute error instead of the relative
 
-      if (extForcesL2Norm < EPS)
-	residualErr = residualL2Norm*1e5;   // take the absolute error instead of the relative
 
-
-     // calculate incremental error ========================================
+      // calculate incremental error ========================================
       Double solIncrL2Norm = L2Norm(solIncrement);
       Double actSolL2Norm = L2Norm(actSol);
       Double incrementalErr;
@@ -935,11 +962,12 @@ void MechPDE::StepTransNonLin(const Integer level, const Boolean reset)
       else
 	{
 	  Warning("Zero solution vector!! ", __FILE__,__LINE__);
-	  incrementalErr = 0; // don't block the iteration loop
+	  incrementalErr = -EPS; // don't block the iteration loop
 	}
       
-      if (actSolL2Norm < EPS)
-	incrementalErr = 0;   // don't block the iteration loop
+      if (actSolL2Norm < NORM_EPS)
+	incrementalErr = actSolL2Norm; // take the absolute error instead of the relative
+       
 
 
 
@@ -1025,6 +1053,8 @@ Double MechPDE::RhsL2Norm(std::vector<Double>& actRHS)
   Integer node, dof;
   
   std::list<Integer> nodes;
+
+  //  myCout << " RHS " << actRHS << myEndl;
   
   
   // Eliminate dirichlet node from RHS (due to penalty formulation)

@@ -20,6 +20,7 @@
 namespace CoupledField
 {
 
+
 ElecPDE::ElecPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *aptFileType, 
 		 WriteResults *aptOut)
 :BasePDE(aptgrid, aptbcs, aptFileType, aptOut, aptTimeFunc)
@@ -28,11 +29,11 @@ ElecPDE::ElecPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
   (*trace) << "entering NewElecPDE::ElecPDE " << std::endl;
 #endif
 
-  dofspernode_ = 1;
-  
+  dofspernode_ = 1;  
+
   pdename_          = "electrostatic";
-  pdematerialclass_ = "piezo";
-  
+  pdematerialclass_ = "piezo"; 
+ 
   conf->getsubdompde(subdoms_,pdename_);
   ReadBCs(pdename_);
 
@@ -91,8 +92,6 @@ void ElecPDE::DefineIntegrators(const Integer level)
   (*trace) << "entering ElecPDE::DefineIntegerators" << std::endl;
 #endif
 
-  Boolean nonLin = FALSE;
-
   for (int actSD = 0; actSD < subdoms_.size(); actSD++)
     {
       //reads eps33 (matrix notation starts with 0)
@@ -100,8 +99,7 @@ void ElecPDE::DefineIntegrators(const Integer level)
 
       BaseForm * lapl = new LaplaceInt(eps33, isaxi_);
 
-      assemble_->AddIntegrator(lapl, subdoms_[actSD], SYSTEM, nonLin);
-      //assemble_->AddIntegrator(lapl, subdoms_[actSD], STIFFNESS, nonLin);
+      assemble_->AddIntegrator(lapl, subdoms_[actSD], SYSTEM, nonLin_);
     }
 }
 

@@ -20,18 +20,18 @@ public:
   SmoothInt(MaterialData & matData);
   
   /// Destructor
-virtual ~SmoothInt();
+  virtual ~SmoothInt();
   
 protected:    
   
   /// returns B - matrix for BDB
   virtual void calcBMat(Matrix<Double> & bMat, Integer ip, Matrix<Double> & ptCoord);
 
-  /// orientation of calculation plane in 2D 
-  //  (especially important for anisotropic simulations)
-  enum orientation2D {xy, xz, yz};
+ //  /// orientation of calculation plane in 2D 
+//   //  (especially important for anisotropic simulations)
+//   enum orientation2D {xy, xz, yz};
 
-  orientation2D actOrientation;
+  orientation2D actOrientation_;
 };
   
   
@@ -65,6 +65,38 @@ protected:
   /// returns nr. of degrees of freedom
   virtual Integer getNrDofs(){return 2;};
 };
+
+
+
+
+  /// class for calculation of smoothing axisymmetric state
+class SmoothAxiInt : public SmoothInt
+{  
+public:
+  /// Constructor
+  SmoothAxiInt(BaseFE * aptelem, MaterialData & matDat);
+
+  /// Constructor
+  SmoothAxiInt(MaterialData & matDat);
+  
+  
+  /// Deconstructor
+  virtual ~SmoothAxiInt();
+  
+  
+protected:
+  
+ /// calculate the data-matrix for 2D axi
+  virtual void calcDMat(Matrix<Double> & dMat, Integer ip, Matrix<Double> & ptCoord);
+
+  /// returns dimension of D matrix
+  virtual Integer getDimD(){return 4;};
+  
+  /// returns nr. of degrees of freedom
+  virtual Integer getNrDofs(){return 2;};
+};
+
+
 
 
   /// class for calculation of smoothanical plain strain state
