@@ -792,9 +792,14 @@ namespace CoupledField
     keyVec = pdename_, "bcsAndLoads", "load", "name";
     params->GetList(keyVec, attrVec, valVec, loadDom_);
 
-    keyVec = pdename_, "bcsAndLoads", "load", "dof";
-    params->GetList(keyVec, attrVec, valVec, loadDof_);
-
+    if (dofsPerNode_ == 1) {
+      loadDof_.Resize(loadDom_.GetSize());
+      loadDof_.Init("ux");
+    }else {
+      keyVec = pdename_, "bcsAndLoads", "load", "dof";
+      params->GetList(keyVec, attrVec, valVec, loadDof_);
+    }
+    
     keyVec = pdename_, "bcsAndLoads", "load", "value";
     params->GetList(keyVec, attrVec, valVec, loadVals_);
 
