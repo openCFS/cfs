@@ -185,7 +185,7 @@ namespace CoupledField
 	    if (nstep == stepsave && (nstep <= isaveend_))
 	      { 
 		actCoupledPDE->PostProcess(level);
-		actCoupledPDE->WriteResultsInFile();
+		actCoupledPDE->WriteResultsInFile(stepOffset_, timeOffset_);
 		stepsave+=isaveincr_;
 	      }
 	    steptime+=dt;
