@@ -3,30 +3,27 @@
 
 #include "basedriver.hh"
 
-namespace CoupledField
-{
+namespace CoupledField {
 
-//! driver for static problems. it is derived from BaseDriver
-  class StaticDriver : public BaseDriver
-{
-public:
-  //! constructor
-  /*!
-    \param adomain pointer to class Domain
-  */
-  StaticDriver(Domain * adomain);
+  //! driver for static problems. it is derived from BaseDriver
+  class StaticDriver : public BaseDriver {
 
-   //! deconstructor 
-  virtual ~StaticDriver();
+  public:
+    //! Constructor
+
+    //! \param adomain pointer to class Domain
+    StaticDriver(Domain * adomain);
+
+    //! Destructor 
+    ~StaticDriver();
   
-  //!  main method, where time-stepping is implemented. it is for transient and static problem
-  virtual void SolveProblem();
+    //! Main method solution method
 
-protected:
+    //! This method constitutes the actual driving method which controls the
+    //! solution process for the problem.
+    void SolveProblem();
 
-private:
-
-};
+  };
 
 }
 
