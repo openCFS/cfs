@@ -1,22 +1,23 @@
-#include <DataInOut/Unverg/outUnverg.hh>
-#include <DataInOut/GMV/outGMV.hh>
-#include <Forms/forms_header.hh>
-
-#include <DataInOut/WriteInfo.hh>
-#include <Driver/assemble.hh>
-#include "newmark.hh"
-#include <Elements/basefe.hh>
-
-#include "piezoPDE.hh" 
 #include <stdio.h>
 
-namespace CoupledField
-{
+#include "DataInOut/Unverg/outUnverg.hh"
+#include "DataInOut/GMV/outGMV.hh"
+#include "Forms/forms_header.hh"
+
+#include "DataInOut/ParamHandling/BaseParamHandler.hh"
+#include "DataInOut/WriteInfo.hh"
+#include "Driver/assemble.hh"
+#include "newmark.hh"
+#include "Elements/basefe.hh"
+
+#include "piezoPDE.hh" 
+
+
+namespace CoupledField {
 
   PiezoPDE::PiezoPDE( Grid *aptgrid, BCs *aptbcs,  TimeFunc *aptTimeFunc,
 		      FileType *aptFileType, WriteResults *aptOut ) :
-    BasePDE( aptgrid, aptbcs, aptFileType, aptOut, aptTimeFunc )
-  {
+    BasePDE( aptgrid, aptbcs, aptFileType, aptOut, aptTimeFunc ) {
 
     ENTER_FCN( "PiezoPDE::PiezoPDE" );
 
@@ -24,28 +25,64 @@ namespace CoupledField
     pdename_ = "piezo";
     pdematerialclass_ = "piezo";
 
+#ifndef XMLPARAMS
     // Determine dimension of problem
-   conf->getstr( "subtype", subType_, pdename_ ); 
-   if (subType_ == "3d")
-     {
+    conf->getstr( "subtype", subType_, pdename_ ); 
+    if (subType_ == "3d") {
       dofspernode_ = 4;
       Info->PrintF("", "=== 3D PROBLEM\n");
-     }
-   else if (subType_ == "axi")
-     {
-       isaxi_ = TRUE;
-       dofspernode_ = 3;
-       Info->PrintF("", "=== AXISYSMMETRIC PROBLEM\n");
-     }
-   else
-     {
-       // default is planeStrain 
-       dofspernode_ = 3;
-       Info->PrintF("", "=== PLAIN STRAIN PROBLEM\n");
-     }
+    }
+    else if (subType_ == "axi") {
+      isaxi_ = TRUE;
+      dofspernode_ = 3;
+      Info->PrintF("", "=== AXISYSMMETRIC PROBLEM\n");
+    }
+    else {
+      // default is planeStrain 
+      dofspernode_ = 3;
+      Info->PrintF("", "=== PLAIN STRAIN PROBLEM\n");
+    }
 
-   conf->getsubdompde(subdoms_,pdename_);
-   ReadBCs(pdename_);
+    conf->getsubdompde(subdoms_,pdename_);
+#else
+
+    // Get problem geometry and PDE subtype
+    params->Get( "subtype", subType_, pdename_ );
+    std::string probGeo;
+    params->Get( "type", probGeo, "geometry" );
+
+    // Set number of degrees of freedom and
+    // ensure that subtype fits to problem geometry
+    if ( subType_ == "3d" && probGeo == "3d" ) {
+      dofspernode_ = 3;
+      Info->PrintF("", "=== 3D PROBLEM\n");
+    }
+    else if ( subType_ == "axi" && probGeo == "axi" ) {
+      isaxi_ = TRUE;
+      dofspernode_ = 2;
+      Info->PrintF("", "=== AXISYSMMETRIC PROBLEM\n");
+    }
+    else if ( subType_ == "plainStrain" && probGeo == "plane" ) {
+	dofspernode_ = 2;
+	Info->PrintF("", "=== PLAIN STRAIN PROBLEM\n");
+    }
+    else {
+      std::string errmsg = "Subtype '" + subType_;
+      errmsg += "' of PDE '" + pdename_ + "' does not fit to problem ";
+      errmsg += "geometry '" + probGeo + "'\n";
+      Info->Error( errmsg, __FILE__, __LINE__ );
+    }
+
+    // Get list of subdomains
+    params->GetList( "name", subdoms_, pdename_, "region" );
+    Info->PrintF( pdename_, " PiezoPDE lives on regions:" );
+    for ( Integer k = 0; k < subdoms_.size(); k++ ) {
+      Info->PrintF( pdename_, " %s", subdoms_[k].c_str() );
+    }
+
+#endif
+
+    ReadBCs(pdename_);
    
    // Map global numeration of element and nodes to local one
    AssignPDENodeNumbers(mesh2PDENode_, pde2MeshNode_, subdoms_);  
@@ -63,10 +100,10 @@ namespace CoupledField
    sol_->SetNumDofs(1,ELEC_POTENTIAL);  // electric potential
    sol_->Init(0.0);
 
+#ifndef XMLPARAMS
    effectiveMass_ = FALSE;
    if (conf->get_option("effMass",  pdename_ ))
      effectiveMass_ = TRUE;
-
 
    //check for damping model
    std::string dampstr;
@@ -81,18 +118,39 @@ namespace CoupledField
    
    if (dampingType_)
      assemble_->NeedDampingMatrix();
+#else
 
+   // Use effective mass approach?
+   effectiveMass_ = params->IsSet( "effMass" );
 
-   conf->ifgetliststr("homogenBCDof", homDirichDof_, pdename_);  
-   conf->ifgetliststr("inhomogenBCDof", inhomDirichDof_, pdename_);
+   // Do we use damping?
+   if( params->HasValue( "type", "rayleigh", pdename_, "damping" ) ) {
+     dampingType_ = RAYLEIGH;
+     Info->PrintF(pdename_, " Using RAYLEIGH damping\n" );
+   }
+   else {
+     dampingType_ = NONE;
+   }
+   if( dampingType_ != NONE ) {
+     assemble_->NeedDampingMatrix();
+   }
 
+#endif
 
-   // just for consistency with old script
-   conf->ifgetliststr("homoBCDof", homDirichDof_, pdename_);
-   conf->ifgetliststr("homoBCdof", homDirichDof_, pdename_);
-   conf->ifgetliststr("inhomoBCDof", inhomDirichDof_, pdename_);
-   conf->ifgetliststr("inhomoBCdof", inhomDirichDof_, pdename_);
-   
+#ifndef XMLPARAMS
+    conf->ifgetliststr("homogenBCDof", homDirichDof_, pdename_);  
+    conf->ifgetliststr("inhomogenBCDof", inhomDirichDof_, pdename_);
+
+    // just for consistency with old script
+    conf->ifgetliststr("homoBCDof", homDirichDof_, pdename_);
+    conf->ifgetliststr("homoBCdof", homDirichDof_, pdename_);
+    conf->ifgetliststr("inhomoBCDof", inhomDirichDof_, pdename_);
+    conf->ifgetliststr("inhomoBCdof", inhomDirichDof_, pdename_);
+#else
+    params->GetList( "dof", homDirichDof_  , pdename_, "dirichletHom" );  
+    params->GetList( "dof", inhomDirichDof_, pdename_, "dirichletInhom" );  
+#endif
+
    //check for b.c. input data
    if (bcs_hd_.size() != homDirichDof_.size()) 
      Error("Inconsistent definition of homogeneous Dirichlet Boundary Conditions");
