@@ -77,7 +77,7 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
   dampiter_    = 1.0;
   maxnumiter_  = 500;
   numeqcoarse_ = 200;
-  coarsealpha_ = 0.1;
+  coarsealpha_ = 0.1; // in acousticPDE.cc set to 0.01
 
 
   //  savederiv1_ = FALSE;
