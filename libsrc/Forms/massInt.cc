@@ -21,9 +21,8 @@ namespace CoupledField
 
     // derivation of shape functions after global coordinates 
 
-    std::vector<Double> shapeFnc;
+    std::vector<Double> shapeFncAtIp;
     Matrix<Double> partElemMat;
-    std::vector<Double> ShpFncAtIp;
     std::vector<Double> CoordAtIP;
 
     // set matrix to desired size and set all elements to zero
@@ -35,14 +34,13 @@ namespace CoupledField
       {
 	jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord);
 
-	ptelem-> GetShFncAtIp(shapeFnc, actIntPt);
+	ptelem-> GetShFncAtIp(shapeFncAtIp, actIntPt);
 
-	partElemMat.DyadicMult(shapeFnc);
+	partElemMat.DyadicMult(shapeFncAtIp);
 
 	if (isaxi_)
 	  {
-	    ptelem->GetShFncAtIp(ShpFncAtIp,actIntPt);
-	    CoordAtIP = ptCoord * ShpFncAtIp;
+	    CoordAtIP = ptCoord * shapeFncAtIp;
 	    partElemMat *= 2 * PI * intWeights[actIntPt-1] * density_ * jacDet * CoordAtIP[0];
 	  }
 	else 

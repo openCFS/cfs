@@ -89,19 +89,39 @@ void CoupledPDEDef::CreateCoupling(std::vector<BasePDE*> & OrderedPDEs,
   Definition * MyCoupledPDE = CoupledPDEs_[CoupledPDENumber];					   
   std::vector<CouplingInputType>  InputType;
   std::vector<std::string> InputQuantity;
+  std::vector<Boolean> inputOptionality;
   Couplings.resize(MyCoupledPDE->GetNumPDEs());
+
+  std::vector<std::string> couplingTerms;
 
   // iterate over all PDEs specified CoupledPDE
   for (Integer i=0; i<MyCoupledPDE->GetNumPDEs(); i++)
     {
       MyCoupledPDE->GetCouplingType(OrderedPDEs[i]->GetName(), InputType);
       MyCoupledPDE->GetCouplingQuantity(OrderedPDEs[i]->GetName(), InputQuantity);
+      MyCoupledPDE->GetCouplingOptionality(OrderedPDEs[i]->GetName(), inputOptionality);
       Couplings[i] = new PDECoupling(ptGrid_, ptBCs_);
       Couplings[i]->SetPDE(OrderedPDEs[i]);
 
       // add all coupling terms of PDE
       for (Integer j=0; j<InputType.size(); j++)
-	Couplings[i]->RegisterInput(InputType[j], InputQuantity[j]);
+
+	// if this coupling type is not needed every coupled simulation
+	if (inputOptionality[j])
+	  {
+	    conf->getliststr("input_coupling_terms", couplingTerms, OrderedPDEs[i]->GetName());
+	    
+	    Boolean found = FALSE;
+	    
+	    for (Integer k=0; k<couplingTerms.size(); k++)
+	      if (couplingTerms[k] == InputQuantity[j])
+		found = TRUE;
+
+	    if (found)
+	      Couplings[i]->RegisterInput(InputType[j], InputQuantity[j]);
+	  }
+	else
+	  Couplings[i]->RegisterInput(InputType[j], InputQuantity[j]);
     }
 }
 
@@ -112,8 +132,7 @@ void CoupledPDEDef::DefineOrdering()
 {
 #ifdef TRACE
   (*trace) << "entering  CoupledPDEDef::DefineOrdering" << std::endl;
-#endif 
-
+#endif
 
 #include <CoupledPDE/coupledPDE.conf>
 }
@@ -142,7 +161,10 @@ void Definition::AddPDE(std::string PDEName)
   NumPDEs_ = PDEs_.size();
 }
 
-void Definition::AddInputCoupling(std::string PDEName, CouplingInputType InType, std::string Quantity)
+void Definition::AddInputCoupling(std::string PDEName, 
+				  CouplingInputType InType, 
+				  std::string Quantity,
+				  Boolean optionalCoupling) //"optionalCoupling" is by default FALSE
 {
 #ifdef TRACE
   (*trace) << "entering  Definition::AddCoupling" << std::endl;
@@ -150,6 +172,7 @@ void Definition::AddInputCoupling(std::string PDEName, CouplingInputType InType,
 
   InputCouplingTypes_[PDEName].push_back(InType);
   InputCouplingQuantities_[PDEName].push_back(Quantity);
+  optionalCoupling_[PDEName].push_back(optionalCoupling);  
 }
 
 

@@ -563,7 +563,7 @@ void MechPDE::CalcOutputCoupling()
 	      ptCoupling_->GetOutputNodes(i, couplingnodes);
 	      ptCoupling_->GetOutputElements(i, couplingElems);
 	      ptCoupling_->GetOutputValues(i, values);
-	      ptCoupling_->GetOutputMaterials(i, couplingMaterials);
+	      ptCoupling_->GetOwnMaterials(i, couplingMaterials);
 	      ptCoupling_->GetOutputNeighbourElems(i, neighbours);
 	      dof = ptCoupling_->GetOutputDof(i);
 
