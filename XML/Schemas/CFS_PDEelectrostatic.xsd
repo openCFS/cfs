@@ -160,6 +160,17 @@
     <xsd:attribute name="saveElems" type="xsd:token" use="required"/>
   </xsd:complexType>
 
+  <!-- Element type for computing of electric charges -->
+  <xsd:complexType name="DT_ChargeElec">
+    <xsd:complexContent>
+      <xsd:extension base="xsd:anyType">
+        <xsd:attribute name="region" type="xsd:token" use="required"/>
+        <xsd:attribute name="element" type="xsd:token" use="required"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+
   <!-- Global type for specifying desired electrostatic output quantities -->
   <xsd:complexType name="DT_ElecStoreResults">
     <xsd:sequence>
@@ -170,6 +181,8 @@
       <xsd:element name="elemResults" type="DT_ElemResultsElec" minOccurs="0"
         maxOccurs="unbounded"/>
       <xsd:element name="elemHistory" type="DT_ElemHistoryElec" minOccurs="0"
+        maxOccurs="unbounded"/>
+      <xsd:element name="charge" type="DT_ChargeElec" minOccurs="0"
         maxOccurs="unbounded"/>
     </xsd:sequence>
   </xsd:complexType>
