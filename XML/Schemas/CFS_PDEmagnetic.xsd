@@ -72,8 +72,6 @@
                 <xsd:element name="magnet" type="DT_Magnet" minOccurs="1"
                   maxOccurs="unbounded"/>
               </xsd:sequence>
-              <xsd:attribute name="tag" type="xsd:token" use="optional"
-                default="anyTag"/> 
             </xsd:complexType>
           </xsd:element>
 
