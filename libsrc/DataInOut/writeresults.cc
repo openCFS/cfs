@@ -66,8 +66,6 @@ void WriteResults::InitHistoryFiles()
  keyVec = "storeResults", "nodeHistory", "type";
  params->GetList(keyVec, attrVec, valVec, quantVec);
 
-//  std::cerr << "nodeVec = " << std::endl << nodeVec << std::endl;
-//  std::cerr << "quantVec = " << std::endl << quantVec << std::endl;
 
 
  NeedHistory_ = FALSE;
@@ -104,18 +102,8 @@ void WriteResults::InitHistoryFiles()
    pt2Inputfile_->ReadSaveNodes(tempNodes, nodeVec[iQuant]);
    for (Integer i=0; i<tempNodes.GetSize(); i++)
      histNodesPerPDE_[quantityFound].Push_back(tempNodes[i]);
-
-//    std::list<Integer> tempNodes;
-//    tempNodes= ptBCs_->GetNodesLevel(nodeVec[iQuant]);
-//    for (std::list<Integer>::const_iterator p=tempNodes.begin();
-// 	p!=tempNodes.end(); p++)
-//      histNodesPerPDE_[quantityFound].Push_back(*p);
-
     } // iQuant
 
-//  std::cerr << "histQuantities_ " <<histQuantities_ << std::endl; 
-//  std::cerr << "length of nodes" <<  histNodesPerPDE_.GetSize() << std::endl;
-//  std::cerr << "nodes[0] = " << histNodesPerPDE_[0] << std::endl;
  // Create history directory
  std::string S="mkdir -p history";
  system(S.c_str());
@@ -146,7 +134,6 @@ void WriteResults::InitHistoryFiles()
      totalName += namePostfix;
 
      historyFiles_[iQuant][iNode] = NULL;
-//      std::cerr << "creating hist-file" << totalName << std::endl;
      historyFiles_[iQuant][iNode] = new std::ofstream(totalName.c_str());
      
      if (!historyFiles_[iQuant][iNode]) {
@@ -232,7 +219,6 @@ void WriteResults::WriteNodeHistoryTransient(const NodeStoreSol<Double>& data,
     iQuant = -1;
     for (Integer i=0; i<histQuantities_.GetSize(); i++) {
      
- std::cerr << "Quantity = " << histQuantities_[i] << std::endl;
       if (histQuantities_[i] == solTypes[iSol]){
 	iQuant = i;
 	break;
@@ -257,8 +243,6 @@ void WriteResults::WriteNodeHistoryTransient(const NodeStoreSol<Double>& data,
       
       // Iterate over all dofs
       for (Integer iDof=0; iDof<actDof; iDof++) {
-// 	std::cerr << "Writing out Sol " << iSol << ", Node " << histNodesPerPDE_[iQuant][iNode];
-// 	std::cerr << ", and dof " << iDof << std::endl;
 	data.Get(solTypes[iSol],histNodesPerPDE_[iQuant][iNode]-1, iDof, val);
 	(*myHist) << "  " << val;
       } // iDof
