@@ -77,6 +77,9 @@ void Newmark::Predictor(Vector<Double>& solold)
 
   solpred_ = solold + solderiv1_*dt_ + solderiv2_*a0_;
   solderiv1pred_ = solderiv1_ + solderiv2_*a1_;
+  //std::cout << "solOld: \n" << solold << std::endl;
+  //  std::cout << "solD1Old: \n" << solderiv1_ << std::endl;
+  //  std::cout << "solD2Old: \n" << solderiv2_ << std::endl;
 #ifdef DEBUG
   (*debug) << "Predictor:\n";
   (*debug) << "solpred: \n" << solpred_ << std::endl;

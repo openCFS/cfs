@@ -58,6 +58,7 @@ namespace CoupledField {
     Double nextTime = 0.0;
     Integer actNumSteps;
     Double actDt = 0.0;
+    Double actFrequency;
   
     // helper variables
     Integer iPDE, kPDE;
@@ -127,13 +128,22 @@ namespace CoupledField {
 	}
 	for (Integer i=0; i<pdesPerStep_[iStep].GetSize(); i++) {
 	  if (memento[i].IsSet()) {
-	    ptPDEs[i]->SetMemento( memento[i], transFromTo );
+	    ptPDEs[i]->SetMemento( memento[i], transFromTo, actFrequency );
 	  }
 	}
       }
       
       // Solve Problem
       actDriver->SolveProblem();
+
+      //if harmonic analysis, save the used frequencies
+      if ( analysisPerStep_[iStep][0] == HARMONIC ) {
+	actFrequency = actDriver->GetActFrequency();
+      }
+      else {
+	actFrequency = 0;
+      }
+
 
       // Get solution for next step and delete
       // all PDEs

@@ -173,9 +173,10 @@ namespace CoupledField {
     //! With this method the previous stored information can be set
     //! to the current PDE.
     //! \param memento (input) Previously saved state of the PDE
-    //! \param transFromTo (input) : standard or complexToReal 
-    virtual void SetMemento(PDEMemento & memento, std::string transFromTo);
-
+    //! \param frequency   (input) : frequency of previous sequence
+    virtual void SetMemento(PDEMemento & memento, std::string transFromTo,
+			    Double frequency);
+		    
     //! Get number of time step
     virtual Integer GetTimeStepCounter()
     { return laststepcalc_; }
