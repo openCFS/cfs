@@ -26,6 +26,11 @@ namespace CoupledField
 
     ptelem->GetGlobDerivShFncAtIp(xiDx, ip, ptCoord);
 
+#ifdef DEBUG
+    *debug << std::endl << "xiDx inf calcBMat of BDBInt: " << std::endl 
+	   << xiDx << std::endl;
+#endif
+
 
     for(actDim=0; actDim < spaceDim; actDim++)
       for(actNode=0; actNode < nrNodes; actNode++)
@@ -71,18 +76,12 @@ namespace CoupledField
   }
   
   
+  // calculated the D-matrix for the plain strain state
   void mechPlainStrainInt::calcDMat(Matrix<Double> & dMat)
   {
 #ifdef TRACE
-  (*trace) << "entering linElastInt::calcDMat " << std::endl;
+  (*trace) << "entering mechPlainStrainInt::calcDMat " << std::endl;
 #endif
-    CalcPlainStrainMat(dMat);
-  }
-  
-
-  // a 2d-problem is calculated in the x-y-plane
-  void mechPlainStrainInt::CalcPlainStrainMat(Matrix<Double> & matDat)
-  {
     const Integer nrElems2d = getDimD();
     
     Integer rowPtrXY[] = {1,2,6,7,8};  // indices of rows and lines for xy-plane
@@ -113,11 +112,30 @@ namespace CoupledField
 	
     Matrix<Double> * matMatrix =  ptMaterial->GetMatrix();
     
-    matDat.Resize(nrElems2d);
+    dMat.Resize(nrElems2d);
 
     for (i=0; i<nrElems2d; i++)
       for (j=0; j<nrElems2d; j++)
-	matDat[i][j] = (*matMatrix)[rowPtr[i]-1][rowPtr[j]-1];	
+	dMat[i][j] = (*matMatrix)[rowPtr[i]-1][rowPtr[j]-1];	
+}
+
+
+
+  // calculates the D-matrix of a 3d-problem 
+  void mech3DInt::calcDMat(Matrix<Double> & dMat)
+  {
+#ifdef TRACE
+  (*trace) << "entering mech3DInt::calcDMat " << std::endl;
+#endif
+    const Integer nrElems3d = getDimD();
+    
+    Matrix<Double> * matMatrix =  ptMaterial->GetMatrix();
+    
+    dMat.Resize(nrElems3d);
+
+    for (Integer i=0; i<nrElems3d; i++)
+      for (Integer j=0; j<nrElems3d; j++)
+	dMat[i][j] = (*matMatrix)[i][j];	
 }
 
 
@@ -127,9 +145,9 @@ namespace CoupledField
   // =================== standard con- and destructors (just for tracing) ==============
   // ===================================================================================
 
-
+  // calculate (for 2D problems) by default in the xy-plane
   linElastInt::linElastInt(BaseFE * aptelem, MaterialData & matData) 
-    : BDBInt(aptelem, matData)
+    : BDBInt(aptelem, matData), actOrientation(xy)
   {
 #ifdef TRACE
     (*trace) << "entering linElastInt::linElastInt" << std::endl;
@@ -149,7 +167,7 @@ namespace CoupledField
 
 
   mechPlainStrainInt::mechPlainStrainInt(BaseFE * aptelem, MaterialData & matData) 
-    : linElastInt(aptelem, matData), actOrientation(xy)
+    : linElastInt(aptelem, matData)
   {
 #ifdef TRACE
     (*trace) << "entering mechPlainStrainInt::mechPlainStrainInt" << std::endl;
@@ -166,4 +184,24 @@ namespace CoupledField
 #endif
   }
 
-}
+
+
+  mech3DInt::mech3DInt(BaseFE * aptelem, MaterialData & matData) 
+    : linElastInt(aptelem, matData)
+  {
+#ifdef TRACE
+    (*trace) << "entering mech3DInt::mech3DInt" << std::endl;
+#endif
+
+    ptelem=aptelem;
+  }
+ 
+
+  mech3DInt::~mech3DInt()
+  {
+#ifdef TRACE
+    (*trace) << "entering mech3DInt::~mech3DInt" << std::endl;
+#endif
+  }
+
+} // end namespace CoupledField

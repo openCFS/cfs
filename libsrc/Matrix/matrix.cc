@@ -63,7 +63,8 @@ Matrix<TYPE>::Matrix (const Integer i,const Vector<TYPE> * const x)
 
 template<class TYPE>
 Matrix<TYPE>::Matrix (const Matrix<TYPE> &x)
-{	if (!x.row || !x.col)  Error("undefined Matrix");
+{	
+  if (!x.row || !x.col)  Error("undefined Matrix",__FILE__,__LINE__);
 
 	row = x.row;
 	col = x.col;
@@ -403,7 +404,7 @@ void Matrix<TYPE>::cut(const Integer ai, const Integer aj)
 {
 if (ai < 0 || ai > row-1 || aj < 0 || aj > col-1)
          Error("invalid index in function cut",__FILE__,__LINE__);
-if (!row) Error("Matrix is undefined in function cut");
+if (!row) Error("Matrix is undefined in function cut",__FILE__,__LINE__);
 
 Integer n=(row-1)*(col-1);
 Matrix<TYPE> help(row-1,col-1);
@@ -428,28 +429,33 @@ for (k=1; k < row; k++) p[k]=p[k-1]+col;
 for (i=0; i<n; i++) p[0][i]=help.p[0][i];
 }
  
-template<class TYPE>
-Matrix<TYPE> Matrix<TYPE>::part (const Integer i1,const Integer i2, const Integer j1,
-                                 const Integer j2) const
-{
-         if (!col || !row ) Error("undefined Matrix",__FILE__,__LINE__); 
+
+// does not work in this way, because z is allocated INSIDE the method, and, thererfore, "dies" 
+// a horrible death outside !!!!!!
+//
+// template<class TYPE>
+// Matrix<TYPE> Matrix<TYPE>::part (const Integer i1,const Integer i2, const Integer j1,
+//                                  const Integer j2) const
+// {
+//          if (!col || !row ) Error("undefined Matrix",__FILE__,__LINE__); 
  
-        if (i1 < 0 || i1 > i2 || i2 >= row)
-                      Error("invalid index",__FILE__,__LINE__); 
-        if (j1 < 0 || j1 > j2 || j2 >= col)
-                    Error("invalid index",__FILE__,__LINE__);   
-        Matrix  z (i2 - i1 + 1, j2 - j1 + 1);
+//         if (i1 < 0 || i1 > i2 || i2 >= row)
+//                       Error("invalid index",__FILE__,__LINE__); 
+//         if (j1 < 0 || j1 > j2 || j2 >= col)
+//                     Error("invalid index",__FILE__,__LINE__);   
+//         Matrix  z (i2 - i1 + 1, j2 - j1 + 1);
  
-        for (Integer i = 0; i < z.row; i++)
-                for (Integer j = 0; j < z.col; j++)
-                        z [i] [j] = p [i1 + i] [j1 + j];
+//         for (Integer i = 0; i < z.row; i++)
+//                 for (Integer j = 0; j < z.col; j++)
+//                         z [i] [j] = p [i1 + i] [j1 + j];
  
-        return z;
-}
+//         return z;
+// }
 
 template< class TYPE>
 void Matrix<TYPE>::precond(Vector<TYPE> & e, const Vector<TYPE> r, enum precond type)
 {
+
 #ifdef TRACE
   (*trace) << "entering Matrix::precond" << std::endl;
 #endif
@@ -473,23 +479,22 @@ void Matrix<TYPE>::precond(Vector<TYPE> & e, const Vector<TYPE> r, enum precond 
        {
          sum=0;
          for (j=0; j<i; j++) sum+=p[i][j]*e[j];
-         e[i]=(r[i]-omega*sum)/p[i][i];
+         e[i]=(TYPE)((r[i]-omega*sum)/p[i][i]);
        }
 
        for (i=n-1; i>=0; i--)
        {
          sum=0;
          for (j=i+1; j<n; j++) sum+=p[i][j]*e[j];
-         e[i]-=omega*sum/p[i][i];
+         e[i]-= (TYPE)(omega*sum/p[i][i]);
        }
        
-       e*=omega*(2-omega);
+       e*= (TYPE)(omega*(2-omega));
        break;
 default:
        Error("Wrong type of precondition",__FILE__,__LINE__);
               
 } //end of switch
-
 }
 
 template<class S>
@@ -565,7 +570,79 @@ void Matrix<TYPE>::DyadicMult(std::vector<TYPE> v1, std::vector<TYPE> v2)
       p[actRow][actCol] = v1[actRow] * v2[actCol];
 }
 
+template<class TYPE>
+void Matrix<TYPE>::Invert (Matrix <Double> & inv) const
+{       
+  if (!row || !col) Error("Undefined Matrix!",__FILE__,__LINE__);
+  if (row != col ) Error("No quadratic matrix!",__FILE__,__LINE__);
 
+
+  switch (row)
+    {
+    case 1: 
+      inv.Resize(1);
+      inv[0][0] = 1/p[0][0];
+      break;
+    case 2:
+      inv.Resize(2,2);
+      inv[0][0] = p[1][1];
+      inv[0][1] = - p[0][1];
+      inv[1][0] = - p[1][0];
+      inv[1][1] = p[0][0];
+      inv *= 1/this->Det();
+      break;
+
+    case 3:
+      // see Stöcker: "Taschenbuch Mathematischer Formeln und Moderner Verfahren" p.418
+      inv.Resize(3,3);
+      for(Integer i=0; i<3; i++)
+	for(Integer j=0; j<3; j++)
+	  inv[j][i] = Adjunct(i,j);      
+      
+      inv *= 1/this->Det();      
+      break;
+      
+    default: 
+      Error("Inversion not implemented fo dimension larger than 2!",__FILE__,__LINE__);
+    }
+}
+
+
+template<class TYPE>
+ Double Matrix<TYPE>::Adjunct (Integer i, Integer j) const
+{       
+  if (!row || !col) Error("Undefined Matrix!",__FILE__,__LINE__);
+  if (row != col ) Error("No quadratic matrix!",__FILE__,__LINE__);
+  if (row != 3 ) Error("Matrix::Adjunct only implemented for matrix size 3!",__FILE__,__LINE__);  
+  
+  std::vector<Integer> iVec(2);
+  std::vector<Integer> jVec(2);
+  Integer runningIndexI = 0;
+  Integer runningIndexJ = 0;
+  
+  for (Integer actI = 0; actI<=2; actI++)
+    {
+      if (actI != i)
+	{	  
+	  iVec[runningIndexI] = actI;
+	  runningIndexI++;
+	}
+      
+      if (actI != j)
+	{
+	  jVec[runningIndexJ] = actI;
+	  runningIndexJ++;
+	}
+    }
+
+  Double adj = pow(-1,i+j) * 
+    ( p[iVec[0]][jVec[0]] * p[iVec[1]][jVec[1]] - 
+      p[iVec[0]][jVec[1]] * p[iVec[1]][jVec[0]]);
+
+
+  return adj;
+  
+}
 
 template Integer Spur<Integer>(const Matrix<Integer> &);
 template Double Spur<Double>(const Matrix<Double> &);

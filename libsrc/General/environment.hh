@@ -20,6 +20,7 @@ typedef int Boolean;
   //! useful trick for testing problem
 #define mark std::cout<<__FILE__<<__LINE__<<std::endl;
 
+
   //! declaration sof functions. it is used in parsing functions from conf-file
   typedef Double (*pfn1var)(const Double);
   typedef Double (*pfn2var)(const Double, const Double);
@@ -37,7 +38,7 @@ typedef int Boolean;
   //! enumeration with elements types.
   enum ElementType{Line1, Triang1, Triang2, Quadrilateral1, Quadrilateral2};
   //! enumeration with integration types. it is used in Elements classes
-  enum IntegrationType {GaussOrder2, GaussOrder3, GaussOrder4, GaussOrder5, GaussOrder7, null};
+  enum IntegrationType {GaussOrder1, GaussOrder2, GaussOrder3, GaussOrder4, GaussOrder5, GaussOrder7, null};
   //! enumeration precondition's types. it is used in methods of LinAlg
  enum precond { non, Jacobi, SSOR, LU}; 
 
@@ -59,9 +60,10 @@ extern Boolean InfoPrint;
   //class BaseElem;
   class BaseFE;
 
-  //! pointers to derived classes of BaseElem. it is initialized in grid.hh(grid.cc). it is used, when we read information about elements from mesh and create pointer to class with description FE element.
+  //! pointers to derived classes of BaseElem. it is initialized in grid.hh(grid.cc). 
+  /// It is used, when we read information about elements from mesh and create pointer to class with description FE element.
   //extern BaseElem * ptQ, *ptTr, *ptTet, *ptL1, *ptHexa;
-  extern BaseFE * ptQ;
+  extern BaseFE * ptQ, *ptTet;
 
 }
 

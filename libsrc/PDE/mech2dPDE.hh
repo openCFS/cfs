@@ -46,8 +46,13 @@ public:
   */
   virtual void SetBCs(const Integer level, const Integer update, const Double atimestep);
 
-protected:
+private:
+  // defines subtype of mechanic PDE: plainStrain, 3d, ...
+  std::string subType_;
 
+  Integer GetNrBCDof (const std::string & dofStartString);
+  
+    
 };
 
 } // end of namespace

@@ -88,13 +88,6 @@ void MechPDE::WriteResultsInFile()
   Integer laststepcalc=0;
   Double  lasttimecalc=0;
 
-  if (OutFile_->IsGMV())
-    {
-      OutFile_->WriteSolution(disp_,laststepcalc,lasttimecalc,"displacement", dofspernode_);
-    }
-  else
-    {
-      OutFile_->WriteSolution(disp_,laststepcalc,lasttimecalc,"displacement",  dofspernode_);
-    }
+  OutFile_->WriteSolution(disp_, laststepcalc, lasttimecalc,"displacement", dofspernode_);
 }
 }

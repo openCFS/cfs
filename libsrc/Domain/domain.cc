@@ -150,12 +150,12 @@ void Domain :: InitPDEs()
 // 	 ptpde_[i]=new Acou2dFlowNoise(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
 //       else if (pdes[i] == "plainStrain")
 // 	ptpde_[i]=new PlainStrainPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
-      else if (pdes[i] == "mech2d")
+      else if (pdes[i] == "mech")
 	ptpde_[i]=new Mech2dPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
       else if (pdes[i] == "electric2d") 
-	 ptpde_[i]=new Elec2dPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_); 
-//        else if (pdes[i] == "electric3d") 
-// 	 ptpde_[i]=new Elec3dPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_); 
+	ptpde_[i]=new Elec2dPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_); 
+      else if (pdes[i] == "electric3d") 
+	ptpde_[i]=new Elec3dPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_); 
       else
 	{
 	  std::string msg=pdes[i]+" - this type of pdes is unknown";

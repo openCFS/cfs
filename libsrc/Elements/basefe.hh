@@ -77,7 +77,7 @@ public:
                                   \cdots & \cdots & \cdots \end{array} \right) \f]
   */
   virtual Double CalcJacobianDet(const std::vector<Double> & LCoord,
-				 const Matrix<Double> & CornerCoords) = 0;
+				 const Matrix<Double> & CornerCoords);
 
   //! Calculation of Jacobian determinant at integration point ip
   /*! 
@@ -87,7 +87,7 @@ public:
                                   \cdots & \cdots & \cdots \end{array} \right) \f]
   */
   virtual Double CalcJacobianDetAtIp(const Integer ip, 
-				     const Matrix<Double> & CornerCoords) = 0;
+				     const Matrix<Double> & CornerCoords);
 
   //! Return number of nodes   
   ShortInt GetDim() const {return Dim_;}
@@ -145,7 +145,7 @@ protected:
   */
   virtual void CalcJacobian(Matrix<Double> & J, 
 				   const std::vector<Double> & LCoord, 
-				   const Matrix<Double> & CornerCoords) = 0;
+				   const Matrix<Double> & CornerCoords);
 
   //! Calculates the Jacobian Matrix at integration point ip
   /*!
@@ -160,7 +160,7 @@ protected:
   */
   virtual void CalcJacobianAtIp(Matrix<Double> & J, 
 				const Integer ip, 
-				const Matrix<Double> & CornerCoords) = 0;
+				const Matrix<Double> & CornerCoords);
 
   //! Calculates the Inverse Jacobian Matrix at an arbitrary local point
   /*!
@@ -175,7 +175,7 @@ protected:
   */
   virtual void CalcInvJacobian(Matrix<Double> & JInv,
 			       const std::vector<Double> & LCoord,
-			       const Matrix<Double> & CornerCoords) = 0;
+			       const Matrix<Double> & CornerCoords);
   
   //! Calculates the Inverse Jacobian Matrix at integration point ip
   /*!
@@ -190,7 +190,18 @@ protected:
   */
   virtual void CalcInvJacobianAtIp(Matrix<Double> & JInv,
 				   const Integer ip,
-				   const Matrix<Double> & CornerCoords) = 0;
+				   const Matrix<Double> & CornerCoords);
+
+
+ //! Set value of shape fnc at integration points
+  virtual void SetShapeFncAtIp();
+
+  
+  //! Set value of shape fnc derivatives at integration points
+  virtual void SetShapeFncDerivAtIp();
+
+  //! Set integration points
+  virtual void SetIntPoints()=0;
 
 
   ShortInt Dim_;                    //!< space dimension

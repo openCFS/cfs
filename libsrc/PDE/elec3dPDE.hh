@@ -20,13 +20,12 @@ public:
     \param 
     \param aGrid pointer to grid
     \param aBCs pointer to Boundary condition object
-    \param aMatFile pointer to class Material. material data.
     \param aGrid pointer to class Grid
     \param aInFile pointer to class FileType. input data.
     \param aOutFile  pointer to class WriteResults. output data.
     \param aTimeFunc pointer to class TimeFunc
   */
-  Elec3dPDE(Grid * aptgrid, BCs *aptbcs, Material *ptMaterial, TimeFunc *aptTimeFunc, 
+  Elec3dPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, 
 	    FileType *aptFileType, WriteResults *aptOut);
 
   //! Deconstructor
@@ -37,8 +36,6 @@ public:
     \param level level of grid
    */
   void SetupMatrices(const Integer level=0);
-
-
 };
 
 } // end of namespace

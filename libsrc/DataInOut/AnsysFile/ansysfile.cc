@@ -47,7 +47,7 @@ namespace CoupledField
   Integer AnsysFile::ReadDim()
   {
 #ifdef TRACE
-    (*trace) << "entering Ansys::ReadDim" << std::endl;
+    (*trace) << "entering AnsysFile::ReadDim" << std::endl;
 #endif
 
     Integer dim;
@@ -235,7 +235,7 @@ namespace CoupledField
 	break;
       case 3:
 	ReadEl2d(allelems,sd);
-	//	ReadEl3d(allelems,sd);
+	ReadEl3d(allelems,sd);
 	break;
       }
   }
@@ -553,49 +553,51 @@ namespace CoupledField
   }
 
 
-//   void AnsysFile::ReadEl3d(std::vector<Elem*> * allelems, const std::vector<std::string> sd)
-//   {
-// #ifdef TRACE
-//     (*trace) << " entering AnsysFile::ReadEl3d " << std::endl;
-// #endif
+  void AnsysFile::ReadEl3d(std::vector<Elem*> * allelems, const std::vector<std::string> sd)
+  {
+#ifdef TRACE
+    (*trace) << " entering AnsysFile::ReadEl3d " << std::endl;
+#endif
 
-//     Integer maxnelems;
-//     ReadMaxnumelem(maxnelems,"Num3DElements");
+    Integer maxnelems;
+    ReadMaxnumelem(maxnelems,"Num3DElements");
 
-//     std::string::size_type pos=0;
-//     getPosLine("3D Elements", pos);
-//     infile.seekg(pos,std::ios::beg);
+    std::string::size_type pos=0;
+    getPosLine("3D Elements", pos);
+    infile.seekg(pos,std::ios::beg);
 
-//     if (!ptTr || !ptQ || !ptTet)
-//       Error(" Pointers to BaseElem is not initialized",__FILE__,__LINE__);
+    //    if (!ptTr || !ptQ || !ptTet)
+    if (!ptTet)
+      Error(" Pointers to BaseElem is not initialized",__FILE__,__LINE__);
 
-//     Integer i, ii, j, ibuf, itype, innodes;
-//     std::string namesd;
+    Integer i, ii, j, ibuf, itype, innodes;
+    std::string namesd;
 
-//     for (i=0; i<maxnelems; i++)
-//       {
-// 	Elem * el=new Elem();
-// 	infile >> ibuf >> itype >> innodes >> namesd;
-// 	infile.ignore(100,'\n');
+    for (i=0; i<maxnelems; i++)
+      {
+	Elem * el=new Elem();
+	infile >> ibuf >> itype >> innodes >> namesd;
+	infile.ignore(100,'\n');
 
-// 	el->ptElem=Type2ptElem(itype);
-// 	el->connect.Resize(innodes);
-// 	for (ii=0; ii<innodes; ii++)
-// 	  infile >> (*el).connect[ii];
+	el->ptElem=Type2ptElem(itype);
+	el->connect.Resize(innodes);
+	for (ii=0; ii<innodes; ii++)
+	  infile >> (*el).connect[ii];
 
-// 	infile.ignore(100,'\n');
+	infile.ignore(100,'\n');
 
-// 	Boolean Find;
-// 	for (j=0; j<sd.size(); j++)
-// 	  if (namesd == sd[j]) { allelems[j].push_back(el);
-// 	  Find=TRUE;
-// 	  }
-// 	if (!Find) { std::string msg=namesd + "- this level of element is not mentioned in .conf-file. Please, check .config-file";
-// 	Error(msg.c_str(),__FILE__,__LINE__);
-// 	}
-//       }
+	Boolean Find;
+	for (j=0; j<sd.size(); j++)
+	  if (namesd == sd[j]) { allelems[j].push_back(el);
+	  Find=TRUE;
+	  }
+	if (!Find) { std::string msg=namesd + "- this level of element is not mentioned in .conf-file. Please, check .config-file";
+	Error(msg.c_str(),__FILE__,__LINE__);
+	}
+      }
 
-//   }
+  }
+
 
   //!
   BaseFE * AnsysFile::Type2ptElem(const Integer itype)
@@ -608,8 +610,8 @@ namespace CoupledField
 	// return ptTr;
       case 6:
 	return ptQ;
-	// case 8:
-	//   return ptTet;
+      case 8:
+	return ptTet;
 	//  case 10:
 	//    return ptHexa;
       default:

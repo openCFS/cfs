@@ -27,6 +27,7 @@ namespace CoupledField
     Matrix<Double> partElemMat;
   
     elemMat.Resize(nrNodes * nrDofs);
+    elemMat.Init();
  
     calcDMat(dMat);
 
@@ -39,15 +40,30 @@ namespace CoupledField
       {
 	calcBMat(bMat, actIntPt, ptCoord);  
 
+	*debug << std::endl << "b-Matrix of BDB integrator: " << std::endl 
+	   << bMat << std::endl;
+
+
 	dB = dMat * bMat;
 
+	*debug << "b * d =  " << std::endl 
+	   << dB << std::endl;
+
 	bMat.Transpose(bTrans);
-	
+
 	partElemMat = bTrans * dB;
+
+	*debug << "bTranspMalDB = [ " << std::endl 
+	   << partElemMat << std::endl;
+	
 	
 	jacDet = ptelem->CalcJacobianDetAtIp(actIntPt,ptCoord);
 
 	elemMat += partElemMat * jacDet * intWeights[actIntPt-1] ;
+
+	*debug << "jacDet =  " << jacDet << std::endl
+	       << "intWeights " << intWeights[actIntPt-1] << std::endl
+	       << "elemMat " << std::endl << elemMat << std::endl;
       }
   }
 

@@ -34,6 +34,7 @@ void Quad1 :: Init()
   NumEdges = 4;
   NumFaces = 1;
 
+
   SetIntPoints();
   SetTransformFncAtIntPoints(); 
   SetDerTransformFncAtIntPoints();

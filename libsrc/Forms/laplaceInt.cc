@@ -45,7 +45,7 @@ namespace CoupledField
 
     // set matrix to desired size and set all elements to zero
     //    partElemMat.Resize(nrNodes);
-    elemMat.Resize(nrNodes);
+    elemMat.Resize(nrNodes); elemMat.Init();
     
 
     for (Integer actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
@@ -58,8 +58,17 @@ namespace CoupledField
 
 	partElemMat = xiDx * xiDxTransp;
 	
-	partElemMat *= intWeights[actIntPt-1];
-      
+	partElemMat *= intWeights[actIntPt-1]*jacDet;
+
+#ifdef DEBUG 
+	(*debug) << "Partelemmat on intPt " << actIntPt << std::endl
+		 << partElemMat << std::endl
+		 << "xiDx \n" << xiDx
+		 << "\n xiDxTransp \n " << xiDxTransp 
+		 << "\n intWeights " << intWeights[actIntPt-1] << std::endl;
+	
+#endif
+
 	elemMat += partElemMat;
       }
   
