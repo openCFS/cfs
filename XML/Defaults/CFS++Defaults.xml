@@ -32,6 +32,23 @@
   
     </mechanic>
 
+    <!-- Template for electrostatics PDE -->
+    <electrostatic>
+      <region name="dummyRegion"/>
+
+      <nonLinear>
+        <lineSearch/>
+        <incStopCrit>1</incStopCrit>
+        <resStopCrit>1</resStopCrit>
+        <maxNumIters>1</maxNumIters>
+      </nonLinear>
+
+      <solver>
+        <matrix/>
+      </solver>
+  
+    </electrostatic>
+
     <!-- Template for piezo PDE -->
     <piezo>
   
@@ -108,6 +125,10 @@
         </voltageCoil3d>
 
       </coils>
+
+      <solver>
+        <matrix/>
+      </solver>
 
     </magnetic>
 

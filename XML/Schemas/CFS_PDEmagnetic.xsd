@@ -84,6 +84,9 @@
           <xsd:element name="storeResults" type="DT_MagneticStoreResults"
             minOccurs="0" maxOccurs="1"/>
   
+          <!-- Section for specifying solver (optional) -->
+          <xsd:element ref="solver" minOccurs="0"/>
+
         </xsd:sequence>
 
         <!-- Type of magnetic formulation -->
