@@ -66,67 +66,92 @@ namespace CoupledField
   }
 
 
-BCs :: ~BCs()
-{
-  ENTER_FCN( "BCs::~BCs" );
+  // **************
+  //   Destructor
+  // **************
+  BCs::~BCs() {
 
- Integer i,j,k;
+    ENTER_FCN( "BCs::~BCs" );
 
- if (levels_.GetSize()) {
-   for (i=0; i<NUMLEVELGRID; i++)   
-    if (bcs_[i]) {
-      for (j=0; j<levels_.GetSize(); j++) {
-	bcs_[i][j].clear();
-      } // loop over colors of grid( over subdomains), index j
-      delete [] bcs_[i];
-    } // loop over levels of grid, index i
- } // end of if
+    Integer i, j, k;
 
-  if (color_edges_.GetSize()) {
-   for (i=0; i<NUMLEVELGRID; i++)   
-    if (bcsEdges_[i]) {
-      for (j=0; j<color_edges_.GetSize(); j++) {
-	for (k=0; k<bcsEdges_[i][j].GetSize(); k++) {
-	  Elem* tmpEl=bcsEdges_[i][j][k];
-	  delete tmpEl;
-	} // loop over elements of one color, index k
-      } // loop over colors of grid( over subdomains), index j
-      delete [] bcsEdges_[i];
-    } // loop over levels of grid, index i
- } // end of if
+    if ( levels_.GetSize() ) {
 
- if (color_faces_.GetSize()) {
-   for (i=0; i<NUMLEVELGRID; i++)   
-    if (bcsFaces_[i]) {
-      for (j=0; j<color_faces_.GetSize(); j++) {
-	for (k=0; k<bcsFaces_[i][j].GetSize(); k++) {
-	  Elem* tmpEl=bcsFaces_[i][j][k];
-	  delete tmpEl;
-	} // loop over elements of one color, index k
-      } // loop over colors of grid( over subdomains), index j
-      delete [] bcsFaces_[i];
-    } // loop over levels of grid, index i
- } // end of if
+      // loop over levels of grid
+      for ( i = 0; i < NUMLEVELGRID; i++ ) {
+        if ( bcs_[i] ) {
 
-  if (color_neighelems_.GetSize()) {
-   for (i=0; i<NUMLEVELGRID; i++)
-    if (bcsNeighElems_[i]) {
-      for (j=0; j<color_neighelems_.GetSize(); j++) {
-        for (k=0; k<bcsNeighElems_[i][j].GetSize(); k++) {
-          Elem* tmpEl=bcsNeighElems_[i][j][k];
-         delete tmpEl;
-        } // loop over elements of one color, index k
-      } // loop over colors of grid( over subdomains), index j
-      delete [] bcsNeighElems_[i];
-    } // loop over levels of grid, index i
- } // end of if
+          // loop over colors of grid / subdomains
+          for ( j = 0; j < levels_.GetSize(); j++ ) {
+            bcs_[i][j].clear();
+          }
+          delete [] bcs_[i];
+        }
+      }
+    }
 
-}
+    if ( color_edges_.GetSize() ) {
 
-void BCs :: ReadBCs()
-{
+      // loop over levels of grid
+      for ( i = 0; i < NUMLEVELGRID; i++ ) {
+        if (bcsEdges_[i]) {
+
+          // loop over colors of grid / subdomains
+          for ( j = 0; j < color_edges_.GetSize(); j++ ) {
+
+            // loop over elements of one color
+            for ( k = 0; k < bcsEdges_[i][j].GetSize(); k++ ) {
+              delete (bcsEdges_[i][j][k]);
+            }
+          }
+          delete [] bcsEdges_[i];
+        }
+      }
+    }
+
+    if ( color_faces_.GetSize() ) {
+
+      // loop over levels of grid
+      for ( i = 0; i < NUMLEVELGRID; i++ ) {
+        if ( bcsFaces_[i] ) {
+
+          // loop over colors of grid / subdomains
+          for ( j = 0; j < color_faces_.GetSize(); j++ ) {
+
+            // loop over elements of one color
+            for ( k = 0; k < bcsFaces_[i][j].GetSize(); k++ ) {
+              delete (bcsFaces_[i][j][k]);
+            }
+          }
+          delete [] bcsFaces_[i];
+        }
+      }
+    }
+
+    if ( color_neighelems_.GetSize() ) {
+
+      // loop over levels of grid
+      for ( i = 0; i < NUMLEVELGRID; i++ ) {
+        if ( bcsNeighElems_[i] ) {
+
+          // loop over colors of grid / subdomains
+          for ( j = 0; j < color_neighelems_.GetSize(); j++ ) {
+
+            // loop over elements of one color
+            for ( k = 0; k < bcsNeighElems_[i][j].GetSize(); k++ ) {
+              delete (bcsNeighElems_[i][j][k]);
+            }
+          }
+          delete [] bcsNeighElems_[i];
+        }
+      }
+    }
+  }
+
+
+  void BCs::ReadBCs() {
+
   ENTER_FCN( "BCs::ReadBCs" );
-
 
   // Create a dummy vector, since we do not need
   // an vector with pointers to the elements, sorted
