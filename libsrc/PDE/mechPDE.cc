@@ -715,8 +715,8 @@ void MechPDE::CalcAcousticCouplingRHS(StdVector<Elem*> * couplingElems,
       delete bilinear_mass;	  
 
       Vector<Double> sol;
-      GetDerivSolVecOfElement(sol, connecth);	 
-
+      GetDerivSolVecOfElement(sol, connecth);
+      
       Vector<Double> nSol(connecth.GetSize());   // solution in normal direction
       nSol.Init();
       
@@ -724,8 +724,11 @@ void MechPDE::CalcAcousticCouplingRHS(StdVector<Elem*> * couplingElems,
       // the normal vector points outwards of the mechanical domain
       // (see. Kaltenbacher, "Num. Sim. of Mech. Act. & Sens." chapter 8.2)
       Vector<Double> n;
-      CalcLineNormalVec(n, *(*couplingElems)[actElem], *(*neighbours)[actElem]);
-
+      ptgrid_->CalcSurfNormalOutOfVol(n, *(*couplingElems)[actElem], *(*neighbours)[actElem]); 
+      n*=-1;
+      //std::cerr << "mechNormal =\n" << n << std::endl;
+      
+      
 
       for (Integer actNode=0; actNode < connecth.GetSize(); actNode++)
 	for (Integer actDof=0; actDof<dofspernode_; actDof++)
@@ -741,7 +744,7 @@ void MechPDE::CalcAcousticCouplingRHS(StdVector<Elem*> * couplingElems,
 	  while(connecth[actNode] != couplingNodes[nodePos] && nodePos < couplingNodes.GetSize()) 
 	    nodePos++;
 	  elemCouplingSols[nodePos] += forceOnElem[actNode];
-	  // std::cout << "MechForec :\n" << forceOnElem[actNode] << std::endl;
+	  //std::cerr << "forceonElem += " << forceOnElem[actNode] << std::endl;
 	  
 	}      
     }
@@ -1585,20 +1588,14 @@ void MechPDE::PostProcess(const Integer level) {
       if (subType_ == "planeStrain") {
 #endif
 	stressDim = 3;
-	intPoint.Resize(2); 
-	intPoint.Init(0);
       }
 
       else if (subType_ == "axi") {
 	stressDim = 4;
-	intPoint.Resize(2); 
-	intPoint.Init(0);
       }
 
       else if (subType_ == "3d") {
 	stressDim = 6;
-	intPoint.Resize(3); 
-	intPoint.Init(0);
       }
 
       else 
@@ -1642,7 +1639,7 @@ void MechPDE::PostProcess(const Integer level) {
 	// loop over elements of subdomain
 	for (Integer iel=0; iel< elemssd.GetSize(); iel++) {
 	  Integer pdeElem = eqnData_->Mesh2PDEElem(elemssd[iel]->elemNum);
-	  
+	  elemssd[iel]->ptElem->GetCoordMidPoint(intPoint);
 	  //set element pointer
 	  BaseFE * ptEl = elemssd[iel]->ptElem;
 	  stress->SetElemPtr(ptEl);

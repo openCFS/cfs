@@ -619,12 +619,9 @@ namespace CoupledField {
 					    *solhelp, level);
       FieldOp->Set2DType(isaxi_);
  
-      // ------ Calculation of the electric field ------
+      // ------ Calculation of the magnetic field ------
 
       Vector<Double> LCoord;
-      LCoord.Resize(dim_);
-      LCoord[0] = 0;
-      LCoord[1] = 0;
       
       StdVector<Elem*> elemssd;
       Integer counterElems=0;
@@ -649,6 +646,7 @@ namespace CoupledField {
 	for (Integer iel=0; iel< elemssd.GetSize(); iel++,counterElems++) 
 	  {
 	    pdeElem = eqnData_->Mesh2PDEElem(elemssd[iel]->elemNum);
+	    ptSurfElem->GetCoordMidPoint(LCoord);
 	    FieldOp->CalcElemCurlNode( TempE, elemssd[iel], LCoord); 
 	    // B_.SetNodalResult(mesh2PDEElem_[elemssd[iel]->elemNum - 1]-1, TempE);
 	    B_.SetElemResult(pdeElem-1, TempE);
