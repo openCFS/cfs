@@ -41,6 +41,11 @@ public:
   inline Integer GetNumGlobalElems() 
   {return mesh2PDEElem_.GetSize();}
 
+  //! Get PDE node number from global node number
+  inline Integer GetPDENodeFromGlobNode(const Integer globNode)
+  {return mesh2PDENode_[globNode-1];}
+
+
   //! Map equation number to position in 
   //! global solution vector
   inline void EQN2SolVectorPos(const Integer eqnNr, 

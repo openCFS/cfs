@@ -97,6 +97,7 @@ namespace CoupledField
     Assemble * getPDE_assemble(){return assemble_;}
     StdVector<std::string> getPDE_subdoms(){return subdoms_;}
     Boolean BooleanComplexMaterialData_;
+    Boolean converged_; //!< needed for coupling with MpCCI
    
     void setBCs_id_phase_(Integer i, Double & phase){
       ENTER_FCN("basePDE::setBCs_id_phase");
@@ -153,6 +154,9 @@ namespace CoupledField
     //!returns the load functions
     StdVector<std::string>& GetLoadFncs()
     {return assemble_->fncname_loads_;};
+
+    //! MpCCI gets the geometry
+    virtual void PreparePDE4Computation() {;};
 
     // ======================================================
     // POSTPROC SECTION

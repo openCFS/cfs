@@ -393,6 +393,7 @@ void BasePDE::Init(Integer bcSequenceIndex,
   // =====================================================================
   InitTimeStepping();
 
+  PreparePDE4Computation();
 }
   
 

@@ -10,6 +10,7 @@
 #include "magneticPDE.hh"
 #include "piezoPDE.hh"
 #include "acouFlowNoise.hh"
+#include "mpcciPDE.hh"
 
 
 #endif

@@ -71,6 +71,8 @@ public:
   //! constraint nodes were set
   virtual void CalcMapping() = 0;
 
+  virtual void CalcMpcciMapping(){};
+
   //! Print the mapping nodes <->EQNs
   virtual void Print(std::ostream & out) const = 0;
   

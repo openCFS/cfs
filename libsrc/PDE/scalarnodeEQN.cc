@@ -144,6 +144,23 @@ void ScalarNodeEQN::CalcMapping()
                              + multipleBCs;
 }
 
+
+
+void ScalarNodeEQN::CalcMpcciMapping()
+{
+
+  ENTER_FCN( "ScalarNodeEQN::CalcMpcciMapping" );
+ 
+  // Apply Mapping from global to
+  // local node numbers and back
+  CalcLocalGlobalMapping(mesh2PDENode_,
+			      pde2MeshNode_,
+			      mesh2PDEElem_,
+			      pde2MeshElem_);
+}
+
+
+
 void ScalarNodeEQN::Print(std::ostream & out) const
 {
   ENTER_FCN( "ScalarNodeEQN::Print" );
