@@ -84,6 +84,7 @@ void HarmonicDriver :: SolveProblem()
 
   // initialize pdes only, if this driver
   // is not part of multiSequence driver
+
   StdVector<std::string> tags;
   if (! isPartOfSequence_) {
     tags.Resize(pdes_.GetSize());
@@ -108,11 +109,11 @@ void HarmonicDriver :: SolveProblem()
       pdes_[0]->PreStepHarmonic(fstep, actFreq, level, reset);
       pdes_[0]->SolveStepHarmonic(fstep, actFreq, level, reset);
       pdes_[0]->PostStepHarmonic(fstep, actFreq, level, reset);
-      
+           
       // writing results in output-file
       pdes_[0]->PostProcess(level);
       pdes_[0]->WriteResultsInFile();
-      
+           
       actFreq += freqIncr;
     }
   } 

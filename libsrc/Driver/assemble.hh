@@ -144,7 +144,7 @@ namespace CoupledField
       
   private:
 
-#ifdef USE_OLAS      
+#ifdef USE_OLAS
     /// holds the destination matrix
     FEMatrixType destinationMatrix;
 
@@ -345,6 +345,8 @@ namespace CoupledField
 
     /// establish matrices
     void CreateMatrices();
+
+		Matrix<Double> GetElemMat(){return elemmat;};
     
 
 
@@ -423,6 +425,10 @@ namespace CoupledField
     //! sets the actual frequency (just needed for harmonic analysis)
     virtual void SetFrequency(Double actFreq) {;};
 
+	//! transform element matrix to account for spezial RHS during parameter Identification process
+    virtual void TransformMatrix2HarmonicRHS_for_paramIdent(Vector<Double>& harmMat,
+					  Matrix<Double> origMat) {;};
+
     // ====================================================
     // DATA SECTION 
     // ====================================================
@@ -430,6 +436,8 @@ namespace CoupledField
     BaseSystem * algsys_;                //!< pointer to algebraic system  
     Grid * ptgrid_;                      //!< pointer to Grid
     NodeEQN * ptEQN_;                    //!< pointer to equation data
+		Vector<Double> harmonicRHSVec;			//! special right Hand Side Vector needed for calc
+		Matrix<Double> elemmat;
 #ifdef USE_OLAS
     OLAS_Params * olasParams_;               //!< pointer to parameter object of OLAS
     OLAS_Report * olasReport_;               //!< pointer ro report object of OLAS
@@ -529,20 +537,22 @@ namespace CoupledField
 
 #ifdef USE_OLAS
     //! transform element matrix to account for harmonic analysis
-    virtual void TransformMatrix2Harmonic(Vector<Double>& harmMat, 
+    virtual void TransformMatrix2Harmonic(Vector<Double>& harmMat,
 					  Matrix<Double> origMat,
 					  const FEMatrixType matrixType) {;};
 #else
     //! transform element matrix to account for harmonic analysis
-    virtual void TransformMatrix2Harmonic(Vector<Double>& harmMat, 
+    virtual void TransformMatrix2Harmonic(Vector<Double>& harmMat,
 					  Matrix<Double> origMat,
 					  const MatrixType matrixType) {;};
 #endif
 
     //! transform element vector to account for harmonic analysis
-    virtual void TransformVector2Harmonic(Vector<Double>& harmMat, 
+    virtual void TransformVector2Harmonic(Vector<Double>& harmMat,
 					  Vector<Double> origVec,
 					  const Double valPhase) {;};
+
+
 
 
   private:
@@ -656,15 +666,21 @@ namespace CoupledField
 
 #ifdef USE_OLAS
     //! transform element matrix to account for harmonic analysis
-    virtual void TransformMatrix2Harmonic(Vector<Double>& harmMat, 
+    virtual void TransformMatrix2Harmonic(Vector<Double>& harmMat,
 					  Matrix<Double> origMat,
 					  const FEMatrixType matrixType);
 #else
     //! transform element matrix to account for harmonic analysis
-    virtual void TransformMatrix2Harmonic(Vector<Double>& harmMat, 
+    virtual void TransformMatrix2Harmonic(Vector<Double>& harmMat,
 					  Matrix<Double> origMat,
 					  const MatrixType matrixType);
 #endif
+
+
+    //! transform element matrix to account for harmonic analysis
+    virtual void TransformMatrix2HarmonicRHS_for_paramIdent(Vector<Double>& harmMat,
+					  Matrix<Double> origMat);
+
 
     //! transform element vector to account for harmonic analysis
     virtual void TransformVector2Harmonic(Vector<Double>& harmMat, 

@@ -1,39 +1,44 @@
 #ifndef FILE_PIEZO_PARAM_IDENT
 #define FILE_PIEZO_PARAM_IDENT
 
-
-#include "basedriver.hh"
-
-#ifdef USE_OLAS
-#include <olas.hh>
-#else
-#include <multigrid.hh>
-#endif
+#include "singleDriver.hh"
 
 
-namespace CoupledField {
+namespace CoupledField 
+{
 
-  class piezoParamIdent : public BaseDriver{
+class piezoParamIdent : public SingleDriver
+{
 
-  public:
-    //! Constructor
-    piezoParamIdent(Domain * adomain);
-    //! Destructor
+public:
 
-    ~piezoParamIdent();
+  //! constructor
+  //! \param adomain pointer to class Domain
+  //! \param stepOffset offset for starting (time)step
+  //! \param timeOffset offset for starting time
+  //! \param driverTag tag for current driver
+  //! \param isPartOfSequence true, if driver is part of  multiSequence
+  piezoParamIdent(Domain * adomain,
+		 Integer stepOffset = 0,
+		 Double timeOffset = 0.0,
+		 std::string driverTag = "anyTag",
+		 Boolean isPartOfSequence = FALSE);
+
+   //! Destructor
+   ~piezoParamIdent();
 
     std::fstream allMeasuredData;
 
     void SolveProblem();
 
-  protected:
+protected:
     void createF(BasePDE * actPDE, MaterialData * ptMaterial, BCs * ptBCs, Vector<Complex> & F_hat);
 
     void createJacobiMatrix(BasePDE * actPDE, MaterialData * ptMaterial, BCs * ptBCs, Vector<Complex> & F_ha, Vector<Double> & parameterIncrement, Matrix<Complex> & JacobiMatrix, Vector<Complex> & solElecPot,Vector<Complex> & solMechDispl);
 
 		    void createAdjointJacobiMatrix(Vector<Double> & parameterIncrement,Vector<Double> &  parameter, Matrix<Complex> & JacobiMatrix, Vector<Complex> & solElecPot,Vector<Complex> & solMechDispl, Vector<Double> & freqs, Matrix<Complex> & adjJacobiMatrix);
 
-      void readMeasuredData(Vector<Double> & freqs, Vector<Double> & real, Vector<Double> & imag ,Vector<Double> & parameter, Double & voltage, Integer & nrMeasuredData, Double & thickness, Double & radius, Double & delta);
+     void readMeasuredData(Vector<Double> & freqs, Vector<Double> & real, Vector<Double> & imag ,Vector<Double> & parameter, Double & voltage, Integer & nrMeasuredData, Double & thickness, Double & radius, Double & delta);
 
     void updateMaterialData(Vector<Double> & parameter, MaterialData * ptMaterial);
 

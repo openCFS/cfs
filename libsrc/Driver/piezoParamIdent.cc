@@ -31,7 +31,14 @@ namespace CoupledField
   // ========================================================================
 
   //constructor
-  piezoParamIdent::piezoParamIdent(Domain * adomain) : BaseDriver(adomain){
+  piezoParamIdent::piezoParamIdent(Domain * adomain,
+				   Integer stepOffset,
+				   Double timeOffset,
+				   std::string driverTag,
+				   Boolean isPartOfSequence)
+    :SingleDriver(adomain, stepOffset, timeOffset, 
+		  driverTag, isPartOfSequence){
+
     ENTER_FCN( "piezoParamIdent::piezoParamIdent" );
 
     Char* measuredData="measuredData.dat";
@@ -78,7 +85,7 @@ namespace CoupledField
     Vector<Complex> y_hat(nrMeasuredData);
     Vector<Complex> PHI_p(nrMeasuredData);		// /Phi(p^k)
     Vector<Complex> res(2*nrMeasuredData);
-    std::cout<<"Number, measured Data" << nrMeasuredData << " DataError " << delta <<  std::endl;
+    std::cout<<"Number of measure points: " << nrMeasuredData << " with DataError: " << delta <<  std::endl;
 
     freqs.Part(0,nrMeasuredData);
     real.Part(0,nrMeasuredData);
@@ -97,47 +104,64 @@ namespace CoupledField
     ptdomain_->PrintGrid(level);
     if (PrintGridOnly)
       exit(0);
-
+    std::cout<<"Here begins communication with base PDE" << std::endl;
 
     // ************************************************************************
     // Communication with BasePDE ... gets i.G. pointers to objects involved  *
     // ************************************************************************
     BasePDE * actPDE = ptdomain_->GetPDE(pdenumber);
+
+    // if PDEs are not set explicitly, 
+    // get all from the domain
+    if (pdes_.GetSize() == 0) {
+      pdes_.Resize(ptdomain_->GetNumPDE());
+      for (Integer iPDE=0; iPDE<ptdomain_->GetNumPDE(); iPDE++)
+	pdes_[iPDE] = ptdomain_->GetPDE(iPDE);
+    }
+
+    // initialize pdes only, if this driver
+    // is not part of multiSequence driver
+    StdVector<std::string> tags;
+    if (! isPartOfSequence_) {
+      tags.Resize(pdes_.GetSize());
+      tags.Init("anyTag");
+      ptdomain_->InitPDEs(1,tags); 
+      Info->StartProgress ("Starting to solve problem", FALSE);
+    }
+
     actPDE->WriteGeneralPDEdefines();
-
-    MaterialData * ptMaterial; //=actPDE->getPDEMaterialData();   // Pointer to MaterialData
+ 
+    MaterialData * ptMaterial=actPDE->getPDEMaterialData();   // Pointer to MaterialData
     Matrix<Double> * matMatrix =  ptMaterial->GetMatrix();
-    //    ptBCs = actPDE->getPDE_BCs();                             // Pointer to BCs
-    //    ptAlgsys = actPDE->getPDE_algsys();                       //Pointer to AlgebraicSystem
-    //    Integer numElems = actPDE->getPDE_numElems();
-    //    dofs=actPDE->getPDE_dofspernode();
-    //    numNodes= actPDE->getPDE_numPDENodes();
-
+   
+    ptBCs = actPDE->getPDE_BCs();                             // Pointer to BCs
+    ptAlgsys = actPDE->getPDE_algsys();                       //Pointer to AlgebraicSystem
+   
+    Integer numElems = actPDE->getPDE_numElems();
+    dofs=actPDE->getPDE_dofspernode();
+   
+    numNodes= actPDE->getPDE_numPDENodes();
+   
 
     /*for (Integer fstep = 0; fstep < nrMeasuredData; fstep++) { // harmonic solver for different frequency - values
-
-    measureMechDeformationInZ_Direction(solMechDispl,radius,meanValueMechDeformation,dofs);
-    updateMaterialData(parameter, ptMaterial);         //member function of piezoParamIdent
-
-    } // end of loop over all frequencies */
-
-    calcNorm2Resid(res,anorm,nrMeasuredData);
-    std::cout<<"A-Norm:" << anorm << std::endl;
-
+      measureMechDeformationInZ_Direction(solMechDispl,radius,meanValueMechDeformation,dofs);
+      updateMaterialData(parameter, ptMaterial);         //member function of piezoParamIdent
+      } // end of loop over all frequencies */
     //while (nrIterations<3 && anorm >tau*tau*delta*delta){ // Newton- Iteration
+    
     while (nrIterations<2){
       nrIterations++;
       std::cout<<"\n NewtonCG ... Newton-Iteration-Nr = "<<nrIterations<<std::endl;
+      calcNorm2Resid(res,anorm,nrMeasuredData);
+      std::cout<<"A-Norm:" << anorm << std::endl;
 
       createF(actPDE, ptMaterial, ptBCs, F_hat);
-       createJacobiMatrix(actPDE, ptMaterial, ptBCs, F_hat, parameterIncrement,JacobiMatrix, solElecPot, solMechDispl);
-       createAdjointJacobiMatrix(parameterIncrement, parameter, JacobiMatrix,solElecPot,solMechDispl,freqs,adjJacobiMatrix);
-       updateMaterialData(parameter, ptMaterial);         //member function of piezoParamIdent
-
+      createJacobiMatrix(actPDE, ptMaterial, ptBCs, F_hat, parameterIncrement,JacobiMatrix, solElecPot, solMechDispl);
+      createAdjointJacobiMatrix(parameterIncrement, parameter, JacobiMatrix,solElecPot,solMechDispl,freqs,adjJacobiMatrix);
+      updateMaterialData(parameter, ptMaterial);         //member function of piezoParamIdent
 
       while(nrCGIterations<5&&res_norm>tolCG){ // CG
 	nrCGIterations++;
-
 
       } // end while - CG
 
@@ -155,40 +179,49 @@ namespace CoupledField
 
   void piezoParamIdent::createF(BasePDE * actPDE, MaterialData * ptMaterial, BCs * ptBCs, Vector<Complex> & F_hat){
     ENTER_FCN("PiezoParamIdent:createF");
-    std::cout<<"creates F"<<std::endl;
-    actPDE = ptdomain_->GetPDE(0);
+    std::cout<<"creates F ..."<<std::endl;
+
+    actPDE = ptdomain_->GetPDE(0);    
     actPDE->WriteGeneralPDEdefines();
-    //    ptMaterial=actPDE->getPDEMaterialData();   // Pointer to MaterialData
+    ptMaterial=actPDE->getPDEMaterialData();   // Pointer to MaterialData
     Matrix<Double> * matMatrix =  ptMaterial->GetMatrix();
-    //    ptBCs = actPDE->getPDE_BCs();                             // Pointer to BCs
-    //    ptAlgsys = actPDE->getPDE_algsys();
+    ptBCs = actPDE->getPDE_BCs();                             // Pointer to BCs
+
+    ptAlgsys = actPDE->getPDE_algsys();
+
     Integer level=0;
+
     Boolean reset = TRUE;
     Integer pdenumber = 0;
-    actPDE = ptdomain_->GetPDE(pdenumber);
-    actPDE->WriteGeneralPDEdefines();
-    Integer numElems; // = actPDE->getPDE_numElems();
-    Integer dofs; //=actPDE->getPDE_dofspernode();
-    Integer numNodes; //= actPDE->getPDE_numPDENodes();
-    Integer spaceDim; // = actPDE->getPDE_spaceDim();
+
+    Integer numElems = actPDE->getPDE_numElems();
+    Integer dofs=actPDE->getPDE_dofspernode();
+
+    Integer numNodes= actPDE->getPDE_numPDENodes();
+    Integer spaceDim = actPDE->getPDE_spaceDim();
 
     tau=1.0;
     Matrix<Double> couplingMatrix; // \bf e
     Matrix<Double> dielectricMatrix; // \eps^S
     couplingMatrix.Resize(spaceDim, 2*spaceDim);
     dielectricMatrix.Resize(spaceDim, spaceDim);
-    Integer numElems_; // = actPDE->getPDE_numElems();
+    Integer numElems_ = actPDE->getPDE_numElems();
+
 
     createMaterialTensorMatrices(parameter, couplingMatrix, dielectricMatrix, spaceDim);
-
+   
     for (Integer fstep = 0; fstep < nrMeasuredData; fstep++) { // harmonic solver for different frequency - values
       Info->WriteHarmonicStep(actPDE->GetName(), fstep, freqs[fstep]);
+   
       actPDE->PreStepHarmonic(fstep, freqs[fstep], level, reset);
+   
       actPDE->SolveStepHarmonic(fstep, freqs[fstep], level, reset);
+   
 
-      BaseNodeStoreSol * ptSol; // = actPDE->getPDESolution();
+      BaseNodeStoreSol * ptSol = actPDE->getPDESolution();
       NodeStoreSol<Complex> * ptNodeStoreSol;
       ptNodeStoreSol = dynamic_cast<NodeStoreSol<Complex>*>(ptSol);
+
 
       ptNodeStoreSol->GetGlobalSolVector(ELEC_POTENTIAL, solElecPot);
       ptNodeStoreSol->GetGlobalSolVector(MECH_DISPLACEMENT, solMechDispl);
@@ -197,11 +230,11 @@ namespace CoupledField
 
       // typeOutSolutionOnScreen(solElecPot, solMechDispl);              //member function of piezoParamIdent
       measureMechDeformationInZ_Direction(solMechDispl,radius,meanValueMechDeformation,dofs); // Braucht üÜberarbeitung!!
-      std::cout<<"measurMechDef"<<std::endl;
+     
       actPDE->PostStepHarmonic(fstep, freqs[fstep], level, reset);
-      std::cout<<"PostStepHarmonic"<<std::endl;
+     
       actPDE->PostProcess(level);
-      std::cout<<"PostProcess"<<std::endl;
+     
       Info->PrintPiezoMat(*ptMaterial);
       actPDE->WriteResultsInFile();     
 
@@ -210,46 +243,46 @@ namespace CoupledField
 
   void piezoParamIdent::createJacobiMatrix(BasePDE * actPDE, MaterialData * ptMaterial, BCs * ptBCs, Vector<Complex> & F_hat, Vector<Double> & parameterIncrement,Matrix<Complex> & JacobiMatrix, Vector<Complex> & solElecPot,Vector<Complex> & solMechDispl){
     ENTER_FCN("piezoParamIdent::createJacobiMatrix");
-   //  std::cout<<"creates JacobiMatrix "<<std::endl;
+    std::cout<<"JacobiMatrix will be created"<<std::endl;
     Vector<Double> IncrementedRHSMatrix;
-    //actPDE = ptdomain_->GetPDE(0);
-    //    BasePDE * actPDE = ptdomain_->GetPDE(0);
-    // actPDE->WriteGeneralPDEdefines();
-    //MaterialData * ptMaterial=actPDE->getPDEMaterialData();   // Pointer to MaterialData
-    //Matrix<Double> * matMatrix =  ptMaterial->GetMatrix();
-    //    ptBCs = actPDE->getPDE_BCs();                             // Pointer to BCs
+    actPDE = ptdomain_->GetPDE(0);
 
-    //    ptAlgsys = actPDE->getPDE_algsys();
+    actPDE->WriteGeneralPDEdefines();
+
+    Matrix<Double> * matMatrix =  ptMaterial->GetMatrix();
+    ptBCs = actPDE->getPDE_BCs();                             // Pointer to BCs
+    ptAlgsys = actPDE->getPDE_algsys();
     Integer level=0;
     Boolean reset = TRUE;
     //Integer nrMeasuredData = freqs.GetSize();
-    Integer numElems_; // = actPDE->getPDE_numElems();
+    Integer numElems_ = actPDE->getPDE_numElems();
     JacobiMatrix.Resize(2*nrMeasuredData);
     Integer pdenumber = 0;
-    //    actPDE->WriteGeneralPDEdefines();
+    actPDE->WriteGeneralPDEdefines();
 
-//     for(int i=0;i<parameter.GetSize();i++){
-//       parameter[i]=1; // noch reelle Parameterwerte !!
-//       parameter[i-1]-=1;
-      //for (int i=0;i<parameter.GetSize();i++)
-      // parameter[i]+=parameterIncrement[i];  //parameterIncrement noch ohne Inhalt!!
+    //     for(int i=0;i<parameter.GetSize();i++){
+    //       parameter[i]=1; // noch reelle Parameterwerte !!
+    //       parameter[i-1]-=1;
+    //for (int i=0;i<parameter.GetSize();i++)
+    // parameter[i]+=parameterIncrement[i];  //parameterIncrement noch ohne Inhalt!!
     //   } // should include the following lines!!! Closes after building up entries of F'(p^k) ....
 
     // updateMaterialData(parameter, ptMaterial);         //member function of piezoParamIdent
 
     for (Integer fstep = 0; fstep < nrMeasuredData; fstep++) { // harmonic solver for different frequency - values
-//      actPDE->CreateIncrementedRHSMatrix(IncrementedRHSMatrix, freqs[fstep], level);
+
+      actPDE->CreateIncrementedRHSMatrix(IncrementedRHSMatrix, freqs[fstep], level);
 
       // Now we calculate the MatVecProduct in the Right Hand Site, only real parts!!:
-      //      BaseNodeStoreSol * ptSol = actPDE->getPDESolution();
+      BaseNodeStoreSol * ptSol = actPDE->getPDESolution();
 
       NodeStoreSol<Complex> * ptNodeStoreSol;
-      //      ptNodeStoreSol = dynamic_cast<NodeStoreSol<Complex>*>(ptSol);
+      ptNodeStoreSol = dynamic_cast<NodeStoreSol<Complex>*>(ptSol);
 
       Vector<Complex> algSysSolVector;
       algSysSolVector=ptNodeStoreSol->GetAlgSysVector();
-      std::cout<<"GetSizealgSysSolVec:"<<algSysSolVector.GetSize()<<std::endl;
-      std::cout<<"IncrementedMAtrix" << IncrementedRHSMatrix.GetSize()<< std::endl;
+
+
       Complex sum=0.0;
       Vector<Complex> RHSsol(algSysSolVector.GetSize());
       Integer j=0;
@@ -278,19 +311,20 @@ namespace CoupledField
 	  }*/
 
       actPDE->PostStepHarmonic(fstep, freqs[fstep], level, reset);
-      std::cout<<"PostStepHarmonic"<<std::endl;
-      actPDE->PostProcess(level);
-      std::cout<<"PostProcess"<<std::endl;
+
+       actPDE->PostProcess(level);
+
       Info->PrintPiezoMat(*ptMaterial);
       actPDE->WriteResultsInFile();
      
      
     }		// end for over all frequencies
-  }        //end CreateJacobiMatrix
+  }            //end CreateJacobiMatrix
 
 
   void piezoParamIdent::createAdjointJacobiMatrix(Vector<Double> & parameterIncrement,Vector<Double> &  parameter, Matrix<Complex> & JacobiMatrix, Vector<Complex> & solElecPot,Vector<Complex> & solMechDispl, Vector<Double> & freqs, Matrix<Complex> & adjJacobiMatrix){
     ENTER_FCN("piezoParamIdent::createAdjointJacobiMatrix");
+    std::cout<<"Jacobi Matrix will be created"<<std::endl;
     Integer size = JacobiMatrix.GetSizeRow();
     //std::<<"SIZE OF JACOBIMATRIX"<<size<<std::endl;
     adjJacobiMatrix.Resize(size,size);
@@ -324,7 +358,7 @@ namespace CoupledField
     ENTER_FCN("piezoParamIdent::updateRHS2");
     ptAlgsys->InitRHS();
     ptAlgsys->UpdateRHS(1,temp.GetPointer());
-    std::cout<<"RHS was updated by method 2"<< std::endl;
+    std::cout<<"RHS was updated"<< std::endl;
   }
 
 

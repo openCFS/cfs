@@ -142,8 +142,9 @@ namespace CoupledField
 
     ENTER_FCN( "Assemble:AssembleMatrices" );
     
-    Matrix<Double> elemmat;
+
     Vector<Double> harmonicVec;
+
 
     // initialize reassembling "indicator" vector
     if (firstTime_)
@@ -211,13 +212,13 @@ namespace CoupledField
 		      }
 
 		    actDescriptor->GetIntegrator()->CalcElementMatrix(ptCoord, elemmat);
-		    if (analysisType_ ==HARMONIC)
+		    if (analysisType_ == HARMONIC)
 		      {
 			TransformMatrix2Harmonic(harmonicVec,elemmat,
 						 actDescriptor->GetOrigMatrixType());
-			algsys_->SetElementMatrix(&harmonicVec[0], connect_PDE.GetPointer(), 
+			algsys_->SetElementMatrix(&harmonicVec[0], connect_PDE.GetPointer(),
 						  connect_PDE.GetSize(), destMat);
-		      }
+			}
 		    else
 		      {
 			//std::cerr << "Setting Element matrix " << std::endl << elemmat << std::endl;
@@ -245,7 +246,7 @@ namespace CoupledField
 			  {
 			    TransformMatrix2Harmonic(harmonicVec,elemmat,
 						     actDescriptor->GetOrigSecMatrixType());
-			    algsys_->SetElementMatrix(&harmonicVec[0], connect_PDE.GetPointer(), 
+			    algsys_->SetElementMatrix(&harmonicVec[0], connect_PDE.GetPointer(),
 						      connect_PDE.GetSize(), destMat);
 			  }
 			else
@@ -322,7 +323,7 @@ namespace CoupledField
 			{
 			  TransformMatrix2Harmonic(harmonicVec,elemmat,
 						   actDescriptor->GetOrigMatrixType());
-			  algsys_->SetElementMatrix(&harmonicVec[0], connect_PDE.GetPointer(), 
+			  algsys_->SetElementMatrix(&harmonicVec[0], connect_PDE.GetPointer(),
 						    connect_PDE.GetSize(), destMat);
 			}
 		      else
@@ -336,7 +337,7 @@ namespace CoupledField
 			    {
 			      TransformMatrix2Harmonic(harmonicVec,elemmat,
 						       actDescriptor->GetOrigSecMatrixType());
-			      algsys_->SetElementMatrix(&harmonicVec[0], connect_PDE.GetPointer(), 
+			      algsys_->SetElementMatrix(&harmonicVec[0], connect_PDE.GetPointer(),
 							connect_PDE.GetSize(), destMat);
 			    }
 			  else
@@ -1388,12 +1389,13 @@ namespace CoupledField
     SetAnalysisType(HARMONIC);
   }
 
-   /// set actual frequency (already multipolied by 2*pi)
+   /// set actual frequency (already multiplied by 2*pi)
   void HarmonicAssemble::SetFrequency(Double frequency)
   {
     ENTER_FCN( "HarmonicAssemble::SetFrequency" );
 
     actFreq_ = 2*PI*frequency;
+
   } 
 
 
@@ -1535,11 +1537,11 @@ namespace CoupledField
 
 
 #ifdef USE_OLAS
-    void  HarmonicAssemble::TransformMatrix2Harmonic(Vector<Double>& harmMat, 
+    void  HarmonicAssemble::TransformMatrix2Harmonic(Vector<Double>& harmMat,
 						     Matrix<Double> origMat,
 						     const FEMatrixType matrixType)
 #else
-    void  HarmonicAssemble::TransformMatrix2Harmonic(Vector<Double>& harmMat, 
+    void  HarmonicAssemble::TransformMatrix2Harmonic(Vector<Double>& harmMat,
 						     Matrix<Double> origMat,
 						     const MatrixType matrixType)
 #endif
@@ -1552,7 +1554,7 @@ namespace CoupledField
       harmMat.Resize(2*numRow*numCol);
 
       Integer k=0;
-      if (matrixType == STIFFNESS) 
+      if (matrixType == STIFFNESS)
 	{
 	  for (Integer row=0; row<numRow; row++)
 	    for (Integer col=0; col<numCol; col++) {
@@ -1561,7 +1563,7 @@ namespace CoupledField
 	    }
 	}
 
-      else if (matrixType == MASS) 
+      else if (matrixType == MASS)
 	{
 	  Double factor = -actFreq_*actFreq_;
 	  for (Integer row=0; row<numRow; row++)
@@ -1571,10 +1573,10 @@ namespace CoupledField
 	    }
 	}
 
-      else if (matrixType == DAMPING) 
+      else if (matrixType == DAMPING)
 	{
 	  Double factor = actFreq_;
-	  
+
 	  k=numRow*numCol;
 	  for (Integer row=0; row<numRow; row++)
 	    for (Integer col=0; col<numCol; col++) {
@@ -1584,7 +1586,28 @@ namespace CoupledField
 	}
     }
 
-    void  HarmonicAssemble::TransformVector2Harmonic(Vector<Double>& harmVec, 
+
+
+    void  HarmonicAssemble::TransformMatrix2HarmonicRHS_for_paramIdent(Vector<Double>& harmMat,
+						     Matrix<Double> origMat) {
+
+      ENTER_FCN( "HarmonicAssemble::TransformMatrix2HarmonicRHS_for_paramIdent" );
+
+      Integer numRow = origMat.GetSizeRow();
+      Integer numCol = origMat.GetSizeCol();
+      harmMat.Resize(2*numRow*numCol);
+      Double factor = actFreq_;
+      Integer k=0;
+       for (Integer row=0; row<numRow; row++)
+	    for (Integer col=0; col<numCol; col++) {
+	      harmMat[k] = origMat[row][col];
+	      harmMat[numRow*numCol+k]=factor*origMat[row][col];
+	      k++;
+	    }
+
+}
+
+    void  HarmonicAssemble::TransformVector2Harmonic(Vector<Double>& harmVec,
 						     Vector<Double> origVec,
 						     const Double valPhase)
     {
