@@ -79,7 +79,7 @@ namespace CoupledField
   {
     ENTER_FCN("SkeletonConf::WriteConf");
 
-    Info->StartProgress("Writing skeleton file to disc");
+    Info->StartProgress("Writing skeleton file to disc", FALSE);
 
     WriteGeneral();
     WriteSubdomains(); 
@@ -105,7 +105,6 @@ namespace CoupledField
 
     (*skelfile_)  << "</cfsSimulation>" << myendl;
 
-    Info->FinishProgress();
   }
 
 
@@ -339,7 +338,7 @@ namespace CoupledField
       << "   <!--  </iterative>                                  -->" 
       << myendl
       << "   <!--</couplingList>                                 -->" 
-      << myendl << myendl;
+      << myendl << myendl << myendl;
   }
 }
 
