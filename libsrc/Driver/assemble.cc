@@ -215,7 +215,13 @@ namespace CoupledField
 #ifdef DEBUG
 		    (*debug) << "ElementMatrix of Element " << actEl << std::endl;
 		    (*debug) << elemmat << std::endl;
-#endif		    
+		    if ( !elemmat.IsSymmetric() ) {
+		      (*debug) << " --> Matrix is not symmetric " << std::endl;
+		    }
+		    else {
+		      (*debug) << " --> Matrix is symmetric " << std::endl;
+		    }
+#endif
 
 		    if (actDescriptor->GetSecondaryMat() != NOTYPE)
 		      {
