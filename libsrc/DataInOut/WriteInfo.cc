@@ -52,8 +52,8 @@ namespace CoupledField
 	   << "|                     (Coupled Field Simulation ++)                   |" << std::endl
 	   << "|                                                                     |" << std::endl
 	   << "|                                                                     |" << std::endl
-	   << "|  Version: 0.9                                                       |" << std::endl
-	   << "|  Date:    30-Oct-2003                                               |" << std::endl
+	   << "|  Version: 0.09                                                      |" << std::endl
+	   << "|  Date:    02-Feb-2004                                               |" << std::endl
 	   << "|                                                                     |" << std::endl
 	   << "=======================================================================" << std::endl
 	   << "=======================================================================" << std::endl << std::endl;

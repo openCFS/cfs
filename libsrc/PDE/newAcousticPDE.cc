@@ -259,7 +259,8 @@ void AcousticPDE::CalcMechCouplingRHS(std::vector<Elem*> * couplingElems,
       GetElemCoords(connecth, ptCoord, actlevel_);
 
       for (Integer actSD = 0; actSD < subdoms_.size(); actSD++)
-	if (actCoupleElem->namesd ==  subdoms_[actSD])
+	//	if (actCoupleElem->namesd ==  subdoms_[actSD])
+	if ((*neighbours)[actElem]->namesd ==  subdoms_[actSD])
 	  density = materialData_[actSD].GetDensity();
           
       BaseForm * bilinear_mass = new MassInt(ptElem, density, isaxi_);
@@ -277,8 +278,8 @@ void AcousticPDE::CalcMechCouplingRHS(std::vector<Elem*> * couplingElems,
       Vector<Double> forceOnElem = elemmat * sol;
 
       Vector<Double> n;
-      //      CalcLineNormalVec(n, ptCoord);
-      CalcLineNormalVec(n, *actCoupleElem, *(*neighbours)[actElem]);
+      CalcLineNormalVec(n, ptCoord);
+      //CalcLineNormalVec(n, *actCoupleElem, *(*neighbours)[actElem]);
       
       //    myCout << "Acoustic: n: " << n << myEndl;
       
