@@ -1,0 +1,60 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org"
+  xmlns:cfs="http://www.cfs++.org"
+  elementFormDefault="qualified">
+
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Coupled Field Solver project CFS++
+      Schema description for FE integration rules
+    </xsd:documentation>
+  </xsd:annotation>
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of basic integration types -->
+  <!-- ******************************************************************** -->
+  <xsd:simpleType name="DT_IntegType">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="GaussOrder1"/>
+      <xsd:enumeration value="GaussOrder2"/>
+      <xsd:enumeration value="GaussOrder3"/>
+      <xsd:enumeration value="GaussOrder4"/>
+      <xsd:enumeration value="GaussOrder5"/>
+      <xsd:enumeration value="GaussOrder6"/>
+      <xsd:enumeration value="GaussOrder7"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of integration rule for single element -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_IntegElemRule">
+    <xsd:complexContent>
+      <xsd:restriction base="xsd:anyType">
+        <xsd:attribute name="type" type="DT_IntegType" use="optional"
+          default="GaussOrder2"/>
+      </xsd:restriction>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of element containing all integration rules -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_IntegRules">
+    <xsd:sequence>
+      <xsd:element name="line"      type="DT_IntegElemRule" minOccurs="0" />
+      <xsd:element name="quad"      type="DT_IntegElemRule" minOccurs="0" />
+      <xsd:element name="rectangle" type="DT_IntegElemRule" minOccurs="0" />
+      <xsd:element name="triangle"  type="DT_IntegElemRule" minOccurs="0" />
+      <xsd:element name="hexa"      type="DT_IntegElemRule" minOccurs="0" />
+      <xsd:element name="pyra"      type="DT_IntegElemRule" minOccurs="0" />
+      <xsd:element name="tetra"     type="DT_IntegElemRule" minOccurs="0" />
+      <xsd:element name="wedge"     type="DT_IntegElemRule" minOccurs="0" />
+    </xsd:sequence>
+  </xsd:complexType>
+
+</xsd:schema>
+
