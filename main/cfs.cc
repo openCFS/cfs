@@ -111,6 +111,10 @@ int main(int argc, char *argv[])
       debug=new std::ofstream(strcat(filename,".deb"));
       if (!debug) Error("Can't open debug-file");
 #endif
+
+      // class writing log-information
+      Info = new WriteInfo();
+      Info->PrintHeader();
       SkeletonConf *ptskel = new SkeletonConf(name);
       ptskel->WriteConf();
       delete ptskel;
