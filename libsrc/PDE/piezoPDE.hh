@@ -46,7 +46,10 @@ namespace CoupledField
     //! Init the time stepping
     //! \param dt time step
     virtual void InitTimeStepping(const Double dt);
-    
+
+    //!  return pointer to vector with first derivative of solution
+    virtual const Vector<Double>& getS1() const { return TS_alg_->GetDeriv1();}    
+
     //! return pointer to vector with second derivative of solution
     virtual const Vector<Double> & getS2() const { return TS_alg_->GetDeriv2();}
 

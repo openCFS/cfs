@@ -497,7 +497,7 @@ void PiezoPDE::ReadStoreResults() {
   attrVec = "", "", "type";
   
   // --- mechDisplacement / elecPotential ---
-  Enum2String(MECH_VELOCITY, quantity);
+  Enum2String(MECH_DISPLACEMENT, quantity);
   valVec  = "", "", quantity;
   params->GetList( keyVec, attrVec, valVec, saveNodeHist );
   
