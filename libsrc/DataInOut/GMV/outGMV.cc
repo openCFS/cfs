@@ -16,7 +16,7 @@ namespace CoupledField
 
   // ===============
   //   Constructor
-  // ===============
+  // ==============
 WriteResultsGMV :: WriteResultsGMV(const Char * const filename, 
 				   FileType * const aInFile)
 : WriteResults(filename,aInFile)
@@ -73,10 +73,14 @@ WriteResultsGMV :: WriteResultsGMV(const Char * const filename,
  // Does the grid change over time, or can we use a fixed grid
  fixedgrid_ = params->IsSet( "fixedGrid", "output" );
 
+ // HARDCODED
+ fixedgrid_ = TRUE;
+ ascii_ = FALSE;
  
 #endif
 
- 
+ fixedgrid_ = TRUE;
+ ascii_ = FALSE;
 
 }
 
@@ -329,16 +333,36 @@ void WriteResultsGMV::WriteMaterials(const Integer level) {
   StdVector<Integer> regionID;
   StdVector<std::string> *subdoms;
   StdVector<Elem*> elemSD;
-  
+  Integer aux;
+  Char * str = NULL;
+  if (! ascii_)
+    str =new Char[8];
+      
   subdoms=ptgrid->GetAllSDs();
 
   regionID.Resize(ptgrid->GetMaxnumElem(level));
 
-  (*output) << "materials " << (*subdoms).GetSize() << " 0" << std::endl;
+  if (ascii_)
+    (*output) << "material " << (*subdoms).GetSize() << " 0" << std::endl;
+  else {
+    (*output) << "material";
+    aux = (*subdoms).GetSize();
+    output->write((char*)&aux,sizeof(Integer));
+    aux = 0;
+    output->write((char*)&aux,sizeof(Integer));
+  }
   
   // loop over all subdomains
   for (Integer iSD=0; iSD<(*subdoms).GetSize(); iSD++) {
-    (*output) << (*subdoms)[iSD] << std::endl;
+
+    if (ascii_)
+      (*output) << (*subdoms)[iSD] << std::endl;
+    else {
+      to8Char((*subdoms)[iSD],str);
+      (*output) << str;
+    }
+      
+
     ptgrid->GetElemSD(elemSD,(*subdoms)[iSD],level);
 
     // loop over all elemtns
@@ -347,10 +371,22 @@ void WriteResultsGMV::WriteMaterials(const Integer level) {
   }
 
   // write for each element the according regionID
-  for (Integer i=0; i<regionID.GetSize(); i++) 
-    (*output) << regionID[i] << " ";
+  for (Integer i=0; i<regionID.GetSize(); i++) {
 
-  (*output) << std::endl;
+    if (ascii_)
+      (*output) << regionID[i] << " ";
+    else {
+      aux = regionID[i];
+      output->write((char*)&aux,sizeof(Integer));
+    }
+  }
+  
+  
+  if (ascii_)
+    (*output) << std::endl;
+  
+  if (str)
+    delete[] str;
 }
 
 void WriteResultsGMV::WriteNodeVariableTransient(const Vector<Double> var, 
@@ -580,7 +616,10 @@ void WriteResultsGMV::WriteGrid(const Integer level)
     WriteNodes(level);
     WriteCells(level);
     WriteMaterials(level);
-    (*output) << "\nendgmv";
+    if (ascii_)
+      (*output) << "\nendgmv";
+    else 
+      (*output) << "endgmv  ";
     delete output;
     return;
   }
@@ -596,7 +635,10 @@ void WriteResultsGMV::WriteGrid(const Integer level)
       WriteNodes(level);
       WriteCells(level);
       WriteMaterials(level);
-      (*output) << "\nendgmv";
+      if (ascii_)
+	(*output) << "\nendgmv";
+      else 
+	(*output) << "endgmv  ";
       firstGridWritten_ = TRUE;
       return;
   }
@@ -627,16 +669,19 @@ void WriteResultsGMV::WriteGrid(const Integer level)
 	(*output) << "cells   fromfile\"" << nameGridFile_ <<"\"";
       
       if (ascii_)
-	(*output) << "materials fromfile \"" << nameGridFile_
+	(*output) << "material fromfile \"" << nameGridFile_
 		  <<"\""<< std::endl;
       else 
-	(*output) << "materials fromfile\"" << nameGridFile_ <<"\"";
+	(*output) << "materialfromfile\"" << nameGridFile_ <<"\"";
     } else {
       WriteNodes(level);
       WriteCells(level);
       WriteMaterials(level);
     }
-    (*output) << std::endl << "variables" << std::endl;
+    if (ascii_)
+      (*output) << std::endl << "variable" << std::endl;
+    else
+      (*output) << "variable";
   }
 }
 
@@ -881,7 +926,7 @@ void WriteResultsGMV::OpenFile(const Integer num)
     if (ascii_) {
       (*output) << "\nendvars\n" ;
       (*output) <<"probtime " << currTime_ << std::endl;
-      (*output) << "endgmv ";
+      (*output) << "endgmv";
     }
     else {
       (*output) << "endvars ";
@@ -899,8 +944,9 @@ void WriteResultsGMV::OpenFile(const Integer num)
   if (ascii_)
     output=new std::ofstream(filename.c_str());
   else
+    {
     output=new std::ofstream(filename.c_str(),std::ofstream::binary);
-  
+    }
   if (!output)
     Error(" File for output results in .gmv-format could not be opened", __FILE__, __LINE__);
   
@@ -916,13 +962,17 @@ void WriteResultsGMV::to8Char(const std::string name, char * result)
 {
   std::string aux;
   Integer i;
- 
-  if (name.size()!= 8) {
-      aux="        ";
-      for (i=0; i<name.size(); i++)
+
+  aux="        "; 
+  if (name.size()> 8) {
+    for (i=0; i<8; i++)
 	aux[i]=name[i];
   }
-  else aux=name;
+  else {
+    for (i=0; i<name.size(); i++)
+      aux[i]=name[i];
+  }
+    
 
   strcpy(result,aux.c_str());
 
@@ -942,7 +992,7 @@ std::string WriteResultsGMV::SolutionTypeToString(const SolutionType type) const
       return "mechAcceleration";
       break;
     case MECH_VELOCITY:
-      return "mecVelocity";
+      return "mechVelocity";
       break;
     case MECH_FORCE:
       return "mechForce";
@@ -999,10 +1049,10 @@ std::string WriteResultsGMV::SolutionTypeToString(const SolutionType type) const
       return "eddyCurrent";
       break;
     case MAG_FORCE_VWP:
-      return "magForce(VWP)";
+      return "magF-VWP";
       break;
     case MAG_FORCE_LORENTZ:
-      return "magForce(Lorentz)";
+      return "magF-Lor";
       break;
     case MAG_ENERGY:
       return  "magEnergy";
