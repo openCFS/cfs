@@ -160,10 +160,12 @@ namespace CoupledField {
     // Velocity at wall of bubble is written
 
 
+
     // Generate filename
     Char *auxfile = new Char[strlen(name)+4];
     strcpy( auxfile, name );
     strcat( auxfile, ".bl" );
+
 
     // Open file
     fp = fopen( auxfile , "w" );
@@ -227,11 +229,11 @@ namespace CoupledField {
       Double val_tfuncDerv;
 
       //For testing write names of function directly
-      //std::string tfname = "testElement90pres.dat";
-      //std::string tfnameDerv = "testElement90Derv.dat";
+      std::string tfname = "linpres1500.dat";
+      std::string tfnameDerv = "linpresDerv1500.dat";
 
-      //val_tfunc = ptTimeFunc_->TimeFuncAtTime(steptime+dt,tfname);
-      //val_tfuncDerv = ptTimeFunc_->TimeFuncAtTime(steptime+dt,tfnameDerv);
+      val_tfunc = ptTimeFunc_->TimeFuncAtTime(steptime+dt,tfname);
+      val_tfuncDerv = ptTimeFunc_->TimeFuncAtTime(steptime+dt,tfnameDerv);
       //    std::cout << "val=" << val_tfunc << std::endl;
 
       pressure_ = - pressureAmpl_ * sin( 2 * PI * frequency_ * (steptime+dt));
@@ -252,17 +254,22 @@ namespace CoupledField {
       //ptBubble_->SetP(pressureDimlos);
       //ptBubble_->SetDpdt(dpresdtDimlos);
 
+      //Double  steptimeDimlos  = 0;
+      //Double  dtDimlos = 0;
+
+      //steptimeDimlos = steptime / 10-6 * (sqrt(1e5/998));
+      //dtDimlos       = dt / 10-6 * (sqrt(1e5/998)); 
 
       // In case of self-computed pressure
-      ptBubble_->SetP(pressure_);
-      ptBubble_->SetDpdt(dpresdt_);
+      //ptBubble_->SetP(pressure_);
+      //ptBubble_->SetDpdt(dpresdt_);
 
 
 
 
       // In case pressure ans its derivative are given
-      //ptBubble_->SetP(val_tfunc);
-      //ptBubble_->SetDpdt(val_tfuncDerv);
+      ptBubble_->SetP(val_tfunc);
+      ptBubble_->SetDpdt(val_tfuncDerv);
 
 
       ptODESolver_->Solve( steptime, steptime+dt, y_, *ptBubble_, 
