@@ -8,6 +8,10 @@
 #include "bcs.hh"
 #include "grid_cfs.hh"
 
+#ifdef ADAPTGRID
+#include "Triangle.h"
+#endif
+
 namespace CoupledField
 {
 
@@ -235,29 +239,94 @@ void AnsysFile::ReadEl(std::vector<Elem> * allelems, const std::vector<std::stri
 }
 
 #ifdef ADAPTGRID
-void AnsysFile::ReadElems4AdaptGrid(std::vector<grd::Element*> & elems)
+void AnsysFile::ReadGrid_RG(std::vector<grd::Element*> & elems, std::vector<grd::Vertex*> * vertex, const std::vector<std::string> sd)
 {
 #ifdef TRACE
- (*trace) << " entering AnsysFile::ReadElems4AdaptGrid " << std::endl;
+ (*trace) << " entering AnsysFile::ReadGrid_RG " << std::endl;
 #endif
 
-  switch(dim_)
+switch(dim_)
 {
  case 2:
- ReadEl4AdaptGrid2d(elems);
+ ReadEl4AdaptGrid2d(elems, vertex, sd);
  break;
  case 3:
  Error(" Not implemented yet");
  break;
 } 
+
+#ifdef TRACE
+ (*trace) << " leaving AnsysFile::ReadGrid_RG " << std::endl;
+#endif
 }
 
-void AnsysFile::ReadEl4AdaptGrid2d(std::vector<grd::Element*> & elems)
+void AnsysFile::ReadEl4AdaptGrid2d(std::vector<grd::Element*> & elems, std::vector<grd::Vertex*> * vertex,  const std::vector<std::string> sd)
 {
 #ifdef TRACE
  (*trace) << " entering AnsysFile::ReadElems4AdaptGrid " << std::endl;
 #endif
- ;
+
+ Integer maxnelems;
+ ReadMaxnumelem(maxnelems,"Num2DElements");
+
+if (maxnelems)
+{
+ std::string::size_type pos=0;
+
+ getPosLine("2D Elements", pos);
+ infile.seekg(pos,std::ios::beg);
+
+ Integer i, ii, ibuf, itype, innodes;
+ std::string namesd;
+ Integer connect[4]; 
+
+ elems.resize(maxnelems);
+ for (i=0; i<maxnelems; i++)
+{
+
+ infile >> ibuf >> itype >> innodes >> namesd;
+ infile.ignore(100,'\n');
+
+ for (ii=0; ii<innodes; ii++)
+  infile >> connect[ii];
+
+ grd::Triangle * tmpTri;
+ switch(itype)
+{
+ case 4:
+    tmpTri=new grd::Triangle;
+
+    tmpTri->setVertex(0,(*vertex)[connect[0]-1]);
+    tmpTri->setVertex(1,(*vertex)[connect[1]-1]);
+    tmpTri->setVertex(2,(*vertex)[connect[2]-1]); 
+   
+    SetNumSD(tmpTri,namesd,sd);
+    
+    elems[i]=tmpTri; 
+ break;
+ 
+ default:
+  Error(" This type of elems in mesh file is not implemented yet ");
+}
+ infile.ignore(100,'\n');
+ 
+}
+ 
+} // end of if
+
+}
+
+void AnsysFile::SetNumSD(grd::Element * ptEl, const std::string namesd, const std::vector<std::string> sd)
+{
+ Boolean Find;
+ Integer j;
+ for (j=0; j<sd.size(); j++)
+  if (namesd == sd[j]) { ptEl->setValue(j);
+                         Find=TRUE;
+                       }
+ if (!Find) { std::string msg=namesd + "- this level of element is not mentioned in .conf-file. Please, check .config-file";
+              Error(msg.c_str(),__FILE__,__LINE__);
+            }
 }
 
 #endif

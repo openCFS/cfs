@@ -9,6 +9,9 @@
 #include "baseelem.hh"
 #include "conffile.hh"
 
+#include "acoustic2dPDE.hh"
+#include "elecst3dPDE.hh"
+
 namespace CoupledField
 {
 
@@ -39,6 +42,8 @@ void GridCFS<Point2D> :: Read()
   InFile->ReadCoordinate(ptCoordinate_, maxnumnodes_);
 
   InFile->ReadEl(elems_,sd_);
+  
+  std::cout << " size " << elems_[0].size() << std::endl;
 
 #ifdef TRACE
   (*trace) << "leaving GridCFS::Read" << std::endl;
@@ -94,7 +99,7 @@ template<class Dim>
 void GridCFS<Dim> :: GetElemSD(std::vector<Elem> & els, const std::string sd, const Integer level)
 {
 #ifdef TRACE
-  (*trace) << "entering GridCFS::GetCoordinateNode" << std::endl;
+  (*trace) << "entering GridCFS::GetElemSD" << std::endl;
 #endif
 
  Integer i;
@@ -104,7 +109,63 @@ void GridCFS<Dim> :: GetElemSD(std::vector<Elem> & els, const std::string sd, co
 }
 
 template<class Dim>
-void  GridCFS<Dim> :: GetCoordNodesElem(const Vector<Integer> connect, Dim * ptCoord)
+void GridCFS<Dim>::forEachElemSd(PutElemMatInAlgSys & f,const std::string subdomain)
+{
+#ifdef TRACE
+  (*trace) << "entering iterator GridCFS::forEachElemSD" << std::endl;
+#endif
+
+ Integer numsd, nesd; 
+ std::vector<Elem> * els;
+
+ Integer i;
+ for (i=0; i<sd_.size(); i++)
+ {
+   if (sd_[i]==subdomain) numsd=i;
+ }
+
+ nesd=elems_[numsd].size();
+
+ for (i=0; i< nesd; i++) 
+  {
+   f(elems_[numsd][i]);
+  }
+
+#ifdef TRACE
+  (*trace) << "leaving iterator GridCFS::forEachElemSD" << std::endl;
+#endif
+}
+
+template<class Dim>
+void GridCFS<Dim>::forEachElemSd(PutElemMatAlgSysElst3d & f,const std::string subdomain)
+{
+#ifdef TRACE
+  (*trace) << "entering iterator GridCFS::forEachElemSD" << std::endl;
+#endif
+
+ Integer numsd, nesd; 
+ std::vector<Elem> * els;
+
+ Integer i;
+ for (i=0; i<sd_.size(); i++)
+ {
+   if (sd_[i]==subdomain) numsd=i;
+ }
+
+ nesd=elems_[numsd].size();
+
+ for (i=0; i< nesd; i++) 
+  {
+   f(elems_[numsd][i]);
+  }
+
+#ifdef TRACE
+  (*trace) << "leaving iterator GridCFS::forEachElemSD" << std::endl;
+#endif
+}
+
+template<class Dim>
+void  GridCFS<Dim> :: GetCoordNodesElem(const Vector<Integer> connect, Dim * ptCoord, const Integer level)
 {
 #ifdef TRACE
   (*trace) << "entering GridCFS :: GetCoordinateNode" << std::endl;

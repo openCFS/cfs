@@ -16,7 +16,7 @@ SUBLIBDIR := Driver Estimator PDE \
              DataInOut/DefineFiles \
              DataInOut/Unverg DataInOut/GMV \
              DataInOut/DatFile DataInOut/AnsysFile DataInOut\
-             Utils Matrix General adaptgrid
+             Utils Matrix General 
 else
 SUBLIBDIR := Driver Estimator PDE AlgebraicSystem/LinAlg \
             Forms Elements Elements/2D Elements/3D \
@@ -141,6 +141,13 @@ make-include:
           fi); \
          done
 #
+############## Make library adaptgrid
+#
+adaptgrid:
+	@cd $(AdaptGrid) && $(MAKE) -f Makefile
+clean-adaptgrid:
+	@cd $(AdaptGrid) && $(MAKE) clean
+#
 ######################  Clean work directory
 clean-driver:
 	@cd $(LIBSRC_DIR)/Driver && \
@@ -148,6 +155,9 @@ clean-driver:
 clean-datainout:
 	@cd $(LIBSRC_DIR)/DataInOut&& \
 	$(MAKE) clean
+clean-ansys:
+	@cd $(LIBSRC_DIR)/DataInOut/AnsysFile && \
+        $(MAKE) clean
 clean-dat:
 	@cd $(LIBSRC_DIR)/DataInOut/DatFile && \
 	$(MAKE) clean
@@ -167,6 +177,8 @@ clean-domain:
 	$(MAKE) clean
 	@cd $(LIBSRC_DIR)/Domain/Gridlib&& \
         $(MAKE) clean 
+	@cd $(LIBSRC_DIR)/Domain/AdaptGrid&& \
+        $(MAKE) clean
 clean-general:
 	@cd $(LIBSRC_DIR)/General&&\
 	$(MAKE) clean
@@ -191,9 +203,6 @@ clean-utils:
 	$(MAKE) clean
 clean-matrix:
 	@cd $(LIBSRC_DIR)/Matrix&&\
-	$(MAKE) clean
-clean-adaptgrid:
-	@cd $(LIBSRC_DIR)/adaptgrid&&\
 	$(MAKE) clean
 clean-general-piles:
 	@cd $(LIBSRC_DIR)/AlgebraicSystem/CLA/general && \

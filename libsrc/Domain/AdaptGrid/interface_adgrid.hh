@@ -36,6 +36,9 @@ public:
    /// Get coordinates of node with global number inode
    virtual void GetCoordinateNode(const Integer inode, const Integer numlevel, Dim & rfPoint);
 
+   /// Get coordinate of all nodes that belong to elem ie
+   virtual void GetCoordNodesElem(const Vector<Integer> connect, Dim * ptCoord, const Integer level);
+
    /// Get connection of element
  virtual void GetConnection(Vector<Integer> & connect, const Integer iElem, const Integer level);
 
@@ -58,6 +61,10 @@ public:
   //! Do refinement of elements, which we mark through function SetRefinementFlag
   virtual void Refine();
 
+  virtual void forEachElemSd(PutElemMatInAlgSys & f,const std::string subdomain);
+  virtual void forEachElemSd(PutElemMatAlgSysElst3d & f,const std::string subdomain);
+
+
 private:
   //! 
   FileType * ptFileType;
@@ -73,18 +80,6 @@ private:
   std::vector<grd::Element*> elems_;
 
 };
-
-template<class Dim>
-inline InterfaceAdaptGrid<Dim>::InterfaceAdaptGrid(FileType * aptFileType)
-: Grid(aptFileType)
-{
-#ifdef TRACE
- (*trace) << "Entering InterfaceAdaptGrid<Dim>::InterfaceAdaptGrid<Dim>" << std::endl;
-#endif
-
-  ptFileType=aptFileType;
-  lastlevel_=0; 
-}
 
 #ifdef __GNUC__
 template class InterfaceAdaptGrid<Point3D>;

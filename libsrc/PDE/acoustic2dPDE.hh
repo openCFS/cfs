@@ -131,5 +131,38 @@ private:
 
 };
 
+class PutElemMatInAlgSys
+{
+public:
+
+  PutElemMatInAlgSys(AbstractAlgebraicSys * aptalgsys, Grid * aptgrid, const Double acoeffm, const Double acoeffs, const Integer as_sysid, const Integer alevel)
+  { sysid_=as_sysid; ptalgsys_=aptalgsys; ptgrid_=aptgrid;
+    coeffm_=acoeffm; coeffs_=acoeffs; level_=alevel;
+    matrix_stiff_=2;  matrix_mass_=5; }
+
+  ~PutElemMatInAlgSys() {}
+
+  // method
+  void operator() (Elem t);
+
+private:
+
+     //!
+  Grid * ptgrid_;
+
+     //!
+  AbstractAlgebraicSys * ptalgsys_;
+
+     //!
+  Integer sysid_, level_;
+
+     //!
+  Double coeffm_, coeffs_;
+
+  //!
+  Integer matrix_stiff_, matrix_mass_;
+
+};
+
 } // end of namespace
 #endif

@@ -91,6 +91,7 @@ Domain:: Domain(FileType * const aptFileType, WriteResults * ptOut,  Material * 
  
  Integer level=0;
  InitAlgSys(level);
+
 }
 
 Domain :: ~Domain()
