@@ -274,7 +274,7 @@ void SmoothPDE::WriteResultsInFile(Integer stepOffset,
   if (analysistype_ == STATIC ||
       analysistype_ == HARMONIC) {
     solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);
-    outFile_->WriteNodeSolutionTransient(*solTransient, actStep, actTime);
+//     outFile_->WriteNodeSolutionTransient(*solTransient, actStep, actTime);
   }
   else
     Error("SmoothPDE: Only static and transient results can be written out",
