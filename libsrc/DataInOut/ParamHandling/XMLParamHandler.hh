@@ -41,8 +41,8 @@ namespace CoupledField
   //! following. All public methods use ENTER_FCN, while all other methods,
   //! besides those defined in the header itself, use ENTER_IFCN. The latter
   //! do not appear in the trace log at all.
-  class XMLParamHandler : public BaseParamHandler
-  {
+  class XMLParamHandler : public BaseParamHandler {
+
   public:
 
     //! Constructor
@@ -59,268 +59,172 @@ namespace CoupledField
     //! and the DOM tree it owns.
     ~XMLParamHandler();
 
-    //! Get string-value for a keyword
 
-    //! The method will try to find the specified keyword in the parameter tree
-    //! returning the found value as a string. The search can be restricted to
-    //! a certain section and subsection.
-    //! \param key        Keyword
-    //! \param value      String (output)
-    //! \param section    Name of a section in which to look for keyword
-    //!                   (optional)
-    //! \param subsection Name of a subsection in which to look for keyword
-    //!                   (optional)
+    // ========================================================================
+    // Simple query methods without side constraints
+    // ========================================================================
+
+    //@{
+    //! \name Simple query methods without side constraints
+
     void Get( const std::string key, std::string &value,
 	      const std::string section="",
 	      const std::string subsection="" );
 
-    //! Get int-value for a keyword
-
-    //! The method will try to find the specified keyword in the parameter tree
-    //! returning the found value as an Integer. The search can be restricted
-    //! to a certain section and subsection.
-    //! \param key        Keyword
-    //! \param value      Integer (output)
-    //! \param section    Name of a section in which to look for keyword
-    //!                   (optional)
-    //! \param subsection Name of a subsection in which to look for keyword
-    //!                   (optional)
     void Get( const std::string key, Integer &value,
 	      const std::string section="", const std::string subsection="" );
 
-    //! Get double-value for a keyword
-
-    //! The method will try to find the specified keyword in the parameter tree
-    //! returning the found value as a Double. The search can be restricted
-    //! to a certain section and subsection.
-    //! \param key        Keyword
-    //! \param value      Double (output)
-    //! \param section    Name of a section in which to look for keyword
-    //!                   (optional)
-    //! \param subsection Name of a subsection in which to look for keyword
-    //!                   (optional)
     void Get( const std::string key, Double &value,
 	      const std::string section="", const std::string subsection="" );
 
-    //! Get string-value for a element with certain attribute
-
-    //! The method will try to find the specified keyword in the parameter tree
-    //! returning the found value as a string, if the corresponding element
-    //! has an attribute of the specified name which has the specified value.
-    //! The search can be restricted to a certain section and subsection.
-    //! If the applyToElem input argument is set to false, then the
-    //! attribute/value test is applied not to the element itself, but to its
-    //! parent.
-    //! \param key          Keyword
-    //! \param value        String (output)
-    //! \param attribute    Name of attribute of element
-    //! \param aValue       Value to test attribute's value against
-    //! \param applyToElem  Specifies which element to test
-    //! \param section      Name of a section in which to look for keyword
-    //!                     (optional)
-    //! \param subsection   Name of a subsection in which to look for keyword
-    //!                     (optional)
-    void CGet( const std::string key,
-	       std::string &value,
-	       const std::string attribute,
-	       const std::string aValue,
-	       Integer applyToElem,
-	       const std::string section,
-	       const std::string subsection );
-
-    //! Get Double-value for a element with certain attribute
-
-    //! The method will try to find the specified keyword in the parameter tree
-    //! returning the found value as a Double, if the corresponding element
-    //! has an attribute of the specified name which has the specified value.
-    //! The search can be restricted to a certain section and subsection.
-    //! If the applyToElem input argument is set to false, then the
-    //! attribute/value test is applied not to the element itself, but to its
-    //! parent.
-    //! \param key          Keyword
-    //! \param value        Double (output)
-    //! \param attribute    Name of attribute of element
-    //! \param aValue       Value to test attribute's value against
-    //! \param applyToElem  Specifies which element to test
-    //! \param section      Name of a section in which to look for keyword
-    //!                     (optional)
-    //! \param subsection   Name of a subsection in which to look for keyword
-    //!                     (optional)
-    void CGet( const std::string key,
-	       Double &value,
-	       const std::string attribute,
-	       const std::string aValue,
-	       Integer applyToElem,
-	       const std::string section,
-	       const std::string subsection );
-
-    //! Get Integer-value for a element with certain attribute
-
-    //! The method will try to find the specified keyword in the parameter tree
-    //! returning the found value as a Integer, if the corresponding element
-    //! has an attribute of the specified name which has the specified value.
-    //! The search can be restricted to a certain section and subsection.
-    //! If the applyToElem input argument is set to false, then the
-    //! attribute/value test is applied not to the element itself, but to its
-    //! parent.
-    //! \param key          Keyword
-    //! \param value        Integer (output)
-    //! \param attribute    Name of attribute of element
-    //! \param aValue       Value to test attribute's value against
-    //! \param applyToElem  Specifies which element to test
-    //! \param section      Name of a section in which to look for keyword
-    //!                     (optional)
-    //! \param subsection   Name of a subsection in which to look for keyword
-    //!                     (optional)
-    void CGet( const std::string key,
-	       Integer &value,
-	       const std::string attribute,
-	       const std::string aValue,
-	       Integer applyToElem,
-	       const std::string section,
-	       const std::string subsection );
-
-    //! Get a list of strings matching a keyword
-
-    //! The method will try to find the specified keyword in the parameter
-    //! tree and will return the values of the respective elements or
-    //! attributes in a vector of strings. The search can be restricted to
-    //! certain subtrees by specifying keywords for section and subsection.
-    //! The method will return an empty vector, if there is no match at all.
-    //! It will issue an error message, if there are matches for both, elements
-    //! and attributes.
-    //! \param key        Keyword
-    //! \param list       Vector of strings (output)
-    //! \param section    Name of a section in which to look for keyword
-    //!                   (optional)
-    //! \param subsection Name of a subsection in which to look for keyword
-    //!                   (optional)
     void GetList( const std::string key,
 		  StdVector<std::string> &list,
 		  const std::string section = "",
 		  const std::string subsection = "" );
 
-    //! Get a list of Doubles matching a keyword
-
-    //! The method will try to find the specified keyword in the parameter
-    //! tree and will return the values of the respective elements or
-    //! attributes in a vector of Doubles. The search can be restricted to
-    //! certain subtrees by specifying keywords for section and subsection.
-    //! The method will return an empty vector, if there is no match at all.
-    //! It will issue an error message, if there are matches for both, elements
-    //! and attributes.
-    //! \param key        Keyword
-    //! \param list       Vector of Doubles (output)
-    //! \param section    Name of a section in which to look for keyword
-    //!                   (optional)
-    //! \param subsection Name of a subsection in which to look for keyword
-    //!                   (optional)
     void GetList( const std::string key, StdVector<Double> &list,
 		  const std::string section = "",
 		  const std::string subsection = "" );
 
-    //! Get a list of strings for keyword and elements with certain attribute
+    void GetList( const std::string key, StdVector<Integer> &list,
+		  const std::string section = "",
+		  const std::string subsection = "" );
+    //@}
 
-    //! The method will try to find the specified keyword in the parameter
-    //! tree. Once found, it tests, whether the corresponding elements have
-    //! a specified value for a specified attribute. For these elements it
-    //! will return the values of the respective elements or of the attributes
-    //! matching the keyword. The search can be restricted to certain subtrees
-    //! by specifying keywords for section and subsection.
-    //! The method will return an empty vector, if there is no match at all.
-    //! It will issue an error message, if there are matches for both, elements
-    //! and attributes, or if one of the found elements does not have an
-    //! attribute of the specified type. If the applyToElem input argument is
-    //! set to false, then the attribute/value test is applied not to the
-    //! element itself, but to its parent.
-    //! \param key          Keyword
-    //! \param list         Vector of strings (output)
-    //! \param attribute    Name of attribute of element
-    //! \param value        Value to test attribute's value against
-    //! \param applyToElem  Specifies which element to test
-    //! \param section      Name of a section in which to look for keyword
-    //!                     (optional)
-    //! \param subsection   Name of a subsection in which to look for keyword
-    //!                     (optional)
-    void CGetList( const std::string key,
-		   StdVector<std::string> &list,
-		   const std::string attribute,
-		   const std::string value,
-		   Integer applyToElem,
-		   const std::string section,
-		   const std::string subsection );
 
-    //! Obtain list of PDEs defined in parameter file
+    // ========================================================================
+    // Query methods allowing side-constraints and expecting vectors as input
+    // ========================================================================
 
-    //! This method queries the parameter object for a list of all PDEs defined
-    //! in the parameter file. The list is returned as a vector of standard
-    //! strings.
+    //@{
+    //! \name Query methods allowing side-constraints
+    //! These query methods expect the search parameters to be specified in
+    //! vector format. The search parameters have the following meaning:\n\n
+    //! <center>
+    //! <table border="1" width="80%" cellpadding="10">
+    //! <tr>
+    //! <td>keyVec</td>
+    //! <td>a vector containing keywords, i.e. names of elements. These names
+    //! specify the 'path' leading from the root of the parameter tree to the
+    //! desired element. The last entry of this vector, however, can also be
+    //! the name of an attribute.</td>
+    //! </tr>
+    //! <tr>
+    //! <td>attrVec</td>
+    //! <td>This vector contains names of attributes, which will be used to
+    //! restrict the search space.</td>
+    //! </tr>
+    //! <tr>
+    //! <td>valVec</td>
+    //! <td>This vector contains the values of the attributes used for
+    //! restricting the search.</td>
+    //! </tr>
+    //! </table>
+    //! </center>
+    //! \n\n
+    //! When trying to locate the desired parameter value(s) in the tree, an
+    //! element is only considered to be a match, if its name fits to the
+    //! name given in keyVec and it has an attribute with the name given in
+    //! the attrVec vector, whose value matches the one specified in the
+    //! valVec vector. For this test the k-th entries in the vectors belong
+    //! together.\n\n
+    //! If a match is found for the specified set of search parameters, the
+    //! query method will return the value of the element or attribute
+    //! specified by the last entry in the keyVec vector. The Get methods
+    //! expect this final match to be unique, while the GetList methods will
+    //! also return a (possibly empty) StdVector of results, if there is no
+    //! or multiple matches.\n\n
+    //! The following is an example set of search parameters. We are trying to
+    //! determine here the analysis type for the mechanic PDE in second step of
+    //! a multi-sequence analysis:
+    //! \f[\mbox{keyVec} = \left(\begin{array}{c}
+    //! \mbox{"cfsSimulation"} \\
+    //! \mbox{"multiSequence"} \\
+    //! \mbox{"step"} \\
+    //! \mbox{"pde"} \\
+    //! \mbox{"analysis"}
+    //! \end{array}\right)
+    //! \mbox{attrVec} = \left(\begin{array}{c}
+    //! \mbox{""} \\
+    //! \mbox{""} \\
+    //! \mbox{"index"} \\
+    //! \mbox{"type"} \\
+    //! \end{array}\right)
+    //! \mbox{valVec} = \left(\begin{array}{c}
+    //! \mbox{""} \\
+    //! \mbox{""} \\
+    //! \mbox{"2"} \\
+    //! \mbox{"mechanic"} \\
+    //! \end{array}\right)
+    //! \f]
+    //! Note that the first two entries of the attrVec vector are empty
+    //! strings. This indicates that the elements matching the first two
+    //! entries of the keyVec vector will not be tested for having attributes
+    //! of a certain name and value.
+
+    //! Perform search and return values of matches as strings.
+    void GetList( const StdVector<std::string> &keyVec,
+		  const StdVector<std::string> &attrVec,
+		  const StdVector<std::string> &valVec,
+		  StdVector<std::string> &list );
+
+    //! Perform search and return values of matches as Doubles.
+    void GetList( const StdVector<std::string> &keyVec,
+		  const StdVector<std::string> &attrVec,
+		  const StdVector<std::string> &valVec,
+		  StdVector<Double> &list );
+
+    //! Perform search and return values of matches as Integers.
+    void GetList( const StdVector<std::string> &keyVec,
+		  const StdVector<std::string> &attrVec,
+		  const StdVector<std::string> &valVec,
+		  StdVector<Integer> &list );
+
+    //! Search for a unique match and return value as string.
+    void Get( const StdVector<std::string> &keyVec,
+	      const StdVector<std::string> &attrVec,
+	      const StdVector<std::string> &valVec,
+	      std::string &value );
+
+    //! Search for a unique match and return value as Double.
+    void Get( const StdVector<std::string> &keyVec,
+	      const StdVector<std::string> &attrVec,
+	      const StdVector<std::string> &valVec,
+	      Double &value );
+
+    //! Search for a unique match and return value as Integer.
+    void Get( const StdVector<std::string> &keyVec,
+	      const StdVector<std::string> &attrVec,
+	      const StdVector<std::string> &valVec,
+	      Integer &value );
+    //@}
+
+
+    // ========================================================================
+    // Specialised query methods
+    // ========================================================================
+
+    //@{
+    //! \name Specialised query methods
     void GetPDEList( StdVector<std::string> &list );
 
-    //! Obtain list of iterative coupled PDEs defined in parameter file
-
-    //! This methode queries the parameter object for a list of all PDEs
-    //! which are iterative coupled. 
-    //! \param list          List with name of all direct coupling pdes
-    virtual void GetIterCoupledPDEList( StdVector<std::string> &list);
+    void GetIterCoupledPDEList( StdVector<std::string> &list);
     
-    //! Obtain list of coils defined in parameter file
-
-    //! This method queries the parameter object for a list of all coils
-    //! defined in the parameter file. The list is returned as a vector of
-    //! standard strings. The method will return an empty vector, if there are
-    //! no matches. By specifying the optional pde input parameter the search
-    //! can be restricted to a certain PDE entry in the pdeList section.
     void GetCoilList( StdVector<std::string> &list,
 		      const std::string pde = "" );
 
-    //! Obtain the type of a certain coils
-
-    //! This method queries the parameter object for the type of a coils.
-    //! The desired coil is specified via the coilName input argument.
-    //! By specifying the optional pde input parameter the search can be
-    //! restricted to a certain PDE entry in the pdeList section.
     void GetCoilType( std::string &coilType, const std::string coilName,
 		      const std::string pde ="" );
 
-    //! Query the on/off status of a flag/switch
+    Boolean IsSet( const std::string key,
+		   const std::string section = "",
+		   const std::string subsection = "" );
 
-    //! The method will search the parameter tree for the parameter matching
-    //! the keyword. If the keyword is found, it will be compared to the token
-    //! "yes". If the keyword is found and its value matches, then the method
-    //! will return TRUE. If the keyword is not found or it does not match,
-    //! it will return FALSE. The search can be restricted to a subtree, by
-    //! specifying a section and subsection argument.
-    //! \param key        Keyword
-    //! \param section    Name of a section in which to look for keyword
-    //!                   (optional)
-    //! \param subsection Name of a subsection in which to look for keyword
-    //!                   (optional)
-    virtual Boolean IsSet( const std::string key,
-			   const std::string section = "",
-			   const std::string subsection = "" );
-
-    //! Query whether a parameter has a certain value
-
-    //! The method will search the parameter tree for the parameter matching
-    //! the keyword. If the keyword is found, its value will be compared to the
-    //! value given by the value input parameter. If the keyword is found and
-    //! its value matches, then the method will return TRUE. If the keyword
-    //! is not found (and there is also no default), or it does not match,
-    //! it will return FALSE. The search can be restricted to a subtree, by
-    //! specifying a section and subsection
-    //! argument.
-    //! \param key        Keyword
-    //! \param section    Name of a section in which to look for keyword
-    //!                   (optional)
-    //! \param subsection Name of a subsection in which to look for keyword
-    //!                   (optional)
-    //! \param value      String against which to test value of parameter
-    //!                   (optional)
-    virtual Boolean HasValue( const std::string key,
-			      const std::string value,
-			      const std::string section = "",
-			      const std::string subsection = "" );
+    Boolean HasValue( const std::string key,
+		      const std::string value,
+		      const std::string section = "",
+		      const std::string subsection = "" );
+    //@}
 
   private:
 
@@ -341,6 +245,25 @@ namespace CoupledField
     xercesc::DOMElement* ParseFile( xercesc::XercesDOMParser **parser,
 				    const char *xmlFile );
 
+    //! Print search parameters to an output stream
+
+    //! This method will print the search parameters given in the three input
+    //! vectors to the output stream specified by myStream. The method
+    //! currently uses the classical C routine fprintf to generate formatted
+    //! output.
+    void PrintSearchParams( const StdVector<std::string> &key,
+			    const StdVector<std::string> &attrib,
+			    const StdVector<std::string> &value,
+			    FILE *myStream );
+
+    //! Aux. ....
+    void GenerateSearchParams( const std::string key,
+			       const std::string section,
+			       const std::string subsection,
+			       StdVector<std::string> &keyVec,
+			       StdVector<std::string> &attrVec,
+			       StdVector<std::string> &valVec );
+
 
     // ************************************************************************
     //   Private Auxilliary Methods: Problem Handlers
@@ -349,82 +272,28 @@ namespace CoupledField
     //@{
     //! \name Routines for handling problems and default parameters
 
+    //! Error handler in case we have no match at all
+
+    //! This method is called by those query routines, e.g. the Get methods,
+    //! which expect to obtain a unqiue match, if no match is found in the
+    //! parameter tree. The method will try to obtain the value form the
+    //! tree containing the default parameters by calling CheckForDefault.
+    //! If this, too, fails, the method will call the NoMatchErrorReporter.
+    void NoMatchHandler( const StdVector<std::string> &keyVec,
+			 const StdVector<std::string> &attrVec,
+			 const StdVector<std::string> &valVec,
+			 std::string &defaultValue );
+
     //! Error handler in case we have no unique match
 
-    //! This method is called by those get routines, which expect to obtain a
-    //! unqiue match, if a match is found but it is not unique. The error
-    //! handler will issue a corresponding error message and terminate
-    //! programm execution.
-    void MultipleMatchHandler( const std::string key,
-			       const std::string section,
-			       const std::string subsection,
+    //! This method is called by those query routines, e.g. the Get methods,
+    //! which expect to obtain a unqiue match, if a match is found but it is
+    //! not unique. The error handler will issue a corresponding error message
+    //! and terminate programm execution.
+    void MultipleMatchHandler( const StdVector<std::string> &keyVec,
+			       const StdVector<std::string> &attrVec,
+			       const StdVector<std::string> &valVec,
 			       const unsigned int nmatches );
-
-    //! Error handler in case we have no match at all
-
-    //! This method is called by those get routines, which expect to obtain a
-    //! unqiue match, if no match is found and we are looking for a string
-    //! value.
-    void NoMatchHandler( std::string &value, const std::string key,
-			 const std::string section,
-			 const std::string subsection );
-
-    //! Error handler in case we have no match at all
-
-    //! This method is called by those get routines, which expect to obtain a
-    //! unqiue match, if no match is found and we are looking for a Double
-    //! value.
-    void NoMatchHandler( Double &value, const std::string key,
-			 const std::string section,
-			 const std::string subsection );
-
-    //! Error handler in case we have no match at all
-
-    //! This method is called by those get routines, which expect to obtain a
-    //! unqiue match, if no match is found and we are looking for an Integer
-    //! value.
-    void NoMatchHandler( Integer &value, const std::string key,
-			 const std::string section,
-			 const std::string subsection );
-
-    //! Error handler in case we have no match at all
-
-    //! This method is called by the CGet routine, which expects to obtain a
-    //! unqiue match, if no match is found and we are looking for a string
-    //! value.
-    void NoMatchHandler( std::string &value,
-			 const std::string key,
-			 const std::string attribute,
-			 const std::string aValue,
-			 Integer applyToElem,
-			 const std::string section,
-			 const std::string subsection );
-
-    //! Error handler in case we have no match at all
-
-    //! This method is called by the CGet routine, which expects to obtain a
-    //! unqiue match, if no match is found and we are looking for an Integer
-    //! value.
-    void NoMatchHandler( Integer &value,
-			 const std::string key,
-			 const std::string attribute,
-			 const std::string aValue,
-			 Integer applyToElem,
-			 const std::string section,
-			 const std::string subsection );
-
-    //! Error handler in case we have no match at all
-
-    //! This method is called by the CGet routine, which expects to obtain a
-    //! unqiue match, if no match is found and we are looking for a Double
-    //! value.
-    void NoMatchHandler( Double &value,
-			 const std::string key,
-			 const std::string attribute,
-			 const std::string aValue,
-			 Integer applyToElem,
-			 const std::string section,
-			 const std::string subsection );
 
     //! Error reporter for the case that we have no match at all
 
@@ -432,40 +301,25 @@ namespace CoupledField
     //! no default value was found either. The method assembles a corresponding
     //! error message and sends this to the error method of the WriteInfo
     //! class.
-    void NoMatchErrorReporter( const std::string key,
-			       const std::string section,
-			       const std::string subsection );
+    void NoMatchErrorReporter( const StdVector<std::string> &keyVec,
+			       const StdVector<std::string> &attrVec,
+			       const StdVector<std::string> &valVec );
 
     //! Determine default value for a parameter
 
-    //! This method will try to determine, whether for a given parameter key
-    //! a default value exists. If this is the case, then the method will
-    //! return TRUE and defaultValue will contain the default value of the
+    //! This method will try to determine, whether for a given set of search
+    //! parameters a default value exists. If this is the case, then the method
+    //! will return TRUE and defaultValue will contain the default value of the
     //! parameter in string format. If there is no default parameter specified,
     //! then the method will return FALSE and defaultValue will be set to the
     //! empty string.
-    //! \param defaultValue (output) Default value of parameter, if it exists
-    //! \param key          (input)  Keyword describing parameter
-    //! \param section      (input)  Name of a section in which to look for
-    //!                              keyword (optional)
-    //! \param subsection   (input)  Name of a subsection in which to look for
-    //!                              keyword (optional)
-    //! \param constrained  (input)  Shall we perform a search with side
-    //!                              constraints.
-    //! \param attribute    (input)  Name of attribute for constraint
-    //! \param aValue       (input)  Value of attribute for constraint
-    //! \param applyToElem  (input)  Level of element for attribute/value test
-    //!                              in tree above actual element
-    //! \param rootElem     (input)  root element for search tree
-    Boolean CheckForDefault( std::string &defaultValue, const std::string key,
-			     const std::string section,
-			     const std::string subsection,
-			     bool constrained = false,
-			     const std::string attribute = "",
-			     const std::string aValue = "",
-			     Integer applyToElem = 0 );
+    Boolean CheckForDefault(  const StdVector<std::string> &keyVec,
+			      const StdVector<std::string> &attrVec,
+			      const StdVector<std::string> &valVec,
+			      std::string &defaultValue );
 
     //@}
+
 
     // ************************************************************************
     //   Private Auxilliary Methods: Conversion Routines for Strings
@@ -536,6 +390,7 @@ namespace CoupledField
     };
     //@}
 
+
     // ************************************************************************
     //   Private Auxilliary Methods: Conversion Routines for Nodes
     // ************************************************************************
@@ -568,6 +423,7 @@ namespace CoupledField
 
     //@}
 
+
     // ************************************************************************
     //   Private Auxilliary Methods: Search Routines
     // ************************************************************************
@@ -575,108 +431,85 @@ namespace CoupledField
     //@{
     //! \name Search routines:
 
-    //! Search (restricted) tree for attributes matching keyword 
+    // Search (restricted) tree for attributes matching keyword 
 
-    //! The method will try to find all attributes whose name matches the
-    //! specified keyword in the parameter tree returning a vector of pointers
-    //! to the matching attributes. The search can be restricted to subtrees,
-    //! called sections, subsections and so on, which themselves match certain
-    //! keywords. The method works in a recursive fashion. If no match at all
-    //! is found, an empty vector is returned. The method relies on
-    //! FindMatchingElements.
-    //! \note The method requires to specify at least a section keyword. This
-    //!       is taken as identifier for the element, whose attributes we are
-    //!       looking for.
-    //! \param key      Keyword describing the desired attribute
-    //! \param keys     A vector of strings, containing the keywords
-    //!                 restricting the search tree. The order of the keywords
-    //!                 is section, subsection, ...
-    //! \param treeTop  Top node  of search tree.
-    //! \param elemlist Optionally we can return a vector of the elements for
-    //!                 which there have been matches.
-    StdVector<xercesc::DOMAttr*>*
-    FindMatchingAttributes( std::string key, StdVector<std::string> &keys,
-			    xercesc::DOMElement *treeTop,
-			    StdVector<xercesc::DOMElement*> *elemlist=NULL );
+    // The method will try to find all attributes whose name matches the
+    // specified keyword in the parameter tree returning a vector of pointers
+    // to the matching attributes. The search can be restricted to subtrees,
+    // called sections, subsections and so on, which themselves match certain
+    // keywords. The method works in a recursive fashion. If no match at all
+    // is found, an empty vector is returned. The method relies on
+    // FindMatchingElements.
+    // \note The method requires to specify at least a section keyword. This
+    //       is taken as identifier for the element, whose attributes we are
+    //       looking for.
+    // \param key      Keyword describing the desired attribute
+    // \param keys     A vector of strings, containing the keywords
+    //                 restricting the search tree. The order of the keywords
+    //                 is section, subsection, ...
+    // \param treeTop  Top node  of search tree.
+    // \param elemlist Optionally we can return a vector of the elements for
+    //                 which there have been matches.
 
-    //! Search (restricted) tree for elements matching keyword 
+    // Search (restricted) tree for elements matching keyword 
 
-    //! The method will try to find all elements whose tag matches the
-    //! specified keyword in the parameter tree returning a vector of pointers
-    //! to the matching elements. The search can be restricted to subtrees,
-    //! called sections, subsections and so on, which themselves match certain
-    //! keywords. The method works in a recursive fashion. If no match at all
-    //! is found, a NULL pointer will be returned.
-    //! \param keys       A vector of strings, containing the keywords. The
-    //!                   Order of the keywords is section, subsection, ...
-    //!                   up to the final keyword for the element tag.
-    //! \param treeTop    Top node of the subtree that is currently searched
-    //!                   through in the recursion.
-    //! \param curdepth   Current depth of recursion. This is used to identitfy
-    //!                   the current keyword.
-    StdVector<xercesc::DOMElement*>*
+    // The method will try to find all elements whose tag matches the
+    // specified keyword in the parameter tree returning a vector of pointers
+    // to the matching elements. The search can be restricted to subtrees,
+    // called sections, subsections and so on, which themselves match certain
+    // keywords. The method works in a recursive fashion. If no match at all
+    // is found, a NULL pointer will be returned.
+    // \param keys       A vector of strings, containing the keywords. The
+    //                   Order of the keywords is section, subsection, ...
+    //                   up to the final keyword for the element tag.
+    // \param treeTop    Top node of the subtree that is currently searched
+    //                   through in the recursion.
+    // \param curdepth   Current depth of recursion. This is used to identitfy
+    //                   the current keyword.
+
+    //! Under development
+    StdVector<xercesc::DOMElement *>*
     FindMatchingElements( StdVector<std::string> &keys,
-			  xercesc::DOMElement *treeTop,
+			  StdVector<std::string> &attribs,
+			  StdVector<std::string> &aValues,
+			  xercesc::DOMElement *treetop,
 			  unsigned int curdepth );
 
-    //! Central auxilliary search method for get functions
+    //! Under development
+    StdVector<xercesc::DOMAttr *>*
+    FindMatchingAttributes( std::string attr_key,
+			    StdVector<std::string> &keys,
+			    StdVector<std::string> &attribs,
+			    StdVector<std::string> &aValues,
+			    xercesc::DOMElement *treetop );
 
-    //! This is the central auxilliary search method used by the public get
-    //! methods. It will try to find the specified keyword in the parameter
-    //! tree and returning the values of the respective elements or attributes
-    //! in a vector of strings. The search can be restricted to certain
-    //! subtrees by specifying keywords for section and subsection. The method
-    //! will return an empty vector, if there is no match at all. It will issue
-    //! an error message, if there are matches for both, elements and
-    //! attributes. The final argument to the method is a pointer to a vector.
-    //! If this pointer is not the NULL pointer on input (which is the default)
-    //! then on return it will point to a vector containing the found elements.
-    //! \param key        Keyword for element tag or attribute name
-    //! \param list       Vector of strings (output)
-    //! \param section    Name of a section in which to look for keyword
-    //! \param subsection Name of a subsection in which to look for keyword
-    //! \param treeTop    Top node of search tree
-    //! \param elemlist   Vector containing the found elements
-    //!                   (output/optional)
-    void FindAllMatches( const std::string key,
+    //! Under development
+    void FindAllMatches( const StdVector<std::string> &key,
+			 const StdVector<std::string> &attrib,
+			 const StdVector<std::string> &aValue,
 			 StdVector<std::string> &list,
-			 const std::string section,
-			 const std::string subsection,
-			 xercesc::DOMElement *treeTop,
-			 StdVector<xercesc::DOMElement*> *elemlist=NULL );
+			 xercesc::DOMElement *treeTop );
 
-    //! Get a list of strings for keyword and elements with certain attribute
 
-    //! The method will try to find the specified keyword in the parameter
-    //! tree. Once found, it tests, whether the corresponding elements have
-    //! a specified value for a specified attribute. For these elements it
-    //! will return the values of the respective elements or of the attributes
-    //! matching the keyword. The search can be restricted to certain subtrees
-    //! by specifying keywords for section and subsection.
-    //! The method will return an empty vector, if there is no match at all.
-    //! It will issue an error message, if there are matches for both, elements
-    //! and attributes, or if one of the found elements does not have an
-    //! attribute of the specified type. If the applyToElem input argument is
-    //! set to false, then the attribute/value test is applied not to the
-    //! element itself, but to its parent.
-    //! \param key          Keyword
-    //! \param list         Vector of strings (output)
-    //! \param attribute    Name of attribute of element
-    //! \param value        Value to test attribute's value against
-    //! \param applyToElem  Specifies which element to test
-    //! \param section      Name of a section in which to look for keyword
-    //!                     (optional)
-    //! \param subsection   Name of a subsection in which to look for keyword
-    //!                     (optional)
-    void CFindAllMatches( const std::string key,
-			  StdVector<std::string> &list,
-			  const std::string attribute,
-			  const std::string value,
-			  Integer applyToElem,
-			  const std::string section,
-			  const std::string subsection,
-			  xercesc::DOMElement *rootElem );
+    // Central auxilliary search method for get functions
 
+    // This is the central auxilliary search method used by the public get
+    // methods. It will try to find the specified keyword in the parameter
+    // tree and returning the values of the respective elements or attributes
+    // in a vector of strings. The search can be restricted to certain
+    // subtrees by specifying keywords for section and subsection. The method
+    // will return an empty vector, if there is no match at all. It will issue
+    // an error message, if there are matches for both, elements and
+    // attributes. The final argument to the method is a pointer to a vector.
+    // If this pointer is not the NULL pointer on input (which is the default)
+    // then on return it will point to a vector containing the found elements.
+    // \param key        Keyword for element tag or attribute name
+    // \param list       Vector of strings (output)
+    // \param section    Name of a section in which to look for keyword
+    // \param subsection Name of a subsection in which to look for keyword
+    // \param treeTop    Top node of search tree
+    // \param elemlist   Vector containing the found elements
+    //                   (output/optional)
     //@}
 
 
@@ -712,16 +545,25 @@ namespace CoupledField
 
     //! This method can be used to test, if the attribute of a certain element
     //! has a specified value. If the element does not have an attribute with
-    //! the specified name, an error will be reported.
-    //! \param elem      Element whose attribute is to be tested
-    //! \param attribute Name of the attribute of interest
-    //! \param value     Value to compare atrribute's value against
+    //! the specified name, an error will be reported, if the parameter
+    //! failIfNoAttrib is 'true', otherwise the method will simply return
+    //! 'false'.
+    //! \param elem           Element whose attribute is to be tested
+    //! \param attribute      Name of the attribute of interest
+    //! \param value          Value to compare atrribute's value against
+    //! \param failIfNoAttrib Determines behaviour, if element does not have
+    //!                       an attribute with specified name
     bool AttribHasValue( xercesc::DOMElement* elem,
 			 const std::string attribute,
-			 const std::string value );
+			 const std::string value,
+			 bool failIfNoAttrib = true );
 
     //@}
 
+
+    // ************************************************************************
+    //   Private class attributes
+    // ************************************************************************
 
     //! Parser object
 
