@@ -348,7 +348,7 @@ namespace CoupledField {
     Double val1, val2;
 
     data.GetSolutionTypes(solTypes);
-  
+
     // Iterate over all solutiontypes
     for (Integer iSol=0; iSol<solTypes.GetSize(); iSol++) {
    
@@ -370,7 +370,7 @@ namespace CoupledField {
 	for ( Integer iNode = 0; iNode < histNodesPerQuant_[iQuant].GetSize();
 	      iNode++ ) {
 	  myHist = historyFiles_[iQuant][iNode];
-	  (*myHist) << frequency;
+	  (*myHist) << std::scientific << frequency;
 	  
 	  // Iterate over all dofs
 	  for ( Integer iDof = 0; iDof < actDof; iDof++ ) {
