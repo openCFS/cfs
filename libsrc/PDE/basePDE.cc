@@ -68,6 +68,7 @@ namespace CoupledField {
     dim_ = ptgrid_->GetDim();
     geoUpdate_ = FALSE;
     iterCoupledCounter_ = 0;
+    effectiveMass_ = FALSE;
 
     // =====================================================================
     // set solver parameters
@@ -753,6 +754,7 @@ namespace CoupledField {
 
 
   void BasePDE::SetBCs( const Integer level,  const Double time ) {
+    std::cerr << "Entering SetBCs" << std::endl;
 
     ENTER_FCN( "BasePDE::SetBCs" );
 
