@@ -43,23 +43,23 @@ void Quad2FE :: SetCornerCoords()
 
   LCornerCoords_.Resize(Dim_,NumNodes_);
   
-  LCornerCoords_[0][0] =  -1;
-  LCornerCoords_[1][0] =  -1;
-  LCornerCoords_[0][1] = 1;
-  LCornerCoords_[1][1] =  -1;
-  LCornerCoords_[0][2] = 1;
-  LCornerCoords_[1][2] = 1;
+  LCornerCoords_[0][0] = -1;
+  LCornerCoords_[1][0] = -1;
+  LCornerCoords_[0][1] =  1;
+  LCornerCoords_[1][1] = -1;
+  LCornerCoords_[0][2] =  1;
+  LCornerCoords_[1][2] =  1;
   LCornerCoords_[0][3] = -1;
-  LCornerCoords_[1][3] = 1;
+  LCornerCoords_[1][3] =  1;
 
   LCornerCoords_[0][4] =  0;
-  LCornerCoords_[1][4] =  -1;
-  LCornerCoords_[0][5] = 1;
+  LCornerCoords_[1][4] = -1;
+  LCornerCoords_[0][5] =  1;
   LCornerCoords_[1][5] =  0;
-  LCornerCoords_[0][6] = 0;
-  LCornerCoords_[1][6] = 1;
+  LCornerCoords_[0][6] =  0;
+  LCornerCoords_[1][6] =  1;
   LCornerCoords_[0][7] = -1;
-  LCornerCoords_[1][7] = 0;
+  LCornerCoords_[1][7] =  0;
 
 
 }
@@ -85,7 +85,7 @@ void Quad2FE :: CalcShapeFnc(std::vector<Double> & Shape,
       Shape[i]   = 0.5 * (1 - LCoord[0]*LCoord[0])*
 	           (1 + LCornerCoords_[1][i] * LCoord[1]);
       Shape[i+1] = 0.5 * (1 - LCoord[1]*LCoord[1])*
-	           (1 + LCornerCoords_[0][i] * LCoord[0]);
+	           (1 + LCornerCoords_[0][i+1] * LCoord[0]);
     }
 }
 
@@ -122,11 +122,11 @@ void Quad2FE :: CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv,
       LDeriv[i][1]   = 0.5 * LCornerCoords_[1][i] * 
 	               (1 - LCoord[0]*LCoord[0]);
 
-      LDeriv[i+1][0] = 0.5 *  LCornerCoords_[0][i] * 
+      LDeriv[i+1][0] = 0.5 *  LCornerCoords_[0][i+1] * 
 	               (1 - LCoord[1]*LCoord[1]);
 
       LDeriv[i+1][1] = -LCoord[1]*
-	               (1 + LCornerCoords_[0][i] * LCoord[0]);
+	               (1 + LCornerCoords_[0][i+1] * LCoord[0]);
     }
 }
 

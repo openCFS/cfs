@@ -71,6 +71,7 @@ namespace CoupledField
 	    ptelem->GetShFncAtIp(ShpFncAtIp,actIntPt);
 	    CoordAtIP = ptCoord * ShpFncAtIp;
 	    partElemMat *= 2 * PI * intWeights[actIntPt-1] * jacDet * laplVal_ * CoordAtIP[0];
+
 	  }
 	else 
 	  partElemMat *= intWeights[actIntPt-1] * jacDet * laplVal_;
