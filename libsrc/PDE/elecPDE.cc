@@ -485,8 +485,8 @@ void ElecPDE::Reset()
   ENTER_FCN( "ElecPDE::Reset" );
     
   //just for Testing
-  EqnData_ = new ScalarNodeEQN(ptgrid_,ptBCs_,subdoms_, bcs_hd_,actlevel_);
-  EqnData_->Print();
+  //EqnData_ = new ScalarNodeEQN(ptgrid_,ptBCs_,subdoms_, bcs_hd_,actlevel_);
+  //EqnData_->Print();
 
   // Map global numeration of element and nodes to local one
   AssignPDENodeNumbers(mesh2PDENode_, pde2MeshNode_, subdoms_);  
