@@ -85,8 +85,8 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
   else
    damping_type_ = NONE;
 
-  conf->ifgetliststr("homogenBCdof", homDirichDof_, pdename_);
-  conf->ifgetliststr("inhomogenBCdof", inhomDirichDof_, pdename_);
+  conf->ifgetliststr("homoBCdof", homDirichDof_, pdename_);
+  conf->ifgetliststr("inhomoBCdof", inhomDirichDof_, pdename_);
   conf->ifgetliststr("loadDof", loadDof_, pdename_);
 
 
