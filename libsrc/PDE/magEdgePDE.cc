@@ -33,7 +33,9 @@ namespace CoupledField
     conf->getsubdompde(subdoms_,pdename_);
     ReadBCs(pdename_);
 
-    AssignPDENodeNumbers();
+    AssignPDENodeNumbers(Mesh2PDENode_, PDE2MeshNode_, subdoms_);
+    NumPDENodes_ = PDE2MeshNode_.size();
+
     NumElems_ = ptgrid_->GetMaxnumElem(actlevel_, subdoms_); 
 
     bFieldRe_ = NULL;
@@ -182,14 +184,15 @@ namespace CoupledField
     //account for bcs
     SetBCs(level,update,0);
 
-    algsys_->CalcPrecond(job);
-
+    CPUClock cpuClock;
+    Double startTime = cpuClock.GetTime ();
+    
+    algsys_->CalcPrecond();
     Double preCondTime = cpuClock.GetTime ();
     (*cla) << std::endl << "TIME for PRECONDITIONER SETUP: " << preCondTime - startTime << std::endl;
     std::cout << "TIME for PRECONDITIONER SETUP: " << preCondTime - startTime << std::endl;
     
     algsys_->Solve();
-
     Double solveTime = cpuClock.GetTime ();
     (*cla) << std::endl << "TIME for SOLUTION: " << solveTime - preCondTime << std::endl;
     std::cout << "TIME for SOLUTION: " << solveTime - preCondTime << std::endl;
@@ -333,10 +336,10 @@ namespace CoupledField
 
 	    connecth=elemssd[j]->connect;
 	  
-	    ptgrid_->GetCoordNodesElemMat(connecth, ptCoord, level);
+	    GetElemCoords(connecth, ptCoord, level);
 
 	    // CHANGE connecth
-	    Mesh2PDENode(connect_PDE, connecth);
+	    Mesh2PDENode(connect_PDE, connecth, Mesh2PDENode_);
 
 	    //get the edge numbers and their signs
 	    GetEdgeNumber(connect_PDE.get(), epos, esign, ptElem);
@@ -441,15 +444,16 @@ namespace CoupledField
 
     if (OutFile_->IsGMV())
       {
-	OutFile_->WriteSolution(solRe_, step, time, "magnetic vector potential");
+	Error("GMV Currently not supported",__FILE__,__LINE__);
+	//	OutFile_->WriteSolution(solRe_, step, time, "magnetic vector potential");
       
 	// Write Out Vector Data
-	for (ShortInt i=0; i<ptgrid_->GetDim(); i++) 
-	  {
-	    std::ostringstream b_fieldname;
-	    b_fieldname << "Bfield " << i;
-	    OutFile_->WriteDataOnCell(bFieldRe_[i], step, time, b_fieldname.str());
-	  }
+// 	for (ShortInt i=0; i<ptgrid_->GetDim(); i++) 
+// 	  {
+// 	    std::ostringstream b_fieldname;
+// 	    b_fieldname << "Bfield " << i;
+// 	    OutFile_->WriteDataOnCell(bFieldRe_[i], step, time, b_fieldname.str());
+// 	  }
       }
     else
       {
@@ -457,7 +461,7 @@ namespace CoupledField
 
 	// write magnetic flux      
 	std::string fieldname = "mag. flux density";
-	Matrix<Double> outMat(dim, NumElems_);
+	Array<Double> outMat(dim, NumElems_);
       
 	if (analysistype_==HARMONIC)
 	  {
@@ -468,7 +472,7 @@ namespace CoupledField
 		// write just real part of solution 
 		outMat[i][j] = bFieldRe_[i][j];
 
-	    OutFile_->WriteDataOnCell(outMat, step, time, fieldname);
+	    OutFile_->WriteElemSolution(outMat, step, time, fieldname);
 	  
 	  
 	    // write magnetic vector potential 
@@ -486,7 +490,7 @@ namespace CoupledField
 	      for (Integer j=0; j < NumElems_; j++)
 		outMat[i][j] = bFieldRe_[i][j];	  
 
-	    OutFile_->WriteDataOnCell(outMat, step, time, fieldname);
+	    OutFile_->WriteElemSolution(outMat, step, time, fieldname);
 
       
 	    // write magnetic vector potential 
@@ -495,7 +499,7 @@ namespace CoupledField
 	      for (Integer j=0; j < NumElems_; j++)
 		outMat[i][j] = magVecPotRe_[i][j];	  
 
-	    //    OutFile_->WriteDataOnCell(outMat, step+1, time, fieldname);
+	    //    OutFile_->WriteElemSolution(outMat, step+1, time, fieldname);
 	  }
   
       }
@@ -544,7 +548,7 @@ namespace CoupledField
 	    ptElem=elemssd[iel]->ptElem;
 	  
 	    //Map Mesh Node numbers to PDE node numbers
-	    Mesh2PDENode(connecth,elemssd[iel]->connect);
+	    Mesh2PDENode(connecth,elemssd[iel]->connect,Mesh2PDENode_);
 	    fe_type = ptElem->feType();
 	    if (fe_type != TET)	
 	      Error("Currently just TETs supported for MagEdgePDE",__FILE__,__LINE__);
@@ -606,7 +610,7 @@ namespace CoupledField
 	      ptElem=SurfD[iel]->ptElem;
 	    
 	      //Map Mesh Node numbers to PDE node numbers
-	      Mesh2PDENode(connecth,SurfD[iel]->connect);
+	      Mesh2PDENode(connecth,SurfD[iel]->connect,Mesh2PDENode_);
 	      pos = connecth.get();
 	    
 	      epos[0] = algsys_->GetNode2Edge(pos[1], pos[0]);
@@ -751,10 +755,10 @@ namespace CoupledField
 	      
 		connecth=elemssd[j]->connect;
 	      
-		ptgrid_->GetCoordNodesElemMat(connecth, ptCoord, level);
+		GetElemCoords(connecth, ptCoord, level);
 	      
 		// CHANGE connecth
-		Mesh2PDENode(connect_PDE,connecth);
+		Mesh2PDENode(connect_PDE,connecth,Mesh2PDENode_);
 	      
 		//get the edge numbers and their signs
 		GetEdgeNumber(connect_PDE.get(), epos, esign, ptElem);
@@ -792,7 +796,7 @@ namespace CoupledField
 #endif
 
     ShortInt dim = ptgrid_->GetDim();
-    CurlEdgeOp * magFieldRe = new CurlEdgeOp(ptgrid_, &Mesh2PDENode_, &solRe_, level, algsys_); 
+    CurlEdgeOp * magFieldRe = new CurlEdgeOp(ptgrid_, this, &Mesh2PDENode_, &solRe_, level, algsys_); 
     CurlEdgeOp * magFieldIm;
 
     std::vector<Double> lCoord(dim, 1./4);
@@ -815,7 +819,7 @@ namespace CoupledField
 
     if (analysistype_==HARMONIC)
       {  
-	magFieldIm = new CurlEdgeOp(ptgrid_, &Mesh2PDENode_, &solIm_, level, algsys_); 
+	magFieldIm = new CurlEdgeOp(ptgrid_, this, &Mesh2PDENode_, &solIm_, level, algsys_); 
 
 	bFieldIm_ = new Vector<Double>[dim];
 	// Resize solution arrays
