@@ -62,9 +62,9 @@ namespace CoupledField {
     rootElem_ = ParseFile( &parser_, fname );
 
     // Generate parser and parse XML defaults file
-    std::string cfsDefaults = XMLSCHEMA;
-    cfsDefaults += "/Defaults/CFS++Defaults.xml";
-    rootElemDefaults_ = ParseFile( &parserDefaults_, cfsDefaults.c_str() );
+    cfsDefaults_ = XMLSCHEMA;
+    cfsDefaults_ += "/Defaults/CFS++Defaults.xml";
+    rootElemDefaults_ = ParseFile( &parserDefaults_, cfsDefaults_.c_str() );
 
     // Toggle verbosity
 #ifdef DEBUG_XMLPARAMHANDLER
@@ -1590,10 +1590,14 @@ namespace CoupledField {
     (*parser)->setIncludeIgnorableWhitespace(false);
 
     // We may separate the schema file from the instance file
-    std::string cfsSchema = "http://www.cfs++.org ";
-    cfsSchema += XMLSCHEMA;
-    cfsSchema += "/CFS.xsd";
-    (*parser)->setExternalSchemaLocation( cfsSchema.c_str() );
+    cfsSchema_ = "http://www.cfs++.org ";
+    cfsSchema_ += XMLSCHEMA;
+    cfsSchema_ += "/CFS.xsd";
+    (*parser)->setExternalSchemaLocation( cfsSchema_.c_str() );
+
+#ifdef DEBUG
+    std::cout << " XML parsers uses Schema: " << cfsSchema_ << std::endl;
+#endif
 
     // Have not yet understood what an entity reference node is, but it seems
     // we do not need them
