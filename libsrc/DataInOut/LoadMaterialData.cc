@@ -80,15 +80,16 @@ void LoadMaterialData::GetMaterial( MaterialData& material, const std::string ma
 	  {
 	    EulerAnglesRotate(&material, eulerAngles[i]);
 	    
-	    *infofile << "after EULER ROTATION : " << std::endl
-		    << "LoadMaterialData::LoadMaterial: gesamte Piezo-Datenmatrix von " << matName
-		      << ":" << std::endl << *material.GetMatrix() << std::endl << std::endl
-		    << "density = " << material.GetDensity() << std::endl
-		    << "damping coefficient alfa = " << material.GetDampingAlfa() << std::endl
-		    << "damping coefficient beta = " << material.GetDampingBeta() << std::endl;
+	    std::cout << "after EULER ROTATION : " << std::endl
+	    << "LoadMaterialData::LoadMaterial: gesamte Piezo-Datenmatrix von " << matName
+	    << ":" << std::endl << *material.GetMatrix() << std::endl << std::endl
+	    << "density = " << material.GetDensity() << std::endl
+	    << "damping coefficient alfa = " << material.GetDampingAlfa() << std::endl
+	    << "damping coefficient beta = " << material.GetDampingBeta() << std::endl;
+
 	    if (scaleMatDat)
-	      *infofile << std::endl << "!!!!!! SCALING with Diag(1e-5, 1e-5, 1e-5, 1e-5, 1e-5, 1e-5, "
-		      << "1e5, 1e5, 1e5) IS ON !!!!! " << std::endl << std::endl;	   
+	    std::cout << std::endl << "!!!!!! SCALING with Diag(1e-5, 1e-5, 1e-5, 1e-5, 1e-5, 1e-5, "
+	    << "1e5, 1e5, 1e5) IS ON !!!!! " << std::endl << std::endl;	   
 	  }
 	*/
       }
@@ -294,8 +295,7 @@ void LoadMaterialData::ReadLine(std::ifstream & fin, char* buffer)
     
 
     if (scaleMatDat)
-      *infofile << std::endl << "!!!!!! SCALING with Diag(1e-5, 1e-5, 1e-5, 1e-5, 1e-5, 1e-5, "
-		<< "1e5, 1e5, 1e5) IS ON !!!!! " << std::endl << std::endl;
+      Info->PrintF("","\n!!!!!! SCALING with Diag(1e-5, 1e-5, 1e-5, 1e-5, 1e-5, 1e-5,1e5, 1e5, 1e5) IS ON !!!!!\n\n ");
     
   }
 
@@ -472,22 +472,21 @@ void LoadMaterialData::ReadLine(std::ifstream & fin, char* buffer)
     trans[2][2] = cosm;
 
 
-    *infofile << "================== Euler Angles =======================  " << std::endl;
-
-    * infofile << std::endl;
-    * infofile << "lambda = " << lambda << std::endl;
-    * infofile << "mu     = " << mu << std::endl;
-    * infofile << "theta  = " << theta << std::endl << std::endl;
+    std::cout << "================== Euler Angles =======================  " << std::endl
+    << std::endl;
+    << "lambda = " << lambda << std::endl;
+    << "mu     = " << mu << std::endl;
+    << "theta  = " << theta << std::endl << std::endl;
     
 
-    *infofile << std::endl << "Rotation matrix = " << std::endl;
+    std::cout << std::endl << "Rotation matrix = " << std::endl;
     for(l=0; l<3; l++)
       {
 	for(o=0; o<3; o++)
-	  *infofile << std::setw(12) << trans[l][o] << "\t";
-	*infofile<< std::endl;
+	  std::cout << std::setw(12) << trans[l][o] << "\t";
+	std::cout<< std::endl;
       }
-    *infofile << std::endl << std::endl;
+    std::cout << std::endl << std::endl;
   
   
 

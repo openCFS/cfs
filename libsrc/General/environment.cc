@@ -8,7 +8,6 @@ namespace CoupledField
 {
   std::ostream * trace = NULL ;
   std::ostream * debug  = NULL;
-  std::ostream * infofile=NULL;
   std::ostream * cla=NULL;
   std::ostream * memtrace=NULL;
   std::ostream * data = NULL;

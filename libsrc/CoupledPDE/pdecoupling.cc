@@ -1,10 +1,15 @@
 #include "pdecoupling.hh"
 
-#include <PDE/basepde.hh>
 #include <Domain/grid.hh>
 #include <Domain/bcs.hh>
 #include <Domain/elem.hh>
 #include <list>
+
+#ifndef NEWBASEPDE
+#include <PDE/basepde.hh>
+#else
+#include <PDE/newBasePDE.hh>
+#endif //#ifndef NEWBASEPDE
 
 namespace CoupledField
 {

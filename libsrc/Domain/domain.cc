@@ -114,8 +114,8 @@ Domain:: Domain(FileType * const aptFileType, WriteResults * ptOut, TimeFunc * a
 //set the algebraic systems and read material data
   for (int i=0;i< numpde_;i++)
     {
-      ptpde_[i]->SetAlgSys(i); 
-      ptpde_[i]->ReadMaterialData();
+      ptpde_[i]->SetAlgSys(i);
+      //      ptpde_[i]->ReadMaterialData();
      } 
 }
 
@@ -153,15 +153,16 @@ void Domain :: InitPDEs()
       if (pdes[i] == "electrostatic") 
 	ptpde_[i]=new ElecPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
 
+      else if (pdes[i] == "mechanic")
+	ptpde_[i]=new MechPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
+
+
 #ifndef NEWBASEPDE
       else if (pdes[i] == "acoustic")
   	ptpde_[i]=new AcousticPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
 
       else if (pdes[i] == "acouflownoise")
  	 ptpde_[i]=new AcouFlowNoise(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
-
-      else if (pdes[i] == "mechanic")
-	ptpde_[i]=new MechPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
 
       else if (pdes[i] == "smooth")
 	ptpde_[i]=new SmoothPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);

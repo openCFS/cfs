@@ -11,11 +11,10 @@
 
 namespace CoupledField
 {
-
-
-
-  Analysis::Analysis(Grid * aptgrid)
-    :ptgrid_(aptgrid),
+  
+  Assemble::Assemble(BaseSystem * algsys, Grid * aptgrid)
+    :algsys_(algsys),
+     ptgrid_(aptgrid),
      stiffnessMatrix_(FALSE),
      dampingMatrix_(FALSE),
      massMatrix_(FALSE),
@@ -25,7 +24,7 @@ namespace CoupledField
 
   {
 #ifdef TRACE
-    (*trace) << "entering Analysis::Analysis " << std::endl;
+    (*trace) << "entering Assemble::Assemble " << std::endl;
 #endif
   }
 
@@ -33,10 +32,10 @@ namespace CoupledField
 
 
 
-  Analysis::~Analysis()
+  Assemble::~Assemble()
   {
 #ifdef TRACE
-    (*trace) << "entering Analysis::~Analysis " << std::endl;
+    (*trace) << "entering Assemble::~Assemble " << std::endl;
 #endif
     
     for (int i=0; i<integrators_.size();i++)
@@ -51,11 +50,11 @@ namespace CoupledField
 
  
   /// define integrators
-  void Analysis::AddIntegrator(BaseForm * integrator, const std::string & subDomName,
+  void Assemble::AddIntegrator(BaseForm * integrator, const std::string & subDomName,
 			       const enum MatrixType destinationMatrix, const Integer nonLin)
   {
 #ifdef TRACE
-    (*trace) << "entering Analysis::AddIntegrator " << std::endl;
+    (*trace) << "entering Assemble::AddIntegrator " << std::endl;
 #endif
 
     struct integratorDescriptor * actID = new struct integratorDescriptor;
@@ -74,18 +73,16 @@ namespace CoupledField
 
 
 
-  Integer Analysis::SubDomIndex(const std::string & subDomName)
+  Integer Assemble::SubDomIndex(const std::string & subDomName)
   {
 #ifdef TRACE
-    (*trace) << "entering Analysis::SubDomIndex " << std::endl;
+    (*trace) << "entering Assemble::SubDomIndex " << std::endl;
 #endif
-
-
 
     for (int i=0; i < subdoms_.size();i++)
       if (subDomName == subdoms_[i])
 	return i;
-  
+    
   
     std::string errOut;
     errOut = "SubDomain " + subDomName + " not defined!";
@@ -98,11 +95,11 @@ namespace CoupledField
 
 
 
-  void Analysis::GetElemCoords(const Vector<Integer> connect, 
+  void Assemble::GetElemCoords(const Vector<Integer> connect, 
 			       Matrix<Double> &coordMat, const Integer level)
   {
 #ifdef TRACE
-    (*trace) << "entering Analysis:GetElemCoords:" << std::endl;
+    (*trace) << "entering Assemble:GetElemCoords:" << std::endl;
 #endif
     
     ptgrid_->GetCoordNodesElemMat(connect, coordMat, level);
@@ -123,9 +120,13 @@ namespace CoupledField
 
   
   
-  /// define integrators
-  void Analysis::SetupMatrices(const Integer level)
+  // do the basic assembling stuff
+  void Assemble::AssembleMatrices(const Integer level)
   {
+#ifdef TRACE
+    (*trace) << "entering Assemble:AssembleMatrices" << std::endl;
+#endif
+    static int setupMatricesCount = 1;
     Matrix<Double> elemmat;
 
 
@@ -152,11 +153,21 @@ namespace CoupledField
 
 	    for(int actInteg=0; actInteg < integrators_[actDom]->size(); actInteg++)
 	      {
-		struct integratorDescriptor * actDescriptor = (*integrators_[actDom])[actInteg];
-		enum MatrixType destMat = actDescriptor->destinationMatrix;
+		struct integratorDescriptor * actDescriptor =
+		  (*integrators_[actDom])[actInteg];
+
+
+		// assemble only if nonlinear needs or first time
+		if (actDescriptor->nonLin || setupMatricesCount == 1)
+		  {
+		    actDescriptor->integrator->SetElemPtr(ptEl);
+
+		    enum MatrixType destMat = actDescriptor->destinationMatrix;
 		
-		actDescriptor->integrator->CalcElementMatrix(ptCoord, elemmat);
-		algsys_->SetElementMatrix(elemmat.getinarray(), connect_PDE.get(), connect_PDE.size(), destMat);
+		    actDescriptor->integrator->CalcElementMatrix(ptCoord, elemmat);
+		    algsys_->SetElementMatrix(elemmat.getinarray(), connect_PDE.get(), 
+					      connect_PDE.size(), destMat); 
+		  }		
 	      }
 	  }
       }
@@ -165,13 +176,45 @@ namespace CoupledField
 
 
 
+  
+  // do the basic assembling stuff
+  void Assemble::AssembleRHS(const Integer level)
+  {
+#ifdef TRACE
+    (*trace) << "entering Assemble:AssembleRHS" << std::endl;
+#endif
+    
+    for (int actDom=0; actDom < loadDoms_.size(); actDom++)
+    {
+	std::string doftype = loadDoms_[actDom];
+	Integer dof = GetNrBCDof (doftype.substr(0,2));
 
-  void Analysis::Mesh2PDENode(Vector<Integer> & PDENodes, 
+	std::list<Integer> nodes;
+	nodes = ptBCs_->GetNodesLevel(loadDoms_[actDom], level);
+
+	Double val = val_loads_[actDom];
+
+	for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end(); p++)
+	  {
+	    Integer node = *p;
+
+	    val = val_loads_[actDom];
+	    algsys_->SetNodeRHS(val, (*mesh2PDENode_)[node-1], dof);	
+	  }
+
+
+    }
+  }
+  
+
+
+
+  void Assemble::Mesh2PDENode(Vector<Integer> & PDENodes, 
 			      const Vector<Integer> & MeshNodes,
 			      const std::vector<Integer> & Mesh2PDENode)
   {
 #ifdef TRACE
-    (*trace) << "entering Analysis::Mesh2PDENode " << std::endl;
+    (*trace) << "entering Assemble::Mesh2PDENode " << std::endl;
 #endif
     
     PDENodes.Resize(MeshNodes.size());
@@ -182,44 +225,26 @@ namespace CoupledField
 
 
 
-  void Analysis::CreateMatrices_Solver()
+
+
+  void Assemble::InitMatrices()
   {
-#ifdef TRACE
-    (*trace) << "entering  Analysis::CreateMatrices_Solver" << std::endl;
-#endif
-    
-    Integer matrixsystype[5];
+// //  //Initialize matrices in order to get BCs correct
+//   std::vector<Integer> matrixsystype(5,0);    
+//   if (systemMatrix_     == 1) matrixsystype[0] = SYSTEM;      // memory for the system matrix
+//   if (stiffnessMatrix_  == 1) matrixsystype[1] = STIFFNESS;   // memory for the stiffness matrix
+//   if (dampingMatrix_    == 1) matrixsystype[2] = DAMPING;     // memory for the damping matrix
+//   if (convectionMatrix_ == 1) matrixsystype[3] = CONVECTION;  // memory for the convection matrix
+//   if (massMatrix_       == 1) matrixsystype[4] = MASS;        // memory for the mass matrix
   
-    // system matrix is always needed
-    matrixsystype[0] = SYSTEM;                                  // memory for the system matrix
-    if (stiffnessMatrix_  == 1) matrixsystype[1] = STIFFNESS;   // memory for the stiffness matrix
-    if (dampingMatrix_    == 1) matrixsystype[2] = DAMPING;     // memory for the damping matrix
-    if (convectionMatrix_ == 1) matrixsystype[3] = CONVECTION;  // memory for the convection matrix
-    if (massMatrix_       == 1) matrixsystype[4] = MASS;        // memory for the mass matrix
 
-    Integer numConstraints = 0;  // currently not handled
+//   for (Integer i=0;i<5;i++)
+//     if (matrixsystype[i] !=0)
+//       algsys_->InitMatrix(i+1);
 
-    //put to algebraic system
-    algsys_->CreateMatrix(matrixsystype, matrixType_, graphType_, dofsPerNode_, numDirichletBCs_,
-			  numConstraints);
-
-    //create solver and preconditioner
-    algsys_->CreateSolver();
-    algsys_->CreatePrecond(matrixType_);
-
-    //now reset AlgebraicSystem 
-    algsys_->InitRHS();
-    algsys_->InitSol();
-
-    InitMatrices();  
-  }
-
-
-
-
-  void Analysis::InitMatrices()
-  {
     // Initialize matrices in order to get BCs correct
+    algsys_->InitMatrix(SYSTEM);
+
     if (stiffnessMatrix_)
       algsys_->InitMatrix(STIFFNESS);
     
@@ -232,10 +257,30 @@ namespace CoupledField
     if (massMatrix_)
       algsys_->InitMatrix(MASS); 
   }
+ 
+ 
+
+  void Assemble::CreateMatrices()
+  {
+    const Integer numconstraints = 0;  // currently not handled
+    
+    Integer matrixsystype[5];
+    
+
+    matrixsystype[0] = SYSTEM;      // memory for the system matrix
+    if (stiffnessMatrix_  == 1) matrixsystype[1] = STIFFNESS;   // memory for the stiffness matrix
+    if (dampingMatrix_    == 1) matrixsystype[2] = DAMPING;     // memory for the damping matrix
+    if (convectionMatrix_ == 1) matrixsystype[3] = CONVECTION;  // memory for the convection matrix
+    if (massMatrix_       == 1) matrixsystype[4] = MASS;        // memory for the mass matrix
+    
+    //put to algebraic system
+    algsys_->CreateMatrix(matrixsystype, matrixType_, graphType_, 
+			  dofsPerNode_,numDirichletBCs_, numconstraints);
+  }
   
 
 
-  void Analysis::SetGeneralParams(const std::string & pdename, 
+  void Assemble::SetGeneralParams(const std::string & pdename, 
 				  const Integer dofsPerNode,
 				  const Integer numPDENodes, 
 				  const std::vector<std::string> subdoms)
@@ -248,90 +293,32 @@ namespace CoupledField
     // for every domain, we need an own integrator list
     integrators_.resize(subdoms_.size());
     for (int i=0; i<subdoms_.size();i++)
-      //      integrators_[i] = new Vector<integratorDescriptor *>;
       integrators_[i] = new std::vector<integratorDescriptor *>;
+      //      integrators_[i] = new Vector<integratorDescriptor *>;
     
   }
   
 
 
-  void Analysis::SetSolverParameters()
+
+
+
+
+
+
+
+
+
+
+  //  void Assemble::SetupMatrixGraph(Integer numeq, Integer graphType)
+  void Assemble::SetupMatrixGraph(Integer numeq)
   {
 #ifdef TRACE
-    (*trace) << "entering  BasePDE::SetSolverParameters" << std::endl;
+    (*trace) << "entering Assemble::SetupMatrixGraph" << std::endl;
 #endif
-
-
-    //solver parameters
-    Integer maxnumiter  = 100;
-    Integer solvertype  = RealDirect;
-    Integer precondtype = ID;
-    Integer numeqcoarse = 200;
-    Double  eps         = 1e-8;
-    Double  dampiter    = 1.0;
-    Double  coarsealpha = 0.1;
-
-    //if values are defined in conf-file, take these
-    conf->ifget("eps", eps, pdename_); // relative accuracy in the precond. energy
-    conf->ifget("dampiter", dampiter, pdename_); // damping parameter for Jacobi, SSOR
-    conf->ifget("maxnumit", maxnumiter, pdename_); // maximal number of iterations
-    conf->ifget("solvertype", solvertype, pdename_); // solver
-    conf->ifget("precondtype", precondtype, pdename_); //preconditioner
-    conf->ifget("numeqcoarse", numeqcoarse, pdename_); // number of equation for coarsing
-    conf->ifget("coarsealpha", coarsealpha, pdename_); // coarsing parameter for AMG
-  
-    if (solvertype==RealDirect && precondtype!=ID) 
-      precondtype=ID;
-  
-    //communicate with algebraic system
-    algsys_->CreateParameter();
-    algsys_->SetAccuracy(eps);
-    algsys_->SetMaxNumIter(maxnumiter);
-    algsys_->SetPrecond(precondtype);
-    algsys_->SetSolver(solvertype);
-    algsys_->SetDampIter(dampiter);
-    algsys_->SetCoarseSystem(numeqcoarse);
-    algsys_->SetAlpha(coarsealpha);
-
-  } 
-
-
-
-  void Analysis::SetAlgSys()
-  {
-#ifdef TRACE
-    (*trace) << "entering  Analysis::SetAlgSys" << std::endl;
-#endif
-
-    //allocate according algebraic system
-    algsys_ = new StandardSystem();
-
-    //set solver parameters  
-    SetSolverParameters();
-
-    //ask the PDE matrix settings
-    MatrixSettings();
-
-    //set the graph type used for the system matrices
-    SetupMatrixGraph(numPDENodes_, graphType_);
-
-    //allocate the necessary matrices as well as solver and preconditioner
-    CreateMatrices_Solver();
-  }
-
-
-
-
-
-
-void Analysis::SetupMatrixGraph(Integer numeq, Integer graphtype)
-{
-#ifdef TRACE
-  (*trace) << "entering Analysis::SetupMatrixGraph" << std::endl;
-#endif
-
+    
   //initialize matrix graph
-  algsys_->CreateGraph(numeq,graphtype);
+  algsys_->CreateGraph(numeq, graphType_);
 
   // set the graph - connectivity matrix
   BaseFE * ptElem; 
@@ -358,23 +345,64 @@ void Analysis::SetupMatrixGraph(Integer numeq, Integer graphtype)
 }
 
 
-    void Analysis::DeleteAlgSys(){if (algsys_) delete algsys_;};
+
+Integer Assemble::GetNrBCDof(const std::string & dofStartString)
+  {
+#ifdef TRACE
+    (*trace) << "entering Analysis::GetNrBCDof" << std::endl;
+#endif
+
+    Integer nrActDof;
+    
+    if (dofStartString == "ux")
+      nrActDof = 1;
+    else 
+      if (dofStartString == "uy")
+	nrActDof = 2;
+      else
+	if (dofsPerNode_ == 3)
+	  if (dofStartString == "uz")
+	    nrActDof = 3;
+	  else
+	    Error("Unknown dof-type in homog. BC; substring must start with ux, uy or uz!!",__FILE__,__LINE__);
+	else
+	  Error("Unknown dof-type in homog. BC; substring must start with ux or uy!!",__FILE__,__LINE__);
+    
+    return nrActDof;
+  }
+
+
 
   // ==========================================================
   // STATIC ANALYSIS
   // ==========================================================
 
-  void StaticAnalysis::MatrixSettings()
+
+  StaticAssemble::StaticAssemble(BaseSystem * algsys, Grid * agrid)
+    :Assemble(algsys, agrid)
   {
-    matrixType_   = RBLOCK;
+    //    matrixType_   = RBLOCK;
     graphType_    = NODEGRAPH; 
   }
-
-
-  // "time stepping" for solver
-  void StaticAnalysis::SolveStep()
-  {
-  };
   
+
+
+
+  // ==========================================================
+  // TRANSIENT ANALYSIS
+  // ==========================================================
+
+
+  TransientAssemble::TransientAssemble(BaseSystem * algsys, Grid * agrid)
+    :Assemble(algsys, agrid)
+  {
+    //    matrixType_   = RBLOCK;
+    graphType_    = NODEGRAPH; 
+
+    stiffnessMatrix_  = TRUE;
+    massMatrix_       = TRUE;
+  }
+  
+
 
 } // end namespace CoupledField

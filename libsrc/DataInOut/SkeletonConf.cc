@@ -101,8 +101,6 @@ namespace CoupledField
 
     (*skelfile_)  << "# -- NAME OF MATERIAL FILE" << std::endl
 		  << "material_file = mat.dat" << std::endl << std::endl;
-    (*skelfile_)  << "# -- SPECIFY TIME FUNCTION FILE OR TIME FUNCTION (if necessary)" << std::endl
-		  << std::endl << std::endl;
     (*skelfile_)  << "# -- ANALYSIS (static, transient, harmonic)" << std::endl
 		  << "analysis = XXX" << std::endl << std::endl;
     (*skelfile_)  << "# -- TIME DATA FILE (if transient analysis, uncomment following line)" << std::endl
@@ -250,7 +248,9 @@ namespace CoupledField
 
     (*skelfile_) << "\t bc_conditions:" << std::endl;
     (*skelfile_) << "\t \t homogeneous_dirichlet = XXX non" << std::endl; 
-    (*skelfile_) << "\t \t inhomogeneous_dirichlet = XXX non" << std::endl << std::endl; 
+    (*skelfile_) << "\t \t inhomogeneous_dirichlet = XXX non" << std::endl; 
+    (*skelfile_) << "#\t \t If you have an inhomogeneous_dirichlet BC , uncomment the following line and substitute IHD" << std::endl; 
+    (*skelfile_) << "#\t \t \t IHD = IHDvalue [, IHDfile]" << std::endl << std::endl; 
 
     (*skelfile_) << "\t loads = XXX non" << std::endl << std::endl; 
 
