@@ -107,6 +107,19 @@ value of the geometry specification and a mixture of different subTypes within
 one analysis is thus not possible.
 %
 %
+\subsection{Node to Ground Springs}
+In mechanic it is possible to consider node to ground springs. In a
+static analysis one can consider a stiffness value and
+in a transient analysis additionally a mass and a damping value.
+With the parameter name an existing selection of nodes must be given
+as it is the case for loads.
+\begin{verbatim}      
+<bcsAndLoads>
+ <spring name="springNodes" dof="uy" massValue="1" dampingValue="1" 
+    stiffnessValue="1"/>
+</bcsAndLoads>
+\end{verbatim}
+
 \subsection{Nodal Results}
 Possible nodal results are
 
