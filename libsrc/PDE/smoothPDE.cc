@@ -24,6 +24,9 @@ SmoothPDE::SmoothPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileTyp
   pdematerialclass_ = "piezo";
   firstTurn_ = TRUE;
 
+  // No time step algorithm for this PDE
+  isAlwaysStatic_ = TRUE;
+
   
   
   
