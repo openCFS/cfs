@@ -46,7 +46,7 @@ public:
   virtual Integer GetDim(){ ptGridCFS->GetDim();}
 
   //!
-  void GetElemSD(std::vector<Elem> & els, const std::string sd, const Integer level)
+  void GetElemSD(std::vector<Elem*> & els, const std::string sd, const Integer level)
   { ptGridCFS->GetElemSD(els,sd,level);}
 
   //!

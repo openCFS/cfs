@@ -13,6 +13,9 @@ public:
   //! Constructor 
   AbstractAlgebraicSys(){};
 
+  //! Deconstructor
+  virtual ~AbstractAlgebraicSys(){};
+
   //! Initialize the algebraic system (matrix block system)
   /*! 
     \param anumsys number of systems
@@ -148,6 +151,10 @@ public:
     \param job: 1..for nonlinear stuff; 2..new computation; 3..just update Dirichlet values
     \param sys_id ID for system in block matrix
   */
+
+  //! Add value addval to rhs-vector at position pos
+  virtual void AddRHS(Double addval, Integer pos, Integer sys_id)=0;
+
   virtual void ComputePrecond(Integer job, Integer nsys)=0;
 
   //! Solve the algebraic system with ID nsys

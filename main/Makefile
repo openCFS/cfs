@@ -1,8 +1,9 @@
-#
+############# Makefile for project CFS++ ###############################
 #
 src = cfs.cc
 #
 C_DIR=..
+#
 ########## set OS variable
 #
 OS=$(shell uname -s)
@@ -36,11 +37,11 @@ mylibrary :=  driver estimator pde forms  \
             domain unverg gmv \
             definefiles datfile ansysfile datainout \
             utils matrix general \
-            multigrid-cla general-cla superlu-cla \
+            multigrid-cla general-cla  superlu-cla\
             nginterface vis  \
             stlgeom mesh csg gprim opti \
             la gen cfsinterface tix8.1.8.3 tk8.3 tcl8.3\
-            GL GLU X11 Xi m dl pthread stdc++ adaptgrid
+            GL GLU X11 Xi m dl pthread stdc++ adaptgrid 
 else
 mylibrary :=  driver estimator pde algsys-own forms  \
             elements3d elements2d elements \
@@ -229,6 +230,22 @@ clean-library:
 clean-prog:
 	-rm *.o
 #
+######################   All clean --- for distributive
+
+cleanall: cleanall-library cleanall-files
+	@echo clean all
+.PHONY: cleanall cleanall-library cleanall-files
+
+cleanall-library:
+	@for n in $(PATHSUBLIBDIR); do \
+         (if cd $$n; \
+                     then $(MAKE) allclean; \
+                     else echo "WARNING:" $$n " doesn't exist"; \
+          fi); \
+         done 
+cleanall-files:
+	-rm *.o
+#
 ######################   Clean library
 # 
 libclean: 
@@ -250,6 +267,30 @@ doc++:
 	doc++ $(FlagDoc) -d $(C_DIR)/doc/online docfile
 .PHONY: doc doxygen doc++
 #
+##################### Make distributive
+#
+LIBSRC=$(addprefix libsrc/,$(SUBLIBDIR))
+CVS_DIR=$(addsuffix /CVS,$(LIBSRC))
+#
+distrib: clean 
+	cd $(C_DIR) && \
+	tar -cvf cfs++.tar $(LIBSRC) main/Makefile main/Makefile.option main/cfs.cc main/control --exclude $(CVS_DIR) 
+#
+##################### Make check
+#
+ControlDir = control
+ControlExtOut = unverg
+CheckFiles = chan1 
+#
+check:
+	@for n in $(CheckFiles); do\
+	(cfs $$n -m mat; \
+	if diff $$n.$(ControlExtOut) $$n.test ;\
+		then echo " $$n: Ok :) ";\
+		else echo " $$n: Error or control files are not updated.";\
+	fi);\
+	done; 
+#
 ##################### Make dependencies
 #
 depend: #depend-cleanfile
@@ -257,8 +298,8 @@ depend: #depend-cleanfile
          (if cd $$n; \
                      then $(MAKE) $@; \
                      else echo "WARNING:" $$n " doesn't exist"; \
-          fi); \
-         done
+          fi); 
+	done
 	@rm -f $(Dependencies).bak
 #
 depend-cleanfile:

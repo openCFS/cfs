@@ -26,9 +26,9 @@ public:
   void Update(Grid * ptgrid);  
 
   //!
-  std::list<Integer> GetNodesLevel(const std::string level, const Integer lev);  
+  std::list<Integer> GetNodesLevel(const std::string level, const Integer lev=-1);  
   //!
-  Integer GetNumNodesLevel(const std::string level, const Integer lev);
+  Integer GetNumNodesLevel(const std::string level, const Integer lev=-1);
 
   //!
   void BCs :: printBCs(const Integer alevel=-1);

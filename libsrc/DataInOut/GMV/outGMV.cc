@@ -44,6 +44,8 @@ WriteResultsGMV ::~WriteResultsGMV()
  (*output) << "endgmv " << std::endl;
 
  delete [] namedir_;
+
+ delete output;
 }
 
 void WriteResultsGMV :: WriteHeader()
@@ -95,8 +97,12 @@ void WriteResultsGMV :: WriteNodes(const Integer alevel)
 }
 }
 
-void WriteResultsGMV:: WriteCells(const Integer alevel) 
+void WriteResultsGMV::WriteCells(const Integer alevel) 
 {
+#ifdef TRACE
+  (*trace) << " entering WriteResultsGMV::WriteCells \n";
+#endif
+
   Integer level=alevel;
 
 // write keyword

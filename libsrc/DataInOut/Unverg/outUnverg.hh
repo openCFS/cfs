@@ -32,6 +32,8 @@ public:
  virtual Boolean IsGMV() { return FALSE;}
 
 private:
+  ///
+  std::ofstream * output;
 
   ///
   void Dataset666(const Integer level);

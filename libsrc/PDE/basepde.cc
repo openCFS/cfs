@@ -23,25 +23,25 @@ BasePDE::BasePDE(AbstractAlgebraicSys * aptalgsys, Material * aMatFile, FileType
 
 void BasePDE::SetAlgSys_id(const Integer as_sysid)
 {
- as_sysid_ = as_sysid;
+  as_sysid_ = as_sysid;
 }
 
 void BasePDE::ReadBCs(const std::string eq)
 {
- conf->getliststr("homogeneous_dirichlet",bcs_hd_,eq); 
- conf->getliststr("inhomogeneous_dirichlet",bcs_id_,eq);
+  conf->getliststr("homogeneous_dirichlet",bcs_hd_,eq); 
+  conf->getliststr("inhomogeneous_dirichlet",bcs_id_,eq);
 
- Integer i;
+  Integer i;
 
- val_id_.resize(bcs_id_.size());
+  val_id_.resize(bcs_id_.size());
 
- for(i=0; i<bcs_id_.size(); i++)
-  conf->get(bcs_id_[i],val_id_[i],eq,"bc_conditions","inhomogeneous_dirichlet");
+  for(i=0; i<bcs_id_.size(); i++)
+    conf->get(bcs_id_[i],val_id_[i],eq,"bc_conditions","inhomogeneous_dirichlet");
 
- std::cout << bcs_id_.size() << std::endl;
+  std::cerr << bcs_id_.size() << std::endl;
  
   for(i=0; i<bcs_id_.size(); i++)
-   std::cout << bcs_id_[i] << " " << val_id_[i] << std::endl; 
+    std::cerr << bcs_id_[i] << " " << val_id_[i] << std::endl; 
 }
 
 Integer BasePDE::GetNumRestraints(BCs* ptBCs, const Integer level)
@@ -49,18 +49,18 @@ Integer BasePDE::GetNumRestraints(BCs* ptBCs, const Integer level)
 #ifdef TRACE
   (*trace) << "entering BasePDE::GetNumRestraints" << std::endl;
 #endif
-  
+    
   Integer res=0;
   Integer i;
   for (i=0; i<bcs_hd_.size(); i++)
-  {
-   res+=ptBCs->GetNumNodesLevel(bcs_hd_[i],level);
-  }
+    {
+      res+=ptBCs->GetNumNodesLevel(bcs_hd_[i],level);
+    }
 
-   for (i=0; i<bcs_id_.size(); i++)
-  {
-   res+=ptBCs->GetNumNodesLevel(bcs_id_[i],level);
-  }
+  for (i=0; i<bcs_id_.size(); i++)
+    {
+      res+=ptBCs->GetNumNodesLevel(bcs_id_[i],level);
+    }
 
   return res;
 }

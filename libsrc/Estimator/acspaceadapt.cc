@@ -61,39 +61,39 @@ Boolean AcousticSpaceErrorEstimator::TestError()
   (*trace) << "entering AcousticSpaceErrorEstimator::TestError" << std::endl;
 #endif
    
-   Double normsol=ptPDE_->CalcEnergyNorm();
-   if (normsol>maxenergynormsol_) maxenergynormsol_=normsol;
+  return TRUE;
 
-   std::cout << " norm sol " << normsol << std::endl;
+  //  Double normsol=ptPDE_->CalcEnergyNorm();
+//    if (normsol>maxenergynormsol_) maxenergynormsol_=normsol;
 
-   CalcError();
+//    std::cout << " norm sol " << normsol << std::endl;
+
+//    CalcError();
    
-   if (InfoPrint)
-    (*infofile) << " error " << error_ << " " << tol_ << std::endl; 
+//    if (InfoPrint)
+//     (*infofile) << " error " << error_ << " " << tol_ << std::endl; 
 
-    std::cout << " error " << error_ << " " << tol_ << std::endl;
+//     std::cout << " error " << error_ << " " << tol_ << std::endl;
 
-    if (error_<= tol_) return FALSE;
-    else return TRUE;
+//     if (error_<= tol_) return FALSE;
+//     else return TRUE;
 }
 
 void  AcousticSpaceErrorEstimator::RefineMesh()
 {
+#ifdef TRACE
+  (*trace)<<" entering AcousticSpaceErrorEstimator::RefineMesh " << std::endl;
+#endif
 
   std::vector<std::string> * listSDs=ptPDE_->getSDsPDE();
 
   Integer i;
-  SetRefFlag f(this);
+  //  SetRefFlag f(this);
+  SetRefFlagTest f;  
   for(i=0; i<(*listSDs).size(); i++)
     ptGrid_->forEachElemSd(f,(*listSDs)[i]);
-//  Integer levelGrid=ptGrid_->GetLastLevel();
+  ptGrid_->Refine();
 
-//  std::vector<Integer> elems2refinement;
-//  DefineRefinedElems(levelGrid, elems2refinement);
-
-//  ptGrid_->SetRefinementFlag(elems2refinement);
-
-//  ptGrid_->Refine();
 }
 
 void AcousticSpaceErrorEstimator::DefineRefinedElems(const Integer level, std::vector<Integer> & elems2ref)

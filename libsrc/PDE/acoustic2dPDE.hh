@@ -41,7 +41,7 @@ Double &adampiter,  Integer &amaxnumit, Integer &numeqcoarse);
   void SetBCs(BCs * ptBCs, const Integer level, const Integer update, const Double atime);
 
   //!
-  void ComputeRHS();
+  void ComputeRHS(const Double atime, BCs * ptBCs=NULL);
 
   //! calculation derivates of solution 
   void CalculationDerivativesSol(const Boolean Recalc);
@@ -67,6 +67,9 @@ Double &adampiter,  Integer &amaxnumit, Integer &numeqcoarse);
 
   //!
   void RestoreSol();
+
+  //!
+  void SaveSolAsPrevStep();
 
   //!
    void WriteResultsInFile();

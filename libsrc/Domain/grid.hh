@@ -12,10 +12,22 @@ struct Elem
   BaseElem * ptElem;
   Vector<Integer> connect;
   std::string namesd;
+
+  Elem & operator=(const Elem& t);
 };
 
+inline Elem & Elem::operator=(const Elem& t) {
+  if (this!=&t) {
+    ptElem=t.ptElem;
+    connect=t.connect;
+    namesd=t.namesd;
+  }
+  return *this;
+}
+    
 
-  class SetRefFlag;
+class SetRefFlag;
+class SetRefFlagTest;
 
 /// Class for working with grid
 class Grid
@@ -55,9 +67,13 @@ public:
 
   //! return dimension of mesh
   virtual Integer GetDim()=0;
+  
+ //! prolongation of solution
+  virtual void ProlongSol(const Vector<Double> sol_coarse, Vector<Double> &sol, const Integer alevel)
+  { Error(" Not implemented",__FILE__,__LINE__);}
 
   //! update nodes for boundary conditions
-  virtual void UpdateBCs(std::list<Integer> * data, std::list<Integer> * result, std::vector<std::string> )
+  virtual void UpdateBCs(std::list<Integer> * bcs)
   { Error(" Not implemented",__FILE__,__LINE__);}
 
     //! Here we mark elements for refinement: ei - number of elem
@@ -72,7 +88,7 @@ public:
   { Error(" Not implemented",__FILE__,__LINE__);}
 
     //!
- virtual void GetElemSD(std::vector<Elem> &, const std::string sd, const Integer level)
+ virtual void GetElemSD(std::vector<Elem*> &, const std::string sd, const Integer level)
    { Error(" Not implemented",__FILE__,__LINE__);}
 
   //!
@@ -85,6 +101,13 @@ public:
 
   virtual void forEachElemSd(SetRefFlag & f,const std::string subdomain)
    { Error(" Not implemented",__FILE__,__LINE__);}
+
+  virtual void forEachElemSd(SetRefFlagTest & f,const std::string subdomain)
+   { Error(" Not implemented",__FILE__,__LINE__);}
+
+  virtual  std::vector<Integer*> * GetPtTestConnection()
+   { Error(" Not implemented",__FILE__,__LINE__);}
+
 
  //  virtual void forEachElemSd(PutElemMatInAlgSys & f,const std::string subdomain)
 // { Error(" Not implemented",__FILE__,__LINE__);}

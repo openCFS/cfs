@@ -31,6 +31,8 @@ public:
   virtual Boolean IsGMV(){ return TRUE;}
 
 private:
+  ///
+  std::ofstream * output;
 
   //! name of dir for output results
   Char * namedir_;
@@ -40,9 +42,6 @@ private:
 
   //!
   Grid * ptgrid;
-
-  //!
-  std::ostream * output;
 
   //! write header of gmv-file: only ascii is implemented
   void WriteHeader();

@@ -38,13 +38,16 @@ public:
     algsys->SetPrecond(precondtype,nsys);
     algsys->SetSolver(solvertype,nsys);
     algsys->SetDampIter(dampiter,nsys);
-    algsys-> SetCoarseSystem(numeqcoarse,nsys);
+    algsys->SetCoarseSystem(numeqcoarse,nsys);
+    algsys->SetAlpha(0.01,nsys);
   }
 
   virtual void InitAlgSysGraph(Integer numnode, Integer matrix_row, Integer matrix_col)
   { 
     matrix_row ++;
     matrix_col ++;
+    algsys->CreateGlobal2Local(numnode);
+    //    algsys->CreateGraph(numnode,1,matrix_row,matrix_col);
     algsys->CreateGraph(numnode,matrix_row,matrix_col);
   }
 
@@ -52,6 +55,7 @@ public:
   { 
     matrix_row ++;
     matrix_col ++;
+    //    algsys->SetElementPos(pos,elemsize,2,matrix_row,matrix_col);
     algsys->SetElementPos(pos,elemsize,matrix_row,matrix_col);
   }
 
@@ -131,6 +135,13 @@ public:
     algsys->UpdateRHS(matrix_row,matrix_col,matrix_id,vec);
   }
 
+  //! Add value addval to rhs-vector at position pos
+  virtual void AddRHS(Double addval, Integer pos, Integer sys_id)
+  {
+    sys_id++;
+    algsys->AddRHS(addval,pos,sys_id);
+  }
+
 
   //!
   virtual void ComputePrecond(Integer job, Integer nsys)
@@ -159,6 +170,14 @@ public:
     matrix_row ++;
     matrix_col ++;
     return algsys->CalcEnergyNorm(matrix_row,matrix_col,matrix_id,u);
+  }
+
+  virtual ~AlgSysPILES()
+  {
+#ifdef TRACE
+    (*trace) << "entering AlgSysPILES::~AlgSysPILES " << std::endl;
+#endif
+    if (algsys) delete algsys;
   }
 
 private:

@@ -14,8 +14,8 @@ namespace CoupledField
   //! Calculate Spur of Matrix
   template <class T> T Spur(const Matrix<T> &);
 
-  //! Transporting Matrix 
-  template <class T> Matrix<T> Trans(const Matrix<T> &);
+//   //! Transporting Matrix 
+//   template <class T> Matrix<T> Trans(const Matrix<T> &);
 
 //! Own class for working with full matrixes
 template<class TYPE>

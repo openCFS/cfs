@@ -112,45 +112,43 @@ void Elecst3dPDE::SetupMatrices(const Integer level)
   CalcCoeff(coeffst);  
 
   Vector<Integer> connecth;
-  std::vector<Elem> elemssd;
+  std::vector<Elem*> elemssd;
 
   Integer i, j;
- for (i=0; i<subdoms_.size(); i++)
-{
- ptgrid_->GetElemSD(elemssd,subdoms_[i],level);
+  for (i=0; i<subdoms_.size(); i++)
+    {
+      ptgrid_->GetElemSD(elemssd,subdoms_[i],level);
 
-  for (j=0; j < elemssd.size(); j++)
-{  
-  std::cout << j << std::endl;
+      for (j=0; j < elemssd.size(); j++)
+	{  
+	  ptElem=elemssd[j]->ptElem;
 
-  ptElem=elemssd[j].ptElem;
+	  BaseForm<Point3D> * bilinear_stiff = new LaplaceInt<Point3D>(ptElem,1);
 
-  BaseForm<Point3D> * bilinear_stiff = new LaplaceInt<Point3D>(ptElem,1);
+	  connecth=elemssd[j]->connect;
 
-  connecth=elemssd[j].connect;
+	  ptCoord=new Point3D[connecth.size()];
+	  ptgrid_->GetCoordNodesElem(connecth,ptCoord,level);
 
-  ptCoord=new Point3D[connecth.size()];
-  ptgrid_->GetCoordNodesElem(connecth,ptCoord,level);
+	  // stiffness part
+	  bilinear_stiff->CalcElemMatrix(ptCoord, elemmat);
+	  elemmat*=coeffst[i];
 
-  // stiffness part
-  bilinear_stiff->CalcElemMatrix(ptCoord, elemmat);
-  elemmat*=coeffst[i];
-
-  if (InfoPrint)
-   (*infofile) << elemmat << std::endl;
+	  if (InfoPrint)
+	    (*infofile) << elemmat << std::endl;
 
 #ifdef DEBUG
-      (*debug) << "Stiffnessmatrix, ElementNumber  " <<   i << std::endl;
+	  (*debug) << "Stiffnessmatrix, ElementNumber  " <<   i << std::endl;
 
-      (*debug) << elemmat << std::endl;
+	  (*debug) << elemmat << std::endl;
 #endif
 
-  ptalgsys_->PutElemMatAlgSys(elemmat.getinarray(), connecth.get(), connecth.size(), as_sysid_, as_sysid_, matrix_stiff);
+	  ptalgsys_->PutElemMatAlgSys(elemmat.getinarray(), connecth.get(), connecth.size(), as_sysid_, as_sysid_, matrix_stiff);
 
-  delete bilinear_stiff;
-  delete [] ptCoord;
-}     
-}
+	  delete bilinear_stiff;
+	  delete [] ptCoord;
+	}     
+    }
 
 #ifdef TRACE
   (*trace) << "Leaving Elecst3dPDE::SetupMatrices" << std::endl;
@@ -175,13 +173,13 @@ void Elecst3dPDE::SetBCs(BCs * ptBCs, const Integer level, const Integer update,
   std::list<Integer> nodes;
 
   for (i=0; i<bcs_hd_.size(); i++)
-{
-    nodes=ptBCs->GetNodesLevel(bcs_hd_[i], level);
+    {  
+      nodes=ptBCs->GetNodesLevel(bcs_hd_[i], level);
   
-  for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end(); p++, j++)
-  {
-    node=*p;
-    val=0; 
+      for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end(); p++, j++)
+	{
+	  node=*p;
+	  val=0; 
           if (update==1)
             {
               ptalgsys_->SetBCDirichletUpdate(j+1, node, val, dofspernode_, as_sysid_, as_sysid_, matrix_id);
@@ -189,20 +187,20 @@ void Elecst3dPDE::SetBCs(BCs * ptBCs, const Integer level, const Integer update,
           else
             {
               ptalgsys_->SetBCDirichlet(j+1, node, val, dofspernode_, as_sysid_,
-as_sysid_, matrix_id);
+					as_sysid_, matrix_id);
             }
+	}
     }
-}
 
   for (i=0; i<bcs_id_.size(); i++)
-{
-    nodes=ptBCs->GetNodesLevel(bcs_id_[i], level);
+    {
+      nodes=ptBCs->GetNodesLevel(bcs_id_[i], level);
 
-  val=val_id_[i];
+      val=val_id_[i];
 
-  for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end(); p++, j++)
-  {
-    node=*p;
+      for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end(); p++, j++)
+	{
+	  node=*p;
           if (update==1)
             {
               ptalgsys_->SetBCDirichletUpdate(j+1, node, val, dofspernode_, as_sysid_, as_sysid_, matrix_id);
@@ -211,10 +209,9 @@ as_sysid_, matrix_id);
             {
               ptalgsys_->SetBCDirichlet(j+1, node, val, dofspernode_, as_sysid_,as_sysid_, matrix_id);
             }
+	}
     }
-}
- 
- 
+  
 #ifdef TRACE
   (*trace) << " leaving Elecst3d::ReadBCs " << std::endl;
 #endif
@@ -240,12 +237,11 @@ void Elecst3dPDE::SolveStepStatic(BCs * ptBCs, Integer level)
 
   ptsol = ptalgsys_->GetSolution(as_sysid_);
 
-    // save solution
+  // save solution
   Vector<Double> transsol(ptgrid_->GetMaxnumnodes(level), ptsol);
   sol_=transsol;
 
-  std::cout << sol_ << std::endl;
-
+  std::cout << " solution " << sol_ << std::endl;
 }
 
 void Elecst3dPDE:: WriteResultsInFile()
@@ -256,38 +252,36 @@ void Elecst3dPDE:: WriteResultsInFile()
 
   Integer step=0;
   Double time=0;
-if (OutFile_->IsGMV())
- OutFile_->WriteSolution(sol_,step,time,"electric_potential");
-else
-  OutFile_->WriteSolution(sol_,step,time,"electric potential");
-
+  if (OutFile_->IsGMV())
+    OutFile_->WriteSolution(sol_,step,time,"electric_potential");
+  else
+    OutFile_->WriteSolution(sol_,step,time,"electric potential");
 }
 
 Double Elecst3dPDE::CalcEnergyNorm()
 {
- Double help1;
- help1=ptalgsys_->CalcEnergyNorm(0,0,2,sol_.get());
+  Double help1;
+  help1=ptalgsys_->CalcEnergyNorm(0,0,2,sol_.get());
  
- return sqrt(help1);
+  return sqrt(help1);
 }
 
 void Elecst3dPDE::CalcCoeff(Vector<Double> & coeff)
 {
-
   if (!MatFile_) Error("You didn't specialize material file. Use option -m");
 
   coeff.Resize(subdoms_.size());
 
   Integer i, matnum;
   for (i=0; i<subdoms_.size(); i++)
-{
-  conf->get(subdoms_[i],matnum,"list_subdomains");
+    {
+      conf->get(subdoms_[i],matnum,"list_subdomains");
 
-  Double dielectr;
-  MatFile_->ReadDielectricTerms(dielectr,matnum); 
+      Double dielectr;
+      MatFile_->ReadDielectricTerms(dielectr,matnum); 
 
-  coeff[i]=dielectr;
-}
+      coeff[i]=dielectr;
+    }
 }
 
 Elecst3dPDE::~Elecst3dPDE()

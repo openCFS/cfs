@@ -39,7 +39,7 @@ AnsysFile :: ~AnsysFile()
   (*trace) << "entering AnsysFile::~AnsysFile" << std::endl;
 #endif
 
- infile.close() ;
+  infile.close() ;
 }
 
 Integer AnsysFile::ReadDim()
@@ -220,7 +220,7 @@ void AnsysFile::getPosition(const std::string seekexp, std::string::size_type & 
 }
 
 
-void AnsysFile::ReadEl(std::vector<Elem> * allelems, const std::vector<std::string> sd)
+void AnsysFile::ReadEl(std::vector<Elem*> * allelems, const std::vector<std::string> sd)
 {
 #ifdef TRACE
  (*trace) << " entering AnsysFile::ReadEl " << std::endl;
@@ -239,6 +239,45 @@ void AnsysFile::ReadEl(std::vector<Elem> * allelems, const std::vector<std::stri
 }
 
 #ifdef ADAPTGRID
+void AnsysFile::ReadBCs_GridRG(std::vector<Integer> & idBCs,std::vector<Integer> &colorBCs)
+{
+#ifdef TRACE
+ (*trace) << " entering AnsysFile::ReadGrid_RG " << std::endl;
+#endif
+  
+ std::vector<std::string> levels;
+ conf->getliststr("list_interfaces",levels);
+
+ Integer numbc;
+ ReadMaxnumnodesbc(numbc);
+
+ std::string::size_type pos=0;
+ getPosLine("Node BC", pos);
+ infile.seekg(pos,std::ios::beg);
+ 
+ std::string str;
+ 
+ Integer nodalnum;
+ Integer i,j;
+ for (i=0; i < numbc; i++)
+   {
+    infile >> nodalnum >> str;
+    infile.ignore(100,'\n');
+
+    Boolean Find=FALSE;
+    for (j=0; j<levels.size(); j++)
+       { if (str==levels[j]) { Find=TRUE; break;}
+       }         
+
+    std::string msg=str+"-this level of BCs from .mesh file is not mentioned in .config file. Please, check .config-file";
+    if (!Find) Error(msg.c_str(),__FILE__,__LINE__);
+
+    idBCs.push_back(nodalnum);
+    colorBCs.push_back(j);
+   } 
+  
+}
+
 void AnsysFile::ReadGrid_RG(std::vector<grd::Element*> & elems, std::vector<grd::Vertex*> * vertex, const std::vector<std::string> sd)
 {
 #ifdef TRACE
@@ -291,6 +330,7 @@ if (maxnelems)
   infile >> connect[ii];
 
  grd::Triangle * tmpTri;
+ grd::Quadrangle * tmpQuad;
  switch(itype)
 {
  case 4:
@@ -303,6 +343,18 @@ if (maxnelems)
     SetNumSD(tmpTri,namesd,sd);
     
     elems[i]=tmpTri; 
+ break;
+ case 6:
+   tmpQuad=new grd::Quadrangle;
+   
+   tmpQuad->setVertex(0,(*vertex)[connect[0]-1]);
+   tmpQuad->setVertex(1,(*vertex)[connect[1]-1]);
+   tmpQuad->setVertex(2,(*vertex)[connect[2]-1]);
+   tmpQuad->setVertex(3,(*vertex)[connect[3]-1]);
+
+   SetNumSD(tmpQuad,namesd,sd);
+
+   elems[i]=tmpQuad;
  break;
  
  default:
@@ -331,7 +383,7 @@ void AnsysFile::SetNumSD(grd::Element * ptEl, const std::string namesd, const st
 
 #endif
 
-void AnsysFile::ReadEl2d(std::vector<Elem> * allelems, const std::vector<std::string> sd)
+void AnsysFile::ReadEl2d(std::vector<Elem*> * allelems, const std::vector<std::string> sd)
 {
 #ifdef TRACE
  (*trace) << " entering AnsysFile::ReadEl2D " << std::endl;
@@ -352,16 +404,17 @@ if (maxnelems)
 
  Integer i, ii, j, ibuf, itype, innodes;
  std::string namesd;
- Elem el;
+
  for (i=0; i<maxnelems; i++)
 {
+ Elem * el=new Elem();
  infile >> ibuf >> itype >> innodes >> namesd;
  infile.ignore(100,'\n');
 
- el.ptElem=Type2ptElem(itype);
- el.connect.Resize(innodes);
+ (*el).ptElem=Type2ptElem(itype);
+ (*el).connect.Resize(innodes);
  for (ii=0; ii<innodes; ii++)
-  infile >> el.connect[ii];
+  infile >> (*el).connect[ii];
 
  infile.ignore(100,'\n');
 
@@ -377,7 +430,7 @@ if (maxnelems)
 }
 }
 
-void AnsysFile::ReadEl3d(std::vector<Elem> * allelems, const std::vector<std::string> sd)
+void AnsysFile::ReadEl3d(std::vector<Elem*> * allelems, const std::vector<std::string> sd)
 {
 #ifdef TRACE
  (*trace) << " entering AnsysFile::ReadEl3d " << std::endl;
@@ -395,16 +448,17 @@ void AnsysFile::ReadEl3d(std::vector<Elem> * allelems, const std::vector<std::st
 
  Integer i, ii, j, ibuf, itype, innodes;
  std::string namesd;
- Elem el;
+
  for (i=0; i<maxnelems; i++)
 {
+  Elem * el=new Elem();
  infile >> ibuf >> itype >> innodes >> namesd;
  infile.ignore(100,'\n');
 
- el.ptElem=Type2ptElem(itype);
- el.connect.Resize(innodes);
+ el->ptElem=Type2ptElem(itype);
+ el->connect.Resize(innodes);
  for (ii=0; ii<innodes; ii++)
-  infile >> el.connect[ii];
+  infile >> (*el).connect[ii];
 
  infile.ignore(100,'\n');
 

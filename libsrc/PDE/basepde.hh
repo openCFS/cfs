@@ -108,10 +108,18 @@ public:
   Integer GetSysId() const { return as_sysid_;} 
 
   //!
-  Integer GetNumRestraints(BCs * ptBCs, const Integer level);
+  void InitPtAlgSys(AbstractAlgebraicSys * aptalgsys) { ptalgsys_=aptalgsys;}
+  
+
+  //!
+  Integer GetNumRestraints(BCs * ptBCs, const Integer level=-1);
 
   //!
   virtual void RestoreSol()
+  { Error("Function RestoreSol is not implemented in this class");}  
+
+  //!
+  virtual void SaveSolAsPrevStep()
   { Error("Function RestoreSol is not implemented in this class");}  
 
   virtual  Double CalcEnergyNorm()

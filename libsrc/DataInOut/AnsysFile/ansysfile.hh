@@ -34,7 +34,7 @@ public:
 			      const Integer maxnumNodes);
 
   //!
-  void ReadEl(std::vector<Elem> * elems, const std::vector<std::string> sd);  
+  void ReadEl(std::vector<Elem*> * elems, const std::vector<std::string> sd);  
 
   //!
   Integer ReadDim();
@@ -45,6 +45,8 @@ public:
   //!
 #ifdef ADAPTGRID
   void ReadGrid_RG(std::vector<grd::Element*> & elems, std::vector<grd::Vertex*> * vertex, const std::vector<std::string> sd);
+
+  void ReadBCs_GridRG(std::vector<Integer> & idBCs,std::vector<Integer> &colorBCs);
 #endif
 
 protected:
@@ -70,8 +72,8 @@ private:
   //
   void ReadMaxnumelem(Integer & , const std::string keyword);
   //
-void ReadEl2d(std::vector<Elem> * allelems, const std::vector<std::string> sd);
-void ReadEl3d(std::vector<Elem> * allelems, const std::vector<std::string> sd);
+void ReadEl2d(std::vector<Elem*> * allelems, const std::vector<std::string> sd);
+void ReadEl3d(std::vector<Elem*> * allelems, const std::vector<std::string> sd);
 
   // transform type of elem in pointer to base class BaseElem
   BaseElem * Type2ptElem(const Integer itype);
