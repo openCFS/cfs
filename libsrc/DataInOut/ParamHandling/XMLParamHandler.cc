@@ -435,9 +435,18 @@ namespace CoupledField {
     std::vector<std::string> matches;
     GetList( key, matches, section, subsection );
 
-    // If there is no match, return false
+    // If there is no match, check for default
     if ( matches.size() == 0 ) {
-      flagStatus = FALSE;
+      std::string defaultValue;
+      flagStatus = CheckForDefault( defaultValue, key, section, subsection );
+
+      // If there is a default, then test its value.
+      // If it does not match, then re-set status
+      if ( flagStatus == TRUE ) {
+	if ( defaultValue != value ) {
+	  flagStatus == FALSE;
+	}
+      }
     }
 
     // If there is a match, but it is not unique, call problem handler
@@ -450,7 +459,7 @@ namespace CoupledField {
       flagStatus = TRUE;
     }
 
-    // Parameter value is unqual to speficied value
+    // Parameter value is unequal to speficied value
     else {
       flagStatus = FALSE;
     }
