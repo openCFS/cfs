@@ -90,5 +90,14 @@
     </xsd:restriction>
   </xsd:simpleType>
 
+
+  <!-- Data type for setting flags -->
+  <xsd:simpleType name="DT_CFSBool">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="yes"/>
+      <xsd:enumeration value="no"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
 </xsd:schema>
 
