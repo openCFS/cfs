@@ -19,9 +19,9 @@
   
       <nonLinear>
         <lineSearch/>
-        <incStopCrit/>
-        <resStopCrit/>
-        <maxNumIters/>
+        <incStopCrit>1</incStopCrit>
+        <resStopCrit>1</resStopCrit>
+        <maxNumIters>1</maxNumIters>
       </nonLinear>
   
     </mechanic>
