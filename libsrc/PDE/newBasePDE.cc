@@ -1229,7 +1229,7 @@ void BasePDE::GetDerivSolOfElement(Matrix<Double>& sol, Vector<Integer>& connect
 
 
 
-void BasePDE::CalcLineNormalVec(Vector<Double>& n, Elem& interfaceElem, Elem& neighbour)
+void BasePDE::CalcLineNormalVec(Vector<Double>& n, const Elem& interfaceElem, const Elem& neighbour)
 {
 #ifdef TRACE
   (*trace) << "entering BasePDE::CalcLineNormalVec" << std::endl;
