@@ -78,6 +78,8 @@ MaterialData::~MaterialData()
 {
   if (piezoMatrix)
    delete piezoMatrix;
+  if (piezoMatrixC)
+   delete piezoMatrixC;
   if (permeaMatrix)
    delete permeaMatrix;
   if (conducMatrix)
