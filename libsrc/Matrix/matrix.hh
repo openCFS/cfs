@@ -172,13 +172,13 @@ public:
   void Add(const TYPE fac, const CFSMatrix & mat){};
   
   //! Perform a matrix-vector multiplication rvec = this*mvec
-   void Mult(const CFSVector & mvec, CFSVector & rvec)const {;}
+  void Mult(CFSVector & mvec, CFSVector & rvec);
 
   //! Perform a matrix-vector multiplication rvec = transpose(this)*mvec
-   void MultT(const CFSVector & mvec, CFSVector & rvec) const {;};
-
+  void MultT(const CFSVector & mvec, CFSVector & rvec) const {;};
+  
   //! Perform a matrix-vector multiplication rvec += this*mvec
-   void MultAdd(const CFSVector & mvec, CFSVector & rvec)const {;};
+  void MultAdd(const CFSVector & mvec, CFSVector & rvec)const {;};
   
   //! Perform a matrix-vector multiplication rvec += transpose(this)*mvec
    void MultTAdd(const CFSVector & mvec, CFSVector& rvec) const {;};
