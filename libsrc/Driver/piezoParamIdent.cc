@@ -5,7 +5,7 @@
 #include "DataInOut/GMV/outGMV.hh"
 #include "CoupledPDE/basecoupledpde.hh"
 #include "General/environment.hh"
-#include "PDE/basePDE.hh"
+#include <PDE/basePDE.hh>
 
 #include "piezoParamIdent.hh"
 #include "Forms/baseForm.hh"
@@ -17,6 +17,9 @@
 #include "Utils/baseelemstoresol.hh"
 #include "singleDriver.hh"
 #include "PDE/nodeEQN.hh"
+
+#include "DataInOut/WriteInfo.hh"
+#include "DataInOut/ParamHandling/BaseParamHandler.hh"
 
 #include <Domain/elem.hh>
 
@@ -56,12 +59,12 @@ namespace CoupledField
   //constructor
   // opens datafiles: measuredData.dat for input, imedCurve.dat and piezoLog.dat for output
 
-  piezoParamIdent::piezoParamIdent(Domain * adomain,
+piezoParamIdent :: piezoParamIdent(Domain * adomain,
 				   Integer stepOffset,
 				   Double timeOffset,
 				   std::string driverTag,
 				   Boolean isPartOfSequence)
-    :SingleDriver(adomain, stepOffset, timeOffset, 
+:SingleDriver(adomain, stepOffset, timeOffset, 
 		  driverTag, isPartOfSequence){
 
     ENTER_FCN( "piezoParamIdent::piezoParamIdent" );
@@ -169,7 +172,7 @@ namespace CoupledField
     Integer pdenumber  = 0;
 
 
-    if (!isPartOfSequence_)
+    if (! isPartOfSequence_)
       ptdomain_->PrintGrid(level);
 
     if (PrintGridOnly)
@@ -179,6 +182,7 @@ namespace CoupledField
       GetMyPDEs();
       Info->StartProgress ("Starting to solve problem", FALSE);
     }
+    pdes_[0]->WriteGeneralPDEdefines();
 
     actNrParameter=0;
     actNrParameterC=0;
@@ -432,15 +436,15 @@ namespace CoupledField
     //         NewtonCG2();
     if (whichNewtonCG==3){
       Integer nNewtonCG =0;
-      while (nNewtonCG<50){
-         NewtonCG3();
-	 nNewtonCG++;
+      while (nNewtonCG<maxNumberNewtonLoops){
 	 c33history[nNewtonCG] = parameter[1];
 	 e33history[nNewtonCG] = parameter[7];
-	 eps33history[nNewtonCG] = parameter[9];
+	 eps33history[nNewtonCG] = parameter[8];
 	 std::cout<<"\n Nr: "<< nNewtonCG << ", start next NewtonCG Iteration?"<<std::endl;
 	 //	getchar();
 	 *parLog <<nNewtonCG <<"  "<< c33history[nNewtonCG]<<"  " <<e33history[nNewtonCG]<<"   " <<eps33history[nNewtonCG]<<std::endl;
+         NewtonCG3();
+	 nNewtonCG++;
       }
     }
     else if (whichNewtonCG==4){
@@ -458,15 +462,16 @@ namespace CoupledField
     }
     else if (whichNewtonCG==5){
       Integer nrNewtonLandweber=0;
-      while (nrNewtonLandweber<=10){
-	NewtonLandweber();
-	nrNewtonLandweber++;
+      while (nrNewtonLandweber<maxNumberNewtonLoops){
 	std::cout<<"\n Nr: "<< nrNewtonLandweber << ", start next Newton Landweber?"<<std::endl;
 	c33history[nrNewtonLandweber] = parameter[1];
 	e33history[nrNewtonLandweber] = parameter[7];
 	eps33history[nrNewtonLandweber] = parameter[9];
 	//getchar();
 	*parLog <<nrNewtonLandweber <<"  "<< c33history[nrNewtonLandweber]<<"  " <<e33history[nrNewtonLandweber]<<"   " <<eps33history[nrNewtonLandweber]<<std::endl;
+	NewtonLandweber();
+	nrNewtonLandweber++;
+
     }
   }
 
@@ -1131,8 +1136,6 @@ namespace CoupledField
     
     ptMaterial->RotateMaterialMatrix(a1,a2,a3);
    
-    std::cout<<"\n Material in piezoParamIdent::updateMaterialData: " << ptMaterial<< std::endl;
-
    
   } // end updateMaterialData
 
