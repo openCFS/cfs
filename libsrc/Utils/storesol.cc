@@ -54,7 +54,7 @@ void StoreSol<TYPE>::Init(const TYPE val)
   if (numSolutions_ == 0 || numNodes_ == 0 \
      || solTypes_.size() == 0 || solDofs_.size() == 0) 
     {
-      std::cerr << "Info->Error in StoreSl::Init():" << std::endl;
+      std::cerr << "Error in StoreSl::Init():" << std::endl;
       std::cerr << "NumSolutions: " << numSolutions_ << std::endl;
       std::cerr << "NumNodes: " << numNodes_ << std::endl;
       std::cerr << "TotalDofs: " << totalDofs_ << std::endl;
