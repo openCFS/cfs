@@ -61,6 +61,9 @@ extern std::ostream * trace; //name.trace
 extern std::ostream * debug; //name.deb
 extern std::ostream * infofile; //name.info
 
+class ConfFile;
+extern ConfFile * conf; //name.conf
+
 // if InfoPrint=true, then we create file with information about methods, which are used 
 
 extern Boolean InfoPrint;

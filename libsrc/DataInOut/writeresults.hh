@@ -14,6 +14,9 @@ public:
    /// initialization with grid
   virtual void Init(Grid<Dim> * aptgrid)=0;
 
+   /// deconstructor
+   virtual ~WriteResults();
+
   /// write information about grid on level i in file
   virtual void WriteGrid(const Integer level)=0;
 
@@ -32,6 +35,17 @@ protected:
   ///
   Grid<Dim> * ptgrid;
 }; 
+
+template<class Dim>
+WriteResults<Dim>::~WriteResults()
+{
+#ifdef TRACE
+  (*trace) << "entering FileType::~FileType" << std::endl;
+#endif
+
+ if (!output) delete output;
+
+}
 
 #ifdef __GNUC__
 template class WriteResults<Point2D>;

@@ -3,6 +3,8 @@
 
 #include "tools.hh"
 #include "filetype.hh"
+#include "conffile.hh"
+#include "outGMV.hh"
 #include "outUnverg.hh"
 #include "pde.hh"
 

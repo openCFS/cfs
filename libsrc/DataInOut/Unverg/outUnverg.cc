@@ -20,6 +20,7 @@ WriteResultsUnverg<Dim> :: WriteResultsUnverg(const Char * const filename)
   strcpy(help,filename);
   output=new std::ofstream(strcat(help,".unverg"));
 
+  delete [] help;
 }
 
 template<class Dim>
@@ -28,8 +29,7 @@ WriteResultsUnverg<Dim> ::~ WriteResultsUnverg()
 #ifdef TRACE
   (*trace) << "entering WriteResultsUnverg ::~ WriteResultsUnverg" << std::endl;
 #endif
-
-  delete output;
+  ;
 }
 
 template<class Dim>
@@ -44,6 +44,9 @@ void WriteResultsUnverg<Dim> :: WriteGrid(const Integer level)
 template<>
 void  WriteResultsUnverg<Point2D>::Dataset666(const Integer level)
 {
+ //
+ if (!ptgrid)
+    Error("ptgrid is not initialized", __FILE__,__LINE__);
 
  (*output)<< std::setw(6) << -1 << std::endl << std::setw(6) << -666 << std::endl ;
 
@@ -72,6 +75,10 @@ void  WriteResultsUnverg<Point3D>::Dataset666(const Integer level)
 template< >
 void  WriteResultsUnverg<Point2D>::Dataset781(const Integer level)
 {
+  //
+ if (!ptgrid)
+    Error("ptgrid is not initialized", __FILE__,__LINE__);
+
  (*output) << std::setw(6) << -1 << std::endl << std::setw(6) << 781 << std::endl;
 
  Integer maxnumnodes=ptgrid-> GetMaxnumnodes(level);
@@ -102,6 +109,10 @@ void  WriteResultsUnverg<Point2D>::Dataset781(const Integer level)
 template< >
 void  WriteResultsUnverg<Point3D>::Dataset781(const Integer level)
 {
+  //
+ if (!ptgrid)
+    Error("ptgrid is not initialized", __FILE__,__LINE__);
+
  (*output) << std::setw(6) << -1 << std::endl << std::setw(6) << 781 << std::endl;
 
  Integer maxnumnodes=ptgrid-> GetMaxnumnodes(level);
@@ -130,6 +141,10 @@ void  WriteResultsUnverg<Point3D>::Dataset781(const Integer level)
 template<>
 void  WriteResultsUnverg<Point2D>::Dataset780(const Integer level)
 {
+  //
+ if (!ptgrid)
+    Error("ptgrid is not initialized", __FILE__,__LINE__);
+
  (*output) << std::setw(6) << -1 << std::endl << std::setw(6) << 780 << std::endl;
 
  Integer maxnumnodes=ptgrid-> GetMaxnumnodes(level);
@@ -174,6 +189,10 @@ void  WriteResultsUnverg<Point2D>::Dataset780(const Integer level)
 template<>
 void  WriteResultsUnverg<Point3D>::Dataset780(const Integer level)
 {
+  //
+ if (!ptgrid)
+    Error("ptgrid is not initialized", __FILE__,__LINE__);
+
  (*output) << std::setw(6) << -1 << std::endl << std::setw(6) << 780 << std::endl;
 
  Integer maxnumnodes=ptgrid-> GetMaxnumnodes(level);
@@ -219,6 +238,10 @@ void  WriteResultsUnverg<Point3D>::Dataset780(const Integer level)
 template<class Dim>
 void  WriteResultsUnverg<Dim>::Dataset55(const std::string & title, const Vector<Double> & x, const Integer step, const Double time)
 {
+  //
+ if (!ptgrid)
+    Error("ptgrid is not initialized", __FILE__,__LINE__);
+
  (*output) << std::setw(6) << -1 << std::endl << std::setw(6) << 55 << std::endl;
 
  (*output).setf(std::ios::scientific);
