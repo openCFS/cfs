@@ -17,20 +17,20 @@ namespace CoupledField
 {
 
   //  LoadMaterialData::LoadMaterialData (const std::string aFilename)
-LoadMaterialData::LoadMaterialData (const char * aFilename)
+  LoadMaterialData::LoadMaterialData (const char * aFilename)
     :filename(aFilename),scaleMatDat(0)
   {
 #ifdef TRACE
-  if (trace) (*trace) << "Entering  LoadMaterialData::LoadMaterialData " << std::endl;
+    if (trace) (*trace) << "Entering  LoadMaterialData::LoadMaterialData " << std::endl;
 #endif
   }
 
 
   // load material information from file "filename"
-void LoadMaterialData::GetMaterial( MaterialData& material, const std::string matName, const std::string matType)
+  void LoadMaterialData::GetMaterial( MaterialData& material, const std::string matName, const std::string matType)
   {
 #ifdef TRACE
-  if (trace) (*trace) << "Entering  LoadMaterialData::GetMaterial " << std::endl;
+    if (trace) (*trace) << "Entering  LoadMaterialData::GetMaterial " << std::endl;
 #endif
     char buffer[bufLength];  
     char materialType[bufLength];
@@ -56,55 +56,55 @@ void LoadMaterialData::GetMaterial( MaterialData& material, const std::string ma
 #endif
 
     
+    FindMat(fin, charMatName, buffer, charMatType);
 
-    FindMat(fin, charMatName, buffer);
+	// first line of material record: matNr. matType matName (nonLin)
+	std::sscanf(buffer,"%*d%s", charMatType);
 
-    // first line of material record: matNr. matType matName (nonLin)
-    std::sscanf(buffer,"%*d%s", charMatType);
-
-    /*
-    if (strcmp(charMatType,"magnonlin") == 0)
-      {
-	material = new MaterialData;
-	ReadMagNonLin(fin, material);
-      }
-    */
-
-    
-    if (strcmp(charMatType,"piezo") == 0 )
-      {
-	ReadPiezo(fin, &material);	 
-	
 	/*
-	if (eulerAngles.size())
+	  if (strcmp(charMatType,"magnonlin") == 0)
 	  {
-	    EulerAnglesRotate(&material, eulerAngles[i]);
-	    
-	    std::cout << "after EULER ROTATION : " << std::endl
-	    << "LoadMaterialData::LoadMaterial: gesamte Piezo-Datenmatrix von " << matName
-	    << ":" << std::endl << *material.GetMatrix() << std::endl << std::endl
-	    << "density = " << material.GetDensity() << std::endl
-	    << "damping coefficient alfa = " << material.GetDampingAlfa() << std::endl
-	    << "damping coefficient beta = " << material.GetDampingBeta() << std::endl;
-
-	    if (scaleMatDat)
-	    std::cout << std::endl << "!!!!!! SCALING with Diag(1e-5, 1e-5, 1e-5, 1e-5, 1e-5, 1e-5, "
-	    << "1e5, 1e5, 1e5) IS ON !!!!! " << std::endl << std::endl;	   
+	  material = new MaterialData;
+	  ReadMagNonLin(fin, material);
 	  }
 	*/
-      }
+
     
-    else if (strcmp(charMatType,"fluid") == 0)
-	ReadFluid(fin, &material);
+	if (strcmp(charMatType,"piezo") == 0 )
+	  {
+	    ReadPiezo(fin, &material);	 
+	
+	    /*
+	      if (eulerAngles.size())
+	      {
+	      EulerAnglesRotate(&material, eulerAngles[i]);
+	    
+	      std::cout << "after EULER ROTATION : " << std::endl
+	      << "LoadMaterialData::LoadMaterial: gesamte Piezo-Datenmatrix von " << matName
+	      << ":" << std::endl << *material.GetMatrix() << std::endl << std::endl
+	      << "density = " << material.GetDensity() << std::endl
+	      << "damping coefficient alfa = " << material.GetDampingAlfa() << std::endl
+	      << "damping coefficient beta = " << material.GetDampingBeta() << std::endl;
+
+	      if (scaleMatDat)
+	      std::cout << std::endl << "!!!!!! SCALING with Diag(1e-5, 1e-5, 1e-5, 1e-5, 1e-5, 1e-5, "
+	      << "1e5, 1e5, 1e5) IS ON !!!!! " << std::endl << std::endl;	   
+	      }
+	    */
+	  }
     
-    else if (strcmp(charMatType,"magnetic") == 0 )
-	ReadMagnetic(fin, &material);
+	else if (strcmp(charMatType,"fluid") == 0)
+	  ReadFluid(fin, &material);
     
-    else 
-      {
-	std::cerr << "Warning: materialtype " << charMatType << " in File " << filename << " unknown!" << std::endl;
-    	exit(EXIT_FAILURE);
-      }    
+	else if (strcmp(charMatType,"magnetic") == 0 )
+	  ReadMagnetic(fin, &material);
+    
+	else 
+	  {
+	    std::cerr << "Warning: materialtype " << charMatType << " in File " << filename << " unknown!" << std::endl;
+	    exit(EXIT_FAILURE);
+	  }
+    
     fin.close();
   }
 
@@ -113,10 +113,10 @@ void LoadMaterialData::GetMaterial( MaterialData& material, const std::string ma
 
 
   // read next line - ignor lines with char # in it
-void LoadMaterialData::ReadLine(std::ifstream & fin, char* buffer)
+  void LoadMaterialData::ReadLine(std::ifstream & fin, char* buffer)
   {
 #ifdef TRACE
-  if (trace) (*trace) << "Entering  LoadMaterialData::ReadLine " << std::endl;
+    if (trace) (*trace) << "Entering  LoadMaterialData::ReadLine " << std::endl;
 #endif
     Integer found = 0;
 
@@ -136,14 +136,15 @@ void LoadMaterialData::ReadLine(std::ifstream & fin, char* buffer)
 
 
 
-  void LoadMaterialData :: FindMat(std::ifstream & fin, const char* matName, char* buffer)
+  void LoadMaterialData :: FindMat(std::ifstream & fin, const char* matName, char* buffer, char* matType)
   {
 #ifdef TRACE
-  if (trace) (*trace) << "Entering  LoadMaterialData::FindMat " << std::endl;
+    if (trace) (*trace) << "Entering  LoadMaterialData::FindMat " << std::endl;
 #endif
     Integer found = 0;
     Integer pos;
     char tempMatName[bufLength];
+    char tempMatType[bufLength];
 
     // set reading position to the beginning of the file
     fin.seekg(0, std::ios::beg);
@@ -152,9 +153,10 @@ void LoadMaterialData::ReadLine(std::ifstream & fin, char* buffer)
       {
 	pos = fin.tellg();
 	ReadLine(fin, buffer);
+	sscanf(buffer,"%*d%s",tempMatType);
 	sscanf(buffer,"%*d%*s%s",tempMatName);
 
-	if ( strcmp(matName,tempMatName) == 0 )
+	if ( strcmp(matName,tempMatName) == 0 &&  strcmp(matType, tempMatType) == 0)
 	  {
 	    found = 1;
 	    fin.seekg(pos, std::ios::beg);
@@ -172,7 +174,7 @@ void LoadMaterialData::ReadLine(std::ifstream & fin, char* buffer)
   void LoadMaterialData :: ReadPiezo(std::ifstream & fin, MaterialData * material)
   {
 #ifdef TRACE
-  if (trace) (*trace) << "Entering  LoadMaterialData::ReadPiezo " << std::endl;
+    if (trace) (*trace) << "Entering  LoadMaterialData::ReadPiezo " << std::endl;
 #endif
     Integer i,j;
     Double helpval;
@@ -381,11 +383,11 @@ void LoadMaterialData::ReadLine(std::ifstream & fin, char* buffer)
 
 
   /*
-  void LoadMaterialData :: EulerAnglesRotate(MaterialData * material, const Vector<Double> & eulerAngles)
-  {
-#ifdef TRACE
-  if (trace) (*trace) << "Entering  LoadMaterialData::EulerAnglesRotate" << std::endl;
-#endif    const Double epsIndex = 6;
+    void LoadMaterialData :: EulerAnglesRotate(MaterialData * material, const Vector<Double> & eulerAngles)
+    {
+    #ifdef TRACE
+    if (trace) (*trace) << "Entering  LoadMaterialData::EulerAnglesRotate" << std::endl;
+    #endif    const Double epsIndex = 6;
     const Double pi = acos(-1);
     const Double gradToRad = pi / 180;
     const Double epsilon = 1e-10;
@@ -412,30 +414,30 @@ void LoadMaterialData::ReadLine(std::ifstream & fin, char* buffer)
 
 
     Integer abbrevSubscript[3][3] = 
-      {{1 ,6 ,5},
-       {6, 2 ,4},
-       {5, 4, 3}};
+    {{1 ,6 ,5},
+    {6, 2 ,4},
+    {5, 4, 3}};
 
 
     Matrix<Double> * fullOrigMat = material->GetMatrix();
 
 
     for ( i=0; i<3; i++)
-      for ( j=0; j<3; j++)
-	{
-	  epso[i][j] = (*fullOrigMat)((Integer)(i + 1 + epsIndex),
-				      (Integer)( j + 1+ epsIndex)); 
+    for ( j=0; j<3; j++)
+    {
+    epso[i][j] = (*fullOrigMat)((Integer)(i + 1 + epsIndex),
+    (Integer)( j + 1+ epsIndex)); 
 
-	  for ( k=0; k<3; k++)
-	    {
-	      eo[i][j][k] = (*fullOrigMat)((Integer)(i + 1 + epsIndex), 
-					   (Integer)(abbrevSubscript[j][k]));
+    for ( k=0; k<3; k++)
+    {
+    eo[i][j][k] = (*fullOrigMat)((Integer)(i + 1 + epsIndex), 
+    (Integer)(abbrevSubscript[j][k]));
 
-	      for ( l=0; l<3; l++)
-		co[i][j][k][l] = (*fullOrigMat)((Integer)(abbrevSubscript[i][j]), 
-						(Integer)(abbrevSubscript[k][l]));
-	    }
-	}
+    for ( l=0; l<3; l++)
+    co[i][j][k][l] = (*fullOrigMat)((Integer)(abbrevSubscript[i][j]), 
+    (Integer)(abbrevSubscript[k][l]));
+    }
+    }
 
     //     save euler angles.
   
@@ -481,11 +483,11 @@ void LoadMaterialData::ReadLine(std::ifstream & fin, char* buffer)
 
     std::cout << std::endl << "Rotation matrix = " << std::endl;
     for(l=0; l<3; l++)
-      {
-	for(o=0; o<3; o++)
-	  std::cout << std::setw(12) << trans[l][o] << "\t";
-	std::cout<< std::endl;
-      }
+    {
+    for(o=0; o<3; o++)
+    std::cout << std::setw(12) << trans[l][o] << "\t";
+    std::cout<< std::endl;
+    }
     std::cout << std::endl << std::endl;
   
   
@@ -495,95 +497,95 @@ void LoadMaterialData::ReadLine(std::ifstream & fin, char* buffer)
     //     first coordinate
 
     for(l=0; l<3; l++)
-      for(o=0; o<3; o++)
-	{
-	  help2[o][l] = trans[l][0] * epso[o][0]+
-	    trans[l][1] * epso[o][1]+
-	    trans[l][2] * epso[o][2];
-	  for(n=0; n<3; n++)
-	    {
-	      er[n][o][l] = trans[l][0] * eo[n][o][0]+
-		trans[l][1] * eo[n][o][1]+
-		trans[l][2] * eo[n][o][2];
+    for(o=0; o<3; o++)
+    {
+    help2[o][l] = trans[l][0] * epso[o][0]+
+    trans[l][1] * epso[o][1]+
+    trans[l][2] * epso[o][2];
+    for(n=0; n<3; n++)
+    {
+    er[n][o][l] = trans[l][0] * eo[n][o][0]+
+    trans[l][1] * eo[n][o][1]+
+    trans[l][2] * eo[n][o][2];
 
-	      for(m=0; m<3; m++)
-		help4[m][n][o][l] = trans[l][0] * co[m][n][o][0]+
-		  trans[l][1] * co[m][n][o][1]+
-		  trans[l][2] * co[m][n][o][2];
-	    }
-	}
+    for(m=0; m<3; m++)
+    help4[m][n][o][l] = trans[l][0] * co[m][n][o][0]+
+    trans[l][1] * co[m][n][o][1]+
+    trans[l][2] * co[m][n][o][2];
+    }
+    }
     
   
     //     second coordinate
   
     for(l=0; l<3; l++)
-      for(k=0; k<3; k++)
-	{
-	  epsr[k][l] = trans[k][0] * help2[0][l]+
-	    trans[k][1] * help2[1][l]+
-	    trans[k][2] * help2[2][l];
+    for(k=0; k<3; k++)
+    {
+    epsr[k][l] = trans[k][0] * help2[0][l]+
+    trans[k][1] * help2[1][l]+
+    trans[k][2] * help2[2][l];
 
-	  for(n=0; n<3; n++)
-	    {
-	      help3[n][k][l] = trans[k][0] * er[n][0][l]+
-		trans[k][1] * er[n][1][l]+
-		trans[k][2] * er[n][2][l];
+    for(n=0; n<3; n++)
+    {
+    help3[n][k][l] = trans[k][0] * er[n][0][l]+
+    trans[k][1] * er[n][1][l]+
+    trans[k][2] * er[n][2][l];
 
-	      for(m=0; m<3; m++)
-		cr[m][n][k][l] = trans[k][0] * help4[m][n][0][l]+
-		  trans[k][1] * help4[m][n][1][l]+
-		  trans[k][2] * help4[m][n][2][l];
-	    }
-	}
+    for(m=0; m<3; m++)
+    cr[m][n][k][l] = trans[k][0] * help4[m][n][0][l]+
+    trans[k][1] * help4[m][n][1][l]+
+    trans[k][2] * help4[m][n][2][l];
+    }
+    }
     
 
     //     third coordinate
 
     for(l=0; l<3; l++)
-      for(k=0; k<3; k++)
-	for(j=0; j<3; j++)
-	  {
-	    er[j][k][l] = trans[j][0] * help3[0][k][l] +
-	      trans[j][1] * help3[1][k][l]+
-	      trans[j][2] * help3[2][k][l];
+    for(k=0; k<3; k++)
+    for(j=0; j<3; j++)
+    {
+    er[j][k][l] = trans[j][0] * help3[0][k][l] +
+    trans[j][1] * help3[1][k][l]+
+    trans[j][2] * help3[2][k][l];
 
-	    for(m=0; m<3; m++)
-	      {
-		help4[m][j][k][l] = trans[j][0] * cr[m][0][k][l]+
-		  trans[j][1] * cr[m][1][k][l]+
-		  trans[j][2] * cr[m][2][k][l];
-	      }
-	  }
+    for(m=0; m<3; m++)
+    {
+    help4[m][j][k][l] = trans[j][0] * cr[m][0][k][l]+
+    trans[j][1] * cr[m][1][k][l]+
+    trans[j][2] * cr[m][2][k][l];
+    }
+    }
 
     //     fourth coordinate
 
     for(l=0; l<3; l++)
-      for(k=0; k<3; k++)
-	for(j=0; j<3; j++)
-	  for(i=0; i<3; i++)
-	    cr[i][j][k][l] = trans[i][0] * help4[0][j][k][l]
-	      + trans[i][1] * help4[1][j][k][l]
-	      + trans[i][2] * help4[2][j][k][l];
+    for(k=0; k<3; k++)
+    for(j=0; j<3; j++)
+    for(i=0; i<3; i++)
+    cr[i][j][k][l] = trans[i][0] * help4[0][j][k][l]
+    + trans[i][1] * help4[1][j][k][l]
+    + trans[i][2] * help4[2][j][k][l];
 
     // translate back into abbreviated subscripts
     for ( i=0; i<3; i++)
-      for ( j=0; j<3; j++)
-	{
-	  (*fullOrigMat)( (Integer)( i + 1 + epsIndex), 
-			  (Integer)(j + 1 + epsIndex)) =  epsr[i][j];
+    for ( j=0; j<3; j++)
+    {
+    (*fullOrigMat)( (Integer)( i + 1 + epsIndex), 
+    (Integer)(j + 1 + epsIndex)) =  epsr[i][j];
 
-	  for ( k=0; k<3; k++)
-	    {
-	      (*fullOrigMat)((Integer)(i + 1 + epsIndex), 
-			     abbrevSubscript[j][k]) =  er[i][j][k];
-	      (*fullOrigMat)(abbrevSubscript[j][k], 
-			     (Integer)(i + 1 + epsIndex)) = er[i][j][k];
+    for ( k=0; k<3; k++)
+    {
+    (*fullOrigMat)((Integer)(i + 1 + epsIndex), 
+    abbrevSubscript[j][k]) =  er[i][j][k];
+    (*fullOrigMat)(abbrevSubscript[j][k], 
+    (Integer)(i + 1 + epsIndex)) = er[i][j][k];
 
-	      for ( l=0; l<3; l++)
-		(*fullOrigMat)(abbrevSubscript[i][j], abbrevSubscript[k][l]) =  cr[i][j][k][l];
-	    }
-	}
-  }
+    for ( l=0; l<3; l++)
+    (*fullOrigMat)(abbrevSubscript[i][j], abbrevSubscript[k][l]) =  cr[i][j][k][l];
+    }
+    }
+    }
   */
 
 
@@ -666,25 +668,25 @@ void LoadMaterialData::ReadLine(std::ifstream & fin, char* buffer)
 
 
 
-    // const Vector<Double> & eulerAnglesTmp = flags.GetNumListFlag ("eulerAngles");    
-    // scaleMatDat = flags.GetDefineFlag ("scaleMatDat");
+  // const Vector<Double> & eulerAnglesTmp = flags.GetNumListFlag ("eulerAngles");    
+  // scaleMatDat = flags.GetDefineFlag ("scaleMatDat");
 
     
-    if (eulerAnglesTmp.size() % 3)
-    {
-    std::cout << std::endl << "LoadMaterialData: There must be three Euler Angles per material! " << std::endl;
-    exit(EXIT_FAILURE);
-    }
+  if (eulerAnglesTmp.size() % 3)
+  {
+  std::cout << std::endl << "LoadMaterialData: There must be three Euler Angles per material! " << std::endl;
+  exit(EXIT_FAILURE);
+  }
       
-    eulerAngles.SetSize(eulerAnglesTmp.size() / 3);
+  eulerAngles.SetSize(eulerAnglesTmp.size() / 3);
 
-    for (Integer matNr = 1; matNr<= eulerAnglesTmp.size() / 3; matNr++)
-    {
-    eulerAngles.Elem(matNr) = new Vector<Double>;
-    eulerAngles.Elem(matNr) -> SetSize(3);
-    for (Integer i = 1; i<=3; i++)
-    eulerAngles.Elem(matNr) -> Elem(i) = eulerAnglesTmp[i + (matNr-1)*3];
-    }
+  for (Integer matNr = 1; matNr<= eulerAnglesTmp.size() / 3; matNr++)
+  {
+  eulerAngles.Elem(matNr) = new Vector<Double>;
+  eulerAngles.Elem(matNr) -> SetSize(3);
+  for (Integer i = 1; i<=3; i++)
+  eulerAngles.Elem(matNr) -> Elem(i) = eulerAnglesTmp[i + (matNr-1)*3];
+  }
 
 
 */

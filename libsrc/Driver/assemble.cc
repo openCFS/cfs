@@ -276,7 +276,7 @@ namespace CoupledField
 			oneIntIsNonlin_ = TRUE;
 			reassembleMat_[actDescriptor->DestMat()] = TRUE;
 		
-			actDescriptor->GetIntegrator()->SetActElemSol(elSol);
+			//			actDescriptor->GetIntegrator()->SetActElemSol(elSol);
 		      }
 
 		    actDescriptor->GetIntegrator()->CalcElementMatrix(ptCoord, elemmat);
@@ -517,9 +517,8 @@ GetBCDof(const std::string dofString)
 	rhsIntegrators_[i] = new std::vector<BaseIntDescriptor *>;
       }
 
-   for (int i=0; i<surfdoms_.size();i++)
-	surfintegrators_[i] = new std::vector<IntegratorDescriptor *>;
-
+    for (int i=0; i<surfdoms_.size();i++)
+      surfintegrators_[i] = new std::vector<IntegratorDescriptor *>;
   }
   
 
