@@ -2,7 +2,6 @@
 #define FILE_ELECTST3DPDE_2001
 
 #include "basepde.hh"
-#include "abstractAS.hh"
  
 namespace CoupledField
 {
@@ -72,17 +71,10 @@ private:
   //! store solution, 1st derivative , 2nd derivative solution
   Vector<Double> sol_;  
 
-  //! Last time on which we have calculated solution
-  Double lasttimecalc_;
-
-  //! Number of last timestep on which we have calculated our solution
-  Integer laststepcalc_;
-
   //! size of solution and etc.
   Integer size_;
 
   //! type of dof
-//  Integer doftype_;
   enum TypeBCs doftype_;
 
 };

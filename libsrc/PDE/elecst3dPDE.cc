@@ -3,9 +3,9 @@
 #include <string>
 #include <math.h>
 
-#include "interface_linalg.hh"
 #include "elecst3dPDE.hh"
 #include "outUnverg.hh"
+#include "forms_header.hh"
  
 namespace CoupledField
 {
@@ -99,68 +99,51 @@ void Elecst3dPDE::SetupMatrices(const Integer type)
 #ifdef TRACE
   (*trace) << "entering Elecst3dPDE::SetupMatrices" << std::endl;
 #endif
+  
+  Integer level=0;
 
-  Integer numnodeelem=ptgrid_->GetNumNodesPerElem(0,0);
-  Integer numsubdom=ptgrid_->GetNumSubdomains();
-  Integer ** ptptnodessubdomain;
-
-  Integer * help=new Integer[numnodeelem];
   Matrix<Double> elemmat;
+  Point3D * ptCoord;
 
-  std::cout << numnodeelem << " numnodeelem" << std::endl;
-
-  Point3D * ptCoord=new Point3D[numnodeelem];
-
-  Integer numelem=ptgrid_->GetMaxnumElem(0);
+  Integer numelems=ptgrid_->GetMaxnumElem(0);
 
   BaseElem * ptElem;
 
-  BaseElem ** ptArrayElem=ptgrid_->getptArrayElem();
-
   Integer matrix_stiff=2;
 
-  Integer * ptElemSubdomain; 
-  Integer i,j; 
   Double coeff;
+  CalcCoeff(coeff,0);  //// Attention !!!
 
-  for (i=0; i<numsubdom; i++)
+  Vector<Integer> connecth;
+
+  Integer i;
+  for (i=0; i<numelems; i++)
 {  
-  ptElemSubdomain=ptgrid_->GetElemSubdomain(i,0);
+  ptElem=ptgrid_->GetptElem(i);
 
-  CalcCoeff(coeff,i);
+ BaseForm<Point3D> * bilinear_stiff = new LaplaceInt<Point3D>(ptElem,1);
 
-   for (j=0; ptElemSubdomain[j]!=-1; j++)
-    {
-      std::cout << ptElemSubdomain[j] << "elemnum" << std::endl;
-      ptElem=ptArrayElem[ptElemSubdomain[j]];
+   ptgrid_->GetConnection(connecth,i,level);
 
-      ptElem->test();
+     ptCoord=new Point3D[connecth.size()];
+     ptgrid_->GetCoordOfNodesElem(i,0,connecth.size(),ptCoord);
 
-      BaseForm<Point3D> * bilinear_stiff = new LaplaceInt<Point3D>(ptElem,1);
-
-      ptgrid_->GetConnection(help,0,ptElemSubdomain[j],numnodeelem);
-      ptgrid_->GetCoordOfNodesElem(ptElemSubdomain[j],0,numnodeelem,ptCoord);
-
-      Integer ii;
-      for(ii=0; ii<4; ii++)
-{
-      std::cout << ii << " " << ptCoord[ii].x << " " <<  ptCoord[ii].y << " " << ptCoord[ii].z << std::endl;
-}
- 
       // stiffness part
       bilinear_stiff->CalcElemMatrix(ptCoord, elemmat);
-
-      std::cout << elemmat << std::endl;
-
       elemmat*=coeff;
 
-      ptalgsys_->PutElemMatAlgSys(elemmat.getinarray(), help, numnodeelem, AS_sysid_, AS_sysid_, matrix_stiff);
+#ifdef DEBUG
+      (*debug) << "Stiffnessmatrix, ElementNumber  " <<   i << std::endl;
+
+      (*debug) << elemmat << std::endl;
+#endif
+
+      ptalgsys_->PutElemMatAlgSys(elemmat.getinarray(), connecth.get(), connecth.size(), AS_sysid_, AS_sysid_, matrix_stiff);
 
       delete bilinear_stiff;
-     }
+      delete [] ptCoord;
+     
 }
-   delete [] ptCoord;
-   delete [] help;
 
 #ifdef TRACE
   (*trace) << "Leaving Elecst3dPDE::SetupMatrices" << std::endl;
@@ -215,8 +198,6 @@ void Elecst3dPDE::SolveStepStatic(BCs * ptBCs, Integer level)
   Integer update = 0;
   Integer job = 1;
 
-  lasttimecalc_=0;
-
   Double * ptsol;
 
   SetupMatrices(type);
@@ -239,12 +220,8 @@ void Elecst3dPDE:: WriteResultsInFile()
 #endif
 
   Integer step=0;
-
-if (dynamic_cast<WriteResultsUnverg<Point3D> *> (OutFile_))
-  OutFile_->WriteSolution(sol_,step,lasttimecalc_,"electric potential");
-  else
-  OutFile_->WriteSolution(sol_,step,lasttimecalc_,"elect_potential"); 
-
+  Double time=0;
+  OutFile_->WriteSolution(sol_,step,time,"electric potential");
 }
 
 Double Elecst3dPDE::CalcEnergyNorm()

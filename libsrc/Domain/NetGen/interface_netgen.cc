@@ -108,7 +108,7 @@ void InterfaceNetGen<Point2D>::Read()
   std::cout << " dimension " << mesh.GetDimension() << std::endl;
 
    mesh.ClearFaceDescriptors();
-   mesh.AddFaceDescriptor (FaceDescriptor(0,1,0,0));  
+   mesh.AddFaceDescriptor (FaceDescriptor(1,0,1,1));  
 #ifdef TRACE
  (*trace) << "Leaving InterfaceNetGen<Dim>::Read " << std::endl;
 #endif
@@ -176,59 +176,92 @@ switch (elemsize)
 
 
    mesh.ClearFaceDescriptors();
-   mesh.AddFaceDescriptor (FaceDescriptor(0,1,0,0));
+   mesh.AddFaceDescriptor (FaceDescriptor(1,0,1,1));
 #ifdef TRACE
  (*trace) << "Leaving InterfaceNetGen<Dim>::Read " << std::endl;
 #endif
 }
 
+
 template<class Dim>
 void InterfaceNetGen<Dim>::SubdivideUniform(const Integer level)
 {
 #ifdef TRACE
- (*trace) << "entering InterfaceNetGen<Dim>::SubdivideUniform " << std::endl;
+ (*trace) << "entering InterfaceNetGen<Dim>::SubdivideUniform 3D" << std::endl;
 #endif
 
 lastlevel_++;
-
-Integer ei;
-Integer flag=1;
-
-Integer maxnumelem=GetMaxnumElem(level);
-std::cout << " maxnumelem " << maxnumelem << std::endl;
-flag=1;
-std::cout << mesh.GetDimension() << " dim " << std::endl;
-
-mesh.SurfaceElement(5).SetRefinementFlag (flag !=0);
-
- BisectionOptions biopt;
- biopt.usemarkedelements = 1;
-
- Refinement ref;
- ref.Bisect(mesh,biopt);
-
- mesh.UpdateTopology();
- mesh.UpdateClusters();
-
-/*
-for(ei=1; ei<=maxnumelem; ei++)
-  SetRefinementFlag(ei,flag);
-*/
-
 Refine();
 
+#ifdef TRACE
+ (*trace) << "leaving InterfaceNetGen<Dim>::SubdivideUniform 3D" << std::endl;
+#endif
 }
 
 template<>
-void InterfaceNetGen<Point3D>::SetRefinementFlag(const Integer ei, const Integer flag)
+void InterfaceNetGen<Point3D>::SetRefinementFlag(const Integer ei)
 {
-  mesh.VolumeElement(ei).SetRefinementFlag (flag != 0);
+  Integer flag=0;
+
+  Integer i;
+  Integer maxnumelem=mesh.GetNE();
+  for (i=1; i<=maxnumelem; i++)
+{
+  if (i!=(ei+1))
+    mesh.VolumeElement(i).SetRefinementFlag(flag);
+}
+
 }
 
 template<>
-void InterfaceNetGen<Point2D>::SetRefinementFlag(const Integer ei, const Integer flag)
+void InterfaceNetGen<Point2D>::SetRefinementFlag(const Integer ei)
 {
-  mesh.SurfaceElement(ei).SetRefinementFlag (flag != 0);
+  Integer flag=0; 
+ 
+  Integer i;
+  Integer maxnumelem=mesh.GetNSE();
+  for (i=1; i<=maxnumelem; i++)
+{
+  if (i!=(ei+1))
+  mesh.SurfaceElement(i).SetRefinementFlag(flag);
+}
+
+}
+
+template<>
+void InterfaceNetGen<Point3D>::SetRefinementFlag(Vector<Integer> & ei)
+{
+ Integer noref=0;
+ sort(ei.get(),ei.size());
+
+ Integer maxnumelem=mesh.GetNE(); 
+ Integer i,j=0;
+ for (i=0; i<maxnumelem; i++)
+  {
+    if (i==ei[j]) {
+                     if (j<(ei.size()-1)) j++;
+                  }
+    else
+        mesh.VolumeElement(i+1).SetRefinementFlag(noref);
+  }
+}
+
+template<>
+void InterfaceNetGen<Point2D>::SetRefinementFlag(Vector<Integer> & ei)
+{
+ Integer noref=0;
+ sort(ei.get(),ei.size());
+
+ Integer maxnumelem=mesh.GetNSE();
+ Integer i,j=0;
+ for (i=0; i<maxnumelem; i++)
+  {
+    if (i==ei[j]) {
+                     if (j<(ei.size()-1)) j++;
+                  }
+    else
+        mesh.SurfaceElement(i+1).SetRefinementFlag(noref);
+  }
 }
 
 template<class Dim>
@@ -237,17 +270,11 @@ void InterfaceNetGen<Dim>::Refine()
   BisectionOptions biopt;
   biopt.usemarkedelements = 1;
 
-  std::cout << " 1 " << std::endl;
-
   Refinement ref;
   ref.Bisect (mesh, biopt);
 
-  std::cout << " 2 " << std::endl;
-
   mesh.UpdateTopology();
   mesh.UpdateClusters();
-
- std::cout << " 3 " << std::endl;
 }
 
 void InterfaceNetGen<Point2D>::GetCoordOfNodesElem(const Integer iElem, const Integer numlevel, const Integer numnodes, Point2D * ptCoordElem)
@@ -373,6 +400,14 @@ template<class Dim>
 InterfaceNetGen<Dim>::~InterfaceNetGen()
 {
 ;
+}
+
+template<class Dim>
+void InterfaceNetGen<Dim>::Init()
+{
+ mycout=&cout;
+ myerr=&cerr;
+ testout=new ofstream("test.out");
 }
 
 } // end of namespace

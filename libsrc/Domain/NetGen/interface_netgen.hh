@@ -53,14 +53,15 @@ public:
 
   ///
   virtual Integer GetDim() { return dim_; } // mesh.GetDimension();}
-private:
    
   //! Here we mark elements for refinement: ei - number of elem
-  void SetRefinementFlag(const Integer ei, const Integer flag);
+  void SetRefinementFlag(const Integer ei);
+  void SetRefinementFlag(Vector<Integer> & ei);  
 
   //! Do refinement of elements, which we mark through function SetRefinementFlag
   void Refine();
 
+private:
   //! 
   FileType * ptFileType;
       
@@ -69,6 +70,9 @@ private:
 
   //!
   Integer dim_;
+
+   //!
+  void Init();  
 
   //! if we do subdivision, then this variable is TRUE
   Boolean DoesGridSubdivide;
@@ -88,6 +92,8 @@ inline InterfaceNetGen<Dim>::InterfaceNetGen(FileType * aptFileType)
   ptFileType=aptFileType;
   DoesGridSubdivide=FALSE;
   lastlevel_=0; 
+
+  Init();
 }
 
 #ifdef __GNUC__

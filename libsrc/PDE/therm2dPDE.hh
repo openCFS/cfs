@@ -2,7 +2,6 @@
 #define FILE_THERM2dPDE_2001
 
 #include "basepde.hh"
-#include "abstractAS.hh"
 
 namespace CoupledField
 {

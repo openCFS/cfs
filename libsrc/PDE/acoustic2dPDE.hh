@@ -2,7 +2,6 @@
 #define FILE_ACOUSTIC2DPDE_2001
 
 #include "basepde.hh"
-#include "abstractAS.hh"
 #include "outUnverg.hh"
  
 namespace CoupledField

@@ -315,7 +315,6 @@ libsrc/AlgebraicSystem/LinAlg/linsystem.hh svneol=native#text/plain
 libsrc/AlgebraicSystem/LinAlg/systemmatrix.cc svneol=native#text/plain
 libsrc/AlgebraicSystem/LinAlg/systemmatrix.hh svneol=native#text/plain
 libsrc/AlgebraicSystem/LinAlg/work.hh svneol=native#text/plain
-libsrc/AlgebraicSystem/abstractAS.hh svneol=native#text/plain
 libsrc/AlgebraicSystem/abstractAlgSys.hh svneol=native#text/plain
 libsrc/AlgebraicSystem/interface_piles.hh svneol=native#text/plain
 libsrc/DataInOut/AnsysFile/Makefile -text
@@ -369,8 +368,6 @@ libsrc/Domain/grid.hh svneol=native#text/plain
 libsrc/Driver/Makefile -text
 libsrc/Driver/basedriver.cc svneol=native#text/plain
 libsrc/Driver/basedriver.hh svneol=native#text/plain
-libsrc/Driver/driver.cc svneol=native#text/plain
-libsrc/Driver/driver.hh svneol=native#text/plain
 libsrc/Driver/staticdriver.cc svneol=native#text/plain
 libsrc/Driver/staticdriver.hh svneol=native#text/plain
 libsrc/Driver/transientdriver.cc svneol=native#text/plain
@@ -437,16 +434,12 @@ libsrc/Matrix/symsparsematrixCRS.hh svneol=native#text/plain
 libsrc/PDE/Makefile -text
 libsrc/PDE/acoustic2dPDE.cc svneol=native#text/plain
 libsrc/PDE/acoustic2dPDE.hh svneol=native#text/plain
-libsrc/PDE/acousticPDE.cc svneol=native#text/plain
-libsrc/PDE/acousticPDE.hh svneol=native#text/plain
 libsrc/PDE/basepde.cc svneol=native#text/plain
 libsrc/PDE/basepde.hh svneol=native#text/plain
 libsrc/PDE/elec2dPDE.cc svneol=native#text/plain
 libsrc/PDE/elec2dPDE.hh svneol=native#text/plain
 libsrc/PDE/elecst3dPDE.cc svneol=native#text/plain
 libsrc/PDE/elecst3dPDE.hh svneol=native#text/plain
-libsrc/PDE/pde.cc svneol=native#text/plain
-libsrc/PDE/pde.hh svneol=native#text/plain
 libsrc/PDE/therm2dPDE.cc svneol=native#text/plain
 libsrc/PDE/therm2dPDE.hh svneol=native#text/plain
 libsrc/ParamIdent/Makefile -text
