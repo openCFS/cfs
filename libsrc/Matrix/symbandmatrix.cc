@@ -114,7 +114,7 @@ TYPE & SymBandMatrix<TYPE>::At (const Integer i, const Integer j)
      if (j < 0 || j >= row) Error("invalid index for col",__FILE__,__LINE__); 
       if (j< (i-li) || j > (i+li))
  Error("index in operator[][] is out of band",__FILE__,__LINE__);     
-      else return p[i][-abs(i-j)];
+      return p[i][-abs(i-j)];
 }
 
 template<class TYPE>

@@ -82,7 +82,6 @@ Boolean LinSystem<T, T_Matrix>::CG(const Integer maxIter,  enum precond typePrec
 
   Integer iter;
   T alpha, beta, pAp, zr, zrOld;
-  T bnorm;
   Double stop;
   Integer dim=b.size();
   x.Resize(dim);

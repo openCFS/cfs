@@ -28,19 +28,19 @@ public:
 
   /// Return pointer to coordinates
   virtual Dim * GetptCoordinate(const Integer numlevel)
-  { ptGridCFS->GetptCoordinate(numlevel);}
+  { return ptGridCFS->GetptCoordinate(numlevel);}
 
   /// Return maximum number of nodes
   virtual Integer GetMaxnumnodes(const Integer numlevel)
-  { ptGridCFS->GetMaxnumnodes(numlevel); }
+  { return ptGridCFS->GetMaxnumnodes(numlevel); }
 
   /// Return maximum number of elements 
   virtual Integer GetMaxnumElem(const Integer numlevel)
-  { ptGridCFS->GetMaxnumElem(numlevel);}
+  { return ptGridCFS->GetMaxnumElem(numlevel);}
 
   /// Return num of nodes per element i
   virtual Integer GetNumNodesPerElem(const Integer iElem, const Integer level)
-  { ptGridCFS->GetNumNodesPerElem(iElem, level);}
+  { return ptGridCFS->GetNumNodesPerElem(iElem, level);}
 
   /// Print coordinates of grid in out
   virtual void PrintCoordinate(const Integer level, std::ostream * out) const

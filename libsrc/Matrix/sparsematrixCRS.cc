@@ -204,7 +204,7 @@ SparseMatrix<TYPE> SparseMatrix<TYPE>::operator+(const SparseMatrix<TYPE> &x) co
         SparseMatrix<TYPE> z(x.numentry + numentry,x.row,x.col);
         z.Init();
 
-        Integer k,i,j,l,n,apos,bpos;
+        Integer i,j,l,n,apos,bpos;
 
         TYPE a;      
         z.pf[0]=0; l=0;
@@ -301,7 +301,7 @@ SparseMatrix<TYPE> SparseMatrix<TYPE>::operator-(const SparseMatrix<TYPE> &x) co
         SparseMatrix<TYPE> z(x.numentry + numentry,x.row,x.col);
         z.Init();
 
-        Integer k,i,j,l,n,apos,bpos;
+        Integer i,j,l,n,apos,bpos;
 
         TYPE a;      
         z.pf[0]=0; l=0;
@@ -474,7 +474,6 @@ Matrix<TYPE> SparseMatrix<TYPE>::operator*(const Matrix<TYPE> &x) const
         if (col != x.row)
         Error("incompatible dimension for multiplycation",__FILE__,__LINE__);
  
-        TYPE    a;
         Matrix<TYPE>  z (row, x.col); // should be initialized by zero
         Integer i,j,k;
       

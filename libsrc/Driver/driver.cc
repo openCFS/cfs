@@ -37,7 +37,7 @@ void Driver::SolveNewmarkMethod(OutResultUnverg * ptUnverg)
 #endif
   ptUnverg->Create(ptgrid,0);
 
-  Double endtime=1.0;   ////////////////////////////////////////////
+//  Double endtime=1.0;   ////////////////////////////////////////////
   Double t=0;
   
   Double epsilon=1e-25; 
