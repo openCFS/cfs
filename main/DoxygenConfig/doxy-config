@@ -186,7 +186,8 @@ EXPAND_ONLY_PREDEF     = NO
 SEARCH_INCLUDES        = YES
 INCLUDE_PATH           = 
 INCLUDE_FILE_PATTERNS  = 
-PREDEFINED             = TRACE \
+PREDEFINED             = OLAS \
+                         TRACE \
                          USE_XERCES \
                          XMLPARAMS \
                          DOXYGEN_SKIP_THIS
