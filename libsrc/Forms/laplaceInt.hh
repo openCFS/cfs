@@ -22,9 +22,13 @@ public:
   /// Calculation of stiffmess matrix
   void CalcElementMatrix(Matrix<Double> & ptCoord, Matrix<Double> & elemMat);
 
+
   virtual void Print(std::ostream * out, const Matrix<Double> Result) const;
 
-protected: 
+  
+  virtual void SetActElemSol(Matrix<Double>& disp){};
+
+
 private:
   /// multiplicative value for laplace integration 
   Double laplVal_;

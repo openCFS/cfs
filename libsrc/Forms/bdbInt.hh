@@ -32,11 +32,11 @@ protected:
 
   /// returns D - matrix for BDB
   virtual void calcDMat(Matrix<Double> & dMat)
-  {Error("BDBInt::calcDMat(Matrix<Double>&) not not correct overwritten !",__FILE__,__LINE__);};
+  {Error("BDBInt::calcDMat(Matrix<Double>&) not correct overwritten !",__FILE__,__LINE__);};
 
   /// returns D - matrix for BDB, changes in every integration point
   virtual void calcDMat(Matrix<Double> & dMat, Integer ip, Matrix<Double> & ptCoord)
-  {Error("BDBInt::calcDMat(Matrix<Double>&, int, Matrix<Double>&) not not correct overwritten !",__FILE__,__LINE__);};
+  {Error("BDBInt::calcDMat(Matrix<Double>&, int, Matrix<Double>&) not correct overwritten !",__FILE__,__LINE__);};
 
   /// returns dimension of D matrix
   virtual Integer getDimD()=0;
