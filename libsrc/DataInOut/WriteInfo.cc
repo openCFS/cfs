@@ -689,6 +689,9 @@ namespace CoupledField
 
     ENTER_FCN( "WriteInfo::PrintF" );
 
+    // list of supported format specifiers
+    std::string supported = "idugGeEfsc";
+
     const Integer maxSize = 100;
     typedef std::string::size_type ST;
     ST actPos=0;
@@ -721,12 +724,10 @@ namespace CoupledField
 
       // if not already at end of string
       if(foundPos != std::string::npos) {
-	int wsPos = formatStr.find_first_of(" \t",foundPos);
-	std::string subFormatStr = formatStr.substr(foundPos, wsPos-foundPos);
-	    
-	// char formatChar = (formatStr.substr(foundPos+1,foundPos+2)).c_str()[0];
+	int wsPos = formatStr.find_first_of( supported, foundPos );
+	std::string subFormatStr = formatStr.substr(foundPos,wsPos-foundPos+1);
 	char formatChar = subFormatStr[subFormatStr.length()-1];
-	    
+
 	switch (formatChar) {
 
 	case 'i': 
