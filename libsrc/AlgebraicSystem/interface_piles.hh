@@ -112,7 +112,7 @@ public:
   }
 
   //!
-  virtual void SetBCDirichlet(Integer restrnum, Integer nodenr, Double restrval, Integer ndof, 
+  virtual void SetBCDirichlet(Integer restrnum, Integer nodenr, Double restrval, Integer ndof,
 			      Integer matrix_row, Integer matrix_col, Integer matrix_id)
   {
     matrix_row ++;
@@ -121,7 +121,7 @@ public:
   }
 
   //!
-  virtual void SetBCDirichletUpdate(Integer restrnum, Integer nodenr, Double restrval, Integer ndof, 
+  virtual void SetBCDirichletUpdate(Integer restrnum, Integer nodenr, Double restrval, Integer ndof,
 			      Integer matrix_row, Integer matrix_col, Integer matrix_id)
   {
     matrix_row ++;
@@ -137,11 +137,11 @@ public:
     algsys->UpdateRHS(matrix_row,matrix_col,matrix_id,vec);
   }
 
-  //! Add value addval to rhs-vector at position pos
-  virtual void AddRHS(Double addval, Integer pos, Integer sys_id)
+  //! Add element vector to rhs-vector at position pos
+  virtual void PutElemRHS(Double * elemrhs, Integer *pos, Integer size, Integer sys_id)
   {
     sys_id++;
-//    algsys->AddRHS(addval,pos,sys_id);
+    algsys->SetElementRHS(elemrhs,pos,size,sys_id);
   }
 
 
