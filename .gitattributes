@@ -18,6 +18,11 @@ XML/Schemas/CFS_PDEpiezo.xsd -text
 XML/Schemas/CFS_Preconds.xsd -text
 XML/Schemas/CFS_SolverPrecond.xsd -text
 XML/Schemas/CFS_Solvers.xsd -text
+XML/TestParser/ErrorHandler.hh svneol=native#text/plain
+XML/TestParser/Makefile -text
+XML/TestParser/SPHandler.cc svneol=native#text/plain
+XML/TestParser/SPHandler.hh svneol=native#text/plain
+XML/TestParser/TestParser.cc svneol=native#text/plain
 /libgoal -text
 libsrc/CoupledPDE/Makefile -text
 libsrc/CoupledPDE/basecoupledpde.cc svneol=native#text/plain
