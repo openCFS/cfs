@@ -163,78 +163,78 @@ namespace CoupledField {
 
     // Determine which parameters have been set by the user
     // and insert them into the olasParams object.
-    std::vector<std::string> list;
+    StdVector<std::string> list;
 
     switch( sType ) {
 
     case CG:
       cfs->GetList( "tol", list, pdename, "PCG" );
-      if( list.size() == 1 ) {
+      if( list.GetSize() == 1 ) {
 	olas->SetValue( "CG_epsilon", atof(list[0].c_str()) );
       }
       cfs->GetList( "maxIter", list, pdename, "hyprePCG" );
-      if( list.size() == 1 ) {
+      if( list.GetSize() == 1 ) {
 	olas->SetValue( "CG_maxIter", atoi(list[0].c_str()) );
       }
       break;
 
     case HYPRE_PCG:
       cfs->GetList( "tol", list, pdename, "hyprePCG" );
-      if( list.size() == 1 ) {
+      if( list.GetSize() == 1 ) {
 	olas->SetValue( "HYPREPCG_epsilon", atof(list[0].c_str()) );
       }
       cfs->GetList( "maxIter", list, pdename, "hyprePCG" );
-      if( list.size() == 1 ) {
+      if( list.GetSize() == 1 ) {
 	olas->SetValue( "HYPREPCG_maxIter", atoi(list[0].c_str()) );
       }
       cfs->GetList( "logging", list, pdename, "hyprePCG" );
-      if( list.size() == 1 ) {
+      if( list.GetSize() == 1 ) {
 	olas->SetValue( "HYPREPCG_logging", atoi(list[0].c_str()) );
       }
       cfs->GetList( "printLevel", list, pdename, "hyprePCG" );
-      if( list.size() == 1 ) {
+      if( list.GetSize() == 1 ) {
 	olas->SetValue( "HYPREPCG_printLevel", atoi(list[0].c_str()) );
       }
       break;
 
     case HYPRE_GMRES:
       cfs->GetList( "tol", list, pdename, "hypreGMRES" );
-      if( list.size() == 1 ) {
+      if( list.GetSize() == 1 ) {
 	olas->SetValue( "HYPREGMRES_epsilon", atof(list[0].c_str()) );
       }
       cfs->GetList( "maxIter", list, pdename, "hypreGMRES" );
-      if( list.size() == 1 ) {
+      if( list.GetSize() == 1 ) {
 	olas->SetValue( "HYPREGMRES_maxIter", atoi(list[0].c_str()) );
       }
       cfs->GetList( "maxKrylovDim", list, pdename, "hypreGMRES" );
-      if( list.size() == 1 ) {
+      if( list.GetSize() == 1 ) {
 	olas->SetValue( "HYPREGMRES_maxKrylovDim", atoi(list[0].c_str()) );
       }
       cfs->GetList( "logging", list, pdename, "hypreGMRES" );
-      if( list.size() == 1 ) {
+      if( list.GetSize() == 1 ) {
 	olas->SetValue( "HYPREGMRES_logging", atoi(list[0].c_str()) );
       }
       cfs->GetList( "printLevel", list, pdename, "hypreGMRES" );
-      if( list.size() == 1 ) {
+      if( list.GetSize() == 1 ) {
 	olas->SetValue( "HYPREGMRES_printLevel", atoi(list[0].c_str()) );
       }
       break;
 
     case HYPRE_BICGSTAB:
       cfs->GetList( "tol", list, pdename, "hypreBICGSTAB" );
-      if( list.size() == 1 ) {
+      if( list.GetSize() == 1 ) {
 	olas->SetValue( "HYPREBICGSTAB_epsilon", atof(list[0].c_str()) );
       }
       cfs->GetList( "maxIter", list, pdename, "hypreBICGSTAB" );
-      if( list.size() == 1 ) {
+      if( list.GetSize() == 1 ) {
 	olas->SetValue( "HYPREBICGSTAB_maxIter", atoi(list[0].c_str()) );
       }
       cfs->GetList( "logging", list, pdename, "hypreBICGSTAB" );
-      if( list.size() == 1 ) {
+      if( list.GetSize() == 1 ) {
 	olas->SetValue( "HYPREBICGSTAB_logging", atoi(list[0].c_str()) );
       }
       cfs->GetList( "printLevel", list, pdename, "hypreBICGSTAB" );
-      if( list.size() == 1 ) {
+      if( list.GetSize() == 1 ) {
 	olas->SetValue( "HYPREBICGSTAB_printLevel", atoi(list[0].c_str()) );
       }
       break;
@@ -256,22 +256,22 @@ namespace CoupledField {
 
     // Determine which parameters have been set by the user
     // and insert them into the olasParams object.
-    std::vector<std::string> list;
+    StdVector<std::string> list;
 
     switch( pType ) {
 
     case HYPRE_ILU:
       cfs->GetList( "level", list, pdename, "hypreILU" );
-      if( list.size() == 1 ) {
+      if( list.GetSize() == 1 ) {
 	olas->SetValue( "EUCLID_level",  atoi(list[0].c_str()) );
       }
       cfs->GetList( "stats", list, pdename, "hypreILU" );
-      if( list.size() == 1 ) {
+      if( list.GetSize() == 1 ) {
 	bool stats = (list[0] == "yes");
 	olas->SetValue( "EUCLID_stats", stats );
       }
       cfs->GetList( "memory", list, pdename, "hypreILU" );
-      if( list.size() == 1 ) {
+      if( list.GetSize() == 1 ) {
 	Integer memory = (list[0] == "yes");
 	olas->SetValue( "EUCLID_memory", memory );
       }
@@ -279,28 +279,28 @@ namespace CoupledField {
 
     case HYPRE_SPAI:
       cfs->GetList( "thresh", list, pdename, "hypreSPAI" );
-      if( list.size() == 1 ) {
+      if( list.GetSize() == 1 ) {
 	olas->SetValue( "PARASAILS_thresh", atof(list[0].c_str()) );
       }
       cfs->GetList( "levels", list, pdename, "hypreSPAI" );
-      if( list.size() == 1 ) {
+      if( list.GetSize() == 1 ) {
 	olas->SetValue( "PARASAILS_levels", atoi(list[0].c_str()) );
       }
       cfs->GetList( "filter", list, pdename, "hypreSPAI" );
-      if( list.size() == 1 ) {
+      if( list.GetSize() == 1 ) {
 	olas->SetValue( "PARASAILS_filter", atof(list[0].c_str()) );
       }
       cfs->GetList( "symmetry", list, pdename, "hypreSPAI" );
-      if( list.size() == 1 ) {
+      if( list.GetSize() == 1 ) {
 	olas->SetValue( "PARASAILS_symmetry", atoi(list[0].c_str()) );
       }
       cfs->GetList( "loadBalance", list, pdename, "hypreSPAI" );
-      if( list.size() == 1 ) {
+      if( list.GetSize() == 1 ) {
 	Integer balance = (list[0] == "yes");
 	olas->SetValue( "PARASAILS_loadBalance", balance );
       }
       cfs->GetList( "reuse", list, pdename, "hypreSPAI" );
-      if( list.size() == 1 ) {
+      if( list.GetSize() == 1 ) {
 	Integer balance = (list[0] == "yes");
 	olas->SetValue( "PARASAILS_reuse", balance );
       }
@@ -308,19 +308,19 @@ namespace CoupledField {
 
     case HYPRE_AMG:
       cfs->GetList( "maxLevels", list, pdename, "hypreAMG" );
-      if( list.size() == 1 ) {
+      if( list.GetSize() == 1 ) {
 	olas->SetValue( "BOOMERAMG_maxLevels", atoi(list[0].c_str()) );
       }
       cfs->GetList( "alpha", list, pdename, "hypreAMG" );
-      if( list.size() == 1 ) {
+      if( list.GetSize() == 1 ) {
 	olas->SetValue( "BOOMERAMG_alpha", atof(list[0].c_str()) );
       }
       cfs->GetList( "numSweeps", list, pdename, "hypreAMG" );
-      if( list.size() == 1 ) {
+      if( list.GetSize() == 1 ) {
 	olas->SetValue( "BOOMERAMG_numSweeps", atoi(list[0].c_str()) );
       }
       cfs->GetList( "cycleType", list, pdename, "hypreAMG" );
-      if( list.size() == 1 ) {
+      if( list.GetSize() == 1 ) {
 	Integer cycleType = list[0] == "W-cycle" ? 2 : 1;
 	olas->SetValue( "BOOMERAMG_cycleType", cycleType );
       }
