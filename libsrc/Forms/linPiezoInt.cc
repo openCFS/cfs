@@ -118,41 +118,41 @@ namespace CoupledField
     const Integer sizeofD = getDimD();
     dMat.Resize( sizeofD );
     dMat.Init( 0 );
-    
-    // Copy entries from material matrix object into D matrix
-    Matrix<Double> * matMatrix = ptMaterial->GetMatrix();
-    for( Integer i = 0; i < sizeofD; i++ ) {
-      for ( Integer j = 0; j < sizeofD; j++ ) {
-	dMat[i][j] = (*matMatrix)[i][j];
+
+    // Standard case: No damping
+    if ( isDamping_ == false ) {
+
+      // Copy entries from material matrix object into D matrix
+      Matrix<Double> * matMatrix = ptMaterial->GetMatrix();
+      for( Integer i = 0; i < sizeofD; i++ ) {
+	for ( Integer j = 0; j < sizeofD; j++ ) {
+	  dMat[i][j] = (*matMatrix)[i][j];
+	}
+      }
+
+      // Multiply values of permittivity with -1 to obtain the correct
+      // bilinear form
+      for ( Integer i = sizeofD - 3; i < sizeofD; i++ ) {
+	for ( Integer j = sizeofD - 3; j <sizeofD; j++ ) {
+	  dMat[i][j] *= -1.0;
+	}
       }
     }
 
-    // Multiply values of permittivity with -1 to obtain the correct
-    // bilinear form
-    for ( Integer i = sizeofD - 3; i < sizeofD; i++ ) {
-      for ( Integer j = sizeofD - 3; j <sizeofD; j++ ) {
-	dMat[i][j] *= -1.0;
+    // The damping case (Rayleigh currently). Here just the mechanical part
+    // damps
+    else {
+
+      // Copy entries from mechanical part of material matrix object
+      // into D matrix and multiply with damping parameter
+      Matrix<Double> * matMatrix = ptMaterial->GetMatrix();
+      Double beta = ptMaterial->GetDampingBeta();
+      for( Integer i = 0; i < sizeofD - 3; i++ ) {
+	for ( Integer j = 0; j < sizeofD - 3; j++ ) {
+	  dMat[i][j] = (*matMatrix)[i][j] * beta;
+	}
       }
     }
-
-    // Check if stiffness matrix has to be computed for Rayleigh damping
-    // purpose. This means: just mechanical part damps
-    if (isdamping_)
-      {
-	for (Integer i = sizeofD-4; i <sizeofD; i++)
-	  for (Integer j = 0; j < sizeofD; j++ )
-	    dMat[i][j] = 0;
-
-	for (Integer i = 0; i < sizeofD-3; i++)
-	  for (Integer j = sizeofD-4; j <sizeofD; j++)
-	    dMat[i][j] = 0;
-
-	//multiply mechanical part with damping parameter
-	Double beta = ptMaterial->GetDampingBeta();
-	for (Integer i = 0; i < sizeofD-3; i++)
-	  for (Integer j = 0; j < sizeofD-3; j++ )
-	    dMat[i][j] *= beta;
-      }
   }
 
 
