@@ -82,7 +82,7 @@ long int WriteResultsDatabase::Dataset781(const Integer level)
   Integer dim     = ptgrid->GetDim();
   Integer maxnumnodes = ptgrid->GetMaxnumnodes(level);	
 
-  dbLineData d("Dataset781");
+  dbLineData d("Node");
   d.Set("idx","0");
   d.Set("result_idx",ResultIdx_);
   long int idx = Db_.InsertAndGetIndex(d);
@@ -90,7 +90,7 @@ long int WriteResultsDatabase::Dataset781(const Integer level)
   for (Integer i=0; i<maxnumnodes; i++)
   {
     d.Clear();
-    d.SetTableName("Dataset781_node");
+    d.SetTableName("Node_coordinates");
     d.Set("idx",0);
     d.Set("node_label",(i+1));
     if (dim==2)
@@ -100,7 +100,7 @@ long int WriteResultsDatabase::Dataset781(const Integer level)
       d.Set("x_coord","0");
       d.Set("y_coord",Point[0]);
       d.Set("z_coord",Point[1]);
-      d.Set("dataset781_idx",idx);
+      d.Set("node_idx",idx);
     }
     if (dim==3)
     {
@@ -109,7 +109,7 @@ long int WriteResultsDatabase::Dataset781(const Integer level)
       d.Set("x_coord",Point[0]);
       d.Set("y_coord",Point[1]);
       d.Set("z_coord",Point[2]);
-      d.Set("dataset781_idx",idx);
+      d.Set("node_idx",idx);
     }
     Db_.Insert(d);
   }
@@ -180,7 +180,7 @@ long int WriteResultsDatabase::Dataset780(const Integer level)
 
       }
 
-      dbLineData d("Dataset780");
+      dbLineData d("Element");
       d.Set("idx","0");
       d.Set("elem_label",elemlabel);
       d.Set("elem_type_geo",elemtypegeo);
@@ -195,13 +195,13 @@ long int WriteResultsDatabase::Dataset780(const Integer level)
         Integer offset = Integer(connect.GetSize()/2);
         for (Integer ii=0; ii < offset; ii++)
         {
-          d.Clear(); d.SetTableName("Dataset780_node");
-          d.Set("dataset780_idx",idx);
+          d.Clear(); d.SetTableName("Element_nodes");
+          d.Set("element_idx",idx);
           d.Set("node",connect[ii]);
           d.Set("localidx",ii*2);
           Db_.Insert(d);
-          d.Clear(); d.SetTableName("Dataset780_node");
-          d.Set("dataset780_idx",idx);
+          d.Clear(); d.SetTableName("Element_nodes");
+          d.Set("element_idx",idx);
           d.Set("node",connect[ii+offset]);
           d.Set("localidx",ii*2+1);
           Db_.Insert(d);
@@ -212,8 +212,8 @@ long int WriteResultsDatabase::Dataset780(const Integer level)
       {
         for (Integer ii=0; ii < connect.GetSize(); ii++) 
         { 
-          d.Clear(); d.SetTableName("Dataset780_node"); 
-          d.Set("dataset780_idx",idx);
+          d.Clear(); d.SetTableName("Element_nodes"); 
+          d.Set("element_idx",idx);
           d.Set("node",connect[ii]);
           d.Set("localidx",ii);
           Db_.Insert(d);
@@ -244,26 +244,22 @@ void WriteResultsDatabase::Dataset55(const std::string & title,
     valsPerNode = 3;
 
   dbLineData d("");
-  Integer transProbIdx=0,normProbIdx=0,freqProbIdx=0, transParamIdx=0,normParamIdx=0,freqParamIdx=0, Idx=0;
+  Integer transIdx=0,normIdx=0,freqIdx=0,Idx=0;
   if (1)		// Transient analysis
   {
-    d.SetTableName("Dataset55_trans_prob");
+    d.SetTableName("Nodal_result_transient");
     d.Set("idx","0"); 
     d.Set("result_type",title); 
     d.Set("time_step",step); 
     d.Set("time_value",time);
-    transProbIdx = Db_.InsertAndGetIndex(d);
-
-    d.Clear(); d.SetTableName("Dataset55_trans_param");
-    d.Set("idx","0"); d.Set("time_step",step); d.Set("time",time);
-    transParamIdx = Db_.InsertAndGetIndex(d);
+    transIdx = Db_.InsertAndGetIndex(d);
   }
 
-  d.Clear(); d.SetTableName("Dataset55");
+  d.Clear(); d.SetTableName("Nodal_result");
   d.Set("idx","0"); d.Set("analysis_type", 4);
-  d.Set("dataset55_trans_prob_idx",transProbIdx);
-  d.Set("dataset55_norm_prob_idx", normProbIdx);
-  d.Set("dataset55_freq_prob_idx", freqProbIdx);
+  d.Set("nodal_result_trans_idx",transIdx);
+  d.Set("nodal_result_norm_idx", normIdx);
+  d.Set("nodal_result_freq_idx", freqIdx);
   if (valsPerNode==1)
     d.Set("data_characteristic",1); // data characteristics = scalar
   else if ((valsPerNode>1)&&(valsPerNode<=3))
@@ -272,9 +268,6 @@ void WriteResultsDatabase::Dataset55(const std::string & title,
     d.Set("data_characteristic",3); // data  characteristics = vector with 6 components
   d.Set("data_type",2);
   d.Set("values_per_node",valsPerNode);
-  d.Set("dataset55_trans_param_idx", transParamIdx);
-  d.Set("dataset55_norm_param_idx", normParamIdx);
-  d.Set("dataset55_freq_param_idx", freqParamIdx);
   d.Set("result_idx",ResultIdx_);
   Idx = Db_.InsertAndGetIndex(d);
 
@@ -285,8 +278,8 @@ void WriteResultsDatabase::Dataset55(const std::string & title,
 
     for (j=0; j<nrDofs; j++)
     {
-        d.Clear(); d.SetTableName("Dataset55_result");
-        d.Set("dataset55_idx", Idx);
+        d.Clear(); d.SetTableName("Nodal_result_value");
+        d.Set("nodal_result_idx", Idx);
         d.Set("result", x[i*nrDofs+j]);
         d.Set("node_no", (i+1));
         d.Set("node_idx", (j+1));
@@ -522,28 +515,21 @@ void WriteResultsDatabase::Dataset56(const std::string &title,
   if (1)		// Transient analysis
   {
     d.Clear(); 
-    d.SetTableName("Dataset56_trans_prob");
+    d.SetTableName("Element_result_trans");
     d.Set("idx","0"); 
     d.Set("result_type",title); 
     d.Set("time_step", time); 
     d.Set("time_value",time);
     transProbIdx = Db_.InsertAndGetIndex(d);
-
-    d.Clear(); 
-    d.SetTableName("Dataset56_trans_param");
-    d.Set("idx","0"); 
-    d.Set("time_step",step); 
-    d.Set("time",time);
-    transParamIdx = Db_.InsertAndGetIndex(d);
   }
 
   d.Clear(); 
-  d.SetTableName("Dataset56");
+  d.SetTableName("Element_result");
   d.Set("idx","0");
   d.Set("analysis_type",4);
-  d.Set("dataset56_trans_prob_idx", transProbIdx);
-  d.Set("dataset56_norm_prob_idx", normProbIdx);
-  d.Set("dataset56_freq_prob_idx", freqProbIdx);
+  d.Set("element_result_trans_idx", transProbIdx);
+  d.Set("element_result_norm_idx", normProbIdx);
+  d.Set("element_result_freq_idx", freqProbIdx);
 
   if (valsPerNode==1)
     d.Set("data_characteristic",1);
@@ -553,9 +539,6 @@ void WriteResultsDatabase::Dataset56(const std::string &title,
     d.Set("data_characteristic",3);
   d.Set("data_type",2);
   d.Set("values_per_node", valsPerNode);
-  d.Set("dataset56_trans_param_idx",transParamIdx);
-  d.Set("dataset56_norm_param_idx", normParamIdx);
-  d.Set("dataset56_freq_param_idx", freqParamIdx);
   d.Set("result_idx",ResultIdx_);
   Idx = Db_.InsertAndGetIndex(d);
 
@@ -563,11 +546,11 @@ void WriteResultsDatabase::Dataset56(const std::string &title,
   n = nrNodes;
   for (i=0; i<n;i++)
   {
-    d.SetTableName("Dataset56_result");
+    d.SetTableName("Element_result_value");
     for (j=0; j<nrDofs; j++)
     {
       d.Clear();
-      d.Set("dataset56_idx",Idx);
+      d.Set("element_result_idx",Idx);
       d.Set("result", x[i*nrDofs+j]);
       d.Set("node_no", (i+1));
       d.Set("node_idx", (j+1));

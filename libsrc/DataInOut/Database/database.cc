@@ -66,9 +66,9 @@ int Database::Query (std::string statement)
   ENTER_FCN("Database::Query(string)");
   if (IsConnected==FALSE)
     exit (-1);
-//#ifdef DEBUG
-//  (*debug) << "Database::Query : " << statement << std::endl;	
-//#endif
+#ifdef DEBUG
+  (*debug) << "Database::Query : " << statement << std::endl;	
+#endif
   FreeResult();
   if (mysql_query(Conn_, statement.c_str()))
   {
