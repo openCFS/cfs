@@ -1,4 +1,5 @@
 #include "scalarnodeEQN.hh"
+
 #include <iomanip>
 
 namespace CoupledField
@@ -144,8 +145,10 @@ void ScalarNodeEQN::EQN2SolVectorPos(const StdVector<Integer> &eqnNr,
 }
 
 
-Integer ScalarNodeEQN::Node2EQN(const Integer nodeNr, 
-				const Integer dof) const
+void ScalarNodeEQN::Node2EQN(const Integer nodeNr, 
+			     const Integer dof,
+			     Integer & eqnNr,
+			     Integer & eqnDof) const
 { 
   ENTER_FCN( "ScalarNodeEQN::Node2EQN" );
 #ifdef CHECK_INDEX
@@ -153,14 +156,21 @@ Integer ScalarNodeEQN::Node2EQN(const Integer nodeNr,
     Error("ScalarNodeEQN::Node2EQN: Index out of bounds", 
 	  __FILE__, __LINE__);
 #endif
-  return pdeNode2EQN_[mesh2PDENode_[nodeNr-1]-1];
+  eqnNr = pdeNode2EQN_[mesh2PDENode_[nodeNr-1]-1];
+  eqnDof = 1;
 }
 
 
 void ScalarNodeEQN::Node2EQN(const Integer nodeNr, StdVector<Integer> &eqnNr) const
 {
   ENTER_FCN( "ScalarNodeEQN::Node2EQN" );
-  
+
+#ifdef CHECK_INDEX
+  if (nodeNr > mesh2PDENode_.GetSize())
+    Error("ScalarNodeEQN::Node2EQN: Index out of bounds", 
+	  __FILE__, __LINE__);
+#endif 
+
   eqnNr.Resize(dofsPerNode_);
 
   eqnNr[0] = pdeNode2EQN_[mesh2PDENode_[nodeNr-1]-1];
@@ -175,7 +185,14 @@ void ScalarNodeEQN::Node2EQN(const StdVector<Integer> &nodeNr,
   eqnNr.Resize(nodeNr.GetSize());
 
   for (Integer i=0; i<nodeNr.GetSize(); i++)
-       eqnNr[i] =  pdeNode2EQN_[mesh2PDENode_[nodeNr[i]-1]-1];
+    {
+#ifdef CHECK_INDEX
+      if (nodeNr[i] > mesh2PDENode_.GetSize())
+	Error("ScalarNodeEQN::Node2EQN: Index out of bounds", 
+	      __FILE__, __LINE__);
+#endif
+      eqnNr[i] =  pdeNode2EQN_[mesh2PDENode_[nodeNr[i]-1]-1];
+    }
 }
 
 } // end of namespace

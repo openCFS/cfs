@@ -50,13 +50,9 @@ void BaseEQN::SetHomoDirichletBCs(const StdVector<std::string> &nodeLevel,
       for (it=tempNodeList.begin(); it != tempNodeList.end(); it++)
 	{
 	  homoDirichletNodes_.Push_back(*it);
-	
+	  if (dofsPerNode_ > 1)
+	    homoDirichletDofs_.Push_back(GetBCDof(dofs[i]));
 	}
-      
-      
-      if (dofsPerNode_ > 1)
-	for (Integer iBC=0; iBC<dofsPerNode_; iBC++)
-	  homoDirichletDofs_.Push_back(GetBCDof(dofs[i]));
       
     }
   

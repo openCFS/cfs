@@ -30,7 +30,7 @@ void BlockNodeEQN::CalcMapping()
   ENTER_FCN( "BlockNodeEQN::CalcMapping" );
  
   // First apply Mapping from global to
-  // local node numbers and back
+  // local node/elem numbers and back
   CalcLocalGlobalMapping(mesh2PDENode_,
 			 pde2MeshNode_,
 			 mesh2PDEElem_,
@@ -72,7 +72,7 @@ void BlockNodeEQN::CalcMapping()
   eqn2Pos_.Clear();
   pdeNode2EQN_.Resize(numPDENodes_);
   StdVector<Integer> eqn2Pos_Temp;
-  eqn2Pos_Temp.Reserve(numPDENodes_);
+  eqn2Pos_Temp.Reserve(numPDENodes_ * dofsPerNode_);
 
   // STEP 2
   // Check if there exist nodes, which only have
@@ -131,7 +131,8 @@ void BlockNodeEQN::CalcMapping()
 	eqnCounter ++;
 	pdeNode2EQN_[i] = eqnCounter;
 	//std::cerr << "Pushing back" << (pde2MeshNode_[eqnCounter-1]-1)*dofsPerNode_ << std::endl;
-	eqn2Pos_Temp.Push_back((pde2MeshNode_[i]-1)*dofsPerNode_);
+	for (Integer iDof=0; iDof<dofsPerNode_; iDof++)
+	  eqn2Pos_Temp.Push_back((pde2MeshNode_[i]-1)* dofsPerNode_ + iDof);
       }	
   
   
@@ -142,9 +143,7 @@ void BlockNodeEQN::CalcMapping()
     if (numDirichletDofsPerNode[i] == dofsPerNode_)
       numBuildInDirichletEQNs_ += dofsPerNode_;
 
-  // !!!!!!!! REMOVE !!!!!!!!!
-  //numBuildInDirichletEQNs_  = 0;
-  
+   
   //std::cerr << "NumBuildInDirichletEQNs = " <<numBuildInDirichletEQNs_ << std::endl; 
   
 
@@ -155,7 +154,7 @@ void BlockNodeEQN::CalcMapping()
   eqn2Pos_ = eqn2Pos_Temp;
   eqn2Pos_Temp.Clear();
   isInitialized_ = TRUE;
-  numEqns_ = eqn2Pos_.GetSize();
+  numEqns_ = eqnCounter;
 }
 
 void BlockNodeEQN::Print(std::ostream & out) const
@@ -193,8 +192,10 @@ void BlockNodeEQN::EQN2SolVectorPos(const StdVector<Integer> &eqnNr,
   Error( "Not implemented",__FILE__, __LINE__ );
 }
 
-Integer BlockNodeEQN::Node2EQN(const Integer nodeNr, 
-			       const Integer dof) const 
+void BlockNodeEQN::Node2EQN(const Integer nodeNr, 
+			    const Integer dof,
+			    Integer & eqnNr,
+			    Integer & eqnDof) const 
 {
   ENTER_FCN( "BlockNodeEQN::Node2EQN" );
 #ifdef CHECK_INDEX
@@ -202,7 +203,8 @@ Integer BlockNodeEQN::Node2EQN(const Integer nodeNr,
     Error("ScalarNodeEQN::Node2EQN: Index out of bounds", 
 	  __FILE__, __LINE__);
 #endif
-  return pdeNode2EQN_[mesh2PDENode_[nodeNr-1]-1];
+  eqnNr = pdeNode2EQN_[mesh2PDENode_[nodeNr-1]-1];
+  eqnDof = dof;
 }
 
 void BlockNodeEQN::Node2EQN(const Integer nodeNr, StdVector<Integer> &eqns) const

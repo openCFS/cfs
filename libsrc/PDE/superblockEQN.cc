@@ -43,12 +43,13 @@ void SuperBlockEQN::EQN2SolVectorPos(const StdVector<Integer> &eqnNr,
   Error( "Not implemented" );
 }
 
-Integer SuperBlockEQN::Node2EQN(const Integer nodeNr, 
-				const Integer dof) const
+void SuperBlockEQN::Node2EQN(const Integer nodeNr, 
+				const Integer dof,
+				Integer & eqnNr,
+				Integer & eqnDof) const
 {
   ENTER_FCN( "SuperBlockEQN::Node2EQN" );
   Error( "Not implemented yet" );
-  return 0;
 }
 
 void SuperBlockEQN::Node2EQN(const Integer nodeNr, StdVector<Integer> &eqns) const
