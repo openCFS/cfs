@@ -34,11 +34,11 @@ public:
 
   //! define all (bilinearform) integrators needed for this pde
   virtual void DefineIntegrators(const Integer level);
+  
+  //! nonlinear transient step
+  void StepTransNonLin(const Integer kstep, const Double asteptime,
+					   const Integer level, const Boolean reset);
 
-//   //! nonlinear transient step
-//   void StepTransNonLin(const Integer kstep, const Double asteptime,
-// 	
-				
   //! write results in file
   //! \param stepOffset offset for starting (time)step
   //! \param timeOffset offset for starting time  
@@ -83,11 +83,17 @@ protected:
   //! calculates L2-norm of RHS regarding entries due to penalty formulation
   Double RhsL2Norm(Vector<Double>& stdVec);
 
+  //! does a line search and returns the optimal residual norm
+  Double LineSearch(Vector<Double>& solIncrement, Vector<Double>& actSol,
+                    Double& etaLineSearch, Integer level, Boolean trans=FALSE);
+
   //! Init the time stepping
   void InitTimeStepping();
 
   // Double freq_;   //!< excitation frequency for harmonic analysis
   NodeStoreSol<Double> sol_der1Array_, sol_der2Array_;
+
+  Vector<Double> RhsLinVal_;
 
   Integer size_; //!< total number of unknowns (equations)
 

@@ -32,31 +32,33 @@ public:
   virtual void CalcElementMatrix(Matrix<Double>& ptCoord, Matrix<Double> & StiffMat);
 
   //! Virtual function, implemented in derived classes
-  virtual void CalcComplexElementMatrix(Matrix<Double>& ptCoord, Matrix<Complex> & StiffMat,Double & beta, Double & omega);
+  virtual void CalcComplexElementMatrix(Matrix<Double>& ptCoord,
+										Matrix<Complex> & StiffMat,
+										Double & beta, Double & omega);
 
   /// Calculation of vector of right hand side 
   virtual void CalcElemVector(Matrix<Double>& ptCoord, Vector<Double> & result)
   {Error("CalcElemVector not implemented!",__FILE__,__LINE__);};
 
   virtual void CalcElemVector4Dip(Matrix<Double>& ptCoord, 
-				  const StdVector<Integer> & connecth, 
-				  Vector<Double> & Result, 
-				  const Vector<Double> gradN_x_P)
-  { Error(" CalcElemVector4Dip is not implemented for this class",__FILE__,__LINE__);}
+								  const StdVector<Integer> & connecth, 
+								  Vector<Double> & Result, 
+								  const Vector<Double> gradN_x_P)
+  { Error(" CalcElemVector4Dip is not implemented for this class",__FILE__,__LINE__);};
 
   /// Calculation of vector of right hand side given from quadrupole contribution
   virtual void CalcElemVector4Quad(Matrix<Double>& ptCoord,
 				   const StdVector<Integer> & connecth,
 				   const Matrix<Double> & FlowData, 
 				   Vector<Double> & Result)
-  { Error(" CalcElemVector4Quad is not implemented for this class",__FILE__,__LINE__);}
+  { Error(" CalcElemVector4Quad is not implemented for this class",__FILE__,__LINE__);};
 
   /// Extraction of element velocity values from total flowdata matrix to a matrix (connecth, dim)
   virtual void GetQttiesOfElement(Matrix<Double>& elVec,
 				  const Matrix<Double>& FlowData,
 				  const StdVector<Integer>& connecth, 
 				  Integer matrixRow)
-  { Error(" GetQttiesOfElement is not implemented for this class",__FILE__,__LINE__);} 
+  { Error(" GetQttiesOfElement is not implemented for this class",__FILE__,__LINE__);};
 
   //! Prints the bilinear form
   virtual void Print(std::ostream * out, const Matrix<Double> Result) const;
@@ -72,9 +74,9 @@ public:
 
   //! needed for fractional damping model
   virtual Boolean IsFracDamping()
-  {return isFracDamping_;}
+  {return isFracDamping_;};
 
-  //
+  //! set additional multiplicative factor for matrix
   virtual void SetFactor(Double factor) {;};
 
   //! sets pointer to actual element
@@ -96,19 +98,18 @@ public:
 
   //! reads the values y(x) out of the file with name fncName  
   void ReadNlinFunc(std::string fncName, Vector<double> &xval, Vector<Double> &yval)
-  {Error("ReadNlinFunc not implemented!");}
+  {Error("ReadNlinFunc not implemented!");};
 
   //! set the integration point
-  void SetIntPoint(Vector<Double> point) {
-    intPoint_ = point; isSetIntPoint_ = TRUE;
-  }
+  void SetIntPoint(Vector<Double> point)
+  { intPoint_ = point; isSetIntPoint_ = TRUE;};
 
   //!
   void SetDofZero(Integer posdof)
   {dofzero_ = posdof; };
 
-  void SetPiezoMaterialType(piezoMaterialType & pMatType){
-    piezoMatType_=pMatType; };
+  void SetPiezoMaterialType(piezoMaterialType & pMatType)
+  { piezoMatType_=pMatType; };
  
 protected:
 

@@ -13,7 +13,8 @@
 
 namespace CoupledField {
 
-NewmarkFracDamp::NewmarkFracDamp(std::string apdename, BaseSystem * algebraicsystem,
+NewmarkFracDamp::NewmarkFracDamp(std::string apdename,
+								 BaseSystem * algebraicsystem,
 								 NodeEQN * ptEQN, Grid * aptgrid,
 								 BasePDE * aptBasePDE,
 								 StdVector<std::string> asubdomainList,
@@ -92,8 +93,8 @@ void NewmarkFracDamp::Init(Double * matrix_factors, Double dt)
   CalcParameters(dt_);
 
   matrix_factors[0] = 1.0;       // factor for stiffness matrix
-  //  matrix_factors[1] = 0.0;       // factor for damping matrix
-  matrix_factors[1] = 1.0*a2_;
+  matrix_factors[1] = 0.0;       // factor for damping matrix
+  //  matrix_factors[1] = 1.0*a2_;
   matrix_factors[2] = 0.0;       // factor for convection matrix
   matrix_factors[3] = 1.0*a2_;   // factor for mass matrix
 
@@ -156,13 +157,15 @@ void NewmarkFracDamp::UpdateRHS()
 	// factor: pre factor in Newmark timestepping scheme
 	// coeff_: weight factors in BDF
 	if ( dampingList_[actSD] == "fractional_gl" ) {
-	  factor =  a2_ * density * 2.0 * alpha0 / c0 / sin((y-1.0)*PI/2.0);
+	  factor = density * 2.0 * alpha0 / c0 / sin((y-1.0)*PI/2.0);
 	  factor *= exp(-(y-1.0)*log(dt_));
+	  factor *= a2_;
 	  GLWeights(calclimit_, y);
 	}
 	else if ( dampingList_[actSD] == "fractional_blank" ) {
-	  factor =  a2_ * density * 2.0 * alpha0 / c0 / sin((y-1.0)*PI/2.0);
+	  factor =  density * 2.0 * alpha0 / c0 / sin((y-1.0)*PI/2.0);
 	  factor *= exp(-(y-1.0)*log(dt_)) * exp(-gammaln(1.0- (y- 1.0)) );
+	  factor *= a2_;
 	  BlankWeights(calclimit_, y, TRUE);
 	}
 
@@ -189,9 +192,11 @@ void NewmarkFracDamp::UpdateRHS()
 	  StdVector<Integer> connect_PDE;
 	  ptEQN_->Node2EQN(connecth, connect_PDE);
 
-// 	  std::cerr << "Mass Matrix, damping part RHS:" << std::endl << elemmat;
-// 	  std::cerr << "Connect" << connect_PDE << std::endl;
-
+#ifdef DEBUG
+	  // output matrix with which BDF is computed
+	  (*debug) << "Mass Matrix, damping part RHS, of Element " << el << std::endl;
+	  (*debug) << elemmat << std::endl;
+#endif
 	  // compute BDF
 	  GetElemSolution(solpred_, elemsol, connect_PDE);
 	  rhsvec = -elemsol * coeff_[0];
@@ -214,6 +219,11 @@ void NewmarkFracDamp::UpdateRHS()
 	  }
 
 	  rhsAssemble = elemmat * rhsvec;
+
+#ifdef DEBUG
+	  (*debug) <<  "BDF vector of timestep " << laststepcalc_ << std::endl;
+	  (*debug) << rhsvec << std::endl;
+#endif
 	  
 	  //assemble to RHS
 	  algsys_->SetElementRHS(&rhsAssemble[0], connect_PDE.GetPointer(),

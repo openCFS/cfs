@@ -1864,12 +1864,14 @@ Double BasePDE::GetFracDampMatrixCoeff(Integer actSD) {
   Double y  = materialData_[actSD].GetDampingBeta();
   Double dt = TS_alg_->GetTimeStep();
 
-//   // needed for formulation with only MASS and STIFFNESS matrix
-//   // pre factor of Newmark time stepping scheme
-//   Double beta = TS_alg_->GetNewmarkBeta();
-//   coeff *= 1.0 / (beta*dt*dt);
-
   coeff = exp(-(y-1.0)*log(dt));
+
+  // needed for formulation with only MASS and STIFFNESS matrix
+  // pre factor of Newmark time stepping scheme
+  Double beta = TS_alg_->GetNewmarkBeta();
+  coeff *= 1.0 / (beta*dt*dt);
+
+  std::cout << "Returned Value in GetFracDampMatrixCoeff is:" << coeff << std::endl;
 
   return coeff;
 }
