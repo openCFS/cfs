@@ -32,6 +32,32 @@ Grid::Grid(FileType * aptFileType)
   conf->getsubdom(listSD_);
 }
 
+
+
+  
+void Grid::SetIntTypeAllElems(IntegrationType aIntType)
+{
+#ifdef TRACE
+  (*trace) << " entering Grid::SetIntTypeAllElems " << std::endl;
+#endif
+
+  ptQ   -> SetIntegrationType(aIntType);
+  ptTet -> SetIntegrationType(aIntType);
+  ptL1  -> SetIntegrationType(aIntType);
+  ptTr1 -> SetIntegrationType(aIntType);
+  ptHexa-> SetIntegrationType(aIntType);
+
+  ptQ   ->Init();
+  ptTet ->Init();
+  ptL1  ->Init();
+  ptTr1 -> Init();
+  ptHexa-> Init();
+
+}
+
+
+
+
 Grid::~Grid()
 {
 

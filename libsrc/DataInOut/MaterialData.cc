@@ -22,6 +22,34 @@ MaterialData::MaterialData():scaledMatDat(0)
 }
 
 
+MaterialData::MaterialData(const MaterialData & mat)
+{
+#ifdef TRACE
+  if (trace) (*trace) << "Entering MaterialData::MaterialData(MaterialData)" << std::endl;
+#endif
+  density         = mat.density;
+  compressibility = mat.compressibility ;
+  damp_alfa       = mat.damp_alfa;
+  damp_beta       = mat.damp_beta;
+  eModule         = mat.eModule;
+  nu           = mat.nu;
+  permeability = mat.permeability;
+  conductivity = mat.conductivity;
+  permMx       = mat.permMx;
+  permMy       = mat.permMy;
+  permMz       = permMz;
+  scaledMatDat = mat.scaledMatDat;
+  matNr        = mat.matNr;
+  nonlin       = mat.nonlin;
+
+  const int stringLength = 100;
+  name = new char[stringLength];  
+  SetName(mat.name);
+
+  piezoMatrix  = new Matrix<Double>( *mat.piezoMatrix);
+}
+
+
 void MaterialData::SetConductivity(const double& Conductivity) 
 {
 #ifdef TRACE

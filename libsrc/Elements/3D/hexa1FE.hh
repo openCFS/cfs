@@ -17,6 +17,7 @@ public:
    //! Deconstructor
    virtual ~Hexa1FE();
 
+protected:
    //! Define variables of this class
    virtual void Init();
 

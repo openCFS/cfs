@@ -216,6 +216,11 @@ public:
   */
   virtual void CalcNumberOfNodesInPatch(const std::vector<Elem*> & patch, std::vector<Integer> & map) = 0;
 
+
+  /// resets the integration type of all known elements
+  void SetIntTypeAllElems(IntegrationType aIntType);
+  
+
 protected:
 
   FileType * ptFileType;   //!< pointer to input file

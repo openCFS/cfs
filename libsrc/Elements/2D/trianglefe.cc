@@ -46,6 +46,26 @@ void TriangleFE:: SetIntPoints()
  switch(IntegType)
     {
 
+    case GaussOrder1:
+
+      NumIntPoints_ = 1;
+      DegreeInteg_  = 1;
+
+      
+      if ( !IntPoints_)
+	IntPoints_ = new std::vector<Double>[NumIntPoints_];
+      
+      IntWeights_.resize(NumIntPoints_);
+      
+      for(Integer i=0; i<NumIntPoints_; i++)
+	IntPoints_[i].resize(Dim_);
+      
+      IntPoints_[0][0] = 1./3;
+      IntPoints_[0][1] = 1./3;
+
+      IntWeights_[0]= 0.5 ;
+      break;
+
     case GaussOrder2:
 
       NumIntPoints_=3;
