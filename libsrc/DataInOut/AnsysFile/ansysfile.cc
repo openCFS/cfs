@@ -53,10 +53,12 @@ Integer AnsysFile::ReadDim()
     
     std::string::size_type pos=0;
     getPosition("Dimension", pos);
+    std::cerr << "pos = " << pos << std::endl;
     infile.seekg(pos,std::ios::beg);
     
     // std::string auxname;
     infile >> dim;
+    std::cerr << "dim = " << dim << std::endl;
     
     return dim;
 }
@@ -1002,7 +1004,7 @@ BaseFE * AnsysFile::Type2ptElem(const Integer itype)
   ENTER_IFCN( "AnsysFile::Type2ptElem" );
     switch(itype)
       {
-      case 1:
+      case 101:
 	return ptL2;
       case 100:
 	return ptL1;
