@@ -109,7 +109,10 @@ protected:
   //! solution vector is uniquely defined
   StdVector<Integer> eqn2Pos_;
 
+protected:
   
+  //! Default constructor is disallowed
+  NodeEQN() {};
 
 };
 
