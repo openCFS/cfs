@@ -416,7 +416,6 @@ Boolean ConfFile::get_option(const std::string keyword, const std::string sectio
 
  pos=getpos(keyword,pos1,inSection,inSubSection,FALSE);
 
- Boolean val=FALSE;
 
  if (pos==std::string::npos) return FALSE;
 
@@ -460,7 +459,6 @@ Boolean ConfFile::get_optionNo(const std::string keyword, const std::string sect
 
  pos=getpos(keyword,pos1,inSection,inSubSection,FALSE);
 
- Boolean val=FALSE;
 
  if (pos==std::string::npos) return FALSE;
 

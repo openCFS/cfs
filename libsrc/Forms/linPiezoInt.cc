@@ -34,7 +34,7 @@ namespace CoupledField
     ptelem->GetGlobDerivShFncAtIp(xiDx, ip, ptCoord);
 
     // auxiliary variables
-    Integer actDim, actNode, help, j, k;
+    Integer actDim, actNode;
 
     // treat mechanical part (same as in linElastInt)
     for(actDim=0; actDim < spaceDim; actDim++)

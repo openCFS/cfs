@@ -33,9 +33,6 @@ namespace CoupledField
     if (trace) (*trace) << "Entering  LoadMaterialData::GetMaterial " << std::endl;
 #endif
     char buffer[bufLength];  
-    char materialType[bufLength];
-    Integer i,k;
-    Integer j=0;
     
     // 
     char * charFileName = c_string(filename);

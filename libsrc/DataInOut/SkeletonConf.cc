@@ -1,3 +1,5 @@
+#ifndef XMLPARAMS
+
 #include <stdlib.h>
 #include <iostream>
 #include <sstream>
@@ -294,3 +296,4 @@ namespace CoupledField
 
 
 
+#endif

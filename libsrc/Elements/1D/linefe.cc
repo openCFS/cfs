@@ -195,7 +195,6 @@ void LineFE::CalcInvJacobian(Matrix<Double> & JInv,
   
   JInv.Resize(1,1);
 
-  Double detJ, aux;
   Matrix<Double> J, LDeriv;
 
   J.Resize(1,1);
@@ -216,7 +215,6 @@ void LineFE::CalcInvJacobianAtIp(Matrix<Double> & JInv,
   
   JInv.Resize(1,1);
 
-  Double detJ, aux;
   Matrix<Double> J;
 
   J.Resize(1,1);
