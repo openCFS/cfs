@@ -1327,7 +1327,7 @@ void MechPDE::WriteResultsInFile(Integer stepOffset,
     solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);
     
     if (saveSol_ == TRUE ) 
-      outFile_->WriteNodeSolutionTransient(*solTransient, actStep, actTime);
+//        outFile_->WriteNodeSolutionTransient(*solTransient, actStep, actTime);
     
     if (saveSolHist_ == TRUE)
       outFile_->WriteNodeHistoryTransient(*solTransient, actStep, actTime);
@@ -1336,7 +1336,7 @@ void MechPDE::WriteResultsInFile(Integer stepOffset,
       if (saveDeriv1_ == TRUE)
 	{
 	  solDeriv1_.SetAlgSysVector(getS1());
-	  outFile_->WriteNodeSolutionTransient(solDeriv1_, actStep, actTime);
+// 	  outFile_->WriteNodeSolutionTransient(solDeriv1_, actStep, actTime);
 	  
 	  if (saveDeriv1Hist_ == TRUE)
 	    outFile_->WriteNodeHistoryTransient(solDeriv1_, actStep, actTime);

@@ -16,7 +16,7 @@
 
 namespace CoupledField {
 
-  AcousticPDE::AcousticPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc,
+AcousticPDE::AcousticPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc,
 			   FileType *aptFileType, WriteResults *aptOut)
     :BasePDE(aptgrid,aptbcs,aptFileType,aptOut,aptTimeFunc) {
 
@@ -190,7 +190,7 @@ namespace CoupledField {
   }
 
 
-  void AcousticPDE::DefineIntegrators(const Integer level) {
+void AcousticPDE::DefineIntegrators(const Integer level) {
 
     ENTER_FCN( "AcousticPDE::DefineIntegerators" );
 
@@ -299,7 +299,7 @@ namespace CoupledField {
   // SOLVING SECTION
   // ======================================================
 
-  void AcousticPDE::InitTimeStepping() {
+void AcousticPDE::InitTimeStepping() {
     ENTER_FCN( "AcousticPDE::InitTimeStepping" );
     
     if ( dampingType_ == FRACTIONAL ) {
@@ -455,7 +455,7 @@ namespace CoupledField {
 
    // calculates L2-norm of RHS regarding dirichlet entries due to penalty
    // formulation by setting them 0
-  Double AcousticPDE::RhsL2Norm(Vector<Double>& actRHS) {
+Double AcousticPDE::RhsL2Norm(Vector<Double>& actRHS) {
     ENTER_FCN( "AcousticPDE::RhsL2Norm" );
     
     Integer node, dof;
@@ -506,7 +506,7 @@ namespace CoupledField {
   }
 
 
-  void AcousticPDE::CalcOutputCoupling() {
+void AcousticPDE::CalcOutputCoupling() {
 
     ENTER_FCN( "AcousticPDE::CalcOutputCoupling" );
 
@@ -548,7 +548,7 @@ namespace CoupledField {
   }
 
 
-  void AcousticPDE::CalcMechCouplingRHS(StdVector<Elem*> * couplingElems, 
+void AcousticPDE::CalcMechCouplingRHS(StdVector<Elem*> * couplingElems, 
 					StdVector<Integer> & couplingNodes,
 					StdVector<MaterialData*> * couplingMaterials,
 					Vector<Double>& elemCouplingSols,
@@ -626,7 +626,7 @@ namespace CoupledField {
   }
 
 
-  Boolean AcousticPDE::HasOutput(SolutionType output) {
+Boolean AcousticPDE::HasOutput(SolutionType output) {
     ENTER_FCN( "AcousticPDE::HasOutput" );
     if (output == ACOU_FORCE) {
       return TRUE;
@@ -639,7 +639,7 @@ namespace CoupledField {
   // POSTPROCESSING SECTION
   // ======================================================
 
-  void AcousticPDE::WriteResultsInFile(Integer stepOffset,
+void AcousticPDE::WriteResultsInFile(Integer stepOffset,
 				       Double timeOffset) {
     ENTER_FCN( "AcousticPDE::WriteResultsInFile" );
 
@@ -669,7 +669,7 @@ namespace CoupledField {
 	solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);
 
 	if (saveSol_){
-	  outFile_->WriteNodeSolutionTransient(*solTransient, actStep, actTime);
+// 	  outFile_->WriteNodeSolutionTransient(*solTransient, actStep, actTime);
 	  
 	  if (saveSolHist_)
 	    outFile_->WriteNodeHistoryTransient(*solTransient, actStep, actTime);
@@ -701,7 +701,7 @@ namespace CoupledField {
   //   Obtain information on desired output quantities from parameter file
   // ***********************************************************************
 #ifdef XMLPARAMS
-  void AcousticPDE::ReadStoreResults() {  
+void AcousticPDE::ReadStoreResults() {  
     ENTER_FCN( "AcousticPDE::ReadStoreResults" );
     
     // Construct vectors for restricted parameter search

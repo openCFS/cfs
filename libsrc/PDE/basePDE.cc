@@ -1633,7 +1633,7 @@ namespace CoupledField
       else
 	solvertype_ = ComplexDirectSolver;
     }
-    else if (solverType == "CG") {
+    else if (solverType == "cg") {
       if (!isComplex_)
 	solvertype_ = RealCG;
       else
