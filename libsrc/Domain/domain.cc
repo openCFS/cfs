@@ -24,7 +24,7 @@ Domain<Dim> :: Domain(Integer anumsubdomain, FileType * const aptFileType)
 //  grid=new GridInterfaceCFS<Dim>(aptFileType);
  
 #ifdef DEBUG
-# grid->PrintCoordinate(0,debug);
+// grid->PrintCoordinate(0,debug);
 #endif
 }
 
