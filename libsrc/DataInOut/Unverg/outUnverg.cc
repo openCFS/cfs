@@ -157,8 +157,9 @@ void  WriteResultsUnverg::Dataset780(const Integer level)
  (*output) << std::setw(6) << -1 << std::endl;
 }
 
-void  WriteResultsUnverg::Dataset55(const std::string & title, const Vector<Double> & x, const Integer step, const Double time)
+void  WriteResultsUnverg::Dataset55(const std::string & title, const Vector<Double> & x, const Integer step, const Double time, const Integer nrDofs)
 {
+  
   //
   if (!ptgrid)
      Error("ptgrid is not initialized", __FILE__,__LINE__);
@@ -169,20 +170,35 @@ void  WriteResultsUnverg::Dataset55(const std::string & title, const Vector<Doub
  (*output).precision(6);
  (*output).setf(std::ios::uppercase);
 
- (*output) << " " << title << ", step" << std::setw(6) << step <<
+ Integer valsPerNode = 1;
+ if (nrDofs > 1)
+   valsPerNode = 3;
+ 
+
+ (*output) << " " << title << " step" << std::setw(6) << step <<
              " time   " << time << std::endl;  
  (*output) << std::endl << std::endl << std::endl << std::endl;
  (*output) << std::setw(10) << 1 << std::setw(10) << 4 << std::setw(10) << 1 << std::setw(10) << 0
-           << std::setw(10) << 2 << std::setw(10) << 1 << std::endl;
+           << std::setw(10) << 2 << std::setw(10) << valsPerNode << std::endl;
  (*output) << std::setw(10) << 2 << std::setw(10) << 1 << std::setw(10) << 1 << std::setw(10) <<
               step << std::endl;
  (*output) << " " << time << std::endl;       
 
- Integer i,n;
- n=x.size();  
+ Integer i,j,n;
+ n=x.size()/nrDofs;  
  for (i=0; i<n; i++)
-   (*output) << std::setw(10) << i+1 << std::endl << " " << x[i] << std::endl;
+   {
+     (*output) << std::setw(10) << i+1 << std::endl << " ";
+
+     // in the universal file eihter one or three results datas must exist
+     if (nrDofs == 2)
+       (*output) << 0.0;
+
+     for (j=0; j<nrDofs; j++)
+       (*output) << " " << x[i*nrDofs + j];
      
+     (*output) << std::endl;
+   }    
  (*output) << std::setw(6) << -1 << std::endl;
 }  
 
@@ -220,20 +236,31 @@ void  WriteResultsUnverg::Init(Grid * aptgrid)
  ptgrid=aptgrid;
 }
 
-void  WriteResultsUnverg::WriteSolution(const Vector<Double> & sol, const Integer step, const Double time, const std::string title)
+void  WriteResultsUnverg::WriteSolution(const Vector<Double> & sol, const Integer step, const Double time, const std::string title, const Integer nrDofs)
 {
 
- Integer i;
+ Integer i,j;
  if (NeedHistory_) 
    for (i=0; i< nodeshist_.size(); i++)
-    {
+     {
       if (sol.size() <= nodeshist_[i])
         Error("Please, check history-nodes in config-file.",__FILE__,__LINE__);
-      if (time != lastsavetime[i])
-	// sol[node-1] since internal node starts at zero!        
-          AddInHistory(time,sol[nodeshist_[i]-1],i); 
+      if (lastsavetime[i] != time )
+	if (nrDofs > 1)	
+	  {
+	    std::vector<Double> solVec;
+	    solVec.resize(nrDofs);
+	    for (j=0; j<nrDofs; j++)
+	      solVec[j] = sol[(nodeshist_[i]-1) * nrDofs + j];
+	    
+	    AddVecInHistory(time, solVec, i);
+	  }
+	else
+	  // sol[node-1] since internal node starts at zero!        
+	  AddInHistory(time,sol[nodeshist_[i]-1],i);
+
     }
- Dataset55(title, sol, step+1, time);
+ Dataset55(title, sol, step+1, time, nrDofs);
 }
 
 void  WriteResultsUnverg::WriteDataOnCell(const Vector<Double> & sol, const Integer step, const Double time, const std::string title)

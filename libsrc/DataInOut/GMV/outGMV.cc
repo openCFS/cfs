@@ -305,19 +305,29 @@ void WriteResultsGMV::WriteGrid(const Integer level)
  WriteCells(level);
 }
 
-void WriteResultsGMV::WriteSolution(const Vector<Double> & sol, const Integer step, const Double time, const std::string title)
+void WriteResultsGMV::WriteSolution(const Vector<Double> & sol, const Integer step, const Double time, const std::string title, const Integer nrDofs)
 {
 #ifdef TRACE
  (*trace) << " entering WriteResultsGMV::WriteSolution " << std::endl;
 #endif
 
-  Integer i;
+  Integer i,j;
   if (NeedHistory_)
     for (i=0; i<nodeshist_.size(); i++) {
       if (sol.size()<=nodeshist_[i])
         Error("Please, check history-nodes in config-file.",__FILE__,__LINE__);
       if (lastsavetime[i] != time )
-	AddInHistory(time,sol[nodeshist_[i]],i);
+	if (nrDofs > 1)	
+	  {
+	    std::vector<Double> solVec;
+	    solVec.resize(nrDofs);
+	    for (j=0; j<nrDofs; j++)
+	      solVec[j] = sol[(nodeshist_[i]-1) * nrDofs + j];
+	    
+	    AddVecInHistory(time, solVec, i);
+	  }
+	else
+	  AddInHistory(time,sol[nodeshist_[i]-1],i);
     }
 
   Integer type=1; // 0 - for cell 

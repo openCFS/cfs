@@ -160,7 +160,7 @@ namespace CoupledField
 	  { if (str==levels[j]) { Find=TRUE; break;}
 	  }         
 
-	std::string msg=str+"-this level of BCs from .mesh file is not mentioned in .config file. Please, check .config-file";
+	std::string msg=str+": This level of BCs from .mesh file is not mentioned in .config file. Please, check .config-file";
 	if (!Find) Error(msg.c_str(),__FILE__,__LINE__);
 
 	bcs[j].push_back(nodalnum);

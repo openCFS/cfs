@@ -31,7 +31,7 @@ void MechPDE::DiscreteParamsPDE()
   (*trace) << "entering MechPDE ::DiscreteParamsPDE" << std::endl;
 #endif
 
-  MatrixType_   = RSCALAR;
+  MatrixType_   = RBLOCK;
   GraphType_    = NODEGRAPH; 
   SystemMatrix_ = TRUE;
 
@@ -74,7 +74,7 @@ void MechPDE::SolveStepStatic(const Integer level)
   ptsol = algsys_->GetSolutionVal();
 
   // save solution
-  Vector<Double> transsol(ptgrid_->GetMaxnumnodes(level), ptsol);
+  Vector<Double> transsol(ptgrid_->GetMaxnumnodes(level)*dofspernode_, ptsol);
   disp_=transsol;
 }
 
@@ -90,15 +90,11 @@ void MechPDE::WriteResultsInFile()
 
   if (OutFile_->IsGMV())
     {
-      OutFile_->WriteSolution(disp_,laststepcalc,lasttimecalc,"Displacements");
+      OutFile_->WriteSolution(disp_,laststepcalc,lasttimecalc,"displacement", dofspernode_);
     }
   else
     {
-      OutFile_->WriteSolution(disp_,laststepcalc,lasttimecalc,"Displacements");
+      OutFile_->WriteSolution(disp_,laststepcalc,lasttimecalc,"displacement",  dofspernode_);
     }
-
 }
-
 }
-
-

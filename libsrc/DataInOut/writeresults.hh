@@ -36,7 +36,7 @@ public:
     \param time time of calculation
     \param title name for the solution
   */
-  virtual void WriteSolution(const Vector<Double> & sol, const Integer step, const Double time, const std::string title)=0;
+  virtual void WriteSolution(const Vector<Double> & sol, const Integer step, const Double time, const std::string title, const Integer nrDofs=1)=0;
 
   //! write cell data
   /*!
@@ -81,6 +81,8 @@ protected:
   std::ofstream * historyfile;
   //! add new data in history file
   void AddInHistory(const Double time, const Double val, const Integer ifile);
+  //! add new vector valued data in history file
+  void AddVecInHistory(const Double time, const std::vector<Double> val,const Integer ifile);
   //! last time step, for which results were printed
   Vector<Double> lastsavetime;
   //! indicator: format of output: ascii or binary

@@ -37,7 +37,7 @@ public:
     \param time time of the calculation
      \param title name for the solution
   */
-  virtual void WriteSolution(const Vector<Double> & sol, const Integer step, const Double time, const std::string title);
+  virtual void WriteSolution(const Vector<Double> & sol, const Integer step, const Double time, const std::string titlee, const Integer nrDofs=1);
 
  //! write cell data
  /*!
