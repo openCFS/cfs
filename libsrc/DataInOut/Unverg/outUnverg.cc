@@ -207,20 +207,36 @@ void  WriteResultsUnverg::NodeElemDataTransient(const Integer dataSetNr,
  (*output).precision(6);
  (*output).setf(std::ios::uppercase);
 
+ // Standard for scalar values
  Integer dataCharac = 1;
  Integer valsPerNode = 1;
+ 
+ // needed for undocumented value of
+ // Dataset 55/56 in record8 , field4
+ Integer specDataCharac = 0;
 
- if (nrDofs > 1) {
+ // Vector type
+ if (nrDofs > 1 && nrDofs <= 3) 
+   {
    valsPerNode = 3;
    dataCharac = 2;
- }
+ } 
+ // Tensor
+ else if(nrDofs == 6) 
+   { 
+     valsPerNode = 6;
+     specDataCharac = 2;
+     dataCharac = 4; // symmetric tensor
+//      dataCharac = 3; // vector with 6 components
+//      dataCharac = 5; // unsymmetric tensor
+   }
+     
  
-
- (*output) << " " << title << ", step" << std::setw(6) << step <<
+ (*output) << " " << title << " step" << std::setw(6) << step <<
              " time   " << time << std::endl;  
  (*output) << std::endl << std::endl << std::endl << std::endl;
  (*output) << std::setw(10) << 1 << std::setw(10) << 4 << std::setw(10) 
-	   << dataCharac  << std::setw(10) << 0
+	   << dataCharac  << std::setw(10) << specDataCharac
            << std::setw(10) << 2 << std::setw(10) << valsPerNode << std::endl;
  (*output) << std::setw(10) << 2 << std::setw(10) << 1 << std::setw(10) << 1 
 	   << std::setw(10) <<
