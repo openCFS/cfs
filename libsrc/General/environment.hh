@@ -2,6 +2,7 @@
 #define FILE_SCFE_MYDEFS_2001
 
 #include <las_environment.hh>
+#include <vector>
 
 namespace CoupledField
 {
@@ -42,7 +43,10 @@ typedef int Boolean;
   //! enumeration precondition's types. it is used in methods of LinAlg
  enum precond { non, Jacobi, SSOR, LU}; 
 
-std::ostream & operator << (std::ostream & out, const enum precond & type);
+  std::ostream & operator << (std::ostream & out, const enum precond & type);
+
+  std::ostream& operator << (std::ostream & outStr, std::vector<Double> xOut);
+  std::ostream& operator << (std::ostream & outStr, std::vector<Integer> xOut);
 
 // ------------------------ Files for debug, trace and information ---------
 extern std::ostream * trace; //name.trace

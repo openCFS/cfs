@@ -9,6 +9,7 @@
 #include <Forms/elecfieldop.hh>
 #include <Forms/elecforceop.hh>
 #include <Estimator/spaceerror.hh>
+#include <General/environment.hh>
  
 namespace CoupledField
 {
@@ -34,6 +35,8 @@ MagEdgePDE::MagEdgePDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileT
 
   AssignPDENodeNumbers();
   NumElems_ = ptgrid_->GetMaxnumElem(actlevel_, subdoms_); 
+
+  bField_ = NULL;
 }
 
 
@@ -153,28 +156,35 @@ void MagEdgePDE::SolveStepStatic(const Integer level)
 #endif
 
   Integer update = 0;
-  Integer job = 1;
+  Integer job = 4;
 
   Double * ptsol;
 
   //compute and assemble element matrices
   SetupMatrices(level);
 
+  // calculate source term
+  SetupRHS(level);
+  
   //account for bcs
   SetBCs(level,update,0);
 
-  //  algsys_->CalcPrecond(job);
-  //  algsys_->Solve();
+  algsys_->CalcPrecond(job);
+  algsys_->Solve();
 
-  //  ptsol = algsys_->GetSolutionVal();
+  ptsol = algsys_->GetSolutionVal();
 
   // save solution
   //  Vector<Double> transsol(NumPDENodes_, ptsol);
-  //  sol_=transsol;
+  for(Integer i=0; i < size_; i++)
+    sol_[i] = ptsol[i];
 
 #ifdef DEBUG
-  //  std::string matFileName = "solMat";
-  //  OutFile_->WriteSolMatrix(ptgrid_, level, sol_, matFileName);
+  (*debug) << "SolveStepStatic: \n solution \n";
+  for (Integer i=0; i < size_; i++)
+    (*debug) << ptsol[i] << " ";
+  
+  (*debug) << std::endl;  
 #endif
 }
 
@@ -187,6 +197,8 @@ void MagEdgePDE::SetupMatrices(const Integer level)
 #endif
   
   Matrix<Double> elemmat;  
+  Matrix<Double> elemmat_aux;  
+
   Matrix<Double> ptCoord;
   BaseFE         * ptElem;
 
@@ -199,8 +211,8 @@ void MagEdgePDE::SetupMatrices(const Integer level)
 
   //curently hard coded for tets
   Integer elemsize_edge = 6;
-  Integer * epos  = new Integer[elemsize_edge];
-  Integer * esign = new Integer[elemsize_edge];
+  std::vector<Integer> epos(elemsize_edge);
+  std::vector<Integer> esign(elemsize_edge);
 
   for (i=0; i<subdoms_.size(); i++)
     {
@@ -221,14 +233,15 @@ void MagEdgePDE::SetupMatrices(const Integer level)
 	{  
 	  ptElem=elemssd[j]->ptElem;
 
-	  BaseForm * bilinear_stiff = new LaplaceInt(ptElem,reluctivity);
+	  BaseForm * bilinear_stiff = new CurlCurlEdgeInt(ptElem, reluctivity);
+	  BaseForm * lapl           = new LaplaceInt(ptElem, reluctivity);
 
 	  connecth=elemssd[j]->connect;
 	  
 	  ptgrid_->GetCoordNodesElemMat(connecth, ptCoord, level);
 
 	  // CHANGE connecth
-	  Mesh2PDENode(connect_PDE,connecth);
+	  Mesh2PDENode(connect_PDE, connecth);
 
 	  //get the edge numbers and their signs
 	  GetEdgeNumber(connect_PDE.get(), epos, esign);
@@ -236,21 +249,33 @@ void MagEdgePDE::SetupMatrices(const Integer level)
 	  // stiffness part
 	  bilinear_stiff->CalcElementMatrix(ptCoord, elemmat);
 	  
+	  // correct sign of entries in elemmat due to orientation of edge
+	  for(Integer ii=0; ii<elemmat.getSize(); ii++)
+	    for(Integer jj=0; jj<elemmat.getSize(); jj++)
+	      elemmat[ii][jj] *= esign[ii] * esign[jj];
+	  
+	      
 #ifdef DEBUG
 	  (*debug) << "Stiffnessmatrix, ElementNumber  " <<   i << std::endl;
 	  (*debug) << elemmat << std::endl;
 #endif
 
-	  //	  algsys_->SetElementMatrix(elemmat.getinarray(), connect_PDE.get(), connecth.size(), 
-	  //				    SYSTEM);
+
+	  algsys_->SetElementMatrix(elemmat.getinarray(), &epos[0], epos.size(),SYSTEM);
+
+	  lapl->CalcElementMatrix(ptCoord, elemmat_aux);
+	  algsys_->SetAuxElementMatrix(elemmat_aux.getinarray(), 
+				       connect_PDE.get(), connecth.size());
 	  
-	  delete bilinear_stiff;	  
+	  delete bilinear_stiff;
+	  delete lapl;
 
-	}  
-      
+	} 
     }
-
 }
+
+
+
 
 
 void MagEdgePDE::WriteResultsInFile()
@@ -265,11 +290,36 @@ void MagEdgePDE::WriteResultsInFile()
 //   Vector<Double> Potentialh, *Eh, *Fh;
 //   TransformNodeSolution(Potentialh,sol_);
 
-//   if (OutFile_->IsGMV())
-//     OutFile_->WriteSolution(Potentialh,step,time,"magnetic vector potential");
-//   else
-//     OutFile_->WriteSolution(Potentialh,step,time,"magnetic vector potential");
+  if (!bField_)
+    Error("B-Field needs to be calculated before output!",__FILE__,__LINE__);
 
+
+  if (OutFile_->IsGMV())
+    {
+      OutFile_->WriteSolution(sol_, step, time, "magnetic vector potential");
+      
+      // Write Out Vector Data
+      for (ShortInt i=0; i<ptgrid_->GetDim(); i++) 
+	{
+	  std::ostringstream b_fieldname;
+	  b_fieldname << "Bfield " << i;
+	  OutFile_->WriteDataOnCell(bField_[i], step, time, b_fieldname.str());
+	}
+    }
+  else
+    {
+      const Integer dim = 3;
+      
+      std::string b_fieldname = "magnetic field density";
+      Matrix<Double> outMat(bField_[0].size(), dim);
+      
+      for (Integer i=0; i<ptgrid_->GetDim(); i++) 
+	for (Integer j=0; j < bField_[0].size(); j++)
+	  outMat[i][j] = bField_[i][j];
+	  
+ 	
+      OutFile_->WriteDataOnCell(outMat, step, time, b_fieldname);
+    }
 }
 
 
@@ -357,8 +407,12 @@ void MagEdgePDE::EvalNumDirichlet()
   std::vector<Elem*>  SurfD;
   std::vector<std::string> surfDirichlet;
 
-  if (conf->ifgetliststr("SurfeDirichlet",surfDirichlet,"magnetic"))
-    SurfD = ptBCs_->getFacesBC(surfDirichlet[0],actlevel_);
+  if (conf->ifgetliststr("SurfeDirichlet", surfDirichlet, "magnetic"))
+    
+      if (surfDirichlet.size())
+	SurfD = ptBCs_->getFacesBC(surfDirichlet[0],actlevel_);
+      else
+	Error("No Surfaces specified as Dirichlet Boundaries",__FILE__,__LINE__);
   else
     Error("No Surfaces specified as Dirichlet Boundaries",__FILE__,__LINE__);
 
@@ -394,9 +448,9 @@ void MagEdgePDE::EvalNumDirichlet()
   EdgeDir_ = new Integer[numEdgedir_];
 
   k=0;
-  for (i=0; i<numEdgedir_; i++)
+  for (i=0; i<size_; i++)
     {
-      if (dnode[i] != 0)
+      if (dnode[i])
 	{
 	  EdgeDir_[k] = dnode[i];
 	  k++;
@@ -435,7 +489,7 @@ void   MagEdgePDE::SetBCs(const Integer level, const Integer update, const Doubl
 #endif 
 }
 
-void MagEdgePDE::GetEdgeNumber(Integer *pos, Integer *epos, Integer *esign)
+void MagEdgePDE::GetEdgeNumber(Integer *pos, std::vector<Integer>& epos, std::vector<Integer>& esign)
 {
 #ifdef TRACE
   (*trace) << "entering MagEdgePDE::GetEdgeNumber" << std::endl;
@@ -460,6 +514,134 @@ void MagEdgePDE::GetEdgeNumber(Integer *pos, Integer *epos, Integer *esign)
 	(*debug) << "Edge: " << epos[i] << "  Sign: " << esign[i] << std::endl;
 #endif
 }
+
+
+void MagEdgePDE::SetupRHS(const Integer level)
+{
+#ifdef TRACE
+  (*trace) << "entering MagEdgePDE::SetupRHS" << std::endl;
+#endif
+
+//   std::vector<std::string> coil;
+//   if (conf->ifgetliststr("Coil", coil, "magnetic"))
+    
+  const Double current = 1;
+  const Integer currDirection = 3;
+  
+  std::vector<Double> elemVec;  
+  Matrix<Double> ptCoord;
+  BaseFE         * ptElem;
+
+  Vector<Integer> connecth, connect_PDE;  
+  Integer i, j;
+  Double reluctivity, conductivity;
+
+  //curently hard coded for tets
+  Integer elemsize_edge = 6;
+  std::vector<Integer> epos(elemsize_edge);
+  std::vector<Integer> esign(elemsize_edge);
+
+  for (i=0; i<subdoms_.size(); i++)
+    {
+      std::vector<Elem*> elemssd;
+   
+      ptgrid_->GetElemSD(elemssd,subdoms_[i],level);
+
+      for (j=0; j < elemssd.size(); j++)
+	{  
+	  ptElem=elemssd[j]->ptElem;
+
+	  BaseForm * rhsSource = new LinearEdgeInt(ptElem, current, currDirection);
+
+	  connecth=elemssd[j]->connect;
+	  
+	  ptgrid_->GetCoordNodesElemMat(connecth, ptCoord, level);
+
+	  // CHANGE connecth
+	  Mesh2PDENode(connect_PDE,connecth);
+
+	  //get the edge numbers and their signs
+	  GetEdgeNumber(connect_PDE.get(), epos, esign);
+
+
+#ifdef DEBUG
+	  (*debug) << " connecth \n"  << connecth << std::endl;
+	  (*debug) << " connect_PDE \n"  << connect_PDE << std::endl
+		   << " elemNr " << j << std::endl
+		   << " epos " << epos << std::endl;
+#endif
+	  // stiffness part
+	  rhsSource->CalcElemVector(ptCoord, elemVec);
+	  
+	  // correct sign of entries in elemVec due to orientation of edge
+	  for(Integer ii=0; ii<elemVec.size(); ii++)
+	    elemVec[ii] *= esign[ii];
+	  
+	      
+#ifdef DEBUG
+	  (*debug) << "RHS, ElementNumber  " << j << std::endl;
+
+	  (*debug) << elemVec << std::endl;
+#endif
+
+	  algsys_->SetElementRHS(&elemVec[0], &epos[0], epos.size());
+
+	  delete rhsSource;
+	} 
+    }
+}
+
+
+void MagEdgePDE::PostProcess(const Integer level)
+{
+#ifdef TRACE
+  (*trace) << "entering MagEdgePDE::PostProcess" << std::endl;
+#endif  
+
+  ShortInt Dim = ptgrid_->GetDim();
+  CurlEdgeOp * magField = new CurlEdgeOp(ptgrid_, &Mesh2PDENode_, &sol_, level, algsys_);
+ 
+  // ######### Calculation of the magnetic field #########
+
+  std::vector<Double> lCoord(Dim, 1./4);
+
+  std::vector<Elem*> elemssd;
+  Vector<Double> elemMagField;
+
+
+  bField_ = new Vector<Double>[Dim];
+
+  // Resize solution arrays
+  for( Integer i=0; i<Dim; i++)
+    bField_[i].Resize(NumElems_);
+
+  
+  
+
+  // loop over all subdomains
+  for (Integer isd=0; isd<subdoms_.size(); isd++)
+    {
+      // get vector of Elem of subdomain with color: subdoms[isd]
+      ptgrid_->GetElemSD(elemssd, subdoms_[isd], level);
+      
+      // loop over elements of subdomain
+      for (Integer iel=0; iel< elemssd.size(); iel++)
+	{
+
+ 	  magField->CalcElemCurlEdge(elemMagField, elemssd[iel], lCoord);
+
+#ifdef DEBUG
+	  (*debug) << "PostProc elem " << iel << std::endl 
+		   << "MagField: \n " << elemMagField << std::endl;
+#endif
+
+	  for (Integer k=0; k<Dim; k++)
+	    bField_[k][iel] = elemMagField[k];
+	}
+    }
+}
+
+
 
 
 MagEdgePDE::~MagEdgePDE()

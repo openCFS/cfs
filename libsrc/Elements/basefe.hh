@@ -54,22 +54,25 @@ public:
 				  const std::vector<Double> & LCoord,
 				  const Matrix<Double> & CornerCoords);
 
+
+
   //! Get global derivatives of all shape fnc at integration point ip
   /*! 
-    \param S (output) Matrix with global derivatives of all shape functions
+    \param deriv (output) Matrix with global derivatives of all shape functions
     \f[ \left( \begin{array}{ccc} N_{1,d\xi} & N_{1,d\eta} & \cdots \\
                                   N_{2,d\xi} & N_{2,d\eta} & \cdots \\
                                   \cdots     & \cdots      & \cdots \end{array}\right) \f]
     \param ip(input) Integration point
-    \param CornerCoords (input) Coordinates of element corners
+    \param cornerCoords (input) Coordinates of element corners
     \f[ \left( \begin{array}{ccc} x_{1} & x_{2} & \cdots \\ y_{1} & y_{2} & \cdots \\
                                   \cdots & \cdots & \cdots \end{array} \right) \f]
      \param jacDet jacobian determinant
   */
-  virtual  void GetGlobDerivShFncAtIp(Matrix<Double> & Deriv, 
+  virtual  void GetGlobDerivShFncAtIp(Matrix<Double> & deriv, 
 				      const Integer ip,
-				      const Matrix<Double> & CornerCoords,
+				      const Matrix<Double> & cornerCoords,
 				      Double & jacDet);
+
 
 
   //! Get global derivatives of all shape fnc at integration point ip
@@ -168,6 +171,8 @@ public:
   virtual Double CalcJacobianDetAtIp(const Integer ip, 
 				     const Matrix<Double> & CornerCoords);
 
+
+
   //! Return number of nodes   
   ShortInt GetDim() const {return Dim_;}
  
@@ -193,7 +198,82 @@ public:
   std::vector<Double> GetIntWeights() const {return IntWeights_;};
   
   
+  // ============================= methods for edge elements =======================
+  // =================================================================================
+
+ //! Calculates the local derivatives of the edge shape functions at an arbitrary local point
+  /*!
+    \param deriv (output) Vector of matrices with local derivatives of all shape functions.
+                  Every matrix stores a complete set of global derivations
+    \f[ LDeriv_1 = \left( \begin{array}{ccc} N_{1\xi,d\xi} & N_{1\xi,d\eta} & N_{1\xi,d\zeta}\\
+                                             N_{1\eta,d\xi} & N_{1\eta,d\eta} & N_{1\eta,d\zeta}\\
+					     N_{1\zeta,d\xi} & N_{1\zeta,d\eta} & N_{1\zeta,d\zeta}
+					     \end{array}\right) \f]
+    \param LCoord (input) Local coordinates of evalutation point 
+  */
+  virtual void GetEdgeGlobalDerivShapeFnc(std::vector<Matrix<Double>* > & deriv, 
+					  const std::vector<Double> & LCoord,
+					  const Matrix<Double> & CornerCoords)
+  { Error("GetEdgeGlobDerivShFnc called for non edge element! ",__FILE__,__LINE__);};
+
+
+
+  //! Get global derivatives of all edge shape functions at integration point ip
+  /*! 
+    \param deriv (output) Matrix with global derivatives of all shape functions
+    \f[ \left( \begin{array}{ccc} N_{1,d\xi} & N_{1,d\eta} & \cdots \\
+                                  N_{2,d\xi} & N_{2,d\eta} & \cdots \\
+                                  \cdots     & \cdots      & \cdots \end{array}\right) \f]
+    \param ip(input) Integration point
+    \param cornerCoords (input) Coordinates of element corners
+    \f[ \left( \begin{array}{ccc} x_{1} & x_{2} & \cdots \\ y_{1} & y_{2} & \cdots \\
+                                  \cdots & \cdots & \cdots \end{array} \right) \f]
+  */
+  virtual void GetEdgeGlobDerivShFncAtIp(std::vector< Matrix<Double> *> & deriv, 
+					 const Integer ip,
+					 const Matrix<Double> & cornerCoords);
+  
+
+
+
+  //! Calculates the edge shape functions at an arbitrary local point
+  /*!
+    \param shape (output) Matrix of shape shape values (size: nrEdges x nrSpaceDim) 
+  \f[ \left( \begin{array}{c} E_1 \\ E_2 \\ \cdots \end{array} \right) = 
+   \left( \begin{array}{ccc} N_{1\xi} & N_{1\eta} & N_{1\zeta} \\
+                             N_{2\xi} & N_{2\eta} & N_{2\zeta} \\
+                             \cdots     & \cdots      & \cdots 
+	  \end{array}\right) \f]
+    \param lCoord (input) Local coordinates of evalutation point 
+  */
+  virtual void CalcEdgeShapeFnc(Matrix<Double> & shape, 
+				const std::vector<Double> & lCoord)
+  { Error("CalcEdgeShapeFnc called for non edge element! ",__FILE__,__LINE__);};
+  
+  
+
+  //! Calculates the edge shape functions at an integration point
+  /*!
+    \param shape (output) Matrix of shape shape values (size: nrEdges x nrSpaceDim) 
+    \f[ \left( \begin{array}{c} E_1 \\ E_2 \\ \cdots \end{array} \right) = 
+    \left( \begin{array}{ccc} N_{1\xi} & N_{1\eta} & N_{1\zeta} \\
+                              N_{2\xi} & N_{2\eta} & N_{2\zeta} \\
+                              \cdots     & \cdots      & \cdots 
+   	  \end{array}\right) \f]
+    \param ip (input) Number of desired integration point
+    \param cornerCoords (input) Coordinates of edge points 
+  */
+  virtual void CalcEdgeShapeFncAtIp(Matrix<Double> & shape, 
+				    const Integer ip,
+				    const Matrix<Double> & cornerCoords);
+  
+
 protected:
+
+  /// defines the connected nodes with every edge 
+  void SetEdgeVertices()
+  { Error("SetEdgeVertices called for non edge element! ",__FILE__,__LINE__);};
+  
   
   //! Calculates the shape functions at an arbitrary local point
   /*!
@@ -242,8 +322,16 @@ protected:
   //! Converts the string used for the integration type to an integer
   enum IntegrationType String2EnumIntegrationType(const Char * inttype);
 
-private:
- 
+
+  /// Matrix with connected nodes to the proper edge
+  /*!
+    \f[ \left( \begin{array}{c} E_1 \\ E_2 \\ \cdots \end{array} \right) = 
+    \left( \begin{array}{cc} node_1^{E1} & node_2^{E1} \\
+                             node_1^{E2} & node_2^{E2}  \\
+                              \cdots & \cdots 
+			      \end{array} \right) \f]
+  */
+  Matrix<Integer> edgeVertices_; 
 };
  
 }

@@ -11,6 +11,8 @@
 #include "baseoperator.hh"
 #include "elecfieldop.hh"
 #include "elecforceop.hh"
+#include "curlCurlEdgeInt.hh"
+#include "linearForm.hh"
 
 
 #endif

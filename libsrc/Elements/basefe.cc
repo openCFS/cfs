@@ -267,4 +267,39 @@ enum IntegrationType BaseFE::String2EnumIntegrationType(const Char * inttype)
  return result;
 }
 
+
+
+// calculate global derivates of edge shape functions in integration point ip
+void BaseFE::GetEdgeGlobDerivShFncAtIp(std::vector< Matrix<Double>* > & deriv, 
+			       const Integer ip,
+			       const Matrix<Double> & cornerCoords)
+{
+#ifdef TRACE
+  (*trace) << "entering BaseFE::GetEdgeGlobDerivShFncAtIp" << std::endl;
+#endif
+
+  // vector of coordinates of the desired integration point
+  std::vector<Double> lCoord;
+  lCoord.resize(Dim_);
+
+  for (Integer i=0; i<Dim_; i++)
+    lCoord[i] = IntPoints_[ip-1][i];
+  
+  GetEdgeGlobalDerivShapeFnc(deriv, lCoord, cornerCoords);
 }
+
+void BaseFE::CalcEdgeShapeFncAtIp(Matrix<Double> & shape, 
+				  const Integer ip,
+				  const Matrix<Double> & cornerCoords)
+{
+  std::vector<Double> lCoord;
+  lCoord.resize(Dim_);
+
+  for (Integer i=0; i<Dim_; i++)
+    lCoord[i] = IntPoints_[ip-1][i];
+  
+  CalcEdgeShapeFnc(shape, lCoord);
+}
+
+
+} // end namespace CoupledField

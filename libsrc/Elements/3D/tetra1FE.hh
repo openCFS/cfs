@@ -24,6 +24,8 @@ public:
   //! Set local corner coordinates
   virtual void SetCornerCoords();
 
+
+
   //! calculates the shape functions at an arbitrary local point
   /*!
     \param Shape (output) Vector of shape fnc values \f$ (N_{1},\cdots\,N_{NumNodes})^T \f$
@@ -31,6 +33,8 @@ public:
   */
   virtual void CalcShapeFnc(std::vector<Double> & LShape, 
 			    const std::vector<Double> & LCoord);
+
+
   
   //! calculates the local derivatives of shape functions at an arbitrary local point
   /*!
@@ -42,7 +46,47 @@ public:
   */
   virtual void CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
 				      const std::vector<Double> & LCoord);
-   
+
+
+
+
+  // ============================= methods for edge elements =======================
+  // ===============================================================================
+
+
+  //! calculates the vectorial shape functions at an arbitrary local point
+  /*!
+    \param shape (output) Matrix of shape function values 
+   \f[ \left( \begin{array}{c} E_1 \\ E_2 \\ \cdots \end{array} \right) = 
+   \left( \begin{array}{ccc} N_{1\xi} & N_{1\eta} & N_{1\zeta} \\
+                             N_{2\xi} & N_{2\eta} & N_{2\zeta} \\
+                             \cdots     & \cdots      & \cdots 
+	  \end{array}\right) \f]
+    \param LCoord (input) Local coordinates of evalutation point 
+  */
+  virtual void CalcEdgeShapeFnc(Matrix<Double> & shape, 
+				const std::vector<Double> & LCoord);
+  
+  
+
+  
+  //! calculates the local derivatives of the edge shape functions at an arbitrary local point
+  /*!
+    \param deriv (output) Vector of matrices with local derivatives of all shape functions.
+                  Every matrix stores a complete set of global derivations.
+    \f[ deriv[edge1] = \left( \begin{array}{ccc} N_{1\xi,d\xi} & N_{1\xi,d\eta} & N_{1\xi,d\zeta}\\
+                                             N_{1\eta,d\xi} & N_{1\eta,d\eta} & N_{1\eta,d\zeta}\\
+					     N_{1\zeta,d\xi} & N_{1\zeta,d\eta} & N_{1\zeta,d\zeta}
+					     \end{array}\right) \f]
+    \param lCoord (input) Local coordinates of evalutation point 
+  */
+  virtual void GetEdgeGlobalDerivShapeFnc(std::vector<Matrix<Double>* > & deriv, 
+					  const std::vector<Double> & lCoord,
+					  const Matrix<Double> & CornerCoords);
+
+protected:
+  /// defines the connected nodes with every edge 
+  void SetEdgeVertices();   
 };
 
 }

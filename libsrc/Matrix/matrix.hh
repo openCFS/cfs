@@ -125,6 +125,10 @@ public:
   Vector<TYPE>	operator*	(const Vector<TYPE> &) const;
 
   //!
+  std::vector<TYPE> operator*(const std::vector<TYPE> &x) const;
+  
+
+  //!
   Matrix	operator*	(const Matrix &) const;
 
   //!

@@ -58,7 +58,8 @@ public:
     \param epos integer array conatining the edge numbers
     \param esign integer array containing the edge signs
   */
-  void GetEdgeNumber(Integer *nodes, Integer *epos, Integer *esign);
+  void GetEdgeNumber(Integer *nodes, std::vector<Integer>& epos, 
+		     std::vector<Integer>& esign);
 
   //! setup element matrices for AlgebraicSystem for assembling procedure
   /*!
@@ -97,14 +98,23 @@ public:
   //! return size of solution
   virtual Integer getSize() const { return size_;}
 
+  /// calc element quantities
+  void PostProcess(const Integer level);
+  
+
 protected:
+  /// setup source term
+  void SetupRHS(const Integer level);
+  
+
 
   Vector<Double> sol_;  //!< store solution,
   Integer size_;        //!< size of solution (number of edges)
   Integer NumElems_;    //!< number of elements belonging to PDE
   Integer * EdgeDir_;   //!< stores the Dirichlet-edges
   Integer numEdgedir_;  //!< number of Dirichlet edges
-
+  Vector<Double>* bField_; //!< vector of magnetic field induction
+  
 };
 
 } // end of namespace

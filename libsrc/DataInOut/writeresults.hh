@@ -58,6 +58,18 @@ public:
   { Error("Not implemented",__FILE__,__LINE__);}
 
 
+   //! write vectorial cell data
+  /*!
+    \param data matrix with data 
+    \param step step of calculation
+    \param time time of calculation
+    \param title name for the data
+  */
+  virtual void WriteDataOnCell(const Matrix<Double> & data, const Integer step, const Double time, const std::string title)
+  { Error("Not implemented",__FILE__,__LINE__);};
+
+
+
   //! to open new file for printing results only for GMV
   /*!
     \number number number for output-file (ex. result.gmv001)
