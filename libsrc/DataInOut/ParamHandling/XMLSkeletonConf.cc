@@ -92,16 +92,7 @@ namespace CoupledField
 
     WriteCouplingList();
 
-    (*skelfile_)  << "   <!--In case of transient analysis, uncomment following lines -->" << std::endl
-		  << "   <!--<transient>  -->" << std::endl
-		  << "   <!--   <numSteps>    1    </numSteps>    -->" << std::endl
-		  << "   <!--   <firstDt>     1e-6 </firstDt>     -->" << std::endl
-		  << "   <!--   <stepSaveBeg> 1    </stepSaveBeg> -->" << std::endl
-		  << "   <!--   <stepSaveEnd> 1    </stepSaveEnd> -->" << std::endl
-		  << "   <!--   <stepSaveInc> 1    </stepSaveInc> -->" << std::endl
-		  << "   <!--   <timeDataFile name=\"XXX.dat\"/>    -->" << std::endl
-		  << "   <!--</transient>                         -->" << std::endl 
-		  << myEndl;
+    WriteAnalysisTypes();
 
     (*skelfile_)  << "</cfsSimulation>" << myendl;
 
@@ -121,10 +112,10 @@ namespace CoupledField
 		  << "   <!-- ============================================================= -->" << std::endl
 		  << myendl;
 
-    (*skelfile_)  << "   <!--  ANALYSIS (static, transient, harmonic) -->" << std::endl
+    (*skelfile_)  << "   <!--  ANALYSIS (static, transient, harmonic, multiSequence) -->" << std::endl
 		  << "   <analysis type=\"XXX\"/>" << std::endl << std::endl;
 
-    (*skelfile_)  << "   <!--  DEFINE GEOMETRY TYPE -->" << std::endl
+    (*skelfile_)  << "   <!--  DEFINE GEOMETRY TYPE (plane, axi, 3d)-->" << std::endl
 		  << "   <geometry type=\"plane\"/>" << std::endl << std::endl;
 
     (*skelfile_)  << "   <!--  NAME OF MATERIAL FILE -->" << std::endl
@@ -278,19 +269,28 @@ namespace CoupledField
   {
     ENTER_FCN("SkeletonConf::WritePDE");
 
-    (*skelfile_) << "      <!-- name of pde -->" << std::endl;
-    (*skelfile_) << "      <XXX>" << std::endl 
-		 << std::endl;       
-    (*skelfile_) << "         <region name=\"XXX\"/>" << std::endl 
-		 << std::endl;       
-    (*skelfile_) << "         <!-- boundary conditions -->" << std::endl;
-    (*skelfile_) << "         <bcsAndLoads>" << std::endl; 
-    (*skelfile_) << "            <dirichletHom   name=\"XXX\"/>" << std::endl;    
-    (*skelfile_) << "            <dirichletInhom name=\"XXX\" value=\"1\" />" << std::endl; 
-    (*skelfile_) << "            <load           name=\"XXX\" value=\"1\" />" << std::endl; 
-    (*skelfile_) << "         </bcsAndLoads>" << std::endl 
-		 << myendl;       
-    (*skelfile_) << "      </XXX>" << std::endl << std::endl;
+    (*skelfile_) << "      <!-- name of pde -->" << std::endl
+                 << "      <XXX>" << std::endl 
+		 << std::endl
+                 << "         <region name=\"XXX\"/>" << std::endl 
+		 << std::endl
+                 << "         <!-- boundary conditions -->" << std::endl
+                 << "         <bcsAndLoads>" << std::endl
+                 << "            <dirichletHom   name=\"XXX\"/>" << std::endl
+                 << "            <dirichletInhom name=\"XXX\" value=\"1\" />" << std::endl
+                 << "            <load           name=\"XXX\" value=\"1\" />" << std::endl 
+                 << "         </bcsAndLoads>" << std::endl 
+		 << myendl
+                 << "         <!-- storing of results -->" << std::endl
+                 << "         <storeResults>" << std::endl
+		 << "           <!-- <nodeResults type=\"XXX\"/>                 -->"  
+		 << std::endl
+		 << "           <!-- <nodeHistory type=\"XXX\" saveNodes=\"XXX\"/> -->" 
+		 << std::endl
+		 << "           <!-- <elemResults type=\"XXX\" region=\"XXX\"/>    -->" 
+		 << std::endl
+		 << "         </storeResults>" << std::endl
+		 << "      </XXX>" << std::endl << std::endl;
   }
 
   void SkeletonConf::WriteCouplingList ()
@@ -301,46 +301,93 @@ namespace CoupledField
       << "   <!-- For coupled simulation, uncomment the following lines -->";
     (*skelfile_) 
       << myendl  
-      << "   <!--<couplingList>                                  -->" 
+      << "   <!--<couplingList>                                     " 
       << myendl
-      << "   <!--  <iterative>                                   -->" 
+      << "     <iterative>                                      " 
       << myendl 
-      << "   <!--    <XXX1XXX2 method=\"RHS\">                     -->" 
+      << "       <XXX1XXX2 method=\"RHS\">                        " 
       << myendl
-      << "   <!--      <XXX1>                                    -->" 
+      << "         <XXX1>                                       " 
       << myendl
-      << "   <!--        <coupling type=\"XXX\" quantity=\"XXX\"     -->" 
+      << "           <coupling type=\"XXX\" quantity=\"XXX\"        " 
       << myendl
-      << "   <!--                  name=\"XXX\"/>                  -->" 
+      << "                     name=\"XXX\"/>                     " 
       << myendl
-      << "   <!--      </XXX1>                                   -->" 
+      << "         </XXX1>                                      " 
       << myendl
-      << "   <!--      <XXX2>                                    -->" 
+      << "         <XXX2>                                       " 
       << myendl
-      << "   <!--        <coupling type=\"XXX\" quantity=\"XXX\"     -->" 
+      << "           <coupling type=\"XXX\" quantity=\"XXX\"        " 
       << myendl
-      << "   <!--                   name=\"XXX\"/>                 -->" 
+      << "                     name=\"XXX\"/>                    " 
       << myendl
-      << "   <!--      </XXX2>                                   -->" 
+      << "         </XXX2>                                      " 
       << myendl 
-      << "   <!--    </XXX1XXX2>                                 -->" 
+      << "       </XXX1XXX2>                                    " 
       << myendl << myendl
-      << "   <!--    <nonLinear logging=\"yes\">                   -->" 
+      << "       <nonLinear logging=\"yes\">                      " 
       << myendl
-      << "   <!--      <stopCrit value=\"1e-3\" quantity=\"XXX\"     -->" 
+      << "         <stopCrit value=\"1e-3\" quantity=\"XXX\"        " 
       << myendl
-      << "   <!--                l2Norm=\"rel\"/                   -->" 
+      << "                   l2Norm=\"rel\"/                      " 
       << myendl << myendl 
-      << "   <!--          <maxNumIters> 10 </maxNumIters>       -->" 
+      << "         <maxNumIters> 10 </maxNumIters>          " 
       << myendl
-      << "   <!--    </nonLinear>                                -->" 
+      << "       </nonLinear>                                   " 
       << myendl
-      << "   <!--  </iterative>                                  -->" 
+      << "     </iterative>                                     " 
       << myendl
-      << "   <!--</couplingList>                                 -->" 
+      << "   </couplingList>                                 -->" 
       << myendl << myendl << myendl;
   }
-}
+
+  void SkeletonConf::WriteAnalysisTypes(){
+    ENTER_FCN( "SkeletonConf::WriteAnalysisTypes" );
+
+
+
+    // Transient Analysis
+    (*skelfile_)  << "   <!--In case of transient analysis, uncomment "
+                  << "following lines -->" << std::endl
+		  << "   <!--<transient>    " << std::endl
+		  << "     <numSteps>    1    </numSteps>       " << std::endl
+		  << "     <firstDt>     1e-6 </firstDt>        " << std::endl
+		  << "     <stepSaveBeg> 1    </stepSaveBeg>    " << std::endl
+		  << "     <stepSaveEnd> 1    </stepSaveEnd>    " << std::endl
+		  << "     <stepSaveInc> 1    </stepSaveInc>    " << std::endl
+		  << "     <timeDataFile name=\"XXX.dat\"/>       " << std::endl
+		  << "   </transient>                         -->" << std::endl 
+		  << myEndl;
+
+    // Harmonic Analysis
+    (*skelfile_)  << "   <!--In case of harmonic analysis, uncomment "
+                  << "following lines -->" << std::endl
+		  << "   <!--<harmonic>    " << std::endl
+		  << "      <numFreq>    1   </numFreq>       " << std::endl
+		  << "      <startFreq>  1e3 </startFreq>        " << std::endl
+		  << "      <stopFreq>   1   </stopFreq>    " << std::endl
+		  << "   </harmonic>                         -->" << std::endl 
+		  << myEndl;
+
+    // MultiSequence Analysis
+    (*skelfile_)  << "   <!--In case of multiSequence analysis, uncomment "
+                  << "following lines -->" << std::endl
+		  << "   <!--<multiSequence>       " << std::endl
+		  << "     <step index=\"1\"> " << std::endl
+		  << "       <pde refTag=\"XXX\" type=\"XXX\" " 
+                  << "analysis=\"XXX\"/>" << std::endl
+		  << "     </step>               " << std::endl
+		  << "     <step index=\"2\"> " << std::endl
+		  << "       <pde refTag=\"XXX\" type=\"XXX\" " 
+                  << "analysis=\"XXX\"/>" << std::endl
+		  << "     </step>               " << std::endl
+		  << "   </multiSequence>                            -->" << std::endl 
+		  << myEndl;
+
+
+  }
+
+  }
 
 #endif
 
