@@ -40,47 +40,47 @@ namespace CoupledField {
   }
 
 
-  void SolveStepMech::StepStaticLin( const Integer kstep, const Double aTime,
-                               const Integer level, const Boolean reset ) {
+//   void SolveStepMech::StepStaticLin( const Integer kstep, const Double aTime,
+//                                const Integer level, const Boolean reset ) {
 
-    ENTER_FCN( "SolveStepMech::StepStaticLin" );
+//     ENTER_FCN( "SolveStepMech::StepStaticLin" );
 
-    Integer job = 3; // only update BCs
-    Double * ptsol;
-    lasttimecalc_ = aTime; // for correct output in unv-file
+//     Integer job = 3; // only update BCs
+//     Double * ptsol;
+//     lasttimecalc_ = aTime; // for correct output in unv-file
 
 
-    // If the geometry has changed or the system matrix
-    // is calculated for the first time,
-    // the matrices have to be reassembled and therfore
-    // the preconditioner has to be recalculated
+//     // If the geometry has changed or the system matrix
+//     // is calculated for the first time,
+//     // the matrices have to be reassembled and therfore
+//     // the preconditioner has to be recalculated
 
-    if ( geoUpdate_ == TRUE ||  firstTimeStepStatic_ == TRUE) {
-      assemble_->AssembleMatrices(level);
-      assemble_->AssembleSprings(level, lasttimecalc_);
-      job = 1; // calc new preconditioner
-    }
+//     if ( geoUpdate_ == TRUE ||  firstTimeStepStatic_ == TRUE) {
+//       assemble_->AssembleMatrices(level);
+//       assemble_->AssembleSprings(level, lasttimecalc_);
+//       job = 1; // calc new preconditioner
+//     }
   
-    // The RHS-sources have to be reassembled each time
-    assemble_->AssembleSrcRHS(level, aTime);
+//     // The RHS-sources have to be reassembled each time
+//     assemble_->AssembleSrcRHS(level, aTime);
 
-    SetBCs(level, aTime);
+//     SetBCs(level, aTime);
 
-    // Incorporate Boundary conitions and
-    // recalc the prconditioner eventually
-    algsys_->BuildInDirichlet();
-    algsys_->SetupPrecond( job );
-    algsys_->SetupSolver( job );
+//     // Incorporate Boundary conitions and
+//     // recalc the prconditioner eventually
+//     algsys_->BuildInDirichlet();
+//     algsys_->SetupPrecond( job );
+//     algsys_->SetupSolver( job );
 
-    // Solve problem
-    algsys_->Solve();
+//     // Solve problem
+//     algsys_->Solve();
 
-    // Get the solution and store it
-    ptsol = algsys_->GetSolutionVal();
-    sol_->CopyFromAlgSysDataPointer(ptsol);
+//     // Get the solution and store it
+//     ptsol = algsys_->GetSolutionVal();
+//     sol_->CopyFromAlgSysDataPointer(ptsol);
 
-    firstTimeStepStatic_ = FALSE;
-  }
+//     firstTimeStepStatic_ = FALSE;
+//   }
 
 
   void SolveStepMech::StepStaticNonLin(const Integer kstep, const Double aTime,
@@ -235,184 +235,184 @@ namespace CoupledField {
   // Solve Step Transient SECTION  
   // ======================================================
 
-  void SolveStepMech::PreStepTrans( const Integer kstep, const Double asteptime,
-                              const Integer level, const Boolean reset ) {
+//   void SolveStepMech::PreStepTrans( const Integer kstep, const Double asteptime,
+//                               const Integer level, const Boolean reset ) {
 
-    ENTER_FCN( "SolveStepMech::PreStepTrans" );
+//     ENTER_FCN( "SolveStepMech::PreStepTrans" );
 
-    lasttimecalc_= asteptime;
+//     lasttimecalc_= asteptime;
 
-    // due to coupling-pdes, the RHS has to be initialized BEFORE 
-    // the coupling forces are assembled to the RHS
-    algsys_->InitRHS();
+//     // due to coupling-pdes, the RHS has to be initialized BEFORE 
+//     // the coupling forces are assembled to the RHS
+//     algsys_->InitRHS();
 
-    if (geoUpdate_) {
-      algsys_->InitRHS();
-      algsys_->InitSol();
-      assemble_->InitMatrices();
+//     if (geoUpdate_) {
+//       algsys_->InitRHS();
+//       algsys_->InitSol();
+//       assemble_->InitMatrices();
 
-      assemble_->SetReassemble();  
-    }
-  }
+//       assemble_->SetReassemble();  
+//     }
+//   }
 
 
-  void SolveStepMech::SolveStepTrans( const Integer kstep, const Double asteptime, 
-                                const Integer level, const Boolean reset ) {
+//   void SolveStepMech::SolveStepTrans( const Integer kstep, const Double asteptime, 
+//                                 const Integer level, const Boolean reset ) {
 
-    ENTER_FCN( "SolveStepMech::SolveStepTrans" );
+//     ENTER_FCN( "SolveStepMech::SolveStepTrans" );
 
-    lasttimecalc_= asteptime;
-    recalc_ = FALSE;
+//     lasttimecalc_= asteptime;
+//     recalc_ = FALSE;
 
-    if (laststepcalc_ == kstep && kstep != 1) {
-      recalc_ = TRUE;
-    }
-    else {
-      laststepcalc_= kstep;
-    }
+//     if (laststepcalc_ == kstep && kstep != 1) {
+//       recalc_ = TRUE;
+//     }
+//     else {
+//       laststepcalc_= kstep;
+//     }
 
-    if (nonLin_) {
-      StepTransNonLin(kstep, asteptime, level, reset);
-    }
-    else {
-      StepTransLin(kstep, asteptime, level, reset);
-    }
-  }
+//     if (nonLin_) {
+//       StepTransNonLin(kstep, asteptime, level, reset);
+//     }
+//     else {
+//       StepTransLin(kstep, asteptime, level, reset);
+//     }
+//   }
 
 
   //! \todo delete job parameter or replace it by a 
   //! meaningfull attribute
-  void SolveStepMech::StepTransLin( const Integer kstep, const Double asteptime,
-                              const Integer level, const Boolean reset ) {
+//   void SolveStepMech::StepTransLin( const Integer kstep, const Double asteptime,
+//                               const Integer level, const Boolean reset ) {
 
-    ENTER_FCN( "SolveStepMech::StepTransLin" );
+//     ENTER_FCN( "SolveStepMech::StepTransLin" );
 
-    Double * ptsol;
-    Integer job;
-    lasttimecalc_= asteptime;
+//     Double * ptsol;
+//     Integer job;
+//     lasttimecalc_= asteptime;
 
-    //account for RHS
-    assemble_->AssembleSrcRHS(level,lasttimecalc_);
+//     //account for RHS
+//     assemble_->AssembleSrcRHS(level,lasttimecalc_);
 
-    NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
+//     NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
 
-    if ( pdeIsCoupled_ == FALSE || *iterCoupledCounter_ == 0 ) {        
-      Vector<Double> & solvector= solhelp->GetAlgSysVector();
-      TS_alg_->Predictor(solvector);
-    }
+//     if ( pdeIsCoupled_ == FALSE || *iterCoupledCounter_ == 0 ) {        
+//       Vector<Double> & solvector= solhelp->GetAlgSysVector();
+//       TS_alg_->Predictor(solvector);
+//     }
 
-    if ( laststepcalc_ == 1 ) {
-      job = 3;
+//     if ( laststepcalc_ == 1 ) {
+//       job = 3;
 
-      // why is the first statement checking for 'pdeIsCoupled'?
-      if ( pdeIsCoupled_ == FALSE || *iterCoupledCounter_ == 0 
-           || geoUpdate_ == TRUE ) {
-        job = 1;
-        assemble_->AssembleMatrices(level);
-        assemble_->AssembleSprings(level, lasttimecalc_);
-        algsys_->ConstructEffectiveMatrix(matrix_factor_);
-      }  
-    }
-    else if (reset) {
-      job = 1;
+//       // why is the first statement checking for 'pdeIsCoupled'?
+//       if ( pdeIsCoupled_ == FALSE || *iterCoupledCounter_ == 0 
+//            || geoUpdate_ == TRUE ) {
+//         job = 1;
+//         assemble_->AssembleMatrices(level);
+//         assemble_->AssembleSprings(level, lasttimecalc_);
+//         algsys_->ConstructEffectiveMatrix(matrix_factor_);
+//       }  
+//     }
+//     else if (reset) {
+//       job = 1;
 
-      algsys_->InitMatrix(SYSTEM);
-      algsys_->InitMatrix(STIFFNESS);
-      algsys_->InitMatrix(MASS);
-      if (dampingType_) {
-	algsys_->InitMatrix(DAMPING);
-      }
-      assemble_->AssembleSprings(level, lasttimecalc_);
-      algsys_->ConstructEffectiveMatrix(matrix_factor_);
-    }
-    else {
-      job = 3;
+//       algsys_->InitMatrix(SYSTEM);
+//       algsys_->InitMatrix(STIFFNESS);
+//       algsys_->InitMatrix(MASS);
+//       if (dampingType_) {
+// 	algsys_->InitMatrix(DAMPING);
+//       }
+//       assemble_->AssembleSprings(level, lasttimecalc_);
+//       algsys_->ConstructEffectiveMatrix(matrix_factor_);
+//     }
+//     else {
+//       job = 3;
 
-      // The following section is only an experiment up to now
-      if ( geoUpdate_ == TRUE && pdeIsCoupled_ == TRUE ) {
-        if (isIncrFormulation_) {
-          Error( "Incremental formulation and geoUpdate are currently not "
-                 "working together" );
-        }
-        job = 1;
-        assemble_->AssembleMatrices(level);
-        assemble_->AssembleSprings(level, lasttimecalc_);
-        algsys_->ConstructEffectiveMatrix(matrix_factor_);      
-      }
-    }
+//       // The following section is only an experiment up to now
+//       if ( geoUpdate_ == TRUE && pdeIsCoupled_ == TRUE ) {
+//         if (isIncrFormulation_) {
+//           Error( "Incremental formulation and geoUpdate are currently not "
+//                  "working together" );
+//         }
+//         job = 1;
+//         assemble_->AssembleMatrices(level);
+//         assemble_->AssembleSprings(level, lasttimecalc_);
+//         algsys_->ConstructEffectiveMatrix(matrix_factor_);      
+//       }
+//     }
 
-    if (isIncrFormulation_) {
-      Vector<Double> & solvector =
-        dynamic_cast<NodeStoreSol<Double>*>(sol_)->GetAlgSysVector();
+//     if (isIncrFormulation_) {
+//       Vector<Double> & solvector =
+//         dynamic_cast<NodeStoreSol<Double>*>(sol_)->GetAlgSysVector();
 
-      solvector *= -1;
-      algsys_->UpdateRHS(SYSTEM,solvector.GetPointer());
-    }
+//       solvector *= -1;
+//       algsys_->UpdateRHS(SYSTEM,solvector.GetPointer());
+//     }
 
-    TS_alg_->UpdateRHS();
+//     TS_alg_->UpdateRHS();
 
-    PDE_.SetBCs( level, lasttimecalc_);
-    algsys_->BuildInDirichlet();
+//     PDE_.SetBCs( level, lasttimecalc_);
+//     algsys_->BuildInDirichlet();
 
-    if ( job == 1 ) {
-      algsys_->SetupPrecond( job );
-      algsys_->SetupSolver( job );
-    }
+//     if ( job == 1 ) {
+//       algsys_->SetupPrecond( job );
+//       algsys_->SetupSolver( job );
+//     }
 
-    algsys_->Solve();
-    ptsol = algsys_->GetSolutionVal();
+//     algsys_->Solve();
+//     ptsol = algsys_->GetSolutionVal();
 
-    if ( isIncrFormulation_ ) {
+//     if ( isIncrFormulation_ ) {
 
-      //what a heuristic!!!!!
-      Double relaxVal = 0.5;
+//       //what a heuristic!!!!!
+//       Double relaxVal = 0.5;
 
-      if (*iterCoupledCounter_ == 0)
-        relaxVal = 0.1;
-      if (*iterCoupledCounter_ == 1)
-        relaxVal = 0.25;
+//       if (*iterCoupledCounter_ == 0)
+//         relaxVal = 0.1;
+//       if (*iterCoupledCounter_ == 1)
+//         relaxVal = 0.25;
 
-      StoreAlgsysToVec(solIncr_, ptsol);
-      if (*iterCoupledCounter_ == 0)
-        actSol_ = solIncr_*relaxVal;
-      else 
-        actSol_ += solIncr_*relaxVal;
+//       StoreAlgsysToVec(solIncr_, ptsol);
+//       if (*iterCoupledCounter_ == 0)
+//         actSol_ = solIncr_*relaxVal;
+//       else 
+//         actSol_ += solIncr_*relaxVal;
 
-      sol_->SetAlgSysVector(actSol_);
-    }
-    else
-      sol_->CopyFromAlgSysDataPointer(ptsol);
+//       sol_->SetAlgSysVector(actSol_);
+//     }
+//     else
+//       sol_->CopyFromAlgSysDataPointer(ptsol);
 
-    Vector<Double> & solvector =\
-      dynamic_cast<NodeStoreSol<Double>*>(sol_)->GetAlgSysVector();
+//     Vector<Double> & solvector =\
+//       dynamic_cast<NodeStoreSol<Double>*>(sol_)->GetAlgSysVector();
 
-    if (!pdeIsCoupled_)
-      TS_alg_->Corrector(solvector);
-  }
-
-
+//     if (!pdeIsCoupled_)
+//       TS_alg_->Corrector(solvector);
+//   }
 
 
-  void SolveStepMech::PostStepTrans( const Integer kstep, const Double asteptime,
-                               const Integer level ) {
 
-    ENTER_FCN( "SolveStepMech::PostStepTrans" );
 
-    NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
+//   void SolveStepMech::PostStepTrans( const Integer kstep, const Double asteptime,
+//                                const Integer level ) {
+
+//     ENTER_FCN( "SolveStepMech::PostStepTrans" );
+
+//     NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
     
-    if ( pdeIsCoupled_ ) {
+//     if ( pdeIsCoupled_ ) {
 
-      //save solution
-      Vector<Double> & solvector= solhelp->GetAlgSysVector();
+//       //save solution
+//       Vector<Double> & solvector= solhelp->GetAlgSysVector();
 
-      //perform corrector step
-      TS_alg_->Corrector(solvector); 
-    }
+//       //perform corrector step
+//       TS_alg_->Corrector(solvector); 
+//     }
   
-    if (pdeIsCoupled_) {
-      iterCoupledCounter_++;
-    }
-  }
+//     if (pdeIsCoupled_) {
+//       iterCoupledCounter_++;
+//     }
+//   }
 
 
 
