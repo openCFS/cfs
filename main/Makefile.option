@@ -1,4 +1,4 @@
-###############################################################################
+##############################################################################
 #                                                                             #
 #             Machine-Indepenent Options for Compilation of CFS++             #
 #                                                                             #
@@ -94,9 +94,7 @@
 # -----------------------------------------------------------------------------
 
 ifeq ("$(OLAS_ROOT)","")
-
-export OLAS_ROOT=/home/local/lse/tlahmer/CFS/OLAS
-# OLAS_ROOT = /home/data/proj/SoftwareLibraries/OLAS_STABLE_1
+OLAS_ROOT = /home/data/proj/SoftwareLibraries/OLAS_STABLE_1
 endif
 
 ifeq ("$(HYPRE_ROOT)","")
@@ -112,8 +110,7 @@ XERCES_ROOT = /home/data/proj/SoftwareLibraries/xerces-c
 endif
 
 ifeq ("$(SCHEMA_ROOT)","")
-SCHEMA_ROOT = /home/local/lse/tlahmer/CFS/CFS++XML
-# SCHEMA_ROOT = /home/data/proj/share/CFS++XML
+SCHEMA_ROOT = /home/data/proj/share/CFS++XML
 endif
 
 # -----------------------------------------------------------------------------
@@ -128,7 +125,7 @@ endif
 # be a NULL pointer. This can be problematic, if e.g. LAS was compiled with
 # LINUXg
 # -----------------------------------------------------------------------------
-TRACE = 100
+TRACE = 10
 
 # -----------------------------------------------------------------------------
 # CFS++ FUNCTIONALITY
@@ -172,13 +169,13 @@ DATABASE = no
 HYPRE = yes
 
 # Was OLAS compiled with support for LAPACK?
-LAPACK = no
+LAPACK = yes
 
 # Was OLAS compiled with support for TVMET?
-TVMET = no
+TVMET = yes
 
 # Was OLAS compiled with support for Pardiso?
-PARDISO = no
+PARDISO = yes
 
 
 # -----------------------------------------------------------------------------
@@ -258,7 +255,7 @@ endif
 
 # Combine everything
 COMPILE_INCDIRS = $(INCDIR_OLAS) $(INCDIR_HYPRE) $(INCDIR_XERCES) \
-	$(INCDIR_ADAPTIVITY) $(INCDIR_TVMET)
+$(INCDIR_ADAPTIVITY) $(INCDIR_TVMET)
 
 
 # -----------------------------------------------------------------------------
@@ -370,7 +367,7 @@ endif
 
 # Combine everything
 LINK_LIBS = $(LIBDIR_OLAS) $(LIBDIR_HYPRE) $(LIBDIR_XERCES) \
-	$(LIB_OLAS) $(LIB_HYPRE) $(LIB_XERCES)
+$(LIB_OLAS) $(LIB_HYPRE) $(LIB_XERCES)
 
 # -----------------------------------------------------------------------------
 # LAPACK and BLAS
@@ -466,10 +463,10 @@ endif
 
 # Combine everything
 EXTRA_MODULES = $(MODULE_ADAPTIVITY) $(MODULE_MPCCI) $(MODULE_DATABASE) \
-	$(MODULE_GSI)
+$(MODULE_GSI)
 
 EXTRA_CFSLIBS = $(CFSLIB_ADAPTIVITY) $(CFSLIB_MPCCI) $(CFSLIB_DATABASE) \
-	$(CFSLIB_GSI)
+$(CFSLIB_GSI)
 
 # =========================================================================== #
 #                                                                             #
