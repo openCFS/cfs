@@ -280,7 +280,7 @@ namespace CoupledField {
       if( list.GetSize() == 1 ) {
 	olas->SetValue( "LDLSOLVER_saveFacToFile", true );
 	olas->SetValue( "LDLSOLVER_facFileName", list[0] );
-        cfs->GetList( "savePatternOnly", list, pdename, "ILDLK" );
+        cfs->GetList( "savePatternOnly", list, pdename, "directLDL" );
         if( list.GetSize() == 1 ) {
           olas->SetValue( "LDLSOLVER_facPatternOnly", (list[0] == "yes") );
         }
@@ -521,6 +521,26 @@ namespace CoupledField {
 	olas->SetValue( "ILDLPRECOND_saveFacToFile", true );
 	olas->SetValue( "ILDLPRECOND_facFileName", list[0] );
         cfs->GetList( "savePatternOnly", list, pdename, "ILDLTP" );
+        if( list.GetSize() == 1 ) {
+          olas->SetValue( "ILDLPRECOND_facPatternOnly", (list[0] == "yes") );
+        }
+      }
+      break;
+
+    case ILDLCN:
+      cfs->GetList( "threshold", list, pdename, "ILDLCN" );
+      if( list.GetSize() == 1 ) {
+	olas->SetValue( "ILDLPRECOND_tau", atof(list[0].c_str()) );
+      }
+      cfs->GetList( "logging", list, pdename, "ILDLCN" );
+      if( list.GetSize() == 1 ) {
+	olas->SetValue( "ILDLCNPRECOND_logging", (list[0] == "yes") );
+      }
+      cfs->GetList( "saveFacFile", list, pdename, "ILDLCN" );
+      if( list.GetSize() == 1 ) {
+	olas->SetValue( "ILDLPRECOND_saveFacToFile", true );
+	olas->SetValue( "ILDLPRECOND_facFileName", list[0] );
+        cfs->GetList( "savePatternOnly", list, pdename, "ILDLCN" );
         if( list.GetSize() == 1 ) {
           olas->SetValue( "ILDLPRECOND_facPatternOnly", (list[0] == "yes") );
         }
