@@ -36,3 +36,7 @@ LINKFLAGS = -pg
 #
 syslib := -lm -lc 
 
+# Flag for function tracing
+ifneq "$(TRACE)" "0"
+TRACEFLAGS=-DTRACE=$(TRACE)
+endif
