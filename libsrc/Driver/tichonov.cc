@@ -114,9 +114,13 @@ namespace CoupledField
 
     std::cout << "\n misfit = |y-F| =  " <<  misfit <<std::endl;
 
-    while((misfit>tau*delta||nrNewtonIterations<25)&&nrNewtonIterations<9){ // Newton
+    while((misfit>tau*delta||nrNewtonIterations<25)&&nrNewtonIterations<20){ // Newton
+
+    for (Integer i=0;i<parameter.GetSize();i++)
+      scaling[i]=1.0;
 
       nrNewtonIterations++;
+      createF(ptMaterial, ptBCs, y_hat);
 
       createJacobiMatrix2(JacobiMatrix);
 
@@ -130,8 +134,13 @@ namespace CoupledField
       for(Integer i=0;i<nrParameter;i++)
 	bas[i]=basC[i].real();
 
+      // Choice of regularisation parameter alpha!
+      Integer innerIter=0;
 
-      Double reg_alpha=5.0e-16;
+      while (lin_misfit>eta*misfit_new&&innerIter<1||innerIter<1){
+	innerIter++;
+
+      Double reg_alpha=5.0e-15;
 
       Matrix<Complex> JacobiMatrixNE(JacobiMatrix.GetSizeCol(), JacobiMatrix.GetSizeCol());
       Matrix<Double> JacobiMatrixNE_R(JacobiMatrix.GetSizeCol(), JacobiMatrix.GetSizeCol());
@@ -140,11 +149,6 @@ namespace CoupledField
       adjJacobiMatrix.Mult(JacobiMatrix,JacobiMatrixNE);
       adjJacobiMatrix.Mult(y_hat_F_hat, y_hat_F_hatNE);
 
-      // Choice of regularisation parameter alpha!
-      Integer innerIter=0;
-
-      while (lin_misfit>eta*misfit_new&&innerIter<2||innerIter<1){
-	innerIter++;
 
 	std::cout<<"\n --> Value of reg_alpha = " << reg_alpha << std::endl;
 	std::cout<<"\n lin_misfit = " << lin_misfit << "; misfit_new = "<<misfit_new<<std::endl;
@@ -170,28 +174,43 @@ namespace CoupledField
 	  //std::cout<<y_hat_F_hatNE[j].real()<<" ";
 	}
 
- 	Vector<Double> eigenvalues(JacobiMatrixNE_R.GetSizeRow());
- 	eigenValues(JacobiMatrixNE_R,0.0001,eigenvalues);
+	// 	Vector<Double> eigenvalues(JacobiMatrixNE_R.GetSizeRow());
+	// 	eigenValues(JacobiMatrixNE_R,0.000001,eigenvalues);
 
- 	for(Integer i=0;i<eigenvalues.GetSize();i++)
- 	  std::cout <<" eig ("<<i<<") = "<< eigenvalues[i] << ", "<<std::endl; 
+	// 	for(Integer i=0;i<eigenvalues.GetSize();i++)
+	// std::cout <<" eig ("<<i<<") = "<< eigenvalues[i] << ", "<<std::endl; 
 
-	std::cout<<"\n Condition number of normalequation: "<< sqrt(eigenvalues[0]/eigenvalues[eigenvalues.GetSize()-1])<<std::endl;
+	//	std::cout<<"\n Condition number of normalequation: "<< sqrt(eigenvalues[0]/eigenvalues[eigenvalues.GetSize()-1])<<std::endl;
 
-	std::getchar();
-	JacobiMatrixNE.DirectSolve(step,y_hat_F_hatNE);
+	//	std::getchar();
+	JacobiMatrixNE.DirectSolve(s,y_hat_F_hatNE);
       
         std::cout<< "\n s determined with direct solver ...\n " <<std::endl;
 	for (int i=0;i<parameter.GetSize();i++){ 
-	  std::cout<<"s("<<i<<")="<<step[i]<<"; \t";
-	  parameter_new[i]=parameter[i]; //+(1.0/scaling[i])*step[i].real();        
+	  std::cout<<"s("<<i<<")="<<s[i]<<"; \t";
+	  //	  parameter_new[i]=parameter[i]; //+(1.0/scaling[i])*step[i].real();        
 	  //		parameter_new=parameter;
 	  //	std::cout<<"parameter("<<i<<")="<<parameter[i]<<"; \t";
 	}	     
+	parameter_new = parameter;
+      Double theta = 1.0;
+      Matrix<Double> *matMat = ptMaterial->GetMatrix();
+      scaling[0]=1.0/((*matMat)[0][0]); 
+      scaling[1]=1.0/((*matMat)[2][2]);
+      scaling[2]=1.0/((*matMat)[1][0]);
+      scaling[3]=1.0/((*matMat)[0][2]);
+      scaling[4]=1.0/((*matMat)[3][3]); 
+      scaling[5]=1.0/((*matMat)[6][4]);
+      scaling[6]=std::abs(1.0/((*matMat)[8][0]));
+      scaling[7]=1.0/((*matMat)[8][2]);
+      scaling[8]=1.0/((*matMat)[6][6]); 
+      scaling[9]=1.0/((*matMat)[8][8]);
+      
+      setNewParameterSet(parameter, parameter_new, scaling, theta, s, whichParameterToUpdate);
 
-	parameter_new[9]=parameter[9]+(1.0/scaling[9])*step[9].real();        // eps33
-	parameter_new[1]=parameter[1]+(1.0/scaling[1])*step[1].real(); // c33
-	parameter_new[7]=parameter[7]+(1.0/scaling[7])*step[7].real(); //e33
+// 	parameter_new[9]=parameter[9]+(1.0/scaling[9])*step[9].real();        // eps33
+// 	parameter_new[1]=parameter[1]+(1.0/scaling[1])*step[1].real(); // c33
+// 	parameter_new[7]=parameter[7]+(1.0/scaling[7])*step[7].real(); //e33
 	      
         std::cout<<"\n"<<std::endl;
 	updateMaterialData(parameter_new,ptMaterial);
@@ -203,7 +222,7 @@ namespace CoupledField
 	linres = JacFS-y_hat_F_hat;
 	lin_misfit = sqrt(realA2norm(linres));
 	misfit_new = sqrt(realA2norm(y_hat_F_hat));
-	reg_alpha = 1.5 * reg_alpha;
+	reg_alpha = 1.1 * reg_alpha;
 	
 	for (Integer i=0;i<nrParameter;i++){
 	  std::cout<<"Paramter_new["<<i<<"]= " << parameter_new[i]<<std::endl; 
@@ -212,7 +231,6 @@ namespace CoupledField
       }
 
     
-
       std::cout<<"\n"<<std::endl;
 
       // precautionary measure, if paramters tend to far away from initial values ...
