@@ -44,7 +44,7 @@
       </nonLinear>
 
       <solver>
-        <matrix/>
+        <matrix eqnNumbering="scalar"/>
       </solver>
   
     </electrostatic>
@@ -62,7 +62,7 @@
       </nonLinear>
 
       <solver>
-        <matrix/>
+        <matrix eqnNumbering="scalar"/>
       </solver>
 
     </piezo>
@@ -127,7 +127,7 @@
       </coils>
 
       <solver>
-        <matrix/>
+        <matrix eqnNumbering="scalar"/>
       </solver>
 
     </magnetic>
@@ -138,18 +138,18 @@
       <region name="dummyRegion"/>
 
       <solver>
-        <matrix/>
+        <matrix eqnNumbering="scalar"/>
       </solver>
 
     </acoustic> 
 
-    <!-- Template for acoustic PDE -->
+    <!-- Template for smooth PDE -->
     <smooth>
   
       <region name="dummyRegion"/>
 
       <solver>
-        <matrix/>
+        <matrix eqnNumbering="scalar"/>
       </solver>
 
     </smooth>
