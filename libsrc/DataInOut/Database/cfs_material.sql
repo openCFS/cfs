@@ -23,33 +23,6 @@ CREATE TABLE Material_conduc_lin (
 ) TYPE=MyISAM;
 
 --
--- Table structure for table `Material_coupling_lin`
---
-
-CREATE TABLE Material_coupling_lin (
-  material_idx bigint(20) unsigned NOT NULL default '0',
-  v11 double NOT NULL default '0',
-  v12 double NOT NULL default '0',
-  v13 double NOT NULL default '0',
-  v14 double NOT NULL default '0',
-  v15 double NOT NULL default '0',
-  v16 double NOT NULL default '0',
-  v21 double NOT NULL default '0',
-  v22 double NOT NULL default '0',
-  v23 double NOT NULL default '0',
-  v24 double NOT NULL default '0',
-  v25 double NOT NULL default '0',
-  v26 double NOT NULL default '0',
-  v31 double NOT NULL default '0',
-  v32 double NOT NULL default '0',
-  v33 double NOT NULL default '0',
-  v34 double NOT NULL default '0',
-  v35 double NOT NULL default '0',
-  v36 double NOT NULL default '0',
-  PRIMARY KEY  (material_idx)
-) TYPE=MyISAM;
-
---
 -- Table structure for table `Material_damping`
 --
 
@@ -197,6 +170,33 @@ CREATE TABLE Material_perm_lin (
   v31 double NOT NULL default '0',
   v32 double NOT NULL default '0',
   v33 double NOT NULL default '0',
+  PRIMARY KEY  (material_idx)
+) TYPE=MyISAM;
+
+--
+-- Table structure for table `Material_piezocoupling_lin`
+--
+
+CREATE TABLE Material_piezocoupling_lin (
+  material_idx bigint(20) unsigned NOT NULL default '0',
+  v11 double NOT NULL default '0',
+  v12 double NOT NULL default '0',
+  v13 double NOT NULL default '0',
+  v14 double NOT NULL default '0',
+  v15 double NOT NULL default '0',
+  v16 double NOT NULL default '0',
+  v21 double NOT NULL default '0',
+  v22 double NOT NULL default '0',
+  v23 double NOT NULL default '0',
+  v24 double NOT NULL default '0',
+  v25 double NOT NULL default '0',
+  v26 double NOT NULL default '0',
+  v31 double NOT NULL default '0',
+  v32 double NOT NULL default '0',
+  v33 double NOT NULL default '0',
+  v34 double NOT NULL default '0',
+  v35 double NOT NULL default '0',
+  v36 double NOT NULL default '0',
   PRIMARY KEY  (material_idx)
 ) TYPE=MyISAM;
 

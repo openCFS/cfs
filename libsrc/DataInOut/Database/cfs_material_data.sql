@@ -31,48 +31,6 @@ INSERT INTO Material_conduc_lin VALUES (8,1000000,0,0,0,1000000,0,0,0,1000000);
 INSERT INTO Material_conduc_lin VALUES (10,10000000,0,0,0,10000000,0,0,0,10000000);
 
 --
--- Table structure for table `Material_coupling_lin`
---
-
-CREATE TABLE Material_coupling_lin (
-  material_idx bigint(20) unsigned NOT NULL default '0',
-  v11 double NOT NULL default '0',
-  v12 double NOT NULL default '0',
-  v13 double NOT NULL default '0',
-  v14 double NOT NULL default '0',
-  v15 double NOT NULL default '0',
-  v16 double NOT NULL default '0',
-  v21 double NOT NULL default '0',
-  v22 double NOT NULL default '0',
-  v23 double NOT NULL default '0',
-  v24 double NOT NULL default '0',
-  v25 double NOT NULL default '0',
-  v26 double NOT NULL default '0',
-  v31 double NOT NULL default '0',
-  v32 double NOT NULL default '0',
-  v33 double NOT NULL default '0',
-  v34 double NOT NULL default '0',
-  v35 double NOT NULL default '0',
-  v36 double NOT NULL default '0',
-  PRIMARY KEY  (material_idx)
-) TYPE=MyISAM;
-
---
--- Dumping data for table `Material_coupling_lin`
---
-
-INSERT INTO Material_coupling_lin VALUES (1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);
-INSERT INTO Material_coupling_lin VALUES (2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);
-INSERT INTO Material_coupling_lin VALUES (5,0,0,0,0,12.3,0,0,0,0,12.3,0,0,-5.4,-5.4,15.2,0,0,0);
-INSERT INTO Material_coupling_lin VALUES (6,0,0,0,0,12.3,0,0,0,0,12.3,0,0,-5.4,-5.4,15.2,0,0,0);
-INSERT INTO Material_coupling_lin VALUES (7,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);
-INSERT INTO Material_coupling_lin VALUES (3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);
-INSERT INTO Material_coupling_lin VALUES (9,0,0,0,0,10.5,0,0,0,0,10.5,0,0,-4.1,-4.1,-4.1,0,0,0);
-INSERT INTO Material_coupling_lin VALUES (10,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);
-INSERT INTO Material_coupling_lin VALUES (11,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);
-INSERT INTO Material_coupling_lin VALUES (12,0,0,0,0,10.5,0,0,0,0,10.5,0,0,-4.1,-4.1,-4.1,0,0,0);
-
---
 -- Table structure for table `Material_damping`
 --
 
@@ -300,4 +258,46 @@ CREATE TABLE Material_perm_lin (
 INSERT INTO Material_perm_lin VALUES (3,1.25664e-06,0,0,0,1.25664e-06,0,0,0,1.25664e-06);
 INSERT INTO Material_perm_lin VALUES (8,0.000125664,0,0,0,0.000125664,0,0,0,0.000125664);
 INSERT INTO Material_perm_lin VALUES (10,1.25664e-06,0,0,0,1.25664e-06,0,0,0,1.25664e-06);
+
+--
+-- Table structure for table `Material_piezocoupling_lin`
+--
+
+CREATE TABLE Material_piezocoupling_lin (
+  material_idx bigint(20) unsigned NOT NULL default '0',
+  v11 double NOT NULL default '0',
+  v12 double NOT NULL default '0',
+  v13 double NOT NULL default '0',
+  v14 double NOT NULL default '0',
+  v15 double NOT NULL default '0',
+  v16 double NOT NULL default '0',
+  v21 double NOT NULL default '0',
+  v22 double NOT NULL default '0',
+  v23 double NOT NULL default '0',
+  v24 double NOT NULL default '0',
+  v25 double NOT NULL default '0',
+  v26 double NOT NULL default '0',
+  v31 double NOT NULL default '0',
+  v32 double NOT NULL default '0',
+  v33 double NOT NULL default '0',
+  v34 double NOT NULL default '0',
+  v35 double NOT NULL default '0',
+  v36 double NOT NULL default '0',
+  PRIMARY KEY  (material_idx)
+) TYPE=MyISAM;
+
+--
+-- Dumping data for table `Material_piezocoupling_lin`
+--
+
+INSERT INTO Material_piezocoupling_lin VALUES (1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);
+INSERT INTO Material_piezocoupling_lin VALUES (2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);
+INSERT INTO Material_piezocoupling_lin VALUES (5,0,0,0,0,12.3,0,0,0,0,12.3,0,0,-5.4,-5.4,15.2,0,0,0);
+INSERT INTO Material_piezocoupling_lin VALUES (6,0,0,0,0,12.3,0,0,0,0,12.3,0,0,-5.4,-5.4,15.2,0,0,0);
+INSERT INTO Material_piezocoupling_lin VALUES (7,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);
+INSERT INTO Material_piezocoupling_lin VALUES (3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);
+INSERT INTO Material_piezocoupling_lin VALUES (9,0,0,0,0,10.5,0,0,0,0,10.5,0,0,-4.1,-4.1,-4.1,0,0,0);
+INSERT INTO Material_piezocoupling_lin VALUES (10,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);
+INSERT INTO Material_piezocoupling_lin VALUES (11,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);
+INSERT INTO Material_piezocoupling_lin VALUES (12,0,0,0,0,10.5,0,0,0,0,10.5,0,0,-4.1,-4.1,-4.1,0,0,0);
 
