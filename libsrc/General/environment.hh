@@ -72,8 +72,8 @@ namespace CoupledField
   typedef Double (*pfn2var)(const Double, const Double);
   typedef Double (*pfn3var)(const Double, const Double, const Double);
 
-  typedef enum {STATIC, TRANSIENT, HARMONIC, EIGENFREQUENCY, MULTI_SEQUENCE, BUBBLEDYNAMIC}
-  AnalysisType;
+  typedef enum {STATIC, TRANSIENT, HARMONIC, EIGENFREQUENCY, MULTI_SEQUENCE,
+		BUBBLEDYNAMIC} AnalysisType;
   
 
   //! print grid only and then exit
@@ -85,37 +85,35 @@ namespace CoupledField
 
   //! enumeration with integration types. it is used in Elements classes
   enum IntegrationType {GaussOrder1, GaussOrder2, GaussOrder3, GaussOrder4,
-			GaussOrder5, GaussOrder7, null};
+                        GaussOrder5, GaussOrder7, null};
 
   //! Damping type
   enum DampingType{NONE=0, RAYLEIGH=1, ABCDAMP=2, THERMOVISCOUS=3,
-				   FRACTIONAL=4, FRACTIONAL_GL=5, FRACTIONAL_BLANK=6};
+		   FRACTIONAL=4, FRACTIONAL_GL=5, FRACTIONAL_BLANK=6};
 
   //! Interpolation type used in fractional damping model
   enum InterpolType{NOTUSED=0, TRUEVAL=1, LIN1PT=2};
 
   //! Describes all possible solution types in a CFS simulation
-  typedef enum{NO_SOLUTION_TYPE, 
-		 MECH_DISPLACEMENT, MECH_ACCELERATION,
-		 MECH_VELOCITY, MECH_FORCE, MECH_STRESS, MECH_STRAIN, MECH_ENERGY,
-		 ELEC_POTENTIAL, ELEC_FIELD_INTENSITY, ELEC_FORCE_VWP, 
-		 ELEC_INTERFACE_FORCE, ELEC_CHARGE,  ELEC_FLUX_DENSITY,
-		 ELEC_ENERGY,
-		 SMOOTH_DISPLACEMENT, 
-		 ACOU_POTENTIAL, ACOU_FORCE, 
-		 ACOU_POTENTIAL_DERIV_1, ACOU_POTENTIAL_DERIV_2,
-		 MAG_POTENTIAL, MAG_FLUX_DENSITY, MAG_EDDY_CURRENT, 
-		 MAG_FORCE_VWP, MAG_FORCE_LORENTZ, MAG_ENERGY}
-  SolutionType;
+  typedef enum{ NO_SOLUTION_TYPE, MECH_DISPLACEMENT, MECH_ACCELERATION,
+		  MECH_VELOCITY, MECH_FORCE, MECH_STRESS, MECH_STRAIN,
+		  MECH_ENERGY,
+		  ELEC_POTENTIAL, ELEC_FIELD_INTENSITY, ELEC_FORCE_VWP, 
+		  ELEC_INTERFACE_FORCE, ELEC_CHARGE, ELEC_FLUX_DENSITY,
+		  ELEC_ENERGY,
+		  SMOOTH_DISPLACEMENT, 
+		  ACOU_POTENTIAL, ACOU_PRESSURE, ACOU_FORCE, 
+		  ACOU_POTENTIAL_DERIV_1, ACOU_POTENTIAL_DERIV_2,
+		  MAG_POTENTIAL, MAG_FLUX_DENSITY, MAG_EDDY_CURRENT, 
+		  MAG_FORCE_VWP, MAG_FORCE_LORENTZ, MAG_ENERGY} SolutionType;
 
   //! Enumberation for coupling method\n
   //! NO_COUPLING          = No coupling at all
   //! DIRECT_COUPLING      = Direct Coupling via matrix\n
   //! ITER_RHS_COUPLING    = Iterative via RHS\n
   //! ITER_MATRIX_COUPLING = Iterative via matrix
-  typedef enum{NO_COUPLING, DIRECT_COUPLING, 
-		 ITER_RHS_COUPLING, ITER_MATRIX_COUPLING}
-  CouplingMethod;
+  typedef enum{NO_COUPLING, DIRECT_COUPLING, ITER_RHS_COUPLING,
+		 ITER_MATRIX_COUPLING} CouplingMethod;
 
   //! Enumeration for Input Coupling types \n
   //! COORD = Coupling via coordinate displacement\n
@@ -142,7 +140,7 @@ namespace CoupledField
 
   //! Enumeration for type of equation numbering
   typedef enum {NODE_SCALAR, NODE_BLOCK, NODE_SCALAR_BLOCK,
-		NODE_SUPER_BLOCK} EQNType;
+                NODE_SUPER_BLOCK} EQNType;
 
   //! Enumeration for directions
   //! direction of various fields 
@@ -205,7 +203,7 @@ namespace CoupledField
   //! create a pointer to the class containing the description of the Finite
   //! Element.
   extern BaseFE *ptQ1, *ptQ2, *ptL1, *ptL2, *ptTet1, *ptTr1, *ptTr2, *ptHexa1, *ptHexa2, *ptPyra1, 
-                *ptWedge1, *ptWedge2;
+    *ptWedge1, *ptWedge2;
 
   //! class for flags of programm
   class Flags
