@@ -44,6 +44,29 @@ void HexaFE::SetIntPoints()
  
   switch(IntegType) 
     {
+    case GaussOrder1:
+	  
+      NumIntPoints_ = 1;
+      DegreeInteg_  = 2;
+
+
+      IntWeights_.resize(NumIntPoints_);
+	// all weights are 1.0
+      for(Integer i=0; i<IntWeights_.size(); i++)
+	IntWeights_[i] = 1.0;
+      
+      if (!IntPoints_)
+	IntPoints_ = new std::vector<Double>[NumIntPoints_];
+      
+      for(Integer i=0; i<NumIntPoints_; i++)
+	IntPoints_[i].resize(Dim_);
+
+      IntPoints_[0][0] = 0;
+      IntPoints_[0][1] = 0;
+      IntPoints_[0][2] = 0;      
+      
+      break;
+
     case GaussOrder2:
 	  
       NumIntPoints_=8;

@@ -15,7 +15,9 @@ namespace CoupledField
 class BaseFE
 {
 public:
-
+  // Due to (Re-) initialization of elements (e.g. in reduced integration)
+  friend class Grid;
+  
   //! constructor (does nothing)
   BaseFE();
 
@@ -304,9 +306,20 @@ public:
 					 const Matrix<Double> & cornerCoords);
   
 
+  //! Set integration type (GaussOrder1, GaussOrder2, ...)
+  virtual void SetIntegrationType(const IntegrationType aIntType)
+  {IntegType = aIntType;};
+  
+    
+  //! Get integration type (GaussOrder1, GaussOrder2, ...)
+  virtual IntegrationType GetIntType() {return IntegType;};
+
 
 
 protected:
+   //! Define variables of this class
+  virtual void Init()
+  { Error("Init not implemented for this element type! ",__FILE__,__LINE__);};
 
   /// defines the connected nodes with every edge 
   void SetEdgeVertices()
@@ -338,9 +351,6 @@ protected:
   
   //! Set value of shape fnc derivatives at integration points
   virtual void SetShapeFncDerivAtIp();
-
-  //! Set integration points
-  virtual void SetIntPoints()=0;
 
 
   ShortInt Dim_;                    //!< space dimension

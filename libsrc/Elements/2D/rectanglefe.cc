@@ -46,6 +46,27 @@ void RectangleFE:: SetIntPoints()
 
   switch(IntegType) 
     {
+    case GaussOrder1:
+      
+      NumIntPoints_ = 1;
+      DegreeInteg_  = 1;
+      
+      
+      if ( !IntPoints_)
+	IntPoints_ = new std::vector<Double>[NumIntPoints_];
+      
+      IntWeights_.resize(NumIntPoints_);
+      
+      for(Integer i=0; i<NumIntPoints_; i++)
+	{
+	  IntWeights_[i]=1;
+	  IntPoints_[i].resize(Dim_);
+	}
+      
+      IntPoints_[0][0] = 0;
+      IntPoints_[0][1] = 0;
+      break;
+      
     case GaussOrder2:
 
       NumIntPoints_=4;

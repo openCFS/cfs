@@ -51,7 +51,7 @@ void TetraFE::SetIntPoints()
 	// Thomas Hughes "The finite element method", p. 174
     
 	NumIntPoints_ = 1;
-	DegreeInteg_  = 2;
+	DegreeInteg_  = 1;
 
 	if ( !IntPoints_)
 	  IntPoints_ = new std::vector<Double>[NumIntPoints_];

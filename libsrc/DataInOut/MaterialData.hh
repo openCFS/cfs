@@ -47,6 +47,8 @@ public:
   //  MaterialData(const Integer& MatNr, const Integer& Nonlin, const ARRAY<NonlinSpline*> & MagneticSpline);
   
   MaterialData();
+
+  MaterialData(const MaterialData& mat);
   
   /// set the material number 
   void SetMatNr(const Integer& MatNr){matNr = MatNr; };

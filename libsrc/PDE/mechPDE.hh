@@ -136,6 +136,10 @@ protected:
 
 
 private:
+  /// calculates matrices D^_ and D^__ (see Hughes p. 217) for reduced integration
+  void CalcReducedMat(MaterialData& lambdaMat, MaterialData& mueMat, MaterialData& mat);
+
+
   // defines subtype of mechanic PDE: plainStrain, 3d, ...
   std::string subType_;
 
@@ -151,6 +155,9 @@ private:
 
   /// flag for nonlinear calculations
   Boolean nonLin_;
+
+  /// flag for reduced Integration
+  Boolean reducedInt_;
   
 
 
