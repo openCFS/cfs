@@ -1,6 +1,8 @@
 #ifndef FILE_FILETYPE_2001
 #define FILE_FILETYPE_2001
 
+#include "vector.hh"
+
 namespace CoupledField
 {
 

@@ -1,6 +1,8 @@
 #ifndef FILE_LAPLACEINT
 #define FILE_LAPLACEINT
 
+#include "baseform.hh"
+
 namespace CoupledField
 {
 

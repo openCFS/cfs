@@ -1,6 +1,8 @@
 #ifndef FILE_DQUADRILATERAL2_2002
 #define FILE_DQUADRILATERAL2_2002
 
+#include "rectangle.hh"
+
 namespace CoupledField
 {
 //! Quadrilateral finite element with four nodes (linear interpolation function)

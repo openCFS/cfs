@@ -3,9 +3,9 @@
 #include <stdarg.h>
 #include <iostream>
 
-#include <general_head.hh>
-#include <utils_head.hh>
-#include "filetype.hh"
+//#include <general_head.hh>
+//#include <utils_head.hh>
+//#include "filetype.hh"
 #include "datfile.hh"
 
 namespace CoupledField

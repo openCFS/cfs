@@ -1,5 +1,8 @@
 #ifndef FILE_SYMMATRIX_2001
 #define FILE_SYMMATRIX_2001
+
+#include "matrix.hh"
+#include "absmatrix.hh"
  
 namespace CoupledField
 {      

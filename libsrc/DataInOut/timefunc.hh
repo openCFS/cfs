@@ -1,6 +1,8 @@
 #ifndef FILE_TIMEFUNC_2001
 #define FILE_TIMEFUNC_2001
 
+#include "filetype.hh"
+
 namespace CoupledField
 {
 

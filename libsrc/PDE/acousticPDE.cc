@@ -3,12 +3,13 @@
 #include <string>
 #include <math.h>
 
-#include <general_head.hh> 
-#include <utils_head.hh>
-#include <datainout_head.hh>
-#include <domain_head.hh>
-#include <linalg_head.hh>
-#include "pde.hh"
+//#include <general_head.hh> 
+//#include <utils_head.hh>
+//#include <datainout_head.hh>
+//#include <domain_head.hh>
+//#include <linalg_head.hh>
+//#include "pde.hh"
+#include "interface_linalg.hh"
 #include "acousticPDE.hh"
  
 namespace CoupledField

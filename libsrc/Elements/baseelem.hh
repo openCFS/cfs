@@ -1,6 +1,8 @@
 #ifndef FILE_BASEELEM_2001
 #define FILE_BASEELEM_2001
 
+#include "matrix.hh"
+
 namespace CoupledField
 {
 

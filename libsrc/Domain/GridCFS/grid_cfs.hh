@@ -1,6 +1,8 @@
 #ifndef FILE_SCFE_GRID_CFS_2001
 #define FILE_SCFE_GRID_CFS_2001
 
+#include "filetype.hh"
+
 namespace CoupledField
 {
  

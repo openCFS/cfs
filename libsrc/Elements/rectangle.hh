@@ -1,6 +1,8 @@
 #ifndef FILE_RECTANGLE_2002
 #define FILE_RECTANGLE_2002
 
+#include "baseelem.hh"
+
 namespace CoupledField
 {
 //! Class with general procedures for quadrilateral finite elements

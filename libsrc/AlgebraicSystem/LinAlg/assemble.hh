@@ -1,5 +1,18 @@
 #ifndef FILE_ASSEMBLE_2001
 #define FILE_ASSEMBLE_2001
+
+#include "clock.hh"
+#include "systemmatrix.hh"
+
+#include "triangle1.hh"
+#include "quad1.hh"
+#include "quad2.hh"
+
+#include "laplaceint.hh"
+#include "massint.hh"
+#include "linearform.hh"
+
+#include "domain.hh"
  
 namespace CoupledField
 {

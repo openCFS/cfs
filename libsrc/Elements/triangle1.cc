@@ -1,11 +1,10 @@
-//#include <stdlib.h>
 #include <iostream>
 #include <fstream>
 
-#include <general_head.hh>
-#include <utils_head.hh>
-#include "baseelem.hh"
-#include "getriangle.hh"
+//#include <general_head.hh>
+//#include <utils_head.hh>
+//#include "baseelem.hh"
+//#include "getriangle.hh"
 #include "triangle1.hh"
 
 namespace CoupledField

@@ -1,6 +1,8 @@
 #ifndef FILE_DATFILE
 #define FILE_DATFILE
 
+#include "filetype.hh"
+
 namespace CoupledField
 {
 

@@ -1,10 +1,9 @@
-//#include <string>
 #include <iostream>
 #include <fstream>
 
-#include <general_head.hh>
-#include <utils_head.hh>
-#include "filetype.hh"
+//#include <general_head.hh>
+//#include <utils_head.hh>
+//#include "filetype.hh"
 
 #include "timefunc.hh"
 

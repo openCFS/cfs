@@ -4,8 +4,10 @@
 //#include <string>
 #include <iomanip.h>
 
-#include <general_head.hh>
-#include <utils_head.hh>
+//#include <general_head.hh>
+//#include <utils_head.hh>
+
+#include "symmatrix.hh"
 
 namespace CoupledField
 {      

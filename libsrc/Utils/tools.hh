@@ -1,7 +1,10 @@
 #ifndef TOOLS_2001
 #define TOOLS_2001
 
-namespace CoupledField {
+#include "environment.hh"
+
+namespace CoupledField
+{
 
   //! Function for working with errors 
   void Error(const Char * Text, const Char * const filename=NULL,
