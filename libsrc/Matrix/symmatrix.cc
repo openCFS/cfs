@@ -434,7 +434,7 @@ default:
 template<class S>
 std::ostream & operator << (std::ostream & out, const SymMatrix<S> & mat)
 {
-Integer i,j,jj;
+Integer i,j;
 
 out.setf(ios::scientific);
 
