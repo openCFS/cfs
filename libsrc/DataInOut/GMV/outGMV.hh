@@ -27,6 +27,9 @@ public:
   /// write information about the solution
   virtual void WriteSolution(const Vector<Double> & sol, const Integer step, const Double time, const std::string title);
 
+  //!
+  virtual Boolean IsGMV(){ return TRUE;}
+
 private:
 
   //! name of dir for output results
