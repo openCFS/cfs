@@ -84,8 +84,12 @@ libsrc/Elements/Makefile -text
 libsrc/Elements/baseelem.cc svneol=native#text/plain
 libsrc/Elements/baseelem.hh svneol=native#text/plain
 libsrc/Elements/elements_head.hh svneol=native#text/plain
+libsrc/Elements/getriangle.cc svneol=native#text/plain
+libsrc/Elements/getriangle.hh svneol=native#text/plain
 libsrc/Elements/quad1.cc svneol=native#text/plain
 libsrc/Elements/quad1.hh svneol=native#text/plain
+libsrc/Elements/rectangle.cc svneol=native#text/plain
+libsrc/Elements/rectangle.hh svneol=native#text/plain
 libsrc/Elements/triangle1.cc svneol=native#text/plain
 libsrc/Elements/triangle1.hh svneol=native#text/plain
 libsrc/Forms/Makefile -text

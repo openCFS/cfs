@@ -49,6 +49,8 @@ void BaseForm<Dim> :: CalcShapeFncDxShapeFncDx(Dim * ptCoord,
   Result.Resize(n,n);
  
 
+  Vector<Double> * intWeights=ptelem->GetIntWeights();  
+
   for (i=0; i<l; i++)
     {
 
@@ -65,6 +67,12 @@ void BaseForm<Dim> :: CalcShapeFncDxShapeFncDx(Dim * ptCoord,
       for (ii=0; ii < n; ii++)
 	for (iii=0; iii<ii+1; iii++)
           Result[ii][iii]+=(help[ii]*JinvX)*(help[iii]*JinvX)*J.detJ;
+
+      if (intWeights)
+	{
+	  Result[ii][iii]*=(*intWeights)[i];
+	}
+
     }
 
   for (ii=0; ii<n; ii++)
@@ -92,6 +100,8 @@ void BaseForm<Dim> :: CalcShapeFncDyShapeFncDy(Dim * ptCoord,
 
   Result.Resize(n,n);
 
+  Vector<Double> * intWeights=ptelem->GetIntWeights(); 
+
   for (i=0; i<l; i++)
     {
   
@@ -107,8 +117,14 @@ void BaseForm<Dim> :: CalcShapeFncDyShapeFncDy(Dim * ptCoord,
       for (ii=0; ii < n; ii++)
 	for (iii=0; iii<ii+1; iii++)
 	  Result[ii][iii]+=(help[ii]*JinvY)*(help[iii]*JinvY)*J.detJ;
-    }
 
+      if (intWeights)
+	{
+	  Result[ii][iii]*=(*intWeights)[i];
+	}
+
+    }
+ 
   for (ii=0; ii<n; ii++)
     for (iii=0; iii<ii; iii++)
       Result[iii][ii]=Result[ii][iii];
@@ -135,6 +151,8 @@ void BaseForm<Dim> :: CalcShapeFncShapeFnc(Dim * ptCoord,
   Vector<Double> * Sf=new Vector<Double> [n];
   for (i=0; i < n; i++)
     Sf[i]=ptelem->GetShFncAtIP(i+1);
+
+  Vector<Double> * intWeights=ptelem->GetIntWeights();  
  
   for (i=0; i<l; i++)
     {
@@ -143,6 +161,12 @@ void BaseForm<Dim> :: CalcShapeFncShapeFnc(Dim * ptCoord,
       for (ii=0; ii < n; ii++)
 	for (iii=0; iii<ii+1; iii++)
 	  Result[ii][iii]+=J.detJ*Sf[ii][i]*Sf[iii][i];
+
+      if (intWeights)
+	{
+	  Result[ii][iii]*=(*intWeights)[i];
+	}
+
     }
 
   for (ii=0; ii<n; ii++)

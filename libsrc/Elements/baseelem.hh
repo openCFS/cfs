@@ -5,7 +5,7 @@ namespace CoupledField
 {
 
   //! Class for calculation Jacobian 
-  /*! In this class we store Jacobian of transformation element in standart, det of Jacobian and claculate inverse of Jacobian matrix */
+  /*! In this class we store Jacobian of transformation element in standart, det of Jacobian and calculate inverse of Jacobian matrix */
 
 template<class Dim>
 class Jacobian
@@ -53,10 +53,10 @@ public:
   virtual void SetIntPoints()=0;
 
   //!
-  virtual void SetShapeFncAtIntPoints()=0;
+//  virtual void SetTransFncAtIntPoints()=0;
 
   //!
-  virtual void SetDShapeFncAtIntPoints()=0;
+//  virtual void SetDerTransFncAtIntPoints()=0;
 
   //!
   virtual  void GetGradientShFnc(Vector<Double> & ,const Integer i, const Integer j)=0;
@@ -72,12 +72,6 @@ public:
   //!
   virtual Vector<Double> &  GetShFncAtIP(const Integer iShFnc)=0 ;
 
-  //!
-//  virtual Vector<Double> *  GetDxShFncAtIP(const Integer iShFnc)=0 ;
-
-  //!
-//  virtual Vector<Double> *  GetDyShFncAtIP(const Integer iShFnc)=0 ; 
-
   //! Return number of nodes   
   ShortInt GetDim() { return Dim; };
  
@@ -88,10 +82,13 @@ public:
   ShortInt GetNumIntPoints() {return NumIntPoints; }; 
 
   //! Return pointer to coordinate x of integration pointes
-  Double GetIntPointsX(Integer i){return (*IntPoints)[i][0];}
+  Double GetIntPointsX(Integer i){return IntPoints[i][0];}
 
   //! Return pointer to coordinate y of integration pointes
-  Double GetIntPointsY(Integer i){return (*IntPoints)[i][1];}
+  Double GetIntPointsY(Integer i){return IntPoints[i][1];}
+
+  //! Return pointer to integration weights
+  Vector<Double> * GetIntWeights(){ return IntWeights;}
 
 protected:
 
@@ -101,7 +98,7 @@ protected:
   ShortInt NumFaces;           //!< number of faces
   ShortInt NumIntPoints;       //!< number of integration points
   ShortInt DegreeInteg;        //!< numerical integration order
-  Matrix<Double> * IntPoints;  //!< integration points
+  Matrix<Double> IntPoints;  //!< integration points
   Vector<Double> * IntWeights; //!< integration weights
 
 private:
