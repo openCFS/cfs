@@ -7,6 +7,9 @@
 #include "newElecPDE.hh"
 #include "newMechPDE.hh"
 #include "newAcousticPDE.hh"
+#include "newsmoothPDE.hh"
+#include "magneticPDE.hh"
+
 #else // NEWBASEPDE
 
 #include "acousticPDE.hh"

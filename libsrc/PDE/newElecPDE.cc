@@ -13,6 +13,7 @@
 #include <DataInOut/WriteInfo.hh> 
 #include <AlgebraicSystem/LinAlg/linsystem.hh>
 #include <Driver/assemble.hh>
+#include "ScalarNodeEQN.hh"
 
 #include "newElecPDE.hh"
 
@@ -42,6 +43,12 @@ ElecPDE::ElecPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
   if (subtype == "axi")
     isaxi_ = TRUE;
 
+  //check for nonlinearity
+  nonLin_ = FALSE;
+  if (conf->get_option("nonlin",  pdename_ ))
+    nonLin_=TRUE;
+
+
   //check for electric field:
   conf->ifgetliststr("calc_EField",calcEfield_,pdename_); 
 
@@ -65,6 +72,8 @@ ElecPDE::ElecPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
   ReadMaterialData();
    
   DefineIntegrators(actlevel_);  
+
+  ReadSavings();
 }
 
 
@@ -94,20 +103,66 @@ void ElecPDE::DefineIntegrators(const Integer level)
 // ======================================================
 
 
+void ElecPDE:: PreStepStatic(const Integer level)
+{
+#ifdef TRACE
+  (*trace) << "entering ElecPDE:: PreStepStatic" << std::endl;
+#endif
+
+  if (PDEisCoupled_)
+      algsys_->InitSol();
+
+  if (nonLin_)
+    {
+      assemble_->SetNonlinGeo();
+
+      algsys_->InitRHS();
+      algsys_->InitSol();
+      assemble_->InitMatrices();
+
+      assemble_->SetReassemble();   
+    }
+
+}
+
+
+void ElecPDE::StepStaticNonLin(const Integer level)
+{
+#ifdef TRACE
+  (*trace) << "entering ElecPDE::StepStaticLin" << std::endl;
+#endif
+
+  Integer job = 1;
+  Double * ptsol;
+
+  assemble_->AssembleMatrices(level);
+  assemble_->AssembleRHS(level);
+  
+  updateBCs_ = 0;
+  SetBCs(level,updateBCs_,0);
+  algsys_->CalcPrecond(job);
+
+  algsys_->Solve();
+
+  ptsol = algsys_->GetSolutionVal();
+
+  // save solution
+  Integer k=0;
+  
+  for (Integer i=0; i<numPDENodes_; i++)
+    for (Integer dim=0; dim<dofspernode_; dim++)
+      sol_[dim][i] = ptsol[k++];
+
+}
+
 void ElecPDE::PostStepStatic(const Integer level)
 {
 #ifdef TRACE
   (*trace) << "entering ElecPDE::PostStepStatic" << std::endl;
 #endif
 
-  //perform postprocessing
-
-  // Initalize matrices, if PDE couples via COORD or MAT
-  // Initalize RHS and Solution vector
-//   algsys_->InitRHS();
-//   algsys_->InitSol();  
-//   if (InitMatrices_ == TRUE)
-//     InitMatrices();
+  if (PDEisCoupled_)
+    iterCoupledCounter_++;
 
 
 #ifdef ADAPTGRID
@@ -305,8 +360,8 @@ void ElecPDE::CalcNodeForce(Array<Double> & force,
   //std::cerr << "Sum of E-Force:" << std::endl << sum << std::endl;
   
   // write information in .info-file
-  Info->PrintF(pdename_, "Sum of electrostatic force:");
-  Info->PrintVec(sum);
+  //  Info->PrintF(pdename_, "Sum of electrostatic force:");
+  //  Info->PrintVec(sum);
 
 }
 
@@ -321,7 +376,7 @@ void ElecPDE::CalcEnergy()
   Matrix<Double> ptCoord;
   BaseFE         * ptElem;
 
-  Vector<Integer> connecth, connect_PDE;  
+  Vector<Integer> connecth, connect_PDE, Eqns;  
   Vector<double> help;
 
   Integer i, j;
@@ -347,6 +402,12 @@ void ElecPDE::CalcEnergy()
 
 	  // Mape Mesh to PDE node numbers
 	  Mesh2PDENode(connect_PDE,connecth,Mesh2PDENode_);
+
+// 	  EqnData_->Mesh2Eqn(Eqns,connecth);
+// 	  (*debug) << "Nodes:" << connecth << std::endl;
+// 	  (*debug) << "Eqns :" << Eqns << std::endl;
+
+
 	  Vector<Double> elpot;
 	  GetSolOfElement(elpot, connect_PDE);	 
 	  help = elemmat * elpot;
@@ -387,6 +448,10 @@ void ElecPDE::Reset()
   (*trace) << "entering ElecPDE::Reset" << std::endl;
 #endif
     
+  //just for Testing
+  EqnData_ = new ScalarNodeEQN(ptgrid_,ptBCs_,subdoms_, bcs_hd_,actlevel_);
+  EqnData_->Print();
+
   AssignPDENodeNumbers(Mesh2PDENode_,PDE2MeshNode_,subdoms_);
   numPDENodes_=PDE2MeshNode_.size();
 
@@ -489,6 +554,10 @@ void ElecPDE::InitCoupling(PDECoupling * Coupling)
 	} // end if
             
     } // end for (i)
+
+
+  iterCoupledCounter_ = 0;
+
 }
   
 

@@ -55,13 +55,14 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 
   sol_.reshape(dofspernode_, numPDENodes_);
 
-
+  reducedInt_ = FALSE;
   if (conf->get_option("reducedInt",  pdename_ ))
     {
       std::cout << "REDUCED INTEGRATION set !!" << std::endl << std::endl;
       reducedInt_=TRUE;
     }
 
+  nonLin_ = FALSE;
   if (conf->get_option("nonlin",  pdename_ ))
     {
       nonLin_=TRUE;
@@ -105,8 +106,6 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
   if (bcs_id_.size() != inhomDirichDof_.size()) 
      Error("Inconsistent definition of inhomogeneous Dirichlet Boundary Conditions");
  
-
-
   // set assemble parameters
   assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, subdoms_, surfdoms_);
   assemble_->SetGraphType(NODEGRAPH);
@@ -120,6 +119,9 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
   ReadMaterialData();
    
   DefineIntegrators(actlevel_);  
+
+  ReadSavings();
+
 }
 
 
@@ -165,7 +167,7 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 
 	  //check for damping
 	  if (damping_type_ == RAYLEIGH)    
-	    actIntDescr->SetSecondaryMat(DAMPING, actSDMat.GetDampingBeta());
+	      actIntDescr->SetSecondaryMat(DAMPING, actSDMat.GetDampingBeta());
 	  
 	  assemble_->AddIntegrator(actIntDescr, subdoms_[actSD]);
 	}
@@ -219,10 +221,9 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 
       //check for damping (mass part)
       if (damping_type_ == RAYLEIGH)    
-	actIntDescr->SetSecondaryMat(DAMPING, actSDMat.GetDampingAlfa());
-	  
-      assemble_->AddIntegrator(actIntDescr, subdoms_[actSD]);
+	  actIntDescr->SetSecondaryMat(DAMPING, actSDMat.GetDampingAlfa());
 
+      assemble_->AddIntegrator(actIntDescr, subdoms_[actSD]);
 
 
       // ==================== RHS ================================================
@@ -342,78 +343,6 @@ void MechPDE::CalcReducedMat(MaterialData& lambdaMat, MaterialData& mueMat, Mate
 
 
 
-void MechPDE::SetBCs(const Integer level, const Integer update, const Double atime)
-  {
-#ifdef TRACE
-    (*trace) << "entering MechPDE::SetBCs" << std::endl;
-#endif
-    
-    Integer node,dof;
-    Double val;
-    
-    // set dirichlet boundary conditions
-    Integer i = 0;
-    Integer j;
-    if (PDEisCoupled_)
-      j = couplingBCsCounter_;
-    else
-      j = 0;
-
-    std::list<Integer> nodes;
-    Integer sizebc=bcs_hd_.size();
-    
-    std::vector<Elem*> edgesBC;  // vector of 1D-elements from mesh-file
-    Vector<Integer> connecth;
-	  
-
-    // homogeneous boundary conditions
-    val = 0;
-    for (i=0; i< bcs_hd_.size(); i++) 
-     {
-	std::string doftype = bcs_hd_[i]; 
-	dof = GetBCDof(homDirichDof_[i]);
-	Info->WriteHomBC(pdename_, bcs_hd_[i], dof);	
-      
-	nodes=ptBCs_->GetNodesLevel(bcs_hd_[i]);
-   
-	for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end(); p++, j++)
-	  {
-	    node=*p;
-
-	    if (update==1)
-	      algsys_->UpdateDirichlet(j+1, val, SYSTEM);
-	    else
-	      algsys_->SetDirichlet(j+1, Mesh2PDENode_[node-1], val, dof, SYSTEM);
-	  }  
-      }
-
-    //inhomogeneous boundary conditions
-    for (i=0; i<bcs_id_.size(); i++)
-      {
-	std::string doftype = bcs_id_[i]; 
-	dof = GetBCDof(inhomDirichDof_[i]);
-      
-	nodes = ptBCs_->GetNodesLevel(bcs_id_[i], level);
-
-	val=val_id_[i];
-
-	for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end(); p++, j++)
-	  {
-	    node=*p;
-	  
-	    if (update==1)
-	      algsys_->UpdateDirichlet(j+1, val, SYSTEM);
-	    else	    
-	      algsys_->SetDirichlet(j+1, Mesh2PDENode_[node-1], val, dof, SYSTEM);
-	  }
-      }
-#ifdef TRACE
-    (*trace) << "leaving MechPDE::SetBCs" << std::endl;
-#endif
-  }
-
-
-
 Integer MechPDE::GetNrBCDof(const std::string & dofStartString)
   {
 #ifdef TRACE
@@ -465,6 +394,9 @@ void MechPDE::InitCoupling(PDECoupling * Coupling)
 	  ptCoupling_->GetOutputValues(i, val);
 	}
     }
+
+  iterCoupledCounter_ = 0;
+
 }
 
 
@@ -528,6 +460,21 @@ Boolean MechPDE::HasOutput(std::string output)
 // ======================================================
 // SOLVING SECTION
 // ======================================================
+
+void MechPDE:: PreStepStatic(const Integer level)
+{
+#ifdef TRACE
+  (*trace) << "entering MechPDE:: PreStepStatic" << std::endl;
+#endif
+
+  if (PDEisCoupled_)
+    {
+      algsys_->InitRHS();
+      algsys_->InitSol();
+    }
+
+}
+
 
 void MechPDE::StepStaticNonLin(const Integer level)
 {
@@ -631,10 +578,22 @@ void MechPDE::StepStaticNonLin(const Integer level)
 
 
 
+void MechPDE :: PostStepStatic(const Integer level)
+{
+#ifdef TRACE
+  (*trace) << "entering MechPDE::PostStepStatic" << std::endl;
+#endif
+
+  if (PDEisCoupled_)
+    iterCoupledCounter_++;
+
+}
+
+
 void MechPDE :: InitTimeStepping(const Double dt)
 {
 #ifdef TRACE
-  (*trace) << "entering AcousticPDE::InitTimeStepping" << std::endl;
+  (*trace) << "entering MechPDE::InitTimeStepping" << std::endl;
 #endif
 
   TS_alg_ = new Newmark(pdename_, algsys_, 1, numPDENodes_*dofspernode_, damping_type_);
@@ -761,10 +720,31 @@ void MechPDE::WriteResultsInFile()
   (*trace) << "entering MechPDE::WriteResultsInFile" << std::endl;
 #endif
 
-  Array<Double> DispMesh;
- 
-  TransformNodeSolution(DispMesh, sol_, PDE2MeshNode_);
-  OutFile_->WriteNodeSolution(DispMesh, laststepcalc_, lasttimecalc_,"displacement");
+  Array<Double> sol_mesh, solder1_mesh, solder2_mesh;
+  Array<Double> sol_der1Array, sol_der2Array;
+
+  if (savesol_ == TRUE && (analysistype_== STATIC || analysistype_== TRANSIENT))
+    {
+      TransformNodeSolution(sol_mesh, sol_, PDE2MeshNode_);
+      OutFile_->WriteNodeSolution(sol_mesh, laststepcalc_, lasttimecalc_,"displacement");
+    }
+
+  if (analysistype_== TRANSIENT)
+    {
+      if (savederiv1_ = TRUE)
+	{
+	  sol_der1Array = getS1();
+	  TransformNodeSolution(solder1_mesh,sol_der1Array,PDE2MeshNode_);
+	  OutFile_->WriteNodeSolution(solder1_mesh,laststepcalc_,lasttimecalc_,"velocity");
+	}
+
+      if (savederiv2_ == TRUE)
+	{
+	  sol_der2Array = getS2();
+	  TransformNodeSolution(solder2_mesh,sol_der2Array,PDE2MeshNode_);
+	  OutFile_->WriteNodeSolution(solder2_mesh,laststepcalc_,lasttimecalc_,"acceleration");
+	}
+    }
 }
 
 

@@ -56,6 +56,26 @@ private:
 
 
 
+/// class for calculation of right hand side of an volume source
+class VolumeSrcInt : public LinearForm
+{
+public:
+  ///
+  VolumeSrcInt(Double val, Boolean isaxi);
+
+  ///
+  virtual ~VolumeSrcInt();
+
+  /// Calculation of vector of right hand side 
+  virtual void CalcElemVector(Matrix<Double>& ptCoord, std::vector<Double> & result);
+
+private:
+  /// source factor
+  Double val_;
+
+  Boolean isaxi_;
+  
+};
 
 
 

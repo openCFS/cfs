@@ -162,6 +162,12 @@ class IntegratorDescriptor : public BaseIntDescriptor
 
 
     
+    //!
+    void SetPtrDeltaCoordinates(Array<Double>* deltCoords)
+    {deltaCoords_ = deltCoords;};
+
+    void SetNonlinGeo()
+    { nonLinGeo = TRUE;};
 
 
     /// sets the number of nodes in the pde    
@@ -194,6 +200,7 @@ class IntegratorDescriptor : public BaseIntDescriptor
     void SetPtr2TimeFnc(TimeFunc * aPtTimeFunc)
     {ptTimeFunc_ = aPtTimeFunc;};
   
+
     // ======================================================
     // STUFF BELONGING TO ALGSYS (matrices, graphs, ...)
     // ======================================================
@@ -326,6 +333,8 @@ class IntegratorDescriptor : public BaseIntDescriptor
     std::vector<std::string> loadDom_;  //!< load subdomains
     std::vector<std::string> loadDof_;  //!< dofs of loads
     std::vector<Double>      loadVals_; //!< values of the load condition
+    std::vector<std::string> fncname_loads_; //!< function names of the loads
+
     TimeFunc * ptTimeFunc_;             //!< ptr to time function
     
     BCs *ptBCs_;                       //!< pointer to Boundary Condition  Object
@@ -345,8 +354,17 @@ class IntegratorDescriptor : public BaseIntDescriptor
 
     /// ptr to solution
     Array<Double> * sol_;
+    Array<Double> * deltaCoords_;
 
+    //! nonlinear parameters;
+    Boolean firstTime_;
+    Boolean oneIntIsNonlin_;
+    Integer nrMatrices_;  
+    Vector<Boolean> reassembleMat_;
+    Boolean nonLinGeo;
 
+    void SetReassemble()
+    {firstTime_ = TRUE;};
 
     // ==============================================
     // AUXILIARY METHODS

@@ -16,7 +16,7 @@ IterCoupledPDE::IterCoupledPDE(std::vector<BasePDE*> & PDEs,
   (*trace) << "entering  IterCoupledPDE::InitCoupling" << std::endl;
 #endif
  
-  maxiter_ = 5;
+  maxiter_ = 100;
    
   //if values are defined in conf-file, take these
   conf->ifget("maxiter", maxiter_, coupledpdename_); // maximal number of iterations
@@ -67,10 +67,10 @@ void IterCoupledPDE::InitCoupling(Integer level)
 	      // Read in node coupling terms
 	      if (conf->ifgetliststr(CouplingTerms[j], NodeCouplings, PDEs_[i]->GetName(), "node_coupling"))
 		{
-		  //std::cerr << "found " << NodeCouplings.size() << " Node Couplings" << std::endl;
+		  //		  std::cerr << "found " << NodeCouplings.size() << " Node Couplings" << std::endl;
 		  for (Integer k=0; k<NodeCouplings.size(); k++)
 		  {
-		    //std::cerr << "Adding Node CouplingTerms " << NodeCouplings[k] << std::endl;
+		    //		    std::cerr << "Adding Node CouplingTerms " << NodeCouplings[k] << std::endl;
 		    Couplings_[i]->AddInput(CouplingTerms[j], NodeCouplings[k], NODES, actlevel_, Couplings_);
 		    norms_.push_back(1.0);
 		  }
@@ -112,7 +112,7 @@ void IterCoupledPDE::InitCoupling(Integer level)
     PDEs_[i]->InitCoupling(Couplings_[i]); 
   
   // write coupling data in .info-file
-  WriteCouplingInfo();
+  // WriteCouplingInfo();
 }
 
 
@@ -132,7 +132,9 @@ void IterCoupledPDE::SolveStepStatic(const Integer level)
 
   while (iter < maxiter_ &&  (! normsReached))
     {
-      Info->PrintF(coupledpdename_, "COUPLED ITERATION %i", iter+1);
+      Info->PrintF(coupledpdename_,""); 
+      Info->PrintF(coupledpdename_, " COUPLED ITERATION %i =================================", 
+		   iter+1);
 	
 
       counter = 0;
@@ -140,11 +142,13 @@ void IterCoupledPDE::SolveStepStatic(const Integer level)
       
       for (Integer i=0; i<PDEs_.size(); i++)
 	{
-	  Info->PrintF(coupledpdename_, "Processing PDE %s", (PDEs_[i]->GetName()).c_str());
+	  Info->PrintF(coupledpdename_, " Processing PDE %s", 
+		       (PDEs_[i]->GetName()).c_str());
 
+	  PDEs_[i]->PreStepStatic(actlevel_);
 	  PDEs_[i]->CalcInputCoupling();
 	  PDEs_[i]->SolveStepStatic(actlevel_);
-	  PDEs_[i]->PostProcess(actlevel_);
+	  PDEs_[i]->PostStepStatic(actlevel_);
 	  PDEs_[i]->CalcOutputCoupling();
 
 	  // Calculate Norms
@@ -154,7 +158,9 @@ void IterCoupledPDE::SolveStepStatic(const Integer level)
 	      Couplings_[i]->GetOutputOldValues(k, oldVal);
 	      norms_[counter] = CalcNorm(Couplings_[i]->GetOutputNormType(k), *val, *oldVal);
 
-	      Info->PrintF(coupledpdename_, "Norm of %s = %g", (Couplings_[i]->GetOutputQuantity(k)).c_str(), norms_[counter]);
+	      Info->PrintF(coupledpdename_, " %s : Norm of %s = %g", 
+			   (Couplings_[i]->GetPDEName()).c_str(),
+			   (Couplings_[i]->GetOutputQuantity(k)).c_str(), norms_[counter]);
 	      
 	      if (norms_[counter] > Couplings_[i]->GetOutputEpsilon(k))
 		normsReached = FALSE;
@@ -165,7 +171,13 @@ void IterCoupledPDE::SolveStepStatic(const Integer level)
 	}
 
       iter++;
+      Info->PrintF(coupledpdename_, "\n"); 
     }
+
+  // now we are converged and can compute any postprocessing-quantities
+  for (Integer i=0; i<PDEs_.size(); i++)
+    PDEs_[i]->PostProcess(actlevel_);
+
 }
 
 
@@ -269,17 +281,23 @@ Double IterCoupledPDE::CalcNorm(NormType normtype, Array<Double> & val, Array<Do
 #endif
 
   Array<Double> delta;
-  Double norm;
+  Double norm, valNorm2;
+
+  delta = val - oldval;
 
   switch (normtype)
     {
     case L2ABS:
-      norm = val.normL2();
+      norm = delta.normL2();
       break;
 
     case L2REL:
-      delta = val - oldval;
-      norm = delta.normL2() / val.normL2();
+      valNorm2 =  val.normL2();
+      if (valNorm2 > 0)
+	norm = delta.normL2() / valNorm2;
+      else
+	norm = delta.normL2();
+
       break;
     }
 

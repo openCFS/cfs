@@ -11,6 +11,7 @@
 
 #include "MaterialData.hh"
 #include <PDE/pdes_header.hh>
+#include <General/environment.hh>
 
 namespace CoupledField
 {
@@ -48,9 +49,9 @@ namespace CoupledField
     /// prints all magnetic data
     void PrintMagMat(MaterialData& material);
 
-#ifndef NEWBASEPDE
+#ifdef NEWBASEPDE
     /// prints all data of a coil (e.g. current, area, magnetization, ...)
-    void PrintCoil(std::string& coilDomain, struct MagEdgePDE::coilDefStruct& coilDef,  AnalysisType& analysistype_);
+    void PrintCoil(std::string& coilDomain, struct coilDefStruct& coilDef,  AnalysisType& analysistype_);
 #endif // NEWBASEPDE
 
 
@@ -63,10 +64,13 @@ namespace CoupledField
     void WriteHomBC(const std::string& pdeName, 
 		    const std::string& subDom, Integer dof=0);
 
+    /// writes domain and dof of inhomogenous boundary conditions
+    void WriteInHomBC(const std::string& pdeName,const std::string& subDom, 
+		      const Double& val, const std::string & fnc, const Integer& dof);
 
     /// writes domain, value and dof of a load conditon
     void WriteLoad(const std::string& pdeName, const std::string& subDom, 
-		   Double value, Integer dof=0);
+		   Double value, const std::string & fnc, Integer dof=0);
     
 
     /// write Result values

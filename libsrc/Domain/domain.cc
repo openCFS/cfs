@@ -148,6 +148,8 @@ void Domain :: InitPDEs()
   //allocate all specific PDEs
   //  if (!ptalgsys_) Error("You try to allocate object BasePDE with null pointer to AlgSys");
 
+  Integer dim=InFile_->ReadDim();
+
   for (int i=0;i< pdes.size();i++)
     {
       if (pdes[i] == "electrostatic") 
@@ -159,18 +161,23 @@ void Domain :: InitPDEs()
       else if (pdes[i] == "acoustic")
   	ptpde_[i]=new AcousticPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
 
+      else if (pdes[i] == "smooth")
+	ptpde_[i]=new SmoothPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
+
+      else if (pdes[i] == "magnetic") 
+	if (dim == 2)
+	  ptpde_[i]=new MagPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
+
 #ifndef NEWBASEPDE
       else if (pdes[i] == "acouflownoise")
  	 ptpde_[i]=new AcouFlowNoise(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
-
-      else if (pdes[i] == "smooth")
-	ptpde_[i]=new SmoothPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
 
       else if (pdes[i] == "smoothlaplace") 
 	ptpde_[i]=new SmoothLaPlacePDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_); 
 
 
       else if (pdes[i] == "magnetic") 
+	if (dim == 3
 	ptpde_[i]=new MagEdgePDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_); 
 #endif // NEWBASEPDE
 

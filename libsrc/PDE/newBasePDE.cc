@@ -6,6 +6,7 @@
 
 #include <DataInOut/conffile.hh> 
 #include <Estimator/spaceerror.hh>
+#include <DataInOut/WriteInfo.hh>
 
 #include "newBasePDE.hh"
 
@@ -60,11 +61,20 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile, WriteResults * a
 
 
   if (analysis=="static") 
-    assemble_ = new StaticAssemble(algsys_, ptgrid_);
+    {
+      assemble_ = new StaticAssemble(algsys_, ptgrid_);
+      analysistype_ = STATIC;
+    }
+
   else if (analysis=="transient")
-    assemble_ = new TransientAssemble(algsys_, ptgrid_);
+    {
+      assemble_ = new TransientAssemble(algsys_, ptgrid_);
+      analysistype_ = TRANSIENT;
+    }
+
   else if (analysis=="harmonic")
     analysistype_ = HARMONIC;
+
   else
     Error("Analysis Type not supported",__FILE__,__LINE__);
 
@@ -77,6 +87,80 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile, WriteResults * a
 }
 
 
+void BasePDE::ReadSavings()
+{
+#ifdef TRACE
+  (*trace) << "entering BasePDE::ReadSavings" << std::endl;
+#endif
+
+  //set saving of solution to yes, if user has not used the nodalsave-command
+  savesol_ = TRUE;
+
+  //check for node saving
+  std::vector<std::string> savings;
+  conf->ifgetliststr("nodalsave", savings, pdename_);
+
+  //reset saving of solution, if user has used the nodalsave-command
+  if (savings.size() > 0) savesol_ = FALSE;
+
+  for (Integer i=0; i<savings.size(); i++)
+    {
+      if (savings[i] == "value")  savesol_ = TRUE;
+      if (savings[i] == "deriv1") savederiv1_ = TRUE;
+      if (savings[i] == "deriv2") savederiv2_ = TRUE;
+    }
+}
+
+
+void BasePDE::WriteGeneralPDEdefines()
+{
+#ifdef TRACE
+  (*trace) << "entering BasePDE::WriteGeneralPDEdefines" << std::endl;
+#endif
+
+  //BC-section
+  for (Integer i=0; i< bcs_hd_.size(); i++) 
+    {
+      Integer dof;
+      std::string doftype = bcs_hd_[i];
+      if (dofspernode_ > 1) 
+	dof = GetBCDof(homDirichDof_[i]);
+      else
+	dof = 1;
+
+      Info->WriteHomBC(pdename_, bcs_hd_[i], dof);	
+    }
+
+  for (Integer i=0; i< bcs_id_.size(); i++) 
+    {
+      Integer dof;
+      std::string doftype = bcs_id_[i];
+      if (dofspernode_ > 1) 
+	dof = GetBCDof(inhomDirichDof_[i]);
+      else
+	dof = 1;
+
+      Info->WriteInHomBC(pdename_, bcs_id_[i], val_id_[i], fncnames_id_[i], dof);	
+    }
+
+  // Loads
+  std::vector<std::string> loadDom = GetLoadDom();
+  std::vector<std::string> loadDof = GetLoadDof();
+  std::vector<Double> loadVals = GetLoadVals();
+  std::vector<std::string> loadfncs = GetLoadFncs();
+
+  for(int i=0; i < loadDom.size(); i++)
+    {
+      Integer dof;
+      std::string doftype = loadDom[i];
+      if (dofspernode_ > 1) 
+	dof = GetBCDof(loadDof[i]);
+      else
+	dof = 1;
+      Info->WriteLoad(pdename_, loadDom[i], loadVals[i], loadfncs[i], dof);
+    }
+}
+
 
   // ======================================================
   // Solve Step SECTION  
@@ -88,14 +172,17 @@ void BasePDE::SolveStepStatic(const Integer level)
   (*trace) << "entering BasePDE::SolveStepStatic" << std::endl;
 #endif
 
-  PreStepStatic(level);
+  lasttimecalc_ = 0;
+  laststepcalc_ = 0;
+
+  //  PreStepStatic(level);
 
   if (nonLin_)
     StepStaticNonLin(level);
   else
     StepStaticLin(level);
 
-  PostStepStatic(level);
+  //  PostStepStatic(level);
 
 }
 
@@ -107,18 +194,24 @@ void BasePDE::StepStaticLin(const Integer level)
 #endif
 
   Integer job = 1;
-
   Double * ptsol;
 
-  assemble_->AssembleMatrices(level);
+  if ( PDEisCoupled_ == FALSE || iterCoupledCounter_ == 0)
+    assemble_->AssembleMatrices(level);
+
+
+  //this has to be done each time!
   assemble_->AssembleRHS(level);
 
-  //account for bcs
-  SetBCs(level,updateBCs_,0);
+  if ( PDEisCoupled_ == FALSE || iterCoupledCounter_ == 0)
+    {
+      //account for bcs
+      SetBCs(level,updateBCs_,0);
+      updateBCs_ = 0;
+      algsys_->CalcPrecond(job);
+    }
+    
 
-  updateBCs_ = 0;
-  
-  algsys_->CalcPrecond(job);
   algsys_->Solve();
 
   ptsol = algsys_->GetSolutionVal();
@@ -148,16 +241,10 @@ void BasePDE::SolveStepTrans(const Integer kstep, const Double asteptime,
   else 
     laststepcalc_= kstep;
 
-
-  PreStepTrans(level,reset);
-
   if (nonLin_)
     StepTransNonLin(level,reset);
   else
     StepTransLin(level,reset);
-
-  PostStepTrans(level);
-
 
 }
 
@@ -262,12 +349,8 @@ void  BasePDE::SetBCs(const Integer level, const Integer update, const Double ti
 //       BigConst=(10e+10)*max;
 //     }
   
-  Integer node;
+  Integer node, dof;
   Double val, val_tfunc;
-
-  val_tfunc = 1.0;
-  if (ptTimeFunc_->GetmaxTimeFnc()!=0)
-      val_tfunc=ptTimeFunc_->TimeFuncAtTime(time,level);
 
   std::list<Integer> nodes;
 
@@ -278,39 +361,48 @@ void  BasePDE::SetBCs(const Integer level, const Integer update, const Double ti
   else
     j=0;
 
+  val = 0;
   for (i=0; i<bcs_hd_.size(); i++)
     {  
+      dof = 1;
+      if (dofspernode_ > 1)
+	{
+	  std::string doftype = bcs_hd_[i];
+	  dof = GetBCDof(homDirichDof_[i]);
+	}
+
       nodes=ptBCs_->GetNodesLevel(bcs_hd_[i]);
       for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end(); p++, j++)
 	{
 	  node=*p;
-	  val=0; 
-#ifdef DEBUG
-	  (*debug) << "Homogenous dirichlet BCS node: " << node << " val: " << val << " number: " << j 
-		   << std::endl << std::flush;
-	  
-#endif       
-	  algsys_->SetDirichlet(j+1, Mesh2PDENode_[node-1],
-				val, dofspernode_, SYSTEM);
+	  algsys_->SetDirichlet(j+1, Mesh2PDENode_[node-1],val, dof, SYSTEM);
 	}
     }
 
   for (i=0; i<bcs_id_.size(); i++)
     {
+      dof = 1;
+      if (dofspernode_ > 1)
+	{
+	  std::string doftype = bcs_id_[i]; 
+	  dof = GetBCDof(inhomDirichDof_[i]);
+	}
+      
       nodes=ptBCs_->GetNodesLevel(bcs_id_[i]); 
 
+      //get the correct time function value
+      val_tfunc = 1.0;
+      if (ptTimeFunc_->GetmaxTimeFnc() > 0 )
+	val_tfunc=ptTimeFunc_->TimeFuncAtTime(time,fncnames_id_[i]);
+
       val=val_id_[i]*val_tfunc;
+
       for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end(); p++, j++)
 	{
 	  node=*p;
-#ifdef DEBUG
-	  (*debug) << "Inhomogenous dirichlet node: " << node << " val: " << val 
-		   << " number: " << j << "PDEnode: " <<  Mesh2PDENode_[node-1] <<  std::endl;
-#endif      
-	      
 	  // Mesh node numbers are mapped to PDE node numbers
 	  algsys_->SetDirichlet(j+1, Mesh2PDENode_[node-1],
-				val, dofspernode_, SYSTEM);
+				val, dof, SYSTEM);
 	}
     }
   
@@ -335,9 +427,10 @@ void BasePDE::ReadBCs(const std::string eq)
   Integer i;
 
   val_id_.resize(bcs_id_.size());
+  fncnames_id_.resize(bcs_id_.size());
 
   for(i=0; i<bcs_id_.size(); i++)
-    conf->get(bcs_id_[i],val_id_[i],eq,"bc_conditions","inhomogeneous_dirichlet");
+    conf->get2(bcs_id_[i], val_id_[i], fncnames_id_[i], eq,"bc_conditions","inhomogeneous_dirichlet");
 }
 
 
@@ -550,6 +643,9 @@ void BasePDE::CalcInputCoupling()
 	  ptCoupling_->GetInputNodes(i, nodes);
 	  deltCoords_.reshape(Dim_, numPDENodes_);
 
+	  // set ptr of deltCoords to assembly-object
+	  assemble_->SetPtrDeltaCoordinates(&deltCoords_);
+
 	  for (Integer dim=0; dim<ptCoupling_->GetInputDim(i); dim++)
 	    for (Integer j=0; j<nodes->size(); j++)
 	      {
@@ -572,9 +668,11 @@ void BasePDE::CalcInputCoupling()
 	      {
 		PDEnode = Mesh2PDENode_[(*nodes)[j]-1];
 		if (PDEnode==-1)
-		  Error("Node not assigned to coupling domain: see mesh- and config-file",__FILE__,__LINE__);
-
-		//	std::cerr << "PDENODE: "  << PDEnode << "Node[" << (*nodes)[j] << "][" << dim+1 << "]= " << (*val)[dim][j] << std::endl; 
+		  {
+		    std::cerr << "PDENODE: "  << PDEnode << "Node[" << (*nodes)[j] << "][" 
+			      << dim+1 << "]= " << (*val)[dim][j] << std::endl; 
+		    Error("Node not assigned to coupling domain: see mesh- and config-file",__FILE__,__LINE__);
+		  }
 		algsys_->SetNodeRHS((*val)[dim][j], PDEnode, dim+1);
 	      }
 	  
@@ -593,12 +691,13 @@ void BasePDE::CalcInputCoupling()
 		
 		if (updateCouplingBCs_)
 		  {
-		    //std::cerr << "updating BC[" << dim << "][" << (*nodes)[j] << "] = " << (*val)[dim][j] << std::endl;
+		    //		    std::cerr << "updating BC[" << dim << "][" << (*nodes)[j] << "] = " 
+		    //		      << (*val)[dim][j] << std::endl;
 		    algsys_->UpdateDirichlet(couplingBCsCounter_+1, (*val)[dim][j], SYSTEM);
 		  }
 		else
 		  {	
-		    //std::cerr << "BC[" << dim << "][" << (*nodes)[j] << "] = " << (*val)[dim][j] << std::endl;
+		    //  std::cerr << "BC[" << dim << "][" << (*nodes)[j] << "] = " << (*val)[dim][j] << std::endl;
 		    algsys_->SetDirichlet(couplingBCsCounter_+1, PDEnode, (*val)[dim][j], dim+1, SYSTEM);
 		  }
 	      }
@@ -612,6 +711,7 @@ void BasePDE::CalcInputCoupling()
     } // end for
 
   updateCouplingBCs_ = TRUE;
+
 }
 
 
@@ -620,8 +720,6 @@ void BasePDE::CalcInputCoupling()
   // ======================================================
   // GRID SECTION (Meshing, ...) 
   // ======================================================
-
-
 
 
 void BasePDE::Mesh2PDENode(Vector<Integer> & PDENodes, 
@@ -668,8 +766,6 @@ void BasePDE::PDE2MeshNode(Vector<Integer> & MeshNodes,
     (*debug) << "in: " << PDENodes[i] << " out: " << MeshNodes[i] << std::endl;
 #endif
 }
-
-
 
 
 void BasePDE::AssignPDENodeNumbers(std::vector<Integer> & Mesh2PDENode,
@@ -730,34 +826,34 @@ void BasePDE::AssignPDENodeNumbers(std::vector<Integer> & Mesh2PDENode,
 
 
   
-void BasePDE::AssignPDENodeNumbers(std::vector<Integer> & Mesh2PDENode,
-			  std::vector<Integer> & PDE2MeshNode,
-			  const std::vector<Elem*> & Elements)
-{
-#ifdef TRACE
-  (*trace) << "entering BasePDE:AssignPDENodeNumbers:" << std::endl;
-#endif
+// void BasePDE::AssignPDENodeNumbers(std::vector<Integer> & Mesh2PDENode,
+// 			  std::vector<Integer> & PDE2MeshNode,
+// 			  const std::vector<Elem*> & Elements)
+// {
+// #ifdef TRACE
+//   (*trace) << "entering BasePDE:AssignPDENodeNumbers:" << std::endl;
+// #endif
 
-  // Initialize Mesh2PDENode_ and PDE2MeshNode
-  Mesh2PDENode.resize(ptgrid_->GetMaxnumnodes(actlevel_),-1);
-  Integer NodeCounter = 1;
+//   // Initialize Mesh2PDENode_ and PDE2MeshNode
+//   Mesh2PDENode.resize(ptgrid_->GetMaxnumnodes(actlevel_),-1);
+//   Integer NodeCounter = 1;
   
-  // Iterate over all elements 
-  for (Integer j=0; j<Elements.size(); j++)
-    {
-      // Iterate over all element nodes
-      for (Integer NumNodes=0; NumNodes<Elements[j]->connect.size(); NumNodes++)
-	{
-	  // Check if node was already assigned
-	  if (Mesh2PDENode[Elements[j]->connect[NumNodes] - 1] == -1)
-	    {
-	      Mesh2PDENode[Elements[j]->connect[NumNodes] - 1] = NodeCounter;
-	      PDE2MeshNode.push_back(Elements[j]->connect[NumNodes]);
-	      NodeCounter++;
-	    }
-	}
-    }
-}
+//   // Iterate over all elements 
+//   for (Integer j=0; j<Elements.size(); j++)
+//     {
+//       // Iterate over all element nodes
+//       for (Integer NumNodes=0; NumNodes<Elements[j]->connect.size(); NumNodes++)
+// 	{
+// 	  // Check if node was already assigned
+// 	  if (Mesh2PDENode[Elements[j]->connect[NumNodes] - 1] == -1)
+// 	    {
+// 	      Mesh2PDENode[Elements[j]->connect[NumNodes] - 1] = NodeCounter;
+// 	      PDE2MeshNode.push_back(Elements[j]->connect[NumNodes]);
+// 	      NodeCounter++;
+// 	    }
+// 	}
+//     }
+// }
 
 
 void BasePDE::GetElemCoords(const Vector<Integer> connect, Matrix<Double> &coordMat, const Integer level)

@@ -2,6 +2,7 @@
 #include <fstream>
 #include <iostream>
 
+#include "General/environment.hh"
 #include "conffile.hh"
 
 namespace CoupledField
@@ -60,6 +61,173 @@ void ConfFile::get(const std::string keyword, TypeVal & val, const std::string s
  infile.seekg(pos, std::ios::beg);
  infile >> val;
 }
+
+void ConfFile::get2(const std::string keyword, Double & val, std::string & fncname,
+		    const std::string section, const std::string subsection, const std::string subsubsection)
+{
+ std::string::size_type pos,pos1=0;
+ Boolean inSection = FALSE;
+ Boolean inSubSection = FALSE;
+ if (section != "") 
+   { 
+     pos1=getsectionpos(section); 
+     inSection=TRUE;
+   }
+ if (subsection !="") 
+   {
+     pos1=getsubsectionpos(subsection,pos1);
+     inSubSection = TRUE;
+   }
+ if (subsubsection != "") 
+   { 
+     pos1=getpos(subsubsection,pos1);
+     infile.seekg(pos1, std::ios::beg);
+     infile.ignore(100,'\n');                      
+     pos1=infile.tellg();
+   }
+
+ pos=getpos(keyword,pos1,inSection,inSubSection);
+
+ infile.seekg(pos, std::ios::beg);
+ std::string dummy;
+ std::string comma = ","; 
+ Boolean fnc_file = FALSE;
+
+ getline(infile,dummy);
+ Integer idx;
+ for (Integer i=0; i<dummy.size(); i++)
+   if (dummy[i] == comma[0])  
+     {
+       fnc_file = TRUE;
+       idx = i;
+     }
+
+ if (fnc_file)
+   {
+     std::string empty = " ";
+     idx++;
+     while (dummy[idx] == empty[0])
+       idx++;
+   }
+
+ infile.seekg(pos, std::ios::beg);
+ infile >> val;
+
+ if (fnc_file)
+   fncname = dummy.substr(idx,dummy.size()-idx);
+ else
+   fncname = "---not-defined--";
+
+}
+
+
+void ConfFile::getCoilData(coilDefStruct& acoil, const std::string section, const std::string subsection)
+{
+ std::string::size_type pos,pos1=0;
+ Boolean inSection = FALSE;
+ Boolean inSubSection = FALSE;
+ if (section != "") 
+   { 
+     pos1=getsectionpos(section); 
+     inSection=TRUE;
+   }
+ if (subsection !="") 
+   {
+     pos1=getsubsectionpos(subsection,pos1);
+     inSubSection = TRUE;
+   }
+
+ std::string keyword;
+ acoil.type = MEASUREMENT;
+
+ keyword = "current";
+ pos=getpos(keyword,pos1,inSection,inSubSection,FALSE);
+ if (pos!=std::string::npos) 
+   {
+     infile.seekg(pos, std::ios::beg);
+     infile >> acoil.current;
+     acoil.type = CURRENT;
+   }
+ else 
+   acoil.current = 0;
+ 
+ keyword = "voltage";
+ pos=getpos(keyword,pos1,inSection,inSubSection,FALSE);
+ if (pos!=std::string::npos) 
+   {
+     infile.seekg(pos, std::ios::beg);
+     infile >> acoil.voltage;
+     acoil.type = VOLTAGE;
+     Error("Currently voltage loaded coil not supported");
+   }
+ else 
+   acoil.voltage = 0;
+
+ keyword = "area";
+ pos=getpos(keyword,pos1,inSection,inSubSection,FALSE);
+ if (pos!=std::string::npos) 
+   {
+     infile.seekg(pos, std::ios::beg);
+     infile >> acoil.coilArea;
+     if (acoil.coilArea ==0)
+       Error("coilArea has to be latger than zero!");
+   }
+ else 
+   Error("coilArea has to be defined for each coil!");
+
+ keyword = "resistance";
+ acoil.resistance = 1.0;
+ pos=getpos(keyword,pos1,inSection,inSubSection,FALSE);
+ if (pos!=std::string::npos) 
+   {
+     infile.seekg(pos, std::ios::beg);
+     infile >> acoil.resistance;
+   }
+
+ keyword = "phase";
+ acoil.phase = 0;
+ pos=getpos(keyword,pos1,inSection,inSubSection,FALSE);
+ if (pos!=std::string::npos) 
+   {
+     infile.seekg(pos, std::ios::beg);
+     infile >> acoil.phase;
+   }
+
+ keyword = "id";
+ pos=getpos(keyword,pos1,inSection,inSubSection,FALSE);
+ if (pos!=std::string::npos) 
+   {
+     infile.seekg(pos, std::ios::beg);
+     infile >> acoil.ID;
+   }
+ else 
+   acoil.ID = 0;
+
+ keyword = "calc_L";
+ pos=getpos(keyword,pos1,inSection,inSubSection,FALSE);
+ if (pos!=std::string::npos) 
+   {
+     infile.seekg(pos, std::ios::beg);
+     infile >> acoil.Lfile;
+   }
+ else 
+   acoil.Lfile = "--not--defined";
+
+ keyword = "calc_UI";
+ pos=getpos(keyword,pos1,inSection,inSubSection,FALSE);
+ if (pos!=std::string::npos) 
+   {
+     infile.seekg(pos, std::ios::beg);
+     infile >> acoil.UIfile;
+   }
+ else 
+   acoil.UIfile = "--not--defined";
+
+ if (acoil.UIfile != "--not--defined" && acoil.Lfile !=  "--not--defined")
+   if (acoil.UIfile == acoil.Lfile)
+     Error("Coil_UI-file and Coil_L-file must have different names!");
+}
+
 
 template<class TypeVal>
 Boolean ConfFile::ifget(const std::string keyword, TypeVal & val, const std::string section, const std::string subsection, const std::string subsubsection)
@@ -151,7 +319,7 @@ std::string::size_type ConfFile::getpos(const std::string keyword,
   if (infile.eof()) infile.clear();
   infile.seekg(startpos, std::ios::beg);
  
-     while ( pos == std::string::npos && !infile.eof() )
+  while ( pos == std::string::npos && !infile.eof() )
   {
     help=infile.tellg();
     std::getline(infile, buf, '\n');
@@ -441,7 +609,18 @@ Boolean ConfFile::ifgetliststr( const std::string seekexp, std::vector<std::stri
 
  infile.seekg(pos,std::ios::beg);
 
+ //check for correct deliniter "non"
  std::string help;
+ getline(infile,help);
+ std::string::size_type checkpos=help.find("non");
+
+ if (checkpos==std::string::npos)
+   {
+     std::string message = "In command " + seekexp + " the delimiter non is missing";
+     Error(c_string(message));
+   }
+
+ infile.seekg(pos,std::ios::beg);
  do
  {
   infile >> help;

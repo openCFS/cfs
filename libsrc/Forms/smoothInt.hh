@@ -1,5 +1,5 @@
-#ifndef FILE_LINELASTINT
-#define FILE_LINELASTINT
+#ifndef FILE_SMOOTHINT
+#define FILE_SMOOTHINT
 
 #include <Elements/basefe.hh>
 #include <Forms/bdbInt.hh>
@@ -10,17 +10,17 @@ namespace CoupledField
   
   
   /// base class for calculation of linear elasticity
-class linElastInt : public BDBInt
+class SmoothInt : public BDBInt
 {
 public:
   /// Constructor
-  linElastInt(BaseFE * aptelem, MaterialData & matData);
+  SmoothInt(BaseFE * aptelem, MaterialData & matData);
 
   /// Constructor
-  linElastInt(MaterialData & matData);
+  SmoothInt(MaterialData & matData);
   
   /// Destructor
-virtual ~linElastInt();
+virtual ~SmoothInt();
   
 protected:    
   
@@ -39,25 +39,25 @@ protected:
 
 
 
-  /// class for calculation of mechanical plain strain state
-class mechPlainStrainInt : public linElastInt
+  /// class for calculation of smoothanical plain strain state
+class smoothPlainStrainInt : public SmoothInt
 {  
 public:
   /// Constructor
-  mechPlainStrainInt(BaseFE * aptelem, MaterialData & matDat);
+  smoothPlainStrainInt(BaseFE * aptelem, MaterialData & matDat);
 
   /// Constructor
-  mechPlainStrainInt(MaterialData & matDat);
+  smoothPlainStrainInt(MaterialData & matDat);
   
   
   /// Deconstructor
-  virtual ~mechPlainStrainInt();
+  virtual ~smoothPlainStrainInt();
   
   
 protected:
   
  /// calculate the data-matrix for 2D plain-strain
-  virtual void calcDMat(Matrix<Double> & dMat);
+  virtual void calcDMat(Matrix<Double> & dMat, Integer ip, Matrix<Double> & ptCoord);
 
   /// returns dimension of D matrix
   virtual Integer getDimD(){return 3;};
@@ -67,24 +67,24 @@ protected:
 };
 
 
-  /// class for calculation of mechanical plain strain state
-class mech3DInt : public linElastInt
+  /// class for calculation of smoothanical plain strain state
+class smooth3DInt : public SmoothInt
 {  
 public:
   /// Constructor
-  mech3DInt(BaseFE * aptelem, MaterialData & matDat);
+  smooth3DInt(BaseFE * aptelem, MaterialData & matDat);
 
   /// Constructor
-  mech3DInt(MaterialData & matDat);
+  smooth3DInt(MaterialData & matDat);
   
   /// Deconstructor
-  virtual ~mech3DInt();
+  virtual ~smooth3DInt();
 
   
 protected:
   
   /// returns D - matrix for BDB
-  virtual void calcDMat(Matrix<Double> & dMat);
+  virtual void calcDMat(Matrix<Double> & dMat, Integer ip, Matrix<Double> & ptCoord);
 
   /// returns dimension of D matrix
   virtual Integer getDimD(){return 6;};
@@ -96,4 +96,4 @@ protected:
 
 } //end namespace
 
-#endif // FILE_LINELASTINT
+#endif // FILE_SMOOTHINT

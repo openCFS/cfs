@@ -117,6 +117,44 @@ protected:
   BaseSystem * algsys_;
 };
 
+
+class CurlNodeOp : public BaseOperator
+{  
+public:
+
+  //! Constructor
+  CurlNodeOp(Grid * ptGrid,
+	     BasePDE * ptPDE,
+	     std::vector<Integer> * ptMesh2PDENode,
+	     Vector<Double> * sol,
+	     const Integer level);
+
+  //! Destructor
+  virtual ~CurlNodeOp();
+  
+  void Set2DType(Boolean axi) { isaxi_ = axi;};
+
+  //! Calculate element magnetic field
+  /*!
+    \param E (output) Element vector of electric field components
+    \param ptElem (input) Pointer to element
+    \param LCoord (input) Local coordinates of evaluation point
+   */
+  virtual void CalcElemCurlNode(Vector<Double> & E,
+				const Elem * ptElement,
+				const std::vector<Double> & LCoord);
+
+  void CalcElemMagVec(Vector<Double> & magVecPot, 
+		      const Elem * ptElement,
+		      const std::vector<Double> & LCoord)
+  {Error("CalcElemMagVec not implemented");};
+  
+protected:
+  
+  Vector<Double> * sol_;
+  Boolean isaxi_;
+};
+
 } // end of namespace
 
 #endif

@@ -39,17 +39,8 @@ public:
   virtual void DefineIntegrators(const Integer level);
 
 
-    //! set boundary condition
-  /*!
-    \param level level of grid
-    \param update indicator: do we update boundary condition in algebraic system or set new
-    \param atimestep time step of calculation
-  */
-  virtual void SetBCs(const Integer level, const Integer update, const Double atimestep);
-
-
   /// return index of dof defined by keyword (e.g. 'ux')
-  Integer GetBCDof(const std::string keyword);
+  virtual Integer GetBCDof(const std::string keyword);
   
 
   /// calculates L2-norm of RHS regarding entries due to penalty formulation
@@ -94,6 +85,11 @@ public:
   /*! \param dt time step  */
   virtual void InitTimeStepping(const Double dt);
 
+  //!
+  virtual void PreStepStatic(const Integer level);
+
+  //!
+  virtual void PostStepStatic(const Integer level);
 
   // ======================================================
   // POSTPROC SECTION
@@ -102,7 +98,11 @@ public:
   //! write results in file
    virtual void WriteResultsInFile();
 
+  //!  return pointer to vector with first derivative of solution
+  virtual const Array<Double>& getS1() const { return TS_alg_->GetDeriv1();}
 
+  //! return pointer to vector with second derivative of solution
+  virtual const Array<Double>& getS2() const { return TS_alg_->GetDeriv2();}
 
 protected:
 
@@ -147,16 +147,6 @@ private:
   /// direction of prestress
   Directions preStressDir_;
   
-  /// dof (e.g. ux) of homogenous Dirichlet BC
-  std::vector<std::string> homDirichDof_; 
-
-  /// dof (e.g. ux) of homogenous Dirichlet BC
-  std::vector<std::string> inhomDirichDof_; 
-
-  /// dof (e.g. ux) of load condition
-  std::vector<std::string> loadDof_; 
-
-
   /// material data for reduced integration
   MaterialData * lambdaMat;
 

@@ -26,6 +26,14 @@ namespace CoupledField
 #ifdef TRACE
     (*trace) << "entering Assemble::Assemble " << std::endl;
 #endif
+
+
+    firstTime_ = TRUE;
+    oneIntIsNonlin_ = FALSE;
+    nrMatrices_ = 5+1;  // 5 matrices, but index starts with 1!
+    reassembleMat_.Resize(nrMatrices_);
+    nonLinGeo = FALSE;
+    deltaCoords_ = NULL;
   }
 
 
@@ -94,12 +102,21 @@ namespace CoupledField
     
     ptgrid_->GetCoordNodesElemMat(connect, coordMat, level);
   
-    //    if (deltCoords_.size() != 0)
-    //      {
-    //     for (Integer i=0; i<coordMat.size_row(); i++)
-    //       for (Integer j=0; j<coordMat.size_col(); j++) 
-    // 	coordMat(i,j) += deltCoords_[i][Mesh2PDENode_ [connect[j] - 1] - 1];
-    //      }
+    if (nonLinGeo)
+      {
+	if (deltaCoords_ ==NULL)
+	  Error("ElecPDE: set input_coupling_terms = smoothdisplacement or nonlin = no");
+
+	Vector<Integer> connect_PDE;
+	Mesh2PDENode(connect_PDE, connect, *mesh2PDENode_);
+	Double val;
+	for (Integer i=0; i<coordMat.size_row(); i++)
+	  for (Integer j=0; j<coordMat.size_col(); j++) 
+	    {
+	      val = (*deltaCoords_)[i][connect_PDE[j] - 1];
+	      coordMat(i,j) += val;
+	    }
+      }
   }
 
   
@@ -109,17 +126,13 @@ namespace CoupledField
 #ifdef TRACE
     (*trace) << "entering Assemble:AssembleMatrices" << std::endl;
 #endif
-    static Boolean firstTime = TRUE;
-    static Boolean oneIntIsNonlin = FALSE;
-    Matrix<Double> elemmat;
-    const Integer nrMatrices = 5+1;  // 5 matrices, but index starts with 1!
-    static Vector<Boolean> reassembleMat(nrMatrices);
 
+    Matrix<Double> elemmat;
 
     // initialize reassembling "indicator" vector
-    if (firstTime)
-      for (Integer actMat=0; actMat < nrMatrices; actMat++)
-	reassembleMat[actMat] = FALSE;
+    if (firstTime_)
+      for (Integer actMat=0; actMat < nrMatrices_; actMat++)
+	reassembleMat_[actMat] = FALSE;
 
     
      for (int actDom=0; actDom < subdoms_.size(); actDom++)
@@ -147,7 +160,7 @@ namespace CoupledField
 	    Matrix<Double> elSol;
 
 	    // this matrix is nonlinear and, therefore, has to be reassembled next time
-	    if (oneIntIsNonlin || firstTime)
+	    if (oneIntIsNonlin_ || firstTime_)
 	      // fetch solution at element nodes
 	      GetSolOfElement(elSol, connect_PDE);
 	      
@@ -163,7 +176,7 @@ namespace CoupledField
 
 
 		// assemble only if nonlinear or first time
-		if (reassembleMat[actDescriptor->DestMat()] || firstTime)
+		if (reassembleMat_[actDescriptor->DestMat()] || firstTime_)
 		  {
 		    actDescriptor->GetIntegrator()->SetElemPtr(ptEl);
 		    enum MatrixType destMat = actDescriptor->DestMat();
@@ -171,14 +184,13 @@ namespace CoupledField
 		    // this matrix is nonlinear and, therefore, has to be reassembled next time
 		    if (actDescriptor->IsNonLin())
 		      {
-			oneIntIsNonlin = TRUE;
-			reassembleMat[actDescriptor->DestMat()] = TRUE;
+			oneIntIsNonlin_ = TRUE;
+			reassembleMat_[actDescriptor->DestMat()] = TRUE;
 		
 			actDescriptor->GetIntegrator()->SetActElemSol(elSol);
 		      }
 
 		    actDescriptor->GetIntegrator()->CalcElementMatrix(ptCoord, elemmat);
-		    
 		    algsys_->SetElementMatrix(elemmat.getinarray(), connect_PDE.get(), 
 					      connect_PDE.size(), destMat); 
 		  }		
@@ -205,7 +217,6 @@ namespace CoupledField
 		
 		// subtract internal forces on rhs from external forces 
 		elemVec *= -1;
-
 
 		algsys_->SetElementRHS(&elemVec[0], connect_PDE.get(), connect_PDE.size());
 	      }
@@ -238,7 +249,7 @@ namespace CoupledField
 	    Matrix<Double> elSol;
 
 	    // this matrix is nonlinear and, therefore, has to be reassembled next time
-	    if (oneIntIsNonlin || firstTime)
+	    if (oneIntIsNonlin_ || firstTime_)
 	      // fetch solution at element nodes
 	      GetSolOfElement(elSol, connect_PDE);
 	      
@@ -254,7 +265,7 @@ namespace CoupledField
 
 
 		// assemble only if nonlinear or first time
-		if (reassembleMat[actDescriptor->DestMat()] || firstTime)
+		if (reassembleMat_[actDescriptor->DestMat()] || firstTime_)
 		  {
 		    actDescriptor->GetIntegrator()->SetElemPtr(ptEl);
 		    enum MatrixType destMat = actDescriptor->DestMat();
@@ -262,8 +273,8 @@ namespace CoupledField
 		    // this matrix is nonlinear and, therefore, has to be reassembled next time
 		    if (actDescriptor->IsNonLin())
 		      {
-			oneIntIsNonlin = TRUE;
-			reassembleMat[actDescriptor->DestMat()] = TRUE;
+			oneIntIsNonlin_ = TRUE;
+			reassembleMat_[actDescriptor->DestMat()] = TRUE;
 		
 			actDescriptor->GetIntegrator()->SetActElemSol(elSol);
 		      }
@@ -277,7 +288,7 @@ namespace CoupledField
 	  }
       }
 
-     firstTime = FALSE;
+     firstTime_ = FALSE;
   }
 
 
@@ -330,17 +341,14 @@ namespace CoupledField
 	Double val = loadVals_[actDom];
 
 	Double val_tfunc = 1.0;
-	if (ptTimeFunc_->GetmaxTimeFnc()!=0) //see, if there is any time function
-	  val_tfunc = ptTimeFunc_->TimeFuncAtTime(time, level);
-	
+	if (ptTimeFunc_->GetmaxTimeFnc() > 0 )
+	    val_tfunc=ptTimeFunc_->TimeFuncAtTime(time,fncname_loads_[actDom]);
+
 	for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end(); p++)
 	  {
 	    Integer node = *p;
 	    
 	    val = loadVals_[actDom] * val_tfunc;
-	    myCout << "val_tfunc = " << val_tfunc << myEndl;
-	    myCout << "VAL = " << val << myEndl;
-	    
 	    algsys_->SetNodeRHS(val, (*mesh2PDENode_)[node-1], dof);	
 	  }
       }
@@ -450,11 +458,10 @@ GetBCDof(const std::string dofString)
       Error("Inconsistent definition of loads");
     
     loadVals_.resize(loadDom_.size());
-    
-    for(int i=0; i < loadDom_.size(); i++)
-      conf->get(loadDom_[i], loadVals_[i], pdename_, "bc_conditions","loads");
-    
+    fncname_loads_.resize(loadDom_.size());
 
+    for(int i=0; i < loadDom_.size(); i++)
+      conf->get2(loadDom_[i], loadVals_[i], fncname_loads_[i], pdename_, "bc_conditions","loads");
 
 
     // for every domain, we need an own integrator list ==========
@@ -599,6 +606,7 @@ void Assemble::AddRhsIntegrator(BaseForm * integrator, const std::string & subDo
 
     IntegratorDescriptor * actID = new IntegratorDescriptor(integrator, actMatType, nonLin);
     integrators_[SubDomIndex(subDomName)]->push_back(actID);
+
   }
 
   /// define integrators

@@ -134,4 +134,23 @@ extern ConfFile * conf; //name.conf
 }
 
 
+//! parameters necessary to describe coils
+
+enum COILTYPE {MEASUREMENT,CURRENT,VOLTAGE};
+
+struct coilDefStruct
+{
+  int ID;
+  double  current;
+  double  voltage;
+  double  coilArea;
+  double  resistance;
+  double  phase;
+  std::string timefnc;
+  COILTYPE type;
+  std::string Lfile;
+  std::string UIfile;
+};
+  
+
 #endif // FILE_SCFE_MYDEFS
