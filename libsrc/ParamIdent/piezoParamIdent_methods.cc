@@ -5,7 +5,8 @@
 #include "DataInOut/GMV/outGMV.hh"
 #include "CoupledPDE/basecoupledpde.hh"
 #include "General/environment.hh"
-#include "PDE/basePDE.hh" 
+// #include "PDE/basePDE.hh" 
+#include <PDE/basePDE.hh>
 
 #include "piezoParamIdent.hh"
 #include "Forms/baseForm.hh"
@@ -65,6 +66,8 @@ namespace CoupledField
     Double x, y;
     j=Complex(0,1);
     Double phase;
+    Double randFactor=0.0;
+    Vector<Complex> rand(nrMeasuredData);
     for (int i=0; i<nrMeasuredData; i++){
       x=absZ[i]*cos(PI/180*phi[i]);
       y=absZ[i]*sin(PI/180*phi[i]);
@@ -72,14 +75,35 @@ namespace CoupledField
       phase = 180.0/PI*std::arg(Z);
     
       y_hat[i]=sign*voltage/(2.0*PI*Z*freqs[i]*j);
-      //      y_hat[i]=voltage/(Z*freqs[i]*j);
 
       std::cout<<"\n Frequenz; " << freqs[i] << ", messZ: " << absZ[i] << ", phase: " << phi[i] << std::endl;
       std::cout<<" Frequenz; " << freqs[i] << ", calcZ: " << std::abs(Z) << ", phase: " << phase << std::endl << std::endl;
      
       //      std::cout<<i<<") = " << phi[i] << ",\t "<< freqs[i] <<",\t q = y_hat = " << y_hat[i]<<",\t Z= " << Z << " phase " << phase << std::endl;
     }
+   
+    if (TRUE){
+      for (Integer i=0;i<nrMeasuredData;i++){
+	rand[i] = Complex(2.0*Double(std::rand())/RAND_MAX-1);
+	if (randFactor<std::abs(rand[i]))
+	  randFactor = delta/std::abs(rand[i]);
+    }
+      for (Integer i=0;i<nrMeasuredData;i++)
+	rand[i]=Complex(randFactor*rand[i])*y_hat[i];
+      std::cout<<"\n Random noise with data error delta = "<< delta<<std::endl;
+      std::cout<<rand<<std::endl;
+     
+      for (Integer i=0;i<nrMeasuredData;i++)
+	y_hat[i]=y_hat[i]+rand[i];
     
+      Double average_error=0.0;
+      for (Integer i=0;i<nrMeasuredData;i++)
+	average_error+=std::abs((y_hat[i]-rand[i])/y_hat[i]);
+      average_error/=nrMeasuredData;
+      std::cout<<"\n The average data error is about ~ " << std::abs(average_error-1)*100<<" % " << std::endl;
+      std::cout<<"\n Press any key to continue ... " <<std::endl;
+      // getchar();
+    }
 
   }// end calc_measuredCharge()
 
@@ -115,7 +139,7 @@ namespace CoupledField
     Integer pdenumber = 0;
     ptAssemble = pdes_[0]->getPDE_assemble();
 
-    ptAssemble->InitMatrices();
+    // ptAssemble->InitMatrices();
    
     updateMaterialData(parameter,ptMaterial);
     updateComplexMaterialData(parameterC,ptMaterial);
@@ -124,23 +148,32 @@ namespace CoupledField
 
     for (Integer fstep = 0; fstep < freqs.GetSize(); fstep++) { 
 
-      if (reset)
-        ptAssemble->InitMatrices();
-      ptAssemble->CreateMatrices();
-      reset=TRUE;
+//       if (reset)
+//         ptAssemble->InitMatrices();
+//       ptAssemble->CreateMatrices();
+      //  reset=TRUE;
 
       // harmonic solver for different frequency - values
+      if (pdes_.GetSize() <= 1) {
+
+	Info->WriteHarmonicStep(pdes_[0]->GetName(), fstep, freqs[fstep]);
     
       ////////////////////////////////////////////////////////
       //                   SOLVES PDE                      //
       ///////////////////////////////////////////////////////  
         pdes_[0]->PreStepHarmonic(fstep, freqs[fstep], level, reset); 
+
         pdes_[0]->SolveStepHarmonic(fstep, freqs[fstep], level, reset);
+
         pdes_[0]->PostStepHarmonic(fstep, freqs[fstep], level, reset);
+
         pdes_[0]->PostProcess(level);   
         /////////////////////////////////////////////////////////
 
-          reset=TRUE;
+	  pdes_[0]->WriteResultsInFile();
+      }
+
+        
           Vector<Complex> chargeVec = pdes_[0]->getPDE_complexValuedCharge(); // Vector wich contains charges for each element !
 
           Complex charge=Complex(0.0,0.0);
@@ -163,8 +196,10 @@ namespace CoupledField
           imped = std::abs(voltage/(charge*2.0*PI*freqs[fstep]*im)); 
           //    phase = 180.0/PI*(std::arg(charge));
           phase = 180.0/PI*(std::arg(impedC));
-          std::cout << fstep <<");\t Frequenz: " << freqs[fstep] << ";\t Impedanz: "<< imped << ";\t Phase: " << phase <<";\t Volt = "<<voltage<<";\t Charge = "<< charge<< std::endl;
-          *impedCurve <<"\n" << freqs[fstep] << " " << imped << "  " << phase << "  " << impedC.real()<<"  " << impedC.imag() << "  " << charge.real()<< "  " << charge.imag()<< std::endl;
+          std::cout << fstep <<");\t Frequenz: " << freqs[fstep] << ";\t Impedanz: "<< imped 
+		    << ";\t Phase: " << phase <<";\t Volt = "<<voltage<<";\t Charge = "<< charge<< std::endl;
+          *impedCurve <<"\n" << freqs[fstep] << " " << imped << "  " << phase << "  " 
+		      << impedC.real()<<"  " << impedC.imag() << "  " << charge.real()<< "  " << charge.imag()<< std::endl;
 
     } //  end loop over freqs
 
@@ -172,7 +207,7 @@ namespace CoupledField
 
   void piezoParamIdent::createF(MaterialData * ptMaterial, BCs * ptBCs, Vector<Complex> & F_hat, Boolean typeOut){
     ENTER_FCN("PiezoParamIdent:createF");
-    // std::cout<<"\nF wil be created ..."<<std::endl;
+    std::cout<<"\nF wil be created ..."<<std::endl;
 
     ptMaterial=pdes_[0]->getPDEMaterialData();   // Pointer to MaterialData
     ptBCs = pdes_[0]->getPDE_BCs();                             // Pointer to BCs
@@ -256,7 +291,7 @@ namespace CoupledField
           typeOutSolutionOnScreen(solElecPot, solMechDispl);              //member function of piezoParamIdent
           meanValueMechDeformation=0.0;
           measureMechDeformationInZ_Direction(solMechDispl,radius,meanValueMechDeformation,dofs); 
-          // std::cout<<"meanValueMechDef: "<< meanValueMechDeformation <<std::endl; 
+	  //          std::cout<<"meanValueMechDef: "<< meanValueMechDeformation <<std::endl; 
           F_hat[fstep + nrMeasuredData]=meanValueMechDeformation;
         }
 
