@@ -40,9 +40,6 @@ void TimeFunc :: ReadTimeFuncs()
   (*trace) << "entering TimeFunc::ReadTimeFuncs " << std::endl;
 #endif
 
-  std::ofstream test;
-  test.open("test.result");
-
   maxnumTF_ =  fnc_names_.size();
 
   valTF_    =  new std::list<Double>[maxnumTF_];
@@ -75,19 +72,16 @@ void TimeFunc :: ReadTimeFuncs()
 	    {
 	      timefile.seekg(- buf.size() - 1,std::ios::cur); // rewind
 	      
-	      timefile >> timeT >> valT;
 	      valTF_[i].push_back(valT);
 	      timeTF_[i].push_back(timeT);
 	      timefile.ignore(100,'\n');
 	  
-	      test << timeT << " " << valT << std::endl;
 	    }
 
 	  pos = timefile.tellg();  // and, where we are ?    
 	}
       
       timefile.close();
-      test.close();
 
     } // loop over fncs
 }
