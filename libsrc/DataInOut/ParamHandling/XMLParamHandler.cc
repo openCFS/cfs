@@ -648,7 +648,7 @@ namespace CoupledField {
       // If it does not match, then re-set status
       if ( flagStatus == TRUE ) {
 	if ( defaultValue != value ) {
-	  flagStatus == FALSE;
+	  flagStatus = FALSE;
 	}
       }
     }
