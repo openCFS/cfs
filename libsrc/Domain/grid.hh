@@ -16,6 +16,9 @@ struct Elem
 };
 
 
+class PutElemMatInAlgSys;
+class PutElemMatAlgSysElst3d;
+
 /// Class for working with grid
 class Grid
 {
@@ -71,11 +74,17 @@ public:
    { Error(" Not implemented",__FILE__,__LINE__);}
 
   //!
-  virtual void GetCoordNodesElem(const Vector<Integer> connect, Point2D * ptCoord)
+  virtual void GetCoordNodesElem(const Vector<Integer> connect, Point2D * ptCoord, const Integer level)
   { Error(" Not implemented",__FILE__,__LINE__);}
 
-  virtual void GetCoordNodesElem(const Vector<Integer> connect, Point3D * ptCoord)
+  virtual void GetCoordNodesElem(const Vector<Integer> connect, Point3D * ptCoord, const Integer level)
   { Error(" Not implemented",__FILE__,__LINE__);}
+
+  virtual void forEachElemSd(PutElemMatInAlgSys & f,const std::string subdomain)
+{ Error(" Not implemented",__FILE__,__LINE__);}
+
+ virtual void forEachElemSd(PutElemMatAlgSysElst3d & f,const std::string subdomain)
+{ Error(" Not implemented",__FILE__,__LINE__);}
 
 protected:
 
@@ -88,6 +97,8 @@ protected:
 private:
   ///
 };
+
+//template void Grid::forEachElemSd();
 
 } // end of namespace
 #endif // FILE_GRID

@@ -76,5 +76,35 @@ private:
 
 };
 
+class PutElemMatAlgSysElst3d
+{
+public:
+
+  PutElemMatAlgSysElst3d(AbstractAlgebraicSys * aptalgsys, Grid * aptgrid, const Double acoeffs, const Integer as_sysid, const Integer alevel)
+  { sysid_=as_sysid; ptalgsys_=aptalgsys; ptgrid_=aptgrid;
+    coeffst_=acoeffs; level_=alevel; matrix_stiff_=2;}
+
+  ~PutElemMatAlgSysElst3d() {}
+
+  // method
+  void operator() (Elem t);
+
+private:
+
+     //!
+  Grid * ptgrid_;
+
+     //!
+  AbstractAlgebraicSys * ptalgsys_;
+
+     //!
+  Integer sysid_, level_, matrix_stiff_;
+
+     //!
+  Double  coeffst_;
+
+};
+
+
 } // end of namespace
 #endif

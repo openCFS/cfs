@@ -110,8 +110,6 @@ void  WriteResultsUnverg::Dataset780(const Integer level)
 
  Integer maxnumelem=ptgrid-> GetMaxnumElem(level);
 
- std::cout << " me " << maxnumelem << std::endl;
-
  Vector<Integer> connect;
 
  for (Integer i=0; i<maxnumelem; i++)

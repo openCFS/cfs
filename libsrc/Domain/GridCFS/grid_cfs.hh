@@ -2,6 +2,7 @@
 #define FILE_SCFE_GRID_CFS_2001
 
 #include "filetype.hh"
+#include "acoustic2dPDE.hh"
 //#include "baseelem.hh"
 
 namespace CoupledField
@@ -36,10 +37,6 @@ public:
   /// Return maximum number of elements 
   Integer GetMaxnumElem(const Integer numlevel);
 
-  /// Return num of nodes per element i
-//  Integer GetNumNodesPerElem(const Integer iElem, const Integer level)
-//{ return allelems[iElem].connect.size();}
-
   //!
   Integer GetDim() { return dim_;}
 
@@ -47,7 +44,12 @@ public:
   void GetElemSD(std::vector<Elem> & els, const std::string sd, const Integer level);
 
   //!
-  void GetCoordNodesElem(const Vector<Integer> connect, Dim * ptCoord);  
+  void GetCoordNodesElem(const Vector<Integer> connect, Dim * ptCoord, const Integer level);  
+
+  //! Iterators
+  // template<class T> void forEachElemSd(T & f,const std::string subdomain);
+  void forEachElemSd(PutElemMatInAlgSys & f,const std::string subdomain);
+  void forEachElemSd(PutElemMatAlgSysElst3d & f,const std::string subdomain);
 
 protected:
 private:

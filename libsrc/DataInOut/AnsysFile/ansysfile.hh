@@ -27,9 +27,6 @@ public:
   virtual void ReadMaxnumnodes(Integer & );
 
   //!
-//  virtual void ReadMaxnumelem(Integer & );
-
-  //!
   virtual void ReadCoordinate(Point3D * const NodesCoord,                                                     const Integer maxnumNodes);
 
   //!
@@ -37,7 +34,7 @@ public:
 			      const Integer maxnumNodes);
 
   //!
-  virtual void ReadEl(std::vector<Elem> * elems, const std::vector<std::string> sd);  
+  void ReadEl(std::vector<Elem> * elems, const std::vector<std::string> sd);  
 
   //!
   Integer ReadDim();
@@ -47,7 +44,7 @@ public:
 
   //!
 #ifdef ADAPTGRID
-   virtual void ReadElems4AdaptGrid(std::vector<grd::Element*> & elems);
+  void ReadGrid_RG(std::vector<grd::Element*> & elems, std::vector<grd::Vertex*> * vertex, const std::vector<std::string> sd);
 #endif
 
 protected:
@@ -65,7 +62,7 @@ private:
   void getPosLine(const std::string seekexp, std::string::size_type & pos);
 
   // get position in line
-void getPosition(const std::string seekexp, std::string::size_type & pos);
+ void getPosition(const std::string seekexp, std::string::size_type & pos);
 
   // read number of nodes for boundary condition
   void ReadMaxnumnodesbc(Integer & nbc);
@@ -80,7 +77,9 @@ void ReadEl3d(std::vector<Elem> * allelems, const std::vector<std::string> sd);
   BaseElem * Type2ptElem(const Integer itype);
 
 #ifdef ADAPTGRID
- void ReadEl4AdaptGrid2d(std::vector<grd::Element*> & elems);  
+ void ReadEl4AdaptGrid2d(std::vector<grd::Element*> & elems, vector<grd::Vertex*> * vertices,  const std::vector<std::string> sd);  
+
+ void SetNumSD(grd::Element * ptEl, const std::string namesd,  const std::vector<std::string> sd);
 #endif
 
 };

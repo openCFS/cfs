@@ -50,7 +50,7 @@ sd)
  { Error(" not implemented",__FILE__,__LINE__);}
 
 #ifdef ADAPTGRID
-  virtual void ReadElems4AdaptGrid(std::vector<grd::Element*> & elems)
+  virtual void ReadGrid_RG(std::vector<grd::Element*> & elems, std::vector<grd::Vertex*> * vertex, const std::vector<std::string> sd)
    { Error(" not implemented",__FILE__,__LINE__);}
 #endif
  
