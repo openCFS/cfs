@@ -9,6 +9,7 @@
 
 #include <Elements/1D/line1fe.hh>
 #include <Elements/2D/quad1fe.hh>
+#include <Elements/2D/triangle1fe.hh>
 #include <Elements/3D/tetra1FE.hh>
 
 // #include <Elements/3D/tetrahedral1.hh>

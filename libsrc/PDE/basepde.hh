@@ -67,10 +67,10 @@ public:
   virtual void SetSolverParameters();
 
   //! constructes the matrix graph by providing to the algebraic system the element connectivities
-  virtual void BasePDE::SetupMatrixGraph(Integer numeq, Integer graphtype);
+  virtual void SetupMatrixGraph(Integer numeq, Integer graphtype);
 
   //! Create the matrices and Solver as well as Preconditioner
-  virtual void BasePDE::CreateMatrices_Solver();
+  virtual void CreateMatrices_Solver();
 
   //! setup element matrices for AlgebraicSystem for assembling procedure
   /*!
