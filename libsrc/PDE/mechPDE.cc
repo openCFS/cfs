@@ -107,7 +107,6 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 
     AssignPDENodeNumbers(Mesh2PDENode_, PDE2MeshNode_, subdoms_);
     numPDENodes_ = PDE2MeshNode_.size();
-    std::cerr << " numPDENodes = " << numPDENodes_ << '\n';
     size_        = numPDENodes_ * dofspernode_;
 
     // Initialize solution class
