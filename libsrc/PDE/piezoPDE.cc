@@ -120,6 +120,8 @@ namespace CoupledField {
   void PiezoPDE::DefineIntegrators( const Integer level ) {
     ENTER_FCN( "PiezoPDE::DefineIntegerators" );
 
+    piezoMaterialType realMatParameter = realMaterialParameter; 
+
     Integer posOfElectricPot;
     if ( subType_ == "3d" )
       posOfElectricPot = 4;
@@ -136,16 +138,17 @@ namespace CoupledField {
       // ==============  add "standard" stiffness =============================
 
       BaseForm * bilinearStiff = GetStiffIntegrator(actSDMat);
-      IntegratorDescriptor *actIntDescrStiff =
-	new IntegratorDescriptor(bilinearStiff, STIFFNESS);
-    	bilinearStiff->SetPiezoMaterialType(piezoMaterialType_);
+      IntegratorDescriptor *actIntDescrStiff = new IntegratorDescriptor(bilinearStiff, STIFFNESS);
+      bilinearStiff->SetPiezoMaterialType(realMatParameter);
+      actIntDescrStiff->SetPiezoMaterialType(realMatParameter);
       assemble_->AddIntegrator(actIntDescrStiff, subdoms_[actSD]);
       
       // check for complex-valued material parameter
       if (piezoMaterialType_ == imagMaterialParameter){
-	IntegratorDescriptor *actComplexIntDescrStiff =  new IntegratorDescriptor(bilinearStiff, STIFFNESS);
+	BaseForm * bilinearStiffC = GetStiffIntegrator(actSDMat);
+	IntegratorDescriptor *actComplexIntDescrStiff =  new IntegratorDescriptor(bilinearStiffC, STIFFNESS);
 	actComplexIntDescrStiff->SetPiezoMaterialType(piezoMaterialType_);
-	bilinearStiff->SetPiezoMaterialType(piezoMaterialType_);
+	bilinearStiffC->SetPiezoMaterialType(piezoMaterialType_);
 	assemble_->AddIntegrator(actComplexIntDescrStiff, subdoms_[actSD]);
        }
       
@@ -156,15 +159,20 @@ namespace CoupledField {
 	BaseForm * dampStiff = GetStiffIntegrator( actSDMat,reducedIntegration,
 						   isdamping );
 	IntegratorDescriptor *actIntDescrDamp = new IntegratorDescriptor(dampStiff, DAMPING);
-	dampStiff->SetPiezoMaterialType(piezoMaterialType_);
+	dampStiff->SetPiezoMaterialType(realMatParameter);
+	actIntDescrDamp->SetPiezoMaterialType(realMatParameter);
 	assemble_->AddIntegrator(actIntDescrDamp, subdoms_[actSD]);
 
 	// check for complex-valued material parameter
-	if (piezoMaterialType_==imagMaterialParameter){
+	if (piezoMaterialType_ == imagMaterialParameter){
+	  std::cout<<"\n We want to set complex-damping!!"<<std::endl;
+	  Boolean isdamping = TRUE;
+	  Boolean reducedIntegration = FALSE; //is currently not supported
 	  BaseForm * dampStiffC = GetStiffIntegrator( actSDMat,reducedIntegration,
-						   isdamping );
-	  dampStiffC->SetPiezoMaterialType(piezoMaterialType_);
+						      isdamping );
 	  IntegratorDescriptor *actComplexIntDescrDamp = new IntegratorDescriptor(dampStiffC, DAMPING);
+	  dampStiffC->SetPiezoMaterialType(piezoMaterialType_);
+	  actComplexIntDescrDamp->SetPiezoMaterialType(piezoMaterialType_);
 	  assemble_->AddIntegrator(actComplexIntDescrDamp, subdoms_[actSD]);
 	}
       }
@@ -175,7 +183,7 @@ namespace CoupledField {
       Double density = actSDMat.GetDensity();    
       BaseForm * bilinearMass  = new MassInt(density, dofspernode_,
 					     posOfElectricPot, isaxi_);
-      bilinearMass->SetPiezoMaterialType(piezoMaterialType_);
+      bilinearMass->SetPiezoMaterialType(realMatParameter);
 
       IntegratorDescriptor * actIntDescrMass = new IntegratorDescriptor(bilinearMass, MASS);
       //check for damping (mass part)
@@ -183,6 +191,7 @@ namespace CoupledField {
 	actIntDescrMass->SetSecondaryMat(DAMPING, actSDMat.GetDampingAlfa(),
 					 analysistype_);
       }
+      actIntDescrMass->SetPiezoMaterialType(realMatParameter);
       assemble_->AddIntegrator(actIntDescrMass, subdoms_[actSD]);
 
 

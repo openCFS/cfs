@@ -225,10 +225,14 @@ namespace CoupledField
 
     Matrix<Double> * matMatrix;
     
-    if (piezoMatType_ == realMaterialParameter)
+    if (piezoMatType_ == realMaterialParameter){
       matMatrix = ptMaterial->GetMatrix();
-    else if (piezoMatType_ == imagMaterialParameter)
+      //      std::cout<<"realMatrix in linPezoInt "<<std::endl;
+    }
+    else if (piezoMatType_ == imagMaterialParameter){
       matMatrix = ptMaterial->GetMatrixC();
+      //      std::cout<<"imagMatrix in linPezoInt "<<std::endl;
+    }
 
 
     //    std::cout<<(*matMatrix)<<std::endl;
