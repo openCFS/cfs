@@ -87,9 +87,10 @@ namespace CoupledField
   typedef enum{NO_SOLUTION_TYPE, 
 		 MECH_DISPLACEMENT, MECH_ACCELERATION,
 		 MECH_VELOCITY, MECH_FORCE, MECH_STRESS, MECH_STRAIN,
-		 ELEC_POTENTIAL, ELEC_FIELD, ELEC_FORCE, SMOOTH_DISPLACEMENT, 
-		 ACOU_POTENTIAL, ACOU_VELOCITY, ACOU_PRESSURE, ACOU_FORCE,
-		 ACOU_POTENTIAL_DERIV1, ACOU_POTENTIAL_DERIV2,
+		 ELEC_POTENTIAL, ELEC_FIELD, ELEC_FORCE, 
+		 SMOOTH_DISPLACEMENT, 
+		 ACOU_POTENTIAL, ACOU_FORCE, 
+		 ACOU_POTENTIAL_DERIV_1, ACOU_POTENTIAL_DERIV_2,
 		 MAG_POTENTIAL, MAG_FIELD, MAG_EDDY_CURRENT, MAG_FORCE}
   SolutionType;
 
@@ -128,6 +129,9 @@ namespace CoupledField
 
   //! nonlinear method definition 
   enum NonLinMethod {FIXEDPOINT=1, NEWTON=2};
+
+  //! output format for complex numbers
+  typedef enum {REAL_IMAG, AMPLITUDE_PHASE} ComplexFormat;
   
 
 //------------------------ Files for debug, trace and information ---------

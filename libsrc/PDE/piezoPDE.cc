@@ -10,6 +10,7 @@
 #include "newmark.hh"
 #include "Elements/basefe.hh"
 #include "blocknodeEQN.hh"
+#include "superblockEQN.hh"
 #include "scalarblockEQN.hh"
 
 #include "piezoPDE.hh" 
@@ -145,15 +146,21 @@ namespace CoupledField {
    if (bcs_id_.GetSize() != inhomDirichDof_.GetSize()) 
      Error("Inconsistent definition of inhomogeneous Dirichlet Boundary Conditions");
    
-
+   // Two possible numberings of equations possible
+   // Simply unquote the desired line
+   // 1.) Super-blocknumbering
+   SuperBlockEQN dummy = SuperBlockEQN(ptgrid_, ptBCs_, subdoms_, actlevel_, dofspernode_);
+   //eqnData_ = new SuperBlockEQN(ptgrid_, ptBCs_, subdoms_, actlevel_, dofspernode_);
+   
+   // 2.) Normal blocknumbering
    eqnData_ = new BlockNodeEQN(ptgrid_, ptBCs_, subdoms_, actlevel_, dofspernode_);
    
-   //eqnData_  = new ScalarBlockEQN(ptgrid_, ptBCs_, subdoms_, 
-   //				  actlevel_, dofspernode_);
+   // 3.) Scalar blocknumbering
+   //eqnData_ = new ScalarBlockEQN(ptgrid_, ptBCs_, subdoms_, actlevel_, dofspernode_);
 
    eqnData_->SetHomoDirichletBCs(bcs_hd_, homDirichDof_);
    eqnData_->CalcMapping();
-   eqnData_->Print(std::cerr);
+   //eqnData_->Print(std::cerr);
    
    numPDENodes_ = eqnData_->GetNumLocalNodes();
    numElems_ = eqnData_->GetNumLocalElems();
@@ -165,7 +172,7 @@ namespace CoupledField {
    sol_->SetSolutionType(ELEC_POTENTIAL,1);
    sol_->SetNumDofs(dim_,MECH_DISPLACEMENT); // displacements have dof of mesh-dimension
    sol_->SetNumDofs(1,ELEC_POTENTIAL);  // electric potential
-   sol_->SetPtrEQNData(eqnData_);
+   sol_->SetPtrEQNData(eqnData_, ptgrid_, actlevel_);
    sol_->Init(0.0);
 
    // set assemble parameters
@@ -177,7 +184,10 @@ namespace CoupledField {
    assemble_->SetMatrixEntryType(OLAS::DOUBLE);
    assemble_->SetMatrixStorageType(OLAS::SPARSE_NONSYM);
 #else
-   assemble_->SetMatrixType(RBLOCK);
+   if (eqnData_->GetNumDofsPerEQN() == 1)
+     assemble_->SetMatrixType(RSCALAR);
+   else
+     assemble_->SetMatrixType(RBLOCK);
 #endif 
    
    assemble_->SetNumDirichlet(GetNumRestraints(actlevel_));
@@ -305,24 +315,32 @@ namespace CoupledField {
   {
     ENTER_FCN( "PiezoPDE::WriteResultsInFile" );
 
-   //  NodeStoreSol<Double> DispMesh;
-    NodeStoreSol<Double> dispPDE, potentialPDE;
+    NodeStoreSol<Double> * solTransient;
+    NodeStoreSol<Complex> * solHarmonic;
 
-    sol_->GetSolution(MECH_DISPLACEMENT,dispPDE);
-    sol_->GetSolution(ELEC_POTENTIAL,potentialPDE);
-
-    outFile_->WriteNodeSolution(dispPDE, laststepcalc_, lasttimecalc_,
-				"displacement");
-    outFile_->WriteNodeSolution(potentialPDE, laststepcalc_, lasttimecalc_,
-				"E-Potential");
-
-    //element results
-    if (calcStress_.GetSize() !=0 ) {
-      outFile_->WriteElemSolution(Stress_, laststepcalc_, lasttimecalc_, "stress");
+    if (analysistype_ == STATIC ||
+	analysistype_ == HARMONIC) {
+      
+      if (savesol_) {
+	solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);
+	outFile_->WriteNodeSolutionTransient(*solTransient, laststepcalc_, lasttimecalc_);
+      }
+      
+      //element results
+      if (calcStress_.GetSize() !=0 ) {
+	outFile_->WriteElemSolutionTransient(Stress_, laststepcalc_, lasttimecalc_);
+      }
+    } else if (analysistype_ == HARMONIC) {
+      
+      if (savesol_)
+	{
+	  solHarmonic = dynamic_cast<NodeStoreSol<Complex>*>(sol_);
+	  outFile_->WriteNodeSolutionHarmonic(*solHarmonic,  actFreqStep_, 
+					      actFrequency_, complexFormat_);
+	}
     }
-
   }
-  
+    
 
 
   Integer PiezoPDE::GetBCDof(const std::string dofStartString)
@@ -439,9 +457,9 @@ void PiezoPDE::PostProcess(const Integer level) {
       // Resize solution arrays
       Stress_.SetNumSolutions(1);
       Stress_.SetSolutionType(MECH_STRESS);
-      Stress_.SetNumNodes(numElems_);
+      Stress_.SetNumElems(numElems_);
       Stress_.SetNumDofs(stressDim);
-      Stress_.SetPtrEQNData(eqnData_);
+      Stress_.SetPtrEQNData(eqnData_, ptgrid_, actlevel_);
       Stress_.Init(0);
       
       Vector<Double> elemStress;
@@ -496,7 +514,7 @@ void PiezoPDE::PostProcess(const Integer level) {
 	  //calculates the stress
 	  stress->CalcStressVec(elemStress,1,ptCoord);
 	  
-	  Stress_.SetNodalResult(pdeElem-1, elemStress);
+	  Stress_.SetElemResult(pdeElem-1, elemStress);
 	}
       }
     }

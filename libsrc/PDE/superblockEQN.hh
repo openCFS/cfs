@@ -6,7 +6,11 @@
 namespace CoupledField
 {
 
-//! a base class for quation data handling
+//! Class for numbering equations in a superblock way.
+//! This class is hardcoded for use with piezoPDE,
+//! since in summer there (hopefully) will be a general
+//! mechanism to handel direct-coupled PDEs, so that
+//! this class will superfluous.
 
 class SuperBlockEQN : public NodeEQN 
 {
@@ -28,6 +32,14 @@ public:
   //! Print the mapping nodes <-> EQNs
   void Print(std::ostream & out) const;
   
+  //! 
+  Integer GetNumMechEQNs()
+  {return numMechEQNs_;}
+
+  //!
+  Integer GetNumElecEQNs()
+  {return numElecEQNs_;}
+
   // -----------------------------------------------------------------------
   // Functions for mapping node numbers <-> EQN numbers
   // -----------------------------------------------------------------------
@@ -53,22 +65,18 @@ public:
 
 private:
 
-  //@{ 
-  //! Mapping for Node->EQN. 
-  //! For multi-dof PDEs one node
-  //! corresponds to variuos EQN numbers,
-  //! therefore a compressed row storage format
-  //! is chosen. (numPDENodes x dofsPerNode)
+  //! number of mechanic eqns
+  Integer numMechEQNs_;
+
+  //! number of electric eqns
+  Integer numElecEQNs_;
 
   //! Contains the equation numbers
-  StdVector<Integer> node2EQNVal_;
+  Matrix<Integer> mechNode2EQN_;
   
   //! Contains the according column numbers
-  StdVector<Integer> node2EQNcol_;
+  StdVector<Integer> elecNode2EQN_;
 
-  //! Contains the starting positions of each row
-  StdVector<Integer> node2EQNrow_;
-  //@}
 };
 
   

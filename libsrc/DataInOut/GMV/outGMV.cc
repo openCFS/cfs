@@ -8,6 +8,7 @@
 #include "DataInOut/ParamHandling/ConfFile.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
 #include "General/environment.hh"
+#include "Utils/StdVector.hh"
 
 namespace CoupledField
 {
@@ -387,12 +388,11 @@ void WriteResultsGMV::WriteGrid(const Integer level)
 
 
 
-void WriteResultsGMV::WriteNodeSolution(const NodeStoreSol<Double>& sol, 
-					const Integer step, 
-					const Double time, 
-					const std::string title)
+void WriteResultsGMV::WriteNodeSolutionTransient(const NodeStoreSol<Double> & sol, 
+						 const Integer step, 
+						 const Double time)
 {
-  ENTER_FCN( "WriteResultsGMV::WriteNodeSolution" );
+  ENTER_FCN( "WriteResultsGMV::WriteNodeSolutionTransient" );
 
   Integer i,j;
   Double help;
@@ -503,23 +503,28 @@ void WriteResultsGMV::WriteNodeSolution(const NodeStoreSol<Double>& sol,
 //     }
   
   std::string outString;
-  for (i=0; i< sol.GetDof(); i++)
+  StdVector<SolutionType> solTypes;
+
+  sol.GetSolutionTypes(solTypes);
+  for (Integer iSol=0; iSol<sol.GetNumSolutions(); iSol++)
     {
-      
-      if (sol.GetDof() > 1)
+      for (i=0; i< sol.GetDof(); i++)
 	{
-	  char nrStr[10];
-	  sprintf(nrStr,"%i",i+1);
-	  outString = title + nrStr;
+	  
+	  if (sol.GetDof() > 1)
+	    {
+	      char nrStr[10];
+	      sprintf(nrStr,"%i",i+1);
+	      outString = SolutionTypeToString(solTypes[iSol]) + nrStr;
+	    }
+	  else 
+	    outString = SolutionTypeToString(solTypes[iSol]);
+	  
+	  sol.GetGlobalSolVectorSingleDof(i,solhelp);
+	  
+	  WriteNodeVariable(solhelp, outString , type);
 	}
-      else 
-	outString = title;
-      
-      sol.GetSolVectorSingleDof(i,solhelp);
-      
-      WriteNodeVariable(solhelp, outString , type);
     }
-  
   
   if (ascii_)
 	(*output) << "probtime " << time << std::endl;
@@ -534,15 +539,20 @@ void WriteResultsGMV::WriteNodeSolution(const NodeStoreSol<Double>& sol,
 }
 
 
-void WriteResultsGMV::WriteElemSolution(const ElemStoreSol<Double>& data, const Integer step, const Double time, const std::string title)
+void WriteResultsGMV::WriteElemSolutionTransient(const ElemStoreSol<Double>& data, 
+						 const Integer step, 
+						 const Double time)
 {
-  ENTER_FCN ( "WriteResultsGMV::WriteElemSolution" );
+  ENTER_FCN ( "WriteResultsGMV::WriteElemSolutionTransient" );
 
  Integer type=0; // 0 - for cell 
                  // 1 - for node
                  // 2 - for face data
  Integer i = 0;
  Vector<Double> solhelp;
+ StdVector<SolutionType> solType;
+ 
+ data.GetSolutionTypes(solType);
 
    if (step!=(currstep_)) {
      Error("You should write solution of this step before printing some cell data",__FILE__,__LINE__);
@@ -552,8 +562,8 @@ void WriteResultsGMV::WriteElemSolution(const ElemStoreSol<Double>& data, const 
     {
       char nrStr[10];
       sprintf(nrStr,"%i",i+1);
-      std::string sumString = title + nrStr;
-      data.GetSolVectorSingleDof(i,solhelp);
+      std::string sumString = SolutionTypeToString(solType[0]) + nrStr;
+      data.GetGlobalSolVectorSingleDof(i,solhelp);
       
       WriteNodeVariable(solhelp, sumString , type);
     }
@@ -565,6 +575,26 @@ void WriteResultsGMV::WriteElemSolution(const ElemStoreSol<Double>& data, const 
     output->write((char*)&time,sizeof(Double));
   }
   
+}
+
+void WriteResultsGMV::WriteNodeSolutionHarmonic(const NodeStoreSol<Complex> & sol, 
+						const Integer step,
+						const Double frequency, 
+						const ComplexFormat format)
+{
+  ENTER_FCN( "WriteResultsGMV::WriteNodeSolutionHarmonic" );
+  Error("WriteResultsGMV::WriteNodeSolutionHarmonic: Not implemented yet",
+	__FILE__, __LINE__);
+}
+
+void WriteResultsGMV::WriteElemSolutionHarmonic(const ElemStoreSol<Complex> & sol, 
+						const Integer step,
+						const Double frequency,
+						const ComplexFormat format)
+{
+  ENTER_FCN( "WriteResultsGMV::WriteElemSolutionHarmonic" );
+  Error("WriteResultsGMV::WriteElemSolutionHarmonic: Not implemented yet",
+	__FILE__, __LINE__);
 }
 
 // 
@@ -745,5 +775,65 @@ void WriteResultsGMV::to8Char(const std::string name, char * result)
 
 }
 
+
+std::string WriteResultsGMV::SolutionTypeToString(const SolutionType type) const
+{
+  ENTER_FCN( "WriteResultsGMV::SolutionTypeToString" );
+
+  switch (type)
+    {
+    case MECH_DISPLACEMENT:
+      return "displacement";
+      break;
+    case MECH_ACCELERATION:
+      return "acceleration";
+      break;
+    case MECH_VELOCITY:
+      break;
+    case MECH_FORCE:
+      break;
+    case MECH_STRESS:
+      return "stress";
+      break;
+    case MECH_STRAIN:
+      break;
+    case ELEC_POTENTIAL:
+      return "E-Potential";
+      break;
+    case ELEC_FIELD:
+      return "E-Field";
+      break;
+    case ELEC_FORCE: 
+      break;
+    case SMOOTH_DISPLACEMENT:
+      return "displacement";
+      break;
+    case ACOU_POTENTIAL:
+      return "vp";
+      break;
+    case ACOU_FORCE:
+      break;
+    case ACOU_POTENTIAL_DERIV_1:
+      return "vp_der_1";
+      break;
+    case ACOU_POTENTIAL_DERIV_2:
+      return "vp_der_2";
+      break;
+    case MAG_POTENTIAL:
+      return "Mag-Potential";
+      break;
+    case MAG_FIELD: 
+      return "B-Field";
+      break;
+    case MAG_EDDY_CURRENT:
+      return "eddy current";
+      break;
+    case MAG_FORCE:
+      break;
+    default:
+      Error( "Wrong type of solution or 'SolutionType2String' not implemented for\
+this type of solution", __FILE__, __LINE__);
+    }
+}
 
 } // end of namespace

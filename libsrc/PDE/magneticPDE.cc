@@ -128,7 +128,7 @@ namespace CoupledField {
     sol_->SetSolutionType(MAG_POTENTIAL);
     sol_->SetNumNodes(numPDENodes_);
     sol_->SetNumDofs(dofspernode_);
-    sol_->SetPtrEQNData(eqnData_);
+    sol_->SetPtrEQNData(eqnData_, ptgrid_, actlevel_);
     sol_->Init();
     
     ReadMaterialData();
@@ -263,10 +263,10 @@ namespace CoupledField {
     NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
 
     //set actual solution  
-    actSol = solhelp->GetCompleteVector();
+    actSol = solhelp->GetAlgSysVector();
 
     //compute predictors
-    TS_alg_->Predictor(solhelp->GetCompleteVector());
+    TS_alg_->Predictor(solhelp->GetAlgSysVector());
 
     //now set up RHS: all linear source terms
     Double RhsLinL2Norm = SetLinRHS(level); 
@@ -275,7 +275,7 @@ namespace CoupledField {
     assemble_->AssembleNLRHS(level, lasttimecalc_);  
 
     //Update RHS (mass matrix on right hand side)
-    TS_alg_->UpdateRHS(solhelp->GetCompleteVector());
+    TS_alg_->UpdateRHS(solhelp->GetAlgSysVector());
   
     timeStepCounter++;
     do
@@ -321,7 +321,7 @@ namespace CoupledField {
 
 
 	//store A_/n+1) in the solution-object sol_
-	sol_->SetCompleteVector(actSol);
+	sol_->SetAlgSysVector(actSol);
 
 
 	// recalculate RHS with new values to get new residual (f^(k+1))========
@@ -412,7 +412,7 @@ namespace CoupledField {
     Vector<Double> solInc(numPDENodes_);
     Vector<Double> actSol(numPDENodes_);
 
-    sol_->GetCompleteVector(actSol);
+    sol_->GetAlgSysVector(actSol);
 
     SetBCs(level, updateBCs_, 0);
 
@@ -451,7 +451,7 @@ namespace CoupledField {
 	StoreAlgsysToVec(solInc, algsys_->GetSolutionVal() );
       
 	actSol += solInc;
-	sol_->SetCompleteVector(actSol);
+	sol_->SetAlgSysVector(actSol);
 
 
 	// recalculate RHS with new values to get new residual (f^(k+1))========
@@ -612,45 +612,44 @@ namespace CoupledField {
 
     ENTER_FCN( "MagPDE::WriteResultsInFile" );
 
-    ShortInt Dim = ptgrid_->GetDim();
+    NodeStoreSol<Double> * solTransient;
+    NodeStoreSol<Complex> * solHarmonic;
 
-    //ElemStoreSol<Double> B_Mesh, Jeddysh, Force_Mesh;
-    
-    NodeStoreSol<Double> const & solConverted = 
-      dynamic_cast<NodeStoreSol<Double>&>(*sol_);
-   
-    // write results
-    if (outFile_->IsGMV()) {
+    if (analysistype_ == STATIC ||
+	analysistype_ == TRANSIENT) {
 
-      // write magnetic potential
-      outFile_->WriteNodeSolution(solConverted,laststepcalc_,lasttimecalc_,
-				  "Mag-Potential");
+      // transient/static case
+      if (savesol_)
+	{
+	  solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);
+	  outFile_->WriteNodeSolutionTransient(*solTransient, 
+					       laststepcalc_, lasttimecalc_);
+	}
       
       if (calcBfield_.GetSize() !=0 ) {
-	outFile_->WriteElemSolution(B_,laststepcalc_,lasttimecalc_,
-				    "B-Field");
-	//outFile_->WriteElemSolution(Force_Mesh,step,time,"E-Force");
+	outFile_->WriteElemSolutionTransient(B_, laststepcalc_, lasttimecalc_);
       }
-
-    }
-    else {
-
-      // write magnetic potential
-      outFile_->WriteNodeSolution(solConverted, laststepcalc_, lasttimecalc_,
-				  "mag. vector potential");
-
-      if (calcBfield_.GetSize() !=0 ) {
-	outFile_->WriteElemSolution(B_, laststepcalc_, lasttimecalc_,
-				    "mag. flux density");
-      }
-
+      
       if (calcEddy_.GetSize() !=0 ) {
-	outFile_->WriteElemSolution(Jeddy_, laststepcalc_, lasttimecalc_,
-				    "eddy current");
+	outFile_->WriteElemSolutionTransient(Jeddy_, laststepcalc_, lasttimecalc_);
       }
+    } else  if (analysistype_ == HARMONIC) {
+      
+      // harmonic case
+      if (savesol_)
+	{
+	  solHarmonic = dynamic_cast<NodeStoreSol<Complex>*>(sol_);
+	  outFile_->WriteNodeSolutionHarmonic(*solHarmonic, actFreqStep_, 
+					      actFrequency_, complexFormat_);
+	}
     }
+    else
+      Error("MagPDE: Only static, transient and harmonic results can be written",
+	    __FILE__, __LINE__);
   }
 
+	
+  
 
   void MagPDE::PostProcess(const Integer level) {
 
@@ -682,9 +681,9 @@ namespace CoupledField {
       // Resize solution arrays
       B_.SetNumSolutions(1);
       B_.SetSolutionType(MAG_FIELD);
-      B_.SetNumNodes(numElems_);
+      B_.SetNumElems(numElems_);
       B_.SetNumDofs(dim_);
-      B_.SetPtrEQNData(eqnData_);
+      B_.SetPtrEQNData(eqnData_, ptgrid_, actlevel_);
       B_.Init(0);
       
       // loop over all subdomains
@@ -699,7 +698,7 @@ namespace CoupledField {
 	    pdeElem = eqnData_->Mesh2PDEElem(elemssd[iel]->elemNum);
 	    FieldOp->CalcElemCurlNode( TempE, elemssd[iel], LCoord); 
 	    // B_.SetNodalResult(mesh2PDEElem_[elemssd[iel]->elemNum - 1]-1, TempE);
-	    B_.SetNodalResult(pdeElem-1, TempE);
+	    B_.SetElemResult(pdeElem-1, TempE);
 	  }
       }
       delete FieldOp;
@@ -728,11 +727,11 @@ namespace CoupledField {
       // Resize solution arrays
       Jeddy_.SetNumSolutions(1);
       Jeddy_.SetSolutionType(MAG_EDDY_CURRENT);
-      Jeddy_.SetNumNodes(numElems_);
+      Jeddy_.SetNumElems(numElems_);
 
       // dimension hard coded for .unv file!
       Jeddy_.SetNumDofs(3);  
-      Jeddy_.SetPtrEQNData(eqnData_);
+      Jeddy_.SetPtrEQNData(eqnData_, ptgrid_, actlevel_);
       Jeddy_.Init(0);
 
       // loop over all subdomains
@@ -759,7 +758,7 @@ namespace CoupledField {
 	  JeddyElem[0] *= -conductivity;
 	  // 	  Jeddy_.SetNodalResult(mesh2PDEElem_[elemssd[actEl]->elemNum - 1]-1,
 	  // 				JeddyElem);
-	  Jeddy_.SetNodalResult(pdeElem-1, JeddyElem);
+	  Jeddy_.SetElemResult(pdeElem-1, JeddyElem);
 	}
       }
     }
@@ -1051,7 +1050,7 @@ namespace CoupledField {
     // ---------------------------
     //   Set analysis parameters
     // ---------------------------
-    assemble_->SetPtr2EQNData(eqnData_); 
+    assemble_->SetPtr2EQNData(eqnData_, ptgrid_, actlevel_); 
     assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, subdoms_,
 				surfdoms_);
     assemble_->SetGraphType(NODEGRAPH);
@@ -1075,7 +1074,7 @@ namespace CoupledField {
     sol_->SetSolutionType(MAG_POTENTIAL);
     sol_->SetNumNodes(numPDENodes_);
     sol_->SetNumDofs(dofspernode_);
-    sol_->SetPtrEQNData(eqnData_);
+    sol_->SetPtrEQNData(eqnData_, ptgrid_, actlevel_);
     sol_->Init();
     ReadMaterialData();
    
@@ -1210,7 +1209,7 @@ namespace CoupledField {
     Vector<Double> solInc(eqnData_->GetNumEQNs());
     Vector<Double> actSol(eqnData_->GetNumEQNs());
 
-    sol_->GetCompleteVector(actSol);
+    sol_->GetAlgSysVector(actSol);
 
     SetBCs(level, updateBCs_, 0);
 
@@ -1250,7 +1249,7 @@ namespace CoupledField {
       StoreAlgsysToVec(solInc, algsys_->GetSolutionVal() );
       
       actSol += solInc;
-      sol_->SetCompleteVector(actSol);
+      sol_->SetAlgSysVector(actSol);
 
       // recalculate RHS with new values to get new residual (f^(k+1))========
 #ifndef USE_OLAS    
@@ -1356,10 +1355,10 @@ namespace CoupledField {
     NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
 
     //set actual solution  
-    actSol = solhelp->GetCompleteVector();
+    actSol = solhelp->GetAlgSysVector();
 
     //compute predictors
-    TS_alg_->Predictor(solhelp->GetCompleteVector());
+    TS_alg_->Predictor(solhelp->GetAlgSysVector());
 
     //now set up RHS: all linear source terms
     Double RhsLinL2Norm = SetLinRHS(level); 
@@ -1368,7 +1367,7 @@ namespace CoupledField {
     assemble_->AssembleNLRHS(level, lasttimecalc_);  
 
     //Update RHS (mass matrix on right hand side)
-    TS_alg_->UpdateRHS(solhelp->GetCompleteVector());
+    TS_alg_->UpdateRHS(solhelp->GetAlgSysVector());
   
     timeStepCounter++;
     do {
@@ -1417,7 +1416,7 @@ namespace CoupledField {
       }
 
       //store A_/n+1) in the solution-object sol_
-      sol_->SetCompleteVector(actSol);
+      sol_->SetAlgSysVector(actSol);
 
       // recalculate RHS with new values to get new residual (f^(k+1))=======
 #ifndef USE_OLAS    
@@ -1649,9 +1648,9 @@ namespace CoupledField {
       // Resize solution arrays
       B_.SetNumSolutions(1);
       B_.SetSolutionType(MAG_FIELD);
-      B_.SetNumNodes(numElems_);
+      B_.SetNumElems(numElems_);
       B_.SetNumDofs(dim_);
-      B_.SetPtrEQNData(eqnData_);
+      B_.SetPtrEQNData(eqnData_, ptgrid_, actlevel_);
       B_.Init(0);
       
       // loop over all subdomains
@@ -1666,7 +1665,7 @@ namespace CoupledField {
 	  FieldOp->CalcElemCurlNode( TempE, elemssd[iel], LCoord); 
 	  // B_.SetNodalResult(mesh2PDEElem_[elemssd[iel]->elemNum - 1]-1,
 	  // TempE);
-	  B_.SetNodalResult(pdeElem-1, TempE);
+	  B_.SetelemResult(pdeElem-1, TempE);
 	}
       }
       delete FieldOp;
@@ -1695,11 +1694,11 @@ namespace CoupledField {
       // Resize solution arrays
       Jeddy_.SetNumSolutions(1);
       Jeddy_.SetSolutionType(MAG_EDDY_CURRENT);
-      Jeddy_.SetNumNodes(numElems_);
+      Jeddy_.SetNumElems(numElems_);
 
       // dimension hard coded for .unv file!
       Jeddy_.SetNumDofs(3);  
-      Jeddy_.SetPtrEQNData(eqnData_);
+      Jeddy_.SetPtrEQNData(eqnData_, ptgrid_, actlevel_);
       Jeddy_.Init(0);
 
       // loop over all subdomains
@@ -1727,7 +1726,7 @@ namespace CoupledField {
 	  JeddyElem[0] *= -conductivity;
 	  // Jeddy_.SetNodalResult(mesh2PDEElem_[elemssd[actEl]->elemNum-1]-1,
 	  // JeddyElem);
-	  Jeddy_.SetNodalResult(pdeElem-1, JeddyElem);
+	  Jeddy_.SetElemResult(pdeElem-1, JeddyElem);
 	}
       }
     }

@@ -1,9 +1,10 @@
 #ifndef FILE_NODESTORESOL_2004
 #define FILE_NODESTORESOL_2004
 
-#include "basestoresol.hh"
-#include <Matrix/matrix.hh>
-#include <Utils/vector.hh>
+#include "basenodestoresol.hh"
+#include "Matrix/matrix.hh"
+#include "Utils/vector.hh"
+#include "Domain/grid.hh"
 
 namespace CoupledField{
 
@@ -42,7 +43,7 @@ namespace CoupledField{
 //! \note Although the names of some methods refer to nodes, this class 
 //! also can handle element solutions.
 template<class TYPE>
-class NodeStoreSol : public BaseStoreSol{
+class NodeStoreSol : public BaseNodeStoreSol{
 public:
 
   //! Default constructor
@@ -60,7 +61,7 @@ public:
   NodeStoreSol(const Integer numNodes, 
 	       const StdVector<SolutionType> solTypes, 
 	       const StdVector<Integer> solDofs);
-  
+	     
 
   //! Constructor with given layout for ONE solutiontype
   /*!
@@ -73,7 +74,7 @@ public:
   NodeStoreSol(const Integer numNodes,
 	       const SolutionType solType,
 	       const Integer numDofs);
-  
+	     
 
   //! Copy Constructor
   NodeStoreSol(const NodeStoreSol & x);
@@ -92,7 +93,9 @@ public:
   void Clear();
  
   //! Set Pointer to nodal equation object
-  void SetPtrEQNData(NodeEQN * ptNodeEQN);
+  void SetPtrEQNData(NodeEQN * ptNodeEQN,
+		     Grid * ptGrid,
+		     Integer level);
   
 
   //! Initialization of the StoreSolution-object with 0-element(REQUIRED)
@@ -195,8 +198,8 @@ public:
     \param (input) Solution type (ref. enum SolutionType)
     \param (output) Vector with given solution type)
   */
-  void GetSolVector(const SolutionType solType, 
-		    CFSVector & val) const;
+  void GetGlobalSolVector(const SolutionType solType, 
+			  CFSVector & val) const;
 
   
   //! Set vector with one solution type for all nodes/elems
@@ -206,8 +209,8 @@ public:
   */
   //! \note The val-vector must match the internal layout
   //! prescribed by the SetDof() and SetSolutionType() methods!
-  void SetSolVector(const SolutionType solType, 
-		    const CFSVector & val) ;
+  void SetAlgSysSolVector(const SolutionType solType, 
+			  const CFSVector & val) ;
 
 
   //! Set all solution types for one node/elem
@@ -234,9 +237,9 @@ public:
     \param dof (input)  Dof of solType
     \param val (output) Vector containing rsults
    */
-  void GetSolVectorSingleDof(const SolutionType solType, 
-			     const Integer dof, 
-			     CFSVector & val) const;
+  void GetGlobalSolVectorSingleDof(const SolutionType solType, 
+				   const Integer dof, 
+				   CFSVector & val) const;
   
 
  //! Get solution vector for all nodes/elems  of one given dof
@@ -246,18 +249,9 @@ public:
   */
   //! \note This method may only be called if object contains only
   //! one type of solution.
-  void GetSolVectorSingleDof(const Integer dof, 
-			     CFSVector & val) const;
+  void GetGlobalSolVectorSingleDof(const Integer dof, 
+				   CFSVector & val) const;
 
-
-  //! Get given type of solution in new BaseStoreSol-object
-  /*!
-    \param solType (input) Solution type (ref. enum SolutionType)
-    \param val (output) BaseStoreSol object conataining results
-  */
-  void GetSolution(const SolutionType solType, 
-		   BaseStoreSol & val) const;
-  
 
   //! Get single result of given node/elem for given dof
   /*!
@@ -318,28 +312,28 @@ public:
   //! \note The layout of the val-vector must match the layout
   //! of the solution prescribed by SetNumSolutions(), SetNumDofs() and
   //! SetSolutionType()!
-  void SetCompleteVector(const CFSVector & val);
+  void SetAlgSysVector(const CFSVector & val);
 
 
   ///! Get the complete solution vector inside this object
   /*!
     \param val (output) Vector containing complete solution
   */
-  void GetCompleteVector(CFSVector & val) const;
+  void GetAlgSysVector(CFSVector & val) const;
 
   
   //! Get the pointer to the CFSVector inside this object
   /*!
    \param ptrToVec (output) Pointer to vector inside this object
   */
-  void GetVectorPointer(CFSVector* & ptrToVec);
+  void GetAlgSysVectorPointer(CFSVector* & ptrToVec);
 
 
   //! Get the pointer to the Vector<TYPE> inside this object
   /*!
    \param ptrToVec (output) Pointer to vector inside this object
   */
-  void GetVectorPointer(Vector<TYPE>* & ptrToVec);
+  void GetAlgSysVectorPointer(Vector<TYPE>* & ptrToVec);
 
 
   //! Copies the data from the given pointer
@@ -350,7 +344,7 @@ public:
   //! when one can ensure, that the internal layout of the solution
   //! matches to the one of the given array. This is the case e.g. for
   //! the solution of the algebraic system.
-  void CopyFromDataPointer(TYPE * ptr);
+  void CopyFromAlgSysDataPointer(Double * ptr);
   
   
   //! Set data pointer for the complete solution
@@ -365,14 +359,8 @@ public:
   //! when one can ensure, that the internal layout of the solution
   //! matches to the one of the given array. This is the case e.g. for
   //! the solution of the algebraic system.
-  void SetDataPointer(TYPE * ptr);
+  void SetAlgSysDataPointer(Double * ptr);
   
-  
-  //! Get data pointer for the complete solution
-  /*!
-   \param ptr (output) Pointer to raw solution data
-  */  
-  void GetDataPointer(TYPE* &ptr);
   
   //! Get pointer to data in double* - format
 
@@ -383,14 +371,14 @@ public:
   //! to a double* array and return the pointer.
   //! The converted array will contain first all real-valued parts of the
   //! the solution and then the complex part.
-  Double * GetDoublePointer();
+  Double * GetAlgSysDoublePointer();
 
 
   //! Get the complete solution vector inside this object
   /*!
     \param val (output) Vector containing complete solution
   */
-  Vector<TYPE>&  GetCompleteVector()
+  Vector<TYPE>&  GetAlgSysVector()
   {return data_;}
 
 
@@ -399,8 +387,8 @@ public:
   // pde to mesh solution and vice versa //
   /////////////////////////////////////////
 
-  virtual void GetElemSolution(CFSVector & elemSol,
-			       const StdVector<Integer> & connect) const;
+  void GetElemSolution(CFSVector & elemSol,
+		       const StdVector<Integer> & connect) const;
 
 
   //!
@@ -428,7 +416,7 @@ public:
   NodeStoreSol & operator= (const NodeStoreSol & x);
   
   //! assignment operator for Base-class
-  BaseStoreSol & operator= (const BaseStoreSol & x);
+  BaseNodeStoreSol & operator= (const BaseNodeStoreSol & x);
   
   //! Standard output operator (of baseclass)
   void  Print(std::ostream& str);
@@ -445,7 +433,7 @@ protected:
   // ======================================================
   template class NodeStoreSol<Double>;
   template class NodeStoreSol<Complex>;
-  template class NodeStoreSol<Integer>;
+  //template class NodeStoreSol<Integer>;
  
 } //end of namespace
 

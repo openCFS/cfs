@@ -273,14 +273,13 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
     
     // initialize eqation data object
     eqnData_  = new BlockNodeEQN(ptgrid_, ptBCs_, subdoms_, 
-    				 actlevel_, dofspernode_);
-    //    eqnData_  = new ScalarBlockEQN(ptgrid_, ptBCs_, subdoms_, 
-    //				   actlevel_, dofspernode_);
+				 actlevel_, dofspernode_);
+    //eqnData_  = new ScalarBlockEQN(ptgrid_, ptBCs_, subdoms_, 
+    //		   actlevel_, dofspernode_);
 
     eqnData_->SetHomoDirichletBCs(bcs_hd_, homDirichDof_);
     eqnData_->CalcMapping();
     //   eqnData_->Print(std::cerr);
-    
     numPDENodes_ = eqnData_->GetNumLocalNodes();
     numElems_ = eqnData_->GetNumLocalElems();
     size_        = numPDENodes_ * dofspernode_;
@@ -291,7 +290,7 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
     sol_->SetSolutionType(MECH_DISPLACEMENT);
     sol_->SetNumNodes(numPDENodes_);
     sol_->SetNumDofs(dofspernode_);
-    sol_->SetPtrEQNData(eqnData_);
+    sol_->SetPtrEQNData(eqnData_, ptgrid_, actlevel_);
     sol_->Init(0.0); 
 
     // set assemble parameters
@@ -815,7 +814,7 @@ void MechPDE::StepStaticNonLin(const Integer kstep, const Double aTime,
   Integer iterationCounter=0;
   NodeStoreSol<Double>  & solHelp = dynamic_cast<NodeStoreSol<Double>&>(*sol_);
   
-  Vector<Double>  actSol = solHelp.GetCompleteVector();
+  Vector<Double>  actSol = solHelp.GetAlgSysVector();
 
   Vector<Double> solIncrement;
   solIncrement.Resize(eqnData_->GetNumEQNs() * eqnData_->GetNumDofsPerEQN());
@@ -873,7 +872,7 @@ void MechPDE::StepStaticNonLin(const Integer kstep, const Double aTime,
 	residualL2Norm = LineSearch(solIncrement, actSol, etaLineSearch, level);
       
       //StoreVecToSolArray(actSol); sol_->SetCompleteVector(actSol);
-      sol_->SetCompleteVector(actSol);
+      sol_->SetAlgSysVector(actSol);
 
       // recalculate RHS with new values to get new residual (f^(k+1))========
 
@@ -967,7 +966,7 @@ Double MechPDE::LineSearch(Vector<Double>& solIncrement, Vector<Double>& actSol,
       actSol = solIncrement * eta[i];
       actSol += solOld;
 
-      sol_->SetCompleteVector(actSol);
+      sol_->SetAlgSysVector(actSol);
       //StoreVecToSolArray(actSol);
 
       // recalculate RHS with new values to get new residual (f^(k+1))========
@@ -1096,8 +1095,8 @@ void MechPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
   NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
   
 
-  actSol = solhelp->GetCompleteVector();
-  TS_alg_->Predictor(solhelp->GetCompleteVector());
+  actSol = solhelp->GetAlgSysVector();
+  TS_alg_->Predictor(solhelp->GetAlgSysVector());
 
   Double extForcesL2Norm = SetExternalForces(level);
 
@@ -1155,7 +1154,7 @@ void MechPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
 	residualL2Norm = LineSearch(solIncrement, actSol, etaLineSearch, level, TRUE);
 
 
-      sol_->SetCompleteVector(actSol);
+      sol_->SetAlgSysVector(actSol);
       //StoreVecToSolArray(actSol);
 
 
@@ -1229,7 +1228,7 @@ void MechPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
 
   
     //perform corrector step  
-  TS_alg_->Corrector(solhelp->GetCompleteVector());
+  TS_alg_->Corrector(solhelp->GetAlgSysVector());
 }
 
 
@@ -1347,50 +1346,63 @@ void MechPDE::WriteResultsInFile()
   ENTER_FCN( "MechPDE::WriteResultsInFile" );
 
   NodeStoreSol<Double> sol_der1Array, sol_der2Array;
+  NodeStoreSol<Double> * solTransient;
+  NodeStoreSol<Complex> * solHarmonic;
   
-  NodeStoreSol<Double> const & solConverted =
-    dynamic_cast<NodeStoreSol<Double>&>(*sol_);
-  
-  if (savesol_ == TRUE && (analysistype_== STATIC || analysistype_== TRANSIENT))
-    {
-      // sol_->TransformNodeSolution(sol_mesh,ptgrid_,actlevel_);
-      //TransformNodeSolution(sol_mesh, sol_, pde2MeshNode_);
-      outFile_->WriteNodeSolution(solConverted, laststepcalc_, lasttimecalc_,"displacement");
-    }
 
-  if (analysistype_== TRANSIENT)
+ 
+  if (analysistype_ == STATIC ||
+      analysistype_ == TRANSIENT)
     {
-      if (savederiv1_ == TRUE)
-
+      if (savesol_ == TRUE )
 	{
-	  sol_der1Array.SetNumSolutions(1);
-	  sol_der1Array.SetNumNodes(numPDENodes_);
-	  sol_der1Array.SetSolutionType(MECH_VELOCITY);
-	  sol_der1Array.SetNumDofs(dim_);
-	  sol_der1Array.Init(0);
-	  sol_der1Array.SetSolVector(MECH_VELOCITY,getS1());
+	  solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);
+	  outFile_->WriteNodeSolutionTransient(*solTransient, laststepcalc_, lasttimecalc_);
+	}
+      
+      if (analysistype_== TRANSIENT)
+	{
+	  if (savederiv1_ == TRUE)
+	    
+	    {
+	      sol_der1Array.SetNumSolutions(1);
+	      sol_der1Array.SetNumNodes(numPDENodes_);
+	      sol_der1Array.SetSolutionType(MECH_VELOCITY);
+	      sol_der1Array.SetNumDofs(dim_);
+	      sol_der1Array.Init(0);
+	      sol_der1Array.SetAlgSysVector(getS1());
+	      outFile_->WriteNodeSolutionTransient(sol_der1Array,laststepcalc_,lasttimecalc_);
+	    }
 	  
-	  //sol_der1Array.TransformNodeSolution(solder1_mesh,ptgrid_,actlevel_);
-	  outFile_->WriteNodeSolution(sol_der1Array,laststepcalc_,lasttimecalc_,"velocity");
+	  if (savederiv2_ == TRUE)
+	    {
+	      sol_der2Array.SetNumSolutions(1);
+	      sol_der2Array.SetNumNodes(numPDENodes_);
+	      sol_der2Array.SetSolutionType(MECH_ACCELERATION);
+	      sol_der2Array.SetNumDofs(dim_);
+	      sol_der2Array.Init(0);
+	  sol_der2Array.SetAlgSysVector(getS2());
+	  outFile_->WriteNodeSolutionTransient(sol_der2Array,laststepcalc_,lasttimecalc_);
+	    }
 	}
 
-      if (savederiv2_ == TRUE)
+      //element results
+      if (calcStress_.GetSize() !=0 ) {
+	outFile_->WriteElemSolutionTransient(Stress_, laststepcalc_, lasttimecalc_);
+      }
+    }
+  else if (analysistype_ == HARMONIC)
+    {
+      if (savesol_ == TRUE )
 	{
-	  sol_der2Array.SetNumSolutions(1);
-	  sol_der2Array.SetNumNodes(numPDENodes_);
-	  sol_der2Array.SetSolutionType(MECH_ACCELERATION);
-	  sol_der2Array.SetNumDofs(dim_);
-	  sol_der2Array.Init(0);
-	  sol_der2Array.SetSolVector(MECH_ACCELERATION,getS2());
-	  //sol_der2Array.TransformNodeSolution(solder2_mesh,ptgrid_,actlevel_);
-	  outFile_->WriteNodeSolution(sol_der2Array,laststepcalc_,lasttimecalc_,"acceleration");
+	  solHarmonic = dynamic_cast<NodeStoreSol<Complex>*>(sol_);
+	  outFile_->WriteNodeSolutionHarmonic(*solHarmonic,  actFreqStep_, 
+					      actFrequency_, complexFormat_);
 	}
     }
-
-  //element results
-  if (calcStress_.GetSize() !=0 ) {
-    outFile_->WriteElemSolution(Stress_, laststepcalc_, lasttimecalc_, "stress");
-  }
+  else
+    Error("MechPDE: Only static, transient and harmonic results cna be written",
+	  __FILE__, __LINE__);
 
 }
 
@@ -1487,9 +1499,9 @@ void MechPDE::PostProcess(const Integer level) {
       // Resize solution arrays
       Stress_.SetNumSolutions(1);
       Stress_.SetSolutionType(MECH_STRESS);
-      Stress_.SetNumNodes(numElems_);
+      Stress_.SetNumElems(numElems_);
       Stress_.SetNumDofs(stressDim);
-      Stress_.SetPtrEQNData(eqnData_);
+      Stress_.SetPtrEQNData(eqnData_, ptgrid_, actlevel_);
       Stress_.Init(0);
       
       Vector<Double> elemStress;
@@ -1542,7 +1554,7 @@ void MechPDE::PostProcess(const Integer level) {
 	  //calculates the stress
 	  stress->CalcStressVec(elemStress,1,ptCoord);
 	  
-	  Stress_.SetNodalResult(pdeElem-1, elemStress);
+	  Stress_.SetElemResult(pdeElem-1, elemStress);
 	}
       }
     }

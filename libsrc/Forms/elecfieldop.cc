@@ -134,7 +134,7 @@ CurlEdgeOp::CurlEdgeOp(Grid * ptGrid,
 {
   ENTER_FCN( "CurlEdgeOp::CurlEdgeOp" );
 
-  aSol.GetVectorPointer((CFSVector*)this->sol_);
+  sol_ = &aSol;
 }
 
 

@@ -30,11 +30,52 @@ public:
   */
   virtual void WriteGrid(const Integer level);
 
-   //! write vectorial cell data
-  virtual void WriteNodeSolution(const NodeStoreSol<Double>& sol, const Integer step, const Double time, const std::string title);
+
+  //! write element solution vector
+  /*!
+    \param data vector with data (ex. value of an error for the cell)
+    \param step step of calculation
+    \param time time of calculation
+  */
+  virtual void WriteNodeSolutionTransient(const NodeStoreSol<Double>& sol, 
+					  const Integer step, 
+					  const Double time);
   
-  //!
-  virtual void WriteElemSolution(const ElemStoreSol<Double>& data, const Integer step, const Double time, const std::string title);
+  //! write element solution vector
+  /*!
+    \param data vector with data (ex. value of an error for the cell)
+    \param step step of calculation
+    \param time time of calculation
+  */
+  virtual void WriteElemSolutionTransient(const ElemStoreSol<Double>& data, 
+					  const Integer step, 
+					  const Double time);
+  
+  //! write element solution vector 
+  /*!
+    \param data vector with data (ex. value of an error for the cell)
+    \param step step of calculation
+    \param frequency frequency of exciting function
+    \param format format for writing complex solution (real-imag/amplitude-phase)
+  */
+  virtual void WriteNodeSolutionHarmonic(const NodeStoreSol<Complex>& sol, 
+					 const Integer step,
+					 const Double frequency,
+					 const ComplexFormat format);
+  
+  //! write element solution vector
+  /*!
+    \param data vector with data (ex. value of an error for the cell)
+    \param step step of calculation
+    \param frequency frequency of exciting function
+    \param format format for writing complex solution (real-imag/amplitude-phase)
+  */
+  virtual void WriteElemSolutionHarmonic(const ElemStoreSol<Complex>& data, 
+					 const Integer step,
+					 const Double frequency,
+					 const ComplexFormat format);
+  
+
 
   //! write comments
   /*!
@@ -98,6 +139,10 @@ private:
     \param result (output) result
   */
   void to8Char(const std::string name, char * result);
+  
+  //! Convertes enum SolutionType to string
+  std::string SolutionTypeToString(const SolutionType type) const;
+  
 };
 
 } // end of namespace

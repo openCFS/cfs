@@ -187,7 +187,7 @@ void ElecPDE::StepStaticNonLin(const Integer kstep, const Double aTime,
   ptsol = algsys_->GetSolutionVal();
 
   // save solution
-  sol_->SetDataPointer(ptsol);
+  sol_->SetAlgSysDataPointer(ptsol);
   
 }
 
@@ -247,67 +247,55 @@ void ElecPDE::WriteResultsInFile()
   if (!commrank){
 #endif
     
-    
-  
-  // ATTENTION:
+    // ATTENTION:
   // The errorMap should be assigned as a StoreSolution, not as a 
   // Vector. This is only temporarely
-  ElemStoreSol<Double> Error, Error_Mesh;
-
-
-  NodeStoreSol<Double> const & solConverted = 
-    dynamic_cast<NodeStoreSol<Double>&>(*sol_);
-  
-   
-  // write results
-  if (outFile_->IsGMV())
+  ElemStoreSol<Double> error, error_Mesh;
+  NodeStoreSol<Double> * solConverted;
+  if (analysistype_ == STATIC)
     {
+      solConverted = dynamic_cast<NodeStoreSol<Double>*>(sol_);
+      
+      
       // write electric potential
       if (savesol_)
-	outFile_->WriteNodeSolution(solConverted, laststepcalc_, time, "E-Potential");
+	outFile_->WriteNodeSolutionTransient(*solConverted, laststepcalc_, time);
       
       if (calcEfield_.GetSize() !=0 )
 	{
-	  //E_.TransformElemSolution(E_Mesh,ptgrid_,pde2MeshElem_,actlevel_);
-	  outFile_->WriteElemSolution(E_,laststepcalc_,time,"E-Field");
+	  outFile_->WriteElemSolutionTransient(E_,laststepcalc_,time);
 	}
+      
+      if (flags->CalcErrorMap_)
+	{
+	  // this is only a temporar solution
+	  error.SetNumSolutions(1);
+	  error.SetNumElems(errorMap_.GetSize());
+	  error.SetSolutionType(NO_SOLUTION_TYPE);
+	  error.SetNumDofs(dofspernode_);
+	  error.Init(0);
+      
+	  Error("Not implemented. Talk to Andreas and Elena", __FILE__, __LINE__);
+	  
+	  //Error.SetAlgSysVector(errorMap_);
+	  
+	  // ATTENTION!!
+	  // up to now now transformation of the Error performed,
+	  // since the calculation of the error is done on the global element numeration
+	  //Error.TransformElemSolution(Error_Mesh,subdoms_,ptgrid_,actlevel_);
+	  //OutFile_->WriteElemSolution(errorMap_, laststepcalc_, time, "relERR-E-Potential"); 
+	  outFile_->WriteElemSolutionTransient(error_Mesh, laststepcalc_, time); 
+	}
+      
+      if (calcEnergy_.GetSize() !=0 )
+	CalcEnergy();
+      
     }
   else
-    {
-      // write electric potential
-      if (savesol_)
-	outFile_->WriteNodeSolution(solConverted,laststepcalc_,time,"electric potential");
-
-      if (calcEfield_.GetSize() !=0 )
-	{
-	  outFile_->WriteElemSolution(E_, laststepcalc_, time, "electric field");
-	}
-    }
-
-    if (flags->CalcErrorMap_)
-      {
-	// this is only a temporar solution
-	Error.SetNumSolutions(1);
-	Error.SetNumNodes(errorMap_.GetSize());
-	Error.SetSolutionType(NO_SOLUTION_TYPE);
-	Error.SetNumDofs(dofspernode_);
-	Error.Init(0);
-	Error.SetCompleteVector(errorMap_);
-	
-	// ATTENTION!!
-	// up to now now transformation of the Error performed,
-	// since the calculation of the error is done on the global element numeration
-	//Error.TransformElemSolution(Error_Mesh,subdoms_,ptgrid_,actlevel_);
-	//OutFile_->WriteElemSolution(errorMap_, laststepcalc_, time, "relERR-E-Potential"); 
-	outFile_->WriteElemSolution(Error_Mesh, laststepcalc_, time, "relERR-E-Potential"); 
-      }
-
-    if (calcEnergy_.GetSize() !=0 )
-      CalcEnergy();
-
+   Error("ElecPDE: Only static results can be written", __FILE__, __LINE__);
 
 #ifdef PARALLEL
-  }//!commrank
+    }//!commrank
 #endif
 
 }
@@ -346,7 +334,7 @@ void ElecPDE::PostProcess(const Integer level)
 	      FieldOp->CalcElemElecField( TempE, elemssd[iel], LCoord); 
 	      pdeElem = eqnData_->Mesh2PDEElem(elemssd[iel]->elemNum);
 // 	      E_.SetNodalResult(mesh2PDEElem_[elemssd[iel]->elemNum - 1]-1,TempE);
- 	      E_.SetNodalResult(pdeElem-1,TempE);
+ 	      E_.SetElemResult(pdeElem-1,TempE);
 	    }
 	}
       delete FieldOp;
@@ -513,14 +501,14 @@ void ElecPDE::Reset()
   sol_->SetSolutionType(ELEC_POTENTIAL);
   sol_->SetNumNodes(numPDENodes_);
   sol_->SetNumDofs(dofspernode_);
-  sol_->SetPtrEQNData(eqnData_);
+  sol_->SetPtrEQNData(eqnData_, ptgrid_, actlevel_);
   sol_->Init(0.0);
   
   E_.SetNumSolutions(1);
   E_.SetSolutionType(ELEC_FIELD);
-  E_.SetNumNodes(numElems_);
+  E_.SetNumElems(numElems_);
   E_.SetNumDofs(dim_);
-  E_.SetPtrEQNData(eqnData_);
+  E_.SetPtrEQNData(eqnData_, ptgrid_, actlevel_);
   E_.Init(0.0); 
   
 }
