@@ -4,11 +4,16 @@
 #include <abstractAlgSys.hh>
 
 #ifdef GRIDLIB
+{
 using namespace std;
 #include <general.hh>
 #include <multigrid.hh>
+}
+#else
+#include <general.hh>
+#include <multigrid.hh>
 #endif
- 
+
 namespace CoupledField
 {
 

@@ -36,7 +36,11 @@ mylibrary :=  driver estimator pde algsys-own forms  \
             domain unverg gmv \
             definefiles datfile datainout \
             utils matrix general \
-            multigrid-cla general-cla superlu-cla
+            multigrid-cla general-cla superlu-cla \
+            nginterface vis  \
+            stlgeom mesh csg gprim opti \
+            la gen cfsinterface tix8.1.8.3 tk8.3 tcl8.3\
+            GL GLU X11 Xi m dl pthread stdc++
 else
 mylibrary :=  driver estimator pde algsys-own forms  \
             elements3d elements2d elements \
@@ -51,10 +55,7 @@ endif
 ########### define system libraries
 #
 ifeq "$(OS)" "Linux"
-syslib :=  nginterface vis  \
-            stlgeom mesh csg gprim opti \
-            la gen cfsinterface tix8.1.8.3 tk8.3 tcl8.3\
-            GL GLU X11 Xi m dl pthread stdc++
+syslib :=  
 else
 syslib := -lGridBase -lIO  -lUtil -lMesh -lC
 endif
@@ -119,10 +120,14 @@ endif
 ############## Make link to the source of another programm
 #
 link:
+ifeq "$(OS)" "Linux"
 	rm -rf $(IncNetGen) &&  ln -s $(NetGen)/libsrc/include $(IncNetGen) && \
         rm -rf $(LibNetGen) && ln -s $(NetGen)/lib $(LibNetGen) &&\
-        rm -rf $(LibCLA) && ln -s $(CLA)/libsrc $(LibCLA) && \
-	rm -rf $(IncGridlib) && ln -s $(Gridlib) $(IncGridlib)
+        rm -rf $(LibCLA) && ln -s $(CLA)/libsrc $(LibCLA) 
+else
+	rm -rf $(LibCLA) && ln -s $(CLA)/libsrc $(LibCLA) && \
+        rm -rf $(IncGridlib) && ln -s $(Gridlib) $(IncGridlib)
+endif
 #        
 ############## Make links in dir include
 #

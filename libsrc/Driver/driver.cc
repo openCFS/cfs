@@ -3,6 +3,7 @@
 #include <string>
 
 //#include "interface_gridlib.hh"
+#include "interface_gridcfs.hh"
 #include "acousticPDE.hh"
 #include "driver.hh"
 

@@ -30,13 +30,13 @@ LibNetGen=$(C_DIR)/libnetgen
 LIB_NETGEN = $(C_DIR)/libnetgen/LINUX
 #
 ############### CLA++
-#CLA=/home_lse10/lse/manfred/Programming/CLA++
-CLA=~/CLA++
+CLA=/home_lse10/lse/manfred/Programming/CLA++
+#CLA=~/CLA++
 #
 LibCLA=$(C_DIR)/libsrc/AlgebraicSystem/CLA
 #
-#LIB_CLA=$(CLA)/lib/$(MACHINE)
-LIB_CLA=$(CLA)/lib/SGI
+LIB_CLA=$(CLA)/lib/$(MACHINE)
+#LIB_CLA=$(CLA)/lib/SGI
 #
 Include=$(C_DIR)/include
 #
