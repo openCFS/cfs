@@ -640,11 +640,11 @@ namespace CoupledField
     olasParams_->SetValue( "AuxiliaryMatrix", FALSE);
 
     // For OLAS_PARAMS we set these via CFSOLASParams::SetParams()
-#ifndef USE_OLAS
     olasParams_->SetValue( "MatrixEntryType", entryType_ );
     olasParams_->SetValue( "MatrixStorageType", storageType_ );
 #endif
 
+#ifdef USE_OLAS
     algsys_->CreateLinSys();
 #else
     Integer numDir = numDirichletBCs_;
