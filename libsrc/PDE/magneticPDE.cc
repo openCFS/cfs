@@ -608,7 +608,7 @@ namespace CoupledField {
     // -----------------------------
     // Check for permanent magnets
     // -----------------------------
-    conf->ifgetliststr("list_magnets", magnetsDomain_, pdename_);
+    ReadMagnets();
 
     // -----------------------------------------------------------
     //   Map global numeration of element and nodes to local one
@@ -1056,7 +1056,7 @@ namespace CoupledField {
 
     *UIfile_ << lasttimecalc_ << " \t";
     for (Integer actID=0; actID < coilIDs.GetSize(); actID++) {
-      if ( coilDef_[coilIDs[actID]-1]->myType_ == Coil::MEASUREMENT2D )
+      if ( coilDef_[coilIDs[actID]-1]->coilType_ == Coil::MEASUREMENT2D )
 	*UIfile_ << uiID[coilIDs[actID]-1] *
 	  coilDef_[coilIDs[actID]-1]->area_ << " \t";
     }
@@ -1107,12 +1107,50 @@ namespace CoupledField {
     params->GetCoilList( coilName_, pdename_ );
 
     // Read parameters for individual coils and log to info file
-    Integer nrCoils = coilName_.size();
+    UInt nrCoils = coilName_.size();
     if ( nrCoils > 0 ) {
-      Info->PrintF( pdename_, " Using the following coils:" );
-      for ( Integer k = 0; k < nrCoils; k++ ) {
-	Info->PrintF( pdename_, "%s", coilName_[k].c_str() );
-	coilDef_[k] = new Coil( coilName_[k], pdename_ );
+      Info->PrintF( pdename_, " Using the following coils:\n" );
+      for ( UInt k = 0; k < nrCoils; k++ ) {
+	coilDef_.push_back( new Coil( coilName_[k], pdename_ ) );
+	Info->PrintCoil( (*coilDef_[k]), analysistype_ );
+      }
+    }
+  }
+
+
+  // ********************************************************
+  //   Query parameter object for information about magnets
+  // ********************************************************
+  void MagPDE::ReadMagnets() {
+
+    ENTER_FCN( "MagEdgePDE::ReadMagnets" );
+
+    // get domain names of magnets
+    params->GetList( "name", magnetsDomain_, pdename_, "magnets" );
+
+    if ( magnetsDomain_.size() > 0 ) {
+
+      Info->PrintF( pdename_,
+		    " Found permanent magnets in the following regions:" );
+
+      Double tmpDir[3];
+
+      // for each magnet ...
+      for ( UInt k = 0; k < magnetsDomain_.size(); k++ ) {
+
+	// ... report name to logfile
+	Info->PrintF( pdename_, " %s", magnetsDomain_[k].c_str() );
+
+	// ... read direction of magnetisation
+	params->CGet( "orientX", tmpDir[0], "name", magnetsDomain_[k], true,
+		      pdename_, "magnets" );
+	params->CGet( "orientX", tmpDir[1], "name", magnetsDomain_[k], true,
+		      pdename_, "magnets" );
+	params->CGet( "orientX", tmpDir[2], "name", magnetsDomain_[k], true,
+		      pdename_, "magnets" );
+	magnetsOriX_.push_back( tmpDir[0] );
+	magnetsOriY_.push_back( tmpDir[1] );
+	magnetsOriZ_.push_back( tmpDir[2] );
       }
     }
   }
@@ -1135,7 +1173,7 @@ namespace CoupledField {
     // -----------
 
     // Determine regions for which B-field must be computed
-    params->CGetList( "region", calcBfield_, "type", "bfield", pdename_,
+    params->CGetList( "region", calcBfield_, "type", "bfield", 0, pdename_,
 		      "elemResults" );
 
     // If the the symbolic name is "all" compute electric field for all regions
@@ -1157,7 +1195,7 @@ namespace CoupledField {
     // ----------
 
     // Determine regions for which energy must be computed
-    params->CGetList( "region", calcEnergy_, "type", "energy", pdename_,
+    params->CGetList( "region", calcEnergy_, "type", "energy", 0, pdename_,
 		      "elemResults" );
 
     // If the the symbolic name is "all" compute energy for all regions
@@ -1178,7 +1216,7 @@ namespace CoupledField {
     // --------
 
     // Determine regions for which eddy current density must be computed
-    params->CGetList( "region", calcEddy_, "type", "eddy", pdename_,
+    params->CGetList( "region", calcEddy_, "type", "eddy", 0, pdename_,
 		      "elemResults" );
 
     // If the the symbolic name is "all" compute energy for all regions

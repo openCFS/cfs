@@ -19,7 +19,8 @@ class MagPDE : public BasePDE
 {
 public:
 
-  MagPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *aptFileType, WriteResults *aptOut);
+  MagPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc,
+	 FileType *aptFileType, WriteResults *aptOut);
 
   //! Deconstructor
   virtual ~MagPDE(){};
@@ -106,8 +107,11 @@ public:
 
 protected:
 
-  //! reads all data in the config-file belonging to coils
+  //! Query parameter object for information on coils
   void ReadCoils();
+
+  //! Query parameter object for information on permanent magnets
+  void ReadMagnets();
 
   //!
   void ComputeUI(Vector<Double>& uiSD);
@@ -129,6 +133,8 @@ protected:
   //   COILS
   // ==========================================================================
 
+  //@{ \name Attributes related to coils
+
   //! Names of coils resp. their subdomains
   std::vector<std::string> coilName_;  
 
@@ -144,8 +150,33 @@ protected:
 
 #endif
 
-  // permanent magnets
-  std::vector <std::string> magnetsDomain_;  //!< name of all subdomains containing permanent magnets
+  //@}
+
+  // ==========================================================================
+  //   PERMANENT MAGNETS
+  // ==========================================================================
+
+  //@{ \name Attributes related to permanent magnets
+
+  //! Subdomains containing permanent magnets
+  std::vector <std::string> magnetsDomain_;
+
+  //! x-component of direction of magnetisation for each magnet
+
+  //! x-component of direction of magnetisation for each magnet
+  //! \todo As suggested by Fred Hofer, the direction of magnetisation of a
+  //! permanent magnet must now be specified in the XML parameter file and
+  //! no longer in the material data file. While magneticPDE already reads
+  //! these data, they are not yet used in the simulation.
+  std::vector<Double> magnetsOriX_;
+
+  //! y-component of direction of magnetisation for each magnet
+  std::vector<Double> magnetsOriY_;
+
+  //! z-component of direction of magnetisation for each magnet
+  std::vector<Double> magnetsOriZ_;
+
+  //@}
 
   //postprocessing
   std::vector<std::string> calcBfield_;  //!< contains the subdomains, on which the magnetic field is computed
