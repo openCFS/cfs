@@ -108,16 +108,50 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
 	std::cerr << "\n piezoLog.dat could not be initialized" << std::endl;
       }
 
+    // in future, several parameters wwill be taken from the xml - file ...
+    StdVector<std::string> keyVec, attrVec, valVec;
+    
+    attrVec = "tag";
+    valVec = driverTag_;
+    
+    // Get time stepping information from parameter object
+    keyVec = "paramIdent", "startFreq";
+    params->Get(keyVec, attrVec, valVec, startfreq);
+    
+    keyVec = "paramIdent", "stopFreq";
+    params->Get(keyVec, attrVec, valVec, stopfreq);
+    
+    keyVec = "paramIdent", "numFreq";
+    params->Get(keyVec, attrVec, valVec, nrfreq);
+    
+    // should we calculate the impedance curve?
+    CalcImpedanceCurve = params->IsSet("calcImpedanceCurve",  "paramIdent");
+
+    // further important constants for truncated Newton methods
+    keyVec="paramIdent", "maxNrInnerIterations";
+    params->Get(keyVec, attrVec, valVec, maxNumberInnerLoops);
+
+    keyVec="paramIdent", "maxNrOuterIterations";
+    params->Get(keyVec, attrVec, valVec, maxNumberNewtonLoops);
+
+    keyVec="paramIdent", "artDataNoise";
+    params->Get(keyVec, attrVec, valVec, delta);
+    
+
   } // end of constructor
 
   // destructor
   piezoParamIdent :: ~piezoParamIdent()
   {
     ENTER_FCN( "piezoParamIdent::~piezoParamIdent" );
-    allMeasuredData->close();
-    impedCurve->close();
-    piezoLog->close();
-    parLog->close();
+    if (allMeasuredData)
+      allMeasuredData->close();
+    if (impedCurve)
+      impedCurve->close();
+    if(piezoLog)
+      piezoLog->close();
+    if(parLog)
+      parLog->close();
   }
 
   void piezoParamIdent :: SolveProblem() {
@@ -155,7 +189,7 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
     // std::cout<<whichParameterToUpdate<<std::endl;
 
     // std::cout<<"\n oben wichParToUp ... unten whichParToUpC"<<std::endl;
-    std::cout<<whichParameterToUpdateC<<std::endl;
+    //    std::cout<<whichParameterToUpdateC<<std::endl;
     // real - entspricht |Z|, Betrag der Impedanz
     // imag - entspricht \phi, gemessener Phasenwinkel
 
@@ -175,10 +209,8 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
 
     if (! isPartOfSequence_)
       ptdomain_->PrintGrid(level);
-
     if (PrintGridOnly)
       exit(0);
-
     if (isPartOfSequence_ == FALSE){     
       GetMyPDEs();
     //! cast pointer to BasePDE * to pointer of SinglePDE *
@@ -230,7 +262,7 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
     // if driver is not part of multiSequence Driver, get list
     // of pdes which have to be solved and intialize them
 
-    MaterialData * ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
+    ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
 
     Matrix<Double> *matMat = ptMaterial->GetMatrix();
     Matrix<Double> *matMatC = ptMaterial->GetMatrixC();
@@ -344,7 +376,7 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
 
 
      
-    if (CalcImpedanceCurve == 1){
+    if (CalcImpedanceCurve == TRUE){
       Vector<Double> freqsTemp = freqs;
       freqs.Resize(nrfreq);
       Double startFreqTemp;
@@ -356,6 +388,7 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
       }
       calcImpedanceCurve();
       freqs = freqsTemp;
+      std::cout<<"\n Press any key to continue ... "<<std::endl;
       getchar();
     }
    
@@ -370,7 +403,7 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
       calc_measuredCharge(freqs, real, imag, y_hat); // out of measurements, values are taken from measuredData.dat
       // calcSyntheticData(y_hat); // Generates synthetic data, i.e. one forward simulation will be performed.
 
-     std::cout<<"\n Measured Data - Set: "<<std::endl;
+      //     std::cout<<"\n Measured Data - Set: "<<std::endl;
 //     for(int i=0;i<y_hat.GetSize();i++)
 //       std::cout<<"y("<<i<<")= "<< y_hat[i]<<"; ";
 //     std::cout<<"\n"<<std::endl;
@@ -542,9 +575,10 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
     else if (whichNewtonCG==7){
       Integer nrNuMethods=0;
       newtonCounter=0;
+      inner_eta=1.0;
       while (nrNuMethods<maxNumberNewtonLoops){
 	      //      while (nrNuMethods<2){
-	std::cout<<"\n Nr: "<< nrNuMethods << ", start next Newton NuMethod?"<<std::endl;
+	//	std::cout<<"\n Nr: "<< nrNuMethods << ", start next Newton NuMethod?"<<std::endl;
 // 	c33history[nrNuMethods] = parameter[1];
 // 	e33history[nrNuMethods] = parameter[7];
 // 	eps33history[nrNuMethods] = parameter[9];
@@ -582,12 +616,12 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
 
     // xxxxxxxxxxxxxxxxxxxxxxx End of choice xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx //
 
-
-    std::cout<<"\n\n *** FINALLY CALCULATED PARAMETERS *** ... here they are: " <<std::endl;
-
-    for (int i=0;i<parameter.GetSize();i++)
-      std::cout<<"par[" << i<<"]="<< parameter[i]<<" + " << parameterC[i]<<"i"<<std::endl;
-
+    if ( maxNumberNewtonLoops!=0){
+      std::cout<<"\n\n *** FINALLY CALCULATED PARAMETERS *** ... here they are: " <<std::endl;
+      
+      for (int i=0;i<parameter.GetSize();i++)
+	std::cout<<"par[" << i<<"]="<< parameter[i]<<" + " << parameterC[i]<<"i"<<std::endl;
+    }
 
     //    std::cout<<matMatStart<<std::endl;
     //std::cout<<matMatCStart<<std::endl;
@@ -595,8 +629,7 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
 // <<<<<<<<<<<<<< for a hopefully nice imped curve after identification !! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
      
-    if (CalcImpedanceCurve == 1){
-      getchar();
+    if (CalcImpedanceCurve == TRUE && maxNumberNewtonLoops!=0){
       Vector<Double> freqsTemp = freqs;
       freqs.Resize(nrfreq);
       Double freqincr=(stopfreq-startfreq)/nrfreq;
@@ -605,6 +638,7 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
 	freqs[i]=startfreq;
       }
       calcImpedanceCurve();
+      std::cout<<"\n Press any key to continue ... "<<std::endl;
       freqs = freqsTemp;
     }
     
@@ -634,9 +668,10 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
 	  std::cout<<std::setprecision(10);
 	  //	std::cout<<"\n Frequency - Impendace - Phase: "<<std::endl;
 	  std::cout <<"\n Frequency: "<< freq << ", |Z|: "<< std::abs(impedC) << "; Phase: "<< phase << std::endl;
+	  *impedCurve <<"\n" << freq << "  " << impedC.real()<<"  " << impedC.imag() << imped << "   " << phase << std::endl;
 	}
 
-	*impedCurve <<"\n" << freq << "  " << impedC.real()<<"  " << impedC.imag() << imped << "   " << phase << std::endl;
+
 
   }  // end calcAbsImped 
 
@@ -650,7 +685,7 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
 
      case 1:
        norm = a2norm(vec);
-       std::cout<<"\n l2-Norm = "<<norm<<std::endl;
+       //       std::cout<<"\n l2-Norm = "<<norm<<std::endl;
        break;
      case 2:
        maxAndWeightedResNorm(vec,norm2,norm, q_meas); // for real -  valued driver suitable
@@ -842,7 +877,7 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
   void piezoParamIdent::typeOutSolutionOnScreen(Vector<Complex> & solElecPot,Vector<Complex> & solMechDispl){
     ENTER_FCN("piezoParamIdent::typeOutSolutionOnScreen");
     Double sol_real, sol_imag;
-    std::cout<<"\nElecPot: Amplitude & Phase:"<<std::endl;
+    //    std::cout<<"\nElecPot: Amplitude & Phase:"<<std::endl;
     for(int i=0;i<solElecPot.GetSize();i++){
       //      sol_real=solElecPot[i].real();
       //      sol_imag=solElecPot[i].imag();
@@ -1051,66 +1086,66 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
 	for (int l=0;l<=k;l++)
 	  helpChar[l]=0;
       }
-      else if (mDataRow[0]=='S'){
-	i=2; k=0;
-	while(mDataRow){
-	  if (mDataRow[i]=='/')
-	    break;
-	  helpChar[k]=mDataRow[i];
-	  k++; i++;
-	}
-	nrfreq=atoi(helpChar);
-	for (int l=0;l<=k;l++)
-	  helpChar[l]=0;
-      }
-      else if (mDataRow[0]=='L'){
-	i=2; k=0;
-	while(mDataRow){
-	  if (mDataRow[i]=='/')
-	    break;
-	  helpChar[k]=mDataRow[i];
-	  k++; i++;
-	}
-	startfreq=atof(helpChar);
-	for (int l=0;l<=k;l++)
-	  helpChar[l]=0;
-      }
-      else if (mDataRow[0]=='R'){
-	i=2; k=0;
-	while(mDataRow){
-	  if (mDataRow[i]=='/')
-	    break;
-	  helpChar[k]=mDataRow[i];
-	  k++; i++;
-	}
-	stopfreq=atof(helpChar);
-	for (int l=0;l<=k;l++)
-	  helpChar[l]=0;
-      }
-      else if (mDataRow[0]=='C'){
-	i=2; k=0;
-	while(mDataRow){
-	  if (mDataRow[i]=='/')
-	    break;
-	  helpChar[k]=mDataRow[i];
-	  k++; i++;
-	}
-	maxNumberInnerLoops=atoi(helpChar); 
-	for (int l=0;l<=k;l++)
-	  helpChar[l]=0;
-      }
-      else if (mDataRow[0]=='O'){
-	i=2; k=0;
-	while(mDataRow){
-	  if (mDataRow[i]=='/')
-	    break;
-	  helpChar[k]=mDataRow[i];
-	  k++; i++;
-	}
-	maxNumberNewtonLoops=atoi(helpChar); 
-	for (int l=0;l<=k;l++)
-	  helpChar[l]=0;
-      }
+      // else if (mDataRow[0]=='S'){
+// 	i=2; k=0;
+// 	while(mDataRow){
+// 	  if (mDataRow[i]=='/')
+// 	    break;
+// 	  helpChar[k]=mDataRow[i];
+// 	  k++; i++;
+// 	}
+// 	nrfreq=atoi(helpChar);
+// 	for (int l=0;l<=k;l++)
+// 	  helpChar[l]=0;
+//       }
+     //  else if (mDataRow[0]=='L'){
+// 	i=2; k=0;
+// 	while(mDataRow){
+// 	  if (mDataRow[i]=='/')
+// 	    break;
+// 	  helpChar[k]=mDataRow[i];
+// 	  k++; i++;
+// 	}
+// 	startfreq=atof(helpChar);
+// 	for (int l=0;l<=k;l++)
+// 	  helpChar[l]=0;
+//       }
+//       else if (mDataRow[0]=='R'){
+// 	i=2; k=0;
+// 	while(mDataRow){
+// 	  if (mDataRow[i]=='/')
+// 	    break;
+// 	  helpChar[k]=mDataRow[i];
+// 	  k++; i++;
+// 	}
+// 	stopfreq=atof(helpChar);
+// 	for (int l=0;l<=k;l++)
+// 	  helpChar[l]=0;
+//       }
+//       else if (mDataRow[0]=='C'){
+// 	i=2; k=0;
+// 	while(mDataRow){
+// 	  if (mDataRow[i]=='/')
+// 	    break;
+// 	  helpChar[k]=mDataRow[i];
+// 	  k++; i++;
+// 	}
+// 	maxNumberInnerLoops=atoi(helpChar); 
+// 	for (int l=0;l<=k;l++)
+// 	  helpChar[l]=0;
+//       }
+//       else if (mDataRow[0]=='O'){
+// 	i=2; k=0;
+// 	while(mDataRow){
+// 	  if (mDataRow[i]=='/')
+// 	    break;
+// 	  helpChar[k]=mDataRow[i];
+// 	  k++; i++;
+// 	}
+// 	maxNumberNewtonLoops=atoi(helpChar); 
+// 	for (int l=0;l<=k;l++)
+// 	  helpChar[l]=0;
+//       }
       else if (mDataRow[0]=='M'){
 	i=2; k=0;
 	while(mDataRow){

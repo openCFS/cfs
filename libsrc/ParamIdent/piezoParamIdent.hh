@@ -196,6 +196,7 @@ namespace CoupledField
     Integer nrfreq;
     Double finalnorm;
     Integer newtonCounter;
+    Double inner_eta;
 
     Vector<Complex> solElecPot;
     Vector<Complex> solMechDispl;

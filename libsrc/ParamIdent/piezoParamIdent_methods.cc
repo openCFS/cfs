@@ -70,11 +70,11 @@ namespace CoupledField
       phase = 180.0/PI*std::arg(Z);
     
       y_hat[i]=sign*voltage/(2.0*PI*std::log(Z)*freqs[i]*j);
-      std::cout<<y_hat<<std::endl;
-      std::cout<<"This is y_hat!!"<<std::endl;
+//       std::cout<<y_hat<<std::endl;
+//       std::cout<<"This is y_hat!!"<<std::endl;
       //      getchar();
 
-      std::cout<<"\n Frequenz; " << freqs[i] << ", messZ: " << absZ[i] << ", phase: " << phi[i] << std::endl;
+      //      std::cout<<"\n Frequenz; " << freqs[i] << ", messZ: " << absZ[i] << ", phase: " << phi[i] << std::endl;
       //std::cout<<" Frequenz; " << freqs[i] << ", calcZ: " << std::abs(Z) << ", phase: " << phase << std::endl << std::endl;
      
       //      std::cout<<i<<") = " << phi[i] << ",\t "<< freqs[i] <<",\t q = y_hat = " << y_hat[i]<<",\t Z= " << Z << " phase " << phase << std::endl;
@@ -88,23 +88,25 @@ namespace CoupledField
     }
       for (Integer i=0;i<nrMeasuredData;i++)
 	rand[i]=Complex(randFactor*rand[i])*y_hat[i];
-      std::cout<<"\n Random noise with data error delta = "<< delta<<std::endl;
-      std::cout<<rand<<std::endl;
-      std::cout<<y_hat<<std::endl;
+      if(delta!=0.0)
+	std::cout<<"\n Random noise with data error delta = "<< delta<<std::endl;
+      //	std::cout<<rand<<std::endl;
+      //	std::cout<<y_hat<<std::endl;
      
       for (Integer i=0;i<nrMeasuredData;i++)
 	y_hat[i]=y_hat[i]+rand[i];
-
-      std::cout<<y_hat<<std::endl;
     
       Double average_error=0.0;
       for (Integer i=0;i<nrMeasuredData;i++)
 	average_error+=std::abs((y_hat[i]-rand[i])/y_hat[i]);
       average_error/=nrMeasuredData;
-      std::cout<<"\n average_error = " <<average_error<<std::endl;
-      std::cout<<"\n The average data error is about ~ " << std::abs(average_error-1.0)*100<<" % " << std::endl;
-      std::cout<<"\n Press any key to continue ... " <<std::endl;
-      getchar();
+      if(delta!=0.0){
+	//std::cout<<"\n average_error = " <<average_error<<std::endl;
+	std::cout<<"\n The average data error is about ~ " << std::abs(average_error-1.0)*100<<" % " << std::endl;
+	std::cout<<"\n Press any key to continue ... " <<std::endl;
+	getchar();
+      }
+      
     }
 
   }// end calc_measuredCharge()
@@ -115,7 +117,7 @@ namespace CoupledField
     //   std::cout<<"\n We are generating synthetic data, i.e. we solve the piezo-equation with exact material - parameters"<<std::endl;
     //    std::cout<<"and alienate the results by alternating +-10Percent"<<std::endl;
 
-    MaterialData * ptMaterial= ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
+    ptMaterial= ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
     Matrix<Double> * matMatrix =  ptMaterial->GetMatrix();
     //    std::cout<<*matMatrix<<std::endl;
     ptBCs = ptMyPDE_->getPDE_BCs();     
@@ -227,8 +229,8 @@ namespace CoupledField
     Integer dofs=ptMyPDE_->getPDE_dofspernode();  
     Integer numNodes= ptMyPDE_->getPDE_numPDENodes();  
 
-    updateMaterialData(parameter,ptMaterial);
-    updateComplexMaterialData(parameterC,ptMaterial);
+    //    updateMaterialData(parameter,ptMaterial);
+    //updateComplexMaterialData(parameterC,ptMaterial);
 
     //Matrix<Double> * matMatrix =  ptMaterial->GetMatrix();
 
@@ -353,7 +355,7 @@ namespace CoupledField
     //std::cout<<"\n Number of Integrators in CreateF: " << ptAssemble->integrators_[0]->GetSize()<< std::endl;
 
     if (typeOut==true){
-      std::cout<<"\nFinished to create F ... here it is:"<<std::endl;
+      //      std::cout<<"\nFinished to create F ... here it is:"<<std::endl;
       for (int i=0;i<F_hat.GetSize();i++)
         std::cout<<"F("<<i<<")="<<F_hat[i]<<"; \t";
       std::cout<<"\n ------------------------------- " <<std::endl;
@@ -714,7 +716,8 @@ namespace CoupledField
     //       }
 
     //     std::cout<<JacobiMatrix<<std::endl;
-        std::cout<<"\n end CreateJacobiMatrix C"<<std::endl;
+
+    //        std::cout<<"\n end CreateJacobiMatrix C"<<std::endl;
 
   }            //end CreateJacobiMatrix 2
 
@@ -726,7 +729,7 @@ namespace CoupledField
 
   void piezoParamIdent::createJacobiMatrix2(Matrix<Complex> & JacobiMatrix){
     ENTER_FCN("piezoParamIdent::createJacobiMatrix2");
-    std::cout<<"JacobiMatrix2 will be created"<<std::endl;
+    //    std::cout<<"JacobiMatrix2 will be created"<<std::endl;
   
     //    Matrix<Double> * matMatrix =  ptMaterial->GetMatrix();
     ptBCs = ptMyPDE_->getPDE_BCs();                             // Pointer to BCs
@@ -1055,9 +1058,9 @@ namespace CoupledField
 
       parameter_incr[ind_param]=parameter[ind_param];
     }
-    std::cout<<"\n Here we see the approx. Jacobian and the created Jacobian Matrix:"<<std::endl;
-    std::cout<<approxJacobiMatrix<<std::endl;
-    std::cout<<JacobiMatrix<<std::endl;
+//     std::cout<<"\n Here we see the approx. Jacobian and the created Jacobian Matrix:"<<std::endl;
+//     std::cout<<approxJacobiMatrix<<std::endl;
+//     std::cout<<JacobiMatrix<<std::endl;
     // getchar();   
 
   }// end testJacobiMatrix
@@ -1095,7 +1098,6 @@ void piezoParamIdent::testJacobiMatrix2(Vector<Complex> & F_hat, Matrix<Complex>
 	updateMaterialData(parameter_incr2,ptMaterial);
 	createF(ptMaterial,ptBCs,F_hat_incr2,FALSE);
 
-
 	//	parameter_incr3[ind_param]=1.005*parameter[ind_param];
 	//	std::cout<<parameter_incr<<std::endl
 	//updateMaterialData(parameter_incr3,ptMaterial);
@@ -1132,9 +1134,7 @@ void piezoParamIdent::testJacobiMatrix2(Vector<Complex> & F_hat, Matrix<Complex>
       }
     }
     //    std::cout<<"\n Here we see the approx. Jacobian and the created Jacobian Matrix:"<<std::endl;
-    //    std::cout<<approxJacobiMatrix<<std::endl;
-    //    std::cout<<JacobiMatrix<<std::endl;
-    // getchar();   
+  
     // JacobiMatrix=approxJacobiMatrix;
 
   }// end testJacobiMatrix
@@ -1143,7 +1143,7 @@ void piezoParamIdent::testJacobiMatrix2(Vector<Complex> & F_hat, Matrix<Complex>
 
   void piezoParamIdent::createAdjointJacobiMatrix(Matrix<Complex> & JacobiMatrix, Matrix<Complex> & adjJacobiMatrix){
     ENTER_FCN("piezoParamIdent::createAdjointJacobiMatrix");
-    std::cout<<"\n Adjoint Jacobian will be created ... "<<std::endl;
+    //    std::cout<<"\n Adjoint Jacobian will be created ... "<<std::endl;
     adjJacobiMatrix.Resize(JacobiMatrix.GetSizeCol(),JacobiMatrix.GetSizeRow());
     for (int i=0;i<JacobiMatrix.GetSizeCol();i++)
       for (int j=0;j<JacobiMatrix.GetSizeRow();j++){
