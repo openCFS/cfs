@@ -8,7 +8,7 @@ namespace CoupledField
 {
   //! 1D line element with two nodes (linear interpolation function)
   
-class Line1FE : public GeLineFE
+class Line1FE : public LineFE
 {
 public:
   

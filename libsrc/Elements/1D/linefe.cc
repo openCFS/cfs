@@ -9,10 +9,10 @@ namespace CoupledField
 {
 
 
-GeLineFE :: GeLineFE()
+LineFE :: LineFE()
 {
 #ifdef TRACE
-  (*trace) << "entering GeLineFE::GeLineFE" << std::endl;
+  (*trace) << "entering LineFE::LineFE" << std::endl;
 #endif
 
   Dim_ = 1;
@@ -28,18 +28,18 @@ GeLineFE :: GeLineFE()
 }
 
 
-GeLineFE :: ~GeLineFE()
+LineFE :: ~LineFE()
 {
 #ifdef TRACE
-  (*trace) << "entering GeLineFE::~GeLineFE" << std::endl;
+  (*trace) << "entering LineFE::~LineFE" << std::endl;
 #endif
 }
 
 
-void GeLineFE::SetIntPoints()
+void LineFE::SetIntPoints()
 {
 #ifdef TRACE
-  (*trace) << "entering GeLineFE::SetIntPoints" << std::endl;
+  (*trace) << "entering LineFE::SetIntPoints" << std::endl;
 #endif
 
   switch(IntegType)
@@ -71,10 +71,10 @@ void GeLineFE::SetIntPoints()
 }
 
 
-void GeLineFE::SetShapeFncAtIp()
+void LineFE::SetShapeFncAtIp()
 {
 #ifdef TRACE
-  (*trace) << "entering GeLineFE::SetShapeFncAtIp" << std::endl;
+  (*trace) << "entering LineFE::SetShapeFncAtIp" << std::endl;
 #endif
 
   if (!ShFncAtIp_)
@@ -86,10 +86,10 @@ void GeLineFE::SetShapeFncAtIp()
 }
 
 
-void GeLineFE::SetShapeFncDerivAtIp()
+void LineFE::SetShapeFncDerivAtIp()
 {
 #ifdef TRACE
-  (*trace) << "entering GeLineFE::SetShapeFncDerivAtIp" << std::endl;
+  (*trace) << "entering LineFE::SetShapeFncDerivAtIp" << std::endl;
 #endif
 
   if( !ShFncDerivAtIp_)
@@ -100,11 +100,11 @@ void GeLineFE::SetShapeFncDerivAtIp()
 }
 
 
-Double GeLineFE::CalcJacobianDet(const std::vector<Double> & LCoord,
+Double LineFE::CalcJacobianDet(const std::vector<Double> & LCoord,
 				 const Matrix<Double> & CornerCoords)
 {
 #ifdef TRACE
-  (*trace) << "entering GeLineFE::CalcJacobianDet" << std::endl;
+  (*trace) << "entering LineFE::CalcJacobianDet" << std::endl;
 #endif
 
   Matrix<Double> J;
@@ -115,11 +115,11 @@ Double GeLineFE::CalcJacobianDet(const std::vector<Double> & LCoord,
 }
 
 
-Double GeLineFE::CalcJacobianDetAtIp(const Integer ip, 
+Double LineFE::CalcJacobianDetAtIp(const Integer ip, 
 				   const Matrix<Double> & CornerCoords)
 {
 #ifdef TRACE
-  (*trace) << "entering GeLineFE::CalcJacobianDetAtIp" << std::endl;
+  (*trace) << "entering LineFE::CalcJacobianDetAtIp" << std::endl;
 #endif
 
 //   Matrix<Double> J;
@@ -133,12 +133,12 @@ Double GeLineFE::CalcJacobianDetAtIp(const Integer ip,
   return length/2;
 }
 
-void GeLineFE:: CalcJacobian(Matrix<Double> & J, 
+void LineFE:: CalcJacobian(Matrix<Double> & J, 
 		  const std::vector<Double> & LCoord, 
 			  const Matrix<Double> & CornerCoords)
 {
 #ifdef TRACE
-  (*trace) << "entering GeLineFE::CalcJacobian" << std::endl;
+  (*trace) << "entering LineFE::CalcJacobian" << std::endl;
 #endif
 
   J.Resize(1,1);
@@ -150,12 +150,12 @@ void GeLineFE:: CalcJacobian(Matrix<Double> & J,
 }
 
 
-void GeLineFE::CalcJacobianAtIp(Matrix<Double> & J, 
+void LineFE::CalcJacobianAtIp(Matrix<Double> & J, 
 		      const Integer ip, 
 		      const Matrix<Double> & CornerCoords)
 {
 #ifdef TRACE
-  (*trace) << "entering GeLineFE::CalcJacobianAtIp" << std::endl;
+  (*trace) << "entering LineFE::CalcJacobianAtIp" << std::endl;
 #endif
 
   J.Resize(1,1);
@@ -164,12 +164,12 @@ void GeLineFE::CalcJacobianAtIp(Matrix<Double> & J,
 }
 
 
-void GeLineFE::CalcInvJacobian(Matrix<Double> & JInv,
+void LineFE::CalcInvJacobian(Matrix<Double> & JInv,
 			     const std::vector<Double> & LCoord,
 			     const Matrix<Double> & CornerCoords)
 {
 #ifdef TRACE
-  (*trace) << "entering GeLineFE::CalcInvJacobian" << std::endl;
+  (*trace) << "entering LineFE::CalcInvJacobian" << std::endl;
 #endif
   
   JInv.Resize(1,1);
@@ -185,12 +185,12 @@ void GeLineFE::CalcInvJacobian(Matrix<Double> & JInv,
   JInv[0][0] = 1 / J[0][0];
 }
 
-void GeLineFE::CalcInvJacobianAtIp(Matrix<Double> & JInv,
+void LineFE::CalcInvJacobianAtIp(Matrix<Double> & JInv,
 				 const Integer ip,
 				 const Matrix<Double> & CornerCoords)
 {
 #ifdef TRACE
-  (*trace) << "entering GeLineFE::CalcInvJacobianAtIp" << std::endl;
+  (*trace) << "entering LineFE::CalcInvJacobianAtIp" << std::endl;
 #endif
   
   JInv.Resize(1,1);

@@ -14,7 +14,6 @@ OS=$(shell uname -s)
 include $(C_DIR)/main/Makefile.option
 #
 
-MpCCI=no
 SUBLIBDIR := Driver PDE CoupledPDE Estimator\
              Forms Elements Elements/1D Elements/2D Elements/3D \
              Domain/GridCFS Domain \

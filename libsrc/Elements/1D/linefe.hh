@@ -1,5 +1,5 @@
-#ifndef FILE_GEOMETRY_GELINEFE_2003
-#define FILE_GEOMETRY_GELINEFE_2003
+#ifndef FILE_GEOMETRY_LINEFE_2003
+#define FILE_GEOMETRY_LINEFE_2003
 
 #include <Elements/basefe.hh>
 #include <Elements/jacobian.hh>
@@ -10,15 +10,15 @@ namespace CoupledField
 /*! This class is derived from BaseElem. It stores general procedures for each type of finite element on lines, such as calculation of Jacobian matrix and information about integration points and integration weights
 */
 
-class GeLineFE : public BaseFE
+class LineFE : public BaseFE
 {
 public:
 
   //! Constructor with type of integration rule
-  GeLineFE();
+  LineFE();
 
   //! Deconstructor
-  virtual ~GeLineFE();
+  virtual ~LineFE();
 
   //! return FE-Type for CLA++
   virtual Integer feType() { return 1;}
