@@ -40,10 +40,10 @@ FLAG_MKSHLIB = -v -LANG:std $(ABI) $(TEMPL) -shared
 # Set libraries for linking against LAPACK and BLAS
 #
 ifeq "$(LINK_LAPACK)" "yes"
-BLASLAPACK = -lscsl
+BLASLAPACK = -lscs
 else
 ifeq "$(LINK_BLAS)" "yes"
-BLASLAPACK = -lscsl
+BLASLAPACK = -lscs
 else
 BLASLAPACK =
 endif
