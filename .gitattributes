@@ -128,6 +128,7 @@ libsrc/Forms/massint.hh svneol=native#text/plain
 libsrc/General/Makefile -text
 libsrc/General/environment.cc svneol=native#text/plain
 libsrc/General/environment.hh svneol=native#text/plain
+libsrc/Makefile -text
 libsrc/Matrix/Makefile -text
 libsrc/Matrix/absmatrix.hh svneol=native#text/plain
 libsrc/Matrix/bandmatrix.cc svneol=native#text/plain
@@ -162,6 +163,8 @@ libsrc/PDE/elecst2dPDE.cc svneol=native#text/plain
 libsrc/PDE/elecst2dPDE.hh svneol=native#text/plain
 libsrc/PDE/elecst3dPDE.cc svneol=native#text/plain
 libsrc/PDE/elecst3dPDE.hh svneol=native#text/plain
+libsrc/PDE/mech2d.cc svneol=native#text/plain
+libsrc/PDE/mech2d.hh svneol=native#text/plain
 libsrc/PDE/pdes_header.hh svneol=native#text/plain
 libsrc/PDE/therm2dPDE.cc svneol=native#text/plain
 libsrc/PDE/therm2dPDE.hh svneol=native#text/plain
