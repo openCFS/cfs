@@ -158,7 +158,7 @@ void MechPDE::SolveStepStaticLin(const Integer level)
 
   // initialize for (eventual) new setup
   // if condition is needed here !!!!!
-  InitMatrices();
+  //InitMatrices();
   algsys_->InitRHS();
   algsys_->InitSol();  
 }
@@ -748,9 +748,9 @@ void MechPDE::SetBCs(const Integer level, const Integer update, const Double ati
 	  {
 	    node=*p;
 
-// #ifdef DEBUG
-// 	    (*debug) << " node: " << Mesh2PDENode_[node-1] << " dof:" << dof << " val: " << val << "    global node nr: " << node << std::endl;
-// #endif
+#ifdef DEBUG
+ 	    (*debug) << " node: " << Mesh2PDENode_[node-1] << " dof:" << dof << " val: " << val << "    global node nr: " << node << " running nr: " << j << std::endl;
+#endif
 	    if (update==1)
 	      algsys_->UpdateDirichlet(j+1, val, SYSTEM);
 	    else

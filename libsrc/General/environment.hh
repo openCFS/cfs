@@ -36,6 +36,9 @@ typedef int Boolean;
 
   enum AnalysisType {STATIC=1, TRANSIENT=2, HARMONIC=3, EIGENFREQUENCY=4};
 
+  //! print grid only and then exit
+  extern Boolean PrintGridOnly;
+
 // #ifndef assert
 // #define assert(ex) \
 //        (void)((ex) ? 1 : \

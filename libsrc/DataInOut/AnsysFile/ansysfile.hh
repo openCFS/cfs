@@ -73,8 +73,44 @@ public:
   */
   void ReadEl3d(std::vector<Elem*> * allelems, const std::vector<std::string> sd);
 
+  //! read 3d -elements from the mesh-file and extractes the data for the conf-file
+   /*!
+   \param sd color of subdomains, for which elements are read
+  */
+  void ReadEl3dConf(std::vector<std::string> &sd);
+
+  //! read 2d -elements from the mesh-file and extractes the data for the conf-file
+   /*!
+   \param sd color of subdomains, for which elements are read
+  */
+  void ReadEl2dConf(std::vector<std::string> &sd);
+
+  //! read 1d -elements from the mesh-file and extractes the data for the conf-file
+   /*!
+   \param sd color of subdomains, for which elements are read
+  */
+  void ReadEl1dConf(std::vector<std::string> &sd);
+
+  //! read BCs from the mesh-file and extractes the data for the conf-file
+   /*!
+   \param sd color of subdomains, for which elements are read
+  */
+  void ReadBCsConf(std::vector<std::string> &sd);
+
   //! return dimension of the mesh
   Integer ReadDim();
+
+  //! returns the number of 3D elements
+  Integer GetNum3DElems();
+
+  //! returns the number of 2D elements
+  Integer GetNum2DElems();
+
+  //! returns the number of 1D elements
+  Integer GetNum1DElems();
+
+  //! retuns the number of specified boundary conditions
+  Integer GetNumBCs();
 
    //! read the mesh from mesh-file for Grid_RG
   /*!

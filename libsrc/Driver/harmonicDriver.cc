@@ -42,13 +42,12 @@ void HarmonicDriver :: SolveProblem()
 #endif
   Integer level=0;
   Integer pdenumber  = 0;
+  ptdomain_->PrintGrid(level);
+  if (PrintGridOnly)
+      exit(0);
 
   ptdomain_->GetPDE(pdenumber)->SolveStepHarmonic(level);
-  //  std::cout << "Solve Step ok" << std::endl;
   ptdomain_->GetPDE(pdenumber)->PostProcess(level);
-  //  std::cout << "Post ok" << std::endl;
-  ptdomain_->PrintGrid(level);
-  //  std::cout << "Print Grid ok" << std::endl;
   ptdomain_->GetPDE(pdenumber)->WriteResultsInFile();
 
 }

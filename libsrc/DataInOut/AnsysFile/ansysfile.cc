@@ -63,6 +63,66 @@ Integer AnsysFile::ReadDim()
     return dim;
 }
 
+Integer AnsysFile::GetNum3DElems()
+{
+#ifdef TRACE
+  (*trace) << "entering AnsysFile::GetNum3DElems" << std::endl;
+#endif
+  
+    Integer num;
+    
+    std::string::size_type pos=0;
+    getPosition("Num3DElements", pos);
+    infile.seekg(pos,std::ios::beg);
+    infile >> num;
+    return num;
+}
+
+Integer AnsysFile::GetNum2DElems()
+{
+#ifdef TRACE
+  (*trace) << "entering AnsysFile::GetNum2DElems" << std::endl;
+#endif
+  
+    Integer num;
+    
+    std::string::size_type pos=0;
+    getPosition("Num2DElements", pos);
+    infile.seekg(pos,std::ios::beg);
+    infile >> num;
+    return num;
+}
+
+Integer AnsysFile::GetNum1DElems()
+{
+#ifdef TRACE
+  (*trace) << "entering AnsysFile::GetNum1DElems" << std::endl;
+#endif
+  
+    Integer num;
+    
+    std::string::size_type pos=0;
+    getPosition("Num1DElements", pos);
+    infile.seekg(pos,std::ios::beg);
+    infile >> num;
+    return num;
+}
+
+Integer AnsysFile::GetNumBCs()
+{
+#ifdef TRACE
+  (*trace) << "entering AnsysFile::GetNumBCs" << std::endl;
+#endif
+  
+    Integer num;
+    
+    std::string::size_type pos=0;
+    getPosition("NumNodeBC", pos);
+    infile.seekg(pos,std::ios::beg);
+    infile >> num;
+    return num;
+}
+
 void AnsysFile::ReadCoordinate(Point<2> * const NodesCoord, const Integer maxnumnodes)
 {
 #ifdef TRACE
@@ -165,6 +225,41 @@ void AnsysFile::ReadBCs(std::list<Integer> * bcs, const std::vector<std::string>
 	if (!Find) Error(msg.c_str(),__FILE__,__LINE__);
 
 	bcs[j].push_back(nodalnum);
+      } 
+}
+
+void AnsysFile::ReadBCsConf(std::vector<std::string> &levels)
+{
+#ifdef TRACE
+    (*trace) << "entering Ansys::ReadBCsConf" << std::endl;
+#endif
+    
+    Integer numbc;
+    ReadMaxnumnodesbc(numbc);
+
+    std::string::size_type pos=0;
+    getPosLine("Node BC", pos);
+    infile.seekg(pos,std::ios::beg);
+    
+    std::string str;
+
+    Integer nodalnum;
+    Integer i,j;
+    for (i=0; i < numbc; i++)
+      {
+	infile >> nodalnum >> str;
+	infile.ignore(100,'\n');
+	
+	if (i==0) 
+	    levels.push_back(str);
+	else
+	  {
+	    Integer find = 0;
+	    for (j=0; j<levels.size(); j++)
+		if (str == levels[j]) find = 1;
+
+	    if (!find) levels.push_back(str);	      
+	  }
       } 
 }
 
@@ -605,6 +700,152 @@ void AnsysFile::ReadEl3d(std::vector<Elem*> * allelems, const std::vector<std::s
 
   }
 
+  void AnsysFile::ReadEl3dConf(std::vector<std::string> &sd)
+  {
+#ifdef TRACE
+    (*trace) << " entering AnsysFile::ReadEl3dConf " << std::endl;
+#endif
+
+    Integer maxnelems;
+    ReadMaxnumelem(maxnelems,"Num3DElements");
+
+    std::string::size_type pos=0;
+    getPosLine("3D Elements", pos);
+    infile.seekg(pos,std::ios::beg);
+
+    if (!ptTet || !ptHexa)
+      Error(" Pointers to BaseElem is not initialized",__FILE__,__LINE__);
+
+    Integer i, ii, j, inum, itype, innodes;
+    std::string namesd;
+
+    for (i=0; i<maxnelems; i++)
+      {
+	Elem * el=new Elem();
+	infile >> inum >> itype >> innodes >> namesd;
+	infile.ignore(100,'\n');
+
+	el->ElemNum=inum;
+	el->ptElem=Type2ptElem(itype);
+	el->namesd = namesd;
+	el->connect.Resize(innodes);
+	for (ii=0; ii<innodes; ii++)
+	  infile >> el->connect[ii];
+
+	infile.ignore(100,'\n');
+	if (i==0) 
+	    sd.push_back(namesd);
+	else
+	  {
+	    Integer find = 0;
+	    for (j=0; j<sd.size(); j++)
+		if (namesd == sd[j]) find = 1;
+
+	    if (!find) sd.push_back(namesd);
+	      
+	  }
+      }
+
+  }
+
+
+  void AnsysFile::ReadEl2dConf(std::vector<std::string> &sd)
+  {
+#ifdef TRACE
+    (*trace) << " entering AnsysFile::ReadEl2dConf " << std::endl;
+#endif
+
+    Integer maxnelems;
+    ReadMaxnumelem(maxnelems,"Num2DElements");
+
+    std::string::size_type pos=0;
+    getPosLine("2D Elements", pos);
+    infile.seekg(pos,std::ios::beg);
+
+    if (!ptQ || !ptTr1)
+      Error(" Pointers to BaseElem is not initialized",__FILE__,__LINE__);
+
+    Integer i, ii, j, inum, itype, innodes;
+    std::string namesd;
+
+    for (i=0; i<maxnelems; i++)
+      {
+	Elem * el=new Elem();
+	infile >> inum >> itype >> innodes >> namesd;
+	infile.ignore(100,'\n');
+
+	el->ElemNum=inum;
+	el->ptElem=Type2ptElem(itype);
+	el->namesd = namesd;
+	el->connect.Resize(innodes);
+	for (ii=0; ii<innodes; ii++)
+	  infile >> el->connect[ii];
+
+	infile.ignore(100,'\n');
+	//	allelems.push_back(el);
+	if (i==0) 
+	    sd.push_back(namesd);
+	else
+	  {
+	    Integer find = 0;
+	    for (j=0; j<sd.size(); j++)
+		if (namesd == sd[j]) find = 1;
+
+	    if (!find) sd.push_back(namesd);
+	      
+	  }
+      }
+
+  }
+
+  void AnsysFile::ReadEl1dConf(std::vector<std::string> &sd)
+  {
+#ifdef TRACE
+    (*trace) << " entering AnsysFile::ReadEl1dConf " << std::endl;
+#endif
+
+    Integer maxnelems;
+    ReadMaxnumelem(maxnelems,"Num1DElements");
+
+    std::string::size_type pos=0;
+    getPosLine("1D Elements", pos);
+    infile.seekg(pos,std::ios::beg);
+
+    if (!ptL1)
+      Error(" Pointers to BaseElem is not initialized",__FILE__,__LINE__);
+
+    Integer i, ii, j, inum, itype, innodes;
+    std::string namesd;
+
+    for (i=0; i<maxnelems; i++)
+      {
+	Elem * el=new Elem();
+	infile >> inum >> itype >> innodes >> namesd;
+	infile.ignore(100,'\n');
+
+	el->ElemNum=inum;
+	el->ptElem=Type2ptElem(itype);
+	el->namesd = namesd;
+	el->connect.Resize(innodes);
+	for (ii=0; ii<innodes; ii++)
+	  infile >> el->connect[ii];
+
+	infile.ignore(100,'\n');
+	//	allelems.push_back(el);
+	if (i==0) 
+	    sd.push_back(namesd);
+	else
+	  {
+	    Integer find = 0;
+	    for (j=0; j<sd.size(); j++)
+		if (namesd == sd[j]) find = 1;
+
+	    if (!find) sd.push_back(namesd);
+	      
+	  }
+      }
+
+  }
 
   //!
   BaseFE * AnsysFile::Type2ptElem(const Integer itype)

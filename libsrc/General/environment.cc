@@ -13,6 +13,8 @@ namespace CoupledField
   std::ostream * memtrace=NULL;
   std::ostream * data = NULL;
 
+  Boolean PrintGridOnly = FALSE;
+
   Flags * flags=NULL;
   ConfFile * conf=NULL;
 

@@ -24,7 +24,9 @@
 #include <AlgebraicSystem/abstractAlgSys.hh>
 #include <Driver/driver_header.hh>
 #include <Domain/domain.hh>
+#include <DataInOut/SkeletonConf.hh>
 #include <Domain/GridCFS/interface_gridcfs.hh>
+#include <General/environment.hh>
 
 #ifdef NETGEN
 #include <Domain/NetGen/interface_netgen.hh>
@@ -34,30 +36,70 @@ using namespace CoupledField;
 
 Integer main(int argc, char *argv[])
 {
-  
-  Char * name=argv[argc-1];
-  DefineInOutFiles * ptDefineFiles=new DefineInOutFiles(name);
 
-  // class writing log-information
-  Info = new WriteInfo(name);
-  Info->PrintHeader();
+  Integer numargs=2;  
+  Boolean SkeletonPrint=FALSE;
 
+  if (argc > 1)
+    for (Integer i=1; i<argc; i++)
+      {
+	if (!strcmp("-skel", argv[i])) 
+	  {
+	    SkeletonPrint=TRUE;
+	    numargs++;
+	  }
+	else if (!strcmp("-grid", argv[i])) 
+	  {
+	    PrintGridOnly = TRUE;
+	    numargs++;
+	  }
+      }
   
-  if (argc < 2) 
+  if (argc < numargs) 
     {
-      std::cout << " \033[36mUsage\033[0m : cfs name "<< std::endl 
-		<< "\t \033[36m name \033[0m: name of input file without extension" 
-		<< std::endl << std::endl;
+      std::cout << std::endl;
+      std::cout << " \033[36mUsage\033[0m : cfs [-options] name "<< std::endl 
+		<< "\t \033[36m name    \033[0m: name of input file without extension" 
+		<< std::endl 
+		<< "\t \033[36m options \033[0m: -skel for writing a skeleton of a config-file" << std::endl 
+		<< "\t            -grid for writing just the grid to result-file" << std::endl 
+                << std::endl ;
       Error("Invalid running of cfs. See Usage above.");
     }
+  
+  Char * name=argv[argc-1];
+  Char * filename=new Char[100];
 
+  //for writing a skeleton of a config file by using the information from the mesh-file
+  if (SkeletonPrint==TRUE)
+    {
+#ifdef TRACE
+      strcpy(filename, name);
+      trace=new std::ofstream(strcat(filename,".trace"));
+      if (!trace) Error("Can't open trace-file");
+#endif
+ 
+#ifdef DEBUG
+      strcpy(filename, name);
+      debug=new std::ofstream(strcat(filename,".deb"));
+      if (!debug) Error("Can't open debug-file");
+#endif
+      SkeletonConf *ptskel = new SkeletonConf(name);
+      ptskel->WriteConf();
+      delete ptskel;
+
+      return 0;
+    }
 
 #ifdef MpCCI
   CCI_Init(&argc, &argv);  
 #endif  
 
+  DefineInOutFiles * ptDefineFiles=new DefineInOutFiles(name);
 
-  
+  // class writing log-information
+  Info = new WriteInfo(name);
+  Info->PrintHeader();
 
   MyClock oClockTotal;
   oClockTotal.ClockCount(MyClock::beg);
@@ -105,13 +147,12 @@ Integer main(int argc, char *argv[])
 #endif
 
   //delete objects
-  if (ptdriver) delete ptdriver;
-  if (ptTimeFunc) delete ptTimeFunc;
-  //  if (domain) delete domain;
-  if (ptDefineFiles) delete ptDefineFiles; // it should be deleted the last
-
+  if (ptdriver) 
+    delete ptdriver;
+  if (ptTimeFunc) 
+    delete ptTimeFunc;
+  if (ptDefineFiles) 
+    delete ptDefineFiles; 
   if (Info)
     delete Info;
-
-  return 1;
 }

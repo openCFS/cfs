@@ -59,7 +59,7 @@ namespace CoupledField
 	   << "=======================================================================" << std::endl
 	   << "=======================================================================" << std::endl << std::endl;
 
-    std::cout << header.str();
+    std::cout << std::endl << header.str();
     *cfsInfo << header.str();
   }
   

@@ -58,6 +58,9 @@ void TransientDriver :: SolveProblem()
 
   ptdomain_->PrintGrid(level);
 
+  if (PrintGridOnly)
+      exit(0);
+
   Integer nstep;
   for (nstep = 0; nstep<numstep_; nstep++)
     {
