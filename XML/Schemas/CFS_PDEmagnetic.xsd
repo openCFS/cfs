@@ -64,6 +64,16 @@
             </xsd:complexType>
           </xsd:element>
 
+          <!-- Section for specifying permanent magnets (optional) -->
+          <xsd:element name="magnets" minOccurs="0">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="magnet" type="DT_Magnet" minOccurs="1"
+                  maxOccurs="unbounded"/>
+              </xsd:sequence>
+            </xsd:complexType>
+          </xsd:element>
+
           <!-- Section for specifying non-linear parameters (optional) -->
           <xsd:element name="nonLinear" type="DT_NonLinParams" minOccurs="0"/>
 
@@ -299,12 +309,12 @@
 
   <!-- Element for specifying flow direction (rotational) -->
   <xsd:complexType name="DT_Rotational">
-      <xsd:attribute name="midPointX" type="xsd:float"/>
-      <xsd:attribute name="midPointY" type="xsd:float"/>
-      <xsd:attribute name="midPointZ" type="xsd:float"/>
-      <xsd:attribute name="orientX"   type="xsd:float"/>
-      <xsd:attribute name="orientY"   type="xsd:float"/>
-      <xsd:attribute name="orientZ"   type="xsd:float"/>
+    <xsd:attribute name="midPointX" type="xsd:float"/>
+    <xsd:attribute name="midPointY" type="xsd:float"/>
+    <xsd:attribute name="midPointZ" type="xsd:float"/>
+    <xsd:attribute name="orientX"   type="xsd:float"/>
+    <xsd:attribute name="orientY"   type="xsd:float"/>
+    <xsd:attribute name="orientZ"   type="xsd:float"/>
   </xsd:complexType>
 
   <!-- This element is abstract in order to force substitution -->
@@ -324,5 +334,16 @@
     substitutionGroup="BasicCoil"/>
   <xsd:element name="currentCoil3d" type="DT_CurrentCoil3D"
     substitutionGroup="BasicCoil"/>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for permanent magnets -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_Magnet">
+    <xsd:attribute name="name"    type="xsd:token"/>
+    <xsd:attribute name="orientX" type="xsd:float"/>
+    <xsd:attribute name="orientY" type="xsd:float"/>
+    <xsd:attribute name="orientZ" type="xsd:float"/>
+  </xsd:complexType>
 
 </xsd:schema>
