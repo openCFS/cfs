@@ -160,25 +160,25 @@ namespace CoupledField {
     // Velocity at wall of bubble is written
 
 
+    // Generate filename
     Char *auxfile = new Char[strlen(name)+4];
     strcpy( auxfile, name );
     strcat( auxfile, ".bl" );
 
+    // Open file
     fp = fopen( auxfile , "w" );
-
-    delete auxfile;
-
     if ( fp == NULL ) {
-
-      Error( "Could not open outputfile", __FILE__, __LINE__ );
+      (*error) << "Could not open outputfile '" << auxfile << "' for writing!";
+      Error( __FILE__, __LINE__ );
     }
 
+    // Free space for filename
+    delete[] auxfile;
 
     // Write file header
     fprintf( fp, "# Time\t\tPressure\t\tRadius\t\tVelocity\n" );
 
     // First line with initial values
-
     fprintf( fp, "0\t0\t%16.10e\t%16.10e\n", y_[0], y_[1] );
 
 
