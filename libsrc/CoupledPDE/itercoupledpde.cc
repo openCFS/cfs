@@ -138,7 +138,8 @@ namespace CoupledField
   }
 
 
-  void IterCoupledPDE::SolveStepStatic(const Integer level, const Double aTime)
+  void IterCoupledPDE::SolveStepStatic(const Integer kstep, const Double aTime, 
+				       const Integer level, const Boolean updatesysmat)
   {
 #ifdef TRACE
     (*trace) << "entering  IterCoupledPDE::SolveStepStatic" << std::endl;
@@ -165,10 +166,10 @@ namespace CoupledField
 	    Info->PrintF(coupledpdename_, " Processing PDE %s", 
 			 (PDEs_[i]->GetName()).c_str());
 
-	    PDEs_[i]->PreStepStatic(actlevel_);
+	    PDEs_[i]->PreStepStatic(kstep,aTime,actlevel_,updatesysmat);
 	    PDEs_[i]->CalcInputCoupling();
-	    PDEs_[i]->SolveStepStatic(actlevel_, aTime);
-	    PDEs_[i]->PostStepStatic(actlevel_);
+	    PDEs_[i]->SolveStepStatic(kstep,aTime,actlevel_,updatesysmat);
+	    PDEs_[i]->PostStepStatic(kstep,aTime,actlevel_);
 	    PDEs_[i]->CalcOutputCoupling();
 
 	    // Calculate Norms
@@ -239,7 +240,7 @@ namespace CoupledField
 	    PDEs_[i]->PreStepTrans(kstep, steptime, level, updatesysmat);
 	    PDEs_[i]->CalcInputCoupling();
 	    PDEs_[i]->SolveStepTrans(kstep, steptime, level, updatesysmat);
-	    PDEs_[i]->PostStepTrans(level);
+	    PDEs_[i]->PostStepTrans(kstep, steptime, level);
 	    PDEs_[i]->CalcOutputCoupling();
 
 	    // Calculate Norms

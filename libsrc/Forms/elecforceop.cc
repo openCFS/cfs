@@ -121,6 +121,7 @@ void ElecForceOp::CalcElemElecForce(Array<Double> & F,
 	    } // loop over dimension
 	} // loop over boundary nodes
     } // loop over integration points
+  
 }
 
 // void ElecForceOp::CalcElemElecForce(Vector<Double> & F,

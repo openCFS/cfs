@@ -130,14 +130,21 @@ public:
   
   //static analysis
 
-  virtual void PreStepStatic(const Integer level) {;};
+  virtual void PreStepStatic(const Integer kstep, const Double asteptime,
+			    const Integer level, const Boolean reset) {;};
 
-  virtual void SolveStepStatic(const Integer level, const Double aTime=0);
-  virtual void StepStaticLin(const Integer level, const Double aTime=0);
-  virtual void StepStaticNonLin(const Integer level, const Double aTime=0)
+  virtual void SolveStepStatic(const Integer kstep, const Double asteptime,
+			    const Integer level, const Boolean reset);
+
+  virtual void StepStaticLin(const Integer kstep, const Double asteptime,
+			    const Integer level, const Boolean reset);
+
+  virtual void StepStaticNonLin(const Integer kstep, const Double asteptime,
+			    const Integer level, const Boolean reset)
   {Error("StepStaticNonLin not implemented!",__FILE__,__LINE__);};
 
-  virtual void PostStepStatic(const Integer level) {;};
+  virtual void PostStepStatic(const Integer kstep, const Double asteptime,
+			    const Integer level) {;};
 
   //harmonic analysis
 
@@ -159,13 +166,16 @@ public:
   virtual void SolveStepTrans(const Integer kstep, const Double asteptime,
 			      const Integer level, const Boolean updatesysmat);
 
-  virtual void StepTransLin(const Integer level, const Boolean updatesysmat);
+  virtual void StepTransLin(const Integer kstep, const Double asteptime,
+			    const Integer level, const Boolean updatesysmat);
 
-  virtual void StepTransNonLin(const Integer level, const Boolean updatesysmat)
+  virtual void StepTransNonLin(const Integer kstep, const Double asteptime,
+			       const Integer level, const Boolean updatesysmat)
   {Error("Nonlinear Transient Step not implemented!",__FILE__,__LINE__);};
 
 
-  virtual void PostStepTrans(const Integer level);
+  virtual void PostStepTrans(const Integer kstep, const Double asteptime,
+			     const Integer level);
 
   /// initialize PDEs before iteration (done for each time step)
   void InitStepTransCoupled(Double asteptime);
@@ -503,13 +513,14 @@ protected:
   Double incStopCrit_; //!< stopping criterion for incremental error
   Double residualStopCrit_;  //!< stopping criterion for residual error
 
-  Boolean firstTimeStepStatic_; //!< needed for coupled, iterative methods
-
   /// switch for lineSearch
   Boolean lineSearch_;
 
   /// use effective mass formulation for transient analysis
   Boolean effectiveMass_;
+
+  Boolean firstTimeStepStatic_; //!< needed for coupled, iterative methods
+
 };
 
 } // end of namespace

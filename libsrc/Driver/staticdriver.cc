@@ -49,10 +49,14 @@ void StaticDriver :: SolveProblem()
       exit(0);
     }
 
+  Integer nstep = 1;
+  Double  steptime = 0;
+  Boolean reset = FALSE;
+  
   if (ptdomain_->GetNumPDE() <= 1) 
     {
       ptdomain_->GetPDE(pdenumber)->WriteGeneralPDEdefines();
-      ptdomain_->GetPDE(pdenumber)->SolveStepStatic(level);   
+      ptdomain_->GetPDE(pdenumber)->SolveStepStatic(nstep, steptime, level, reset);   
       ptdomain_->GetPDE(pdenumber)->PostProcess(level);
       ptdomain_->PrintGrid(level);
       ptdomain_->GetPDE(pdenumber)->WriteResultsInFile();
@@ -60,8 +64,7 @@ void StaticDriver :: SolveProblem()
   else
     {
       ptdomain_->GetCoupledPDE()->WriteGeneralPDEdefines();
-      ptdomain_->GetCoupledPDE()->SolveStepStatic(level);
-      //      ptdomain_->GetCoupledPDE()->PostProcess(level);
+      ptdomain_->GetCoupledPDE()->SolveStepStatic(nstep, steptime, level, reset);
       ptdomain_->PrintGrid(level);
       ptdomain_->GetCoupledPDE()->WriteResultsInFile();
     }

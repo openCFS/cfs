@@ -29,7 +29,8 @@ class IterCoupledPDE : public BaseCoupledPDE
   virtual void InitCoupling(Integer level);
   
   //! Solve static step
-  virtual void SolveStepStatic(const Integer level, const Double aTime);
+  virtual void SolveStepStatic(const Integer kstep, const Double asteptime, const Integer level, 
+			      const Boolean updatesysmat);
   
   //! solve transient step
   virtual void SolveStepTrans(const Integer kstep, const Double asteptime, const Integer level, 

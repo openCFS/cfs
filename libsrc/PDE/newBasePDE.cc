@@ -20,9 +20,7 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile, WriteResults * a
    incStopCrit_(1e-2), 
    residualStopCrit_(1e-3),
    firstTimeStepStatic_(TRUE),
-   isaxi_(FALSE),
-   lineSearch_(FALSE),
-   effectiveMass_(FALSE)
+   isaxi_(FALSE)
 {
 #ifdef TRACE
   (*trace) << "entering BasePDE::BasePDE" << std::endl;
@@ -179,27 +177,28 @@ void BasePDE::WriteGeneralPDEdefines()
 
 // time is used for a series of static calculations
 // don't get confused with REAL transient simulations!
-void BasePDE::SolveStepStatic(const Integer level, const Double aTime)
+void BasePDE::SolveStepStatic(const Integer kstep, const Double asteptime,
+			      const Integer level, const Boolean reset)
 {
 #ifdef TRACE
   (*trace) << "entering BasePDE::SolveStepStatic" << std::endl;
 #endif
 
-  lasttimecalc_ = 0;
-  laststepcalc_ = 0;
+  lasttimecalc_ = asteptime;
+  laststepcalc_ = kstep;
 
   //  PreStepStatic(level);
 
   if (nonLin_)
-    StepStaticNonLin(level, aTime);
+    StepStaticNonLin(kstep,asteptime,level,reset);
   else
-    StepStaticLin(level, aTime);
+    StepStaticLin(kstep,asteptime,level,reset);
 
-  //  PostStepStatic(level);
 }
 
 
-void BasePDE::StepStaticLin(const Integer level, Double aTime)
+void BasePDE::StepStaticLin(const Integer kstep, const Double aTime,
+			    const Integer level, const Boolean reset)
 {
 #ifdef TRACE
   (*trace) << "entering BasePDE::StepStaticLin" << std::endl;
@@ -265,9 +264,9 @@ void BasePDE::SolveStepTrans(const Integer kstep, const Double asteptime,
     laststepcalc_= kstep;
 
   if (nonLin_)
-    StepTransNonLin(level,reset);
+    StepTransNonLin(kstep,asteptime, level,reset);
   else
-    StepTransLin(level,reset);
+    StepTransLin(kstep,asteptime,level,reset);
 }
 
 
@@ -285,11 +284,12 @@ void BasePDE::PreStepTrans(const Integer kstep, const Double asteptime,
 
   algsys_->InitRHS();
   assemble_->AssembleSrcRHS(level,lasttimecalc_);
+  
 }
 
 
 
-void BasePDE::PostStepTrans(const Integer level)
+void BasePDE::PostStepTrans(const Integer kstep, const Double asteptime, const Integer level)
 {
 #ifdef TRACE
   (*trace) << "entering BasePDE::PostStepTrans" << std::endl;
@@ -329,7 +329,8 @@ void BasePDE::InitStepTransCoupled(Double asteptime)
 
 
 
-void BasePDE::StepTransLin(const Integer level, const Boolean reset)
+void BasePDE::StepTransLin(const Integer kstep, const Double asteptime,
+			   const Integer level, const Boolean reset)
 {
 #ifdef TRACE
   (*trace) << "entering BasePDE::StepTransLin" << std::endl;
@@ -406,16 +407,10 @@ void BasePDE::StepTransLin(const Integer level, const Boolean reset)
 	solhelp[0][k] = ptsol[k];
 	k++;
       }
-
     
   if (!PDEisCoupled_)
     TS_alg_->Corrector(solhelp);  //perform corrector step
-
-
-  if (effectiveMass_)
-    TS_alg_->StoreSol(sol_);  // displacement-solution has to be stored, since accel. is computed as solution vector
 }
-
 
 
 void  BasePDE::SetBCs(const Integer level, const Integer update, const Double time)
@@ -749,7 +744,8 @@ void BasePDE::CalcInputCoupling()
 		  {
 		    std::cerr << "PDENODE: "  << PDEnode << "Node[" << (*nodes)[j] << "][" 
 			      << dof+1 << "]= " << (*val)[dof][j] << std::endl; 
-		    Error("Node not assigned to coupling domain: see mesh- and config-file",__FILE__,__LINE__);
+		    Error("Node not assigned to coupling domain: see mesh- and config-file"
+			  , __FILE__,__LINE__);
 		  }
 		algsys_->SetNodeRHS((*val)[dof][j], PDEnode, dof+1);
 	      }
