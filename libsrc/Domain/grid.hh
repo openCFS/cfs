@@ -23,6 +23,7 @@ public:
    /// Get connection of element
   virtual void GetConnection(Integer * result, const Integer levelGrid, 
            const Integer numElem, const Integer numnodesPerElem)=0;
+
   /// Return pointer to coordinates
   virtual Dim * GetptCoordinate(const Integer numlevel)=0;
 
@@ -36,7 +37,7 @@ public:
   virtual Integer GetNumNodesPerElem(const Integer iElem, const Integer level)=0;
 
   /// Print coordinates of grid in out
-  virtual void PrintCoordinate(const Integer level, ostream * out) const=0;
+//  virtual void PrintCoordinate(const Integer level, ostream * out) const=0;
 
 protected:
   FileType * ptFileType;
@@ -44,9 +45,9 @@ private:
   ///
 };
 
-
+#ifdef __GNUC__
 template class Grid<Point3D>;
 template class Grid<Point2D>;
-
+#endif
 } // end of namespace
 #endif // FILE_GRID

@@ -1,19 +1,19 @@
-#include <stdlib.h>
-#include <iostream.h>
-#include <fstream.h>
+//#include <stdlib.h>
+#include <iostream>
+#include <fstream>
 #include <string>
 
 #include "environment.hh"
 
 namespace CoupledField
 {
-ostream * trace = NULL ;
-ostream * debug  = NULL;
-ostream * infofile=NULL;
+std::ostream * trace = NULL ;
+std::ostream * debug  = NULL;
+std::ostream * infofile=NULL;
 
 Boolean InfoPrint=FALSE;
 
-ostream & operator << (ostream & out, const enum precond & type)
+std::ostream & operator << (std::ostream & out, const enum precond & type)
 {
 switch (type)
 {

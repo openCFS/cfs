@@ -21,14 +21,14 @@ public:
   ///
   void Dataset780(Grid<Point2D> * ptgrid, const Integer level);
   ///
-  void Dataset55(const string & title, const Vector<Double> & x, const Integer step, const Double time);
+  void Dataset55(const std::string & title, const Vector<Double> & x, const Integer step, const Double time);
   void Dataset56(); 
   ///
   ~OutResultUnverg();
  
 private:
   ///
-  ofstream * output;
+  std::ofstream * output;
   ///
   Point2D * ptCoordinate;
   ///

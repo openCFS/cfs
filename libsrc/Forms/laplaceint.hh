@@ -18,7 +18,7 @@ public:
   /// Calculation of stiffmess matrix
   void CalcElemMatrix(Dim * ptCoord, Matrix<Double> & StiffMat);
 
-  virtual void Print(ostream * out, const Matrix<Double> Result) const;
+  virtual void Print(std::ostream * out, const Matrix<Double> Result) const;
 
 protected:
 
@@ -27,8 +27,10 @@ private:
   ShortInt DofsPerNode;
 };
 
+#ifdef __GNUC__
 template class LaplaceInt<Point2D>;
 template class LaplaceInt<Point3D>;
+#endif
 }
 
 #endif // FILE_LAPLACEINT

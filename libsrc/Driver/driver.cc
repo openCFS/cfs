@@ -1,6 +1,6 @@
-#include <fstream.h>
-#include <iostream.h>
-#include <string>
+#include <fstream>
+#include <iostream>
+//#include <string>
 
 #include <general_head.hh>
 #include <utils_head.hh>
@@ -19,7 +19,7 @@ namespace CoupledField
 Driver::Driver(FileType * const aptFileType, Integer anummesh, Material * aptMaterial)
 {
 #ifdef TRACE
-  (*trace) << "entering Driver::Driver" << endl;
+  (*trace) << "entering Driver::Driver" << std::endl;
 #endif
   ptFileType=aptFileType;
 
@@ -33,7 +33,7 @@ Driver::Driver(FileType * const aptFileType, Integer anummesh, Material * aptMat
 void Driver::SolveNewmarkMethod(OutResultUnverg * ptUnverg)
 {
 #ifdef TRACE
-  (*trace) << "entering Driver :: SolveNewmarkMethod" << endl;
+  (*trace) << "entering Driver :: SolveNewmarkMethod" << std::endl;
 #endif
   ptUnverg->Create(ptgrid,0);
 
@@ -60,7 +60,7 @@ void Driver::SolveNewmarkMethod(OutResultUnverg * ptUnverg)
 Driver :: ~Driver()
 {
 #ifdef TRACE
-  (*trace) << "entering Driver::~Driver" << endl;
+  (*trace) << "entering Driver::~Driver" << std::endl;
 #endif
   if (ptgrid) delete ptgrid;
   if (ptAcPDE) delete ptAcPDE;

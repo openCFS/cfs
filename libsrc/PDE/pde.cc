@@ -1,5 +1,5 @@
-#include <fstream.h>
-#include <iostream.h>
+#include <fstream>
+#include <iostream>
 #include <string>
 
 #include <general_head.hh> 
@@ -14,7 +14,7 @@ namespace CoupledField
 PDE::PDE(FileType * ptFileType, Material * aptMaterial)
 {
 #ifdef TRACE
-  (*trace) << "entering PDE::PDE" << endl;
+  (*trace) << "entering PDE::PDE" << std::endl;
 #endif
 
   ptMaterial=aptMaterial;
@@ -25,7 +25,7 @@ PDE::PDE(FileType * ptFileType, Material * aptMaterial)
 void PDE :: CalcParamForNewmarkMethod(const Double dt)
 {
 #ifdef TRACE
-  (*trace) << "entering PDE::CalcParamForNewmarkMethod" << endl;
+  (*trace) << "entering PDE::CalcParamForNewmarkMethod" << std::endl;
 #endif
  
  a2=1.0/(beta*dt);

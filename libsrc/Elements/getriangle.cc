@@ -1,6 +1,6 @@
-#include <stdlib.h>
-#include <iostream.h>
-#include <fstream.h>
+//#include <stdlib.h>
+#include <iostream>
+#include <fstream>
 
 #include <general_head.hh>
 #include <utils_head.hh>
@@ -13,7 +13,7 @@ namespace CoupledField
 GeTriangle :: ~GeTriangle()
 {
 #ifdef TRACE
-  (*trace) << "entering GeTriangle::~GeTriangle" << endl;
+  (*trace) << "entering GeTriangle::~GeTriangle" << std::endl;
 #endif
 
   ;
@@ -22,7 +22,7 @@ GeTriangle :: ~GeTriangle()
 void GeTriangle :: SetIntPoints()
 {
 #ifdef TRACE
-  (*trace) << "entering GeTriangle::SetIntPoints" << endl;
+  (*trace) << "entering GeTriangle::SetIntPoints" << std::endl;
 #endif
 
  switch(IntegType)
@@ -48,7 +48,7 @@ void GeTriangle :: SetIntPoints()
       (*IntWeights)[3]=0.520833333333333;
 
       if (InfoPrint)
-       (*infofile) << " For numerical integration procedures we use Gaussian Quadrature with 4 nodes, degree of precision is 3 " << endl;
+       (*infofile) << " For numerical integration procedures we use Gaussian Quadrature with 4 nodes, degree of precision is 3 " << std::endl;
       break;
 
     case GaussOrder2:
@@ -70,7 +70,7 @@ void GeTriangle :: SetIntPoints()
       (*IntWeights)[2]= 0.166666666666667 ;
 
       if (InfoPrint)
-    (*infofile) << " For numerical integration procedures we use Gaussian Quadrature with 3 nodes, degree of precision is 2 " << endl;
+    (*infofile) << " For numerical integration procedures we use Gaussian Quadrature with 3 nodes, degree of precision is 2 " << std::endl;
       break;
 
    case GaussOrder4:
@@ -106,7 +106,7 @@ void GeTriangle :: SetIntPoints()
       (*IntWeights)[5]= 5.497587182766100e-02*2; 
  
       if (InfoPrint)
-    (*infofile) << " For numerical integration procedures we use Gaussian Quadrature with 6 nodes, degree of precision is 4 " << endl;
+    (*infofile) << " For numerical integration procedures we use Gaussian Quadrature with 6 nodes, degree of precision is 4 " << std::endl;
       break;
 
    case GaussOrder5:
@@ -145,19 +145,19 @@ void GeTriangle :: SetIntPoints()
       (*IntWeights)[6]=  0.125939180544827; 
  
       if (InfoPrint)
-    (*infofile) << " For numerical integration procedures we use Gaussian Quadrature with 7 nodes, degree of precision is 5 " << endl;
+    (*infofile) << " For numerical integration procedures we use Gaussian Quadrature with 7 nodes, degree of precision is 5 " << std::endl;
       break;
  
     default:
-      cerr << "Integration type " << IntegType
-           << " is not implemented \n" << endl; exit(-1);
+      std::cerr << "Integration type " << IntegType
+           << " is not implemented \n" << std::endl; exit(-1);
     }
 }
 
 void GeTriangle :: SetTransformFncAtIntPoints()
 {
 #ifdef TRACE
-  (*trace) << "entering GeTriangle::SetShapeFncAtIntPoints" << endl;
+  (*trace) << "entering GeTriangle::SetShapeFncAtIntPoints" << std::endl;
 #endif
  Integer i;
  TransFncAtIP1.Resize(NumIntPoints);
@@ -175,7 +175,7 @@ void GeTriangle :: SetTransformFncAtIntPoints()
 void GeTriangle :: SetDerTransformFncAtIntPoints()
 {
 #ifdef TRACE
-  (*trace) << "entering GeTriangle::SetDShapeFnc" << endl;
+  (*trace) << "entering GeTriangle::SetDShapeFnc" << std::endl;
 #endif
  Integer i;
 

@@ -1,7 +1,7 @@
-#include <iostream.h>
-#include <fstream.h>
+#include <iostream>
+#include <fstream>
 #include <string>
-#include <iomanip.h>
+#include <iomanip>
 
 #include <general_head.hh>
 #include <utils_head.hh>
@@ -15,12 +15,12 @@ namespace CoupledField
 OutResultUnverg :: OutResultUnverg(const Char * const filename)
 {
 #ifdef TRACE
-  (*trace) << "entering OutResultUnverg :: OutResultUnverg" << endl;
+  (*trace) << "entering OutResultUnverg :: OutResultUnverg" << std::endl;
 #endif
 
   Char * help = new Char[20];
   strcpy(help,filename);
-  output=new ofstream(strcat(help,".unverg"));
+  output=new std::ofstream(strcat(help,".unverg"));
 
 }
 
@@ -28,7 +28,7 @@ OutResultUnverg :: OutResultUnverg(const Char * const filename)
 OutResultUnverg ::~ OutResultUnverg()
 {
 #ifdef TRACE
-  (*trace) << "entering OutResultUnverg ::~ OutResultUnverg" << endl;
+  (*trace) << "entering OutResultUnverg ::~ OutResultUnverg" << std::endl;
 #endif
 
   delete output;
@@ -50,27 +50,27 @@ void OutResultUnverg :: Create(Grid<Point2D> * ptgrid, const Integer level)
 void  OutResultUnverg::Dataset666(Grid<Point2D> * ptgrid, const Integer level)
 {
 
- (*output)<< setw(6) << -1 << endl << setw(6) << -666 << endl ;
+ (*output)<< std::setw(6) << -1 << std::endl << std::setw(6) << -666 << std::endl ;
 
  Integer maxnumnodes=ptgrid-> GetMaxnumnodes(level);
  Integer maxnumelem=ptgrid-> GetMaxnumElem(level);
 
- (*output)<< setw(10) << 1 << setw(10) << 1 ;
+ (*output)<< std::setw(10) << 1 << std::setw(10) << 1 ;
 
- if (ptCoordinate->is2D()) (*output) << setw(10) << 2 << endl; 
- else (*output) << setw(10) << 3 << endl; 
+ if (ptCoordinate->is2D()) (*output) << std::setw(10) << 2 << std::endl; 
+ else (*output) << std::setw(10) << 3 << std::endl; 
 
- (*output) << setw(10) << maxnumnodes;
- (*output) << setw(10) << maxnumelem << endl;
+ (*output) << std::setw(10) << maxnumnodes;
+ (*output) << std::setw(10) << maxnumelem << std::endl;
  
- (*output) << setw(6) << -1 << endl;
+ (*output) << std::setw(6) << -1 << std::endl;
 }
 
 
 //template<class Point2D>
 void  OutResultUnverg::Dataset781(Grid<Point2D> * ptgrid, const Integer level)
 {
- (*output) << setw(6) << -1 << endl << setw(6) << 781 << endl;
+ (*output) << std::setw(6) << -1 << std::endl << std::setw(6) << 781 << std::endl;
 
  Integer maxnumnodes=ptgrid-> GetMaxnumnodes(level);
 
@@ -81,7 +81,7 @@ void  OutResultUnverg::Dataset781(Grid<Point2D> * ptgrid, const Integer level)
 
  for (Integer i=0; i<maxnumnodes; i++)
    {
-     (*output) << setw(10) << i+1 << setw(10) << 0 << setw(10) << 0 << setw(10) << 11 << endl;
+     (*output) << std::setw(10) << i+1 << std::setw(10) << 0 << std::setw(10) << 0 << std::setw(10) << 11 << std::endl;
 
      (*output).setf(ios::uppercase);
      if (ptCoordinate->is2D()) 
@@ -92,16 +92,16 @@ void  OutResultUnverg::Dataset781(Grid<Point2D> * ptgrid, const Integer level)
      else  PrintPoint(ptCoordinate[i],output);
 
 
-     (*output) << endl;           
+     (*output) << std::endl;           
    }
  
- (*output) << setw(6) << -1 << endl;
+ (*output) << std::setw(6) << -1 << std::endl;
 }
 
 //template<class Point2D>
 void  OutResultUnverg::Dataset780(Grid<Point2D> * ptgrid, const Integer level)
 {
- (*output) << setw(6) << -1 << endl << setw(6) << 780 << endl;
+ (*output) << std::setw(6) << -1 << std::endl << std::setw(6) << 780 << std::endl;
 
  Integer maxnumnodes=ptgrid-> GetMaxnumnodes(level);
  Integer maxnumelem=ptgrid-> GetMaxnumElem(level);
@@ -113,7 +113,7 @@ void  OutResultUnverg::Dataset780(Grid<Point2D> * ptgrid, const Integer level)
    {
      numnodesPerElem=ptgrid->GetNumNodesPerElem(i,level); 
 
-     (*output) << setw(10) << i+1 << setw(10) << 94 << setw(10) << 2 << setw(10) << 2 << setw(10) << 1 << setw(10) << 1 << setw(10) << 1 << setw(10) << numnodesPerElem << endl;
+     (*output) << std::setw(10) << i+1 << std::setw(10) << 94 << std::setw(10) << 2 << std::setw(10) << 2 << std::setw(10) << 1 << std::setw(10) << 1 << std::setw(10) << 1 << std::setw(10) << numnodesPerElem << std::endl;
 
      numnodesPerElem=ptgrid->GetNumNodesPerElem(i,level);
 
@@ -128,43 +128,43 @@ void  OutResultUnverg::Dataset780(Grid<Point2D> * ptgrid, const Integer level)
 
      delete [] ConnectElem;
  
-     (*output) << endl;
+     (*output) << std::endl;
    }
- (*output) << setw(6) << -1 << endl;
+ (*output) << std::setw(6) << -1 << std::endl;
 }
 
 //template<class Point2D>
-void  OutResultUnverg::Dataset55(const string & title, const Vector<Double> & x, const Integer step, const Double time)
+void  OutResultUnverg::Dataset55(const std::string & title, const Vector<Double> & x, const Integer step, const Double time)
 {
- (*output) << setw(6) << -1 << endl << setw(6) << 55 << endl;
+ (*output) << std::setw(6) << -1 << std::endl << std::setw(6) << 55 << std::endl;
 
  (*output).setf(ios::scientific);
  (*output).precision(6);
  (*output).setf(ios::uppercase);
 
- (*output) << " " << title << ", step" << setw(6) << step <<
-             " time   " << time << endl;  
- (*output) << endl << endl << endl << endl;
- (*output) << setw(10) << 1 << setw(10) << 4 << setw(10) << 1 << setw(10) << 0
-           << setw(10) << 2 << setw(10) << 1 << endl;
- (*output) << setw(10) << 2 << setw(10) << 1 << setw(10) << 1 << setw(10) <<
-              step << endl;
- (*output) << " " << time << endl;       
+ (*output) << " " << title << ", step" << std::setw(6) << step <<
+             " time   " << time << std::endl;  
+ (*output) << std::endl << std::endl << std::endl << std::endl;
+ (*output) << std::setw(10) << 1 << std::setw(10) << 4 << std::setw(10) << 1 << std::setw(10) << 0
+           << std::setw(10) << 2 << std::setw(10) << 1 << std::endl;
+ (*output) << std::setw(10) << 2 << std::setw(10) << 1 << std::setw(10) << 1 << std::setw(10) <<
+              step << std::endl;
+ (*output) << " " << time << std::endl;       
 
  Integer i,n;
  n=x.size();  
  for (i=0; i<n; i++)
-   (*output) << setw(10) << i+1 << endl << " " << x[i] << endl;
+   (*output) << std::setw(10) << i+1 << std::endl << " " << x[i] << std::endl;
      
- (*output) << setw(6) << -1 << endl;
+ (*output) << std::setw(6) << -1 << std::endl;
 }  
 
 //template<class Point2D>
 void  OutResultUnverg::Dataset56()
 {
- (*output) << setw(6) << -1 << endl << setw(6) << 56 << endl;
+ (*output) << std::setw(6) << -1 << std::endl << std::setw(6) << 56 << std::endl;
  
- (*output) << setw(6) << -1;
+ (*output) << std::setw(6) << -1;
 }
 
 } // end of namespace

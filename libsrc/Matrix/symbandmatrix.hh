@@ -6,7 +6,7 @@ namespace CoupledField
  
 template<class TYPE> class SymBandMatrix;
 
-template<class TYPE>  ostream& operator<<( ostream & , const SymBandMatrix<TYPE> &); /// Calculate Spur of BandMatrix
+template<class TYPE>  std::ostream& operator<<( std::ostream & , const SymBandMatrix<TYPE> &); /// Calculate Spur of BandMatrix
 template <class T> T Spur(const SymBandMatrix<T> &);
 
 template<class TYPE> class SymBandMatrix:public AbsMatrix<SymBandMatrix<TYPE> , TYPE> 
@@ -89,7 +89,7 @@ public:
   /// Return size (number of rows)
   Integer getSize(){ return row; }  
   template<class S>
-  friend ostream & operator << (ostream & out, const SymBandMatrix<S> &);
+  friend std::ostream & operator << (std::ostream & out, const SymBandMatrix<S> &);
 
 };
 

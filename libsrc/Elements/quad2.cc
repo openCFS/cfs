@@ -1,5 +1,5 @@
-#include <iostream.h>
-#include <fstream.h>
+#include <iostream>
+#include <fstream>
 #include <math.h>
 
 #include <general_head.hh>
@@ -14,7 +14,7 @@ namespace CoupledField
 Quad2 :: Quad2(enum IntegrationType aintegtype) : Rectangle(aintegtype)
 {
 #ifdef TRACE
-  (*trace) << "entering Quad2::Quad2" << endl;
+  (*trace) << "entering Quad2::Quad2" << std::endl;
 #endif
   ElemType  = QUADRILATERAL2;  
   Init();
@@ -23,7 +23,7 @@ Quad2 :: Quad2(enum IntegrationType aintegtype) : Rectangle(aintegtype)
 Quad2 :: ~Quad2()
 {
 #ifdef TRACE
-  (*trace) << "entering Quad2::~Quad2" << endl;
+  (*trace) << "entering Quad2::~Quad2" << std::endl;
 #endif
 
   ;
@@ -32,7 +32,7 @@ Quad2 :: ~Quad2()
 void Quad2 :: Init()
 {
 #ifdef TRACE
-  (*trace) << "entering Quad2::Init" << endl;
+  (*trace) << "entering Quad2::Init" << std::endl;
 #endif
 
   Dim      = 2;
@@ -49,7 +49,7 @@ void Quad2 :: Init()
 void Quad2 :: SetShapeFncAtIntPoints()
 {
 #ifdef TRACE
-  (*trace) << "entering Rectangle::SetShapeFncAtIntPoints" << endl;
+  (*trace) << "entering Rectangle::SetShapeFncAtIntPoints" << std::endl;
 #endif
   Integer i;
   ShapeFncAtIP1.Resize(NumIntPoints);
@@ -79,7 +79,7 @@ void Quad2 :: SetShapeFncAtIntPoints()
 void Quad2 :: SetDerShapeFncAtIntPoints()
 {
 #ifdef TRACE
-  (*trace) << "entering Quad2::SetDerShapeFncAtIntPoints" << endl;
+  (*trace) << "entering Quad2::SetDerShapeFncAtIntPoints" << std::endl;
 #endif
   Integer i;
 

@@ -1,5 +1,5 @@
-#include <iostream.h>
-#include <fstream.h>
+#include <iostream>
+#include <fstream>
 
 #include <general_head.hh>
 #include <utils_head.hh>
@@ -15,7 +15,7 @@ LaplaceInt<Dim> :: LaplaceInt(BaseElem * aptelem, const ShortInt ndofs)
               : BaseForm<Dim>(aptelem)
 {
 #ifdef TRACE
-  (*trace) << "entering LaplaceInt::LaplaceInt" << endl;
+  (*trace) << "entering LaplaceInt::LaplaceInt" << std::endl;
 #endif
 
   DofsPerNode = ndofs;
@@ -25,7 +25,7 @@ template <class Dim>
 LaplaceInt<Dim> :: ~LaplaceInt()
 {
 #ifdef TRACE
-  (*trace) << "entering LaplaceInt::~LaplaceInt" << endl;
+  (*trace) << "entering LaplaceInt::~LaplaceInt" << std::endl;
 #endif
  
 
@@ -36,7 +36,7 @@ template <class Dim>
 void LaplaceInt<Dim> :: CalcElemMatrix(Dim * ptCoord, Matrix<Double> & Result)  
 {
 #ifdef TRACE
-  (*trace) << "entering LaplaceInt::CalcElemMatrix" << endl;
+  (*trace) << "entering LaplaceInt::CalcElemMatrix" << std::endl;
 #endif
   
   Integer l=ptelem->GetNumIntPoints();
@@ -85,12 +85,12 @@ void LaplaceInt<Dim> :: CalcElemMatrix(Dim * ptCoord, Matrix<Double> & Result)
 }
 
 template <class Dim>
-void LaplaceInt<Dim>::Print(ostream * out, const Matrix<Double> Result) const
+void LaplaceInt<Dim>::Print(std::ostream * out, const Matrix<Double> Result) const
 {
 #ifdef TRACE
-  (*trace) << "entering LaplaceInt::Print" << endl;
+  (*trace) << "entering LaplaceInt::Print" << std::endl;
 #endif
-  (*out)<< "Stiffness matrix" << endl;
+  (*out)<< "Stiffness matrix" << std::endl;
   (*out) << Result;
 
 }

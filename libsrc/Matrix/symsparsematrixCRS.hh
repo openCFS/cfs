@@ -6,7 +6,7 @@ namespace CoupledField
  
 template<class TYPE> class SymSparseMatrix;
 
-template<class TYPE>  ostream& operator<<( ostream & , const SymSparseMatrix<TYPE> &); 
+template<class TYPE>  std::ostream& operator<<( std::ostream & , const SymSparseMatrix<TYPE> &); 
 /// Calculate Spur of SymSparseMatrix
 template <class T> T Spur(const SymSparseMatrix<T> &);
 
@@ -80,7 +80,7 @@ public:
   Boolean IsSymmetric() const;
 
   template<class S>
-friend ostream & operator<< (ostream & out, const SymSparseMatrix<S> &mat);
+friend std::ostream & operator<< (std::ostream & out, const SymSparseMatrix<S> &mat);
 
   template<class S>
   friend S Spur(const SymSparseMatrix<S> &x);
@@ -91,7 +91,7 @@ template<class TYPE>
 inline SymSparseMatrix<TYPE>::~SymSparseMatrix()
 {
 #ifdef TRACE
- (*trace) << "entering SymSparseMatrix::~SymSparseMatrix" << endl;
+ (*trace) << "entering SymSparseMatrix::~SymSparseMatrix" << std::endl;
 #endif
 
  if (p) delete [] p;

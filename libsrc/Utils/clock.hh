@@ -1,7 +1,6 @@
 #ifndef CLOCK_2001
 #define CLOCK_2001
 
-using namespace std;
 namespace CoupledField 
 {
 
@@ -21,7 +20,7 @@ public:
   enum status{beg, end};
  
   //! Function for measure time of running programm
-   void ClockCount(enum status, const string astring="");
+   void ClockCount(enum status, const std::string astring="");
  
   //! Deconstructor(close file for output time).
    ~Clock();
@@ -30,7 +29,7 @@ private:
   time_t tm, tm_tmp;
   clock_t ck;
   clock_t ck_tmp;
-  ofstream filetime;
+  std::ofstream filetime;
   Boolean InFile;
  
 };

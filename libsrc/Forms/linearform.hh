@@ -24,8 +24,10 @@ private:
 
 };
 
+#ifdef __GNUC__
 template class  LinearForm <Point2D>;
 template class  LinearForm <Point3D>;
+#endif
 
 }
 

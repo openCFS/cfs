@@ -29,13 +29,13 @@ protected:
 
 public:
   //! print on screen: only for check
-  void print(){ cout  << A; cout << b; cout << x;}
+  void print(){ std::cout  << A; std::cout << b; std::cout << x;}
   //! print solution on screen
-  void printxscreen() { cout << " solution " << x << endl;}
+  void printxscreen() { std::cout << " solution " << x << std::endl;}
   //! print in file matrix A and RHS
-  void printAb(ostream * out, const string & title) const;
+  void printAb(std::ostream * out, const std::string & title) const;
   //! print solution 
-  void printx(ostream * out, const Double time) const;
+  void printx(std::ostream * out, const Double time) const;
   //! Return size of matrix A
   Integer getSize(){return A.getSize();}
 };
@@ -45,6 +45,7 @@ public:
   template class SystemMatrix< SymMatrix<Double> >;
   template class SystemMatrix< SymBandMatrix<Double> >; 
 #endif
+
 
 }
 #endif

@@ -1,6 +1,6 @@
-#include <stdlib.h>
-#include <iostream.h>
-#include <fstream.h>
+//#include <stdlib.h>
+#include <iostream>
+#include <fstream>
 
 #include <general_head.hh>
 #include <utils_head.hh>
@@ -14,7 +14,7 @@ namespace CoupledField
 Triangle1 :: Triangle1(enum IntegrationType aintegtype) : GeTriangle(aintegtype)
 {
 #ifdef TRACE
-  (*trace) << "entering Triangle1::Triangle1" << endl;
+  (*trace) << "entering Triangle1::Triangle1" << std::endl;
 #endif
    ElemType  = TRIANGLE1;   
    Init();
@@ -23,7 +23,7 @@ Triangle1 :: Triangle1(enum IntegrationType aintegtype) : GeTriangle(aintegtype)
 Triangle1 :: ~Triangle1()
 {
 #ifdef TRACE
-  (*trace) << "entering Triangle1::~Triangle1" << endl;
+  (*trace) << "entering Triangle1::~Triangle1" << std::endl;
 #endif
 
   ;
@@ -32,7 +32,7 @@ Triangle1 :: ~Triangle1()
 void Triangle1 :: Init()
 {
 #ifdef TRACE
-  (*trace) << "entering Triangle1::Init" << endl;
+  (*trace) << "entering Triangle1::Init" << std::endl;
 #endif
 
   Dim = 2;

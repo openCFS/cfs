@@ -1,6 +1,6 @@
 #include <string>
-#include <fstream.h>
-#include <iostream.h>
+#include <fstream>
+#include <iostream>
  
 #include "general_head.hh"
 #include "clock.hh"
@@ -18,8 +18,8 @@ Clock::Clock (Char * title)
  
       filetime.open(strcat(namefile,".time"));
  
-      if (!filetime) cerr<< "ERROR ("<<__FILE__<<" "<<__LINE__<<"): Cann't create  file :" 
-			 << namefile << endl;
+      if (!filetime) std::cerr<< "ERROR ("<<__FILE__<<" "<<__LINE__<<"): Cann't create  file :" 
+			 << namefile << std::endl;
  
       delete namefile;
       InFile=TRUE;
@@ -31,14 +31,14 @@ Clock::Clock (Char * title)
   Clock::~Clock()
   {
 #ifdef TRACE
-    (*trace) << "entering Clock::~Clock" << endl;
+    (*trace) << "entering Clock::~Clock" << std::endl;
 #endif
  
     if (InFile) filetime.close();
  
   };
 
-void Clock::ClockCount(enum status n, const string title)
+void Clock::ClockCount(enum status n, const std::string title)
 {
   switch(n)
     { 
@@ -54,20 +54,20 @@ void Clock::ClockCount(enum status n, const string title)
  
       if (InFile) 
 	{
-	  if (title.empty()) filetime << "You don't specified title !" << endl;
+	  if (title.empty()) filetime << "You don't specified title !" << std::endl;
  
 	  filetime << title << "::\t" << "Wall time: " <<
 	    difftime(tm_tmp, tm) << " c." << "\t" << "CPU time: " <<
-	    Double(ck_tmp - ck)/CLOCKS_PER_SEC << endl;
+	    Double(ck_tmp - ck)/CLOCKS_PER_SEC << std::endl;
  
 	  tm=tm_tmp;
 	  ck=ck_tmp;
 	}
       else 
 	{  
-	  cout << title << "::\t" << "Wall time: " <<
+	  std::cout << title << "::\t" << "Wall time: " <<
 	    difftime(tm_tmp, tm) << " c." << "\t" << "CPU time: " <<
-	    Double(ck_tmp - ck)/CLOCKS_PER_SEC << endl;
+	    Double(ck_tmp - ck)/CLOCKS_PER_SEC << std::endl;
  
 	  tm=tm_tmp;
 	  ck=ck_tmp; 

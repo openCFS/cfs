@@ -1,5 +1,5 @@
-#include <iostream.h>
-#include <fstream.h>
+#include <iostream>
+#include <fstream>
 #include <time.h>
 #include <string>
 
@@ -441,7 +441,7 @@ template< class TYPE>
 void Matrix<TYPE>::precond(Vector<TYPE> & e, const Vector<TYPE> r, enum precond type)
 {
 #ifdef TRACE
-  (*trace) << "entering Matrix::precond" << endl;
+  (*trace) << "entering Matrix::precond" << std::endl;
 #endif
  
  if (!e.size()) Error("Define vector before use of precond");
@@ -483,22 +483,22 @@ default:
 }
 
 template<class S>
-ostream & operator << (ostream & out, const Matrix<S> &mat)
+std::ostream & operator << (std::ostream & out, const Matrix<S> &mat)
 {
 out.setf(ios::scientific);
 
 for (Integer i=0; i < mat.size_row(); i++)
 {for (Integer j=0; j < mat.size_col(); j++)
  out << mat[i][j] << " ";
- out << endl;}
+ out << std::endl;}
 
 out.setf(0, ios::floatfield);
 
  return out;
 }
 
-template ostream & operator<<<Integer> (ostream & , const Matrix<Integer> &);
-template ostream & operator<<<Double> (ostream & , const Matrix<Double> &);
+template std::ostream & operator<<<Integer> (std::ostream & , const Matrix<Integer> &);
+template std::ostream & operator<<<Double> (std::ostream & , const Matrix<Double> &);
 
 template<class TYPE>
 TYPE Spur (const Matrix<TYPE> &x)

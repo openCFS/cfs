@@ -43,7 +43,7 @@ public:
   { ptGridCFS->GetNumNodesPerElem(iElem, level);}
 
   /// Print coordinates of grid in out
-  virtual void PrintCoordinate(const Integer level, ostream * out) const
+  virtual void PrintCoordinate(const Integer level, std::ostream * out) const
   { ptGridCFS->PrintCoordinate(level, out);}
 
 protected:

@@ -20,15 +20,15 @@ public:
 
 protected:
   //! Auxialary Variables  
-  ifstream infile;
+  std::ifstream infile;
 
 public:
 
   //!  Read a title of simulation run 
-  Boolean ReadTitle(string & title);
+  Boolean ReadTitle(std::string & title);
 
   //! Print a title of simulation run
-  void  PrintTitle (ostream * outfile);
+  void  PrintTitle (std::ostream * outfile);
 
   //! Read analysis data from General section
   void ReadGeneralAnal(Integer * dataGAnal);
@@ -45,7 +45,7 @@ public:
 
   //!
   void ReadOutputDataArr(Integer * dataOutArr, Integer sizeArr,
-			 string & seekStr);
+			 std::string & seekStr);
 
   //! Read Nodal Coordinates (overloading for 3D and 2D) 
   void ReadCoordinate(Point3D * const InitNodalCo, const Integer maxnumNodes);
@@ -75,7 +75,7 @@ public:
   void ReadElem(const Integer maxelem, Integer ** connect,const Integer maxnode,
 		const Integer numelemgr);
   //!
-  void ReadElemMatCalc(Integer & matnumber, string & calc_expr);
+  void ReadElemMatCalc(Integer & matnumber, std::string & calc_expr);
 
   //!
   void ReadThickness(Double & thickness);
@@ -201,30 +201,30 @@ public:
   enum nameDf{non, dx, dy, dz, ep, vp, chg, ax, ay, az, esp, anx, any, anz,
               tp, tnp, enp, vnp, mue, sig}; // 20
 
-  //! Axialary function : transform element of enum in string 
-  string PrintnameDf(Integer el);
+  //! Axialary function : transform element of enum in std::string 
+  std::string PrintnameDf(Integer el);
 
-  //!  Axialary function : transform element of enum in string
-  string PrintnameDf(enum nameDf el);
+  //!  Axialary function : transform element of enum in std::string
+  std::string PrintnameDf(enum nameDf el);
 
-  //!  Axialary function : transform string in element of enum 
+  //!  Axialary function : transform std::string in element of enum 
   enum nameDf TransformInNameDf(const Char * el);
 
-  //!  Axualary function : transform string in Char *  
-  void Peel(string & buf, Char * init);
+  //!  Axualary function : transform std::string in Char *  
+  void Peel(std::string & buf, Char * init);
 
   //!  Axualary function : return position in file where seekexp is found first time
-  void TakePos(const string seekexp,  string::size_type & pos);
-  void TakePos(const string seekexp,  string::size_type & pos, string & buf_prev);
+  void TakePos(const std::string seekexp,  std::string::size_type & pos);
+  void TakePos(const std::string seekexp,  std::string::size_type & pos, std::string & buf_prev);
 
   //! Return TRUE if there is seekexp in datfile
-  Boolean IsThere(const string seekexp) ;
+  Boolean IsThere(const std::string seekexp) ;
 
-  //! Count elements in string 
-  Integer CountElemInString(string::size_type pos);
+  //! Count elements in std::string 
+  Integer CountElemInString(std::string::size_type pos);
 
-  //! Count number of character a in string buf 
-  Integer CountCharInStr(string & buf, const Char a);
+  //! Count number of character a in std::string buf 
+  Integer CountCharInStr(std::string & buf, const Char a);
 
   //!  Axialary function: For coding number 
   Integer FindDigits(const Integer x);
@@ -238,7 +238,7 @@ public:
   //!  Axialary function: For coding number
   Integer Encode(const Integer x);
 
-  string::size_type pos_end; 
+  std::string::size_type pos_end; 
  
 };
 }

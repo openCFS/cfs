@@ -1,5 +1,5 @@
-#include <iostream.h>
-#include <fstream.h>
+#include <iostream>
+#include <fstream>
 #include <time.h>
 #include <string>
 
@@ -24,7 +24,7 @@ template<class TYPE>
 SparseMatrix<TYPE>::SparseMatrix (const Integer anumentry, const Integer arow, const Integer acol)
 {
 #ifdef TRACE
-    (*trace) << "entering SparseMatrix::SparseMatrix" << endl;
+    (*trace) << "entering SparseMatrix::SparseMatrix" << std::endl;
 #endif
         numentry = anumentry;
         row = arow;
@@ -525,7 +525,7 @@ template< class TYPE>
 void SparseMatrix<TYPE>::precond(Vector<TYPE> & e, const Vector<TYPE> r, enum precond type)
 {
 #ifdef TRACE
-  (*trace) << "entering SparseMatrix::precond" << endl;
+  (*trace) << "entering SparseMatrix::precond" << std::endl;
 #endif
   if (!e.size()) Error("Define vector before use of precond");
 
@@ -544,7 +544,7 @@ void SparseMatrix<TYPE>::precond(Vector<TYPE> & e, const Vector<TYPE> r, enum pr
        for (i=0; i< row; i++) 
       {  for  (j=pf[i]; j < pf[i+1]; j++)
           diag[i]+=p[j]*p[j];
-          diag[i]=sqrt(diag[i]);
+        //  idiag[i]=sqrt(diag[i]);
      
           e[i]=r[i]/diag[i];  ///// May be (*this)
       }
@@ -559,7 +559,7 @@ void SparseMatrix<TYPE>::precond(Vector<TYPE> & e, const Vector<TYPE> r, enum pr
           { if (pc[j]==i) diag[i]+=p[j]*p[j];
             else diag[i]+=omega*omega*p[j]*p[j];
           }
-          diag[i]=sqrt(diag[i]);
+ //         diag[i]=sqrt(diag[i]);  // ####################################
       }
 
        for (i=0; i<n; i++)
@@ -608,7 +608,7 @@ template Double Spur(const SparseMatrix<Double> &);
 template Integer Spur(const SparseMatrix<Integer> &);
 
 template<class S>
-ostream & operator << (ostream & out, const SparseMatrix<S> &m)
+std::ostream & operator << (std::ostream & out, const SparseMatrix<S> &m)
 {
 
 Integer i,j,k;
@@ -618,7 +618,7 @@ for (i=0; i<m.row; i++)
           // If we have zero row
        if (m.pf[i]==m.pf[i+1]) 
        { for (k=0; k<m.col; k++) out << 0 << " ";
-         out << endl;
+         out << std::endl;
          continue;
        }
  
@@ -633,14 +633,14 @@ for (i=0; i<m.row; i++)
 
        for (k=m.pc[j-1]+1; k<m.col; k++) out << 0 << " ";
 
-   out << endl;
+   out << std::endl;
 
   }
   return out;
 }
  
-template ostream & operator<<<Integer> (ostream & , const SparseMatrix<Integer>&);
-template ostream & operator<<<Double> (ostream & , const SparseMatrix<Double>& );
+template std::ostream & operator<<<Integer> (std::ostream & , const SparseMatrix<Integer>&);
+template std::ostream & operator<<<Double> (std::ostream & , const SparseMatrix<Double>& );
 
 
 } // end of namespace

@@ -1,5 +1,6 @@
-#include <iostream.h>
-#include <fstream.h>
+#include <iostream>
+#include <fstream>
+#include <stdlib.h>
 #include <math.h>
 #include <time.h>
 #include <string>
@@ -375,7 +376,6 @@ Vector<TYPE> Vector<TYPE>::unit (const Integer n,const Integer i)
 //}
 
 
-
 template<class TYPE>
 Double Vector<TYPE> :: norm_2 ()
 {	if (!(*this).size())
@@ -496,16 +496,16 @@ template void sort<Double>(Double * ,Integer);
 // Overloading << for Vector
 
 template<class S>
-ostream & operator << ( ostream & out, const Vector<S> & vc)
+std::ostream & operator << ( std::ostream & out, const Vector<S> & vc)
 {
 if (vc.size()==0) out << "vector is undefined" ;
 for (Integer i=0; i < vc.size(); i++)
- out << vc[i] << " " << endl;
+ out << vc[i] << " " << std::endl;
  return out;
 }
 
-template ostream & operator<<<Integer> (ostream & , const Vector<Integer> &);
-template ostream & operator<<<Double> (ostream & , const Vector<Double> &);
+template std::ostream & operator<<<Integer> (std::ostream & , const Vector<Integer> &);
+template std::ostream & operator<<<Double> (std::ostream & , const Vector<Double> &);
 
 //Vector<Double> Vector<Double>::null=Vector<Double>();
 //Vector<Integer> Vector<Integer>::null=Vector<Integer>();

@@ -1,5 +1,5 @@
-#include <iostream.h>
-#include <fstream.h>
+#include <iostream>
+#include <fstream>
 #include <time.h>
 #include <string>
 
@@ -356,11 +356,13 @@ S Spur(const BandMatrix<S> & x)
   return a;
 }
 
+#ifdef __GNUC__
 template Integer Spur<Integer>(const BandMatrix<Integer> &);
 template Double Spur<Double>(const BandMatrix<Double> &);
+#endif
 
 template<class S>
-ostream & operator << (ostream & out, const BandMatrix<S> &mat)
+std::ostream & operator << (std::ostream & out, const BandMatrix<S> &mat)
 {
 
 Integer i,j;
@@ -388,10 +390,11 @@ for (i=-li; i<1; i++)  out << mat[n-1][i] << " ";
  
  return out;
 }
- 
-template ostream & operator<<<Integer> (ostream & , const BandMatrix<Integer>&);
-template ostream & operator<<<Double> (ostream & , const BandMatrix<Double>& );
 
+#ifdef __GNUC__ 
+template std::ostream & operator<<<Integer> (std::ostream & , const BandMatrix<Integer>&);
+template std::ostream & operator<<<Double> (std::ostream & , const BandMatrix<Double>& );
+#endif
 
 } // end of namespace
 
