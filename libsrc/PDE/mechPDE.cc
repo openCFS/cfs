@@ -33,13 +33,16 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
     dofspernode_ = 3;
   else
     dofspernode_ = 2;
+
+  conf->getsubdompde(subdoms_,pdename_);
+  ReadBCs(pdename_);
   
-  size_=ptgrid_->GetMaxnumnodes(0)*dofspernode_;
+  AssignPDENodeNumbers();
+  size_ = NumPDENodes_*dofspernode_;
+
   disp_.Resize(size_);
   disp_.Init(0);
   
-  conf->getsubdompde(subdoms_,pdename_);
-  ReadBCs(pdename_);
 }
 
 void MechPDE::DiscreteParamsPDE()
@@ -91,7 +94,7 @@ void MechPDE::SolveStepStatic(const Integer level)
   ptsol = algsys_->GetSolutionVal();
 
   // save solution
-  Vector<Double> transsol(ptgrid_->GetMaxnumnodes(level)*dofspernode_, ptsol);
+  Vector<Double> transsol(size_, ptsol);
   disp_=transsol;
 }
 
@@ -104,8 +107,10 @@ void MechPDE::WriteResultsInFile()
 
   Integer laststepcalc=0;
   Double  lasttimecalc=0;
-
-  OutFile_->WriteSolution(disp_, laststepcalc, lasttimecalc,"displacement", dofspernode_);
+  Vector<Double> DispMesh;
+ 
+  TransformNodeSolution(DispMesh, disp_);
+  OutFile_->WriteSolution(DispMesh, laststepcalc, lasttimecalc,"displacement", dofspernode_);
 }
 
 
@@ -119,7 +124,7 @@ void MechPDE::WriteResultsInFile()
     // This is a smaller matrix since it is just for linear 1D elements.
     Matrix<Double> elemmatbnd;
     BaseFE * ptEl;
-    Vector<Integer> connecth;
+    Vector<Integer> connecth, connect_PDE;
     std::vector<Elem*> elemssd;
     Integer i, j;
 
@@ -151,12 +156,15 @@ void MechPDE::WriteResultsInFile()
 	    connecth=elemssd[j]->connect;
 
 	    Matrix<Double> ptCoord;
-	    ptgrid_->GetCoordNodesElemMat(connecth, ptCoord, level); 
+	    ptgrid_->GetCoordNodesElemMat(connecth, ptCoord, level);
+ 
+	    // CHANGE connecth
+	    Mesh2PDENode(connect_PDE,connecth);
 
 	    // stiffness part
 	    bilinear_stiff->CalcElementMatrix(ptCoord, elemmat);
 
-	    algsys_->SetElementMatrix(elemmat.getinarray(), connecth.get(), connecth.size(), SYSTEM);
+	    algsys_->SetElementMatrix(elemmat.getinarray(), connect_PDE.get(), connecth.size(), SYSTEM);
 
 #ifdef DEBUG
 	    (*debug) << "Mech3d elemmat: " << std::endl << elemmat << std::endl;
@@ -168,7 +176,7 @@ void MechPDE::WriteResultsInFile()
  	    Matrix <Double> elemMatMultDof;
  	    MassMultiDof(elemMatMultDof, elemmat, dofspernode_);
 
- 	    algsys_->SetElementMatrix(elemMatMultDof.getinarray(), connecth.get(), connecth.size(), MASS);
+ 	    algsys_->SetElementMatrix(elemMatMultDof.getinarray(), connect_PDE.get(), connecth.size(), MASS);
 
   
 	    delete bilinear_stiff;
@@ -222,12 +230,12 @@ void MechPDE::WriteResultsInFile()
 	    node=*p;
 
 #ifdef DEBUG
-	    (*debug) << " node: " << node << " dof:" << dof << " val: " << val << std::endl;
+	    (*debug) << " node: " << Mesh2PDENode_[node-1] << " dof:" << dof << " val: " << val << std::endl;
 #endif
 	    if (update==1)
 	      algsys_->UpdateDirichlet(i+1, val, SYSTEM);
 	    else
-	      algsys_->SetDirichlet(j+1, node, val, dof, SYSTEM);
+	      algsys_->SetDirichlet(j+1, Mesh2PDENode_[node-1], val, dof, SYSTEM);
 	  }  
       }
 
@@ -255,7 +263,7 @@ void MechPDE::WriteResultsInFile()
 	    if (update==1)
 	      algsys_->UpdateDirichlet(j+1, val, SYSTEM);
 	    else	    
-	      algsys_->SetDirichlet(j+1, node, val, dof, SYSTEM);
+	      algsys_->SetDirichlet(j+1, Mesh2PDENode_[node-1], val, dof, SYSTEM);
 	  }
       }
 
@@ -280,11 +288,11 @@ void MechPDE::WriteResultsInFile()
 	    node=*p;
 
 #ifdef DEBUG
-	    (*debug) << " node: " << node << " dof:" << dof << " val: " << val << std::endl;
+	    (*debug) << " node: " << Mesh2PDENode_[node-1] << " dof:" << dof << " val: " << val << std::endl;
 #endif
 	  
 	    val = val_loads_[i];
-	    algsys_->SetNodeRHS(val, node, dof);
+	    algsys_->SetNodeRHS(val, Mesh2PDENode_[node-1], dof);
 	  
 	  }
       }    

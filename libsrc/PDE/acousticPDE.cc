@@ -26,8 +26,13 @@ AcousticPDE::AcousticPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, Fil
   pdename_    ="acoustic";
   pdematerialclass_ = "fluid";
 
+  conf->getsubdompde(subdoms_,pdename_);
+  ReadBCs(pdename_);
+
   laststepcalc_=0;
-  size_=ptgrid_->GetMaxnumnodes(0);
+
+  AssignPDENodeNumbers();
+  size_ = NumPDENodes_;
 
   sol_.Resize(size_);
   sol_.Init(0);
@@ -69,8 +74,6 @@ AcousticPDE::AcousticPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, Fil
     }
 
   SetMatrixFactors();
-  conf->getsubdompde(subdoms_,pdename_);
-  ReadBCs(pdename_);
 
   //currently not available
   // preComputeRHS();
@@ -188,12 +191,11 @@ void AcousticPDE::SolveStepTrans(const Integer kstep, const Double asteptime,
   SetBCs(level,update,lasttimecalc_);
   algsys_->CalcPrecond(job);
   algsys_->Solve();
-  ptsol = algsys_->GetSolutionVal();
 
   // save solution
-  Integer i;
-  for (i=0; i<ptgrid_->GetMaxnumnodes(level); i++)
-    sol_[i]=ptsol[i];
+  ptsol = algsys_->GetSolutionVal();
+  Vector<Double> transsol(NumPDENodes_, ptsol);
+  sol_=transsol;
 
   if (InfoPrint)
     (*infofile) << "maxnode:" <<  ptgrid_->GetMaxnumnodes(level) << std::endl;
@@ -208,17 +210,22 @@ void AcousticPDE::WriteResultsInFile()
   (*trace) << "entering AcousticPDE::WriteResultsInFile" << std::endl;
 #endif
 
+  Vector<Double> sol_mesh, solder1_mesh, solder2_mesh;  
+  TransformNodeSolution(sol_mesh,sol_);
+  TransformNodeSolution(solder1_mesh,sol_der1_);
+  TransformNodeSolution(solder2_mesh,sol_der2_);
+
   if (OutFile_->IsGMV())
     {
-      OutFile_->WriteSolution(sol_,laststepcalc_,lasttimecalc_,"vp");
-      OutFile_->WriteSolution(sol_der1_,laststepcalc_,lasttimecalc_,"vp_1der");
-      OutFile_->WriteSolution(sol_der2_,laststepcalc_,lasttimecalc_,"vp_2der");
+      OutFile_->WriteSolution(sol_mesh,laststepcalc_,lasttimecalc_,"vp");
+      OutFile_->WriteSolution(solder1_mesh,laststepcalc_,lasttimecalc_,"vp_1der");
+      OutFile_->WriteSolution(solder2_mesh,laststepcalc_,lasttimecalc_,"vp_2der");
     }
   else
     {
-      OutFile_->WriteSolution(sol_,laststepcalc_,lasttimecalc_,"fluid potential");
-      OutFile_->WriteSolution(sol_der1_,laststepcalc_,lasttimecalc_,"fluid potential, 1st deriv., ");
-      OutFile_->WriteSolution(sol_der2_,laststepcalc_,lasttimecalc_,"fluid potential, 2nd deriv., ");
+      OutFile_->WriteSolution(sol_mesh,laststepcalc_,lasttimecalc_,"fluid potential");
+      //      OutFile_->WriteSolution(solder1_mesh,laststepcalc_,lasttimecalc_,"fluid potential, 1st deriv., ");
+      //      OutFile_->WriteSolution(solder2_mesh,laststepcalc_,lasttimecalc_,"fluid potential, 2nd deriv., ");
     }
 
 }
@@ -275,7 +282,7 @@ void AcousticPDE::SetupMatrices(const Integer level)
 
   BaseFE * ptEl;
   Double coeffstiff, coeffmass;
-  Vector<Integer> connecth;
+  Vector<Integer> connecth, connect_PDE;
   std::vector<Elem*> elemssd;
 
   Integer i, j;
@@ -301,6 +308,9 @@ void AcousticPDE::SetupMatrices(const Integer level)
 	  connecth=elemssd[j]->connect;
 	  ptgrid_->GetCoordNodesElemMat(connecth, ptCoord, level); 
 
+	  // CHANGE connecth
+	  Mesh2PDENode(connect_PDE,connecth);
+
 	  // stiffness part
 	  bilinear_stiff->CalcElementMatrix(ptCoord, elemmat);
 
@@ -311,7 +321,7 @@ void AcousticPDE::SetupMatrices(const Integer level)
 	  (*debug) << elemmat << std::endl;
 #endif     
 
-	  algsys_->SetElementMatrix(elemmat.getinarray(), connecth.get(), connecth.size(), STIFFNESS);
+	  algsys_->SetElementMatrix(elemmat.getinarray(), connect_PDE.get(), connecth.size(), STIFFNESS);
 
 	  // mass part
 	  bilinear_mass->CalcElementMatrix(ptCoord, elemmat);
@@ -321,7 +331,7 @@ void AcousticPDE::SetupMatrices(const Integer level)
 	  (*debug) << elemmat << std::endl;
 #endif
       
-	  algsys_->SetElementMatrix(elemmat.getinarray(), connecth.get(), connecth.size(), MASS);
+	  algsys_->SetElementMatrix(elemmat.getinarray(), connect_PDE.get(), connecth.size(), MASS);
   
 	  delete bilinear_stiff;
 	  delete bilinear_mass;

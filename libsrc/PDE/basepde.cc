@@ -398,12 +398,19 @@ void BasePDE::TransformNodeSolution(Vector<Double> & MeshSol,  Vector<Double> & 
   (*trace) << "entering BasePDE::TransformNodeSolution" << std::endl;
 #endif
 
-  MeshSol.Resize(ptgrid_->GetMaxnumnodes(actlevel_));
+  Integer k, node, idx;
+  MeshSol.Resize(ptgrid_->GetMaxnumnodes(actlevel_)*dofspernode_);
 
+  k=0;
   for (Integer i=0; i<PDE2MeshNode_.size(); i++)
     {
-      //std::cerr << "sol[" << i+1 << "] ->" << PDE2MeshNode_[i] << " , value: " << PDESol[i] << std::endl;
-      MeshSol[PDE2MeshNode_[i] - 1] = PDESol[i];
+      node = PDE2MeshNode_[i];
+      idx  = dofspernode_*(node-1);
+      for (Integer j=0;j<dofspernode_; j++)
+	{
+	  MeshSol[idx+j] = PDESol[k];
+	  k++;
+	}
     }
 }
 

@@ -65,7 +65,7 @@ void BaseFE :: GetGlobDerivShFnc(Matrix<Double> & Deriv,
 #endif
 
 
-  Deriv.Resize(Dim_,Dim_);
+  //  Deriv.Resize(NumNodes_,Dim_);
   Matrix<Double> LDeriv, JInv;
 
   CalcLocalDerivShapeFnc(LDeriv, LCoord);
@@ -84,7 +84,7 @@ void BaseFE :: GetGlobDerivShFncAtIp(Matrix<Double> & Deriv,
   (*trace) << "entering BaseFE::GetGlobDerivShFncAtIp" << std::endl;
 #endif
 
-  Deriv.Resize(Dim_,Dim_);
+  //  Deriv.Resize(NumNodes_,Dim_);
   Matrix<Double> JInv;
 
   CalcInvJacobianAtIp(JInv, ip, CornerCoords);
@@ -105,7 +105,7 @@ void BaseFE :: GetGlobDerivShFncAtIp(Matrix<Double> & Deriv,
   (*trace) << "entering BaseFE::GetGlobDerivShFncAtIp" << std::endl;
 #endif
 
-  Deriv.Resize(Dim_,Dim_);
+  //  Deriv.Resize(NumNodes_,Dim_);
   Matrix<Double> JInv;
 
   CalcInvJacobianAtIp(JInv, ip, CornerCoords);
@@ -122,7 +122,7 @@ void BaseFE :: CalcJacobian(Matrix<Double> & J,
 #ifdef TRACE
   (*trace) << "entering BaseFE::CalcJacobian" << std::endl;
 #endif
-  J.Resize(Dim_,Dim_);
+  //  J.Resize(Dim_,Dim_);
 
   Matrix<Double> LDeriv;
 
@@ -139,7 +139,7 @@ void BaseFE :: CalcJacobianAtIp(Matrix<Double> & J,
   (*trace) << "entering BaseFE::CalcJacobianAtIp" << std::endl;
 #endif
 
-  J.Resize(Dim_,Dim_);
+  //  J.Resize(Dim_,Dim_);
 
   J = CornerCoords * ShFncDerivAtIp_[ip-1];
 }
@@ -187,7 +187,7 @@ void BaseFE :: CalcInvJacobian(Matrix<Double> & JInv,
   
   Matrix<Double> J, LDeriv;
 
-  J.Resize(Dim_,Dim_);
+  //  J.Resize(Dim_,Dim_);
 
   CalcLocalDerivShapeFnc(LDeriv, LCoord);
 
@@ -211,7 +211,7 @@ void BaseFE :: CalcInvJacobianAtIp(Matrix<Double> & JInv,
   Double detJ, aux;
   Matrix<Double> J;
 
-  J.Resize(Dim_,Dim_);
+  //  J.Resize(Dim_,Dim_);
 
   J = CornerCoords * ShFncDerivAtIp_[ip-1];
 

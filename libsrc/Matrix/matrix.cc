@@ -69,8 +69,11 @@ Matrix<TYPE>::Matrix (const Matrix<TYPE> &x)
 	row = x.row;
 	col = x.col;
         
-        if (!p) { delete p[0];
-                  delete [] p; }
+//         if (p) 
+// 	  { 
+// 	    	    delete p[0];
+// 	    	    delete [] p; 
+// 	  }
 
 	p = new TYPE * [row];
 	if (!p) Error("out of memory", __FILE__, __LINE__);
