@@ -49,7 +49,7 @@ void StaticDriver :: SolveProblem()
       exit(0);
     }
 
-  Integer nstep = 1;
+  const Integer nstep = 1;
   Double  steptime = 0;
   Boolean reset = FALSE;
   
