@@ -113,6 +113,7 @@ namespace CoupledField
     Integer highestAssumableNrOfMeasData=20;
 
     parameter.Resize(10);
+    whichParameterToUpdate.Resize(10);
     parameterIncrement.Resize(10);
     parameterIncrement = parameter;
     omegas.Resize(highestAssumableNrOfMeasData);
@@ -197,9 +198,17 @@ namespace CoupledField
     overall_res0.Resize(2*nrMeasuredData);
     parameter_new.Resize(nrParameter);
 
-    // If we donnot want to consider the mechanical deformation ...
 
+    // ~~~~~~~~~~~~~ modificate the algorithm ~~~~~~~~~~~~~~~
+
+    // If we donnot want to consider the mechanical deformation ...
     considerMechDeformation=FALSE;
+    // calculates and determines the ImpedanceCurve before and after identification
+
+    sign=-1.0;
+
+    // ~~~~~~~~~~ end of modification part  ~~~~~~~~~~~~~~
+
 
     if (considerMechDeformation==FALSE){
       y_hat.Resize(nrMeasuredData);
@@ -215,17 +224,24 @@ namespace CoupledField
     }
 
     // <<<<<<<<<<<<<< for a hopefully nice imped curve <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-    //  Integer nrfreq=100;
-//      freqs.Resize(nrfreq);
-//      Double startfreq=2.0e+06;
-//      Double stopfreq=6.0e+06;
-//      Double freqincr=(stopfreq-startfreq)/nrfreq;
-//      for(Integer i=0;i<nrfreq;i++){
-//        startfreq+=freqincr;
-//        freqs[i]=startfreq;
-//      }
-//     calcImpedanceCurve();
-    // if we have this passage, then the rest will "segfaulten" so ...
+
+
+     
+    if (CalcImpedanceCurve == 1){
+      Vector<Double> freqsTemp = freqs;
+      Integer nrfreq=100;
+      freqs.Resize(nrfreq);
+      Double startfreq=2.0e+06;
+      Double stopfreq=6.0e+06;
+      Double freqincr=(stopfreq-startfreq)/nrfreq;
+      for(Integer i=0;i<nrfreq;i++){
+	startfreq+=freqincr;
+	freqs[i]=startfreq;
+      }
+      calcImpedanceCurve();
+      freqs = freqsTemp;
+    }
+   
 
     // <<<<<<<<<<<<<<<<<<<<<<<< now we have it ... <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
@@ -327,7 +343,7 @@ namespace CoupledField
     //  NewtonCG();
     //         NewtonCG2();
       NewtonCG3();
-    //      tichonov();
+    //    tichonov();
     //   NewtonLandweber();
     //  createF(ptMaterial, ptBCs, F_hat); // calculates only forward problems over all omegas
 
@@ -338,6 +354,25 @@ namespace CoupledField
 
     for (int i=0;i<parameter.GetSize();i++)
       std::cout<<"par[" << i<<"]="<< parameter[i]<<";\n";
+
+
+// <<<<<<<<<<<<<< for a hopefully nice imped curve after identification !! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+     
+    if (CalcImpedanceCurve == 1){
+      updateMaterialData(parameter,ptMaterial);
+      Integer nrfreq=100;
+      freqs.Resize(nrfreq);
+      Double startfreq=2.0e+06;
+      Double stopfreq=6.0e+06;
+      Double freqincr=(stopfreq-startfreq)/nrfreq;
+      for(Integer i=0;i<nrfreq;i++){
+	startfreq+=freqincr;
+	freqs[i]=startfreq;
+      }
+      calcImpedanceCurve();
+    }
+
    
   }// End solveProblem
 
@@ -345,6 +380,21 @@ namespace CoupledField
 
   // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXxx - now some methods are following ...
 
+
+
+//   void piezoParamIdent::calcAbsImped(Complex & charge, Double & freq, Integer & fstep){
+//     Double imped, phase;
+//     Complex impedC;
+
+//     if (!impedCurve)
+//       std::cerr<<"Error opening 'ImpedCurve.dat' "<<std::endl;
+//     Complex im=Complex(0.0,1);
+//     impedC=voltage/(charge*2.0*PI*freq*im);
+//     imped = std::abs(voltage/(charge*2.0*PI*freq*im)); phase = -90 - 180.0/PI*(std::arg(charge));
+//     std::cout <<"Impedanz: "<< impedC << "; Frequenz: " << freq <<"; Phase: "<< phase << std::endl;
+//     *impedCurve <<"\n" << freq << "  " << impedC.real()<<"  " << impedC.imag() << imped << "   " << phase << std::endl;
+
+//   }  // end calcAbsImped 
 
 
   void piezoParamIdent::calcAbsImped(Complex & charge, Double & freq, Integer & fstep){
@@ -355,12 +405,30 @@ namespace CoupledField
       std::cerr<<"Error opening 'ImpedCurve.dat' "<<std::endl;
     Complex im=Complex(0.0,1);
     impedC=voltage/(charge*2.0*PI*freq*im);
-    imped = std::abs(voltage/(charge*2.0*PI*freq*im)); phase = -90 - 180.0/PI*(std::arg(charge));
-    std::cout <<"Impedanz: "<< impedC << "; Frequenz: " << freq <<"; Phase: "<< phase << std::endl;
-    *impedCurve <<"\n" << freq << "  " << impedC.real()<<"  " << impedC.imag() << imped << "   " << phase << std::endl;
+    // We need the following line for a comparison with CAPA
+    //    imped = std::abs(voltage/(charge*2.0*PI*freq*im)); phase = -90 - 180.0/PI*(std::arg(charge));
+    // This line makes sense in this routine!
+
+        imped = std::abs(voltage/(charge*2.0*PI*freq*im));
+	phase = 180/PI*(std::arg(impedC));
+
+	std::cout <<"Frequency: "<< freq << ", |Z|: "<< std::abs(impedC) << "; Phase: "<< phase << std::endl;
+
+	*impedCurve <<"\n" << freq << "  " << impedC.real()<<"  " << impedC.imag() << imped << "   " << phase << std::endl;
 
   }  // end calcAbsImped 
 
+  /*  void piezoParamIdent::norm(Vector<Complex> &  vec, Double & norm, Double & 2ndNorm,Double & q_meas){
+
+    switch (whichNorm)
+
+     case l:
+  norm = a2norm(vec);
+    break;
+  case w:
+    maxAndWeightedResNorm(vec,maxNorm,wNorm, q_meas)
+  */
+  
 
   Double piezoParamIdent::calcEuclidianMatrixNorm(Matrix<Complex> & mat){
     ENTER_FCN("piezoParamIdent::calcEuclidianMatrixNorm");
@@ -373,6 +441,44 @@ namespace CoupledField
     return norm;
 
   } // end calcEuclidianMatrixNorm
+
+  void piezoParamIdent::maxAndEuclNorm(Vector<Complex> & vec, Double & maxNorm, Double & euclNorm){
+    ENTER_FCN("piezoParamIdent::maxAndEuclNorm");
+    Double maxNormTemp = 0.0;
+    maxNorm=0.0;
+    euclNorm=0.0;
+
+    for (Integer i=0;i<vec.GetSize();i++){
+      maxNormTemp=std::abs(vec[i]);
+      euclNorm += maxNormTemp*maxNormTemp;
+      if (maxNormTemp>maxNorm)
+	maxNorm=maxNormTemp;
+    }
+    //    euclNorm=std::sqrt(euclNorm);
+
+  } // end maxAndEuclNorm
+
+
+  void piezoParamIdent::maxAndWeightedResNorm(Vector<Complex> & vec, Double & maxNorm, Double & wNorm, Vector<Complex> & q_meas){
+    ENTER_FCN("piezoParamIdent::maxAndWeightedResNorm");
+    Double maxNormTemp = 0.0;
+    maxNorm=0.0;
+    wNorm=0.0;
+    Double Denominator=0.0;
+
+    for (Integer i=0;i<vec.GetSize();i++){
+      maxNormTemp=std::abs(vec[i]);
+      Denominator = std::abs(q_meas[i])*std::abs(q_meas[i]);
+      wNorm = wNorm+((1.0/Denominator)*vec[i]*vec[i]).real();
+
+      if (maxNormTemp>maxNorm)
+	maxNorm=maxNormTemp;
+    }
+    std::cout<<"\n WeightedResNorm = " << wNorm<< std::endl;
+    //wNorm=std::sqrt(wNorm);
+
+  } // end maxAndWeightedNorm
+
 
 
   void piezoParamIdent::calcNorm2Resid(Vector<Complex> &res, Double & anorm, Integer nrMeasuredData){
@@ -449,7 +555,7 @@ namespace CoupledField
     Double result=0.0; //Complex(0.0,0.0);
     //      Double real_result;
     for(int i=0;i<vec.GetSize();i++)
-      result+=POW(vec[i],2);
+      result+=std::abs(vec[i])*std::abs(vec[i]);
     result=sqrt(result);
     return result;
   }
@@ -542,8 +648,8 @@ namespace CoupledField
     for(int i=0;i<solElecPot.GetSize();i++){
       //      sol_real=solElecPot[i].real();
       //      sol_imag=solElecPot[i].imag();
-      //      std::cout << "solElecPot( " << i<< ")=" << sol_real << " + " << sol_imag <<" i " <<std::endl;
-      std::cout<<"ElecPot: Amplitude ("<< i <<") = "<< std::abs(solElecPot[i])<< ";  Phase ("<< i <<") = "<< std::arg(solElecPot[i])*180/PI<<std::endl;
+      //   std::cout << "solElecPot("<< i<< ")=" << sol_real << " + " << sol_imag <<" i " <<std::endl;
+            std::cout<<"ElecPot: Amplitude ("<< i <<") = "<< std::abs(solElecPot[i])<< ";  Phase ("<< i <<") = "<< std::arg(solElecPot[i])*180/PI<<std::endl;
     }
     for(int i=0;i<solMechDispl.GetSize();i++){
       sol_real=solMechDispl[i].real();
@@ -660,6 +766,23 @@ namespace CoupledField
 	  }
 	}
       }
+      else if (mDataRow[0]=='P'){
+	i=2; k=0; j=0;
+	while(mDataRow){
+	  if (mDataRow[i]=='/')
+	    break;
+	  if(mDataRow[i]!=','){
+	    helpChar[k]=mDataRow[i];
+	    k++; i++;
+	  }
+	  else{
+	     whichParameterToUpdate[j]=atoi(helpChar);
+	    for(int l=0;l<=k;l++)
+	      helpChar[l]=0;
+	    j++; i++; k=0;
+	  }
+	}
+      }
       else if (mDataRow[0]=='5'){
 	i=2; k=0;
 	while(mDataRow){
@@ -681,6 +804,42 @@ namespace CoupledField
 	  k++; i++;
 	}
 	thickness=atof(helpChar);
+	for (int l=0;l<=k;l++)
+	  helpChar[l]=0;
+      }
+      else if (mDataRow[0]=='I'){
+	i=2; k=0;
+	while(mDataRow){
+	  if (mDataRow[i]=='/')
+	    break;
+	  helpChar[k]=mDataRow[i];
+	  k++; i++;
+	}
+	CalcImpedanceCurve=atoi(helpChar);
+	for (int l=0;l<=k;l++)
+	  helpChar[l]=0;
+      }
+      else if (mDataRow[0]=='C'){
+	i=2; k=0;
+	while(mDataRow){
+	  if (mDataRow[i]=='/')
+	    break;
+	  helpChar[k]=mDataRow[i];
+	  k++; i++;
+	}
+	maxNumberInnerLoops=atoi(helpChar); 
+	for (int l=0;l<=k;l++)
+	  helpChar[l]=0;
+      }
+      else if (mDataRow[0]=='N'){
+	i=2; k=0;
+	while(mDataRow){
+	  if (mDataRow[i]=='/')
+	    break;
+	  helpChar[k]=mDataRow[i];
+	  k++; i++;
+	}
+	maxNumberNewtonLoops=atoi(helpChar); 
 	for (int l=0;l<=k;l++)
 	  helpChar[l]=0;
       }
@@ -749,9 +908,20 @@ namespace CoupledField
 //     tags.Init("anyTag");
     //ptDomain->InitPDEs(pdeNames,1,tags);
 
-
-
   } // end updateMaterialData
+
+
+  void piezoParamIdent::setNewParameterSet(Vector<Double> & parameter,Vector<Double> &  parameter_new,Vector<Double> & scaling,Double & theta,Vector<Complex> & step, Vector<Integer> & whichParameterToUpdate){
+
+    for (Integer i=0;i<nrParameter;i++){
+      std::cout<<whichParameterToUpdate[i]<<", ";
+      if (whichParameterToUpdate[i]==1)
+	parameter_new[i]=parameter[i]+(1.0/scaling[i])*theta*step[i].real(); 
+    }
+    std::cout<<"\n-----------------------------"<<std::endl;
+
+
+  } // end setNewParameterSet
 
 
 } // end namespace CoupledField

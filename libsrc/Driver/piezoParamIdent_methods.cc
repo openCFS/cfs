@@ -58,19 +58,44 @@ namespace CoupledField
   // ========================= piezoParamIdent - Part ===========================
   // ========================================================================
 
+//   void piezoParamIdent::calc_measuredCharge(Vector<Double> freqs, Vector<Double> & absZ, Vector<Double> & phi, Vector<Complex> & y_hat){
+//     ENTER_FCN("piezoParamIdent::calc_measuredCharge");
+//     Complex Z,j;
+//     Double x, y;
+//     j=Complex(0,1);
+//     for (int i=0; i<nrMeasuredData; i++){
+//       x=absZ[i]*cos(phi[i]);
+//       y=absZ[i]*sin(phi[i]);
+//       Z=Complex(x,y);
+//       y_hat[i]=voltage/(2.0*PI*Z*freqs[i]*j);
+//       //      y_hat[i]=voltage/(Z*freqs[i]*j);
+//       std::cout<<i<<") = " << phi[i] << ",\t "<< freqs[i] <<",\t q = y_hat = " << y_hat[i]<<",\t Z= " << Z << std::endl;
+//     }
+//   }// end calc_measuredCharge()
+
+
   void piezoParamIdent::calc_measuredCharge(Vector<Double> freqs, Vector<Double> & absZ, Vector<Double> & phi, Vector<Complex> & y_hat){
     ENTER_FCN("piezoParamIdent::calc_measuredCharge");
     Complex Z,j;
     Double x, y;
     j=Complex(0,1);
+    Double phase;
     for (int i=0; i<nrMeasuredData; i++){
-      x=absZ[i]*cos(phi[i]);
-      y=absZ[i]*sin(phi[i]);
+      x=absZ[i]*cos(PI/180*phi[i]);
+      y=absZ[i]*sin(PI/180*phi[i]);
       Z=Complex(x,y);
-      y_hat[i]=voltage/(2.0*PI*Z*freqs[i]*j);
+      phase = 180.0/PI*std::arg(Z);
+    
+	y_hat[i]=sign*voltage/(2.0*PI*Z*freqs[i]*j);
       //      y_hat[i]=voltage/(Z*freqs[i]*j);
-      std::cout<<i<<") = " << phi[i] << ",\t "<< freqs[i] <<",\t q = y_hat = " << y_hat[i]<<",\t Z= " << Z << std::endl;
-    }
+
+	std::cout<<"\n Frequenz; " << freqs[i] << ", messZ: " << absZ[i] << ", phase: " << phi[i] << std::endl;
+	std::cout<<" Frequenz; " << freqs[i] << ", calcZ: " << std::abs(Z) << ", phase: " << phase << std::endl << std::endl;
+     
+      //      std::cout<<i<<") = " << phi[i] << ",\t "<< freqs[i] <<",\t q = y_hat = " << y_hat[i]<<",\t Z= " << Z << " phase " << phase << std::endl;
+      }
+    
+
   }// end calc_measuredCharge()
 
 
@@ -355,7 +380,7 @@ namespace CoupledField
 	  charge+=chargeVec[i];
 	}
 	//	calcAbsImped(charge, freqs[fstep], fstep);   // calculates |Z| and writes results in File
-	charge=-charge/Complex(chargeVec.GetSize());
+	//	charge=-charge/Complex(chargeVec.GetSize());
 
 	Double imped, phase;
 	Complex impedC;
@@ -366,7 +391,8 @@ namespace CoupledField
 	Complex im=Complex(0.0,1);
 	impedC=voltage/(charge*2.0*PI*freqs[fstep]*im);
 	imped = std::abs(voltage/(charge*2.0*PI*freqs[fstep]*im)); 
-	phase = -90 - 180.0/PI*(std::arg(charge));
+	//	phase = 180.0/PI*(std::arg(charge));
+	phase = 180.0/PI*(std::arg(impedC));
 	std::cout << fstep <<");\t Frequenz: " << freqs[fstep] << ";\t Impedanz: "<< imped << ";\t Phase: " << phase << std::endl;
 	*impedCurve <<"\n" << freqs[fstep] << " " << imped << "  " << phase << "  " << impedC.real()<<"  " << impedC.imag() << std::endl;
 
@@ -439,10 +465,10 @@ namespace CoupledField
 
 	  BaseNodeStoreSol * ptSol = pdes_[0]->getPDESolution();
 	  NodeStoreSol<Complex> * ptNodeStoreSol;
-	  ptNodeStoreSol = dynamic_cast<NodeStoreSol<Complex>*>(ptSol);
+	  ptNodeStoreSol = dynamic_cast<NodeStoreSol<Complex>*>(ptSol);	  
 
 	  if (considerMechDeformation==TRUE){
-	    // ptNodeStoreSol->GetGlobalSolVector(ELEC_POTENTIAL, solElecPot);
+	    ptNodeStoreSol->GetGlobalSolVector(ELEC_POTENTIAL, solElecPot);
 	    ptNodeStoreSol->GetGlobalSolVector(MECH_DISPLACEMENT, solMechDispl);
 	    //typeOutSolutionOnScreen(solElecPot, solMechDispl);              //member function of piezoParamIdent
 	    meanValueMechDeformation=0.0;
@@ -455,16 +481,16 @@ namespace CoupledField
 
 	  Complex charge=Complex(0.0,0.0);
 
+	   //      std::cout<<"\n Mean - Value Charge: "<< mean_value_charge << " for frequency " << freqs[fstep]<< std::endl;
+	 
 	  for (int i=0;i<chargeVec.GetSize();i++){
-	    //	std::cout<<"\n|charge("<<i<<")|= "<<std::abs(chargeVec[i])<<";\t charge("<<i<<")= "<<(chargeVec[i]);
+	      //	std::cout<<"\n|charge("<<i<<")|= "<<std::abs(chargeVec[i])<<";\t charge("<<i<<")= "<<(chargeVec[i]);
 	    charge+=chargeVec[i];
 	  }
+	  F_hat[fstep]=sign*charge; 
+	 
 
-	   //      std::cout<<"\n Mean - Value Charge: "<< mean_value_charge << " for frequency " << freqs[fstep]<< std::endl;
-
-	  F_hat[fstep]=charge; 
-
-	  calcAbsImped(charge, freqs[fstep], fstep);   // calculates |Z| and writes results in File
+	  	  calcAbsImped(charge, freqs[fstep], fstep);   // calculates |Z| and writes results in File
      
 	  //      Info->PrintPiezoMat(*ptMaterial);
 	  pdes_[0]->WriteResultsInFile();     
@@ -637,8 +663,10 @@ namespace CoupledField
 	ptsol = ptAlgsys->GetSolutionVal();
 	ptSol->CopyFromAlgSysDataPointer(ptsol);
 
-	if (considerMechDeformation==TRUE){
-	  //      ptNodeStoreSol->GetGlobalSolVector(ELEC_POTENTIAL, solElecPot);
+
+
+	if (considerMechDeformation==TRUE){	  
+	  //	ptNodeStoreSol->GetGlobalSolVector(ELEC_POTENTIAL, solElecPot);
 	  ptNodeStoreSol->GetGlobalSolVector(MECH_DISPLACEMENT, solMechDispl);
 	  //	  typeOutSolutionOnScreen(solElecPot, solMechDispl);              //member function of piezoParamIdent
 	  measureMechDeformationInZ_Direction(solMechDispl,radius,meanValueMechDeformation,dofs); // Braucht üÜberarbeitung!!
@@ -649,15 +677,20 @@ namespace CoupledField
 	pdes_[0]->PostProcess(level);
         pdes_[0]->PostStepHarmonic(fstep, freqs[fstep], level, reset);
 	Vector<Complex> chargeVec =  pdes_[0]->getPDE_complexValuedCharge();
+
 	Complex charge=Complex(0.0,0.0);
 
-	for (int i=0; i<chargeVec.GetSize();i++)
+
+	for (int i=0; i<chargeVec.GetSize();i++){
 	  charge=charge+chargeVec[i];
+
+	}
        
 	//	mean_value_charge = mean_value_charge/(Double(chargeVec.GetSize()));
 	//	std::cout<<"\nCHARGE VEC SIZE = "<< chargeVec.GetSize()<<"mean-value-charge = " << mean_value_charge << std::endl;
 
-	JacobiMatrix[fstep][ind_param]=-charge; //pdes_[0]->getPDE_complexValuedCharge();    
+	  JacobiMatrix[fstep][ind_param]=sign*charge; //pdes_[0]->getPDE_complexValuedCharge();    
+
 
 	//   Info->PrintPiezoMat(*ptMaterial);
 	//     pdes_[0]->WriteResultsInFile();     
@@ -743,8 +776,13 @@ namespace CoupledField
 
       // ~~~~~~~~~~~~~~~~~~~~~  second strategy ~~~~~~~~~~~~~~~~~~~~~~~~~
       //              dparameter[ind_param]=1.2/scaling[ind_param];
-      
-     dparameter[ind_param]=1.2/scaling[ind_param]*bas[ind_param]; // 1.0/scaling[ind_param];
+      // diese Zeile funzt!!      
+      //     dparameter[ind_param]=1.3/scaling[ind_param]*bas[ind_param]; // 1.0/scaling[ind_param];
+
+      //andere Versuche:
+      dparameter[ind_param]=1.3/scaling[ind_param]*bas[ind_param]; // 1.0/scaling[ind_param];
+
+
       
      if (ind_param>0)
       	dparameter[ind_param-1]=0.0; 
@@ -961,7 +999,7 @@ namespace CoupledField
 	//	mean_value_charge = mean_value_charge/(Double(chargeVec.GetSize()));
 	//	std::cout<<"\nCHARGE VEC SIZE = "<< chargeVec.GetSize()<<"mean-value-charge = " << mean_value_charge << std::endl;
 
-	JacobiMatrix[fstep][ind_param]=charge; //pdes_[0]->getPDE_complexValuedCharge();    
+	JacobiMatrix[fstep][ind_param]=sign*charge; //pdes_[0]->getPDE_complexValuedCharge();    
 
 	//   Info->PrintPiezoMat(*ptMaterial);
 	//     pdes_[0]->WriteResultsInFile();     
