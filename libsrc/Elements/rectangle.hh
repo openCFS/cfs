@@ -2,6 +2,7 @@
 #define FILE_RECTANGLE_2002
 
 #include "baseelem.hh"
+#include "jacobian.hh"
 
 namespace CoupledField
 {
