@@ -41,6 +41,7 @@
           <area>  1 </area>
           <value> 1 </value>
           <dynamics/>
+          <phase/>
           <id>    1 </id>
         </currentCoil2d>
       </coils>
