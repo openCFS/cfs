@@ -643,6 +643,8 @@ libsrc/Domain/Gridlib/Makefile -text
 libsrc/Domain/Gridlib/interface_gridlib.cc svneol=native#text/plain
 libsrc/Domain/Gridlib/interface_gridlib.hh svneol=native#text/plain
 libsrc/Domain/Makefile -text
+libsrc/Domain/NetGen/interface_netgen.cc svneol=native#text/plain
+libsrc/Domain/NetGen/interface_netgen.hh svneol=native#text/plain
 libsrc/Domain/bcs.cc svneol=native#text/plain
 libsrc/Domain/bcs.hh svneol=native#text/plain
 libsrc/Domain/boundcond.cc svneol=native#text/plain
