@@ -141,8 +141,8 @@ namespace CoupledField
 
     // ptAssemble->InitMatrices();
    
-    updateMaterialData(parameter,ptMaterial);
-    updateComplexMaterialData(parameterC,ptMaterial);
+    // updateMaterialData(parameter,ptMaterial);
+    // updateComplexMaterialData(parameterC,ptMaterial);
 
     //    ptMaterial->RotateMaterialMatrix(1,0,1);
 
@@ -156,7 +156,7 @@ namespace CoupledField
       // harmonic solver for different frequency - values
       if (pdes_.GetSize() <= 1) {
 
-	Info->WriteHarmonicStep(pdes_[0]->GetName(), fstep, freqs[fstep]);
+	//	Info->WriteHarmonicStep(pdes_[0]->GetName(), fstep, freqs[fstep]);
     
       ////////////////////////////////////////////////////////
       //                   SOLVES PDE                      //
@@ -236,13 +236,11 @@ namespace CoupledField
     ptAssemble->InitMatrices();
     ptAlgsys->InitRHS();
 
-
-    //  pdes_[0]->DefineIntegratorsWithMatInfo(level,ptMaterial); // deletes all Integrators and creates new ones with Material in ptMaterial
     ptAssemble->InitMatrices();
     ptAlgsys->InitRHS();
       
-    //  updateMaterialData(parameter,ptMaterial);
-    //  updateComplexMaterialData(parameterC,ptMaterial);
+      updateMaterialData(parameter,ptMaterial);
+      updateComplexMaterialData(parameterC,ptMaterial);
 
 
     Boolean aTime=TRUE;

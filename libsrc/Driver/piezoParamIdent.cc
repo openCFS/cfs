@@ -154,7 +154,7 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
     // std::cout<<whichParameterToUpdate<<std::endl;
 
     // std::cout<<"\n oben wichParToUp ... unten whichParToUpC"<<std::endl;
-    //std::cout<<whichParameterToUpdateC<<std::endl;
+    std::cout<<whichParameterToUpdateC<<std::endl;
     // real - entspricht |Z|, Betrag der Impedanz
     // imag - entspricht \phi, gemessener Phasenwinkel
 
@@ -197,7 +197,7 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
  	actNrParameterC++;
    
     whichParToUpInd.Resize(actNrParameter);
-    if (whichNewtonCG==4)
+    if (whichNewtonCG==4||whichNewtonCG==6)
       whichParToUpIndC.Resize(actNrParameterC);
 
     Integer intTemp=0;
@@ -420,9 +420,12 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
     scaling[7]=1.0/((*matMat)[8][2]);
     scaling[8]=1.0/((*matMat)[6][6]); 
     scaling[9]=1.0/((*matMat)[8][8]);
-    Vector<Double> c33history(151);
-    Vector<Double> e33history(151);
-    Vector<Double> eps33history(151);
+    Vector<Double> c33history(500);
+    Vector<Double> e33history(500);
+    Vector<Double> eps33history(500);
+    Vector<Double> c33historyC(500);
+    Vector<Double> e33historyC(500);
+    Vector<Double> eps33historyC(500);
 
 
     // if we do not wanna scale ..
@@ -449,13 +452,20 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
     }
     else if (whichNewtonCG==4){
       Integer nNewtonCG =0;
-      while (nNewtonCG<10){
-	 c33history[nNewtonCG] = parameterC[1];
-	 e33history[nNewtonCG] = parameterC[7];
-	 eps33history[nNewtonCG] = parameterC[9];
+      while (nNewtonCG<200){
+	c33history[nNewtonCG] = parameter[1];
+ 	e33history[nNewtonCG] = parameter[7];
+ 	eps33history[nNewtonCG] = parameter[9];
+	c33historyC[nNewtonCG] = parameterC[1];
+	e33historyC[nNewtonCG] = parameterC[7];
+	eps33historyC[nNewtonCG] = parameterC[9];
 	 std::cout<<"\n Nr: "<< nNewtonCG << ", start next NewtonCG Iteration?"<<std::endl;
 	//	getchar();
-	 *parLog <<nNewtonCG <<"  "<< c33history[nNewtonCG]<<"  " <<e33history[nNewtonCG]<<"   " <<eps33history[nNewtonCG]<<"  " << finalnorm<<std::endl;
+	  *parLog <<nNewtonCG <<"  "<< c33history[nNewtonCG]<<"  " << 
+	    e33history[nNewtonCG]<<"   " <<eps33history[nNewtonCG] 
+		<<"  "<< c33historyC[nNewtonCG]<<"  " <<
+	  e33historyC[nNewtonCG]<<"   " <<eps33historyC[nNewtonCG]<<std::endl;
+
          NewtonCG4();
 	 nNewtonCG++;
       }
@@ -475,7 +485,43 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
     }
   }
 
-    else if (whichNewtonCG==6)
+    else if (whichNewtonCG==6){
+      Integer nrNewtonLandweber=0;
+      while (nrNewtonLandweber<maxNumberNewtonLoops){
+	std::cout<<"\n Nr: "<< nrNewtonLandweber << ", start next Newton Landweber?"<<std::endl;
+ 	c33history[nrNewtonLandweber] = parameter[1];
+ 	e33history[nrNewtonLandweber] = parameter[7];
+ 	eps33history[nrNewtonLandweber] = parameter[9];
+ 	c33historyC[nrNewtonLandweber] = parameterC[1];
+ 	e33historyC[nrNewtonLandweber] = parameterC[7];
+ 	eps33historyC[nrNewtonLandweber] = parameterC[9];
+// 	//getchar();
+ 	*parLog <<nrNewtonLandweber <<"  "<< c33history[nrNewtonLandweber]<<"  " <<
+	  e33history[nrNewtonLandweber]<<"   " <<eps33history[nrNewtonLandweber] 
+		<<"  "<< c33historyC[nrNewtonLandweber]<<"  " <<
+	  e33historyC[nrNewtonLandweber]<<"   " <<eps33historyC[nrNewtonLandweber]<<std::endl;
+	NewtonLandweberC();
+	nrNewtonLandweber++;
+
+    }
+  }
+
+    else if (whichNewtonCG==7){
+      Integer nrNuMethods=0;
+      while (nrNuMethods<maxNumberNewtonLoops){
+	std::cout<<"\n Nr: "<< nrNuMethods << ", start next Newton NuMethod?"<<std::endl;
+	c33history[nrNuMethods] = parameter[1];
+	e33history[nrNuMethods] = parameter[7];
+	eps33history[nrNuMethods] = parameter[9];
+	//getchar();
+	*parLog <<nrNuMethods <<"  "<< c33history[nrNuMethods]<<"  " <<e33history[nrNuMethods]<<"   " <<eps33history[nrNuMethods]<<std::endl;
+	nuMethods();
+	nrNuMethods++;
+
+    }
+  }
+
+    else if (whichNewtonCG==8)
       tichonov();
     else
       std::cout<<"\n There was no valid NewtonCG method specified - see in your measuredData.dat -file "<<std::endl;

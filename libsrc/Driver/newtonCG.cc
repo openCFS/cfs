@@ -127,7 +127,8 @@ namespace CoupledField
 
   
     // NEWTON ITERATION -- outer Loop!!
-    while((aval>tau*delta||nrNewtonIterations<maxNumberNewtonLoops)&&nrNewtonIterations<maxNumberNewtonLoops){ // Newton
+     while((aval>tau*delta||nrNewtonIterations<maxNumberNewtonLoops)&&nrNewtonIterations<maxNumberNewtonLoops){ // Newton
+       //while(nrNewtonIterations<2){ // Newton
       *piezoLog << "\n Newton-Iteration: " << nrNewtonIterations <<std::endl;
       *piezoLog <<"------------------------"<<std::endl;
       //      std::cout<<"\n Newton-Iteration "<< nrNewtonIterations <<std::endl;
