@@ -10,7 +10,7 @@
 
 #include "outGSI.hh"
 
-#include "GSIBaseIO.h
+#include "GSIBaseIO.hh"
 #include "GSIRawIO.hh"
 #include "GSIXDRIO.hh"
 #include "GSIIOException.hh"
