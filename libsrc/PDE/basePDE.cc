@@ -111,6 +111,7 @@ namespace CoupledField {
     for ( Integer k = 0; k < subdoms_.GetSize(); k++ ) {
       Info->PrintF( pdename_, " %s, index %d\n", subdoms_[k].c_str(), k );
     }
+    Info->PrintF( "", "\n" );
 
     // Generate a fitting algebraic system
     algsys_ = new StandardSystem();
@@ -274,7 +275,7 @@ namespace CoupledField {
     eqnData_->CalcMapping();
 
     // Report results to logfile
-    Info->PrintF( pdename_, "Linear system will have %d equations\n",
+    Info->PrintF( pdename_, "Linear system will have %d equations\n\n",
                   eqnData_->GetNumEQNs() );
 
     //eqnData_->Print(*debug);
@@ -1177,7 +1178,9 @@ namespace CoupledField {
     (*cla) <<  "--- PDE: " << pdename_ << " ---" << std::endl;
 
     // Set parameters for OLAS
-    CFSOLASParams::SetParams( pdename_, params, olasParams_ );
+    std::string amExpert;
+    params->Get( "override", amExpert, "expert" );
+    CFSOLASParams::SetParams( pdename_, params, olasParams_,(amExpert=="yes"));
 
     // Set the graph type used for the system matrices
     assemble_->SetupMatrixGraph(eqnData_->GetNumEQNs());
