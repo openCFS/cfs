@@ -6,18 +6,16 @@
 namespace CoupledField
 {
 
-  // ==========================================================================
-  // =========================== linPiezoInt - Part ===========================
-  // ==========================================================================
+  // ========================================================================
+  // ========================= linPiezoInt - Part ===========================
+  // ========================================================================
  
 
   // determine the matrix B of the BDB operator
   void linPiezoInt::calcBMat( Matrix<Double> &bMat, Integer ip,
 			      Matrix<Double> &ptCoord )
   {
-#ifdef TRACE
-    (*trace) << "entering linPiezoInt::calcBMat " << std::endl;
-#endif
+    ENTER_FCN( "linPiezoInt::calcBMat" );
 
     // obtain info on problem sizes
     const Integer nrNodes  = ptelem->GetNumNodes();
@@ -79,50 +77,41 @@ namespace CoupledField
     // treat electrical part
     for( actDim = 0; actDim < spaceDim; actDim++ )
       for( actNode = 0; actNode < nrNodes; actNode++ )
-	bMat[2*spaceDim+actDim][(actNode+1)*offset-1] = xiDx[actNode][actDim];
+	bMat[2*spaceDim+actDim][(actNode+1)*offset-1] =
+	  xiDx[actNode][actDim];
 
 #ifdef DEBUG
-    (*debug) << std::endl << " Matrix bMat is " << bMat.GetSizeRow() << " x " <<
-      bMat.GetSizeCol() << std::endl;
+    (*debug) << std::endl << " Matrix bMat is " << bMat.GetSizeRow()
+	     << " x " << bMat.GetSizeCol() << std::endl;
     (*debug) << bMat << std::endl;
 #endif
 
   }
 
 
-  // ==========================================================================
-  // ========================== linPiezo3DInt - Part ==========================
-  // ==========================================================================
+  // ========================================================================
+  // ======================== linPiezo3DInt - Part ==========================
+  // ========================================================================
 
 
   // constructor
   linPiezo3DInt::linPiezo3DInt(BaseFE * aptelem, MaterialData & matData) 
     : linPiezoInt(aptelem, matData)
   {
-#ifdef TRACE
-    (*trace) << "entering linPiezo3DInt::linPiezo3DInt" << std::endl;
-#endif
+    ENTER_FCN( "linPiezo3DInt::linPiezo3DInt" );
   }
-
  
   // destructor
   linPiezo3DInt::~linPiezo3DInt()
   {
-#ifdef TRACE
-    (*trace) << "entering linPiezo3DInt::~linPiezo3DInt" << std::endl;
-#endif
+    ENTER_FCN( "linPiezo3DInt::~linPiezo3DInt" );
   }
-
 
   // determine the material matrix D containing the tensors of mechanical
   // modulus, electrical permittivity and piezoelectric coupling
   void linPiezo3DInt::calcDMat(Matrix<Double> & dMat)
   {
-
-#ifdef TRACE
-    (*trace) << "entering linPiezoInt::calcDMat " << std::endl;
-#endif
-    
+    ENTER_FCN( "linPiezoInt::calcDMat" );
 
     // get size of D and resize matrix object
     const Integer sizeofD = getDimD();

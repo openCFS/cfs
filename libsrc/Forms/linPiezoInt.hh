@@ -17,7 +17,8 @@ namespace CoupledField
   //! \f[
   //! [BDB] = \left(\begin{array}{cc} B_a & 0 \\ 0 & \tilde{B}_a \end{array}
   //! \right)^T
-  //! \left(\begin{array}{cc} c^E & e^t \\ e & \varepsilon^s \end{array}\right)
+  //! \left(\begin{array}{cc} c^E & e^t \\ e & \varepsilon^s \end{array}
+  //! \right)
   //! \left(\begin{array}{cc} B_a & 0 \\ 0 & \tilde{B}_a \end{array} \right)
   //! \enspace.
   //! \f]
@@ -34,28 +35,20 @@ namespace CoupledField
     linPiezoInt(BaseFE * aptelem, MaterialData & matData) 
       : BDBInt(aptelem, matData)
     {
-#ifdef TRACE
-      (*trace) << "entering linPiezoInt::linPiezoInt" << std::endl;
-#endif
+      ENTER_FCN( "linPiezoInt::linPiezoInt" );
     }
   
-  /// Constructor
+    //! Constructor
     linPiezoInt(MaterialData & matData)
      : BDBInt(matData)
     {
-#ifdef TRACE
-      (*trace) << "entering linPiezoInt::linPiezoInt" << std::endl;
-#endif
+      ENTER_FCN( "linPiezoInt::linPiezoInt" );
     }
   
     //! Destructor
     ~linPiezoInt()
-
-
     {
-#ifdef TRACE
-      (*trace) << "entering linPiezoInt::~linPiezoInt" << std::endl;
-#endif
+      ENTER_FCN( "linPiezoInt::~linPiezoInt" );
     };
 
   protected:
@@ -72,9 +65,11 @@ namespace CoupledField
     //! \frac{\partial N_a}{\partial x} & 0 & 0 & 0 &
     //! \frac{\partial N_a}{\partial z} & \frac{\partial N_a}{\partial y} \\
     //! 0 & \frac{\partial N_a}{\partial y} & 0 &
-    //! \frac{\partial N_a}{\partial z} & 0 & \frac{\partial N_a}{\partial x}\\
+    //! \frac{\partial N_a}{\partial z} & 0 & \frac{\partial N_a}
+    //! {\partial x}\\
     //! 0 & 0 & \frac{\partial N_a}{\partial z} &
-    //! \frac{\partial N_a}{\partial y} & \frac{\partial N_a}{\partial x} & 0\\
+    //! \frac{\partial N_a}{\partial y} & \frac{\partial N_a}{\partial x}
+    //! & 0\\
     //! \end{array}\right)^T
     //! \enspace,\quad
     //! \tilde{B }_a = \left(\begin{array}{c}
@@ -87,7 +82,8 @@ namespace CoupledField
     //! integration point ip and every FE ansatz function belonging to a node
     //! of the element. These partial matrices are appended one after another
     //! in a row-wise fashion to form the return matrix bMat.
-    void calcBMat(Matrix<Double> & bMat, Integer ip, Matrix<Double> & ptCoord);
+    void calcBMat(Matrix<Double> & bMat, Integer ip,
+		  Matrix<Double> & ptCoord);
 
   };
 
@@ -100,16 +96,12 @@ namespace CoupledField
     //! Constructor
     linPiezo3DInt(BaseFE * aptelem, MaterialData & matDat);
   
-  /// Constructor
-    linPiezo3DInt(MaterialData & matData)
-     : linPiezoInt(matData)
+    //! Constructor
+    linPiezo3DInt(MaterialData & matData) : linPiezoInt(matData)
     {
-#ifdef TRACE
-      (*trace) << "entering linPiezoInt::linPiezoInt" << std::endl;
-#endif
+      ENTER_FCN( "linPiezoInt::linPiezoInt" );
     }
   
-
     //! Destructor
     ~linPiezo3DInt();
 
@@ -117,8 +109,8 @@ namespace CoupledField
   
     //! calculate the data-matrix D.
 
-    //! The method computes the matrix D of material properties. The latter is
-    //! given by
+    //! The method computes the matrix D of material properties.
+    //! The latter is given by
     //! \f[
     //! D = \left(\begin{array}{cc} c^E & e^T \\ e & \varepsilon^s
     //! \end{array}\right)
@@ -141,6 +133,6 @@ namespace CoupledField
     //! The current return value is fixed to 4, since in 3D simulations
     //! we have three mechanical and one potential component.
     virtual Integer getNrDofs(){ return 4; };
-};
+  };
 
 }
