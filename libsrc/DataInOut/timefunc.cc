@@ -67,7 +67,6 @@ Double TimeFunc::TimeFuncAtTime(const Double time, const Integer num)
  if ( time < timeTimeFunc[num][0] )
     Error("Wrong time in TimeFuncAtTime",__FILE__,__LINE__);
  
- std::cout << " time " << time << " func time: " << timeTimeFunc[num][n-1] << std::endl;
  if (time > timeTimeFunc[num][n-1]) return 0;
  
  for (i=0; i<n; i++)
@@ -81,7 +80,6 @@ Double TimeFunc::TimeFuncAtTime(const Double time, const Integer num)
   help1=help-timeTimeFunc[num][i-1];
   help2=((help-time)/help1)*valTimeFunc[num][i-1]+
         ((time-timeTimeFunc[num][i-1])/help1)*valTimeFunc[num][i];
-  cout << " HELP2 " << help2 << endl;
   return help2;
 }
  

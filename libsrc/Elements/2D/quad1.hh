@@ -26,6 +26,9 @@ public:
   //! Return pointer to array of value shape function at integration points
   virtual Vector<Double> & GetShFncAtIP(const Integer ShFnc) ;
 
+  //! test type of element
+  virtual enum ElementType type(){ return Quadrilateral1;}
+
 protected:
 
 private:

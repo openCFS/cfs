@@ -89,5 +89,4 @@ void main(int argc, char *argv[])
     if (ptTimeFunc) delete ptTimeFunc;
     if (domain) delete domain;
     if (ptDefineFiles) delete ptDefineFiles; // it should be deleted the last
-    if (name) delete [] name;
 }

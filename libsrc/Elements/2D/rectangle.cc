@@ -28,7 +28,7 @@ Rectangle :: ~Rectangle()
   (*trace) << "entering Rectangle::~Rectangle" << std::endl;
 #endif
 
-  ;
+  if (IntWeights) delete IntWeights;
 }
 
 void Rectangle:: SetIntPoints()

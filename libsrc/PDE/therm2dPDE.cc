@@ -100,7 +100,7 @@ void Therm2dPDE::Predictor()
 
 }
 
-void Therm2dPDE::SpecifySolver(Integer &solvertype, Integer &precondtype, Double &eps, Double &dampiter,  Integer &maxnumit, Integer &numeqcoarse)
+void Therm2dPDE::SpecifySolver(Integer &solvertype, Integer &precondtype, Double &eps, Double &dampiter,  Integer &maxnumit, Integer &numeqcoarse, Double &coarsealpha)
 {
 #ifdef TRACE
   (*trace) << "entering Therm2dPDE::SpecifySolver" << std::endl;
@@ -112,7 +112,7 @@ void Therm2dPDE::SpecifySolver(Integer &solvertype, Integer &precondtype, Double
   conf->get("solvertype",solvertype,"Thermal"); // Richardson or CG
   conf->get("precondtype", precondtype, "Thermal"); //ID or MG
   conf->get("numeqcoarse",numeqcoarse,"Thermal"); // number of equation for coarsing
-
+  conf->get("coarsealpha",coarsealpha,"Thermal"); // coarsing parameter for AMG
 }
 
 void Therm2dPDE::SpecifyMatrices(Integer &matrixtype, Integer * matrixsystype, Integer &graphtype, Integer &numdofpernode, Integer &numdirichlets, Integer &numconstraints) 

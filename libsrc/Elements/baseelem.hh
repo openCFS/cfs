@@ -68,7 +68,7 @@ virtual Vector<Double> *  GetDyShFncAtIP(const Integer iShFnc)
 virtual Vector<Double> *  GetDzShFncAtIP(const Integer iShFnc) 
  { Error("Not implemented") ;}
 
-  virtual void test(){std::cout << " ok from BaseElem" << std::endl;}
+  virtual enum ElementType type(){ ;}
 
 protected:
 

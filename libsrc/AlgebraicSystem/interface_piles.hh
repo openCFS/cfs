@@ -29,7 +29,8 @@ public:
 
   //!
   virtual void SetSolverParameter(Integer nsys, Double eps, Double dampiter, Integer maxnumit,
-                                  Integer solvertype, Integer precondtype, Integer numeqcoarse)
+                                  Integer solvertype, Integer precondtype, Integer numeqcoarse,
+				  Double coarsealpha)
   {  
     nsys++;
     algsys->CreateParameter();
@@ -39,24 +40,25 @@ public:
     algsys->SetSolver(solvertype,nsys);
     algsys->SetDampIter(dampiter,nsys);
     algsys->SetCoarseSystem(numeqcoarse,nsys);
-    algsys->SetAlpha(0.01,nsys);
+    algsys->SetAlpha(coarsealpha,nsys);
   }
 
-  virtual void InitAlgSysGraph(Integer numnode, Integer matrix_row, Integer matrix_col)
+  virtual void InitAlgSysGraph(Integer numnode, Integer matrix_row, Integer matrix_col, 
+			       Integer matrix_graphtype)
   { 
     matrix_row ++;
     matrix_col ++;
     algsys->CreateGlobal2Local(numnode);
-    //    algsys->CreateGraph(numnode,1,matrix_row,matrix_col);
-    algsys->CreateGraph(numnode,matrix_row,matrix_col);
+    algsys->CreateGraph(numnode,matrix_graphtype,matrix_row,matrix_col);
   }
 
-  virtual void SetAlgSysGraph(Integer *pos, Integer elemsize, Integer matrix_row, Integer matrix_col)
+  virtual void SetAlgSysGraph(Integer *pos, Integer elemsize, Integer fe_type, Integer matrix_row, 
+			      Integer matrix_col)
   { 
     matrix_row ++;
     matrix_col ++;
     //    algsys->SetElementPos(pos,elemsize,2,matrix_row,matrix_col);
-    algsys->SetElementPos(pos,elemsize,matrix_row,matrix_col);
+    algsys->SetElementPos(pos,elemsize,fe_type,matrix_row,matrix_col);
   }
 
   virtual void CreateAlgSysMatrices(Integer matrix_row, Integer matrix_col, Integer *matrixsystype, 

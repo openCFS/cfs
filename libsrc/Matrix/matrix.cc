@@ -87,7 +87,7 @@ void Matrix<TYPE> :: Resize(const Integer irow, const Integer icol)
    
    Integer k;
 
-   if (p) {delete p[0];
+   if (p) {delete [] p[0];
            delete [] p;}
 
    row=irow; col=icol;

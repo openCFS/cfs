@@ -167,26 +167,31 @@ void Domain :: InitAlgSys(const Integer level)
   Integer precondtype;
   Integer insys;
   Integer numeqcoarse;
+  Double  coarsealpha;
 
   for (insys=0;insys<numsys_;insys++)
     {
       ptpde_[insys]->SetAlgSys_id(insys);
-      ptpde_[insys]->SpecifySolver(solvertype,precondtype,eps,dampiter,maxnumit,numeqcoarse);
-      ptalgsys_->SetSolverParameter(insys,eps,dampiter,maxnumit,solvertype,precondtype,  numeqcoarse);
+      ptpde_[insys]->SpecifySolver(solvertype,precondtype,eps,dampiter,maxnumit,numeqcoarse,coarsealpha);
+      ptalgsys_->SetSolverParameter(insys,eps,dampiter,maxnumit,solvertype,precondtype,  numeqcoarse,
+				    coarsealpha);
     }
 
   //init the algsys-graph
   Integer numnode = ptgrid_->GetMaxnumnodes(level);
   cout << "numnode:" << numnode << endl;
 
+  Integer matrix_graphtype = NODEGRAPH; //nodal graph
+
   //for each system: first diagonal blocks and then off-diagonalblocks
   for (insys=0;insys<numsys_;insys++)
    {
-     ptalgsys_->InitAlgSysGraph(numnode,insys,insys);
+     ptalgsys_->InitAlgSysGraph(numnode,insys,insys,matrix_graphtype);
    }
 
  // get the graph - connectivity matrix
   Integer nel, numelem;
+  Integer fe_type = QUAD;
   Vector<Integer> connect;
 
   numelem = ptgrid_->GetMaxnumElem(level);
@@ -196,7 +201,7 @@ void Domain :: InitAlgSys(const Integer level)
       for (nel=0; nel<numelem; nel++)
 	{
           ptgrid_->GetConnection(connect, nel, level);
-	  ptalgsys_->SetAlgSysGraph(connect.get(),connect.size(),insys,insys);
+	  ptalgsys_->SetAlgSysGraph(connect.get(),connect.size(),fe_type,insys,insys);
 	}
     }
 
@@ -215,34 +220,29 @@ void Domain :: InitAlgSys(const Integer level)
       ptalgsys_->CreateAlgSysMatrices(insys,insys,matrixsystype,matrixtype,graphtype, numdofpernode,  numdirichlets, numconstraints);
     }
 
-  ptgrid_->GetConnection(connect,14,0);
+  //  ptgrid_->GetConnection(connect,14,0);
 
-  for (insys=0;insys<numsys_;insys++)
-    {
-      for (nel=0; nel<numelem; nel++)
-	{
-          ptgrid_->GetConnection(connect, nel, level);
-		}
+  for (insys=0;insys<numsys_;insys++) {
+    for (nel=0; nel<numelem; nel++) {
+      ptgrid_->GetConnection(connect, nel, level);
     }
+  }
 
   //now reset AlgebraicSystem 
   //matrix_id = 1: system matrix
   Integer matrix_id = 1;
-  for (insys=0;insys<numsys_;insys++)
-    {
-      ptalgsys_->ResetAlgSys(insys,insys,matrix_id);
-    }
+  for (insys=0;insys<numsys_;insys++) {
+    ptalgsys_->ResetAlgSys(insys,insys,matrix_id);
+  }
 
-  for (insys=0;insys<numsys_;insys++)
-    {
-      for (nel=0; nel<numelem; nel++)
-	{
-          ptgrid_->GetConnection(connect, nel, level);
-		}
+  for (insys=0;insys<numsys_;insys++) {
+    for (nel=0; nel<numelem; nel++) {
+      ptgrid_->GetConnection(connect, nel, level);
     }
+  }
 
 #ifdef TRACE
-  (*trace) << "leaving Domain::IniAlgSys" << std::endl;
+  (*trace) << "leaving Domain::InitAlgSys" << std::endl;
 #endif
 }
 
@@ -286,11 +286,11 @@ void Domain::UpdateAlgSys(const Integer level)
   newlevel ++;
   delete ptalgsys_;
 
-  AbstractAlgebraicSys * ptAS[1000];
-  ptAS[newlevel] = new AlgSysPILES();
-  cerr << "ALGSYS_AD:" << ptalgsys_ << endl;
-  //  ptalgsys_=ptAS[newlevel]; 
-  ptalgsys_=new AlgSysPILES();
+//   AbstractAlgebraicSys * ptAS[1000];
+//   ptAS[newlevel] = new AlgSysPILES();
+//   cerr << "ALGSYS_AD:" << ptalgsys_ << endl;
+//   ptalgsys_=ptAS[newlevel]; 
+   ptalgsys_=new AlgSysPILES();
  if (!ptalgsys_) Error("Can't allocate memory for algebraic system Piles");
 
   for (int i=0;i< numpde_;i++) {

@@ -136,7 +136,6 @@ public:
 private:
  
   SpaceErrorEstimator * ptError_;
-
 };
 
 class SetRefFlagTest
@@ -152,7 +151,6 @@ public:
    t->markForRefinement();
  }
 #endif
-
 };
 
 

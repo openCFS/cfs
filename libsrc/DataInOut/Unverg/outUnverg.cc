@@ -165,8 +165,8 @@ void  WriteResultsUnverg::Dataset780(const Integer level)
 void  WriteResultsUnverg::Dataset55(const std::string & title, const Vector<Double> & x, const Integer step, const Double time)
 {
   //
- if (!ptgrid)
-    Error("ptgrid is not initialized", __FILE__,__LINE__);
+  if (!ptgrid)
+     Error("ptgrid is not initialized", __FILE__,__LINE__);
 
  (*output) << std::setw(6) << -1 << std::endl << std::setw(6) << 55 << std::endl;
 

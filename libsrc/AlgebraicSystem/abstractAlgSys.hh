@@ -34,7 +34,8 @@ public:
     \param numeqcoarse number of equations for coarse algebraic system (when using AMG)
   */
   virtual void SetSolverParameter(Integer nsys, Double eps, Double dampiter, Integer maxnumit,
-                                  Integer solvertype, Integer precondtype, Integer numeqcoarse)=0;
+                                  Integer solvertype, Integer precondtype, Integer numeqcoarse,
+				  Double coarsealpha)=0;
 
   //! Initialize the graph of the nodal (edge) mesh
   /*!
@@ -42,7 +43,8 @@ public:
     \param matrix_row  row index in block structure
     \param matrix_col column index in block structure
   */
-  virtual void InitAlgSysGraph(Integer numelements, Integer matrix_row, Integer matrix_col)=0;
+  virtual void InitAlgSysGraph(Integer numelements, Integer matrix_row, Integer matrix_col,
+			       Integer matrix_gaphtype)=0;
 
   //! Set up the graph of the nodal (edge) mesh
   /*!
@@ -51,7 +53,8 @@ public:
     \param matrix_row  row index in block structure
     \param matrix_col column index in block structure
   */
-  virtual void SetAlgSysGraph(Integer *pos, Integer elemsize, Integer matrix_row, Integer matrix_col)=0;
+  virtual void SetAlgSysGraph(Integer *pos, Integer elemsize, Integer fe_type, Integer matrix_row, 
+			      Integer matrix_col)=0;
 
   //! Creates all matrices for the algebraic system
   /*!
