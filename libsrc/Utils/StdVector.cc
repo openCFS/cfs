@@ -80,11 +80,11 @@ void StdVector<TYPE>::Init(const TYPE entry)
 {
   ENTER_IFCN( "StdVector::Init" );
 
-#ifdef CHECK_INITIALIZED
-  if (size_ == 0) 
-    Warning("Don't use Init() to undefined vector", 
-	    __FILE__, __LINE__);
-#endif
+// #ifdef CHECK_INITIALIZED
+//   if (size_ == 0) 
+//     Warning("Don't use Init() to undefined vector", 
+// 	    __FILE__, __LINE__);
+// #endif
   
   for (Integer i=0; i<size_; i++) 
     data_[i]=entry;
