@@ -62,6 +62,8 @@
       <xsd:element name="startFreq" type="DT_PosFloat"/>
       <xsd:element name="stopFreq" type="DT_PosFloat"/>
     </xsd:sequence>
+    <xsd:attribute name="tag" type="xsd:string" use="optional"
+      default="anyTag"/>
   </xsd:complexType>
 
   <!-- Data type for inverse Problem of parameter identification in
