@@ -626,7 +626,7 @@ namespace CoupledField {
     }
     averageDis /= (Double)nrSurfNodes;
 
-    //compute the volume    
+    //compute the deformed volume    
     elemVol = averageDis * surfEl->CalcVolume(surfCoord,isaxi_);
       
     return elemVol;
