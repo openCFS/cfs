@@ -154,7 +154,10 @@
     <!-- Template for acoustic PDE -->
     <acoustic>
   
-      <region name="dummyRegion"/>
+      <region name="dummyRegion">
+       <damping/>
+      </region>
+      <timeSteppingFormulation/>
 
       <solver>
         <matrix/>
