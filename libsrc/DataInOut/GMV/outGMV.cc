@@ -9,18 +9,15 @@ namespace CoupledField
 {
 
 template<class Dim>
-WriteResultsGMV<Dim> :: WriteResultsGMV(const Char * filename)
-: WriteResults()
+WriteResultsGMV<Dim> :: WriteResultsGMV(const Char * const filename)
+: WriteResults(filename)
 {
 #ifdef TRACE
   (*trace) << "entering WriteResultsGMV :: WriteResultsGMV" << std::endl;
 #endif
 
- namefile_=new Char[20];
  namedir_=new Char[30];
 
- strcpy(namefile_,filename);
-  
  Char S[50];
  strcpy(namedir_,filename);
  strcat(namedir_,"_gmv");
@@ -49,7 +46,6 @@ WriteResultsGMV<Dim> ::~WriteResultsGMV()
  (*output) << "endgmv " << std::endl;
 
  delete output; 
- delete [] namefile_;
  delete [] namedir_;
 }
 
@@ -313,7 +309,11 @@ void WriteResultsGMV<Dim>::WriteSolution(const Vector<Double> & sol, const Integ
 #endif
 
   if (sol.size()<=history_node_) Error("Please, check history-nodes in config-file.",__FILE__,__LINE__);
-  if (NeedHistory_) AddInHistory(time,sol[history_node_]);
+
+  Integer i;
+  if (NeedHistory_)
+       for (i=0; i<nodeshist_.size(); i++)
+          AddInHistory(time,sol[nodeshist_[i]],i);
 
   Integer type=1; // 0 - for cell 
                   // 1 - for node

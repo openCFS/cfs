@@ -117,6 +117,21 @@ void ConfFile::getequation(std::string & eq, const Integer numeq)
    infile >> eq;
    infile.ignore(100,'\n');
  }
+}
+
+void ConfFile::gethistorynodes(std::vector<Integer> & hist)
+{
+ std::string::size_type pos;
+ pos=getpos("history_node");
+ infile.seekg(pos,std::ios::beg);
+
+ Integer node;
+ do
+{
+ infile >> node;
+ if (node!=-1) hist.push_back(node);
+}
+ while (node!=-1);
 
 }
 
