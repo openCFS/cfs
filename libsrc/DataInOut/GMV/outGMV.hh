@@ -33,6 +33,9 @@ private:
   //! name of file for output results
   Char * namefile_;
 
+  //! name of dir for output results
+  Char * namedir_;
+
   // number of step
   Integer currstep_;
 
