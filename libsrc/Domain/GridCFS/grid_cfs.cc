@@ -100,23 +100,22 @@ template<class Dim>
 }
 
 template<class Dim>
-void GridCFS<Dim> :: GetCoordOfNodesElem(const Integer i, const Integer l, 
-                                      Dim * ptCoordElem)
+void GridCFS<Dim> :: GetCoordOfNodesElem(const Integer i, const Integer l, const Integer numnodes,  Dim * ptCoordElem)   
 {
 #ifdef TRACE
   (*trace) << "entering GridCFS:: GetCoordOfNodesElem" << std::endl;
 #endif
 
- Integer n,k; 
+ Integer k; 
  Integer stpos=gh[l].Info[gh[l].fp[i]+2]; 
 
  // Define number nodes per element 7777777777777 To get from Iterator
-  if (i==gh[l].maxnumelem-1)
-                    n=sizeConnectElem -  gh[l].Info[gh[l].fp[i]+2];
-  else
-            n=gh[l].Info[gh[l].fp[i+1]+2]- gh[l].Info[gh[l].fp[i]+2];
+//  if (i==gh[l].maxnumelem-1)
+//                    n=sizeConnectElem -  gh[l].Info[gh[l].fp[i]+2];
+//  else
+//            n=gh[l].Info[gh[l].fp[i+1]+2]- gh[l].Info[gh[l].fp[i]+2];
  
-  for (k=0; k < n; k++)
+  for (k=0; k < numnodes; k++)
        ptCoordElem[k]=gh[l].ptCoordinate[gh[l].Connect[stpos+k]-1];
 }
 

@@ -24,8 +24,7 @@ public:
   void PrintInfoElem(const Integer level,const Integer i, std::ostream * out) const;
 
   /// Get coordinates of all nodes which belong to element
-  void GetCoordOfNodesElem(const Integer numElem, const Integer numlevel,
-                           Dim * ptCoordElem);
+  void GetCoordOfNodesElem(const Integer numElem, const Integer numlevel, const Integer numnodes,  Dim * ptCoordElem); 
 
    /// Get connection of element
   void GetConnection(Integer * result, const Integer level, 

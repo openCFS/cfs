@@ -18,8 +18,8 @@ public:
   virtual ~GridInterfaceCFS() { if (ptGridCFS) delete ptGridCFS;}
   
   /// Get coordinates of all nodes which belong to element
-  virtual void GetCoordOfNodesElem(const Integer numElem, const Integer numlevel,  Dim * ptCoordElem) 
-  { ptGridCFS->GetCoordOfNodesElem(numElem, numlevel,ptCoordElem);}
+  virtual void GetCoordOfNodesElem(const Integer numElem, const Integer numlevel, const Integer numnodes,  Dim * ptCoordElem) 
+  { ptGridCFS->GetCoordOfNodesElem(numElem, numlevel, numnodes,ptCoordElem);}
 
    /// Get connection of element
   virtual void GetConnection(Integer * result, const Integer level, 

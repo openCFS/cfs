@@ -20,13 +20,11 @@ public:
   virtual ~InterfaceGridlib() { if (ptGoMesh ) delete ptGoMesh ;}
   
   /// Get coordinates of all nodes which belong to element
-  virtual void GetCoordOfNodesElem(const Integer numElem, const Integer numlevel,  Dim * ptCoordElem) 
-  { Error("Not implemented yet");}
+  virtual void GetCoordOfNodesElem(const Integer numElem, const Integer numlevel, const Integer numnodes, Dim * ptCoordElem); 
 
    /// Get connection of element
   virtual void GetConnection(Integer * result, const Integer level, 
-           const Integer numElem, const Integer numnodesPerElem)
-  { Error("Not implemented yet");}
+           const Integer numElem, const Integer numnodesPerElem);
 
   /// Return pointer to coordinates
 //  virtual Dim * GetptCoordinate(const Integer numlevel)
@@ -34,20 +32,21 @@ public:
 
   /// Return maximum number of nodes
   virtual Integer GetMaxnumnodes(const Integer numlevel)
-  { if (ptGoMesh) ptGoMesh->getNumVertices(numlevel);
-     else Error("Mesh is undefined"); }
+  { return ptGoMesh->getNumVertices(numlevel);
+     }
 
   /// Return maximum number of elements 
   virtual Integer GetMaxnumElem(const Integer numlevel)
-  { if (ptGoMesh) ptGoMesh->getNumElements(numlevel);
-     else Error("Mesh is undefined");}
+  { 
+    return ptGoMesh->getNumElements(numlevel);
+     }
 
   /// Return num of nodes per element i
   virtual Integer GetNumNodesPerElem(const Integer iElem, const Integer level)
-  { if (ptGoMesh)
-  { GoGeometryElement<float> * ptElem=ptGoMesh->getElement(iElem, level);
-      ptElem->getNumVertices();}
-    else  Error("Mesh is undefined");
+  { 
+//  { GoGeometryElement<float> * ptElem=ptGoMesh->getElement(iElem, level);
+//      ptElem->getNumVertices();}
+    return ptGoMesh->getElement(iElem, level)->getNumVertices();
   }
 
   /// Print coordinates of grid in out
