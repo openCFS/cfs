@@ -15,8 +15,8 @@ ifeq ($(Adaptivity),yes)
 
 endif
 #
-lib = driver
-libpath = libsrc/Driver
+lib = paramIdent
+libpath = libsrc/ParamIdent
 CFLAGS3 =
 #
 include ../makefile.inc
