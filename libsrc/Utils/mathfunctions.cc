@@ -9,23 +9,24 @@
 
 namespace CoupledField {
 
-Double gammaln(Double xx)
-{
-// Internal arithmetic will be done in double precision
-// A nicety that you can omit if five-figure accuracy is good enough.
-  Double x,y,tmp,ser;
-  static Double cof[6]={76.18009172947146,-86.50532032941677, 24.01409824083091,
-		      -1.231739572450155, 0.1208650973866179e-2,-0.5395239384953e-5};
-  y=xx;
-  x=xx;
-  tmp=x+5.5;
-  tmp -= (x+0.5)*log(tmp);
-  ser=1.000000000190015;
-  for (Integer j=0; j<=5; j++)
-    ser += cof[j]/++y;
+  Double gammaln(Double xx)
+  {
+    ENTER_FCN("mathfunctions::gammaln");
+    // Internal arithmetic will be done in double precision
+    // A nicety that you can omit if five-figure accuracy is good enough.
+    Double x,y,tmp,ser;
+    static Double cof[6]={76.18009172947146,-86.50532032941677, 24.01409824083091,
+			  -1.231739572450155, 0.1208650973866179e-2,-0.5395239384953e-5};
+    y=xx;
+    x=xx;
+    tmp=x+5.5;
+    tmp -= (x+0.5)*log(tmp);
+    ser=1.000000000190015;
+    for (Integer j=0; j<=5; j++)
+      ser += cof[j]/++y;
 
-  return -tmp+log(2.5066282746310005*ser/x);
-}
+    return -tmp+log(2.5066282746310005*ser/x);
+  }
  
   /* this method determines an approximation of the eigenvalues lambda of a 
      symmetric positive definite matrix. (lambda * A = lambda x)
@@ -36,9 +37,10 @@ Double gammaln(Double xx)
      eps: error tolerance. 
      If the sum of the square of the non-diagonal elements is less than 
      the one of the initial matrix, the iteration is terminated.  
-*/
- void eigenValues(Matrix<Double> & mat, Double eps, Vector<Double> & eigen)
+  */
+  void eigenValues(Matrix<Double> & mat, Double eps, Vector<Double> & eigen)
   {
+    ENTER_FCN("mathfunctions::eigenValues");
     Integer i, j;
     Integer k, kmax;
     Integer l_conv;
@@ -67,8 +69,8 @@ Double gammaln(Double xx)
 	terminationCriterion(ndim, mat, a2, eps2, &l_conv);
 
 	if (l_conv==1)
-	   break;
-        }
+	  break;
+      }
     if (l_conv==0) 
       std::cout<<"\n Note: The Jacobi method did not converge!.\n";
   
@@ -78,9 +80,10 @@ Double gammaln(Double xx)
   }
 
 
- void givensRotation(Integer ndim, Matrix<Double> & mat)
+  void givensRotation(Integer ndim, Matrix<Double> & mat)
   {
-   Matrix<Double> b(ndim,ndim);
+    ENTER_FCN("mathfunctions::givensRotation");
+    Matrix<Double> b(ndim,ndim);
     
     Double a2, max_a2;
     Integer i, j, k, p, q;
@@ -153,6 +156,7 @@ Double gammaln(Double xx)
   */
   void terminationCriterion(Integer ndim, Matrix<Double> & mat, Double a2, Double eps2, Integer *l_conv)
   {
+    ENTER_FCN("mathfunctions::terminationCriterion");
     Double a_nd2;
     Integer i, j;
   
@@ -174,6 +178,7 @@ Double gammaln(Double xx)
 
   void sortArray(Integer ndim, Integer l_sort, Vector<Double> & d)
   {
+    ENTER_FCN("mathfunctions::sortArray");
     Double dv;
     Integer k, i;
  
