@@ -135,8 +135,10 @@ protected:
   //! Mapping of string-dof to integer (1-based)
   Integer GetBCDof(const std::string dofString) const;
 
-private:
-   
+protected:
+
+  //! Default constructor is disallowed
+  BaseEQN() {}; 
 
 
 };
