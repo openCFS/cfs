@@ -41,6 +41,16 @@ namespace CoupledField
 #endif
   }
 
+
+
+
+
+
+// =============================================================================
+// edge integration
+// =============================================================================
+
+
   LinearEdgeInt::LinearEdgeInt(BaseFE * aptelem, Double aVal, Integer aDirection,
 			       std::vector<Double> * aCoilMidPt) 
     : LinearForm(aptelem), val_(aVal), direction_(aDirection)
@@ -173,6 +183,14 @@ namespace CoupledField
   }
 
 
+
+
+// =============================================================================
+// volume source integration
+// =============================================================================
+
+
+
   VolumeSrcInt::VolumeSrcInt(Double aVal, Boolean isaxi)
     : LinearForm(), val_(aVal), isaxi_(isaxi)
   {
@@ -271,7 +289,8 @@ namespace CoupledField
 
     const Integer nrIntPts = ptelem->GetNumIntPoints();
     const Integer nrNodes  = ptelem->GetNumNodes();
-    const Integer nrDofs   = getNrDofs();
+    //    const Integer nrDofs   = getNrDofs();
+    const Integer nrDofs   = ptelem->GetDim(); // getNrDofs() would not work, because CalcElemVec is used for 2d & 3d !
     const std::vector<Double> & intWeights = ptelem->GetIntWeights();  
     std::vector<Double> piolaStressVec;    
     std::vector<Double> partElemVec;
@@ -282,8 +301,17 @@ namespace CoupledField
     Matrix<Double> transpSumB;    // we need transposed of the b-matrices
 
 
-    // This, as friend defined bilinearform holds the necessary differential operators
-    nLinMech3dInt_PiolaStress stressBiformInt(ptelem, matData_);
+    nLinMech3dInt_PiolaStress * stressBiformInt;
+
+    // These, as friend defined bilinearforms holds the necessary differential operators
+    if (ptelem->GetDim() == 2)
+      stressBiformInt = new nLinMechPlaneStrainInt_PiolaStress(ptelem, matData_);
+    else if (ptelem->GetDim() == 3)
+      stressBiformInt = new nLinMech3dInt_PiolaStress (ptelem, matData_);
+    else 
+      Error("Wrong space dimension of elements! ",__FILE__,__LINE__);
+
+
 
     if (!elemDisp_.size_row() || !elemDisp_.size_col()) 
       Error("Undefined displacements! ",__FILE__,__LINE__);
@@ -295,13 +323,12 @@ namespace CoupledField
    elemVec *= 0;    // set elems to 0
    
 
-
     for (Integer actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
       {    
-	stressBiformInt.setActElemDispl(elemDisp_);
-	stressBiformInt.CalcStressVec(piolaStressVec, actIntPt, ptCoord);
-	stressBiformInt.calcNonLinBMat(nonLinBMat, actIntPt, ptCoord);
-	stressBiformInt.calcLinBMat(linBMat, actIntPt, ptCoord);
+	stressBiformInt->setActElemDispl(elemDisp_);
+	stressBiformInt->CalcStressVec(piolaStressVec, actIntPt, ptCoord);
+	stressBiformInt->calcNonLinBMat(nonLinBMat, actIntPt, ptCoord);
+	stressBiformInt->calcLinBMat(linBMat, actIntPt, ptCoord);
 
 	nonLinBMat += linBMat;
 
@@ -316,7 +343,11 @@ namespace CoupledField
 	// (see Kaltenbacher  "Numerical Sim. of Mechatronic Sensors and Actuators" p. 55
 	elemVec -=  partElemVec;
       }
+    delete stressBiformInt;
   }
+
+
+
 
   // ==================================================================
   //  recovery technique. calculation of element matrix for RHS

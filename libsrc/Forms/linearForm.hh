@@ -27,6 +27,11 @@ public:
 
 
 
+// =============================================================================
+// edge integration
+// =============================================================================
+
+
 /// class for calculation of right hand side of edge elements
 class LinearEdgeInt : public LinearForm
 {
@@ -56,6 +61,12 @@ private:
 
 
 
+
+// =============================================================================
+// volume source integration
+// =============================================================================
+
+
 /// class for calculation of right hand side of an volume source
 class VolumeSrcInt : public LinearForm
 {
@@ -77,6 +88,10 @@ private:
   
 };
 
+
+// =============================================================================
+// nonlinear mechanics
+// =============================================================================
 
 
 /// class for calculation of right-hand-side of nonlinear mechanics
@@ -132,6 +147,12 @@ protected:
 
 
 
+// =============================================================================
+// prestress
+// =============================================================================
+
+
+
 /// class for calculation of right-hand-side of prestress
 class PreStressLinFormInt : public nLinMech_linFormInt
 {
@@ -154,6 +175,11 @@ private:
   Directions preStressDir_;
 };
 
+
+
+// =============================================================================
+// surface integration
+// =============================================================================
 
 
 /// class for surface integration

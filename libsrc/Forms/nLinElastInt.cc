@@ -49,18 +49,34 @@ CalcStressVec(std::vector<Double>& piolaStressVec, Integer ip, Matrix<Double> & 
 void nLinMech3dInt_PiolaStress::
 calcMaterialDMat(Matrix<Double> & dMat)
 {
-  // dirty trick: dimension of d-matrix is set to 6 (as it should be in 3d mechanics)
-  // this is done, because the special Piola-Kirchhoff-BDB uses a d-matrix of size 9
-  // this means, the calculation of the "standard" (linear mech.) and the nonlinear b-matrix
-  // would be of wrong dimension
-  setPiolaDimD(6);
+#ifdef TRACE
+  (*trace) << "entering mech3DInt_PiolaStress::calcMaterialDMat" << std::endl;
+#endif
 
-  // this is the original material matrix
-  // calcDMat without 
-  nLinMech3dInt_BNonLin::calcDMat(dMat);
+//   // dirty trick: dimension of d-matrix is set to 6 (as it should be in 3d mechanics)
+//   // this is done, because the special Piola-Kirchhoff-BDB uses a d-matrix of size 9
+//   // this means, the calculation of the "standard" (linear mech.) and the nonlinear b-matrix
+//   // would be of wrong dimension
+//   setPiolaDimD( getMaterialDMatSize() );
 
-  // set size back
-  setPiolaDimD(9);
+//   // this is the original material matrix
+//   // calcDMat without 
+//   nLinMech3dInt_BNonLin::calcDMat(dMat);
+
+//   // set size back
+//   setPiolaDimD( getFullPiolaDMatSize() );
+
+
+
+  const Integer nrElems3d = getMaterialDMatSize();
+  
+  Matrix<Double> * matMatrix =  ptMaterial->GetMatrix();
+  
+  dMat.Resize(nrElems3d);
+  
+  for (Integer i=0; i<nrElems3d; i++)
+    for (Integer j=0; j<nrElems3d; j++)
+      dMat[i][j] = (*matMatrix)[i][j];	
 }
 
 
@@ -69,15 +85,18 @@ calcMaterialDMat(Matrix<Double> & dMat)
 void nLinMech3dInt_PiolaStress::
 calcLinBMat(Matrix<Double> & bMat, Integer ip, Matrix<Double> & ptCoord)
 {
+#ifdef TRACE
+  (*trace) << "entering mech3DInt_PiolaStress::calcLinBMat" << std::endl;
+#endif
   // dirty trick: dimension of d-matrix is set to 6 (as it should be in 3d mechanics)
   // this is done, because the special Piola-Kirchhoff-BDB uses a d-matrix of size 9
   // this means, the calculation of the "standard" (linear mech.) and the nonlinear b-matrix
   // would be of wrong dimension
-  setPiolaDimD(6);
+  setPiolaDimD(  getMaterialDMatSize() );
   
   // linear differential operator B_lin
   linElastInt::calcBMat(bMat, ip, ptCoord);
-  setPiolaDimD(9);
+  setPiolaDimD( getFullPiolaDMatSize() );
 }
 
 
@@ -91,11 +110,11 @@ calcNonLinBMat(Matrix<Double> & bMat, Integer ip, Matrix<Double> & ptCoord)
   // this is done, because the special Piola-Kirchhoff-BDB uses a d-matrix of size 9
   // this means, the calculation of the "standard" (linear mech.) and the nonlinear b-matrix
   // would be of wrong dimension
-  setPiolaDimD(6);
+  setPiolaDimD(  getMaterialDMatSize() );
   
   // linear differential operator B_lin
   nLinElastInt::calcBMat(bMat, ip, ptCoord);
-  setPiolaDimD(9);
+  setPiolaDimD( getFullPiolaDMatSize() );
 }
 
   
@@ -349,6 +368,7 @@ void PreStressInt::CalcStressVec(std::vector<Double>& preStressVec, Integer ip, 
 
 
     Matrix<Double> bMatOneNode;
+    // size_row() = nr of rows!!
     bMatOneNode.Resize(linBMat.size_row(), nrDofs);
  
 
@@ -390,7 +410,70 @@ void PreStressInt::CalcStressVec(std::vector<Double>& preStressVec, Integer ip, 
 
 
 
+
+
+// =============================================================================
+// 2D nonlinear plane strain mechanics
+// =============================================================================
+
   
+  // calculated the D-matrix for the plain strain state
+void  nLinMechPlaneStrainInt_BNonLin::calcDMat(Matrix<Double> & dMat)
+  {
+#ifdef TRACE
+  (*trace) << "entering mechPlainStrainNLinIntInt::calcDMat " << std::endl;
+#endif
+  Calc2DMaterialMatrix(dMat, actOrientation);
+
+  }
+
+  
+
+
+
+
+void nLinMechPlaneStrainInt_PiolaStress::calcMaterialDMat(Matrix<Double> & dMat)
+{
+#ifdef TRACE
+  (*trace) << "entering mechPlaneStraneInt_PiolaStress::calcMaterialDMat" << std::endl;
+#endif
+
+
+  Calc2DMaterialMatrix(dMat, actOrientation);
+  
+
+//   const Integer nrElems2d = getDimD();
+  
+//   Matrix<Double> * matMatrix =  ptMaterial->GetMatrix();
+  
+//   dMat.Resize(nrElems2d);
+  
+//   for (Integer i=0; i<nrElems2d; i++)
+//     for (Integer j=0; j<nrElems2d; j++)
+//       dMat[i][j] = (*matMatrix)[i][j];	
+}
+
+
+  /// conversion of stress vector to stress tensor
+void nLinMechPlaneStrainInt_PiolaStress::
+convertStressVecToTensor(Matrix<Double>& stressTensor, std::vector<Double>& piolaStress)
+{
+#ifdef TRACE
+    (*trace) << "entering mech3DInt_PiolaStress::convertStressVecToTensor " << std::endl;
+#endif
+
+    Integer indexRow[] = {1, 2, 1}; // first index of tensor notation
+    Integer indexCol[] = {1, 2, 2}; // second index of tensor notation
+
+    stressTensor.Resize( getNrDofs() );
+    
+    // build symmetrical tensor
+    for (Integer i=0; i<piolaStress.size(); i++)
+      {
+	stressTensor[ indexRow[i] -1 ][ indexCol[i] -1 ] = piolaStress[i];	
+	stressTensor[ indexCol[i] -1 ][ indexRow[i] -1 ] = piolaStress[i];	
+      }
+}
 
 
 
@@ -428,7 +511,10 @@ void PreStressInt::CalcStressVec(std::vector<Double>& preStressVec, Integer ip, 
 
 
 
+  // ===================================================================================
   // nonlinear calculation of elasticity in 3d
+  // ===================================================================================
+
   nLinMech3dInt_BNonLin::nLinMech3dInt_BNonLin(BaseFE * aptelem, MaterialData & matData) 
     : nLinElastInt(aptelem, matData)
   {
@@ -457,28 +543,30 @@ void PreStressInt::CalcStressVec(std::vector<Double>& preStressVec, Integer ip, 
 
 
 
-  // nonlinear calculation of elasticity in 3d
+  // nonlinear calculation of elasticity in 3d ==================================
+
   nLinMech3dInt_PiolaStress::nLinMech3dInt_PiolaStress(BaseFE * aptelem, MaterialData & matData) 
-    : nLinMech3dInt_BNonLin(aptelem, matData), piolaDimD_(9)
+    : nLinMech3dInt_BNonLin(aptelem, matData)
 
   {
 #ifdef TRACE
     (*trace) << "entering nLinMech3dInt_PiolaStress::nLinMech3dInt_PiolaStress" << std::endl;
 #endif
     updateDMatInEveryIP_ = 1;
+    setPiolaDimD( getFullPiolaDMatSize() );
   }
 
 
 
-  // nonlinear calculation of elasticity in 3d
   nLinMech3dInt_PiolaStress::nLinMech3dInt_PiolaStress(MaterialData & matData) 
-    : nLinMech3dInt_BNonLin(matData), piolaDimD_(9)
+    : nLinMech3dInt_BNonLin(matData)
 
   {
 #ifdef TRACE
     (*trace) << "entering nLinMech3dInt_PiolaStress::nLinMech3dInt_PiolaStress" << std::endl;
 #endif
     updateDMatInEveryIP_ = 1;
+    setPiolaDimD( getFullPiolaDMatSize() );
   }
  
 
@@ -486,6 +574,73 @@ void PreStressInt::CalcStressVec(std::vector<Double>& preStressVec, Integer ip, 
   {
 #ifdef TRACE
     (*trace) << "entering nLinMech3dInt_PiolaStress::~nLinMech3dInt_PiolaStress" << std::endl;
+#endif
+  }
+
+
+
+
+  // ===================================================================================
+  // nonlinear calculation of elasticity in plane strain state 
+  // ===================================================================================
+
+  nLinMechPlaneStrainInt_BNonLin::nLinMechPlaneStrainInt_BNonLin(BaseFE * aptelem, MaterialData & matData) 
+    : nLinElastInt(aptelem, matData)
+  {
+#ifdef TRACE
+    (*trace) << "entering nLinMechPlaneStrainInt_BNonLin::nLinMechPlaneStrainInt_BNonLin" << std::endl;
+#endif
+  }
+
+
+  nLinMechPlaneStrainInt_BNonLin::nLinMechPlaneStrainInt_BNonLin(MaterialData & matData) 
+    : nLinElastInt(matData)
+  {
+#ifdef TRACE
+    (*trace) << "entering nLinMechPlaneStrainInt_BNonLin::nLinMechPlaneStrainInt_BNonLin" << std::endl;
+#endif
+  }
+ 
+
+  nLinMechPlaneStrainInt_BNonLin::~nLinMechPlaneStrainInt_BNonLin()
+  {
+#ifdef TRACE
+    (*trace) << "entering nLinMechPlaneStrainInt_BNonLin::~nLinMechPlaneStrainInt_BNonLin" << std::endl;
+#endif
+  }
+
+
+
+
+
+
+  nLinMechPlaneStrainInt_PiolaStress::nLinMechPlaneStrainInt_PiolaStress(BaseFE * aptelem, MaterialData & matData) 
+    : nLinMech3dInt_PiolaStress(aptelem, matData)
+  {
+#ifdef TRACE
+    (*trace) << "entering nLinMechPlaneStrainInt_PiolaStress::nLinMechPlaneStrainInt_PiolaStress" << std::endl;
+#endif
+    setPiolaDimD( getFullPiolaDMatSize() );
+  }
+
+
+
+  // nonlinear calculation of elasticity in 3d
+  nLinMechPlaneStrainInt_PiolaStress::nLinMechPlaneStrainInt_PiolaStress(MaterialData & matData) 
+    : nLinMech3dInt_PiolaStress(matData)
+
+  {
+#ifdef TRACE
+    (*trace) << "entering nLinMechPlaneStrainInt_PiolaStress::nLinMechPlaneStrainInt_PiolaStress" << std::endl;
+#endif
+    setPiolaDimD( getFullPiolaDMatSize() );
+  }
+ 
+
+  nLinMechPlaneStrainInt_PiolaStress::~nLinMechPlaneStrainInt_PiolaStress()
+  {
+#ifdef TRACE
+    (*trace) << "entering nLinMechPlaneStrainInt_PiolaStress::~nLinMechPlaneStrainInt_PiolaStress" << std::endl;
 #endif
   }
 
@@ -501,7 +656,7 @@ PreStressInt::PreStressInt(BaseFE * aptelem, MaterialData & matData, Double aPre
     (*trace) << "entering PreStressInt::PreStressInt" << std::endl;
 #endif
     updateDMatInEveryIP_ = 1;
-    setPiolaDimD(9);
+    setPiolaDimD( getFullPiolaDMatSize() );
   }
  
 
@@ -511,5 +666,51 @@ PreStressInt::PreStressInt(BaseFE * aptelem, MaterialData & matData, Double aPre
     (*trace) << "entering PreStressInt::~PreStressInt" << std::endl;
 #endif
   }
+
+
+
+
+
+void nLinElastInt::
+Calc2DMaterialMatrix(Matrix<Double> & dMat, enum orientation2D actOrientation)
+{  
+  const Integer nrElems2d = 3;
+  
+  Integer rowPtrXY[] = {1,2,6};  // indices of rows and lines for xy-plane
+  Integer rowPtrYZ[] = {2,3,4};  // indices of rows and lines for yz-plane
+  Integer rowPtrXZ[] = {1,3,5};  // indices of rows and lines for xz-plane
+  Integer * rowPtr;
+  Integer i,j;
+  
+  switch(actOrientation)
+    {	
+    case xy: 
+      {
+	rowPtr = rowPtrXY;
+	break;
+      }
+    case xz: 
+      {
+	rowPtr = rowPtrXZ;
+	break;
+      }
+      
+    case yz: 
+      {
+	rowPtr = rowPtrYZ;    
+	break;
+      }
+    }    
+  
+  Matrix<Double> * matMatrix =  ptMaterial->GetMatrix();
+  
+  dMat.Resize(nrElems2d);
+  
+  for (i=0; i<nrElems2d; i++)
+    for (j=0; j<nrElems2d; j++)
+      dMat[i][j] = (*matMatrix)[rowPtr[i]-1][rowPtr[j]-1];	
+}
+
+
 
 } // end namespace CoupledField

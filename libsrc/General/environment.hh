@@ -91,6 +91,10 @@ typedef Double (*pFncWith1Var)(const Double);
   // "Rad" means readial, following two letters indicate the stress-plane
   enum Directions {X, Y, Z, radXY, radXZ, radYZ};
 
+  /// orientation of calculation plane in 2D 
+  //  (especially important for anisotropic simulations)
+  enum orientation2D {xy, xz, yz};
+
   std::ostream & operator << (std::ostream & out, const enum precond & type);
 
 
