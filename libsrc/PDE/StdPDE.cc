@@ -213,7 +213,8 @@ namespace CoupledField {
   }
 
 
-  void StdPDE::SetMemento( PDEMemento &memento, std::string transFromTo ) {
+  void StdPDE::SetMemento( PDEMemento &memento, std::string transFromTo,
+			   Double frequency) {
 
     ENTER_FCN( "StdPDE::SetMemento" );
   
@@ -238,18 +239,16 @@ namespace CoupledField {
 	  memento.solDeriv1_.Resize(mementoSol.GetSize());
 	  memento.solDeriv2_.Resize(mementoSol.GetSize());
 
-	  Complex val, valD1;
-	  Complex factorD1 = (0,2*PI* actFrequency_);
-
+	  Complex val;
 	  for ( Integer i=0; i<mementoSol.GetSize(); i++ ) {
 	    val   = mementoSol[i];
-	    valD1 = factorD1 * val;
-	    memento.solDeriv1_[i] = valD1.real();
-	    memento.solDeriv2_[i] = - 4 * PI * PI * actFrequency_* actFrequency_ * val.real();
+	    memento.solDeriv1_[i] = - 2*PI*frequency * val.imag();
+	    memento.solDeriv2_[i] = - 4 * PI * PI * frequency * frequency * val.real();
 	  }
 
 	  TS_alg_->SetDeriv1(memento.solDeriv1_);
 	  TS_alg_->SetDeriv2(memento.solDeriv2_);
+
 	}
       }
       else {

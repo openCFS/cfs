@@ -79,8 +79,9 @@ void HarmonicDriver :: SolveProblem()
   
   ptPDE_->WriteGeneralPDEdefines();
       
+  actFreq_  = startFreq_;
+
   Integer fstep;
-  Double actFreq  = startFreq_;
   Double freqIncr;
   if (numFreq_ > 1) {
     freqIncr = (stopFreq_ - startFreq_) / (numFreq_-1);
@@ -96,17 +97,16 @@ void HarmonicDriver :: SolveProblem()
   }
 
   for (fstep = 1; fstep <= numFreq_; fstep++) {
-    Info->WriteHarmonicStep(ptPDE_->GetName(), fstep, actFreq);
-    
-    ptPDE_->GetSolveStep()->PreStepHarmonic(fstep, actFreq, level, reset);
-    ptPDE_->GetSolveStep()->SolveStepHarmonic(fstep, actFreq, level, reset);
-    ptPDE_->GetSolveStep()->PostStepHarmonic(fstep, actFreq, level, reset);
+    Info->WriteHarmonicStep(ptPDE_->GetName(), fstep, actFreq_);    
+    ptPDE_->GetSolveStep()->PreStepHarmonic(fstep, actFreq_, level, reset);
+    ptPDE_->GetSolveStep()->SolveStepHarmonic(fstep, actFreq_, level, reset);
+    ptPDE_->GetSolveStep()->PostStepHarmonic(fstep, actFreq_, level, reset);
     
     // writing results in output-file
     ptPDE_->PostProcess(level);
     ptPDE_->WriteResultsInFile();
     
-    actFreq += freqIncr;
+    actFreq_ += freqIncr;
   }
   
 }

@@ -45,6 +45,9 @@ namespace CoupledField {
 	     __FILE__, __LINE__ );
     };
   
+    //! return the actua frequency within a harmonic analysis
+    virtual Double GetActFrequency() {return actFreq_; };
+
   protected:
   
     //! intialize all PDEs
@@ -67,6 +70,9 @@ namespace CoupledField {
 
     //! offset for first time
     Double timeOffset_;
+
+    //!
+    Double actFreq_;
 
   };
 
