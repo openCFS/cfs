@@ -19,6 +19,9 @@ public:
   template<class TypeVal>
   void get(const std::string keyword, TypeVal & val, const std::string section="");
 
+     //! get matnum for subdomain with number numsd
+   void getmatnum(Integer & matnum, const Integer numsubdom);
+
 protected:
 
   //! name of file

@@ -62,6 +62,14 @@ public:
     virtual BaseElem ** getptArrayElem() const 
   { return ptGridCFS->getptArrayElem();}
 
+  //! Get number of subdomains
+  virtual Integer GetNumSubdomains() const
+  { return ptGridCFS->getnumsubdomains();}
+ 
+  //! Get pointer to array with nodes, that belongs to subdomain number num
+  virtual Integer * GetElemSubdomain(const Integer num, const Integer level) const
+   { return ptGridCFS->getelemsubdomain(num,level);}
+
 protected:
 private:
   GridCFS<Dim> * ptGridCFS;

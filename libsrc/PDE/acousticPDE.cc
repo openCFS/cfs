@@ -19,10 +19,11 @@ AcousticPDE<Dim>::AcousticPDE(const Double dt0, Grid<Dim> * ptgrid, const Intege
 
   ptTimeFunc=new TimeFunc(aptFileType);
 
+
   Double density, compress,c;
   if (ptMaterial)
   {
-    ptMaterial->ReadDensityAndCompressity(density,compress);
+    ptMaterial->ReadDensityAndCompressity(density,compress,1,"fluid");
     std::cout << "density " << density << "compri " << compress << std::endl;
     c=sqrt(compress/density);
   }
@@ -33,6 +34,7 @@ AcousticPDE<Dim>::AcousticPDE(const Double dt0, Grid<Dim> * ptgrid, const Intege
     c=sqrt(compress/density);
     c=1;
   }
+
 
   CalcParameters(dt0);
 

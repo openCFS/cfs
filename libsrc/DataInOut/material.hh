@@ -23,7 +23,7 @@ public:
   ~Material();
 
   //! Get density and compressity
-  void ReadDensityAndCompressity(Double & density, Double & compress);
+  void ReadDensityAndCompressity(Double & density, Double & compress, const Integer, const std::string keyword);
 
 private:
 

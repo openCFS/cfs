@@ -69,6 +69,9 @@ public:
   void  ReadElemConnectionGH(const Integer maxelem, Integer * connect,
 			     const Integer maxnode, const Integer numelemgr);
 
+  //! read maximum number of elements in group number num
+  void ReadMaxnumelemGroup(Integer & maxelem, const Integer numgr);
+
   //! Auxialary functions  
   void ReadElemRecord3d(Integer elemnum, Integer * connect,Integer maxnode,
                         const Integer numelemgr);

@@ -72,6 +72,26 @@ template void ConfFile::get(const std::string , Integer &);
 template void ConfFile::get(const std::string , Double &);
 #endif
 
+void ConfFile::getmatnum(Integer & matnum, const Integer numsubdom)
+{
+ std::string::size_type pos;
+ pos=getpos("numsubdomain");
+ infile.seekg(pos,std::ios::beg);
+ infile.ignore(100,'\n');
+
+ Integer i=0, numsd;
+ //
+ Integer numsubdomain=numsubdom+1;
+
+ while (numsd != numsubdomain && i!=1000)
+ { infile >> numsd >> matnum;
+   i++;
+ }
+ 
+ if (i==1000) error("Error in conf->getmatnum: this numsubdom is absent in config-file");
+
+}
+
 void ConfFile::error(const std::string keyword) const
 {
 std::cerr << "\033[32m ERROR: \033[0m (" << __FILE__ <<" "<< __LINE__

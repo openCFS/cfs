@@ -63,6 +63,14 @@ public:
   //! Put global numbers of nodes with boundary condition in Vector
   void GetNodesBoundaryCondition(Vector<Integer> & nodesDirBC, const Integer level);
 
+  //! Get number of subdomains
+  virtual Integer GetNumSubdomains() const
+  { Error("Not implemented");}
+
+  //! Get pointer to array with nodes, that belongs to subdomain number num
+  virtual Integer * GetElemSubdomain(const Integer num, const Integer level) const
+   { Error("Not implemented");}
+
 private:
 
   //! 

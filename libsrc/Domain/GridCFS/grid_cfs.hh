@@ -55,6 +55,13 @@ public:
   /// Return pointer to array of elements
   BaseElem ** getptArrayElem() const { return ptArrayElem_; }
 
+   //! Get number of subdomains
+  Integer getnumsubdomains() const {return maxnumsubdomain;}
+
+   //! Get pointer to array with nodes, that belongs to subdomain number num
+  Integer * getelemsubdomain(const Integer num, const Integer level) const
+  { return pptelemsubdom[num];}  
+
 protected:
 private:
   //!
@@ -71,6 +78,9 @@ private:
   BaseElem ** ptArrayElem_;
   //
   BaseElem * ptQ_, * ptTr_;
+  //
+  Integer ** pptelemsubdom;
+
 };
 
 

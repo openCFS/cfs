@@ -51,12 +51,19 @@ public:
 
   //! Get last level of grid
   virtual Integer GetLastLevel() const { return lastlevel_;} 
-   
+
+  //! Get number of subdomains
+  virtual Integer GetNumSubdomains() const=0; 
+  
+  //! Get pointer to array with nodes, that belongs to subdomain number num
+  virtual Integer * GetElemSubdomain(const Integer num, const Integer level) const=0;
+ 
 protected:
 
   FileType * ptFileType;
 
   Integer lastlevel_;
+
 private:
   ///
 };
