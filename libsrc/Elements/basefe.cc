@@ -161,7 +161,10 @@ Double BaseFE :: CalcJacobianDet(const std::vector<Double> & LCoord,
   Matrix<Double> J;
 
   CalcJacobian( J, LCoord, CornerCoords );
-  return J.Det();
+  Double jacDet = J.Det();
+  if ( jacDet < 0.0 )
+    Error( "Negative Jacobian determinante ", __FILE__, __LINE__ );
+  return jacDet;
 }
 
 Double BaseFE :: CalcJacobianDetAtIp(const Integer ip, 
@@ -184,10 +187,19 @@ Double BaseFE :: CalcJacobianDetAtIp(const Integer ip,
       normal[2]= J[0][0]* J[1][1]- J[1][0]*J[0][1];
 
       Double detJ = sqrt(sqr(normal[0])+sqr(normal[1])+sqr(normal[2]));
+      if ( detJ < 0.0 )
+	Error( "Negative Jacobian determinante ", __FILE__, __LINE__ );
+
       return detJ;
     }
+
   else
-    return J.Det();
+    {
+      Double jacDet = J.Det();
+      if ( jacDet < 0.0 )
+	Error( "Negative Jacobian determinante ", __FILE__, __LINE__ );     
+      return J.Det();
+    }  
 }
 
 
