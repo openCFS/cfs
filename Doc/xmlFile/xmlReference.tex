@@ -1,8 +1,18 @@
-\documentclass[12pt,dvips]{book}
-\usepackage{lsemanfred,ifthen,isolatin1}
+\documentclass[12pt,dvips]{report}
+%
+%
+%\usepackage{lsemanfred,ifthen,isolatin1}
+\usepackage{ifthen}
+\usepackage[isolatin]{inputenc}
 \usepackage{subfigure}
 \usepackage{amssymb}
-
+\usepackage{longtable}
+%
+%
+\addtolength{\textwidth}{3cm}
+\addtolength{\oddsidemargin}{-1.5cm}
+%
+%
 \newcounter{pdfordvi}\setcounter{pdfordvi}{1}
 \ifthenelse{\value{pdfordvi} = 0}{\usepackage{graphicx}}{\usepackage[pdftex]{graphicx}}
 \pdfoutput = \value{pdfordvi}

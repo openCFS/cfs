@@ -22,8 +22,6 @@ method for shuffling parameters from CFS++ to OLAS. See this file or the
 doxygen documentation of OLAS for the defaults.
 %
 %
-%
-%
 \section{Basic specification}
 %
 %
@@ -86,6 +84,88 @@ The default values for \xml{type} and \xml{precond} are \xml{Direct} and
 \xml{noPrecond}.
 %
 %
+
+The \xml{solver} element can have several children which can be used to specify
+properties of the system matrix and parameters for the chosen solver and
+preconditioner.
+%
+%
+\section{Specifying Properties of the System Matrix}
+%
+%
+The first child of the \xml{solver} element can be a \xml{matrix} element. The
+matrix element possesses the following three optional attributes:
+\xml{eqnNumbering}, \xml{entry} and \xml{storage}.
+%
+%
+\begin{center}
+\begin{longtable}{llp{0.5\textwidth}}
+\hline\noalign{\smallskip}
+attribute & values & meaning \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+eqnNumbering & scalar & Every unknown receives a unique equation number.
+                        Unknowns whose value is fixed by homogeneous Dirichlet
+                        boundary conditions are eliminated. Unknowns given by
+                        inhomogeneous Dirichlet boundary conditions are treated
+                        with the penalty approach.
+
+                        In this case the matrix representing the linear system
+                        will have scalar double or complex entries.\\
+             & block  & This is relevant only for PDEs like e.g.~mechanic,
+                        where to each node of the grid belong several unkowns.
+                        If block is chosen as value, then all unknowns
+                        belonging to a node, so actually the node itself, will
+                        receive a unique equation number. If all the unknowns
+                        at a node are fixed by homogeneous Dirichlet boundary
+                        conditions, then the node and all its unknowns are
+                        eliminated. If not all unkowns are fixed, or if
+                        inhomogeneous Dirichlet boundary conditions are
+                        involved, then the penalty approach is employed.
+
+                        In this case the matrix representing the linear system
+                        will have square matrices of dimension $n\times n$ as
+                        entries, where $n$ is the number of degrees of freedom
+                        per node. The tiny matrices themselves will have scalar
+                        double or complex entries.\\
+             & superBlock & This setting is currently only of importance for
+                        the piezo PDE. It will be no longer required, as soon
+                        as direct coupling is implemented in CFS++.\\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+entry & double, complex & specifies the entry type on the scalar level, i.e.
+                          the type of the entries of the system matrix for
+                          scalar equation numbering, or the type of the entries
+                          of the tiny matrices in block numbering.\\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+storage & sparseSym      & System matrix is stored in compressed row storage
+                           format (CRS) format. However, symmetry is exploited
+                           by storing only the upper triangle.\\
+        & sparseNonSym	 & System matrix is stored in CRS format.\\
+        & skylineSym	 & \emph{not fully supported yet}\\
+        & skylineNonSym	 & \emph{not fully supported yet}\\
+        & hypreMatrix	 & System matrix is stored as a hypre matrix. This is
+	                   the correct choice, if a hypre solver is to be used.
+                           Note that a hypre matrix can only store scalar
+                           double entries.\\
+        & lapackGBMatrix & System matrix is stored as a general banded matrix.
+                           This is the suitable choice for the lapackLU solver.
+                           \\
+        & lapackPBMatrix & \emph{not fully supported yet}\\
+        & expertsChoice  & CFS++ will choose the storage type itself.\\
+\noalign{\smallskip}\hline
+\end{longtable}
+\end{center}
+%
+%
+Note that not all values of \xml{eqnNumbering}, \xml{entry} and \xml{storage}
+will work together and that some choices, while being possible will not lead
+to an efficient simulation run in combination with certain solvers. The
+CFSOLASParams interface class has an Expert() subroutine, that will adapt the
+parameters, if they are not sensible and issue a respective warning. It is also
+this routine that will determine a storage type for the system matrix, if
+\xml{expertsChoice} is specified, which also is the default for the
+\xml{storage} attribute.
+%
+%
 \section{Parameters for special solvers}
 \subsection{CG}
 Setting \xml{type} to \xml{CG} selects the native preconditioned conjugate
@@ -105,8 +185,140 @@ maxIter & $\mathbb{N}$ & maximal number of iterations\\
 %
 %
 \subsection{hypreGMRES}
+%
+%
+Setting \xml{type} to \xml{hypreGMRES} selects the Generalised Minimal Residual
+solver from the hypre library. Its behaviour can be steered using the following
+parameters
+%
+%
+\begin{center}
+\begin{tabular}{lcp{0.5\textwidth}}
+\hline\noalign{\smallskip}
+element & range of values & meaning \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+maxKrylovDim & $\mathbb{N}$ & This gives the upper limit on the size of the
+                              Krylov subspace generated by the GMRES method
+                              before it is re-started. At least that's what
+                              Marcus assumes from reading hypre's minimal
+                              doc.\\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+tol & $> 0$ & The value of this parameter is used for the convergence criterion
+              in the stopping test of GMRES. The stopping rule is as follows
+	\begin{displaymath}
+        \|r^{(k)}\|  \leq \varepsilon \cdot \|b\|
+	\end{displaymath}
+        where $r^{(k)}$ is the residual of the k-th step and $b$ is the right
+        hand side. If $\|b\|=0$, then it is replaced by $\|r^{(0)}\|$.\\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+maxIter & $\mathbb{N}$ & Maximal number of iteration steps allowed for the
+                         GMRES method.\\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+logging & 0, 1, 2 & This parameter is used to control the verbosity of the
+                    method. Its values have the following meaning:
+\begin{center}
+\begin{tabular}{lcl}
+0 &=& no printout, no storing of norms\\
+1 &=& no printout, norms are stored\\
+2 &=& norms are stored and reported to\\
+  & & stdout in every iteration step\\
+\end{tabular}
+\end{center}
+It appears that this concept is new and not quite working yet.\\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+printLevel & 0, 1, 2 & This seems to be the old way of setting the verbosity.
+                       See description of logging above.\\
+\noalign{\smallskip}\hline
+\end{tabular}
+\end{center}
+%
+%
 \subsection{hypreBICGSTAB}
+%
+%
+Setting \xml{type} to \xml{hypreBICGSTAB} selects the stabilised bi-conjugate
+gradient solver from the hypre library. Its behaviour can be steered using the
+following parameters
+%
+%
+\begin{center}
+\begin{tabular}{lcp{0.5\textwidth}}
+\hline\noalign{\smallskip}
+element & range of values & meaning \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+tol & $> 0$ & The value of this parameter is used for the convergence criterion
+              in the stopping test of GMRES. The stopping rule is as follows
+	\begin{displaymath}
+        \|r^{(k)}\|  \leq \varepsilon \cdot \|b\|
+	\end{displaymath}
+        where $r^{(k)}$ is the residual of the k-th step and $b$ is the right
+        hand side. If $\|b\|=0$, then it is replaced by $\|r^{(0)}\|$.\\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+maxIter & $\mathbb{N}$ & Maximal number of iteration steps allowed for the
+                         GMRES method.\\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+logging & 0, 1, 2 & This parameter is used to control the verbosity of the
+                    method. Its values have the following meaning:
+\begin{center}
+\begin{tabular}{lcl}
+0 &=& no printout, no storing of norms\\
+1 &=& no printout, norms are stored\\
+2 &=& norms are stored and reported to\\
+  & & stdout in every iteration step\\
+\end{tabular}
+\end{center}
+It appears that this concept is new and not quite working yet.\\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+printLevel & 0, 1, 2 & This seems to be the old way of setting the verbosity.
+                       See description of logging above.\\
+\noalign{\smallskip}\hline
+\end{tabular}
+\end{center}
+%
+%
 \subsection{hyprePCG}
+%
+%
+Setting \xml{type} to \xml{hyprePCG} selects the preconditioned conjugate
+gradient solver from the hypre library. Its behaviour can be steered using the
+following parameters
+%
+%
+\begin{center}
+\begin{tabular}{lcp{0.5\textwidth}}
+\hline\noalign{\smallskip}
+element & range of values & meaning \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+tol & $> 0$ & The value of this parameter is used for the convergence criterion
+              in the stopping test of GMRES. The stopping rule is as follows
+	\begin{displaymath}
+        \|r^{(k)}\|  \leq \varepsilon \cdot \|b\|
+	\end{displaymath}
+        where $r^{(k)}$ is the residual of the k-th step and $b$ is the right
+        hand side. If $\|b\|=0$, then it is replaced by $\|r^{(0)}\|$.\\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+maxIter & $\mathbb{N}$ & Maximal number of iteration steps allowed for the
+                         GMRES method.\\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+logging & 0, 1, 2 & This parameter is used to control the verbosity of the
+                    method. Its values have the following meaning:
+\begin{center}
+\begin{tabular}{lcl}
+0 &=& no printout, no storing of norms\\
+1 &=& no printout, norms are stored\\
+2 &=& norms are stored and reported to\\
+  & & stdout in every iteration step\\
+\end{tabular}
+\end{center}
+It appears that this concept is new and not quite working yet.\\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+printLevel & 0, 1, 2 & This seems to be the old way of setting the verbosity.
+                       See description of logging above.\\
+\noalign{\smallskip}\hline
+\end{tabular}
+\end{center}
+%
+%
 \subsection{lapackLU}
 %
 %
@@ -214,7 +426,7 @@ library together with an SPAI preconditioner:
 %
 \begin{verbatim}
 <solver type="hypreBICGSTAB" precond="hypreSPAI">
-  <matrix structure="standard" entry="double" storage="sparseNonSym"/>
+  <matrix eqnNumbering="scalar" entry="double" storage="sparseNonSym"/>
   <hypreBICGSTAB>
     <tol>     1e-8 </tol>
     <maxIter> 1000 </maxIter>
