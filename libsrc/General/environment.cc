@@ -10,11 +10,11 @@
 // have to be made
 #ifdef USE_OLAS
 namespace OutInfo{
-  std::ostream * trace = NULL ;
-  std::ostream * debug  = NULL;
-  std::ostream * cla=NULL;
-  std::ostream * memtrace=NULL;
-  std::ostream * data = NULL;
+  std::ostream * trace    = NULL;
+  std::ostream * debug    = NULL;
+  std::ostream * cla      = NULL;
+  std::ostream * memtrace = NULL;
+  std::ostream * data     = NULL;
 }
 #else
 namespace CoupledField{
