@@ -23,6 +23,13 @@
         <!-- Matrix format, entries and layout (optional) -->
         <xsd:element name="matrix" type="DT_MatrixDescription" minOccurs="0"/>
 
+        <!-- Export linear system? (optional) -->
+        <xsd:element name="exportLinSys" minOccurs="0">
+          <xsd:complexType>
+            <xsd:attribute name="baseName" use="required" type="xsd:token"/>
+          </xsd:complexType>
+        </xsd:element>
+
         <!-- Parameters for solver (optional) -->
         <xsd:element ref="SolverBasic" minOccurs="0"/>
 
