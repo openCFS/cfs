@@ -186,4 +186,34 @@
       default="no"/>
   </xsd:complexType>
 
+  <!-- ******************************************************************** -->
+  <!--   Definition of element AnalysisBubbleDynamic -->
+  <!-- ******************************************************************** -->
+  <xsd:element name="bubbleDynamic" type="DT_AnalysisBubbleDynamic"
+    substitutionGroup="AnalysisBasic"/>
+
+  <!-- Data type for bubbleDynamic section, i.e. parameters required for
+       performing a bubbleDynamic analysis -->
+  <xsd:complexType name="DT_AnalysisBubbleDynamic">
+    <xsd:complexContent>
+      <xsd:extension base="DT_AnalysisBasic">
+        <xsd:sequence>
+          <xsd:element name="initRadius"            type="DT_NonNegFloat" />
+          <xsd:element name="initVel"               type="xsd:float"      />
+          <xsd:element name="density"               type="DT_NonNegFloat" />
+          <xsd:element name="sonicVel"              type="DT_NonNegFloat" />
+          <xsd:element name="pStatic"               type="DT_NonNegFloat" />
+          <xsd:element name="pVapour"               type="DT_NonNegFloat" />
+          <xsd:element name="surfaceTension"        type="DT_NonNegFloat" />
+          <xsd:element name="polytrop"              type="DT_NonNegFloat" />
+          <xsd:element name="viscosity"             type="DT_NonNegFloat" />
+          <xsd:element name="bubbleDriverPressure"  type="xsd:float"      />
+          <xsd:element name="bubbleDriverFrequency" type="DT_NonNegFloat" />
+        </xsd:sequence>
+        <xsd:attribute name="tag"  type="xsd:string" use="optional"
+          default="anyTag"/> 
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType> 
+
 </xsd:schema>
