@@ -85,8 +85,8 @@ int main(int argc, char *argv[]) {
 #ifdef DEBUG
 	   << "\t           -notrace do not write a trace file\n"
 #endif
-	   << "\n\033[31mERROR:\033[0m "
-	   << " Invalid parameter specification. See usage details above.\n";
+	   << "\n \033[31mERROR:\033[0m"
+	   << " Invalid parameter specification. See usage details above.\n\n";
     exit(1);
   }
 
