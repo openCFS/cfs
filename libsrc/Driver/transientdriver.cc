@@ -15,7 +15,8 @@ TransientDriver :: TransientDriver(Domain<Point2D> * adomain)
 #endif
 
   // read step data from input file
-  ptdomain->GetInFile()->ReadStepData(numstep,isavebegin,isaveincr,isaveend,firstdt);
+  ptdomain_->GetInFile()->ReadStepData(numstep_,isavebegin_,isaveend_,isaveincr_,firstdt_);
+
 }
 
 TransientDriver :: ~TransientDriver()
@@ -33,31 +34,40 @@ void TransientDriver :: SetupMatricesPDE(Integer pdenumber, Integer type)
   (*trace) << "entering TransientDriver::SetUpMatricesPDE" << std::endl;
 #endif
  
-  ptdomain->GetPDE(pdenumber)->SetupMatrices(ptdomain->GetAlgSys(),type);
+  ptdomain_->GetPDE(pdenumber)->SetupMatrices(ptdomain_->GetAlgSys(),type);
 
 }
-
 
 void TransientDriver :: SolveProblem()
 {
 #ifdef TRACE
   (*trace) << "entering TransientDriver::SolveProblem" << std::endl;
 #endif
+
   Integer level=0;
   Integer pdenumber  = 0;
   Integer nsys = 0;
+  Double steptime=0.0;
+  Integer stepsave=isavebegin_-1;
+
+  std::cout << "steps" << isavebegin_ << " " << isaveend_ << " " << isaveincr_ << std::endl;
 
   Integer nstep;
-  Double steptime=0.0;
 
-  for (nstep = 0; nstep<numstep; nstep++)
+  for (nstep = 0; nstep<numstep_; nstep++)
     {
-      steptime += firstdt;
+      steptime += firstdt_;
 
-//      ptdomain->GetPDE(pdenumber)->CalcParamForNewmarkMethod(firstdt);
-      ptdomain->GetPDE(pdenumber)->SolveStepTrans(ptdomain->GetAlgSys(), ptdomain->GetBCs(), nstep, steptime, level);
+//      ptdomain->GetPDE(pdenumber)->CalcParamForNewmarkMethod(firstdt_);
 
-      ptdomain->GetPDE(pdenumber)->WriteResultsInFile();
+      ptdomain_->GetPDE(pdenumber)->SolveStepTrans(ptdomain_->GetAlgSys(), ptdomain_->GetBCs(), nstep, steptime, level);
+
+   // writing results in output-file
+    if (nstep == stepsave && (nstep < isaveend_))
+      { 
+        ptdomain_->GetPDE(pdenumber)->WriteResultsInFile();
+        stepsave+=isaveincr_;
+      }
     }
 }
 

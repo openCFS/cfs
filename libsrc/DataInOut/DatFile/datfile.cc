@@ -5,6 +5,7 @@
 #include <iomanip>
 
 #include "datfile.hh"
+#include "bcs.hh"
 
 namespace CoupledField
 {
@@ -728,6 +729,25 @@ void DatFile:: ReadBoundRestr(Integer ** dataBRestr, Integer numberRestr,
     infile >> dataBRestr[i][0] >> str >> dataBRestr[i][2] >> factorRestr[i];
     dataBRestr[i][1]=TransformInNameDf(str.c_str());
     infile.ignore(100,'\n');
+   }
+}
+
+void DatFile:: ReadBoundRestr(std::list<NodeRestraint> & restr, const Integer numberRestr)
+{
+#ifdef TRACE
+  (*trace) << "entering DatFile::ReadBoundRestr" << std::endl;
+#endif
+  std::string::size_type pos=0;
+  TakePos("restraints",pos);
+  infile.seekg(pos, std::ios::beg);
+  std::string str;
+  NodeRestraint A;
+  for (Integer i=0; i < numberRestr; i++)
+   {
+    infile >> A.nodalnum >> str >> A.numfunc >> A.factor;
+    A.dof=TransformInNameDf(str.c_str());
+    infile.ignore(100,'\n');
+    restr.push_back(A);
    }
 }
 

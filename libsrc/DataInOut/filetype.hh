@@ -2,6 +2,7 @@
 #define FILE_FILETYPE_2001
 
 #include "vector.hh"
+#include <list>
 
 namespace CoupledField
 {
@@ -10,6 +11,8 @@ namespace CoupledField
   /*! 
     Base class for reading input data. Its function is virtual due to handle the different types of input files and to hide their features from developer of code.
   */
+
+struct NodeRestraint;
 
 class FileType
 {
@@ -92,6 +95,8 @@ public:
   //! Read specific info about boundary condition Restrain
   virtual void ReadBoundRestr(Integer ** dataBRestr, Integer numberRestr,
                       Double * factorRestr)=0;
+
+  virtual void ReadBoundRestr(std::list<NodeRestraint> & restr, const Integer numberRestr)=0;
 
   //! Read step data; special for TransientDriver
   virtual void ReadStepData(Integer & anumstep, Integer & aisavebegin, Integer & aisaveend, Integer & aisaveincr, Double & afirstdt)=0;

@@ -25,16 +25,15 @@ public:
 
 protected:
 
-
 private:
   //!
-  Integer numstep,isavebegin,isaveincr,isaveend;
+  Integer numstep_,isavebegin_,isaveincr_,isaveend_;
 
   //!
-  Double firstdt;
+  Double firstdt_;
 
 };
 
 }
 
-#endif // FILE_STATICDRIVER
+#endif // FILE_TRANSIENTDRIVER

@@ -2,12 +2,12 @@
 #define FILE_BASEDRIVER_2001
 
 #include "domain.hh"
-//#include "pde.hh"
 
 namespace CoupledField
 {
 
-/// class where we implement Newmark method
+/// there is a base class for driving classes where we implemented time-stepping
+
 class BaseDriver
 {
 public:
@@ -17,22 +17,19 @@ public:
    //!
   virtual ~BaseDriver();
   
-  //!
+  //! there is a main method, where time-steping is implemented
   virtual void SolveProblem()=0;
 
   //!
   void SetupMatricesPDE(Integer pdenumber);
 
-  //! write solution in file
-//  void WriteResultsInFile(BasePDE * ptPDE, const Integer step, const Double t);
-
 protected:
   //!
-  Domain<Point2D> * ptdomain;
+  Domain<Point2D> * ptdomain_;
 
 private:
   //! options from input-file; if true, then we output first-der,second in output-file
-  Boolean SaveDer1,SaveDer2;
+//  Boolean SaveDer1_, SaveDer2_;
   
 };
 

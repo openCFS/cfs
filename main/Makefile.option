@@ -16,14 +16,19 @@ IncGridlib=$(C_DIR)/Gridlib_inc
 NetGen=~/Software/NetGen/netgen
 IncNetGen =$(C_DIR)/NetGen
 LibNetGen=$(C_DIR)/libnetgen
+#
 ############ Define library
 #
 mylibrary=  driver estimator pde algsys-own forms  \
             multigrid-piles general-piles superlu-piles \
             elements3d elements2d elements \
-            gridcfs tonetgen domain unverg gmv \
+            gridcfs \
+            domain unverg gmv \
             definefiles datfile datainout \
-             utils matrix general
+            utils matrix general \
+#              nginterface vis csg \
+#            stlgeom mesh gprim opti \
+#            la gen tk8.3 tcl8.3\
 #mylibrary=  driver pde algsys-own forms  \
 #            elements3d elements2d elements \
 #            gridcfs togridlib domain unverg   \
