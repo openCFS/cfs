@@ -1,6 +1,5 @@
 #include <iostream>
 #include <fstream>
-//#include <string>
 
 #include <general_head.hh>
 #include <utils_head.hh>

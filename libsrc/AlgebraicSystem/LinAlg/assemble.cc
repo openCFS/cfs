@@ -148,10 +148,12 @@ void Assemble<Dim, T_Matrix>::SetDirichletBoundaryCondSysMat_PenaltyMethod()
   Integer n;
   n=nodesDirBC.size();
 
+
   Integer aux; 
   for (i=0; i<n; i++) 
     {
       aux=nodesDirBC[i]-1;
+      std::cout << "number of nodes " << aux << std::endl;
       A(aux,aux)+=BigConst;
     }
 }
@@ -160,7 +162,7 @@ template<class Dim, class T_Matrix>
 void Assemble<Dim, T_Matrix>::SetDirichletBoundaryCondZero_Cut()
 {
 #ifdef TRACE
-  (*trace)<<"entering Assemble::SetDirichletBoundaryCondSysMat_PenaltyMethod"<< std::endl;
+  (*trace)<<"entering Assemble::SetDirichletBoundaryCondZero_Cut"<< std::endl;
 #endif
  
   Integer n;
@@ -170,8 +172,14 @@ void Assemble<Dim, T_Matrix>::SetDirichletBoundaryCondZero_Cut()
   for (i=0; i<n; i++)
     {     
       aux=nodesDirBC[i]-1;
+      std::cout << "nodes for BC" << aux << std::endl;
+      mark
+      std::cout << "aux-i" << aux-i << std::endl;
+      std::cout << A << std::endl;
       A.cut(aux-i,aux-i);
+mark
       b.cut(aux-i);
+mark
     }
 }
 
@@ -179,7 +187,7 @@ template<class Dim, class T_Matrix>
 void Assemble<Dim,T_Matrix>::SetNodesBoundaryCondition(FileType * aptFileType)
 {
 #ifdef TRACE
-   (*trace) << "entering Assemble::SetDirichletBC_penaltySysMat" << std::endl;
+   (*trace) << "entering Assemble::SetNodesBoundaryCondition " << std::endl;
 #endif
   aptFileType->ReadDirichletBC(nodesDirBC); 
 }
@@ -188,12 +196,12 @@ template<class Dim, class T_Matrix>
 void Assemble<Dim, T_Matrix>::SetDirichletBoundaryCondRHS_PenaltyMethod(const Double val_tf)
 {
 #ifdef TRACE
-  (*trace) << "entering Assemble::SetDirichletBC_penaltySysMat" << std::endl;
+  (*trace) << "entering Assemble::SetDirichletBoundaryCondRHS_PenaltyMethod" << std::endl;
 #endif
  
   if (!nodesDirBC.size()) Error("Array of nodes with BC is not defined. Use somewhere function SetNodesBoundaryCondition() before this function.");
 
-  if (val_tf==0) Error("Don't use penalty method to define zero boundary condition");
+//  if (val_tf==0) Error("Don't use penalty method to define zero boundary condition");
 
   Integer i;
   Integer aux;
@@ -223,7 +231,24 @@ void Assemble<Dim,T_Matrix>::AssembleGlobal(T_Matrix & Mat) const
   Matrix<Double> elemmat;
 
   Dim * ptCoord=new Dim[numnodeelem];
-  BaseElem * ptElem=new Quad1(GaussOrder5);  /////////////////////
+  
+  BaseElem * ptElem;
+  switch(numnodeelem)
+  {
+    case 3:
+       ptElem=new  Triangle1(GaussOrder5);
+       break;
+
+    case 4:
+       ptElem=new Quad1(GaussOrder5);  
+       break;
+
+    default:
+       Error("Number of nodes per element is strange",__FILE__,__LINE__);
+  }
+//  BaseElem * ptElem=new Quad1(GaussOrder5);  /////////////////////
+//  BaseElem * ptElem=new Triangle1(GaussOrder5);
+  
   typeBaseForm oElemMatrix(ptElem,1);
 
   Mat.Init();
@@ -262,19 +287,13 @@ void Assemble<Dim,T_Matrix>::AssembleGlobal(T_Matrix & Mat) const
 }
 
 template<class Dim, class T_Matrix>
-void Assemble<Dim, T_Matrix>::Restore() //Restore(FileType * aptFileType)
+void Assemble<Dim, T_Matrix>::Restore() 
 {
 #ifdef TRACE
   (*trace) << "entering Assemble::Restore" << std::endl;
 #endif
-  //  Integer n;
-  //  aptFileType->ReadNumNodesforDirichletBC(n);
- 
-  //  Integer * nodesDirBC=new Integer[n];
-  //  aptFileType->ReadDirichletBC(nodesDirBC);
 
   Integer i,aux;
-  //  for (i=0; i<n; i++)
   for (i=0; i<nodesDirBC.size(); i++)
     {
       aux=nodesDirBC[i]-1;

@@ -85,13 +85,17 @@ Boolean LinSystem<T, T_Matrix>::CG(const Integer maxIter,  enum precond typePrec
   x.Resize(dim);
 
 
-  if (x.size()!=b.size())
+  if (x.size()!=A.getSize())
        Error("Size of vector for solution is not equal size of system matrix",
               __FILE__,__LINE__);
 
   Vector<T> p(dim), r(dim), Ap(dim), z(dim);
 
+  mark
+  std::cout << " size of x " << x.size() << endl;
+  std::cout << " size of A and b " << A.getSize() << " " << b.size() << endl;
   r=b-A*x;
+  mark
   A.precond(z,r,typePrecond);
   p=z;
   zr=z*r;
@@ -125,6 +129,11 @@ if (InfoPrint)
   << " ----------------------------------------------------- " << std::endl;
 
   oClock.ClockCount(Clock::end, " CG ");
+
+#ifdef TRACE
+   (*trace) << "leaving LinSystem::CG" << std::endl;
+#endif
+
   if (iter==maxIter) return FALSE;
   else return TRUE;
 }
