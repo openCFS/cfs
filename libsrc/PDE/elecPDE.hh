@@ -83,18 +83,20 @@ public:
   
 protected:
 
+  //! callculates nodal forces
   void CalcNodeForce(Array<Double> & force, 
 		     std::vector<Integer> & nodes, 
 		     std::vector<Elem*> & elems,
-		     std::vector<Integer> & numBoundaryNodes,
-		     std::vector<std::vector<ShortInt> > & isBoundaryNode);
+		     std::vector<std::vector<ShortInt> > & isBoundaryNode,
+		     std::vector<std::vector<Integer> > & elemNodeToCouplingNode);
 
   Array<Double> E_;  //!< conatins elecric field
   
-  // ---- Electric Force varables ---
+  // ---- Electric Force variables ---
   Array<Double> Force_;        //!< stores Electric force of each element
   std::vector<std::vector<Elem*> > F_Interface_; //!<vector of vectors conaining Elements with acting force
   std::vector<std::vector<std::vector<ShortInt> > > isBoundaryNode_; //!< vector containing flag array for element boundary nodes
+  std::vector<std::vector<std::vector<Integer> > > elemNodeToCouplingNode_; //!< assigns each coupling element node the according Coupling Node number
   std::vector<std::vector<Integer> > numBoundaryNodes_;               //!< contains number of surface nodes per element
  
 };

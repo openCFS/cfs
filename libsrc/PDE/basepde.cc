@@ -27,6 +27,7 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile, WriteResults * a
   updateCouplingBCs_ = FALSE;
   updateBCs_ = 0;
   Dim_ = ptgrid_->GetDim();
+  InitMatrices_ = FALSE;
 
   //standard parameter for solver
   eps_         = 1.0e-8;
@@ -293,6 +294,7 @@ void BasePDE::CalcInputCoupling()
 	  
 	case COORD:
 	  //std::cerr << "In " << pdename_ << "::CalcInputCoupling - Switch(Coord)" << std::endl;
+	  InitMatrices_ = TRUE;
 	  ptCoupling_->GetInputNodes(i, nodes);
 	  deltCoords_.reshape(Dim_, NumPDENodes_);
 
@@ -379,14 +381,14 @@ void  BasePDE::SetBCs(const Integer level, const Integer update, const Double ti
 	  val=0; 
           if (update==1)
             {
-	      if (InfoPrint)
-		(*infofile) << " node: " << node << " val: " << val << std::endl;
+	      //	      if (InfoPrint)
+	      //		(*infofile) << " node: " << node << " val: " << val << std::endl;
               algsys_->UpdateDirichlet(j+1, val, SYSTEM);
             }
           else
             {
 	      if (InfoPrint)
-		(*infofile) << " node: " << node << " val: " << val << std::endl;
+		//		(*infofile) << " node: " << node << " val: " << val << std::endl;
 	      // Mesh node numbers are mapped to PDE node numbers
               algsys_->SetDirichlet(j+1, Mesh2PDENode_[node-1], val, dofspernode_, SYSTEM);
             }
@@ -403,15 +405,15 @@ void  BasePDE::SetBCs(const Integer level, const Integer update, const Double ti
 	  node=*p;
           if (update==1)
             {	     
-	      if (InfoPrint)
-		(*infofile) << " node: " << node << " val: " << val << std::endl;
+	      //	      if (InfoPrint)
+	      //		(*infofile) << " node: " << node << " val: " << val << std::endl;
 
              algsys_->UpdateDirichlet(j+1, val, SYSTEM);
             }
           else
             {
-	      if (InfoPrint)
-		(*infofile) << " node: " << node << " val: " << val << std::endl;
+	      //	      if (InfoPrint)
+	      //		(*infofile) << " node: " << node << " val: " << val << std::endl;
 	      // Mesh node numbers are mapped to PDE node numbers
               algsys_->SetDirichlet(j+1, Mesh2PDENode_[node-1], val, dofspernode_, SYSTEM);
             }
@@ -505,16 +507,17 @@ void BasePDE::AssignPDENodeNumbers(std::vector<Integer> & Mesh2PDENode,
   std::vector<Elem*> SD;
   Integer NodeCounter = 1;
 
-  std::cout << "NO MAPPING OF NODES!! " << std::endl << std::endl;
+//   std::cout << "NO MAPPING OF NODES!! " << std::endl << std::endl;
   
-   PDE2MeshNode_.resize(ptgrid_->GetMaxnumnodes(actlevel_),-1);
-    for (Integer i=0;i<ptgrid_->GetMaxnumnodes(actlevel_);i++)
-      {
-        Mesh2PDENode_[i] = i+1;
-        PDE2MeshNode_[i] = i+1;
-      }
+//    PDE2MeshNode_.resize(ptgrid_->GetMaxnumnodes(actlevel_),-1);
+//     for (Integer i=0;i<ptgrid_->GetMaxnumnodes(actlevel_);i++)
+//       {
+//         Mesh2PDENode_[i] = i+1;
+//         PDE2MeshNode_[i] = i+1;
+//       }
+//     NumPDENodes_ = PDE2MeshNode_.size();
 
-    return;
+//     return;
     
 
   // Iterate over Subdomains

@@ -45,7 +45,14 @@ protected:
   */
   virtual void CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
 				      const std::vector<Double> & LCoord);
-
+  
+   //! Calculates a measure for the geometric distortion of an element
+  /*!
+    \param cornerCoords (input) Corner coordinates of the element
+    \param size (input) Absolute size of element in all dimensions
+    \param displacement (input) Displacement of the corner points (same ordering as CornerCoords!!)
+  */
+  virtual Double CalcMeanStrain(Matrix<Double> &cornerCoords, Array<Double> &displacements);
 
 private:
 };

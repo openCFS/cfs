@@ -17,7 +17,7 @@ MpCCI=no
 AdaptGrid=$(C_DIR)/Grid_RG
 #
 ############### LAS++: Algebraic System
-LAS=$(HOME)/CFS++/LAS
+LAS=$(HOME)/CFS/LAS
 #LAS=$(HOME)/CFS/LAS
 #
 #
@@ -73,6 +73,3 @@ else
    INCL = $(INCL1) 
 endif
 
-#ifeq ($(MpCCI),yes)
-#   INCL = $(INCL1) -I/opt/MpCCI/mpcci-2.0.0-linux-gcc32/include/ -I/opt/MPICH/mpich-1.2.5/include/ 
-#endif

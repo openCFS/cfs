@@ -86,7 +86,8 @@ void ElecPDE::InitCoupling(PDECoupling * Coupling)
   std::vector<Integer> * couplingnodes;
   std::vector<Elem*> interface_tmp;
   std::vector<std::vector<ShortInt> > isBoundaryNode_tmp;
-  std::vector<Integer> numBoundaryNodes_tmp;
+  //std::vector<Integer> numBoundaryNodes_tmp;
+  std::vector<std::vector<Integer> > elemNodeToCouplingNode_tmp;
   Array<Double> * values;
 
   for (Integer i=0; i<ptCoupling_->GetNumOutputCouplings(); i++)
@@ -103,16 +104,15 @@ void ElecPDE::InitCoupling(PDECoupling * Coupling)
 	  F_Interface_.push_back(interface_tmp);
 
 	  // Intialize the memory
-	  //std::cerr << "before initalizing the memory " << std::endl;
 	  ptCoupling_->SetOutputDim(i, Dim_);
-	  //std::cerr << "after setting the dim" << std::endl;
 	 
 	  // Assign arrays for element boundary nodes
-	  
 	  isBoundaryNode_tmp.clear();
 	  isBoundaryNode_tmp.resize(interface_tmp.size());
-	  numBoundaryNodes_tmp.clear();
-	  numBoundaryNodes_tmp.resize(interface_tmp.size());
+	  elemNodeToCouplingNode_tmp.clear();
+	  elemNodeToCouplingNode_tmp.resize(interface_tmp.size());
+	  //numBoundaryNodes_tmp.clear();
+	  //numBoundaryNodes_tmp.resize(interface_tmp.size());
 	 
 	  
 	  for (Integer ielem=0; ielem<interface_tmp.size(); ielem++)
@@ -121,7 +121,9 @@ void ElecPDE::InitCoupling(PDECoupling * Coupling)
 
 	      isBoundaryNode_tmp[ielem].clear();
 	      isBoundaryNode_tmp[ielem].resize(interface_tmp[ielem]->connect.size());
-	      
+	      elemNodeToCouplingNode_tmp[ielem].clear();
+	      elemNodeToCouplingNode_tmp[ielem].resize(interface_tmp[ielem]->connect.size());
+
 	      // Determine Boundary Nodes
 	      for (Integer ielemnode=0; ielemnode<isBoundaryNode_tmp[ielem].size(); ielemnode++)
 		{
@@ -130,7 +132,8 @@ void ElecPDE::InitCoupling(PDECoupling * Coupling)
 		      if (interface_tmp[ielem]->connect[ielemnode] == (*couplingnodes)[inodes] )
 			{
 			  isBoundaryNode_tmp[ielem][ielemnode] = 1;
-			  numBoundaryNodes_tmp[ielem] +=1;
+			  elemNodeToCouplingNode_tmp[ielem][ielemnode] = inodes;
+			  //numBoundaryNodes_tmp[ielem] +=1;
 			  break;
 			} // end if
 		    } // end for (inodes)
@@ -138,7 +141,8 @@ void ElecPDE::InitCoupling(PDECoupling * Coupling)
 	    } // end for (ielems)
 
 	  isBoundaryNode_.push_back(isBoundaryNode_tmp);
-	  numBoundaryNodes_.push_back(numBoundaryNodes_tmp);
+	  elemNodeToCouplingNode_.push_back(elemNodeToCouplingNode_tmp);
+	  //numBoundaryNodes_.push_back(numBoundaryNodes_tmp);
 
 	    
 // 	  for (Integer k=0; k<isBoundaryNode_tmp.size(); k++)
@@ -185,23 +189,36 @@ void ElecPDE::SolveStepStatic(const Integer level)
   for (Integer i=0; i<NumPDENodes_; i++)
     for (Integer dim=0; dim<dofspernode_; dim++)
       sol_[dim][i] = ptsol[k++];
-  
-  // Initialize matrices in order to get BCs correct
-  Integer matrixsystype[5];    
-  if (SystemMatrix_     == 1) matrixsystype[0] = SYSTEM;      // memory for the system matrix
-  if (StiffnessMatrix_  == 1) matrixsystype[1] = STIFFNESS;   // memory for the stiffness matrix
-  if (DampingMatrix_    == 1) matrixsystype[2] = DAMPING;     // memory for the damping matrix
-  if (ConvectionMatrix_ == 1) matrixsystype[3] = CONVECTION;  // memory for the convection matrix
-  if (MassMatrix_       == 1) matrixsystype[4] = MASS;        // memory for the mass matrix
-  
+
+  // Initalize RHS and Solution vector
   algsys_->InitRHS();
-  algsys_->InitSol();
-  
-  for (Integer i=0;i<5;i++)
+  algsys_->InitSol();  
+
+  // Initalize matrices, if PDE couples via COORD or MAT
+
+  if (InitMatrices_ == TRUE)
     {
-      if (matrixsystype[i] !=0)
-	algsys_->InitMatrix(i+1);
-   }
+      // after merging with FRED's Code, unqote following line
+      // and delete the rest of the lines
+      // InitMatrices();
+
+      // Temporarily
+      Integer matrixsystype[5];    
+      if (SystemMatrix_     == 1) matrixsystype[0] = SYSTEM;      // memory for the system matrix
+      if (StiffnessMatrix_  == 1) matrixsystype[1] = STIFFNESS;   // memory for the stiffness matrix
+      if (DampingMatrix_    == 1) matrixsystype[2] = DAMPING;     // memory for the damping matrix
+      if (ConvectionMatrix_ == 1) matrixsystype[3] = CONVECTION;  // memory for the convection matrix
+      if (MassMatrix_       == 1) matrixsystype[4] = MASS;        // memory for the mass matrix
+      
+      
+      for (Integer i=0;i<5;i++)
+	{
+	  if (matrixsystype[i] !=0)
+	    algsys_->InitMatrix(i+1);
+	}
+    }
+
+
 #ifdef DEBUG
   //  std::string matFileName = "solMat";
   //  OutFile_->WriteSolMatrix(ptgrid_, level, sol_, matFileName);
@@ -233,29 +250,16 @@ void ElecPDE::CalcOutputCoupling()
 	  ptCoupling_->GetOutputNodes(i, couplingnodes);
 	  ptCoupling_->GetOutputValues(i, values);
 	  
-// 	  std::cerr << "ElectricField::CaclOutputCoupling";
-// 	  std::cerr << " size of couplingnodes" << values->size(); std::cerr << " and dim: " << values->dim() << std::endl;
-	  
 	  if (quantity == "elecpotential")
 	    NodeSolutionToCoupling(*values, *couplingnodes);
 	    
 	  if (quantity == "elecforce")
 	    {
-	      CalcNodeForce(*values, *couplingnodes, F_Interface_[forcesCount], numBoundaryNodes_[forcesCount],isBoundaryNode_[forcesCount]);
-	      //std::cerr << "CouplingForces: " << std::endl << *values << std::endl; 
-	      
-	    //   if (infoPrint)
-// 		{
-// 		  Double sum1 = 0;
-// 		  Double sum2 = 0;
-// 		  for (Integer k=0; k<values->size(); k++)
-// 		    {
-// 		      sum1 += (*values)[0][k];
-// 		      sum2 += (*values)[1][k];
-// 		    }
-		
-// 		  (*infofile) << "F[0] = " << sum1 << ", F[1] = " << sum2 << std::endl;
-// 		}
+	      CalcNodeForce(*values, 
+			    *couplingnodes, 
+			    F_Interface_[forcesCount], 
+			    isBoundaryNode_[forcesCount], 
+			    elemNodeToCouplingNode_ [forcesCount]);
 	      
 	      forcesCount++;
 	    }
@@ -288,7 +292,7 @@ void ElecPDE::PostProcess(const Integer level)
 
   std::vector<Elem*> elemssd;
   Integer counterElems=0;
-  Vector<Double> TempE, TempFP;
+  Vector<Double> TempE;
   
   // Resize solution arrays
   E_.reshape(Dim_,NumElems_);
@@ -316,8 +320,8 @@ void ElecPDE::PostProcess(const Integer level)
 void ElecPDE::CalcNodeForce(Array<Double> & force, 
 			    std::vector<Integer> & nodes, 
 			    std::vector<Elem*> & elems,
-			    std::vector<Integer> & numBoundaryNodes,
-			    std::vector<std::vector<ShortInt> > & isBoundaryNode)
+			    std::vector<std::vector<ShortInt> > & isBoundaryNode,
+			    std::vector<std::vector<Integer> > & elemNodeToCouplingNode)
 {
 #ifdef TRACE
   (*trace) << "entering ElecPDE::CalcNodeForce" << std::endl;
@@ -326,13 +330,10 @@ void ElecPDE::CalcNodeForce(Array<Double> & force,
   
   ElecForceOp * ForceOp = new ElecForceOp(ptgrid_, this, &Mesh2PDENode_, &sol_[0], actlevel_);
    
-  //std::cerr << "In CalcNodeForce, nodes.size = " << nodes.size() <<std::endl;
-  Vector<Double> force_temp;
-  //std::cerr << "Dimension = " << Dim_ << std::endl;
+  Array<Double> force_temp;
   force.reshape(Dim_, nodes.size());
   force.init();
-  //std::cerr << "after resizing force" << std::endl;
-
+  
   for (Integer ielem=0; ielem<elems.size(); ielem++)
     {
       // Get Material Parameter
@@ -347,21 +348,42 @@ void ElecPDE::CalcNodeForce(Array<Double> & force,
       // Only for testing
       //epsilon = 8.854e-12;
 
-      //std::cerr << "working with epsilon = " << epsilon << std::endl;
       ForceOp->CalcElemElecForce( force_temp, elems[ielem], epsilon, isBoundaryNode[ielem]);
       
-      // std::cerr << "Force [" << elems[ielem]->ElemNum << "] = " << force_temp[0] << " , " << force_temp[1] << std::endl;
 
-      // Add elemet force to according node
-      // TEMPORARELLY 
+      // Add the element force to the according coupling node
       for (Integer ielemnode=0; ielemnode<elems[ielem]->connect.size(); ielemnode++)
-	for (Integer inode=0; inode<nodes.size(); inode++)
-	  if (elems[ielem]->connect[ielemnode] == nodes[inode])
-	    for( Integer idim=0; idim<Dim_; idim++)
-	      force[idim][inode] += (force_temp[idim]/numBoundaryNodes[ielem]);
+	for( Integer idim=0; idim<Dim_; idim++)
+	  force[idim][elemNodeToCouplingNode[ielem][ielemnode]] += force_temp[idim][ielemnode];
+
     }
 
+  Vector<Double> sum;
+  sum.Resize(Dim_);
+  
+  for (Integer i=0; i<nodes.size(); i++) 
+    {
+      //std::cerr << "Node[" << nodes[i] << "] = ";
+    for (Integer dim=0; dim<Dim_; dim++)
+      {
+	sum[dim] += force[dim][i];
+	//std::cerr << force[dim][i] << " , ";
+      }
+    //std::cerr << std::endl;
+    }
   delete ForceOp;
+
+
+  //std::cerr << "Sum of E-Force:" << std::endl << sum << std::endl;
+  
+  if (! InfoPrint)
+    return;
+
+    // write information in .info-file
+ 
+  (*infofile) << "Sum of electrostatic force:" << std::endl;
+  (*infofile) << sum << std::endl;
+
 }
 
 

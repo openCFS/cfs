@@ -7,7 +7,7 @@
 #include "mechPDE.hh"
 #include "magEdgePDE.hh"
 #include "smoothPDE.hh"
-
+#include "smoothlaplacePDE.hh"
 
 
 

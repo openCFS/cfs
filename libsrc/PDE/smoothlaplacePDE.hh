@@ -1,5 +1,5 @@
-#ifndef FILE_SMOOTHPDE
-#define FILE_SMOOTHPDE
+#ifndef FILE_SMOOTHLAPLACEPDE
+#define FILE_SMOOTHLAPLACEPDE
 
 #include "basepde.hh"
 
@@ -13,7 +13,7 @@ namespace CoupledField
     It is used for solving mechanic equation on one time step.  
   */
 
-class SmoothPDE: public BasePDE
+class SmoothLaPlacePDE: public BasePDE
 {
 
 public:
@@ -26,10 +26,10 @@ public:
     \param aOutFile  pointer to class WriteResults. output data.
     \param aTimeFunc pointer to class TimeFunc
   */
-  SmoothPDE(Grid *aGrid, BCs *aBCs, TimeFunc *aTimeFunc, FileType *aInFile, WriteResults *aOutFile );
+  SmoothLaPlacePDE(Grid *aGrid, BCs *aBCs, TimeFunc *aTimeFunc, FileType *aInFile, WriteResults *aOutFile );
 
   //!  Deconstructor
-  virtual ~SmoothPDE() {;};
+  virtual ~SmoothLaPlacePDE() {;};
 
   //! define discrete PDE
   virtual void DiscreteParamsPDE();
@@ -90,26 +90,23 @@ public:
 protected:
 
   Integer size_;        //!< total number of unknowns (equations)
+  Double smooth_factor_;//!< factor for tuning the amount of smoothing
 
 private:
+
+  //! Overwrites the basepde function
+  void CalcInputCoupling();
+
+  Array<Double> tempSol_;
+
   // defines subtype of mechanic PDE: plainStrain, 3d, ...
   std::string subType_;
   
-  // set up matrices for LaPlace smoother
-  void SetupMatricesDistortion(Integer level);
-
-  // set up matrices for mechanic smoother
-  void SetupMatricesMechanic(Integer level);
-
   Integer GetNrBCDof (const std::string & dofStartString);
   
   Integer itercount_;
 
-  std::string method_;
-
   Boolean firstTurn_;
-
-  Vector<Double> factor_;
 
 };
 

@@ -233,6 +233,9 @@ void Domain :: InitPDEs()
       else if (pdes[i] == "smooth")
 	ptpde_[i]=new SmoothPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
 
+      else if (pdes[i] == "smoothlaplace") 
+	ptpde_[i]=new SmoothLaPlacePDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_); 
+
       else if (pdes[i] == "electrostatic") 
 	ptpde_[i]=new ElecPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_); 
 

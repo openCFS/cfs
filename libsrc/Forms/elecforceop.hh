@@ -42,13 +42,13 @@ public:
   
   //! Calculate element electric force pressure
   /*!
-    \param F (output) Element vector of electric field pressure components
+    \param F (output) Array containing nodal forces (dim x nodes) of each element
     \param ptElem (input) Pointer to element
     \param IsBoundaryNode (input) contains 1, if corresponding node is a boundary node,
     otherwise 0
     \param LCoord (input) Local coordinates of evaluation point
   */
-  virtual void CalcElemElecForce(Vector<Double> & F,
+  virtual void CalcElemElecForce(Array<Double> & F,
 				 const Elem * ptElement,
 				 Double epsilon,
 				 const std::vector<ShortInt> & IsBoundaryNode);
@@ -58,6 +58,14 @@ public:
 
 protected:
   
+  //! Calculates the expression \f[ \frac{\delta \vert J \vert}{\delta r} /f]
+  /*!
+    \param J (input) Jacobian matrix
+    \param J_dr (input) derivative of Jacobian matrix in r-direction
+    \param dim (input) dimension (= direction) of r
+  */
+  Double CalcDetJDr(Matrix<Double> &J, Matrix<Double> &Jdr, Integer dim);
+
   ElecFieldOp * ElecFieldOp_;
 
 };

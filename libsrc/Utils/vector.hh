@@ -74,6 +74,8 @@ public:
     if (p) delete [] p;
   }
 
+  //! conversion to std::vector
+  void toStdVector(std::vector<TYPE> &vec);
 
   //! Change size of vector
   /*!
