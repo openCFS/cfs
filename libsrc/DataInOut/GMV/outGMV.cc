@@ -10,39 +10,35 @@
 #include "General/environment.hh"
 #include "Utils/StdVector.hh"
 
-namespace CoupledField
-{
+namespace CoupledField {
 
-  // ===============
+  //*****************
   //   Constructor
-  // ===============
-  WriteResultsGMV :: WriteResultsGMV(const Char * const filename, 
-                                     FileType * const aInFile)
-    : WriteResults(filename,aInFile)
-  {
+  //*****************
+  WriteResultsGMV::WriteResultsGMV( const Char *const filename, 
+                                    FileType *const aInFile )
+    : WriteResults(filename,aInFile) {
 
     ENTER_FCN( "WriteResultsGMV :: WriteResultsGMV" );
 
-    namedir_=new Char[30];
+    Integer nameLength = std::strlen(filename);
+    namedir_ = new Char[ nameLength + 4 + 1 ];
+    std::strcpy( namedir_, filename );
+    std::strcat( namedir_, "_gmv" );
 
-    Char S[50];
+    Char command[ nameLength + 4 + 9 + 1 ];
+    std::sprintf( command, "mkdir -p %s", namedir_ );
+    std::system( command );
 
-    strcpy(namedir_,filename);
-
-    strcat(namedir_,"_gmv");
-    sprintf(S,"mkdir -p %s",namedir_);
-
-    system(S);
-
-    currStep_=-1;
+    currStep_ = -1;
     lastStep_ = -1;
     currTime_ = 0.0;
+
     firstGridWritten_ = FALSE;
-    output=NULL;
-    ptgrid=NULL;
+    output = NULL;
+    ptgrid = NULL;
 
-
-    ascii_= TRUE;
+    ascii_ = TRUE;
     fixedgrid_ = TRUE;
 
     // Output format can be either ascii (default) or binary
@@ -51,52 +47,40 @@ namespace CoupledField
     // Does the grid change over time, or can we use a fixed grid
     fixedgrid_ = params->IsSet( "fixedGrid", "gmv" );
 
-
     // Initialize history files
     InitHistoryFiles();
 
   }
 
 
-  // ======================
+  // **********************
   //   Default Destructor
-  // ======================
-  WriteResultsGMV ::~WriteResultsGMV()
-  {
-    ENTER_FCN( "WriteResultsGMV::~WriteResultsGMV" );
+  // **********************
+  WriteResultsGMV::~WriteResultsGMV() {
 
+    ENTER_FCN( "WriteResultsGMV::~WriteResultsGMV" );
 
     // The last gmv-file is closed by the destructor
     if (ascii_) {
       (*output) << "\nendvars\n" ;
-      (*output) <<"probtime " << currTime_ << std::endl;
       (*output) << "endgmv ";
     }
     else {
       (*output) << "endvars ";
-      (*output) << "probtime";
-      output->write((char*)&currTime_,sizeof(Double));
       (*output) << "endgmv  ";
     } 
 
     delete [] namedir_;
-
     delete output;
   }
 
 
-  void WriteResultsGMV :: WriteHeader()
-  {
-    (*output) << "gmvinput";
-    if (ascii_) (*output) << " ascii" << std::endl;
-    else (*output) << "ieeei4r8";
+  // **************
+  //   WriteNodes
+  // **************
+  void WriteResultsGMV::WriteNodes(const Integer alevel) {
 
-  }
-
-
-  void WriteResultsGMV :: WriteNodes(const Integer alevel)
-  {
-    Integer level=alevel;
+    Integer level = alevel;
 
     // write keyword
     (*output) << "nodev   ";
@@ -113,50 +97,55 @@ namespace CoupledField
     //get and write coodinates of nodes
     Integer i;
 
-    if (dim==2) 
-      {
-        Point<2> point;
+    if ( dim == 2 ) {
 
-        // write x,y,z-coordinate
-        for (i=0; i<numnodes; i++)
-          {
-            ptgrid->GetCoordinateNode(i,level,point);
+      Point<2> point;
 
-            if (ascii_)
-              (*output) << " " << point[0] << " " << point[1] << " "
-                        << 0 << std::endl;
-            else {
-              Double z=0.;
-              output->write((char*)&point[0],sizeof(Double));
-              output->write((char*)&point[1],sizeof(Double));
-              output->write((char*)&z,sizeof(Double));
-            }
-        
-          }
+      // write x,y,z-coordinate
+      for ( i = 0; i < numnodes; i++ ) {
+
+        ptgrid->GetCoordinateNode(i,level,point);
+
+        if (ascii_) {
+          (*output) << " " << point[0] << " " << point[1] << " "
+                    << 0 << std::endl;
+        }
+        else {
+          Double z=0.;
+          output->write((char*)&point[0],sizeof(Double));
+          output->write((char*)&point[1],sizeof(Double));
+          output->write((char*)&z,sizeof(Double));
+        }
       }
+    }
     else {
+
       Point<3> point;
 
       // write x,y,z-coordinate
-      for (i=0; i<numnodes; i++)
-        {
-          ptgrid->GetCoordinateNode(i,level,point);
+      for ( i = 0; i < numnodes; i++ ) {
+
+        ptgrid->GetCoordinateNode(i,level,point);
         
-          if (ascii_)
-            (*output) << " " << point[0] << " " << point[1] << " "
-                      << point[2] << std::endl;
-          else {
-            output->write((char*)&point[0],sizeof(Double));
-            output->write((char*)&point[1],sizeof(Double));
-            output->write((char*)&point[2],sizeof(Double));
-          }
-        
+        if (ascii_) {
+          (*output) << " " << point[0] << " " << point[1] << " "
+                    << point[2] << std::endl;
         }
+        else {
+          output->write((char*)&point[0],sizeof(Double));
+          output->write((char*)&point[1],sizeof(Double));
+          output->write((char*)&point[2],sizeof(Double));
+        }
+      }
     }
   }
 
-  void WriteResultsGMV::WriteCells(const Integer alevel) 
-  {
+
+  // **************
+  //   WriteCells
+  // **************
+  void WriteResultsGMV::WriteCells( const Integer alevel ) {
+
     ENTER_FCN( "WriteResultsGMV::WriteCells" );
 
     Integer level=alevel;
@@ -164,9 +153,9 @@ namespace CoupledField
     // write keyword
     (*output) << "cells   ";
 
-    //
-    if (!ptgrid)
-      Error("ptgrid is not initialized", __FILE__,__LINE__);
+    if (!ptgrid) {
+      Error( "ptgrid is not initialized", __FILE__, __LINE__ );
+    }
 
     // read information about number of elements 
     Integer numelem; 
@@ -182,155 +171,156 @@ namespace CoupledField
     Integer dim=ptgrid->GetDim();
   
     Integer i;
-    for (i=0; i<numelem; i++)
-      {
-        ptgrid->GetConnection(connect, i+1, level);
+    for ( i = 0; i < numelem; i++ ) {
 
-        if (dim==2)
-          {
-            switch (connect.GetSize())
-              {
-                //          case 2:
-                //            if (ascii_)
-                //              (*output) << "line 2" << std::endl;
-                //            else {
-                //              (*output) << "line    ";
-                //              Integer nn=2;
-                //              output->write((char*)&nn,sizeof(Integer));
-                //            }
-              case 3: 
-                if (ascii_)
-                  (*output) << "tri 3" << std::endl;
-                else {
-                  (*output) << "tri     ";
-                  Integer nn=3;
-                  output->write((char*)&nn,sizeof(Integer));
-                }
-                break;
-              case 4:
-                if (ascii_)
-                  (*output) << "quad 4" << std::endl;
-                else {
-                  (*output) << "quad    ";
-                  Integer nn=4;
-                  output->write((char*)&nn,sizeof(Integer));
-                }
-                break;
-              case 6: 
-                if (ascii_)
-                  (*output) << "6tri 6" << std::endl;
-                else {
-                  (*output) << "6tri    ";
-                  Integer nn=6;
-                  output->write((char*)&nn,sizeof(Integer));
-                }
-                break;
-              case 8:
-                if (ascii_)
-                  (*output) << "8quad 8" << std::endl;
-                else {
-                  (*output) << "8quad   ";
+      ptgrid->GetConnection(connect, i+1, level);
+
+      if ( dim == 2 ) {
+        switch ( connect.GetSize() ) {
+          //          case 2:
+          //            if (ascii_)
+          //              (*output) << "line 2" << std::endl;
+          //            else {
+          //              (*output) << "line    ";
+          //              Integer nn=2;
+          //              output->write((char*)&nn,sizeof(Integer));
+          //            }
+        case 3: 
+          if (ascii_)
+            (*output) << "tri 3" << std::endl;
+          else {
+            (*output) << "tri     ";
+            Integer nn=3;
+            output->write((char*)&nn,sizeof(Integer));
+          }
+          break;
+        case 4:
+          if (ascii_)
+            (*output) << "quad 4" << std::endl;
+          else {
+            (*output) << "quad    ";
+            Integer nn=4;
+            output->write((char*)&nn,sizeof(Integer));
+          }
+          break;
+        case 6: 
+          if (ascii_)
+            (*output) << "6tri 6" << std::endl;
+          else {
+            (*output) << "6tri    ";
+            Integer nn=6;
+            output->write((char*)&nn,sizeof(Integer));
+          }
+          break;
+        case 8:
+          if (ascii_)
+            (*output) << "8quad 8" << std::endl;
+          else {
+            (*output) << "8quad   ";
+            Integer nn=8;
+            output->write((char*)&nn,sizeof(Integer));
+          }
+          break;
+        default:
+          Error("This type of element is not implemented",
+                __FILE__, __LINE__);
+        }
+      }
+      else
+        {
+          switch (connect.GetSize())
+            {
+            case 4:
+              if (ascii_)
+                (*output) << "tet 4" << std::endl;
+              else {
+                (*output) << "tet     ";
+                Integer nn=4;
+                output->write((char*)&nn,sizeof(Integer));
+              }
+              break;
+            case 5:
+              if (ascii_)
+                (*output) << "ppyrmd5 5" << std::endl;
+              else {
+                (*output) << "ppyrmd5 ";
+                Integer nn=5;
+                output->write((char*)&nn,sizeof(Integer));
+              }
+              break;
+            case 6:
+              if (ascii_)
+                (*output) << "pprism6 6" << std::endl;
+              else {
+                (*output) << "pprism6 ";
+                Integer nn=6;
+                output->write((char*)&nn,sizeof(Integer));
+              }
+              break;
+
+            case 15:
+              if (ascii_)
+                (*output) << "pprism15 16" << std::endl;
+              else {
+                (*output) << "pprism15";
+                Integer nn=16 ;
+                output->write((char*)&nn,sizeof(Integer));
+              }
+
+              // Note: Due to a bug up to the current version of GMV (v3.5)
+              // we have to add a 16. node for the wedge element by simply
+              // copying the last node
+              connect.Push_back(connect[connect.GetSize()-1]);
+              break;
+
+            case 8:
+              if (ascii_)
+                (*output) << "phex8 8" << std::endl;
+              else 
+                {
+                  (*output) << "phex8   ";
                   Integer nn=8;
                   output->write((char*)&nn,sizeof(Integer));
                 }
-                break;
-              default:
-                Error("This type of element is not implemented",
-                      __FILE__, __LINE__);
-              }
-          }
-        else
-          {
-            switch (connect.GetSize())
-              {
-              case 4:
-                if (ascii_)
-                  (*output) << "tet 4" << std::endl;
-                else {
-                  (*output) << "tet     ";
-                  Integer nn=4;
+              break;
+            case 20:
+              if (ascii_)
+                (*output) << "phex20 20" << std::endl;
+              else 
+                {
+                  (*output) << "phex20  ";
+                  Integer nn=20;
                   output->write((char*)&nn,sizeof(Integer));
                 }
-                break;
-              case 5:
-                if (ascii_)
-                  (*output) << "ppyrmd5 5" << std::endl;
-                else {
-                  (*output) << "ppyrmd5 ";
-                  Integer nn=5;
-                  output->write((char*)&nn,sizeof(Integer));
-                }
-                break;
-              case 6:
-                if (ascii_)
-                  (*output) << "pprism6 6" << std::endl;
-                else {
-                  (*output) << "pprism6 ";
-                  Integer nn=6;
-                  output->write((char*)&nn,sizeof(Integer));
-                }
-                break;
+              break;
+            default:
+              std::cout << connect.GetSize() << std::endl;
+              Error("This type of element is not implemented",
+                    __FILE__, __LINE__);
+            }
+        }
 
-              case 15:
-                if (ascii_)
-                  (*output) << "pprism15 16" << std::endl;
-                else {
-                  (*output) << "pprism15";
-                  Integer nn=16 ;
-                  output->write((char*)&nn,sizeof(Integer));
-                }
+      if (ascii_) 
+        {
+          Integer j;
+          for (j=0; j< connect.GetSize(); j++)
+            (*output) << " " << connect[j] ;
+          (*output) << std::endl;
+        }
+      else 
+        {
+          Integer * ptcon=connect.GetPointer();
+          Integer len=connect.GetSize();
+          output->write((char*)ptcon,len * sizeof(Integer));
+        }
 
-                // Note: Due to a bug up to the current version of GMV (v3.5)
-                // we have to add a 16. node for the wedge element by simply
-                // copying the last node
-                connect.Push_back(connect[connect.GetSize()-1]);
-                break;
-
-              case 8:
-                if (ascii_)
-                  (*output) << "phex8 8" << std::endl;
-                else 
-                  {
-                    (*output) << "phex8   ";
-                    Integer nn=8;
-                    output->write((char*)&nn,sizeof(Integer));
-                  }
-                break;
-              case 20:
-                if (ascii_)
-                  (*output) << "phex20 20" << std::endl;
-                else 
-                  {
-                    (*output) << "phex20  ";
-                    Integer nn=20;
-                    output->write((char*)&nn,sizeof(Integer));
-                  }
-                break;
-              default:
-                std::cout << connect.GetSize() << std::endl;
-                Error("This type of element is not implemented",
-                      __FILE__, __LINE__);
-              }
-          }
-
-        if (ascii_) 
-          {
-            Integer j;
-            for (j=0; j< connect.GetSize(); j++)
-              (*output) << " " << connect[j] ;
-            (*output) << std::endl;
-          }
-        else 
-          {
-            Integer * ptcon=connect.GetPointer();
-            Integer len=connect.GetSize();
-            output->write((char*)ptcon,len * sizeof(Integer));
-          }
-
-      }
+    }
   }
 
 
+  // ******************
+  //   WriteMaterials
+  // ******************
   void WriteResultsGMV::WriteMaterials(const Integer level) {
 
     StdVector<Integer> regionID;
@@ -392,46 +382,50 @@ namespace CoupledField
       delete[] str;
   }
 
-  void WriteResultsGMV::WriteNodeVariableTransient(const Vector<Double> var, 
-                                                   const std::string name, 
-                                                   const Integer dataType)
-  {
-  
-    if (ascii_) (*output) << std::endl;
 
+  // ******************************
+  //   WriteNodeVariableTransient
+  // ******************************
+  void WriteResultsGMV::WriteNodeVariableTransient( const Vector<Double> var, 
+                                                    const std::string name, 
+                                                    const Integer dataType ) {
   
-    if (ascii_)
+    if (ascii_) {
+      (*output) << std::endl;
+    }
+
+    if (ascii_) {
       (*output) << name << " " << dataType << std::endl;
-    else 
-      {
-        Char * str=new Char[8];  
-        to8Char(name,str);
-        (*output) << str;
-        output->write((Char*)&dataType,sizeof(Integer));
-        delete [] str;
-      }
-  
-    if (ascii_) 
-      {
-        Integer i;
-        for (i=0; i<var.GetSize(); i++)
-          (*output) << var[i] << " ";
-      }
-    else 
-      {
-        Double * ptvar=var.GetPointer();
-        Integer len=var.GetSize();
-        output->write((char*)ptvar,len * sizeof(Double));
-      }
+    }
+    else {
+      Char * str=new Char[8];  
+      to8Char(name,str);
+      (*output) << str;
+      output->write((Char*)&dataType,sizeof(Integer));
+      delete [] str;
+    }
 
+    if (ascii_) {
+      Integer i;
+      for (i=0; i<var.GetSize(); i++)
+        (*output) << var[i] << " ";
+    }
+    else {
+      Double * ptvar=var.GetPointer();
+      Integer len=var.GetSize();
+      output->write((char*)ptvar,len * sizeof(Double));
+    }
   }
 
+
+  // *****************************
+  //   WriteNodeVariableHarmonic
+  // *****************************
   void WriteResultsGMV::
-  WriteNodeVariableHarmonic(const Vector<Complex> var, 
-                            const std::string name, 
-                            const Integer dataType,
-                            const ComplexFormat outputFormat)
-  {
+  WriteNodeVariableHarmonic( const Vector<Complex> var, 
+                             const std::string name, 
+                             const Integer dataType,
+                             const ComplexFormat outputFormat ) {
     Integer i;
     Double val;
   
@@ -447,29 +441,26 @@ namespace CoupledField
     
       if (ascii_)
         (*output) << name << "-Real " << dataType << std::endl;
-      else 
-        {
-          Char * str=new Char[8];  
-          to8Char(name,str);
-          str[7] = 'R';
-          (*output) << str;
-          output->write((Char*)&dataType,sizeof(Integer));
-          delete [] str;
-        }
+      else {
+        Char * str=new Char[8];  
+        to8Char(name,str);
+        str[7] = 'R';
+        (*output) << str;
+        output->write((Char*)&dataType,sizeof(Integer));
+        delete [] str;
+      }
     
-      if (ascii_) 
-        {
-          Integer i;
-          for (i=0; i<var.GetSize(); i++)
-            (*output) << var[i].real() << " ";
+      if (ascii_) {
+        Integer i;
+        for (i=0; i<var.GetSize(); i++)
+          (*output) << var[i].real() << " ";
+      }
+      else {
+        for (i=0; i<var.GetSize(); i++){
+          val = var[i].real();
+          output->write((char*)(&val),sizeof(Double));
         }
-      else 
-        {
-          for (i=0; i<var.GetSize(); i++){
-            val = var[i].real();
-            output->write((char*)(&val),sizeof(Double));
-          }
-        }
+      }
 
       // --- Imaginary Part ---
       if (ascii_) (*output) << std::endl;
@@ -500,11 +491,14 @@ namespace CoupledField
         }
       }
     
-    } else if (outputFormat == AMPLITUDE_PHASE) {
-      // **********************
-      // AMPLITUDE-PHASE FORMAT
-      // ********************** 
-      
+    }
+
+
+    // **********************
+    // AMPLITUDE-PHASE FORMAT
+    // ********************** 
+    else if ( outputFormat == AMPLITUDE_PHASE ) {
+    
       // --- Amplitude ---
       if (ascii_) (*output) << std::endl;
     
@@ -573,7 +567,10 @@ namespace CoupledField
     }
   }
 
-  // only for 3D
+
+  // *****************
+  //   WriteVelocity
+  // *****************
   void WriteResultsGMV::WriteVelocity( const Vector<Double> *var,
                                        const std::string name,
                                        const Integer dataType ) {
@@ -612,12 +609,13 @@ namespace CoupledField
     // Section for PrintGridOnly
     // ----------------------------
     if (PrintGridOnly == TRUE) {
-      if(fixedgrid_ == TRUE) 
+      if(fixedgrid_ == TRUE) {
         OpenFile(-1);
-      else
+      }
+      else {
         OpenFile(0);
+      }
 
-      WriteHeader();
       WriteNodes(level);
       WriteCells(level);
       WriteMaterials(level);
@@ -636,7 +634,6 @@ namespace CoupledField
     if (fixedgrid_ == TRUE &&
         firstGridWritten_ == FALSE) {
       OpenFile(-1);
-      WriteHeader();
       WriteNodes(level);
       WriteCells(level);
       WriteMaterials(level);
@@ -649,7 +646,7 @@ namespace CoupledField
     }
   
     // ---------------------------
-    // Section for new  time step
+    // Section for new time step
     // ----------------------------
   
     // Write Only if time time step has changed
@@ -659,7 +656,6 @@ namespace CoupledField
       lastStep_ = currStep_;
       OpenFile(currStep_);
 
-      WriteHeader();
       if (fixedgrid_){
         if (ascii_)
           (*output) << "nodev fromfile \"" << nameGridFile_ 
@@ -734,10 +730,12 @@ namespace CoupledField
         if (sol.GetDof(solTypes[iSol]) > 1) {
           char nrStr[10];
           sprintf(nrStr,"%i",iDof+1);
-          outString = SolutionTypeToString(solTypes[iSol]) + nrStr;
+          Enum2String( solTypes[iSol], outString );
+          outString += nrStr;
         }
-        else 
-          outString = SolutionTypeToString(solTypes[iSol]);
+        else {
+          Enum2String( solTypes[iSol], outString );
+        }
       
         // Get the solution for one solutiontype and one dof
         sol.GetGlobalSolVectorSingleDof(solTypes[iSol],iDof,solhelp);
@@ -782,7 +780,9 @@ namespace CoupledField
     for (i=0; i<data.GetDof(); i++) {
       char nrStr[10];
       sprintf(nrStr,"%i",i+1);
-      std::string sumString = SolutionTypeToString(solType[0]) + nrStr;
+      std::string sumString;
+      Enum2String( solType[0], sumString );
+      sumString += nrStr;
 
       // Get global solution vector for on dof
       data.GetGlobalSolVectorSingleDof(i,solhelp);
@@ -835,10 +835,12 @@ namespace CoupledField
         if (sol.GetDof(solTypes[iSol]) > 1) {
           char nrStr[10];
           sprintf(nrStr,"%i",iDof+1);
-          outString = SolutionTypeToString(solTypes[iSol]) + nrStr;
+          Enum2String( solTypes[iSol], outString );
+          outString += nrStr;
         }
-        else 
-          outString = SolutionTypeToString(solTypes[iSol]);
+        else {
+          Enum2String( solTypes[iSol], outString );
+        }
       
         // Get the solution for one solutiontype and one dof
         sol.GetGlobalSolVectorSingleDof(solTypes[iSol],iDof,solhelp);
@@ -885,7 +887,9 @@ namespace CoupledField
     for (i=0; i<sol.GetDof(); i++) {
       char nrStr[10];
       sprintf(nrStr,"%i",i+1);
-      std::string sumString = SolutionTypeToString(solType[0]) + nrStr;
+      std::string sumString;
+      Enum2String( solType[0], sumString );
+      sumString += nrStr;
 
       // Get global solution vector for on dof
       sol.GetGlobalSolVectorSingleDof(i,solhelp);
@@ -896,8 +900,11 @@ namespace CoupledField
   }
 
 
-  void WriteResultsGMV::OpenFile(const Integer num)
-  {
+  // ***********
+  //  OpenFile
+  // ***********
+  void WriteResultsGMV::OpenFile( const Integer num ) {
+
     std::string filename;
 
     // Generate basename for output file
@@ -907,62 +914,72 @@ namespace CoupledField
 
     // In the case of a fixed grid we write the grid description to a
     // separate file
-    if ( num == -1 )
-      {
-        filename.append( "_GRID.gmv" );
-        nameGridFile_ = namefile_ + "_GRID.gmv";;
-      }
+    if ( num == -1 ) {
+      filename.append( "_GRID.gmv" );
+      nameGridFile_ = namefile_ + "_GRID.gmv";
+    }
 
     // Normal output file
-    else
-      {
-        filename.append( ".gmv" );
-        if ( num < 10 ) filename.append( "00" );
-        else if ( num < 100 ) filename.append( "0" );
-        else if ( num > 1000 )
-          {
-            Info->Error( "Number of gmv file exceeds 999!",
-                         __FILE__, __LINE__ );
-          }
-        filename.append( Info->GenStr( num ) );
+    else {
+      filename.append( ".gmv" );
+      if ( num < 10 ) filename.append( "00" );
+      else if ( num < 100 ) filename.append( "0" );
+      else if ( num > 1000 ) {
+        Info->Error( "Number of gmv file exceeds 999!",
+                     __FILE__, __LINE__ );
       }
+      filename.append( Info->GenStr( num ) );
+    }
 
-  
     // If file was already open, write end of variables
     if (output && num > 1) {
       if (ascii_) {
         (*output) << "\nendvars\n" ;
-        (*output) <<"probtime " << currTime_ << std::endl;
         (*output) << "endgmv";
       }
       else {
         (*output) << "endvars ";
-        (*output) << "probtime";
-        output->write((char*)&currTime_,sizeof(Double));
         (*output) << "endgmv  ";
-      } 
+      }
     }
     delete output;
-
 
     // check what kind of data for input
     std::string typedata;
   
-    if (ascii_)
-      output=new std::ofstream(filename.c_str());
-    else
-      {
-        output=new std::ofstream(filename.c_str(),std::ofstream::binary);
-      }
-    if (!output)
-      Error(" File for output results in .gmv-format could not be opened",
-            __FILE__, __LINE__);
-  
+    if (ascii_) {
+      output = new std::ofstream(filename.c_str());
+    }
+    else {
+      output = new std::ofstream(filename.c_str(),std::ofstream::binary);
+    }
+    if ( !output ) {
+      (*error) << "Could not open file '" << filename
+               << "' for writing GMV output";
+      Error( __FILE__, __LINE__ );
+    }
+
+    // Write header, problem time and step number
+    if (ascii_) {
+      (*output) << "gmvinput ascii" << std::endl;
+      (*output) << "probtime " << currTime_ << std::endl;
+      (*output) << "cycleno " << num << std::endl;
+    }
+    else {
+      (*output) << "gmvinput" << "ieeei4r8";
+      (*output) << "probtime";
+      output->write( (char*)&currTime_, sizeof(Double) );
+      (*output) << "cycleno";
+      output->write( (char*)&num, sizeof(Integer) );
+    }
   }
 
-  void WriteResultsGMV::Init(Grid * aptgrid)
-  {
-    ptgrid=aptgrid;
+
+  // ********
+  //   Init
+  // ********
+  void WriteResultsGMV::Init( Grid *aptgrid ) {
+    ptgrid = aptgrid;
   }
 
   void WriteResultsGMV::to8Char(const std::string name, char * result)
@@ -983,92 +1000,6 @@ namespace CoupledField
 
     strcpy(result,aux.c_str());
 
-  }
-
-
-  std::string WriteResultsGMV::SolutionTypeToString(const SolutionType type)
-    const {
-
-    ENTER_FCN( "WriteResultsGMV::SolutionTypeToString" );
-
-    switch (type)
-      {
-      case MECH_DISPLACEMENT:
-        return "mechDisplacement";
-        break;
-      case MECH_ACCELERATION:
-        return "mechAcceleration";
-        break;
-      case MECH_VELOCITY:
-        return "mechVelocity";
-        break;
-      case MECH_FORCE:
-        return "mechForce";
-        break;
-      case MECH_STRESS:
-        return "mechStress";
-        break;
-      case MECH_STRAIN:
-        return "mechStrain";
-        break;
-      case ELEC_POTENTIAL:
-        return "elecPotential";
-        break;
-      case ELEC_FIELD_INTENSITY:
-        return "elecField";
-        break;
-      case ELEC_FORCE_VWP:
-        return "elecForce";
-        break;
-      case ELEC_INTERFACE_FORCE:
-        return "elecInterfaceForce";
-        break;
-      case ELEC_CHARGE:
-        return "elecCharge";
-        break;
-      case ELEC_FLUX_DENSITY:
-        return "elecFluxDensity";
-        break;
-      case ELEC_ENERGY:
-        return "elecEnergy";
-        break;
-      case SMOOTH_DISPLACEMENT:
-        return "smoothDisplacement";
-        break;
-      case ACOU_POTENTIAL:
-        return "acouPotential";
-        break;
-      case ACOU_FORCE:
-        return "acouForce";
-        break;
-      case ACOU_POTENTIAL_DERIV_1:
-        return "vp_der_1";
-        break;
-      case ACOU_POTENTIAL_DERIV_2:
-        return "vp_der_2";
-        break;
-      case MAG_POTENTIAL:
-        return "magPotential";
-        break;
-      case MAG_FLUX_DENSITY:
-        return "magField";
-        break;
-      case MAG_EDDY_CURRENT:
-        return "eddyCurrent";
-        break;
-      case MAG_FORCE_VWP:
-        return "magF-VWP";
-        break;
-      case MAG_FORCE_LORENTZ:
-        return "magF-Lor";
-        break;
-      case MAG_ENERGY:
-        return  "magEnergy";
-        break;
-      default:
-        Error( "Wrong type of solution or 'SolutionType2String' not "
-               "implemented for this type of solution", __FILE__, __LINE__);
-      }
   }
 
 } // end of namespace
