@@ -1125,6 +1125,7 @@ namespace CoupledField {
       for ( Integer k = 0; k < calcBfield_.GetSize(); k++ ) {
         Info->PrintF( pdename_, " %s\n", calcBfield_[k].c_str() );
       }
+      Info->PrintF( "", "\n" );
     }
     
     // --- Magnetic Energy ---
@@ -1145,6 +1146,7 @@ namespace CoupledField {
       for ( Integer k = 0; k < calcEnergy_.GetSize(); k++ ) {
         Info->PrintF( pdename_, " %s\n", calcEnergy_[k].c_str() );
       }
+      Info->PrintF( "", "\n" );
     }
 
     // --- Magnetic Eddy Current ---
@@ -1165,6 +1167,7 @@ namespace CoupledField {
       for ( Integer k = 0; k < calcEddy_.GetSize(); k++ ) {
         Info->PrintF( pdename_, " %s\n", calcEddy_[k].c_str() );
       }
+      Info->PrintF( "", "\n" );
     }
    
     // *****************************
@@ -1186,6 +1189,7 @@ namespace CoupledField {
       for ( Integer k = 0; k < saveNodeHist.GetSize(); k++ ) {
         Info->PrintF( pdename_, " %s\n", saveNodeHist[k].c_str() );
       }
+      Info->PrintF( "", "\n" );
     }
 
     // *****************************
@@ -1203,8 +1207,7 @@ namespace CoupledField {
       errMsg += "Meanwhile you can use 'unvtool' to extract element data.";
       Error( errMsg.c_str(), __FILE__, __LINE__);
     }
-    
-    
+
   }
 
 
