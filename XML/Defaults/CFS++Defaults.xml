@@ -13,6 +13,8 @@
   </domain>
 
   <pdeList>
+
+    <!-- Template for mechanics PDE -->
     <mechanic>
   
       <region name="dummyRegion"/>
@@ -25,6 +27,25 @@
       </nonLinear>
   
     </mechanic>
+
+    <!-- Template for magnetics PDE -->
+    <magnetic>
+      <region name="dummyRegion"/>
+      <region name="dummyRegion"/>
+      <bcsAndLoads>
+        <dirichletHom name="dummyRegion"/>
+      </bcsAndLoads>
+
+      <coils>
+        <currentCoil2d name="dummyRegion">
+          <area>  1 </area>
+          <value> 1 </value>
+          <dynamics/>
+          <id>    1 </id>
+        </currentCoil2d>
+      </coils>
+
+    </magnetic>
 
   </pdeList>
 
