@@ -69,7 +69,7 @@ virtual void WriteNodeSolutionHarmonic(const NodeStoreSol<Complex>& data,
 					 const Integer step,
 					 const Double frequency,
 					 const ComplexFormat format)
-{Warning("Not yet implemented",__FILE__,__LINE__);};
+{Warning("WriteNodeSolutionHarmonic not yet implemented",__FILE__,__LINE__);};
 
  //! write element solution vector
   /*!
@@ -82,7 +82,7 @@ virtual void WriteElemSolutionHarmonic(const ElemStoreSol<Complex>& data,
 					 const Integer step,
 					 const Double frequency,
 					 const ComplexFormat format)
-{Warning("Not yet implemented",__FILE__,__LINE__);};
+{Warning("WriteElemSolutionHarmonic not yet implemented",__FILE__,__LINE__);};
 
   //! write node history vector (transient/static)
   /*!
@@ -93,7 +93,7 @@ virtual void WriteElemSolutionHarmonic(const ElemStoreSol<Complex>& data,
   void WriteNodeHistoryTransient(const NodeStoreSol<Double>& data, 
 				 const Integer step, 
 				 const Double time)
-{Error("Not yet implemented.",__FILE__,__LINE__);};
+{Error("WriteNodeHistoryTransient not yet implemented.",__FILE__,__LINE__);};
 
 
   //! write nodal history vector (harmonic)
@@ -108,7 +108,7 @@ virtual void WriteElemSolutionHarmonic(const ElemStoreSol<Complex>& data,
 				const Integer step,
 				const Double frequency,
 				const ComplexFormat format)
-{Error("Not yet implemented.",__FILE__,__LINE__);};
+{Error("WriteNodeHistoryHarmonic not yet implemented.",__FILE__,__LINE__);};
 
 //! check, is it the gmv-output file
 Boolean IsGMV();
@@ -162,7 +162,7 @@ void Dataset55(const std::string & title,
   \param time Time of the calculation
   \param nrDofs Number of degrees of freedom
 */
-void WriteResultsDatabase::Dataset56(const std::string &title, 
+void Dataset56(const std::string &title, 
 	       const Vector<Double> & x, 
 	       const Integer step, 
 	       const Double time, 

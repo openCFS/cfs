@@ -36,78 +36,78 @@ private:
   void ReadStiffnessLinear (MaterialData &matData, const std::string &matName, int matidx);
 
   //! Read piezo material nonlinear stiffness data f(S) - not yet implemented
-  void ReadStiffnessNonlinear_S(MaterialData &matData, const std::string &matName, int matidx){Error("Not yet implemented",__FILE__,__LINE__);};
+  void ReadStiffnessNonlinear_S(MaterialData &matData, const std::string &matName, int matidx){Error("Nonlinear piezo matrix not yet implemented",__FILE__,__LINE__);};
 
   //! Read piezo material stiffness data, hysteresis f(S)  - not yet implemented
-  void ReadStiffnessHysteresis_S(MaterialData &matData, const std::string &matName, int matidx){Error("Not yet implemented",__FILE__,__LINE__);};
+  void ReadStiffnessHysteresis_S(MaterialData &matData, const std::string &matName, int matidx){Error("Piezo hysteresis not yet implemented",__FILE__,__LINE__);};
 
 
   //! Read piezo material linear coupling data
   void ReadCouplingLinear (MaterialData &matData, const std::string &matName, int matidx);
 
   //! Read piezo material nonlinear coupling data f(E) - not yet implemented
-  void ReadCouplingNonlinear_E(MaterialData &matData, const std::string &matName, int matidx){Error("Not yet implemented",__FILE__,__LINE__);};
+  void ReadCouplingNonlinear_E(MaterialData &matData, const std::string &matName, int matidx){Error("Nonlinear coupling not yet implemented",__FILE__,__LINE__);};
 
   //! Read piezo material nonlinear coupling data f(S) - not yet implemented
-  void ReadCouplingNonlinear_S(MaterialData &matData, const std::string &matName, int matidx){Error("Not yet implemented",__FILE__,__LINE__);};
+  void ReadCouplingNonlinear_S(MaterialData &matData, const std::string &matName, int matidx){Error("Nonlinear coupling not yet implemented",__FILE__,__LINE__);};
 
   //! Read piezo material coupling data, hysteresis f(S)  - not yet implemented
-  void ReadCouplingHysteresis_E(MaterialData &matData, const std::string &matName, int matidx){Error("Not yet implemented",__FILE__,__LINE__);};
+  void ReadCouplingHysteresis_E(MaterialData &matData, const std::string &matName, int matidx){Error("Coupling hysteresis not yet implemented",__FILE__,__LINE__);};
 
   //! Read piezo material coupling data, hysteresis f(S)  - not yet implemented
-  void ReadCouplingHysteresis_S(MaterialData &matData, const std::string &matName, int matidx){Error("Not yet implemented",__FILE__,__LINE__);};
+  void ReadCouplingHysteresis_S(MaterialData &matData, const std::string &matName, int matidx){Error("Coupling hysteresis not yet implemented",__FILE__,__LINE__);};
 
 
   //! Read piezo material linear dielectric data
   void ReadDielectricLinear (MaterialData &matData, const std::string &matName, int matidx);
 
   //! Read piezo material nonlinear coupling data f(E) - not yet implemented
-  void ReadDielectricNonlinear_E(MaterialData &matData, const std::string &matName, int matidx){Error("Not yet implemented",__FILE__,__LINE__);};
+  void ReadDielectricNonlinear_E(MaterialData &matData, const std::string &matName, int matidx){Error("Nonlinear dielectricity not yet implemented",__FILE__,__LINE__);};
 
   //! Read piezo material coupling data, hysteresis f(S)  - not yet implemented
-  void ReadDielectricHysteresis_E(MaterialData &matData, const std::string &matName, int matidx){Error("Not yet implemented",__FILE__,__LINE__);};
+  void ReadDielectricHysteresis_E(MaterialData &matData, const std::string &matName, int matidx){Error("Dielectricity hysteresis not yet implemented",__FILE__,__LINE__);};
 
 
   //! Read material linear conductivity data
   void ReadConductivityLinear (MaterialData &matData, const std::string &matName, int matidx);
 
   //! Read material nonlinear conductivity data f(T) - not yet implemented
-  void ReadConductivityNonlinear_T(MaterialData &matData, const std::string &matName, int matidx){Error("Not yet implemented",__FILE__,__LINE__);};
+  void ReadConductivityNonlinear_T(MaterialData &matData, const std::string &matName, int matidx){Error("Nonlinear conductivity not yet implemented",__FILE__,__LINE__);};
 
   //! Read material nonlinear conductivity data f(B) - not yet implemented
-  void ReadConductivityNonlinear_B(MaterialData &matData, const std::string &matName, int matidx){Error("Not yet implemented",__FILE__,__LINE__);};
+  void ReadConductivityNonlinear_B(MaterialData &matData, const std::string &matName, int matidx){Error("Nonlinear conducitvity not yet implemented",__FILE__,__LINE__);};
 
   //! Read material conductivity data, hysteresis f(T)  - not yet implemented
-  void ReadConductivityHysteresis_T(MaterialData &matData, const std::string &matName, int matidx){Error("Not yet implemented",__FILE__,__LINE__);};
+  void ReadConductivityHysteresis_T(MaterialData &matData, const std::string &matName, int matidx){Error("Conductivity hysteresis not yet implemented",__FILE__,__LINE__);};
 
   //! Read material conductivity data, hysteresis f(B)  - not yet implemented
-  void ReadConductivityHysteresis_B(MaterialData &matData, const std::string &matName, int matidx){Error("Not yet implemented",__FILE__,__LINE__);};
+  void ReadConductivityHysteresis_B(MaterialData &matData, const std::string &matName, int matidx){Error("Conductivity hysteresis not yet implemented",__FILE__,__LINE__);};
 
 
   //! Read material linear permeability data
   void ReadPermeabilityLinear (MaterialData &matData, const std::string &matName, int matidx);
 
   //! Read material nonlinear permeability data f(T) - not yet implemented
-  void ReadPermeabilityNonlinear_T(MaterialData &matData, const std::string &matName, int matidx){Error("Not yet implemented",__FILE__,__LINE__);};
+  void ReadPermeabilityNonlinear_T(MaterialData &matData, const std::string &matName, int matidx){Error("Nonlinear permeability not yet implemented",__FILE__,__LINE__);};
 
   //! Read material nonlinear permeability data f(B) - not yet implemented
-  void ReadPermeabilityNonlinear_B(MaterialData &matData, const std::string &matName, int matidx){Error("Not yet implemented",__FILE__,__LINE__);};
+  void ReadPermeabilityNonlinear_B(MaterialData &matData, const std::string &matName, int matidx){Error("Nonlinear permeability not yet implemented",__FILE__,__LINE__);};
 
   //! Read material permeability data, hysteresis f(T)  - not yet implemented
-  void ReadPermeabilityHysteresis_T(MaterialData &matData, const std::string &matName, int matidx){Error("Not yet implemented",__FILE__,__LINE__);};
+  void ReadPermeabilityHysteresis_T(MaterialData &matData, const std::string &matName, int matidx){Error("Permeability hysteresis not yet implemented",__FILE__,__LINE__);};
 
   //! Read material permeability data, hysteresis f(B)  - not yet implemented
-  void ReadPermeabilityHysteresis_B(MaterialData &matData, const std::string &matName, int matidx){Error("Not yet implemented",__FILE__,__LINE__);};
+  void ReadPermeabilityHysteresis_B(MaterialData &matData, const std::string &matName, int matidx){Error("Permeability hysteresis not yet implemented",__FILE__,__LINE__);};
 
 
   //! Read material linear dielectric data
   void ReadMagnetisationLinear (MaterialData &matData, const std::string &matName, int matidx);
 
   //! Read material nonlinear magnetisation data f(B) - not yet implemented
-  void ReadMagnetisationNonlinear_B(MaterialData &matData, const std::string &matName, int matidx){Error("Not yet implemented",__FILE__,__LINE__);};
+  void ReadMagnetisationNonlinear_B(MaterialData &matData, const std::string &matName, int matidx){Error("Nonlinear magnetisation not yet implemented",__FILE__,__LINE__);};
 
   //! Read material magnetisation data, hysteresis f(B)  - not yet implemented
-  void ReadMagnetisationHysteresis_B(MaterialData &matData, const std::string &matName, int matidx){Error("Not yet implemented",__FILE__,__LINE__);};
+  void ReadMagnetisationHysteresis_B(MaterialData &matData, const std::string &matName, int matidx){Error("Magnetisation hysteresis not yet implemented",__FILE__,__LINE__);};
 
 
 
