@@ -431,7 +431,9 @@ void ElecPDE::CalcCharges()
   std::string outstring = "Sum of electric charges: ";
   outstring += Info->GenStr(sumOfCharges);
   Info->PrintF(pdename_, outstring.c_str());
-  
+
+  delete chargeOp;
+  delete dFieldOp;
 }
 
   
@@ -992,6 +994,7 @@ void ElecPDE::CalcEfieldAtCoupleElemIP(Elem * actVolElem,
 
 
   elecFieldOp->CalcElemGradField(tempE, actVolElem, lCoord, 1);
+
 }
 
 
