@@ -73,11 +73,20 @@ void main(int argc, char *argv[])
 
   oClockTotal.ClockCount(MyClock::end,"Total time");
 
+/*
+   Grid<Point3D> * ptgrid=new GridInterfaceCFS<Point3D>(ptInputfile);
+   ptgrid->Read();
+
+   WriteResults<Point3D> * ptOut=new WriteResultsUnverg<Point3D>("3d");
+
+   ptOut->Init(ptgrid);
+   ptOut->WriteGrid(0);
+*/
+
 /// Putzen
 
   if (ptInputfile) delete ptInputfile;
   if (ptOut) delete ptOut;
   if (ptdriver) delete ptdriver;
   if (ptMaterial) delete ptMaterial;
-
 }

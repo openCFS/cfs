@@ -471,6 +471,8 @@ main/DoxygenConfig/header.html svneol=native#text/html
 main/Makefile -text
 main/Makefile.option -text
 main/cfs.cc svneol=native#text/plain
+main/elec.dat -text
+main/elec3d.dat -text
 main/general.conf -text
 main/kondxy.dat -text
 main/mat.dat -text
