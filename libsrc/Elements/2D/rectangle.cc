@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <math.h>
 
 #include <DataInOut/conffile.hh>
 #include "rectangle.hh"

@@ -46,8 +46,9 @@ namespace CoupledField
     BaseFE * ptEl;
 
     //waiting for material class to be ready
-    Double coeffstiff = 1e3;
-    Double coeffmass  = 1e3*1e3/2.25e9;
+    Double coeffstiff, coeffmass;
+
+    //Double coeffmass  = 1e3*1e3/2.25e9;
 
   //  coeffmass[i]  = density*density/compress;
   //  coeffstiff[i] = density;
@@ -59,15 +60,22 @@ namespace CoupledField
     Integer i, j;
     for (i=0; i<subdoms_.size(); i++)
       {
+        //compute material coefficient
+        const Double density = materialData_[i].GetDensity();
+        const Double compressibility = materialData_[i].GetCompressibility();
+
+        coeffmass  = density*density/compressibility;
+        coeffstiff = density;
+
 	ptgrid_->GetElemSD(elemssd,subdoms_[i],level);
 
 	for (j=0; j< elemssd.size(); j++)
 	  {
 	    ptEl = elemssd[j]->ptElem;
 
-	    const Double density = materialData_->GetDensity();
+	    const Double density = materialData_[i].GetDensity();
     
-	    BaseForm * bilinear_mass  = new MassInt(ptEl, density);
+	    BaseForm * bilinear_mass  = new MassInt(ptEl, coeffmass);
 	    BaseForm * bilinear_stiff = new LaplaceInt(ptEl, coeffstiff);
 
 	    connecth=elemssd[j]->connect;

@@ -319,7 +319,7 @@ namespace CoupledField
     ReadLine(fin,buffer);
     strPtr = new std::istringstream(buffer);
       
-    *strPtr >> compress >> density >> alfa >> beta;
+    *strPtr >> density >> compress >> alfa >> beta;
     if (strPtr->fail())
       std::cout << "*** The materialfile is corrupt! ***  Material: " << materialName << std::endl;
 	
