@@ -39,13 +39,6 @@ public:
   virtual void DefineIntegrators(const Integer level);
 
 
-   //! setup element matrices for AlgebraicSystem for assembling procedure
-  /*!
-    \param level level of grid
-   */
-  //  void SetupMatrices(const Integer level=0);
-
-  
   //! reset 
   virtual void Reset();
 
@@ -84,18 +77,8 @@ public:
 // ======================================================
 // SOLVING SECTION
 // ======================================================
-  //! solve one step for static problem 
-  /*!
-    \param ptBCs pointer to class with data about boundary condition
-    \param level level of grid
-  */
-  virtual void SolveStepStatic(const Integer level);
 
-  virtual void SolveStepTrans(const Integer kstep, const Double steptime, const Integer level, 
-			      const Boolean updatesysmat)
-  { 
-    Error("Makes no sense for Electrostatics to perform transient step",__FILE__,__LINE__);
-  }
+  virtual void PostStepStatic(const Integer level);
 
 
 // ======================================================

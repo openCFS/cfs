@@ -90,23 +90,6 @@ public:
 // SOLVING SECTION
 // ======================================================
 
-  
-  //! solve one step for static problems
-  /*! \param level level of grid  */
-  virtual void SolveStepStatic(const Integer level);
-  
-
-  //! solve one step for transient problem 
-  /*!
-    \param kstep number of calculating step
-    \param steptime time of calculation
-    \param level level of grid
-    \param updatesysmat indicator: need we to update algebraic system. it is used for adaptive procedure in space
-  */
-  virtual void SolveStepTrans(const Integer kstep, const Double steptime, const Integer level, 
-			      const Boolean updatesysmat);
-  
-
   //! prepare for correct time stepping
   /*! \param dt time step  */
   virtual void InitTimeStepping(const Double dt);
@@ -145,36 +128,18 @@ private:
   Double AlgsysL2Norm(Double * pt);
   
 
-  /// flag for nonlinear calculations
-  Boolean nonLin_;
-
   /// flag for reduced Integration
   Boolean reducedInt_;
   
-
-
-  //! solve one step for linear static problem 
-  /*!
-    \param level level of grid
-  */
-  virtual void SolveStepStaticLin(const Integer level);
-  
-
 
   //! solve one step for nonlinear static problem 
   /*!
     \param level level of grid
   */
-  virtual void SolveStepStaticNonLin(const Integer level);
+  virtual void StepStaticNonLin(const Integer level);
 
   /// returns the solution vector belonging to all nodes of the actual element
   void GetSolOfElement( Matrix<Double>& elDisp, Vector<Integer>& connect_PDE);
-
-  /// stopping criterion for incremental error
-  Double incStopCrit_;
-
-  /// stopping criterion for residual error
-  Double residualStopCrit_;  
 
   /// value of prestress
   Double preStressVal_;

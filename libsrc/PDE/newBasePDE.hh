@@ -99,25 +99,48 @@ public:
     \param dt time step
   */
   virtual void InitTimeStepping(const Double dt)
-    {Error("Not implemented");}
+  {Error("Not implemented");};
 
   //! deletes the algebraic system
   void DeleteAlgSys(int as_id)
   {assemble_->DeleteAlgSys();};
   
+  //static analysis
 
-  virtual void SolveStepStatic(const Integer level)
-  {Error("SolveStepStaticNonLin not implemented!",__FILE__,__LINE__);};  
+  virtual void PreStepStatic(const Integer level) {;};
 
+  virtual void SolveStepStatic(const Integer level);
+  virtual void StepStaticLin(const Integer level);
+  virtual void StepStaticNonLin(const Integer level)
+  {Error("StepStaticNonLin not implemented!",__FILE__,__LINE__);};
+
+  virtual void PostStepStatic(const Integer level) {;};
+
+  //harmonic analysis
+
+  virtual void PreStepHarmonic(const Integer level) {;};
 
   virtual void SolveStepHarmonic(const Integer level)
   {Error("Harmonic step not implemented!",__FILE__,__LINE__);};
+  virtual void StepHarmonicLin(const Integer level)
+  {Error("Harmonic step not implemented!",__FILE__,__LINE__);};
+  virtual void StepHarmonicNonLIn(const Integer level)
+  {Error("Harmonic step not implemented!",__FILE__,__LINE__);};
 
+  virtual void PostStepHarmonic(const Integer level) {;};
+
+  //transient analysis
+  virtual void PreStepTrans(const Integer level, const Boolean reset) {;};
 
   virtual void SolveStepTrans(const Integer kstep, const Double asteptime,
-			      const Integer level, 
-			      const Boolean updatesysmat)=0;
-  
+			      const Integer level, const Boolean updatesysmat);
+
+  virtual void StepTransLin(const Integer level, const Boolean updatesysmat);
+
+  virtual void StepTransNonLin(const Integer level, const Boolean updatesysmat)
+  {Error("Nonlinear Transient Step not implemented!",__FILE__,__LINE__);};
+
+  virtual void PostStepTrans(const Integer level) {;};
 
   // ======================================================
   // COUPLING SECTION
@@ -381,6 +404,7 @@ protected:
   Vector<Double> errorMap_;         //!< array with error map
   Vector<Double> markingElems_;     //!< array where  store number of refinement for the element
   Double tolSpaceErr_;              //!< tolerance
+  Boolean Recalc_;
 
   //!solver parameters
   Integer maxnumiter_;    //!< maximum of iterations (for iterative solver)
@@ -397,6 +421,9 @@ protected:
 
   Assemble * assemble_;                //!< Pointer to object of analysis (Static, Trans, Harm or Eig)
   
+  Boolean nonLin_; //!<  flag for nonlinear calculations
+  Double incStopCrit_; //!< stopping criterion for incremental error
+  Double residualStopCrit_;  //!< stopping criterion for residual error
 
 };
 

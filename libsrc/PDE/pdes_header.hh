@@ -6,7 +6,7 @@
 
 #include "newElecPDE.hh"
 #include "newMechPDE.hh"
-
+#include "newAcousticPDE.hh"
 #else // NEWBASEPDE
 
 #include "acousticPDE.hh"

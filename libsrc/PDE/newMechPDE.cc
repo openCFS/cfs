@@ -23,9 +23,6 @@ namespace CoupledField
 MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *aptFileType, 
 		 WriteResults *aptOut)
   :BasePDE(aptgrid, aptbcs, aptFileType, aptOut, aptTimeFunc), 
-   nonLin_(FALSE),
-   incStopCrit_(1e-2), 
-   residualStopCrit_(1e-3),
    lambdaMat(NULL),
    mueMat(NULL)
 {
@@ -80,12 +77,17 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
     GetDirection(preStressDir_, "preStressDir");
 
 
+  //check for damping model
   std::string dampstr;
   conf->ifget("damping",dampstr,pdename_);
   if (dampstr == "rayleigh")
     damping_type_ = RAYLEIGH;
   else
    damping_type_ = NONE;
+
+  if (damping_type_)
+    assemble_->NeedDampingMatrix();
+
 
   conf->ifgetliststr("homogenBCDof", homDirichDof_, pdename_);  
   conf->ifgetliststr("inhomogenBCDof", inhomDirichDof_, pdename_);
@@ -96,8 +98,6 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
   conf->ifgetliststr("homoBCdof", homDirichDof_, pdename_);
   conf->ifgetliststr("inhomoBCDof", inhomDirichDof_, pdename_);
   conf->ifgetliststr("inhomoBCdof", inhomDirichDof_, pdename_);
-
-
 
   //check for b.c. input data
   if (bcs_hd_.size() != homDirichDof_.size()) 
@@ -117,9 +117,6 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
   assemble_->SetPtr2Sol(&sol_);
   assemble_->SetPtr2TimeFnc(ptTimeFunc_);
   
-  if (damping_type_)
-    assemble_->NeedDampingMatrix();
-
   ReadMaterialData();
    
   DefineIntegrators(actlevel_);  
@@ -225,8 +222,6 @@ MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *a
 	actIntDescr->SetSecondaryMat(DAMPING, actSDMat.GetDampingAlfa());
 	  
       assemble_->AddIntegrator(actIntDescr, subdoms_[actSD]);
-
-
 
 
 
@@ -534,59 +529,7 @@ Boolean MechPDE::HasOutput(std::string output)
 // SOLVING SECTION
 // ======================================================
 
-void MechPDE::SolveStepStatic(const Integer level)
-{
-#ifdef TRACE
-  (*trace) << "entering MechPDE::SolveStepStatic" << std::endl;
-#endif
-
-  if (nonLin_)
-    SolveStepStaticNonLin(level);
-  else
-    SolveStepStaticLin(level);
-}
-
-
-
-  
-void MechPDE::SolveStepStaticLin(const Integer level)
-{
-#ifdef TRACE
-  (*trace) << "entering MechPDE::SolveStepStaticLin" << std::endl;
-#endif
-
-  const Integer job = 1;
-
-  //compute and assemble element matrices
-  //  if (updateBCs_ != 1)
-
-  assemble_->AssembleMatrices(level);
-
-
-  //account for bcs
-  SetBCs(level,updateBCs_,0);
-  assemble_->AssembleRHS(level);
-  
-  
-  algsys_->CalcPrecond(job);
-  
-  updateBCs_ = 1;
-
-  algsys_->Solve();
-
-  StoreToSolArray(algsys_->GetSolutionVal());
-
-  // initialize for (eventual) new setup
-  // if condition is needed here !!!!!
-  //InitMatrices();
-  algsys_->InitRHS();
-  algsys_->InitSol();  
-}
-
-
-
-
-void MechPDE::SolveStepStaticNonLin(const Integer level)
+void MechPDE::StepStaticNonLin(const Integer level)
 {
 #ifdef TRACE
   (*trace) << "entering MechPDE::SolveStepStaticNonLin" << std::endl;
@@ -684,95 +627,6 @@ void MechPDE::SolveStepStaticNonLin(const Integer level)
 	  algsys_->InitSol();
 	}
     }while(performOneMoreStep && iterationCounter < maxnumiter_);  
-}
-
-
-
-void MechPDE::SolveStepTrans(const Integer kstep, const Double asteptime, 
-				   const Integer level, const Boolean reset)
-{
-#ifdef TRACE
-  (*trace) << "entering MechPDE::SolveStepTrans" << std::endl;
-#endif
-
-  lasttimecalc_= asteptime;
-  Boolean Recalc=FALSE;
-
-  if (laststepcalc_==kstep && kstep!=0) 
-    Recalc=TRUE;
-  else 
-    laststepcalc_= kstep;
-
-  Double * ptsol;
-  Integer update,job;
-
-  //current problem with Array class
-  Array<Double> solhelp;
-  solhelp.reshape(1, numPDENodes_*dofspernode_);
-  Integer k=0;
-  for (Integer i=0; i< numPDENodes_; i++)
-    for (Integer j=0; j<dofspernode_; j++)
-      {
-	solhelp[0][k] = sol_[j][i];
-	k++;
-      }
-
-  //perform predictor step
-  TS_alg_->Predictor(solhelp);
-
-  if (kstep==0)
-    {
-      update = 0;
-      job = 1;
-
-      assemble_->AssembleMatrices(level);
-      
-      algsys_->ConstructEffectiveMatrix(matrix_factor_);
-      algsys_->InitRHS();
-      assemble_->AssembleRHS(level,lasttimecalc_);
-      TS_alg_->UpdateRHS();
-    }
-  else if (reset)
-    {
-      update = 1;
-      job    = 1;
-
-      algsys_->InitRHS();
-      algsys_->InitMatrix(SYSTEM);
-      algsys_->InitMatrix(STIFFNESS);
-      algsys_->InitMatrix(MASS);
-      if (damping_type_)
-        algsys_->InitMatrix(DAMPING);
-
-      algsys_->ConstructEffectiveMatrix(matrix_factor_);
-      assemble_->AssembleRHS(level,lasttimecalc_);
-      TS_alg_->UpdateRHS();
-    }
-  else
-    {
-      update = 1;
-      job    = 3;
-      algsys_->InitRHS();
-      assemble_->AssembleRHS(level,lasttimecalc_);
-      TS_alg_->UpdateRHS();
-    };
-
-  SetBCs(level,update,lasttimecalc_);
-  algsys_->CalcPrecond(job);
-  algsys_->Solve();
-  ptsol = algsys_->GetSolutionVal();
-
-  k=0;
-  for (Integer i=0; i< numPDENodes_; i++)
-    for (Integer dim=0; dim<dofspernode_; dim++)
-      {
-	sol_[dim][i]  = ptsol[k];
-	solhelp[0][k] = ptsol[k];
-	k++;
-      }
-
-  //perform corrector step  
-  TS_alg_->Corrector(solhelp);
 }
 
 
