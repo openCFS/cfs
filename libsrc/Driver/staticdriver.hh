@@ -8,12 +8,11 @@ namespace CoupledField
 
 /// driver for static problems derived from BaseDriver;
 
-template<class Dim>
-class StaticDriver : virtual public BaseDriver<Dim>
+class StaticDriver : virtual public BaseDriver
 {
 public:
   //!
-  StaticDriver(Domain<Dim> * adomain);
+  StaticDriver(Domain * adomain);
 
    //!
   virtual ~StaticDriver();
@@ -29,11 +28,6 @@ protected:
 private:
 
 };
-
-#ifdef __GNUC__
-template class StaticDriver<Point2D>;
-template class StaticDriver<Point3D>;
-#endif
 
 }
 

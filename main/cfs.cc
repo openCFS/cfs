@@ -62,14 +62,14 @@ void main(int argc, char *argv[])
 
   TimeFunc * ptTimeFunc=new TimeFunc(ptInputfile);
 
-  Domain<Point2D> *domain=new Domain<Point2D>(ptInputfile,ptOut,ptMaterial, ptTimeFunc);
+  Domain *domain=new Domain(ptInputfile,ptOut,ptMaterial, ptTimeFunc);
 //   Domain<Point3D> *domain=new Domain<Point3D>(ptInputfile,ptOut,ptMaterial, ptTimeFunc);
 
   // print grid to unverg-file
   domain->PrintGrid(0);
 
   //choose your driver
-  BaseDriver<Point2D> *ptdriver = new TransientDriver(domain);
+  BaseDriver *ptdriver = new TransientDriver(domain);
 //   BaseDriver<Point3D> *ptdriver = new StaticDriver<Point3D>(domain);
 
   //solve your problem

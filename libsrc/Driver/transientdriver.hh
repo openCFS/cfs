@@ -8,11 +8,11 @@ namespace CoupledField
 
 /// driver for static problems derived from basedriber;
 
-  class TransientDriver : virtual public BaseDriver<Point2D>
+  class TransientDriver : virtual public BaseDriver
 {
 public:
   //!
-  TransientDriver(Domain<Point2D> * adomain);
+  TransientDriver(Domain * adomain);
 
    //!
   virtual ~TransientDriver();

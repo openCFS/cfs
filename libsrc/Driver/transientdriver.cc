@@ -10,8 +10,8 @@
 namespace CoupledField
 {
 
-TransientDriver :: TransientDriver(Domain<Point2D> * adomain)
-:BaseDriver<Point2D>(adomain)
+TransientDriver :: TransientDriver(Domain * adomain)
+:BaseDriver(adomain)
 {
 #ifdef TRACE
   (*trace) << "entering TransientDriver::TransientDriver" << std::endl;

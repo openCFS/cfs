@@ -8,12 +8,11 @@ namespace CoupledField
 
 /// there is a base class for driving classes where we implemented time-stepping
 
-template<class Dim>
 class BaseDriver
 {
 public:
   //!
-  BaseDriver(Domain<Dim> * adomain);
+  BaseDriver(Domain * adomain);
 
    //!
   virtual ~BaseDriver();
@@ -30,18 +29,13 @@ public:
 
 protected:
   //!
-  Domain<Dim> * ptdomain_;
+  Domain * ptdomain_;
 
 private:
   //! options from input-file; if true, then we output first-der,second in output-file
 //  Boolean SaveDer1_, SaveDer2_;
   
 };
-
-#ifdef __GNUC__
-template class BaseDriver<Point2D>;
-template class BaseDriver<Point3D>;
-#endif
 
 }
 

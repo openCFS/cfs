@@ -7,9 +7,8 @@
 namespace CoupledField
 {
 
-template<class Dim>
-StaticDriver<Dim> :: StaticDriver(Domain<Dim> * adomain)
-:BaseDriver<Dim>(adomain)
+StaticDriver :: StaticDriver(Domain * adomain)
+:BaseDriver(adomain)
 {
 #ifdef TRACE
   (*trace) << "entering StaticDriver::StaticDriver" << std::endl;
@@ -17,8 +16,7 @@ StaticDriver<Dim> :: StaticDriver(Domain<Dim> * adomain)
 
 }
 
-template<class Dim>
-StaticDriver<Dim> :: ~StaticDriver()
+StaticDriver :: ~StaticDriver()
 {
 #ifdef TRACE
   (*trace) << "entering StaticDriver::~StaticDriver" << std::endl;
@@ -26,8 +24,7 @@ StaticDriver<Dim> :: ~StaticDriver()
 
 }
 
-template<class Dim>
-void StaticDriver<Dim> :: SetupMatricesPDE(const Integer pdenumber, const Integer type)
+void StaticDriver :: SetupMatricesPDE(const Integer pdenumber, const Integer type)
 {
 #ifdef TRACE
   (*trace) << "entering StaticDriver::SetUpMatricesPDE" << std::endl;
@@ -36,8 +33,7 @@ void StaticDriver<Dim> :: SetupMatricesPDE(const Integer pdenumber, const Intege
   ptdomain_->GetPDE(pdenumber)->SetupMatrices(type);
 }
 
-template<class Dim>
-void StaticDriver<Dim> :: SolveProblem()
+void StaticDriver :: SolveProblem()
 {
 #ifdef TRACE
   (*trace) << "entering StaticDriver::SolveProblem" << std::endl;
