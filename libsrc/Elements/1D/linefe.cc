@@ -3,7 +3,7 @@
 #include <string>
 
 #include <DataInOut/conffile.hh>
-#include <Elements/1D/gelinefe.hh>
+#include <Elements/1D/linefe.hh>
 
 namespace CoupledField
 {

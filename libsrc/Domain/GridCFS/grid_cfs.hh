@@ -2,8 +2,6 @@
 #define FILE_SCFE_GRID_CFS_2001
 
 #include "DataInOut/filetype.hh"
-//#include "PDE/acoustic2dPDE.hh"
-
 
 #ifdef ADAPTGRID
 #include "Vertex.h"

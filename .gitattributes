@@ -85,12 +85,10 @@ libsrc/Driver/staticdriver.hh svneol=native#text/plain
 libsrc/Driver/transientdriver.cc svneol=native#text/plain
 libsrc/Driver/transientdriver.hh svneol=native#text/plain
 libsrc/Elements/1D/Makefile -text
-libsrc/Elements/1D/gelinefe.cc svneol=native#text/plain
-libsrc/Elements/1D/gelinefe.hh svneol=native#text/plain
-libsrc/Elements/1D/line.cc svneol=native#text/plain
-libsrc/Elements/1D/line.hh svneol=native#text/plain
 libsrc/Elements/1D/line1fe.cc svneol=native#text/plain
 libsrc/Elements/1D/line1fe.hh svneol=native#text/plain
+libsrc/Elements/1D/linefe.cc svneol=native#text/plain
+libsrc/Elements/1D/linefe.hh svneol=native#text/plain
 libsrc/Elements/2D/Makefile -text
 libsrc/Elements/2D/quad1fe.cc svneol=native#text/plain
 libsrc/Elements/2D/quad1fe.hh svneol=native#text/plain

@@ -2,7 +2,7 @@
 #define FILE_LINE1FE_2003
 
 #include <Elements/basefe.hh>
-#include <Elements/1D/gelinefe.hh>
+#include <Elements/1D/linefe.hh>
 
 namespace CoupledField
 {
