@@ -2,7 +2,7 @@
 #include <fstream>
 #include <string>
 
-#include "conffile.hh"
+#include <DataInOut/conffile.hh>
 #include "getriangle.hh"
 
 namespace CoupledField

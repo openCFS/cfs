@@ -3,8 +3,8 @@
 
 #include <vector>
 
-#include "tools.hh"
-#include "acoustic2dPDE.hh"
+#include "Utils/tools.hh"
+#include "PDE/acoustic2dPDE.hh"
 #include "spaceerror.hh"
 
 namespace CoupledField

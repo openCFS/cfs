@@ -4,7 +4,7 @@
 #include <math.h>
 
 #include "acspaceadapt.hh"
-#include "acoustic2dPDE.hh"
+#include "PDE/acoustic2dPDE.hh"
 
 #ifdef ADAPTGRID
 #include "interface_adgrid.hh"

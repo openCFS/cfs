@@ -40,7 +40,7 @@ public:
     \param coarsealpha coarsing parameter for AMG
   */
   void SpecifySolver(Integer &asolvertype, Integer &aprecondtype, Double &aeps,
-Double &adampiter,  Integer &amaxnumit, Integer &numeqcoarse, Double &coarsealpha);
+		     Double &adampiter,  Integer &amaxnumit, Integer &numeqcoarse, Double &coarsealpha);
 
   //!  specify type of system matrix for AlgebraicSystem
   /*!

@@ -6,26 +6,25 @@
 #include <stdarg.h>
 #include <list>
 #include <math.h>
-
 #include <vector>
 
-#include "myclock.hh"
-#include "definefiles.hh"
-#include "material.hh"
-#include "timefunc.hh"
+#include <Utils/myclock.hh>
+#include <DataInOut/DefineFiles/definefiles.hh>
+#include <DataInOut/material.hh>
+#include <DataInOut/timefunc.hh>
 
 #ifdef GRIDLIB
-#include "interface_gridlib.hh"
+#include <Domain/Gridlib/interface_gridlib.hh>
 #endif
 
-#include <abstractAlgSys.hh>
-#include "transientdriver.hh"
-#include "staticdriver.hh"
+#include <AlgebraicSystem/abstractAlgSys.hh>
+#include <Driver/transientdriver.hh>
+#include <Driver/staticdriver.hh>
 
-#include "interface_gridcfs.hh"
+#include <Domain/GridCFS/interface_gridcfs.hh>
 
 #ifdef NETGEN
-#include "interface_netgen.hh"
+#include <Domain/NetGen/interface_netgen.hh>
 #endif
 
 using namespace CoupledField;

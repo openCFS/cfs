@@ -6,7 +6,7 @@
 namespace CoupledField
 {
 
-  //! Class for acoustic equation
+  //! Class for acoustic equation (no adaptivity)
   /*! 
     This class is derived from class BasePDE. It is used for solving acoustic equation in 3D on one time step.
   We set rules for assembling global system matrix according to weak form of PDE, define right hand side and set boundary conditions. Then we cause one of methods of LinSystem for solving linear system. On the last step we calculate first and second derivatives of the solution.
@@ -25,7 +25,8 @@ public:
     \param aOutFile  pointer to class WriteResults. output data.
     \param aTimeFunc pointer to class TimeFunc
   */
-  Acoustic3dPDE(AbstractAlgebraicSys * aptalgsys, Grid * aGrid , Material * aMatFile , TimeFunc * aTimeFunc ,FileType * aInFile , WriteResults * aOutFile);
+  Acoustic3dPDE(AbstractAlgebraicSys * aptalgsys, Grid * aGrid , Material * aMatFile , TimeFunc * aTimeFunc ,
+		FileType * aInFile , WriteResults * aOutFile);
 
   //! Deconstructor
   virtual ~Acoustic3dPDE();
@@ -84,29 +85,14 @@ public:
   //! Reads at every time the flowdatafile from the Fluid Computation.
   void ReadFlowData(const char * aname, const Integer timestep, Matrix<Double> &nodedata );
 
-  //! recovery solution for SPR
-  void RecoverySol(Vector<Double> & result);
 
-  //! it has not finished yet
-  void ComputeRHS4RecoverySol();
-
-  //! calculation derivates of solution. old stuff. not used.
-  void CalculationDerivativesSol(const Boolean Recalc);
-  //! old stuff. not used.
+  //! 
   void CalcDerSol();
   
-  //! create pointer to class for time error estimation
-  virtual TimeErrorEstimator * CreatePtTimeError();  
-
-  //! Calculation of energy norm
-  virtual Double CalcEnergyNorm();
-
-  //!  solve one step for static problem 
-  /*!
-    \param ptBCs pointer to class with data about boundary condition
-    \param level level of grid
-  */
-  virtual void SolveStepStatic(BCs * ptBCs ,const Integer level);
+  virtual void SolveStepStatic(BCs * ptBCs ,const Integer level)
+  { 
+    Error("Static Step in Acoustics makes no sense",__FILE__,__LINE__);
+  }
 
   //!  solve one step for transient problem 
   /*!
@@ -117,18 +103,6 @@ public:
     \param updatesysmat indicator: need we to update algebraic system. it is used for adaptive procedure in space
   */
   virtual void SolveStepTrans(BCs * ptBCs ,const Integer kstep, const Double steptime, const Integer level, const Boolean updatesysmat);
-
-  //! solve one step for transient problem on new mesh. it is used in adaptive procedures for space
-  /*!
-    \param ptBCs pointer to class with data about boundary condition
-    \param kstep number of calculating step
-    \param asteptime time of calculation
-    \param level level of grid
-  */
-   void SolveStepTransNewMesh(BCs * ptBCs, const Integer kstep, const Double asteptime, const Integer level);
-
-  //! restore solution from previous step. it is used in time adaptive procedure
-  void RestoreSol();
 
   //! save received solution as solution on the previous step
   void SaveSolAsPrevStep();
@@ -161,13 +135,6 @@ public:
   Double getGamma() const { return gamma_;}
 
 
-  //!
-  virtual Boolean TestError()
-  { Error("Not implemented",__FILE__,__LINE__);}
-
-  //! We use this function for time-error estimation. old stuff.
-  void CalcThirdDerivateFromEquation(Vector<Double> & result);
-
 protected:
   //!
   Integer dofspernode_;
@@ -175,6 +142,9 @@ protected:
   //!
   Grid * ptgrid_;
 
+  //!
+  Integer without_absBCs_;
+ 
   //! Calculation parameters for Newmark method
   virtual void CalcParameters(const Double dt);
 
@@ -227,11 +197,6 @@ protected:
   //! Indicator: is there RHS function
   Boolean SetRHSFnc;
 
-  //! pointer to class of error estimators
-  SpaceErrorEstimator<3> * ptError_;
-
-  //! indicator: without absorbing boundary conditions
-  Boolean without_absBCs_;
 };
 
 

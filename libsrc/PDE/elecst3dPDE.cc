@@ -4,9 +4,9 @@
 #include <math.h>
 
 #include "elecst3dPDE.hh"
-#include "outUnverg.hh"
-#include "forms_header.hh"
-#include "spaceerror.hh"
+#include <DataInOut/Unverg/outUnverg.hh>
+#include <Forms/forms_header.hh>
+#include <Estimator/spaceerror.hh>
  
 namespace CoupledField
 {

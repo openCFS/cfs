@@ -4,10 +4,10 @@
 #include <math.h>
 
 #include "elecst2dPDE.hh"
-#include "outUnverg.hh"
-#include "forms_header.hh"
-#include "linsystem.hh"
-#include "spaceerror.hh" 
+#include <DataInOut/Unverg/outUnverg.hh>
+#include <Forms/forms_header.hh>
+#include <AlgebraicSystem/LinAlg/linsystem.hh>
+#include <Estimator/spaceerror.hh>
 
 namespace CoupledField
 {

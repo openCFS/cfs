@@ -1,16 +1,16 @@
 #ifndef FILE_INTERFACE_PILES_2002
 #define FILE_INTERFACE_PILES_2002
 
-#include <abstractAlgSys.hh>
+#include "abstractAlgSys.hh"
 
 #ifdef GRIDLIB
 {
 using namespace std;
-#include <general.hh>
+//#include <general.hh>
 #include <multigrid.hh>
 }
 #else
-#include <general.hh>
+//#include <general.hh>
 #include <multigrid.hh>
 #endif
 

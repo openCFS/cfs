@@ -5,9 +5,9 @@
 #include <iomanip>
 
 #include "acou2dFlowNoise.hh"
-#include "outUnverg.hh"
-#include "outGMV.hh"
-#include "forms_header.hh"
+#include <DataInOut/Unverg/outUnverg.hh>
+#include <DataInOut/GMV/outGMV.hh>
+#include <Forms/forms_header.hh>
 
 namespace CoupledField
 {

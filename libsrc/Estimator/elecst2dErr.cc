@@ -4,7 +4,7 @@
 #include <math.h>
 
 #include "elecst2dErr.hh"
-#include "elecst2dPDE.hh"
+#include "PDE/elecst2dPDE.hh"
 
 #ifdef ADAPTGRID
 #include "interface_adgrid.hh"

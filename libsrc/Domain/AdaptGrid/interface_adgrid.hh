@@ -1,12 +1,12 @@
 #ifndef FILE_INTERFACE_AdaptGrid_2002
 #define FILE_INTERFACE_AdaptGrid_2002
 
-#include "filetype.hh"
-#include "grid.hh"
+#include <DataInOut/filetype.hh>
+#include <Domain/grid.hh>
 
-#include "grid_cfs.hh"
+#include <Domain/GridCFS/grid_cfs.hh>
 
-#include "bcs.hh"
+#include <Domain/bcs.hh>
 
 // from Adapt Grid
 #ifdef ADAPTGRID

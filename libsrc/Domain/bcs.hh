@@ -3,7 +3,7 @@
 
 #define NUMLEVELGRID 20
 
-#include "filetype.hh"
+#include <DataInOut/filetype.hh>
 #include "grid.hh"
 
 struct Elem;

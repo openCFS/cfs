@@ -3,7 +3,7 @@
 #include <string>
 
 #include "therm2dPDE.hh"
-#include "forms_header.hh"
+#include <Forms/forms_header.hh>
  
 namespace CoupledField
 {

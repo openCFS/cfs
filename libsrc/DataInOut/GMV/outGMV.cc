@@ -3,7 +3,7 @@
 #include <string>
 #include <stdio.h>
 
-#include "GMV/outGMV.hh"
+#include "outGMV.hh"
 #include "DataInOut/conffile.hh"
 
 namespace CoupledField

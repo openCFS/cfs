@@ -19,20 +19,19 @@ TimeFunc :: TimeFunc(FileType * aptFileType)
 
   timeFncDatFile_=FALSE;
   std::string nametf;
-//   if (conf->is_there("time_data_file")) {
-//      conf->get("time_data_file",nametf);
-//    timeFncDatFile_=TRUE;    
-//    }
-//   else {
-//     if (conf->is_there("time_fnc")) {
-      conf->get("time_fnc",nametf);
+
+  if (conf->ifget("time_data_file",nametf))
+    timeFncDatFile_=TRUE;    
+  else if (conf->ifget("time_fnc",nametf))
+    {
       ptTimeFnc=FncReader(nametf);
       conf->get("time_arg",argTimeFnc);
       conf->get ("time_interval_fnc_a",intervalTF_a);
       conf->get ("time_interval_fnc_b",intervalTF_b);
-//     }             
-//    else Error("There is no information about time function in conf-file");
-//    }
+    }             
+  else 
+    Error("There is no information about time function in conf-file");
+	       
     
   if (timeFncDatFile_) ReadTimeFunc(nametf); 
   std::cout << " boolean: " << timeFncDatFile_ << std::endl;
