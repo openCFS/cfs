@@ -109,6 +109,15 @@
       <!-- Parameters for specifying integration rules (optional) -->
       <xsd:element name="integRules" type="DT_IntegRules" minOccurs="0"/>
 
+      <!-- Enforce parameter settings by disabling Expert() (optional) -->
+      <xsd:element name="amExpert" minOccurs="0" maxOccurs="1">
+        <xsd:simpleType>
+          <xsd:restriction base="xsd:string">
+            <xsd:enumeration value=""/>
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element>
+
       <!-- Optional developer's element -->
       <xsd:element name="devel" type="xsd:anyType" minOccurs="0"
          maxOccurs="unbounded"/>
