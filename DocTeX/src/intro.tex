@@ -1,0 +1,221 @@
+\section{Introduction}
+%
+\begin{itemize}
+%
+\item {\em Local Computers: CIP-pool}\\
+%
+Use your accounts at the informatic's {\em CIP-pool}\\ 
+Additional login's can be reserved at the department (if needed)\\
+%
+\item {\em Remote Computer: SGI-workstation LSE21}\\
+%
+{\bf  ssh lse21.e-technik.uni-erlangen.de -l $<$userid$>$}\\ 
+User accounts are {\em cae1} through {\em cae5} 
+%
+\item {\em Software}\\
+%
+Preprocessing:\hspace{5ex}{\em ANSYS}\\
+\begin{print}
+Commercial Finite-Element (FE) package allowing to analyze multi-field problems. Especially in 3D {\em ANSYS} offers a variaty of possibilities for the pre- and postprocessing.\\
+\end{print}
+Calculation kernel: {\em CAPA}\\
+\begin{print}
+FE-kernel developed at the {\em LSE}, speciallized for multi-field sensor and actuator analysis. Integrated in the {\em ANSYS} environment via appropriate interfaces for pre- and postprocessing.\\
+\end{print}
+Postprocessing:\hspace{3ex} {\em CAPAPOST}\\
+\begin{print}
+Postprocessing tool for 2D and axisymmetric problems developed at the {\em LSE} allowing calculation result analysis.\\
+\end{print}
+\end{itemize}
+%
+\newslide
+%
+\section{Organization of the course {\em CAESAR}}
+%
+\begin{itemize}
+%
+\item {\em Weekly meetings for discussing modeling details}\\
+\item {\em 4 exercises on different single field problems}\\
+\begin{print}
+For each exercise there will be a directory including the problems description via {\em pdf}-document and a skeleton {\em ANSYS} input-file.\\
+You have to extend the input file, perform the numerical simulations and evaluate the results.\\ 
+Due date for the results is 2 weeks after hand-out.\\
+\end{print}
+\item {\em Project on numerical analysis of sensors and actuators}\\
+\begin{print}
+After the 4 examples a project on sensor or actuator analysis will be handed to you. Therefore, you have to setup the appropriate input files, perform the analysis and extract some results. There will be weekly meetings where some intermediate results have to be presented. The final results for the projects have to be ready 4 weeks after hand-out and the project will end with a final presentaiton.  
+\end{print}
+\item {\em Protocol standard and results presentation}\\
+\begin{print}
+Your final results consisting of the complete input file, the result files and appropriate screen-shots have to be placed in a subdirectory of the exercise's folder. The folders name is {\em result}. In addition to these collection of files, a {\em LATEX} documentation is claimed including some remarks on the achieved results (an example file will be given). 
+\end{print}
+%
+\end{itemize}
+%
+\newslide
+%
+\section{Structure of a FE-model}
+%
+%\begin{figure}[H]
+%\begin{center}
+%\includegraphics [width=8cm,angle=0]{./pics/fe_model_struct}
+%\end{center}
+%\end{figure}
+%
+\newslide
+%
+\section*{Geometry}
+%
+\begin{print}
+The setup of the geometry can't be totally decoupled from the mesh generation process. Certain conditions have to be considered during the geometry generation. In order to gurantee reproduceability the geometry is not generated interactively. We are using a special macro language offered by {\em ANSYS} for the model generation - the so-called {\em PREP7} command language.
+\end{print}
+%
+\begin{verbatim}
+! General preperational commands
+fini
+/clear
+/prep7
+shpp,off
+! end of general section
+\end{verbatim}
+%
+\begin{print}
+After the general heading section the batch oriented input script starts with the input of the keypoints, which represent the boundaries of each geometric structure. 
+\end{print}
+%
+\newslide
+%
+\section*{Keypoints}
+%
+\begin{print}
+It is very useful to perform the modeling fully parameter oriented. Therewith, modifications of the model become easily possible. You should start your keypoint generation section by defining appropriate parameters.\\
+In 2D- and axisymmetric modeling all geometries are defined in the x-y-plane and all data has to be entered in SI-units.
+\end{print}
+%
+\begin{verbatim}
+! paramter definition section
+! x coordinates
+center_rad    =  0.0e-3
+thelem_rad    =  0.4e-3
+...
+! y coordinates
+tip           =  0.0e-3
+tip_plate     =  0.5e-3
+...
+! end of parameter definition section
+! keypoint generation
+k,,center_rad,thelem_rad
+...
+k,,thelem_rad,tip_plate
+...
+\end{verbatim}
+%
+\begin{print}
+The keypoints are entered using the {\em k} command. The points are numbered automatically, but explicit numbering is also possible.\\
+\end{print}
+\vspace{3ex}
+{\bf k,$<$nr$>$,$<$x$>$,$<$y$>$,$<$z$>$}\\
+%
+\newslide
+%
+\begin{print}
+%
+\section*{Lines}
+%
+The explicit generation of lines is normally not necessary. The according lines are typically generated as a subentity of an area modeling.\\
+But for the generation of complex area structures it is sometimes useful to generated the according lines first.
+\end{print}
+%
+\section*{Areas}
+%
+\begin{print}
+Areas are generated with the {\em a}-command followed by a list of keypoints. In order to generate areas without self intersection it is useful to define the keypoints list in counterclockwise direction. Therefore, the keypoint numbers have to be entered.
+\end{print}
+%
+\begin{verbatim}
+! area definition section
+a,1,2,6,5          ! copper plate
+a,2,3,7,6          ! copper plate
+...
+! end of area definition section
+\end{verbatim}
+%
+%
+\begin{figure}[htb]
+\begin{center}
+%\subfigure{\includegraphics [width=3cm,angle=0]{./pics/thermo_kp}}\quad
+%\subfigure{\includegraphics [width=3.5cm,angle=0]{./pics/thermo_area}}
+\end{center}
+\end{figure}
+%
+\newslide
+%
+\section*{Elements}
+%
+\begin{verbatim}
+! element type selection
+setgroup,1,temp2d,lin,axi,10,save 
+...
+! end of element section
+nummrg,all
+type,1
+\end{verbatim}
+%
+\begin{print}
+The {\em setgroup} command is a specific {\em CAPA} command. Therewith, you can select the element type (2D, 3D element), degrees of freedom (dof) of the analysis, the material assigned to the element type and wether the results should be saved in the result file or not. {\em HINT: A more detailed information on every command can be found by keying in {\bf help CAPA} on the ANSYS input line.}.\\
+\end{print}
+%
+\vspace{3ex}
+{\bf setgroup,$<$nr$>$,$<$elemtype$>$,$<$intfnc$>$,$<$type$>$,$<$mnr$>$,$<$sopt$>$}\\
+%
+\newslide
+%
+\section*{Mesh}
+%
+\begin{verbatim}
+lsel,s,loc,x,center_rad
+lsel,r,loc,y,tip,tip_plate
+lesize,all,,,20 
+smrtsize,4
+mshkey,1      
+amesh,all            
+\end{verbatim}
+\begin{print}
+There are variouse methods for mesh generation. One possibility to find a mesh with varying densities is to define the number of elements at the surrounding lines. Therefore, specific lines have to be selected by the {\em ANSYS} selection command.\\
+\end{print}
+{\bf lsel,$<$sel$>$,loc,$<$coord$>$,$<$coord1$>$,$<$coord2$>$}\\
+%
+\begin{print}
+In a next step a specific number of sampling points is assigned to this line by the {\em lesize} command.\\
+\end{print}
+{\bf lesize,$<$sel$>$,,,$<$ndiv$>$}\\
+\begin{print}
+The advantage of meshing the whole region as one is that no duplicate nodes are specified and that you must not specify the number of elements at every line at the intersection of two media.
+\end{print}
+%
+\begin{figure}[htb]
+\begin{center}
+%\subfigure[NOT ALLOWED !]{\includegraphics [width=5cm,angle=0]{./pics/wrong_mesh}}\quad
+%\subfigure[MESH OK]{\includegraphics [width=5cm,angle=0]{./pics/right_mesh}}
+\end{center}
+\end{figure}
+%
+\newslide
+%
+\section*{Mesh (cont.)}
+%
+\begin{print}
+Due to the fact that the whole area is meshed at once there is also only one element type assigned to this mesh. Therefore, we have to modify the elements in order to distinguish between different element or material regions.
+\end{print}
+\begin{verbatim}
+asel,s,,,7,10
+esla
+type,2
+emodif,all
+/color,elem,cyan
+/color,area,cyan           
+\end{verbatim}
+%
+\begin{print}
+The elements to be modified can be easily selected via the associated areas using the {\em asel} command. The elements within this region are then selected by an {\em esla} command. With the {\em type} command the element group that should be assigned to this region is selected and by the {\em emodif} command this element group is assigned to the selected elements. For better visualization of the regions it recommends to assign different colors for the areas as well as the elements.
+\end{print}

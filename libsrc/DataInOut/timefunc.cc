@@ -1,0 +1,101 @@
+#include <string>
+#include <iostream.h>
+#include <fstream.h>
+
+#include <general_head.hh>
+#include <utils_head.hh>
+#include "filetype.hh"
+
+#include "timefunc.hh"
+
+namespace CoupledField
+{
+
+ TimeFunc :: TimeFunc(FileType * aptFileType)
+{
+  Integer i;
+ 
+#ifdef TRACE
+  (*trace) << "entering TimeFunc::TimeFunc" << endl;
+#endif
+   ptFileType=aptFileType;
+   ptFileType->ReadNumTimeFunc(maxnumTimeFunc);
+   maxvalTimeFunc = new Integer [maxnumTimeFunc];
+ 
+   ptFileType->ReadInfoTimeFunc(maxvalTimeFunc, maxnumTimeFunc);
+ 
+  timeTimeFunc = new Double * [maxnumTimeFunc];  // timeTF and valTF
+  for (i=0; i < maxnumTimeFunc; i++)
+        timeTimeFunc[i] = new Double[maxvalTimeFunc[i]];
+  valTimeFunc = new Double * [maxnumTimeFunc];
+  for (i=0; i < maxnumTimeFunc; i++)
+        valTimeFunc[i] = new Double[maxvalTimeFunc[i]];
+  for (i=0; i < maxnumTimeFunc; i++)
+  ptFileType->ReadTimeFunc(timeTimeFunc[i],valTimeFunc[i],i+1);
+ 
+}
+
+Double TimeFunc::TimeFuncAtTime(const Double time, const Integer num)
+{
+ Double help,help1,help2;
+ Integer i,n;
+ 
+ n=maxvalTimeFunc[num];
+ 
+ if ( time<timeTimeFunc[num][0] )
+    Error("Wrong time in TimeFuncAtTime",__FILE__,__LINE__);
+ 
+ if (time>timeTimeFunc[num][n-1]) return 0;
+ 
+ for (i=0; i<n; i++)
+ {
+    help=timeTimeFunc[num][i];
+    if (time < help) break;
+    if (help==time) return valTimeFunc[num][i];
+    if (time > help) continue;
+ }
+ 
+  help1=help-timeTimeFunc[num][i-1];
+  help2=((help-time)/help1)*valTimeFunc[num][i-1]+
+        ((time-timeTimeFunc[num][i-1])/help1)*valTimeFunc[num][i];
+  return help2;
+}
+ 
+// ----------------- Deconstructor of TimeFunc -------------------------------
+ 
+TimeFunc :: ~TimeFunc()
+{
+#ifdef TRACE
+  (*trace) << "entering TimeFunc::~TimeFunc" << endl;
+#endif
+ 
+ if (timeTimeFunc) { for (Integer i=0; i < maxnumTimeFunc; i++ )
+                          delete [] timeTimeFunc[i];
+                     delete [] timeTimeFunc;
+                   }
+ if (valTimeFunc) { for (Integer i=0; i < maxnumTimeFunc; i++ )
+                          delete [] valTimeFunc[i];
+                     delete [] valTimeFunc;
+                   }
+ if (maxvalTimeFunc) delete [] maxvalTimeFunc;
+}
+
+// -------------- Print TimeFunc -------------------------------------------
+ 
+ void TimeFunc::Print(ostream * outfileDat) const
+{
+  (*outfileDat) << "------------- Print Time function ----------------" << endl;  for (Integer i=0; i < maxnumTimeFunc; i++)
+  {
+  (*outfileDat) << " Number of time function is " << i+1 << endl;
+   (*outfileDat) << "\t" << "time" <<
+                       "\t" << "value" << endl;
+  for (Integer ii=0; ii < maxvalTimeFunc[i]; ii++ )
+    {
+      (*outfileDat) << "\t" << timeTimeFunc[i][ii] <<
+                       "\t" << valTimeFunc[i][ii] << endl;
+    }
+  } // end of 1st for
+ 
+} // end of TimeFunc::Print
+
+} // end of namespace

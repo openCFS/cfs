@@ -1,1 +1,149 @@
 * text=auto !eol
+DocTeX/adapt.log -text
+DocTeX/adapt.tex svneol=native#text/plain
+DocTeX/avantgar.sty -text
+DocTeX/cae.sty -text
+DocTeX/comment.cut -text
+DocTeX/main.eps -text svneol=unset#application/postscript
+DocTeX/main.pdf -text svneol=unset#application/pdf
+DocTeX/pdfscreen.sty -text
+DocTeX/pic/Matrix.eps -text svneol=unset#application/postscript
+DocTeX/pic/Matrix.pdf -text svneol=unset#application/pdf
+DocTeX/pic/Matrix1.eps -text svneol=unset#application/postscript
+DocTeX/pic/Matrix1.pdf -text svneol=unset#application/pdf
+DocTeX/pic/Matrix1.tif -text svneol=unset#image/tiff
+DocTeX/pic/baseform.eps -text svneol=unset#application/postscript
+DocTeX/pic/baseform.pdf -text svneol=unset#application/pdf
+DocTeX/pic/baseform1.eps -text svneol=unset#application/postscript
+DocTeX/pic/baseform1.pdf -text svneol=unset#application/pdf
+DocTeX/pic/baseform1.tif -text svneol=unset#image/tiff
+DocTeX/pic/main.pdf -text svneol=unset#application/pdf
+DocTeX/pic/main1.eps -text svneol=unset#application/postscript
+DocTeX/pic/main1.pdf -text svneol=unset#application/pdf
+DocTeX/pic/main1.tif -text svneol=unset#image/tiff
+DocTeX/pic/q.log -text
+DocTeX/scfe.aux -text
+DocTeX/scfe.log -text
+DocTeX/scfe.out -text
+DocTeX/scfe.pdf -text svneol=unset#application/pdf
+DocTeX/scfe.tex svneol=native#text/plain
+DocTeX/src/Matrix.eps -text svneol=unset#application/postscript
+DocTeX/src/Matrix.tif -text svneol=unset#image/tiff
+DocTeX/src/adapt1.tex svneol=native#text/plain
+DocTeX/src/baseform.eps -text svneol=unset#application/postscript
+DocTeX/src/baseform.tif -text svneol=unset#image/tiff
+DocTeX/src/intro.tex svneol=native#text/plain
+DocTeX/src/introduction.aux -text
+DocTeX/src/introduction.tex svneol=native#text/plain
+DocTeX/src/main.eps -text svneol=unset#application/postscript
+DocTeX/src/main.tif -text svneol=unset#image/tiff
+DocTeX/src/part1.aux -text
+DocTeX/src/part1.tex svneol=native#text/plain
+DocTeX/src/part2.aux -text
+DocTeX/src/part2.tex svneol=native#text/plain
+DocTeX/src/part3.aux -text
+DocTeX/src/part3.tex svneol=native#text/plain
+DocTeX/src/schedule.tex svneol=native#text/plain
+libsrc/AlgebraicSystem/LinAlg/Makefile -text
+libsrc/AlgebraicSystem/LinAlg/assemble.cc svneol=native#text/plain
+libsrc/AlgebraicSystem/LinAlg/assemble.hh svneol=native#text/plain
+libsrc/AlgebraicSystem/LinAlg/linalg_head.hh svneol=native#text/plain
+libsrc/AlgebraicSystem/LinAlg/linsystem.cc svneol=native#text/plain
+libsrc/AlgebraicSystem/LinAlg/linsystem.hh svneol=native#text/plain
+libsrc/AlgebraicSystem/LinAlg/systemmatrix.cc svneol=native#text/plain
+libsrc/AlgebraicSystem/LinAlg/systemmatrix.hh svneol=native#text/plain
+libsrc/AlgebraicSystem/LinAlg/work.hh svneol=native#text/plain
+libsrc/AlgebraicSystem/abstractAS.hh svneol=native#text/plain
+libsrc/DataInOut/DatFile/Makefile -text
+libsrc/DataInOut/DatFile/datfile.cc svneol=native#text/plain
+libsrc/DataInOut/DatFile/datfile.hh svneol=native#text/plain
+libsrc/DataInOut/Makefile -text
+libsrc/DataInOut/Unverg/Makefile -text
+libsrc/DataInOut/Unverg/outUnverg.cc svneol=native#text/plain
+libsrc/DataInOut/Unverg/outUnverg.hh svneol=native#text/plain
+libsrc/DataInOut/datainout_head.hh svneol=native#text/plain
+libsrc/DataInOut/definefiles.cc svneol=native#text/plain
+libsrc/DataInOut/definefiles.hh svneol=native#text/plain
+libsrc/DataInOut/filetype.cc svneol=native#text/plain
+libsrc/DataInOut/filetype.hh svneol=native#text/plain
+libsrc/DataInOut/material.cc svneol=native#text/plain
+libsrc/DataInOut/material.hh svneol=native#text/plain
+libsrc/DataInOut/timefunc.cc svneol=native#text/plain
+libsrc/DataInOut/timefunc.hh svneol=native#text/plain
+libsrc/Domain/Makefile -text
+libsrc/Domain/domain.cc svneol=native#text/plain
+libsrc/Domain/domain.hh svneol=native#text/plain
+libsrc/Domain/domain_head.hh svneol=native#text/plain
+libsrc/Domain/grid.cc svneol=native#text/plain
+libsrc/Domain/grid.hh svneol=native#text/plain
+libsrc/Driver/Makefile -text
+libsrc/Driver/driver.cc svneol=native#text/plain
+libsrc/Driver/driver.hh svneol=native#text/plain
+libsrc/Driver/driver_head.hh svneol=native#text/plain
+libsrc/Elements/Makefile -text
+libsrc/Elements/baseelem.cc svneol=native#text/plain
+libsrc/Elements/baseelem.hh svneol=native#text/plain
+libsrc/Elements/elements_head.hh svneol=native#text/plain
+libsrc/Elements/quad1.cc svneol=native#text/plain
+libsrc/Elements/quad1.hh svneol=native#text/plain
+libsrc/Elements/triangle1.cc svneol=native#text/plain
+libsrc/Elements/triangle1.hh svneol=native#text/plain
+libsrc/Forms/Makefile -text
+libsrc/Forms/baseform.cc svneol=native#text/plain
+libsrc/Forms/baseform.hh svneol=native#text/plain
+libsrc/Forms/forms_head.hh svneol=native#text/plain
+libsrc/Forms/laplaceint.cc svneol=native#text/plain
+libsrc/Forms/laplaceint.hh svneol=native#text/plain
+libsrc/Forms/linearform.cc svneol=native#text/plain
+libsrc/Forms/linearform.hh svneol=native#text/plain
+libsrc/Forms/massint.cc svneol=native#text/plain
+libsrc/Forms/massint.hh svneol=native#text/plain
+libsrc/General/Makefile -text
+libsrc/General/environment.cc svneol=native#text/plain
+libsrc/General/environment.hh svneol=native#text/plain
+libsrc/General/general_head.hh svneol=native#text/plain
+libsrc/Makefile -text
+libsrc/Matrix/Makefile -text
+libsrc/Matrix/absmatrix.hh svneol=native#text/plain
+libsrc/Matrix/bandmatrix.cc svneol=native#text/plain
+libsrc/Matrix/bandmatrix.hh svneol=native#text/plain
+libsrc/Matrix/matrix.cc svneol=native#text/plain
+libsrc/Matrix/matrix.hh svneol=native#text/plain
+libsrc/Matrix/matrix_head.hh svneol=native#text/plain
+libsrc/Matrix/sparsematrixCRS.cc svneol=native#text/plain
+libsrc/Matrix/sparsematrixCRS.hh svneol=native#text/plain
+libsrc/Matrix/symbandmatrix.cc svneol=native#text/plain
+libsrc/Matrix/symbandmatrix.hh svneol=native#text/plain
+libsrc/Matrix/symmatrix.cc svneol=native#text/plain
+libsrc/Matrix/symmatrix.hh svneol=native#text/plain
+libsrc/Matrix/symsparsematrixCRS.cc svneol=native#text/plain
+libsrc/Matrix/symsparsematrixCRS.hh svneol=native#text/plain
+libsrc/PDE/Makefile -text
+libsrc/PDE/acousticPDE.cc svneol=native#text/plain
+libsrc/PDE/acousticPDE.hh svneol=native#text/plain
+libsrc/PDE/pde.cc svneol=native#text/plain
+libsrc/PDE/pde.hh svneol=native#text/plain
+libsrc/PDE/pde_head.hh svneol=native#text/plain
+libsrc/ParamIdent/Makefile -text
+libsrc/Utils/Makefile -text
+libsrc/Utils/clock.cc svneol=native#text/plain
+libsrc/Utils/clock.hh svneol=native#text/plain
+libsrc/Utils/tools.cc svneol=native#text/plain
+libsrc/Utils/tools.hh svneol=native#text/plain
+libsrc/Utils/utils_head.hh svneol=native#text/plain
+libsrc/Utils/vector.cc svneol=native#text/plain
+libsrc/Utils/vector.hh svneol=native#text/plain
+libsrc/makefile.inc -text
+libsrc/makefilemach/make.mach.IRIX64 -text
+libsrc/makefilemach/make.mach.LINUX -text
+libsrc/makefilemach/make.mach.LINUXPAR -text
+libsrc/makefilemach/make.mach.LINUXg -text
+libsrc/makefilemach/make.mach.SGI -text
+main/DoxygenConfig/doxy-config -text
+main/DoxygenConfig/footer.html svneol=native#text/html
+main/DoxygenConfig/header.html svneol=native#text/html
+main/Makefile -text
+main/cfs.cc svneol=native#text/plain
+main/mat.dat -text
+main/option.make -text
+main/z10.dat -text

@@ -1,0 +1,20 @@
+#
+# Machine dependent make include file for LINUX - optimized version
+# 
+OPT=-O3 -m486 
+#
+F77=g77 $(OPT)
+CC=c++ $(OPT) 
+CPLUSPLUS=$(CC)
+AR=ar
+LINK=$(CC)
+MAKE=make
+RM=rm
+RANLIB=ranlib
+#
+# Machine dependent flags:
+#
+UNDER  = -DFORTRANDOUBLEUNDERSCORE
+CFLAGS2 = $(ABI) $(OPT) $(LNO) $(UNDER) -w 
+CPLUSPLUSFLAGS2 = $(UNDER) -pg  -fnonnull-objects -I/usr/local/qt/include  -I/usr/local/GL/include
+LINKFLAGS2 = -pg -L/usr/openwin/lib -L/usr/X11R6/lib
