@@ -86,6 +86,20 @@ endif
 
 
 # -----------------------------------------------------------------------------
+# PARDISO
+#
+# Stuff for linking against Pardiso library
+# -----------------------------------------------------------------------------
+ifeq "$(LINK_PARDISO)" "yes"
+LIBDIR_PARDISO = -L$(PARDISO_ROOT)/lib
+LIB_PARDISO    = -lpardiso_GNU_IA32
+else
+LIBDIR_PARDISO =
+LIB_PARDISO    =
+endif
+
+
+# -----------------------------------------------------------------------------
 # LINKING
 #
 # Assemble machine-dependent linker flags (LFLAGS_MACHINE) and system libraries
@@ -94,5 +108,5 @@ endif
 # -----------------------------------------------------------------------------
 
 syslib = -lm -lc $(BLASLAPACK) $(LIBDIR_BLASLAPACK)
-LFLAGS_MACHINE = -pg
+LFLAGS_MACHINE = -pg $(LIBDIR_PARDISO) $(LIB_PARDISO)
 LFLAGS_EXE =
