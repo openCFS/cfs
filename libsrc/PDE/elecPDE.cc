@@ -1,5 +1,5 @@
-#ifndef NEWBASEPDE
 
+#ifndef NEWBASEPDE
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -69,7 +69,6 @@ void ElecPDE::Reset()
   sol_.init();
 
   NumElems_=ptgrid_->GetMaxnumElem(actlevel_,subdoms_);
-
 }
 
 void ElecPDE::SetMatrixFactors()
@@ -265,7 +264,7 @@ void ElecPDE::SolveStepStatic(const Integer level)
 
       ptError_->CalcErrorMap(solVec,subdoms_,ptgrid_,errorMap_,totalErr,level);
       
-      *infofile << " total error of calculation:: " << totalErr << std::endl;
+      std::cout << " total error of calculation:: " << totalErr << std::endl;
       *data << errorMap_ << std::endl;
     }
 #endif
@@ -359,7 +358,7 @@ void ElecPDE::PostProcess(const Integer level)
 	  for (Integer iel=0; iel< elemssd.size(); iel++,counterElems++)
 	    {
 	      FieldOp->CalcElemElecField( TempE, elemssd[iel], LCoord); 
-	      E_.setValuesRow(TempE,counterElems);
+	      E_.setValuesRow(TempE, elemssd[iel]->ElemNum-1);
 	    }
 	}
       delete FieldOp;
@@ -540,8 +539,9 @@ void ElecPDE::WriteResultsInFile()
 
       if (calcEfield_.size() !=0 )
 	{
-	  TransformElemSolution(E_Mesh,E_,subdoms_);
-	  OutFile_->WriteElemSolution(E_Mesh,step,time,"electric field");
+	  //	  TransformElemSolution(E_Mesh,E_,subdoms_);
+	  //	  OutFile_->WriteElemSolution(E_Mesh,step,time,"electric field");
+	  OutFile_->WriteElemSolution(E_,step,time,"electric field");
 	  //OutFile_->WriteElemSolution(Force_Mesh,step,time,"mag. volume force");
 	}
     }

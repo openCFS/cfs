@@ -1,8 +1,10 @@
-#ifndef FILE_BASEMECHPDE
-#define FILE_BASEMECHPDE
+#ifdef NEWBASEPDE
 
-#include "basepde.hh"
-#include <General/environment.hh>
+#ifndef FILE_NEWBASEMECHPDE
+#define FILE_NEWBASEMECHPDE
+
+#include "newBasePDE.hh"
+
  
 namespace CoupledField
 {
@@ -31,20 +33,11 @@ public:
   //!  Deconstructor
   virtual ~MechPDE() {;};
 
-  //! define discrete PDE
-  virtual void DiscreteParamsPDE();
 
-  //! set information for algebraic system about PDE. set matrix factors
-  virtual void SetMatrixFactors();
 
- //! initalize PDE coupling
-  virtual void InitCoupling(PDECoupling * Coupling);
-  
-  //! specify type of system matrix for AlgebraicSystem
-  /*!
-    \param level (input) level of Grid
-  */
-  virtual void SetupMatrices(const Integer level);
+  //! define all (bilinearform) integrators needed for this pde
+  virtual void DefineIntegrators(const Integer level);
+
 
 
     //! set boundary condition
@@ -62,42 +55,12 @@ public:
   */
   virtual void ComputeRHS(const Double atime) {;};
 
+  /// return index of dof defined by keyword (e.g. 'ux')
+  Integer GetBCDof(const std::string keyword);
   
-  //! solve one step for static problems
-  /*!
-    \param level level of grid
-  */
-  virtual void SolveStepStatic(const Integer level);
-
-
-  //! prepare for correct time stepping
-  /*!
-    \param dt time step
-  */
-  virtual void InitTimeStepping(const Double dt);
-  
-
-  //! solve one step for transient problem 
-  /*!
-    \param kstep number of calculating step
-    \param steptime time of calculation
-    \param level level of grid
-    \param updatesysmat indicator: need we to update algebraic system. it is used for adaptive procedure in space
-  */
-  virtual void SolveStepTrans(const Integer kstep, const Double steptime, const Integer level, 
-			      const Boolean updatesysmat);
-
-  //! calculate coupling terms
-  virtual void CalcOutputCoupling();
-  
-  //! write results in file
-   virtual void WriteResultsInFile();
-
-  //! returns if PDE can compute the quantity
-  virtual Boolean HasOutput(std::string output);
 
   //! Assemble mass part
-  void AssembleMass(BaseFE * ptEl, Vector<Integer>& connect_PDE, Matrix<Double>& ptCoord, MaterialData& actMatData);
+  void AssembleMass(BaseFE * ptEl, Vector<Integer>& connect_PDE, Matrix<Double>& ptCoord, Double density);
 
   //! Assemble stiffness part
   void AssembleStiffness(BaseFE * ptEl, Vector<Integer>& connect_PDE, Matrix<Double>& ptCoord, MaterialData& actMatData);
@@ -114,10 +77,10 @@ public:
   void AssembleNodalLoads(Integer level);
 
   /// assembles external forces to the algebraic system
-  void MechPDE::AssembleInitialRHS(const Integer level, std::vector<Double>& initalRhsVec);
+  void AssembleInitialRHS(const Integer level, std::vector<Double>& initalRhsVec);
     
   /// calculates the vector of external forces
-  void MechPDE::CalcInitialRhsVec(const Integer level, std::vector<Double>& initalRhsVec);
+  void CalcInitialRhsVec(const Integer level, std::vector<Double>& initalRhsVec);
 
   /// calculates L2-norm of RHS regarding entries due to penalty formulation
   Double RhsL2Norm(std::vector<Double>& stdVec);
@@ -128,11 +91,61 @@ public:
   /// reads the directions (e.g. for prestress) from the config-file
   void GetDirection(Directions& dir, const std::string keyword);
   
-protected:
+  // ======================================================
+  // COUPLING SECTION
+  // ======================================================
+  
+ //! initalize PDE coupling
+  virtual void InitCoupling(PDECoupling * Coupling);
+
+  //! calculate coupling terms
+  virtual void CalcOutputCoupling();
+  
+  //! returns if PDE can compute the quantity
+  virtual Boolean HasOutput(std::string output);
+
 
   /// setup source term
   void SetupRHS(const Integer level);
   
+
+// ======================================================
+// SOLVING SECTION
+// ======================================================
+
+  
+  //! solve one step for static problems
+  /*! \param level level of grid  */
+  virtual void SolveStepStatic(const Integer level);
+  
+
+  //! solve one step for transient problem 
+  /*!
+    \param kstep number of calculating step
+    \param steptime time of calculation
+    \param level level of grid
+    \param updatesysmat indicator: need we to update algebraic system. it is used for adaptive procedure in space
+  */
+  virtual void SolveStepTrans(const Integer kstep, const Double steptime, const Integer level, 
+			      const Boolean updatesysmat);
+  
+
+  //! prepare for correct time stepping
+  /*! \param dt time step  */
+  virtual void InitTimeStepping(const Double dt);
+
+
+  // ======================================================
+  // POSTPROC SECTION
+  // ======================================================
+
+  //! write results in file
+   virtual void WriteResultsInFile();
+
+
+
+protected:
+
   
   Integer size_;        //!< total number of unknowns (equations)
 
@@ -191,10 +204,20 @@ private:
 
   /// direction of prestress
   Directions preStressDir_;
+  
+  /// dof (e.g. ux) of homogenous Dirichlet BC
+  std::vector<std::string> homDirichDof_; 
 
-  Double lasttimecalc_;  //!< Last time on which we have calculated solution
-  Integer laststepcalc_; //!< Number of last timestep on which we have calculated our solution
+  /// dof (e.g. ux) of homogenous Dirichlet BC
+  std::vector<std::string> inhomDirichDof_; 
+
+  /// dof (e.g. ux) of load condition
+  std::vector<std::string> loadDof_; 
+
+
 };
 
 } // end of namespace
 #endif
+
+#endif //#ifdef NEWBASEPDE

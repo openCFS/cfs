@@ -5,6 +5,7 @@
 #ifdef NEWBASEPDE
 
 #include "newElecPDE.hh"
+#include "newMechPDE.hh"
 
 #else // NEWBASEPDE
 

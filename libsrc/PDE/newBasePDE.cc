@@ -1,13 +1,14 @@
-#ifndef NEWBASEPDE
+#ifdef NEWBASEPDE
 
 #include <fstream>
 #include <iostream>
 #include <string>
 
-#include "basepde.hh"
-#include <DataInOut/conffile.hh>
- 
+#include <DataInOut/conffile.hh> 
 #include <Estimator/spaceerror.hh>
+
+#include "newBasePDE.hh"
+
 
 namespace CoupledField
 {
@@ -43,76 +44,135 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile, WriteResults * a
   numeqcoarse_ = 200;
   coarsealpha_ = 0.1;
 
-  //axisymmetric case
-  isaxi_ = FALSE;
-
   //get analysis type
   std::string analysis;
   conf->get("analysis", analysis);
 
+  //allocate according algebraic system
+  algsys_ = new StandardSystem();
+
+
   if (analysis=="static") 
-    analysistype_ = STATIC;
+    assemble_ = new StaticAssemble(algsys_, ptgrid_);
   else if (analysis=="transient")
-    analysistype_ = TRANSIENT;
+    assemble_ = new TransientAssemble(algsys_, ptgrid_);
+
+  //    analysistype_ = TRANSIENT;
   else if (analysis=="harmonic")
     analysistype_ = HARMONIC;
   else
     Error("Analysis Type not supported",__FILE__,__LINE__);
+
 
   //for adaptivity
   if (conf->get_option("adaptspace"))
     conf->get("tolerance_space_error", tolSpaceErr_);
   else
     tolSpaceErr_ = .0;
-
 }
 
 
-void BasePDE::SetAlgSys(const Integer as_sysid)
+
+void  BasePDE::SetBCs(const Integer level, const Integer update, const Double time)
 {
 #ifdef TRACE
-  (*trace) << "entering  BasePDE::SetAlgSys" << std::endl;
+  (*trace) << "entering  BasePDE::SetBCs" << std::endl;
 #endif
 
-  as_sysid_ = as_sysid;
-
-  //allocate according algebraic system
-  algsys_ = new StandardSystem();
-
-  //set solver parameters  
-  SetSolverParameters();
-
-  //ask the PDE discrete form
-  DiscreteParamsPDE();
-
-  //set the graph type used for the system matrices
-  SetupMatrixGraph(NumPDENodes_, GraphType_);
-
-  //allocate the necessary matrices as well as solver and preconditioner
-  CreateMatrices_Solver();
-}
-
-void BasePDE::DeleteAlgSys(const Integer as_sysid)
-{
-  if (algsys_)  delete algsys_;
-}
-
-void BasePDE::InitMatrices()
-{
- //  //Initialize matrices in order to get BCs correct
-  std::vector<Integer> matrixsystype(5,0);    
-  if (SystemMatrix_     == 1) matrixsystype[0] = SYSTEM;      // memory for the system matrix
-  if (StiffnessMatrix_  == 1) matrixsystype[1] = STIFFNESS;   // memory for the stiffness matrix
-  if (DampingMatrix_    == 1) matrixsystype[2] = DAMPING;     // memory for the damping matrix
-  if (ConvectionMatrix_ == 1) matrixsystype[3] = CONVECTION;  // memory for the convection matrix
-  if (MassMatrix_       == 1) matrixsystype[4] = MASS;        // memory for the mass matrix
+//   Double BigConst;
+//   if (SolverCFS_)
+//     {
+//       Integer matsize=sysmat_.getSize(),i;
+//       Double max=sysmat_(0,0);
+//       for (i=0;i<matsize;i++)
+// 	if (sysmat_(i,i)>max) max=sysmat_(i,i);
+//       BigConst=(10e+10)*max;
+//     }
   
+  Integer node;
+  Double val, val_tfunc;
 
-  for (Integer i=0;i<5;i++)
-    if (matrixsystype[i] !=0)
-      algsys_->InitMatrix(i+1);
- 
+  val_tfunc = 1.0;
+  if (ptTimeFunc_->GetmaxTimeFnc()!=0)
+      val_tfunc=ptTimeFunc_->TimeFuncAtTime(time,level);
+
+  std::list<Integer> nodes;
+
+  Integer i;
+  Integer j;
+  if (PDEisCoupled_)
+    j = couplingBCsCounter_;
+  else
+    j=0;
+
+  for (i=0; i<bcs_hd_.size(); i++)
+    {  
+      nodes=ptBCs_->GetNodesLevel(bcs_hd_[i]);
+      for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end(); p++, j++)
+	{
+	  node=*p;
+	  val=0; 
+#ifdef DEBUG
+	  (*debug) << "Homogenous dirichlet BCS node: " << node << " val: " << val << " number: " << j 
+		   << std::endl << std::flush;
+	  
+#endif       
+	  algsys_->SetDirichlet(j+1, Mesh2PDENode_[node-1],
+				val, dofspernode_, SYSTEM);
+	}
+    }
+
+  for (i=0; i<bcs_id_.size(); i++)
+    {
+      nodes=ptBCs_->GetNodesLevel(bcs_id_[i]); 
+
+      val=val_id_[i]*val_tfunc;
+      for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end(); p++, j++)
+	{
+	  node=*p;
+#ifdef DEBUG
+	  (*debug) << "Inhomogenous dirichlet node: " << node << " val: " << val 
+		   << " number: " << j << "PDEnode: " <<  Mesh2PDENode_[node-1] <<  std::endl;
+#endif      
+	      
+	  // Mesh node numbers are mapped to PDE node numbers
+	  algsys_->SetDirichlet(j+1, Mesh2PDENode_[node-1],
+				val, dofspernode_, SYSTEM);
+	}
+    }
+  
+#ifdef TRACE
+  (*trace) << " leaving BasePDE::SetBCs " << std::endl;
+#endif 
 }
+
+
+
+
+void BasePDE::ReadBCs(const std::string eq)
+{
+#ifdef TRACE
+  (*trace) << " entering BasePDE::ReadBCs " << std::endl;
+#endif
+
+
+  conf->ifgetliststr("homogeneous_dirichlet",bcs_hd_,eq); 
+  conf->ifgetliststr("inhomogeneous_dirichlet",bcs_id_,eq);
+  conf->ifgetliststr("loads",bcs_loads_,eq);
+
+  Integer i;
+
+  val_id_.resize(bcs_id_.size());
+
+  for(i=0; i<bcs_id_.size(); i++)
+    conf->get(bcs_id_[i],val_id_[i],eq,"bc_conditions","inhomogeneous_dirichlet");
+
+  val_loads_.resize(bcs_loads_.size());
+  for(i=0; i<bcs_loads_.size(); i++)
+    conf->get(bcs_loads_[i],val_loads_[i],eq,"bc_conditions","loads");
+
+}
+
 
 
 void BasePDE::ReadMaterialData()
@@ -144,6 +204,72 @@ void BasePDE::ReadMaterialData()
 }
 
 
+Integer BasePDE::GetNumRestraints(const Integer level)
+{
+#ifdef TRACE
+  (*trace) << "entering BasePDE::GetNumRestraints" << std::endl;
+#endif
+    
+  Integer res=0;
+  Integer i;
+
+  for (i=0; i<bcs_hd_.size(); i++)
+    {
+      res+=ptBCs_->GetNumNodesLevel(bcs_hd_[i]);
+    }
+
+  for (i=0; i<bcs_id_.size(); i++)
+    {
+      res+=ptBCs_->GetNumNodesLevel(bcs_id_[i]);
+    }
+
+  return res;
+}
+
+
+
+
+
+
+BasePDE::~BasePDE()
+{
+#ifdef TRACE
+  (*trace) << " entering BasePDE::~BasePDE() " << std::endl;
+#endif
+
+  // ATTENTION: Dummy value for as_id!!!!!!!!!!!!!!!!!!!!!!!!!!
+  DeleteAlgSys(0);
+}
+
+
+
+
+  // ======================================================
+  // ALGSYS SECTION (SOLVER, ...) 
+  // ======================================================
+
+  void BasePDE::SetAlgSys(int sysid)
+  {
+#ifdef TRACE
+    (*trace) << "entering  Analysis::SetAlgSys" << std::endl;
+#endif
+
+    //set solver parameters  
+    SetSolverParameters();
+
+    //ask the PDE matrix settings
+    //    assemble_->MatrixSettings();
+
+    //set the graph type used for the system matrices
+    assemble_->SetupMatrixGraph(numPDENodes_);
+    //    assemble_->SetupMatrixGraph(numPDENodes_, NODEGRAPH);
+
+    //allocate the necessary matrices as well as solver and preconditioner
+    CreateMatrices_Solver();
+  }
+
+
+
 void BasePDE::SetSolverParameters()
 {
 #ifdef TRACE
@@ -173,38 +299,7 @@ void BasePDE::SetSolverParameters()
 
 } 
 
-void BasePDE::SetupMatrixGraph(Integer numeq, Integer graphtype)
-{
-#ifdef TRACE
-  (*trace) << "entering  BasePDE::SetupMatrixGraph" << std::endl;
-#endif
 
-  //initialize matrix graph
-  algsys_->CreateGraph(numeq,graphtype);
-
-  // set the graph - connectivity matrix
-  BaseFE * ptElem; 
-  Integer nsub, iel, fe_type;
-  Vector<Integer> connecth;
-
-  for (nsub=0; nsub<subdoms_.size(); nsub++)
-    {
-      std::vector<Elem*> elemssd;
-      ptgrid_->GetElemSD(elemssd,subdoms_[nsub],actlevel_);
-
-      for (iel=0; iel < elemssd.size(); iel++)
-	{  
-	  ptElem=elemssd[iel]->ptElem;
-	  
-	  //Map Mesh Node numbers to PDE node numbers
-	  Mesh2PDENode(connecth,elemssd[iel]->connect,Mesh2PDENode_);
-
-	  fe_type=elemssd[iel]->ptElem->feType();
-	  algsys_->SetElementPos(connecth.get(),connecth.size(),fe_type);
-	}
-    }
-
-}
 
 
 void BasePDE::CreateMatrices_Solver()
@@ -212,71 +307,39 @@ void BasePDE::CreateMatrices_Solver()
 #ifdef TRACE
   (*trace) << "entering  BasePDE::CreateMatrices_Solver" << std::endl;
 #endif
-
-  Integer matrixclass;
-  Integer matrixsystype[5];    
-  Integer graphtype; 
-  Integer numdofpernode;
-  Integer numconstraints;
-
-  //ask the PDE discrete form
-  // DiscreteParamsPDE();
-
-  numdofpernode  = dofspernode_; 
-
-  if (PDEisCoupled_)
-    numDirichletBCs_  += GetNumRestraints(actlevel_);
-  else
-    numDirichletBCs_  = GetNumRestraints(actlevel_);
-
-#ifdef DEBUG
-  (*debug) << "Num Dirichlet nodes: " <<  numDirichletBCs_ << std::endl;
-#endif
-
-  numconstraints = 0;  // currently not handled
-  matrixclass    = MatrixType_;
-  graphtype      = GraphType_;
-  
-  if (SystemMatrix_    != 1)
-    Error("One needs at least a system matrix!",__FILE__,__LINE__);
-
-  if (SystemMatrix_     == 1) matrixsystype[0] = SYSTEM;      // memory for the system matrix
-  if (StiffnessMatrix_  == 1) matrixsystype[1] = STIFFNESS;   // memory for the stiffness matrix
-  if (DampingMatrix_    == 1) matrixsystype[2] = DAMPING;     // memory for the damping matrix
-  if (ConvectionMatrix_ == 1) matrixsystype[3] = CONVECTION;  // memory for the convection matrix
-  if (MassMatrix_       == 1) matrixsystype[4] = MASS;        // memory for the mass matrix
-
-  //put to algebraic system
-  algsys_->CreateMatrix(matrixsystype, matrixclass, graphtype, numdofpernode, numDirichletBCs_,
-			numconstraints);
+  // create and initialize matrices 
+  assemble_->CreateMatrices();  
+  assemble_->InitMatrices();  
 
   //create solver and preconditioner
   algsys_->CreateSolver();
-  algsys_->CreatePrecond(matrixclass);
+  algsys_->CreatePrecond(assemble_->GetMatrixType());
 
   //now reset AlgebraicSystem 
   algsys_->InitRHS();
   algsys_->InitSol();
-
-  InitMatrices();
-  
 }
+
+
+
+
 
 void BasePDE::StoreToSolArray(Double * ptSol)
 {
   Integer k=0;
 
-  for (Integer i=0; i<NumPDENodes_; i++)   
+  for (Integer i=0; i<numPDENodes_; i++)   
     for (Integer dim=0; dim<dofspernode_; dim++)
       sol_[dim][i] = ptSol[k++];
 }
+
 
 
 void BasePDE::StoreVecToSolArray(std::vector<Double>& sol)
 {
   Integer k=0;
 
-  for (Integer i=0; i<NumPDENodes_; i++)   
+  for (Integer i=0; i<numPDENodes_; i++)   
     for (Integer dim=0; dim<dofspernode_; dim++)
       {
 	sol_[dim][i] = sol[k];
@@ -284,6 +347,11 @@ void BasePDE::StoreVecToSolArray(std::vector<Double>& sol)
       }
 }
 
+
+
+  // ======================================================
+  // COUPLING SECTION
+  // ======================================================
 
 
 void BasePDE::CalcInputCoupling()
@@ -313,7 +381,7 @@ void BasePDE::CalcInputCoupling()
 	  //std::cerr << "In " << pdename_ << "::CalcInputCoupling - Switch(Coord)" << std::endl;
 	  InitMatrices_ = TRUE;
 	  ptCoupling_->GetInputNodes(i, nodes);
-	  deltCoords_.reshape(Dim_, NumPDENodes_);
+	  deltCoords_.reshape(Dim_, numPDENodes_);
 
 	  for (Integer dim=0; dim<ptCoupling_->GetInputDim(i); dim++)
 	    for (Integer j=0; j<nodes->size(); j++)
@@ -380,100 +448,13 @@ void BasePDE::CalcInputCoupling()
 }
 
 
-void  BasePDE::SetBCs(const Integer level, const Integer update, const Double time)
-{
-#ifdef TRACE
-  (*trace) << "entering  BasePDE::SetBCs" << std::endl;
-#endif
-
-//   Double BigConst;
-//   if (SolverCFS_)
-//     {
-//       Integer matsize=sysmat_.getSize(),i;
-//       Double max=sysmat_(0,0);
-//       for (i=0;i<matsize;i++)
-// 	if (sysmat_(i,i)>max) max=sysmat_(i,i);
-//       BigConst=(10e+10)*max;
-//     }
-  
-  Integer node;
-  Double val, val_tfunc;
-
-  val_tfunc = 1.0;
-  if (ptTimeFunc_->GetmaxTimeFnc()!=0 && analysistype_!=HARMONIC)
-      val_tfunc=ptTimeFunc_->TimeFuncAtTime(time,level);
-
-  std::list<Integer> nodes;
-
-  Integer i;
-  Integer j;
-  if (PDEisCoupled_)
-    j = couplingBCsCounter_;
-  else
-    j=0;
-
-  for (i=0; i<bcs_hd_.size(); i++)
-    {  
-      nodes=ptBCs_->GetNodesLevel(bcs_hd_[i]);
-      for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end(); p++, j++)
-	{
-	  node=*p;
-	  val=0; 
-#ifdef DEBUG
-	      (*debug) << " node: " << node << " val: " << val << " number: " << j << std::endl;
-#endif       
-	  algsys_->SetDirichlet(j+1, Mesh2PDENode_[node-1],
-				val, dofspernode_, SYSTEM);
-	}
-    }
-
-  for (i=0; i<bcs_id_.size(); i++)
-    {
-      nodes=ptBCs_->GetNodesLevel(bcs_id_[i]); 
-
-      val=val_id_[i]*val_tfunc;
-      for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end(); p++, j++)
-	{
-	  node=*p;
-#ifdef DEBUG
-	  (*debug) << " node: " << node << " val: " << val 
-		   << " number: " << j << "PDEnode: " <<  Mesh2PDENode_[node-1] <<  std::endl;
-#endif      
-
-	  // Mesh node numbers are mapped to PDE node numbers
-	  algsys_->SetDirichlet(j+1, Mesh2PDENode_[node-1],
-				val, dofspernode_, SYSTEM);
-	}
-    }
-  
-#ifdef TRACE
-  (*trace) << " leaving BasePDE::SetBCs " << std::endl;
-#endif 
-}
-
-void BasePDE::ReadBCs(const std::string  pdeName)
-{
-#ifdef TRACE
-  (*trace) << " entering BasePDE::ReadBCs " << std::endl;
-#endif
 
 
-  conf->ifgetliststr("homogeneous_dirichlet",bcs_hd_, pdeName); 
-  conf->ifgetliststr("inhomogeneous_dirichlet",bcs_id_, pdeName);
-  conf->ifgetliststr("loads",bcs_loads_, pdeName);
+  // ======================================================
+  // GRID SECTION (Meshing, ...) 
+  // ======================================================
 
-  Integer i;
 
-  val_id_.resize(bcs_id_.size());
-
-  for(i=0; i<bcs_id_.size(); i++)
-    conf->get(bcs_id_[i],val_id_[i], pdeName,"bc_conditions","inhomogeneous_dirichlet");
-
-  val_loads_.resize(bcs_loads_.size());
-  for(i=0; i<bcs_loads_.size(); i++)
-    conf->get(bcs_loads_[i],val_loads_[i], pdeName,"bc_conditions","loads");
-
-}
 
 
 void BasePDE::Mesh2PDENode(Vector<Integer> & PDENodes, 
@@ -498,6 +479,8 @@ void BasePDE::Mesh2PDENode(Vector<Integer> & PDENodes,
 }
 
 
+
+
 void BasePDE::PDE2MeshNode(Vector<Integer> & MeshNodes, 
 			   const Vector<Integer> & PDENodes,
 			   const std::vector<Integer> & PDE2MeshNode)
@@ -518,6 +501,8 @@ void BasePDE::PDE2MeshNode(Vector<Integer> & MeshNodes,
     (*debug) << "in: " << PDENodes[i] << " out: " << MeshNodes[i] << std::endl;
 #endif
 }
+
+
 
 
 void BasePDE::AssignPDENodeNumbers(std::vector<Integer> & Mesh2PDENode,
@@ -542,7 +527,7 @@ void BasePDE::AssignPDENodeNumbers(std::vector<Integer> & Mesh2PDENode,
       Mesh2PDENode_[i] = i+1;
       PDE2MeshNode_[i] = i+1;
     }
-  NumPDENodes_ = PDE2MeshNode_.size();
+  numPDENodes_ = PDE2MeshNode_.size();
   
   return;
 #endif  
@@ -568,12 +553,14 @@ void BasePDE::AssignPDENodeNumbers(std::vector<Integer> & Mesh2PDENode,
 	}
     }
 
-  NumPDENodes_ = PDE2MeshNode_.size();
+  numPDENodes_ = PDE2MeshNode_.size();
   //  (*cla) << "Mesh2PDENod   " << Mesh2PDENode << std::endl;
 #ifdef DEBUG
   (*debug) << "Mesh2PDENodes:" << std::endl << Mesh2PDENode << std::endl;
 #endif
 }
+
+
 
   
 void BasePDE::AssignPDENodeNumbers(std::vector<Integer> & Mesh2PDENode,
@@ -724,64 +711,14 @@ void BasePDE::NodeSolutionToCoupling(Array<Double>& CouplingSol,
   
 }
 
-Integer BasePDE::GetNumRestraints(const Integer level)
-{
-#ifdef TRACE
-  (*trace) << "entering BasePDE::GetNumRestraints" << std::endl;
-#endif
-    
-  Integer res=0;
-  Integer i;
-
-  for (i=0; i<bcs_hd_.size(); i++)
-    {
-      res+=ptBCs_->GetNumNodesLevel(bcs_hd_[i]);
-    }
-
-  for (i=0; i<bcs_id_.size(); i++)
-    {
-      res+=ptBCs_->GetNumNodesLevel(bcs_id_[i]);
-    }
-
-  return res;
-}
 
 
-void BasePDE::SetAlgSys_id(const Integer as_sysid)
-{
-  as_sysid_ = as_sysid;
-}
 
 
-void BasePDE::MassMultiDof(Matrix<Double>& massMultDof, const Matrix<Double>& massMatSingleDof,  const Integer nrDofs)
-{
-    
-#ifdef TRACE
-    (*trace) << "entering BasePDE::MassMatMultiDof" << std::endl;
-#endif
-    
-    const Integer singleDofSize = massMatSingleDof.getSize();
-    const Integer multDofSize = singleDofSize * nrDofs;
-    
-    Integer i, j, actDof;
-    
-    massMultDof.Resize(multDofSize);
-    massMultDof.Init();
-    
-    for (i=0; i < singleDofSize; i++)
-      for (j=0; j < singleDofSize; j++)
-	for (actDof=0; actDof < nrDofs; actDof++)
-	  massMultDof[i*nrDofs + actDof][j*nrDofs + actDof] = massMatSingleDof[i][j]; 
-}
 
-BasePDE::~BasePDE()
-{
-#ifdef TRACE
-  (*trace) << " entering BasePDE::~BasePDE() " << std::endl;
-#endif
-
-  if (algsys_) delete algsys_;
-}
+  // ======================================================
+  // ADAPTIVITY SECTION 
+  // ======================================================
 
 
 #ifdef ADAPTGRID
@@ -850,6 +787,9 @@ void BasePDE::RefineMesh(const Integer level)
   
 }
 
+
+
+
 Boolean BasePDE::TestError(const Integer level)
 {
 #ifdef TRACE
@@ -878,6 +818,8 @@ Boolean BasePDE::TestError(const Integer level)
   
 }
 
+
+
 //In this fnc we delete old pointer to Error-object & create new
 void BasePDE::ConstructorError()
 {
@@ -892,6 +834,9 @@ void BasePDE::ConstructorError()
 
 }
 
+
+
+
 void BasePDE::WriteErrorInfo(WriteResults * ptmeshes)
 {
   ptmeshes->WriteElemSolution(errorMap_,0,0,"ERR-errorMap");
@@ -901,4 +846,4 @@ void BasePDE::WriteErrorInfo(WriteResults * ptmeshes)
 
 } // end of namespace
 
-#endif //#ifndef NEWBASEPDE
+#endif // #ifdef NEWBASEPDE
