@@ -11,7 +11,7 @@
 #include <Estimator/spaceerror.hh>
 #include <DataInOut/WriteInfo.hh> 
 #include <Driver/assemble.hh>
-#include "ScalarNodeEQN.hh"
+#include "nodeEQN.hh"
 #include <General/defs.hh>
 
 #include <Utils/storesol.hh>
@@ -485,7 +485,7 @@ void ElecPDE::Reset()
   ENTER_FCN( "ElecPDE::Reset" );
     
   //just for Testing
-  //EqnData_ = new ScalarNodeEQN(ptgrid_,ptBCs_,subdoms_, bcs_hd_,actlevel_);
+  //EqnData_ = new NodeEQN(ptgrid_,ptBCs_,subdoms_, bcs_hd_,actlevel_);
   //EqnData_->Print();
 
   // Map global numeration of element and nodes to local one

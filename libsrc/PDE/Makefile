@@ -8,8 +8,12 @@ src =   basePDE.cc\
 	acousticPDE.cc\
 	newmark.cc\
 	timestepping.cc\
-	BaseEQN.cc\
-	ScalarNodeEQN.cc\
+	baseEQN.cc\
+	nodeEQN.cc\
+	scalarnodeEQN.cc\
+	blocknodeEQN.cc\
+	scalarblockEQN.cc\
+	superblockEQN.cc\
 	smoothPDE.cc\
 	magneticPDE.cc\
 	trapezoidal.cc\
