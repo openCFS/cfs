@@ -37,6 +37,9 @@ public:
   //! Destructor
   ~Vector();  
 
+  //! Hard coded query if values are complex
+  Boolean IsComplex();
+  
   //! Return a Double pointer to the data of the vector.
   //! If the Vector is complex, a new array is created,
   //! where the entries are sequentilly ordered in real

@@ -55,6 +55,19 @@ NodeStoreSol<TYPE>::~NodeStoreSol()
 }
 
 template<class TYPE>
+Boolean NodeStoreSol<TYPE>::IsComplex()
+{
+  return FALSE;
+}
+
+template<>
+Boolean NodeStoreSol<Complex>::IsComplex()
+{
+  return TRUE;
+}
+
+
+template<class TYPE>
 void NodeStoreSol<TYPE>::Clear()
 {
   ENTER_FCN( "NodeStoreSol::Clear()" );
@@ -627,7 +640,11 @@ void NodeStoreSol<TYPE>::SetAlgSysVector(const CFSVector & val)
 #endif
 #ifdef CHECK_INDEX
    if (val.GetSize() !=  lengthVector_)
-     Error("NodeStoreSol::SetCompleteVector(): Vector has wrong size!",__FILE__,__LINE__);
+     {
+       std::cerr << "Vector has Size" << lengthVector_ << std::endl;
+       std::cerr << "Your vector has size " << val.GetSize() << std::endl;
+       Error("NodeStoreSol::SetCompleteVector(): Vector has wrong size!",__FILE__,__LINE__);
+     }
 #endif
 
    const  Vector<TYPE> & temp = dynamic_cast<const Vector<TYPE>&>(val);
