@@ -161,7 +161,7 @@ namespace CoupledField
 	   
 	    if (stopCritQuantities.Find(quantitiesSorted[iQuant]) != -1)
 	      {
-		params->CGet("value", epsilon, "name", quantitiesSorted[iQuant], 0,
+		params->CGet("value", epsilon, "quantity", quantitiesSorted[iQuant], 0,
 			     "nonLinear", "stopCrit");
 		params->CGet("l2Norm", normtype, "name", quantitiesSorted[iQuant], 0,
 			     "nonLinear", "stopCrit");
