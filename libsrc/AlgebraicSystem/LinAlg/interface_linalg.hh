@@ -76,7 +76,7 @@ inline InterfaceAlgSys<Dim>::InterfaceAlgSys(Grid<Dim> * aptgrid, const Integer 
 #ifdef TRACE
  (*trace) << "Entering InterfaceAlgSys::InterfaceAlgSys" << std::endl;
 #endif
-   ptWork=new WorkWithSysMat<Dim, Matrix<Double> >(ptGrid,level,eps);
+   ptWork=new WorkWithSysMat<Dim, SparseMatrix<Double> >(ptGrid,level,eps);
 }
 
 #ifdef __GNUC__

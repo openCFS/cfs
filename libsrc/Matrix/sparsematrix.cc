@@ -147,7 +147,7 @@ TYPE & SparseMatrix<TYPE>::InsertElement(ElemSparseMatrix<TYPE> * ptElem,const I
   if (!newElem) Error("Not enought memory");
 
   newElem->column=col;
-  newElem->value=0.;
+  newElem->value=0;
 
   if (first==1)
     {
@@ -454,7 +454,22 @@ Vector<TYPE> SparseMatrix<TYPE>::operator* (const Vector<TYPE> & x) const
   
 }
 
+template<class TYPE>
+void SparseMatrix<TYPE>::cut(const Integer i, const Integer j)
+{
+if (i < 0 || i > numrows-1 || j < 0 || j > numcol)
+         Error("invalid index in function cut",__FILE__,__LINE__);
+if (!numrows) Error("Matrix is undefined in function cut");
 
+ptRow[i]=0;
+
+numrows--;
+
+Integer irow;
+for (irow=0; irow<numrows; irow++)
+ DeleteElement(i,j);
+
+}
 
 template<class TYPE>
 std::ostream & operator << (std::ostream & out, const SparseMatrix<TYPE> &mat)

@@ -21,7 +21,7 @@ struct ElemSparseMatrix
 };
 
 template<class TYPE>
-class SparseMatrix
+class SparseMatrix: public AbsMatrix<Matrix<TYPE> , TYPE>
 {
 public:
   //! Constructor
@@ -41,7 +41,7 @@ public:
   /// Return number of colomns
   Integer GetCol() const {return numcol;}
   //// access to elements
-  TYPE & operator()(Integer row,Integer col);
+  TYPE & operator()(const Integer row, const Integer col);
 
   //// overloading operators
   /// Copying
@@ -71,6 +71,18 @@ public:
 
   template<class S>
   friend std::ostream & operator<< (std::ostream& , const SparseMatrix<S>&);
+
+  //! Add element on position i,j
+  void Add(const Integer, const Integer, const TYPE value);
+
+  //! Initialized by zero matrix
+  void Init();
+
+  //! Return size of matrix, only for quadratic matrices
+  Integer getSize() const;
+
+  //! Cut row number i, column number j from matrix
+  void cut(const Integer i, const Integer j); 
 
 private:
   //! number of rows
@@ -102,8 +114,28 @@ inline SparseMatrix<TYPE>::~SparseMatrix()
   if (ptRow) delete [] ptRow;
 }
 
+template<class TYPE>
+inline void SparseMatrix<TYPE>::Add ( const Integer i, const Integer j, const TYPE value)
+{
+ (*this)(i,j)+=value;
+}
+
+template<class TYPE>
+inline void SparseMatrix<TYPE>::Init() 
+{
+ ;
+}
+
+template<class TYPE>
+inline Integer SparseMatrix<TYPE>::getSize() const
+{
+ if (numrows!=numcol) Error("Function .getSize() is valid only for quadratic matrix");
+ return numrows;
+}
+
 #ifdef __GNUC__
 template class SparseMatrix<Double>;
+template class SparseMatrix<Integer>;
 #endif
 
 } // end of namespace

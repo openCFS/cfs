@@ -4,9 +4,8 @@
 #include "clock.hh"
 #include "systemmatrix.hh"
 
-#include "triangle1.hh"
-#include "quad1.hh"
-#include "quad2.hh"
+#include "elements_header.hh"
+#include "matrix_header.hh"
 
 #include "laplaceint.hh"
 #include "massint.hh"
@@ -98,6 +97,8 @@ template class Assemble<Point2D, Matrix<Double> >;
 template class Assemble<Point2D, SymMatrix<Double> >;
 template class Assemble<Point3D, Matrix<Double> >;
 template class Assemble<Point3D, SymMatrix<Double> >;
+template class Assemble<Point2D, SparseMatrix<Double> >;
+template class Assemble<Point3D, SparseMatrix<Double> >;
 #endif
 
 }

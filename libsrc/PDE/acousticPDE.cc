@@ -43,7 +43,6 @@ AcousticPDE<Dim>::AcousticPDE(const Double epsilon, const Double dt0, Grid<Dim> 
 
   size=ptWork->getSize();
 
-  std::cout << " size of solution " << size << std::endl;   
   sol.Resize(size);
   sol_der1.Resize(size);
   sol_der2.Resize(size);
