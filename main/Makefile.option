@@ -20,7 +20,7 @@ GSI = no
 #
 AdaptGrid=$(HOME)/Work/221003/Grid_RG_upd
 #
-LAS=~/Work/260104-LAS/LAS
+LAS=$(LASHOME)
 #
 #
 ############### Gridlib
