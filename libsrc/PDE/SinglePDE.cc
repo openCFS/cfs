@@ -12,67 +12,65 @@
 namespace CoupledField {
 
 
-SinglePDE::SinglePDE( Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
-		      WriteResults * aOutFile, TimeFunc *aptTimeFunc )
-  :  StdPDE(aptgrid, aptBCs, aInFile, aOutFile, aptTimeFunc)
+  SinglePDE::SinglePDE( Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
+                        WriteResults * aOutFile, TimeFunc *aptTimeFunc )
+    :  StdPDE(aptgrid, aptBCs, aInFile, aOutFile, aptTimeFunc) {
   
-{
+    ENTER_FCN( "BasePDE::BasePDE" );
   
-  ENTER_FCN( "BasePDE::BasePDE" );
+    nonLin_ = FALSE;
+    incStopCrit_ = 1e-2;
+    residualStopCrit_ = 1e-3;
   
-  nonLin_ = FALSE;
-  incStopCrit_ = 1e-2;
-  residualStopCrit_ = 1e-3;
+    // =====================================================================
+    // set file pointers
+    // =====================================================================
+    ptTimeFunc_ = aptTimeFunc;
+    assemble_   = NULL;
+    algsys_     = NULL;
+    eqnData_    = NULL;
   
-  
-  // =====================================================================
-  // set file pointers
-  // =====================================================================
-  ptTimeFunc_ = aptTimeFunc;
-  assemble_   = NULL;
-  algsys_     = NULL;
-  eqnData_    = NULL;
-  
-  // =====================================================================
-  // set analysis parameters
-  // =====================================================================
-  actlevel_ = 0;
-  actFrequency_ = 0;
-  complexFormat_ = AMPLITUDE_PHASE; // or REAL_IMAG
-  couplingBCsCounter_ = 0;
-  numDirichletBCs_ = 0;
-  pdeIsCoupled_ = FALSE;
-  updateCouplingBCs_ = FALSE;
-  dim_ = ptgrid_->GetDim();
-  geoUpdate_ = FALSE;
-  iterCoupledCounter_ = 0;
-  effectiveMass_ = FALSE;
+    // =====================================================================
+    // set analysis parameters
+    // =====================================================================
+    actlevel_ = 0;
+    actFrequency_ = 0;
+    complexFormat_ = AMPLITUDE_PHASE; // or REAL_IMAG
+    couplingBCsCounter_ = 0;
+    numDirichletBCs_ = 0;
+    pdeIsCoupled_ = FALSE;
+    updateCouplingBCs_ = FALSE;
+    dim_ = ptgrid_->GetDim();
+    geoUpdate_ = FALSE;
+    iterCoupledCounter_ = 0;
+    effectiveMass_ = FALSE;
     
-  // =====================================================================
-  // set solver parameters
-  // =====================================================================
-  eps_         = 1.0e-8;
-  dampiter_    = 1.0;
-  maxnumiter_  = 500;
-  numeqcoarse_ = 200;
-  coarsealpha_ = 0.1; // in acousticPDE.cc set to 0.01
+    // =====================================================================
+    // set solver parameters
+    // =====================================================================
+    eps_         = 1.0e-8;
+    dampiter_    = 1.0;
+    maxnumiter_  = 500;
+    numeqcoarse_ = 200;
+    coarsealpha_ = 0.1; // in acousticPDE.cc set to 0.01
   
-  // savederiv1_ = FALSE;
-  // savederiv2_ = FALSE;
+    // savederiv1_ = FALSE;
+    // savederiv2_ = FALSE;
   
-  // =====================================================================
-  // set postprocessing parameters
-  // =====================================================================
-  hasOutput_      = FALSE;
-  saveSol_        = FALSE;
-  saveDeriv1_     = FALSE;
-  saveDeriv2_     = FALSE;
-  saveSolHist_    = FALSE;
-  saveDeriv1Hist_ = FALSE;
-  saveDeriv2Hist_ = FALSE;
-}
-  
-   // **********************
+    // =====================================================================
+    // set postprocessing parameters
+    // =====================================================================
+    hasOutput_      = FALSE;
+    saveSol_        = FALSE;
+    saveDeriv1_     = FALSE;
+    saveDeriv2_     = FALSE;
+    saveSolHist_    = FALSE;
+    saveDeriv1Hist_ = FALSE;
+    saveDeriv2Hist_ = FALSE;
+  }
+
+
+  // **********************
   //   Default Destructor
   // **********************
   SinglePDE::~SinglePDE() {
@@ -82,23 +80,14 @@ SinglePDE::SinglePDE( Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
     // ATTENTION: Dummy value for as_id!!!!!!!!!!!!!!!!!!!!!!!!!!
     DeleteAlgSys(0);
 
-    if (assemble_) {
-      delete assemble_;
-    }
+    delete assemble_;
   
     // ATTENTION: Dummy value for as_id!!!!!!!!!!!!!!!!!!!!!!!!!!
-    if (sol_) {
-      delete sol_;
-    }
+    delete sol_;
 
-    if (eqnData_)
-      delete eqnData_;
-
-    if ( TS_alg_)
-      delete TS_alg_;
-  
-    if ( materialData_ != NULL)
-      delete[] materialData_;
+    delete eqnData_;
+    delete TS_alg_;
+    delete[] materialData_;
   }
 
 
