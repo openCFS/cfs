@@ -611,7 +611,7 @@ std::string WriteResultsUnverg::SolutionTypeToString(const SolutionType type) co
       Error("Not implemented", __FILE__, __LINE__);
       break;
     default:
-      Error( "Wrong type of solution or 'SolutionType2String' not implemented for\
+      Error( "Wrong type of solution or 'SolutionType2String' not implemented for \
 this type of solution", __FILE__, __LINE__);
     }
 }
