@@ -1633,7 +1633,6 @@ void BasePDE::CalcInputCoupling()
 // 		std::cerr << ", value = " << help[dof + j*dim_] << std::endl;
 	      }
 	  
-	  std::cerr << "------------------------------------------" << std::endl;
 	  break;
 
 	case RHS:
