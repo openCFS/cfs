@@ -48,6 +48,9 @@ void AnsysFile::ReadDim()
   takePosition("Dimension", pos);
   infile.seekg(pos,std::ios::beg);
 
+  string buffer;
+  getline(infile,buffer,'\n');
+
   infile >> dim_;
 }
 
@@ -97,6 +100,9 @@ void AnsysFile::ReadMaxnumnodes(Integer & nnodes)
   takePosition("NumNodes", pos);
   infile.seekg(pos,std::ios::beg);
 
+  string buffer;
+  getline(infile,buffer,'\n');
+
   infile >> nnodes;
 }
 
@@ -120,6 +126,9 @@ case 3:
  std::string::size_type pos=0;
  takePosition(keyword, pos);
  infile.seekg(pos,std::ios::beg);
+
+ string buffer;
+ getline(infile,buffer,'\n');
 
  infile >> nelem;
 }
@@ -207,14 +216,13 @@ void AnsysFile::ReadNumberNodesPerElem(Integer & nnodesperelem)
 
  std::string buf;
  std::getline(infile, buf, '\n');
- std::getline(infile, buf, '\n');
 
  Integer ibuf;
  infile >> ibuf >> ibuf >> nnodesperelem;  
 }
 
   //!
- void AnsysFile::ReadElemConnectionGH(const Integer maxelem, Integer * connect, const Integer maxnode, const Integer numelemgr, const Integer startposinarrayconn)
+void AnsysFile::ReadElemConnectionGH(const Integer maxelem, Integer * connect, const Integer maxnode, const Integer numelemgr, const Integer startposinarrayconn)
 {
  std::string::size_type pos=0;
  takePosition("2D Elements", pos);
@@ -223,11 +231,12 @@ void AnsysFile::ReadNumberNodesPerElem(Integer & nnodesperelem)
  std::string buf;
  std::getline(infile, buf, '\n');
  std::getline(infile, buf, '\n');
- std::getline(infile, buf, '\n');
 
  Integer counter=0;
 
  Integer j, jj;
+
+ std::cout << " me " << maxelem << std::endl;
  for (j=0; j < maxelem; j++)
 {
   for (jj=0; jj < maxnode; jj++, counter++)
@@ -236,6 +245,10 @@ void AnsysFile::ReadNumberNodesPerElem(Integer & nnodesperelem)
   infile.ignore(100,'\n');
   std::getline(infile, buf, '\n');
 }
+
+ Integer ii;
+ for(ii=0; ii < counter; ii++)
+  std::cout << connect[ii] << " " << std::endl;
 
 }
 
