@@ -81,7 +81,11 @@ Id	    & preconditioning with identity matrix, i.e. no preconditioning
 MG	    & proprietory algebraic multigrid method of OLAS\\
 Jacobi	    & plain Jacobi preconditioning\\
 SSOR	    & symmetric successive over-relaxation\\
-ILU	    & incomplete LU decomposition using ILU(0)\\
+ILU0	    & incomplete $LU$ decomposition using ILU(0)\\
+ILUK        & incomplete $LU$ decomposition using fill-level based dropping,
+	      i.e. ILU(k)\\
+ILDLK       & incomplete $LDL^T$ decomposition using fill-level based
+              dropping, i.e. ILDL(k)\\
 hypreJacobi & plain Jacobi in hypre\\
 hypreAMG    & hypre's algebraic multigrid method\\
 hypreILU    & hypre's ILU preconditioner Euclid, ILU(k) currently\\
@@ -204,6 +208,32 @@ parameters, if they are not sensible and issue a respective warning. It is also
 this routine that will determine a storage type for the system matrix, if
 \xml{expertsChoice} is specified, which also is the default for the
 \xml{storage} attribute.
+
+For the re-ordering strategy the Expert() module will enforce the settings
+specified in the following table. If you want another re-ordering, you must
+over-ride the expert, see Chap.~\ref{chap:SpecialElements}.
+%
+%
+\begin{center}
+\begin{longtable}{ll}
+\hline\noalign{\smallskip}
+solver              & re-ordering                             \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+directLDL, directLU & Metis (if available), Sloan (otherwise) \\
+lapackLU, lapackLL  & Sloan                                   \\
+pardiso             & noReordering                            \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+preconditioner      & re-ordering                             \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+ILU0, Jacobi, hypreJacobi & noReordering                      \\
+ILUK, ILDLK, hypreILU    & Sloan                              \\
+\noalign{\smallskip}\hline
+\end{longtable}
+\end{center}
+%
+%
+
+
 %
 %
 \section{Exporting the Linear System}

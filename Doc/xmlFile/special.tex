@@ -1,4 +1,5 @@
 \chapter{Special Elements}
+\label{chap:SpecialElements}
 %
 %
 The Schema definition of the XML parameter file currently allows for two
@@ -28,7 +29,7 @@ turn off preconditioning, if a direct solver is specified, or change the
 matrix type to \xml{hypreMatrix}, if one of the solvers of the hypre library
 is specified. There may be situations, however, where this behaviour is not
 desired, e.g.~one may want to test the performance of an ILU preconditioner
-without the \xml{Sloan} matrix re-ordering the expert would trigger by default.
+without the \xml{Metis} matrix re-ordering the expert would trigger by default.
 Note that turning off the expert module may lead to run-time aborts in OLAS due
 to inconsistent settings. So be sure to really be an expert, if you do this.
 %
