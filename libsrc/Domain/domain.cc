@@ -315,8 +315,8 @@ namespace CoupledField {
       for (Integer i=1; i<sequenceTags.GetSize(); i++)
 	if (sequenceTags[i] != firstTag) {
 	  errMsg = "CreateCoupledPDE: The tags in the <multiSequence> section ";
-	  errMsg = "are not all the same in each step.\n Coupling is only ";
-	  errMsg = "possible if in each step all the <refTag> are the same!";
+	  errMsg += "are not all the same in each step.\n Coupling is only ";
+	  errMsg += "possible if in each step all the <refTag> are the same!";
 	  Error(errMsg.c_str(), __FILE__, __LINE__ );
 	}
     }
