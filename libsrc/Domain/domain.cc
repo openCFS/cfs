@@ -22,8 +22,7 @@
 namespace CoupledField
 {
 
-template <class Dim>
-Domain<Dim> :: Domain(FileType * const aptFileType, WriteResults * ptOut,  Material * materialdata, TimeFunc * aptTimeFunc) 
+Domain:: Domain(FileType * const aptFileType, WriteResults * ptOut,  Material * materialdata, TimeFunc * aptTimeFunc) 
 {
 #ifdef TRACE
   (*trace) << "entering Domain::Domain" << std::endl;
@@ -40,13 +39,13 @@ Domain<Dim> :: Domain(FileType * const aptFileType, WriteResults * ptOut,  Mater
 
  // initialize pointer to grid 
 #ifdef GRIDLIB
-   if (libmesh =="gridlib") ptgrid_=new InterfaceGridlib<Dim>(InFile_);
+   if (libmesh =="gridlib") ptgrid_=new InterfaceGridlib<Point2D>(InFile_);
   else
 #endif
-  if (libmesh =="cfsgrid") ptgrid_=new GridInterfaceCFS<Dim>(InFile_);
+  if (libmesh =="cfsgrid") ptgrid_=new GridInterfaceCFS<Point2D>(InFile_);
 #ifdef NETGEN
     else 
-  if (libmesh == "netgen") ptgrid_=new InterfaceNetGen<Dim>(InFile_);
+  if (libmesh == "netgen") ptgrid_=new InterfaceNetGen<Point2D>(InFile_);
 #endif
    else
      Error("Unknown type of mesh_library in conf-file",__FILE__,__LINE__);
@@ -69,8 +68,7 @@ Domain<Dim> :: Domain(FileType * const aptFileType, WriteResults * ptOut,  Mater
  InitAlgSys();
 }
 
-template <class Dim>
-Domain<Dim> :: ~Domain()
+Domain :: ~Domain()
 {
 #ifdef TRACE
   (*trace) << "entering Domain::~Domain" << std::endl;
@@ -89,8 +87,7 @@ Domain<Dim> :: ~Domain()
      } 
 }
 
-template<class Dim>
-void Domain<Dim> :: InitPDE()
+void Domain :: InitPDE()
 {
 #ifdef TRACE
   (*trace) << "entering Domain::InitPDE" << std::endl;
@@ -115,8 +112,7 @@ void Domain<Dim> :: InitPDE()
 
 }
 
-template<class Dim>
-void Domain<Dim> :: InitAlgSys()
+void Domain :: InitAlgSys()
 {
 #ifdef TRACE
   (*trace) << "entering Domain::InitAlgSys" << std::endl;
@@ -192,8 +188,7 @@ void Domain<Dim> :: InitAlgSys()
     }
 }
 
-template<class Dim>
-void Domain<Dim> :: PrintGrid(Integer level)
+void Domain :: PrintGrid(Integer level)
 {
 #ifdef TRACE
   (*trace) << "entering Domain::PrintGrid" << std::endl;
@@ -203,8 +198,7 @@ void Domain<Dim> :: PrintGrid(Integer level)
  OutFile_->WriteGrid(level);
 }
 
-template<class Dim>
-void Domain<Dim> :: SetSubdomains()
+void Domain :: SetSubdomains()
 {
 #ifdef TRACE
   (*trace) << "entering Domain::SetSubdomains" << std::endl;

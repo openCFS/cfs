@@ -1,8 +1,6 @@
 #ifndef FILE_DOMAIN_2001
 #define FILE_DOMAIN_2001
 
-//#include "interface_gridcfs.hh"
-//#include "interface_netgen.hh"
 #include "grid.hh"
 #include "basepde.hh"
 
@@ -11,7 +9,6 @@ namespace CoupledField
 
 /// contain information about calculation domain and according to different meshes create different grids
 
-template<class Dim>
 class Domain
 {
 public:
@@ -26,12 +23,6 @@ public:
 
   //!
   void SetSubdomains();
-
-  //! set dirichlet boundary condition
-//  void SetDBC(Integer apde, Integer level, Integer update);
-
-  //! print solution
-//  void PrintSolution(Double * sol, Integer apde);
 
   //! get pde
   BasePDE * GetPDE(const Integer ipde){ return ptpde_[ipde];}
@@ -98,11 +89,6 @@ private:
   WriteResults * OutFile_;
 
 };
-
-#ifdef __GNUC__
-//template class Domain<Point3D>;
-template class Domain<Point2D>;
-#endif
 
 }
 

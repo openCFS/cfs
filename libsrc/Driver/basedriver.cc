@@ -7,8 +7,7 @@
 namespace CoupledField
 {
 
-template<class Dim>
-BaseDriver<Dim> :: BaseDriver(Domain<Dim> * adomain)
+BaseDriver :: BaseDriver(Domain * adomain)
 {
 #ifdef TRACE
   (*trace) << "entering BaseDriver::BaseDriver" << std::endl;
@@ -20,8 +19,7 @@ BaseDriver<Dim> :: BaseDriver(Domain<Dim> * adomain)
 
 }
 
-template<class Dim>
-BaseDriver<Dim> :: ~BaseDriver()
+BaseDriver :: ~BaseDriver()
 {
 #ifdef TRACE
   (*trace) << "entering BaseDriver::~BaseDriver" << std::endl;
