@@ -33,8 +33,11 @@
           <xsd:element name="subdom" type="xsd:token" minOccurs="1"
                        maxOccurs="unbounded"/>
     
-          <!-- Boundary Conditions (optional) -->
-          <xsd:element name="boundaryConds" minOccurs="0">
+          <!-- Type of damping model (optional) -->
+          <xsd:element name="damping" type="DT_MechDamp" minOccurs="0"/>
+
+          <!-- Boundary Conditions & Loads (optional) -->
+          <xsd:element name="bcsAndLoads" minOccurs="0">
             <xsd:complexType>
               <xsd:sequence>
                 <xsd:element name="dirichletHom" type="DT_MechHD"
@@ -174,6 +177,20 @@
       <xsd:element name="elemResults" type="DT_ElemResults" minOccurs="0"
         maxOccurs="unbounded"/>
     </xsd:sequence>
+  </xsd:complexType>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for damping model -->
+  <!-- ******************************************************************** -->
+  <xsd:simpleType name="DT_MechDampType">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="rayleigh"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <xsd:complexType name="DT_MechDamp">
+    <xsd:attribute name="type" type="DT_MechDampType" use="required"/>
   </xsd:complexType>
 
 </xsd:schema>
