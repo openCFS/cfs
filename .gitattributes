@@ -183,11 +183,15 @@ libsrc/PDE/magEdgePDE.cc svneol=native#text/plain
 libsrc/PDE/magEdgePDE.hh svneol=native#text/plain
 libsrc/PDE/mechPDE.cc svneol=native#text/plain
 libsrc/PDE/mechPDE.hh svneol=native#text/plain
+libsrc/PDE/newmark.cc svneol=native#text/plain
+libsrc/PDE/newmark.hh svneol=native#text/plain
 libsrc/PDE/pdes_header.hh svneol=native#text/plain
 libsrc/PDE/smoothPDE.cc svneol=native#text/plain
 libsrc/PDE/smoothPDE.hh svneol=native#text/plain
 libsrc/PDE/smoothlaplacePDE.cc svneol=native#text/plain
 libsrc/PDE/smoothlaplacePDE.hh svneol=native#text/plain
+libsrc/PDE/timestepping.cc svneol=native#text/plain
+libsrc/PDE/timestepping.hh svneol=native#text/plain
 libsrc/ParamIdent/Makefile -text
 libsrc/Utils/Makefile -text
 libsrc/Utils/array.cc svneol=native#text/plain

@@ -92,28 +92,28 @@ void AcouFlowNoise::ComputeRHS(const Double atime)
   (*trace) << "entering AcouFlowNoise::ComputeRHS" << std::endl;
 #endif
 
-  Vector<Double> coeffMass, coeffDamp;
-  Vector<Double> elemvec;
-  Integer i;
+//   Vector<Double> coeffMass, coeffDamp;
+   Vector<Double> elemvec;
+   Integer i;
 
-  Integer level=0;
+   Integer level=0;
 
-  // mass matrix part
-  coeffMass = sol_old_*a0_+sol_der1_old_*a2_+sol_der2_old_*a3_;
-  algsys_->UpdateRHS(MASS,coeffMass.get());
+//   // mass matrix part
+//   coeffMass = sol_old_*a0_+sol_der1_old_*a2_+sol_der2_old_*a3_;
+//   algsys_->UpdateRHS(MASS,coeffMass.get());
 
-  // damping matrix part
-  if (with_absBCs_) 
-    {
+//   // damping matrix part
+//   if (with_absBCs_) 
+//     {
       
-      coeffDamp = -sol_der1_old_-sol_der2_old_*a6_;   
+//       coeffDamp = -sol_der1_old_-sol_der2_old_*a6_;   
  
-      algsys_->UpdateRHS(DAMPING,coeffDamp.get());
+//       algsys_->UpdateRHS(DAMPING,coeffDamp.get());
 
-      coeffDamp = sol_old_*a1_+sol_der1_old_*a2_*a7_+sol_der2_old_*a7_*a3_;  
+//       coeffDamp = sol_old_*a1_+sol_der1_old_*a2_*a7_+sol_der2_old_*a7_*a3_;  
        
-      algsys_->UpdateRHS(DAMPING,coeffDamp.get());
-   }
+//       algsys_->UpdateRHS(DAMPING,coeffDamp.get());
+//    }
 
    
   // get maximum number of elements from grid
@@ -442,6 +442,9 @@ void AcouFlowNoise::SolveStepTrans(const Integer kstep, const Double asteptime, 
   Double * ptsol;
   Integer update,job;
 
+  //perform predictor step
+  TS_alg->Predictor(sol_);
+
   if (kstep==0)
     {
       update = 0;
@@ -450,6 +453,7 @@ void AcouFlowNoise::SolveStepTrans(const Integer kstep, const Double asteptime, 
       algsys_->ConstructEffectiveMatrix(matrix_factor_);
       algsys_->InitRHS();
       ComputeRHS(lasttimecalc_);
+      TS_alg->UpdateRHS();
     }
   else if (reset)
     {
@@ -460,6 +464,7 @@ void AcouFlowNoise::SolveStepTrans(const Integer kstep, const Double asteptime, 
       algsys_->InitMatrix(SYSTEM);
       algsys_->ConstructEffectiveMatrix(matrix_factor_);
       ComputeRHS(lasttimecalc_);
+      TS_alg->UpdateRHS();
     }
   else
     {
@@ -467,6 +472,7 @@ void AcouFlowNoise::SolveStepTrans(const Integer kstep, const Double asteptime, 
       job    = 3;
       algsys_->InitRHS();
       ComputeRHS(lasttimecalc_);
+      TS_alg->UpdateRHS();
     };
 
  
@@ -480,6 +486,8 @@ void AcouFlowNoise::SolveStepTrans(const Integer kstep, const Double asteptime, 
   for (i=0; i<ptgrid_->GetMaxnumnodes(level); i++)
     sol_[0][i]=ptsol[i];
 
+  //perform corrector step  
+  TS_alg->Corrector(sol_);
 
 }
 
@@ -499,8 +507,8 @@ void AcouFlowNoise::WriteResultsInFile()
   
   
   TransformNodeSolution(arraysol,sol_,PDE2MeshNode_);
-  TransformNodeSolution(arraysol_der1,sol_der1_,PDE2MeshNode_);
-  TransformNodeSolution(arraysol_der2,sol_der2_,PDE2MeshNode_);
+  //  TransformNodeSolution(arraysol_der1,sol_der1_,PDE2MeshNode_);
+  //  TransformNodeSolution(arraysol_der2,sol_der2_,PDE2MeshNode_);
 
   if (OutFile_->IsGMV())
     {

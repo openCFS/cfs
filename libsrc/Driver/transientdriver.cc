@@ -9,6 +9,7 @@
 #include <Utils/vector.hh>
 
 #include <DataInOut/GMV/outGMV.hh>
+#include <PDE/basepde.hh>
 
 namespace CoupledField
 {
@@ -63,8 +64,7 @@ void TransientDriver :: SolveProblem()
   Double dt=firstdt_;
   Boolean updatesysmat=FALSE;
 
-  ptdomain_->GetPDE(pdenumber)->CalcParameters(dt);
-  ptdomain_->GetPDE(pdenumber)->SetMatrixFactors();
+  ptdomain_->GetPDE(pdenumber)->InitTimeStepping(dt);
 
   ptdomain_->PrintGrid(level);
 
@@ -72,7 +72,6 @@ void TransientDriver :: SolveProblem()
   for (nstep = 0; nstep<numstep_; nstep++)
     {
       ptdomain_->GetPDE(pdenumber)->SolveStepTrans(nstep, steptime, level, updatesysmat);
-      ptdomain_->GetPDE(pdenumber)->SaveSolAsPrevStep();
 
       // writing results in output-file
     if (nstep == stepsave && (nstep < isaveend_))
@@ -113,8 +112,8 @@ void TransientDriver :: SolveProblemAdapt()
   Double dt=firstdt_;
   Boolean resetsysmat=FALSE;
 
-  ptdomain_->GetPDE(pdenumber)->CalcParameters(dt);
-  ptdomain_->GetPDE(pdenumber)->SetMatrixFactors();
+  //  ptdomain_->GetPDE(pdenumber)->CalcParameters(dt);
+  //  ptdomain_->GetPDE(pdenumber)->SetMatrixFactors();
 
  Integer startrepeat;
  conf->get("startrepeat",startrepeat,"Acoustic");
@@ -164,8 +163,8 @@ do
        steptime+=dt;
        std::cout << " REFINE " << std::endl;
       }
-        ptdomain_->GetPDE(pdenumber)->CalcParameters(dt);
-        ptdomain_->GetPDE(pdenumber)->SetMatrixFactors();
+       //        ptdomain_->GetPDE(pdenumber)->CalcParameters(dt);
+       //        ptdomain_->GetPDE(pdenumber)->SetMatrixFactors();
 
         resetsysmat=TRUE;
       }
@@ -224,8 +223,8 @@ void TransientDriver :: SolveProblemAdaptSpace()
 
   BasePDE * ptPDE=ptdomain_->GetPDE(pdenumber);
 
-  ptPDE->CalcParameters(dt);
-  ptPDE->SetMatrixFactors();
+  //  ptPDE->CalcParameters(dt);
+  //  ptPDE->SetMatrixFactors();
 
   Integer nstep;
   for (nstep = 0; nstep<numstep_; nstep++ )
@@ -252,7 +251,7 @@ void TransientDriver :: SolveProblemAdaptSpace()
       if (InfoPrint)
       (*infofile) << " step " << nstep << " steptime " << steptime << " numrepeat " << numrepeat << std::endl;
 
-      ptPDE->SaveSolAsPrevStep();
+      //      ptPDE->SaveSolAsPrevStep();
 
       if (nstep == stepsave && (nstep < isaveend_))
 	{

@@ -223,8 +223,8 @@ void Domain :: InitPDEs()
 //        ptpde_[i]=new Elecst2dPDE(ptalgsys_,ptgrid_,ptTimeFunc_,InFile_,OutFile_); 
 //        else if (pdes[i] == "acoustic3d")
 // 	 ptpde_[i]=new Acoustic3dPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
-        else if (pdes[i] == "acouflownoise")
- 	 ptpde_[i]=new AcouFlowNoise(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
+//        else if (pdes[i] == "acouflownoise")
+// 	 ptpde_[i]=new AcouFlowNoise(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
 // 	ptpde_[i]=new Elec2dPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_); 
 //       else if (pdes[i] == "electric3d") 
       else if (pdes[i] == "mechanic")

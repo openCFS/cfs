@@ -15,6 +15,7 @@
 #include <DataInOut/MaterialData.hh>
 #include <CoupledPDE/pdecoupling.hh>
 #include <Utils/array.hh>
+#include "timestepping.hh"
 
 namespace CoupledField
 {
@@ -150,6 +151,13 @@ public:
 			      const Boolean updatesysmat)=0;
 
 
+  //! Init the time stepping
+  /*!
+    \param dt time step
+  */
+  virtual void InitTimeStepping(const Double dt)
+    {Error("Not implemented");}
+
   //! Do Postprocessing as descriped in conf file
   virtual void PostProcess(const Integer level) {;};
 
@@ -159,17 +167,6 @@ public:
   
   //! write results in file
   virtual void WriteResultsInFile()=0;  
-
-  //! Calculation parameters in Newmark method
-  /*!
-    \param adt size of timestep
-  */
-  virtual void CalcParameters(const Double adt)  
-  { Error("Not implemented");}
-
-  //! save received solution as solution on the previous step 
-  virtual void SaveSolAsPrevStep()
-  { Error("Function RestoreSol is not implemented in this class");}  
 
 
   //------------------------ get functions--------------------------------------------------------
@@ -466,6 +463,8 @@ protected:
 
   Double StepTime_; //!< time step;
   Double matrix_factor_[4]; //!< factors for constructing effective mass / stiffness matrix
+
+  TimeStepping * TS_alg;  //<! handels the time stepping
 
   Integer actlevel_; //! actual level
   TimeErrorEstimator * ptTimeError_; //!< pointer to extimator
