@@ -29,6 +29,7 @@ WriteResultsUnverg ::~WriteResultsUnverg()
 
 void WriteResultsUnverg :: WriteGrid(const Integer level)
 {
+ if (!output) Error(" File for output results is not initialized");
  Dataset666(level);
  Dataset781(level);
  Dataset780(level);
