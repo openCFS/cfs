@@ -25,6 +25,7 @@
 #endif
 
 #include "nodeEQN.hh"
+#include "Driver/solveStepMpCCI.hh"
 
 namespace CoupledField {
 
@@ -114,29 +115,11 @@ void MpcciPDE::DefineIntegrators(const Integer level)
 }
 
 
-// ======================================================
-// SOLVING SECTION
-// ======================================================
-
-void MpcciPDE:: PreStepStatic(const Integer kstep, const Double asteptime,
-			     const Integer level, const Boolean reset)
+void MpcciPDE::DefineSolveStep()
 {
-  ENTER_FCN( "MpcciPDE::PreStepStatic" );
-}
-
-void MpcciPDE::PostStepStatic(const Integer kstep, const Double asteptime,
-			     const Integer level)
-{
-  ENTER_FCN( "MpcciPDE::PostStepStatic" );
-
-  if (pdeIsCoupled_)
-    iterCoupledCounter_++;
- }
-
-void MpcciPDE::PostStepTrans(const Integer kstep, const Double asteptime,
-			       const Integer level)
-{ 
-  ENTER_FCN( "MpcciPDE::PostStepTrans");
+  ENTER_FCN( "MpcciPDE::DefineSolveStep" );
+  
+  solveStep_ = new SolveStepMpCCI(*this);
 }
 
 

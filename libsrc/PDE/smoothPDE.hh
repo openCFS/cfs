@@ -34,6 +34,9 @@ public:
   //! define all (bilinearform) integrators needed for this pde
   virtual void DefineIntegrators(const Integer level);
 
+  //! define the SoltionStep-Driver
+  virtual void DefineSolveStep();
+
   //! Obtain information on desired output quantities from parameter file
   virtual void ReadStoreResults();
 
@@ -47,49 +50,6 @@ public:
   //! \params dt Current time step
   virtual void SetTimeStep(const Double dt){};
   
-
-
-  // ****************************+
-  // Solving Section
-  // ****************************+
-
-
-  // --- Static case ---
-
-  //! perform ..
-  virtual void PreStepStatic(const Integer kstep, const Double asteptime,
-			     const Integer level, const Boolean reset);
-
-  //!
-  virtual void StepStaticNonLin(const Integer kstep, const Double asteptime,
-				const Integer level, const Boolean reset);
-
-  //! 
-  virtual void PostStepStatic(const Integer kstep, const Double asteptime,
-			      const Integer level);
-
-  // --- Transient case ---
-
-  virtual void SolveStepTrans(const Integer kstep, const Double steptime, const Integer level, 
-			      const Boolean updatesysmat)
-  {SolveStepStatic(kstep,steptime,level,updatesysmat);};
-
-  //!
-  virtual void PreStepTrans(const Integer kstep, const Double asteptime,
-			    const Integer level, const Boolean reset)
-  {PreStepStatic(kstep,asteptime,level,reset);};
-  
-  //!
-  virtual void PostStepTrans(const Integer kstep, const Double asteptime,
-			     const Integer level)
-  {PostStepStatic(kstep,asteptime,level);};
-  
-  //!
-  virtual void StepTransNonLin(const Integer kstep, const Double asteptime,
-			       const Integer level, const Boolean reset)
-  {StepStaticNonLin(kstep,asteptime,level,reset);};
-
-
 
   //! calculate coupling terms
   virtual void CalcOutputCoupling();

@@ -24,15 +24,14 @@ public:
   //!
   virtual ~AcouFlowNoise();
 
+  //! define the SoltionStep-Driver
+  virtual void DefineSolveStep();
+
   //!
   void ComputeRHS(const Double atime);
 
-
   //! Reads at every time the flowdatafile from the Fluid's Computation
   void ReadFlowData(const char * aname, const Integer timestep, Matrix<Double> &nodedata );
-
-  //!
-  void SolveStepTrans(const Integer kstep, const Double steptime, const Integer level, const Boolean updatesysmat);
 
   //!
    void WriteResultsInFile();

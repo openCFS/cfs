@@ -161,11 +161,11 @@ namespace CoupledField
       ////////////////////////////////////////////////////////
       //                   SOLVES PDE                      //
       ///////////////////////////////////////////////////////  
-        pdes_[0]->PreStepHarmonic(fstep, freqs[fstep], level, reset); 
+        pdes_[0]->GetSolveStep()->PreStepHarmonic(fstep, freqs[fstep], level, reset); 
 
-        pdes_[0]->SolveStepHarmonic(fstep, freqs[fstep], level, reset);
+        pdes_[0]->GetSolveStep()->SolveStepHarmonic(fstep, freqs[fstep], level, reset);
 
-        pdes_[0]->PostStepHarmonic(fstep, freqs[fstep], level, reset);
+        pdes_[0]->GetSolveStep()->PostStepHarmonic(fstep, freqs[fstep], level, reset);
 
         pdes_[0]->PostProcess(level);   
         /////////////////////////////////////////////////////////
@@ -258,18 +258,18 @@ namespace CoupledField
       //      std::cout<<"\n piezoParam:createF PreStepHarmonic"<<std::endl;
 
       reset=TRUE;
-      pdes_[0]->PreStepHarmonic(fstep, freqs[fstep], level, reset); 
+      pdes_[0]->GetSolveStep()->PreStepHarmonic(fstep, freqs[fstep], level, reset); 
          
         
       //         updateMaterialData(parameter,ptMaterial);
       //updateComplexMaterialData(parameterC,ptMaterial);
 
       //  std::cout<<"\n piezoParam:createF SolveStepHarmonic"<<std::endl;
-      pdes_[0]->SolveStepHarmonic(fstep, freqs[fstep], level, reset);
+      pdes_[0]->GetSolveStep()->SolveStepHarmonic(fstep, freqs[fstep], level, reset);
       //std::cout<<"\n after SolveStepHarm " <<std::endl;
 
       //        std::cout<<"\n piezoParam:createF PostStepHarmonic"<<std::endl;
-      pdes_[0]->PostStepHarmonic(fstep, freqs[fstep], level, reset);
+      pdes_[0]->GetSolveStep()->PostStepHarmonic(fstep, freqs[fstep], level, reset);
 
       //std::cout<<"\n piezoParam:createF PostProcess at step  "<< fstep << std::endl;
       pdes_[0]->PostProcess(level);
@@ -668,7 +668,7 @@ namespace CoupledField
             JacobiMatrix[fstep + nrMeasuredData][parIndex]=meanValueMechDeformation;    
           }
 
-          pdes_[0]->PostStepHarmonic(fstep, freqs[fstep], level, reset);
+          pdes_[0]->GetSolveStep()->PostStepHarmonic(fstep, freqs[fstep], level, reset);
           pdes_[0]->PostProcess(level);
 
           Vector<Complex> chargeVec =  pdes_[0]->getPDE_complexValuedCharge();
@@ -947,7 +947,7 @@ namespace CoupledField
 	    JacobiMatrix[fstep + nrMeasuredData][ind_param]=meanValueMechDeformation;    
 	  }
 
-	  pdes_[0]->PostStepHarmonic(fstep, freqs[fstep], level, reset);
+	  pdes_[0]->GetSolveStep()->PostStepHarmonic(fstep, freqs[fstep], level, reset);
 	  pdes_[0]->PostProcess(level);
         
 	  Vector<Complex> chargeVec =  pdes_[0]->getPDE_complexValuedCharge();
@@ -1217,7 +1217,7 @@ namespace CoupledField
         //      Info->WriteHarmonicStep(pdes_[0]->GetName(), fstep, freqs[fstep]);
         
         pdes_[0]->WriteGeneralPDEdefines();
-        pdes_[0]->PreStepHarmonic(fstep, freqs[fstep], level, reset);
+        pdes_[0]->GetSolveStep()->PreStepHarmonic(fstep, freqs[fstep], level, reset);
         
         //      Cannot use SolveStepHarmonic, since it overwrites RHS ...
         //      for this, I have copied the method StepHarmonicLin to this place 
@@ -1268,9 +1268,9 @@ namespace CoupledField
           JacobiMatrix[fstep + nrMeasuredData][ind_param]=meanValueMechDeformation;    
         }
 
-        pdes_[0]->PostStepHarmonic(fstep, freqs[fstep], level, reset);
+        pdes_[0]->GetSolveStep()->PostStepHarmonic(fstep, freqs[fstep], level, reset);
         pdes_[0]->PostProcess(level);
-        pdes_[0]->PostStepHarmonic(fstep, freqs[fstep], level, reset);
+        pdes_[0]->GetSolveStep()->PostStepHarmonic(fstep, freqs[fstep], level, reset);
         Vector<Complex> chargeVec =  pdes_[0]->getPDE_complexValuedCharge();
 
         Complex charge=Complex(0.0,0.0);

@@ -71,7 +71,7 @@ namespace CoupledField
     MaterialData * ptMaterial=pdes_[0]->getPDEMaterialData();   // Pointer to MaterialData
     updateMaterialData(parameter, ptMaterial);         //Writes initial guesses of parameters (read from MeasuredData.dat) to system
 
-    ptBCs = pdes_[0]->getPDE_BCs();                             // Pointer to BCs
+     ptBCs = pdes_[0]->getPDE_BCs();                             // Pointer to BCs
     ptAlgsys = pdes_[0]->getPDE_algsys();                       //Pointer to AlgebraicSystem
 
     Double normJacMat, old_res_outer, new_res_inner, old_res_inner, new_res_outer;

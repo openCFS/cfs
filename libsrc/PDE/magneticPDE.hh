@@ -38,28 +38,12 @@ public:
   //! define all (bilinearform) integrators needed for this pde
   virtual void DefineIntegrators(const Integer level);
 
+  //! define the SoltionStep-Driver
+  virtual void DefineSolveStep();
+
    //! return size of solution
   virtual Integer getSize() const 
   { return numPDENodes_*dofspernode_;}
-
-// ======================================================
-// SOLUTION SECTION
-// ======================================================
-  
-  //!
-  virtual void PreStepStatic(const Integer kstep, const Double asteptime,
-			       const Integer level, const Boolean reset);
-
-  //! nonlinear static step
-  virtual void StepStaticNonLin(const Integer kstep, const Double aTime,
-				const Integer level, const Boolean reset);
-
-  /// do one transient step
-  void StepTransNonLin(const Integer kstep, const Double asteptime,
-		       const Integer level, const Boolean reset);
-
-  //!
-  virtual void PostStepStatic(const Integer level);
 
 
 // ======================================================
@@ -124,19 +108,6 @@ protected:
   void ComputeUI(Vector<Double>& uiSD);
   
   void WriteUI2File(Vector<Double>& uiSD);
-
-  //computes linear part of RHS
-  Double SetLinRHS(const Integer level);
-
-  //
-  void StoreAlgsysToVec(Vector<Double>& vec, Double * pt);
-
-  /// calculates L2-norm of RHS regarding entries due to penalty formulation
-  Double RhsL2Norm(Vector<Double>& stdVec);
-
-  /// does a line search and returns the optimal residual norm
-  Double LineSearch(Vector<Double>& solIncrement, Vector<Double>& actSol, 
-		    Double& etaLineSearch, Integer level, Boolean trans=FALSE);
 
   //! contains first derivative of magnetic vector potential
   NodeStoreSol<Double> solDeriv1_;

@@ -33,7 +33,8 @@ namespace CoupledField {
       needsDampingMatrix_(FALSE),
       isIncrFormulation_(FALSE),
       TS_alg_(NULL),
-      materialData_(NULL)
+      materialData_(NULL),
+      effectiveMass_(FALSE)
   {
 
     ENTER_FCN( "BasePDE::BasePDE" );
@@ -357,6 +358,9 @@ namespace CoupledField {
     InitTimeStepping();
 
     PreparePDE4Computation();
+
+    //!
+    DefineSolveStep();
   }
 
 
@@ -433,327 +437,11 @@ namespace CoupledField {
   }
 
 
-  // ======================================================
-  // Solve Step SECTION  
-  // ======================================================
-
-  // time is used for a series of static calculations
-  // don't get confused with REAL transient simulations!
-  void BasePDE::SolveStepStatic(const Integer kstep, const Double asteptime,
-                                const Integer level, const Boolean reset) {
-
-    ENTER_FCN( "BasePDE::SolveStepStatic" );
-
-    lasttimecalc_ = asteptime;
-    laststepcalc_ = kstep;
-
-    if (nonLin_) {
-      StepStaticNonLin(kstep,asteptime,level,reset);
-    }
-    else {
-      StepStaticLin(kstep,asteptime,level,reset);
-    }
-  }
-
-
-  void BasePDE::StepStaticLin( const Integer kstep, const Double aTime,
-                               const Integer level, const Boolean reset ) {
-
-    ENTER_FCN( "BasePDE::StepStaticLin" );
-
-    Integer job = 3; // only update BCs
-    Double * ptsol;
-    lasttimecalc_ = aTime; // for correct output in unv-file
-
-
-    // If the geometry has changed or the system matrix
-    // is calculated for the first time,
-    // the matrices have to be reassembled and therefore
-    // the preconditioner has to be recalculated
-
-    if (  geoUpdate_ == TRUE || firstTimeStepStatic_ == TRUE) {
-      assemble_->AssembleMatrices(level);
-      job = 1; // calc new preconditioner
-    }
-  
-    // The RHS-sources have to be reassembled each time
-    assemble_->AssembleSrcRHS(level, aTime);
-
-    SetBCs(level, aTime);
-
-    // Incorporate Boundary conditions and
-    // recalc the prconditioner eventually
-    algsys_->BuildInDirichlet();
-    if ( job == 1 ) {
-      algsys_->SetupPrecond( job );
-      algsys_->SetupSolver( job );
-    }
-
-    // Solve problem
-    algsys_->Solve();
-
-    // Get the solution and store it
-    ptsol = algsys_->GetSolutionVal();
-    sol_->CopyFromAlgSysDataPointer(ptsol);
-
-    firstTimeStepStatic_ = FALSE;
-  }
-
-
-  void BasePDE::SolveStepTrans( const Integer kstep, const Double asteptime, 
-                                const Integer level, const Boolean reset ) {
-
-    ENTER_FCN( "BasePDE::SolveStepTrans" );
-
-    lasttimecalc_= asteptime;
-    recalc_ = FALSE;
-
-    if (laststepcalc_ == kstep && kstep != 1) {
-      recalc_ = TRUE;
-    }
-    else {
-      laststepcalc_= kstep;
-    }
-
-    if (nonLin_) {
-      StepTransNonLin(kstep, asteptime, level, reset);
-    }
-    else {
-      StepTransLin(kstep, asteptime, level, reset);
-    }
-  }
-
-
-  void BasePDE::PreStepTrans( const Integer kstep, const Double asteptime,
-                              const Integer level, const Boolean reset ) {
-
-    ENTER_FCN( "BasePDE::PreStepTrans" );
-
-    lasttimecalc_= asteptime;
-
-    // due to coupling-pdes, the RHS has to be initialized BEFORE 
-    // the coupling forces are assembled to the RHS
-    algsys_->InitRHS();
-
-    if (geoUpdate_) {
-      algsys_->InitRHS();
-      algsys_->InitSol();
-      assemble_->InitMatrices();
-
-      assemble_->SetReassemble();   
-    }
-  }
-
-
-  void BasePDE::PostStepTrans( const Integer kstep, const Double asteptime,
-                               const Integer level ) {
-
-    ENTER_FCN( "BasePDE::PostStepTrans" );
-
-    NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
-    
-    if ( pdeIsCoupled_ ) {
-
-      //save solution
-      Vector<Double> & solvector= solhelp->GetAlgSysVector();
-
-      //perform corrector step
-      TS_alg_->Corrector(solvector); 
-    }
-  
-    if (pdeIsCoupled_) {
-      iterCoupledCounter_++;
-    }
-  }
-
-
   // initialize PDEs before iteration (done for each time step)
   void BasePDE::InitStepTransCoupled( Double asteptime ) {
     ENTER_FCN( "BasePDE::InitStepTransCoupled" );
     lasttimecalc_ = asteptime;
     iterCoupledCounter_ = 0;
-  }
-
-  //! \todo delete job parameter or replace it by a 
-  //! meaningfull attribute
-  void BasePDE::StepTransLin( const Integer kstep, const Double asteptime,
-                              const Integer level, const Boolean reset ) {
-
-    ENTER_FCN( "BasePDE::StepTransLin" );
-
-    Double * ptsol;
-    Integer job;
-   
-    //account for RHS
-    assemble_->AssembleSrcRHS(level,lasttimecalc_);
-
-    NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
-
-    if ( pdeIsCoupled_ == FALSE || iterCoupledCounter_ == 0 ) {        
-      Vector<Double> & solvector= solhelp->GetAlgSysVector();
-      TS_alg_->Predictor(solvector);
-    }
-
-    if ( laststepcalc_ == 1 ) {
-      job = 3;
-
-      // why is the first statement checking for 'pdeIsCoupled'?
-      if ( pdeIsCoupled_ == FALSE || iterCoupledCounter_ == 0 
-           || geoUpdate_ == TRUE ) {
-        job = 1;
-        assemble_->AssembleMatrices(level);
-        algsys_->ConstructEffectiveMatrix(matrix_factor_);
-      }  
-    }
-    else if (reset) {
-      job = 1;
-
-      algsys_->InitMatrix(SYSTEM);
-      algsys_->InitMatrix(STIFFNESS);
-      algsys_->InitMatrix(MASS);
-      if (dampingType_) {
-        algsys_->InitMatrix(DAMPING);
-      }
-      algsys_->ConstructEffectiveMatrix(matrix_factor_);
-    }
-    else {
-      job = 3;
-
-      // The following section is only an experiment up to now
-      if ( geoUpdate_ == TRUE && pdeIsCoupled_ == TRUE ) {
-        if (isIncrFormulation_) {
-          Error( "Incremental formulation and geoUpdate are currently not "
-                 "working together" );
-        }
-        job = 1;
-        assemble_->AssembleMatrices(level);
-        algsys_->ConstructEffectiveMatrix(matrix_factor_);      
-      }
-    }
-
-    if (isIncrFormulation_) {
-      Vector<Double> & solvector =
-        dynamic_cast<NodeStoreSol<Double>*>(sol_)->GetAlgSysVector();
-
-      solvector *= -1;
-      algsys_->UpdateRHS(SYSTEM,solvector.GetPointer());
-    }
-
-    TS_alg_->UpdateRHS();
-
-    SetBCs( level, lasttimecalc_ );
-    algsys_->BuildInDirichlet();
-
-    if ( job == 1 ) {
-      algsys_->SetupPrecond( job );
-      algsys_->SetupSolver( job );
-    }
-
-    algsys_->Solve();
-    ptsol = algsys_->GetSolutionVal();
-
-    if ( isIncrFormulation_ ) {
-
-      //what a heuristic!!!!!
-      Double relaxVal = 0.5;
-
-      if (iterCoupledCounter_ == 0)
-        relaxVal = 0.1;
-      if (iterCoupledCounter_ == 1)
-        relaxVal = 0.25;
-
-      StoreAlgsysToVec(solIncr_, ptsol);
-      if (iterCoupledCounter_ == 0)
-        actSol_ = solIncr_*relaxVal;
-      else 
-        actSol_ += solIncr_*relaxVal;
-
-      sol_->SetAlgSysVector(actSol_);
-    }
-    else
-      sol_->CopyFromAlgSysDataPointer(ptsol);
-
-    Vector<Double> & solvector =\
-      dynamic_cast<NodeStoreSol<Double>*>(sol_)->GetAlgSysVector();
-
-    if (!pdeIsCoupled_)
-      TS_alg_->Corrector(solvector);
-  }
-
-
-  void BasePDE::PreStepHarmonic( const Integer freqStep,
-                                 const Double frequency, const Integer level,
-                                 const Boolean reset ) {
-
-    ENTER_FCN( "BasePDE::PreStepHarmonic" );
-
-    actFrequency_ = frequency;
-    actFreqStep_  = freqStep;
-    assemble_->SetFrequency(frequency);
-    algsys_->InitRHS();
-
-    if (reset) {
-      assemble_->InitMatrices();
-    }
-  }
-
-
-  void BasePDE::SolveStepHarmonic( const Integer freqStep,
-                                   const Double frequency, const Integer level,
-                                   const Boolean reset ) {
-
-    ENTER_FCN( "BasePDE::SolveStepHarmonic" );
-
-    if ( nonLin_ ) {
-      StepHarmonicNonLin( freqStep, frequency, level, reset );
-    }
-    else {
-      StepHarmonicLin( freqStep, frequency, level, reset );
-    }
-  }
-
-
-  void BasePDE::StepHarmonicLin( const Integer freqStep,
-                                 const Double frequency, const Integer level,
-                                 const Boolean reset ) {
-
-    ENTER_FCN( "BasePDE::StepHarmonicLin" );
-
-    Integer job;
-    Double * ptsol;
-
-    if ( reset ) {
-      assemble_->AssembleMatrices( level );
-    }
-
-
-    //this has to be done each time!
-    assemble_->AssembleSrcRHS(level, frequency);
-
-    if ( reset ) {
-
-      //account for bcs
-      SetBCs(level, frequency);
-
-      // calc new preconditioner
-      job = 1;
-    }
-    else {
-      job = 3;
-    }
-
-    algsys_->BuildInDirichlet();
-    
-    if (job == 1) {
-      algsys_->SetupPrecond( job );
-      algsys_->SetupSolver( job );
-    }
-
-    algsys_->Solve();
-
-    ptsol = algsys_->GetSolutionVal();
-
-    sol_->CopyFromAlgSysDataPointer(ptsol);
   }
 
 
@@ -769,10 +457,12 @@ namespace CoupledField {
     Integer j;
     Integer eqnNr, eqnDof;
 
-    if (pdeIsCoupled_)
+    if (pdeIsCoupled_) {
       j = couplingBCsCounter_;
-    else
+    }
+    else {
       j=0;
+    }
 
 
     // ---------------------------
@@ -809,6 +499,7 @@ namespace CoupledField {
         }
       }
     }
+
 
     // ---------------------------
     // INHOMOGENEOUS DIRICHLET BC

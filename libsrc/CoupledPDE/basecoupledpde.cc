@@ -64,7 +64,7 @@ void BaseCoupledPDE::PreStepTrans(const Integer kstep, const Double asteptime,
   ENTER_FCN( "BaseCoupledPDE::PreStepTrans" );
 
     for (Integer i=0; i<PDEs_.GetSize(); i++)
-      PDEs_[i]->PreStepTrans(kstep, asteptime, level, reset);
+      PDEs_[i]->GetSolveStep()->PreStepTrans(kstep, asteptime, level, reset);
 };
 
 
@@ -77,7 +77,7 @@ void BaseCoupledPDE::PostStepTrans(const Integer kstep, const Double asteptime,
   ENTER_FCN( "BaseCoupledPDE::PostStepTrans" );
 
     for (Integer i=0; i<PDEs_.GetSize(); i++)
-      PDEs_[i]->PostStepTrans(kstep,asteptime,level);
+      PDEs_[i]->GetSolveStep()->PostStepTrans(kstep,asteptime,level);
 }
 
 
@@ -87,7 +87,7 @@ void BaseCoupledPDE::InitStepTransCoupled(Double stepTime)
   ENTER_FCN( "BaseCoupledPDE::InitStepTransCoupled" );
 
     for (Integer i=0; i<PDEs_.GetSize(); i++)
-      PDEs_[i]->InitStepTransCoupled(stepTime);
+      PDEs_[i]->GetSolveStep()->InitStepTransCoupled(stepTime);
 }
 
 void BaseCoupledPDE::SetTimeStep(const Double dt)

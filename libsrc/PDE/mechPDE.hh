@@ -41,13 +41,8 @@ public:
   virtual void DefineIntegrators(const Integer level);
 
 
-  /// calculates L2-norm of RHS regarding entries due to penalty formulation
-  Double RhsL2Norm(Vector<Double>& stdVec);
-
-
-  /// sets external forces and returns L2Norm of them
-  Double SetExternalForces(const Integer level);
-
+  //! define the SoltionStep-Driver
+  virtual void DefineSolveStep();
 
   /// reads the directions (e.g. for prestress) from the config-file
   void GetDirection(Directions& dir, const std::string keyword);
@@ -74,31 +69,6 @@ public:
 
   /// setup source term
   void SetupRHS(const Integer level);
-  
-
-  // ======================================================
-  // SOLVING SECTION
-  // ======================================================
-
-  /// do one transient step
-  void StepTransNonLin(const Integer kstep, const Double asteptime,
-		       const Integer level, const Boolean reset);
-  			
-  //!
-  virtual void PreStepStatic(const Integer kstep, const Double asteptime,
-			     const Integer level, const Boolean reset);
-  
-  //! solve one step for nonlinear static problem 
-  /*!
-    \param level level of grid
-    \param aTime sequence of different levels for RHS
-  */
-  virtual void StepStaticNonLin(const Integer kstep, const Double asteptime,
-				const Integer level, const Boolean reset);
-
-  //!
-  virtual void PostStepStatic(const Integer kstep, const Double asteptime,
-			      const Integer level);
   
 
   // ======================================================

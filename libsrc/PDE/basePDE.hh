@@ -25,6 +25,7 @@
 #include "timestepping.hh"
 #include "nodeEQN.hh"
 #include "pdememento.hh"
+#include "Driver/baseSolveStep.hh"
 
 #ifdef USE_DATABASE
 #include "DataInOut/LoadMaterialDataDatabase.hh"
@@ -43,11 +44,13 @@ namespace CoupledField
 
   class BasePDE
   {
+
   public:
 
     // friend class declarations
     friend class PDECoupling;
     friend class PDEMemento;
+    friend class BaseSolveStep;
 
     //! Constructor
     /*!
@@ -154,6 +157,15 @@ namespace CoupledField
     //! MpCCI gets the geometry
     virtual void PreparePDE4Computation() {;};
 
+    //! define the SoltionStep-Driver
+    virtual void DefineSolveStep() {
+      Error("DefineSolveStep not implemented");
+    }
+
+    //!
+    BaseSolveStep * GetSolveStep()
+    {return solveStep_; };
+
     // ======================================================
     // POSTPROC SECTION
     // ======================================================
@@ -189,83 +201,36 @@ namespace CoupledField
     //! deletes the algebraic system
     void DeleteAlgSys(int as_id)
     {if (algsys_)
-      assemble_->DeleteAlgSys();
+	assemble_->DeleteAlgSys();
     };
   
-    //static analysis
+
+    //!
+    void ComputeRHS(const Double atime) {;};
+
+
+    // ======================================================
+    // COUPLING SECTION
+    // ======================================================
+
+    //! initalize PDE coupling
+    virtual void InitCoupling(PDECoupling * Coupling)
+    {Error("InitCoupling Not implemented",__FILE__,__LINE__);}
+
+
+    //! Fill in input coupling terms
+    virtual void CalcInputCoupling();
+
+
+    //! calculate coupling terms
+    virtual void CalcOutputCoupling()
+    {Error("InitCoupling Not implemented",__FILE__,__LINE__);}
+
+
+    //! initialize PDEs before iteration (done for each time step)
+    void InitStepTransCoupled(Double asteptime);
   
-  virtual void PreStepStatic(const Integer kstep, const Double asteptime,
-			       const Integer level, const Boolean reset) {;};
 
-  virtual void SolveStepStatic(const Integer kstep, const Double asteptime,
-			    const Integer level, const Boolean reset);
-
-  virtual void StepStaticLin(const Integer kstep, const Double asteptime,
-			    const Integer level, const Boolean reset);
-
-  virtual void StepStaticNonLin(const Integer kstep, const Double asteptime,
-			    const Integer level, const Boolean reset)
-  {Error("StepStaticNonLin not implemented!",__FILE__,__LINE__);};
-
-  virtual void PostStepStatic(const Integer kstep, const Double asteptime,
-			      const Integer level) {;};
-
-  //harmonic analysis
-  virtual void PreStepHarmonic(const Integer freqStep, const Double frequency, 
-			       Integer level, const Boolean reset);
-
-  virtual void SolveStepHarmonic(const Integer freqStep, const Double frequency, 
-				 Integer level, const Boolean reset);
-
- virtual void StepHarmonicLin(const Integer freqStep, const Double frequency, 
-				 Integer level, const Boolean reset);
-
-  virtual void StepHarmonicNonLin(const Integer freqStep, const Double frequency, 
-				  Integer level, const Boolean reset)
-  {Error("Harmonic step not implemented!",__FILE__,__LINE__);};
-
-  virtual void PostStepHarmonic(const Integer freqStep, const Double frequency, 
-				Integer level, const Boolean reset) {;};
-
-  //transient analysis
-  virtual void PreStepTrans(const Integer kstep, const Double asteptime,
-			    const Integer level, const Boolean reset);
-
-  virtual void SolveStepTrans(const Integer kstep, const Double asteptime,
-			      const Integer level, const Boolean updatesysmat);
-
-  virtual void StepTransLin(const Integer kstep, const Double asteptime,
-			    const Integer level, const Boolean updatesysmat);
-
-  virtual void StepTransNonLin(const Integer kstep, const Double asteptime,
-			       const Integer level, const Boolean updatesysmat)
-  {Error("Nonlinear Transient Step not implemented!",__FILE__,__LINE__);};
-
-
-  virtual void PostStepTrans(const Integer kstep, const Double asteptime,
-			     const Integer level);
-
-  /// initialize PDEs before iteration (done for each time step)
-  void InitStepTransCoupled(Double asteptime);
-
-  // ======================================================
-  // COUPLING SECTION
-  // ======================================================
-
-  //! initalize PDE coupling
-  virtual void InitCoupling(PDECoupling * Coupling)
-  {Error("InitCoupling Not implemented",__FILE__,__LINE__);}
-
-
-  //! Fill in input coupling terms
-  virtual void CalcInputCoupling();
-
-
-  //! calculate coupling terms
-  virtual void CalcOutputCoupling()
-  {Error("InitCoupling Not implemented",__FILE__,__LINE__);}
-
-  
     // ======================================================
     // ADATPTIVITY SECTION
     // ======================================================
@@ -370,12 +335,12 @@ namespace CoupledField
     virtual void Reset()
     { Error("Fnc Reset is not implemented",__FILE__,__LINE__);}
 
-	//! Get number of time step
-	virtual Integer GetTimeStepCounter()
-	{ return laststepcalc_; }
+    //! Get number of time step
+    virtual Integer GetTimeStepCounter()
+    { return laststepcalc_; }
 
-	//! Get coefficient for damping matrix in fractional damping model
-	virtual Double GetFracDampMatrixCoeff(Integer actSD);
+    //! Get coefficient for damping matrix in fractional damping model
+    virtual Double GetFracDampMatrixCoeff(Integer actSD);
 
   protected:
 
@@ -408,7 +373,7 @@ namespace CoupledField
 
     //! Init the time stepping
     virtual void InitTimeStepping()
-      {Error("InitTimeStepping not implemented",__FILE__,__LINE__);};
+    {Error("InitTimeStepping not implemented",__FILE__,__LINE__);};
 
     //! return index of dof defined by keyword (e.g. 'ux')
     virtual Integer GetBCDof(const std::string keyword);
@@ -430,7 +395,7 @@ namespace CoupledField
     void GetDerivSolVecOfElement(Vector<Double>& sol, StdVector<Integer>& connect_PDE);
 
     /// returns the vector of 2nd time derivative of the solution belonging to all nodes 
-	/// of the actual element
+    /// of the actual element
     void GetDeriv2SolVecOfElement(Vector<Double>& sol, StdVector<Integer>& connect_PDE);
 
     //!
@@ -525,7 +490,7 @@ namespace CoupledField
     
     Double  actFrequency_; //!< current frequency for harmonic analysis
     Integer actFreqStep_;  //!< current frequency step for harmonic analysis
-  //@}
+    //@}
 
     // -----------------------------------------------------------------------
     // Boundary conditions
@@ -600,8 +565,8 @@ namespace CoupledField
     //! vector containgin dofs of solutiontypes
     StdVector<Integer> solDofs_;
 
-	//! TRUE, if at least one Result is calculated and written
-	Boolean hasOutput_;
+    //! TRUE, if at least one Result is calculated and written
+    Boolean hasOutput_;
 
     //! TRUE, if solution should be written to result file
     Boolean saveSol_;
@@ -713,6 +678,7 @@ namespace CoupledField
     Integer as_sysid_;
 
     //! Pointer to object of analysis (Static, Trans, Harm or Eig)
+    BaseSolveStep * solveStep_;
     Assemble * assemble_;
     BaseSystem * algsys_;     //!< pointer to algebraic system
     FileType * inFile_;       //!< pointer to input file

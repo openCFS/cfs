@@ -35,9 +35,8 @@ public:
   //! define all (bilinearform) integrators needed for this pde
   virtual void DefineIntegrators(const Integer level);
   
-  //! nonlinear transient step
-  void StepTransNonLin(const Integer kstep, const Double asteptime,
-					   const Integer level, const Boolean reset);
+  //! define the SoltionStep-Driver
+  virtual void DefineSolveStep();
 
   //! write results in file
   //! \param stepOffset offset for starting (time)step
@@ -82,11 +81,6 @@ protected:
 
   //! Init the time stepping
   void InitTimeStepping();
-
-  //! compute nonlinear part of RHS
-  void AddNonlinearRHS();
-
-  // Double freq_;   //!< excitation frequency for harmonic analysis
 
   Integer size_;                         //!< total number of unknowns (equations)
   SolutionType formulation_;             //!< variable in which PDE is formulated

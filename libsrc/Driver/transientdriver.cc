@@ -129,9 +129,9 @@ void TransientDriver::SolveProblem()
 							  steptime+timeOffset_);
 	  }
 
-	  pdes_[0]->PreStepTrans(nstep, steptime, level, updatesysmat);
-	  pdes_[0]->SolveStepTrans(nstep, steptime, level, updatesysmat);
-	  pdes_[0]->PostStepTrans(nstep,steptime,level);
+	  pdes_[0]->GetSolveStep()->PreStepTrans(nstep, steptime, level, updatesysmat);
+	  pdes_[0]->GetSolveStep()->SolveStepTrans(nstep, steptime, level, updatesysmat);
+	  pdes_[0]->GetSolveStep()->PostStepTrans(nstep,steptime,level);
 	  
 	  // writing results in output-file
 	  if (nstep == stepsave && (nstep <= isaveend_)) { 
@@ -145,7 +145,6 @@ void TransientDriver::SolveProblem()
   }
   else {
 	BaseCoupledPDE * actCoupledPDE = ptdomain_->GetCoupledPDE();
-	
 	actCoupledPDE->SetTimeStep(firstdt_);
 	
 	// if multiSequence is performed, the ms-driver
@@ -155,9 +154,9 @@ void TransientDriver::SolveProblem()
 	
 	if (PrintGridOnly) 
 	  exit(0);
-      
+
 	actCoupledPDE -> WriteGeneralPDEdefines();
-	
+
 	// define which PDEs participate in solving process
 	ptdomain_->GetCoupledPDE()->DefineSolvingPDEs(pdes_);
 

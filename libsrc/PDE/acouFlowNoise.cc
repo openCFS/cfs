@@ -12,6 +12,7 @@
 #include <Forms/forms_header.hh>
 #include <MpCCIcpl/MpCCIexch.hh>
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
+#include "Driver/solveStepAcouFlowNoise.hh"
 
 #ifdef MpCCI
 #include <cci.h>
@@ -70,8 +71,6 @@ namespace CoupledField
 #endif
 
 
-
-
   }
 
   AcouFlowNoise::~AcouFlowNoise()
@@ -80,6 +79,13 @@ namespace CoupledField
 #ifdef MpCCI
     delete ptMpCCIexch_;
 #endif
+  }
+
+  void AcouFlowNoise::DefineSolveStep()
+  {
+    ENTER_FCN( "AcouFlowNoise::DefineSolveStep" );
+
+    solveStep_ = new SolveStepAcouFlowNoise(*this);
   }
 
   void AcouFlowNoise::ComputeRHS(const Double atime)
@@ -373,75 +379,6 @@ namespace CoupledField
         testflowf.close();*/
   }
 
-
-  void AcouFlowNoise::SolveStepTrans(const Integer kstep, const Double asteptime, const Integer level, 
-                                     const Boolean reset)
-  {
-    ENTER_FCN( "AcouFlowNoise::SolveStepTrans" );
-
-    lasttimecalc_= asteptime;
-    Boolean Recalc=FALSE;
-
-    if (laststepcalc_==kstep && kstep!=0) Recalc=TRUE;
-    else laststepcalc_= kstep;
-
-    Double * ptsol;
-    Integer job = 3;
-
-    //perform predictor step
-    NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
-  
-    TS_alg_->Predictor(solhelp->GetAlgSysVector());
-
-    if (kstep==1)
-      {
-        job = 1;
-        assemble_->AssembleMatrices(level);
-        algsys_->ConstructEffectiveMatrix(matrix_factor_);
-
-        algsys_->InitRHS();
-        assemble_->AssembleSrcRHS(level,lasttimecalc_);
-
-        ComputeRHS(lasttimecalc_);
-        TS_alg_->UpdateRHS();
-      }
-    else if (reset)
-      {
-        job    = 1;
-
-        algsys_->InitMatrix(SYSTEM);
-        algsys_->ConstructEffectiveMatrix(matrix_factor_);
-
-        algsys_->InitRHS();
-        assemble_->AssembleSrcRHS(level,lasttimecalc_);
-        ComputeRHS(lasttimecalc_);
-        TS_alg_->UpdateRHS();
-      }
-    else
-      {
-        job    = 3;
-        algsys_->InitRHS();
-        assemble_->AssembleSrcRHS(level,lasttimecalc_);
-        ComputeRHS(lasttimecalc_);
-        TS_alg_->UpdateRHS();
-      };
-
-    SetBCs(level, lasttimecalc_);
-
-    if ( job == 1 ) {
-      algsys_->SetupPrecond(job);
-      algsys_->SetupSolver(job);
-    }
-
-    algsys_->Solve();
-
-    // Save solution
-    ptsol = algsys_->GetSolutionVal();
-    sol_->SetAlgSysDataPointer(ptsol);
-  
-    //perform corrector step 
-    TS_alg_->Corrector(solhelp->GetAlgSysVector());
-  }
 
   void AcouFlowNoise::WriteResultsInFile()
   {

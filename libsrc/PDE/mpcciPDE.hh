@@ -44,27 +44,12 @@ namespace CoupledField
     //! define all (bilinearform) integrators needed for this pde
     virtual void DefineIntegrators(const Integer level);
 
+    //! define the SoltionStep-Driver
+    virtual void DefineSolveStep();
+
     //! return size of solution
     virtual Integer getSize() const 
     { return numPDENodes_*dofspernode_;}
-
-    // ======================================================
-    // SOLUTION SECTION
-    // ======================================================
-
-    virtual void SetAlgSys(){ ENTER_FCN( "MpcciPDE::SetAlgSys");};
-
-    virtual void CreateMatrices_Solver(){ ENTER_FCN( "MpcciPDE::CreateMatrices_Solver");};
-
-    virtual void SetSolverParameters(){ ENTER_FCN( "MpcciPDE::SetSolverParameters");};
-
-    //!
-    virtual void PreStepStatic(const Integer kstep, const Double asteptime,
-			       const Integer level, const Boolean reset);
-
-    //!
-    virtual void PostStepStatic(const Integer kstep, const Double asteptime,
-				const Integer level);
 
     //! initialize time stepping: 
     //! nothing to do in mpcci!
@@ -72,29 +57,6 @@ namespace CoupledField
 
     //! set current time step
     virtual void SetTimeStep(const Double dt){ ENTER_FCN( "MpcciPDE::SetTimeStep");};
-
-    virtual void StepStaticLin(const Integer kstep, const Double asteptime,
-			       const Integer level, const Boolean reset)
-    { ENTER_FCN( "MpcciPDE::StepStaticLin");};
-
-    //!
-    virtual void SolveStepTrans(const Integer kstep, const Double asteptime,
-				const Integer level, const Boolean reset)
-    { ENTER_FCN( "MpcciPDE::SolveStepTrans"); };
-
-    //!
-    virtual void StepTransLin(const Integer kstep, const Double asteptime,
-			      const Integer level, const Boolean reset)
-    { ENTER_FCN( "MpcciPDE::StepTransLin");};
-
-    //!
-    virtual void PreStepTrans(const Integer kstep, const Double asteptime,
-			      const Integer level, const Boolean reset)
-    { ENTER_FCN( "MpcciPDE::PreStepTrans");};
-
-    //!
-    virtual void PostStepTrans(const Integer kstep, const Double asteptime,
-			       const Integer level);
 
    
     // ======================================================
