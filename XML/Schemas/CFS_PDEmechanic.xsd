@@ -222,9 +222,7 @@
   <!-- Global type for specifying the desired mechanical output quantities -->
   <xsd:complexType name="DT_MechStoreResults">
     <xsd:sequence>
-      <xsd:element name="saveUnv" type="DT_CFSBool" minOccurs="0" 
-       maxOccurs="1" default="yes"/>
-      <xsd:element name="nodeResults" type="DT_NodeResultsMech" minOccurs="0"
+       <xsd:element name="nodeResults" type="DT_NodeResultsMech" minOccurs="0"
         maxOccurs="unbounded"/>
       <xsd:element name="nodeHistory" type="DT_NodeHistoryMech" minOccurs="0"
         maxOccurs="unbounded"/>
