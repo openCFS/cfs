@@ -4,11 +4,12 @@
 #include <math.h>
 
 #include "acoustic3dPDE.hh"
-#include "actimeerror.hh"
-#include "outUnverg.hh"
-#include "outGMV.hh"
-#include "forms_header.hh"
-#include "spaceerror.hh"
+#include <Estimator/actimeerror.hh>
+#include <DataInOut/Unverg/outUnverg.hh>
+#include <DataInOut/GMV/outGMV.hh>
+#include <Forms/forms_header.hh>
+#include <Estimator/spaceerror.hh>
+
 
 namespace CoupledField
 {
@@ -58,7 +59,8 @@ Acoustic3dPDE::Acoustic3dPDE(AbstractAlgebraicSys * ptalgsys, Grid * aptgrid, Ma
   conf->getsubdompde(subdoms_,"Acoustic3d");
   ReadBCs("Acoustic3d");
 
-  without_absBCs_=conf->get_option("without_absorbingBCs");
+  //  without_absBCs_=conf->get_option("without_absorbingBCs");
+  without_absBCs_= TRUE;
 
   preComputeRHS();
 }
@@ -386,71 +388,6 @@ void Acoustic3dPDE::ComputeRHS(const Double atime, BCs * ptBCs)
    
 }
 
-void Acoustic3dPDE::ComputeRHS4RecoverySol()
-{
-#ifdef TRACE
-  (*trace) << "entering Acoustic3dPDE::ComputeRHS4RecoverySol" << std::endl;
-#endif
-  Integer level=0;
-  BaseElem * ptEl;
-  Vector<Integer> connecth;
-  std::vector<Elem*> elemssd;
-
-  Point<3> * ptCoord;
-
-  Integer isd,j;
-  for (isd=0; isd<subdoms_.size(); isd++) // loop over all subdomains
-    {
-      // get vector of Elem of subdomain with color: subdoms_[isd]
-      ptgrid_->GetElemSD(elemssd,subdoms_[isd],level);
-
-      for (j=0; j< elemssd.size(); j++) // loop over elements of subdomain
-	{
-	  ptEl=elemssd[j]->ptElem;
-
-	  BaseForm<3> * rhs=new LinearForm<3>(ptEl);
-	  Integer ii;
-
-	  Integer elsize=(elemssd[j]->connect).size();
-	  connecth.Resize(elsize);
-	  for (ii=0; ii<elsize; ii++)
-	    connecth[ii]=(elemssd[j]->connect)[ii];
-
-	  ptCoord=new Point<3>[connecth.size()];
-	  ptgrid_->GetCoordNodesElem(connecth,ptCoord,level);
-
-	  // get val of solution at nodes of the element
-	  Vector<Double> valFnc; 
-	  valFnc.Resize(elsize);
-	  Integer in;
-	  for (in=0; in<elsize; in++)
-	    valFnc[in]=sol_[connecth[in]-1];
-
-	  Vector<Double> vecRHS; /* calculation of elem matrix:
-				    int_{Elem}(ShapeFnc * Sol) */
-	  //rhs->CalcElemVector4InterpolatedFnc(ptCoord,valFnc,vecRHS);
-	  //ptalgsys_->AddElementRHS(vecRHS.get(),connecth.get(),elsize,as_sysid_);
-
-	  delete rhs;
-	  delete [] ptCoord;
-	}
-    }
-}
-
-void Acoustic3dPDE::SolveStepStatic(BCs * ptBCs, Integer level)
-{
-#ifdef TRACE
-  (*trace) << "entering Acoustic3dPDE::SolveStepStatic" << std::endl;
-#endif
-
-  Integer update = 0;
-  Integer job = 1;
-
-  SetupMatrices(level,ptBCs);
-  SetBCs(ptBCs,level,update,0);
-  ptalgsys_->ComputePrecond(job,as_sysid_);
-  ptalgsys_->SolveAlgSys(as_sysid_);
-}
 
 void Acoustic3dPDE::SolveStepTrans(BCs * ptBCs, const Integer kstep, const Double asteptime, const Integer level, const Boolean reset)
 {
@@ -503,58 +440,12 @@ void Acoustic3dPDE::SolveStepTrans(BCs * ptBCs, const Integer kstep, const Doubl
   Integer i;
   for (i=0; i<ptgrid_->GetMaxnumnodes(level); i++)
     sol_[i]=ptsol[i];
-  //std::cout << "maxnode:" <<  ptgrid_->GetMaxnumnodes(level) << " level:" << level << std::endl;
+
   // calculation of derivatives of solution
   CalcDerSol(); 
 
 }
 
-void Acoustic3dPDE::SolveStepTransNewMesh(BCs * ptBCs, const Integer kstep, const Double asteptime, const Integer level)
-{
-#ifdef TRACE
-  (*trace) << "entering Acoustic3dPDE::SolveStepTransNewMesh" << std::endl;
-#endif
-
-  lasttimecalc_= asteptime;
-  Boolean Recalc=TRUE;
-
-  //   Char * name="testref";
-  //   WriteResults * ptOut=new WriteResultsGMV(name);
-  //   ptOut->Init(ptgrid_);
-  //   ptOut->WriteGrid(0);
-  //   if (ptOut) delete ptOut; 
-
-  Double * ptsol;
-
-  Integer update,job;
-
-  update = 0;
-  job = 1;
-  SetupMatrices(level);
-  ptalgsys_->ComputeSysMatrix(as_sysid_,as_sysid_,matrix_factor_);
-
-  if (kstep) {
-    ptalgsys_->ResetRHS(as_sysid_);
-    ComputeRHS(lasttimecalc_);
-  }
-  std::cerr << " we compute RHS " << std::endl;
-
-  SetBCs(ptBCs,level,update,lasttimecalc_);
-  std::cerr << " we set BC " << std::endl;
-  ptalgsys_->ComputePrecond(job,as_sysid_);
-  ptalgsys_->SolveAlgSys(as_sysid_);
-  ptsol = ptalgsys_->GetSolution(as_sysid_);
-  std::cerr << " we get solution " << std::endl;
-
-  // save solution
-  Integer i;
-  for (i=0; i<ptgrid_->GetMaxnumnodes(level); i++)
-    sol_[i]=ptsol[i];
-
-  std::cerr << sol_ << std::endl;
-  // calculation of derivatives of solution
-  CalcDerSol();
-}
 
 void Acoustic3dPDE::WriteResultsInFile()
 {
@@ -613,14 +504,6 @@ void Acoustic3dPDE::SaveSolAsPrevStep()
   sol_der2_old_=sol_der2_;
 }
 
-Double Acoustic3dPDE::CalcEnergyNorm()
-{
- Double help1, help2;
- help1=ptalgsys_->CalcEnergyNorm(0,0,2,sol_.get());
- help2=ptalgsys_->CalcEnergyNorm(0,0,5,sol_.get());
-
- return sqrt(help1+help2);
-}
 
 void Acoustic3dPDE::CalcCoeff(Vector<Double> & coeffmass, Vector<Double> & coeffstiff, Vector<Double> & coeffdamp)
 {
@@ -650,147 +533,12 @@ void Acoustic3dPDE::CalcCoeff(Vector<Double> & coeffmass, Vector<Double> & coeff
     }
 }
 
-void Acoustic3dPDE::RestoreSol()
-{
-#ifdef TRACE
-  (*trace) << " entering Acoustic3dPDE::RestoreSol() " << std::endl;
-#endif
-
-  Vector<Double> help;
- 
-  help=sol_old_; 
-  ptgrid_->ProlongSol(sol_old_,help,0);
-  sol_old_=help;
-
-  help=sol_der1_old_;
-  ptgrid_->ProlongSol(sol_der1_old_,help,0);
-  sol_der1_old_=help;
-  help=sol_der2_old_;
-  ptgrid_->ProlongSol(sol_der2_old_,help,0);
-  sol_der2_old_=help;
-
-  Integer sizesol=sol_old_.size();
-  sol_.Resize(sizesol);
-  sol_der1_.Resize(sizesol);
-  sol_der2_.Resize(sizesol);
-}
-
-void Acoustic3dPDE::RecoverySol(Vector<Double> & result)
-{
-#ifdef TRACE
-  (*trace) << " entering Acoustic3dPDE::RecoverySol() " << std::endl;
-#endif
-
-  Integer update = 1;
-  Integer job    = 1;
-  Integer level  = 0;
-
-  Double matrix_factor[4];
-  matrix_factor[0] = 0.0;
-  matrix_factor[1] = 0.0;
-  matrix_factor[2] = 0.0;
-  matrix_factor[3] = 1.0;
-
-  ptalgsys_->ResetRHS(as_sysid_);
-  ptalgsys_->ResetMatrix(0,0,1);
-
-  ptalgsys_->ComputeSysMatrix(as_sysid_,as_sysid_,matrix_factor_);
-  ComputeRHS4RecoverySol();
-
-  ptalgsys_->ComputePrecond(job,as_sysid_);
-  ptalgsys_->SolveAlgSys(as_sysid_);
-  Double * ptsol;
-  ptsol = ptalgsys_->GetSolution(as_sysid_);
-
-  Integer i;
-  for (i=0; i<ptgrid_->GetMaxnumnodes(level); i++)
-    result[i]=ptsol[i];
-}
-
-TimeErrorEstimator * Acoustic3dPDE::CreatePtTimeError()
-{
-  return ptTimeError_=new AcousticTimeErrorEstimator(this);
-}
-
 Acoustic3dPDE::~Acoustic3dPDE()
 {
-  if (ptTimeError_) delete ptTimeError_;
+  ;
 }
 
-// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-// !! old stuff, which is not used !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-void Acoustic3dPDE :: CalculationDerivativesSol(const Boolean Recalc)
-{
-#ifdef TRACE
-  (*trace) << "entering Acoustic3dPDE::CalculationDerivativesSol" << std::endl;
-#endif
-  
-  if (Recalc) std::cout << laststepcalc_ << std::endl;
-
-  if (!Recalc)
-  { sol_der2_old_=sol_der2_;
-    sol_der1_old_=sol_der1_; 
-  }
-
-  if (!Recalc)
-  sol_der2_=(sol_-sol_old_)*a0_-sol_der1_old_*a2_-sol_der2_old_*a3_;
-  else
-  sol_der2_=(sol_-s_oldold_)*a0_-sol_der1_old_*a2_-sol_der2_old_*a3_;
-
-  sol_der1_=sol_der1_old_+sol_der2_old_*a6_+sol_der2_*a7_;
-
-
-  if (!Recalc) { s_oldold_=sol_old_;}
-  sol_old_=sol_;
-}
-
-void Acoustic3dPDE::CalcThirdDerivateFromEquation(Vector<Double> & result)
-{
-#ifdef TRACE
-  (*trace) << "entering Acoustic3dPDE::CalcThirdDerivateFromEquation" << std::endl;
-#endif
-
-  Double * ptres;
-
-  Double mat_factor[4];
-  Integer update,job;
-
-  mat_factor[0] = 0.0;
-  mat_factor[1] = 0.0;
-  mat_factor[2] = 0.0;
-  mat_factor[3] = 1.0;
-
-  job    = 1;
-
-  ptalgsys_->ResetRHS(as_sysid_);
-  ptalgsys_->ResetMatrix(0,0,1);
-  ptalgsys_->ComputeSysMatrix(as_sysid_,as_sysid_,mat_factor);
-
-  Integer matrix_id;
-  Vector<Double> coeffMass;
-
-  matrix_id = 2;
-  Vector<Double> help=-sol_der1_;
-
-  ptalgsys_->UpdateRHS(as_sysid_,as_sysid_,matrix_id, help.get());
-
-  update=1; // use boundary condition at this time step
-
-  //  SetBCs(ptBCs,level,update,lasttimecalc_);
-  ptalgsys_->ComputePrecond(job,as_sysid_);
-  ptalgsys_->SolveAlgSys(as_sysid_);
-  ptres = ptalgsys_->GetSolution(as_sysid_);
-
-  // save solution
-  Integer level=0; //   !!!!!!!!!!!!!!
-
-  Vector<Double> transres(ptgrid_->GetMaxnumnodes(level), ptres);
-  result=transres;
-
-  (*infofile) << " result " << transres << std::endl;
-}
 
 } // end of namespace
 

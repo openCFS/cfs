@@ -4,10 +4,10 @@
 #include <string>
 
 #include "grid_cfs.hh"
-#include "grid.hh"
-#include "elements_header.hh"
-#include "baseelem.hh"
-#include "conffile.hh"
+#include <Domain/grid.hh>
+#include <Elements/elements_header.hh>
+#include <Elements/baseelem.hh>
+#include <DataInOut/conffile.hh>
 
 namespace CoupledField
 {

@@ -2,7 +2,7 @@
 #include <fstream>
 #include <string>
 
-#include "conffile.hh"
+#include <DataInOut/conffile.hh>
 #include "gehexahedral.hh"
 
 namespace CoupledField

@@ -1,8 +1,8 @@
 #ifndef FILE_ACOUSTICTIMEERROR_2001
 #define FILE_ACOUSTICTIMEERROR_2001
 
-#include "tools.hh"
-#include "acoustic2dPDE.hh"
+#include "Utils/tools.hh"
+#include "PDE/acoustic2dPDE.hh"
 #include "timeerror.hh"
 
 namespace CoupledField

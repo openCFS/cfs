@@ -1,7 +1,7 @@
 #ifndef FILE_SCFE_GRID_2001
 #define FILE_SCFE_GRID_2001
 
-#include "filetype.hh"
+#include <DataInOut/filetype.hh>
 #include "elem.hh"
 
 namespace CoupledField

@@ -1,13 +1,13 @@
 #ifndef FILE_BASEPDE_2001
 #define FILE_BASEPDE_2001
 
-#include "abstractAlgSys.hh"
-#include "bcs.hh"
-#include "timefunc.hh"
-#include "filetype.hh"
-#include "writeresults.hh"
-#include "material.hh"
-#include "conffile.hh"
+#include <AlgebraicSystem/abstractAlgSys.hh>
+#include <Domain/bcs.hh>
+#include <DataInOut/timefunc.hh>
+#include <DataInOut/filetype.hh>
+#include <DataInOut/writeresults.hh>
+#include <DataInOut/material.hh>
+#include <DataInOut/conffile.hh>
 
 
 namespace CoupledField

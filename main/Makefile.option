@@ -3,15 +3,15 @@ program = cfs
 #LIBRARY_TYPE = shared / static
 LIBRARY_TYPE = static
 
-#AdaptivLib = yes
-AdaptivLib = yes
+#AdaptivLib = yes / no
+AdaptivLib = no
 
 ##############  AdaptGrid 
 #
 AdaptGrid=$(C_DIR)/Grid_RG
 #
 ############### LAS++: Algebraic System
-LAS=/home/lse10/lse/elena/LAS
+LAS=/home/lse10/lse/manfred/CFS/LAS
 #
 #
 ############### Gridlib
@@ -49,16 +49,14 @@ LIB_OWN = $(C_DIR)/lib
 #
 ########### Flags
 #
-INCL =  -I$(IncGridlib) -I$(IncNetGen) -I$(AdaptGrid) -I$(Include) -I$(LIBSRC_DIR)\
-          -I$(LIBSRC_DIR)/General -I$(LIBSRC_DIR)/DataInOut -I$(LIBSRC_DIR)/DataInOut/DatFile -I$(LIBSRC_DIR)/DataInOut/AnsysFile -I$(LIBSRC_DIR)/DataInOut/DefineFiles -I$(LIBSRC_DIR)/DataInOut/Unverg -I$(LIBSRC_DIR)/AlgebraicSystem \
-           -I$(LIBSRC_DIR)/DataInOut/GMV \
-          -I$(LIBSRC_DIR)/Domain -I$(LIBSRC_DIR)/Domain/GridCFS -I$(LIBSRC_DIR)/Domain/Gridlib -I$(LIBSRC_DIR)/Domain/NetGen -I$(LIBSRC_DIR)/Domain/AdaptGrid \
-     -I$(LIBSRC_DIR)/Elements/1D -I$(LIBSRC_DIR)/Elements/2D -I$(LIBSRC_DIR)/Elements/3D \
-    -I$(LIBSRC_DIR)/Driver -I$(LIBSRC_DIR)/Elements -I$(LIBSRC_DIR)/Forms \
-          -I$(LIBSRC_DIR)/PDE -I$(LIBSRC_DIR)/Utils -I$(LIBSRC_DIR)/Matrix \
-           -I$(LIBSRC_DIR)/AlgebraicSystem\
-	   -I$(LIBSRC_DIR)/AlgebraicSystem/LinAlg \
-           -I$(LIBSRC_DIR)/AlgebraicSystem/LAS\
-          -I$(LIBSRC_DIR)/AlgebraicSystem/LAS/multigrid \
-             -I$(LIBSRC_DIR)/AlgebraicSystem/LAS/general \
-         -I$(LIBSRC_DIR)/Estimator 
+
+INCL1 = -I$(LIBSRC_DIR)  -I$(LIBSRC_DIR)/AlgebraicSystem/LAS/multigrid
+#           -I$(LIBSRC_DIR)/AlgebraicSystem/LAS \
+
+ifeq "$(AdaptivLib)" "yes"
+   INCL = $(INCL1) -I$(AdaptGrid)
+else
+   INCL = $(INCL1) 
+endif
+
+#  -I$(IncGridlib) -I$(IncNetGen)

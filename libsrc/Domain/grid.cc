@@ -2,10 +2,10 @@
 #include <string>
 #include <fstream>
 
-#include "elements_header.hh"
-#include "line.hh"
+#include "Elements/elements_header.hh"
+#include "Elements/1D/line.hh"
 #include "grid.hh"
-#include "conffile.hh"
+#include "DataInOut/conffile.hh"
 
 namespace CoupledField
 {

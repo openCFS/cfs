@@ -36,7 +36,7 @@ mylibrary =  driver domain pde \
             definefiles unverg ansysfile datainout \
             algsys-own\
             utils matrix general \
-            multigrid-las general-las \
+            multigrid-las \
             adaptgrid
 else
 mylibrary =  driver domain pde \
@@ -47,7 +47,7 @@ mylibrary =  driver domain pde \
             definefiles unverg ansysfile datainout \
             algsys-own\
             utils matrix general \
-            multigrid-las general-las 
+            multigrid-las 
 endif
 
 ############ Directories for Adaptivity

@@ -4,7 +4,7 @@
 #include <list>
 
 #include "bcs.hh"
-#include "conffile.hh"
+#include <DataInOut/conffile.hh>
 
 namespace CoupledField
 {

@@ -1,7 +1,7 @@
 #ifndef FILE_JACOBIAN_2001
 #define FILE_JACOBIAN_2001
 
-#include "matrix.hh"
+#include <Matrix/matrix.hh>
 
 namespace CoupledField
 {

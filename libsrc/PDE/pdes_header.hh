@@ -7,6 +7,9 @@
 #include "therm2dPDE.hh"
 #include "elecst2dPDE.hh"
 #include "elecst3dPDE.hh"
-#include "mech2d.hh"
+#include "elec2dPDE.hh"
+#include "elec3dPDE.hh"
+#include "acou2dPDE.hh"
+#include "mech2dPDE.hh"
 
 #endif

@@ -4,9 +4,9 @@
 #include <vector>
 
 #include "domain.hh"
-#include "interface_gridcfs.hh"
-#include "interface_piles.hh"
-#include "outGMV.hh"
+#include <Domain/GridCFS/interface_gridcfs.hh>
+#include <AlgebraicSystem/interface_piles.hh>
+#include <DataInOut/GMV/outGMV.hh>
 
 #ifdef NETGEN
 #include "interface_netgen.hh"
@@ -17,10 +17,10 @@
 #endif
 
 #ifdef ADAPTGRID
-#include "interface_adgrid.hh"
+#include <Domain/AdaptGrid/interface_adgrid.hh>
 #endif
 
-#include "pdes_header.hh"
+#include <PDE/pdes_header.hh>
 
 namespace CoupledField
 {
@@ -159,6 +159,12 @@ void Domain :: InitPDE()
 	ptpde_[i]=new Acou2dFlowNoise(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_); 
       else if (pdes[i] == "mech2d")
 	ptpde_[i]=new Mech2dPDE(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_); 
+      else if (pdes[i] == "electric2d") 
+	ptpde_[i]=new Elec2dPDE(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_); 
+      else if (pdes[i] == "electric3d") 
+	ptpde_[i]=new Elec3dPDE(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_); 
+      else if (pdes[i] == "acoustics2d")
+	ptpde_[i]=new Acou2dPDE(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_);
       else
 	{
 	  std::string msg=pdes[i]+" - this type of pdes is unknown";

@@ -3,11 +3,11 @@
 #include <string>
 #include <vector>
 
-#include "conffile.hh"
+#include <DataInOut/conffile.hh>
 #include "interface_adgrid.hh"
-#include "elements_header.hh"
+#include <Elements/elements_header.hh>
 
-#include "acoustic2dPDE.hh"
+#include <PDE/acoustic2dPDE.hh>
 
 namespace CoupledField
 {

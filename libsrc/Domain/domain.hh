@@ -5,7 +5,7 @@
 
 #include "grid.hh"
 #include "bcs.hh"
-#include "basepde.hh"
+#include <PDE/basepde.hh>
 
 namespace CoupledField
 {

@@ -64,6 +64,3 @@ general:
 
 multigrid-las:
 	@cd $(LibCLA)/multigrid; $(MAKE) -f Makefile
-
-general-las:
-	@cd $(LibCLA)/general; $(MAKE) -f Makefile

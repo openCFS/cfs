@@ -2,8 +2,8 @@
 #include <fstream>
 #include <string>
 
-#include "conffile.hh"
-#include "line.hh"
+#include <DataInOut/conffile.hh>
+#include <Elements/1D/line.hh>
 
 namespace CoupledField
 {

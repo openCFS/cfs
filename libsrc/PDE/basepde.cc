@@ -3,7 +3,7 @@
 #include <string>
 
 #include "basepde.hh"
-#include "conffile.hh"
+#include <DataInOut/conffile.hh>
  
 namespace CoupledField
 {
