@@ -165,25 +165,23 @@
   <!-- What data can a single node have in an acoustic PDE -->
   <xsd:simpleType name="DT_AcousticNodeData">
     <xsd:restriction base="xsd:token">
-      <xsd:enumeration value="pressure"/>
-      <xsd:enumeration value="vPot"/>
+      <xsd:enumeration value="acouPotential"/>
+      <xsd:enumeration value="acouPotentialD1"/>
+      <xsd:enumeration value="acouPotentialD2"/>
     </xsd:restriction>
   </xsd:simpleType>
 
   <!-- Data type for describing final node values to be stored -->
   <xsd:complexType name="DT_AcousticNodeResults">
-    <xsd:attribute name="type" type="DT_AcousticNodeData" use="optional"
-      default="pressure"/>
+    <xsd:attribute name="type" type="DT_AcousticNodeData" use="required"/>
     <xsd:attribute name="region" type="xsd:token" use="optional"
       default="all"/>
   </xsd:complexType>
 
   <!-- Data type for describing history of node values to be stored -->
   <xsd:complexType name="DT_AcousticNodeHistory">
-    <xsd:attribute name="type" type="DT_AcousticNodeData" use="optional"
-      default="pressure"/>
-    <xsd:attribute name="saveNodes" type="xsd:token" use="optional"
-      default="none"/>
+    <xsd:attribute name="type" type="DT_AcousticNodeData" use="required"/>
+    <xsd:attribute name="saveNodes" type="xsd:token" use="required"/>
   </xsd:complexType>
 
   <!-- Global type for specifying the desired mechanical output quantities -->
