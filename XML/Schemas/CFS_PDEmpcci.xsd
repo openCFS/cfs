@@ -1,0 +1,45 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org"
+  xmlns:cfs="http://www.cfs++.org"
+  elementFormDefault="qualified">
+
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Coupled Field Solver project CFS++
+      Schema for PDE description for an mpcci PDE
+    </xsd:documentation>
+  </xsd:annotation>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of element for mpcci PDEs -->
+  <!-- ******************************************************************** -->
+  <xsd:element name="mpcci" type="DT_PDEMpcci"
+       substitutionGroup="PDEBasic"/>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for mpcci PDEs -->
+  <!-- ******************************************************************** -->
+
+  <xsd:complexType name="DT_PDEMpcci">
+    <xsd:complexContent>
+      <xsd:extension base="DT_PDEBasic">
+        <xsd:sequence>
+          <!-- Regions the PDE lives on -->
+          <xsd:element name="region" minOccurs="1" maxOccurs="unbounded">
+            <xsd:complexType>
+              <xsd:attribute name="name" type="xsd:token" use="required"/>
+            </xsd:complexType>
+          </xsd:element>
+          <!-- Section for specifying solver (optional) -->
+          <xsd:element ref="solver" minOccurs="0"/>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+
+
+</xsd:schema>

@@ -35,6 +35,7 @@ XML/Schemas/CFS_PDEbasic.xsd -text
 XML/Schemas/CFS_PDEelectrostatic.xsd -text
 XML/Schemas/CFS_PDEmagnetic.xsd -text
 XML/Schemas/CFS_PDEmechanic.xsd -text
+XML/Schemas/CFS_PDEmpcci.xsd -text
 XML/Schemas/CFS_PDEpiezo.xsd -text
 XML/Schemas/CFS_PDEsmooth.xsd -text
 XML/Schemas/CFS_Preconds.xsd -text
