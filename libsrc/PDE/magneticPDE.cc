@@ -695,7 +695,7 @@ namespace CoupledField {
       // If this subdomain is a coil we have to do special things
       for ( Integer coil = 0; coil < coilDef_.size(); coil++ ) {
 	if ( subdoms_[actSD] == coilName_[coil] ) {
-	  Double factor = coilDef_[coil]->value_ / coilDef_[coil]->area_;
+	  Double factor = coilDef_[coil]->value_ / coilDef_[coil]->windingCrossSection_;
 	  BaseForm *coilSource = new VolumeSrcInt( factor, isaxi_ );
 	  assemble_->AddRhsSrcIntegrator( coilSource,
 					  subdoms_[actSD],
@@ -1058,7 +1058,7 @@ namespace CoupledField {
     for (Integer actID=0; actID < coilIDs.GetSize(); actID++) {
       if ( coilDef_[coilIDs[actID]-1]->coilType_ == Coil::MEASUREMENT2D )
 	*UIfile_ << uiID[coilIDs[actID]-1] *
-	  coilDef_[coilIDs[actID]-1]->area_ << " \t";
+	  coilDef_[coilIDs[actID]-1]->windingCrossSection_ << " \t";
     }
   
     *UIfile_ << myEndl;
