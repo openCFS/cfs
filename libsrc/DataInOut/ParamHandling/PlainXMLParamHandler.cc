@@ -23,24 +23,29 @@ namespace CoupledField {
   PlainXMLParamHandler::PlainXMLParamHandler(const char *fname ) {
 
     ENTER_FCN( "PlainParamHandler::PlainParamHandler" );
-    
+    std::string errmsg;   
     // check that file is close
-    if  (infile.is_open())
-      infile.close();
+    if  (inFile.is_open())
+      inFile.close();
 
     // clear all flags for the file
-    infile.clear();
+    inFile.clear();
 
     // open input-file
-    infile.open(fname);
+    inFile.open(fname);
     
     // send error-msg, if we can't open input-file
-    if (!infile)
-      Info->Error("Can't open .xml input-file",__FILE__,__LINE__);
+    if (!inFile)
+      {
+	     errmsg  = "The file '";
+      errmsg += fname;
+      errmsg += "' could not be opened!";
+	Info->Error(errmsg.c_str(),__FILE__,__LINE__);
+      }
     
     // determine the final position in file
-    infile.seekg(0,std::ios::end);
-    pos_end_ = infile.tellg();
+    inFile.seekg(0,std::ios::end);
+    pos_end_ = inFile.tellg();
   }
 
 
@@ -52,7 +57,7 @@ namespace CoupledField {
     ENTER_FCN( "PlainParamHandler::PlainParamHandler" );
 
     // close the input-file
-    infile.close();
+       inFile.close();
   }
 
 
@@ -70,6 +75,9 @@ namespace CoupledField {
 				  const std::string subsection )
   {
     ENTER_FCN( "PlainParamHandler::Get (string)" );
+
+    std::cout<<"section: "<<section<<std::endl;
+    std::cout<<"subsection: "<<subsection<<std::endl;   
 
     // find all elements
     StdVector<std::string> list;
@@ -200,6 +208,7 @@ namespace CoupledField {
     if ( section != "" ) {
       keys.Push_back( section );
     }
+
     if ( subsection != "" ) {
       keys.Push_back( subsection );
     }
@@ -233,10 +242,11 @@ namespace CoupledField {
 	  match_attrs = TRUE;
 	}
 	else {
-	  std::string errmsg = "There are not elements or attributes '";
+	  std::string errmsg = "There are not elements nor attributes '";
 	  errmsg += key + "' in section '" + section + "' and in subsection '";
 	  errmsg += subsection;
-	  Info->Error( errmsg, __FILE__,__LINE__ );
+	  //  Info->Error( errmsg, __FILE__,__LINE__ );
+  Info->Warning( errmsg, __FILE__,__LINE__ );
 	}
       }
 
@@ -244,8 +254,8 @@ namespace CoupledField {
     // 3. Cut the values from the elements or attrs
     // ++++++++++++++++++++
     
-    // null all flags of the infile
-    infile.clear();
+    // null all flags of the inFile
+    inFile.clear();
     
     // read values of elements
     if (match_elems)
@@ -329,7 +339,7 @@ namespace CoupledField {
 	  std::string errmsg = "There are not elements or attributes '";
 	  errmsg += key + "' in section '" + section + "' and in subsection '";
 	  errmsg += subsection;
-	  Info->Error( errmsg, __FILE__,__LINE__ );
+	  Info->Warning( errmsg, __FILE__,__LINE__ );
 	}
       }
 
@@ -337,8 +347,8 @@ namespace CoupledField {
     // 3. Cut the values from the elements or attrs
     // ++++++++++++++++++++
     
-    // null all flags of the infile
-    infile.clear();
+    // null all flags of the inFile
+    inFile.clear();
     
     // read values of elements
     if (match_elems)
@@ -405,20 +415,20 @@ namespace CoupledField {
     sType pos0, pos1, pos;
      
     // Find initial position of PDE section 
-    pos0 = getposElem("PDE_list");
+    pos0 = getposElem("pdeList");
     
     // Find end position of PDE section
-    pos1 = getposElem("/PDE_list");
+    pos1 = getposElem("/pdeList");
 
     // Get the names of the PDEs and store them in vector
-    infile.seekg(pos0,std::ios::beg);
+    inFile.seekg(pos0,std::ios::beg);
 
     std::string pdename;
     std::string buf, buf1;
     pos = 0;
 
     // read lines in the input-file upto final tag of element PDE_list
-    std::getline(infile,buf);
+    std::getline(inFile,buf);
     do {
 
       // check, whether buf contains tag
@@ -426,19 +436,19 @@ namespace CoupledField {
 	
 	peel(buf,pdename);
 	
-	pos = infile.tellg();
+	pos = inFile.tellg();
 	buf1 = '/'+ pdename;
 	
 	pos = getposElem(buf1,pos);	  
-	infile.seekg(pos,std::ios::beg);
-	infile.ignore(100,'\n');
+	inFile.seekg(pos,std::ios::beg);
+	inFile.ignore(100,'\n');
 	
 	list.Push_back(pdename);
       }
 
       // read next line
-      std::getline(infile,buf);
-      pos = infile.tellg();
+      std::getline(inFile,buf);
+      pos = inFile.tellg();
       
     } 
     while (pos<pos1);
@@ -520,8 +530,8 @@ namespace CoupledField {
   {
 
     // have begun a search from the position startpos
-    infile.clear();
-    infile.seekg(startpos,std::ios::beg);
+    inFile.clear();
+    inFile.seekg(startpos,std::ios::beg);
 
 
     // read a line from the file and check, whether it contains a required word
@@ -529,10 +539,10 @@ namespace CoupledField {
     sType pos = std::string::npos;
     std::string buf;
 
-    while ( pos == std::string::npos && !infile.eof() )
+    while ( pos == std::string::npos && !inFile.eof() )
       {
-	help=infile.tellg();
-	std::getline(infile, buf, '\n');
+	help=inFile.tellg();
+	std::getline(inFile, buf, '\n');
 
 	pos = buf.find(keyword);	
       }
@@ -622,14 +632,15 @@ namespace CoupledField {
   {
     ENTER_FCN( "PlainXMLParamHandler::FindPosAttrs" );
 
-    if (level == 0 || level>keys.GetSize()) 
-      Info->Error("The level is strange, check data",__FILE__,__LINE__);
+//     if (level == 0 || level>keys.GetSize()) 
+//       Info->Error("The level is strange, check data",__FILE__,__LINE__);
 
     // get start and end position of the elements
     getElems(keys[level-1], s_elems, e_elems, s_section, e_section);
   
     // do recursion for the section,subsection,etc.
-    if ( (level+1) != keys.GetSize())
+    //orignal if ( (level+1) != keys.GetSize())
+    if ( (level+1) < keys.GetSize())
       {
 	s_section = s_elems;
 	e_section = e_elems;
@@ -640,15 +651,18 @@ namespace CoupledField {
 	FindPosAttrs(keys,level+1,s_elems,e_elems, s_section, e_section);
       }
     else // last keyword is attribute, so we use fnc getAttr
-      if ( (level+1) == keys.GetSize()) {
+      if ( (level+1) == keys.GetSize() || keys.GetSize()==1) {
 
 	s_section = s_elems;
 	e_section = s_elems;
 
 	s_elems.Clear();
 	e_elems.Clear();
-
-	getAttr(keys[level],keys[level-1],s_elems,e_elems, s_section,
+	if (keys.GetSize()==1)
+	  getAttr(keys[0],"",s_elems,e_elems, s_section,
+		e_section);
+	else
+	  getAttr(keys[level],keys[level-1],s_elems,e_elems, s_section,
 		e_section);
       }
 	
@@ -671,8 +685,8 @@ namespace CoupledField {
     bool testt=false;
 
     // have begun a search from the position startpos
-    infile.clear();
-    infile.seekg(0,std::ios::beg);
+    inFile.clear();
+    inFile.seekg(0,std::ios::beg);
 
     Integer i;
     // read a line from the file and check, whether it contains the key
@@ -734,8 +748,8 @@ namespace CoupledField {
     ENTER_FCN( "PlainXMLParamHandler::getAttr" );
     
     // have begun a search from the position startpos
-    infile.clear();
-    infile.seekg(0,std::ios::beg);
+    inFile.clear();
+    inFile.seekg(0,std::ios::beg);
     
     // read a line from the file and check, whether it contains the key
     sType       pos=std::string::npos,
@@ -801,17 +815,17 @@ namespace CoupledField {
     ENTER_FCN( "PlainXMLParamHandler::findPos" );
     
     // have begun a search from the position startpos
-    infile.clear();
-    infile.seekg(start,std::ios::beg);
+    inFile.clear();
+    inFile.seekg(start,std::ios::beg);
     
     sType       help,  pos=std::string::npos;
     std::string                  buf;
 
     // read a line from the file and check, whether it contains the key
-    while ( pos == std::string::npos && !infile.eof() ) {
+    while ( pos == std::string::npos && !inFile.eof() ) {
       
-      help=infile.tellg(); 
-      std::getline(infile, buf, '\n');
+      help=inFile.tellg(); 
+      std::getline(inFile, buf, '\n');
 
       pos = buf.find(key);	
     }
@@ -842,19 +856,19 @@ namespace CoupledField {
     Integer i;
     for (i=0; i<s_elems.GetSize(); i++) {
       
-      infile.seekg(s_elems[i],std::ios::beg);
+      inFile.seekg(s_elems[i],std::ios::beg);
 
       // read out the value under letters
       do {
-	infile >> tchar;
+	inFile >> tchar;
 	
 	if (tchar == '>')
 	  while (tchar != '<') {
-	    infile >> tchar;
+	    inFile >> tchar;
 	    if (tchar != ' ' && tchar != '<')
 	      list[i].push_back(tchar);	    
 	  } ;
-      } while (infile.tellg() < e_elems[i]);
+      } while (inFile.tellg() < e_elems[i]);
       
 
     }
@@ -878,20 +892,20 @@ namespace CoupledField {
     Integer i;
     for (i=0; i<s_elems.GetSize(); i++) {
       
-      infile.seekg(e_elems[i],std::ios::beg);
+      inFile.seekg(e_elems[i],std::ios::beg);
       
       do {
-	infile >> tchar;
+	inFile >> tchar;
 	
 	if (tchar == '"') {
-	  infile >> tchar;
+	  inFile >> tchar;
 	  while (tchar != '"') {
 	    if (tchar != ' ')
 	      list[i].push_back(tchar);	    
-	    infile >> tchar;
+	    inFile >> tchar;
 	  };
 	}
-      } while (infile.tellg() < e_elems[i]);
+      } while (inFile.tellg() < e_elems[i]);
 
     }
 
@@ -909,11 +923,11 @@ namespace CoupledField {
     int counter = 0;
     int counter_end = 0;
 
-    infile.seekg(start,std::ios::beg);
+    inFile.seekg(start,std::ios::beg);
 
     char tmp;
     do {
-      infile >> tmp;
+      inFile >> tmp;
       if (tmp == '<')
 	counter++;
       if (tmp == '/')
@@ -921,8 +935,8 @@ namespace CoupledField {
 	  counter_end++;
 
       if (counter == counter_end)
-	return infile.tellg();
-    } while (infile.tellg() < pos_end_);
+	return inFile.tellg();
+    } while (inFile.tellg() < pos_end_);
     
     // we are in trouble
     Info->Error( "Not as many '>' as '<'!", __FILE__, __LINE__ );
@@ -951,5 +965,243 @@ namespace CoupledField {
       return FALSE;
 
   }
+
+
+
+
+
+void PlainXMLParamHandler::GetList (const StdVector< std::string > &keyVec,
+				    const StdVector< std::string > &attrVec,
+				    const StdVector< std::string > &valVec, StdVector< std::string > &list)
+    {
+
+    ENTER_FCN( "PlainXMLParamHandler::GetList(StdVector<std::string>,StdVector<std::string>,StdVector<std::string>,StdVector<std::string>)" );
+
+      std::string keyword;
+      //   StdVector<Double> list;
+      std::string section;
+      std::string subsection;
+      
+
+      if (keyVec.GetSize()==2)
+	{
+      section = keyVec[0];
+	  keyword = keyVec[1];
+	}
+      if (keyVec.GetSize()==3)
+	{
+      section = keyVec[0];
+	  subsection = keyVec[1];
+	  keyword = keyVec[2];
+	}
+      if (keyVec.GetSize()>=4)
+	{
+	  if(valVec.GetSize()==3 && valVec[0]==""&& valVec[1]=="")
+	    {
+	      section = keyVec[2];
+	      subsection = keyVec[3];
+	      keyword = valVec[2];
+	    }
+	  else
+	    {
+	      section = keyVec[1];
+	      subsection = keyVec[2];
+	      keyword = keyVec[3];	      
+	    }
+	  
+	}
+  
+    GetList( keyword, list, section, subsection );
+
+
+    }
+    
+
+void 	PlainXMLParamHandler::GetList (const StdVector< std::string > &keyVec,
+				       const StdVector< std::string > &attrVec,
+				       const StdVector< std::string > &valVec, StdVector< Double > &list)
+    {
+
+    ENTER_FCN( "PlainXMLParamHandler::GetList(StdVector<std::string>,StdVector<std::string>,StdVector<std::string>,StdVector<Double>)" );
+
+      std::string keyword;
+      //     StdVector<Double> list;
+      std::string section;
+      std::string subsection;
+      
+      section = keyVec[0];
+      if (keyVec.GetSize()==2)
+	{
+	  keyword = keyVec[1];
+	}
+      if (keyVec.GetSize()==3)
+	{
+	  subsection = keyVec[1];
+	  keyword = keyVec[2];
+	}
+      if (keyVec.GetSize()>=4)
+	{
+	  section = keyVec[1];
+	  subsection = keyVec[2];
+	  keyword = keyVec[3];
+	}
+
+    GetList( keyword, list, section, subsection );
+
+
+    }
+
+void PlainXMLParamHandler::GetList (const StdVector< std::string > &keyVec,
+				    const StdVector< std::string > &attrVec,
+				    const StdVector< std::string > &valVec, StdVector< Integer > &list)
+    {
+      Error("This GetList is not yet implemented for PlainXMLParamHandler",__FILE__,__LINE__);
+    }
+
+void 	PlainXMLParamHandler::Get (const StdVector< std::string > &keyVec,
+				   const StdVector< std::string > &attrVec,
+				   const StdVector< std::string > &valVec, std::string &value)
+    {
+      Error("This Get is not yet implemented for PlainXMLParamHandler",__FILE__,__LINE__);
+    }
+
+void 	PlainXMLParamHandler::Get (const StdVector< std::string > &keyVec,
+				   const StdVector< std::string > &attrVec,
+				   const StdVector< std::string > &valVec, Double &value)
+    {
+
+ENTER_FCN( "PlainXMLParamHandler::Get(StdVector<std::string>,StdVector<std::string>,StdVector<std::string>,Double)" );
+
+      std::string keyword;
+      StdVector<Double> list;
+      std::string section;
+      std::string subsection;
+      
+      section = keyVec[0];
+      if (keyVec.GetSize()==2)
+	{
+	  keyword = keyVec[1];
+	}
+      if (keyVec.GetSize()==3)
+	{
+	  subsection = keyVec[1];
+	  keyword = keyVec[2];
+	}
+  
+    GetList( keyword, list, section, subsection );
+
+    if (list.GetSize() > 1) {
+      std::string errmsg = "There is more than 1 match for key in .xml file.";
+      errmsg += "Use GetList for this case.";
+      Info->Error( errmsg, __FILE__, __LINE__ );
+    }
+
+    // copy to the value
+    value = list[0];	  
+     
+    }
+
+
+void 	PlainXMLParamHandler::Get (const StdVector< std::string > &keyVec,
+				   const StdVector< std::string > &attrVec, 
+				   const StdVector< std::string > &valVec, Integer &value)
+    {
+
+
+ENTER_FCN( "PlainXMLParamHandler::Get(StdVector<std::string>,StdVector<std::string>,StdVector<std::string>,Integer)" );
+
+       std::string keyword;
+      StdVector<Double> list;
+      std::string section;
+      std::string subsection;
+      
+      section = keyVec[0];
+      if (keyVec.GetSize()==2)
+	{
+	  keyword = keyVec[1];
+	}
+      if (keyVec.GetSize()==3)
+	{
+	  subsection = keyVec[1];
+	  keyword = keyVec[2];
+	}
+  
+    GetList( keyword, list, section, subsection );
+
+    if (list.GetSize() > 1) {
+      std::string errmsg = "There is more than 1 match for key in .xml file.";
+      errmsg += "Use GetList for this case.";
+      Info->Error( errmsg, __FILE__, __LINE__ );
+    }
+
+    // copy to the value
+    value = (int)list[0];	  
+    
+    }
+
+
+void PlainXMLParamHandler::GetList( const std::string key, StdVector<Integer> &list,
+			  const std::string section ,
+			  const std::string subsection )   
+    {
+      Error("This GetList is not yet implemented for PlainXMLParamHandler",__FILE__,__LINE__);
+    }
+
+void PlainXMLParamHandler::Get( const StdVector<std::string> &keyVec,
+		      std::string &value ) 
+    {
+
+ENTER_FCN( "PlainXMLParamHandler::Get(StdVector<std::string>,std::string)" );
+
+       std::string keyword;
+       StdVector<std::string> list;
+      std::string section;
+      std::string subsection;
+      
+
+      if (keyVec.GetSize()==2)
+	{
+      section = keyVec[0];
+	  keyword = keyVec[1];
+	}
+      if (keyVec.GetSize()==3)
+	{
+      section = keyVec[0];
+	  subsection = keyVec[1];
+	  keyword = keyVec[2];
+	}
+      if (keyVec.GetSize()>=4)
+	{
+      section = keyVec[1];
+	  subsection = keyVec[2];
+	  keyword = keyVec[3];
+	}
+  
+    GetList( keyword, list, section, subsection );
+    if (list.GetSize() >= 1)
+      value=list[0];
+    else
+      {
+	std::string errmsg = "There are not elements nor attributes '";
+	errmsg += keyword + "' in section '" + section + "' and in subsection '";
+	errmsg += subsection;
+	Info->Error( errmsg, __FILE__,__LINE__ );
+      }
+    
+
+
+    }
+
+
+void PlainXMLParamHandler::Get( const StdVector<std::string> &keyVec,
+		      Double &value )
+    {
+      Error("This Get is not yet implemented for PlainXMLParamHandler",__FILE__,__LINE__);
+    }
+void PlainXMLParamHandler::Get( const StdVector<std::string> &keyVec,
+		      Integer &value )
+    {
+      Error("This Get is not yet implemented for PlainXMLParamHandler",__FILE__,__LINE__);
+    }
 
 }
