@@ -15,9 +15,9 @@ RectangleFE::RectangleFE()
   (*trace) << "entering RectangleFE::RectangleFE" << std::endl;
 #endif
   
-  Dim = 2;
-  NumEdges = 4;
-  NumFaces = 1;
+  Dim_ = 2;
+  NumEdges_ = 4;
+  NumFaces_ = 1;
 
 
   std::string integtype="GaussOrder2";
@@ -45,134 +45,134 @@ void RectangleFE:: SetIntPoints()
     {
     case GaussOrder2:
 
-      NumIntPoints=4;
-      DegreeInteg=2;
+      NumIntPoints_=4;
+      DegreeInteg_=2;
       
-      if ( !IntPoints)
-	IntPoints = new Vector<Double>[NumIntPoints];
+      if ( !IntPoints_)
+	IntPoints_ = new std::vector<Double>[NumIntPoints_];
 
-      for(Integer i=0; i<NumIntPoints; i++)
-	IntPoints[i].Resize(Dim);
+      for(Integer i=0; i<NumIntPoints_; i++)
+	IntPoints_[i].resize(Dim_);
 
-      IntPoints[0][0] = -0.57735026919;
-      IntPoints[1][0] =  0.57735026919;
-      IntPoints[2][0] =  0.57735026919;
-      IntPoints[3][0] = -0.57735026919;
-      IntPoints[0][1] = -0.57735026919;
-      IntPoints[1][1] = -0.57735026919;
-      IntPoints[2][1] =  0.57735026919;
-      IntPoints[3][1] =  0.57735026919;
+      IntPoints_[0][0] = -0.57735026919;
+      IntPoints_[1][0] =  0.57735026919;
+      IntPoints_[2][0] =  0.57735026919;
+      IntPoints_[3][0] = -0.57735026919;
+      IntPoints_[0][1] = -0.57735026919;
+      IntPoints_[1][1] = -0.57735026919;
+      IntPoints_[2][1] =  0.57735026919;
+      IntPoints_[3][1] =  0.57735026919;
 
       break;
 
     case GaussOrder5:
 
-      NumIntPoints=9;
-      DegreeInteg=5;
+      NumIntPoints_=9;
+      DegreeInteg_=5;
 
-      if( !IntPoints)
-	IntPoints = new Vector<Double>[NumIntPoints];
+      if( !IntPoints_)
+	IntPoints_ = new std::vector<Double>[NumIntPoints_];
       
-      for(Integer i=0; i<NumIntPoints; i++)
-	IntPoints[i].Resize(Dim);
+      for(Integer i=0; i<NumIntPoints_; i++)
+	IntPoints_[i].resize(Dim_);
 
-      IntWeights.Resize(NumIntPoints);
+      IntWeights_.resize(NumIntPoints_);
 
-      IntPoints[0][0] = -0.774596669241483;
-      IntPoints[1][0] =  0.0;
-      IntPoints[2][0] =  0.774596669241483;
-      IntPoints[3][0] = -0.774596669241483;
-      IntPoints[4][0] = 0.0;
-      IntPoints[5][0] =  0.774596669241483;
-      IntPoints[6][0] = -0.774596669241483;
-      IntPoints[7][0] = 0.0;
-      IntPoints[8][0] =  0.774596669241483; 
+      IntPoints_[0][0] = -0.774596669241483;
+      IntPoints_[1][0] =  0.0;
+      IntPoints_[2][0] =  0.774596669241483;
+      IntPoints_[3][0] = -0.774596669241483;
+      IntPoints_[4][0] = 0.0;
+      IntPoints_[5][0] =  0.774596669241483;
+      IntPoints_[6][0] = -0.774596669241483;
+      IntPoints_[7][0] = 0.0;
+      IntPoints_[8][0] =  0.774596669241483; 
 
-      IntPoints[0][1] = -0.774596669241483;
-      IntPoints[1][1] = -0.774596669241483;
-      IntPoints[2][1] = -0.774596669241483;
-      IntPoints[3][1] = 0.0;
-      IntPoints[4][1] = 0.0;
-      IntPoints[5][1] = 0.0;
-      IntPoints[6][1] =  0.774596669241483;
-      IntPoints[7][1] =  0.774596669241483;
-      IntPoints[8][1] =  0.774596669241483;
+      IntPoints_[0][1] = -0.774596669241483;
+      IntPoints_[1][1] = -0.774596669241483;
+      IntPoints_[2][1] = -0.774596669241483;
+      IntPoints_[3][1] = 0.0;
+      IntPoints_[4][1] = 0.0;
+      IntPoints_[5][1] = 0.0;
+      IntPoints_[6][1] =  0.774596669241483;
+      IntPoints_[7][1] =  0.774596669241483;
+      IntPoints_[8][1] =  0.774596669241483;
 
-      IntWeights[0]= 0.308642;
-      IntWeights[1]= 0.493827;
-      IntWeights[2]= 0.308642;
-      IntWeights[3]= 0.493827;
-      IntWeights[4]= 0.790123; 
-      IntWeights[5]= 0.493827; 
-      IntWeights[6]= 0.308642; 
-      IntWeights[7]= 0.493827; 
-      IntWeights[8]= 0.308642; 
+      IntWeights_[0]= 0.308642;
+      IntWeights_[1]= 0.493827;
+      IntWeights_[2]= 0.308642;
+      IntWeights_[3]= 0.493827;
+      IntWeights_[4]= 0.790123; 
+      IntWeights_[5]= 0.493827; 
+      IntWeights_[6]= 0.308642; 
+      IntWeights_[7]= 0.493827; 
+      IntWeights_[8]= 0.308642; 
 
       break;
 
     case GaussOrder7:
 
       Error("Type of integration Gauss with order 7 is incorrect", __FILE__, __LINE__);
-      NumIntPoints=16;
-      DegreeInteg=7;
-      if ( !IntPoints) 
-	IntPoints = new Vector<Double>[NumIntPoints];
+      NumIntPoints_=16;
+      DegreeInteg_=7;
+      if ( !IntPoints_) 
+	IntPoints_ = new std::vector<Double>[NumIntPoints_];
 
-      for(Integer i=0; i<NumIntPoints; i++)
-	IntPoints[i].Resize(Dim);
-      IntWeights.Resize(NumIntPoints);
+      for(Integer i=0; i<NumIntPoints_; i++)
+	IntPoints_[i].resize(Dim_);
+      IntWeights_.resize(NumIntPoints_);
       
-      IntPoints[0][0] = -0.861136311594053;
-      IntPoints[1][0] =  -0.339981043584856;
-      IntPoints[2][0] =  0.339981043584856;
-      IntPoints[3][0] = 0.861136311594053;
-      IntPoints[4][0] = -0.861136311594053;
-      IntPoints[5][0] = -0.339981043584856;
-      IntPoints[6][0] =   0.339981043584856;
-      IntPoints[7][0] =  0.861136311594053;
-      IntPoints[8][0] =  -0.861136311594053;
-      IntPoints[9][0] =  -0.339981043584856;
-      IntPoints[10][0] =  0.339981043584856;
-      IntPoints[11][0] =  0.861136311594053;
-      IntPoints[12][0] =  -0.861136311594053;
-      IntPoints[13][0] =  -0.339981043584856;
-      IntPoints[14][0] =  0.339981043584856;
-      IntPoints[15][0] =  0.861136311594053;
+      IntPoints_[0][0] = -0.861136311594053;
+      IntPoints_[1][0] =  -0.339981043584856;
+      IntPoints_[2][0] =  0.339981043584856;
+      IntPoints_[3][0] = 0.861136311594053;
+      IntPoints_[4][0] = -0.861136311594053;
+      IntPoints_[5][0] = -0.339981043584856;
+      IntPoints_[6][0] =   0.339981043584856;
+      IntPoints_[7][0] =  0.861136311594053;
+      IntPoints_[8][0] =  -0.861136311594053;
+      IntPoints_[9][0] =  -0.339981043584856;
+      IntPoints_[10][0] =  0.339981043584856;
+      IntPoints_[11][0] =  0.861136311594053;
+      IntPoints_[12][0] =  -0.861136311594053;
+      IntPoints_[13][0] =  -0.339981043584856;
+      IntPoints_[14][0] =  0.339981043584856;
+      IntPoints_[15][0] =  0.861136311594053;
 
 
-      IntPoints[0][1] =  -0.861136311594053;
-      IntPoints[1][1] =   -0.861136311594053;
-      IntPoints[2][1] =  -0.861136311594053;
-      IntPoints[3][1] =  -0.861136311594053;
-      IntPoints[4][1] =  -0.339981043584856;
-      IntPoints[5][1] =  -0.339981043584856;
-      IntPoints[6][1] =  -0.339981043584856;
-      IntPoints[7][1] =  -0.339981043584856;
-      IntPoints[8][1] =  0.339981043584856;
-      IntPoints[9][1] =  0.339981043584856;
-      IntPoints[10][1] =  0.339981043584856;
-      IntPoints[11][1] =  0.339981043584856;
-      IntPoints[12][1] =  0.861136311594053;
-      IntPoints[13][1] =  0.861136311594053;
-      IntPoints[14][1] =  0.861136311594053;
-      IntPoints[15][1] =  0.861136311594053;
+      IntPoints_[0][1] =  -0.861136311594053;
+      IntPoints_[1][1] =   -0.861136311594053;
+      IntPoints_[2][1] =  -0.861136311594053;
+      IntPoints_[3][1] =  -0.861136311594053;
+      IntPoints_[4][1] =  -0.339981043584856;
+      IntPoints_[5][1] =  -0.339981043584856;
+      IntPoints_[6][1] =  -0.339981043584856;
+      IntPoints_[7][1] =  -0.339981043584856;
+      IntPoints_[8][1] =  0.339981043584856;
+      IntPoints_[9][1] =  0.339981043584856;
+      IntPoints_[10][1] =  0.339981043584856;
+      IntPoints_[11][1] =  0.339981043584856;
+      IntPoints_[12][1] =  0.861136311594053;
+      IntPoints_[13][1] =  0.861136311594053;
+      IntPoints_[14][1] =  0.861136311594053;
+      IntPoints_[15][1] =  0.861136311594053;
 
-      IntWeights[0]= 0.121003;
-      IntWeights[1]= 0.226852;
-      IntWeights[2]= - 0.226852;
-      IntWeights[3]= - 0.121003;
-      IntWeights[4]= 0.226852;
-      IntWeights[5]= 0.425293;
-      IntWeights[6]= -0.425293;
-      IntWeights[7]= -0.226852;
-      IntWeights[8]= -0.226852;
-      IntWeights[9]= -0.425293;
-      IntWeights[10]= 0.425293;
-      IntWeights[11]= 0.226852;
-      IntWeights[12]= -0.121003;
-      IntWeights[13]= -0.226852;
-      IntWeights[14]= 0.226852;
-      IntWeights[15]= 0.121003;
+      IntWeights_[0]= 0.121003;
+      IntWeights_[1]= 0.226852;
+      IntWeights_[2]= - 0.226852;
+      IntWeights_[3]= - 0.121003;
+      IntWeights_[4]= 0.226852;
+      IntWeights_[5]= 0.425293;
+      IntWeights_[6]= -0.425293;
+      IntWeights_[7]= -0.226852;
+      IntWeights_[8]= -0.226852;
+      IntWeights_[9]= -0.425293;
+      IntWeights_[10]= 0.425293;
+      IntWeights_[11]= 0.226852;
+      IntWeights_[12]= -0.121003;
+      IntWeights_[13]= -0.226852;
+      IntWeights_[14]= 0.226852;
+      IntWeights_[15]= 0.121003;
 
       break;
  
@@ -189,11 +189,11 @@ void RectangleFE :: SetShapeFncAtIp()
   (*trace) << "entering RectangleFE::SetShapeFncAtIp" << std::endl;
 #endif
   
-  if (!ShFncAtIp)
-    ShFncAtIp = new Vector<Double>[NumIntPoints];
+  if (!ShFncAtIp_)
+    ShFncAtIp_ = new std::vector<Double>[NumIntPoints_];
 
-  for( Integer i=0; i<NumIntPoints; i++ )
-    CalcShapeFnc( ShFncAtIp[i], IntPoints[i]);
+  for( Integer i=0; i<NumIntPoints_; i++ )
+    CalcShapeFnc( ShFncAtIp_[i], IntPoints_[i]);
 
 }
   
@@ -203,16 +203,16 @@ void RectangleFE :: SetShapeFncDerivAtIp()
   (*trace) << "entering RectangleFE::SetShapeFncDerivAtIp" << std::endl;
 #endif
 
-  if( !ShFncDerivAtIp)
-    ShFncDerivAtIp = new Matrix<Double>[NumIntPoints];
+  if( !ShFncDerivAtIp_)
+    ShFncDerivAtIp_ = new Matrix<Double>[NumIntPoints_];
 
-  for( Integer i=0; i<NumIntPoints; i++ )
-    CalcLocalDerivShapeFnc( ShFncDerivAtIp[i], IntPoints[i]);
+  for( Integer i=0; i<NumIntPoints_; i++ )
+    CalcLocalDerivShapeFnc( ShFncDerivAtIp_[i], IntPoints_[i]);
 
 }
 
 
-Double RectangleFE :: CalcJacobianDet(const Vector<Double> & LCoord,
+Double RectangleFE :: CalcJacobianDet(const std::vector<Double> & LCoord,
 				      const Matrix<Double> & CornerCoords)
 {
 #ifdef TRACE
@@ -241,7 +241,7 @@ Double RectangleFE :: CalcJacobianDetAtIp(const Integer ip,
 
 
 void RectangleFE :: CalcJacobian(Matrix<Double> & J, 
-				 const Vector<Double> & LCoord, 
+				 const std::vector<Double> & LCoord, 
 				 const Matrix<Double> & CornerCoords)
 {
 #ifdef TRACE
@@ -267,14 +267,14 @@ void RectangleFE :: CalcJacobianAtIp(Matrix<Double> & J,
 
   J.Resize(2,2);
 
-  J = CornerCoords * ShFncDerivAtIp[ip-1];
+  J = CornerCoords * ShFncDerivAtIp_[ip-1];
 }
 
 
 
   
 void RectangleFE :: CalcInvJacobian(Matrix<Double> & JInv,
-				    const Vector<Double> & LCoord,
+				    const std::vector<Double> & LCoord,
 				    const Matrix<Double> & CornerCoords)
 {
 #ifdef TRACE
@@ -321,7 +321,7 @@ void RectangleFE :: CalcInvJacobianAtIp(Matrix<Double> & JInv,
 
   J.Resize(2,2);
 
-  J = CornerCoords * ShFncDerivAtIp[ip-1];
+  J = CornerCoords * ShFncDerivAtIp_[ip-1];
 
   detJ = J[0][0]*J[1][1]-J[0][1]*J[1][0];
 

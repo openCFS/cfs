@@ -20,13 +20,13 @@ BaseFE :: ~BaseFE()
   (*trace) << "entering BaseFE::~BaseFE" << std::endl;
 #endif
  
-  if( ShFncAtIp ) delete[] ShFncAtIp;
-  if( ShFncDerivAtIp ) delete[] ShFncDerivAtIp;
-  if( IntPoints ) delete[] IntPoints;
+  if( ShFncAtIp_ ) delete[] ShFncAtIp_;
+  if( ShFncDerivAtIp_ ) delete[] ShFncDerivAtIp_;
+  if( IntPoints_ ) delete[] IntPoints_;
 }
 
-void BaseFE :: GetShFnc(Vector<double> & S, 
-			const Vector<Double> & LCoord)
+void BaseFE :: GetShFnc(std::vector<double> & S, 
+			const std::vector<Double> & LCoord)
 {
 #ifdef TRACE
   (*trace) << "entering BaseFE::GetShFnc" << std::endl;
@@ -36,21 +36,21 @@ void BaseFE :: GetShFnc(Vector<double> & S,
 
 }
 
-void BaseFE :: GetShFncAtIp(Vector<Double> & S, 
+void BaseFE :: GetShFncAtIp(std::vector<Double> & S, 
 			    const Integer ip)
 {
 #ifdef TRACE
   (*trace) << "entering BaseFE::GetShFncAtIp" << std::endl;
 #endif
 
-  S.Resize(NumNodes);
+  S.resize(NumNodes_);
   
-  S = ShFncAtIp[ip-1];
+  S = ShFncAtIp_[ip-1];
   
 }
 
 void BaseFE :: GetGlobDerivShFnc(Matrix<Double> & Deriv, 
-				 const Vector<Double> & LCoord,
+				 const std::vector<Double> & LCoord,
 				 const Matrix<Double> & CornerCoords)
 {
 #ifdef TRACE
@@ -58,7 +58,7 @@ void BaseFE :: GetGlobDerivShFnc(Matrix<Double> & Deriv,
 #endif
 
 
-  Deriv.Resize(Dim,Dim);
+  Deriv.Resize(Dim_,Dim_);
   Matrix<Double> LDeriv, JInv;
 
   CalcLocalDerivShapeFnc(LDeriv, LCoord);
@@ -75,12 +75,12 @@ void BaseFE :: GetGlobDerivShFncAtIp(Matrix<Double> & Deriv,
   (*trace) << "entering BaseFE::GetGlobDerivShFncAtIp" << std::endl;
 #endif
 
-  Deriv.Resize(Dim,Dim);
+  Deriv.Resize(Dim_,Dim_);
   Matrix<Double> JInv;
 
   CalcInvJacobianAtIp(JInv, ip, CornerCoords);
 
-  Deriv = ShFncDerivAtIp[ip-1] * JInv;
+  Deriv = ShFncDerivAtIp_[ip-1] * JInv;
 }
 
 

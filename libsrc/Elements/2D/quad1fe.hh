@@ -28,12 +28,12 @@ protected:
   virtual void SetCornerCoords();
 
   //! calculates the shape functions at an arbitrary local point
-  virtual void CalcShapeFnc(Vector<Double> & LShape, 
-			    const Vector<Double> & LCoord);
+  virtual void CalcShapeFnc(std::vector<Double> & LShape, 
+			    const std::vector<Double> & LCoord);
   
   //! calculates the local derivatives of shape functions at an arbitrary local point
   virtual void CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
-				      const Vector<Double> & LCoord);
+				      const std::vector<Double> & LCoord);
 
 private:
 };
