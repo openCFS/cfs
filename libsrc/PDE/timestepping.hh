@@ -1,15 +1,11 @@
 #ifndef FILE_TIMESTEPPING_2001
 #define FILE_TIMESTEPPING_2001
 
+#include "olas.hh"
+
 #include "General/environment.hh"
 #include "Utils/nodestoresol.hh"
 #include "PDE/nodeEQN.hh"
-
-#ifdef USE_OLAS
-#include <olas.hh>
-#else
-#include <multigrid.hh>
-#endif
 
 namespace CoupledField {
 

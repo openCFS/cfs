@@ -7,15 +7,9 @@
 
 // Depending on whether we use LAS or OLAS the trace stream pointer is in
 // different namespaces
-#ifdef USE_OLAS
 namespace OutInfo {
   extern std::ostream * trace;
 }
-#else
-namespace CoupledField {
-  extern std::ostream * trace;
-}
-#endif
 
 //! Stream to which trace information is sent
 #define TRACESTREAM trace
@@ -24,11 +18,6 @@ namespace CoupledField {
 #define TRACE_INDENT "    "
 
 namespace OutInfo {
-
-  // For LAS import trace from namespace
-#ifndef USE_OLAS
-  using CoupledField::trace;
-#endif
 
 
   // ========================================================================
@@ -54,10 +43,10 @@ namespace OutInfo {
       limit_ = limit;
     
       if ( fcnDepth_ <= limit_ && TRACESTREAM != NULL ) {
-	for ( int i = 0; i < fcnDepth_; i++ ) {
-	  (*TRACESTREAM) << TRACE_INDENT;
-	}
-	(*TRACESTREAM) << "entering function " << name_ << std::endl;
+        for ( int i = 0; i < fcnDepth_; i++ ) {
+          (*TRACESTREAM) << TRACE_INDENT;
+        }
+        (*TRACESTREAM) << "entering function " << name_ << std::endl;
       }
     }
     
@@ -67,10 +56,10 @@ namespace OutInfo {
     //! function" message to the trace stream object.
     ~FcnTraceListElem() {
       if ( fcnDepth_ <= limit_ && TRACESTREAM != NULL ) {
-	for ( int i = 0; i < fcnDepth_; i++ ) {
-	  (*TRACESTREAM) << TRACE_INDENT;
-	}
-	(*TRACESTREAM) << "leaving function " << name_ << std::endl;
+        for ( int i = 0; i < fcnDepth_; i++ ) {
+          (*TRACESTREAM) << TRACE_INDENT;
+        }
+        (*TRACESTREAM) << "leaving function " << name_ << std::endl;
       }
       fcnDepth_ = 0;
       name_ = NULL;
@@ -112,18 +101,18 @@ namespace OutInfo {
     //! of a method.
     static void EnterFcn(char *name){
       if (fcnTraceDepth_ < fcnTraceDepthLimit_) {
-	if ( foo_ == NULL ){
-	  foo_ = new FcnTraceListElem( name, fcnTraceDepth_++,
-				       fcnTraceDepthLimit_ );
-	  foo_->caller_ = NULL;
-	  foo_->called_ = NULL;
-	}
-	else{
-	  foo_->called_ = new FcnTraceListElem( name, fcnTraceDepth_++,
-						fcnTraceDepthLimit_ );
-	  foo_->called_->caller_ = foo_;
-	  foo_ = foo_->called_;
-	}
+        if ( foo_ == NULL ){
+          foo_ = new FcnTraceListElem( name, fcnTraceDepth_++,
+                                       fcnTraceDepthLimit_ );
+          foo_->caller_ = NULL;
+          foo_->called_ = NULL;
+        }
+        else{
+          foo_->called_ = new FcnTraceListElem( name, fcnTraceDepth_++,
+                                                fcnTraceDepthLimit_ );
+          foo_->called_->caller_ = foo_;
+          foo_ = foo_->called_;
+        }
       }
     }
 
@@ -134,10 +123,10 @@ namespace OutInfo {
     static void LeaveFcn(){
       FcnTraceListElem *tmp;
       if (foo_){
-	tmp = foo_->caller_;
-	delete foo_;
-	foo_ = tmp;
-	fcnTraceDepth_--;
+        tmp = foo_->caller_;
+        delete foo_;
+        foo_ = tmp;
+        fcnTraceDepth_--;
       }
     }
 

@@ -15,11 +15,7 @@
 
 
 #include "General/defs.hh"
-#ifdef USE_OLAS
-#include <olas.hh>
-#else
-#include <las_environment.hh>
-#endif
+#include "olas.hh"
 
 
 //! \file environment.hh
@@ -77,7 +73,7 @@ namespace CoupledField
   piezoMaterialType;
 
   typedef enum {STATIC, TRANSIENT, HARMONIC, EIGENFREQUENCY, MULTI_SEQUENCE,
-		BUBBLEDYNAMIC} AnalysisType;
+                BUBBLEDYNAMIC} AnalysisType;
   
 
   //! print grid only and then exit
@@ -98,24 +94,24 @@ namespace CoupledField
 
   //! Damping type
   enum DampingType{NONE=0, RAYLEIGH=1, ABCDAMP=2, THERMOVISCOUS=3,
-		   FRACTIONAL=4, FRACTIONAL_GL=5, FRACTIONAL_BLANK=6};
+                   FRACTIONAL=4, FRACTIONAL_GL=5, FRACTIONAL_BLANK=6};
 
   //! Interpolation type used in fractional damping model
   enum InterpolType{NOTUSED=0, TRUEVAL=1, LIN1PT=2};
 
   //! Describes all possible solution types in a CFS simulation
   typedef enum{ NO_SOLUTION_TYPE, MECH_DISPLACEMENT, MECH_ACCELERATION,
-		  MECH_VELOCITY, MECH_FORCE, MECH_STRESS, MECH_STRAIN,
-		  MECH_ENERGY,
-		  ELEC_POTENTIAL, ELEC_FIELD_INTENSITY, ELEC_FORCE_VWP, 
-		  ELEC_INTERFACE_FORCE, ELEC_CHARGE, ELEC_FLUX_DENSITY,
-		  ELEC_ENERGY,
-		  SMOOTH_DISPLACEMENT, 
-		  ACOU_POTENTIAL, ACOU_PRESSURE, ACOU_FORCE, 
-		  ACOU_POTENTIAL_DERIV_1, ACOU_POTENTIAL_DERIV_2,
-		  MAG_POTENTIAL, MAG_FLUX_DENSITY, MAG_EDDY_CURRENT, 
-		  MAG_FORCE_VWP, MAG_FORCE_LORENTZ, MAG_ENERGY,
-		  MPCCI, FLUID_FORCE} SolutionType;
+                  MECH_VELOCITY, MECH_FORCE, MECH_STRESS, MECH_STRAIN,
+                  MECH_ENERGY,
+                  ELEC_POTENTIAL, ELEC_FIELD_INTENSITY, ELEC_FORCE_VWP, 
+                  ELEC_INTERFACE_FORCE, ELEC_CHARGE, ELEC_FLUX_DENSITY,
+                  ELEC_ENERGY,
+                  SMOOTH_DISPLACEMENT, 
+                  ACOU_POTENTIAL, ACOU_PRESSURE, ACOU_FORCE, 
+                  ACOU_POTENTIAL_DERIV_1, ACOU_POTENTIAL_DERIV_2,
+                  MAG_POTENTIAL, MAG_FLUX_DENSITY, MAG_EDDY_CURRENT, 
+                  MAG_FORCE_VWP, MAG_FORCE_LORENTZ, MAG_ENERGY,
+                  MPCCI, FLUID_FORCE} SolutionType;
 
   //! Enumberation for coupling method\n
   //! NO_COUPLING          = No coupling at all
@@ -123,7 +119,7 @@ namespace CoupledField
   //! ITER_RHS_COUPLING    = Iterative via RHS\n
   //! ITER_MATRIX_COUPLING = Iterative via matrix
   typedef enum{NO_COUPLING, DIRECT_COUPLING, ITER_RHS_COUPLING,
-		 ITER_MATRIX_COUPLING} CouplingMethod;
+                 ITER_MATRIX_COUPLING} CouplingMethod;
 
   //! Enumeration for Input Coupling types \n
   //! COORD = Coupling via coordinate displacement\n
@@ -175,24 +171,18 @@ namespace CoupledField
  
   //------------------------ Files for debug, trace and information ---------
 
-  // NOTE: OLAS uses the namespace 'OutInfo' for writing out
-  // data into the cla, trace, ... stream. Therefore they explicitely have to
-  // be imported into namespace CoupledField.
-#ifdef USE_OLAS
+  // NOTE: OLAS uses the namespace 'OutInfo' for writing out data into the
+  // different filestreams such as (*cla), (*trace) etc. Therefore they are
+  // explicitely imported into namespace CoupledField at this point
   using OutInfo::trace;
   using OutInfo::debug;
   using OutInfo::cla;
   using OutInfo::memtrace;
   using OutInfo::data;
-#else
-  extern std::ostream * trace; //name.trace
-  extern std::ostream * debug; //name.deb
-  extern std::ostream * cla; //name.cla
-  extern std::ostream * memtrace; //name for name.mem 
-  extern std::ostream * data; //name.data
-#endif
 
+  // Forward declaration of class
   class WriteInfo;
+
   //! Global pointer to class performing logging to info file
   extern WriteInfo *Info;
 

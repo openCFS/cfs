@@ -6,34 +6,33 @@
 namespace CoupledField
 {
 
-//! Class with general description of pyramidal element
-/*! This class is derived from BaseFE. 
-    It stores general procedures for each type of finite element based on pyramidal, such as information 
-    about integration points and integration weights
-*/
+  //! Class with general description of pyramidal element
 
-class PyraFE : public BaseFE
-{
-public:
-   //! Constructor with type of integration rule
-   PyraFE();
+  //! This class is derived from BaseFE. It stores general procedures for each
+  //! type of finite element based on <em>pyramids</em>, such as information
+  //! on integration points and integration weights
+  class PyraFE : public BaseFE {
 
-   //! Deconstructor
-  virtual ~PyraFE(); 
+  public:
 
-  //! return FE-Type for LAS++
-#ifdef USE_OLAS
-  virtual FEType feType() { return PYR;}
-#else
-  virtual Integer feType() { return 5;}
-#endif
-  
+    //! Constructor with type of integration rule
+    PyraFE();
 
-protected:
-  //! Set integration points
-  virtual void SetIntPoints();
+    //! Destructor
+    virtual ~PyraFE(); 
 
-};
+    //! return FE-Type for OLAS
+    virtual FEType feType() {
+      return PYR;
+    }
+
+  protected:
+
+    //! Set integration points
+    virtual void SetIntPoints();
+
+  };
 
 }
-#endif //
+
+#endif
