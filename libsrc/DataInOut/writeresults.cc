@@ -214,7 +214,7 @@ void WriteResults::WriteNodeHistoryTransient(const NodeStoreSol<Double>& data,
 					     const Integer step, 
 					     const Double time)
 {
-  ENTER_FCN( "WriteResults::WriteNodeHistoryTransien" );
+  ENTER_FCN( "WriteResults::WriteNodeHistoryTransient" );
 
   std::ofstream * myHist;
   SolutionType actSolType;
