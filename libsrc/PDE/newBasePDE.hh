@@ -285,7 +285,7 @@ protected:
 
   /// return index of dof defined by keyword (e.g. 'ux')
   virtual Integer GetBCDof(const std::string keyword)
-  { Error("GetNrBCDof not implemented",__FILE__,__LINE__);}
+  { Error("GetBCDof not implemented",__FILE__,__LINE__);}
 
   //! maps the local node solution to the global mesh solution
   /*!

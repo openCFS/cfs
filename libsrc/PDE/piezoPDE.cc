@@ -1,0 +1,240 @@
+#ifdef NEWBASEPDE
+
+#include <DataInOut/Unverg/outUnverg.hh>
+#include <DataInOut/GMV/outGMV.hh>
+#include <Forms/forms_header.hh>
+
+#include <DataInOut/WriteInfo.hh>
+#include <Driver/assemble.hh>
+#include "newmark.hh"
+#include <Elements/basefe.hh>
+
+#include "piezoPDE.hh" 
+#include <stdio.h>
+
+namespace CoupledField
+{
+
+  PiezoPDE::PiezoPDE( Grid *aptgrid, BCs *aptbcs,  TimeFunc *aptTimeFunc,
+		      FileType *aptFileType, WriteResults *aptOut ) :
+    BasePDE( aptgrid, aptbcs, aptFileType, aptOut, aptTimeFunc )
+  {
+
+#ifdef TRACE
+    (*trace) << "entering PiezoPDE::PiezoPDE " << std::endl;
+#endif
+
+    // Set name of the PDE and its material class
+    pdename_ = "piezo";
+    pdematerialclass_ = "piezo";
+
+    // Determine dimension of problem
+   conf->getstr( "subtype", subType_, pdename_ ); 
+   if (subType_ == "3d")
+     {
+      dofspernode_ = 4;
+      Info->PrintF("", "=== 3D PROBLEM\n");
+     }
+   else if (subType_ == "axi")
+     {
+       isaxi_ = TRUE;
+       dofspernode_ = 3;
+       Info->PrintF("", "=== AXISYSMMETRIC PROBLEM\n");
+     }
+   else
+     {
+       // default is planeStrain 
+       dofspernode_ = 3;
+       Info->PrintF("", "=== PLAIN STRAIN PROBLEM\n");
+     }
+
+   conf->getsubdompde(subdoms_,pdename_);
+   ReadBCs(pdename_);
+  
+   AssignPDENodeNumbers(Mesh2PDENode_, PDE2MeshNode_, subdoms_);
+   numPDENodes_ = PDE2MeshNode_.size();
+   size_        = numPDENodes_ * dofspernode_;
+
+   sol_.reshape(dofspernode_, numPDENodes_);
+
+   //check for damping model
+   std::string dampstr;
+   conf->ifget("damping",dampstr,pdename_);
+   if (dampstr == "rayleigh")
+     {
+       Error("Currenrly Rayleigh damping not woirking for PiezoPDE",__FILE__,__LINE__);       
+       damping_type_ = RAYLEIGH;
+     }
+   else
+     damping_type_ = NONE;
+   
+   if (damping_type_)
+     assemble_->NeedDampingMatrix();
+
+
+   conf->ifgetliststr("homogenBCDof", homDirichDof_, pdename_);  
+   conf->ifgetliststr("inhomogenBCDof", inhomDirichDof_, pdename_);
+
+
+   // just for consistency with old script
+   conf->ifgetliststr("homoBCDof", homDirichDof_, pdename_);
+   conf->ifgetliststr("homoBCdof", homDirichDof_, pdename_);
+   conf->ifgetliststr("inhomoBCDof", inhomDirichDof_, pdename_);
+   conf->ifgetliststr("inhomoBCdof", inhomDirichDof_, pdename_);
+   
+   //check for b.c. input data
+   if (bcs_hd_.size() != homDirichDof_.size()) 
+     Error("Inconsistent definition of homogeneous Dirichlet Boundary Conditions");
+   if (bcs_id_.size() != inhomDirichDof_.size()) 
+     Error("Inconsistent definition of inhomogeneous Dirichlet Boundary Conditions");
+ 
+  // set assemble parameters
+  assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, subdoms_, surfdoms_);
+  assemble_->SetGraphType(NODEGRAPH);
+  assemble_->SetMesh2PDENode(&Mesh2PDENode_);
+  assemble_->SetMatrixType(RBLOCK);
+  assemble_->SetNumDirichlet(GetNumRestraints(actlevel_));
+
+  assemble_->SetPtrBCs(ptBCs_);
+  assemble_->SetPtr2Sol(&sol_);
+  assemble_->SetPtr2TimeFnc(ptTimeFunc_);
+  
+  ReadMaterialData();
+   
+  DefineIntegrators(actlevel_);  
+
+  ReadSavings();
+
+  }
+
+
+  void PiezoPDE::DefineIntegrators(const Integer level)
+  {
+#ifdef TRACE
+  (*trace) << "entering PiezoPDE::DefineIntegerators" << std::endl;
+#endif
+
+  Boolean nonLin = FALSE;
+
+
+  for (int actSD = 0; actSD < subdoms_.size(); actSD++)
+    {
+
+      // ==============  add stiffness ===========================================
+
+      MaterialData actSDMat(materialData_[actSD]);
+
+      // ==============  add "standard" stiffness ===============================
+      BaseForm * bilinearStiff = GetStiffIntegrator(actSDMat);
+      IntegratorDescriptor * actIntDescrStiff = new IntegratorDescriptor(bilinearStiff, STIFFNESS);
+      
+      //check for damping
+      if (damping_type_ == RAYLEIGH)    
+	actIntDescrStiff->SetSecondaryMat(DAMPING, actSDMat.GetDampingBeta());
+      
+      assemble_->AddIntegrator(actIntDescrStiff, subdoms_[actSD]);
+
+	  
+      // ==============  add mass ================================================
+      double density = actSDMat.GetDensity();
+      BaseForm * bilinearMass  = new MassInt(density, dofspernode_, isaxi_);
+
+      IntegratorDescriptor * actIntDescrMass = new IntegratorDescriptor(bilinearMass, MASS);
+
+      //check for damping (mass part)
+      if (damping_type_ == RAYLEIGH)    
+	  actIntDescrMass->SetSecondaryMat(DAMPING, actSDMat.GetDampingAlfa());
+
+      assemble_->AddIntegrator(actIntDescrMass, subdoms_[actSD]);
+
+    }
+  }
+
+
+  BaseForm *
+  PiezoPDE::GetStiffIntegrator(MaterialData& actSDMat, Boolean reducedInt)
+  {
+#ifdef TRACE
+    (*trace) << "entering PiezoPDE::GetStiffIntegrator " << std::endl;
+#endif
+  
+    BaseForm * bilinearStiff;
+    
+    if (subType_ == "plainStrain")
+      Error("plainStrain for PiezoPDE currently not supported",__FILE__,__LINE__);
+    //bilinearStiff = new mechPlainStrainInt(actSDMat);
+    else if (subType_ == "axi")
+      Error("axi for PiezoPDE currently not supported",__FILE__,__LINE__);
+    //    bilinearStiff = new mechAxiInt(actSDMat);
+    else if (subType_ == "3d")
+      bilinearStiff = new linPiezo3DInt(actSDMat);
+    else 
+      Error("Unknown subtype in mech PDE! ",__FILE__,__LINE__);
+    
+    return bilinearStiff;
+  }
+
+
+
+  void PiezoPDE::WriteResultsInFile()
+  {
+#ifdef TRACE
+    (*trace) << "entering PiezoPDE::WriteResultsInFile" << std::endl;
+#endif
+
+    Integer laststepcalc=0;
+    Double  lasttimecalc=0;
+    Array<Double> DispMesh;
+    Array<Double> PotentialMesh;
+    Array<Double> aux1, aux2;
+    Vector<Double> dispx, dispy, dispz, phi;
+
+    dispx = sol_[0];
+    dispy = sol_[1];
+    dispz = sol_[2];
+    phi   = sol_[3];
+
+    aux1.reshape(dofspernode_-1,numPDENodes_);
+    aux2.reshape(1,numPDENodes_);
+
+    aux1.setValuesColumn( dispx, 0 );
+    aux1.setValuesColumn( dispy, 1 );
+    aux1.setValuesColumn( dispz, 2 );
+    aux2.setValuesColumn( phi,   0 );
+
+    TransformNodeSolution( DispMesh,      aux1, PDE2MeshNode_);
+    TransformNodeSolution( PotentialMesh, aux2, PDE2MeshNode_);
+
+    OutFile_->WriteNodeSolution(DispMesh, laststepcalc, lasttimecalc,
+				"displacement");
+    OutFile_->WriteNodeSolution(PotentialMesh, laststepcalc, lasttimecalc,
+				"E-Potential");
+  }
+  
+
+
+  Integer PiezoPDE::GetBCDof(const std::string dofStartString)
+  {
+#ifdef TRACE
+    (*trace) << "entering PiezoPDE::GetBCDof" << std::endl;
+#endif
+
+    Integer nrActDof = 0;
+    
+    if ( dofStartString == "ux" )
+      nrActDof = 1;
+    if ( dofStartString == "uy" )
+      nrActDof = 2;
+    if ( dofStartString == "uz" )
+      nrActDof = 3;
+    if ( dofStartString == "ep" )
+      nrActDof = 4;
+    if ( nrActDof == 0 )
+      Error("Unknown dof-type in homog. BC; substring must start with ux, uy, uz or ep!!",__FILE__,__LINE__);
+
+    return nrActDof;
+  }
+
+} // end of namespace
+
+#endif
