@@ -138,7 +138,7 @@ void TransientDriver::SolveProblem()
     // writing results in output-file
     if (nstep == stepsave && (nstep <= isaveend_)) { 
       ptPDE_->PostProcess(level);
-      ptPDE_->WriteResultsInFile(stepOffset_, timeOffset_);
+      ptPDE_->WriteResultsInFile(nstep, steptime, stepOffset_, timeOffset_);
       stepsave+=isaveincr_;
     }
     

@@ -284,7 +284,9 @@ namespace CoupledField {
   }
 
 
-  void PiezoPDE::WriteResultsInFile(Integer stepOffset,
+  void PiezoPDE::WriteResultsInFile(const Integer kstep,
+				    const Double asteptime,
+				    Integer stepOffset,
 				    Double timeOffset)
   {
     ENTER_FCN( "PiezoPDE::WriteResultsInFile" );

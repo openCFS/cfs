@@ -180,7 +180,9 @@ namespace CoupledField
       }
   }
 
-  void SmoothPDE::WriteResultsInFile(Integer stepOffset,
+  void SmoothPDE::WriteResultsInFile(const Integer kstep,
+				     const Double asteptime,
+				     Integer stepOffset,
 				     Double timeOffset)
   {
     ENTER_FCN( "SmoothPDE::WriteResultsInFile" );

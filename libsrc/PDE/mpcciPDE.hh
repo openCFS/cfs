@@ -74,7 +74,9 @@ namespace CoupledField
     //! \param stepOffset offset for starting (time)step
     //! \param timeOffset offset for starting time  
 
-    virtual void WriteResultsInFile(Integer stepOffset = 0,
+    virtual void WriteResultsInFile(const Integer kstep = 0,
+				    const Double asteptime = 0.0,
+				    Integer stepOffset = 0,
 				    Double timeOffset = 0.0);
     
 

@@ -714,7 +714,9 @@ namespace CoupledField
   // ======================================================
 
 
-  void MechPDE::WriteResultsInFile(Integer stepOffset,
+  void MechPDE::WriteResultsInFile(const Integer kstep,
+				   const Double asteptime, 
+				   Integer stepOffset,
 				   Double timeOffset)
   {
     ENTER_FCN( "MechPDE::WriteResultsInFile" );
@@ -722,7 +724,9 @@ namespace CoupledField
     NodeStoreSol<Double> sol_der1Array, sol_der2Array;
     NodeStoreSol<Double> * solTransient;
     NodeStoreSol<Complex> * solHarmonic;
-  
+
+    lasttimecalc_=asteptime;
+    laststepcalc_=kstep;
     Double actTime = lasttimecalc_ + timeOffset;
     Integer actStep = laststepcalc_ + stepOffset;
  

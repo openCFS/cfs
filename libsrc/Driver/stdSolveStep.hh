@@ -256,12 +256,14 @@ namespace CoupledField
     Double lasttimecalc_;          //!< last time on which we have calculated solution
     Integer laststepcalc_;         //!< Number of last timestep on which we have calculated 
                                    //!< our solution
+    Boolean recalc_;               //!< flag indicating reassembling of system matrix
 
     Boolean pdeIsCoupled_;         //!< TRUE, if PDE is coupled to other ones
     Boolean firstTimeStepStatic_;  //!< needed for coupled, iterative methods
     Integer* iterCoupledCounter_;  //!< iteration counter for coupled PDE solution process
 
     std::string lineSearch_;   //!< switch for lineSearch
+    Boolean nonLin_;           //!< flag for nonlinear calculations
     Boolean geoUpdate_;        //!< flag for geometric update
     Double incStopCrit_;       //!< stopping criterion for incremental error
     Double residualStopCrit_;  //!< stopping criterion for residual error
@@ -269,6 +271,11 @@ namespace CoupledField
     std::string nonLinMethod_; //!< method for handling the non-linearity
     Boolean nonLinLogging_;    //!< log progress of non-linear iterations
     StdVector<NonLinPDE> nonLinPDEName_;//!< some PDEs carry a name (->acoustics!)
+
+    DampingType dampingType_;  //!< damping type of PDE
+    Vector<Double> solIncr_;      //! needed in iterative coupled computation 
+    Vector<Double> actSol_;       //! needed in iterative coupled computation 
+    Boolean isIncrFormulation_;   //! checks, if we have for the coupling a incremental solution
 
   };
 

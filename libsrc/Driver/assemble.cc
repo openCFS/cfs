@@ -613,9 +613,9 @@ namespace CoupledField {
         std::list<Integer> nodes;
         nodes = ptBCs_->GetNodesLevel(springDom_[actDom], level);
         
-        Double val_m = springMassVals_[actDom];
-        Double val_c = springDampVals_[actDom];
-        Double val_k = springStiffVals_[actDom];
+        Double massValue_ = springMassVals_[actDom];
+        Double dampingValue_ = springDampVals_[actDom];
+        Double stiffnessValue_ = springStiffVals_[actDom];
 
         Double val_tfunc = 1.0;
         if (ptTimeFunc_->GetmaxTimeFnc() > 0 )
@@ -626,16 +626,34 @@ namespace CoupledField {
           {
             Integer node = *p;
             
-            val_m = springMassVals_[actDom]  * val_tfunc;
-            val_c = springDampVals_[actDom]  * val_tfunc;
-            val_k = springStiffVals_[actDom] * val_tfunc;
-	    std::cout << "val_m=" << val_m << std::endl;
-	    std::cout << "val_c=" << val_c << std::endl;
-	    std::cout << "val_k=" << val_k << std::endl << std::endl;
+            massValue_ = springMassVals_[actDom]  * val_tfunc;
+            dampingValue_ = springDampVals_[actDom]  * val_tfunc;
+            stiffnessValue_ = springStiffVals_[actDom] * val_tfunc;
+
             ptEQN_->Node2EQN(node,dof,eqnNr,eqnDof);
-            //algsys_->AddToSystemMatrix(MASS, val_m, eqnNr, eqnDof);    
-            //algsys_->AddToSystemMatrix(DAMPING, val_c, eqnNr, eqnDof);    
-            //algsys_->AddToSystemMatrix(STIFFNESS,val_k, eqnNr, eqnDof);    
+
+	    if (analysisType_==TRANSIENT)
+	      {
+		if (abs(massValue_)>1e-30) 
+		  algsys_->AddToDiagMatrixEntry(MASS, eqnNr, eqnDof, &massValue_ );
+		if (abs(dampingValue_)>1e-30) 
+		  {
+		    if (!dampingMatrix_)
+		      Error("The damping value of a spring can only be added to the damping matrix when there exist one! ",__FILE__,__LINE__);
+
+		    algsys_->AddToDiagMatrixEntry(DAMPING, eqnNr, eqnDof, &dampingValue_ );
+		  }
+		if (abs(stiffnessValue_)>1e-30) 
+		  algsys_->AddToDiagMatrixEntry(STIFFNESS, eqnNr, eqnDof, &stiffnessValue_ );
+	      }
+
+	    else if(analysisType_==STATIC)
+	      {
+		if (abs(stiffnessValue_)>1e-30)
+		  algsys_->AddToDiagMatrixEntry(SYSTEM, eqnNr, eqnDof, &stiffnessValue_ );
+		if (abs(dampingValue_)>1e-30 || abs(massValue_)>1e-30 ) 
+		  Error("The damping and mass value of a spring will not considered in an static analysis! ",__FILE__,__LINE__);
+	      }
           }
       }
   }
@@ -824,13 +842,13 @@ namespace CoupledField {
     keyVec = pdename_, "bcsAndLoads", "load", "value";
     params->GetList(keyVec, attrVec, valVec, loadVals_);
 
-    keyVecSpring = pdename_, "bcsAndLoads", "spring", "val_m";
+    keyVecSpring = pdename_, "bcsAndLoads", "spring", "massValue";
     params->GetList(keyVecSpring, attrVec, valVec, springMassVals_);
 
-    keyVecSpring = pdename_, "bcsAndLoads", "spring", "val_c";
+    keyVecSpring = pdename_, "bcsAndLoads", "spring", "dampingValue";
     params->GetList(keyVecSpring, attrVec, valVec, springDampVals_);
 
-    keyVecSpring = pdename_, "bcsAndLoads", "spring", "val_k";
+    keyVecSpring = pdename_, "bcsAndLoads", "spring", "stiffnessValue";
     params->GetList(keyVecSpring, attrVec, valVec, springStiffVals_);
 
     keyVec = pdename_, "bcsAndLoads", "load", "dynamics";
