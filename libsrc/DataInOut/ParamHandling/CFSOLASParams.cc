@@ -126,12 +126,12 @@ namespace CoupledField {
         Error( __FILE__, __LINE__ );
       }
       cfs->Get( "type", analysis, "analysis" );
-      if ( matType[0] == "imagMaterialParameter" && 
-	   (analysis != "harmonic" && analysis != "paramIdent") ) {
+      if ( matType[0] == "imagMaterialParameter" &&
+	   analysis != "harmonic" && analysis != "paramIdent" ) {
         (*error) << "XML-file specifies material parameters with imaginary "
                  << "part for an analysis of type '" << analysis << "'. "
                  << "Complex parameters are currently only implemented for "
-                 << "a 'harmonic' " << "analysis, however.";
+                 << "a 'harmonic' or 'paramIdent'" << "analysis, however.";
         Error( __FILE__, __LINE__ );
       }
     }
