@@ -466,21 +466,21 @@ namespace CoupledField
     
     std::cerr << std::endl << "\033[31mERROR:\033[0m " << Text;
 
+    if (filename) {
+      std::cerr <<"       The error occurred in '" << filename << "'";
+      if (numline) {
+	std::cerr << " on line " << numline << ".";
+      }
+    }
+
 #ifdef TRACE
     OutInfo::FcnTraceHandler::Dump();
-    std::cerr << "-> See .trace-file for function tracing dump" << Text;
+    std::cerr << "\n       See .trace-file for trace dump of function "
+	      << "call tree.";
 #endif
 
-    if (filename) 
-      {
-	std::cerr <<" (" << filename <<" ";
-	if (numline) 
-	  std::cerr << numline;
-	std::cerr << ")";
-	}
     std::cerr << std::endl << std::endl;
-    
-    
+   
 
     *cfsInfo << myEndl << myEndl << myEndl
 	     << " !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! "
