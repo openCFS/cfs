@@ -219,6 +219,8 @@
       <xsd:element name="windingCrossSection" type="DT_PosFloat"/>
     </xsd:sequence>
     <xsd:attribute name="name" type="xsd:token" use="required"/>
+    <xsd:attribute name="tag" type="xsd:token" use="optional"
+      default="anyTag"/>
   </xsd:complexType>
 
   <!-- Data type for 3D measurement coils -->
@@ -365,6 +367,8 @@
     <xsd:attribute name="orientX" type="xsd:float"/>
     <xsd:attribute name="orientY" type="xsd:float"/>
     <xsd:attribute name="orientZ" type="xsd:float"/>
+    <xsd:attribute name="tag" type="xsd:token" use="optional"
+      default="anyTag"/>
   </xsd:complexType>
 
 </xsd:schema>

@@ -113,7 +113,7 @@
           <xsd:sequence>
             <xsd:element name="pde" maxOccurs="unbounded">
               <xsd:complexType>
-                <xsd:attribute name="tag" type="xsd:token" use="required"/>
+                <xsd:attribute name="refTag" type="xsd:token" use="required"/>
                 <xsd:attribute name="type" type="DT_PDEType" use="required"/>
                 <xsd:attribute name="analysis" use="required">
                   <xsd:simpleType>
