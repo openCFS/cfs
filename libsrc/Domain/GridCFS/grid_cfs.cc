@@ -25,9 +25,12 @@ void GridCFS<Dim> :: Read()
   (*trace) << "entering GridCFS::GridCFSRead" << std::endl;
 #endif
 
+  Integer dataHelp[1];
+  InFile->ReadGeneralAnalChoice(dataHelp,FileType::numgroup,FileType::endGAnal);  maxnumsubdomain=dataHelp[0];
+  pptelemsubdom=new Integer*[maxnumsubdomain];
+
 // ----------------------------- Initialize gh
   Integer i;
-  Integer dataHelp[1];
   InFile->ReadGeneralAnalChoice(dataHelp,FileType::numnode,
                                   FileType::endGAnal);
 
@@ -35,13 +38,22 @@ void GridCFS<Dim> :: Read()
 
   gh[0].ptCoordinate=new Dim[gh[0].maxnumnode];
   InFile->ReadCoordinate(gh[0].ptCoordinate, gh[0].maxnumnode);
- 
+
+//  !!!!!!! just for check
+
   Integer data[3];
   InFile->ReadGeneralElemChoice(0,data, FileType::numelem,
                    FileType::ielemtyp, FileType::maxnode,
                    FileType::endGElem);
 
    gh[0].maxnumelem=data[0];
+
+  pptelemsubdom[0]=new Integer[gh[0].maxnumelem+1];
+
+  for (i=0; i < gh[0].maxnumelem; i++)
+   pptelemsubdom[0][i]=i;
+
+  pptelemsubdom[0][gh[0].maxnumelem]=-1;
 
 //#################### V etom meste budet check na 3 tochki
    Integer NumNodeperElem=data[2];
@@ -80,19 +92,30 @@ void GridCFS<Dim> :: Read()
    Integer * help=new Integer[20];
    Integer ihelp=0;   
 
+   Integer maxnumelemgr;
+   Integer numelemothergr=0;
+   Integer j;
+for (j=0; j<maxnumsubdomain; j++)
+{
+//   InFile->ReadMaxnumelemGroup(maxnumelemgr,j);
    InFile->ReadElemConnectionGH(gh[0].maxnumelem, gh[0].Connect, NumNodeperElem, 0);
+//   std::cout << maxnumelemgr << std::endl;
+//   InFile->ReadElemConnectionGH(maxnumelemgr,gh[0].Connect,NumNodeperElem,j);
    for (i=0; i<gh[0].maxnumelem; i++) 
    {
       gh[0].Info[start+0]=i;  // global element number
       gh[0].Info[start+1]=0; // element level of last touch
       gh[0].Info[start+2]=ihelp;// start position of connection
       gh[0].Info[start+3]=999; // address of pointer to Element
+ //     pptelemsubdom[j][i]=i+numelemothergr; 
    
       ihelp+=NumNodeperElem;
       gh[0].fp[i]=start;
       start+=4;
    }
-
+ //     pptelemsubdom[j][maxnumelemgr]=-1;
+ //   numelemothergr=maxnumelemgr+1;
+}
 }
 
 
@@ -111,8 +134,7 @@ template<class Dim>
   if (ptQ_) delete ptQ_;
   if (ptTr_) delete ptTr_;
 
-   if (ptArrayElem_) delete [] ptArrayElem_;
-  
+  if (ptArrayElem_) delete [] ptArrayElem_;
 }
 
 template<class Dim>

@@ -1,6 +1,7 @@
 #include <string>
 #include <iostream>
 #include <fstream>
+#include <stdio.h>
 
 #include "material.hh"
 
@@ -23,7 +24,7 @@ namespace CoupledField
  infile.close();
 }
 
- void Material::ReadDensityAndCompressity(Double & density, Double & compress)
+void Material::ReadDensityAndCompressity(Double & density, Double & compress, const Integer matnum, const std::string keyword)
 {
 #ifdef TRACE
   if (trace) (*trace) << "Entering  ReadMaterial::ReadDensityAndCompress" << std::endl;
@@ -33,10 +34,25 @@ namespace CoupledField
   std::string buf;
   std::string::size_type pos=std::string::npos;
 
+ // transfer matnum in string
+  Char s[20];
+  sprintf(s,"%i",matnum);
+ 
+   while ( pos == std::string::npos & !infile.eof() )
+  { std::getline(infile, buf, '\n');
+    pos=buf.find(keyword);
+    pos=buf.find(s);
+  }
+  
+  pos=std::string::npos; 
+
   while ( pos == std::string::npos & !infile.eof() )
   { std::getline(infile, buf, '\n');
+    std::cout << buf << std::endl;
     pos=buf.find("density");
   }
+
+  if (infile.eof()) Error("Can't find data in material dat-file. Check your dat-file",__FILE__,__LINE__);
 
   infile >> density >> compress;
 

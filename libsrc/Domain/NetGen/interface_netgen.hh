@@ -58,6 +58,15 @@ public:
   //! Get array of pointers to element type
   virtual BaseElem ** getptArrayElem() const
   { return ptArrayElem_;}
+
+  //! Get number of subdomains
+  virtual Integer GetNumSubdomains() const
+  { Error("Not implemented"); return 0;}
+
+  //! Get pointer to array with nodes, that belongs to subdomain number num
+  virtual Integer * GetElemSubdomain(const Integer num, const Integer level) const
+   { Error("Not implemented"); return NULL; }
+
 private:
 
   //!
@@ -74,7 +83,6 @@ private:
 
   //!
   BaseElem ** ptArrayElem_;  
-
 };
 
 template<class Dim>

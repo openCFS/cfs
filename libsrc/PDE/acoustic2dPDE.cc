@@ -22,6 +22,7 @@ Acoustic2dPDE::Acoustic2dPDE(AbstractAlgebraicSys * ptalgsys, Grid<Point2D> * ap
   dofspernode_=1;
   ptgrid_=aptgrid;
 
+/*
   Double density, compress;
   if (MatFile_)
   {
@@ -34,6 +35,7 @@ Acoustic2dPDE::Acoustic2dPDE(AbstractAlgebraicSys * ptalgsys, Grid<Point2D> * ap
      coeff_=sqrt(2.25e9/1e3);
      //  coeff_=1;
   }
+*/
 
    size_=ptgrid_->GetMaxnumnodes(0);
    sol_.Resize(size_);
@@ -48,7 +50,6 @@ Acoustic2dPDE::Acoustic2dPDE(AbstractAlgebraicSys * ptalgsys, Grid<Point2D> * ap
    sol_der2_old_.Init(0);
 
   InFile_->ReadIntegrationParam(alpha_, beta_, gamma_);
-
 }
 
 void Acoustic2dPDE::SpecifySolver(Integer &solvertype, Integer &precondtype, Double &eps, Double &dampiter, Integer &maxnumit, Integer &numeqcoarse)
@@ -127,6 +128,9 @@ void Acoustic2dPDE::SetupMatrices(const Integer type)
 #endif
 
   Integer numnodeelem=ptgrid_->GetNumNodesPerElem(0,0);
+  Integer numsubdom=ptgrid_->GetNumSubdomains();
+  Integer ** ptptnodessubdomain;
+
   Integer * help=new Integer[numnodeelem];
   Matrix<Double> elemmat;
 
@@ -140,17 +144,26 @@ void Acoustic2dPDE::SetupMatrices(const Integer type)
 
   Integer matrix_stiff=2;
   Integer matrix_mass=5;
- 
-  Integer i; 
-  for (i=0; i<numelem; i++ )
+
+  Integer * ptElemSubdomain; 
+  Integer i,j; 
+  Double coeff;
+
+  for (i=0; i<numsubdom; i++)
+{  
+  ptElemSubdomain=ptgrid_->GetElemSubdomain(i,0);
+
+  CalcCoeff(coeff,i);
+
+   for (j=0; ptElemSubdomain[j]!=-1; j++)
     {
-      ptElem=ptArrayElem[i];
+      ptElem=ptArrayElem[ptElemSubdomain[j]];
 
       BaseForm<Point2D> * bilinear_stiff = new LaplaceInt<Point2D>(ptElem,1);
       BaseForm<Point2D> * bilinear_mass  = new MassInt<Point2D>(ptElem,1);
 
-      ptgrid_->GetConnection(help,0,i,numnodeelem);
-      ptgrid_->GetCoordOfNodesElem(i,0,numnodeelem,ptCoord);
+      ptgrid_->GetConnection(help,0,ptElemSubdomain[j],numnodeelem);
+      ptgrid_->GetCoordOfNodesElem(ptElemSubdomain[j],0,numnodeelem,ptCoord);
 
        // stiffness part
       bilinear_stiff->CalcElemMatrix(ptCoord, elemmat);
@@ -160,12 +173,14 @@ void Acoustic2dPDE::SetupMatrices(const Integer type)
       // mass part
       bilinear_mass->CalcElemMatrix(ptCoord, elemmat);
 
+//      elemmat*=coeff_;
+
       ptalgsys_->PutElemMatAlgSys(elemmat.getinarray(), help, numnodeelem, AS_sysid_, AS_sysid_,matrix_mass);
 
       delete bilinear_stiff;
       delete bilinear_mass;
      }
-
+}
    delete [] ptCoord;
    delete [] help;
 
@@ -351,6 +366,21 @@ Double Acoustic2dPDE::CalcEnergyNorm()
  help2=ptalgsys_->CalcEnergyNorm(0,0,5,sol_.get());
  
  return sqrt(help1+help2);
+}
+
+void Acoustic2dPDE::CalcCoeff(Double & coeff, const Integer numsubdom)
+{
+ // get material number for subdomain with number numsubdom from config-file
+ Integer matnum;
+ conf->getmatnum(matnum,numsubdom);
+
+ // read density and compress with material number matnum
+ Double density, compress;
+ if (!MatFile_) Error("You didn't specialize material file. Use option -m");
+ MatFile_->ReadDensityAndCompressity(density,compress,matnum,"fluid"); 
+ std::cout << compress << " d " << density << std::endl;
+
+ coeff=sqrt(compress/density);
 }
 
 TimeErrorEstimator * Acoustic2dPDE::CreatePtTimeError()

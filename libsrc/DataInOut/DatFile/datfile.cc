@@ -892,6 +892,24 @@ void DatFile:: ReadElem(const Integer maxelem, Integer ** connect,
   }
  
 } // end of func ReadElemRecord3d
+// --------------- Read maximum nuber of elements in group number num
+
+void DatFile:: ReadMaxnumelemGroup(Integer & maxelem, const Integer numgr)
+{
+#ifdef TRACE
+  (*trace) << "entering DatFile::ReadMaxnumelemGroup" << std::endl;
+#endif
+  std::string buf;
+  std::string::size_type pos=0;
+  Integer i;
+  for (i=0; i<=numgr; i++)
+     TakePos("numelem",pos);
+  infile.seekg(pos, std::ios::beg);
+
+  std::getline(infile, buf, '\n');
+
+  infile >> maxelem;
+}
 
 // --------------- Read connection for element in gridhierarchy----------
 void DatFile:: ReadElemConnectionGH(const Integer maxelem, Integer * connect,

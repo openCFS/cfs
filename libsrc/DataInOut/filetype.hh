@@ -48,6 +48,9 @@ public:
   //!
   virtual void ReadElemConnectionGH(const Integer maxelem, Integer * connect, const Integer maxnode, const Integer numelemgr)=0;
 
+  //! read maximum number of elements in group number num
+  virtual void ReadMaxnumelemGroup(Integer & maxelem, const Integer numgr)=0;
+
   //!
   virtual void ReadCoordinate(Point3D * const InitNodalCo,                                                     const Integer maxnumNodes)=0;
 
