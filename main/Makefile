@@ -91,6 +91,11 @@ else
 	@echo setenv LD_LIBRARYN32_PATH $(LIB_GRIDLIB):$(LIB_OWN)/$(MACHINE)
 endif
 #
+############## Make link to the source of another programm
+#
+link:
+	ln -s $(Gridlib) $(IncGridlib)
+#
 ######################  Clean work directory
 clean-driver:
 	@cd $(LIBSRC_DIR)/Driver && \
