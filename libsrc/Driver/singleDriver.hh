@@ -19,10 +19,10 @@ public:
   //! \param driverTag tag for current driver section
   //! \param isPartOfSequence true, if driver is part of  multiSequence
   SingleDriver(Domain * adomain, 
-	       Integer stepOffset, 
-	       Double timeOffset, 
-	       std::string driverTag,
-	       Boolean isPartOfSequence);
+	       Integer stepOffset = 0, 
+	       Double timeOffset = 0.0, 
+	       std::string driverTag ="anyTag",
+	       Boolean isPartOfSequence = FALSE);
 
    //! deconstructor
   virtual ~SingleDriver();
