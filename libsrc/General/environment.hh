@@ -4,8 +4,6 @@
 #include <typeinfo>
 #include <iostream>
 #include <vector>
-//#include <math.h>
-#include <cmath>
 #include <complex>
 #include "General/defs.hh"
 
@@ -248,9 +246,8 @@ namespace CoupledField
   DEFINE_ENUM_CONVERSION(NormType);
   DEFINE_ENUM_CONVERSION(ComplexFormat);
   DEFINE_ENUM_CONVERSION(EQNType);
-}
 #endif
-
+}
 
 
 #endif // FILE_SCFE_MYDEFS
