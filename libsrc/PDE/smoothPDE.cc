@@ -90,97 +90,12 @@ SmoothPDE::SmoothPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileTyp
   solTypes_ = SMOOTH_DISPLACEMENT;
   solDofs_ = dofspernode_;
   
- 
-// #ifndef XMLPARAMS
-//     conf->getsubdompde(subdoms_,pdename_);
-// #else
-//     params->GetList( "name", subdoms_, pdename_, "region" );
-//     Info->PrintF( pdename_, " MechPDE lives on regions:" );
-//     for ( Integer k = 0; k < subdoms_.GetSize(); k++ ) {
-//       Info->PrintF( pdename_, " %s", subdoms_[k].c_str() );
-//     }
-// #endif
-
-  //BCs
-//   ReadBCs(pdename_);
- 
-// #ifndef XMLPARAMS  
-//   conf->ifgetliststr("homogenBCDof", homDirichDof_, pdename_);  
-//   conf->ifgetliststr("inhomogenBCDof", inhomDirichDof_, pdename_);
-
-//   // just for consistency with old script
-//   conf->ifgetliststr("homoBCDof", homDirichDof_, pdename_);
-//   conf->ifgetliststr("homoBCdof", homDirichDof_, pdename_);
-//   conf->ifgetliststr("inhomoBCDof", inhomDirichDof_, pdename_);
-//   conf->ifgetliststr("inhomoBCdof", inhomDirichDof_, pdename_);
-// #else
-//   params->GetList( "dof", homDirichDof_  , pdename_, "dirichletHom" );  
-//   params->GetList( "dof", inhomDirichDof_, pdename_, "dirichletInhom" );    
-// #endif
-
-//   //check for b.c. input data
-//   if (bcs_hd_.GetSize() != homDirichDof_.GetSize()) 
-//      Error("Inconsistent definition of homogeneous Dirichlet Boundary Conditions");
-//   if (bcs_id_.GetSize() != inhomDirichDof_.GetSize()) 
-//      Error("Inconsistent definition of inhomogeneous Dirichlet Boundary Conditions");
-
-//   numDirichletBCs_ = GetNumRestraints(actlevel_);
-  
   method_ = "mechanic";
 #ifndef XMLPARAMS
   conf->ifget("method", method_, pdename_ );
 #else
 
 #endif
-
-//   // initialize eqation data object
-//   eqnData_  = new BlockNodeEQN(ptgrid_, ptBCs_, subdoms_, 
-// 			       actlevel_, dofspernode_);
-//   eqnData_->SetHomoDirichletBCs(bcs_hd_, homDirichDof_);
-//   eqnData_->CalcMapping();
-//   //eqnData_->Print(std::cerr);
-//   numPDENodes_ = eqnData_->GetNumLocalNodes();
-//   numElems_ = eqnData_->GetNumLocalElems();
-//   size_ = numPDENodes_*dofspernode_;
-
-   
-  
-   
-  
-  // Initalize solution class
-//   sol_->SetNumSolutions(1);
-//   sol_->SetSolutionType(SMOOTH_DISPLACEMENT);
-//   sol_->SetNumNodes(numPDENodes_);
-//   sol_->SetNumDofs(dofspernode_);
-//   sol_->SetPtrEQNData(eqnData_, ptgrid_, actlevel_);
-//   sol_->Init(0.0);
-  
-//   // set assemble parameters 
-//   assemble_->SetPtr2EQNData(eqnData_); 
-//   assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, subdoms_, surfdoms_);
-//   assemble_->SetGraphType(NODEGRAPH);
-
-// #ifdef USE_OLAS
-//   assemble_->SetMatrixEntryType(DOUBLE);
-//   assemble_->SetMatrixStorageType(SPARSE_NONSYM);
-// #else
-//   assemble_->SetMatrixType(RBLOCK);
-// #endif
-
-//   assemble_->SetNumDirichlet(GetNumRestraints(actlevel_));
-//   assemble_->SetPtrBCs(ptBCs_);
-//   assemble_->SetPtr2Sol(sol_);
-//   assemble_->SetPtr2TimeFnc(ptTimeFunc_);
-  
-//   ReadMaterialData();
-   
-//   DefineIntegrators(actlevel_);  
-
-// #ifndef XMLPARAMS
-//   ReadSavings();
-// #else
-//   ReadStoreResults();
-// #endif
 
   //is a nonlinear PDE, since in each iteration, we have to setup the matrices new!
   nonLin_ = TRUE;
@@ -276,7 +191,7 @@ void SmoothPDE::PreStepStatic(const Integer kstep, const Double asteptime,
 void SmoothPDE::StepStaticNonLin(const Integer kstep, const Double aTime,
 				const Integer level, const Boolean reset)
 {
-  ENTER_FCN( "SmoothPDE::StepStaticLin" );
+  ENTER_FCN( "SmoothPDE::StepStaticNonLin" );
 
   Integer job = 1;
   Double * ptsol;
@@ -299,7 +214,8 @@ void SmoothPDE::StepStaticNonLin(const Integer kstep, const Double aTime,
   ptsol = algsys_->GetSolutionVal();
 
    // save solution
-  sol_->SetAlgSysDataPointer(ptsol);
+  sol_->CopyFromAlgSysDataPointer(ptsol);
+  //  sol_->SetAlgSysDataPointer(ptsol);
 }
 
 
