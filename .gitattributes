@@ -1,4 +1,5 @@
 * text=auto !eol
+Doc/DoxygenConfig/doxygen_manual.pdf -text svneol=unset#application/pdf
 /Makefile -text
 /libgoal -text
 libsrc/AlgebraicSystem/LinAlg/Makefile -text
