@@ -1,3 +1,5 @@
+#ifdef OLAS
+
 #include <string.h>
 
 #include "General/environment.hh"
@@ -171,3 +173,4 @@ namespace CoupledField {
   }
 
 }
+#endif
