@@ -99,7 +99,8 @@ Integer main(int argc, char *argv[])
 
   // class writing log-information
   Info = new WriteInfo(name);
-  //  Info->PrintHeader();
+  Info->PrintHeader();
+
 
   if (PrintGridOnly)
     std::cout << "Printing grid to file " << name << ".unv" << myEndl << myEndl;
@@ -138,15 +139,7 @@ Integer main(int argc, char *argv[])
     ptdriver = new TransientDriver(domain);
 
   else if (analysis=="harmonic")
-    if (adaptspace)
-#ifdef ADAPTGRID
-      ptdriver = new HarmonicAdaptSpaceDriver(domain);
-#else
-  Error("Your version do not support adaptivity; recompile with Adaptivity = yes",__FILE__,__LINE__);
-#endif  
-    else
-      ptdriver = new HarmonicDriver(domain);
-
+    ptdriver = new HarmonicDriver(domain);
   else
     Error("Driver not supported",__FILE__,__LINE__);
 

@@ -5,7 +5,7 @@ program = cfs
 LIBRARY_TYPE = static
 
 #Adaptivity = yes / no
-Adaptivity = yes
+Adaptivity = no
 
 #PETSc solvers
 PETSc=no
@@ -20,7 +20,7 @@ GSI = no
 #
 AdaptGrid=$(HOME)/Work/221003/Grid_RG_upd
 #
-LAS=$(HOME)/Work/220903/LAS
+LAS=$(LASHOME)
 #
 #
 ############### Gridlib
