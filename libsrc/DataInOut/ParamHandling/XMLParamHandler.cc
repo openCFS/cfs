@@ -73,7 +73,6 @@ namespace CoupledField {
     beVerbose_ = false;
 #endif
 
-    beVerbose_ = true;
   }
 
 
