@@ -368,30 +368,34 @@ namespace CoupledField {
 	Info->Warning( warn );
 	mType = LAPACK_GBMATRIX;
       }
-      if ( eType == DOUBLE ) {
-	if ( sizeof(Double) == sizeof(float) ) {
-	  eType = F77FLOAT;
-	  warn = "Expert: Re-setting matrix entry type to F77FLOAT";
-	  Info->Warning( warn );
-	}
-	else {
-	  eType = F77DOUBLE;
-	  warn = "Expert: Re-setting matrix entry type to F77DOUBLE";
-	  Info->Warning( warn );
-	}
-      }
-      else if ( eType == COMPLEX ) {
-	if ( sizeof(Complex) == sizeof(std::complex<float>) ) {
-	  eType = F77COMPLEX8;
-	  warn = "Expert: Re-setting matrix entry type to F77COMPLEX8";
-	  Info->Warning( warn );
-	}
-	else {
-	  eType = F77COMPLEX16;
-	  warn = "Expert: Re-setting matrix entry type to F77COMPLEX16";
-	  Info->Warning( warn );
-	}
-      }
+
+      // The following block is useless, as long as OLAS does not really
+      // use F77xxx entry type specifiers
+
+      // if ( eType == DOUBLE ) {
+      //   if ( sizeof(Double) == sizeof(float) ) {
+      //     eType = F77FLOAT;
+      //     warn = "Expert: Re-setting matrix entry type to F77FLOAT";
+      //     Info->Warning( warn );
+      //   }
+      //   else {
+      //     eType = F77DOUBLE;
+      //     warn = "Expert: Re-setting matrix entry type to F77DOUBLE";
+      //     Info->Warning( warn );
+      //   }
+      // }
+      // else if ( eType == COMPLEX ) {
+      //   if ( sizeof(Complex) == sizeof(std::complex<float>) ) {
+      //     eType = F77COMPLEX8;
+      //     warn = "Expert: Re-setting matrix entry type to F77COMPLEX8";
+      //     Info->Warning( warn );
+      //   }
+      //   else {
+      //     eType = F77COMPLEX16;
+      //     warn = "Expert: Re-setting matrix entry type to F77COMPLEX16";
+      //     Info->Warning( warn );
+      //   }
+      // }
     }
 
     // Hypre solvers want their own matrix format
