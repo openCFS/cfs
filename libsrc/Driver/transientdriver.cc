@@ -94,6 +94,9 @@ void TransientDriver::SolveProblem()
     GetMyPDEs();
     Info->StartProgress ("Starting to solve problem", FALSE);
   }
+
+  Double timeStepPercent = (double)numstep_/10;
+  Double percentCounter = timeStepPercent;
   
   // Solve problem
   ptPDE_->SetTimeStep(dt);
@@ -120,9 +123,12 @@ void TransientDriver::SolveProblem()
 			    steptime+timeOffset_);
     }
     else if ( numstep_ > 500 ) {
-      if ( (nstep%25) == 0 )		
+      // Output in steps of en percent 
+      if ((double)nstep >= percentCounter  ){		
 	Info->WriteTimeStep(ptPDE_->GetName(), nstep+stepOffset_, 
 			    steptime+timeOffset_);
+      percentCounter += timeStepPercent;
+      }
     }
     
     ptPDE_->GetSolveStep()->PreStepTrans(nstep, steptime, level, updatesysmat);
