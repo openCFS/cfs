@@ -48,7 +48,7 @@ clean:
 #
 ######### Make depend 
 #
-depend: # $(src)
+depend: 
 	makedepend $(INCL)  -f$(C_DIR)/main/$(Dependencies) $(FlagMakeDepend) $(src) 
 
 # DO NOT DELETE THIS LINE -- make depend depends on it

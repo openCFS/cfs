@@ -11,7 +11,7 @@ class InterfaceAlgSys: public AbstractAlgSys
 {
 public:
   /// Constructor with parameter - pointer to Grid and tolerance
-  InterfaceAlgSys(Grid<Point2D> * aptgrid, const  Double aeps); 
+  InterfaceAlgSys(Grid<Point2D> * aptgrid, const Integer level, const Double aeps); 
 
  //! Restore solution after applying penalty method for zero boundary condition
  virtual void Restore(){ ptWork->Restore() ;} 
@@ -69,13 +69,13 @@ private:
 } ;
 
 //template<class Dim>
-inline InterfaceAlgSys::InterfaceAlgSys(Grid<Point2D> * aptgrid, const Double aeps)
-: AbstractAlgSys(aptgrid,aeps)
+inline InterfaceAlgSys::InterfaceAlgSys(Grid<Point2D> * aptgrid, const Integer level, const Double aeps)
+: AbstractAlgSys(aptgrid,level,aeps)
 {
 #ifdef TRACE
  (*trace) << "Entering InterfaceAlgSys::InterfaceAlgSys" << std::endl;
 #endif
-   ptWork=new WorkWithSysMat<Point2D, Matrix<Double> >(ptGrid,eps);
+   ptWork=new WorkWithSysMat<Point2D, Matrix<Double> >(ptGrid,level,eps);
 }
 
 } // end of namespace

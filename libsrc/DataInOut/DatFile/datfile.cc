@@ -91,8 +91,7 @@ void DatFile :: ReadGeneralAnal(Integer * dataGAnal)
 
   std::getline(infile, buf, '\n');
   pos=buf.find("masstype");
-  if (pos == std::string::npos ) {Integer size;
-                             size = buf.size() - CountCharInStr(buf,' ');
+  if (pos == std::string::npos ) {
                              char hold[100];
                              Peel(buf,hold);
                              dataGAnal[deactDf]=TransformInNameDf(hold);
@@ -984,7 +983,7 @@ void DatFile :: ReadNumStepsAndTimeSteps(Integer & numsteps, Double & dt)
  (*trace)<<" entering DatFile::ReadTimeSteps" << std::endl;
 #endif 
   std::string::size_type pos=0;
-  TakePos("delta-t",pos, "deltat");
+  TakePos("delta-t",pos);
   infile.seekg(pos, std::ios::beg);
 
   Integer dummy;
@@ -994,77 +993,42 @@ void DatFile :: ReadNumStepsAndTimeSteps(Integer & numsteps, Double & dt)
 
 // --------------------- Take position in file -----------------------------
 
-void DatFile::TakePos(const std::string seekexp, std::string::size_type & pos, const std::string reservexp)
+void DatFile::TakePos(const std::string seekexp, std::string::size_type & pos)
 { 
   infile.seekg(pos, std::ios::beg);
-  std::string buf, buf1;
-  std::string::size_type pos1=pos;
+  std::string buf;
   pos=std::string::npos;
 
-  while ( pos == std::string::npos & !infile.eof() )
+  while ( pos == std::string::npos && !infile.eof() )
   { 
     std::getline(infile, buf, '\n');
     pos=buf.find(seekexp);
   }
-
   pos=infile.tellg();
 
-  if (pos==pos_end & reservexp!="") 
-  {
-      infile.seekg(0, std::ios::beg);
-      pos=std::string::npos;
-
-
-
-      while ( pos == std::string::npos & pos<=pos_end )
-      { 
-        std::getline(infile, buf1, '\n');
-        pos=buf.find(reservexp);
-      }
-
-
-      pos=infile.tellg();
-  }
-
-  if (pos==pos_end) {std::cerr << "ERROR: (" << __FILE__ <<" "<< __LINE__ 
+  if (pos>=pos_end) {std::cerr << "ERROR: (" << __FILE__ <<" "<< __LINE__ 
                << ") Cannot find string: " << seekexp ;
-                    if (reservexp!="") std::cerr <<" and " << reservexp ;
           std::cerr << " in your dat file.\n\t\t Please, change your dat file."<< std::endl;
                       exit(1);}
 }
 
 // ------ Take position in file with saving in buf previous std::string -----
  
-void DatFile::TakePos(const std::string seekexp, std::string::size_type & pos, std::string & buf_prev, const std::string reservexp)
+void DatFile::TakePos(const std::string seekexp, std::string::size_type & pos, std::string & buf_prev)
 {
   infile.seekg(pos, std::ios::beg);
   std::string buf;
-  std::string::size_type pos1=pos;
   pos=std::string::npos;
  
-  while ( pos == std::string::npos & !infile.eof() )
+  while ( pos == std::string::npos && !infile.eof() )
   { std::getline(infile, buf, '\n');
     pos=buf.find(seekexp);
     buf_prev=buf;
   }
   pos=infile.tellg();
   
-  if (pos==pos_end & reservexp!="")
-  {
-      infile.seekg(pos1, std::ios::beg);
-      pos=std::string::npos;
- 
-      while ( pos == std::string::npos & !infile.eof() )
-      { std::getline(infile, buf, '\n');
-        pos=buf.find(reservexp);
-        buf_prev=buf;
-      }
-      pos=infile.tellg();
-  }
-
   if (pos==pos_end) {std::cerr << "ERROR: (" << __FILE__ <<" "<< __LINE__
                      << ") Cannot find string: " << seekexp ;
-                    if (reservexp!="") std::cerr<<" and "<<reservexp; 
      std::cerr <<" in your dat file.\n\t\t Please, change your dat file."<< std::endl;
                       exit(1);}
 }

@@ -16,15 +16,15 @@ class WorkWithSysMat: virtual public Assemble<Dim,T_Matrix>, virtual public LinS
 {
 public:
   //! constructor (does nothing)
-  WorkWithSysMat(Grid<Dim> * aptgrid, const Double eps);
+  WorkWithSysMat(Grid<Dim> * aptgrid, const Integer level, const Double eps);
 
   //! Returns solution
   Vector<Double> getSolution(){ return x;}
 };
 
 template<class Dim, class T_Matrix>
-inline WorkWithSysMat<Dim, T_Matrix>::WorkWithSysMat(Grid<Dim> * aptgrid, const Double eps)
- : Assemble<Dim, T_Matrix>(aptgrid), LinSystem<Double, T_Matrix>(eps) 
+inline WorkWithSysMat<Dim, T_Matrix>::WorkWithSysMat(Grid<Dim> * aptgrid, const Integer level, const Double eps)
+ : Assemble<Dim, T_Matrix>(aptgrid, level), LinSystem<Double, T_Matrix>(eps) 
 {
 #ifdef TRACE
  (*trace) << " entering WorkWithSysMat<Dim>::WorkWithSysMat " << std::endl;

@@ -8,6 +8,7 @@ namespace CoupledField
 {
 
 ///
+template <class Dim>
 class OutResultUnverg
 {
 public:
