@@ -120,8 +120,9 @@
   
         </xsd:sequence>
 
-        <!-- Type of acoustic formulation -->
-        <xsd:attribute name="formulation">
+        <!-- Type of acoustic formulation (optional) -->
+        <xsd:attribute name="formulation" use="optional"
+          default="acouPotential">
           <xsd:simpleType>
             <xsd:restriction base="xsd:token">
               <xsd:enumeration value="acouPressure"/>
