@@ -3,7 +3,8 @@ C_DIR= ../..
 include ../../main/Makefile.option
 #
 src =   myclock.cc nodestoresol.cc elemstoresol.cc tools.cc vector.cc\
-	tracing.cc Coil.cc ApproxData.cc SmoothSpline.cc
+	tracing.cc Coil.cc ApproxData.cc SmoothSpline.cc\
+	mathfunctions.cc
 #
 lib = utils
 libpath = libsrc/Utils

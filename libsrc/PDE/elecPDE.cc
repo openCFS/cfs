@@ -181,8 +181,8 @@ void ElecPDE::WriteResultsInFile(Integer stepOffset,
       
       
       // write electric potential
-//       if (saveSol_)
-// 	outFile_->WriteNodeSolutionTransient(*solConverted, actStep, actTime);
+	  if (saveSol_)
+		outFile_->WriteNodeSolutionTransient(*solConverted, actStep, actTime);
       
       if (saveSolHist_)
 	outFile_->WriteNodeHistoryTransient(*solConverted, actStep, actTime);
@@ -194,7 +194,7 @@ void ElecPDE::WriteResultsInFile(Integer stepOffset,
       
       if (calcCharges_.GetSize() !=0 )
 	{
-	  //	  outFile_->WriteElemSolutionTransient(charges_, actStep, actTime);
+	  outFile_->WriteElemSolutionTransient(charges_, actStep, actTime);
 	}
       
       if (flags->CalcErrorMap_

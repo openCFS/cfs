@@ -68,7 +68,8 @@ public:
   virtual void SetFracDamping() {;};
 
   //
-  virtual Boolean IsFracDamping() {return isFracDamping_;};
+  virtual Boolean IsFracDamping()
+  {return isFracDamping_;}
 
   //
   virtual void SetFactor(Double factor) {;};

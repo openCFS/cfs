@@ -4,12 +4,12 @@
 #include "basePDE.hh"
 
  
-namespace CoupledField
-{
+namespace CoupledField {
 
   //! Class for acoustic equation (no adaptivity)
   /*! 
-    This class is derived from class BasePDE. It is used for solving acoustic equation on one time step.  
+    This class is derived from class BasePDE.
+	It is used for solving acoustic equation on one time step.  
   */
 
 class AcousticPDE: public BasePDE
@@ -25,8 +25,8 @@ public:
     \param aOutFile  pointer to class WriteResults. output data.
     \param aTimeFunc pointer to class TimeFunc
   */
-  AcousticPDE(Grid *aGrid, BCs *aBCs, TimeFunc *aTimeFunc, FileType *aInFile, 
-	      WriteResults *aOutFile );
+  AcousticPDE(Grid *aGrid, BCs *aBCs, TimeFunc *aTimeFunc, FileType *aInFile,
+			  WriteResults *aOutFile );
 
   //!  Deconstructor
   virtual ~AcousticPDE() {;};
@@ -96,6 +96,7 @@ protected:
   Integer fracMemory_;                   //!< number of old time steps to be saved
   StdVector<std::string> dampingList_;   //!< list of damping types for all regions
   StdVector<std::string> nonLinPDEType_; //!< list of regions with nonlinear PDE
+  InterpolType inType_;                  //!< type of interpolation used for fractional damp.
 
   // Postprocessing results
 

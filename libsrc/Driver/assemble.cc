@@ -3,908 +3,884 @@
 #include <string>
 #include <math.h>
 
-#include <Domain/elem.hh>
-#include <DataInOut/ParamHandling/ConfFile.hh>
-#include <DataInOut/ParamHandling/BaseParamHandler.hh>
-#include <DataInOut/WriteInfo.hh>
-
+#include "Domain/elem.hh"
+#include "DataInOut/ParamHandling/ConfFile.hh"
+#include "DataInOut/ParamHandling/BaseParamHandler.hh"
+#include "DataInOut/WriteInfo.hh"
+#include "PDE/basePDE.hh"
 
 #ifdef USE_OLAS
-#include <olas.hh>
+#include "olas.hh"
 #else
-#include <multigrid.hh>
+#include "multigrid.hh"
 #endif 
 
 #include "assemble.hh"
 
-namespace CoupledField
-{
+namespace CoupledField {
   
-  Assemble::Assemble(BaseSystem * algsys, Grid * aptgrid)
-    :algsys_(algsys),
-     ptgrid_(aptgrid),
-     stiffnessMatrix_(FALSE),
-     dampingMatrix_(FALSE),
-     massMatrix_(FALSE),
-     convectionMatrix_(FALSE),
-     actlevel_(0),
-     integrators_(0),
-     rhsIntegrators_(0),
-     rhsSrcIntegrators_(0)
-  {
-    ENTER_FCN( "Assemble::Assemble" );
-    firstTime_ = TRUE;
-    oneIntIsNonlin_ = FALSE;
-    nrMatrices_ = 5+1;  // 5 matrices, but index starts with 1!
-    reassembleMat_.Resize(nrMatrices_);
-    // reassembleMat_.resize(nrMatrices_);
-    nonLinGeo = FALSE;
-    deltaCoords_ = NULL;
+Assemble::Assemble(BaseSystem * algsys, Grid * aptgrid)
+  :algsys_(algsys),
+   ptgrid_(aptgrid),
+   stiffnessMatrix_(FALSE),
+   dampingMatrix_(FALSE),
+   massMatrix_(FALSE),
+   convectionMatrix_(FALSE),
+   actlevel_(0),
+   integrators_(0),
+   rhsIntegrators_(0),
+   rhsSrcIntegrators_(0)
+{
+  ENTER_FCN( "Assemble::Assemble" );
+  firstTime_ = TRUE;
+  oneIntIsNonlin_ = FALSE;
+  nrMatrices_ = 5+1;  // 5 matrices, but index starts with 1!
+  reassembleMat_.Resize(nrMatrices_);
+  // reassembleMat_.resize(nrMatrices_);
+  nonLinGeo = FALSE;
+  deltaCoords_ = NULL;
 
 #ifdef USE_OLAS
-    olasParams_ = algsys_->GetOLASParams();
-    olasReport_ = algsys_->GetOLASReport(); 
+  olasParams_ = algsys_->GetOLASParams();
+  olasReport_ = algsys_->GetOLASReport(); 
 #endif
 
-  }
+}
 
 
-  Assemble::~Assemble()
-  {
-    ENTER_FCN( "Assemble::~Assemble" );
+Assemble::~Assemble()
+{
+  ENTER_FCN( "Assemble::~Assemble" );
     
-    for (int i=0; i<integrators_.GetSize();i++)
-      for (int j=0; j<integrators_[i]->GetSize(); j++)
-	delete (*integrators_[i])[j];
+  for (int i=0; i<integrators_.GetSize();i++)
+	for (int j=0; j<integrators_[i]->GetSize(); j++)
+	  delete (*integrators_[i])[j];
 
-    for (int i=0; i<surfintegrators_.GetSize();i++)
-      for (int j=0; j<surfintegrators_[i]->GetSize(); j++)
-	delete (*surfintegrators_[i])[j];
+  for (int i=0; i<surfintegrators_.GetSize();i++)
+	for (int j=0; j<surfintegrators_[i]->GetSize(); j++)
+	  delete (*surfintegrators_[i])[j];
 
-    for (int i=0; i<rhsIntegrators_.GetSize();i++)
-      for (int j=0; j<rhsIntegrators_[i]->GetSize(); j++)
-	delete (*rhsIntegrators_[i])[j];
-  }
+  for (int i=0; i<rhsIntegrators_.GetSize();i++)
+	for (int j=0; j<rhsIntegrators_[i]->GetSize(); j++)
+	  delete (*rhsIntegrators_[i])[j];
+}
 
-  void Assemble::SetPtr2EQNData(NodeEQN * aPtNodeEQN)
-  {
-    ENTER_FCN( "Assemble::SetPtr2EQNData" );
-    if (aPtNodeEQN == NULL)
-      Error( "The NodeEQN object is not created yet" , __FILE__, __LINE__);
+void Assemble::SetPtr2EQNData(NodeEQN * aPtNodeEQN)
+{
+  ENTER_FCN( "Assemble::SetPtr2EQNData" );
+  if (aPtNodeEQN == NULL)
+	Error( "The NodeEQN object is not created yet" , __FILE__, __LINE__);
     
-    if (! aPtNodeEQN->IsInitialized())
-      Error( "The NodeEQN object has to be initialized before assigning it to\
+  if (! aPtNodeEQN->IsInitialized())
+	Error( "The NodeEQN object has to be initialized before assigning it to\
               an assemble object by calling 'CalcMapping()'", __FILE__, __LINE__);
-    ptEQN_ = aPtNodeEQN;
-  }
+  ptEQN_ = aPtNodeEQN;
+}
 
 
-  Integer Assemble::SubDomIndex(const std::string & subDomName)
-  {
-    ENTER_FCN( "Assemble::SubDomIndex" );
+Integer Assemble::SubDomIndex(const std::string & subDomName)
+{
+  ENTER_FCN( "Assemble::SubDomIndex" );
 
-    for (int i=0; i < subdoms_.GetSize();i++)
-      {
-	if (subDomName == subdoms_[i]) return i;
-      }
+  for (int i=0; i < subdoms_.GetSize();i++)
+	{
+	  if (subDomName == subdoms_[i]) return i;
+	}
   
-    std::string errOut;
-    errOut = "SubDomain " + subDomName + " not defined!";
-    Info->Error(errOut, __FILE__, __LINE__);
+  std::string errOut;
+  errOut = "SubDomain " + subDomName + " not defined!";
+  Info->Error(errOut, __FILE__, __LINE__);
 
-    return 0;
-  }
+  return 0;
+}
   
-  Integer Assemble::SurfDomIndex(const std::string & surfDomName)
-  {
-    ENTER_FCN( "Assemble::SurfDomIndex" );
+Integer Assemble::SurfDomIndex(const std::string & surfDomName)
+{
+  ENTER_FCN( "Assemble::SurfDomIndex" );
 
-    for (int i=0; i < surfdoms_.GetSize();i++)
-      if (surfDomName == surfdoms_[i])
-	return i;
+  for (int i=0; i < surfdoms_.GetSize();i++)
+	if (surfDomName == surfdoms_[i])
+	  return i;
     
   
-    std::string errOut;
-    errOut = "Surface-Domain " + surfDomName + " not defined!";
-    Info->Error(errOut, __FILE__, __LINE__);
-    return -1;
-  }
+  std::string errOut;
+  errOut = "Surface-Domain " + surfDomName + " not defined!";
+  Info->Error(errOut, __FILE__, __LINE__);
+  return -1;
+}
 
 
-  void Assemble::GetElemCoords(const StdVector<Integer> connect, 
-			       Matrix<Double> &coordMat, const Integer level)
-  {
-    ENTER_FCN( "Assemble:GetElemCoords" );
+void Assemble::GetElemCoords(const StdVector<Integer> connect, 
+							 Matrix<Double> &coordMat, const Integer level)
+{
+  ENTER_FCN( "Assemble:GetElemCoords" );
     
-    ptgrid_->GetCoordNodesElemMat(connect, coordMat, level);
+  ptgrid_->GetCoordNodesElemMat(connect, coordMat, level);
   
-    if (nonLinGeo)
-      {
-	if (deltaCoords_ == NULL)
-	  Error("ElecPDE: set input_coupling_terms = smoothdisplacement or nonlin = no");
+  if (nonLinGeo)
+	{
+	  if (deltaCoords_ == NULL)
+		Error("ElecPDE: set input_coupling_terms = smoothdisplacement or nonlin = no");
 
-	StdVector<Integer> connect_PDE;
-	ptEQN_->Mesh2PDENode(connect_PDE, connect);
-	Double val;
-	for (Integer i=0; i<coordMat.GetSizeRow(); i++)
-	  for (Integer j=0; j<coordMat.GetSizeCol(); j++) 
-	    {
-	      val = (*deltaCoords_)[i][connect_PDE[j] - 1];
-	      coordMat(i,j) += val;
-	    }
-      }
-  }
+	  StdVector<Integer> connect_PDE;
+	  ptEQN_->Mesh2PDENode(connect_PDE, connect);
+	  Double val;
+	  for (Integer i=0; i<coordMat.GetSizeRow(); i++)
+		for (Integer j=0; j<coordMat.GetSizeCol(); j++) 
+		  {
+			val = (*deltaCoords_)[i][connect_PDE[j] - 1];
+			coordMat(i,j) += val;
+		  }
+	}
+}
 
   
-  // do the basic assembling stuff
-  void Assemble::AssembleMatrices(const Integer level)
-  {
+// do the basic assembling stuff
+void Assemble::AssembleMatrices(const Integer level)
+{
 
-    ENTER_FCN( "Assemble:AssembleMatrices" );
+  ENTER_FCN( "Assemble:AssembleMatrices" );
     
+  Vector<Double> harmonicVec;
 
-    Vector<Double> harmonicVec;
-
-
-    // initialize reassembling "indicator" vector
-    if (firstTime_)
-      for (Integer actMat=0; actMat < nrMatrices_; actMat++)
-	reassembleMat_[actMat] = FALSE;
+  // initialize reassembling "indicator" vector
+  if (firstTime_)
+	for (Integer actMat=0; actMat < nrMatrices_; actMat++)
+	  reassembleMat_[actMat] = FALSE;
 
     
-    for (int actDom=0; actDom < subdoms_.GetSize(); actDom++) {	
-      StdVector<Elem*> elemssd;
+  for (Integer actDom=0; actDom < subdoms_.GetSize(); actDom++) {	
+	StdVector<Elem*> elemssd;
 
-      ptgrid_->GetElemSD(elemssd, subdoms_[actDom], level);
+	ptgrid_->GetElemSD(elemssd, subdoms_[actDom], level);
 
-      for(Integer actInteg=0; actInteg < integrators_[actDom]->GetSize(); actInteg++) {
-	IntegratorDescriptor * actDescriptor = (*integrators_[actDom])[actInteg];
+	for(Integer actInteg=0; actInteg < integrators_[actDom]->GetSize(); actInteg++) {
+	  IntegratorDescriptor * actDescriptor = (*integrators_[actDom])[actInteg];
 	    	    
-	// assemble only if nonlinear or first time
-	if (reassembleMat_[actDescriptor->DestMat()] || firstTime_) {
+	  // assemble only if nonlinear or first time
+	  if (reassembleMat_[actDescriptor->DestMat()] || firstTime_) {
 
-	  if ( actDescriptor->IsReducedInt()) {
-	    //set all elements to reduced integration!!
-	    SetFE2ReducedInt();
-	  }
+		if ( actDescriptor->IsReducedInt()) {
+		  //set all elements to reduced integration!!
+		  SetFE2ReducedInt();
+		}
 
-	  if ( actDescriptor->GetIntegrator()->IsFracDamping() ) 
-	    {
-	      Double damp = 1.0;
-	      actDescriptor->GetIntegrator()->SetFactor(damp);
-	    }
+		if ( actDescriptor->GetIntegrator()->IsFracDamping() ) {
+		  Double damp;
+		  damp = ptPDE_->GetFracDampMatrixCoeff(actDom);
+		  actDescriptor->GetIntegrator()->SetFactor(damp);
+		}
 	  
-	  for (int actEl=0; actEl< elemssd.GetSize(); actEl++) {
-	    BaseFE * ptEl = elemssd[actEl]->ptElem;
-	    StdVector<Integer> connecth = elemssd[actEl]->connect;
+		for (Integer actEl=0; actEl< elemssd.GetSize(); actEl++) {
+		  BaseFE * ptEl = elemssd[actEl]->ptElem;
+		  StdVector<Integer> connecth = elemssd[actEl]->connect;
 		             
-	    Matrix<Double> ptCoord;
-	    GetElemCoords(connecth, ptCoord, level);
+		  Matrix<Double> ptCoord;
+		  GetElemCoords(connecth, ptCoord, level);
 		    
-	    // map connect to PDE node numbers
-	    StdVector<Integer> connect_PDE;
+		  // map connect to PDE node numbers
+		  StdVector<Integer> connect_PDE;
 		    
-	    ptEQN_->Node2EQN(connecth, connect_PDE);
+		  ptEQN_->Node2EQN(connecth, connect_PDE);
 		    
-	    Matrix<Double> elSol;
+		  Matrix<Double> elSol;
 		    
 
-	    // this matrix is nonlinear and, therefore, has to be reassembled next time
-	    if ((oneIntIsNonlin_ || firstTime_ ) && analysisType_ != HARMONIC)
-	      // fetch solution at element nodes
-	      sol_->GetElemSolutionAsMatrix(elSol, connecth);
+		  // this matrix is nonlinear and, therefore, has to be reassembled next time
+		  if ((oneIntIsNonlin_ || firstTime_ ) && analysisType_ != HARMONIC)
+			// fetch solution at element nodes
+			sol_->GetElemSolutionAsMatrix(elSol, connecth);
 	    
-	    actDescriptor->GetIntegrator()->SetElemPtr(ptEl);
+		  actDescriptor->GetIntegrator()->SetElemPtr(ptEl);
 #ifdef USE_OLAS
-	    FEMatrixType destMat = actDescriptor->DestMat();
+		  FEMatrixType destMat = actDescriptor->DestMat();
 #else
-	    enum MatrixType destMat = actDescriptor->DestMat();
+		  enum MatrixType destMat = actDescriptor->DestMat();
 #endif
 		
-	    // this matrix is nonlinear and, therefore, has to be reassembled next time
-	    if (actDescriptor->IsNonLin()) {
-	      oneIntIsNonlin_ = TRUE;
-	      reassembleMat_[actDescriptor->DestMat()] = TRUE;
+		  // this matrix is nonlinear and, therefore, has to be reassembled next time
+		  if (actDescriptor->IsNonLin()) {
+			oneIntIsNonlin_ = TRUE;
+			reassembleMat_[actDescriptor->DestMat()] = TRUE;
 	      
-	      actDescriptor->GetIntegrator()->SetActElemSol(elSol);
-	    }	    
+			actDescriptor->GetIntegrator()->SetActElemSol(elSol);
+		  }	    
 
-	    // ================================================================
-	    //                             assemble matrices
-	    // ================================================================
+		  // ================================================================
+		  //                             assemble matrices
+		  // ================================================================
 
-	    actDescriptor->GetIntegrator()->CalcElementMatrix(ptCoord, elemmat);
-	    if (analysisType_ == HARMONIC) {
-	      TransformMatrix2Harmonic(harmonicVec,elemmat,
-				       actDescriptor->GetOrigMatrixType());
+		  actDescriptor->GetIntegrator()->CalcElementMatrix(ptCoord, elemmat);
+		  if (analysisType_ == HARMONIC) {
+			TransformMatrix2Harmonic(harmonicVec,elemmat,
+									 actDescriptor->GetOrigMatrixType());
 	 
-	      algsys_->SetElementMatrix(&harmonicVec[0], connect_PDE.GetPointer(),
-					connect_PDE.GetSize(), destMat);
-	    }
-	    else {
-	      //std::cerr << "Setting Element matrix " << std::endl << elemmat << std::endl;
-	      //std::cerr << "Connect" << connect_PDE << std::endl;
-	      //std::cerr << destMat << std::cerr;
+			algsys_->SetElementMatrix(&harmonicVec[0], connect_PDE.GetPointer(),
+									  connect_PDE.GetSize(), destMat);
+		  }
+		  else {
+			//std::cerr << "Setting Element matrix " << std::endl << elemmat << std::endl;
+			//std::cerr << "Connect" << connect_PDE << std::endl;
+			//std::cerr << destMat << std::cerr;
 	      
-	      algsys_->SetElementMatrix(elemmat.GetDataPointer(), connect_PDE.GetPointer(), 
-					connect_PDE.GetSize(), destMat);
-	    }
+			algsys_->SetElementMatrix(elemmat.GetDataPointer(), connect_PDE.GetPointer(), 
+									  connect_PDE.GetSize(), destMat);
+		  }
 #ifdef DEBUG
-	    (*debug) << "ElementMatrix of Element " << actEl << std::endl;
-	    (*debug) << elemmat << std::endl;
-	    if ( !elemmat.IsSymmetric() ) {
-	      (*debug) << " --> Matrix is not symmetric " << std::endl;
-	    }
-	    else {
-	      (*debug) << " --> Matrix is symmetric " << std::endl;
-	    }
+		  (*debug) << "ElementMatrix of Element " << actEl << std::endl;
+		  (*debug) << elemmat << std::endl;
+		  if ( !elemmat.IsSymmetric() ) {
+			(*debug) << " --> Matrix is not symmetric " << std::endl;
+		  }
+		  else {
+			(*debug) << " --> Matrix is symmetric " << std::endl;
+		  }
 #endif
-	    if (actDescriptor->GetSecondaryMat() != NOTYPE) {
-	      elemmat *= actDescriptor->GetSecMatFac();
-	      if (analysisType_ == HARMONIC)
-		{
-		  TransformMatrix2Harmonic(harmonicVec,elemmat,
-					   actDescriptor->GetOrigSecMatrixType());
-		  algsys_->SetElementMatrix(&harmonicVec[0], connect_PDE.GetPointer(),
-					    connect_PDE.GetSize(), destMat);
-		}
-	      else
-		algsys_->SetElementMatrix(elemmat.GetDataPointer(), connect_PDE.GetPointer(), 
-					  connect_PDE.GetSize(), actDescriptor->GetSecondaryMat()); 
-	    }
-	    
-	  } //over all elements of subdomain		
+		  if (actDescriptor->GetSecondaryMat() != NOTYPE) {
+			elemmat *= actDescriptor->GetSecMatFac();
+			if (analysisType_ == HARMONIC) {
+			  TransformMatrix2Harmonic(harmonicVec,elemmat,
+									   actDescriptor->GetOrigSecMatrixType());
+			  algsys_->SetElementMatrix(&harmonicVec[0], connect_PDE.GetPointer(),
+										connect_PDE.GetSize(), destMat);
+			}
+			else
+			  algsys_->SetElementMatrix(elemmat.GetDataPointer(), connect_PDE.GetPointer(), 
+										connect_PDE.GetSize(), actDescriptor->GetSecondaryMat()); 
+		  }
+		  
+		} //over all elements of subdomain		
+		
+	  } //check, if we have to assemble
+	  
+	  if ( actDescriptor->IsReducedInt()) {
+		//set all elements back to standard integration!!
+		SetFE2StandardInt();
+	  }
+	  
 
-	} //check, if we have to assemble
+	} //integrators
+	
+  } //subdomains
+  
+  //assemble matrices for surface integrators
+  for (Integer actDom=0; actDom < surfdoms_.GetSize(); actDom++) {	
 
-	if ( actDescriptor->IsReducedInt()) {
-	  //set all elements back to standard integration!!
-	  SetFE2StandardInt();
-	}
-
-
-      } //integrators
-
-    } //subdomains
-
-    //assemble matrices for surface integrators
-    for (Integer actDom=0; actDom < surfdoms_.GetSize(); actDom++)
-      {	
 	//check is necessary, because the surface-integrator could also be a RHS-Src integrator
 	if (surfintegrators_[actDom]->GetSize()) {	
 	  StdVector<Elem*> elemssd;
 	  elemssd=ptBCs_->getFacesBC(surfdoms_[actDom],level);
 	  
-	  for (int actEl=0; actEl< elemssd.GetSize(); actEl++)
-	    {
-	      BaseFE * ptEl = elemssd[actEl]->ptElem;
-	      StdVector<Integer> connecth = elemssd[actEl]->connect;
+	  for (Integer actEl=0; actEl< elemssd.GetSize(); actEl++) {
+		BaseFE * ptEl = elemssd[actEl]->ptElem;
+		StdVector<Integer> connecth = elemssd[actEl]->connect;
+
+		Matrix<Double> ptCoord;
+		GetElemCoords(connecth, ptCoord, level);
+
+		// map connect to PDE node numbers
+		StdVector<Integer> connect_PDE;
+		ptEQN_->Node2EQN(connecth, connect_PDE);
 	      
+		Matrix<Double> elSol;
 	      
-	      Matrix<Double> ptCoord;
-	      GetElemCoords(connecth, ptCoord, level);
-	      
-	      
-	      // map connect to PDE node numbers
-	      StdVector<Integer> connect_PDE;
-	      ptEQN_->Node2EQN(connecth, connect_PDE);
-	      
-	      Matrix<Double> elSol;
-	      
-	      // this matrix is nonlinear and, therefore, has to be reassembled next time
-	      if (oneIntIsNonlin_ || firstTime_)
-		// fetch solution at element nodes
-		//GetSolOfElement(elSol, connect_PDE);
-		sol_->GetElemSolutionAsMatrix(elSol, connecth);
-	      
-	      
-	      // ================================================================
-	      //                             assemble matrices
-	      // ================================================================
-	      
-	      for(Integer actInteg=0; actInteg < surfintegrators_[actDom]->GetSize(); actInteg++)
-		{
-		  IntegratorDescriptor * actDescriptor =
-		    (*surfintegrators_[actDom])[actInteg];
-		  
-		  
+		// this matrix is nonlinear and, therefore, has to be reassembled next time
+		if (oneIntIsNonlin_ || firstTime_)
+		  // fetch solution at element nodes
+		  //GetSolOfElement(elSol, connect_PDE);
+		  sol_->GetElemSolutionAsMatrix(elSol, connecth);
+	        
+		// ================================================================
+		//                             assemble matrices
+		// ================================================================
+		
+		for(Integer actInteg=0; actInteg < surfintegrators_[actDom]->GetSize(); actInteg++) {
+		  IntegratorDescriptor * actDescriptor = (*surfintegrators_[actDom])[actInteg];
+
 		  // assemble only if nonlinear or first time
-		  if (reassembleMat_[actDescriptor->DestMat()] || firstTime_)
-		    {
-		      actDescriptor->GetIntegrator()->SetElemPtr(ptEl);
+		  if (reassembleMat_[actDescriptor->DestMat()] || firstTime_) {
+			actDescriptor->GetIntegrator()->SetElemPtr(ptEl);
 #ifdef USE_OLAS
-		      FEMatrixType destMat = actDescriptor->DestMat();
+			FEMatrixType destMat = actDescriptor->DestMat();
 #else
-		      enum MatrixType destMat = actDescriptor->DestMat();
+			enum MatrixType destMat = actDescriptor->DestMat();
 #endif
-		      
-		      // this matrix is nonlinear and, therefore, has to be reassembled next time
-		      if (actDescriptor->IsNonLin())
-			{
+			// this matrix is nonlinear and, therefore, has to be reassembled next time
+			if (actDescriptor->IsNonLin()) {
 			  oneIntIsNonlin_ = TRUE;
 			  reassembleMat_[actDescriptor->DestMat()] = TRUE;
 			  actDescriptor->GetIntegrator()->SetActElemSol(elSol);
 			}
 		      
-		      actDescriptor->GetIntegrator()->CalcElementMatrix(ptCoord, elemmat);
-		      if (analysisType_ ==HARMONIC)
-			{
+			actDescriptor->GetIntegrator()->CalcElementMatrix(ptCoord, elemmat);
+			if (analysisType_ ==HARMONIC) {
 			  TransformMatrix2Harmonic(harmonicVec,elemmat,
-						   actDescriptor->GetOrigMatrixType());
+									   actDescriptor->GetOrigMatrixType());
 			  algsys_->SetElementMatrix(&harmonicVec[0], connect_PDE.GetPointer(),
-						    connect_PDE.GetSize(), destMat);
+										connect_PDE.GetSize(), destMat);
 			}
-		      else
-			algsys_->SetElementMatrix(elemmat.GetDataPointer(), connect_PDE.GetPointer(), 
-						  connect_PDE.GetSize(), destMat);
-		      
-		      if (actDescriptor->GetSecondaryMat()  != NOTYPE )
-			{
+			else
+			  algsys_->SetElementMatrix(elemmat.GetDataPointer(), connect_PDE.GetPointer(), 
+										connect_PDE.GetSize(), destMat);
+			
+			if (actDescriptor->GetSecondaryMat()  != NOTYPE ) {
 			  elemmat *= actDescriptor->GetSecMatFac();
-			  if (analysisType_ == HARMONIC)
-			    {
-			      TransformMatrix2Harmonic(harmonicVec,elemmat,
-						       actDescriptor->GetOrigSecMatrixType());
-			      algsys_->SetElementMatrix(&harmonicVec[0], connect_PDE.GetPointer(),
-							connect_PDE.GetSize(), destMat);
-			    }
+			  if (analysisType_ == HARMONIC) {
+				TransformMatrix2Harmonic(harmonicVec,elemmat,
+										 actDescriptor->GetOrigSecMatrixType());
+				algsys_->SetElementMatrix(&harmonicVec[0], connect_PDE.GetPointer(),
+										  connect_PDE.GetSize(), destMat);
+			  }
 			  else
-			    algsys_->SetElementMatrix(elemmat.GetDataPointer(), connect_PDE.GetPointer(), 
-						      connect_PDE.GetSize(), actDescriptor->GetSecondaryMat()); 
+				algsys_->SetElementMatrix(elemmat.GetDataPointer(), connect_PDE.GetPointer(), 
+										  connect_PDE.GetSize(), actDescriptor->GetSecondaryMat()); 
 			}
-		    }		
+		  }		
 		}
-	    }
-	}
-      }
+	  } // elements
+	} // check for surface integrator
+  } // subdomains
      
-     firstTime_ = FALSE;
-  }
+  firstTime_ = FALSE;
+}
 
 
+// do the basic assembling stuff
+void Assemble::AssembleSrcRHS(const Integer level, const Double time)
+{
+  ENTER_FCN( "Assemble:AssembleSrcRHS" );
+  AssembleRHSNodalSources(level, time);
+  AssembleRHSIntegralSources(level, time);
+}
 
 
-  // do the basic assembling stuff
-  void Assemble::AssembleSrcRHS(const Integer level, const Double time)
-  {
-    ENTER_FCN( "Assemble:AssembleSrcRHS" );
-    AssembleRHSNodalSources(level, time);
-    AssembleRHSIntegralSources(level, time);
-  }
+// do the basic assembling stuff
+void Assemble::AssembleRHSIntegralSources(const Integer level,const Double time)
+{
+  ENTER_FCN( "Assemble:AssembleRHSIntegralSources" );
 
-  
+  Vector<Double> harmVec;
 
-
-
-
-  // do the basic assembling stuff
-  void Assemble::AssembleRHSIntegralSources(const Integer level,
-					    const Double time)
-  {
-    ENTER_FCN( "Assemble:AssembleRHSIntegralSources" );
-
-    Vector<Double> harmVec;
-
-    //add the volume sources
-    for (Integer actDom=0; actDom <  subdoms_.GetSize(); actDom++)
-      {	
-	if (rhsSrcIntegrators_[actDom]->GetSize())
-	  {
-	    StdVector<Elem*> elemssd;
-	    ptgrid_->GetElemSD(elemssd, subdoms_[actDom], level);
+  //add the volume sources
+  for (Integer actDom=0; actDom <  subdoms_.GetSize(); actDom++)
+	{	
+	  if (rhsSrcIntegrators_[actDom]->GetSize())
+		{
+		  StdVector<Elem*> elemssd;
+		  ptgrid_->GetElemSD(elemssd, subdoms_[actDom], level);
 	    
-	    Double val_tfunc = 1.0;
-	    Double valPhase = 0.0;
-	    if (analysisType_ == HARMONIC) 
-	      valPhase = rhsSrcPhase_[actDom];
-	    else {
-	      if (ptTimeFunc_->GetmaxTimeFnc() > 0 )
-		val_tfunc=ptTimeFunc_->TimeFuncAtTime(time,fncname_rhs_[actDom]);
-	    }
-
-	    for (Integer actEl=0; actEl< elemssd.GetSize(); actEl++)
-	      {	       
-		BaseFE * ptEl = elemssd[actEl]->ptElem;
-		StdVector<Integer> connecth = elemssd[actEl]->connect;
-		
-		Matrix<Double> ptCoord;
-		GetElemCoords(connecth, ptCoord, level);
-	    
-		// map connect to PDE node numbers
-		StdVector<Integer> connect_PDE;
-		ptEQN_->Node2EQN(connecth, connect_PDE);
-		for(Integer actRhsInt=0; actRhsInt < rhsSrcIntegrators_[actDom]->GetSize(); actRhsInt++)
-		  {
-		    BaseIntDescriptor * actRhsID = (*rhsSrcIntegrators_[actDom])[actRhsInt];
-		    
-		    actRhsID->GetIntegrator()->SetElemPtr(ptEl);
-		    
-		    Vector<Double> elemVec;
-		    actRhsID->GetIntegrator()->CalcElemVector(ptCoord, elemVec);
-		    
-		    if (analysisType_ == HARMONIC) {
-		      TransformVector2Harmonic(harmVec,elemVec,valPhase);
-		      algsys_->SetElementRHS(&harmVec[0], connect_PDE.GetPointer(), 
-					     connect_PDE.GetSize());
-		      }
-		    else {
-		      if (val_tfunc != 1.0)
-			elemVec *= val_tfunc;
-		      algsys_->SetElementRHS(&elemVec[0], connect_PDE.GetPointer(), connect_PDE.GetSize());
-		    }
+		  Double val_tfunc = 1.0;
+		  Double valPhase = 0.0;
+		  if (analysisType_ == HARMONIC) 
+			valPhase = rhsSrcPhase_[actDom];
+		  else {
+			if (ptTimeFunc_->GetmaxTimeFnc() > 0 )
+			  val_tfunc=ptTimeFunc_->TimeFuncAtTime(time,fncname_rhs_[actDom]);
 		  }
-	      }
-	  }
-      }
 
-    //add the surface sources
-    for (Integer actSurf=0; actSurf <  surfdoms_.GetSize(); actSurf++)
-      {	
-	if (rhsSrcSurfIntegrators_[actSurf]->GetSize())
-	  {
-	    StdVector<Elem*> elemssd;
-	    elemssd=ptBCs_->getFacesBC(surfdoms_[actSurf],level);
-	    
-	    Double val_tfunc = 1.0;
-	    Double valPhase = 0.0;
-	    if (analysisType_ == HARMONIC) 
-	      valPhase = rhsSrcSurfPhase_[actSurf];
-	    else {
-	      if (ptTimeFunc_->GetmaxTimeFnc() > 0 )
-		val_tfunc=ptTimeFunc_->TimeFuncAtTime(time,fncname_rhsSurf_[actSurf]);
-	    }
-
-	    for (Integer actEl=0; actEl< elemssd.GetSize(); actEl++)
-	      {	       
-		BaseFE * ptEl = elemssd[actEl]->ptElem;
-		StdVector<Integer> connecth = elemssd[actEl]->connect;
+		  for (Integer actEl=0; actEl< elemssd.GetSize(); actEl++)
+			{	       
+			  BaseFE * ptEl = elemssd[actEl]->ptElem;
+			  StdVector<Integer> connecth = elemssd[actEl]->connect;
 		
-		Matrix<Double> ptCoord;
-		GetElemCoords(connecth, ptCoord, level);
+			  Matrix<Double> ptCoord;
+			  GetElemCoords(connecth, ptCoord, level);
 	    
-		// map connect to PDE node numbers
-		StdVector<Integer> connect_PDE;
-		ptEQN_->Node2EQN(connecth, connect_PDE);
-		for(Integer actRhsInt=0; actRhsInt < rhsSrcSurfIntegrators_[actSurf]->GetSize(); actRhsInt++)
-		  {
-		    BaseIntDescriptor * actRhsID = (*rhsSrcSurfIntegrators_[actSurf])[actRhsInt];
+			  // map connect to PDE node numbers
+			  StdVector<Integer> connect_PDE;
+			  ptEQN_->Node2EQN(connecth, connect_PDE);
+			  for(Integer actRhsInt=0; actRhsInt < rhsSrcIntegrators_[actDom]->GetSize(); actRhsInt++)
+				{
+				  BaseIntDescriptor * actRhsID = (*rhsSrcIntegrators_[actDom])[actRhsInt];
 		    
-		    actRhsID->GetIntegrator()->SetElemPtr(ptEl);
+				  actRhsID->GetIntegrator()->SetElemPtr(ptEl);
 		    
-		    Vector<Double> elemVec;
-		    actRhsID->GetIntegrator()->CalcElemVector(ptCoord, elemVec);
-		    if (analysisType_ == HARMONIC) {
-		      TransformVector2Harmonic(harmVec,elemVec,valPhase);
-		      algsys_->SetElementRHS(&harmVec[0], connect_PDE.GetPointer(), 
-					     connect_PDE.GetSize());
-		      }
-		    else {
-		      if (val_tfunc != 1.0)
-			elemVec *= val_tfunc;
-		      algsys_->SetElementRHS(&elemVec[0], connect_PDE.GetPointer(), connect_PDE.GetSize());
-		    }
+				  Vector<Double> elemVec;
+				  actRhsID->GetIntegrator()->CalcElemVector(ptCoord, elemVec);
+		    
+				  if (analysisType_ == HARMONIC) {
+					TransformVector2Harmonic(harmVec,elemVec,valPhase);
+					algsys_->SetElementRHS(&harmVec[0], connect_PDE.GetPointer(), 
+										   connect_PDE.GetSize());
+				  }
+				  else {
+					if (val_tfunc != 1.0)
+					  elemVec *= val_tfunc;
+					algsys_->SetElementRHS(&elemVec[0], connect_PDE.GetPointer(), connect_PDE.GetSize());
+				  }
+				}
+			}
+		}
+	}
+
+  //add the surface sources
+  for (Integer actSurf=0; actSurf <  surfdoms_.GetSize(); actSurf++)
+	{	
+	  if (rhsSrcSurfIntegrators_[actSurf]->GetSize())
+		{
+		  StdVector<Elem*> elemssd;
+		  elemssd=ptBCs_->getFacesBC(surfdoms_[actSurf],level);
+	    
+		  Double val_tfunc = 1.0;
+		  Double valPhase = 0.0;
+		  if (analysisType_ == HARMONIC) 
+			valPhase = rhsSrcSurfPhase_[actSurf];
+		  else {
+			if (ptTimeFunc_->GetmaxTimeFnc() > 0 )
+			  val_tfunc=ptTimeFunc_->TimeFuncAtTime(time,fncname_rhsSurf_[actSurf]);
 		  }
-	      }
-	  }
-      }
 
-  }
+		  for (Integer actEl=0; actEl< elemssd.GetSize(); actEl++)
+			{	       
+			  BaseFE * ptEl = elemssd[actEl]->ptElem;
+			  StdVector<Integer> connecth = elemssd[actEl]->connect;
+		
+			  Matrix<Double> ptCoord;
+			  GetElemCoords(connecth, ptCoord, level);
+	    
+			  // map connect to PDE node numbers
+			  StdVector<Integer> connect_PDE;
+			  ptEQN_->Node2EQN(connecth, connect_PDE);
+			  for(Integer actRhsInt=0; actRhsInt < rhsSrcSurfIntegrators_[actSurf]->GetSize(); actRhsInt++)
+				{
+				  BaseIntDescriptor * actRhsID = (*rhsSrcSurfIntegrators_[actSurf])[actRhsInt];
+		    
+				  actRhsID->GetIntegrator()->SetElemPtr(ptEl);
+		    
+				  Vector<Double> elemVec;
+				  actRhsID->GetIntegrator()->CalcElemVector(ptCoord, elemVec);
+				  if (analysisType_ == HARMONIC) {
+					TransformVector2Harmonic(harmVec,elemVec,valPhase);
+					algsys_->SetElementRHS(&harmVec[0], connect_PDE.GetPointer(), 
+										   connect_PDE.GetSize());
+				  }
+				  else {
+					if (val_tfunc != 1.0)
+					  elemVec *= val_tfunc;
+					algsys_->SetElementRHS(&elemVec[0], connect_PDE.GetPointer(), connect_PDE.GetSize());
+				  }
+				}
+			}
+		}
+	}
+
+}
 
 
 
-  // do the basic assembling stuff
-  void Assemble::AssembleRHSNodalSources(const Integer level, const Double time)
-  {
-    ENTER_FCN( "Assemble:AssembleRHSNodalSources" );
+// do the basic assembling stuff
+void Assemble::AssembleRHSNodalSources(const Integer level, const Double time)
+{
+  ENTER_FCN( "Assemble:AssembleRHSNodalSources" );
     
-    Integer eqnNr, eqnDof;
+  Integer eqnNr, eqnDof;
     
-    for (int actDom=0; actDom < loadDom_.GetSize(); actDom++)
-      {
-	std::string doftype = loadDom_[actDom];
+  for (int actDom=0; actDom < loadDom_.GetSize(); actDom++)
+	{
+	  std::string doftype = loadDom_[actDom];
 
-	Integer dof = 1;
-	if (dofsPerNode_ != 1)
-	  dof = GetBCDof( loadDof_[actDom] );	
+	  Integer dof = 1;
+	  if (dofsPerNode_ != 1)
+		dof = GetBCDof( loadDof_[actDom] );	
 
-	std::list<Integer> nodes;
-	nodes = ptBCs_->GetNodesLevel(loadDom_[actDom], level);
+	  std::list<Integer> nodes;
+	  nodes = ptBCs_->GetNodesLevel(loadDom_[actDom], level);
 	
-	Double val = loadVals_[actDom];
+	  Double val = loadVals_[actDom];
 
-	Double val_tfunc = 1.0;
-	if (ptTimeFunc_->GetmaxTimeFnc() > 0 )
+	  Double val_tfunc = 1.0;
+	  if (ptTimeFunc_->GetmaxTimeFnc() > 0 )
 	    val_tfunc=ptTimeFunc_->TimeFuncAtTime(time,fncname_loads_[actDom]);
 
 
-	for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end(); p++)
-	  {
-	    Integer node = *p;
+	  for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end(); p++)
+		{
+		  Integer node = *p;
 	    
-	    val = loadVals_[actDom] * val_tfunc;
+		  val = loadVals_[actDom] * val_tfunc;
 	   
-	    ptEQN_->Node2EQN(node,dof,eqnNr,eqnDof);
-	    algsys_->SetNodeRHS(val, eqnNr, eqnDof);	
-	  }
-      }
-  }
-  
-
-
-
-
-
-
-  // do the basic assembling stuff
-  void Assemble::AssembleNLRHS(const Integer level, const Double time)
-  {
-    ENTER_FCN( "Assemble:AssembleNLRHS" );
-
-    Matrix<Double> elemmat;
-
-    StdVector<Elem*> elemssd;
-   
-    for (int actDom=0; actDom < subdoms_.GetSize(); actDom++)
-      {	
-	if (rhsIntegrators_[actDom]->GetSize())
-	  {
-	    ptgrid_->GetElemSD(elemssd, subdoms_[actDom], level);
-	
-	    for (int actEl=0; actEl< elemssd.GetSize(); actEl++)
-	      {
-		BaseFE * ptEl = elemssd[actEl]->ptElem;
-		StdVector<Integer> connecth = elemssd[actEl]->connect;
-
-
-		Matrix<Double> ptCoord;
-		GetElemCoords(connecth, ptCoord, level);
-
-
-		// map connect to PDE node numbers
-		StdVector<Integer> connect_PDE;
-		ptEQN_->Node2EQN(connecth, connect_PDE);
-		
-		Matrix<Double> elSol;
-		
-		sol_->GetElemSolutionAsMatrix(elSol, connecth);
-		
-		// ================================================================
-		//                             assemble RHS
-		// ================================================================
-		
-		for(Integer actRhsInt=0; actRhsInt < rhsIntegrators_[actDom]->GetSize(); actRhsInt++)
-		  {
-		    BaseIntDescriptor * actRhsID = (*rhsIntegrators_[actDom])[actRhsInt];
-		    
-		    actRhsID->GetIntegrator()->SetElemPtr(ptEl);
-		    
-		    if (actRhsID->IsNonLin())
-		      actRhsID->GetIntegrator()->SetActElemSol(elSol);
-		    
-		    
-		    Vector<Double> elemVec;
-		    actRhsID->GetIntegrator()->CalcElemVector(ptCoord, elemVec);
-		    
-		    algsys_->SetElementRHS(&elemVec[0], connect_PDE.GetPointer(), connect_PDE.GetSize());
-		  }
-	      }
-	  }
-      }
-  }
-  
-
-  Integer Assemble::
-  GetBCDof(const std::string dofString)
-  {
-    ENTER_FCN( "MechPDE::GetBCDof" );
-
-    if (dofString == "ux")
-      return 1;
-    else
-      if (dofString == "uy")
-	return 2;
-      else
-	if (dofString == "uz")
-	  return 3;
-	else {
-	  Error("The direction mentioned in the config-file is not implemented! ",__FILE__,__LINE__);
-	  return -1;
+		  ptEQN_->Node2EQN(node,dof,eqnNr,eqnDof);
+		  algsys_->SetNodeRHS(val, eqnNr, eqnDof);	
+		}
 	}
-  }
-
-
-
-
-  void Assemble::InitMatrices()
-  {
-    ENTER_FCN( "Assemble::InitMatrices" );
-
-    //set firstTime_ to TRUE, so that assembling of element matrices will be preformed
-    firstTime_ = TRUE;
-
-    // Initialize matrices in order to get BCs correct
-    algsys_->InitMatrix(SYSTEM);
-
-    if (stiffnessMatrix_)
-      algsys_->InitMatrix(STIFFNESS);
-    
-    if (dampingMatrix_)
-      algsys_->InitMatrix(DAMPING);
-
-    if (convectionMatrix_)
-      algsys_->InitMatrix(CONVECTION);
-    
-    if (massMatrix_)
-      algsys_->InitMatrix(MASS); 
-  }
- 
-
-
-  void Assemble::InitNonLinMatrices()
-  {
-    ENTER_FCN( "Assemble::InitNonLinMatrices" );
-
-    // return, if matrices are not yet assembled
-    if (!reassembleMat_.GetSize()) {
-    // if ( reassembleMat_.GetSize() == 0 ) {
-      InitMatrices();
-      return;
-    }
-    
-    // Initialize matrices in order to get BCs correct
-    algsys_->InitMatrix(SYSTEM);
-
-    if (stiffnessMatrix_ && reassembleMat_[STIFFNESS]) 
-      algsys_->InitMatrix(STIFFNESS);
-    
-    
-    if (dampingMatrix_ && reassembleMat_[DAMPING])
-      algsys_->InitMatrix(DAMPING);
-
-    if (convectionMatrix_ && reassembleMat_[CONVECTION])
-      algsys_->InitMatrix(CONVECTION);
-    
-    if (massMatrix_ && reassembleMat_[MASS]) 
-      algsys_->InitMatrix(MASS); 
-    
-  }
- 
-
-
- 
-
-  void Assemble::CreateMatrices()
-  {
-    ENTER_FCN( "Assemble::CreateMatrices" );
-    const Integer numconstraints = 0;  // currently not handled
-    
-    const Integer dofsPerEQN = ptEQN_->GetNumDofsPerEQN();
-
-#ifdef USE_OLAS
-    FEMatrixType matrixsystype[5];
-    matrixsystype[0] = OLAS::NOTYPE;
-    matrixsystype[1] = OLAS::NOTYPE;
-    matrixsystype[2] = OLAS::NOTYPE;
-    matrixsystype[3] = OLAS::NOTYPE;
-    matrixsystype[4] = OLAS::NOTYPE;
-#else
-    Integer matrixsystype[5];
-    matrixsystype[0] = 0;
-    matrixsystype[1] = 0;
-    matrixsystype[2] = 0;
-    matrixsystype[3] = 0;
-    matrixsystype[4] = 0;
-#endif
-    
-    matrixsystype[0] = SYSTEM;      // memory for the system matrix
-    if (stiffnessMatrix_  == 1) matrixsystype[1] = STIFFNESS;   // memory for the stiffness matrix
-    if (dampingMatrix_    == 1) matrixsystype[2] = DAMPING;     // memory for the damping matrix
-    if (convectionMatrix_ == 1) matrixsystype[3] = CONVECTION;  // memory for the convection matrix
-    if (massMatrix_       == 1) matrixsystype[4] = MASS;        // memory for the mass matrix
-    
-    Integer numBuildInDirichletEQNs_ = ptEQN_->GetNumBuildInDirichletEQNs();
-    Integer numDir = numDirichletBCs_ - numBuildInDirichletEQNs_;
-    //std::cerr << "number of Dirichlet to set by AlgSYS: " << numDir << std::endl;
-    //put to algebraic system
-    
-
-#ifdef USE_OLAS
-    olasParams_->SetValue( "FEMatrixType1", matrixsystype[0] );
-    olasParams_->SetValue( "FEMatrixType2", matrixsystype[1] );
-    olasParams_->SetValue( "FEMatrixType3", matrixsystype[2] );
-    olasParams_->SetValue( "FEMatrixType4", matrixsystype[3] );
-    olasParams_->SetValue( "FEMatrixType5", matrixsystype[4] );
-    olasParams_->SetValue( "NumDof", dofsPerEQN);
-    olasParams_->SetValue( "NumDirichletBCs", numDir);
-    olasParams_->SetValue( "NumConstraints", numconstraints );
-    olasParams_->SetValue( "AuxiliaryMatrix", FALSE);
-
-    // For OLAS_PARAMS we set these via CFSOLASParams::SetParams()
-#ifndef XMLPARAMS
-    olasParams_->SetValue( "MatrixEntryType", entryType_ );
-    olasParams_->SetValue( "MatrixStorageType", storageType_ );
-#endif
-
-#endif
-
-#ifdef USE_OLAS
-    algsys_->CreateLinSys();
-#else
-    if (analysisType_ == HARMONIC)
-      numDir *=2;
-
-    algsys_->CreateMatrix(matrixsystype, matrixType_, graphType_, 
-			  dofsPerEQN,numDir, numconstraints);
-#endif
-    
-  }
+}
   
 
-  void Assemble::SetGeneralParams(const std::string & pdename, 
-				  const Integer dofsPerNode,
-				  const Integer numPDENodes, 
-				  const StdVector<std::string> subdoms,
-				  const StdVector<std::string> surfdoms,
-				  const std::string bcSequenceTag)
-  {
-    ENTER_FCN( "Assemble::SetGeneralParams" );
 
-    pdename_       = pdename;
-    dofsPerNode_   = dofsPerNode;
-    numPDENodes_   = numPDENodes;
-    subdoms_       = subdoms;
-    surfdoms_      = surfdoms;
-    bcSequenceTag_ = bcSequenceTag;
+
+
+
+
+// do the basic assembling stuff
+void Assemble::AssembleNLRHS(const Integer level, const Double time)
+{
+  ENTER_FCN( "Assemble:AssembleNLRHS" );
+
+  Matrix<Double> elemmat;
+
+  StdVector<Elem*> elemssd;
+   
+  for (int actDom=0; actDom < subdoms_.GetSize(); actDom++)
+	{	
+	  if (rhsIntegrators_[actDom]->GetSize())
+		{
+		  ptgrid_->GetElemSD(elemssd, subdoms_[actDom], level);
+	
+		  for (int actEl=0; actEl< elemssd.GetSize(); actEl++)
+			{
+			  BaseFE * ptEl = elemssd[actEl]->ptElem;
+			  StdVector<Integer> connecth = elemssd[actEl]->connect;
+
+
+			  Matrix<Double> ptCoord;
+			  GetElemCoords(connecth, ptCoord, level);
+
+
+			  // map connect to PDE node numbers
+			  StdVector<Integer> connect_PDE;
+			  ptEQN_->Node2EQN(connecth, connect_PDE);
+		
+			  Matrix<Double> elSol;
+		
+			  sol_->GetElemSolutionAsMatrix(elSol, connecth);
+		
+			  // ================================================================
+			  //                             assemble RHS
+			  // ================================================================
+		
+			  for(Integer actRhsInt=0; actRhsInt < rhsIntegrators_[actDom]->GetSize(); actRhsInt++)
+				{
+				  BaseIntDescriptor * actRhsID = (*rhsIntegrators_[actDom])[actRhsInt];
+		    
+				  actRhsID->GetIntegrator()->SetElemPtr(ptEl);
+		    
+				  if (actRhsID->IsNonLin())
+					actRhsID->GetIntegrator()->SetActElemSol(elSol);
+		    
+		    
+				  Vector<Double> elemVec;
+				  actRhsID->GetIntegrator()->CalcElemVector(ptCoord, elemVec);
+		    
+				  algsys_->SetElementRHS(&elemVec[0], connect_PDE.GetPointer(), connect_PDE.GetSize());
+				}
+			}
+		}
+	}
+}
+  
+
+Integer Assemble::
+GetBCDof(const std::string dofString)
+{
+  ENTER_FCN( "MechPDE::GetBCDof" );
+
+  if (dofString == "ux")
+	return 1;
+  else
+	if (dofString == "uy")
+	  return 2;
+	else
+	  if (dofString == "uz")
+		return 3;
+	  else {
+		Error("The direction mentioned in the config-file is not implemented! ",__FILE__,__LINE__);
+		return -1;
+	  }
+}
+
+
+
+
+void Assemble::InitMatrices()
+{
+  ENTER_FCN( "Assemble::InitMatrices" );
+
+  //set firstTime_ to TRUE, so that assembling of element matrices will be preformed
+  firstTime_ = TRUE;
+
+  // Initialize matrices in order to get BCs correct
+  algsys_->InitMatrix(SYSTEM);
+
+  if (stiffnessMatrix_)
+	algsys_->InitMatrix(STIFFNESS);
+    
+  if (dampingMatrix_)
+	algsys_->InitMatrix(DAMPING);
+
+  if (convectionMatrix_)
+	algsys_->InitMatrix(CONVECTION);
+    
+  if (massMatrix_)
+	algsys_->InitMatrix(MASS); 
+}
  
 
 
-    // read load values =========================================
+void Assemble::InitNonLinMatrices()
+{
+  ENTER_FCN( "Assemble::InitNonLinMatrices" );
+
+  // return, if matrices are not yet assembled
+  if (!reassembleMat_.GetSize()) {
+    // if ( reassembleMat_.GetSize() == 0 ) {
+	InitMatrices();
+	return;
+  }
+    
+  // Initialize matrices in order to get BCs correct
+  algsys_->InitMatrix(SYSTEM);
+
+  if (stiffnessMatrix_ && reassembleMat_[STIFFNESS]) 
+	algsys_->InitMatrix(STIFFNESS);
+    
+    
+  if (dampingMatrix_ && reassembleMat_[DAMPING])
+	algsys_->InitMatrix(DAMPING);
+
+  if (convectionMatrix_ && reassembleMat_[CONVECTION])
+	algsys_->InitMatrix(CONVECTION);
+    
+  if (massMatrix_ && reassembleMat_[MASS]) 
+	algsys_->InitMatrix(MASS); 
+    
+}
+ 
+
+
+ 
+
+void Assemble::CreateMatrices()
+{
+  ENTER_FCN( "Assemble::CreateMatrices" );
+  const Integer numconstraints = 0;  // currently not handled
+    
+  const Integer dofsPerEQN = ptEQN_->GetNumDofsPerEQN();
+
+#ifdef USE_OLAS
+  FEMatrixType matrixsystype[5];
+  matrixsystype[0] = OLAS::NOTYPE;
+  matrixsystype[1] = OLAS::NOTYPE;
+  matrixsystype[2] = OLAS::NOTYPE;
+  matrixsystype[3] = OLAS::NOTYPE;
+  matrixsystype[4] = OLAS::NOTYPE;
+#else
+  Integer matrixsystype[5];
+  matrixsystype[0] = 0;
+  matrixsystype[1] = 0;
+  matrixsystype[2] = 0;
+  matrixsystype[3] = 0;
+  matrixsystype[4] = 0;
+#endif
+    
+  matrixsystype[0] = SYSTEM;      // memory for the system matrix
+  if (stiffnessMatrix_  == 1) matrixsystype[1] = STIFFNESS;   // memory for the stiffness matrix
+  if (dampingMatrix_    == 1) matrixsystype[2] = DAMPING;     // memory for the damping matrix
+  if (convectionMatrix_ == 1) matrixsystype[3] = CONVECTION;  // memory for the convection matrix
+  if (massMatrix_       == 1) matrixsystype[4] = MASS;        // memory for the mass matrix
+    
+  Integer numBuildInDirichletEQNs_ = ptEQN_->GetNumBuildInDirichletEQNs();
+  Integer numDir = numDirichletBCs_ - numBuildInDirichletEQNs_;
+  //std::cerr << "number of Dirichlet to set by AlgSYS: " << numDir << std::endl;
+  //put to algebraic system
+    
+
+#ifdef USE_OLAS
+  olasParams_->SetValue( "FEMatrixType1", matrixsystype[0] );
+  olasParams_->SetValue( "FEMatrixType2", matrixsystype[1] );
+  olasParams_->SetValue( "FEMatrixType3", matrixsystype[2] );
+  olasParams_->SetValue( "FEMatrixType4", matrixsystype[3] );
+  olasParams_->SetValue( "FEMatrixType5", matrixsystype[4] );
+  olasParams_->SetValue( "NumDof", dofsPerEQN);
+  olasParams_->SetValue( "NumDirichletBCs", numDir);
+  olasParams_->SetValue( "NumConstraints", numconstraints );
+  olasParams_->SetValue( "AuxiliaryMatrix", FALSE);
+
+  // For OLAS_PARAMS we set these via CFSOLASParams::SetParams()
+#ifndef XMLPARAMS
+  olasParams_->SetValue( "MatrixEntryType", entryType_ );
+  olasParams_->SetValue( "MatrixStorageType", storageType_ );
+#endif
+
+#endif
+
+#ifdef USE_OLAS
+  algsys_->CreateLinSys();
+#else
+  if (analysisType_ == HARMONIC)
+	numDir *=2;
+
+  algsys_->CreateMatrix(matrixsystype, matrixType_, graphType_, 
+						dofsPerEQN,numDir, numconstraints);
+#endif
+    
+}
+  
+
+void Assemble::SetGeneralParams(const std::string & pdename, 
+								const Integer dofsPerNode,
+								const Integer numPDENodes, 
+								const StdVector<std::string> subdoms,
+								const StdVector<std::string> surfdoms,
+								const std::string bcSequenceTag)
+{
+  ENTER_FCN( "Assemble::SetGeneralParams" );
+
+  pdename_       = pdename;
+  dofsPerNode_   = dofsPerNode;
+  numPDENodes_   = numPDENodes;
+  subdoms_       = subdoms;
+  surfdoms_      = surfdoms;
+  bcSequenceTag_ = bcSequenceTag;
+ 
+
+
+  // read load values =========================================
 
 #ifndef XMLPARAMS
-    conf->ifgetliststr("loads", loadDom_, pdename_);
-    conf->ifgetliststr("loadDof", loadDof_, pdename_);
+  conf->ifgetliststr("loads", loadDom_, pdename_);
+  conf->ifgetliststr("loadDof", loadDof_, pdename_);
 
 
-    if (dofsPerNode_ != 1)
+  if (dofsPerNode_ != 1)
 
-      //check for load data
-      if (loadDom_.GetSize() != loadDof_.GetSize())
+	//check for load data
+	if (loadDom_.GetSize() != loadDof_.GetSize())
+	  {
+		std::string errmsg = "Inconsistent definition of loads\n";
+		errmsg += "Dirichlet Boundary Conditions\n";
+		errmsg += " loadDom_.size() = " + Info->GenStr(loadDom_.GetSize());
+		errmsg += "\n loadDof_.size() = " + Info->GenStr(loadDof_.GetSize())
+		  + '\n';
+		Info->Error( errmsg, __FILE__, __LINE__ );
+	  }
+    
+  loadVals_.Resize(loadDom_.GetSize());
+  fncname_loads_.Resize(loadDom_.GetSize());
+
+  for( int i = 0; i < loadDom_.GetSize(); i++ )
 	{
-	  std::string errmsg = "Inconsistent definition of loads\n";
-	  errmsg += "Dirichlet Boundary Conditions\n";
-	  errmsg += " loadDom_.size() = " + Info->GenStr(loadDom_.GetSize());
-	  errmsg += "\n loadDof_.size() = " + Info->GenStr(loadDof_.GetSize())
-	    + '\n';
+	  conf->get2(loadDom_[i], loadVals_[i], fncname_loads_[i], pdename_,
+				 "bc_conditions","loads");
+	}
+
+#else
+  StdVector<std::string> keyVec, attrVec, valVec;
+
+  attrVec = "", "tag", "";
+  valVec = "", bcSequenceTag_, "";
+
+  loadDom_.Clear();
+  loadDof_.Clear();
+  loadVals_.Clear();
+  fncname_loads_.Clear();
+
+  keyVec = pdename_, "bcsAndLoads", "load", "name";
+  params->GetList(keyVec, attrVec, valVec, loadDom_);
+
+  if (dofsPerNode_ == 1) {
+	loadDof_.Resize(loadDom_.GetSize());
+	loadDof_.Init("ux");
+  }else {
+	keyVec = pdename_, "bcsAndLoads", "load", "dof";
+	params->GetList(keyVec, attrVec, valVec, loadDof_);
+  }
+    
+  keyVec = pdename_, "bcsAndLoads", "load", "value";
+  params->GetList(keyVec, attrVec, valVec, loadVals_);
+
+  keyVec = pdename_, "bcsAndLoads", "load", "dynamics";
+  params->GetList(keyVec, attrVec, valVec, fncname_loads_);
+
+
+  // check if a fncname was given, although
+  // in section transient there is non mentioned
+  if (fncname_loads_.GetSize() > 0)
+	{
+	  if (ptTimeFunc_->GetmaxTimeFnc() == 0  &&
+		  fncname_loads_[0] != "none") {
+		std::string errmsg = "Loads: There was no time data file ";
+		errmsg += "specified in the section 'transient', so 'dynamics' ";
+		errmsg += "for PDE '";
+		errmsg += pdename;
+		errmsg += "' makes no sense!";
+		Error(errmsg.c_str(), __FILE__, __LINE__);
+	  }
+	}
+    
+
+  //     std::cerr << "load names = " <<  loadDom_ << std::endl;
+  //     std::cerr << "load dofs = " <<  loadDof_ << std::endl;
+  //     std::cerr << "load values = " <<  loadVals_ << std::endl;
+  //     std::cerr << "load dynamics = " <<  fncname_loads_ << std::endl;
+
+  // Check consistency
+  if ( loadDom_.GetSize() != loadDof_.GetSize() ||
+	   loadDom_.GetSize() != loadVals_.GetSize() )
+	{
+	  std::string errmsg = "Loads: ";
+	  errmsg += "#name = " + Info->GenStr(loadDom_.GetSize());
+	  errmsg += ", #dof = " + Info->GenStr(loadDof_.GetSize());
+	  errmsg += ", #value = " + Info->GenStr(loadVals_.GetSize());
+	  errmsg += ", #dynamics = " + fncname_loads_.GetSize() + '\n';
 	  Info->Error( errmsg, __FILE__, __LINE__ );
 	}
-    
-    loadVals_.Resize(loadDom_.GetSize());
-    fncname_loads_.Resize(loadDom_.GetSize());
 
-    for( int i = 0; i < loadDom_.GetSize(); i++ )
-      {
-	conf->get2(loadDom_[i], loadVals_[i], fncname_loads_[i], pdename_,
-		   "bc_conditions","loads");
-      }
-
-#else
-    StdVector<std::string> keyVec, attrVec, valVec;
-
-    attrVec = "", "tag", "";
-    valVec = "", bcSequenceTag_, "";
-
-    loadDom_.Clear();
-    loadDof_.Clear();
-    loadVals_.Clear();
-    fncname_loads_.Clear();
-
-    keyVec = pdename_, "bcsAndLoads", "load", "name";
-    params->GetList(keyVec, attrVec, valVec, loadDom_);
-
-    if (dofsPerNode_ == 1) {
-      loadDof_.Resize(loadDom_.GetSize());
-      loadDof_.Init("ux");
-    }else {
-      keyVec = pdename_, "bcsAndLoads", "load", "dof";
-      params->GetList(keyVec, attrVec, valVec, loadDof_);
-    }
-    
-    keyVec = pdename_, "bcsAndLoads", "load", "value";
-    params->GetList(keyVec, attrVec, valVec, loadVals_);
-
-    keyVec = pdename_, "bcsAndLoads", "load", "dynamics";
-    params->GetList(keyVec, attrVec, valVec, fncname_loads_);
-
-
-    // check if a fncname was given, although
-    // in section transient there is non mentioned
-    if (fncname_loads_.GetSize() > 0)
-      {
-	if (ptTimeFunc_->GetmaxTimeFnc() == 0  &&
-	    fncname_loads_[0] != "none") {
-	  std::string errmsg = "Loads: There was no time data file ";
-	  errmsg += "specified in the section 'transient', so 'dynamics' ";
-	  errmsg += "for PDE '";
-	  errmsg += pdename;
-	  errmsg += "' makes no sense!";
-	  Error(errmsg.c_str(), __FILE__, __LINE__);
+  // We need not have as many function/filenames as loads!
+  for ( Integer k = fncname_loads_.GetSize(); k < loadDom_.GetSize(); k++ )
+	{
+	  fncname_loads_.Push_back( "none" );
 	}
-      }
-    
-
-//     std::cerr << "load names = " <<  loadDom_ << std::endl;
-//     std::cerr << "load dofs = " <<  loadDof_ << std::endl;
-//     std::cerr << "load values = " <<  loadVals_ << std::endl;
-//     std::cerr << "load dynamics = " <<  fncname_loads_ << std::endl;
-
-    // Check consistency
-    if ( loadDom_.GetSize() != loadDof_.GetSize() ||
-	 loadDom_.GetSize() != loadVals_.GetSize() )
-      {
-	std::string errmsg = "Loads: ";
-	errmsg += "#name = " + Info->GenStr(loadDom_.GetSize());
-	errmsg += ", #dof = " + Info->GenStr(loadDof_.GetSize());
-	errmsg += ", #value = " + Info->GenStr(loadVals_.GetSize());
-	errmsg += ", #dynamics = " + fncname_loads_.GetSize() + '\n';
-	Info->Error( errmsg, __FILE__, __LINE__ );
-      }
-
-    // We need not have as many function/filenames as loads!
-    for ( Integer k = fncname_loads_.GetSize(); k < loadDom_.GetSize(); k++ )
-      {
-	fncname_loads_.Push_back( "none" );
-      }
 #endif
 
 #ifdef DEBUG
-    (*debug) << "Assemble::SetGeneralParams: We got " << loadDom_.GetSize()
-	     << " interfaces with loads" << std::endl;
-    (*debug) << "Loads: #interfaces = " << loadDom_.GetSize()
-	     << ", #dof = " << loadDof_.GetSize()
-	     << ", #value = " << loadVals_.GetSize()
-	     << ", #dynamics = " << fncname_loads_.GetSize() << std::endl;
-    for ( UInt k = 0; k < loadDom_.GetSize(); k++ )
-      {
-	(*debug) << "Loads: interface = " << loadDom_[k]
-		 << ", dof = " << loadDof_[k]
-		 << ", value = " << loadVals_[k];
-	if ( k < fncname_loads_.GetSize() )
-	  {
-	    (*debug) << ", dynamics = " << fncname_loads_[k] << std::endl;
-	  }
-	else
-	  {
-	    (*debug) << ", dynamics = " << std::endl;
-	  }
-      }
+  (*debug) << "Assemble::SetGeneralParams: We got " << loadDom_.GetSize()
+		   << " interfaces with loads" << std::endl;
+  (*debug) << "Loads: #interfaces = " << loadDom_.GetSize()
+		   << ", #dof = " << loadDof_.GetSize()
+		   << ", #value = " << loadVals_.GetSize()
+		   << ", #dynamics = " << fncname_loads_.GetSize() << std::endl;
+  for ( UInt k = 0; k < loadDom_.GetSize(); k++ )
+	{
+	  (*debug) << "Loads: interface = " << loadDom_[k]
+			   << ", dof = " << loadDof_[k]
+			   << ", value = " << loadVals_[k];
+	  if ( k < fncname_loads_.GetSize() )
+		{
+		  (*debug) << ", dynamics = " << fncname_loads_[k] << std::endl;
+		}
+	  else
+		{
+		  (*debug) << ", dynamics = " << std::endl;
+		}
+	}
 #endif
 
-    // for every domain, we need an own integrator list ==========
-    integrators_.Resize(subdoms_.GetSize());
-    rhsSrcIntegrators_.Resize(subdoms_.GetSize());
-    fncname_rhs_.Resize(subdoms_.GetSize());
-    rhsIntegrators_.Resize(subdoms_.GetSize());
-    for (int i=0; i<subdoms_.GetSize();i++) {
-      integrators_[i]      = new StdVector<IntegratorDescriptor *>;
-      rhsSrcIntegrators_[i]     = new StdVector<BaseIntDescriptor *>;
-      rhsIntegrators_[i]        = new StdVector<BaseIntDescriptor *>;
-    }
-
-    surfintegrators_.Resize(surfdoms_.GetSize());
-    rhsSrcSurfIntegrators_.Resize(surfdoms_.GetSize());
-    fncname_rhsSurf_.Resize(surfdoms_.GetSize());
-    for (int i=0; i<surfdoms_.GetSize();i++) {
-      surfintegrators_[i]       = new StdVector<IntegratorDescriptor *>;
-      rhsSrcSurfIntegrators_[i] = new StdVector<BaseIntDescriptor *>;
-    }
-    
+  // for every domain, we need an own integrator list ==========
+  integrators_.Resize(subdoms_.GetSize());
+  rhsSrcIntegrators_.Resize(subdoms_.GetSize());
+  fncname_rhs_.Resize(subdoms_.GetSize());
+  rhsIntegrators_.Resize(subdoms_.GetSize());
+  for (int i=0; i<subdoms_.GetSize();i++) {
+	integrators_[i]      = new StdVector<IntegratorDescriptor *>;
+	rhsSrcIntegrators_[i]     = new StdVector<BaseIntDescriptor *>;
+	rhsIntegrators_[i]        = new StdVector<BaseIntDescriptor *>;
   }
+
+  surfintegrators_.Resize(surfdoms_.GetSize());
+  rhsSrcSurfIntegrators_.Resize(surfdoms_.GetSize());
+  fncname_rhsSurf_.Resize(surfdoms_.GetSize());
+  for (int i=0; i<surfdoms_.GetSize();i++) {
+	surfintegrators_[i]       = new StdVector<IntegratorDescriptor *>;
+	rhsSrcSurfIntegrators_[i] = new StdVector<BaseIntDescriptor *>;
+  }
+    
+}
   
 
-  //  void Assemble::SetupMatrixGraph(Integer numeq, Integer graphType)
-  void Assemble::SetupMatrixGraph(Integer numeq)
-  {
-    ENTER_FCN( "Assemble::SetupMatrixGraph" );
+//  void Assemble::SetupMatrixGraph(Integer numeq, Integer graphType)
+void Assemble::SetupMatrixGraph(Integer numeq)
+{
+  ENTER_FCN( "Assemble::SetupMatrixGraph" );
     
 
   //initialize matrix graph
@@ -934,674 +910,674 @@ namespace CoupledField
       ptgrid_->GetElemSD(elemssd,subdoms_[nsub],actlevel_);
 
       for (iel=0; iel < elemssd.GetSize(); iel++)
-	{  
-	  ptElem=elemssd[iel]->ptElem;
-	  connecth = elemssd[iel]->connect;
-	  ptEQN_->Node2EQN(connecth, connect_PDE);
+		{  
+		  ptElem=elemssd[iel]->ptElem;
+		  connecth = elemssd[iel]->connect;
+		  ptEQN_->Node2EQN(connecth, connect_PDE);
 
-	  fe_type=elemssd[iel]->ptElem->feType();
-	  //std::cerr << "SetElelemtPos" << std::endl << "----------" << std::endl;
-	  //std::cerr << "connect: " << std::endl << connecth << std::endl;
-	  //std::cerr << "connect_PDE " << std::endl;
-	  //std::cerr << connect_PDE << std::endl << std::endl;
-	  algsys_->SetElementPos(connect_PDE.GetPointer(),connect_PDE.GetSize(),fe_type);
-	}
+		  fe_type=elemssd[iel]->ptElem->feType();
+		  //std::cerr << "SetElelemtPos" << std::endl << "----------" << std::endl;
+		  //std::cerr << "connect: " << std::endl << connecth << std::endl;
+		  //std::cerr << "connect_PDE " << std::endl;
+		  //std::cerr << connect_PDE << std::endl << std::endl;
+		  algsys_->SetElementPos(connect_PDE.GetPointer(),connect_PDE.GetSize(),fe_type);
+		}
     }
-  }
+}
 
 
 
-  Integer Assemble::GetNrBCDof(const std::string & dofStartString)
-  {
-    ENTER_FCN( "Analysis::GetNrBCDof" );
+Integer Assemble::GetNrBCDof(const std::string & dofStartString)
+{
+  ENTER_FCN( "Analysis::GetNrBCDof" );
     
-    Integer nrActDof = 0;
+  Integer nrActDof = 0;
     
-    if (dofStartString == "ux")
-      nrActDof = 1;
-    else
-      if (dofStartString == "uy")
-	nrActDof = 2;
-      else
-	if (dofsPerNode_ == 3)
-	  if (dofStartString == "uz")
-	    nrActDof = 3;
-	  else
-	    Error("Unknown dof-type in homog. BC; substring must start with ux, uy or uz!!",__FILE__,__LINE__);
+  if (dofStartString == "ux")
+	nrActDof = 1;
+  else
+	if (dofStartString == "uy")
+	  nrActDof = 2;
 	else
-	  Error("Unknown dof-type in homog. BC; substring must start with ux or uy!!",__FILE__,__LINE__);
+	  if (dofsPerNode_ == 3)
+		if (dofStartString == "uz")
+		  nrActDof = 3;
+		else
+		  Error("Unknown dof-type in homog. BC; substring must start with ux, uy or uz!!",__FILE__,__LINE__);
+	  else
+		Error("Unknown dof-type in homog. BC; substring must start with ux or uy!!",__FILE__,__LINE__);
     
-    return nrActDof;
-  }
+  return nrActDof;
+}
 
-  //set all FE-Elements to reduced integration  
-  void Assemble::SetFE2ReducedInt()
-  {
-    ptQ1    -> SetReducedIntegration();
-    ptQ2    -> SetReducedIntegration();
-    ptTet1  -> SetReducedIntegration();
-    ptL1    -> SetReducedIntegration();
-    ptL2    -> SetReducedIntegration();
-    ptTr1   -> SetReducedIntegration();
-    ptTr2   -> SetReducedIntegration();
-    ptHexa1 -> SetReducedIntegration();
-    ptHexa2 -> SetReducedIntegration();
-    //    ptPyra1 -> SetReducedIntegration();
-    //    ptWedge1-> SetReducedIntegration();
-  }
+//set all FE-Elements to reduced integration  
+void Assemble::SetFE2ReducedInt()
+{
+  ptQ1    -> SetReducedIntegration();
+  ptQ2    -> SetReducedIntegration();
+  ptTet1  -> SetReducedIntegration();
+  ptL1    -> SetReducedIntegration();
+  ptL2    -> SetReducedIntegration();
+  ptTr1   -> SetReducedIntegration();
+  ptTr2   -> SetReducedIntegration();
+  ptHexa1 -> SetReducedIntegration();
+  ptHexa2 -> SetReducedIntegration();
+  //    ptPyra1 -> SetReducedIntegration();
+  //    ptWedge1-> SetReducedIntegration();
+}
 
-  //set all FE-Elements to reduced integration  
-  void Assemble::SetFE2StandardInt()
-  {
-    ptQ1    -> SetStandardIntegration();
-    ptQ2    -> SetStandardIntegration();
-    ptTet1  -> SetStandardIntegration();
-    ptL1    -> SetStandardIntegration();
-    ptL2    -> SetStandardIntegration();
-    ptTr1   -> SetStandardIntegration();
-    ptTr2   -> SetStandardIntegration();
-    ptHexa1 -> SetStandardIntegration();
-    ptHexa2 -> SetStandardIntegration();
-    //    ptPyra1 -> SetStandardIntegration();
-    //    ptWedge1-> SetStandardIntegration();
-  }
-
-
-  // define integrators
-  void Assemble::AddRhsIntegrator(BaseForm * integrator,
-				  const std::string & subDomName, 
-				  const Integer nonLin)
-  {
-    ENTER_FCN( "Assemble::AddRhsIntegrator" );
-    BaseIntDescriptor * actRhsID = new  BaseIntDescriptor(integrator, nonLin);
-    rhsIntegrators_[SubDomIndex(subDomName)]->Push_back(actRhsID);
-  }
+//set all FE-Elements to reduced integration  
+void Assemble::SetFE2StandardInt()
+{
+  ptQ1    -> SetStandardIntegration();
+  ptQ2    -> SetStandardIntegration();
+  ptTet1  -> SetStandardIntegration();
+  ptL1    -> SetStandardIntegration();
+  ptL2    -> SetStandardIntegration();
+  ptTr1   -> SetStandardIntegration();
+  ptTr2   -> SetStandardIntegration();
+  ptHexa1 -> SetStandardIntegration();
+  ptHexa2 -> SetStandardIntegration();
+  //    ptPyra1 -> SetStandardIntegration();
+  //    ptWedge1-> SetStandardIntegration();
+}
 
 
-  //needed for static and transient analysis
-  void Assemble::AddRhsSrcIntegrator(BaseForm * integrator,
-				     const std::string & subDomName, 
-				     const std::string fncname,
-				     const Integer nonLin)
-  {
-    ENTER_FCN( "Assemble::AddRhsSrcIntegrator" );
-    BaseIntDescriptor * actRhsID = new  BaseIntDescriptor(integrator, nonLin);
-    rhsSrcIntegrators_[SubDomIndex(subDomName)]->Push_back(actRhsID);
-    fncname_rhs_[SubDomIndex(subDomName)] = fncname;
-  }
-
-  //needed for harmonic analysis
-  void Assemble::AddRhsSrcIntegrator(BaseForm * integrator,
-				     const std::string & subDomName, 
-				     const Double phaseval,
-				     const Integer nonLin)
-  {
-    ENTER_FCN( "Assemble::AddRhsSrcIntegrator" );
-    BaseIntDescriptor * actRhsID = new  BaseIntDescriptor(integrator, nonLin);
-    rhsSrcIntegrators_[SubDomIndex(subDomName)]->Push_back(actRhsID);
-    rhsSrcPhase_[SubDomIndex(subDomName)] = phaseval;
-  }
+// define integrators
+void Assemble::AddRhsIntegrator(BaseForm * integrator,
+								const std::string & subDomName, 
+								const Integer nonLin)
+{
+  ENTER_FCN( "Assemble::AddRhsIntegrator" );
+  BaseIntDescriptor * actRhsID = new  BaseIntDescriptor(integrator, nonLin);
+  rhsIntegrators_[SubDomIndex(subDomName)]->Push_back(actRhsID);
+}
 
 
-  //needed for static and transient analysis
-  void Assemble::AddRhsSrcSurfIntegrator(BaseForm * integrator,
-				     const std::string & subDomName, 
-				     const std::string fncname,
-				     const Integer nonLin)
-  {
-    ENTER_FCN( "Assemble::AddRhsSrcSurfIntegrator" );
+//needed for static and transient analysis
+void Assemble::AddRhsSrcIntegrator(BaseForm * integrator,
+								   const std::string & subDomName, 
+								   const std::string fncname,
+								   const Integer nonLin)
+{
+  ENTER_FCN( "Assemble::AddRhsSrcIntegrator" );
+  BaseIntDescriptor * actRhsID = new  BaseIntDescriptor(integrator, nonLin);
+  rhsSrcIntegrators_[SubDomIndex(subDomName)]->Push_back(actRhsID);
+  fncname_rhs_[SubDomIndex(subDomName)] = fncname;
+}
+
+//needed for harmonic analysis
+void Assemble::AddRhsSrcIntegrator(BaseForm * integrator,
+								   const std::string & subDomName, 
+								   const Double phaseval,
+								   const Integer nonLin)
+{
+  ENTER_FCN( "Assemble::AddRhsSrcIntegrator" );
+  BaseIntDescriptor * actRhsID = new  BaseIntDescriptor(integrator, nonLin);
+  rhsSrcIntegrators_[SubDomIndex(subDomName)]->Push_back(actRhsID);
+  rhsSrcPhase_[SubDomIndex(subDomName)] = phaseval;
+}
+
+
+//needed for static and transient analysis
+void Assemble::AddRhsSrcSurfIntegrator(BaseForm * integrator,
+									   const std::string & subDomName, 
+									   const std::string fncname,
+									   const Integer nonLin)
+{
+  ENTER_FCN( "Assemble::AddRhsSrcSurfIntegrator" );
     
-    BaseIntDescriptor * actRhsID = new  BaseIntDescriptor(integrator, nonLin);
-    rhsSrcSurfIntegrators_[SurfDomIndex(subDomName)]->Push_back(actRhsID);
-    fncname_rhsSurf_[SurfDomIndex(subDomName)] = fncname;
-  }
+  BaseIntDescriptor * actRhsID = new  BaseIntDescriptor(integrator, nonLin);
+  rhsSrcSurfIntegrators_[SurfDomIndex(subDomName)]->Push_back(actRhsID);
+  fncname_rhsSurf_[SurfDomIndex(subDomName)] = fncname;
+}
 
-  //needed for harmonic analysis
-  void Assemble::AddRhsSrcSurfIntegrator(BaseForm * integrator,
-				     const std::string & subDomName, 
-				     const Double phaseval,
-				     const Integer nonLin)
-  {
-    ENTER_FCN( "Assemble::AddRhsSrcSurfIntegrator" );
-    BaseIntDescriptor * actRhsID = new  BaseIntDescriptor(integrator, nonLin);
-    rhsSrcSurfIntegrators_[SurfDomIndex(subDomName)]->Push_back(actRhsID);
-    rhsSrcSurfPhase_[SurfDomIndex(subDomName)] = phaseval;
-  }
-
-
-  // ==========================================================
-  // STATIC ANALYSIS
-  // ==========================================================
+//needed for harmonic analysis
+void Assemble::AddRhsSrcSurfIntegrator(BaseForm * integrator,
+									   const std::string & subDomName, 
+									   const Double phaseval,
+									   const Integer nonLin)
+{
+  ENTER_FCN( "Assemble::AddRhsSrcSurfIntegrator" );
+  BaseIntDescriptor * actRhsID = new  BaseIntDescriptor(integrator, nonLin);
+  rhsSrcSurfIntegrators_[SurfDomIndex(subDomName)]->Push_back(actRhsID);
+  rhsSrcSurfPhase_[SurfDomIndex(subDomName)] = phaseval;
+}
 
 
-  StaticAssemble::StaticAssemble(BaseSystem * algsys, Grid * agrid)
-    :Assemble(algsys, agrid)
-  {
-    ENTER_FCN( "StaticAssemble::StaticAssemble" );
-    graphType_    = NODEGRAPH; 
-    SetAnalysisType(STATIC);
-  }
+// ==========================================================
+// STATIC ANALYSIS
+// ==========================================================
+
+
+StaticAssemble::StaticAssemble(BaseSystem * algsys, Grid * agrid)
+  :Assemble(algsys, agrid)
+{
+  ENTER_FCN( "StaticAssemble::StaticAssemble" );
+  graphType_    = NODEGRAPH; 
+  SetAnalysisType(STATIC);
+}
   
 
 #ifdef USE_OLAS 
-  /// define integrators
-  void StaticAssemble::AddIntegrator(BaseForm * integrator, const std::string & subDomName,
-					const FEMatrixType destinationMatrix, const Integer nonLin)
-  {
-    ENTER_FCN( "StaticAssemble::AddIntegrator" );
+/// define integrators
+void StaticAssemble::AddIntegrator(BaseForm * integrator, const std::string & subDomName,
+								   const FEMatrixType destinationMatrix, const Integer nonLin)
+{
+  ENTER_FCN( "StaticAssemble::AddIntegrator" );
 
 #ifdef USE_OLAS
-    FEMatrixType actMatType = destinationMatrix;
+  FEMatrixType actMatType = destinationMatrix;
 #else
-    MatrixType actMatType = destinationMatrix;
+  MatrixType actMatType = destinationMatrix;
 #endif
 
     
-    if (actMatType == STIFFNESS)
-      actMatType = SYSTEM;
+  if (actMatType == STIFFNESS)
+	actMatType = SYSTEM;
 
-    if (actMatType !=  SYSTEM)
-      return;
+  if (actMatType !=  SYSTEM)
+	return;
 
-    IntegratorDescriptor * actID = new IntegratorDescriptor(integrator, actMatType, nonLin);
-    integrators_[SubDomIndex(subDomName)]->Push_back(actID);
-  }
+  IntegratorDescriptor * actID = new IntegratorDescriptor(integrator, actMatType, nonLin);
+  integrators_[SubDomIndex(subDomName)]->Push_back(actID);
+}
 
 #else
-  // define integrators
-  void StaticAssemble::AddIntegrator(BaseForm * integrator,
-				     const std::string & subDomName,
-				     const enum MatrixType destinationMatrix,
-				     const Integer nonLin)
-  {
-    ENTER_FCN( "StaticAssemble::AddIntegrator" );
+// define integrators
+void StaticAssemble::AddIntegrator(BaseForm * integrator,
+								   const std::string & subDomName,
+								   const enum MatrixType destinationMatrix,
+								   const Integer nonLin)
+{
+  ENTER_FCN( "StaticAssemble::AddIntegrator" );
 
-    MatrixType actMatType = destinationMatrix;
+  MatrixType actMatType = destinationMatrix;
     
-    if (actMatType == STIFFNESS)
-      actMatType = SYSTEM;
+  if (actMatType == STIFFNESS)
+	actMatType = SYSTEM;
 
-    if (actMatType !=  SYSTEM)
-      return;
+  if (actMatType !=  SYSTEM)
+	return;
 
-    IntegratorDescriptor * actID =
-      new IntegratorDescriptor(integrator, actMatType, nonLin);
-    integrators_[SubDomIndex(subDomName)]->Push_back(actID);
-  }
+  IntegratorDescriptor * actID =
+	new IntegratorDescriptor(integrator, actMatType, nonLin);
+  integrators_[SubDomIndex(subDomName)]->Push_back(actID);
+}
 
 
 #endif
 
 #ifdef USE_OLAS 
-  /// define integrators
-  void StaticAssemble::AddSurfIntegrator(BaseForm * integrator, const std::string & subDomName,
-					const FEMatrixType destinationMatrix, const Integer nonLin)
-  {
-    ENTER_FCN( "StaticAssemble::AddSurfIntegrator" );
+/// define integrators
+void StaticAssemble::AddSurfIntegrator(BaseForm * integrator, const std::string & subDomName,
+									   const FEMatrixType destinationMatrix, const Integer nonLin)
+{
+  ENTER_FCN( "StaticAssemble::AddSurfIntegrator" );
    
 #ifdef USE_OLAS
-    FEMatrixType actMatType = destinationMatrix;
+  FEMatrixType actMatType = destinationMatrix;
 #else
-    MatrixType actMatType = destinationMatrix;
+  MatrixType actMatType = destinationMatrix;
 #endif
     
-    if (actMatType == STIFFNESS)
-      actMatType = SYSTEM;
+  if (actMatType == STIFFNESS)
+	actMatType = SYSTEM;
 
-    if (actMatType !=  SYSTEM)
-      return;
+  if (actMatType !=  SYSTEM)
+	return;
 
-    IntegratorDescriptor * actID = new IntegratorDescriptor(integrator, actMatType, nonLin);
-    surfintegrators_[SurfDomIndex(subDomName)]->Push_back(actID);
-  }
+  IntegratorDescriptor * actID = new IntegratorDescriptor(integrator, actMatType, nonLin);
+  surfintegrators_[SurfDomIndex(subDomName)]->Push_back(actID);
+}
 #else
-  /// define integrators
-  void
-  StaticAssemble::AddSurfIntegrator(BaseForm * integrator,
-				    const std::string & subDomName,
-				    const enum MatrixType destinationMatrix,
-				    const Integer nonLin)
-  {
-    ENTER_FCN( "StaticAssemble::AddSurfIntegrator" );
+/// define integrators
+void
+StaticAssemble::AddSurfIntegrator(BaseForm * integrator,
+								  const std::string & subDomName,
+								  const enum MatrixType destinationMatrix,
+								  const Integer nonLin)
+{
+  ENTER_FCN( "StaticAssemble::AddSurfIntegrator" );
 
-    MatrixType actMatType = destinationMatrix;
+  MatrixType actMatType = destinationMatrix;
     
-    if (actMatType == STIFFNESS)
-      actMatType = SYSTEM;
+  if (actMatType == STIFFNESS)
+	actMatType = SYSTEM;
 
-    if (actMatType !=  SYSTEM)
-      return;
+  if (actMatType !=  SYSTEM)
+	return;
 
-    IntegratorDescriptor * actID =
-      new IntegratorDescriptor(integrator, actMatType, nonLin);
+  IntegratorDescriptor * actID =
+	new IntegratorDescriptor(integrator, actMatType, nonLin);
 
-    surfintegrators_[SurfDomIndex(subDomName)]->Push_back(actID);
-  }
+  surfintegrators_[SurfDomIndex(subDomName)]->Push_back(actID);
+}
 #endif
 
-  // define integrators
-  void StaticAssemble::AddIntegrator(IntegratorDescriptor * actID,
-				     const std::string & subDomName)
-  {
-    ENTER_FCN( "StaticAssemble::AddIntegrator" );
+// define integrators
+void StaticAssemble::AddIntegrator(IntegratorDescriptor * actID,
+								   const std::string & subDomName)
+{
+  ENTER_FCN( "StaticAssemble::AddIntegrator" );
 
-    if (actID->DestMat() == STIFFNESS)
-      actID->SetDestMat(SYSTEM);
+  if (actID->DestMat() == STIFFNESS)
+	actID->SetDestMat(SYSTEM);
 
-    if (actID->DestMat() !=  SYSTEM)
-      return;
+  if (actID->DestMat() !=  SYSTEM)
+	return;
 
-    integrators_[SubDomIndex(subDomName)]->Push_back(actID);
-  }
+  integrators_[SubDomIndex(subDomName)]->Push_back(actID);
+}
     
 
 
-  // ==========================================================
-  // TRANSIENT ANALYSIS
-  // ==========================================================
+// ==========================================================
+// TRANSIENT ANALYSIS
+// ==========================================================
 
 
-  TransientAssemble::TransientAssemble(BaseSystem * algsys, Grid * agrid)
-    :Assemble(algsys, agrid)
-  {
-    ENTER_FCN( "TransientAssemble::TransientAssemble" );
-    graphType_    = NODEGRAPH; 
-    SetAnalysisType(TRANSIENT);
+TransientAssemble::TransientAssemble(BaseSystem * algsys, Grid * agrid)
+  :Assemble(algsys, agrid)
+{
+  ENTER_FCN( "TransientAssemble::TransientAssemble" );
+  graphType_    = NODEGRAPH; 
+  SetAnalysisType(TRANSIENT);
 
-    stiffnessMatrix_  = TRUE;
-    massMatrix_       = TRUE;
-  }
+  stiffnessMatrix_  = TRUE;
+  massMatrix_       = TRUE;
+}
 
 
 #ifdef USE_OLAS 
-  /// define integrators
-  void TransientAssemble::AddIntegrator(BaseForm * integrator, const std::string & subDomName,
-					const FEMatrixType destinationMatrix, const Integer nonLin)
-  {
-    ENTER_FCN( "TransientAssemble::AddIntegrator" );
+/// define integrators
+void TransientAssemble::AddIntegrator(BaseForm * integrator, const std::string & subDomName,
+									  const FEMatrixType destinationMatrix, const Integer nonLin)
+{
+  ENTER_FCN( "TransientAssemble::AddIntegrator" );
     
-    if (destinationMatrix == SYSTEM)
-      Info->Error("In transient assembling, no SYSTEM matrix may be defined directly", __FILE__, __LINE__);
+  if (destinationMatrix == SYSTEM)
+	Info->Error("In transient assembling, no SYSTEM matrix may be defined directly", __FILE__, __LINE__);
     
-    IntegratorDescriptor * actID = new IntegratorDescriptor(integrator, destinationMatrix, nonLin);
-    integrators_[SubDomIndex(subDomName)]->Push_back(actID);
-  }
+  IntegratorDescriptor * actID = new IntegratorDescriptor(integrator, destinationMatrix, nonLin);
+  integrators_[SubDomIndex(subDomName)]->Push_back(actID);
+}
 #else
-  /// define integrators
-  void TransientAssemble::AddIntegrator(BaseForm * integrator, const std::string & subDomName,
-					const enum MatrixType destinationMatrix, const Integer nonLin)
-  {
-    ENTER_FCN( "TransientAssemble::AddIntegrator" );
+/// define integrators
+void TransientAssemble::AddIntegrator(BaseForm * integrator, const std::string & subDomName,
+									  const enum MatrixType destinationMatrix, const Integer nonLin)
+{
+  ENTER_FCN( "TransientAssemble::AddIntegrator" );
 
-    if (destinationMatrix == SYSTEM)
-      Info->Error("In transient assembling, no SYSTEM matrix may be defined directly", __FILE__, __LINE__);
+  if (destinationMatrix == SYSTEM)
+	Info->Error("In transient assembling, no SYSTEM matrix may be defined directly", __FILE__, __LINE__);
 
-    IntegratorDescriptor * actID =
-      new IntegratorDescriptor(integrator, destinationMatrix, nonLin);
-    integrators_[SubDomIndex(subDomName)]->Push_back(actID);
-  }
+  IntegratorDescriptor * actID =
+	new IntegratorDescriptor(integrator, destinationMatrix, nonLin);
+  integrators_[SubDomIndex(subDomName)]->Push_back(actID);
+}
 #endif
 
 
 #ifdef USE_OLAS
-  /// define integrators
-  void TransientAssemble::AddSurfIntegrator(BaseForm * integrator, const std::string & subDomName,
-					const FEMatrixType destinationMatrix, const Integer nonLin)
-  {
-    ENTER_FCN( "TransientAssemble::AddSurfIntegrator" );
-    if (destinationMatrix == SYSTEM)
-      Info->Error("In transient assembling, no SYSTEM matrix may be defined directly", __FILE__, __LINE__);
+/// define integrators
+void TransientAssemble::AddSurfIntegrator(BaseForm * integrator, const std::string & subDomName,
+										  const FEMatrixType destinationMatrix, const Integer nonLin)
+{
+  ENTER_FCN( "TransientAssemble::AddSurfIntegrator" );
+  if (destinationMatrix == SYSTEM)
+	Info->Error("In transient assembling, no SYSTEM matrix may be defined directly", __FILE__, __LINE__);
 
-    IntegratorDescriptor * actID = new IntegratorDescriptor(integrator, destinationMatrix, nonLin);
-    surfintegrators_[SurfDomIndex(subDomName)]->Push_back(actID);
-  }
+  IntegratorDescriptor * actID = new IntegratorDescriptor(integrator, destinationMatrix, nonLin);
+  surfintegrators_[SurfDomIndex(subDomName)]->Push_back(actID);
+}
 #else
 
 
-  // define integrators
-  void
-  TransientAssemble::AddSurfIntegrator(BaseForm * integrator,
-				       const std::string & subDomName,
-				       const enum MatrixType destinationMatrix,
-				       const Integer nonLin)
-  {
-    ENTER_FCN( "TransientAssemble::AddSurfIntegrator" );
+// define integrators
+void
+TransientAssemble::AddSurfIntegrator(BaseForm * integrator,
+									 const std::string & subDomName,
+									 const enum MatrixType destinationMatrix,
+									 const Integer nonLin)
+{
+  ENTER_FCN( "TransientAssemble::AddSurfIntegrator" );
 
-    if (destinationMatrix == SYSTEM)
-      Info->Error("In transient assembling, no SYSTEM matrix may be defined directly", __FILE__, __LINE__);
+  if (destinationMatrix == SYSTEM)
+	Info->Error("In transient assembling, no SYSTEM matrix may be defined directly", __FILE__, __LINE__);
     
-    IntegratorDescriptor * actID =
-      new IntegratorDescriptor(integrator, destinationMatrix, nonLin);
-    surfintegrators_[SurfDomIndex(subDomName)]->Push_back(actID);
-  }
+  IntegratorDescriptor * actID =
+	new IntegratorDescriptor(integrator, destinationMatrix, nonLin);
+  surfintegrators_[SurfDomIndex(subDomName)]->Push_back(actID);
+}
 #endif
 
 
 
 
-  // define integrators
-  void TransientAssemble::AddIntegrator(IntegratorDescriptor * actID,
-					const std::string & subDomName)
-  {
-    ENTER_FCN( "TransientAssemble::AddIntegrator" );
+// define integrators
+void TransientAssemble::AddIntegrator(IntegratorDescriptor * actID,
+									  const std::string & subDomName)
+{
+  ENTER_FCN( "TransientAssemble::AddIntegrator" );
 
-    if (actID->DestMat() == SYSTEM)
-      Info->Error("In transient assembling, no SYSTEM matrix may be defined directly", __FILE__, __LINE__);
+  if (actID->DestMat() == SYSTEM)
+	Info->Error("In transient assembling, no SYSTEM matrix may be defined directly", __FILE__, __LINE__);
 
-    integrators_[SubDomIndex(subDomName)]->Push_back(actID);
-  }
+  integrators_[SubDomIndex(subDomName)]->Push_back(actID);
+}
 
 
 
-  // ==========================================================
-  // RHS INTEGRATOR DESCRIPTOR
-  // ==========================================================
+// ==========================================================
+// RHS INTEGRATOR DESCRIPTOR
+// ==========================================================
 
-  BaseIntDescriptor::BaseIntDescriptor() : 
-    integrator(NULL), nonLin(FALSE), reducedIntegration_(FALSE)
-  {
-    ENTER_FCN( "BaseIntDescriptor::BaseIntDescriptor" );
-  }
+BaseIntDescriptor::BaseIntDescriptor() : 
+  integrator(NULL), nonLin(FALSE), reducedIntegration_(FALSE)
+{
+  ENTER_FCN( "BaseIntDescriptor::BaseIntDescriptor" );
+}
 
-  BaseIntDescriptor::~BaseIntDescriptor()
-  {
-    ENTER_FCN( "BaseIntDescriptor::~BaseIntDescriptor" );
-    if (integrator != NULL)
-      delete integrator;
-  }
+BaseIntDescriptor::~BaseIntDescriptor()
+{
+  ENTER_FCN( "BaseIntDescriptor::~BaseIntDescriptor" );
+  if (integrator != NULL)
+	delete integrator;
+}
   
 
-  // define integrators
-  BaseIntDescriptor::BaseIntDescriptor(BaseForm * aIntegrator,
-				       const Boolean aNonLin)
-    : integrator(aIntegrator), nonLin(aNonLin), reducedIntegration_(FALSE)
-  {
-    ENTER_FCN( "BaseIntDescriptor::BaseIntDescriptor " );
-  }
+// define integrators
+BaseIntDescriptor::BaseIntDescriptor(BaseForm * aIntegrator,
+									 const Boolean aNonLin)
+  : integrator(aIntegrator), nonLin(aNonLin), reducedIntegration_(FALSE)
+{
+  ENTER_FCN( "BaseIntDescriptor::BaseIntDescriptor " );
+}
   
 
 
 
-  // ==========================================================
-  // INTEGRATOR DESCRIPTOR
-  // ==========================================================
+// ==========================================================
+// INTEGRATOR DESCRIPTOR
+// ==========================================================
 
-  IntegratorDescriptor::IntegratorDescriptor()
-    :BaseIntDescriptor(),
-     destinationMatrix(SYSTEM),
-     secondaryMatrix(NOTYPE),
-     secMatFac(0.0)
-  {
-    ENTER_FCN( "IntegratorDescriptor::IntegratorDescriptor" );
-  }
-
-
-#ifdef USE_OLAS
-  /// define integrators
-  IntegratorDescriptor::IntegratorDescriptor(BaseForm * aIntegrator, 
-					     const enum FEMatrixType aDestMat, const Boolean aNonLin)
-    :BaseIntDescriptor(aIntegrator, aNonLin),
-     destinationMatrix(aDestMat),
-     secondaryMatrix(NOTYPE),
-     secMatFac(0.0)
+IntegratorDescriptor::IntegratorDescriptor()
+  :BaseIntDescriptor(),
+   destinationMatrix(SYSTEM),
+   secondaryMatrix(NOTYPE),
+   secMatFac(0.0)
 {
   ENTER_FCN( "IntegratorDescriptor::IntegratorDescriptor" );
-  }
+}
+
+
+#ifdef USE_OLAS
+/// define integrators
+IntegratorDescriptor::IntegratorDescriptor(BaseForm * aIntegrator, 
+										   const enum FEMatrixType aDestMat, const Boolean aNonLin)
+  :BaseIntDescriptor(aIntegrator, aNonLin),
+   destinationMatrix(aDestMat),
+   secondaryMatrix(NOTYPE),
+   secMatFac(0.0)
+{
+  ENTER_FCN( "IntegratorDescriptor::IntegratorDescriptor" );
+}
   
 #else
-  /// define integrators
-  IntegratorDescriptor::IntegratorDescriptor(BaseForm * aIntegrator, 
-					     const enum MatrixType aDestMat,
-					     const Boolean aNonLin)
-    :BaseIntDescriptor(aIntegrator, aNonLin),
-     destinationMatrix(aDestMat),
-     secondaryMatrix(NOTYPE),
-     secMatFac(0.0)
-  {
-    ENTER_FCN( "IntegratorDescriptor::IntegratorDescriptor" );
-  }
+/// define integrators
+IntegratorDescriptor::IntegratorDescriptor(BaseForm * aIntegrator, 
+										   const enum MatrixType aDestMat,
+										   const Boolean aNonLin)
+  :BaseIntDescriptor(aIntegrator, aNonLin),
+   destinationMatrix(aDestMat),
+   secondaryMatrix(NOTYPE),
+   secMatFac(0.0)
+{
+  ENTER_FCN( "IntegratorDescriptor::IntegratorDescriptor" );
+}
   
 #endif
 
 #ifdef USE_OLAS
-      /// defines a secondary destination for the calculated element marices of an integrator      
-      void IntegratorDescriptor::SetSecondaryMat(FEMatrixType aSecMat, Double aSecMatFac,
-						 AnalysisType analysisType)
-      {
-	ENTER_FCN( "IntegratorDescriptor::SetSecondaryMat" );
-	FEMatrixType MatType = aSecMat;
+/// defines a secondary destination for the calculated element marices of an integrator      
+void IntegratorDescriptor::SetSecondaryMat(FEMatrixType aSecMat, Double aSecMatFac,
+										   AnalysisType analysisType)
+{
+  ENTER_FCN( "IntegratorDescriptor::SetSecondaryMat" );
+  FEMatrixType MatType = aSecMat;
 
-	if (analysisType == HARMONIC) {
-	  if (aSecMat == STIFFNESS || aSecMat == MASS || aSecMat == DAMPING )
-	    MatType = SYSTEM;
-	  else
-	    {
-	      std::string error_msg = "Matrix type ";
-	      error_msg += aSecMat + " not supported in harmonic analysis";
-	      Error(error_msg.c_str());
-	    }
+  if (analysisType == HARMONIC) {
+	if (aSecMat == STIFFNESS || aSecMat == MASS || aSecMat == DAMPING )
+	  MatType = SYSTEM;
+	else
+	  {
+		std::string error_msg = "Matrix type ";
+		error_msg += aSecMat + " not supported in harmonic analysis";
+		Error(error_msg.c_str());
+	  }
 
-	  SetOrigSecMatrixType(aSecMat);
-	}
+	SetOrigSecMatrixType(aSecMat);
+  }
 
-	secondaryMatrix = MatType;
-	secMatFac = aSecMatFac;
-      }
+  secondaryMatrix = MatType;
+  secMatFac = aSecMatFac;
+}
 
 #else
-      /// defines a secondary destination for the calculated element marices of an integrator      
-      void IntegratorDescriptor::SetSecondaryMat(enum MatrixType aSecMat, Double aSecMatFac, 
-						 AnalysisType analysisType)
-      {
-	ENTER_FCN( "IntegratorDescriptor::SetSecondaryMat" );
-	MatrixType MatType = aSecMat;
+/// defines a secondary destination for the calculated element marices of an integrator      
+void IntegratorDescriptor::SetSecondaryMat(enum MatrixType aSecMat, Double aSecMatFac, 
+										   AnalysisType analysisType)
+{
+  ENTER_FCN( "IntegratorDescriptor::SetSecondaryMat" );
+  MatrixType MatType = aSecMat;
 
-	if (analysisType == HARMONIC) {
-	  if (aSecMat == STIFFNESS || aSecMat == MASS || aSecMat == DAMPING )
-	    MatType = SYSTEM;
-	  else
-	    {
-	      std::string error_msg = "Matrix type ";
-	      error_msg += aSecMat + " not supported in harmonic analysis";
-	      Error(error_msg.c_str());
-	    }
+  if (analysisType == HARMONIC) {
+	if (aSecMat == STIFFNESS || aSecMat == MASS || aSecMat == DAMPING )
+	  MatType = SYSTEM;
+	else
+	  {
+		std::string error_msg = "Matrix type ";
+		error_msg += aSecMat + " not supported in harmonic analysis";
+		Error(error_msg.c_str());
+	  }
 
-	  SetOrigSecMatrixType(aSecMat);
-	}
+	SetOrigSecMatrixType(aSecMat);
+  }
 
-	secondaryMatrix = MatType;
-	secMatFac = aSecMatFac;
-      };
+  secondaryMatrix = MatType;
+  secMatFac = aSecMatFac;
+};
 #endif
 
 
-  IntegratorDescriptor::~IntegratorDescriptor()
-  {
-    ENTER_FCN( "IntegratorDescriptor::~IntegratorDescriptor" );
-    // if (integrator)
-//       delete integrator;
-  }
+IntegratorDescriptor::~IntegratorDescriptor()
+{
+  ENTER_FCN( "IntegratorDescriptor::~IntegratorDescriptor" );
+  // if (integrator)
+  //       delete integrator;
+}
 
 
-  // ==========================================================
-  // HARMONIC ANALYSIS
-  // ==========================================================
+// ==========================================================
+// HARMONIC ANALYSIS
+// ==========================================================
 
 
-  HarmonicAssemble::HarmonicAssemble(BaseSystem * algsys, Grid * agrid)
-    :Assemble(algsys, agrid)
-  {
-    ENTER_FCN( "HarmonicAssemble::HarmonicAssemble" );
-    graphType_    = NODEGRAPH; 
-    SetAnalysisType(HARMONIC);
-  }
+HarmonicAssemble::HarmonicAssemble(BaseSystem * algsys, Grid * agrid)
+  :Assemble(algsys, agrid)
+{
+  ENTER_FCN( "HarmonicAssemble::HarmonicAssemble" );
+  graphType_    = NODEGRAPH; 
+  SetAnalysisType(HARMONIC);
+}
 
-   /// set actual frequency (already multiplied by 2*pi)
-  void HarmonicAssemble::SetFrequency(Double frequency)
-  {
-    ENTER_FCN( "HarmonicAssemble::SetFrequency" );
+/// set actual frequency (already multiplied by 2*pi)
+void HarmonicAssemble::SetFrequency(Double frequency)
+{
+  ENTER_FCN( "HarmonicAssemble::SetFrequency" );
 
-    actFreq_ = 2*PI*frequency;
+  actFreq_ = 2*PI*frequency;
 
-  } 
+} 
 
 
 #ifdef USE_OLAS 
-  /// define integrators
-  void HarmonicAssemble::AddIntegrator(BaseForm * integrator,
-				       const std::string & subDomName,
-				       const FEMatrixType destinationMatrix,
-				       const Integer nonLin) {
+/// define integrators
+void HarmonicAssemble::AddIntegrator(BaseForm * integrator,
+									 const std::string & subDomName,
+									 const FEMatrixType destinationMatrix,
+									 const Integer nonLin) {
 
-    ENTER_FCN( "HarmonicAssemble::AddIntegrator" );
+  ENTER_FCN( "HarmonicAssemble::AddIntegrator" );
 
-    FEMatrixType actMatType = destinationMatrix;
-    FEMatrixType matType;  
+  FEMatrixType actMatType = destinationMatrix;
+  FEMatrixType matType;  
     
-    if (actMatType == STIFFNESS || actMatType == MASS ||
-	actMatType == DAMPING )
-      matType = SYSTEM;
-    else {
-      std::string error_msg = "Matrix type ";
-      error_msg += actMatType + " not supported in harmonic analysis";
-      Error(error_msg.c_str());
-    }
-
-    IntegratorDescriptor * actID = new IntegratorDescriptor(integrator,
-							    matType, nonLin);
-    actID->SetOrigMatrixType(actMatType);
-
-    integrators_[SubDomIndex(subDomName)]->Push_back(actID);
-
-  }
-
-#else
-  // define integrators
-  void HarmonicAssemble::AddIntegrator(BaseForm * integrator,
-				     const std::string & subDomName,
-				     const enum MatrixType destinationMatrix,
-				     const Integer nonLin)
-  {
-    ENTER_FCN( "HarmonicAssemble::AddIntegrator" );
-
-    MatrixType actMatType = destinationMatrix;
-    MatrixType matType;   
-
-    if (actMatType == STIFFNESS || actMatType == MASS || actMatType == DAMPING )
-      matType = SYSTEM;
-    else
-      {
-	std::string error_msg = "Matrix type ";
-	error_msg += actMatType + " not supported in harmonic analysis";
-	Error(error_msg.c_str());
-      }
-
-    IntegratorDescriptor * actID =
-      new IntegratorDescriptor(integrator, matType, nonLin);
-    actID->SetOrigMatrixType(actMatType);
-    
-    integrators_[SubDomIndex(subDomName)]->Push_back(actID);
-  }
-
-
-#endif
-
-#ifdef USE_OLAS 
-  /// define integrators
-  void HarmonicAssemble::AddSurfIntegrator(BaseForm * integrator,
-					   const std::string & subDomName,
-					   const FEMatrixType destinationMatrix,
-					   const Integer nonLin)
-  {
-    ENTER_FCN( "HarmonicAssemble::AddSurfIntegrator" );
-   
-    FEMatrixType actMatType = destinationMatrix;
-    FEMatrixType matType;
-    
-    if (actMatType == STIFFNESS || actMatType == MASS || actMatType == DAMPING )
-      matType = SYSTEM;
-    else
-      {
-	std::string error_msg = "Matrix type ";
-	error_msg += actMatType + " not supported in harmonic analysis";
-	Error(error_msg.c_str());
-      }
-
-    IntegratorDescriptor * actID = new IntegratorDescriptor(integrator, matType, nonLin);
-    actID->SetOrigMatrixType(actMatType);
-
-    surfintegrators_[SurfDomIndex(subDomName)]->Push_back(actID);
-  }
-#else
-  /// define integrators
-  void
-  HarmonicAssemble::AddSurfIntegrator(BaseForm * integrator,
-				    const std::string & subDomName,
-				    const enum MatrixType destinationMatrix,
-				    const Integer nonLin)
-  {
-    ENTER_FCN( "HarmonicAssemble::AddSurfIntegrator" );
-
-    MatrixType actMatType = destinationMatrix;
-    MatrixType matType;
-    
-     if (actMatType == STIFFNESS || actMatType == MASS || actMatType == DAMPING )
+  if (actMatType == STIFFNESS || actMatType == MASS ||
+	  actMatType == DAMPING )
 	matType = SYSTEM;
-     else
-       {
-	 std::string error_msg = "Matrix type ";
-	 error_msg += actMatType + " not supported in harmonic analysis";
-	 Error(error_msg.c_str());
-       }
-
-    IntegratorDescriptor * actID =
-      new IntegratorDescriptor(integrator, matType, nonLin);
-    actID->SetOrigMatrixType(actMatType);
-
-    surfintegrators_[SurfDomIndex(subDomName)]->Push_back(actID);
-
+  else {
+	std::string error_msg = "Matrix type ";
+	error_msg += actMatType + " not supported in harmonic analysis";
+	Error(error_msg.c_str());
   }
+
+  IntegratorDescriptor * actID = new IntegratorDescriptor(integrator,
+														  matType, nonLin);
+  actID->SetOrigMatrixType(actMatType);
+
+  integrators_[SubDomIndex(subDomName)]->Push_back(actID);
+
+}
+
+#else
+// define integrators
+void HarmonicAssemble::AddIntegrator(BaseForm * integrator,
+									 const std::string & subDomName,
+									 const enum MatrixType destinationMatrix,
+									 const Integer nonLin)
+{
+  ENTER_FCN( "HarmonicAssemble::AddIntegrator" );
+
+  MatrixType actMatType = destinationMatrix;
+  MatrixType matType;   
+
+  if (actMatType == STIFFNESS || actMatType == MASS || actMatType == DAMPING )
+	matType = SYSTEM;
+  else
+	{
+	  std::string error_msg = "Matrix type ";
+	  error_msg += actMatType + " not supported in harmonic analysis";
+	  Error(error_msg.c_str());
+	}
+
+  IntegratorDescriptor * actID =
+	new IntegratorDescriptor(integrator, matType, nonLin);
+  actID->SetOrigMatrixType(actMatType);
+    
+  integrators_[SubDomIndex(subDomName)]->Push_back(actID);
+}
+
+
 #endif
 
-  // define integrators
-  void HarmonicAssemble::AddIntegrator(IntegratorDescriptor * actID,
-				       const std::string & subDomName)
-  {
-    ENTER_FCN( "HarmonicAssemble::AddIntegrator" );
+#ifdef USE_OLAS 
+/// define integrators
+void HarmonicAssemble::AddSurfIntegrator(BaseForm * integrator,
+										 const std::string & subDomName,
+										 const FEMatrixType destinationMatrix,
+										 const Integer nonLin)
+{
+  ENTER_FCN( "HarmonicAssemble::AddSurfIntegrator" );
+   
+  FEMatrixType actMatType = destinationMatrix;
+  FEMatrixType matType;
+    
+  if (actMatType == STIFFNESS || actMatType == MASS || actMatType == DAMPING )
+	matType = SYSTEM;
+  else
+	{
+	  std::string error_msg = "Matrix type ";
+	  error_msg += actMatType + " not supported in harmonic analysis";
+	  Error(error_msg.c_str());
+	}
 
-    actID->SetOrigMatrixType(actID->DestMat());
-    if (actID->DestMat() == STIFFNESS || actID->DestMat() == MASS || actID->DestMat() == DAMPING )
-      actID->SetDestMat(SYSTEM);
-    else
-       {
-	 std::string error_msg = "Matrix type ";
-	 error_msg += actID->DestMat() + " not supported in harmonic analysis";
-	 Error(error_msg.c_str());
-       }
+  IntegratorDescriptor * actID = new IntegratorDescriptor(integrator, matType, nonLin);
+  actID->SetOrigMatrixType(actMatType);
 
-    integrators_[SubDomIndex(subDomName)]->Push_back(actID);
-  }
+  surfintegrators_[SurfDomIndex(subDomName)]->Push_back(actID);
+}
+#else
+/// define integrators
+void
+HarmonicAssemble::AddSurfIntegrator(BaseForm * integrator,
+									const std::string & subDomName,
+									const enum MatrixType destinationMatrix,
+									const Integer nonLin)
+{
+  ENTER_FCN( "HarmonicAssemble::AddSurfIntegrator" );
+
+  MatrixType actMatType = destinationMatrix;
+  MatrixType matType;
+    
+  if (actMatType == STIFFNESS || actMatType == MASS || actMatType == DAMPING )
+	matType = SYSTEM;
+  else
+	{
+	  std::string error_msg = "Matrix type ";
+	  error_msg += actMatType + " not supported in harmonic analysis";
+	  Error(error_msg.c_str());
+	}
+
+  IntegratorDescriptor * actID =
+	new IntegratorDescriptor(integrator, matType, nonLin);
+  actID->SetOrigMatrixType(actMatType);
+
+  surfintegrators_[SurfDomIndex(subDomName)]->Push_back(actID);
+
+}
+#endif
+
+// define integrators
+void HarmonicAssemble::AddIntegrator(IntegratorDescriptor * actID,
+									 const std::string & subDomName)
+{
+  ENTER_FCN( "HarmonicAssemble::AddIntegrator" );
+
+  actID->SetOrigMatrixType(actID->DestMat());
+  if (actID->DestMat() == STIFFNESS || actID->DestMat() == MASS || actID->DestMat() == DAMPING )
+	actID->SetDestMat(SYSTEM);
+  else
+	{
+	  std::string error_msg = "Matrix type ";
+	  error_msg += actID->DestMat() + " not supported in harmonic analysis";
+	  Error(error_msg.c_str());
+	}
+
+  integrators_[SubDomIndex(subDomName)]->Push_back(actID);
+}
 
 
 #ifdef USE_OLAS
-    void  HarmonicAssemble::TransformMatrix2Harmonic(Vector<Double>& harmMat,
-						     Matrix<Double> origMat,
-						     const FEMatrixType matrixType)
+void  HarmonicAssemble::TransformMatrix2Harmonic(Vector<Double>& harmMat,
+												 Matrix<Double> origMat,
+												 const FEMatrixType matrixType)
 #else
-    void  HarmonicAssemble::TransformMatrix2Harmonic(Vector<Double>& harmMat,
-						     Matrix<Double> origMat,
-						     const MatrixType matrixType)
+  void  HarmonicAssemble::TransformMatrix2Harmonic(Vector<Double>& harmMat,
+												   Matrix<Double> origMat,
+												   const MatrixType matrixType)
 #endif
 
-    {
-      ENTER_FCN( "HarmonicAssemble::TransformMatrix2Harmonic" );
+{
+  ENTER_FCN( "HarmonicAssemble::TransformMatrix2Harmonic" );
 
-      Integer numRow = origMat.GetSizeRow();
-      Integer numCol = origMat.GetSizeCol();
-      harmMat.Resize(2*numRow*numCol);
+  Integer numRow = origMat.GetSizeRow();
+  Integer numCol = origMat.GetSizeCol();
+  harmMat.Resize(2*numRow*numCol);
 
-      Integer k=0;
-      if (matrixType == STIFFNESS)
+  Integer k=0;
+  if (matrixType == STIFFNESS)
 	{
 	  for (Integer row=0; row<numRow; row++)
 	    for (Integer col=0; col<numCol; col++) {
@@ -1610,7 +1586,7 @@ namespace CoupledField
 	    }
 	}
 
-      else if (matrixType == MASS)
+  else if (matrixType == MASS)
 	{
 	  Double factor = -actFreq_*actFreq_;
 	  for (Integer row=0; row<numRow; row++)
@@ -1620,7 +1596,7 @@ namespace CoupledField
 	    }
 	}
 
-      else if (matrixType == DAMPING)
+  else if (matrixType == DAMPING)
 	{
 	  Double factor = actFreq_;
 
@@ -1631,36 +1607,36 @@ namespace CoupledField
 	      k++;
 	    }
 	}
-    }
+}
 
 
 
-    void  HarmonicAssemble::TransformVector2Harmonic(Vector<Double>& harmVec,
-						     Vector<Double> origVec,
-						     const Double valPhase)
-    {
-      ENTER_FCN( "HarmonicAssemble::TransformVector2Harmonic" );
+void  HarmonicAssemble::TransformVector2Harmonic(Vector<Double>& harmVec,
+												 Vector<Double> origVec,
+												 const Double valPhase)
+{
+  ENTER_FCN( "HarmonicAssemble::TransformVector2Harmonic" );
 
-      Integer size = origVec.GetSize();
-      harmVec.Resize(2*size);
+  Integer size = origVec.GetSize();
+  harmVec.Resize(2*size);
 
-      Double valReal = cos(valPhase);
-      Double valImag = sin(valPhase);
+  Double valReal = cos(valPhase);
+  Double valImag = sin(valPhase);
 
-      Integer k=0;
-      //real part
-      for (Integer i=0; i<size; i++) {
+  Integer k=0;
+  //real part
+  for (Integer i=0; i<size; i++) {
 	harmVec[k] = origVec[i]*valReal;
 	k++;
-      }
+  }
 
-      //imaginary part
-      for (Integer i=0; i<size; i++) {
+  //imaginary part
+  for (Integer i=0; i<size; i++) {
 	harmVec[k] = origVec[i]*valImag;
 	k++;
-      }
+  }
 
-    }
+}
 
 
 } // end namespace CoupledField

@@ -18,10 +18,13 @@
 #include "Utils/elemstoresol.hh"
 #include "Domain/bcs.hh"
 #include "PDE/nodeEQN.hh"
+// #include "PDE/basePDE.hh"
 
 namespace CoupledField
 {
 
+  // Forward declaration of BasePDE
+  class BasePDE;
 
   //! additional information for every integrator
   class BaseIntDescriptor {
@@ -123,6 +126,7 @@ namespace CoupledField
 
     /// returns matrix type of the secondary matrix (if there is any, otherwise NOTYPE=0)
     Double GetSecMatFac() const {return secMatFac;} 
+
       
 #ifdef USE_OLAS  
     void SetOrigMatrixType(FEMatrixType matType)
@@ -447,9 +451,16 @@ namespace CoupledField
     //sets all finite elements back to standard integration
     void SetFE2StandardInt();
 
+	//! set the PDE pointer
+	void SetPDEPointer(BasePDE * aptPDE)
+	{ptPDE_ = aptPDE;};
+
     // ====================================================
     // DATA SECTION 
     // ====================================================
+
+	
+	BasePDE * ptPDE_;                    //!< pointer to class BasePDE
     
     BaseSystem * algsys_;                //!< pointer to algebraic system  
     Grid * ptgrid_;                      //!< pointer to Grid

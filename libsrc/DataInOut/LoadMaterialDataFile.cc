@@ -334,7 +334,10 @@ namespace CoupledField
       
     *strPtr >> density >> compress >> alfa >> beta >> BoverA;
     if (strPtr->fail())
-      std::cout << "*** The materialfile is corrupt! ***  Material: " << materialName << std::endl;
+      std::cout << "*** The materialfile is corrupt! ***  Material: " 
+				<< materialName << std::endl
+				<< "Please specify density, compression module, alfa, beta and BoverA."
+				<< std::endl;
 	
     delete strPtr;
     
