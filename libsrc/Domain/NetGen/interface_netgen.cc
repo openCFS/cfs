@@ -5,7 +5,7 @@
 
 #include "interface_netgen.hh"
 #include "elements_header.hh"
-#include  "nginterface.h"
+#include "nginterface.h"
 
 #include <mystdlib.h>
 
@@ -20,14 +20,6 @@
 
 namespace CoupledField
 {
-
-//! struct for Element
-struct Elem
-{
-  BaseElem * ptElem;
-  Vector<Integer> connect;
-  std::string namesd;
-};
 
 template<>
 void InterfaceNetGen<Point2D>::Read() 
@@ -58,7 +50,7 @@ void InterfaceNetGen<Point2D>::Read()
 
   // put information about elements
   std::vector<Elem> allel;
-  ptFileType->ReadElems(allel);
+//  ptFileType->ReadElems(allel);
 
   Element2d el3(3);
   Element2d el4(4);
@@ -101,14 +93,11 @@ void InterfaceNetGen<Point2D>::Read()
     default:
 	  Error("Unknown type of element");
 	  break;
-      
 }
 }
 
-  std::cout << " dimension " << mesh.GetDimension() << std::endl;
-
-   mesh.ClearFaceDescriptors();
-   mesh.AddFaceDescriptor (FaceDescriptor(1,0,1,1));  
+  mesh.ClearFaceDescriptors();
+  mesh.AddFaceDescriptor (FaceDescriptor(1,0,1,1));  
 #ifdef TRACE
  (*trace) << "Leaving InterfaceNetGen<Dim>::Read " << std::endl;
 #endif
@@ -143,7 +132,7 @@ void InterfaceNetGen<Point3D>::Read()
 
   // put information about elements
   std::vector<Elem> allel;
-  ptFileType->ReadElems(allel);
+//  ptFileType->ReadElems(allel);
 
   Element el(4);
 
@@ -253,6 +242,8 @@ void InterfaceNetGen<Point2D>::SetRefinementFlag(Vector<Integer> & ei)
  sort(ei.get(),ei.size());
 
  Integer maxnumelem=mesh.GetNSE();
+ std::cout << maxnumelem << std::endl;
+
  Integer i,j=0;
  for (i=0; i<maxnumelem; i++)
   {

@@ -55,11 +55,11 @@ public:
   virtual Integer GetDim() { return dim_; } // mesh.GetDimension();}
    
   //! Here we mark elements for refinement: ei - number of elem
-  void SetRefinementFlag(const Integer ei);
-  void SetRefinementFlag(Vector<Integer> & ei);  
+  virtual void SetRefinementFlag(const Integer ei);
+  virtual void SetRefinementFlag(Vector<Integer> & ei);  
 
   //! Do refinement of elements, which we mark through function SetRefinementFlag
-  void Refine();
+  virtual void Refine();
 
 private:
   //! 

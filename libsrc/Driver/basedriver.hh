@@ -22,7 +22,10 @@ public:
 
   //! here adapt. time-stepping is implemented
   virtual void SolveProblemAdapt() 
-  { Error("Not implemented"); }
+  { Error("Not implemented",__FILE__,__LINE__); }
+
+  virtual void SolveProblemAdaptSpace()
+  { Error("Not implemented",__FILE__,__LINE__); }
 
   //!
   void SetupMatricesPDE(Integer pdenumber);

@@ -17,14 +17,15 @@ Elecst3dPDE::Elecst3dPDE(AbstractAlgebraicSys * ptalgsys, Grid * aptgrid, Materi
   (*trace) << "entering Elecst3dPDE::Electst3dPDE " << std::endl;
 #endif
 
-//  doftype_=4;
-  doftype_=ep_restraint;
   dofspernode_=1;
   ptgrid_=aptgrid;
 
   size_=ptgrid_->GetMaxnumnodes(0);
   sol_.Resize(size_);
   sol_.Init(0);
+
+  conf->getsubdompde(subdoms_,"Elecst3d");
+  ReadBCs("Elecst3d");
 }
 
 void Elecst3dPDE::SpecifySolver(Integer &solvertype, Integer &precondtype, Double &eps, Double &dampiter, Integer &maxnumit, Integer &numeqcoarse)
@@ -94,43 +95,49 @@ Integer &numconstraints)
   numconstraints = 0;
 }
 
-void Elecst3dPDE::SetupMatrices(const Integer type)
+void Elecst3dPDE::SetupMatrices(const Integer level)
 {
 #ifdef TRACE
   (*trace) << "entering Elecst3dPDE::SetupMatrices" << std::endl;
 #endif
   
-  Integer level=0;
-
   Matrix<Double> elemmat;
   Point3D * ptCoord;
-
-  Integer numelems=ptgrid_->GetMaxnumElem(0);
 
   BaseElem * ptElem;
 
   Integer matrix_stiff=2;
 
-  Double coeff;
-  CalcCoeff(coeff,0);  //// Attention !!!
+  Vector<Double> coeffst;
+  CalcCoeff(coeffst);  
 
   Vector<Integer> connecth;
+  std::vector<Elem> elemssd;
 
-  Integer i;
-  for (i=0; i<numelems; i++)
+  Integer i, j;
+ for (i=0; i<subdoms_.size(); i++)
+{
+ ptgrid_->GetElemSD(elemssd,subdoms_[i],level);
+
+  for (j=0; j < elemssd.size(); j++)
 {  
-  ptElem=ptgrid_->GetptElem(i);
+  std::cout << j << std::endl;
 
- BaseForm<Point3D> * bilinear_stiff = new LaplaceInt<Point3D>(ptElem,1);
+  ptElem=elemssd[j].ptElem;
 
-   ptgrid_->GetConnection(connecth,i,level);
+  BaseForm<Point3D> * bilinear_stiff = new LaplaceInt<Point3D>(ptElem,1);
 
-     ptCoord=new Point3D[connecth.size()];
-     ptgrid_->GetCoordOfNodesElem(i,0,connecth.size(),ptCoord);
+  connecth=elemssd[j].connect;
 
-      // stiffness part
-      bilinear_stiff->CalcElemMatrix(ptCoord, elemmat);
-      elemmat*=coeff;
+  ptCoord=new Point3D[connecth.size()];
+  ptgrid_->GetCoordNodesElem(connecth,ptCoord);
+
+  // stiffness part
+  bilinear_stiff->CalcElemMatrix(ptCoord, elemmat);
+  elemmat*=coeffst[i];
+
+  if (InfoPrint)
+   (*infofile) << elemmat << std::endl;
 
 #ifdef DEBUG
       (*debug) << "Stiffnessmatrix, ElementNumber  " <<   i << std::endl;
@@ -138,11 +145,11 @@ void Elecst3dPDE::SetupMatrices(const Integer type)
       (*debug) << elemmat << std::endl;
 #endif
 
-      ptalgsys_->PutElemMatAlgSys(elemmat.getinarray(), connecth.get(), connecth.size(), AS_sysid_, AS_sysid_, matrix_stiff);
+  ptalgsys_->PutElemMatAlgSys(elemmat.getinarray(), connecth.get(), connecth.size(), as_sysid_, as_sysid_, matrix_stiff);
 
-      delete bilinear_stiff;
-      delete [] ptCoord;
-     
+  delete bilinear_stiff;
+  delete [] ptCoord;
+}     
 }
 
 #ifdef TRACE
@@ -156,36 +163,62 @@ void Elecst3dPDE::SetBCs(BCs * ptBCs, const Integer level, const Integer update,
   (*trace) << "entering Elecst3dPDE::SetBCs" << std::endl;
 #endif
 
-  Integer num, node, type, tfunc;
+  Integer node;
   Double val, valueTF;
-
 
   //system matrix: id = 1
   Integer matrix_id = 1;
 
-    std::list<NodeRestraint> restr;
-    ptBCs->GetRestraints(restr,level);
+  val=ptTimeFunc_->TimeFuncAtTime(atime,level);    
 
-    val=ptTimeFunc_->TimeFuncAtTime(atime,level);    
+  Integer i,j=0;
+  std::list<Integer> nodes;
 
-    Integer i=0;
-    for (list<NodeRestraint>::const_iterator p=restr.begin(); p!=restr.end(); p++, i++)
-   {
-          Integer node=p->nodalnum;
- 
-          if (p->dof==doftype_)
-	    {
+  for (i=0; i<bcs_hd_.size(); i++)
+{
+    nodes=ptBCs->GetNodesLevel(bcs_hd_[i], level);
+  
+  for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end(); p++, j++)
+  {
+    node=*p;
+    val=0; 
           if (update==1)
             {
-              ptalgsys_->SetBCDirichletUpdate(i+1, node, val, dofspernode_, AS_sysid_, AS_sysid_, matrix_id);
+              ptalgsys_->SetBCDirichletUpdate(j+1, node, val, dofspernode_, as_sysid_, as_sysid_, matrix_id);
             }
           else
             {
-              ptalgsys_->SetBCDirichlet(i+1, node, val, dofspernode_, AS_sysid_,
-AS_sysid_, matrix_id);
+              ptalgsys_->SetBCDirichlet(j+1, node, val, dofspernode_, as_sysid_,
+as_sysid_, matrix_id);
             }
-	    }
     }
+}
+
+  for (i=0; i<bcs_id_.size(); i++)
+{
+    nodes=ptBCs->GetNodesLevel(bcs_id_[i], level);
+
+  val=val_id_[i];
+
+  for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end(); p++, j++)
+  {
+    node=*p;
+          if (update==1)
+            {
+              ptalgsys_->SetBCDirichletUpdate(j+1, node, val, dofspernode_, as_sysid_, as_sysid_, matrix_id);
+            }
+          else
+            {
+              ptalgsys_->SetBCDirichlet(j+1, node, val, dofspernode_, as_sysid_,as_sysid_, matrix_id);
+            }
+    }
+}
+ 
+ 
+#ifdef TRACE
+  (*trace) << " leaving Elecst3d::ReadBCs " << std::endl;
+#endif
+ 
 }
 
 void Elecst3dPDE::SolveStepStatic(BCs * ptBCs, Integer level)
@@ -194,23 +227,25 @@ void Elecst3dPDE::SolveStepStatic(BCs * ptBCs, Integer level)
   (*trace) << "entering Elecst3dPDE::SolveStepStatic" << std::endl;
 #endif
 
-  Integer type = 0;
   Integer update = 0;
   Integer job = 1;
 
   Double * ptsol;
 
-  SetupMatrices(type);
-  ptalgsys_->ComputeSysMatrix(AS_sysid_,AS_sysid_,matrix_factor_);
+  SetupMatrices(level);
+  ptalgsys_->ComputeSysMatrix(as_sysid_,as_sysid_,matrix_factor_);
   SetBCs(ptBCs,level,update,0);
-  ptalgsys_->ComputePrecond(job,AS_sysid_);
-  ptalgsys_->SolveAlgSys(AS_sysid_);
+  ptalgsys_->ComputePrecond(job,as_sysid_);
+  ptalgsys_->SolveAlgSys(as_sysid_);
 
-  ptsol = ptalgsys_->GetSolution(AS_sysid_);
+  ptsol = ptalgsys_->GetSolution(as_sysid_);
 
     // save solution
   Vector<Double> transsol(ptgrid_->GetMaxnumnodes(level), ptsol);
   sol_=transsol;
+
+  std::cout << sol_ << std::endl;
+
 }
 
 void Elecst3dPDE:: WriteResultsInFile()
@@ -236,19 +271,23 @@ Double Elecst3dPDE::CalcEnergyNorm()
  return sqrt(help1);
 }
 
-void Elecst3dPDE::CalcCoeff(Double & coeff, const Integer numsubdom)
+void Elecst3dPDE::CalcCoeff(Vector<Double> & coeff)
 {
- // get material number for subdomain with number numsubdom from config-file
- Integer matnum;
-// conf->getmatnum(matnum,"elecst3d");
- conf->get("elecst3d",matnum);
 
- // read density and compress with material number matnum
- Double dielectr;
- if (!MatFile_) Error("You didn't specialize material file. Use option -m");
- MatFile_->ReadDielectricTerms(dielectr,matnum); 
+  if (!MatFile_) Error("You didn't specialize material file. Use option -m");
 
- coeff=dielectr;
+  coeff.Resize(subdoms_.size());
+
+  Integer i, matnum;
+  for (i=0; i<subdoms_.size(); i++)
+{
+  conf->get(subdoms_[i],matnum,"list_subdomains");
+
+  Double dielectr;
+  MatFile_->ReadDielectricTerms(dielectr,matnum); 
+
+  coeff[i]=dielectr;
+}
 }
 
 Elecst3dPDE::~Elecst3dPDE()

@@ -4,6 +4,7 @@
 #include "vector.hh"
 #include <list>
 #include <vector>
+#include <string>
 
 namespace CoupledField
 {
@@ -13,7 +14,6 @@ namespace CoupledField
     Base class for reading input data. Their functions are virtual due to handle the different types of input files and to hide their features from developer of code.
   */
 
-struct NodeRestraint;
 struct Elem;
 
 class FileType
@@ -31,9 +31,6 @@ public:
   virtual void ReadMaxnumnodes(Integer & maxnumnodes)=0;  
 
   //!
-  virtual void ReadMaxnumelem(Integer & maxnumelem)=0;
-
-  //!
   virtual void ReadCoordinate(Point3D * const InitNodalCo,                                                     const Integer maxnumNodes)=0;
 
   //!
@@ -41,10 +38,12 @@ public:
 			      const Integer maxnumNodes)=0;
 
   //!
-  virtual void ReadBoundRestr(std::list<NodeRestraint> & restr, Integer & numberRestr)=0;
+  virtual void ReadBCs(std::list<Integer> * bcs, std::vector<std::string> levels)=0;  
 
   //!
-  virtual void ReadElems(std::vector<Elem> & allelems)=0;
+  virtual void ReadEl(std::vector<Elem> * elems, const std::vector<std::string>
+sd)
+ { Error(" not implemented",__FILE__,__LINE__);}
  
   //!
   virtual Integer ReadDim()=0;  

@@ -2,6 +2,7 @@
 #define FILE_DOMAIN_2001
 
 #include "grid.hh"
+#include "bcs.hh"
 #include "basepde.hh"
 
 namespace CoupledField
@@ -39,6 +40,12 @@ public:
   //! get pointer to boundary condition
   BCs * GetBCs(){ return ptBCs_;}
 
+  //! update algebraic system and bcs after refinement the mesh
+  void Update(const Integer sysid);
+
+  //!
+  Grid * GetGrid(){ return ptgrid_;}
+
  void TestGrid();
 protected:
 
@@ -48,6 +55,9 @@ private:
 
    //! initialization of alg.sys.
    void InitAlgSys();
+
+  //! update alg. sys. in case of new mesh
+  void UpdateAlgSys(const Integer sysid);
 
   //!
   Integer numsubdomain_;

@@ -18,16 +18,19 @@ public:
 
   //! get from conf-file TypeVal(string, integer, double) value
   template<class TypeVal>
-  void get(const std::string keyword, TypeVal & val, const std::string section="");
-
-     //! get matnum for subdomain with number numsd
-   void getmatnum(Integer & matnum, const Integer numsubdom);
+  void get(const std::string keyword, TypeVal & val, const std::string section="", const std::string subsection="", const std::string subsubsection="");
 
    //! get type of equation for subdomain with number numsd
-   void getequation(std::string & eq, const Integer numsubdom);
+  void getsubdom(std::vector<std::string> & subdoms);
 
-   //! get history nodes
-   void gethistorynodes(std::vector<Integer> & hist);
+   //! get list of value like history nodes
+   void getlist(std::vector<Integer> & hist,const std::string seekexp);
+
+  //! get arrays of pdes
+  void getliststr(const std::string seekexp, std::vector<std::string> & pdes, const std::string section="", const std::string subsection="");
+
+  //!
+void getsubdompde(std::vector<std::string> & subdoms, const std::string section);
 
 protected:
 

@@ -17,6 +17,7 @@ namespace CoupledField
    */
 
 class TimeErrorEstimator;
+class SpaceErrorEstimator;
 
 class BasePDE
 {
@@ -26,7 +27,7 @@ public:
   BasePDE(AbstractAlgebraicSys * aptalgsys, Material * aMatFile, FileType * aInFile, WriteResults * aOutFile, TimeFunc * aptTimeFunc); 
 
   //! Deconstructor
-  virtual ~BasePDE(){;}
+  virtual ~BasePDE();
 
   //!
   virtual void SetMatrixFactors()=0;
@@ -64,6 +65,9 @@ public:
   //! Create pointer to according class of time error estimation
   virtual TimeErrorEstimator * CreatePtTimeError(){ Error("Function CreatePtTimeError is not overloaded in this class");}  
 
+  //! Create pointer to according class of space error estimation
+  virtual SpaceErrorEstimator * CreatePtSpaceError(){ Error("Function CreatePtSpaceError is not overloaded in this class");}
+
   //!
   virtual const Vector<Double> & getS() const =0;
 
@@ -95,7 +99,15 @@ public:
   virtual void CalcThirdDerivateFromEquation(Vector<Double> & result)
  { Error("Function getSize is not overloaded in this class");} 
 
+  //!
+  Integer GetSysId() const { return as_sysid_;} 
+
+  //!
+  Integer GetNumRestraints(BCs * ptBCs, const Integer level);
+
 protected:
+   //! read from .config-file info about BCs
+   void ReadBCs(const std::string eq);
 
   //!
   Double StepTime_;
@@ -117,12 +129,28 @@ protected:
 
  //!
   TimeErrorEstimator * ptTimeError_;
+  SpaceErrorEstimator * ptSpaceError_;
 
  //!
   AbstractAlgebraicSys * ptalgsys_;
 
  //!
-  Integer AS_sysid_;
+  Integer as_sysid_;
+
+  //! boundary conditions
+  std::vector<std::string> bcs_hd_;
+  std::vector<std::string> bcs_id_;
+  std::vector<std::string> bcs_nh_;
+  std::vector<std::string> bcs_ni_;
+  std::vector<std::string> bcs_rh_;
+  std::vector<std::string> bcs_ri_;
+
+  //!
+  std::vector<Integer> val_id_; 
+
+  //!
+  std::vector<std::string> subdoms_;  
+
 };
 
 } // end of namespace

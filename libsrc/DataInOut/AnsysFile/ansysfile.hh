@@ -27,7 +27,7 @@ public:
   virtual void ReadMaxnumnodes(Integer & );
 
   //!
-  virtual void ReadMaxnumelem(Integer & );
+//  virtual void ReadMaxnumelem(Integer & );
 
   //!
   virtual void ReadCoordinate(Point3D * const NodesCoord,                                                     const Integer maxnumNodes);
@@ -37,13 +37,13 @@ public:
 			      const Integer maxnumNodes);
 
   //!
-  virtual void ReadBoundRestr(std::list<NodeRestraint> & restr, Integer & numberRestr);
-
-  //!
-  virtual void ReadElems(std::vector<Elem> & allelems);
+  virtual void ReadEl(std::vector<Elem> * elems, const std::vector<std::string> sd);  
 
   //!
   Integer ReadDim();
+
+  //!
+  void ReadBCs(std::list<Integer> * bcs, const std::vector<std::string> levels);
 
 protected:
   //! 
@@ -62,11 +62,14 @@ private:
   // get position in line
 void getPosition(const std::string seekexp, std::string::size_type & pos);
 
-  // transform string for level of boundary condition in number
- enum TypeBCs TransformInDof(const std::string type_bc);
-
   // read number of nodes for boundary condition
   void ReadMaxnumnodesbc(Integer & nbc);
+
+  //
+  void ReadMaxnumelem(Integer & , const std::string keyword);
+  //
+void ReadEl2d(std::vector<Elem> * allelems, const std::vector<std::string> sd);
+void ReadEl3d(std::vector<Elem> * allelems, const std::vector<std::string> sd);
 
   // transform type of elem in pointer to base class BaseElem
   BaseElem * Type2ptElem(const Integer itype);

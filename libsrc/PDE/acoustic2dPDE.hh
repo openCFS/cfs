@@ -35,7 +35,7 @@ Double &adampiter,  Integer &amaxnumit, Integer &numeqcoarse);
   void SetMatrixFactors();
 
   //!
-  void SetupMatrices(const Integer type);
+  void SetupMatrices(const Integer level);
 
     //!
   void SetBCs(BCs * ptBCs, const Integer level, const Integer update, const Double atime);
@@ -44,10 +44,13 @@ Double &adampiter,  Integer &amaxnumit, Integer &numeqcoarse);
   void ComputeRHS();
 
   //! calculation derivates of solution 
-  void CalculationDerivativesSol();
+  void CalculationDerivativesSol(const Boolean Recalc);
 
   //! create pointer to class for time error estimation
   virtual TimeErrorEstimator * CreatePtTimeError();  
+
+  //! create pointer to class for time error estimation
+  virtual SpaceErrorEstimator * CreatePtSpaceError();
 
   //! Calculation of energy norm
   Double CalcEnergyNorm();
@@ -96,8 +99,8 @@ private:
   //! Calculation parameters for Newmark method
   virtual void CalcParameters(const Double dt);
 
-  //! calculation of coefficient in equation
-  void CalcCoeff(Double & coeffmass, Double & coeffstiff, const Integer numsubdom);  
+  //!
+  void CalcCoeff(Vector<Double> & coeffmass, Vector<Double> & coeffstiff);
 
   //!
   Double a0_,a1_,a2_,a3_,a4_,a5_,a6_,a7_;
@@ -108,6 +111,8 @@ private:
   //! store solution, 1st derivative , 2nd derivative solution
   Vector<Double> sol_, sol_der1_, sol_der2_, sol_old_, sol_der1_old_, sol_der2_old_;  
 
+  Vector<Double> s_oldold_, s_d1_oldold_, s_d2_oldold_;
+
   //! Last time on which we have calculated solution
   Double lasttimecalc_;
 
@@ -117,9 +122,6 @@ private:
   //! size of solution and etc.
   Integer size_;
 
-  //! type of dof
-//  Integer doftype_;
-  enum TypeBCs doftype_;
 };
 
 } // end of namespace

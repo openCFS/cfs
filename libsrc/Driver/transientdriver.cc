@@ -6,6 +6,7 @@
 #include "transientdriver.hh"
 #include "actimeerror.hh"
 #include "vector.hh"
+#include "spaceerror.hh"
 
 namespace CoupledField
 {
@@ -68,7 +69,7 @@ void TransientDriver :: SolveProblem()
     {
       ptdomain_->GetPDE(pdenumber)->SolveStepTrans(ptdomain_->GetBCs(), nstep, steptime, level, updatesysmat);
 
-   // writing results in output-file
+    // writing results in output-file
     if (nstep == stepsave && (nstep < isaveend_))
       { 
         ptdomain_->GetPDE(pdenumber)->WriteResultsInFile();
@@ -89,6 +90,7 @@ void TransientDriver :: SolveProblem()
    }
 }
 
+/*
 void TransientDriver :: SolveProblemAdapt()
 {
 #ifdef TRACE
@@ -124,10 +126,93 @@ void TransientDriver :: SolveProblemAdapt()
  ptdomain_->GetPDE(pdenumber)->SolveStepTrans(ptdomain_->GetBCs(), nstep, steptime, level, resetsysmat);
 
  ptdomain_->GetPDE(pdenumber)->WriteResultsInFile();
+
+ ptTimeError->CalcThirdDer();
+ ptTimeError->CalcError(dt);
+
+ nstep++;
+ steptime_prev=steptime;
+ steptime+=dt;
+ }
+
+  ptdomain_->GetPDE(pdenumber)->SolveStepTrans(ptdomain_->GetBCs(), nstep, steptime, level, resetsysmat);
+
+  ptdomain_->GetPDE(pdenumber)->WriteResultsInFile();
+
+do
+  {
+   if (ptTimeError->TestError(dt))
+      {
+        Double prev_dt=dt;
+        ptTimeError->ChangeStep(dt);
+
+       nstep++;
+       steptime_prev=steptime;
+       steptime+=dt;
+
+       ptdomain_->GetPDE(pdenumber)->CalcParameters(dt);
+       ptdomain_->GetPDE(pdenumber)->SetMatrixFactors();
+
+       resetsysmat=TRUE;
+      }
+   else
+     {
+      nstep++;
+      steptime_prev=steptime;
+      steptime+=dt;
+     resetsysmat=FALSE;
+     }
+
+  ptdomain_->GetPDE(pdenumber)->SolveStepTrans(ptdomain_->GetBCs(), nstep, steptime, level, resetsysmat);
+  ptdomain_->GetPDE(pdenumber)->WriteResultsInFile();
+
+  std::cout << steptime << " steptime " << dt << " dt " << std::endl;
+  } 
+while ( steptime <= endtime);
+
+  std::cout << " number of steps " << nstep << std::endl;
+}
+*/
+
+void TransientDriver :: SolveProblemAdapt()
+{
+#ifdef TRACE
+  (*trace) << "entering TransientDriver::SolveProblemAdapt" << std::endl;
+#endif
+
+  Integer i,level=0;
+  Integer pdenumber  = 0;
+  Integer nsys = 0;
+  Double steptime=firstdt_;
+  Double steptime_prev=0;
+  Integer nstep=0;
+
+  // calculation of end-time
+  Double endtime=numstep_*firstdt_;
+
+//  TimeErrorEstimator ** ptTimeError=new TimeErrorEstimation * [pdenumber];
+  TimeErrorEstimator * ptTimeError;
+
+  ptTimeError=ptdomain_->GetPDE(pdenumber)->CreatePtTimeError();
+
+  Double dt=firstdt_;
+  Boolean resetsysmat=FALSE;
+
+  ptdomain_->GetPDE(pdenumber)->CalcParameters(dt);
+  ptdomain_->GetPDE(pdenumber)->SetMatrixFactors();
+
+ Integer startrepeat;
+ conf->get("startrepeat",startrepeat,"Acoustic");
+
+ for (i=0; i<startrepeat; i++)
+ {
+ ptdomain_->GetPDE(pdenumber)->SolveStepTrans(ptdomain_->GetBCs(), nstep, steptime, level, resetsysmat);
+
+ ptdomain_->GetPDE(pdenumber)->WriteResultsInFile();
  if (InfoPrint)
   (*infofile) << steptime << " " << dt << std::endl;
 
- ptTimeError->CalcThirdDer();
+ // ptTimeError->CalcThirdDer();
  ptTimeError->CalcError(dt);
 
  nstep++;
@@ -141,12 +226,14 @@ do
   {
    if (ptTimeError->TestError(dt))
       {
+	std::cout << " Test error is truw " << std::endl;
         Double prev_dt=dt;
         ptTimeError->ChangeStep(dt);
 
        if (prev_dt < dt)
        {
        ptdomain_->GetPDE(pdenumber)->WriteResultsInFile();
+
  if (InfoPrint)
   (*infofile) << steptime << " " << dt << std::endl;
 
@@ -157,7 +244,8 @@ do
       }
       else
       {
-       steptime-=prev_dt;
+	std::cout << " we do refinement " << steptime << " dt " << dt << " " <<std::endl;
+       steptime=steptime_prev;
        steptime+=dt;
        std::cout << " REFINE " << std::endl;
       }
@@ -181,7 +269,7 @@ do
   ptdomain_->GetPDE(pdenumber)->SolveStepTrans(ptdomain_->GetBCs(), nstep, steptime, level, resetsysmat);
 
   std::cout << steptime << " steptime " << dt << " dt " << std::endl;
-  } 
+  }
 while ( steptime <= endtime);
 
   ptdomain_->GetPDE(pdenumber)->WriteResultsInFile();
@@ -191,4 +279,56 @@ while ( steptime <= endtime);
   std::cout << " number of steps " << nstep << std::endl;
 }
 
+void TransientDriver :: SolveProblemAdaptSpace()
+{
+#ifdef TRACE
+  (*trace) << "entering TransientDriver::SolveProblemAdaptSpace" << std::endl;
+#endif
+
+  Integer level=0;
+  Integer pdenumber = 0;
+  Integer nsys = 0;
+  Double steptime=firstdt_;
+  Integer stepsave=isavebegin_-1;
+
+  Double dt=firstdt_;
+  Boolean updatesysmat=FALSE;
+
+  SpaceErrorEstimator * ptSpaceError;
+  ptSpaceError=ptdomain_->GetPDE(pdenumber)->CreatePtSpaceError();
+
+  ptdomain_->GetPDE(pdenumber)->CalcParameters(dt);
+  ptdomain_->GetPDE(pdenumber)->SetMatrixFactors();
+
+  Integer nstep;
+  for (nstep = 0; nstep<numstep_; nstep++)
+    {
+      ptdomain_->GetPDE(pdenumber)->SolveStepTrans(ptdomain_->GetBCs(), nstep, steptime, level, updatesysmat);
+
+      //     while (ptSpaceError->TestError())
+      // {
+  ptSpaceError->RefineMesh();
+  Integer sysid=ptdomain_->GetPDE(pdenumber)->GetSysId();
+  std::cout << sysid << std::endl;
+  ptdomain_->Update(sysid);
+
+  /*
+  Char * name="testref";
+  WriteResults * ptOut=new WriteResultsUnverg(name);
+  ptOut->Init(ptdomain_->GetGrid());
+  ptOut->WriteGrid(1);
+  if (ptOut) delete ptOut;
+  exit(1);
+  */
+      // }
+     
+    if (nstep == stepsave && (nstep < isaveend_))
+      {
+        ptdomain_->GetPDE(pdenumber)->WriteResultsInFile();
+        stepsave+=isaveincr_;
+      }
+   steptime+=dt;
+   }
+}
+ 
 } // end of namespace

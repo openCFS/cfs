@@ -110,6 +110,7 @@ void  WriteResultsUnverg::Dataset780(const Integer level)
 
  Integer maxnumelem=ptgrid-> GetMaxnumElem(level);
 
+ std::cout << " me " << maxnumelem << std::endl;
 
  Vector<Integer> connect;
 
@@ -119,7 +120,7 @@ void  WriteResultsUnverg::Dataset780(const Integer level)
 
      ptgrid->GetConnection(connect, i, level);
 
-   if (dim==2)
+     if (dim==2)
 {     switch(connect.size())
      {
        case 3: (*output) << 91 ; break;

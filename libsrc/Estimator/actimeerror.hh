@@ -49,6 +49,9 @@ private:
   //!
   Boolean Calc3DerFromEquation_;
 
+  //!
+  Double err1_,err2_;  
+
 };
 
 inline AcousticTimeErrorEstimator::~AcousticTimeErrorEstimator()

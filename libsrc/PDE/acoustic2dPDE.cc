@@ -5,9 +5,9 @@
 
 #include "acoustic2dPDE.hh"
 #include "actimeerror.hh"
+#include "acspaceadapt.hh"
 #include "outUnverg.hh"
 #include "forms_header.hh"
-
  
 namespace CoupledField
 {
@@ -19,8 +19,6 @@ Acoustic2dPDE::Acoustic2dPDE(AbstractAlgebraicSys * ptalgsys, Grid * aptgrid, Ma
   (*trace) << "entering Acoustic2dPDE::Acoustic2dPDE " << std::endl;
 #endif
 
-//  doftype_=5;
-  doftype_=vp_restraint;
   dofspernode_=1;
   ptgrid_=aptgrid;
 
@@ -29,6 +27,7 @@ Acoustic2dPDE::Acoustic2dPDE(AbstractAlgebraicSys * ptalgsys, Grid * aptgrid, Ma
   ptOutput->Init(ptgrid_);
   ptOutput->WriteGrid(0);  
 
+  laststepcalc_=0;
   size_=ptgrid_->GetMaxnumnodes(0);
 
   sol_.Resize(size_);
@@ -52,10 +51,15 @@ Acoustic2dPDE::Acoustic2dPDE(AbstractAlgebraicSys * ptalgsys, Grid * aptgrid, Ma
   sol_der2_old_.Resize(size_);
   sol_der2_old_.Init(0);
 
+  s_oldold_.Resize(size_);
+  s_oldold_.Init(0);
+
   conf->get("alpha_NM",alpha_,"Acoustic"); 
   conf->get("beta_NM",beta_,"Acoustic"); 
   conf->get("gamma_NM",gamma_,"Acoustic");
 
+  conf->getsubdompde(subdoms_,"Acoustic");
+  ReadBCs("Acoustic");
 }
 
 void Acoustic2dPDE::SpecifySolver(Integer &solvertype, Integer &precondtype, Double &eps, Double &dampiter, Integer &maxnumit, Integer &numeqcoarse)
@@ -127,46 +131,50 @@ Integer &numconstraints)
   numconstraints = 0;
 }
 
-void Acoustic2dPDE::SetupMatrices(const Integer type)
+void Acoustic2dPDE::SetupMatrices(const Integer level)
 {
 #ifdef TRACE
   (*trace) << "entering Acoustic2dPDE::SetupMatrices" << std::endl;
 #endif
 
-  Integer level=0;
-
   Matrix<Double> elemmat;
   Point2D * ptCoord; 
 
-  Integer numelems=ptgrid_->GetMaxnumElem(0);
-
-  BaseElem * ptElem;
+  BaseElem * ptEl;
 
   Integer matrix_stiff=2;
   Integer matrix_mass=5;
 
-  Double coeffmass,coeffstiff;
-
-/// !!!!!!!!
-  CalcCoeff(coeffmass, coeffstiff,0);
+  Vector<Double> coeffm, coeffst;
+  CalcCoeff(coeffm, coeffst);
 
  Vector<Integer> connecth;
- Integer i;
- for (i=0; i< numelems; i++)
+ std::vector<Elem> elemssd;
+
+ Integer i, j;
+ for (i=0; i<subdoms_.size(); i++)
 {
-  ptElem=ptgrid_->GetptElem(i);
+ ptgrid_->GetElemSD(elemssd,subdoms_[i],level);
 
-  BaseForm<Point2D> * bilinear_stiff = new LaplaceInt<Point2D>(ptElem,1);
-  BaseForm<Point2D> * bilinear_mass  = new MassInt<Point2D>(ptElem,1);
+ for (j=0; j< elemssd.size(); j++)
+{
+  ptEl=elemssd[j].ptElem;
 
-  ptgrid_->GetConnection(connecth,i,level);
+  BaseForm<Point2D> * bilinear_stiff = new LaplaceInt<Point2D>(ptEl,1);
+  BaseForm<Point2D> * bilinear_mass  = new MassInt<Point2D>(ptEl,1);
+
+  connecth=elemssd[j].connect;
   
   ptCoord=new Point2D[connecth.size()];
-  ptgrid_->GetCoordOfNodesElem(i,0,connecth.size(),ptCoord);
+//  ptgrid_->GetCoordOfNodesElem(i,level,connecth.size(),ptCoord);
+  ptgrid_->GetCoordNodesElem(connecth,ptCoord);  
 
   // stiffness part
   bilinear_stiff->CalcElemMatrix(ptCoord, elemmat);
-  elemmat*=coeffstiff;
+
+  std::cout << coeffst[i] << " Stiffness " << std::endl;
+
+  elemmat*=coeffst[i];
 
 #ifdef DEBUG
       (*debug) << "Stiffnessmatrix, ElementNumber  " <<   i << std::endl;
@@ -174,11 +182,12 @@ void Acoustic2dPDE::SetupMatrices(const Integer type)
       (*debug) << elemmat << std::endl;
 #endif     
 
-  ptalgsys_->PutElemMatAlgSys(elemmat.getinarray(), connecth.get(), connecth.size(), AS_sysid_, AS_sysid_, matrix_stiff);
+  ptalgsys_->PutElemMatAlgSys(elemmat.getinarray(), connecth.get(), connecth.size(), as_sysid_, as_sysid_, matrix_stiff);
 
       // mass part
   bilinear_mass->CalcElemMatrix(ptCoord, elemmat);
-  elemmat*=coeffmass;
+
+  elemmat*=coeffm[i];
 
 #ifdef DEBUG
       (*debug) << "Massmatrix, ElementNumber  " << i << std::endl;
@@ -186,14 +195,15 @@ void Acoustic2dPDE::SetupMatrices(const Integer type)
       (*debug) << elemmat << std::endl;
 #endif
       
-  ptalgsys_->PutElemMatAlgSys(elemmat.getinarray(), connecth.get(), connecth.size(), AS_sysid_, AS_sysid_,matrix_mass);
+  ptalgsys_->PutElemMatAlgSys(elemmat.getinarray(), connecth.get(), connecth.size(), as_sysid_, as_sysid_,matrix_mass);
 
   
   delete bilinear_stiff;
   delete bilinear_mass;
   delete [] ptCoord;
-}
 
+  }
+ }
 #ifdef TRACE
   (*trace) << "Leaving Acoustic2dPDE::SetupMatrices" << std::endl;
 #endif
@@ -205,34 +215,36 @@ void Acoustic2dPDE::SetBCs(BCs * ptBCs, const Integer level, const Integer updat
   (*trace) << "entering Acoustic2dPDE::SetBCs" << std::endl;
 #endif
 
-  Integer num, node, type, tfunc;
+  Integer node;
   Double val, valueTF;
 
   //system matrix: id = 1
   Integer matrix_id = 1;
 
-    std::list<NodeRestraint> restr;
-    ptBCs->GetRestraints(restr,level);
+  val=ptTimeFunc_->TimeFuncAtTime(atime,level);
 
-    val=ptTimeFunc_->TimeFuncAtTime(atime,level);    
+// set dirichlet boundary conditions
+  Integer i,j=0;
+  std::list<Integer> nodes_hd;
+  for (i=0; i< bcs_hd_.size(); i++)
+{
+  nodes_hd=ptBCs->GetNodesLevel(bcs_hd_[i], level);
+  
+  for (std::list<Integer>::const_iterator p=nodes_hd.begin(); p!=nodes_hd.end(); p++, j++)
+  {
+    node=*p;
 
-    Integer i=0;
-    for (std::list<NodeRestraint>::const_iterator p=restr.begin(); p!=restr.end(); p++, i++)
-   {
-          Integer node=p->nodalnum;
-
-          if (p->dof==doftype_)
-	    {
-          if (update==1)
+             if (update==1)
             {
-              ptalgsys_->SetBCDirichletUpdate(i+1, node, val, dofspernode_, AS_sysid_, AS_sysid_, matrix_id);
+              ptalgsys_->SetBCDirichletUpdate(j+1, node, val, dofspernode_, as_sysid_, as_sysid_, matrix_id);
             }
           else
             {
-              ptalgsys_->SetBCDirichlet(i+1, node, val, dofspernode_, AS_sysid_, AS_sysid_, matrix_id);
+              ptalgsys_->SetBCDirichlet(j+1, node, val, dofspernode_, as_sysid_, as_sysid_, matrix_id);
             }
-	    }
-    }
+  }
+}
+
 #ifdef TRACE
   (*trace) << "leaving Acoustic2dPDE::SetBCs" << std::endl;
 #endif
@@ -250,7 +262,7 @@ void Acoustic2dPDE::ComputeRHS()
       matrix_id = 5;
       coeffMass=sol_*a0_+sol_der1_*a2_+sol_der2_*a3_;
 
-      ptalgsys_->UpdateRHS(AS_sysid_,AS_sysid_,matrix_id,coeffMass.get());
+      ptalgsys_->UpdateRHS(as_sysid_,as_sysid_,matrix_id,coeffMass.get());
 }
 
 void Acoustic2dPDE::SolveStepStatic(BCs * ptBCs, Integer level)
@@ -259,14 +271,13 @@ void Acoustic2dPDE::SolveStepStatic(BCs * ptBCs, Integer level)
   (*trace) << "entering Acoustic2dPDE::SolveStepStatic" << std::endl;
 #endif
 
-  Integer type = 0;
   Integer update = 0;
   Integer job = 1;
 
-  SetupMatrices(type);
+  SetupMatrices(level);
   SetBCs(ptBCs,level,update,0);
-  ptalgsys_->ComputePrecond(job,AS_sysid_);
-  ptalgsys_->SolveAlgSys(AS_sysid_);
+  ptalgsys_->ComputePrecond(job,as_sysid_);
+  ptalgsys_->SolveAlgSys(as_sysid_);
 }
 
 void Acoustic2dPDE::SolveStepTrans(BCs * ptBCs, const Integer kstep, const Double asteptime, const Integer level, const Boolean reset)
@@ -276,7 +287,11 @@ void Acoustic2dPDE::SolveStepTrans(BCs * ptBCs, const Integer kstep, const Doubl
 #endif
 
   lasttimecalc_= asteptime;
-  laststepcalc_= kstep;
+  Boolean Recalc=FALSE;
+  std::cout << laststepcalc_ << " " << kstep << std::endl;
+
+  if (laststepcalc_==kstep && kstep!=0) Recalc=TRUE;
+  else laststepcalc_= kstep;
 
   Double * ptsol;
 
@@ -284,37 +299,35 @@ void Acoustic2dPDE::SolveStepTrans(BCs * ptBCs, const Integer kstep, const Doubl
 
   if (kstep==0)
      {
-        Integer type=0;
         update = 0;
         job = 1;
-        SetupMatrices(type);
-        ptalgsys_->ComputeSysMatrix(AS_sysid_,AS_sysid_,matrix_factor_);
+        SetupMatrices(level);
+        ptalgsys_->ComputeSysMatrix(as_sysid_,as_sysid_,matrix_factor_);
      }
   else if (reset)
        {
         update = 1;
         job    = 1;
 
-        ptalgsys_->ResetRHS(AS_sysid_);
+        ptalgsys_->ResetRHS(as_sysid_);
         ptalgsys_->ResetMatrix(0,0,1);
-        ptalgsys_->ComputeSysMatrix(AS_sysid_,AS_sysid_,matrix_factor_);
+        ptalgsys_->ComputeSysMatrix(as_sysid_,as_sysid_,matrix_factor_);
         ComputeRHS();
        }
        else
         {
          update = 1;
          job    = 3;
-         ptalgsys_->ResetRHS(AS_sysid_);
+         ptalgsys_->ResetRHS(as_sysid_);
          ComputeRHS();
         };
 
   SetBCs(ptBCs,level,update,lasttimecalc_);
-  ptalgsys_->ComputePrecond(job,AS_sysid_);
-  ptalgsys_->SolveAlgSys(AS_sysid_);
-  ptsol = ptalgsys_->GetSolution(AS_sysid_);
+  ptalgsys_->ComputePrecond(job,as_sysid_);
+  ptalgsys_->SolveAlgSys(as_sysid_);
+  ptsol = ptalgsys_->GetSolution(as_sysid_);
 
     // save solution
-//  sol_.TransformInVector(ptgrid_->GetMaxnumnodes(level),ptsol);
    Integer i;
    for (i=0; i<ptgrid_->GetMaxnumnodes(level); i++)
     sol_[i]=ptsol[i];
@@ -322,9 +335,8 @@ void Acoustic2dPDE::SolveStepTrans(BCs * ptBCs, const Integer kstep, const Doubl
   std::cout << "maxnode:" <<  ptgrid_->GetMaxnumnodes(level) << " level:" << level << std::endl;
 
    // calculation of derivatives of solution
-  CalculationDerivativesSol();
+  CalculationDerivativesSol(Recalc);
 
-//  ptOutput->WriteSolution(sol_,laststepcalc_,lasttimecalc_,"fluid potential");
 }
 
 void Acoustic2dPDE::CalcThirdDerivateFromEquation(Vector<Double> & result)
@@ -345,9 +357,9 @@ void Acoustic2dPDE::CalcThirdDerivateFromEquation(Vector<Double> & result)
 
   job    = 1;
 
-  ptalgsys_->ResetRHS(AS_sysid_);
+  ptalgsys_->ResetRHS(as_sysid_);
   ptalgsys_->ResetMatrix(0,0,1);
-  ptalgsys_->ComputeSysMatrix(AS_sysid_,AS_sysid_,mat_factor);
+  ptalgsys_->ComputeSysMatrix(as_sysid_,as_sysid_,mat_factor);
 
   Integer matrix_id;
   Vector<Double> coeffMass;
@@ -356,13 +368,13 @@ void Acoustic2dPDE::CalcThirdDerivateFromEquation(Vector<Double> & result)
   Vector<Double> help=-sol_der1_;
   std::cout << help << std::endl;
 
-  ptalgsys_->UpdateRHS(AS_sysid_,AS_sysid_,matrix_id, help.get());
+  ptalgsys_->UpdateRHS(as_sysid_,as_sysid_,matrix_id, help.get());
 
   update=1; // use boundary condition at this time step
 //  SetBCs(ptBCs,level,update,lasttimecalc_);
-  ptalgsys_->ComputePrecond(job,AS_sysid_);
-  ptalgsys_->SolveAlgSys(AS_sysid_);
-  ptres = ptalgsys_->GetSolution(AS_sysid_);
+  ptalgsys_->ComputePrecond(job,as_sysid_);
+  ptalgsys_->SolveAlgSys(as_sysid_);
+  ptres = ptalgsys_->GetSolution(as_sysid_);
 
  // save solution
   Integer level=0; //   !!!!!!!!!!!!!!
@@ -409,20 +421,30 @@ void Acoustic2dPDE :: CalcParameters(const Double dt)
  a7_=gamma_*dt;
 }
 
-void Acoustic2dPDE :: CalculationDerivativesSol()
+void Acoustic2dPDE :: CalculationDerivativesSol(const Boolean Recalc)
 {
 #ifdef TRACE
   (*trace) << "entering Acoustic2dPDE::CalculationDerivativesSol" << std::endl;
 #endif
+  
+  if (Recalc) std::cout << laststepcalc_ << std::endl;
 
-  sol_der2_old_=sol_der2_;
+  if (!Recalc)
+  { sol_der2_old_=sol_der2_;
+    sol_der1_old_=sol_der1_; 
+  }
 
-  sol_der2_=(sol_-sol_old_)*a0_-sol_der1_*a2_-sol_der2_old_*a3_;
+  if (!Recalc)
+  sol_der2_=(sol_-sol_old_)*a0_-sol_der1_old_*a2_-sol_der2_old_*a3_;
+  else
+  sol_der2_=(sol_-s_oldold_)*a0_-sol_der1_old_*a2_-sol_der2_old_*a3_;
 
-  sol_der1_old_=sol_der1_;
-  sol_der1_+=sol_der2_old_*a6_+sol_der2_*a7_;
+  sol_der1_=sol_der1_old_+sol_der2_old_*a6_+sol_der2_*a7_;
 
+
+  if (!Recalc) { s_oldold_=sol_old_;}
   sol_old_=sol_;
+
 }
 
 Double Acoustic2dPDE::CalcEnergyNorm()
@@ -434,22 +456,25 @@ Double Acoustic2dPDE::CalcEnergyNorm()
  return sqrt(help1+help2);
 }
 
-void Acoustic2dPDE::CalcCoeff(Double & coeffmass, Double & coeffstiff, const Integer numsubdom)
+void Acoustic2dPDE::CalcCoeff(Vector<Double> & coeffmass, Vector<Double> & coeffstiff)
 {
- // get material number for subdomain with number numsubdom from config-file
- Integer matnum;
-// conf->getmatnum(matnum,numsubdom);
- conf->get("acoustic2d",matnum);
+ if (!MatFile_) Error("You didn't specialize material file. Use option -m");
+
+  coeffmass.Resize(subdoms_.size());
+  coeffstiff.Resize(subdoms_.size());
+ 
+  Integer i,matnum;
+  for (i=0; i<subdoms_.size(); i++)
+  {
+    conf->get(subdoms_[i],matnum,"list_subdomains");
 
  // read density and compress with material number matnum
- Double density, compress;
- if (!MatFile_) Error("You didn't specialize material file. Use option -m");
- MatFile_->ReadDensityAndCompressity(density,compress,matnum,"fluid"); 
+    Double density, compress;
+    MatFile_->ReadDensityAndCompressity(density,compress,matnum,"fluid");
 
- coeffmass  = density*density/compress;
- coeffstiff = density;
-
- std::cout << " calc coeff is over " << std::endl;
+    coeffmass[i]  = density*density/compress;
+    coeffstiff[i] = density;
+  }
 }
 
 TimeErrorEstimator * Acoustic2dPDE::CreatePtTimeError()
@@ -457,9 +482,15 @@ TimeErrorEstimator * Acoustic2dPDE::CreatePtTimeError()
  return ptTimeError_=new AcousticTimeErrorEstimator(this);
 }
 
+SpaceErrorEstimator * Acoustic2dPDE::CreatePtSpaceError()
+{
+ return ptSpaceError_=new AcousticSpaceErrorEstimator(this,ptgrid_);
+}
+
 Acoustic2dPDE::~Acoustic2dPDE()
 {
  if (ptTimeError_) delete ptTimeError_;
+ if (ptSpaceError_) delete ptSpaceError_;
 }
 
 } // end of namespace

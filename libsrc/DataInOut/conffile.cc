@@ -37,13 +37,19 @@ ConfFile::~ConfFile()
 }
 
 template<class TypeVal>
-void ConfFile::get(const std::string keyword, TypeVal & val, const std::string section)
+void ConfFile::get(const std::string keyword, TypeVal & val, const std::string section, const std::string subsection, const std::string subsubsection)
 {
  std::string::size_type pos,pos1=0;
 
  if (section != "") pos1=getpos(section);
+ if (subsection !="") pos1=getpos(subsection,pos1);
+ if (subsubsection != "") { pos1=getpos(subsubsection,pos1);
+                            infile.seekg(pos1, std::ios::beg);
+                            infile.ignore(100,'\n');                      
+                            pos1=infile.tellg();
+                          }
 
-// std::cout << " keyword " << keyword << std::endl;
+ std::cout << keyword << std::endl;
 
  pos=getpos(keyword,pos1);
 
@@ -76,57 +82,47 @@ template void ConfFile::get(const std::string , Integer &);
 template void ConfFile::get(const std::string , Double &);
 #endif
 
-void ConfFile::getmatnum(Integer & matnum, const Integer numsubdom)
+void ConfFile::getsubdom(std::vector<std::string> & subdoms)
 {
  std::string::size_type pos;
- pos=getpos("equation");
+
+ Integer nsubds;
+ get("subdomains",nsubds);
+
+ pos=getpos("list_subdomains");
  infile.seekg(pos,std::ios::beg);
  infile.ignore(100,'\n');
 
- std::string buffer;
- Integer i;
- for (i=0; i <= numsubdom; i++)
- {
-   infile >> buffer >> matnum;
-   infile.ignore(100,'\n');
- }
-
-std::cout << matnum << " matnum " << std::endl;
-/*
- Integer i=0, numsd=0;
- //
- Integer numsubdomain=numsubdom+1;
- std::string buffer;
-
- while (numsd != numsubdomain && i!=1000)
- { infile >> buffer >> matnum;
-   i++;
- }
- 
- if (i==1000) error("Error in conf->getmatnum: this numsubdom is absent in config-file");
-*/
-
-}
-
-void ConfFile::getequation(std::string & eq, const Integer numeq)
-{
- std::string::size_type pos;
- pos=getpos("equation");
- infile.seekg(pos,std::ios::beg);
- infile.ignore(100,'\n');
+ subdoms.resize(nsubds);
 
  Integer i;
- for (i=0; i <= numeq; i++)
+ for (i=0; i < nsubds; i++)
  {
-   infile >> eq;
+   infile >> subdoms[i];
    infile.ignore(100,'\n');
  }
 }
 
-void ConfFile::gethistorynodes(std::vector<Integer> & hist)
+void ConfFile::getsubdompde(std::vector<std::string> & subdoms, const std::string section)
+{
+  std::string::size_type pos=0;
+
+  pos=getpos(section,pos);
+  pos=getpos("subdomains",pos);
+  infile.seekg(pos,std::ios::beg);
+  
+  std::string help;
+  do
+  {
+   infile >> help;
+   if (help!="non") subdoms.push_back(help);   
+  } while(help!="non");
+}
+
+void ConfFile::getlist(std::vector<Integer> & hist, const std::string seekexp)
 {
  std::string::size_type pos;
- pos=getpos("history_node");
+ pos=getpos(seekexp);
  infile.seekg(pos,std::ios::beg);
 
  Integer node;
@@ -136,6 +132,26 @@ void ConfFile::gethistorynodes(std::vector<Integer> & hist)
  if (node!=-1) hist.push_back(node);
 }
  while (node!=-1);
+}
+
+void ConfFile :: getliststr( const std::string seekexp, vector<std::string> & stlist, const std::string section="", const std::string subsection="")
+{
+ std::string::size_type pos=0;
+
+ if (section != "") pos=getpos(section);
+ if (subsection !="") pos=getpos(subsection,pos);
+
+ pos=getpos(seekexp,pos);
+
+ infile.seekg(pos,std::ios::beg);
+
+ std::string help;
+ do
+ {
+  infile >> help;
+
+  if (help != "non") stlist.push_back(help);
+ } while  (help != "non");
 
 }
 

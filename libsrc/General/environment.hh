@@ -25,24 +25,11 @@ typedef int Boolean;
 
 enum ElementType{Triang1, Triang2, Quadrilateral1, Quadrilateral2};
 
-enum MatType{ fluid};
+//enum MatType{ fluid};
 
 enum IntegrationType {GaussOrder2, GaussOrder3, GaussOrder4, GaussOrder5, GaussOrder7, null};
 
-enum TypeBCs{ vp_restraint, ep_restraint};
-
-/// for each level of remeshing we create own GridHierarchy with full information about grid
-template <class Dim>
-struct GridHierarchy
-{
-    Integer maxnumelem;
-    Integer maxnumnode;
-    Integer * Info; // Array of full info about element
-    Dim * ptCoordinate;
-    Integer * Connect;
-    Integer * fp; //Array of first position in Info
-
-};
+//enum TypeBCs{ vp_restraint, ep_restraint};
 //-------------------------  Used enumerations: ---------------------------- 
 // enum for precondition matrix
  enum precond { non, Jacobi, SSOR, LU}; 

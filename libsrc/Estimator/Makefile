@@ -2,7 +2,7 @@
 # Makefile for physical system
 C_DIR=../..
 #
-src = timeerror.cc actimeerror.cc
+src = timeerror.cc actimeerror.cc acspaceadapt.cc
 #
 lib = estimator
 libpath = libsrc/Estimator

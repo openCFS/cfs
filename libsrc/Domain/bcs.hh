@@ -4,19 +4,11 @@
 #define NUMLEVELGRID 20
 
 #include "filetype.hh"
+#include "grid.hh"
 
 namespace CoupledField
 {
 /// class BCs contains information about calculation domain and according to different meshes create different grids
-
-//! struct for Restraints:
-struct NodeRestraint
-{
-  Integer nodalnum;
-  enum TypeBCs dof;
-
- int operator<(const NodeRestraint & t);
-};
 
 class BCs
 {
@@ -31,31 +23,23 @@ public:
   void ReadBCs();
 
   //!
-  Integer GetNumRestraints(const Integer level) 
-  { return numrestr_[level]; }
+  void Update(Grid * ptgrid);  
 
   //!
-  void GetRestraints(std::list<NodeRestraint> & arestr, const Integer level)
-  { arestr=restr_[level]; }
+  std::list<Integer> GetNodesLevel(const std::string level, const Integer lev);  
+  //!
+  Integer GetNumNodesLevel(const std::string level, const Integer lev);
 
 protected:
 
 private:
 
-  //!
-  Integer numNeumann[NUMLEVELGRID];
+   std::vector<std::string> levels_;
 
-  //!    
-  Integer numConstraints[NUMLEVELGRID];
+   std::list<Integer> * bcs_[NUMLEVELGRID];
 
   //!
-  FileType* InFile_;
-
-  //!
-  std::list<NodeRestraint> restr_[NUMLEVELGRID];
-
-  //! number of nodes with restraints
-  Integer numrestr_[NUMLEVELGRID];
+   FileType* InFile_;
 };
 
 }

@@ -2,9 +2,19 @@
 #define FILE_SCFE_GRID_2001
 
 #include "filetype.hh"
+#include "baseelem.hh"
 
 namespace CoupledField
 {
+
+
+struct Elem
+{
+  BaseElem * ptElem;
+  Vector<Integer> connect;
+  std::string namesd;
+};
+
 
 /// Class for working with grid
 class Grid
@@ -23,11 +33,11 @@ public:
   virtual void SubdivideUniform(const Integer level)=0;
 
   /// Get coordinates of all nodes which belong to element
-  virtual void GetCoordOfNodesElem(const Integer numElem, const Integer numlevelGrid, const Integer numnodes, Point2D * ptCoordElem)
-  { Error(" Not implemented",__FILE__,__LINE__);}
+//  virtual void GetCoordOfNodesElem(const Integer numElem, const Integer numlevelGrid, const Integer numnodes, Point2D * ptCoordElem)
+//  { Error(" Not implemented",__FILE__,__LINE__);}
 
-  virtual void GetCoordOfNodesElem(const Integer numElem, const Integer numlevelGrid, const Integer numnodes, Point3D * ptCoordElem)
-  { Error(" Not implemented",__FILE__,__LINE__);}
+//  virtual void GetCoordOfNodesElem(const Integer numElem, const Integer numlevelGrid, const Integer numnodes, Point3D * ptCoordElem)
+//  { Error(" Not implemented",__FILE__,__LINE__);}
 
    /// Get connection of element
    virtual void GetConnection(Vector<Integer> & connect, const Integer iElem, const Integer level)=0;
@@ -45,23 +55,41 @@ public:
   /// Return maximum number of elements 
   virtual Integer GetMaxnumElem(const Integer numlevel)=0;
 
-  //! Get array of nodes for boundary condition 
-//  virtual void GetNodesBoundaryCondition(Vector<Integer> & nodesDirBC, const Integer level)=0;
-
   //! Get last level of grid
   virtual Integer GetLastLevel() const { return lastlevel_;} 
 
-  //! return pointer to BaseElem 
-  virtual BaseElem * GetptElem(const Integer iElem)=0;
-
   //! return dimension of mesh
   virtual Integer GetDim()=0;
+
+    //! Here we mark elements for refinement: ei - number of elem
+  virtual void SetRefinementFlag(const Integer ei)
+  { Error(" Not implemented",__FILE__,__LINE__);}
+
+  virtual void SetRefinementFlag(Vector<Integer> & ei)
+  { Error(" Not implemented",__FILE__,__LINE__);}
+
+  //! Do refinement of elements, which we mark through function SetRefinementFlag
+  virtual void Refine()
+  { Error(" Not implemented",__FILE__,__LINE__);}
+
+    //!
+ virtual void GetElemSD(std::vector<Elem> &, const std::string sd, const Integer level)
+   { Error(" Not implemented",__FILE__,__LINE__);}
+
+  //!
+  virtual void GetCoordNodesElem(const Vector<Integer> connect, Point2D * ptCoord)
+  { Error(" Not implemented",__FILE__,__LINE__);}
+
+  virtual void GetCoordNodesElem(const Vector<Integer> connect, Point3D * ptCoord)
+  { Error(" Not implemented",__FILE__,__LINE__);}
 
 protected:
 
   FileType * ptFileType;
 
   Integer lastlevel_;
+
+  std::vector<std::string> listSD_;
 
 private:
   ///

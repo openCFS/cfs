@@ -1,5 +1,10 @@
+#include <vector>
+#include <string>
+#include <fstream>
+
 #include "elements_header.hh"
 #include "grid.hh"
+#include "conffile.hh"
 
 namespace CoupledField
 {
@@ -14,6 +19,9 @@ Grid::Grid(FileType * aptFileType)
   ptQ=new Quad1();
   ptTr=new Triangle1();
   ptTet=new Tetrahedral1();
+
+  conf->getsubdom(listSD_);
+
 }
 
 Grid::~Grid()

@@ -134,62 +134,33 @@ void AcousticTimeErrorEstimator::ChangeStep(Double & dt)
   (*trace) << "entering AcousticTimeErrorEstimator::ChangeStep" << std::endl;
 #endif
 
+
 if (maxrelativeerror_<1e-10) dt*=3;
 else
 {
- if (maxrelativeerror_>tol_)
-{ 
   Double help1=beta_*tol_/maxrelativeerror_;
   Double help=exp(0.333333333*log(help1));
   dt*=help;
 }
-}
+
+std::cout << maxrelativeerror_ << " tol " << tol_ << std::endl;
+
   if (dt > maxdt_) dt=maxdt_;
   if (dt < mindt_) dt=mindt_;
 }
 
-/*
 Boolean AcousticTimeErrorEstimator::TestError(const Double dt)
 {
 #ifdef TRACE
   (*trace) << "entering AcousticTimeErrorEstimator::TestError" << std::endl;
 #endif
-
- std::cout << maxdt_ << " " << dt << " " << mindt_ << std::endl;
-
- if (dt==maxdt_ || dt==mindt_) return FALSE;
-
- CalcError(dt);
-
- std::cout << "relativeerror" << maxrelativeerror_ << " tolerance " << beta_*tol_ << std::endl;
-
- if (maxrelativeerror_<= beta_*tol_)
-   {  counter_++;
-      if ( counter_== numrepeat_ )
-       {
-         counter_=0; 
-         return TRUE;
-       }
-      else return FALSE;
-   }   
- else { if (maxrelativeerror_ <= tol_)
-       { 
-        counter_=0;
-        return FALSE;}
-        else { counter_=0; return TRUE;}
-      }
-}
-*/
-
-Boolean AcousticTimeErrorEstimator::TestError(const Double dt)
-{
-#ifdef TRACE
-  (*trace) << "entering AcousticTimeErrorEstimator::TestError" << std::endl;
-#endif
-
-  if (dt==maxdt_ || dt==mindt_) return FALSE;
 
   CalcError(dt);
+
+  if (InfoPrint)
+  (*infofile) << " Ratio " << maxrelativeerror_ << " " << tol_ << std::endl;
+
+  std::cout <<  " Ratio " << maxrelativeerror_ << " " << tol_ << std::endl;
 
   if (maxrelativeerror_>tol_) { counter_=0; return TRUE;} 
   else {
@@ -197,12 +168,13 @@ Boolean AcousticTimeErrorEstimator::TestError(const Double dt)
           { counter_=0; return FALSE;}
         else
           { counter_++; 
-            if (counter_==numrepeat_)
-             { counter_=0;
-               return TRUE;
+	    if (counter_== numrepeat_)
+             {
+               counter_=0;
+	       return TRUE;
              }
             return FALSE;
-           }
+          }
        }   
 }
 
