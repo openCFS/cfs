@@ -1,5 +1,3 @@
-#ifdef NEWBASEPDE
-
 #include <DataInOut/Unverg/outUnverg.hh>
 #include <DataInOut/GMV/outGMV.hh>
 #include <Forms/forms_header.hh>
@@ -237,5 +235,3 @@ namespace CoupledField
   }
 
 } // end of namespace
-
-#endif

@@ -1,11 +1,8 @@
-#ifdef NEWBASEPDE
-
-
 #ifndef FILE_MAGNETICPDE
 #define FILE_MAGNETICPDE
 
 #include "General/environment.hh"
-#include "newBasePDE.hh" 
+#include "basePDE.hh" 
 
 namespace CoupledField
 {
@@ -145,4 +142,3 @@ protected:
 } // end of namespace
 #endif
 
-#endif //#ifdef NEWBASEPDE

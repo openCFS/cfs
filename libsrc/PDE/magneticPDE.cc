@@ -1,5 +1,3 @@
-#ifdef NEWBASEPDE
-
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -609,5 +607,3 @@ void MagPDE::ReadCoils()
 
 } // end of namespace
 
-
-#endif //#ifdef NEWBASEPDE

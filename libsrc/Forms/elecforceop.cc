@@ -1,6 +1,5 @@
 #include "elecforceop.hh"
 
-#include <Elements/basefe.hh>
 #include <string>
 #include <Domain/elem.hh>
 #include <Domain/grid.hh>
@@ -8,11 +7,7 @@
 #include <Utils/storesol.hh>
 #include <Matrix/matrix.hh>
 
-#ifndef NEWBASEPDE
-#include <PDE/basepde.hh>
-#else
-#include <PDE/newBasePDE.hh>
-#endif //#ifndef NEWBASEPDE
+#include <PDE/basePDE.hh>
 
 namespace CoupledField
 {

@@ -1,8 +1,8 @@
 #ifndef FILE_ACOUFLOWNOISE_2003
 #define FILE_ACOUFLOWNOISE_2003
 
-#include "newBasePDE.hh"
-#include "newAcousticPDE.hh"
+#include "basePDE.hh"
+#include "acousticPDE.hh"
 #include <MpCCIcpl/MpCCIexch.hh>
 
 namespace CoupledField

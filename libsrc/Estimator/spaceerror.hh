@@ -3,11 +3,7 @@
 
 #include "Utils/tools.hh"
 
-#ifdef NEWBASEPDE
-#include "PDE/newBasePDE.hh"
-#else
-#include "PDE/basepde.hh"
-#endif
+#include "PDE/basePDE.hh"
 
 #ifdef ADAPTGRID
 #include "Vertex.h"

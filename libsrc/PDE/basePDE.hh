@@ -1,5 +1,3 @@
-#ifdef NEWBASEPDE
-
 #ifndef FILE_BASEPDE
 #define FILE_BASEPDE
 
@@ -596,4 +594,3 @@ class SpaceErrorEstimator;
 
 #endif
 
-#endif // #ifdef NEWBASEPDE
