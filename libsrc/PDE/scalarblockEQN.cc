@@ -56,6 +56,7 @@ void ScalarBlockEQN::CalcMapping()
 
   // STEP 1
   Integer notIncludedBCs = 0;
+  Integer multipleBCs = 0;
   pdeNode2EQN_.Resize(numPDENodes_,dofsPerNode_);
   pdeNode2EQN_.Init(1);
  
@@ -87,12 +88,7 @@ void ScalarBlockEQN::CalcMapping()
       else if (countNodes[mesh2PDENode_[homoDirichletNodes_[i]-1]-1]
 	       [homoDirichletDofs_[i]-1] != 0)
 	{
-	  errMsg  = "ScalarBlockEQN::CalcMapping: HomDirihchletNode Nr. ";
-	  errMsg += Info->GenStr(homoDirichletNodes_[i]);
-	  errMsg += "\n occured already at least one time in the list of boundary nodes ";
-	  errMsg += "for this PDE!\n Please check, if this node is defined in";
-	  errMsg += " more than one level of boundary nodes!";
-	  Error(errMsg.c_str(), __FILE__, __LINE__);
+	  multipleBCs++;
 	}
       else {
 	pdeNode2EQN_[mesh2PDENode_[homoDirichletNodes_[i]-1]-1]
@@ -101,20 +97,28 @@ void ScalarBlockEQN::CalcMapping()
 	  [homoDirichletDofs_[i]-1]++;
       }
     }
+
+
+  if (multipleBCs > 0) {
+    errMsg  = "ScalarBlockEQN::CalcMapping: Some hom dirichlet nodes ";
+    errMsg += " occured already at least two times in the list of homDirichlet boundary nodes ";
+    errMsg += "for this PDE!\n Please check, if this node is defined in";
+    errMsg += " more than one level of boundary nodes!";
+    Warning(errMsg.c_str(), __FILE__, __LINE__);
+  }
   
   eqn2Pos_.Resize(numPDENodes_ * dofsPerNode_
 		  - homoDirichletNodes_.GetSize()
 		  - constraintSlaveNodes_.GetSize()
-		  + notIncludedBCs);
-//   std::cerr << "homoDirichletNodes.GetSize() = " << homoDirichletNodes_.GetSize() << std::endl;
-//    std::cerr << "after step2" << std::endl;
+		  + notIncludedBCs + multipleBCs);
+//     std::cerr << "after step2" << std::endl;
   
   // STEP 3
   for (Integer i=0; i<constraintSlaveNodes_.GetSize(); i++)
     pdeNode2EQN_[mesh2PDENode_[constraintSlaveNodes_[i]-1]-1]
       [constraintDofs_[i]-1] = 0;
   
-//   std::cerr << "after step3" << std::endl;
+//    std::cerr << "after step3" << std::endl;
     // STEP 4
   for (Integer iNode=0; iNode<pde2MeshNode_.GetSize(); iNode++)
     for (Integer iDof=0; iDof<dofsPerNode_; iDof++)
@@ -130,7 +134,7 @@ void ScalarBlockEQN::CalcMapping()
 	    (pde2MeshNode_[iNode]-1)*dofsPerNode_ + iDof;
 
 	}
-//    std::cerr << "after step4" << std::endl;
+//     std::cerr << "after step4" << std::endl;
       
   // STEP 5
   for (Integer i=0; i<constraintSlaveNodes_.GetSize(); i++)
@@ -143,7 +147,8 @@ void ScalarBlockEQN::CalcMapping()
   isInitialized_ = TRUE;
   numEqns_ = eqnCounter;
 
-  numBuildInDirichletEQNs_ = numPDENodes_ * dofsPerNode_ - numEqns_;
+  numBuildInDirichletEQNs_ = numPDENodes_ * dofsPerNode_ 
+                           - numEqns_ + multipleBCs;
 
 }
 
