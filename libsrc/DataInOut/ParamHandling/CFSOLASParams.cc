@@ -581,6 +581,7 @@ namespace CoupledField {
     // Currently always use LU until LDL is available
     if ( sType == NOSOLVER ) {
       sType = LU_SOLVER;
+      // sType = LDL_SOLVER;
     }
 
 
@@ -636,7 +637,7 @@ namespace CoupledField {
 	if ( mType != NOSTORAGETYPE ) {
 	  (*warning) << "Expert: Changing matrix storage type from "
 		     << Enum2String( mType ) << " to SPARSE_NONSYM for "
-		     << "direct solver";
+		     << Enum2String( sType ) << " solver";
 	  Warning( __FILE__, __LINE__ );
 	}
 	else {
@@ -644,6 +645,23 @@ namespace CoupledField {
 			"type for direct solver\n" );
 	}
 	mType = SPARSE_NONSYM;
+      }
+    }
+
+    // The direct solver LDL_SOLVER expects an SCRS matrix
+    if ( sType == LDL_SOLVER ) {
+      if ( mType != SPARSE_SYM ) {
+	if ( mType != NOSTORAGETYPE ) {
+	  (*warning) << "Expert: Changing matrix storage type from "
+		     << Enum2String( mType ) << " to SPARSE_SYM for "
+		     << Enum2String( sType ) << " solver";
+	  Warning( __FILE__, __LINE__ );
+	}
+	else {
+	  Info->PrintF( pdename, "Expert: Using SPARSE_SYM as storage "
+			"type for directLDL solver\n" );
+	}
+	mType = SPARSE_SYM;
       }
     }
 
@@ -701,10 +719,10 @@ namespace CoupledField {
     //  Reordering
     // ============
     if ( sType == LAPACK_LU || sType == LU_SOLVER || sType == LDL_SOLVER ||
-	 pType == ILU0 || pType == ILUK ) {
+	 pType == ILU0 || pType == ILUK || pType == ILDLK ) {
       if ( rType == NOREORDERING ) {
 	Info->PrintF( pdename, "Expert: Setting re-ordering strategy to "
-		      "'SLOAN'" );
+		      "'SLOAN'\n" );
 	rType = SLOAN;
       }
       else {
