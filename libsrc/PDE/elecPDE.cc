@@ -6,8 +6,6 @@
 #include "DataInOut/Unverg/outUnverg.hh"
 #include "DataInOut/GMV/outGMV.hh"
 #include "Forms/forms_header.hh"
-#include "Forms/gradfieldop.hh"
-#include "Forms/elecforceop.hh"
 #include "Estimator/spaceerror.hh"
 #include "DataInOut/WriteInfo.hh"
 #include "Driver/assemble.hh"
@@ -309,7 +307,7 @@ void ElecPDE::PostProcess(const Integer level)
   if (calcEfield_.GetSize() !=0 )
     {
       GradientFieldOp * FieldOp = new GradientFieldOp(ptgrid_, this, eqnData_,
-						     solhelp, ELEC_POTENTIAL, 
+						      solhelp, ELEC_POTENTIAL,
 						      level, isaxi_);
 
       // ------ Calculation of the electric field ------

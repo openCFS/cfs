@@ -39,9 +39,7 @@ namespace CoupledField
 	calcBMat(bMat, actIntPt, ptCoord);
 
 	dB = dMat * bMat;
-
 	bMat.Transpose(bTrans);
-
 	partElemMat = bTrans * dB;
 
 	jacDet = ptelem->CalcJacobianDetAtIp(actIntPt,ptCoord);
