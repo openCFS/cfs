@@ -565,15 +565,11 @@ void PressureLinForm::CalcElemVector(Matrix<Double>& ptCoord,
   Vector<Double> shapeFnc;
   Vector<Double> normalVec(dim);
 
-  std::cout << "coord:\n" << ptCoord << std::endl;
-  
   //comput normal vector
   if (dim == 2) 
     {
-      Double dx = ptCoord[0][1] - ptCoord[0][0];
-      Double dy = ptCoord[1][1] - ptCoord[1][0];
-      std::cout <<  "dx=" << dx << " dy=" << dy << std::endl;
-      
+      Double dx  = ptCoord[0][1] - ptCoord[0][0];
+      Double dy  = ptCoord[1][1] - ptCoord[1][0];
       Double len = sqrt(dx*dx + dy*dy);
       if (len <= 0.0)
 	Error("length of normal vector is zero!");
@@ -597,24 +593,15 @@ void PressureLinForm::CalcElemVector(Matrix<Double>& ptCoord,
       normalVec /= length;
     }
 
-
-  std::cout << "n: " << normalVec << std::endl;
-  
-  Vector<Double> partElemVec;
-  partElemVec.Resize(nrNodes * dim );
-  partElemVec *= 0; //initialize vec
-  
-  
   elemVec.Resize(nrNodes*dim);
-  elemVec *= 0;    // set elems to 0
-  
+  elemVec.Init(0);    // set elems to 0
+
   for (Integer actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
     {
       ptelem->GetShFncAtIp(shapeFnc, actIntPt);
-      
       Double jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord);
-
       Double factor = multiplier_ * intWeights[actIntPt-1] * jacDet;
+
       if (isaxi_)
 	{
 	  Vector<Double> CoordAtIP;
@@ -628,14 +615,15 @@ void PressureLinForm::CalcElemVector(Matrix<Double>& ptCoord,
       for (Integer i=0; i<dim; i++) 
 	{
 	  //multiply with corresponding component of normal vector
+	  //to get the x-,y-,z-component
 	  helpVec = shapeFnc * normalVec[i];
-	  std::cout << "helpVec:" << helpVec << std::endl;
-	  
-	  partElemVec.InsertVector(helpVec, nrNodes*dim);
-	  elemVec += partElemVec;
+	  for (Integer j=0; j<helpVec.GetSize(); j++)
+	    elemVec[j*nrNodes+i] -= helpVec[j];
 	}
-      
     }
+  std::cout << "elemVec: " << elemVec << std::endl;
+  
+
 } // end of method
 
 

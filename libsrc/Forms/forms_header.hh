@@ -8,6 +8,7 @@
 #include "gradfieldop.hh"
 #include "curlfieldop.hh"
 #include "elecforceop.hh"
+#include "elecchargeop.hh"
 #include "curlCurlEdgeInt.hh"
 #include "linearForm.hh"
 #include "massEdgeInt.hh"

@@ -128,14 +128,15 @@ namespace CoupledField
 	}
       }
 
+    //set the material matrix
+    Integer sizeofD=getDimD();
+    dMat.Resize(sizeofD);
+    dMat.Init(0);
 
     Matrix<Double>*matMatrix = ptMaterial->GetMatrix();
     if ( isDamping_ == false ) {
       // Copy entries from material matrix object into D matrix
  
-      Integer sizeofD=getDimD();
-      dMat.Resize(sizeofD);
-      dMat.Init(0);
 
       for (int i=0; i< sizeofD; i++)
 	for (int j=0;j< sizeofD; j++)
@@ -151,10 +152,6 @@ namespace CoupledField
     else {
       // The damping case (Rayleigh currently). Here just the mechanical part
       // damps
-
-      Integer sizeofD = getDimD()-2;
-      dMat.Resize(sizeofD);
-      dMat.Init(0);
 
       // Copy entries from mechanical part of material matrix object
       // into D matrix and multiply with damping parameter
@@ -207,15 +204,15 @@ namespace CoupledField
 	}
       }
 
-    Matrix<Double> * matMatrix = ptMaterial->GetMatrix();
-    
+    //set the material matrix
+    Integer sizeofD=getDimD();
+    dMat.Resize(sizeofD);
+    dMat.Init(0);
 
+    Matrix<Double> * matMatrix = ptMaterial->GetMatrix();
     if ( isDamping_ == false ) {
       // Copy entries from material matrix object into D matrix
       
-      Integer sizeofD=getDimD();
-      dMat.Resize(sizeofD);
-      dMat.Init(0);
 
       for (int i=0; i< sizeofD; i++)
 	for(int j=0; j<sizeofD; j++){
@@ -233,10 +230,6 @@ namespace CoupledField
     else {
       // The damping case (Rayleigh currently). Here just the mechanical part
       // damps
-      
-      Integer sizeofD = getDimD()-2;
-      dMat.Resize(sizeofD);
-      dMat.Init(0);
       
       // Copy entries from mechanical part of material matrix object
       // into D matrix and multiply with damping parameter

@@ -12,7 +12,7 @@
 #include "blocknodeEQN.hh"
 #include "superblockEQN.hh"
 #include "scalarblockEQN.hh"
-#include "Forms/elecchargeop.hh"
+#include "Forms/forms_header.hh"
 
 #include "piezoPDE.hh" 
 
@@ -43,7 +43,7 @@ namespace CoupledField {
     else {
       // default is planeStrain 
       dofspernode_ = 3;
-      Info->PrintF("", "=== PLAIN STRAIN PROBLEM\n");
+      Info->PrintF("", "=== PLANE STRAIN PROBLEM\n");
     }
 
     conf->getsubdompde(subdoms_,pdename_);
@@ -67,7 +67,7 @@ namespace CoupledField {
     }
     else if ( subType_ == "planeStrain" && probGeo == "plane" ) {
 	dofspernode_ = 3;
-	Info->PrintF("", "=== PLAIN STRAIN PROBLEM\n");
+	Info->PrintF("", "=== PLANE STRAIN PROBLEM\n");
     }
     else {
       std::string errmsg = "Subtype '" + subType_;
@@ -420,6 +420,32 @@ void PiezoPDE::ReadStoreResults() {
     if ( nodeValues[i] == "acceleration" ) savederiv2_ = TRUE;
   }
 
+
+  // ----------------
+  //   Electric Field
+  // ----------------
+  // Determine regions for which electric field must be computed
+  params->CGetList( "region", calcEfield_, "type", "efield", 0, pdename_,
+		    "elemResults" );
+
+  // If the the symbolic name is "all" compute electric field for all regions
+  if ( calcEfield_.GetSize() == 1 && calcEfield_[0] == "all" ) {
+    calcEfield_ = subdoms_;
+  }
+
+  if ( calcEfield_.GetSize() > 0 ) {
+    Info->PrintF( pdename_, " Computing electric field for regions:" );
+    for ( Integer k = 0; k < calcEfield_.GetSize(); k++ ) {
+      Info->PrintF( pdename_, " %s", calcEfield_[k].c_str() );
+    }
+    Efield_.SetNumSolutions(1);
+    Efield_.SetSolutionType(ELEC_FIELD);
+    Efield_.SetNumElems(numElems_);
+    Efield_.SetNumDofs(dim_);
+    Efield_.SetPtrEQNData(eqnData_, ptgrid_, actlevel_);
+    Efield_.Init(0.0);
+  }
+
   // -----------
   //   Stress
   // -----------
@@ -428,7 +454,7 @@ void PiezoPDE::ReadStoreResults() {
   params->CGetList( "region", calcStress_, "type", "stress", 0, pdename_,
 		      "elemResults" );
 
-  // If the symbolic name is "all" compute electric field for all regions
+  // If the symbolic name is "all" compute stresses for all regions
   if ( calcStress_.GetSize() == 1 && calcStress_[0] == "all" ) {
     calcStress_ = subdoms_;
   }
@@ -481,6 +507,7 @@ void PiezoPDE::ReadStoreResults() {
     charges_.SetPtrEQNData(eqnData_, ptgrid_, actlevel_);
     charges_.Init(0);
     } 
+
      
 }
 
@@ -495,6 +522,11 @@ void PiezoPDE::PostProcess(const Integer level) {
   ENTER_FCN( "PiezoPDE::PostProcess" );
 
   NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
+
+
+  // calc electric field
+  if (calcEfield_.GetSize() !=0 ) 
+    CalcEfield();
   
   // calc stresses
   if (calcStress_.GetSize() !=0 ) 
@@ -505,6 +537,46 @@ void PiezoPDE::PostProcess(const Integer level) {
   if (calcCharge_.GetSize() !=0 ) 
     CalcCharges();        
 }
+
+
+void PiezoPDE::CalcEfield(){
+  ENTER_FCN( "PiezoPDE::CalcEfield" );
+  NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
+
+  GradientFieldOp * FieldOp = new GradientFieldOp(ptgrid_, this, eqnData_,
+						  *solhelp, ELEC_POTENTIAL, 
+						  actlevel_, isaxi_);
+
+
+  // ------ Calculation of the electric field ------
+
+  Vector<Double> LCoord;
+  LCoord.Resize(dim_);
+  LCoord[0] = 0;
+  LCoord[1] = 0;
+      
+  StdVector<Elem*> elemssd;
+  Integer counterElems=0;
+  Vector<Double> TempE;
+  Integer pdeElem;
+  
+  // loop over all subdomains
+  for (Integer isd=0; isd<calcEfield_.GetSize(); isd++)
+    {
+      // get vector of Elem of subdomain with color: subdoms[isd]
+      ptgrid_->GetElemSD(elemssd,calcEfield_[isd],actlevel_);
+      
+      // loop over elements of subdomain
+      for (Integer iel=0; iel< elemssd.GetSize(); iel++,counterElems++)
+	{
+	  FieldOp->CalcElemGradField( TempE, elemssd[iel], LCoord, 1); 
+	  pdeElem = eqnData_->Mesh2PDEElem(elemssd[iel]->elemNum);
+	  Efield_.SetElemResult(pdeElem-1,TempE);
+	}
+    }
+  delete FieldOp;
+}
+
   
 void PiezoPDE::CalcStress(){
   ENTER_FCN( "PiezoPDE::CalcSress" );

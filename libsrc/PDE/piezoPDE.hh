@@ -100,13 +100,19 @@ namespace CoupledField
     Integer GetBCDof (const std::string dofStartString);
 
     //postprocessing
-    ElemStoreSol<Double> stress_;  //!< conatins magnetic field
+    StdVector<std::string> calcEfield_;  //!< contains the subdomains, on which the electric field is computed
+    ElemStoreSol<Double> Efield_;  //!< conatins electric field
+
     StdVector<std::string> calcStress_;  //!< contains the subdomains, on which the stress is computed
+    ElemStoreSol<Double> stress_;  //!< conatins mechanical stresses
 
     ElemStoreSol<Double> charges_;
     StdVector<std::string> chargeNeighborRegion_;
     StdVector<std::string> calcCharge_;
     
+    //! calculate stresses
+    void CalcEfield();
+
     //! calculate stresses
     void CalcStress();
 
