@@ -26,6 +26,7 @@
 <xsd:include schemaLocation="Schemas/CFS_Analysis.xsd"/>
 <xsd:include schemaLocation="Schemas/CFS_Domain.xsd"/>
 <xsd:include schemaLocation="Schemas/CFS_Misc.xsd"/>
+<xsd:include schemaLocation="Schemas/CFS_IntegRules.xsd"/>
 
 
 <!-- ********************************************************************** -->
@@ -69,9 +70,13 @@
     
       <!-- Parameters for transient analysis (semi-optional) -->
       <xsd:element name="transient" type="DT_Transient" minOccurs="0"/>
+    
+      <!-- Parameters for specifying integration rules (optional) -->
+      <xsd:element name="integRules" type="DT_IntegRules" minOccurs="0"/>
 
       <!-- Optional developer's element -->
-      <xsd:element name="devel" type="xsd:anyType" minOccurs="0"/>
+      <xsd:element name="devel" type="xsd:anyType" minOccurs="0"
+         maxOccurs="unbounded"/>
 
     </xsd:sequence>
   </xsd:complexType>

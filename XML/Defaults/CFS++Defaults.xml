@@ -27,4 +27,15 @@
     </mechanic>
   </pdeList>
 
+  <integRules>
+    <line      />
+    <quad      />
+    <rectangle />
+    <triangle  />
+    <hexa      />
+    <pyra      />
+    <tetra     />
+    <wedge     />
+  </integRules>
+
 </cfsSimulation>
