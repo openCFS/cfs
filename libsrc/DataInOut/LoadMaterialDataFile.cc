@@ -406,12 +406,13 @@ namespace CoupledField
   }
 
 
-  void LoadMaterialDataFile :: ReadMagnetic(std::ifstream & fin, MaterialData * material)
-  {
-    ENTER_FCN("LoadMaterialDataFile::ReadMagnetic");
+  void LoadMaterialDataFile::ReadMagnetic( std::ifstream &fin,
+					   MaterialData *material ) {
+
+    ENTER_FCN( "LoadMaterialDataFile::ReadMagnetic" );
+
     Double mX, mY, mZ;
     Double conductivity, permeability;
-    std::string errMsg;
 
     std::istringstream * strPtr;
     char buffer[bufLength];
@@ -419,10 +420,12 @@ namespace CoupledField
     char aux1[bufLength];
     char aux2[bufLength];
 
-    ReadLine(fin,buffer);
-    SSCANF( buffer, "%*d%*s%s%s%s", materialName, aux1, aux2 );
-    if ( strcmp(aux1,"bhapprox:") == 0 ) {
-      material->SetBHCurveFileName( aux2 );
+    ReadLine( fin, buffer );
+    Integer numRead = SSCANF( buffer, "%*d%*s%s%s%s", materialName, aux1,aux2);
+    if ( numRead > 1 ) {
+      if ( strcmp(aux1,"bhapprox:") == 0 ) {
+	material->SetBHCurveFileName( aux2 );
+      }
     }
 
     material -> SetName(materialName);
@@ -432,10 +435,9 @@ namespace CoupledField
       
     *strPtr >> conductivity >> permeability >> mX >> mY >> mZ;
     if (strPtr->fail()) {
-      errMsg  = "LoadMaterialDataFile::ReadMagnetic:  The materialfile is corrupt!\n";
-      errMsg += "Material: ";
-      errMsg +=  materialName;
-      Error(errMsg.c_str(), __FILE__, __LINE__);
+      (*error) << "LoadMaterialDataFile::ReadMagnetic: The materialfile is "
+	       << "corrupt!\n";
+      Error( __FILE__, __LINE__ );
     }
     
     delete strPtr;
