@@ -180,6 +180,7 @@ namespace CoupledField {
 	BaseForm * dampStiff = GetStiffIntegrator( actSDMat,reducedIntegration,
 					   isdamping );
 	dampStiff->SetRaylDamping();
+
 	IntegratorDescriptor *actIntDescrDamp = new IntegratorDescriptor(dampStiff, DAMPING);
 	dampStiff->SetPiezoMaterialType(realMatParameter);
 	actIntDescrDamp->SetPiezoMaterialType(realMatParameter);
