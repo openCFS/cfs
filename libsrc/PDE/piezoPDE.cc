@@ -925,7 +925,7 @@ void PiezoPDE::CalcComplexValuedStress(){
   
 void PiezoPDE::CalcCharges(){
   ENTER_FCN( "PiezoPDE::CalcCharges" );
-  
+    
   NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
   StdVector<Elem*> surfElems, volElems;
   Vector<Double> lCoordSurf, lCoordVol, elemDField;
@@ -1060,12 +1060,13 @@ void PiezoPDE::CalcCharges(){
 	//scalar product with normal vector
 	elemNormalD = lCoordVol * actElecD;
 
+
 	chargeOp->CalcElemCharge(charge, surfElems[iElem], 
 				 lCoordSurf, elemNormalD);
 
 	pdeElemNum = eqnData_->Mesh2PDEElem(volElems[iElem]->elemNum);
 	
-	// Create temporar vector, since SetElemResult only
+	// Create temporary vector, since SetElemResult only
 	// can handle these
 	Vector<Double> chargeVec(1);
 	chargeVec[0] = charge;
@@ -1073,15 +1074,14 @@ void PiezoPDE::CalcCharges(){
 	
       }
   }
-  Warning ("Charges are written to unv/gmv file, although capapost \
-can not draw them", __FILE__, __LINE__);
+  //  Warning ("Charges are written to unv/gmv file, although capapost \
+// can not draw them", __FILE__, __LINE__);
  }
 
 
 
 void PiezoPDE::CalcComplexValuedCharges(){
   ENTER_FCN( "PiezoPDE::CalcComplexValuedCharges" );
-  
   NodeStoreSol<Complex> * solhelp = dynamic_cast<NodeStoreSol<Complex>*>(sol_);
   StdVector<Elem*> surfElems, volElems;
   Vector<Double> lCoordSurf, lCoordVol;
@@ -1162,6 +1162,9 @@ void PiezoPDE::CalcComplexValuedCharges(){
       stress = new linPiezo3DInt(actSDMat);
 
     // loop over all surface elements
+
+  complexValuedCharge_.Resize(surfElems.GetSize());
+
     for (Integer iElem=0; iElem<surfElems.GetSize(); iElem++)
       {
 	
@@ -1211,14 +1214,12 @@ void PiezoPDE::CalcComplexValuedCharges(){
 	Vector<Complex> actElecD;	
 	stress->CalcStressVec(elemElecStress,1,ptCoord);
 	actElecD = elemElecStress.Part(stressDim,elemElecStress.GetSize()-1);
-      
-// 	elemNormalD = lCoordVol * actElecD;
+
 	elemNormalD = Complex();
 	
 	// scalarProduct lCoordCal*actElecD
-	for (Integer i=0; i<lCoordVol.GetSize(); i++){
+	for (Integer i=0; i<lCoordVol.GetSize(); i++)
 	     elemNormalD += lCoordVol[i] * actElecD[i];
-	}
 
 
 	//lCoordVol.Mult(actElecD, elemNormalD);
@@ -1232,12 +1233,13 @@ void PiezoPDE::CalcComplexValuedCharges(){
 	// can handle these
 	Vector<Complex> chargeVec(1);
 	chargeVec[0] = charge;
-       	chargesComplex_.SetElemResult(pdeElemNum-1, chargeVec);
-	
+	complexValuedCharge_[iElem]=charge;
+       	chargesComplex_.SetElemResult(pdeElemNum-1, chargeVec);	
+
       }
   }
-  Warning ("Charges are written to unv/gmv file, although capapost \
-can not draw them", __FILE__, __LINE__);
+  //  Warning ("Charges are written to unv/gmv file, although capapost \
+//can not draw them", __FILE__, __LINE__);
 
 }
 

@@ -18,7 +18,7 @@
 #include <olas.hh>
 #else
 #include <multigrid.hh>
-#endif
+#endif 
 
 
 #include "DataInOut/ParamHandling/ConfFile.hh"
@@ -75,16 +75,38 @@ class SpaceErrorEstimator;
     virtual void Init(Integer sequenceStep = 0,
 		      std::string  bcSequenceTag = "anyTag");
     
-    // The following Methods used durig parameter Identification process!!
+
+    //! read material data
+    //    virtual void ReadMaterialData();
+    
+    //virtual void ReadSpecialBCs(){}
+  
+    // The following Methods are used only durig parameter Identification process!!
+
     MaterialData * getPDEMaterialData(){return materialData_;};
     BaseNodeStoreSol * getPDESolution(){return sol_;};
     BCs * getPDE_BCs(){return ptBCs_;};
     BaseSystem * getPDE_algsys(){return algsys_;};
     Integer getPDE_numElems(){return numElems_;};
     Integer getPDE_dofspernode(){return dofspernode_;};
-    Integer getPDE_numEQNS(){return dofspernode_;};
+    //   Integer getPDE_numEQNS(){return dofspernode_;};
     Integer getPDE_numPDENodes(){return numPDENodes_;};
     Integer getPDE_spaceDim(){return dim_;};
+    //   Set explicetely inhomogenous Dirichlet B.C. "phase"
+    NodeEQN * getPDE_eqnData(){return eqnData_;}; 
+    Grid * getPDE_grid(){return ptgrid_;};  
+    Assemble * getPDE_assemble(){return assemble_;}
+    StdVector<std::string> getPDE_subdoms(){return subdoms_;}
+   
+    void setBCs_id_phase_(Integer i, Double & phase){
+      ENTER_FCN("basePDE::setBCs_id_phase");
+      if (bcs_id_phase_.GetSize() <= i)
+	Error("no such index in Vector bcs_id_phase_",__FILE__,__LINE__);
+      bcs_id_phase_[i]=phase;
+    };
+    Vector<Complex> complexValuedCharge_;
+    Vector<Complex> getPDE_complexValuedCharge(){return complexValuedCharge_;};
+    
     
     
     //	StdVector< StdVector<BaseIntDescriptor *>* > * rhsSrcIntegrators_;
@@ -336,7 +358,7 @@ class SpaceErrorEstimator;
 
     //! Reset function (what does it do?)
     virtual void Reset()
-    { Error("Fnc is not implemented",__FILE__,__LINE__);}
+    { Error("Fnc Reset is not implemented",__FILE__,__LINE__);}
 
 
   protected:
