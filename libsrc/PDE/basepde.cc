@@ -28,6 +28,10 @@ void BasePDE::SetAlgSys_id(const Integer as_sysid)
 
 void BasePDE::ReadBCs(const std::string eq)
 {
+#ifdef TRACE
+  (*trace) << " entering BasePDE::ReadBCs " << std::endl;
+#endif
+
   conf->getliststr("homogeneous_dirichlet",bcs_hd_,eq); 
   conf->getliststr("inhomogeneous_dirichlet",bcs_id_,eq);
 
@@ -36,12 +40,7 @@ void BasePDE::ReadBCs(const std::string eq)
   val_id_.resize(bcs_id_.size());
 
   for(i=0; i<bcs_id_.size(); i++)
-    conf->get(bcs_id_[i],val_id_[i],eq,"bc_conditions","inhomogeneous_dirichlet");
-
-  std::cerr << bcs_id_.size() << std::endl;
- 
-  for(i=0; i<bcs_id_.size(); i++)
-    std::cerr << bcs_id_[i] << " " << val_id_[i] << std::endl; 
+    conf->get(bcs_id_[i],val_id_[i],eq,"bc_conditions","inhomogeneous_dirichlet"); 
 }
 
 Integer BasePDE::GetNumRestraints(BCs* ptBCs, const Integer level)

@@ -30,19 +30,13 @@ public:
   void SetMatrixFactors();
 
   //!
-  void SetupMatrices(const Integer type);
+  void SetupMatrices(const Integer level);
 
   //!
   void SetBCs(BCs * ptBCs, const Integer level, const Integer update, const Double atime);
 
   //!
-  void ComputeRHS();
-
-  //! calculation derivates of solution
-  void CalculationDerivativesSol();
-
-  //! Calculation of parameters
-  virtual void CalcParameters(const Double dt);
+  void ComputeRHS(const Double atime, BCs * ptBCs=NULL); 
 
   //!
   void SolveStepStatic(BCs * ptBCs , const Integer level);
@@ -50,6 +44,8 @@ public:
   //!
   void SolveStepTrans(BCs * ptBCs , const Integer kstep, const Double steptime, const Integer level, const Boolean updatesysmat);
 
+  //!
+  void SaveSolAsPrevStep();
   //!
   virtual const Vector<Double> & getS() const { return sol_;}
 
@@ -60,6 +56,8 @@ public:
   void WriteResultsInFile();
  
 private:
+  //! calculation derivates of solution
+  void CalcDerSol();
 
   //!
   void Predictor();
@@ -67,14 +65,13 @@ private:
   //!
   Integer dofspernode_;
 
-  //!
-  Integer doftype_;
+  void CalcParameters(const Double dt);
 
   //!
   Grid * ptgrid_;
 
   //!
-  Vector<Double> sol_, sol_pred_,sol_old_,sol_der1_,sol_der1_old_;
+  Vector<Double> sol_, sol_der1_,sol_pred_,sol_old_,sol_der1_old_;
 
   //! parameters
   Double a0_, factor1_,factor2_,factor_pred_;  
@@ -91,13 +88,12 @@ private:
   //!
   Double gamma_parab_;  
 
-  //! 
+  //! Parameter for type of formulation
   /*!
-   \param 1 .. effective stiffness formulation
-   \param 2 .. effective mass formulation
+   \param 0 .. effective stiffness formulation
+   \param 1 .. effective mass formulation
   */
-
-  Integer effsysmat_;
+  Integer formulation_;
 
 };
 

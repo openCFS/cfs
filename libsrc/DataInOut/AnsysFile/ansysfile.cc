@@ -10,6 +10,7 @@
 
 #ifdef ADAPTGRID
 #include "Triangle.h"
+#include "Tetrahedron.h"
 #endif
 
 namespace CoupledField
@@ -174,26 +175,26 @@ void AnsysFile::getPosLine(const std::string seekexp, std::string::size_type & p
   std::string::size_type hpos;
 
   while (pos == std::string::npos && !infile.eof())
-{
-  hpos=infile.tellg();
-  std::getline(infile, buf, '\n');
-  pos=buf.find(seekexp);
-}
+    {
+      hpos=infile.tellg();
+      std::getline(infile, buf, '\n');
+      pos=buf.find(seekexp);
+    }
 
- pos=infile.tellg();
+  pos=infile.tellg();
 
- if (pos>=pos_end) {std::cerr << "ERROR: (" << __FILE__ <<" "<< __LINE__
-               << ") Cannot find string: " << seekexp ;
-          std::cerr << " in your dat file.\n\t\t Please, change your dat file."<< std::endl;
-                      exit(1);}
+  if (pos>=pos_end) {std::cerr << "ERROR: (" << __FILE__ <<" "<< __LINE__
+			       << ") Cannot find string: " << seekexp ;
+  std::cerr << " in your dat file.\n\t\t Please, change your dat file."<< std::endl;
+  exit(1);}
 
-// check, if there are comments lines
- do
-{
-  std::getline(infile, buf, '\n');
-  if (buf[0] =='#') pos=infile.tellg();
-}
- while (buf[0] == '#'); 
+  // check, if there are comments lines
+  do
+    {
+      std::getline(infile, buf, '\n');
+      if (buf[0] =='#') pos=infile.tellg();
+    }
+  while (buf[0] == '#'); 
 
 }
 
@@ -284,15 +285,15 @@ void AnsysFile::ReadGrid_RG(std::vector<grd::Element*> & elems, std::vector<grd:
  (*trace) << " entering AnsysFile::ReadGrid_RG " << std::endl;
 #endif
 
-switch(dim_)
-{
- case 2:
- ReadEl4AdaptGrid2d(elems, vertex, sd);
- break;
- case 3:
- Error(" Not implemented yet");
- break;
-} 
+ switch(dim_)
+   {
+   case 2:
+     ReadEl4AdaptGrid2d(elems, vertex, sd);
+     break;
+   case 3:
+     ReadEl4AdaptGrid3d(elems, vertex, sd);
+     break;
+   } 
 
 #ifdef TRACE
  (*trace) << " leaving AnsysFile::ReadGrid_RG " << std::endl;
@@ -308,77 +309,130 @@ void AnsysFile::ReadEl4AdaptGrid2d(std::vector<grd::Element*> & elems, std::vect
  Integer maxnelems;
  ReadMaxnumelem(maxnelems,"Num2DElements");
 
-if (maxnelems)
-{
- std::string::size_type pos=0;
+ if (maxnelems)
+   {
+     std::string::size_type pos=0;
 
- getPosLine("2D Elements", pos);
- infile.seekg(pos,std::ios::beg);
+     getPosLine("2D Elements", pos);
+     infile.seekg(pos,std::ios::beg);
 
- Integer i, ii, ibuf, itype, innodes;
- std::string namesd;
- Integer connect[4]; 
+     Integer i, ii, ibuf, itype, innodes;
+     std::string namesd;
+     Integer connect[4]; 
 
- elems.resize(maxnelems);
- for (i=0; i<maxnelems; i++)
-{
+     elems.resize(maxnelems);
+     for (i=0; i<maxnelems; i++)
+       {
+	 infile >> ibuf >> itype >> innodes >> namesd;
+	 infile.ignore(100,'\n');
 
- infile >> ibuf >> itype >> innodes >> namesd;
- infile.ignore(100,'\n');
+	 for (ii=0; ii<innodes; ii++)
+	   infile >> connect[ii];
 
- for (ii=0; ii<innodes; ii++)
-  infile >> connect[ii];
+	 grd::Triangle * tmpTri;
+	 grd::Quadrangle * tmpQuad;
+	 switch(itype)
+	   {
+	   case 4:
+	     tmpTri=new grd::Triangle;
 
- grd::Triangle * tmpTri;
- grd::Quadrangle * tmpQuad;
- switch(itype)
-{
- case 4:
-    tmpTri=new grd::Triangle;
-
-    tmpTri->setVertex(0,(*vertex)[connect[0]-1]);
-    tmpTri->setVertex(1,(*vertex)[connect[1]-1]);
-    tmpTri->setVertex(2,(*vertex)[connect[2]-1]); 
+	     tmpTri->setVertex(0,(*vertex)[connect[0]-1]);
+	     tmpTri->setVertex(1,(*vertex)[connect[1]-1]);
+	     tmpTri->setVertex(2,(*vertex)[connect[2]-1]); 
    
-    SetNumSD(tmpTri,namesd,sd);
+	     SetNumSD(tmpTri,namesd,sd);
     
-    elems[i]=tmpTri; 
- break;
- case 6:
-   tmpQuad=new grd::Quadrangle;
+	     elems[i]=tmpTri; 
+	     break;
+	   case 6:
+	     tmpQuad=new grd::Quadrangle;
    
-   tmpQuad->setVertex(0,(*vertex)[connect[0]-1]);
-   tmpQuad->setVertex(1,(*vertex)[connect[1]-1]);
-   tmpQuad->setVertex(2,(*vertex)[connect[2]-1]);
-   tmpQuad->setVertex(3,(*vertex)[connect[3]-1]);
+	     tmpQuad->setVertex(0,(*vertex)[connect[0]-1]);
+	     tmpQuad->setVertex(1,(*vertex)[connect[1]-1]);
+	     tmpQuad->setVertex(2,(*vertex)[connect[2]-1]);
+	     tmpQuad->setVertex(3,(*vertex)[connect[3]-1]);
 
-   SetNumSD(tmpQuad,namesd,sd);
+	     SetNumSD(tmpQuad,namesd,sd);
 
-   elems[i]=tmpQuad;
- break;
+	     elems[i]=tmpQuad;
+	     break;
  
- default:
-  Error(" This type of elems in mesh file is not implemented yet ");
+	   default:
+	     Error(" This type of elems in mesh file is not implemented yet ");
+	   }
+	 infile.ignore(100,'\n'); 
+       } 
+   } // end of if
 }
- infile.ignore(100,'\n');
- 
-}
- 
-} // end of if
 
+void AnsysFile::ReadEl4AdaptGrid3d(std::vector<grd::Element*> & elems, std::vector<grd::Vertex*> * vertex,  const std::vector<std::string> sd)
+{
+#ifdef TRACE
+ (*trace) << " entering AnsysFile::ReadElems4AdaptGrid3d " << std::endl;
+#endif
+
+ Integer maxnelems;
+ ReadMaxnumelem(maxnelems,"Num3DElements");
+
+ if (maxnelems)
+   {
+     std::string::size_type pos=0;
+
+     getPosLine("3D Elements", pos);
+     infile.seekg(pos,std::ios::beg);
+
+     Integer i, ii, ibuf, itype, innodes;
+     std::string namesd;
+     Integer connect[4]; 
+
+     elems.resize(maxnelems);
+     for (i=0; i<maxnelems; i++)
+       {
+	 infile >> ibuf >> itype >> innodes >> namesd;
+	 infile.ignore(100,'\n');
+
+	 for (ii=0; ii<innodes; ii++)
+	   infile >> connect[ii];
+
+	 grd::Tetrahedron * tmpTetra;
+	 switch(itype)
+	   {
+	   case 8:
+	     tmpTetra=new grd::Tetrahedron;
+
+	     tmpTetra->setVertex(0,(*vertex)[connect[0]-1]);
+	     tmpTetra->setVertex(1,(*vertex)[connect[1]-1]);
+	     tmpTetra->setVertex(2,(*vertex)[connect[2]-1]); 
+	     tmpTetra->setVertex(2,(*vertex)[connect[3]-1]);
+   
+	     SetNumSD(tmpTetra,namesd,sd);
+    
+	     elems[i]=tmpTetra; 
+	     break;
+	   case 10:
+	     Error(" This type of element is not implemented yet", __FILE__, __LINE__);
+	     break;
+ 
+	   default:
+	     Error(" This type of elems in mesh file is not implemented yet ");
+	   }
+	 infile.ignore(100,'\n'); 
+       }
+
+   } // end of if
 }
 
 void AnsysFile::SetNumSD(grd::Element * ptEl, const std::string namesd, const std::vector<std::string> sd)
 {
- Boolean Find;
- Integer j;
- for (j=0; j<sd.size(); j++)
-  if (namesd == sd[j]) { ptEl->setValue(j);
-                         Find=TRUE;
-                       }
- if (!Find) { std::string msg=namesd + "- this level of element is not mentioned in .conf-file. Please, check .config-file";
-              Error(msg.c_str(),__FILE__,__LINE__);
-            }
+  Boolean Find;
+  Integer j;
+  for (j=0; j<sd.size(); j++)
+    if (namesd == sd[j]) { ptEl->setValue(j);
+    Find=TRUE;
+    }
+  if (!Find) { std::string msg=namesd + "- this level of element is not mentioned in .conf-file. Please, check .config-file";
+  Error(msg.c_str(),__FILE__,__LINE__);
+  }
 }
 
 #endif
@@ -392,42 +446,42 @@ void AnsysFile::ReadEl2d(std::vector<Elem*> * allelems, const std::vector<std::s
  Integer maxnelems;
  ReadMaxnumelem(maxnelems,"Num2DElements");
 
-if (maxnelems)
-{
- std::string::size_type pos=0;
+ if (maxnelems)
+   {
+     std::string::size_type pos=0;
 
- getPosLine("2D Elements", pos);
- infile.seekg(pos,std::ios::beg);
+     getPosLine("2D Elements", pos);
+     infile.seekg(pos,std::ios::beg);
 
-  if (!ptTr || !ptQ || !ptTet)
-  Error(" Pointers to BaseElem is not initialized",__FILE__,__LINE__);
+     if (!ptTr || !ptQ || !ptTet)
+       Error(" Pointers to BaseElem is not initialized",__FILE__,__LINE__);
 
- Integer i, ii, j, ibuf, itype, innodes;
- std::string namesd;
+     Integer i, ii, j, ibuf, itype, innodes;
+     std::string namesd;
 
- for (i=0; i<maxnelems; i++)
-{
- Elem * el=new Elem();
- infile >> ibuf >> itype >> innodes >> namesd;
- infile.ignore(100,'\n');
+     for (i=0; i<maxnelems; i++)
+       {
+	 Elem * el=new Elem();
+	 infile >> ibuf >> itype >> innodes >> namesd;
+	 infile.ignore(100,'\n');
 
- (*el).ptElem=Type2ptElem(itype);
- (*el).connect.Resize(innodes);
- for (ii=0; ii<innodes; ii++)
-  infile >> (*el).connect[ii];
+	 (*el).ptElem=Type2ptElem(itype);
+	 (*el).connect.Resize(innodes);
+	 for (ii=0; ii<innodes; ii++)
+	   infile >> (*el).connect[ii];
 
- infile.ignore(100,'\n');
+	 infile.ignore(100,'\n');
 
- Boolean Find;
- for (j=0; j<sd.size(); j++)
-  if (namesd == sd[j]) { allelems[j].push_back(el);
-                         Find=TRUE;
-                       }
- if (!Find) { std::string msg=namesd + "- this level of element is not mentioned in .conf-file. Please, check .config-file";
-              Error(msg.c_str(),__FILE__,__LINE__);
-            }
-}
-}
+	 Boolean Find;
+	 for (j=0; j<sd.size(); j++)
+	   if (namesd == sd[j]) { allelems[j].push_back(el);
+	   Find=TRUE;
+	   }
+	 if (!Find) { std::string msg=namesd + "- this level of element is not mentioned in .conf-file. Please, check .config-file";
+	 Error(msg.c_str(),__FILE__,__LINE__);
+	 }
+       }
+   }
 }
 
 void AnsysFile::ReadEl3d(std::vector<Elem*> * allelems, const std::vector<std::string> sd)
@@ -443,34 +497,34 @@ void AnsysFile::ReadEl3d(std::vector<Elem*> * allelems, const std::vector<std::s
  getPosLine("3D Elements", pos);
  infile.seekg(pos,std::ios::beg);
 
-  if (!ptTr || !ptQ || !ptTet)
-  Error(" Pointers to BaseElem is not initialized",__FILE__,__LINE__);
+ if (!ptTr || !ptQ || !ptTet)
+   Error(" Pointers to BaseElem is not initialized",__FILE__,__LINE__);
 
  Integer i, ii, j, ibuf, itype, innodes;
  std::string namesd;
 
  for (i=0; i<maxnelems; i++)
-{
-  Elem * el=new Elem();
- infile >> ibuf >> itype >> innodes >> namesd;
- infile.ignore(100,'\n');
+   {
+     Elem * el=new Elem();
+     infile >> ibuf >> itype >> innodes >> namesd;
+     infile.ignore(100,'\n');
 
- el->ptElem=Type2ptElem(itype);
- el->connect.Resize(innodes);
- for (ii=0; ii<innodes; ii++)
-  infile >> (*el).connect[ii];
+     el->ptElem=Type2ptElem(itype);
+     el->connect.Resize(innodes);
+     for (ii=0; ii<innodes; ii++)
+       infile >> (*el).connect[ii];
 
- infile.ignore(100,'\n');
+     infile.ignore(100,'\n');
 
- Boolean Find;
- for (j=0; j<sd.size(); j++)
-  if (namesd == sd[j]) { allelems[j].push_back(el);
-                         Find=TRUE;
-                       }
- if (!Find) { std::string msg=namesd + "- this level of element is not mentioned in .conf-file. Please, check .config-file";
-              Error(msg.c_str(),__FILE__,__LINE__);
-            }
-}
+     Boolean Find;
+     for (j=0; j<sd.size(); j++)
+       if (namesd == sd[j]) { allelems[j].push_back(el);
+       Find=TRUE;
+       }
+     if (!Find) { std::string msg=namesd + "- this level of element is not mentioned in .conf-file. Please, check .config-file";
+     Error(msg.c_str(),__FILE__,__LINE__);
+     }
+   }
 
 }
 

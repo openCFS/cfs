@@ -7,7 +7,11 @@ include $(LIBSRC_DIR)/makefilemach/make.mach.$(MACHINE)
 #
 ARFLAGS = r 
 #
-LIBB = $(LIB_DIR)/lib$(lib).so
+ifeq "$(LIBRARY_TYPE)" "shared"
+	LIBB := $(LIB_DIR)/lib$(lib).so
+else
+	LIBB := $(LIB_DIR)/lib$(lib).a 
+endif
 #
 .SUFFIXES: .f .cc .o
 .cc.o:
@@ -15,19 +19,17 @@ LIBB = $(LIB_DIR)/lib$(lib).so
 #
 libgoal: $(LIB_DIR) $(LIBB)
 #
-#################### to make static library
+#################### to make library
 #
-#$(LIBB): $(LIBB).a
-#
-#$(LIBB).a: $(src:.cc=.o)
-#	$(AR) $(ARFLAGS) $@ $(?:.cc=.o) 
-#	$(RANLIB) $@ 
-#
-#################### to make share library
-#
+ifeq "$(LIBRARY_TYPE)" "shared"
+
 $(LIBB): $(src:.cc=.o)
 	$(CC) $(FLAG_MKSHLIB) -o $@ $(?:.cc=.o) 
-#
+else
+$(LIBB): $(src:.cc=.o)
+	$(AR) $(ARFLAGS) $@ $(?:.cc=.o); \
+	$(RANLIB) $@
+endif
 #
 $(LIB_DIR) :
 	-@mkdir $(C_DIR)/lib

@@ -13,7 +13,7 @@ namespace CoupledField
   Char * name = new Char[100];
   strcpy(name,aname);
 
-  infile.open(strcat(name,".dat"));
+  infile.open(name);
   if (!infile) {std::cerr << "ERROR(" << __FILE__ << " " << __LINE__ <<
                          ") Can't open " << name << "/ We working only with dat format / " << std::endl;
                 exit(1);}

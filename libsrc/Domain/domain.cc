@@ -23,6 +23,7 @@
 #include "therm2dPDE.hh"
 #include "acoustic2dPDE.hh"
 #include "elecst3dPDE.hh"
+#include "elecst2dPDE.hh"
 
 namespace CoupledField
 {
@@ -132,26 +133,27 @@ void Domain :: InitPDE()
 
   for (int i=0;i< pdes.size();i++)
     {
-       if (pdes[i] == "acoustic2d")  { ptpde_[i]=new Acoustic2dPDE(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_);}
-       else
-       if (pdes[i] == "electrostatic3d") {  ptpde_[i]=new Elecst3dPDE(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_);
-                                         }
-       else
-    { std::string msg=pdes[i]+" - this type of pdes is unknown";
-      Error(msg.c_str(),__FILE__,__LINE__);
-    }
-      
-//       else
-//       if (eq == "thermal2d") ptpde_[i]=new Therm2dPDE(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_);
-   }
-}
+      if (pdes[i] == "acoustic2d")  { ptpde_[i]=new Acoustic2dPDE(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_);}
+      else
+	if (pdes[i] == "electrostatic3d") {  ptpde_[i]=new Elecst3dPDE(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_);
+	}     
+	else
+	  if (pdes[i] == "thermal2d") ptpde_[i]=new Therm2dPDE(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_);	 
+	  else
+	    if (pdes[i]=="electrostatic2d") { ptpde_[i]=new Elecst2dPDE(ptalgsys_,ptgrid_,ptmaterial_,ptTimeFunc_,InFile_,OutFile_);
+	    }
+	    else { std::string msg=pdes[i]+" - this type of pdes is unknown";
+	    Error(msg.c_str(),__FILE__,__LINE__);
+	    } 	  
+    } // end of for
+
+} // end of fnc InitPDE()
 
 void Domain :: InitAlgSys(const Integer level)
 {
 #ifdef TRACE
   (*trace) << "entering Domain::InitAlgSys" << std::endl;
-#endif
-  
+#endif  
 
   //check, how much systems are needed and how much matrix graphs
   numsys_   = 1;
@@ -198,14 +200,6 @@ void Domain :: InitAlgSys(const Integer level)
 	}
     }
 
-  for (insys=0;insys<numsys_;insys++)
-    {
-      for (nel=0; nel<numelem; nel++)
-	{
-          ptgrid_->GetConnection(connect, nel, level);
-		}
-    }
-
   //now we can create all the necessary matrices
   Integer matrixtype;
   Integer matrixsystype[5];    
@@ -218,7 +212,6 @@ void Domain :: InitAlgSys(const Integer level)
     {
       ptpde_[insys]->SpecifyMatrices(matrixtype, matrixsystype, graphtype, numdofpernode,  numdirichlets, numconstraints);
       numdirichlets = ptpde_[insys]->GetNumRestraints(ptBCs_);
-
       ptalgsys_->CreateAlgSysMatrices(insys,insys,matrixsystype,matrixtype,graphtype, numdofpernode,  numdirichlets, numconstraints);
     }
 
@@ -296,8 +289,8 @@ void Domain::UpdateAlgSys(const Integer level)
   AbstractAlgebraicSys * ptAS[1000];
   ptAS[newlevel] = new AlgSysPILES();
   cerr << "ALGSYS_AD:" << ptalgsys_ << endl;
-  ptalgsys_=ptAS[newlevel]; 
-  //ptalgsys_=new AlgSysPILES();
+  //  ptalgsys_=ptAS[newlevel]; 
+  ptalgsys_=new AlgSysPILES();
  if (!ptalgsys_) Error("Can't allocate memory for algebraic system Piles");
 
   for (int i=0;i< numpde_;i++) {
