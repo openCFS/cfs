@@ -163,6 +163,7 @@ public:
   virtual void WriteResultsInFile()=0;  
 
 
+#ifdef ADAPTGRID
   //------------------------ functions for adaptivity process ---------------------
 
   //! test error of calculation. return TRUE, if it is more then tolerance
@@ -171,6 +172,7 @@ public:
    //! refine mesh
   virtual void RefineMesh(const Integer level=0);
 
+#endif
 
   //------------------------ get functions----------------------------------------
 
@@ -185,7 +187,10 @@ public:
 
    //! returns if PDE can compute the quantity
   virtual Boolean HasOutput(std::string output)
-  {Error("not implemented"); }
+  {
+    Error("not implemented");
+    return 0;
+  }
 
   //! return pointer to vector with solution
   virtual const Array<Double>& getS() {return sol_;}
@@ -358,10 +363,12 @@ protected:
   
   /// Stores result vector in the multidimensional solution array sol_q
   void StoreVecToSolArray(std::vector<Double>& sol);
-  
+
+#ifdef ADAPTGRID  
   //! ----------------- functions for adaptivity
   //! in this fnc we delete old pointer to Error-object & create new one
   void ConstructorError();
+#endif
 
   //! analysis type
   AnalysisType analysistype_;

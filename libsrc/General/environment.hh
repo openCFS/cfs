@@ -23,7 +23,7 @@ typedef int Boolean;
   //! useful trick for testing problem
 #define mark std::cout<<__FILE__<<__LINE__<<std::endl;
 
-  const Double PI = acos(-1);
+  const Double PI = acos(-1.0);
   
 
   //! declaration sof functions. it is used in parsing functions from conf-file

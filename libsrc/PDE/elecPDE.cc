@@ -226,6 +226,7 @@ void ElecPDE::SolveStepStatic(const Integer level)
 	}
     }
 
+#ifdef ADAPTGRID
   if (flags->CalcErrorMap_)
     {
       Double         totalErr;
@@ -249,6 +250,7 @@ void ElecPDE::SolveStepStatic(const Integer level)
       *infofile << " total error of calculation:: " << totalErr << std::endl;
       *data << errorMap_ << std::endl;
     }
+#endif
 
 }
 

@@ -418,7 +418,7 @@ void Matrix<TYPE>::add_row (const Vector<TYPE> &x, const Integer pos)
 }
 
 template<class TYPE>
-void Matrix<TYPE>::add_col (const Vector<TYPE> &x, const Integer pos)
+void Matrix<TYPE>::add_col (const std::vector<TYPE> &x, const Integer pos)
 {
       if (!row || !col) Error("undefined Matrix",__FILE__,__LINE__);
  
@@ -725,7 +725,6 @@ void Matrix<TYPE>::GetSubMatrix(Matrix<TYPE>& subMat, Integer startRow, Integer 
 
 
 
-
 // overwrites the matrix elements at the position (row, col) with subMat
 // in a rectangular (submatrix) way
 template<class TYPE>
@@ -752,10 +751,8 @@ void Matrix<TYPE>::ConvertToVec_AppendRows(std::vector<TYPE>& vec) const
   
   for(int i=0; i < row; i++)
     for(int j=0; j < col; j++)
-      vec[i*row + j] = (*this)[i][j];
+      vec[i*(row-1) + j] = (*this)[i][j];
 }
-
-
 
 /// converts a matrix into a vector, by appending successively all colums
 template<class TYPE>
@@ -769,31 +766,35 @@ void Matrix<TYPE>::ConvertToVec_AppendCols(std::vector<TYPE>& vec) const
 }
 
 
+/// scales the diagonal elements of a  matrix by a factor
+template<class TYPE>
+void Matrix<TYPE>::ScaleDiagElems(TYPE factor) 
+{
+  if (row != col ) Error("No square- matrix!",__FILE__,__LINE__);
+  if (!row || !col) Error("Undefined Matrix!",__FILE__,__LINE__);
+
+  Integer i;
+        for (i = 0; i < row; i++)
+                p [i][i] *= factor;
+ 
+}
 
 
-// std::vector<Double> operator* ( std::vector<Double> & vec, const Matrix<Double> & mat)
-// {
-// #ifdef TRACE
-//   (*trace) << "entering operator* (std::vector<Double> &, Matrix<Double> &)" << std::endl;
-// #endif
+/// gets the diagonal elements of a  matrix in a one column matrix
+template<class TYPE>
+void Matrix<TYPE>::GetDiagInMatrix(Matrix<TYPE>& columnMat) 
+{
+  if (row != col ) Error("No square- matrix!",__FILE__,__LINE__);
+  if (!row || !col) Error("Undefined Matrix!",__FILE__,__LINE__);
 
-//   if (vec.size() != mat.size_row())
-//     Error("Wrong dimensions while multiplying a vector with a matrix!",__FILE__,__LINE__);
-
-//   std::vector<Double> result(mat.size_col());
+  columnMat.Resize(row, 1);
   
-//   for (Integer j=0; j < mat.size_col(); j++)
-//     {
-//       result[j] = 0;
+  Integer i;
+        for (i = 0; i < row; i++)
+                columnMat [i][0] = p[i][i];
+	
 
-//       for (Integer i=0; i < vec.size(); i++)
-// 	result[j] += vec[i] * mat[i][j];
-//     }
-//   return result;
-// }
-
-
-
+}
 
 
 Double operator* (std::vector<Double> & vec1, std::vector<Double> & vec2)
@@ -922,47 +923,8 @@ std::vector<Double> operator* (Double val, std::vector<Double> & vec)
 
 
 
-// std::vector<Double> operator= (std::vector<Double> & vec, Double val)
-// {
-// #ifdef TRACE
-//   (*trace) << "entering operator= (std::vector<Double> &, Double)" << std::endl;
-// #endif
-
-//   if (!vec.size())
-//     Error("Vector not defined!",__FILE__,__LINE__);
-
-//   std::vector<Double> result(vec);
-  
-//   for (Integer j=0; j < vec.size(); j++)
-//     result[j] = val;
-
-//   return result;
-// }
-
-
-
 template Integer Spur<Integer>(const Matrix<Integer> &);
 template Double Spur<Double>(const Matrix<Double> &);
-
-
-
-// template<class TYPE>
-// Matrix<TYPE> Trans (const Matrix<TYPE> &x)
-// {       if (!x.size_row() || !x.size_col())
-//             Error("undefined Matrix",__FILE__,__LINE__);
- 
-//         Matrix<TYPE>    z (x.size_col(), x.size_row());
- 
-//         Integer i,j;
-//         for (i = 0; i < x.size_col(); i++)
-//                 for (j = 0; j < x.size_row(); j++)
-//                         z[i] [j] = x [j] [i];
-//         return z;
-// }
- 
-// template Matrix<Integer> Trans<Integer>(const Matrix<Integer> &);
-// template Matrix<Double> Trans<Double>(const Matrix<Double> &);
-
 
 
 } // end of namespace

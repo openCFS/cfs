@@ -129,10 +129,17 @@ public:
   virtual ~LinearFlowNoiseInt();
 
   /// Calculation of vector of right hand side for the surface elements on the obstacle (dipole)
-  void CalcElemVector4Dip(Matrix<Double>& ptCoord,const Vector<Integer> & connecth, Vector<Double> & Result, const std::vector<Double> gradN_x_P);
+  void CalcElemVector4Dip(Matrix<Double>& ptCoord, const Vector<Integer> & connecth, 
+			  std::vector<Double> & Result, const std::vector<Double> gradN_x_P);
 
   /// Calculation of vector of right hand side given from quadrupole contribution
-  void CalcElemVector4Quad(Matrix<Double>& ptCoord,const Vector<Integer> & connecth,const Matrix<Double> & FlowData, Vector<Double> & Result);
+  void CalcElemVector4Quad(Matrix<Double>& ptCoord, const Vector<Integer> & connecth,
+			   const Matrix<Double> & FlowData, std::vector<Double> & Result);
+
+  /// Extraction of element velocity values from total flowdata matrix to a matrix (connecth, dim)
+  void GetQttiesOfElement(Matrix<Double>& elVec, const Matrix<Double>& FlowData,
+			  const Vector<Integer>& connecth, Integer matrixRow);
+  
   
 private:
 

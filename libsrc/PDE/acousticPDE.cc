@@ -165,16 +165,15 @@ void AcousticPDE::WriteResultsInFile()
 #endif
 
   Array<Double> sol_mesh, solder1_mesh, solder2_mesh;
-  Array<Double> solArray_, sol_der1Array_, sol_der2Array_;
+  Array<Double> sol_der1Array, sol_der2Array;
   
-  solArray_ = sol_;
-  sol_der1Array_ = getS1();
-  sol_der2Array_ = getS2();
+  sol_der1Array = getS1();
+  sol_der2Array = getS2();
 
   
   TransformNodeSolution(sol_mesh,sol_,PDE2MeshNode_);
-  TransformNodeSolution(solder1_mesh,sol_der1Array_,PDE2MeshNode_);
-  TransformNodeSolution(solder2_mesh,sol_der2Array_,PDE2MeshNode_);
+  TransformNodeSolution(solder1_mesh,sol_der1Array,PDE2MeshNode_);
+  TransformNodeSolution(solder2_mesh,sol_der2Array,PDE2MeshNode_);
 
   if (OutFile_->IsGMV())
     {

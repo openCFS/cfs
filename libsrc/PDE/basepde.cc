@@ -35,7 +35,8 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile, WriteResults * a
   eps_         = 1.0e-8;
   dampiter_    = 0.7;
   maxnumiter_  = 100;
-  solvertype_  = RealDirect;
+  solvertype_  = RealCG;
+  //solvertype_  = RealDirect;
   precondtype_ = ID;
   numeqcoarse_ = 200;
   coarsealpha_ = 0.1;
@@ -750,6 +751,8 @@ BasePDE::~BasePDE()
   if (algsys_) delete algsys_;
 }
 
+
+#ifdef ADAPTGRID
 void BasePDE::RefineMesh(const Integer level)
 {
 #ifdef TRACE
@@ -762,7 +765,7 @@ void BasePDE::RefineMesh(const Integer level)
   Double                   theta_s;
   Double                   coarseFactor;
   Double                   tol4Elm;
-  Integer                  numRefLoops;
+  Integer                  numRefLoops=0;
   Integer                  numRefinements;
   Integer                  iem;
 
@@ -862,5 +865,6 @@ void BasePDE::WriteErrorInfo(WriteResults * ptmeshes)
   ptmeshes->WriteElemSolution(errorMap_,0,0,"ERR-errorMap");
   ptmeshes->WriteElemSolution(markingElems_,0,0,"ERR-markedElems");
 }
+#endif
 
 } // end of namespace

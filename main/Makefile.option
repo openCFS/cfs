@@ -4,13 +4,13 @@ program = cfs
 LIBRARY_TYPE = static
 
 #Adaptivity = yes / no
-Adaptivity =yes
+Adaptivity =no
 
 #PETSc solvers
 PETSc=no
 
 #MpCCI
-MpCCI=no
+MpCCI=yes
 
 #General Socket Interface
 GSI = no
@@ -76,5 +76,12 @@ else
    INCL = $(INCL1) 
    INCLAdaptGrid = 
 endif
+
+ifeq ($(MpCCI),yes)
+   INCLMpCCI = -DMpCCI
+else
+   INCLMpCCI =
+endif
+
 
 

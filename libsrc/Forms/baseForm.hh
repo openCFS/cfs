@@ -27,12 +27,19 @@ public:
   virtual void CalcElemVector(Matrix<Double>& ptCoord, std::vector<Double> & result)
   {Error("CalcElemVector not implemented!",__FILE__,__LINE__);};
 
-  virtual void CalcElemVector4Dip(Matrix<Double>& ptCoord, const Vector<Integer> & connecth, Vector<Double> & Result, const std::vector<Double> gradN_x_P)
+  virtual void CalcElemVector4Dip(Matrix<Double>& ptCoord, const Vector<Integer> & connecth, 
+				  std::vector<Double> & Result, const std::vector<Double> gradN_x_P)
   { Error(" CalcElemVector4Dip is not implemented for this class",__FILE__,__LINE__);}
 
   /// Calculation of vector of right hand side given from quadrupole contribution
-  virtual void CalcElemVector4Quad(Matrix<Double>& ptCoord,const Vector<Integer> & connecth,const Matrix<Double> & FlowData, Vector<Double> & Result)
+  virtual void CalcElemVector4Quad(Matrix<Double>& ptCoord,const Vector<Integer> & connecth,
+				   const Matrix<Double> & FlowData, std::vector<Double> & Result)
   { Error(" CalcElemVector4Quad is not implemented for this class",__FILE__,__LINE__);}
+
+  /// Extraction of element velocity values from total flowdata matrix to a matrix (connecth, dim)
+  virtual void GetQttiesOfElement(Matrix<Double>& elVec,const Matrix<Double>& FlowData,
+				  const Vector<Integer>& connecth, Integer matrixRow)
+  { Error(" GetQttiesOfElement is not implemented for this class",__FILE__,__LINE__);} 
 
   //! Prints the bilinear form
   virtual void Print(std::ostream * out, const Matrix<Double> Result) const;
