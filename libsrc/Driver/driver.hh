@@ -1,6 +1,7 @@
 #ifndef FILE_DRIVER_2001
 #define FILE_DRIVER_2001
 
+#include "tools.hh"
 #include "filetype.hh"
 #include "outUnverg.hh"
 #include "pde.hh"
@@ -39,6 +40,10 @@ namespace CoupledField
     Boolean SaveDer2;
   };
 
-}
+#ifdef __GNUC__
+template class Driver<Point2D>;
+template class Driver<Point3D>;
+#endif
 
+} // end of namespace
 #endif // FILE_DRIVER

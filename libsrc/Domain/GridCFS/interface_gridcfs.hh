@@ -21,7 +21,7 @@ public:
   virtual ~GridInterfaceCFS() { if (ptGridCFS) delete ptGridCFS;}
   
   /// Uniform subdivision of domain
-  virtual void Subdiv(const Integer level) {Error("Not implemented Subdiv()");} 
+  virtual void SubdivideUniform(const Integer level) {Error("Not implemented Subdiv() in GridCFS",__FILE__,__LINE__);} 
 
   //! Read of mesh 
   virtual void Read() 

@@ -1,12 +1,10 @@
 #ifndef FILE_OUTRESULTUNVERG_2001
 #define FILE_OUTRESULTUNVERG_2001
 
-#include "tools.hh" 
 #include "grid.hh"
 
 namespace CoupledField
 {
-
 ///
 template <class Dim>
 class OutResultUnverg
@@ -36,8 +34,10 @@ private:
  
 };
 
-//template class outResultUnverg<Point2D>;
-//template class outResultUnverg<Point3D>;
+#ifdef __GNUC__
+template class OutResultUnverg<Point2D>;
+template class OutResultUnverg<Point3D>;
+#endif
 
 } // end of namespace
  

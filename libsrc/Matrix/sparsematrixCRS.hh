@@ -29,6 +29,7 @@ template<class TYPE> class SparseMatrix
   Integer * pf;  
 
 public:
+
   /// Constructor  
   SparseMatrix();
   /// Constructor(number of entries, number of rows, number of colomnes)

@@ -79,6 +79,11 @@ inline InterfaceAlgSys<Dim>::InterfaceAlgSys(Grid<Dim> * aptgrid, const Integer 
    ptWork=new WorkWithSysMat<Dim, Matrix<Double> >(ptGrid,level,eps);
 }
 
+#ifdef __GNUC__
+template class InterfaceAlgSys<Point2D>;
+//templale class InterfaceAlgSys<Point3D>;
+#endif
+
 } // end of namespace
 
 #endif

@@ -96,7 +96,8 @@ private:
 #ifdef __GNUC__
 template class Assemble<Point2D, Matrix<Double> >;
 template class Assemble<Point2D, SymMatrix<Double> >;
-//template class Assemble<Point2D, SymBandMatrix<Double> >;
+template class Assemble<Point3D, Matrix<Double> >;
+template class Assemble<Point3D, SymMatrix<Double> >;
 #endif
 
 }
