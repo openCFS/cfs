@@ -101,10 +101,10 @@ namespace CoupledField
 
     (*skelfile_)  << "#-- NAME OF MATERIAL FILE" << std::endl
 		  << "material_file = mat.dat" << std::endl << std::endl;
-    (*skelfile_)  << "#-- SPECIFY TIME FUNCTION FILE OR TIME FUNCTION" << std::endl
+    (*skelfile_)  << "#-- SPECIFY TIME FUNCTION FILE OR TIME FUNCTION (if necessary)" << std::endl
 		  << std::endl << std::endl;
     (*skelfile_)  << "#-- ANALYSIS (static, transient, harmonic)" << std::endl
-		  << "analysis = " << std::endl << std::endl;
+		  << "analysis = XXX" << std::endl << std::endl;
 
   }
 
@@ -149,7 +149,7 @@ namespace CoupledField
 		     << std::endl;
 	(*skelfile_) << "list_subdomains: " << std::endl;
 	for (Integer i=0; i<sd.size(); i++)
-	  (*skelfile_) << "\t" << sd[i] << " = " << std::endl;
+	  (*skelfile_) << "\t" << sd[i] << " = XXX" << std::endl;
 	(*skelfile_) << std::endl;
       }
 
@@ -168,7 +168,7 @@ namespace CoupledField
 		     << std::endl;
 	(*skelfile_) << "list_subdomains: " << std::endl;
 	for (Integer i=0; i<sd.size(); i++)
-	  (*skelfile_) << "\t" << sd[i] << " = " << std::endl;
+	  (*skelfile_) << "\t" << sd[i] << " = XXX" << std::endl;
 	(*skelfile_) << std::endl;
       }
     else
@@ -238,16 +238,16 @@ namespace CoupledField
 #endif
 
     (*skelfile_) << "# -- PDE LIST (PLEASE FILL OUT)" << std::endl;
-    (*skelfile_) << "list_pdes = non" << std::endl << std::endl;
+    (*skelfile_) << "list_pdes = XXX non" << std::endl << std::endl;
 
     (*skelfile_) << "# -- PDE SPECIFIC PARAMETERS" << std::endl;
-    (*skelfile_) << "PDExxx:" << std::endl << std::endl;
+    (*skelfile_) << "PDE-XXX:" << std::endl << std::endl;
 
-    (*skelfile_) << "\t subdomains = non" << std::endl << std::endl;
+    (*skelfile_) << "\t subdomains = XXX non" << std::endl << std::endl;
 
     (*skelfile_) << "\t bc_conditions:" << std::endl;
-    (*skelfile_) << "\t \t homogeneous_dirichlet = non" << std::endl; 
-    (*skelfile_) << "\t \t inhomogeneous_dirichlet = non" << std::endl << std::endl; 
+    (*skelfile_) << "\t \t homogeneous_dirichlet = XXX non" << std::endl; 
+    (*skelfile_) << "\t \t inhomogeneous_dirichlet = XXX non" << std::endl << std::endl; 
 
     (*skelfile_) << "#--\t ABSORBING BCs: (if yes, uncomment  bnd_for_absBCs and specify" << std::endl; 
     (*skelfile_) << "\t absorbingBCs = no" << std::endl;
