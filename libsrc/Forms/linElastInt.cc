@@ -28,11 +28,6 @@ namespace CoupledField
 
     ptelem->GetGlobDerivShFncAtIp(xiDx, ip, ptCoord);
 
-#ifdef DEBUG
-    *debug << std::endl << "xiDx in calcBMat of BDBInt: " << std::endl 
-	   << xiDx << std::endl;
-#endif
-
 
     for(actDim=0; actDim < spaceDim; actDim++)
       for(actNode=0; actNode < nrNodes; actNode++)

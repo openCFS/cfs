@@ -176,11 +176,14 @@ public:
 
   /// copies a submatrix at the position (row, col) into subMat, 
   /// the amount of copied elements depends on the size of subMat
-  void GetSubMatrix(Matrix<TYPE> subMat, Integer row, Integer col) const;
+  void GetSubMatrix(Matrix<TYPE>& subMat, Integer row, Integer col) const;
 
   /// overwrites the matrix elements at the position (row, col) with subMat
   /// in a rectangular (submatrix) way
-  void SetSubMatrix(Matrix<TYPE> subMat, Integer row, Integer col);
+  void SetSubMatrix(Matrix<TYPE>& subMat, Integer row, Integer col);
+
+  /// converts a matrix into a vector, by appending successively all rows
+  void ConvertToVec_RowsFirst(std::vector<TYPE>& vec) const;
   
 private:
   /// calculates the adjunct of the matrix at position (i,j)
@@ -270,13 +273,26 @@ inline Double Matrix<TYPE>::Det () const
 //   template<TYPE>
 //   friend  std::vector<TYPE> operator* (std::vector<TYPE> & vec, const Matrix<TYPE> & mat);
 
-std::vector<Double> operator* (std::vector<Double> & vec, const Matrix<Double> & mat);
+// std::vector<Double> operator* (std::vector<Double> & vec, const Matrix<Double> & mat);
+
 
 Double operator* (std::vector<Double> & vec1, std::vector<Double> & vec2);
 
+Double operator*= (std::vector<Double> & vec, Double val);
+
 Double L2Norm(std::vector<Double> & vec);
 
-Double operator*= (std::vector<Double> & vec, Double val);
+std::vector<Double> operator+ (std::vector<Double> & vec, std::vector<Double> & vec2);
+
+std::vector<Double> operator- (std::vector<Double> & vec, std::vector<Double> & vec2);
+
+std::vector<Double> operator+= (std::vector<Double> & vec, std::vector<Double> & vec2);
+
+std::vector<Double> operator* (Double val, std::vector<Double> & vec);
+
+//std::vector<Double> operator= (std::vector<Double> & vec, Double val);
+
+
 
 
 #ifdef __GNUC__
@@ -285,5 +301,10 @@ template class Matrix<Integer>;
 #endif
 
 } //end of namespace
+
+//typedef double Double;
+
+
+
 #endif	// FILE_MATRIX
 

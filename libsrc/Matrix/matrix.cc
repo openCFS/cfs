@@ -691,17 +691,17 @@ template<class TYPE>
 // copies a submatrix at the position (row, col) into subMat, 
 // the amount of copied elements depends on the size of subMat
 template<class TYPE>
-void Matrix<TYPE>::GetSubMatrix(Matrix<TYPE> subMat, Integer startRow, Integer startCol) const
+void Matrix<TYPE>::GetSubMatrix(Matrix<TYPE>& subMat, Integer startRow, Integer startCol) const
 {
   if (!subMat.size_row() || !subMat.size_col() || !col || !row ) 
     Error("undefined matrix",__FILE__,__LINE__);
-
-  if ((subMat.size_row() + startRow > row) || (subMat.size_col() + startCol > col) )
+  
+  if (((subMat.size_row() + startRow) > row) || ((subMat.size_col() + startCol) > col) )
     Error("Submatrix to be written is to large! ",__FILE__,__LINE__);
 
   for(int actRow=0; actRow < subMat.size_row(); actRow++)
     for(int actCol=0; actCol < subMat.size_col(); actCol++)
-      subMat[actRow][actCol] = *this[actRow + startRow][actCol + startCol];
+      subMat[actRow][actCol] = p[actRow + startRow][actCol + startCol];  
 }
 
 
@@ -710,7 +710,7 @@ void Matrix<TYPE>::GetSubMatrix(Matrix<TYPE> subMat, Integer startRow, Integer s
 // overwrites the matrix elements at the position (row, col) with subMat
 // in a rectangular (submatrix) way
 template<class TYPE>
-void Matrix<TYPE>::SetSubMatrix(Matrix<TYPE> subMat, Integer startRow, Integer startCol)
+void Matrix<TYPE>::SetSubMatrix(Matrix<TYPE>& subMat, Integer startRow, Integer startCol)
 {
   if (!subMat.size_row() || !subMat.size_col() || !col || !row ) 
     Error("undefined matrix",__FILE__,__LINE__);
@@ -720,32 +720,49 @@ void Matrix<TYPE>::SetSubMatrix(Matrix<TYPE> subMat, Integer startRow, Integer s
 
   for(int actRow=0; actRow < subMat.size_row(); actRow++)
     for(int actCol=0; actCol < subMat.size_col(); actCol++)
-      *this[actRow + startRow][actCol + startCol] = subMat[actRow][actCol];
+      p[actRow + startRow][actCol + startCol] = subMat[actRow][actCol];
 }
 
 
 
-
-
-std::vector<Double> operator* ( std::vector<Double> & vec, const Matrix<Double> & mat)
+/// converts a matrix into a vector, by appending successively all rows
+template<class TYPE>
+void Matrix<TYPE>::ConvertToVec_RowsFirst(std::vector<TYPE>& vec) const
 {
-#ifdef TRACE
-  (*trace) << "entering operator* (std::vector<Double> &, Matrix<Double> &)" << std::endl;
-#endif
-
-  if (vec.size() != mat.size_row())
-    Error("Wrong dimensions while multiplying a vector with a matrix!",__FILE__,__LINE__);
-
-  std::vector<Double> result(mat.size_col());
+  vec.resize(row * col);
   
-  for (Integer j=0; j < mat.size_col(); j++)
-    {
-      result[j] = 0;
-
-      for (Integer i=0; i < vec.size(); i++)
-	result[j] += vec[i] * mat[i][j];
-    }
+  for(int i=0; i < row; i++)
+    for(int j=0; j < col; j++)
+      vec[i*row + j] = (*this)[i][j];
 }
+
+
+
+
+// std::vector<Double> operator* ( std::vector<Double> & vec, const Matrix<Double> & mat)
+// {
+// #ifdef TRACE
+//   (*trace) << "entering operator* (std::vector<Double> &, Matrix<Double> &)" << std::endl;
+// #endif
+
+//   if (vec.size() != mat.size_row())
+//     Error("Wrong dimensions while multiplying a vector with a matrix!",__FILE__,__LINE__);
+
+//   std::vector<Double> result(mat.size_col());
+  
+//   for (Integer j=0; j < mat.size_col(); j++)
+//     {
+//       result[j] = 0;
+
+//       for (Integer i=0; i < vec.size(); i++)
+// 	result[j] += vec[i] * mat[i][j];
+//     }
+//   return result;
+// }
+
+
+
+
 
 Double operator* (std::vector<Double> & vec1, std::vector<Double> & vec2)
 {
@@ -761,8 +778,7 @@ Double operator* (std::vector<Double> & vec1, std::vector<Double> & vec2)
   for (Integer i=0; i < vec1.size(); i++)
     mult += vec1[i]*vec2[i];
 
-  return mult;
-  
+  return mult;  
 }
 
 
@@ -790,9 +806,97 @@ Double L2Norm(std::vector<Double> & vec)
 
 
 
+std::vector<Double> operator+ ( std::vector<Double> & vec1,  std::vector<Double> & vec2)
+{
+#ifdef TRACE
+  (*trace) << "entering operator+ (std::vector<Double> &, std::vector<Double> &)" << std::endl;
+#endif
+
+  if (vec1.size() != vec2.size())
+    Error("Wrong dimensions by adding vectors!",__FILE__,__LINE__);
+
+  std::vector<Double> result(vec1);
+  
+  for (Integer j=0; j < vec2.size(); j++)
+    result[j] += vec2[j];
+
+  return result;
+}
+
+
+std::vector<Double> operator- ( std::vector<Double> & vec1,  std::vector<Double> & vec2)
+{
+#ifdef TRACE
+  (*trace) << "entering operator+ (std::vector<Double> &, std::vector<Double> &)" << std::endl;
+#endif
+
+  if (vec1.size() != vec2.size())
+    Error("Wrong dimensions by adding vectors!",__FILE__,__LINE__);
+
+  std::vector<Double> result(vec1);
+  
+  for (Integer j=0; j < vec2.size(); j++)
+    result[j] -= vec2[j];
+
+  return result;
+}
+
+
+std::vector<Double> operator+= ( std::vector<Double> & vec1,  std::vector<Double> & vec2)
+{
+#ifdef TRACE
+  (*trace) << "entering operator+= (std::vector<Double> &, std::vector<Double> &)" << std::endl;
+#endif
+
+  vec1 = vec1 + vec2;
+  
+  return vec1;
+}
+
+
+
+std::vector<Double> operator* (Double val, std::vector<Double> & vec)
+{
+#ifdef TRACE
+  (*trace) << "entering operator* (Double, std::vector<Double> &)" << std::endl;
+#endif
+
+  if (!vec.size())
+    Error("Vector not defined!",__FILE__,__LINE__);
+
+  std::vector<Double> result(vec);
+  
+  for (Integer j=0; j < vec.size(); j++)
+    result[j] *= val;
+
+  return result;
+}
+
+
+
+// std::vector<Double> operator= (std::vector<Double> & vec, Double val)
+// {
+// #ifdef TRACE
+//   (*trace) << "entering operator= (std::vector<Double> &, Double)" << std::endl;
+// #endif
+
+//   if (!vec.size())
+//     Error("Vector not defined!",__FILE__,__LINE__);
+
+//   std::vector<Double> result(vec);
+  
+//   for (Integer j=0; j < vec.size(); j++)
+//     result[j] = val;
+
+//   return result;
+// }
+
+
 
 template Integer Spur<Integer>(const Matrix<Integer> &);
 template Double Spur<Double>(const Matrix<Double> &);
+
+
 
 // template<class TYPE>
 // Matrix<TYPE> Trans (const Matrix<TYPE> &x)
@@ -814,3 +918,9 @@ template Double Spur<Double>(const Matrix<Double> &);
 
 
 } // end of namespace
+
+
+
+
+
+

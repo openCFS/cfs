@@ -166,4 +166,102 @@ namespace CoupledField
   }
 
 
+
+
+  // ==================================================================
+  // nLinMech
+  // ==================================================================
+
+
+  nLinMech_linFormInt::nLinMech_linFormInt(BaseFE * aptelem, MaterialData & mat) 
+    : LinearForm(aptelem), matData_(mat)
+  {
+#ifdef TRACE
+    (*trace) << "entering nLinMech_linFormInt::nLinMech_linFormInt" << std::endl;
+#endif
+  }
+
+
+  
+  nLinMech_linFormInt ::~nLinMech_linFormInt()
+  {
+#ifdef TRACE
+    (*trace) << "entering nLinMech_linFormInt::~nLinMech_linFormInt" << std::endl;
+#endif
+  }
+
+
+
+  void nLinMech_linFormInt::CalcElemVector(Matrix<Double>& ptCoord, std::vector<Double> & elemVec)
+  {
+#ifdef TRACE
+    (*trace) << "entering nLinMech_linFormInt::CalcElemVector" << std::endl;
+#endif
+
+    const Integer nrIntPts = ptelem->GetNumIntPoints();
+    const Integer nrNodes  = ptelem->GetNumNodes();
+    const Integer nrDofs   = getNrDofs();
+    const std::vector<Double> & intWeights = ptelem->GetIntWeights();  
+    std::vector<Double> piolaStressVec;    
+    std::vector<Double> partElemVec;
+
+    Matrix<Double> linBMat; 
+    Matrix<Double> nonLinBMat; 
+    Matrix<Double> dMat;
+    Matrix<Double> transpSumB;    // we need transposed of the b-matrices
+
+    // This, as friend defined bilinearform holds the necessary differential operators
+    nLinMech3dInt_PiolaStress piolaStressBiform(ptelem, matData_);
+
+    if (!elemDisp_.size_row() || !elemDisp_.size_col()) 
+      Error("Undefined displacements! ",__FILE__,__LINE__);
+
+    // set vector to desired size and set all elements to zero    
+    partElemVec.resize(nrNodes * nrDofs, 0);
+    elemVec.resize(nrNodes*nrDofs, 0);
+    
+
+
+    for (Integer actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
+      {    
+	piolaStressBiform.setActElemDispl(elemDisp_);
+	piolaStressBiform.calcPiolaStressVec(piolaStressVec, actIntPt, ptCoord);
+	piolaStressBiform.calcNonLinBMat(nonLinBMat, actIntPt, ptCoord);
+	piolaStressBiform.calcLinBMat(linBMat, actIntPt, ptCoord);
+
+	nonLinBMat += linBMat;
+
+	nonLinBMat.Transpose(transpSumB);
+	
+	partElemVec = transpSumB * piolaStressVec;
+
+	Double jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord);
+	partElemVec *= jacDet * intWeights[actIntPt-1];
+	
+	elemVec +=  partElemVec;
+
+#ifdef DEBUG 
+// 	(*debug) << "LINFORM: piolaStressVec: "<< std::endl << partElemVec << std::endl;
+// 	(*debug) << "LINFORM: linBMAt: "<< std::endl << linBMat << std::endl;
+// 	(*debug) << "LINFORM: nonLinBMAt: "<< std::endl << nonLinBMat << std::endl;
+// 	(*debug) << "LINFORM: transpSumB: "<< std::endl << transpSumB << std::endl;
+#endif
+
+      }
+  
+
+#ifdef DEBUG 
+	(*debug) << "CalcElemVector:  "  << std::endl
+		 << partElemVec << std::endl;
+#endif
+
+
+
+#ifdef TRACE
+    (*trace) << "leaving nLinMech_linFormInt::CalcElementVector" << std::endl;
+#endif
+
+  }
+
+
   } // end of namespace

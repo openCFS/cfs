@@ -61,8 +61,15 @@ public:
     \param atime time of calculation
   */
   virtual void ComputeRHS(const Double atime) {;};
+
   
+  //! solve one step for static problems
+  /*!
+    \param level level of grid
+  */
   virtual void SolveStepStatic(const Integer level);
+
+
   
 
   //! solve one step for transient problem 
@@ -88,13 +95,16 @@ public:
   virtual Boolean HasOutput(std::string output);
 
   //! Assemble mass part
-  void AssembleMass(BaseFE * ptEl, Vector<Integer>& connect_PDE,  Matrix<Double>& ptCoord, Double density);
+  void AssembleMass(BaseFE * ptEl, Vector<Integer>& connect_PDE, Matrix<Double>& ptCoord, Double density);
 
   //! Assemble stiffness part
-  void AssembleStiffness(BaseFE * ptEl, Vector<Integer>& connect_PDE,  Matrix<Double>& ptCoord, MaterialData& actMatData);
+  void AssembleStiffness(BaseFE * ptEl, Vector<Integer>& connect_PDE, Matrix<Double>& ptCoord, MaterialData& actMatData);
   
 
 protected:
+
+  /// setup source term
+  void SetupRHS(const Integer level);
   
   
   Integer size_;        //!< total number of unknowns (equations)
@@ -106,10 +116,41 @@ private:
 
   Integer GetNrBCDof (const std::string & dofStartString);
 
+  /// stores an algsys_ vector into a std::vector and returns that L2-norm
+  void StoreAlgsysToVec(std::vector<Double>& stdVec, Double * pt);
+
+
+  /// returns that L2-norm of an algsys vector
+  Double AlgsysL2Norm(Double * pt);
+  
+
   /// flag for nonlinear calculations
   Boolean nonLin_;
   
+
+
+  //! solve one step for linear static problem 
+  /*!
+    \param level level of grid
+  */
+  virtual void SolveStepStaticLin(const Integer level);
   
+
+
+  //! solve one step for nonlinear static problem 
+  /*!
+    \param level level of grid
+  */
+  virtual void SolveStepStaticNonLin(const Integer level);
+
+  /// returns the solution vector belonging to all nodes of the actual element
+  void GetSolOfElement( Matrix<Double>& elDisp, Vector<Integer>& connect_PDE);
+
+  /// stopping criterion for incremental error
+  Double incStopCrit_;
+
+  /// stopping criterion for residual error
+  Double residualStopCrit_;  
 };
 
 } // end of namespace

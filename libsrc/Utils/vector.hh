@@ -160,6 +160,9 @@ public:
   //! Overloading of operation not equal for Vector
   Integer	operator!=	(const Vector &) const;
 
+  //! Overloading of assignement operatior for Vector and Matrix  
+  Vector	operator=	(const Matrix<TYPE> &) const;
+
   //! Return part of Vector from index i to ii
   Vector	part	(const Integer i, const Integer ii) const;
 

@@ -324,6 +324,9 @@ void WriteResultsGMV::WriteNodeSolution(const Array<Double>& sol, const Integer 
   if (NeedHistory_)
     for (i=0; i<nodeshist_.size(); i++) {
       {
+	if (nodeshist_[i] > sol.size())
+	  Error("Nr. of history-node(s) is too high --> not in Solution! ",__FILE__,__LINE__);
+
 	if (sol.dim() * sol.size() <=nodeshist_[i])
         Error("Please, check history-nodes in config-file.",__FILE__,__LINE__);
 	//     if (lastsavetime[i] != time )
