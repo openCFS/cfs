@@ -46,6 +46,7 @@ XML/TestParser/Makefile -text
 XML/TestParser/SPHandler.cc svneol=native#text/plain
 XML/TestParser/SPHandler.hh svneol=native#text/plain
 XML/TestParser/TestParser.cc svneol=native#text/plain
+XML/Tools/SchemaViewer2.zip -text svneol=unset#application/zip
 auxiliary/mysql/dump_data.csh svneol=native#text/plain
 auxiliary/mysql/dump_db.csh svneol=native#text/plain
 auxiliary/mysql/empty_tables.csh svneol=native#text/plain
