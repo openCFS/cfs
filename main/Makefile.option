@@ -51,7 +51,7 @@ LASTYPE=LAS
 HYPRE = no
 
 # Was OLAS compiled with support for LAPACK?
-LINK_LAPACK = no
+LAPACK = no
 
 ##############  XML Parameter File Handling? With Xerces or without?
 #
@@ -209,15 +209,23 @@ endif
 # Assemble second set of compiler flags
 CFLAGS2 = $(BASEPDEFLAG) $(GSIFLAG) $(PARAMHANDLING) -I$(CVSEXTERNAL)/$(MACHINE)/include
 
-# Do we have to link against system BLAS?
+# Do we have to link against system BLAS/LAPACK?
 ifeq "$(LASTYPE)" "OLAS"
-ifeq "$(LINK_LAPACK)" "yes"
+
+ifeq "$(LAPACK)" "yes"
+LINK_LAPACK = yes
 LINK_BLAS = yes
+
 else
 ifeq "$(HYPRE)" "yes"
+LINK_LAPACK = yes
 LINK_BLAS = yes
+
 else
 LINK_BLAS = no
+LINK_LAPACK = no
 endif
+
 endif
+
 endif
