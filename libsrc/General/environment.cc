@@ -85,7 +85,7 @@ namespace CoupledField {
       out = EIGENFREQUENCY;
     else if(in == "multiSequence")
       out = MULTI_SEQUENCE;
-    else if (in == "paramIdent")
+    else if (in == "paramIdent" || in == "multiHarmonic")
       // since the parameter identification process lives in freqeuncy domain
       out = HARMONIC;
     else if(in == "bubbleDynamic")
