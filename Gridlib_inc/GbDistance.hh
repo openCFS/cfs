@@ -148,11 +148,11 @@ public:
   static T distance (const GbRay<T>& rkRay, const GoTriangleElement& rkTri,
 		     T* pfRayP=NULL, T* pfTriP0=NULL, T* pfTriP1=NULL);
 
-  //! Squared distance from point to plane: Dot(N,X-A) = 0. The plane normal N must be unit length.
+  //! Distance from point to plane: Dot(N,X-A) = 0. The plane normal N must be unit length.
   static T distance (const GbVec3<T>& rkPoint, const GbVec3<T>& rkNormal,
 		     const GbVec3<T>& rkOrigin, GbVec3<T>* pkClosest = NULL);
 
-  //! Squared distance from point to plane: Dot(N,X) = c. The plane normal N must be unit length.
+  //! Distance from point to plane: Dot(N,X) = c. The plane normal N must be unit length.
   static T distance (const GbVec3<T>& rkPoint, const GbVec3<T>& rkNormal,
 		     T fConstant, GbVec3<T>* pkClosest = NULL);
 
@@ -197,8 +197,11 @@ private:
 /*----------------------------------------------------------------------
 |
 | $Log$
-| Revision 1.1  2002/02/22 14:47:56  elena
-| new: dir Gridlib_inc
+| Revision 1.2  2002/03/21 14:58:56  elena
+| new: changes in dat-file for reading tetrahedral (bugs in element connection)
+|
+| Revision 1.3  2001/12/18 13:26:30  prkipfer
+| introduced sphere object
 |
 | Revision 1.2  2001/06/18 10:43:03  prkipfer
 | introduced Frustum object

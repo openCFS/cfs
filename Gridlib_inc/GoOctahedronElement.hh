@@ -9,8 +9,9 @@
 
 #include "GbTypes.hh"
 #include "GbVec3.hh"
-#include "GoGeometryElement.hh"
+#include "GoDefaultElement.hh"
 #include "GoVertex.hh"
+#include "GoEdge.hh"
 #include "GoOctahedronElementBase.hh"
 
 /*----------------------------------------------------------------------
@@ -21,139 +22,93 @@
   class GoOctahedronElement
  */
 class GoOctahedronElement 
-  : public GoGeometryElement<float>
+  : public GoDefaultElement
 {
 public: 
-  GoOctahedronElement() { this_ = new GoOctahedronElementBase<float>; }
-  GoOctahedronElement(GoOctahedronElementBase<float> *t) : this_(t) {}
+  GoOctahedronElement(int i=-1, int p=0, int l=0, const GbVec3<float>* n=NULL)
+    : GoDefaultElement(i,p,l,n)
+    { 
+      octa_ = new GoOctahedronElementBase<float>; 
+    }
+  GoOctahedronElement(GoDefaultElementBase<float> *t) 
+    : GoDefaultElement(t) 
+    {
+      octa_ = new GoOctahedronElementBase<float>; 
+    }
 
-  virtual ~GoOctahedronElement() { delete this_; }
+  virtual ~GoOctahedronElement() { delete octa_; }
 
   // Operations on vertices of the geometry object
   virtual void setVertex(int i, GoVertex<float> *v) {
-    ::setVertex<GoOctahedronElementBase<float>,float> (this_,i,v);
+    ::setVertex<GoOctahedronElementBase<float>,float> (octa_,i,v);
   }
   virtual GoVertex<float> *getVertex(int i) const {
-    return ::getVertex<GoOctahedronElementBase<float>,float> (this_,i);
+    return ::getVertex<GoOctahedronElementBase<float>,float> (octa_,i);
   }
-  virtual int findVertex(GoVertex<float> *v) const {
-    return ::findVertex<GoOctahedronElementBase<float>,float> (this_,v);
-  }
-  virtual GoVertex<float> *otherVertex(GoGeometryElement<float> *f) const {
-    return ::otherVertex<GoOctahedronElementBase<float>,float> (this_,f);
-  }
-  virtual int getNumVertices() const {
-    return 6;
-  }
-
-  // Other faces related to this object
-  virtual GoGeometryElement<float> *otherFace(GoVertex<float> *v) const {
-    return ::otherFace<GoOctahedronElementBase<float>,float> (this_,v);
-  }
+  virtual int getNumVertices() const { return 6; }
 
   // The face normal
   virtual void computeNormal() {
-    ::computeNormal<GoOctahedronElementBase<float>,float> (this_);
-  }
-  virtual GbVec3<float> getNormal() const {
-    return ::getNormal<GoOctahedronElementBase<float>,float> (this_);
-  }
-  virtual void setNormal(const GbVec3<float>& n) {
-    ::setNormal<GoOctahedronElementBase<float>,float> (this_,n);
   }
 
   // The layout of the object
-  virtual GbVec3<float> getOrigin() const {
-//    return ::getOrigin<GoOctrahedronElementBase<float>,float> (this_);
-    return GbVec3<float>::ZERO;
+  virtual int getEdgeList(int **l) const { 
+    static int table_octa[24] = {0,2,0,3,0,4,0,5,1,2,1,3,1,4,1,5,3,2,4,3,5,4,2,5};
+    *l = table_octa;
+    return 24;
   }
-  virtual GbVec3<float> getEdge(int i) const {
-//    return ::getEdge<GoOctrahedronElementBase<float>,float> (this_,i);
-    return GbVec3<float>::ZERO;
+  virtual void setEdge(int i, GoEdge<float> *e) {
+    ::setEdge<GoOctahedronElementBase<float>,float> (octa_, i, e);
   }
-
-  // Status flags indicating semantic defined by the
-  // object using this class
-  virtual void setFlag(GbGeoStatusFlag f) {
-    ::setFlag<GoOctahedronElementBase<float>,float> (this_,f);
+  virtual GoEdge<float> *getEdge(int i) const {
+    return ::getEdge<GoOctahedronElementBase<float>,float> (octa_,i);
   }
-  virtual void delFlag(GbGeoStatusFlag f) {
-    ::delFlag<GoOctahedronElementBase<float>,float> (this_,f);
-  }
-  virtual GbBool testFlag(GbGeoStatusFlag f) const {
-    return ::testFlag<GoOctahedronElementBase<float>,float> (this_,f);
-  }
-
-  // The object can be split into sub-objects
-//  virtual void setNumSplits(int s);
-//  virtual int getNumSplits() const;
-
-  // Integer to identify the object
-  // Has no meaning to this class's implementation
-  virtual void setId(int i) {
-    ::setId<GoOctahedronElementBase<float>,float> (this_,i);
-  }
-  virtual int getId() const {
-    return ::getId<GoOctahedronElementBase<float>,float> (this_);
-  }
-
-  // modification operations on the object
-  virtual GbBool subdivide(const GbOracle &op) {
-    if (op())
-      return ::subdivide<GoOctahedronElementBase<float>,float> (this_);
-    else
-      return false;
-  }
-
-  // The scene part this object belongs to in the partition
-  virtual void setPartition(int i) {
-    ::setPartition<GoOctahedronElementBase<float>,float> (this_,i);
-  }
-  virtual int getPartition() const {
-    return ::getPartition<GoOctahedronElementBase<float>,float> (this_);
-  }
+  virtual int getNumEdges() const { return 12; }
 
   // The neighboring face objects
   virtual void setNeighbour(int i, GoGeometryElement<float> *face) {
-    ::setNeighbour<GoOctahedronElementBase<float>,float> (this_,i,face);
-  }
-  virtual void setNeighbour(GoGeometryElement<float> *face) {
-    ::setNeighbour<GoOctahedronElementBase<float>,float> (this_,face);
+    ::setNeighbour<GoOctahedronElementBase<float>,float> (octa_,i,face);
   }
   virtual GoGeometryElement<float> *getNeighbour(int i) const {
-    return ::getNeighbour<GoOctahedronElementBase<float>,float> (this_,i);
+    return ::getNeighbour<GoOctahedronElementBase<float>,float> (octa_,i);
   }
-  virtual int findNeighbour(GoGeometryElement<float> *face) {
-    return ::findNeighbour<GoOctahedronElementBase<float>,float> (this_,face);
-  }
+  virtual int getNumNeighbours() const { return 8; }
   
   // Parents and children objects
   virtual GoGeometryElement<float> *getChild(int i) const {
-    return NULL; //::getChild<GoTriangleElementBase<float>,float> (this_,i);
+    return ::getChild<GoOctahedronElementBase<float>,float> (octa_,i);
   }
   virtual void setChild(int i, GoGeometryElement<float> *face) {
-    //::setChild<GoQuadElementBase<float>,float> (this_,i,face);
+    ::setChild<GoOctahedronElementBase<float>,float> (octa_,i,face);
   }
-  virtual GoGeometryElement<float> *getParent() const {
-    return NULL; //::getParent<GoTetrahedronElementBase<float>,float> (this_);
-  }
-  virtual void setParent(GoGeometryElement<float> *face) {
-    //::setParent<GoTertahedronElementBase<float>,float> (this_,face);
-  }
+  virtual int getNumChildren() const { return 10; }
 
   // Get memory statistics and reduce memory space needed
   virtual void statistic() const {
-    ::statistic<GoOctahedronElementBase<float>,float> (this_);
+    ::statistic<GoDefaultElementBase<float>,float> (this_);
+    ::statistic<GoOctahedronElementBase<float>,float> (octa_);
   }
   virtual void shrink() {
-    ::shrink<GoOctahedronElementBase<float>,float> (this_);
+    ::shrink<GoDefaultElementBase<float>,float> (this_);
+    ::shrink<GoOctahedronElementBase<float>,float> (octa_);
   }
 
 //  friend std::ostream& operator<<(std::ostream&, const GoOctahedronElement&);
 
-private:
-  GoOctahedronElementBase<float> *this_;
+protected:
+  GoOctahedronElementBase<float> *octa_;
 };
 
 #endif // GOOCTAHEDRONELEMENT_HH
 
+/*----------------------------------------------------------------------
+|
+| $Log$
+| Revision 1.2  2002/03/21 14:58:57  elena
+| new: changes in dat-file for reading tetrahedral (bugs in element connection)
+|
+| Revision 1.8  2002/03/18 09:58:55  prkipfer
+| refactored element structure
+|
+|
++---------------------------------------------------------------------*/

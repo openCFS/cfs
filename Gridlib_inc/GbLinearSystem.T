@@ -3,8 +3,11 @@
 |
 |
 | $Log$
-| Revision 1.1  2002/02/22 14:47:56  elena
-| new: dir Gridlib_inc
+| Revision 1.2  2002/03/21 14:58:56  elena
+| new: changes in dat-file for reading tetrahedral (bugs in element connection)
+|
+| Revision 1.5  2001/08/16 16:53:16  prkipfer
+| improved type safety for template parameter
 |
 | Revision 1.4  2001/06/20 16:14:03  prkipfer
 | added compiler hints
@@ -27,7 +30,7 @@
 #endif
 
 template <class T>
-T 
+const T 
 GbLinearSystem<T>::TOLERANCE = std::numeric_limits<T>::epsilon(); // max. 1e-06
 
 template <class T>
@@ -79,7 +82,7 @@ GbLinearSystem<T>::solve2 (const T aafA[2][2], const T afB[2], T afX[2])
   if ( GbMath<T>::Abs(fDet) < GbLinearSystem<T>::TOLERANCE )
     return false;
 
-  T fInvDet = 1.0/fDet;
+  T fInvDet = T(1.0)/fDet;
   afX[0] = (aafA[1][1]*afB[0]-aafA[0][1]*afB[1])*fInvDet;
   afX[1] = (aafA[0][0]*afB[1]-aafA[1][0]*afB[0])*fInvDet;
   return true;
@@ -103,7 +106,7 @@ GbLinearSystem<T>::solve3 (const T aafA[3][3], const T afB[3], T afX[3])
   if ( GbMath<T>::Abs(fDet) < GbLinearSystem<T>::TOLERANCE )
     return false;
 
-  T fInvDet = 1.0/fDet;
+  T fInvDet = T(1.0)/fDet;
   for (int iRow = 0; iRow < 3; iRow++) {
     for (int iCol = 0; iCol < 3; iCol++)
       aafAInv[iRow][iCol] *= fInvDet;
@@ -135,7 +138,7 @@ GbLinearSystem<T>::inverse (int iSize, T** aafA)
   // elimination by full pivoting
   for (int i0 = 0; i0 < iSize; i0++) {
     // search matrix (excluding pivoted rows) for maximum absolute entry
-    T fMax = 0.0;
+    T fMax = T(0.0);
     for (i1 = 0; i1 < iSize; i1++) {
       if ( !abPivoted[i1] ) {
 	for (i2 = 0; i2 < iSize; i2++) {
@@ -151,7 +154,7 @@ GbLinearSystem<T>::inverse (int iSize, T** aafA)
       }
     }
 
-    if ( fMax == 0.0 ) {
+    if ( fMax == T(0.0) ) {
       // matrix is not invertible
       delete[] aiColIndex;
       delete[] aiRowIndex;
@@ -173,8 +176,8 @@ GbLinearSystem<T>::inverse (int iSize, T** aafA)
     aiColIndex[i0] = iCol;
 
     // scale the row so that the pivot entry is 1
-    T fInv = 1.0/aafA[iCol][iCol];
-    aafA[iCol][iCol] = 1.0;
+    T fInv = T(1.0)/aafA[iCol][iCol];
+    aafA[iCol][iCol] = T(1.0);
     for (i2 = 0; i2 < iSize; i2++)
       aafA[iCol][i2] *= fInv;
 
@@ -182,7 +185,7 @@ GbLinearSystem<T>::inverse (int iSize, T** aafA)
     for (i1 = 0; i1 < iSize; i1++) {
       if ( i1 != iCol ) {
 	fSave = aafA[i1][iCol];
-	aafA[i1][iCol] = 0.0;
+	aafA[i1][iCol] = T(0.0);
 	for (i2 = 0; i2 < iSize; i2++)
 	  aafA[i1][i2] -= aafA[iCol][i2]*fSave;
       }
@@ -226,7 +229,7 @@ GbLinearSystem<T>::solve (int iSize, T** aafA, T* afB)
   // elimination by full pivoting
   for (int i0 = 0; i0 < iSize; i0++) {
     // search matrix (excluding pivoted rows) for maximum absolute entry
-    T fMax = 0.0;
+    T fMax = T(0.0);
     for (i1 = 0; i1 < iSize; i1++) {
       if ( !abPivoted[i1] ) {
 	for (i2 = 0; i2 < iSize; i2++) {
@@ -242,7 +245,7 @@ GbLinearSystem<T>::solve (int iSize, T** aafA, T* afB)
       }
     }
 
-    if ( fMax == 0.0 ) {
+    if ( fMax == T(0.0) ) {
       // matrix is not invertible
       delete[] aiColIndex;
       delete[] aiRowIndex;
@@ -268,8 +271,8 @@ GbLinearSystem<T>::solve (int iSize, T** aafA, T* afB)
     aiColIndex[i0] = iCol;
 
     // scale the row so that the pivot entry is 1
-    T fInv = 1.0/aafA[iCol][iCol];
-    aafA[iCol][iCol] = 1.0;
+    T fInv = T(1.0)/aafA[iCol][iCol];
+    aafA[iCol][iCol] = T(1.0);
     for (i2 = 0; i2 < iSize; i2++)
       aafA[iCol][i2] *= fInv;
     afB[iCol] *= fInv;
@@ -278,7 +281,7 @@ GbLinearSystem<T>::solve (int iSize, T** aafA, T* afB)
     for (i1 = 0; i1 < iSize; i1++) {
       if ( i1 != iCol ) {
 	fSave = aafA[i1][iCol];
-	aafA[i1][iCol] = 0.0;
+	aafA[i1][iCol] = T(0.0);
 	for (i2 = 0; i2 < iSize; i2++)
 	  aafA[i1][i2] -= aafA[iCol][i2]*fSave;
 	afB[i1] -= afB[iCol]*fSave;
@@ -308,25 +311,25 @@ GbBool
 GbLinearSystem<T>::solveTri (int iSize, T* afA, T* afB,
 			     T* afC, T* afR, T* afU)
 {
-  if ( afB[0] == 0.0 )
+  if ( afB[0] == T(0.0) )
     return false;
 
   T* afD = new T[iSize-1];
   assert( afD );
 
   T fE = afB[0];
-  T fInvE = 1.0/fE;
+  T fInvE = T(1.0)/fE;
   afU[0] = afR[0]*fInvE;
 
   int i0, i1;
   for (i0 = 0, i1 = 1; i1 < iSize; i0++, i1++) {
     afD[i0] = afC[i0]*fInvE;
     fE = afB[i1] - afA[i0]*afD[i0];
-    if ( fE == 0.0 ) {
+    if ( fE == T(0.0) ) {
       delete[] afD;
       return false;
     }
-    fInvE = 1.0/fE;
+    fInvE = T(1.0)/fE;
     afU[i1] = (afR[i1] - afA[i0]*afU[i0])*fInvE;
   }
 
@@ -342,25 +345,25 @@ GbBool
 GbLinearSystem<T>::solveConstTri (int iSize, T fA, T fB,
 				  T fC, T* afR, T* afU)
 {
-  if ( fB == 0.0 )
+  if ( fB == T(0.0) )
     return false;
 
   T* afD = new T[iSize-1];
   assert( afD );
 
   T fE = fB;
-  T fInvE = 1.0/fE;
+  T fInvE = T(1.0)/fE;
   afU[0] = afR[0]*fInvE;
 
   int i0, i1;
   for (i0 = 0, i1 = 1; i1 < iSize; i0++, i1++) {
     afD[i0] = fC*fInvE;
     fE = fB - fA*afD[i0];
-    if ( fE == 0.0 ) {
+    if ( fE == T(0.0) ) {
       delete[] afD;
       return false;
     }
-    fInvE = 1.0/fE;
+    fInvE = T(1.0)/fE;
     afU[i1] = (afR[i1] - fA*afU[i0])*fInvE;
   }
   for (i0 = iSize-1, i1 = iSize-2; i1 >= 0; i0--, i1--)
@@ -396,7 +399,7 @@ GbLinearSystem<T>::solveSymmetric (int iSize, T** aafA, T* afB)
       return false;
     }
 
-    T fInv = 1.0/afV[i1];
+    T fInv = T(1.0)/afV[i1];
     for (i0 = i1+1; i0 < iSize; i0++) {
       for (int i2 = 0; i2 < i1; i2++)
 	aafA[i0][i1] -= aafA[i0][i2]*afV[i2];
@@ -446,7 +449,7 @@ GbLinearSystem<T>::symmetricInverse (int iSize, T** aafA, T** aafAInv)
   int i0, i1;
   for (i0 = 0; i0 < iSize; i0++) {
     for (i1 = 0; i1 < iSize; i1++)
-      aafAInv[i0][i1] = ( i0 != i1 ? 0.0 : 1.0 );
+      aafAInv[i0][i1] = ( i0 != i1 ? T(0.0) : T(1.0) );
   }
 
   for (i1 = 0; i1 < iSize; i1++) {

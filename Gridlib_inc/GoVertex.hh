@@ -18,6 +18,7 @@
 #include "GbVec3.hh"
 
 template <class T> class GoGeometryElement;
+template <class T> class GoEdge;
 
 /*----------------------------------------------------------------------
 |       declaration
@@ -31,7 +32,43 @@ template <class T> class GoGeometryElement;
 template <class T>
 class GoVertex
 {
+private:
+  //! CS
+  GbBool useElementsCounter;
+  int elements;
+
 public: 
+
+  //! constructor zum probieren - CS
+  GoVertex()
+  {
+    useElementsCounter = false;
+    elements = 0;
+  }
+
+  //! CS
+  void addElement() 
+  {
+    useElementsCounter = true;
+    elements++;
+
+    if (elements > 0)
+      delFlag(DELETED_V);
+  }
+
+  //! CS
+  void removeElement()
+  {
+    if (!useElementsCounter)
+      return;
+
+    elements--;
+    if (elements <= 0)
+      setFlag(DELETED_V);
+  }
+  //! CS
+  int getNumElements()
+  {return elements;}
 
   //! Cannot be instantiated
   virtual ~GoVertex() {}
@@ -85,8 +122,11 @@ public:
 /*----------------------------------------------------------------------
 |
 | $Log$
-| Revision 1.1  2002/02/22 14:47:57  elena
-| new: dir Gridlib_inc
+| Revision 1.2  2002/03/21 14:58:57  elena
+| new: changes in dat-file for reading tetrahedral (bugs in element connection)
+|
+| Revision 1.3  2001/09/12 09:28:43  prkipfer
+| introduced adaptive tet subdivision
 |
 | Revision 1.2  2001/01/02 15:21:35  prkipfer
 | introduced cloning and support for new base classes

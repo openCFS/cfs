@@ -3,8 +3,11 @@
 |
 |
 | $Log$
-| Revision 1.1  2002/02/22 14:47:56  elena
-| new: dir Gridlib_inc
+| Revision 1.2  2002/03/21 14:58:57  elena
+| new: changes in dat-file for reading tetrahedral (bugs in element connection)
+|
+| Revision 1.5  2001/08/16 16:53:23  prkipfer
+| improved type safety for template parameter
 |
 | Revision 1.4  2001/06/19 16:32:27  prkipfer
 | fixed typos and Linux compiler target
@@ -78,7 +81,7 @@ GoMinimizeND<T>::getMinimum (const T* afT0, const T* afT1,
   memset(directionStorage_,0,uiQuantity*(dimensions_+1));
   int i, j;
   for (i = 0; i < dimensions_; i++)
-    direction_[i][i] = 1.0;
+    direction_[i][i] = T(1.0);
 
   T fL0, fL1, fLMin;
   for (int uiI = 0; uiI < maxIterations_; uiI++) {
@@ -86,13 +89,13 @@ GoMinimizeND<T>::getMinimum (const T* afT0, const T* afT1,
     for (i = 0; i < dimensions_; i++) {
       dCurr_ = direction_[i];
       computeDomain(afT0,afT1,fL0,fL1);
-      oneDMinimizer_.getMinimum(fL0,fL1,0.0,fLMin,fCurr_);
+      oneDMinimizer_.getMinimum(fL0,fL1,T(0.0),fLMin,fCurr_);
       for (j = 0; j < dimensions_; j++)
 	tCurr_[j] += fLMin*dCurr_[j];
     }
 
     // estimate a unit-length conjugate direction
-    T fLength = 0.0;
+    T fLength = T(0.0);
     for (i = 0; i < dimensions_; i++) {
       dConj_[i] = tCurr_[i] - tSave_[i];
       fLength += dConj_[i]*dConj_[i];
@@ -105,14 +108,14 @@ GoMinimizeND<T>::getMinimum (const T* afT0, const T* afT1,
       break;
     }
 
-    T fInvLength = 1.0/fLength;
+    T fInvLength = T(1.0)/fLength;
     for (i = 0; i < dimensions_; i++)
       dConj_[i] *= fInvLength;
 
     // minimize in conjugate direction
     dCurr_ = dConj_;
     computeDomain(afT0,afT1,fL0,fL1);
-    oneDMinimizer_.getMinimum(fL0,fL1,0.0,fLMin,fCurr_);
+    oneDMinimizer_.getMinimum(fL0,fL1,T(0.0),fLMin,fCurr_);
     for (j = 0; j < dimensions_; j++)
       tCurr_[j] += fLMin*dCurr_[j];
 
@@ -141,9 +144,9 @@ GoMinimizeND<T>::computeDomain (const T* afT0, const T* afT1,
     T fB0 = afT0[i] - tCurr_[i];
     T fB1 = afT1[i] - tCurr_[i];
     T fInv;
-    if ( dCurr_[i] > 0.0 ) {
+    if ( dCurr_[i] > T(0.0) ) {
       // valid t-interval is [B0,B1]
-      fInv = 1.0/dCurr_[i];
+      fInv = T(1.0)/dCurr_[i];
       fB0 *= fInv;
       if ( fB0 > rfL0 )
 	rfL0 = fB0;
@@ -151,9 +154,9 @@ GoMinimizeND<T>::computeDomain (const T* afT0, const T* afT1,
       if ( fB1 < rfL1 )
 	rfL1 = fB1;
     }
-    else if ( dCurr_[i] < 0.0 ) {
+    else if ( dCurr_[i] < T(0.0) ) {
       // valid t-interval is [B1,B0]
-      fInv = 1.0/dCurr_[i];
+      fInv = T(1.0)/dCurr_[i];
       fB0 *= fInv;
       if ( fB0 < rfL1 )
 	rfL1 = fB0;
@@ -164,8 +167,8 @@ GoMinimizeND<T>::computeDomain (const T* afT0, const T* afT1,
   }
 
   // correction if numerical errors lead to values nearly zero
-  if ( rfL0 > 0.0 ) rfL0 = 0.0;
-  if ( rfL1 < 0.0 ) rfL1 = 0.0;
+  if ( rfL0 > T(0.0) ) rfL0 = T(0.0);
+  if ( rfL1 < T(0.0) ) rfL1 = T(0.0);
 }
 
 template <class T>

@@ -3,8 +3,11 @@
 |
 |
 | $Log$
-| Revision 1.1  2002/02/22 14:47:56  elena
-| new: dir Gridlib_inc
+| Revision 1.2  2002/03/21 14:58:56  elena
+| new: changes in dat-file for reading tetrahedral (bugs in element connection)
+|
+| Revision 1.2  2001/08/16 16:53:14  prkipfer
+| improved type safety for template parameter
 |
 | Revision 1.1  2001/01/02 14:59:03  prkipfer
 | introduced new classes
@@ -20,7 +23,7 @@ GbBox3<T>::GbBox3()
   axis_[0]=GbVec3<T>::UNIT_X;
   axis_[1]=GbVec3<T>::UNIT_Y;
   axis_[2]=GbVec3<T>::UNIT_Z;
-  extent_[0]=extent_[1]=extent_[2]=0;
+  extent_[0]=extent_[1]=extent_[2]=T(0.0);
 }
 
 template <class T>

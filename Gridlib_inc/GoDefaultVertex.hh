@@ -33,8 +33,8 @@ class GoDefaultVertex
   : public GoVertex<float>
 {
 public: 
-  GoDefaultVertex(int i = -1, float x = 0, float y = 0, float z = 0) {
-    this_ = new GoDefaultVertexBase<float>(i, x, y, z); 
+  GoDefaultVertex(int i = -1, float x = 0, float y = 0, float z = 0, float nx = 0, float ny = 0, float nz = 0) {
+    this_ = new GoDefaultVertexBase<float>(i, x, y, z, nx, ny ,nz); 
   }
   GoDefaultVertex(GoDefaultVertexBase<float> *t) : this_(t) {}
 
@@ -60,8 +60,30 @@ public:
   }
 
   //! A normal at this vertex in 3D space
+  // compute normal at this vertex by averaging the normals
+  // of neighboring face objects
   virtual void computeNormal(std::vector<GoGeometryElement<float> *>& S) {
-    ::computeNormal<GoDefaultVertexBase<float>,float> (this_,S);
+    GbVec3<float> n(0.0f, 0.0f, 0.0f);
+
+    if (S.empty()) {
+      if (getElement()) {
+	setNormal(getElement()->getNormal());
+	warningmsg("no neighbors ? possible mesh consistency problem or mesh not closed ?");
+      }
+      else {
+	warningmsg("no face associated ? possible mesh setup problem ?");
+      }
+      return;
+    }
+  
+    for (std::vector<GoGeometryElement<float> *>::iterator sIter = S.begin(); 
+	 sIter != S.end(); 
+	 ++sIter)
+      
+      n += (*sIter)->getNormal();
+
+    n.normalize();
+    setNormal(n);
   }
   virtual void setNormal(float x, float y, float z) {
     ::setNormal<GoDefaultVertexBase<float>,float> (this_,x,y,z);
@@ -131,8 +153,11 @@ protected:
 /*----------------------------------------------------------------------
 |
 | $Log$
-| Revision 1.1  2002/02/22 14:47:56  elena
-| new: dir Gridlib_inc
+| Revision 1.2  2002/03/21 14:58:57  elena
+| new: changes in dat-file for reading tetrahedral (bugs in element connection)
+|
+| Revision 1.4  2002/03/18 09:58:55  prkipfer
+| refactored element structure
 |
 | Revision 1.3  2001/02/13 11:03:16  prkipfer
 | introduced boundary vertices

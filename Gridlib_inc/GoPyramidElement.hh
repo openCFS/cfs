@@ -9,8 +9,9 @@
 
 #include "GbTypes.hh"
 #include "GbVec3.hh"
-#include "GoGeometryElement.hh"
+#include "GoDefaultElement.hh"
 #include "GoVertex.hh"
+#include "GoEdge.hh"
 #include "GoPyramidElementBase.hh"
 
 /*----------------------------------------------------------------------
@@ -21,139 +22,93 @@
   class GoPyramidElement
  */
 class GoPyramidElement 
-  : public GoGeometryElement<float>
+  : public GoDefaultElement
 {
 public: 
-  GoPyramidElement() { this_ = new GoPyramidElementBase<float>; }
-  GoPyramidElement(GoPyramidElementBase<float> *t) : this_(t) {}
+  GoPyramidElement(int i=-1, int p=0, int l=0, const GbVec3<float>* n=NULL)
+    : GoDefaultElement(i,p,l,n)
+    { 
+      pyra_ = new GoPyramidElementBase<float>; 
+    }
+  GoPyramidElement(GoDefaultElementBase<float> *t) 
+    : GoDefaultElement(t) 
+    {
+      pyra_ = new GoPyramidElementBase<float>; 
+    }
 
-  virtual ~GoPyramidElement() { delete this_; }
+  virtual ~GoPyramidElement() { delete pyra_; }
 
   // Operations on vertices of the geometry object
   virtual void setVertex(int i, GoVertex<float> *v) {
-    ::setVertex<GoPyramidElementBase<float>,float> (this_,i,v);
+    ::setVertex<GoPyramidElementBase<float>,float> (pyra_,i,v);
   }
   virtual GoVertex<float> *getVertex(int i) const {
-    return ::getVertex<GoPyramidElementBase<float>,float> (this_,i);
+    return ::getVertex<GoPyramidElementBase<float>,float> (pyra_,i);
   }
-  virtual int findVertex(GoVertex<float> *v) const {
-    return ::findVertex<GoPyramidElementBase<float>,float> (this_,v);
-  }
-  virtual GoVertex<float> *otherVertex(GoGeometryElement<float> *f) const {
-    return ::otherVertex<GoPyramidElementBase<float>,float> (this_,f);
-  }
-  virtual int getNumVertices() const {
-    return 5;
-  }
-
-  // Other faces related to this object
-  virtual GoGeometryElement<float> *otherFace(GoVertex<float> *v) const {
-    return ::otherFace<GoPyramidElementBase<float>,float> (this_,v);
-  }
+  virtual int getNumVertices() const { return 5; }
 
   // The face normal
   virtual void computeNormal() {
-    ::computeNormal<GoPyramidElementBase<float>,float> (this_);
-  }
-  virtual GbVec3<float> getNormal() const {
-    return ::getNormal<GoPyramidElementBase<float>,float> (this_);
-  }
-  virtual void setNormal(const GbVec3<float>& n) {
-    ::setNormal<GoPyramidElementBase<float>,float> (this_,n);
   }
 
   // The layout of the object
-  virtual GbVec3<float> getOrigin() const {
-//    return ::getOrigin<GoPyramidElementBase<float>,float> (this_);
-    return GbVec3<float>::ZERO;
+  virtual int getEdgeList(int **l) const { 
+    static int table_pyra[16] = {0,1,0,2,0,3,0,4,2,1,3,2,4,3,1,4};
+    *l = table_pyra;
+    return 16;
   }
-  virtual GbVec3<float> getEdge(int i) const {
-//    return ::getEdge<GoPyramidElementBase<float>,float> (this_,i);
-    return GbVec3<float>::ZERO;
+  virtual void setEdge(int i, GoEdge<float> *e) {
+    ::setEdge<GoPyramidElementBase<float>,float> (pyra_, i, e);
   }
-
-  // Status flags indicating semantic defined by the
-  // object using this class
-  virtual void setFlag(GbGeoStatusFlag f) {
-    ::setFlag<GoPyramidElementBase<float>,float> (this_,f);
+  virtual GoEdge<float> *getEdge(int i) const {
+    return ::getEdge<GoPyramidElementBase<float>,float> (pyra_,i);
   }
-  virtual void delFlag(GbGeoStatusFlag f) {
-    ::delFlag<GoPyramidElementBase<float>,float> (this_,f);
-  }
-  virtual GbBool testFlag(GbGeoStatusFlag f) const {
-    return ::testFlag<GoPyramidElementBase<float>,float> (this_,f);
-  }
-
-  // The object can be split into sub-objects
-//  virtual void setNumSplits(int s);
-//  virtual int getNumSplits() const;
-
-  // Integer to identify the object
-  // Has no meaning to this class's implementation
-  virtual void setId(int i) {
-    ::setId<GoPyramidElementBase<float>,float> (this_,i);
-  }
-  virtual int getId() const {
-    return ::getId<GoPyramidElementBase<float>,float> (this_);
-  }
-
-  // modification operations on the object
-  virtual GbBool subdivide(const GbOracle &op) {
-    if (op())
-      return ::subdivide<GoPyramidElementBase<float>,float> (this_);
-    else
-      return false;
-  }
-
-  // The scene part this object belongs to in the partition
-  virtual void setPartition(int i) {
-    ::setPartition<GoPyramidElementBase<float>,float> (this_,i);
-  }
-  virtual int getPartition() const {
-    return ::getPartition<GoPyramidElementBase<float>,float> (this_);
-  }
+  virtual int getNumEdges() const { return 8; }
 
   // The neighboring face objects
   virtual void setNeighbour(int i, GoGeometryElement<float> *face) {
-    ::setNeighbour<GoPyramidElementBase<float>,float> (this_,i,face);
-  }
-  virtual void setNeighbour(GoGeometryElement<float> *face) {
-    ::setNeighbour<GoPyramidElementBase<float>,float> (this_,face);
+    ::setNeighbour<GoPyramidElementBase<float>,float> (pyra_,i,face);
   }
   virtual GoGeometryElement<float> *getNeighbour(int i) const {
-    return ::getNeighbour<GoPyramidElementBase<float>,float> (this_,i);
+    return ::getNeighbour<GoPyramidElementBase<float>,float> (pyra_,i);
   }
-  virtual int findNeighbour(GoGeometryElement<float> *face) {
-    return ::findNeighbour<GoPyramidElementBase<float>,float> (this_,face);
-  }
+  virtual int getNumNeighbours() const { return 5; }
   
   // Parents and children objects
   virtual GoGeometryElement<float> *getChild(int i) const {
-    return NULL; //::getChild<GoTriangleElementBase<float>,float> (this_,i);
+    return ::getChild<GoPyramidElementBase<float>,float> (pyra_,i);
   }
   virtual void setChild(int i, GoGeometryElement<float> *face) {
-    //::setChild<GoQuadElementBase<float>,float> (this_,i,face);
+    ::setChild<GoPyramidElementBase<float>,float> (pyra_,i,face);
   }
-  virtual GoGeometryElement<float> *getParent() const {
-    return NULL; //::getParent<GoTetrahedronElementBase<float>,float> (this_);
-  }
-  virtual void setParent(GoGeometryElement<float> *face) {
-    //::setParent<GoTertahedronElementBase<float>,float> (this_,face);
-  } 
+  virtual int getNumChildren() const { return 5; }
 
   // Get memory statistics and reduce memory space needed
   virtual void statistic() const {
-    ::statistic<GoPyramidElementBase<float>,float> (this_);
+    ::statistic<GoDefaultElementBase<float>,float> (this_);
+    ::statistic<GoPyramidElementBase<float>,float> (pyra_);
   }
   virtual void shrink() {
-    ::shrink<GoPyramidElementBase<float>,float> (this_);
+    ::shrink<GoDefaultElementBase<float>,float> (this_);
+    ::shrink<GoPyramidElementBase<float>,float> (pyra_);
   }
 
 //  friend std::ostream& operator<<(std::ostream&, const GoPyramidElement&);
 
-private:
-  GoPyramidElementBase<float> *this_;
+protected:
+  GoPyramidElementBase<float> *pyra_;
 };
 
 #endif // GOPYRAMIDELEMENT_HH
 
+/*----------------------------------------------------------------------
+|
+| $Log$
+| Revision 1.2  2002/03/21 14:58:57  elena
+| new: changes in dat-file for reading tetrahedral (bugs in element connection)
+|
+| Revision 1.8  2002/03/18 09:58:56  prkipfer
+| refactored element structure
+|
+|
++---------------------------------------------------------------------*/

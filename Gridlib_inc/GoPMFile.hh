@@ -3,8 +3,8 @@
 | $Id$
 |
 +---------------------------------------------------------------------*/
-#ifndef GOUNVFILE_HH
-#define GOUNVFILE_HH
+#ifndef GOPMFILE_HH
+#define GOPMFILE_HH
 
 #include "GbDefines.hh"
 
@@ -33,7 +33,9 @@ public:
   virtual ~GoPMFile();
 
   virtual void read(std::vector<GoMesh*>& mv) const;
-  virtual void readHEC(std::vector<GbHalfEdgeCollapse *> &hecList) const;
+  virtual void readHEC(std::vector<GbHalfEdgeCollapse *> &hecList, std::vector<int> &levelNum) const;
+
+  virtual void write(const GoMesh& m, GbBool smooth, int level=0) const;
 
   static GoFile* create(const GbString& filename);
   static const GbString className_;
@@ -70,7 +72,7 @@ public:
 //#include "GoPMFile.in"
 //#endif
 
-#endif // GOUNVFILE_HH
+#endif // GOPMFILE_HH
 /*----------------------------------------------------------------------
 |
 |

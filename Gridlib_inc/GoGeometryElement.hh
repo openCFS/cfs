@@ -18,6 +18,7 @@
 #include "GbVec3.hh"
 
 template <class T> class GoVertex;
+template <class T> class GoEdge;
 
 /*----------------------------------------------------------------------
 |       declaration
@@ -52,8 +53,14 @@ public:
   virtual void setNormal(const GbVec3<T>& n) = 0;
 
   //! The layout of the object
+  virtual int getEdgeList(int **l) const = 0;
   virtual GbVec3<T> getOrigin() const = 0;
-  virtual GbVec3<T> getEdge(int i) const = 0;
+  virtual GbVec3<T> getEdgeVec(int i) const = 0;
+  virtual void setEdge(int i, GoEdge<T> *e) = 0;
+  virtual GoEdge<T> *getEdge(int i) const = 0;
+  virtual GoEdge<T> *findEdge(GoVertex<T>* v0, GoVertex<T>* v1) const = 0;
+  virtual int findEdge(GoEdge<T> *e) const = 0;
+  virtual int getNumEdges() const = 0;
 
   //! Status flags indicating semantic defined by the
   //! object using this class
@@ -78,16 +85,21 @@ public:
   virtual int getPartition() const = 0;
 
   //! The neighboring face objects
+  virtual int getNumNeighbours() const = 0;
   virtual void setNeighbour(int i, GoGeometryElement<T> *face) = 0;
-  virtual void setNeighbour(GoGeometryElement<T> *face) = 0;
+  virtual GbBool trySetNeighbour(GoGeometryElement<T> *face) = 0;
   virtual GoGeometryElement<T> *getNeighbour(int i) const = 0;
   virtual int findNeighbour(GoGeometryElement<T> *face) = 0;
 
   //! Parents and children objects
   virtual GoGeometryElement<T> *getChild(int i) const = 0;
   virtual void setChild(int i, GoGeometryElement<T> *face) = 0;
+  virtual int getNumChildren() const = 0;
+  virtual void clearChildren() = 0;
   virtual GoGeometryElement<T> *getParent() const = 0;
   virtual void setParent(GoGeometryElement<T> *face) = 0;
+  virtual void setLevel(int l) = 0;
+  virtual int getLevel() const = 0;
 
   //! Print memory statistics and reduce memory space needed
   virtual void statistic() const = 0;
@@ -103,8 +115,14 @@ public:
 /*----------------------------------------------------------------------
 |
 | $Log$
-| Revision 1.1  2002/02/22 14:47:56  elena
-| new: dir Gridlib_inc
+| Revision 1.2  2002/03/21 14:58:57  elena
+| new: changes in dat-file for reading tetrahedral (bugs in element connection)
+|
+| Revision 1.13  2002/03/18 09:58:55  prkipfer
+| refactored element structure
+|
+| Revision 1.12  2001/09/12 09:28:42  prkipfer
+| introduced adaptive tet subdivision
 |
 | Revision 1.11  2001/01/02 15:21:34  prkipfer
 | introduced cloning and support for new base classes

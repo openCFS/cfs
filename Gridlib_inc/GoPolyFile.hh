@@ -72,8 +72,8 @@ public:
 /*----------------------------------------------------------------------
 |
 | $Log$
-| Revision 1.1  2002/02/22 14:47:57  elena
-| new: dir Gridlib_inc
+| Revision 1.2  2002/03/21 14:58:57  elena
+| new: changes in dat-file for reading tetrahedral (bugs in element connection)
 |
 | Revision 1.2  2001/02/13 11:27:26  prkipfer
 | adapted to new GoFile::read method

@@ -3,8 +3,11 @@
 |
 |
 | $Log$
-| Revision 1.1  2002/02/22 14:47:56  elena
-| new: dir Gridlib_inc
+| Revision 1.2  2002/03/21 14:58:57  elena
+| new: changes in dat-file for reading tetrahedral (bugs in element connection)
+|
+| Revision 1.2  2002/03/18 10:00:23  prkipfer
+| refactored element structure
 |
 | Revision 1.1  2001/02/13 11:00:37  prkipfer
 | added GoBoundaryVertexBase class
@@ -20,10 +23,10 @@ GbMemPool<typename GoBoundaryVertexBase<T>::BoundaryVertexMem> GoBoundaryVertexB
 
 // constructor
 template <class T>
-GoBoundaryVertexBase<T>::GoBoundaryVertexBase()
+GoBoundaryVertexBase<T>::GoBoundaryVertexBase(GoVertex<T>* vel)
 {
 //  debugmsg("constructor size is "<<sizeof(this)<<" bytes");
-//    data_.element = f;
+  data_.vertex = vel;
 }
 
 // destructor
@@ -31,35 +34,6 @@ template <class T>
 GoBoundaryVertexBase<T>::~GoBoundaryVertexBase()
 {
 }
-
-// compute normal at this vertex by averaging the normals
-// of neighboring boundary face objects
-//  template <class T>
-//  void
-//  GoBoundaryVertexBase<T>::computeNormal(std::vector<GoGeometryElement<T> *>& S)
-//  {
-//    GbVec3<T> n(0.0, 0.0, 0.0);
-
-//    if (S.size()==0) {
-//      if (getElement()!=NULL) {
-//        setNormal(getElement()->getNormal());
-//        warningmsg("no neighbors ? possible mesh consistency problem ?");
-//      }
-//      else {
-//        warningmsg("no face associated ? possible mesh setup problem ?");
-//      }
-//      return;
-//    }
-  
-//    for (std::vector<GoGeometryElement<T> *>::iterator sIter = S.begin(); 
-//         sIter != S.end(); 
-//         ++sIter)
-
-//      n += (*sIter)->getNormal();
-
-//    n.normalize();
-//    setNormal(n);
-//  }
 
 template <class T>
 void

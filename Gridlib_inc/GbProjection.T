@@ -3,8 +3,11 @@
 |
 |
 | $Log$
-| Revision 1.1  2002/02/22 14:47:56  elena
-| new: dir Gridlib_inc
+| Revision 1.2  2002/03/21 14:58:57  elena
+| new: changes in dat-file for reading tetrahedral (bugs in element connection)
+|
+| Revision 1.2  2001/08/16 16:53:20  prkipfer
+| improved type safety for template parameter
 |
 | Revision 1.1  2001/06/26 08:31:24  prkipfer
 | added 2D Projections
@@ -36,10 +39,10 @@ GbProjection<T>::HmQuadToSquare::HmQuadToSquare (const GbVec2<T>& rkP00, const G
 
   // Compute homogeneous transform of quadrilateral
   // {(0,0),(1,0),(a,b),(0,1)} to square {(0,0),(1,0),(1,1),(0,1)}
-  kG_[0] = (kCorner[1] - 1.0)/kCorner[0];
-  kG_[1] = (kCorner[0] - 1.0)/kCorner[1];
-  kD_[0] = 1.0 + kG_[0];
-  kD_[1] = 1.0 + kG_[1];
+  kG_[0] = (kCorner[1] - T(1.0))/kCorner[0];
+  kG_[1] = (kCorner[0] - T(1.0))/kCorner[1];
+  kD_[0] = T(1.0) + kG_[0];
+  kD_[1] = T(1.0) + kG_[1];
 }
 
 template <class T>
@@ -47,7 +50,7 @@ GbVec2<T>
 GbProjection<T>::HmQuadToSquare::transform (const GbVec2<T>& rkP)
 {
   GbVec2<T> kProd = kM_*(rkP - kT_);
-  T fInvDenom = 1.0/(1.0 + kG_.dot(kProd));
+  T fInvDenom = T(1.0)/(T(1.0) + kG_.dot(kProd));
   GbVec2<T> kResult = fInvDenom*kProd;
   kResult[0] *= kD_[0];
   kResult[1] *= kD_[1];
@@ -74,9 +77,9 @@ GbProjection<T>::HmSquareToQuad::HmSquareToQuad (const GbVec2<T>& rkP00, const G
 
   // compute homogeneous transform of square {(0,0),(1,0),(1,1),(0,1)} to
   // quadrilateral {(0,0),(1,0),(a,b),(0,1)}
-  T fInvDenom = 1.0/(kCorner[0] + kCorner[1] - 1.0);
-  kG_[0] = fInvDenom*(1.0 - kCorner[1]);
-  kG_[1] = fInvDenom*(1.0 - kCorner[0]);
+  T fInvDenom = T(1.0)/(kCorner[0] + kCorner[1] - T(1.0));
+  kG_[0] = fInvDenom*(T(1.0) - kCorner[1]);
+  kG_[1] = fInvDenom*(T(1.0) - kCorner[0]);
   kD_[0] = fInvDenom*kCorner[0];
   kD_[1] = fInvDenom*kCorner[1];
 }
@@ -85,7 +88,7 @@ template <class T>
 GbVec2<T> 
 GbProjection<T>::HmSquareToQuad::transform (const GbVec2<T>& rkP)
 {
-  T fInvDenom = 1.0/(1.0 + kG_.dot(rkP));
+  T fInvDenom = T(1.0)/(T(1.0) + kG_.dot(rkP));
   GbVec2<T> kResult(kD_[0]*rkP[0],kD_[1]*rkP[1]);
   GbVec2<T> kProd = kM_*kResult;
   kResult[0] = fInvDenom*kProd[0] + kT_[0];
@@ -122,13 +125,13 @@ GbProjection<T>::BiQuadToSquare::transform (const GbVec2<T>& rkP)
 
   if ( GbMath<T>::Abs(fA) >= GbProjection<T>::TOLERANCE ) {
     // t-equation is quadratic
-    T fDiscr = GbMath<T>::Sqrt(GbMath<T>::Abs(fB*fB-4.0*fA*fC));
-    kResult[0] = (-fB + fDiscr)/(2.0*fA);
-    if ( kResult[0] < 0.0 || kResult[0] > 1.0 ) {
-      kResult[0] = (-fB - fDiscr)/(2.0*fA);
-      if ( kResult[0] < 0.0 || kResult[0] > 1.0 ) {
+    T fDiscr = GbMath<T>::Sqrt(GbMath<T>::Abs(fB*fB-T(4.0)*fA*fC));
+    kResult[0] = (-fB + fDiscr)/(T(2.0)*fA);
+    if ( kResult[0] < T(0.0) || kResult[0] > T(1.0) ) {
+      kResult[0] = (-fB - fDiscr)/(T(2.0)*fA);
+      if ( kResult[0] < T(0.0) || kResult[0] > T(1.0) ) {
 	// point p not inside quadrilateral, return invalid result
-	return GbVec2<T>(-1.0,-1.0);
+	return GbVec2<T>(T(-1.0),T(-1.0));
       }
     }
   }
@@ -156,7 +159,7 @@ template <class T>
 GbVec2<T> 
 GbProjection<T>::BiSquareToQuad::transform (const GbVec2<T>& rkP)
 {
-  GbVec2<T> kOmP(1.0-rkP[0],1.0-rkP[1]);
+  GbVec2<T> kOmP(T(1.0)-rkP[0],T(1.0)-rkP[1]);
   GbVec2<T> kResult;
   kResult[0] = kOmP[1]*(kOmP[0]*S00_[0] + rkP[0]*S10_[0]) +
                rkP[1] *(kOmP[0]*S01_[0] + rkP[0]*S11_[0]);
@@ -202,7 +205,7 @@ GbProjection<T>::ConvexPolyhedron::getDistance (const GbVec3<T>& rkEye, Triangle
     pkTriangle->distance_ = pkTriangle->plane_.distanceTo(rkEye);
 
     if ( GbMath<T>::Abs(pkTriangle->distance_) < GbProjection<T>::TOLERANCE )
-      pkTriangle->distance_ = 0.0;
+      pkTriangle->distance_ = T(0.0);
   }
 
   return pkTriangle->distance_;
@@ -212,7 +215,7 @@ template <class T>
 GbBool 
 GbProjection<T>::ConvexPolyhedron::isNegativeProduct (T fDist0, T fDist1)
 {
-  return ( fDist0 != 0.0 ? (fDist0*fDist1 <= 0.0) : (fDist1 != 0.0) );
+  return ( fDist0 != T(0.0) ? (fDist0*fDist1 <= T(0.0)) : (fDist1 != T(0.0)) );
 }
 
 template <class T>

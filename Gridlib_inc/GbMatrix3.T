@@ -3,8 +3,11 @@
 |
 |
 | $Log$
-| Revision 1.1  2002/02/22 14:47:56  elena
-| new: dir Gridlib_inc
+| Revision 1.2  2002/03/21 14:58:56  elena
+| new: changes in dat-file for reading tetrahedral (bugs in element connection)
+|
+| Revision 1.4  2001/08/16 16:53:18  prkipfer
+| improved type safety for template parameter
 |
 | Revision 1.3  2001/06/15 08:35:11  prkipfer
 | added fast transpose multiplication and spherical interpolation without quaternions
@@ -23,13 +26,17 @@
 template <class T>
 GbMatrix3<T>::GbMatrix3()
 {
-  entry_[0][0] = entry_[0][1] = entry_[0][2] = 
-  entry_[1][0] = entry_[1][1] = entry_[1][2] = 
-  entry_[2][0] = entry_[2][1] = entry_[2][2] = 0.0;
+  // no init, use constructor below in case needed
 }
 
 template <class T>
 GbMatrix3<T>::GbMatrix3(const T entry[3][3])
+{
+  memcpy(entry_,entry,9*sizeof(T));
+}
+
+template <class T>
+GbMatrix3<T>::GbMatrix3(const T entry[9])
 {
   memcpy(entry_,entry,9*sizeof(T));
 }
@@ -59,20 +66,16 @@ GbMatrix3<T>::GbMatrix3(T entry00, T entry01, T entry02,
 }
 
 template <class T>
-GbMatrix3<T>::~GbMatrix3()
+GbMatrix3<T>::GbMatrix3(T s)
 {
+  entry_[0][0] = entry_[0][1] = entry_[0][2] =
+  entry_[1][0] = entry_[1][1] = entry_[1][2] =
+  entry_[2][0] = entry_[2][1] = entry_[2][2] = s;
 }
 
 template <class T>
-GbMatrix3<T> 
-GbMatrix3<T>::transpose () const
+GbMatrix3<T>::~GbMatrix3()
 {
-  GbMatrix3<T> kTranspose;
-  for (int iRow = 0; iRow < 3; iRow++) {
-    for (int iCol = 0; iCol < 3; iCol++)
-      kTranspose[iRow][iCol] = entry_[iCol][iRow];
-  }
-  return kTranspose;
 }
 
 template <class T>
@@ -98,9 +101,9 @@ GbMatrix3<T>::inverse (GbMatrix3<T>& inv, T tolerance) const
 
   if ( GbMath<T>::Abs(fDet) <= tolerance ) return false;
 
-  T fInvDet = 1.0/fDet;
-  for (int iRow = 0; iRow < 3; iRow++) {
-    for (int iCol = 0; iCol < 3; iCol++)
+  T fInvDet = T(1.0)/fDet;
+  for (int iRow = 0; iRow < 3; ++iRow) {
+    for (int iCol = 0; iCol < 3; ++iCol)
       inv[iRow][iCol] *= fInvDet;
   }
 
@@ -117,21 +120,6 @@ GbMatrix3<T>::inverse (T tolerance) const
 }
 
 template <class T>
-T
-GbMatrix3<T>::determinant () const
-{
-  T fCofactor00 = entry_[1][1]*entry_[2][2] - entry_[1][2]*entry_[2][1];
-  T fCofactor10 = entry_[1][2]*entry_[2][0] - entry_[1][0]*entry_[2][2];
-  T fCofactor20 = entry_[1][0]*entry_[2][1] - entry_[1][1]*entry_[2][0];
-
-  T fDet = entry_[0][0]*fCofactor00 +
-           entry_[0][1]*fCofactor10 +
-           entry_[0][2]*fCofactor20;
-  
-  return fDet;
-}
-
-template <class T>
 void 
 GbMatrix3<T>::bidiagonalize (GbMatrix3<T>& kA, GbMatrix3<T>& kL, GbMatrix3<T>& kR)
 {
@@ -142,14 +130,14 @@ GbMatrix3<T>::bidiagonalize (GbMatrix3<T>& kA, GbMatrix3<T>& kL, GbMatrix3<T>& k
   // map first column to (*,0,0)
   fLength = GbMath<T>::Sqrt(kA[0][0]*kA[0][0] + kA[1][0]*kA[1][0] + kA[2][0]*kA[2][0]);
 
-  if ( fLength > 0.0 ) {
-    fSign = (kA[0][0] > 0.0 ? 1.0 : -1.0);
+  if ( fLength > T(0.0) ) {
+    fSign = (kA[0][0] > T(0.0) ? T(1.0) : T(-1.0));
     fT1 = kA[0][0] + fSign*fLength;
-    fInvT1 = 1.0/fT1;
+    fInvT1 = T(1.0)/fT1;
     afV[1] = kA[1][0]*fInvT1;
     afV[2] = kA[2][0]*fInvT1;
 
-    fT2 = -2.0/(1.0+afV[1]*afV[1]+afV[2]*afV[2]);
+    fT2 = T(-2.0)/(T(1.0)+afV[1]*afV[1]+afV[2]*afV[2]);
     afW[0] = fT2*(kA[0][0]+kA[1][0]*afV[1]+kA[2][0]*afV[2]);
     afW[1] = fT2*(kA[0][1]+kA[1][1]*afV[1]+kA[2][1]*afV[2]);
     afW[2] = fT2*(kA[0][2]+kA[1][2]*afV[1]+kA[2][2]*afV[2]);
@@ -161,12 +149,12 @@ GbMatrix3<T>::bidiagonalize (GbMatrix3<T>& kA, GbMatrix3<T>& kL, GbMatrix3<T>& k
     kA[2][1] += afV[2]*afW[1];
     kA[2][2] += afV[2]*afW[2];
 
-    kL[0][0] = 1.0+fT2;
+    kL[0][0] = T(1.0)+fT2;
     kL[0][1] = kL[1][0] = fT2*afV[1];
     kL[0][2] = kL[2][0] = fT2*afV[2];
-    kL[1][1] = 1.0+fT2*afV[1]*afV[1];
+    kL[1][1] = T(1.0)+fT2*afV[1]*afV[1];
     kL[1][2] = kL[2][1] = fT2*afV[1]*afV[2];
-    kL[2][2] = 1.0+fT2*afV[2]*afV[2];
+    kL[2][2] = T(1.0)+fT2*afV[2]*afV[2];
     bIdentity = false;
   }
   else {
@@ -177,12 +165,12 @@ GbMatrix3<T>::bidiagonalize (GbMatrix3<T>& kA, GbMatrix3<T>& kL, GbMatrix3<T>& k
   // map first row to (*,*,0)
   fLength = GbMath<T>::Sqrt(kA[0][1]*kA[0][1]+kA[0][2]*kA[0][2]);
 
-  if ( fLength > 0.0 ) {
-    fSign = (kA[0][1] > 0.0 ? 1.0 : -1.0);
+  if ( fLength > T(0.0) ) {
+    fSign = (kA[0][1] > T(0.0) ? T(1.0) : T(-1.0));
     fT1 = kA[0][1] + fSign*fLength;
     afV[2] = kA[0][2]/fT1;
 
-    fT2 = -2.0/(1.0+afV[2]*afV[2]);
+    fT2 = T(-2.0)/(T(1.0)+afV[2]*afV[2]);
     afW[0] = fT2*(kA[0][1]+kA[0][2]*afV[2]);
     afW[1] = fT2*(kA[1][1]+kA[1][2]*afV[2]);
     afW[2] = fT2*(kA[2][1]+kA[2][2]*afV[2]);
@@ -192,12 +180,12 @@ GbMatrix3<T>::bidiagonalize (GbMatrix3<T>& kA, GbMatrix3<T>& kL, GbMatrix3<T>& k
     kA[2][1] += afW[2];
     kA[2][2] += afW[2]*afV[2];
         
-    kR[0][0] = 1.0;
-    kR[0][1] = kR[1][0] = 0.0;
-    kR[0][2] = kR[2][0] = 0.0;
-    kR[1][1] = 1.0+fT2;
+    kR[0][0] = T(1.0);
+    kR[0][1] = kR[1][0] = T(0.0);
+    kR[0][2] = kR[2][0] = T(0.0);
+    kR[1][1] = T(1.0)+fT2;
     kR[1][2] = kR[2][1] = fT2*afV[2];
-    kR[2][2] = 1.0+fT2*afV[2]*afV[2];
+    kR[2][2] = T(1.0)+fT2*afV[2]*afV[2];
   }
   else {
     kR = GbMatrix3<T>::IDENTITY;
@@ -206,32 +194,32 @@ GbMatrix3<T>::bidiagonalize (GbMatrix3<T>& kA, GbMatrix3<T>& kL, GbMatrix3<T>& k
   // map second column to (*,*,0)
   fLength = GbMath<T>::Sqrt(kA[1][1]*kA[1][1]+kA[2][1]*kA[2][1]);
 
-  if ( fLength > 0.0 ) {
-    fSign = (kA[1][1] > 0.0 ? 1.0 : -1.0);
+  if ( fLength > T(0.0) ) {
+    fSign = (kA[1][1] > T(0.0) ? T(1.0) : T(-1.0));
     fT1 = kA[1][1] + fSign*fLength;
     afV[2] = kA[2][1]/fT1;
 
-    fT2 = -2.0/(1.0+afV[2]*afV[2]);
+    fT2 = T(-2.0)/(T(1.0)+afV[2]*afV[2]);
     afW[1] = fT2*(kA[1][1]+kA[2][1]*afV[2]);
     afW[2] = fT2*(kA[1][2]+kA[2][2]*afV[2]);
     kA[1][1] += afW[1];
     kA[1][2] += afW[2];
     kA[2][2] += afV[2]*afW[2];
 
-    T fA = 1.0+fT2;
+    T fA = T(1.0)+fT2;
     T fB = fT2*afV[2];
-    T fC = 1.0+fB*afV[2];
+    T fC = T(1.0)+fB*afV[2];
 
     if ( bIdentity ) {
-      kL[0][0] = 1.0;
-      kL[0][1] = kL[1][0] = 0.0;
-      kL[0][2] = kL[2][0] = 0.0;
+      kL[0][0] = T(1.0);
+      kL[0][1] = kL[1][0] = T(0.0);
+      kL[0][2] = kL[2][0] = T(0.0);
       kL[1][1] = fA;
       kL[1][2] = kL[2][1] = fB;
       kL[2][2] = fC;
     }
     else {
-      for (int iRow = 0; iRow < 3; iRow++) {
+      for (int iRow = 0; iRow < 3; ++iRow) {
 	T fTmp0 = kL[iRow][1];
 	T fTmp1 = kL[iRow][2];
 	kL[iRow][1] = fA*fTmp0+fB*fTmp1;
@@ -251,13 +239,13 @@ GbMatrix3<T>::GolubKahanStep (GbMatrix3<T>& kA, GbMatrix3<T>& kL, GbMatrix3<T>& 
   T fTrace = fT11+fT22;
   T fDiff = fT11-fT22;
   T fDiscr = GbMath<T>::Sqrt(fDiff*fDiff+4.0*fT12*fT12);
-  T fRoot1 = 0.5*(fTrace+fDiscr);
-  T fRoot2 = 0.5*(fTrace-fDiscr);
+  T fRoot1 = T(0.5)*(fTrace+fDiscr);
+  T fRoot2 = T(0.5)*(fTrace-fDiscr);
 
   // adjust right
   T fY = kA[0][0] - (GbMath<T>::Abs(fRoot1-fT22) <= GbMath<T>::Abs(fRoot2-fT22) ? fRoot1 : fRoot2);
   T fZ = kA[0][1];
-  T fInvLength = 1.0/GbMath<T>::Sqrt(fY*fY+fZ*fZ);
+  T fInvLength = T(1.0)/GbMath<T>::Sqrt(fY*fY+fZ*fZ);
   T fSin = fZ*fInvLength;
   T fCos = -fY*fInvLength;
 
@@ -269,7 +257,7 @@ GbMatrix3<T>::GolubKahanStep (GbMatrix3<T>& kA, GbMatrix3<T>& kL, GbMatrix3<T>& 
   kA[1][1] *= fCos;
 
   int iRow;
-  for (iRow = 0; iRow < 3; iRow++) {
+  for (iRow = 0; iRow < 3; ++iRow) {
     fTmp0 = kR[0][iRow];
     fTmp1 = kR[1][iRow];
     kR[0][iRow] = fCos*fTmp0-fSin*fTmp1;
@@ -279,7 +267,7 @@ GbMatrix3<T>::GolubKahanStep (GbMatrix3<T>& kA, GbMatrix3<T>& kL, GbMatrix3<T>& 
   // adjust left
   fY = kA[0][0];
   fZ = kA[1][0];
-  fInvLength = 1.0/GbMath<T>::Sqrt(fY*fY+fZ*fZ);
+  fInvLength = T(1.0)/GbMath<T>::Sqrt(fY*fY+fZ*fZ);
   fSin = fZ*fInvLength;
   fCos = -fY*fInvLength;
 
@@ -292,7 +280,7 @@ GbMatrix3<T>::GolubKahanStep (GbMatrix3<T>& kA, GbMatrix3<T>& kL, GbMatrix3<T>& 
   kA[1][2] *= fCos;
 
   int iCol;
-  for (iCol = 0; iCol < 3; iCol++) {
+  for (iCol = 0; iCol < 3; ++iCol) {
     fTmp0 = kL[iCol][0];
     fTmp1 = kL[iCol][1];
     kL[iCol][0] = fCos*fTmp0-fSin*fTmp1;
@@ -302,7 +290,7 @@ GbMatrix3<T>::GolubKahanStep (GbMatrix3<T>& kA, GbMatrix3<T>& kL, GbMatrix3<T>& 
   // adjust right
   fY = kA[0][1];
   fZ = kA[0][2];
-  fInvLength = 1.0/GbMath<T>::Sqrt(fY*fY+fZ*fZ);
+  fInvLength = T(1.0)/GbMath<T>::Sqrt(fY*fY+fZ*fZ);
   fSin = fZ*fInvLength;
   fCos = -fY*fInvLength;
 
@@ -314,7 +302,7 @@ GbMatrix3<T>::GolubKahanStep (GbMatrix3<T>& kA, GbMatrix3<T>& kL, GbMatrix3<T>& 
   kA[2][1] = -fSin*kA[2][2];
   kA[2][2] *= fCos;
 
-  for (iRow = 0; iRow < 3; iRow++) {
+  for (iRow = 0; iRow < 3; ++iRow) {
     fTmp0 = kR[1][iRow];
     fTmp1 = kR[2][iRow];
     kR[1][iRow] = fCos*fTmp0-fSin*fTmp1;
@@ -324,7 +312,7 @@ GbMatrix3<T>::GolubKahanStep (GbMatrix3<T>& kA, GbMatrix3<T>& kL, GbMatrix3<T>& 
   // adjust left
   fY = kA[1][1];
   fZ = kA[2][1];
-  fInvLength = 1.0/GbMath<T>::Sqrt(fY*fY+fZ*fZ);
+  fInvLength = T(1.0)/GbMath<T>::Sqrt(fY*fY+fZ*fZ);
   fSin = fZ*fInvLength;
   fCos = -fY*fInvLength;
 
@@ -334,7 +322,7 @@ GbMatrix3<T>::GolubKahanStep (GbMatrix3<T>& kA, GbMatrix3<T>& kL, GbMatrix3<T>& 
   kA[1][2] = fCos*fTmp0-fSin*fTmp1;
   kA[2][2] = fSin*fTmp0+fCos*fTmp1;
 
-  for (iCol = 0; iCol < 3; iCol++) {
+  for (iCol = 0; iCol < 3; ++iCol) {
     fTmp0 = kL[iCol][1];
     fTmp1 = kL[iCol][2];
     kL[iCol][1] = fCos*fTmp0-fSin*fTmp1;
@@ -351,7 +339,7 @@ GbMatrix3<T>::singularValueDecomposition (GbMatrix3<T>& kL, GbVec3<T>& kS, GbMat
   GbMatrix3<T> kA = *this;
   bidiagonalize(kA,kL,kR);
 
-  for (int i = 0; i < svdMaxIterations_; i++) {
+  for (int i = 0; i < svdMaxIterations_; ++i) {
     T fTmp, fTmp0, fTmp1;
     T fSin0, fCos0, fTan0;
     T fSin1, fCos1, fTan1;
@@ -369,11 +357,11 @@ GbMatrix3<T>::singularValueDecomposition (GbMatrix3<T>& kL, GbVec3<T>& kS, GbMat
 	// 2x2 closed form factorization
 	fTmp = (kA[1][1]*kA[1][1] - kA[2][2]*kA[2][2] +
 		kA[1][2]*kA[1][2])/(kA[1][2]*kA[2][2]);
-	fTan0 = 0.5*(fTmp+GbMath<T>::Sqrt(fTmp*fTmp + 4.0));
-	fCos0 = 1.0/GbMath<T>::Sqrt(1.0+fTan0*fTan0);
+	fTan0 = T(0.5)*(fTmp+GbMath<T>::Sqrt(fTmp*fTmp + 4.0));
+	fCos0 = T(1.0)/GbMath<T>::Sqrt(T(1.0)+fTan0*fTan0);
 	fSin0 = fTan0*fCos0;
 
-	for (iCol = 0; iCol < 3; iCol++) {
+	for (iCol = 0; iCol < 3; ++iCol) {
 	  fTmp0 = kL[iCol][1];
 	  fTmp1 = kL[iCol][2];
 	  kL[iCol][1] = fCos0*fTmp0-fSin0*fTmp1;
@@ -381,10 +369,10 @@ GbMatrix3<T>::singularValueDecomposition (GbMatrix3<T>& kL, GbVec3<T>& kS, GbMat
 	}
                 
 	fTan1 = (kA[1][2]-kA[2][2]*fTan0)/kA[1][1];
-	fCos1 = 1.0/GbMath<T>::Sqrt(1.0+fTan1*fTan1);
+	fCos1 = T(1.0)/GbMath<T>::Sqrt(T(1.0)+fTan1*fTan1);
 	fSin1 = -fTan1*fCos1;
 
-	for (iRow = 0; iRow < 3; iRow++) {
+	for (iRow = 0; iRow < 3; ++iRow) {
 	  fTmp0 = kR[1][iRow];
 	  fTmp1 = kR[2][iRow];
 	  kR[1][iRow] = fCos1*fTmp0-fSin1*fTmp1;
@@ -402,11 +390,11 @@ GbMatrix3<T>::singularValueDecomposition (GbMatrix3<T>& kL, GbVec3<T>& kS, GbMat
 	// 2x2 closed form factorization 
 	fTmp = (kA[0][0]*kA[0][0] + kA[1][1]*kA[1][1] -
 		kA[0][1]*kA[0][1])/(kA[0][1]*kA[1][1]);
-	fTan0 = 0.5*(-fTmp+GbMath<T>::Sqrt(fTmp*fTmp + 4.0));
-	fCos0 = 1.0/GbMath<T>::Sqrt(1.0+fTan0*fTan0);
+	fTan0 = T(0.5)*(-fTmp+GbMath<T>::Sqrt(fTmp*fTmp + 4.0));
+	fCos0 = T(1.0)/GbMath<T>::Sqrt(T(1.0)+fTan0*fTan0);
 	fSin0 = fTan0*fCos0;
 
-	for (iCol = 0; iCol < 3; iCol++) {
+	for (iCol = 0; iCol < 3; ++iCol) {
 	  fTmp0 = kL[iCol][0];
 	  fTmp1 = kL[iCol][1];
 	  kL[iCol][0] = fCos0*fTmp0-fSin0*fTmp1;
@@ -414,10 +402,10 @@ GbMatrix3<T>::singularValueDecomposition (GbMatrix3<T>& kL, GbVec3<T>& kS, GbMat
 	}
                 
 	fTan1 = (kA[0][1]-kA[1][1]*fTan0)/kA[0][0];
-	fCos1 = 1.0/GbMath<T>::Sqrt(1.0+fTan1*fTan1);
+	fCos1 = T(1.0)/GbMath<T>::Sqrt(T(1.0)+fTan1*fTan1);
 	fSin1 = -fTan1*fCos1;
 
-	for (iRow = 0; iRow < 3; iRow++) {
+	for (iRow = 0; iRow < 3; ++iRow) {
 	  fTmp0 = kR[0][iRow];
 	  fTmp1 = kR[1][iRow];
 	  kR[0][iRow] = fCos1*fTmp0-fSin1*fTmp1;
@@ -436,10 +424,10 @@ GbMatrix3<T>::singularValueDecomposition (GbMatrix3<T>& kL, GbVec3<T>& kS, GbMat
   }
 
   // positize diagonal
-  for (iRow = 0; iRow < 3; iRow++) {
-    if ( kS[iRow] < 0.0 ) {
+  for (iRow = 0; iRow < 3; ++iRow) {
+    if ( kS[iRow] < T(0.0) ) {
       kS[iRow] = -kS[iRow];
-      for (iCol = 0; iCol < 3; iCol++) 
+      for (iCol = 0; iCol < 3; ++iCol) 
 	kR[iRow][iCol] = -kR[iRow][iCol];
     }
   }
@@ -453,16 +441,16 @@ GbMatrix3<T>::singularValueComposition (const GbMatrix3<T>& kL, const GbVec3<T>&
   GbMatrix3<T> kTmp;
 
   // product S*R
-  for (iRow = 0; iRow < 3; iRow++) {
-    for (iCol = 0; iCol < 3; iCol++)
+  for (iRow = 0; iRow < 3; ++iRow) {
+    for (iCol = 0; iCol < 3; ++iCol)
       kTmp[iRow][iCol] = kS[iRow]*kR[iRow][iCol];
   }
 
   // product L*S*R
-  for (iRow = 0; iRow < 3; iRow++) {
-    for (iCol = 0; iCol < 3; iCol++) {
-      entry_[iRow][iCol] = 0.0;
-      for (int iMid = 0; iMid < 3; iMid++)
+  for (iRow = 0; iRow < 3; ++iRow) {
+    for (iCol = 0; iCol < 3; ++iCol) {
+      entry_[iRow][iCol] = T(0.0);
+      for (int iMid = 0; iMid < 3; ++iMid)
 	entry_[iRow][iCol] += kL[iRow][iMid]*kTmp[iMid][iCol];
     }
   }
@@ -483,7 +471,7 @@ GbMatrix3<T>::orthonormalize ()
   // product of vectors A and B.
 
   // compute q0
-  T fInvLength = 1.0/GbMath<T>::Sqrt(entry_[0][0]*entry_[0][0] +
+  T fInvLength = T(1.0)/GbMath<T>::Sqrt(entry_[0][0]*entry_[0][0] +
 				     entry_[1][0]*entry_[1][0] +
 				     entry_[2][0]*entry_[2][0]);
 
@@ -500,7 +488,7 @@ GbMatrix3<T>::orthonormalize ()
   entry_[1][1] -= fDot0*entry_[1][0];
   entry_[2][1] -= fDot0*entry_[2][0];
 
-  fInvLength = 1.0/GbMath<T>::Sqrt(entry_[0][1]*entry_[0][1] +
+  fInvLength = T(1.0)/GbMath<T>::Sqrt(entry_[0][1]*entry_[0][1] +
 				   entry_[1][1]*entry_[1][1] +
 				   entry_[2][1]*entry_[2][1]);
 
@@ -521,7 +509,7 @@ GbMatrix3<T>::orthonormalize ()
   entry_[1][2] -= fDot0*entry_[1][0] + fDot1*entry_[1][1];
   entry_[2][2] -= fDot0*entry_[2][0] + fDot1*entry_[2][1];
 
-  fInvLength = 1.0/GbMath<T>::Sqrt(entry_[0][2]*entry_[0][2] +
+  fInvLength = T(1.0)/GbMath<T>::Sqrt(entry_[0][2]*entry_[0][2] +
 				   entry_[1][2]*entry_[1][2] +
 				   entry_[2][2]*entry_[2][2]);
 
@@ -562,7 +550,7 @@ GbMatrix3<T>::QDUDecomposition (GbMatrix3<T>& kQ, GbVec3<T>& kD, GbVec3<T>& kU) 
   // U stores the entries U[0] = u01, U[1] = u02, U[2] = u12
 
   // build orthogonal matrix Q
-  T fInvLength = 1.0/GbMath<T>::Sqrt(entry_[0][0]*entry_[0][0] +
+  T fInvLength = T(1.0)/GbMath<T>::Sqrt(entry_[0][0]*entry_[0][0] +
 				     entry_[1][0]*entry_[1][0] +
 				     entry_[2][0]*entry_[2][0]);
   kQ[0][0] = entry_[0][0]*fInvLength;
@@ -575,7 +563,7 @@ GbMatrix3<T>::QDUDecomposition (GbMatrix3<T>& kQ, GbVec3<T>& kD, GbVec3<T>& kU) 
   kQ[0][1] = entry_[0][1]-fDot*kQ[0][0];
   kQ[1][1] = entry_[1][1]-fDot*kQ[1][0];
   kQ[2][1] = entry_[2][1]-fDot*kQ[2][0];
-  fInvLength = 1.0/GbMath<T>::Sqrt(kQ[0][1]*kQ[0][1] + 
+  fInvLength = T(1.0)/GbMath<T>::Sqrt(kQ[0][1]*kQ[0][1] + 
 				   kQ[1][1]*kQ[1][1] +
 				   kQ[2][1]*kQ[2][1]);
   kQ[0][1] *= fInvLength;
@@ -594,7 +582,7 @@ GbMatrix3<T>::QDUDecomposition (GbMatrix3<T>& kQ, GbVec3<T>& kD, GbVec3<T>& kU) 
   kQ[0][2] -= fDot*kQ[0][1];
   kQ[1][2] -= fDot*kQ[1][1];
   kQ[2][2] -= fDot*kQ[2][1];
-  fInvLength = 1.0/GbMath<T>::Sqrt(kQ[0][2]*kQ[0][2] + 
+  fInvLength = T(1.0)/GbMath<T>::Sqrt(kQ[0][2]*kQ[0][2] + 
 				   kQ[1][2]*kQ[1][2] +
 				   kQ[2][2]*kQ[2][2]);
   kQ[0][2] *= fInvLength;
@@ -609,9 +597,9 @@ GbMatrix3<T>::QDUDecomposition (GbMatrix3<T>& kQ, GbVec3<T>& kD, GbVec3<T>& kU) 
            kQ[0][1]*kQ[1][0]*kQ[2][2] - 
            kQ[0][0]*kQ[1][2]*kQ[2][1];
 
-  if ( fDet < 0.0 ) {
-    for (int iRow = 0; iRow < 3; iRow++)
-      for (int iCol = 0; iCol < 3; iCol++)
+  if ( fDet < T(0.0) ) {
+    for (int iRow = 0; iRow < 3; ++iRow)
+      for (int iCol = 0; iCol < 3; ++iCol)
 	kQ[iRow][iCol] = -kQ[iRow][iCol];
   }
 
@@ -642,7 +630,7 @@ GbMatrix3<T>::QDUDecomposition (GbMatrix3<T>& kQ, GbVec3<T>& kD, GbVec3<T>& kU) 
   kD[2] = kR[2][2];
 
   // the shear component
-  T fInvD0 = 1.0/kD[0];
+  T fInvD0 = T(1.0)/kD[0];
   kU[0] = kR[0][1]*fInvD0;
   kU[1] = kR[0][2]*fInvD0;
   kU[2] = kR[1][2]/kD[1];
@@ -657,7 +645,7 @@ GbMatrix3<T>::maxCubicRoot (T afCoeff[3])
   // This yields the assertions c[0] < 0 and c[2]*c[2] >= 3*c[1].
 
   // quick out for uniform scale (triple root)
-  const T fOneThird = 1.0/3.0;
+  const T fOneThird = T(1.0)/3.0;
   const T fEpsilon = GbMatrix3<T>::EPSILON;
   T fDiscr = afCoeff[2]*afCoeff[2] - 3.0*afCoeff[1];
   if ( fDiscr <= fEpsilon )
@@ -665,22 +653,22 @@ GbMatrix3<T>::maxCubicRoot (T afCoeff[3])
 
   // Compute an upper bound on roots of P(x).  This assumes that A^T*A
   // has been scaled by its largest entry.
-  T fX = 1.0;
+  T fX = T(1.0);
   T fPoly = afCoeff[0]+fX*(afCoeff[1]+fX*(afCoeff[2]+fX));
-  if ( fPoly < 0.0 ) {
+  if ( fPoly < T(0.0) ) {
     // uses a matrix norm to find an upper bound on maximum root
     fX = GbMath<T>::Abs(afCoeff[0]);
-    T fTmp = 1.0+GbMath<T>::Abs(afCoeff[1]);
+    T fTmp = T(1.0)+GbMath<T>::Abs(afCoeff[1]);
     if ( fTmp > fX )
       fX = fTmp;
-    fTmp = 1.0+GbMath<T>::Abs(afCoeff[2]);
+    fTmp = T(1.0)+GbMath<T>::Abs(afCoeff[2]);
     if ( fTmp > fX )
       fX = fTmp;
   }
 
   // Newton's method to find root
-  T fTwoC2 = 2.0*afCoeff[2];
-  for (int i = 0; i < 16; i++) {
+  T fTwoC2 = T(2.0)*afCoeff[2];
+  for (int i = 0; i < 16; ++i) {
     fPoly = afCoeff[0]+fX*(afCoeff[1]+fX*(afCoeff[2]+fX));
     if ( GbMath<T>::Abs(fPoly) <= fEpsilon )
       return fX;
@@ -698,11 +686,11 @@ GbMatrix3<T>::spectralNorm () const
 {
   GbMatrix3<T> kP;
   int iRow, iCol;
-  T fPmax = 0.0;
-  for (iRow = 0; iRow < 3; iRow++) {
-    for (iCol = 0; iCol < 3; iCol++) {
-      kP[iRow][iCol] = 0.0;
-      for (int iMid = 0; iMid < 3; iMid++) {
+  T fPmax = T(0.0);
+  for (iRow = 0; iRow < 3; ++iRow) {
+    for (iCol = 0; iCol < 3; ++iCol) {
+      kP[iRow][iCol] = T(0.0);
+      for (int iMid = 0; iMid < 3; ++iMid) {
 	kP[iRow][iCol] += entry_[iMid][iRow]*entry_[iMid][iCol];
       }
       if ( kP[iRow][iCol] > fPmax )
@@ -710,9 +698,9 @@ GbMatrix3<T>::spectralNorm () const
     }
   }
 
-  T fInvPmax = 1.0/fPmax;
-  for (iRow = 0; iRow < 3; iRow++) {
-    for (iCol = 0; iCol < 3; iCol++)
+  T fInvPmax = T(1.0)/fPmax;
+  for (iRow = 0; iRow < 3; ++iRow) {
+    for (iCol = 0; iCol < 3; ++iCol)
       kP[iRow][iCol] *= fInvPmax;
   }
 
@@ -757,10 +745,10 @@ GbMatrix3<T>::toAxisAngle (GbVec3<T>& rkAxis, T& rfRadians) const
   // it does not matter which sign you choose on the square roots.
 
   T fTrace = entry_[0][0] + entry_[1][1] + entry_[2][2];
-  T fCos = 0.5*(fTrace-1.0);
+  T fCos = T(0.5)*(fTrace-T(1.0));
   rfRadians = GbMath<T>::ACos(fCos);  // in [0,PI]
 
-  if ( rfRadians > 0.0 ) {
+  if ( rfRadians > T(0.0) ) {
     if ( rfRadians < GbMath<T>::PI ) {
       rkAxis[0] = entry_[2][1]-entry_[1][2];
       rkAxis[1] = entry_[0][2]-entry_[2][0];
@@ -774,15 +762,15 @@ GbMatrix3<T>::toAxisAngle (GbVec3<T>& rkAxis, T& rfRadians) const
 	// r00 >= r11
 	if ( entry_[0][0] >= entry_[2][2] ) {
 	  // r00 is maximum diagonal term
-	  rkAxis[0] = 0.5*GbMath<T>::Sqrt(entry_[0][0] - entry_[1][1] - entry_[2][2] + 1.0);
-	  fHalfInverse = 0.5/rkAxis[0];
+	  rkAxis[0] = T(0.5)*GbMath<T>::Sqrt(entry_[0][0] - entry_[1][1] - entry_[2][2] + T(1.0));
+	  fHalfInverse = T(0.5)/rkAxis[0];
 	  rkAxis[1] = fHalfInverse*entry_[0][1];
 	  rkAxis[2] = fHalfInverse*entry_[0][2];
 	}
 	else {
 	  // r22 is maximum diagonal term
-	  rkAxis[2] = 0.5*GbMath<T>::Sqrt(entry_[2][2] - entry_[0][0] - entry_[1][1] + 1.0);
-	  fHalfInverse = 0.5/rkAxis[2];
+	  rkAxis[2] = T(0.5)*GbMath<T>::Sqrt(entry_[2][2] - entry_[0][0] - entry_[1][1] + T(1.0));
+	  fHalfInverse = T(0.5)/rkAxis[2];
 	  rkAxis[0] = fHalfInverse*entry_[0][2];
 	  rkAxis[1] = fHalfInverse*entry_[1][2];
 	}
@@ -791,15 +779,15 @@ GbMatrix3<T>::toAxisAngle (GbVec3<T>& rkAxis, T& rfRadians) const
 	// r11 > r00
 	if ( entry_[1][1] >= entry_[2][2] ) {
 	  // r11 is maximum diagonal term
-	  rkAxis[1] = 0.5*GbMath<T>::Sqrt(entry_[1][1] - entry_[0][0] - entry_[2][2] + 1.0);
-	  fHalfInverse  = 0.5/rkAxis[1];
+	  rkAxis[1] = T(0.5)*GbMath<T>::Sqrt(entry_[1][1] - entry_[0][0] - entry_[2][2] + T(1.0));
+	  fHalfInverse  = T(0.5)/rkAxis[1];
 	  rkAxis[0] = fHalfInverse*entry_[0][1];
 	  rkAxis[2] = fHalfInverse*entry_[1][2];
 	}
 	else {
 	  // r22 is maximum diagonal term
-	  rkAxis[2] = 0.5*GbMath<T>::Sqrt(entry_[2][2] - entry_[0][0] - entry_[1][1] + 1.0);
-	  fHalfInverse = 0.5/rkAxis[2];
+	  rkAxis[2] = T(0.5)*GbMath<T>::Sqrt(entry_[2][2] - entry_[0][0] - entry_[1][1] + T(1.0));
+	  fHalfInverse = T(0.5)/rkAxis[2];
 	  rkAxis[0] = fHalfInverse*entry_[0][2];
 	  rkAxis[1] = fHalfInverse*entry_[1][2];
 	}
@@ -809,9 +797,9 @@ GbMatrix3<T>::toAxisAngle (GbVec3<T>& rkAxis, T& rfRadians) const
   else {
     // The angle is 0 and the matrix is the identity.  Any axis will
     // work, so just use the x-axis.
-    rkAxis[0] = 1.0;
-    rkAxis[1] = 0.0;
-    rkAxis[2] = 0.0;
+    rkAxis[0] = T(1.0);
+    rkAxis[1] = T(0.0);
+    rkAxis[2] = T(0.0);
   }
 }
 
@@ -821,7 +809,7 @@ GbMatrix3<T>::fromAxisAngle (const GbVec3<T>& rkAxis, T fRadians)
 {
   T fCos = GbMath<T>::Cos(fRadians);
   T fSin = GbMath<T>::Sin(fRadians);
-  T fOneMinusCos = 1.0-fCos;
+  T fOneMinusCos = T(1.0)-fCos;
   T fX2 = rkAxis[0]*rkAxis[0];
   T fY2 = rkAxis[1]*rkAxis[1];
   T fZ2 = rkAxis[2]*rkAxis[2];
@@ -851,8 +839,8 @@ GbMatrix3<T>::toEulerAnglesXYZ (T& rfXAngle, T& rfYAngle, T& rfZAngle)
   //        cz*sx*sy+cx*sz  cx*cz-sx*sy*sz -cy*sx
   //       -cx*cz*sy+sx*sz  cz*sx+cx*sy*sz  cx*cy
 
-  if ( entry_[0][2] < 1.0 ) {
-    if ( entry_[0][2] > -1.0 ) {
+  if ( entry_[0][2] < T(1.0) ) {
+    if ( entry_[0][2] > T(-1.0) ) {
       rfXAngle = GbMath<T>::ATan2(-entry_[1][2],entry_[2][2]);
       rfYAngle = GbMath<T>::ASin(entry_[0][2]);
       rfZAngle = GbMath<T>::ATan2(-entry_[0][1],entry_[0][0]);
@@ -862,7 +850,7 @@ GbMatrix3<T>::toEulerAnglesXYZ (T& rfXAngle, T& rfYAngle, T& rfZAngle)
       // WARNING.  Not unique.  XA - ZA = -atan2(r10,r11)
       rfXAngle = -GbMath<T>::ATan2(entry_[1][0],entry_[1][1]);
       rfYAngle = -GbMath<T>::PIHALF;
-      rfZAngle = 0.0;
+      rfZAngle = T(0.0);
       return false;
     }
   }
@@ -870,7 +858,7 @@ GbMatrix3<T>::toEulerAnglesXYZ (T& rfXAngle, T& rfYAngle, T& rfZAngle)
     // WARNING.  Not unique.  XAngle + ZAngle = atan2(r10,r11)
     rfXAngle = GbMath<T>::ATan2(entry_[1][0],entry_[1][1]);
     rfYAngle = GbMath<T>::PIHALF;
-    rfZAngle = 0.0;
+    rfZAngle = T(0.0);
     return false;
   }
 }
@@ -883,8 +871,8 @@ GbMatrix3<T>::toEulerAnglesXZY (T& rfXAngle, T& rfZAngle, T& rfYAngle)
   //        sx*sy+cx*cy*sz  cx*cz          -cy*sx+cx*sy*sz
   //       -cx*sy+cy*sx*sz  cz*sx           cx*cy+sx*sy*sz
 
-  if ( entry_[0][1] < 1.0 ) {
-    if ( entry_[0][1] > -1.0 ) {
+  if ( entry_[0][1] < T(1.0) ) {
+    if ( entry_[0][1] > T(-1.0) ) {
       rfXAngle = GbMath<T>::ATan2(entry_[2][1],entry_[1][1]);
       rfZAngle = GbMath<T>::ASin(-entry_[0][1]);
       rfYAngle = GbMath<T>::ATan2(entry_[0][2],entry_[0][0]);
@@ -894,7 +882,7 @@ GbMatrix3<T>::toEulerAnglesXZY (T& rfXAngle, T& rfZAngle, T& rfYAngle)
       // WARNING.  Not unique.  XA - YA = atan2(r20,r22)
       rfXAngle = GbMath<T>::ATan2(entry_[2][0],entry_[2][2]);
       rfZAngle = GbMath<T>::PIHALF;
-      rfYAngle = 0.0;
+      rfYAngle = T(0.0);
       return false;
     }
   }
@@ -902,7 +890,7 @@ GbMatrix3<T>::toEulerAnglesXZY (T& rfXAngle, T& rfZAngle, T& rfYAngle)
     // WARNING.  Not unique.  XA + YA = atan2(-r20,r22)
     rfXAngle = GbMath<T>::ATan2(-entry_[2][0],entry_[2][2]);
     rfZAngle = -GbMath<T>::PIHALF;
-    rfYAngle = 0.0;
+    rfYAngle = T(0.0);
     return false;
   }
 }
@@ -915,8 +903,8 @@ GbMatrix3<T>::toEulerAnglesYXZ (T& rfYAngle, T& rfXAngle, T& rfZAngle)
   //        cx*sz           cx*cz          -sx
   //       -cz*sy+cy*sx*sz  cy*cz*sx+sy*sz  cx*cy
 
-  if ( entry_[1][2] < 1.0 ) {
-    if ( entry_[1][2] > -1.0 ) {
+  if ( entry_[1][2] < T(1.0) ) {
+    if ( entry_[1][2] > T(-1.0) ) {
       rfYAngle = GbMath<T>::ATan2(entry_[0][2],entry_[2][2]);
       rfXAngle = GbMath<T>::ASin(-entry_[1][2]);
       rfZAngle = GbMath<T>::ATan2(entry_[1][0],entry_[1][1]);
@@ -926,7 +914,7 @@ GbMatrix3<T>::toEulerAnglesYXZ (T& rfYAngle, T& rfXAngle, T& rfZAngle)
       // WARNING.  Not unique.  YA - ZA = atan2(r01,r00)
       rfYAngle = GbMath<T>::ATan2(entry_[0][1],entry_[0][0]);
       rfXAngle = GbMath<T>::PIHALF;
-      rfZAngle = 0.0;
+      rfZAngle = T(0.0);
       return false;
     }
   }
@@ -934,7 +922,7 @@ GbMatrix3<T>::toEulerAnglesYXZ (T& rfYAngle, T& rfXAngle, T& rfZAngle)
     // WARNING.  Not unique.  YA + ZA = atan2(-r01,r00)
     rfYAngle = GbMath<T>::ATan2(-entry_[0][1],entry_[0][0]);
     rfXAngle = -GbMath<T>::PIHALF;
-    rfZAngle = 0.0;
+    rfZAngle = T(0.0);
     return false;
   }
 }
@@ -947,8 +935,8 @@ GbMatrix3<T>::toEulerAnglesYZX (T& rfYAngle, T& rfZAngle, T& rfXAngle)
   //        sz              cx*cz          -cz*sx
   //       -cz*sy           cy*sx+cx*sy*sz  cx*cy-sx*sy*sz
 
-  if ( entry_[1][0] < 1.0 ) {
-    if ( entry_[1][0] > -1.0 ) {
+  if ( entry_[1][0] < T(1.0) ) {
+    if ( entry_[1][0] > T(-1.0) ) {
       rfYAngle = GbMath<T>::ATan2(-entry_[2][0],entry_[0][0]);
       rfZAngle = GbMath<T>::ASin(entry_[1][0]);
       rfXAngle = GbMath<T>::ATan2(-entry_[1][2],entry_[1][1]);
@@ -958,7 +946,7 @@ GbMatrix3<T>::toEulerAnglesYZX (T& rfYAngle, T& rfZAngle, T& rfXAngle)
       // WARNING.  Not unique.  YA - XA = -atan2(r21,r22);
       rfYAngle = -GbMath<T>::ATan2(entry_[2][1],entry_[2][2]);
       rfZAngle = -GbMath<T>::PIHALF;
-      rfXAngle = 0.0;
+      rfXAngle = T(0.0);
       return false;
     }
   }
@@ -966,7 +954,7 @@ GbMatrix3<T>::toEulerAnglesYZX (T& rfYAngle, T& rfZAngle, T& rfXAngle)
     // WARNING.  Not unique.  YA + XA = atan2(r21,r22)
     rfYAngle = GbMath<T>::ATan2(entry_[2][1],entry_[2][2]);
     rfZAngle = GbMath<T>::PIHALF;
-    rfXAngle = 0.0;
+    rfXAngle = T(0.0);
     return false;
   }
 }
@@ -979,8 +967,8 @@ GbMatrix3<T>::toEulerAnglesZXY (T& rfZAngle, T& rfXAngle, T& rfYAngle)
   //        cz*sx*sy+cy*sz  cx*cz          -cy*cz*sx+sy*sz
   //       -cx*sy           sx              cx*cy
 
-  if ( entry_[2][1] < 1.0 ) {
-    if ( entry_[2][1] > -1.0 ) {
+  if ( entry_[2][1] < T(1.0) ) {
+    if ( entry_[2][1] > T(-1.0) ) {
       rfZAngle = GbMath<T>::ATan2(-entry_[0][1],entry_[1][1]);
       rfXAngle = GbMath<T>::ASin(entry_[2][1]);
       rfYAngle = GbMath<T>::ATan2(-entry_[2][0],entry_[2][2]);
@@ -990,7 +978,7 @@ GbMatrix3<T>::toEulerAnglesZXY (T& rfZAngle, T& rfXAngle, T& rfYAngle)
       // WARNING.  Not unique.  ZA - YA = -atan(r02,r00)
       rfZAngle = -GbMath<T>::ATan2(entry_[0][2],entry_[0][0]);
       rfXAngle = -GbMath<T>::PIHALF;
-      rfYAngle = 0.0;
+      rfYAngle = T(0.0);
       return false;
     }
   }
@@ -998,7 +986,7 @@ GbMatrix3<T>::toEulerAnglesZXY (T& rfZAngle, T& rfXAngle, T& rfYAngle)
     // WARNING.  Not unique.  ZA + YA = atan2(r02,r00)
     rfZAngle = GbMath<T>::ATan2(entry_[0][2],entry_[0][0]);
     rfXAngle = GbMath<T>::PIHALF;
-    rfYAngle = 0.0;
+    rfYAngle = T(0.0);
     return false;
   }
 }
@@ -1011,8 +999,8 @@ GbMatrix3<T>::toEulerAnglesZYX (T& rfZAngle, T& rfYAngle, T& rfXAngle)
   //        cy*sz           cx*cz+sx*sy*sz -cz*sx+cx*sy*sz
   //       -sy              cy*sx           cx*cy
 
-  if ( entry_[2][0] < 1.0 ) {
-    if ( entry_[2][0] > -1.0 ) {
+  if ( entry_[2][0] < T(1.0) ) {
+    if ( entry_[2][0] > T(-1.0) ) {
       rfZAngle = GbMath<T>::ATan2(entry_[1][0],entry_[0][0]);
       rfYAngle = GbMath<T>::ASin(-entry_[2][0]);
       rfXAngle = GbMath<T>::ATan2(entry_[2][1],entry_[2][2]);
@@ -1022,7 +1010,7 @@ GbMatrix3<T>::toEulerAnglesZYX (T& rfZAngle, T& rfYAngle, T& rfXAngle)
       // WARNING.  Not unique.  ZA - XA = -atan2(r01,r02)
       rfZAngle = -GbMath<T>::ATan2(entry_[0][1],entry_[0][2]);
       rfYAngle = GbMath<T>::PIHALF;
-      rfXAngle = 0.0;
+      rfXAngle = T(0.0);
       return false;
     }
   }
@@ -1030,7 +1018,7 @@ GbMatrix3<T>::toEulerAnglesZYX (T& rfZAngle, T& rfYAngle, T& rfXAngle)
     // WARNING.  Not unique.  ZA + XA = atan2(-r01,-r02)
     rfZAngle = GbMath<T>::ATan2(-entry_[0][1],-entry_[0][2]);
     rfYAngle = -GbMath<T>::PIHALF;
-    rfXAngle = 0.0;
+    rfXAngle = T(0.0);
     return false;
   }
 }
@@ -1043,21 +1031,21 @@ GbMatrix3<T>::fromEulerAnglesXYZ (T fYAngle, T fPAngle, T fRAngle)
 
   fCos = GbMath<T>::Cos(fYAngle);
   fSin = GbMath<T>::Sin(fYAngle);
-  GbMatrix3<T> kXMat(1.0,0.0,0.0,
-		     0.0,fCos,-fSin,
-		     0.0,fSin,fCos);
+  GbMatrix3<T> kXMat(T(1.0),T(0.0),T(0.0),
+		     T(0.0),fCos,-fSin,
+		     T(0.0),fSin,fCos);
 
   fCos = GbMath<T>::Cos(fPAngle);
   fSin = GbMath<T>::Sin(fPAngle);
-  GbMatrix3<T> kYMat(fCos,0.0,fSin,
-		     0.0,1.0,0.0,
-		     -fSin,0.0,fCos);
+  GbMatrix3<T> kYMat(fCos,T(0.0),fSin,
+		     T(0.0),T(1.0),T(0.0),
+		     -fSin,T(0.0),fCos);
 
   fCos = GbMath<T>::Cos(fRAngle);
   fSin = GbMath<T>::Sin(fRAngle);
-  GbMatrix3<T> kZMat(fCos,-fSin,0.0,
-		     fSin,fCos,0.0,
-		     0.0,0.0,1.0);
+  GbMatrix3<T> kZMat(fCos,-fSin,T(0.0),
+		     fSin,fCos,T(0.0),
+		     T(0.0),T(0.0),T(1.0));
 
   *this = kXMat*(kYMat*kZMat);
 }
@@ -1070,21 +1058,21 @@ GbMatrix3<T>::fromEulerAnglesXZY (T fYAngle, T fPAngle, T fRAngle)
 
   fCos = GbMath<T>::Cos(fYAngle);
   fSin = GbMath<T>::Sin(fYAngle);
-  GbMatrix3<T> kXMat(1.0,0.0,0.0,
-		     0.0,fCos,-fSin,
-		     0.0,fSin,fCos);
+  GbMatrix3<T> kXMat(T(1.0),T(0.0),T(0.0),
+		     T(0.0),fCos,-fSin,
+		     T(0.0),fSin,fCos);
 
   fCos = GbMath<T>::Cos(fPAngle);
   fSin = GbMath<T>::Sin(fPAngle);
-  GbMatrix3<T> kZMat(fCos,-fSin,0.0,
-		     fSin,fCos,0.0,
-		     0.0,0.0,1.0);
+  GbMatrix3<T> kZMat(fCos,-fSin,T(0.0),
+		     fSin,fCos,T(0.0),
+		     T(0.0),T(0.0),T(1.0));
 
   fCos = GbMath<T>::Cos(fRAngle);
   fSin = GbMath<T>::Sin(fRAngle);
-  GbMatrix3<T> kYMat(fCos,0.0,fSin,
-		     0.0,1.0,0.0,
-		     -fSin,0.0,fCos);
+  GbMatrix3<T> kYMat(fCos,T(0.0),fSin,
+		     T(0.0),T(1.0),T(0.0),
+		     -fSin,T(0.0),fCos);
 
   *this = kXMat*(kZMat*kYMat);
 }
@@ -1097,21 +1085,21 @@ GbMatrix3<T>::fromEulerAnglesYXZ (T fYAngle, T fPAngle, T fRAngle)
 
   fCos = GbMath<T>::Cos(fYAngle);
   fSin = GbMath<T>::Sin(fYAngle);
-  GbMatrix3<T> kYMat(fCos,0.0,fSin,
-		     0.0,1.0,0.0,
-		     -fSin,0.0,fCos);
+  GbMatrix3<T> kYMat(fCos,T(0.0),fSin,
+		     T(0.0),T(1.0),T(0.0),
+		     -fSin,T(0.0),fCos);
 
   fCos = GbMath<T>::Cos(fPAngle);
   fSin = GbMath<T>::Sin(fPAngle);
-  GbMatrix3<T> kXMat(1.0,0.0,0.0,
-		     0.0,fCos,-fSin,
-		     0.0,fSin,fCos);
+  GbMatrix3<T> kXMat(T(1.0),T(0.0),T(0.0),
+		     T(0.0),fCos,-fSin,
+		     T(0.0),fSin,fCos);
 
   fCos = GbMath<T>::Cos(fRAngle);
   fSin = GbMath<T>::Sin(fRAngle);
-  GbMatrix3<T> kZMat(fCos,-fSin,0.0,
-		     fSin,fCos,0.0,
-		     0.0,0.0,1.0);
+  GbMatrix3<T> kZMat(fCos,-fSin,T(0.0),
+		     fSin,fCos,T(0.0),
+		     T(0.0),T(0.0),T(1.0));
 
   *this = kYMat*(kXMat*kZMat);
 }
@@ -1124,21 +1112,21 @@ GbMatrix3<T>::fromEulerAnglesYZX (T fYAngle, T fPAngle, T fRAngle)
 
   fCos = GbMath<T>::Cos(fYAngle);
   fSin = GbMath<T>::Sin(fYAngle);
-  GbMatrix3<T> kYMat(fCos,0.0,fSin,
-		     0.0,1.0,0.0,
-		     -fSin,0.0,fCos);
+  GbMatrix3<T> kYMat(fCos,T(0.0),fSin,
+		     T(0.0),T(1.0),T(0.0),
+		     -fSin,T(0.0),fCos);
 
   fCos = GbMath<T>::Cos(fPAngle);
   fSin = GbMath<T>::Sin(fPAngle);
-  GbMatrix3<T> kZMat(fCos,-fSin,0.0,
-		     fSin,fCos,0.0,
-		     0.0,0.0,1.0);
+  GbMatrix3<T> kZMat(fCos,-fSin,T(0.0),
+		     fSin,fCos,T(0.0),
+		     T(0.0),T(0.0),T(1.0));
 
   fCos = GbMath<T>::Cos(fRAngle);
   fSin = GbMath<T>::Sin(fRAngle);
-  GbMatrix3<T> kXMat(1.0,0.0,0.0,
-		     0.0,fCos,-fSin,
-		     0.0,fSin,fCos);
+  GbMatrix3<T> kXMat(T(1.0),T(0.0),T(0.0),
+		     T(0.0),fCos,-fSin,
+		     T(0.0),fSin,fCos);
 
   *this = kYMat*(kZMat*kXMat);
 }
@@ -1151,21 +1139,21 @@ GbMatrix3<T>::fromEulerAnglesZXY (T fYAngle, T fPAngle, T fRAngle)
 
   fCos = GbMath<T>::Cos(fYAngle);
   fSin = GbMath<T>::Sin(fYAngle);
-  GbMatrix3<T> kZMat(fCos,-fSin,0.0,
-		     fSin,fCos,0.0,
-		     0.0,0.0,1.0);
+  GbMatrix3<T> kZMat(fCos,-fSin,T(0.0),
+		     fSin,fCos,T(0.0),
+		     T(0.0),T(0.0),T(1.0));
 
   fCos = GbMath<T>::Cos(fPAngle);
   fSin = GbMath<T>::Sin(fPAngle);
-  GbMatrix3<T> kXMat(1.0,0.0,0.0,
-		     0.0,fCos,-fSin,
-		     0.0,fSin,fCos);
+  GbMatrix3<T> kXMat(T(1.0),T(0.0),T(0.0),
+		     T(0.0),fCos,-fSin,
+		     T(0.0),fSin,fCos);
 
   fCos = GbMath<T>::Cos(fRAngle);
   fSin = GbMath<T>::Sin(fRAngle);
-  GbMatrix3<T> kYMat(fCos,0.0,fSin,
-		     0.0,1.0,0.0,
-		     -fSin,0.0,fCos);
+  GbMatrix3<T> kYMat(fCos,T(0.0),fSin,
+		     T(0.0),T(1.0),T(0.0),
+		     -fSin,T(0.0),fCos);
 
   *this = kZMat*(kXMat*kYMat);
 }
@@ -1178,21 +1166,21 @@ GbMatrix3<T>::fromEulerAnglesZYX (T fYAngle, T fPAngle, T fRAngle)
 
   fCos = GbMath<T>::Cos(fYAngle);
   fSin = GbMath<T>::Sin(fYAngle);
-  GbMatrix3<T> kZMat(fCos,-fSin,0.0,
-		     fSin,fCos,0.0,
-		     0.0,0.0,1.0);
+  GbMatrix3<T> kZMat(fCos,-fSin,T(0.0),
+		     fSin,fCos,T(0.0),
+		     T(0.0),T(0.0),T(1.0));
 
   fCos = GbMath<T>::Cos(fPAngle);
   fSin = GbMath<T>::Sin(fPAngle);
-  GbMatrix3<T> kYMat(fCos,0.0,fSin,
-		     0.0,1.0,0.0,
-		     -fSin,0.0,fCos);
+  GbMatrix3<T> kYMat(fCos,T(0.0),fSin,
+		     T(0.0),T(1.0),T(0.0),
+		     -fSin,T(0.0),fCos);
 
   fCos = GbMath<T>::Cos(fRAngle);
   fSin = GbMath<T>::Sin(fRAngle);
-  GbMatrix3<T> kXMat(1.0,0.0,0.0,
-		     0.0,fCos,-fSin,
-		     0.0,fSin,fCos);
+  GbMatrix3<T> kXMat(T(1.0),T(0.0),T(0.0),
+		     T(0.0),fCos,-fSin,
+		     T(0.0),fSin,fCos);
 
   *this = kZMat*(kYMat*kXMat);
 }
@@ -1217,24 +1205,24 @@ GbMatrix3<T>::tridiagonal (T afDiag[3], T afSubDiag[3])
   T fF = entry_[2][2];
 
   afDiag[0] = fA;
-  afSubDiag[2] = 0.0;
+  afSubDiag[2] = T(0.0);
   if ( GbMath<T>::Abs(fC) >= GbMatrix3<T>::EPSILON ) {
     T fLength = GbMath<T>::Sqrt(fB*fB+fC*fC);
-    T fInvLength = 1.0/fLength;
+    T fInvLength = T(1.0)/fLength;
     fB *= fInvLength;
     fC *= fInvLength;
-    T fQ = 2.0*fB*fE+fC*(fF-fD);
+    T fQ = T(2.0)*fB*fE+fC*(fF-fD);
     afDiag[1] = fD+fC*fQ;
     afDiag[2] = fF-fC*fQ;
     afSubDiag[0] = fLength;
     afSubDiag[1] = fE-fB*fQ;
-    entry_[0][0] = 1.0;
-    entry_[0][1] = 0.0;
-    entry_[0][2] = 0.0;
-    entry_[1][0] = 0.0;
+    entry_[0][0] = T(1.0);
+    entry_[0][1] = T(0.0);
+    entry_[0][2] = T(0.0);
+    entry_[1][0] = T(0.0);
     entry_[1][1] = fB;
     entry_[1][2] = fC;
-    entry_[2][0] = 0.0;
+    entry_[2][0] = T(0.0);
     entry_[2][1] = fC;
     entry_[2][2] = -fB;
   }
@@ -1243,15 +1231,15 @@ GbMatrix3<T>::tridiagonal (T afDiag[3], T afSubDiag[3])
     afDiag[2] = fF;
     afSubDiag[0] = fB;
     afSubDiag[1] = fE;
-    entry_[0][0] = 1.0;
-    entry_[0][1] = 0.0;
-    entry_[0][2] = 0.0;
-    entry_[1][0] = 0.0;
-    entry_[1][1] = 1.0;
-    entry_[1][2] = 0.0;
-    entry_[2][0] = 0.0;
-    entry_[2][1] = 0.0;
-    entry_[2][2] = 1.0;
+    entry_[0][0] = T(1.0);
+    entry_[0][1] = T(0.0);
+    entry_[0][2] = T(0.0);
+    entry_[1][0] = T(0.0);
+    entry_[1][1] = T(1.0);
+    entry_[1][2] = T(0.0);
+    entry_[2][0] = T(0.0);
+    entry_[2][1] = T(0.0);
+    entry_[2][2] = T(1.0);
   }
 }
 
@@ -1262,12 +1250,12 @@ GbMatrix3<T>::QLAlgorithm (T afDiag[3], T afSubDiag[3])
   // QL iteration with implicit shifting to reduce matrix from tridiagonal
   // to diagonal
 
-  for (int i0 = 0; i0 < 3; i0++) {
+  for (int i0 = 0; i0 < 3; ++i0) {
     const int iMaxIter = 32;
     int iIter;
-    for (iIter = 0; iIter < iMaxIter; iIter++) {
+    for (iIter = 0; iIter < iMaxIter; ++iIter) {
       int i1;
-      for (i1 = i0; i1 <= 1; i1++) {
+      for (i1 = i0; i1 <= 1; ++i1) {
 	T fSum = GbMath<T>::Abs(afDiag[i1]) + GbMath<T>::Abs(afDiag[i1+1]);
 	if ( GbMath<T>::Abs(afSubDiag[i1]) + fSum == fSum )
 	  break;
@@ -1275,39 +1263,39 @@ GbMatrix3<T>::QLAlgorithm (T afDiag[3], T afSubDiag[3])
       if ( i1 == i0 )
 	break;
 
-      T fTmp0 = (afDiag[i0+1]-afDiag[i0])/(2.0*afSubDiag[i0]);
-      T fTmp1 = GbMath<T>::Sqrt(fTmp0*fTmp0+1.0);
-      if ( fTmp0 < 0.0 )
+      T fTmp0 = (afDiag[i0+1]-afDiag[i0])/(T(2.0)*afSubDiag[i0]);
+      T fTmp1 = GbMath<T>::Sqrt(fTmp0*fTmp0+T(1.0));
+      if ( fTmp0 < T(0.0) )
 	fTmp0 = afDiag[i1]-afDiag[i0]+afSubDiag[i0]/(fTmp0-fTmp1);
       else
 	fTmp0 = afDiag[i1]-afDiag[i0]+afSubDiag[i0]/(fTmp0+fTmp1);
-      T fSin = 1.0;
-      T fCos = 1.0;
-      T fTmp2 = 0.0;
+      T fSin = T(1.0);
+      T fCos = T(1.0);
+      T fTmp2 = T(0.0);
       for (int i2 = i1-1; i2 >= i0; i2--) {
 	T fTmp3 = fSin*afSubDiag[i2];
 	T fTmp4 = fCos*afSubDiag[i2];
 	if ( GbMath<T>::Abs(fTmp3) >= GbMath<T>::Abs(fTmp0) ) {
 	  fCos = fTmp0/fTmp3;
-	  fTmp1 = GbMath<T>::Sqrt(fCos*fCos+1.0);
+	  fTmp1 = GbMath<T>::Sqrt(fCos*fCos+T(1.0));
 	  afSubDiag[i2+1] = fTmp3*fTmp1;
-	  fSin = 1.0/fTmp1;
+	  fSin = T(1.0)/fTmp1;
 	  fCos *= fSin;
 	}
 	else {
 	  fSin = fTmp3/fTmp0;
-	  fTmp1 = GbMath<T>::Sqrt(fSin*fSin+1.0);
+	  fTmp1 = GbMath<T>::Sqrt(fSin*fSin+T(1.0));
 	  afSubDiag[i2+1] = fTmp0*fTmp1;
-	  fCos = 1.0/fTmp1;
+	  fCos = T(1.0)/fTmp1;
 	  fSin *= fCos;
 	}
 	fTmp0 = afDiag[i2+1]-fTmp2;
-	fTmp1 = (afDiag[i2]-fTmp0)*fSin+2.0*fTmp4*fCos;
+	fTmp1 = (afDiag[i2]-fTmp0)*fSin+T(2.0)*fTmp4*fCos;
 	fTmp2 = fSin*fTmp1;
 	afDiag[i2+1] = fTmp0+fTmp2;
 	fTmp0 = fCos*fTmp1-fTmp4;
 
-	for (int iRow = 0; iRow < 3; iRow++) {
+	for (int iRow = 0; iRow < 3; ++iRow) {
 	  fTmp3 = entry_[iRow][i2+1];
 	  entry_[iRow][i2+1] = fSin*entry_[iRow][i2] + fCos*fTmp3;
 	  entry_[iRow][i2]   = fCos*entry_[iRow][i2] - fSin*fTmp3;
@@ -1315,7 +1303,7 @@ GbMatrix3<T>::QLAlgorithm (T afDiag[3], T afSubDiag[3])
       }
       afDiag[i0] -= fTmp2;
       afSubDiag[i0] = fTmp0;
-      afSubDiag[i1] = 0.0;
+      afSubDiag[i1] = T(0.0);
     }
 
     if ( iIter == iMaxIter ) {
@@ -1336,7 +1324,7 @@ GbMatrix3<T>::eigenSolveSymmetric (T afEigenvalue[3], GbVec3<T> akEigenvector[3]
   kMatrix.tridiagonal(afEigenvalue,afSubDiag);
   kMatrix.QLAlgorithm(afEigenvalue,afSubDiag);
 
-  for (int i = 0; i < 3; i++) {
+  for (int i = 0; i < 3; ++i) {
     akEigenvector[i][0] = kMatrix[0][i];
     akEigenvector[i][1] = kMatrix[1][i];
     akEigenvector[i][2] = kMatrix[2][i];
@@ -1345,7 +1333,7 @@ GbMatrix3<T>::eigenSolveSymmetric (T afEigenvalue[3], GbVec3<T> akEigenvector[3]
   // make eigenvectors form a right--handed system
   GbVec3<T> kCross = akEigenvector[1].cross(akEigenvector[2]);
   T fDet = akEigenvector[0].dot(kCross);
-  if ( fDet < 0.0 ) {
+  if ( fDet < T(0.0) ) {
     akEigenvector[2][0] = - akEigenvector[2][0];
     akEigenvector[2][1] = - akEigenvector[2][1];
     akEigenvector[2][2] = - akEigenvector[2][2];
@@ -1356,8 +1344,8 @@ template <class T>
 void 
 GbMatrix3<T>::tensorProduct (const GbVec3<T>& rkU, const GbVec3<T>& rkV, GbMatrix3<T>& rkProduct)
 {
-  for (int iRow = 0; iRow < 3; iRow++) {
-    for (int iCol = 0; iCol < 3; iCol++)
+  for (int iRow = 0; iRow < 3; ++iRow) {
+    for (int iCol = 0; iCol < 3; ++iCol)
       rkProduct[iRow][iCol] = rkU[iRow]*rkV[iCol];
   }
 }

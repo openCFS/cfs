@@ -34,14 +34,14 @@
     increasing order.
 */
 GbBox3<float> 
-GbGaussPointsFit (const GoMesh* mesh);
+GbGaussPointsFit (const GoMesh* mesh, int level=0);
 
 /*! This function allows selection of valid
     vertices from a pool.  The return value is 'true' if and only if at least
     one vertex was valid.
 */
 GbBool 
-GbGaussPointsFit (const GoMesh* mesh, GbVertexFlag flag, GbBox3<float>& box);
+GbGaussPointsFit (const GoMesh* mesh, GbVertexFlag flag, GbBox3<float>& box, int level=0);
 
 
 //#ifndef OUTLINE
@@ -52,8 +52,11 @@ GbGaussPointsFit (const GoMesh* mesh, GbVertexFlag flag, GbBox3<float>& box);
 /*----------------------------------------------------------------------
 |
 | $Log$
-| Revision 1.1  2002/02/22 14:47:56  elena
-| new: dir Gridlib_inc
+| Revision 1.2  2002/03/21 14:58:56  elena
+| new: changes in dat-file for reading tetrahedral (bugs in element connection)
+|
+| Revision 1.2  2001/09/12 09:15:35  prkipfer
+| made GaussPointsFit work on a specific mesh level
 |
 | Revision 1.1  2001/01/02 15:04:01  prkipfer
 | introduced new classes

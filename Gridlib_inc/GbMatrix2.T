@@ -3,8 +3,11 @@
 |
 |
 | $Log$
-| Revision 1.1  2002/02/22 14:47:56  elena
-| new: dir Gridlib_inc
+| Revision 1.2  2002/03/21 14:58:56  elena
+| new: changes in dat-file for reading tetrahedral (bugs in element connection)
+|
+| Revision 1.2  2001/08/16 16:53:17  prkipfer
+| improved type safety for template parameter
 |
 | Revision 1.1  2001/06/26 08:31:22  prkipfer
 | added 2D Projections
@@ -22,24 +25,19 @@ const T
 GbMatrix2<T>::EPSILON = std::numeric_limits<T>::epsilon(); // 1e-06f
 
 template <class T>
-const GbMatrix2<T> 
-GbMatrix2<T>::ZERO(0,0,
-		   0,0);
-
-template <class T>
-const GbMatrix2<T> 
-GbMatrix2<T>::IDENTITY(1,0,
-		       0,1);
-
-template <class T>
 GbMatrix2<T>::GbMatrix2()
 {
-  entry_[0][0] = entry_[0][1] =
-  entry_[1][0] = entry_[1][1] = 0.0;
+  // no init, use constructor below if needed
 }
 
 template <class T>
 GbMatrix2<T>::GbMatrix2(const T aafEntry[2][2])
+{
+  memcpy(entry_,aafEntry,4*sizeof(T));
+}
+
+template <class T>
+GbMatrix2<T>::GbMatrix2(const T aafEntry[4])
 {
   memcpy(entry_,aafEntry,4*sizeof(T));
 }
@@ -64,6 +62,13 @@ GbMatrix2<T>::GbMatrix2(T fEntry00, T fEntry01,
 }
 
 template <class T>
+GbMatrix2<T>::GbMatrix2(T s)
+{
+  entry_[0][0] = entry_[0][1] =
+  entry_[1][0] = entry_[1][1] = s;
+}
+
+template <class T>
 GbMatrix2<T>::~GbMatrix2()
 {
 }
@@ -72,12 +77,14 @@ template <class T>
 GbMatrix2<T> 
 GbMatrix2<T>::transpose () const
 {
-  GbMatrix2<T> kTranspose;
-  for (int iRow = 0; iRow < 2; iRow++) {
-    for (int iCol = 0; iCol < 2; iCol++)
-      kTranspose[iRow][iCol] = entry_[iCol][iRow];
+  T kTranspose[4];
+  int k=0;
+
+  for (int iRow = 0; iRow < 2; ++iRow) {
+    for (int iCol = 0; iCol < 2; ++iCol)
+      kTranspose[k++] = entry_[iCol][iRow];
   }
-  return kTranspose;
+  return GbMatrix2<T>(kTranspose);
 }
 
 template <class T>
@@ -89,7 +96,7 @@ GbMatrix2<T>::inverse (GbMatrix2<T>& rkInverse, T fTolerance) const
   if ( GbMath<T>::Abs(fDet) <= fTolerance )
     return false;
 
-  T fInvDet = 1.0/fDet;
+  T fInvDet = T(1.0)/fDet;
   rkInverse[0][0] =  entry_[1][1]*fInvDet;
   rkInverse[1][0] = -entry_[1][0]*fInvDet;
   rkInverse[0][1] = -entry_[0][1]*fInvDet;
@@ -135,17 +142,17 @@ GbMatrix2<T>::singularValueDecomposition (GbMatrix2<T>& rkL,
 
   // factor M*M^t = L*S^2*L^t
   T fCos, fSin, fInvLen;
-  if ( GbMath<T>::Abs(afMMT[1]) > 0.0 ) {
+  if ( GbMath<T>::Abs(afMMT[1]) > T(0.0) ) {
     T fTrace = afMMT[0] + afMMT[2];
     T fDet = afMMT[0]*afMMT[2] - afMMT[1]*afMMT[1];
-    T fDiscr = fTrace*fTrace-4.0*fDet;
+    T fDiscr = fTrace*fTrace-T(4.0)*fDet;
     T fRoot = GbMath<T>::Sqrt(GbMath<T>::Abs(fDiscr));
-    rkS[0] = 0.5*(fTrace + fRoot);
-    rkS[1] = 0.5*(fTrace - fRoot);
+    rkS[0] = T(0.5)*(fTrace + fRoot);
+    rkS[1] = T(0.5)*(fTrace - fRoot);
 
     fCos = afMMT[1];
     fSin = rkS[0] - afMMT[0];
-    fInvLen = 1.0/GbMath<T>::Sqrt(fCos*fCos + fSin*fSin);
+    fInvLen = T(1.0)/GbMath<T>::Sqrt(fCos*fCos + fSin*fSin);
     fCos *= fInvLen;
     fSin *= fInvLen;
 
@@ -161,10 +168,10 @@ GbMatrix2<T>::singularValueDecomposition (GbMatrix2<T>& rkL,
   }
 
   // factor M^t*M = R^t*S^2*R
-  if ( GbMath<T>::Abs(afMTM[1]) > 0.0 ) {
+  if ( GbMath<T>::Abs(afMTM[1]) > T(0.0) ) {
     fCos = afMTM[1];
     fSin = rkS[0] - afMTM[0];
-    fInvLen = 1.0/GbMath<T>::Sqrt(fCos*fCos + fSin*fSin);
+    fInvLen = T(1.0)/GbMath<T>::Sqrt(fCos*fCos + fSin*fSin);
     fCos *= fInvLen;
     fSin *= fInvLen;
 
@@ -242,16 +249,16 @@ GbMatrix2<T>::singularValueComposition (const GbMatrix2<T>& rkL,
   GbMatrix2<T> kTmp;
 
   // product S*R
-  for (iRow = 0; iRow < 2; iRow++) {
-    for (iCol = 0; iCol < 2; iCol++)
+  for (iRow = 0; iRow < 2; ++iRow) {
+    for (iCol = 0; iCol < 2; ++iCol)
       kTmp[iRow][iCol] = rkS[iRow]*rkR[iRow][iCol];
   }
 
   // product L*S*R
-  for (iRow = 0; iRow < 2; iRow++) {
-    for (iCol = 0; iCol < 2; iCol++) {
-      entry_[iRow][iCol] = 0.0;
-      for (int iMid = 0; iMid < 2; iMid++)
+  for (iRow = 0; iRow < 2; ++iRow) {
+    for (iCol = 0; iCol < 2; ++iCol) {
+      entry_[iRow][iCol] = T(0.0);
+      for (int iMid = 0; iMid < 2; ++iMid)
 	entry_[iRow][iCol] += rkL[iRow][iMid]*kTmp[iMid][iCol];
     }
   }
@@ -271,7 +278,7 @@ GbMatrix2<T>::orthonormalize ()
   // product of vectors A and B.
 
   // compute q0
-  T fInvLength = 1.0/GbMath<T>::Sqrt(entry_[0][0]*entry_[0][0] + entry_[1][0]*entry_[1][0]);
+  T fInvLength = T(1.0)/GbMath<T>::Sqrt(entry_[0][0]*entry_[0][0] + entry_[1][0]*entry_[1][0]);
 
   entry_[0][0] *= fInvLength;
   entry_[1][0] *= fInvLength;
@@ -282,7 +289,7 @@ GbMatrix2<T>::orthonormalize ()
   entry_[0][1] -= fDot0*entry_[0][0];
   entry_[1][1] -= fDot0*entry_[1][0];
 
-  fInvLength = 1.0/GbMath<T>::Sqrt(entry_[0][1]*entry_[0][1] + entry_[1][1]*entry_[1][1]);
+  fInvLength = T(1.0)/GbMath<T>::Sqrt(entry_[0][1]*entry_[0][1] + entry_[1][1]*entry_[1][1]);
 
   entry_[0][1] *= fInvLength;
   entry_[1][1] *= fInvLength;
@@ -317,20 +324,20 @@ GbMatrix2<T>::QDUDecomposition (GbMatrix2<T>& rkQ, GbVec2<T>& rkD, T& rkU) const
   // U stores the entries u01
 
   // build orthogonal matrix Q
-  T fInvLength = 1.0/GbMath<T>::Sqrt(entry_[0][0]*entry_[0][0]);
+  T fInvLength = T(1.0)/GbMath<T>::Sqrt(entry_[0][0]*entry_[0][0]);
   rkQ[0][0] = entry_[0][0]*fInvLength;
   rkQ[1][0] = entry_[1][0]*fInvLength;
 
   T fDot = rkQ[0][0]*entry_[0][1] + rkQ[1][0]*entry_[1][1];
   rkQ[0][1] = entry_[0][1]-fDot*rkQ[0][0];
   rkQ[1][1] = entry_[1][1]-fDot*rkQ[1][0];
-  fInvLength = 1.0/GbMath<T>::Sqrt(rkQ[0][1]*rkQ[0][1] + rkQ[1][1]*rkQ[1][1]);
+  fInvLength = T(1.0)/GbMath<T>::Sqrt(rkQ[0][1]*rkQ[0][1] + rkQ[1][1]*rkQ[1][1]);
   rkQ[0][1] *= fInvLength;
   rkQ[1][1] *= fInvLength;
 
   // guarantee that orthogonal matrix has determinant 1 (no reflections)
   T fDet = rkQ[0][0]*rkQ[1][1] - rkQ[0][1]*rkQ[1][0];
-  if ( fDet < 0.0 ) {
+  if ( fDet < T(0.0) ) {
     rkQ[0][1] = -rkQ[0][1];
     rkQ[1][1] = -rkQ[1][1];
   }
@@ -339,7 +346,7 @@ GbMatrix2<T>::QDUDecomposition (GbMatrix2<T>& rkQ, GbVec2<T>& rkD, T& rkU) const
   GbMatrix2<T> kR;
   kR[0][0] = rkQ[0][0]*entry_[0][0] + rkQ[1][0]*entry_[1][0];
   kR[0][1] = rkQ[0][0]*entry_[0][1] + rkQ[1][0]*entry_[1][1];
-  kR[1][0] = 0.0;
+  kR[1][0] = T(0.0);
   kR[1][1] = rkQ[0][1]*entry_[0][1] + rkQ[1][1]*entry_[1][1];
 
   // the scaling component
@@ -356,11 +363,11 @@ GbMatrix2<T>::spectralNorm () const
 {
   GbMatrix2<T> kP;
   int iRow, iCol;
-  T fPmax = 0.0;
-  for (iRow = 0; iRow < 2; iRow++) {
-    for (iCol = 0; iCol < 2; iCol++) {
-      kP[iRow][iCol] = 0.0;
-      for (int iMid = 0; iMid < 2; iMid++) {
+  T fPmax = T(0.0);
+  for (iRow = 0; iRow < 2; ++iRow) {
+    for (iCol = 0; iCol < 2; ++iCol) {
+      kP[iRow][iCol] = T(0.0);
+      for (int iMid = 0; iMid < 2; ++iMid) {
 	kP[iRow][iCol] += entry_[iMid][iRow]*entry_[iMid][iCol];
       }
       if ( kP[iRow][iCol] > fPmax )
@@ -368,15 +375,15 @@ GbMatrix2<T>::spectralNorm () const
     }
   }
 
-  T fInvPmax = 1.0/fPmax;
-  for (iRow = 0; iRow < 2; iRow++) {
-    for (iCol = 0; iCol < 3; iCol++)
+  T fInvPmax = T(1.0)/fPmax;
+  for (iRow = 0; iRow < 2; ++iRow) {
+    for (iCol = 0; iCol < 3; ++iCol)
       kP[iRow][iCol] *= fInvPmax;
   }
 
   T fDet = kP[0][0]*kP[1][1]-kP[0][1]*kP[1][0];
   T fTrace = -(kP[0][0]+kP[1][1]);
-  T fRoot = 0.5*(-fTrace + GbMath<T>::Sqrt(GbMath<T>::Abs(fTrace*fTrace-4.0*fDet)));
+  T fRoot = T(0.5)*(-fTrace + GbMath<T>::Sqrt(GbMath<T>::Abs(fTrace*fTrace-T(4.0)*fDet)));
   T fNorm = GbMath<T>::Sqrt(fPmax*fRoot);
   return fNorm;
 }
@@ -385,9 +392,9 @@ template <class T>
 T 
 GbMatrix2<T>::L2NormSquare () const
 {
-  T fNormSqr = 0.0;
-  for (int iRow = 0; iRow < 2; iRow++) {
-    for (int iCol = 0; iCol < 2; iCol++) {
+  T fNormSqr = T(0.0);
+  for (int iRow = 0; iRow < 2; ++iRow) {
+    for (int iCol = 0; iCol < 2; ++iCol) {
       T fSqr = entry_[iRow][iCol]*entry_[iRow][iCol];
       fNormSqr += fSqr;
     }
@@ -403,11 +410,11 @@ GbMatrix2<T>::tridiagonal (T afDiag[2], T afSubDiag[2])
   afDiag[0] = entry_[0][0];
   afDiag[1] = entry_[1][1];
   afSubDiag[0] = entry_[0][1];
-  afSubDiag[1] = 0.0;
-  entry_[0][0] = 1.0;
-  entry_[0][1] = 0.0;
-  entry_[1][0] = 0.0;
-  entry_[1][1] = 1.0;
+  afSubDiag[1] = T(0.0);
+  entry_[0][0] = T(1.0);
+  entry_[0][1] = T(0.0);
+  entry_[1][0] = T(0.0);
+  entry_[1][1] = T(1.0);
 }
 
 template <class T>
@@ -427,39 +434,39 @@ GbMatrix2<T>::QLAlgorithm (T afDiag[2], T afSubDiag[2])
       if ( i1 == i0 )
 	break;
 
-      T fTmp0 = (afDiag[i0+1]-afDiag[i0])/(2.0*afSubDiag[i0]);
-      T fTmp1 = GbMath<T>::Sqrt(fTmp0*fTmp0 + 1.0);
-      if ( fTmp0 < 0.0 )
+      T fTmp0 = (afDiag[i0+1]-afDiag[i0])/(T(2.0)*afSubDiag[i0]);
+      T fTmp1 = GbMath<T>::Sqrt(fTmp0*fTmp0 + T(1.0));
+      if ( fTmp0 < T(0.0) )
 	fTmp0 = afDiag[i1]-afDiag[i0]+afSubDiag[i0]/(fTmp0-fTmp1);
       else
 	fTmp0 = afDiag[i1]-afDiag[i0]+afSubDiag[i0]/(fTmp0+fTmp1);
-      T fSin = 1.0;
-      T fCos = 1.0;
-      T fTmp2 = 0.0;
+      T fSin = T(1.0);
+      T fCos = T(1.0);
+      T fTmp2 = T(0.0);
       for (int i2 = i1-1; i2 >= i0; i2--) {
 	T fTmp3 = fSin*afSubDiag[i2];
 	T fTmp4 = fCos*afSubDiag[i2];
 	if ( GbMath<T>::Abs(fTmp3) >= GbMath<T>::Abs(fTmp0) ) {
 	  fCos = fTmp0/fTmp3;
-	  fTmp1 = GbMath<T>::Sqrt(fCos*fCos + 1.0);
+	  fTmp1 = GbMath<T>::Sqrt(fCos*fCos + T(1.0));
 	  afSubDiag[i2+1] = fTmp3*fTmp1;
-	  fSin = 1.0/fTmp1;
+	  fSin = T(1.0)/fTmp1;
 	  fCos *= fSin;
 	}
 	else {
 	  fSin = fTmp3/fTmp0;
-	  fTmp1 = GbMath<T>::Sqrt(fSin*fSin+1.0);
+	  fTmp1 = GbMath<T>::Sqrt(fSin*fSin+T(1.0));
 	  afSubDiag[i2+1] = fTmp0*fTmp1;
-	  fCos = 1.0/fTmp1;
+	  fCos = T(1.0)/fTmp1;
 	  fSin *= fCos;
 	}
 	fTmp0 = afDiag[i2+1]-fTmp2;
-	fTmp1 = (afDiag[i2]-fTmp0)*fSin + 2.0*fTmp4*fCos;
+	fTmp1 = (afDiag[i2]-fTmp0)*fSin + T(2.0)*fTmp4*fCos;
 	fTmp2 = fSin*fTmp1;
 	afDiag[i2+1] = fTmp0+fTmp2;
 	fTmp0 = fCos*fTmp1-fTmp4;
 
-	for (int iRow = 0; iRow < 2; iRow++) {
+	for (int iRow = 0; iRow < 2; ++iRow) {
 	  fTmp3 = entry_[iRow][i2+1];
 	  entry_[iRow][i2+1] = fSin*entry_[iRow][i2] + fCos*fTmp3;
 	  entry_[iRow][i2] =   fCos*entry_[iRow][i2] - fSin*fTmp3;
@@ -467,7 +474,7 @@ GbMatrix2<T>::QLAlgorithm (T afDiag[2], T afSubDiag[2])
       }
       afDiag[i0] -= fTmp2;
       afSubDiag[i0] = fTmp0;
-      afSubDiag[i1] = 0.0;
+      afSubDiag[i1] = T(0.0);
     }
 
     if ( iIter == iMaxIter ) {
@@ -496,7 +503,7 @@ GbMatrix2<T>::eigenSolveSymmetric (T afEigenvalue[2],
 
   // make eigenvectors form a right--handed system
   T fDet = akEigenvector[0].dot(akEigenvector[1]);
-  if ( fDet < 0.0 ) {
+  if ( fDet < T(0.0) ) {
     akEigenvector[1][0] = - akEigenvector[1][0];
     akEigenvector[1][1] = - akEigenvector[1][1];
   }
@@ -507,8 +514,8 @@ void
 GbMatrix2<T>::tensorProduct (const GbVec2<T>& rkU, const GbVec2<T>& rkV,
 			     GbMatrix2<T>& rkProduct)
 {
-  for (int iRow = 0; iRow < 2; iRow++) {
-    for (int iCol = 0; iCol < 2; iCol++)
+  for (int iRow = 0; iRow < 2; ++iRow) {
+    for (int iCol = 0; iCol < 2; ++iCol)
       rkProduct[iRow][iCol] = rkU[iRow]*rkV[iCol];
   }
 }

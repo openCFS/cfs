@@ -35,17 +35,16 @@ class GbTClassStorage
 public:
   // construction and destruction
   INLINE GbTClassStorage ();
-  INLINE GbTClassStorage (unsigned int uiQuantity);
+  INLINE GbTClassStorage (int uiQuantity);
   INLINE GbTClassStorage (T* atStorage);
   INLINE ~GbTClassStorage ();
 
   // element access
   INLINE T* getStorage () const;
-  INLINE T& operator[] (unsigned int uiIndex) const;
+  INLINE T& operator[] (int uiIndex) const;
 
   // reorganization (new storage initialized by default constructor)
-  void resize (unsigned int uiOldQuantity, unsigned int uiNewQuantity,
-	       GbBool bCopy);
+  void resize (int uiOldQuantity, int uiNewQuantity, GbBool bCopy);
 
 protected:
   T* storage_;
@@ -73,8 +72,11 @@ private:
 /*----------------------------------------------------------------------
 |
 | $Log$
-| Revision 1.1  2002/02/22 14:47:56  elena
-| new: dir Gridlib_inc
+| Revision 1.2  2002/03/21 14:58:57  elena
+| new: changes in dat-file for reading tetrahedral (bugs in element connection)
+|
+| Revision 1.3  2001/08/16 17:06:23  prkipfer
+| revised memory management
 |
 | Revision 1.2  2001/02/13 11:07:00  prkipfer
 | added instantiations for rendering subsystem

@@ -20,6 +20,7 @@
 #include "GbVec3.hh"
 #include "GbMemPool.hh"
 #include "GoVertex.hh"
+#include "GoEdge.hh"
 
 template <class T> class GoGeometryElement;
 
@@ -33,57 +34,24 @@ class GoTriangleElementBase
 public: 
 
   //! Constructor: all values initialized to zero, if not specified
-  GoTriangleElementBase(int i = -1, T x = 0, T y = 0, T z = 0);
+  GoTriangleElementBase();
   ~GoTriangleElementBase();
 
   //! Operations on vertices of the triangle
   INLINE void setVertex(int i, GoVertex<T> *v);
   INLINE GoVertex<T> *getVertex(int i) const;
-  int findVertex(GoVertex<T> *v) const;
-  GoVertex<T> *otherVertex(GoGeometryElement<T> *f) const;
 
-  //! Other faces related to this triangle
-  GoGeometryElement<T> *otherFace(GoVertex<T> *v) const;
-
-  //! The face normal of the triangle
-  void computeNormal();
-  INLINE void getNormal(T& xx, T& yy, T& zz) const;
-  INLINE GbVec3<T> getNormal() const;
-  INLINE void setNormal(const GbVec3<T>&);
-
-  //! The layout of the triangle
-  INLINE GbVec3<T> getOrigin() const;
-  INLINE GbVec3<T> getEdge(int i) const;
-
-  //! Status flags of this triangle indicating semantic defined by the
-  //! object using this class
-  INLINE void setFlag(GbGeoStatusFlag f);
-  INLINE void delFlag(GbGeoStatusFlag f);
-  INLINE GbBool testFlag(GbGeoStatusFlag f) const;
-
-  //! Integer to identify the triangle
-  //! Has no meaning to this class's implementation
-  INLINE void setId(int i);
-  INLINE int getId() const;
-
-  //! modification operations on the object
-  INLINE GbBool subdivide();
-
-   //! The scene part this object belongs to in the partition
-  INLINE void setPartition(int i);
-  INLINE int getPartition() const;
+  //! Operations on edges of the triangle
+  INLINE void setEdge(int i, GoEdge<T> *e);
+  INLINE GoEdge<T> *getEdge(int i) const;
 
   //! The neighboring triangles
   INLINE void setNeighbour(int i, GoGeometryElement<T> *face);
-  void setNeighbour(GoGeometryElement<T> *face);
   INLINE GoGeometryElement<T> *getNeighbour(int i) const;
-  int findNeighbour(GoGeometryElement<T> *v) const;
 
   //! The parent and the child triangles
   INLINE GoGeometryElement<T> *getChild(int i) const;
   INLINE void setChild(int i, GoGeometryElement<T> *face);
-  INLINE GoGeometryElement<T> *getParent() const;
-  INLINE void setParent(GoGeometryElement<T> *face);
 
   //! Print memory pool statistics
   void poolStatistic() const;
@@ -104,13 +72,9 @@ private:
   //! This is the memory layout of this class within the memory pool
   typedef struct {
     GoVertex<T>* vertices[3];
-    GoGeometryElement<T>* neighbours[6];
-    GoGeometryElement<T>* parent;
+    GoEdge<T>* edges[3];
+    GoGeometryElement<T>* neighbours[3];
     GoGeometryElement<T>* children[4];
-    T normal[3];
-    GbGeoStatusFlag flag;
-    int id;
-    int partition;
   } TriangleMem;
 
   //! The memory pool and the link to the allocated memory space
@@ -122,8 +86,8 @@ template<class T>
 std::ostream&
 operator<<(std::ostream& s, const GoTriangleElementBase<T>& v)
 {
-  s<<typeid(v).name()<<" id: "<<v.getId()<<std::endl;
-  s<<"\tn("<<v.getNormal()[0]<<","<<v.getNormal()[1]<<","<<v.getNormal()[2]<<") "<<std::endl;
+//  s<<typeid(v).name()<<" id: "<<v.getId()<<std::endl;
+//  s<<"\tn("<<v.getNormal()[0]<<","<<v.getNormal()[1]<<","<<v.getNormal()[2]<<") "<<std::endl;
   return s;
 }
 
@@ -151,8 +115,14 @@ operator<<(std::ostream& s, const GoTriangleElementBase<T>& v)
 /*----------------------------------------------------------------------
 |
 | $Log$
-| Revision 1.1  2002/02/22 14:47:57  elena
-| new: dir Gridlib_inc
+| Revision 1.2  2002/03/21 14:58:57  elena
+| new: changes in dat-file for reading tetrahedral (bugs in element connection)
+|
+| Revision 1.12  2002/03/18 10:00:27  prkipfer
+| refactored element structure
+|
+| Revision 1.11  2001/09/12 09:20:05  prkipfer
+| introduced adaptive tet subdivision
 |
 | Revision 1.10  2001/01/02 15:16:48  prkipfer
 | changed to use new classes and GbMath

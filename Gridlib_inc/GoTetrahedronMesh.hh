@@ -12,17 +12,10 @@
 |       includes
 +---------------------------------------------------------------------*/
 
-#include <vector>
-#include <iostream>
-#include <typeinfo>
-#include <algorithm>
-
-#include "GoVertex.hh"
-#include "GoGeometryElement.hh"
 #include "GoTetrahedronElement.hh"
-#include "GoMesh.hh"
-#include "GbMeshFunctions.hh"
-#include "GbEdgeCollapse.hh"
+#include "GbTetrahedronSubdivideAdaptive.hh"
+#include "GoVolumeMesh.hh"
+
 /*----------------------------------------------------------------------
 |       declaration
 +---------------------------------------------------------------------*/
@@ -32,21 +25,25 @@
 
  */
 class GoTetrahedronMesh 
-  : public GoMesh
+  : public GoVolumeMesh
 {
 public:
   //! Constructor
   GoTetrahedronMesh();
   virtual ~GoTetrahedronMesh();
 
-  // Query topology
-  virtual GoVertex<float> *nextVertex(GoVertex<float> *v);
-  virtual GoGeometryElement<float>   *nextElement(GoVertex<float> *v);
-
   // Actions on the mesh
-  virtual void setupNeighbours();
   virtual void switchNormals();
-  virtual int consistency();
+
+  virtual void setUseCounters();
+
+//  virtual void shrink();
+
+  //! Subdiv adaptiv
+  //!! nicht reentrant
+  virtual void subdivAdaptiv(const GbOracle &oracle);
+
+//  virtual int consistency();
 
   // Gradient
   float computeGradient(GoVertex<float> *v);
@@ -60,30 +57,18 @@ public:
   // vertex split operations
   virtual int vertexSplit( GbHalfEdgeCollapse &); //int id, const std::vector<int> &n, const GbVec3<float> &pos, int bound, int);
 
-
-  virtual std::vector<GoGeometryElement<float> *> * getAllNeighbourElements(GoVertex<float>* vertex);
-
-  virtual std::vector<GoVertex<float> *> * getAllNeighbourVertices(GoVertex<float>* vertex);
-
-  virtual std::vector<GoGeometryElement<float> *> * getBoundaryNeighbourElements(GoVertex<float>* vertex);
-
-  virtual std::vector<GoVertex<float> *> * getBoundaryNeighbourVertices(GoVertex<float>* vertex);
   virtual void setUndeletedElement(GoVertex<float>* vertex);
-
 
   //! This operator pretty prints info about the mesh
 //  friend std::ostream& operator<<(std::ostream&, const GoTetrahedronMesh&);
 
-private:
-  struct TableEntry {
-    int i,j;
-    GoGeometryElement<float> *f;
-    TableEntry *next;
-  };
-  
-  void searchTable(int, int, int, GoGeometryElement<float> *, TableEntry **);
-};
+protected:
 
+  virtual void updateFaceCache(int level=0);
+
+private:
+  GbBool checkAndRemoveCopyLevel(int level);
+};
 
 //  #ifndef OUTLINE
 //  #include "GoTetrahedronMesh.in"
@@ -93,8 +78,14 @@ private:
 /*----------------------------------------------------------------------
 |
 | $Log$
-| Revision 1.1  2002/02/22 14:47:57  elena
-| new: dir Gridlib_inc
+| Revision 1.2  2002/03/21 14:58:57  elena
+| new: changes in dat-file for reading tetrahedral (bugs in element connection)
+|
+| Revision 1.11  2001/12/18 13:29:59  prkipfer
+| moved edge setup to GoMesh and changed adaptive refinement to new namespace
+|
+| Revision 1.10  2001/09/12 11:53:05  prkipfer
+| introduced adaptive tet subdivision
 |
 | Revision 1.9  2001/05/03 08:21:42  uflabsik
 | *** empty log message ***

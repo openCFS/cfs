@@ -40,31 +40,24 @@ public:
   virtual ~GoSurfaceMesh();
 
   //! Query topology
-  virtual GoVertex<float> *nextVertex(GoVertex<float> *v);
-  virtual GoGeometryElement<float>   *nextElement(GoVertex<float> *v);
+  virtual GoVertex<float> *         nextVertex(GoVertex<float> *v);
+  virtual GoGeometryElement<float> *nextElement(GoVertex<float> *v);
+  virtual GoEdge<float> *           nextEdge(GoVertex<float> *v);
 
   //! Actions on the mesh
   virtual void setupNeighbours();
   virtual void switchNormals();
+  virtual void updateNeighbourPositionsOnLevel(int l);
 
   //! Mesh smoothing methods
   virtual void smoothUmbrella(int level=0);
   virtual void smoothCurvatureFlow(int level=0);
 
-  virtual std::vector<GoGeometryElement<float> *> * getAllNeighbourElements(GoVertex<float>* vertex);
-
-
   //! This operator pretty prints info about the mesh
 //  friend std::ostream& operator<<(std::ostream&, const GoSurfaceMesh&);
 
-private:
-  struct TableEntry {
-    int i;
-    GoGeometryElement<float> *f;
-    TableEntry *next;
-  };
-  
-  void searchTable(int, int, GoGeometryElement<float> *, TableEntry **);
+protected:
+  virtual void updateFaceCache(int level=0);
 };
 
 
@@ -76,8 +69,11 @@ private:
 /*----------------------------------------------------------------------
 |
 | $Log$
-| Revision 1.1  2002/02/22 14:47:57  elena
-| new: dir Gridlib_inc
+| Revision 1.2  2002/03/21 14:58:57  elena
+| new: changes in dat-file for reading tetrahedral (bugs in element connection)
+|
+| Revision 1.8  2001/09/12 11:53:05  prkipfer
+| introduced adaptive tet subdivision
 |
 | Revision 1.7  2001/05/03 08:05:51  uflabsik
 | functionality added

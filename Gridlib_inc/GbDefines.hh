@@ -19,24 +19,28 @@
 
 #ifdef DEBUG
 #define infomsg(s) std::cout<<typeid(*this).name()<<": \033[32mINFO:\033[0m "<<s<<std::endl
+#define staticinfomsg(n,s) std::cout<<n<<": \033[32mINFO:\033[0m "<<s<<std::endl
 #else
 #define infomsg(s) std::cout<<s<<std::endl
 #endif
 
 #ifdef DEBUG
 #define debugmsg(s) std::cerr<<typeid(*this).name()<<": \033[36mDEBUG:\033[0m "<<s<<std::endl
+#define staticdebugmsg(n,s) std::cerr<<n<<": \033[36mDEBUG:\033[0m "<<s<<std::endl
 #else
 #define debugmsg(s)
 #endif
 
 #ifdef DEBUG
 #define warningmsg(s) std::cerr<<typeid(*this).name()<<": \033[33mWARNING:\033[0m "<<s<<std::endl
+#define staticwarningmsg(n,s) std::cerr<<n<<": \033[33mWARNING:\033[0m "<<s<<std::endl
 #else
 #define warningmsg(s) std::cerr<<"\033[33mWARNING:\033[0m "<<s<<std::endl
 #endif
 
 #ifdef DEBUG
 #define errormsg(s) std::cerr<<typeid(*this).name()<<": \033[31mERROR:\033[0m "<<s<<std::endl
+#define staticerrormsg(n,s) std::cerr<<n<<": \033[31mERROR:\033[0m "<<s<<std::endl
 #else
 #define errormsg(s) std::cerr<<"\033[31mERROR:\033[0m "<<s<<std::endl
 #endif
@@ -80,8 +84,11 @@
 /*----------------------------------------------------------------------
 |
 | $Log$
-| Revision 1.1  2002/02/22 14:47:56  elena
-| new: dir Gridlib_inc
+| Revision 1.2  2002/03/21 14:58:56  elena
+| new: changes in dat-file for reading tetrahedral (bugs in element connection)
+|
+| Revision 1.10  2001/12/11 12:41:05  prkipfer
+| fixes for KCC compiler on new PCs
 |
 | Revision 1.9  2001/06/11 10:33:11  prkipfer
 | moved defines to GbDefines

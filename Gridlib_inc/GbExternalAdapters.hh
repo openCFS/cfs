@@ -57,13 +57,6 @@ statistic(const T *t)
 // adapters for elements
 template <class T, class D>
 void 
-computeNormal(T *t)
-{
-  t->computeNormal();
-}
-
-template <class T, class D>
-void 
 setVertex(T *t, int i, GoVertex<D> *v)
 {
   t->setVertex(i,v);
@@ -77,35 +70,14 @@ getVertex(const T *t, int i)
 }
 
 template <class T, class D>
-int 
-findVertex(const T *t, GoVertex<D> *v)
+void 
+setEdge(T *t, int i, GoEdge<D> *e)
 {
-  return t->findVertex(v);
+  t->setEdge(i,e);
 }
 
 template <class T, class D>
-GoVertex<D> *
-otherVertex(const T *t, GoGeometryElement<D> *f) 
-{
-  return t->otherVertex(f);
-}
-
-template <class T, class D>
-GoGeometryElement<D> *
-otherFace(const T *t, GoVertex<D> *v)
-{
-  return t->otherFace(v);
-}
-
-template <class T, class D>
-GbVec3<D>
-getOrigin(const T *t)
-{
-  return t->getOrigin();
-}
-
-template <class T, class D>
-GbVec3<D>
+GoEdge<D> *
 getEdge(const T *t, int i)
 {
   return t->getEdge(i);
@@ -161,24 +133,10 @@ setNeighbour(T *t, int i, GoGeometryElement<D> *face)
 }
 
 template <class T, class D>
-void 
-setNeighbour(T *t, GoGeometryElement<D> *face)
-{
-  t->setNeighbour(face);
-}
-
-template <class T, class D>
 GoGeometryElement<D> *
 getNeighbour(const T *t, int i)
 {
   return t->getNeighbour(i);
-}
-
-template <class T, class D>
-int
-findNeighbour(const T *t, GoGeometryElement<D> *face)
-{
-  return t->findNeighbour(face);
 }
 
 template <class T, class D>
@@ -283,6 +241,27 @@ testFlag(const T *t, GbVertexFlag f)
 
 template <class T, class D>
 void 
+setFlag(T *t, GbEdgeStatusFlag f)
+{
+  t->setFlag(f);
+}
+
+template <class T, class D>
+void
+delFlag(T *t, GbEdgeStatusFlag f)
+{
+  t->delFlag(f);
+}
+
+template <class T, class D>
+GbBool 
+testFlag(const T *t, GbEdgeStatusFlag f)
+{
+  return t->testFlag(f);
+}
+
+template <class T, class D>
+void 
 setElement(T *t, GoGeometryElement<D> *f)
 {
   t->setElement(f);
@@ -379,12 +358,102 @@ getVertex(const T *t)
   return t->getVertex();
 }
 
+template <class T, class D>
+GoVertex<D> *
+getMidPoint(const T *t)
+{
+  return t->getMidPoint();
+}
+
+template <class T, class D>
+void
+setLevel(T *t, int l)
+{
+  t->setLevel(l);
+}
+
+template <class T, class D>
+int
+getLevel(const T *t)
+{
+  return t->getLevel();
+}
+
+template <class T, class D>
+void
+addElement(T *t)
+{
+  t->addElement();
+}
+
+template <class T, class D>
+void
+removeElement(T *t)
+{
+  t->removeElement();
+}
+
+template <class T, class D>
+int
+getNumElements(const T *t)
+{
+  return t->getNumElements();
+}
+
+template <class T, class D>
+void
+addRefinement(T *t)
+{
+  t->addRefinement();
+}
+
+template <class T, class D>
+void
+removeRefinement(T *t)
+{
+  t->removeRefinement();
+}
+
+template <class T, class D>
+void
+clearRefinement(T *t)
+{
+  t->clearRefinement();
+}
+
+template <class T, class D>
+GbBool
+isMarkedForRefinement(T *t)
+{
+  return t->isMarkedForRefinement();
+}
+
+template <class T, class D>
+void
+setVertices(T *t, GoVertex<D> *one, GoVertex<D> *two)
+{
+  t->setVertices(one, two);
+}
+
+template <class T, class D>
+void
+setVertices(T *t, GoVertex<D> *one, GoVertex<D> *two, GoVertex<D> *midPoint)
+{
+  t->setVertices(one, two, midPoint);
+}
+
 #endif // GBEXTERNALADAPTERS_HH
 /*----------------------------------------------------------------------
 |
 | $Log$
-| Revision 1.1  2002/02/22 14:47:56  elena
-| new: dir Gridlib_inc
+| Revision 1.2  2002/03/21 14:58:56  elena
+| new: changes in dat-file for reading tetrahedral (bugs in element connection)
+|
+| Revision 1.5  2002/03/18 09:58:54  prkipfer
+| refactored element structure
+|
+| Revision 1.4  2001/09/12 09:28:40  prkipfer
+| introduced adaptive tet subdivision
 |
 | Revision 1.3  2001/02/13 11:03:57  prkipfer
 | introduced boundary vertices

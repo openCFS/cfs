@@ -45,11 +45,11 @@ private:
   struct AddTetra {
     AddTetra(std::ofstream& f) : fh(f) {}
     void operator()(GoGeometryElement<float> *t) {
-      fh<<"      1        4     ";
-      fh<<t->getVertex(0)->getId()+1<<"      ";
-      fh<<t->getVertex(2)->getId()+1<<"      ";
-      fh<<t->getVertex(1)->getId()+1<<"      ";
-      fh<<t->getVertex(3)->getId()+1<<"      ";
+      fh<<t->getPartition()+1<<" 4 ";
+      fh<<t->getVertex(0)->getId()+1<<" ";
+      fh<<t->getVertex(2)->getId()+1<<" ";
+      fh<<t->getVertex(1)->getId()+1<<" ";
+      fh<<t->getVertex(3)->getId()+1<<" ";
       fh<<std::endl;
     }
     std::ofstream& fh;
@@ -100,8 +100,11 @@ public:
 /*----------------------------------------------------------------------
 |
 | $Log$
-| Revision 1.1  2002/02/22 14:47:57  elena
-| new: dir Gridlib_inc
+| Revision 1.2  2002/03/21 14:58:57  elena
+| new: changes in dat-file for reading tetrahedral (bugs in element connection)
+|
+| Revision 1.8  2001/09/12 09:34:41  prkipfer
+| fixed FORTRAN count bug and adapted to new GoMesh
 |
 | Revision 1.7  2001/02/13 11:29:25  prkipfer
 | adapted to new GoFile::read method

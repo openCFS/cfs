@@ -885,7 +885,11 @@ void DatFile:: ReadElemConnectionGH(const Integer maxelem, Integer * connect,
  {
   switch(maxrecords)
   {
-  case 1: for (i=0; i<maxnode; i++, counter++)  infile >> connect[counter]; 
+  case 1: for (i=0; i<maxnode; i++, counter++) 
+                { infile >> connect[counter];
+                  if (i!=0 && connect[counter]==connect[counter-1])
+                          { --counter; --i;}
+                } 
           break;
   case 2: for (i=0; i<8; i++, counter ++) infile >> connect[counter];
           infile.ignore(100,'\n');
@@ -901,7 +905,7 @@ void DatFile:: ReadElemConnectionGH(const Integer maxelem, Integer * connect,
   infile.ignore(100,'\n');
   std::getline(infile, buf, '\n');
   }
-} // end of func ReadElemRecord3d
+} // end of func ReadElemConnectionGH 
 
 // ------------------- Read connection for element  ------------------
 void DatFile:: ReadElemConnect(Integer elemnum, Integer * connect,

@@ -35,7 +35,9 @@ public:
   // construction
   GbMatrix2 ();
   GbMatrix2 (const T aafEntry[2][2]);
+  GbMatrix2 (const T aafEntry[4]);
   GbMatrix2 (const GbMatrix2<T>& rkMatrix);
+  explicit GbMatrix2 (T s);
   GbMatrix2 (T fEntry00, T fEntry01,
 	     T fEntry10, T fEntry11);
 
@@ -44,11 +46,10 @@ public:
 
   // member access, allows use of construct mat[r][c]
   INLINE T* operator[] (int iRow) const;
-//  operator T* ();
   INLINE GbVec2<T> getColumn (int iCol) const;
 
   //! assignment and comparison
-  INLINE GbMatrix2<T>& operator=  (const GbMatrix2<T>& rkMatrix);
+//!!  INLINE GbMatrix2<T>& operator=  (const GbMatrix2<T>& rkMatrix);
   INLINE GbBool        operator== (const GbMatrix2<T>& rkMatrix) const;
   INLINE GbBool        operator!= (const GbMatrix2<T>& rkMatrix) const;
 
@@ -70,8 +71,7 @@ public:
   INLINE GbMatrix2<T> operator* (int s) const;
 
   //! scalar * matrix
-  friend GbMatrix2<T> operator* (T fScalar,
-				 const GbMatrix2<T>& rkMatrix);
+  friend GbMatrix2<T> operator* (T fScalar, const GbMatrix2<T>& rkMatrix);
 
   //! utilities
   GbMatrix2<T> transpose () const;
@@ -108,6 +108,7 @@ public:
 
   //! This operator displays the coordinate values of the matrix
   friend std::ostream& operator<<(std::ostream&, const GbMatrix2<T>&);
+  friend std::istream& operator>>(std::istream&, GbMatrix2<T>&);
 
 private:
   //! support for eigensolver
@@ -121,32 +122,48 @@ template<class T>
 GbMatrix2<T> 
 operator* (T fScalar, const GbMatrix2<T>& rkMatrix)
 {
-  GbMatrix2<T> kProd;
-  for (int iRow = 0; iRow < 2; iRow++) {
-    for (int iCol = 0; iCol < 2; iCol++)
-      kProd[iRow][iCol] = fScalar*rkMatrix.entry_[iRow][iCol];
+  T kProd[4];
+  int k=0;
+
+  for (int iRow = 0; iRow < 2; ++iRow) {
+    for (int iCol = 0; iCol < 2; ++iCol)
+      kProd[k++] = fScalar*rkMatrix.entry_[iRow][iCol];
   }
-  return kProd;
+  return GbMatrix2<T>(kProd);
 }
 
 template<class T>
 GbVec2<T> 
 operator* (const GbVec2<T>& rkVector, const GbMatrix2<T>& rkMatrix)
 {
-  GbVec2<T> kProd;
-  for (int iRow = 0; iRow < 2; iRow++) {
+  T kProd[2];
+  for (int iRow = 0; iRow < 2; ++iRow) {
     kProd[iRow] = rkVector[0]*rkMatrix[0][iRow] + rkVector[1]*rkMatrix[1][iRow];
   }
-  return kProd;
+  return GbVec2<T>(kProd);
 }
 
 template<class T>
 std::ostream&
 operator<<(std::ostream& s, const GbMatrix2<T>& v)
 {
-  s<<typeid(v).name()<<":";
-  s<<"\n/ "<<v[0][0]<<" "<<v[1][0]<<" \\";
-  s<<"\n\\ "<<v[0][1]<<" "<<v[1][1]<<" /"<<std::endl;
+  s<<"[("<<v[0][0]<<", "<<v[1][0]<<") ";
+  s<<"("<<v[0][1]<<", "<<v[1][1]<<")]";
+  return s;
+}
+
+template<class T>
+std::istream&
+operator>>(std::istream& s, GbMatrix2<T>& v)
+{
+  char c;
+  char dummy[3];
+  T x,y;
+
+  s>>c>>c>>x>>dummy>>y>>c>>c;
+  v[0][0]=x; v[1][0]=y;
+  s>>c>>x>>dummy>>y>>c>>c;
+  v[0][1]=x; v[1][1]=y;
   return s;
 }
 
@@ -163,6 +180,8 @@ operator<<(std::ostream& s, const GbMatrix2<T>& v)
 #pragma instantiate GbVec2<double> operator* (const GbVec2<double>& v, const GbMatrix2<double>& m)
 #pragma instantiate std::ostream& operator<<(std::ostream&, const GbMatrix2<float>&)
 #pragma instantiate std::ostream& operator<<(std::ostream&, const GbMatrix2<double>&)
+#pragma instantiate std::istream& operator>>(std::istream&, GbMatrix2<float>&)
+#pragma instantiate std::istream& operator>>(std::istream&, GbMatrix2<double>&)
 
 #ifndef OUTLINE
 #include "GbMatrix2.in"
@@ -174,8 +193,14 @@ operator<<(std::ostream& s, const GbMatrix2<T>& v)
 /*----------------------------------------------------------------------
 |
 | $Log$
-| Revision 1.1  2002/02/22 14:47:56  elena
-| new: dir Gridlib_inc
+| Revision 1.2  2002/03/21 14:58:56  elena
+| new: changes in dat-file for reading tetrahedral (bugs in element connection)
+|
+| Revision 1.3  2001/09/12 09:14:35  prkipfer
+| made constructor explicit to avoid implicit type conversion
+|
+| Revision 1.2  2001/08/16 16:53:18  prkipfer
+| improved type safety for template parameter
 |
 | Revision 1.1  2001/06/26 08:31:22  prkipfer
 | added 2D Projections

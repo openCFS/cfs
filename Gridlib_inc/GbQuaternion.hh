@@ -28,12 +28,15 @@ class GbQuaternion
 {
 public:
   //! Construction and destruction
-  GbQuaternion(T fW = 1.0, T fX = 0.0, T fY = 0.0, T fZ = 0.0);
+  GbQuaternion();
+  GbQuaternion(const T q[4]);
+  GbQuaternion(T fW, T fX, T fY, T fZ);
   GbQuaternion(const GbQuaternion<T>& rkQ);
 
   //! Access
   INLINE T W() const;
   INLINE GbVec3<T> XYZ() const;
+  INLINE void set(T w, T x, T y, T z);
 
   //! Conversion between quaternions, matrices, and angle-axes
   void fromRotationMatrix (const GbMatrix3<T>& kRot);
@@ -86,6 +89,7 @@ public:
 
   //! This operator displays the values
   friend std::ostream& operator<<(std::ostream&, const GbQuaternion<T>&);
+  friend std::istream& operator>>(std::istream&, GbQuaternion<T>&);
 
 private:
   T w_, x_, y_, z_;
@@ -104,7 +108,20 @@ std::ostream&
 operator<<(std::ostream& s, const GbQuaternion<T>& q)
 {
   GbVec3<T> v = q.XYZ();
-  s<<typeid(q).name()<<": ("<<q.W()<<","<<v[0]<<","<<v[1]<<","<<v[2]<<")"<<std::endl;
+  s<<"("<<q.W()<<", "<<v[0]<<", "<<v[1]<<", "<<v[2]<<")";
+  return s;
+}
+
+template<class T>
+std::istream&
+operator>>(std::istream& s, GbQuaternion<T>& q)
+{
+  char c;
+  char dummy[3];
+  T w,x,y,z;
+  
+  s>>c>>w>>dummy>>x>>dummy>>y>>dummy>>z>>c;
+  q.set(w,x,y,z);
   return s;
 }
 
@@ -121,6 +138,8 @@ operator<<(std::ostream& s, const GbQuaternion<T>& q)
 #pragma instantiate GbQuaternion<double> operator* (double fScalar, const GbQuaternion<double>& rkQ)
 #pragma instantiate std::ostream& operator<<(std::ostream&, const GbQuaternion<float>&)
 #pragma instantiate std::ostream& operator<<(std::ostream&, const GbQuaternion<double>&)
+#pragma instantiate std::istream& operator>>(std::istream&, GbQuaternion<float>&)
+#pragma instantiate std::istream& operator>>(std::istream&, GbQuaternion<double>&)
 
 #ifndef OUTLINE
 #include "GbQuaternion.in"
@@ -132,8 +151,11 @@ operator<<(std::ostream& s, const GbQuaternion<T>& q)
 /*----------------------------------------------------------------------
 |
 | $Log$
-| Revision 1.1  2002/02/22 14:47:56  elena
-| new: dir Gridlib_inc
+| Revision 1.2  2002/03/21 14:58:57  elena
+| new: changes in dat-file for reading tetrahedral (bugs in element connection)
+|
+| Revision 1.3  2001/08/16 16:53:20  prkipfer
+| improved type safety for template parameter
 |
 | Revision 1.2  2001/06/15 08:38:10  prkipfer
 | removed useless qualifiers

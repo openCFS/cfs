@@ -3,8 +3,14 @@
 |
 |
 | $Log$
-| Revision 1.1  2002/02/22 14:47:56  elena
-| new: dir Gridlib_inc
+| Revision 1.2  2002/03/21 14:58:57  elena
+| new: changes in dat-file for reading tetrahedral (bugs in element connection)
+|
+| Revision 1.5  2002/03/18 10:00:24  prkipfer
+| refactored element structure
+|
+| Revision 1.4  2001/09/12 09:20:03  prkipfer
+| introduced adaptive tet subdivision
 |
 | Revision 1.3  2001/02/13 10:59:58  prkipfer
 | more precise warning messages
@@ -26,7 +32,7 @@ GbMemPool<typename GoDefaultVertexBase<T>::DefaultVertexMem> GoDefaultVertexBase
 
 // constructor
 template <class T>
-GoDefaultVertexBase<T>::GoDefaultVertexBase(int i, T x, T y, T z)
+GoDefaultVertexBase<T>::GoDefaultVertexBase(int i, T x, T y, T z, T nx, T ny, T nz)
 {
 //  debugmsg("constructor size is "<<sizeof(this)<<" bytes");
   data_.flag = NORMAL_V;
@@ -36,42 +42,15 @@ GoDefaultVertexBase<T>::GoDefaultVertexBase(int i, T x, T y, T z)
   data_.pos[0] = x; 
   data_.pos[1] = y;
   data_.pos[2] = z;
-  data_.normal[0] = data_.normal[1] = data_.normal[2] = 0;
+  data_.normal[0] = nx;
+  data_.normal[1] = ny;
+  data_.normal[2] = nz;
 }
 
 // destructor
 template <class T>
 GoDefaultVertexBase<T>::~GoDefaultVertexBase()
 {
-}
-
-// compute normal at this vertex by averaging the normals
-// of neighboring face objects
-template <class T>
-void
-GoDefaultVertexBase<T>::computeNormal(std::vector<GoGeometryElement<T> *>& S)
-{
-  GbVec3<T> n(0.0, 0.0, 0.0);
-
-  if (S.size()==0) {
-    if (getElement()!=NULL) {
-      setNormal(getElement()->getNormal());
-      warningmsg("no neighbors ? possible mesh consistency problem or mesh not closed ?");
-    }
-    else {
-      warningmsg("no face associated ? possible mesh setup problem ?");
-    }
-    return;
-  }
-  
-  for (std::vector<GoGeometryElement<T> *>::iterator sIter = S.begin(); 
-       sIter != S.end(); 
-       ++sIter)
-
-    n += (*sIter)->getNormal();
-
-  n.normalize();
-  setNormal(n);
 }
 
 template <class T>
