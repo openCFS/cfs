@@ -25,7 +25,7 @@ namespace CoupledField
 {
 
   MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *aptFileType, 
-		   WriteResults *aptOut)
+                   WriteResults *aptOut)
     :SinglePDE(aptgrid, aptbcs, aptFileType, aptOut, aptTimeFunc), 
      lambdaMat(NULL),
      mueMat(NULL),
@@ -250,7 +250,7 @@ namespace CoupledField
             //check for damping
             if (dampingType_ == RAYLEIGH) {
               actIntDescr1->SetSecondaryMat(DAMPING, actSDMat.GetDampingBeta(),analysistype_);
-	    }
+            }
             assemble_->AddIntegrator(actIntDescr1, subdoms_[actSD]);
 
 
@@ -265,7 +265,7 @@ namespace CoupledField
             //check for damping
             if (dampingType_ == RAYLEIGH) {
               actIntDescr2->SetSecondaryMat(DAMPING, actSDMat.GetDampingBeta(),analysistype_);
-	    }
+            }
             assemble_->AddIntegrator(actIntDescr2, subdoms_[actSD]);
 
           }
@@ -280,7 +280,7 @@ namespace CoupledField
             //check for damping
             if (dampingType_ == RAYLEIGH) {
               actIntDescr->SetSecondaryMat(DAMPING, actSDMat.GetDampingBeta(),analysistype_);
-	    }
+            }
             assemble_->AddIntegrator(actIntDescr, subdoms_[actSD]);
 
 
@@ -358,7 +358,7 @@ namespace CoupledField
         //check for damping (mass part)
         if (dampingType_ == RAYLEIGH) {
           actIntDescr->SetSecondaryMat(DAMPING, actSDMat.GetDampingAlfa(),analysistype_);
-	}
+        }
 
         assemble_->AddIntegrator(actIntDescr, subdoms_[actSD]);
 
@@ -377,7 +377,7 @@ namespace CoupledField
     for (Integer actSF = 0; actSF < pressSurf_.GetSize(); actSF++) {
       BaseForm * rhsSrcSurf = new PressureLinForm(pressVals_[actSF], isaxi_);
       assemble_->AddRhsSrcSurfIntegrator(rhsSrcSurf, pressSurf_[actSF], pressFnc_[actSF],
-					 nonlin);
+                                         nonlin);
     }
     
   }
@@ -462,10 +462,10 @@ namespace CoupledField
 
     for(Integer actRow=0; actRow<3; actRow++)
       {
-	for(Integer actCol=0; actCol<3; actCol++)
-	  (*lMechMat)[actRow][actCol] = lambda;
+        for(Integer actCol=0; actCol<3; actCol++)
+          (*lMechMat)[actRow][actCol] = lambda;
 
-	(*mueMechMat)[actRow][actRow] = 2*mue;
+        (*mueMechMat)[actRow][actRow] = 2*mue;
       }
 
     for(Integer actRow=3; actRow<6; actRow++)
@@ -518,24 +518,24 @@ namespace CoupledField
   
     for (Integer i=0; i<ptCoupling_->GetNumOutputCouplings(); i++)
       {
-	if (ptCoupling_->GetOutputQuantity(i) == MECH_DISPLACEMENT)
-	  {
-	    // Intialize the memory of the coupling values
-	    ptCoupling_->CreateCouplingVector(i,isComplex_);
-	  }
+        if (ptCoupling_->GetOutputQuantity(i) == MECH_DISPLACEMENT)
+          {
+            // Intialize the memory of the coupling values
+            ptCoupling_->CreateCouplingVector(i,isComplex_);
+          }
 
-	if (ptCoupling_->GetOutputQuantity(i) == MECH_FORCE)
-	  {
-	    // Intialize the memory of the coupling values
-	    ptCoupling_->CreateCouplingVector(i,isComplex_); 
+        if (ptCoupling_->GetOutputQuantity(i) == MECH_FORCE)
+          {
+            // Intialize the memory of the coupling values
+            ptCoupling_->CreateCouplingVector(i,isComplex_); 
 
-	    //now since we need a incremental formulation, initialize some necessary vectors
-	    isIncrFormulation_ = TRUE;
-	    solIncr_.Resize(eqnData_->GetNumEQNs() * eqnData_->GetNumDofsPerEQN());
-	    actSol_.Resize(eqnData_->GetNumEQNs() * eqnData_->GetNumDofsPerEQN());
-	    solIncr_.Init(0);
-	    actSol_.Init(0);
-	  }
+            //now since we need a incremental formulation, initialize some necessary vectors
+            isIncrFormulation_ = TRUE;
+            solIncr_.Resize(eqnData_->GetNumEQNs() * eqnData_->GetNumDofsPerEQN());
+            actSol_.Resize(eqnData_->GetNumEQNs() * eqnData_->GetNumDofsPerEQN());
+            solIncr_.Init(0);
+            actSol_.Init(0);
+          }
       }
 
   }
@@ -562,65 +562,65 @@ namespace CoupledField
     // loop over all output coupling quantities
     for (Integer i=0; i<ptCoupling_->GetNumOutputCouplings(); i++)
       {
-	quantity = ptCoupling_->GetOutputQuantity(i);
-	ptCoupling_->GetOutputValues(i, temp_values);
+        quantity = ptCoupling_->GetOutputQuantity(i);
+        ptCoupling_->GetOutputValues(i, temp_values);
 
-	values = dynamic_cast<Vector<Double>*>(temp_values);
+        values = dynamic_cast<Vector<Double>*>(temp_values);
         
-	switch(ptCoupling_->GetOutputType(i))
-	  {
-	  case NODE:
+        switch(ptCoupling_->GetOutputType(i))
+          {
+          case NODE:
           
-	    if (quantity == MECH_DISPLACEMENT)
-	      {
-		ptCoupling_->GetOutputNodes(i, couplingnodes);
+            if (quantity == MECH_DISPLACEMENT)
+              {
+                ptCoupling_->GetOutputNodes(i, couplingnodes);
                       
-		sol_->NodeSolutionToCoupling(*values, *couplingnodes);
-	      }
+                sol_->NodeSolutionToCoupling(*values, *couplingnodes);
+              }
           
 
-	    if (quantity == MECH_FORCE)
-	      {
-		ptCoupling_->GetOutputNodes(i, couplingnodes);
-		ptCoupling_->GetOutputElements(i, couplingElems);
+            if (quantity == MECH_FORCE)
+              {
+                ptCoupling_->GetOutputNodes(i, couplingnodes);
+                ptCoupling_->GetOutputElements(i, couplingElems);
 
-		ptCoupling_->GetOwnMaterials(i, couplingMaterials);
-		ptCoupling_->GetOutputNeighbourElems(i, neighbours);
-		dof = ptCoupling_->GetOutputDof(i);
+                ptCoupling_->GetOwnMaterials(i, couplingMaterials);
+                ptCoupling_->GetOutputNeighbourElems(i, neighbours);
+                dof = ptCoupling_->GetOutputDof(i);
 
-		if (!neighbours->GetSize())
-		  {
-		    std::string errMsg = "In mechanic PDE: No neighbour elements ";
-		    errMsg += "for acoustic-coupling at output interface ";
-		    ptCoupling_->GetOutputRegions(i, outputRegions);
-		    for (Integer i=0; i<outputRegions.GetSize()-1; i++)
-		      {
-			errMsg += outputRegions[i];
-			errMsg += ", ";
-		      }
-		    errMsg += outputRegions[outputRegions.GetSize()-1];
-		    Error(errMsg.c_str(),  __FILE__,__LINE__);  
-		  }
+                if (!neighbours->GetSize())
+                  {
+                    std::string errMsg = "In mechanic PDE: No neighbour elements ";
+                    errMsg += "for acoustic-coupling at output interface ";
+                    ptCoupling_->GetOutputRegions(i, outputRegions);
+                    for (Integer i=0; i<outputRegions.GetSize()-1; i++)
+                      {
+                        errMsg += outputRegions[i];
+                        errMsg += ", ";
+                      }
+                    errMsg += outputRegions[outputRegions.GetSize()-1];
+                    Error(errMsg.c_str(),  __FILE__,__LINE__);  
+                  }
           
               
-		CalcAcousticCouplingRHS(couplingElems, *couplingnodes, 
-					couplingMaterials, *values, dof, neighbours);           
-	      } 
-	    break;
+                CalcAcousticCouplingRHS(couplingElems, *couplingnodes, 
+                                        couplingMaterials, *values, dof, neighbours);           
+              } 
+            break;
 
-	  case ELEM:
-	    Error("No Element coupling output", __FILE__,__LINE__);
-	  }
+          case ELEM:
+            Error("No Element coupling output", __FILE__,__LINE__);
+          }
       }
   }
 
 
   void MechPDE::CalcAcousticCouplingRHS(StdVector<Elem*> * couplingElems, 
-					StdVector<Integer>& couplingNodes,
-					StdVector<MaterialData*>* couplingMaterials,
-					Vector<Double> & elemCouplingSols,
-					Integer couplingdofM,
-					StdVector<Elem*> * neighbours)
+                                        StdVector<Integer>& couplingNodes,
+                                        StdVector<MaterialData*>* couplingMaterials,
+                                        Vector<Double> & elemCouplingSols,
+                                        Integer couplingdofM,
+                                        StdVector<Elem*> * neighbours)
   {
     ENTER_FCN( "MechPDE::CalcAcousticCouplingRHS" );
 
@@ -631,54 +631,54 @@ namespace CoupledField
   
     for (Integer actElem=0; actElem<couplingElems->GetSize(); actElem++)
       {
-	BaseFE * ptElem = (*couplingElems)[actElem]->ptElem;
-	StdVector<Integer> connecth = (*couplingElems)[actElem]->connect;
+        BaseFE * ptElem = (*couplingElems)[actElem]->ptElem;
+        StdVector<Integer> connecth = (*couplingElems)[actElem]->connect;
       
-	Matrix<Double> ptCoord; 
-	GetElemCoords(connecth, ptCoord, actlevel_);
+        Matrix<Double> ptCoord; 
+        GetElemCoords(connecth, ptCoord, actlevel_);
       
-	// get correct density belonging to the the neighbouring element
-	// in the fluid subdomain
-	density = (*couplingMaterials)[actElem]->GetDensity();
+        // get correct density belonging to the the neighbouring element
+        // in the fluid subdomain
+        density = (*couplingMaterials)[actElem]->GetDensity();
       
-	BaseForm * bilinear_mass = new MassInt(ptElem, density, isaxi_);
-	Matrix<Double> elemmat;
-	bilinear_mass->CalcElementMatrix(ptCoord, elemmat);
-	delete bilinear_mass;       
+        BaseForm * bilinear_mass = new MassInt(ptElem, density, isaxi_);
+        Matrix<Double> elemmat;
+        bilinear_mass->CalcElementMatrix(ptCoord, elemmat);
+        delete bilinear_mass;       
 
-	Vector<Double> sol;
-	GetDerivSolVecOfElement(sol, connecth);
+        Vector<Double> sol;
+        GetDerivSolVecOfElement(sol, connecth);
       
-	Vector<Double> nSol(connecth.GetSize());   // solution in normal direction
-	nSol.Init();
-      
-
-	// the normal vector points outwards of the mechanical domain
-	// (see. Kaltenbacher, "Num. Sim. of Mech. Act. & Sens." chapter 8.2)
-	Vector<Double> n;
-	ptgrid_->CalcSurfNormalOutOfVol(n, *(*couplingElems)[actElem], *(*neighbours)[actElem]); 
-	n*=-1;
-	//std::cerr << "mechNormal =\n" << n << std::endl;
-      
+        Vector<Double> nSol(connecth.GetSize());   // solution in normal direction
+        nSol.Init();
       
 
-	for (Integer actNode=0; actNode < connecth.GetSize(); actNode++)
-	  for (Integer actDof=0; actDof<dofspernode_; actDof++)
-	    nSol[actNode] += sol[actDof + actNode*dofspernode_] * n[actDof];
-
-
-	Vector<Double> forceOnElem = elemmat * nSol;  
+        // the normal vector points outwards of the mechanical domain
+        // (see. Kaltenbacher, "Num. Sim. of Mech. Act. & Sens." chapter 8.2)
+        Vector<Double> n;
+        ptgrid_->CalcSurfNormalOutOfVol(n, *(*couplingElems)[actElem], *(*neighbours)[actElem]); 
+        n*=-1;
+        //std::cerr << "mechNormal =\n" << n << std::endl;
       
-	for (Integer actNode=0; actNode<ptCoord.GetSizeRow(); actNode++)
-	  {
-	    Integer nodePos = 0;
+      
+
+        for (Integer actNode=0; actNode < connecth.GetSize(); actNode++)
+          for (Integer actDof=0; actDof<dofspernode_; actDof++)
+            nSol[actNode] += sol[actDof + actNode*dofspernode_] * n[actDof];
+
+
+        Vector<Double> forceOnElem = elemmat * nSol;  
+      
+        for (Integer actNode=0; actNode<ptCoord.GetSizeRow(); actNode++)
+          {
+            Integer nodePos = 0;
           
-	    while(connecth[actNode] != couplingNodes[nodePos] && nodePos < couplingNodes.GetSize()) 
-	      nodePos++;
-	    elemCouplingSols[nodePos] += forceOnElem[actNode];
-	    //std::cerr << "forceonElem += " << forceOnElem[actNode] << std::endl;
+            while(connecth[actNode] != couplingNodes[nodePos] && nodePos < couplingNodes.GetSize()) 
+              nodePos++;
+            elemCouplingSols[nodePos] += forceOnElem[actNode];
+            //std::cerr << "forceonElem += " << forceOnElem[actNode] << std::endl;
           
-	  }      
+          }      
       }
   } 
 
@@ -720,9 +720,9 @@ namespace CoupledField
 
 
   void MechPDE::WriteResultsInFile(const Integer kstep,
-				   const Double asteptime, 
-				   Integer stepOffset,
-				   Double timeOffset)
+                                   const Double asteptime, 
+                                   Integer stepOffset,
+                                   Double timeOffset)
   {
     ENTER_FCN( "MechPDE::WriteResultsInFile" );
 
@@ -736,52 +736,52 @@ namespace CoupledField
     Integer actStep = laststepcalc_ + stepOffset;
  
     if (analysistype_ == STATIC ||
-	analysistype_ == TRANSIENT) {
+        analysistype_ == TRANSIENT) {
       solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);
     
       if (saveSol_ == TRUE ) 
-	outFile_->WriteNodeSolutionTransient(*solTransient, actStep, actTime);
+        outFile_->WriteNodeSolutionTransient(*solTransient, actStep, actTime);
     
       if (saveSolHist_ == TRUE)
-	outFile_->WriteNodeHistoryTransient(*solTransient, actStep, actTime);
+        outFile_->WriteNodeHistoryTransient(*solTransient, actStep, actTime);
     
       if (analysistype_== TRANSIENT) {
-	if (saveDeriv1_ == TRUE)
-	  {
-	    solDeriv1_.SetAlgSysVector(getS1());
-	    //        outFile_->WriteNodeSolutionTransient(solDeriv1_, actStep, actTime);
+        if (saveDeriv1_ == TRUE)
+          {
+            solDeriv1_.SetAlgSysVector(getS1());
+            //        outFile_->WriteNodeSolutionTransient(solDeriv1_, actStep, actTime);
           
-	    if (saveDeriv1Hist_ == TRUE)
-	      outFile_->WriteNodeHistoryTransient(solDeriv1_, actStep, actTime);
-	  }
+            if (saveDeriv1Hist_ == TRUE)
+              outFile_->WriteNodeHistoryTransient(solDeriv1_, actStep, actTime);
+          }
       
-	if (saveDeriv2_ == TRUE)
-	  {
-	    solDeriv2_.SetAlgSysVector(getS2());
-	    outFile_->WriteNodeSolutionTransient(solDeriv2_, actStep, actTime);
-	  }
-	if (saveDeriv2Hist_ == TRUE)
-	  outFile_->WriteNodeHistoryTransient(solDeriv2_, actStep, actTime);
+        if (saveDeriv2_ == TRUE)
+          {
+            solDeriv2_.SetAlgSysVector(getS2());
+            outFile_->WriteNodeSolutionTransient(solDeriv2_, actStep, actTime);
+          }
+        if (saveDeriv2Hist_ == TRUE)
+          outFile_->WriteNodeHistoryTransient(solDeriv2_, actStep, actTime);
       }
     
       //element results
       if (calcStress_.GetSize() !=0 ) {
-	outFile_->WriteElemSolutionTransient(Stress_, actStep, actTime);
+        outFile_->WriteElemSolutionTransient(Stress_, actStep, actTime);
       }
     }
     else if (analysistype_ == HARMONIC) {
       solHarmonic = dynamic_cast<NodeStoreSol<Complex>*>(sol_);
 
       if (saveSol_ == TRUE )
-	outFile_->WriteNodeSolutionHarmonic(*solHarmonic,  actFreqStep_, 
-					    actFrequency_, complexFormat_);
+        outFile_->WriteNodeSolutionHarmonic(*solHarmonic,  actFreqStep_, 
+                                            actFrequency_, complexFormat_);
       if (saveSolHist_ == TRUE)
-	outFile_->WriteNodeHistoryHarmonic(*solHarmonic,  actFreqStep_, 
-					   actFrequency_, complexFormat_);
+        outFile_->WriteNodeHistoryHarmonic(*solHarmonic,  actFreqStep_, 
+                                           actFrequency_, complexFormat_);
     
     } else
       Error("MechPDE: Only static, transient and harmonic results cna be written",
-	    __FILE__, __LINE__);
+            __FILE__, __LINE__);
   
   }
 
@@ -870,9 +870,9 @@ namespace CoupledField
     if ( calcStress_.GetSize() > 0 ) {
       hasOutput_ = TRUE;
       Info->PrintF( pdename_,
-		    " Computing mechanical stress for regions:");
+                    " Computing mechanical stress for regions:");
       for ( Integer k = 0; k < calcStress_.GetSize(); k++ ) {
-	Info->PrintF( pdename_, " %s", calcStress_[k].c_str() );
+        Info->PrintF( pdename_, " %s", calcStress_[k].c_str() );
       }
     }
 
@@ -890,9 +890,9 @@ namespace CoupledField
     if ( calcEnergy_.GetSize() > 0 ) {
       hasOutput_ = TRUE;
       Info->PrintF( pdename_,
-		    " Computing mechanical Energy for regions:");
+                    " Computing mechanical Energy for regions:");
       for ( Integer k = 0; k < calcEnergy_.GetSize(); k++ ) {
-	Info->PrintF( pdename_, " %s", calcEnergy_[k].c_str() );
+        Info->PrintF( pdename_, " %s", calcEnergy_[k].c_str() );
       }
     }
 
@@ -913,7 +913,7 @@ namespace CoupledField
       hasOutput_ = TRUE;
       Info->PrintF( pdename_, " Saving mechDisplacement for Nodes:" );
       for ( Integer k = 0; k < saveNodeHist.GetSize(); k++ ) {
-	Info->PrintF( pdename_, " %s", saveNodeHist[k].c_str() );
+        Info->PrintF( pdename_, " %s", saveNodeHist[k].c_str() );
       }
     }
   
@@ -927,7 +927,7 @@ namespace CoupledField
       hasOutput_ = TRUE;
       Info->PrintF( pdename_, " Saving mechVelocity for Nodes:" );
       for ( Integer k = 0; k < saveNodeHist.GetSize(); k++ ) {
-	Info->PrintF( pdename_, " %s", saveNodeHist[k].c_str() );
+        Info->PrintF( pdename_, " %s", saveNodeHist[k].c_str() );
       }
     }
 
@@ -941,7 +941,7 @@ namespace CoupledField
       hasOutput_ = TRUE;
       Info->PrintF( pdename_, " Saving mechAcceleration for Nodes:" );
       for ( Integer k = 0; k < saveNodeHist.GetSize(); k++ ) {
-	Info->PrintF( pdename_, " %s", saveNodeHist[k].c_str() );
+        Info->PrintF( pdename_, " %s", saveNodeHist[k].c_str() );
       }
     }
   
@@ -986,15 +986,15 @@ namespace CoupledField
       }
 
       else if (subType_ == "axi") {
-	stressDim = 4;
+        stressDim = 4;
       }
     
       else if (subType_ == "3d") {
-	stressDim = 6;
+        stressDim = 6;
       }
     
       else 
-	Info->Error("StressOp: Unknown subtype in mech PDE! ",__FILE__,__LINE__);  
+        Info->Error("StressOp: Unknown subtype in mech PDE! ",__FILE__,__LINE__);  
       
       
       // Resize solution arrays
@@ -1145,20 +1145,20 @@ namespace CoupledField
     
       energy[i] = 0;
       for (j=0; j < elemssd.GetSize(); j++) {  
-	ptElem=elemssd[j]->ptElem;
-	BaseForm * bilinear_stiff = GetStiffIntegrator(actSDMat);
+        ptElem=elemssd[j]->ptElem;
+        BaseForm * bilinear_stiff = GetStiffIntegrator(actSDMat);
 
-	connecth=elemssd[j]->connect;
-	GetElemCoords(connecth, ptCoord, actlevel_);
-	bilinear_stiff->SetElemPtr(ptElem);
-	bilinear_stiff->CalcElementMatrix(ptCoord, elemmat);
+        connecth=elemssd[j]->connect;
+        GetElemCoords(connecth, ptCoord, actlevel_);
+        bilinear_stiff->SetElemPtr(ptElem);
+        bilinear_stiff->CalcElementMatrix(ptCoord, elemmat);
 
-	Vector<Double> eldisp;
-	sol_->GetElemSolution(eldisp, connecth);
-	help = elemmat * eldisp;
-	energy[i] += help * eldisp;
+        Vector<Double> eldisp;
+        sol_->GetElemSolution(eldisp, connecth);
+        help = elemmat * eldisp;
+        energy[i] += help * eldisp;
 
-	delete bilinear_stiff;      
+        delete bilinear_stiff;      
 
       }  
 
@@ -1180,14 +1180,14 @@ namespace CoupledField
     }
     
     Info->WriteResult(pdename_,  resulttype, subdoms_, energy, unit,
-		      analysis, analysisVal);
+                      analysis, analysisVal);
 
     StdVector<std::string> suball(1);
     Vector<Double> tmp(1);
     suball[0] = "Summe";
     tmp[0] = totalE;
     Info->WriteResult(pdename_,  resulttype, suball, tmp, unit,
-		      analysis, analysisVal);
+                      analysis, analysisVal);
   }
 
 } // end namespace CoupledField
