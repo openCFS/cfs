@@ -32,9 +32,13 @@ public:
    /// Get connection of element
   void GetConnection(Integer * result, const Integer level, 
            const Integer numElem, const Integer numnodesPerElem);
+
+   /// Get coordinates of node with number inode
+   void GetCoordinateNode(const Integer inode, const Integer numlevel, Dim & rfPoint);
+
   /// Return pointer to coordinates
-  Dim * GetptCoordinate(const Integer numlevel)
-        { return gh[numlevel].ptCoordinate;}
+//  Dim * GetptCoordinate(const Integer numlevel)
+//        { return gh[numlevel].ptCoordinate;}
 
   /// Return maximum number of nodes
   Integer GetMaxnumnodes(const Integer numlevel)

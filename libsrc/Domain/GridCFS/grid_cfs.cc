@@ -192,4 +192,14 @@ void GridCFS<Dim> :: PrintInfoElem(const Integer l, const Integer i, std::ostrea
   gh[l].Connect[gh[l].Info[gh[l].fp[i]+2]+ii] << " "; 
   (*out) << std::endl;
 }
+
+template<class Dim>
+void GridCFS<Dim> :: GetCoordinateNode(const Integer inode, const Integer numlevel, Dim & rfPoint) 
+{
+#ifdef TRACE
+  (*trace) << "entering GridCFS::GetCoordinateNode" << std::endl;
+#endif
+  rfPoint=gh[numlevel].ptCoordinate[inode];
+}
+
 } // end namespace

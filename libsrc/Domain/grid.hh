@@ -27,8 +27,8 @@ public:
   virtual void GetConnection(Integer * result, const Integer levelGrid, 
            const Integer numElem, const Integer numnodesPerElem)=0;
 
-  /// Return pointer to coordinates
-  virtual Dim * GetptCoordinate(const Integer numlevel)=0;
+   /// Get coordinates of node with global number inode
+   virtual void GetCoordinateNode(const Integer inode, const Integer numlevel, Dim & rfPoint)=0;
 
   /// Return maximum number of nodes
   virtual Integer GetMaxnumnodes(const Integer numlevel)=0;

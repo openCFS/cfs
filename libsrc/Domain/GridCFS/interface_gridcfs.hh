@@ -33,9 +33,8 @@ public:
            const Integer numElem, const Integer numnodesPerElem)
   { ptGridCFS->GetConnection(result, level, numElem, numnodesPerElem);}
 
-  /// Return pointer to coordinates
-  virtual Dim * GetptCoordinate(const Integer numlevel)
-  { return ptGridCFS->GetptCoordinate(numlevel);}
+   /// Get coordinates of node with global number inode
+  virtual void GetCoordinateNode(const Integer inode, const Integer numlevel, Dim & rfPoint) {ptGridCFS->GetCoordinateNode(inode,numlevel,rfPoint);}
 
   /// Return maximum number of nodes
   virtual Integer GetMaxnumnodes(const Integer numlevel)
