@@ -35,6 +35,8 @@
               <xsd:attribute name="name" type="xsd:token" use="required"/>
               <xsd:attribute name="nonLinear" type="DT_MechNonLin"
                 use="optional" default="no"/>
+              <xsd:attribute name="reducedInt" type="DT_CFSBool"
+                use="optional" default="no"/>
             </xsd:complexType>
           </xsd:element>
     
