@@ -11,8 +11,12 @@
 /**************************************************************************/
 
 #include <deque>
-#include "Forms/baseForm.hh"
- 
+
+#include "Forms/baseForm.hh" 
+#include "DataInOut/timefunc.hh"
+#include "Utils/storesol.hh"
+#include "Domain/bcs.hh"
+
 namespace CoupledField
 {
 
