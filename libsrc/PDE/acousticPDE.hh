@@ -23,16 +23,16 @@ public:
   AcousticPDE(const Double , const Double , Grid<Dim> * , const Integer level, Material * , FileType * ptFileType);
 
   //!
-  ~AcousticPDE();
+  virtual ~AcousticPDE();
 
   //!
-  Vector<Double> & getS() { return sol;}
+  virtual Vector<Double> & getS() { return sol;}
 
   //!
-  Vector<Double> & getS1() { return sol_der1;}
+  virtual Vector<Double> & getS1() { return sol_der1;}
 
   //!
-  Vector<Double> & getS2() { return sol_der2;}
+  virtual Vector<Double> & getS2() { return sol_der2;}
 
   //!
   void SolveNewmarkMethodStatic(const Double atime);
@@ -49,7 +49,8 @@ private:
   TimeFunc * ptTimeFunc;
 
   //!
-   AbstractAlgSys<Dim> * ptWork;
+  AbstractAlgSys<Dim> * ptWork;
+
   //!
   Vector<Double> sol, sol_der2, sol_der1;
 
