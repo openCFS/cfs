@@ -84,5 +84,5 @@ else
 endif
 
 # for compiling new basePDE class
-CFLAGS2 =
-#CFLAGS2 = -DNEWBASEPDE
+#CFLAGS2 =
+CFLAGS2 = -DNEWBASEPDE

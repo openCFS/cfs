@@ -16,3 +16,5 @@ SOLVED   DATE        PROBLEM
 			2003-09-29  check before creating output files, if input file is existent!
 
 			2003-11-26  Config-File: keyword bc_conditions is not needed!!
+
+			2003-11-27  Material data: material is written for every subdomain again, even if the material is the same
