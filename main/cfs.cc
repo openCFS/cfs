@@ -79,7 +79,7 @@ int main(int argc, char *argv[]) {
       else if ( !strcmp("-bubbletyp", argv[i]) ) {
 	numargs += 2;
 	std::string aux( argv[i+1] );
-	String2Enum( aux, bubbleDyn );
+	//	String2Enum( aux, bubbleDyn );
       }
     }
     
@@ -258,7 +258,7 @@ int main(int argc, char *argv[]) {
       break;
 
     case BUBBLEDYNAMIC:
-      ptdriver = new BubbleDriver(domain);
+      ptdriver = new BubbleDriver(domain, name);
       break;
 
     default:
