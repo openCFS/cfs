@@ -76,7 +76,11 @@ Integer main(int argc, char *argv[])
 
   if (analysis=="static") 
     if (adaptspace)   
+#ifdef ADAPTGRID
       ptdriver = new StaticAdaptSpaceDriver(domain);
+#else
+      Error("Your version do not support adaptivity; recompile with Adaptivity = yes",__FILE__,__LINE__);
+#endif
     else
       ptdriver = new StaticDriver(domain);
 
