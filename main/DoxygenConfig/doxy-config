@@ -188,7 +188,8 @@ INCLUDE_PATH           =
 INCLUDE_FILE_PATTERNS  = 
 PREDEFINED             = TRACE \
                          CHECK_TYPE_CASTS \
-                         USE_XERCES
+                         USE_XERCES \
+                         DOXYGEN_SKIP_THIS
 EXPAND_AS_DEFINED      = 
 SKIP_FUNCTION_MACROS   = YES
 #---------------------------------------------------------------------------
