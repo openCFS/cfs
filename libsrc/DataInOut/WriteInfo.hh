@@ -124,7 +124,7 @@ namespace CoupledField
     /// does a formatted print leaded by the PDE name, equal to std::printf(...)
     void PrintF(const std::string& pdeName, const char * formatStr ...);
 
-    /// prints warning to info-file
+    /// prints warning to info-file and std::cerr
     void Warning(const std::string & text, const Char * const filename=NULL,
 		 const Integer numline=0);
     
