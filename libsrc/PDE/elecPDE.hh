@@ -140,7 +140,7 @@ namespace CoupledField
 				  StdVector<Integer>& boundNodesOfVolElem,
 				  Vector<Double>& tempE);
   
-    ElemStoreSol<Double>  E_;  //!< conatins electric field
+
 
     //  Boolean nonLinGeo_;  //! switch for geometric update 
   
@@ -151,10 +151,34 @@ namespace CoupledField
     StdVector<StdVector<StdVector<Integer> > > elemNodeToCouplingNode_; //!< assigns each coupling element node the according Coupling Node number
     //  StdVector<StdVector<Integer> > numBoundaryNodes_;               //!< contains number of surface nodes per element
     
-    //postprocessing
-    StdVector<std::string> calcEfield_;  //!< contains the subdomains, on which the electric field is computed
-    StdVector<std::string> calcEnergy_;  //!< contains the subdomains, on which the electric energy is computed
+    // *****************
+    //  POSTPROCESSING
+    // *****************
+
+    //! callculate electrid field intensity
+    void CalcElectricField();
+
+    //! calculate electric charges
+    void CalcCharges();
+
+    //! contains the subdomains, on which the electric field is computed
+    StdVector<std::string> calcEfield_; 
     
+    //! contains the subdomains, on which the electric energy is computed
+    StdVector<std::string> calcEnergy_;  
+
+    //! contains the subdomains, on which the electric charges  are computed
+    StdVector<std::string> calcCharges_;
+
+    //! contains the (Volume) subdomains next to the surface
+    //! elements where the charges are computed
+    StdVector<std::string> chargeNeighborRegion_;
+
+    //! conatins electric field
+    ElemStoreSol<Double>  E_;  
+
+    //! contains electric charges
+    ElemStoreSol<Double>  charges_;
 
     // for check: own solver
     Boolean SolverCFS_; //<! parameter indicator: TRUE, if you want to use Solver CFS. reading from config-file
