@@ -4,13 +4,13 @@ program = cfs
 LIBRARY_TYPE = static
 
 #Adaptivity = yes / no
-Adaptivity =no
+Adaptivity = no
 
 #PETSc solvers
 PETSc=no
 
 #MpCCI
-MpCCI=yes
+MpCCI=no
 
 #General Socket Interface
 GSI = no

@@ -304,7 +304,6 @@ void AcousticPDE::SetupMatrices(const Integer level)
   if (with_absBCs_) {
     std::vector<Elem*>  DomainBnd;
     Double coeffdamp;
-    std::cout<<"Aqui en damping"<<std::endl;
  
     conf->getliststr("bnd_for_absBCs",bnd_absBCs_,"acoustic");
     DomainBnd=ptBCs_->getFacesBC(bnd_absBCs_[0],level);

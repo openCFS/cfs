@@ -87,7 +87,8 @@ void ElecPDE::InitCoupling(PDECoupling * Coupling)
   (*trace) << "entering ElecPDE::InitCoupling" << std::endl;
 #endif
 
-  ptCoupling_ = Coupling;
+  PDEisCoupled_ = TRUE;
+  ptCoupling_   = Coupling;
 
 
   // Initialization of coupling helper arrays

@@ -95,7 +95,8 @@ void SmoothPDE::InitCoupling(PDECoupling * coupling)
   (*trace) << "entering SmoothPDE::Initcoupling" << std::endl;
 #endif
 
-  ptCoupling_ = coupling; 
+  PDEisCoupled_ = TRUE;
+  ptCoupling_   = coupling; 
 
   // input couplings
   for (Integer i=0; i<ptCoupling_->GetNumInputCouplings(); i++)
@@ -316,7 +317,7 @@ void SmoothPDE::SetupMatricesDistortion(Integer level)
 	    algsys_->SetElementMatrix(elemmat.getinarray(), connect_PDE.get(), connecth.size(), SYSTEM);
 
 #ifdef DEBUG
-	    (*debug) << "Smooth3d elemmat: " << std::endl << elemmat << std::endl;
+	    (*debug) << "Smooth elemmat: " << std::endl << elemmat << std::endl;
 #endif
 
 	    delete bilinear_stiff;

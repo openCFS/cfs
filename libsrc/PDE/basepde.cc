@@ -26,6 +26,7 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile, WriteResults * a
   actlevel_ = 0;
   couplingBCsCounter_ = 0;
   numDirichletBCs_ = 0;
+  PDEisCoupled_ = FALSE;
   updateCouplingBCs_ = FALSE;
   updateBCs_ = 0;
   Dim_ = ptgrid_->GetDim();
@@ -35,8 +36,7 @@ BasePDE::BasePDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile, WriteResults * a
   eps_         = 1.0e-8;
   dampiter_    = 0.7;
   maxnumiter_  = 100;
-  solvertype_  = RealCG;
-  //solvertype_  = RealDirect;
+  solvertype_  = RealDirect;
   precondtype_ = ID;
   numeqcoarse_ = 200;
   coarsealpha_ = 0.1;
@@ -219,8 +219,11 @@ void BasePDE::CreateMatrices_Solver()
 
   numdofpernode  = dofspernode_; 
 
-  //  numDirichletBCs_  += GetNumRestraints(actlevel_);
-  numDirichletBCs_  = GetNumRestraints(actlevel_);
+  if (PDEisCoupled_)
+    numDirichletBCs_  += GetNumRestraints(actlevel_);
+  else
+    numDirichletBCs_  = GetNumRestraints(actlevel_);
+
 #ifdef DEBUG
   (*debug) << "Num Dirichlet nodes: " <<  numDirichletBCs_ << std::endl;
 #endif
@@ -385,7 +388,12 @@ void  BasePDE::SetBCs(const Integer level, const Integer update, const Double ti
   std::list<Integer> nodes;
 
   Integer i;
-  Integer j = 0; //couplingBCsCounter_;
+  Integer j;
+  if (PDEisCoupled_)
+    j = couplingBCsCounter_;
+  else
+    j=0;
+
   for (i=0; i<bcs_hd_.size(); i++)
     {  
       nodes=ptBCs_->GetNodesLevel(bcs_hd_[i]);
@@ -410,7 +418,8 @@ void  BasePDE::SetBCs(const Integer level, const Integer update, const Double ti
 	{
 	  node=*p;
 #ifdef DEBUG
-	  (*debug) << " node: " << node << " val: " << val << " number: " << j <<  std::endl;
+	  (*debug) << " node: " << node << " val: " << val 
+		   << " number: " << j << "PDEnode: " <<  Mesh2PDENode_[node-1] <<  std::endl;
 #endif      
 	      
 	  // Mesh node numbers are mapped to PDE node numbers
@@ -506,18 +515,19 @@ void BasePDE::AssignPDENodeNumbers(std::vector<Integer> & Mesh2PDENode,
   std::vector<Elem*> SD;
   Integer NodeCounter = 1;
 
-//   std::cout << "NO MAPPING OF NODES!! " << std::endl << std::endl;
+#ifdef ADAPTGRID
+  std::cout << "NO MAPPING OF NODES!! " << std::endl << std::endl;
   
-   PDE2MeshNode_.resize(ptgrid_->GetMaxnumnodes(actlevel_),-1);
-    for (Integer i=0;i<ptgrid_->GetMaxnumnodes(actlevel_);i++)
-      {
-        Mesh2PDENode_[i] = i+1;
-        PDE2MeshNode_[i] = i+1;
-      }
-    NumPDENodes_ = PDE2MeshNode_.size();
-
-    return;
-    
+  PDE2MeshNode_.resize(ptgrid_->GetMaxnumnodes(actlevel_),-1);
+  for (Integer i=0;i<ptgrid_->GetMaxnumnodes(actlevel_);i++)
+    {
+      Mesh2PDENode_[i] = i+1;
+      PDE2MeshNode_[i] = i+1;
+    }
+  NumPDENodes_ = PDE2MeshNode_.size();
+  
+  return;
+#endif  
 
   // Iterate over Subdomains
   for (Integer i=0; i<subdoms.size(); i++)

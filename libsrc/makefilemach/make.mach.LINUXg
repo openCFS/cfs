@@ -16,7 +16,7 @@ RANLIB=ranlib
 #
 # Machine dependent flags:
 #
-CFLAGS1= -pg -g -c -DTRACE -DDEBUG -DMEMTRACE -DDEBUGFULL -DADAPTGRID
+CFLAGS1= -pg -g -c -DTRACE -DDEBUG -DMEMTRACE -DDEBUGFULL 
 CFLAG_EXE= -pg -g
 FLAG_MKSHLIB = -g -v -shared 
 ARFLAGS = r 

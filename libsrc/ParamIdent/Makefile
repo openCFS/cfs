@@ -1,5 +1,7 @@
 #
 # Makefile for physical system
+include ../../main/Makefile.option
+
 C_DIR=../..
 #
 src = basedriver.cc transientdriver.cc staticdriver.cc harmonicDriver.cc
