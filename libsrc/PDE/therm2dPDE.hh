@@ -22,9 +22,6 @@ public:
   virtual ~Therm2dPDE();
 
   //!
-  void SetAlgSys_id(const Integer as_sysid);
-
-  //!
   void SpecifySolver(Integer &asolvertype, Integer &aprecondtype, Double &aeps, Double &adampiter,  Integer &amaxnumit, Integer &numeqcoarse); 
 
   //!
@@ -76,9 +73,6 @@ private:
 
   //!
   Grid<Point2D> * ptgrid_;
-
-  //!
-  Integer AS_sysid_;
 
   //!
   Vector<Double> sol_, sol_pred_,sol_old_,sol_der1_,sol_der1_old_;

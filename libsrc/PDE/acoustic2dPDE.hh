@@ -23,9 +23,6 @@ public:
   virtual ~Acoustic2dPDE();
 
   //!
-  void SetAlgSys_id(const Integer as_sysid);
-
-  //!
   void SpecifySolver(Integer &asolvertype, Integer &aprecondtype, Double &aeps,
 Double &adampiter,  Integer &amaxnumit, Integer &numeqcoarse);
 
@@ -88,9 +85,6 @@ private:
   //!
   Grid<Point2D> * ptgrid_;
 
-  //!
-  Integer AS_sysid_;
-
   //! Calculation parameters for Newmark method
   virtual void CalcParameters(const Double dt);
 
@@ -114,6 +108,9 @@ private:
 
   //! size of solution and etc.
   Integer size_;
+
+  //! type of dof
+  Integer doftype_;
 };
 
 } // end of namespace

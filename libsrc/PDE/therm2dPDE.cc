@@ -95,17 +95,6 @@ void Therm2dPDE::Predictor()
 
 }
 
-void Therm2dPDE::SetAlgSys_id(const Integer as_sysid)
-{
-#ifdef TRACE
-  (*trace) << "entering Therm2dPDE::SetAlgSys_id" << std::endl;
-#endif
-
-  AS_sysid_ = as_sysid;
-
-}
-
-
 void Therm2dPDE::SpecifySolver(Integer &solvertype, Integer &precondtype, Double &eps, Double &dampiter,  Integer &maxnumit, Integer &numeqcoarse)
 {
 #ifdef TRACE
@@ -255,6 +244,8 @@ void Therm2dPDE::SetBCs(BCs * ptBCs, const Integer level, const Integer update, 
   for (list<NodeRestraint>::const_iterator p=restr.begin(); p!=restr.end(); p++, i++)
   {
         Integer node=p->nodalnum;
+        if (p->dof==doftype_)
+	  {
         if (update==1)
            {
         ptalgsys_->SetBCDirichletUpdate(i+1, node, val, dofspernode_, AS_sysid_, AS_sysid_, matrix_id);
@@ -263,6 +254,7 @@ void Therm2dPDE::SetBCs(BCs * ptBCs, const Integer level, const Integer update, 
            {
               ptalgsys_->SetBCDirichlet(i+1, node, val, dofspernode_, AS_sysid_,AS_sysid_, matrix_id);
            }
+          }
    }  
 }
 

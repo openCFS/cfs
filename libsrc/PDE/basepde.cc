@@ -21,4 +21,9 @@ BasePDE::BasePDE(AbstractAlgebraicSys * aptalgsys, Material * aMatFile, FileType
 
 }
 
+void BasePDE::SetAlgSys_id(const Integer as_sysid)
+{
+ AS_sysid_ = as_sysid;
+}
+
 } // end of namespace
