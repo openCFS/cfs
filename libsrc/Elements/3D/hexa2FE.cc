@@ -145,7 +145,7 @@ void Hexa2FE :: CalcShapeFnc(Vector<Double> & Shape,
     Shape[i] = 0.125 * (1 + LCornerCoords_[0][i] * LCoord[0])
                      * (1 + LCornerCoords_[1][i] * LCoord[1]) 
                      * (1 + LCornerCoords_[2][i] * LCoord[2])
-                     * (-2 + LCornerCoords_[0][i] * LCoord[0)
+                     * (-2 + LCornerCoords_[0][i] * LCoord[0]
                            + LCornerCoords_[1][i] * LCoord[1]
                            + LCornerCoords_[2][i] * LCoord[2]);
   
@@ -168,7 +168,6 @@ void Hexa2FE :: CalcShapeFnc(Vector<Double> & Shape,
   }
 
   //nodes 17, 18, 19, 20
-  k = 16;
   for( Integer i=16; i<20; i++) 
     Shape[i] = 0.25 * (1 - LCoord[2]*LCoord[2])
                     * (1 + LCornerCoords_[0][i] * LCoord[0]) 
@@ -182,17 +181,81 @@ void Hexa2FE::CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv,
 
   LDeriv.Resize(NumNodes_,Dim_);
 
+  //nodes 1-8
   for( Integer i=0; i<8; i++)
     {
       LDeriv[i][0] = 0.125 * LCornerCoords_[0][i] 
-	* (1 + LCornerCoords_[1][i] * LCoord[1] )* (1 + LCornerCoords_[2][i] * LCoord[2]);
+	* (1 + LCornerCoords_[1][i] * LCoord[1] )* (1 + LCornerCoords_[2][i] * LCoord[2])
+        * (-1 + 2 * LCornerCoords_[0][i] * LCoord[0] 
+              + LCornerCoords_[1][i] * LCoord[1]
+              + LCornerCoords_[2][i] * LCoord[2]);
 
-      LDeriv[i][1] = 0.125 * (1 + LCornerCoords_[0][i] * LCoord[0] )
-	* LCornerCoords_[1][i] * (1 + LCornerCoords_[2][i] * LCoord[2]);
+      LDeriv[i][1] = 0.125 * LCornerCoords_[1][i] 
+	* (1 + LCornerCoords_[0][i] * LCoord[0] )* (1 + LCornerCoords_[2][i] * LCoord[2])
+        * (-1 + LCornerCoords_[0][i] * LCoord[0] 
+              + 2 * LCornerCoords_[1][i] * LCoord[1]
+              + LCornerCoords_[2][i] * LCoord[2]);
 
-      LDeriv[i][2] = 0.125 * (1 + LCornerCoords_[0][i] * LCoord[0])
-	* (1 + LCornerCoords_[1][i] * LCoord[1]) * LCornerCoords_[2][i];
+      LDeriv[i][2] = 0.125 * LCornerCoords_[2][i] 
+	* (1 + LCornerCoords_[0][i] * LCoord[0] )* (1 + LCornerCoords_[1][i] * LCoord[1])
+        * (-1 + LCornerCoords_[0][i] * LCoord[0] 
+              + LCornerCoords_[1][i] * LCoord[1]
+              + 2 * LCornerCoords_[2][i] * LCoord[2]);
+
     }
+
+  //nodes 9,11,14,18
+  Integer k =8;
+  for( Integer i=0; i<4; i++) {
+    LDeriv[k][0] = -0.5  * LCoord[0]
+                         * (1 + LCornerCoords_[1][k] * LCoord[1]) 
+                         * (1 + LCornerCoords_[2][k] * LCoord[2]);
+
+    LDeriv[k][1] = 0.25 * LCornerCoords_[1][k]
+                        * (1 - LCoord[0] * LCoord[0]) 
+                        * (1 + LCornerCoords_[2][k] * LCoord[2]);
+
+    LDeriv[k][2] = 0.25 * LCornerCoords_[2][k]
+                       * (1 - LCoord[0] * LCoord[0]) 
+                       * (1 + LCornerCoords_[1][k] * LCoord[1]);
+
+    k +=2;
+  }
+  
+
+  //nodes 10,12,14,16
+  k = 9;
+  for( Integer i=0; i<4; i++) {
+    LDeriv[k][0] = 0.25 * LCornerCoords_[0][k]
+                    * (1 - LCoord[1] * LCoord[1]) 
+                    * (1 + LCornerCoords_[2][k] * LCoord[2]);
+
+    LDeriv[k][1] = -0.5 * LCoord[1]
+                    * (1 + LCornerCoords_[0][k] * LCoord[0]) 
+                    * (1 + LCornerCoords_[2][k] * LCoord[2]);
+
+    LDeriv[k][2] = 0.25 * LCornerCoords_[2][k]
+                    * (1 + LCornerCoords_[0][k] * LCoord[0])
+                    * (1 - LCoord[1] * LCoord[1]);
+
+    k +=2;
+  }
+
+
+  //nodes 17, 18, 19, 20
+  for( Integer i=16; i<20; i++) {
+    LDeriv[i][0] = 0.25 * LCornerCoords_[0][i]
+                    * (1 + LCornerCoords_[1][i] * LCoord[1]) 
+                    * (1 - LCoord[2] * LCoord[2]);
+
+    LDeriv[i][1] = 0.25 * LCornerCoords_[1][i]
+                    * (1 + LCornerCoords_[0][i] * LCoord[0]) 
+                    * (1 - LCoord[2] * LCoord[2]);
+
+    LDeriv[i][2] = -0.5 * LCoord[2]
+                    * (1 + LCornerCoords_[0][i] * LCoord[0]) 
+                    * (1 + LCornerCoords_[1][i] * LCoord[1]);
+  }
   
 }
 
