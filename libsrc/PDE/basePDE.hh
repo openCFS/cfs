@@ -596,6 +596,9 @@ namespace CoupledField
     //! vector containgin dofs of solutiontypes
     StdVector<Integer> solDofs_;
 
+	//! TRUE, if at least one Result is calculated and written
+	Boolean hasOutput_;
+
     //! TRUE, if solution should be written to result file
     Boolean saveSol_;
 
