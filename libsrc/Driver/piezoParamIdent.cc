@@ -257,10 +257,10 @@ namespace CoupledField
      
     if (CalcImpedanceCurve == 1){
       Vector<Double> freqsTemp = freqs;
-      Integer nrfreq=100;
+      Integer nrfreq=300;
       freqs.Resize(nrfreq);
-      Double startfreq=0.0e+06;
-      Double stopfreq=2.0e+06;
+      Double startfreq=2.0e+06;
+      Double stopfreq=6.0e+06;
       Double freqincr=(stopfreq-startfreq)/nrfreq;
       for(Integer i=0;i<nrfreq;i++){
 	startfreq+=freqincr;
