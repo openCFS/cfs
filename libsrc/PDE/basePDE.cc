@@ -254,7 +254,7 @@ void BasePDE::SolveStepStatic(const Integer kstep, const Double asteptime,
   lasttimecalc_ = asteptime;
   laststepcalc_ = kstep;
 
-  //  PreStepStatic(level);
+  PreStepStatic(kstep, asteptime, level, reset);
 
   if (nonLin_)
     StepStaticNonLin(kstep,asteptime,level,reset);
@@ -359,7 +359,7 @@ void BasePDE::PreStepTrans(const Integer kstep, const Double asteptime,
   // the coupling forces are assembled to the RHS
 
   algsys_->InitRHS();
-  assemble_->AssembleSrcRHS(level,lasttimecalc_);
+  //  assemble_->AssembleSrcRHS(level,lasttimecalc_);
   
   
 }

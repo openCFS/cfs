@@ -794,9 +794,12 @@ void MechPDE:: PreStepStatic(const Integer kstep, const Double asteptime,
   if (pdeIsCoupled_)
     // init RHS at this place, because forces of other PDEs are added to RHS afterwards
     algsys_->InitRHS();     
-  else
+  else {
+    algsys_->InitRHS();        
     // if PDE is coupled, the solution of the prior outer loops must be kept
     algsys_->InitSol();
+  }
+  
 
 }
 
@@ -1083,7 +1086,8 @@ void MechPDE::StepTransNonLin(const Integer kstep, const Double asteptime,
   Vector<Double> actSol;
   Vector<Double> solIncrement;
   
-  algsys_->InitRHS();
+  //is already done in PreStepTrans (basePDE.cc!!)
+  //  algsys_->InitRHS();
 
   // Cast BaseStoreSol into StoreSol<Double>,
   // since this function is only called
