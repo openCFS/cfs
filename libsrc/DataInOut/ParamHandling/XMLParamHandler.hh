@@ -447,41 +447,22 @@ namespace CoupledField
 
     // Search (restricted) tree for attributes matching keyword 
 
-    // The method will try to find all attributes whose name matches the
-    // specified keyword in the parameter tree returning a vector of pointers
-    // to the matching attributes. The search can be restricted to subtrees,
-    // called sections, subsections and so on, which themselves match certain
-    // keywords. The method works in a recursive fashion. If no match at all
-    // is found, an empty vector is returned. The method relies on
-    // FindMatchingElements.
-    // \note The method requires to specify at least a section keyword. This
-    //       is taken as identifier for the element, whose attributes we are
-    //       looking for.
-    // \param key      Keyword describing the desired attribute
-    // \param keys     A vector of strings, containing the keywords
-    //                 restricting the search tree. The order of the keywords
-    //                 is section, subsection, ...
-    // \param treeTop  Top node  of search tree.
-    // \param elemlist Optionally we can return a vector of the elements for
-    //                 which there have been matches.
+    //! Find all elements matching keys and side-constraints
 
-    // Search (restricted) tree for elements matching keyword 
-
-    // The method will try to find all elements whose tag matches the
-    // specified keyword in the parameter tree returning a vector of pointers
-    // to the matching elements. The search can be restricted to subtrees,
-    // called sections, subsections and so on, which themselves match certain
-    // keywords. The method works in a recursive fashion. If no match at all
-    // is found, a NULL pointer will be returned.
-    // \param keys       A vector of strings, containing the keywords. The
-    //                   Order of the keywords is section, subsection, ...
-    //                   up to the final keyword for the element tag.
-    // \param treeTop    Top node of the subtree that is currently searched
-    //                   through in the recursion.
-    // \param curdepth   Current depth of recursion. This is used to identitfy
-    //                   the current keyword.
-
-    //! Under development
+    //! This is the central search routine of the class. It works in a
+    //! recursive fashion. On every level of the recursion all elements in the
+    //! current collection of sub-trees are determined, which match the
+    //! keyword for this level and have a certain attribute with a prescribed
+    //! value. These elements form the root nodes of the subtrees for the
+    //! search on the next level. The routine returns a pointer to a vector
+    //! containing the elements found on the lowest level of the recursion. If
+    //! there are no matches on this or the previous levels, the return vector
+    //! will have zero length.
+    //! \param keys     Vector of keywords
+    //! \param attribs  Vector of attributes used as side-constraints
+    //! \param aValues  Vector of attributes' values used as side-constraints
+    //! \param treetop  Root node of the subtree in which to search
+    //! \param curdepth Current level in the recurive search
     StdVector<xercesc::DOMElement *>*
     FindMatchingElements( StdVector<std::string> &keys,
 			  StdVector<std::string> &attribs,
@@ -489,7 +470,20 @@ namespace CoupledField
 			  xercesc::DOMElement *treetop,
 			  unsigned int curdepth );
 
-    //! Under development
+    //! Find all attributes matching keys and side-constraints
+
+    //! This method will determine the value of all attributes which have a
+    //! prescribed name. The path to the elements that are tested for having
+    //! the prescribed attribute is specified by given the certain keywords
+    //! and the corresponding side-constraints. The method makes use of
+    //! FindMatchingElements for determining these elements. The method returns
+    //! a pointer to a vector of the found attributes. If no attributes were
+    //! found, the vector has zero length.
+    //! \param attr_key Name of desired attribute
+    //! \param keys     Vector of keywords
+    //! \param attribs  Vector of attributes used as side-constraints
+    //! \param aValues  Vector of attributes' values used as side-constraints
+    //! \param treetop  Root node of the subtree in which to search
     StdVector<xercesc::DOMAttr *>*
     FindMatchingAttributes( std::string attr_key,
 			    StdVector<std::string> &keys,
@@ -497,7 +491,21 @@ namespace CoupledField
 			    StdVector<std::string> &aValues,
 			    xercesc::DOMElement *treetop );
 
-    //! Under development
+    //! Find values of all elements and attributes matching search criteria
+
+    //! This method will determine all elements and attributes matching the
+    //! search criteria specified by the given keywords and side-constraints.
+    //! It makes use of the FindMatchingElements and FindMatchingAttributes
+    //! methods for this. If there are matches for both elements and attributes
+    //! an error will be reported and program execution terminated.
+    //! The method will extract the values of the found elements or attributes
+    //! and return them in a vecotr of strings. If there are no matches, this
+    //! vector will have zero length.
+    //! \param key      Vector of keywords
+    //! \param attrib   Vector of attributes used as side-constraints
+    //! \param aValue   Vector of attributes' values used as side-constraints
+    //! \param list     Vector containing the found values
+    //! \param treetop  Root node of the subtree in which to search
     void FindAllMatches( const StdVector<std::string> &key,
 			 const StdVector<std::string> &attrib,
 			 const StdVector<std::string> &aValue,
@@ -567,10 +575,47 @@ namespace CoupledField
     //! \param value          Value to compare atrribute's value against
     //! \param failIfNoAttrib Determines behaviour, if element does not have
     //!                       an attribute with specified name
+    //! \note In the case that the attribute we are looking for is the 'tag'
+    //!       attribute used in a 'multiSequence' analysis, we do not go for
+    //!       a one-to-one match of the attribute against the prescribed value,
+    //!       but instead call MatchesTag to determine, whether this is a
+    //!       matching element.
     bool AttribHasValue( xercesc::DOMElement* elem,
 			 const std::string attribute,
 			 const std::string value,
 			 bool failIfNoAttrib = true );
+
+    //! Test whether a refTag is contained in a tag
+
+    //! This method is important in the context of multi-sequence analysis.
+    //! In this type of analysis in each PDE of a step receives a unique
+    //! refTag. In order to find the parameters for this PDE in this step
+    //! the refTag is compared to the tag attribute of certain other parameter
+    //! sections. There are three possible cases
+    //! <center>
+    //! <table border="1" width="80%" cellpadding="10">
+    //! <tr><td align="center"><b>case</b></td>
+    //! <td align="center"><b>meaning</b></td>
+    //! </tr>
+    //! <tr><td align="center">refTag = tag</td>
+    //! <td>The tagged parameter section is used for this step only</td>
+    //! </tr>
+    //! <tr><td align="center">tag = anyTag</td>
+    //! <td>The parameter section is used for all steps of the multi-sequence
+    //!     analysis</td>
+    //! </tr>
+    //! <tr><td align="center">tag is a comma-separated list of tags and
+    //!     refTag is one of them</td>
+    //! <td>The tagged parameter section is used for this step among others
+    //! </td>
+    //! </tr>
+    //! </table>
+    //! </center>
+    //! \n This method will compare tag and refTag and according to the above
+    //! table decide, if the parameter section to which the tag belongs is
+    //! to be used in the corresponding step. In the latter case it will
+    //! return 'true'.
+    bool MatchesTag( const std::string tag, const std::string refTag );
 
     //@}
 
