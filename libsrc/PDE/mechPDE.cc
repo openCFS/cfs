@@ -1365,6 +1365,7 @@ void MechPDE::WriteResultsInFile()
 // ***********************************************************************
 //   Obtain information on desired output quantities from parameter file
 // ***********************************************************************
+#ifdef XMLPARAMS
 void MechPDE::ReadStoreResults() {
 
   ENTER_FCN( "MechPDE::ReadStoreResults" );
@@ -1384,6 +1385,6 @@ void MechPDE::ReadStoreResults() {
     if ( nodeValues[i] == "acceleration" ) savederiv2_ = TRUE;
   }
 }
-
+#endif
 
 } // end namespace CoupledField
