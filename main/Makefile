@@ -3,13 +3,21 @@
 #
 src = cfs.cc
 #
-C_DIR = ..
+############ Directories
+C_DIR= ..
+#
 LIBDIR = $(C_DIR)/libsrc
-SUBLIBDIR = General DataInOut DataInOut/DatFile \
-          DataInOut/Unverg AlgebraicSystem/LinAlg \
-          Domain  Driver Elements Forms \
-          PDE Utils Matrix
+#
+SUBLIBDIR = Driver PDE AlgebraicSystem/LinAlg \
+            Forms Elements Domain/Gridlib Domain/GridCFS Domain \
+            DataInOut/DefineFiles \
+            DataInOut/Unverg DataInOut/DatFile DataInOut\
+            Utils Matrix General
 PATHSUBLIBDIR = $(addprefix $(LIBDIR)/, $(SUBLIBDIR))
+#
+LIB_GRIDLIB = $(C_DIR)/libgrid
+LIB_OWN = $(C_DIR)/lib
+#
 #
 ############ General options
 #
@@ -18,14 +26,6 @@ include $(C_DIR)/main/Makefile.option
 ############ Define specific flags
 #
 include $(LIBSRC_DIR)/makefilemach/make.mach.$(MACHINE)
-#
-############ Define library
-#
-mylibrary=  driver general algsys-own domain pde forms \
-            elements algsys-own matrix utils datainout unverg \
-            datfile datainout
-#
-syslib = -lm -lC  -lglut -lIO  -lMesh  -lGridBase -lUtil -lRender -lRenderBase 
 #
 ########### Rules
 #
@@ -41,11 +41,9 @@ syslib = -lm -lC  -lglut -lIO  -lMesh  -lGridBase -lUtil -lRender -lRenderBase
 	$(F77) -o $@ $(FFLAGS1) $(FFLAGS2) $<
  
 $(program):: $(src:.cc=.o) $(fsrc:.f=.o) makelibs
-	$(CC) -static -o $@ $(src:.cc=.o) $(fsrc:.f=.o) -L$(LIB_DIR) -L. -L/usr/freeware/lib32 $(LINKFLAGS2) $(LINKFLAGS3) $(addprefix -l, $(mylibrary)) $(syslib) $(LIB_NAG)
+	$(CC)  -o $@ $(src:.cc=.o) $(fsrc:.f=.o) -L$(LIB_DIR) -L$(LIB_GRIDLIB)  $(LINKFLAGS2) $(LINKFLAGS3) $(addprefix -l, $(mylibrary)) $(syslib) $(LIB_NAG)
 #
 ########### Go to make library
-#
-#include $(LIBSRC_DIR)/Makefile
 #
 makelibs:
 	@for n in $(PATHSUBLIBDIR); do \
@@ -54,6 +52,13 @@ makelibs:
                      else echo "WARNING:" $$n " doesn't exist"; \
           fi); \
          done
+#
+#
+############### Print info about variables that should be set before work
+#
+info:
+	@echo Before run of cfs set this variable on SGI:
+	@echo setenv LD_LIBRARYN32_PATH $(LIB_GRIDLIB):$(LIB_OWN)
 #
 ######################  Clean work directory
 clean-driver:
@@ -74,6 +79,10 @@ clean-algebraicsys:
 clean-domain:
 	@cd $(LIBSRC_DIR)/Domain&&\
 	$(MAKE) clean
+	@cd $(LIBSRC_DIR)/Domain/GridCFS&& \
+	$(MAKE) clean
+	@cd $(LIBSRC_DIR)/Domain/Gridlib&& \
+        $(MAKE) clean 
 clean-general:
 	@cd $(LIBSRC_DIR)/General&&\
 	$(MAKE) clean
@@ -114,7 +123,7 @@ clean-prog:
 libclean: 
 	@echo clean library
 	@cd $(LIB_DIR) && \
-	rm *.a
+	rm *.so
 .PHONY: libclean
 #
 ######################  Make documentation  

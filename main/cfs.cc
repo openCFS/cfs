@@ -1,9 +1,10 @@
-#include <stdlib.h>
-#include <iostream.h>
-#include <fstream.h>
+//#include <stdlib.h>
+#include <iostream>
+#include <fstream>
 #include <string>
 #include <time.h>
-#include <stdio.h>
+#include <iomanip>
+//#include <stdio.h>
 #include <stdarg.h>
 
 #include <general_head.hh> 
@@ -16,17 +17,17 @@
 #include <pde_head.hh> 
 #include <driver_head.hh>
 
-using namespace std;
+
 using namespace CoupledField;
 
 void main(int argc, char *argv[])
 {
 
-  cout << " Wellcome to sample session. " << argc << endl ;
-  cout << " \033[36mUsage\033[0m : cfs -ext [-i] name [-m materialfile]"<< endl 
-       << "\t \033[36m ext \033[0m: format of input file( implemented: dat ) " << endl
-       << "\t \033[36m i \033[0m: to create info-file " << endl
-       << "\t \033[36m name \033[0m: name of input file without extension" << endl << endl;
+  std::cout << " Wellcome to sample session. " << argc << std::endl ;
+  std::cout << " \033[36mUsage\033[0m : cfs -ext [-i] name [-m materialfile]"<< std::endl 
+       << "\t \033[36m ext \033[0m: format of input file( implemented: dat ) " << std::endl
+       << "\t \033[36m i \033[0m: to create info-file " << std::endl
+       << "\t \033[36m name \033[0m: name of input file without extension" << std::endl << endl;
 
   if (argc < 3) Error("Invalid running of scfe. See Usage above.");
 
@@ -40,15 +41,17 @@ void main(int argc, char *argv[])
       materialdata=new Material(argv[argc-1]);
     }
   else name=argv[argc-1];
+/*
 // DDD  dummy things
    ifstream inf("test.dat");
-   string buf;
-   getline(inf,buf,'\n');
+   std::string buf;
+   std::getline(inf,buf,'\n');
    inf >> buf;
    ofstream outf("test.out");
-   string ibuf="This is dummy file only for SGI";
+   std::string ibuf="This is dummy file only for SGI";
    outf << ibuf;
 // DDD
+*/
 
   DefineInOutFiles oDefFiles(name);
 
@@ -67,11 +70,20 @@ void main(int argc, char *argv[])
   Double eps=1e-15;
   LinSystem<Double, Matrix<Double> > * ptLS=new  LinSystem<Double, Matrix<Double> >(eps);
   ptLS->Set();
-  if (ptLS->BiCGSTAB(100,Jacobi)) cout << "convergence is true";
+  if (ptLS->BiCGSTAB(100,Jacobi)) std::cout << "convergence is true";
   ptLS->printxscreen();
   ptLS->check();
-  // if (ptLS->GMRes_m(100, Jacobi, 100)) cout << "convergence is true";
+  // if (ptLS->GMRes_m(100, Jacobi, 100)) std::cout << "convergence is true";
 #endif
+#ifdef Grid
+    Grid<Point2D> * ptGridlib=new InterfaceGridlib<Point2D>(ptInputfile);
+    std::cout << " Test " << std::endl;
+    std::cout << " max number of nodes " << std::endl;
+    std::cout << ptGridlib->GetMaxnumnodes(0) << std::endl;
+    std::cout << " max num of elements " << std::endl;
+    std::cout << ptGridlib->GetMaxnumElem(0) << std::endl;
+#endif
+
   Driver * ptDriver=new Driver(ptInputfile,1,materialdata);
   ptDriver->SolveNewmarkMethod(ptUnverg);
 
@@ -81,6 +93,6 @@ void main(int argc, char *argv[])
 
   if (ptInputfile) delete ptInputfile;
   if (ptUnverg) delete ptUnverg;
-  if (ptDriver) delete ptDriver;
+//  if (ptDriver) delete ptDriver;
   if (materialdata) delete materialdata;
 }
