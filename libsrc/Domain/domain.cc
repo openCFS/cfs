@@ -5,6 +5,7 @@
 #include "domain.hh"
 #include "interface_piles.hh"
 #include "interface_gridcfs.hh"
+#include "outGMV.hh"
 
 #ifdef NETGEN
 #include "interface_netgen.hh"
@@ -223,15 +224,21 @@ void Domain :: TestGrid()
   InterfaceNetGen<Point2D> * ptGrid=new InterfaceNetGen<Point2D>(InFile_); 
   ptGrid->Read();
   Char * name="refine";
-  WriteResults * ptInFile=new WriteResultsUnverg(name);
+  WriteResults * ptInFile=new WriteResultsGMV(name);
 
-  ptGrid->SubdivideUniform(0);
-  std::cout << " we do subdivision " << std::endl;
+  Vector<Integer> ei;
+  ei.Resize(3);
+  ei[0]=0;
+  ei[1]=1;
+  ei[2]=2;
+  std::cout << " ok " << std::endl;
+  ptGrid->SetRefinementFlag(ei);
+  ptGrid->Refine();
 
   ptInFile->Init(ptGrid);
   ptInFile->WriteGrid(0);  
 
-  
+  if (ptInFile) delete ptInFile;
 }
 
 }

@@ -40,7 +40,7 @@ void TransientDriver :: SetupMatricesPDE(const Integer pdenumber,const Integer t
 #ifdef TRACE
   (*trace) << "entering TransientDriver::SetUpMatricesPDE" << std::endl;
 #endif
- 
+
   ptdomain_->GetPDE(pdenumber)->SetupMatrices(type);
 
 }
@@ -95,10 +95,12 @@ void TransientDriver :: SolveProblemAdapt()
   (*trace) << "entering TransientDriver::SolveProblemAdapt" << std::endl;
 #endif
 
-  Integer level=0;
+  Integer i,level=0;
   Integer pdenumber  = 0;
   Integer nsys = 0;
   Double steptime=firstdt_;
+  Double steptime_prev=0;
+  Integer nstep=0;
 
   // calculation of end-time
   Double endtime=numstep_*firstdt_;
@@ -114,26 +116,16 @@ void TransientDriver :: SolveProblemAdapt()
   ptdomain_->GetPDE(pdenumber)->CalcParameters(dt);
   ptdomain_->GetPDE(pdenumber)->SetMatrixFactors();
 
-/*  if (InfoPrint)
-    (*infofile) << "# step      dt      timestep " << std::endl << 0 << "  " << dt << std::endl;
-*/
-
- Integer nstep=0;
-
  Integer startrepeat;
  conf->get("startrepeat",startrepeat,"Acoustic");  
-
- Integer i;
- Double steptime_prev=steptime;
 
  for (i=0; i<startrepeat; i++)
  {
  ptdomain_->GetPDE(pdenumber)->SolveStepTrans(ptdomain_->GetBCs(), nstep, steptime, level, resetsysmat);
 
- // writing results in output-file
  ptdomain_->GetPDE(pdenumber)->WriteResultsInFile();
  if (InfoPrint)
-  (*infofile) << nstep << " " << dt << " " << steptime << std::endl;
+  (*infofile) << steptime << " " << dt << std::endl;
 
  ptTimeError->CalcThirdDer();
  ptTimeError->CalcError(dt);
@@ -147,49 +139,32 @@ void TransientDriver :: SolveProblemAdapt()
 
 do
   {
-  // test error
    if (ptTimeError->TestError(dt))
       {
         Double prev_dt=dt;
         ptTimeError->ChangeStep(dt);
 
-//        if (prev_dt < dt)
-//       {
+       if (prev_dt < dt)
+       {
        ptdomain_->GetPDE(pdenumber)->WriteResultsInFile();
-   if (InfoPrint)
-    (*infofile) << nstep << " " << dt << " " << steptime << " coarse" << std::endl;
+ if (InfoPrint)
+  (*infofile) << steptime << " " << dt << std::endl;
+
        nstep++;
+       steptime_prev=steptime;
        steptime+=dt;
        std::cout << " COARSE " << std::endl;
-//       }
-//       else
-//       {
-//        steptime=steptime-prev_dt;
-//       ptdomain_->GetPDE(pdenumber)->WriteResultsInFile();
-//   if (InfoPrint)
-//    (*infofile) << nstep << " " << dt << " " << steptime << " refine" << std::endl;
-//       steptime+=dt;
-//       nstep++;
-//       std::cout << " REFINE " << std::endl;
-//       }
-
-       
-        std::cout << " dt " << dt << " step " << nstep << std::endl;
-
+      }
+      else
+      {
+       steptime-=prev_dt;
+       steptime+=dt;
+       std::cout << " REFINE " << std::endl;
+      }
         ptdomain_->GetPDE(pdenumber)->CalcParameters(dt);
         ptdomain_->GetPDE(pdenumber)->SetMatrixFactors();
 
         resetsysmat=TRUE;
-
-       // print info in file.info
-/*         if (InfoPrint)
-         { 
-        if (prev_dt < dt)
-          (*infofile) <<  nstep+1 << "       " << dt << "     " << steptime << "     change    coarse" << std::endl;
-            else
-           (*infofile) <<  nstep+1<< "       " << dt << "     " << steptime << "     change    refine" << std::endl;
-         }
-*/
       }
    else
      {
@@ -197,13 +172,10 @@ do
    if (InfoPrint)
     (*infofile) << nstep << " " << dt << " " << steptime << std::endl;
       nstep++;
+      steptime_prev=steptime;
       steptime+=dt;
+     resetsysmat=FALSE;
 
-/*       // print info in file.info
-         if (InfoPrint)
-          (*infofile) << nstep << "         " << dt << "      " << steptime << std::endl;
-*/
-   
   }
 
   ptdomain_->GetPDE(pdenumber)->SolveStepTrans(ptdomain_->GetBCs(), nstep, steptime, level, resetsysmat);
@@ -213,8 +185,8 @@ do
 while ( steptime <= endtime);
 
   ptdomain_->GetPDE(pdenumber)->WriteResultsInFile();
-   if (InfoPrint)
-    (*infofile) << nstep << " " << steptime << " " << dt << std::endl;
+ if (InfoPrint)
+  (*infofile) << steptime << " " << dt << std::endl;
 
   std::cout << " number of steps " << nstep << std::endl;
 }

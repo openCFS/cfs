@@ -13,15 +13,12 @@
 #include "definefiles.hh"
 #include "material.hh"
 #include "timefunc.hh"
-#include "acousticPDE.hh"
 
 #ifdef GRIDLIB
 #include "interface_gridlib.hh"
 #endif
 
-#include "driver.hh"
 #include <abstractAlgSys.hh>
-//#include <interface_piles.hh>
 #include "transientdriver.hh"
 #include "staticdriver.hh"
 
@@ -74,8 +71,8 @@ void main(int argc, char *argv[])
   //solve your problem
   std::string adaptTimeOn;
   conf->get("adapttime",adaptTimeOn,"Acoustic");
-//  if (adaptTimeOn == "yes")  ptdriver->SolveProblemAdapt();
-//                          else ptdriver->SolveProblem();
+  if (adaptTimeOn == "yes")  ptdriver->SolveProblemAdapt();
+                          else ptdriver->SolveProblem();
 
   oClockTotal.ClockCount(MyClock::end,"Total time");
 
