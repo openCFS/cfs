@@ -140,7 +140,7 @@ protected:
   virtual void setPiolaDimD(Integer actDim){piolaDimD_ = actDim;};
 
   /// calculates Piola-Kirchoff-stresses (vector notation)
-  void CalcStressVec(Vector<Double>& piolaStressVec, Integer ip, Matrix<Double> & ptCoord);  
+  virtual void CalcStressVec(Vector<Double>& piolaStressVec, Integer ip, Matrix<Double> & ptCoord);  
 
   /// returns linear B - matrix
   virtual void calcLinBMat(Matrix<Double> & bMat, Integer ip, Matrix<Double> & ptCoord);
@@ -361,15 +361,61 @@ public:
   /// Constructor
   PreStressInt(BaseFE * aptelem, MaterialData & matData, Double aPreStressVal, Directions stressDir);
   
+  //! Constructor
+  PreStressInt(MaterialData & matData, Double aPreStressVal, Directions stressDir);
   
   /// Destructor
   virtual ~PreStressInt();  
+
+  //! computation of D-matrix (consists of stress values)
+  void calcDMat(Matrix<Double> & dMat, Integer ip, Matrix<Double> & ptCoord);
   
+  //!
+  void calcBMat(Matrix<Double> & bMat, Integer ip, Matrix<Double> & ptCoord);
+
+  //!
+  void convertStressVecToTensor(Matrix<Double>& stressTensor, Vector<Double>& piolaStress);
 
 protected:
   /// calculates pre-stresses (vector notation)
   void CalcStressVec(Vector<Double>& piolaStressVec, Integer ip, Matrix<Double> & ptCoord);
 
+  /// returns the size of the full piola d-matrix
+  virtual Integer getFullPiolaDMatSize(){;};
+
+  /// returns dimension of D matrix
+  virtual Integer getDimD() {;};
+
+  /// returns nr. of degrees of freedom
+  virtual Integer getNrDofs(){;};
+
+  /// returns the size of the material d-matrix
+  virtual Integer getMaterialDMatSize(){;};
+
+
+private: 
+  /// 
+  Double preStressVal_;
+
+  /// direction of stresses (enumeration type)
+  Directions preStressDir_;
+};
+
+
+/// class for regarding 3d prestress
+class PreStressInt3D : public PreStressInt
+{
+public:
+  /// Constructor
+  PreStressInt3D(BaseFE * aptelem, MaterialData & matData, Double aPreStressVal, Directions stressDir);
+  
+  //! Constructor
+  PreStressInt3D(MaterialData & matData, Double aPreStressVal, Directions stressDir);
+  
+  /// Destructor
+  virtual ~PreStressInt3D();  
+
+protected:
   /// returns the size of the full piola d-matrix
   virtual Integer getFullPiolaDMatSize(){return 9;};
 
@@ -382,16 +428,70 @@ protected:
   /// returns the size of the material d-matrix
   virtual Integer getMaterialDMatSize(){return 6;};
 
-private: 
-  /// 
-  Double preStressVal_;
-
-  /// direction of stresses (enumeration type)
-  Directions preStressDir_;
 };
 
 
+/// class for regarding 2d prestress in plane strain case
+class PreStressIntPlaneStrain : public PreStressInt
+{
+public:
+  /// Constructor
+  PreStressIntPlaneStrain(BaseFE * aptelem, MaterialData & matData, Double aPreStressVal, 
+			  Directions stressDir);
+  
+  //! Constructor
+  PreStressIntPlaneStrain(MaterialData & matData, Double aPreStressVal, Directions stressDir);
+  
+  /// Destructor
+  virtual ~PreStressIntPlaneStrain();  
 
+protected:
+  /// returns the size of the full piola d-matrix
+  virtual Integer getFullPiolaDMatSize(){return 4;};
+
+  /// returns dimension of D matrix
+  virtual Integer getDimD(){return 3;};
+
+  /// returns nr. of degrees of freedom
+  virtual Integer getNrDofs(){return 2;};
+
+  /// returns the size of the material d-matrix
+  virtual Integer getMaterialDMatSize(){return 3;};
+
+};
+
+
+/// class for regarding 2d axi prestress
+class PreStressIntAxi : public PreStressInt
+{
+public:
+  /// Constructor
+  PreStressIntAxi(BaseFE * aptelem, MaterialData & matData, Double aPreStressVal, 
+	       Directions stressDir);
+  
+  //! Constructor
+  PreStressIntAxi(MaterialData & matData, Double aPreStressVal, Directions stressDir);
+  
+  /// Destructor
+  virtual ~PreStressIntAxi();  
+
+  //!
+  void convertStressVecToTensor(Matrix<Double>& stressTensor, Vector<Double>& piolaStress);
+
+protected:
+  /// returns the size of the full piola d-matrix
+  virtual Integer getFullPiolaDMatSize(){return 5;};
+
+  /// returns dimension of D matrix
+  virtual Integer getDimD(){return 4;};
+
+  /// returns nr. of degrees of freedom
+  virtual Integer getNrDofs(){return 2;};
+
+  /// returns the size of the material d-matrix
+  virtual Integer getMaterialDMatSize(){return 4;};
+
+};
 
   
 } //end namespace

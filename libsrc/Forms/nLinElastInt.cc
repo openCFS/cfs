@@ -364,6 +364,7 @@ namespace CoupledField
 	stressTensor[ indexRow[i] -1 ][ indexCol[i] -1 ] = piolaStress[i];	
 	stressTensor[ indexCol[i] -1 ][ indexRow[i] -1 ] = piolaStress[i];	
       }
+
   }
 
 
@@ -502,7 +503,7 @@ namespace CoupledField
   // =============================================================================
 
 
-  // class for regarding 3d prestress
+  // base class for regarding prestress
   PreStressInt::PreStressInt(BaseFE * aptelem, MaterialData & matData, Double aPreStressVal, Directions stressDir) 
     : nLinMechInt_PiolaStress(aptelem, matData), preStressVal_(aPreStressVal), preStressDir_(stressDir)
   {
@@ -513,14 +514,23 @@ namespace CoupledField
     className = "PreStressInt";
   }
  
+  // base class for regarding prestress
+  PreStressInt::PreStressInt(MaterialData & matData, Double aPreStressVal, Directions stressDir) 
+    : nLinMechInt_PiolaStress(matData), preStressVal_(aPreStressVal), preStressDir_(stressDir)
+  {
+    ENTER_FCN( "PreStressInt::PreStressInt" );
+
+    updateDMatInEveryIP_ = 1;
+    setPiolaDimD( getFullPiolaDMatSize() );
+    className = "PreStressInt";
+  }
+
 
   PreStressInt::~PreStressInt()
   {
     ENTER_FCN( "PreStressInt::~PreStressInt" );
 
   }
-
-
 
 
   // calculates the D-matrix needed for regarding pre-stresses
@@ -585,8 +595,16 @@ namespace CoupledField
 	
 	    
 	Matrix<Double> matData;
-	calcMaterialDMat(matData);
-	    
+	if (isaxi_)
+	  //axi
+	  CalcAxiMaterialMat(matData, actOrientation);
+	else if (getNrDofs() == 3)
+	  //3D
+	  calcMaterialDMat(matData);
+	else
+	  //2D-plane strain
+	  Calc2DMaterialMatrix(matData, actOrientation);	    
+
 	switch(preStressDir_)
 	  {
 	  case X:
@@ -631,7 +649,192 @@ namespace CoupledField
 
 
 
+  // (see e.g. Bathe: "Finite Element Procedures" p. 556)
+  void PreStressInt::calcDMat(Matrix<Double> & dMat, Integer ip, Matrix<Double> & ptCoord)
+  {
+    ENTER_FCN( "PreStressInt::calcDMat");
 
+    const Integer dimD = getFullPiolaDMatSize();
+    const Integer nrDofs = getNrDofs();
+
+    Vector<Double> piolaStressVec;
+    Matrix<Double> stressTensor;
+    
+    CalcStressVec(piolaStressVec, ip, ptCoord );
+    convertStressVecToTensor(stressTensor, piolaStressVec);
+
+    // in "Resize", matrix elements are set to zero
+    dMat.Resize(dimD);
+    
+
+    if (isaxi_)
+      // the stressTensor has already the correct shape due to the 
+      // method "convertStressVecToTensor"
+      dMat = stressTensor;
+    else
+      for (Integer i=0; i<nrDofs; i++)
+	dMat.SetSubMatrix(stressTensor, i*nrDofs, i*nrDofs);    
+  }
+
+
+  // returns B - matrix for piola stresses
+  // (see e.g. Bathe: "Finite Element Procedures" p. 556)
+  void PreStressInt::calcBMat(Matrix<Double> & bMat, Integer ip, Matrix<Double> & ptCoord)
+  {
+    ENTER_FCN( "PreStressInt::calcBMat" );
+
+    const Integer nrNodes  = ptelem->GetNumNodes();
+    const Integer nrDofs   = getNrDofs();    
+
+    Integer dimD = getFullPiolaDMatSize();
+    // in "Resize", matrix elements are set to zero
+    bMat.Resize(dimD, nrNodes * nrDofs);
+
+    
+    // local shape functions derived after global coords 
+    // (format: nrNodes x nrDofs)
+    Matrix<Double> xiDx;
+    ptelem->GetGlobDerivShFncAtIp(xiDx, ip, ptCoord);
+
+
+    for(int actNode=0; actNode < nrNodes; actNode++)
+      for(int globPos=0; globPos < nrDofs; globPos++)
+	for(int actDof=0; actDof < nrDofs; actDof++)
+	  bMat[globPos*nrDofs + actDof][actNode * nrDofs + globPos] = xiDx[actNode][actDof];      
+
+
+    if (isaxi_)
+      {
+	const Integer spaceDim = ptelem->GetDim();
+	Vector<Double> shpFncAtIp;
+	Vector<Double> coordAtIP;
+	
+	ptelem->GetShFncAtIp(shpFncAtIp,ip);
+	coordAtIP = ptCoord * shpFncAtIp;
+	
+	for (int actNode = 0; actNode < nrNodes; actNode++)	     
+	  bMat[getDimD() -1][actNode * spaceDim] = shpFncAtIp[actNode] / coordAtIP[0];
+      }
+  }
+
+  /// conversion of stress vector to stress tensor
+  void PreStressInt::
+  convertStressVecToTensor(Matrix<Double>& stressTensor, Vector<Double>& piolaStress)
+  {
+    ENTER_FCN( "PreStressInt3D::convertStressVecToTensor" );
+
+    Integer indexRow[] = {1, 2, 3, 2, 1, 1}; // first index of tensor notation
+    Integer indexCol[] = {1, 2, 3, 3, 3, 2}; // second index of tensor notation
+
+    stressTensor.Resize( getNrDofs() );
+    
+    // build symmetrical tensor
+    for (Integer i=0; i<piolaStress.GetSize(); i++)
+      {
+	stressTensor[ indexRow[i] -1 ][ indexCol[i] -1 ] = piolaStress[i];	
+	stressTensor[ indexCol[i] -1 ][ indexRow[i] -1 ] = piolaStress[i];	
+      }
+
+  }
+
+  // class for regarding 3d prestress
+  PreStressInt3D::PreStressInt3D(BaseFE * aptelem, MaterialData & matData, Double aPreStressVal, 
+				 Directions stressDir) 
+    : PreStressInt(aptelem, matData, aPreStressVal, stressDir)
+  {
+    ENTER_FCN( "PreStressInt3D::PreStressInt3D" );
+  }
+ 
+  // class for regarding 3d prestress
+  PreStressInt3D::PreStressInt3D(MaterialData & matData, Double aPreStressVal, Directions stressDir) 
+    : PreStressInt(matData, aPreStressVal, stressDir)
+  {
+    ENTER_FCN( "PreStressInt3D::PreStressInt3D" );
+  }
+
+
+  PreStressInt3D::~PreStressInt3D()
+  {
+    ENTER_FCN( "PreStressInt3D::~PreStressInt3D" );
+
+  }
+
+
+  // class for regarding 2d prestress in plane strain case
+  PreStressIntPlaneStrain::PreStressIntPlaneStrain(BaseFE * aptelem, MaterialData & matData, Double aPreStressVal, 
+				 Directions stressDir) 
+    : PreStressInt(aptelem, matData, aPreStressVal, stressDir)
+  {
+    ENTER_FCN( "PreStressIntPlaneStrain::PreStressIntPlaneStrain" );
+  }
+ 
+  // class for regarding 2d prestress in plane strain case
+  PreStressIntPlaneStrain::PreStressIntPlaneStrain(MaterialData & matData, Double aPreStressVal, 
+						   Directions stressDir) 
+    : PreStressInt(matData, aPreStressVal, stressDir)
+  {
+    ENTER_FCN( "PreStressIntPlaneStrain::PreStressIntPlaneStrain" );
+  }
+
+
+  PreStressIntPlaneStrain::~PreStressIntPlaneStrain()
+  {
+    ENTER_FCN( "PreStressIntPlaneStrain::~PreStressIntPlaneStrain" );
+
+  }
+
+
+  // class for regarding 2d axi prestress 
+  PreStressIntAxi::PreStressIntAxi(BaseFE * aptelem, MaterialData & matData, Double aPreStressVal, 
+				   Directions stressDir) 
+    : PreStressInt(aptelem, matData, aPreStressVal, stressDir)
+  {
+    ENTER_FCN( "PreStressIntAxi::PreStressIntAxi" );
+   isaxi_ = TRUE;
+  }
+ 
+  // class for regarding 2d axi prestress 
+  PreStressIntAxi::PreStressIntAxi(MaterialData & matData, Double aPreStressVal, 
+				   Directions stressDir) 
+    : PreStressInt(matData, aPreStressVal, stressDir)
+  {
+    ENTER_FCN( "PreStressIntAxi::PreStressIntAxi" );
+   isaxi_ = TRUE;
+  }
+
+
+  PreStressIntAxi::~PreStressIntAxi()
+  {
+    ENTER_FCN( "PreStressIntAxi::~PreStressIntAxi" );
+
+  }
+
+  /// conversion of stress vector to stress tensor
+  void PreStressIntAxi::
+  convertStressVecToTensor(Matrix<Double>& stressTensor, Vector<Double>& piolaStress)
+  {
+    ENTER_FCN( "PreStressIntAxi::convertStressVecToTensor" );
+
+    // indizes see Bathe: "Finite Element Procedures", Sec. 6.3, 
+    // page 553: "2. Piola-Kirchhoff stress matrix & vector"
+    const Integer indexSize = 9;
+    Integer indexRow[]   = {1, 2, 1, 2, 3, 4, 3, 4, 5}; // first index of tensor notation
+    Integer indexCol[]   = {1, 2, 2, 1, 3, 4, 4, 3, 5}; // second index of tensor notation
+    Integer indexPiola[] = {1, 2, 3, 3, 1, 2, 3, 3, 4}; // index in piola stress vec
+
+    const Integer axiTensSize = 5;
+    
+    stressTensor.Resize( axiTensSize );
+    stressTensor.Init();
+    
+    // build symmetrical tensor
+    for (Integer i=0; i<indexSize; i++)
+      {
+	stressTensor[ indexRow[i] -1 ][ indexCol[i] -1 ] = piolaStress[ indexPiola[i] -1 ];	
+	stressTensor[ indexCol[i] -1 ][ indexRow[i] -1 ] = piolaStress[ indexPiola[i] -1 ];	
+      }
+
+  }
 
   // =============================================================================
   // 2D nonlinear plane strain mechanics
@@ -679,6 +882,7 @@ namespace CoupledField
 	stressTensor[ indexRow[i] -1 ][ indexCol[i] -1 ] = piolaStress[i];	
 	stressTensor[ indexCol[i] -1 ][ indexRow[i] -1 ] = piolaStress[i];	
       }
+
   }
 
 
@@ -767,6 +971,7 @@ namespace CoupledField
 	stressTensor[ indexRow[i] -1 ][ indexCol[i] -1 ] = piolaStress[ indexPiola[i] -1 ];	
 	stressTensor[ indexCol[i] -1 ][ indexRow[i] -1 ] = piolaStress[ indexPiola[i] -1 ];	
       }
+
   }
 
 

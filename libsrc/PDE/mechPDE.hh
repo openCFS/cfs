@@ -196,6 +196,9 @@ private:
 		       const Double incrementalErr);
   
 
+  //! read in the domains with prestressing
+  void ReadPreStressing();
+
   /// calculates matrices D^_ and D^__ (see Hughes p. 217) for reduced integration
   void CalcReducedMat(MaterialData& lambdaMat, MaterialData& mueMat,
 		      MaterialData& mat);
@@ -213,6 +216,13 @@ private:
 
   /// returns the solution matrix belonging to all nodes of the actual element
   void GetSolOfElement( Matrix<Double>& elDisp, StdVector<Integer>& connect_PDE);
+
+
+  //!
+  StdVector<std::string> preStressDomain_;
+  StdVector<Double> preStressOriX_; //! orientation in x
+  StdVector<Double> preStressOriY_; //! orientation in y
+  StdVector<Double> preStressOriZ_; //! orientation in z
 
 
   /// value of prestress
