@@ -554,8 +554,8 @@ class SpaceErrorEstimator;
     //! \name Attributes connected to parameters for solver
     Integer maxnumiter_;     //!< maximum of iterations (for iterative solver)
 #ifdef USE_OLAS
-  SolverType solvertype_;    //!< type of solver (see environment.hh)
-  PrecondType precondtype_;  //!< type of preconditioner (see environment.hh)
+    SolverType solvertype_;    //!< type of solver (see environment.hh)
+    PrecondType precondtype_;  //!< type of preconditioner (see environment.hh)
 #else
     Integer solvertype_;     //!< type of solver (see las_environment.hh)
     Integer precondtype_;    //!< type of preconditioner (see las_environment.hh)

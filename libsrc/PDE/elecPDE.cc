@@ -79,8 +79,8 @@ namespace CoupledField {
   assemble_->SetMesh2PDENode(&mesh2PDENode_);
 
 #ifdef USE_OLAS
-    assemble_->SetMatrixEntryType(DOUBLE);
-    assemble_->SetMatrixStorageType(SPARSE_NONSYM);
+    assemble_->SetMatrixEntryType(OLAS::DOUBLE);
+    assemble_->SetMatrixStorageType(OLAS::SPARSE_NONSYM);
     //assemble_->SetMatrixStorageType(HYPRE_MATRIX);
 #else
     assemble_->SetMatrixType(RSCALAR);
