@@ -405,11 +405,11 @@ inline void Matrix<TYPE>::Determinant (TYPE & ret) const
 
 template<class TYPE>  std::ostream& operator << ( std::ostream & , const Matrix<TYPE> &);
 
-//#ifdef __GNUC__
+#ifdef __GNUC__
 template class Matrix<Double>;
 template class Matrix<Integer>;
 template class Matrix<Complex>;
-//#endif
+#endif
 
 } //end of namespace
 

@@ -3,15 +3,15 @@
 #include <sstream>
 #include <math.h>
 
-#include <DataInOut/Unverg/outUnverg.hh>
-#include <DataInOut/GMV/outGMV.hh>
-#include <Forms/forms_header.hh>
-#include <Forms/elecfieldop.hh>
-#include <Forms/elecforceop.hh>
-#include <Estimator/spaceerror.hh>
-#include <DataInOut/WriteInfo.hh> 
-#include <Driver/assemble.hh>
-#include <General/defs.hh>
+#include "DataInOut/Unverg/outUnverg.hh"
+#include "DataInOut/GMV/outGMV.hh"
+#include "Forms/forms_header.hh"
+#include "Forms/gradfieldop.hh"
+#include "Forms/elecforceop.hh"
+#include "Estimator/spaceerror.hh"
+#include "DataInOut/WriteInfo.hh"
+#include "Driver/assemble.hh"
+#include "General/defs.hh"
 
 #include <Matrix/matrix.hh>
 #include <Utils/vector.hh>
@@ -308,7 +308,9 @@ void ElecPDE::PostProcess(const Integer level)
 
   if (calcEfield_.GetSize() !=0 )
     {
-      ElecFieldOp * FieldOp = new ElecFieldOp(ptgrid_, this, eqnData_,solhelp, level, isaxi_);
+      GradientFieldOp * FieldOp = new GradientFieldOp(ptgrid_, this, eqnData_,
+						     solhelp, ELEC_POTENTIAL, 
+						      level, isaxi_);
 
       // ------ Calculation of the electric field ------
 
@@ -331,7 +333,7 @@ void ElecPDE::PostProcess(const Integer level)
 	  // loop over elements of subdomain
 	  for (Integer iel=0; iel< elemssd.GetSize(); iel++,counterElems++)
 	    {
-	      FieldOp->CalcElemElecField( TempE, elemssd[iel], LCoord); 
+	      FieldOp->CalcElemGradField( TempE, elemssd[iel], LCoord, 1); 
 	      pdeElem = eqnData_->Mesh2PDEElem(elemssd[iel]->elemNum);
 // 	      E_.SetNodalResult(mesh2PDEElem_[elemssd[iel]->elemNum - 1]-1,TempE);
  	      E_.SetElemResult(pdeElem-1,TempE);
@@ -361,6 +363,7 @@ void ElecPDE::CalcNodeForce(Vector<Double> & force,
   
   for (Integer ielem=0; ielem<elems.GetSize(); ielem++)
     {
+      std::cerr << "Calculating force for elem " <<elems[ielem]->elemNum << std::endl;
       // Get Material Parameter
       Double epsilon;
       
@@ -921,10 +924,10 @@ void ElecPDE::CalcEfieldAtCoupleElemIP(Elem * actVolElem,
   lCoord[1] = volCoord1Y + relPosIP * (volCoord2Y - volCoord1Y);
   
   NodeStoreSol<Double> *solTemp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
-  ElecFieldOp elecFieldOp(ptgrid_, this, eqnData_, *solTemp, actlevel_,
-			  isaxi_);
+  GradientFieldOp elecFieldOp(ptgrid_, this, eqnData_, *solTemp, ELEC_POTENTIAL,
+			      actlevel_, isaxi_);
 
-  elecFieldOp.CalcElemElecField(tempE, actVolElem, lCoord);
+  elecFieldOp.CalcElemGradField(tempE, actVolElem, lCoord, 1);
 }
 
 

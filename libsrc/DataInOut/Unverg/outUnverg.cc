@@ -641,6 +641,9 @@ std::string WriteResultsUnverg::SolutionTypeToString(const SolutionType type) co
       break;
     case ELEC_FORCE: 
       break;
+    case ELEC_CHARGE:
+      return "electric charge";
+      break;
     case SMOOTH_DISPLACEMENT:
       return "displacement";
       break;

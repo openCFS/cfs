@@ -77,6 +77,7 @@ Double* Vector<Integer>::GetDoublePointer()
   return NULL;
 }
 
+template<>
 Double* Vector<Complex>::GetDoublePointer()
 {
   ENTER_IFCN("Vector::GetDoublePointer");

@@ -773,6 +773,7 @@ namespace CoupledField
 	      } // for loop over neighbors, index m
 	      if (!flag)
 		(*elNeighbors_[i])[j].Push_back(ptel);
+
 	    } // if (ptle != elem)
 	  } // for loop over vtNeighbors, index n
 	} // for loop over vertices, index k
@@ -857,73 +858,73 @@ namespace CoupledField
 
 
 
-  template<Integer dim> void
-  GridCFS<dim>::DefineBelonging4Elems(const StdVector<Elem*>& elemsSurf, 
-				      const StdVector<Elem*>&elems, 
-				      StdVector<Elem*> & belongingSE)
-  {
-    ENTER_FCN( "GridCFS:DefineBelonging4Elems" );
+ //  template<Integer dim> void
+//   GridCFS<dim>::DefineBelonging4Elems(const StdVector<Elem*>& elemsSurf, 
+// 				      const StdVector<Elem*>&elems, 
+// 				      StdVector<Elem*> & belongingSE)
+//   {
+//     ENTER_FCN( "GridCFS:DefineBelonging4Elems" );
 
-    Integer noOfSurfElems=elemsSurf.GetSize();
-    belongingSE.Resize(noOfSurfElems);
+//     Integer noOfSurfElems=elemsSurf.GetSize();
+//     belongingSE.Resize(noOfSurfElems);
 
 
-    // form list with neighbors for each nodes in patch of boundary elements
-    StdVector<Integer> map;
-    StdVector<StdVector<Elem*> > listNeighbors;
-    FormNeighbors4NodesOfElements(elems,listNeighbors,map);
+//     // form list with neighbors for each nodes in patch of boundary elements
+//     StdVector<Integer> map;
+//     StdVector<StdVector<Elem*> > listNeighbors;
+//     FormNeighbors4NodesOfElements(elems,listNeighbors,map);
 
-    Integer ise,je;
-    for (ise=0; ise<noOfSurfElems; ise++) 
-      { // loop over surface elements
+//     Integer ise,je;
+//     for (ise=0; ise<noOfSurfElems; ise++) 
+//       { // loop over surface elements
       
-	Boolean FoundNd=FALSE;
-	Elem * ptAuxElem;
+// 	Boolean FoundNd=FALSE;
+// 	Elem * ptAuxElem;
       
-	StdVector<Integer> &connectSE=elemsSurf[ise]->connect;
+// 	StdVector<Integer> &connectSE=elemsSurf[ise]->connect;
       
-	// get list of neighbors for first node of the surface element
-	Integer imp;   // get local number for this node
-	for (imp=0; imp<map.GetSize(); imp++)
-	  if (connectSE[0]==map[imp]) 
-	    break;
+// 	// get list of neighbors for first node of the surface element
+// 	Integer imp;   // get local number for this node
+// 	for (imp=0; imp<map.GetSize(); imp++)
+// 	  if (connectSE[0]==map[imp]) 
+// 	    break;
       
     
-	StdVector<Elem*> &listNeigh4Elem=listNeighbors[imp];
+// 	StdVector<Elem*> &listNeigh4Elem=listNeighbors[imp];
       
-	// loop over list of neighbors
-	Integer ine;
-	for (ine=0;ine<listNeigh4Elem.GetSize();ine++)
-	  {
-	    ptAuxElem=listNeigh4Elem[ine];
+// 	// loop over list of neighbors
+// 	Integer ine;
+// 	for (ine=0;ine<listNeigh4Elem.GetSize();ine++)
+// 	  {
+// 	    ptAuxElem=listNeigh4Elem[ine];
 	  
-	    // check is there other vertices of element
-	    // loop over other nodes of surf element
-	    for (je=1;je<connectSE.GetSize();je++) {
-	      Integer verSE=connectSE[je];
+// 	    // check is there other vertices of element
+// 	    // loop over other nodes of surf element
+// 	    for (je=1;je<connectSE.GetSize();je++) {
+// 	      Integer verSE=connectSE[je];
 	    
-	      //loop over vertices of the element
-	      FoundNd=FALSE;
-	      StdVector<Integer> &vertices=ptAuxElem->connect;
-	      Integer ivt;
-	      for(ivt=0;ivt<vertices.GetSize();ivt++) {
-		if (verSE==vertices[ivt]) {
-		  FoundNd=TRUE;
-		  break;
-		}
-	      } // end of loop over vertices of neigh-element
+// 	      //loop over vertices of the element
+// 	      FoundNd=FALSE;
+// 	      StdVector<Integer> &vertices=ptAuxElem->connect;
+// 	      Integer ivt;
+// 	      for(ivt=0;ivt<vertices.GetSize();ivt++) {
+// 		if (verSE==vertices[ivt]) {
+// 		  FoundNd=TRUE;
+// 		  break;
+// 		}
+// 	      } // end of loop over vertices of neigh-element
 	    
-	      if (!FoundNd) break;
-	    } // end of loop over nodes of surf element
+// 	      if (!FoundNd) break;
+// 	    } // end of loop over nodes of surf element
 	  
-	    if (FoundNd) {
-	      belongingSE[ise]=ptAuxElem;
-	      break;
-	    }
-	  } // end loop over neighbors 
+// 	    if (FoundNd) {
+// 	      belongingSE[ise]=ptAuxElem;
+// 	      break;
+// 	    }
+// 	  } // end loop over neighbors 
       
-      } // loop over Surf element 
-  }
+//       } // loop over Surf element 
+//   }
 
 
   template<Integer dim> void
@@ -972,6 +973,7 @@ namespace CoupledField
     Boolean belongs2Interface;
     StdVector<Elem*> elems;
     StdVector<Integer> map;
+    
   
     // loop over all subdomains
     for (Integer isd=0; isd<subdoms.GetSize(); isd++)
@@ -1004,6 +1006,99 @@ namespace CoupledField
       }
   }
 
+  template<Integer dim> void
+  GridCFS<dim>::GetVolNeighboursForSurf(const StdVector<Elem*> & surfElems,
+					const StdVector<std::string> & neighRegions,
+					StdVector<Elem*> & volElems,
+					const Integer level)
+  {
+    ENTER_FCN( "GridCFS::GetVolNeighboursForSurf" );
+
+    std::string errMsg;
+    StdVector<Elem*> auxElems, neighElems;
+    Integer noOfSurfElems=surfElems.GetSize();
+    volElems.Resize(noOfSurfElems);
+
+
+    // form list with neighbors for each nodes in patch of boundary elements
+    StdVector<Integer> map;
+    StdVector<StdVector<Elem*> > listNeighbors;
+    
+    // get all elements in neighborin region, from where later
+    // the volume elems are picked
+    for (Integer iSD=0; iSD<neighRegions.GetSize(); iSD++)
+      {
+	GetElemSD(auxElems, neighRegions[iSD], level);
+	for (Integer iEl=0; iEl<auxElems.GetSize(); iEl++)
+	  neighElems.Push_back(auxElems[iEl]);
+      }
+
+    // create a list of elements in 'neighRegion', which have at least
+    // one node in common with the element lying in neighRegions
+    FormNeighbors4NodesOfElements(neighElems,listNeighbors,map);
+    Integer ise,je;
+    for (ise=0; ise<noOfSurfElems; ise++) 
+      { // loop over surface elements
+	
+	Boolean FoundNd=FALSE;
+	Elem * ptAuxElem;
+	
+	StdVector<Integer> &connectSE=surfElems[ise]->connect;
+	
+	// get list of neighbors for first node of the surface element
+	Integer imp;   // get local number for this node
+	for (imp=0; imp<map.GetSize(); imp++)
+	  if (connectSE[0]==map[imp]) 
+	    break;
+	
+	
+	StdVector<Elem*> &listNeigh4Elem=listNeighbors[imp];
+	
+	// loop over list of neighbors
+	Integer ine;
+	for (ine=0;ine<listNeigh4Elem.GetSize();ine++)
+	  {
+	    ptAuxElem=listNeigh4Elem[ine];
+	    
+	    // check is there other vertices of element
+	    // loop over other nodes of surf element
+	    for (je=1;je<connectSE.GetSize();je++) {
+	      Integer verSE=connectSE[je];
+	      
+	      //loop over vertices of the element
+	      FoundNd=FALSE;
+	      StdVector<Integer> &vertices=ptAuxElem->connect;
+	      Integer ivt;
+	      for(ivt=0;ivt<vertices.GetSize();ivt++) {
+		if (verSE==vertices[ivt]) {
+		  FoundNd=TRUE;
+		  break;
+		}
+	      } // end of loop over vertices of neigh-element
+	      
+	      if (!FoundNd) break;
+	    } // end of loop over nodes of surf element
+	    
+	    if (FoundNd) {
+	      volElems[ise]=ptAuxElem;
+	      break;
+	    }
+	    else
+	      {
+		errMsg  = "GridCFS::GetVolNeighboursForSurf: For ne or more ";
+		errMsg += "surface elementes there was not found an according ";
+		errMsg += "volume element. \n Please make sure, that for each ";
+		errMsg += "surface element there is exactly ONE volume element ";
+		errMsg += "in the speciefied neighbouring region";
+		
+		Error(errMsg.c_str(), __FILE__, __LINE__);
+	      }
+	  } // end loop over neighbors 
+	
+      } // loop over Surf element 
+  }
+  
+  
 
 
 

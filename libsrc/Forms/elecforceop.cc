@@ -1,5 +1,4 @@
 #include "elecforceop.hh"
-
 #include <string>
 #include "Domain/elem.hh"
 #include "Domain/grid.hh"
@@ -20,7 +19,8 @@ ElecForceOp::ElecForceOp(Grid * ptGrid,
 {
   ENTER_FCN( "ElecForceOp::ElecForceOp" );
 
-  ElecFieldOp_ = new ElecFieldOp(ptGrid, ptPDE, ptEQN, EPotential, level, isaxi);
+  gradFieldOp_ = new GradientFieldOp(ptGrid, ptPDE, ptEQN, 
+				     EPotential, ELEC_POTENTIAL, level, isaxi);
 
 }
 
@@ -28,7 +28,8 @@ ElecForceOp::~ElecForceOp()
 {
   ENTER_FCN( "ElecForceOp::~ElecForceOp" );
 
-  if (ElecFieldOp_) delete ElecFieldOp_;
+  if (gradFieldOp_) 
+    delete gradFieldOp_;
 }
 
 
@@ -68,7 +69,7 @@ void ElecForceOp::CalcElemElecForce(ElemStoreSol<Double> & F,
   for (Integer nIp=1; nIp<NumIntPoints+1; nIp++)
     {
       // Calculate E-Field
-      ElecFieldOp_->CalcElemElecField(E, ptElement, Ip[nIp-1]);
+      gradFieldOp_->CalcElemGradField(E, ptElement, Ip[nIp-1], 1);
             
       // Calculate J 
       ptElement->ptElem->CalcJacobianAtIp(J, nIp, CornerCoords);

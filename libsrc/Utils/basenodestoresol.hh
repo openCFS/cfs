@@ -118,9 +118,9 @@ public:
   virtual void SetNumSolutions(const Integer nSols) = 0;
   
 
-  //! Set the number of solution nodes/elems
+  //! Set the number of solution nodes
   /*!
-    \param nNodes (input) Number of solution nodes/elems
+    \param nNodes (input) Number of solution nodes
   */
   //! \note All entries of this object are deleted afterwards
   virtual void SetNumNodes(const Integer nNodes) = 0;
@@ -179,7 +179,7 @@ public:
   inline Integer GetDof(const SolutionType solType = NO_SOLUTION_TYPE) const;
 
   
-  //! Get number of nodes/elems
+  //! Get number of nodes
   inline Integer GetNumNodes() const;
   
 
@@ -204,25 +204,26 @@ public:
   virtual void GetGlobalSolVector(const SolutionType solType, 
 				  CFSVector & val) const = 0;
   
-  //! Set all solution types for one node/elem
+
+  //! Set all solution types for one node
   /*!
-    \param nodeNr (input) Node/elem number for solution
+    \param nodeNr (input) Node number for solution
     \param val (input) Vector containing nodal results
   */
   virtual void SetNodalResult(const Integer nodeNr,
 			      const CFSVector &val) = 0;
 
   
-  //! Get all solution types for one node/element
+  //! Get all solution types for one node
   /*!
-    \param nodeNr (input) Node/elem number for solution
+    \param nodeNr (input) Node number for solution
     \param val (output) Vector containing nodal results
   */
   virtual void GetNodalResult(const Integer nodeNr,
 			      CFSVector & val) const = 0;
   
 
-  //! Get vector of one solution type for all nodes/elems of one given dof
+  //! Get vector of one solution type for all nodes of one given dof
   /*!
     \param solType (input) Solution type (ref. enum SolutionType)
     \param dof (input)  Dof of solType
@@ -234,7 +235,7 @@ public:
 					 
   
   
-  //! Get solution vector for all nodes/elems  of one given dof
+  //! Get solution vector for all nodes  of one given dof
   /*!
     \param dof (input)  Dof of solType
     \param val (output) Vector containing rsults
@@ -245,7 +246,7 @@ public:
 					   CFSVector & val) const = 0;
 
 
-  //! Get single result of given node/elem for given dof
+  //! Get single result of given node for given dof
   /*!
     \param nodeNr (input) Node number of result
     \param dof (input) Dof of result
@@ -259,10 +260,10 @@ public:
   {Error("BaseNodeStoreSol::Get() not implemented here", __FILE__, __LINE__);} 
 
   
-  //! Get single result of given solution type, node/elem and dof
+  //! Get single result of given solution type, node and dof
   /*! 
     \param solType (input) Solution type (ref. enum SolutionType)
-    \param nodeNr (input) Node/elem number of result
+    \param nodeNr (input) Node number of result
     \param dof (input) Dof of result
     \param val (output)  Result of node nodeNr for given dof
   */
@@ -276,7 +277,7 @@ public:
   //! Set a single entry of a given solution type and a given dof
   /*!
     \param solType (input) Solution type (ref. enum SolutionType)
-    \param nodeNr (input) Node/elem number of result
+    \param nodeNr (input) Node number of result
     \param dof (input) Dof of result
     \param val (input)  Result of node nodeNr for given solType and dof
   */  
@@ -290,7 +291,7 @@ public:
   //! Add value to a single entry of a given solution type and a given dof
   /*!
     \param solType (input) Solution type (ref. enum SolutionType)
-    \param nodeNr (input) Node/elem number of result
+    \param nodeNr (input) Node number of result
     \param dof (input) Dof of result
     \param val (input)  Result of node nodeNr for given solType and dof
   */   

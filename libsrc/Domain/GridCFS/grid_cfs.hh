@@ -122,25 +122,16 @@ public:
     \param nodeNeighbors (output)
     \param map (input)
   */
-  void FormNeighbors4NodesOfElements(const StdVector<Elem*> &elems, StdVector<StdVector<Elem*> > &nodeNeighbors, StdVector<Integer> & map);
-
-
-  //! auxiliary function; to define belonging of one element to another from the list, for ex. surface element and boundary elements (min. 2 common nodes)
+  void FormNeighbors4NodesOfElements(const StdVector<Elem*> &elems, 
+				     StdVector<StdVector<Elem*> > &nodeNeighbors, 
+				     StdVector<Integer> & map);
+  
+  //! form list with interface-elements neighbours
+  //! NOTE: an element is considered as neighbour, if both have 
+  //! AT LEAST one common node
   /*!
-    \param elemsSurf
-    \param elems
-    \param belongingSE
-  */
-  void DefineBelonging4Elems(const StdVector<Elem*>& elemsSurf, 
-			     const StdVector<Elem*>&elems, 
-			     StdVector<Elem*> & belongingSE);
-
-
-
-  //! procedure for forming list with interface-elements neighbours
-  /*!
-    \param Interface (input) Nodes defining the interface between two domains
-    \param Next2Surf (input) Subdomain adjacent to interface
+    \param interfaceNodes (input) Nodes defining the interface between two domains
+    \param subdoms (input) Subdomain adjacent to interface
     \param neighbours (output) Elements neighbouring (= have min. 1 node in common) to interface
   */
   void GetInterfaceNeighbours(StdVector<Integer> & interfaceNodes, 
@@ -148,11 +139,25 @@ public:
 			      StdVector<Elem*> & neighbours,
 			      Integer level);
 
-  //!
-  void GetNeighbouringVolumElens(StdVector<std::string> & surfaceElems,
-				 const StdVector<std::string> & regionNeighbours,
-				 StdVector<Elem*> & volumeElems);
+  //! Find volume elems next to surface elems
 
+  //! Get to a list of surface elements the neighbouring volume elements
+  //! lying in one of the given regions.
+  /*!
+    \param surfElems (input) Vector of surface elems
+    \param neighRegions (input) Region names, where the volume elems must lie
+    \param volElems (output) Vector of surface elems.
+  */
+  //!\note If not all surface elems were assigned to EXACT ONE volume
+  //! element, an error is thrown. If the search was successfull, the
+  //! i-the entry in the surfElems-vector corresponds to the i-th
+  //! entry in the volElems-vector
+  void GetVolNeighboursForSurf(const StdVector<Elem*> & surfElems,
+			       const StdVector<std::string> & neighRegions,
+			       StdVector<Elem*> & volElems,
+			       const Integer level);
+  
+  
   //! in this function we calculate area of element
   /*!
     \param elem (input) element object
@@ -183,6 +188,7 @@ public:
 #endif
 
 protected:
+ 
 private:
   //<! file with initial mesh
   FileType * InFile;

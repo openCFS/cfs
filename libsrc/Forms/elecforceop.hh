@@ -1,8 +1,8 @@
 #ifndef FILE_ELECFORCEOP_2003
 #define FILE_ELECFORCEOP_2003
 
-#include <Forms/baseoperator.hh>
-#include <Forms/elecfieldop.hh>
+#include "Forms/baseoperator.hh"
+#include "Forms/gradfieldop.hh"
 
 
 namespace CoupledField
@@ -30,7 +30,7 @@ namespace CoupledField
     //!          can be static and const!
     //! \todo eps0 violates the ISO C++ standard. Only integral types
     //!       can be static and const!
-    static const Double  eps0 = 8.854187817e-12;
+    //static const Double  eps0 = 8.854187817e-12;
 
     //! Constructor
 
@@ -70,7 +70,7 @@ namespace CoupledField
     Double CalcDetJDr(Matrix<Double> &J, Matrix<Double> &Jdr, Integer dim);
 
     //! I'm a class attribute (please add documentation for me)
-    ElecFieldOp * ElecFieldOp_;
+    GradientFieldOp * gradFieldOp_;
 
   };
 

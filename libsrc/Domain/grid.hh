@@ -184,42 +184,40 @@ public:
     return Ddummy;
   }
 
-   //! Auxiliary function: procedure for forming list with element-neighbors for nodes of patch of element
-  /*!
-    \param elems (input)
-    \param nodeNeighbors (output)
-    \param map (input)
-  */
-  virtual void FormNeighbors4NodesOfElements(const StdVector<Elem*> &elems, 
-					     StdVector<StdVector<Elem*> > &nodeNeighbors, 
-					     StdVector<Integer> & map) = 0;
-
-
-  //! Determines to a given list of elements (e.g. surface elements) the neighbouring elements 
-  //! NOTE: an element is considered as neighbour, if ALL NODES of a surface element
-  //! are common with the neighbour
-  /*!
-    \param elemsSurf (input) Surface-Elements 
-    \param elems (input) List of all possible neighbouring elements (e.g. whole subdomain)
-    \param belongingSE (output) Elements neighbouring surface Elements
-  */
-  virtual void DefineBelonging4Elems(const StdVector<Elem*>& elemsSurf, 
-				     const StdVector<Elem*>&elems, 
-				     StdVector<Elem*> & belongingSE)=0;
-
-
-  //! form list with interface-elements neighbours
+    //! form list with interface-elements neighbours
   //! NOTE: an element is considered as neighbour, if both have 
   //! AT LEAST one common node
   /*!
-    \param Interface (input) Elements defining the interface between two domains
-    \param Next2Surf (input) Subdomain adjacent to interface
+    \param interfaceNodes (input) Nodes defining the interface between two domains
+    \param subdoms (input) Subdomain adjacent to interface
     \param neighbours (output) Elements neighbouring (= have min. 1 node in common) to interface
+    \param level (input) Refinement level
   */
   virtual void GetInterfaceNeighbours(StdVector<Integer> & interfaceNodes, 
 				      StdVector<std::string> & subdoms, 
-				      StdVector<Elem*> & Neighbours,
+				      StdVector<Elem*> & neighbours,
 				      Integer level) = 0;
+  
+
+  //! Find volume elems next to surface elems
+
+  //! Get to a list of surface elements the neighbouring volume elements
+  //! lying in one of the given regions.
+  /*!
+    \param surfElems (input) Vector of surface elems
+    \param neighRegions (input) Region names, where the volume elems must lie
+    \param volElems (output) Vector of surface elems.
+    \param level (input) Refinement level
+  */
+  //!\note If not all surface elems were assigned to EXACT ONE volume
+  //! element, an error is thrown. If the search was successfull, the
+  //! i-the entry in the surfElems-vector corresponds to the i-th
+  //! entry in the volElems-vector
+  virtual void GetVolNeighboursForSurf(const StdVector<Elem*> & surfElems,
+				       const StdVector<std::string> & neighRegions,
+				       StdVector<Elem*> & volElems,
+				       const Integer level) = 0;
+    
   
    //! calculate number of nodes in patch of elements
   /*!
@@ -249,6 +247,15 @@ protected:
   StdVector<Elem*> *Evec;
   StdVector<std::string>* Dstr;
 
+  //! Auxiliary function: procedure for forming list with element-neighbors for nodes of patch of element
+  /*!
+    \param elems (input)
+    \param nodeNeighbors (output)
+    \param map (input)
+  */
+  virtual void FormNeighbors4NodesOfElements(const StdVector<Elem*> &elems, 
+					     StdVector<StdVector<Elem*> > &nodeNeighbors, 
+					     StdVector<Integer> & map) = 0;
 private:
   ///
 };

@@ -5,8 +5,7 @@
 
 #include "DataInOut/Unverg/outUnverg.hh"
 #include "Forms/forms_header.hh"
-#include "Forms/elecfieldop.hh"
-#include "Forms/elecforceop.hh"
+#include "Forms/curlfieldop.hh"
 #include "Estimator/spaceerror.hh"
 #include "DataInOut/WriteInfo.hh"
 #include "Driver/assemble.hh"
