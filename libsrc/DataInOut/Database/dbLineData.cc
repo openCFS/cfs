@@ -35,11 +35,6 @@ char *dbLineData::GetValues()
   return values;
 }
 
-/*int dbLineData::Size()
-{
-  return field.size();
-}*/
-
 void dbLineData::SetTableName(const std::string &tname)
 {
   ENTER_IFCN("dbLineData::SetTableName");
@@ -51,8 +46,6 @@ void dbLineData::Clear()
   ENTER_FCN("dbLineData::Clear");
   strcpy(values,"");
   strcpy(fields,"");
-//  value.clear();
-//  field.clear();
 }
 
 template<> void dbLineData::toString(const char *val, char* &dst, int &strsize)

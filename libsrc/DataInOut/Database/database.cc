@@ -37,14 +37,15 @@ int Database::Connect (std::string hostname,
 int Database::Connect ()
 {
   ENTER_FCN("Database::Connect()");
-  if (mysql_real_connect(Conn_, Hostname_.c_str(), User_.c_str(), Passwd_.c_str(), Db_.c_str(), Port_, NULL, 0)==NULL)
+  if (mysql_real_connect(Conn_, Hostname_.c_str(), User_.c_str(), Passwd_.c_str(), 
+			 Db_.c_str(), Port_, NULL, 0)==NULL)
   {
-    std::string err("Can't establish connection to");
+    std::string err("Can't establish connection to ");
     err += Db_;
     Error(err.c_str(), __FILE__, __LINE__);
     return (-1);
   }
-#ifdef DEBUG2
+#ifdef DEBUG
   (*debug) << std::endl;
   (*debug) << "Connected to database " << Db_ << std::endl;	
   (*debug) << "hostName     = " << Hostname_ << std::endl;
@@ -69,7 +70,7 @@ int Database::Query (std::string statement)
   ENTER_FCN("Database::Query(string)");
   if (IsConnected==FALSE)
     exit (-1);
-#ifdef DEBUG2
+#ifdef DEBUG
   (*debug) << "Database::Query : " << statement << std::endl;	
 #endif
   FreeResult();
@@ -85,9 +86,6 @@ int Database::Query (std::string statement)
 
 Boolean Database::Lock (std::string tablename)
 {
-#ifdef DEBUG2
-  (*debug)<<"Database::Lock : Lock table "<<tablename<<std::endl;
-#endif
   std::stringstream qstream;
   qstream<<"LOCK TABLE "<<tablename<<" WRITE";
   Query(qstream.str());
@@ -95,9 +93,6 @@ Boolean Database::Lock (std::string tablename)
 
 Boolean Database::Unlock ()
 {
-#ifdef DEBUG2
-  (*debug)<<"Database::Unlock : Unlock table "<<std::endl;
-#endif
   Query("UNLOCK TABLES");
 }
 
@@ -159,7 +154,8 @@ Boolean Database::FetchFields(dbMatrix &matrix)
         break;
       default:
 #ifdef DEBUG2        
-        (*debug)<< "Try to add column of unknown type. Append it as std::string instead"<<std::endl;
+        (*debug)<< "Try to add column of unknown type. Append it as std::string instead"
+                <<std::endl;
 #endif
         matrix.appendStringColumn(std::string(fields[i].name));
     }  
@@ -215,9 +211,11 @@ int Database::Insert (dbLineData &d)
  else
  {
    if (InsertField_!=d.GetFieldNames())
-     Error("Try to use multiple tupel for INSERT, but uses different InsertField_.",__FILE__,__LINE__);
+     Error("Try to use multiple tupel for INSERT, but uses different InsertField_.",
+            __FILE__,__LINE__);
    if (InsertTableName_!=d.tablename)
-     Error("Try to use multiple tuple for INSERT, but uses different tables.",__FILE__,__LINE__);
+     Error("Try to use multiple tuple for INSERT, but uses different tables.",
+            __FILE__,__LINE__);
  }
 
  InsertValues_<<"(";
@@ -250,7 +248,8 @@ std::string Database::EscapeString(std::string source)
  ENTER_FCN("Database::EscapeString");
   unsigned long res;
   unsigned long position;
-  char szOut[2*SIZEOFPARAMBLOCK+1];	// Worst case: escape char for every char + terminating zero
+  // Worst case: escape char for every char + terminating zero
+  char szOut[2*SIZEOFPARAMBLOCK+1];	
   char szIn[SIZEOFPARAMBLOCK];
   std::string to;
   if (source.length()<SIZEOFPARAMBLOCK)
@@ -300,11 +299,10 @@ Boolean Database::Update (std::string table,
   return TRUE;
 }
 
-int Database::InsertAndGetIndex (dbLineData &d) //std::string table, std::vector<std::string> field, std::vector<std::string> value)
+int Database::InsertAndGetIndex (dbLineData &d) 
 {
   ENTER_FCN("Database::InsertAndGetIndex");
   Insert (d);
-//   Insert (table, field, value);
   return mysql_insert_id(Conn_);
 }
 
@@ -347,7 +345,6 @@ void Database::FreeResult()
 void Database::SetMultipleTuple(Integer n)
 {
   ENTER_FCN("Database::SetMultipleTuple");
-//  TupleNo_ = 1;                         // DELETE IT AFTERWARDS
   if (n>MAXTUPLEPERSTATEMENT)
   {
     TupleNo_ 	= MAXTUPLEPERSTATEMENT;
@@ -363,7 +360,6 @@ void Database::SetMultipleTuple(Integer n)
 void Database::ResetMultipleTuple()
 {
   ENTER_FCN("Database::ResetMultipleTuple");
-  TupleNo_ = 1;                         // DELETE IT AFTERWARDS
   if (PendTupleNo_==0)
   {
     TupleNo_ = 1;

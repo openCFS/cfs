@@ -41,9 +41,6 @@ public:
     Integer curFLength  = strlen(fields);
     if (curFLength+fnamelength>=fieldlength)	// Allocate new memory
     {
-#ifdef DEBUG2
-    (*debug)<<"dbLineData::Set : Allocate new memory"<<std::endl;
-#endif
       char *newFields;
       if (strlen(fieldname)<fieldlength)
       {
@@ -59,15 +56,9 @@ public:
       delete[] fields;
       fields = newFields;
     }
-#ifdef DEBUG2
-    (*debug)<<"dbLineData::Set : Fields="<<fields<<" (before) "<<std::endl;
-#endif
     if (curFLength>0)
       strcat(fields,",");
     strcat(fields,fieldname); 
-#ifdef DEBUG2
-    (*debug)<<"dbLineData::Set : Fields="<<fields<<std::endl;
-#endif
 
     Integer valstrlen = ELEMENTBLOCKSIZE;
     char *valstr = new char[valstrlen];
@@ -99,10 +90,6 @@ public:
     delete[] valstr;
     if (quoted)
       strcat(values,"'");
-#ifdef DEBUG2
-    (*debug)<<"dbLineData::Set : Values="<<values<<std::endl;
-#endif
-
   };
 
   //! Get size of vector

@@ -21,20 +21,6 @@ namespace CoupledField
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
   /*
     void LoadMaterialData :: EulerAnglesRotate(MaterialData * material, const Vector<Double> & eulerAngles)
     {
