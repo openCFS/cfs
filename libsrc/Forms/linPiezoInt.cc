@@ -13,8 +13,8 @@ namespace CoupledField
 
   // determine the matrix B of the BDB operator
   void linPiezoInt::calcBMat( Matrix<Double> &bMat, Integer ip,
-			      Matrix<Double> &ptCoord )
-  {
+			      Matrix<Double> &ptCoord ) {
+
     ENTER_FCN( "linPiezoInt::calcBMat" );
 
     // obtain info on problem sizes
@@ -128,33 +128,38 @@ namespace CoupledField
 	}
       }
 
-    //set the material matrix
+    // set the material matrix
     Integer sizeofD=getDimD();
     dMat.Resize(sizeofD);
     dMat.Init(0);
 
     Matrix<Double>*matMatrix = ptMaterial->GetMatrix();
+
+    // No damping
     if ( isDamping_ == false ) {
+
       // Copy entries from material matrix object into D matrix
- 
+      for ( Integer i = 0; i < sizeofD; i++ ) {
+	for ( Integer j = 0; j < sizeofD; j++ ) {
+	  dMat[i][j] = (*matMatrix)[rowPtr[i]-1][rowPtr[j]-1];
+	}
+      }
 
-      for (int i=0; i< sizeofD; i++)
-	for (int j=0;j< sizeofD; j++)
-	  dMat[i][j]=(*matMatrix)[rowPtr[i]-1][rowPtr[j]-1];
-
-
-      //multiply values of permittivity with -1 to obtain the correct bilinearform
-      //hardcoded for 2D!!!
-      for (Integer i = sizeofD-2; i <sizeofD; i++)
-	for (Integer j = sizeofD-2; j <sizeofD; j++)
+      // multiply values of permittivity with -1 to obtain the correct
+      // bilinearform
+      for ( Integer i = sizeofD-2; i < sizeofD; i++ ) {
+	for ( Integer j = sizeofD-2; j < sizeofD; j++ ) {
 	  dMat[i][j] *= -1.0;
+	}
+      }
     }
+
+    // The damping case (Rayleigh currently). Here just the mechanical part
+    // damps
     else {
-      // The damping case (Rayleigh currently). Here just the mechanical part
-      // damps
 
       // Copy entries from mechanical part of material matrix object
-      // into D matrix and multiply with damping parameter
+      // into D matrix and scale with damping parameter
       Matrix<Double> * matMatrix = ptMaterial->GetMatrix();
       Double beta = ptMaterial->GetDampingBeta();
       for( Integer i = 0; i < sizeofD; i++ ) {
@@ -163,16 +168,14 @@ namespace CoupledField
 	}
       }
     }
-    
-
   }
 
 
   // determine the material matrix D containing the tensors of mechanical
   // modulus, electrical permittivity and piezoelectric coupling
-  //for the axisymmetric case
-  void linPiezoInt::CalcAxiMaterialMat(Matrix<Double> & dMat)
-  {
+  // for the axisymmetric case
+  void linPiezoInt::CalcAxiMaterialMat(Matrix<Double> & dMat) {
+
     ENTER_FCN( "linPiezoInt::CalcAxiMaterialMat" );
 
     Integer rowPtrXY[]={1,2,6,3,7,8};
@@ -180,72 +183,78 @@ namespace CoupledField
     Integer rowPtrXZ[]={1,3,5,2,7,9};
     Integer * rowPtr; 	//alte Version
 
-    switch(actOrientation)
-      {
+    switch(actOrientation) {
+
       case xy:
 	{
-	  rowPtr=rowPtrXY;
+	  rowPtr = rowPtrXY;
 	  break;
 	}
       case yz:
 	{
-	  rowPtr=rowPtrYZ;
+	  rowPtr = rowPtrYZ;
 	  break;
 	}
       case xz:
 	{
-	  rowPtr=rowPtrXZ;
+	  rowPtr = rowPtrXZ;
 	  break;
 	}
       default:	//if no orientation was specified
 	{
-	  rowPtr=rowPtrYZ;
+	  rowPtr = rowPtrYZ;
 	  break;
 	}
-      }
+    }
 
-    //set the material matrix
+    // Set the material matrix
     Integer sizeofD=getDimD();
     dMat.Resize(sizeofD);
     dMat.Init(0);
 
     Matrix<Double> * matMatrix = ptMaterial->GetMatrix();
+
+    // No damping
     if ( isDamping_ == false ) {
+
       // Copy entries from material matrix object into D matrix
-      
-
-      for (int i=0; i< sizeofD; i++)
-	for(int j=0; j<sizeofD; j++){
-	  dMat[i][j]=(*matMatrix)[rowPtr[i]-1][rowPtr[j]-1];
-	  
-	  //multiply values of permittivity with -1 to obtain the correct bilinearform
-	  //hardcoded for 2D!!!
-	  for (Integer i = sizeofD-2; i <sizeofD; i++)
-	    for (Integer j = sizeofD-2; j <sizeofD; j++)
-	      dMat[i][j] *= -1.0;
-
+      for ( Integer i = 0; i < sizeofD; i++ ) {
+	for( Integer j = 0; j < sizeofD; j++ ) {
+	  dMat[i][j] = (*matMatrix)[rowPtr[i]-1][rowPtr[j]-1];
 	}
+      }
+
+      // Multiply values of permittivity with -1 to obtain the
+      // correct bilinearform
+      for ( Integer i = sizeofD-2; i < sizeofD; i++ ) {
+	for ( Integer j = sizeofD-2; j < sizeofD; j++ ) {
+	  dMat[i][j] *= -1.0;
+	}
+      }
     }
     
+    // The damping case (Rayleigh currently). Here just the mechanical part
+    // damps
     else {
-      // The damping case (Rayleigh currently). Here just the mechanical part
-      // damps
       
       // Copy entries from mechanical part of material matrix object
       // into D matrix and multiply with damping parameter
       Matrix<Double> * matMatrix = ptMaterial->GetMatrix();
       Double beta = ptMaterial->GetDampingBeta();
-      for( Integer i = 0; i < sizeofD; i++ ) 
-	for ( Integer j = 0; j < sizeofD; j++ ) 
+      for( Integer i = 0; i < sizeofD-2; i++ ) {
+	for ( Integer j = 0; j < sizeofD-2; j++ ) {
 	  dMat[i][j] = (*matMatrix)[i][j] * beta;
+	}
+      }
     }
   }
   
 
-    // determine the material matrix D containing the tensors of mechanical
-    // modulus, electrical permittivity and piezoelectric coupling
-    void linPiezoInt::Calc3DMaterialMat(Matrix<Double> & dMat)
-  {
+  // determine the material matrix D containing the tensors of mechanical
+  // modulus, electrical permittivity and piezoelectric coupling
+  // in the 3D case
+  void linPiezoInt::Calc3DMaterialMat( Matrix<Double> &dMat ) {
+
     ENTER_FCN( "linPiezoInt::Calc3DMaterialMat" );
 
     // Resize and initialise matrix object
@@ -253,8 +262,9 @@ namespace CoupledField
     dMat.Resize( sizeofD );
     dMat.Init( 0 );
 
-     // Standard case: No damping
+    // Standard case: No damping
     if ( isDamping_ == false ) {
+
       // Copy entries from material matrix object into D matrix
       Matrix<Double> * matMatrix = ptMaterial->GetMatrix();
       for( Integer i = 0; i < sizeofD; i++ ) {
@@ -289,15 +299,15 @@ namespace CoupledField
   }
 
 
-
-  /// calculates of stresses T (vector notation)
-  // T = c . S - e^T E with c tensor of mechanical moduli and e the piezoelectric tensor
+  // calculates of stresses T (vector notation)
+  // T = c . S - e^T E with c tensor of mechanical moduli and e the
+  // piezoelectric tensor
   // S = Bmech * u 
   // E = Belec V
   // see Habil. M. Kaltenbacher 
-  void linPiezoInt::CalcStressVec(Vector<Double>& stressElecVec, Integer ip, 
-				  Matrix<Double> & ptCoord)
-  {
+  void linPiezoInt::CalcStressVec( Vector<Double>& stressElecVec, Integer ip, 
+				   Matrix<Double> & ptCoord ) {
+
     ENTER_FCN( "linPiezoInt::CalcStressVec" );
 
     Matrix<Double> dMat;
@@ -323,17 +333,15 @@ namespace CoupledField
 
 
   // ========================================================================
-  // ======================== linPiezoAxiInt - Part ==========================
+  // ======================== linPiezoAxiInt - Part =========================
   // ========================================================================
 
   // determine the matrix B of the BDB operator
   void piezoAxiInt::calcBMat( Matrix<Double> &bMat, Integer ip,
-			      Matrix<Double> &ptCoord )
-  {
+			      Matrix<Double> &ptCoord ) {
+
     ENTER_FCN( "piezoAxiInt::calcBMat" );
 
-//    std::cout << "actInt: " << intPoint_ << std::endl;
- 
     // obtain info on problem sizes
     const Integer nrNodes  = ptelem->GetNumNodes();
     const Integer spaceDim = ptelem->GetDim();
@@ -404,16 +412,16 @@ namespace CoupledField
 
 
   // calculates the D-matrix of a axisymmetric-problem 
-  void piezoPlainStrainInt::calcDMat(Matrix<Double> & dMat)
-  {
+  void piezoPlainStrainInt::calcDMat(Matrix<Double> & dMat) {
     ENTER_FCN( "piezoPlainStrainInt::calcDMat" );
     CalcPlaneStrainMaterialMat(dMat);
   }
 
 
   // determine the matrix B of the BDB operator
-  void piezoPlainStrainInt::calcBMat( Matrix<Double> &bMat, Integer ip, Matrix<Double> &ptCoord )
-  {
+  void piezoPlainStrainInt::calcBMat( Matrix<Double> &bMat, Integer ip,
+				      Matrix<Double> &ptCoord ) {
+
     ENTER_FCN( "piezoPlainStrainInt::calcBMat" );
 
     // obtain info on problem sizes
@@ -450,10 +458,12 @@ namespace CoupledField
       }
 
      // treat electrical part
-    for( actDim = 0; actDim < spaceDim; actDim++ )
-      for( actNode = 0; actNode < nrNodes; actNode++ ){
-	bMat[2*spaceDim+actDim-1][(actNode+1)*offset-1] = xiDx[actNode][actDim];
+    for( actDim = 0; actDim < spaceDim; actDim++ ) {
+      for( actNode = 0; actNode < nrNodes; actNode++ ) {
+	bMat[2*spaceDim+actDim-1][(actNode+1)*offset-1] =
+	  xiDx[actNode][actDim];
       }
+    }
 
 #ifdef DEBUG
     //    (*debug) << std::endl << " Matrix bMat is " << bMat.GetSizeRow()
@@ -472,24 +482,19 @@ namespace CoupledField
 
   // constructor
   linPiezo3DInt::linPiezo3DInt(BaseFE * aptelem, MaterialData & matData) 
-    : linPiezoInt(aptelem, matData)
-  {
+    : linPiezoInt(aptelem, matData) {
     ENTER_FCN( "linPiezo3DInt::linPiezo3DInt" );
   }
  
   // destructor
-  linPiezo3DInt::~linPiezo3DInt()
-  {
+  linPiezo3DInt::~linPiezo3DInt() {
     ENTER_FCN( "linPiezo3DInt::~linPiezo3DInt" );
   }
 
   // calculates the D-matrix of a 3d-problem 
-  void linPiezo3DInt::calcDMat(Matrix<Double> & dMat)
-  {
+  void linPiezo3DInt::calcDMat( Matrix<Double> & dMat ) {
     ENTER_FCN( "linPiezo3DInt::calcDMat" );
     Calc3DMaterialMat(dMat);
   }
-
-
 
 } // end namespace CoupledField
