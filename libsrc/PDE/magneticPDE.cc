@@ -14,6 +14,7 @@
 #include <AlgebraicSystem/LinAlg/linsystem.hh>
 #include <Driver/assemble.hh>
 #include "ScalarNodeEQN.hh"
+#include "trapezoidal.hh"
 
 #include "magneticPDE.hh"
 
@@ -52,6 +53,8 @@ MagPDE::MagPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *apt
   //check for postprocessing
   conf->ifgetliststr("calc_BField",calcBfield_,pdename_); 
   conf->ifgetliststr("calc_Energy",calcEnergy_,pdename_); 
+  conf->ifgetliststr("calc_Eddy",calcEddy_,pdename_); 
+
 
   AssignPDENodeNumbers(Mesh2PDENode_,PDE2MeshNode_,subdoms_);
   numPDENodes_=PDE2MeshNode_.size();
@@ -129,6 +132,18 @@ void MagPDE::DefineIntegrators(const Integer level)
 // ======================================================
 
 
+void MagPDE :: InitTimeStepping(const Double dt)
+{
+#ifdef TRACE
+  (*trace) << "entering MagPDE::InitTimeStepping" << std::endl;
+#endif
+
+  TS_alg_ = new Trapezoidal(pdename_, algsys_, 1, numPDENodes_*dofspernode_);
+  TS_alg_->Init(matrix_factor_, dt);
+
+}
+
+
 void MagPDE:: PreStepStatic(const Integer level)
 {
 #ifdef TRACE
@@ -163,14 +178,13 @@ void MagPDE::WriteResultsInFile()
   (*trace) << "entering MagPDE::WriteResultsInFile" << std::endl;
 #endif
 
-  Integer step=0;
-  Double time=0;
   ShortInt Dim = ptgrid_->GetDim();
 
-  Array<Double> B_Mesh, Force_Mesh, Sol_Mesh;
-  
+  Array<Double> B_Mesh, Jeddy_Mesh, Force_Mesh, Sol_Mesh;
+  Array<Double> sol_der1 = getS1();
+
   // transform solution vector for electric potential
-  TransformNodeSolution(Sol_Mesh,sol_,PDE2MeshNode_);
+  TransformNodeSolution(Sol_Mesh,sol_der1,PDE2MeshNode_);
 
   // CHANGE F_Interface_
   // TransformElemSolution(Force_Mesh,Force_,F_Interface_[0]);
@@ -178,33 +192,34 @@ void MagPDE::WriteResultsInFile()
   // write results
   if (OutFile_->IsGMV())
     {
-      // write electric potential
-      OutFile_->WriteNodeSolution(Sol_Mesh,step,time,"Mag-Potential");
+      // write magnetic potential
+      OutFile_->WriteNodeSolution(Sol_Mesh,laststepcalc_,lasttimecalc_,"Mag-Potential");
       
       if (calcBfield_.size() !=0 )
 	{
 	  TransformElemSolution(B_Mesh,B_,subdoms_);
-	  OutFile_->WriteElemSolution(B_Mesh,step,time,"B-Field");
+	  OutFile_->WriteElemSolution(B_Mesh,laststepcalc_,lasttimecalc_,"B-Field");
 	  //OutFile_->WriteElemSolution(Force_Mesh,step,time,"E-Force");
 	}
+
     }
   else
     {
-      // write electric potential
-      OutFile_->WriteNodeSolution(Sol_Mesh,step,time,"mag. vector potential");
+      // write magnetic potential
+      OutFile_->WriteNodeSolution(Sol_Mesh,laststepcalc_,lasttimecalc_,"mag. vector potential");
 
       if (calcBfield_.size() !=0 )
 	{
-	  //	  TransformElemSolution(E_Mesh,E_,subdoms_);
-	  //	  OutFile_->WriteElemSolution(E_Mesh,step,time,"electric field");
-	  OutFile_->WriteElemSolution(B_,step,time,"mag. flux density");
-	  //OutFile_->WriteElemSolution(Force_Mesh,step,time,"mag. volume force");
+	  TransformElemSolution(B_Mesh,B_,subdoms_);
+	  OutFile_->WriteElemSolution(B_Mesh,laststepcalc_,lasttimecalc_,"mag. flux density");
+	}
+
+      if (calcEddy_.size() !=0 )
+	{
+	  TransformElemSolution(Jeddy_Mesh,Jeddy_,subdoms_);
+	  OutFile_->WriteElemSolution(Jeddy_Mesh,laststepcalc_,lasttimecalc_,"eddy current");
 	}
     }
-
-
-    if (calcEnergy_.size() !=0 )
-      CalcEnergy();
 
 
 }
@@ -216,6 +231,9 @@ void MagPDE::PostProcess(const Integer level)
   (*trace) << "entering MagPDE::PostProcess" << std::endl;
 #endif  
 
+
+  if (calcEnergy_.size() !=0 )
+    CalcEnergy();
 
   if (calcBfield_.size() !=0 )
     {
@@ -253,7 +271,53 @@ void MagPDE::PostProcess(const Integer level)
 	}
       delete FieldOp;
     }
-  
+
+  if (calcEddy_.size() !=0 )
+    {
+      std::vector<Double> LCoord;
+      LCoord.resize(Dim_);
+      LCoord[0] = 0;
+      LCoord[1] = 0;
+      
+      std::vector<Elem*> elemssd;
+      std::vector<Double> ShpFnc, tmp;
+      Vector<Double> magVecDeriv1Elem;
+      Vector<Integer> connect, connect_PDE;
+
+      Integer counterElems=0;
+      Vector<Double> JeddyElem(3);
+      JeddyElem.Init();
+      
+      // Resize solution arrays (dim is hardcoded for unv-file!!)
+      Jeddy_.reshape(3,numElems_);
+      Jeddy_.init();
+      
+      
+      // loop over all subdomains
+      for (Integer actSD=0; actSD<subdoms_.size(); actSD++)
+	{
+	  // get vector of Elem of subdomain with color: subdoms[isd]
+	  ptgrid_->GetElemSD(elemssd,subdoms_[actSD],level);
+	  Double conductivity = materialData_[actSD].GetConductivity(); 	  
+
+	  // loop over elements of subdomain
+	  for (Integer actEl=0; actEl< elemssd.size(); actEl++,counterElems++)
+	    {
+	      BaseFE * ptEl = elemssd[actEl]->ptElem;
+	      ptEl->GetShFnc(ShpFnc,LCoord);
+
+	      connect = elemssd[actEl]->connect;
+	      // Mape Mesh to PDE node numbers
+	      Mesh2PDENode(connect_PDE,connect,Mesh2PDENode_);
+
+	      GetSolDerivOfElement(magVecDeriv1Elem,connect_PDE);
+	      magVecDeriv1Elem.toStdVector(tmp);
+	      JeddyElem[0] = tmp * ShpFnc;
+	      JeddyElem[0] *= -conductivity;
+	      Jeddy_.setValuesRow(JeddyElem, elemssd[actEl]->ElemNum-1);
+	    }
+	}
+    }
 }
 
 
@@ -325,6 +389,20 @@ void MagPDE::GetSolOfElement( Vector<Double>& magvecpot, Vector<Integer>& connec
 
   for(Integer actNode=0; actNode<connect_PDE.size(); actNode++)
     magvecpot[actNode] = sol_[0][connect_PDE[actNode]-1];
+}
+
+void MagPDE::GetSolDerivOfElement( Vector<Double>& magvecpot_deriv1, Vector<Integer>& connect_PDE)
+{
+#ifdef TRACE
+    (*trace) << "entering MagPDE::GetSolDerivOfElement" << std::endl;
+#endif
+
+  // displacement of element nodes
+  magvecpot_deriv1.Resize(connect_PDE.size());
+  Array<Double> sol_der1 = getS1();
+
+  for(Integer actNode=0; actNode<connect_PDE.size(); actNode++)
+    magvecpot_deriv1[actNode] = sol_der1[0][connect_PDE[actNode]-1];
 }
 
 

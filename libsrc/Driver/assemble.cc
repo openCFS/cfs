@@ -337,7 +337,10 @@ namespace CoupledField
 	    
 	    Double val_tfunc = 1.0;
 	    if (ptTimeFunc_->GetmaxTimeFnc() > 0 )
-	      val_tfunc=ptTimeFunc_->TimeFuncAtTime(time,fncname_rhs_[actDom]);
+	      {
+		std::cerr << fncname_rhs_[actDom] << std::endl;
+		val_tfunc=ptTimeFunc_->TimeFuncAtTime(time,fncname_rhs_[actDom]);
+	      }
 	
 	    for (Integer actEl=0; actEl< elemssd.size(); actEl++)
 	      {	       
@@ -518,6 +521,7 @@ GetBCDof(const std::string dofString)
     // for every domain, we need an own integrator list ==========
     integrators_.resize(subdoms_.size());
     rhsSrcIntegrators_.resize(subdoms_.size());
+    fncname_rhs_.resize(subdoms_.size());
 
     surfintegrators_.resize(surfdoms_.size());
     rhsIntegrators_.resize(subdoms_.size());
@@ -637,7 +641,7 @@ void Assemble::AddRhsSrcIntegrator(BaseForm * integrator, const std::string & su
 
   BaseIntDescriptor * actRhsID = new  BaseIntDescriptor(integrator, nonLin);
   rhsSrcIntegrators_[SubDomIndex(subDomName)]->push_back(actRhsID);
-  fncname_rhs_.push_back(fncname);
+  fncname_rhs_[SubDomIndex(subDomName)] = fncname;
 }
 
 

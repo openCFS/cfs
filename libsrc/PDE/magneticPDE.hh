@@ -19,32 +19,6 @@ class MagPDE : public BasePDE
 {
 public:
 
-  //! Constructor. here we read integration parameters
-  /*!
-    \param 
-    \param aGrid pointer to grid
-    \param aBCs pointer to Boundary condition object
-    \param aGrid pointer to class Grid
-    \param aInFile pointer to class FileType. input data.Boolean MagPDE::HasOutput(std::string output)
-{
-#ifdef TRACE
-  (*trace) << "entering MagPDE::HasOutput" << std::endl;
-#endif
-  
-  if (output == "elecforce")
-    return TRUE;
-
-  if (output == "elecpotential")
-    return TRUE;
-
-  if (output == "elecfield")
-    return TRUE;
-
-  return FALSE;
-
-    \param aOutFile  pointer to class WriteResults. output data.
-    \param aTimeFunc pointer to class TimeFunc
-  */
   MagPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *aptFileType, WriteResults *aptOut);
 
   //! Deconstructor
@@ -63,6 +37,10 @@ public:
 // SOLUTION SECTION
 // ======================================================
 
+  //! prepare for correct time stepping
+  /*! \param dt time step  */
+  virtual void InitTimeStepping(const Double dt);
+
   //!
   virtual void PreStepStatic(const Integer level);
 
@@ -74,6 +52,8 @@ public:
 // POSTPROCESSING SECTION
 // ======================================================
 
+  //!  return pointer to vector with first derivative of solution
+  virtual const Array<Double>& getS1() const { return TS_alg_->GetDeriv1();}
 
   //! do PostProcessing step
   virtual void PostProcess(const Integer level);
@@ -97,6 +77,8 @@ public:
   //! GET SOLUTION AT ALL NODES OF AN ELEMENT
   void GetSolOfElement( Vector<Double>& elpot, Vector<Integer>& connect_PDE);
 
+  //! GET 1st derivativ of SOLUTION AT ALL NODES OF AN ELEMENT
+  void GetSolDerivOfElement( Vector<Double>& elpot, Vector<Integer>& connect_PDE);
 
 // ======================================================
 // COUPLING SECTION
@@ -125,6 +107,7 @@ protected:
   void ReadCoils();
 
   Array<Double> B_;  //!< conatins magnetic field
+  Array<Double> Jeddy_;  //!< conatins eddy currents field
   
   // ---- Electric Force variables ---
   Array<Double> Force_;        //!< stores Magnetic force of each element

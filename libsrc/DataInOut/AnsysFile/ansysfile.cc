@@ -195,10 +195,10 @@ void AnsysFile::ReadMaxnumnodes(Integer & nnodes)
 void AnsysFile::ReadMaxnumelem(Integer & nelem,const std::string keyword)
 {
   std::string::size_type pos=0;
-    getPosition(keyword,pos);
-    infile.seekg(pos,std::ios::beg);
-    
-    infile >> nelem;
+  getPosition(keyword,pos);
+  infile.seekg(pos,std::ios::beg);
+  
+  infile >> nelem;
 }
 
 void AnsysFile::ReadMaxnumnodesbc(Integer & nbc)
