@@ -27,7 +27,7 @@ SUBLIBDIR = Driver PDE AlgebraicSystem/LinAlg \
 PATHSUBLIBDIR = $(addprefix $(LIBDIR)/, $(SUBLIBDIR))
 #
 LIB_GRIDLIB = $(C_DIR)/libgrid
-#LIB_OWN = $(C_DIR)/lib
+LIB_OWN = $(C_DIR)/lib
 #
 #
 ############
