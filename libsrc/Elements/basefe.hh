@@ -64,10 +64,29 @@ public:
     \param CornerCoords (input) Coordinates of element corners
     \f[ \left( \begin{array}{ccc} x_{1} & x_{2} & \cdots \\ y_{1} & y_{2} & \cdots \\
                                   \cdots & \cdots & \cdots \end{array} \right) \f]
+     \param jacDet jacobian determinant
+  */
+  virtual  void GetGlobDerivShFncAtIp(Matrix<Double> & Deriv, 
+				      const Integer ip,
+				      const Matrix<Double> & CornerCoords,
+				      Double & jacDet);
+
+
+  //! Get global derivatives of all shape fnc at integration point ip
+  /*! 
+    \param S (output) Matrix with global derivatives of all shape functions
+    \f[ \left( \begin{array}{ccc} N_{1,d\xi} & N_{1,d\eta} & \cdots \\
+                                  N_{2,d\xi} & N_{2,d\eta} & \cdots \\
+                                  \cdots     & \cdots      & \cdots \end{array}\right) \f]
+    \param ip(input) Integration point
+    \param CornerCoords (input) Coordinates of element corners
+    \f[ \left( \begin{array}{ccc} x_{1} & x_{2} & \cdots \\ y_{1} & y_{2} & \cdots \\
+                                  \cdots & \cdots & \cdots \end{array} \right) \f]
   */
   virtual  void GetGlobDerivShFncAtIp(Matrix<Double> & Deriv, 
 				      const Integer ip,
 				      const Matrix<Double> & CornerCoords);
+
 
   //! Calculation of Jacobian determinant at arbitrary local point
   /*! 

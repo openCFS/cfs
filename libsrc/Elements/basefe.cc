@@ -77,7 +77,8 @@ void BaseFE :: GetGlobDerivShFnc(Matrix<Double> & Deriv,
 
 void BaseFE :: GetGlobDerivShFncAtIp(Matrix<Double> & Deriv, 
 				     const Integer ip,
-				     const Matrix<Double> & CornerCoords)
+				     const Matrix<Double> & CornerCoords,
+				     Double & jacDet)
 {
 #ifdef TRACE
   (*trace) << "entering BaseFE::GetGlobDerivShFncAtIp" << std::endl;
@@ -90,6 +91,29 @@ void BaseFE :: GetGlobDerivShFncAtIp(Matrix<Double> & Deriv,
 
   Deriv = ShFncDerivAtIp_[ip-1] * JInv;
 
+  // det(A) = 1 / det(A^(-1))
+  jacDet = 1.0 / JInv.Det();
+  (*debug) << "GETGLOB... JInv.Det " << JInv.Det() << std::endl
+	   << " jacDet in GET ... " << jacDet << std::endl;
+  
+  
+}
+
+
+void BaseFE :: GetGlobDerivShFncAtIp(Matrix<Double> & Deriv, 
+				     const Integer ip,
+				     const Matrix<Double> & CornerCoords)
+{
+#ifdef TRACE
+  (*trace) << "entering BaseFE::GetGlobDerivShFncAtIp" << std::endl;
+#endif
+
+  Deriv.Resize(Dim_,Dim_);
+  Matrix<Double> JInv;
+
+  CalcInvJacobianAtIp(JInv, ip, CornerCoords);
+
+  Deriv = ShFncDerivAtIp_[ip-1] * JInv;
 }
 
 
