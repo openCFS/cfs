@@ -14,11 +14,11 @@ namespace CoupledField{
 
 #ifdef TRACE //normal function tracing
 #define ENTER_FCN(name)	\
-FcnObj fcn(name);
+FcnTraceObjLocal fcn(name);
 
 #if TRACE>=100 //trace absolutely everything
 #define ENTER_IFCN(name)	\
-FcnObj fcn(name);
+FcnTraceObjLocal fcn(name);
 #else //no tracing
 #define ENTER_IFCN(name)
 #endif//IFCN

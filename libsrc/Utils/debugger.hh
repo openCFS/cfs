@@ -17,7 +17,7 @@ namespace CoupledField {
 
 
   // ========================================================================
-  // FCN_TRACE CLASS
+  // FCNTRACELISTELEM CLASS
   // ========================================================================
 
   //! Class for generating a doubly linked list of called functions
@@ -26,19 +26,21 @@ namespace CoupledField {
   //! to the trace stream. Each object stores a pointer to its predecessor
   //! (i.e. the function which called this one) and its successor (i.e. the
   //! function it called itself). The latter information is dynamic and
-  //! changes, once a called subfunction has terminated.
-  class FcnTrace{
+  //! changes, once a called subfunction has terminated. It is used by the
+  //! FcnTraceHandler class.
+  class FcnTraceListElem{
 
   public:
 
     //! Constructor
-    FcnTrace( char *name, int depth ){
+    FcnTraceListElem( char *name, int depth ){
       this->name_ = name;
-      fcn_depth_ = depth;
+      fcnDepth_ = depth;
     
-    if (fcn_depth_<=TRACE){
-	for (int i=0;i<fcn_depth_;i++)
+    if (fcnDepth_<=TRACE){
+	for (int i = 0; i < fcnDepth_; i++) {
 	  (*trace) << TRACE_INDENT;
+	}
 	(*trace) << "entering function " << name_ << std::endl;
       }
     }
@@ -47,21 +49,22 @@ namespace CoupledField {
 
     //! The default destructor is responsible for issuing a "leaving
     //! function" message to the trace stream object.
-    ~FcnTrace(){
-      if (fcn_depth_<=TRACE){
-	for (int i=0;i<fcn_depth_;i++)
+    ~FcnTraceListElem(){
+      if (fcnDepth_<=TRACE){
+	for (int i = 0; i < fcnDepth_; i++ ) {
 	  (*trace) << TRACE_INDENT;
+	}
 	(*trace) << "leaving function " << name_ << std::endl;
       }
-      fcn_depth_=0;
-      name_=NULL;
+      fcnDepth_ = 0;
+      name_ = NULL;
     }
 
-    FcnTrace *caller_; //!< Link to FcnTrace object for predecessor
-    FcnTrace *called_; //!< Link to FcnTrace object for successor
+    FcnTraceListElem *caller_; //!< Link to FcnTrace object for predecessor
+    FcnTraceListElem *called_; //!< Link to FcnTrace object for successor
 
   private:
-    int fcn_depth_;
+    int fcnDepth_;
     char *name_;
 
   };
@@ -76,7 +79,7 @@ namespace CoupledField {
   //! This static class is taking care of generating function trace
   //! information. If will only exist, if the TRACE macro is defined
   //! during compilation.
-  class Debugger {
+  class FcnTraceHandler {
 
   public:
 
@@ -92,12 +95,12 @@ namespace CoupledField {
     //! of a method.
     static void EnterFcn(char *name){
       if ( foo_ == NULL ){
-	foo_ = new FcnTrace( name, fcnTraceDepth_++ );
+	foo_ = new FcnTraceListElem( name, fcnTraceDepth_++ );
 	foo_->caller_ = NULL;
 	foo_->called_ = NULL;
       }
       else{
-	foo_->called_ = new FcnTrace( name, fcnTraceDepth_++ );
+	foo_->called_ = new FcnTraceListElem( name, fcnTraceDepth_++ );
 	foo_->called_->caller_ = foo_;
 	foo_ = foo_->called_;
       }
@@ -108,7 +111,7 @@ namespace CoupledField {
     //! This method performs all things needed for tracing when a function
     //! is left.
     static void LeaveFcn(){
-      FcnTrace *tmp;
+      FcnTraceListElem *tmp;
       if (foo_){
 	tmp = foo_->caller_;
 	delete foo_;
@@ -123,30 +126,30 @@ namespace CoupledField {
     }
 
   private:
-    static FcnTrace *foo_;
+    static FcnTraceListElem *foo_;
     static unsigned int fcnTraceDepth_;
   };
 
 
   // ========================================================================
-  // FCNOBJ CLASS
+  // FCNTRACEOBJLOCAL CLASS
   // ========================================================================
 
   //! When the TRACE macro is defined and the ENTER_FCN macro is called in
   //! a function, then a local object of this class will be instantiated.
   //! Its constructor and destructor trigger function tracing via the
-  //! static Debugger class.
-  class FcnObj {
+  //! static FcnTraceHandler class.
+  class FcnTraceObjLocal {
   public:
 
     //! Constructor
-    FcnObj(char *name){
-      Debugger::EnterFcn(name);
+    FcnTraceObjLocal(char *name){
+      FcnTraceHandler::EnterFcn(name);
     }
 
     //! Destructor
-    ~FcnObj(){
-      Debugger::LeaveFcn();
+    ~FcnTraceObjLocal(){
+      FcnTraceHandler::LeaveFcn();
     }
 
   };
