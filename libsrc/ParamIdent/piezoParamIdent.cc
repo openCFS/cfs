@@ -77,7 +77,7 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
     if (!allMeasuredData)
       {
 	std::cerr << "\n File measuredData.dat does not exist!" << std::endl;
-	exit(1);
+	//	exit(1);
       }
 
     std::cout<<"\n Opens impedCurve.dat and piezoLog.dat ... "<<std::endl;
@@ -101,11 +101,21 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
       }
 
     std::string filenameParLog= "parLog.dat";
+
     parLog = new std::ofstream(filenameParLog.c_str(),std::basic_ios<char>::out);
 
     if (!parLog)
       {
-	std::cerr << "\n piezoLog.dat could not be initialized" << std::endl;
+	std::cerr << "\n parLog.dat could not be initialized" << std::endl;
+      }
+
+    std::string filenameParFinal= "parFinal.dat";
+
+    parFinal = new std::ofstream(filenameParFinal.c_str(),std::basic_ios<char>::out);
+
+    if (!parFinal)
+      {
+	std::cerr << "\n parFinal.dat could not be initialized" << std::endl;
       }
 
     // in future, several parameters wwill be taken from the xml - file ...
@@ -585,23 +595,37 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
 // 	//getchar();
 // 	*parLog <<nrNuMethods <<"  "<< c33history[nrNuMethods]<<"  " <<e33history[nrNuMethods]<<"   " <<eps33history[nrNuMethods]<<std::endl;
 	nuMethods();
-
 	nrNuMethods++;
+
+	for (Integer i=0; i<parameter.GetSize(); i++)
+	  *parFinal<<parameter[i]<<", ";
+	*parFinal<<"/"<<std::endl;
 	newtonCounter++;
     }
   }
 
     else if (whichNewtonCG==8){
       Integer nrNuMethodsC=0;
+      newtonCounter=0;
+      inner_eta=1.0;
       while (nrNuMethodsC<maxNumberNewtonLoops){
-	std::cout<<"\n Nr: "<< nrNuMethodsC << ", start next Newton NuMethodC?"<<std::endl;
-	c33history[nrNuMethodsC] = parameterC[1];
-	e33history[nrNuMethodsC] = parameterC[7];
-	eps33history[nrNuMethodsC] = parameterC[9];
-	//getchar();
-	*parLog <<nrNuMethodsC <<"  "<< c33history[nrNuMethodsC]<<"  " <<e33history[nrNuMethodsC]<<"   " <<eps33history[nrNuMethodsC]<<std::endl;
-	nuMethodsC();
+// 	std::cout<<"\n Nr: "<< nrNuMethodsC << ", start next Newton NuMethodC2 ?"<<std::endl;
+// 	c33history[nrNuMethodsC] = parameterC[1];
+// 	e33history[nrNuMethodsC] = parameterC[7];
+// 	eps33history[nrNuMethodsC] = parameterC[9];
+
+	nuMethodsC2();
+	*parLog <<nrNuMethodsC <<"  "<< parameter[1]<<"  " <<parameter[7]<<"   " <<parameter[9]<<"  "<<
+	  c33history[nrNuMethodsC]<<"  " <<e33history[nrNuMethodsC]<<"   " <<eps33history[nrNuMethodsC]<<std::endl;
+	for (Integer i=0; i<parameter.GetSize(); i++)
+	  *parFinal<<parameter[i]<<", ";
+	*parFinal<<"/"<<std::endl;
+	for (Integer i=0; i<parameterC.GetSize(); i++)
+	  *parFinal<<parameterC[i]<<", ";
+	*parFinal<<"/"<<std::endl;
+
 	nrNuMethodsC++;
+	newtonCounter++;
 
     }
   }
@@ -619,8 +643,12 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
     if ( maxNumberNewtonLoops!=0){
       std::cout<<"\n\n *** FINALLY CALCULATED PARAMETERS *** ... here they are: " <<std::endl;
       
-      for (int i=0;i<parameter.GetSize();i++)
+      *parFinal<<"4) "<<std::endl;
+      for (int i=0;i<parameter.GetSize();i++){
 	std::cout<<"par[" << i<<"]="<< parameter[i]<<" + " << parameterC[i]<<"i"<<std::endl;
+      *parFinal<<parameter[i]<<", ";
+      }
+      *parFinal<<"/"<<std::endl;
     }
 
     //    std::cout<<matMatStart<<std::endl;
@@ -773,7 +801,8 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
       if (whichNorm==2){
 	//	wNorm = wNorm+((1.0/Denominator)*vec[i]*vec[i]).real(); // this is a good running version!
 	wNorm = wNorm+((1.0/Denominator)*std::abs(vec[i])*std::abs(vec[i]));
-	//        std::cout<<"\n WeightedResNorm = " << std::abs(vec[i])*std::abs(vec[i])<< std::endl;
+	//std::cout<<"\n WeightedResNorm = " << std::abs(vec[i])*std::abs(vec[i])<< std::endl;
+	//	std::cout<<wNorm<<std::endl;
       }
       else if (whichNorm==5)
 	wNorm = wNorm+((1.0/Denominator)*std::abs(vec[i])*std::abs(vec[i]));
@@ -1033,7 +1062,7 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
 	  }
 	}
       }
- else if (mDataRow[0]=='Q'){
+      else if (mDataRow[0]=='Q'){
 	i=2; k=0; j=0;
 	while(mDataRow){
 	  if (mDataRow[i]=='/')
