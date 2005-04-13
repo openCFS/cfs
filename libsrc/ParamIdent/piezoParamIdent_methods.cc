@@ -202,9 +202,9 @@ namespace CoupledField
           imped = std::abs(voltage/(charge*2.0*PI*freqs[fstep]*im)); 
           //    phase = 180.0/PI*(std::arg(charge));
           phase = 180.0/PI*(std::arg(impedC));
-          std::cout << fstep <<");\t Frequenz: " << freqs[fstep] << ";\t Impedanz: "<< std::log(imped) 
+          std::cout << fstep <<");\t Frequenz: " << freqs[fstep] << ";\t Impedanz: "<< imped 
 		    << ";\t Phase: " << phase <<";\t Volt = "<<voltage<<";\t Charge = "<< charge<< std::endl;
-          *impedCurve <<"\n" << freqs[fstep] << " " << std::log(imped) << "  " << phase << "  " 
+          *impedCurve <<"\n" << freqs[fstep] << " " << imped << "  " << phase << "  " 
 		      << impedC.real()<<"  " << impedC.imag() << "  " << charge.real()<< "  " << charge.imag()<< std::endl;
 
     } //  end loop over freqs
@@ -318,7 +318,11 @@ namespace CoupledField
 	Double y=real[fstep]*sin(PI/180*imag[fstep]);
 	Complex	Z=Complex(x,y);
 
-        F_hat[fstep]=(sign*charge*Z)/std::log(Z);
+        //F_hat[fstep]=charge;
+
+	// Logarithmic value of F
+	F_hat[fstep]=(sign*charge*Z)/std::log(Z);
+
 // 	std::cout<<F_hat<<std::endl;
 // 	std::cout<<"This is F_hat!!"<<std::endl;
 	//	getchar(); 
@@ -545,7 +549,7 @@ namespace CoupledField
             //Vector<Complex> elSolVec; 
             // ptNodeStoreSol->GetElemSolution(elSolVec,connecth);
 
-            MaterialData actSDMat(*ptMaterial);
+	    MaterialData actSDMat(*ptMaterial);
             Boolean isdamping=TRUE;
              
             // Create new Integrator, with this calculate elemMat for sysmat in RHS 
@@ -1138,6 +1142,88 @@ void piezoParamIdent::testJacobiMatrix2(Vector<Complex> & F_hat, Matrix<Complex>
     // JacobiMatrix=approxJacobiMatrix;
 
   }// end testJacobiMatrix
+
+
+  void piezoParamIdent::testJacobiMatrixC(Vector<Complex> & F_hat, Matrix<Complex> & JacobiMatrix, 
+					  Vector<Double> & parameter,BCs * ptBCs,MaterialData * ptMaterial){
+    ENTER_FCN("piezoParamIdent::testJacobiMatrix");
+
+    Vector<Complex> F_hat_incr(F_hat.GetSize());
+    Vector<Complex> F_hat_incr2(F_hat.GetSize());
+    Vector<Complex> F_hat_incr3(F_hat.GetSize());
+    Vector<Complex> F_hat_incr4(F_hat.GetSize());
+    approxJacobiMatrix.Resize(nrMeasuredData,actNrParameter+actNrParameterC);
+    Vector<Double> parameter_incr(nrParameter);
+    Vector<Double> parameter_incr2(nrParameter);
+    Vector<Double> parameter_incr3(nrParameter);
+    Vector<Double> parameter_incr4(nrParameter);
+
+    parameter_incr=parameter;
+    parameter_incr2=parameter;
+    Integer parInd=0;
+
+    updateMaterialData(parameter, ptMaterial);
+    createF(ptMaterial, ptBCs, F_hat, FALSE);
+
+    for (Integer ind_param=0;ind_param<nrParameter;ind_param++){ 
+      if (whichParameterToUpdate[ind_param]==1){
+
+	parameter_incr[ind_param]=1.001*parameter[ind_param];
+	//	std::cout<<parameter_incr<<std::endl
+	updateMaterialData(parameter_incr,ptMaterial);
+	createF(ptMaterial,ptBCs,F_hat_incr,FALSE);
+
+	parameter_incr2[ind_param]=0.999*parameter[ind_param];	
+	//	std::cout<<parameter_incr2<<std::endl;
+	updateMaterialData(parameter_incr2,ptMaterial);
+	createF(ptMaterial,ptBCs,F_hat_incr2,FALSE);
+
+      // second order FD approximation
+  	for (Integer j=0;j<nrMeasuredData;j++)
+  	  approxJacobiMatrix[j][parInd]=0.5*(F_hat_incr[j]-F_hat_incr2[j])/
+	    ((parameter_incr[ind_param]-parameter[ind_param])*scaling[ind_param]);
+
+	    parInd++;
+	    //	std::cout<<"\n Performed second order FD Approx of Jacobian"<<std::endl;
+	parameter_incr[ind_param]=parameter[ind_param];
+	parameter_incr2[ind_param]=parameter[ind_param];
+	parameter_incr3[ind_param]=parameter[ind_param];
+	parameter_incr4[ind_param]=parameter[ind_param];
+
+      }
+    }
+
+    parInd=0;
+    for (Integer ind_param=0;ind_param<nrParameter;ind_param++){ 
+      if (whichParameterToUpdateC[ind_param]==1){
+
+	parameter_incr[ind_param]=1.001*parameterC[ind_param];
+	//	std::cout<<parameter_incr<<std::endl
+
+	updateComplexMaterialData(parameter_incr,ptMaterial);
+	createF(ptMaterial,ptBCs,F_hat_incr,FALSE);
+
+	parameter_incr2[ind_param]=0.999*parameterC[ind_param];	
+	//	std::cout<<parameter_incr2<<std::endl;
+	updateComplexMaterialData(parameter_incr2,ptMaterial);
+	createF(ptMaterial,ptBCs,F_hat_incr2,FALSE);
+
+      // second order FD approximation
+  	for (Integer j=0;j<nrMeasuredData;j++)
+  	  approxJacobiMatrix[j][actNrParameter+parInd]=0.5*(F_hat_incr[j]-F_hat_incr2[j])/
+	    ((parameter_incr[ind_param]-parameter[ind_param])*scaling[ind_param]);
+
+	    parInd++;
+	    //	std::cout<<"\n Performed second order FD Approx of Jacobian"<<std::endl;
+	parameter_incr[ind_param]=parameterC[ind_param];
+	parameter_incr2[ind_param]=parameterC[ind_param];
+	parameter_incr3[ind_param]=parameterC[ind_param];
+	parameter_incr4[ind_param]=parameterC[ind_param];
+
+      }
+    }
+        
+  } // end testJacobiMatrix
 
 
 

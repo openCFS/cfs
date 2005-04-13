@@ -33,6 +33,7 @@ namespace CoupledField
     std::ofstream * impedCurve;
     std::ofstream * piezoLog;
     std::ofstream * parLog;
+    std::ofstream * parFinal;
     //  std::ofstream impedCurve("impedCurve.dat");
     //  std::ofstream impedCurve("impedCurve.dat");
 
@@ -125,11 +126,15 @@ namespace CoupledField
     // ! nu - methods, semiiterative method, complex version
     void nuMethodsC();
 
+    // ! nu - methods, complex version - uses weighted norms
+    void nuMethodsC2();
+
     //! saves sysmat of forward problem, multiplication with \omega*\beta*j ...
     void createAndSetRHSforJacobian(Integer & fstep);
 
     //! calculates charges out of measurements of |Z|, phase and voltage for different frequencies
-    void calc_measuredCharge(Vector<Double> freqs, Vector<Double> & absZ, Vector<Double> & phi, Vector<Complex> & y_hat);
+    void calc_measuredCharge(Vector<Double> freqs, Vector<Double> & absZ,
+			     Vector<Double> & phi, Vector<Complex> & y_hat);
     
     //! calculates Euclidian vector norm
     Double a2norm(Vector<Double> &vec);
@@ -154,13 +159,21 @@ namespace CoupledField
     //! Performs a forward simulation with exact data, adds to results alternating +- 10 Percent
     void calcSyntheticData(Vector<Complex> & y_hat);
 
-    void createMaterialTensorMatrices(Vector<Double> & parameter, Matrix<Double> & couplingMatrix, Matrix<Double> & dielectricMatrix, Integer spaceDim);
+    void createMaterialTensorMatrices(Vector<Double> & parameter, Matrix<Double> & couplingMatrix,
+				      Matrix<Double> & dielectricMatrix, Integer spaceDim);
 
     //! Tests, if JacobiMatrix is more or less approximated by F(p)-F(p+delta)/delta
-    void testJacobiMatrix(Vector<Complex> & F_hat, Matrix<Complex> & JacobiMatrix, Vector<Double> & parameter,BCs * ptBCs,MaterialData * ptMaterial, Vector<Double> & parameterIncrement, Vector<Complex>& solElecPot,Vector<Complex> &solMechDispl);
+    void testJacobiMatrix(Vector<Complex> & F_hat, Matrix<Complex> & JacobiMatrix, Vector<Double> & parameter,
+			  BCs * ptBCs,MaterialData * ptMaterial, Vector<Double> & parameterIncrement, 
+			  Vector<Complex>& solElecPot,Vector<Complex> &solMechDispl);
 
-    void testJacobiMatrix2(Vector<Complex> & F_hat, Matrix<Complex> & JacobiMatrix, Vector<Double> & parameter,BCs * ptBCs,MaterialData * ptMaterial, Vector<Double> & parameterIncrement, Vector<Complex>& solElecPot,Vector<Complex> &solMechDispl);
+    void testJacobiMatrix2(Vector<Complex> & F_hat, Matrix<Complex> & JacobiMatrix, Vector<Double> & parameter,
+			   BCs * ptBCs,MaterialData * ptMaterial, Vector<Double> & parameterIncrement, 
+			   Vector<Complex>& solElecPot,Vector<Complex> &solMechDispl);
 
+
+    void testJacobiMatrixC(Vector<Complex> & F_hat, Matrix<Complex> & JacobiMatrix, Vector<Double> & parameter,
+			   BCs * ptBCs,MaterialData * ptMaterial);
     // ! The following methods serve for the determination of eigenvalues ...
 
  //    void sort_array(Integer ndim, Integer l_sort, Vector<Double> & d);

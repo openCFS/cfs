@@ -379,11 +379,10 @@ void piezoParamIdent::NewtonLandweberC(){
       JacFs_res.Resize(nrMeasuredData);
     }
 
-    std::cout<<"\n Landweber 4"<<std::endl;
+
     createF(ptMaterial, ptBCs, F_hat,TRUE);
     act_res = y_hat-F_hat;
     new_res_outer=old_res_outer=a2norm(act_res);
-    std::cout<<"\n Landweber 5"<<std::endl;
 
     for (Integer i=0;i<actNrParameter+actNrParameterC;i++){
       bas[i]=1.0;
@@ -413,7 +412,7 @@ void piezoParamIdent::NewtonLandweberC(){
       createF (ptMaterial, ptBCs, F_hat,FALSE);
       createJacobiMatrixC(JacobiMatrix);
       createAdjointJacobiMatrix(JacobiMatrix,adjJacobiMatrix);
-
+     
 
       // TEST MAT_MULT 
 
@@ -495,7 +494,7 @@ void piezoParamIdent::NewtonLandweberC(){
 
 	if (TRUE){
 	  for(Integer i=0;i<actNrParameter+actNrParameterC;i++){
-	    s[i]=s[i]-100.0*w*adjFF_res[i];
+	    s[i]=s[i]-10.0*w*adjFF_res[i];
 	    //std::cout<<"s("<<i<<")= "<<s[i]<<"; "<<std::endl;
 	  }
 	}
@@ -504,20 +503,21 @@ void piezoParamIdent::NewtonLandweberC(){
 	JacobiMatrix.Mult(s,JacFs);
 	//       std::cout<<"\n Landweber 6.5"<<std::endl;
 	//F'(p^k)(s^k)-(y-F(p^k))
- 	for (Integer i=0;i<nrMeasuredData;i++)
+ 	for (Integer i=0; i<nrMeasuredData; i++)
  	  act_res[i]-=JacFs[i];
 	//       std::cout<<"\n Landweber 6.6"<<std::endl;
 	
-	//	for (Integer i=0;i<act_res.GetSize();i++)
-	// std::cout<<"act_res= "<< act_res[i]<<std::endl;
+	//for (Integer i=0;i<act_res.GetSize();i++)
+	//std::cout<<"act_res= "<< act_res[i]<<std::endl;
 	
-	new_res_inner=a2norm(JacFs_res);
+	//	new_res_inner=a2norm(JacFs_res);
+	new_res_inner=a2norm(act_res);
 	//       std::cout<<"\n Landweber 7"<<std::endl;
 
 	if (new_res_inner>1.25*old_res_inner){
 	  std::cout << " \n !! New_res_inner is worse than old_res_inner!! "<< std::endl;
 	  break;
-	  getchar();
+	  //getchar();
 	}
 	
 	//	std::cout<<"\n new_res_inner = " << new_res_inner << ";  old_res_outer = " << old_res_outer << "; tau*delta= " << tau*delta << std::endl;
@@ -556,24 +556,31 @@ void piezoParamIdent::NewtonLandweberC(){
       scalingC[4]=1.0/((*matMatC)[3][3]); 
       scalingC[5]=1.0/((*matMatC)[6][4]);
       scalingC[6]=std::abs(1.0/((*matMatC)[8][0]));
-      scalingC[7]=-0.001/((*matMatC)[8][2]);
+      scalingC[7]=0.01/((*matMatC)[8][2]);
       scalingC[8]=1.0/((*matMatC)[6][6]); 
-      scalingC[9]=-0.01/((*matMatC)[8][8]);
+      scalingC[9]=-0.001/((*matMatC)[8][8]);
 
-      std::cout<<s<<std::cout;
+//       std::cout<<"\n s:" <<std::endl;
+//       std::cout<<s<<std::endl;
 
       for (Integer i=0;i<actNrParameter;i++)
 	stepR[i]=s[i].real();
 
+   //    std::cout<<stepR<<std::endl;
+
       for (Integer i=actNrParameter;i<actNrParameter+actNrParameterC;i++)
 	stepC[i-actNrParameter]=s[i].imag();
+//       std::cout<<"\n stepC:"<<std::endl;
+//       std::cout<<stepC*scalingC[1]<<std::endl;
+      // getchar();
 
     
     //    parameter_new=parameter;
       theta=1.0;
       setNewParameterSet(parameter, parameter, scaling, theta, stepR, whichParameterToUpdate);
+        std::cout<<parameterC<<std::endl;
       setNewParameterSet(parameterC, parameterC, scalingC, theta, stepC, whichParameterToUpdateC);
-
+  
       // if no backtracking is specified, please include the following lines!
     for (Integer i=0;i<nrParameter;i++){
 //  	parameter_new[i]=scaling[i]*parameter[i];
