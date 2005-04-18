@@ -147,7 +147,7 @@ namespace CoupledField {
   
     Integer dofsPerEQN = eqnData_->GetNumDofsPerEQN();
 
-    // Eliminate dirichlet node from RHS (due to penalty formulation)
+    // Eliminate hom. dirichlet node from RHS (due to penalty formulation)
     for (Integer i=0; i< bcs_hd_.GetSize(); i++)
       {
         dof = 1;
@@ -167,6 +167,28 @@ namespace CoupledField {
             }
           }
       }
+
+    // Eliminate inhom. dirichlet node from RHS (due to penalty formulation)
+    for (Integer i=0; i< bcs_id_.GetSize(); i++)
+      {
+        dof = 1;
+        if ( dofspernode_ > 1 ) {
+          dof = GetBCDof( inhomDirichDof_[i] );
+        }
+
+        nodes=ptBCs_->GetNodesLevel(bcs_id_[i]);
+      
+        for (std::list<Integer>::const_iterator p=nodes.begin(); 
+	     p!=nodes.end(); p++)
+          {
+            node=*p;
+            eqnData_->Node2EQN(node,dof,eqnNr,eqnDof);
+            if (eqnNr != 0){
+              actRHS[(eqnNr-1)*dofsPerEQN + eqnDof-1] = 0;
+            }
+          }
+      }
+
     return actRHS.NormL2();
   }
 
