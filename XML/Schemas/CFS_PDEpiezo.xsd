@@ -82,7 +82,7 @@
         </xsd:sequence>
 
         <!-- Subtype of PDE -->
-        <xsd:attribute name="subtype" type="xsd:token" use="optional"
+        <xsd:attribute name="subType" type="xsd:token" use="optional"
           default="planeStrain"/>
 
         <!-- Equilibration of material parameters -->
