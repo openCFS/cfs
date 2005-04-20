@@ -56,7 +56,7 @@ namespace CoupledField {
     }
 
     // Get problem geometry and PDE subtype
-    params->Get( "subtype", subType_, pdename_ );
+    params->Get( "subType", subType_, pdename_ );
     std::string probGeo;
     params->Get( "type", probGeo, "geometry" );
 
