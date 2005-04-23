@@ -3,12 +3,21 @@
 
 #include "bdbInt.hh"
 
-namespace CoupledField
-{
+namespace CoupledField {
 
 
-  void BDBInt::CalcElementMatrix(Matrix<Double>& ptCoord, Matrix<Double> & elemMat)
-  {
+  // New version seems to be buggy
+  // #define BDB_NEW_VERSION
+
+
+#ifndef BDB_NEW_VERSION
+
+  // *********************
+  //   CalcElementMatrix
+  // *********************
+  void BDBInt::CalcElementMatrix( Matrix<Double> &ptCoord,
+                                  Matrix<Double> &elemMat ) {
+
     ENTER_FCN( "BDBInt::CalcElementMatrix" );
 
     const Integer nrIntPts = ptelem->GetNumIntPoints(); 
@@ -24,51 +33,213 @@ namespace CoupledField
     Matrix<Double> partElemMat;
   
     elemMat.Resize(nrNodes * nrDofs);
-    elemMat.Init();
+    // elemMat.Init();
+    dB.Resize( getDimD(), nrNodes * nrDofs );
 
 
-    if (!updateDMatInEveryIP_)
-      calcDMat(dMat);
-    
-    for (Integer actIntPt=1; actIntPt<=nrIntPts; actIntPt++)
-      {
-	if (updateDMatInEveryIP_)
-	  calcDMat(dMat, actIntPt, ptCoord);
-    
-	calcBMat(bMat, actIntPt, ptCoord);
+    // If the material parameters are constant within the element
+    // we can compute the D matrix once and for all
+    if ( updateDMatInEveryIP_ == FALSE ) {
+      calcDMat( dMat );
+    }
 
-	dB = dMat * bMat;
-	bMat.Transpose(bTrans);
-	partElemMat = bTrans * dB;
+    // Loop over all integration points
+    for ( Integer actIntPt = 1; actIntPt <= nrIntPts; actIntPt++ ) {
 
-	jacDet = ptelem->CalcJacobianDetAtIp(actIntPt,ptCoord);
-
-	if (jacDet < 0)
-	  Error("Negative Jacobian determinant!", __FILE__, __LINE__);
-
-	if (isaxi_)
-	  {
-	    Vector<Double> ShpFncAtIp;
-	    Vector<Double> CoordAtIP;
-	    ptelem->GetShFncAtIp(ShpFncAtIp,actIntPt);
-
-	    CoordAtIP = ptCoord * ShpFncAtIp;
-            jacDet *= 2 * PI * CoordAtIP[0];
-	  }
-
-	elemMat += partElemMat * jacDet * intWeights[actIntPt-1] ;
+      // Check if D matrix must be re-determined for
+      // the current integration point
+      if ( updateDMatInEveryIP_ == TRUE ) {
+        calcDMat( dMat, actIntPt, ptCoord );
       }
+
+      // Setup the B matrix for this integration point
+      calcBMat( bMat, actIntPt, ptCoord );
+
+      dMat.Mult( bMat, dB );
+      // dB = dMat * bMat;
+      bMat.Transpose(bTrans);
+      partElemMat = bTrans * dB;
+
+      jacDet = ptelem->CalcJacobianDetAtIp( actIntPt, ptCoord );
+
+      // Perform a safety check
+      if ( jacDet < 0.0 ) {
+        (*error) << "BDBInt::CalcElementMatrix: Encountered "
+                 << "negative Jacobian determinant!";
+        Error( __FILE__, __LINE__ );
+      }
+
+      // Special things must be done in the axi-symmetric case
+      if ( isaxi_ ) {
+        Vector<Double> ShpFncAtIp;
+        Vector<Double> CoordAtIP;
+        ptelem->GetShFncAtIp( ShpFncAtIp, actIntPt );
+
+        CoordAtIP = ptCoord * ShpFncAtIp;
+        jacDet *= 2 * PI * CoordAtIP[0];
+      }
+
+      elemMat += partElemMat * jacDet * intWeights[actIntPt-1];
+    }
+
   }
 
+#else
 
-  void BDBInt::CalcComplexElementMatrix(Matrix<Double> & ptCoord, Matrix<Complex> & elemMat,Double & beta, Double & omega)
-  {
+
+  // =====================
+  //   CalcElementMatrix
+  // =====================
+  void BDBInt::CalcElementMatrix( Matrix<Double> &ptCoord,
+                                  Matrix<Double> &elemMat ) {
+
+    ENTER_FCN( "BDBInt::CalcElementMatrix" );
+
+    const Integer nrIntPts = ptelem->GetNumIntPoints(); 
+    const Integer nrNodes  = ptelem->GetNumNodes();   
+    const Integer nrDofs   = getNrDofs();  
+    const Vector<Double> & intWeights = ptelem->GetIntWeights();  
+    double jacDet;
+
+    Matrix<Double> bMat; 
+    Matrix<Double> dMat; 
+    Matrix<Double> dbMat; 
+    Double aux, fac, *ptr1, *ptr2;
+
+    elemMat.Resize( nrNodes * nrDofs );
+    // elemMat.Init(); <- done by resize anyway
+
+    dbMat.Resize( getDimD(), nrNodes * nrDofs );
+
+
+    // **************************************************
+    //  Material matrix independent of integration point
+    // **************************************************
+    if ( updateDMatInEveryIP_ == FALSE ) {
+
+      // Setup material matrix once and for all
+      calcDMat( dMat );
+
+      // Loop over all integration points
+      for ( Integer actIntPt = 1; actIntPt <= nrIntPts; actIntPt++ ) {
+
+        // Setup the B matrix for current integration point
+        calcBMat( bMat, actIntPt, ptCoord );
+
+        // Compute Jacobian for integration point
+        jacDet = ptelem->CalcJacobianDetAtIp( actIntPt, ptCoord );
+
+        // Perform a safety check
+        if ( jacDet < 0.0 ) {
+          (*error) << "BDBInt::CalcElementMatrix: Encountered "
+                   << "negative Jacobian determinant!";
+          Error( __FILE__, __LINE__ );
+        }
+
+        // Special things must be done in the axi-symmetric case
+        if ( isaxi_ ) {
+          Vector<Double> ShpFncAtIp;
+          Vector<Double> CoordAtIP;
+          ptelem->GetShFncAtIp( ShpFncAtIp, actIntPt );
+
+          CoordAtIP = ptCoord * ShpFncAtIp;
+          jacDet *= 2 * PI * CoordAtIP[0];
+        }
+
+        // Compute the matrix product D * B and store as intermediate matrix
+        dMat.Mult( bMat, dbMat );
+
+        // We now compute B^T * D * B and scale it by the determinant
+        // of the Jacobian and the weight of the current integration
+        // point. The result is added to the element matrix.
+        fac = jacDet * intWeights[actIntPt-1];
+        for ( Integer k = 0; k < bMat.GetSizeRow(); k++ ) {
+          ptr1 =  bMat[k];
+          ptr2 = dbMat[k];
+          for ( Integer i = 0; i < bMat.GetSizeCol(); i++ ) {
+            aux = fac * ptr2[i];
+            for ( Integer j = 0; j < dbMat.GetSizeCol(); j++ ) {
+              elemMat[i][j] += aux * ptr2[j];
+            }
+          }
+        }
+      }
+    }
+
+
+    // **********************************************
+    //  Material matrix depends on integration point
+    // **********************************************
+    else {
+
+      // Loop over all integration points
+      for ( Integer actIntPt = 1; actIntPt <= nrIntPts; actIntPt++ ) {
+
+        // Setup material matrix for current integration point
+        calcDMat( dMat, actIntPt, ptCoord );
+
+        // Setup the B matrix for current integration point
+        calcBMat( bMat, actIntPt, ptCoord );
+
+        // Compute Jacobian for integration point
+        jacDet = ptelem->CalcJacobianDetAtIp( actIntPt, ptCoord );
+
+        // Perform a safety check
+        if ( jacDet < 0.0 ) {
+          (*error) << "BDBInt::CalcElementMatrix: Encountered "
+                   << "negative Jacobian determinant!";
+          Error( __FILE__, __LINE__ );
+        }
+
+        // Special things must be done in the axi-symmetric case
+        if ( isaxi_ ) {
+          Vector<Double> ShpFncAtIp;
+          Vector<Double> CoordAtIP;
+          ptelem->GetShFncAtIp( ShpFncAtIp, actIntPt );
+
+          CoordAtIP = ptCoord * ShpFncAtIp;
+          jacDet *= 2 * PI * CoordAtIP[0];
+        }
+
+        // Compute the matrix product D * B and store as intermediate matrix
+        dbMat.Resize( dMat.GetSizeRow(), bMat.GetSizeCol() );
+        dMat.Mult( bMat, dbMat );
+
+        // We now compute B^T * D * B and scale it by the determinant
+        // of the Jacobian and the weight of the current integration
+        // point. The result is added to the element matrix.
+        fac = jacDet * intWeights[actIntPt-1];
+        for ( Integer k = 0; k < bMat.GetSizeRow(); k++ ) {
+          ptr1 =  bMat[k];
+          ptr2 = dbMat[k];
+          for ( Integer i = 0; i < bMat.GetSizeCol(); i++ ) {
+            aux = fac * ptr2[i];
+            for ( Integer j = 0; j < dbMat.GetSizeCol(); j++ ) {
+              elemMat[i][j] += aux * ptr2[j];
+            }
+          }
+        }
+      }
+    }
+  }
+
+#endif
+
+
+
+  // ****************************
+  //   CalcComplexElementMatrix
+  // ****************************
+  void BDBInt::CalcComplexElementMatrix( Matrix<Double> &ptCoord,
+                                         Matrix<Complex> &elemMat,
+                                         Double &beta, Double &omega ) {
+
     ENTER_FCN( "BDBInt::CalcComplexElementMatrix" );
 
     const Integer nrIntPts = ptelem->GetNumIntPoints(); 
-     const Integer nrNodes  = ptelem->GetNumNodes();   
-     const Integer nrDofs   = getNrDofs();  
-     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
+    const Integer nrNodes  = ptelem->GetNumNodes();   
+    const Integer nrDofs   = getNrDofs();  
+    const Vector<Double> & intWeights = ptelem->GetIntWeights();  
     double jacDet;
  
     Matrix<Double> bMat; 
@@ -78,96 +249,109 @@ namespace CoupledField
     Matrix<Complex> partElemMat;
   
     elemMat.Resize(nrNodes * nrDofs);
-    elemMat.Init();
+    // elemMat.Init(); <- done by resize anyway
     
-    calcDMaterialMatWithComplexDamping(dMat,beta,omega);
-	//      calcDMat(dMat);
+    calcDMaterialMatWithComplexDamping( dMat, beta, omega );
     
-    for (Integer actIntPt=1; actIntPt<=nrIntPts; actIntPt++)
-      {
-	if (updateDMatInEveryIP_)
-	  calcDMaterialMatWithComplexDamping(dMat,beta,omega);
-	  //	  calcDMat(dMat, actIntPt, ptCoord);
-    
-	calcBMat(bMat, actIntPt, ptCoord);
-      
-	//	std::cout<<"BMat= "<< bMat.GetSizeRow()<< " x " << bMat.GetSizeCol()<< " DMat = "<< dMat.GetSizeRow()<< " x " << dMat.GetSizeCol() <<  std::endl;
+    for ( Integer actIntPt = 1; actIntPt <= nrIntPts; actIntPt++ ) {
 
-	//   hardcoded dB = dMat * bMat;
-	dB.Resize(dMat.GetSizeRow(), bMat.GetSizeCol());
-	Complex a;
-
-	for (int i = 0; i < dMat.GetSizeRow(); i++)
-	  for (int j = 0; j < bMat.GetSizeCol(); j++)
-	    {       
-	      a = dMat[i][0] * bMat[0][j];
-	      for (Integer k = 1; k <bMat.GetSizeRow(); k++)
-		a += dMat[i][k] * bMat[k][j];
-	      dB[i][j] = a;
-	    }  
-
-	bMat.Transpose(bTrans);
-
-	//	hardcoded: partElemMat = bTrans * dB;
-	partElemMat.Resize(bTrans.GetSizeRow(), dB.GetSizeCol());
-	for (int i = 0; i < bTrans.GetSizeRow(); i++)
-	  for (int j = 0; j < dB.GetSizeCol(); j++)
-	    {       
-	      a = bTrans[i][0] *dB[0][j];
-	      for (Integer k = 1; k <dB.GetSizeRow(); k++)
-		a += bTrans[i][k] * dB[k][j];
-	     partElemMat[i][j] = a;
-	    }
-        
-	jacDet = ptelem->CalcJacobianDetAtIp(actIntPt,ptCoord);
-
-	if (jacDet < 0)
-	  Error("Negative Jacobian determinant!", __FILE__, __LINE__);
-
-	if (isaxi_)
-	  {
-	    Vector<Double> ShpFncAtIp;
-	    Vector<Double> CoordAtIP;
-	    ptelem->GetShFncAtIp(ShpFncAtIp,actIntPt);
-
-	    CoordAtIP = ptCoord * ShpFncAtIp;
-            jacDet *= 2 * PI * CoordAtIP[0];
-	  }
-
-	for (int i = 0; i < elemMat.GetSizeRow(); i++)
-	  for (int j = 0; j < elemMat.GetSizeCol(); j++)
-       	elemMat[i][j] = elemMat[i][j]+ partElemMat[i][j] * jacDet * intWeights[actIntPt-1] ;
+      if (updateDMatInEveryIP_) {
+        calcDMaterialMatWithComplexDamping(dMat,beta,omega);
       }
+
+      calcBMat(bMat, actIntPt, ptCoord);
+      
+      //   hardcoded dB = dMat * bMat;
+      dB.Resize(dMat.GetSizeRow(), bMat.GetSizeCol());
+      Complex a;
+
+      for ( int i = 0; i < dMat.GetSizeRow(); i++ ) {
+        for ( int j = 0; j < bMat.GetSizeCol(); j++ ) {       
+          a = dMat[i][0] * bMat[0][j];
+          for ( Integer k = 1; k < bMat.GetSizeRow(); k++ ) {
+            a += dMat[i][k] * bMat[k][j];
+          }
+          dB[i][j] = a;
+        }
+      }
+
+      bMat.Transpose(bTrans);
+
+      // hardcoded: partElemMat = bTrans * dB;
+      partElemMat.Resize(bTrans.GetSizeRow(), dB.GetSizeCol());
+      for ( int i = 0; i < bTrans.GetSizeRow(); i++ ) {
+        for ( int j = 0; j < dB.GetSizeCol(); j++ ) {       
+          a = bTrans[i][0] *dB[0][j];
+          for ( Integer k = 1; k < dB.GetSizeRow(); k++ ) {
+            a += bTrans[i][k] * dB[k][j];
+          }
+          partElemMat[i][j] = a;
+        }
+      }
+
+      jacDet = ptelem->CalcJacobianDetAtIp(actIntPt,ptCoord);
+
+      // Perform a safety check
+      if ( jacDet < 0.0 ) {
+        (*error) << "BDBInt::CalcElementMatrix: Encountered "
+                 << "negative Jacobian determinant!";
+        Error( __FILE__, __LINE__ );
+      }
+
+      if (isaxi_) {
+        Vector<Double> ShpFncAtIp;
+        Vector<Double> CoordAtIP;
+        ptelem->GetShFncAtIp(ShpFncAtIp,actIntPt);
+
+        CoordAtIP = ptCoord * ShpFncAtIp;
+        jacDet *= 2 * PI * CoordAtIP[0];
+      }
+
+      for ( int i = 0; i < elemMat.GetSizeRow(); i++ ) {
+        for ( int j = 0; j < elemMat.GetSizeCol(); j++ ) {
+          elemMat[i][j] += partElemMat[i][j] * jacDet *
+            intWeights[actIntPt-1] ;
+        }
+      }
+    }
   }
 
 
-  BDBInt::BDBInt()
-  {
+  // ***************
+  //   Constructor
+  // ***************
+  BDBInt::BDBInt() {
     ENTER_FCN( "BDBInt::BDBInt" );
     baseType_ = STIFFNESS;
   }
 
 
-  BDBInt::BDBInt(BaseFE * aptelem, MaterialData & matData) 
-    : BaseForm(aptelem, matData), updateDMatInEveryIP_(0)
-  {
+  // ***************
+  //   Constructor
+  // ***************
+  BDBInt::BDBInt( BaseFE *aptelem, MaterialData &matData )
+    : BaseForm(aptelem, matData), updateDMatInEveryIP_(0) {
     ENTER_FCN( "BDBInt::BDBInt" );
     baseType_ = STIFFNESS;
   }
 
 
-  BDBInt::BDBInt(MaterialData & matData) 
-    : BaseForm(matData), updateDMatInEveryIP_(0)
-  {
+  // ***************
+  //   Constructor
+  // ***************
+  BDBInt::BDBInt( MaterialData &matData ) 
+    : BaseForm(matData), updateDMatInEveryIP_(0) {
     ENTER_FCN( "BDBInt::BDBInt" );
     baseType_ = STIFFNESS;
   }
 
   
-  BDBInt::~BDBInt()
-  {
+  // **************
+  //   Destructor
+  // **************
+  BDBInt::~BDBInt() {
     ENTER_FCN( "BDBInt::~BDBInt" );
   }
 
 
-} // namespace CoupledField
+}

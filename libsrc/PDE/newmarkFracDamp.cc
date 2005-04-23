@@ -14,6 +14,7 @@
 namespace CoupledField {
 
 NewmarkFracDamp::NewmarkFracDamp(std::string apdename,
+				 const PdeIdType apdeId,
 				 BaseSystem * algebraicsystem,
 				 NodeEQN * ptEQN, Grid * aptgrid,
 				 StdPDE * aptStdPDE,
@@ -26,6 +27,7 @@ NewmarkFracDamp::NewmarkFracDamp(std::string apdename,
   ENTER_FCN( "NewmarkFracDamp::NewmarkFracDamp" );
   
   pdename_     = apdename;
+  pdeId_       = apdeId;
   ptgrid_      = aptgrid;
   ptStdPDE_   =  aptStdPDE;
 
@@ -216,8 +218,8 @@ void NewmarkFracDamp::UpdateRHS()
 #endif
 	  
 	  //assemble to RHS
-	  algsys_->SetElementRHS(&rhsAssemble[0], connect_PDE.GetPointer(),
-							 connect_PDE.GetSize());
+	  algsys_->SetElementRHS(&rhsAssemble[0], pdeId_, connect_PDE.GetPointer(),
+				 connect_PDE.GetSize());
 	  
 	  delete bilinear_mass;	  
 	}
@@ -302,8 +304,8 @@ void NewmarkFracDamp::CalcParameters(Double dt)
 
 
 void NewmarkFracDamp::GetElemSolution ( const Vector<Double>& sol, 
-									Vector<Double>& elemsol,
-									const StdVector<Integer> & connectPDE )
+					Vector<Double>& elemsol,
+					const StdVector<Integer> & connectPDE )
 {
   ENTER_FCN( "NewmarkFracDamp::GetElemSolution" );
    

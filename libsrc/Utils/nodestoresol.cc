@@ -588,41 +588,18 @@ void NodeStoreSol<Complex>::CopyFromAlgSysDataPointer(Double * ptr)
 
 
 template<class TYPE>
-void NodeStoreSol<TYPE>::SetAlgSysDataPointer(Double * ptr)
+void NodeStoreSol<TYPE>::SetAlgSysDataPointer( Integer size, TYPE * ptr)
 {
   ENTER_FCN("NodeStoreSol::SetAlgSysDataPointer");
-#ifdef CHECK_INITIALIZED
-  if (length_ == 0) Error("NodeStoreSol: Use of uninitialized object!",
-				__FILE__,__LINE__);
-#endif
   
-  
-  data_.data_ = ptr;
-
-}
-
-template<>
-void NodeStoreSol<Complex>::SetAlgSysDataPointer(Double * ptr)
-{
-  ENTER_FCN("NodeStoreSol::SetAlgSysDataPointer");
-#ifdef CHECK_INITIALIZED
-  if (length_ == 0) Error("NodeStoreSol: Use of uninitialized object!",
-				__FILE__,__LINE__);
-#endif
-  
-  if (data_.GetSize() == 0)
-    data_.Resize(lengthVector_);
-  
-  for (Integer i=0; i<lengthVector_; i++)
-    data_.data_[i] = Complex(ptr[2*i],ptr[2*i+1]);
-
+  data_.Replace( size, ptr, FALSE );
 }
 
 
 template<>
 Double* NodeStoreSol<Double>::GetAlgSysDoublePointer()
 {
-  ENTER_FCN("NodeStoreSol::GetDoublePointer");
+  ENTER_FCN("NodeStoreSol::GetAlgSysDoublePointer");
 #ifdef CHECK_INITIALIZED
   if (length_ == 0) Error("NodeStoreSol: Use of uninitialized object!",
 				__FILE__,__LINE__);

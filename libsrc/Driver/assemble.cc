@@ -24,7 +24,9 @@ namespace CoupledField {
      actlevel_(0),
      integrators_(0),
      rhsIntegrators_(0),
-     rhsSrcIntegrators_(0)
+     rhsSrcIntegrators_(0),
+     pdeId1_(NO_PDE_ID),
+     pdeId2_(NO_PDE_ID)
   {
     ENTER_FCN( "Assemble::Assemble" );
     firstTime_ = TRUE;
@@ -61,16 +63,46 @@ namespace CoupledField {
         delete (*rhsIntegrators_[i])[j];
   }
 
-  void Assemble::SetPtr2EQNData(NodeEQN * aPtNodeEQN)
+
+  void Assemble::SetPDEId( const PdeIdType id1,
+			   const PdeIdType id2 )
+  {
+    ENTER_FCN( "Assemble::SetPdeId" );
+    
+    if ( id1 == NO_PDE_ID )
+      Error( "Assemble::SetPdeId: The Id is empty!" );
+    
+    pdeId1_ = id1;
+
+    // Set identifier for second pde equal to that of the
+    // first one. This indicates, that the element matrices
+    // have to be assembled onto the on-diagonal positions.
+    if ( id2 == NO_PDE_ID)
+      pdeId2_ = pdeId1_;
+    else
+      pdeId2_ = id2;
+  }
+
+  void Assemble::SetPtr2EQNData(NodeEQN * aPtNodeEQN1,
+				NodeEQN * aPtNodeEQN2)
   {
     ENTER_FCN( "Assemble::SetPtr2EQNData" );
-    if (aPtNodeEQN == NULL)
+
+    if (aPtNodeEQN1 == NULL)
       Error( "The NodeEQN object is not created yet" , __FILE__, __LINE__);
     
-    if (! aPtNodeEQN->IsInitialized())
+    if (! aPtNodeEQN1->IsInitialized())
       Error( "The NodeEQN object has to be initialized before assigning it to\
               an assemble object by calling 'CalcMapping()'", __FILE__, __LINE__);
-    ptEQN_ = aPtNodeEQN;
+    ptEQN1_ = aPtNodeEQN1;
+
+    // check if a second eqn-object is present.
+    // If not, the same is used two times
+    if (aPtNodeEQN2 == NULL)
+      ptEQN2_ = aPtNodeEQN1;
+    else
+      ptEQN2_ = aPtNodeEQN2;
+    
   }
 
 
@@ -119,7 +151,7 @@ namespace CoupledField {
           Error("ElecPDE: set input_coupling_terms = smoothdisplacement or nonlin = no");
 
         StdVector<Integer> connect_PDE;
-        ptEQN_->Mesh2PDENode(connect_PDE, connect);
+        ptEQN1_->Mesh2PDENode(connect_PDE, connect);
         Double val;
         for (Integer i=0; i<coordMat.GetSizeRow(); i++)
           for (Integer j=0; j<coordMat.GetSizeCol(); j++) 
@@ -200,18 +232,13 @@ namespace CoupledField {
             GetElemCoords(connecth, ptCoord, level);
                     
             // map connect to PDE node numbers
-            StdVector<Integer> connect_PDE;
+            StdVector<Integer> connect_PDE1, connect_PDE2;
                     
-            ptEQN_->Node2EQN(connecth, connect_PDE);
+            ptEQN1_->Node2EQN(connecth, connect_PDE1);
+            ptEQN2_->Node2EQN(connecth, connect_PDE2);
                     
             Matrix<Double> elSol;
                     
-
-            // this matrix is nonlinear and, therefore, has to be reassembled next time
-            if ((oneIntIsNonlin_ || firstTime_ ) && analysisType_ != HARMONIC)
-              // fetch solution at element nodes
-              sol_->GetElemSolutionAsMatrix(elSol, connecth);
-            
             actDescriptor->GetIntegrator()->SetElemPtr(ptEl);
             FEMatrixType destMat = actDescriptor->DestMat();
                 
@@ -219,7 +246,7 @@ namespace CoupledField {
             if (actDescriptor->IsNonLin()) {
               oneIntIsNonlin_ = TRUE;
               reassembleMat_[actDescriptor->DestMat()] = TRUE;
-              
+              sol_->GetElemSolutionAsMatrix(elSol, connecth);
               actDescriptor->GetIntegrator()->SetActElemSol(elSol);
             }       
 
@@ -237,11 +264,16 @@ namespace CoupledField {
               TransformMatrix2Harmonic(harmonicVec,elemmat, actDescriptor->GetOrigMatrixType(),
                                        actDescriptor->GetPiezoMaterialType());
          
-              algsys_->SetElementMatrix(&harmonicVec[0], connect_PDE.GetPointer(), connect_PDE.GetSize(), destMat);
+	      algsys_->SetElementMatrix( destMat, &harmonicVec[0], 
+					 pdeId1_, connect_PDE1.GetPointer(), connect_PDE1.GetSize(),
+					 pdeId2_, connect_PDE2.GetPointer(), connect_PDE2.GetSize() );
+
             }
             else {
-	      algsys_->SetElementMatrix(elemmat.GetDataPointer(), connect_PDE.GetPointer(), 
-                                        connect_PDE.GetSize(), destMat);
+
+	      algsys_->SetElementMatrix( destMat, elemmat.GetDataPointer(), 
+					 pdeId1_, connect_PDE1.GetPointer(), connect_PDE1.GetSize(), 
+					 pdeId2_, connect_PDE2.GetPointer(), connect_PDE2.GetSize() );
 	    }
 #ifdef DEBUG
             // output matrices
@@ -267,11 +299,15 @@ namespace CoupledField {
               if (analysisType_ == HARMONIC) {
                 TransformMatrix2Harmonic(harmonicVec,elemmat,actDescriptor->GetOrigSecMatrixType(),
                                          actDescriptor->GetPiezoMaterialType());
-                algsys_->SetElementMatrix(&harmonicVec[0], connect_PDE.GetPointer(),connect_PDE.GetSize(), destMat);
+	
+		algsys_->SetElementMatrix( destMat, &harmonicVec[0], 
+					   pdeId1_, connect_PDE1.GetPointer(), connect_PDE1.GetSize(), 
+					   pdeId2_, connect_PDE2.GetPointer(), connect_PDE2.GetSize() );
               }
               else
-                algsys_->SetElementMatrix(elemmat.GetDataPointer(), connect_PDE.GetPointer(), 
-                                          connect_PDE.GetSize(), actDescriptor->GetSecondaryMat()); 
+		algsys_->SetElementMatrix(  actDescriptor->GetSecondaryMat(), elemmat.GetDataPointer(), 
+					    pdeId1_, connect_PDE1.GetPointer(), connect_PDE1.GetSize(), 
+					    pdeId2_, connect_PDE2.GetPointer(), connect_PDE2.GetSize());
             }
                   
           } //over all elements of subdomain            
@@ -304,8 +340,10 @@ namespace CoupledField {
           GetElemCoords(connecth, ptCoord, level);
 
           // map connect to PDE node numbers
-          StdVector<Integer> connect_PDE;
-          ptEQN_->Node2EQN(connecth, connect_PDE);
+          StdVector<Integer> connect_PDE1, connect_PDE2;
+          ptEQN1_->Node2EQN(connecth, connect_PDE1);
+	  ptEQN2_->Node2EQN(connecth, connect_PDE2);
+	  
               
           Matrix<Double> elSol;
               
@@ -336,25 +374,34 @@ namespace CoupledField {
                       
               actDescriptor->GetIntegrator()->CalcElementMatrix(ptCoord, elemmat);
 
-              if (analysisType_ ==HARMONIC) {
+              if (analysisType_ == HARMONIC) {
                 TransformMatrix2Harmonic(harmonicVec,elemmat, actDescriptor->GetOrigMatrixType(),
                                          actDescriptor->GetPiezoMaterialType());
-                algsys_->SetElementMatrix(&harmonicVec[0], connect_PDE.GetPointer(),connect_PDE.GetSize(), destMat);
+		
+		algsys_->SetElementMatrix( destMat, &harmonicVec[0], 
+					   pdeId1_, connect_PDE1.GetPointer(), connect_PDE1.GetSize(),
+					   pdeId2_, connect_PDE2.GetPointer(), connect_PDE2.GetSize());
               }
-
               else
-                algsys_->SetElementMatrix(elemmat.GetDataPointer(), connect_PDE.GetPointer(), connect_PDE.GetSize(), destMat);
+		algsys_->SetElementMatrix( destMat, elemmat.GetDataPointer(), 
+					   pdeId1_, connect_PDE1.GetPointer(), connect_PDE1.GetSize(),
+					   pdeId2_, connect_PDE1.GetPointer(), connect_PDE1.GetSize() );
+
                         
               if (actDescriptor->GetSecondaryMat()  != NOTYPE ) {
                 elemmat *= actDescriptor->GetSecMatFac();
                 if (analysisType_ == HARMONIC) {
                   TransformMatrix2Harmonic(harmonicVec,elemmat,actDescriptor->GetOrigSecMatrixType(),
                                            actDescriptor->GetPiezoMaterialType());
-                  algsys_->SetElementMatrix(&harmonicVec[0], connect_PDE.GetPointer(), connect_PDE.GetSize(), destMat);
+		  
+		  algsys_->SetElementMatrix( destMat, &harmonicVec[0], 
+					     pdeId1_, connect_PDE1.GetPointer(), connect_PDE1.GetSize(),
+					     pdeId2_, connect_PDE2.GetPointer(), connect_PDE2.GetSize() );
                 }
                 else
-                  algsys_->SetElementMatrix(elemmat.GetDataPointer(), connect_PDE.GetPointer(), 
-                                            connect_PDE.GetSize(), actDescriptor->GetSecondaryMat()); 
+		  algsys_->SetElementMatrix(  actDescriptor->GetSecondaryMat(), elemmat.GetDataPointer(), 
+					      pdeId1_, connect_PDE1.GetPointer(), connect_PDE1.GetSize(),
+					      pdeId2_, connect_PDE2.GetPointer(), connect_PDE2.GetSize() );
               }
             }           
           }
@@ -410,7 +457,7 @@ namespace CoupledField {
             
                 // map connect to PDE node numbers
                 StdVector<Integer> connect_PDE;
-                ptEQN_->Node2EQN(connecth, connect_PDE);
+                ptEQN1_->Node2EQN(connecth, connect_PDE);
                 for(Integer actRhsInt=0; actRhsInt < rhsSrcIntegrators_[actDom]->GetSize(); actRhsInt++)
                   {
                     BaseIntDescriptor * actRhsID = (*rhsSrcIntegrators_[actDom])[actRhsInt];
@@ -422,12 +469,12 @@ namespace CoupledField {
                     
                     if (analysisType_ == HARMONIC) {
                       TransformVector2Harmonic(harmVec,elemVec,valPhase);
-                      algsys_->SetElementRHS(&harmVec[0], connect_PDE.GetPointer(), connect_PDE.GetSize());
+                      algsys_->SetElementRHS(&harmVec[0], pdeId1_, connect_PDE.GetPointer(), connect_PDE.GetSize());
                     }
                     else {
                       if (val_tfunc != 1.0)
                         elemVec *= val_tfunc;
-                      algsys_->SetElementRHS(&elemVec[0], connect_PDE.GetPointer(), connect_PDE.GetSize());
+                      algsys_->SetElementRHS(&elemVec[0], pdeId1_, connect_PDE.GetPointer(), connect_PDE.GetSize());
                     }
                   }
               }
@@ -461,7 +508,7 @@ namespace CoupledField {
             
                 // map connect to PDE node numbers
                 StdVector<Integer> connect_PDE;
-                ptEQN_->Node2EQN(connecth, connect_PDE);
+                ptEQN1_->Node2EQN(connecth, connect_PDE);
                 for(Integer actRhsInt=0; actRhsInt < rhsSrcSurfIntegrators_[actSurf]->GetSize(); actRhsInt++)
                   {
                     BaseIntDescriptor * actRhsID = (*rhsSrcSurfIntegrators_[actSurf])[actRhsInt];
@@ -472,13 +519,13 @@ namespace CoupledField {
                     actRhsID->GetIntegrator()->CalcElemVector(ptCoord, elemVec);
                     if (analysisType_ == HARMONIC) {
                       TransformVector2Harmonic(harmVec,elemVec,valPhase);
-                      algsys_->SetElementRHS(&harmVec[0], connect_PDE.GetPointer(), 
+                      algsys_->SetElementRHS(&harmVec[0], pdeId1_, connect_PDE.GetPointer(), 
                                              connect_PDE.GetSize());
                     }
                     else {
                       if (val_tfunc != 1.0)
                         elemVec *= val_tfunc;
-                      algsys_->SetElementRHS(&elemVec[0], connect_PDE.GetPointer(), connect_PDE.GetSize());
+                      algsys_->SetElementRHS(&elemVec[0], pdeId1_, connect_PDE.GetPointer(), connect_PDE.GetSize());
                     }
                   }
               }
@@ -520,8 +567,8 @@ namespace CoupledField {
             
             val = loadVals_[actDom] * val_tfunc;
 
-            ptEQN_->Node2EQN(node,dof,eqnNr,eqnDof);
-            algsys_->SetNodeRHS(val, eqnNr, eqnDof);    
+            ptEQN1_->Node2EQN(node,dof,eqnNr,eqnDof);
+            algsys_->SetNodeRHS(val, pdeId1_, eqnNr, eqnDof);    
           }
       }
   }
@@ -559,7 +606,7 @@ namespace CoupledField {
 
                 // map connect to PDE node numbers
                 StdVector<Integer> connect_PDE;
-                ptEQN_->Node2EQN(connecth, connect_PDE);
+                ptEQN1_->Node2EQN(connecth, connect_PDE);
                 
                 Matrix<Double> elSol;
                 
@@ -582,7 +629,7 @@ namespace CoupledField {
                     Vector<Double> elemVec;
                     actRhsID->GetIntegrator()->CalcElemVector(ptCoord, elemVec);
                     
-                    algsys_->SetElementRHS(&elemVec[0], connect_PDE.GetPointer(), connect_PDE.GetSize());
+                    algsys_->SetElementRHS(&elemVec[0], pdeId1_, connect_PDE.GetPointer(), connect_PDE.GetSize());
                   }
               }
           }
@@ -625,14 +672,14 @@ namespace CoupledField {
             dampingValue_ = springDampVals_[actDom]  * val_tfunc;
             stiffnessValue_ = springStiffVals_[actDom] * val_tfunc;
 
-            ptEQN_->Node2EQN(node,dof,eqnNr,eqnDof);
+            ptEQN1_->Node2EQN(node,dof,eqnNr,eqnDof);
 
 	    if (analysisType_==TRANSIENT)
 	      {
 		if (abs(massValue_)>1e-30) 
 		  {
 		    Info->PrintF ("",  "Adding a value to the mass matrix\n");
-		    algsys_->AddToDiagMatrixEntry(MASS, eqnNr, eqnDof, &massValue_ );
+		    algsys_->AddToDiagMatrixEntry(MASS, pdeId1_, eqnNr, eqnDof, &massValue_ );
 		  }
 		if (abs(dampingValue_)>1e-30) 
 		  {
@@ -640,12 +687,12 @@ namespace CoupledField {
 		      Error("The damping value of a spring can only be added to the damping matrix when there exist one! ",__FILE__,__LINE__);
 
 		    Info->PrintF ("", "Adding a value to the damping matrix");
-		    algsys_->AddToDiagMatrixEntry(DAMPING, eqnNr, eqnDof, &dampingValue_ );
+		    algsys_->AddToDiagMatrixEntry(DAMPING, pdeId1_, eqnNr, eqnDof, &dampingValue_ );
 		  }
 		if (abs(stiffnessValue_)>1e-30) 
 		  {
 		    Info->PrintF ("", "Adding a value to the stiffness matrix");
-		    algsys_->AddToDiagMatrixEntry(STIFFNESS, eqnNr, eqnDof, &stiffnessValue_ );
+		    algsys_->AddToDiagMatrixEntry(STIFFNESS, pdeId1_, eqnNr, eqnDof, &stiffnessValue_ );
 		  }
 	      }
 
@@ -654,7 +701,7 @@ namespace CoupledField {
 		if (abs(stiffnessValue_)>1e-30)
 		  {
 		    Info->PrintF ("", "Adding a value to the stiffness matrix");
-		    algsys_->AddToDiagMatrixEntry(SYSTEM, eqnNr, eqnDof, &stiffnessValue_ );
+		    algsys_->AddToDiagMatrixEntry(SYSTEM, pdeId1_, eqnNr, eqnDof, &stiffnessValue_ );
 		  }
 		if (abs(dampingValue_)>1e-30 || abs(massValue_)>1e-30 ) 
 		  Error("The damping and mass value of a spring will not considered in an static analysis! ",__FILE__,__LINE__);
@@ -687,28 +734,28 @@ namespace CoupledField {
 
 
 
-  void Assemble::InitMatrices()
-  {
-    ENTER_FCN( "Assemble::InitMatrices" );
+//   void Assemble::InitMatrices()
+//   {
+//     ENTER_FCN( "Assemble::InitMatrices" );
 
-    //set firstTime_ to TRUE, so that assembling of element matrices will be preformed
-    firstTime_ = TRUE;
+//     //set firstTime_ to TRUE, so that assembling of element matrices will be preformed
+//     firstTime_ = TRUE;
 
-    // Initialize matrices in order to get BCs correct
-    algsys_->InitMatrix(SYSTEM);
+//     // Initialize matrices in order to get BCs correct
+//     algsys_->InitMatrix(SYSTEM);
 
-    if (stiffnessMatrix_)
-      algsys_->InitMatrix(STIFFNESS);
+//     if (stiffnessMatrix_)
+//       algsys_->InitMatrix(STIFFNESS);
     
-    if (dampingMatrix_)
-      algsys_->InitMatrix(DAMPING);
+//     if (dampingMatrix_)
+//       algsys_->InitMatrix(DAMPING);
 
-    if (convectionMatrix_)
-      algsys_->InitMatrix(CONVECTION);
+//     if (convectionMatrix_)
+//       algsys_->InitMatrix(CONVECTION);
     
-    if (massMatrix_)
-      algsys_->InitMatrix(MASS); 
-  }
+//     if (massMatrix_)
+//       algsys_->InitMatrix(MASS); 
+//   }
  
 
 
@@ -719,7 +766,7 @@ namespace CoupledField {
     // return, if matrices are not yet assembled
     if (!reassembleMat_.GetSize()) {
       // if ( reassembleMat_.GetSize() == 0 ) {
-      InitMatrices();
+      algsys_->InitMatrix();
       return;
     }
     
@@ -745,57 +792,50 @@ namespace CoupledField {
 
  
 
-  void Assemble::CreateMatrices()
-  {
-    ENTER_FCN( "Assemble::CreateMatrices" );
-    const Integer numconstraints = 0;  // currently not handled
+ //  void Assemble::CreateMatrices()
+//   {
+//     ENTER_FCN( "Assemble::CreateMatrices" );
+//     const Integer numconstraints = 0;  // currently not handled
     
-    const Integer dofsPerEQN = ptEQN_->GetNumDofsPerEQN();
+//     const Integer dofsPerEQN = ptEQN1_->GetNumDofsPerEQN();
 
-    FEMatrixType matrixsystype[5];
-    matrixsystype[0] = OLAS::NOTYPE;
-    matrixsystype[1] = OLAS::NOTYPE;
-    matrixsystype[2] = OLAS::NOTYPE;
-    matrixsystype[3] = OLAS::NOTYPE;
-    matrixsystype[4] = OLAS::NOTYPE;
+//     FEMatrixType matrixsystype[5];
+//     matrixsystype[0] = OLAS::NOTYPE;
+//     matrixsystype[1] = OLAS::NOTYPE;
+//     matrixsystype[2] = OLAS::NOTYPE;
+//     matrixsystype[3] = OLAS::NOTYPE;
+//     matrixsystype[4] = OLAS::NOTYPE;
     
-    matrixsystype[0] = SYSTEM;      // memory for the system matrix
-    if (stiffnessMatrix_  == 1) matrixsystype[1] = STIFFNESS;   // memory for the stiffness matrix
-    if (dampingMatrix_    == 1) matrixsystype[2] = DAMPING;     // memory for the damping matrix
-    if (convectionMatrix_ == 1) matrixsystype[3] = CONVECTION;  // memory for the convection matrix
-    if (massMatrix_       == 1) matrixsystype[4] = MASS;        // memory for the mass matrix
+//     matrixsystype[0] = SYSTEM;      // memory for the system matrix
+//     if (stiffnessMatrix_  == 1) matrixsystype[1] = STIFFNESS;   // memory for the stiffness matrix
+//     if (dampingMatrix_    == 1) matrixsystype[2] = DAMPING;     // memory for the damping matrix
+//     if (convectionMatrix_ == 1) matrixsystype[3] = CONVECTION;  // memory for the convection matrix
+//     if (massMatrix_       == 1) matrixsystype[4] = MASS;        // memory for the mass matrix
     
-    Integer numBuildInDirichletEQNs_ = ptEQN_->GetNumBuildInDirichletEQNs();
-    Integer numDir = numDirichletBCs_ - numBuildInDirichletEQNs_;
-    //std::cerr << "number of Dirichlet to set by AlgSYS: " << numDir << std::endl;
-    //put to algebraic system
+//     Integer numBuildInDirichletEQNs_ = ptEQN1_->GetNumBuildInDirichletEQNs();
+//     Integer numDir = numDirichletBCs_ - numBuildInDirichletEQNs_;
+//     //std::cerr << "number of Dirichlet to set by AlgSYS: " << numDir << std::endl;
+//     //put to algebraic system
     
-    olasParams_->SetValue( "FEMatrixType1", matrixsystype[0] );
-    olasParams_->SetValue( "FEMatrixType2", matrixsystype[1] );
-    olasParams_->SetValue( "FEMatrixType3", matrixsystype[2] );
-    olasParams_->SetValue( "FEMatrixType4", matrixsystype[3] );
-    olasParams_->SetValue( "FEMatrixType5", matrixsystype[4] );
-    olasParams_->SetValue( "NumDof", dofsPerEQN);
-    olasParams_->SetValue( "NumDirichletBCs", numDir);
-    olasParams_->SetValue( "NumConstraints", numconstraints );
-    olasParams_->SetValue( "AuxiliaryMatrix", FALSE);
+//     olasParams_->SetValue( "FEMatrixType1", matrixsystype[0] );
+//     olasParams_->SetValue( "FEMatrixType2", matrixsystype[1] );
+//     olasParams_->SetValue( "FEMatrixType3", matrixsystype[2] );
+//     olasParams_->SetValue( "FEMatrixType4", matrixsystype[3] );
+//     olasParams_->SetValue( "FEMatrixType5", matrixsystype[4] );
+//     olasParams_->SetValue( "NumDof", dofsPerEQN);
+//     olasParams_->SetValue( "NumDirichletBCs", numDir);
+//     olasParams_->SetValue( "NumConstraints", numconstraints );
+//     olasParams_->SetValue( "AuxiliaryMatrix", FALSE);
 
-    // Create linear system. This involves finalising the assembly of the
-    // matrix graph. The latter may trigger a re-ordering of the unknows /
-    // equation numbers. We provide an array for giving back the new
-    // ordering, so that we can incorporate it into our node -> eqn map
-    Integer *order = new Integer[ptEQN_->GetNumEQNs()];
-    algsys_->CreateLinSys(order);
-    ptEQN_->ReorderMapping(order);
-    delete [] order;
+//     // Create linear system
+//     algsys_->CreateLinSys();
     
-  }
+//   }
   
 
   void Assemble::SetGeneralParams(const std::string & pdename, 
                                   const Integer dofsPerNode,
-                                  const Integer numPDENodes, 
-                                  const StdVector<std::string> subdoms,
+				  const StdVector<std::string> subdoms,
                                   const StdVector<std::string> surfdoms,
                                   const std::string bcSequenceTag)
   {
@@ -803,7 +843,6 @@ namespace CoupledField {
 
     pdename_       = pdename;
     dofsPerNode_   = dofsPerNode;
-    numPDENodes_   = numPDENodes;
     subdoms_       = subdoms;
     surfdoms_      = surfdoms;
     bcSequenceTag_ = bcSequenceTag;
@@ -1016,15 +1055,20 @@ namespace CoupledField {
   }
   
 
-  //  void Assemble::SetupMatrixGraph(Integer numeq, Integer graphType)
-  void Assemble::SetupMatrixGraph(Integer numeq)
+  void Assemble::SetupMatrixGraph()
   {
     ENTER_FCN( "Assemble::SetupMatrixGraph" );
     
+    //std::cerr << "Entering Assembe::SetupMatrixGraph\n";
+    
+    //    std::cerr << "Starting Assembling with id " << pdeId1_ 
+    //      << "\n";
 
-    //initialize matrix graph
- 
-    algsys_->CreateGraph(numeq, graphType_);
+    algsys_->AssembleInit( pdeId1_, pdeId2_ );
+    
+    (*debug) << " =======================\n" 
+	     << " Graph for " << pdeId1_ << " and " 
+	     << pdeId2_ << std::endl;
 
     // set the graph - connectivity matrix
     BaseFE * ptElem; 
@@ -1032,7 +1076,7 @@ namespace CoupledField {
     FEType fe_type;
   
     StdVector<Integer> connecth;
-    StdVector<Integer> connect_PDE;
+    StdVector<Integer> connect_PDE1, connect_PDE2;
     for (nsub=0; nsub<subdoms_.GetSize(); nsub++)
       {
         StdVector<Elem*> elemssd;
@@ -1042,16 +1086,21 @@ namespace CoupledField {
           {  
             ptElem=elemssd[iel]->ptElem;
             connecth = elemssd[iel]->connect;
-            ptEQN_->Node2EQN(connecth, connect_PDE);
+            ptEQN1_->Node2EQN(connecth, connect_PDE1);
+            ptEQN2_->Node2EQN(connecth, connect_PDE2);
 
-            fe_type=elemssd[iel]->ptElem->feType();
-            //std::cerr << "SetElelemtPos" << std::endl << "----------" << std::endl;
+	    //std::cerr << "SetElelemtPos" << std::endl << "----------" << std::endl;
             //std::cerr << "connect: " << std::endl << connecth << std::endl;
             //std::cerr << "connect_PDE " << std::endl;
             //std::cerr << connect_PDE << std::endl << std::endl;
-            algsys_->SetElementPos(connect_PDE.GetPointer(),connect_PDE.GetSize(),fe_type);
-          }
+
+	    algsys_->SetElementPos( pdeId1_, connect_PDE1.GetPointer(),connect_PDE1.GetSize(), 
+				    pdeId2_, connect_PDE2.GetPointer(),connect_PDE2.GetSize() );
+	  }
       }
+
+    // finish assembling procedure
+    algsys_->AssembleDone( pdeId1_, pdeId2_ );
   }
 
 
@@ -1183,7 +1232,6 @@ namespace CoupledField {
     :Assemble(algsys, agrid)
   {
     ENTER_FCN( "StaticAssemble::StaticAssemble" );
-    graphType_    = NODEGRAPH; 
     SetAnalysisType(STATIC);
   }
   
@@ -1257,7 +1305,6 @@ namespace CoupledField {
     :Assemble(algsys, agrid)
   {
     ENTER_FCN( "TransientAssemble::TransientAssemble" );
-    graphType_    = NODEGRAPH; 
     SetAnalysisType(TRANSIENT);
 
     stiffnessMatrix_  = TRUE;
@@ -1405,7 +1452,6 @@ namespace CoupledField {
     :Assemble(algsys, agrid)
   {
     ENTER_FCN( "HarmonicAssemble::HarmonicAssemble" );
-    graphType_    = NODEGRAPH; 
     SetAnalysisType(HARMONIC);
   }
 

@@ -233,13 +233,15 @@ namespace CoupledField
 
     ENTER_FCN( "BlockNodeEQN::ReorderMapping" );
 
-    for ( Integer i = 0; i < pdeNode2EQN_.GetSize(); i++ ) {
-      if ( pdeNode2EQN_[i] > 0 ) {
-        pdeNode2EQN_[i] = order[pdeNode2EQN_[i]-1];
-      }
-      else if(pdeNode2EQN_[i] < 0 ) {
-        //due to constraints
-        pdeNode2EQN_[i] = -order[-pdeNode2EQN_[i]-1];   
+    if ( order != NULL ) {
+      for ( Integer i = 0; i < pdeNode2EQN_.GetSize(); i++ ) {
+        if ( pdeNode2EQN_[i] > 0 ) {
+          pdeNode2EQN_[i] = order[pdeNode2EQN_[i]-1];
+        }
+        else if(pdeNode2EQN_[i] < 0 ) {
+          //due to constraints
+          pdeNode2EQN_[i] = -order[-pdeNode2EQN_[i]-1];
+        }
       }
     }
   }

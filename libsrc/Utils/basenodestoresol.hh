@@ -341,24 +341,29 @@ public:
 	  __FILE__, __LINE__);
   }
   
-
+  //@{
   //! Set data pointer for the complete solution
  
   //! Set data pointer for the complete solution.
   //! The old data, where the pointer was pointing 
   //! before, will not be deleted!
   /*!
+    \param size (input) Size of data
     \param ptr (input) Pointer to raw solution data
   */
   //! \note: This method is very intrusive and should only be used
   //! when one can ensure, that the internal layout of the solution
   //! matches to the one of the given array. This is the case e.g. for
   //! the solution of the algebraic system.
-  virtual void SetAlgSysDataPointer(Double * ptr) 
+  virtual void SetAlgSysDataPointer( Integer size, Double * ptr ) 
   {Error("BaseNodeStoreSol::SetDataPointer() not implemented here", __FILE__,
 	  __LINE__);}
-  
- 
+
+  virtual void SetAlgSysDataPointer( Integer size, Complex * ptr ) 
+  {Error("BaseNodeStoreSol::SetDataPointer() not implemented here", __FILE__,
+	  __LINE__);}
+  //@}
+
   //! Get pointer to data in double* - format
 
   //! Get pointer to data in double* - format.

@@ -47,8 +47,18 @@ public:
   void Node2EQN(const StdVector<Integer> &nodeNr,
 		StdVector<Integer> &eqnNr) const;
 
-    //! Maps the equation numbers according to the reordering
-    void ReorderMapping(Integer *order);
+  //! Maps the equation numbers according to the reordering
+
+  //! If the algebraic system has re-ordered the equations, e.g. to improve
+  //! the performance of a sparse direct solver, this method must be used to
+  //! incorporate the resulting change into the dof to eqn map.
+  //! \param order permutation vector containing the re-ordering, i.e.
+  //!              order[k-1] is the new equation number for the dof that
+  //!              was previously associated to the k-th equation number.
+  //! \note It is safe to pass a NULL pointer to the method. In this case
+  //!       the method assumes that no re-ordering was performed by the
+  //!       algebraic system.
+  void ReorderMapping(Integer *order);
 
 private:
 

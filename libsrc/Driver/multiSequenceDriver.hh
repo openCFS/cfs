@@ -4,6 +4,8 @@
 #include "basedriver.hh"
 #include "singleDriver.hh"
 
+#include "Utils/StdVector.hh"
+
 namespace CoupledField
 {
 

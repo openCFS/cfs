@@ -7,6 +7,9 @@ namespace CoupledField {
 
   // forward class declaration
   class SinglePDE;
+  class BasePairCoupling;
+  class Assemble;
+  class BaseSystem;
   
   //! This class implements the direct coupling of StdPDEs.
 
@@ -33,6 +36,16 @@ public:
     
   //! Destructor
   virtual ~DirectCoupledPDE();
+  
+  //! Set SinglePDEs
+  void SetSinglePDEs( const StdVector<SinglePDE*> &pdes);
+
+  //! Set Coupling objects
+  void SetCouplings( const StdVector<BasePairCoupling*> &couplings);
+
+  //! Initialization routine
+  void Init(Integer sequenceStep = 0,
+	    std::string  bcSequenceTag = "anyTag");
 
   //! write general defines (BCs, loads, etc.) to info-file
   void WriteGeneralPDEdefines();
@@ -43,6 +56,18 @@ public:
   //! \param atimestep         time step of claculation
   void SetBCs(const Integer level, 
 	      const Double atimestep);
+
+  //! define algebraic system 
+  void DefineAlgSys();
+
+  //! return number of restraints
+  Integer GetNumRestraints(const Integer level=-1);
+  
+  //! Get types of needed matrices (sysmtem, stiffness,..)
+  void GetMatrixTypes( std::set<FEMatrixType> &matTypes);
+
+  //! store the new solution returned by the algebraic system
+  void SaveSolution();
 
   // ======================================================
   // POSTPROC SECTION
@@ -82,10 +107,39 @@ public:
   void CalcOutputCoupling();
 
   
+  // ======================================================
+  // METHODS FOR ASSEMBLING
+  // ======================================================
+  
+  //! specify type of system matrix for AlgebraicSystem
+  /*! \param level (input) level of Grid     */
+  void AssembleMatrices(const Integer level);
+  
+  //! setup source term
+  void AssembleSrcRHS(const Integer level, const Double time=0);
+  
+  //!  assemble a nonlinear RHS part
+  void AssembleNLRHS(const Integer level, const Double time=0);
+  
+  //!  assemble a spring into the system matrix
+  void AssembleSprings(const Integer level, const Double time=0);
+  
+  //! Initialize all matrices with nonlinear behavior
+  void InitNonLinMatrices();
+  
+  //! constructes the matrix graph by providing to the algebraic system the element connectivities
+  void SetupMatrixGraph();
+
 private:
+  
+  //! define the SolutionStep-Driver
+  virtual void DefineSolveStep();
 
   //! References to SinglePDEs
   StdVector<SinglePDE*> singlePDEs_;
+
+  //! References to pairwise coupling objects
+  StdVector<BasePairCoupling*> couplings_;
 
 };
 

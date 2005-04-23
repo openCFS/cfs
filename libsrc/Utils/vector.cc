@@ -19,6 +19,7 @@ Vector<TYPE>::Vector()
   data_ = NULL;
   size_ = 0;
   capacity_ = 0;
+  memBelongsToMe_ = TRUE;
 }
 
 template<class TYPE> 
@@ -28,6 +29,7 @@ Vector<TYPE>::Vector(Integer size, const TYPE entry)
   ENTER_IFCN("Vector::Vector");
   size_ = size;
   data_ = new TYPE [size];
+  memBelongsToMe_ = TRUE;
 
   for (Integer i = 0; i < size; i++)
     data_ [i] = entry;
@@ -40,6 +42,7 @@ Vector<TYPE>::Vector(const Vector<TYPE> &vec)
 
   size_ = vec.size_;
   data_ = new TYPE [vec.size_];
+  memBelongsToMe_ = TRUE;
   
   for (Integer i = 0; i < size_; i++)
     data_ [i] =  vec.data_[i];
@@ -49,7 +52,7 @@ template<class TYPE>
 Vector<TYPE>::~Vector()
 {
   ENTER_IFCN("Vector::~Vector");
-  if (data_)
+  if (data_ && memBelongsToMe_ == TRUE )
     delete[] data_;
 }
 
@@ -59,6 +62,12 @@ void Vector<TYPE>::Clear()
 {
   ENTER_IFCN( "Vector::Clear()" );
   
+  if (memBelongsToMe_ == FALSE ) {
+    (*error) << "Refusing to clear vector, since memory does not " 
+	     << "belong to me!";
+    Error( __FILE__, __LINE__ );
+  }
+    
   size_ = 0;
   if (data_)
     delete[] data_;
@@ -77,46 +86,6 @@ Boolean Vector<Complex>::IsComplex()
   return TRUE;
 }
 
-// Two different methods for getting a double pointer to the data
-// in the vector:
-// 1.) Double-Vectors: Here simply the pointer data_ is passed
-// 2.) Complex-Vectors: A new array is created, which holds the 
-//                      complex values as a serial sequence of
-//                      Double values.
-template<>
-Double* Vector<Double>::GetDoublePointer()
-{
-  ENTER_IFCN("Vector::GetDoublePointer");
-
-  return data_;
-}
-
-template<>
-Double* Vector<Integer>::GetDoublePointer()
-{
-  ENTER_IFCN("Vector::GetDoublePointer");
-
-  Error("Vector<Integer>::GetDoublePointer: Not implemented!",
-	      __FILE__, __LINE__);
-  return NULL;
-}
-
-template<>
-Double* Vector<Complex>::GetDoublePointer()
-{
-  ENTER_IFCN("Vector::GetDoublePointer");
-
-  Double * help = new Double[size_ * 2];
-
-  for (Integer i=0; i<size_; i++)
-    {
-     help[2*i]   = data_[i].real();
-     help[2*i+1] = data_[i].imag(); 
-    }
-
-  return help;
-}
-
 template<class TYPE>
 void Vector<TYPE>::Init(const TYPE entry)
 {
@@ -131,6 +100,24 @@ void Vector<TYPE>::Init(const TYPE entry)
    data_[i]=entry;
 }
 
+template<class TYPE>
+void Vector<TYPE>::Replace( Integer length, TYPE* entries, Boolean transferMem ) {
+  
+  ENTER_FCN( "Vector::Replace" );
+
+  // De-allocate old array, if required
+    if ( memBelongsToMe_ == TRUE ) {
+      delete[] data_ ;
+    }
+
+    // Re-set internal attributes
+    data_           = entries;
+    size_           = length;
+    capacity_       = length;
+    memBelongsToMe_ = transferMem;  
+}
+
+
 
 template<class TYPE> 
 void Vector<TYPE>::Resize(const Integer size)
@@ -142,6 +129,12 @@ void Vector<TYPE>::Resize(const Integer size)
     Error("invalid dimension for Resize", __FILE__, __LINE__);
 #endif  
   
+  if (memBelongsToMe_ == FALSE ) {
+    (*error) << "Refusing to resize vector, since memory does not " 
+	     << "belong to me!";
+    Error( __FILE__, __LINE__ );
+  }
+
   if (size != size_)
     {
       if (data_) delete[] data_;
@@ -344,6 +337,11 @@ Vector<TYPE> &Vector<TYPE>::operator=(const Vector<TYPE> &x)
   
   if (size_ != x.size_)
     {	
+      if (memBelongsToMe_ == FALSE ) {
+	(*error) << "Refusing to resize vector, since memory does not " 
+		 << "belong to me!";
+	Error( __FILE__, __LINE__ );
+      }
       if (data_)
 	delete [] data_;
       
@@ -369,6 +367,12 @@ CFSVector & Vector<TYPE>::operator= (const CFSVector & vec)
   
   if (size_ != temp.size_)
     {	
+      if (memBelongsToMe_ == FALSE ) {
+	(*error) << "Refusing to resize vector, since memory does not " 
+		 << "belong to me!";
+	Error( __FILE__, __LINE__ );
+      }
+      
       if (data_)
 	delete [] data_;
       
@@ -781,6 +785,12 @@ void  Vector<TYPE>:: AddElement (const TYPE & y, Integer pos)
     Error("Vector::AddElemen(): Index out of bounds", __FILE__, __LINE__);
 #endif
   
+  if (memBelongsToMe_ == FALSE ) {
+    (*error) << "Refusing to resize vector, since memory does not " 
+	     << "belong to me!";
+    Error( __FILE__, __LINE__ );
+  }
+  
   Integer i;
   
   TYPE * help=new TYPE[size_+1];
@@ -807,30 +817,36 @@ void  Vector<TYPE>::InsertVector (const Vector<TYPE> & y, Integer pos)
     Warning("Vector: undefined Vector in function InsertVector()", 
 	    __FILE__, __LINE__);
 #endif
-
+  
 #ifdef CHECK_INDEX
   if (pos < 0)
     Error("Vector: index is smaller than zero in function InsertVector()", 
 	  __FILE__, __LINE__);
 #endif
-
-   Integer i;
-   
-   Integer l=y.size_;
-   TYPE * help=new TYPE[size_+l];
-
-   for (i=0; i < pos; i++) 
-     help[i]=data_[i];
-   
-   for (i=pos; i < pos+l; i++) 
-     help[i]=y.data_[i-pos];
-
-   for (i=pos+l; i < size_+l; i++) 
-     help[i]=data_[i-l];
   
-   delete [] data_; 
-   data_=help;
-   size_+=l;
+  if (memBelongsToMe_ == FALSE ) {
+    (*error) << "Refusing to resize vector, since memory does not " 
+	     << "belong to me!";
+    Error( __FILE__, __LINE__ );
+  }
+  
+  Integer i;
+  
+  Integer l=y.size_;
+  TYPE * help=new TYPE[size_+l];
+  
+  for (i=0; i < pos; i++) 
+    help[i]=data_[i];
+  
+  for (i=pos; i < pos+l; i++) 
+    help[i]=y.data_[i-pos];
+  
+  for (i=pos+l; i < size_+l; i++) 
+    help[i]=data_[i-l];
+  
+  delete [] data_; 
+  data_=help;
+  size_+=l;
 }
 
 template<class TYPE>
@@ -846,9 +862,14 @@ void  Vector<TYPE>:: Cut (const Integer pos)
    if (pos<0 || pos >=size_) 
      Error("Invalid index for cut");
 #endif
-
+   
+   if (memBelongsToMe_ == FALSE ) {
+     (*error) << "Refusing to resize vector, since memory does not " 
+	      << "belong to me!";
+     Error( __FILE__, __LINE__ );
+   }
    Integer i;
- 
+   
    TYPE * help=new TYPE[size_-1];
    for (i=0; i < pos; i++) 
      help[i]=data_[i];
@@ -876,6 +897,13 @@ void  Vector<TYPE>:: Cut (const Integer pos1, const Integer pos2)
      Error("First index is bigger than second one in function Cut()",
 	   __FILE__, __LINE__);
 #endif
+ 
+   if (memBelongsToMe_ == FALSE ) {
+     (*error) << "Refusing to resize vector, since memory does not " 
+	      << "belong to me!";
+     Error( __FILE__, __LINE__ );
+   }
+   
    Integer i;
  
    Integer l=pos2-pos1+1;
@@ -896,15 +924,6 @@ Integer  Vector<TYPE>::Memory() const
 {
   ENTER_IFCN( "Vector::Memory" );
  return size_*sizeof(TYPE);
-}
-
-template<class TYPE>
-void  Vector<TYPE>::TransformInVector(const Integer nsize, TYPE * ptdata) 
-{
-  ENTER_IFCN( "Vector::TransformInVector" );
-
-  size_ = nsize;
-  data_ = ptdata;
 }
 
 template<class TYPE>

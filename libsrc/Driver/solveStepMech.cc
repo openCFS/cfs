@@ -3,7 +3,10 @@
 #include <string>
 
 #include "solveStepMech.hh"
+#include "assemble.hh"
 
+#include "Utils/nodestoresol.hh"
+#include "PDE/StdPDE.hh"
 
 namespace CoupledField {
 
@@ -28,7 +31,7 @@ namespace CoupledField {
   {
     ENTER_FCN( "SolveStepMech::PreStepStatic" );
 
-    if (pdeIsCoupled_)
+    if (isIterCoupled_)
       // init RHS at this place, because forces of other PDEs are added to RHS afterwards
       algsys_->InitRHS();     
     else {
@@ -138,7 +141,9 @@ namespace CoupledField {
       
 
 	// new solution is only an increment of the full solution =============
-	StoreAlgsysToVec(solIncrement, algsys_->GetSolutionVal() );
+	Double *solPtr;
+	algsys_->GetSolutionVal( solPtr );
+	StoreAlgsysToVec(solIncrement, solPtr);
 
 	Double residualL2Norm = 0;
 	Double etaLineSearch=0;
@@ -163,7 +168,8 @@ namespace CoupledField {
 	if ( lineSearch_ != "no" )
 	  {
 	    Vector<Double> actRHS;
-	    StoreAlgsysToVec(actRHS, algsys_->GetRHSVal() );       
+	    algsys_->GetRHSVal(solPtr);
+	    StoreAlgsysToVec(actRHS, solPtr );       
           
 	    // calculation of residual error =======================================
 	    residualL2Norm = RhsL2Norm(actRHS); // L2Norm of  ( f_i^(k+1) - f_a )
@@ -224,7 +230,7 @@ namespace CoupledField {
   {
     ENTER_FCN( "SolveStepMech::PostStepStatic" );
 
-    if (pdeIsCoupled_)
+    if (isIterCoupled_)
       (*iterCoupledCounter_)++;
 
   }
@@ -249,8 +255,7 @@ namespace CoupledField {
 //     if (geoUpdate_) {
 //       algsys_->InitRHS();
 //       algsys_->InitSol();
-//       assemble_->InitMatrices();
-
+//       algsys_->InitMatrix();
 //       assemble_->SetReassemble();  
 //     }
 //   }
@@ -296,7 +301,7 @@ namespace CoupledField {
 
 //     NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
 
-//     if ( pdeIsCoupled_ == FALSE || *iterCoupledCounter_ == 0 ) {        
+//     if ( isIterCoupled_ == FALSE || *iterCoupledCounter_ == 0 ) {        
 //       Vector<Double> & solvector= solhelp->GetAlgSysVector();
 //       TS_alg_->Predictor(solvector);
 //     }
@@ -305,7 +310,7 @@ namespace CoupledField {
 //       job = 3;
 
 //       // why is the first statement checking for 'pdeIsCoupled'?
-//       if ( pdeIsCoupled_ == FALSE || *iterCoupledCounter_ == 0 
+//       if ( isIterCoupled_ == FALSE || *iterCoupledCounter_ == 0 
 //            || geoUpdate_ == TRUE ) {
 //         job = 1;
 //         assemble_->AssembleMatrices(level);
@@ -329,7 +334,7 @@ namespace CoupledField {
 //       job = 3;
 
 //       // The following section is only an experiment up to now
-//       if ( geoUpdate_ == TRUE && pdeIsCoupled_ == TRUE ) {
+//       if ( geoUpdate_ == TRUE && isIterCoupled_ == TRUE ) {
 //         if (isIncrFormulation_) {
 //           Error( "Incremental formulation and geoUpdate are currently not "
 //                  "working together" );
@@ -386,7 +391,7 @@ namespace CoupledField {
 //     Vector<Double> & solvector =\
 //       dynamic_cast<NodeStoreSol<Double>*>(sol_)->GetAlgSysVector();
 
-//     if (!pdeIsCoupled_)
+//     if (!isIterCoupled_)
 //       TS_alg_->Corrector(solvector);
 //   }
 
@@ -400,7 +405,7 @@ namespace CoupledField {
 
 //     NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
     
-//     if ( pdeIsCoupled_ ) {
+//     if ( isIterCoupled_ ) {
 
 //       //save solution
 //       Vector<Double> & solvector= solhelp->GetAlgSysVector();
@@ -409,7 +414,7 @@ namespace CoupledField {
 //       TS_alg_->Corrector(solvector); 
 //     }
   
-//     if (pdeIsCoupled_) {
+//     if (isIterCoupled_) {
 //       iterCoupledCounter_++;
 //     }
 //   }
@@ -433,6 +438,7 @@ namespace CoupledField {
 
     Vector<Double> actSol;
     Vector<Double> solIncrement;
+    Double *solPtr;
   
     //is already done in PreStepTrans (basePDE.cc!!)
     //  algsys_->InitRHS();
@@ -489,7 +495,8 @@ namespace CoupledField {
 	algsys_->Solve();
 
 	// new solution is only an increment of the full solution =============
-	StoreAlgsysToVec(solIncrement, algsys_->GetSolutionVal() );
+	algsys_->GetSolutionVal( solPtr );
+	StoreAlgsysToVec( solIncrement, solPtr );
 
 	Double residualL2Norm;
 	Double etaLineSearch = 0;
@@ -517,8 +524,12 @@ namespace CoupledField {
 
 	if ( lineSearch_ != "no" )
 	  {
+
+	    // TODO: Replace the get of the RHS by getting directly the norm of the RHS
 	    Vector<Double> actRHS;
-	    StoreAlgsysToVec(actRHS, algsys_->GetRHSVal() );       
+	    Double *solPtr;
+	    algsys_->GetRHSVal( solPtr );  
+	    StoreAlgsysToVec(actRHS, solPtr );       
           
 	    // calculation of residual error =======================================
 	    residualL2Norm = RhsL2Norm(actRHS); // L2Norm of  ( f_i^(k+1) - f_a )

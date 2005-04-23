@@ -525,6 +525,47 @@ namespace CoupledField {
     }
   }
 
+  // FEType
+  template<>
+  void Enum2String<FEType>( const FEType &in, std::string &out ) {
+
+    switch(in) {
+    case NOFETYPE:
+      out = "noFEType";
+      break;
+    case  LINE:
+      out = "line";
+      break;
+    case  TRIA:
+      out = "triangle";
+      break;
+    case  QUAD:
+      out = "quad";
+      break;
+    case  TET:
+      out = "tetraeder";
+      break;
+    case  HEX:
+      out = "hexaeder";
+      break;
+    case  PYR:
+      out = "pyramid";
+      break;
+    case  WED:
+      out = "wedge";
+      break;
+    default:
+      (*error) << "No conversion found for your 'FEType'";
+      Error( __FILE__, __LINE__ );
+    }
+  }
+
+  template<>
+  void String2Enum<FEType>( const std::string &in, FEType &out ) {
+    (*error) << "String2Enum not implemented for FEType";
+    Error( __FILE__, __LINE__ );
+  }
+
   // ComplexFormat
   template<>
   void String2Enum<ComplexFormat>(const std::string &in, ComplexFormat &out) {

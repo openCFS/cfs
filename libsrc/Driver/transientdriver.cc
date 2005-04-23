@@ -5,15 +5,11 @@
 #include <math.h>
 
 #include "transientdriver.hh"
-#include "Utils/vector.hh"
+#include "stdSolveStep.hh"
 
-#include "DataInOut/GMV/outGMV.hh"
-
-#include "CoupledPDE/itercoupledpde.hh"
-#include "DataInOut/WriteInfo.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
-
-#include <PDE/basePDE.hh>
+#include "PDE/StdPDE.hh"
+#include "Domain/domain.hh"
 
 namespace CoupledField {
 
@@ -105,9 +101,6 @@ void TransientDriver::SolveProblem()
   // writes out the grid one time
   if (! isPartOfSequence_)
     ptdomain_->PrintGrid(level);
-  
-  if (PrintGridOnly) 
-    exit(0);
   
   ptPDE_->WriteGeneralPDEdefines();
   

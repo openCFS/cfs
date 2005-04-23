@@ -16,8 +16,10 @@
 #include "Utils/baseelemstoresol.hh"
 #include "Driver/singleDriver.hh"
 #include "PDE/nodeEQN.hh"
-#include <Domain/elem.hh>
+#include "Domain/elem.hh"
+#include "Domain/domain.hh"
 #include "Forms/forms_header.hh"
+#include "DataInOut/ParamHandling/BaseParamHandler.hh"
 
 
 #ifdef __sgi
@@ -143,7 +145,8 @@ namespace CoupledField
     Integer pdenumber = 0;
     ptAssemble = ptMyPDE_->getPDE_assemble();
 
-    // ptAssemble->InitMatrices();
+    // ptAlgsys->InitMatrix();
+    // ptAssemble->SetReassemble();
    
     updateMaterialData(parameter,ptMaterial);
     updateComplexMaterialData(parameterC,ptMaterial);
@@ -156,8 +159,10 @@ namespace CoupledField
 
     for (Integer fstep = 0; fstep < freqs.GetSize(); fstep++) { 
 
-//       if (reset)
-//         ptAssemble->InitMatrices();
+//       if (reset){
+//         ptAlgsys->InitMatrix();
+//         ptAssemble->SetReassemble();
+//         }
 //       ptAssemble->CreateMatrices();
       //  reset=TRUE;
 
@@ -202,9 +207,9 @@ namespace CoupledField
           imped = std::abs(voltage/(charge*2.0*PI*freqs[fstep]*im)); 
           //    phase = 180.0/PI*(std::arg(charge));
           phase = 180.0/PI*(std::arg(impedC));
-          std::cout << fstep <<");\t Frequenz: " << freqs[fstep] << ";\t Impedanz: "<< imped 
+          std::cout << fstep <<");\t Frequenz: " << freqs[fstep] << ";\t Impedanz: "<< std::log(imped) 
 		    << ";\t Phase: " << phase <<";\t Volt = "<<voltage<<";\t Charge = "<< charge<< std::endl;
-          *impedCurve <<"\n" << freqs[fstep] << " " << imped << "  " << phase << "  " 
+          *impedCurve <<"\n" << freqs[fstep] << " " << std::log(imped) << "  " << phase << "  " 
 		      << impedC.real()<<"  " << impedC.imag() << "  " << charge.real()<< "  " << charge.imag()<< std::endl;
 
     } //  end loop over freqs
@@ -234,17 +239,20 @@ namespace CoupledField
 
     //Matrix<Double> * matMatrix =  ptMaterial->GetMatrix();
 
-
     //std::cout<<*matMatrix<<std::endl;
+
     //    ptMyPDE_->Init();
-    //    ptAssemble->DeleteAlgSys();
-    // ptAssemble->InitMatrices();
+    //    ptMyPDE->DeleteAlgSys();
+    // ptAlgsys->InitMatrix();
+    // ptAssemble->SetReassemble();
     //    ptAssemble->InitRHS();
         
-    ptAssemble->InitMatrices();
+    ptAlgsys->InitMatrix();
+    ptAssemble->SetReassemble();
     ptAlgsys->InitRHS();
 
-    ptAssemble->InitMatrices();
+    ptAlgsys->InitMatrix();
+    ptAssemble->SetReassemble();
     ptAlgsys->InitRHS();
       
     // updateMaterialData(parameter,ptMaterial);
@@ -621,7 +629,7 @@ namespace CoupledField
               tempHarm[i+temp.GetSize()]=-temp[i].imag();
             } 
 
-            ptAlgsys->SetElementRHS(&tempHarm[0], connect_PDE.GetPointer(), 
+            ptAlgsys->SetElementRHS(&tempHarm[0], pdeId_, connect_PDE.GetPointer(), 
                                     connect_PDE.GetSize());
 
 	    //  if (spaceDim==3){
@@ -642,8 +650,11 @@ namespace CoupledField
           ptAssemble->SetFrequency(freqs[fstep]);
 
 
-          if (reset)
-            ptAssemble->InitMatrices();
+          if (reset){
+	    ptAlgsys->InitMatrix();
+	    ptAssemble->SetReassemble();
+	  }
+	  
           //      ptMyPDE_->DefineIntegratorsWithMatInfo(level,ptMaterial);  
         
           //    Cannot use SolveStepHarmonic, since it overwrites RHS ...
@@ -676,7 +687,7 @@ namespace CoupledField
 
           ptAlgsys->Solve();
 
-          ptsol = ptAlgsys->GetSolutionVal();
+          ptAlgsys->GetSolutionVal(ptsol);
           ptSol->CopyFromAlgSysDataPointer(ptsol);
 
           if (considerMechDeformation==TRUE){
@@ -827,7 +838,8 @@ namespace CoupledField
 	  reset = TRUE;
 
 	  ptAlgsys->InitRHS();
-	  ptAssemble->InitMatrices();
+	  ptAlgsys->InitMatrix();
+	  ptAssemble->SetReassemble();
         
 
 	  //   ptMyPDE_-> setBCs_id_phase_(0, imag[fstep]);
@@ -913,7 +925,7 @@ namespace CoupledField
 	    //        std::cout<<tempHarm<<std::endl;
 
         
-	    ptAlgsys->SetElementRHS(&tempHarm[0], connect_PDE.GetPointer(), 
+	    ptAlgsys->SetElementRHS(&tempHarm[0], pdeId_, connect_PDE.GetPointer(), 
 				    connect_PDE.GetSize());
 	    delete bilinearStiff;  
 
@@ -931,8 +943,10 @@ namespace CoupledField
 	  //        updateMaterialData(parameter, ptMaterial);    // is neccessary, since otherwise we wouldd solve PDE with sparse Mat-Data
 	  //        ptMyPDE_->DefineIntegratorsWithMatInfo(level,ptMaterial);
 
-	  if (reset)
-	    ptAssemble->InitMatrices();
+	  if (reset) {
+	    ptAlgsys->InitMatrix();
+	    ptAssemble->SetReassemble();
+	  }
 	  //        ptMyPDE_->DefineIntegratorsWithMatInfo(level,ptMaterial);
         
 	  //        Cannot use SolveStepHarmonic, since it overwrites RHS ...
@@ -963,8 +977,7 @@ namespace CoupledField
 	  }
 
 	  ptAlgsys->Solve();
-
-	  ptsol = ptAlgsys->GetSolutionVal();
+	  ptAlgsys->GetSolutionVal( ptsol );
 	  ptSol->CopyFromAlgSysDataPointer(ptsol);
 
 	  if (considerMechDeformation==TRUE){
@@ -1321,7 +1334,7 @@ void piezoParamIdent::testJacobiMatrix2(Vector<Complex> & F_hat, Matrix<Complex>
         tempHarm[i+temp.GetSize()]=RHSVec[i].imag();
       } 
 
-      ptAlgsys->SetElementRHS(&tempHarm[0], connect_PDE.GetPointer(), 
+      ptAlgsys->SetElementRHS(&tempHarm[0], pdeId_, connect_PDE.GetPointer(), 
                               connect_PDE.GetSize());
 
     } // end for elemssd 
@@ -1439,7 +1452,7 @@ void piezoParamIdent::testJacobiMatrix2(Vector<Complex> & F_hat, Matrix<Complex>
         }
 
         ptAlgsys->Solve();
-        ptsol = ptAlgsys->GetSolutionVal();
+        ptAlgsys->GetSolutionVal( ptsol );
         ptSol->CopyFromAlgSysDataPointer(ptsol);
 
 

@@ -2,11 +2,17 @@
 #define FILE_STDSOLVESTEP
 
 #include "baseSolveStep.hh"
-#include "PDE/StdPDE.hh"
-#include "Driver/assemble.hh"
+#include "Utils/vector.hh"
 
 namespace CoupledField
 {
+  // forward class declarations
+  class StdPDE;
+  class Assemble;
+  class BaseNodeStoreSol;
+  class NodeEQN;
+  class TimeStepping;
+  
   //! Derived class for step-wise solving of StdPDEs
 
   class StdSolveStep : public BaseSolveStep
@@ -201,6 +207,8 @@ namespace CoupledField
     //! returns that L2-norm of an algsys vector
     Double AlgsysL2Norm(Double * pt);
 
+    //! set the identification tag of the PDE
+    void SetPDEId( const PdeIdType pdeId );
 
     //! Write nonlin iteration norms to info-file
     void WriteClaNlNorms(const Integer iterationCounter,
@@ -237,7 +245,6 @@ namespace CoupledField
     //! of the actual element
     void GetDeriv2SolVecOfElement(Vector<Double>& sol, StdVector<Integer>& connect_PDE);
 
-    //    void HaHa(WriteResults* outFile) {;};
 
     //-------------------------------- Pointers to (Copies of) StdPDE -------------------
 
@@ -263,7 +270,7 @@ namespace CoupledField
                                    //!< our solution
     Boolean recalc_;               //!< flag indicating reassembling of system matrix
 
-    Boolean pdeIsCoupled_;         //!< TRUE, if PDE is coupled to other ones
+    Boolean isIterCoupled_;         //!< TRUE, if PDE is coupled to other ones iteratively
     Boolean firstTimeStepStatic_;  //!< needed for coupled, iterative methods
     Integer* iterCoupledCounter_;  //!< iteration counter for coupled PDE solution process
 
@@ -278,9 +285,18 @@ namespace CoupledField
     StdVector<NonLinPDE> nonLinPDEName_;//!< some PDEs carry a name (->acoustics!)
 
     DampingType dampingType_;  //!< damping type of PDE
-    Vector<Double> solIncr_;      //! needed in iterative coupled computation 
-    Vector<Double> actSol_;       //! needed in iterative coupled computation 
-    Boolean isIncrFormulation_;   //! checks, if we have for the coupling a incremental solution
+    Vector<Double> solIncr_;   //! needed in iterative coupled computation 
+    Vector<Double> actSol_;    //! needed in iterative coupled computation 
+    Boolean isIncrFormulation_;//! checks, if we have for the coupling a incremental solution
+
+    
+    //! \todo Currently only two pdes can couple. This has to be extended
+    //! for the general case
+    //! Identification tag for first PDE
+    PdeIdType pdeId1_;
+
+    //! Identification tag for second PDE (coupled case)
+    PdeIdType pdeId2_;
 
   };
 

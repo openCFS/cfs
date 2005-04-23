@@ -1,12 +1,14 @@
 #include "multiSequenceDriver.hh"
-#include "DataInOut/ParamHandling/BaseParamHandler.hh"
-#include "DataInOut/WriteInfo.hh"
-#include "Utils/tools.hh"
-#include "PDE/basePDE.hh"
+
+// include all kinds of single drivers
 #include "staticdriver.hh"
 #include "transientdriver.hh"
 #include "harmonicDriver.hh"
-#include "Utils/nodestoresol.hh"
+
+#include "DataInOut/ParamHandling/BaseParamHandler.hh"
+#include "PDE/StdPDE.hh"
+#include "PDE/pdememento.hh"
+#include "Domain/domain.hh"
 
 namespace CoupledField {
 
@@ -206,7 +208,7 @@ namespace CoupledField {
     if (currStep != steps.GetSize()) {
       errMsg = "MultiStepSequence: The indices for a multiSequence must start ";
       errMsg += "with 1 and have to be in consecutive order.\n";
-      errMsg += "Please check your paramter file!";
+      errMsg += "Please check your parameter file!";
       Error(errMsg.c_str(), __FILE__, __LINE__);
     }
     numSteps_ = steps.GetSize();

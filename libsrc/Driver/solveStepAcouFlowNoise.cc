@@ -83,8 +83,8 @@ namespace CoupledField {
     algsys_->Solve();
 
     // Save solution
-    ptsol = algsys_->GetSolutionVal();
-    sol_->SetAlgSysDataPointer(ptsol);
+    algsys_->GetSolutionVal( ptsol );
+    sol_->CopyFromAlgSysDataPointer(ptsol);
   
     //perform corrector step 
     TS_alg_->Corrector(solhelp->GetAlgSysVector());

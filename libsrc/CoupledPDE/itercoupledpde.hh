@@ -8,7 +8,8 @@ namespace CoupledField
 
   // forward class declaration
   class IterSolveStep;
-
+  class StdPDE;
+  class PDECoupling;
 
   //! Derived Class from BasePDE. It solves iteratively
   //! a list of PDES and calculates coupling terms in between
@@ -36,7 +37,10 @@ namespace CoupledField
   void WriteGeneralPDEdefines();
 
   Assemble * getPDE_assemble()
-  {Error("Get Assemble-Object makes noi sense for itercoupledPDE"); };
+  {Error("Get Assemble-Object makes no sense for itercoupledPDE"); };
+
+  //! Return pointer to the SolveStep object
+  BaseSolveStep * GetSolveStep();
   
   //! Defines, which of the coupled PDEs are currently solved
   //! and which are neglected. This method is mainly needed
@@ -79,6 +83,9 @@ protected:
   Integer maxiter_;                        //!< maximum number of iterations per time step
   StdVector<Double> norms_;              //!< norm of coupling values
 
+  //! pointer to SolveStep classes
+  IterSolveStep * solveStep_;
+
   //! Flag for nonlinear logging
   Boolean nonLinLogging_;
   
@@ -89,6 +96,8 @@ protected:
   Integer NumPDEs_;                   //!< number of PDEs 
   Integer actlevel_;                  //!< current level (for multigrid)
   std::string sequenceTag_;           //!< tag for current multisequence step
+  
+  // 
   
   //! vector of flags indicating if specified
   //! PDE gets solved. The ordering corresponds

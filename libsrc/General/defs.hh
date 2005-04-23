@@ -1,7 +1,10 @@
 #ifndef FILE_DEFS_2004
 #define FILE_DEFS_2004
 
+#ifdef TRACE
 #include "Utils/tracing.hh"
+#endif
+
 #include <typeinfo>
 
 namespace CoupledField{

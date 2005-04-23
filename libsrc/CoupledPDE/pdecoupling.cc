@@ -633,7 +633,7 @@ void PDECoupling::SetMemento(CouplingMemento & memento) {
   
   std::string errMsg, warnMsg, helper;
 
-  // if there is no information in the menmento just leave
+  // if there is no information in the memento just leave
   if (memento.isSet_ == FALSE)
     return;
   
@@ -710,7 +710,7 @@ void PDECoupling::SetMemento(CouplingMemento & memento) {
 	    
 	  couplingFound = TRUE;
 	  break;
-	} // if satement
+	} // if statement
       
       if (! couplingFound) {
 	Enum2String(memento.inputQuantities_[iMem], helper);

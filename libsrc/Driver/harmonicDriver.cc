@@ -3,12 +3,12 @@
 #include <string>
 
 #include "harmonicDriver.hh"
+#include "stdSolveStep.hh"
+#include "assemble.hh"
 
-#include "DataInOut/GMV/outGMV.hh"
-#include "DataInOut/WriteInfo.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
-
-#include <PDE/basePDE.hh>
+#include "PDE/StdPDE.hh"
+#include "Domain/domain.hh"
 
 
 namespace CoupledField
@@ -66,9 +66,6 @@ void HarmonicDriver :: SolveProblem()
   
   if (! isPartOfSequence_)
   ptdomain_->PrintGrid(level);
-
-  if (PrintGridOnly)
-      exit(0);
 
   // if driver is not part of multiSequence Driver, get list
   // of pdes which have to be solved and intialize them

@@ -3,6 +3,7 @@
 #include <string>
 
 #include "timestepping.hh"
+#include "olas.hh"
 
 namespace CoupledField {
 

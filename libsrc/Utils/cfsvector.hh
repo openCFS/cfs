@@ -33,12 +33,6 @@ public:
   //! Hard coded query if values are complex
   virtual Boolean IsComplex() = 0;
 
-  //! Return a Double pointer to the data of the vector.
-  //! If the Vector is complex, a new array is created,
-  //! where the entries are sequentilly ordered in real
-  //! and imaginary parts (real_1, imag_1, real_2, ...)
-  virtual Double* GetDoublePointer() = 0;
-
   //! Return the length of the vector
   virtual Integer GetSize() const = 0;
 
@@ -56,8 +50,7 @@ public:
   //! \note this method does not change the size of the vector!
   virtual void Init(const Double entry = 0.0)
   {Error("CFSVector::Init(): Not implemented here",__FILE__,__LINE__);}
-
-
+  
   //! Assignment operator for base class
   virtual CFSVector & operator= (const CFSVector & vec) = 0;
  

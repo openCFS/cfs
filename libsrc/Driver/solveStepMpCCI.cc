@@ -29,7 +29,7 @@ namespace CoupledField {
   {
     ENTER_FCN( "SolveStepMpCCI::PostStepStatic" );
     
-    if (pdeIsCoupled_)
+    if (isIterCoupled_)
       iterCoupledCounter_++;
   }
   

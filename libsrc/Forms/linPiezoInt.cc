@@ -100,7 +100,7 @@ namespace CoupledField {
   {
     ENTER_FCN( "linPiezoInt::CalcPlaneStrainMaterialMat" );
 
-    Integer rowPtrXY[]={2,3,5,8,9};
+    Integer rowPtrXY[]={1,2,6,7,9};
     Integer rowPtrYZ[]={2,3,4,8,9};
     Integer rowPtrXZ[]={1,3,5,7,9};
     Integer * rowPtr;

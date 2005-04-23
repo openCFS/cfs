@@ -11,6 +11,10 @@
 #include <cstdio>      // needed for test phase output
 
 namespace CoupledField {
+  
+  // forward class declarations
+  class TimeFunc;
+
 
   //! Driver for bubbledynamical problems.
   class BubbleDriver : public SingleDriver {

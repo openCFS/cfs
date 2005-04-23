@@ -1,31 +1,17 @@
-#include <fstream>
-#include <iostream>
-#include <sstream>
-#include <math.h>
-
-#include "DataInOut/Unverg/outUnverg.hh"
-#include "DataInOut/GMV/outGMV.hh"
-#include "Forms/forms_header.hh"
-#include "Estimator/spaceerror.hh"
-#include "DataInOut/WriteInfo.hh"
-#include "Driver/assemble.hh"
-#include "General/defs.hh"
-
-#include <Matrix/matrix.hh>
-#include <Utils/vector.hh>
-#include <Forms/gradfieldop.hh>
 #include "mpcciPDE.hh"
-#include <General/defs.hh>
-#include "DataInOut/ParamHandling/BaseParamHandler.hh" 
-#include <string>
-#include "Utils/StdVector.hh"
+
+#include "DataInOut/ParamHandling/BaseParamHandler.hh"
+#include "Driver/solveStepMpCCI.hh"
+#include "Forms/forms_header.hh"
+#include "DataInOut/writeresults.hh"
+#include "CoupledPDE/pdecoupling.hh"
 
 #ifdef MpCCI
 #include <MpCCIcpl/MpCCIexch.hh>
 #endif
 
-#include "nodeEQN.hh"
-#include "Driver/solveStepMpCCI.hh"
+//#include "nodeEQN.hh"
+
 
 namespace CoupledField {
 
@@ -149,7 +135,7 @@ void MpcciPDE::InitCoupling(PDECoupling * Coupling)
 {
   ENTER_FCN( "MpcciPDE::InitCoupling" );
   
-  pdeIsCoupled_ = TRUE;
+  isIterCoupled_ = TRUE;
   ptCoupling_   = Coupling;
 
   const Integer numCouplings = ptCoupling_->GetNumOutputCouplings();

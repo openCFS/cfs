@@ -265,8 +265,8 @@ AcouFlowNoise::AcouFlowNoise(Grid *aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc,
             
 	      //    std::cout<<"elemvect QUADRUPOLE: "<<elemvec<<std::endl;
               // Quadrupole activated!!   
-              algsys_->SetElementRHS(&elemvec[0], connect_PDE.GetPointer(),
-				     connect_PDE.GetSize());
+              algsys_->SetElementRHS(&elemvec[0], pdeId_, 
+				     connect_PDE.GetPointer(), connect_PDE.GetSize());
             
               delete linear_load;
             }
@@ -311,7 +311,7 @@ AcouFlowNoise::AcouFlowNoise(Grid *aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc,
 
        //add to RHS
         eqnData_->Node2EQN(node,dof,eqnNr,eqnDof);
-        algsys_->SetNodeRHS(val, eqnNr, eqnDof);      
+        algsys_->SetNodeRHS(val, pdeId_, eqnNr, eqnDof);      
       }
     
     
@@ -330,7 +330,8 @@ AcouFlowNoise::AcouFlowNoise(Grid *aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc,
 	rhs_.SetPtrEQNData(eqnData_, ptgrid_, actlevel_);
 	rhs_.Init(0.0);
 	
-	Double * ptRHS = algsys_->GetRHSVal();
+	Double *ptRHS;
+	algsys_->GetRHSVal( ptRHS );
 	rhs_.CopyFromAlgSysDataPointer(ptRHS);
       }
       

@@ -1,151 +1,219 @@
 #ifndef FILE_DOMAIN_2001
 #define FILE_DOMAIN_2001
 
-#define MAXNUMPDE 20
-#define MAXNUMCOUPLEDPDE 20
+#include <map>
 
-#include <General/environment.hh>
-#include <Domain/grid.hh>
-#include <Domain/bcs.hh>
-
-#include <PDE/StdPDE.hh>
-
+#include "Utils/StdVector.hh"
 
 namespace CoupledField
 {
 
-class TimeFunc;
-class WriteResults;
-class BasePDE;
-class StdPDE;
-class IterCoupledPDE;
-class PDECoupling;
-class  AbstractAlgebraicSys;
+  //! Forward class declarations
+  class TimeFunc;
+  class BasePDE;
+  class StdPDE;
+  class SinglePDE;
+  class IterCoupledPDE;
+  class PDECoupling;
+  class DirectCoupledPDE;
+  class Grid;
+  class BCs;
+  class FileType;
+  class WriteResults;
 
-//! contain information about calculation domain and according to different meshes create different grids
+  //! This class defines the computational domain.
 
-class Domain
-{
-public:
-  //! Constructor
-  /*!
-    \param aptFileType (input) input file (mesh-data)
-    \param ptOut (input) output file
-    \param aptTimeFunc (input) time function data base
-  */
-  Domain(FileType * const aptFileType, WriteResults * ptOut, TimeFunc * aptTimeFunc);
+  //! This class contains information about the geometrical domain,
+  //! creates the (coupled) PDE objects, manages the handling of
+  //! time functions (used for boundary and load conditions) and
+  //! holds the pointers to the input mesh-file and the output data-file.
+  class Domain
+  {
+  public:
+    
+    //! Constructor
+    /*!
+      \param aptFileType (input) input file (mesh-data)
+      \param ptOut (input) output file
+      \param aptTimeFunc (input) time function data base
+    */
+    Domain(FileType * const aptFileType, WriteResults * ptOut, 
+	   TimeFunc * aptTimeFunc);
+    
+    //! Destructor
+    virtual ~Domain();
+    
+    //! Trigger output of the grid
+    /*!
+      \param level index into grid hierarchy
+    */
+    void PrintGrid(const Integer level);
+    
+    
+    // ======================================================
+    // INIT AND UPDATE ROUTINES
+    // ======================================================
+    
+    //@{
+    //! \name Methods for initialization and update
 
-  //!
-  virtual ~Domain();
+    //! Initialize all PDEs
+    //! \param pdes vector of pointers to pdes
+    //! \param sequenceStep step index in MultiSequenceSimulation
+    //! \param tags tags for each PDE 
+    void InitPDEs(StdVector<std::string> &pdeNames,
+		  Integer sequenceStep,
+		  StdVector<std::string> tags);
 
-  //!
-  /*!
-    \param level index into grid hierarchy
-  */
-  void PrintGrid(const Integer level);
+    //! Delete pointer to PDEs and create them new
+    void ResetPDEs();
 
+    //! Update algebraic system and bcs after refinement of the mesh
+    /*!
+      \param level index into hierarchy (multilevel methods)
+    */
+    void Update(const Integer level);
 
-  //! Initialize all PDEs
-  //! \param pdes vector of pointers to pdes
-  //! \param sequenceStep step index in MultiSequenceSimulation
-  //! \param tags tags for each PDE 
-  void InitPDEs(StdVector<std::string> &pdeNames,
-		Integer sequenceStep,
-		StdVector<std::string> tags);
+    //! Update algebraic system in case of new mesh
+    /*!
+      \param level index into hierarchy (multilevel methods)
+    */
+    void UpdateAlgSys(const Integer level);
 
-  //!
-  void SetSubdomains();
+    //@}
 
-  //! get pointer to basePDE
+    // ======================================================
+    // SET / GETTER METHODS
+    // ======================================================
 
-  //! If only one PDE is defined, this method returns the pointer to it.
-  //! In the iterative coupled case, the pointer to the coupled PDE is 
-  //! returned
-  BasePDE * GetBasePDE();
-
-  //! get pointer to StdPDE
-  StdPDE * GetStdPDE(const std::string pdename);
-
-  //! get iterative coupled pde
-  // \obsolete
-  IterCoupledPDE * GetCoupledPDE() {return ptcoupledpde_;}
-
-  //! get algebraic system
-  // AbstractAlgebraicSys * GetAlgSys(){ return ptalgsys_;}
-
-  //! get pointer to input-file
-  FileType * GetInFile(){ return InFile_;}
-
-  //! get pointer to output-file
-  WriteResults * GetOutFile(){ return OutFile_;}
-
-  //! get pointer to boundary condition
-  BCs * GetBCs(){ return ptBCs_;}
-
-  //! delete pointer to PDEs and create them new
-  void ResetPDEs();
-
-
-  //! update algebraic system and bcs after refinement the mesh
-  /*!
-    \param level index into hierarchy (multilevel methods)
-  */
-  void Update(const Integer level);
-
-  //! update alg. sys. in case of new mesh
-  /*!
-    \param level index into hierarchy (multilevel methods)
-  */
-  void UpdateAlgSys(const Integer level);
-
-  //!
-  Grid * GetGrid(){ return ptgrid_;}
-
-  //! get number of pdes
-  Integer GetNumPDE() {return numpde_;}
-
-  //! get time pointer to function
-  TimeFunc* GetTimeFncPointer() {return ptTimeFunc_;}
-
-protected:
-
-private:
   
+    //@{
+    //! \name Methods for setting / getting data
+
+    //! Get pointer to basePDE
+
+    //! If only one PDE is defined, this method returns the pointer to it.
+    //! In the iterative coupled case, the pointer to the coupled PDE is 
+    //! returned
+    BasePDE * GetBasePDE();
+
+    //! Get pointer to StdPDE by name
+    StdPDE * GetStdPDE(const std::string pdename);
+
+    //! Get pointer to SinglePDE by name
+    SinglePDE * GetSinglePDE(const std::string pdename);
+
+    //! Get pointer to input-file
+    FileType * GetInFile(){ return InFile_;}
+
+    //! Get pointer to output-file
+    WriteResults * GetOutFile(){ return OutFile_;}
+
+    //! Get pointer to boundary condition
+    BCs * GetBCs(){ return ptBCs_;}
   
+    //! Get pointer to grid object
+    Grid * GetGrid(){ return ptgrid_;}
 
-  //! initialize pde
-  //! \param pdeNames Vector of names of PDEs
-  void CreatePDEs(StdVector<std::string> & pdeNames);
+    //! Get time pointer to function
+    TimeFunc* GetTimeFncPointer() {return ptTimeFunc_;}
+
+    //@}
+
+
+  protected:
+
+  private:
   
-  //! initialize coupled pde
-  //! \param sequenceTag Tag specifying the current coupling section
-  void CreateCoupledPDE(StdVector<std::string> & sequenceTags);
+    // ======================================================
+    // CREATION METHODS
+    // ======================================================
 
-   //! initialization of alg.sys.
-  /*!
-    \param level index into hierarchy (multilevel methods)
-  */
-   void InitAlgSys(const Integer level);
+    //@{
+    //! \name Methods for creating (coupled) PDE objects
+  
+    //! Create the SinglePDE objects
+    
+    //! Create the SinglePDE objects
+    //! \param pdeNames Vector of names of PDEs
+    void CreateSinglePDEs(StdVector<std::string> & pdeNames);
+  
+    //! Initialize direct coupled pde(s)
 
-  Integer numlevel_; //!< number of levels
-  Integer numsubdomain_;  //!< number of subdomains
-  Integer numsys_;        //!< number of systems (matrix dimension for algebraic system)
-  Integer numpde_;        //!< number of PDEs
-  Integer numcoupledpde_; //!< number of coupled PDEs
-  Integer numgraph_;      //!< number of graphs needed (node-graphs, edge-graphs, etc.)
-  Integer ** syscoupling_; //!< matrix, containing coupling information between the systems
-  StdVector<StdPDE*> ptpde_;   //!< pointers to PDEs
-  IterCoupledPDE * ptcoupledpde_; //!< pointer to coupled PDEs
-  StdVector<StdPDE*> orderedpdes_; //!<pointer to PDEs in right order for coupling
-  StdVector<PDECoupling*> couplings_; //!<pointer to coupling objects
-  Grid * ptgrid_; //!< pointer to grid object
-  BCs * ptBCs_;   //!< pointer to object storing boundary conditions
-  // AbstractAlgebraicSys * ptalgsys_; //!< pointer to algebraic system
-  TimeFunc * ptTimeFunc_; //!< pointer to object handling time functions
-  FileType *InFile_;      //!< pointer to object handling input file (mesh data)
-  WriteResults * OutFile_; //!<  pointer to object handling output file 
+    //! Initialize direct coupled pde(s)
+    //! \param sequenceTag Tag specifying the current coupling section
+    void CreateDirectCoupledPDEs(StdVector<std::string> & sequenceTags);
 
-};
+    //! Initialize iterative coupled pde
+
+    //! Initialize iterative coupled pde
+    //! \param sequenceTag Tag specifying the current coupling section
+    void CreateIterCoupledPDE(StdVector<std::string> & sequenceTags);
+    //@}
+  
+    // ======================================================
+    // DATA SECTION
+    // ======================================================
+  
+    //! Number of hierarchy levels
+    Integer numlevel_; 
+
+    //@{
+    //! \name Data about (coupled) PDEs
+
+    //! Number of Single PDEs
+    Integer numSinglePde_;
+
+    //! Number of DirectCoupled PDEs
+    Integer numDirectCoupledPde_;
+
+    //! Number of StdPDEs which can couple iteratively
+
+    //! Holds the number of StdPDEs, which can be coupled iteratively. 
+    //! This means that SinglePDEs, which are already coupled directly, are
+    //! not counted, since each SinglePDE is either directly OR iteratively
+    //! coupled.
+    Integer numIterCoupledStdPde_;
+  
+    //! Pointers to SinglePDEs
+    StdVector<SinglePDE*> ptSinglePde_;
+
+    //! Pointers to DirectCoupledPDEs
+    StdVector<DirectCoupledPDE*> ptDirectCoupledPde_;
+
+    //! Pointer to iterative coupled PDE
+    IterCoupledPDE * ptIterCoupledPde_;
+
+    //! Pointer to coupling objects
+
+    //! Pointer to the object which hold the information for
+    //! pairwise iterative coupling of two StdPDEs
+    StdVector<PDECoupling*> couplings_; //!<pointer to coupling objects
+
+    //! Direct coupling status of each SinglePDE
+
+    //! Flagfield, which indicates, if a SinglePDE is direct coupled
+    //! or not
+    std::map<SinglePDE*,Boolean> isDirectCoupled_;
+
+    //@}
+
+    //! Pointer to grid object
+    Grid * ptgrid_;
+
+    //! Pointer to object storing boundary conditions
+    BCs * ptBCs_;   
+
+    //! Pointer to object handling time functions
+    TimeFunc * ptTimeFunc_;
+
+    //! Pointer to object handling input file (mesh data)
+    FileType *InFile_;
+
+    //!  Pointer to object handling output file 
+    WriteResults * OutFile_;
+
+  };
 
 }
 

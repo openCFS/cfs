@@ -4,42 +4,16 @@
 
 #include "PDE/StdPDE.hh"
 
-
 #include <list>
 
-#include "Utils/StdVector.hh"
-#include "Domain/elem.hh"
-#include "Utils/nodestoresol.hh"
-#include "Utils/elemstoresol.hh"
-#include "General/environment.hh"
-#include "Domain/bcs.hh"
-#include "DataInOut/timefunc.hh"
-#include "DataInOut/filetype.hh"
-#include "DataInOut/writeresults.hh"
-#include "Matrix/matrix.hh"
-
-#include "olas.hh"
-
-
-#include "DataInOut/LoadMaterialData.hh"
-#include "DataInOut/LoadMaterialDataFile.hh"
-#include "DataInOut/MaterialData.hh"
-#include "CoupledPDE/pdecoupling.hh"
 #include "Driver/assemble.hh"
-#include "timestepping.hh"
-#include "nodeEQN.hh"
-#include "pdememento.hh"
-#include "Driver/baseSolveStep.hh"
-
-#ifdef USE_DATABASE
-#include "DataInOut/LoadMaterialDataDatabase.hh"
-#endif
 
 
 namespace CoupledField
 {
   // forward class declaration
   class SpaceErrorEstimator;
+  class BasePairCoupling;
   
   //! Base class for all kinds of single field problems.
 
@@ -51,6 +25,9 @@ class SinglePDE : public StdPDE
   
 public:
 
+  // friend declaration
+  friend class BasePairCoupling;
+
   Boolean BooleanComplexMaterialData_;
 
   Boolean converged_; //!< needed for coupling with MpCCI
@@ -61,6 +38,9 @@ public:
 	    std::string  bcSequenceTag = "anyTag");
   
   // ---------------------- ***** --------------------------------
+
+  //! destructor
+  virtual ~SinglePDE();
   
 
   //! returns the load names
@@ -81,6 +61,14 @@ public:
   
   //! MpCCI gets the geometry
   virtual void PreparePDE4Computation() {;};
+  
+  // ======================================================
+  // ALGSYS SECTION (SOLVER, ...)
+  // ======================================================
+  
+  //! define algebraic system 
+  void DefineAlgSys();
+  
   
   // ======================================================
   // ADATPTIVITY SECTION
@@ -121,8 +109,29 @@ public:
 
   
   // ======================================================
-  // GETTER METHODS
+  // GET /SET  METHODS
   // ======================================================
+
+  //! Activate the direct coupling
+  void SetDirectCoupling (BaseSystem *algsys,
+			  StdSolveStep *solveStep);
+
+  //! get algsys identification tag of PDE
+  PdeIdType GetPDEId()
+  { return pdeId_; }
+
+  //! set algsys identifaction tag of  PDE
+  void SetPDEId( const PdeIdType id)
+  { 
+    pdeId_ = id;
+    assemble_->SetPDEId (id);
+  }
+
+  //! set algebraic system object
+  void SetAlgebraicSystem( BaseSystem *algSys);
+
+  //! set solveStep object
+  void SetSolveStep ( StdSolveStep *solveStep);
 
   //! return subtype
   virtual std::string GetSubType() {return subType_;}
@@ -130,6 +139,10 @@ public:
   //! return number of restraints
   Integer GetNumRestraints(const Integer level=-1);
  
+  //! Get types of needed matrices (sysmtem, stiffness,..)
+  void GetMatrixTypes( std::set<FEMatrixType> &matTypes)
+  { matTypes = matrixTypes_;}
+
   //! set boundary condition
   //! \param level             level of grid
   //! \param atimestep         time step of claculation
@@ -139,6 +152,29 @@ public:
   //! write general defines (BCs, loads, etc.) to info-file
   void WriteGeneralPDEdefines();
   
+  // ======================================================
+  // METHODS FOR ASSEMBLING
+  // ======================================================
+  
+  //! specify type of system matrix for AlgebraicSystem
+  /*! \param level (input) level of Grid     */
+  void AssembleMatrices(const Integer level);
+  
+  //! setup source term
+  void AssembleSrcRHS(const Integer level, const Double time=0);
+  
+  //!  assemble a nonlinear RHS part
+  void AssembleNLRHS(const Integer level, const Double time=0);
+  
+  //!  assemble a spring into the system matrix
+  void AssembleSprings(const Integer level, const Double time=0);
+  
+  //! Initialize all matrices with nonlinear behavior
+  void InitNonLinMatrices();
+  
+  //! constructes the matrix graph by providing to the algebraic system the element connectivities
+  void SetupMatrixGraph();
+
 protected:
 
   
@@ -155,10 +191,6 @@ protected:
 	    FileType *aInFile,
 	    WriteResults *aOutFile, 
 	    TimeFunc *aTimeFunc);
-
-
-  //! destructor
-  virtual ~SinglePDE();
 
   //! private copy constructor
   SinglePDE & operator= (const StdPDE & myPDE) {
@@ -201,7 +233,10 @@ protected:
   void ConstructorError();
 #endif
     
-
+  
+  //! store the new solution returned by the algebraic system
+  void SaveSolution();
+  
   // ======================================================
   // DATA SECTION
   // ======================================================
@@ -247,6 +282,9 @@ protected:
   //! TRUE, if second derivative of solution should be written to history file
   Boolean saveDeriv2Hist_;
 
+  //! outputFormat for complex numbers
+  ComplexFormat complexFormat_;  
+
   //@}
 
   // -----------------------------------------------------------------------
@@ -277,11 +315,22 @@ protected:
   Double  eps_;              //!< accuracy
   Double dampiter_;          //!< damping parameter within iterative solution
   Double coarsealpha_;       //!< coarsening factor (just for AMG)
-   
-  ComplexFormat complexFormat_;  //!< outputFormat for complex numbers
 
   //@}
 
+  // -----------------------------------------------------------------------
+  // Miscellaneous paramters
+  // -----------------------------------------------------------------------
+
+  //@{
+  //! \name Miscellanous paramters
+  
+  //! Identifier of the PDE which is used in the algebraic system
+  PdeIdType  pdeId_;
+  
+  //! flag for direct coupling
+  Boolean isDirectCoupled_;
+  //@}
 };
 
 } // end of namespace

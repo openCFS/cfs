@@ -472,6 +472,13 @@ namespace CoupledField {
     Error (" Implement me!", __FILE__, __LINE__);
   }
   
+  void PlainXMLParamHandler::GetDirectCouplingList( StdVector<std::string> &list,
+						    const std::string sequenceTag)
+  {
+    ENTER_FCN( "PlainXMLParamHandler::GetDirectCouplingList" );
+    Error (" Implement me!", __FILE__, __LINE__);
+  }
+  
 
   // ========================================
   //   Query on/off status of a flag/switch

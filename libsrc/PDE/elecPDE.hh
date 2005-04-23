@@ -88,14 +88,21 @@ namespace CoupledField
     // ======================================================
 
     //! initalize PDE coupling
-    virtual void InitCoupling(PDECoupling * Coupling);
+    void InitCoupling(PDECoupling * Coupling);
 
     //! calculate coupling terms
-    virtual void CalcOutputCoupling();
+    void CalcOutputCoupling();
 
     //! returns if PDE can compute the quantity
-    virtual Boolean HasOutput(SolutionType output);
+    Boolean HasOutput(SolutionType output);
   
+    //! turn the piezo coupling on
+
+    //! triggers the correct assembly of the electrostatic block in a 
+    //! piezo-coupled simulation, because the coupled electrostatic block
+    //! is negative compared to the normal one
+    void SetPiezoCoupling();
+    
 
   protected:
 
@@ -186,6 +193,9 @@ namespace CoupledField
     //!   </tr>
     //! </table>
     void ReadStoreResults();
+
+    //! flag for piezo-coupling
+    Boolean isPiezoCoupled_;
 
   };
 

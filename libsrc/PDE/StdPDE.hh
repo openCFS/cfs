@@ -3,16 +3,22 @@
 
 #include "PDE/basePDE.hh"
 
-#include "DataInOut/writeresults.hh"
-#include "Driver/assemble.hh"
+#include <set>
+
 #include "PDE/timestepping.hh"
-#include "Driver/stdSolveStep.hh"
 #include "nodeEQN.hh"
 
 namespace CoupledField {
 
 
   // forward class declarations
+  class PDECoupling;
+  class WriteResults;
+  class TimeStepping;
+  class TimeFunc;
+  class BaseNodeStoreSol;
+  class NodeEQN;
+  class StdSolveStep;
   class PDECoupling;
   
   //! Base class for all single-field and direct-coupled problems
@@ -26,30 +32,28 @@ namespace CoupledField {
   
   public:
 
-    // friend class declarations
+    // friend cStdlass declarations
     friend class StdSolveStep;
     friend class PDEMemento;
     friend class PDECoupling;
 
     //! Virtual destructor
-    virtual ~StdPDE() {
-      ENTER_FCN( "StdPDE::~StdPDE" );
-    }
-
+    virtual ~StdPDE();
+    
     // ======================================================
     // ALGSYS SECTION (SOLVER, ...)
     // ======================================================
   
     //! define algebraic system 
-    virtual void SetAlgSys();
+    virtual void DefineAlgSys() = 0;
   
     //! Create the matrices and Solver as well as Preconditioner
     virtual void CreateMatrices_Solver();
   
     //! deletes the algebraic system
-    void DeleteAlgSys(int as_id)
+    void DeleteAlgSys()
     {if (algsys_)
-      assemble_->DeleteAlgSys();
+      delete algsys_;
     };
 
     // ======================================================
@@ -71,24 +75,24 @@ namespace CoupledField {
   
 
 
-  // ======================================================
-  // POSTPROCESSING METHODS
-  // ======================================================
-  
-  //! compute volume above a deformed surface
-  virtual void ComputeVolDefSurf(StdVector<std::string> surfRegions, 
-				 StdVector<std::string> strDir);
-
-  //!
-  virtual Double ComputeVolElem(BaseFE * ptSurfEl, Matrix<Double>& SurfCoord, 
-				Vector<Double> disp);
-
-  //!
-  virtual Complex ComputeVolElem(BaseFE * ptSurfEl, Matrix<Double>& SurfCoord, 
+    // ======================================================
+    // POSTPROCESSING METHODS
+    // ======================================================
+    
+    //! compute volume above a deformed surface
+    virtual void ComputeVolDefSurf(StdVector<std::string> surfRegions, 
+				   StdVector<std::string> strDir);
+    
+    //!
+    virtual Double ComputeVolElem(BaseFE * ptSurfEl, Matrix<Double>& SurfCoord, 
+				  Vector<Double> disp);
+    
+    //!
+    virtual Complex ComputeVolElem(BaseFE * ptSurfEl, Matrix<Double>& SurfCoord, 
 				Vector<Complex> disp);
   
     // ======================================================
-    // GETTER METHODS
+    // GET/SET METHODS
     // ======================================================
     //! get the encapsulated state of the PDE
   
@@ -117,10 +121,19 @@ namespace CoupledField {
     //! \param frequency   (input) : frequency of previous sequence
     virtual void SetMemento(PDEMemento & memento, std::string transFromTo,
 			    Double frequency);
-		    
+		   
+    //! Return pointer to the SolveStep object
+    BaseSolveStep * GetSolveStep();
+    
+    //! return number of restraints
+    virtual Integer GetNumRestraints(const Integer level=-1) = 0;
+
     //! Get number of time step
     virtual Integer GetTimeStepCounter()
     { return laststepcalc_; }
+
+    //! Get types of needed matrices (sysmtem, stiffness,..)
+    virtual void GetMatrixTypes( std::set<FEMatrixType> &matTypes) = 0;
 
     //! return pointer to vector with subdomains, on which we calculate the PDE
     virtual StdVector<std::string> * getSDsPDE()
@@ -149,6 +162,8 @@ namespace CoupledField {
     }
 
     //! Get coefficient for damping matrix in fractional damping model
+    //! \todo This function has to be removed when the fractional
+    //! damping model gets implemented in a separate Forms-class
     virtual Double GetFracDampMatrixCoeff(Integer actSD);
 
 
@@ -162,6 +177,7 @@ namespace CoupledField {
                                const Integer level);
   
     //!
+    //! \todo What is the purpose of this function?
     virtual void ComputeRHS(const Double atime) {;};
   
     //! set boundary condition
@@ -175,7 +191,30 @@ namespace CoupledField {
     //! \params dt Current time step
     virtual void SetTimeStep(const Double dt)
     {TS_alg_->Init(matrix_factor_, dt);}
+  
+    
+    // ======================================================
+    // METHODS FOR ASSEMBLING
+    // ======================================================
 
+    //! specify type of system matrix for AlgebraicSystem
+    /*! \param level (input) level of Grid     */
+    virtual void AssembleMatrices(const Integer level) = 0;
+    
+    //! setup source term
+    virtual void AssembleSrcRHS(const Integer level, const Double time=0) = 0;
+    
+    //!  assemble a nonlinear RHS part
+    virtual void AssembleNLRHS(const Integer level, const Double time=0) = 0;
+
+    //!  assemble a spring into the system matrix
+    virtual void AssembleSprings(const Integer level, const Double time=0) = 0;
+
+    //! Initialize all matrices with nonlinear behavior
+    virtual void InitNonLinMatrices() = 0;
+
+    //! constructes the matrix graph by providing to the algebraic system the element connectivities
+    virtual void SetupMatrixGraph() = 0;
 
     // ======================================================
     // COMMUNICATION ROUTINES FOR PARAMETER IDENTIFICATION
@@ -227,7 +266,7 @@ namespace CoupledField {
     piezoMaterialType getPDE_piezoMaterialType()
     {return piezoMaterialType_;}
     //@}
-  
+
   protected:
   
     //! Constructor
@@ -249,7 +288,10 @@ namespace CoupledField {
     //! return index of dof defined by keyword (e.g. 'ux')
     virtual Integer GetBCDof(const std::string keyword);
 
-    //! stores an algsys_ vector into a StdVector and returns that L2-norm
+    //! store the new solution returned by the algebraic system
+    virtual void SaveSolution() = 0;
+
+    //! stores an algsys_ vector into a StdVector
     void StoreAlgsysToVec(Vector<Double>& vec, Double * pt);
 
     //! calculates L2-norm of RHS regarding entries due to penalty formulation
@@ -362,8 +404,11 @@ namespace CoupledField {
     //! Dirichlet boundary conditions.
     StdVector<std::string> inhomDirichDof_;
 
-    //! nnumber of dirichlet boundary conditions
+    //! number of dirichlet boundary conditions
     Integer numDirichletBCs_;
+
+    //! number of built-in dirichlet conditions
+    Integer numBuildInDirichletBCs_;
 
     //@}
 
@@ -395,12 +440,11 @@ namespace CoupledField {
     // LoadMaterialData *loadMaterial_; //!< material reader
     MaterialData *materialData_;     //!< material data structure
     std::string pdematerialclass_;    //!< material class
-
+  
     //! Data Type which decides wheather material is real or complex
     piezoMaterialType piezoMaterialType_;
     //! contains element results of complex valued charge 
     Vector<Complex> complexValuedCharge_;
-  
     //@}
 
 
@@ -410,7 +454,7 @@ namespace CoupledField {
   
     //@{
     //! \name Attributes connected to handling PDE coupling
-    Boolean pdeIsCoupled_;        //!< PDE couples with others
+    Boolean isIterCoupled_;        //!< PDE couples with others
     Matrix<Double> deltCoords_;    //!< offset to grid coordinates
     Vector<Double> matParam_;      //!< change to material parameter
     Boolean updateCouplingBCs_ ;  //!< flag if coupling BC were already set
@@ -479,11 +523,18 @@ namespace CoupledField {
     //! factors for constructing effective mass / stiffness matrix
     Double matrix_factor_[4];
 
+    //! set defining which type of matrices (stiffness, mass,...) is used
+    std::set<FEMatrixType> matrixTypes_;
+
     //! actual level (actual = current?)
     Integer actlevel_;
 
     //! Pointer to object of analysis (Static, Trans, Harm or Eig)
     Assemble * assemble_;
+    
+    //! pointer to SolveStep classes
+    StdSolveStep * solveStep_;
+    
     BaseSystem * algsys_;     //!< pointer to algebraic system
     TimeFunc * ptTimeFunc_;   //!< pointer to time functions
 
