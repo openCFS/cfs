@@ -369,6 +369,12 @@ namespace CoupledField {
         outFile_->WriteElemSolutionHarmonic(chargesComplex_, actFreqStep_,  
                                             actFrequency_, complexFormat_);
       }
+      if (calcStress_.GetSize() !=0 ) 
+        outFile_->WriteElemSolutionHarmonic(stressComplex_, actFreqStep_,  
+                                            actFrequency_, complexFormat_);
+      if (calcEfield_.GetSize() !=0 ) 
+	outFile_->WriteElemSolutionHarmonic(EfieldComplex_, actFreqStep_,  
+					     actFrequency_, complexFormat_);
     }
   }
 
