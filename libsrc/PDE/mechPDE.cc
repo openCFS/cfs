@@ -859,9 +859,9 @@ namespace CoupledField
     if ( calcStress_.GetSize() > 0 ) {
       hasOutput_ = TRUE;
       Info->PrintF( pdename_,
-                    " Computing mechanical stress for regions:");
+                    " Computing mechanical stress for regions:\n");
       for ( Integer k = 0; k < calcStress_.GetSize(); k++ ) {
-        Info->PrintF( pdename_, " %s", calcStress_[k].c_str() );
+        Info->PrintF( pdename_, " %s\n", calcStress_[k].c_str() );
       }
     }
 
@@ -879,9 +879,9 @@ namespace CoupledField
     if ( calcEnergy_.GetSize() > 0 ) {
       hasOutput_ = TRUE;
       Info->PrintF( pdename_,
-                    " Computing mechanical Energy for regions:");
+                    " Computing mechanical Energy for regions:\n");
       for ( Integer k = 0; k < calcEnergy_.GetSize(); k++ ) {
-        Info->PrintF( pdename_, " %s", calcEnergy_[k].c_str() );
+        Info->PrintF( pdename_, " %s\n", calcEnergy_[k].c_str() );
       }
     }
 
@@ -900,9 +900,9 @@ namespace CoupledField
     if (saveNodeHist.GetSize() > 0) {
       saveSolHist_ = TRUE;
       hasOutput_ = TRUE;
-      Info->PrintF( pdename_, " Saving mechDisplacement for Nodes:" );
+      Info->PrintF( pdename_, " Saving mechDisplacement for Nodes:\n" );
       for ( Integer k = 0; k < saveNodeHist.GetSize(); k++ ) {
-        Info->PrintF( pdename_, " %s", saveNodeHist[k].c_str() );
+        Info->PrintF( pdename_, " %s\n", saveNodeHist[k].c_str() );
       }
     }
   
@@ -914,9 +914,9 @@ namespace CoupledField
     if (saveNodeHist.GetSize() > 0) {
       saveDeriv1Hist_ = TRUE;
       hasOutput_ = TRUE;
-      Info->PrintF( pdename_, " Saving mechVelocity for Nodes:" );
+      Info->PrintF( pdename_, " Saving mechVelocity for Nodes:\n" );
       for ( Integer k = 0; k < saveNodeHist.GetSize(); k++ ) {
-        Info->PrintF( pdename_, " %s", saveNodeHist[k].c_str() );
+        Info->PrintF( pdename_, " %s\n", saveNodeHist[k].c_str() );
       }
     }
 
@@ -928,9 +928,9 @@ namespace CoupledField
     if (saveNodeHist.GetSize() > 0) {
       saveDeriv1Hist_ = TRUE;
       hasOutput_ = TRUE;
-      Info->PrintF( pdename_, " Saving mechAcceleration for Nodes:" );
+      Info->PrintF( pdename_, " Saving mechAcceleration for Nodes:\n" );
       for ( Integer k = 0; k < saveNodeHist.GetSize(); k++ ) {
-        Info->PrintF( pdename_, " %s", saveNodeHist[k].c_str() );
+        Info->PrintF( pdename_, " %s\n", saveNodeHist[k].c_str() );
       }
     }
   
@@ -1074,7 +1074,7 @@ namespace CoupledField
     if ( preStressDomain_.GetSize() > 0 ) {
 
       Info->PrintF( pdename_,
-                    " Found prestressing in the following regions:" );
+                    " Found prestressing in the following regions:\n" );
 
       Double tmpDir;
 
@@ -1103,7 +1103,7 @@ namespace CoupledField
         preStressValZ_.Push_back( tmpDir );
 
         // ... report name to logfile
-        Info->PrintF( pdename_, "%s", preStressDomain_[k].c_str());
+        Info->PrintF( pdename_, "%s\n", preStressDomain_[k].c_str());
       }
     }
   }

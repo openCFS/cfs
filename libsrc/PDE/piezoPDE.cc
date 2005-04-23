@@ -604,7 +604,7 @@ namespace CoupledField {
     if (saveNodeHist.GetSize() > 0) {
       saveSolHist_ = TRUE;
       hasOutput_ = TRUE;
-      Info->PrintF( pdename_, " Saving mechDisplacement for Nodes:" );
+      Info->PrintF( pdename_, " Saving mechDisplacement for Nodes:\n" );
 
       for ( Integer k = 0; k < saveNodeHist.GetSize(); k++ ) {
         Info->PrintF( pdename_, "%s\n", saveNodeHist[k].c_str() );
@@ -619,9 +619,9 @@ namespace CoupledField {
     if (saveNodeHist.GetSize() > 0) {
       saveDeriv1Hist_ = TRUE;
       hasOutput_ = TRUE;
-      Info->PrintF( pdename_, " Saving mechVelocity for Nodes:" );
+      Info->PrintF( pdename_, " Saving mechVelocity for Nodes:\n" );
       for ( Integer k = 0; k < saveNodeHist.GetSize(); k++ ) {
-        Info->PrintF( pdename_, " %s", saveNodeHist[k].c_str() );
+        Info->PrintF( pdename_, " %s\n", saveNodeHist[k].c_str() );
       }
     }
 
@@ -633,9 +633,9 @@ namespace CoupledField {
     if (saveNodeHist.GetSize() > 0) {
       saveDeriv1Hist_ = TRUE;
       hasOutput_ = TRUE;
-      Info->PrintF( pdename_, " Saving mechAcceleration for Nodes:" );
+      Info->PrintF( pdename_, " Saving mechAcceleration for Nodes:\n" );
       for ( Integer k = 0; k < saveNodeHist.GetSize(); k++ ) {
-        Info->PrintF( pdename_, " %s", saveNodeHist[k].c_str() );
+        Info->PrintF( pdename_, " %s\n", saveNodeHist[k].c_str() );
       }
     } 
 
