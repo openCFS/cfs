@@ -1,13 +1,16 @@
 #ifndef FILE_TIMESTEPPING_2001
 #define FILE_TIMESTEPPING_2001
 
-#include "olas.hh"
 
 #include "General/environment.hh"
 #include "Utils/nodestoresol.hh"
 #include "PDE/nodeEQN.hh"
 
 namespace CoupledField {
+
+
+// forward class declaration
+class BaseSystem;
 
 //! a base class for time stepping
 

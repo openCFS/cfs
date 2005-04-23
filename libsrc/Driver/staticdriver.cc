@@ -3,10 +3,10 @@
 #include <string>
 
 #include "staticdriver.hh"
-#include "DataInOut/GMV/outGMV.hh"
-#include "CoupledPDE/itercoupledpde.hh"
-#include "General/environment.hh"
-#include "PDE/basePDE.hh"
+#include "stdSolveStep.hh"
+
+#include "PDE/StdPDE.hh"
+#include "Domain/domain.hh"
 
 namespace CoupledField {
 
@@ -41,11 +41,6 @@ namespace CoupledField {
 
     Integer level=0;
 
-    if (PrintGridOnly) {
-      ptdomain_->PrintGrid(level);
-      exit(0);
-    }
-    
     // if driver is not part of multiSequence Driver, get list
     // of pdes which have to be solved and intialize them
     if (isPartOfSequence_ == FALSE){     

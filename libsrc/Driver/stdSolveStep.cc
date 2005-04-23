@@ -3,7 +3,10 @@
 #include <string>
 
 #include "stdSolveStep.hh"
+#include "assemble.hh"
 
+#include "Utils/nodestoresol.hh"
+#include "PDE/StdPDE.hh"
 
 namespace CoupledField {
 
@@ -43,7 +46,7 @@ namespace CoupledField {
     nonLinLogging_    = PDE_.nonLinLogging_ ;
     nonLinPDEName_    = PDE_.nonLinPDEName_;
 
-    pdeIsCoupled_       = PDE_.pdeIsCoupled_;
+    isIterCoupled_       = PDE_.isIterCoupled_;
     firstTimeStepStatic_ =PDE_.firstTimeStepStatic_;
     iterCoupledCounter_ = &PDE_.iterCoupledCounter_;
 
@@ -52,6 +55,9 @@ namespace CoupledField {
     actSol_             = PDE_.actSol_;
     isIncrFormulation_  = PDE_.isIncrFormulation_;
 
+
+    pdeId1_ = NO_PDE_ID;
+    pdeId2_ = NO_PDE_ID;
 }
 
   
@@ -94,13 +100,13 @@ namespace CoupledField {
     // the preconditioner has to be recalculated
 
     if ( PDE_.geoUpdate_ == TRUE ||  PDE_.firstTimeStepStatic_ == TRUE) {
-      PDE_.assemble_->AssembleMatrices(level);
-      PDE_.assemble_->AssembleSprings(level, PDE_.lasttimecalc_);
+      PDE_.AssembleMatrices(level);
+      PDE_.AssembleSprings(level, PDE_.lasttimecalc_);
       job = 1; // calc new preconditioner
     }
   
     // The RHS-sources have to be reassembled each time
-    PDE_.assemble_->AssembleSrcRHS(level, aTime);
+    PDE_.AssembleSrcRHS(level, aTime);
 
     PDE_.SetBCs(level, aTime);
 
@@ -114,8 +120,9 @@ namespace CoupledField {
     PDE_.algsys_->Solve();
 
     // Get the solution and store it
-    ptsol = PDE_.algsys_->GetSolutionVal();
-    PDE_.sol_->CopyFromAlgSysDataPointer(ptsol);
+    //ptsol = PDE_.algsys_->GetSolutionVal();
+    //PDE_.sol_->CopyFromAlgSysDataPointer(ptsol);
+    PDE_.SaveSolution();
 
     PDE_.firstTimeStepStatic_ = FALSE;
   }
@@ -140,8 +147,7 @@ namespace CoupledField {
     if (PDE_.geoUpdate_) {
       PDE_.algsys_->InitRHS();
       PDE_.algsys_->InitSol();
-      PDE_.assemble_->InitMatrices();
-
+      PDE_.algsys_->InitMatrix();
       PDE_.assemble_->SetReassemble();  
     }
   }
@@ -186,7 +192,7 @@ namespace CoupledField {
 
     NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(PDE_.sol_);
 
-    if ( PDE_.pdeIsCoupled_ == FALSE || PDE_.iterCoupledCounter_ == 0 ) {        
+    if ( PDE_.isIterCoupled_ == FALSE || PDE_.iterCoupledCounter_ == 0 ) {        
       Vector<Double> & solvector= solhelp->GetAlgSysVector();
       PDE_.TS_alg_->Predictor(solvector);
     }
@@ -195,7 +201,7 @@ namespace CoupledField {
       job = 3;
 
       // why is the first statement checking for 'pdeIsCoupled'?
-      if ( PDE_.pdeIsCoupled_ == FALSE || PDE_.iterCoupledCounter_ == 0 
+      if ( PDE_.isIterCoupled_ == FALSE || PDE_.iterCoupledCounter_ == 0 
            || PDE_.geoUpdate_ == TRUE ) {
         job = 1;
         PDE_.assemble_->AssembleMatrices(level);
@@ -219,7 +225,7 @@ namespace CoupledField {
       job = 3;
 
       // The following section is only an experiment up to now
-      if ( PDE_.geoUpdate_ == TRUE && PDE_.pdeIsCoupled_ == TRUE ) {
+      if ( PDE_.geoUpdate_ == TRUE && PDE_.isIterCoupled_ == TRUE ) {
         if (PDE_.isIncrFormulation_) {
           Error( "Incremental formulation and geoUpdate are currently not "
                  "working together" );
@@ -250,10 +256,10 @@ namespace CoupledField {
     }
 
     PDE_.algsys_->Solve();
-    ptsol = PDE_.algsys_->GetSolutionVal();
 
     if ( PDE_.isIncrFormulation_ ) {
 
+      PDE_.algsys_->GetSolutionVal( ptsol );
       //what a heuristic!!!!!
       Double relaxVal = 0.5;
 
@@ -261,31 +267,35 @@ namespace CoupledField {
         relaxVal = 0.1;
       if (PDE_.iterCoupledCounter_ == 1)
         relaxVal = 0.25;
-
+      
       //we do not want to have iterations!!
       if (PDE_.incStopCrit_ > 1.0 ) {
         relaxVal = 1.0;
         if (PDE_.iterCoupledCounter_ == 1) {
-          Error("Mechanic-Acoustic-Coupling with Norm > 1 should have just a \
-forward coupling from Mechanic to Acoustic",__FILE__,__LINE__);
+          (*error) << "Mechanic-Acoustic-Coupling with Norm > 1 should have "
+		   << "just a forward coupling from Mechanic to Acoustic";
+	  Error( __FILE__, __LINE__ );
         }
       }
 
       PDE_.StoreAlgsysToVec(PDE_.solIncr_, ptsol);
       if (PDE_.iterCoupledCounter_ == 0)
         PDE_.actSol_ = PDE_.solIncr_*relaxVal;
-      else
+      else 
         PDE_.actSol_ += PDE_.solIncr_*relaxVal;
-	  
+
       PDE_.sol_->SetAlgSysVector(PDE_.actSol_);
+      // *** END OF HACK *** END OF HACK ***
     }
-    else
-      PDE_.sol_->CopyFromAlgSysDataPointer(ptsol);
+    else 
+      //PDE_.sol_->CopyFromAlgSysDataPointer(ptsol);
+      PDE_.SaveSolution();
+      
 
     Vector<Double> & solvector =\
       dynamic_cast<NodeStoreSol<Double>*>(PDE_.sol_)->GetAlgSysVector();
 
-    if (!PDE_.pdeIsCoupled_)
+    if (!PDE_.isIterCoupled_)
       PDE_.TS_alg_->Corrector(solvector);
   }
 
@@ -297,7 +307,7 @@ forward coupling from Mechanic to Acoustic",__FILE__,__LINE__);
 
     NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(PDE_.sol_);
     
-    if ( PDE_.pdeIsCoupled_ ) {
+    if ( PDE_.isIterCoupled_ ) {
 
       //save solution
       Vector<Double> & solvector= solhelp->GetAlgSysVector();
@@ -306,7 +316,7 @@ forward coupling from Mechanic to Acoustic",__FILE__,__LINE__);
       PDE_.TS_alg_->Corrector(solvector); 
     }
   
-    if (PDE_.pdeIsCoupled_) {
+    if (PDE_.isIterCoupled_) {
       PDE_.iterCoupledCounter_++;
     }
   }
@@ -329,7 +339,8 @@ forward coupling from Mechanic to Acoustic",__FILE__,__LINE__);
     PDE_.algsys_->InitRHS();
 
     if (reset) {
-      PDE_.assemble_->InitMatrices();
+      PDE_.algsys_->InitMatrix();
+      PDE_.assemble_->SetReassemble();
     }
   }
 
@@ -387,8 +398,9 @@ forward coupling from Mechanic to Acoustic",__FILE__,__LINE__);
 
     PDE_.algsys_->Solve();
 
-    ptsol = PDE_.algsys_->GetSolutionVal();
-    PDE_.sol_->CopyFromAlgSysDataPointer(ptsol);
+    //ptsol = PDE_.algsys_->GetSolutionVal();
+    //PDE_.sol_->CopyFromAlgSysDataPointer(ptsol);
+    PDE_.SaveSolution();
   }
 
 
@@ -408,7 +420,10 @@ forward coupling from Mechanic to Acoustic",__FILE__,__LINE__);
     assemble_->AssembleSrcRHS(level, lasttimecalc_); 
 
     // Stores rhs vector into extForces and returns that L2-norm
-    StoreAlgsysToVec(RhsLinVal_, algsys_->GetRHSVal() );
+ 
+    Double *solPtr;
+    algsys_->GetRHSVal( solPtr );
+    StoreAlgsysToVec(RhsLinVal_, solPtr );
 
     RhsLinL2Norm = RhsLinVal_.NormL2();
  
@@ -473,7 +488,9 @@ forward coupling from Mechanic to Acoustic",__FILE__,__LINE__);
 	// calculation of error norms
 	// =====================================================================
 	Vector<Double> actRHS;
-	StoreAlgsysToVec(actRHS, algsys_->GetRHSVal() );
+	Double *rhsPtr;
+	algsys_->GetRHSVal( rhsPtr );
+	StoreAlgsysToVec(actRHS, rhsPtr );
 
 	// calculation of residual error =======================================
 	Double residualL2Norm = RhsL2Norm(actRHS); // L2Norm of  ( f_i^(k+1) - f_a )
@@ -572,6 +589,12 @@ forward coupling from Mechanic to Acoustic",__FILE__,__LINE__);
 
   Double StdSolveStep::RhsL2Norm(Vector<Double>& actRHS) {
     PDE_.RhsL2Norm(actRHS);
+  }
+
+  void StdSolveStep::SetPDEId( const PdeIdType pdeId ) {
+    ENTER_FCN( "StdSolveStep::SetPDEId" );
+    
+    pdeId1_ = pdeId;
   }
 
 

@@ -4,6 +4,11 @@
 
 #include "solveStepMag.hh"
 
+#include "assemble.hh"
+
+#include "Utils/nodestoresol.hh"
+#include "PDE/StdPDE.hh"
+
 
 namespace CoupledField {
 
@@ -25,7 +30,7 @@ namespace CoupledField {
   void SolveStepMag :: PreStepStatic(const Integer kstep, const Double asteptime,
 				     const Integer level, const Boolean reset) {
     ENTER_FCN( "SolveStepMag::PreStepStatic" );
-    if (pdeIsCoupled_) 
+    if (isIterCoupled_) 
       algsys_->InitSol();
 
   }
@@ -33,7 +38,7 @@ namespace CoupledField {
 
   void SolveStepMag::PostStepStatic(const Integer level) {
     ENTER_FCN( "SolveStepMag::PostStepStatic" );
-    if (pdeIsCoupled_) 
+    if (isIterCoupled_) 
       (*iterCoupledCounter_)++;
   }
 
@@ -46,6 +51,7 @@ namespace CoupledField {
     const Integer job = 1;
     Boolean performOneMoreStep;
     Integer iterationCounter=0;
+    Double *solPtr;
   
     Vector<Double> solInc(eqnData_->GetNumEQNs());
     Vector<Double> actSol(eqnData_->GetNumEQNs());
@@ -87,7 +93,8 @@ namespace CoupledField {
       algsys_->Solve();
 
       // new solution is only an increment of the full solution =============
-      StoreAlgsysToVec(solInc, algsys_->GetSolutionVal() );
+      algsys_->GetSolutionVal( solPtr );
+      StoreAlgsysToVec(solInc, solPtr);
       
       actSol += solInc;
       sol_->SetAlgSysVector(actSol);
@@ -100,7 +107,9 @@ namespace CoupledField {
 
       // calculation of residual error (takes care for Dirichlet BCs========
       Vector<Double> actRHS;
-      StoreAlgsysToVec(actRHS, algsys_->GetRHSVal() );       
+      Double *rhsPtr; 
+      algsys_->GetRHSVal( rhsPtr );
+      StoreAlgsysToVec(actRHS, rhsPtr );       
           
       Double residualL2Norm;
       residualL2Norm = RhsL2Norm(actRHS); // L2Norm of  ( f_i^(k+1) - f_a )
@@ -156,6 +165,7 @@ namespace CoupledField {
 
     lasttimecalc_ = asteptime;
     laststepcalc_ = kstep;
+    Double *solPtr;
 
     const Integer job = 1;
   
@@ -221,7 +231,8 @@ namespace CoupledField {
       algsys_->Solve();
 
       // new solution is only an increment of the full solution =============
-      StoreAlgsysToVec(solInc, algsys_->GetSolutionVal() );
+      algsys_->GetSolutionVal( solPtr );
+      StoreAlgsysToVec(solInc, solPtr );
 
       Double residualL2Norm;
       Double etaLineSearch = 0;
@@ -253,7 +264,9 @@ namespace CoupledField {
       if ( lineSearch_ != "no" ) {
 
         Vector<Double> actRHS;
-        StoreAlgsysToVec(actRHS, algsys_->GetRHSVal() );       
+	Double *rhsPtr;
+	algsys_->GetRHSVal( rhsPtr );
+        StoreAlgsysToVec( actRHS, rhsPtr );
           
         // ------------------------------------------------------------------
         // calculation of residual error: L2Norm of ( f_i^(k+1) - f_a )

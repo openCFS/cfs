@@ -2,10 +2,14 @@
 #define FILE_BASEDRIVER_2001
 
 #include "General/environment.hh"
-#include "Domain/domain.hh"
+#include "Utils/tools.hh"
 
 namespace CoupledField
 {
+
+// forward class declarations
+class Domain;
+class WriteResults;
 
 //! a base class for driving classes where we implemented time-stepping
 class BaseDriver

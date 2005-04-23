@@ -65,9 +65,13 @@ auxiliary/mysql/getnodalresult.sql -text
 auxiliary/mysql/getresultidx.sql -text
 /libgoal -text
 libsrc/AlgebraicSystem/README -text
+libsrc/CoupledPDE/BasePairCoupling.cc svneol=native#text/plain
+libsrc/CoupledPDE/BasePairCoupling.hh svneol=native#text/plain
 libsrc/CoupledPDE/DirectCoupledPDE.cc svneol=native#text/plain
 libsrc/CoupledPDE/DirectCoupledPDE.hh svneol=native#text/plain
 libsrc/CoupledPDE/Makefile -text
+libsrc/CoupledPDE/PiezoCoupling.cc svneol=native#text/plain
+libsrc/CoupledPDE/PiezoCoupling.hh svneol=native#text/plain
 libsrc/CoupledPDE/coupledPDE.conf -text
 libsrc/CoupledPDE/coupled_pdes_header.hh svneol=native#text/plain
 libsrc/CoupledPDE/coupledpdedef.cc svneol=native#text/plain
@@ -286,6 +290,8 @@ libsrc/Estimator/Makefile -text
 libsrc/Estimator/spaceerror.cc svneol=native#text/plain
 libsrc/Estimator/spaceerror.hh svneol=native#text/plain
 libsrc/Forms/Makefile -text
+libsrc/Forms/adbInt.cc svneol=native#text/plain
+libsrc/Forms/adbInt.hh svneol=native#text/plain
 libsrc/Forms/baseForm.cc svneol=native#text/plain
 libsrc/Forms/baseForm.hh svneol=native#text/plain
 libsrc/Forms/baseoperator.cc svneol=native#text/plain
@@ -309,6 +315,12 @@ libsrc/Forms/laplaceInt.cc svneol=native#text/plain
 libsrc/Forms/laplaceInt.hh svneol=native#text/plain
 libsrc/Forms/linElastInt.cc svneol=native#text/plain
 libsrc/Forms/linElastInt.hh svneol=native#text/plain
+libsrc/Forms/linElecInt3D.hh svneol=native#text/plain
+libsrc/Forms/linPiezoCoupling2DAxi.cc svneol=native#text/plain
+libsrc/Forms/linPiezoCoupling2DAxi.hh svneol=native#text/plain
+libsrc/Forms/linPiezoCoupling2DPlaneStrain.hh svneol=native#text/plain
+libsrc/Forms/linPiezoCoupling3D.cc svneol=native#text/plain
+libsrc/Forms/linPiezoCoupling3D.hh svneol=native#text/plain
 libsrc/Forms/linPiezoInt.cc svneol=native#text/plain
 libsrc/Forms/linPiezoInt.hh svneol=native#text/plain
 libsrc/Forms/linearForm.cc svneol=native#text/plain

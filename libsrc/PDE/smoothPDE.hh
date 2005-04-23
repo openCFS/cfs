@@ -3,6 +3,7 @@
 
 #include "SinglePDE.hh"
 
+#include "CoupledPDE/pdecoupling.hh"
  
 namespace CoupledField
 {

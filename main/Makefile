@@ -310,7 +310,7 @@ depend:
                      else echo "WARNING:" $$n " doesn't exist";\
         fi); done
 	touch Makefile.depend
-	@makedepend -I$(LIBSRC_DIR) -f$(DEPEND_FILE) $(DEPEND_FLAG) cfs.cc
+	@makedepend -I$(LIBSRC_DIR) $(INCDIR_OLAS)  -f$(DEPEND_FILE) $(DEPEND_FLAG) cfs.cc
 
 clean-depend:
 	@rm -f ./$(DEPEND_FILE)

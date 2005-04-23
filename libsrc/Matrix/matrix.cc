@@ -484,46 +484,56 @@ void Matrix<TYPE>::Mult(CFSVector & mvec, CFSVector & rvec)
 
 }
 
-// Perform a matrix-matrix multiplication rMat = this*mMat
-template<class TYPE>
-void Matrix<TYPE>::Mult(CFSMatrix & mMat, CFSMatrix & rMat)
-{
-  ENTER_IFCN("Matrix::Mult");
-  Matrix<TYPE> & mMat1 = dynamic_cast<Matrix<TYPE> & >(mMat);
-  Matrix<TYPE> & rMat1 = dynamic_cast<Matrix<TYPE>& >(rMat);
-  
-  Integer size_mMatRow = mMat1.GetSizeRow();
-  Integer size_mMatCol = mMat1.GetSizeCol();
-
-  Integer size_rMatRow = rMat1.GetSizeRow();
-  Integer size_rMatCol = rMat1.GetSizeCol();
- 
-#ifdef CHECK_INITIALIZED
-  if (size_row_ == 0 || size_col_ == 0) 
-    Error("undefined Matrix",__FILE__,__LINE__);
-  if (size_mMatRow == 0 || size_mMatCol==0) 
-    Error("undefined Matrix",__FILE__,__LINE__);
-  if (size_rMatRow == 0||size_rMatCol==0) 
-    Error("undefined Matrix",__FILE__,__LINE__);
-#endif
-
-#ifdef CHECK_INDEX
-  if (size_col_ != size_mMatRow) Error("incompatible dimension while matrix-matrix multiplication",__FILE__,__LINE__);
-  if (size_row_ != size_rMatRow) Error("incompatible dimension while matrix-matrix multiplication",__FILE__,__LINE__);
-  if (size_mMatCol != size_rMatCol) Error("incompatibel dimension while matrix-matrix multiplication",__FILE__,__LINE__);
-#endif
-   
-  Vector<TYPE> temp(1);
-
-  for (Integer i = 0; i < size_row_; i++)
-    for (Integer j = 0; j < size_mMatCol; j++)
-      {       
-	temp = data_[i][0] * mMat1[0][j];
-	for (Integer k = 1; k <size_mMatRow; k++)
-	  temp[0] += data_[i][k] * mMat1[k][j];
-	rMat1[i][j] = temp[0];
-      }  
-} 
+// // Perform a matrix-matrix multiplication rMat = this*mMat
+// template<class TYPE>
+// void Matrix<TYPE>::Mult(CFSMatrix & mMat, CFSMatrix & rMat)
+// {
+//   ENTER_IFCN("Matrix::Mult");
+//   Matrix<TYPE> & mMat1 = dynamic_cast<Matrix<TYPE> & >(mMat);
+//   Matrix<TYPE> & rMat1 = dynamic_cast<Matrix<TYPE>& >(rMat);
+//   
+//   Integer size_mMatRow = mMat1.GetSizeRow();
+//   Integer size_mMatCol = mMat1.GetSizeCol();
+// 
+//   Integer size_rMatRow = rMat1.GetSizeRow();
+//   Integer size_rMatCol = rMat1.GetSizeCol();
+//  
+// #ifdef CHECK_INITIALIZED
+//   if (size_row_ == 0 || size_col_ == 0) 
+//     Error("undefined Matrix",__FILE__,__LINE__);
+//   if (size_mMatRow == 0 || size_mMatCol==0) 
+//     Error("undefined Matrix",__FILE__,__LINE__);
+//   if (size_rMatRow == 0||size_rMatCol==0) 
+//     Error("undefined Matrix",__FILE__,__LINE__);
+// #endif
+// 
+// #ifdef CHECK_INDEX
+//   if (size_col_ != size_mMatRow) Error("incompatible dimension while matrix-matrix multiplication",__FILE__,__LINE__);
+//   if (size_row_ != size_rMatRow) Error("incompatible dimension while matrix-matrix multiplication",__FILE__,__LINE__);
+//   if (size_mMatCol != size_rMatCol) Error("incompatibel dimension while matrix-matrix multiplication",__FILE__,__LINE__);
+// #endif
+//    
+// //  Vector<TYPE> temp(1);
+// //  for (Integer i = 0; i < size_row_; i++)
+// //    for (Integer j = 0; j < size_mMatCol; j++)
+// //      {       
+// //	temp = data_[i][0] * mMat1[0][j];
+// //	for (Integer k = 1; k <size_mMatRow; k++)
+// //	  temp[0] += data_[i][k] * mMat1[k][j];
+// //	rMat1[i][j] = temp[0];
+// //      }  
+// 
+//   for (Integer i = 0; i < size_row_; i++ ) {
+//     for (Integer j = 0; j < size_mMatCol; j++ ) {
+// 
+//       rMat1[i][j] = data_[i][0] * mMat1[0][j];
+// 
+//       for ( Integer k = 1; k < size_mMatRow; k++ ) {
+//         rMat1[i][j] += data_[i][k] * mMat1[k][j];
+//       }
+//     }
+//   }
+// } 
 
 
 // Perform a matrix(Double)-vector(Complex) multiplication rvec = this*mvec
@@ -1032,40 +1042,6 @@ ENTER_FCN("Matrix::GetDiagInMatrix");
 
 }
 
-
-// Two different methods for getting a double pointer to the data
-// in the matrix:
-// 1.) Double-Matrices: Here simply the pointer data_ is passed
-// 2.) Complex-Matrices: A new array is created, which holds the 
-//                       complex values as a serial sequence of
-//                       Double values.
-template<> Double* Matrix<Integer>::GetDoublePointer()
-{
-  ENTER_IFCN("Matrix::GetDoublePointer");
-  Error("Matrix<Integer>::GetDoublePointer: Function not implemented!",__FILE__,__LINE__);
-}
-
-template<>
-Double* Matrix<Double>::GetDoublePointer()
-{
-  ENTER_IFCN("Matrix::GetDoublePointer");
-  return data_[0];
-}
-
-template<>
-Double* Matrix<Complex>::GetDoublePointer()
-{
-  ENTER_IFCN("Matrix::GetDoublePointer");
-  Double * help = new Double[size_col_ * size_row_ * 2];
-
-  for (Integer i=0; i < size_row_*size_col_; i++)
-    {
-      help[2*i]   = data_[0][i].real();
-      help[2*i+1] = data_[0][i].imag();
-    }
-
-  return help;
-}
 
 template<class TYPE> bool Matrix<TYPE>::IsSymmetric() {
   ENTER_FCN( "Matrix::IsSymmetric" );

@@ -3,8 +3,12 @@
 #include <string>
 
 #include "solveStepAcousticBubble.hh"
+#include "assemble.hh"
+
+#include "DataInOut/ParamHandling/BaseParamHandler.hh"
 #include "Forms/forms_header.hh"
 #include "General/environment.hh"
+#include "PDE/timestepping.hh"
 
 namespace CoupledField {
 
@@ -115,7 +119,8 @@ void SolveStepAcousticBubble::StepTransBubble(const Integer kstep, const Double 
     //compute source term due to bubble ODE
     ComputeBubbleRHS();
 
-    StoreAlgsysToVec(nlRhsNew, algsys_->GetRHSVal() );       
+    algsys_->GetRHSVal( ptsol );
+    StoreAlgsysToVec(nlRhsNew, ptsol );       
 
     //compute norm
     Double normRhs=0.0;
@@ -157,7 +162,8 @@ void SolveStepAcousticBubble::StepTransBubble(const Integer kstep, const Double 
     algsys_->Solve();
     
     // store new solution in newSol
-    StoreAlgsysToVec(newSol, algsys_->GetSolutionVal() );
+    algsys_->GetSolutionVal( ptsol );
+    StoreAlgsysToVec(newSol, ptsol );
     
     // perform corrector step, if effective mass formulation is used,
     //   we need the Corrector step before we store newsol to sol_,
@@ -476,7 +482,8 @@ void SolveStepAcousticBubble::ComputeBubbleRHS(){
       StdVector<Integer> connect_PDE;
       eqnData_->Node2EQN(connecth, connect_PDE);
 
-      algsys_->SetElementRHS(&elemVec[0], connect_PDE.GetPointer(), connect_PDE.GetSize());
+      algsys_->SetElementRHS(&elemVec[0], pdeId1_, connect_PDE.GetPointer(), 
+			     connect_PDE.GetSize());
       numEl++;
     }
   }

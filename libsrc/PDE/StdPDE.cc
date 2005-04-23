@@ -1,6 +1,8 @@
-#include "PDE/StdPDE.hh"
-#include "DataInOut/ParamHandling/CFSOLASParams.hh"
+#include "StdPDE.hh"
+#include "pdememento.hh"
+
 #include "Utils/vector.hh"
+#include "Driver/stdSolveStep.hh"
 
 namespace CoupledField {
 
@@ -23,7 +25,8 @@ namespace CoupledField {
       isIncrFormulation_(FALSE),
       TS_alg_(NULL),
       materialData_(NULL),
-      effectiveMass_(FALSE)
+      effectiveMass_(FALSE),
+      solveStep_(NULL)
     
   {
     ENTER_FCN( "StdPDE::StdPDE");
@@ -46,9 +49,10 @@ namespace CoupledField {
     // =====================================================================
     actlevel_ = 0;
     actFrequency_ = 0;
+    lasttimecalc_ = 0.0;
     couplingBCsCounter_ = 0;
     numDirichletBCs_ = 0;
-    pdeIsCoupled_ = FALSE;
+    isIterCoupled_ = FALSE;
     updateCouplingBCs_ = FALSE;
     dim_ = ptgrid_->GetDim();
     geoUpdate_ = FALSE;
@@ -56,6 +60,11 @@ namespace CoupledField {
     effectiveMass_ = FALSE;
 
   }
+  
+  StdPDE::~StdPDE() {
+    ENTER_FCN( "StdPDE::~StdPDE" );
+  }
+
 
 
   const Vector<Double>& StdPDE::getS1() const {
@@ -94,14 +103,13 @@ namespace CoupledField {
     bcs_id_phase_[i]=phase;
   }
   
-  
   void StdPDE::setPDE_actFrequency(Double & freq) {
-
+    
     ENTER_FCN("SinglePDE::setPDE_actFrequency");
-
+    
     actFrequency_ = freq;
   }
-
+  
   void StdPDE::setPDE_actFreqStep(Integer & fstep){
     
     ENTER_FCN("SinglePDE::setPDE_actFreqStep");
@@ -110,7 +118,6 @@ namespace CoupledField {
   }
   
 
-  
 
   // ======================================================
   // GRID SECTION (Meshing, ...) 
@@ -147,7 +154,9 @@ namespace CoupledField {
   
     Integer dofsPerEQN = eqnData_->GetNumDofsPerEQN();
 
-    // Eliminate hom. dirichlet node from RHS (due to penalty formulation)
+    // Eliminate homogeneous dirichlet node from RHS (due to penalty formulation).
+    // In the case of a block system, there might be still some homogeneous dirichlet
+    // entries left
     for (Integer i=0; i< bcs_hd_.GetSize(); i++)
       {
         dof = 1;
@@ -163,7 +172,7 @@ namespace CoupledField {
             node=*p;
             eqnData_->Node2EQN(node,dof,eqnNr,eqnDof);
             if (eqnNr != 0){
-              actRHS[(eqnNr-1)*dofsPerEQN + eqnDof-1] = 0;
+              actRHS[(eqnNr-1)*dofsPerEQN + eqnDof-1] = 0.0;
             }
           }
       }
@@ -175,20 +184,20 @@ namespace CoupledField {
         if ( dofspernode_ > 1 ) {
           dof = GetBCDof( inhomDirichDof_[i] );
         }
-
+	
         nodes=ptBCs_->GetNodesLevel(bcs_id_[i]);
-      
+	
         for (std::list<Integer>::const_iterator p=nodes.begin(); 
 	     p!=nodes.end(); p++)
           {
             node=*p;
             eqnData_->Node2EQN(node,dof,eqnNr,eqnDof);
             if (eqnNr != 0){
-              actRHS[(eqnNr-1)*dofsPerEQN + eqnDof-1] = 0;
+              actRHS[(eqnNr-1)*dofsPerEQN + eqnDof-1] = 0.0;
             }
           }
-      }
-
+      } 
+    
     return actRHS.NormL2();
   }
 
@@ -222,7 +231,7 @@ namespace CoupledField {
     ENTER_FCN( "StdPDE::GetMemento" );
 
     // first get memento of coupling object
-    if (pdeIsCoupled_) {
+    if (isIterCoupled_) {
       ptCoupling_->GetMemento(memento.couplingMemento_);
     }
 
@@ -328,7 +337,7 @@ namespace CoupledField {
     }
 
     // If PDE is coupled, set the according coupling memento
-    if (pdeIsCoupled_) {
+    if (isIterCoupled_) {
       ptCoupling_->SetMemento(memento.couplingMemento_);
     }
   }
@@ -337,13 +346,16 @@ namespace CoupledField {
     
     ENTER_FCN( "StdPDE::CreateMatrices_Solver" );
     
+    // ==============================
     // create and initialize matrices 
-    assemble_->CreateMatrices();
-    assemble_->InitMatrices();
+    // ==============================
+
+    // create algebraic system and intialize matrices
+    algsys_->CreateLinSys();
+    algsys_->InitMatrix();
     
     // create solver and preconditioner
     algsys_->CreateSolver();
-    
     algsys_->CreatePrecond();
 
     // now reset AlgebraicSystem 
@@ -352,30 +364,16 @@ namespace CoupledField {
   }
 
 
+  BaseSolveStep * StdPDE::GetSolveStep() {
+    
+    ENTER_FCN( "StdPDE::GetSolveStep" );
+    return solveStep_;
+  }
+
 
   // ======================================================
   // ALGSYS SECTION (SOLVER, ...) 
   // ======================================================
-  void StdPDE::SetAlgSys() {
-
-    ENTER_FCN( "StdPDE::SetAlgSys" );
-
-    // Set parameter for solver and preconditioner
-
-    (*cla) <<  "--- PDE: " << pdename_ << " ---" << std::endl;
-
-    // Set parameters for OLAS
-    std::string amExpert;
-    params->Get( "override", amExpert, "expert" );
-    CFSOLASParams::SetParams( pdename_, params, olasParams_,analysistype_,
-			      (amExpert=="yes"));
-
-    // Set the graph type used for the system matrices
-    assemble_->SetupMatrixGraph(eqnData_->GetNumEQNs());
-
-    // Allocate the necessary matrices as well as solver and preconditioner
-    CreateMatrices_Solver();
-  }
 
   Double StdPDE::GetFracDampMatrixCoeff(Integer actSD) {
     
@@ -749,5 +747,4 @@ namespace CoupledField {
       
     return elemVol;
   }
-  
 } // end of namespace

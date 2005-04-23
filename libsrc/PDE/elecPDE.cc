@@ -20,6 +20,7 @@
 #include <string>
 #include "Utils/StdVector.hh"
 #include "Driver/solveStepElec.hh"
+#include "CoupledPDE/pdecoupling.hh"
 
 namespace CoupledField {
 
@@ -44,6 +45,7 @@ namespace CoupledField {
     geoUpdate_ = FALSE;
     nonLin_    = FALSE;
     isAlwaysStatic_ = TRUE;
+    isPiezoCoupled_ = FALSE;
 
     //check, if problem is axisymmetric
     if ( params->HasValue( "type", "axi", "geometry" ) ) isaxi_ = TRUE;
@@ -63,6 +65,11 @@ void ElecPDE::DefineIntegrators(const Integer level)
     {
       //reads eps33 (matrix notation starts with 0)
       Double eps33 = materialData_[actSD].GetPermittivity(2,2);
+
+      // if the pde is piezo-coupled, the electrostatic entries
+      // have to multiplied with -1
+      if ( isPiezoCoupled_ == TRUE )
+	eps33 *= -1.0;
 
       BaseForm * lapl = new LaplaceInt(eps33, isaxi_);
 
@@ -110,8 +117,8 @@ void ElecPDE::WriteResultsInFile(const Integer kstep,
       
       
       // write electric potential
-	  if (saveSol_)
-		outFile_->WriteNodeSolutionTransient(*solConverted, actStep, actTime);
+      if (saveSol_)
+	outFile_->WriteNodeSolutionTransient(*solConverted, actStep, actTime);
       
       if (saveSolHist_)
 	outFile_->WriteNodeHistoryTransient(*solConverted, actStep, actTime);
@@ -127,7 +134,7 @@ void ElecPDE::WriteResultsInFile(const Integer kstep,
 	}
       
       if (flags->CalcErrorMap_
-)
+	  )
 	{
 	  // this is only a temporar solution
 	  error.SetNumSolutions(1);
@@ -160,7 +167,7 @@ void ElecPDE::WriteResultsInFile(const Integer kstep,
   // different iteration and time steps. The sum was written into the .data stream.
   // Since this is not available anymore, this is commented out
 #ifdef COMMENTET_OUT
-  if (pdeIsCoupled_ == TRUE) {
+  if (isIterCoupled_ == TRUE) {
     //   // TMPORARILY
     SolutionType quantity;
     StdVector<Integer> * couplingNodes     = NULL;
@@ -267,7 +274,6 @@ void ElecPDE::CalcElectricField()
 	  elemssd[iel]->ptElem->GetCoordMidPoint(LCoord);
 	  FieldOp->CalcElemGradField( TempE, elemssd[iel], LCoord, 1); 
 	  pdeElem = eqnData_->Mesh2PDEElem(elemssd[iel]->elemNum);
-	  // 	      E_.SetNodalResult(mesh2PDEElem_[elemssd[iel]->elemNum - 1]-1,TempE);
 	  E_.SetElemResult(pdeElem-1,TempE);
 	}
     }
@@ -543,7 +549,7 @@ void ElecPDE::InitCoupling(PDECoupling * Coupling)
 {
   ENTER_FCN( "ElecPDE::InitCoupling" );
   
-  pdeIsCoupled_ = TRUE;
+  isIterCoupled_ = TRUE;
   ptCoupling_   = Coupling;
 
   const Integer numCouplings = ptCoupling_->GetNumOutputCouplings();
@@ -710,6 +716,14 @@ Boolean ElecPDE::HasOutput(SolutionType output)
   return FALSE;
 }
 
+
+void ElecPDE::SetPiezoCoupling()
+{
+  ENTER_FCN( "ElecPDE::SetPiezoCoupling" );
+  
+  isPiezoCoupled_ = TRUE;
+
+}
 
 
 void ElecPDE::CalcInterfaceForces(Integer actCoupling)

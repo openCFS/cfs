@@ -593,8 +593,13 @@ namespace CoupledField {
     DOMNodeList *coupledPDEsec =
       currentCouplingSec->getElementsByTagName( C2X("iterative") );
 
+    // If no such section exists, simply return an empty vector
+    if ( coupledPDEsec->getLength() == 0 ) {
+      return;
+    }
+    
     // Check that there is only one such section
-    if ( coupledPDEsec->getLength() != 1 ) {
+    if ( coupledPDEsec->getLength() > 1 ) {
       errmsg  = "Got " + Info->GenStr( coupledPDEsec->getLength() );
       errmsg += " couplingList elements in parameter file!";
       Info->Error( errmsg, __FILE__, __LINE__ );
@@ -655,6 +660,119 @@ namespace CoupledField {
     }
   }
   
+
+  void XMLParamHandler::GetDirectCouplingList( StdVector<std::string> &list,
+					       const std::string sequenceTag)
+  {   
+    
+    ENTER_FCN( "XMLParamHandler::GetDirectCouplingList" );
+    
+    // string for assembling error messages
+    std::string errmsg;
+
+
+    // Check if vector is empty. If not issue a warning
+    // and erase its entries, if this is desired
+    if ( list.IsEmpty() != true ) {
+      if ( beVerbose_ == true ) {
+	errmsg  = "Warning input vector was not empty!\n";
+	errmsg += "Contents have been erased!";
+	Info->Warning( errmsg );
+      }
+      list.Clear();
+    }
+
+    // Get all coupling sections in the param file
+    DOMNodeList * coupledSections = 
+      rootElem_->getElementsByTagName( C2X("couplingList") );
+    
+    // Pick that coupling section, which matches
+    // the specfifed sequenceTag
+    DOMElement *auxElem = NULL;
+    DOMElement *currentCouplingSec = NULL;
+    Boolean sectionFound = FALSE;
+    
+    for (Integer i=0; i<coupledSections->getLength(); i++) {      
+      auxElem = Node2Elem( coupledSections->item(i) );
+      if (AttribHasValue( auxElem, "tag", sequenceTag, false) ) {
+	// Ensure that only one section matches
+	if (sectionFound == FALSE) {
+	  sectionFound = TRUE;
+	  currentCouplingSec = auxElem;
+	} else {
+	  errmsg  = "Got more than one matching coupling section for tag '";
+	  errmsg += sequenceTag;
+	  errmsg += "'.\n Please correct parameter file!";
+	  Info->Error( errmsg, __FILE__, __LINE__ );
+	}
+      }
+    }
+     
+    // Print error if specified coupling section was not found
+    if (sectionFound == FALSE)
+      {
+	errmsg = "The coupling section with tag '";
+	errmsg += sequenceTag;
+	errmsg += "' was not found in the parameter file!";
+	Info->Error( errmsg, __FILE__, __LINE__ );
+      }
+
+    // Get the iterative coupling section in the current
+    // section of couplings
+    DOMNodeList *coupledPDEsec =
+      currentCouplingSec->getElementsByTagName( C2X("direct") );
+
+    // If no direct coupled section is found, return simply an 
+    // empty vector
+    
+    if ( coupledPDEsec->getLength() == 0 ) {
+      return;
+    }
+
+    // Check that there is at most one such section
+    if ( coupledPDEsec->getLength() > 1 ) {
+      errmsg  = "Got " + Info->GenStr( coupledPDEsec->getLength() );
+      errmsg += " 'direct' elements in parameter file!\n";
+      errmsg += "One at maximum is allowed in the 'coupledList' section!";
+      Info->Error( errmsg, __FILE__, __LINE__ );
+    }
+
+
+    
+    // Find directe Coupled section
+    DOMNodeList * directCoupledPDEsec = coupledPDEsec->item(0)->getChildNodes();
+    if ( directCoupledPDEsec->getLength() == 0 ) {
+      errmsg = "Cannot find a direct coupling section in parameter file!";
+      Info->Error( errmsg, __FILE__, __LINE__ );
+    }
+
+
+    // iterate over all pairwise couplings
+    for ( Integer i = 0; i < directCoupledPDEsec->getLength(); i++ ) {
+
+      // Only treat element children and not comments!
+      if ( directCoupledPDEsec->item(i)->getNodeType() == DOMNode::ELEMENT_NODE){
+    
+	// The names of the PDEs are the tags of the child elements of the
+	// PDE_list element, except perhaps the last one, which specifies
+	// the nonlinear coupling
+	DOMNodeList *directCouplinglist = 
+	  directCoupledPDEsec->item(i)->getChildNodes();
+
+	if ( directCouplinglist->getLength() == 0 ) {
+	  errmsg = "Cannot find a single direct coupling definition in ";
+	  errmsg += "the direct coupling section of the parameter file!";
+	  Info->Error( errmsg, __FILE__, __LINE__ );
+	}
+	  	  
+	// Now get hold of name, convert it and push it back in the name list
+	std::string pdename;
+	pdename = X2C( Node2Elem( directCoupledPDEsec->item(i) )->getNodeName());
+	list.Push_back( pdename );
+      }
+    }
+  }
+    
   // ======================================
   //   Return a list of the defined coils
   // ======================================

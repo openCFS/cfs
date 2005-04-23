@@ -5,6 +5,7 @@
 #include "DataInOut/GMV/outGMV.hh"
 #include "General/environment.hh"
 #include <PDE/SinglePDE.hh>
+#include "Domain/domain.hh"
 
 #include "piezoParamIdent.hh"
 #include "Forms/baseForm.hh"
@@ -219,8 +220,6 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
 
     if (! isPartOfSequence_)
       ptdomain_->PrintGrid(level);
-    if (PrintGridOnly)
-      exit(0);
     if (isPartOfSequence_ == FALSE){     
       GetMyPDEs();
     //! cast pointer to BasePDE * to pointer of SinglePDE *
@@ -228,6 +227,7 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
       Info->StartProgress ("Starting to solve problem", FALSE);
     }
     ptMyPDE_->WriteGeneralPDEdefines();
+    pdeId_ = ptMyPDE_->GetPDEId();
 
     actNrParameter=0;
     actNrParameterC=0;

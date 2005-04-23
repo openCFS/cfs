@@ -2,13 +2,16 @@
 #define FILE_ITERSOLVESTEP
 
 #include "baseSolveStep.hh"
-#include "CoupledPDE/itercoupledpde.hh"
-#include "CoupledPDE/pdecoupling.hh"
+//#include "CoupledPDE/itercoupledpde.hh"
+//#include "CoupledPDE/pdecoupling.hh"
 
 namespace CoupledField
 {
-  //! Derived class for step-wise solving of iterative coupled StdPDEs
+  // forward class declarations
+  class IterCoupledPDE;
+  class PDECoupling;
 
+  //! Derived class for step-wise solving of iterative coupled StdPDEs
   class IterSolveStep : public BaseSolveStep
   {
 

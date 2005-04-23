@@ -78,8 +78,20 @@ namespace CoupledField
   //! Global pointer to a stringstream used for generating warning messages
   extern std::stringstream *warning;
 
-  //! enumeration with elements types.
-  enum ElementType{Line1, Triang1, Triang2, Quadrilateral1, Quadrilateral2};
+  // enumeration with elements types.
+  // enum ElementType{Line1, Triang1, Triang2, Quadrilateral1, Quadrilateral2};
+
+  //! Type of finite element
+  //! The enumeration contains the following values:
+  //! - NOFETYPE
+  //! - LINE
+  //! - TRIA
+  //! - QUAD
+  //! - TET
+  //! - HEX
+  //! - PYR
+  //! - WED
+  typedef enum {NOFETYPE, LINE, TRIA, QUAD, TET, HEX, PYR, WED} FEType;
 
   //! enumeration with integration types. it is used in Elements classes
   enum IntegrationType {GaussOrder1, GaussOrder2, GaussOrder3, GaussOrder4,
@@ -200,8 +212,8 @@ namespace CoupledField
   //! They are used, when we read information about elements from mesh and
   //! create a pointer to the class containing the description of the Finite
   //! Element.
-  extern BaseFE *ptQ1, *ptQ2, *ptL1, *ptL2, *ptTet1, *ptTr1, *ptTr2, *ptHexa1, *ptHexa2, *ptPyra1, 
-    *ptWedge1, *ptWedge2;
+  extern BaseFE *ptQ1, *ptQ2, *ptL1, *ptL2, *ptTet1, *ptTr1, *ptTr2,
+    *ptHexa1, *ptHexa2, *ptPyra1, *ptWedge1, *ptWedge2;
 
   //! class for flags of programm
   class Flags
@@ -246,7 +258,7 @@ namespace CoupledField
   void Enum2String(const TYPE &in, std::string &out);
 
   // Instantiation for all known enum types;
-#if defined (__GNUC__) 
+#if defined (__GNUC__)
 #define DEFINE_ENUM_CONVERSION(TYPE)                                  \
   template<class TYPE> void String2Enum(const std::string &in, TYPE &out); \
   template<class TYPE> void Enum2String(const TYPE &in, std::string &out);
@@ -258,6 +270,7 @@ namespace CoupledField
   DEFINE_ENUM_CONVERSION(NormType);
   DEFINE_ENUM_CONVERSION(ComplexFormat);
   DEFINE_ENUM_CONVERSION(EQNType);
+  DEFINE_ENUM_CONVERSION(FEType);
 #endif
 
 } // end of namespace

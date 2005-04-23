@@ -349,21 +349,20 @@ public:
   //! the solution of the algebraic system.
   void CopyFromAlgSysDataPointer(Double * ptr);
   
-  
   //! Set data pointer for the complete solution
  
   //! Set data pointer for the complete solution
   //! The old data, where the pointer was pointing 
   //! before, will not be deleted!
   /*!
+    \param size (input) Size of data
     \param ptr (input) Pointer to raw solution data
   */
   //! \NOTE: This method is very intrusive and should only be used
   //! when one can ensure, that the internal layout of the solution
   //! matches to the one of the given array. This is the case e.g. for
   //! the solution of the algebraic system.
-  void SetAlgSysDataPointer(Double * ptr);
-  
+  void SetAlgSysDataPointer( Integer size, TYPE * ptr);
   
   //! Get pointer to data in double* - format
 

@@ -6,10 +6,11 @@
 #include "Utils/vector.hh"
 #include "Utils/StdVector.hh"
 
-#include "olas.hh"
-
 namespace CoupledField
 {
+
+  // Forward class declaration
+  class BaseSystem;
 
   //! Base class for description of elements
 

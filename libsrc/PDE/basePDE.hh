@@ -5,15 +5,7 @@
 
 #include "Utils/StdVector.hh"
 #include "General/environment.hh"
-#include "Matrix/matrix.hh"
-#include "DataInOut/ParamHandling/BaseParamHandler.hh"
-#include "pdememento.hh"
-#include "Driver/baseSolveStep.hh"
-#include "Driver/assemble.hh"
 
-#ifdef USE_DATABASE
-#include "DataInOut/LoadMaterialDataDatabase.hh"
-#endif
 
 namespace CoupledField
 {
@@ -21,6 +13,7 @@ namespace CoupledField
 
   // forward class declarations
   class BaseSolveStep;
+  class Assemble;
 
   //! Base class for partial differential equations
 
@@ -44,11 +37,11 @@ namespace CoupledField
     //! Initializes the PDE. This function is only called one time.
     //! \param bcSequenceId (input) name of the tag for current set of 
     //! boundary condition
-    virtual void Init(Integer sequenceStep = 0,
-		      std::string  bcSequenceTag = "anyTag") 
-    {
-      Error( "Init not implemented here");
-    }
+    // virtual void Init(Integer sequenceStep = 0,
+    // 		      std::string  bcSequenceTag = "anyTag") 
+    //     {
+    //       Error( "Init not implemented here");
+    //   }
 
     //! write general defines (BCs, loads, etc.) to info-file
     virtual void WriteGeneralPDEdefines() = 0;
@@ -57,8 +50,7 @@ namespace CoupledField
     virtual Assemble * getPDE_assemble() = 0;
 
     //! Return pointer to the SolveStep object
-    BaseSolveStep * GetSolveStep()
-    {return solveStep_; };
+    virtual BaseSolveStep * GetSolveStep() = 0;
 
     //! set time step
     //! \params dt Current time step
@@ -121,10 +113,6 @@ namespace CoupledField
     //! this index determines, which set of boundary conditions is applied.
     Integer bcSequenceIndex_;
     //@}
-
-
-    //! pointe to SolveStep classes
-    BaseSolveStep * solveStep_;
 
     //! name of the PDE
     std::string pdename_;

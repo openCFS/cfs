@@ -3,6 +3,10 @@
 #include <string>
 
 #include "solveStepSmooth.hh"
+#include "assemble.hh"
+
+#include "Utils/nodestoresol.hh"
+#include "PDE/StdPDE.hh"
 
 
 namespace CoupledField {
@@ -24,8 +28,7 @@ namespace CoupledField {
 
     algsys_->InitRHS();
     algsys_->InitSol();
-    assemble_->InitMatrices();
-
+    algsys_->InitMatrix();
     assemble_->SetReassemble();
 
   }
@@ -51,11 +54,10 @@ namespace CoupledField {
 
     algsys_->Solve();
 
-    ptsol = algsys_->GetSolutionVal();
+    algsys_->GetSolutionVal( ptsol );
 
     // save solution
     sol_->CopyFromAlgSysDataPointer(ptsol);
-    //  sol_->SetAlgSysDataPointer(ptsol);
   }
 
 

@@ -27,7 +27,8 @@ public:
 	\param ainType descriptor for interpolation of past function values
 	\param isaxi axisymmetric setup
   */
-  NewmarkFracDamp (std::string apdename, BaseSystem * algebraicsystem, NodeEQN * ptEQN, 
+  NewmarkFracDamp (std::string apdename, const PdeIdType apdeId,
+		   BaseSystem * algebraicsystem, NodeEQN * ptEQN, 
 		   Grid * aptgrid, StdPDE * aptStdPDE, 
 		   StdVector<std::string> asubdomainList,
 		   StdVector<DampingType> adampingList,
@@ -72,6 +73,7 @@ private:
   void PrintSolMemoryVal();
 
   std::string pdename_;
+  PdeIdType pdeId_;
 
   Double alpha_, gamma_, beta_;     //!< integration parameters
   Double a0_,a1_,a2_,a3_,a4_;       //!< coefficients from NewmarkFracDamp method

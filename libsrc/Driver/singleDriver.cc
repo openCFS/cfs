@@ -1,6 +1,8 @@
 #include "singleDriver.hh"
-#include "DataInOut/ParamHandling/BaseParamHandler.hh"
 
+#include "DataInOut/ParamHandling/BaseParamHandler.hh"
+#include "PDE/basePDE.hh"
+#include "Domain/domain.hh"
 
 namespace CoupledField{
 
@@ -27,6 +29,11 @@ SingleDriver::~SingleDriver()
 {
   ENTER_FCN( "SingleDriver::~SingleDriver" );
   
+}
+
+void SingleDriver::SetPDE( BasePDE *pde) {
+  ENTER_FCN( "SingleDriver::SetPDE" );
+  ptPDE_ = pde;
 }
 
 void SingleDriver::GetMyPDEs()

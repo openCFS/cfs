@@ -3,6 +3,7 @@
 #include <string>
 
 #include "basefe.hh"
+#include "olas.hh"
 #include <Utils/tools.hh> 
 #include <Matrix/matrix.hh>
 #include <DataInOut/WriteInfo.hh> 
@@ -88,12 +89,13 @@ void BaseFE :: GetGlobDerivShFncAtIp(Matrix<Double> & Deriv,
   jacDet = 1.0 / JInvDet;
 
  if ( jacDet < 0.0 ){
-      errMsg = "BaseFE:GetGlobDerivShFncAtIp: Negative Jacobian Determinant!\n";
-      errMsg += "The coordinates of the element are:\n";
-      errMsg += CoordMatrix2String(CornerCoords);
-      Error(errMsg.c_str(), __FILE__, __LINE__ );     
-    }
-
+   errMsg = "BaseFE:GetGlobDerivShFncAtIp: ";
+   errMsg += "Negative Jacobian Determinant!\n";
+   errMsg += "The coordinates of the element are:\n";
+   errMsg += CoordMatrix2String(CornerCoords);
+   Error(errMsg.c_str(), __FILE__, __LINE__ );     
+ }
+ 
 }
 
 
@@ -102,12 +104,12 @@ void BaseFE :: GetGlobDerivShFncAtIp(Matrix<Double> & Deriv,
 				     const Matrix<Double> & CornerCoords)
 {
   ENTER_FCN( "BaseFE::GetGlobDerivShFncAtIp" );
-
+  
   //  Deriv.Resize(NumNodes_,Dim_);
   Matrix<Double> JInv;
-
+  
   CalcInvJacobianAtIp(JInv, ip, CornerCoords);
-
+  
   Deriv = ShFncDerivAtIp_[ip-1] * JInv;
 }
 
@@ -281,7 +283,9 @@ enum IntegrationType BaseFE::String2EnumIntegrationType(const Char * inttype)
  if (!strcmp(inttype,"GaussOrder5")) result=GaussOrder5;
  if (!strcmp(inttype,"GaussOrder7")) result=GaussOrder7;
 
- if (result==null) Error("Check your config file. Your integration type is wrong",__FILE__,__LINE__);
+ if (result==null) 
+   Error("Check your config file. Your integration type is wrong",
+	 __FILE__,__LINE__);
 
  return result;
 }
@@ -336,14 +340,18 @@ void BaseFE::CalcEdgeShapeFncAtIp(Matrix<Double> & shape,
 
 
 void BaseFE::GetGlobalEdgeIndices(StdVector<Integer> & globEdgeIndex,
-					  Integer * pDENodes, BaseSystem * algsys)
+				  Integer * pDENodes, 
+				  BaseSystem * algsys)
 {
   ENTER_FCN( "BaseFE::GetGlobalEdgeIndices" );
+
+  Error( "Edge functions are currently not supported!", __FILE__, __LINE__ );
+
   // define the global edge number
-  for(Integer actEdge=0; actEdge < globEdgeIndex.GetSize(); actEdge++)
-    globEdgeIndex[actEdge] = 
-      algsys->GetNode2Edge(pDENodes[ edgeVertices_[actEdge][0]],
-			   pDENodes[ edgeVertices_[actEdge][1]]);
+  //for(Integer actEdge=0; actEdge < globEdgeIndex.GetSize(); actEdge++)
+  //  globEdgeIndex[actEdge] = 
+  //    algsys->GetNode2Edge(pDENodes[ edgeVertices_[actEdge][0]],
+  // pDENodes[ edgeVertices_[actEdge][1]]);
 }
 
 std::string BaseFE::CoordMatrix2String(const Matrix<Double> & coordMat)
@@ -385,8 +393,8 @@ void BaseFE::SetStandardIntegration()
 
 }
 
-
-Double BaseFE :: CalcVolume(const Matrix<Double> & CornerCoords, const Boolean isaxi)
+Double BaseFE :: CalcVolume(const Matrix<Double> & CornerCoords, 
+			    const Boolean isaxi)
 {
   ENTER_FCN( "BaseFE::CalcVolume" );
 

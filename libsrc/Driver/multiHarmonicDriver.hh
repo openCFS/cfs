@@ -3,6 +3,10 @@
 
 namespace CoupledField 
 {
+
+  // forward class declarations
+  class MaterialData;
+
   //! multiharmonic analysis
 class MultiHarmonicDriver : public SingleDriver
 {

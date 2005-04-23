@@ -1,10 +1,13 @@
 #include "elecforceop.hh"
+
 #include <string>
+
 #include "Domain/elem.hh"
 #include "Domain/grid.hh"
 #include "Utils/vector.hh"
 #include "Matrix/matrix.hh"
 #include "PDE/StdPDE.hh"
+#include "Utils/elemstoresol.hh"
 
 namespace CoupledField
 {

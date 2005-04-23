@@ -18,12 +18,13 @@
 #include "Utils/elemstoresol.hh"
 #include "Domain/bcs.hh"
 #include "PDE/nodeEQN.hh"
-// #include "PDE/basePDE.hh"
+
+#include "olas.hh"
 
 namespace CoupledField
 {
 
-  // Forward declaration of BasePDE
+  // Forward declaration of StdPDE
   class StdPDE;
 
   //! additional information for every integrator
@@ -235,7 +236,6 @@ namespace CoupledField
     /// parameters set by PDE
     void SetGeneralParams(const std::string & pdename, 
                           const Integer dofsPerNode,
-                          const Integer numPDENodes, 
                           const StdVector<std::string> subdoms,
                           const StdVector<std::string> surfdoms,
                           const std::string bcSequenceId);
@@ -272,7 +272,15 @@ namespace CoupledField
     {ptTimeFunc_ = aPtTimeFunc;};
 
     // set ptr to equation data
-    void SetPtr2EQNData(NodeEQN * aPtNodeEQN);
+    void SetPtr2EQNData(NodeEQN * aPtNodeEQN1,
+			NodeEQN * aPtNodeEQN1 = NULL );
+
+    //! set the identification tag of the pde
+    //! \param id1 identification tag for PDE 1
+    //! \param id2 identification tag for PDE 2 (only in coupled case)
+    void SetPDEId( const PdeIdType id1,
+		   const PdeIdType id2 = NO_PDE_ID );
+
   
 
     // ======================================================
@@ -280,26 +288,26 @@ namespace CoupledField
     // ======================================================
   
 
-    //! define algebraic system 
-    void SetAlgSys();
-    
-
+    // TODO: Delete the following mathod
     //! deletes the algebraic system 
-    void DeleteAlgSys(){if (algsys_) delete algsys_;};
+    //void DeleteAlgSys(){if (algsys_) delete algsys_;};
 
     
+    // TODO: Delete the following mathod
     /// Initialize all necessary matrices 
-    void InitMatrices();
+    //void InitMatrices();
 
 
     /// Initialize all matrices with nonlinear behavior
     void InitNonLinMatrices();
 
 
+    // TODO: Delete the following mathod
     /// establish matrices
-    void CreateMatrices();
+    //void CreateMatrices();
 
-   Matrix<Double> GetElemMat(){return elemmat;};
+
+    //Matrix<Double> GetElemMat(){return elemmat;};
     
 
 
@@ -322,13 +330,8 @@ namespace CoupledField
     MatrixStorageType GetMatrixStorageType()
     {return storageType_;};
 
-    //! Sets the type of the matrix graph
-    void SetGraphType(GraphType aGraphType)
-    {graphType_ = aGraphType;};
-
     //! constructes the matrix graph by providing to the algebraic system the element connectivities
-    //    void SetupMatrixGraph(Integer numeq, Integer graphtype);
-    void SetupMatrixGraph(Integer numeq);
+    void SetupMatrixGraph();
 
 
     //! set information for algebraic system about PDE. set matrix factors
@@ -373,9 +376,9 @@ namespace CoupledField
     //sets all finite elements back to standard integration
     void SetFE2StandardInt();
 
-        //! set the PDE pointer
-        void SetPDEPointer(StdPDE * aptPDE)
-        {ptPDE_ = aptPDE;};
+    //! set the PDE pointer
+    void SetPDEPointer(StdPDE * aptPDE)
+    {ptPDE_ = aptPDE;};
 
     // ====================================================
     // DATA SECTION 
@@ -386,7 +389,8 @@ namespace CoupledField
     
     BaseSystem * algsys_;                //!< pointer to algebraic system  
     Grid * ptgrid_;                      //!< pointer to Grid
-    NodeEQN * ptEQN_;                    //!< pointer to equation data
+    NodeEQN * ptEQN1_;                    //!< pointer to equation data of pde1
+    NodeEQN * ptEQN2_;                    //!< pointer to equation data of pde2
     Vector<Double> harmonicRHSVec;       //! special right Hand Side Vector needed for calc
     Matrix<Double> elemmat;
     OLAS_Params * olasParams_;               //!< pointer to parameter object of OLAS
@@ -396,7 +400,6 @@ namespace CoupledField
     MatrixStructureType structuretype_;  //!< type of Matrix (SuperBlockMarix=SBM, Standard)
     MatrixEntryType entryType_;          //!< type of matrix entries (double, complex)
     MatrixStorageType storageType_;      //!< storage type of matrix (sparse, symmetric,..)
-    GraphType graphType_;                //!< type of graph (nodal, edge,..)
 
     Boolean systemMatrix_;               //!< need system matrix (TRUE/FALSE)
     Boolean stiffnessMatrix_;            //!< need stiffness matrix (TRUE/FALSE)
@@ -508,6 +511,15 @@ namespace CoupledField
                                           Vector<Double> origVec,
                                           const Double valPhase) {;};
 
+    //! identifier for the first PDE
+
+    //! needed to identify the PDE uniquely in the algebraic system
+    PdeIdType pdeId1_;
+
+    //! identifier for the second PDE
+
+    //! needed to identify the PDE uniquely in the algebraic system
+    PdeIdType pdeId2_;
 
 
 
@@ -518,6 +530,7 @@ namespace CoupledField
 
     //! set analysis type
     AnalysisType analysisType_;
+
   };
     
       

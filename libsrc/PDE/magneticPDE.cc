@@ -1,22 +1,16 @@
 #include <fstream>
-#include <iostream>
-#include <sstream>
-#include <math.h>
 
-#include "DataInOut/Unverg/outUnverg.hh"
-#include "Forms/forms_header.hh"
-#include "Forms/curlfieldop.hh"
-#include "Estimator/spaceerror.hh"
-#include "DataInOut/WriteInfo.hh"
-#include "Driver/assemble.hh"
-#include "trapezoidal.hh"
-#include "Utils/Coil.hh"
-#include "DataInOut/ParamHandling/BaseParamHandler.hh"
-#include "Utils/SmoothSpline.hh"
-#include "PDE/scalarnodeEQN.hh"
-#include "Driver/solveStepMag.hh"
 #include "magneticPDE.hh"
 
+#include "DataInOut/ParamHandling/BaseParamHandler.hh"
+#include "Driver/solveStepMag.hh"
+#include "Utils/Coil.hh"
+#include "Utils/SmoothSpline.hh"
+#include "Forms/curlfieldop.hh"
+#include "Forms/forms_header.hh"
+#include "trapezoidal.hh"
+#include "DataInOut/writeresults.hh"
+#include "CoupledPDE/pdecoupling.hh"
 
 namespace CoupledField {
 
@@ -362,7 +356,6 @@ namespace CoupledField {
         for (Integer iel=0; iel< elemssd.GetSize(); iel++,counterElems++) {
           pdeElem = eqnData_->Mesh2PDEElem(elemssd[iel]->elemNum);
           FieldOp->CalcElemCurlNode( TempE, elemssd[iel], LCoord); 
-          // B_.SetNodalResult(mesh2PDEElem_[elemssd[iel]->elemNum - 1]-1,
           // TempE);
           B_.SetElemResult(pdeElem-1, TempE);
         }
@@ -423,8 +416,6 @@ namespace CoupledField {
           GetDerivSolVecOfElement(magVecDeriv1Elem,connect);
           JeddyElem[0] = magVecDeriv1Elem * ShpFnc;
           JeddyElem[0] *= -conductivity;
-          // Jeddy_.SetNodalResult(mesh2PDEElem_[elemssd[actEl]->elemNum-1]-1,
-          // JeddyElem);
           Jeddy_.SetElemResult(pdeElem-1, JeddyElem);
         }
       }
@@ -864,7 +855,7 @@ namespace CoupledField {
 
     ENTER_FCN( "MagPDE::InitCoupling" );
   
-    pdeIsCoupled_ = TRUE;
+    isIterCoupled_ = TRUE;
     ptCoupling_   = Coupling;
 
     // Enable update of geometry

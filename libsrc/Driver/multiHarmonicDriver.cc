@@ -3,12 +3,12 @@
 #include <string>
 
 #include "multiHarmonicDriver.hh"
+#include "stdSolveStep.hh"
 
-#include "DataInOut/GMV/outGMV.hh"
-#include "DataInOut/WriteInfo.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
+#include "Domain/domain.hh"
+#include "PDE/StdPDE.hh"
 
-#include <PDE/basePDE.hh>
 
 #ifdef __sgi
 #include <stdarg.h>
@@ -125,9 +125,6 @@ void MultiHarmonicDriver::SolveProblem() {
   
   if (! isPartOfSequence_)
   ptdomain_->PrintGrid(level);
-
-  if (PrintGridOnly)
-      exit(0);
 
   // if driver is not part of multiSequence Driver, get list
   // of pdes which have to be solved and intialize them

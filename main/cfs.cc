@@ -180,9 +180,6 @@ int main(int argc, char *argv[]) {
   DefineInOutFiles * ptDefineFiles=new DefineInOutFiles(name);
   Info->CreateFile(name);
 
-  if (PrintGridOnly)
-    STDOUT << "Printing grid to file " << name << ".unv" << myEndl << myEndl;
-
   MyClock oClockTotal;
   oClockTotal.ClockCount(MyClock::beg);
   
@@ -195,6 +192,18 @@ int main(int argc, char *argv[]) {
   TimeFunc *ptTimeFunc = new TimeFunc(ptInputfile);
 
   Domain *domain = new Domain(ptInputfile, ptOut, ptTimeFunc);
+
+  // ==========================================================================
+  // Only output of grid
+  // ==========================================================================
+  
+  if (PrintGridOnly) {
+    STDOUT << "Printing grid to file " << name << ".unv" << myEndl << myEndl;
+    domain->PrintGrid(0);
+    exit(0);
+  }
+    
+    
 
 
   // ==========================================================================

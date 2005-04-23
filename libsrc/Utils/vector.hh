@@ -39,12 +39,6 @@ public:
   //! Hard coded query if values are complex
   Boolean IsComplex();
   
-  //! Return a Double pointer to the data of the vector.
-  //! If the Vector is complex, a new array is created,
-  //! where the entries are sequentilly ordered in real
-  //! and imaginary parts (real_1, imag_1, real_2, ...)
-  Double* GetDoublePointer();
-
   //! Deletes the content of the vector
   void Clear();
 
@@ -54,6 +48,26 @@ public:
   */
   //! \note this method does not change the size of the vector!
   void Init(const TYPE entry = TYPE());
+
+  //! Add functionality of vector class to a data array
+  
+  //! This method allows to add the functionality of the Vector class,
+  //! especially its arithmetic and access methods, to a plain data array.
+  //! Calling this method will replace the internal data_ array by the
+  //! entries vector and re-set the internal attributes, like e.g. size_.
+  //! Note that, the length may
+  //! not be larger than the actual length of the allocated memory block.
+  //! Calling Replace is memory safe in the sense that the old data_ array
+  //! will be de-allocated, if this is the responsibility of the
+  //! corresponding vector object. Responsibility for de-allocating the
+  //! new data_ array is transferred to the vector object by setting the
+  //! transferMem parameter to true.
+  //! \param length      the length of the new vector
+  //! \param entries     pointer (one-based) to the data array containing
+  //!                    the new vector entries
+  //! \param transferMem flag signalling transfer of responsibility for
+  //!                    memory management
+  void Replace( Integer length, TYPE* entries, Boolean transferMem );
 
   //! Get the length of the vector
   inline Integer GetSize() const {return size_;}
@@ -278,9 +292,16 @@ public:
   //! Capacity of the vector
   Integer capacity_;
 
+  //! Flag signaling whether management of data array is done by this object
+  
+  //! This attribute is used to keep track on the fact whether the object
+  //! is responsible for managing the memory of the data_ array, especially
+  //! its deallocation.
+  Boolean memBelongsToMe_;
+  
 };
 
-// ******************************************************
+  // ******************************************************
   // HELPER CLASS FOR INITALIZING Vector
   // (ref. 'Techniques for Scientific C++' 
   // by Todd Veldhuizen, page. 43ff

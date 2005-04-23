@@ -2,6 +2,7 @@
 #define FILE_PIEZO_PARAM_IDENT
 
 #include "Driver/singleDriver.hh"
+#include "Driver/assemble.hh"
 
 // forward class declaration
 class SinglePDE;
@@ -254,13 +255,16 @@ namespace CoupledField
 
     Matrix<Complex> completeSolOf_F;
     Matrix<Complex> allElemsVec;
- 
+
     //! pointer to SinglePDE
 
     //! it is the same as ptPDE, only that it is of the type
     //! SinglePDE *, since piezoParamIdebnt makes only sense
     //! with a PiezoPDE, which is of the latter type.
     SinglePDE * ptMyPDE_;
+
+    //! identification tag of PDE for algebraic system
+    PdeIdType pdeId_;
   private:
 
 

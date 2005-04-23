@@ -1,6 +1,8 @@
 #include "iterSolveStep.hh"
 
 #include "PDE/StdPDE.hh"
+#include "CoupledPDE/itercoupledpde.hh"
+#include "CoupledPDE/pdecoupling.hh"
 
 namespace CoupledField
 {

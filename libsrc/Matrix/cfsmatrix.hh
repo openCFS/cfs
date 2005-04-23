@@ -162,11 +162,6 @@ public:
   virtual void ConvertToVec_AppendCols(CFSVector & vec) const
   {Error("CFSMatrix::ConvertToVec_AppendCols(): Not implemented here",__FILE__,__LINE__);} 
   
-  //! get the pointer to the data as double *.
-  //! If the matrix consists of Complex, it will be decomposed
-  //! in a continous array of double (real_1, imag_1, real_2, ...)
-  virtual Double* GetDoublePointer() = 0;
-
   //! scales the diagonal elements of a  matrix by a factor
   virtual void ScaleDiagElems(const Double factor)
   {Error("CFSMatrix::ScaleDiagElems(): Not implemented ere",__FILE__,__LINE__);} 

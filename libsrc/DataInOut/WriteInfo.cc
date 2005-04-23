@@ -20,6 +20,7 @@
 #include "Utils/vector.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
 
+#define CFS_VERSION  "0.1a"
 
 namespace CoupledField
 {
@@ -63,7 +64,7 @@ namespace CoupledField
    
     std::stringstream header;
     std::string compileDate = __DATE__;
-  
+    std::string version = CFS_VERSION;
     header << "============================================================"
            << "===========\n"
            << "============================================================"
@@ -78,8 +79,8 @@ namespace CoupledField
            << "          |\n"
            << "|                                                           "
            << "          |\n"
-           << "|  Version: 0.093                                           "
-           << "          |\n"
+           << "|  Version: " << version << std::setw(70-10-version.length()) 
+	   << "|\n"
            << "|  Date:    " << compileDate
            << "                                               |\n"
            << "|                                                           "

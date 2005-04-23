@@ -3,7 +3,10 @@
 #include <string>
 
 #include "solveStepElec.hh"
+#include "assemble.hh"
 
+#include "Utils/nodestoresol.hh"
+#include "PDE/StdPDE.hh"
 
 namespace CoupledField {
 
@@ -23,15 +26,14 @@ void SolveStepElec:: PreStepStatic(const Integer kstep, const Double asteptime,
 {
   ENTER_FCN( "SolveStepElec::PreStepStatic" );
 
-  if (pdeIsCoupled_ )     
+  if (isIterCoupled_)     
     algsys_->InitSol();
   
   if (geoUpdate_)
     {
       algsys_->InitRHS();
       algsys_->InitSol();
-      assemble_->InitMatrices();
-
+      algsys_->InitMatrix();
       assemble_->SetReassemble();   
     }
 }
@@ -41,7 +43,7 @@ void SolveStepElec::PostStepStatic(const Integer kstep, const Double asteptime,
 {
   ENTER_FCN( "SolveStepElec::PostStepStatic" );
 
-  if (pdeIsCoupled_)
+  if (isIterCoupled_)
     (*iterCoupledCounter_)++;
 
 

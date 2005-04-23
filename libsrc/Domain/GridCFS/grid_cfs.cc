@@ -913,7 +913,6 @@ namespace CoupledField
       {
      
 	vec_connect=patch[iels]->connect;
-      
 	for (ivc=0; ivc<vec_connect.GetSize(); ivc++) { 
 	  NewNode=TRUE;
 	  // loop over vector with global nodes for previous elements

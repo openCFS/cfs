@@ -5,6 +5,11 @@
 #include "solveStepAcoustic.hh"
 #include "Forms/forms_header.hh"
 
+#include "assemble.hh"
+
+#include "Utils/nodestoresol.hh"
+#include "PDE/StdPDE.hh"
+
 namespace CoupledField {
 
 SolveStepAcoustic::SolveStepAcoustic(StdPDE& apde) : StdSolveStep(apde) 
@@ -27,7 +32,8 @@ void SolveStepAcoustic::StepTransNonLin(const Integer kstep, const Double astept
 
   laststepcalc_ = kstep;
   lasttimecalc_ = asteptime;
-
+  Double *solPtr;
+  
   Integer job;
   Boolean performOneMoreStep;
   Integer iterationCounter=0;
@@ -61,8 +67,10 @@ void SolveStepAcoustic::StepTransNonLin(const Integer kstep, const Double astept
 
   // Update RHS (mass matrix and damping matrix on right hand side)
   TS_alg_->UpdateRHS();
+
   // stores this as linear part of RHS
-  StoreAlgsysToVec(RhsLinVal_, algsys_->GetRHSVal() );
+  algsys_->GetRHSVal( solPtr );
+  StoreAlgsysToVec(RhsLinVal_, solPtr );
 
   do {
 	iterationCounter++;
@@ -75,10 +83,10 @@ void SolveStepAcoustic::StepTransNonLin(const Integer kstep, const Double astept
 
 #ifdef DEBUG
 	*debug << std::endl
-		   << "====================================================== "
-		   << std::endl
-		   <<   "Nonlinear Acoustics: Perform internal loop no. "
-		   << iterationCounter << std::endl;      
+	       << "====================================================== "
+	       << std::endl
+	       <<   "Nonlinear Acoustics: Perform internal loop no. "
+	       << iterationCounter << std::endl;      
 #endif
         
 	// set solution of previous iteration
@@ -102,7 +110,8 @@ void SolveStepAcoustic::StepTransNonLin(const Integer kstep, const Double astept
 	algsys_->Solve();
 
 	// store new solution in newSol
-	StoreAlgsysToVec(newSol, algsys_->GetSolutionVal() );
+	algsys_->GetSolutionVal( solPtr );
+	StoreAlgsysToVec(newSol, solPtr );
           
 	// perform corrector step, if effective mass formulation is used,
 	//   we need the Corrector step before we store newsol to sol_,
@@ -213,7 +222,8 @@ void SolveStepAcoustic::AddNonLinRHS() {
 	  eqnData_->Node2EQN(connect, connect_PDE);
 
 	  //assemble
-	  algsys_->SetElementRHS(&rhs[0], connect_PDE.GetPointer(), connect_PDE.GetSize());
+	  algsys_->SetElementRHS(&rhs[0], pdeId1_, connect_PDE.GetPointer(), 
+				 connect_PDE.GetSize());
 	}
   }
   delete rhsInt;

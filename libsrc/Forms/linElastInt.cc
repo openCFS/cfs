@@ -9,8 +9,9 @@ namespace CoupledField
 
 
   // returns B - matrix for BDB
-  void linElastInt::calcBMat(Matrix<Double> & bMat, Integer ip, Matrix<Double> & ptCoord)
-  {
+  void linElastInt::calcBMat( Matrix<Double> &bMat, Integer ip,
+                              Matrix<Double> &ptCoord ) {
+
     ENTER_FCN( "linElastInt::calcBMat" );
 
     const Integer nrNodes  = ptelem->GetNumNodes();
@@ -22,7 +23,8 @@ namespace CoupledField
     
     bMat.Resize(getDimD(), nrNodes * nrDofs);
     
-    // local shape functions derived after global coords (format: nrNodes x spaceDim)
+    // local shape functions derived after global coords
+    // (format: nrNodes x spaceDim)
     Matrix<Double> xiDx;
 
     if (isSetIntPoint_) 
@@ -61,7 +63,8 @@ namespace CoupledField
 	    CoordAtIP = ptCoord * ShpFncAtIp;
 
 	    for (actNode = 0; actNode < nrNodes; actNode++)	     
-	      bMat[idxtheta-1][actNode * spaceDim] = ShpFncAtIp[actNode] / CoordAtIP[0];
+	      bMat[idxtheta-1][actNode * spaceDim] =
+                ShpFncAtIp[actNode] / CoordAtIP[0];
 	  }
 
 	break;
@@ -134,19 +137,20 @@ namespace CoupledField
       for (j=0; j<nrElemsAxi; j++)
 	dMat[i][j] = matMatrix[rowPtr[i]-1][rowPtr[j]-1];
 
-}
+  }
 
   // calculated the D-matrix for the plain strain state
-  void linElastInt::CalcPlaneStrainMaterialMat(Matrix<Double> & dMat, 
-					       enum orientation2D actOrientation)
-  {
+  void linElastInt::
+  CalcPlaneStrainMaterialMat( Matrix<Double> &dMat,
+                              enum orientation2D actOrientation ){
+
     ENTER_FCN( "linElastInt::CalcPlaneStrainMaterialMat" );
 
     const Integer nrElems2d = getDimD();
     
-    Integer rowPtrXY[] = {1,2,6,7,8};  // indices of rows and lines for xy-plane
-    Integer rowPtrYZ[] = {2,3,4,8,9};  // indices of rows and lines for yz-plane
-    Integer rowPtrXZ[] = {1,3,5,7,9};  // indices of rows and lines for xz-plane
+    Integer rowPtrXY[] = {1,2,6};  // indices of rows and lines for xy-plane
+    Integer rowPtrYZ[] = {2,3,4};  // indices of rows and lines for yz-plane
+    Integer rowPtrXZ[] = {1,3,5};  // indices of rows and lines for xz-plane
     Integer * rowPtr;
     Integer i,j;
 
@@ -177,7 +181,7 @@ namespace CoupledField
     for (i=0; i<nrElems2d; i++)
       for (j=0; j<nrElems2d; j++)
 	dMat[i][j] = matMatrix[rowPtr[i]-1][rowPtr[j]-1];	
-}
+  }
 
 
   // calculates the D-matrix of a 3d-problem 
@@ -210,7 +214,7 @@ namespace CoupledField
   {
     ENTER_FCN( "mechAxiInt::calcDMat" );
   
-  CalcAxiMaterialMat(dMat, actOrientation);
+    CalcAxiMaterialMat(dMat, actOrientation);
   
   }
   
@@ -224,36 +228,29 @@ namespace CoupledField
 
 
 
-  // ===================================================================================
-  // =================== standard con- and destructors (just for tracing) ==============
-  // ===================================================================================
+  // =========================================================================
+  // =============== standard con- and destructors (just for tracing) ========
+  // =========================================================================
 
-  // calculate (for 2D problems) by default in the xy-plane
-  linElastInt::linElastInt(BaseFE * aptelem, MaterialData & matData) 
-    : BDBInt(aptelem, matData), actOrientation(xy)
-  {
+  // NOTE: We hardcode the orientation for 2D simulations to use the yz plane!
+
+  linElastInt::linElastInt( BaseFE *aptelem, MaterialData &matData ) :
+    BDBInt(aptelem, matData), actOrientation(yz) {
     ENTER_FCN( "linElastInt::linElastInt" );
   }
 
-
-  // calculate (for 2D problems) by default in the xy-plane
-  linElastInt::linElastInt(MaterialData & matData) 
-    : BDBInt(matData), actOrientation(xy)
-  {
+  linElastInt::linElastInt( MaterialData & matData) :
+    BDBInt(matData), actOrientation(yz) {
     ENTER_FCN( "linElastInt::linElastInt" );
   }
- 
 
-  linElastInt::~linElastInt()
-  {
+  linElastInt::~linElastInt() {
     ENTER_FCN( "linElastInt::~linElastInt" );
   }
 
-
-
-  mechPlainStrainInt::mechPlainStrainInt(BaseFE * aptelem, MaterialData & matData) 
-    : linElastInt(aptelem, matData)
-  {
+  mechPlainStrainInt::mechPlainStrainInt(BaseFE * aptelem,
+                                         MaterialData & matData) :
+    linElastInt(aptelem, matData) {
     ENTER_FCN( "mechPlainStrainInt::mechPlainStrainInt" );
 
     ptelem=aptelem;

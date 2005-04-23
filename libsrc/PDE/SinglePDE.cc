@@ -1,10 +1,28 @@
 #include "PDE/SinglePDE.hh"
 
+
+// header for Paramhandling
+#include "DataInOut/ParamHandling/BaseParamHandler.hh"
+#include "DataInOut/ParamHandling/CFSOLASParams.hh"
+
+// header for Materiahlhandling
+#include "DataInOut/LoadMaterialData.hh"
+#include "DataInOut/LoadMaterialDataFile.hh"
+#ifdef USE_DATABASE
+#include "DataInOut/LoadMaterialDataDatabase.hh"
+#endif
+
 // header for equation numbering
 #include "blocknodeEQN.hh"
 #include "scalarblockEQN.hh"
 #include "scalarnodeEQN.hh"
 #include "superblockEQN.hh"
+
+// header for Solvestep
+#include "Driver/stdSolveStep.hh"
+
+// header for iterative coupling
+#include "CoupledPDE/pdecoupling.hh"
 
 
 
@@ -38,13 +56,12 @@ namespace CoupledField {
     complexFormat_ = AMPLITUDE_PHASE; // or REAL_IMAG
     couplingBCsCounter_ = 0;
     numDirichletBCs_ = 0;
-    pdeIsCoupled_ = FALSE;
     updateCouplingBCs_ = FALSE;
     dim_ = ptgrid_->GetDim();
     geoUpdate_ = FALSE;
     iterCoupledCounter_ = 0;
     effectiveMass_ = FALSE;
-    
+
     // =====================================================================
     // set solver parameters
     // =====================================================================
@@ -67,6 +84,13 @@ namespace CoupledField {
     saveSolHist_    = FALSE;
     saveDeriv1Hist_ = FALSE;
     saveDeriv2Hist_ = FALSE;
+
+
+    // =====================================================================
+    // set miscellaneous parameters
+    // =====================================================================
+    pdeId_ = NO_PDE_ID;
+    isDirectCoupled_ = FALSE;
   }
 
 
@@ -77,12 +101,16 @@ namespace CoupledField {
 
     ENTER_FCN( "SinglePDE::~SinglePDE" );
 
-    // ATTENTION: Dummy value for as_id!!!!!!!!!!!!!!!!!!!!!!!!!!
-    DeleteAlgSys(0);
+    // Delete algebraic system only if
+    // PDE is not direct coupled
+    if ( isDirectCoupled_ == FALSE ) {
+      DeleteAlgSys();
+      delete solveStep_;
+    }
+
 
     delete assemble_;
   
-    // ATTENTION: Dummy value for as_id!!!!!!!!!!!!!!!!!!!!!!!!!!
     delete sol_;
 
     delete eqnData_;
@@ -92,7 +120,7 @@ namespace CoupledField {
 
 
   void SinglePDE::Init( Integer bcSequenceIndex,
-			std::string  bcSequenceTag ) {
+			std::string  bcSequenceTag) {
   ENTER_FCN( "SinglePDE::Init()" );
 
   bcSequenceIndex_ = bcSequenceIndex;
@@ -109,8 +137,13 @@ namespace CoupledField {
   }
   Info->PrintF( "", "\n" );
 
-  // Generate a fitting algebraic system
-  algsys_ = new StandardSystem();
+  // Generate a fitting algebraic system only if PDE is NOT
+  // direct coupled
+  if ( isDirectCoupled_ == FALSE )
+    {
+      //std::cerr << pdename_ << "::Init: Creating Standardsystem" << std::endl;
+    algsys_ = new StandardSystem();
+    }
 
   // Get parameter and report object of OLAS
   olasParams_ = algsys_->GetOLASParams();
@@ -149,11 +182,16 @@ namespace CoupledField {
   StdVector<std::string> tags, analysisTypes, pdenames;
   String2Enum(analysis,analysisHelp);
     
+  // stiffness matrix is always needed
+  matrixTypes_.insert(SYSTEM);
+
   if (analysisHelp == STATIC ||
       isAlwaysStatic_ == TRUE) {
+    laststepcalc_ = 1;
     isComplex_ = FALSE;
     assemble_ = new StaticAssemble(algsys_, ptgrid_);
     analysistype_ = STATIC;
+    matrixTypes_.insert(STIFFNESS);
   }
 
   else if (analysisHelp == TRANSIENT) {
@@ -161,6 +199,8 @@ namespace CoupledField {
     assemble_ = new TransientAssemble(algsys_, ptgrid_);
     analysistype_ = TRANSIENT;
     laststepcalc_ = 1;
+    matrixTypes_.insert(STIFFNESS);
+    matrixTypes_.insert(MASS);
   }
 
   else if ( analysis=="harmonic" || analysis == "paramIdent" ||
@@ -183,12 +223,16 @@ namespace CoupledField {
 
     if ( analysistype_ == STATIC ) {
       assemble_ = new StaticAssemble(algsys_, ptgrid_);
+      laststepcalc_ = 1;      
       isComplex_ = FALSE;
+      matrixTypes_.insert(STIFFNESS);
     }
     else if ( analysistype_ == TRANSIENT ) {
       isComplex_ = FALSE;
       assemble_ = new TransientAssemble(algsys_, ptgrid_);
       laststepcalc_ = 1;      
+      matrixTypes_.insert(STIFFNESS);
+      matrixTypes_.insert(MASS);
     }
     else if ( analysis=="harmonic" ) {
       isComplex_ = TRUE;
@@ -284,9 +328,13 @@ namespace CoupledField {
   Info->PrintF( pdename_, "Linear system will have %d equations\n\n",
 		eqnData_->GetNumEQNs() );
 
-  //eqnData_->Print(*debug);
+#ifdef DEBUG
+  eqnData_->Print(*debug);
+#endif
+
   numPDENodes_ = eqnData_->GetNumLocalNodes();
   numElems_ = eqnData_->GetNumLocalElems();
+  numBuildInDirichletBCs_ = eqnData_->GetNumBuildInDirichletEQNs();
     
   // Initialize Storesolution class
   sol_->SetNumSolutions(solTypes_.GetSize());
@@ -306,15 +354,13 @@ namespace CoupledField {
   assemble_->SetPtr2TimeFnc(ptTimeFunc_);
 
   if (pdename_ == "piezo" || pdename_ == "mechanic" ) {
-    assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, 
+    assemble_->SetGeneralParams(pdename_, dofspernode_, 
 				subdoms_, pressSurf_, bcSequenceTag_);
   }
   else {
-    assemble_->SetGeneralParams(pdename_, dofspernode_, numPDENodes_, 
+    assemble_->SetGeneralParams(pdename_, dofspernode_, 
 				subdoms_, surfdoms_, bcSequenceTag_);
   }
-
-  assemble_->SetGraphType(NODEGRAPH);
 
   if (isComplex_) {
     assemble_->SetMatrixEntryType( OLAS::COMPLEX );
@@ -330,6 +376,7 @@ namespace CoupledField {
   assemble_->SetPtr2Sol(sol_);
   if (needsDampingMatrix_) {
     assemble_->NeedDampingMatrix();
+    matrixTypes_.insert(DAMPING);
   }
 
   // =====================================================================
@@ -360,17 +407,37 @@ namespace CoupledField {
   // =====================================================================
   // Create time stepping algorithm
   // =====================================================================
-  if ( analysistype_ == TRANSIENT ) {
+  if ( analysistype_ == TRANSIENT && 
+       isDirectCoupled_ == FALSE) {
     InitTimeStepping();
   }
 
   PreparePDE4Computation();
 
   //! Define step solution driver
-  DefineSolveStep();
+  if ( isDirectCoupled_ == FALSE )
+    DefineSolveStep();
 }
 
   
+  void SinglePDE::SaveSolution() {
+    ENTER_FCN( "SinglePDE::SaveSolution" );
+
+    // We have to differ between real-valued
+    // and complex valued-entries
+    if ( isComplex_ == FALSE ) {
+      Double *solPtr = NULL; 
+      Integer size = algsys_->GetSolutionVal( solPtr, pdeId_ );    
+      sol_->SetAlgSysDataPointer( size, solPtr );
+    } else {
+      Complex *solPtr = NULL; 
+      Integer size = algsys_->GetSolutionVal( solPtr, pdeId_ );    
+      sol_->SetAlgSysDataPointer( size, solPtr );
+    }
+      
+            
+  }
+
   
   void SinglePDE::WriteGeneralPDEdefines() {
     
@@ -434,7 +501,7 @@ namespace CoupledField {
     Integer j;
     Integer eqnNr, eqnDof;
 
-    if (pdeIsCoupled_) {
+    if (isIterCoupled_) {
       j = couplingBCsCounter_;
     }
     else {
@@ -464,13 +531,13 @@ namespace CoupledField {
           if ( analysistype_ == HARMONIC ) {
 
             // set real part 
-            algsys_->SetDirichlet(j*2+1, eqnNr, val, eqnDof);
+            algsys_->SetDirichlet(j*2+1, pdeId_, eqnNr, val, eqnDof);
 
             // set imaginary part 
-            algsys_->SetDirichlet(j*2+2, eqnNr, val, eqnDof+1);
+            algsys_->SetDirichlet(j*2+2, pdeId_, eqnNr, val, eqnDof+1);
           }
           else {
-            algsys_->SetDirichlet(j+1, eqnNr ,val, eqnDof);
+            algsys_->SetDirichlet(j+1, pdeId_, eqnNr ,val, eqnDof);
           }
           j++;
         }
@@ -535,15 +602,17 @@ namespace CoupledField {
           phase = bcs_id_phase_[i];
 
           // set real part
-          algsys_->SetDirichlet( j*2+1, eqnNr, val * cos(phase/180*PI),
+          algsys_->SetDirichlet( j*2+1, pdeId_, eqnNr, val * cos(phase/180*PI),
                                  eqnDof );
 
           // set imaginary part 
-          algsys_->SetDirichlet(j*2+2, eqnNr, val * sin(phase/180*PI),
+          algsys_->SetDirichlet(j*2+2, pdeId_, eqnNr, val * sin(phase/180*PI),
                                 eqnDof+1);
         }
         else {
-          algsys_->SetDirichlet(j+1, eqnNr, val, eqnDof);
+	  //std::cerr << pdename_ << ": Setting eqnNr." << eqnNr << " to value " 
+	  //	    << val << std::endl;
+          algsys_->SetDirichlet(j+1, pdeId_, eqnNr, val, eqnDof);
         }
       }
     }
@@ -710,6 +779,151 @@ namespace CoupledField {
     return res;
   }
   
+   // ======================================================
+  // GET /SET  METHODS
+  // ======================================================
+
+  //! Activate the direct coupling
+  void SinglePDE::SetDirectCoupling (BaseSystem *algsys,
+				     StdSolveStep *solveStep)
+  {
+    ENTER_FCN( "SinglePDE::SetDirectCoupling" );
+    
+    if ( algsys_ != NULL ) {
+      (*error) << "SinglePDE::SetDirectCoupling: An algebraic system " 
+	       << "was defined already.";
+      Error (__FILE__, __LINE__);
+    }
+
+    if ( solveStep_ != NULL ) {
+      (*error) << "SinglePDE::SetDirectCoupling: A SolveStep object " 
+	       << "was defined already.";
+      Error (__FILE__, __LINE__);
+    }
+    
+    algsys_ = algsys;
+    solveStep_ = solveStep;
+    isDirectCoupled_ = TRUE;
+    
+    
+  }
+
+  void SinglePDE::SetAlgebraicSystem( BaseSystem *algSys) {
+    ENTER_FCN( "SinglePDE::SetAlgebraicSystem" );
+    algsys_ = algSys;
+  }
+
+  void SinglePDE::SetSolveStep ( StdSolveStep *solveStep) {
+    ENTER_FCN( "SinglePDE::SetSolveStep" );
+    solveStep_ = solveStep;
+  }
+
+
+  // ======================================================
+  // ALGSYS SECTION (SOLVER, ...) 
+  // ======================================================
+  void SinglePDE::DefineAlgSys() {
+
+    ENTER_FCN( "StdPDE::DefineAlgSys" );
+
+    // Set parameter for solver and preconditioner
+
+    (*cla) <<  "--- PDE: " << pdename_ << " ---" << std::endl;
+
+    // Set parameters for OLAS
+    std::string amExpert;
+    params->Get( "override", amExpert, "expert" );
+    CFSOLASParams::SetParams( pdename_, params, olasParams_,analysistype_,
+			      (amExpert=="yes"));
+
+    // If PDE is not direct coupled then the PDE has to register
+    // at the algebraic system and obtain an Id. 
+    // Afterwards the matrix-graph has to be set up
+
+    if ( isDirectCoupled_ == FALSE ) {
+      
+      // Initialize the matrix graph object
+      algsys_->GraphSetupInit(1);
+
+      // obtain PDE identification tag from algebraic system
+      pdeId_ = algsys_->RegisterPDE( pdename_, eqnData_->GetNumEQNs() );
+
+      assemble_->SetPDEId( pdeId_ );
+      solveStep_->SetPDEId( pdeId_ );
+      
+      // trigger the creation and assembly of the matrix graph
+      assemble_->SetupMatrixGraph();
+      
+      // finish the assembly of the matrix graph
+      algsys_->GraphSetupDone();
+      
+      // obtain reordering of the matrix graph
+      // and give it to the EQN-object
+      Integer * newOrder = algsys_->GetReordering( pdeId_ );
+      eqnData_->ReorderMapping( newOrder );
+
+    }
+
+    // pass information about dofs, number of dirichlet equations
+    // and constraints to the algebraic system
+    algsys_->SetBlockSize( pdeId_, eqnData_->GetNumDofsPerEQN() );
+    
+    Integer numDir = GetNumRestraints() - numBuildInDirichletBCs_;
+    algsys_->SetNumDirichletBCs(pdeId_, numDir );
+    
+    if (matrixTypes_.find(SYSTEM) != matrixTypes_.end())
+      algsys_->SetFEMatrixType( pdeId_, SYSTEM );
+    
+    if (matrixTypes_.find(STIFFNESS) != matrixTypes_.end())
+      algsys_->SetFEMatrixType( pdeId_, STIFFNESS );
+   
+    if (matrixTypes_.find(DAMPING) != matrixTypes_.end())
+      algsys_->SetFEMatrixType( pdeId_, DAMPING );
+    
+    if (matrixTypes_.find(CONVECTION) != matrixTypes_.end())
+      algsys_->SetFEMatrixType( pdeId_, CONVECTION );
+
+    if (matrixTypes_.find(MASS) != matrixTypes_.end())
+      algsys_->SetFEMatrixType( pdeId_, MASS );
+    
+
+    // create matrices and solver object, if PDE is not direct coupled
+    if ( isDirectCoupled_ == FALSE )
+      CreateMatrices_Solver();
+
+     
+  }
+
+  // ======================================================
+  // METHODS FOR ASSEMBLING
+  // ======================================================
+  
+  void  SinglePDE::AssembleMatrices(const Integer level) {
+    assemble_->AssembleMatrices(level);
+  }
+  
+  void  SinglePDE::AssembleSrcRHS(const Integer level, const Double time) {
+    assemble_->AssembleSrcRHS(level, time);
+  }
+  
+  void SinglePDE::AssembleNLRHS(const Integer level, const Double time) {
+    assemble_->AssembleNLRHS(level, time);
+  }
+  
+  void  SinglePDE::AssembleSprings(const Integer level, const Double time) {
+    assemble_->AssembleSprings(level, time);
+  }
+  
+  void  SinglePDE::InitNonLinMatrices() {
+    assemble_->InitNonLinMatrices();
+  }
+  
+  //! constructes the matrix graph by providing to the algebraic system the element connectivities
+  void  SinglePDE::SetupMatrixGraph() {
+    assemble_->SetupMatrixGraph();
+  }
+
+  
   // ======================================================
   // ADAPTIVITY SECTION 
   // ======================================================
@@ -857,12 +1071,12 @@ namespace CoupledField {
       Vector<Double> const & help = dynamic_cast<Vector<Double>&>(*val);
 
       switch(ptCoupling_->GetInputType(i)) {
-
+	
         // -------------------
         // COORDINATE COUPLING
         // -------------------
       case COORD:
-          
+	
         // Set flag that the geometry has changed
         geoUpdate_ = TRUE;
         assemble_->SetNonlinGeo();
@@ -905,7 +1119,7 @@ namespace CoupledField {
           for ( Integer j = 0; j < nodes->GetSize(); j++ ) {
             eqnData_->Node2EQN((*nodes)[j],dof+1,eqnNr,eqnDof);
             if ( eqnNr != 0 ) {
-              algsys_->SetNodeRHS(help[dof+couplingDof*j], eqnNr, eqnDof);
+              algsys_->SetNodeRHS(help[dof+couplingDof*j], pdeId_, eqnNr, eqnDof);
             }
           }
         }
@@ -932,7 +1146,7 @@ namespace CoupledField {
                      __FILE__, __LINE__ );
             }
 
-            algsys_->SetDirichlet( couplingBCsCounter_ + 1, eqnNr,
+            algsys_->SetDirichlet( couplingBCsCounter_ + 1, pdeId_, eqnNr,
                                    help[dof+j*couplingDof], eqnDof );
           }
         }

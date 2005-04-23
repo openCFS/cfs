@@ -1,9 +1,11 @@
 #include "itercoupledpde.hh"
+
+#include "pdecoupling.hh"
+
 #include "DataInOut/WriteInfo.hh"
-#include "Utils/vector.hh"
-#include "Utils/StdVector.hh"
 #include "PDE/StdPDE.hh"
 #include "Driver/iterSolveStep.hh"
+#include "DataInOut/ParamHandling/BaseParamHandler.hh"
 
 namespace CoupledField
 {
@@ -21,6 +23,7 @@ namespace CoupledField
     actlevel_ = 0;
     NumPDEs_ = PDEs.GetSize();
     sequenceTag_ = sequenceTag;
+    solveStep_ = NULL;
     
     
     // get analysis type
@@ -75,7 +78,8 @@ namespace CoupledField
   {
     ENTER_FCN( "IterCoupledPDE::~IterCoupledPDE" );
 
-    // 
+    // delete solveStep-object
+    delete solveStep_;
 
     // delete coupling objects
     for (Integer i=0; i<Couplings_.GetSize(); i++)
@@ -640,15 +644,20 @@ void IterCoupledPDE::SetTimeStep(const Double dt)
 
     for (Integer i=0; i<PDEs_.GetSize(); i++)
       PDEs_[i]->SetTimeStep(dt);
-};
+}
 
 
 void IterCoupledPDE::WriteGeneralPDEdefines()
 {
   ENTER_FCN( "IterCoupledPDE::WriteGeneralPDEdefines" );
+  
+  for (Integer i=0; i<PDEs_.GetSize(); i++)
+    PDEs_[i]->WriteGeneralPDEdefines();
+}
 
-    for (Integer i=0; i<PDEs_.GetSize(); i++)
-      PDEs_[i]->WriteGeneralPDEdefines();
+BaseSolveStep * IterCoupledPDE::GetSolveStep() {
+  ENTER_FCN( "IterCoupledPDE::GetSolveStep" );
+  return solveStep_;
 }
 
 // ======================================================

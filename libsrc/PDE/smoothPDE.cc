@@ -115,7 +115,7 @@ namespace CoupledField
   {
     ENTER_FCN( "SmoothPDE::Initcoupling" );
 
-    pdeIsCoupled_ = TRUE;
+    isIterCoupled_ = TRUE;
     ptCoupling_   = coupling; 
 
     // input couplings

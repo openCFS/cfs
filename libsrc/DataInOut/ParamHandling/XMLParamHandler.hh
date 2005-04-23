@@ -221,6 +221,9 @@ namespace CoupledField
     void GetIterCoupledPDEList( StdVector<std::string> &list,
 				const std::string sequenceTag = "");
     
+    void GetDirectCouplingList( StdVector<std::string> &list,
+				const std::string sequenceTag = "");   
+
     void GetCoilList( StdVector<std::string> &list,
 		      const std::string pde = "" ,
 		      const std::string sequenceTag = "");

@@ -1,25 +1,14 @@
-#include <fstream>
-#include <iostream>
-#include <string>
-#include <math.h>
-
-#include "DataInOut/Unverg/outUnverg.hh"
-#include "DataInOut/GMV/outGMV.hh"
-#include "Forms/forms_header.hh"
-#include "Estimator/spaceerror.hh"
-#include "blocknodeEQN.hh"
-#include "scalarblockEQN.hh"
-
-#include <Forms/nLinElastInt.hh>
-#include <DataInOut/WriteInfo.hh>
-#include <Driver/assemble.hh>
-#include "newmark.hh"
-#include <Elements/basefe.hh>
-
-#include "DataInOut/ParamHandling/BaseParamHandler.hh"
-
 #include "mechPDE.hh"
+
+#include "Forms/forms_header.hh"
+#include "Forms/linElastInt.hh"
+#include "Forms/massInt.hh"
+#include "DataInOut/writeresults.hh"
+#include "Driver/assemble.hh"
+#include "newmark.hh"
+#include "DataInOut/ParamHandling/BaseParamHandler.hh"
 #include "Driver/solveStepMech.hh" 
+#include "CoupledPDE/pdecoupling.hh"
 
 namespace CoupledField
 {
@@ -513,7 +502,7 @@ namespace CoupledField
   {
     ENTER_FCN( "MechPDE::InitCoupling" );
   
-    pdeIsCoupled_ = TRUE;
+    isIterCoupled_ = TRUE;
     ptCoupling_   = Coupling;
   
     for (Integer i=0; i<ptCoupling_->GetNumOutputCouplings(); i++)

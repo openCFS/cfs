@@ -17,6 +17,7 @@
 #include "Utils/nodestoresol.hh"
 #include "Driver/solveStepAcoustic.hh"
 #include "Driver/solveStepAcousticBubble.hh"
+#include "CoupledPDE/pdecoupling.hh"
 
 namespace CoupledField {
 
@@ -373,9 +374,9 @@ void AcousticPDE::InitTimeStepping() {
   }
   else {
 	if ( effectiveMass_ == FALSE )
-	  TS_alg_ = new NewmarkFracDamp(pdename_, algsys_, eqnData_, ptgrid_, this,
-									subdoms_, dampingList_, 
-									fracMemory_, inType_, isaxi_);
+	  TS_alg_ = new NewmarkFracDamp(pdename_, pdeId_, algsys_, eqnData_, 
+					ptgrid_, this, subdoms_, dampingList_, 
+					fracMemory_, inType_, isaxi_);
 	else
 	  Error("This needs to be implemented!",__FILE__,__LINE__);
   }
@@ -399,7 +400,7 @@ void AcousticPDE::InitCoupling(PDECoupling * Coupling) {
     
   ENTER_FCN( "AcousticPDE::InitCoupling" );
     
-  pdeIsCoupled_ = TRUE;
+  isIterCoupled_ = TRUE;
   ptCoupling_   = Coupling;
     
   // Intialize the memory of the coupling values
