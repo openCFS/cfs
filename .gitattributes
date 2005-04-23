@@ -315,6 +315,7 @@ libsrc/Forms/laplaceInt.cc svneol=native#text/plain
 libsrc/Forms/laplaceInt.hh svneol=native#text/plain
 libsrc/Forms/linElastInt.cc svneol=native#text/plain
 libsrc/Forms/linElastInt.hh svneol=native#text/plain
+libsrc/Forms/linElecInt2D.hh svneol=native#text/plain
 libsrc/Forms/linElecInt3D.hh svneol=native#text/plain
 libsrc/Forms/linPiezoCoupling2DAxi.cc svneol=native#text/plain
 libsrc/Forms/linPiezoCoupling2DAxi.hh svneol=native#text/plain
