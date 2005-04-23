@@ -6,6 +6,8 @@
 #include "DataInOut/Unverg/outUnverg.hh"
 #include "DataInOut/GMV/outGMV.hh"
 #include "Forms/forms_header.hh"
+#include "Forms/linElecInt3D.hh"
+#include "Forms/linElecInt2D.hh"
 #include "Estimator/spaceerror.hh"
 #include "DataInOut/WriteInfo.hh"
 #include "Driver/assemble.hh"
@@ -61,20 +63,33 @@ void ElecPDE::DefineIntegrators(const Integer level)
 {
   ENTER_FCN( "ElecPDE::DefineIntegerators" );
 
+  BaseForm *form;
+
+
+  // if the pde is piezo-coupled, the electrostatic entries
+  // have to multiplied with -1
+  Double factor = 1.0;
+  if ( isPiezoCoupled_ == TRUE )
+    factor *= -1.0;  
+  
   for (int actSD = 0; actSD < subdoms_.GetSize(); actSD++)
     {
       //reads eps33 (matrix notation starts with 0)
       Double eps33 = materialData_[actSD].GetPermittivity(2,2);
-
-      // if the pde is piezo-coupled, the electrostatic entries
-      // have to multiplied with -1
-      if ( isPiezoCoupled_ == TRUE )
-	eps33 *= -1.0;
-
-      BaseForm * lapl = new LaplaceInt(eps33, isaxi_);
-
-      assemble_->AddIntegrator(lapl, subdoms_[actSD], SYSTEM, nonLin_);
-    }
+      
+      if (dim_ == 3) {
+	form = new linElecInt3D( materialData_[actSD] );
+	form->SetFactor( factor );
+      }
+      else {
+	form = new linElecInt2D( materialData_[actSD], isaxi_ );
+	form->SetFactor( factor );
+      }
+	//form = new LaplaceInt( eps33*factor, isaxi_ );
+      
+      
+      assemble_->AddIntegrator(form, subdoms_[actSD], SYSTEM, nonLin_);
+    } // for
 }
 
 void ElecPDE::DefineSolveStep()
@@ -988,7 +1003,7 @@ void ElecPDE::ReadStoreResults() {
 
   if ( calcEfield_.GetSize() > 0 ) {
    	hasOutput_ = TRUE;
-    Info->PrintF( pdename_, " Computing electric field for regions:" );
+    Info->PrintF( pdename_, " Computing electric field for regions:\n" );
     for ( Integer k = 0; k < calcEfield_.GetSize(); k++ ) {
       Info->PrintF( pdename_, " %s", calcEfield_[k].c_str() );
     }
@@ -1012,7 +1027,7 @@ void ElecPDE::ReadStoreResults() {
 
   if ( calcEnergy_.GetSize() > 0 ) {
    	hasOutput_ = TRUE;
-    Info->PrintF( pdename_, " Computing energy for regions:" );
+    Info->PrintF( pdename_, " Computing energy for regions:\n" );
     for ( Integer k = 0; k < calcEnergy_.GetSize(); k++ ) {
       Info->PrintF( pdename_, " %s", calcEnergy_[k].c_str() );
     }
@@ -1027,7 +1042,7 @@ void ElecPDE::ReadStoreResults() {
     {
    	hasOutput_ = TRUE;
      Info->PrintF( pdename_,
-		   " Computing electric charges for regions:");
+		   " Computing electric charges for regions:\n");
      for ( Integer k = 0; k < calcCharges_.GetSize(); k++ ) {
        Info->PrintF( pdename_, " %s", calcCharges_[k].c_str() );
     } 
@@ -1055,9 +1070,9 @@ void ElecPDE::ReadStoreResults() {
   if (saveNodeHist.GetSize() > 0) {
     saveSolHist_ = TRUE;
    	hasOutput_ = TRUE;
-    Info->PrintF( pdename_, " Saving ElecPotential for Nodes:" );
+    Info->PrintF( pdename_, " Saving ElecPotential for Nodes:\n" );
     for ( Integer k = 0; k < saveNodeHist.GetSize(); k++ ) {
-      Info->PrintF( pdename_, " %s", saveNodeHist[k].c_str() );
+      Info->PrintF( pdename_, " %s\n", saveNodeHist[k].c_str() );
     }
   }
   
