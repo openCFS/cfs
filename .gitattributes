@@ -28,6 +28,7 @@ XML/Examples/bubble.xml svneol=native#text/xml
 XML/Examples/plate1.xml svneol=native#text/xml
 XML/Schemas/CFS_Analysis.xsd -text
 XML/Schemas/CFS_Coupling.xsd -text
+XML/Schemas/CFS_DirectCoupling.xsd -text
 XML/Schemas/CFS_Domain.xsd -text
 XML/Schemas/CFS_IntegRules.xsd -text
 XML/Schemas/CFS_LinearSystem.xsd -text

@@ -1,0 +1,81 @@
+
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org"
+  xmlns:cfs="http://www.cfs++.org"
+  elementFormDefault="qualified">
+
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Coupled Field Solver project CFS++
+      Schema for description of direct coupling of PDEs
+    </xsd:documentation>
+  </xsd:annotation>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of basic direct coupling data type -->
+  <!-- ******************************************************************** -->
+
+  <!-- This is an abstract basic type so that it cannot appear in an -->
+  <!-- instance document -->
+  <xsd:complexType name="DT_BasicDirectCoupling" abstract="true"/>
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of basic direct coupling element -->
+  <!-- ******************************************************************** -->
+
+  <!-- This element is abstract in order to force substitution -->
+  <!-- by the derived specialised PDECoupling elements -->
+  <xsd:element name="PDEBasicDirectCoupling" type="DT_BasicDirectCoupling"
+    abstract="true"/>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of direct coupling section -->
+  <!-- ******************************************************************** -->
+
+  <xsd:element name="direct" substitutionGroup="PDEBasicCoupling">
+    <xsd:complexType>
+      <xsd:complexContent>
+        <xsd:extension base="DT_BasicCoupling">
+          <xsd:sequence>
+            <xsd:element ref="PDEBasicDirectCoupling"  minOccurs="0" maxOccurs="unbounded"/>
+          </xsd:sequence>
+       </xsd:extension>
+     </xsd:complexContent>
+   </xsd:complexType>   
+ </xsd:element>
+
+  
+  <!-- ******************************************************************** -->
+  <!--   Definition of pairwise direct PDE couplings -->
+  <!-- ******************************************************************** -->
+
+  <!-- Piezo (Elec-Mech) coupling -->
+  <xsd:element name="piezoDirect" substitutionGroup="PDEBasicDirectCoupling">
+    <xsd:complexType>
+      <xsd:complexContent>
+        <xsd:extension base="DT_BasicDirectCoupling">
+          <xsd:sequence>
+            <xsd:element name="coupling" minOccurs="1" maxOccurs="unbounded">
+              <xsd:complexType>
+                <xsd:attribute name="type" use="required">
+                  <xsd:simpleType>
+                    <xsd:restriction base="xsd:token">
+                      <xsd:enumeration value="region"/>
+                      <xsd:enumeration value="interface"/>
+                    </xsd:restriction>
+                  </xsd:simpleType>
+                </xsd:attribute>
+                <xsd:attribute name="name" type="xsd:token"
+                use="required"/>
+              </xsd:complexType>
+            </xsd:element>
+          </xsd:sequence>
+        </xsd:extension>
+      </xsd:complexContent>
+    </xsd:complexType>
+  </xsd:element> 
+
+</xsd:schema>

@@ -19,15 +19,16 @@
 <xsd:include schemaLocation="Schemas/CFS_PDEmechanic.xsd"/>
 <xsd:include schemaLocation="Schemas/CFS_PDEacoustic.xsd"/>
 <xsd:include schemaLocation="Schemas/CFS_PDEmagnetic.xsd"/>
-<xsd:include schemaLocation="Schemas/CFS_PDEpiezo.xsd"/>
 <xsd:include schemaLocation="Schemas/CFS_PDEsmooth.xsd"/>
 <xsd:include schemaLocation="Schemas/CFS_PDEmpcci.xsd"/>
+<xsd:include schemaLocation="Schemas/CFS_PDEpiezo.xsd"/>
 
 
 <!-- ********************************************************************** -->
 <!--   Include definition of coupling types and elements from support files -->
 <!-- ********************************************************************** -->
 <xsd:include schemaLocation="Schemas/CFS_Coupling.xsd"/>
+<xsd:include schemaLocation="Schemas/CFS_DirectCoupling.xsd"/>
 
 
 <!-- ********************************************************************** -->
