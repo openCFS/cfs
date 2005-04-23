@@ -417,6 +417,15 @@ namespace CoupledField {
   //! Define step solution driver
   if ( isDirectCoupled_ == FALSE )
     DefineSolveStep();
+  
+  // =====================================================================
+  // Set correct parameter for OLAS
+  // =====================================================================
+  std::string amExpert;
+  params->Get( "override", amExpert, "expert" );
+  CFSOLASParams::SetParams( pdename_, params, olasParams_,analysistype_,
+			    (amExpert=="yes"));
+  
 }
 
   
