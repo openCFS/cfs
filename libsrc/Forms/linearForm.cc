@@ -1082,6 +1082,63 @@ void nLinWesterveltRHSInt::CalcElemVector(Matrix<Double>& ptCoord, Vector<Double
 // electric polarization
 // =============================================================================
 
+ElecPolarizationInt::ElecPolarizationInt(Boolean isaxi)
+  : LinearForm() 
+{
+  ENTER_FCN( "ElecPolarizationInt::ElecPolarizationInt" );
+  isaxi_ = isaxi;
+}
+
+
+ElecPolarizationInt::~ElecPolarizationInt()
+{
+  ENTER_FCN( "ElecPolarizationInt::~ElecPolarizationInt" );
+}
+
+
+void ElecPolarizationInt::CalcElemVector(Matrix<Double>& ptCoord, Vector<Double> & elemVec)
+{
+  ENTER_FCN( "ElecPolarizationInt::CalcElemVector" );
+
+  const Integer nrIntPts = ptelem->GetNumIntPoints();
+  const Integer nrNodes  = ptelem->GetNumNodes();
+  const Vector<Double> & intWeights = ptelem->GetIntWeights();  
+  Vector<Double> ShpFncAtIp, CoordAtIP;
+  Matrix<Double> xiDx;
+
+  elemVec.Resize(nrNodes);
+  elemVec.Init(0);
+
+  Double factor;
+  for (Integer actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {     
+
+    Double jacDet = 0;
+    ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord, jacDet);
+
+    if (isaxi_) {
+      ptelem->GetShFncAtIp(ShpFncAtIp,actIntPt);
+      CoordAtIP = ptCoord * ShpFncAtIp;
+      for (Integer i=0; i<nrNodes; i++)
+	xiDx[i][0] += ShpFncAtIp[i] / CoordAtIP[0];
+      
+      jacDet *= 2 * PI * CoordAtIP[0];
+    }
+
+    factor = intWeights[actIntPt-1] * jacDet;
+    for (Integer i=0; i<nrNodes; i++) {
+      for (Integer j=0; j<D_.GetSize(); j++) {
+	elemVec[i] += xiDx[i][j] * D_[j];
+      }
+    }
+  }
+
+}
+
+
+// =============================================================================
+// piezoelectric polarization
+// =============================================================================
+
 PiezoPolarizationInt::PiezoPolarizationInt(Integer dir, Integer numdof, 
 					   Boolean isaxi)
   : LinearForm(), comp_(dir-1), numDofs_(numdof) 
@@ -1117,21 +1174,23 @@ void PiezoPolarizationInt::CalcElemVector(Matrix<Double>& ptCoord, Vector<Double
     Double jacDet = 0;
     ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord, jacDet);
 
-    if (isaxi_ && comp_==0)
-      {
+    if (isaxi_) {
+      if ( comp_ == 0 ) {
 	ptelem->GetShFncAtIp(ShpFncAtIp,actIntPt);
 	CoordAtIP = ptCoord * ShpFncAtIp;
 	for (Integer i=0; i<nrNodes; i++)
-	    xiDx[i][0] += ShpFncAtIp[i] / CoordAtIP[0];
-	
-	jacDet *= 2 * PI * CoordAtIP[0];
+	  xiDx[i][0] += ShpFncAtIp[i] / CoordAtIP[0];
       }
+      jacDet *= 2 * PI * CoordAtIP[0];
+    }
 
     factor = intWeights[actIntPt-1] * jacDet * Pval_;
     for (Integer i=0; i<nrNodes; i++) {
       partElemVec[i] += xiDx[i][comp_] * factor;
     }
   }
+
+  // std::cerr << "rhs=" << partElemVec << std::endl; 
 
   //compute element vector by correctly putting the components of
   //partlementVec into elemVec, since the values for the mechanical
@@ -1145,5 +1204,7 @@ void PiezoPolarizationInt::CalcElemVector(Matrix<Double>& ptCoord, Vector<Double
   }
 
 }
+
+
 
 } // end of namespace

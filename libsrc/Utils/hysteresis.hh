@@ -22,7 +22,7 @@ public:
   };
 
   //!
-  void updateMinMaxList(Double newX, Integer idxElem) 
+  virtual void updateMinMaxList(Double newX, Integer idxElem) 
   {
     Error("updateMinMaxList not implemented in base-Class");
   };

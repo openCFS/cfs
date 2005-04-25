@@ -15,6 +15,7 @@ namespace CoupledField
     piezoMatType_ = REALMATERIALPARAMETER;
     ptMaterial = new MaterialData(matData);
     baseType_ = NOTYPE;
+    materialArray_ = NULL;
   }
 
   BaseForm::BaseForm(MaterialData & matData)
@@ -25,6 +26,7 @@ namespace CoupledField
     ptMaterial = new MaterialData(matData);
     piezoMatType_ = REALMATERIALPARAMETER;
     baseType_ = NOTYPE;
+    materialArray_ = NULL;
     
   }
 
@@ -37,6 +39,7 @@ namespace CoupledField
     piezoMatType_ = REALMATERIALPARAMETER;
     ptMaterial = NULL;
     baseType_ = NOTYPE;
+    materialArray_ = NULL;
   }
  
   BaseForm::BaseForm()
@@ -47,6 +50,7 @@ namespace CoupledField
     piezoMatType_ = REALMATERIALPARAMETER;
     ptMaterial = NULL;
     baseType_ = NOTYPE;
+    materialArray_ = NULL;
   }
  
 

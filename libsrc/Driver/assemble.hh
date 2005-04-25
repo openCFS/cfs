@@ -492,7 +492,9 @@ namespace CoupledField
     // AUXILIARY METHODS
     // ==============================================
 
-
+    //! set material parameter array used in forms
+    void SetMaterialArray(Matrix<Double>* matOfElements) 
+    { matArray_ = matOfElements;};
 
   protected:
     //! calculates the index of the subdoman with name "subDomName" in the subdomain-list
@@ -531,6 +533,8 @@ namespace CoupledField
     //! set analysis type
     AnalysisType analysisType_;
 
+    //!
+    Matrix<Double>* matArray_;
   };
     
       

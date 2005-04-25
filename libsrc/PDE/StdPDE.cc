@@ -164,7 +164,7 @@ namespace CoupledField {
           dof = GetBCDof( homDirichDof_[i] );
         }
 
-        nodes=ptBCs_->GetNodesLevel(bcs_hd_[i]);
+        nodes=ptBCs_->GetNodesLevel(bcs_id_[i]);
       
         for (std::list<Integer>::const_iterator p=nodes.begin(); 
 	     p!=nodes.end(); p++)

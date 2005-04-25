@@ -100,7 +100,7 @@ namespace CoupledField {
       MassMultiDof(multDofMass, elemMat, nrDofsPerNode_);	
       elemMat = multDofMass;
     }
-  
+
   }
 
   void MassInt::Print(std::ostream * out, const Matrix<Double> Result) const

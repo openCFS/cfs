@@ -9,7 +9,8 @@ src =  	solveStepMech.cc solveStepMag.cc solveStepAcoustic.cc stdSolveStep.cc \
 	baseSolveStep.cc solveStepElec.cc basedriver.cc transientdriver.cc \
 	staticdriver.cc harmonicDriver.cc multiSequenceDriver.cc\
 	assemble.cc singleDriver.cc \
-	iterSolveStep.cc bubbledriver.cc multiHarmonicDriver.cc solveStepAcousticBubble.cc
+	iterSolveStep.cc bubbledriver.cc multiHarmonicDriver.cc \
+	solveStepAcousticBubble.cc
 #
 ifeq ($(Adaptivity),yes)
 

@@ -37,15 +37,14 @@ Preisach :: ~Preisach()
   delete [] extremaList_;
 }
 
-Double Preisach :: computeValue(Double newX, Integer idxElem) 
+Double Preisach :: computeValue(Double Xin, Integer idxElem) 
 {
   ENTER_FCN( "Preisach::computeValue" );
 
   Integer idx = idxElem - 1;
   
-  newX /= Xsaturated_;
-
-  //  updateMinMaxList(newX, idxElem);
+  //normalize input
+  Double newX = normalizeInput(Xin);
 
   // get last entry of extremaList
   Integer posEL = extremaList_[idx].size()-1;
@@ -53,11 +52,12 @@ Double Preisach :: computeValue(Double newX, Integer idxElem)
 
   Double val =  everett(lastX,newX);
 
-  return (val + preisachSum_[idx]);
+  //  std::cerr << "lastX=" << lastX << " newX=" << newX << " val=" << val << std::endl;
+  return ( (val + preisachSum_[idx])*YSaturated_ );
 }
 
 
-void Preisach :: updateMinMaxList(Double newX, Integer nrEl)
+void Preisach :: updateMinMaxList(Double Xin, Integer nrEl)
 {
   ENTER_FCN( "Preisach::updateMinMaxList" );
 
@@ -93,7 +93,9 @@ void Preisach :: updateMinMaxList(Double newX, Integer nrEl)
   //  this last value was a maximum, then insert the new value as a minimum
   //
   //==========================================================================//
-                                                                           
+
+  //normalize input
+  Double newX = normalizeInput(Xin);
 
   //array starts at 0!!
   nrEl -= 1;
@@ -202,9 +204,9 @@ void Preisach :: updateMinMaxList(Double newX, Integer nrEl)
   //  Integer size = extremaList_[nrEl].size();
 
   //now check, if we can cancle any extrema
-  if (isMinMax_[nrEl].size() > 1) {
-    wipout(nrEl);
-  }
+//   if (isMinMax_[nrEl].size() > 1) {
+//     wipout(nrEl);
+//   }
 
 }
 
@@ -399,7 +401,7 @@ void Preisach :: updateMinMaxList(Double newX, Integer nrEl)
 }
 
 
- Double Preisach ::  everett(Double X1, Double X2)
+Double Preisach :: everett(Double X1, Double X2)
 {
   ENTER_FCN( "Preisach:: everett" );
 
@@ -416,5 +418,27 @@ void Preisach :: updateMinMaxList(Double newX, Integer nrEl)
   return newY;
 }
 
+
+Double Preisach :: normalizeInput(Double Xin)
+{
+  ENTER_FCN( "Preisach::normalizeInput" );
+
+  Double Xout;
+
+  if ( Xin > Xsaturated_ ) {
+    //saturation achieved!!
+    Xout = 1.0;
+  }
+  else if ( Xin < -Xsaturated_ ) {
+    //saturation achieved!!
+    Xout = -1.0;
+  }
+  else {
+    //normalize input
+    Xout = Xin / Xsaturated_;
+  }
+
+  return Xout;
+}
 
 }

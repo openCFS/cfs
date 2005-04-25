@@ -29,6 +29,9 @@ public:
   //!
   Double everett(Double x1, Double x2);
 
+  //!
+  Double normalizeInput(Double xInput);
+
 protected:
 
 private:

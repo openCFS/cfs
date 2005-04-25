@@ -140,9 +140,22 @@ public:
   void SetDofZero(Integer posdof)
   {dofzero_ = posdof; };
 
+  //!
   void SetPiezoMaterialType(piezoMaterialType & pMatType)
   { piezoMatType_=pMatType; };
- 
+
+  //!
+  void SetMaterialArray(Matrix<Double>* mat)
+  { materialArray_ = mat; };
+
+  //!
+  void SetSubdomain(Integer sd)
+  {actSD_ = sd; };
+
+  //!
+  void SetElemNr(Integer nr)
+  {actElemNr_ = nr; };
+
 protected:
 
 
@@ -162,6 +175,11 @@ protected:
   Integer dofzero_;   //!< for multidof-handling, where one dof is zero (e.g. piezoelectric PDE)
 
   FEMatrixType baseType_;  // base type: STIFFNESS, DAMPING, MASS
+
+  Matrix<Double>* materialArray_;
+
+  Integer actSD_;
+  Integer actElemNr_;
 
 };
 

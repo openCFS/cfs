@@ -13,6 +13,7 @@
 #include "superblockEQN.hh"
 #include "scalarblockEQN.hh"
 #include "Forms/forms_header.hh"
+#include "Driver/solveStepPiezo.hh"
 
 #include "piezoPDE.hh" 
 
@@ -264,8 +265,7 @@ namespace CoupledField {
   {
     ENTER_FCN( "PiezoPDE::DefineSolveStep" );
     
-  
-    solveStep_ = new StdSolveStep(*this);
+    solveStep_ = new  StdSolveStep(*this);
   }
 
 
