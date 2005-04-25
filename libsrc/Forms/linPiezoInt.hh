@@ -338,14 +338,17 @@ namespace CoupledField
     //! \right)
     //! \f$.
     //! For a 2D simulation e.g. we have
-    //! \f[ B_a = \left( \begin{array}{*{2}{c}} \frac{\partial N_a}{\partial x} & 0 \\ 
-    //!  0 & \frac{\partial N_a}{\partial y} \\
-    //! \frac{\partial N_a}{\partial y} & \frac{\partial N_a}{\partial x} \\
+    //! \f[
+    //! B_a = \left( \begin{array}{*{2}{c}}
+    //! \displaystyle\frac{\partial N_a}{\partial x} & \displaystyle 0 \\[2ex]
+    //! \displaystyle 0 & \displaystyle\frac{\partial N_a}{\partial y} \\[2ex]
+    //! \displaystyle\frac{\partial N_a}{\partial y} &
+    //! \displaystyle\frac{\partial N_a}{\partial x}
     //! \end{array}\right)  
     //! \enspace,\quad
     //! \tilde{B }_a = \left(\begin{array}{c}
-    //! \frac{\partial N_a}{\partial x} \\
-    //!  \frac{\partial N_a}{\partial y} 
+    //! \displaystyle\frac{\partial N_a}{\partial x} \\[2ex]
+    //! \displaystyle\frac{\partial N_a}{\partial y} 
     //! \end{array}\right) \f]  
     //! where \f$N_a\f$ are the Finite Element ansatz functions.
     //! To be more precise the above matrix B is computed for the given
