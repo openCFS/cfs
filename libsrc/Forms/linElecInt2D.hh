@@ -106,23 +106,38 @@ namespace CoupledField {
       }
     }
     
-     void calcDMat( Matrix<Double> &dMat ) {
-       ENTER_FCN( "linElecInt2D::calcDMat" );
-       dMat.Resize( 2, 2 );
-       Matrix<Double> *matMatrix = ptMaterial->GetMatrix();
-       
-       // copy electric part of material matrix, which 
-       // is the lower-right sub-diagonal block
-       // d[8-9][8-9]
-       Integer startRow = 7;
-       Integer startCol = 7;
-       for( Integer i = 0; i < 2; i++ ) {
-	 for ( Integer j = 0; j < 2; j++ ) {
-	   dMat[i][j] = factor_ *
-	     (*matMatrix)[startRow+i][startCol+j];
-	 }
-       }
-     }
+    //! Compute the data-matrix \f$D\f$
+    
+    //! The method computes the matrix D of the electrostatic
+    //! properties of the element's material. 
+    //! In the 2D setting we assume that
+    //! the computational 2D area lies in the yz-plane 
+    //! Therefore D looks like
+    //! \f[
+    //! D = \left(
+    //! \begin{array}{cc}
+    //! \displaystyle \epsilon_{11} & \displaystyle \epsilon_{12} \\
+    //! \displaystyle \epsilon_{21} & \displaystyle \epsilon_{22} \\
+    //! \end{array} \right)
+    //! \f]
+    //! where \f$\epsilon\f$ is the local tensor of dielectric constants.
+    void calcDMat( Matrix<Double> &dMat ) {
+      ENTER_FCN( "linElecInt2D::calcDMat" );
+      dMat.Resize( 2, 2 );
+      Matrix<Double> *matMatrix = ptMaterial->GetMatrix();
+      
+      // copy electric part of material matrix, which 
+      // is the lower-right sub-diagonal block
+      // d[8-9][8-9]
+      Integer startRow = 7;
+      Integer startCol = 7;
+      for( Integer i = 0; i < 2; i++ ) {
+	for ( Integer j = 0; j < 2; j++ ) {
+	  dMat[i][j] = factor_ *
+	    (*matMatrix)[startRow+i][startCol+j];
+	}
+      }
+    }
     
     //! Returns dimension of D matrix
     Integer getDimD() {

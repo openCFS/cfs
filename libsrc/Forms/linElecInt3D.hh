@@ -51,7 +51,7 @@ namespace CoupledField {
 
      //! Compute the matrix \f$B\f$ of the \f$BDB\f$ operator
 
-    //! The method computes the matrix \f$B\f$ of the \f$ADB\f$ operator
+    //! The method computes the matrix \f$B\f$ of the \f$BDB\f$ operator
     //! which, in the case of a 3D electrostatic field,
     //! is given  by
     //! \f[
@@ -70,7 +70,7 @@ namespace CoupledField {
     //! output matrix bMat in the following fashion
     //! \f[
     //! \mbox{bMat} = \left( B(p_1), B(p_2), \ldots, B(p_N) \right)
-    //! \in \mathcal{R}^{2\times N}
+    //! \in \mathcal{R}^{3 \times N}
     //! \f]
     //! where \f$p_k, k=1,\ldots,N\f$ are the nodes of the element.
     //! \param bMat    (output) computed matrix \f$B\f$
@@ -93,11 +93,10 @@ namespace CoupledField {
       Matrix<Double> xiDx;
       ptelem->GetGlobDerivShFncAtIp( xiDx, ip, ptCoord );
 
-      // The matrix bMat can be seen as a 1 x numNodes block-vector.
+      // The matrix bMat can be seen as a 3 x numNodes block-vector.
       // The k-th entry of this block vector corresponds to the matrix
-      // B of the ADB product evaluated at the k-th node of the finite
-      // element. We assume that the first coordinate equals y and the
-      // second z.
+      // B of the BDB product evaluated at the k-th node of the finite
+      // element. 
       for( Integer actNode = 0; actNode < numNodes; actNode++ ) {
         bMat[0][actNode] = xiDx[actNode][0];
         bMat[1][actNode] = xiDx[actNode][1];
@@ -105,15 +104,24 @@ namespace CoupledField {
       }
     }
     
-     void calcDMat( Matrix<Double> &dMat ) {
-       ENTER_FCN( "linElecInt3D::calcDMat" );
-       dMat.Resize( 3, 3 );
-       Matrix<Double> *matMatrix = ptMaterial->GetMatrix();
-       
-       // copy electric part of material matrix, which 
-       // is the lower-right sub-diagonal block
-       // d[7-9][7-9]
-       Integer startRow = 6;
+    //! Compute the data-matrix \f$D\f$
+
+    //! The method computes the matrix D of the electrostatic
+    //! properties of the element's material. In the 3D setting the latter
+    //! is given by
+    //! \f[
+    //! D = \left( \epsilon \right) \in \mathcal{R}^{3\times 3}.
+    //! \f]
+    //! where \f$\epsilon\f$ is the local tensor of dielectric constants
+    void calcDMat( Matrix<Double> &dMat ) {
+      ENTER_FCN( "linElecInt3D::calcDMat" );
+      dMat.Resize( 3, 3 );
+      Matrix<Double> *matMatrix = ptMaterial->GetMatrix();
+      
+      // copy electric part of material matrix, which 
+      // is the lower-right sub-diagonal block
+      // d[7-9][7-9]
+      Integer startRow = 6;
        Integer startCol = 6;
        for( Integer i = 0; i < 3; i++ ) {
 	 for ( Integer j = 0; j < 3; j++ ) {
@@ -121,7 +129,7 @@ namespace CoupledField {
 	     (*matMatrix)[startRow+i][startCol+j];
 	 }
        }
-     }
+    }
     
     //! Returns dimension of D matrix
     Integer getDimD() {
