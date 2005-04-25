@@ -1066,10 +1066,6 @@ namespace CoupledField {
 
     algsys_->AssembleInit( pdeId1_, pdeId2_ );
     
-    (*debug) << " =======================\n" 
-	     << " Graph for " << pdeId1_ << " and " 
-	     << pdeId2_ << std::endl;
-
     // set the graph - connectivity matrix
     BaseFE * ptElem; 
     Integer nsub, iel;
