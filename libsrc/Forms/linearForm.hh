@@ -417,10 +417,36 @@ private:
  
 };
 
+// =============================================================================
+// electric polarization
+// =============================================================================
+
+
+/// class for calculation of right hand side due to a hysteresis model with
+/// polarization P
+class ElecPolarizationInt : public LinearForm
+{
+public:
+  ///
+  ElecPolarizationInt(Boolean isaxi);
+
+  ///
+  virtual ~ElecPolarizationInt();
+
+  /// Calculation of vector of right hand side 
+  virtual void CalcElemVector(Matrix<Double>& ptCoord, Vector<Double> & result);
+
+  ///
+  void SetSrcVec(Vector<Double> vec) {D_ = vec;};
+private:
+
+  //!value of polarization
+  Vector<Double> D_;
+};
 
 
 // =============================================================================
-// electric polarization
+// piezoelectric polarization
 // =============================================================================
 
 

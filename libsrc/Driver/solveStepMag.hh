@@ -8,7 +8,7 @@ namespace CoupledField
 
   //! Base class for solution of a single step: Magnetics
 
-  class SolveStepMag : public StdSolveStep
+  class SolveStepMag :  public StdSolveStep
   {
 
   public:

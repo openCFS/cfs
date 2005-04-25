@@ -185,6 +185,8 @@ namespace CoupledField {
       for(Integer actInteg=0; actInteg < integrators_[actDom]->GetSize(); actInteg++) {
         IntegratorDescriptor * actDescriptor = (*integrators_[actDom])[actInteg];
 
+	actDescriptor->GetIntegrator()->SetSubdomain(actDom);
+
         if (alternateMaterialData_ == TRUE)
           actDescriptor->GetIntegrator()->SetMaterial(ptMaterial_);
                     
@@ -224,7 +226,12 @@ namespace CoupledField {
           }
 	  
 
+	  //put pointer to array containing the material parameter for each element
+	  actDescriptor->GetIntegrator()->SetMaterialArray(matArray_);
+
           for (Integer actEl=0; actEl< elemssd.GetSize(); actEl++) {
+	    actDescriptor->GetIntegrator()->SetElemNr(actEl);
+
             BaseFE * ptEl = elemssd[actEl]->ptElem;
             StdVector<Integer> connecth = elemssd[actEl]->connect;
                              

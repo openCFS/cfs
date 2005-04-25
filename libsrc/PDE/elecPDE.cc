@@ -112,7 +112,7 @@ void ElecPDE::WriteResultsInFile(const Integer kstep,
 {
   ENTER_FCN( "ElecPDE::WriteResultsInFile" );
 
-  Integer actStep = laststepcalc_ + stepOffset;
+  Integer actStep = kstep + stepOffset;
   Double actTime = lasttimecalc_ + timeOffset;
   
 #ifdef PARALLEL //only one thread should write output
