@@ -292,6 +292,8 @@ libsrc/Estimator/spaceerror.hh svneol=native#text/plain
 libsrc/Forms/Makefile -text
 libsrc/Forms/adbInt.cc svneol=native#text/plain
 libsrc/Forms/adbInt.hh svneol=native#text/plain
+libsrc/Forms/baseForceOp.cc svneol=native#text/plain
+libsrc/Forms/baseForceOp.hh svneol=native#text/plain
 libsrc/Forms/baseForm.cc svneol=native#text/plain
 libsrc/Forms/baseForm.hh svneol=native#text/plain
 libsrc/Forms/baseoperator.cc svneol=native#text/plain

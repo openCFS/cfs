@@ -418,7 +418,7 @@ void ElecPDE::CalcNodeForce(Vector<Double> & force,
   NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double> *>(sol_);
 
   
-  ElecForceOp * ForceOp = new ElecForceOp(ptgrid_, this, eqnData_, *solhelp, actlevel_, isaxi_);
+  ElecForceOp * ForceOp; // = new ElecForceOp(ptgrid_, this, eqnData_, *solhelp, actlevel_, isaxi_);
    
   ElemStoreSol<Double> force_temp;
   
@@ -575,83 +575,127 @@ void ElecPDE::InitCoupling(PDECoupling * Coupling)
   // Initialization of coupling helper arrays
   std::string quantity;
   StdVector<Integer> * couplingnodes = NULL;
-  StdVector<Elem*> interface_tmp;
-  StdVector<StdVector<ShortInt> > isBoundaryNode_tmp;
-  StdVector<std::string> * neighRegions = NULL;
-  //StdVector<Integer> numBoundaryNodes_tmp;
-  StdVector<StdVector<Integer> > elemNodeToCouplingNode_tmp;
-  F_Interface_.Resize(numCouplings);
-  isBoundaryNode_.Resize(numCouplings);
-  elemNodeToCouplingNode_.Resize(numCouplings);
 
-  for (Integer actCoupling=0; actCoupling<numCouplings; actCoupling++)
-    {
-      // Initialize arrays for coupling surface elements
-      if (ptCoupling_->GetOutputQuantity(actCoupling) == ELEC_FORCE_VWP
-	  || ptCoupling_->GetOutputQuantity(actCoupling) == ELEC_INTERFACE_FORCE)
-	{
+  for (Integer actCoupling=0; actCoupling<numCouplings; actCoupling++) {
+    // Initialize arrays for coupling surface elements
+    if (ptCoupling_->GetOutputQuantity(actCoupling) == ELEC_FORCE_VWP
+	|| ptCoupling_->GetOutputQuantity(actCoupling) == ELEC_INTERFACE_FORCE) {
+      
+      ptCoupling_->GetOutputNodes(actCoupling, couplingnodes);
+      if (couplingnodes == NULL)
+	std::cerr << "Couplingnodes = 0!!!!" << std::endl;
+      
+      // if quantity is elecFocrceVWP, get volume neighbours lying next to
+      // coupling nodes, because these volume elements have to be 
+      // moved 'virtually'
+      if (ptCoupling_->GetOutputQuantity(actCoupling) == ELEC_FORCE_VWP) {
+	NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double> *>(sol_);
+	ForceOp_ = new  ElecForceOp(ptgrid_, this, eqnData_, *solhelp, dim_, materialData_,
+				    actlevel_, isaxi_);
+	ForceOp_->Setup(subdoms_, *couplingnodes);
+      }
+      
+      else if (ptCoupling_->GetOutputQuantity(actCoupling) == ELEC_INTERFACE_FORCE) {
+	Error("Currently ELEC_INTERFACE_FORCE not supported");
+      }
+      
+      else {
+	Enum2String(ptCoupling_->GetOutputQuantity(actCoupling), quantity);
+	std::string errMsg = "Coupling " + quantity +  " not known! ";	  
+	Error(errMsg.c_str(), __FILE__,__LINE__);
+      }
+      
+      // Intialize the memory of the coupling values
+      ptCoupling_->CreateCouplingVector(actCoupling,isComplex_);
+      
+      
+    } // end for (actNode)
+     
+  } 
+
+
+//   // Initialization of coupling helper arrays
+//   std::string quantity;
+//   StdVector<Integer> * couplingnodes = NULL;
+//   StdVector<Elem*> interface_tmp;
+//   StdVector<StdVector<ShortInt> > isBoundaryNode_tmp;
+//   StdVector<std::string> * neighRegions = NULL;
+//   //StdVector<Integer> numBoundaryNodes_tmp;
+//   StdVector<StdVector<Integer> > elemNodeToCouplingNode_tmp;
+//   F_Interface_.Resize(numCouplings);
+//   isBoundaryNode_.Resize(numCouplings);
+//   elemNodeToCouplingNode_.Resize(numCouplings);
+
+//   for (Integer actCoupling=0; actCoupling<numCouplings; actCoupling++)
+//     {
+//       // Initialize arrays for coupling surface elements
+//       if (ptCoupling_->GetOutputQuantity(actCoupling) == ELEC_FORCE_VWP
+// 	  || ptCoupling_->GetOutputQuantity(actCoupling) == ELEC_INTERFACE_FORCE)
+// 	{
 
 	  
-	  ptCoupling_->GetOutputNodes(actCoupling, couplingnodes);
-	  if (couplingnodes == 0)
-	    std::cerr << "Couplingnodes = 0!!!!" << std::endl;
+// 	  ptCoupling_->GetOutputNodes(actCoupling, couplingnodes);
+// 	  if (couplingnodes == NULL)
+// 	    std::cerr << "Couplingnodes = 0!!!!" << std::endl;
 	  
-	  // if quantity is elecFocrceVWP, get volume neighbours lying next to
-	  // coupling nodes, because these volume elements have to be 
-	  // moved 'virtually'
-	  if (ptCoupling_->GetOutputQuantity(actCoupling) == ELEC_FORCE_VWP) {
-	    ptCoupling_->GetOutputNeighbourRegion(actCoupling, neighRegions);
-	    ptgrid_->GetInterfaceNeighbours(*couplingnodes, *neighRegions, 
-					    interface_tmp, actlevel_);
-	  }
-	  else if (ptCoupling_->GetOutputQuantity(actCoupling) == ELEC_INTERFACE_FORCE)
-	    {
-	      // help construction for correct assignement of predefined values ... :O(
-	      StdVector<Elem*>* interface_tmp_Ptr;
-	      ptCoupling_->GetOutputNeighbourElems(actCoupling, interface_tmp_Ptr);
-	      interface_tmp = *interface_tmp_Ptr;
-	    }
-	    else 
-	      {
-		Enum2String(ptCoupling_->GetOutputQuantity(actCoupling), quantity);
-		std::string errMsg = "Coupling " + quantity +  " not known! ";	  
-		Error(errMsg.c_str(), __FILE__,__LINE__);
-	      }
+// 	  // if quantity is elecFocrceVWP, get volume neighbours lying next to
+// 	  // coupling nodes, because these volume elements have to be 
+// 	  // moved 'virtually'
+// 	  if (ptCoupling_->GetOutputQuantity(actCoupling) == ELEC_FORCE_VWP) {
+// 	    ptCoupling_->GetOutputNeighbourRegion(actCoupling, neighRegions);
+// 	    //	    ptgrid_->GetInterfaceNeighbours(*couplingnodes, *neighRegions, 
+// 	    ptgrid_->GetInterfaceNeighbours(*couplingnodes, subdoms_, 
+// 					    interface_tmp, actlevel_);
+// 	  }
+// 	  else if (ptCoupling_->GetOutputQuantity(actCoupling) == ELEC_INTERFACE_FORCE)
+// 	    {
+// 	      // help construction for correct assignement of predefined values ... :O(
+// 	      StdVector<Elem*>* interface_tmp_Ptr;
+// 	      ptCoupling_->GetOutputNeighbourElems(actCoupling, interface_tmp_Ptr);
+// 	      interface_tmp = *interface_tmp_Ptr;
+// 	    }
+// 	    else 
+// 	      {
+// 		Enum2String(ptCoupling_->GetOutputQuantity(actCoupling), quantity);
+// 		std::string errMsg = "Coupling " + quantity +  " not known! ";	  
+// 		Error(errMsg.c_str(), __FILE__,__LINE__);
+// 	      }
 	  
-	  F_Interface_[actCoupling] = interface_tmp;
+// 	  F_Interface_[actCoupling] = interface_tmp;
 
-	  // Intialize the memory of the coupling values
-	  ptCoupling_->CreateCouplingVector(actCoupling,isComplex_);
+// 	  // Intialize the memory of the coupling values
+// 	  ptCoupling_->CreateCouplingVector(actCoupling,isComplex_);
 	  
 
-	  isBoundaryNode_tmp.Clear();
-	  isBoundaryNode_tmp.Resize(interface_tmp.GetSize());
-	  elemNodeToCouplingNode_tmp.Clear();
-	  elemNodeToCouplingNode_tmp.Resize(interface_tmp.GetSize());
+// 	  isBoundaryNode_tmp.Clear();
+// 	  isBoundaryNode_tmp.Resize(interface_tmp.GetSize());
+// 	  elemNodeToCouplingNode_tmp.Clear();
+// 	  elemNodeToCouplingNode_tmp.Resize(interface_tmp.GetSize());
 	 
 	  
-	  for (Integer ielem=0; ielem<interface_tmp.GetSize(); ielem++)
-	    {
-	      isBoundaryNode_tmp[ielem].Resize(interface_tmp[ielem]->connect.GetSize());
-	      elemNodeToCouplingNode_tmp[ielem].Resize(interface_tmp[ielem]->connect.GetSize());
+// 	  for (Integer ielem=0; ielem<interface_tmp.GetSize(); ielem++)
+// 	    {
+// 	      isBoundaryNode_tmp[ielem].Resize(interface_tmp[ielem]->connect.GetSize());
+// 	      elemNodeToCouplingNode_tmp[ielem].Resize(interface_tmp[ielem]->connect.GetSize());
 
-	      // Determine Boundary Nodes
-	      for (Integer ielemnode=0; ielemnode<isBoundaryNode_tmp[ielem].GetSize(); ielemnode++)
-		for (Integer inodes=0; inodes<(*couplingnodes).GetSize(); inodes++)
-		  if (interface_tmp[ielem]->connect[ielemnode] == (*couplingnodes)[inodes] )
-		    {
-		      isBoundaryNode_tmp[ielem][ielemnode] = 1;
-		      elemNodeToCouplingNode_tmp[ielem][ielemnode] = inodes;
-		      break;
-		    } // end if
+// 	      // Determine Boundary Nodes
+// 	      for (Integer ielemnode=0; ielemnode<isBoundaryNode_tmp[ielem].GetSize(); ielemnode++)
+// 		for (Integer inodes=0; inodes<(*couplingnodes).GetSize(); inodes++)
+// 		  if (interface_tmp[ielem]->connect[ielemnode] == (*couplingnodes)[inodes] )
+// 		    {
+// 		      isBoundaryNode_tmp[ielem][ielemnode] = 1;
+// 		      elemNodeToCouplingNode_tmp[ielem][ielemnode] = inodes;
+// 		      break;
+// 		    } // end if
 
-	    } // end for (ielems)
+// 	    } // end for (ielems)
 
-	  isBoundaryNode_[actCoupling] = isBoundaryNode_tmp;
-	  elemNodeToCouplingNode_[actCoupling]  = elemNodeToCouplingNode_tmp;
-	} // end if
+// 	  isBoundaryNode_[actCoupling] = isBoundaryNode_tmp;
+// 	  elemNodeToCouplingNode_[actCoupling]  = elemNodeToCouplingNode_tmp;
+// 	} // end if
             
-    } // end for (actNode)
+//     } // end for (actNode)
+
 }
   
 
@@ -684,11 +728,18 @@ void ElecPDE::CalcOutputCoupling()
 	    
 	  if (quantity == ELEC_FORCE_VWP)
 	    {
-	      CalcNodeForce(*temp, 
-			    *couplingNodes, 
-			    F_Interface_[forcesCount], 
-			    isBoundaryNode_[forcesCount], 
-			    elemNodeToCouplingNode_ [forcesCount]);
+	      Vector<Double> totalForce;
+	      ForceOp_->CalcNodeForce(*temp, totalForce);
+
+	      // write information in .info-file
+	      Info->PrintF(pdename_, "Sum of electrostatic force (VWM):\n");
+	      Info->PrintVec(totalForce);
+
+// 	      CalcNodeForce(*temp, 
+// 			    *couplingNodes, 
+// 			    F_Interface_[forcesCount], 
+// 			    isBoundaryNode_[forcesCount], 
+// 			    elemNodeToCouplingNode_ [forcesCount]);
 	      
 	      forcesCount++;
 	    }
