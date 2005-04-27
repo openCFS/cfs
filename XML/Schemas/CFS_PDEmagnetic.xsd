@@ -179,6 +179,7 @@
   <xsd:simpleType name="DT_MagneticNodeData">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="magPotential"/>
+      <xsd:enumeration value="magForceVWP"/>
     </xsd:restriction>
   </xsd:simpleType>
 
