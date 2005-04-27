@@ -3,6 +3,7 @@
 
 #include "Forms/baseoperator.hh"
 #include "Forms/curlfieldop.hh"
+#include "Forms/baseForceOp.hh"
 
 
 namespace CoupledField
@@ -49,6 +50,60 @@ namespace CoupledField
   
     //! I'm a class attribute (please add documentation for me)
     CurlNodeOp * curlFieldOp_;
+
+  };
+
+
+
+  //! Operator for calculating the magnetic force 
+  //! This operator class calculates the electric force in an element
+  //! \f$ F_{p,r} = \frac{1}{\mu_0} B \cdot J^{-1} \frac{\delta J}{\delta r}
+  //! B \left| J \right| - \frac{ B \cdot B}{2 \mu_0} \cdot \frac{\delta
+  //! \left| J \right|}{\delta r} \f$
+  class MagForceOp : public BaseForceOp
+  {
+
+  public:
+
+    //! This is a static const Double
+
+    //! Warning: This violates the ISO C++ standard. Only integral types
+    //!          can be static and const!
+    //! \todo eps0 violates the ISO C++ standard. Only integral types
+    //!       can be static and const!
+    //static const Double  eps0 = 8.854187817e-12;
+    
+    //! Constructor
+
+    //! \param ptGrid     (input) Pointer to grid
+    //! \param sol        (input) Pointer to vector containing the magnetic
+    //!                           vector potential for all nodes of domain
+    //! \param level      (input) Multigrid level
+    MagForceOp(Grid * ptGrid, 
+		StdPDE * ptPDE,
+		NodeEQN * ptEQN,
+		NodeStoreSol<Double> & sol,
+		Integer dim,
+		MaterialData* &matData,
+		const Integer level, 
+		Boolean isaxi);
+
+    //! Destructor
+    virtual ~MagForceOp();
+
+
+  protected:
+  
+    //! returns the scalar material value, used for force computation
+    virtual Double GetMatVal(Integer actSD);
+
+    //! computes the field quantity
+    virtual void ComputeField(Vector<Double> & Field, const Elem * ptElement,
+			      const Vector<Double> & lCoord);
+
+    //! I'm a class attribute (please add documentation for me)
+    CurlNodeOp * curlFieldOp_;
+
 
   };
 

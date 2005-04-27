@@ -3,6 +3,7 @@
 #define FILE_MAGNETICPDE
 
 #include "SinglePDE.hh" 
+#include "Forms/magforceop.hh"
 
 namespace CoupledField
 {
@@ -171,6 +172,11 @@ protected:
   StdVector<std::string> calcBfield_;  //!< contains the subdomains, on which the magnetic field is computed
   StdVector<std::string> calcEnergy_;  //!< contains the subdomains, on which the magnetic energy is computed
   StdVector<std::string> calcEddy_;  //!< contains the subdomains, on which the eddy currents are computed
+  StdVector<std::string> calcForceVWP_;  //!< contains the subdomains, on which the force is computed via VWP
+  StdVector<Integer> ForceNodes_;           //! nodes, for wich the force has to be computed
+
+  //! force operator (for coupling as well as postprocessing)
+  MagForceOp* ForceOpVWP_;
 
   std::ofstream * UIfile_; //!< file for informational output
   std::string UIfilename_;      //!< name of file for saving current/voltage values

@@ -3,7 +3,7 @@
 
 #include "scalarnodeEQN.hh"
 #include "SinglePDE.hh" 
-
+#include "Forms/elecforceop.hh"
 
 namespace CoupledField
 {
@@ -197,6 +197,8 @@ namespace CoupledField
     //! flag for piezo-coupling
     Boolean isPiezoCoupled_;
 
+    //! force operator (for coupling as well as postprocessing)
+    ElecForceOp* ForceOp_;
   };
 
 } // end of namespace

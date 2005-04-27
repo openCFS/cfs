@@ -5,6 +5,7 @@
 #include "Utils/vector.hh"
 #include "Matrix/matrix.hh"
 #include "PDE/StdPDE.hh"
+#include "DataInOut/MaterialData.hh"
 
 namespace CoupledField
 {
@@ -128,6 +129,55 @@ void MagLorentzForceOp::CalcElemMagLorentzForce(Matrix<Double>& F,
   
 }
 
+
+
+//---------------------------- VWP ----------------------------------------------------- 
+MagForceOp::MagForceOp(Grid * ptGrid,
+			 StdPDE * ptPDE,
+			 NodeEQN * ptEQN,
+			 NodeStoreSol<Double> & sol,
+			 Integer dim,
+			 MaterialData* &matData,
+			 Integer level,
+			 Boolean isaxi) 
+  : BaseForceOp(ptGrid, ptPDE, ptEQN, sol, dim, matData, level, isaxi)
+{
+  ENTER_FCN( "MagForceOp::MagForceOp" );
+
+  curlFieldOp_ = new CurlNodeOp(ptGrid, ptPDE, ptEQN, sol, level);
+  curlFieldOp_->Set2DType(isaxi);
+
+  solType_ = MAG_FORCE_VWP;
+  sign_    = -1.0;
+}
+
+MagForceOp::~MagForceOp()
+{
+  ENTER_FCN( "MagForceOp::~MagForceOp" );
+
+  if (curlFieldOp_) 
+    delete curlFieldOp_;
+}
+
+
+void MagForceOp::ComputeField(Vector<Double> & Field, const Elem * ptElement,
+			      const Vector<Double> & lCoord)
+{
+  ENTER_FCN( "MagForceOp::ComputeField" );
+
+  curlFieldOp_->CalcElemCurlNode(Field, ptElement, lCoord);
+
+} 
+
+ Double MagForceOp::GetMatVal(Integer actSD)
+{
+  ENTER_FCN( "MagForceOp::GetMatVal" );
+
+  Double permeability;
+  materialData_[actSD].GetPermeability(2,2,permeability); 
+
+  return 1.0/permeability;
+} 
 
 
 } // end of namespace CoupledField

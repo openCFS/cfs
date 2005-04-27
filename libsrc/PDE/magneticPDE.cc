@@ -426,6 +426,19 @@ namespace CoupledField {
       ComputeUI(uiSD);
       WriteUI2File(uiSD);
     }
+
+    //check for force computation
+    if ( calcForceVWP_.GetSize() > 0 ) {
+      Vector<Double> totalForce;
+      Vector<Double> ForceValues(dim_*ForceNodes_.GetSize());
+
+      ForceOpVWP_->CalcNodeForce(ForceValues, totalForce);
+
+      // write information in .info-file
+      Info->PrintF(pdename_, "Sum of magnetic force (VWM):\n");
+      Info->PrintVec(totalForce);
+    }
+
   }
 
 
@@ -735,6 +748,46 @@ namespace CoupledField {
       hasOutput_ = TRUE;
     }
 
+    Enum2String(MAG_FORCE_VWP, quantity);
+    keyVec  = pdename_, "storeResults", "nodeResults", "region";
+    attrVec = "", "", "type";
+    valVec = "", "", quantity;
+    params->GetList( keyVec, attrVec, valVec, calcForceVWP_);
+
+    if ( calcForceVWP_.GetSize() > 0 ) {
+
+      Integer numNodes = 0;
+      // count complete number of nodes
+      for ( Integer i=0; i<calcForceVWP_.GetSize(); i++ ) {
+	numNodes+= ptBCs_->GetNumNodesLevel(calcForceVWP_[i], actlevel_);
+
+      ForceNodes_.Resize(numNodes);
+      
+      Integer inode =0;
+      std::list<Integer> nodesConverted;
+      std::list<Integer>::iterator it;
+
+      // get for each nodeslist all nodes
+      for (Integer i=0; i<calcForceVWP_.GetSize(); i++)
+	{
+	  nodesConverted = ptBCs_->GetNodesLevel(calcForceVWP_[i], actlevel_);
+	  
+	  it = nodesConverted.begin();
+	  
+	  for (it=nodesConverted.begin(); it != nodesConverted.end(); it++, inode++)
+	    ForceNodes_[inode] = *it;
+	}
+
+      }
+      //      std::cout << "ForceNodes:\n" << ForceNodes_ << std::endl;
+
+      //initialize the force operator
+      NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double> *>(sol_);
+       ForceOpVWP_ = new  MagForceOp(ptgrid_, this, eqnData_, *solhelp, dim_, materialData_,
+				     actlevel_, isaxi_);
+       ForceOpVWP_->Setup(subdoms_, ForceNodes_);
+    }
+
     // *****************************
     // Determine element results
     // *****************************
@@ -984,7 +1037,9 @@ namespace CoupledField {
     StdVector<std::string> couplRegions;
     ptCoupling_->GetOutputRegions(actCoupling, couplRegions);
   
-    MagLorentzForceOp *ForceOp = new MagLorentzForceOp( ptgrid_, this,
+    MagLorentzForceOp *ForceOp; 
+
+    ForceOp  = new MagLorentzForceOp( ptgrid_, this,
                                                         eqnData_, *solhelp,
                                                         actlevel_, isaxi_ );
 
