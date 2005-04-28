@@ -104,7 +104,8 @@ namespace CoupledField {
     // NOTE: color_faces_ and color_edges_ are identical (see the code in
     //       the constructor), thus we should not try to do another deep
     //       deletion)
-    delete [] bcsFaces_[i];
+
+    //delete [] bcsFaces_[i];
     // if ( color_faces_.GetSize() ) {
 
     // loop over levels of grid
