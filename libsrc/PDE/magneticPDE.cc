@@ -635,27 +635,15 @@ namespace CoupledField {
     // Get list of coils for magnetic PDE
     params->GetCoilList( coilName_, pdename_, bcSequenceTag_);
 
-    //     keyVec = pdename_, "coils", "name";
-    //     attrVec= "", "tag";
-    //     valVec = "", bcSequenceTag_;
-    //     params->GetList(keyVec, attrVec, valVec, helper);
-
-    //     std::cerr << "helper = " << helper << std::endl;
-    //     for (Integer i=0; i<coilNamesAux.GetSize(); i++) {
-    //       for (Integer j=0; j<helper.GetSize(); j++)
-    //      if (helper[j] == coilNamesAux[i])
-    //        coilName_.Push_back(coilNamesAux[i]);
-    //     }
-
-    //     std::cerr << "coilName_ = " << coilName_ << std::endl;
-    // Read parameters for individual coils and log to info file
+    // Now get description of each coil and generate corresponding
+    // coil object
     UInt nrCoils = coilName_.GetSize();
     if ( nrCoils > 0 ) {
       Info->PrintF( pdename_, "Using the following coils:\n" );
       coilDef_.Reserve( nrCoils );
       for ( UInt k = 0; k < nrCoils; k++ ) {
         coilDef_.Push_back( new Coil( coilName_[k], pdename_ ) );
-        Info->PrintCoil( (*coilDef_[k]), analysistype_ );
+        Info->PrintCoil( *coilDef_[k], analysistype_ );
       }
     }
   }
