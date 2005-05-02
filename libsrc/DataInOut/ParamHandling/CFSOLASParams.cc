@@ -299,6 +299,7 @@ namespace CoupledField {
       break;
 
     case LDL_SOLVER:
+    case LDL_SOLVER2:
       cfs->GetList( "logging", list, pdename, "directLDL" );
       if( list.GetSize() == 1 ) {
 	olas->SetValue( "LDLSOLVER_logging", (list[0] == "yes") );
@@ -758,19 +759,15 @@ namespace CoupledField {
     }
 
 
-    // ============
-    //  Reordering
-    // ============
+    // ========================
+    //  Reordering for Solvers
+    // ========================
 
-    // We use the following strategy:
-    //
-    // For all direct solvers we use METIS re-ordering (if compiling with
-    // METIS support, SLOAN otherwise)
-    // For all ILU type preconditioners we use SLOAN re-ordering. However,
-    // for ILU0 we do not use re-ordering.
+    // For the sparse direct solvers implemented in OLAS, use METIS
+    // re-ordering if available and SLOAN otherwise
 
 #ifdef USE_METIS
-    if ( sType == LAPACK_LU || sType == LU_SOLVER || sType == LDL_SOLVER ) {
+    if ( sType == LU_SOLVER || sType == LDL_SOLVER ) {
       if ( rType == NOREORDERING ) {
 	Info->PrintF( pdename, "Expert: Setting re-ordering strategy to "
 		      "'METIS'\n" );
@@ -783,7 +780,7 @@ namespace CoupledField {
       }
     }
 #else
-    if ( sType == LAPACK_LU || sType == LU_SOLVER || sType == LDL_SOLVER ) {
+    if ( sType == LU_SOLVER || sType == LDL_SOLVER ) {
       if ( rType == NOREORDERING ) {
 	Info->PrintF( pdename, "Expert: Setting re-ordering strategy to "
 		      "'SLOAN'\n" );
@@ -797,17 +794,52 @@ namespace CoupledField {
     }
 #endif
 
-    if ( pType == ILUK || pType == ILDLK ) {
+    // For the LAPACK solvers use SLOAN re-ordering
+    if ( sType == LAPACK_LU || sType == LAPACK_LL ) {
       if ( rType == NOREORDERING ) {
 	Info->PrintF( pdename, "Expert: Setting re-ordering strategy to "
 		      "'SLOAN'\n" );
-	rType = METIS;
+	rType = SLOAN;
       }
       else {
 	Info->PrintF( pdename, "Expert: Re-setting re-ordering strategy "
                       "to SLOAN\n" );
-	rType = METIS;
+	rType = SLOAN;
       }
+    }
+
+    // For Pardiso do not re-order (since Pardiso does this better itself)
+    if ( sType == PARDISO && rType != NOREORDERING ) {
+      Info->PrintF( pdename, "Expert: Setting re-ordering strategy to "
+                    "'NOREORDERING'\n" );
+      rType = NOREORDERING;
+    }
+
+
+    // ================================
+    //  Reordering for Preconditioners
+    // ================================
+
+    // For all advanced ILU type preconditioners use SLOAN re-ordering
+    if ( pType == ILUK || pType == ILDLK || pType == HYPRE_ILU ) {
+      if ( rType == NOREORDERING ) {
+	Info->PrintF( pdename, "Expert: Setting re-ordering strategy to "
+		      "'SLOAN'\n" );
+	rType = SLOAN;
+      }
+      else {
+	Info->PrintF( pdename, "Expert: Re-setting re-ordering strategy "
+                      "to SLOAN\n" );
+	rType = SLOAN;
+      }
+    }
+
+    // For ILU0 and JACOBI we do not use re-ordering.
+    else if ( ( pType == ILU0 || pType == JACOBI || pType == HYPRE_JACOBI )
+              && rType != NOREORDERING ) {
+      Info->PrintF( pdename, "Expert: Setting re-ordering strategy to "
+                    "'NOREORDERING'\n" );
+      rType = NOREORDERING;
     }
   }
 
