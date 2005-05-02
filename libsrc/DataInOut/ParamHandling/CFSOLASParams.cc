@@ -299,7 +299,6 @@ namespace CoupledField {
       break;
 
     case LDL_SOLVER:
-    case LDL_SOLVER2:
       cfs->GetList( "logging", list, pdename, "directLDL" );
       if( list.GetSize() == 1 ) {
 	olas->SetValue( "LDLSOLVER_logging", (list[0] == "yes") );
