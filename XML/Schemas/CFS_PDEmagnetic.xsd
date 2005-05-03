@@ -197,6 +197,8 @@
     <xsd:attribute name="type" type="DT_MagneticNodeData" use="required"/>
     <xsd:attribute name="region" type="xsd:token" use="optional"
       default="all"/>
+    <xsd:attribute name="nodes" type="xsd:token" use="optional"
+      default="all"/>
   </xsd:complexType>
 
   <!-- Data type for describing history of node values to be stored -->
