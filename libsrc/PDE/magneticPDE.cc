@@ -737,9 +737,9 @@ namespace CoupledField {
     }
 
     Enum2String(MAG_FORCE_VWP, quantity);
-    keyVec  = pdename_, "storeResults", "nodeResults", "region";
+    keyVec  = pdename_, "storeResults", "nodeResults", "nodes";
     attrVec = "", "", "type";
-    valVec = "", "", quantity;
+    valVec = "", "",quantity;
     params->GetList( keyVec, attrVec, valVec, calcForceVWP_);
 
     if ( calcForceVWP_.GetSize() > 0 ) {
@@ -771,9 +771,16 @@ namespace CoupledField {
 
       //initialize the force operator
       NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double> *>(sol_);
-       ForceOpVWP_ = new  MagForceOp(ptgrid_, this, eqnData_, *solhelp, dim_, materialData_,
-				     actlevel_, isaxi_);
-       ForceOpVWP_->Setup(subdoms_, ForceNodes_);
+      ForceOpVWP_ = new  MagForceOp(ptgrid_, this, eqnData_, *solhelp, dim_, materialData_,
+				    subdoms_, actlevel_, isaxi_);
+      StdVector<std::string> regions;
+      keyVec  = pdename_, "storeResults", "nodeResults", "region";
+      attrVec = "", "", "type";
+      valVec = "", "", quantity;
+      params->GetList( keyVec, attrVec, valVec, regions);
+
+      //      regions[0] = "outfieldE";
+      ForceOpVWP_->Setup(regions, ForceNodes_);
     }
 
     // *****************************

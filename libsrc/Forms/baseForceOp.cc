@@ -19,6 +19,7 @@ BaseForceOp::BaseForceOp(Grid * ptGrid,
 			 NodeStoreSol<Double> & sol,
 			 Integer dim,
 			 MaterialData* &matData,
+			 StdVector<std::string>& allSubdoms,
 			 Integer level,
 			 Boolean isaxi) 
   : BaseOperator(ptGrid, ptPDE, ptEQN, level, isaxi)
@@ -27,6 +28,7 @@ BaseForceOp::BaseForceOp(Grid * ptGrid,
 
   dim_ = dim;
   materialData_ = matData;
+  PDEsubdoms_ = allSubdoms;
 
 }
 
@@ -48,7 +50,6 @@ void BaseForceOp::Setup(StdVector<std::string>& neighRegions,
   //get the interface elements to the coupling nodes
   ptGrid_->GetInterfaceNeighbours(couplingnodes, neighRegions, 
 				  interfaceElems_, level_);
-	  
 
   //get memory
   isBoundaryNode_.Resize(interfaceElems_.GetSize());
@@ -88,8 +89,8 @@ void BaseForceOp::CalcNodeForce(Vector<Double> & force, Vector<Double> & totalFo
       // Get Material Parameter
       Double matVal;
       
-      for (Integer i=0; i<neighRegions_.GetSize(); i++)	{
-	if (interfaceElems_[ielem]->namesd == neighRegions_[i]) {
+      for (Integer i=0; i<PDEsubdoms_.GetSize(); i++)	{
+	if (interfaceElems_[ielem]->namesd == PDEsubdoms_[i]) {
 	  matVal = GetMatVal(i); 
 	}
       }

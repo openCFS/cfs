@@ -138,9 +138,10 @@ MagForceOp::MagForceOp(Grid * ptGrid,
 			 NodeStoreSol<Double> & sol,
 			 Integer dim,
 			 MaterialData* &matData,
+			 StdVector<std::string>& allSubdoms,
 			 Integer level,
 			 Boolean isaxi) 
-  : BaseForceOp(ptGrid, ptPDE, ptEQN, sol, dim, matData, level, isaxi)
+  : BaseForceOp(ptGrid, ptPDE, ptEQN, sol, dim, matData, allSubdoms, level, isaxi)
 {
   ENTER_FCN( "MagForceOp::MagForceOp" );
 
@@ -148,7 +149,7 @@ MagForceOp::MagForceOp(Grid * ptGrid,
   curlFieldOp_->Set2DType(isaxi);
 
   solType_ = MAG_FORCE_VWP;
-  sign_    = -1.0;
+  sign_    = 1.0;
 }
 
 MagForceOp::~MagForceOp()
@@ -166,7 +167,6 @@ void MagForceOp::ComputeField(Vector<Double> & Field, const Elem * ptElement,
   ENTER_FCN( "MagForceOp::ComputeField" );
 
   curlFieldOp_->CalcElemCurlNode(Field, ptElement, lCoord);
-
 } 
 
  Double MagForceOp::GetMatVal(Integer actSD)

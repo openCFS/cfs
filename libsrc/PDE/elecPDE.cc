@@ -591,7 +591,7 @@ void ElecPDE::InitCoupling(PDECoupling * Coupling)
       if (ptCoupling_->GetOutputQuantity(actCoupling) == ELEC_FORCE_VWP) {
 	NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double> *>(sol_);
 	ForceOp_ = new  ElecForceOp(ptgrid_, this, eqnData_, *solhelp, dim_, materialData_,
-				    actlevel_, isaxi_);
+				    subdoms_, actlevel_, isaxi_);
 	ForceOp_->Setup(subdoms_, *couplingnodes);
       }
       
