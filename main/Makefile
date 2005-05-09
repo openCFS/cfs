@@ -152,6 +152,8 @@ mpccicpl:
 	@cd $(LIBSRC_DIR)/MpCCIcpl; $(MAKE) -f Makefile
 paramhandling:
 	@cd $(LIBSRC_DIR)/DataInOut/ParamHandling; $(MAKE) -f Makefile
+commandline:
+	@cd $(LIBSRC_DIR)/DataInOut/CommandLine; $(MAKE) -f Makefile
 odesolve:
 	@cd $(LIBSRC_DIR)/ODESolve; $(MAKE) -f Makefile
 odedescr:
@@ -175,6 +177,8 @@ clean-datainout:
 	@cd $(LIBSRC_DIR)/DataInOut/DefineFiles && \
 	$(MAKE) clean
 	@cd $(LIBSRC_DIR)/DataInOut/ParamHandling && \
+	$(MAKE) clean
+	@cd $(LIBSRC_DIR)/DataInOut/CommandLine && \
 	$(MAKE) clean
 clean-ansys:
 	@cd $(LIBSRC_DIR)/DataInOut/AnsysFile && \
