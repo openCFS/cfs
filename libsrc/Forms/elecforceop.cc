@@ -19,9 +19,10 @@ ElecForceOp::ElecForceOp(Grid * ptGrid,
 			 NodeStoreSol<Double> & sol,
 			 Integer dim,
 			 MaterialData* &matData,
+			 StdVector<std::string>& allSubdoms,
 			 Integer level,
 			 Boolean isaxi) 
-  : BaseForceOp(ptGrid, ptPDE, ptEQN, sol, dim, matData, level, isaxi)
+  : BaseForceOp(ptGrid, ptPDE, ptEQN, sol, dim, matData, allSubdoms, level, isaxi)
 {
   ENTER_FCN( "ElecForceOp::ElecForceOp" );
 

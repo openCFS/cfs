@@ -31,6 +31,7 @@ namespace CoupledField
 		NodeStoreSol<Double> & sol,
 		Integer dim,
 		MaterialData* &matData,
+		StdVector<std::string>& allSubdoms,
 		const Integer level, 
 		Boolean isaxi);
 
@@ -93,6 +94,9 @@ namespace CoupledField
 
     //! material data
     MaterialData* materialData_;
+
+    //! all subdomains belonging to the PDE
+    StdVector<std::string> PDEsubdoms_;
 
     //! solution type;
     SolutionType solType_;

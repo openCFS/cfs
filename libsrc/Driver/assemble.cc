@@ -42,6 +42,7 @@ namespace CoupledField {
     olasReport_ = algsys_->GetOLASReport(); 
 
     startFreq_ = 0.0;
+    matArray_  = NULL;
 
   }
 
