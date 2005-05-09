@@ -91,6 +91,7 @@ libsrc/DataInOut/AnsysOut/outAnsys.hh svneol=native#text/plain
 libsrc/DataInOut/CommandLine/BaseCommandLineHandler.hh svneol=native#text/plain
 libsrc/DataInOut/CommandLine/CommandLineHandlerSetting.cc svneol=native#text/plain
 libsrc/DataInOut/CommandLine/CommandLineHandlerSetting.hh svneol=native#text/plain
+libsrc/DataInOut/CommandLine/Makefile -text
 libsrc/DataInOut/CommandLine/Settings.cc svneol=native#text/plain
 libsrc/DataInOut/CommandLine/Settings.hh svneol=native#text/plain
 libsrc/DataInOut/Database/Makefile -text
