@@ -76,7 +76,7 @@ namespace CoupledField
   //!     </tr>
   //!
   //!     <tr>
-  //!       <td align="center">-t / --trace = \<traceDepth\></td>
+  //!       <td align="center">-t / --traceDepth = \<traceDepth\></td>
   //!       <td align="center">non-negative integer</td>
   //!       <td><em>depth of function tracing</em></td>
   //!       <td align="center">0</td>
@@ -90,6 +90,14 @@ namespace CoupledField
   //!           output file</em></td>
   //!       <td align="center">false = not set</td>
   //!       <td align="center">%GetPrintGrid()</td>
+  //!     </tr>
+  //!
+  //!     <tr>
+  //!       <td align="center">-h / --help</td>
+  //!       <td align="center">flag / boolean</td>
+  //!       <td><em>print usage information</em></td>
+  //!       <td align="center">false = not set</td>
+  //!       <td align="center">---</td>
   //!     </tr>
   //!   </table>
   //! </center>
@@ -182,6 +190,7 @@ namespace CoupledField
     const static std::string helpTraceDepth_;
     const static std::string helpWriteSkeleton_;
     const static std::string helpPrintGrid_;
+    const static std::string helpHelp_;
     //@}
 
     //@{
@@ -191,12 +200,14 @@ namespace CoupledField
     const static std::string markerTraceDepth_;
     const static std::string markerWriteSkeleton_;
     const static std::string markerPrintGrid_;
+    const static std::string markerHelp_;
 
     const static std::string markerLongParamFile_;
     const static std::string markerLongMeshFile_;
     const static std::string markerLongTraceDepth_;
     const static std::string markerLongWriteSkeleton_;
     const static std::string markerLongPrintGrid_;
+    const static std::string markerLongHelp_;
     //@}
 
 
@@ -261,6 +272,28 @@ namespace CoupledField
       return FALSE;
     }
 
+    // =======================================================================
+    // AUXILLIARY METHODS FOR OUTPUTTING INFORMATION
+    // =======================================================================
+
+    //@{
+    //! \name Auxilliary methods for outputting information
+
+    //! Print summary of possible command line parameters
+
+    //! Calling this method will print a summary of the possible command line
+    //! parameters to the standard output.
+    void PrintUsage();
+
+    //! Print a summary of the values of the command line parameters
+
+    //! Calling this method will print a summary of the values of the command
+    //! line parameters to the specified output stream. The values include
+    //! the parameters supplied on the command line and the default values for
+    //! those parameters where no value was supplied.
+    void PrintParams( std::ostream &out );
+
+    //@}
   };
 
 }

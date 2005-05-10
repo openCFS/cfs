@@ -15,6 +15,30 @@ namespace CoupledField {
     ENTER_FCN( "CommandLineHandlerSetting::CommandLineHandlerSetting" );
 
 
+    // --------------------------------------
+    //  Check, if any parameter was supplied
+    // --------------------------------------
+    if ( argc == 1 ) {
+      std::cerr << "\n As HAL said in 2001\n\n"
+                << "   \"I'm sorry Dave, I don't have enough information.\""
+                <<"\n\n So please specify a name for the current "
+                << "simulation run!\n\n";
+      exit(-1);
+    }
+
+
+    // ------------------------------
+    //  Check, if user asks for help
+    // ------------------------------
+    for ( Integer i = 0; i < argc; i++ ) {
+      if ( std::strcmp( argv[i], markerHelp_.c_str() ) == 0 ||
+           std::strcmp( argv[i], markerLongHelp_.c_str() ) == 0 ) {
+        PrintUsage();
+        exit(1);
+      }
+    }
+
+
     // ----------------------------------------
     //  Name of simulation run goes separately
     // ----------------------------------------
@@ -22,15 +46,11 @@ namespace CoupledField {
     // We expect the last command line argument to be the name of
     // the current simulation run. Check that a proper name was
     // provided by the user.
-    if ( argc > 1 ) {
-      simName_ = argv[argc-1];
-      std::cout << " --> Using '" << simName_ << "' as basename for the "
-                << "simulation\n\n";
-    }
-    else {
-      std::cerr << " Please specify a name for the simulation run\n\n";
-      exit(-1);
-    }
+    simName_ = argv[argc-1];
+#ifdef DEBUG
+    std::cout << " --> Using '" << simName_ << "' as basename for the "
+              << "simulation\n\n";
+#endif
 
 
     // -----------------------------------------------------------
@@ -75,7 +95,7 @@ namespace CoupledField {
                   Setting::COMMAND_LINE_ONLY,
                   helpWriteSkeleton_.c_str() ),
 
-      // -printGrid
+      // --printGrid
       SettingDef( markerPrintGrid_.c_str(),
                   markerLongPrintGrid_.c_str(),
                   Setting::FLAG,
@@ -83,6 +103,15 @@ namespace CoupledField {
                   1,
                   Setting::COMMAND_LINE_ONLY,
                   helpPrintGrid_.c_str() ),
+
+      // --help
+      // SettingDef( markerHelp_.c_str(),
+      //             markerLongHelp_.c_str(),
+      //             Setting::FLAG,
+      //             1,
+      //             1,
+      //             Setting::COMMAND_LINE_ONLY,
+      //             helpHelp_.c_str() ),
 
       // empty final one
       SettingDef()
@@ -101,12 +130,17 @@ namespace CoupledField {
     bool pickyResult = true;
     commandLine_.readSettings( commandLineParamsSpec, argv, (int)argc-1,
                                false, false, &pickyResult );
+    commandLine_.finalCheck( commandLineParamsSpec );
 
-    if ( pickyResult == true ) {
-      std::cout << "\n\n Successfully parsed command line\n\n";
+    if ( pickyResult == false ) {
+      PrintUsage();
+      (*error) << "Encountered problems while parsing command line!";
+      Error( __FILE__, __LINE__ );
     }
 
-    commandLine_.finalCheck( commandLineParamsSpec );
+#ifdef DEBUG
+    PrintParams( std::cerr );
+#endif
 
   };
 
