@@ -56,27 +56,30 @@ namespace CoupledField {
       XMLPlatformUtils::Initialize();
     }
     catch( const XMLException &event ) {
-      errmsg  = "The following error occured during initialisation of ";
-      errmsg += "xerces-c!\n";
-      errmsg += X2S(event.getMessage());
-      Info->Error( errmsg, __FILE__, __LINE__ );
+      (*error) << "The following error occured during initialisation of "
+               << "xerces-c!\n"
+               << X2S( event.getMessage() );
+      Error( __FILE__, __LINE__ );
     }
+
 
 #ifdef DEBUG
     std::cout << "XML parsers uses Schema: http://www.cfs++.org ";
     std::cout << XMLSCHEMA <<  "/CFS.xsd" << std::endl;
 #endif
 
-    Info->StartProgress("Reading in .xml file");
+
+    // Generate progress report (tell user what we are doing)
+    std::stringstream msg;
+    msg << "Reading parameters from file '" << fname << "'";
+    Info->StartProgress( msg.str() );
 
     // Check if file exists
     std::ifstream inFile;
-    inFile.open(fname);
-    if (!inFile) {
-      errmsg  = "The file '";
-      errmsg += fname;
-      errmsg += "' could not be opened!";
-      Error(errmsg.c_str(), __FILE__, __LINE__);
+    inFile.open( fname );
+    if ( inFile == NULL ) {
+      (*error) << "The file '" << fname << "' could not be opened!";
+      Error( __FILE__, __LINE__ );
     }
     inFile.close();
 
@@ -95,6 +98,7 @@ namespace CoupledField {
     beVerbose_ = false;
 #endif
 
+    // That's it
     Info->FinishProgress();
 
   }
