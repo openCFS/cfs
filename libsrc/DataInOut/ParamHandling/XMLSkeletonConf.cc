@@ -11,6 +11,7 @@
 #include "Domain/bcs.hh"
 #include "Domain/GridCFS/grid_cfs.hh"
 #include "Elements/elements_header.hh"
+#include "DataInOut/CommandLine/BaseCommandLineHandler.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
 #include "DataInOut/ParamHandling/PlainXMLParamHandler.hh"
 #include "DataInOut/ParamHandling/XMLParamHandler.hh"
@@ -18,21 +19,23 @@
 
 namespace CoupledField {
 
-  SkeletonConf::SkeletonConf (const Char * aname) {
 
-    ENTER_FCN("SkeletonConf::SkeletonConf");
+  // ***************
+  //   Constructor
+  // ***************
+  SkeletonConf::SkeletonConf() {
 
-    name_=new Char[100];
-    strcpy(name_, aname);
+    ENTER_FCN( "SkeletonConf::SkeletonConf" );
 
-    Char * filename = new Char[100];
-    strcpy(filename, aname);
-    //just test, if config-file already exists  
-    std::ifstream testfile(strcat(filename,".xml"));
+    std::string xmlFile = commandLine->GetSimName() + ".xml";
+    std::string meshFile = commandLine->GetMeshFile();
+
+    // just test, if config-file already exists  
+    std::ifstream testfile( xmlFile.c_str() );
 
     std::string dummy;
     testfile >> dummy;
-    if (!dummy.empty()) {
+    if ( !dummy.empty() ) {
       std::cerr << std::endl << "  \033[31mError\033[0m: " //<< std::endl 
 		<< "conf-File is not empty: please change the name of your "
 		<< "current conf-file" << std::endl
@@ -42,32 +45,39 @@ namespace CoupledField {
     }
 
     // open the conf-file
-    strcpy(filename, aname);
-    skelfile_ = new std::ofstream(strcat(filename,".xml"));
-    if (!skelfile_) 
-      Error("Can't open conf-file",__FILE__,__LINE__);
+    skelfile_ = new std::ofstream( xmlFile.c_str() );
+    if ( skelfile_ == NULL ) {
+      (*error) << "Could not open XML-file '" << xmlFile
+               << "' for writing!\n";
+      Error( __FILE__, __LINE__ );
+    }
 
     Info->StartProgress("Reading in the mesh");
-    //open the mesh-file
-    strcpy(filename, aname);
-    meshfile_ = new AnsysFile(filename);
-    if (!meshfile_) Error("Can't open mesh-file");
-    Info->FinishProgress();
 
+    // Open the mesh-file
+    meshfile_ = new AnsysFile( meshFile.c_str() );
+    if ( meshfile_ == NULL ) {
+      (*error) << "Could not open mesh-file '" << xmlFile
+               << "' for reading!\n";
+      Error( __FILE__, __LINE__ );
+    }
+
+    Info->FinishProgress();
   }
 
 
-  SkeletonConf::~SkeletonConf ()
-  {
-    ENTER_FCN("SkeletonConf::~SkeletonConf");
+  // **************
+  //   Destructor
+  // **************
+  SkeletonConf::~SkeletonConf() {
+
+    ENTER_FCN( "SkeletonConf::~SkeletonConf" );
 
     skelfile_->close();
 
     std::cerr << std::endl;
     std::cerr << "\t Please complete the file before starting the simulation"
 	      << std::endl << std::endl;
-
-    delete [] name_;
   }
 
   void SkeletonConf::WriteConf ()
@@ -127,21 +137,19 @@ namespace CoupledField {
 
 
 
-  void SkeletonConf:: WriteSubdomains()
-  {
-    ENTER_FCN("SkeletonConf::WriteSubdomains");
+  // *******************
+  //   WriteSubdomains
+  // *******************
+  void SkeletonConf:: WriteSubdomains() {
 
-    //close the skeleton-config-file
+    ENTER_FCN( "SkeletonConf::WriteSubdomains" );
+
+    // Close the skeleton-config-file
     skelfile_->close();
-
-    //we need to construct the conf-file object (needed by the FE-elements)
-    Char * filename = new Char[100];
-    strcpy(filename, name_);
 
     // Generate parser and parse XML defaults file
     std::string cfsDefaults = XMLSCHEMA;
     cfsDefaults += "/Defaults/CFS++Defaults.xml";
-    
 #ifdef USE_XERCES
     params = new XMLParamHandler( cfsDefaults.c_str() );
 #else
@@ -161,12 +169,14 @@ namespace CoupledField {
     ptPyra1 = new Pyra1FE();
     ptWedge1 = new Wedge1FE();
     ptWedge2 = new Wedge2FE();
+
     // now we can delete conf-object already
     delete params;
 
-    //reopen skeleton-conf file
+    // Reopen skeleton-conf file
+    std::string xmlFile = commandLine->GetSimName() + ".xml";
     skelfile_->clear();
-    skelfile_->open(strcat(filename,".xml"),std::ios_base::app);
+    skelfile_->open( xmlFile.c_str(), std::ios_base::app );
 
     StdVector<std::string> sd;
     Integer dim = meshfile_-> ReadDim();
