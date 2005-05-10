@@ -15,16 +15,13 @@ namespace CoupledField
 {
 
   //! Class for writing  a skeleton of the config file
-  
-  class SkeletonConf
-  {
+  class SkeletonConf {
+
   public:
-    //! constructor
-    /*!
-      \param name name of input file without extension
-    */
-    SkeletonConf(const Char * name);
-    
+
+    //! Constructor
+    SkeletonConf();
+
     //! destructor
     virtual ~SkeletonConf();
 
@@ -53,7 +50,6 @@ namespace CoupledField
 
     std::ofstream * skelfile_; //!< file pointer fo conf-file
     FileType * meshfile_;      //!< file pointer of mesh-file
-    Char * name_;              //!< stores name of input file (without extension)
   };
 } // end namespace CoupledField
  
