@@ -199,6 +199,68 @@ namespace CoupledField
     const static std::string markerLongPrintGrid_;
     //@}
 
+
+    // =======================================================================
+    // ASSIGNMENT OF DEFAULT VALUES
+    // =======================================================================
+
+    //@{
+    //! \name These methods provide default values for the allowed command
+    //!       line parameters. Derived classes should use calls to these
+    //!       methods for handling of defaults in their implementation of the
+    //!       query methods instead of providing their own defaults.
+
+    //! Returns default value for --traceDepth parameter
+
+    //! This method returns default value for --traceDepth parameter. The
+    //! current default is 0, which indicates no function tracing.
+    //! \return 0
+    Integer DefaultTraceDepth() const {
+      return 0;
+    }
+
+    //! Returns default value for --paramFile parameter
+
+    //! This method returns default value for --paramFile parameter. The
+    //! current default is to compose the name of the parameter file, by
+    //! adding a <em>.xml</em> postfix to the name of the current simulation
+    //! run
+    //! \return \<simName\>.xml
+    std::string DefaultParamFile() const {
+      return GetSimName() + ".xml";
+    }
+
+    //! Returns default value for --meshFile parameter
+
+    //! This method returns default value for --meshFile parameter. The
+    //! current default is to compose the name of the parameter file, by
+    //! adding a <em>.mesh</em> postfix to the name of the current simulation
+    //! run
+    //! \return \<simName\>.mesh
+    std::string DefaultMeshFile() const {
+      return GetSimName() + ".mesh";
+    }
+
+    //! Returns default value for --printGrid parameter
+
+    //! This method returns default value for --printGrid parameter. The
+    //! current default is to perform a full simulation and to not only
+    //! print the grid.
+    //! \return FALSE
+    Boolean DefaultPrintGrid() const {
+      return FALSE;
+    }
+
+    //! Returns default value for --writeSkeleton parameter
+
+    //! This method returns default value for --writeSkeleton parameter. The
+    //! current default is to perform a full simulation and to not only
+    //! write a skeleton XML-file.
+    //! \return FALSE
+    Boolean DefaultWriteSkeleton() const {
+      return FALSE;
+    }
+
   };
 
 }

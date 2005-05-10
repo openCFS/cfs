@@ -60,8 +60,11 @@ namespace CoupledField {
     //! XML format that contains the steering parameters for the simulation.
     std::string GetParamFile() const {
       ENTER_FCN( "CommandLineHandlerSetting::GetParamFile" );
+      std::string paramFile = DefaultParamFile();
       Setting *aux = commandLine_.getSetting( markerParamFile_.c_str() );
-      std::string paramFile = aux->getString();
+      if ( aux != NULL ) {
+        paramFile = aux->getString();
+      }
       return paramFile;
     };
 
@@ -71,8 +74,11 @@ namespace CoupledField {
     //! the description of the FEM mesh for the simulation.
     std::string GetMeshFile() const {
       ENTER_FCN( "CommandLineHandlerSetting::GetMeshFile" );
+      std::string meshFile = DefaultMeshFile();
       Setting *aux = commandLine_.getSetting( markerMeshFile_.c_str() );
-      std::string meshFile = aux->getString();
+      if ( aux != NULL ) {
+        meshFile = aux->getString();
+      }
       return meshFile;
     };
 
@@ -85,8 +91,12 @@ namespace CoupledField {
     //! parameter file.
     Boolean GetPrintGrid() const {
       ENTER_FCN( "CommandLineHandlerSetting::GetPrintGrid" );
+      Boolean retVal = DefaultPrintGrid();
       Setting *aux = commandLine_.getSetting( markerPrintGrid_.c_str() );
-      return aux->getBool();
+      if ( aux != NULL ) {
+        retVal = aux->getBool() == true ? TRUE : FALSE;
+      }
+      return retVal;
     };
 
     //! Return writeSkeleton flag
@@ -97,8 +107,12 @@ namespace CoupledField {
     //! filled out by the user for a subsequent simulation run.
     Boolean GetWriteSkeleton() const {
       ENTER_FCN( "CommandLineHandlerSetting::GetWriteSkeleton" );
+      Boolean retVal = DefaultWriteSkeleton();
       Setting *aux = commandLine_.getSetting( markerWriteSkeleton_.c_str() );
-      return aux->getBool();
+      if ( aux != NULL ) {
+        retVal = aux->getBool() == true ? TRUE : FALSE;
+      }
+      return retVal;
     };
 
     //! Return depth of function tracing
@@ -115,7 +129,11 @@ namespace CoupledField {
     Integer GetTraceDepth() const {
       ENTER_FCN( "CommandLineHandlerSetting::GetTraceDepth" );
       Setting *aux = commandLine_.getSetting( markerTraceDepth_.c_str() );
-      return (Integer)(aux->getInt());
+      Integer retVal = DefaultTraceDepth();
+      if ( aux != NULL ) {
+        retVal = (Integer)(aux->getInt());
+      }
+      return retVal;
     };
 
     //@}
