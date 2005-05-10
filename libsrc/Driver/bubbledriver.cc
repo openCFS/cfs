@@ -9,6 +9,7 @@
 #include "Utils/vector.hh"
 #include "DataInOut/timefunc.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
+#include "DataInOut/CommandLine/BaseCommandLineHandler.hh"
 #include "Domain/domain.hh"
 #include "ODEDescr/KellerMiksis.hh"
 #include "ODEDescr/Gilmore.hh"
@@ -22,7 +23,6 @@ namespace CoupledField {
   //   Constructor
   // ***************
   BubbleDriver::BubbleDriver(Domain * adomain, 
-			     Char * name,
 			     Integer stepOffset,
 			     Double timeOffset,
 			     std::string driverTag,
@@ -161,8 +161,9 @@ namespace CoupledField {
 
 
     // Generate filename
-    Char *auxfile = new Char[strlen(name)+4];
-    strcpy( auxfile, name );
+    std::string simName = commandLine->GetSimName();
+    Char *auxfile = new Char[ strlen( simName.c_str() ) + 4 ];
+    strcpy( auxfile, simName.c_str() );
     strcat( auxfile, ".bl" );
 
 
