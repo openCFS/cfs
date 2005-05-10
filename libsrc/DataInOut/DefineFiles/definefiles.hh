@@ -27,18 +27,18 @@ namespace CoupledField
     //! deconstructor
     ~DefineInOutFiles();
 
+    //! Open an auxilliary file
+    void OpenFile( AuxFileType fileType );
+
     //! create a pointer to a class for reading input-results, a derived class
     //! of the FileType according to the specification of the conf-file.
-    FileType * Create_ptFileType();
+    FileType* CreateMeshFileHandler();
 
     //! create a pointer to a class for writing output-results, a derived class
     //! of the WriteResults according to the specification of the conf-file.
-    WriteResults * Create_ptWriteResults(FileType * const aInFile);
+    WriteResults* Create_ptWriteResults( FileType * const aInFile );
 
   private:
-
-    //! Basename of all auxilliary files
-    Char *filename_;
 
     //! pointer to a class for reading input mesh-data
     FileType *infileType_;
