@@ -162,6 +162,17 @@ int main( int argc, const char **argv ) {
   }
 
   // =========================================================================
+  // SETUP OF MPCCI
+  // =========================================================================
+
+#ifdef MpCCI
+  Info->StartProgress( "Setting up MpCCI interface" );
+  CCI_Init( &argc, &argv );  
+  Info->FinishProgress();
+#endif
+
+
+  // =========================================================================
   // HANDLE XML-FILE
   // =========================================================================
 
@@ -171,17 +182,6 @@ int main( int argc, const char **argv ) {
     params = new XMLParamHandler( xmlFile.c_str() );
 #else
     params = new PlainXMLParamHandler( xmlFile.c_str() );
-#endif
-
-
-  // =========================================================================
-  // SETUP OF MPCCI
-  // =========================================================================
-
-#ifdef MpCCI
-  Info->StartProgress( "Setting up MpCCI interface" );
-  CCI_Init( &argc, &argv );  
-  Info->FinishProgress();
 #endif
 
 
