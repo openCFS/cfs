@@ -174,7 +174,7 @@ namespace CoupledField
 
   //--------------------- Stuff for handling different IO files -------------
 
-  typedef enum {TRACE_FILE, DEBUG_FILE, OLAS_FILE} AuxFileType;
+  typedef enum {TRACE_FILE, DEBUG_FILE, MEMTRACE_FILE, OLAS_FILE} AuxFileType;
 
 
   //------------------------ Stuff for bubble simulation --------------------
