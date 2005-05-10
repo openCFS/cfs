@@ -1055,14 +1055,17 @@ m_directives[SettingDataBase::N_DIRECTIVES] =
 
     // initialize pickySuccess
     if( pickySuccess )  *pickySuccess = true;
+
+    // NOTE: We do our on help stuff in BaseCommandLineHandler
+
     // check, if the first program parameter calls help
-    if( nargs > 1 && !strcmp(CommandLine[1], "-help") ) {
-      cout << "\nsettings for " << BLACK_(CommandLine[0]) << "\n";
-      printHelp( settingdef );
-      cout << endl;
-      return false;
-    }
-	
+    // if( nargs > 1 && !strcmp(CommandLine[1], "-help") ) {
+    //  cout << "\nsettings for " << BLACK_(CommandLine[0]) << "\n";
+    //  printHelp( settingdef );
+    //  cout << endl;
+    //  return false;
+    //}
+
     // scan command line
     while( istart < nargs && iend < nargs ) {
       // end of the previous setting is now start of the next one
