@@ -5,8 +5,8 @@
 
 #include <iostream>
 
-// Depending on whether we use LAS or OLAS the trace stream pointer is in
-// different namespaces
+// The trace stream pointer is also used by OLAS and therefore belongs to the
+// joint CFS++ / OLAS namespace for IO-objects
 namespace OutInfo {
   extern std::ostream * trace;
 }
@@ -32,7 +32,7 @@ namespace OutInfo {
   //! function it called itself). The latter information is dynamic and
   //! changes, once a called subfunction has terminated. It is used by the
   //! FcnTraceHandler class.
-  class FcnTraceListElem{
+  class FcnTraceListElem {
 
   public:
 
@@ -50,9 +50,9 @@ namespace OutInfo {
       }
     }
     
-    //! Default destructor
+    //! Destructor
 
-    //! The default destructor is responsible for issuing a "leaving
+    //! The destructor is responsible for issuing a "leaving
     //! function" message to the trace stream object.
     ~FcnTraceListElem() {
       if ( fcnDepth_ <= limit_ && TRACESTREAM != NULL ) {
@@ -80,7 +80,7 @@ namespace OutInfo {
   // FCNTRACEHANDLER CLASS
   // ========================================================================
 
-  //! Central class object for fuction tracing.
+  //! Central class object for function tracing.
 
   //! This static class is taking care of generating function trace
   //! information. If will only exist, if the TRACE macro is defined
@@ -99,8 +99,8 @@ namespace OutInfo {
 
     //! This method performs all things needed for tracing at the startup
     //! of a method.
-    static void EnterFcn(char *name){
-      if (fcnTraceDepth_ < fcnTraceDepthLimit_) {
+    static void EnterFcn( char *name ) {
+      if ( fcnTraceDepth_ < fcnTraceDepthLimit_ ) {
         if ( foo_ == NULL ){
           foo_ = new FcnTraceListElem( name, fcnTraceDepth_++,
                                        fcnTraceDepthLimit_ );
@@ -120,9 +120,9 @@ namespace OutInfo {
 
     //! This method performs all things needed for tracing when a function
     //! is left.
-    static void LeaveFcn(){
+    static void LeaveFcn() {
       FcnTraceListElem *tmp;
-      if (foo_){
+      if ( foo_ ) {
         tmp = foo_->caller_;
         delete foo_;
         foo_ = tmp;
@@ -131,12 +131,12 @@ namespace OutInfo {
     }
 
     //! This method writes a complete call trace
-    static void Dump(){
-      while(foo_) LeaveFcn();
+    static void Dump() {
+      while( foo_ ) LeaveFcn();
     }
 
     //! Set maximum tracing depths
-    static void SetMaxTraceDepth(unsigned int limit) {
+    static void SetMaxTraceDepth( unsigned int limit ) {
       fcnTraceDepthLimit_ = limit;
     }
 
@@ -159,12 +159,12 @@ namespace OutInfo {
   public:
 
     //! Constructor
-    FcnTraceObjLocal(char *name){
-      FcnTraceHandler::EnterFcn(name);
+    FcnTraceObjLocal( char *name ) {
+      FcnTraceHandler::EnterFcn( name );
     }
 
     //! Destructor
-    ~FcnTraceObjLocal(){
+    ~FcnTraceObjLocal() {
       FcnTraceHandler::LeaveFcn();
     }
 
