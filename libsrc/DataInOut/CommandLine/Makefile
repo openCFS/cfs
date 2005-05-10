@@ -2,7 +2,7 @@
 # Makefile for Parameter Handling module
 #
 C_DIR = ../../..
-src = Settings.cc CommandLineHandlerSetting.cc
+src = Settings.cc BaseCommandLineHandler.cc CommandLineHandlerSetting.cc
 
 #
 lib = commandline
