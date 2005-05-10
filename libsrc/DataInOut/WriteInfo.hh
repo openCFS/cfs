@@ -11,7 +11,7 @@
 
 
 #include <sstream>
-#include <General/environment.hh>
+#include "General/environment.hh"
 #include "Matrix/matrix.hh"
 
 namespace CoupledField
@@ -42,16 +42,23 @@ namespace CoupledField
     Boolean needAck_;
 
   public:
+
     /// constructor
     WriteInfo();
-
     
     /// destructor
     virtual ~WriteInfo();
 
+    //! Open output file
 
-    /// create output file
-    void CreateFile(const Char *name);
+    //! Calling this method triggers the generation/opening of a file for
+    //! logging status messages into. The name of the file is compiled by
+    //! adding an <em>.info</em> postfix to the name of the current simulation
+    //! run. The latter is obtained from the global pointer to the
+    //! BaseCommandLineHandler object.
+    //! \note Calling this method twice results in an error, since it will
+    //!       refuse to open the file another time.
+    void CreateFile();
 
     /// Prints header for both info-file and standard out
     void PrintHeader();

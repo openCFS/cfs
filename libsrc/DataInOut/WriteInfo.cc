@@ -3,22 +3,17 @@
 #include <sstream>
 #include <iomanip>
 #include <fstream>
-#include <stdio.h>
-
-#ifdef __sgi
-#include <stdarg.h>
-#else
+#include <cstdio>
 #include <cstdarg>
-#endif
 
 #include "WriteInfo.hh"
-
 #include "Utils/tools.hh"
 #include "Utils/Coil.hh"
 #include "MaterialData.hh"
 #include "PDE/pdes_header.hh"
 #include "Utils/vector.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
+#include "DataInOut/CommandLine/BaseCommandLineHandler.hh"
 
 #define CFS_VERSION  "0.1a"
 
@@ -32,7 +27,7 @@ namespace CoupledField
     warningOccured_ = FALSE;
     progressRunning_ = FALSE;
     needAck_ = FALSE;
-    
+
     cfsInfo = NULL;
   }
 
@@ -44,18 +39,31 @@ namespace CoupledField
     if (!cfsInfo)
       delete cfsInfo;
   }
-  
-  void WriteInfo::CreateFile(const Char * name)
-  {
-    ENTER_FCN( "WriteInfo::CreateFile" ) 
 
-      std::string filename(name);
-    filename += ".info";
-    
+
+  // **************
+  //   CreateFile
+  // **************
+  void WriteInfo::CreateFile() {
+
+    ENTER_FCN( "WriteInfo::CreateFile" );
+
+    // Check if a file is already open
+    if ( cfsInfo != NULL ) {
+      (*error) << "WriteInfo::CreateFile: cfsInfo already points to a "
+               << "file! Cowardly refusing to open another one\n";
+      CoupledField::Error( __FILE__, __LINE__ );
+    }
+
+    std::string filename = commandLine->GetSimName() + ".info";
     cfsInfo = new std::ofstream(filename.c_str());
-    
-    if (!cfsInfo) 
-      Error("Can't open info-file");  
+
+    // Check if everything went fine
+    if ( cfsInfo == NULL ) {
+      (*error) << "WriteInfo::CreateFile: Failed to open file '"
+               << filename << "' for writing status messages\n";
+      CoupledField::Error( __FILE__, __LINE__ );  
+    }
   }
 
 
