@@ -38,6 +38,9 @@ namespace CoupledField {
       }
     }
 
+    // No help wanted, so proceed normally
+    Info->StartProgress( "Parsing command line" );
+
 
     // ----------------------------------------
     //  Name of simulation run goes separately
@@ -47,10 +50,6 @@ namespace CoupledField {
     // the current simulation run. Check that a proper name was
     // provided by the user.
     simName_ = argv[argc-1];
-#ifdef DEBUG
-    std::cout << " --> Using '" << simName_ << "' as basename for the "
-              << "simulation\n\n";
-#endif
 
 
     // -----------------------------------------------------------
@@ -141,6 +140,9 @@ namespace CoupledField {
 #ifdef DEBUG
     PrintParams( std::cerr );
 #endif
+
+    // That's it
+    Info->FinishProgress();
 
   };
 
