@@ -131,11 +131,15 @@ namespace CoupledField {
                                false, false, &pickyResult );
     commandLine_.finalCheck( commandLineParamsSpec );
 
+    // Parallel jobs define numerous additional options for MPI and co
+    // so we cannot afford to be picky
+#ifndef MpCCI
     if ( pickyResult == false ) {
       PrintUsage();
       (*error) << "Encountered problems while parsing command line!";
       Error( __FILE__, __LINE__ );
     }
+#endif
 
 #ifdef DEBUG
     PrintParams( std::cerr );
