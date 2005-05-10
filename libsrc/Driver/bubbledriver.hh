@@ -27,7 +27,6 @@ namespace CoupledField {
     //! \param driverTag tag for current driver section
     //! \param true, if driver is part of  multiSequence
     BubbleDriver(Domain      *adomain,
-		 Char        *fileName,
 		 Integer     stepOffset = 0,
 		 Double      timeOffset = 0.0,
 		 std::string driverTag = "anyTag",
