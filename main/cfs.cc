@@ -18,6 +18,8 @@
 #include "DataInOut/timefunc.hh"
 #include "DataInOut/WriteInfo.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
+#include "DataInOut/ParamHandling/XMLParamHandler.hh"
+#include "DataInOut/ParamHandling/PlainXMLParamHandler.hh"
 #include "DataInOut/CommandLine/BaseCommandLineHandler.hh"
 #include "DataInOut/CommandLine/CommandLineHandlerSetting.hh"
 
@@ -49,47 +51,71 @@ using namespace CoupledField;
 #define STDOUT std::cout
 #endif
 
+
 int main( int argc, const char **argv ) {
 
-  Integer numargs=2;
-  Boolean SkeletonPrint=FALSE;
+  
+  MyClock oClockTotal;
+  oClockTotal.ClockCount(MyClock::beg);
 
   // =========================================================================
-  // HANDLING OF COMMAND LINE PARAMETERS
+  // CREATE INFORMATION OBJECT
   // =========================================================================
 
+  // Create object for logging information
+  Info = new WriteInfo();
+
+  // Log program startup
+  Info->PrintHeader();
+
+
+  // =========================================================================
+  // HANDLE COMMAND LINE PARAMETERS
+  // =========================================================================
   commandLine = new CommandLineHandlerSetting( argc, argv );
 
 
-  // Activate function tracing, if desired
+  // =========================================================================
+  // GENERATE OBJECT FOR HANDLING FILE-IO
+  // =========================================================================
+  Info->StartProgress( "Generating object for handling file-IO" );
+  DefineInOutFiles FileHandler( commandLine->GetSimName().c_str() );
+  Info->FinishProgress();
+
+
+  // =========================================================================
+  // ACTIVATE DEBUGGING STUFF
+  // =========================================================================
+
+  // Activate function tracing
 #ifdef TRACE
   Integer traceDepth = commandLine->GetTraceDepth();
   OutInfo::FcnTraceHandler::SetMaxTraceDepth( traceDepth );
   if ( traceDepth == 0 ) {
-    std::cerr << " De-activating function tracing since depth = "
-              << traceDepth << '\n';
+    Info->StartProgress( "De-activating function tracing since depth = 0" );
+    Info->FinishProgress();
   }
   else {
-    std::cerr << " Activating function tracing with depth = "
-              << traceDepth << '\n';
+    std::stringstream msg;
+    msg << "Activating function tracing with depth = " << traceDepth;
+    Info->StartProgress( msg.str() );
+    FileHandler.OpenFile( TRACE_FILE );
+    Info->FinishProgress();
   }
 #endif
 
-  if (argc < numargs) {
-    STDOUT << std::endl;
-    STDOUT << " \033[36mUsage\033[0m : cfs [-options] name \n"
-	   << "\t\033[36m name    \033[0m:"
-	   << " name of input file without extension\n"
-	   << "\t\033[36m options \033[0m:"
-	   << " -skel for writing a skeleton of a config-file\n"
-	   << "\t           -grid for writing just the grid to result-file\n"
+  // Open file for debugging ouput
 #ifdef DEBUG
-	   << "\t           -trace write a trace file\n"
+  Info->StartProgress( "Opening file for writing debugging output" );
+  FileHandler.OpenFile( DEBUG_FILE );
+  Info->FinishProgress();
 #endif
-	   << "\n \033[31mERROR:\033[0m"
-	   << " Invalid parameter specification. See usage details above.\n\n";
-    exit(1);
-  }
+
+#ifdef MEMTRACE
+  Info->StartProgress( "Opening file for tracing memory allocation" );
+  FileHandler.OpenFile( MEMTRACE_FILE );
+  Info->FinishProgress();
+#endif
 
 
   // =========================================================================
@@ -106,31 +132,23 @@ int main( int argc, const char **argv ) {
 
 
   // =========================================================================
-  // SKELETON OF CONFIG-FILE
+  // WRITE SKELETON XML-FILE
   // =========================================================================
 
-  // This block is used for writing a skeleton of a .conf or .xml parameter
-  // file. Since normally all opening of files is handled in definefiles
+  // This block is used for writing a skeleton XML-File to make life easier
+  // for the user. This also will import some information from the mesh-file.
+  // Since normally all opening of files is handled in definefiles
   // the debug and trace file are opened separately here. Definefiles cannot
   // be used, since it would try to open other files also, that need not be
   // present????
-
-  Char *filename = new char[100];
-
-  // for writing a skeleton of a config file by using the information
-  // from the mesh-file
   if ( commandLine->GetWriteSkeleton() == TRUE ) {
 
 #ifdef TRACE
-    std::string traceFile = commandLine->GetSimName() + ".trace";
-    trace = new std::ofstream( traceFile.c_str() );
-    if (!trace) Error("Can't open trace-file");
+    FileHandler.OpenFile( TRACE_FILE );
 #endif
  
 #ifdef DEBUG
-    std::string debugFile = commandLine->GetSimName() + ".deb";
-    debug = new std::ofstream( debugFile.c_str() );
-    if (!debug) Error("Can't open debug-file");
+    FileHandler.OpenFile( DEBUG_FILE );
 #endif
 
     // class writing log-information
@@ -143,13 +161,27 @@ int main( int argc, const char **argv ) {
     return 0;
   }
 
+  // =========================================================================
+  // HANDLE XML-FILE
+  // =========================================================================
+
+  // Generate parameter handler and pass address to global pointer
+  std::string xmlFile = commandLine->GetParamFile();
+#ifdef USE_XERCES
+    params = new XMLParamHandler( xmlFile.c_str() );
+#else
+    params = new PlainXMLParamHandler( xmlFile.c_str() );
+#endif
+
 
   // =========================================================================
   // SETUP OF MPCCI
   // =========================================================================
 
 #ifdef MpCCI
+  Info->StartProgress( "Setting up MpCCI interface" );
   CCI_Init( &argc, &argv );  
+  Info->FinishProgress();
 #endif
 
 
@@ -157,46 +189,51 @@ int main( int argc, const char **argv ) {
   // SETUP OF IO-STUFF
   // =========================================================================
 
-  // Create object for logging information
-  Info = new WriteInfo();
+  // Generate mesh reader
+  Info->StartProgress( "Generating mesh reader" );
+  FileType *ptInputfile = FileHandler.CreateMeshFileHandler();
+  Info->FinishProgress();
 
-  // Log program startup
-  Info->PrintHeader();
 
-  // Open files for input/output
-  DefineInOutFiles * ptDefineFiles=new DefineInOutFiles( commandLine->GetSimName().c_str() );
+  Info->StartProgress( "Generating remaining output files" );
+
+  // Open file for status reports by CFS++
   Info->CreateFile();
 
-  MyClock oClockTotal;
-  oClockTotal.ClockCount(MyClock::beg);
-  
-  FileType *ptInputfile = ptDefineFiles->Create_ptFileType();
+  // Open file for status reports by OLAS
+  FileHandler.OpenFile( OLAS_FILE );
 
-  WriteResults *ptOut = ptDefineFiles->Create_ptWriteResults(ptInputfile);
-  
-  
-  // TimeFunc * ptTimeFunc=NULL;
-  TimeFunc *ptTimeFunc = new TimeFunc(ptInputfile);
+  // Generate Write results object
+  WriteResults *ptOut = FileHandler.Create_ptWriteResults( ptInputfile );
 
-  Domain *domain = new Domain(ptInputfile, ptOut, ptTimeFunc);
+  Info->FinishProgress();
+
+
+  // =========================================================================
+  // GENERATION OF DOMAIN OBJECT
+  // =========================================================================
+  TimeFunc myTimeFunc( ptInputfile );
+  Domain domain( ptInputfile, ptOut, &myTimeFunc );
+
 
   // =========================================================================
   // Only output of grid
   // =========================================================================
-  
-  if (PrintGridOnly) {
+  if ( commandLine->GetPrintGrid() == TRUE ) {
     STDOUT << "Printing grid to file " <<  commandLine->GetSimName()
            << ".unv" << myEndl << myEndl;
-    domain->PrintGrid(0);
+    domain.PrintGrid(0);
     exit(0);
   }
-    
-    
 
 
   // =========================================================================
   // SELECTION OF DRIVER
   // =========================================================================
+
+#ifdef ADAPTGRID
+  flags = new Flags();
+#endif
 
   BaseDriver   *ptdriver;  
   AnalysisType analysisType;
@@ -230,31 +267,31 @@ int main( int argc, const char **argv ) {
 
       // without adaptivity
       else {
-	ptdriver = new StaticDriver(domain);
+	ptdriver = new StaticDriver( &domain );
       }
       break;
 
     case TRANSIENT:
-      ptdriver = new TransientDriver(domain);
+      ptdriver = new TransientDriver( &domain );
       break;
 
     case HARMONIC:
       // calls Driver for parameter identification, using harmonic analysis
       if ( analysis == "paramIdent" ) {
-	ptdriver = new piezoParamIdent( domain );
+	ptdriver = new piezoParamIdent( &domain );
       }
       else if ( analysis == "multiHarmonic" )
-  	ptdriver = new MultiHarmonicDriver( domain );
+  	ptdriver = new MultiHarmonicDriver( &domain );
       else
-	ptdriver = new HarmonicDriver( domain );
+	ptdriver = new HarmonicDriver( &domain );
       break;
 
     case MULTI_SEQUENCE:
-      ptdriver = new MultiSequenceDriver( domain );
+      ptdriver = new MultiSequenceDriver( &domain );
       break;
 
     case BUBBLEDYNAMIC:
-      ptdriver = new BubbleDriver( domain );
+      ptdriver = new BubbleDriver( &domain );
       break;
 
     default:
@@ -289,15 +326,15 @@ int main( int argc, const char **argv ) {
 
   // Delete objects
   delete ptdriver;
-  delete domain;
-  delete ptTimeFunc;
+  // delete domain;
+  // delete ptTimeFunc;
   delete Info;
 
-  // ptDefineFiles must be destroyed as the last of all objects!
-  // The reason is that if TRACE is defined all methods want to
-  // log into (*trace) which is deleted by the destructor of the
-  // DefineInOutFiles class!
-  delete ptDefineFiles;
+  // As the last thing we close the trace file (if exists)
+#ifdef TRACE
+  delete trace;
+  trace = NULL;
+#endif
 
 #ifdef PARALLEL
   MPI_Finalize();
