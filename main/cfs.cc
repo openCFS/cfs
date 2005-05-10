@@ -13,10 +13,14 @@
 
 #include "Utils/myclock.hh"
 #include "Utils/tracing.hh"
+
 #include "DataInOut/DefineFiles/definefiles.hh"
 #include "DataInOut/timefunc.hh"
 #include "DataInOut/WriteInfo.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
+#include "DataInOut/CommandLine/BaseCommandLineHandler.hh"
+#include "DataInOut/CommandLine/CommandLineHandlerSetting.hh"
+
 #include "ParamIdent/piezoParamIdent.hh"
 
 #ifdef MpCCI
@@ -45,45 +49,31 @@ using namespace CoupledField;
 #define STDOUT std::cout
 #endif
 
-int main(int argc, char *argv[]) {
+int main( int argc, const char **argv ) {
 
   Integer numargs=2;
   Boolean SkeletonPrint=FALSE;
 
-  // ==========================================================================
+  // =========================================================================
   // HANDLING OF COMMAND LINE PARAMETERS
-  // ==========================================================================
+  // =========================================================================
 
-  if (argc > 1) {
-    for ( Integer i = 1; i < argc; i++ ) {
-      if ( !strcmp( "-skel", argv[i]) ) {
-	SkeletonPrint = TRUE;
-	numargs++;
-      }
-      else if ( !strcmp( "-grid", argv[i]) ) {
-	PrintGridOnly = TRUE;
-	numargs++;
-      }
+  commandLine = new CommandLineHandlerSetting( argc, argv );
 
+
+  // Activate function tracing, if desired
 #ifdef TRACE
-      else if ( !strcmp("-trace", argv[i]) ) {
-	OutInfo::FcnTraceHandler::SetMaxTraceDepth(TRACE);
-	int dummy = TRACE;
-	std::cerr << "Set tracing depth to" << dummy << std::endl;
-	numargs++;
-      }
-#endif
-
-      //---------------------------------------------
-      //  Choice of bubbledynamical model
-      else if ( !strcmp("-bubbletyp", argv[i]) ) {
-	numargs += 2;
-	std::string aux( argv[i+1] );
-	//	String2Enum( aux, bubbleDyn );
-      }
-    }
-    
+  Integer traceDepth = commandLine->GetTraceDepth();
+  OutInfo::FcnTraceHandler::SetMaxTraceDepth( traceDepth );
+  if ( traceDepth == 0 ) {
+    std::cerr << " De-activating function tracing since depth = "
+              << traceDepth << '\n';
   }
+  else {
+    std::cerr << " Activating function tracing with depth = "
+              << traceDepth << '\n';
+  }
+#endif
 
   if (argc < numargs) {
     STDOUT << std::endl;
@@ -101,13 +91,10 @@ int main(int argc, char *argv[]) {
     exit(1);
   }
 
-  // Obtain basename for CFS++ IO-files
-  char *name = argv[argc-1];
 
-
-  // ==========================================================================
+  // =========================================================================
   // INITIALISATION OF MPI
-  // ==========================================================================
+  // =========================================================================
 
 #ifdef PARALLEL //initialize MPI
   int commrank,commsize;
@@ -118,9 +105,9 @@ int main(int argc, char *argv[]) {
 #endif //parallel
 
 
-  // ==========================================================================
+  // =========================================================================
   // SKELETON OF CONFIG-FILE
-  // ==========================================================================
+  // =========================================================================
 
   // This block is used for writing a skeleton of a .conf or .xml parameter
   // file. Since normally all opening of files is handled in definefiles
@@ -132,43 +119,43 @@ int main(int argc, char *argv[]) {
 
   // for writing a skeleton of a config file by using the information
   // from the mesh-file
-  if (SkeletonPrint==TRUE)
-    {
+  if ( commandLine->GetWriteSkeleton() == TRUE ) {
+
 #ifdef TRACE
-      strcpy(filename, name);
-      trace = new std::ofstream(strcat(filename,".trace"));
-      if (!trace) Error("Can't open trace-file");
+    std::string traceFile = commandLine->GetSimName() + ".trace";
+    trace = new std::ofstream( traceFile.c_str() );
+    if (!trace) Error("Can't open trace-file");
 #endif
  
 #ifdef DEBUG
-      strcpy(filename, name);
-      debug=new std::ofstream(strcat(filename,".deb"));
-      if (!debug) Error("Can't open debug-file");
+    std::string debugFile = commandLine->GetSimName() + ".deb";
+    debug = new std::ofstream( debugFile.c_str() );
+    if (!debug) Error("Can't open debug-file");
 #endif
 
-      // class writing log-information
-      Info = new WriteInfo();
-      Info->PrintHeader();
-      SkeletonConf *ptskel = new SkeletonConf(name);
-      ptskel->WriteConf();
-      delete ptskel;
+    // class writing log-information
+    Info = new WriteInfo();
+    Info->PrintHeader();
+    SkeletonConf *ptskel = new SkeletonConf();
+    ptskel->WriteConf();
+    delete ptskel;
 
-      return 0;
-    }
+    return 0;
+  }
 
 
-  // ==========================================================================
+  // =========================================================================
   // SETUP OF MPCCI
-  // ==========================================================================
+  // =========================================================================
 
 #ifdef MpCCI
   CCI_Init( &argc, &argv );  
 #endif
 
 
-  // ==========================================================================
+  // =========================================================================
   // SETUP OF IO-STUFF
-  // ==========================================================================
+  // =========================================================================
 
   // Create object for logging information
   Info = new WriteInfo();
@@ -177,8 +164,8 @@ int main(int argc, char *argv[]) {
   Info->PrintHeader();
 
   // Open files for input/output
-  DefineInOutFiles * ptDefineFiles=new DefineInOutFiles(name);
-  Info->CreateFile(name);
+  DefineInOutFiles * ptDefineFiles=new DefineInOutFiles( commandLine->GetSimName().c_str() );
+  Info->CreateFile();
 
   MyClock oClockTotal;
   oClockTotal.ClockCount(MyClock::beg);
@@ -193,12 +180,13 @@ int main(int argc, char *argv[]) {
 
   Domain *domain = new Domain(ptInputfile, ptOut, ptTimeFunc);
 
-  // ==========================================================================
+  // =========================================================================
   // Only output of grid
-  // ==========================================================================
+  // =========================================================================
   
   if (PrintGridOnly) {
-    STDOUT << "Printing grid to file " << name << ".unv" << myEndl << myEndl;
+    STDOUT << "Printing grid to file " <<  commandLine->GetSimName()
+           << ".unv" << myEndl << myEndl;
     domain->PrintGrid(0);
     exit(0);
   }
@@ -206,9 +194,9 @@ int main(int argc, char *argv[]) {
     
 
 
-  // ==========================================================================
+  // =========================================================================
   // SELECTION OF DRIVER
-  // ==========================================================================
+  // =========================================================================
 
   BaseDriver   *ptdriver;  
   AnalysisType analysisType;
@@ -252,38 +240,34 @@ int main(int argc, char *argv[]) {
 
     case HARMONIC:
       // calls Driver for parameter identification, using harmonic analysis
-      if (analysis == "paramIdent"){ 
-	ptdriver = new piezoParamIdent(domain);
+      if ( analysis == "paramIdent" ) {
+	ptdriver = new piezoParamIdent( domain );
       }
-      else if (analysis =="multiHarmonic")
-  	ptdriver = new MultiHarmonicDriver(domain);
+      else if ( analysis == "multiHarmonic" )
+  	ptdriver = new MultiHarmonicDriver( domain );
       else
-	ptdriver = new HarmonicDriver(domain);
+	ptdriver = new HarmonicDriver( domain );
       break;
 
     case MULTI_SEQUENCE:
-      ptdriver = new MultiSequenceDriver(domain);
+      ptdriver = new MultiSequenceDriver( domain );
       break;
 
     case BUBBLEDYNAMIC:
-      ptdriver = new BubbleDriver(domain, name);
+      ptdriver = new BubbleDriver( domain );
       break;
 
     default:
-      {
-	std::string errMsg = "Driver '";
-	errMsg += analysis;
-	errMsg += "' not supported!";
-	Info->Error( errMsg.c_str(),  __FILE__, __LINE__ );
-      }
+      (*error) << "Driver '" << analysis << "' not supported!";
+      Error( __FILE__, __LINE__ );
     }
 
   Info->FinishProgress();
 
 
-  // ==========================================================================
+  // =========================================================================
   // SOLUTION PHASE
-  // ==========================================================================
+  // =========================================================================
 
   ptdriver->SolveProblem();
   std::cout << std::endl;
@@ -295,9 +279,9 @@ int main(int argc, char *argv[]) {
   oClockTotal.ClockCount(MyClock::end,"Total time");
 
 
-  // ==========================================================================
+  // =========================================================================
   // CLEANUP PHASE
-  // ==========================================================================
+  // =========================================================================
 
 #ifdef MpCCI
   CCI_Finalize();
