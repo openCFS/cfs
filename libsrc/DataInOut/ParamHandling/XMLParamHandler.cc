@@ -757,7 +757,7 @@ namespace CoupledField {
       // Only treat element children and not comments!
       if ( directCoupledPDEsec->item(i)->getNodeType() ==
            DOMNode::ELEMENT_NODE){
-    
+
         // The names of the PDEs are the tags of the child elements of the
         // PDE_list element, except perhaps the last one, which specifies
         // the nonlinear coupling
@@ -774,29 +774,28 @@ namespace CoupledField {
         std::string pdename;
         pdename = X2C(Node2Elem(directCoupledPDEsec->item(i))->getNodeName());
         list.Push_back( pdename );
+
       }
     }
   }
+
     
   // ======================================
   //   Return a list of the defined coils
   // ======================================
   void XMLParamHandler::GetCoilList( StdVector<std::string> &list,
-                                     const std::string pde,
-                                     const std::string sequenceTag) {
+				     const std::string pde,
+				     const std::string sequenceTag ) {
 
     ENTER_FCN( "XMLParamHandler::GetCoilList" );
-
-    // string for assembling error messages
-    std::string errmsg;
 
     // Check if vector is empty. If not issue a warning
     // and erase its entries, if this is desired
     if ( list.IsEmpty() != true ) {
       if ( beVerbose_ == true ) {
-        errmsg  = "Warning input vector was not empty!\n";
-        errmsg += "Contents have been erased!";
-        Info->Warning( errmsg );
+        (*warning) << "Warning input vector was not empty! "
+                   << "Contents have been erased!";
+	Warning( __FILE__, __LINE__ );
       }
       list.Clear();
     }
