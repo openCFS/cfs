@@ -133,7 +133,7 @@ namespace CoupledField {
     ENTER_FCN( "BaseCommandLineHandler::PrintParams" );
 
     out << COLOR_INIT
-        << "\n Status of command line parameters (including defaults):\n\n"
+        << "\n\nValues of command line parameters (including defaults):\n\n"
         << COLOR_STOP
 
         << " name of simulation run = "
