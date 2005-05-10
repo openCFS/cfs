@@ -43,9 +43,10 @@ namespace CoupledField {
   BaseFE * ptWedge1 = NULL;
   BaseFE * ptWedge2 = NULL;
 
-  WriteInfo * Info = NULL;
-  //  ConfFile * conf           = NULL;
-  BaseParamHandler * params = NULL;
+  // Initialisation of some global pointers
+  WriteInfo *Info = NULL;
+  BaseParamHandler *params = NULL;
+  BaseCommandLineHandler *commandLine = NULL;
 
 
   // --------------------------------------------

@@ -170,7 +170,12 @@ namespace CoupledField
 
   //! output format for complex numbers
   typedef enum {REAL_IMAG, AMPLITUDE_PHASE} ComplexFormat;
-  
+
+
+  //--------------------- Stuff for handling different IO files -------------
+
+  typedef enum {TRACE_FILE, DEBUG_FILE, OLAS_FILE} AuxFileType;
+
 
   //------------------------ Stuff for bubble simulation --------------------
 
@@ -204,6 +209,10 @@ namespace CoupledField
   class BaseParamHandler;
   //! Global pointer to class performing handling of steering parameters
   extern BaseParamHandler *params;
+
+  class BaseCommandLineHandler;
+  //! Global pointer to class performing handling of command line parameters
+  extern BaseCommandLineHandler *commandLine;
 
   //! class BaseElem;
   class BaseFE;
