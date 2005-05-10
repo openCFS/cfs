@@ -57,7 +57,7 @@ namespace CoupledField {
                   Setting::COMMAND_LINE_ONLY | Setting::EXPLICIT_ASSIGNMENT,
                   helpMeshFile_.c_str() ),
 
-      // --trace
+      // --traceDepth
       SettingDef( markerTraceDepth_.c_str(),
                   markerLongTraceDepth_.c_str(),
                   Setting::INT,
