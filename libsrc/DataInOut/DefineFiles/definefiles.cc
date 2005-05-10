@@ -1,11 +1,6 @@
 #include <fstream>
 #include <iostream>
-
-#ifdef __sgi
-#include <stdio.h>
-#else
 #include <cstdio>
-#endif
 
 #include <string>
 
@@ -19,6 +14,7 @@
 #include "DataInOut/GSI/outGSI.hh"
 #endif
 
+#include "DataInOut/CommandLine/BaseCommandLineHandler.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
 #include "DataInOut/ParamHandling/PlainXMLParamHandler.hh"
 #include "DataInOut/ParamHandling/XMLParamHandler.hh"
@@ -55,85 +51,24 @@ namespace CoupledField
   // ===============
   //   Constructor
   // ===============
-  DefineInOutFiles::DefineInOutFiles(const Char *name)
-  {
+  DefineInOutFiles::DefineInOutFiles( const Char *name ) {
 
 #ifdef PARALLEL
- // find out who I am and write to seperate files:
- int commrank;
- MPI_Comm comm = MPI_COMM_WORLD;
- MPI_Comm_rank(comm,&commrank);
- char *rank = new char[5];
- sprintf(rank,"_%d",commrank);
- 
+    // find out who I am and write to seperate files:
+    int commrank;
+    MPI_Comm comm = MPI_COMM_WORLD;
+    MPI_Comm_rank(comm,&commrank);
+    char *rank = new char[5];
+    sprintf(rank,"_%d",commrank);
 #endif
-
-    // Store the basename of the auxilliary files
-    filename_ = new Char[strlen(name)+1];
-    strcpy( filename_, name );
-
-    // Generate array for names of auxilliary files
-    Char *auxfile = new Char[strlen(name)+MAXPOSTFIX+MAXRANK+1];
-
-    // Generate basename for files
-    Char *basename = new Char[strlen(name)+MAXRANK+1];
-    strcpy( basename, name );
 
 #ifdef PARALLEL
-    strcat( basename, rank );
+    // strcat( basename, rank );
 #endif
-
-    // *************************
-    //   Handle Parameter File
-    // *************************
-
-    // Generate parameter handler and pass address to global pointer
-    // Note: This is the new XML-based conffile format
-    strcpy( auxfile, name );
-    strcat( auxfile, ".xml" );
-
-#ifdef USE_XERCES
-    params = new XMLParamHandler( auxfile );
-#else
-    params = new PlainXMLParamHandler( auxfile );
-#endif
-
-    
-#ifdef TRACE
-    strcpy(auxfile, basename);
-    trace = new std::ofstream(strcat(auxfile,".trace"));
-    if (!trace) Error("Can't open trace-file");
-#endif
- 
-#ifdef DEBUG
-    strcpy(auxfile, basename);
-    debug = new std::ofstream(strcat(auxfile,".deb"));
-    if (!debug) Error("Can't open debug-file");
-#endif
-
-#ifdef MEMTRACE
-    strcpy(auxfile, basename);
-    memtrace = new std::ofstream(strcat(auxfile,".mem"));
-    if (!memtrace) Error("Can't open memtrace-file");
-#endif
-
-    // File for reports of linear algebra system LAS
-    strcpy(auxfile, basename);
-    cla = new std::ofstream(strcat(auxfile,".las")); 
-    if (!cla) Error("Can't open LAS++-file");
-
-
-    strcpy(auxfile, basename);
-    data=new std::ofstream(strcat(auxfile,".data"));
-    if (!data) Error("Can't open data-file");
-
 
     // Initialise internal pointers
     ptWriteResults_ = NULL;
     infileType_ = NULL;
-
-    // ???
-    flags = new Flags();
 
   }
  
@@ -141,36 +76,30 @@ namespace CoupledField
   // ==============
   //   Destructor
   // ==============
-  DefineInOutFiles ::~DefineInOutFiles()
-  {
-    // Cannot trace into trace file once trace file has been deleted
-    // so ENTER_FCN cannot write a leaving message for this destructor!!!
-    // ENTER_FCN( "DefineInOutFiles::~DefineInOutFiles" );
+  DefineInOutFiles::~DefineInOutFiles() {
+
+    ENTER_FCN( "DefineInOutFiles::~DefineInOutFiles" );
 
 #ifdef DEBUG
     delete debug;
     debug = NULL;
 #endif
 
-    if (cla) delete cla;
-    cla = NULL;
-    
-    // Delete internal pointers
-    if (ptWriteResults_) delete ptWriteResults_;
-    ptWriteResults_ = NULL;
-    
-    if (infileType_) delete infileType_;
-    infileType_ = NULL;
-
-    delete[] filename_;
-
-#ifdef TRACE
-    delete trace;
-    trace = NULL;
+#ifdef MEMTRACE
+    delete memtrace;
+    memtrace = NULL;
 #endif
 
-    delete flags;
-    flags = NULL;
+    // Delete pointer to OLAS report file
+    delete cla;
+    cla = NULL;
+
+    // Delete internal pointers
+    delete ptWriteResults_;
+    ptWriteResults_ = NULL;
+
+    delete infileType_;
+    infileType_ = NULL;
 
   }
 
@@ -178,19 +107,18 @@ namespace CoupledField
   // ==============================
   //   Generate mesh file pointer
   // ==============================
-  FileType * DefineInOutFiles :: Create_ptFileType()
-  {
-    ENTER_FCN( "DefineInOutFiles::Create_ptFileType" );
+  FileType* DefineInOutFiles::CreateMeshFileHandler() {
 
-    if ( params->HasValue( "format", "mesh", "input" ) )
-      {
-	infileType_ = new AnsysFile( filename_ );
-      }
-    else
-      {
-	Error( "Wrong format for input file. Please, check your data!",
-	       __FILE__, __LINE__ );
-      }
+    ENTER_FCN( "DefineInOutFiles::CreateMeshFileHandler" );
+
+    std::string simName = commandLine->GetSimName();
+    if ( params->HasValue( "format", "mesh", "input" ) ) {
+      infileType_ = new AnsysFile( simName.c_str() );
+    }
+    else {
+      Error( "Wrong format for input file. Please, check your data!",
+             __FILE__, __LINE__ );
+    }
 
     return infileType_;
   }
@@ -204,34 +132,136 @@ namespace CoupledField
   {
     ENTER_FCN( "DefineInOutFiles::Create_ptWriteResults" );
 
+    std::string simName = commandLine->GetSimName();
+
     std::string outformat;
     params->Get( "format", outformat, "output" );
 
     if ( outformat == "gmv" ) {
-      ptWriteResults_= new WriteResultsGMV(filename_, aInFile);
+      ptWriteResults_= new WriteResultsGMV( simName.c_str(), aInFile );
     }
     else if ( outformat == "unv" ) 
-      ptWriteResults_= new WriteResultsUnverg(filename_, aInFile); 
+      ptWriteResults_= new WriteResultsUnverg( simName.c_str(), aInFile ); 
 #ifdef GSI
     else if ( outformat == "gsi" ) 
-      ptWriteResults_= new WriteResultsGSI(filename_, aInFile);
+      ptWriteResults_= new WriteResultsGSI( simName.c_str(), aInFile );
 #endif
 
 #ifdef USE_DATABASE
     else if (outformat == "database") 
-      ptWriteResults_= new WriteResultsDatabase(filename_, aInFile);
+      ptWriteResults_= new WriteResultsDatabase( simName.c_str(), aInFile );
 #endif
-    else
-      {
-	std::string errmsg = "Output format '" + outformat;
-	errmsg += "' not recognised";
-	Info->Error( errmsg, __FILE__, __LINE__ );
-      }
+    else {
+      (*error) << "Output format '" << outformat << "' not recognised";
+      Error( __FILE__, __LINE__ );
+    }
 
     if (!ptWriteResults_) 
       Error("Can't open file for output results",__FILE__,__LINE__);
   
     return ptWriteResults_;
+  }
+
+
+  // ************
+  //   OpenFile
+  // ************
+  void DefineInOutFiles::OpenFile( AuxFileType fileType ) {
+
+    ENTER_FCN( "DefineInOutFiles::OpenFile" );
+
+    std::string fileName;
+
+    switch( fileType ) {
+
+
+      // -------------
+      //  TRACE_FILE
+      // -------------
+    case TRACE_FILE:
+
+      fileName = commandLine->GetSimName() + ".trace";
+
+#ifdef TRACE
+      trace = new std::ofstream( fileName.c_str() );
+      if ( trace == NULL ) {
+        (*error) << "Failed to open file '" << fileName << "' for "
+                 << "writing function trace information!";
+        Error( __FILE__, __LINE__ );
+      }
+      break;
+#else
+      (*error) << "Executable was compiled without support for function "
+               << "tracing! Refusing to open trace file '"
+               << fileName << "'";
+      Error( __FILE__, __LINE__ );
+      break;
+#endif
+
+
+      // -------------
+      //  DEBUG_FILE
+      // -------------
+    case DEBUG_FILE:
+
+      fileName = commandLine->GetSimName() + ".deb";
+
+#ifdef DEBUG
+      debug = new std::ofstream( fileName.c_str() );
+      if ( debug == NULL ) {
+        (*error) << "Failed to open file '" << fileName << "' for "
+                 << "writing debug information!";
+        Error( __FILE__, __LINE__ );
+      }
+      break;
+#else
+      (*error) << "Executable was compiled without debug support!"
+               << "Refusing to open debug file '" << fileName << "'";
+      Error( __FILE__, __LINE__ );
+      break;
+#endif
+
+
+      // ---------------
+      //  MEMTRACE_FILE
+      // ---------------
+    case MEMTRACE_FILE:
+
+      fileName = commandLine->GetSimName() + ".mem";
+
+#ifdef MEMTRACE
+      memtrace = new std::ofstream( fileName.c_str() );
+      if ( memtrace == NULL ) {
+        (*error) << "Failed to open file '" << fileName << "' for "
+                 << "writing memory trace information!";
+        Error( __FILE__, __LINE__ );
+      }
+      break;
+#else
+      (*error) << "Executable was compiled without support for memory "
+               << "tracing! Refusing to open trace file '"
+               << fileName << "'";
+      Error( __FILE__, __LINE__ );
+      break;
+#endif
+
+
+      // ------------
+      //  OLAS_FILE
+      // ------------
+    case OLAS_FILE:
+
+      fileName = commandLine->GetSimName() + ".las";
+      cla = new std::ofstream( fileName.c_str() );
+      if ( cla == NULL ) {
+        (*error) << "Failed to open file '" << fileName << "' for "
+                 << "writing status reports of OLAS, the linear algebra "
+                 << "sub-system!";
+        Error( __FILE__, __LINE__ );
+      }
+      break;
+
+    }
   }
 
 } // end of namespace
