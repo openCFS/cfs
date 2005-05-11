@@ -118,7 +118,9 @@ namespace CoupledField {
     // check for pressure loads
     params->GetList( "name"    , pressSurf_ , pdename_, "pressure" );
     params->GetList( "value"   , pressVals_ , pdename_, "pressure" );
+    params->GetList( "phase"   , pressPhase_ , pdename_, "pressure" );
     params->GetList( "dynamics", pressFnc_  , pdename_, "pressure" );
+
 
     // Check consistency
     if ( pressSurf_.GetSize() != pressVals_.GetSize() ) {
@@ -130,11 +132,12 @@ namespace CoupledField {
     }
 
     // We need not have as many function/filenames as pressureloads!
-    for ( Integer k = pressFnc_.GetSize(); k < pressSurf_.GetSize(); k++ ) {
-      pressFnc_.Push_back( "none" );
-    }
+    for ( Integer k = pressFnc_.GetSize(); k < pressSurf_.GetSize(); k++ )
+      {
+	pressFnc_.Push_back( "none" );
+      }
   }
-
+  
 
   // *********************
   //   DefineIntegrators
@@ -153,14 +156,15 @@ namespace CoupledField {
     Boolean nonLin = FALSE;
     for ( int actSD = 0; actSD < subdoms_.GetSize(); actSD++ ) {
 
-      // ==============  add stiffness ========================================
+      // ==============  add stiffness ======================================
 
       MaterialData actSDMat(materialData_[actSD]);
 
-      // ==============  add "standard" stiffness =============================
+      // ==============  add "standard" stiffness ===========================
 
       BaseForm * bilinearStiff = GetStiffIntegrator(actSDMat);
-      IntegratorDescriptor *actIntDescrStiff = new IntegratorDescriptor(bilinearStiff, STIFFNESS);
+      IntegratorDescriptor *actIntDescrStiff = 
+	new IntegratorDescriptor(bilinearStiff, STIFFNESS);
       bilinearStiff->SetPiezoMaterialType(realMatParameter);
       actIntDescrStiff->SetPiezoMaterialType(realMatParameter);
       assemble_->AddIntegrator(actIntDescrStiff, subdoms_[actSD]);
@@ -168,7 +172,8 @@ namespace CoupledField {
       // check for complex-valued material parameter
       if (piezoMaterialType_ == IMAGMATERIALPARAMETER){
         BaseForm * bilinearStiffC = GetStiffIntegrator(actSDMat);
-        IntegratorDescriptor *actComplexIntDescrStiff =  new IntegratorDescriptor(bilinearStiffC, STIFFNESS);
+        IntegratorDescriptor *actComplexIntDescrStiff = 
+	  new IntegratorDescriptor(bilinearStiffC, STIFFNESS);
         actComplexIntDescrStiff->SetPiezoMaterialType(piezoMaterialType_);
         bilinearStiffC->SetPiezoMaterialType(piezoMaterialType_);
         assemble_->AddIntegrator(actComplexIntDescrStiff, subdoms_[actSD]);
@@ -178,11 +183,12 @@ namespace CoupledField {
       if ( dampingType_ == RAYLEIGH ) {
         Boolean isdamping = TRUE;
         Boolean reducedIntegration = FALSE; //is currently not supported
-        BaseForm * dampStiff = GetStiffIntegrator( actSDMat,reducedIntegration,
-                                                   isdamping );
+        BaseForm * dampStiff = 
+	  GetStiffIntegrator( actSDMat, reducedIntegration,isdamping );
         dampStiff->SetRaylDamping();
 
-        IntegratorDescriptor *actIntDescrDamp = new IntegratorDescriptor(dampStiff, DAMPING);
+        IntegratorDescriptor *actIntDescrDamp =
+	  new IntegratorDescriptor(dampStiff, DAMPING);
         dampStiff->SetPiezoMaterialType(realMatParameter);
         actIntDescrDamp->SetPiezoMaterialType(realMatParameter);
         
@@ -192,9 +198,10 @@ namespace CoupledField {
         if (piezoMaterialType_ == IMAGMATERIALPARAMETER){
           Boolean isdamping = TRUE;
           Boolean reducedIntegration = FALSE; //is currently not supported
-          BaseForm * dampStiffC = GetStiffIntegrator( actSDMat,reducedIntegration,
-                                                      isdamping );
-          IntegratorDescriptor *actComplexIntDescrDamp = new IntegratorDescriptor(dampStiffC, DAMPING);
+          BaseForm * dampStiffC = 
+	    GetStiffIntegrator( actSDMat,reducedIntegration, isdamping );
+          IntegratorDescriptor *actComplexIntDescrDamp =
+	    new IntegratorDescriptor(dampStiffC, DAMPING);
           dampStiffC->SetPiezoMaterialType(piezoMaterialType_);
           actComplexIntDescrDamp->SetPiezoMaterialType(piezoMaterialType_);
           assemble_->AddIntegrator(actComplexIntDescrDamp, subdoms_[actSD]);
@@ -209,7 +216,8 @@ namespace CoupledField {
                                              posOfElectricPot, isaxi_);
       bilinearMass->SetPiezoMaterialType(realMatParameter);
 
-      IntegratorDescriptor * actIntDescrMass = new IntegratorDescriptor(bilinearMass, MASS);
+      IntegratorDescriptor * actIntDescrMass =
+	new IntegratorDescriptor(bilinearMass, MASS);
       //check for damping (mass part)
       if (dampingType_ == RAYLEIGH){    
         actIntDescrMass->SetSecondaryMat(DAMPING, actSDMat.GetDampingAlfa(),
@@ -222,17 +230,36 @@ namespace CoupledField {
     } // end for actSD ...
     
 
-
     //surface integrators
     //RHS-part
-    Integer nonlin = 0;
-    for (Integer actSF = 0; actSF < pressSurf_.GetSize(); actSF++) {
-      BaseForm * rhsSrcSurf = new PressureLinForm(pressVals_[actSF], isaxi_);
-      rhsSrcSurf->SetDofZero(posOfElectricPot);
-      assemble_->AddRhsSrcSurfIntegrator(rhsSrcSurf, pressSurf_[actSF], 
-                                         pressFnc_[actSF],nonlin);
+    if (analysistype_==HARMONIC){
+      Integer nonlin = 0;
+      Vector<Complex> pressValsC_(pressVals_.GetSize());
+            
+      for (Integer actSF = 0; actSF < pressSurf_.GetSize(); actSF++) {
+	BaseForm * rhsSrcSurf = new 
+	  PressureLinForm(pressVals_[actSF], isaxi_);
+	rhsSrcSurf->SetDofZero(posOfElectricPot);
+	
+	assemble_->AddRhsSrcSurfIntegrator(rhsSrcSurf, pressSurf_[actSF], 
+					   pressFnc_[actSF],nonlin);
+	assemble_->AddRhsSrcSurfIntegrator(rhsSrcSurf, pressSurf_[actSF], 
+					   pressPhase_[actSF],nonlin);
+      }
+	
     }
+    else
+      {
 
+	Integer nonlin = 0;
+	for (Integer actSF = 0; actSF < pressSurf_.GetSize(); actSF++) {
+	  BaseForm * rhsSrcSurf = new 
+	    PressureLinForm(pressVals_[actSF], isaxi_);
+	  rhsSrcSurf->SetDofZero(posOfElectricPot);
+	  assemble_->AddRhsSrcSurfIntegrator(rhsSrcSurf, pressSurf_[actSF], 
+					     pressFnc_[actSF],nonlin);
+	}
+      }
   }
 
 
@@ -281,7 +308,8 @@ namespace CoupledField {
       TS_alg_ = new NewmarkEffMass(pdename_, algsys_, 
                                    eqnData_, needsDampingMatrix_);
     else
-      TS_alg_ = new Newmark(pdename_, algsys_, eqnData_, needsDampingMatrix_);
+      TS_alg_ = new
+	Newmark(pdename_, algsys_, eqnData_, needsDampingMatrix_);
   }
 
 
@@ -468,7 +496,8 @@ namespace CoupledField {
     valVec  = "", "", quantity;
     params->GetList( keyVec, attrVec, valVec, calcEfield_ );
 
-    // If the the symbolic name is "all" compute electric field for all regions
+    // If the the symbolic name is "all"
+    // compute electric field for all regions
     if ( calcEfield_.GetSize() == 1 && calcEfield_[0] == "all" ) {
       calcEfield_ = subdoms_;
     }
@@ -586,8 +615,10 @@ namespace CoupledField {
     // Check for volume computation of 
     // deformed surface
     // *****************************
-    params->GetList( "name" , volAboveDefSurfRegions_ , pdename_, "volumeAboveDefSurf" );
-    params->GetList( "dof" , volAboveDefSurfDir_ , pdename_, "volumeAboveDefSurf" );
+    params->GetList( "name" , volAboveDefSurfRegions_,
+		     pdename_, "volumeAboveDefSurf" );
+    params->GetList( "dof" , volAboveDefSurfDir_ , 
+		     pdename_, "volumeAboveDefSurf" );
 
     // *****************************
     // Determine nodal history
@@ -665,7 +696,8 @@ namespace CoupledField {
 
     ENTER_FCN( "PiezoPDE::PostProcess" );
 
-    NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
+    NodeStoreSol<Double> * solhelp = 
+      dynamic_cast<NodeStoreSol<Double>*>(sol_);
 
 
     // calc electric field
@@ -706,9 +738,9 @@ namespace CoupledField {
     ENTER_FCN( "PiezoPDE::CalcEfield" );
     NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
 
-    GradientFieldOp<Double> * FieldOp = new GradientFieldOp<Double>(ptgrid_, this, eqnData_,
-                                                                    *solhelp, ELEC_POTENTIAL, 
-                                                                    actlevel_, isaxi_);
+    GradientFieldOp<Double> * FieldOp = new 
+      GradientFieldOp<Double>(ptgrid_, this, eqnData_, *solhelp, ELEC_POTENTIAL, 
+			      actlevel_, isaxi_);
 
 
     // ------ Calculation of the electric field ------
@@ -741,11 +773,12 @@ namespace CoupledField {
 
   void PiezoPDE::CalcComplexValuedEfield(){
     ENTER_FCN( "PiezoPDE::CalcComplexValuedEfield" );
-    NodeStoreSol<Complex> * solhelp = dynamic_cast<NodeStoreSol<Complex>*>(sol_);
+    NodeStoreSol<Complex> * solhelp = 
+      dynamic_cast<NodeStoreSol<Complex>*>(sol_);
 
-    GradientFieldOp<Complex> * FieldOp = new GradientFieldOp<Complex>(ptgrid_, this, eqnData_,
-                                                                      *solhelp, ELEC_POTENTIAL, 
-                                                                      actlevel_, isaxi_);
+    GradientFieldOp<Complex> * FieldOp = 
+      new GradientFieldOp<Complex>(ptgrid_, this, eqnData_, *solhelp,
+				   ELEC_POTENTIAL, actlevel_, isaxi_);
 
 
     // ------ Calculation of the electric field ------
@@ -779,7 +812,8 @@ namespace CoupledField {
 
   void PiezoPDE::CalcStress(){
     ENTER_FCN( "PiezoPDE::CalcSress" );
-    NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
+    NodeStoreSol<Double> * solhelp = 
+      dynamic_cast<NodeStoreSol<Double>*>(sol_);
   
   
     //get the correct bilinearform
@@ -804,7 +838,8 @@ namespace CoupledField {
     }
   
     else 
-      Info->Error("StressOp: Unknown subtype in mech PDE! ",__FILE__,__LINE__);  
+      Info->Error("StressOp: Unknown subtype in mech PDE! "
+		  ,__FILE__,__LINE__);  
   
   
     Vector<Double> elemElecStress, elemStress, sortedStress;
@@ -871,7 +906,8 @@ namespace CoupledField {
   
   void PiezoPDE::CalcComplexValuedStress(){
     ENTER_FCN( "PiezoPDE::CalcComplexValuedStress" );
-    NodeStoreSol<Complex> * solhelp = dynamic_cast<NodeStoreSol<Complex>*>(sol_);
+    NodeStoreSol<Complex> * solhelp = 
+      dynamic_cast<NodeStoreSol<Complex>*>(sol_);
   
     //get the correct bilinearform
     ShortInt stressElecDim, stressDim, elecDim;
@@ -894,7 +930,8 @@ namespace CoupledField {
     }
   
     else 
-      Info->Error("StressOp: Unknown subtype in mech PDE! ",__FILE__,__LINE__);  
+      Info->Error("StressOp: Unknown subtype in mech PDE! "
+		  ,__FILE__,__LINE__);  
   
   
     Vector<Complex> elemElecStress, elemStress, sortedStress;
@@ -998,7 +1035,8 @@ namespace CoupledField {
     }
   
     else 
-      Info->Error("StressOp: Unknown subtype in mech PDE! ",__FILE__,__LINE__);  
+      Info->Error("StressOp: Unknown subtype in mech PDE! "
+		  ,__FILE__,__LINE__);  
   
   
     Vector<Double> elemElecStress;
@@ -1122,7 +1160,8 @@ namespace CoupledField {
 
 void PiezoPDE::CalcComplexValuedCharges(){
   ENTER_FCN( "PiezoPDE::CalcComplexValuedCharges" );
-  NodeStoreSol<Complex> * solhelp = dynamic_cast<NodeStoreSol<Complex>*>(sol_);
+  NodeStoreSol<Complex> * solhelp = 
+    dynamic_cast<NodeStoreSol<Complex>*>(sol_);
   StdVector<Elem*> surfElems, volElems;
   Vector<Double> lCoordSurf, lCoordVol;
   Vector<Complex> elemDField;
