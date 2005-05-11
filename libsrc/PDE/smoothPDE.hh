@@ -48,7 +48,7 @@ public:
   virtual void InitTimeStepping(){;};
 
   //! set time step
-  //! \params dt Current time step
+  //! \param dt Current time step
   virtual void SetTimeStep(const Double dt){};
   
 

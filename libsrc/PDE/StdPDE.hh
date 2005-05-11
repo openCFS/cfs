@@ -188,7 +188,7 @@ namespace CoupledField {
   
   
     //! set time step
-    //! \params dt Current time step
+    //! \param dt Current time step
     virtual void SetTimeStep(const Double dt)
     {TS_alg_->Init(matrix_factor_, dt);}
   

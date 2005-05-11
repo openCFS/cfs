@@ -25,6 +25,7 @@ namespace CoupledField {
   // **************
   ScalarBlockEQN::~ScalarBlockEQN() {
     ENTER_FCN( "ScalarBlockEQN::ScalarBlockEQN" );
+    Print( (*cla) );
   }
 
 

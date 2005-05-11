@@ -93,7 +93,8 @@ public:
   //! gets the coordinates of the element nodes
   /*!
     \param connect (input) global node numbers of element
-    \param ptCoord (output) coordinates of the element nodes (nrNodes \f$\times$ spaceDim);
+    \param ptCoord (output) coordinates of the element nodes (nrNodes
+    \f$\times\f$ spaceDim);
     \param level (input) index for multilevel hierarchy
   */
   void GetCoordNodesElemMat( const StdVector<Integer> connect,

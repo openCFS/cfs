@@ -35,8 +35,8 @@ public:
   \param sol solution 
   \param subdoms vector with names of subdomains, on which we do calculation
   \param ptgrid pointer to the Grid
-  \param errorMap out: vector with calculated relative error for each element. \f $||grad_{\SPR} - grad_{FEM}||_L2$
-   \param  atotalErr out: total error.\f $||grad_{SPR}||_L2$
+  \param errorMap out: vector with calculated relative error for each element.   \f$|| grad_{\mbox{SPR}} - grad_{\mbox{FEM}} ||_L2\f$
+   \param  atotalErr out: total error.\f$||grad_{\mbox{SPR}}||_L2\f$
   */
  void CalcErrorMap(const Vector<Double> & sol, std::vector<std::string> & subdoms,
  Grid * ptgrid, Vector<Double> & relErrorMap, Double & atotalErr, const Integer level);
@@ -46,8 +46,8 @@ public:
   \param sol solution 
   \param subdoms vector with names of subdomains, on which we do calculation
   \param ptgrid pointer to the Grid
-  \param errorMap out: vector with calculated relative error for each element. \f $||grad_{\SPR} - grad_{FEM}||_L2$
-   \param  atotalErr out: total error.\f $||grad_{SPR}||_L2$
+  \param errorMap out: vector with calculated relative error for each element. \f$||grad_{\SPR} - grad_{FEM}||_L2\f$
+   \param  atotalErr out: total error.\f$||grad_{SPR}||_L2\f$
   */
  void CalcErrorMapHarmonic(const Vector<Double> & solRe, const Vector<Double> & solIm, 
 			   std::vector<std::string> & subdoms, Grid * ptgrid,

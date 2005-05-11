@@ -72,8 +72,8 @@ public:
   //! Overloading for operator=
 
   //! This method is needed to intialize a StdVector like this
-  //! \verb StdVector<Integer> A;
-  //! \verb A = 1,2,5,10
+  //! StdVector<Integer> A;<br>
+  //! A = 1,2,5,10
   inline StdVectorListInitializer<TYPE> operator=(const TYPE x);
 
   //! Build vector from std::vector
