@@ -23,6 +23,9 @@ namespace CoupledField {
   const std::string BaseCommandLineHandler::helpParamFile_     =
   "name of XML parameter file for the simulation";
 
+  const std::string BaseCommandLineHandler::helpSchemaPath_    =
+  "path to directory containing the XML schema file";
+
   const std::string BaseCommandLineHandler::helpMeshFile_      =
   "name of mesh file for the simulation";  
 
@@ -42,9 +45,10 @@ namespace CoupledField {
   const std::string BaseCommandLineHandler::markerParamFile_     = "-p";
   const std::string BaseCommandLineHandler::markerMeshFile_      = "-m";
   const std::string BaseCommandLineHandler::markerTraceDepth_    = "-t";
-  const std::string BaseCommandLineHandler::markerWriteSkeleton_ = "-s";
+  const std::string BaseCommandLineHandler::markerWriteSkeleton_ = "-w";
   const std::string BaseCommandLineHandler::markerPrintGrid_     = "-g";
   const std::string BaseCommandLineHandler::markerHelp_          = "-h";
+  const std::string BaseCommandLineHandler::markerSchemaPath_    = "-s";
 
   // Long forms of markers
   const std::string BaseCommandLineHandler::markerLongParamFile_     =
@@ -59,6 +63,8 @@ namespace CoupledField {
   "--printGrid";
   const std::string BaseCommandLineHandler::markerLongHelp_          =
   "--help";
+  const std::string BaseCommandLineHandler::markerLongSchemaPath_    =
+  "--schemaPath";
 
 
   // ---------------------------------------------------------------
@@ -86,6 +92,13 @@ namespace CoupledField {
        << COLOR_STOP
        << " = <string>\n"
        << " " << helpParamFile_ << "\n\n"
+
+      // --schemaPath
+       << COLOR_INIT
+       << " " << markerSchemaPath_ << ", " << markerLongSchemaPath_
+       << COLOR_STOP
+       << " = <string>\n"
+       << " " << helpSchemaPath_ << "\n\n"
 
       // --meshFile
        << COLOR_INIT
@@ -144,6 +157,11 @@ namespace CoupledField {
         << ' ' << markerLongParamFile_ << " = "
         << COLOR_INIT
         << GetParamFile()
+        << COLOR_STOP << '\n'
+
+        << ' ' << markerLongSchemaPath_ << " = "
+        << COLOR_INIT
+        << GetSchemaPath()
         << COLOR_STOP << '\n'
 
         << ' ' << markerLongMeshFile_ << " = "

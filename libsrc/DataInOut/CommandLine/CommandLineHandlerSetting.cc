@@ -67,6 +67,15 @@ namespace CoupledField {
                   Setting::COMMAND_LINE_ONLY | Setting::EXPLICIT_ASSIGNMENT,
                   helpParamFile_.c_str() ),
 
+      // --schemaPath
+      SettingDef( markerSchemaPath_.c_str(),
+                  markerLongSchemaPath_.c_str(),
+                  Setting::STRING,
+                  1,
+                  1,
+                  Setting::COMMAND_LINE_ONLY | Setting::EXPLICIT_ASSIGNMENT,
+                  helpSchemaPath_.c_str() ),
+
       // --meshFile
       SettingDef( markerMeshFile_.c_str(),
                   markerLongMeshFile_.c_str(),

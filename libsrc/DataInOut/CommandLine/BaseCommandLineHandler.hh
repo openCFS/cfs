@@ -7,9 +7,7 @@
 #include "Utils/StdVector.hh"
 
 
-
-namespace CoupledField
-{
+namespace CoupledField {
 
 
   //! Base class for handling parameters specified on the command line
@@ -78,6 +76,14 @@ namespace CoupledField
   //!     </tr>
   //!
   //!     <tr>
+  //!       <td align="center">-s / --schemaPath = \<schemaPath\></td>
+  //!       <td align="center">string</td>
+  //!       <td><em>path to the XML schema file</em></td>
+  //!       <td align="center">(assigned during compilation)</td>
+  //!       <td align="center">%GetSchemaPath()</td>
+  //!     </tr>
+  //!
+  //!     <tr>
   //!       <td align="center">-p / --paramFile = \<xmlFileName\></td>
   //!       <td align="center">string</td>
   //!       <td><em>name of XML parameter file</em></td>
@@ -86,7 +92,7 @@ namespace CoupledField
   //!     </tr>
   //!
   //!     <tr>
-  //!       <td align="center">-s / --writeSkeleton</td>
+  //!       <td align="center">-w / --writeSkeleton</td>
   //!       <td align="center">flag / boolean</td>
   //!       <td><em>write skeleton of XML file for subsequent
   //!           simulation</em></td>
@@ -157,6 +163,18 @@ namespace CoupledField
     //! XML format that contains the steering parameters for the simulation.
     virtual std::string GetParamFile() const = 0;
 
+    //! Return path to XML schema file
+
+    //! This method can be used to query the path to the XML schema file
+    //! used by validating XML parsers to verify the formal correctness
+    //! of the XML parameter file.
+    //! \note
+    //! - There is currently no way to specify the name of the schema
+    //!   file itself. This must be called CFS.xsd!
+    //! - This path is also used to locate the default XML-file that is
+    //!   currently still needed by the XMLParamHandler.
+    virtual std::string GetSchemaPath() const = 0;
+
     //! Return name of mesh file
 
     //! This method can be used to query the name of the mesh file containing
@@ -212,6 +230,7 @@ namespace CoupledField
     const static std::string helpWriteSkeleton_;
     const static std::string helpPrintGrid_;
     const static std::string helpHelp_;
+    const static std::string helpSchemaPath_;
     //@}
 
     //! \name Strings containing short markers for command line parameters
@@ -224,6 +243,7 @@ namespace CoupledField
     const static std::string markerWriteSkeleton_;
     const static std::string markerPrintGrid_;
     const static std::string markerHelp_;
+    const static std::string markerSchemaPath_;
     //@}
 
     //! \name Strings containing long markers for command line parameters
@@ -236,6 +256,7 @@ namespace CoupledField
     const static std::string markerLongWriteSkeleton_;
     const static std::string markerLongPrintGrid_;
     const static std::string markerLongHelp_;
+    const static std::string markerLongSchemaPath_;
     //@}
 
 
@@ -299,6 +320,16 @@ namespace CoupledField
     //! \return FALSE
     Boolean DefaultWriteSkeleton() const {
       return FALSE;
+    }
+
+    //! Returns default value for --schemaPath parameter
+
+    //! This method returns default value for --schemaPath parameter. The
+    //! default name and location of the XML schema file is hard-coded
+    //! during compile time making use of the \<XMLSCHEMA\> compile macro.
+    //! \return \<XMLSCHEMA\>
+    std::string DefaultSchemaPath() const {
+      return XMLSCHEMA;
     }
 
     //@}
