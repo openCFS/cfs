@@ -210,17 +210,24 @@ namespace CoupledField {
 	  if ( ( actDescriptor->GetIntegrator()->IsRaylDamping() 
 		 || actDescriptor->GetSecondaryMat() != NOTYPE ) 
 	       && startFreq_ > 0 ) {
+
             // get multiplicative pre factor depending on frequency
 	    if (startFreq_ > 0 && actFreq_ > 0 ) {
-	      FEMatrixType destMat = actDescriptor->GetIntegrator()->GetBaseType();
-	      if ( destMat == STIFFNESS) {
+	      FEMatrixType destMat =
+                actDescriptor->GetIntegrator()->GetBaseType();
+
+	      if ( destMat == STIFFNESS ) {
 		dampTransform = startFreq_ / actFreq_;
+                Info->PrintF( "", " dampTransform (stiffness matrix) = %e",
+                              dampTransform );
 	      }
 	      else if ( destMat == MASS ) {
 		dampTransform = actFreq_ / startFreq_;
+                Info->PrintF( "", " dampTransform (mass matrix) = %e",
+                              dampTransform );
 	      }
 	    }
-	    
+
 	    if ( actDescriptor->GetIntegrator()->IsRaylDamping() ) {
 	      actDescriptor->GetIntegrator()->SetFactor(dampTransform);
 	    }
