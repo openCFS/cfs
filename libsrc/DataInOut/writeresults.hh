@@ -118,9 +118,8 @@ namespace CoupledField {
 				  const ComplexFormat format);
 
     //! to open new file for printing results only for GMV
-    /*!
-      \number number number for output-file (ex. result.gmv001)
-    */
+
+    //! \param number number for output-file (ex. result.gmv001)
     virtual void OpenFile(const Integer number)
     { Error("Not implemented",__FILE__,__LINE__);}
 

@@ -8,7 +8,7 @@ namespace CoupledField {
   //! The main objective of this class is to implement the pure vitual
   //! methods of the BDBInt parent class for the case of a linear 
   //! electrostatic 2D simulation.
-  //! \Note: The class asssumes that the computational 2D area lies in the
+  //! \note: The class asssumes that the computational 2D area lies in the
   //! yz-plane.
   class linElecInt2D : public BDBInt {
     

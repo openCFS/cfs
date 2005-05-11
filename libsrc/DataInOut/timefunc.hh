@@ -21,7 +21,7 @@ public:
     //! Deconstructor
     ~TimeFunc();
 
-    //! return value of time function with number {\tt num} at the time {\tt time}.
+    //! return value of time function with number <em>num</em> at the time <em>time</em>
     /*!
       \param time in: time
       \param fncname in: name of time function
@@ -39,7 +39,7 @@ public:
 
 private:
 
-    //! pointer to input file. needed only for {\tt datfile}.
+    //! pointer to input file. needed only for <em>datfile</em>
     FileType * ptFileType;
 
     //! read time functions from different dat-file

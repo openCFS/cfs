@@ -65,7 +65,7 @@ namespace CoupledField
 			  Double timeOffset = 0.0);
   
   //! set time step
-  //! \params dt Current time step
+  //! \param dt Current time step
   void SetTimeStep(const Double dt);
 
   //! Do Postprocessing as descriped in conf file

@@ -243,8 +243,8 @@ public:
   Vector	operator=	(const Matrix<TYPE> &) const;
 
   //! This method is needed to intialize a StdVector like this
-  //! \verb StdVector<Integer> A;
-  //! \verb A = 1,2,5,10
+  //! StdVector<Integer> A;<br>
+  //! A = 1,2,5,10
   inline VectorListInitializer<TYPE> operator=(const TYPE x);
 
   //! Return part of Vector from index i to ii
