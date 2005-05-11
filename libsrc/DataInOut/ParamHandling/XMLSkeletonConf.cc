@@ -27,7 +27,7 @@ namespace CoupledField {
 
     ENTER_FCN( "SkeletonConf::SkeletonConf" );
 
-    std::string xmlFile = commandLine->GetSimName() + ".xml";
+    std::string xmlFile = commandLine->GetParamFile();
     std::string meshFile = commandLine->GetMeshFile();
 
     // just test, if config-file already exists  
