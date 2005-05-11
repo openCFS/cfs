@@ -335,6 +335,8 @@ namespace CoupledField {
   
     StdVector<std::string> pressSurf_;  //!< surface of pressure loads
     StdVector<Double>      pressVals_;  //!< values of the pressure loads
+    StdVector<Double>      pressPhase_;  //!< phase of the pressure loads 
+    //!(in case of harmonic analysis)
     StdVector<std::string> pressFnc_;   //!< function names of pressure loads
 
     //! pointer to boundary condition object
