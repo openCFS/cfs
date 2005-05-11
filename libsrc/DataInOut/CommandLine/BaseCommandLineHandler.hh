@@ -15,16 +15,35 @@ namespace CoupledField
   //! Base class for handling parameters specified on the command line
 
   //! This class is the base class for all classes that implement the handling
-  //! of parameters specified on the command line. It is a pure virtual class
-  //! which defines the public query methods a command line handler for CFS++
-  //! must provide. These are also the only methods which other CFS classes
-  //! should call on a command line handler.
+  //! of parameters specified on the command line. The class specifies a set
+  //! of pure virtual methods that define the public query methods a command
+  //! line handler for CFS++ must provide. These are also the only methods
+  //! which other CFS classes should call on a command line handler. This
+  //! will allow for easy exchangebility of a concrete implementation of the
+  //! command line handler concept. Another part of the concept is that the
+  //! command line parameters are made available to all parts of CFS++ by
+  //! a global pointer to an instance of this object called ::commandLine .
   //!
+  //! Besides this, the class defines for each parameter a short and a long
+  //! version for setting it on the command line (e.g. -h and --help). These
+  //! are denoted as markers and stored as strings (e.g. markerHelp_ and
+  //! markerLongHelp_). Derived classes should only work using theses strings,
+  //! so that the definition of the marker is restricted to this base class.
+  //! In addition the class defines for for each parameter a short description
+  //! in string format (e.g. helpHelp_) that is used for generating the usage
+  //! information and may also be employed in message generation in a derived
+  //! class.
   //!
-  //! The class requires that for each allowed command line parameter a
-  //! corresponding query method must be provided. The following table
-  //! gives an overview of the allowed parameters and the associated
-  //! query method.
+  //! The class requires that for each allowed command line parameter (with
+  //! the exception of --help) a corresponding query method must be provided
+  //! in the derived class.
+  //! The assignment of default values for parameters that are not explicitely
+  //! assigned on the command line is also done in this base class via
+  //! methods like e.g. DefaultMeshFile(). Derived classes should again make
+  //! use of these methods for assigning default values.
+  //!
+  //! The following table gives an overview of the
+  //! allowed parameters, their types and the associated query method.
   //! \n\n
   //! <center>
   //!   <table border="1" width="80%" cellpadding="10">
@@ -181,9 +200,11 @@ namespace CoupledField
     // STATIC STRING MEMBERS
     // =======================================================================
 
+    //! \name Strings containing explanation of command line parameters
+    //! These strings contain for each command line parameter a brief
+    //! description of its meaning. They are employed e.g. in the PrintUsage()
+    //! method.
     //@{
-    //! \name Strings containing textual explanation of command line
-    //!       parameters
     const static std::string helpSimName_;
     const static std::string helpParamFile_;
     const static std::string helpMeshFile_;
@@ -193,15 +214,22 @@ namespace CoupledField
     const static std::string helpHelp_;
     //@}
 
+    //! \name Strings containing short markers for command line parameters
+    //! These strings specify the command line parameters by defining their
+    //! short form textual representation
     //@{
-    //! \name Strings containing textual markers for command line parameters
     const static std::string markerParamFile_;
     const static std::string markerMeshFile_;
     const static std::string markerTraceDepth_;
     const static std::string markerWriteSkeleton_;
     const static std::string markerPrintGrid_;
     const static std::string markerHelp_;
+    //@}
 
+    //! \name Strings containing long markers for command line parameters
+    //! These strings specify the command line parameters by defining their
+    //! long form textual representation
+    //@{
     const static std::string markerLongParamFile_;
     const static std::string markerLongMeshFile_;
     const static std::string markerLongTraceDepth_;
@@ -216,7 +244,8 @@ namespace CoupledField
     // =======================================================================
 
     //@{
-    //! \name These methods provide default values for the allowed command
+    //! \name Setting default values for command line parameters
+    //!       These methods provide default values for the allowed command
     //!       line parameters. Derived classes should use calls to these
     //!       methods for handling of defaults in their implementation of the
     //!       query methods instead of providing their own defaults.
@@ -272,12 +301,14 @@ namespace CoupledField
       return FALSE;
     }
 
+    //@}
+
+
     // =======================================================================
     // AUXILLIARY METHODS FOR OUTPUTTING INFORMATION
     // =======================================================================
 
-    //@{
-    //! \name Auxilliary methods for outputting information
+    //@{ \name Auxilliary methods for outputting information
 
     //! Print summary of possible command line parameters
 
