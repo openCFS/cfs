@@ -2,8 +2,7 @@
 %
 %
 Here are some notes about parameter identification in piezoelectricity using cfs. 
-There is a new section in the xml - file which looks like this
-
+To the analysis paramIdent belongs the following section
 
 \begin{center}
 \begin{minipage}{0.6\textwidth}
@@ -23,7 +22,7 @@ There is a new section in the xml - file which looks like this
 \end{center}
 
 \noindent How to interpret the different elements?\\
-The best way to check your parameters is of course a comparison of your simulated impedance curve with a measured one (measurements are usually dony by Mr. Leder). Setting \\ \verb!<calcImpedanceCurve>! yes \verb!</calcImpedanceCurve>! leads to a calculation of this curve in the declared intervall $[startFreq,stopFreq]$ with {\em numFreq} evaluation points. The output will be a file called {\em imped.dat} which can be evaluated by MATLAB/GNUPlot ... .The file {\em imped.dat} contains the following values {\it frequency, log(impedance), phase, real(impedance), imag(impedance)} and the simulated {\it charge} at the surface of the piezo.  The calculation will be done before and after the parameter identification process, so you can see if your calculation was successfull or not. Setting \verb!<maxNrOuterIterations>! 0 \verb!</maxNrOuterIterations>! simply computes the impedance curve. Note, parameter values are not taken from {\em mat.dat}. You have to set them in the file {\em measuredData.dat}, see the following subsection.
+The best way to check your parameters is of course a comparison of your simulated impedance curve with a measured one (measurements are usually don by Mr. Leder). Setting \\ \verb!<calcImpedanceCurve>! yes \verb!</calcImpedanceCurve>! leads to a calculation of this curve in the declared interval $[startFreq,stopFreq]$ with {\em numFreq} evaluation points. The output will be a file called {\em imped.dat} which can be evaluated by MATLAB/GNUPlot, ... . The file {\em imped.dat} contains the following values {\it frequency, log(impedance), phase, real(impedance), imag(impedance)} and the simulated {\it charge} at the surface of the piezo.  The calculation will be done before and after the parameter identification process, so you can see if your calculation was successfull or not. Setting \verb!<maxNrOuterIterations>! 0 \verb!</maxNrOuterIterations>! simply computes the impedance curve. Note, parameter values are not taken from the file {\em mat.dat}. You have to set them in the file {\em measuredData.dat}, see the following subsection.
 \\
 \\
 \noindent Performing an effective adaption of the piezoelectric parameters needs as well the additional file {\em measuredData.dat}. In the xml-file the following settings are neccessary:\\
@@ -36,7 +35,7 @@ The best way to check your parameters is of course a comparison of your simulate
 \verb! 2) 30.4564, 20.0388, 13.7411,/! \\
 \verb! 3) 90.4037, 90.7692, 91.4565,/! \\
 
-\noindent Numbers after $1)$ document the frequencies at which we have taken the measurements of amplitudes of $Z$, listed after $2)$ and phases of $Z$ listed after $3)$. The maximal number of measurements is open. Therefore, the end of the data rows need to be closed with the $'/'$-tag which is a kind of eoi (end of input). Do not forget to set a comma after each value. Further entries in the file will be 
+\noindent The numbers following $1)$ document the frequencies at which we have taken measurements of amplitudes of $Z$, listed after $2)$ and phases of $Z$ listed after $3)$. The maximal number of measurements is open. Therefore, the end of the data rows need to be closed with the $'/'$-tag which is a kind of eoi (end of input). Do not forget to set a comma after each value. Further entries in the file will be 
 \\ \\
 \verb! 4) 1.32000E+11, 1.150000E+11, 7.10000E+10, 7.30000E+10,  ... 5.84000E-09,/ ! \\
 \verb! i) 0.069500E+11,0.08940E+11, -0.08080E+11,-0.08960E+11,  ... 0.0830E-08,/!\\
@@ -47,7 +46,7 @@ The best way to check your parameters is of course a comparison of your simulate
 The values after $P)$ and $Q)$ denote booleans which decide wheather the parameter should be updated during the Newton - method or not. Here, all real parts get fitted, from the imaginary parts only the three values $c_{33},e_{33}$ and $\epsilon_{33}$. \\ \\
 \verb! M) 7! \\
 \noindent
-The choice of $M)$ is responsable which 'inexact - Newton - Methos' will be performed, see Table \ref{TableNewtonMethods} for possible options.
+The choice of $M)$ is responsable which 'inexact - Newton - Methods' will be performed, see Table \ref{TableNewtonMethods} for possible options.
 
 \begin{table}
 \begin{center}
