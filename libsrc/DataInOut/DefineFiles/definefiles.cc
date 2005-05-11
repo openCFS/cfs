@@ -111,9 +111,9 @@ namespace CoupledField
 
     ENTER_FCN( "DefineInOutFiles::CreateMeshFileHandler" );
 
-    std::string simName = commandLine->GetSimName();
+    std::string meshFile = commandLine->GetMeshFile();
     if ( params->HasValue( "format", "mesh", "input" ) ) {
-      infileType_ = new AnsysFile( simName.c_str() );
+      infileType_ = new AnsysFile( meshFile.c_str() );
     }
     else {
       Error( "Wrong format for input file. Please, check your data!",
