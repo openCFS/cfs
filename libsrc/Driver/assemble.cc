@@ -1230,6 +1230,7 @@ namespace CoupledField {
     ENTER_FCN( "Assemble::AddRhsSrcSurfIntegrator" );
     BaseIntDescriptor * actRhsID = new  BaseIntDescriptor(integrator, nonLin);
     rhsSrcSurfIntegrators_[SurfDomIndex(subDomName)]->Push_back(actRhsID);
+    rhsSrcSurfPhase_.Resize(1);
     rhsSrcSurfPhase_[SurfDomIndex(subDomName)] = phaseval;
   }
 
@@ -1648,7 +1649,6 @@ namespace CoupledField {
     Double valImag = sin(valPhase);
 
     Integer k=0;
-    std::cout<<" HarmonicAssemble::TransformVector2Harmonic valPhase = " <<valPhase <<std::endl;
     //real part
     for (Integer i=0; i<size; i++) {
       harmVec[k] = origVec[i]*valReal;
