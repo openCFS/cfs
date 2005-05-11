@@ -1,5 +1,9 @@
-#include "singleDriver.hh"
+//#ifndef FILE_
+//#define FILE_PIEZO_PARAM_IDENT
 
+#include "Driver/singleDriver.hh"
+#include <PDE/SinglePDE.hh>
+#include "singleDriver.hh"
 
 namespace CoupledField 
 {
@@ -34,7 +38,15 @@ protected:
   void updateMaterialData(Vector<Double> & parameter, MaterialData * ptMaterial);
   // Domain * ptDomain;
 
-  void calcMultiHarmMassMatrix(Double & omega);
+  SinglePDE * ptMyPDE_;
+
+  void createMHMassMatrix(Integer N);
+
+  // pointers to classes involved
+  //  SinglePDE * ptMyPDE_;
+  BaseSystem * ptAlgsys_;
+  Assemble * ptAssemble_;
+
 
 private:
 
@@ -43,6 +55,8 @@ private:
   Integer numFreq_;
   Integer saveType_;
   Integer nrMultHarms_;
+
+
 
 
   }; // end of class piezoParamIdent
