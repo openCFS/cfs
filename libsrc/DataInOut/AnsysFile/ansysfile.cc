@@ -8,6 +8,7 @@
 #include "Domain/GridCFS/grid_cfs.hh"
 #include "DataInOut/WriteInfo.hh"
 #include "Utils/StdVector.hh"
+#include "DataInOut/CommandLine/BaseCommandLineHandler.hh"
 
 #ifdef ADAPTGRID
 #include "DataInOut/ParamHandling/ConfFile.hh"
@@ -30,14 +31,14 @@ namespace CoupledField {
     maxNumNodes_   = 0;
     actMaxElemNum_ = 0;
 
-    infile.open(strcat(filename,".mesh"));
-    
-    if (!infile.good()) {
-      std::cerr << "ERROR(" << __FILE__ << " " << __LINE__ <<
-        ") Can't open " << filename << std::endl;
-      exit(1);
+    std::string myFile = commandLine->GetMeshFile();
+    infile.open( myFile.c_str() );
+
+    if ( !infile.good() ) {
+      (*error) << "AnsysFile::AnsysFile: Failed to open " << myFile;
+      Error( __FILE__, __LINE__ );
     }
-    
+
     infile.seekg(0, std::ios::end);
     pos_end = infile.tellg();
     
