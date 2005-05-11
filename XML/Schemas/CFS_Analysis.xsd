@@ -125,6 +125,9 @@
       <xsd:extension base="DT_AnalysisBasic">
         <xsd:sequence>
           <xsd:element name="calcImpedanceCurve" type="DT_CFSBool" minOccurs="0" maxOccurs="1" default="no"/>
+          <xsd:element name="calcMechDisplCurve" type="DT_CFSBool" minOccurs="0" maxOccurs="1" default="no"/>
+          <xsd:element name="mechDisplAtNode" type="xsd:nonNegativeInteger"/>
+          <xsd:element name="dofOfMechDispl" type="xsd:nonNegativeInteger"/>
           <xsd:element name="numFreq" type="xsd:nonNegativeInteger"/>
           <xsd:element name="startFreq" type="DT_PosFloat"/>
           <xsd:element name="stopFreq" type="DT_PosFloat"/>
