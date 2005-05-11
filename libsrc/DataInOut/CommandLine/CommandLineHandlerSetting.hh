@@ -68,6 +68,26 @@ namespace CoupledField {
       return paramFile;
     };
 
+    //! Return path to XML schema file
+
+    //! This method can be used to query the path to the XML schema file
+    //! used by validating XML parsers to verify the formal correctness
+    //! of the XML parameter file.
+    //! \note
+    //! - There is currently no way to specify the name of the schema
+    //!   file itself. This must be called CFS.xsd!
+    //! - This path is also used to locate the default XML-file that is
+    //!   currently still needed by the XMLParamHandler.
+    std::string GetSchemaPath() const {
+      ENTER_FCN( "CommandLineHandlerSetting::GetSchemaPath" );
+      std::string schemaPath = DefaultSchemaPath();
+      Setting *aux = commandLine_.getSetting( markerSchemaPath_.c_str() );
+      if ( aux != NULL ) {
+        schemaPath = aux->getString();
+      }
+      return schemaPath;
+    };
+
     //! Return name of mesh file
 
     //! This method can be used to query the name of the mesh file containing
