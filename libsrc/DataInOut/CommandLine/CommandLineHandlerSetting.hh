@@ -94,7 +94,7 @@ namespace CoupledField {
       Boolean retVal = DefaultPrintGrid();
       Setting *aux = commandLine_.getSetting( markerPrintGrid_.c_str() );
       if ( aux != NULL ) {
-        retVal = aux->getBool() == true ? TRUE : FALSE;
+        retVal = TRUE;
       }
       return retVal;
     };
@@ -110,7 +110,7 @@ namespace CoupledField {
       Boolean retVal = DefaultWriteSkeleton();
       Setting *aux = commandLine_.getSetting( markerWriteSkeleton_.c_str() );
       if ( aux != NULL ) {
-        retVal = aux->getBool() == true ? TRUE : FALSE;
+        retVal = TRUE;
       }
       return retVal;
     };
