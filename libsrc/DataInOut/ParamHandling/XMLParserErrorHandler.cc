@@ -8,6 +8,9 @@
 #include "xercesc/sax/ErrorHandler.hpp"
 #include "xercesc/sax/SAXParseException.hpp"
 
+#include "DataInOut/CommandLine/BaseCommandLineHandler.hh"
+#include "General/environment.hh"
+
 // what to do in case of an emergency
 // #define XMLPARSERABORT ERROR( "", __FILE__, __LINE__ );
 #define XMLPARSERABORT exit(1)
@@ -28,7 +31,7 @@ namespace CoupledField
 	      << xercesc::XMLString::transcode( event.getMessage() )
 	      << "\n\n"
               << " XML parsers used the Schema: http://www.cfs++.org\n "
-              << XMLSCHEMA <<  "/CFS.xsd\n" << std::endl;
+              << commandLine->GetSchemaPath() << "/CFS.xsd" << std::endl;
     XMLPARSERABORT;
   }
 
@@ -46,8 +49,7 @@ namespace CoupledField
 	      << xercesc::XMLString::transcode( event.getMessage() )
 	      << "\n\n"
               << " XML parsers used the Schema: http://www.cfs++.org\n "
-              << XMLSCHEMA <<  "/CFS.xsd\n" << std::endl;
-
+              << commandLine->GetSchemaPath() << "/CFS.xsd" << std::endl;
     XMLPARSERABORT;
   }
 
@@ -66,7 +68,7 @@ namespace CoupledField
 	      << xercesc::XMLString::transcode( event.getMessage() )
 	      << "\n\n"
               << " XML parsers used the Schema: http://www.cfs++.org\n "
-              << XMLSCHEMA <<  "/CFS.xsd\n" << std::endl;
+              << commandLine->GetSchemaPath() << "/CFS.xsd" << std::endl;
     XMLPARSERABORT;
   }
 

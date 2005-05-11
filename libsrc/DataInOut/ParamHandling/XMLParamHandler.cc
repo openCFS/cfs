@@ -27,9 +27,10 @@ using namespace xercesc;
 // includes from CFS++ itself
 #include "General/environment.hh"
 #include "DataInOut/WriteInfo.hh"
-#include "BaseParamHandler.hh"
-#include "XMLParamHandler.hh"
-#include "XMLParserErrorHandler.hh"
+#include "DataInOut/CommandLine/BaseCommandLineHandler.hh"
+#include "DataInOut/ParamHandling/BaseParamHandler.hh"
+#include "DataInOut/ParamHandling/XMLParamHandler.hh"
+#include "DataInOut/ParamHandling/XMLParserErrorHandler.hh"
 #include "Utils/tools.hh"
 
 
@@ -48,9 +49,6 @@ namespace CoupledField {
 
     ENTER_FCN( "XMLParamHandler::XMLParamHandler" );
 
-    // String for assembling error messages
-    std::string errmsg;
-
     // Initialise the XML4C2 system
     try {
       XMLPlatformUtils::Initialize();
@@ -64,8 +62,8 @@ namespace CoupledField {
 
 
 #ifdef DEBUG
-    std::cout << "XML parsers uses Schema: http://www.cfs++.org ";
-    std::cout << XMLSCHEMA <<  "/CFS.xsd" << std::endl;
+    std::cout << "\n\n XML parsers uses the Schema: http://www.cfs++.org\n "
+              << commandLine->GetSchemaPath() << "/CFS.xsd" << std::endl;
 #endif
 
 
@@ -87,7 +85,7 @@ namespace CoupledField {
     rootElem_ = ParseFile( &parser_, fname );
 
     // Generate parser and parse XML defaults file
-    cfsDefaults_ = XMLSCHEMA;
+    cfsDefaults_ = commandLine->GetSchemaPath();
     cfsDefaults_ += "/Defaults/CFS++Defaults.xml";
     rootElemDefaults_ = ParseFile( &parserDefaults_, cfsDefaults_.c_str() );
 
@@ -1734,8 +1732,12 @@ namespace CoupledField {
 
     // We may separate the schema file from the instance file
     cfsSchema_ = "http://www.cfs++.org ";
-    cfsSchema_ += XMLSCHEMA;
+    cfsSchema_ += commandLine->GetSchemaPath();
     cfsSchema_ += "/CFS.xsd";
+
+    // cfsSchema_ = "http://www.cfs++.org ";
+    // cfsSchema_ += XMLSCHEMA;
+    // cfsSchema_ += "/CFS.xsd";
 
     (*parser)->setExternalSchemaLocation( cfsSchema_.c_str() );
 
