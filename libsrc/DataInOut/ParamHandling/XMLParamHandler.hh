@@ -14,8 +14,8 @@
 #include "xercesc/parsers/XercesDOMParser.hpp"
 #include "xercesc/util/XMLUni.hpp"
 
-namespace CoupledField
-{
+
+namespace CoupledField {
 
   // Forward declaration of classes
   class BaseParamHandler;
@@ -36,8 +36,8 @@ namespace CoupledField
   //! parameters. These hide the underlying XML/DOM structure.
   //! \todo Check the class for memory leaks. We might introduce some leaks by
   //! the string conersion routines. Also it is not yet clear, whether we are
-  //! expected to free the results from getElementsByTagName() and the like, or
-  //! if this is even forbidden.
+  //! expected to free the results from getElementsByTagName() and the like,
+  //! or if this is even forbidden.
   //! \note With respect to function tracing the policy of this class is the
   //! following. All public methods use ENTER_FCN, while all other methods,
   //! besides those defined in the header itself, use ENTER_IFCN. The latter
@@ -61,9 +61,9 @@ namespace CoupledField
     ~XMLParamHandler();
 
 
-    // ========================================================================
+    // =======================================================================
     // Simple query methods without side constraints
-    // ========================================================================
+    // =======================================================================
 
     //@{
     //! \name Simple query methods without side constraints
@@ -102,9 +102,9 @@ namespace CoupledField
     //@}
 
 
-    // ========================================================================
+    // =======================================================================
     // Query methods allowing side-constraints and expecting vectors as input
-    // ========================================================================
+    // =======================================================================
 
     //@{
     //! \name Query methods allowing side-constraints
@@ -144,9 +144,9 @@ namespace CoupledField
     //! expect this final match to be unique, while the GetList methods will
     //! also return a (possibly empty) StdVector of results, if there is no
     //! or multiple matches.\n\n
-    //! The following is an example set of search parameters. We are trying to
-    //! determine here the analysis type for the mechanic PDE in second step of
-    //! a multi-sequence analysis:
+    //! The following is an example set of search parameters. We are trying
+    //! to determine here the analysis type for the mechanic PDE in second
+    //! step of a multi-sequence analysis:
     //! \f[\mbox{keyVec} = \left(\begin{array}{c}
     //! \mbox{"cfsSimulation"} \\
     //! \mbox{"multiSequence"} \\
@@ -210,9 +210,9 @@ namespace CoupledField
     //@}
 
 
-    // ========================================================================
+    // =======================================================================
     // Specialised query methods
-    // ========================================================================
+    // =======================================================================
 
     //@{
     //! \name Specialised query methods
@@ -275,7 +275,8 @@ namespace CoupledField
 
     //! This auxilliary routine can be used to generate for search parameters
     //! specified in the simple style by giving 'key', 'section' and
-    //! 'subsection' arguments corresponding keyVec, attrVec and valVec vectors
+    //! 'subsection' arguments corresponding keyVec, attrVec and valVec
+    //! vectors
     void GenerateSearchParams( const std::string key,
 			       const std::string section,
 			       const std::string subsection,
@@ -284,9 +285,9 @@ namespace CoupledField
 			       StdVector<std::string> &valVec );
 
 
-    // ************************************************************************
+    // ***********************************************************************
     //   Private Auxilliary Methods: Problem Handlers
-    // ************************************************************************
+    // ***********************************************************************
 
     //@{
     //! \name Routines for handling problems and default parameters
@@ -317,9 +318,9 @@ namespace CoupledField
     //! Error reporter for the case that we have no match at all
 
     //! This method is called by the methods handling the no match case, if
-    //! no default value was found either. The method assembles a corresponding
-    //! error message and sends this to the error method of the WriteInfo
-    //! class.
+    //! no default value was found either. The method assembles a
+    //! corresponding error message and sends this to the error method of
+    //! the WriteInfo class.
     void NoMatchErrorReporter( const StdVector<std::string> &keyVec,
 			       const StdVector<std::string> &attrVec,
 			       const StdVector<std::string> &valVec );
@@ -327,11 +328,11 @@ namespace CoupledField
     //! Determine default value for a parameter
 
     //! This method will try to determine, whether for a given set of search
-    //! parameters a default value exists. If this is the case, then the method
-    //! will return TRUE and defaultValue will contain the default value of the
-    //! parameter in string format. If there is no default parameter specified,
-    //! then the method will return FALSE and defaultValue will be set to the
-    //! empty string.
+    //! parameters a default value exists. If this is the case, then the
+    //! method will return TRUE and defaultValue will contain the default
+    //! value of the parameter in string format. If there is no default
+    //! parameter specified, then the method will return FALSE and
+    //! defaultValue will be set to the empty string.
     Boolean CheckForDefault(  const StdVector<std::string> &keyVec,
 			      const StdVector<std::string> &attrVec,
 			      const StdVector<std::string> &valVec,
@@ -340,9 +341,9 @@ namespace CoupledField
     //@}
 
 
-    // ************************************************************************
+    // ***********************************************************************
     //   Private Auxilliary Methods: Conversion Routines for Strings
-    // ************************************************************************
+    // ***********************************************************************
 
     //@{
     //! \name Conversion routines for string representations:
@@ -410,9 +411,9 @@ namespace CoupledField
     //@}
 
 
-    // ************************************************************************
+    // ***********************************************************************
     //   Private Auxilliary Methods: Conversion Routines for Nodes
-    // ************************************************************************
+    // ***********************************************************************
 
     //@{
     //! \name Conversion routines for nodes:
@@ -443,9 +444,9 @@ namespace CoupledField
     //@}
 
 
-    // ************************************************************************
+    // ***********************************************************************
     //   Private Auxilliary Methods: Search Routines
-    // ************************************************************************
+    // ***********************************************************************
 
     //@{
     //! \name Search routines:
@@ -481,9 +482,9 @@ namespace CoupledField
     //! prescribed name. The path to the elements that are tested for having
     //! the prescribed attribute is specified by given the certain keywords
     //! and the corresponding side-constraints. The method makes use of
-    //! FindMatchingElements for determining these elements. The method returns
-    //! a pointer to a vector of the found attributes. If no attributes were
-    //! found, the vector has zero length.
+    //! FindMatchingElements for determining these elements. The method
+    //! returns a pointer to a vector of the found attributes.
+    //! If no attributes were found, the vector has zero length.
     //! \param attr_key Name of desired attribute
     //! \param keys     Vector of keywords
     //! \param attribs  Vector of attributes used as side-constraints
@@ -501,8 +502,8 @@ namespace CoupledField
     //! This method will determine all elements and attributes matching the
     //! search criteria specified by the given keywords and side-constraints.
     //! It makes use of the FindMatchingElements and FindMatchingAttributes
-    //! methods for this. If there are matches for both elements and attributes
-    //! an error will be reported and program execution terminated.
+    //! methods for this. If there are matches for both elements and
+    //! attributes an error will be reported and program execution terminated.
     //! The method will extract the values of the found elements or attributes
     //! and return them in a vecotr of strings. If there are no matches, this
     //! vector will have zero length.
@@ -540,9 +541,9 @@ namespace CoupledField
     //@}
 
 
-    // ************************************************************************
+    // ***********************************************************************
     //   Private Auxilliary Methods: Obtain / Test values
-    // ************************************************************************
+    // ***********************************************************************
 
     //@{
     //! \name Routines to obtain/test the value of an element or attribute
@@ -582,9 +583,9 @@ namespace CoupledField
     //!                       an attribute with specified name
     //! \note In the case that the attribute we are looking for is the 'tag'
     //!       attribute used in a 'multiSequence' analysis, we do not go for
-    //!       a one-to-one match of the attribute against the prescribed value,
-    //!       but instead call MatchesTag to determine, whether this is a
-    //!       matching element.
+    //!       a one-to-one match of the attribute against the prescribed
+    //!       value, but instead call MatchesTag to determine, whether this
+    //!       is a matching element.
     bool AttribHasValue( xercesc::DOMElement* elem,
 			 const std::string attribute,
 			 const std::string value,
@@ -625,16 +626,16 @@ namespace CoupledField
     //@}
 
 
-    // ************************************************************************
+    // ***********************************************************************
     //   Private class attributes
-    // ************************************************************************
+    // ***********************************************************************
 
     //! Parser object
 
     //! This is a pointer to the XercesDOMParser object for the XML parameter
     //! file. The parser is the owner of the DOMDocument it generates. Thus,
-    //! deleting the parser will also delete the document, i.e. all information
-    //! on the steering parameters.
+    //! deleting the parser will also delete the document, i.e. all
+    //! information on the steering parameters.
     xercesc::XercesDOMParser *parser_;
 
     //! Parser object for defaults
