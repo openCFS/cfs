@@ -91,6 +91,7 @@
 # HYPRE_ROOT
 # TVMET_ROOT
 # XERCES_ROOT
+# METIS_ROOT
 # SCHEMA_ROOT
 #
 # -----------------------------------------------------------------------------
@@ -279,6 +280,7 @@ $(INCDIR_ADAPTIVITY) $(INCDIR_TVMET)
 #  - ADAPTIVITY
 #  - XERCES
 #  - TVMET
+#  - METIS
 #
 # These will be combined into a COMPILE_MACROS parameter
 # -----------------------------------------------------------------------------
@@ -325,9 +327,16 @@ else
   MACRO_TVMET = -DOLAS_SCALAR_ONLY
 endif
 
+# METIS
+ifeq "$(METIS)" "yes"
+  MACRO_METIS =
+else
+  MACRO_METIS = -DUSE_METIS
+endif
+
 # Combine everything
 COMPILE_MACROS = $(MARCO_DATABASE) $(MACRO_MPCCI) $(MACRO_ADAPTIVITY) \
-                 $(MACRO_GSI) $(MACRO_XERCES) $(MACRO_TVMET)
+                 $(MACRO_GSI) $(MACRO_XERCES) $(MACRO_TVMET) $(MACRO_METIS)
 
 
 # -----------------------------------------------------------------------------
