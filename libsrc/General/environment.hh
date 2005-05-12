@@ -212,11 +212,14 @@ namespace CoupledField
 
   class BaseCommandLineHandler;
   //! Global pointer to class performing handling of command line parameters
+
+  //! This is a global pointer to an object of type %BaseCommandLineHandler.
+  //! Via this pointer the command line parameters and derived quantities
+  //! (like e.g. the name of the current simulation run and the name of the
+  //! mesh-file) are available in each module of CFS++.
   extern BaseCommandLineHandler *commandLine;
 
-  //! class BaseElem;
   class BaseFE;
-
   //! Pointers to derived classes of BaseElem. Initialized in grid.hh/grid.cc.
   //! They are used, when we read information about elements from mesh and
   //! create a pointer to the class containing the description of the Finite
