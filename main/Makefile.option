@@ -120,20 +120,6 @@ ifeq ("$(SCHEMA_ROOT)","")
 SCHEMA_ROOT = /home/data/proj/share/CFS++XML
 endif
 
-# -----------------------------------------------------------------------------
-# FUNCTION TRACING
-#
-# Function tracing depth
-# TRACE = 0: no fct. tracing at all
-# TRACE >= 100: Trace also inline fct.
-# Note: Tracing is activated only if compiling a debug version
-# see make.mach.LINUXg and so on.
-# Note: If TRACE = 0 the TRACE macro will not be defined. Thus trace will
-# be a NULL pointer. This can be problematic, if e.g. LAS was compiled with
-# LINUXg
-# -----------------------------------------------------------------------------
-TRACE = 0
-
 
 # -----------------------------------------------------------------------------
 # CFS++ FUNCTIONALITY
