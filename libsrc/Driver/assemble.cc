@@ -232,19 +232,11 @@ namespace CoupledField {
 		dampTransform = matDataFreq / actFreq_;
                 Info->PrintF( "", " dampTransform (stiffness matrix) = %e\n",
                               dampTransform );
-                std::cerr << " -> matDataFreq   = " << matDataFreq << '\n';
-                std::cerr << " -> actFreq_      = " << actFreq_ << '\n';
-                std::cerr << " -> startFreq_    = " << startFreq_ << '\n';
-                std::cerr << " -> dampTransform = " << dampTransform << '\n';
 	      }
 	      else if ( destMat == MASS ) {
 		dampTransform = actFreq_ / matDataFreq;
                 Info->PrintF( "", " dampTransform (mass matrix) = %e\n",
                               dampTransform );
-                std::cerr << " -> matDataFreq   = " << matDataFreq << '\n';
-                std::cerr << " -> actFreq_      = " << actFreq_ << '\n';
-                std::cerr << " -> startFreq_    = " << startFreq_ << '\n';
-                std::cerr << " -> dampTransform = " << dampTransform << '\n';
 	      }
 	    }
 
